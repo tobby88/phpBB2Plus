@@ -41,7 +41,10 @@ function _sql($sql, &$errored, &$error_ary, $echo_dot = true)
 
 @set_time_limit(120);
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB'))
+{
+    define( 'IN_PHPBB', 1);
+}
 $phpbb_root_path = './../';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'config.'.$phpEx);

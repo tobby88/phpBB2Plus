@@ -20,7 +20,10 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB'))
+{
+    define( 'IN_PHPBB', 1);
+}
 // Start add - Admin add user MOD
 // define a "dummy user", the profile settings of this user, will be used as default settings for new users
 define('DEFAULT_USER_ID', 2);

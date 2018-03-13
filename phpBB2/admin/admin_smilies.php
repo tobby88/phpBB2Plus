@@ -26,7 +26,10 @@
 // Tell the Security Scanner that reachable code in this file is not a security issue
 
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB'))
+{
+    define( 'IN_PHPBB', 1);
+}
 
 //
 // First we do the setmodules stuff for the admin cp.
