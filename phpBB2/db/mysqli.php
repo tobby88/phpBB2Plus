@@ -29,8 +29,6 @@ class sql_db
 
 	var $db_connect_id;
 	var $query_result;
-	var $row = array();
-	var $rowset = array();
 	var $num_queries = 0;
 
 	//
@@ -109,8 +107,6 @@ class sql_db
 		}
 		if($this->query_result)
 		{
-			unset($this->row[$this->query_result]);
-			unset($this->rowset[$this->query_result]);
 			return $this->query_result;
 		}
 		else
@@ -206,8 +202,8 @@ class sql_db
 		}
 		if($query_id)
 		{
-			$this->row[$query_id] = @mysqli_fetch_array($query_id);
-			return $this->row[$query_id];
+			$result = @mysqli_fetch_array($query_id);
+			return $result;
 		}
 		else
 		{
@@ -222,11 +218,9 @@ class sql_db
 		}
 		if($query_id)
 		{
-			unset($this->rowset[$query_id]);
-			unset($this->row[$query_id]);
-			while($this->rowset[$query_id] = @mysqli_fetch_array($query_id))
+			while($row = @mysqli_fetch_array($query_id))
 			{
-				$result[] = $this->rowset[$query_id];
+				$result[] = $row;
 			}
 			return $result;
 		}
@@ -265,23 +259,10 @@ class sql_db
 			}
 			else
 			{
-				if(empty($this->row[$query_id]) && empty($this->rowset[$query_id]))
+				$row = $this->sql_fetchrow();
+				if($row)
 				{
-					if($this->sql_fetchrow())
-					{
-						$result = $this->row[$query_id][$field];
-					}
-				}
-				else
-				{
-					if($this->rowset[$query_id])
-					{
-						$result = $this->rowset[$query_id][0][$field];
-					}
-					else if($this->row[$query_id])
-					{
-						$result = $this->row[$query_id][$field];
-					}
+					$result = $row[$field];
 				}
 			}
 			return $result;
@@ -325,9 +306,6 @@ class sql_db
 
 		if ( $query_id )
 		{
-			unset($this->row[$query_id]);
-			unset($this->rowset[$query_id]);
-
 			@mysqli_free_result($query_id);
 
 			return true;
