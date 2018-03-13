@@ -380,7 +380,7 @@ else
 				{
 					for($i = 1; $i < count($forward_match); $i++)
 					{
-						if( !ereg("sid=", $forward_match[$i]) )
+						if( !preg_match("/sid=/", $forward_match[$i]) )
 						{
 							if( $forward_page != '' )
 							{
