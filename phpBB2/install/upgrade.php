@@ -48,7 +48,7 @@ if ( !defined('INSTALLING') )
 //
 // Force the DB type to be MySQL
 //
-$dbms = 'mysql';
+$dbms = 'mysqli';
 
 include($phpbb_root_path . 'includes/db.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
