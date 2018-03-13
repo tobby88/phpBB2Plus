@@ -447,7 +447,7 @@ function get_table_def_mysql($table, $crlf)
 
 	$schema_create .= "$crlf);";
 
-	if(get_magic_quotes_runtime())
+	if(false)
 	{
 		return(stripslashes($schema_create));
 	}

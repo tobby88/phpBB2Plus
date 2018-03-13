@@ -28,7 +28,6 @@ die('This is to update the phpBB<b>1</b> to phpBB2.<br>phpBB1 is the first versi
 if ( !defined('INSTALLING') )
 {
 	error_reporting  (E_ERROR | E_WARNING | E_PARSE); // This will NOT report uninitialized variables
-	set_magic_quotes_runtime(0); // Disable magic_quotes_runtime
 
 	//
 	// If we are being called from the install script then we don't need these
