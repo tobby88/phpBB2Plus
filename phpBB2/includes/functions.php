@@ -1750,8 +1750,60 @@ function utf8_rawurldecode($source)
 function ajax_htmlspecialchars($text)
 {
 	global $html_entities_match, $html_entities_replace;
-	
+
 	return preg_replace($html_entities_match, $html_entities_replace, $text);
+}
+
+/**
+ * Build links for the modern social-profile fields imported from IntegraMOD.
+ *
+ * The old AIM/YIM/MSN fields remain available for backwards compatibility.
+ * Values in the new fields are account names/IDs, not complete URLs.
+ */
+function phpbb_social_profile_links($row)
+{
+	global $images, $lang;
+
+	$definitions = array(
+		'FB'  => array('user_fb',  'https://www.facebook.com/',       ''),
+		'IG'  => array('user_ig',  'https://www.instagram.com/',      ''),
+		'PT'  => array('user_pt',  'https://www.pinterest.com/',      ''),
+		'TWR' => array('user_twr', 'https://twitter.com/',            ''),
+		'SKP' => array('user_skp', 'skype:',                          '?call'),
+		'TG'  => array('user_tg',  'https://t.me/',                   ''),
+		'LI'  => array('user_li',  'https://www.linkedin.com/in/',    ''),
+		'TT'  => array('user_tt',  'https://www.tiktok.com/@',        ''),
+		'DC'  => array('user_dc',  'https://discord.com/users/',      '')
+	);
+	$links = array();
+
+	foreach ($definitions as $name => $definition)
+	{
+		$field = $definition[0];
+		$value = isset($row[$field]) ? trim((string) $row[$field]) : '';
+		$label = isset($lang[$name]) ? $lang[$name] : $name;
+		$links[$name] = '';
+		$links[$name . '_IMG'] = '';
+
+		if ($value === '')
+		{
+			continue;
+		}
+
+		$value = ltrim($value, '@');
+		$url = $definition[1] . rawurlencode($value) . $definition[2];
+		$url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+		$escaped_label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+		$links[$name] = '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $escaped_label . '</a>';
+
+		$image_key = 'icon_' . strtolower($name);
+		if (!empty($images[$image_key]))
+		{
+			$links[$name . '_IMG'] = '<a href="' . $url . '" target="_blank" rel="noopener noreferrer" title="' . $escaped_label . '"><img src="' . $images[$image_key] . '" alt="' . $escaped_label . '" border="0" /></a>';
+		}
+	}
+
+	return $links;
 }
 
 ?>

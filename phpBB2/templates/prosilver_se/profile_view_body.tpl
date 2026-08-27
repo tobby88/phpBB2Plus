@@ -34,6 +34,7 @@
 					<dt>{L_TELEGRAM}: </dt><dd>{TG}</dd>					
 					<dt>{L_LINKEDIN}: </dt><dd>{LI}</dd>
 					<dt>{L_TIKTOK}: </dt><dd>{TT}</dd>					
+					<dt>{L_DISCORD}: </dt><dd>{DC}</dd>
 				</dl>
 			</div>
 			<div class="column2">

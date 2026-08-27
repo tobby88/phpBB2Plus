@@ -204,6 +204,7 @@ $msn = $msn_img;
 
 $yim_img = ( $profiledata['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $profiledata['user_yim'] . '&amp;.src=pg"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
 $yim = ( $profiledata['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $profiledata['user_yim'] . '&amp;.src=pg">' . $lang['YIM'] . '</a>' : '';
+$social = phpbb_social_profile_links($profiledata);
 
 $temp_url = append_sid("search.$phpEx?search_author=" . urlencode($profiledata['username']) . "&amp;showresults=posts");
 $search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $profiledata['username']) . '" title="' . sprintf($lang['Search_user_posts'], $profiledata['username']) . '" border="0" /></a>';
@@ -313,6 +314,24 @@ $template->assign_vars(array(
 	'MSN' => $msn,
 	'YIM_IMG' => $yim_img,
 	'YIM' => $yim,
+	'FB_IMG' => $social['FB_IMG'],
+	'FB' => $social['FB'],
+	'IG_IMG' => $social['IG_IMG'],
+	'IG' => $social['IG'],
+	'PT_IMG' => $social['PT_IMG'],
+	'PT' => $social['PT'],
+	'TWR_IMG' => $social['TWR_IMG'],
+	'TWR' => $social['TWR'],
+	'SKP_IMG' => $social['SKP_IMG'],
+	'SKP' => $social['SKP'],
+	'TG_IMG' => $social['TG_IMG'],
+	'TG' => $social['TG'],
+	'LI_IMG' => $social['LI_IMG'],
+	'LI' => $social['LI'],
+	'TT_IMG' => $social['TT_IMG'],
+	'TT' => $social['TT'],
+	'DC_IMG' => $social['DC_IMG'],
+	'DC' => $social['DC'],
 
 	// FLAGHACK-start
 	'LOCATION' => $location,
@@ -354,6 +373,15 @@ $template->assign_vars(array(
 	'L_YAHOO' => $lang['YIM'],
 	'L_AIM' => $lang['AIM'],
 	'L_MESSENGER' => $lang['MSNM'],
+	'L_FACEBOOK' => $lang['FB'],
+	'L_INSTAGRAM' => $lang['IG'],
+	'L_PINTEREST' => $lang['PT'],
+	'L_TWITTER' => $lang['TWR'],
+	'L_SKYPE' => $lang['SKP'],
+	'L_TELEGRAM' => $lang['TG'],
+	'L_LINKEDIN' => $lang['LI'],
+	'L_TIKTOK' => $lang['TT'],
+	'L_DISCORD' => $lang['DC'],
 	'L_WEBSITE' => $lang['Website'],
 	'L_LOCATION' => $lang['Location'],
 	'L_OCCUPATION' => $lang['Occupation'],

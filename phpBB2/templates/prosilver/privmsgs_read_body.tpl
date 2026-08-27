@@ -51,6 +51,7 @@
         					{TG_IMG}
         					{LI_IMG}
         					{TT_IMG}
+							{DC_IMG}
 						</ul></dd>
 					</dl>
 					<span class="corners-bottom"><span></span></span></div>

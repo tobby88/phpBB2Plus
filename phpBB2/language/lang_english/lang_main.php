@@ -103,6 +103,16 @@ $lang['ICQ'] = 'ICQ Number';
 $lang['AIM'] = 'AIM Address';
 $lang['MSNM'] = 'MSN Messenger';
 $lang['YIM'] = 'Yahoo Messenger';
+$lang['FB'] = 'Facebook';
+$lang['IG'] = 'Instagram';
+$lang['PT'] = 'Pinterest';
+$lang['TWR'] = 'X / Twitter';
+$lang['SKP'] = 'Skype';
+$lang['TG'] = 'Telegram';
+$lang['LI'] = 'LinkedIn';
+$lang['TT'] = 'TikTok';
+$lang['DC'] = 'Discord';
+$lang['Social_user_id_explain'] = 'Enter the account name or user ID, not a complete URL.';
 
 $lang['Forum_Index'] = '%s Forum Index';  // eg. sitename Forum Index, %s can be removed if you prefer
 
@@ -1350,7 +1360,7 @@ $lang['Recent_title_last24'] = ' from the last 24 hours';
 $lang['Recent_title_lastweek'] = ' from the last week';
 $lang['Recent_title_lastXdays'] = ' from the last %s days'; // %s = days
 $lang['Recent_no_topics'] = 'No topics were found.';
-$lang['Recent_wrong_mode'] = 'You´ve selected a wrong mode.';
+$lang['Recent_wrong_mode'] = 'YouÂ´ve selected a wrong mode.';
 $lang['Recent_click_return'] = 'Click %shere%s to return to recent site.';
 
 // Bottom of Page Link MOD - Daz - ForumImages.com - START/END Line Below

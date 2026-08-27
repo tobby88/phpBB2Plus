@@ -161,7 +161,7 @@ $profile_data = get_fields('WHERE view_in_memberlist = ' . VIEW_IN_MEMBERLIST . 
 $profile_data_sql = get_udata_txt($profile_data);
 // END Custom Profile Fields MOD
 
-$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_lastlogon, user_allow_viewonline, user_from, user_from_flag, user_website, user_email, user_icq, user_aim, user_yim, user_msnm, user_avatar, user_avatar_type, user_allowavatar, user_allow_viewonline, user_session_time".$profile_data_sql." 
+$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_lastlogon, user_allow_viewonline, user_from, user_from_flag, user_website, user_email, user_icq, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_avatar, user_avatar_type, user_allowavatar, user_allow_viewonline, user_session_time".$profile_data_sql."
 	FROM " . USERS_TABLE . "
 	WHERE user_id <> " . ANONYMOUS . "
 	ORDER BY $order_by";
@@ -258,6 +258,7 @@ if ( $row = $db->sql_fetchrow($result) )
 
 		$yim_img = ( $row['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $row['user_yim'] . '&amp;.src=pg"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
 		$yim = ( $row['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $row['user_yim'] . '&amp;.src=pg">' . $lang['YIM'] . '</a>' : '';
+		$social = phpbb_social_profile_links($row);
 
 		$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username) . "&amp;showresults=posts");
 		$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $username) . '" title="' . sprintf($lang['Search_user_posts'], $username) . '" border="0" /></a>';
@@ -320,6 +321,24 @@ if ( $row = $db->sql_fetchrow($result) )
 			'MSN' => $msn,
 			'YIM_IMG' => $yim_img,
 			'YIM' => $yim,
+			'FB_IMG' => $social['FB_IMG'],
+			'FB' => $social['FB'],
+			'IG_IMG' => $social['IG_IMG'],
+			'IG' => $social['IG'],
+			'PT_IMG' => $social['PT_IMG'],
+			'PT' => $social['PT'],
+			'TWR_IMG' => $social['TWR_IMG'],
+			'TWR' => $social['TWR'],
+			'SKP_IMG' => $social['SKP_IMG'],
+			'SKP' => $social['SKP'],
+			'TG_IMG' => $social['TG_IMG'],
+			'TG' => $social['TG'],
+			'LI_IMG' => $social['LI_IMG'],
+			'LI' => $social['LI'],
+			'TT_IMG' => $social['TT_IMG'],
+			'TT' => $social['TT'],
+			'DC_IMG' => $social['DC_IMG'],
+			'DC' => $social['DC'],
 			// Photo Album Link MOD - Daz - ForumImages.com - START
 			'GALLERY_IMG' => $gallery_img,
 			'GALLERY' => $gallery,

@@ -782,7 +782,7 @@ else if ( $group_id )
 	//
 	// Get moderator details for this group
 	//
-	$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_from, user_website, user_email, user_icq, user_aim, user_yim, user_msnm  
+	$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_from, user_website, user_email, user_icq, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc
 		FROM " . USERS_TABLE . " 
 		WHERE user_id = " . $group_info['group_moderator'];
 	if ( !($result = $db->sql_query($sql)) )
@@ -795,7 +795,7 @@ else if ( $group_id )
 	//
 	// Get user information for this group
 	//
-	$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm, ug.user_pending 
+	$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, ug.user_pending
 		FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug
 		WHERE ug.group_id = $group_id
 			AND u.user_id = ug.user_id
@@ -811,7 +811,7 @@ else if ( $group_id )
 	$members_count = count($group_members);
 	$db->sql_freeresult($result);
 
-	$sql = "SELECT u.username, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm
+	$sql = "SELECT u.username, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc
 		FROM " . GROUPS_TABLE . " g, " . USER_GROUP_TABLE . " ug, " . USERS_TABLE . " u
 		WHERE ug.group_id = $group_id
 			AND g.group_id = ug.group_id
@@ -917,6 +917,7 @@ else if ( $group_id )
 	$user_id = $group_moderator['user_id'];
 
 	generate_user_info($group_moderator, $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
+	$mod_social = phpbb_social_profile_links($group_moderator);
 
 	$s_hidden_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
 	if ( $group_moderator['user_absence'] == TRUE )
@@ -987,6 +988,24 @@ else if ( $group_id )
 		'MOD_MSN' => $msn,
 		'MOD_YIM_IMG' => $yim_img,
 		'MOD_YIM' => $yim,
+		'MOD_FB_IMG' => $mod_social['FB_IMG'],
+		'MOD_FB' => $mod_social['FB'],
+		'MOD_IG_IMG' => $mod_social['IG_IMG'],
+		'MOD_IG' => $mod_social['IG'],
+		'MOD_PT_IMG' => $mod_social['PT_IMG'],
+		'MOD_PT' => $mod_social['PT'],
+		'MOD_TWR_IMG' => $mod_social['TWR_IMG'],
+		'MOD_TWR' => $mod_social['TWR'],
+		'MOD_SKP_IMG' => $mod_social['SKP_IMG'],
+		'MOD_SKP' => $mod_social['SKP'],
+		'MOD_TG_IMG' => $mod_social['TG_IMG'],
+		'MOD_TG' => $mod_social['TG'],
+		'MOD_LI_IMG' => $mod_social['LI_IMG'],
+		'MOD_LI' => $mod_social['LI'],
+		'MOD_TT_IMG' => $mod_social['TT_IMG'],
+		'MOD_TT' => $mod_social['TT'],
+		'MOD_DC_IMG' => $mod_social['DC_IMG'],
+		'MOD_DC' => $mod_social['DC'],
 
 		'U_MOD_VIEWPROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id"), 
 		'U_SEARCH_USER' => append_sid("search.$phpEx?mode=searchuser"), 
@@ -1012,6 +1031,7 @@ else if ( $group_id )
 		$user_id = $group_members[$i]['user_id'];
 
 		generate_user_info($group_members[$i], $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
+		$social = phpbb_social_profile_links($group_members[$i]);
 
 		if ( $group_info['group_type'] != GROUP_HIDDEN || $is_group_member || $is_moderator )
 		{
@@ -1049,6 +1069,24 @@ else if ( $group_id )
 				'MSN' => $msn,
 				'YIM_IMG' => $yim_img,
 				'YIM' => $yim,
+				'FB_IMG' => $social['FB_IMG'],
+				'FB' => $social['FB'],
+				'IG_IMG' => $social['IG_IMG'],
+				'IG' => $social['IG'],
+				'PT_IMG' => $social['PT_IMG'],
+				'PT' => $social['PT'],
+				'TWR_IMG' => $social['TWR_IMG'],
+				'TWR' => $social['TWR'],
+				'SKP_IMG' => $social['SKP_IMG'],
+				'SKP' => $social['SKP'],
+				'TG_IMG' => $social['TG_IMG'],
+				'TG' => $social['TG'],
+				'LI_IMG' => $social['LI_IMG'],
+				'LI' => $social['LI'],
+				'TT_IMG' => $social['TT_IMG'],
+				'TT' => $social['TT'],
+				'DC_IMG' => $social['DC_IMG'],
+				'DC' => $social['DC'],
 				
 				'U_VIEWPROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id"))
 			);
@@ -1108,6 +1146,7 @@ else if ( $group_id )
 				$user_id = $modgroup_pending_list[$i]['user_id'];
 
 				generate_user_info($modgroup_pending_list[$i], $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
+				$social = phpbb_social_profile_links($modgroup_pending_list[$i]);
 
 				$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 				$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
@@ -1145,6 +1184,24 @@ else if ( $group_id )
 					'MSN' => $msn,
 					'YIM_IMG' => $yim_img,
 					'YIM' => $yim,
+					'FB_IMG' => $social['FB_IMG'],
+					'FB' => $social['FB'],
+					'IG_IMG' => $social['IG_IMG'],
+					'IG' => $social['IG'],
+					'PT_IMG' => $social['PT_IMG'],
+					'PT' => $social['PT'],
+					'TWR_IMG' => $social['TWR_IMG'],
+					'TWR' => $social['TWR'],
+					'SKP_IMG' => $social['SKP_IMG'],
+					'SKP' => $social['SKP'],
+					'TG_IMG' => $social['TG_IMG'],
+					'TG' => $social['TG'],
+					'LI_IMG' => $social['LI_IMG'],
+					'LI' => $social['LI'],
+					'TT_IMG' => $social['TT_IMG'],
+					'TT' => $social['TT'],
+					'DC_IMG' => $social['DC_IMG'],
+					'DC' => $social['DC'],
 					
 					'U_VIEWPROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id"))
 				);

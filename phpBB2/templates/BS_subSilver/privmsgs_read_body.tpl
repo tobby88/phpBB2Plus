@@ -44,7 +44,7 @@
                   <div class="col p-2 postbody">{MESSAGE}</div>
                 </div>
                 <div class="row row1 hr1">
-                    <div class="col d-flex align-items-center mt-1 py-2 text-start">{PROFILE_IMG}&nbsp;{PM_IMG}&nbsp;{EMAIL_IMG}&nbsp;{WWW_IMG}&nbsp;{FB_IMG}&nbsp;{IG_IMG}&nbsp;{PT_IMG}&nbsp;{TWR_IMG}&nbsp;{SKP_IMG}&nbsp;{TG_IMG}&nbsp;{LI_IMG}&nbsp;{TT_IMG}</div>
+                    <div class="col d-flex align-items-center mt-1 py-2 text-start">{PROFILE_IMG}&nbsp;{PM_IMG}&nbsp;{EMAIL_IMG}&nbsp;{WWW_IMG}&nbsp;{FB_IMG}&nbsp;{IG_IMG}&nbsp;{PT_IMG}&nbsp;{TWR_IMG}&nbsp;{SKP_IMG}&nbsp;{TG_IMG}&nbsp;{LI_IMG}&nbsp;{TT_IMG}&nbsp;{DC_IMG}</div>
                 </div>
                 <div class="row catBottom">{S_HIDDEN_FIELDS} 
                   <div class="col d-flex justify-content-center">
