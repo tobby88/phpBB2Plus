@@ -36,8 +36,8 @@ error_reporting  (E_ERROR | E_WARNING | E_PARSE); // This will NOT report uninit
 // The following code (unsetting globals)
 // Thanks to Matt Kavanagh and Stefan Esser for providing feedback as well as patch files
 
-// PHP5 with register_long_arrays off?
-if (@phpversion() >= '5.0.0' && (!@ini_get('register_long_arrays') || @ini_get('register_long_arrays') == '0' || strtolower(@ini_get('register_long_arrays')) == 'off'))
+// PHP5+ with register_long_arrays off?
+if (version_compare(PHP_VERSION, '5.0.0', '>=') && (!@ini_get('register_long_arrays') || @ini_get('register_long_arrays') == '0' || strtolower(@ini_get('register_long_arrays')) == 'off'))
 {
 	$HTTP_POST_VARS = $_POST;
 	$HTTP_GET_VARS = $_GET;
@@ -50,6 +50,65 @@ if (@phpversion() >= '5.0.0' && (!@ini_get('register_long_arrays') || @ini_get('
 	if (isset($_SESSION))
 	{
 		$HTTP_SESSION_VARS = $_SESSION;
+	}
+}
+
+// Compatibility helpers for APIs removed from modern PHP versions.
+if (!function_exists('ereg'))
+{
+	function ereg($pattern, $subject, &$matches = array())
+	{
+		return preg_match('#' . str_replace('#', '\\#', $pattern) . '#', $subject, $matches);
+	}
+}
+if (!function_exists('eregi'))
+{
+	function eregi($pattern, $subject, &$matches = array())
+	{
+		return preg_match('#' . str_replace('#', '\\#', $pattern) . '#i', $subject, $matches);
+	}
+}
+if (!function_exists('ereg_replace'))
+{
+	function ereg_replace($pattern, $replacement, $subject)
+	{
+		return preg_replace('#' . str_replace('#', '\\#', $pattern) . '#', $replacement, $subject);
+	}
+}
+if (!function_exists('eregi_replace'))
+{
+	function eregi_replace($pattern, $replacement, $subject)
+	{
+		return preg_replace('#' . str_replace('#', '\\#', $pattern) . '#i', $replacement, $subject);
+	}
+}
+if (!function_exists('split'))
+{
+	function split($pattern, $subject, $limit = -1)
+	{
+		return preg_split('#' . str_replace('#', '\\#', $pattern) . '#', $subject, $limit);
+	}
+}
+if (!function_exists('spliti'))
+{
+	function spliti($pattern, $subject, $limit = -1)
+	{
+		return preg_split('#' . str_replace('#', '\\#', $pattern) . '#i', $subject, $limit);
+	}
+}
+if (!function_exists('each'))
+{
+	function each(&$array)
+	{
+		$key = key($array);
+		if ($key === null)
+		{
+			return false;
+		}
+
+		$value = current($array);
+		next($array);
+		return array(1 => $value, 'value' => $value, 0 => $key, 'key' => $key);
 	}
 }
 
