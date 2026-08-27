@@ -204,11 +204,6 @@ define('CATEGORIES_TABLE', $table_prefix.'categories');
 define('COLOR_GROUPS_TABLE', $table_prefix.'color_groups');
 define('CONFIG_TABLE', $table_prefix.'config');
 define('CONFIRM_TABLE', $table_prefix.'confirm');
-// CBACK CrackerTracker Professional
-define('CTRACK', $table_prefix.'ctrack');
-define('CTFILTER', $table_prefix.'ct_filter');
-define('CTVISKEY', $table_prefix.'ct_viskey');
-// CBACK CrackerTracker Professional
 define('DISALLOW_TABLE', $table_prefix.'disallow');
 // FLAGHACK-start
 define('FLAG_TABLE', $table_prefix.'flags');
@@ -257,6 +252,15 @@ define('WORDS_TABLE', $table_prefix.'words');
 define('VOTE_DESC_TABLE', $table_prefix.'vote_desc');
 define('VOTE_RESULTS_TABLE', $table_prefix.'vote_results');
 define('VOTE_USERS_TABLE', $table_prefix.'vote_voters');
+
+// BEGIN CrackerTracker v5.x
+define('CTRACKER_CONFIG', $table_prefix . 'ctracker_config');
+define('CTRACKER_IPBLOCKER', $table_prefix . 'ctracker_ipblocker');
+define('CTRACKER_LOGINHISTORY', $table_prefix . 'ctracker_loginhistory');
+define('CTRACKER_FILECHK', $table_prefix . 'ctracker_filechk');
+define('CTRACKER_FILESCANNER', $table_prefix . 'ctracker_filescanner');
+define('CTRACKER_BACKUP', $table_prefix . 'ctracker_backup');
+// END CrackerTracker v5.x
 
 //added for birthday zodiac
 $zodiacdates = array ('0101', '0120',

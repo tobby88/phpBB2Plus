@@ -39,6 +39,36 @@ if(!$result = $db->sql_query($sql))
 }
 else
 {
+	// CrackerTracker v5.x
+	if ( isset($HTTP_POST_VARS['submit']) && $ctracker_config->settings['detect_misconfiguration'] == 1 )
+	{
+		if ( $HTTP_POST_VARS['server_port'] == '21' )
+		{
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_1']);
+		}
+		if ( $HTTP_POST_VARS['session_length'] < '100' )
+		{
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_2']);
+		}
+		if ( !preg_match('/\\A\/$|\\A\/.*\/$/', $HTTP_POST_VARS['script_path']) )
+		{
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_3']);
+		}
+		if ( preg_match('/\/$/', $HTTP_POST_VARS['server_name']) )
+		{
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_4']);
+		}
+	}
+
+	if ( isset($HTTP_POST_VARS['submit']) && $ctracker_config->settings['auto_recovery'] == 1 )
+	{
+		define('CTRACKER_ACP', true);
+		include_once($phpbb_root_path . 'ctracker/classes/class_ct_adminfunctions.' . $phpEx);
+		$backup_system = new ct_adminfunctions();
+		$backup_system->recover_configuration();
+		unset($backup_system);
+	}
+
 	while( $row = $db->sql_fetchrow($result) )
 	{
 		$config_name = $row['config_name'];

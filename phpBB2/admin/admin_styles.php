@@ -10,6 +10,9 @@
  *
  *
  ***************************************************************************/
+// CTracker_Ignore: File Checked By Human
+// Tell the Security Scanner that reachable code in this file is not a security issue
+
 
 /***************************************************************************
  *

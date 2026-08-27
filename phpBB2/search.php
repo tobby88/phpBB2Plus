@@ -41,6 +41,15 @@ init_userprefs($userdata);
 // End session management
 //
 
+// CrackerTracker v5.x
+if ( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) || !empty($HTTP_GET_VARS['search_id']) || isset($HTTP_POST_VARS['search_id']) || isset($HTTP_GET_VARS['search_keywords']) || isset($HTTP_POST_VARS['show_results']) )
+{
+	include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+	$search_system = new ct_userfunctions();
+	$search_system->search_handler();
+	unset($search_system);
+}
+
 if (isset($_POST['is_ajax']) || isset($_GET['is_ajax']))
 {
 	$is_ajax = (isset($_POST['is_ajax'])) ? intval($_POST['is_ajax']) : intval($_GET['is_ajax']);
@@ -49,97 +58,6 @@ else
 {
 	$is_ajax = 0;
 }
-
-//
-// CBACK CrackerTracker Search Flood Protection
-//
-if( ( $userdata['ct_searchtime'] > time() ) && ( !empty($_GET['search_id']) || isset($_POST['search_id']) || isset($_GET['search_keywords']) || isset($_POST['show_results']) ) )
-{
-	$waittime = 0;
-	$waittime = $userdata['ct_searchtime'] - time();
-	$waitmsg  = '';
-	$waitmsg  = sprintf($lang['ct_forum_sfl'], $ctracker_config['searchtime'], $waittime);
-	
-	if($userdata['user_id'] == ANONYMOUS)
-	{
-		if ($is_ajax)
-		{
-			$result_ar = array(
-				'search_id' => 0,
-				'results' => 0,
-				'keywords' => ''
-			);
-			AJAX_message_die($result_ar);
-		}
-		else
-		{
-			message_die(GENERAL_MESSAGE, $waitmsg);
-		}
-	}
-	else
-	{
-		$sql = "UPDATE " . USERS_TABLE . " SET ct_searchcount = ct_searchcount + 1 WHERE user_id = " . $userdata['user_id'];
-		if( !($result = $db->sql_query($sql)) )
-		{
-			message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-		}
-	}	
-		
-    if($userdata['ct_searchcount'] >= $ctracker_config['maxsearch'] && $userdata['ct_searchtime'] > time())
-    {
-		if($userdata['ct_searchcount'] == $ctracker_config['maxsearch'])
-		{
-			$stime = time() + $ctracker_config['searchtime'];
-			$sql = "UPDATE " . USERS_TABLE . " SET ct_searchtime = " . $stime . " WHERE user_id = " . $userdata['user_id'];
-			if( !$db->sql_query($sql))
-			{
-				message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-			}
-			
-			if ($is_ajax)
-			{
-				$result_ar = array(
-					'search_id' => 0,
-					'results' => 0,
-					'keywords' => ''
-				);
-				AJAX_message_die($result_ar);
-			}
-			else
-			{
-				message_die(GENERAL_MESSAGE, $waitmsg);
-			}
-		}
-	}
-}
-
-if(isset($_POST['mode']) || isset($_GET['mode']) || !empty($_GET['search_id']) || isset($_POST['search_id']) || isset($_GET['search_keywords']) || isset($_POST['show_results']))
-{
-	if($userdata['ct_searchtime'] <= time())
-	{
-		$stime = time() + $ctracker_config['searchtime'];
-		$sql = "UPDATE " . USERS_TABLE . " SET ct_searchtime = " . $stime . " WHERE user_id = " . $userdata['user_id'];
-		
-		if( !$db->sql_query($sql))
-		{
-			message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-		}
-	
-		if($userdata['user_id'] != ANONYMOUS)
-		{
-			$sql = "UPDATE " . USERS_TABLE . " SET ct_searchcount = 1 WHERE user_id = " . $userdata['user_id'];
-		
-			if( !$db->sql_query($sql))
-			{
-				message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-			}
-		}
-	
-	}
-}
-//
-// CBACK CrackerTracker Search Flood Protection
-//
 
 //
 // Define initial vars
@@ -1232,11 +1150,12 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		}
 		for($i = 0; $i < count($searchset); $i++)
 		{
+			// CrackerTracker v5.x
 			$sucheck = strtolower($highlight_active);
 			$sucheck = str_replace($ct_rules, '*', $sucheck);
 			if($sucheck != $highlight_active)
 			{
-			  $highlight_active = '';
+				$highlight_active = '';
 			}
 			$forum_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $searchset[$i]['forum_id']);
 			$topic_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $searchset[$i]['topic_id'] . "&amp;highlight=$highlight_active");

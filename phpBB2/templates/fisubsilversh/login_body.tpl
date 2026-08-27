@@ -41,17 +41,6 @@
 </td>
 </tr>
 <!-- END switch_allow_autologin -->
-<!-- BEGIN switch_confirm -->
-<tr>
-<td class="row1" colspan="2" align="center">
-<span class="genmed">{L_CONFIRM_CODE}</span><br /><br />{CONFIRM_IMG}<br /><br /></td>
-</tr>
-<tr>
-<td class="row1" colspan="2" align="center">
-<input type="text" class="post" name="confirm_code" size="25" maxlength="6" value="" />
-</td>
-</tr>
-<!-- END switch_confirm -->
 <tr>
 <td colspan="2" align="center">{S_HIDDEN_FIELDS}<input type="submit" name="login" class="mainoption" value="{L_LOGIN}" />
 </td>

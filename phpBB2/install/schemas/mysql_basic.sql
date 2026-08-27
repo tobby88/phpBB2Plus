@@ -846,7 +846,7 @@ INSERT INTO phpbb_hacks_list (hack_id, hack_add_date, hack_name, hack_desc, hack
 (169, 0, 'Google Visit Counter', 'Adds a google bot visit counter on index ', 'Dr DLP', '', 'http://www.web-lapin.levillage.org/forum/', '1.0.0', 'No', '', '', 0),
 (170, 0, 'Fix message_die for multiple errors MOD', 'This MOD replaces the message_die was called multiple times message with something more useful', 'markus_petrux', '', 'http://www.phpmix.com', '1.0.3', 'No', '', '', 0),
 (171, 0, 'Search Engine ShortURLs Mod', 'This MOD replaces the Forum Links from .php to static .html Links', 'larsneo', '', '', '1.0.0', 'No', '', '', 0),
-(172, 0, 'Cracker Tracker Professional 2nd Ed.', 'A fully integrated Security System for your Forum. Blocks known Worm Attacks and Floods.', 'cback', '', 'http://www.cback.de', '4.1.7', 'No', 'http://www.cback.de', '', 0),
+(172, 0, 'CrackerTracker Professional G5', 'A fully integrated Security System for your Forum. Blocks known Worm Attacks and Floods.', 'cback', '', 'http://www.cback.de', '5.0.4', 'No', 'http://www.cback.de', '', 0),
 (173, 0, 'Run stats', 'Gives stats and details about page time generation, sql requests, indexes used, etc.', 'Ptirhiik', '', 'http://ptifo.clanmckeen.com', '1.0.2', 'No', '', '', 0),
 (174, 0, 'Visual Confirmation for Guests', 'Adds visual confirmation for guest posts, eliminating spam.', 'Kanuck', '', 'http://kanuck.net', '1.0.1', 'No', '', '', 0),
 (175, 0, 'Custom Profile Fields', 'Allows administrators to add fields to registration/profile/memberlist/topics, plus admin-only fields', 'Blankety Blank Man', '', 'http://edos.siteburg.com/phpBB2/index.php', '1.1.0', 'No', '', '', 0),
@@ -854,59 +854,80 @@ INSERT INTO phpbb_hacks_list (hack_id, hack_add_date, hack_name, hack_desc, hack
 (177, 0, 'Advanced Visual Confirmation', 'This MOD replaces the original CAPTCHA of the phpBB Visual Confirmation.', 'AmigaLink', '', 'http://www.EssenMitFreude.info', '1.1.0', 'No', '', '', 0);
 
 
-INSERT INTO phpbb_ct_filter (id, list) VALUES (1, 'WebStripper');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (2, 'NetMechanic');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (3, 'CherryPicker');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (4, 'EmailCollector');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (5, 'EmailSiphon');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (6, 'WebBandit');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (7, 'EmailWolf');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (8, 'ExtractorPro');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (9, 'SiteSnagger');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (10, 'CheeseBot');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (11, 'ia_archiver/1.6');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (12, 'Website Quester');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (13, 'WebZip');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (14, 'moget/2.1');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (15, 'WebSauger');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (16, 'WebCopier');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (17, 'WWW-Collector-E');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (18, 'InfoNaviRobot');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (19, 'Harvest/1.5');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (20, 'Bullseye/1.0');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (21, 'lwp-trivial/1.34');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (22, 'lwp-trivial');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (23, 'LinkWalker');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (24, 'LinkextractorPro');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (25, 'Offline Explorer');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (26, 'BlowFish/1.0');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (27, 'WebEnhancer');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (28, 'TightTwatBot');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (29, 'LinkScan/8.1a Unix');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (30, 'WebDownloader');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (31, 'lwp-trivial/1.33');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (32, 'lwp-trivial/1.38');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (33, 'BruteForce');
-INSERT INTO phpbb_ct_filter (id, list) VALUES (34, 'lwp');
-
-INSERT INTO phpbb_ctrack (name, value) VALUES ('lastreg', '0');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('version', '4.1.7');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('footer', '3');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('floodlog', '100');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('proxylog', '100');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('filter', '1');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('floodprot', '1');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('maxsearch', '4');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('searchtime', '16');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('regblock', '1');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('regtime', '10');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('autoban', '1');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('posttimespan', '200');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('postintime', '10');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('lastreg_ip', '000.000.000.000');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('mailfeature', '1');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('pwreset', '1');
-INSERT INTO phpbb_ctrack (name, value) VALUES ('loginfeature', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('ipblock_enabled', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('ipblock_logsize', '100');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('auto_recovery', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('vconfirm_guest', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('autoban_mails', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('detect_misconfiguration', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('search_time_guest', '30');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('search_time_user', '20');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('search_count_guest', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('search_count_user', '4');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('massmail_protection', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('reg_protection', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('reg_blocktime', '30');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('reg_lastip', '0.0.0.0');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('pwreset_time', '20');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('massmail_time', '20');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('spammer_time', '30');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('spammer_postcount', '4');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('spammer_blockmode', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('loginfeature', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('pw_reset_feature', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('reg_last_reg', '1155944976');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('login_history', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('login_history_count', '10');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('login_ip_check', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('pw_validity', '30');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('pw_complex_min', '4');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('pw_complex_mode', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('pw_control', '0');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('pw_complex', '0');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('last_file_scan', '1156000091');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('last_checksum_scan', '1156000082');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('logsize_logins', '100');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('logsize_spammer', '100');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('reg_ip_scan', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('global_message', 'Hello world!');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('global_message_type', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('logincount', '2');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('search_feature_enabled', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('spam_attack_boost', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('spam_keyword_det', '1');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('footer_layout', '3');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (1, '*WebStripper*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (2, '*NetMechanic*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (3, '*CherryPicker*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (4, '*EmailCollector*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (5, '*EmailSiphon*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (6, '*WebBandit*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (7, '*EmailWolf*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (8, '*ExtractorPro*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (9, '*SiteSnagger*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (10, '*CheeseBot*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (11, '*ia_archiver*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (12, '*Website Quester*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (13, '*WebZip*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (14, '*moget*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (15, '*WebSauger*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (16, '*WebCopier*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (17, '*WWW-Collector*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (18, '*InfoNaviRobot*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (19, '*Harvest*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (20, '*Bullseye*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (21, '*LinkWalker*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (22, '*LinkextractorPro*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (23, '*WebProxy*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (24, '*BlowFish*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (25, '*WebEnhancer*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (26, '*TightTwatBot*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (27, '*LinkScan*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (28, '*WebDownloader*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (29, 'lwp');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (30, '*BruteForce*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (31, 'lwp-*');
+INSERT INTO `phpbb_ctracker_ipblocker` (`id`, `ct_blocker_value`) VALUES (32, '*anonym*');
 
 INSERT INTO `phpbb_captcha_config` VALUES ('width', '320');
 INSERT INTO `phpbb_captcha_config` VALUES ('height', '60');

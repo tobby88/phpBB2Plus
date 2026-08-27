@@ -525,7 +525,7 @@ function init_userprefs($userdata)
 	$board_config['default_lang'] = $default_lang;
 
 	include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_main.' . $phpEx);
-	include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_ctracker.' . $phpEx);
+	include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_cback_ctracker.' . $phpEx);
 	include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_news.' . $phpEx);
 	if ( defined('IN_ADMIN') )
 	{

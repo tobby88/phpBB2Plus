@@ -79,11 +79,10 @@ if ( $result = $db->sql_query($sql) )
 
 	if ( $row['user_viewemail'] || $userdata['user_level'] == ADMIN )
 	{
-		if ( $userdata['ct_mailcount'] >= time() && $ctracker_config['mailfeature'] == 1 )
+		if ( $userdata['ct_last_mail'] >= time() && $ctracker_config->settings['massmail_protection'] == 1 )
 		{
-			message_die(GENERAL_MESSAGE, $lang['ct_forum_emb']);
+			message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_sendmail_info'], $ctracker_config->settings['massmail_time']));
 		}
-
 		if ( time() - $userdata['user_emailtime'] < $board_config['flood_interval'] )
 		{
 			message_die(GENERAL_MESSAGE, $lang['Flood_email_limit']);
@@ -115,15 +114,9 @@ if ( $result = $db->sql_query($sql) )
 
 			if ( !$error )
 			{
-                $mtimetemp = time() + 240;
-                $sql = "UPDATE " . USERS_TABLE . "
-					SET ct_mailcount = " . $mtimetemp . "
-					WHERE user_id = " . $userdata['user_id'];
-                $db->sql_query($sql);
-
-				$sql = "UPDATE " . USERS_TABLE . " 
-					SET user_emailtime = " . time() . " 
-					WHERE user_id = " . $userdata['user_id'];
+				$new_mailtime = time() + $ctracker_config->settings['massmail_time'] * 60;
+				$sql = 'UPDATE ' . USERS_TABLE . '
+					SET user_emailtime = ' . time() . ', ct_last_mail = ' . $new_mailtime . ' WHERE user_id = ' . $userdata['user_id'];
 				if ( $result = $db->sql_query($sql) )
 				{
 					include($phpbb_root_path . 'includes/emailer.'.$phpEx);

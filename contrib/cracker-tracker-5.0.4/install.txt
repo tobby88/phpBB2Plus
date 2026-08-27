@@ -1,0 +1,1504 @@
+##############################################################
+## MOD Title: CrackerTracker Professional G5
+## MOD Author: cback < webmaster@cback.de > (Christian Knerr) http://www.cback.de
+## MOD Author: cYbercOsmOnauT < mods@cybercosmonaut.de > (Tekin Birdüzen) http://www.cybercosmonaut.de
+## MOD Description: CrackerTracker Professional G5 is the 5th Generation of the
+##	 	    famous Board Security System from www.cback.de - v5.x is a
+##		    complete redevelopment of that MOD. Naturally we improved all
+##	            existing Security Features but I added much more Features that
+##		    you will get a complete Security Center for your phpBB Forum with
+##		    this one MOD. A new programming allows that you will get all these
+##		    huge features but you will not have problems to include that MOD
+##		    because we reduced the Files to Edit to a Minimum!
+## 
+## 
+## FEATURES:
+## ==========
+## 
+## - Worm & Exploit protection Unit with heuristic engine and more than 280 definitions
+## - SQL Injection detector for GET, POST, ... Vars
+## - Attack Counter function
+## - Checksum Scanner to detect PHP Files wich were changed
+## - Recovery System for the board configuration table
+## - 8 different footer layouts
+## - File Security Scanner wich detects general security issues in phpBB Files
+## - Global Message Function
+## - IP Blocker Engine
+## - Proxy Blocker Engine
+## - UserAgent Blocker Engine
+## - Comfortable LOG Manager to view attack logfiles and manage the files
+## - Selftest system
+## - Automatically check file permissions on the logfiles
+## - Show Security Tipps for your Server and Board
+## - Maintenance function
+## - "Miserable User" function to easily block userposts in viewtopic.php
+## - Adjustable main logfile size
+## - Completely new and modern layout in ACP and Forum
+## - Every feature can easily be activated or deactivated over ACP
+## - Search Flood Protection for Guests and Users
+## - Login Brute Force Protection System
+## - Detect wrong Logins and save them in your logfile
+## - Login History for Users
+## - IP Range Scanner to detect account abuse
+## - Spammer Detection System
+## - Detect human registered Spammer (Spam Detection Boost)
+## - Spammer Keyword Detection for Posts and Profile
+## - Registration Protection
+## - Registration IP Scanning
+## - Account Password Expire Function
+## - Account Password Complexity Function
+## - Account Password Length Control
+## - Emergency console wich can restore board configuration Table without running phpBB
+## - Password Reset Flood Protection
+## - Massmail Protection System
+## - Auto Recovery Board Settings
+## - Visual Confirmation for Guest Postings
+## - Protect from "Throw Away Mailservices"
+## - Automatically detect misconfiguration of sensible Board Settings
+## - Very fast code and OOP with Class Files etc.
+## - Protect from overwriting sensible vars
+## - and many more
+## 
+## 
+## I hope you enjoy the MOD! If you like more Informations or Screenshoots
+## just have a look to my Website www.cback.de in the MOD Section.
+## Our international users have the possibility to view informations in
+## English language on our SorceForge Project Page at
+## http://sourceforge.net/projects/ctrackphpbb/
+##
+## MOD Version: 5.0.4
+## 
+## Installation Level: Moderate
+## Installation Time: 40 minutes
+## Files To Edit: common.php
+##		  login.php
+##		  posting.php
+##		  search.php
+##		  viewtopic.php
+##		  admin/admin_board.php
+##		  admin/admin_ranks.php
+##		  admin/admin_smilies.php
+##		  admin/admin_styles.php
+##		  admin/admin_user_ban.php
+##		  admin/admin_users.php
+##		  admin/admin_words.php
+##		  includes/auth.php
+##		  includes/constants.php
+##		  includes/emailer.php
+##		  includes/functions.php
+##		  includes/functions_post.php
+##		  includes/page_header.php
+##		  includes/page_tail.php
+##		  includes/smtp.php
+##		  includes/usercp_email.php
+##		  includes/usercp_register.php
+##		  includes/usercp_sendpasswd.php
+##		  templates/subSilver/overall_footer.tpl
+##		  templates/subSilver/overall_header.tpl
+##		  templates/subSilver/posting_body.tpl
+##		  templates/subSilver/subSilver.cfg
+##
+## Included Files: root/*.*
+## License: http://opensource.org/licenses/gpl-license.php GNU General Public License v2
+##############################################################
+## For security purposes, please check: http://www.phpbb.com/mods/
+## for the latest version of this MOD. Although MODs are checked
+## before being allowed in the MODs Database there is no guarantee
+## that there are no security problems within the MOD. No support
+## will be given for MODs not found within the MODs Database which
+## can be found at http://www.phpbb.com/mods/
+##############################################################
+##
+## Author Notes: 
+##
+##	System Requirements:
+##	==================
+##	
+##	Please ensure, that your Server complies following system
+##	requirements because we used some new code techniques in this Security MOD.
+##	
+##	- PHP 4.3.9 or higher
+##	- MySQL 4.0.0 or higher (recommend)
+##	- phpBB 2.0.20 or higher
+##	- GDLib 2 (recommend if you want to use the Visual Confirmation functions)
+##	
+##	
+##	The MOD should also run on other DBMS, but we have not tested it!
+##	The MOD will definitively not run on older PHP Interpreter Versions.
+##	I suggest that you ensure you have always the newest Server Software
+##	and phpBB Version installed, because old versions
+##	mostly have some critical Security Issues wich are Server sided and wich
+##	CrackerTracker can't protect (because it is possible to attack the server
+##	itself, without the forum).
+##
+##	Since CrackerTracker v5.0.3 cYbercOsmOnauT has joined the Development of
+##	this MOD, so with 2 Coders we can react much faster...
+##
+##
+##############################################################
+## MOD History:
+## 
+## 2004-12-25 - Version 0.0.1
+## 	- preview version with just the worm protection unit
+## 
+## 2004-12-26 - Version 1.0.0
+## 	- first final release with complete worm protection scanner
+## 
+## 2004-12-30 - Version 1.0.1
+## 	- ACP Logfile viewer added
+## 
+## 2005-12-30 - Version 1.0.2
+## 	- added automatic Logfile deletion to reduce Webspace usage
+## 
+## 2005-01-05 - Version 1.0.3
+## 	- little fix for GLOBALS = off settings
+## 
+## 2005-04-09 - Version 2.0.0
+## 	- new release with complete new engine and extended protection
+## 	- name changed to "CrackerTracker XTreme Edition"
+## 	- injection detection feature added
+## 	- calendar MOD protection features added
+## 	- optimized ACP Modules
+## 	- "Protected by" Button added
+## 
+## 2005-04-24 - Version 2.0.1
+## 	- ACP protection system added
+## 	- enlarged worm protection unit
+## 
+## 2005-07-24 - Version 3.0.0
+## 	- new release called "CrackerTracker Professional"
+## 	- automatic engine updater
+## 	- attack counter added
+## 	- footer can be changed over ACP
+## 	- possibility to define logsize in ACP
+## 	- new ACP layout with more functions for the new engines
+## 	- worm heuristic feature
+## 	- massmail and flood protection
+## 	- double engine protector
+## 
+## 2005-07-25 - Version 3.0.1
+## 	- fixed style bug (Internet Explorer)
+## 	- little fix in common.php for the heuristic detector
+## 
+## 2005-07-25 - Version 3.1.0
+## 	- fixed compatibility problems with some PHP Interpreters
+## 	- search protection added
+## 	- definition file extended because of new worm attacks
+## 	- register flood protection engine added
+## 	- highlight string filter
+## 	- forum id tricks protection
+## 	- update file integrity checker
+## 
+## 2005-09-11 - Version 3.1.1
+## 	- search flood protection only on performed search
+## 	- problem fixed with some PHP Interpreters
+## 	- seperate language file added
+## 
+## 2005-10-06 - Version 3.1.2
+## 	- automatic update function removed; replaced with version information in ACP
+## 
+## 2005-10-31 - Version 3.1.3
+## 	- changed MOD instructions for phpBB 2.0.18 compatibility
+## 
+## 2005-11-30 - Version 4.0.0
+## 	- completely new release, fully recoded
+## 	- name changed to "CrackerTracker Professional 2nd Edition"
+## 	- some new features added
+## 	- anti spammer system and spamming detection
+## 	- fully configurable over ACP
+## 	- new ACP Modules added
+## 	- 3 Step Security Scanner
+## 	- Proxy&IP Blocker
+## 	- improved style system
+## 	- performant new counter system
+## 	- many more
+## 
+## 2005-12-15 - Version 4.0.1
+## 	- improved footer compatibility with PHP 4.x
+## 
+## 2005-12-26 - Version 4.0.2
+## 	- definition file extended
+## 
+## 2006-01-03 - Version 4.1.0
+## 	- protection from mass-mail sending
+## 	- protection from mass password resets
+## 	- BruteForce Protected Login
+## 	- removed Thumbs.db file from the MOD Package
+## 	- reduced image size for ACP
+## 
+## 2006-01-16 - Version 4.1.1
+## 	- more comfortable BruteForce protection
+## 
+## 2006-04-11 - Version 4.1.2
+## 	- MOD Install Instructions changed due to phpBB 2.0.19 and 2.0.20 compatibility
+## 	- extended heuristical engine to detect "tunneled" worm requests
+## 
+## 2006-04-30 - Version 4.1.3
+## 	- fixed bug creating Logfiles
+## 	- additional protection from sensible vars
+## 	- added security information for included files
+## 
+## 2006-05-07 - Version 4.1.4
+## 	- altering worm protection unit
+## 	- adding constant-check for ct_security.php
+## 	- used $HTTP_SERVER_VARS instead of $_SERVER to fit phpBB.com coding guidelines
+## 	- altered item descriptions
+## 	- using user_id instead of username to increase database performance
+## 	- added $phpEx where the extension was hardcoded
+## 	- correctly build test URLs
+## 	- added note of MOD compatibility
+## 	- added better Logfile handling to prevent "tricky entries"
+## 	- added DB query security for non MySQL DBMS
+## 	- some fixes in install.txt to fit the phpBB.com MOD Template & Easy MOD compatibility
+## 	- change of SQL Statements in install.php to make it possible that someone can convert them into another DBMS
+## 
+## 2006-06-06 - Version 4.1.5
+## 	- some little code optimations
+## 	- extended worm detection unit
+## 
+## 2006-06-08 - Version 4.1.6
+## 	- altered search.php code to improve performance
+## 
+## 2006-06-14 - Version 4.1.7
+## 	- fixing bug that some mailadresses are detected as security risk if someone uses mail activation
+## 
+## 2006-08-02 - Version 4.1.8
+## 	- last little definition update for the 4.x series - working on G5 release
+## 
+## 2006-08-19 - Version 5.0.0 Beta
+## 	- fully new 5.x release
+##	- beta release (Premium Users Only)
+## 	- completely recoded
+## 	- new OOP programming layout to increase performance
+## 	- many new features added (see the MOD description at the top)
+##
+## 2006-08-31 - Version 5.0.0
+##	- First public release of CT5
+##
+## 2006-09-07 - Version 5.0.1
+##	- Added some additional Security features to ct_security.php
+##	- Fixed compatibility Problems with some PHP Interpreters
+##	- Fixed some typos in english language file
+##	- Changed some sentences in the german language file
+##	- Added famous MOD Fields (like Attachment MOD) into the whitelist
+##	- Altered the $phpbb_root_path scanner
+##	- Added Redirector for Global Message & IP Range Scanner
+##	- Corrected Var in page_header.php
+##
+## 2006-09-15 - Version 5.0.2
+##	- Fixed some problems with usercp_sendpasswd.php
+##	- Fixed compatibility problems with some PHP Interpreters
+##	- Added "File deleted" function in Filescanner
+##	- Removed Easter Egg Link (PI Icon in Login Verification)
+##		to be compatible with humans with $humor_sense == false;
+##	- Changed Setup and removed "*Proxy*" because of AOL Problems
+##	- Fixed small Bug with rawurldecode in ct_security.php
+##
+## 2006-10-21 - Version 5.0.3
+## 	- cYbercOsmOnauT joined the development
+## 	- Fixed some typos in the english languagefile
+## 	- Fixed a small bug in class_ct_userfunctions.php
+## 	- Fixed config backup problems with quotes
+## 	- Fixed a small problem with compatibility
+## 	- Added new "Debug Mode" feature
+## 	- Added Security Levels and Variable Ignores settable for every single script
+## 	- Changed the description of the "Miserable User" function
+## 	  to make sure everyone understands what this function does
+## 	- Added a small protection against "brainless" admins using the global message
+##
+## 2007-09-03 - Version 5.0.4
+##  - Extended Worm Protection Unit
+##	- Fixed Bug creating Config Backups with some "exotic" Server Configurations
+##  - Fixed Bug that User Anonymous will be banned if spammer detection boost is enabled
+##  - Protect Logfiles from external access (you have to download the Debug Log with FTP then!)
+##  - New: Removing Profile Data if a user gets blocked by Spammer Boost
+## 
+##############################################################
+## Before Adding This MOD To Your Forum, You Should Back Up All Files Related To This MOD 
+##############################################################
+
+#
+#-----[ DIY INSTRUCTIONS ]------------------------------------------
+#
+Please upload all included files (you can find them into the folder root/)
+to the correct position of your Board. After that please execute the file
+install.php by entering the URL to that file into your Browser and delete
+the file install.php again when the installation progress has finished.
+
+
+#
+#-----[ DIY INSTRUCTIONS ]------------------------------------------
+#
+Please set CHMOD777 with your FTP Program to the following files:
+
+- ctracker/logfiles/logfile_attempt_counter.txt
+- ctracker/logfiles/logfile_blocklist.txt
+- ctracker/logfiles/logfile_debug_mode.txt
+- ctracker/logfiles/logfile_malformed_logins.txt
+- ctracker/logfiles/logfile_spammer.txt
+- ctracker/logfiles/logfile_worms.txt
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+common.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	if (isset($_SESSION))
+	{
+		$HTTP_SESSION_VARS = $_SESSION;
+	}
+}
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CrackerTracker v5.x
+include($phpbb_root_path . 'ctracker/engines/ct_security.' . $phpEx);
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+$client_ip = ( !empty($HTTP_SERVER_VARS['REMOTE_ADDR']) ) ? $HTTP_SERVER_VARS['REMOTE_ADDR'] : ( ( !empty($HTTP_ENV_VARS['REMOTE_ADDR']) ) ? $HTTP_ENV_VARS['REMOTE_ADDR'] : getenv('REMOTE_ADDR') );
+$user_ip = encode_ip($client_ip);
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CrackerTracker v5.x
+include($phpbb_root_path . 'ctracker/engines/ct_varsetter.' . $phpEx);
+include($phpbb_root_path . 'ctracker/engines/ct_ipblocker.' . $phpEx);
+#
+#-----[ OPEN ]------------------------------------------
+#
+login.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+//
+// Allow people to reach login page if
+// board is shut down
+//
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+// Tell the CTracker Filescanner that this constant is allowed 
+//
+#
+#-----[ FIND ]------------------------------------------
+#
+else
+{
+	$sid = '';
+}
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CrackerTracker v5.x
+if ( !empty($HTTP_POST_VARS['username']) && $ctracker_config->settings['loginfeature'] == 1 )
+{
+	$ctracker_config->check_login_status($HTTP_POST_VARS['username']);	
+}
+
+
+#
+#-----[ FIND ]------------------------------------------
+# the original line is longer!
+#
+		$password = isset($HTTP_POST_VARS['password']) ? $HTTP_POST_VARS['password'] : '';
+
+		$sql = "SELECT user_id, username, user_password,
+
+
+#
+#-----[ IN-LINE FIND ]------------------------------------------
+#
+user_last_login_try
+
+
+#
+#-----[ IN-LINE AFTER, ADD ]------------------------------------------
+#
+, ct_login_count
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+					// Reset login tries
+					$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_login_tries = 0, user_last_login_try = 0 WHERE user_id = ' . $row['user_id']);
+					
+					
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+					// CrackerTracker v5.x
+					if ( $ctracker_config->settings['login_history'] == 1 )
+					{
+						$ctracker_config->update_login_history($row['user_id']);
+					}
+					
+					if ( $ctracker_config->settings['loginfeature'] == 1 )
+					{
+						$ctracker_config->reset_login_system($row['user_id']);
+					}
+					
+					if ( $ctracker_config->settings['login_ip_check'] == 1 )
+					{
+						$ctracker_config->set_user_ip($row['user_id']);
+					}
+					
+					
+#
+#-----[ FIND ]------------------------------------------
+#
+					// Save login tries and last login
+					if ($row['user_id'] != ANONYMOUS)
+					{
+					
+					
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+						// CrackerTracker v5.x
+						include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
+						$logfile = new log_manager();
+						$logfile->prepare_log($row['username']);
+						$logfile->write_general_logfile($ctracker_config->settings['logsize_logins'], 4);
+						unset($logfile);
+						
+						if ( $ctracker_config->settings['loginfeature'] == 1 )
+						{
+							$ctracker_config->handle_wrong_login($row['user_id'], $row['ct_login_count']);
+						}
+						
+						
+#
+#-----[ OPEN ]------------------------------------------
+#
+posting.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+		case 'editpost':
+		case 'newtopic':
+		case 'reply':
+		
+		
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+		  // CrackerTracker v5.x
+		  if ( $ctracker_config->settings['vconfirm_guest'] == 1 && !$userdata['session_logged_in'])
+		  {
+			  define('CRACKER_TRACKER_VCONFIRM', true);
+			  define('POST_CONFIRM_CHECK', true);
+			  include_once( $phpbb_root_path . 'ctracker/engines/ct_visual_confirm.' . $phpEx );
+		  }
+		
+		
+#
+#-----[ FIND ]------------------------------------------
+#
+$template->assign_block_vars('switch_not_privmsg', array());
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CrackerTracker v5.x
+$confirm_image = '';
+if ( $ctracker_config->settings['vconfirm_guest'] == 1 && !$userdata['session_logged_in'])
+{
+	define('CRACKER_TRACKER_VCONFIRM', true);
+	$template->assign_block_vars('switch_confirm', array());
+	include_once( $phpbb_root_path . 'ctracker/engines/ct_visual_confirm.' . $phpEx );
+}
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
+	'SMILIES_STATUS' => $smilies_status,
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	'CONFIRM_IMAGE'	 => $confirm_image,
+	
+	
+#
+#-----[ FIND ]------------------------------------------
+#
+	'L_DELETE_POST' => $lang['Delete_post'],
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	'L_CT_CONFIRM'	 => $lang['ctracker_vc_guest_post'],
+	'L_CT_CONFIRM_E' => $lang['ctracker_vc_guest_expl'],
+	
+	
+#
+#-----[ FIND ]------------------------------------------
+#
+	'S_POST_ACTION' => append_sid("posting.$phpEx"),
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	'S_HIDDEN_FIELDS' => $s_hidden_fields,
+	
+	
+#
+#-----[ OPEN ]------------------------------------------
+#
+search.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+//
+// End session management
+//
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CrackerTracker v5.x
+if ( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) || !empty($HTTP_GET_VARS['search_id']) || isset($HTTP_POST_VARS['search_id']) || isset($HTTP_GET_VARS['search_keywords']) || isset($HTTP_POST_VARS['show_results']) )
+{
+	include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+	$search_system = new ct_userfunctions();
+	$search_system->search_handler();
+	unset($search_system);
+}
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+		$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
+		$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) : array();
+
+		for($i = 0; $i < count($searchset); $i++)
+		{
+		
+		
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+			// CrackerTracker v5.x
+			$sucheck = strtolower($highlight_active);
+			$sucheck = str_replace($ct_rules, '*', $sucheck);
+			if($sucheck != $highlight_active)
+			{
+			  $highlight_active = '';
+			}
+			
+			
+#
+#-----[ OPEN ]------------------------------------------
+#
+viewtopic.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+# the original line is longer!
+//
+// Go ahead and pull all data for this topic
+//
+$sql = "SELECT u.username, u.user_id, u.user_posts,
+
+
+#
+#-----[ IN-LINE FIND ]------------------------------------------
+#
+u.user_allowsmile
+ 
+ 
+#
+#-----[ IN-LINE AFTER, ADD ]------------------------------------------
+#
+, u.ct_miserable_user
+ 
+ 
+#
+#-----[ FIND ]------------------------------------------
+#
+	$message = $postrow[$i]['post_text'];
+	
+	
+#
+#-----[ REPLACE WITH ]------------------------------------------
+#
+	// CrackerTracker v5.x
+	if ( $postrow[$i]['ct_miserable_user'] == 1 && $postrow[$i]['user_id'] != $userdata['user_id'] && $userdata['user_level'] == 0)
+	{
+		$message = $lang['ctracker_message_dialog_title'] . '<br /><br />' . $lang['ctracker_ipb_deleted'];
+	}
+	else
+	{
+		$message = $postrow[$i]['post_text'];
+		if ( $postrow[$i]['ct_miserable_user'] == 1 && $userdata['user_level'] == ADMIN )
+		{
+			$message .= '<br /><br />' . $lang['ctracker_mu_success'];
+		}
+	}
+	
+	
+#
+#-----[ OPEN ]------------------------------------------
+#
+admin/admin_board.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+$sql = "SELECT *
+	FROM " . CONFIG_TABLE;
+if(!$result = $db->sql_query($sql))
+{
+	message_die(CRITICAL_ERROR, "Could not query config information in admin_board", "", __LINE__, __FILE__, $sql);
+}
+else
+{
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	// CrackerTracker v5.x
+	if ( isset($HTTP_POST_VARS['submit']) && $ctracker_config->settings['detect_misconfiguration'] == 1 )
+	{
+		// Let's detect some things of misconfiguration
+		if ( $HTTP_POST_VARS['server_port'] == '21' )
+		{
+			// FTP Port Misstake
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_1']);
+		}
+
+		if ( $HTTP_POST_VARS['session_length'] < '100' )
+		{
+			// Session Length Error
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_2']);
+		}
+		
+		if ( !preg_match('/\\A\/$|\\A\/.*\/$/', $HTTP_POST_VARS['script_path']) )
+		{
+			// Skript Path Error
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_3']);
+		}
+		
+		if ( preg_match('/\/$/', $HTTP_POST_VARS['server_name']) )
+		{
+			// Server Name Error
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_4']);
+		}
+	}
+
+	if ( isset($HTTP_POST_VARS['submit']) && $ctracker_config->settings['auto_recovery'] == 1 )
+	{
+		define('CTRACKER_ACP', true);
+		include_once($phpbb_root_path . 'ctracker/classes/class_ct_adminfunctions.' . $phpEx);
+		$backup_system = new ct_adminfunctions();
+		$backup_system->recover_configuration();
+		unset($backup_system);
+	}
+
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+admin/admin_ranks.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+ *   (at your option) any later version.
+ *
+ ***************************************************************************/
+ 
+ 
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+// Tell the Security Scanner that reachable code in this file is not a security issue
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+admin/admin_smilies.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+/**************************************************************************
+*	This file will be used for modifying the smiley settings for a board.
+**************************************************************************/
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+// Tell the Security Scanner that reachable code in this file is not a security issue
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+admin/admin_styles.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+ *   (at your option) any later version.
+ *
+ ***************************************************************************/
+ 
+ 
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+// Tell the Security Scanner that reachable code in this file is not a security issue
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+admin/admin_user_ban.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+		$this_userdata = get_userdata($HTTP_POST_VARS['username'], true);
+		if( !$this_userdata )
+		{
+			message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );
+		}
+		
+		
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+		$ctracker_config->first_admin_protection($user_id);
+		
+		
+#
+#-----[ FIND ]------------------------------------------
+#
+	if ( isset($HTTP_POST_VARS['ban_email']) )
+	{
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+		// CrackerTracker v5.x
+		if ( !empty($HTTP_POST_VARS['ban_email']) )
+		{
+			include_once($phpbb_root_path . 'ctracker/constants.' . $phpEx);
+			$temp_userdata = get_userdata(CT_FIRST_ADMIN_UID, false);
+			if( !$temp_userdata )
+			{
+				message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );
+			}
+
+			if ( $temp_userdata['user_email'] == $HTTP_POST_VARS['ban_email'] )
+			{
+				message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_1stadmin']);
+			}
+		}
+		
+		
+#
+#-----[ OPEN ]------------------------------------------
+#
+admin/admin_users.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	if ( ( $mode == 'save' && isset( $HTTP_POST_VARS['submit'] ) ) || isset( $HTTP_POST_VARS['avatargallery'] ) || isset( $HTTP_POST_VARS['submitavatar'] ) || isset( $HTTP_POST_VARS['cancelavatar'] ) )
+	{
+		$user_id = intval($HTTP_POST_VARS['id']);
+		
+		
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+		$ctracker_config->first_admin_protection($user_id);
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+admin/admin_words.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+ *   (at your option) any later version.
+ *
+ ***************************************************************************/
+ 
+ 
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+// Tell the Security Scanner that reachable code in this file is not a security issue
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/auth.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+ *   (at your option) any later version.
+ *
+ ***************************************************************************/
+ 
+ 
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/constants.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+define('VOTE_RESULTS_TABLE', $table_prefix.'vote_results');
+define('VOTE_USERS_TABLE', $table_prefix.'vote_voters');
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// BEGIN CrackerTracker v5.x
+define('CTRACKER_CONFIG', $table_prefix . 'ctracker_config');
+define('CTRACKER_IPBLOCKER', $table_prefix . 'ctracker_ipblocker');
+define('CTRACKER_LOGINHISTORY', $table_prefix . 'ctracker_loginhistory');
+define('CTRACKER_FILECHK', $table_prefix . 'ctracker_filechk');
+define('CTRACKER_FILESCANNER', $table_prefix . 'ctracker_filescanner');
+define('CTRACKER_BACKUP', $table_prefix . 'ctracker_backup');
+// END CrackerTracker v5.x
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/emailer.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+ *   (at your option) any later version.
+ *
+ ***************************************************************************/
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/functions.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_main.' . $phpEx);
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_cback_ctracker.' . $phpEx);
+	
+	
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/functions_post.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+# the original lines are longer!
+function submit_post($mode, 
+{
+	global $board_config
+	global $userdata
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	// CrackerTracker v5.x
+	global $ctracker_config;
+	
+	if ( ($mode == 'newtopic' || $mode == 'reply') && ($ctracker_config->settings['spammer_blockmode'] > 0 || $ctracker_config->settings['spam_attack_boost'] == 1) && $userdata['user_level'] != ANONYMOUS )
+	{
+		include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+		$login_functions = new ct_userfunctions();
+		$login_functions->handle_postings();
+		unset($login_functions);
+	}
+	
+	
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/page_header.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+// Format Timezone. We are unable to use array_pop here, because of PHP3 compatibility
+$l_timezone = explode('.', $board_config['board_timezone']);
+$l_timezone = (count($l_timezone) > 1 && $l_timezone[count($l_timezone)-1] != 0) ? $lang[sprintf('%.1f', $board_config['board_timezone'])] : $lang[number_format($board_config['board_timezone'])];
+
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+/*
+ * CrackerTracker IP Range Scanner
+ */
+if ( $HTTP_GET_VARS['marknow'] == 'ipfeature' && $userdata['session_logged_in'] )
+{
+	// Mark IP Feature Read
+	$userdata['ct_last_ip'] = $userdata['ct_last_used_ip'];
+	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_ip = ct_last_used_ip WHERE user_id=' . $userdata['user_id'];
+	if ( !($result = $db->sql_query($sql)) )
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+	}
+	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) )
+	{
+	  preg_match('#/([^/]*?)$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink);
+	  redirect($backlink[1]);
+	}
+}
+
+if ( $ctracker_config->settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn'] == 1 && $userdata['session_logged_in'] )
+{
+	include_once($phpbb_root_path . '/ctracker/classes/class_ct_userfunctions.' . $phpEx);
+	$ctracker_user = new ct_userfunctions();
+	$check_ip_range = $ctracker_user->check_ip_range();
+
+	if ( $check_ip_range != 'allclear' )
+	{
+		$template->assign_block_vars('ctracker_message', array(
+				'ROW_COLOR'			=> 'FFDFDF',
+				'ICON_GLOB'			=> $images['ctracker_note'],
+				'L_MESSAGE_TEXT'	=> $check_ip_range,
+				'L_MARK_MESSAGE'	=> $lang['ctracker_gmb_markip'],
+				'U_MARK_MESSAGE'	=> append_sid('index.' . $phpEx . '?marknow=ipfeature'))
+		);
+	}
+}
+
+/*
+ * CrackerTracker Global Message Function
+ */
+
+if ( $HTTP_GET_VARS['marknow'] == 'globmsg' && $userdata['session_logged_in'] )
+{
+	// Mark Global Message as read
+	$userdata['ct_global_msg_read'] = 0;
+	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_global_msg_read = 0 WHERE user_id=' . $userdata['user_id'];
+	if ( !($result = $db->sql_query($sql)) )
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+	}
+	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) )
+	{
+	  preg_match('#/([^/]*?)$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink);
+	  redirect($backlink[1]);
+	}
+}
+
+if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $ctracker_config->settings['global_message'] != '' )
+{
+	// Output Global Message
+	$global_message_output = '';
+
+	if ( $ctracker_config->settings['global_message_type'] == 1 )
+	{
+		$global_message_output = $ctracker_config->settings['global_message'];
+	}
+	else
+	{
+		$global_message_output = sprintf($lang['ctracker_gmb_link'], $ctracker_config->settings['global_message'], $ctracker_config->settings['global_message']);
+	}
+
+	$template->assign_block_vars('ctracker_message', array(
+			'ROW_COLOR'			=> 'E1FFDF',
+			'ICON_GLOB'			=> $images['ctracker_note'],
+			'L_MESSAGE_TEXT'	=>  $global_message_output,
+			'L_MARK_MESSAGE'	=> $lang['ctracker_gmb_mark'],
+			'U_MARK_MESSAGE'	=> append_sid('index.' . $phpEx . '?marknow=globmsg'))
+	);
+}
+
+(($ctracker_config->settings['login_history'] == 1 || $ctracker_config->settings['login_ip_check'] == 1) && $userdata['session_logged_in'])? $template->assign_block_vars('login_sec_link', array()): null;
+
+/*
+ * CrackerTracker Password Expirement Check
+ */
+if ( $userdata['session_logged_in'] && $ctracker_config->settings['pw_control'] == 1 )
+{
+	if ( time() > $userdata['ct_last_pw_reset'] )
+	{
+		$template->assign_block_vars('ctracker_message', array(
+			'ROW_COLOR'			=> 'FFDFDF',
+			'ICON_GLOB'			=> $images['ctracker_note'],
+			'L_MESSAGE_TEXT'	=> sprintf($lang['ctracker_info_pw_expired'], $ctracker_config->settings['pw_validity']),
+			'L_MARK_MESSAGE'	=> '',
+			'U_MARK_MESSAGE'	=> '')
+		);
+	}
+}
+
+/*
+ * CrackerTracker Debug Mode Check
+ */
+if ( CT_DEBUG_MODE === true && $userdata['user_level'] == ADMIN )
+{
+  $template->assign_block_vars('ctracker_message', array(
+			'ROW_COLOR'			=> 'FFDFDF',
+			'ICON_GLOB'			=> $images['ctracker_note'],
+			'L_MESSAGE_TEXT'	=> $lang['ctracker_dbg_mode'],
+			'L_MARK_MESSAGE'	=> '',
+			'U_MARK_MESSAGE'	=> '')
+  );
+}
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	'L_USERNAME' => $lang['Username'],
+	'L_PASSWORD' => $lang['Password'],
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	'L_LOGIN_SEC' => $lang['ctracker_gmb_loginlink'],
+	
+	
+#
+#-----[ FIND ]------------------------------------------
+#
+	'U_INDEX' => append_sid('index.'.$phpEx),
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+	'U_LOGIN_SEC' => append_sid('ct_login_history.' . $phpEx),
+	
+	
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/page_tail.php
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+$template->set_filenames(array(
+	'overall_footer' => ( empty($gen_simple_header) ) ? 'overall_footer.tpl' : 'simple_footer.tpl')
+);
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+include_once($phpbb_root_path . 'ctracker/engines/ct_footer.' . $phpEx);
+$output_login_status = ($userdata['ct_enable_ip_warn'])? $lang['ctracker_ma_on'] : $lang['ctracker_ma_off'];
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	'ADMIN_LINK' => $admin_link)
+
+
+#
+#-----[ BEFORE, ADD ]------------------------------------------
+#
+	'CRACKER_TRACKER_FOOTER' => create_footer_layout($ctracker_config->settings['footer_layout']),
+	'L_STATUS_LOGIN' => ($ctracker_config->settings['login_ip_check'])? sprintf($lang['ctracker_ipwarn_info'], $output_login_status) : '',
+	
+	
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/smtp.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+define('SMTP_INCLUDED', 1);
+
+
+#
+#-----[ BEFORE, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+// Tell the Security Scanner that this constant is allowed
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/usercp_email.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	if ( $row['user_viewemail'] || $userdata['user_level'] == ADMIN )
+	{
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+		if ( $userdata['ct_last_mail'] >= time() && $ctracker_config->settings['massmail_protection'] == 1 )
+		{
+			message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_sendmail_info'], $ctracker_config->settings['massmail_time']));
+		}
+		
+		
+#
+#-----[ FIND ]------------------------------------------
+#
+				$sql = "UPDATE " . USERS_TABLE . " 
+					SET user_emailtime = " . time() . " 
+					WHERE user_id = " . $userdata['user_id'];
+					
+					
+#
+#-----[ REPLACE WITH ]------------------------------------------
+#
+				$new_mailtime = time() + $ctracker_config->settings['massmail_time'] * 60;
+				$sql = 'UPDATE ' . USERS_TABLE . ' 
+					SET user_emailtime = ' . time() . ', ct_last_mail = ' . $new_mailtime . ' WHERE user_id = ' . $userdata['user_id'];
+					
+					
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/usercp_register.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+ *   (at your option) any later version.
+ *
+ *
+ ***************************************************************************/
+ 
+ 
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+// CTracker_Ignore: File Checked By Human
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+// ---------------------------------------
+// Load agreement template since user has not yet
+// agreed to registration conditions/coppa
+//
+
+
+#
+#-----[ BEFORE, ADD ]------------------------------------------
+#
+// BEGIN CrackerTracker v5.x
+include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+$profile_security = new ct_userfunctions();
+$profile_security->handle_profile();
+(isset($HTTP_POST_VARS['submit']))? $profile_security->password_functions() : null;
+// END CrackerTracker v5.x
+
+
+#
+#-----[ FIND ]------------------------------------------
+#
+				$new_password = md5($new_password);
+				$passwd_sql = "user_password = '$new_password', ";
+				
+				
+#
+#-----[ BEFORE, ADD ]------------------------------------------
+#
+				$profile_security->pw_create_date($user_id);
+				
+				
+#
+#-----[ FIND ]------------------------------------------
+#
+			if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
+			{
+				message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);
+			}
+			
+			
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+			// BEGIN CrackerTracker v5.x
+			($mode == 'register')? $profile_security->pw_create_date($user_id) : null;
+			($mode == 'register')? $profile_security->reg_done() : null;
+			// END CrackerTracker v5.x
+			
+			
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/usercp_sendpasswd.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+# the full line is longer!
+	$sql = "SELECT user_id, username,
+	
+
+#
+#-----[ IN-LINE FIND ]------------------------------------------
+#
+user_lang
+
+
+#
+#-----[ IN-LINE AFTER, ADD ]------------------------------------------
+# Note the ending space!
+#
+, ct_last_pw_reset 
+ 
+ 
+#
+#-----[ FIND ]------------------------------------------
+#
+			$username = $row['username'];
+			$user_id = $row['user_id'];
+			
+			
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+			if ( $ctracker_config->settings['pw_reset_feature'] == 1 )
+			{
+				if ( $row['ct_last_pw_reset'] >= time() )
+				{
+					message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_pwreset_info'], $ctracker_config->settings['pwreset_time']));
+				}
+			}
+			
+			
+#
+#-----[ FIND ]------------------------------------------
+#
+			 $sql = "UPDATE " . USERS_TABLE . " 
+				SET user_newpasswd = '" . md5($user_password) . "', user_actkey = '$user_actkey'  
+				WHERE user_id = " . $row['user_id'];
+				
+				
+#
+#-----[ REPLACE WITH ]------------------------------------------
+#
+			$new_time = time() + $ctracker_config->settings['pwreset_time'] * 60;
+			// Compatibility trick
+			(empty($ctracker_config->settings['pwreset_time']))? $new_time = time() + 20 * 60 : null;
+			$sql = "UPDATE " . USERS_TABLE . " 
+				SET user_newpasswd = '" . md5($user_password) . "', user_actkey = '$user_actkey', ct_last_pw_reset = '$new_time' WHERE user_id = " . $row['user_id'];
+
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+templates/subSilver/overall_footer.tpl
+
+#
+#-----[ FIND ]------------------------------------------
+#
+<div align="center"><span class="copyright"><br />{ADMIN_LINK}<br />
+
+
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+<!-- BEGIN switch_user_logged_in -->
+{L_STATUS_LOGIN}<br /><br />
+<!-- END switch_user_logged_in -->
+{CRACKER_TRACKER_FOOTER}
+<br /><br />
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+templates/subSilver/overall_header.tpl
+
+#
+#-----[ FIND ]------------------------------------------
+#
+						<!-- BEGIN switch_user_logged_out -->
+						&nbsp;<a href="{U_REGISTER}" class="mainmenu"><img src="templates/subSilver/images/icon_mini_register.gif" width="12" height="13" border="0" alt="{L_REGISTER}" hspace="3" />{L_REGISTER}</a>&nbsp;
+						<!-- END switch_user_logged_out -->
+						
+						
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+						<!-- BEGIN login_sec_link -->
+						&nbsp;<a href="{U_LOGIN_SEC}" class="mainmenu"><img src="templates/subSilver/images/icon_mini_register.gif" width="12" height="13" border="0" alt="{L_LOGIN_SEC}" hspace="3" />{L_LOGIN_SEC}</a>&nbsp;
+						<!-- END login_sec_link -->
+						
+						
+#
+#-----[ FIND ]------------------------------------------
+#
+				</table></td>
+			</tr>
+		</table>
+		
+		
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+<!-- BEGIN ctracker_message -->
+<br />
+<div align="center">
+<table width="80%" cellspacing="1" cellpadding="3" border="0" class="forumline">
+	<tr>
+		<td align="center" style="background-color:#{ctracker_message.ROW_COLOR};"><img src="{ctracker_message.ICON_GLOB}" alt="" title="" border="0"></td>
+		<td align="center" style="background-color:#{ctracker_message.ROW_COLOR};"><span class="gensmall">{ctracker_message.L_MESSAGE_TEXT}</span></td>
+	</tr>
+	<tr>
+		<td align="center" class="row2" colspan="2"><span class="gensmall"><b><a href="{ctracker_message.U_MARK_MESSAGE}">{ctracker_message.L_MARK_MESSAGE}</a></b></span></td>
+	</tr>
+</table>
+</div>
+<br />
+<!-- END ctracker_message -->
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+templates/subSilver/posting_body.tpl
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	{POLLBOX}
+	
+	
+#
+#-----[ AFTER, ADD ]------------------------------------------
+#
+<!-- BEGIN switch_confirm -->
+	<tr>
+		<td class="row3" colspan="2" align="center"><br /><br />{CONFIRM_IMAGE}<br /><br /></td>
+	</tr>
+	<tr> 
+	  <td class="row2" colspan="2" align="center"><span class="gen"><b>{L_CT_CONFIRM}</b></span><br /><span class="gensmall">{L_CT_CONFIRM_E}</span><br /><br /><input type="text" class="post" style="width: 200px" name="confirm_code" size="6" value="" />{S_HIDDEN_FIELDS}</td>
+	</tr>
+<!-- END switch_confirm -->
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+templates/subSilver/subSilver.cfg
+
+#
+#-----[ FIND ]------------------------------------------
+#
+?>
+
+
+#
+#-----[ BEFORE, ADD ]------------------------------------------
+#
+//
+// CBACK CrackerTracker
+//
+$images['ctracker_key_icon']    = $current_template_path . '/ctracker/images/key_icon.png';
+$images['ctracker_easter_egg']  = $current_template_path . '/ctracker/images/easter_egg.png';
+$images['ctracker_acp_bg']      = $current_template_path . '/ctracker/images/acp_head_bg.jpg';
+$images['ctracker_acp_logo']    = $current_template_path . '/ctracker/images/acp_head_logo.jpg';
+$images['ctracker_icon_set_1']  = $current_template_path . '/ctracker/images/acp_settings_1.png';
+$images['ctracker_icon_set_2']  = $current_template_path . '/ctracker/images/acp_settings_2.png';
+$images['ctracker_icon_set_3']  = $current_template_path . '/ctracker/images/acp_settings_3.png';
+$images['ctracker_icon_set_4']  = $current_template_path . '/ctracker/images/acp_settings_4.png';
+$images['ctracker_icon_set_5']  = $current_template_path . '/ctracker/images/acp_settings_5.png';
+$images['ctracker_icon_set_6']  = $current_template_path . '/ctracker/images/acp_settings_6.png';
+$images['ctracker_icon_set_7']  = $current_template_path . '/ctracker/images/acp_settings_7.png';
+$images['ctracker_icon_set_8']  = $current_template_path . '/ctracker/images/acp_settings_8.png';
+$images['ctracker_icon_cred_1'] = $current_template_path . '/ctracker/images/acp_credits_1.png';
+$images['ctracker_icon_cred_2'] = $current_template_path . '/ctracker/images/acp_credits_2.png';
+$images['ctracker_icon_cred_3'] = $current_template_path . '/ctracker/images/acp_credits_3.png';
+$images['ctracker_icon_cred_4'] = $current_template_path . '/ctracker/images/acp_credits_4.png';
+$images['ctracker_fc_icon_1']   = $current_template_path . '/ctracker/images/fc_icon_1.png';
+$images['ctracker_fc_icon_2']   = $current_template_path . '/ctracker/images/fc_icon_2.png';
+$images['ctracker_global_msg']  = $current_template_path . '/ctracker/images/global_message.png';
+$images['ctracker_global_res']  = $current_template_path . '/ctracker/images/global_reset.png';
+$images['ctracker_log_manager'] = $current_template_path . '/ctracker/images/log_manager.png';
+$images['ctracker_footer_s']	  = $current_template_path . '/ctracker/images/footer_1.png';
+$images['ctracker_footer_b']	  = $current_template_path . '/ctracker/images/footer_2.png';
+$images['ctracker_recovery']	  = $current_template_path . '/ctracker/images/recovery.png';
+$images['ctracker_gmu']		  = $current_template_path . '/ctracker/images/glob_msg_user.png';
+$images['ctracker_note']	  = $current_template_path . '/ctracker/images/ip_warning.png';
+
+
+#
+#-----[ SAVE/CLOSE ALL FILES ]------------------------------------------
+#
+# EoM

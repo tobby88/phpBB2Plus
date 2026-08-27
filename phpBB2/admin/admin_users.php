@@ -148,6 +148,8 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 		$user_id = ($new_user) ? $user_id : intval($_POST['id']);
 		// End replacement - Admin add user MOD
 
+		$ctracker_config->first_admin_protection($user_id);
+
 		if (!($this_userdata = get_userdata($user_id)))
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );

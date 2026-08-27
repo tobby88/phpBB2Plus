@@ -350,11 +350,11 @@ var L_MORE_MATCHES = '{L_MORE_MATCHES}';
 <!-- Visual Confirmation -->
 <!-- BEGIN switch_confirm -->
 <tr>
-	<td class="row1" colspan="2" align="center"><span class="gensmall">{L_CONFIRM_CODE_IMPAIRED}</span><br /><br />{CONFIRM_IMG}<br /><br /></td>
+	<td class="row1" colspan="2" align="center"><span class="gensmall">{L_CONFIRM_CODE_IMPAIRED}</span><br /><br />{CONFIRM_IMG}{CONFIRM_IMAGE}<br /><br /></td>
 </tr>
 <tr> 
-  <td class="row1"><span class="gen">{L_CONFIRM_CODE}: * </span><br /><span class="gensmall">{L_CONFIRM_CODE_EXPLAIN}</span></td>
-  <td class="row2"><input type="text" class="post" style="width: 200px" name="confirm_code" size="6" maxlength="6" value="" /></td>
+  <td class="row1"><span class="gen">{L_CONFIRM_CODE}{L_CT_CONFIRM}: * </span><br /><span class="gensmall">{L_CONFIRM_CODE_EXPLAIN}{L_CT_CONFIRM_E}</span></td>
+  <td class="row2"><input type="text" class="post" style="width: 200px" name="confirm_code" size="6" maxlength="6" value="" />{S_HIDDEN_FIELDS}</td>
 </tr>
 <!-- END switch_confirm -->
 <tr>

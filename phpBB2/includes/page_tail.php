@@ -39,11 +39,6 @@ if ($banner_show_list)
 global $do_gzip_compress;
 
 //
-// CBACK.de CrackerTracker
-//
-include($phpbb_root_path . 'ctracker/ct_footer.'.$phpEx);
-
-//
 // Show the overall footer.
 //
 if ($userdata['session_logged_in'])
@@ -58,10 +53,15 @@ $template->set_filenames(array(
 	'overall_footer' => ( empty($gen_simple_header) ) ? 'overall_footer.tpl' : 'simple_footer.tpl')
 );
 
+include_once($phpbb_root_path . 'ctracker/engines/ct_footer.' . $phpEx);
+$output_login_status = ($userdata['ct_enable_ip_warn']) ? $lang['ctracker_ma_on'] : $lang['ctracker_ma_off'];
+
 $template->assign_vars(array(
 	'TRANSLATION_INFO' => (isset($lang['TRANSLATION_INFO'])) ? $lang['TRANSLATION_INFO'] : ((isset($lang['TRANSLATION'])) ? $lang['TRANSLATION'] : ''),
 	'L_CREDITS' => $lang['Credits'],
-	'U_CREDITS' => append_sid("hacks_list.$phpEx"), 
+	'U_CREDITS' => append_sid("hacks_list.$phpEx"),
+	'CRACKER_TRACKER_FOOTER' => create_footer_layout($ctracker_config->settings['footer_layout']),
+	'L_STATUS_LOGIN' => ($ctracker_config->settings['login_ip_check']) ? sprintf($lang['ctracker_ipwarn_info'], $output_login_status) : '',
 	'ADMIN_LINK' => $admin_link)
 );
 

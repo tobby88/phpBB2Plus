@@ -225,7 +225,16 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 {
 	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
 	global $userdata, $user_ip;
-    global $ctracker_config;
+	global $ctracker_config;
+
+	// CrackerTracker v5.x
+	if ( ($mode == 'newtopic' || $mode == 'reply') && ($ctracker_config->settings['spammer_blockmode'] > 0 || $ctracker_config->settings['spam_attack_boost'] == 1) && $userdata['user_id'] != ANONYMOUS )
+	{
+		include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+		$login_functions = new ct_userfunctions();
+		$login_functions->handle_postings();
+		unset($login_functions);
+	}
 	// BEGIN cmx_slash_news_mod
 	if( isset( $news_category ) && is_numeric( $news_category ) )
 	{
@@ -409,86 +418,8 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	board_stats();
 	cache_tree(true);
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-    //
-    // CBACK CrackerTracker Spammer Protection Engine
-    //
-    $ctinfomeldung = '';
-    if(($mode == 'newtopic' || $mode == 'reply') and ($ctracker_config['floodprot'] == 1))
-    {
-      if($userdata['user_level'] == 0 && $userdata['user_id'] != ANONYMOUS)
-      {
-        if($userdata['ct_posttime'] >= time())
-        {
-          if($userdata['ct_postcount'] > $ctracker_config['postintime'])
-          {
-            if($ctracker_config['autoban'] == 1)
-            {
-              ct_filllog();
-              $sql = "INSERT INTO " . BANLIST_TABLE . "( `ban_id` , `ban_userid` , `ban_ip` , `ban_email` ) VALUES ('', '" . $userdata['user_id'] . "', '', NULL);";
-
-  	    	    if( !$db->sql_query($sql))
-  	    	    {
-		      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-	          }
-
-              if( $userdata['session_logged_in'] )
-		      {
-			    session_end($userdata['session_id'], $userdata['user_id']);
-		      }
-            }
-            else
-            {
-              ct_filllog();
-              $sql = "UPDATE " . USERS_TABLE . " SET user_active = 0 WHERE user_id = '" . $userdata['user_id'] . "'";
-  	    	  
-		  if( !$db->sql_query($sql))
-  	    	  {
-	      	message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-          	  }
-
-		      if( $userdata['session_logged_in'] )
-		      {
-			    session_end($userdata['session_id'], $userdata['user_id']);
-		      }
-            }
-
-            message_die(GENERAL_MESSAGE, $lang['ct_forum_blo']);
-          }
-          else if($userdata['ct_postcount'] == $ctracker_config['postintime'])
-          {
-            $ctinfomeldung = sprintf($lang['ct_forum_wa'] . '<br /><br />', $ctracker_config['posttimespan']);
-          }
-          else
-          {
-            $ctinfomeldung = '';
-          }
-
-          $sql = "UPDATE " . USERS_TABLE . " SET ct_postcount = ct_postcount + 1 WHERE user_id = '" . $userdata['user_id'] . "'";
-  	    if( !$db->sql_query($sql))
-  	    {
-	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-          }
-        }
-        else
-        {
-          $stime = time() + $ctracker_config['posttimespan'];
-          $sql = "UPDATE " . USERS_TABLE . " SET ct_posttime = " . $stime . " WHERE user_id = '" . $userdata['user_id'] . "'";
-  	    if( !$db->sql_query($sql))
-  	    {
-	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-          }
-	    $sql = "UPDATE " . USERS_TABLE . " SET ct_postcount = 2 WHERE user_id = '" . $userdata['user_id'] . "'";
-  	    if( !$db->sql_query($sql))
-  	    {
-	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-          }
-        }
-      }
-    }
-
 	$meta = '<meta http-equiv="refresh" content="3;url=' . append_sid("viewtopic.$phpEx?" . POST_POST_URL . "=" . $post_id) . '#' . $post_id . '">';
-	$message = $ctinfomeldung . $lang['Stored'] . '<br /><br />' . sprintf($lang['Click_view_message'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_POST_URL . "=" . $post_id) . '#' . $post_id . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">', '</a>');
+	$message = $lang['Stored'] . '<br /><br />' . sprintf($lang['Click_view_message'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_POST_URL . "=" . $post_id) . '#' . $post_id . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">', '</a>');
 
 	return false;
 }

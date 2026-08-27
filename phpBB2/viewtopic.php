@@ -483,7 +483,7 @@ $profile_data_sql = get_udata_txt($profile_data, 'u.');
 //
 // Go ahead and pull all data for this topic
 //
-$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_posts, u.user_from, u.user_from_flag, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, u.user_warnings, u.user_level, u.user_allow_viewonline, u.user_session_time, u.user_birthday, u.user_next_birthday_greeting, u.user_gender".$profile_data_sql.", p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
+$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_posts, u.user_from, u.user_from_flag, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, u.ct_miserable_user, u.user_warnings, u.user_level, u.user_allow_viewonline, u.user_session_time, u.user_birthday, u.user_next_birthday_greeting, u.user_gender".$profile_data_sql.", p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
 	FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt
 	WHERE p.topic_id = $topic_id
 		$limit_posts_time
@@ -1351,7 +1351,19 @@ for($i = 0; $i < $total_posts; $i++)
 
 	$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? $postrow[$i]['post_subject'] : (($postrow[$i]['post_id'] == $topic_first_post_id) ? $forum_topic_data['topic_title'] : '');
 
-	$message = $postrow[$i]['post_text'];
+	// CrackerTracker v5.x
+	if ( $postrow[$i]['ct_miserable_user'] == 1 && $postrow[$i]['user_id'] != $userdata['user_id'] && $userdata['user_level'] == 0 )
+	{
+		$message = $lang['ctracker_message_dialog_title'] . '<br /><br />' . $lang['ctracker_ipb_deleted'];
+	}
+	else
+	{
+		$message = $postrow[$i]['post_text'];
+		if ( $postrow[$i]['ct_miserable_user'] == 1 && $userdata['user_level'] == ADMIN )
+		{
+			$message .= '<br /><br />' . $lang['ctracker_mu_success'];
+		}
+	}
 	$bbcode_uid = $postrow[$i]['bbcode_uid'];
 
 	$user_sig = ( $postrow[$i]['enable_sig'] && $postrow[$i]['user_sig'] != '' && $board_config['allow_sig'] ) ? $postrow[$i]['user_sig'] : '';

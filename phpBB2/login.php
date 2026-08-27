@@ -24,6 +24,9 @@
 // Allow people to reach login page if
 // board is shut down
 //
+// CTracker_Ignore: File Checked By Human
+// Tell the CTracker Filescanner that this constant is allowed
+//
 define('IN_LOGIN', true);
 
 define('IN_PHPBB', true);
@@ -49,123 +52,20 @@ else
 {
 	$sid = '';
 }
-//
-// CBACK CrackerTracker Visual Login Confirmation
-// visual confirmation code Generator taken from phpBB (c) phpBB Group
-//
-if ( isset($_GET['mode']) || isset($_POST['mode']) )
+
+// CrackerTracker v5.x
+if ( !empty($HTTP_POST_VARS['username']) && $ctracker_config->settings['loginfeature'] == 1 )
 {
-	$mode = ( isset($_GET['mode']) ) ? $_GET['mode'] : $_POST['mode'];
-	$mode = htmlspecialchars($mode);
-
-	if ( $mode == 'confirm' )
-	{
-		if ( $userdata['session_logged_in'] )
-		{
-			exit;
-		}
-		if (function_exists(imagettftext) && defined('ADV_CAPTCHA'))
-			include($phpbb_root_path . 'ctracker/ct_confirm_adv.'.$phpEx);
-		else
-			include($phpbb_root_path . 'ctracker/ct_confirm.'.$phpEx);
-		exit;
-	}
+	$ctracker_config->check_login_status($HTTP_POST_VARS['username']);
 }
-//
-// Now we check if the User is trying to Log in if he already has used one attempt or not
-// if not we disable the Visual Confirmation Code and with this we allow a normal login without any Confirmation
-// if the User tried to log in once we just continue with the normal Script and then we show the Visible Code every time the user
-// tries to log in before checking Password or anything.
-// Well OK its more DB gaming but many users want comfort AND security so let's do it ;-)
-//
-if(!empty($_POST['username']) && $ctracker_config['loginfeature'] == 1)
-{
-	$secure_username = '';
-	$secure_username = isset($_POST['username']) ? phpbb_clean_username($_POST['username']) : '';
-	$sql = "SELECT ct_logintry FROM " . USERS_TABLE . " WHERE username = '" . str_replace("\\'", "''", $secure_username) . "'";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Error in obtaining userdata', '', __LINE__, __FILE__, $sql);
-	}
-	if( $row = $db->sql_fetchrow($result) )
-	{
-		if($row['ct_logintry'] == 0)
-		{
-			$ctracker_config['loginfeature'] = 0;
-		}
-	} 
-}
-else
-{
-	$ctracker_config['loginfeature'] = 0;
-}
-
-
-if ( $ctracker_config['loginfeature'] == 1 && !$userdata['session_logged_in'] && !empty($_POST['confirm_id']) && !empty($_POST['confirm_code']))
-{
-	$confirm_id = htmlspecialchars($_POST['confirm_id']);
-	
-	if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id))
-	{
-		$confirm_id = '';
-	}
-
-	$sql = 'SELECT code
-		FROM ' . CTVISKEY . "
-		WHERE confirm_id = '$confirm_id'
-			AND session_id = '" . $userdata['session_id'] . "'";
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain confirmation code', __LINE__, __FILE__, $sql);
-	}
-
-	if ($row = $db->sql_fetchrow($result))
-	{
-		if ($row['code'] != $_POST['confirm_code'])
-		{
-			message_die(GENERAL_MESSAGE, $lang['ct_forum_sl1']);
-		}
-		else
-		{
-			$sql = 'DELETE FROM ' . CTVISKEY . "
-				WHERE confirm_id = '$confirm_id'
-					AND session_id = '" . $userdata['session_id'] . "'";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not delete confirmation code', __LINE__, __FILE__, $sql);
-			}
-		}
-	}
-	else
-	{
-			message_die(GENERAL_MESSAGE, $lang['ct_forum_sl1']);
-	}
-	$db->sql_freeresult($result);
-}
-
-$vcheck_need  = FALSE;
-$vcheck_login = TRUE;
-if($ctracker_config['loginfeature'] == 1 )
-{
-	$vcheck_need = TRUE;
-	$vcheck_login = FALSE;
-}
-
-if (($vcheck_need = FALSE || $userdata['session_logged_in']) or (isset($_GET['logout']) || !empty($_POST['confirm_id']) && !empty($_POST['confirm_code'])))
-{
-	$vcheck_login = TRUE;
-}
-// CBACK CrackerTracker Visual Login Confirmation
-//
-
-if(( $vcheck_login == TRUE ) and ( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) || isset($_GET['logout']) ) )
+if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) || isset($_GET['logout']) )
 {
 	if( ( isset($_POST['login']) || isset($_GET['login']) ) && (!$userdata['session_logged_in'] || isset($_POST['admin'])) )
 	{
 		$username = isset($_POST['username']) ? phpbb_clean_username($_POST['username']) : '';
 		$password = isset($_POST['password']) ? $_POST['password'] : '';
 
-		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
+		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, ct_login_count, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
 			FROM " . USERS_TABLE . "
 			WHERE username = '" . str_replace("\\'", "''", $username) . "'";
 		if ( !($result = $db->sql_query($sql)) )
@@ -206,11 +106,6 @@ if(( $vcheck_login == TRUE ) and ( isset($_POST['login']) || isset($_GET['login'
 	
 						$admin = (isset($HTTP_POST_VARS['admin'])) ? 1 : 0;
 						$session_id = session_begin($row['user_id'], $user_ip, PAGE_INDEX, FALSE, $autologin, $admin);
-						$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_logintry = 0 WHERE user_id = ' . $row['user_id'];
-							if( !$db->sql_query($sql))
-							{
-							  message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-							}
 	
 						// Start add - Protect user account MOD
 						/*
@@ -218,6 +113,20 @@ if(( $vcheck_login == TRUE ) and ( isset($_POST['login']) || isset($_GET['login'
 						$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_login_tries = 0, user_last_login_try = 0 WHERE user_id = ' . $row['user_id']);
 						*/
 						// End add - Protect user account MOD
+
+						// CrackerTracker v5.x
+						if ( $ctracker_config->settings['login_history'] == 1 )
+						{
+							$ctracker_config->update_login_history($row['user_id']);
+						}
+						if ( $ctracker_config->settings['loginfeature'] == 1 )
+						{
+							$ctracker_config->reset_login_system($row['user_id']);
+						}
+						if ( $ctracker_config->settings['login_ip_check'] == 1 )
+						{
+							$ctracker_config->set_user_ip($row['user_id']);
+						}
 	
 						if( $session_id )
 						{
@@ -282,17 +191,18 @@ if(( $vcheck_login == TRUE ) and ( isset($_POST['login']) || isset($_GET['login'
 						// End add - Protect user account MOD
 						if ($row['user_id'] != ANONYMOUS)
 						{
-							$sql = 'UPDATE ' . USERS_TABLE . '
-								SET ct_logintry = 1
-								WHERE user_id = ' . $row['user_id'];
-								
-							if( !$db->sql_query($sql))
-								{
-								  message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-								}
+							// CrackerTracker v5.x
+							include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
+							$logfile = new log_manager();
+							$logfile->prepare_log($row['username']);
+							$logfile->write_general_logfile($ctracker_config->settings['logsize_logins'], 4);
+							unset($logfile);
+							if ( $ctracker_config->settings['loginfeature'] == 1 )
+							{
+								$ctracker_config->handle_wrong_login($row['user_id'], $row['ct_login_count']);
+							}
 						}
-	
-						// Start add - Protect user account MOD
+							// Start add - Protect user account MOD
 						//count bad login
 						// block the user for X min
 						$blocktime = '';
@@ -457,65 +367,6 @@ else
 		);
 
 		$forward_page = '';
-
-		//
-		// CBACK CrackerTracker Login Confirmation
-		// Confirmation Generator Taken from phpBB (C) phpBB Group
-		//
-		$confirm_image = '';
-		if( $ctracker_config['loginfeature'] == 1 && !$userdata['session_logged_in'])
-		{
-			$expiry_time = time() - $board_config['session_length'];
-		
-			$sql = 'SELECT session_id 
-				FROM ' . SESSIONS_TABLE ." WHERE session_time>$expiry_time"; 
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not select session data', '', __LINE__, __FILE__, $sql);
-			}
-	
-			if ($row = $db->sql_fetchrow($result))
-			{
-				$confirm_sql = '';
-				do
-				{
-					$confirm_sql .= (($confirm_sql != '') ? ', ' : '') . "'" . $row['session_id'] . "'";
-				}
-				while ($row = $db->sql_fetchrow($result));
-	
-				$sql = 'DELETE FROM ' .  CTVISKEY . "
-					WHERE session_id NOT IN ($confirm_sql)";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Could not delete stale confirm data', '', __LINE__, __FILE__, $sql);
-				}
-			}
-			$db->sql_freeresult($result);
-	
-			// Generate the required confirmation code
-			// NB 0 (zero) could get confused with O (the letter) so we make change it
-			$code = dss_rand();
-			$code = strtoupper(str_replace('0', 'o', substr($code, 6)));
-	
-			$confirm_id = md5(uniqid($user_ip));
-	
-			$sql = 'INSERT INTO ' . CTVISKEY . " (confirm_id, session_id, code)
-				VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not insert new confirm code information', '', __LINE__, __FILE__, $sql);
-			}
-	
-			unset($code);
-	
-			$confirm_image = '<img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id") . '" alt="" title="" />';
-			$hidden_form_fields .= '<input type="hidden" name="confirm_id" value="' . $confirm_id . '" />';
-	
-			$template->assign_block_vars('switch_confirm', array());
-		}
-		// CBACK CrackerTracker Login Confirmation
-		//
-
 		if( isset($_POST['redirect']) || isset($_GET['redirect']) )
 		{
 			$forward_to = $HTTP_SERVER_VARS['QUERY_STRING'];
@@ -559,9 +410,6 @@ else
 
 			'L_ENTER_PASSWORD' => (isset($_GET['admin'])) ? $lang['Admin_reauthenticate'] : $lang['Enter_password'],
 			'L_SEND_PASSWORD' => $lang['Forgotten_password'],
-			'CONFIRM_IMG' => $confirm_image,
-			'L_CONFIRM_CODE' => $lang['ct_forum_slo'],
-
 			'U_SEND_PASSWORD' => append_sid("profile.$phpEx?mode=sendpassword"),
 
 			'S_HIDDEN_FIELDS' => $s_hidden_fields . $hidden_form_fields )

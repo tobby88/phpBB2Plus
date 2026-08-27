@@ -791,7 +791,18 @@ else if ( $submit || $confirm )
 		case 'editpost':
 		case 'newtopic':
 		case 'reply':
-			if ( $plus_config['enable_confirm_post'] && !$userdata['session_logged_in'] )
+			// CrackerTracker v5.x. The existing Plus CAPTCHA remains the fallback.
+			if ( $ctracker_config->settings['vconfirm_guest'] == 1 && !$userdata['session_logged_in'] )
+			{
+				if ( !defined('CRACKER_TRACKER_VCONFIRM') )
+				{
+					define('CRACKER_TRACKER_VCONFIRM', true);
+				}
+				define('POST_CONFIRM_CHECK', true);
+				include_once($phpbb_root_path . 'ctracker/engines/ct_visual_confirm.' . $phpEx);
+			}
+
+			if ( $ctracker_config->settings['vconfirm_guest'] != 1 && $plus_config['enable_confirm_post'] && !$userdata['session_logged_in'] )
 			{
 				if ( empty($_POST['confirm_id']) || empty($_POST['confirm_code']) )
 				{
@@ -1533,7 +1544,8 @@ $page_title = ($postreport || $lock_subject) ? $lang['Post_a_report']: $page_tit
 // Visual confirmation for guests
 //
 $confirm_image = '';
-if( !$userdata['session_logged_in'] && $plus_config['enable_confirm_post'])
+$s_hidden_fields = '';
+if( !$userdata['session_logged_in'] && $ctracker_config->settings['vconfirm_guest'] != 1 && $plus_config['enable_confirm_post'])
 {
 	$expiry_time = time() - $board_config['session_length'];
 
@@ -1583,6 +1595,16 @@ if( !$userdata['session_logged_in'] && $plus_config['enable_confirm_post'])
 	$hidden_form_fields .= '<input type="hidden" name="confirm_id" value="' . $confirm_id . '" />';
 	
 	$template->assign_block_vars('switch_confirm', array());
+}
+else if ( $ctracker_config->settings['vconfirm_guest'] == 1 && !$userdata['session_logged_in'] )
+{
+	// CrackerTracker v5.x
+	if ( !defined('CRACKER_TRACKER_VCONFIRM') )
+	{
+		define('CRACKER_TRACKER_VCONFIRM', true);
+	}
+	$template->assign_block_vars('switch_confirm', array());
+	include_once($phpbb_root_path . 'ctracker/engines/ct_visual_confirm.' . $phpEx);
 }
 // Generate smilies listing for page output
 generate_smilies('inline', PAGE_POSTING);
@@ -1678,7 +1700,8 @@ $template->assign_vars(array(
 	'HTML_STATUS' => $html_status,
 	'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
 	'SMILIES_STATUS' => $smilies_status, 
-	'CONFIRM_IMG' => $confirm_image,
+	'CONFIRM_IMG' => ($ctracker_config->settings['vconfirm_guest'] == 1) ? '' : $confirm_image,
+	'CONFIRM_IMAGE' => ($ctracker_config->settings['vconfirm_guest'] == 1) ? $confirm_image : '',
 
 	'L_SUBJECT' => $lang['Subject'],
 	'L_MESSAGE_BODY' => $lang['Message_body'],
@@ -1696,8 +1719,10 @@ $template->assign_vars(array(
 	'L_NOTIFY_ON_REPLY' => $lang['Notify'], 
 	'L_DELETE_POST' => $lang['Delete_post'],
 	'L_CONFIRM_CODE_IMPAIRED'	=> sprintf($lang['Confirm_code_impaired'], '<a href="mailto:' . $board_config['board_email'] . '">', '</a>'),
-	'L_CONFIRM_CODE' => $lang['Confirm_code'],
-	'L_CONFIRM_CODE_EXPLAIN' => $lang['Confirm_code_explain'],
+	'L_CONFIRM_CODE' => ($ctracker_config->settings['vconfirm_guest'] == 1) ? '' : $lang['Confirm_code'],
+	'L_CONFIRM_CODE_EXPLAIN' => ($ctracker_config->settings['vconfirm_guest'] == 1) ? '' : $lang['Confirm_code_explain'],
+	'L_CT_CONFIRM' => ($ctracker_config->settings['vconfirm_guest'] == 1) ? $lang['ctracker_vc_guest_post'] : '',
+	'L_CT_CONFIRM_E' => ($ctracker_config->settings['vconfirm_guest'] == 1) ? $lang['ctracker_vc_guest_expl'] : '',
 
 	'L_BBCODE_B_HELP' => $lang['bbcode_b_help'], 
 	'L_BBCODE_I_HELP' => $lang['bbcode_i_help'], 
@@ -1804,6 +1829,7 @@ $template->assign_vars(array(
 	'S_TYPE_TOGGLE' => $topic_type_toggle, 
 	'S_TOPIC_ID' => $topic_id, 
 	'S_POST_ACTION' => append_sid("posting.$phpEx"),
+	'S_HIDDEN_FIELDS' => $s_hidden_fields,
 	'S_HIDDEN_FORM_FIELDS' => $hidden_form_fields)
 );
 //-- mod : post icon -------------------------------------------------------------------------------

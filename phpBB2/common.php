@@ -54,11 +54,8 @@ if (@phpversion() >= '5.0.0' && (!@ini_get('register_long_arrays') || @ini_get('
 	}
 }
 
-//
-// CBACK.de CrackerTracker
-// Worm&Exploit Protection Engine
-//
-include($phpbb_root_path . "ctracker/ct_security." . $phpEx);
+// CrackerTracker v5.x
+include($phpbb_root_path . 'ctracker/engines/ct_security.' . $phpEx);
 
 // Protect against GLOBALS tricks
 if (isset($HTTP_POST_VARS['GLOBALS']) || isset($HTTP_POST_FILES['GLOBALS']) || isset($HTTP_GET_VARS['GLOBALS']) || isset($HTTP_COOKIE_VARS['GLOBALS']))
@@ -216,6 +213,10 @@ unset($dbpasswd);
 $client_ip = ( !empty($HTTP_SERVER_VARS['REMOTE_ADDR']) ) ? $HTTP_SERVER_VARS['REMOTE_ADDR'] : ( ( !empty($HTTP_ENV_VARS['REMOTE_ADDR']) ) ? $HTTP_ENV_VARS['REMOTE_ADDR'] : getenv('REMOTE_ADDR') );
 $user_ip = encode_ip($client_ip);
 
+// CrackerTracker v5.x
+include($phpbb_root_path . 'ctracker/engines/ct_varsetter.' . $phpEx);
+include($phpbb_root_path . 'ctracker/engines/ct_ipblocker.' . $phpEx);
+
 // cache configs -----------------
 $cache_dir = $phpbb_root_path . 'cache';
 $cache_config = $cache_dir . '/config.'.$phpEx;
@@ -226,13 +227,6 @@ if (@file_exists($cache_config) && defined('CCache'))
 	include($cache_config); 
 } 
 // cache configs -----------------
-
-//
-// CBACK.de CrackerTracker
-// Proxy&IP Blocker and Function File
-//
-include($phpbb_root_path . 'ctracker/ct_ipblocker.'.$phpEx);
-include($phpbb_root_path . 'ctracker/ct_functions.'.$phpEx); 
 
 //
 // Setup forum wide options, if this fails
@@ -298,33 +292,6 @@ if (!$board_config['config_id'])
 	}
 	// PLUSconfig -----------------
 	
-	// CBACK.de CrackerTracker 4.0 "PLUS-Edition"
-	if ( defined('CTRACK') && !$ctracker_config['version']) {
-		$sql = "SELECT *
-			FROM " . CTRACK. " WHERE name NOT IN ('lastreg', 'lastreg_ip')";
-		if( !($result = $db->sql_query($sql)) )
-		{
-			message_die(CRITICAL_ERROR, "Could not query CTracker-Config information", "", __LINE__, __FILE__, $sql);
-		}
-		
-		if ($use_cache) {
-		$write_string .= '$ctracker_config = array(';
-			// cache
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$write_string .= "'".$row['name']."'=> ".(( is_numeric($row['value']) ) ? $row['value'].",\n" : "'".addslashes($row['value'])."',\n");
-			}
-		$write_string .= "); \n \n";
-		} else {
-			// default
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$ctracker_config[$row['name']] = $row['value'];
-			}
-		}
-	}
-	// CBACK.de CrackerTracker 4.0 "PLUS-Edition"
-
 	$db->sql_freeresult($result);
 
 	// end File 

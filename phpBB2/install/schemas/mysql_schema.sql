@@ -568,14 +568,20 @@ CREATE TABLE phpbb_users (
    user_interests varchar(255),
    user_actkey varchar(32),
    user_newpasswd varchar(32),
-   ct_postcount varchar(10) default '0' NOT NULL,
-   ct_posttime varchar(10) default '0' NOT NULL,
-   ct_searchcount varchar(10) default '0' NOT NULL,
-   ct_searchtime varchar(10) default '0' NOT NULL,
-   ct_mailcount int( 10 ) default '0' NOT NULL,
-   ct_pwreset int( 2 ) default '0' NOT NULL,
-   ct_unsucclogin int( 10 ) default NULL,
-   ct_logintry int( 2 ) default '0' NOT NULL,
+   ct_search_time INT( 11 ) DEFAULT 1,
+   ct_search_count MEDIUMINT( 8 ) DEFAULT 1,
+   ct_last_mail INT( 11 ) DEFAULT 1,
+   ct_last_post INT( 11 ) DEFAULT 1,
+   ct_post_counter MEDIUMINT( 8 ) DEFAULT 1,
+   ct_last_pw_reset INT( 11 ) DEFAULT 1,
+   ct_enable_ip_warn TINYINT( 1 ) DEFAULT 1,
+   ct_last_used_ip VARCHAR( 16 ) DEFAULT '0.0.0.0',
+   ct_last_ip VARCHAR( 16 ) DEFAULT '0.0.0.0',
+   ct_login_count MEDIUMINT( 8 ) DEFAULT 1,
+   ct_login_vconfirm TINYINT( 1 ) DEFAULT 0,
+   ct_last_pw_change INT( 11 ) DEFAULT 1,
+   ct_global_msg_read TINYINT( 1 ) DEFAULT 0,
+   ct_miserable_user TINYINT( 1 ) DEFAULT 0,
    user_sub_forum tinyint(1) default '1' NOT NULL,
    user_split_cat tinyint(1) default '1' NOT NULL,
    user_last_topic_title tinyint(1) default '1' NOT NULL,
@@ -1284,23 +1290,35 @@ KEY post_id (article_id),
 KEY word_id (word_id)
 ) TYPE=MyISAM;
 
-CREATE TABLE phpbb_ct_filter (
-id mediumint(8) unsigned NOT NULL,
-list varchar(250) default NULL,
-PRIMARY KEY  (id)
-) TYPE=MyISAM;
+CREATE TABLE `phpbb_ctracker_config` (
+			`ct_config_name` varchar(255) NOT NULL,
+			`ct_config_value` varchar(255) NOT NULL,
+			PRIMARY KEY  (`ct_config_name`)
+			) TYPE=MyISAM;
 
-CREATE TABLE phpbb_ctrack (
-name varchar(50) default NULL,
-value varchar(100) default NULL
-) TYPE=MyISAM;
+CREATE TABLE `phpbb_ctracker_filechk` (
+			`filepath` text,
+			`hash` varchar(32) default NULL
+			) TYPE=MyISAM;
 
-CREATE TABLE phpbb_ct_viskey (
-confirm_id char(32) NOT NULL default '',
-session_id char(32) NOT NULL default '',
-code char(6) NOT NULL default '',
-PRIMARY KEY  (session_id,confirm_id)
-) TYPE=MyISAM;
+CREATE TABLE `phpbb_ctracker_filescanner` (
+			`id` smallint(5) NOT NULL,
+			`filepath` text,
+			`safety` smallint(1) NOT NULL default '0',
+			PRIMARY KEY  (`id`)
+			) TYPE=MyISAM;
+
+CREATE TABLE `phpbb_ctracker_ipblocker` (
+			`id` mediumint(8) unsigned NOT NULL,
+			`ct_blocker_value` varchar(250) default NULL,
+			PRIMARY KEY  (`id`)
+			) TYPE=MyISAM;
+
+CREATE TABLE `phpbb_ctracker_loginhistory` (
+			`ct_user_id` int(10) default NULL,
+			`ct_login_ip` varchar(16) default NULL,
+			`ct_login_time` int(11) NOT NULL default '0'
+			) TYPE=MyISAM;
 
 CREATE TABLE phpbb_profile_fields (
 field_id MEDIUMINT( 8 ) UNSIGNED NOT NULL AUTO_INCREMENT,

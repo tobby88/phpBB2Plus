@@ -10,6 +10,8 @@
  *
  *
  ***************************************************************************/
+// CTracker_Ignore: File Checked By Human
+
 
 /***************************************************************************
  *
@@ -48,35 +50,17 @@ function gen_reg_key()
 $unhtml_specialchars_match = array('#&gt;#', '#&lt;#', '#&quot;#', '#&amp;#');
 $unhtml_specialchars_replace = array('>', '<', '"', '&');
 
+// BEGIN CrackerTracker v5.x
+include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+$profile_security = new ct_userfunctions();
+$profile_security->handle_profile();
+(isset($HTTP_POST_VARS['submit']))? $profile_security->password_functions() : null;
+// END CrackerTracker v5.x
+
 // ---------------------------------------
 // Load agreement template since user has not yet
 // agreed to registration conditions/coppa
 //
-
-//
-// CBACK CrackerTracker Register Flood Protection
-//
-if($ctracker_config['regblock'] == 1 && $_GET['mode'] == 'register')
-{
-    if($ctracker_config['lastreg'] >= time())
-    {
-      $lregtimestamp = $ctracker_config['lastreg'];
-      $waittime = 0;
-      $waittime = $lregtimestamp - time();
-      $waitmsg  = '';
-      $waitmsg  = sprintf($lang['ct_forum_rfl'], $waittime);
-      message_die(GENERAL_MESSAGE, $waitmsg);
-    }
-
-    if(!empty($HTTP_SERVER_VARS['REMOTE_ADDR']) && $ctracker_config['lastreg_ip'] == $HTTP_SERVER_VARS['REMOTE_ADDR'])
-    {
-      // If the same IP wants to register we block this for 400 Seconds
-      if($ctracker_config['lastreg'] + 400 >= time())
-      {
-        message_die(GENERAL_MESSAGE, $lang['ct_forum_ifl']);
-      }
-    }
-}
 
 // BEGIN Disable Registration MOD
 if( $board_config['registration_status'] && !$userdata['session_logged_in'] )
@@ -528,6 +512,7 @@ if ( isset($_POST['submit']) )
 
 			if ( !$error )
 			{
+				$profile_security->pw_create_date($user_id);
 				$new_password = md5($new_password);
 				$passwd_sql = "user_password = '$new_password', ";
 			}
@@ -881,23 +866,6 @@ if ( isset($_POST['submit']) )
 				message_die(GENERAL_ERROR, 'Could not obtain next user_id information', '', __LINE__, __FILE__, $sql);
 			}
 			$user_id = $row['total'] + 1;
-
-            // CBACK CrackerTracker Register Flood Protection
-            $stime = time() + $ctracker_config['regtime'];
-            $sql = "UPDATE " . CTRACK . " SET value = " . $stime . " WHERE name = 'lastreg'";
-    	    $db->sql_query($sql);
-
-            if(!empty($HTTP_SERVER_VARS['REMOTE_ADDR']))
-            {
-	          $sql = "UPDATE " . CTRACK . " SET value = '" . $HTTP_SERVER_VARS['REMOTE_ADDR'] . "' WHERE name = 'lastreg_ip'";
-
-  	    	  if( !$db->sql_query($sql))
-  	    	  {
-	      	message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
-          	  }
-            }
-            // END CBACK CrackerTracker Register Flood Protection
-
 			//
 			// Get current date
 			//
@@ -920,6 +888,11 @@ if ( isset($_POST['submit']) )
 			{
 				message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);
 			}
+
+			// BEGIN CrackerTracker v5.x
+			($mode == 'register')? $profile_security->pw_create_date($user_id) : null;
+			($mode == 'register')? $profile_security->reg_done() : null;
+			// END CrackerTracker v5.x
 
 			$sql = "INSERT INTO " . GROUPS_TABLE . " (group_name, group_description, group_single_user, group_moderator)
 				VALUES ('', 'Personal User', 1, 0)";

@@ -18,6 +18,8 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
+// CTracker_Ignore: File Checked By Human
+
 
 //
 // The emailer class has support for attaching files, that isn't implemented

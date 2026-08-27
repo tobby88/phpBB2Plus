@@ -67,15 +67,6 @@ if ( $row = $db->sql_fetchrow($result) )
 		{
 			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql_update);
 		}
-
-        $sql = "UPDATE " . USERS_TABLE . "
-				SET ct_pwreset = '0', ct_unsucclogin = '0'
-				WHERE user_id = " . $row['user_id'];
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
-		}
-
 		if ( intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $sql_update_pass == '' )
 		{
 			include($phpbb_root_path . 'includes/emailer.'.$phpEx);

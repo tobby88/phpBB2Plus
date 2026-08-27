@@ -1,0 +1,707 @@
+##############################################################
+## MOD Title: Update CrackerTracker v4.x to CrackerTracker v5.x
+## MOD Author: cback < webmaster@cback.de > (Christian Knerr) http://www.cback.de
+## MOD Description: This MOD helps you to completely remove CrackerTracker v4.x from
+##			  your forum to install the new Generation 5.x CrackerTracker.
+##			  after you have done this Modification you have to do everything
+##		    	  from the normal install.txt in the main Folder of this MOD!
+##
+##
+## Installation Level: Easy
+## Installation Time: 14 Minutes
+## License: http://opensource.org/licenses/gpl-license.php GNU General Public License v2
+##############################################################
+## For security purposes, please check: http://www.phpbb.com/mods/
+## for the latest version of this MOD. Although MODs are checked
+## before being allowed in the MODs Database there is no guarantee
+## that there are no security problems within the MOD. No support
+## will be given for MODs not found within the MODs Database which
+## can be found at http://www.phpbb.com/mods/
+##############################################################
+## Before Adding This MOD To Your Forum, You Should Back Up All Files Related To This MOD
+##############################################################
+#
+#-----[ DIY INSTRUCTIONS ]------------------------------------------
+#
+Please delete these files from your board. You will loose the Logfiles and the
+Settings because CrackerTracker v5.x completely changed!
+
+	- admin/admin_ct_blocker.php
+	- admin/admin_ct_config.php
+	- admin/admin_ct_footer.php
+	- admin/admin_ct_logs.php
+	- admin/admin_ct_seccheck.php
+	- admin/admin_ct_systest.php
+	- ctracker/							// the complete folder!
+	- language/lang_english/lang_ctracker.php
+	- language/lang_german/lang_ctracker.php
+	- templates/subSilver/admin/ct_blocker.tpl
+	- templates/subSilver/admin/ct_config.tpl
+	- templates/subSilver/admin/ct_footer.tpl
+	- templates/subSilver/admin/ct_logs_1.tpl
+	- templates/subSilver/admin/ct_logs_2.tpl
+	- templates/subSilver/admin/ct_logs_3.tpl
+	- templates/subSilver/admin/ct_logs_4.tpl
+	- templates/subSilver/admin/ct_seccheck.tpl
+	- templates/subSilver/admin/ct_systest.tpl
+
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+common.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+//
+// CBACK.de CrackerTracker
+// Worm&Exploit Protection Engine
+//
+include($phpbb_root_path . "ctracker/ct_security." . $phpEx);
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+//
+// CBACK.de CrackerTracker
+// Proxy&IP Blocker and Function File
+//
+include($phpbb_root_path . 'ctracker/ct_ipblocker.'.$phpEx);
+include($phpbb_root_path . 'ctracker/ct_functions.'.$phpEx); 
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/functions.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_ctracker.' . $phpEx);
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/page_tail.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+//
+// CBACK.de CrackerTracker
+//
+include($phpbb_root_path . 'ctracker/ct_footer.'.$phpEx);
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/constants.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+// CBACK CrackerTracker Professional
+define('CTRACK', $table_prefix.'ctrack');
+define('CTFILTER', $table_prefix.'ct_filter');
+define('CTVISKEY', $table_prefix.'ct_viskey');
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+templates/subSilver/overall_footer.tpl
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+<!-- BEGIN cback_cracker_tracker -->
+<div align="center"><span class="copyright"><br />
+{cback_cracker_tracker.CTRACKER_FOOTER}
+<br />
+</span></div>
+<!-- END cback_cracker_tracker -->
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+search.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+//
+// CBACK CrackerTracker Search Flood Protection
+//
+if(($userdata['ct_searchtime'] > time()) and (!empty($HTTP_GET_VARS['search_id']) || isset($HTTP_POST_VARS['search_id']) || isset($HTTP_GET_VARS['search_keywords']) || isset($HTTP_POST_VARS['show_results'])))
+{
+  $waittime = 0;
+  $waittime = $userdata['ct_searchtime'] - time();
+  $waitmsg  = '';
+  $waitmsg  = sprintf($lang['ct_forum_sfl'], $ctracker_config['searchtime'], $waittime);
+
+  if($userdata['user_id'] == ANONYMOUS)
+  {
+    message_die(GENERAL_MESSAGE, $waitmsg);
+  }
+  else
+  {
+    $sql = "UPDATE " . USERS_TABLE . " SET ct_searchcount = ct_searchcount + 1 WHERE user_id = " . $userdata['user_id'];
+  	    if( !($result = $db->sql_query($sql)) )
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+
+
+    if($userdata['ct_searchcount'] >= $ctracker_config['maxsearch'] && $userdata['ct_searchtime'] > time())
+    {
+      if($userdata['ct_searchcount'] == $ctracker_config['maxsearch'])
+      {
+        $stime = time() + $ctracker_config['searchtime'];
+        $sql = "UPDATE " . USERS_TABLE . " SET ct_searchtime = " . $stime . " WHERE user_id = " . $userdata['user_id'];
+  	    if( !$db->sql_query($sql))
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+      }
+      message_die(GENERAL_MESSAGE, $waitmsg);
+    }
+  }
+}
+
+if(isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) || !empty($HTTP_GET_VARS['search_id']) || isset($HTTP_POST_VARS['search_id']) || isset($HTTP_GET_VARS['search_keywords']) || isset($HTTP_POST_VARS['show_results']))
+{
+  if($userdata['ct_searchtime'] <= time())
+  {
+    $stime = time() + $ctracker_config['searchtime'];
+    $sql = "UPDATE " . USERS_TABLE . " SET ct_searchtime = " . $stime . " WHERE user_id = " . $userdata['user_id'];
+    
+    if( !$db->sql_query($sql))
+    {
+      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+    }
+
+    if($userdata['user_id'] != ANONYMOUS)
+    {
+      $sql = "UPDATE " . USERS_TABLE . " SET ct_searchcount = 1 WHERE user_id = " . $userdata['user_id'];
+  	
+	if( !$db->sql_query($sql))
+  	{
+        message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+      }
+    }
+
+  }
+}
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+
+			$sucheck = strtolower($highlight_active);
+			$sucheck = str_replace($ct_rules, '*', $sucheck);
+			if($sucheck != $highlight_active)
+			{
+			  $highlight_active = '';
+			}
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/usercp_register.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+//
+// CBACK CrackerTracker Register Flood Protection
+//
+  if($ctracker_config['regblock'] == 1 && $HTTP_GET_VARS['mode'] == 'register')
+  {
+    if($ctracker_config['lastreg'] >= time())
+    {
+      $lregtimestamp = $ctracker_config['lastreg'];
+      $waittime = 0;
+      $waittime = $lregtimestamp - time();
+      $waitmsg  = '';
+      $waitmsg  = sprintf($lang['ct_forum_rfl'], $waittime);
+      message_die(GENERAL_MESSAGE, $waitmsg);
+    }
+
+    if(!empty($HTTP_SERVER_VARS['REMOTE_ADDR']) && $ctracker_config['lastreg_ip'] == $HTTP_SERVER_VARS['REMOTE_ADDR'])
+    {
+      // If the same IP wants to register we block this for 400 Seconds
+      if($ctracker_config['lastreg'] + 400 >= time())
+      {
+        message_die(GENERAL_MESSAGE, $lang['ct_forum_ifl']);
+      }
+    }
+  }
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+            // CBACK CrackerTracker Register Flood Protection
+            $stime = time() + $ctracker_config['regtime'];
+            $sql = "UPDATE " . CTRACK . " SET value = " . $stime . " WHERE name = 'lastreg'";
+    	    $db->sql_query($sql);
+
+            if(!empty($HTTP_SERVER_VARS['REMOTE_ADDR']))
+            {
+	          $sql = "UPDATE " . CTRACK . " SET value = '" . $HTTP_SERVER_VARS['REMOTE_ADDR'] . "' WHERE name = 'lastreg_ip'";
+
+  	    	  if( !$db->sql_query($sql))
+  	    	  {
+	      	message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          	  }
+            }
+            // END CBACK CrackerTracker Register Flood Protection
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/functions_post.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+    global $ctracker_config;
+    
+#
+#-----[ FIND AND DELETE]------------------------------------------
+#
+    //
+    // CBACK CrackerTracker Spammer Protection Engine
+    //
+    $ctinfomeldung = '';
+    if(($mode == 'newtopic' || $mode == 'reply') and ($ctracker_config['floodprot'] == 1))
+    {
+      if($userdata['user_level'] == 0 && $userdata['user_id'] != ANONYMOUS)
+      {
+        if($userdata['ct_posttime'] >= time())
+        {
+          if($userdata['ct_postcount'] > $ctracker_config['postintime'])
+          {
+            if($ctracker_config['autoban'] == 1)
+            {
+              ct_filllog();
+              $sql = "INSERT INTO " . BANLIST_TABLE . "( `ban_id` , `ban_userid` , `ban_ip` , `ban_email` ) VALUES ('', '" . $userdata['user_id'] . "', '', NULL);";
+
+  	    	    if( !$db->sql_query($sql))
+  	    	    {
+		      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+	          }
+
+              if( $userdata['session_logged_in'] )
+		      {
+			    session_end($userdata['session_id'], $userdata['user_id']);
+		      }
+            }
+            else
+            {
+              ct_filllog();
+              $sql = "UPDATE " . USERS_TABLE . " SET user_active = 0 WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    	  
+		  if( !$db->sql_query($sql))
+  	    	  {
+	      	message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          	  }
+
+		      if( $userdata['session_logged_in'] )
+		      {
+			    session_end($userdata['session_id'], $userdata['user_id']);
+		      }
+            }
+
+            message_die(GENERAL_MESSAGE, $lang['ct_forum_blo']);
+          }
+          else if($userdata['ct_postcount'] == $ctracker_config['postintime'])
+          {
+            $ctinfomeldung = sprintf($lang['ct_forum_wa'] . '<br /><br />', $ctracker_config['posttimespan']);
+          }
+          else
+          {
+            $ctinfomeldung = '';
+          }
+
+          $sql = "UPDATE " . USERS_TABLE . " SET ct_postcount = ct_postcount + 1 WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    if( !$db->sql_query($sql))
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+        }
+        else
+        {
+          $stime = time() + $ctracker_config['posttimespan'];
+          $sql = "UPDATE " . USERS_TABLE . " SET ct_posttime = " . $stime . " WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    if( !$db->sql_query($sql))
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+	    $sql = "UPDATE " . USERS_TABLE . " SET ct_postcount = 2 WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    if( !$db->sql_query($sql))
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+        }
+      }
+    }
+
+#
+#-----[ IN-LINE FIND AND DELETE ]------------------------------------------
+#
+$ctinfomeldung . 
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/usercp_email.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+		if ( $userdata['ct_mailcount'] >= time() && $ctracker_config['mailfeature'] == 1 )
+		{
+			message_die(GENERAL_MESSAGE, $lang['ct_forum_emb']);
+		}
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+                $mtimetemp = time() + 240;
+                $sql = "UPDATE " . USERS_TABLE . "
+					SET ct_mailcount = " . $mtimetemp . "
+					WHERE user_id = " . $userdata['user_id'];
+                $db->sql_query($sql);
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/usercp_sendpasswd.php
+
+#
+#-----[ FIND ]------------------------------------------
+#
+$sql = "SELECT user_id, username, user_email, user_active, user_lang
+
+#
+#-----[ IN-LINE FIND AND DELETE ]------------------------------------------
+#
+, ct_pwreset, ct_unsucclogin
+
+#
+#-----[ FIND AND DELETE]------------------------------------------
+#
+			if ( $ctracker_config['pwreset'] == 1 )
+			{
+			  if ( $row['ct_pwreset'] == 1 && $row['ct_unsucclogin'] >= time())
+			  {
+			    message_die(GENERAL_MESSAGE, $lang['ct_forum_pws']);
+			  }
+			}
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+            $loginsyst = time() + 14400;
+            $sql = "UPDATE " . USERS_TABLE . "
+				SET ct_pwreset = '1', ct_unsucclogin = '" . $loginsyst . "'
+				WHERE user_id = " . $row['user_id'];
+			if ( !$db->sql_query($sql) )
+			{
+				message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);
+			}
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/usercp_activate.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+        $sql = "UPDATE " . USERS_TABLE . "
+				SET ct_pwreset = '0', ct_unsucclogin = '0'
+				WHERE user_id = " . $row['user_id'];
+		if ( !$db->sql_query($sql) )
+		{
+			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
+		}
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+login.php
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+			//
+			// CBACK CrackerTracker Visual Login Confirmation
+			// visual confirmation code Generator taken from phpBB (c) phpBB Group
+			//
+			if ( isset($HTTP_GET_VARS['mode']) || isset($HTTP_POST_VARS['mode']) )
+			{
+				$mode = ( isset($HTTP_GET_VARS['mode']) ) ? $HTTP_GET_VARS['mode'] : $HTTP_POST_VARS['mode'];
+				$mode = htmlspecialchars($mode);
+
+				if ( $mode == 'confirm' )
+				{
+					if ( $userdata['session_logged_in'] )
+					{
+						exit;
+					}
+					include($phpbb_root_path . 'ctracker/ct_confirm.'.$phpEx);
+					exit;
+			    }
+			}
+
+			//
+			// Now we check if the User is trying to Log in if he already has used one attempt or not
+			// if not we disable the Visual Confirmation Code and with this we allow a normal login without any Confirmation
+			// if the User tried to log in once we just continue with the normal Script and then we show the Visible Code every time the user
+			// tries to log in before checking Password or anything.
+			// Well OK its more DB gaming but many users want comfort AND security so let's do it ;-)
+			//
+			if(!empty($HTTP_POST_VARS['username']) && $ctracker_config['loginfeature'] == 1)
+			{
+			  $secure_username = '';
+			  $secure_username = isset($HTTP_POST_VARS['username']) ? phpbb_clean_username($HTTP_POST_VARS['username']) : '';
+			  $sql = "SELECT ct_logintry FROM " . USERS_TABLE . " WHERE username = '" . str_replace("\\'", "''", $secure_username) . "'";
+			  if ( !($result = $db->sql_query($sql)) )
+			  {
+			    message_die(GENERAL_ERROR, 'Error in obtaining userdata', '', __LINE__, __FILE__, $sql);
+			  }
+			  if( $row = $db->sql_fetchrow($result) )
+		      {
+			    if($row['ct_logintry'] == 0)
+				{
+				  $ctracker_config['loginfeature'] = 0;
+				}
+		      } 
+			}
+			else
+			{
+			  $ctracker_config['loginfeature'] = 0;
+			}
+
+            if ( $ctracker_config['loginfeature'] == 1 && !$userdata['session_logged_in'] && !empty($HTTP_POST_VARS['confirm_id']) && !empty($HTTP_POST_VARS['confirm_code']))
+			{
+                    $confirm_id = htmlspecialchars($HTTP_POST_VARS['confirm_id']);					if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id))
+					{
+						$confirm_id = '';
+					}
+
+					$sql = 'SELECT code
+						FROM ' . CTVISKEY . "
+						WHERE confirm_id = '$confirm_id'
+							AND session_id = '" . $userdata['session_id'] . "'";
+					if (!($result = $db->sql_query($sql)))
+					{
+						message_die(GENERAL_ERROR, 'Could not obtain confirmation code', __LINE__, __FILE__, $sql);
+					}
+
+					if ($row = $db->sql_fetchrow($result))
+					{
+						if ($row['code'] != $HTTP_POST_VARS['confirm_code'])
+						{
+                            message_die(GENERAL_MESSAGE, $lang['ct_forum_sl1']);
+						}
+						else
+						{
+							$sql = 'DELETE FROM ' . CTVISKEY . "
+								WHERE confirm_id = '$confirm_id'
+									AND session_id = '" . $userdata['session_id'] . "'";
+							if (!$db->sql_query($sql))
+							{
+								message_die(GENERAL_ERROR, 'Could not delete confirmation code', __LINE__, __FILE__, $sql);
+							}
+						}
+					}
+					else
+					{
+                            message_die(GENERAL_MESSAGE, $lang['ct_forum_sl1']);
+					}
+					$db->sql_freeresult($result);
+			}
+
+            $vcheck_need  = FALSE;
+            $vcheck_login = TRUE;
+            if($ctracker_config['loginfeature'] == 1 )
+            {
+              $vcheck_need = TRUE;
+              $vcheck_login = FALSE;
+            }
+
+            if (($vcheck_need = FALSE || $userdata['session_logged_in']) or (isset($HTTP_GET_VARS['logout']) || !empty($HTTP_POST_VARS['confirm_id']) && !empty($HTTP_POST_VARS['confirm_code'])))
+		  	{
+			  $vcheck_login = TRUE;
+		  	}
+
+#
+#-----[ FIND ]------------------------------------------
+# The original line is longer!
+#
+if(( $vcheck_login == TRUE ) and
+
+#
+#-----[ REPLACE WITH ]------------------------------------------
+# Please replace the COMPLETE line!
+#
+if( isset($HTTP_POST_VARS['login']) || isset($HTTP_GET_VARS['login']) || isset($HTTP_POST_VARS['logout']) || isset($HTTP_GET_VARS['logout']) )
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+					$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_logintry = 0 WHERE user_id = ' . $row['user_id'];
+  	    				if( !$db->sql_query($sql))
+  	    				{
+	    				  message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          				}
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+					if ($row['user_id'] != ANONYMOUS)
+					{
+						$sql = 'UPDATE ' . USERS_TABLE . '
+							SET ct_logintry = 1
+							WHERE user_id = ' . $row['user_id'];
+  	    					
+						if( !$db->sql_query($sql))
+  	    					{
+	    					  message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          					}
+					}
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+    //
+    // CBACK CrackerTracker Login Confirmation
+    // Confirmation Generator Taken from phpBB (C) phpBB Group
+    //
+    $confirm_image = '';
+    if( $ctracker_config['loginfeature'] == 1 && !$userdata['session_logged_in'])
+    {
+	    $sql = 'SELECT session_id
+		    FROM ' . SESSIONS_TABLE;
+	    if (!($result = $db->sql_query($sql)))
+	    {
+			message_die(GENERAL_ERROR, 'Could not select session data', '', __LINE__, __FILE__, $sql);
+		}
+
+		if ($row = $db->sql_fetchrow($result))
+		{
+			$confirm_sql = '';
+			do
+			{
+				$confirm_sql .= (($confirm_sql != '') ? ', ' : '') . "'" . $row['session_id'] . "'";
+			}
+			while ($row = $db->sql_fetchrow($result));
+
+			$sql = 'DELETE FROM ' .  CTVISKEY . "
+				WHERE session_id NOT IN ($confirm_sql)";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Could not delete stale confirm data', '', __LINE__, __FILE__, $sql);
+			}
+		}
+		$db->sql_freeresult($result);
+
+		$confirm_chars = array('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',  'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',  'U', 'V', 'W', 'X', 'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+
+		list($usec, $sec) = explode(' ', microtime());
+		mt_srand($sec * $usec);
+
+		$max_chars = count($confirm_chars) - 1;
+		$code = '';
+		for ($i = 0; $i < 6; $i++)
+		{
+			$code .= $confirm_chars[mt_rand(0, $max_chars)];
+		}
+
+		$confirm_id = md5(uniqid($user_ip));
+
+		$sql = 'INSERT INTO ' . CTVISKEY . " (confirm_id, session_id, code)
+			VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not insert new confirm code information', '', __LINE__, __FILE__, $sql);
+		}
+
+		unset($code);
+
+		$confirm_image = (@extension_loaded('zlib')) ? '<img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id") . '" alt="" title="" />' : '<img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id&amp;c=1") . '" alt="" title="" /><img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id&amp;c=2") . '" alt="" title="" /><img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id&amp;c=3") . '" alt="" title="" /><img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id&amp;c=4") . '" alt="" title="" /><img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id&amp;c=5") . '" alt="" title="" /><img src="' . append_sid("login.$phpEx?mode=confirm&amp;id=$confirm_id&amp;c=6") . '" alt="" title="" />';
+		$hidden_form_fields .= '<input type="hidden" name="confirm_id" value="' . $confirm_id . '" />';
+
+		$template->assign_block_vars('switch_confirm', array());
+	}
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+			'CONFIRM_IMG' => $confirm_image,
+			'L_CONFIRM_CODE' => $lang['ct_forum_slo'],
+
+#
+#-----[ FIND ]------------------------------------------
+#
+'S_HIDDEN_FIELDS' => $s_hidden_fields . $hidden_form_fields )
+
+#
+#-----[ REPLACE WITH ]------------------------------------------
+#
+'S_HIDDEN_FIELDS' => $s_hidden_fields)
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+templates/subSilver/login_body.tpl
+
+#
+#-----[ FIND AND DELETE ]------------------------------------------
+#
+ 		  <!-- BEGIN switch_confirm -->
+		  <tr>
+			<td class="row1" colspan="2" align="center">
+			<br /><br /><span class="gen">{L_CONFIRM_CODE}</span>
+			<span class="gensmall">&nbsp;</span><br /><br />{CONFIRM_IMG}<br /><br /></td>
+		  </tr>
+		  <tr>
+			<td colspan="2" align="center" class="row2">
+			  <input type="text" class="post" name="confirm_code" size="25" maxlength="6" value="" />
+			<br /><br />
+			</td>
+		  </tr>
+		  <!-- END switch_confirm -->
+		  
+#
+#-----[ SQL ]------------------------------------------
+#
+# Please remember to replace the prefix phpbb_ if you are using an other one!
+# If you don't want to execute this SQL Commands manually just upload the
+# db_uninstall_4x.php to your Forum root and execute it!
+#
+DROP TABLE `phpbb_ctrack`;
+DROP TABLE `phpbb_ct_filter`;
+DROP TABLE `phpbb_ct_viskey`;
+ALTER TABLE `phpbb_users` DROP `ct_logintry`;
+ALTER TABLE `phpbb_users` DROP `ct_unsucclogin`;
+ALTER TABLE `phpbb_users` DROP `ct_pwreset`;
+ALTER TABLE `phpbb_users` DROP `ct_mailcount`;
+ALTER TABLE `phpbb_users` DROP `ct_postcount`;
+ALTER TABLE `phpbb_users` DROP `ct_posttime`;
+ALTER TABLE `phpbb_users` DROP `ct_searchcount`;
+ALTER TABLE `phpbb_users` DROP `ct_searchtime`;
+
+#
+#-----[ DIY INSTRUCTIONS ]------------------------------------------
+#
+Now you have just REMOVED the old CrackerTracker from your forum. Now
+you have to install the new one. So please open the file install.txt
+in the main Folder of this MOD now, to install CrackerTracker v5.x!
+
+#
+#-----[ SAVE/CLOSE ALL FILES ]------------------------------------------
+#
+# EoM

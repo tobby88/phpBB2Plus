@@ -133,6 +133,10 @@ window.status = "{PRIVATE_MESSAGE_INFO}";
 &nbsp;&#8226;&nbsp;
 <a href="{U_REGISTER}">{L_REGISTER}</a>
 <!-- END switch_user_logged_out -->
+<!-- BEGIN login_sec_link -->
+&nbsp;&#8226;&nbsp;
+<a href="{U_LOGIN_SEC}">{L_LOGIN_SEC}</a>
+<!-- END login_sec_link -->
 &nbsp;&#8226;&nbsp;
 <a href="{U_PROFILE}">{L_PROFILE}</a>
 &nbsp;&#8226;&nbsp;
@@ -142,6 +146,13 @@ window.status = "{PRIVATE_MESSAGE_INFO}";
 </tr>
 </table>
 <table border="0" cellpadding="0" cellspacing="0" class="tbl"><tr><td class="tbll"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblbot"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblr"><img src="images/spacer.gif" alt="" width="8" height="4" /></td></tr></table>
+<!-- BEGIN ctracker_message -->
+<br />
+<div align="center"><table width="80%" cellspacing="1" cellpadding="3" border="0" class="forumline">
+<tr><td align="center" style="background-color:#{ctracker_message.ROW_COLOR};"><img src="{ctracker_message.ICON_GLOB}" alt="" title="" border="0" /></td><td align="center" style="background-color:#{ctracker_message.ROW_COLOR};"><span class="gensmall">{ctracker_message.L_MESSAGE_TEXT}</span></td></tr>
+<tr><td align="center" class="row2" colspan="2"><span class="gensmall"><b><a href="{ctracker_message.U_MARK_MESSAGE}">{ctracker_message.L_MARK_MESSAGE}</a></b></span></td></tr>
+</table></div><br />
+<!-- END ctracker_message -->
 {CALENDAR_BOX}
 <table width="100%" border="0" cellspacing="0" cellpadding="10">
 <tr>

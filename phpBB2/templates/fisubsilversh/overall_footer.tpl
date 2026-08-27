@@ -1,4 +1,8 @@
-<div align="center" class="gensmall"><br />{ADMIN_LINK}<br /> 
+<div align="center" class="gensmall"><br />{ADMIN_LINK}<br />
+<!-- BEGIN switch_user_logged_in -->
+{L_STATUS_LOGIN}<br /><br />
+<!-- END switch_user_logged_in -->
+{CRACKER_TRACKER_FOOTER}<br /><br />
 <!--
 We request you retain the full copyright notice below including the link to www.phpbb.com
 and www.phpbb2.de. This not only gives respect to the large amount of time given freely by 
@@ -16,9 +20,6 @@ www.phpbb2.de
 // -->
 {S_TIMEZONE}<br />
 {TRANSLATION_INFO}
-<!-- BEGIN cback_cracker_tracker -->
-<br />{cback_cracker_tracker.CTRACKER_FOOTER}
-<!-- END cback_cracker_tracker -->
 </div>
 <a name="bot" id="bot"></a></td></tr></table>
 <table width="100%" border="0" cellspacing="0" cellpadding="2">

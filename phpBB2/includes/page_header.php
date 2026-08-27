@@ -483,6 +483,82 @@ while( list($nav_item, $nav_array) = @each($nav_links) )
 // Format Timezone. We are unable to use array_pop here, because of PHP3 compatibility
 $l_timezone = explode('.', $board_config['board_timezone']);
 $l_timezone = (count($l_timezone) > 1 && $l_timezone[count($l_timezone)-1] != 0) ? $lang[sprintf('%.1f', $board_config['board_timezone'])] : $lang[number_format($board_config['board_timezone'])];
+
+/* CrackerTracker IP Range Scanner */
+if ( $HTTP_GET_VARS['marknow'] == 'ipfeature' && $userdata['session_logged_in'] )
+{
+	$userdata['ct_last_ip'] = $userdata['ct_last_used_ip'];
+	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_ip = ct_last_used_ip WHERE user_id=' . $userdata['user_id'];
+	if ( !($result = $db->sql_query($sql)) )
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+	}
+	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) )
+	{
+		preg_match('#/([^/]*?)$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink);
+		redirect($backlink[1]);
+	}
+}
+
+if ( $ctracker_config->settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn'] == 1 && $userdata['session_logged_in'] )
+{
+	include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
+	$ctracker_user = new ct_userfunctions();
+	$check_ip_range = $ctracker_user->check_ip_range();
+	if ( $check_ip_range != 'allclear' )
+	{
+		$template->assign_block_vars('ctracker_message', array(
+			'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
+			'L_MESSAGE_TEXT' => $check_ip_range, 'L_MARK_MESSAGE' => $lang['ctracker_gmb_markip'],
+			'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=ipfeature')));
+	}
+}
+
+/* CrackerTracker Global Message Function */
+if ( $HTTP_GET_VARS['marknow'] == 'globmsg' && $userdata['session_logged_in'] )
+{
+	$userdata['ct_global_msg_read'] = 0;
+	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_global_msg_read = 0 WHERE user_id=' . $userdata['user_id'];
+	if ( !($result = $db->sql_query($sql)) )
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+	}
+	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) )
+	{
+		preg_match('#/([^/]*?)$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink);
+		redirect($backlink[1]);
+	}
+}
+
+if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $ctracker_config->settings['global_message'] != '' )
+{
+	$global_message_output = ($ctracker_config->settings['global_message_type'] == 1)
+		? $ctracker_config->settings['global_message']
+		: sprintf($lang['ctracker_gmb_link'], $ctracker_config->settings['global_message'], $ctracker_config->settings['global_message']);
+	$template->assign_block_vars('ctracker_message', array(
+		'ROW_COLOR' => 'E1FFDF', 'ICON_GLOB' => $images['ctracker_note'],
+		'L_MESSAGE_TEXT' => $global_message_output, 'L_MARK_MESSAGE' => $lang['ctracker_gmb_mark'],
+		'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=globmsg')));
+}
+
+(($ctracker_config->settings['login_history'] == 1 || $ctracker_config->settings['login_ip_check'] == 1) && $userdata['session_logged_in']) ? $template->assign_block_vars('login_sec_link', array()) : null;
+
+/* CrackerTracker Password Expirement Check */
+if ( $userdata['session_logged_in'] && $ctracker_config->settings['pw_control'] == 1 && time() > $userdata['ct_last_pw_reset'] )
+{
+	$template->assign_block_vars('ctracker_message', array(
+		'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
+		'L_MESSAGE_TEXT' => sprintf($lang['ctracker_info_pw_expired'], $ctracker_config->settings['pw_validity']),
+		'L_MARK_MESSAGE' => '', 'U_MARK_MESSAGE' => ''));
+}
+
+/* CrackerTracker Debug Mode Check */
+if ( CT_DEBUG_MODE === true && $userdata['user_level'] == ADMIN )
+{
+	$template->assign_block_vars('ctracker_message', array(
+		'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
+		'L_MESSAGE_TEXT' => $lang['ctracker_dbg_mode'], 'L_MARK_MESSAGE' => '', 'U_MARK_MESSAGE' => ''));
+}
 // Start add - Complete banner MOD
 if ($plus_config['enable_banners'])
 {
@@ -585,6 +661,7 @@ $template->assign_vars(array(
 
 	'L_USERNAME' => $lang['Username'],
 	'L_PASSWORD' => $lang['Password'],
+	'L_LOGIN_SEC' => $lang['ctracker_gmb_loginlink'],
 	'L_NAME' => $lang['Name'],
 	'L_SEARCH_FOR' => $lang['Search_for'],
 	'L_THAT_CONTAINS' => $lang['That_contains'],
@@ -622,6 +699,7 @@ $template->assign_vars(array(
 	'U_SEARCH_SELF' => append_sid('search.'.$phpEx.'?search_id=egosearch'),
 	'U_SEARCH_NEW' => append_sid('search.'.$phpEx.'?search_id=newposts'),
 	'U_INDEX' => append_sid('index.'.$phpEx),
+	'U_LOGIN_SEC' => append_sid('ct_login_history.' . $phpEx),
 	'U_REGISTER' => append_sid('profile.'.$phpEx.'?mode=register'),
 	'U_PROFILE' => append_sid('profile.'.$phpEx.'?mode=editprofile'),
 	'U_PRIVATEMSGS' => append_sid('privmsg.'.$phpEx.'?folder=inbox'),
