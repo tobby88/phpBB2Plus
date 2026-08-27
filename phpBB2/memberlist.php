@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: memberlist.php,v 1.36.2.9 2004/03/01 15:56:52 psotfx Exp $
  *
  ***************************************************************************/
 
@@ -23,6 +23,8 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
 
 //
 // Start session management
@@ -33,24 +35,25 @@ init_userprefs($userdata);
 // End session management
 //
 
-$start = ( isset($HTTP_GET_VARS['start']) ) ? intval($HTTP_GET_VARS['start']) : 0;
+$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = ($start < 0) ? 0 : $start;
 
-if ( isset($HTTP_GET_VARS['mode']) || isset($HTTP_POST_VARS['mode']) )
+if ( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = ( isset($HTTP_POST_VARS['mode']) ) ? htmlspecialchars($HTTP_POST_VARS['mode']) : htmlspecialchars($HTTP_GET_VARS['mode']);
+	$mode = ( isset($_POST['mode']) ) ? htmlspecialchars($_POST['mode']) : htmlspecialchars($_GET['mode']);
 }
 else
 {
 	$mode = 'joined';
 }
 
-if(isset($HTTP_POST_VARS['order']))
+if(isset($_POST['order']))
 {
-	$sort_order = ($HTTP_POST_VARS['order'] == 'ASC') ? 'ASC' : 'DESC';
+	$sort_order = ($_POST['order'] == 'ASC') ? 'ASC' : 'DESC';
 }
-else if(isset($HTTP_GET_VARS['order']))
+else if(isset($_GET['order']))
 {
-	$sort_order = ($HTTP_GET_VARS['order'] == 'ASC') ? 'ASC' : 'DESC';
+	$sort_order = ($_GET['order'] == 'ASC') ? 'ASC' : 'DESC';
 }
 else
 {
@@ -60,11 +63,11 @@ else
 //
 // Memberlist sorting
 //
-$mode_types_text = array($lang['Sort_Joined'], $lang['Sort_Username'], $lang['Sort_Location'], $lang['Sort_Posts'], $lang['Sort_Email'],  $lang['Sort_Website'], $lang['Sort_Top_Ten']);
-$mode_types = array('joined', 'username', 'location', 'posts', 'email', 'website', 'topten');
+$mode_types_text = array($lang['Sort_Joined'], $lang['Last_logon'], $lang['Sort_Username'], $lang['Sort_Location'], $lang['Sort_Posts'], $lang['Sort_Email'],  $lang['Sort_Website'], $lang['Sort_Top_Ten']);
+$mode_types = array('joined', 'lastlogon', 'username', 'location', 'posts', 'email', 'website', 'topten');
 
 $select_sort_mode = '<select name="mode">';
-for($i = 0; $i < count($mode_types_text); $i++)
+for($i = ($userdata['user_level'] == ADMIN ) ? 0:1; $i < count($mode_types_text); $i++)
 {
 	$selected = ( $mode == $mode_types[$i] ) ? ' selected="selected"' : '';
 	$select_sort_mode .= '<option value="' . $mode_types[$i] . '"' . $selected . '>' . $mode_types_text[$i] . '</option>';
@@ -106,8 +109,12 @@ $template->assign_vars(array(
 	'L_MSNM' => $lang['MSNM'],
 	'L_ICQ' => $lang['ICQ'], 
 	'L_JOINED' => $lang['Joined'], 
+	// Start add - Last visit MOD
+	'L_LOGON' => $lang['Last_logon'], 
+	// End add - Last visit MOD
 	'L_POSTS' => $lang['Posts'], 
 	'L_PM' => $lang['Private_Message'], 
+	'L_ON_OFF_STATUS' => $lang['On_off_status'],
 
 	'S_MODE_SELECT' => $select_sort_mode,
 	'S_ORDER_SELECT' => $select_sort_order,
@@ -119,6 +126,11 @@ switch( $mode )
 	case 'joined':
 		$order_by = "user_regdate $sort_order LIMIT $start, " . $board_config['topics_per_page'];
 		break;
+	// Start add - Last visit MOD
+	case 'lastlogon': 
+   		$order_by = ($userdata['user_level'] == ADMIN ) ? "user_lastlogon $sort_order LIMIT $start, " . $board_config['topics_per_page'] : "username $sort_order LIMIT $start, " . $board_config['topics_per_page']; 
+   		break; 
+	// End add - Last visit MOD	
 	case 'username':
 		$order_by = "username $sort_order LIMIT $start, " . $board_config['topics_per_page'];
 		break;
@@ -141,8 +153,12 @@ switch( $mode )
 		$order_by = "user_regdate $sort_order LIMIT $start, " . $board_config['topics_per_page'];
 		break;
 }
+// Custom Profile Fields MOD
+$profile_data = get_fields('WHERE view_in_memberlist = ' . VIEW_IN_MEMBERLIST . ' AND users_can_view = ' . ALLOW_VIEW);
+$profile_data_sql = get_udata_txt($profile_data);
+// END Custom Profile Fields MOD
 
-$sql = "SELECT username, user_id, user_viewemail, user_posts, user_regdate, user_from, user_website, user_email, user_icq, user_aim, user_yim, user_msnm, user_avatar, user_avatar_type, user_allowavatar 
+$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_lastlogon, user_allow_viewonline, user_from, user_from_flag, user_website, user_email, user_icq, user_aim, user_yim, user_msnm, user_avatar, user_avatar_type, user_allowavatar, user_allow_viewonline, user_session_time".$profile_data_sql." 
 	FROM " . USERS_TABLE . "
 	WHERE user_id <> " . ANONYMOUS . "
 	ORDER BY $order_by";
@@ -153,6 +169,16 @@ if( !($result = $db->sql_query($sql)) )
 
 if ( $row = $db->sql_fetchrow($result) )
 {
+	//
+	// Custom Profile Fields MOD
+	//
+	foreach($profile_data as $field)
+		$template->assign_block_vars('custom_field_names',array('FIELD_NAME' => $field['field_name']));
+	
+	$template->assign_vars(array('NUMCOLS' => count($profile_data)+11));
+	//
+	// END Custom Profile Fields MOD
+	//
 	$i = 0;
 	do
 	{
@@ -160,6 +186,9 @@ if ( $row = $db->sql_fetchrow($result) )
 		$user_id = $row['user_id'];
 
 		$from = ( !empty($row['user_from']) ) ? $row['user_from'] : '&nbsp;';
+		// FLAGHACK-start
+		$flag = ( !empty($row['user_from_flag']) ) ? "&nbsp;<img src=\"images/flags/" . $row['user_from_flag'] . "\" alt=\"" . $row['user_from_flag'] . "\">" : '&nbsp;<img src="images/flags/blank.gif" alt="">';
+		// FLAGHACK-end
 		$joined = create_date($lang['DATE_FORMAT'], $row['user_regdate'], $board_config['board_timezone']);
 		$posts = ( $row['user_posts'] ) ? $row['user_posts'] : 0;
 
@@ -230,17 +259,43 @@ if ( $row = $db->sql_fetchrow($result) )
 		$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username) . "&amp;showresults=posts");
 		$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $username) . '" title="' . sprintf($lang['Search_user_posts'], $username) . '" border="0" /></a>';
 		$search = '<a href="' . $temp_url . '">' . sprintf($lang['Search_user_posts'], $username) . '</a>';
-
+		// Photo Album Link MOD - Daz - ForumImages.com - START
+		$temp_url = append_sid("album.$phpEx?user_id=$user_id");
+		$gallery_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_gallery'] . '" alt="' . sprintf($lang['Personal_Gallery_Of_User'], $row['username']) . '" title="' . sprintf($lang['Personal_Gallery_Of_User'], $row['username']) . '" border="0" /></a>';
+		$gallery = '<a href="' . $temp_url . '">' . $lang['Album'] . '</a>';
+		// Photo Album Link MOD - Daz - ForumImages.com - END 
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
+		//Online/Offline
+		if (($row['user_session_time'] >= ( time() - 300 )) && ($row['user_allow_viewonline']))
+		{
+			$on_off_hidden = '<img src="' . $images['icon_online'] . '" alt="' . $lang['Online'] . '" title="' . $lang['Online'] . '" border="0" />';
+		}
+		else if (($row['user_allow_viewonline']) == 0)
+		{
+			$on_off_hidden = '<img src="' . $images['icon_hidden'] . '" alt="' . $lang['Hidden'] . '" title="' . $lang['Hidden'] . '" border="0" />';
+		}
+		else
+		{
+			$on_off_hidden = '<img src="' . $images['icon_offline'] . '" alt="' . $lang['Offline'] . '" title="' . $lang['Offline'] . '" border="0" />';
+		}
+		if ( $row['user_absence'] == TRUE )
+		{
+			$absence_mode = create_absence_mode($row['user_absence_mode'], $pm_img, $pm, $email_img, $email, $nothing, 2);
+		}
 		$template->assign_block_vars('memberrow', array(
-			'ROW_NUMBER' => $i + ( $start + 1 ),
+			'ROW_NUMBER' => $i + ( $start + 1 ) . (($userdata['user_level']==ADMIN)?'<a href="' . append_sid("delete_users.$phpEx?mode=user_id&amp;del_user=$user_id") . '"><img src="' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . ' '.$username.'" title="' . $lang['Delete'] . ' '.$username.'" border="0" /></a>&nbsp;':''),
 			'ROW_COLOR' => '#' . $row_color,
 			'ROW_CLASS' => $row_class,
-			'USERNAME' => $username,
+			'USERNAME' => color_group_colorize_name($user_id, true),
 			'FROM' => $from,
+			// FLAGHACK-start
+			'FLAG' => $flag,
+			// FLAGHACK-end
 			'JOINED' => $joined,
+			// Start add - Last visit MOD
+			'LAST_LOGON' => ($userdata['user_level'] == ADMIN || (!$board_config['hidde_last_logon'] && $row['user_allow_viewonline'])) ? (($row['user_lastlogon'])? create_date($board_config['default_dateformat'], $row['user_lastlogon'], $board_config['board_timezone']):$lang['Never_last_logon']):$lang['Hidde_last_logon'],
+			// End add - Last visit MOD
 			'POSTS' => $posts,
 			'AVATAR_IMG' => $poster_avatar,
 			'PROFILE_IMG' => $profile_img, 
@@ -262,9 +317,26 @@ if ( $row = $db->sql_fetchrow($result) )
 			'MSN' => $msn,
 			'YIM_IMG' => $yim_img,
 			'YIM' => $yim,
-			
+			// Photo Album Link MOD - Daz - ForumImages.com - START
+			'GALLERY_IMG' => $gallery_img,
+			'GALLERY' => $gallery,
+			// Photo Album Link MOD - Daz - ForumImages.com - END 
+			'USER_ONLINE' => $on_off_hidden,
 			'U_VIEWPROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id"))
 		);
+		//
+		// Custom Profile Fields MOD
+		//
+		foreach($profile_data as $field)
+		{
+		  $name = text_to_column($field['field_name']);
+		  $val = displayable_field_data($row[$name],$field['field_type']);
+		  
+		  $template->assign_block_vars('memberrow.custom_fields',array('CUSTOM_FIELD' => $val));
+		}
+		//
+		// END Custom Profile Fields MOD
+		//
 
 		$i++;
 	}

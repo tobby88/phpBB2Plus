@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: topic_review.php,v 1.5.2.2 2004/03/01 15:56:51 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -27,6 +27,15 @@ function topic_review($topic_id, $is_inline_review)
 	global $userdata, $user_ip;
 	global $orig_word, $replacement_word;
 	global $starttime;
+	//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+	global $icones;
+//-- fin mod : post icon ---------------------------------------------------------------------------
+
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+	global $tree;
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	if ( !$is_inline_review )
 	{
@@ -38,10 +47,17 @@ function topic_review($topic_id, $is_inline_review)
 		//
 		// Get topic info ...
 		//
-		$sql = "SELECT t.topic_title, f.forum_id, f.auth_view, f.auth_read, f.auth_post, f.auth_reply, f.auth_edit, f.auth_delete, f.auth_sticky, f.auth_announce, f.auth_pollcreate, f.auth_vote, f.auth_attachments 
+		//-- mod : calendar --------------------------------------------------------------------------------
+// here we added
+//	, t.topic_calendar_time, t.topic_calendar_duration, t.topic_first_post_id
+//-- modify
+
+		$sql = "SELECT t.topic_title, t.topic_calendar_time, t.topic_calendar_duration, t.topic_first_post_id, f.forum_id, f.auth_view, f.auth_read, f.auth_post, f.auth_reply, f.auth_edit, f.auth_delete, f.auth_sticky, f.auth_announce, f.auth_pollcreate, f.auth_vote, f.auth_attachments 
 			FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f 
 			WHERE t.topic_id = $topic_id
 				AND f.forum_id = t.forum_id";
+				$tmp = '';
+		attach_setup_viewtopic_auth($tmp, $sql);
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not obtain topic information', '', __LINE__, __FILE__, $sql);
@@ -55,7 +71,13 @@ function topic_review($topic_id, $is_inline_review)
 
 		$forum_id = $forum_row['forum_id'];
 		$topic_title = $forum_row['topic_title'];
-		
+		//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+		$topic_calendar_time = intval($forum_row['topic_calendar_time']);
+		$topic_first_post_id = intval($forum_row['topic_first_post_id']);
+		$topic_calendar_duration = intval($forum_row['topic_calendar_duration']);
+//-- fin mod : calendar ----------------------------------------------------------------------------
+
 		//
 		// Start session management
 		//
@@ -114,7 +136,7 @@ function topic_review($topic_id, $is_inline_review)
 	{
 		message_die(GENERAL_ERROR, 'Could not obtain post/user information', '', __LINE__, __FILE__, $sql);
 	}
-
+	init_display_review_attachments($is_auth);
 	//
 	// Okay, let's do the loop, yeah come on baby let's do the loop
 	// and it goes like this ...
@@ -179,6 +201,17 @@ function topic_review($topic_id, $is_inline_review)
 			}
 
 			$message = str_replace("\n", '<br />', $message);
+			//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+			$post_subject = get_icon_title($row['post_icon']) . '&nbsp;' . $post_subject;
+//-- fin mod : post icon ---------------------------------------------------------------------------
+			//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+			if (!empty($topic_calendar_time) && ($topic_first_post_id == $row['post_id']))
+			{
+				$post_subject .= get_calendar_title($topic_calendar_time, $topic_calendar_duration);
+			}
+//-- fin mod : calendar ----------------------------------------------------------------------------
 
 			//
 			// Again this will be handled by the templating
@@ -199,7 +232,7 @@ function topic_review($topic_id, $is_inline_review)
 					
 				'L_MINI_POST_ALT' => $mini_post_alt)
 			);
-
+			display_review_attachments($row['post_id'], $row['post_attachment'], $is_auth);
 			$i++;
 		}
 		while ( $row = $db->sql_fetchrow($result) );

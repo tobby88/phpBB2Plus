@@ -6,7 +6,7 @@
 *     copyright            : (C) 2001 The phpBB Group
 *     email                : support@phpbb.com
 *
-*     $Id$
+*     $Id: upgrade.php,v 1.1.2.10 2003/03/18 23:24:01 acydburn Exp $
 *
 ****************************************************************************/
 
@@ -22,6 +22,8 @@
 define('IN_PHPBB', true);
 
 $phpbb_root_path = './../';
+
+die('This is to update the phpBB<b>1</b> to phpBB2.<br>phpBB1 is the first version of phpBB!<br>For update to PLUS use the skript in the update/-folder.');
 
 if ( !defined('INSTALLING') )
 {
@@ -122,7 +124,7 @@ hr	{ height: 0px; border: solid #D1D7DC 0px; border-top-width: 1px;}
 
 <br clear="all" />
 
-<?
+<?php
 	return;
 }
 
@@ -134,7 +136,7 @@ function common_footer()
 
 </body>
 </html>
-<?
+<?php
 	return;
 }
 
@@ -397,7 +399,7 @@ function end_step($next)
 //
 // Start at the beginning if the user hasn't specified a specific starting point.
 //
-$next = ( isset($HTTP_GET_VARS['next']) ) ? $HTTP_GET_VARS['next'] : 'start';
+$next = ( isset($_GET['next']) ) ? $_GET['next'] : 'start';
 
 // If debug is set we'll do all steps in one go.
 $debug = 1;
@@ -1878,7 +1880,7 @@ if ( !empty($next) )
 			$max_post_id = $max_post_id['max_post_id'];
 			$per_percent = round(( $totalposts / 500 ) * 10);
 
-			$postcounter = ( !isset($HTTP_GET_VARS['batchstart']) ) ? 0 : $HTTP_GET_VARS['batchstart'];
+			$postcounter = ( !isset($_GET['batchstart']) ) ? 0 : $_GET['batchstart'];
 
 			$batchsize = 150; // Process this many posts per loop
 			$batchcount = 0;

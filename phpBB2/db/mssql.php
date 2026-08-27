@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : supportphpbb.com
  *
- *   $Id$
+ *   $Id: mssql.php,v 1.22.2.2 2002/12/21 18:31:53 psotfx Exp $
  *
  ***************************************************************************/
 

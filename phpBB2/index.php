@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: index.php,v 1.99.2.2 2004/03/01 15:56:52 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -24,6 +24,9 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+//-- add
+include_once($phpbb_root_path . 'includes/functions_announces.'. $phpEx);
+//-- fin mod : announces ---------------------------------------------------------------------------
 
 //
 // Start session management
@@ -34,11 +37,16 @@ init_userprefs($userdata);
 // End session management
 //
 
-$viewcat = ( !empty($HTTP_GET_VARS[POST_CAT_URL]) ) ? $HTTP_GET_VARS[POST_CAT_URL] : -1;
+include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
+color_groups_setup_list();
 
-if( isset($HTTP_GET_VARS['mark']) || isset($HTTP_POST_VARS['mark']) )
+$viewcat = ( !empty($_GET[POST_CAT_URL]) ) ? $_GET[POST_CAT_URL] : -1;
+$viewcat = intval($viewcat);
+if ($viewcat <= 0) $viewcat = -1;
+$viewcatkey = ($viewcat < 0) ? 'Root' : POST_CAT_URL . $viewcat;
+if( isset($_GET['mark']) || isset($_POST['mark']) )
 {
-	$mark_read = ( isset($HTTP_POST_VARS['mark']) ) ? $HTTP_POST_VARS['mark'] : $HTTP_GET_VARS['mark'];
+	$mark_read = ( isset($_POST['mark']) ) ? $_POST['mark'] : $_GET['mark'];
 }
 else
 {
@@ -50,15 +58,55 @@ else
 //
 if( $mark_read == 'forums' )
 {
-	if( $userdata['session_logged_in'] )
+	if ( $viewcat < 0 )
 	{
-		setcookie($board_config['cookie_name'] . '_f_all', time(), 0, $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
+		if( $userdata['session_logged_in'] )
+		{
+			setcookie($board_config['cookie_name'] . '_f_all', time(), 0, $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
+		}
+	
+		$template->assign_vars(array(
+			"META" => '<meta http-equiv="refresh" content="3;url='  .append_sid("index.$phpEx") . '">')
+		);
 	}
+	else
+	{
+		if( $userdata['session_logged_in'] )
+		{
+			// get the list of object authorized
+			$keys = array();
+			$keys = get_auth_keys($viewcatkey);
 
-	$template->assign_vars(array(
-		"META" => '<meta http-equiv="refresh" content="3;url='  .append_sid("index.$phpEx") . '">')
-	);
+			// mark each forums
+			for ($i=0; $i < count($keys['id']); $i++) if ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL)
+			{
+				$forum_id = $tree['id'][ $keys['idx'][$i] ];
+				$sql = "SELECT MAX(post_time) AS last_post FROM " . POSTS_TABLE . " WHERE forum_id = $forum_id";
+				if ( !($result = $db->sql_query($sql)) ) message_die(GENERAL_ERROR, 'Could not obtain forums information', '', __LINE__, __FILE__, $sql);
+				if ( $row = $db->sql_fetchrow($result) )
+				{
+					$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) : array();
+					$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
 
+					if ( ( count($tracking_forums) + count($tracking_topics) ) >= 150 && empty($tracking_forums[$forum_id]) )
+					{
+						asort($tracking_forums);
+						unset($tracking_forums[key($tracking_forums)]);
+					}
+
+					if ( $row['last_post'] > $userdata['user_lastvisit'] )
+					{
+						$tracking_forums[$forum_id] = time();
+						setcookie($board_config['cookie_name'] . '_f', serialize($tracking_forums), 0, $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
+					}
+				}
+			}
+		}
+
+		$template->assign_vars(array(
+			"META" => '<meta http-equiv="refresh" content="3;url='  .append_sid("index.$phpEx?" . POST_CAT_URL . "=$viewcat") . '">')
+		);
+	}
 	$message = $lang['Forums_marked_read'] . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a> ');
 
 	message_die(GENERAL_MESSAGE, $message);
@@ -67,222 +115,430 @@ if( $mark_read == 'forums' )
 // End handle marking posts
 //
 
-$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . "_t"]) : array();
-$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . "_f"]) : array();
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+// $tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . "_t"]) : array();
+// $tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . "_f"]) : array();
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 //
 // If you don't use these stats on your index you may want to consider
 // removing them
 //
-$total_posts = get_db_stat('postcount');
-$total_users = get_db_stat('usercount');
-$newest_userdata = get_db_stat('newestuser');
-$newest_user = $newest_userdata['username'];
-$newest_uid = $newest_userdata['user_id'];
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+// $total_posts = get_db_stat('postcount');
+// $total_users = get_db_stat('usercount');
+//-- add
+include_once($phpbb_root_path . 'includes/mods_settings/mod_categories_hierarchy.' . $phpEx);
+if ( ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ) )
+{
+	if ( empty($board_config['max_posts']) || empty($board_config['max_users']) )
+	{
+		board_stats();
+	}
+	$total_posts = $board_config['max_posts'];
+	$total_users = $board_config['max_users'];
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+	$newest_userdata = get_db_stat('newestuser');
+	$newest_user = $newest_userdata['username'];
+	$newest_uid = $newest_userdata['user_id'];
+	
+	if( $total_posts == 0 )
+	{
+		$l_total_post_s = $lang['Posted_articles_zero_total'];
+	}
+	else if( $total_posts == 1 )
+	{
+		$l_total_post_s = $lang['Posted_article_total'];
+	}
+	else
+	{
+		$l_total_post_s = $lang['Posted_articles_total'];
+	}
+	
+	if( $total_users == 0 )
+	{
+		$l_total_user_s = $lang['Registered_users_zero_total'];
+	}
+	else if( $total_users == 1 )
+	{
+		$l_total_user_s = $lang['Registered_user_total'];
+	}
+	else
+	{
+		$l_total_user_s = $lang['Registered_users_total'];
+	}
 
-if( $total_posts == 0 )
-{
-	$l_total_post_s = $lang['Posted_articles_zero_total'];
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
 }
-else if( $total_posts == 1 )
-{
-	$l_total_post_s = $lang['Posted_article_total'];
-}
-else
-{
-	$l_total_post_s = $lang['Posted_articles_total'];
-}
-
-if( $total_users == 0 )
-{
-	$l_total_user_s = $lang['Registered_users_zero_total'];
-}
-else if( $total_users == 1 )
-{
-	$l_total_user_s = $lang['Registered_user_total'];
-}
-else
-{
-	$l_total_user_s = $lang['Registered_users_total'];
-}
-
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 //
 // Start page proper
 //
-$sql = "SELECT c.cat_id, c.cat_title, c.cat_order
-	FROM " . CATEGORIES_TABLE . " c 
-	ORDER BY c.cat_order";
-if( !($result = $db->sql_query($sql)) )
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+if ($plus_config['show_links'])
 {
-	message_die(GENERAL_ERROR, 'Could not query categories list', '', __LINE__, __FILE__, $sql);
+	if (file_exists($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/lang_main_link.".$phpEx))
+	{
+		include_once($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/lang_main_link.".$phpEx);
+	}
+	elseif (file_exists($phpbb_root_path . "language/lang_english/lang_main_link.".$phpEx))
+	{
+		include_once($phpbb_root_path . "language/lang_english/lang_main_link.".$phpEx);
+	}
+	else
+	{
+		message_die(GENERAL_ERROR, "Unable to find a suitable language file for Advanced Links Mod", '');
+	}
+
+    $template->assign_block_vars('switch_show_links', array());
+	
+	$sql = "SELECT *
+		FROM ". LINK_CONFIG_TABLE;
+	if(!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
+	}
+	
+	while( $row = $db->sql_fetchrow($result) )
+	{
+		$link_config_name = $row['config_name'];
+		$link_config_value = $row['config_value'];
+		$link_config[$link_config_name] = $link_config_value;
+		$link_self_img = $link_config['site_logo'];
+		$site_logo_height = $link_config['height'];
+		$site_logo_width = $link_config['width'];
+	}
 }
 
-$category_rows = array();
-while ($row = $db->sql_fetchrow($result))
+// Birthday Mod, Show users with birthday
+if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
 {
-	$category_rows[] = $row;
+	$cache_data_file = $phpbb_root_path."cache/birthday_". $board_config['board_timezone'] . ".dat";
+	if (@is_file($cache_data_file)  && empty($SID))
+	{
+		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false;
+	} else
+	{
+	   $valid = false;
+	}
+	
+	if ($valid )
+	{
+	   include ($cache_data_file);
+	   $birthday_today_list = stripslashes($birthday_today_list);
+	   $birthday_week_list = stripslashes($birthday_week_list);
+	} else
+	{
+	   $sql = ($board_config['birthday_check_day']) ? "SELECT user_id, username, user_birthday,user_level FROM " . USERS_TABLE. " WHERE user_birthday!=999999 ORDER BY username" :"";
+	   if($result = $db->sql_query($sql))
+	   {
+		  if (!empty($result))
+		  {
+			 $time_now = time();
+			 $this_year = create_date('Y', $time_now, $board_config['board_timezone']);
+			 $date_today = create_date('Ymd', $time_now, $board_config['board_timezone']);
+			 $date_forward = create_date('Ymd', $time_now+($board_config['birthday_check_day']*86400), $board_config['board_timezone']);
+				while ($birthdayrow = $db->sql_fetchrow($result))
+			 {
+				   $user_birthday2 = $this_year.($user_birthday = realdate("md",$birthdayrow['user_birthday'] ));
+				   if ( $user_birthday2 < $date_today ) $user_birthday2 += 10000;
+				if ( $user_birthday2 > $date_today  && $user_birthday2 <= $date_forward )
+				{
+				   // user are having birthday within the next days
+				   $user_age = ( $this_year.$user_birthday < $date_today ) ? $this_year - realdate ('Y',$birthdayrow['user_birthday'])+1 : $this_year- realdate ('Y',$birthdayrow['user_birthday']);
+				   $style_color = color_group_colorize_name($birthdayrow['user_id'],true);
+								 $birthday_week_list .= ' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $birthdayrow['user_id']) . '" class="gensmall">' . $style_color . ' ('.$user_age.')</a>,'; 
+				} else if ( $user_birthday2 == $date_today )
+				   {
+				   //user have birthday today
+				   $user_age = $this_year - realdate ( 'Y',$birthdayrow['user_birthday'] );
+				   $style_color = color_group_colorize_name($birthdayrow['user_id'],true);
+				   $birthday_today_list .= ' <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $birthdayrow['user_id']) . '" class="gensmall">' . $style_color . ' ('.$user_age.')</a>,';
+				   }
+			 }
+			 if ($birthday_today_list) $birthday_today_list[ strlen( $birthday_today_list)-1] = ' ';
+			 if ($birthday_week_list) $birthday_week_list[ strlen( $birthday_week_list)-1] = ' ';
+		  }
+		  $db->sql_freeresult($result);
+		  if (empty($SID))
+		  {
+			 // stores the data set in a cache file
+			 $data = "<?php\n";
+			 $data .= '$birthday_today_list = \'' . addslashes($birthday_today_list) . "';\n";
+			 $data .= '$birthday_week_list = \'' . addslashes($birthday_week_list) . "';\n?>";
+			 $fp = fopen( $cache_data_file, "w" );
+			 fwrite($fp, $data);
+			 fclose($fp);
+			 @chmod($cache_data_file, 0666); 
+		  }
+	   }
+	}
+	$template->assign_block_vars('switch_show_birthday', array());
+} 
+
+$birthday_today_list = stripslashes($birthday_today_list);
+$birthday_week_list = stripslashes($birthday_week_list);
+
+// Start add - Last visit MOD
+if ( ($plus_config['show_last_visit'] != 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
+{
+    $template->assign_block_vars('switch_show_lastvisit', array()); 
+	$cache_data_file = $phpbb_root_path."cache/last_visit_". $userdata['user_level'] . "_". $board_config['board_timezone'] . ".dat"; 
+	if (@is_file($cache_data_file)) 
+	{ 
+		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false; 
+	} else 
+	{ 
+	   $valid = false; 
+	} 
+	
+	if ($valid ) 
+	{ 
+	   include ($cache_data_file); 
+	} else 
+	{
+		$time_now=time();
+		$time1Hour=$time_now-3600;
+		$minutes = date('is', $time_now);
+		$hour_now = $time_now - (60*($minutes[0].$minutes[1])) - ($minutes[2].$minutes[3]); 
+		$dato=create_date('H', $time_now,$board_config['board_timezone']);
+		$timetoday = $hour_now - (3600*$dato); 
+		if ($plus_config['show_last_visit'] == 2 )
+	   {
+		  $sql = 'SELECT session_ip, MAX(session_time) as session_time FROM '.SESSIONS_TABLE.' WHERE session_user_id="'.ANONYMOUS.'" AND session_time >= '.$timetoday.' AND session_time< '.($timetoday+86399).' GROUP BY session_ip';
+		  if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, "Couldn't retrieve guest user today data", "", __LINE__, __FILE__, $sql);
+		  while( $guest_list = $db->sql_fetchrow($result))
+		  {
+			 if ($guest_list['session_time'] >$time1Hour) $users_lasthour++;
+		  }
+		  $guests_today = $db->sql_numrows($result);
+	   }
+		$sql = 'SELECT user_id,username,user_allow_viewonline,user_level,user_lastlogon FROM ' . USERS_TABLE . ' WHERE user_id!="'.ANONYMOUS.'" AND user_session_time >= '.$timetoday.' AND user_session_time< '.($timetoday+86399).' ORDER BY username';
+		if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, "Couldn't retrieve user today data", "", __LINE__, __FILE__, $sql); 
+		while( $todayrow = $db->sql_fetchrow($result)) 
+		{ 
+			$style_color = ""; 
+			if ($todayrow['user_lastlogon']>=$time1Hour)
+			{
+				$users_lasthour++;
+			}
+			$colored_user = color_group_colorize_name($todayrow['user_id'],false);
+			$users_today_list.= ($todayrow['user_allow_viewonline']) ? $colored_user.', ' : (($userdata['user_level'] == ADMIN) ? '<i>' . $colored_user .'</i>, ' : '');  
+			if (!$todayrow['user_allow_viewonline']) $logged_hidden_today++;
+			else $logged_visible_today++;
+		}
+		if ($users_today_list) 
+		{
+			$users_today_list[ strlen( $users_today_list)-2] = ' '; 
+		} else
+		{
+			$users_today_list = $lang['None'];
+		}
+		$total_users_today = $db->sql_numrows($result)+$guests_today;
+		if ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_sid'])) 
+		{ 
+		   // stores the data set in a cache file 
+		   $data = "<?php\n"; 
+		   $data .='$total_users_today = '.intval($total_users_today); 
+		   $data .=";\n"; 
+		   $data .='$users_lasthour = '.intval($users_lasthour); 
+		   $data .=";\n"; 
+		   $data .='$guests_today = '.intval($guests_today); 
+		   $data .=";\n"; 
+		   $data .='$logged_visible_today = '.intval($logged_visible_today); 
+		   $data .=";\n"; 
+		   $data .='$logged_hidden_today = '.intval($logged_hidden_today); 
+		   $data .=";\n"; 
+		   $data .='$users_today_list = \''.addslashes($users_today_list)."'"; 
+		   $data .=";\n?>"; 
+		   $fp = fopen( $cache_data_file, "w" ); 
+		   fwrite($fp, $data); 
+		   fclose($fp); 
+		   @chmod($cache_data_file, 0666); 
+		} 
+	}
+	$users_today_list = stripslashes($users_today_list);
+	$l_today_user_s = ($total_users_today) ? ( ( $total_users_today == 1 )? $lang['User_today_total'] : $lang['Users_today_total'] ) : $lang['Users_today_zero_total'];
+	$l_today_r_user_s = ($logged_visible_today) ? ( ( $logged_visible_today == 1 ) ? $lang['Reg_user_total'] : $lang['Reg_users_total'] ) : $lang['Reg_users_zero_total'];
+	$l_today_h_user_s = ($logged_hidden_today) ? (($logged_hidden_today == 1) ? $lang['Hidden_user_total'] : $lang['Hidden_users_total'] ) : $lang['Hidden_users_zero_total'];
+	$l_today_users = sprintf($l_today_user_s, $total_users_today); 
+	if ($plus_config['show_last_visit'] == 2 )
+   {
+      $l_today_g_user_s = ($guests_today) ? (($guests_today == 1) ? $lang['Guest_user_total'] : $lang['Guest_users_total']) : $lang['Guest_users_zero_total'];
+      $l_today_users .= sprintf($l_today_r_user_s, $logged_visible_today);
+      $l_today_users .= sprintf($l_today_h_user_s, $logged_hidden_today);
+      $l_today_users .= sprintf($l_today_g_user_s, $guests_today);
+      $l_today_text = ($users_lasthour)?sprintf($lang['Users_lasthour_explain'],$users_lasthour):$lang['Users_lasthour_none_explain'];
+   }
 }
-$db->sql_freeresult($result);
+// End add - Last visit MOD
 
-if( ( $total_categories = count($category_rows) ) )
-{
-	//
-	// Define appropriate SQL
-	//
-	switch(SQL_LAYER)
+if ($plus_config['index_layout'] == 'index_body_plus.tpl')
 	{
-		case 'postgresql':
-			$sql = "SELECT f.*, p.post_time, p.post_username, u.username, u.user_id 
-				FROM " . FORUMS_TABLE . " f, " . POSTS_TABLE . " p, " . USERS_TABLE . " u
-				WHERE p.post_id = f.forum_last_post_id 
-					AND u.user_id = p.poster_id  
-					UNION (
-						SELECT f.*, NULL, NULL, NULL, NULL
-						FROM " . FORUMS_TABLE . " f
-						WHERE NOT EXISTS (
-							SELECT p.post_time
-							FROM " . POSTS_TABLE . " p
-							WHERE p.post_id = f.forum_last_post_id  
-						)
-					)
-					ORDER BY cat_id, forum_order";
-			break;
+	$today_registered_users = 0;
+	$yesterday_registered_users = 0;
 
-		case 'oracle':
-			$sql = "SELECT f.*, p.post_time, p.post_username, u.username, u.user_id 
-				FROM " . FORUMS_TABLE . " f, " . POSTS_TABLE . " p, " . USERS_TABLE . " u
-				WHERE p.post_id = f.forum_last_post_id(+)
-					AND u.user_id = p.poster_id(+)
-				ORDER BY f.cat_id, f.forum_order";
-			break;
+		$today_time = time();
+		$yesterday_time = $today_time - 86400;
 
-		default:
-			$sql = "SELECT f.*, p.post_time, p.post_username, u.username, u.user_id
-				FROM (( " . FORUMS_TABLE . " f
-				LEFT JOIN " . POSTS_TABLE . " p ON p.post_id = f.forum_last_post_id )
-				LEFT JOIN " . USERS_TABLE . " u ON u.user_id = p.poster_id )
-				ORDER BY f.cat_id, f.forum_order";
-			break;
-	}
-	if ( !($result = $db->sql_query($sql)) )
+		$day = create_date('d', $yesterday_time, $userdata['user_timezone']);
+		$month = create_date('m', $yesterday_time, $userdata['user_timezone']);
+		$year = create_date('Y', $yesterday_time, $userdata['user_timezone']);
+
+		$y_day_from = strtotime($year.'-'.$month.'-'.$day.' 00:00:00');
+
+		$day = create_date('d', $today_time, $userdata['user_timezone']);
+		$month = create_date('m', $today_time, $userdata['user_timezone']);
+		$year = create_date('Y', $today_time, $userdata['user_timezone']);
+
+		$t_day_from = strtotime($year.'-'.$month.'-'.$day.' 00:00:00');
+
+	$sql = "SELECT count(distinct user_id) as total_users FROM " . USERS_TABLE . "
+	WHERE user_regdate >= $y_day_from
+		AND user_regdate < $t_day_from
+		AND user_id <> " . ANONYMOUS;
+	if ( !$result = $db->sql_query($sql) )
 	{
-		message_die(GENERAL_ERROR, 'Could not query forums information', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, 'Could not get yesterday registered users', '', __LINE__, __FILE__, $sql);
 	}
-
-	$forum_data = array();
-	while( $row = $db->sql_fetchrow($result) )
+	
+	while ( $row = $db->sql_fetchrow($result) )
 	{
-		$forum_data[] = $row;
+		$yesterday_registered_users = $row['total_users'];
 	}
+	
 	$db->sql_freeresult($result);
-
-	if ( !($total_forums = count($forum_data)) )
+	
+		$sql = "SELECT count(distinct user_id) as total_users FROM " . USERS_TABLE . "
+			WHERE user_regdate >= $t_day_from
+			AND user_id <> " . ANONYMOUS;
+	if ( !$result = $db->sql_query($sql) )
 	{
-		message_die(GENERAL_MESSAGE, $lang['No_forums']);
+		message_die(GENERAL_ERROR, 'Could not get yesterday registered users', '', __LINE__, __FILE__, $sql);
 	}
-
-	//
-	// Obtain a list of topic ids which contain
-	// posts made since user last visited
-	//
-	if ($userdata['session_logged_in'])
+	
+	while ( $row = $db->sql_fetchrow($result) )
 	{
-		// 60 days limit
-		if ($userdata['user_lastvisit'] < (time() - 5184000))
-		{
-			$userdata['user_lastvisit'] = time() - 5184000;
-		}
-
-		$sql = "SELECT t.forum_id, t.topic_id, p.post_time 
-			FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p 
-			WHERE p.post_id = t.topic_last_post_id 
-				AND p.post_time > " . $userdata['user_lastvisit'] . " 
-				AND t.topic_moved_id = 0"; 
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not query new topic information', '', __LINE__, __FILE__, $sql);
-		}
-
-		$new_topic_data = array();
-		while( $topic_data = $db->sql_fetchrow($result) )
-		{
-			$new_topic_data[$topic_data['forum_id']][$topic_data['topic_id']] = $topic_data['post_time'];
-		}
-		$db->sql_freeresult($result);
+		$today_registered_users = $row['total_users'];
 	}
-
-	//
-	// Obtain list of moderators of each forum
-	// First users, then groups ... broken into two queries
-	//
-	$sql = "SELECT aa.forum_id, u.user_id, u.username 
-		FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g, " . USERS_TABLE . " u
-		WHERE aa.auth_mod = " . TRUE . " 
-			AND g.group_single_user = 1 
-			AND ug.group_id = aa.group_id 
-			AND g.group_id = aa.group_id 
-			AND u.user_id = ug.user_id 
-		GROUP BY u.user_id, u.username, aa.forum_id 
-		ORDER BY aa.forum_id, u.user_id";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not query forum moderator information', '', __LINE__, __FILE__, $sql);
-	}
-
-	$forum_moderators = array();
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		$forum_moderators[$row['forum_id']][] = '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $row['user_id']) . '">' . $row['username'] . '</a>';
-	}
+	
 	$db->sql_freeresult($result);
-
-	$sql = "SELECT aa.forum_id, g.group_id, g.group_name 
-		FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g 
-		WHERE aa.auth_mod = " . TRUE . " 
-			AND g.group_single_user = 0 
-			AND g.group_type <> " . GROUP_HIDDEN . "
-			AND ug.group_id = aa.group_id 
-			AND g.group_id = aa.group_id 
-		GROUP BY g.group_id, g.group_name, aa.forum_id 
-		ORDER BY aa.forum_id, g.group_id";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not query forum moderator information', '', __LINE__, __FILE__, $sql);
-	}
-
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		$forum_moderators[$row['forum_id']][] = '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $row['group_id']) . '">' . $row['group_name'] . '</a>';
-	}
-	$db->sql_freeresult($result);
-
-	//
-	// Find which forums are visible for this user
-	//
-	$is_auth_ary = array();
-	$is_auth_ary = auth(AUTH_VIEW, AUTH_LIST_ALL, $userdata, $forum_data);
-
+}
 	//
 	// Start output of page
 	//
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+// set the parm of the mark read func
+$mark = ($viewcat == -1 ) ? '' : '&' . POST_CAT_URL . '=' . $viewcat;
+// monitor the board statistic
+if (($board_config['display_viewonline'] == 2) || (($viewcat < 0) && ($board_config['display_viewonline'] == 1)))
+{
+//-- fin mod : categories hierarchy ---------------------------------------------------------------- 
 	define('SHOW_ONLINE', true);
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 	$page_title = $lang['Index'];
 	include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 	$template->set_filenames(array(
-		'body' => 'index_body.tpl')
+		'body' => $plus_config['index_layout'])
 	);
-
+	
+	if ($plus_config['index_layout'] == 'index_body_plus.tpl')
+	{
+        	$template->assign_vars(array(
+				// Start add - Fully integrated shoutbox MOD
+				'U_SHOUTBOX' => append_sid("shoutbox.$phpEx"),
+				'L_SHOUTBOX' => $lang['Shoutbox'],
+				'U_SHOUTBOX_MAX' => append_sid("shoutbox_max.$phpEx"),
+				'TOTAL_USERS' => $total_users,
+				'TOTAL_POSTS' => $total_posts,
+				'NEWEST_USER' => sprintf($lang['Newest_user_plus'], '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$newest_uid") . '">', $newest_user, '</a>'),
+				'TODAY_USERS' => $today_registered_users,
+				'YESTERDAY_USERS' => $yesterday_registered_users,
+				'USERS_TODAY_LIST' => $users_today_list,
+				'GUESTS_ONLINE' => $guests_online,
+				'REGGED_ONLINE' => $logged_visible_online,
+				'L_FORUM' => $lang['Forum'],
+				'L_TOPICS' => $lang['Topics'],
+				'L_REPLIES' => $lang['Replies'],
+				'L_VIEWS' => $lang['Views'],
+				'L_POSTS' => $lang['Posts'],
+				'L_LASTPOST' => $lang['Last_Post'], 
+				'L_LAST_VISIT' => $lang['Last_Visit'],
+				'L_NO_NEW_POSTS' => $lang['No_new_posts'],
+				'L_NEW_POSTS' => $lang['New_posts'],
+				'L_NO_NEW_POSTS_LOCKED' => $lang['No_new_posts_locked'], 
+				'L_NEW_POSTS_LOCKED' => $lang['New_posts_locked'], 
+				'L_ONLINE_EXPLAIN' => $lang['Online_explain'], 
+				'FORUM_IMG' => $images['forum'],
+				'FORUM_NEW_IMG' => $images['forum_new'],
+				'FORUM_LOCKED_IMG' => $images['forum_locked'],
+				'L_WHOSBIRTHDAY_WEEK' => ($board_config['birthday_check_day'] > 1) ? sprintf( (($birthday_week_list) ? $lang['Birthday_week'] : $lang['Nobirthday_week']), $board_config['birthday_check_day']).$birthday_week_list : '',
+				'L_WHOSBIRTHDAY_TODAY' => ($board_config['birthday_check_day']) ? ($birthday_today_list) ? $lang['Birthday_today'].$birthday_today_list : $lang['Nobirthday_today'] : '',
+				'L_USERS_LASTHOUR' => $l_today_text,
+				'L_USERS_TODAY' =>$l_today_users,
+				'L_LINKS' => $lang['Site_links'],
+				'U_LINKS' => append_sid("links.$phpEx"),
+				'U_LINKS_JS' => "links.js.$phpEx",
+				'U_SITE_LOGO' => $link_self_img,
+				'SITE_LOGO_WIDTH' => $site_logo_width,
+				'SITE_LOGO_HEIGHT' => $site_logo_height,
+				'L_LIVE_STATS' => $lang['Live_Statistics'],
+				'L_MEMBERS' => $lang['Top_Member'],
+				'L_LATEST' => $lang['Latest_Member'],
+				'L_NEW_TODAY' => $lang['New_Today'],
+				'L_NEW_YESTERDAY' => $lang['New_Yesterday'],
+				'L_MEMBERS_OVERALL' => $lang['Members_Overall'],
+				'L_ONLINE_NOW' => $lang['Online_Now'],
+				'L_GUESTS' => $lang['Guests_P'],
+				'L_MEMBERS' => $lang['Members_P'],
+				'L_STATS' => $lang['Box_Stats'],
+				'L_USER_RECORD' => $lang['User_Record'],
+				'L_TOTAL_POSTS' => $lang['Total_Posts'],
+				'L_BIRTHDAYS' => $lang['Birthdays_P'],
+				'L_FORUM_LOCKED' => $lang['Forum_is_locked'],
+				'L_MODERATOR' => $lang['Moderators'],
+				'L_MARK_FORUMS_READ' => $lang['Mark_all_forums'],
+				'U_MARK_READ' => append_sid("index.$phpEx?mark=forums$mark"),
+				'U_SEND_PASSWORD' => append_sid("profile.$phpEx?mode=sendpassword"),
+				'L_ONLINE_MEMBERS' => $lang['Online_Members_P']) 
+        	);
+        }
+	else
+	{
 	$template->assign_vars(array(
 		'TOTAL_POSTS' => sprintf($l_total_post_s, $total_posts),
+		// Start add - Fully integrated shoutbox MOD
+		'U_SHOUTBOX' => append_sid("shoutbox.$phpEx"),
+		'L_SHOUTBOX' => $lang['Shoutbox'],
+		'U_SHOUTBOX_MAX' => append_sid("shoutbox_max.$phpEx"),
 		'TOTAL_USERS' => sprintf($l_total_user_s, $total_users),
 		'NEWEST_USER' => sprintf($lang['Newest_user'], '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$newest_uid") . '">', $newest_user, '</a>'), 
-
+		'L_USERS_LASTHOUR' => $l_today_text,
 		'FORUM_IMG' => $images['forum'],
 		'FORUM_NEW_IMG' => $images['forum_new'],
 		'FORUM_LOCKED_IMG' => $images['forum_locked'],
-
+		// Start add - Last visit MOD
+		'USERS_TODAY_LIST' => $users_today_list,
+		
+		'L_USERS_TODAY' =>$l_today_users,
+		// End add - Last visit MOD
+		
+		// Start add - Birthday MOD
+		'L_WHOSBIRTHDAY_WEEK' => ($board_config['birthday_check_day'] > 1) ? sprintf( (($birthday_week_list) ? $lang['Birthday_week'] : $lang['Nobirthday_week']), $board_config['birthday_check_day']).$birthday_week_list : '',
+		'L_WHOSBIRTHDAY_TODAY' => ($board_config['birthday_check_day']) ? ($birthday_today_list) ? $lang['Birthday_today'].$birthday_today_list : $lang['Nobirthday_today'] : '',
+		// End add - Birthday MOD
+		
 		'L_FORUM' => $lang['Forum'],
 		'L_TOPICS' => $lang['Topics'],
 		'L_REPLIES' => $lang['Replies'],
@@ -294,168 +550,55 @@ if( ( $total_categories = count($category_rows) ) )
 		'L_NO_NEW_POSTS_LOCKED' => $lang['No_new_posts_locked'], 
 		'L_NEW_POSTS_LOCKED' => $lang['New_posts_locked'], 
 		'L_ONLINE_EXPLAIN' => $lang['Online_explain'], 
-
+		'L_LINKS' => $lang['Site_links'],
+		'U_LINKS' => append_sid("links.$phpEx"),
+		'U_LINKS_JS' => "links.js.$phpEx",
+		'U_SITE_LOGO' => $link_self_img,
+		'SITE_LOGO_WIDTH' => $site_logo_width,
+		'SITE_LOGO_HEIGHT' => $site_logo_height,
 		'L_MODERATOR' => $lang['Moderators'], 
 		'L_FORUM_LOCKED' => $lang['Forum_is_locked'],
 		'L_MARK_FORUMS_READ' => $lang['Mark_all_forums'], 
-
-		'U_MARK_READ' => append_sid("index.$phpEx?mark=forums"))
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+		// here we added
+		//	$mark
+		//-- modify
+		'U_MARK_READ' => append_sid("index.$phpEx?mark=forums$mark"))
 	);
-
-	//
-	// Let's decide which categories we should display
-	//
-	$display_categories = array();
-
-	for ($i = 0; $i < $total_forums; $i++ )
+}
+//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+	// categories hierarchy v 2 compliancy
+	if (empty($viewcatkey) && ($viewcat > -1))
 	{
-		if ($is_auth_ary[$forum_data[$i]['forum_id']]['auth_view'])
-		{
-			$display_categories[$forum_data[$i]['cat_id']] = true;
-		}
+		$viewcatkey = POST_CAT_URL . $viewcat;
 	}
+	else
+	{
+		if (empty($viewcatkey)) $viewcatkey = 'Root';
+	}
+	announces_from_forums($viewcatkey);
+//-- fin mod : announces ---------------------------------------------------------------------------
 
 	//
 	// Okay, let's build the index
 	//
-	for($i = 0; $i < $total_categories; $i++)
-	{
-		$cat_id = $category_rows[$i]['cat_id'];
+	//-- mod : categories hierarchy --------------------------------------------------------------------
 
-		//
-		// Yes, we should, so first dump out the category
-		// title, then, if appropriate the forum list
-		//
-		if (isset($display_categories[$cat_id]) && $display_categories[$cat_id])
-		{
-			$template->assign_block_vars('catrow', array(
-				'CAT_ID' => $cat_id,
-				'CAT_DESC' => $category_rows[$i]['cat_title'],
-				'U_VIEWCAT' => append_sid("index.$phpEx?" . POST_CAT_URL . "=$cat_id"))
-			);
+// don't display the board statistics
+if ( ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ) )
+{
+	$template->assign_block_vars('disable_viewonline', array());
+}
 
-			if ( $viewcat == $cat_id || $viewcat == -1 )
-			{
-				for($j = 0; $j < $total_forums; $j++)
-				{
-					if ( $forum_data[$j]['cat_id'] == $cat_id )
-					{
-						$forum_id = $forum_data[$j]['forum_id'];
-
-						if ( $is_auth_ary[$forum_id]['auth_view'] )
-						{
-							if ( $forum_data[$j]['forum_status'] == FORUM_LOCKED )
-							{
-								$folder_image = $images['forum_locked']; 
-								$folder_alt = $lang['Forum_locked'];
-							}
-							else
-							{
-								$unread_topics = false;
-								if ( $userdata['session_logged_in'] )
-								{
-									if ( !empty($new_topic_data[$forum_id]) )
-									{
-										$forum_last_post_time = 0;
-
-										while( list($check_topic_id, $check_post_time) = @each($new_topic_data[$forum_id]) )
-										{
-											if ( empty($tracking_topics[$check_topic_id]) )
-											{
-												$unread_topics = true;
-												$forum_last_post_time = max($check_post_time, $forum_last_post_time);
-
-											}
-											else
-											{
-												if ( $tracking_topics[$check_topic_id] < $check_post_time )
-												{
-													$unread_topics = true;
-													$forum_last_post_time = max($check_post_time, $forum_last_post_time);
-												}
-											}
-										}
-
-										if ( !empty($tracking_forums[$forum_id]) )
-										{
-											if ( $tracking_forums[$forum_id] > $forum_last_post_time )
-											{
-												$unread_topics = false;
-											}
-										}
-
-										if ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all']) )
-										{
-											if ( $HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all'] > $forum_last_post_time )
-											{
-												$unread_topics = false;
-											}
-										}
-
-									}
-								}
-
-								$folder_image = ( $unread_topics ) ? $images['forum_new'] : $images['forum']; 
-								$folder_alt = ( $unread_topics ) ? $lang['New_posts'] : $lang['No_new_posts']; 
-							}
-
-							$posts = $forum_data[$j]['forum_posts'];
-							$topics = $forum_data[$j]['forum_topics'];
-
-							if ( $forum_data[$j]['forum_last_post_id'] )
-							{
-								$last_post_time = create_date($board_config['default_dateformat'], $forum_data[$j]['post_time'], $board_config['board_timezone']);
-
-								$last_post = $last_post_time . '<br />';
-
-								$last_post .= ( $forum_data[$j]['user_id'] == ANONYMOUS ) ? ( ($forum_data[$j]['post_username'] != '' ) ? $forum_data[$j]['post_username'] . ' ' : $lang['Guest'] . ' ' ) : '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '='  . $forum_data[$j]['user_id']) . '">' . $forum_data[$j]['username'] . '</a> ';
-								
-								$last_post .= '<a href="' . append_sid("viewtopic.$phpEx?"  . POST_POST_URL . '=' . $forum_data[$j]['forum_last_post_id']) . '#' . $forum_data[$j]['forum_last_post_id'] . '"><img src="' . $images['icon_latest_reply'] . '" border="0" alt="' . $lang['View_latest_post'] . '" title="' . $lang['View_latest_post'] . '" /></a>';
-							}
-							else
-							{
-								$last_post = $lang['No_Posts'];
-							}
-
-							if ( count($forum_moderators[$forum_id]) > 0 )
-							{
-								$l_moderators = ( count($forum_moderators[$forum_id]) == 1 ) ? $lang['Moderator'] : $lang['Moderators'];
-								$moderator_list = implode(', ', $forum_moderators[$forum_id]);
-							}
-							else
-							{
-								$l_moderators = '&nbsp;';
-								$moderator_list = '&nbsp;';
-							}
-
-							$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
-							$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
-							$template->assign_block_vars('catrow.forumrow',	array(
-								'ROW_COLOR' => '#' . $row_color,
-								'ROW_CLASS' => $row_class,
-								'FORUM_FOLDER_IMG' => $folder_image, 
-								'FORUM_NAME' => $forum_data[$j]['forum_name'],
-								'FORUM_DESC' => $forum_data[$j]['forum_desc'],
-								'POSTS' => $forum_data[$j]['forum_posts'],
-								'TOPICS' => $forum_data[$j]['forum_topics'],
-								'LAST_POST' => $last_post,
-								'MODERATORS' => $moderator_list,
-
-								'L_MODERATOR' => $l_moderators, 
-								'L_FORUM_FOLDER_ALT' => $folder_alt, 
-
-								'U_VIEWFORUM' => append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id"))
-							);
-						}
-					}
-				}
-			}
-		}
-	} // for ... categories
-
-}// if ... total_categories
-else
+// display the index
+$display = display_index($viewcatkey);
+if ( ($plus_config['show_shoutbox'] == 1 || $plus_config['show_shoutbox'] == 5 ) || ( ($plus_config['show_shoutbox'] == 2 || $plus_config['show_shoutbox'] == 6 ) && ( $userdata['session_user_id'] != ANONYMOUS ) ) )
+{
+        $template->assign_block_vars('switch_show_shoutbox', array());
+}
+if ( !$display )
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 {
 	message_die(GENERAL_MESSAGE, $lang['No_forums']);
 }

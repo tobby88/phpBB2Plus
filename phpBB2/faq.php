@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: faq.php,v 1.14 2002/03/31 00:06:33 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -40,9 +40,9 @@ $faq = array();
 //
 // Load the appropriate faq file
 //
-if( isset($HTTP_GET_VARS['mode']) )
+if( isset($_GET['mode']) )
 {
-	switch( $HTTP_GET_VARS['mode'] )
+	switch( $_GET['mode'] )
 	{
 		case 'bbcode':
 			$lang_file = 'lang_bbcode';
@@ -60,7 +60,7 @@ else
 	$l_title = $lang['FAQ'];
 }
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/' . $lang_file . '.' . $phpEx);
-
+attach_faq_include($lang_file);
 //
 // Pull the array data from the lang pack
 //

@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: admin_ranks.php,v 1.13.2.4 2004/03/25 15:57:20 acydburn Exp $
  *
  ***************************************************************************/
 
@@ -33,20 +33,15 @@ define('IN_PHPBB', 1);
 //
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
-
-$cancel = ( isset($HTTP_POST_VARS['cancel']) ) ? true : false;
-$no_page_header = $cancel;
-
 require('./pagestart.' . $phpEx);
-
-if ($cancel)
+if (isset($HTTP_POST_VARS['cancel']))
 {
 	redirect('admin/' . append_sid("admin_ranks.$phpEx", true));
 }
 
-if( isset($HTTP_GET_VARS['mode']) || isset($HTTP_POST_VARS['mode']) )
+if( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = (isset($HTTP_GET_VARS['mode'])) ? $HTTP_GET_VARS['mode'] : $HTTP_POST_VARS['mode'];
+	$mode = (isset($_GET['mode'])) ? $_GET['mode'] : $_POST['mode'];
 	$mode = htmlspecialchars($mode);
 }
 else 
@@ -54,11 +49,11 @@ else
 	//
 	// These could be entered via a form button
 	//
-	if( isset($HTTP_POST_VARS['add']) )
+	if( isset($_POST['add']) )
 	{
 		$mode = "add";
 	}
-	else if( isset($HTTP_POST_VARS['save']) )
+	else if( isset($_POST['save']) )
 	{
 		$mode = "save";
 	}
@@ -67,9 +62,9 @@ else
 		$mode = "";
 	}
 }
-
 // Restrict mode input to valid options
 $mode = ( in_array($mode, array('add', 'edit', 'save', 'delete')) ) ? $mode : '';
+
 
 if( $mode != "" )
 {
@@ -78,7 +73,7 @@ if( $mode != "" )
 		//
 		// They want to add a new rank, show the form.
 		//
-		$rank_id = ( isset($HTTP_GET_VARS['id']) ) ? intval($HTTP_GET_VARS['id']) : 0;
+		$rank_id = ( isset($_GET['id']) ) ? intval($_GET['id']) : 0;
 		
 		$s_hidden_fields = "";
 		
@@ -120,7 +115,7 @@ if( $mode != "" )
 			"NOT_SPECIAL_RANK" => $rank_is_not_special,
 			"MINIMUM" => ( $rank_is_special ) ? "" : $rank_info['rank_min'],
 			"IMAGE" => ( $rank_info['rank_image'] != "" ) ? $rank_info['rank_image'] : "",
-			"IMAGE_DISPLAY" => ( $rank_info['rank_image'] != "" ) ? '<img src="../' . $rank_info['rank_image'] . '" />' : "",
+			"IMAGE_DISPLAY" => ( $rank_info['rank_image'] != "" ) ? '<img src="../' . $images['rank_path'] . $rank_info['rank_image'] . '" />' : "",
 			
 			"L_RANKS_TITLE" => $lang['Ranks_title'],
 			"L_RANKS_TEXT" => $lang['Ranks_explain'],
@@ -145,11 +140,11 @@ if( $mode != "" )
 		// Ok, they sent us our info, let's update it.
 		//
 		
-		$rank_id = ( isset($HTTP_POST_VARS['id']) ) ? intval($HTTP_POST_VARS['id']) : 0;
-		$rank_title = ( isset($HTTP_POST_VARS['title']) ) ? trim($HTTP_POST_VARS['title']) : "";
-		$special_rank = ( $HTTP_POST_VARS['special_rank'] == 1 ) ? TRUE : 0;
-		$min_posts = ( isset($HTTP_POST_VARS['min_posts']) ) ? intval($HTTP_POST_VARS['min_posts']) : -1;
-		$rank_image = ( (isset($HTTP_POST_VARS['rank_image'])) ) ? trim($HTTP_POST_VARS['rank_image']) : "";
+		$rank_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
+		$rank_title = ( isset($_POST['title']) ) ? trim($_POST['title']) : "";
+		$special_rank = ( $_POST['special_rank'] == 1 ) ? TRUE : 0;
+		$min_posts = ( isset($_POST['min_posts']) ) ? intval($_POST['min_posts']) : -1;
+		$rank_image = ( (isset($_POST['rank_image'])) ) ? trim($_POST['rank_image']) : "";
 
 		if( $rank_title == "" )
 		{
@@ -216,15 +211,15 @@ if( $mode != "" )
 		// Ok, they want to delete their rank
 		//
 		
-		if( isset($HTTP_POST_VARS['id']) || isset($HTTP_GET_VARS['id']) )
+		if( isset($_POST['id']) || isset($_GET['id']) )
 		{
-			$rank_id = ( isset($HTTP_POST_VARS['id']) ) ? intval($HTTP_POST_VARS['id']) : intval($HTTP_GET_VARS['id']);
+			$rank_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : intval($_GET['id']);
 		}
 		else
 		{
 			$rank_id = 0;
 		}
-
+		
 		$confirm = isset($HTTP_POST_VARS['confirm']);
 		
 		if( $rank_id && $confirm )

@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: usercp_activate.php,v 1.6.2.7 2003/05/03 23:24:02 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -29,7 +29,7 @@ if ( !defined('IN_PHPBB') )
 
 $sql = "SELECT user_active, user_id, username, user_email, user_newpasswd, user_lang, user_actkey 
 	FROM " . USERS_TABLE . "
-	WHERE user_id = " . intval($HTTP_GET_VARS[POST_USERS_URL]);
+	WHERE user_id = " . intval($_GET[POST_USERS_URL]);
 if ( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, 'Could not obtain user information', '', __LINE__, __FILE__, $sql);
@@ -45,7 +45,7 @@ if ( $row = $db->sql_fetchrow($result) )
 
 		message_die(GENERAL_MESSAGE, $lang['Already_activated']);
 	}
-	else if ((trim($row['user_actkey']) == trim($HTTP_GET_VARS['act_key'])) && (trim($row['user_actkey']) != ''))
+	else if ((trim($row['user_actkey']) == trim($_GET['act_key'])) && (trim($row['user_actkey']) != ''))
 	{
 		if (intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $row['user_newpasswd'] == '')
 		{
@@ -58,8 +58,7 @@ if ( $row = $db->sql_fetchrow($result) )
 				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 			}
 		}
-
-		$sql_update_pass = ( $row['user_newpasswd'] != '' ) ? ", user_password = '" . str_replace("\'", "''", $row['user_newpasswd']) . "', user_newpasswd = ''" : '';
+		$sql_update_pass = ( $row['user_newpasswd'] != '' ) ? ", user_password = '" . str_replace("\'", "''", $row['user_newpasswd']) . "', user_newpasswd = '', user_passwd_change='".(($row['user_newpasswd']==$row['user_password']) ? time() : '0')."'" : '';
 
 		$sql = "UPDATE " . USERS_TABLE . "
 			SET user_active = 1, user_actkey = ''" . $sql_update_pass . " 
@@ -67,6 +66,14 @@ if ( $row = $db->sql_fetchrow($result) )
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql_update);
+		}
+
+        $sql = "UPDATE " . USERS_TABLE . "
+				SET ct_pwreset = '0', ct_unsucclogin = '0'
+				WHERE user_id = " . $row['user_id'];
+		if ( !$db->sql_query($sql) )
+		{
+			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
 		}
 
 		if ( intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $sql_update_pass == '' )

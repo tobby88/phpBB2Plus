@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: pagestart.php,v 1.1.2.7 2004/03/24 14:43:31 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -37,26 +37,30 @@ init_userprefs($userdata);
 //
 // End session management
 //
+include_once($phpbb_root_path . 'includes/functions_jr_admin.' . $phpEx);
+find_lang_file_nivisec('lang_jr_admin');
 
 if (!$userdata['session_logged_in'])
 {
 	redirect(append_sid("login.$phpEx?redirect=admin/index.$phpEx", true));
 }
-else if ($userdata['user_level'] != ADMIN)
+elseif (!jr_admin_secure(basename($HTTP_SERVER_VARS['REQUEST_URI'])))
 {
-	message_die(GENERAL_MESSAGE, $lang['Not_admin']);
+	message_die(GENERAL_ERROR, $lang['Error_Module_ID'], '', __LINE__, __FILE__);	
+}
+if (file_exists($phpbb_root_path . 'update'))
+{
+	message_die(GENERAL_MESSAGE, 'Please ensure update/ directory is deleted');
 }
 
-if ($HTTP_GET_VARS['sid'] != $userdata['session_id'])
+if ($_GET['sid'] != $userdata['session_id'])
 {
 	redirect("index.$phpEx?sid=" . $userdata['session_id']);
 }
-
 if (!$userdata['session_admin'])
 {
 	redirect(append_sid("login.$phpEx?redirect=admin/index.$phpEx&admin=1", true));
 }
-
 if (empty($no_page_header))
 {
 	// Not including the pageheader can be neccesarry if META tags are

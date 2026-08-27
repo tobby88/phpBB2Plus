@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: admin_board.php,v 1.51.2.6 2003/06/10 00:37:12 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -43,9 +43,9 @@ else
 	{
 		$config_name = $row['config_name'];
 		$config_value = $row['config_value'];
-		$default_config[$config_name] = isset($HTTP_POST_VARS['submit']) ? str_replace("'", "\'", $config_value) : $config_value;
+		$default_config[$config_name] = isset($_POST['submit']) ? str_replace("'", "\'", $config_value) : $config_value;
 		
-		$new[$config_name] = ( isset($HTTP_POST_VARS[$config_name]) ) ? $HTTP_POST_VARS[$config_name] : $default_config[$config_name];
+		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
 
 		if ($config_name == 'cookie_name')
 		{
@@ -58,8 +58,16 @@ else
 		{
 			$new['server_name'] = str_replace('http://', '', $new['server_name']);
 		}
-
-		if( isset($HTTP_POST_VARS['submit']) )
+		// Attempt to prevent a mistake with this value.
+		if ($config_name == 'avatar_path')
+		{
+			$new['avatar_path'] = trim($new['avatar_path']);
+			if (strstr($new['avatar_path'], "\0") || !is_dir($phpbb_root_path . $new['avatar_path']) || !is_writable($phpbb_root_path . $new['avatar_path']))
+			{
+				$new['avatar_path'] = $default_config['avatar_path'];
+			}
+		}
+		if( isset($_POST['submit']) )
 		{
 			$sql = "UPDATE " . CONFIG_TABLE . " SET
 				config_value = '" . str_replace("\'", "''", $new[$config_name]) . "'
@@ -71,7 +79,7 @@ else
 		}
 	}
 
-	if( isset($HTTP_POST_VARS['submit']) )
+	if( isset($_POST['submit']) )
 	{
 		$message = $lang['Config_updated'] . "<br /><br />" . sprintf($lang['Click_return_config'], "<a href=\"" . append_sid("admin_board.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -85,6 +93,11 @@ $timezone_select = tz_select($new['board_timezone'], 'board_timezone');
 
 $disable_board_yes = ( $new['board_disable'] ) ? "checked=\"checked\"" : "";
 $disable_board_no = ( !$new['board_disable'] ) ? "checked=\"checked\"" : "";
+
+// BEGIN Disable Registration MOD
+$registration_status_yes = ( $new['registration_status'] ) ? "checked=\"checked\"" : "";
+$registration_status_no = ( !$new['registration_status'] ) ? "checked=\"checked\"" : ""; 
+// END Disable Registration MOD
 
 $cookie_secure_yes = ( $new['cookie_secure'] ) ? "checked=\"checked\"" : "";
 $cookie_secure_no = ( !$new['cookie_secure'] ) ? "checked=\"checked\"" : "";
@@ -122,6 +135,25 @@ $privmsg_off = ( $new['privmsg_disable'] ) ? "checked=\"checked\"" : "";
 $prune_yes = ( $new['prune_enable'] ) ? "checked=\"checked\"" : "";
 $prune_no = ( !$new['prune_enable'] ) ? "checked=\"checked\"" : "";
 
+// Start add - Protect user account MOD
+$password_not_login_yes = ( $new['password_not_login'] ) ? "checked=\"checked\"" : "";
+$password_not_login_no = ( !$new['password_not_login'] ) ? "checked=\"checked\"" : "";
+$password_complex_yes = ( $new['force_complex_password'] ) ? "checked=\"checked\"" : ""; 
+$password_complex_no = ( !$new['force_complex_password'] ) ? "checked=\"checked\"" : ""; 
+// End add - Protect user account MOD
+
+// Start add - Last visit MOD
+$hidde_last_logon_yes = ( $new['hidde_last_logon'] ) ? "checked=\"checked\"" : ""; 
+$hidde_last_logon_no = ( !$new['hidde_last_logon'] ) ? "checked=\"checked\"" : ""; 
+// End add - Last visit MOD
+
+// Start add - Birthday MOD
+$birthday_greeting_yes = ( $new['birthday_greeting'] ) ? "checked=\"checked\"" : "";
+$birthday_greeting_no = ( !$new['birthday_greeting'] ) ? "checked=\"checked\"" : "";
+$birthday_required_yes = ( $new['birthday_required'] ) ? "checked=\"checked\"" : "";
+$birthday_required_no = ( !$new['birthday_required'] ) ? "checked=\"checked\"" : "";
+// End add - Birthday MOD
+
 $smile_yes = ( $new['allow_smilies'] ) ? "checked=\"checked\"" : "";
 $smile_no = ( !$new['allow_smilies'] ) ? "checked=\"checked\"" : "";
 
@@ -130,6 +162,13 @@ $sig_no = ( !$new['allow_sig'] ) ? "checked=\"checked\"" : "";
 
 $namechange_yes = ( $new['allow_namechange'] ) ? "checked=\"checked\"" : "";
 $namechange_no = ( !$new['allow_namechange'] ) ? "checked=\"checked\"" : "";
+
+$users_allow_absence_yes = ( $new['users_allow_absence'] ) ? "checked=\"checked\"" : "";
+$users_allow_absence_no = ( !$new['users_allow_absence'] ) ? "checked=\"checked\"" : "";
+$mod_able_sent_absent_yes = ( $new['mod_able_sent_absent'] ) ? "checked=\"checked\"" : "";
+$mod_able_sent_absent_no = ( !$new['mod_able_sent_absent'] ) ? "checked=\"checked\"" : "";
+$absent_button_yes = ( $new['absent_button'] ) ? "checked=\"checked\"" : "";
+$absent_button_no = ( !$new['absent_button'] ) ? "checked=\"checked\"" : "";
 
 $avatars_local_yes = ( $new['allow_avatar_local'] ) ? "checked=\"checked\"" : "";
 $avatars_local_no = ( !$new['allow_avatar_local'] ) ? "checked=\"checked\"" : "";
@@ -144,6 +183,24 @@ $smtp_no = ( !$new['smtp_delivery'] ) ? "checked=\"checked\"" : "";
 $template->set_filenames(array(
 	"body" => "admin/board_config_body.tpl")
 );
+//report forum selection
+$sql = "SELECT f.forum_name, f.forum_id
+	FROM " . FORUMS_TABLE . " f, " . CATEGORIES_TABLE . " c
+	WHERE c.cat_id = f.cat_id ORDER BY c.cat_order ASC, f.forum_order ASC";
+if ( !($result = $db->sql_query($sql)) )
+{
+	message_die(GENERAL_ERROR, "Couldn't obtain forum list", "", __LINE__, __FILE__, $sql);
+}
+$report_forum_rows = $db->sql_fetchrowset($result);
+$db->sql_freeresult($result);
+$report_forum_select_list = '<select name="report_forum">';
+$report_forum_select_list .= '<option value="0">' . $lang['None'] . '</option>';
+for($i = 0; $i < count($report_forum_rows); $i++)
+{
+	$report_forum_select_list .= '<option value="' . $report_forum_rows[$i]['forum_id'] . '">' . $report_forum_rows[$i]['forum_name'] . '</option>';
+}
+$report_forum_select_list .= '</select>';
+$report_forum_select_list = str_replace("value=\"".$new['report_forum']."\">", "value=\"".$new['report_forum']."\" SELECTED>*" ,$report_forum_select_list);
 
 //
 // Escape any quotes in the site description for proper display in the text
@@ -151,6 +208,11 @@ $template->set_filenames(array(
 //
 $new['site_desc'] = str_replace('"', '&quot;', $new['site_desc']);
 $new['sitename'] = str_replace('"', '&quot;', strip_tags($new['sitename']));
+
+// BEGIN Disable Registration MOD
+$new['registration_closed'] = str_replace('"', '&quot;', $new['registration_closed']);
+// END Disable Registration MOD
+
 $template->assign_vars(array(
 	"S_CONFIG_ACTION" => append_sid("admin_board.$phpEx"),
 
@@ -169,6 +231,16 @@ $template->assign_vars(array(
 	"L_SITE_DESCRIPTION" => $lang['Site_desc'],
 	"L_DISABLE_BOARD" => $lang['Board_disable'], 
 	"L_DISABLE_BOARD_EXPLAIN" => $lang['Board_disable_explain'], 
+	
+	// BEGIN Disable Registration MOD
+  "L_REGISTRATION_STATUS" => $lang['registration_status'],
+  "L_REGISTRATION_STATUS_EXPLAIN" => $lang['registration_status_explain'], 
+  "L_REGISTRATION_CLOSED" => $lang['registration_closed'],
+  "L_REGISTRATION_CLOSED_EXPLAIN" => $lang['registration_closed_explain'],
+  // END Disable Registration MOD
+  
+	"L_DISABLE_BOARD_MSG" => $lang['Board_disable_msg'], 
+	"L_DISABLE_BOARD_MSG_EXPLAIN" => $lang['Board_disable_msg_explain'],
 	"L_ACCT_ACTIVATION" => $lang['Acct_activation'], 
 	"L_NONE" => $lang['Acc_None'], 
 	"L_USER" => $lang['Acc_User'], 
@@ -188,6 +260,9 @@ $template->assign_vars(array(
 	"L_COOKIE_SECURE_EXPLAIN" => $lang['Cookie_secure_explain'], 
 	"L_SESSION_LENGTH" => $lang['Session_length'], 
 	"L_PRIVATE_MESSAGING" => $lang['Private_Messaging'], 
+	"L_ABSENCE_USER_ALLOWED" => $lang['Absence_user_allowed'], 
+	"L_MOD_ABLE_SENT_ABSENT" => $lang['Mod_able_sent_absent'], 
+	"L_ABSENT_BUTTON" => $lang['Absent_button_on_username'],
 	"L_INBOX_LIMIT" => $lang['Inbox_limits'], 
 	"L_SENTBOX_LIMIT" => $lang['Sentbox_limits'], 
 	"L_SAVEBOX_LIMIT" => $lang['Savebox_limits'], 
@@ -201,12 +276,12 @@ $template->assign_vars(array(
 	"L_SEARCH_FLOOD_INTERVAL" => $lang['Search_Flood_Interval'],
 	"L_SEARCH_FLOOD_INTERVAL_EXPLAIN" => $lang['Search_Flood_Interval_explain'], 
 
-	'L_MAX_LOGIN_ATTEMPTS'			=> $lang['Max_login_attempts'],
-	'L_MAX_LOGIN_ATTEMPTS_EXPLAIN'	=> $lang['Max_login_attempts_explain'],
-	'L_LOGIN_RESET_TIME'			=> $lang['Login_reset_time'],
-	'L_LOGIN_RESET_TIME_EXPLAIN'	=> $lang['Login_reset_time_explain'],
-	'MAX_LOGIN_ATTEMPTS'			=> $new['max_login_attempts'],
-	'LOGIN_RESET_TIME'				=> $new['login_reset_time'],
+//	'L_MAX_LOGIN_ATTEMPTS'			=> $lang['Max_login_attempts'],
+//	'L_MAX_LOGIN_ATTEMPTS_EXPLAIN'	=> $lang['Max_login_attempts_explain'],
+//	'L_LOGIN_RESET_TIME'			=> $lang['Login_reset_time'],
+//	'L_LOGIN_RESET_TIME_EXPLAIN'	=> $lang['Login_reset_time_explain'],
+//	'MAX_LOGIN_ATTEMPTS'			=> $new['max_login_attempts'],
+//	'LOGIN_RESET_TIME'				=> $new['login_reset_time'],
 
 	"L_BOARD_EMAIL_FORM" => $lang['Board_email_form'], 
 	"L_BOARD_EMAIL_FORM_EXPLAIN" => $lang['Board_email_form_explain'], 
@@ -219,8 +294,50 @@ $template->assign_vars(array(
 	"L_DEFAULT_LANGUAGE" => $lang['Default_language'],
 	"L_DATE_FORMAT" => $lang['Date_format'],
 	"L_SYSTEM_TIMEZONE" => $lang['System_timezone'],
+	
 	"L_ENABLE_GZIP" => $lang['Enable_gzip'],
 	"L_ENABLE_PRUNE" => $lang['Enable_prune'],
+	// Start add - Protect user account MOD
+	'L_USER_PASSWORD_SETTINGS' => $lang['user_password_settings'],
+	'L_PASSWORD_COMPLEX' => $lang['Password_complex'],
+	'L_PASSWORD_COMPLEX_EXPLAIN' => $lang['Password_complex_explain'],
+	'L_PASSWORD_NOT_LOGIN' => $lang['Password_not_login'],
+	'L_PASSWORD_NOT_LOGIN_EXPLAIN' => $lang['Password_not_login_explain'],
+	'L_PASSWORD_LEN' => $lang['Password_len'],
+	'L_PASSWORD_LEN_EXPLAIN' => $lang['Password_len_explain'],
+	'L_BLOCK_TIME' => $lang['Block_time'], 
+	'L_BLOCK_TIME_EXPLAIN' => $lang['Block_time_explain'], 
+	'L_MAX_LOGIN_ERROR' => $lang['Max_login_error'], 
+	'L_MAX_LOGIN_ERROR_EXPLAIN' => $lang['Max_login_error_explain'], 
+	'L_PASSWORD_INTERVALL' => $lang['Password_intervall'],
+	'L_PASSWORD_INTERVALL_EXPLAIN' => $lang['Password_intervall_explain'],
+	// End add - Protect user account MOD
+	'L_BLUECARD_LIMIT' => $lang['Bluecard_limit'], 
+	'L_BLUECARD_LIMIT_EXPLAIN' => $lang['Bluecard_limit_explain'], 
+	'L_BLUECARD_LIMIT_2' => $lang['Bluecard_limit_2'], 
+	'L_BLUECARD_LIMIT_2_EXPLAIN' => $lang['Bluecard_limit_2_explain'], 
+	'L_MAX_USER_BANCARD' => $lang['Max_user_bancard'], 
+	'L_MAX_USER_BANCARD_EXPLAIN' => $lang['Max_user_bancard_explain'], 
+	'L_REPORT_FORUM' => $lang['Report_forum'],
+	'L_REPORT_FORUM_EXPLAIN' => $lang['Report_forum_explain'],
+	// Start add - Fully integrated shoutbox MOD
+	"L_PRUNE_SHOUTS" => $lang['Prune_shouts'], 
+	"L_PRUNE_SHOUTS_EXPLAIN" => $lang['Prune_shouts_explain'], 
+	// End add - Fully integrated shoutbox MOD
+	// Start add - Last visit MOD
+	"L_HIDDE_LAST_LOGON" => $lang['Hidde_last_logon'], 
+	"L_HIDDE_LAST_LOGON_EXPLAIN" => $lang['Hidde_last_logon_expain'], 
+	// End add - Last visit MOD
+	// Start add - Birthday MOD
+	"L_ENABLE_BIRTHDAY_GREETING" => $lang['Enable_birthday_greeting'],
+	"L_BIRTHDAY_GREETING_EXPLAIN" => $lang['Birthday_greeting_expain'],
+	"L_BIRTHDAY_REQUIRED" => $lang['Birthday_required'],
+	"L_MAX_USER_AGE" => $lang['Max_user_age'],
+	"L_MIN_USER_AGE" => $lang['Min_user_age'],
+	"L_MIN_USER_AGE_EXPLAIN" => $lang['Min_user_age_explain'],
+	"L_BIRTHDAY_LOOKFORWARD" => $lang['Birthday_lookforward'],
+	"L_BIRTHDAY_LOOKFORWARD_EXPLAIN" => $lang['Birthday_lookforward_explain'],
+	// End add - Birthday MOD
 	"L_ALLOW_HTML" => $lang['Allow_HTML'],
 	"L_ALLOW_BBCODE" => $lang['Allow_BBCode'],
 	"L_ALLOWED_TAGS" => $lang['Allowed_tags'],
@@ -232,6 +349,8 @@ $template->assign_vars(array(
 	"L_MAX_SIG_LENGTH" => $lang['Max_sig_length'],
 	"L_MAX_SIG_LENGTH_EXPLAIN" => $lang['Max_sig_length_explain'],
 	"L_ALLOW_NAME_CHANGE" => $lang['Allow_name_change'],
+	"L_MAX_LINK_BOOKMARKS" => $lang['Max_bookmarks_links'],
+	"L_MAX_LINK_BOOKMARKS_EXPLAIN" => $lang['Max_bookmarks_links_explain'],
 	"L_AVATAR_SETTINGS" => $lang['Avatar_settings'],
 	"L_ALLOW_LOCAL" => $lang['Allow_local'],
 	"L_ALLOW_REMOTE" => $lang['Allow_remote'],
@@ -270,6 +389,12 @@ $template->assign_vars(array(
 	"SITE_DESCRIPTION" => $new['site_desc'], 
 	"S_DISABLE_BOARD_YES" => $disable_board_yes,
 	"S_DISABLE_BOARD_NO" => $disable_board_no,
+	// BEGIN Disable Registration MOD
+  "S_REGISTRATION_STATUS_YES" => $registration_status_yes,
+  "S_REGISTRATION_STATUS_NO" => $registration_status_no,
+  "REGISTRATION_CLOSED" => $new['registration_closed'], 
+  // END Disable Registration MOD
+	"DISABLE_BOARD_MSG" => $new['board_disable_msg'],
 	"ACTIVATION_NONE" => USER_ACTIVATION_NONE, 
 	"ACTIVATION_NONE_CHECKED" => $activation_none,
 	"ACTIVATION_USER" => USER_ACTIVATION_SELF, 
@@ -278,6 +403,7 @@ $template->assign_vars(array(
 	"ACTIVATION_ADMIN_CHECKED" => $activation_admin, 
 	"CONFIRM_ENABLE" => $confirm_yes,
 	"CONFIRM_DISABLE" => $confirm_no,
+	"ACTIVATION_NONE_CHECKED" => $activation_none,
 	'ALLOW_AUTOLOGIN_YES' => $allow_autologin_yes,
 	'ALLOW_AUTOLOGIN_NO' => $allow_autologin_no,
 	'AUTOLOGIN_TIME' => (int) $new['max_autologin_time'],
@@ -294,7 +420,7 @@ $template->assign_vars(array(
 	"OVERRIDE_STYLE_NO" => $override_user_style_no,
 	"LANG_SELECT" => $lang_select,
 	"L_DATE_FORMAT_EXPLAIN" => $lang['Date_format_explain'],
-	"DEFAULT_DATEFORMAT" => $new['default_dateformat'],
+	"DEFAULT_DATEFORMAT" => admin_date_format_select($new['default_dateformat'], $timezone_select),
 	"TIMEZONE_SELECT" => $timezone_select,
 	"S_PRIVMSG_ENABLED" => $privmsg_on, 
 	"S_PRIVMSG_DISABLED" => $privmsg_off, 
@@ -311,6 +437,42 @@ $template->assign_vars(array(
 	"GZIP_NO" => $gzip_no,
 	"PRUNE_YES" => $prune_yes,
 	"PRUNE_NO" => $prune_no, 
+	"ABSENCE_USER_ALLOWED_YES" => $users_allow_absence_yes,
+	"ABSENCE_USER_ALLOWED_NO" => $users_allow_absence_no, 
+	"MOD_ABLE_SENT_ABSENT_YES" => $mod_able_sent_absent_yes,
+	"MOD_ABLE_SENT_ABSENT_NO" => $mod_able_sent_absent_no, 
+	"ABSENT_BUTTON_YES" => $absent_button_yes,
+	"ABSENT_BUTTON_NO" => $absent_button_no,
+	// Start add - Protect user account MOD
+	'BLOCK_TIME' => $new['block_time'], 
+	'MAX_LOGIN_ERROR' => $new['max_login_error'], 
+	'MIN_PASSWORD_LEN' => $new['min_password_len'],
+	'PASSWORD_INTERVALL' => $new['max_password_age'],
+	'S_PASSWORD_COMPLEX_ENABLED' => $password_complex_yes,
+	'S_PASSWORD_COMPLEX_DISABLED' => $password_complex_no,
+	'S_PASSWORD_NOT_LOGIN_ENABLED' => $password_not_login_yes,
+	'S_PASSWORD_NOT_LOGIN_DISABLED' => $password_not_login_no,
+	// End add - Protect user account MOD
+	'BLUECARD_LIMIT' => $new['bluecard_limit'], 
+	'BLUECARD_LIMIT_2' => $new['bluecard_limit_2'], 
+	'MAX_USER_BANCARD' => $new['max_user_bancard'], 
+	'S_REPORT_FORUM' => $report_forum_select_list,
+	// Start add - Fully integrated shoutbox MOD
+	"PRUNE_SHOUTS" => $new['prune_shouts'], 
+	// End add - Fully integrated shoutbox MOD
+	// Start add - Last visit MOD
+	"HIDDE_LAST_LOGON_YES" => $hidde_last_logon_yes, 
+	"HIDDE_LAST_LOGON_NO" => $hidde_last_logon_no, 
+	// End add - Last visit MOD
+	// Start add - Birthday MOD
+	"BIRTHDAY_GREETING_YES" => $birthday_greeting_yes,
+	"BIRTHDAY_GREETING_NO" => $birthday_greeting_no,
+	"BIRTHDAY_REQUIRED_YES" => $birthday_required_yes,
+	"BIRTHDAY_REQUIRED_NO" => $birthday_required_no, 
+	"MAX_USER_AGE" => $new['max_user_age'],
+	"MIN_USER_AGE" => $new['min_user_age'],
+	"BIRTHDAY_LOOKFORWARD" => $new['birthday_check_day'],
+	// End add - Birthday MOD
 	"HTML_TAGS" => $html_tags, 
 	"HTML_YES" => $html_yes,
 	"HTML_NO" => $html_no,
@@ -323,6 +485,7 @@ $template->assign_vars(array(
 	"SIG_SIZE" => $new['max_sig_chars'], 
 	"NAMECHANGE_YES" => $namechange_yes,
 	"NAMECHANGE_NO" => $namechange_no,
+	"LINK_BOOKMARKS" => $new['max_link_bookmarks'],
 	"AVATARS_LOCAL_YES" => $avatars_local_yes,
 	"AVATARS_LOCAL_NO" => $avatars_local_no,
 	"AVATARS_REMOTE_YES" => $avatars_remote_yes,
@@ -348,6 +511,11 @@ $template->assign_vars(array(
 	"COPPA_MAIL" => $new['coppa_mail'],
 	"COPPA_FAX" => $new['coppa_fax'])
 );
+if (!$plus_config['enable_antirobot'])
+{
+	$template->assign_block_vars('switch_confirm', array());
+}
+
 
 $template->pparse("body");
 

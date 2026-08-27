@@ -6,7 +6,7 @@
 *     copyright            : (C) 2001 The phpBB Group
 *     email                : support@phpbb.com
 *
-*     $Id$
+*     $Id: admin_db_utilities.php,v 1.42.2.10 2003/03/04 21:02:19 acydburn Exp $
 *
 ****************************************************************************/
 
@@ -649,9 +649,9 @@ function output_table_content($content)
 //
 // Begin program proper
 //
-if( isset($HTTP_GET_VARS['perform']) || isset($HTTP_POST_VARS['perform']) )
+if( isset($_GET['perform']) || isset($_POST['perform']) )
 {
-	$perform = (isset($HTTP_POST_VARS['perform'])) ? $HTTP_POST_VARS['perform'] : $HTTP_GET_VARS['perform'];
+	$perform = (isset($_POST['perform'])) ? $_POST['perform'] : $_GET['perform'];
 
 	switch($perform)
 	{
@@ -693,15 +693,20 @@ if( isset($HTTP_GET_VARS['perform']) || isset($HTTP_POST_VARS['perform']) )
 				include('./page_footer_admin.'.$phpEx);
 			}
 
-			$tables = array('auth_access', 'banlist', 'categories', 'config', 'disallow', 'forums', 'forum_prune', 'groups', 'posts', 'posts_text', 'privmsgs', 'privmsgs_text', 'ranks', 'search_results', 'search_wordlist', 'search_wordmatch', 'sessions', 'smilies', 'themes', 'themes_name', 'topics', 'topics_watch', 'user_group', 'users', 'vote_desc', 'vote_results', 'vote_voters', 'words', 'confirm', 'sessions_keys');
+			//$tables = array('album', 'album_cat', 'album_comment', 'album_config', 'album_rate', 'attach_quota', 'attachments', 'attachments_config', 'attachments_desc', 'auth_access', 'banlist', 'banner', 'banner_stats', 'categories', 'color_groups', 'config', 'confirm', 'disallow', 'extension_groups', 'extensions', 'flags', 'forbidden_extensions', 'forums', 'forum_prune', 'groups', 'jr_admin_users', 'link_categories', 'link_config', 'links', 'nickpagebuddies', 'nickpageconf', 'nickpagefavs', 'nickpagegalerie', 'nickpagegb', 'nickpagemod', 'nickpagevotes', 'pa_auth', 'pa_cat', 'pa_comments', 'pa_config', 'pa_custom', 'pa_customdata', 'pa_download_info', 'pa_files', 'pa_license', 'pa_mirrors', 'pa_votes', 'plus', 'posts', 'posts_text', 'privmsgs', 'privmsgs_text', 'quota_limits', 'ranks', 'search_results', 'search_wordlist', 'search_wordmatch', 'sessions', 'smilies', 'themes', 'themes_name', 'topic_view', 'topics', 'topics_watch', 'user_group', 'users', 'vote_desc', 'vote_results', 'vote_voters', 'words');
+			$result = mysql_list_tables($dbname);
+   			$i = 0;
+   				while ($i < mysql_num_rows ($result)) {
+   				$tables[$i] = mysql_tablename ($result, $i);
+   				$i++;
+   				}
+			$additional_tables = (isset($_POST['additional_tables'])) ? $_POST['additional_tables'] : ( (isset($_GET['additional_tables'])) ? $_GET['additional_tables'] : "" );
 
-			$additional_tables = (isset($HTTP_POST_VARS['additional_tables'])) ? $HTTP_POST_VARS['additional_tables'] : ( (isset($HTTP_GET_VARS['additional_tables'])) ? $HTTP_GET_VARS['additional_tables'] : "" );
+			$backup_type = (isset($_POST['backup_type'])) ? $_POST['backup_type'] : ( (isset($_GET['backup_type'])) ? $_GET['backup_type'] : "" );
 
-			$backup_type = (isset($HTTP_POST_VARS['backup_type'])) ? $HTTP_POST_VARS['backup_type'] : ( (isset($HTTP_GET_VARS['backup_type'])) ? $HTTP_GET_VARS['backup_type'] : "" );
+			$gzipcompress = (!empty($_POST['gzipcompress'])) ? $_POST['gzipcompress'] : ( (!empty($_GET['gzipcompress'])) ? $_GET['gzipcompress'] : 0 );
 
-			$gzipcompress = (!empty($HTTP_POST_VARS['gzipcompress'])) ? $HTTP_POST_VARS['gzipcompress'] : ( (!empty($HTTP_GET_VARS['gzipcompress'])) ? $HTTP_GET_VARS['gzipcompress'] : 0 );
-
-			$drop = (!empty($HTTP_POST_VARS['drop'])) ? intval($HTTP_POST_VARS['drop']) : ( (!empty($HTTP_GET_VARS['drop'])) ? intval($HTTP_GET_VARS['drop']) : 0 );
+			$drop = (!empty($_POST['drop'])) ? intval($_POST['drop']) : ( (!empty($_GET['drop'])) ? intval($_GET['drop']) : 0 );
 
 			if(!empty($additional_tables))
 			{
@@ -721,7 +726,7 @@ if( isset($HTTP_GET_VARS['perform']) || isset($HTTP_POST_VARS['perform']) )
 				}
 			}
 
-			if( !isset($HTTP_POST_VARS['backupstart']) && !isset($HTTP_GET_VARS['backupstart']))
+			if( !isset($_POST['backupstart']) && !isset($_GET['backupstart']))
 			{
 				include('./page_header_admin.'.$phpEx);
 
@@ -751,7 +756,7 @@ if( isset($HTTP_GET_VARS['perform']) || isset($HTTP_POST_VARS['perform']) )
 				break;
 
 			}
-			else if( !isset($HTTP_POST_VARS['startdownload']) && !isset($HTTP_GET_VARS['startdownload']) )
+			else if( !isset($_POST['startdownload']) && !isset($_GET['startdownload']) )
 			{
 				if(is_array($additional_tables))
 				{
@@ -835,13 +840,13 @@ if( isset($HTTP_GET_VARS['perform']) || isset($HTTP_POST_VARS['perform']) )
 
 				if($backup_type != 'data')
 				{
-					echo "#\n# TABLE: " . $table_prefix . $table_name . "\n#\n";
-					echo $table_def_function($table_prefix . $table_name, "\n") . "\n";
+					echo "#\n# TABLE: $table_name \n#\n";
+					echo $table_def_function($table_name, "\n") . "\n";
 				}
 
 				if($backup_type != 'structure')
 				{
-					$table_content_function($table_prefix . $table_name, "output_table_content");
+					$table_content_function($table_name, "output_table_content");
 				}
 			}
 			
@@ -858,7 +863,7 @@ if( isset($HTTP_GET_VARS['perform']) || isset($HTTP_POST_VARS['perform']) )
 			break;
 
 		case 'restore':
-			if(!isset($HTTP_POST_VARS['restore_start']))
+			if(!isset($_POST['restore_start']))
 			{
 				//
 				// Define Template files...

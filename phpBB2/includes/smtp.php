@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: smtp.php,v 1.16.2.9 2003/07/18 16:34:01 acydburn Exp $
  *
  ***************************************************************************/
 
@@ -185,10 +185,11 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 	server_parse($socket, "354", __LINE__);
 
 	// Send the Subject Line...
-	fputs($socket, "Subject: $subject\r\n");
+	if (!eregi ('Subject:',$subject)) fputs($socket, "Subject: $subject\r\n");
 
 	// Now the To Header.
-	fputs($socket, "To: $mail_to\r\n");
+	if (!eregi ('To:',$headers)) fputs($socket, "To: $mail_to\r\n");
+
 
 	// Now any custom headers....
 	fputs($socket, "$headers\r\n\r\n");

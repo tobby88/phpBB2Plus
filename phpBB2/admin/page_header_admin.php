@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: page_header_admin.php,v 1.12.2.5 2003/06/10 20:48:18 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -35,7 +35,7 @@ if ( $board_config['gzip_compress'] )
 {
 	$phpver = phpversion();
 
-	$useragent = (isset($HTTP_SERVER_VARS['HTTP_USER_AGENT'])) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : getenv('HTTP_USER_AGENT');
+	$useragent = (isset($HTTP_SERVER_VARS['HTTP_USER_AGENT'])) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : getenv('HTTP_USER_AGENT'); 
 
 	if ( $phpver >= '4.0.4pl1' && ( strstr($useragent,'compatible') || strstr($useragent,'Gecko') ) )
 	{
@@ -76,6 +76,8 @@ $l_timezone = (count($l_timezone) > 1 && $l_timezone[count($l_timezone)-1] != 0)
 $template->assign_vars(array(
 	'SITENAME' => $board_config['sitename'],
 	'PAGE_TITLE' => $page_title,
+	'PHPBB_ROOT_PATH' => $phpbb_root_path,
+	'PHPEX' => $phpEx,
 
 	'L_ADMIN' => $lang['Admin'], 
 	'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
@@ -91,6 +93,7 @@ $template->assign_vars(array(
 	'S_CONTENT_ENCODING' => $lang['ENCODING'], 
 	'S_CONTENT_DIR_LEFT' => $lang['LEFT'], 
 	'S_CONTENT_DIR_RIGHT' => $lang['RIGHT'], 
+	'S_SID' => $userdata['session_id'],
 
 	'T_HEAD_STYLESHEET' => $theme['head_stylesheet'],
 	'T_BODY_BACKGROUND' => $theme['body_background'],

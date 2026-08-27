@@ -6,7 +6,7 @@
 *     copyright            : (C) 2001 The phpBB Group
 *     email                : support@phpbb.com
 *
-*     $Id$
+*     $Id: admin_mass_email.php,v 1.15.2.7 2003/05/03 23:24:01 acydburn Exp $
 *
 ****************************************************************************/
 
@@ -49,10 +49,10 @@ $subject = '';
 //
 // Do the job ...
 //
-if ( isset($HTTP_POST_VARS['submit']) )
+if ( isset($_POST['submit']) )
 {
-	$subject = stripslashes(trim($HTTP_POST_VARS['subject']));
-	$message = stripslashes(trim($HTTP_POST_VARS['message']));
+	$subject = stripslashes(trim($_POST['subject']));
+	$message = stripslashes(trim($_POST['message']));
 	
 	$error = FALSE;
 	$error_msg = '';
@@ -69,7 +69,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 		$error_msg .= ( !empty($error_msg) ) ? '<br />' . $lang['Empty_message'] : $lang['Empty_message'];
 	}
 
-	$group_id = intval($HTTP_POST_VARS[POST_GROUPS_URL]);
+	$group_id = intval($_POST[POST_GROUPS_URL]);
 
 	$sql = ( $group_id != -1 ) ? "SELECT u.user_email FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug WHERE ug.group_id = $group_id AND ug.user_pending <> " . TRUE . " AND u.user_id = ug.user_id" : "SELECT user_email FROM " . USERS_TABLE;
 	if ( !($result = $db->sql_query($sql)) )
@@ -114,34 +114,41 @@ if ( isset($HTTP_POST_VARS['submit']) )
 			$board_config['smtp_host'] = @$ini_val('SMTP');
 		}
 
-		$emailer = new emailer($board_config['smtp_delivery']);
+		$sendloops = ceil((count($bcc_list)-1)/500); 
+		$sendstart = 0; 
+		for ($j = 0; $j <= $sendloops; $j++) 
+		{ 
+			$emailer = new emailer($board_config['smtp_delivery']);
+		
+			$emailer->from($board_config['board_email']);
+			$emailer->replyto($board_config['board_email']);
 	
-		$emailer->from($board_config['board_email']);
-		$emailer->replyto($board_config['board_email']);
-
-		for ($i = 0; $i < count($bcc_list); $i++)
-		{
-			$emailer->bcc($bcc_list[$i]);
-		}
-
-		$email_headers = 'X-AntiAbuse: Board servername - ' . $board_config['server_name'] . "\n";
-		$email_headers .= 'X-AntiAbuse: User_id - ' . $userdata['user_id'] . "\n";
-		$email_headers .= 'X-AntiAbuse: Username - ' . $userdata['username'] . "\n";
-		$email_headers .= 'X-AntiAbuse: User IP - ' . decode_ip($user_ip) . "\n";
-
-		$emailer->use_template('admin_send_email');
-		$emailer->email_address($board_config['board_email']);
-		$emailer->set_subject($subject);
-		$emailer->extra_headers($email_headers);
-
-		$emailer->assign_vars(array(
-			'SITENAME' => $board_config['sitename'], 
-			'BOARD_EMAIL' => $board_config['board_email'], 
-			'MESSAGE' => $message)
-		);
-		$emailer->send();
-		$emailer->reset();
-
+			for ($i = $sendstart; ($i < count($bcc_list)) && ($i < ($sendstart + 500)); $i++) 
+			{
+				$emailer->bcc($bcc_list[$i]);
+			}
+	
+			$email_headers = 'X-AntiAbuse: Board servername - ' . $board_config['server_name'] . "\n";
+			$email_headers .= 'X-AntiAbuse: User_id - ' . $userdata['user_id'] . "\n";
+			$email_headers .= 'X-AntiAbuse: Username - ' . $userdata['username'] . "\n";
+			$email_headers .= 'X-AntiAbuse: User IP - ' . decode_ip($user_ip) . "\n";
+	
+			$emailer->use_template('admin_send_email');
+			$emailer->email_address($board_config['board_email']);
+			$emailer->set_subject($subject);
+			$emailer->extra_headers($email_headers);
+	
+			$emailer->assign_vars(array(
+				'SITENAME' => $board_config['sitename'], 
+				'BOARD_EMAIL' => $board_config['board_email'], 
+				'MESSAGE' => $message)
+			);
+			$emailer->send();
+			$emailer->reset();
+			
+			$sendstart = $sendstart + 500; 
+		} 
+	
 		message_die(GENERAL_MESSAGE, $lang['Email_sent'] . '<br /><br />' . sprintf($lang['Click_return_admin_index'],  '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
 	}
 }	

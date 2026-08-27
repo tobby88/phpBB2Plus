@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: page_footer_admin.php,v 1.9.2.2 2002/05/12 15:57:45 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -36,8 +36,18 @@ $template->set_filenames(array(
 
 $template->assign_vars(array(
 	'PHPBB_VERSION' => ($userdata['user_level'] == ADMIN && $userdata['user_id'] != ANONYMOUS) ? '2' . $board_config['version'] : '', 
+	'PLUS_VERSION' => $plus_config['plus_version'],
 	'TRANSLATION_INFO' => (isset($lang['TRANSLATION_INFO'])) ? $lang['TRANSLATION_INFO'] : ((isset($lang['TRANSLATION'])) ? $lang['TRANSLATION'] : ''))
 );
+//-- mod : run stats -----------------------------------------------------------
+//-- add
+if ( ($HTTP_GET_VARS['pane'] != 'left') && defined('DEBUG') && defined('DEBUG_SQL_ADMIN') )
+{
+	// send run stat (page generation, sql time, requests dump...)
+	$stat_run = new stat_run_class(microtime());
+	$stat_run->display();
+}
+//-- fin mod : run stats -------------------------------------------------------
 
 $template->pparse('page_footer');
 
@@ -45,6 +55,7 @@ $template->pparse('page_footer');
 // Close our DB connection.
 //
 $db->sql_close();
+@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
 
 //
 // Compress buffered output if required

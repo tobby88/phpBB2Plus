@@ -6,7 +6,7 @@
 *     copyright            : (C) 2002 The phpBB Group
 *     email                : support@phpbb.com
 *
-*     $Id$
+*     $Id: functions_search.php,v 1.8.2.18 2004/03/25 15:57:20 acydburn Exp $
 *
 ****************************************************************************/
 
@@ -19,7 +19,7 @@
  *
  ***************************************************************************/
 
-function clean_words($mode, &$entry, &$stopword_list, &$synonym_list)
+function clean_words($mode, $entry, &$stopword_list, &$synonym_list)
 {
 	static $drop_char_match =   array('^', '$', '&', '(', ')', '<', '>', '`', '\'', '"', '|', ',', '@', '_', '?', '%', '-', '~', '+', '.', '[', ']', '{', '}', ':', '\\', '/', '=', '#', '\'', ';', '!');
 	static $drop_char_replace = array(' ', ' ', ' ', ' ', ' ', ' ', ' ', '',  '',   ' ', ' ', ' ', ' ', '',  ' ', ' ', '',  ' ',  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' , ' ', ' ', ' ', ' ',  ' ', ' ');
@@ -338,12 +338,18 @@ function remove_common($mode, $fraction, $word_id_list = array())
 	return;
 }
 
-function remove_search_post($post_id_sql)
+function remove_search_post($post_id_sql, $remove_subject = true, $remove_message = true)
 {
 	global $db;
 
 	$words_removed = false;
 
+	$where_sql = '';
+	if (!$remove_subject || !$remove_message)
+	{
+		$where_sql = ' AND title_match = '. (($remove_subject) ? 1 : 0);
+	}
+	
 	switch ( SQL_LAYER )
 	{
 		case 'mysql':
@@ -351,6 +357,7 @@ function remove_search_post($post_id_sql)
 			$sql = "SELECT word_id 
 				FROM " . SEARCH_MATCH_TABLE . " 
 				WHERE post_id IN ($post_id_sql) 
+				$where_sql 
 				GROUP BY word_id";
 			if ( $result = $db->sql_query($sql) )
 			{
@@ -363,6 +370,7 @@ function remove_search_post($post_id_sql)
 				$sql = "SELECT word_id 
 					FROM " . SEARCH_MATCH_TABLE . " 
 					WHERE word_id IN ($word_id_sql) 
+					$where_sql 
 					GROUP BY word_id 
 					HAVING COUNT(word_id) = 1";
 				if ( $result = $db->sql_query($sql) )
@@ -397,8 +405,10 @@ function remove_search_post($post_id_sql)
 						SELECT word_id 
 						FROM " . SEARCH_MATCH_TABLE . " 
 						WHERE post_id IN ($post_id_sql) 
+						$where_sql 
 						GROUP BY word_id 
 					) 
+					$where_sql 
 					GROUP BY word_id 
 					HAVING COUNT(word_id) = 1
 				)"; 
@@ -413,7 +423,7 @@ function remove_search_post($post_id_sql)
 	}
 
 	$sql = "DELETE FROM " . SEARCH_MATCH_TABLE . "  
-		WHERE post_id IN ($post_id_sql)";
+		WHERE post_id IN ($post_id_sql) $where_sql";
 	if ( !$db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
@@ -428,7 +438,7 @@ function remove_search_post($post_id_sql)
 function username_search($search_match)
 {
 	global $db, $board_config, $template, $lang, $images, $theme, $phpEx, $phpbb_root_path;
-	global $starttime, $gen_simple_header;
+	global $starttime, $gen_simple_header, $userdata;
 	
 	$gen_simple_header = TRUE;
 
@@ -483,9 +493,9 @@ function username_search($search_match)
 		'S_SEARCH_ACTION' => append_sid("search.$phpEx?mode=searchuser"))
 	);
 
-	if ( $username_list != '' )
+	if ( $username_list == '' )
 	{
-		$template->assign_block_vars('switch_select_name', array());
+		$template->assign_var('USERNAME_LIST_VIS', 'style="display:none;"');
 	}
 
 	$template->pparse('search_user_body');

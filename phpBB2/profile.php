@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: profile.php,v 1.193.2.3 2003/03/02 23:16:17 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -35,15 +35,14 @@ init_userprefs($userdata);
 //
 
 // session id check
-if (!empty($HTTP_POST_VARS['sid']) || !empty($HTTP_GET_VARS['sid']))
+if (!empty($_POST['sid']) || !empty($_GET['sid']))
 {
-	$sid = (!empty($HTTP_POST_VARS['sid'])) ? $HTTP_POST_VARS['sid'] : $HTTP_GET_VARS['sid'];
+	$sid = (!empty($_POST['sid'])) ? $_POST['sid'] : $_GET['sid'];
 }
 else
 {
 	$sid = '';
 }
-
 //
 // Set default email variables
 //
@@ -71,13 +70,22 @@ function gen_rand_string($hash)
 //
 // Start of program proper
 //
-if ( isset($HTTP_GET_VARS['mode']) || isset($HTTP_POST_VARS['mode']) )
+if ( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = ( isset($HTTP_GET_VARS['mode']) ) ? $HTTP_GET_VARS['mode'] : $HTTP_POST_VARS['mode'];
+	$mode = ( isset($_GET['mode']) ) ? $_GET['mode'] : $_POST['mode'];
 	$mode = htmlspecialchars($mode);
+
+	$mode = ($_POST['signature'] != '') ? 'signature' : $mode;
+	$mode = ($_GET['signature'] != '') ? 'signature' : $mode;
 
 	if ( $mode == 'viewprofile' )
 	{
+		//--- Album Category Hierarchy : begin
+//--- version : 1.2.0
+	 	$album_root_path = $phpbb_root_path.'album_mod/';
+//--- version : 1.3.0		
+		include ($album_root_path.'album_constants.'.$phpEx);
+//--- Album Category Hierarchy : end
 		include($phpbb_root_path . 'includes/usercp_viewprofile.'.$phpEx);
 		exit;
 	}
@@ -94,12 +102,25 @@ if ( isset($HTTP_GET_VARS['mode']) || isset($HTTP_POST_VARS['mode']) )
 	else if ( $mode == 'confirm' )
 	{
 		// Visual Confirmation
-		if ( $userdata['session_logged_in'] )
+		if ( $userdata['session_logged_in'] && (htmlspecialchars($_GET['id']) != 'Admin'))
 		{
 			exit;
 		}
 
-		include($phpbb_root_path . 'includes/usercp_confirm.'.$phpEx);
+		if (function_exists(imagettftext) && defined('ADV_CAPTCHA'))
+			include($phpbb_root_path . 'includes/usercp_confirm_adv.'.$phpEx);
+		else
+			include($phpbb_root_path . 'includes/usercp_confirm.'.$phpEx);
+		exit;
+	}
+	else if ( $mode == 'signature' )
+	{
+		if ( !$userdata['session_logged_in'] && $mode == 'signature' )
+		{
+			redirect(append_sid("login.$phpEx?redirect=profile.$phpEx&mode=signature", true));
+		}
+
+		include($phpbb_root_path . 'includes/usercp_signature.'.$phpEx);
 		exit;
 	}
 	else if ( $mode == 'sendpassword' )

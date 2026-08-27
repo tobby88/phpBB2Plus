@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: db.php,v 1.10 2002/03/18 13:35:22 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -57,7 +57,15 @@ switch($dbms)
 }
 
 // Make the database connection.
+//-- mod : run stats -----------------------------------------------------------
+//-- delete
+/*
 $db = new sql_db($dbhost, $dbuser, $dbpasswd, $dbname, false);
+*/
+//-- add
+include_once($phpbb_root_path . 'includes/class_db.' . $phpEx);
+$db = new db_class($dbhost, $dbuser, $dbpasswd, $dbname, false);
+//-- fin mod : run stats -------------------------------------------------------
 if(!$db->db_connect_id)
 {
 	message_die(CRITICAL_ERROR, "Could not connect to the database");

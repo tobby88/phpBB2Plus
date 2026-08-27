@@ -7,7 +7,7 @@
  *     copyright            : (C) 2001 The phpBB Group
  *     email                : support@phpbb.com
  *
- *     $Id$
+ *     $Id: lang_admin.php,v 1.35.2.9 2003/06/10 00:31:19 psotfx Exp $
  *
  ****************************************************************************/
 
@@ -24,6 +24,8 @@
 	2002-12-15	Philip M. White (pwhite@mailhaven.com)
 		Fixed many minor grammatical mistakes
 */
+
+// phpBB2 Plus 1.5 Language File Build 123
 
 //
 // Format is same as lang_main
@@ -55,6 +57,92 @@ $lang['Add_new'] = 'Add';
 $lang['Backup_DB'] = 'Backup Database';
 $lang['Restore_DB'] = 'Restore Database';
 
+//
+// Custom Profile Fields MOD
+//
+$lang['custom_field_notice_admin'] = 'These items have been created by you or another administrator. For more information, check the items under the Profile Fields heading in the navbar. Items marked with a * are required fields. Items marked with a &dagger; are only being displayed to admins.';
+
+$lang['field_deleted'] = 'The specified field has been deleted';
+$lang['double_check_delete'] = 'Are you sure you want to delete profile field "%s" from the database permenantly?';
+
+$lang['here'] = 'Here';
+$lang['new_field_link'] = '<a href="'.append_sid("$filename?mode=add&pfid=x").'">%s</a>';
+$lang['edit_field_link'] = '<a href="'.append_sid("$filename?mode=edit&pfid=x").'">%s</a>';
+$lang['index_link'] = '<a href="'.append_sid("admin_profile_fields.$phpEx?mode=edit&pfid=x").'">%s</a>';
+$lang['field_exists'] = 'This field already exists.<br /><br />You can try creating a ' . sprintf($lang['new_field_link'],'new') . ' profile field,<br /><br />or try ' . sprintf($lang['edit_field_link'],'editing') . ' the one you already have.';
+$lang['click_here_here'] = 'Click ' . sprintf($lang['new_field_link'],$lang['here']) . ' to add another profile field,<br /><br />or click ' . sprintf($lang['index_link'],$lang['here']) . ' to return to the Admin Index.';
+$lang['field_success'] = 'Field successfully submitted!<br /><br />' . $lang['click_here_here'];
+$lang['Custom_Profile'] = 'Profile Fields';
+$lang['profile_field_created'] = 'Profile Field Created';
+$lang['profile_field_updated'] = 'Profile Field Updated';
+
+$lang['add_field_title'] = 'Add Custom Profile Fields';
+$lang['edit_field_title'] = 'Edit Custom Profile Fields';
+$lang['add_field_explain'] = 'Here you can create new fields for your users to set in their profiles.';
+$lang['edit_field_explain'] = 'Here you can edit fields you have already created for your users to set in their profiles.';
+
+$lang['add_field_general'] = 'General Settings';
+$lang['add_field_admin'] = 'Administrator Settings';
+$lang['add_field_view'] = 'Viewing Settings';
+$lang['add_field_text_field'] = 'Text Field Settings';
+$lang['add_field_text_area'] = 'Text Area Settings';
+$lang['add_field_radio_button'] = 'Radio Button Settings';
+$lang['add_field_checkbox'] = 'Checkbox Settings';
+
+$lang['default_value'] = 'Default Value';
+$lang['default_value_explain'] = 'This is the default for this field. If a new user does not change this value, this is the value they will have. If this is a required field, this is the value that all existing users will be set to.';
+$lang['default_value_radio_explain'] = 'Enter a name identical to one written in the available values field.';
+$lang['default_value_checkbox_explain'] = 'Enter values that will default to checked. These values must match values in the available values field';
+$lang['max_length'] = 'Maximum Length';
+$lang['max_length_explain'] = 'This is the maximum length for this field.';
+$lang['max_length_value'] = ' This must be a number between %d and %d.';
+$lang['available_values'] = 'Available Values';
+$lang['available_values_explain'] = 'Put each value on its own line';
+
+$lang['add_field_view_disclaimer'] = 'All of these settings will be treated as "no" if users are not allowed to view this field';
+
+$lang['add_field_name'] = 'Field Name';
+$lang['add_field_name_explain'] = 'Enter the name you want to associate with this field.';
+$lang['add_field_description'] = 'Field Description';
+$lang['add_field_description_explain'] = 'Enter a description you wish to associate with this field. It will be displayed in small text below the field name, just like this text is.';
+$lang['add_field_type'] = 'Field Type';
+$lang['add_field_type_explain'] = 'Select the type of profile field you want to add. Examples of each field type are shown to the far right.';
+$lang['edit_field_type_explain'] = 'Select the type of profile field you want to change this field to. Examples of each field type are shown to the far right.';
+$lang['add_field_required'] = 'Set as Required';
+$lang['add_field_required_explain'] = 'If the field is set to "Required", any user that registers later <strong>must</strong> fill it in, and all existing users will have it filled with a default value.';
+$lang['add_field_user_can_view'] = 'Allow Users to View';
+$lang['add_field_user_can_view_explain'] = 'If this is set to "yes", the user is allowed to view and edit this field. If it is set to "no", only Administrators may veiw or edit this value. Also, if this is set to "yes", this field cannot be required.';
+$lang['view_in_profile'] = 'Viewable in User Profile';
+$lang['profile_locations_explain'] = 'These options are for if this field is to be viewed in the user\'s profile.';
+$lang['contacts_column'] = 'Contacts Column';
+$lang['about_column'] = 'About Column';
+$lang['view_in_memberlist'] = 'Viewable in Memeberlist';
+$lang['view_in_topic'] = 'Viewable in Topic';
+$lang['topic_locations_explain'] = 'These options are for if this field is to be viewed in a post.';
+$lang['author_column'] = 'Author Section';
+$lang['above'] = 'Above ';
+$lang['below'] = 'Below ';
+
+$lang['textarea'] = 'Textarea';
+$lang['textarea_example'] = "This is an example\n   of a Textarea.";
+$lang['text_field'] = 'Text Field';
+$lang['text_field_example'] = 'This is an example of a Text Field';
+$lang['radio'] = 'Radio Button';
+$lang['radio_example'] = 'This is an example of two Radio Buttons';
+$lang['checkbox'] = 'Checkbox';
+$lang['checkbox_example'] = 'This is an example of two Checkboxes';
+
+$lang['profile_field_list'] = 'Your Custom Profile Fields';
+$lang['profile_field_list_explain'] = 'These are all of the custom profiles you have created for your board, with links to edit or delete them.';
+$lang['profile_field_id'] = 'ID #';
+$lang['profile_field_name'] = 'Field Name';
+$lang['profile_field_action'] = 'Action';
+$lang['no_profile_fields_exist'] = 'No Custom Profile Fields Exist.';
+
+$lang['enter_a_name'] = 'You <strong>must</strong> enter a field name<br /><br />Press back and try again';
+//
+// END Custom Profile Fields MOD
+//
 
 //
 // Index
@@ -62,11 +150,12 @@ $lang['Restore_DB'] = 'Restore Database';
 $lang['Admin'] = 'Administration';
 $lang['Not_admin'] = 'You are not authorised to administer this board';
 $lang['Welcome_phpBB'] = 'Welcome to phpBB';
-$lang['Admin_intro'] = 'Thank you for choosing phpBB as your forum solution. This screen will give you a quick overview of all the various statistics of your board. You can get back to this page by clicking on the <u>Admin Index</u> link in the left pane. To return to the index of your board, click the phpBB logo also in the left pane. The other links on the left hand side of this screen will allow you to control every aspect of your forum experience. Each screen will have instructions on how to use the tools.';
 $lang['Main_index'] = 'Forum Index';
 $lang['Forum_stats'] = 'Forum Statistics';
 $lang['Admin_Index'] = 'Admin Index';
 $lang['Preview_forum'] = 'Preview Forum';
+$lang['Portal_index'] = 'Portal Index';
+$lang['Preview_portal'] = 'Preview Portal';
 
 $lang['Click_return_admin_index'] = 'Click %sHere%s to return to the Admin Index';
 
@@ -86,7 +175,6 @@ $lang['Not_available'] = 'Not available';
 
 $lang['ON'] = 'ON'; // This is for GZip compression
 $lang['OFF'] = 'OFF'; 
-
 
 //
 // DB Utils
@@ -566,6 +654,7 @@ $lang['Click_return_rankadmin'] = 'Click %sHere%s to return to Rank Administrati
 
 $lang['Confirm_delete_rank'] = 'Are you sure you want to delete this rank?';
 
+
 //
 // Disallow Username Admin
 //
@@ -681,7 +770,6 @@ $lang['img_pm_size'] = 'Private Message Status size [px]';
 //
 // Install Process
 //
-$lang['Welcome_install'] = 'Welcome to phpBB 2 Installation';
 $lang['Initial_config'] = 'Basic Configuration';
 $lang['DB_config'] = 'Database Configuration';
 $lang['Admin_config'] = 'Admin Configuration';
@@ -693,8 +781,6 @@ $lang['Previous_Install'] = 'A previous installation has been detected';
 $lang['Install_db_error'] = 'An error occurred trying to update the database';
 
 $lang['Re_install'] = 'Your previous installation is still active.<br /><br />If you would like to re-install phpBB 2 you should click the Yes button below. Please be aware that doing so will destroy all existing data and no backups will be made! The administrator username and password you have used to login in to the board will be re-created after the re-installation and no other settings will be retained.<br /><br />Think carefully before pressing Yes!';
-
-$lang['Inst_Step_0'] = 'Thank you for choosing phpBB 2. In order to complete this install please fill out the details requested below. Please note that the database you install into should already exist. If you are installing to a database that uses ODBC, e.g. MS Access you should first create a DSN for it before proceeding.';
 
 $lang['Start_Install'] = 'Start Install';
 $lang['Finish_Install'] = 'Finish Installation';
@@ -739,6 +825,262 @@ $lang['Install_No_Ext'] = 'The PHP configuration on your server doesn\'t support
 
 $lang['Install_No_PCRE'] = 'phpBB2 Requires the Perl-Compatible Regular Expressions Module for PHP which your PHP configuration doesn\'t appear to support!';
 
+// Additional Stuff for phpBB2 Plus only ! Translators should get original Language Files for phpBB 2.0.8
+// for the language they want to translate from http://www.phpbb.com/downloads.php. Then they need to translate 
+// the following stuff only and use the rest from the original language files !
+
+// Start add - Birthday MOD
+$lang['Birthday_required'] = 'Force users to submit a birthday';
+$lang['Enable_birthday_greeting'] = 'Enable birthday greetings';
+$lang['Birthday_greeting_expain'] = 'Users who have submitted a birthday can have a birthday greeting, when thy visit the board';
+$lang['Next_birthday_greeting'] = 'Next birthday popup year';
+$lang['Next_birthday_greeting_expain'] = 'This field keeps track of the next year the user shall have a birthday greeting';
+$lang['Wrong_next_birthday_greeting'] = 'The supplied, next birthday popup year, was not valid, please try again';
+$lang['Max_user_age'] = 'Maximum user age';
+$lang['Min_user_age'] = 'Minimum user age';
+$lang['Birthday_lookforward'] = 'Birthday look forward';
+$lang['Birthday_lookforward_explain'] = 'Number of days the script shall look forward for users with a birthday';
+// End add - Birthday MOD
+
+// Start add - Last visit MOD
+$lang['Hidde_last_logon'] = "Hidden last logon time"; 
+$lang['Hidde_last_logon_expain'] = "If this is set to yes, users last logon time, is hidden to other users except administrators"; 
+// End add - Last visit MOD
+
+// FLAGHACK-start
+$lang['Flags'] = 'Flags';
+$lang['Flags_title'] = 'Flag Administration';
+$lang['Flags_explain'] = 'Using this form you can add, edit, view and delete flags. You can also create custom flags which can be applied to a user via the user management facility';
+$lang['Add_new_flag'] = 'Add new flag';
+$lang['Flag_name'] = 'Flag Name';
+$lang['Flag_pic'] = 'Image';
+$lang['Flag_image'] = 'Flag Image (in the images/flags/ directory)';
+$lang['Flag_image_explain'] = 'Use this to define a small image associated with the flag';
+$lang['Must_select_flag'] = 'You must select a flag';
+$lang['Flag_updated'] = 'The flag was successfully updated';
+$lang['Flag_added'] = 'The flag was successfully added';
+$lang['Flag_removed'] = 'The flag was successfully deleted';
+$lang['No_update_flags'] = 'The flag was successfully deleted. However, user accounts using this flag were not updated.  You will need to manually reset the flag on these accounts';
+$lang['Flag_confirm'] = 'Delete Flag' ;
+$lang['Confirm_delete_flag'] = 'Are you sure you want to remove the selected flag?' ;
+$lang['Click_return_flagadmin'] = 'Click %sHere%s to return to Flag Administration';
+// FLAGHACK-end
+
+// Start Additional Language Stuff phpBB2 Plus specific
+$lang['Plus_Settings'] = 'phpBB2 Plus Settings';
+$lang['Enable_indexlinks'] = 'Show Links in Index';
+$lang['Indexlinks_explain'] = 'You can enable or disable the Links Display in the Forums index';
+$lang['General_Plusconfig'] = 'phpBB2 Plus Configuration';
+$lang['Plusconfig_explain'] = 'You can do phpBB2 Plus specific Settings here';
+$lang['Select_Layout'] = 'Select Index Layout';
+$lang['Index_Layout'] = 'Configuration phpBB2 Plus';
+$lang['Plusstyle_explain'] = 'You can select the Layout of the Forum Index here. You can set the phpBB2 Plus Layout (Live Statistics Box on the right site) or you can use the default phpBB2 Index Layout (No Live Statistics Box).';
+$lang['Plusstyle1'] = 'phpBB2 Default';
+$lang['Plusstyle2'] = 'Plus Default';
+$lang['Plusstyle3'] = 'N/A';
+$lang['Enable_defaultavatar'] = 'Default Avatar';
+$lang['Defaultavatar_explain'] = 'You can choose if a Default Avatar is shown in Topics for Users that have not set a Avatar in their Profile. You must copy the Image which should be the default Avatar as default_avatar.gif into the directory /images';
+$lang['Enable_quickreply'] = 'Enable Quickreply Mod';
+$lang['Quickreply_explain'] = 'You can enable or disable the display of the Quick Reply Mod in the Viewtopic';
+$lang['Enable_shoutbox'] = 'Enable Shoutbox';
+$lang['Shoutbox_explain'] = 'You can enable or disable the display of the Shoutbox Mod';
+$lang['Shoutbox_yes_reg'] = 'On, only for registered';
+$lang['Shoutbox_portal'] = 'Only Portal';
+$lang['Shoutbox_portal_reg'] = 'Only Portal (REG)';
+$lang['Shoutbox_index'] = 'Only Index';
+$lang['Shoutbox_index_reg'] = 'Only Index (REG)';
+$lang['Shoutbox_yes'] = 'On';
+$lang['Shoutbox_no'] = 'Off';
+$lang['Enable_Lastvisit'] = 'Enable Last Visit Display in Forum';
+$lang['Lastvisit_explain'] = 'You can enable or disable the display of the Today Users (Last Visit Mod) in the Forum index';
+$lang['Lastvisit_24guest'] = 'Whole Day + Guests(!!more Load)'; 
+$lang['Enable_Gentime'] = 'Enable Page Generation Statistics in Footer';
+$lang['Gentime_Explain'] = 'You can enable or disable the display of Page Generation Time Statistics in the Forums Footer. It shows PHP and SQL Statistics';
+$lang['Enable_Bannerhack'] = 'Enable Banner MOD';
+$lang['Bannerhack_explain'] = 'You can enable or disable the Bannermod MOD';
+$lang['Confirm_code_guestpost'] = 'Enable Visual Confirmation for guest posts';
+$lang['Confirm_guestpost_Explain'] = 'Requires guests enter a code defined by an image when sending a post.';
+$lang['Fulltext_Config'] = 'Enable MySQL Fulltext Search';
+$lang['Fulltext_Explain'] = 'If you have first run (one-time) this query in youre Database, you can use the fulltext search of MySQL.';
+// End additional Language Stuff phpBB2 Plus specific 
+
+//
+// Bookmark Mod
+//
+$lang['Max_bookmarks_links'] = 'Maximum bookmarks send in link-tag';
+$lang['Max_bookmarks_links_explain'] = 'Number of bookmarks maximal send in link-tag at the beginning of the document. This information is e.g. used by Mozilla. Enter 0 to disable this function.';
+
+// Admin Account Actions Mod
+$lang['Deleted_user'] = "User with ID No. #%d deleted"; //%d = user id
+$lang['Activate_title'] = 'Account Actions';
+$lang['Reg_date'] = 'Joined';
+$lang['Activate'] = 'Activate';
+$lang['Actions'] = 'Actions';
+$lang['Waiting_1'] = '(awaits activation since %d day)'; // %d = day
+$lang['Waiting_2'] = '(awaits activation since %d days)'; // %d = days
+$lang['No_users'] = 'There is no user who awaits an activation.';
+$lang['Total_member'] = '<b>%d</b> user awaits activation.';
+$lang['Total_members'] = '<b>%d</b> users await activation.';
+
+// Start add - Fully integrated shoutbox MOD
+$lang['Prune_shouts'] = 'Auto prune shouts'; 
+$lang['Prune_shouts_explain'] = 'Number of days, before the shouts are deleted, if a value of 0 is submittd, autoprune will be disabled'; 
+// End add - Fully integrated shoutbox MOD
+
+//
+// mod : ezportal Admin
+//
+$lang['EZPortal_Config'] = 'EZPortal Configuration';
+$lang['EZPortal_Portal_settings'] = 'EZPortal Settings';
+$lang['Welcome_Text'] = 'Welcome Message';
+$lang['Number_of_News'] = 'Number of News';
+$lang['News_length'] = 'News length';
+$lang['News_Forum'] = 'News forum(s)';
+$lang['Poll_Forum'] = 'Poll forum(s)';
+$lang['Number_Recent_Topics'] = 'Number of recent topics';
+$lang['Number_Recent_Files'] = 'Number of recent files';
+$lang['Last_Seen'] = 'Last seen users on forum';
+$lang['Comma'] = 'Separate forum ID(s) with a comma. If you leave this field empty or set it to 0, the poll block in Portal will not be displayed.';
+$lang['Exceptional_Forum'] = 'Exceptional Forum(s) for Recent Topics, eg. 2,4,10';
+$lang['Exceptional_Comma'] = 'Enter Forum ID(s) from Forums you <b>dont</b> want to see Topics in Recent Topics Block in Portal.';
+$lang['Picture_cat_id'] = 'Categories you wish to display Recent Pics out of. Set this to 0 to display from all categories';
+$lang['Picture_number'] = 'Number of Pictures to display on Portal';
+$lang['Picture_all'] = 'Do you also wan\'t personal Categories to be displayed ? If set to no, only public Pics will be displayed.';
+$lang['Picture_sort'] = 'Do you wan\'t to display random Pics ? If set to no, only newest Pics will be displayed.';
+$lang['Recent_Pic_Settings'] = 'Settings for Recent Pictures on Portal';
+$lang['Pic_Comma'] = 'Separate Categories with a comma';
+//
+//  END ezportal Admin
+//
+// Start add - Yellow card admin MOD
+$lang['Ban'] = 'Ban'; 
+$lang['Max_user_bancard'] = 'Maximum number of warnings'; 
+$lang['Max_user_bancard_explain'] = 'If a user gets more yellow cards than this limit, the user will be banned'; 
+$lang['ban_card'] = 'Yellow card'; 
+$lang['ban_card_explain'] = 'The user will be banned when he/she is in excess of %d yellow cards'; 
+$lang['Greencard'] = 'Un-ban'; 
+$lang['Bluecard'] = 'Post report'; 
+$lang['Bluecard_limit'] = 'Interval of bluecard'; 
+$lang['Bluecard_limit_explain'] = 'Notify the moderators again for every x bluecards given to a post'; 
+$lang['Bluecard_limit_2'] = 'Limit of bluecard'; 
+$lang['Bluecard_limit_2_explain'] = 'First notification to moderators is sent, when a post get this amount of blue cards'; 
+$lang['Report_forum']= 'Report forum';
+$lang['Report_forum_explain'] = 'Fill with the forum ID where users reports are to be posted, a value of 0 will disable this feature, users MUST at least have post/reply access to this forum';
+
+// Start add - Protect user account MOD
+$lang['user_password_settings'] = 'User Password Settings'; 
+$lang['Max_login_error'] = 'Number of attempts before blocking user'; 
+$lang['Max_login_error_explain'] = 'If a user submits a wrong password repeatedly, then his/her account will be blocked for a specific amount of time. Indicate how many wrong passwords a user can type before his/her account is blocked';
+$lang['Block_time'] = 'Block account time'; 
+$lang['Block_time_explain'] = 'Number of minutes the user\'s account is blocked for if a wrong password is submitted repeatedly more than the amount specified in "Block user on wrong login"'; 
+$lang['Password_complex'] = 'Complex Password'; 
+$lang['Password_complex_explain'] = 'Users password must consist of both alpha and numeric characters'; 
+$lang['Password_len'] = 'Minimum password length'; 
+$lang['Password_len_explain'] = 'Valid range is [ 1 - 32 ]'; 
+$lang['Password_not_login'] = 'Password different from Username'; 
+$lang['Password_not_login_explain'] = 'Password must be different than the Username'; 
+$lang['Account_block'] = 'Account blocked'; 
+$lang['Account_block_explain'] = 'Here you can view/set or reset users block information'; 
+$lang['Block_until'] ='Blocked until: %s';// %s is substituded with the date/time 
+$lang['Block_by'] = 'Blocked by IP: %s';// %s is substituded with the ip addr. 
+$lang['Last_block_by'] = 'Last blocked by IP: %s';// %s is substituded with the ip addr. 
+$lang['Unblock_user'] ='Unblock user account'; 
+$lang['Block_user'] ='Block user account for %s min';// %s is substituded with the date/time 
+$lang['Badlogin_count'] = 'Number of bad login'; 
+$lang['Force_new_passwd'] = 'Force user to change password on next logon'; 
+$lang['Force_new_passwd_detail'] = 'Click here to force this user to change his/her password on next logon.';
+$lang['Password_intervall'] = 'Days between users are forced to change password'; 
+$lang['Password_intervall_explain'] = 'Enter number of Days here between the Users are forced to change their password. Setting this Value to <b>0</b> will disable this feature !';
+$lang['Password_expire'] = 'This users password will expire on: %s';
+// End add - Protect user account MOD
+
+// Start add - Prune users MOD
+$lang['Prune_users'] = 'Prune users'; 
+// End add - Prune users MOD
+
+// Start add - Admin add user MOD
+$lang['Create_user'] = 'Create new user';
+$lang['Create_user_explain'] = 'You are about to create a new user, when creating a new user, the script will look up the data from this user %s, the user ID of this user is hard coded into the file admin_users.php, you may change this setting in the top of this file if another user ID should be used.<br />There are 2 exceptions from this: <br />1. users Password will default to "%s" if you do not specify differently into the admin add user page<br />2. users email must be filled into the admin add user page';
+// End add - Admin add user MOD
+
+$lang['Post_count'] = 'Count Posts in this forum?';
+
+$lang['Contact_Config'] = 'Contact EMail';
+$lang['Contact_Explain'] = 'Enter the Email-Address to which the Contact Form Mails should be sent to';
+
+//
+// Acronyms
+//
+$lang['Acronyms_title'] = 'Acronyms Administration';
+$lang['Acronyms_explain'] = 'From this control panel you can add, edit, and remove acronyms that will be automatically added to posts on your forums.';
+$lang['Acronym'] = 'Acronym';
+$lang['Acronyms'] = 'Acronyms';
+$lang['Edit_acronym'] = 'Edit Acronym';
+$lang['Description'] = 'Description';
+$lang['Add_new_acronym'] = 'Add new acronym';
+$lang['Update_acronym'] = 'Update acronym';
+
+$lang['Must_enter_acronym'] = 'You must enter an acronym and its description';
+$lang['No_acronym_selected'] = 'No acronym selected for editing';
+
+$lang['Acronym_updated'] = 'The selected acronym has been successfully updated';
+$lang['Acronym_added'] = 'The acronym has been successfully added';
+$lang['Acronym_removed'] = 'The selected acronym has been successfully removed';
+
+$lang['Click_return_acronymadmin'] = 'Click %sHere%s to return to Acronym Administration'; 
+
+// Disable Board Message Mod
+$lang['Board_disable_msg'] = 'Disable board message';
+$lang['Board_disable_msg_explain'] = 'This text will be shown if "Disable board" is on "Yes".';
+
+// Install Process
+$lang['Welcome_install'] = 'Welcome to phpBB 2 Plus Installation';
+$lang['Admin_intro'] = 'Thank you for choosing phpBB2 Plus as your forum solution. This screen will give you a quick overview of all the various statistics of your board. You can get back to this page by clicking on the <u>Admin Index</u> link in the left pane. To return to the index of your board, click the phpBB logo also in the left pane. The other links on the left hand side of this screen will allow you to control every aspect of your forum experience. Each screen will have instructions on how to use the tools.';
+$lang['Inst_Step_0'] = 'Thank you for choosing phpBB2 Plus. In order to complete this install please fill out the details requested below. Please note that the database you install into should already exist. At the Moment <b>only MySQL Database</b> is supported in phpBB2 Plus.';
+
+$lang['Absence_user_allowed'] = 'Allow users to set absence.<br />On NO, only moderators and administrators can use this.';
+$lang['Mod_able_sent_absent'] = 'Allow moderators to send messages to absent user';
+$lang['Absent_button_on_username'] = 'Place the absence icon near the username<br />If NO the icon will positioned instead email button.';
+
+$lang['Portal_thumb_size'] = 'Size of the portal thumbnail for recent images (pixel)';
+
+// ShortURLs
+$lang['Enable_Shorturls'] = 'Enable Short URLs';
+$lang['Shorturls_explain'] = 'Here you can enable static Links for the Forum (.html). To use this function <b>your Webserver MUST use Apache with loaded Module mod_rewrite !</b>. You also have to make the needed changes in the File .htaccess.shorturl and rename it to .htaccess then! The original .htaccess File in the Forums Root-Folder must be deleted !';
+$lang['Disable_Sid'] = 'Disable Session-IDs for unregistered Users (and Bots like Googlebot)';
+$lang['Disable_Sid_Explain'] = 'If you select Yes, Session-IDs will be cut off from your Forum URLs for unregistered Users and Bots. Because Googlebot also visits as unregistered User the Links are more Search engine Friendly';
+
+// Antirobot Switching
+$lang['Enable_Antirobot'] = 'Activate Robot Check';
+$lang['Antirobot_Explain'] = 'If set to yes, a visual confirmation code will be displayed during registration to prevent Robots registrations';
+//
+//
+
+//Admin Users List Addon
+$lang['Admin_Users_List'] = 'Admin Users List';
+$lang['There_are'] = 'There are';
+$lang['Boardmembers'] = 'Members in your Board';
+$lang['ID'] = 'ID';
+$lang['Last_Visit'] = 'Last Visit';
+$lang['Active'] = 'Active';
+$lang['Permission'] = 'Permission';
+
+// BEGIN Disable Registration MOD
+$lang['registration_status'] = 'Disable registrations';
+$lang['registration_status_explain'] = 'This will disable all new registrations to your board.';
+$lang['registration_closed'] = 'Reason of closed registrations';
+$lang['registration_closed_explain'] = 'Text that explain why are the registrations closed, that would appear if a user try to register. Leave blank to show default explanation text.';
+// END Disable Registration MOD
+
+$lang['Plus'] = 'Plus';
+$lang['Portal'] = 'Portal';
+$lang['Banner'] = 'Banner';
+$lang['Org. Configuration'] = 'Orig. Configuration';
+$lang['News Admin'] = 'News Admin';
+$lang['Download'] = 'Download';
+$lang['Email_List'] = 'EMail List';
+$lang['Users List'] = 'User List';
+
 //
 // Version Check
 //
@@ -749,8 +1091,11 @@ $lang['Current_version_info'] = 'You are running <b>phpBB %s</b>.';
 $lang['Connect_socket_error'] = 'Unable to open connection to phpBB Server, reported error is:<br />%s';
 $lang['Socket_functions_disabled'] = 'Unable to use socket functions.';
 $lang['Mailing_list_subscribe_reminder'] = 'For the latest information on updates to phpBB, why not <a href="http://www.phpbb.com/support/" target="_new">subscribe to our mailing list</a>.';
-$lang['Version_information'] = 'Version Information';
+$lang['Version_information'] = 'Version Information'; 
 
+//Added for Topposters Configuration in Portal
+$lang['Number_Topposters'] = 'Number of Topposters';
+$lang['Topposters_Explain'] = 'Configuration for Number of Topposters displayed in the Topposters Portal Box. Seting this to 0 will disable the Box';
 //
 // Login attempts configuration
 //
@@ -759,6 +1104,10 @@ $lang['Max_login_attempts_explain'] = 'The number of allowed board login attempt
 $lang['Login_reset_time'] = 'Login lock time';
 $lang['Login_reset_time_explain'] = 'Time in minutes the user have to wait until he is allowed to login again after exceeding the number of allowed login attempts.';
 
+//Added for Folder Permission Check in Admin Panel
+$lang['Permission_Check'] = '<u>Checking Permission:</u><br /><br />The following Permissions are not set correctly:';
+$lang['File_not_writable_666'] = '<font color="red"><b>is not writable !</b> [change permission to 666]</font>';
+$lang['File_not_writable_777'] = '<font color="red"><b>is not writable !</b> [change permission to 777]</font>';
 //
 // That's all Folks!
 // -------------------------------------------------

@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: functions_admin.php,v 1.5.2.3 2002/07/19 17:03:47 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -182,9 +182,15 @@ function sync($type, $id = false)
 					$db->sql_freeresult($result);
 				}
 			}
+			attachment_sync_topic($id);
 			break;
 	}
-	
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+	global $board_config;
+	board_stats();
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 	return true;
 }
 

@@ -6,7 +6,7 @@
 *   copyright            : (C) 2001 The phpBB Group
 *   email                : support@phpbb.com
 *
-*   $Id$
+*   $Id: prune.php,v 1.19.2.6 2003/03/18 23:23:57 acydburn Exp $
 *
 *
 ***************************************************************************/
@@ -107,7 +107,12 @@ function prune($forum_id, $prune_date, $prune_all = false)
 			}
 
 			$pruned_topics = $db->sql_affectedrows();
-
+			$sql = "DELETE FROM " . BOOKMARK_TABLE . " 
+				WHERE topic_id IN ($sql_topics)";
+			if ( !$db->sql_query($sql) )
+			{
+				message_die(GENERAL_ERROR, 'Could not delete bookmarks during prune', '', __LINE__, __FILE__, $sql);
+			}
 			$sql = "DELETE FROM " . POSTS_TABLE . " 
 				WHERE post_id IN ($sql_post)";
 			if ( !$db->sql_query($sql) )
@@ -125,6 +130,7 @@ function prune($forum_id, $prune_date, $prune_all = false)
 			}
 
 			remove_search_post($sql_post);
+			prune_attachments($sql_post);
 
 			return array ('topics' => $pruned_topics, 'posts' => $pruned_posts);
 		}

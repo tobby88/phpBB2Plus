@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: posting.php,v 1.159.2.21 2004/03/13 15:08:22 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -19,6 +19,9 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
+/*
+	png visual confirmation system : (c) phpBB Group, 2003 : All Rights Reserved
+*/
 
 define('IN_PHPBB', true);
 $phpbb_root_path = './';
@@ -26,16 +29,23 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
-
+//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+include($phpbb_root_path . 'includes/def_icons.'.$phpEx);
+//-- fin mod : post icon ---------------------------------------------------------------------------
+//-- add
+include_once($phpbb_root_path . 'includes/functions_calendar.'.$phpEx);
+//-- fin mod : calendar ---------------------------------------------------------------------------- 
+include($phpbb_root_path . 'includes/functions_bookmark.'.$phpEx);
 //
 // Check and set various parameters
 //
-$params = array('submit' => 'post', 'preview' => 'preview', 'delete' => 'delete', 'poll_delete' => 'poll_delete', 'poll_add' => 'add_poll_option', 'poll_edit' => 'edit_poll_option', 'mode' => 'mode');
+$params = array('submit' => 'post', 'news_category' => 'news_category', 'preview' => 'preview', 'delete' => 'delete', 'poll_delete' => 'poll_delete', 'poll_add' => 'add_poll_option', 'poll_edit' => 'edit_poll_option', 'mode' => 'mode');
 while( list($var, $param) = @each($params) )
 {
-	if ( !empty($HTTP_POST_VARS[$param]) || !empty($HTTP_GET_VARS[$param]) )
+	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
 	{
-		$$var = ( !empty($HTTP_POST_VARS[$param]) ) ? htmlspecialchars($HTTP_POST_VARS[$param]) : htmlspecialchars($HTTP_GET_VARS[$param]);
+		$$var = ( !empty($_POST[$param]) ) ? htmlspecialchars($_POST[$param]) : htmlspecialchars($_GET[$param]);
 	}
 	else
 	{
@@ -43,14 +53,15 @@ while( list($var, $param) = @each($params) )
 	}
 }
 
-$confirm = isset($HTTP_POST_VARS['confirm']) ? true : false;
+$confirm = isset($_POST['confirm']) ? true : false;
+$sid = (isset($_POST['sid'])) ? $_POST['sid'] : 0;
 
-$params = array('forum_id' => POST_FORUM_URL, 'topic_id' => POST_TOPIC_URL, 'post_id' => POST_POST_URL);
+$params = array('forum_id' => POST_FORUM_URL, 'topic_id' => POST_TOPIC_URL, 'post_id' => POST_POST_URL, 'lock_subject' => 'lock_subject');
 while( list($var, $param) = @each($params) )
 {
-	if ( !empty($HTTP_POST_VARS[$param]) || !empty($HTTP_GET_VARS[$param]) )
+	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
 	{
-		$$var = ( !empty($HTTP_POST_VARS[$param]) ) ? intval($HTTP_POST_VARS[$param]) : intval($HTTP_GET_VARS[$param]);
+		$$var = ( !empty($_POST[$param]) ) ? intval($_POST[$param]) : intval($_GET[$param]);
 	}
 	else
 	{
@@ -60,12 +71,77 @@ while( list($var, $param) = @each($params) )
 
 $refresh = $preview || $poll_add || $poll_edit || $poll_delete;
 $orig_word = $replacement_word = array();
+//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+$post_icon = isset($_POST['post_icon']) ? intval($_POST['post_icon']) : 0;
+//-- fin mod : post icon ---------------------------------------------------------------------------
 
 //
 // Set topic type
 //
-$topic_type = ( !empty($HTTP_POST_VARS['topictype']) ) ? intval($HTTP_POST_VARS['topictype']) : POST_NORMAL;
-$topic_type = ( in_array($topic_type, array(POST_NORMAL, POST_STICKY, POST_ANNOUNCE)) ) ? $topic_type : POST_NORMAL;
+$topic_type = ( !empty($_POST['topictype']) ) ? intval($_POST['topictype']) : POST_NORMAL;
+$topic_type = ( in_array($topic_type, array(POST_NORMAL, POST_STICKY, POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)) ) ? $topic_type : POST_NORMAL;
+//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+$year	= ( !empty($_POST['topic_calendar_year']) ) ? intval($_POST['topic_calendar_year']) : '';
+$month	= ( !empty($_POST['topic_calendar_month']) ) ? intval($_POST['topic_calendar_month']) : '';
+$day	= ( !empty($_POST['topic_calendar_day']) ) ? intval($_POST['topic_calendar_day']) : '';
+$hour	= ( !empty($_POST['topic_calendar_hour']) ) ? intval($_POST['topic_calendar_hour']) : '';
+$min	= ( !empty($_POST['topic_calendar_min']) ) ? intval($_POST['topic_calendar_min']) : '';
+$d_day	= ( !empty($_POST['topic_calendar_duration_day']) ) ? intval($_POST['topic_calendar_duration_day']) : '';
+$d_hour	= ( !empty($_POST['topic_calendar_duration_hour']) ) ? intval($_POST['topic_calendar_duration_hour']) : '';
+$d_min	= ( !empty($_POST['topic_calendar_duration_min']) ) ? intval($_POST['topic_calendar_duration_min']) : '';
+if ( empty($year) || empty($month) || empty($day) )
+{
+	$year = '';
+	$month = '';
+	$day = '';
+	$hour = '';
+	$min = '';
+	$d_day = '';
+	$d_hour = '';
+	$d_min = '';
+}
+if (empty($hour) && empty($min))
+{
+	$hour = '';
+	$min = '';
+	$d_hour = '';
+	$d_min = '';
+}
+
+// start event
+$topic_calendar_time = 0;
+if (!empty($year))
+{
+	$topic_calendar_time = mktime( intval($hour), intval($min), 0, intval($month), intval($day), intval($year) );
+}
+
+// duration
+$topic_calendar_duration = 0;
+$d_dur = $d_day . $d_hour . $d_min;
+if ( !empty($topic_calendar_time) && !empty($d_dur) )
+{
+	$topic_calendar_duration = intval($d_day) * 86400 + intval($d_hour) * 3600 + intval($d_min) * 60;
+	if ($topic_calendar_duration < 0)
+	{
+		$topic_calendar_duration = 0;
+	}
+}
+//-- fin mod : calendar ----------------------------------------------------------------------------
+
+//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+$topic_announce_duration = ( !empty($_POST['topicduration']) ) ? intval($_POST['topicduration']) : 0;
+if (in_array($topic_type, array(POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)))
+{
+	if (empty($topic_announce_duration)) $topic_announce_duration = $board_config['announcement_duration'];
+}
+else
+{
+	$topic_announce_duration = 0;
+}
+//-- fin mod : announces ---------------------------------------------------------------------------
 
 //
 // If the mode is set to topic review then output
@@ -97,8 +173,13 @@ init_userprefs($userdata);
 // Was cancel pressed? If so then redirect to the appropriate
 // page, no point in continuing with any further checks
 //
-if ( isset($HTTP_POST_VARS['cancel']) )
+if ( isset($_POST['cancel']) )
 {
+	if ( $postreport )
+{
+	$redirect = 'viewtopic.$phpEx?' . POST_POST_URL . '=$postreport';
+	$post_append = '';
+} else
 	if ( $post_id )
 	{
 		$redirect = "viewtopic.$phpEx?" . POST_POST_URL . "=$post_id";
@@ -127,6 +208,12 @@ if ( isset($HTTP_POST_VARS['cancel']) )
 // What auth type do we need to check?
 //
 $is_auth = array();
+//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+$is_auth_type = '';
+$is_auth_type_cal = '';
+//-- fin mod : calendar ----------------------------------------------------------------------------
+
 switch( $mode )
 {
 	case 'newtopic':
@@ -134,6 +221,14 @@ switch( $mode )
 		{
 			$is_auth_type = 'auth_announce';
 		}
+		//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+		else if ( $topic_type == POST_GLOBAL_ANNOUNCE )
+		{
+			$is_auth_type = 'auth_global_announce';
+		}
+//-- fin mod : announces ---------------------------------------------------------------------------
+
 		else if ( $topic_type == POST_STICKY )
 		{
 			$is_auth_type = 'auth_sticky';
@@ -142,6 +237,14 @@ switch( $mode )
 		{
 			$is_auth_type = 'auth_post';
 		}
+		//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+		if (!empty($topic_calendar_time))
+		{
+			$is_auth_type_cal = 'auth_cal';
+		}
+//-- fin mod : calendar ----------------------------------------------------------------------------
+
 		break;
 	case 'reply':
 	case 'quote':
@@ -205,8 +308,21 @@ switch ( $mode )
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_post_id']);
 		}
+		//-- mod : announces -------------------------------------------------------------------------------
+// here we added
+//	, t.topic_announce_duration
+//-- modify
+//-- mod : post icon -------------------------------------------------------------------------------
+// here we added
+//	, t.topic_icon
+//	, p.post_icon
+//-- modify
+//-- mod : calendar --------------------------------------------------------------------------------
+// here we added
+//	, t.topic_calendar_time, t.topic_calendar_duration
+//-- modify
 
-		$select_sql = (!$submit) ? ', t.topic_title, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, p.post_username, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
+		$select_sql = (!$submit) ? ', t.topic_title, t.topic_desc, t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, p.post_username, pt.post_subject, p.post_icon, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
 		$from_sql = ( !$submit ) ? ", " . POSTS_TEXT_TABLE . " pt, " . USERS_TABLE . " u" : '';
 		$where_sql = ( !$submit ) ? "AND pt.post_id = p.post_id AND u.user_id = p.poster_id" : '';
 
@@ -222,13 +338,24 @@ switch ( $mode )
 		message_die(GENERAL_MESSAGE, $lang['No_valid_mode']);
 }
 
-if ( $result = $db->sql_query($sql) )
+if ( ($result = $db->sql_query($sql)) && ($post_info = $db->sql_fetchrow($result)) )
 {
-	$post_info = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
 
 	$forum_id = $post_info['forum_id'];
-	$forum_name = $post_info['forum_name'];
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$forum_name = $post_info['forum_name'];
+//-- add
+	$forum_name = get_object_lang(POST_FORUM_URL . $post_info['forum_id'], 'name');
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+	//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+	if (!empty($post_info['topic_calendar_duration']))
+	{
+		$post_info['topic_calendar_duration']++;
+	}
+//-- fin mod : calendar ----------------------------------------------------------------------------
 
 	$is_auth = auth(AUTH_ALL, $forum_id, $userdata, $post_info);
 
@@ -251,6 +378,22 @@ if ( $result = $db->sql_query($sql) )
 		$post_data['last_topic'] = ( $post_info['forum_last_post_id'] == $post_id ) ? true : false;
 		$post_data['has_poll'] = ( $post_info['topic_vote'] ) ? true : false; 
 		$post_data['topic_type'] = $post_info['topic_type'];
+		//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+		$post_data['topic_calendar_time'] = $post_info['topic_calendar_time'];
+		$post_data['topic_calendar_duration'] = $post_info['topic_calendar_duration'];
+//-- fin mod : calendar ----------------------------------------------------------------------------
+
+		//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+		$post_data['post_icon'] = $post_info['post_icon'];
+//-- fin mod : post icon ---------------------------------------------------------------------------
+
+		//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+		$post_data['topic_announce_duration'] = $post_info['topic_announce_duration'];
+//-- fin mod : announces ---------------------------------------------------------------------------
+
 		$post_data['poster_id'] = $post_info['poster_id'];
 
 		if ( $post_data['first_post'] && $post_data['has_poll'] )
@@ -328,6 +471,25 @@ if ( $result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_MESSAGE, $lang['No_such_post']);
 	}
+	// BEGIN cmx_slash_news_mod
+	//if( $board_config['allow_news'] && $post_data['first_post'] &&  $is_auth['auth_post'] && ($is_auth['auth_news'] || ( $is_auth['auth_mod'] && $mode == 'editpost') ) )
+	if( $board_config['allow_news'] && $post_data['first_post'] &&  $is_auth['auth_post'] && $is_auth['auth_news'] )
+	{
+		if( $mode == 'editpost' )
+		{
+			$post_data['news_id'] = $post_info['news_id'];
+		}
+		else
+		{
+			$post_data['news_id'] = 0;
+		}
+		$post_data['disp_news'] = true;
+	}
+	else
+	{
+		$post_data['disp_news'] = false;
+	}
+// END cmx_slash_news_mod 
 }
 else
 {
@@ -338,10 +500,23 @@ else
 // The user is not authed, if they're not logged in then redirect
 // them, else show them an error message
 //
-if ( !$is_auth[$is_auth_type] )
+//-- mod : calendar --------------------------------------------------------------------------------
+// here we added
+//	 || (!empty($is_auth_type_cal) && !$is_auth[$is_auth_type_cal])
+//-- modify
+
+if ( !$is_auth[$is_auth_type] || (!empty($is_auth_type_cal) && !$is_auth[$is_auth_type_cal]) )
 {
 	if ( $userdata['session_logged_in'] )
 	{
+		//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+		if (!empty($is_auth_type_cal) && !$is_auth[$is_auth_type_cal])
+		{
+			message_die(GENERAL_MESSAGE, sprintf($lang['Sorry_' . $is_auth_type_cal], $is_auth[$is_auth_type_cal . "_type"]));
+		}
+//-- fin mod : calendar ----------------------------------------------------------------------------
+
 		message_die(GENERAL_MESSAGE, sprintf($lang['Sorry_' . $is_auth_type], $is_auth[$is_auth_type . "_type"]));
 	}
 
@@ -359,7 +534,7 @@ if ( !$is_auth[$is_auth_type] )
 			$redirect = "mode=quote&" . POST_POST_URL ."=" . $post_id;
 			break;
 	}
-
+	$redirect .= ($post_reportid) ? '&post_reportid=$post_reportid' : '';
 	redirect(append_sid("login.$phpEx?redirect=posting.$phpEx&" . $redirect, true));
 }
 
@@ -372,7 +547,7 @@ if ( !$board_config['allow_html'] )
 }
 else
 {
-	$html_on = ( $submit || $refresh ) ? ( ( !empty($HTTP_POST_VARS['disable_html']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_html'] : $userdata['user_allowhtml'] );
+	$html_on = ( $submit || $refresh ) ? ( ( !empty($_POST['disable_html']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_html'] : $userdata['user_allowhtml'] );
 }
 
 if ( !$board_config['allow_bbcode'] )
@@ -381,7 +556,7 @@ if ( !$board_config['allow_bbcode'] )
 }
 else
 {
-	$bbcode_on = ( $submit || $refresh ) ? ( ( !empty($HTTP_POST_VARS['disable_bbcode']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_bbcode'] : $userdata['user_allowbbcode'] );
+	$bbcode_on = ( $submit || $refresh ) ? ( ( !empty($_POST['disable_bbcode']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_bbcode'] : $userdata['user_allowbbcode'] );
 }
 
 if ( !$board_config['allow_smilies'] )
@@ -390,12 +565,12 @@ if ( !$board_config['allow_smilies'] )
 }
 else
 {
-	$smilies_on = ( $submit || $refresh ) ? ( ( !empty($HTTP_POST_VARS['disable_smilies']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_smilies'] : $userdata['user_allowsmile'] );
+	$smilies_on = ( $submit || $refresh ) ? ( ( !empty($_POST['disable_smilies']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_smilies'] : $userdata['user_allowsmile'] );
 }
 
 if ( ($submit || $refresh) && $is_auth['auth_read'])
 {
-	$notify_user = ( !empty($HTTP_POST_VARS['notify']) ) ? TRUE : 0;
+	$notify_user = ( !empty($_POST['notify']) ) ? TRUE : 0;
 }
 else
 {
@@ -419,11 +594,75 @@ else
 	}
 }
 
-$attach_sig = ( $submit || $refresh ) ? ( ( !empty($HTTP_POST_VARS['attach_sig']) ) ? TRUE : 0 ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? 0 : $userdata['user_attachsig'] );
-
+$attach_sig = ( $submit || $refresh ) ? ( ( !empty($_POST['attach_sig']) ) ? TRUE : 0 ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? 0 : $userdata['user_attachsig'] );
+$setbm = ( $submit || $refresh ) ? ( ( !empty($_POST['setbm']) ) ? TRUE : 0 ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? 0 : $userdata['user_setbm'] );
+execute_posting_attachment_handling();
 // --------------------
 //  What shall we do?
 //
+// BEGIN cmx_slash_news_mod
+//
+// Get News Categories.
+//
+if( $userdata['session_logged_in'] && $post_data['disp_news'] )
+{
+	if ( $mode == 'edit' && empty($post_id) )
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_post_id']);
+	}
+
+ 	$sql = 'SELECT n.* FROM ' . NEWS_TABLE . ' n WHERE 1 ORDER BY n.news_category';
+
+	if ( !($result = $db->sql_query($sql)) )
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain news data', '', __LINE__, __FILE__, $sql);
+	}
+
+	$news_sel = array();
+	$news_cat = array();
+	while ( $row = $db->sql_fetchrow($result) )
+	{
+		if( ($news_category > 0 && $news_category == $row['news_id']) || 
+		    ($post_data['news_id'] > 0 && $post_data['news_id'] == $row['news_id']) )
+		{
+				$news_sel = $row;
+		}
+		
+		if( $post_data['news_id'] != 0 && $post_data['news_id'] == $row['news_id'] )
+		{
+			$news_sel = $row;
+		}
+		$news_cat[] = $row;
+	}
+	
+	if( $post_data['news_id'] == 0 && $news_category == 0)
+	{
+		$boxstring = '<option value="0">' . $lang['Regular_Post'] . '</option>';
+	}
+	else
+	{
+		$boxstring = '<option value="' . $news_sel['news_id'] .'">' . $news_sel['news_category'] . ' (' . $lang['Current_Selection'] . ')</option>';
+		$boxstring .= '<option value="0">' . $lang['Regular_Post'] . '</option>';
+	} 
+
+	if( count( $news_cat ) > 0 )
+	{
+		for( $i = 0; $i < count( $news_cat ); $i++ )
+		{
+			if( $news_cat[$i]['news_id'] != $post_data['news_id'] )
+			{
+				$boxstring .= '<option value="' . $news_cat[$i]['news_id'] . '">' . $news_cat[$i]['news_category'] . '</option>';
+			}
+		}
+
+		$template->assign_block_vars('switch_news_cat', array(
+			'L_NEWS_CATEGORY' => $lang['Select_News_Category'],
+			'S_NAME' => 'news_category',
+			'S_CATEGORY_BOX' => $boxstring
+		));
+	}
+}
+// END cmx_slash_news_mod
 if ( ( $delete || $poll_delete || $mode == 'delete' ) && !$confirm )
 {
 	//
@@ -431,6 +670,7 @@ if ( ( $delete || $poll_delete || $mode == 'delete' ) && !$confirm )
 	//
 	$s_hidden_fields = '<input type="hidden" name="' . POST_POST_URL . '" value="' . $post_id . '" />';
 	$s_hidden_fields .= ( $delete || $mode == "delete" ) ? '<input type="hidden" name="mode" value="delete" />' : '<input type="hidden" name="mode" value="poll_delete" />';
+	$s_hidden_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
 
 	$l_confirm = ( $delete || $mode == 'delete' ) ? $lang['Confirm_delete'] : $lang['Confirm_delete_poll'];
 
@@ -463,9 +703,9 @@ else if ( $mode == 'vote' )
 	//
 	// Vote in a poll
 	//
-	if ( !empty($HTTP_POST_VARS['vote_id']) )
+	if ( !empty($_POST['vote_id']) )
 	{
-		$vote_option_id = intval($HTTP_POST_VARS['vote_id']);
+		$vote_option_id = intval($_POST['vote_id']);
 
 		$sql = "SELECT vd.vote_id    
 			FROM " . VOTE_DESC_TABLE . " vd, " . VOTE_RESULTS_TABLE . " vr
@@ -541,32 +781,140 @@ else if ( $submit || $confirm )
 	//
 	$return_message = '';
 	$return_meta = '';
-
+	// session id check
+	if ($sid == '' || $sid != $userdata['session_id'])
+	{
+		$error_msg .= (!empty($error_msg)) ? '<br />' . $lang['Session_invalid'] : $lang['Session_invalid'];
+	}
 	switch ( $mode )
 	{
 		case 'editpost':
 		case 'newtopic':
 		case 'reply':
-			$username = ( !empty($HTTP_POST_VARS['username']) ) ? $HTTP_POST_VARS['username'] : '';
-			$subject = ( !empty($HTTP_POST_VARS['subject']) ) ? trim($HTTP_POST_VARS['subject']) : '';
-			$message = ( !empty($HTTP_POST_VARS['message']) ) ? $HTTP_POST_VARS['message'] : '';
-			$poll_title = ( isset($HTTP_POST_VARS['poll_title']) && $is_auth['auth_pollcreate'] ) ? $HTTP_POST_VARS['poll_title'] : '';
-			$poll_options = ( isset($HTTP_POST_VARS['poll_option_text']) && $is_auth['auth_pollcreate'] ) ? $HTTP_POST_VARS['poll_option_text'] : '';
-			$poll_length = ( isset($HTTP_POST_VARS['poll_length']) && $is_auth['auth_pollcreate'] ) ? $HTTP_POST_VARS['poll_length'] : '';
+			if ( $plus_config['enable_confirm_post'] && !$userdata['session_logged_in'] )
+			{
+				if ( empty($_POST['confirm_id']) || empty($_POST['confirm_code']) )
+				{
+					$error = TRUE;
+					$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
+				}
+				else
+				{
+					$confirm_id = htmlspecialchars($_POST['confirm_id']);
+					if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id))
+					{
+						$confirm_id = '';
+					}
+					
+					$sql = 'SELECT code 
+						FROM ' . CONFIRM_TABLE . " 
+						WHERE confirm_id = '$confirm_id' 
+							AND session_id = '" . $userdata['session_id'] . "'";
+					if (!($result = $db->sql_query($sql)))
+					{
+						message_die(GENERAL_ERROR, 'Could not obtain confirmation code', __LINE__, __FILE__, $sql);
+					}
+		
+					if ($row = $db->sql_fetchrow($result))
+					{
+						if ($row['code'] != $_POST['confirm_code'])
+						{
+							$error = TRUE;
+							$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
+						}
+						else
+						{
+							$sql = 'DELETE FROM ' . CONFIRM_TABLE . " 
+								WHERE confirm_id = '$confirm_id' 
+									AND session_id = '" . $userdata['session_id'] . "'";
+							if (!$db->sql_query($sql))
+							{
+								message_die(GENERAL_ERROR, 'Could not delete confirmation code', __LINE__, __FILE__, $sql);
+							}
+						}
+					}
+					else
+					{		
+						$error = TRUE;
+						$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
+					}
+					$db->sql_freeresult($result);
+				}
+			}
+			$username = ( !empty($_POST['username']) ) ? $_POST['username'] : '';
+			$subject = ( !empty($_POST['subject']) ) ? trim($_POST['subject']) : '';
+			$topic_desc = ( !empty($_POST['topic_desc']) ) ? trim($_POST['topic_desc']) : '';
+			$message = ( !empty($_POST['message']) ) ? $_POST['message'] : '';
+			//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+			$topic_calendar_time = ( $topic_calendar_time != $post_data['topic_calendar_time'] && !$is_auth['auth_cal']) ? $post_data['topic_calendar_time'] : $topic_calendar_time;
+			if (empty($topic_calendar_time)) $topic_calendar_time = 0;
+			$topic_calendar_duration = ( $topic_calendar_duration != $post_data['topic_calendar_duration'] && !$is_auth['auth_cal']) ? $post_data['topic_calendar_duration'] : $topic_calendar_duration;
+			if ( !empty($topic_calendar_duration) )
+			{
+				$topic_calendar_duration--;
+			}
+			if (empty($topic_calendar_time) || empty($topic_calendar_duration)) $topic_calendar_duration = 0;
+//-- fin mod : calendar ----------------------------------------------------------------------------
+			$poll_title = ( isset($_POST['poll_title']) && $is_auth['auth_pollcreate'] ) ? $_POST['poll_title'] : '';
+			$poll_options = ( isset($_POST['poll_option_text']) && $is_auth['auth_pollcreate'] ) ? $_POST['poll_option_text'] : '';
+			$poll_length = ( isset($_POST['poll_length']) && $is_auth['auth_pollcreate'] ) ? $_POST['poll_length'] : '';
 			$bbcode_uid = '';
+			//-- mod : calendar --------------------------------------------------------------------------------
+// here we have added
+//	, $topic_calendar_time, $topic_calendar_duration
+//-- modify prepare_post only
 
-			prepare_post($mode, $post_data, $bbcode_on, $html_on, $smilies_on, $error_msg, $username, $bbcode_uid, $subject, $message, $poll_title, $poll_options, $poll_length);
+			prepare_post($mode, $post_data, $bbcode_on, $html_on, $smilies_on, $error_msg, $username, $bbcode_uid, $subject, $message, $poll_title, $poll_options, $poll_length, $topic_desc, $topic_calendar_time, $topic_calendar_duration);
 
 			if ( $error_msg == '' )
 			{
-				$topic_type = ( $topic_type != $post_data['topic_type'] && !$is_auth['auth_sticky'] && !$is_auth['auth_announce'] ) ? $post_data['topic_type'] : $topic_type;
-
-				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, str_replace("\'", "''", $username), str_replace("\'", "''", $subject), str_replace("\'", "''", $message), str_replace("\'", "''", $poll_title), $poll_options, $poll_length);
+				$topic_type = ( $topic_type != $post_data['topic_type'] && !$is_auth['auth_sticky'] && !$is_auth['auth_announce'] && !$is_auth['auth_global_announce'] ) ? $post_data['topic_type'] : $topic_type;
+				//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+				if ($topic_announce_duration < -1) $topic_announce_duration == 0;
+				if ( !in_array($topic_type, array(POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)) )
+				{
+					$topic_announce_duration = 0;
+				}
+				if ( ($topic_announce_duration == 0) && in_array($topic_type, array(POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)) )
+				{
+					$topic_announce_duration = intval($board_config['announcement_duration']);
+				}
+//-- fin mod : announces ---------------------------------------------------------------------------
+				//-- mod : announces -------------------------------------------------------------------------------
+// here we added
+//	, $topic_announce_duration
+//-- modify
+//-- mod : post icon -------------------------------------------------------------------------------
+// here we added
+//	, post_icon
+//-- modify
+//-- mod : calendar --------------------------------------------------------------------------------
+// here we added
+//	, $topic_calendar_time, $topic_calendar_duration
+//-- modify
+if ($lock_subject)
+{
+	$url = "<a href='viewtopic.$phpEx?" . POST_POST_URL . "=" .$lock_subject."#".$lock_subject."'> ";
+	$message = addslashes(sprintf($lang['Link_to_post'],$url,"</a>")).$message;	
+}
+				$tmp_username = str_replace("\'", "''", $username); 
+				$tmp_subject = str_replace("\'", "''", $subject); 
+				$tmp_message = str_replace("\'", "''", $message); 
+				$tmp_poll_title = str_replace("\'", "''", $poll_title); 
+				$tmp_topic_desc = str_replace("\'", "''", $topic_desc); 
+				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $tmp_username, $tmp_subject, $tmp_message, $tmp_poll_title, $poll_options, $poll_length, $tmp_topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
+//				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, str_replace("\'", "''", $username), str_replace("\'", "''", $subject), str_replace("\'", "''", $message), str_replace("\'", "''", $poll_title), $poll_options, $poll_length, str_replace("\'", "''", $topic_desc), $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
 			}
 			break;
 
 		case 'delete':
 		case 'poll_delete':
+		if ($error_msg != '')
+			{
+				message_die(GENERAL_MESSAGE, $error_msg);
+			}
 			delete_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id);
 			break;
 	}
@@ -578,12 +926,21 @@ else if ( $submit || $confirm )
 			$user_id = ( $mode == 'reply' || $mode == 'newtopic' ) ? $userdata['user_id'] : $post_data['poster_id'];
 			update_post_stats($mode, $post_data, $forum_id, $topic_id, $post_id, $user_id);
 		}
-
+		$attachment_mod['posting']->insert_attachment($post_id);
 		if ($error_msg == '' && $mode != 'poll_delete')
 		{
+			if ( $setbm )
+			{
+				set_bookmark($topic_id);
+			}
 			user_notification($mode, $post_data, $post_info['topic_title'], $forum_id, $topic_id, $post_id, $notify_user);
 		}
-
+		if ($lock_subject) 
+{ 
+	$url = "<a href='".append_sid("viewtopic.$phpEx?" . POST_POST_URL . "=" .$lock_subject."#".$lock_subject)."'> ";
+	$return_message = $lang['Report_stored']."<br/><br/>".sprintf($lang['Send_report'],$url,"</a>");	
+	$return_meta = str_replace($post_id,$lock_subject,$return_meta); 
+}
 		if ( $mode == 'newtopic' || $mode == 'reply' )
 		{
 			$tracking_topics = ( !empty($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
@@ -607,21 +964,27 @@ else if ( $submit || $confirm )
 	}
 }
 
-if( $refresh || isset($HTTP_POST_VARS['del_poll_option']) || $error_msg != '' )
+if( $refresh || isset($_POST['del_poll_option']) || $error_msg != '' )
 {
-	$username = ( !empty($HTTP_POST_VARS['username']) ) ? htmlspecialchars(trim(stripslashes($HTTP_POST_VARS['username']))) : '';
-	$subject = ( !empty($HTTP_POST_VARS['subject']) ) ? htmlspecialchars(trim(stripslashes($HTTP_POST_VARS['subject']))) : '';
-	$message = ( !empty($HTTP_POST_VARS['message']) ) ? htmlspecialchars(trim(stripslashes($HTTP_POST_VARS['message']))) : '';
+	$username = ( !empty($_POST['username']) ) ? htmlspecialchars(trim(stripslashes($_POST['username']))) : '';
+	$subject = ( !empty($_POST['subject']) ) ? htmlspecialchars(trim(stripslashes($_POST['subject']))) : '';
+	$message = ( !empty($_POST['message']) ) ? htmlspecialchars(trim(stripslashes($_POST['message']))) : '';
+	$topic_desc = ( !empty($_POST['topic_desc']) ) ? htmlspecialchars(trim(stripslashes($_POST['topic_desc']))) : '';
+	//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+	$post_icon = ( !empty($_POST['post_icon']) ) ? intval($_POST['post_icon']) : 0;
+//-- fin mod : post icon ---------------------------------------------------------------------------
 
-	$poll_title = ( !empty($HTTP_POST_VARS['poll_title']) ) ? htmlspecialchars(trim(stripslashes($HTTP_POST_VARS['poll_title']))) : '';
-	$poll_length = ( isset($HTTP_POST_VARS['poll_length']) ) ? max(0, intval($HTTP_POST_VARS['poll_length'])) : 0;
+
+	$poll_title = ( !empty($_POST['poll_title']) ) ? htmlspecialchars(trim(stripslashes($_POST['poll_title']))) : '';
+	$poll_length = ( isset($_POST['poll_length']) ) ? max(0, intval($_POST['poll_length'])) : 0;
 
 	$poll_options = array();
-	if ( !empty($HTTP_POST_VARS['poll_option_text']) )
+	if ( !empty($_POST['poll_option_text']) )
 	{
-		while( list($option_id, $option_text) = @each($HTTP_POST_VARS['poll_option_text']) )
+		while( list($option_id, $option_text) = @each($_POST['poll_option_text']) )
 		{
-			if( isset($HTTP_POST_VARS['del_poll_option'][$option_id]) )
+			if( isset($_POST['del_poll_option'][$option_id]) )
 			{
 				unset($poll_options[$option_id]);
 			}
@@ -632,9 +995,9 @@ if( $refresh || isset($HTTP_POST_VARS['del_poll_option']) || $error_msg != '' )
 		}
 	}
 
-	if ( isset($poll_add) && !empty($HTTP_POST_VARS['add_poll_option_text']) )
+	if ( isset($poll_add) && !empty($_POST['add_poll_option_text']) )
 	{
-		$poll_options[] = htmlspecialchars(trim(stripslashes($HTTP_POST_VARS['add_poll_option_text'])));
+		$poll_options[] = htmlspecialchars(trim(stripslashes($_POST['add_poll_option_text'])));
 	}
 
 	if ( $mode == 'newtopic' || $mode == 'reply')
@@ -708,11 +1071,30 @@ if( $refresh || isset($HTTP_POST_VARS['del_poll_option']) || $error_msg != '' )
 		}
 
 		$preview_message = str_replace("\n", '<br />', $preview_message);
-
+		$url = "<a href='viewtopic.$phpEx?" . POST_POST_URL . "=" .$lock_subject."#".$lock_subject."'> ";
+		$extra_message_body= sprintf($lang['Link_to_post'],$url,"</a>");	
+		$preview_message = ($lock_subject) ? stripslashes($extra_message_body).$preview_message : $preview_message;
 		$template->set_filenames(array(
 			'preview' => 'posting_preview.tpl')
 		);
+		//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+		if (!empty($topic_calendar_time))
+		{
+			$topic_calendar_duration_preview = $topic_calendar_duration-1;
+			if ($topic_calendar_duration_preview < 0)
+			{
+				$topic_calendar_duration_preview = 0;
+			}
+			$preview_subject .= get_calendar_title($topic_calendar_time, $topic_calendar_duration_preview);
+		}
+//-- fin mod : calendar ----------------------------------------------------------------------------
+		//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+		$preview_subject = get_icon_title($post_icon) . '&nbsp;' . $preview_subject;
+//-- fin mod : post icon ---------------------------------------------------------------------------
 
+		$attachment_mod['posting']->preview_attachments();
 		$template->assign_vars(array(
 			'TOPIC_TITLE' => $preview_subject,
 			'POST_SUBJECT' => $preview_subject,
@@ -743,15 +1125,40 @@ else
 	//
 	// User default entry point
 	//
+	$postreport=(isset($_GET['postreport']))? intval( $_GET['postreport']) : 0;
+if ($postreport)
+{
+	$sql = 'SELECT topic_id FROM '.POSTS_TABLE.' WHERE post_id="'.$postreport.'"';
+	if( !($result = $db->sql_query($sql) )) 
+		message_die(GENERAL_ERROR, "Couldn't get post subject information"); 
+	$post_details = $db->sql_fetchrow($result);
+	$post_topic_id=$post_details['topic_id'];
+	$sql = 'SELECT pt.post_subject FROM '.POSTS_TEXT_TABLE.' pt, '.POSTS_TABLE.' p WHERE p.topic_id="'.$post_topic_id.'" AND pt.post_id=p.post_id ORDER BY p.post_time ASC LIMIT 1';
+	if( !($result = $db->sql_query($sql) )) 
+		message_die(GENERAL_ERROR, "Couldn't get topic subject information".$sql); 
+	$post_details = $db->sql_fetchrow($result);
+	$subject='('.$postreport.')'.$post_details['post_subject'];
+	$lock_subject=$postreport;
+} else
+{
+	$subject = '';
+	$lock_subject='';
+}
 	if ( $mode == 'newtopic' )
 	{
 		$user_sig = ( $userdata['user_sig'] != '' ) ? $userdata['user_sig'] : '';
 
-		$username = ($userdata['session_logged_in']) ? $userdata['username'] : '';
-		$poll_title = '';
-		$poll_length = '';
-		$subject = '';
+		// Start replacement - Yellow card MOD
+$username = ($userdata['session_logged_in']) ? $userdata['username'] : ''; 
+$poll_title = ''; 
+$poll_length = ''; 
+// End replacement - Yellow card MOD
 		$message = '';
+		//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+		$post_icon = 0;
+//-- fin mod : post icon ---------------------------------------------------------------------------
+
 	}
 	else if ( $mode == 'reply' )
 	{
@@ -760,12 +1167,23 @@ else
 		$username = ( $userdata['session_logged_in'] ) ? $userdata['username'] : '';
 		$subject = '';
 		$message = '';
+		//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+		$post_icon = 0;
+//-- fin mod : post icon ---------------------------------------------------------------------------
+
 
 	}
 	else if ( $mode == 'quote' || $mode == 'editpost' )
 	{
 		$subject = ( $post_data['first_post'] ) ? $post_info['topic_title'] : $post_info['post_subject'];
 		$message = $post_info['post_text'];
+		$topic_desc = $post_info['topic_desc'];
+		//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+		$post_icon = ( $post_data['first_post'] ) ? $post_info['topic_icon'] : $post_info['post_icon'];
+//-- fin mod : post icon ---------------------------------------------------------------------------
+
 
 		if ( $mode == 'editpost' )
 		{
@@ -885,7 +1303,16 @@ if ( $userdata['session_logged_in'] && $is_auth['auth_read'] )
 		$template->assign_block_vars('switch_notify_checkbox', array());
 	}
 }
-
+//
+// Bookmark checkbox - only show if user is logged in and not editing a post
+//
+if ( $userdata['session_logged_in'] )
+{
+	if ( $mode != 'editpost' )
+	{
+		$template->assign_block_vars('switch_bookmark_checkbox', array());
+	}
+}
 //
 // Delete selection
 //
@@ -921,15 +1348,169 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 		}
 		$topic_type_toggle .= ' /> ' . $lang['Post_Announcement'] . '&nbsp;&nbsp;';
 	}
+	//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+	if( $is_auth['auth_global_announce'] )
+	{
+		$topic_type_toggle .= '<input type="radio" name="topictype" value="' . POST_GLOBAL_ANNOUNCE . '"';
+		if ( $post_data['topic_type'] == POST_GLOBAL_ANNOUNCE || $topic_type == POST_GLOBAL_ANNOUNCE )
+		{
+			$topic_type_toggle .= ' checked="checked"';
+		}
+		$topic_type_toggle .= ' /> ' . $lang['Post_Global_Announcement'] . '&nbsp;&nbsp;';
+	}
+//-- fin mod : announces ---------------------------------------------------------------------------
 
 	if ( $topic_type_toggle != '' )
 	{
 		$topic_type_toggle = $lang['Post_topic_as'] . ': <input type="radio" name="topictype" value="' . POST_NORMAL .'"' . ( ( $post_data['topic_type'] == POST_NORMAL || $topic_type == POST_NORMAL ) ? ' checked="checked"' : '' ) . ' /> ' . $lang['Post_Normal'] . '&nbsp;&nbsp;' . $topic_type_toggle;
 	}
+	//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+	if( $is_auth['auth_announce'] || $is_auth['auth_global_announce'])
+	{
+		if (empty($topic_announce_duration)) $topic_announce_duration = $post_data['topic_announce_duration'];
+		$topic_type_toggle .= '<br />' . $lang['announcement_duration'] . ': <input type="post" size="3" name="topicduration" value="' . $topic_announce_duration . '" />&nbsp;' . $lang['Days'] . '<br /><span class="gensmall">(' . $lang['announcement_duration_explain'] . ')</span>';
+	}
+//-- fin mod : announces ---------------------------------------------------------------------------
+
 }
+//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+//
+// Calendar type selection
+//
+$topic_type_cal = '';
+if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) )
+{
+	if( $is_auth['auth_cal'])
+	{
+		$template->assign_block_vars('switch_type_cal', array());
+		$months = array( 
+			' ------------ ',
+			$lang['datetime']['January'], 
+			$lang['datetime']['February'], 
+			$lang['datetime']['March'],
+			$lang['datetime']['April'],
+			$lang['datetime']['May'],
+			$lang['datetime']['June'],
+			$lang['datetime']['July'],
+			$lang['datetime']['August'],
+			$lang['datetime']['September'],
+			$lang['datetime']['October'],
+			$lang['datetime']['November'],
+			$lang['datetime']['December'],
+		);
+
+		// get the date
+		$topic_calendar_time = ( !isset($_POST['topic_calendar_year']) || (($topic_calendar_time != intval($post_data['topic_calendar_time'])) && !$is_auth['auth_cal']) ) ? intval($post_data['topic_calendar_time']) : $topic_calendar_time;
+		$topic_calendar_duration = ( (!isset($_POST['topic_calendar_duration_day']) && !isset($_POST['topic_calendar_duration_hour']) && !isset($_POST['topic_calendar_duration_min']) ) || (($topic_calendar_duration != intval($post_data['topic_calendar_duration'])) && !$is_auth['auth_cal']) ) ? intval($post_data['topic_calendar_duration']) : $topic_calendar_duration;
+
+		// get the components of the event date
+		$year	= '';
+		$month	= '';
+		$day	= '';
+		$hour	= '';
+		$min	= '';
+		if (!empty($topic_calendar_time))
+		{
+			$year	= intval( date('Y', $topic_calendar_time) );
+			$month	= intval( date('m', $topic_calendar_time) );
+			$day	= intval( date('d', $topic_calendar_time) );
+			$hour	= intval( date('H', $topic_calendar_time) );
+			$min	= intval( date('i', $topic_calendar_time) );
+		}
+
+		// get the components of the duration
+		$d_day	= '';
+		$d_hour	= '';
+		$d_min	= '';
+		if ( !empty($topic_calendar_time) && !empty($topic_calendar_duration) )
+		{
+			$d_dur = intval($topic_calendar_duration);
+			$d_day = intval($d_dur / 86400);
+			$d_dur = $d_dur - 86400 * $d_day;
+			$d_hour = intval($d_dur / 3600);
+			$d_dur = $d_dur - 3600 * $d_hour;
+			$d_min = intval($d_dur / 60);
+		}
+
+		// raz if no date
+		if ( empty($year) || empty($month) || empty($day) )
+		{
+			$year	= '';
+			$month	= '';
+			$day	= '';
+			$hour	= '';
+			$min	= '';
+			$d_day	= '';
+			$d_hour	= '';
+			$d_min	= '';
+		}
+
+		// day list
+		$s_topic_calendar_day = '<select name="topic_calendar_day">';
+		for ($i=0; $i <= 31; $i++)
+		{
+			$selected = ( intval($day) == $i) ? ' selected="selected"' : '';
+			$s_topic_calendar_day .= '<option value="' . $i . '"' . $selected . '>' . ( ($i == 0) ? ' -- ' : str_pad($i, 2, '0', STR_PAD_LEFT) ) . '</option>';
+		}
+		$s_topic_calendar_day .= '</select>';
+
+		// month list
+		$s_topic_calendar_month = '<select name="topic_calendar_month">';
+		for ($i=0; $i <= 12; $i++)
+		{
+			$selected = ( intval($month) == $i ) ? ' selected="selected"' : '';
+			$s_topic_calendar_month .= '<option value="' . $i . '"' . $selected . '>' . $months[$i] . '</option>';
+		}
+		$s_topic_calendar_month .= '</select>';
+
+		// year list
+		$s_topic_calendar_year = '<select name="topic_calendar_year">';
+
+		$selected = empty($year) ? ' selected="selected"' : '';
+		$s_topic_calendar_year .= '<option value="0"' . $select . '> ---- </option>';
+
+		$start_year = ( (intval($year) > 1971 ) && (intval($year) <= date('Y', time())) ) ? intval($year) : date('Y', time());
+		for ($i = $start_year; $i <= date('Y', time())+10; $i++)
+		{
+			$selected = ( intval($year) == $i) ? ' selected="selected"' : '';
+			$s_topic_calendar_year .= '<option value="' . $i . '"' . $selected . '>' . $i . '</option>';
+		}
+		$s_topic_calendar_year .= '</select>';
+
+		// time
+		if (empty($hour) && empty($min))
+		{
+			$hour = '';
+			$min = '';
+		}
+		$topic_calendar_hour	= $hour;
+		$topic_calendar_min		= $min;
+
+		// duration
+		if ( empty($topic_calendar_hour) && empty($topic_calendar_min) )
+		{
+			$d_hour = '';
+			$d_min = '';
+		}
+		if ( empty($d_day) && empty($d_hour) && empty($d_min) )
+		{
+			$d_day = '';
+			$d_hour = '';
+			$d_min = '';
+		}
+		$topic_calendar_duration_day	= $d_day;
+		$topic_calendar_duration_hour	= $d_hour;
+		$topic_calendar_duration_min	= $d_min;
+	}
+}
+//-- fin mod : calendar ----------------------------------------------------------------------------
 
 $hidden_form_fields = '<input type="hidden" name="mode" value="' . $mode . '" />';
-
+$hidden_form_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
+$hidden_form_fields .= ($lock_subject) ? '<input type="hidden" name="lock_subject" value="'.$lock_subject.'" />':'';
 switch( $mode )
 {
 	case 'newtopic':
@@ -947,7 +1528,62 @@ switch( $mode )
 		$hidden_form_fields .= '<input type="hidden" name="' . POST_POST_URL . '" value="' . $post_id . '" />';
 		break;
 }
+$page_title = ($postreport || $lock_subject) ? $lang['Post_a_report']: $page_title;
+//
+// Visual confirmation for guests
+//
+$confirm_image = '';
+if( !$userdata['session_logged_in'] && $plus_config['enable_confirm_post'])
+{
+	$expiry_time = time() - $board_config['session_length'];
 
+	$sql = 'SELECT session_id 
+		FROM ' . SESSIONS_TABLE ." WHERE session_time>$expiry_time"; 
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not select session data', '', __LINE__, __FILE__, $sql);
+	}
+	
+	if ($row = $db->sql_fetchrow($result))
+	{
+		$confirm_sql = '';
+		do
+		{
+			$confirm_sql .= (($confirm_sql != '') ? ', ' : '') . "'" . $row['session_id'] . "'";
+		}
+		while ($row = $db->sql_fetchrow($result));
+	
+		$sql = 'DELETE FROM ' .  CONFIRM_TABLE . " 
+			WHERE session_id NOT IN ($confirm_sql)";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not delete stale confirm data', '', __LINE__, __FILE__, $sql);
+		}
+	}
+	$db->sql_freeresult($result);
+	
+	// Generate the required confirmation code
+	// NB 0 (zero) could get confused with O (the letter) so we make change it
+	$code = dss_rand();
+	$code = strtoupper(str_replace('0', 'o', substr($code, 6)));
+	
+	$confirm_id = md5(uniqid($user_ip));
+	
+	$sql = 'INSERT INTO ' . CONFIRM_TABLE . " (confirm_id, session_id, code) 
+		VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, 'Could not insert new confirm code information', '', __LINE__, __FILE__, $sql);
+	}
+	
+	unset($code);
+	
+	$confirm_image = '<img src="' . append_sid("profile.$phpEx?mode=confirm&amp;id=$confirm_id") . '" alt="" title="" />';
+
+	$hidden_form_fields .= '<input type="hidden" name="confirm_id" value="' . $confirm_id . '" />';
+	
+	$template->assign_block_vars('switch_confirm', array());
+}
 // Generate smilies listing for page output
 generate_smilies('inline', PAGE_POSTING);
 
@@ -962,7 +1598,54 @@ $template->set_filenames(array(
 	'reviewbody' => 'posting_topic_review.tpl')
 );
 make_jumpbox('viewforum.'.$phpEx);
+// MULTI BBCODE-begin
+//NOTE: the first element of each array must be ''   Add new elements AFTER the ''
+$EMBB_keys = array('','g', 'd', 'e', 'h', 'j', 'j', 'j', 'j', 'k', 'm', 'n', 'r', 't', 'v', 'x', 'y', 'z', 'th') ;
+$EMBB_widths = array('','57' ,'57','57','57','57','57','57','57','57','57','57','57','57','57','57','57','57','57') ;
+$EMBB_values = array('','Glow' ,'Shadow','Align','Fade','ScrollLeft','Scrollright','ScrollUp','Scrolldown','Highlight','Flash','FlipV','FlipH','Stream','Left','Right',$lang['PHPCode'],'Google','Through') ;
+/* ///// removed for BBCode Buttons Mod /////
+for ($i=1; $i<count($EMBB_values); $i++)
+{
+	// load BBcode MODs info
+	$val = ($i*2)+16 ;
+	$template->assign_block_vars('MultiBB', array(
+		'KEY' => $EMBB_keys[$i],
+		'NAME' => "addbbcode$val",
+		'WIDTH' => $EMBB_widths[$i],
+		'VALUE' => $EMBB_values[$i],
+		'STYLE' => "bbstyle($val)")
+	);
+}
+*/
 
+
+$max_rows = ((count($EMBB_values)-1)/9) ;
+$max_rows = ($max_rows*9 == count($EMBB_values)) ? $max_rows : $max_rows+1 ;
+$code_count = 1 ;
+for ($i=1; $i<=$max_rows; $i++)
+{
+	$template->assign_block_vars('XBBcode', array(
+		'ROW_ID' => $i)
+	);
+	
+	for ($element=0; $element<9; $element++)
+	{
+		$val = ($code_count*2)+16 ;
+		if ( $code_count < count($EMBB_values))
+		{
+			$template->assign_block_vars('XBBcode.BB', array(
+				'KEY' => $EMBB_keys[$code_count],
+				'NAME' => "addbbcode$val",
+				'WIDTH' => $EMBB_widths[$code_count],
+				'VALUE' => $EMBB_values[$code_count],
+				'STYLE' => "bbstyle($val)")
+			);
+		}
+		$code_count++ ;
+	}
+}
+
+// MULTI BBCODE-end
 $template->assign_vars(array(
 	'FORUM_NAME' => $forum_name,
 	'L_POST_A' => $page_title,
@@ -976,6 +1659,14 @@ $template->assign_vars(array(
 // but not for privmsg (where it makes no sense)
 //
 $template->assign_block_vars('switch_not_privmsg', array());
+//
+// Enable the Topic Description MOD only if this is a new post
+// or if you edit the fist post of a topic
+//
+if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) )
+{
+   $template->assign_block_vars('topic_description', array());
+}
 
 //
 // Output the data to the template
@@ -987,6 +1678,7 @@ $template->assign_vars(array(
 	'HTML_STATUS' => $html_status,
 	'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
 	'SMILIES_STATUS' => $smilies_status, 
+	'CONFIRM_IMG' => $confirm_image,
 
 	'L_SUBJECT' => $lang['Subject'],
 	'L_MESSAGE_BODY' => $lang['Message_body'],
@@ -1000,8 +1692,12 @@ $template->assign_vars(array(
 	'L_DISABLE_BBCODE' => $lang['Disable_BBCode_post'], 
 	'L_DISABLE_SMILIES' => $lang['Disable_Smilies_post'], 
 	'L_ATTACH_SIGNATURE' => $lang['Attach_signature'], 
+	'L_SET_BOOKMARK' => $lang['Set_Bookmark'],
 	'L_NOTIFY_ON_REPLY' => $lang['Notify'], 
 	'L_DELETE_POST' => $lang['Delete_post'],
+	'L_CONFIRM_CODE_IMPAIRED'	=> sprintf($lang['Confirm_code_impaired'], '<a href="mailto:' . $board_config['board_email'] . '">', '</a>'),
+	'L_CONFIRM_CODE' => $lang['Confirm_code'],
+	'L_CONFIRM_CODE_EXPLAIN' => $lang['Confirm_code_explain'],
 
 	'L_BBCODE_B_HELP' => $lang['bbcode_b_help'], 
 	'L_BBCODE_I_HELP' => $lang['bbcode_i_help'], 
@@ -1015,9 +1711,27 @@ $template->assign_vars(array(
 	'L_BBCODE_A_HELP' => $lang['bbcode_a_help'], 
 	'L_BBCODE_S_HELP' => $lang['bbcode_s_help'], 
 	'L_BBCODE_F_HELP' => $lang['bbcode_f_help'], 
+	'L_BBCODE_G_HELP' => $lang['bbcode_g_help'], 
+   	'L_BBCODE_D_HELP' => $lang['bbcode_d_help'], 
+   	'L_BBCODE_E_HELP' => $lang['bbcode_e_help'],
+   	'L_BBCODE_H_HELP' => $lang['bbcode_h_help'],
+   	'L_BBCODE_J_HELP' => $lang['bbcode_j_help'],
+   	'L_BBCODE_K_HELP' => $lang['bbcode_k_help'],
+   	'L_BBCODE_M_HELP' => $lang['bbcode_m_help'],
+   	'L_BBCODE_N_HELP' => $lang['bbcode_n_help'],
+   	'L_BBCODE_R_HELP' => $lang['bbcode_r_help'],
+   	'L_BBCODE_T_HELP' => $lang['bbcode_t_help'],
+   	'L_BBCODE_V_HELP' => $lang['bbcode_v_help'],
+   	'L_BBCODE_X_HELP' => $lang['bbcode_x_help'],
+   	'L_BBCODE_Y_HELP' => $lang['bbcode_y_help'],
+   	'L_BBCODE_Z_HELP' => $lang['bbcode_z_help'],
+   	'L_BBCODE_TH_HELP' => $lang['bbcode_th_help'],
+   	'L_BBCODE_SC_HELP' => $lang['bbcode_sc_help'],
+	'L_SMILIE_CREATOR' => $lang['Smilie_creator'],
 	'L_EMPTY_MESSAGE' => $lang['Empty_message'],
 
 	'L_FONT_COLOR' => $lang['Font_color'], 
+	'L_FONT_TYPE' => $lang['Font_type'],
 	'L_COLOR_DEFAULT' => $lang['color_default'], 
 	'L_COLOR_DARK_RED' => $lang['color_dark_red'], 
 	'L_COLOR_RED' => $lang['color_red'], 
@@ -1043,20 +1757,130 @@ $template->assign_vars(array(
 
 	'L_BBCODE_CLOSE_TAGS' => $lang['Close_Tags'], 
 	'L_STYLES_TIP' => $lang['Styles_tip'], 
-
+	'L_TOPIC_DESCRIPTION' => $lang['Topic_description'],
 	'U_VIEWTOPIC' => ( $mode == 'reply' ) ? append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;postorder=desc") : '', 
 	'U_REVIEW_TOPIC' => ( $mode == 'reply' ) ? append_sid("posting.$phpEx?mode=topicreview&amp;" . POST_TOPIC_URL . "=$topic_id") : '', 
+	'S_AJAX_BLUR' => ($mode == 'newtopic') ? 'onblur="AJAXSearch(this.value);"' : '',
+	'S_DISPLAY_PREVIEW' => ($preview) ? '' : 'style="display:none;"',
+	'S_EDIT_AJAX' => ($board_config['use_ajax_preview']) ? 'onclick="return AJAXPreview(0, '.(($mode == 'editpost') ? $post_id : 0).');" ' : '',
+	'L_SEARCH_RESULTS' => $lang['AJAX_search_results'],
+	'L_SEARCH_RESULT' => $lang['AJAX_search_result'],
+	'L_EMPTY_SUBJECT' => $lang['Empty_subject'],
+	'TOPIC_DESCRIPTION' => $topic_desc,
+	//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+	'L_CALENDAR_TITLE'			=> $lang['Calendar_event'],
+	'L_TIME'					=> $lang['Event_time'],
+	'L_CALENDAR_DURATION'		=> $lang['Calendar_duration'],
+	'L_DAYS'					=> $lang['Days'],
+	'L_HOURS'					=> $lang['Hours'],
+	'L_MINUTES'					=> $lang['Minutes'],
+	'L_TODAY'					=> $lang['Today'],
+
+	'TODAY_DAY'					=> date('d', time()),
+	'TODAY_MONTH'				=> date('m', time()),
+	'TODAY_YEAR'				=> date('Y', time()),
+
+	'S_CALENDAR_YEAR'			=> $s_topic_calendar_year,
+	'S_CALENDAR_MONTH'			=> $s_topic_calendar_month,
+	'S_CALENDAR_DAY'			=> $s_topic_calendar_day,
+
+	'CALENDAR_HOUR'				=> $topic_calendar_hour,
+	'CALENDAR_MIN'				=> $topic_calendar_min,
+	'CALENDAR_DURATION_DAY'		=> $topic_calendar_duration_day,
+	'CALENDAR_DURATION_HOUR'	=> $topic_calendar_duration_hour,
+	'CALENDAR_DURATION_MIN'		=> $topic_calendar_duration_min,
+//-- fin mod : calendar ----------------------------------------------------------------------------
 
 	'S_HTML_CHECKED' => ( !$html_on ) ? 'checked="checked"' : '', 
 	'S_BBCODE_CHECKED' => ( !$bbcode_on ) ? 'checked="checked"' : '', 
 	'S_SMILIES_CHECKED' => ( !$smilies_on ) ? 'checked="checked"' : '', 
 	'S_SIGNATURE_CHECKED' => ( $attach_sig ) ? 'checked="checked"' : '', 
-	'S_NOTIFY_CHECKED' => ( $notify_user ) ? 'checked="checked"' : '', 
+	'S_SETBM_CHECKED' => ( $setbm ) ? 'checked="checked"' : '',
+	// Start replacement - Yellow card admin MOD
+	'S_NOTIFY_CHECKED' => ($is_auth['auth_read'] ) ? (( $notify_user ) ? 'checked="checked"' : '')  : 'DISABLED' ,
+	'S_LOCK_SUBJECT' => ($lock_subject) ? ' READONLY ' : '',
+	// End replacement - Yellow card admin MOD 
 	'S_TYPE_TOGGLE' => $topic_type_toggle, 
 	'S_TOPIC_ID' => $topic_id, 
 	'S_POST_ACTION' => append_sid("posting.$phpEx"),
 	'S_HIDDEN_FORM_FIELDS' => $hidden_form_fields)
 );
+//-- mod : post icon -------------------------------------------------------------------------------
+//-- add
+// get the number of icon per row from config
+$icon_per_row = isset($board_config['icon_per_row']) ? intval($board_config['icon_per_row']) : 10;
+if ($icon_per_row <= 1)
+{
+	$icon_per_row = 10;
+}
+
+// get the list of icon available to the user
+$icones_sort = array();
+for ($i = 0; $i < count($icones); $i++)
+{
+	switch ($icones[$i]['auth'])
+	{
+		case AUTH_ADMIN:
+			if ( $userdata['user_level'] == ADMIN )
+			{
+				$icones_sort[] = $i;
+			}
+			break;
+		case AUTH_MOD:
+			if ( $is_auth['auth_mod'] )
+			{
+				$icones_sort[] = $i;
+			}
+			break;
+		case AUTH_REG:
+			if ( $userdata['session_logged_in'] )
+			{
+				$icones_sort[] = $i;
+			}
+			break;
+		default:
+			$icones_sort[] = $i;
+			break;
+	}
+}
+
+// check if the icon exists
+$found = false;
+for ($i=0; ( ($i < count($icones_sort)) && !$found );$i++)
+{
+	$found = ($icones[ $icones_sort[$i] ]['ind'] == $post_icon);
+}
+if (!$found) $post_icon = 0;
+
+// send to template
+$template->assign_block_vars('switch_icon_checkbox', array());
+$template->assign_vars(array(
+	'L_ICON_TITLE' => $lang['post_icon_title'],
+	)
+);
+
+// display the icons
+$nb_row = intval( (count($icones_sort)-1) / $icon_per_row )+1;
+$offset = 0;
+for ($i=0; $i < $nb_row; $i++)
+{
+	$template->assign_block_vars('switch_icon_checkbox.row',array());
+	for ($j=0; ( ($j < $icon_per_row) && ($offset < count($icones_sort)) ); $j++)
+	{
+		$icon_id  = $icones_sort[$offset];
+
+		// send to cell or cell_none
+		$template->assign_block_vars('switch_icon_checkbox.row.cell', array(
+			'ICON_ID'		=> $icones[$icon_id]['ind'],
+			'ICON_CHECKED'	=> ($post_icon == $icones[$icon_id]['ind']) ? ' checked="checked"' : '',
+			'ICON_IMG'		=> get_icon_title($icones[$icon_id]['ind'], 2),
+			)
+		);
+		$offset++;
+	}
+}
+//-- fin mod : post icon ---------------------------------------------------------------------------
 
 //
 // Poll entry switch/output

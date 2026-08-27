@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: usercp_sendpasswd.php,v 1.6.2.11 2003/05/03 23:24:03 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -27,12 +27,12 @@ if ( !defined('IN_PHPBB') )
 	exit;
 }
 
-if ( isset($HTTP_POST_VARS['submit']) )
+if ( isset($_POST['submit']) )
 {
-	$username = ( !empty($HTTP_POST_VARS['username']) ) ? phpbb_clean_username($HTTP_POST_VARS['username']) : '';
-	$email = ( !empty($HTTP_POST_VARS['email']) ) ? trim(strip_tags(htmlspecialchars($HTTP_POST_VARS['email']))) : '';
+	$username = ( !empty($_POST['username']) ) ? phpbb_clean_username($_POST['username']) : '';
+	$email = ( !empty($_POST['email']) ) ? trim(strip_tags(htmlspecialchars($_POST['email']))) : '';
 
-	$sql = "SELECT user_id, username, user_email, user_active, user_lang 
+	$sql = "SELECT user_id, username, user_email, user_active, user_lang, ct_pwreset, ct_unsucclogin 
 		FROM " . USERS_TABLE . " 
 		WHERE user_email = '" . str_replace("\'", "''", $email) . "' 
 			AND username = '" . str_replace("\'", "''", $username) . "'";
@@ -48,12 +48,29 @@ if ( isset($HTTP_POST_VARS['submit']) )
 			$username = $row['username'];
 			$user_id = $row['user_id'];
 
+			if ( $ctracker_config['pwreset'] == 1 )
+			{
+			  if ( $row['ct_pwreset'] == 1 && $row['ct_unsucclogin'] >= time())
+			  {
+			    message_die(GENERAL_MESSAGE, $lang['ct_forum_pws']);
+			  }
+			}
+
 			$user_actkey = gen_rand_string(true);
 			$key_len = 54 - strlen($server_url);
 			$key_len = ($key_len > 6) ? $key_len : 6;
 			$user_actkey = substr($user_actkey, 0, $key_len);
 			$user_password = gen_rand_string(false);
 			
+            $loginsyst = time() + 14400;
+            $sql = "UPDATE " . USERS_TABLE . "
+				SET ct_pwreset = '1', ct_unsucclogin = '" . $loginsyst . "'
+				WHERE user_id = " . $row['user_id'];
+			if ( !$db->sql_query($sql) )
+			{
+				message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);
+			}
+
 			$sql = "UPDATE " . USERS_TABLE . " 
 				SET user_newpasswd = '" . md5($user_password) . "', user_actkey = '$user_actkey'  
 				WHERE user_id = " . $row['user_id'];

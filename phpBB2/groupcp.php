@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: groupcp.php,v 1.58.2.19 2003/12/30 14:17:49 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -125,18 +125,18 @@ $server_port = ( $board_config['server_port'] <> 80 ) ? ':' . trim($board_config
 
 $server_url = $server_protocol . $server_name . $server_port . $script_name;
 
-if ( isset($HTTP_GET_VARS[POST_GROUPS_URL]) || isset($HTTP_POST_VARS[POST_GROUPS_URL]) )
+if ( isset($_GET[POST_GROUPS_URL]) || isset($_POST[POST_GROUPS_URL]) )
 {
-	$group_id = ( isset($HTTP_POST_VARS[POST_GROUPS_URL]) ) ? intval($HTTP_POST_VARS[POST_GROUPS_URL]) : intval($HTTP_GET_VARS[POST_GROUPS_URL]);
+	$group_id = ( isset($_POST[POST_GROUPS_URL]) ) ? intval($_POST[POST_GROUPS_URL]) : intval($_GET[POST_GROUPS_URL]);
 }
 else
 {
 	$group_id = '';
 }
 
-if ( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) )
+if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = ( isset($HTTP_POST_VARS['mode']) ) ? $HTTP_POST_VARS['mode'] : $HTTP_GET_VARS['mode'];
+	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
 	$mode = htmlspecialchars($mode);
 }
 else
@@ -144,17 +144,18 @@ else
 	$mode = '';
 }
 
-$confirm = ( isset($HTTP_POST_VARS['confirm']) ) ? TRUE : 0;
-$cancel = ( isset($HTTP_POST_VARS['cancel']) ) ? TRUE : 0;
+$confirm = ( isset($_POST['confirm']) ) ? TRUE : 0;
+$cancel = ( isset($_POST['cancel']) ) ? TRUE : 0;
 
-$start = ( isset($HTTP_GET_VARS['start']) ) ? intval($HTTP_GET_VARS['start']) : 0;
+$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = ($start < 0) ? 0 : $start;
 
 //
 // Default var values
 //
 $is_moderator = FALSE;
 
-if ( isset($HTTP_POST_VARS['groupstatus']) && $group_id )
+if ( isset($_POST['groupstatus']) && $group_id )
 {
 	if ( !$userdata['session_logged_in'] )
 	{
@@ -183,7 +184,7 @@ if ( isset($HTTP_POST_VARS['groupstatus']) && $group_id )
 	}
 
 	$sql = "UPDATE " . GROUPS_TABLE . " 
-		SET group_type = " . intval($HTTP_POST_VARS['group_type']) . "
+		SET group_type = " . intval($_POST['group_type']) . "
 		WHERE group_id = $group_id";
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -199,7 +200,7 @@ if ( isset($HTTP_POST_VARS['groupstatus']) && $group_id )
 	message_die(GENERAL_MESSAGE, $message);
 
 }
-else if ( isset($HTTP_POST_VARS['joingroup']) && $group_id )
+else if ( isset($_POST['joingroup']) && $group_id )
 {
 	//
 	// First, joining a group
@@ -300,7 +301,7 @@ else if ( isset($HTTP_POST_VARS['joingroup']) && $group_id )
 
 	message_die(GENERAL_MESSAGE, $message);
 }
-else if ( isset($HTTP_POST_VARS['unsub']) || isset($HTTP_POST_VARS['unsubpending']) && $group_id )
+else if ( isset($_POST['unsub']) || isset($_POST['unsubpending']) && $group_id )
 {
 	//
 	// Second, unsubscribing from a group
@@ -359,7 +360,7 @@ else if ( isset($HTTP_POST_VARS['unsub']) || isset($HTTP_POST_VARS['unsubpending
 	}
 	else
 	{
-		$unsub_msg = ( isset($HTTP_POST_VARS['unsub']) ) ? $lang['Confirm_unsub'] : $lang['Confirm_unsub_pending'];
+		$unsub_msg = ( isset($_POST['unsub']) ) ? $lang['Confirm_unsub'] : $lang['Confirm_unsub_pending'];
 
 		$s_hidden_fields = '<input type="hidden" name="' . POST_GROUPS_URL . '" value="' . $group_id . '" /><input type="hidden" name="unsub" value="1" />';
 
@@ -391,7 +392,7 @@ else if ( $group_id )
 	// Did the group moderator get here through an email?
 	// If so, check to see if they are logged in.
 	//
-	if ( isset($HTTP_GET_VARS['validate']) )
+	if ( isset($_GET['validate']) )
 	{
 		if ( !$userdata['session_logged_in'] )
 		{
@@ -418,21 +419,24 @@ else if ( $group_id )
 							FROM " . AUTH_ACCESS_TABLE . " aa 
 							WHERE aa.group_id = g.group_id  
 						)
-					)";
+					)
+				ORDER BY aa.auth_mod DESC";
 			break;
 
 		case 'oracle':
 			$sql = "SELECT g.group_moderator, g.group_type, aa.auth_mod 
 				FROM " . GROUPS_TABLE . " g, " . AUTH_ACCESS_TABLE . " aa 
 				WHERE g.group_id = $group_id
-					AND aa.group_id (+) = g.group_id";
+					AND aa.group_id (+) = g.group_id
+				ORDER BY aa.auth_mod DESC";
 			break;
 
 		default:
 			$sql = "SELECT g.group_moderator, g.group_type, aa.auth_mod 
 				FROM ( " . GROUPS_TABLE . " g 
 				LEFT JOIN " . AUTH_ACCESS_TABLE . " aa ON aa.group_id = g.group_id )
-				WHERE g.group_id = $group_id";
+				WHERE g.group_id = $group_id
+				ORDER BY aa.auth_mod DESC";
 			break;
 	}
 	if ( !($result = $db->sql_query($sql)) )
@@ -452,7 +456,7 @@ else if ( $group_id )
 		//
 		// Handle Additions, removals, approvals and denials
 		//
-		if ( !empty($HTTP_POST_VARS['add']) || !empty($HTTP_POST_VARS['remove']) || isset($HTTP_POST_VARS['approve']) || isset($HTTP_POST_VARS['deny']) )
+		if ( !empty($_POST['add']) || !empty($_POST['remove']) || isset($_POST['approve']) || isset($_POST['deny']) )
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
@@ -470,9 +474,9 @@ else if ( $group_id )
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
-			if ( isset($HTTP_POST_VARS['add']) )
+			if ( isset($_POST['add']) )
 			{
-				$username = ( isset($HTTP_POST_VARS['username']) ) ? phpbb_clean_username($HTTP_POST_VARS['username']) : '';
+				$username = ( isset($_POST['username']) ) ? phpbb_clean_username($_POST['username']) : '';
 				
 				$sql = "SELECT user_id, user_email, user_lang, user_level  
 					FROM " . USERS_TABLE . " 
@@ -583,10 +587,10 @@ else if ( $group_id )
 			}
 			else 
 			{
-				if ( ( ( isset($HTTP_POST_VARS['approve']) || isset($HTTP_POST_VARS['deny']) ) && isset($HTTP_POST_VARS['pending_members']) ) || ( isset($HTTP_POST_VARS['remove']) && isset($HTTP_POST_VARS['members']) ) )
+				if ( ( ( isset($_POST['approve']) || isset($_POST['deny']) ) && isset($_POST['pending_members']) ) || ( isset($_POST['remove']) && isset($_POST['members']) ) )
 				{
 
-					$members = ( isset($HTTP_POST_VARS['approve']) || isset($HTTP_POST_VARS['deny']) ) ? $HTTP_POST_VARS['pending_members'] : $HTTP_POST_VARS['members'];
+					$members = ( isset($_POST['approve']) || isset($_POST['deny']) ) ? $_POST['pending_members'] : $_POST['members'];
 
 					$sql_in = '';
 					for($i = 0; $i < count($members); $i++)
@@ -594,7 +598,7 @@ else if ( $group_id )
 						$sql_in .= ( ( $sql_in != '' ) ? ', ' : '' ) . intval($members[$i]);
 					}
 
-					if ( isset($HTTP_POST_VARS['approve']) )
+					if ( isset($_POST['approve']) )
 					{
 						if ( $group_info['auth_mod'] )
 						{
@@ -616,7 +620,7 @@ else if ( $group_id )
 							FROM ". USERS_TABLE . " 
 							WHERE user_id IN ($sql_in)"; 
 					}
-					else if ( isset($HTTP_POST_VARS['deny']) || isset($HTTP_POST_VARS['remove']) )
+					else if ( isset($_POST['deny']) || isset($_POST['remove']) )
 					{
 						if ( $group_info['auth_mod'] )
 						{
@@ -678,7 +682,7 @@ else if ( $group_id )
 					//
 					// Email users when they are approved
 					//
-					if ( isset($HTTP_POST_VARS['approve']) )
+					if ( isset($_POST['approve']) )
 					{
 						if ( !($result = $db->sql_query($sql_select)) )
 						{
@@ -761,7 +765,7 @@ else if ( $group_id )
 	//
 	// Get moderator details for this group
 	//
-	$sql = "SELECT username, user_id, user_viewemail, user_posts, user_regdate, user_from, user_website, user_email, user_icq, user_aim, user_yim, user_msnm  
+	$sql = "SELECT username, user_absence, user_absence_mode, user_id, user_viewemail, user_posts, user_regdate, user_from, user_website, user_email, user_icq, user_aim, user_yim, user_msnm  
 		FROM " . USERS_TABLE . " 
 		WHERE user_id = " . $group_info['group_moderator'];
 	if ( !($result = $db->sql_query($sql)) )
@@ -774,7 +778,7 @@ else if ( $group_id )
 	//
 	// Get user information for this group
 	//
-	$sql = "SELECT u.username, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm, ug.user_pending 
+	$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_viewemail, u.user_posts, u.user_regdate, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_msnm, ug.user_pending 
 		FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug
 		WHERE ug.group_id = $group_id
 			AND u.user_id = ug.user_id
@@ -898,7 +902,10 @@ else if ( $group_id )
 	generate_user_info($group_moderator, $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
 
 	$s_hidden_fields .= '';
-
+	if ( $group_moderator['user_absence'] == TRUE )
+	{
+		$absence_mode = create_absence_mode($group_moderator['user_absence_mode'], $pm_img, $pm, $email_img, $email, $username);
+	}
 	$template->assign_vars(array(
 		'L_GROUP_INFORMATION' => $lang['Group_Information'],
 		'L_GROUP_NAME' => $lang['Group_name'],
@@ -993,7 +1000,10 @@ else if ( $group_id )
 		{
 			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
+			if ( $group_members[$i]['user_absence'] == TRUE )
+			{
+				$absence_mode = create_absence_mode($group_members[$i]['user_absence_mode'], $pm_img, $pm, $email_img, $email, $username);
+			}
 			$template->assign_block_vars('member_row', array(
 				'ROW_COLOR' => '#' . $row_color,
 				'ROW_CLASS' => $row_class,
@@ -1086,7 +1096,10 @@ else if ( $group_id )
 				$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
 				$user_select = '<input type="checkbox" name="member[]" value="' . $user_id . '">';
-
+				if ( $modgroup_pending_list[$i]['user_absence']== TRUE )
+				{
+					$absence_mode = create_absence_mode($modgroup_pending_list[$i]['user_absence_mode'], $pm_img, $pm, $email_img, $email, $username);
+				}
 				$template->assign_block_vars('pending_members_row', array(
 					'ROW_CLASS' => $row_class,
 					'ROW_COLOR' => '#' . $row_color, 
@@ -1150,7 +1163,6 @@ else
 	// a pending membership.
 	//
 	$in_group = array();
-	
 	if ( $userdata['session_logged_in'] ) 
 	{
 		$sql = "SELECT g.group_id, g.group_name, g.group_type, ug.user_pending 

@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group        
  *   email                : support@phpbb.com                           
  *                                                          
- *   $Id$                                                           
+ *   $Id: auth.php,v 1.37.2.5 2004/03/01 16:49:03 psotfx Exp $                                                           
  *                                                            
  * 
  ***************************************************************************/ 
@@ -22,7 +22,7 @@
 
 /*
 	$type's accepted (pre-pend with AUTH_):
-	VIEW, READ, POST, REPLY, EDIT, DELETE, STICKY, ANNOUNCE, VOTE, POLLCREATE
+	VIEW, READ, POST, REPLY, EDIT, DELETE, STICKY, ANNOUNCE, VOTE, POLLCREATE BAN, GREENCARD, BLUECARD
 
 	Possible options ($type/forum_id combinations):
 
@@ -51,12 +51,49 @@
 function auth($type, $forum_id, $userdata, $f_access = '')
 {
 	global $db, $lang;
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+	global $tree;
+
+	if ( !empty($tree['data']) )
+	{
+		$f_access = array();
+		if ( !empty($forum_id) )
+		{
+			$idx = $tree['keys'][ POST_FORUM_URL . $forum_id ];
+			$f_access = $tree['data'][$idx];
+		}
+		else
+		{
+			for ( $i = 0; $i < count($tree['data']); $i++ )
+			{
+				if ( $tree['type'][$i] == POST_FORUM_URL )
+				{
+					$f_access[] = $tree['data'][$i];
+				}
+			}
+		}
+	}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	switch( $type )
 	{
 		case AUTH_ALL:
-			$a_sql = 'a.auth_view, a.auth_read, a.auth_post, a.auth_reply, a.auth_edit, a.auth_delete, a.auth_sticky, a.auth_announce, a.auth_vote, a.auth_pollcreate';
-			$auth_fields = array('auth_view', 'auth_read', 'auth_post', 'auth_reply', 'auth_edit', 'auth_delete', 'auth_sticky', 'auth_announce', 'auth_vote', 'auth_pollcreate');
+			//-- mod : announces -------------------------------------------------------------------------------
+// here we added
+//	, a.auth_global_announce
+// and
+//	, 'auth_global_announce
+//-- modify
+//-- mod : calendar --------------------------------------------------------------------------------
+// here we added
+//	, a.auth_cal
+// and
+//	, 'auth_cal'
+//-- modify
+
+			$a_sql = 'a.auth_view, a.auth_read, a.auth_news, a.auth_post, a.auth_reply, a.auth_edit, a.auth_delete, a.auth_cal, a.auth_sticky, a.auth_announce, a.auth_global_announce, a.auth_vote, a.auth_pollcreate, a.auth_ban, a.auth_greencard, a.auth_bluecard';
+			$auth_fields = array('auth_view', 'auth_read', 'auth_news', 'auth_post', 'auth_reply', 'auth_edit', 'auth_delete', 'auth_cal', 'auth_sticky', 'auth_announce', 'auth_global_announce', 'auth_vote', 'auth_pollcreate', 'auth_ban', 'auth_greencard', 'auth_bluecard');
 			break;
 
 		case AUTH_VIEW:
@@ -84,11 +121,26 @@ function auth($type, $forum_id, $userdata, $f_access = '')
 			$a_sql = 'a.auth_delete';
 			$auth_fields = array('auth_delete');
 			break;
+//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+		case AUTH_CAL:
+			$a_sql = 'a.auth_cal';
+			$auth_fields = array('auth_cal');
+			break;
+//-- fin mod : calendar ----------------------------------------------------------------------------
 
 		case AUTH_ANNOUNCE:
 			$a_sql = 'a.auth_announce';
 			$auth_fields = array('auth_announce');
 			break;
+		//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+		case AUTH_GLOBAL_ANNOUNCE:
+			$a_sql = 'a.auth_global_announce';
+			$auth_fields = array('auth_global_announce');
+			break;
+//-- fin mod : announces ---------------------------------------------------------------------------
+	
 		case AUTH_STICKY:
 			$a_sql = 'a.auth_sticky';
 			$auth_fields = array('auth_sticky');
@@ -104,11 +156,24 @@ function auth($type, $forum_id, $userdata, $f_access = '')
 			break;
 		case AUTH_ATTACH:
 			break;
+		case AUTH_BAN: 
+   			$a_sql = 'a.auth_ban'; 
+   			$auth_fields = array('auth_ban'); 
+   			break;
+ 
+		case AUTH_GREENCARD: 
+   			$a_sql = 'a.auth_greencard'; 
+   			$auth_fields = array('auth_greencard'); 
+   			break;
 
+		case AUTH_BLUECARD: 
+   			$a_sql = 'a.auth_bluecard'; 
+   			$auth_fields = array('auth_bluecard'); 
+   			break; 
 		default:
 			break;
 	}
-
+	attach_setup_basic_auth($type, $auth_fields, $a_sql);
 	//
 	// If f_access has been passed, or auth is needed to return an array of forums
 	// then we need to pull the auth information on the given forum (or all forums)

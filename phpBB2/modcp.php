@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: modcp.php,v 1.71.2.23 2004/03/13 15:08:22 acydburn Exp $
  *
  ***************************************************************************/
 
@@ -38,48 +38,71 @@ include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 //
 // Obtain initial var settings
 //
-if ( isset($HTTP_GET_VARS[POST_FORUM_URL]) || isset($HTTP_POST_VARS[POST_FORUM_URL]) )
+if ( isset($_GET[POST_FORUM_URL]) || isset($_POST[POST_FORUM_URL]) )
 {
-	$forum_id = (isset($HTTP_POST_VARS[POST_FORUM_URL])) ? intval($HTTP_POST_VARS[POST_FORUM_URL]) : intval($HTTP_GET_VARS[POST_FORUM_URL]);
+	$forum_id = (isset($_POST[POST_FORUM_URL])) ? intval($_POST[POST_FORUM_URL]) : intval($_GET[POST_FORUM_URL]);
 }
 else
 {
 	$forum_id = '';
 }
 
-if ( isset($HTTP_GET_VARS[POST_POST_URL]) || isset($HTTP_POST_VARS[POST_POST_URL]) )
+if ( isset($_GET[POST_POST_URL]) || isset($_POST[POST_POST_URL]) )
 {
-	$post_id = (isset($HTTP_POST_VARS[POST_POST_URL])) ? intval($HTTP_POST_VARS[POST_POST_URL]) : intval($HTTP_GET_VARS[POST_POST_URL]);
+	$post_id = (isset($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]);
 }
 else
 {
 	$post_id = '';
 }
 
-if ( isset($HTTP_GET_VARS[POST_TOPIC_URL]) || isset($HTTP_POST_VARS[POST_TOPIC_URL]) )
+if ( isset($_GET[POST_TOPIC_URL]) || isset($_POST[POST_TOPIC_URL]) )
 {
-	$topic_id = (isset($HTTP_POST_VARS[POST_TOPIC_URL])) ? intval($HTTP_POST_VARS[POST_TOPIC_URL]) : intval($HTTP_GET_VARS[POST_TOPIC_URL]);
+	$topic_id = (isset($_POST[POST_TOPIC_URL])) ? intval($_POST[POST_TOPIC_URL]) : intval($_GET[POST_TOPIC_URL]);
 }
 else
 {
 	$topic_id = '';
 }
 
-$confirm = ( $HTTP_POST_VARS['confirm'] ) ? TRUE : 0;
-
+$confirm = ( $_POST['confirm'] ) ? TRUE : 0;
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+if (isset($_GET['selected_id']) || isset($_POST['selected_id']))
+{
+	$selected_id = isset($_POST['selected_id']) ? $_POST['selected_id'] : $_GET['selected_id'];
+	$type	= substr($selected_id, 0, 1);
+	$id		= intval(substr($selected_id, 1));
+	if ($type == POST_FORUM_URL)
+	{
+		$forum_id = $id;
+	}
+	else if (($type == POST_CAT_URL) || ($selected_id == 'Root'))
+	{
+		$parm = ($id != 0) ? "?" . POST_CAT_URL . "=$id" : '';
+		redirect(append_sid("./index.$phpEx" . $parm));
+		exit;
+	}
+}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 //
 // Continue var definitions
 //
-$start = ( isset($HTTP_GET_VARS['start']) ) ? intval($HTTP_GET_VARS['start']) : 0;
+$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = ($start < 0) ? 0 : $start;
 
-$delete = ( isset($HTTP_POST_VARS['delete']) ) ? TRUE : FALSE;
-$move = ( isset($HTTP_POST_VARS['move']) ) ? TRUE : FALSE;
-$lock = ( isset($HTTP_POST_VARS['lock']) ) ? TRUE : FALSE;
-$unlock = ( isset($HTTP_POST_VARS['unlock']) ) ? TRUE : FALSE;
-
-if ( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) )
+$delete = ( isset($_POST['delete']) ) ? TRUE : FALSE;
+$move = ( isset($_POST['move']) ) ? TRUE : FALSE;
+$lock = ( isset($_POST['lock']) ) ? TRUE : FALSE;
+$unlock = ( isset($_POST['unlock']) ) ? TRUE : FALSE;
+// MOD MODCP EXTENSION BEGIN
+$sticky = ( isset($_POST['sticky']) ) ? TRUE : FALSE;
+$announce = ( isset($_POST['announce']) ) ? TRUE : FALSE;
+$normalise = ( isset($_POST['normalise']) ) ? TRUE : FALSE;
+// MOD MODCP EXTENSION END
+if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = ( isset($HTTP_POST_VARS['mode']) ) ? $HTTP_POST_VARS['mode'] : $HTTP_GET_VARS['mode'];
+	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
 	$mode = htmlspecialchars($mode);
 }
 else
@@ -100,6 +123,20 @@ else
 	{
 		$mode = 'unlock';
 	}
+	// MOD MODCP EXTENSION BEGIN
+    else if ( $sticky )
+    {
+        $mode = 'sticky';
+    }
+    else if ( $announce )
+    {
+        $mode = 'announce';
+    }
+    else if ( $normalise )
+    {
+        $mode = 'normalise';
+    }
+    // MOD MODCP EXTENSION END
 	else
 	{
 		$mode = '';
@@ -107,9 +144,9 @@ else
 }
 
 // session id check
-if (!empty($HTTP_POST_VARS['sid']) || !empty($HTTP_GET_VARS['sid']))
+if (!empty($_POST['sid']) || !empty($_GET['sid']))
 {
-	$sid = (!empty($HTTP_POST_VARS['sid'])) ? $HTTP_POST_VARS['sid'] : $HTTP_GET_VARS['sid'];
+	$sid = (!empty($_POST['sid'])) ? $_POST['sid'] : $_GET['sid'];
 }
 else
 {
@@ -130,15 +167,19 @@ if ( !empty($topic_id) )
 		message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 	}
 	$topic_row = $db->sql_fetchrow($result);
-
 	if (!$topic_row)
 	{
 		message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 	}
-
+	
 	$forum_topics = ( $topic_row['forum_topics'] == 0 ) ? 1 : $topic_row['forum_topics'];
 	$forum_id = $topic_row['forum_id'];
-	$forum_name = $topic_row['forum_name'];
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$forum_name = $topic_row['forum_name'];
+//-- add
+	$forum_name = get_object_lang(POST_FORUM_URL . $topic_row['forum_id'], 'name');
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 }
 else if ( !empty($forum_id) )
 {
@@ -150,14 +191,18 @@ else if ( !empty($forum_id) )
 		message_die(GENERAL_MESSAGE, 'Forum_not_exist');
 	}
 	$topic_row = $db->sql_fetchrow($result);
-
 	if (!$topic_row)
 	{
 		message_die(GENERAL_MESSAGE, 'Forum_not_exist');
 	}
-
+	
 	$forum_topics = ( $topic_row['forum_topics'] == 0 ) ? 1 : $topic_row['forum_topics'];
-	$forum_name = $topic_row['forum_name'];
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$forum_name = $topic_row['forum_name'];
+//-- add
+	$forum_name = get_object_lang(POST_FORUM_URL . $topic_row['forum_id'], 'name');
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 }
 else
 {
@@ -183,7 +228,7 @@ if ($sid == '' || $sid != $userdata['session_id'])
 // Check if user did or did not confirm
 // If they did not, forward them to the last page they were on
 //
-if ( isset($HTTP_POST_VARS['cancel']) )
+if ( isset($_POST['cancel']) )
 {
 	if ( $topic_id )
 	{
@@ -237,7 +282,7 @@ switch( $mode )
 
 			include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
-			$topics = ( isset($HTTP_POST_VARS['topic_id_list']) ) ? $HTTP_POST_VARS['topic_id_list'] : array($topic_id);
+			$topics = ( isset($_POST['topic_id_list']) ) ? $_POST['topic_id_list'] : array($topic_id);
 
 			$topic_id_sql = '';
 			for($i = 0; $i < count($topics); $i++)
@@ -336,7 +381,13 @@ switch( $mode )
 			{
 				message_die(GENERAL_ERROR, 'Could not delete topics', '', __LINE__, __FILE__, $sql);
 			}
-
+			$sql = "DELETE 
+				FROM " . BOOKMARK_TABLE . " 
+				WHERE topic_id IN ($topic_id_sql)";
+			if ( !$db->sql_query($sql) )
+			{
+				message_die(GENERAL_ERROR, 'Could not delete bookmarks', '', __LINE__, __FILE__, $sql);
+			}
 			if ( $post_id_sql != '' )
 			{
 				$sql = "DELETE 
@@ -356,6 +407,7 @@ switch( $mode )
 				}
 
 				remove_search_post($post_id_sql);
+				delete_attachment(explode(', ', $post_id_sql));
 			}
 
 			if ( $vote_id_sql != '' )
@@ -392,7 +444,15 @@ switch( $mode )
 			{
 				message_die(GENERAL_ERROR, 'Could not delete watched post list', '', __LINE__, __FILE__, $sql);
 			}
-
+			// Start add - Who viewed a topic MOD
+			$sql = "DELETE 
+        			FROM " . TOPIC_VIEW_TABLE . " 
+        			WHERE topic_id IN ($topic_id_sql)"; 
+			if ( !$db->sql_query($sql, END_TRANSACTION) ) 
+			{ 
+				message_die(GENERAL_ERROR, 'Could not delete viewed post list', '', __LINE__, __FILE__, $sql); 
+			}
+			// End add - Who viewed a topic MOD
 			sync('forum', $forum_id);
 
 			if ( !empty($topic_id) )
@@ -415,16 +475,16 @@ switch( $mode )
 		else
 		{
 			// Not confirmed, show confirmation message
-			if ( empty($HTTP_POST_VARS['topic_id_list']) && empty($topic_id) )
+			if ( empty($_POST['topic_id_list']) && empty($topic_id) )
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
 
 			$hidden_fields = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" /><input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '" />';
 
-			if ( isset($HTTP_POST_VARS['topic_id_list']) )
+			if ( isset($_POST['topic_id_list']) )
 			{
-				$topics = $HTTP_POST_VARS['topic_id_list'];
+				$topics = $_POST['topic_id_list'];
 				for($i = 0; $i < count($topics); $i++)
 				{
 					$hidden_fields .= '<input type="hidden" name="topic_id_list[]" value="' . intval($topics[$i]) . '" />';
@@ -465,31 +525,44 @@ switch( $mode )
 
 		if ( $confirm )
 		{
-			if ( empty($HTTP_POST_VARS['topic_id_list']) && empty($topic_id) )
+			if ( empty($_POST['topic_id_list']) && empty($topic_id) )
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
 
-			$new_forum_id = intval($HTTP_POST_VARS['new_forum']);
+			$new_forum_id = intval($_POST['new_forum']);
+			//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+			$fid = $_POST['new_forum'];
+			if ($fid == 'Root')
+			{
+				$type = POST_CAT_URL;
+				$new_forum_id = 0;
+			}
+			else
+			{
+				$type = substr($fid, 0, 1);
+				$new_forum_id = ($type == POST_FORUM_URL) ? intval(substr($fid, 1)) : 0;
+			}
+			if ($new_forum_id <= 0 ) message_die(GENERAL_MESSAGE, $lang['Forum_not_exist']);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 			$old_forum_id = $forum_id;
-
 			$sql = 'SELECT forum_id FROM ' . FORUMS_TABLE . '
 				WHERE forum_id = ' . $new_forum_id;
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Could not select from forums table', '', __LINE__, __FILE__, $sql);
 			}
-			
+
 			if (!$db->sql_fetchrow($result))
 			{
 				message_die(GENERAL_MESSAGE, 'New forum does not exist');
 			}
 
-			$db->sql_freeresult($result);
-
+			$db->sql_freeresult($result); 
 			if ( $new_forum_id != $old_forum_id )
 			{
-				$topics = ( isset($HTTP_POST_VARS['topic_id_list']) ) ?  $HTTP_POST_VARS['topic_id_list'] : array($topic_id);
+				$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
 
 				$topic_list = '';
 				for($i = 0; $i < count($topics); $i++)
@@ -514,7 +587,7 @@ switch( $mode )
 				{
 					$topic_id = $row[$i]['topic_id'];
 					
-					if ( isset($HTTP_POST_VARS['move_leave_shadow']) )
+					if ( isset($_POST['move_leave_shadow']) )
 					{
 						// Insert topic in the old forum that indicates that the forum has moved.
 						$sql = "INSERT INTO " . TOPICS_TABLE . " (forum_id, topic_title, topic_poster, topic_time, topic_status, topic_type, topic_vote, topic_views, topic_replies, topic_first_post_id, topic_last_post_id, topic_moved_id)
@@ -575,16 +648,16 @@ switch( $mode )
 		}
 		else
 		{
-			if ( empty($HTTP_POST_VARS['topic_id_list']) && empty($topic_id) )
+			if ( empty($_POST['topic_id_list']) && empty($topic_id) )
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
 
 			$hidden_fields = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" /><input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '" />';
 
-			if ( isset($HTTP_POST_VARS['topic_id_list']) )
+			if ( isset($_POST['topic_id_list']) )
 			{
-				$topics = $HTTP_POST_VARS['topic_id_list'];
+				$topics = $_POST['topic_id_list'];
 
 				for($i = 0; $i < count($topics); $i++)
 				{
@@ -612,7 +685,13 @@ switch( $mode )
 				'L_YES' => $lang['Yes'],
 				'L_NO' => $lang['No'],
 
-				'S_FORUM_SELECT' => make_forum_select('new_forum', $forum_id), 
+				//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//				'S_FORUM_SELECT' => make_forum_select('new_forum', $forum_id), 
+//-- add
+				'S_FORUM_SELECT' => selectbox('new_forum', $forum_id),
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 				'S_MODCP_ACTION' => append_sid("modcp.$phpEx"),
 				'S_HIDDEN_FIELDS' => $hidden_fields)
 			);
@@ -624,12 +703,12 @@ switch( $mode )
 		break;
 
 	case 'lock':
-		if ( empty($HTTP_POST_VARS['topic_id_list']) && empty($topic_id) )
+		if ( empty($_POST['topic_id_list']) && empty($topic_id) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['None_selected']);
 		}
 
-		$topics = ( isset($HTTP_POST_VARS['topic_id_list']) ) ?  $HTTP_POST_VARS['topic_id_list'] : array($topic_id);
+		$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
 
 		$topic_id_sql = '';
 		for($i = 0; $i < count($topics); $i++)
@@ -669,12 +748,12 @@ switch( $mode )
 		break;
 
 	case 'unlock':
-		if ( empty($HTTP_POST_VARS['topic_id_list']) && empty($topic_id) )
+		if ( empty($_POST['topic_id_list']) && empty($topic_id) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['None_selected']);
 		}
 
-		$topics = ( isset($HTTP_POST_VARS['topic_id_list']) ) ?  $HTTP_POST_VARS['topic_id_list'] : array($topic_id);
+		$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
 
 		$topic_id_sql = '';
 		for($i = 0; $i < count($topics); $i++)
@@ -712,6 +791,76 @@ switch( $mode )
 		message_die(GENERAL_MESSAGE, $lang['Topics_Unlocked'] . '<br /><br />' . $message);
 
 		break;
+		// MOD MODCP EXTENSION BEGIN
+	case 'sticky':
+	case 'announce':
+	case 'normalise':
+        if ($mode == 'sticky' && !$is_auth['auth_sticky']) 
+        { 
+           $message = sprintf($lang['Sorry_auth_sticky'], $is_auth['auth_sticky_type']); 
+           message_die(GENERAL_MESSAGE, $message); 
+        } 
+        if ($mode == 'announce' && !$is_auth['auth_announce']) 
+        { 
+           $message = sprintf($lang['Sorry_auth_announce'], $is_auth['auth_announce_type']); 
+           message_die(GENERAL_MESSAGE, $message); 
+        } 
+		if ( empty($_POST['topic_id_list']) && empty($topic_id) )
+		{
+			message_die(GENERAL_MESSAGE, $lang['None_selected']);
+		}
+
+		$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
+
+		$topic_id_sql = '';
+		for($i = 0; $i < count($topics); $i++)
+		{
+			$topic_id_sql .= ( ( $topic_id_sql != "") ? ', ' : '' ) . $topics[$i];
+		}
+
+        $topic_type = ($mode == 'sticky') ? POST_STICKY : (($mode == 'announce') ? POST_ANNOUNCE : POST_NORMAL);
+		$sql = "UPDATE " . TOPICS_TABLE . " 
+			SET topic_type = " . $topic_type . " 
+			WHERE topic_id IN ($topic_id_sql) 
+				AND topic_moved_id = 0";
+		if ( !($result = $db->sql_query($sql)) )
+		{
+			message_die(GENERAL_ERROR, 'Could not update topics table', '', __LINE__, __FILE__, $sql);
+		}
+
+		if ( !empty($topic_id) )
+		{
+			$redirect_page = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id");
+			$message = sprintf($lang['Click_return_topic'], '<a href="' . $redirect_page . '">', '</a>');
+		}
+		else
+		{
+			$redirect_page = "modcp.$phpEx?" . POST_FORUM_URL . "=$forum_id&sid=" . $userdata['session_id'];
+			$message = sprintf($lang['Click_return_modcp'], '<a href="' . $redirect_page . '">', '</a>');
+		}
+
+		$message = $message . '<br \><br \>' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">', '</a>');
+
+		$template->assign_vars(array(
+			'META' => '<meta http-equiv="refresh" content="3;url=' . $redirect_page . '">')
+		);
+
+        if ($mode == 'sticky') 
+        { 
+            $message = $lang['Topics_Stickyd'] . '<br /><br />' . $message;
+        }
+        else if ($mode == 'announce')
+        {
+            $message = $lang['Topics_Announced'] . '<br /><br />' . $message;
+        }
+        else if ($mode == 'normalise')
+        {
+            $message = $lang['Topics_Normalised'] . '<br /><br />' . $message;
+        }
+
+		message_die(GENERAL_MESSAGE, $message);
+        break;
+    // MOD MODCP EXTENSION END        
 
 	case 'split':
 		$page_title = $lang['Mod_CP'];
@@ -719,9 +868,9 @@ switch( $mode )
 
 		$post_id_sql = '';
 
-		if (isset($HTTP_POST_VARS['split_type_all']) || isset($HTTP_POST_VARS['split_type_beyond']))
+		if (isset($_POST['split_type_all']) || isset($_POST['split_type_beyond']))
 		{
-			$posts = $HTTP_POST_VARS['post_id_list'];
+			$posts = $_POST['post_id_list'];
 
 			for ($i = 0; $i < count($posts); $i++)
 			{
@@ -776,29 +925,44 @@ switch( $mode )
 				}
 				while ($row = $db->sql_fetchrow($result));
 
-				$post_subject = trim(htmlspecialchars($HTTP_POST_VARS['subject']));
+				$post_subject = trim(htmlspecialchars($_POST['subject']));
 				if (empty($post_subject))
 				{
 					message_die(GENERAL_MESSAGE, $lang['Empty_subject']);
 				}
 
-				$new_forum_id = intval($HTTP_POST_VARS['new_forum_id']);
+				//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//				$new_forum_id = intval($_POST['new_forum_id']);
+//-- add
+				$fid = $_POST['new_forum_id'];
+				if ($fid == 'Root')
+				{
+					$type = POST_CAT_URL;
+					$new_forum_id = 0;
+				}
+				else
+				{
+					$type = substr($fid, 0, 1);
+					$new_forum_id = ($type == POST_FORUM_URL) ? intval(substr($fid, 1)) : 0;
+				}
+				if ($new_forum_id <= 0 ) message_die(GENERAL_MESSAGE, $lang['Forum_not_exist']);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 				$topic_time = time();
-				
 				$sql = 'SELECT forum_id FROM ' . FORUMS_TABLE . '
 					WHERE forum_id = ' . $new_forum_id;
 				if ( !($result = $db->sql_query($sql)) )
 				{
 					message_die(GENERAL_ERROR, 'Could not select from forums table', '', __LINE__, __FILE__, $sql);
 				}
-			
+				
 				if (!$db->sql_fetchrow($result))
 				{
 					message_die(GENERAL_MESSAGE, 'New forum does not exist');
 				}
 
 				$db->sql_freeresult($result);
-
 				$sql  = "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_poster, topic_time, forum_id, topic_status, topic_type)
 					VALUES ('" . str_replace("\'", "''", $post_subject) . "', $first_poster, " . $topic_time . ", $new_forum_id, " . TOPIC_UNLOCKED . ", " . POST_NORMAL . ")";
 				if (!($db->sql_query($sql, BEGIN_TRANSACTION)))
@@ -819,7 +983,7 @@ switch( $mode )
 					message_die(GENERAL_ERROR, 'Could not update topics watch table', '', __LINE__, __FILE__, $sql);
 				}
 
-				$sql_where = (!empty($HTTP_POST_VARS['split_type_beyond'])) ? " post_time >= $post_time AND topic_id = $topic_id" : "post_id IN ($post_id_sql)";
+				$sql_where = (!empty($_POST['split_type_beyond'])) ? " post_time >= $post_time AND topic_id = $topic_id" : "post_id IN ($post_id_sql)";
 
 				$sql = 	"UPDATE " . POSTS_TABLE . "
 					SET topic_id = $new_topic_id, forum_id = $new_forum_id 
@@ -874,6 +1038,8 @@ switch( $mode )
 					'L_AUTHOR' => $lang['Author'],
 					'L_MESSAGE' => $lang['Message'],
 					'L_SELECT' => $lang['Select'],
+					'L_SAVE_CHANGES' => $lang['Save_changes'],
+					'L_CANCEL' => $lang['Cancel'],
 					'L_SPLIT_SUBJECT' => $lang['Split_title'],
 					'L_SPLIT_FORUM' => $lang['Split_forum'],
 					'L_POSTED' => $lang['Posted'],
@@ -891,23 +1057,33 @@ switch( $mode )
 
 					'S_SPLIT_ACTION' => append_sid("modcp.$phpEx"),
 					'S_HIDDEN_FIELDS' => $s_hidden_fields,
-					'S_FORUM_SELECT' => make_forum_select("new_forum_id", false, $forum_id))
-				);
+					//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//					'S_FORUM_SELECT' => make_forum_select("new_forum_id", false, $forum_id))
+//-- add
+					'S_FORUM_SELECT' => selectbox("new_forum_id", false, $forum_id))
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
+				);
+				
 				//
 				// Define censored word matches
 				//
 				$orig_word = array();
 				$replacement_word = array();
 				obtain_word_list($orig_word, $replacement_word);
-
+				
 				for($i = 0; $i < $total_posts; $i++)
 				{
 					$post_id = $postrow[$i]['post_id'];
 					$poster_id = $postrow[$i]['poster_id'];
 					$poster = $postrow[$i]['username'];
 
-					$post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);
+					//-- mod : today at  yesterday at ------------------------------------------------------------------------ 
+//-- add 
+               $post_date = create_date_day($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']); 
+//-- end mod : today at  yesterday at ------------------------------------------------------------------------ 
+
 
 					$bbcode_uid = $postrow[$i]['bbcode_uid'];
 					$message = $postrow[$i]['post_text'];
@@ -972,7 +1148,7 @@ switch( $mode )
 		$page_title = $lang['Mod_CP'];
 		include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
-		$rdns_ip_num = ( isset($HTTP_GET_VARS['rdns']) ) ? $HTTP_GET_VARS['rdns'] : "";
+		$rdns_ip_num = ( isset($_GET['rdns']) ) ? $_GET['rdns'] : "";
 
 		if ( !$post_id )
 		{
@@ -1126,6 +1302,13 @@ switch( $mode )
 			'L_MOVE' => $lang['Move'],
 			'L_LOCK' => $lang['Lock'],
 			'L_UNLOCK' => $lang['Unlock'],
+			// MOD MODCP EXTENSTION BEGIN
+			'L_STICKY' => $lang['Sticky'],
+			'L_ANNOUNCE' => $lang['Announce'],
+			'L_NORMALISE' => $lang['Normalise'],
+            		'L_CHECK_ALL' => $lang['Check_All'], 
+            		'L_UNCHECK_ALL' => $lang['Uncheck_All'], 
+            		// MOD MODCP EXTENSTION END
 			'L_TOPICS' => $lang['Topics'], 
 			'L_REPLIES' => $lang['Replies'], 
 			'L_LASTPOST' => $lang['Last_Post'], 
@@ -1135,6 +1318,18 @@ switch( $mode )
 			'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" /><input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '" />',
 			'S_MODCP_ACTION' => append_sid("modcp.$phpEx"))
 		);
+		if ($is_auth['auth_delete']) 
+        {
+    		$template->assign_block_vars('switch_auth_delete', array());
+        }
+        if ($is_auth['auth_sticky']) 
+        {
+    		$template->assign_block_vars('switch_auth_sticky', array());
+        }
+        if ($is_auth['auth_announce']) 
+        {
+    		$template->assign_block_vars('switch_auth_announce', array());
+        }
 
 		$template->set_filenames(array(
 			'body' => 'modcp_body.tpl')
@@ -1223,7 +1418,10 @@ switch( $mode )
 			$u_view_topic = "modcp.$phpEx?mode=split&amp;" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'];
 			$topic_replies = $row['topic_replies'];
 
-			$last_post_time = create_date($board_config['default_dateformat'], $row['post_time'], $board_config['board_timezone']);
+			//-- mod : today at  yesterday at ------------------------------------------------------------------------ 
+//-- add 
+            $last_post_time = create_date_day($board_config['default_dateformat'], $row['post_time'], $board_config['board_timezone']); 
+//-- end mod : today at  yesterday at ------------------------------------------------------------------------ 
 
 			$template->assign_block_vars('topicrow', array(
 				'U_VIEW_TOPIC' => $u_view_topic,
@@ -1234,6 +1432,9 @@ switch( $mode )
 				'REPLIES' => $topic_replies,
 				'LAST_POST_TIME' => $last_post_time,
 				'TOPIC_ID' => $topic_id,
+				'TOPIC_FIRST_POST_ID' => $row['topic_first_post_id'],
+				'FORUM_ID' => $forum_id,
+				'TOPIC_ATTACHMENT_IMG' => topic_attachment_image($row['topic_attachment']),
 					
 				'L_TOPIC_FOLDER_ALT' => $folder_alt)
 			);

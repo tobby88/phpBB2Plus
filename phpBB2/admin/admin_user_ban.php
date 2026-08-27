@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: admin_user_ban.php,v 1.21.2.5 2004/03/25 15:57:20 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -40,16 +40,16 @@ require('./pagestart.' . $phpEx);
 //
 // Start program
 //
-if ( isset($HTTP_POST_VARS['submit']) )
+if ( isset($_POST['submit']) )
 {
 	$user_bansql = '';
 	$email_bansql = '';
 	$ip_bansql = '';
 
 	$user_list = array();
-	if ( !empty($HTTP_POST_VARS['username']) )
+	if ( !empty($_POST['username']) )
 	{
-		$this_userdata = get_userdata($HTTP_POST_VARS['username'], true);
+		$this_userdata = get_userdata($_POST['username'], true);
 		if( !$this_userdata )
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );
@@ -59,9 +59,9 @@ if ( isset($HTTP_POST_VARS['submit']) )
 	}
 
 	$ip_list = array();
-	if ( isset($HTTP_POST_VARS['ban_ip']) )
+	if ( isset($_POST['ban_ip']) )
 	{
-		$ip_list_temp = explode(',', $HTTP_POST_VARS['ban_ip']);
+		$ip_list_temp = explode(',', $_POST['ban_ip']);
 
 		for($i = 0; $i < count($ip_list_temp); $i++)
 		{
@@ -144,9 +144,9 @@ if ( isset($HTTP_POST_VARS['submit']) )
 	}
 
 	$email_list = array();
-	if ( isset($HTTP_POST_VARS['ban_email']) )
+	if ( isset($_POST['ban_email']) )
 	{
-		$email_list_temp = explode(',', $HTTP_POST_VARS['ban_email']);
+		$email_list_temp = explode(',', $_POST['ban_email']);
 
 		for($i = 0; $i < count($email_list_temp); $i++)
 		{
@@ -194,6 +194,13 @@ if ( isset($HTTP_POST_VARS['submit']) )
 			{
 				message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql);
 			}
+			$sql = "UPDATE " . USERS_TABLE . " 
+	   SET user_warnings=".$board_config['max_user_bancard']." 
+	   WHERE user_id=".$user_list[$i]; 
+	if ( !$db->sql_query($sql) ) 
+	{ 
+	     message_die(GENERAL_ERROR, "Couldn't update users warnings info".$sql, "", __LINE__, __FILE__, $sql); 
+	}
 		}
 	}
 
@@ -269,9 +276,9 @@ if ( isset($HTTP_POST_VARS['submit']) )
 
 	$where_sql = '';
 
-	if ( isset($HTTP_POST_VARS['unban_user']) )
+	if ( isset($_POST['unban_user']) )
 	{
-		$user_list = $HTTP_POST_VARS['unban_user'];
+		$user_list = $_POST['unban_user'];
 
 		for($i = 0; $i < count($user_list); $i++)
 		{
@@ -280,11 +287,31 @@ if ( isset($HTTP_POST_VARS['submit']) )
 				$where_sql .= ( ( $where_sql != '' ) ? ', ' : '' ) . intval($user_list[$i]);
 			}
 		}
+		if (! empty($where_sql))
+{
+	$sql = "SELECT ban_userid FROM ".BANLIST_TABLE." 
+	   WHERE ban_id IN ($where_sql)"; 
+	if ( !($result = $db->sql_query($sql) )) 
+	{ 
+	   message_die(GENERAL_ERROR, "Couldn't get user warnings info from database".$sql, "", __LINE__, __FILE__, $sql); 
+	} 
+	while ($user_id_list = $db->sql_fetchrow($result)) 
+	{ 
+	   $where_user_sql .= ( ( $where_user_sql != '' ) ? ', ' : '' ) . $user_id_list['ban_userid']; 
+	} 
+	$sql = "UPDATE " . USERS_TABLE . " 
+	   SET user_warnings='0' 
+	   WHERE user_id IN ($where_user_sql)"; 
+	if ( !$db->sql_query($sql) ) 
+	{ 
+	     message_die(GENERAL_ERROR, "Couldn't update user warnings info from database".$sql, "", __LINE__, __FILE__, $sql); 
+	}
+}
 	}
 
-	if ( isset($HTTP_POST_VARS['unban_ip']) )
+	if ( isset($_POST['unban_ip']) )
 	{
-		$ip_list = $HTTP_POST_VARS['unban_ip'];
+		$ip_list = $_POST['unban_ip'];
 
 		for($i = 0; $i < count($ip_list); $i++)
 		{
@@ -295,9 +322,9 @@ if ( isset($HTTP_POST_VARS['submit']) )
 		}
 	}
 
-	if ( isset($HTTP_POST_VARS['unban_email']) )
+	if ( isset($_POST['unban_email']) )
 	{
-		$email_list = $HTTP_POST_VARS['unban_email'];
+		$email_list = $_POST['unban_email'];
 
 		for($i = 0; $i < count($email_list); $i++)
 		{

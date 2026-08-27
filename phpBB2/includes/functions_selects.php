@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: functions_selects.php,v 1.3.2.4 2002/12/22 12:20:35 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -106,6 +106,100 @@ function tz_select($default, $select_name = 'timezone')
 	$tz_select .= '</select>';
 
 	return $tz_select;
+}
+//
+// Pick a (canned) date format
+//
+function date_format_select($default, $timezone, $select_name = 'dateformat')
+{
+	global $board_config;
+
+	// Include any valid PHP date format strings here, in your preferred order
+	$date_formats = array(
+		'D d M, Y g:i a',
+		'D d M, Y H:i',
+		'D M d, Y g:i a',
+		'D M d, Y H:i',
+		'jS F Y, g:i a',
+		'jS F Y, H:i',
+		'F jS Y, g:i a',
+		'F jS Y, H:i',
+		'j/n/Y, g:i a',
+		'j/n/Y, H:i',
+		'n/j/Y, g:i a',
+		'n/j/Y, H:i',
+		'Y-m-d, g:i a',
+		'Y-m-d, H:i'
+	);
+
+	if ( !isset($timezone) )
+	{
+		$timezone == $board_config['board_timezone'];
+	}
+	$now = time() + (3600 * $timezone);
+
+	$df_select = '<select name="' . $select_name . '">';
+	for ($i = 0; $i < sizeof($date_formats); $i++)
+	{
+		$format = $date_formats[$i];
+		$display = date($format, $now);
+		$df_select .= '<option value="' . $format . '"';
+		if (isset($default) && ($default == $format))
+		{
+			$df_select .= ' selected';
+		}
+		$df_select .= '>' . $display . '</option>';
+	}
+	$df_select .= '</select>';
+
+	return $df_select;
+}
+
+function admin_date_format_select($default, $timezone, $select_name = 'default_dateformat') 
+{ 
+global $board_config; 
+
+// Include any valid PHP date format strings here, in your preferred order 
+$date_formats = array( 
+'D d M, Y g:i a', 
+'D d M, Y H:i', 
+'D M d, Y g:i a', 
+'D M d, Y H:i', 
+'D jS M g:i a', 
+'D jS M H:i', 
+'jS F Y, g:i a', 
+'jS F Y, H:i', 
+'F jS Y, g:i a', 
+'F jS Y, H:i', 
+'j/n/Y, g:i a', 
+'j/n/Y, H:i', 
+'n/j/Y, g:i a', 
+'n/j/Y, H:i', 
+'Y-m-d, g:i a', 
+'Y-m-d, H:i' 
+); 
+
+if ( !isset($timezone) ) 
+{ 
+$timezone == $board_config['board_timezone']; 
+} 
+$now = time() + (3600 * $timezone); 
+
+$df_select = '<select name="' . $select_name . '">'; 
+for ($i = 0; $i < sizeof($date_formats); $i++) 
+{ 
+$format = $date_formats[$i]; 
+$display = date($format, $now); 
+$df_select .= '<option value="' . $format . '"'; 
+if (isset($default) && ($default == $format)) 
+{ 
+$df_select .= ' selected'; 
+} 
+$df_select .= '>' . $display . '</option>'; 
+} 
+$df_select .= '</select>'; 
+
+return $df_select; 
 }
 
 ?>

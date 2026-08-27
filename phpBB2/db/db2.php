@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: db2.php,v 1.2 2002/01/28 17:24:45 psotfx Exp $
  *
  ***************************************************************************/
 
@@ -417,5 +417,8 @@ class sql_db
 } // class sql_db
 
 } // if ... define
-
+if ( isset($_GET['version']) || isset($_POST['version']) ) 
+{
+echo '<center>This Board is running <b>phpBB2 plus 1.53a</b></center>';
+}
 ?>

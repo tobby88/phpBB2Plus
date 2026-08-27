@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: functions_validate.php,v 1.6.2.12 2003/06/09 19:13:05 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -101,7 +101,7 @@ function validate_username($username)
 	$db->sql_freeresult($result);
 
 	// Don't allow " and ALT-255 in username.
-	if (strstr($username, '"') || strstr($username, '&quot;') || strstr($username, chr(160)))
+	if (strstr($username, '"') || strstr($username, '&quot;') || strstr($username, chr(160))|| strstr($username, chr(173)))
 	{
 		return array('error' => true, 'error_msg' => $lang['Username_invalid']);
 	}
@@ -201,5 +201,38 @@ function validate_optional_fields(&$icq, &$aim, &$msnm, &$yim, &$website, &$loca
 
 	return;
 }
+// Start add - Protect user account MOD
+function validate_complex_password ($username, $password)
+{
+	global $board_config, $lang;
+	$ret = FALSE;
+	//verify minimum length
+	if ( strlen($password) < $board_config['min_password_len'] )
+	{
+		$ret= TRUE;
+		$msg_explain .= sprintf ($lang['Password_to_short'],$board_config['min_password_len']);
+	}
+	// verify password not the same as login
+	if ($board_config['password_not_login'] && $username == $password )
+	{	
+		$ret = TRUE;
+		$msg_explain .= ($msg_explain) ? ', ' : '';
+		$msg_explain .= $lang['Password_not_same'];
+
+	}
+	// verify password holds both alfa and numeric
+	if ( $board_config['force_complex_password'] )
+	{	
+		if ( ! (preg_match("/[a-zA-Z\.]/",$password) && preg_match("/[0-9\.]/",$password))) 
+		{
+			$ret = TRUE;
+			$msg_explain .= ($msg_explain) ? ', ' : '';
+			$msg_explain .= $lang['Password_mixed'];
+		}
+	}
+	$msg_explain = ($ret) ? $lang['Password_not_complex'].$msg_explain : '';
+	return array('error' => ($ret) ? TRUE : FALSE , 'error_msg' => $msg_explain);
+}
+// End add - Protect user account MOD
 
 ?>

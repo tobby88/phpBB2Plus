@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: functions_post.php,v 1.9.2.35 2003/06/09 19:35:56 psotfx Exp $
  *
  *
  ***************************************************************************/
@@ -90,14 +90,19 @@ function unprepare_message($message)
 //
 // Prepare a message for posting
 // 
-function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on, &$error_msg, &$username, &$bbcode_uid, &$subject, &$message, &$poll_title, &$poll_options, &$poll_length)
+//-- mod : calendar --------------------------------------------------------------------------------
+// here we have added
+//	, $topic_calendar_time = 0, $topic_calendar_duration = 0
+//-- modify
+
+function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on, &$error_msg, &$username, &$bbcode_uid, &$subject, &$message, &$poll_title, &$poll_options, &$poll_length, &$topic_desc, $topic_calendar_time = 0, $topic_calendar_duration = 0)
 {
 	global $board_config, $userdata, $lang, $phpEx, $phpbb_root_path;
 
 	// Check username
 	if (!empty($username))
 	{
-		$username = phpbb_clean_username($username);
+		$username = phpbb_clean_username($username); 
 
 		if (!$userdata['session_logged_in'] || ($userdata['session_logged_in'] && $username != $userdata['username']))
 		{
@@ -124,6 +129,11 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 	{
 		$error_msg .= (!empty($error_msg)) ? '<br />' . $lang['Empty_subject'] : $lang['Empty_subject'];
 	}
+	// Check Topic Desciption
+	if ( !empty($topic_desc) )
+   {
+      $topic_desc = htmlspecialchars(trim($topic_desc));
+   }
 
 	// Check message
 	if (!empty($message))
@@ -135,6 +145,22 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 	{
 		$error_msg .= (!empty($error_msg)) ? '<br />' . $lang['Empty_message'] : $lang['Empty_message'];
 	}
+	//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+	//
+	// check calendar date
+	//
+	if ((!empty($topic_calendar_time)) && ($mode == 'newtopic' || ($mode == 'editpost' && $post_data['first_post'])))
+	{
+		$year	= intval(date( 'Y', $topic_calendar_time));
+		$month	= intval(date( 'm', $topic_calendar_time));
+		$day	= intval(date( 'd', $topic_calendar_time));
+		if (!checkdate($month, $day, $year))
+		{
+			$error_msg .= (!empty($error_msg) ? '<br />' : '') . sprintf($lang['Date_error'], $day, $month, $year);
+		}
+	}
+//-- fin mod : calendar ----------------------------------------------------------------------------
 
 	//
 	// Handle poll stuff
@@ -182,11 +208,35 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 //
 // Post a new topic/reply/poll or edit existing post/poll
 //
-function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id, &$topic_type, &$bbcode_on, &$html_on, &$smilies_on, &$attach_sig, &$bbcode_uid, $post_username, $post_subject, $post_message, $poll_title, &$poll_options, &$poll_length)
+//-- mod : announces -------------------------------------------------------------------------------
+// here we have added
+//	, $topic_announce_duration = 0
+//-- modify
+//-- mod : post icon -------------------------------------------------------------------------------
+// here we added
+//	, $post_icon = 0
+//-- modify
+//-- mod : calendar --------------------------------------------------------------------------------
+// here we have added
+//	, $topic_calendar_time = 0, $topic_calendar_duration = 0
+//-- modify
+
+function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id, &$topic_type, &$bbcode_on, &$html_on, &$smilies_on, &$attach_sig, &$bbcode_uid, $post_username, $post_subject, $post_message, $poll_title, &$poll_options, &$poll_length, &$topic_desc, $topic_announce_duration = 0, $post_icon = 0, $topic_calendar_time = 0, $topic_calendar_duration = 0, &$news_category)
 {
 	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
 	global $userdata, $user_ip;
-
+    global $ctracker_config;
+	// BEGIN cmx_slash_news_mod
+	if( isset( $news_category ) && is_numeric( $news_category ) )
+	{
+		$news_id = intval( $news_category );
+		$topic_type = POST_NEWS;
+	}
+	else
+	{
+		$news_id = 0;
+	}
+// END cmx_slash_news_mod
 	include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
 	$current_time = time();
@@ -220,8 +270,31 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	if ($mode == 'newtopic' || ($mode == 'editpost' && $post_data['first_post']))
 	{
 		$topic_vote = (!empty($poll_title) && count($poll_options) >= 2) ? 1 : 0;
+		//-- mod : announces -------------------------------------------------------------------------------
+// here we added 
+//	topic_announce_duration,
+//	$topic_announce_duration,
+//
+// and
+//	, topic_announce_duration = $topic_announce_duration
+//-- modify
+//-- mod : post icon -------------------------------------------------------------------------------
+// here we added
+//	, topic_icon
+//	, $post_icon
+//
+// and
+//	, topic_icon = $post_icon
+//-- modify
+//-- mod : calendar --------------------------------------------------------------------------------
+// here we have added
+//	, topic_calendar_time, topic_calendar_duration
+//	, $topic_calendar_time, $topic_calendar_duration
+// and
+//	, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration
+//-- modify
 
-		$sql  = ($mode != "editpost") ? "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_poster, topic_time, forum_id, topic_status, topic_type, topic_vote) VALUES ('$post_subject', " . $userdata['user_id'] . ", $current_time, $forum_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_vote)" : "UPDATE " . TOPICS_TABLE . " SET topic_title = '$post_subject', topic_type = $topic_type " . (($post_data['edit_vote'] || !empty($poll_title)) ? ", topic_vote = " . $topic_vote : "") . " WHERE topic_id = $topic_id";
+		$sql  = ($mode != "editpost") ? "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_desc, topic_poster, topic_time, forum_id, news_id, topic_status, topic_type, topic_calendar_time, topic_calendar_duration, topic_icon, topic_announce_duration, topic_vote) VALUES ('$post_subject', '$topic_desc', " . $userdata['user_id'] . ", $current_time, $forum_id, $news_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_calendar_time, $topic_calendar_duration, $post_icon, $topic_announce_duration, $topic_vote)" : "UPDATE " . TOPICS_TABLE . " SET topic_title = '$post_subject', topic_desc = '$topic_desc', news_id = $news_id, topic_type = $topic_type, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration, topic_icon=$post_icon, topic_announce_duration = $topic_announce_duration " . (($post_data['edit_vote'] || !empty($poll_title)) ? ", topic_vote = " . $topic_vote : "") . " WHERE topic_id = $topic_id";
 		if (!$db->sql_query($sql))
 		{
 			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -234,7 +307,16 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	}
 
 	$edited_sql = ($mode == 'editpost' && !$post_data['last_post'] && $post_data['poster_post']) ? ", post_edit_time = $current_time, post_edit_count = post_edit_count + 1 " : "";
-	$sql = ($mode != "editpost") ? "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig) VALUES ($topic_id, $forum_id, " . $userdata['user_id'] . ", '$post_username', $current_time, '$user_ip', $bbcode_on, $html_on, $smilies_on, $attach_sig)" : "UPDATE " . POSTS_TABLE . " SET post_username = '$post_username', enable_bbcode = $bbcode_on, enable_html = $html_on, enable_smilies = $smilies_on, enable_sig = $attach_sig" . $edited_sql . " WHERE post_id = $post_id";
+	//-- mod : post icon -------------------------------------------------------------------------------
+// here we added
+// , post_icon
+// , $post_icon
+//
+// and
+//  , post_icon = $post_icon
+//-- modify
+
+	$sql = ($mode != "editpost") ? "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig, post_icon) VALUES ($topic_id, $forum_id, " . $userdata['user_id'] . ", '$post_username', $current_time, '$user_ip', $bbcode_on, $html_on, $smilies_on, $attach_sig, $post_icon)" : "UPDATE " . POSTS_TABLE . " SET post_username = '$post_username', enable_bbcode = $bbcode_on, enable_html = $html_on, enable_smilies = $smilies_on, enable_sig = $attach_sig, post_icon = $post_icon" . $edited_sql . " WHERE post_id = $post_id";
 	if (!$db->sql_query($sql, BEGIN_TRANSACTION))
 	{
 		message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -322,9 +404,91 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 			}
 		}
 	}
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+	board_stats();
+	cache_tree(true);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
+    //
+    // CBACK CrackerTracker Spammer Protection Engine
+    //
+    $ctinfomeldung = '';
+    if(($mode == 'newtopic' || $mode == 'reply') and ($ctracker_config['floodprot'] == 1))
+    {
+      if($userdata['user_level'] == 0 && $userdata['user_id'] != ANONYMOUS)
+      {
+        if($userdata['ct_posttime'] >= time())
+        {
+          if($userdata['ct_postcount'] > $ctracker_config['postintime'])
+          {
+            if($ctracker_config['autoban'] == 1)
+            {
+              ct_filllog();
+              $sql = "INSERT INTO " . BANLIST_TABLE . "( `ban_id` , `ban_userid` , `ban_ip` , `ban_email` ) VALUES ('', '" . $userdata['user_id'] . "', '', NULL);";
+
+  	    	    if( !$db->sql_query($sql))
+  	    	    {
+		      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+	          }
+
+              if( $userdata['session_logged_in'] )
+		      {
+			    session_end($userdata['session_id'], $userdata['user_id']);
+		      }
+            }
+            else
+            {
+              ct_filllog();
+              $sql = "UPDATE " . USERS_TABLE . " SET user_active = 0 WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    	  
+		  if( !$db->sql_query($sql))
+  	    	  {
+	      	message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          	  }
+
+		      if( $userdata['session_logged_in'] )
+		      {
+			    session_end($userdata['session_id'], $userdata['user_id']);
+		      }
+            }
+
+            message_die(GENERAL_MESSAGE, $lang['ct_forum_blo']);
+          }
+          else if($userdata['ct_postcount'] == $ctracker_config['postintime'])
+          {
+            $ctinfomeldung = sprintf($lang['ct_forum_wa'] . '<br /><br />', $ctracker_config['posttimespan']);
+          }
+          else
+          {
+            $ctinfomeldung = '';
+          }
+
+          $sql = "UPDATE " . USERS_TABLE . " SET ct_postcount = ct_postcount + 1 WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    if( !$db->sql_query($sql))
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+        }
+        else
+        {
+          $stime = time() + $ctracker_config['posttimespan'];
+          $sql = "UPDATE " . USERS_TABLE . " SET ct_posttime = " . $stime . " WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    if( !$db->sql_query($sql))
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+	    $sql = "UPDATE " . USERS_TABLE . " SET ct_postcount = 2 WHERE user_id = '" . $userdata['user_id'] . "'";
+  	    if( !$db->sql_query($sql))
+  	    {
+	      message_die(CRITICAL_ERROR, "Could not perform Database operation", "", __LINE__, __FILE__, $sql);
+          }
+        }
+      }
+    }
 
 	$meta = '<meta http-equiv="refresh" content="3;url=' . append_sid("viewtopic.$phpEx?" . POST_POST_URL . "=" . $post_id) . '#' . $post_id . '">';
-	$message = $lang['Stored'] . '<br /><br />' . sprintf($lang['Click_view_message'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_POST_URL . "=" . $post_id) . '#' . $post_id . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">', '</a>');
+	$message = $ctinfomeldung . $lang['Stored'] . '<br /><br />' . sprintf($lang['Click_view_message'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_POST_URL . "=" . $post_id) . '#' . $post_id . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">', '</a>');
 
 	return false;
 }
@@ -336,7 +500,35 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 {
 	global $db;
 
-	$sign = ($mode == 'delete') ? '- 1' : '+ 1';
+	$sql = "SELECT * FROM " . 
+      FORUMS_TABLE . " 
+      WHERE forum_id = $forum_id"; 
+   $result = $db->sql_query($sql); 
+   $forum_information = $db->sql_fetchrow($result); 
+   $count_posts = $forum_information['count_posts']; 
+    
+   if ($mode == 'delete') 
+   { 
+      if ($count_posts) 
+      { 
+         $sign = "- 1"; 
+      } 
+      else 
+      { 
+         $sign = ""; 
+      } 
+   } 
+   else 
+   { 
+      if ($count_posts) 
+      { 
+         $sign = "+ 1"; 
+      } 
+      else 
+      { 
+         $sign = ""; 
+      } 
+                }
 	$forum_update_sql = "forum_posts = forum_posts $sign";
 	$topic_update_sql = '';
 
@@ -360,7 +552,12 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 				{
 					message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
 				}
-
+				$sql = "DELETE FROM " . BOOKMARK_TABLE . "
+					WHERE topic_id = $topic_id";
+				if ( !$db->sql_query($sql) )
+				{
+					message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
+				}
 				if ($row = $db->sql_fetchrow($result))
 				{
 					$topic_update_sql .= ', topic_last_post_id = ' . $row['last_post_id'];
@@ -445,6 +642,11 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
 		}
 	}
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+	board_stats();
+	cache_tree(true);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	return;
 }
@@ -536,6 +738,11 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	}
 
 	$message .=  '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">', '</a>');
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+	board_stats();
+	cache_tree(true);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	return;
 }
@@ -884,4 +1091,5 @@ function clean_html($tag)
 		return htmlspecialchars('<' .   $tag[1] . '>');
 	}
 }
+
 ?>

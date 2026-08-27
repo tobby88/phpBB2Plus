@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: usercp_email.php,v 1.7.2.13 2003/06/06 18:02:15 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -33,9 +33,9 @@ if (!$board_config['board_email_form'])
 	redirect(append_sid("index.$phpEx", true));
 }
 
-if ( !empty($HTTP_GET_VARS[POST_USERS_URL]) || !empty($HTTP_POST_VARS[POST_USERS_URL]) )
+if ( !empty($_GET[POST_USERS_URL]) || !empty($_POST[POST_USERS_URL]) )
 {
-	$user_id = ( !empty($HTTP_GET_VARS[POST_USERS_URL]) ) ? intval($HTTP_GET_VARS[POST_USERS_URL]) : intval($HTTP_POST_VARS[POST_USERS_URL]);
+	$user_id = ( !empty($_GET[POST_USERS_URL]) ) ? intval($_GET[POST_USERS_URL]) : intval($_POST[POST_USERS_URL]);
 }
 else
 {
@@ -47,31 +47,55 @@ if ( !$userdata['session_logged_in'] )
 	redirect(append_sid("login.$phpEx?redirect=profile.$phpEx&mode=email&" . POST_USERS_URL . "=$user_id", true));
 }
 
-$sql = "SELECT username, user_email, user_viewemail, user_lang  
+$sql = "SELECT username, user_email, user_viewemail, user_lang, user_absence, user_absence_mode, user_absence_text  
 	FROM " . USERS_TABLE . " 
 	WHERE user_id = $user_id";
 if ( $result = $db->sql_query($sql) )
 {
-	$row = $db->sql_fetchrow($result);
+	if ( $row = $db->sql_fetchrow($result) )
+	{
 
 	$username = $row['username'];
 	$user_email = $row['user_email']; 
 	$user_lang = $row['user_lang'];
+	if ( $row['user_absence'] == TRUE && allow_send_to_absent() == FALSE )
+	{
+		$send_to_user = $row['username'];
+		$absence_mode = create_absence_mode($row['user_absence_mode'], $pm_img, $pm, $email_img, $email, $row['username']);
+		$error_msg = sprintf($lang['User_absent'], $send_to_user, $absence_mode, $row['user_absence_text'], $send_to_user);
+
+		include($phpbb_root_path . 'includes/page_header.'.$phpEx);
+		$template->set_filenames(array(
+			'reg_header' => 'error_body.tpl')
+		);
+		$template->assign_vars(array(
+			'ERROR_MESSAGE' => $error_msg)
+		);
+		$template->pparse('reg_header');
+		include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
+
+		exit;
+	}
 
 	if ( $row['user_viewemail'] || $userdata['user_level'] == ADMIN )
 	{
+		if ( $userdata['ct_mailcount'] >= time() && $ctracker_config['mailfeature'] == 1 )
+		{
+			message_die(GENERAL_MESSAGE, $lang['ct_forum_emb']);
+		}
+
 		if ( time() - $userdata['user_emailtime'] < $board_config['flood_interval'] )
 		{
 			message_die(GENERAL_MESSAGE, $lang['Flood_email_limit']);
 		}
 
-		if ( isset($HTTP_POST_VARS['submit']) )
+		if ( isset($_POST['submit']) )
 		{
 			$error = FALSE;
 
-			if ( !empty($HTTP_POST_VARS['subject']) )
+			if ( !empty($_POST['email_subject']) )
 			{
-				$subject = trim(stripslashes($HTTP_POST_VARS['subject']));
+				$subject = trim(stripslashes($_POST['email_subject']));
 			}
 			else
 			{
@@ -79,9 +103,9 @@ if ( $result = $db->sql_query($sql) )
 				$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['Empty_subject_email'] : $lang['Empty_subject_email'];
 			}
 
-			if ( !empty($HTTP_POST_VARS['message']) )
+			if ( !empty($_POST['email_message']) )
 			{
-				$message = trim(stripslashes($HTTP_POST_VARS['message']));
+				$message = trim(stripslashes($_POST['email_message']));
 			}
 			else
 			{
@@ -91,6 +115,12 @@ if ( $result = $db->sql_query($sql) )
 
 			if ( !$error )
 			{
+                $mtimetemp = time() + 240;
+                $sql = "UPDATE " . USERS_TABLE . "
+					SET ct_mailcount = " . $mtimetemp . "
+					WHERE user_id = " . $userdata['user_id'];
+                $db->sql_query($sql);
+
 				$sql = "UPDATE " . USERS_TABLE . " 
 					SET user_emailtime = " . time() . " 
 					WHERE user_id = " . $userdata['user_id'];
@@ -122,7 +152,7 @@ if ( $result = $db->sql_query($sql) )
 					$emailer->send();
 					$emailer->reset();
 
-					if ( !empty($HTTP_POST_VARS['cc_email']) )
+					if ( !empty($_POST['cc_email']) )
 					{
 						$emailer->from($userdata['user_email']);
 						$emailer->replyto($userdata['user_email']);
@@ -203,8 +233,13 @@ if ( $result = $db->sql_query($sql) )
 	}
 }
 else
+	{
+		message_die(GENERAL_MESSAGE, $lang['User_not_exist']);
+	}
+}
+else
 {
-	message_die(GENERAL_MESSAGE, $lang['User_not_exist']);
+	message_die(GENERAL_ERROR, 'Could not select user data', '', __LINE__, __FILE__, $sql);
 }
 
 ?>

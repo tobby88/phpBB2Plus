@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: install.php,v 1.6.2.12 2003/05/17 17:32:25 acydburn Exp $
  *
  ***************************************************************************/
 
@@ -33,32 +33,22 @@ function page_header($text, $form_action = false)
 <meta http-equiv="Content-Type" content="text/html; charset=<?php echo $lang['ENCODING']; ?>">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title><?php echo $lang['Welcome_install'];?></title>
-<link rel="stylesheet" href="../templates/subSilver/subSilver.css" type="text/css">
+<link rel="stylesheet" href="./fissh/fisubsilversh.css" type="text/css">
 <style type="text/css">
-<!--
-th			{ background-image: url('../templates/subSilver/images/cellpic3.gif') }
-td.cat		{ background-image: url('../templates/subSilver/images/cellpic1.gif') }
-td.rowpic	{ background-image: url('../templates/subSilver/images/cellpic2.jpg'); background-repeat: repeat-y }
-td.catHead,td.catSides,td.catLeft,td.catRight,td.catBottom { background-image: url('../templates/subSilver/images/cellpic1.gif') }
-
-/* Import the fancy styles for IE only (NS4.x doesn't use the @import function) */
-@import url("../templates/subSilver/formIE.css"); 
-//-->
 </style>
 </head>
 <body bgcolor="#E5E5E5" text="#000000" link="#006699" vlink="#5584AA">
-
+<table class="topbkg" width="100%" cellspacing="0" cellpadding="0" border="0">
+<tr> 
+<td><img src="./fissh/phpbb2_logo.jpg" border="0" width="240" height="110" /></td>
+<td><span class="maintitle"><?php echo $lang['Welcome_install'];?><img src="./fissh/spacer.gif" alt="" width="28" height="4" /></span></td>
+<td align="right"><a href="../"><img src="./fissh/phpbb2_logor.jpg" border="0" width="140" height="110" /></a></td>
+</tr>
+</table>
 <table width="100%" border="0" cellspacing="0" cellpadding="10" align="center"> 
 	<tr>
 		<td class="bodyline" width="100%"><table width="100%" border="0" cellspacing="0" cellpadding="0">
-			<tr>
-				<td><table width="100%" border="0" cellspacing="0" cellpadding="0">
-					<tr>
-						<td><img src="../templates/subSilver/images/logo_phpBB.gif" border="0" alt="Forum Home" vspace="1" /></td>
-						<td align="center" width="100%" valign="middle"><span class="maintitle"><?php echo $lang['Welcome_install'];?></span></td>
-					</tr>
-				</table></td>
-			</tr>
+			
 			<tr>
 				<td><br /><br /></td>
 			</tr>
@@ -73,7 +63,9 @@ td.catHead,td.catSides,td.catLeft,td.catRight,td.catBottom { background-image: u
 				<td><br /><br /></td>
 			</tr>
 			<tr>
-				<td width="100%"><table width="100%" cellpadding="2" cellspacing="1" border="0" class="forumline"><form action="<?php echo ($form_action) ? $form_action : 'install.'.$phpEx; ?>" name="install" method="post">
+				<td width="100%">
+				<form action="<?php echo ($form_action) ? $form_action : 'install.'.$phpEx; ?>" name="install" method="post">
+				<table width="100%" cellpadding="2" cellspacing="1" border="0" class="forumline">
 <?php
 
 }
@@ -99,7 +91,7 @@ function page_common_form($hidden, $submit)
 
 ?>
 					<tr> 
-					  <td class="catBottom" align="center" colspan="2"><?php echo $hidden; ?><input class="mainoption" type="submit" value="<?php echo $submit; ?>" /></td>
+					  <td class="cat" align="center" colspan="2"><?php echo $hidden; ?><input class="mainoption" type="submit" value="<?php echo $submit; ?>" /></td>
 					</tr>
 <?php
 
@@ -225,64 +217,47 @@ function guess_lang()
 error_reporting  (E_ERROR | E_WARNING | E_PARSE); // This will NOT report uninitialized variables
 set_magic_quotes_runtime(0); // Disable magic_quotes_runtime
 
-// PHP5 with register_long_arrays off?
-if (!isset($HTTP_POST_VARS) && isset($_POST))
-{
-	$HTTP_POST_VARS = $_POST;
-	$HTTP_GET_VARS = $_GET;
-	$HTTP_SERVER_VARS = $_SERVER;
-	$HTTP_COOKIE_VARS = $_COOKIE;
-	$HTTP_ENV_VARS = $_ENV;
-	$HTTP_POST_FILES = $_FILES;
-
-	// _SESSION is the only superglobal which is conditionally set
-	if (isset($_SESSION))
-	{
-		$HTTP_SESSION_VARS = $_SESSION;
-	}
-}
-
 // Slash data if it isn't slashed
 if (!get_magic_quotes_gpc())
 {
-	if (is_array($HTTP_GET_VARS))
+	if (is_array($_GET))
 	{
-		while (list($k, $v) = each($HTTP_GET_VARS))
+		while (list($k, $v) = each($_GET))
 		{
-			if (is_array($HTTP_GET_VARS[$k]))
+			if (is_array($_GET[$k]))
 			{
-				while (list($k2, $v2) = each($HTTP_GET_VARS[$k]))
+				while (list($k2, $v2) = each($_GET[$k]))
 				{
-					$HTTP_GET_VARS[$k][$k2] = addslashes($v2);
+					$_GET[$k][$k2] = addslashes($v2);
 				}
-				@reset($HTTP_GET_VARS[$k]);
+				@reset($_GET[$k]);
 			}
 			else
 			{
-				$HTTP_GET_VARS[$k] = addslashes($v);
+				$_GET[$k] = addslashes($v);
 			}
 		}
-		@reset($HTTP_GET_VARS);
+		@reset($_GET);
 	}
 
-	if (is_array($HTTP_POST_VARS))
+	if (is_array($_POST))
 	{
-		while (list($k, $v) = each($HTTP_POST_VARS))
+		while (list($k, $v) = each($_POST))
 		{
-			if (is_array($HTTP_POST_VARS[$k]))
+			if (is_array($_POST[$k]))
 			{
-				while (list($k2, $v2) = each($HTTP_POST_VARS[$k]))
+				while (list($k2, $v2) = each($_POST[$k]))
 				{
-					$HTTP_POST_VARS[$k][$k2] = addslashes($v2);
+					$_POST[$k][$k2] = addslashes($v2);
 				}
-				@reset($HTTP_POST_VARS[$k]);
+				@reset($_POST[$k]);
 			}
 			else
 			{
-				$HTTP_POST_VARS[$k] = addslashes($v);
+				$_POST[$k] = addslashes($v);
 			}
 		}
-		@reset($HTTP_POST_VARS);
+		@reset($_POST);
 	}
 
 	if (is_array($HTTP_COOKIE_VARS))
@@ -338,85 +313,57 @@ $available_dbms = array(
 		'DELIM'			=> ';', 
 		'DELIM_BASIC'	=> ';',
 		'COMMENTS'		=> 'remove_remarks'
-	), 
-	'postgres' => array(
-		'LABEL'			=> 'PostgreSQL 7.x',
-		'SCHEMA'		=> 'postgres', 
-		'DELIM'			=> ';', 
-		'DELIM_BASIC'	=> ';',
-		'COMMENTS'		=> 'remove_comments'
-	), 
-	'mssql' => array(
-		'LABEL'			=> 'MS SQL Server 7/2000',
-		'SCHEMA'		=> 'mssql', 
-		'DELIM'			=> 'GO', 
-		'DELIM_BASIC'	=> ';',
-		'COMMENTS'		=> 'remove_comments'
-	),
-	'msaccess' => array(
-		'LABEL'			=> 'MS Access [ ODBC ]',
-		'SCHEMA'		=> '', 
-		'DELIM'			=> '', 
-		'DELIM_BASIC'	=> ';',
-		'COMMENTS'		=> ''
-	),
-	'mssql-odbc' =>	array(
-		'LABEL'			=> 'MS SQL Server [ ODBC ]',
-		'SCHEMA'		=> 'mssql', 
-		'DELIM'			=> 'GO',
-		'DELIM_BASIC'	=> ';',
-		'COMMENTS'		=> 'remove_comments'
-	)
+		)
 );
 
 // Obtain various vars
-$confirm = (isset($HTTP_POST_VARS['confirm'])) ? true : false;
-$cancel = (isset($HTTP_POST_VARS['cancel'])) ? true : false;
+$confirm = (isset($_POST['confirm'])) ? true : false;
+$cancel = (isset($_POST['cancel'])) ? true : false;
 
-if (isset($HTTP_POST_VARS['install_step']) || isset($HTTP_GET_VARS['install_step']))
+if (isset($_POST['install_step']) || isset($_GET['install_step']))
 {
-	$install_step = (isset($HTTP_POST_VARS['install_step'])) ? $HTTP_POST_VARS['install_step'] : $HTTP_GET_VARS['install_step'];
+	$install_step = (isset($_POST['install_step'])) ? $_POST['install_step'] : $_GET['install_step'];
 }
 else
 {
 	$install_step = '';
 }
 
-$upgrade = (!empty($HTTP_POST_VARS['upgrade'])) ? $HTTP_POST_VARS['upgrade']: '';
-$upgrade_now = (!empty($HTTP_POST_VARS['upgrade_now'])) ? $HTTP_POST_VARS['upgrade_now']:'';
+$upgrade = (!empty($_POST['upgrade'])) ? $_POST['upgrade']: '';
+$upgrade_now = (!empty($_POST['upgrade_now'])) ? $_POST['upgrade_now']:'';
 
-$dbms = isset($HTTP_POST_VARS['dbms']) ? $HTTP_POST_VARS['dbms'] : '';
+$dbms = isset($_POST['dbms']) ? $_POST['dbms'] : '';
 
-$dbhost = (!empty($HTTP_POST_VARS['dbhost'])) ? $HTTP_POST_VARS['dbhost'] : 'localhost';
-$dbuser = (!empty($HTTP_POST_VARS['dbuser'])) ? $HTTP_POST_VARS['dbuser'] : '';
-$dbpasswd = (!empty($HTTP_POST_VARS['dbpasswd'])) ? $HTTP_POST_VARS['dbpasswd'] : '';
-$dbname = (!empty($HTTP_POST_VARS['dbname'])) ? $HTTP_POST_VARS['dbname'] : '';
+$dbhost = (!empty($_POST['dbhost'])) ? $_POST['dbhost'] : 'localhost';
+$dbuser = (!empty($_POST['dbuser'])) ? $_POST['dbuser'] : '';
+$dbpasswd = (!empty($_POST['dbpasswd'])) ? $_POST['dbpasswd'] : '';
+$dbname = (!empty($_POST['dbname'])) ? $_POST['dbname'] : '';
 
-$table_prefix = (!empty($HTTP_POST_VARS['prefix'])) ? $HTTP_POST_VARS['prefix'] : '';
+$table_prefix = (!empty($_POST['prefix'])) ? $_POST['prefix'] : '';
 
-$admin_name = (!empty($HTTP_POST_VARS['admin_name'])) ? $HTTP_POST_VARS['admin_name'] : '';
-$admin_pass1 = (!empty($HTTP_POST_VARS['admin_pass1'])) ? $HTTP_POST_VARS['admin_pass1'] : '';
-$admin_pass2 = (!empty($HTTP_POST_VARS['admin_pass2'])) ? $HTTP_POST_VARS['admin_pass2'] : '';
+$admin_name = (!empty($_POST['admin_name'])) ? $_POST['admin_name'] : '';
+$admin_pass1 = (!empty($_POST['admin_pass1'])) ? $_POST['admin_pass1'] : '';
+$admin_pass2 = (!empty($_POST['admin_pass2'])) ? $_POST['admin_pass2'] : '';
 
-$ftp_path = (!empty($HTTP_POST_VARS['ftp_path'])) ? $HTTP_POST_VARS['ftp_path'] : '';
-$ftp_user = (!empty($HTTP_POST_VARS['ftp_user'])) ? $HTTP_POST_VARS['ftp_user'] : '';
-$ftp_pass = (!empty($HTTP_POST_VARS['ftp_pass'])) ? $HTTP_POST_VARS['ftp_pass'] : '';
+$ftp_path = (!empty($_POST['ftp_path'])) ? $_POST['ftp_path'] : '';
+$ftp_user = (!empty($_POST['ftp_user'])) ? $_POST['ftp_user'] : '';
+$ftp_pass = (!empty($_POST['ftp_pass'])) ? $_POST['ftp_pass'] : '';
 
-if (isset($HTTP_POST_VARS['lang']) && preg_match('#^[a-z_]+$#', $HTTP_POST_VARS['lang']))
+if (isset($_POST['lang']) && preg_match('#^[a-z_]+$#', $_POST['lang']))
 {
-	$language = strip_tags($HTTP_POST_VARS['lang']);
+	$language = strip_tags($_POST['lang']);
 }
 else
 {
 	$language = guess_lang();
 }
 
-$board_email = (!empty($HTTP_POST_VARS['board_email'])) ? $HTTP_POST_VARS['board_email'] : '';
-$script_path = (!empty($HTTP_POST_VARS['script_path'])) ? $HTTP_POST_VARS['script_path'] : str_replace('install', '', dirname($HTTP_SERVER_VARS['PHP_SELF']));
+$board_email = (!empty($_POST['board_email'])) ? $_POST['board_email'] : '';
+$script_path = (!empty($_POST['script_path'])) ? $_POST['script_path'] : str_replace('install', '', dirname($HTTP_SERVER_VARS['PHP_SELF']));
 
-if (!empty($HTTP_POST_VARS['server_name']))
+if (!empty($_POST['server_name']))
 {
-	$server_name = $HTTP_POST_VARS['server_name'];
+	$server_name = $_POST['server_name'];
 }
 else
 {
@@ -435,9 +382,9 @@ else
 	}
 }
 
-if (!empty($HTTP_POST_VARS['server_port']))
+if (!empty($_POST['server_port']))
 {
-	$server_port = $HTTP_POST_VARS['server_port'];
+	$server_port = $_POST['server_port'];
 }
 else
 {
@@ -477,7 +424,7 @@ if ($upgrade == 1)
 }
 
 // What do we need to do?
-if (!empty($HTTP_POST_VARS['send_file']) && $HTTP_POST_VARS['send_file'] == 1 && empty($HTTP_POST_VARS['upgrade_now']))
+if (!empty($_POST['send_file']) && $_POST['send_file'] == 1 && empty($_POST['upgrade_now']))
 {
 	header('Content-Type: text/x-delimtext; name="config.' . $phpEx . '"');
 	header('Content-disposition: attachment; filename="config.' . $phpEx . '"');
@@ -485,13 +432,13 @@ if (!empty($HTTP_POST_VARS['send_file']) && $HTTP_POST_VARS['send_file'] == 1 &&
 	// We need to stripslashes no matter what the setting of magic_quotes_gpc is
 	// because we add slashes at the top if its off, and they are added automaticlly 
 	// if it is on.
-	echo stripslashes($HTTP_POST_VARS['config_data']);
+	echo stripslashes($_POST['config_data']);
 
 	exit;
 }
-else if (!empty($HTTP_POST_VARS['send_file']) && $HTTP_POST_VARS['send_file'] == 2)
+else if (!empty($_POST['send_file']) && $_POST['send_file'] == 2)
 {
-	$s_hidden_fields = '<input type="hidden" name="config_data" value="' . htmlspecialchars(stripslashes($HTTP_POST_VARS['config_data'])) . '" />';
+	$s_hidden_fields = '<input type="hidden" name="config_data" value="' . htmlspecialchars(stripslashes($_POST['config_data'])) . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="ftp_file" value="1" />';
 
 	if ($upgrade == 1)
@@ -524,7 +471,7 @@ else if (!empty($HTTP_POST_VARS['send_file']) && $HTTP_POST_VARS['send_file'] ==
 	exit;
 
 }
-else if (!empty($HTTP_POST_VARS['ftp_file']))
+else if (!empty($_POST['ftp_file']))
 {
 	// Try to connect ...
 	$conn_id = @ftp_connect('localhost');
@@ -535,7 +482,7 @@ else if (!empty($HTTP_POST_VARS['ftp_file']))
 		page_header($lang['NoFTP_config']);
 
 		// Error couldn't get connected... Go back to option to send file...
-		$s_hidden_fields = '<input type="hidden" name="config_data" value="' . htmlspecialchars(stripslashes($HTTP_POST_VARS['config_data'])) . '" />';
+		$s_hidden_fields = '<input type="hidden" name="config_data" value="' . htmlspecialchars(stripslashes($_POST['config_data'])) . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="send_file" value="1" />';
 
 		// If we're upgrading ...
@@ -576,7 +523,7 @@ else if (!empty($HTTP_POST_VARS['ftp_file']))
 
 		$fp = @fopen($tmpfname, 'w');
 
-		@fwrite($fp, stripslashes($HTTP_POST_VARS['config_data']));
+		@fwrite($fp, stripslashes($_POST['config_data']));
 
 		@fclose($fp);
 
@@ -622,8 +569,8 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 
 	if (!empty($install_step))
 	{
-		if ((($HTTP_POST_VARS['admin_pass1'] != $HTTP_POST_VARS['admin_pass2'])) ||
-			(empty($HTTP_POST_VARS['admin_pass1']) || empty($dbhost)) && $HTTP_POST_VARS['cur_lang'] == $language)
+		if ((($_POST['admin_pass1'] != $_POST['admin_pass2'])) ||
+			(empty($_POST['admin_pass1']) || empty($dbhost)) && $_POST['cur_lang'] == $language)
 		{
 			$error = $lang['Password_mismatch'];
 		}
@@ -668,7 +615,7 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 	$upgrade_option = '<select name="upgrade"';
 	$upgrade_option .= 'onchange="if (this.options[this.selectedIndex].value == 1) { this.form.dbms.selectedIndex = 0; }">';
 	$upgrade_option .= '<option value="0">' . $lang['Install'] . '</option>';
-	$upgrade_option .= '<option value="1">' . $lang['Upgrade'] . '</option></select>';
+	$upgrade_option .= '<option value="1">' . $lang['Upgrade'] . ' from phpBB 1</option></select>';
 	
 	$s_hidden_fields = '<input type="hidden" name="install_step" value="1" /><input type="hidden" name="cur_lang" value="' . $language . '" />';
 
@@ -773,27 +720,10 @@ else
 	{
 		switch($dbms)
 		{
-			case 'msaccess':
-			case 'mssql-odbc':
-				$check_exts = 'odbc';
-				$check_other = 'odbc';
-				break;
-
-			case 'mssql':
-				$check_exts = 'mssql';
-				$check_other = 'sybase';
-				break;
-
 			case 'mysql':
 			case 'mysql4':
 				$check_exts = 'mysql';
 				$check_other = 'mysql';
-				break;
-
-			case 'postgres':
-				$check_exts = 'pgsql';
-				$check_other = 'pgsql';
-				break;
 		}
 
 		if (!extension_loaded($check_exts) && !extension_loaded($check_other))
@@ -881,6 +811,13 @@ else
 			$error = '';
 
 			// Update the default admin user with their information.
+			
+			$sql = "INSERT INTO " . $table_prefix . "stats_config (config_name, config_value) 
+				VALUES ('install_date', " . time() . ")";
+			if (!$db->sql_query($sql))
+			{
+				$error .= "Could not insert statistics_mod_startdate :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
+			}
 			$sql = "INSERT INTO " . $table_prefix . "config (config_name, config_value) 
 				VALUES ('board_startdate', " . time() . ")";
 			if (!$db->sql_query($sql))
@@ -894,7 +831,21 @@ else
 			{
 				$error .= "Could not insert default_lang :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
 			}
-
+			
+			$sql = "INSERT INTO " . $table_prefix . "link_config (config_name, config_value) 
+			        VALUES ('site_logo', 'http://".$server_name .$script_path."images/links/web_logo88a.gif')";
+			if (!$db->sql_query($sql))
+			{
+				$error .= "Could not insert site logo data :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
+			}
+			        
+			$sql = "INSERT INTO " . $table_prefix . "link_config (config_name, config_value) 
+			        VALUES ('site_url', 'http://". $server_name .$script_path."')";
+			if (!$db->sql_query($sql))
+			{
+				$error .= "Could not insert site url data :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
+			}
+			
 			$update_config = array(
 				'board_email'	=> $board_email,
 				'script_path'	=> $script_path,
@@ -929,6 +880,13 @@ else
 			{
 				$error .= "Could not update user_regdate :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
 			}
+			
+			$sql = "UPDATE " . $table_prefix . "users 
+				SET user_passwd_change = " .time();
+			if (!$db->sql_query($sql))
+			{
+				$error .= "Could not update user_passwd_change :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
+			}
 
 			if ($error != '')
 			{
@@ -937,6 +895,7 @@ else
 				page_footer();
 				exit;
 			}
+			
 		}
 
 		if (!$upgrade_now)

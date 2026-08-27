@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: usercp_confirm.php,v 1.1.2.3 2006/03/25 14:22:43 grahamje Exp $
  *
  ***************************************************************************/
 

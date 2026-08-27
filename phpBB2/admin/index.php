@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: index.php,v 1.40.2.5 2003/08/03 11:50:51 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -21,7 +21,7 @@
  ***************************************************************************/
 
 define('IN_PHPBB', 1);
-
+define('PCheck', true);
 //
 // Load default header
 //
@@ -47,26 +47,14 @@ function inarray($needle, $haystack)
 //
 // End functions
 // -------------
-
+include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_pafiledb.' . $phpEx);
 //
 // Generate relevant output
 //
-if( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'left' )
+if( isset($_GET['pane']) && $_GET['pane'] == 'left' )
 {
-	$dir = @opendir(".");
-
-	$setmodules = 1;
-	while( $file = @readdir($dir) )
-	{
-		if( preg_match("/^admin_.*?\." . $phpEx . "$/", $file) )
-		{
-			include('./' . $file);
-		}
-	}
-
-	@closedir($dir);
-
-	unset($setmodules);
+	$jr_admin_userdata = jr_admin_get_user_info($userdata['user_id']);
+	$module = jr_admin_get_module_list($jr_admin_userdata['user_jr_admin']);
 
 	include('./page_header_admin.'.$phpEx);
 
@@ -77,48 +65,27 @@ if( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'left' )
 	$template->assign_vars(array(
 		"U_FORUM_INDEX" => append_sid("../index.$phpEx"),
 		"U_ADMIN_INDEX" => append_sid("index.$phpEx?pane=right"),
-
+		"U_PORTAL_INDEX" => append_sid("../portal.$phpEx"),
+		"U_PORTAL_PREVIEW" => append_sid("../portal.$phpEx"),
+                //+MOD: DHTML Menu for ACP 
+                'COOKIE_NAME'   => $board_config['cookie_name'], 
+                'COOKIE_PATH'   => $board_config['cookie_path'], 
+                'COOKIE_DOMAIN'   => $board_config['cookie_domain'], 
+                'COOKIE_SECURE'   => $board_config['cookie_secure'], 
+                //-MOD: DHTML Menu for ACP
 		"L_FORUM_INDEX" => $lang['Main_index'],
 		"L_ADMIN_INDEX" => $lang['Admin_Index'], 
-		"L_PREVIEW_FORUM" => $lang['Preview_forum'])
+		"L_PREVIEW_FORUM" => $lang['Preview_forum'],
+		"L_PREVIEW_PORTAL" => $lang['Preview_portal'])
 	);
 
-	ksort($module);
-
-	while( list($cat, $action_array) = each($module) )
-	{
-		$cat = ( !empty($lang[$cat]) ) ? $lang[$cat] : preg_replace("/_/", " ", $cat);
-
-		$template->assign_block_vars("catrow", array(
-			"ADMIN_CATEGORY" => $cat)
-		);
-
-		ksort($action_array);
-
-		$row_count = 0;
-		while( list($action, $file)	= each($action_array) )
-		{
-			$row_color = ( !($row_count%2) ) ? $theme['td_color1'] : $theme['td_color2'];
-			$row_class = ( !($row_count%2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
-			$action = ( !empty($lang[$action]) ) ? $lang[$action] : preg_replace("/_/", " ", $action);
-
-			$template->assign_block_vars("catrow.modulerow", array(
-				"ROW_COLOR" => "#" . $row_color,
-				"ROW_CLASS" => $row_class, 
-
-				"ADMIN_MODULE" => $action,
-				"U_ADMIN_MODULE" => append_sid($file))
-			);
-			$row_count++;
-		}
-	}
+	jr_admin_make_left_pane();
 
 	$template->pparse("body");
 
 	include('./page_footer_admin.'.$phpEx);
 }
-elseif( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'right' )
+elseif( isset($_GET['pane']) && $_GET['pane'] == 'right' )
 {
 
 	include('./page_header_admin.'.$phpEx);
@@ -151,7 +118,9 @@ elseif( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'right' )
 		"L_STARTED" => $lang['Login'],
 		"L_GZIP_COMPRESSION" => $lang['Gzip_compression'])
 	);
-
+	//+MOD: DHTML Menu for ACP
+$menu_cat_id = 0;
+//+MOD: DHTML Menu for ACP
 	//
 	// Get forum statistics
 	//
@@ -430,6 +399,38 @@ elseif( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'right' )
 							$location = $lang['Viewing_FAQ'];
 							$location_url = "index.$phpEx?pane=right";
 							break;
+						case PAGE_KB:
+							$location = $lang['Viewing_KB'];
+							$location_url = "../kb.$phpEx";
+							break;	
+						case PAGE_RECENT:
+							$location = $lang['Recent_topics'];
+							$location_url = "../recent.$phpEx";
+							break;	
+						case PAGE_STAFF:
+							$location = $lang['Staff'];
+							$location_url = "../staff.$phpEx";
+							break;	
+						case PAGE_ALBUM:
+							$location = "Album Index";
+							$location_url = "album.$phpEx?pane=right";
+							break;
+						case PAGE_ALBUM_PERSONAL:
+							$location = "Viewing Personal Album of a user";
+							$location_url = "album_personal_index.$phpEx?pane=right";
+							break;
+						case PAGE_ALBUM_PICTURE:
+							$location = "Viewing Pictures or Posting/Reading comments in the Album";
+							$location_url = "album_showpage.$phpEx?pane=right";
+							break;
+						case PAGE_ALBUM_SEARCH:
+							$location = "Searching the Album";
+							$location_url = "album_search.$phpEx?pane=right";
+							break;
+						case PAGE_DOWNLOAD:
+							$location = $lang['Viewing_Download'];
+							$location_url = "../dload.$phpEx";
+							break;	
 						default:
 							$location = $lang['Forum_index'];
 							$location_url = "index.$phpEx?pane=right";
@@ -522,6 +523,26 @@ elseif( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'right' )
 						$location = $lang['Viewing_FAQ'];
 						$location_url = "index.$phpEx?pane=right";
 						break;
+					case PAGE_KB:
+						$location = $lang['Viewing_KB'];
+						$location_url = "../kb.$phpEx";
+						break;	
+					case PAGE_RECENT:
+						$location = $lang['Recent_topics'];
+						$location_url = "../recent.$phpEx";
+						break;	
+					case PAGE_STAFF:
+						$location = $lang['Staff'];
+						$location_url = "../staff.$phpEx";
+						break;	
+					case PAGE_ALBUM:
+						$location = $lang['Album'];
+						$location_url = "index.$phpEx?pane=right";
+						break;	
+					case PAGE_DOWNLOAD:
+						$location = $lang['Viewing_Download'];
+						$location_url = "../dload.$phpEx";
+						break;	
 					default:
 						$location = $lang['Forum_index'];
 						$location_url = "index.$phpEx?pane=right";
@@ -560,6 +581,34 @@ elseif( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'right' )
 		);
 	}
 
+	if (defined('PCheck'))
+	{
+		$ffperms = '';
+		#################################
+		#CHMOD to 777
+		#######
+		if (!is_writable($phpbb_root_path . 'album_mod/upload')) $ffperms .= '<br /> /album_mod/upload >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'album_mod/upload/cache')) $ffperms .= '<br /> /album_mod/upload/cache >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'cache')) $ffperms .= '<br /> /cache >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'files')) $ffperms .= '<br /> /files >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'files/thumbs')) $ffperms .= '<br /> /files/thumbs >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'images/avatars')) $ffperms .= '<br /> /images/avatars >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'pafiledb/cache')) $ffperms .= '<br /> /pafiledb/cache >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'pafiledb/cache/templates')) $ffperms .= '<br /> /pafiledb/cache/templates >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'pafiledb/images/screenshots')) $ffperms .= '<br /> /pafiledb/images/screenshots >> ' . $lang['File_not_writable_777'];
+		if (!is_writable($phpbb_root_path . 'pafiledb/uploads')) $ffperms .= '<br /> /pafiledb/uploads >> ' . $lang['File_not_writable_777'];
+		#################################
+		#CHMOD to 666
+		#######
+		if (!is_writable($phpbb_root_path . 'includes/def_icons.php')) $ffperms .= '<br /> /includes/def_icons.php >> ' . $lang['File_not_writable_666'];
+		if (!is_writable($phpbb_root_path . 'includes/def_themes.php')) $ffperms .= '<br /> /includes/def_themes.php >> ' . $lang['File_not_writable_666'];
+		if (!is_writable($phpbb_root_path . 'includes/def_tree.php')) $ffperms .= '<br /> /includes/def_tree.php >> ' . $lang['File_not_writable_666'];
+		if (!is_writable($phpbb_root_path . 'includes/def_words.php')) $ffperms .= '<br /> /includes/def_words.php >> ' . $lang['File_not_writable_666'];
+		if (!is_writable($phpbb_root_path . 'ctracker/logs/counter.txt')) $ffperms .= '<br /> /ctracker/logs/counter.txt >> ' . $lang['File_not_writable_666'];
+		if (!is_writable($phpbb_root_path . 'ctracker/logs/logfile_flood.txt')) $ffperms .= '<br /> /ctracker/logs/logfile_flood.txt >> ' . $lang['File_not_writable_666'];
+		if (!is_writable($phpbb_root_path . 'ctracker/logs/logfile_proxy.txt')) $ffperms .= '<br /> /ctracker/logs/logfile_proxy.txt >> ' . $lang['File_not_writable_666'];
+		if (!is_writable($phpbb_root_path . 'ctracker/logs/logfile_worms.txt')) $ffperms .= '<br /> /ctracker/logs/logfile_worms.txt >> ' . $lang['File_not_writable_666'];
+	}
 	// Check for new version
 	$current_version = explode('.', '2' . $board_config['version']);
 	$minor_revision = (int) $current_version[2];
@@ -619,12 +668,14 @@ elseif( isset($HTTP_GET_VARS['pane']) && $HTTP_GET_VARS['pane'] == 'right' )
 	
 	$version_info .= '<p>' . $lang['Mailing_list_subscribe_reminder'] . '</p>';
 	
-
+	if (defined('PCheck') && $ffperms)
+		$version_info .= '<br /><hr><p><h4>' . $lang['Permission_Check'] . '</h4>' . $ffperms . '</p><hr><br /><p>';
+		
 	$template->assign_vars(array(
 		'VERSION_INFO'	=> $version_info,
 		'L_VERSION_INFORMATION'	=> $lang['Version_information'])
 	);
-
+	jr_admin_make_info_box();
 	$template->pparse("body");
 
 	include('./page_footer_admin.'.$phpEx);

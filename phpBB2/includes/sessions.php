@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: sessions.php,v 1.58.2.10 2003/04/05 12:04:33 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -24,11 +24,18 @@
 // Adds/updates a new session to the database for the given userid.
 // Returns the new session ID on success.
 //
-function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_autologin = 0, $admin = 0)
+function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enable_autologin = 0, $admin = 0)
 {
-	global $db, $board_config;
-	global $HTTP_COOKIE_VARS, $HTTP_GET_VARS, $SID;
-
+	global $db, $board_config,$plus_config,$phpbb_root_path;
+	global $HTTP_COOKIE_VARS, $_GET, $SID;
+	$files = glob($phpbb_root_path."cache/last*.dat"); 
+if ($files)
+      {
+           foreach ( $files as $filename)
+           {
+                unlink ($filename);
+           }
+      }
 	$cookiename = $board_config['cookie_name'];
 	$cookiepath = $board_config['cookie_path'];
 	$cookiedomain = $board_config['cookie_domain'];
@@ -43,7 +50,7 @@ function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_a
 	else
 	{
 		$sessiondata = array();
-		$session_id = ( isset($HTTP_GET_VARS['sid']) ) ? $HTTP_GET_VARS['sid'] : '';
+		$session_id = ( isset($_GET['sid']) ) ? $_GET['sid'] : '';
 		$sessionmethod = SESSION_METHOD_GET;
 	}
 
@@ -52,9 +59,7 @@ function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_a
 	{
 		$session_id = '';
 	}
-
 	$page_id = (int) $page_id;
-
 	$last_visit = 0;
 	$current_time = time();
 
@@ -168,6 +173,7 @@ function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_a
 		}
 	}
 
+	$page_id = (empty($page_id) || $page_id == '') ? 0 : $page_id;
 	//
 	// Create or update the session
 	//
@@ -188,19 +194,19 @@ function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_a
 		}
 	}
 
-	if ( $user_id != ANONYMOUS )
-	{
+	//if ( $user_id != ANONYMOUS )
+	//{
 		$last_visit = ( $userdata['user_session_time'] > 0 ) ? $userdata['user_session_time'] : $current_time; 
-
 		if (!$admin)
 		{
-			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_session_time = $current_time, user_session_page = $page_id, user_lastvisit = $last_visit
-				WHERE user_id = $user_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(CRITICAL_ERROR, 'Error updating last visit time', '', __LINE__, __FILE__, $sql);
-			}
+		$sql = "UPDATE " . USERS_TABLE . " 
+			SET user_session_time = $current_time, user_session_page = $page_id, user_lastvisit = $last_visit, user_lastlogon = " . time() .  ", user_totallogon=user_totallogon+1
+			WHERE user_id = $user_id";
+		if ( !$db->sql_query($sql) )
+		{
+			message_die(CRITICAL_ERROR, 'Error updating last visit time', '', __LINE__, __FILE__, $sql);
+		}
+
 		}
 
 		$userdata['user_lastvisit'] = $last_visit;
@@ -239,7 +245,7 @@ function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_a
 
 //		$sessiondata['autologinid'] = (!$admin) ? (( $enable_autologin && $sessionmethod == SESSION_METHOD_COOKIE ) ? $auto_login_key : '') : $sessiondata['autologinid'];
 		$sessiondata['userid'] = $user_id;
-	}
+	//}
 
 	$userdata['session_id'] = $session_id;
 	$userdata['session_ip'] = $user_ip;
@@ -253,9 +259,19 @@ function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_a
 
 	setcookie($cookiename . '_data', serialize($sessiondata), $current_time + 31536000, $cookiepath, $cookiedomain, $cookiesecure);
 	setcookie($cookiename . '_sid', $session_id, 0, $cookiepath, $cookiedomain, $cookiesecure);
-
+	
+	if ($plus_config['disable_sid'] == 1)
+	{
+	if ( $userdata['session_user_id'] != ANONYMOUS ){
+   		$SID = 'sid=' . $session_id;
+	} else {
+   		$SID = '';
+	}
+}
+else
+{
 	$SID = 'sid=' . $session_id;
-
+}
 	return $userdata;
 }
 
@@ -263,10 +279,10 @@ function session_begin($user_id, $user_ip, $page_id, $auto_create = 0, $enable_a
 // Checks for a given user session, tidies session table and updates user
 // sessions at each page refresh
 //
-function session_pagestart($user_ip, $thispage_id)
+function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDEX)
 {
-	global $db, $lang, $board_config;
-	global $HTTP_COOKIE_VARS, $HTTP_GET_VARS, $SID;
+	global $db, $lang, $plus_config, $board_config;
+	global $HTTP_COOKIE_VARS, $_GET, $SID;
 
 	$cookiename = $board_config['cookie_name'];
 	$cookiepath = $board_config['cookie_path'];
@@ -285,23 +301,25 @@ function session_pagestart($user_ip, $thispage_id)
 	else
 	{
 		$sessiondata = array();
-		$session_id = ( isset($HTTP_GET_VARS['sid']) ) ? $HTTP_GET_VARS['sid'] : '';
+		$session_id = ( isset($_GET['sid']) ) ? $_GET['sid'] : '';
 		$sessionmethod = SESSION_METHOD_GET;
 	}
-
+	
 	// 
 	if (!preg_match('/^[A-Za-z0-9]*$/', $session_id))
 	{
 		$session_id = '';
 	}
-
 	$thispage_id = (int) $thispage_id;
-
+	
 	//
 	// Does a session exist?
 	//
 	if ( !empty($session_id) )
 	{
+		// Start add - Last visit MOD
+		$expiry_time = $current_time - $board_config['session_length'] ;
+		// End add - Last visit MOD
 		//
 		// session_id exists so go ahead and attempt to grab all
 		// data in preparation
@@ -309,7 +327,7 @@ function session_pagestart($user_ip, $thispage_id)
 		$sql = "SELECT u.*, s.*
 			FROM " . SESSIONS_TABLE . " s, " . USERS_TABLE . " u
 			WHERE s.session_id = '$session_id'
-				AND u.user_id = s.session_user_id";
+				AND u.user_id = s.session_user_id AND session_time > $expiry_time";
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(CRITICAL_ERROR, 'Error doing DB query userdata row fetch', '', __LINE__, __FILE__, $sql);
@@ -337,32 +355,35 @@ function session_pagestart($user_ip, $thispage_id)
 				//
 				// Only update session DB a minute or so after last update
 				//
-				if ( $current_time - $userdata['session_time'] > 60 )
+				$thispage_id = (empty($thispage_id) || $thispage_id == '') ? 0 : $thispage_id;
+				$thistopic_id = (empty($thistopic_id) || $thistopic_id == '') ? 0 : $thistopic_id;
+
+				if ( $current_time - $userdata['session_time'] > 60 || ((( $userdata['user_id'] == ANONYMOUS )?$userdata['user_session_topic']:$userdata['session_topic']) != $thispage_topic) || (( $userdata['user_id'] == ANONYMOUS )?$userdata['user_session_page']:$userdata['session_page']) != $thispage_id)
 				{
 					// A little trick to reset session_admin on session re-usage
 					$update_admin = (!defined('IN_ADMIN') && $current_time - $userdata['session_time'] > ($board_config['session_length']+60)) ? ', session_admin = 0' : '';
-
+					
 					$sql = "UPDATE " . SESSIONS_TABLE . " 
-						SET session_time = $current_time, session_page = $thispage_id$update_admin
+						SET session_time = $current_time, session_page = $thispage_id$update_admin, session_topic = '".$thistopic_id ."' 
 						WHERE session_id = '" . $userdata['session_id'] . "'";
 					if ( !$db->sql_query($sql) )
 					{
 						message_die(CRITICAL_ERROR, 'Error updating sessions table', '', __LINE__, __FILE__, $sql);
 					}
 
-					if ( $userdata['user_id'] != ANONYMOUS )
-					{
+					//if ( $userdata['user_id'] != ANONYMOUS )
+					//{
 						$sql = "UPDATE " . USERS_TABLE . " 
-							SET user_session_time = $current_time, user_session_page = $thispage_id
+							SET user_session_time = $current_time, user_session_page = $thispage_id, user_session_topic='" . $thistopic_id . "', user_totalpages = user_totalpages+1, user_totaltime = user_totaltime+($current_time-".$userdata['session_time'].") 
 							WHERE user_id = " . $userdata['user_id'];
 						if ( !$db->sql_query($sql) )
 						{
 							message_die(CRITICAL_ERROR, 'Error updating sessions table', '', __LINE__, __FILE__, $sql);
 						}
-					}
+					//}
 
 					session_clean($userdata['session_id']);
-
+					
 					setcookie($cookiename . '_data', serialize($sessiondata), $current_time + 31536000, $cookiepath, $cookiedomain, $cookiesecure);
 					setcookie($cookiename . '_sid', $session_id, 0, $cookiepath, $cookiedomain, $cookiesecure);
 				}
@@ -401,7 +422,7 @@ function session_pagestart($user_ip, $thispage_id)
 function session_end($session_id, $user_id)
 {
 	global $db, $lang, $board_config, $userdata;
-	global $HTTP_COOKIE_VARS, $HTTP_GET_VARS, $SID;
+	global $HTTP_COOKIE_VARS, $_GET, $SID;
 
 	$cookiename = $board_config['cookie_name'];
 	$cookiepath = $board_config['cookie_path'];
@@ -470,14 +491,23 @@ function session_end($session_id, $user_id)
 */
 function session_clean($session_id)
 {
-	global $board_config, $db;
+	global $board_config, $plus_config, $db;
 
 	//
 	// Delete expired sessions
 	//
-	$sql = 'DELETE FROM ' . SESSIONS_TABLE . ' 
-		WHERE session_time < ' . (time() - (int) $board_config['session_length']) . " 
+	if ( $plus_config['show_last_visit'] == 2 )
+      {
+	$sql = "DELETE FROM " . SESSIONS_TABLE . " 
+		WHERE session_time < '" . (time() - 86400) . "' 
 			AND session_id <> '$session_id'";
+      } else {
+	// Start add - Last visit MOD - PERFORMANCE OPTIMIZED 
+	$sql = "DELETE FROM " . SESSIONS_TABLE . " 
+		WHERE session_time < '" . (time() - (int) $board_config['session_length']) . "' 
+		AND session_user_id = '-1' AND session_id <> '$session_id'"; 
+	// End add - Last visit MOD - PERFORMANCE OPTIMIZED 
+      }
 	if ( !$db->sql_query($sql) )
 	{
 		message_die(CRITICAL_ERROR, 'Error clearing sessions table', '', __LINE__, __FILE__, $sql);

@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: viewonline.php,v 1.54.2.2 2002/12/02 10:53:42 bartvb Exp $
  *
  *
  ***************************************************************************/
@@ -62,7 +62,13 @@ if ( $result = $db->sql_query($sql) )
 {
 	while( $row = $db->sql_fetchrow($result) )
 	{
-		$forum_data[$row['forum_id']] = $row['forum_name'];
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//		$forum_data[$row['forum_id']] = $row['forum_name'];
+//-- add
+		$forum_data[$row['forum_id']] = get_object_lang(POST_FORUM_URL . $row['forum_id'], 'name');
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 	}
 }
 else
@@ -79,7 +85,7 @@ $is_auth_ary = auth(AUTH_VIEW, AUTH_LIST_ALL, $userdata);
 //
 // Get user list
 //
-$sql = "SELECT u.user_id, u.username, u.user_allow_viewonline, u.user_level, s.session_logged_in, s.session_time, s.session_page, s.session_ip
+$sql = "SELECT u.user_id, u.username, u.user_allow_viewonline, u.user_level, s.session_logged_in, s.session_time, s.session_page, s.session_topic, s.session_ip
 	FROM ".USERS_TABLE." u, ".SESSIONS_TABLE." s
 	WHERE u.user_id = s.session_user_id
 		AND s.session_time >= ".( time() - 300 ) . "
@@ -108,17 +114,8 @@ while ( $row = $db->sql_fetchrow($result) )
 
 		if ( $user_id != $prev_user )
 		{
-			$username = $row['username'];
-
-			$style_color = '';
-			if ( $row['user_level'] == ADMIN )
-			{
-				$username = '<b style="color:#' . $theme['fontcolor3'] . '">' . $username . '</b>';
-			}
-			else if ( $row['user_level'] == MOD )
-			{
-				$username = '<b style="color:#' . $theme['fontcolor2'] . '">' . $username . '</b>';
-			}
+			include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
+			$username = color_group_colorize_name($user_id, true);
 
 			if ( !$row['user_allow_viewonline'] )
 			{
@@ -195,6 +192,72 @@ while ( $row = $db->sql_fetchrow($result) )
 					$location = $lang['Viewing_FAQ'];
 					$location_url = "faq.$phpEx";
 					break;
+				case PAGE_KB:
+					$location = $lang['Viewing_KB'];
+					$location_url = "kb.$phpEx";
+					break;	
+				case PAGE_RECENT:
+					$location = $lang['Recent_topics'];
+					$location_url = "recent.$phpEx";
+					break;	
+				case PAGE_SHOUTBOX:
+					$location = $lang['Shoutbox'];
+					$location_url = "shoutbox_max.$phpEx";
+					break;	
+				case PAGE_STAFF:
+					$location = $lang['Staff'];
+					$location_url = "staff.$phpEx";
+					break;	
+				case PAGE_ALBUM:
+					$location = "Album Index";
+					$location_url = "album.$phpEx";
+					break;
+				case PAGE_ALBUM_PERSONAL:
+					$location = "Viewing Personal Album of a user";
+					$location_url = "album_personal_index.$phpEx";
+					break;
+				case PAGE_ALBUM_PICTURE:
+					$location = "Viewing Pictures or Posting/Reading comments in the Album";
+					$location_url = "album_showpage.$phpEx";
+					break;
+				case PAGE_ALBUM_SEARCH:
+					$location = "Searching the Album";
+					$location_url = "album_search.$phpEx";
+					break;
+				case PAGE_DOWNLOAD:
+					$location = $lang['Viewing_Download'];
+					$location_url = "dload.$phpEx";
+					break;	
+				// Start add - Complete banner MOD
+				case PAGE_REDIRECT: 
+					require_once($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_banner.' . $phpEx);
+				
+					if ($row['session_topic'])
+					{
+						$sql = "SELECT banner_description FROM " . BANNERS_TABLE . " WHERE banner_id=" . $row['session_topic'];
+						if ( $result2 = $db->sql_query($sql) )
+						{
+							$banner_data = $db->sql_fetchrow($result2);
+						}
+						else
+						{	
+							message_die(GENERAL_ERROR, 'Could not obtain redirect online information', '', __LINE__, __FILE__, $sql);
+						}
+						$location_url = append_sid("redirect.$phpEx?banner_id=" . $row['session_topic']);
+						$location = $lang['Left_via_banner'] .' --> '.$banner_data['banner_description'];
+					} else
+					{
+						$location_url = "";
+						$location = $lang['Left_via_banner'];
+					}
+					break;
+				// End add - Complete banner MOD	
+				// Start add - Who viewed a topic MOD
+				case PAGE_TOPIC_VIEW: 
+				$location = $lang['Topic_view_count']; 
+				$location_url = ($row['session_topic']) ? "topic_view_users.$phpEx?" . POST_TOPIC_URL . '=' .$row['session_topic'] : '#'; 
+				break;
+				// End add - Who viewed a topic MOD
 				default:
 					$location = $lang['Forum_index'];
 					$location_url = "index.$phpEx";
@@ -202,8 +265,30 @@ while ( $row = $db->sql_fetchrow($result) )
 		}
 		else
 		{
-			$location_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $row['session_page']);
-			$location = $forum_data[$row['session_page']];
+			// Start replacement - Topic in Who is online MOD
+			if ($row['session_topic'])
+			{
+				//
+				// Topic info
+				//
+				$sql = "SELECT topic_title FROM " . TOPICS_TABLE . " WHERE topic_id=" . $row['session_topic'];
+				if ( $result2 = $db->sql_query($sql) )
+				{
+					$topic_title = $db->sql_fetchrow($result2);
+				}
+				else
+				{	
+					message_die(GENERAL_ERROR, 'Could not obtain user/online forums information', '', __LINE__, __FILE__, $sql);
+				}
+				$location_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $row['session_topic']);
+				$location = $forum_data[$row['session_page']] .' -> '.$topic_title['topic_title'];
+			} else 
+			{
+				$location_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $row['session_page']);
+				$location = $forum_data[$row['session_page']];
+			}
+			// End replacement - Topic in Who is online MOD
+
 		}
 
 		$row_color = ( $$which_counter % 2 ) ? $theme['td_color1'] : $theme['td_color2'];

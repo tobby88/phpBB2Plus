@@ -6,7 +6,7 @@
    *   copyright            : (C) 2001 The phpBB Group
    *   email                : supportphpbb.com
    *
-   *   $Id$
+   *   $Id: postgres7.php,v 1.19 2002/03/05 02:19:38 psotfx Exp $
    *
    ***************************************************************************/
 
@@ -123,7 +123,7 @@ class sql_db
 			$this->num_queries++;
 
 			$query = preg_replace("/LIMIT ([0-9]+),([ 0-9]+)/", "LIMIT \\2 OFFSET \\1", $query);
-
+						
 			if( $transaction == BEGIN_TRANSACTION && !$this->in_transaction )
 			{
 				$this->in_transaction = TRUE;

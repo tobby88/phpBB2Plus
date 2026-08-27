@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: admin_ug_auth.php,v 1.13.2.5 2004/03/25 15:57:20 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -44,9 +44,9 @@ $params = array('mode' => 'mode', 'user_id' => POST_USERS_URL, 'group_id' => POS
 
 while( list($var, $param) = @each($params) )
 {
-	if ( !empty($HTTP_POST_VARS[$param]) || !empty($HTTP_GET_VARS[$param]) )
+	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
 	{
-		$$var = ( !empty($HTTP_POST_VARS[$param]) ) ? $HTTP_POST_VARS[$param] : $HTTP_GET_VARS[$param];
+		$$var = ( !empty($_POST[$param]) ) ? $_POST[$param] : $_GET[$param];
 	}
 	else
 	{
@@ -62,31 +62,21 @@ $mode = htmlspecialchars($mode);
 //
 // Start program - define vars
 //
-$forum_auth_fields = array('auth_view', 'auth_read', 'auth_post', 'auth_reply', 'auth_edit', 'auth_delete', 'auth_sticky', 'auth_announce', 'auth_vote', 'auth_pollcreate');
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+// all the preset and auth fields definition has been moved to includes/def_auth.php
+//-- add
+// auth list : put in this file all the auth fields description
+include( $phpbb_root_path . './includes/def_auth.' . $phpEx );
 
-$auth_field_match = array(
-	'auth_view' => AUTH_VIEW,
-	'auth_read' => AUTH_READ,
-	'auth_post' => AUTH_POST,
-	'auth_reply' => AUTH_REPLY,
-	'auth_edit' => AUTH_EDIT,
-	'auth_delete' => AUTH_DELETE,
-	'auth_sticky' => AUTH_STICKY,
-	'auth_announce' => AUTH_ANNOUNCE, 
-	'auth_vote' => AUTH_VOTE, 
-	'auth_pollcreate' => AUTH_POLLCREATE);
-
-$field_names = array(
-	'auth_view' => $lang['View'],
-	'auth_read' => $lang['Read'],
-	'auth_post' => $lang['Post'],
-	'auth_reply' => $lang['Reply'],
-	'auth_edit' => $lang['Edit'],
-	'auth_delete' => $lang['Delete'],
-	'auth_sticky' => $lang['Sticky'],
-	'auth_announce' => $lang['Announce'], 
-	'auth_vote' => $lang['Vote'], 
-	'auth_pollcreate' => $lang['Pollcreate']);
+// build an indexed array on field names
+@reset($field_names);
+$forum_auth_fields = array();
+while ( list($auth_key, $auth_name) = @each($field_names) )
+{
+	$forum_auth_fields[] = $auth_key;
+}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 // ---------------
 // Start Functions
@@ -127,7 +117,7 @@ function check_auth($type, $key, $u_access, $is_admin)
 // End Functions
 // -------------
 
-if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( $mode == 'group' && $group_id ) ) )
+if ( isset($_POST['submit']) && ( ( $mode == 'user' && $user_id ) || ( $mode == 'group' && $group_id ) ) )
 {
 	$user_level = '';
 	if ( $mode == 'user' )
@@ -157,7 +147,7 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 	//
 	// Carry out requests
 	//
-	if ( $mode == 'user' && $HTTP_POST_VARS['userlevel'] == 'admin' && $user_level != ADMIN )
+	if ( $mode == 'user' && $_POST['userlevel'] == 'admin' && $user_level != ADMIN )
 	{
 		//
 		// Make user an admin (if already user)
@@ -185,20 +175,24 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 			// admin
 			//
 			$sql = "UPDATE " . AUTH_ACCESS_TABLE . "
-				SET auth_view = 0, auth_read = 0, auth_post = 0, auth_reply = 0, auth_edit = 0, auth_delete = 0, auth_sticky = 0, auth_announce = 0
+				SET auth_view = 0, auth_read = 0, auth_post = 0, auth_reply = 0, auth_edit = 0, auth_delete = 0, auth_sticky = 0, auth_announce = 0, auth_ban = 0, auth_greencard = 0, auth_bluecard = 0
 				WHERE group_id = $group_id"; 
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, "Couldn't update auth access", "", __LINE__, __FILE__, $sql);
 			}
 		}
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+		cache_tree(true);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 		$message = $lang['Auth_updated'] . '<br /><br />' . sprintf($lang['Click_return_userauth'], '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$mode") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
 	}
 	else
 	{
-		if ( $mode == 'user' && $HTTP_POST_VARS['userlevel'] == 'user' && $user_level == ADMIN )
+		if ( $mode == 'user' && $_POST['userlevel'] == 'user' && $user_level == ADMIN )
 		{
 			//
 			// Make admin a user (if already admin) ... ignore if you're trying
@@ -207,7 +201,7 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 			if ( $userdata['user_id'] != $user_id )
 			{
 				$sql = "UPDATE " . AUTH_ACCESS_TABLE . "
-					SET auth_view = 0, auth_read = 0, auth_post = 0, auth_reply = 0, auth_edit = 0, auth_delete = 0, auth_sticky = 0, auth_announce = 0
+					SET auth_view = 0, auth_read = 0, auth_post = 0, auth_reply = 0, auth_edit = 0, auth_delete = 0, auth_sticky = 0, auth_announce = 0, auth_ban = 0, auth_greencard = 0, auth_bluecard = 0
 					WHERE group_id = $group_id";
 				if ( !($result = $db->sql_query($sql)) )
 				{
@@ -231,11 +225,11 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 		else
 		{
 	
-			$change_mod_list = ( isset($HTTP_POST_VARS['moderator']) ) ? $HTTP_POST_VARS['moderator'] : false;
+			$change_mod_list = ( isset($_POST['moderator']) ) ? $_POST['moderator'] : false;
 
 			if ( empty($adv) )
 			{
-				$change_acl_list = ( isset($HTTP_POST_VARS['private']) ) ? $HTTP_POST_VARS['private'] : false;
+				$change_acl_list = ( isset($_POST['private']) ) ? $_POST['private'] : false;
 			}
 			else
 			{
@@ -244,28 +238,47 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 				{
 					$auth_field = $forum_auth_fields[$j];
 
-					while( list($forum_id, $value) = @each($HTTP_POST_VARS['private_' . $auth_field]) )
+					while( list($forum_id, $value) = @each($_POST['private_' . $auth_field]) )
 					{
 						$change_acl_list[$forum_id][$auth_field] = $value;
 					}
 				}
 			}
 
-			$sql = 'SELECT f.* 
-				FROM ' . FORUMS_TABLE . ' f, ' . CATEGORIES_TABLE . ' c
-				WHERE f.cat_id = c.cat_id
-				ORDER BY c.cat_order, f.forum_order';
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't obtain forum information", "", __LINE__, __FILE__, $sql);
-			}
-
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//			$sql = 'SELECT f.* 
+//				FROM ' . FORUMS_TABLE . ' f, ' . CATEGORIES_TABLE . ' c
+//				WHERE f.cat_id = c.cat_id
+//				ORDER BY c.cat_order, f.forum_order';
+//			if ( !($result = $db->sql_query($sql)) )
+//			{
+//				message_die(GENERAL_ERROR, "Couldn't obtain forum information", "", __LINE__, __FILE__, $sql);
+//			}
+//
+//			$forum_access = array();
+//			while( $row = $db->sql_fetchrow($result) )
+//			{
+//				$forum_access[] = $row;
+//			}
+//			$db->sql_freeresult($result);
+//-- add
+			// get all sorted by level
+			$keys = array();
+			$keys = get_auth_keys('Root', true);
 			$forum_access = array();
-			while( $row = $db->sql_fetchrow($result) )
+
+			// extract forums
+			$forum_access = array();
+			for ($i=0; $i < count($keys['id']); $i++)
 			{
-				$forum_access[] = $row;
+				if ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL)
+				{
+					$forum_access[] = $tree['data'][ $keys['idx'][$i] ];
+				}
 			}
-			$db->sql_freeresult($result);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 
 			$sql = ( $mode == 'user' ) ? "SELECT aa.* FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE. " g WHERE ug.user_id = $user_id AND g.group_id = ug.group_id AND aa.group_id = ug.group_id AND g.group_single_user = " . TRUE : "SELECT * FROM " . AUTH_ACCESS_TABLE . " WHERE group_id = $group_id";
 			if ( !($result = $db->sql_query($sql)) )
@@ -289,11 +302,11 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 				$forum_id = $forum_access[$i]['forum_id'];
 
 				if ( 
-					( isset($auth_access[$forum_id]['auth_mod']) && $change_mod_list[$forum_id]['auth_mod'] != $auth_access[$forum_id]['auth_mod'] ) || 
-					( !isset($auth_access[$forum_id]['auth_mod']) && !empty($change_mod_list[$forum_id]['auth_mod']) ) 
+					( isset($auth_access[$forum_id]['auth_mod']) && $change_mod_list[$forum_id] != $auth_access[$forum_id]['auth_mod'] ) || 
+					( !isset($auth_access[$forum_id]['auth_mod']) && !empty($change_mod_list[$forum_id]) ) 
 				)
 				{
-					$update_mod_status[$forum_id] = $change_mod_list[$forum_id]['auth_mod'];
+					$update_mod_status[$forum_id] = $change_mod_list[$forum_id];
 
 					if ( !$update_mod_status[$forum_id] )
 					{
@@ -313,11 +326,19 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 				{
 					$auth_field = $forum_auth_fields[$j];
 
+					/*	//	http://www.phpbb2.de/ftopic34033.html*/
 					if( $forum_access[$i][$auth_field] == AUTH_ACL && isset($change_acl_list[$forum_id][$auth_field]) )
+					/* << deletet || added >>   
+					if( $forum_access[$i][$auth_field] == AUTH_ACL && isset($change_acl_list[$forum_id]) )
+						http://www.phpbb2.de/ftopic34033.html */
 					{
 						if ( ( empty($auth_access[$forum_id]['auth_mod']) && 
 							( isset($auth_access[$forum_id][$auth_field]) && $change_acl_list[$forum_id][$auth_field] != $auth_access[$forum_id][$auth_field] ) || 
+						/*	//	http://www.phpbb2.de/ftopic34033.html*/
 							( !isset($auth_access[$forum_id][$auth_field]) && !empty($change_acl_list[$forum_id][$auth_field]) ) ) ||
+						/* << deletet || added >>   
+							( !isset($auth_access[$forum_id][$auth_field]) && empty($change_acl_list[$forum_id][$auth_field]) ) ) ||
+							http://www.phpbb2.de/ftopic34033.html */
 							!empty($update_mod_status[$forum_id])
 						)
 						{
@@ -498,6 +519,10 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 				message_die(GENERAL_ERROR, "Couldn't update user level", "", __LINE__, __FILE__, $sql);
 			}
 		}
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+		cache_tree(true);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 		if ( $unset_mod != '' )
 		{
@@ -509,7 +534,6 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 				message_die(GENERAL_ERROR, "Couldn't update user level", "", __LINE__, __FILE__, $sql);
 			}
 		}
-
 		$sql = 'SELECT user_id FROM ' . USER_GROUP_TABLE . "
 			WHERE group_id = $group_id";
 		$result = $db->sql_query($sql);
@@ -551,15 +575,14 @@ if ( isset($HTTP_POST_VARS['submit']) && ( ( $mode == 'user' && $user_id ) || ( 
 				message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
 			}
 		}
-
 		message_die(GENERAL_MESSAGE, $message);
 	}
 }
-else if ( ( $mode == 'user' && ( isset($HTTP_POST_VARS['username']) || $user_id ) ) || ( $mode == 'group' && $group_id ) )
+else if ( ( $mode == 'user' && ( isset($_POST['username']) || $user_id ) ) || ( $mode == 'group' && $group_id ) )
 {
-	if ( isset($HTTP_POST_VARS['username']) )
+	if ( isset($_POST['username']) )
 	{
-		$this_userdata = get_userdata($HTTP_POST_VARS['username'], true);
+		$this_userdata = get_userdata($_POST['username'], true);
 		if ( !is_array($this_userdata) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_such_user']);
@@ -570,21 +593,46 @@ else if ( ( $mode == 'user' && ( isset($HTTP_POST_VARS['username']) || $user_id 
 	//
 	// Front end
 	//
-	$sql = "SELECT f.* 
-		FROM " . FORUMS_TABLE . " f, " . CATEGORIES_TABLE . " c
-		WHERE f.cat_id = c.cat_id
-		ORDER BY c.cat_order, f.forum_order ASC";
-	if ( !($result = $db->sql_query($sql)) )
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$sql = "SELECT f.* 
+//	FROM " . FORUMS_TABLE . " f, " . CATEGORIES_TABLE . " c
+//	WHERE f.cat_id = c.cat_id
+//	ORDER BY c.cat_order, f.forum_order ASC"; 
+//	if ( !($result = $db->sql_query($sql)) )
+//	{
+//		message_die(GENERAL_ERROR, "Couldn't obtain forum information", "", __LINE__, __FILE__, $sql);
+//	}
+//
+//	$forum_access = array();
+//	while( $row = $db->sql_fetchrow($result) )
+//	{
+//		$forum_access[] = $row;
+//	}
+//	$db->sql_freeresult($result);
+//-- add
+	// get all sorted by level
+	$keys = array();
+	$keys = get_auth_keys('Root', true);
+
+	// get the maximum level
+	$max_level = 0;
+	for ($i=0; $i < count($keys['id']); $i++)
 	{
-		message_die(GENERAL_ERROR, "Couldn't obtain forum information", "", __LINE__, __FILE__, $sql);
+		if ($keys['real_level'][$i] > $max_level) $max_level = $keys['real_level'][$i];
 	}
 
+	// extract forums
 	$forum_access = array();
-	while( $row = $db->sql_fetchrow($result) )
+	for ($i=0; $i < count($keys['id']); $i++)
 	{
-		$forum_access[] = $row;
+		if ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL)
+		{
+			$forum_access[] = $tree['data'][ $keys['idx'][$i] ];
+		}
 	}
-	$db->sql_freeresult($result);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 
 	if( empty($adv) )
 	{
@@ -689,10 +737,51 @@ else if ( ( $mode == 'user' && ( isset($HTTP_POST_VARS['username']) || $user_id 
 		$auth_ug[$forum_id]['auth_mod'] = ( !empty($auth_access_count[$forum_id]) ) ? check_auth(AUTH_MOD, 'auth_mod', $auth_access[$forum_id], 0) : 0;
 	}
 	
-	$i = 0;
-	@reset($auth_ug);
-	while( list($forum_id, $user_ary) = @each($auth_ug) )
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$i = 0;
+//	@reset($auth_ug);
+//	while( list($forum_id, $user_ary) = @each($auth_ug) )
+//	{
+//-- add
+	$s_column_span = 2 + $max_level; // Two columns always present
+	if( $adv ) $s_column_span = $s_column_span + count($forum_auth_fields)-1;
+
+	// read the objects without the index forum (i=0)
+	for ($i=1; $i < count($keys['id']); $i++)
 	{
+		$CH_this	= $keys['idx'][$i];
+		$level	= $keys['real_level'][$i];
+		if ($tree['type'][$CH_this] == POST_CAT_URL)
+		{
+			$class_cat = "cat";
+			$template->assign_block_vars('row', array());
+			$template->assign_block_vars('row.cathead', array(
+				'CLASS_CAT' => $class_cat,
+				'CAT_TITLE' => get_object_lang( $tree['type'][$CH_this] . $tree['id'][$CH_this], 'name'),
+				'INC_SPAN'	=> $max_level - $level+1,
+				)
+			);
+			for ($k=1; $k <= $level; $k++) $template->assign_block_vars('row.cathead.inc', array());
+			if ($adv)
+			{
+				for ($j=0; $j < count($forum_auth_fields); $j++)
+				{
+					$template->assign_block_vars('row.cathead.aclvalues', array());
+				}
+			}
+			else
+			{
+				$template->assign_block_vars('row.cathead.aclvalues', array());
+			}
+		}
+
+		if ($tree['type'][$CH_this] == POST_FORUM_URL)
+		{
+			$forum_id = $tree['data'][ $keys['idx'][$i] ]['forum_id'];
+			$user_ary = $auth_ug[$forum_id];
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 		if ( empty($adv) )
 		{
 			if ( $forum_auth_level[$forum_id] == AUTH_ACL )
@@ -781,19 +870,44 @@ else if ( ( $mode == 'user' && ( isset($HTTP_POST_VARS['username']) || $user_id 
 		$row_class = ( !( $i % 2 ) ) ? 'row2' : 'row1';
 		$row_color = ( !( $i % 2 ) ) ? $theme['td_color1'] : $theme['td_color2'];
 
-		$template->assign_block_vars('forums', array(
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//		$template->assign_block_vars('forums', array(
+//-- add
+		$template->assign_block_vars('row', array());
+		$template->assign_block_vars('row.forums', array(
+			'INC_SPAN' => $max_level - $level+1,
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 			'ROW_COLOR' => '#' . $row_color,
 			'ROW_CLASS' => $row_class,
-			'FORUM_NAME' => $forum_access[$i]['forum_name'],
+			//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//			'FORUM_NAME' => $forum_access[$i]['forum_name'],
+//
+//			'U_FORUM_AUTH' => append_sid("admin_forumauth.$phpEx?f=" . $forum_access[$i]['forum_id']),
+//-- add
+			'FORUM_NAME'	=> get_object_lang(POST_FORUM_URL . $tree['data'][ $keys['idx'][$i] ]['forum_id'], 'name'),
+			'U_FORUM_AUTH'	=> append_sid("admin_forumauth.$phpEx?f=" . $tree['data'][ $keys['idx'][$i] ]['forum_id']),
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
-			'U_FORUM_AUTH' => append_sid("admin_forumauth.$phpEx?f=" . $forum_access[$i]['forum_id']),
 
 			'S_MOD_SELECT' => $optionlist_mod)
 		);
 
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+		for ($k=1; $k <= $level; $k++) $template->assign_block_vars('row.forums.inc', array());
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 		if( !$adv )
 		{
-			$template->assign_block_vars('forums.aclvalues', array(
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//			$template->assign_block_vars('forums.aclvalues', array(
+//-- add
+			$template->assign_block_vars('row.forums.aclvalues', array(
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 				'S_ACL_SELECT' => $optionlist_acl)
 			);
 		}
@@ -801,15 +915,26 @@ else if ( ( $mode == 'user' && ( isset($HTTP_POST_VARS['username']) || $user_id 
 		{
 			for($j = 0; $j < count($forum_auth_fields); $j++)
 			{
-				$template->assign_block_vars('forums.aclvalues', array(
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//				$template->assign_block_vars('forums.aclvalues', array(
+//-- add
+				$template->assign_block_vars('row.forums.aclvalues', array(
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 					'S_ACL_SELECT' => $optionlist_acl_adv[$forum_id][$j])
 				);
 			}
 		}
 
-		$i++;
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//		$i++;
+//-- add
 	}
-//	@reset($auth_user);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
+	}
+	//	@reset($auth_user);
 	
 	if ( $mode == 'user' )
 	{
@@ -846,7 +971,7 @@ else if ( ( $mode == 'user' && ( isset($HTTP_POST_VARS['username']) || $user_id 
 			else
 			{
 				$t_pending_list .= ( ( $t_pending_list != '' ) ? ', ' : '' ) . '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$ug=" . $id[$i]) . '">' . $name[$i] . '</a>';
-			}
+			} 
 		}
 	}
 
@@ -926,7 +1051,15 @@ else if ( ( $mode == 'user' && ( isset($HTTP_POST_VARS['username']) || $user_id 
 		'U_USER_OR_GROUP' => append_sid("admin_ug_auth.$phpEx"),
 		'U_SWITCH_MODE' => $u_switch_mode,
 
-		'S_COLUMN_SPAN' => $s_column_span,
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//		'S_COLUMN_SPAN' => $s_column_span,
+//-- add
+		'SPACER'		=> './../' . $images['spacer'],
+		'INC_SPAN'		=> $max_level+1,
+		'S_COLUMN_SPAN' => $s_column_span + $max_level+2,
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 		'S_AUTH_ACTION' => append_sid("admin_ug_auth.$phpEx"), 
 		'S_HIDDEN_FIELDS' => $s_hidden_fields)
 	);
@@ -952,9 +1085,18 @@ else
 	}
 	else
 	{
+		//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//		$sql = "SELECT group_id, group_name
+//			FROM " . GROUPS_TABLE . "
+//			WHERE group_single_user <> " . TRUE;
+//-- add
 		$sql = "SELECT group_id, group_name
 			FROM " . GROUPS_TABLE . "
-			WHERE group_single_user <> " . TRUE;
+			WHERE group_single_user <> " . TRUE . "
+			ORDER BY group_name";
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, "Couldn't get group list", "", __LINE__, __FILE__, $sql);

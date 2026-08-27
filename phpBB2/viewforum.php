@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: viewforum.php,v 1.139.2.12 2004/03/13 15:08:23 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -24,28 +24,59 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
+include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
+//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+include_once($phpbb_root_path . 'includes/functions_announces.'. $phpEx);
+//-- fin mod : announces ---------------------------------------------------------------------------
+//-- mod : split topic type ------------------------------------------------------------------------
+//-- add
+include_once($phpbb_root_path . 'includes/functions_topics_list.'. $phpEx);
+//-- fin mod : split topic type --------------------------------------------------------------------
 
 //
 // Start initial var setup
 //
-if ( isset($HTTP_GET_VARS[POST_FORUM_URL]) || isset($HTTP_POST_VARS[POST_FORUM_URL]) )
+if ( isset($_GET[POST_FORUM_URL]) || isset($_POST[POST_FORUM_URL]) )
 {
-	$forum_id = ( isset($HTTP_GET_VARS[POST_FORUM_URL]) ) ? intval($HTTP_GET_VARS[POST_FORUM_URL]) : intval($HTTP_POST_VARS[POST_FORUM_URL]);
+	$forum_id = ( isset($_GET[POST_FORUM_URL]) ) ? intval($_GET[POST_FORUM_URL]) : intval($_POST[POST_FORUM_URL]);
 }
-else if ( isset($HTTP_GET_VARS['forum']))
+else if ( isset($_GET['forum']))
 {
-	$forum_id = intval($HTTP_GET_VARS['forum']);
+	$forum_id = intval($_GET['forum']);
 }
 else
 {
 	$forum_id = '';
 }
-
-$start = ( isset($HTTP_GET_VARS['start']) ) ? intval($HTTP_GET_VARS['start']) : 0;
-
-if ( isset($HTTP_GET_VARS['mark']) || isset($HTTP_POST_VARS['mark']) )
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+define('IN_VIEWFORUM', true);
+if (isset($_GET['selected_id']) || isset($_POST['selected_id']))
 {
-	$mark_read = (isset($HTTP_POST_VARS['mark'])) ? $HTTP_POST_VARS['mark'] : $HTTP_GET_VARS['mark'];
+	$selected_id = isset($_POST['selected_id']) ? $_POST['selected_id'] : $_GET['selected_id'];
+	$type	= substr($selected_id, 0, 1);
+	$id		= intval(substr($selected_id, 1));
+	if ($type == POST_FORUM_URL)
+	{
+		$forum_id = $id;
+	}
+	else if (($type == POST_CAT_URL) || ($selected_id == 'Root'))
+	{
+		$parm = ($id != 0) ? "?" . POST_CAT_URL . "=$id" : '';
+		redirect(append_sid("./index.$phpEx" . $parm));
+		exit;
+	}
+}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
+$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = ($start < 0) ? 0 : $start;
+
+if ( isset($_GET['mark']) || isset($_POST['mark']) )
+{
+	$mark_read = (isset($_POST['mark'])) ? $_POST['mark'] : $_GET['mark'];
 }
 else
 {
@@ -59,29 +90,33 @@ else
 // Check if the user has actually sent a forum ID with his/her request
 // If not give them a nice error page.
 //
-if ( !empty($forum_id) )
-{
-	$sql = "SELECT *
-		FROM " . FORUMS_TABLE . "
-		WHERE forum_id = $forum_id";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain forums information', '', __LINE__, __FILE__, $sql);
-	}
-}
-else
-{
-	message_die(GENERAL_MESSAGE, 'Forum_not_exist');
-}
-
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- deleted
+// if ( !empty($forum_id) )
+// {
+//	$sql = "SELECT *
+//		FROM " . FORUMS_TABLE . "
+//		WHERE forum_id = $forum_id";
+//	if ( !($result = $db->sql_query($sql)) )
+//	{
+//		message_die(GENERAL_ERROR, 'Could not obtain forums information', '', __LINE__, __FILE__, $sql);
+//	}
+// }
+// else
+// {
+//	message_die(GENERAL_MESSAGE, 'Forum_not_exist');
+// }
+//
 //
 // If the query doesn't return any rows this isn't a valid forum. Inform
 // the user.
 //
-if ( !($forum_row = $db->sql_fetchrow($result)) )
-{
-	message_die(GENERAL_MESSAGE, 'Forum_not_exist');
-}
+// if ( !($forum_row = $db->sql_fetchrow($result)) )
+// {
+//	message_die(GENERAL_MESSAGE, 'Forum_not_exist');
+// }
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 
 //
 // Start session management
@@ -91,12 +126,72 @@ init_userprefs($userdata);
 //
 // End session management
 //
+//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+include_once($phpbb_root_path . 'includes/mods_settings/mod_announces.' . $phpEx);
+//-- fin mod : announces ---------------------------------------------------------------------------
+
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+// get the forum row
+$forum_row = $tree['data'][ $tree['keys'][ POST_FORUM_URL . $forum_id ] ];
+if ( empty($forum_row) )
+{
+	message_die(GENERAL_MESSAGE, 'Forum_not_exist');
+}
+
+// handle forum link type
+$selected_id = POST_FORUM_URL . $forum_id;
+$CH_this = isset($tree['keys'][$selected_id]) ? $tree['keys'][$selected_id] : -1;
+if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
+{
+	// add 1 to hit if count ativated
+	if ($tree['data'][$CH_this]['forum_link_hit_count'])
+	{
+		$sql = "UPDATE " . FORUMS_TABLE . " 
+					SET forum_link_hit = forum_link_hit + 1 
+					WHERE forum_id=$forum_id";
+		if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, 'Could not increment forum hits information', '', __LINE__, __FILE__, $sql);
+		cache_tree(true);
+	}
+
+	// prepare url
+	$url = $tree['data'][$CH_this]['forum_link'];
+	if ($tree['data'][$CH_this]['forum_link_internal'])
+	{
+		$part = explode( '?', $url);
+		$url .= ((count($part) > 1) ? '&' : '?') . 'sid=' . $userdata['session_id'];
+		$url = append_sid($url);
+
+		// redirect to url
+		redirect($url);
+	}
+
+	// Redirect via an HTML form for PITA webservers
+	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
+	{
+		header('Refresh: 0; URL=' . $url);
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><meta http-equiv="refresh" content="0; url=' . $url . '"><title>' . $lang['Redirect'] . '</title></head><body><div align="center">' . sprintf($lang['Rediect_to'], '<a href="' . $url . '">', '</a>') . '</div></body></html>';
+		exit;
+	}
+
+	// Behave as per HTTP/1.1 spec for others
+	header('Location: ' . $url);
+	exit;
+}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 //
 // Start auth check
 //
 $is_auth = array();
-$is_auth = auth(AUTH_ALL, $forum_id, $userdata, $forum_row);
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+// $is_auth = auth(AUTH_ALL, $forum_id, $userdata, $forum_row);
+//-- add
+$is_auth = $tree['auth'][POST_FORUM_URL . $forum_id];
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 
 if ( !$is_auth['auth_read'] || !$is_auth['auth_view'] )
 {
@@ -185,46 +280,63 @@ if ( $is_auth['auth_mod'] && $board_config['prune_enable'] )
 // Obtain list of moderators of each forum
 // First users, then groups ... broken into two queries
 //
-$sql = "SELECT u.user_id, u.username 
-	FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g, " . USERS_TABLE . " u
-	WHERE aa.forum_id = $forum_id 
-		AND aa.auth_mod = " . TRUE . " 
-		AND g.group_single_user = 1
-		AND ug.group_id = aa.group_id 
-		AND g.group_id = aa.group_id 
-		AND u.user_id = ug.user_id 
-	GROUP BY u.user_id, u.username  
-	ORDER BY u.user_id";
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query forum moderator information', '', __LINE__, __FILE__, $sql);
-}
-
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+// $sql = "SELECT u.user_id, u.username 
+//	FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g, " . USERS_TABLE . " u
+//	WHERE aa.forum_id = $forum_id 
+//		AND aa.auth_mod = " . TRUE . " 
+//		AND g.group_single_user = 1
+//		AND ug.group_id = aa.group_id 
+//		AND g.group_id = aa.group_id 
+//		AND u.user_id = ug.user_id 
+//	GROUP BY u.user_id, u.username  
+//	ORDER BY u.user_id";
+// if ( !($result = $db->sql_query($sql)) )
+// {
+//	message_die(GENERAL_ERROR, 'Could not query forum moderator information', '', __LINE__, __FILE__, $sql);
+// }
+//
+// $moderators = array();
+// while( $row = $db->sql_fetchrow($result) )
+// {
+//	$moderators[] = '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $row['user_id']) . '">' . $row['username'] . '</a>';
+// }
+//
+// $sql = "SELECT g.group_id, g.group_name 
+//	FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g 
+//	WHERE aa.forum_id = $forum_id
+//		AND aa.auth_mod = " . TRUE . " 
+//		AND g.group_single_user = 0
+//		AND g.group_type <> ". GROUP_HIDDEN ."
+//		AND ug.group_id = aa.group_id 
+//		AND g.group_id = aa.group_id 
+//	GROUP BY g.group_id, g.group_name  
+//	ORDER BY g.group_id";
+// if ( !($result = $db->sql_query($sql)) )
+// {
+//	message_die(GENERAL_ERROR, 'Could not query forum moderator information', '', __LINE__, __FILE__, $sql);
+// }
+//
+// while( $row = $db->sql_fetchrow($result) )
+// {
+//	$moderators[] = '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $row['group_id']) . '">' . $row['group_name'] . '</a>';
+// }
+//-- add
+// moderators list
 $moderators = array();
-while( $row = $db->sql_fetchrow($result) )
+$idx = $tree['keys'][ POST_FORUM_URL . $forum_id ];
+for ( $i = 0; $i < count($tree['mods'][$idx]['user_id']); $i++ )
 {
-	$moderators[] = '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $row['user_id']) . '">' . $row['username'] . '</a>';
+	//$moderators[] = '<a href="' . append_sid("./profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $tree['mods'][$idx]['user_id'][$i]) . '">' . $tree['mods'][$idx]['username'][$i] . '</a>';
+	$moderators[] = color_group_colorize_name($tree['mods'][$idx]['user_id'][$i]);
 }
+for ( $i = 0; $i < count($tree['mods'][$idx]['group_id']); $i++ )
+{
+	$moderators[] = '<a href="' . append_sid("./groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $tree['mods'][$idx]['group_id'][$i]) . '">' . $tree['mods'][$idx]['group_name'][$i] . '</a>';
+}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
-$sql = "SELECT g.group_id, g.group_name 
-	FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g 
-	WHERE aa.forum_id = $forum_id
-		AND aa.auth_mod = " . TRUE . " 
-		AND g.group_single_user = 0
-		AND g.group_type <> ". GROUP_HIDDEN ."
-		AND ug.group_id = aa.group_id 
-		AND g.group_id = aa.group_id 
-	GROUP BY g.group_id, g.group_name  
-	ORDER BY g.group_id";
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query forum moderator information', '', __LINE__, __FILE__, $sql);
-}
-
-while( $row = $db->sql_fetchrow($result) )
-{
-	$moderators[] = '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $row['group_id']) . '">' . $row['group_name'] . '</a>';
-}
 	
 $l_moderators = ( count($moderators) == 1 ) ? $lang['Moderator'] : $lang['Moderators'];
 $forum_moderators = ( count($moderators) ) ? implode(', ', $moderators) : $lang['None'];
@@ -238,9 +350,9 @@ unset($moderators);
 $previous_days = array(0, 1, 7, 14, 30, 90, 180, 364);
 $previous_days_text = array($lang['All_Topics'], $lang['1_Day'], $lang['7_Days'], $lang['2_Weeks'], $lang['1_Month'], $lang['3_Months'], $lang['6_Months'], $lang['1_Year']);
 
-if ( !empty($HTTP_POST_VARS['topicdays']) || !empty($HTTP_GET_VARS['topicdays']) )
+if ( !empty($_POST['topicdays']) || !empty($_GET['topicdays']) )
 {
-	$topic_days = ( !empty($HTTP_POST_VARS['topicdays']) ) ? intval($HTTP_POST_VARS['topicdays']) : intval($HTTP_GET_VARS['topicdays']);
+	$topic_days = ( !empty($_POST['topicdays']) ) ? intval($_POST['topicdays']) : intval($_GET['topicdays']);
 	$min_topic_time = time() - ($topic_days * 86400);
 
 	$sql = "SELECT COUNT(t.topic_id) AS forum_topics 
@@ -258,7 +370,7 @@ if ( !empty($HTTP_POST_VARS['topicdays']) || !empty($HTTP_GET_VARS['topicdays'])
 	$topics_count = ( $row['forum_topics'] ) ? $row['forum_topics'] : 1;
 	$limit_topics_time = "AND p.post_time >= $min_topic_time";
 
-	if ( !empty($HTTP_POST_VARS['topicdays']) )
+	if ( !empty($_POST['topicdays']) )
 	{
 		$start = 0;
 	}
@@ -281,17 +393,26 @@ $select_topic_days .= '</select>';
 
 
 //
-// All announcement data, this keeps announcements
+// All announcement data, this keeps announcements and news
 // on each viewforum page ...
 //
+//-- mod : announces -------------------------------------------------------------------------------
+// here we added
+//	( [../..]" . ( !intval($board_config['announcement_display_forum']) ? " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE : '' ) . ")
+// and
+//	( [../..] OR t.topic_type = " . POST_GLOBAL_ANNOUNCE . ")
+// and
+//	t.topic_type DESC,
+//-- modify
+
 $sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_time, p.post_username
 	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . USERS_TABLE . " u2
-	WHERE t.forum_id = $forum_id 
+	WHERE (t.forum_id = $forum_id" . ( (intval($board_config['announcement_display_forum']) == 0) ? " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE : '' ) . ") 
 		AND t.topic_poster = u.user_id
 		AND p.post_id = t.topic_last_post_id
 		AND p.poster_id = u2.user_id
-		AND t.topic_type = " . POST_ANNOUNCE . " 
-	ORDER BY t.topic_last_post_id DESC ";
+		AND (t.topic_type = " . POST_NEWS . " OR t.topic_type = " . POST_ANNOUNCE . " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE . ") 
+	ORDER BY t.topic_type <> " . POST_NEWS . " DESC, t.topic_type = " .POST_NEWS . ", t.topic_last_post_id DESC ";
 if ( !($result = $db->sql_query($sql)) )
 {
    message_die(GENERAL_ERROR, 'Could not obtain topic information', '', __LINE__, __FILE__, $sql);
@@ -311,6 +432,11 @@ $db->sql_freeresult($result);
 // Grab all the basic data (all topics except announcements)
 // for this forum
 //
+//-- mod : announces -------------------------------------------------------------------------------
+// here we added
+//	AND t.topic_type <> " . POST_GLOBAL_ANNOUNCE . "
+//-- modify
+
 $sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time 
 	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
 	WHERE t.forum_id = $forum_id
@@ -318,7 +444,9 @@ $sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as i
 		AND p.post_id = t.topic_first_post_id
 		AND p2.post_id = t.topic_last_post_id
 		AND u2.user_id = p2.poster_id 
+		AND t.topic_type <> " . POST_NEWS . " 
 		AND t.topic_type <> " . POST_ANNOUNCE . " 
+		AND t.topic_type <> " . POST_GLOBAL_ANNOUNCE . "
 		$limit_topics_time
 	ORDER BY t.topic_type DESC, t.topic_last_post_id DESC 
 	LIMIT $start, ".$board_config['topics_per_page'];
@@ -368,7 +496,15 @@ $s_auth_can .= ( ( $is_auth['auth_reply'] ) ? $lang['Rules_reply_can'] : $lang['
 $s_auth_can .= ( ( $is_auth['auth_edit'] ) ? $lang['Rules_edit_can'] : $lang['Rules_edit_cannot'] ) . '<br />';
 $s_auth_can .= ( ( $is_auth['auth_delete'] ) ? $lang['Rules_delete_can'] : $lang['Rules_delete_cannot'] ) . '<br />';
 $s_auth_can .= ( ( $is_auth['auth_vote'] ) ? $lang['Rules_vote_can'] : $lang['Rules_vote_cannot'] ) . '<br />';
+$s_auth_can .= ( $is_auth['auth_ban'] ) ? $lang['Rules_ban_can'] . '<br />' : ''; 
+$s_auth_can .= ( $is_auth['auth_greencard'] ) ? $lang['Rules_greencard_can'] . '<br />' : ''; 
+$s_auth_can .= ( $is_auth['auth_bluecard'] ) ? $lang['Rules_bluecard_can'] . '<br />' : '';
+//-- mod : calendar --------------------------------------------------------------------------------
+//-- add
+$s_auth_can .= ( ( $is_auth['auth_cal'] ) ? $lang['Rules_calendar_can'] : $lang['Rules_calendar_cannot'] ) . '<br />';
+//-- fin mod : calendar ----------------------------------------------------------------------------
 
+attach_build_auth_levels($is_auth, $s_auth_can);
 if ( $is_auth['auth_mod'] )
 {
 	$s_auth_can .= sprintf($lang['Rules_moderate'], "<a href=\"modcp.$phpEx?" . POST_FORUM_URL . "=$forum_id&amp;start=" . $start . "&amp;sid=" . $userdata['session_id'] . '">', '</a>');
@@ -385,7 +521,13 @@ $nav_links['up'] = array(
 //
 // Dump out the page header and load viewforum template
 //
-define('SHOW_ONLINE', true);
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+$forum_row['forum_name'] = get_object_lang(POST_FORUM_URL . $forum_id, 'name');
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
+if ($board_config['display_viewonline'] == 2) define('SHOW_ONLINE', true);
+
 $page_title = $lang['View_forum'] . ' - ' . $forum_row['forum_name'];
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
@@ -393,6 +535,15 @@ $template->set_filenames(array(
 	'body' => 'viewforum_body.tpl')
 );
 make_jumpbox('viewforum.'.$phpEx);
+//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+announces_from_forums(POST_FORUM_URL . $forum_id);
+//-- fin mod : announces ---------------------------------------------------------------------------
+
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+display_index(POST_FORUM_URL . $forum_id);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 $template->assign_vars(array(
 	'FORUM_ID' => $forum_id,
@@ -410,6 +561,13 @@ $template->assign_vars(array(
 	'FOLDER_STICKY_NEW_IMG' => $images['folder_sticky_new'],
 	'FOLDER_ANNOUNCE_IMG' => $images['folder_announce'],
 	'FOLDER_ANNOUNCE_NEW_IMG' => $images['folder_announce_new'],
+	'FOLDER_MOVED_IMG' => $images['folder_moved'],
+	//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+	'FOLDER_GLOBAL_ANNOUNCE_IMG'		=> $images['folder_global_announce'],
+	'FOLDER_GLOBAL_ANNOUNCE_NEW_IMG'	=> $images['folder_global_announce_new'],
+	'L_GLOBAL_ANNOUNCEMENT'				=> $lang['Post_Global_Announcement'],
+//-- fin mod : announces ---------------------------------------------------------------------------
 
 	'L_TOPICS' => $lang['Topics'],
 	'L_REPLIES' => $lang['Replies'],
@@ -428,9 +586,10 @@ $template->assign_vars(array(
 	'L_ANNOUNCEMENT' => $lang['Post_Announcement'], 
 	'L_STICKY' => $lang['Post_Sticky'], 
 	'L_POSTED' => $lang['Posted'],
+	'L_MOVED' => $lang['Moved'],
 	'L_JOINED' => $lang['Joined'],
 	'L_AUTHOR' => $lang['Author'],
-
+	'L_DESCRIPTION' => $lang['Description'],
 	'S_AUTH_LIST' => $s_auth_can, 
 
 	'U_VIEW_FORUM' => append_sid("viewforum.$phpEx?" . POST_FORUM_URL ."=$forum_id"),
@@ -440,10 +599,36 @@ $template->assign_vars(array(
 //
 // End header
 //
-
+$template->assign_vars(array(
+	'L_SEARCH_FOR' => $lang['Search_for'],
+	'L_SUBMIT_SEARCH' => $lang['Submit_search'])
+);
 //
 // Okay, lets dump out the page ...
 //
+//-- mod : split topic type ------------------------------------------------------------------------
+//-- add
+// adjust the item id
+for ($i=0; $i < count($topic_rowset); $i++)
+{
+	$topic_rowset[$i]['topic_id'] = POST_TOPIC_URL . $topic_rowset[$i]['topic_id'];
+}
+
+// set the bottom sort option
+$footer = $lang['Display_topics'] . ':&nbsp;' . $select_topic_days . '&nbsp;' . ( !empty($s_display_order) ? $s_display_order : '') . '<input type="submit" class="liteoption" value="' . $lang['Go'] . '" name="submit" />';
+
+// send the list
+$allow_split_type = true;
+$display_nav_tree = false;
+topic_list('TOPICS_LIST_BOX', 'topics_list_box', $topic_rowset, '', $allow_split_type, $display_nav_tree, $footer);
+//-- delete
+/*
+//---------------------------------------
+//
+// Note : all the code that was standing there stands now in functions_topics_list.php, topic_list() func
+//
+//---------------------------------------
+
 if( $total_topics )
 {
 	for($i = 0; $i < $total_topics; $i++)
@@ -459,6 +644,10 @@ if( $total_topics )
 		if( $topic_type == POST_ANNOUNCE )
 		{
 			$topic_type = $lang['Topic_Announcement'] . ' ';
+		}
+		else if( $topic_type == POST_GLOBAL_ANNOUNCE )
+		{
+			$topic_type = $lang['Topic_Global_Announcement'] . ' ';
 		}
 		else if( $topic_type == POST_STICKY )
 		{
@@ -490,6 +679,15 @@ if( $total_topics )
 				$folder = $images['folder_announce'];
 				$folder_new = $images['folder_announce_new'];
 			}
+			//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+			else if( $topic_rowset[$i]['topic_type'] == POST_GLOBAL_ANNOUNCE )
+			{
+				$folder			= $images['folder_global_announce'];
+				$folder_new		= $images['folder_global_announce_new'];
+			}
+//-- fin mod : announces ---------------------------------------------------------------------------
+
 			else if( $topic_rowset[$i]['topic_type'] == POST_STICKY )
 			{
 				$folder = $images['folder_sticky'];
@@ -634,7 +832,13 @@ if( $total_topics )
 		
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
-
+		//-- mod : announces -------------------------------------------------------------------------------
+//-- add
+		if (function_exists(get_announces_title) && !empty($topic_rowset[$i]['topic_announce_duration']))
+		{
+			$topic_title .= '</a></span>&nbsp;&nbsp;<span class="gensmall"><a name="ann_' . $topic_id . '">' . get_announces_title( $topic_rowset[$i]['topic_time'], $topic_rowset[$i]['topic_announce_duration'] ) . '</span><span class="topictitle">';
+		}
+//-- fin mod : announces ---------------------------------------------------------------------------
 		$template->assign_block_vars('topicrow', array(
 			'ROW_COLOR' => $row_color,
 			'ROW_CLASS' => $row_class,
@@ -658,6 +862,8 @@ if( $total_topics )
 			'U_VIEW_TOPIC' => $view_topic_url)
 		);
 	}
+	*/
+//-- fin mod : split topic type --------------------------------------------------------------------
 
 	$topics_count -= $total_announcements;
 
@@ -667,6 +873,10 @@ if( $total_topics )
 
 		'L_GOTO_PAGE' => $lang['Goto_page'])
 	);
+//-- mod : split topic type ------------------------------------------------------------------------
+//-- delete
+/*
+
 }
 else
 {
@@ -681,6 +891,8 @@ else
 	$template->assign_block_vars('switch_no_topics', array() );
 
 }
+*/
+//-- fin mod : split topic type --------------------------------------------------------------------
 
 //
 // Parse the page and print

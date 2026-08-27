@@ -6,7 +6,7 @@
  *     copyright            : (C) 2001 The phpBB Group
  *     email                : support@phpbb.com
  *
- *     $Id$
+ *     $Id: lang_main.php,v 1.85.2.15 2003/06/10 00:31:19 psotfx Exp $
  *
  ****************************************************************************/
 
@@ -148,6 +148,7 @@ $lang['You_last_visit'] = 'You last visited on %s'; // %s replaced by date/time
 $lang['Current_time'] = 'The time now is %s'; // %s replaced by time
 
 $lang['Search_new'] = 'View posts since last visit';
+$lang['Search_new_p'] = 'View posts since <br />last visit';
 $lang['Search_your_posts'] = 'View your posts';
 $lang['Search_unanswered'] = 'View unanswered posts';
 
@@ -260,6 +261,7 @@ $lang['View_next_topic'] = 'View next topic';
 $lang['View_previous_topic'] = 'View previous topic';
 $lang['Submit_vote'] = 'Submit Vote';
 $lang['View_results'] = 'View Results';
+$lang['View_ballot'] = 'View Ballot';
 
 $lang['No_newer_topics'] = 'There are no newer topics in this forum';
 $lang['No_older_topics'] = 'There are no older topics in this forum';
@@ -274,6 +276,7 @@ $lang['Oldest_First'] = 'Oldest First';
 $lang['Back_to_top'] = 'Back to top';
 
 $lang['Read_profile'] = 'View user\'s profile'; 
+$lang['Send_email'] = 'Send e-mail to user';
 $lang['Visit_website'] = 'Visit poster\'s website';
 $lang['ICQ_status'] = 'ICQ Status';
 $lang['Edit_delete_post'] = 'Edit/Delete this post';
@@ -299,6 +302,10 @@ $lang['No_longer_watching'] = 'You are no longer watching this topic';
 $lang['You_are_watching'] = 'You are now watching this topic';
 
 $lang['Total_votes'] = 'Total Votes';
+
+$lang['Full_edit'] = 'Switch to full edit form';
+$lang['Save_changes'] = 'Save';
+$lang['No_subject'] = '(No subject)';
 
 //
 // Posting/Replying (Not private messaging!)
@@ -366,6 +373,7 @@ $lang['Smilies_are_OFF'] = 'Smilies are <u>OFF</u>';
 
 $lang['Attach_signature'] = 'Attach signature (signatures can be changed in profile)';
 $lang['Notify'] = 'Notify me when a reply is posted';
+$lang['Delete_post'] = 'Delete this post';
 
 $lang['Stored'] = 'Your message has been entered successfully.';
 $lang['Deleted'] = 'Your message has been deleted successfully.';
@@ -417,6 +425,12 @@ $lang['font_huge'] = 'Huge';
 $lang['Close_Tags'] = 'Close Tags';
 $lang['Styles_tip'] = 'Tip: Styles can be applied quickly to selected text.';
 
+$lang['AJAX_search_results'] = 'A quick search has found %s topics with the keywords in your topic title. Click here to view these topics';
+$lang['AJAX_search_result'] = 'A quick search has found one topic with the keywords in your topic title. Click here to view this topic';
+
+$lang['AJAX_features'] = 'AJAX features';
+$lang['AJAX_use_preview'] = 'AJAX message preview';
+$lang['AJAX_use_edit'] = 'AJAX quickedit';
 
 //
 // Private Messaging
@@ -506,6 +520,8 @@ $lang['Savebox_size'] = 'Your Savebox is %d%% full';
 
 $lang['Click_view_privmsg'] = 'Click %sHere%s to visit your Inbox';
 
+$lang['More_matches_username'] = 'More than one username matched your query. Please select a user from the box above.';
+$lang['No_username'] = 'You must enter a username.';
 
 //
 // Profiles/Registration
@@ -525,8 +541,10 @@ $lang['Website'] = 'Website';
 $lang['Location'] = 'Location';
 $lang['Contact'] = 'Contact';
 $lang['Email_address'] = 'E-mail address';
+$lang['Email'] = 'E-mail';
 $lang['Send_private_message'] = 'Send private message';
 $lang['Hidden_email'] = '[ Hidden ]';
+$lang['Search_user_posts'] = 'Search for posts by this user';
 $lang['Interests'] = 'Interests';
 $lang['Occupation'] = 'Occupation'; 
 $lang['Poster_rank'] = 'Poster rank';
@@ -600,6 +618,7 @@ $lang['Profile_updated_inactive'] = 'Your profile has been updated. However, you
 $lang['Password_mismatch'] = 'The passwords you entered did not match.';
 $lang['Current_password_mismatch'] = 'The current password you supplied does not match that stored in the database.';
 $lang['Password_long'] = 'Your password must be no more than 32 characters.';
+$lang['Too_many_registers'] = 'You have made too many registration attempts. Please try again later.';
 $lang['Username_taken'] = 'Sorry, but this username has already been taken.';
 $lang['Username_invalid'] = 'Sorry, but this username contains an invalid character such as \'.';
 $lang['Username_disallowed'] = 'Sorry, but this username has been disallowed.';
@@ -930,38 +949,39 @@ $lang['12'] = 'GMT + 12 Hours';
 $lang['13'] = 'GMT + 13 Hours';
 
 // These are displayed in the timezone select box
-$lang['tz']['-12'] = 'GMT - 12 Hours';
-$lang['tz']['-11'] = 'GMT - 11 Hours';
-$lang['tz']['-10'] = 'GMT - 10 Hours';
-$lang['tz']['-9'] = 'GMT - 9 Hours';
-$lang['tz']['-8'] = 'GMT - 8 Hours';
-$lang['tz']['-7'] = 'GMT - 7 Hours';
-$lang['tz']['-6'] = 'GMT - 6 Hours';
-$lang['tz']['-5'] = 'GMT - 5 Hours';
-$lang['tz']['-4'] = 'GMT - 4 Hours';
-$lang['tz']['-3.5'] = 'GMT - 3.5 Hours';
-$lang['tz']['-3'] = 'GMT - 3 Hours';
-$lang['tz']['-2'] = 'GMT - 2 Hours';
-$lang['tz']['-1'] = 'GMT - 1 Hours';
-$lang['tz']['0'] = 'GMT';
-$lang['tz']['1'] = 'GMT + 1 Hour';
-$lang['tz']['2'] = 'GMT + 2 Hours';
-$lang['tz']['3'] = 'GMT + 3 Hours';
-$lang['tz']['3.5'] = 'GMT + 3.5 Hours';
-$lang['tz']['4'] = 'GMT + 4 Hours';
-$lang['tz']['4.5'] = 'GMT + 4.5 Hours';
-$lang['tz']['5'] = 'GMT + 5 Hours';
-$lang['tz']['5.5'] = 'GMT + 5.5 Hours';
-$lang['tz']['6'] = 'GMT + 6 Hours';
-$lang['tz']['6.5'] = 'GMT + 6.5 Hours';
-$lang['tz']['7'] = 'GMT + 7 Hours';
-$lang['tz']['8'] = 'GMT + 8 Hours';
-$lang['tz']['9'] = 'GMT + 9 Hours';
-$lang['tz']['9.5'] = 'GMT + 9.5 Hours';
-$lang['tz']['10'] = 'GMT + 10 Hours';
-$lang['tz']['11'] = 'GMT + 11 Hours';
-$lang['tz']['12'] = 'GMT + 12 Hours';
-$lang['tz']['13'] = 'GMT + 13 Hours';
+$lang['tz']['-12'] = '(GMT -12 Hours) Eniwetok, Kwajalein';
+$lang['tz']['-11'] = '(GMT -11 Hours) Midway Island, Samoa';
+$lang['tz']['-10'] = '(GMT -10 Hours) Hawaii';
+$lang['tz']['-9'] = '(GMT -9 Hours) Alaska';
+$lang['tz']['-8'] = '(GMT -8 Hours) Pacific Time (US & Canada)';
+$lang['tz']['-7'] = '(GMT -7 Hours) Mountain Time (US & Canada)';
+$lang['tz']['-6'] = '(GMT -6 Hours) Central Time (US & Canada), Mexico City';
+$lang['tz']['-5'] = '(GMT -5 Hours) Eastern Time (US & Canada), Bogota, Lima, Quito';
+$lang['tz']['-4'] = '(GMT -4 Hours) Atlantic Time (Canada), Caracas, La Paz';
+$lang['tz']['-3.5'] = '(GMT -3.5 Hours) Newfoundland';
+$lang['tz']['-3'] = '(GMT -3 Hours) Brazil, Buenos Aires, Georgetown';
+$lang['tz']['-2'] = '(GMT -2 Hours) Mid-Atlantic';
+$lang['tz']['-1'] = '(GMT -1 Hour) Azores, Cape Verde Islands';
+$lang['tz']['0'] = '(GMT) Western Europe Time, London, Lisbon, Casablanca, Monrovia';
+$lang['tz']['1'] = '(GMT +1 Hour) CET(Central Europe Time), Berlin, Brussels, Madrid, Paris';
+$lang['tz']['2'] = '(GMT +2 Hours) EET(Eastern Europe Time), Kaliningrad, South Africa';
+$lang['tz']['3'] = '(GMT +3 Hours) Baghdad, Kuwait, Riyadh, Moscow, St. Petersburg, Nairobi';
+$lang['tz']['3.5'] = '(GMT +3.5 Hours) Tehran';
+$lang['tz']['4'] = '(GMT +4 Hours) Abu Dhabi, Muscat, Baku, Tbilisi';
+$lang['tz']['4.5'] = '(GMT +4.5 Hours) Kabul';
+$lang['tz']['5'] = '(GMT +5 Hours) Ekaterinburg, Islamabad, Karachi, Tashkent';
+$lang['tz']['5.5'] = '(GMT +5.5 Hours) Bombay, Calcutta, Madras, New Delhi';
+$lang['tz']['5.75'] = '(GMT +5.75 Hours) Kathmandu';
+$lang['tz']['6'] = '(GMT +6 Hours) Almaty, Dhaka, Colombo';
+$lang['tz']['6.5'] = '(GMT +6.5 Hours)';
+$lang['tz']['7'] = '(GMT +7 Hours) Bangkok, Hanoi, Jakarta';
+$lang['tz']['8'] = '(GMT +8 Hours) Beijing, Perth, Singapore, Hong Kong, Urumqi, Taipei';
+$lang['tz']['9'] = '(GMT +9 Hours) Tokyo, Seoul, Osaka, Sapporo, Yakutsk';
+$lang['tz']['9.5'] = '(GMT +9.5 Hours) Adelaide, Darwin';
+$lang['tz']['10'] = '(GMT +10 Hours) EAST(East Australian Standard), Guam, Papua New Guinea';
+$lang['tz']['11'] = '(GMT +11 Hours) Magadan, Solomon Islands, New Caledonia';
+$lang['tz']['12'] = '(GMT +12 Hours) Auckland, Wellington, Fiji, Kamchatka, Marshall Island';
+$lang['tz']['13'] = '(GMT +13 Hours) Nuku\'alofa';
 
 $lang['datetime']['Sunday'] = 'Sunday';
 $lang['datetime']['Monday'] = 'Monday';
@@ -1014,10 +1034,547 @@ $lang['Critical_Error'] = 'Critical Error';
 $lang['An_error_occured'] = 'An Error Occurred';
 $lang['A_critical_error'] = 'A Critical Error Occurred';
 
-$lang['Admin_reauthenticate'] = 'To administer the board you must re-authenticate yourself.';
-$lang['Login_attempts_exceeded'] = 'The maximum number of %s login attempts has been exceeded. You are not allowed to login for the next %s minutes.';
-$lang['Please_remove_install_contrib'] = 'Please ensure both the install/ and contrib/ directories are deleted';
+// Additional Stuff for phpBB2 Plus only ! Translators should get original Language Files for phpBB 2.0.8
+// for the language they want to translate from http://www.phpbb.com/downloads.php. Then they need to translate 
+// the following stuff only and use the rest from the original language files !
 
+//-- mod : mods settings ---------------------------------------------------------------------------
+//-- add
+$lang['Click_return_preferences'] = 'Click %sHere%s to return to Preferences';
+//-- fin mod : mods settings -----------------------------------------------------------------------
+
+// Start add - Birthday MOD
+$lang['Birthday'] = 'Birthday';
+$lang['No_birthday_specify'] = 'None Specified';
+$lang['Age'] = 'Age';
+$lang['Wrong_birthday_format'] = 'The birthday format was entered incorrectly.'; 
+$lang['Birthday_to_high'] = 'Sorry, this site does not accept users over %d years of age';
+$lang['Birthday_require'] = 'Your Birthday is required on this site';
+$lang['Birthday_to_low'] = 'Sorry, this site does not accept users below %d years of age';
+$lang['Submit_date_format'] = 'd-m-Y'; //php date() format - Note: ONLY d, m and Y may be used and SHALL ALL be used (different seperators are accepted)
+$lang['Birthday_greeting_today'] = 'Happy Birthday! %s years old today.<br /><br /> The Management';//%s is substituted with the users age
+$lang['Birthday_greeting_prev'] = 'Happy Belated Birthday! %s years old on the %s.<br /><br /> The Management';//%s is substituted with the users age, and birthday
+$lang['Greeting_Messaging'] = 'Congratulations';
+$lang['Birthday_today'] = 'Users with a birthday today:';
+$lang['Birthday_week'] = 'Users with a birthday within the next %d days:';
+$lang['Nobirthday_week'] = 'No users with a birthday in the upcoming %d days'; // %d is substitude with the number of days
+$lang['Nobirthday_today'] = 'No users with a birthday today'; 
+$lang['Year'] = 'Year';
+$lang['Month'] = 'Month';
+$lang['Day'] = 'Day';
+
+// NOTE: Please do not translate the folowing 4 lines !
+// They are automatically translated into your language
+$lang['day_short'] = array ($lang['datetime']['Sun'],$lang['datetime']['Mon'],$lang['datetime']['Tue'],$lang['datetime']['Wed'],$lang['datetime']['Thu'],$lang['datetime']['Fri'],$lang['datetime']['Sat']);
+$lang['day_long'] = array ($lang['datetime']['Sunday'],$lang['datetime']['Monday'],$lang['datetime']['Tuesday'],$lang['datetime']['Wednesday'],$lang['datetime']['Thursday'],$lang['datetime']['Friday'],$lang['datetime']['Saturday']);
+$lang['month_short'] = array ($lang['datetime']['Jan'],$lang['datetime']['Feb'],$lang['datetime']['Mar'],$lang['datetime']['Apr'],$lang['datetime']['May'],$lang['datetime']['Jun'],$lang['datetime']['Jul'],$lang['datetime']['Aug'],$lang['datetime']['Sep'],$lang['datetime']['Oct'],$lang['datetime']['Nov'],$lang['datetime']['Dec']);
+$lang['month_long'] = array ($lang['datetime']['January'],$lang['datetime']['February'],$lang['datetime']['March'],$lang['datetime']['April'],$lang['datetime']['May'],$lang['datetime']['June'],$lang['datetime']['July'],$lang['datetime']['August'],$lang['datetime']['September'],$lang['datetime']['October'],$lang['datetime']['November'],$lang['datetime']['December']);
+// End add - Birthday MOD
+// zodiacs used for birthday mod
+$lang['Zodiac'] = 'Zodiac';
+$lang['Capricorn'] = 'Capricorn';
+$lang['Aquarius'] = 'Aquarius';
+$lang['Pisces'] = 'Pisces';
+$lang['Aries'] = 'Aries';
+$lang['Taurus'] = 'Taurus';
+$lang['Gemini'] = 'Gemini';
+$lang['Cancer'] = 'Cancer';
+$lang['Leo'] = 'Leo';
+$lang['Virgo'] = 'Virgo';
+$lang['Libra'] = 'Libra';
+$lang['Scorpio'] = 'Scorpio';
+$lang['Sagittarius'] = 'Sagittarius';
+// chinese zodiacs used for birthday mod
+$lang['Chinese_zodiac']= 'Chinese zodiac';
+$lang['Unknown'] = 'Unknown';
+$lang['Rat'] = 'Rat';
+$lang['Buffalo'] = 'Buffalo';
+$lang['Tiger'] = 'Tiger';
+$lang['Cat'] = 'Cat';
+$lang['Dragon'] = 'Dragon';
+$lang['Snake'] = 'Snake';
+$lang['Horse'] = 'Horse';
+$lang['Goat'] = 'Goat';
+$lang['Monkey'] = 'Monkey';
+$lang['Cock'] = 'Cock';
+$lang['Dog'] = 'Dog';
+$lang['Pig'] = 'Pig';
+
+// Start add - Gender MOD
+$lang['Gender'] = 'Gender';//used in users profile to display witch gender he/she is 
+$lang['Male'] = 'Male'; 
+$lang['Female']='Female'; 
+$lang['No_gender_specify'] = 'None Specified'; 
+// End add - Gender MOD
+
+// Start add - Last visit MOD
+$lang['Last_logon'] = 'Last Visit'; 
+$lang['Hidde_last_logon'] = 'Hidden'; 
+$lang['Never_last_logon'] = 'Never'; 
+$lang['Users_today_zero_total'] = 'In total <b>0</b> users have visited this site today :: ';
+$lang['Users_today_total'] = 'In total <b>%d</b> user have visited this site today :: ';
+$lang['User_today_total'] = 'In total <b>%d</b> users have visited this site today :: ';
+$lang['Users_lasthour_explain'] = ', %d of them within the last hour.'; 
+$lang['Users_lasthour_none_explain'] = ''; //showen of none have visited the last hour, fill if you like
+
+$lang['Years'] = 'Years';
+$lang['Year'] = 'Year';
+$lang['Weeks'] = 'Weeks';
+$lang['Week'] = 'Week';
+$lang['Day'] = 'Day';
+$lang['Total_online_time'] = 'Total Online Duration'; 
+$lang['Last_online_time'] = 'Last Online Duration'; 
+$lang['Number_of_visit'] = 'Number of visits'; 
+$lang['Number_of_pages'] = 'Number of page hits'; 
+// End add - Last visit MOD
+
+// FLAGHACK-start
+$lang['Country_Flag'] = 'Country Flag';
+$lang['Select_Country'] = 'SELECT COUNTRY' ;
+// FLAGHACK-end
+
+// Anti Robotic Registration
+$lang['Wrong_reg_key'] = 'Anti Robotic Register Validation Error';
+$lang['Validation'] = 'Validation';
+$lang['Validation_explain'] = 'To make sure you are not a robot, please type what letters you see in the image right';
+
+//
+// Smartor's ezPortal
+//
+$lang['Home'] = 'Portal';
+$lang['Board_navigation'] = 'Board Navigation';
+$lang['Statistics'] = 'Statistics';
+$lang['total_topics'] = " within <b>%s</b> topics"; // added in v2.1.6
+$lang['Comments'] = 'Comments';
+$lang['Read_Full'] = 'Read Full';
+$lang['View_comments'] = 'View Comments';
+$lang['Post_your_comment'] = 'Post your comment';
+$lang['Welcome'] = 'Welcome';
+$lang['Register_new_account'] = 'Don\'t have an account yet?<br />You can %sregister%s for FREE';
+$lang['Remember_me'] = 'Remember me';
+$lang['View_complete_list'] = 'View complete list';
+$lang['Poll'] = 'Poll';
+$lang['Login_to_vote'] = 'You must login to vote';
+$lang['Vote'] = 'Vote';
+$lang['No_poll'] = 'No poll at the moment';
+
+$lang['Download'] = 'Download';
+$lang['Viewing_Download'] = 'Viewing Download';
+$lang['Top_Downloads'] = 'Top 10';
+$lang['Newest_Downloads'] = 'Latest';
+$lang['L_Word_on'] = 'on';
+$lang['L_Word_by'] = 'by';
+$lang['News_Reply'] = 'Reply to this News Item';
+$lang['News_Print'] = 'Print this Topic';
+$lang['News_Email'] = 'E-Mail this Topic';
+$lang['Save_Topic'] = 'Save this Topic as file';
+$lang['News_Categories'] = 'News Categories';
+$lang['News_Archieves'] = 'News Archives';
+$lang['News_Summary'] = 'This news item has';
+$lang['News_Views'] = 'Views';
+$lang['News_And'] = 'and';
+$lang['News_Comments'] = 'Comments';
+$lang['Credits'] = 'Mods and Credits';
+$lang['News_Cats'] = 'News Categories';
+$lang['No_News_Cats'] = 'Sorry, no News Categories available !';
+$lang['Recent_files'] = 'Recent Files';
+$lang['Forum_Search'] = 'Forum Search';
+$lang['About_us'] = 'About us';
+$lang['Portal_Navigate'] = 'Navigation';
+$lang['Portal_Tools'] = 'Tools';
+$lang['Site_links'] = 'Links';
+$lang['Site_Contact'] = 'Contact us';
+$lang['Last_Seen'] = 'Last Seen';
+$lang['No_News'] = 'Sorry, there is no News available';
+$lang['Quick_Search'] = 'Quick Search';
+$lang['Advanced_Search'] = 'Advanced Search';
+
+//
+// Photo Album Addon v2.x.x by Smartor
+//
+$lang['Album'] = 'Album';
+$lang['Personal_Gallery_Of_User'] = 'Personal Gallery of %s'; 
+$lang['Newest_pic'] = 'Recent Photo';
+//--- Album Category Hierarchy : begin
+//--- Version : 1.2.0
+$lang['Personal_Gallery_Of_User_Profile'] = 'Personal Gallery of %s (%d Pictures)';
+$lang['Show_All_Pic_View_Mode_Profile'] = 'Show All Pictures In The Personal Gallery of %s (without sub cats)';
+//--- Album Category Hierarchy : end
+
+//
+// Start add  - Photo Album Block
+$lang['Newest_pics'] = 'Newest Pics';
+// End add  - Photo Album Block
+
+// Start Quick Reply Mod
+$lang['Quick_Reply'] = 'Quick Reply';
+$lang['Quick_quote'] = 'Quote the last message';
+$lang['Quick_add_smilies'] = 'Smilies';
+$lang['QuoteSelelected'] = 'Quote selected';
+$lang['QuoteSelelectedEmpty'] = 'Select a text anywhere on a page and try again';
+$lang['Quick_Reply_smilies'] = 'all';
+// End Quick Reply Mod 
+
+$lang['Recent_topics'] = 'Recent topics'; // Recent Topics
+$lang['No_recent_topics'] = '<br />No topics at the moment<br /><br />'; // No recent Topics
+$lang['No_recent_files'] = '<br />No files at the moment<br /><br />'; // No recent Files
+$lang['No_articles'] = '<br />No articles at the moment<br /><br />'; // No News
+
+//
+// Online/Offline
+//
+$lang['Offline'] = 'Offline';
+$lang['Online'] = 'Online';
+$lang['Hidden'] = 'Hidden';
+$lang['On_off_status'] = 'Status';
+
+//
+// Staff Site
+//
+$lang['Staff'] = 'Staff Site';
+$lang['Staff_about'] = 'Informations about %s'; // %s = username
+$lang['Staff_level'] = array('Administrator', 'Moderator');
+$lang['Staff_forums'] = 'Forums';
+$lang['Staff_messenger'] = 'Messenger';
+$lang['Staff_user_topic_day_stats'] = '%.2f topics per day'; // %.2f = topics
+$lang['Staff_online'] = '<font color=#0000FF>online</font>';
+$lang['Staff_year'] = 'year';
+$lang['Staff_years'] = 'years';
+$lang['Staff_week'] = 'week';
+$lang['Staff_weeks'] = 'weeks';
+$lang['Staff_day'] = 'day';
+$lang['Staff_days'] = 'days';
+$lang['Staff_hour'] = 'hour';
+$lang['Staff_hours'] = 'hours';
+$lang['Staff_minute'] = 'minute';
+$lang['Staff_minutes'] = 'minutes';
+$lang['Staff_since'] = '(since %s)'; // %s = period
+$lang['Staff_ago'] = '(%s ago)'; // %s = period
+
+
+//
+// Bookmark Mod
+//
+$lang['Bookmarks'] = 'Bookmarks';
+$lang['Set_Bookmark'] = 'Set a bookmark for this topic';
+$lang['Remove_Bookmark'] = 'Remove the bookmark for this topic';
+$lang['No_Bookmarks'] = 'You do not have set a bookmark';
+$lang['Always_set_bm'] = 'Set bookmark automatically when posting';
+$lang['Found_bookmark'] = 'You have set %d bookmark.'; // eg. Search found 1 match
+$lang['Found_bookmarks'] = 'You have set %d bookmarks.'; // eg. Search found 24 matches
+$lang['More_bookmarks'] = 'More bookmarks...'; // For mozilla navigation bar
+
+// Start add - Fully integrated shoutbox MOD
+$lang['Shoutbox'] = 'Shoutbox';
+$lang['Shoutbox_date'] = ' d m Y h:i:s';
+$lang['Shout_censor'] = 'shout removed !';
+$lang['Shout_refresh'] = 'Refresh';
+$lang['Shout_text'] = 'Your text';
+$lang['Viewing_Shoutbox']= 'Viewing shoutbox';
+$lang['Censor'] ='Censor';
+// End add - Fully integrated shoutbox MOD
+
+$lang['bbcode_g_help'] = "Glow: [glow=colour]text[/glow] (alt+g)"; 
+$lang['bbcode_d_help'] = "Shadow: [shadow=colour]text[/shadow] (alt+d)"; 
+$lang['bbcode_e_help'] = "Align: [align=left|right|center|justify]text[/align] (alt+e)";
+$lang['bbcode_h_help'] = "Fade text: [fade]some text[/fade] (alt+h)";
+$lang['bbcode_j_help'] = "Scrolling text: [scroll**]text[/scroll**] (alt+j)";
+$lang['bbcode_k_help'] = "Highlighted text: [highlight=color]text[/highlight] (alt+k)";
+$lang['bbcode_m_help'] = "flash: [flash width= height= loop=]text[/flash] (alt+m)";
+$lang['bbcode_n_help'] = "Flip text: [flipv]text[/flipv] (alt+n)";
+$lang['bbcode_r_help'] = "Flip text: [fliph]text[/fliph] (alt+r)";
+$lang['bbcode_t_help'] = "Stream Files (wma, mp3, mp2...): [stream]http://path_to_file.wma[/stream] (alt+t)";
+$lang['bbcode_v_help'] = "Left Aligned Pic: [left]Path_to_Picture[/left] (alt+v)";
+$lang['bbcode_x_help'] = "Right Aligned Pic: [right]Path_to_Picture[/right] (alt+x)";
+$lang['PHPCode'] = 'PHP'; // PHP MOD
+$lang['bbcode_y_help'] = 'PHP syntax highlighter. [php]<?php code ?>[/php] (alt+y)'; // PHP MOD
+$lang['bbcode_z_help'] = "Google: [google]String to search for[/google] (alt+z)";
+$lang['bbcode_sc_help'] = 'Smilie Creator: [schild=1]Text[/schild] Generates a Shield Smilie'; 
+$lang['bbcode_th_help'] = 'Strikethrough: [s]text[/s] (alt+th)';
+$lang['Smilie_creator'] = 'Smilie Creator';
+$lang['SC_shieldtext'] = 'Smilie Text';
+$lang['SC_fontcolor'] = 'Textcolor';
+$lang['SC_shadowcolor'] = 'Shadow Color';
+$lang['SC_shieldshadow'] = 'Shieldshadow';
+$lang['SC_shieldshadow_on'] = 'Activate';
+$lang['SC_shieldshadow_off'] = 'Deactivate';
+$lang['SC_smiliechooser'] = 'Select Smilie';
+$lang['SC_random_smilie'] = 'Random Smilie';
+$lang['SC_default_smilie'] = 'Standard Smilie';
+$lang['SC_create_smilie'] = 'Create';
+$lang['SC_stop_creating'] = 'Cancel';
+$lang['SC_error'] = 'Here is your Shield - you have forgotten the Text...';
+$lang['SC_another_shield'] = 'Do you want to create another Smilie ?';
+$lang['SC_notext_error'] = 'You can not create Smilies without Text'; 
+
+//
+// TELL A FRIEND
+$lang['Tell_Friend'] = "Email to a Friend.";
+$lang['Tell_Friend_Sender_User'] = "Your Name:";
+$lang['Tell_Friend_Sender_Email'] = "Your Email:";
+$lang['Tell_Friend_Reciever_User'] = "Your Friend's Name:";
+$lang['Tell_Friend_Reciever_Email'] = "Your Friend's Email:";
+$lang['Tell_Friend_Msg'] = "Your message:";
+$lang['Tell_Friend_Title'] = "Tell A Friend";
+$lang['Tell_Friend_Body'] = "Hi,\nI just read the topic >>{TOPIC}<< at {SITENAME} and thought you might be interested. Here is the link: {LINK}\n\nGo and read it and if you want to reply you can register for your own account if you have not done so already."; 
+
+// Start add - Who viewed a topic MOD
+$lang['Topic_view_users'] = 'List users that have viewed this topic';
+$lang['Topic_time'] = 'Last viewed';
+$lang['Topic_count'] = 'View count';
+$lang['Topic_view_count'] = 'Topic view count';
+// End add - Who viewed a topic MOD
+
+//
+// Recent Topics
+//
+$lang['Recent_topics'] = 'Recent Topics';
+$lang['Recent_today'] = 'Today';
+$lang['Recent_yesterday'] = 'Yesterday';
+$lang['Recent_last24'] = 'Last 24 Hours';
+$lang['Recent_lastweek'] = 'Last Week';
+$lang['Recent_lastXdays'] = 'Last %s days';
+$lang['Recent_last'] = 'Last';
+$lang['Recent_days'] = 'Days';
+$lang['Recent_first'] = 'started at %s';
+$lang['Recent_first_poster'] = ' by %s';
+$lang['Recent_select_mode'] = 'Select mode:';
+$lang['Recent_showing_posts'] = 'Showing Posts:';
+$lang['Recent_title_one'] = '<font size=4>%s</font> topic %s'; // %s = topics; %s = sort method
+$lang['Recent_title_more'] = '<font size=4>%s</font> topics %s'; // %s = topics; %s = sort method
+$lang['Recent_title_today'] = ' from today';
+$lang['Recent_title_yesterday'] = ' from yesterday';
+$lang['Recent_title_last24'] = ' from the last 24 hours';
+$lang['Recent_title_lastweek'] = ' from the last week';
+$lang['Recent_title_lastXdays'] = ' from the last %s days'; // %s = days
+$lang['Recent_no_topics'] = 'No topics were found.';
+$lang['Recent_wrong_mode'] = 'You´ve selected a wrong mode.';
+$lang['Recent_click_return'] = 'Click %shere%s to return to recent site.';
+
+// Bottom of Page Link MOD - Daz - ForumImages.com - START/END Line Below
+$lang['Go_to_bottom'] = 'Bottom of Page';
+
+// Start add - Yellow card admin MOD
+$lang['Give_G_card']='Re-activate user'; 
+$lang['Give_Y_card']='Give user warning #%d'; 
+$lang['Give_R_card']='Ban this user now'; 
+$lang['Ban_update_sucessful'] = 'The banlist has been updated successfully'; 
+$lang['Ban_update_green'] = 'The user is now re-activated'; 
+$lang['Ban_update_yellow'] = 'The user has recieved a warning, and has now a total of %d warnings of a maximum %d warnings'; 
+$lang['Ban_update_red'] = 'The user is now banned'; 
+$lang['Ban_reactivate'] = 'Your account has been re-activated'; 
+$lang['Ban_warning'] = 'You\'ve recieved a warning'; 
+$lang['Ban_blocked'] = 'Your account is now blocked'; 
+$lang['Click_return_viewtopic'] = 'Click %sHere%s to return to the topic'; 
+$lang['Rules_ban_can'] = 'You <b>can</b> ban other users in this forum'; 
+$lang['user_no_email'] = 'The user has no email, therefore no message about this action can be sent. You should submit him/her a private message'; 
+$lang['user_already_banned'] = 'The selected user is already banned'; 
+$lang['Ban_no_admin'] ='This user in an ADMIN and therefore cannot be warned or banned'; 
+$lang['Rules_greencard_can'] = 'You <b>can</b> un-ban users in this forum'; 
+$lang['Rules_bluecard_can'] = 'You <b>can</b> report post to moderators in this forum'; 
+$lang['Give_b_card'] = 'Report this post to the moderators of this forum'; 
+$lang['Clear_b_card'] = 'This post has %d blue cards now. If you press this button you will clear this'; 
+$lang['No_moderators'] = 'The forum has no moderators, No reports can be therfore sent!'; 
+$lang['Post_repported'] = 'This post has now been reported to %d moderators'; 
+$lang['Post_repported_1'] = 'This post has now been reported to the moderator'; 
+$lang['Post_repport'] = 'Post Report'; //Subject in email notification
+$lang['Post_reset'] = 'The blue cards for this post have now been reset'; 
+$lang['Search_only_bluecards'] = 'Search only among posts with blue cards';
+$lang['Send_message'] = 'Click %sHere%s to write a message to the moderators or <br />';
+$lang['Send_PM_user'] = 'Click %sHere%s to write a PM to the user or';
+$lang['Link_to_post'] = 'Click %sHere%s to go to the reported post  <br/>--------------------------------<br/><br/>';
+$lang['Post_a_report'] = 'Post a report';
+$lang['Report_stored'] = 'Your report has been entered successfully';
+$lang['Send_report'] = 'Click %sHere%s to go back to the original message';
+$lang['Red_card_warning'] = 'You are about to give the user:%s a red card, this will ban the user, are you sure ?'; 
+$lang['Yellow_card_warning'] = 'You are about to give the user:%s a yellow card, this will isue a warning to the user, are you sure ?'; 
+$lang['Green_card_warning'] = 'You are about to give the user:%s a green card, this will unban the user, are you sure ?'; 
+$lang['Blue_card_warning'] = 'You are about to give the post a blue card, this will alert the moderators about this post, Are you sure you want to Alert the moderators about this post ?'; 
+$lang['Clear_blue_card_warning'] = 'You are about to reset the blue card counter for this post, Do you wan to continue ?';
+$lang['Warnings'] = 'Warnings : %d'; //shown beside users post, if any warnings given to the user
+$lang['Banned'] = 'Currently banned';//shown beside users post, if user are banned
+
+// Start add - Protect user account MOD
+$lang['Error_login_tomutch']='You have specified a locked username, please try again later'; 
+$lang['Password_not_complex'] ='The specified password, does not comply with the complexity rules, you should verify that: the password '; 
+$lang['Password_to_short'] = 'is at least %d characters long'; 
+$lang['Password_mixed'] = 'has both numbers and letters'; 
+$lang['Password_not_same'] = 'is not the same as your username'; 
+$lang['Time_format'] = 'D d. M, Y H:i:s';// how time should be shown in email notification 
+$lang['Passwd_have_expired'] = 'Your password has expired, you may request a new one'; 
+$lang['Passwd_expired'] = 'Your password has expired and is no longer valid. However, you still have the opportunity to choose a new one now. If, for some reason, you cannot change it now, do not panic. You may request a new random password, using the appropriate link at your next logon.'; 
+$lang['Passwd_soon_expired'] = 'Your password will expire in %d days. We recommend that you change it before it actually expires. Should you let your password expire, you may request a new one using the appropriate link at your next logon.'; 
+$lang['Send_new_passwd'] = 'Send me a new password'; 
+$lang['Passwd_updated'] = 'Thank you <br />Your new password is now stored'; 
+$lang['Passwd_title'] = 'Please change your password';
+// End add - Protect user account MOD
+
+$lang['Topic_description'] = 'Description of your topic';
+$lang['Description'] = 'Topic Description';
+
+// Start add - Topic in Who is online MOD
+$lang['Browsing_topic'] = 'Users browsing this topic:';
+// End add - Topic in Who is online MOD
+
+//admin user list mail 
+$lang['Usersname'] = "Users Name";
+$lang['Admin_Users_List_Mail_Title'] = "List users e-mail";
+$lang['Admin_Users_List_Mail_Explain'] = "Here a list of your users's e-mail";
+
+// Moved Folder Image Mod
+$lang['Moved'] = 'Moved';
+
+//signature editor
+$lang['sig_description'] = "Edit Signature (<b>Preview included</b>)";
+$lang['sig_edit'] = "Edit Signature";
+$lang['sig_current'] = "Current Signature";
+$lang['sig_none'] = "No Signature available";
+$lang['sig_save'] = "Save";
+$lang['sig_save_message'] = "Signature saved successful !";
+
+//Absent User Mod
+$lang['On_holidays'] = 'on holidays';
+$lang['User_ill'] = 'gotten sick';
+$lang['Longer_absenct'] = 'longer abcent';
+$lang['User_absence'] = 'Absent';
+$lang['User_absence_mode'] = 'Kind of absence';
+$lang['User_absence_text'] = 'Absence Message';
+$lang['User_absent'] = '<b>Absence Message:</b><br /><br />%s is %s.<br /><br /><i>%s</i><br /><br />So you can not send a message to %s!';
+$lang['Absence_notify'] = 'You have set absence.<br />Do you want to disable this?';
+$lang['Absence_deleted'] = 'You have successfully disabled your absence.<br /><br />Welcome back!';
+
+// Top 5 Posters in EzPortal Mod
+$lang['Top_Posters'] = 'Top Posters';
+$lang['Top_Member'] = 'Member';
+$lang['Top_Posts'] = 'Posts';
+
+// MOD MODCP EXTENSION BEGIN
+$lang['Sticky_topic'] = 'Sticky this topic';
+$lang['Announce_topic'] = 'Announce this topic';
+$lang['Normal_topic'] = 'Reset this topic to normal';
+$lang['Sticky'] = 'Sticky';
+$lang['Announce'] = 'Announcement';
+$lang['Normalise'] = 'Normal';
+$lang['Topics_Stickyd'] = 'The selected topics have been stickied';
+$lang['Topics_Announced'] = 'The selected topics have been announced';
+$lang['Topics_Normalised'] = 'The selected topics have been normalised';
+$lang['Check_All'] = 'Check All'; 
+$lang['Uncheck_All'] = 'Uncheck All';
+// MOD MODCP EXTENSION END
+$lang['Search_new2'] = 'New Posts';
+
+$lang['Search_for'] = "Search for";
+$lang['Submit_search'] = "Submit Search";
+$lang['That_contains'] = "that contains";
+
+$lang['Name'] = 'Name';
+
+// Contact Form Mod
+// Kontakttext:
+$lang['kontakt1'] = '<b>Note:</b> If you have any questions or problems using the forum please have a look at our <a href="faq.php"><b>FAQ</b></a> first. If you don\'t find help in the FAQ please send a Mail using this Contact Form.<br><span class="gensmall">Required Fields are marked as *.</span>';
+$lang['kontakt2'] = 'Name:*';
+$lang['kontakt3'] = 'E-Mail:*';
+$lang['kontakt4'] = 'Subject:*';
+$lang['kontakt5'] = 'Text:*';
+$lang['kontakt6'] = 'Send';
+$lang['kontakt7'] = 'Delete';
+$lang['kontakt8'] = 'Error, could not sent EMail!';
+$lang['kontakt9'] = 'Email was Sent!';
+$lang['kontakt_js1'] = 'Are you sure that you want to cancel your Entrys ?';
+$lang['kontakt_js2'] = 'Please enter your Name!';
+$lang['kontakt_js3'] = 'Please enter a valid EMail Adress!';
+$lang['kontakt_js4'] = 'No valid EMail Adress!';
+$lang['kontakt_js5'] = 'Please enter a Subject!';
+$lang['kontakt_js6'] = 'Please enter some Text!';
+$lang['Kontakt'] = 'Contact Page';
+
+// Language Variables for phpBB2 Plus Forum Index Stats
+$lang['Newest_user_plus'] = '<b>%s%s%s</b>'; // a href, username, /a
+$lang['Live_Statistics'] = 'Live Statistics';
+$lang['Latest_Member'] = 'Latest';
+$lang['New_Today'] = 'New today';
+$lang['New_Yesterday'] = 'New yesterday';
+$lang['Members_Overall'] = 'Overall';
+$lang['Online_Now'] = 'Online now';
+$lang['Guests_P'] = 'Guests';
+$lang['Members_P'] = 'Members';
+$lang['Box_Stats'] = 'Statistics';
+$lang['User_Record'] = 'Record Users';
+$lang['Birthdays_P'] = 'Birthdays';
+$lang['Online_Members_P'] = 'Logged in';
+$lang['Last_Visit'] = 'Online Statistics';
+
+// Google Visit Counter Mod
+$lang['Google_Visit_counter'] = 'Google visits: <b>%d</b>';
+
+//+MOD: Select Expand BBcodes MOD
+$lang['Select'] = "Select";
+$lang['Expand'] = "Expand";
+$lang['Contract'] = "Contract";
+//-MOD: Select Expand BBcodes MOD
+
+$lang['Click_larger'] = 'Click on image to view larger image';
+
+//BBCode Translations
+$lang['B'] ='B';// Here the first letter of 'Bold' in your language
+$lang['I'] ='I';// Here the first letter of 'Italic' in your language
+$lang['U'] ='U';// Here the first letter of 'Underlined' in your language
+$lang['Text'] ='Text';
+$lang['Font_type'] = 'Font Type';
+
+//Portal Additions
+$lang['KB_title'] = 'Knowledge Base';
+$lang['Viewing_KB'] = 'Viewing KB';
+
+// BEGIN Disable Registration MOD
+$lang['registration_status'] = 'Sorry, but registrations on this board are currently closed. Please try again later.';
+// END Disable Registration MOD
+$lang['Admin_reauthenticate'] = 'To administer the board you must re-authenticate yourself.';
+//-- mod : run stats -----------------------------------------------------------
+//-- add
+// run stats
+$lang['Stat_surround'] = '[ %s ]';
+$lang['Stat_sep'] = ' - ';
+$lang['Stat_page_duration'] = 'Time: %.4fs';
+$lang['Stat_local_duration'] = 'local trace: %.4fs';
+$lang['Stat_part_php'] = 'PHP: %.2d%%';
+$lang['Stat_part_sql'] = 'SQL: %.2d%%';
+$lang['Stat_queries'] = 'Queries: %2d (%.4fs)';
+$lang['Stat_gzip_enable'] = 'GZIP on';
+$lang['Stat_debug_enable'] = 'Debug on';
+$lang['Stat_request'] = 'Request';
+$lang['Stat_line'] = 'Line:&nbsp;%d';
+$lang['Stat_cache'] = 'cache:&nbsp;%.4fs';
+$lang['Stat_dur'] = 'dur.:&nbsp;%.4fs';
+$lang['Stat_table'] = 'Table';
+$lang['Stat_type'] = 'Type';
+$lang['Stat_possible_keys'] = 'Possible keys';
+$lang['Stat_key'] = 'Used key';
+$lang['Stat_key_len'] = 'Key length';
+$lang['Stat_ref'] = 'Ref.';
+$lang['Stat_rows'] = 'Rows';
+$lang['Stat_Extra'] = 'Comment';
+$lang['Stat_Comment'] = 'Comment';
+$lang['Stat_id'] = 'Id';
+$lang['Stat_select_type'] = 'Select type';
+
+// debug
+$lang['dbg_line'] = 'Line: %s';
+$lang['dbg_file'] = 'File: %s';
+$lang['dbg_empty'] = 'Empty';
+//-- fin mod : run stats -------------------------------------------------------
+$lang['Login_attempts_exceeded'] = 'The maximum number of %s login attempts has been exceeded. You are not allowed to login for the next %s minutes.';
+$lang['Please_remove_install_contrib'] = 'Please ensure both the install/ directorie are deleted';
+//
+// Custom Profile Fields MOD
+//
+$lang['custom_field_notice'] = 'These items have been created by an administrator. They may or may not be publicly viewable. Items marked with a * are required fields.';
+$lang['and'] = ' and ';
+
+$lang['Session_invalid'] = 'Invalid Session. Please resubmit the form.';
+//
+// END Custom Profile Fields MOD
+//
 //
 // That's all, Folks!
 // -------------------------------------------------

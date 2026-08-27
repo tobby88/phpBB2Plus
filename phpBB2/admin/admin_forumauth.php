@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: admin_forumauth.php,v 1.23.2.5 2004/03/25 15:57:19 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -41,40 +41,44 @@ require('./pagestart.' . $phpEx);
 //
 // Start program - define vars
 //
-//                View      Read      Post      Reply     Edit     Delete    Sticky   Announce    Vote      Poll
-$simple_auth_ary = array(
-	0  => array(AUTH_ALL, AUTH_ALL, AUTH_ALL, AUTH_ALL, AUTH_REG, AUTH_REG, AUTH_MOD, AUTH_MOD, AUTH_REG, AUTH_REG),
-	1  => array(AUTH_ALL, AUTH_ALL, AUTH_REG, AUTH_REG, AUTH_REG, AUTH_REG, AUTH_MOD, AUTH_MOD, AUTH_REG, AUTH_REG),
-	2  => array(AUTH_REG, AUTH_REG, AUTH_REG, AUTH_REG, AUTH_REG, AUTH_REG, AUTH_MOD, AUTH_MOD, AUTH_REG, AUTH_REG),
-	3  => array(AUTH_ALL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_MOD, AUTH_ACL, AUTH_ACL),
-	4  => array(AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_ACL, AUTH_MOD, AUTH_ACL, AUTH_ACL),
-	5  => array(AUTH_ALL, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD),
-	6  => array(AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD, AUTH_MOD),
-);
+//                //-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+// all the preset and auth fields definition has been moved to includes/def_auth.php
+//-- add
+// auth list : put in this file all the auth fields description
+include( $phpbb_root_path . './includes/def_auth.' . $phpEx );
 
-$simple_auth_types = array($lang['Public'], $lang['Registered'], $lang['Registered'] . ' [' . $lang['Hidden'] . ']', $lang['Private'], $lang['Private'] . ' [' . $lang['Hidden'] . ']', $lang['Moderators'], $lang['Moderators'] . ' [' . $lang['Hidden'] . ']');
-
-$forum_auth_fields = array('auth_view', 'auth_read', 'auth_post', 'auth_reply', 'auth_edit', 'auth_delete', 'auth_sticky', 'auth_announce', 'auth_vote', 'auth_pollcreate');
-
-$field_names = array(
-	'auth_view' => $lang['View'],
-	'auth_read' => $lang['Read'],
-	'auth_post' => $lang['Post'],
-	'auth_reply' => $lang['Reply'],
-	'auth_edit' => $lang['Edit'],
-	'auth_delete' => $lang['Delete'],
-	'auth_sticky' => $lang['Sticky'],
-	'auth_announce' => $lang['Announce'], 
-	'auth_vote' => $lang['Vote'], 
-	'auth_pollcreate' => $lang['Pollcreate']);
-
-$forum_auth_levels = array('ALL', 'REG', 'PRIVATE', 'MOD', 'ADMIN');
-$forum_auth_const = array(AUTH_ALL, AUTH_REG, AUTH_ACL, AUTH_MOD, AUTH_ADMIN);
-
-if(isset($HTTP_GET_VARS[POST_FORUM_URL]) || isset($HTTP_POST_VARS[POST_FORUM_URL]))
+// build an indexed array on field names
+@reset($field_names);
+$forum_auth_fields = array();
+while ( list($auth_key, $auth_name) = @each($field_names) )
 {
-	$forum_id = (isset($HTTP_POST_VARS[POST_FORUM_URL])) ? intval($HTTP_POST_VARS[POST_FORUM_URL]) : intval($HTTP_GET_VARS[POST_FORUM_URL]);
-	$forum_sql = "AND forum_id = $forum_id";
+	$forum_auth_fields[] = $auth_key;
+}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
+
+if(isset($_GET[POST_FORUM_URL]) || isset($_POST[POST_FORUM_URL]))
+{
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$forum_id = (isset($_POST[POST_FORUM_URL])) ? intval($_POST[POST_FORUM_URL]) : intval($_GET[POST_FORUM_URL]);
+//	$forum_sql = "AND forum_id = $forum_id";
+//-- add
+	$fid = (isset($_POST[POST_FORUM_URL])) ? $_POST[POST_FORUM_URL] : $_GET[POST_FORUM_URL];
+	$f_type = substr($fid, 0, 1);
+	if ($f_type == POST_FORUM_URL)
+	{
+		$forum_id = intval(substr($fid, 1));
+		$forum_sql = " WHERE forum_id = $forum_id";
+	}
+	else
+	{
+		unset($forum_id);
+		$forum_sql = '';
+	}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 }
 else
 {
@@ -82,9 +86,9 @@ else
 	$forum_sql = '';
 }
 
-if( isset($HTTP_GET_VARS['adv']) )
+if( isset($_GET['adv']) )
 {
-	$adv = intval($HTTP_GET_VARS['adv']);
+	$adv = intval($_GET['adv']);
 }
 else
 {
@@ -94,15 +98,15 @@ else
 //
 // Start program proper
 //
-if( isset($HTTP_POST_VARS['submit']) )
+if( isset($_POST['submit']) )
 {
 	$sql = '';
 
 	if(!empty($forum_id))
 	{
-		if(isset($HTTP_POST_VARS['simpleauth']))
+		if(isset($_POST['simpleauth']))
 		{
-			$simple_ary = $simple_auth_ary[intval($HTTP_POST_VARS['simpleauth'])];
+			$simple_ary = $simple_auth_ary[intval($_POST['simpleauth'])];
 
 			for($i = 0; $i < count($simple_ary); $i++)
 			{
@@ -118,11 +122,11 @@ if( isset($HTTP_POST_VARS['submit']) )
 		{
 			for($i = 0; $i < count($forum_auth_fields); $i++)
 			{
-				$value = intval($HTTP_POST_VARS[$forum_auth_fields[$i]]);
+				$value = intval($_POST[$forum_auth_fields[$i]]);
 
 				if ( $forum_auth_fields[$i] == 'auth_vote' )
 				{
-					if ( $HTTP_POST_VARS['auth_vote'] == AUTH_ALL )
+					if ( $_POST['auth_vote'] == AUTH_ALL )
 					{
 						$value = AUTH_REG;
 					}
@@ -145,6 +149,20 @@ if( isset($HTTP_POST_VARS['submit']) )
 		$forum_sql = '';
 		$adv = 0;
 	}
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- add
+	cache_tree(true);
+
+	$files = glob($phpbb_root_path."cache/cal_cache_*.php"); 
+	if ($files)
+    {
+      foreach ( $files as $filename)
+      {
+        @unlink ($filename);
+      }
+    }
+
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	$template->assign_vars(array(
 		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("admin_forumauth.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">')
@@ -159,18 +177,22 @@ if( isset($HTTP_POST_VARS['submit']) )
 // no id was specified or just the requsted if it
 // was
 //
-$sql = "SELECT f.*
-	FROM " . FORUMS_TABLE . " f, " . CATEGORIES_TABLE . " c
-	WHERE c.cat_id = f.cat_id
-	$forum_sql
-	ORDER BY c.cat_order ASC, f.forum_order ASC";
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, "Couldn't obtain forum list", "", __LINE__, __FILE__, $sql);
-}
+//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+// $sql = "SELECT f.*
+//	FROM " . FORUMS_TABLE . " f, " . CATEGORIES_TABLE . " c
+//	WHERE c.cat_id = f.cat_id
+//	$forum_sql
+//	ORDER BY c.cat_order ASC, f.forum_order ASC";
+// if ( !($result = $db->sql_query($sql)) )
+// {
+//	message_die(GENERAL_ERROR, "Couldn't obtain forum list", "", __LINE__, __FILE__, $sql);
+// }
+//
+// $forum_rows = $db->sql_fetchrowset($result);
+// $db->sql_freeresult($result);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
 
-$forum_rows = $db->sql_fetchrowset($result);
-$db->sql_freeresult($result);
 
 if( empty($forum_id) )
 {
@@ -182,12 +204,18 @@ if( empty($forum_id) )
 		'body' => 'admin/auth_select_body.tpl')
 	);
 
-	$select_list = '<select name="' . POST_FORUM_URL . '">';
-	for($i = 0; $i < count($forum_rows); $i++)
-	{
-		$select_list .= '<option value="' . $forum_rows[$i]['forum_id'] . '">' . $forum_rows[$i]['forum_name'] . '</option>';
-	}
-	$select_list .= '</select>';
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$select_list = '<select name="' . POST_FORUM_URL . '">';
+//	for($i = 0; $i < count($forum_rows); $i++)
+//	{
+//		$select_list .= '<option value="' . $forum_rows[$i]['forum_id'] . '">' . $forum_rows[$i]['forum_name'] . '</option>';
+//	}
+//	$select_list .= '</select>';
+//-- add
+	$select_list = selectbox(POST_FORUM_URL, false, '', true);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 
 	$template->assign_vars(array(
 		'L_AUTH_TITLE' => $lang['Auth_Control_Forum'],
@@ -210,7 +238,19 @@ else
 		'body' => 'admin/auth_forum_body.tpl')
 	);
 
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$forum_name = $forum_rows[0]['forum_name'];
+//-- add
+	$forum_rows[0] = $tree['data'][$tree['keys'][POST_FORUM_URL . $forum_id]];
+	$forum_name_trad = get_object_lang(POST_FORUM_URL . $forum_id, 'name');
 	$forum_name = $forum_rows[0]['forum_name'];
+	if ($forum_name != $forum_name_trad)
+	{
+		$forum_name = '(' . $forum_name . ') ' . $forum_name_trad;
+	}
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 
 	@reset($simple_auth_ary);
 	while( list($key, $auth_levels) = each($simple_auth_ary))
@@ -295,11 +335,23 @@ else
 	}
 
 	$adv_mode = ( empty($adv) ) ? '1' : '0';
-	$switch_mode = append_sid("admin_forumauth.$phpEx?" . POST_FORUM_URL . "=" . $forum_id . "&adv=". $adv_mode);
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$switch_mode = append_sid("admin_forumauth.$phpEx?" . POST_FORUM_URL . "=" . $forum_id . "&adv=". $adv_mode);
+//-- add
+	$switch_mode = append_sid("admin_forumauth.$phpEx?" . POST_FORUM_URL . "=f" . $forum_id . "&adv=". $adv_mode);
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 	$switch_mode_text = ( empty($adv) ) ? $lang['Advanced_mode'] : $lang['Simple_mode'];
 	$u_switch_mode = '<a href="' . $switch_mode . '">' . $switch_mode_text . '</a>';
 
-	$s_hidden_fields = '<input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '">';
+	//-- mod : categories hierarchy --------------------------------------------------------------------
+//-- delete
+//	$s_hidden_fields = '<input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '">';
+//-- add
+	$s_hidden_fields = '<input type="hidden" name="' . POST_FORUM_URL . '" value="f' . $forum_id . '">';
+//-- fin mod : categories hierarchy ----------------------------------------------------------------
+
 
 	$template->assign_vars(array(
 		'FORUM_NAME' => $forum_name,

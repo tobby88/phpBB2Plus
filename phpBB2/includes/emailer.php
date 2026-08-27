@@ -6,7 +6,7 @@
     copyright            : (C) 2001 The phpBB Group
     email                : support@phpbb.com
 
-    $Id$
+    $Id: emailer.php,v 1.15.2.34 2003/07/26 11:41:35 acydburn Exp $
 
 ***************************************************************************/
 
@@ -222,7 +222,7 @@ class emailer
 				{
 					message_die(GENERAL_ERROR, 'Unable to update config table', '', __LINE__, __FILE__, $sql);
 				}
-
+				@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
 				$board_config['sendmail_fix'] = 1;
 				$result = @mail($to, $this->subject, preg_replace("#(?<!\r)\n#s", "\n", $this->msg), $this->extra_headers);
 			}

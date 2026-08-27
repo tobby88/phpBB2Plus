@@ -6,7 +6,7 @@
  *   copyright            : (C) 2001 The phpBB Group
  *   email                : support@phpbb.com
  *
- *   $Id$
+ *   $Id: usercp_avatar.php,v 1.8.2.17 2003/03/04 21:02:36 acydburn Exp $
  *
  *
  ***************************************************************************/
@@ -50,8 +50,8 @@ function check_image_type(&$type, &$error, &$error_msg)
 function user_avatar_delete($avatar_type, $avatar_file)
 {
 	global $board_config, $userdata;
-
 	$avatar_file = basename($avatar_file);
+	
 	if ( $avatar_type == USER_AVATAR_UPLOAD && $avatar_file != '' )
 	{
 		if ( @file_exists(@phpbb_realpath('./' . $board_config['avatar_path'] . '/' . $avatar_file)) )
@@ -94,7 +94,6 @@ function user_avatar_gallery($mode, &$error, &$error_msg, $avatar_filename, $ava
 function user_avatar_url($mode, &$error, &$error_msg, $avatar_filename)
 {
 	global $lang;
-
 	if ( !preg_match('#^(http)|(ftp):\/\/#i', $avatar_filename) )
 	{
 		$avatar_filename = 'http://' . $avatar_filename;
@@ -280,11 +279,10 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 			{
 				$move_file = 'copy';
 			}
-
 			if (!is_uploaded_file($avatar_filename))
 			{
 				message_die(GENERAL_ERROR, 'Unable to upload file', '', __LINE__, __FILE__);
-			}
+			} 
 			$move_file($avatar_filename, './' . $board_config['avatar_path'] . "/$new_filename");
 		}
 
@@ -303,10 +301,11 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 	return $avatar_sql;
 }
 
-function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current_email, &$coppa, &$username, &$email, &$new_password, &$cur_password, &$password_confirm, &$icq, &$aim, &$msn, &$yim, &$website, &$location, &$occupation, &$interests, &$signature, &$viewemail, &$notifypm, &$popup_pm, &$notifyreply, &$attachsig, &$allowhtml, &$allowbbcode, &$allowsmilies, &$hideonline, &$style, &$language, &$timezone, &$dateformat, &$session_id)
+function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current_email, &$coppa, &$username, &$email, &$new_password, &$cur_password, &$password_confirm, &$icq, &$aim, &$msn, &$yim, &$website, &$location, &$user_flag, &$occupation, &$interests, &$signature, &$viewemail, &$notifypm, &$popup_pm, &$notifyreply, &$attachsig, &$setbm, &$allowhtml, &$allowbbcode, &$allowsmilies, &$hideonline, &$style, &$language, &$timezone, &$dateformat, &$user_absence_mode, &$user_absence, &$user_absence_text, &$session_id, &$birthday, &$gender)
 {
 	global $board_config, $db, $template, $lang, $images, $theme;
 	global $phpbb_root_path, $phpEx;
+	global $HTTP_POST_VARS;
 
 	$dir = @opendir($board_config['avatar_gallery_path']);
 
@@ -379,7 +378,7 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 		}
 	}
 
-	$params = array('coppa', 'user_id', 'username', 'email', 'current_email', 'cur_password', 'new_password', 'password_confirm', 'icq', 'aim', 'msn', 'yim', 'website', 'location', 'occupation', 'interests', 'signature', 'viewemail', 'notifypm', 'popup_pm', 'notifyreply', 'attachsig', 'allowhtml', 'allowbbcode', 'allowsmilies', 'hideonline', 'style', 'language', 'timezone', 'dateformat');
+	$params = array('coppa', 'user_id', 'username', 'email', 'current_email', 'cur_password', 'new_password', 'password_confirm', 'icq', 'aim', 'msn', 'yim', 'website', 'location', 'user_flag', 'occupation', 'interests', 'signature', 'viewemail', 'notifypm', 'popup_pm', 'notifyreply', 'attachsig', 'setbm', 'allowhtml', 'allowbbcode', 'allowsmilies', 'hideonline', 'style', 'language', 'timezone', 'dateformat', 'user_absence_mode', 'user_absence', 'user_absence_text', 'birthday', 'gender');
 
 	$s_hidden_vars = '<input type="hidden" name="sid" value="' . $session_id . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="avatarcatname" value="' . $category . '" />';
 
@@ -387,6 +386,29 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 	{
 		$s_hidden_vars .= '<input type="hidden" name="' . $params[$i] . '" value="' . str_replace('"', '&quot;', $$params[$i]) . '" />';
 	}
+	//
+	// Custom Profile Fields MOD
+	//
+	$profile_data = get_fields('WHERE users_can_view = '.ALLOW_VIEW);
+	foreach($profile_data as $field) {
+		$name = text_to_column($field['field_name']);
+		$required = ($field['is_required'] == REQUIRED) ? true : false;
+		$checkbox_tally = count($HTTP_POST_VARS[$name]);
+		if (($field['field_type'] == CHECKBOX) && ($checkbox_tally > 1)) {
+			foreach ($HTTP_POST_VARS[$name] as $checkbox_value) {
+				$checkbox_value = stripslashes($checkbox_value);
+				$s_hidden_vars .= '<input type="hidden" name="' . $name . '[]" value="' . str_replace('"', '&quot;', $checkbox_value) . '" />';
+			}
+		}
+		else {
+			$value = $HTTP_POST_VARS[$name];
+			$value = stripslashes($value);
+			$s_hidden_vars .= "<input type=\"hidden\" name=\"$name\" value=\"" . str_replace('"', '&quot;', $value) . "\" />";
+		}
+	}
+	//
+	// END Custom Profile Fields MOD
+	//
 	
 	$template->assign_vars(array(
 		'L_AVATAR_GALLERY' => $lang['Avatar_gallery'], 
