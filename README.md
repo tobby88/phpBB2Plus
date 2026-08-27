@@ -1,10 +1,14 @@
 # phpBB2 Plus
 
-This repository preserves and maintains **phpBB2 Plus 1.53a**, a pre-modded
-phpBB2 distribution that was originally based on phpBB 2.0.21. The current
-`main` branch includes the official phpBB 2.0.22 and 2.0.23 changes,
-CrackerTracker Professional 5.0.6, and additional compatibility fixes from the
-maintained phpBB 2.0.23.x branch.
+This repository is a historical archive of **phpBB2 Plus 1.53a**, a pre-modded
+phpBB2 distribution that was originally based on phpBB 2.0.21. It preserves a
+later consolidated state that includes the official phpBB 2.0.22 and 2.0.23
+changes, CrackerTracker Professional 5.0.6, and additional compatibility fixes
+from the phpBB 2.0.23.x branch.
+
+The repository exists to preserve the software and its history. It does not
+represent an active continuation of phpBB2 Plus, and no ongoing development,
+maintenance, or support is implied.
 
 phpBB2 Plus combines phpBB2 with a large collection of extensions and a shared
 administration interface. Major bundled features include:
@@ -20,15 +24,15 @@ administration interface. Major bundled features include:
 
 This list is intentionally not a version inventory. The source tree and
 [CHANGELOG.md](CHANGELOG.md) are the authoritative records of the integrated
-code and later maintenance work.
+code and the changes preserved after the 1.53a baseline.
 
 ## Project status
 
 This is legacy software. The original phpBB2 and phpBB2 Plus projects are no
-longer supported, and this repository must not be assumed to provide the
-security guarantees of a current forum platform. Modern-PHP compatibility work
-reduces runtime failures but does not by itself make the complete application
-safe for an untrusted public deployment.
+longer supported, and this archive does not provide maintenance or security
+support. The included compatibility fixes reduce some runtime failures but do
+not make the complete application equivalent to a current forum platform or
+safe by default for an untrusted public deployment.
 
 Use backups, test changes in an isolated environment, and review all migration
 scripts before running them against an existing forum.
@@ -43,7 +47,7 @@ scripts before running them against an existing forum.
   forum.
 - `folder+file-permissions.txt` documents the same writable paths and the
   shared-hosting fallback modes.
-- `CHANGELOG.md` contains the current maintenance summary followed by the
+- `CHANGELOG.md` summarizes the preserved changes after 1.53a and includes the
   original phpBB2 Plus changelog.
 
 ## Fresh installation
