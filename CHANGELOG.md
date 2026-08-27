@@ -20,6 +20,22 @@ notable changes made since that baseline.
   `update/db_uninstall_4x.php` as a reference. It uses the removed `mysql_*`
   API and must not be deployed or executed unchanged.
 
+### Arcade
+
+- Restored the Arcade Mod Plus 2.1.8 framework, administration modules,
+  templates, language files, and score protocols without bundled games or
+  historical activity data.
+- Added an empty MySQL/MariaDB installation script and deployment permissions;
+  the Arcade is disabled by default after installation.
+
+### Photo Album
+
+- Restored Nuffload 1.4.2 multiple-file and ZIP upload support for the Photo
+  Album, without uploaded images or production data.
+- Added neutral installation defaults and a protected CGI temporary directory.
+  The optional Perl CGI uploader is disabled by default and requires CGI
+  support and the Perl CGI module on the server.
+
 ### Modern PHP compatibility
 
 - Added the `mysqli` database abstraction layer.

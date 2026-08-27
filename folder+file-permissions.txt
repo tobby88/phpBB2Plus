@@ -14,6 +14,7 @@ Recommended mode: 0775 when PHP runs as the owner or in the owning group.
 /album_mod/upload
 /album_mod/upload/cache
 /cache
+/cgi-bin/tmp
 /games
 /files
 /files/thumbs
@@ -38,6 +39,16 @@ Recommended mode: 0664 when PHP runs as the owner or in the owning group.
 /ctracker/logfiles/logfile_malformed_logins.txt
 /ctracker/logfiles/logfile_spammer.txt
 /ctracker/logfiles/logfile_worms.txt
+
+Executable CGI files
+--------------------
+
+Recommended mode: 0755.
+
+/cgi-bin/nuffload.cgi
+
+The Nuffload CGI uploader is optional. It also requires a server with Perl CGI
+support and the Perl CGI module; leave `perl_uploader` disabled otherwise.
 
 Shared-hosting fallback
 -----------------------

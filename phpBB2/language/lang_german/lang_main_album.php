@@ -176,4 +176,20 @@ $lang['Sub_Total_Pics'] = 'Bilder insgesamt';
 $lang['Album_sub_categories'] = 'Sub Kategorien'; 
 /* Album Hierarchy - STOP  */ 
 
+
+// Album Nuffload
+$lang['time_elapsed'] = 'Vergangene Zeit';
+$lang['time_remaining'] = 'Verbleibende Zeit';
+$lang['upload_in_progress'] = 'Upload läuft';
+$lang['please_wait'] = 'Bitte warten...';
+$lang['uploaded'] = '%multi_id% von %multi_max% Bildern hochgeladen.';
+$lang['no_file_received'] = 'Keine Bilddatei empfangen';
+$lang['no_thumbnail_file_received'] = 'Kein Vorschaubild empfangen';
+$lang['file_too_big'] = 'Bilddatei ist zu groß';
+$lang['thumbnail_too_big'] = 'Vorschaudatei ist zu groß';
+$lang['image_res_too_high'] = 'Bildauflösung ist zu hoch';
+$lang['add_field'] = 'Weiteres Bild-Upload-Feld hinzufügen';
+$lang['remove_field'] = 'Letztes Bild-Upload-Feld entfernen';
+$lang['ZIP_allowed'] = 'ZIP-Dateien dürfen hochgeladen werden';
+
 ?>

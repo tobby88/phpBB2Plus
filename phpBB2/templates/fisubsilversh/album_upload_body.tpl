@@ -1,5 +1,92 @@
 <script language="JavaScript" type="text/javascript">
 <!--
+var inpIndex = 0;
+
+function addInput()
+{
+	if (inpIndex >= ({MAX_UPLOADS} - 1))
+	{
+		return;
+	}
+
+	inpIndex++;
+	var imageContainer = document.getElementById('parah');
+	var imageParagraph = document.createElement('p');
+	var imageInput = document.createElement('input');
+	imageParagraph.id = 'parah-' + inpIndex;
+	imageInput.type = 'file';
+	imageInput.id = 'pic_file-' + inpIndex;
+	imageInput.name = 'pic_file-' + inpIndex;
+	imageInput.className = 'post';
+	imageInput.size = '49';
+	imageParagraph.appendChild(imageInput);
+	imageContainer.appendChild(imageParagraph);
+
+	var thumbnailContainer = document.getElementById('parat');
+	if (thumbnailContainer)
+	{
+		var thumbnailParagraph = document.createElement('p');
+		var thumbnailInput = document.createElement('input');
+		thumbnailParagraph.id = 'parat-' + inpIndex;
+		thumbnailInput.type = 'file';
+		thumbnailInput.id = 'pic_thumbnail-' + inpIndex;
+		thumbnailInput.name = 'pic_thumbnail-' + inpIndex;
+		thumbnailInput.className = 'post';
+		thumbnailInput.size = '49';
+		thumbnailParagraph.appendChild(thumbnailInput);
+		thumbnailContainer.appendChild(thumbnailParagraph);
+	}
+}
+
+function deleteInput()
+{
+	if (inpIndex <= 0)
+	{
+		return;
+	}
+
+	var imageParagraph = document.getElementById('parah-' + inpIndex);
+	if (imageParagraph)
+	{
+		imageParagraph.parentNode.removeChild(imageParagraph);
+	}
+
+	var thumbnailParagraph = document.getElementById('parat-' + inpIndex);
+	if (thumbnailParagraph)
+	{
+		thumbnailParagraph.parentNode.removeChild(thumbnailParagraph);
+	}
+
+	inpIndex--;
+}
+
+function openUploadProgress()
+{
+	var width = 460;
+	var height = 150;
+	var left = (screen.width - width) / 2;
+	var top = (screen.height - height) / 2;
+	var properties = 'height=' + height + ',width=' + width + ',top=' + top + ',left=' + left + ',scrollbars=no,resizable=no,menubar=no,status=no,toolbar=no';
+	var progressWindow = window.open('album_nuffload_pbar.php?sessionid={PSID}', 'Uploader', properties);
+	if (progressWindow)
+	{
+		progressWindow.focus();
+	}
+}
+
+function postIt()
+{
+	if (!checkAlbumForm())
+	{
+		return false;
+	}
+
+<!-- BEGIN switch_show_progress_bar -->
+	openUploadProgress();
+<!-- END switch_show_progress_bar -->
+	return true;
+}
+
 function checkAlbumForm() {
 	formErrors = false;
 
@@ -41,7 +128,7 @@ function checkAlbumForm() {
 // -->
 </script>
 
-<form name="upload" action="{S_ALBUM_ACTION}" method="post" enctype="multipart/form-data" onSubmit="return checkAlbumForm()">
+<form name="upload" action="{S_ALBUM_ACTION}" method="post" enctype="multipart/form-data" onsubmit="return postIt();">
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
   <tr>
 	<td class="nav"><span class="nav"><a href="{U_INDEX}" class="nav">{L_INDEX}</a> -> <a class="nav" href="{U_ALBUM}">{L_ALBUM}</a> -> <a class="nav" href="{U_VIEW_CAT}">{CAT_TITLE}</a></span></td>
@@ -68,13 +155,17 @@ function checkAlbumForm() {
 	<td class="row2"><textarea class="post" cols="60" rows="4" name="pic_desc" size="60"></textarea></td>
   </tr>
   <tr>
-	<td class="row1"><span class="gen">{L_UPLOAD_PIC_FROM_MACHINE}:</span></td>
-	<td class="row2"><input class="post" type="file" name="pic_file" size="49" /></td>
+	<td class="row1"><span class="gen">{L_UPLOAD_PIC_FROM_MACHINE}:
+	<!-- BEGIN switch_multiple_uploads -->
+	<br /><a href="javascript:addInput();">{ADD_FIELD}</a><br /><a href="javascript:deleteInput();">{REMOVE_FIELD}</a>
+	<!-- END switch_multiple_uploads -->
+	</span></td>
+	<td class="row2" id="parah"><input class="post" type="file" name="pic_file" size="49" /></td>
   </tr>
 <!-- BEGIN switch_manual_thumbnail -->
   <tr>
 	<td class="row1"><span class="gen">{L_UPLOAD_THUMBNAIL}:<br /></span><span class="gensmall">{L_UPLOAD_THUMBNAIL_EXPLAIN}</span></td>
-	<td class="row2"><input class="post" type="file" name="pic_thumbnail" size="49" /></td>
+	<td class="row2" id="parat"><input class="post" type="file" name="pic_thumbnail" size="49" /></td>
   </tr>
   <tr>
 	<td class="row1" height="28"><span class="gen">{L_THUMBNAIL_SIZE}:</span></td>
@@ -108,6 +199,10 @@ function checkAlbumForm() {
   <tr>
 	<td class="row1" height="28"><span class="gen">{L_ALLOWED_GIF}:</span></td>
 	<td class="row2"><span class="gen"><b>{S_GIF}</b></span></td>
+  </tr>
+  <tr>
+	<td class="row1" height="28"><span class="gen">{L_ALLOWED_ZIP}:</span></td>
+	<td class="row2"><span class="gen"><b>{S_ZIP}</b></span></td>
   </tr>
   <tr>
 	<td class="cat" align="center" height="28" colspan="2"><input type="reset" value="{L_RESET}" class="liteoption" />&nbsp;&nbsp;&nbsp;<input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" /></td>

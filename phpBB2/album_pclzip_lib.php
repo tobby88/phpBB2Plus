@@ -170,6 +170,11 @@
 	//   Note that no real action is taken, if the archive does not exist it is not
 	//   created. Use create() for that.
 	// --------------------------------------------------------------------------------
+	function __construct($p_zipname)
+	{
+		$this->PclZip($p_zipname);
+	}
+
 	function PclZip($p_zipname)
 	{
 		//--(MAGIC-PclTrace)--//PclTraceFctStart(__FILE__, __LINE__, 'PclZip::PclZip', "zipname=$p_zipname");
@@ -252,7 +257,7 @@
 		if ($v_size > 1)
 		{
 			// ----- Get the arguments
-			$v_arg_list = &func_get_args();
+			$v_arg_list = func_get_args();
 
 			// ----- Remove form the options list the first argument
 			array_shift($v_arg_list);
@@ -424,7 +429,7 @@
 		if ($v_size > 1)
 		{
 			// ----- Get the arguments
-			$v_arg_list = &func_get_args();
+			$v_arg_list = func_get_args();
 
 			// ----- Remove form the options list the first argument
 			array_shift($v_arg_list);
@@ -674,7 +679,7 @@
 		if ($v_size > 0)
 		{
 			// ----- Get the arguments
-			$v_arg_list = &func_get_args();
+			$v_arg_list = func_get_args();
 
 			// ----- Look for first arg
 			if ((is_integer($v_arg_list[0])) && ($v_arg_list[0] > 77000))
@@ -845,7 +850,7 @@
 		if ($v_size > 1)
 		{
 			// ----- Get the arguments
-			$v_arg_list = &func_get_args();
+			$v_arg_list = func_get_args();
 
 			// ----- Remove form the options list the first argument
 			array_shift($v_arg_list);
@@ -1011,7 +1016,7 @@
 		}
 
 		// ----- Get the arguments
-		$v_arg_list = &func_get_args();
+		$v_arg_list = func_get_args();
 
 		// ----- Parse the options
 		$v_result = $this->privParseOptions($v_arg_list, $v_size, $v_options,

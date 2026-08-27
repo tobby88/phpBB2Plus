@@ -114,4 +114,23 @@ $lang['Clear_Cache'] = 'Cache löschen';
 $lang['Album_clear_cache_confirm'] = 'Wenn Du das Vorschau-Cache-Feature benutzt, mußt Du den Cache löschen, nachdem du die Vorschau-Einstellungen in der Album-Konfiguration geändert hast - erst dann wird der Cache wiederhergestellt.<br /><br /> Willst Du den Cache jetzt löschen?';
 $lang['Thumbnail_cache_cleared_successfully'] = '<br />Der Vorschau-Cache wurde erfolgreich gelöscht.<br /><br />';
 
+
+// Nuffload
+$lang['progress_bar_configuration'] = 'Fortschrittsbalken-Konfiguration';
+$lang['perl_uploader'] = 'Perl-Uploader aktivieren';
+$lang['path_to_bin'] = 'Pfad vom phpBB-Hauptverzeichnis zum cgi-bin';
+$lang['show_progress_bar'] = 'Fortschrittsbalken beim Upload anzeigen';
+$lang['close_progress_bar'] = 'Fortschrittsfenster nach Abschluss schließen';
+$lang['activity_timeout'] = 'Zeitüberschreitung bei Inaktivität (Sekunden)';
+$lang['simple_format'] = 'Einfaches Layout für den Fortschrittsbalken verwenden';
+$lang['multiple_uploads_configuration'] = 'Konfiguration für Mehrfach-Uploads';
+$lang['multiple_uploads'] = 'Mehrfach-Uploads aktivieren';
+$lang['max_uploads'] = 'Maximale Anzahl Uploadfelder';
+$lang['zip_uploads'] = 'ZIP-Uploads aktivieren';
+$lang['image_resizing_configuration'] = 'Konfiguration der Bildskalierung';
+$lang['image_resizing'] = 'Bildskalierung aktivieren';
+$lang['image_width'] = 'Bildbreite';
+$lang['image_height'] = 'Bildhöhe';
+$lang['image_quality'] = 'Bildqualität';
+
 ?>

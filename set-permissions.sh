@@ -13,6 +13,7 @@ PHPBB_WEB_ROOT defaults to the phpBB2 directory next to this script.
 Environment variables:
   PHPBB_WRITABLE_DIR_MODE   Folder mode (default: 0775)
   PHPBB_WRITABLE_FILE_MODE  File mode (default: 0664)
+  PHPBB_EXECUTABLE_FILE_MODE  CGI mode (default: 0755)
 
 For shared hosting that requires the historical world-writable modes:
   PHPBB_WRITABLE_DIR_MODE=0777 PHPBB_WRITABLE_FILE_MODE=0666 \
@@ -40,6 +41,7 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 web_root=${1:-"$script_dir/phpBB2"}
 dir_mode=${PHPBB_WRITABLE_DIR_MODE:-0775}
 file_mode=${PHPBB_WRITABLE_FILE_MODE:-0664}
+executable_file_mode=${PHPBB_EXECUTABLE_FILE_MODE:-0755}
 
 case "$dir_mode" in
 	0[0-7][0-7][0-7]) ;;
@@ -49,6 +51,11 @@ esac
 case "$file_mode" in
 	0[0-7][0-7][0-7]) ;;
 	*) echo "Invalid PHPBB_WRITABLE_FILE_MODE: $file_mode" >&2; exit 2 ;;
+esac
+
+case "$executable_file_mode" in
+	0[0-7][0-7][0-7]) ;;
+	*) echo "Invalid PHPBB_EXECUTABLE_FILE_MODE: $executable_file_mode" >&2; exit 2 ;;
 esac
 
 if [ ! -d "$web_root" ]; then
@@ -87,6 +94,7 @@ for path in \
 	album_mod/upload \
 	album_mod/upload/cache \
 	cache \
+	cgi-bin/tmp \
 	games \
 	files \
 	files/thumbs \
@@ -112,6 +120,12 @@ for path in \
 	ctracker/logfiles/logfile_worms.txt
 do
 	apply_mode "$file_mode" "$web_root/$path" file || failed=1
+done
+
+for path in \
+	cgi-bin/nuffload.cgi
+do
+	apply_mode "$executable_file_mode" "$web_root/$path" file || failed=1
 done
 
 if [ "$failed" -ne 0 ]; then

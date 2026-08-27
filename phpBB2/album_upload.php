@@ -23,6 +23,8 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 $album_root_path = $phpbb_root_path . 'album_mod/';
 include($phpbb_root_path . 'extension.inc');
+define('CT_SECLEVEL', 'MEDIUM');
+$ct_ignorepvar = array('pic_desc', 'pic_title');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 
@@ -40,6 +42,9 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+
+// Nuffload album uploader
+include($phpbb_root_path . 'album_nuffload.'.$phpEx);
 
 
 /*
@@ -395,13 +400,28 @@ if( !isset($_POST['pic_title']) ) // is it not submitted?
 		'L_RESET' => $lang['Reset'],
 		'L_SUBMIT' => $lang['Submit'],
 
-		'S_ALBUM_ACTION' => append_sid(album_append_uid("album_upload.$phpEx?cat_id=$cat_id")),
+		'S_ALBUM_ACTION' => $uploader,
+		'PSID' => $psid,
+		'ADD_FIELD' => $lang['add_field'],
+		'REMOVE_FIELD' => $lang['remove_field'],
+		'S_ZIP' => ($album_config['zip_uploads'] == 1) ? $lang['Yes'] : $lang['No'],
+		'L_ALLOWED_ZIP' => $lang['ZIP_allowed'],
+		'MAX_UPLOADS' => $album_config['max_uploads'],
 		)
 	);
 
 	if ($album_config['gd_version'] == 0)
 	{
 		$template->assign_block_vars('switch_manual_thumbnail', array());
+	}
+
+	if ($multiple_uploads == 1)
+	{
+		$template->assign_block_vars('switch_multiple_uploads', array());
+	}
+	if ($show_progress_bar == 1)
+	{
+		$template->assign_block_vars('switch_show_progress_bar', array());
 	}
 
 	//
@@ -546,7 +566,7 @@ else
 	// Generate filename
 	// --------------------------------
 
-	srand((double)microtime()*1000000);	// for older than version 4.2.0 of PHP
+	srand((float)microtime()*1000000);	// for older than version 4.2.0 of PHP
 
 	do
 	{
@@ -573,7 +593,7 @@ else
 			message_die(GENERAL_ERROR, 'open_basedir is set and your PHP version does not allow move_uploaded_file<br /><br />Please contact your server admin', '', __LINE__, __FILE__);
 		}
 
-		$move_file = 'move_uploaded_file';
+		$move_file = 'rename';
 	}
 	else
 	{
@@ -581,12 +601,14 @@ else
 	}
 
 	$move_file($filetmp, ALBUM_UPLOAD_PATH . $pic_filename);
+	@unlink($filetmp);
 
 	@chmod(ALBUM_UPLOAD_PATH . $pic_filename, 0777);
 
 	if ($album_config['gd_version'] == 0)
 	{
 		$move_file($thumbtmp, ALBUM_CACHE_PATH . $pic_thumbnail);
+		@unlink($thumbtmp);
 
 		@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0777);
 	}
@@ -760,7 +782,7 @@ else
 
 	$message .= "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid(album_append_uid("album.$phpEx")) . "\">", "</a>");
 
-	message_die(GENERAL_MESSAGE, $message);
+	message_die(GENERAL_MESSAGE, multi_loop($message, true));
 }
 
 

@@ -111,4 +111,22 @@ $lang['Comment'] = 'Comment';
 $lang['Clear_Cache'] = 'Clear Cache';
 $lang['Album_clear_cache_confirm'] = 'If you use the Thumbnail Cache feature you must clear your thumbnail cache after changing your thumbnail settings in Album Configuration to make them re-generated.<br /><br /> Do you want to clear them now?';
 $lang['Thumbnail_cache_cleared_successfully'] = '<br />Your thumbnail cache has been cleared successfully<br />&nbsp;';
+
+// Nuffload
+$lang['progress_bar_configuration'] = 'Progress Bar Configuration';
+$lang['perl_uploader'] = 'Enable Perl uploader';
+$lang['path_to_bin'] = 'Path from phpBB root to cgi-bin';
+$lang['show_progress_bar'] = 'Show progress bar on upload';
+$lang['close_progress_bar'] = 'Close progress bar on finish';
+$lang['activity_timeout'] = 'Activity timeout (seconds)';
+$lang['simple_format'] = 'Use simple formatting for progress bar';
+$lang['multiple_uploads_configuration'] = 'Multiple Uploads Configuration';
+$lang['multiple_uploads'] = 'Enable multiple uploads';
+$lang['max_uploads'] = 'Maximum upload fields';
+$lang['zip_uploads'] = 'Enable ZIP uploads';
+$lang['image_resizing_configuration'] = 'Image Resizing Configuration';
+$lang['image_resizing'] = 'Enable image resizing';
+$lang['image_width'] = 'Image width';
+$lang['image_height'] = 'Image height';
+$lang['image_quality'] = 'Image quality';
 ?>
