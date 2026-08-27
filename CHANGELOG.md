@@ -29,6 +29,7 @@ notable changes made since that baseline.
   the Arcade is disabled by default after installation.
 - Restored the missing Arcade administration arrows and popup close button
   referenced by the integrated code.
+- Restored the Rewards API used by the optional Cash and Allowance integrations.
 
 ### Photo Album
 
