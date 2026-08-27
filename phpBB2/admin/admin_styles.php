@@ -284,6 +284,24 @@ switch( $mode )
 			$updated_name['span_class2_name'] = $_POST['span_class2_name'];
 			$updated['span_class3'] = $_POST['span_class3'];
 			$updated_name['span_class3_name'] = $_POST['span_class3_name'];
+			$updated['div_class1'] = isset($_POST['div_class1']) ? $_POST['div_class1'] : '';
+			$updated_name['div_class1_name'] = isset($_POST['div_class1_name']) ? $_POST['div_class1_name'] : '';
+			$updated['div_class2'] = isset($_POST['div_class2']) ? $_POST['div_class2'] : '';
+			$updated_name['div_class2_name'] = isset($_POST['div_class2_name']) ? $_POST['div_class2_name'] : '';
+			$updated['div_class3'] = isset($_POST['div_class3']) ? $_POST['div_class3'] : '';
+			$updated_name['div_class3_name'] = isset($_POST['div_class3_name']) ? $_POST['div_class3_name'] : '';
+			$updated['row_class1'] = isset($_POST['row_class1']) ? $_POST['row_class1'] : '';
+			$updated_name['row_class1_name'] = isset($_POST['row_class1_name']) ? $_POST['row_class1_name'] : '';
+			$updated['row_class2'] = isset($_POST['row_class2']) ? $_POST['row_class2'] : '';
+			$updated_name['row_class2_name'] = isset($_POST['row_class2_name']) ? $_POST['row_class2_name'] : '';
+			$updated['row_class3'] = isset($_POST['row_class3']) ? $_POST['row_class3'] : '';
+			$updated_name['row_class3_name'] = isset($_POST['row_class3_name']) ? $_POST['row_class3_name'] : '';
+			$updated['col_class1'] = isset($_POST['col_class1']) ? $_POST['col_class1'] : '';
+			$updated_name['col_class1_name'] = isset($_POST['col_class1_name']) ? $_POST['col_class1_name'] : '';
+			$updated['col_class2'] = isset($_POST['col_class2']) ? $_POST['col_class2'] : '';
+			$updated_name['col_class2_name'] = isset($_POST['col_class2_name']) ? $_POST['col_class2_name'] : '';
+			$updated['col_class3'] = isset($_POST['col_class3']) ? $_POST['col_class3'] : '';
+			$updated_name['col_class3_name'] = isset($_POST['col_class3_name']) ? $_POST['col_class3_name'] : '';
 			$style_id = intval($_POST['style_id']);
 			//
 			// Wheeeew! Thank heavens for copy and paste and search and replace :D
@@ -635,7 +653,16 @@ switch( $mode )
 				"L_SPAN_CLASS_1" => $lang['span_class1'],
 				"L_SPAN_CLASS_2" => $lang['span_class2'],
 				"L_SPAN_CLASS_3" => $lang['span_class3'],
-				"L_SAVE_SETTINGS" => $lang['Save_Settings'], 
+				"L_DIV_CLASS_1" => isset($lang['div_class1']) ? $lang['div_class1'] : 'Container class 1',
+				"L_DIV_CLASS_2" => isset($lang['div_class2']) ? $lang['div_class2'] : 'Container class 2',
+				"L_DIV_CLASS_3" => isset($lang['div_class3']) ? $lang['div_class3'] : 'Container class 3',
+				"L_ROW_CLASS_1" => isset($lang['row_class1']) ? $lang['row_class1'] : 'Row class 1',
+				"L_ROW_CLASS_2" => isset($lang['row_class2']) ? $lang['row_class2'] : 'Row class 2',
+				"L_ROW_CLASS_3" => isset($lang['row_class3']) ? $lang['row_class3'] : 'Row class 3',
+				"L_COL_CLASS_1" => isset($lang['col_class1']) ? $lang['col_class1'] : 'Column class 1',
+				"L_COL_CLASS_2" => isset($lang['col_class2']) ? $lang['col_class2'] : 'Column class 2',
+				"L_COL_CLASS_3" => isset($lang['col_class3']) ? $lang['col_class3'] : 'Column class 3',
+				"L_SAVE_SETTINGS" => $lang['Save_Settings'],
 				"THEME_NAME" => $selected['style_name'],
 				"HEAD_STYLESHEET" => $selected['head_stylesheet'],
 				"BODY_BACKGROUND" => $selected['body_background'],
@@ -675,6 +702,15 @@ switch( $mode )
 				"SPAN_CLASS1" => $selected['span_class1'],
 				"SPAN_CLASS2" => $selected['span_class2'],
 				"SPAN_CLASS3" => $selected['span_class3'],
+				"DIV_CLASS1" => isset($selected['div_class1']) ? $selected['div_class1'] : '',
+				"DIV_CLASS2" => isset($selected['div_class2']) ? $selected['div_class2'] : '',
+				"DIV_CLASS3" => isset($selected['div_class3']) ? $selected['div_class3'] : '',
+				"ROW_CLASS1" => isset($selected['row_class1']) ? $selected['row_class1'] : '',
+				"ROW_CLASS2" => isset($selected['row_class2']) ? $selected['row_class2'] : '',
+				"ROW_CLASS3" => isset($selected['row_class3']) ? $selected['row_class3'] : '',
+				"COL_CLASS1" => isset($selected['col_class1']) ? $selected['col_class1'] : '',
+				"COL_CLASS2" => isset($selected['col_class2']) ? $selected['col_class2'] : '',
+				"COL_CLASS3" => isset($selected['col_class3']) ? $selected['col_class3'] : '',
 
 				"TR_COLOR1_NAME" => $selected['tr_color1_name'],
 				"TR_COLOR2_NAME" => $selected['tr_color2_name'],
@@ -706,7 +742,16 @@ switch( $mode )
 				"SPAN_CLASS1_NAME" => $selected['span_class1_name'],
 				"SPAN_CLASS2_NAME" => $selected['span_class2_name'],
 				"SPAN_CLASS3_NAME" => $selected['span_class3_name'],
-				
+				"DIV_CLASS1_NAME" => isset($selected['div_class1_name']) ? $selected['div_class1_name'] : '',
+				"DIV_CLASS2_NAME" => isset($selected['div_class2_name']) ? $selected['div_class2_name'] : '',
+				"DIV_CLASS3_NAME" => isset($selected['div_class3_name']) ? $selected['div_class3_name'] : '',
+				"ROW_CLASS1_NAME" => isset($selected['row_class1_name']) ? $selected['row_class1_name'] : '',
+				"ROW_CLASS2_NAME" => isset($selected['row_class2_name']) ? $selected['row_class2_name'] : '',
+				"ROW_CLASS3_NAME" => isset($selected['row_class3_name']) ? $selected['row_class3_name'] : '',
+				"COL_CLASS1_NAME" => isset($selected['col_class1_name']) ? $selected['col_class1_name'] : '',
+				"COL_CLASS2_NAME" => isset($selected['col_class2_name']) ? $selected['col_class2_name'] : '',
+				"COL_CLASS3_NAME" => isset($selected['col_class3_name']) ? $selected['col_class3_name'] : '',
+
 				"S_THEME_ACTION" => append_sid("admin_styles.$phpEx"),
 				"S_TEMPLATE_SELECT" => $s_template_select,
 				"S_HIDDEN_FIELDS" => $s_hidden_fields)

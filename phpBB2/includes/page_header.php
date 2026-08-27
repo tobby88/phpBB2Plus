@@ -775,6 +775,15 @@ $template->assign_vars(array(
 	'T_SPAN_CLASS1' => $theme['span_class1'],
 	'T_SPAN_CLASS2' => $theme['span_class2'],
 	'T_SPAN_CLASS3' => $theme['span_class3'],
+	'T_DIV_CLASS1' => isset($theme['div_class1']) ? $theme['div_class1'] : '',
+	'T_DIV_CLASS2' => isset($theme['div_class2']) ? $theme['div_class2'] : '',
+	'T_DIV_CLASS3' => isset($theme['div_class3']) ? $theme['div_class3'] : '',
+	'T_ROW_CLASS1' => isset($theme['row_class1']) ? $theme['row_class1'] : '',
+	'T_ROW_CLASS2' => isset($theme['row_class2']) ? $theme['row_class2'] : '',
+	'T_ROW_CLASS3' => isset($theme['row_class3']) ? $theme['row_class3'] : '',
+	'T_COL_CLASS1' => isset($theme['col_class1']) ? $theme['col_class1'] : '',
+	'T_COL_CLASS2' => isset($theme['col_class2']) ? $theme['col_class2'] : '',
+	'T_COL_CLASS3' => isset($theme['col_class3']) ? $theme['col_class3'] : '',
 	'GOOGLE_VISIT_COUNTER' => sprintf($lang['Google_Visit_counter'], $google_visit_counter),
 	'NAV_LINKS' => $nav_links_html)
 );
