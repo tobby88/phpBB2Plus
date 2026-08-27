@@ -1375,7 +1375,7 @@ if ( !empty($next) )
 					if ( $group_id <= 0 )
 					{
 						print "<font color=\"red\">Group creation failed. Aborting creation of groups...<br></font>\n";
-						continue 2;
+						break 2;
 					}
 
 					print "<span class=\"ok\"><b>OK</b></span><br />\n";
@@ -1390,7 +1390,7 @@ if ( !empty($next) )
 					if ( $db->sql_affectedrows($result) <= 0 )
 					{
 						print "<font color=\"red\">Group creation failed. Aborting creation of groups...</font><br>\n";
-						continue 2;
+						break 2;
 					}
 
 					print "<span class=\"ok\"><b>OK</b></span><br />\n";

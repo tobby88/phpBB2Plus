@@ -1974,7 +1974,7 @@ class Template {
 				case 'false':
 					$match[5] = strtoupper($match[5]);
 					break;
-				case '.';
+				case '.':
 					$match[5] = doubleval($match[5]);
 					break;
 				default:

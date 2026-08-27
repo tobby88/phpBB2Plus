@@ -331,7 +331,7 @@ class sql_db
 		}
 	}
 
-	function sql_fetchfield($field, $row = -1, $query_id)
+	function sql_fetchfield($field, $row = -1, $query_id = 0)
 	{
 		if( !$query_id )
 		{

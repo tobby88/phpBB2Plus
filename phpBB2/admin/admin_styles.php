@@ -716,7 +716,7 @@ switch( $mode )
 		}
 		break;
 
-	case "export";
+	case "export":
 		if($_POST['export_template'])
 		{
 			$template_name = $_POST['export_template'];

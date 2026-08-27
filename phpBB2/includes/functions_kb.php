@@ -186,7 +186,7 @@ function get_kb_nav($parent)
 //
 // get articles for the category
 //
-function get_kb_articles($id = false, $approve, $block_name, $start = -1, $articles_in_cat = 0)
+function get_kb_articles($id = false, $approve = false, $block_name = '', $start = -1, $articles_in_cat = 0)
 {
     global $db, $template, $images, $phpEx, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id, $is_admin, $userdata;
 	global $kb_news_sort_method_extra, $kb_news_sort_method, $kb_news_sort_method_lj, $kb_news_sort_par, $kb_config, $is_admin;
@@ -1256,7 +1256,7 @@ if ( $total_posts != 0 )
 //
 // get articles for the category
 //
-function get_kb_stats($type = false, $approve, $block_name)
+function get_kb_stats($type = false, $approve = false, $block_name = '')
 {
     global $db, $template, $images, $phpEx, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id, $is_admin, $userdata;
 	

@@ -1864,7 +1864,7 @@ class pafiledb
 		return false;
 	}
 	
-	function file_approve($mode = 'do_approve', $file_id)
+	function file_approve($mode = 'do_approve', $file_id = 0)
 	{
 		global $db;
 		

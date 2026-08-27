@@ -244,7 +244,7 @@ $width = ($zeichenzahl * $schriftwidth) + 6;
 $height = (count($output) * $schriftheight) + 34;
 if($width < 60) $width = 60;
 
-mt_srand((double)microtime()*3216549);
+mt_srand((float)microtime()*3216549);
 if($smilie == 'random') $smilie = mt_rand(1,$anz_smilie);
 if(!$smilie){
 	if($std_smilie) $smilie = $std_smilie;

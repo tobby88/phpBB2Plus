@@ -73,7 +73,7 @@ else
 	}
 }
 
-srand((double)microtime()*1000000);
+srand((float)microtime()*1000000);
 #include($phpbb_root_path.'includes/functions_captcha.'.$phpEx);
 
 // Read the config table
@@ -221,7 +221,7 @@ $x_char_position = (round(($total_width - 12) / strlen($code)) + mt_rand(-3, 5))
 
 for ($i = 0; $i < strlen($code); $i++)
 {
-	mt_srand((double)microtime()*1000000);
+	mt_srand((float)microtime()*1000000);
 
 	$char = $code[$i];
 #	$size = mt_rand(18, ceil($total_height / 2.8));

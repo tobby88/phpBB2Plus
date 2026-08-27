@@ -23,7 +23,7 @@
  *                            MODIFICATIONS
  *                           ---------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
@@ -59,7 +59,7 @@ if 	(defined('ALBUM_SP_CONFIG_TABLE'))
 // 
 // Function for watermark 
 // 
-function mergePics($sourcefile, $insertfile, $pos = 0, $transition = 50, $filetype) 
+function mergePics($sourcefile, $insertfile, $pos = 0, $transition = 50, $filetype = '')
 {
 	$insertfile_id = imageCreateFromPNG($insertfile);
 
@@ -340,7 +340,7 @@ exit;
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
-?> 
+?>
