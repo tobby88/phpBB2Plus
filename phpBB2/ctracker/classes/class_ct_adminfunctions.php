@@ -28,6 +28,11 @@ class ct_adminfunctions
 	 * <b>ct_adminfunctions</b>
 	 * Constructor
 	 */
+	function __construct()
+	{
+		$this->ct_adminfunctions();
+	}
+
 	function ct_adminfunctions()
 	{
 		// Currently nothing to do

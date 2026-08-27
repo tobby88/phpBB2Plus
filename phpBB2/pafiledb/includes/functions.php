@@ -703,7 +703,12 @@ class user_info
 	 heuristic examination of user agent string.
 	 @param $user_agent allows override of user agent string for testing.
 	*/
-	
+
+	function __construct( $user_agent = '' )
+	{
+		$this->user_info( $user_agent );
+	}
+
 	function user_info( $user_agent = '' )
 	{
 		global $_SERVER, $HTTP_USER_AGENT, $HTTP_SERVER_VARS;

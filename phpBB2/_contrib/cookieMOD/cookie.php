@@ -80,7 +80,8 @@ define('script_path', 'script_path');
 define('server_port', 'server_port');
 define('cookie_secure', 'cookie_secure');
 
-if (htmlspecialchars_wrapped($HTTP_POST_VARS['action'] ?? null) == "write")
+$cookie_action = isset($HTTP_POST_VARS['action']) ? $HTTP_POST_VARS['action'] : null;
+if (htmlspecialchars_wrapped($cookie_action) == "write")
 {
    $sql = "UPDATE " . CONFIG_TABLE . " SET config_value = '" . str_replace("\'", "''", htmlspecialchars_wrapped($HTTP_POST_VARS['cookie_domain'], ENT_COMPAT, 'utf-8')) . "' WHERE config_name = '" . cookie_domain . "'";
    if( !$db->sql_query($sql) )

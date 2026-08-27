@@ -34,6 +34,11 @@ class emailer
 
 	var $tpl_msg = array();
 
+	function __construct($use_smtp)
+	{
+		$this->emailer($use_smtp);
+	}
+
 	function emailer($use_smtp)
 	{
 		$this->reset();

@@ -53,6 +53,11 @@ class Template {
 	 * Constructor. Simply sets the root dir.
 	 *
 	 */
+	function __construct($root = '.')
+	{
+		$this->Template($root);
+	}
+
 	function Template($root = '.')
 	{
 		global $board_config, $db;

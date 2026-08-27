@@ -25,6 +25,11 @@ class acm
 	var $vars_ts = array();
 	var $modified = FALSE;
 
+	function __construct()
+	{
+		$this->acm();
+	}
+
 	function acm()
 	{
 		global $phpbb_root_path;

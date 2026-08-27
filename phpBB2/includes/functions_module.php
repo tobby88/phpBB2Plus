@@ -43,6 +43,11 @@ class Statistics
 	var $result_cache_used = FALSE;
 	var $db_cache_used = FALSE;
 	
+	function __construct()
+	{
+		$this->Statistics();
+	}
+
 	function Statistics()
 	{
 		$this->loaded_bar_images['left'] = 'images/vote_lcap.gif';
@@ -194,6 +199,11 @@ class cached_db
 	var $fs = array();
 	var $f = array();
 
+	function __construct($numrows, $fetchrowset, $fetchrow)
+	{
+		$this->cached_db($numrows, $fetchrowset, $fetchrow);
+	}
+
 	function cached_db($numrows, $fetchrowset, $fetchrow)
 	{
 		$this->n = $numrows;
@@ -214,6 +224,11 @@ class StatisticsDB
 	var $curr_n_row = 0;
 	var $curr_fs_row = 0;
 	var $curr_f_row = 0;
+
+	function __construct()
+	{
+		$this->StatisticsDB();
+	}
 
 	function StatisticsDB()
 	{
@@ -389,6 +404,11 @@ class cached_result
 {
 	var $var_data = array();
 
+	function __construct($var_data)
+	{
+		$this->cached_result($var_data);
+	}
+
 	function cached_result($var_data)
 	{
 		$this->var_data = $var_data;
@@ -402,6 +422,11 @@ class Results
 	var $var_data = array();
 	var $index = -2;
 	var $use_cache = FALSE;
+
+	function __construct()
+	{
+		$this->Results();
+	}
 
 	function Results()
 	{

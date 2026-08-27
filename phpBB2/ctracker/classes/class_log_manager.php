@@ -68,6 +68,11 @@ class log_manager
 	 * Write User Information to Vars we need these informations later into the
 	 * Log File
 	 */
+	function __construct()
+	{
+		$this->log_manager();
+	}
+
 	function log_manager()
 	{
 

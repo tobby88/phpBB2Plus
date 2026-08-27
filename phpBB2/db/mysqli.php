@@ -34,6 +34,11 @@ class sql_db
 	//
 	// Constructor
 	//
+	function __construct($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
+	{
+		$this->sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency);
+	}
+
 	function sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
 	{
 
