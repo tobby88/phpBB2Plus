@@ -6,7 +6,7 @@
 * 
 * @author Christian Knerr (cback)
 * @package ctracker
-* @version 5.0.0
+* @version 5.0.5
 * @since 26.07.2006 - 13:27:31
 * @copyright (c) 2006 www.cback.de
 * 
@@ -34,6 +34,7 @@ define('CTRACKER_ACP', true);
  *  9:	acp_module_settings.php	 <br>
  * 10:	acp_module_systemrestore.php	<br>
  * 11:  acp_module_footer.php <br>
+ * 99: acp_module_logmanager.php (including Download of Debug Log) <br>
  */
 
 
@@ -61,6 +62,8 @@ $no_page_header  = TRUE;
 $phpbb_root_path = './../';
 
 require($phpbb_root_path . 'extension.inc');
+define('CT_SECLEVEL', 'MEDIUM');
+$ct_ignorepvar = array('global_message');
 require('./pagestart.' . $phpEx);
 
 
@@ -74,6 +77,18 @@ include($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
 include($phpbb_root_path . 'ctracker/constants.' . $phpEx);
 include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
 
+// Download Debug Log?
+if ( $module_number == 99 )
+{
+	$log_filepath = $phpbb_root_path . 'ctracker/logfiles/logfile_debug_mode.txt';
+	$size = filesize($log_filepath);
+	header("Content-Type: text/plain");
+    header("Content-disposition: attachment; filename=logfile_debug_mode.txt");
+    header("Content-Length: ".$size);
+    header("Pragma: no-cache");
+    header("Expires: 0");
+    readfile($log_filepath);
+}
 
 // Include default & CrackerTracker Admin Header
 include('./page_header_admin.' . $phpEx);
@@ -98,7 +113,8 @@ switch ( $module_number )
 	case 5:		include($phpbb_root_path . 'ctracker/admin/acp_module_ipblocker.' . $phpEx);
 				break;
 			
-	case 6:		include($phpbb_root_path . 'ctracker/admin/acp_module_logmanager.' . $phpEx);
+	case 6:
+	case 99:	include($phpbb_root_path . 'ctracker/admin/acp_module_logmanager.' . $phpEx);
 				break;
 			
 	case 7:		include($phpbb_root_path . 'ctracker/admin/acp_module_maintenance.' . $phpEx);

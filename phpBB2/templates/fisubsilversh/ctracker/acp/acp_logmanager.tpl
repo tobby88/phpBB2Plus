@@ -61,9 +61,9 @@
 					<td class="row1" align="center"><b>[ <a href="{overview.S_VIEW_5}">{overview.L_VIEW}</a> | <a href="{overview.S_DELETE_5}">{overview.L_DELETE}</a> ]</b></td>
 				</tr>
 				<tr>
-					<td class="row1"><b>{overview.L_LOGNAME_6}</b></td>
-					<td class="row1">{overview.S_LOGVALUE_6}</td>
-					<td class="row1" align="center"><b>[ <a href="{overview.S_VIEW_6}">{overview.L_VIEW}</a> |  <a href="{overview.S_DELETE_6}">{overview.L_DELETE}</a> ]</b></td>
+					<td class="row2"><b>{overview.L_LOGNAME_6}</b></td>
+					<td class="row2">{overview.S_LOGVALUE_6}</td>
+					<td class="row2" align="center"><b>[ <a href="{overview.S_VIEW_6}">{overview.L_VIEW}</a> |  <a href="{overview.S_DELETE_6}">{overview.L_DELETE}</a> ]</b></td>
 				</tr>
 				<tr>
 					<td class="catBottom" colspan="3" align="center"><input type="Submit" name="submit" value="{overview.L_DELETE_ALL}" class="mainoption"></td>

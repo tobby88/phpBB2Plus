@@ -7,7 +7,7 @@
 *
 * @author Christian Knerr (cback)
 * @package ctracker
-* @version 5.0.0
+* @version 5.0.6
 * @since 22.07.2006 - 01:57:01
 * @copyright (c) 2006 www.cback.de
 *
@@ -24,7 +24,7 @@ if ( !defined('IN_PHPBB') )
 /*
  * Constants we need
  */
-define('CTRACKER_VERSION', '5.0.4');		// CrackerTracker Version
+define('CTRACKER_VERSION', '5.0.6');		// CrackerTracker Version
 define('CT_FIRST_ADMIN_UID', '2');			// UserID of the first Admin
 
 

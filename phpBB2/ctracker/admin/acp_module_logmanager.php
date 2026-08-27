@@ -5,7 +5,7 @@
 *
 * @author Christian Knerr (cback) and Tekin Birdüzen (cYbercOsmOnauT)
 * @package ctracker
-* @version 5.0.3
+* @version 5.0.5
 * @since 26.07.2006 - 13:29:09
 * @copyright (c) 2006 www.cback.de
 *
@@ -59,7 +59,7 @@ else if ( $mode == 'delete_all' )
 			'L_MESSAGE_TEXT'	=> $lang['ctracker_log_manager_all_deleted'])
 	);
 }
-else if ( $mode == 'view' )
+else if ( $mode == 'view' || $mode == 'downloaddebug' )
 {
 	// Header for logfile output
 
@@ -145,7 +145,7 @@ if ( $mode != 'view')
 			'S_DELETE_4'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=4&mode=delete'),
 			'S_VIEW_5'			=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=5&mode=view'),
 			'S_DELETE_5'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=5&mode=delete'),
-			'S_VIEW_6'			=> $phpbb_root_path . 'ctracker/logfiles/logfile_debug_mode.txt',
+			'S_VIEW_6'			=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=99&mode=downloaddebug'),
       'S_DELETE_6'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=6&mode=delete'),
 
 			'S_DELETE_FORM'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&mode=delete_all'),

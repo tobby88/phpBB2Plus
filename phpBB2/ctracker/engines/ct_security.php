@@ -11,7 +11,7 @@
 *
 * @author Christian Knerr (cback) and Tekin Birdüzen (cYbercOsmOnauT)
 * @package ctracker
-* @version 5.0.3
+* @version 5.0.6
 * @since 15.07.2006 - 21:36:24
 * @copyright (c) 2006 www.cback.de
 *
@@ -89,14 +89,16 @@ EOM;
  * Now we define an array where all definition data is saved in.
  * After that we check URL committals for potential worm acitivities
  */
-$ct_rules = array('http_', '_server', 'delete%20', 'delete ', 'drop%20', 'drop ', 'create%20',
-				  'create ', 'update%20', 'update ', 'insert%20', 'insert ',
-          'select%20', 'select ', 'bulk%20', 'bulk ', 'union%20', 'union ',
+$ct_rules = array('http_', '_server', 'delete%20', 'delete ', 'delete-', 'delete(', '(delete', 'drop%20',
+				  'drop ', 'create%20', 'update-', 'update(', '(update', 'insert-', 'insert(', '(insert',
+				  'create ', 'create(', 'create-', '(create', 'update%20', 'update ', 'insert%20', 'insert ',
+				  'select%20', 'select ', 'bulk%20', 'bulk ', 'union%20', 'union ', 'select-', 'select(',
+				  '(select', 'union-', '(union', 'union(',
 				  'or%20', 'or ', 'and%20', 'and ', 'exec', '@@', '%22', '"', 'openquery',
 				  'openrowset', 'msdasql', 'sqloledb', 'sysobjects', 'syscolums',
 				  'syslogins', 'sysxlogins', 'char%20', 'char ', 'into%20', 'into ',
 				  'load%20', 'load ', 'msys', 'alert%20', 'alert ', 'eval%20', 'eval ',
-          'onkeyup', 'x5cx', 'fromcharcode', 'javascript:', 'javascript.', 'vbscript:',
+				  'onkeyup', 'x5cx', 'fromcharcode', 'javascript:', 'javascript.', 'vbscript:',
 				  'vbscript.', 'http-equiv', '->', 'expression%20', 'expression ',
 				  'url%20', 'url ', 'innerhtml', 'document.', 'dynsrc', 'jsessionid',
 				  'style%20', 'style ', 'phpsessid', '<applet', '<div', '<emded', '<iframe', '<img',
@@ -108,28 +110,28 @@ $ct_rules = array('http_', '_server', 'delete%20', 'delete ', 'drop%20', 'drop '
 				  '%2C', 'union+', 'select+', 'delete+', 'create+', 'bulk+', 'or+', 'and+',
 				  'into+', 'kill+', '+echr', '+chr', 'cmd+', '+1', 'user_password',
 				  'id%20', 'id ', 'ls%20', 'ls ', 'cat%20', 'cat ', 'rm%20', 'rm ',
-          'kill%20', 'kill ', 'mail%20', 'mail ', 'wget%20', 'wget ', 'wget(',
-          'pwd%20', 'pwd ', 'objectclass', 'objectcategory', '<!-%20', '<!- ',
-          'total%20', 'total ', 'http%20request', 'http request', 'phpb8b4f2a0',
-          'phpinfo', 'php:', 'globals', '%2527', '%27', '\'', 'chr(',
+				  'kill%20', 'kill ', 'mail%20', 'mail ', 'wget%20', 'wget ', 'wget(',
+				  'pwd%20', 'pwd ', 'objectclass', 'objectcategory', '<!-%20', '<!- ',
+				  'total%20', 'total ', 'http%20request', 'http request', 'phpb8b4f2a0',
+				  'phpinfo', 'php:', 'globals', '%2527', '%27', '\'', 'chr(',
 				  'chr=', 'chr%20', 'chr ', '%20chr', ' chr', 'cmd=', 'cmd%20', 'cmd',
-          '%20cmd', ' cmd', 'rush=', '%20rush', ' rush', 'rush%20', 'rush ',
-          'union%20', 'union ', '%20union', ' union', 'union(', 'union=',
+				  '%20cmd', ' cmd', 'rush=', '%20rush', ' rush', 'rush%20', 'rush ',
+				  'union%20', 'union ', '%20union', ' union', 'union(', 'union=',
 				  '%20echr', ' echr', 'esystem', 'cp%20', 'cp ', 'cp(', '%20cp', ' cp',
-          'mdir%20', 'mdir ', '%20mdir', ' mdir', 'mdir(', 'mcd%20', 'mcd ',
-          'mrd%20', 'mrd ', 'rm%20', 'rm ', '%20mcd', ' mcd', '%20mrd', ' mrd',
-          '%20rm', ' rm', 'mcd(', 'mrd(', 'rm(', 'mcd=', 'mrd=', 'mv%20', 'mv ',
+				  'mdir%20', 'mdir ', '%20mdir', ' mdir', 'mdir(', 'mcd%20', 'mcd ',
+				  'mrd%20', 'mrd ', 'rm%20', 'rm ', '%20mcd', ' mcd', '%20mrd', ' mrd',
+				  '%20rm', ' rm', 'mcd(', 'mrd(', 'rm(', 'mcd=', 'mrd=', 'mv%20', 'mv ',
 				  'rmdir%20', 'rmdir ', 'mv(', 'rmdir(', 'chmod(', 'chmod%20', 'chmod ',
-          'cc%20', 'cc ', '%20chmod', ' chmod', 'chmod(', 'chmod=', 'chown%20', 'chown ',
-          'chgrp%20', 'chgrp ', 'chown(', 'chgrp(', 'locate%20', 'locate ', 'grep%20', 'grep ',
-          'locate(', 'grep(', 'diff%20', 'diff ', 'kill%20', 'kill ', 'kill(', 'killall',
-          'passwd%20', 'passwd ', '%20passwd', ' passwd', 'passwd(', 'telnet%20', 'telnet ',
-          'vi(', 'vi%20', 'vi ', 'nigga(', '%20nigga', ' nigga', 'nigga%20', 'nigga ',
-          'fopen', 'fwrite', '%20like', ' like', 'like%20', 'like ', '$_',
+				  'cc%20', 'cc ', '%20chmod', ' chmod', 'chmod(', 'chmod=', 'chown%20', 'chown ',
+				  'chgrp%20', 'chgrp ', 'chown(', 'chgrp(', 'locate%20', 'locate ', 'grep%20', 'grep ',
+				  'locate(', 'grep(', 'diff%20', 'diff ', 'kill%20', 'kill ', 'kill(', 'killall',
+				  'passwd%20', 'passwd ', '%20passwd', ' passwd', 'passwd(', 'telnet%20', 'telnet ',
+				  'vi(', 'vi%20', 'vi ', 'nigga(', '%20nigga', ' nigga', 'nigga%20', 'nigga ',
+				  'fopen', 'fwrite', '%20like', ' like', 'like%20', 'like ', '$_',
 				  '$get', '.system', 'http_php', '%20getenv', ' getenv', 'getenv%20', 'getenv ',
 				  'new_password', '/password', 'etc/', '/groups', '/gshadow',
 				  'http_user_agent', 'http_host', 'bin/', 'wget%20', 'wget ', 'uname%5c',
-				  'uname\\', 'usr', '/chgrp', '=chown', 'usr/bin', 'g%5c',
+				  'uname', 'usr', '/chgrp', '=chown', 'usr/bin', 'g%5c',
 				  'g\\', 'bin/python', 'bin/tclsh', 'bin/nasm', 'perl%20', 'perl ', '.pl',
 				  'traceroute%20', 'traceroute ', 'tracert%20', 'tracert ', 'ping%20', 'ping ',
 				  '/usr/x11r6/bin/xterm', 'lsof%20', 'lsof ', '/mail', '.conf', 'motd%20', 'motd ',
@@ -140,14 +142,14 @@ $ct_rules = array('http_', '_server', 'delete%20', 'delete ', 'drop%20', 'drop '
 				  'wwwacl', '~root', '~ftp', '.js', '.jsp', '.history',
 				  'bash_history', '~nobody', 'server-info', 'server-status',
 				  '%20reboot', ' reboot', '%20halt', ' halt', '%20powerdown', ' powerdown',
-          '/home/ftp', '=reboot', 'www/', 'init%20', 'init ','=halt', '=powerdown',
-          'ereg(', 'secure_site', 'chunked', 'org.apache', '/servlet/con',
+				  '/home/ftp', '=reboot', 'www/', 'init%20', 'init ','=halt', '=powerdown',
+				  'ereg(', 'secure_site', 'chunked', 'org.apache', '/servlet/con',
 				  '/robot', 'mod_gzip_status', '.inc', '.system', 'getenv',
 				  'http_', '_php', 'php_', 'phpinfo()', '<?php', '?>', '%3C%3Fphp',
 				  '%3F>', 'sql=', '_global', 'global_', 'global[', '_server',
 				  'server_', 'server[', '/modules', 'modules/', 'phpadmin',
 				  'root_path', '_globals', 'globals_', 'globals[', 'iso-8859-1',
-				  '?hl=', '%3fhl=', '.exe', '.sh', '%00', rawurldecode('%00'), '_env');
+				  '?hl=', '%3fhl=', '.exe', '.sh', '%00', rawurldecode('%00'), '_env', '/*', '\\*');
 
 // Some fields in $HTTP_POST_VARS don't get checked to prevent wrong detection
 $unchecked_post_fields   = array('username', 'password', 'subject', 'message',
@@ -172,25 +174,36 @@ $unchecked_get_fields = array('submit', 'search_author');
 if ( !defined('CT_SECLEVEL') || CT_SECLEVEL == 'HIGH' )
 {
   // Empty the variables for security reasons
-  $ct_addheuristic = $ct_delheuristic = array();
-  $ct_ignoregvar = $ct_ignorepvar = array();
+  $ct_addheuristic 	= $ct_delheuristic 	= array();
+  $ct_ignoregvar 	= $ct_ignorepvar 	= array();
+  $ct_regex_ignorep = $ct_regex_ignoreg = array();
 }
-elseif ( CT_SECLEVEL == 'MEDIUM' ||  CT_SECLEVEL == 'LOW' )
+else if ( CT_SECLEVEL == 'MEDIUM' ||  CT_SECLEVEL == 'LOW' )
 {
   // Delete all duplicate heuristics and then merge with the standard rules
-  $ct_addheuristic = array_diff((array) $ct_addheuristic, $ct_rules);
-  $ct_rules = array_merge($ct_rules, $ct_addheuristic);
+  $ct_addheuristic 	= array_diff((array) $ct_addheuristic, $ct_rules);
+  $ct_rules 		= array_merge($ct_rules, $ct_addheuristic);
 
   // Now let's check if there are heuristics we want to ignore for this time
   $ct_rules = array_diff($ct_rules, (array) $ct_delheuristic);
 
   // Maybe also some new $_POST fields to ignore?
-  $ct_ignorepvar = array_diff((array) $ct_ignorepvar, $unchecked_post_fields);
-  $unchecked_post_fields = array_merge($unchecked_post_fields, $ct_ignorepvar);
+  $ct_ignorepvar 			= array_diff((array) $ct_ignorepvar, $unchecked_post_fields);
+  $unchecked_post_fields 	= array_merge($unchecked_post_fields, $ct_ignorepvar);
 
   // Last but not least the same with $_GET
-  $ct_ignoregvar = array_diff((array) $ct_ignoregvar, $unchecked_get_fields);
+  $ct_ignoregvar 		= array_diff((array) $ct_ignoregvar, $unchecked_get_fields);
   $unchecked_get_fields = array_merge($unchecked_get_fields, $ct_ignoregvar);
+
+  // Oh look, a new regex ignore method for smart admins and mod coders
+  if ( isset($ct_regex_ignorep) )
+  {
+    $ct_regex_ignorep = implode('|', $ct_regex_ignorep);
+  }
+  if ( isset($ct_regex_ignoreg) )
+  {
+    $ct_regex_ignoreg = implode('|', $ct_regex_ignoreg);
+  }
 }
 
 // Initialize detector var
@@ -200,12 +213,11 @@ $ct_attack_detection = false;
 $cracktrack = strtolower($HTTP_SERVER_VARS['QUERY_STRING']);
 
 // Filter out the unchecked fields
-$unchecked_get_fields = implode('|', $unchecked_get_fields);
-$cracktrack = preg_replace('#((' . $unchecked_get_fields . ')=([^&]|&amp;)*)#', '', $cracktrack);
+$unchecked_get_fields 	= implode('|', $unchecked_get_fields);
+$cracktrack 			= preg_replace('#((' . $unchecked_get_fields . ')=([^&]|&amp;)*)#', '', $cracktrack);
 
-// Prevent tricks wich comment out SQL commands
-$cracktrack = str_replace(array('/', '*'), '', $cracktrack);
-$cracktrack = str_replace('\\', '(', $cracktrack);
+// Prevent Slash Tricks (SQL Tricks with /* are now stopped directly! So we don't replace this now!)
+$cracktrack = str_replace('\\', '/', $cracktrack);
 
 // Save copies for the debug mode check
 $crackcheck = $cracktrack;
@@ -220,8 +232,8 @@ if ( $cracktrack != $checkworm )
 else
 {
   // We also check for rawurldecode-tricks
-  $checkworm = str_replace($ct_rules, '*', rawurldecode($cracktrack));
-  if ( rawurldecode($cracktrack) != $checkworm )
+  $checkworm = str_replace($ct_rules, '*', strtolower(rawurldecode($cracktrack)));
+  if ( strtolower(rawurldecode($cracktrack)) != $checkworm )
   {
 	  $ct_attack_detection = true;
 	  ct_debugger($crackcheck, 'RAWGET');
@@ -236,37 +248,42 @@ else
     {
 	    if ( !in_array($post_var_fieldname, $unchecked_post_fields) )
 	    {
-        if ( is_array($post_var_field_value) )
-        {
-          // We proudly present AT-AT our new imperial array walker
-          $post_var_field_value = atatwalk($post_var_field_value);
-		    }
+			// We do a preg_replace if a smart admin used the regex ignore
+			$post_var_check = ( isset($ct_regex_ignorep) ) ? preg_replace("#^($ct_regex_ignorep)$#", '*', $post_var_fieldname) : $post_var_fieldname;
+			if ( $post_var_check == $post_var_fieldname)
+			{
+				if ( is_array($post_var_field_value) )
+				{
+					// We proudly present AT-AT our new imperial array walker
+					$post_var_field_value = atatwalk($post_var_field_value);
+				}
 
-        // Prevent tricks wich comment out SQL command
-        $post_var_field_value = strtolower(str_replace(array('/', '*'), '', $post_var_field_value));
+				// Prevent tricks wich comment out SQL command
+				$post_var_field_value = strtolower(str_replace('\\', '/', $post_var_field_value));
 
-        // Now we do a very simple method to mark potential Worm activities
-		    $check_var = str_replace($ct_rules, '*', strtolower($post_var_field_value));
+				// Now we do a very simple method to mark potential Worm activities
+				$check_var = str_replace($ct_rules, '*', strtolower($post_var_field_value));
 
-		    if ( $post_var_field_value != $check_var )
-		    {
-          ct_debugger($checkpost, 'POST');
-		      $ct_attack_detection = true;
-		      // Attack found so we can leave the foreach loop
-          break;
-		    }
-		    else
-		    {
-		      // We again check for rawurldecode tricks
-          $check_var = str_replace($ct_rules, '*', strtolower(rawurldecode($post_var_field_value)));
-          if ( rawurldecode($post_var_field_value) != $check_var )
-		      {
-            ct_debugger($checkpost, 'RAWPOST');
-			      $ct_attack_detection = true;
-		        // Attack found so we can leave the foreach loop
-            break;
-		      }
-        }
+				if ( $post_var_field_value != $check_var )
+				{
+					ct_debugger($checkpost, 'POST');
+					$ct_attack_detection = true;
+					// Attack found so we can leave the foreach loop
+					break;
+				}
+				else
+				{
+					// We again check for rawurldecode tricks
+					$check_var = str_replace($ct_rules, '*', strtolower(rawurldecode($post_var_field_value)));
+					if ( strtolower(rawurldecode($post_var_field_value)) != $check_var )
+					{
+						ct_debugger($checkpost, 'RAWPOST');
+						$ct_attack_detection = true;
+						// Attack found so we can leave the foreach loop
+						break;
+					}
+				}
+			}
 	    }
     }
   }
@@ -332,6 +349,8 @@ function ct_debugger($checkstring, $checkmode)
   }
   global $ct_rules, $HTTP_SERVER_VARS, $phpbb_root_path, $unchecked_post_fields;
 
+  $dbgunchecked_post_fields = implode('|', $unchecked_post_fields);
+
   if (in_array($checkmode, array('POST', 'RAWPOST')))
   {
     $temp = '&';
@@ -343,7 +362,7 @@ function ct_debugger($checkstring, $checkmode)
     $checkstring = $temp;
 
     // Cut out the keys we already ignore
-    $checkstring = preg_replace('#((' . $unchecked_post_fields . ')=([^&]|&amp;)*)#', '', $checkstring);
+    $checkstring = preg_replace('#((' . $dbgunchecked_post_fields . ')=([^&]|&amp;)*)#', '', $checkstring);
   }
   if (in_array($checkmode, array('RAWGET', 'RAWPOST')))
   {
@@ -356,10 +375,10 @@ function ct_debugger($checkstring, $checkmode)
   foreach($ct_rules as $rule)
   {
     $preg_rule = preg_quote($rule, "#");
-    if (preg_match_all('#&([^&]*?)=[^&]*?' . $preg_rule . '[^&]*?&#is', $checkstring, $dbgmatch, PREG_PATTERN_ORDER))
+    if (preg_match_all('#(^|&)([^&]*?)=[^&]*?' . $preg_rule . '[^&]*($|&)#is', $checkstring, $dbgmatch, PREG_PATTERN_ORDER))
     {
       $found_matches .= "Matching rule: $rule\n";
-      foreach($dbgmatch[1] as $matchline)
+      foreach($dbgmatch[2] as $matchline)
       {
         $found_matches .= "In variable:   $matchline\n";
         $matching_vars[] = $matchline;
@@ -377,9 +396,11 @@ function ct_debugger($checkstring, $checkmode)
     $debugstream = @fopen($phpbb_root_path . 'ctracker/logfiles/logfile_debug_mode.txt', 'ab');
     $scriptname = str_replace($HTTP_SERVER_VARS['DOCUMENT_ROOT'], '', $HTTP_SERVER_VARS['SCRIPT_FILENAME']);
     $scriptname = (( substr($scriptname, 0, 1) == '/' ) ? '' : '/') . $scriptname;
+    $scriptname = str_replace('//', '/', $scriptname);
 
     @fputs($debugstream, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
     @fputs($debugstream,'Script-Filename: ' . $scriptname . "\n----------------\n\n");
+    @fputs($debugstream,'Attack-Time: ' . date('d.m.Y G:i a') . "\n------------\n\n");
     @fputs($debugstream, 'Request-Method: ' . (strpos($checkmode, 'POST') !== false ? 'POST' : 'GET') . "\n\n");
     @fputs($debugstream, $found_matches);
     @fputs($debugstream,"Possible solution:\n------------------\n\n");
