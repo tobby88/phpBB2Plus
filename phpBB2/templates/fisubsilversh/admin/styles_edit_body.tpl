@@ -10,7 +10,7 @@
 <tr> 
 <td class="row1" align="right">{L_THEME_NAME}:</td>
 <td class="row2" colspan="2"> 
-<input type="text" size="25" maxlength="100" name="style_name" value="{THEME_NAME}" class="post" />
+<input type="text" size="25" maxlength="30" name="style_name" value="{THEME_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -78,7 +78,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="tr_color1" value="{TR_COLOR1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="tr_color1_name" value="{TR_COLOR1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="tr_color1_name" value="{TR_COLOR1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -86,7 +86,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="tr_color2" value="{TR_COLOR2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="tr_color2_name" value="{TR_COLOR2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="tr_color2_name" value="{TR_COLOR2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -94,7 +94,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="tr_color3" value="{TR_COLOR3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="tr_color3_name" value="{TR_COLOR3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="tr_color3_name" value="{TR_COLOR3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -103,7 +103,7 @@
 <input type="text" size="25" maxlength="25" name="tr_class1" value="{TR_CLASS1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="tr_class1_name" value="{TR_CLASS1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="tr_class1_name" value="{TR_CLASS1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -112,7 +112,7 @@
 <input type="text" size="25" maxlength="25" name="tr_class2" value="{TR_CLASS2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="tr_class2_name" value="{TR_CLASS2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="tr_class2_name" value="{TR_CLASS2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -121,7 +121,7 @@
 <input type="text" size="25" maxlength="25" name="tr_class3" value="{TR_CLASS3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="tr_class3_name" value="{TR_CLASS3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="tr_class3_name" value="{TR_CLASS3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -129,7 +129,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="th_color1" value="{TH_COLOR1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="th_color1_name" value="{TH_COLOR1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="th_color1_name" value="{TH_COLOR1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -137,7 +137,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="th_color2" value="{TH_COLOR2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="th_color2_name" value="{TH_COLOR2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="th_color2_name" value="{TH_COLOR2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -145,7 +145,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="th_color3" value="{TH_COLOR3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="th_color3_name" value="{TH_COLOR3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="th_color3_name" value="{TH_COLOR3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -154,7 +154,7 @@
 <input type="text" size="25" maxlength="25" name="th_class1" value="{TH_CLASS1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="th_class1_name" value="{TH_CLASS1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="th_class1_name" value="{TH_CLASS1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -163,7 +163,7 @@
 <input type="text" size="25" maxlength="25" name="th_class2" value="{TH_CLASS2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="th_class2_name" value="{TH_CLASS2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="th_class2_name" value="{TH_CLASS2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -172,7 +172,7 @@
 <input type="text" size="25" maxlength="25" name="th_class3" value="{TH_CLASS3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="th_class3_name" value="{TH_CLASS3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="th_class3_name" value="{TH_CLASS3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -180,7 +180,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="td_color1" value="{TD_COLOR1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="td_color1_name" value="{TD_COLOR1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="td_color1_name" value="{TD_COLOR1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -188,7 +188,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="td_color2" value="{TD_COLOR2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="td_color2_name" value="{TD_COLOR2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="td_color2_name" value="{TD_COLOR2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -196,7 +196,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="td_color3" value="{TD_COLOR3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="td_color3_name" value="{TD_COLOR3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="td_color3_name" value="{TD_COLOR3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -205,7 +205,7 @@
 <input type="text" size="25" maxlength="25" name="td_class1" value="{TD_CLASS1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="td_class1_name" value="{TD_CLASS1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="td_class1_name" value="{TD_CLASS1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -214,7 +214,7 @@
 <input type="text" size="25" maxlength="25" name="td_class2" value="{TD_CLASS2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="td_class2_name" value="{TD_CLASS2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="td_class2_name" value="{TD_CLASS2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -223,7 +223,7 @@
 <input type="text" size="25" maxlength="25" name="td_class3" value="{TD_CLASS3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="td_class3_name" value="{TD_CLASS3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="td_class3_name" value="{TD_CLASS3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -232,7 +232,7 @@
 <input type="text" size="25" maxlength="50" name="fontface1" value="{FONTFACE1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontface1_name" value="{FONTFACE1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontface1_name" value="{FONTFACE1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -241,7 +241,7 @@
 <input type="text" size="25" maxlength="50" name="fontface2" value="{FONTFACE2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontface2_name" value="{FONTFACE2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontface2_name" value="{FONTFACE2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -250,7 +250,7 @@
 <input type="text" size="25" maxlength="50" name="fontface3" value="{FONTFACE3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontface3_name" value="{FONTFACE3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontface3_name" value="{FONTFACE3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -259,7 +259,7 @@
 <input type="text" size="4" maxlength="4" name="fontsize1" value="{FONTSIZE1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontsize1_name" value="{FONTSIZE1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontsize1_name" value="{FONTSIZE1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -268,7 +268,7 @@
 <input type="text" size="4" maxlength="4" name="fontsize2" value="{FONTSIZE2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontsize2_name" value="{FONTSIZE2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontsize2_name" value="{FONTSIZE2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -277,7 +277,7 @@
 <input type="text" size="4" maxlength="4" name="fontsize3" value="{FONTSIZE3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontsize3_name" value="{FONTSIZE3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontsize3_name" value="{FONTSIZE3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -285,7 +285,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="fontcolor1" value="{FONTCOLOR1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontcolor1_name" value="{FONTCOLOR1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontcolor1_name" value="{FONTCOLOR1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -293,7 +293,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="fontcolor2" value="{FONTCOLOR2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontcolor2_name" value="{FONTCOLOR2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontcolor2_name" value="{FONTCOLOR2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -301,7 +301,7 @@
 <td class="row2"># <input type="text" size="6" maxlength="6" name="fontcolor3" value="{FONTCOLOR3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="fontcolor3_name" value="{FONTCOLOR3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="fontcolor3_name" value="{FONTCOLOR3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -310,7 +310,7 @@
 <input type="text" size="25" maxlength="25" name="span_class1" value="{SPAN_CLASS1}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="span_class1_name" value="{SPAN_CLASS1_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="span_class1_name" value="{SPAN_CLASS1_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -319,7 +319,7 @@
 <input type="text" size="25" maxlength="25" name="span_class2" value="{SPAN_CLASS2}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="span_class2_name" value="{SPAN_CLASS2_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="span_class2_name" value="{SPAN_CLASS2_NAME}" class="post" />
 </td>
 </tr>
 <tr> 
@@ -328,7 +328,7 @@
 <input type="text" size="25" maxlength="25" name="span_class3" value="{SPAN_CLASS3}" class="post" />
 </td>
 <td class="row2"> 
-<input type="text" size="25" maxlength="100" name="span_class3_name" value="{SPAN_CLASS3_NAME}" class="post" />
+<input type="text" size="25" maxlength="50" name="span_class3_name" value="{SPAN_CLASS3_NAME}" class="post" />
 </td>
 </tr>
 <tr> 

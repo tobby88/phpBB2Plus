@@ -228,6 +228,7 @@ if (
 	$notifypm = ( isset($_POST['notifypm']) ) ? ( ($_POST['notifypm']) ? TRUE : 0 ) : TRUE;
 	$popup_pm = ( isset($_POST['popup_pm']) ) ? ( ($_POST['popup_pm']) ? TRUE : 0 ) : TRUE;
 	$setbm = ( isset($_POST['setbm']) ) ? ( ($_POST['setbm']) ? TRUE : 0 ) : 0;
+	$sid = (isset($_POST['sid'])) ? $_POST['sid'] : 0;
 	
 	if ( $mode == 'register' )
 	{

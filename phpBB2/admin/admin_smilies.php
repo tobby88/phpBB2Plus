@@ -36,21 +36,22 @@ if( !empty($setmodules) )
 	return;
 }
 
+$phpbb_root_path = "./../";
+require($phpbb_root_path . 'extension.inc');
+
+$cancel = ( isset($HTTP_POST_VARS['cancel']) || isset($_POST['cancel']) ) ? true : false;
+$no_page_header = $cancel;
+
 //
 // Load default header
 //
-if( isset($_GET['export_pack']) )
+if ((!empty($HTTP_GET_VARS['export_pack']) && $HTTP_GET_VARS['export_pack'] == 'send') || (!empty($_GET['export_pack']) && $_GET['export_pack'] == 'send'))
 {
-	if ( $_GET['export_pack'] == "send" )
-	{	
-		$no_page_header = true;
-	}
+	$no_page_header = true;
 }
 
-$phpbb_root_path = "./../";
-require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-if (isset($HTTP_POST_VARS['cancel']))
+if ($cancel)
 {
 	redirect('admin/' . append_sid("admin_smilies.$phpEx", true));
 }

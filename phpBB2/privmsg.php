@@ -672,6 +672,7 @@ else if ( ( $delete && $mark_list ) || $delete_all )
 	{
 		$s_hidden_fields = '<input type="hidden" name="mode" value="' . $mode . '" />';
 		$s_hidden_fields .= ( isset($_POST['delete']) ) ? '<input type="hidden" name="delete" value="true" />' : '<input type="hidden" name="deleteall" value="true" />';
+		$s_hidden_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
 
 		for($i = 0; $i < count($mark_list); $i++)
 		{
@@ -702,7 +703,7 @@ else if ( ( $delete && $mark_list ) || $delete_all )
 		include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 
 	}
-	else if ( $confirm )
+	else if ($confirm && $sid === $userdata['session_id'])
 	{
 		$delete_sql_id = '';
 
@@ -1173,6 +1174,7 @@ else if ( $submit || $refresh || $mode != '' )
 			$error = true;
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ) . $lang['Session_invalid'];
 		}
+
 		if ( !empty($_POST['username']) )
 		{
 			$to_username = phpbb_clean_username($_POST['username']);

@@ -33,8 +33,11 @@ define('IN_PHPBB', 1);
 //
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
+$cancel = ( isset($HTTP_POST_VARS['cancel']) || isset($_POST['cancel']) ) ? true : false;
+$no_page_header = $cancel;
+
 require('./pagestart.' . $phpEx);
-if (isset($HTTP_POST_VARS['cancel']))
+if ($cancel)
 {
 	redirect('admin/' . append_sid("admin_ranks.$phpEx", true));
 }

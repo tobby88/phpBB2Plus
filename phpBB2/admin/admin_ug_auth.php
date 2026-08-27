@@ -225,11 +225,47 @@ if ( isset($_POST['submit']) && ( ( $mode == 'user' && $user_id ) || ( $mode == 
 		else
 		{
 	
-			$change_mod_list = ( isset($_POST['moderator']) ) ? $_POST['moderator'] : false;
+			$change_mod_list = ( isset($_POST['moderator']) ) ? $_POST['moderator'] : array();
 
 			if ( empty($adv) )
 			{
-				$change_acl_list = ( isset($_POST['private']) ) ? $_POST['private'] : false;
+				$sql = "SELECT f.*
+					FROM " . FORUMS_TABLE . " f, " . CATEGORIES_TABLE . " c
+					WHERE f.cat_id = c.cat_id
+					ORDER BY c.cat_order, f.forum_order ASC";
+				if ( !($result = $db->sql_query($sql)) )
+				{
+					message_die(GENERAL_ERROR, "Couldn't obtain forum information", "", __LINE__, __FILE__, $sql);
+				}
+
+				$forum_access = $forum_auth_level_fields = array();
+				while( $row = $db->sql_fetchrow($result) )
+				{
+					$forum_access[] = $row;
+				}
+				$db->sql_freeresult($result);
+
+				for($i = 0; $i < count($forum_access); $i++)
+				{
+					$forum_id = $forum_access[$i]['forum_id'];
+
+					for($j = 0; $j < count($forum_auth_fields); $j++)
+					{
+						$forum_auth_level_fields[$forum_id][$forum_auth_fields[$j]] = $forum_access[$i][$forum_auth_fields[$j]] == AUTH_ACL;
+					}
+				}
+
+				$private_acl = ( isset($_POST['private']) ) ? $_POST['private'] : array();
+				while( list($forum_id, $value) = @each($private_acl) )
+				{
+					while( list($auth_field, $exists) = @each($forum_auth_level_fields[$forum_id]) )
+					{
+						if ($exists)
+						{
+							$change_acl_list[$forum_id][$auth_field] = $value;
+						}
+					}
+				}
 			}
 			else
 			{
