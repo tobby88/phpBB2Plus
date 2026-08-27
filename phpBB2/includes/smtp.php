@@ -78,7 +78,7 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 		@reset($header_array);
 
 		$headers = '';
-		while(list(, $header) = each($header_array))
+		foreach($header_array as $key => $header)
 		{
 			if (preg_match('#^cc:#si', $header))
 			{
@@ -93,8 +93,8 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 		}
 
 		$headers = chop($headers);
-		$cc = explode(', ', $cc);
-		$bcc = explode(', ', $bcc);
+		$cc = explode(', ', (( !empty($cc) ) ? $cc : ''));
+		$bcc = explode(', ', (( !empty($bcc) ) ? $bcc : ''));
 	}
 
 	if (trim($subject) == '')
@@ -157,7 +157,7 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 
 	// Ok now do the CC and BCC fields...
 	@reset($bcc);
-	while(list(, $bcc_address) = each($bcc))
+	foreach($bcc as $key => $bcc_address)
 	{
 		// Add an additional bit of error checking to bcc header...
 		$bcc_address = trim($bcc_address);
@@ -169,7 +169,7 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 	}
 
 	@reset($cc);
-	while(list(, $cc_address) = each($cc))
+	foreach(array_values($cc) as $cc_address)
 	{
 		// Add an additional bit of error checking to cc header
 		$cc_address = trim($cc_address);
@@ -209,5 +209,3 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 
 	return TRUE;
 }
-
-?>
