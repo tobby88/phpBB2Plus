@@ -27,6 +27,8 @@ notable changes made since that baseline.
   historical activity data.
 - Added an empty MySQL/MariaDB installation script and deployment permissions;
   the Arcade is disabled by default after installation.
+- Restored the missing Arcade administration arrows and popup close button
+  referenced by the integrated code.
 
 ### Photo Album
 
