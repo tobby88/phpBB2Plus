@@ -1,3 +1,54 @@
+# phpBB2 Plus changelog
+
+## Continued development after phpBB2 Plus 1.53a
+
+Development in this repository continues from the `phpBB2-Plus-1.53a` tag.
+The Git history remains the authoritative record; this section summarizes the
+notable changes made since that baseline.
+
+### phpBB 2 maintenance baseline
+
+- Applied the official phpBB 2.0.22 and 2.0.23 changes, bringing the bundled
+  phpBB base to `release-2.0.23`.
+
+### CrackerTracker
+
+- Updated CrackerTracker Professional from 4.1.7 to 5.0.4, including its
+  administration, security, logging, language, database, and template changes.
+- Updated CrackerTracker from 5.0.4 to 5.0.6.
+- Preserved the destructive legacy 4.x database-uninstall script under
+  `update/db_uninstall_4x.php` as a reference. It uses the removed `mysql_*`
+  API and must not be deployed or executed unchanged.
+
+### Modern PHP compatibility
+
+- Added the `mysqli` database abstraction layer.
+- Removed unused row and rowset caching that caused `Illegal offset type`
+  warnings.
+- Removed calls to the obsolete magic-quotes functions.
+- Replaced removed `ereg*` and `split()` calls with supported alternatives.
+- Replaced the deprecated `preg_replace()` `/e` modifier with
+  `preg_replace_callback()`.
+- Prevented duplicate `IN_PHPBB` constant warnings.
+- Fixed the fatal duplicate by-reference `$email` parameter in the avatar
+  gallery code.
+- Synchronized the installer with the maintained phpBB 2.0.23.x branch.
+
+### Repository and deployment maintenance
+
+- Added a reproducible Unix file-permissions script and documented the required
+  writable paths.
+- Added a project README.
+- Removed obsolete code-change instructions and plugin update packages after
+  their changes had been integrated into the Git history.
+- Reduced the repository to the maintained `main` branch, phpBB2-related tags,
+  and this project's own release tags.
+
+## Historical changelog through phpBB2 Plus 1.53a
+
+The following is the original changelog shipped with phpBB2 Plus 1.53a.
+
+```text
 Changes from phpBB2 Plus 1.53 Final -> 1.53a
 ----------------------------------------------
 
@@ -231,3 +282,4 @@ Changes from phpBB2 Plus 1.53 Final -> 1.53a
 - Added Fix message_die for multiple errors MOD
 - Maximum Site Description characters now limited to 75 to avoid stretching Portal Box with long descriptions
 - FI Divexpand mod replaced with more powerfull Select Expand BBcodes MOD from markus_petrux, now also works with PHP BBcode Mod
+```
