@@ -1,6 +1,16 @@
-#################################
-#CHMOD to 777
-#######
+phpBB2 Plus writable folders and files
+======================================
+
+Git does not store arbitrary Unix permissions or directory permissions. Run
+`set-permissions.sh` after extracting or deploying the board instead.
+
+The paths below are relative to the phpBB2 web root.
+
+Writable folders
+----------------
+
+Recommended mode: 0775 when PHP runs as the owner or in the owning group.
+
 /album_mod/upload
 /album_mod/upload/cache
 /cache
@@ -12,15 +22,30 @@
 /pafiledb/images/screenshots
 /pafiledb/uploads
 
+Writable files
+--------------
 
-#################################
-#CHMOD to 666
-#######
+Recommended mode: 0664 when PHP runs as the owner or in the owning group.
+
 /includes/def_icons.php
 /includes/def_themes.php
 /includes/def_tree.php
 /includes/def_words.php
-/ctracker/logs/counter.txt
-/ctracker/logs/logfile_flood.txt
-/ctracker/logs/logfile_proxy.txt
-/ctracker/logs/logfile_worms.txt
+/ctracker/logfiles/logfile_attempt_counter.txt
+/ctracker/logfiles/logfile_blocklist.txt
+/ctracker/logfiles/logfile_debug_mode.txt
+/ctracker/logfiles/logfile_malformed_logins.txt
+/ctracker/logfiles/logfile_spammer.txt
+/ctracker/logfiles/logfile_worms.txt
+
+Shared-hosting fallback
+-----------------------
+
+If PHP cannot write with the recommended modes because it runs as a different
+user and group, the historical modes can be applied explicitly:
+
+    PHPBB_WRITABLE_DIR_MODE=0777 PHPBB_WRITABLE_FILE_MODE=0666 \
+        ./set-permissions.sh /path/to/phpbb/webroot
+
+World-writable permissions should only be used when the hosting setup requires
+them. The script defaults to 0775 for folders and 0664 for files.
