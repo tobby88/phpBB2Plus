@@ -36,6 +36,16 @@ notable changes made since that baseline.
   The optional Perl CGI uploader is disabled by default and requires CGI
   support and the Perl CGI module on the server.
 
+### Database maintenance
+
+- Restored DB Maintenance Mod 1.3.8, including its administration interface,
+  consistency checks, synchronization tools, search-index rebuilding, and
+  optional Emergency Recovery Console.
+- Added neutral MySQL/MariaDB configuration defaults and compatibility with
+  `mysqli`, current database version strings, and PHP 5.6 through PHP 8.x.
+- The standalone Emergency Recovery Console is disabled by default and must be
+  explicitly enabled in `config.php` for a short maintenance window.
+
 ### Modern PHP compatibility
 
 - Added the `mysqli` database abstraction layer.

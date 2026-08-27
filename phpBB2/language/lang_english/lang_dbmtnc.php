@@ -508,9 +508,9 @@ $lang['cct_info'] = 'When proceeding the config table will be checked and missin
 $lang['rpd_info'] = 'When proceeding the config data will be updated if the recommended setting is selected.';
 $lang['rcd_info'] = 'When proceeding the cookie data will be updated. The Option whether to set a secure cookie or not can be found under \'Reset path data\'.';
 $lang['rld_info'] = 'When proceeding the selected language will be used for both the board and the user used to authenticate.';
-$lang['rtd_info'] = 'When proceeding either the selected style will be used for both the board and the user used to authenticate or the default theme
-	(subSilver) will be recreated and used for board and user.';
-$lang['rtd_info_no_theme'] = 'When proceeding the default theme (subSilver) will be recreated and used for both the board and the user used to authenticate.';
+$lang['rtd_info'] = 'When proceeding either the selected style will be used for both the board and the user used to authenticate or the bundled default theme
+	(FI Subsilver Shadow) will be recreated and used for board and user.';
+$lang['rtd_info_no_theme'] = 'When proceeding the bundled default theme (FI Subsilver Shadow) will be recreated and used for both the board and the user used to authenticate.';
 $lang['dgc_info'] = 'When proceeding the GZip compression will be disabled.';
 $lang['cbl_info'] = 'When proceeding both the ban list and the disallowed users will be cleard.';
 $lang['raa_info'] = 'When proceeding all admins will be set to normal users. If you use an admin account to authenticate, the account used for

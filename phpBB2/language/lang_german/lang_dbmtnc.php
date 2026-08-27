@@ -536,9 +536,9 @@ $lang['rcd_info'] = 'Wenn fortgefahren wird, werden die Cookie-Daten aktualisier
 $lang['rld_info'] = 'Wenn fortgefahren wird, wird die ausgewählte Sprache sowohl für das Board als auch für den zur
 	Authentifizierung genutzen Benutzer verwendet.';
 $lang['rtd_info'] = 'Wenn forgefahren wird, wird entweder der ausgewählte Style sowohl für das Board als auch für den zur
-	Authentifizierung genutzen Benutzer verwendet oder der Standard-Style (SubSilver) wiederhergestellt und für Board und
+	Authentifizierung genutzen Benutzer verwendet oder der mitgelieferte Standard-Style (FI Subsilver Shadow) wiederhergestellt und für Board und
 	Benutzer verwendet.';
-$lang['rtd_info_no_theme'] = 'Wenn forgefahren wird, wird der Standard-Style (SubSilver) wiederhergestellt und sowohl für
+$lang['rtd_info_no_theme'] = 'Wenn forgefahren wird, wird der mitgelieferte Standard-Style (FI Subsilver Shadow) wiederhergestellt und sowohl für
 	das Board als auch für den zur Authentifizierung genutzen Benutzer verwendet.';
 $lang['dgc_info'] = 'Wenn fortgefahren wird, wird die GZip Komprimierung deaktiviert.';
 $lang['cbl_info'] = 'Wenn fortgefahren wird, wird die Bann-Liste und die Liste der verbotenen Benutzernamen gelöscht.';

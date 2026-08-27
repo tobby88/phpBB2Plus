@@ -18,82 +18,50 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB'))
+{
+	define('IN_PHPBB', true);
+}
 $phpbb_root_path = './../';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'config.'.$phpEx);
+
+// This standalone recovery tool can make destructive database changes and is
+// deliberately unavailable unless an administrator explicitly enables it in
+// config.php for a short maintenance window.
+if (!defined('DBMTNC_ENABLE_ERC') || DBMTNC_ENABLE_ERC !== true)
+{
+	http_response_code(403);
+	header('Content-Type: text/plain; charset=UTF-8');
+	exit('Emergency Recovery Console is disabled.');
+}
+
 include($phpbb_root_path . 'includes/constants.'.$phpEx);
 include($phpbb_root_path . 'includes/functions.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_dbmtnc.'.$phpEx);
 include($phpbb_root_path . 'includes/db.'.$phpEx);
 
-//
-// addslashes to vars if magic_quotes_gpc is off
-// this is a security precaution to prevent someone
-// trying to break out of a SQL statement.
-//
-if( !get_magic_quotes_gpc() )
+// Emulate the escaped legacy request arrays expected by this recovery tool.
+// Magic Quotes and the HTTP_*_VARS aliases no longer exist in modern PHP.
+function dbmtnc_escape_request_data($value)
 {
-	if( is_array($HTTP_GET_VARS) )
+	if (is_array($value))
 	{
-		while( list($k, $v) = each($HTTP_GET_VARS) )
+		foreach ($value as $key => $item)
 		{
-			if( is_array($HTTP_GET_VARS[$k]) )
-			{
-				while( list($k2, $v2) = each($HTTP_GET_VARS[$k]) )
-				{
-					$HTTP_GET_VARS[$k][$k2] = addslashes($v2);
-				}
-				@reset($HTTP_GET_VARS[$k]);
-			}
-			else
-			{
-				$HTTP_GET_VARS[$k] = addslashes($v);
-			}
+			$value[$key] = dbmtnc_escape_request_data($item);
 		}
-		@reset($HTTP_GET_VARS);
+		return $value;
 	}
 
-	if( is_array($HTTP_POST_VARS) )
-	{
-		while( list($k, $v) = each($HTTP_POST_VARS) )
-		{
-			if( is_array($HTTP_POST_VARS[$k]) )
-			{
-				while( list($k2, $v2) = each($HTTP_POST_VARS[$k]) )
-				{
-					$HTTP_POST_VARS[$k][$k2] = addslashes($v2);
-				}
-				@reset($HTTP_POST_VARS[$k]);
-			}
-			else
-			{
-				$HTTP_POST_VARS[$k] = addslashes($v);
-			}
-		}
-		@reset($HTTP_POST_VARS);
-	}
-
-	if( is_array($HTTP_COOKIE_VARS) )
-	{
-		while( list($k, $v) = each($HTTP_COOKIE_VARS) )
-		{
-			if( is_array($HTTP_COOKIE_VARS[$k]) )
-			{
-				while( list($k2, $v2) = each($HTTP_COOKIE_VARS[$k]) )
-				{
-					$HTTP_COOKIE_VARS[$k][$k2] = addslashes($v2);
-				}
-				@reset($HTTP_COOKIE_VARS[$k]);
-			}
-			else
-			{
-				$HTTP_COOKIE_VARS[$k] = addslashes($v);
-			}
-		}
-		@reset($HTTP_COOKIE_VARS);
-	}
+	return is_string($value) ? addslashes($value) : $value;
 }
+
+$HTTP_GET_VARS = dbmtnc_escape_request_data($_GET);
+$HTTP_POST_VARS = dbmtnc_escape_request_data($_POST);
+$HTTP_COOKIE_VARS = dbmtnc_escape_request_data($_COOKIE);
+$HTTP_SERVER_VARS = $_SERVER;
+$HTTP_ENV_VARS = $_ENV;
 
 $mode = ( isset($HTTP_POST_VARS['mode']) ) ? htmlspecialchars($HTTP_POST_VARS['mode']) : (( isset($HTTP_GET_VARS['mode']) ) ? htmlspecialchars($HTTP_GET_VARS['mode']) : 'start');
 $option = ( isset($HTTP_POST_VARS['option']) ) ? htmlspecialchars($HTTP_POST_VARS['option']) : '';
@@ -110,8 +78,7 @@ if ( $mode == 'download' )
 	$new_table_prefix = ( isset($HTTP_GET_VARS['ntp']) ) ? $HTTP_GET_VARS['ntp'] : '';
 
 	$var_array = array('new_dbms', 'new_dbhost', 'new_dbname', 'new_dbuser', 'new_dbpasswd', 'new_table_prefix');
-	reset($var_array);
-	while (list(, $var) = each ($var_array))
+	foreach ($var_array as $var)
 	{
 		$$var = stripslashes($$var);
 		$$var = str_replace("'", "\\'", str_replace("\\", "\\\\", $$var));
@@ -146,7 +113,8 @@ if ( $mode == 'download' )
 // Load a language if one was selected
 if ( isset($HTTP_POST_VARS['lg']) || isset($HTTP_GET_VARS['lg']) )
 {
-	$lg = ( isset($HTTP_POST_VARS['lg']) ) ? htmlspecialchars($HTTP_POST_VARS['lg']) : htmlspecialchars($HTTP_GET_VARS['lg']);
+	$lg = ( isset($HTTP_POST_VARS['lg']) ) ? $HTTP_POST_VARS['lg'] : $HTTP_GET_VARS['lg'];
+	$lg = preg_match('/^[a-z0-9_-]+$/i', $lg) ? $lg : '';
 	if ( file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $lg . '/lang_dbmtnc.'.$phpEx)) )
 	{
 		include($phpbb_root_path . 'language/lang_' . $lg . '/lang_dbmtnc.' . $phpEx);
@@ -221,8 +189,6 @@ hr	{ height: 0px; border: solid #D1D7DC 0px; border-top-width: 1px;}
 
 .maintitle,h1,h2	{font-weight: bold; font-size: 22px; font-family: "Trebuchet MS",Verdana, Arial, Helvetica, sans-serif; text-decoration: none; line-height : 120%; color : #000000;}
 
-/* Import the fancy styles for IE only (NS4.x doesn't use the @import function) */
-@import url("../templates/subSilver/formIE.css");
 -->
 </style>
 </head>
@@ -232,7 +198,7 @@ hr	{ height: 0px; border: solid #D1D7DC 0px; border-top-width: 1px;}
 	<tr>
 		<td><table width="100%" border="0" cellspacing="0" cellpadding="0">
 			<tr>
-				<td><img src="../templates/subSilver/images/logo_phpBB.gif" border="0" alt="<?php echo $lang['Forum_Home']; ?>" vspace="1" /></td>
+				<td><img src="../templates/fisubsilversh/images/logo_phpbb_med.gif" border="0" alt="<?php echo $lang['Forum_Home']; ?>" vspace="1" /></td>
 				<td align="center" width="100%" valign="middle"><span class="maintitle"><?php echo $lang['ERC']; ?></span><br />
 					<?php echo ($option == '') ? '' : $lang[$option] ?></td>
 			</tr>
@@ -651,7 +617,10 @@ switch($mode)
 					), 
 					'mysql4' => array(
 						'LABEL'			=> 'MySQL 4.x'
-					), 
+					),
+					'mysqli' => array(
+						'LABEL'			=> 'MySQL/MariaDB (mysqli)'
+					),
 					'postgres' => array(
 						'LABEL'			=> 'PostgreSQL 7.x'
 					), 
@@ -665,7 +634,7 @@ switch($mode)
 						'LABEL'			=> 'MS SQL Server [ ODBC ]'
 					));
 				$dbms_select = '<select name="new_dbms">';
-				while (list($dbms_name, $details) = @each($available_dbms))
+				foreach ($available_dbms as $dbms_name => $details)
 				{
 					$dbms_select .= '<option value="' . $dbms_name . '">' . $details['LABEL'] . '</option>';
 				}
@@ -850,8 +819,7 @@ switch($mode)
 	<p><?php echo $lang['Restoring_config'] . ':'; ?></p>
 	<ul>
 <?php
-				reset($default_config);
-				while (list($key, $value) = each($default_config))
+				foreach ($default_config as $key => $value)
 				{
 					$sql = 'SELECT config_value FROM ' . CONFIG_TABLE . "
 						WHERE config_name = '$key'";
@@ -1012,7 +980,7 @@ switch($mode)
 				{
 					$sql = "INSERT INTO " . THEMES_TABLE . "
 						(template_name, style_name, head_stylesheet, body_background, body_bgcolor, body_text, body_link, body_vlink, body_alink, body_hlink, tr_color1, tr_color2, tr_color3, tr_class1, tr_class2, tr_class3, th_color1, th_color2, th_color3, th_class1, th_class2, th_class3, td_color1, td_color2, td_color3, td_class1, td_class2, td_class3, fontface1, fontface2, fontface3, fontsize1, fontsize2, fontsize3, fontcolor1, fontcolor2, fontcolor3, span_class1, span_class2, span_class3, img_size_poll, img_size_privmsg) VALUES
-						('subSilver', 'subSilver', 'subSilver.css', '', 'E5E5E5', '000000', '006699', '5493B4', '', 'DD6900', 'EFEFEF', 'DEE3E7', 'D1D7DC', '', '', '', '98AAB1', '006699', 'FFFFFF', 'cellpic1.gif', 'cellpic3.gif', 'cellpic2.jpg', 'FAFAFA', 'FFFFFF', '', 'row1', 'row2', '', 'Verdana, Arial, Helvetica, sans-serif', 'Trebuchet MS', 'Courier, \\'Courier New\\', sans-serif', 10, 11, 12, '444444', '006600', 'FFA34F', '', '', '', NULL, NULL)";
+						('fisubsilversh', 'FI Subsilver Shadow', 'fisubsilversh.css', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'row1', 'row2', '', '', '', '', 0, 0, 0, '', '006600', 'ffa34f', '', '', '', 0, 0)";
 					$result = $db->sql_query($sql);
 					if( !$result )
 					{
@@ -1197,8 +1165,7 @@ switch($mode)
 			case 'rcp': // Recreate config.php
 				// Get Variables
 				$var_array = array('new_dbms', 'new_dbhost', 'new_dbname', 'new_dbuser', 'new_dbpasswd', 'new_table_prefix');
-				reset($var_array);
-				while (list(, $var) = each ($var_array))
+				foreach ($var_array as $var)
 				{
 					$$var = ( isset($HTTP_POST_VARS[$var]) ) ? stripslashes($HTTP_POST_VARS[$var]) : '';
 				}

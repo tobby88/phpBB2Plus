@@ -375,20 +375,9 @@ function check_mysql_version()
 	$row = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
 
-	$version = $row['mysql_version'];
+	$version = preg_replace('/[^0-9.].*$/', '', $row['mysql_version']);
 
-	if ( preg_match("/^3\.23\.([0-9]$|[0-9]-|1[0-3]$|1[0-6]-)/", $version) ) // Version from 3.23.0 to 3.23.16
-	{
-		return FALSE;
-	}
-	elseif ( preg_match("/^(3\.23)|(4\.)|(5\.)/", $version) )
-	{
-		return TRUE;
-	}
-	else // Versions before 3.23.0
-	{
-		return FALSE;
-	}
+	return ($version !== '' && version_compare($version, '3.23.17', '>='));
 }
 
 //
@@ -813,12 +802,11 @@ function language_select($default, $select_name = "language", $file_to_check = "
 	closedir($dir);
 
 	@asort($lg);
-	@reset($lg);
 
 	if ( count($lg) )
 	{
 		$lang_select = '<select name="' . $select_name . '">';
-		while ( list($displayname, $filename) = @each($lg) )
+		foreach ($lg as $displayname => $filename)
 		{
 			$selected = ( strtolower($default) == strtolower($filename) ) ? ' selected="selected"' : '';
 			$lang_select .= '<option value="' . $filename . '"' . $selected . '>' . ucwords($displayname) . '</option>';
@@ -865,9 +853,9 @@ function check_authorisation($die = TRUE)
 	$board_user = isset($HTTP_POST_VARS['board_user']) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
 	$board_user = substr(str_replace("\\'", "'", $board_user), 0, 25);
 	$board_user = str_replace("'", "\\'", $board_user);
-	$board_password = ( isset($HTTP_POST_VARS['board_password']) ) ? $HTTP_POST_VARS['board_password'] : '';
-	$db_user = ( isset($HTTP_POST_VARS['db_user']) ) ? $HTTP_POST_VARS['db_user'] : '';
-	$db_password = ( isset($HTTP_POST_VARS['db_password']) ) ? $HTTP_POST_VARS['db_password'] : '';
+	$board_password = ( isset($HTTP_POST_VARS['board_password']) ) ? stripslashes($HTTP_POST_VARS['board_password']) : '';
+	$db_user = ( isset($HTTP_POST_VARS['db_user']) ) ? stripslashes($HTTP_POST_VARS['db_user']) : '';
+	$db_password = ( isset($HTTP_POST_VARS['db_password']) ) ? stripslashes($HTTP_POST_VARS['db_password']) : '';
 	// Change authentication mode if selected option does not allow database authentication
 	if ( $option == 'rld' || $option == 'rtd' )
 	{

@@ -63,6 +63,20 @@ The original installation flow is retained for archival and maintenance use:
 The installer is legacy code. Perform a fresh installation only in a test
 environment until the exact PHP and database combination has been verified.
 
+Modules restored after the original package baseline have separate database
+installation scripts under `update/`. Run only the scripts for the restored
+modules that are actually present in the deployed source tree:
+
+- `install_arcade_218.sql` for Arcade Mod Plus;
+- `install_nuffload_142.sql` for the Nuffload album uploader;
+- `install_db_maintenance_138.sql` for DB Maintenance Mod.
+
+The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
+is disabled by default because it can make extensive database changes. To use
+it, temporarily add `define('DBMTNC_ENABLE_ERC', true);` to `config.php`, open
+the console only for the required recovery operation, and remove the setting
+immediately afterwards.
+
 ## Upgrading an existing forum
 
 Before replacing files or running anything from `update/`:

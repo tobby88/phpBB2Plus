@@ -18,7 +18,10 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB'))
+{
+	define('IN_PHPBB', true);
+}
 define('DBMTNC_VERSION', '1.3.8');
 // CONFIG_LEVEL = 0: configuration is disabled
 // CONFIG_LEVEL = 1: only general configuration available
@@ -63,8 +66,7 @@ include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 $function = ( isset($HTTP_GET_VARS['function']) ) ? htmlspecialchars(trim( $HTTP_GET_VARS['function'] )) : '';
 $mode_id = ( isset($HTTP_GET_VARS['mode']) ) ? htmlspecialchars(trim( $HTTP_GET_VARS['mode'] )) : '';
 // Check for parameters
-reset ($config_data);
-while (list(, $value) = each ($config_data))
+foreach ($config_data as $value)
 {
 	if ( !isset($board_config[$value]) )
 	{
@@ -99,7 +101,7 @@ if ($function != 'perform_rebuild') // Don't send header when rebuilding the sea
 //
 // Check the db-type
 //
-if (SQL_LAYER != 'mysql' && SQL_LAYER != 'mysql4')
+if (SQL_LAYER != 'mysql' && SQL_LAYER != 'mysql4' && SQL_LAYER != 'mysqli')
 {
 	message_die(GENERAL_MESSAGE, $lang['dbtype_not_supported']);
 }
@@ -2851,8 +2853,7 @@ switch($mode_id)
 				}
 
 				// Start the job				
-				reset($default_config);
-				while (list($key, $value) = each($default_config))
+				foreach ($default_config as $key => $value)
 				{
 					$sql = 'SELECT config_value FROM ' . CONFIG_TABLE . "
 						WHERE config_name = '$key'";
@@ -3228,7 +3229,7 @@ switch($mode_id)
 						$result_array = array(array(), array());
 						for ($i = 0; $i < count($synonym_array); $i++)
 						{
-							list($replace_synonym, $match_synonym) = split(' ', trim(strtolower($synonym_array[$i])));
+							list($replace_synonym, $match_synonym) = preg_split('/\s+/', trim(strtolower($synonym_array[$i])), 2);
 							$result_array[0][] = trim($replace_synonym);
 							$result_array[1][] = trim($match_synonym);
 						}
@@ -3265,7 +3266,10 @@ switch($mode_id)
 							unset($word_list);
 							$row = $db->sql_fetchrow($result);
 							$i++;
-							$post_size += strlen($row['post_text']) + strlen($row['post_subject']);
+							if ($row)
+							{
+								$post_size += strlen($row['post_text']) + strlen($row['post_subject']);
+							}
 						}
 						// sort array
 						array_multisort($result_array[2], SORT_ASC, SORT_STRING, $result_array[0], SORT_ASC, SORT_NUMERIC, $result_array[1]);
@@ -3274,6 +3278,9 @@ switch($mode_id)
 						$cache_word_id = 0;
 						$insert_values = '';
 						$word_array = array();
+						$last_post_id = 0;
+						$last_word_id = 0;
+						$last_title_match = -1;
 						$array_count = count($result_array[0]);
 						for ($i = 0; $i < $array_count; $i++)
 						{
@@ -4325,7 +4332,7 @@ switch($mode_id)
 					// Table is to big - so delete some records
 					$sql = "DELETE FROM " . SESSIONS_TABLE . "
 						WHERE session_id != '" . $userdata['session_id'] . "'";
-					if ( SQL_LAYER == 'mysql4' )
+					if ( SQL_LAYER == 'mysql4' || SQL_LAYER == 'mysqli' )
 					{
 						// When using MySQL 4: delete only the oldest records
 						$sql .= " ORDER BY session_start
@@ -4339,7 +4346,7 @@ switch($mode_id)
 				}
 				
 				$sql = "ALTER TABLE " . SESSIONS_TABLE . "
-					TYPE=HEAP MAX_ROWS=" . HEAP_SIZE;
+					ENGINE=MEMORY MAX_ROWS=" . HEAP_SIZE;
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
