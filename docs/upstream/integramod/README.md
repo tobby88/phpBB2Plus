@@ -36,7 +36,8 @@ merged history rather than being reintroduced into the final tree.
 ## Scope decisions
 
 - German and English are the only bundled languages. Other upstream language
-  packs are intentionally outside the integration scope.
+  packs are intentionally outside the integration scope, including language
+  files embedded in source packages under `mods/`.
 - All six upstream styles are included. The existing Extreme Styles fallback
   now has every phpBB2 Plus, Album, Arcade, Portal, PAFileDB and CrackerTracker
   template, so missing style-specific templates resolve without fatal errors.
@@ -45,6 +46,9 @@ merged history rather than being reintroduced into the final tree.
 - BootstrapMade HeroBiz demo assets are excluded unless redistribution rights
   are established. Required presentation is replaced with redistributable or
   project-owned assets.
+- Source packages under `mods/` are preserved for provenance. They are not
+  treated as installed modules unless their files also exist in the pinned
+  upstream product tree. See [`modules.md`](modules.md) for the audit.
 
 Regenerate the ledger after fetching the pinned upstream ref with:
 
