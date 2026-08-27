@@ -27,6 +27,19 @@ if ( !defined('IN_PHPBB') )
 
 define('HEADER_INC', TRUE);
 
+// Cookie-consent notice. The preference is intentionally stored in a simple,
+// one-year first-party cookie and the feature can be disabled in the ACP.
+if (empty($_COOKIE['cookie_consent']) && !empty($board_config['cookie_consent_enable']))
+{
+	$template->assign_block_vars('switch_cookie_consent', array());
+	$template->assign_vars(array(
+		'cookie_consent_msg' => $lang['cookie_consent_msg'],
+		'L_PRIVACY' => $lang['L_PRIVACY'],
+		'L_PRIVACY_POLICY' => $lang['L_PRIVACY_POLICY'],
+		'L_COOKIE_ACCEPT' => $lang['L_COOKIE_ACCEPT'])
+	);
+}
+
 //
 // gzip_compression
 //

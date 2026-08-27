@@ -12,6 +12,7 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_name','phpb
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_path','/');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_domain','');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_secure','0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_consent_enable','1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('session_length','3600');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_html','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_html_tags','b,i,u,pre');
@@ -24,6 +25,7 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_local
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_remote','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_upload','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('enable_confirm', '1');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('sfs_enable', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_autologin','1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('max_autologin_time','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('override_user_style','0');

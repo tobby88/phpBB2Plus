@@ -420,6 +420,9 @@ $lang['Cookie_path'] = 'Cookie-Pfad';
 $lang['Cookie_secure'] = 'Sicherers Cookie';
 $lang['Cookie_secure_explain'] = 'Falls dein Server auf SSL läuft, aktiviere diese Funktion, ansonsten lasse sie deaktiviert';
 $lang['Session_length'] = 'Sessionlänge [ Sekunden ]';
+$lang['cookie_consent_enable'] = 'Cookie-Hinweis anzeigen?';
+$lang['sfs_enable'] = 'StopForumSpam-Prüfung bei Registrierung aktivieren';
+$lang['sfs_enable_explain'] = 'Prüft Benutzernamen, E-Mail-Adresse und IP-Adresse bei der Registrierung über den externen Dienst stopforumspam.com.';
 
 // Visual Confirmation
 $lang['Visual_confirm'] = 'Aktiviere visuelle Bestätigung';

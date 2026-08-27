@@ -1584,6 +1584,13 @@ $lang['custom_field_notice'] = 'These items have been created by an administrato
 $lang['and'] = ' and ';
 
 $lang['Session_invalid'] = 'Invalid Session. Please resubmit the form.';
+$lang['cookie_consent_msg'] = 'This site uses cookies to provide the forum and keep sessions working.';
+$lang['L_PRIVACY'] = 'Privacy information';
+$lang['L_PRIVACY_POLICY'] = 'This forum stores cookies on your device for sessions, login preferences and forum features. Account information is handled according to the site operator\'s privacy information.';
+$lang['L_COOKIE_ACCEPT'] = 'Accept';
+$lang['sfs_service_unavailable'] = 'The registration spam check is temporarily unavailable. Please try again later.';
+$lang['sfs_invalid_response'] = 'The registration spam check returned an invalid response. Please try again later.';
+$lang['sfs_missing_extension'] = 'The server cannot perform the configured registration spam check.';
 //
 // END Custom Profile Fields MOD
 //

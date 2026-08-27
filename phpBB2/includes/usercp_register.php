@@ -544,9 +544,19 @@ if ( isset($_POST['submit']) )
 	//
 	// Do a ban check on this email address
 	//
+	if ($mode == 'register' && !empty($board_config['sfs_enable']))
+	{
+		$remote_address = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+		$address_result = validate_stopforumspam_address($remote_address);
+		if ($address_result['error'])
+		{
+			$error = TRUE;
+			$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $address_result['error_msg'];
+		}
+	}
 	if ( $email != $userdata['user_email'] || $mode == 'register' )
 	{
-		$result = validate_email($email);
+		$result = validate_email($email, $mode == 'register');
 		if ( $result['error'] )
 		{
 			$email = $userdata['user_email'];
@@ -589,7 +599,7 @@ if ( isset($_POST['submit']) )
 		{
 			if (strtolower($username) != strtolower($userdata['username']) || $mode == 'register')
 			{
-				$result = validate_username($username);
+				$result = validate_username($username, $mode == 'register');
 				if ( $result['error'] )
 				{
 					$error = TRUE;

@@ -25,9 +25,9 @@
 // Also checks if it includes the " character, which we don't allow in usernames.
 // Used for registering, changing names, and posting anonymously with a username
 //
-function validate_username($username)
+function validate_username($username, $check_stopforumspam = false)
 {
-	global $db, $lang, $userdata;
+	global $db, $lang, $userdata, $board_config;
 
 	// Remove doubled up spaces
 	$username = preg_replace('#\s+#', ' ', trim($username)); 
@@ -106,6 +106,19 @@ function validate_username($username)
 		return array('error' => true, 'error_msg' => $lang['Username_invalid']);
 	}
 
+	if ($check_stopforumspam && !empty($board_config['sfs_enable']))
+	{
+		$sfs_check = stopforumspam($username, 'username');
+		if ($sfs_check === true)
+		{
+			return array('error' => true, 'error_msg' => $lang['Username_disallowed']);
+		}
+		if (is_array($sfs_check) && !empty($sfs_check['error']))
+		{
+			return $sfs_check;
+		}
+	}
+
 	return array('error' => false, 'error_msg' => '');
 }
 
@@ -113,9 +126,9 @@ function validate_username($username)
 // Check to see if email address is banned
 // or already present in the DB
 //
-function validate_email($email)
+function validate_email($email, $check_stopforumspam = false)
 {
-	global $db, $lang;
+	global $db, $lang, $board_config;
 
 	if ($email != '')
 	{
@@ -154,6 +167,19 @@ function validate_email($email)
 				return array('error' => true, 'error_msg' => $lang['Email_taken']);
 			}
 			$db->sql_freeresult($result);
+
+			if ($check_stopforumspam && !empty($board_config['sfs_enable']))
+			{
+				$sfs_check = stopforumspam($email, 'email');
+				if ($sfs_check === true)
+				{
+					return array('error' => true, 'error_msg' => $lang['Email_banned']);
+				}
+				if (is_array($sfs_check) && !empty($sfs_check['error']))
+				{
+					return $sfs_check;
+				}
+			}
 
 			return array('error' => false, 'error_msg' => '');
 		}
@@ -200,6 +226,73 @@ function validate_optional_fields(&$icq, &$aim, &$msnm, &$yim, &$website, &$loca
 	}
 
 	return;
+}
+
+function validate_stopforumspam_address($address)
+{
+	global $lang, $board_config;
+
+	if (empty($board_config['sfs_enable']))
+	{
+		return array('error' => false, 'error_msg' => '');
+	}
+
+	$sfs_check = stopforumspam($address, 'ip');
+	if ($sfs_check === true)
+	{
+		return array('error' => true, 'error_msg' => $lang['You_been_banned']);
+	}
+	if (is_array($sfs_check) && !empty($sfs_check['error']))
+	{
+		return $sfs_check;
+	}
+
+	return array('error' => false, 'error_msg' => '');
+}
+
+function stopforumspam($value, $type)
+{
+	global $lang;
+
+	if (!in_array($type, array('username', 'email', 'ip'), true))
+	{
+		return array('error' => true, 'error_msg' => $lang['sfs_invalid_response']);
+	}
+	if (!function_exists('file_get_contents') || !class_exists('DOMDocument'))
+	{
+		return array('error' => true, 'error_msg' => $lang['sfs_missing_extension']);
+	}
+
+	$context = stream_context_create(array('http' => array(
+		'timeout' => 4,
+		'user_agent' => 'phpBB2 Plus StopForumSpam integration')));
+	$url = 'https://api.stopforumspam.org/api?' . $type . '=' . urlencode($value) . '&xml';
+	$xml = @file_get_contents($url, false, $context);
+	if ($xml === false)
+	{
+		return array('error' => true, 'error_msg' => $lang['sfs_service_unavailable']);
+	}
+
+	$dom = new DOMDocument();
+	$previous_errors = libxml_use_internal_errors(true);
+	$loaded = $dom->loadXML($xml, LIBXML_NONET);
+	libxml_clear_errors();
+	libxml_use_internal_errors($previous_errors);
+	if (!$loaded)
+	{
+		return array('error' => true, 'error_msg' => $lang['sfs_invalid_response']);
+	}
+
+	$tags = $dom->getElementsByTagName('appears');
+	foreach ($tags as $node)
+	{
+		if (strtolower(trim($node->nodeValue)) === 'yes')
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 // Start add - Protect user account MOD
 function validate_complex_password ($username, $password)

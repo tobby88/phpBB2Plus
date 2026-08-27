@@ -68,6 +68,10 @@
 </tr>
 <!-- END switch_confirm -->
 <tr>
+<td class="row1">{L_SFS_ENABLE}<br /><span class="gensmall">{L_SFS_ENABLE_EXPLAIN}</span></td>
+<td class="row2"><input type="radio" name="sfs_enable" value="1" {SFS_ENABLE_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="sfs_enable" value="0" {SFS_ENABLE_NO} /> {L_NO}</td>
+</tr>
+<tr>
 <td class="row1">{L_ALLOW_AUTOLOGIN}<br />
 <span class="gensmall">{L_ALLOW_AUTOLOGIN_EXPLAIN}</span></td>
 <td class="row2">
@@ -262,6 +266,10 @@
 <td class="row2"> 
 <input type="text" maxlength="5" size="5" name="session_length" value="{SESSION_LENGTH}" class="post" />
 </td>
+</tr>
+<tr>
+<td class="row1">{L_COOKIE_CONSENT_ENABLE}</td>
+<td class="row2"><input type="radio" name="cookie_consent_enable" value="1" {COOKIE_CONSENT_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="cookie_consent_enable" value="0" {COOKIE_CONSENT_NO} /> {L_NO}</td>
 </tr>
 <tr> 
 <th colspan="2">{L_PRIVATE_MESSAGING}</th>

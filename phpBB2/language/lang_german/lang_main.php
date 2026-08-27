@@ -1580,6 +1580,13 @@ $lang['custom_field_notice'] = 'Diese Felder wurden von einem Administrator erst
 $lang['and'] = ' und ';
 
 $lang['Session_invalid'] = 'Ungültige Sitzung. Bitte sende das Formular erneut.';
+$lang['cookie_consent_msg'] = 'Diese Website verwendet Cookies, damit das Forum und die Sitzungen funktionieren.';
+$lang['L_PRIVACY'] = 'Datenschutzhinweise';
+$lang['L_PRIVACY_POLICY'] = 'Dieses Forum speichert Cookies für Sitzungen, Anmeldeeinstellungen und Forenfunktionen auf deinem Gerät. Kontodaten werden entsprechend den Datenschutzhinweisen des Seitenbetreibers verarbeitet.';
+$lang['L_COOKIE_ACCEPT'] = 'Akzeptieren';
+$lang['sfs_service_unavailable'] = 'Die Spam-Prüfung für Registrierungen ist vorübergehend nicht erreichbar. Bitte versuche es später erneut.';
+$lang['sfs_invalid_response'] = 'Die Spam-Prüfung für Registrierungen hat eine ungültige Antwort geliefert. Bitte versuche es später erneut.';
+$lang['sfs_missing_extension'] = 'Der Server kann die konfigurierte Spam-Prüfung für Registrierungen nicht ausführen.';
 //
 // END Custom Profile Fields MOD
 //
