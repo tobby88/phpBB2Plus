@@ -77,7 +77,7 @@
 		<th class="thTop" colspan="2" align="center">{L_TOURNAMENT}</th>
 	</tr>
 	<tr>
-		<td class="row4" align="center"><span class="gen"><img src="templates/subSilver/images/trophy.jpg"</span></td>
+		<td class="row4" align="center"><span class="gen"><img src="images/trophy.gif" alt="" /></span></td>
 	</tr>
 <!-- END tournament_menu -->
 </table>

@@ -610,6 +610,8 @@ $lang['Delete_Image'] = 'Bild löschen';
 $lang['Current_Image'] = 'Aktuelles Bild';
 
 $lang['Notify_on_privmsg'] = 'Bei neuen Privaten Nachrichten benachrichtigen';
+
+$lang['Block_Arcade_pm'] = 'Private Nachrichten des Arcade-Systems blockieren';
 $lang['Popup_on_privmsg'] = 'PopUp-Fenster bei neuen Privaten Nachrichten';
 $lang['Popup_on_privmsg_explain'] = 'Einige Templates öffnen neue Fenster, um dich über neue private Nachrichten zu benachrichtigen.';
 $lang['Hide_user'] = 'Online-Status verstecken';
@@ -1574,4 +1576,7 @@ $lang['Session_invalid'] = 'Ungültige Sitzung. Bitte sende das Formular erneut.'
 //
 // That's all Folks!
 // -------------------------------------------------
+// Arcade Mod Plus
+$lang['Activity'] = 'Spiele';
+
 ?>

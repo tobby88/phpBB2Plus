@@ -397,6 +397,7 @@ if( $_POST['unblock_account'] )
 		$allowviewonline = ( isset( $_POST['hideonline']) ) ? ( ( $_POST['hideonline'] ) ? 0 : TRUE ) : TRUE;
 		$notifyreply = ( isset( $_POST['notifyreply']) ) ? ( ( $_POST['notifyreply'] ) ? TRUE : 0 ) : 0;
 		$notifypm = ( isset( $_POST['notifypm']) ) ? ( ( $_POST['notifypm'] ) ? TRUE : 0 ) : TRUE;
+		$games_block_pm = ( isset($_POST['games_block_pm']) ) ? ( ($_POST['games_block_pm']) ? TRUE : 0 ) : TRUE;
 		$popuppm = ( isset( $_POST['popup_pm']) ) ? ( ( $_POST['popup_pm'] ) ? TRUE : 0 ) : TRUE;
 		$attachsig = ( isset( $_POST['attachsig']) ) ? ( ( $_POST['attachsig'] ) ? TRUE : 0 ) : 0;
 		$setbm = ( isset( $_POST['setbm']) ) ? ( ( $_POST['setbm'] ) ? TRUE : 0 ) : 0;
@@ -914,7 +915,7 @@ if( $_POST['unblock_account'] )
    else $no_error_ban=true; 
 }
 			$sql = "UPDATE " . USERS_TABLE . "
-				SET " . $username_sql . $passwd_sql . "user_email = '" . str_replace("\'", "''", $email) . "', user_icq = '" . str_replace("\'", "''", $icq) . "', user_website = '" . str_replace("\'", "''", $website) . "', user_occ = '" . str_replace("\'", "''", $occupation) . "', user_from = '" . str_replace("\'", "''", $location) . "', user_from_flag = '$user_flag', user_interests = '" . str_replace("\'", "''", $interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . str_replace("\'", "''", $user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . str_replace("\'", "''", $signature) . "', user_viewemail = $viewemail, user_aim = '" . str_replace("\'", "''", $aim) . "', user_yim = '" . str_replace("\'", "''", $yim) . "', user_msnm = '" . str_replace("\'", "''", $msn) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '$signature_bbcode_uid', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, user_popup_pm = $popuppm, user_lang = '" . str_replace("\'", "''", $user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . str_replace("\'", "''", $user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '$gender'" . $avatar_sql . $force_new_passwd_sql . "
+				SET " . $username_sql . $passwd_sql . "user_email = '" . str_replace("\'", "''", $email) . "', user_icq = '" . str_replace("\'", "''", $icq) . "', user_website = '" . str_replace("\'", "''", $website) . "', user_occ = '" . str_replace("\'", "''", $occupation) . "', user_from = '" . str_replace("\'", "''", $location) . "', user_from_flag = '$user_flag', user_interests = '" . str_replace("\'", "''", $interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . str_replace("\'", "''", $user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . str_replace("\'", "''", $signature) . "', user_viewemail = $viewemail, user_aim = '" . str_replace("\'", "''", $aim) . "', user_yim = '" . str_replace("\'", "''", $yim) . "', user_msnm = '" . str_replace("\'", "''", $msn) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '$signature_bbcode_uid', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . str_replace("\'", "''", $user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . str_replace("\'", "''", $user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '$gender'" . $avatar_sql . $force_new_passwd_sql . "
 				WHERE user_id = $user_id";
 
 			if( $result = $db->sql_query($sql) )
@@ -1116,6 +1117,7 @@ if( $_POST['unblock_account'] )
 
 		$viewemail = $this_userdata['user_viewemail'];
 		$notifypm = $this_userdata['user_notify_pm'];
+		$games_block_pm = $this_userdata['games_block_pm'];
 		$popuppm = $this_userdata['user_popup_pm'];
 		$notifyreply = $this_userdata['user_notify'];
 		$attachsig = $this_userdata['user_attachsig'];
@@ -1259,6 +1261,7 @@ if( $_POST['unblock_account'] )
 			$s_hidden_fields .= '<input type="hidden" name="gender" value="' . $gender . '" />';
 			// End add - Gender MOD
 			$s_hidden_fields .= '<input type="hidden" name="notifypm" value="' . $notifypm . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="games_block_pm" value="' . $games_block_pm . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="popup_pm" value="' . $popuppm . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="notifyreply" value="' . $notifyreply . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="attachsig" value="' . $attachsig . '" />';
@@ -1633,6 +1636,8 @@ if ($this_userdata['user_passwd_change']>0)
 			'HIDE_USER_NO' => ($allowviewonline) ? 'checked="checked"' : '',
 			'NOTIFY_PM_YES' => ($notifypm) ? 'checked="checked"' : '',
 			'NOTIFY_PM_NO' => (!$notifypm) ? 'checked="checked"' : '',
+			'BLOCK_PM_YES' => ($games_block_pm) ? 'checked="checked"' : '',
+			'BLOCK_PM_NO' => (!$games_block_pm) ? 'checked="checked"' : '',
 			'POPUP_PM_YES' => ($popuppm) ? 'checked="checked"' : '',
 			'POPUP_PM_NO' => (!$popuppm) ? 'checked="checked"' : '',
 			'ALWAYS_ADD_SIGNATURE_YES' => ($attachsig) ? 'checked="checked"' : '',
@@ -1736,6 +1741,7 @@ if ($this_userdata['user_passwd_change']>0)
 			'L_SIGNATURE' => $lang['Signature'],
 			'L_SIGNATURE_EXPLAIN' => sprintf($lang['Signature_explain'], $board_config['max_sig_chars'] ),
 			'L_NOTIFY_ON_PRIVMSG' => $lang['Notify_on_privmsg'],
+			'L_BLOCK_ARCADE_PM' => $lang['Block_Arcade_pm'],
 			'L_NOTIFY_ON_REPLY' => $lang['Always_notify'],
 			'L_POPUP_ON_PRIVMSG' => $lang['Popup_on_privmsg'],
 			'L_PREFERENCES' => $lang['Preferences'],

@@ -31,6 +31,26 @@ include($phpbb_root_path . 'common.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_announces.'. $phpEx);
 //-- fin mod : announces ---------------------------------------------------------------------------
 
+// Arcade score protocol handlers
+if (!empty($HTTP_GET_VARS['act']) && $HTTP_GET_VARS['act'] == 'Arcade')
+{
+	require 'newscore.' . $phpEx;
+	exit;
+}
+
+if ((!empty($HTTP_GET_VARS['autocom']) && $HTTP_GET_VARS['autocom'] == 'arcade') ||
+	(!empty($HTTP_POST_VARS['autocom']) && $HTTP_POST_VARS['autocom'] == 'arcade'))
+{
+	require 'IBProArcade.' . $phpEx;
+	exit;
+}
+
+if (!empty($HTTP_POST_VARS['func']))
+{
+	require 'pnFlashGames.' . $phpEx;
+	exit;
+}
+
 //
 // Start session management
 //

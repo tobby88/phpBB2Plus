@@ -76,6 +76,17 @@ window.status = "{PRIVATE_MESSAGE_INFO}";
 //-->
 </script>
 <!-- END switch_absence -->
+<script type="text/javascript">
+<!--
+function Gk_PopTart(mypage, myname, w, h, scroll)
+{
+	var leftPosition = (screen.width) ? (screen.width - w) / 2 : 0;
+	var topPosition = (screen.height) ? (screen.height - h) / 2 : 0;
+	var settings = 'height=' + h + ',width=' + w + ',top=' + topPosition + ',left=' + leftPosition + ',scrollbars=' + scroll + ',resizable=yes';
+	window.open(mypage, myname, settings);
+}
+//-->
+</script>
 </head>
 <body>
 <!-- Start add - Complete banner MOD -->
@@ -141,6 +152,8 @@ window.status = "{PRIVATE_MESSAGE_INFO}";
 <a href="{U_PROFILE}">{L_PROFILE}</a>
 &nbsp;&#8226;&nbsp;
 <a href="{U_PRIVATEMSGS}">{PRIVATE_MESSAGE_INFO}</a>
+&nbsp;&#8226;&nbsp;
+<a href="{U_ACTIVITY}">{L_ACTIVITY}</a>
 &nbsp;&#8226;&nbsp;
 <a href="{U_LOGIN_LOGOUT}">{L_LOGIN_LOGOUT}</a></td>
 </tr>

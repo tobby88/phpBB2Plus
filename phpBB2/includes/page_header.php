@@ -715,6 +715,8 @@ $template->assign_vars(array(
 	'U_VIEWONLINE' => append_sid('viewonline.'.$phpEx),
 	'U_LOGIN_LOGOUT' => append_sid($u_login_logout),
 	'U_GROUP_CP' => append_sid('groupcp.'.$phpEx),
+	'U_ACTIVITY' => append_sid('activity.'.$phpEx),
+	'L_ACTIVITY' => $lang['Activity'],
 	'U_STAFF' => append_sid('staff.'.$phpEx),
 	'L_STAFF' => $lang['Staff'],
 	// Album MOD

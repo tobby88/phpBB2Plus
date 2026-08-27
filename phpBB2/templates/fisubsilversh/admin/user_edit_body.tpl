@@ -214,6 +214,14 @@
 {L_NO}</td>
 </tr>
 <tr> 
+<td class="row1">{L_BLOCK_ARCADE_PM}</td>
+<td class="row2">
+<input type="radio" name="games_block_pm" value="1" {BLOCK_PM_YES} />
+{L_YES}&nbsp;&nbsp;
+<input type="radio" name="games_block_pm" value="0" {BLOCK_PM_NO} />
+{L_NO}</td>
+</tr>
+<tr>
 <td class="row1">{L_POPUP_ON_PRIVMSG}</td>
 <td class="row2"> 
 <input type="radio" name="popup_pm" value="1" {POPUP_PM_YES} />

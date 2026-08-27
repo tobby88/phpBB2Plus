@@ -339,7 +339,7 @@
 
 <!-- BEGIN switch_user_logged_out -->
 	<br />
-		<a href="{U_REGISTER}" class="mainmenu"><img src="{TEMPLATE_NAME}/images/icon_mini_register.gif" width="12" height="13" border="0" alt="{L_REGISTER}" hspace="3" />{L_REGISTER} - {L_GUEST_TXT}</a><br />
+		<a href="{U_REGISTER}" class="mainmenu">{L_REGISTER} - {L_GUEST_TXT}</a><br />
 <!-- END switch_user_logged_out -->
 
 <table width="100%" cellspacing="2" cellpadding="2" border="0">

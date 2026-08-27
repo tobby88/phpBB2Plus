@@ -100,7 +100,7 @@
 		<td class="{game.ROW_CLASS}"><span class="forumlink">{game.CONTROL}{game.NEW}{game.DESC}</span><span class="gensmall">{game.INFO}{game.PLAYED}{game.SIZE}{game.ADD_FAV}{game.COMMENT}{game.RATE}</span></td>
 		<td class="{game.ROW_CLASS}" align="center"><span class="gensmall">{game.LIST}{game.AT_LIST}</span></td>
 		<td class="{game.ROW_CLASS}" align="center"><span class="gensmall">{game.BONUS}</span></td>
-		<td class="{game.ROW_CLASS}" align="center"><a href="{game.STATS}"><img src="templates/subSilver/images/game_info.gif" alt="{game.ALT_STATS}" border="0" width="20" height="20" /></a></td>
+		<td class="{game.ROW_CLASS}" align="center"><a href="{game.STATS}"><img src="templates/fisubsilversh/images/game_info.gif" alt="{game.ALT_STATS}" border="0" width="20" height="20" /></a></td>
 		<td class="{game.ROW_CLASS}" align="right"><span class="gensmall">{game.BEST_PLAYER}{game.BEST_AT_PLAYER}</span></td>
 		<td class="{game.ROW_CLASS}" align="right"><span class="gensmall">{game.BEST_SCORE}{game.BEST_AT_SCORE}</span></td>
 	</tr>
@@ -112,7 +112,7 @@
 
 <!-- BEGIN switch_user_logged_out -->
 	<br />
-		<a href="{U_REGISTER}" class="mainmenu"><img src="templates/subSilver/images/icon_mini_register.gif" width="12" height="13" border="0" alt="{L_REGISTER}" hspace="3" />{L_REGISTER} - {L_GUEST_TXT}</a><br />
+		<a href="{U_REGISTER}" class="mainmenu">{L_REGISTER} - {L_GUEST_TXT}</a><br />
 <!-- END switch_user_logged_out -->
 
 <table width="100%" cellspacing="2" cellpadding="2" border="0">

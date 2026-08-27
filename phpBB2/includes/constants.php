@@ -313,4 +313,7 @@ define('BELOW_SIGNATURE',3);
 // END Custom Profile Fields MOD
 //
 
+// Arcade Mod Plus
+include_once($phpbb_root_path . 'includes/constants_arcade.' . $phpEx);
+
 ?>

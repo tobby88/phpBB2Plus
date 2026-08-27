@@ -295,6 +295,19 @@
 </td>
 </tr>
 <tr>
+<td class="row1"><span class="explaintitle">{L_BLOCK_ARCADE_PM}:</span></td>
+<td class="row2">
+<table border="0" cellspacing="0" cellpadding="0">
+<tr>
+<td><input type="radio" name="games_block_pm" value="1" {BLOCK_PM_YES} />&nbsp;</td>
+<td>{L_YES}&nbsp;&nbsp;</td>
+<td><input type="radio" name="games_block_pm" value="0" {BLOCK_PM_NO} />&nbsp;</td>
+<td>{L_NO}</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
 <td class="row1"><span class="explaintitle">{L_POPUP_ON_PRIVMSG}:</span><br />
 <span class="gensmall">{L_POPUP_ON_PRIVMSG_EXPLAIN}</span></td>
 <td class="row2">

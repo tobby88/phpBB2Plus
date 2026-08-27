@@ -29,6 +29,7 @@
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_SHOUTBOXMAX}" width="14" height="9" />&nbsp;<a href="{U_SHOUTBOXMAX}">{L_SHOUTBOXMAX}</a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_CALENDAR}" width="14" height="9" />&nbsp;<a href="{U_CALENDAR}">{L_CALENDAR}</a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_ALBUM}" width="14" height="9" />&nbsp;<a href="{U_ALBUM}">{L_ALBUM}</a><br />
+<img src="templates/fisubsilversh/images/arrow.gif" alt="{L_ACTIVITY}" width="14" height="9" />&nbsp;<a href="{U_ACTIVITY}">{L_ACTIVITY}</a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_LINKS}" width="14" height="9" />&nbsp;<a href="{U_LINKS}">{L_LINKS}</a><br />
 &nbsp;<a href="#"><b>{L_ABOUT_US}</b></a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_FAQ}" width="14" height="9" />&nbsp;<a href="{U_FAQ}">{L_FAQ}</a><br />
