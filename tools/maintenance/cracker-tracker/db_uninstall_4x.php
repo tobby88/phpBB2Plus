@@ -1,5 +1,11 @@
 <?php
 /***************************************************************************
+ * REPOSITORY NOTE
+ *
+ * Legacy reference only. This script performs destructive database changes
+ * and uses the removed mysql_* API. Do not deploy or execute it unchanged.
+ ***************************************************************************/
+/***************************************************************************
  *                                db_uninstall.php
  *                            -------------------
  *   begin                : Aug 31, 2006
