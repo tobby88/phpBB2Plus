@@ -970,7 +970,7 @@ if ( !empty($next) )
 				if ( $group_id <= 0 )
 				{
 					print "<font color=\"red\">Group creation failed. Aborting creation of groups...<br></font>\n";
-					continue 2;
+					break;
 				}
 
 				print "<span class=\"ok\"><b>OK</b></span><br />\n";
@@ -1277,7 +1277,7 @@ if ( !empty($next) )
 			lock_tables(0);
 			end_step('convert_moderators');
 
-		case 'convert_moderators';
+		case 'convert_moderators':
 			$sql = "SELECT * 
 				FROM forum_mods";
 			$result = query($sql, "Couldn't get list with all forum moderators");

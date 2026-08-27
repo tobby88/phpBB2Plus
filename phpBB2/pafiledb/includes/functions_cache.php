@@ -78,7 +78,7 @@ class acm
 		$dir = opendir($this->cache_dir);
 		while ($entry = readdir($dir))
 		{
-			if ($entry{0} == '.' || substr($entry, 0, 4) != 'sql_')
+			if ($entry[0] == '.' || substr($entry, 0, 4) != 'sql_')
 			{
 				continue;
 			}

@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -318,7 +318,7 @@ class pafiledb_functions
 			$path = $url['path']; 
 			$port = (!empty($url['port'])) ? $url['port'] : 80;
 
-			$fp = @fsockopen($host, $port, &$errno, &$errstr, 20);
+			$fp = @fsockopen($host, $port, $errno, $errstr, 20);
 		
 			if(!$fp)
 			{ 

@@ -223,7 +223,7 @@ for ($i = 0; $i < strlen($code); $i++)
 {
 	mt_srand((double)microtime()*1000000);
 
-	$char = $code{$i};
+	$char = $code[$i];
 #	$size = mt_rand(18, ceil($total_height / 2.8));
 	$size = mt_rand(floor($total_height / 3.5), ceil($total_height / 2.8));
 	$font = ($rnd_font) ? rand(0, (count($fonts)-1)) : $font;
@@ -315,14 +315,14 @@ function get_rgb($hex){
         'F' => 15); 
     $hex = str_replace('#', '', strtoupper($hex)); 
     if (($length = strlen($hex)) == 3) { 
-        $hex = $hex{0}.$hex{0}.$hex{1}.$hex{1}.$hex{2}.$hex{2}; 
+        $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2]; 
         $length = 6; 
     } 
     if ($length != 6 or strlen(str_replace(array_keys($hex_array), '', $hex))) 
         return NULL; 
-    $rgb['r'] = $hex_array[$hex{0}] * 16 + $hex_array[$hex{1}]; 
-    $rgb['g'] = $hex_array[$hex{2}] * 16 + $hex_array[$hex{3}]; 
-    $rgb['b']= $hex_array[$hex{4}] * 16 + $hex_array[$hex{5}]; 
+    $rgb['r'] = $hex_array[$hex[0]] * 16 + $hex_array[$hex[1]]; 
+    $rgb['g'] = $hex_array[$hex[2]] * 16 + $hex_array[$hex[3]]; 
+    $rgb['b']= $hex_array[$hex[4]] * 16 + $hex_array[$hex[5]]; 
     return $rgb['r'].','.$rgb['g'].','.$rgb['b']; 
 }
 
