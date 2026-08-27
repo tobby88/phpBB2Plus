@@ -14,6 +14,7 @@ Recommended mode: 0775 when PHP runs as the owner or in the owning group.
 /album_mod/upload
 /album_mod/upload/cache
 /cache
+/games
 /files
 /files/thumbs
 /images/avatars

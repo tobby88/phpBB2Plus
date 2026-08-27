@@ -87,6 +87,7 @@ for path in \
 	album_mod/upload \
 	album_mod/upload/cache \
 	cache \
+	games \
 	files \
 	files/thumbs \
 	images/avatars \
