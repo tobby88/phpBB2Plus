@@ -31,6 +31,45 @@ if ( !defined('IN_PHPBB') )
 	die('Hacking attempt');
 }
 
+function album_nuffload_base_path($configured_path)
+{
+	$path = str_replace('\\', '/', trim((string) $configured_path));
+	if ($path === '' || $path[0] === '/' || preg_match('#^[a-z]:|://|[\x00\r\n]#i', $path) || preg_match('#(^|/)\.\.?(?:/|$)#', $path))
+	{
+		return false;
+	}
+	return trim($path, '/') . '/';
+}
+
+function album_nuffload_owner_token($userdata)
+{
+	$session_id = isset($userdata['session_id']) ? (string) $userdata['session_id'] : '';
+	$user_id = isset($userdata['user_id']) ? (int) $userdata['user_id'] : 0;
+	if (!preg_match('/^[a-f0-9]{32}$/i', $session_id))
+	{
+		return false;
+	}
+	return hash('sha256', $session_id . "\0" . $user_id);
+}
+
+function album_nuffload_cleanup_temp($tmp_path, $max_age = 3600)
+{
+	$tmp_path = rtrim((string) $tmp_path, '/\\') . '/';
+	if (!is_dir($tmp_path) || !($handle = @opendir($tmp_path)))
+	{
+		return;
+	}
+	while (($file = readdir($handle)) !== false)
+	{
+		if (preg_match('/^[a-f0-9]{32}_(?:actualdata[0-9]+|qstring|flength|postdata|received|complete|owner)$/i', $file)
+			&& is_file($tmp_path . $file) && filemtime($tmp_path . $file) < (time() - (int) $max_age))
+		{
+			@unlink($tmp_path . $file);
+		}
+	}
+	closedir($handle);
+}
+
 
 
 

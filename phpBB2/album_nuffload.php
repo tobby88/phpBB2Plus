@@ -23,7 +23,12 @@ if ( !defined('IN_PHPBB') )
 	die('Hacking attempt');
 }
 
-$path_to_bin = $album_config['path_to_bin'];
+$path_to_bin = album_nuffload_base_path($album_config['path_to_bin']);
+if ($path_to_bin === false || !is_dir($phpbb_root_path . $path_to_bin . 'tmp'))
+{
+	message_die(GENERAL_ERROR, 'The Nuffload temporary path is invalid or unavailable.');
+}
+album_nuffload_cleanup_temp($phpbb_root_path . $path_to_bin . 'tmp');
 $show_progress_bar = $album_config['show_progress_bar'];
 $close_on_finish = $album_config['close_on_finish'];
 $max_pause = $album_config['max_pause'];
@@ -52,24 +57,14 @@ if (isset($_REQUEST['psid']))
 	{
 		message_die(GENERAL_ERROR, 'Invalid upload session');
 	}
-
-	// Clean up old files first
-	$dir = $path_to_bin . "tmp/";
-	if (is_dir($dir))
+	$owner_file = $phpbb_root_path . $path_to_bin . 'tmp/' . $psid . '_owner';
+	$stored_owner = is_file($owner_file) ? trim((string) @file_get_contents($owner_file)) : '';
+	$expected_owner = album_nuffload_owner_token($userdata);
+	if ($expected_owner === false || !preg_match('/^[a-f0-9]{64}$/i', $stored_owner) || !hash_equals($expected_owner, $stored_owner))
 	{
-		if ($dh = opendir($dir))
-		{
-			while (($file = readdir($dh)) !== false)
-			{
-				if (filectime($dir . $file) < (time() - 3600))
-				{
-					@unlink($dir . $file);
-				}
-			}
-			closedir($dh);
-		}
+		message_die(GENERAL_ERROR, 'Invalid upload session');
 	}
-	
+
 	// Session id for this upload.
 	// Check if this a multi upload so we transfer the correct upload file
 	if (!empty($_GET['multi_id']))
@@ -88,26 +83,21 @@ if (isset($_REQUEST['psid']))
 		$key_names = array_keys($_FILES);
 		for($a=0;$a<count($key_names);$a++)
 		{
+			if (!isset($_FILES[$key_names[$a]]['tmp_name'], $_FILES[$key_names[$a]]['name'], $_FILES[$key_names[$a]]['size'])
+				|| !is_uploaded_file($_FILES[$key_names[$a]]['tmp_name']))
+			{
+				message_die(GENERAL_ERROR, 'Invalid upload data');
+			}
 			$qstr .= "&file[field][$a]=" . rawurlencode($key_names[$a]);
 			$qstr .= "&file[name][$a]=" . rawurlencode($_FILES[$key_names[$a]]['name']);
 			$qstr .= "&file[size][$a]=" . intval($_FILES[$key_names[$a]]['size']);
 			$qstr .= "&file[tmp_name][$a]=" . rawurlencode("tmp/" . $psid . "_actualdata" . $a);
 			// Move this file to upload directory
 			// Inefficient but works at the moment
-			$ini_val = ( @phpversion() >= '4.0.0' ) ? 'ini_get' : 'get_cfg_var';
-			if ( @$ini_val('open_basedir') != '' )
+			if (!move_uploaded_file($_FILES[$key_names[$a]]['tmp_name'], $path_to_bin . "tmp/" . $psid . "_actualdata" . $a))
 			{
-				if ( @phpversion() < '4.0.3' )
-				{
-					message_die(GENERAL_ERROR, 'open_basedir is set and your PHP version does not allow move_uploaded_file<br /><br />Please contact your server admin', '', __LINE__, __FILE__);
-				}
-				$move_file = 'move_uploaded_file';
+				message_die(GENERAL_ERROR, 'Could not store uploaded data');
 			}
-			else
-			{
-				$move_file = 'copy';
-			}
-			$move_file($_FILES[$key_names[$a]]['tmp_name'], $path_to_bin . "tmp/" . $psid . "_actualdata" . $a);
 		}
 		@unlink($path_to_bin . "tmp/" . $psid . "_qstring");
 		$handle = @fopen($path_to_bin . "tmp/" . $psid . "_qstring", 'w');
@@ -131,6 +121,11 @@ if (isset($_REQUEST['psid']))
 	{
 		if ($field_name !== 'file')
 		{
+			if (!is_scalar($field_value))
+			{
+				message_die(GENERAL_ERROR, 'Invalid upload data');
+			}
+			$field_value = phpbb_addslashes_recursive($field_value);
 			$_GET[$field_name] = $field_value;
 			$_POST[$field_name] = $field_value;
 		}
@@ -217,24 +212,9 @@ if (isset($_REQUEST['psid']))
 				}
 			}
 		}
-		// Strip "file" from the qstring file so we can rebuild it.
-		$qstr_array = explode("&",$qstr);
-		$qstr = "";
-		for($i=0 ; $i < count($qstr_array) ; $i++)
-		{
-			if (!preg_match("/^file\[/", $qstr_array[$i]))
-			{
-				$qstr .= "&" . $qstr_array[$i];
-			}
-		}
-		// Now add "file" variables to qstring file.
-		for($i=0 ; $i < $k ; $i++)
-		{
-			$qstr .= "&file[size][$i]=" . $file['size'][$i];
-			$qstr .= "&file[name][$i]=" . $file['name'][$i];
-			$qstr .= "&file[tmp_name][$i]=" . $file['tmp_name'][$i];
-			$qstr .= "&file[field][$i]=" . $file['field'][$i];
-		}
+		// Rebuild the hand-off data with proper encoding after ZIP expansion.
+		$parsed_upload_data['file'] = $file;
+		$qstr = '&' . http_build_query($parsed_upload_data, '', '&');
 		$multi_max = ($pfm >= $ptm) ? $pfm : $ptm;
 		unlink($path_to_bin . "tmp/" . $psid . "_qstring");
 		$handle = @fopen($path_to_bin . "tmp/" . $psid . "_qstring", 'w');
@@ -336,7 +316,7 @@ if (isset($_REQUEST['psid']))
 	}
 
 	// Build picture title
-	if ($_POST['pic_title'] == '')
+	if (!isset($_POST['pic_title']) || $_POST['pic_title'] == '')
 	{
 		$tmp_pic_file_name = explode(".", $HTTP_POST_FILES['pic_file']['name']);
 		$_POST['pic_title'] = $tmp_pic_file_name[0];
@@ -443,14 +423,20 @@ if (isset($_REQUEST['psid']))
 // In an include with no session id we create a new session id
 else
 {
-	$psid = md5(dss_rand() . dss_rand());
+	$psid = bin2hex(phpbb_random_bytes(16));
+	$owner_file = $phpbb_root_path . $path_to_bin . 'tmp/' . $psid . '_owner';
+	$owner_token = album_nuffload_owner_token($userdata);
+	if ($owner_token === false || @file_put_contents($owner_file, $owner_token, LOCK_EX) === false)
+	{
+		message_die(GENERAL_ERROR, 'Could not initialize upload session');
+	}
+	@chmod($owner_file, 0660);
 	$cat_id = isset($_REQUEST['cat_id']) ? intval($_REQUEST['cat_id']) : 0;
 	$user_id = isset($_REQUEST['user_id']) ? intval($_REQUEST['user_id']) : 0;
 	$album_user_id = $user_id;
 	if($album_config['perl_uploader'])
 	{
-		$upload_redirect = rawurlencode(phpbb_board_url('album_nuffload.' . $phpEx));
-		$uploader = (function_exists('album_append_uid'))? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") . "&redirect=" . $upload_redirect : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id&redirect=" . $upload_redirect;
+		$uploader = (function_exists('album_append_uid')) ? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id";
 	}
 	else
 	{
@@ -573,7 +559,7 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 		$resize_width = $resize_height * ($pic_width/$pic_height);
 	}
 	$resize = (gdVersion() == 1) ? @imagecreate($resize_width, $resize_height) : @imagecreatetruecolor($resize_width, $resize_height);
-	$resize_function = (gdVersion == 1) ? 'imagecopyresized' : 'imagecopyresampled';
+	$resize_function = (gdVersion() == 1) ? 'imagecopyresized' : 'imagecopyresampled';
 	@$resize_function($resize, $src, 0, 0, 0, 0, $resize_width, $resize_height, $pic_width, $pic_height);
 
 	// Write file to disk

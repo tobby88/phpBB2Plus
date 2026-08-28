@@ -39,7 +39,7 @@ function upload_progress_file_size($filename)
 
 // The progress endpoint is only meaningful for an active upload. Showing a
 // regular forum message for direct visits avoids an empty or unstyled page.
-if (!isset($_REQUEST['sessionid']))
+if (!isset($_REQUEST['sessionid']) || !is_scalar($_REQUEST['sessionid']))
 {
 	message_die(GENERAL_MESSAGE, $lang['No_upload_in_progress']);
 }
@@ -50,11 +50,23 @@ if (!preg_match('/^[a-f0-9]{32}$/i', $sessionid))
 	message_die(GENERAL_ERROR, $lang['No_upload_in_progress']);
 }
 
-$tmp_path = rtrim($album_config['path_to_bin'], '/\\') . '/tmp/';
+$nuffload_path = album_nuffload_base_path($album_config['path_to_bin']);
+if ($nuffload_path === false)
+{
+	message_die(GENERAL_ERROR, $lang['No_upload_in_progress']);
+}
+$tmp_path = $phpbb_root_path . $nuffload_path . 'tmp/';
 $info_file = $tmp_path . $sessionid . '_flength';
 $data_file = $tmp_path . $sessionid . '_postdata';
 $received_file = $tmp_path . $sessionid . '_received';
 $complete_file = $tmp_path . $sessionid . '_complete';
+$owner_file = $tmp_path . $sessionid . '_owner';
+$stored_owner = is_file($owner_file) ? trim((string) @file_get_contents($owner_file)) : '';
+$expected_owner = album_nuffload_owner_token($userdata);
+if ($expected_owner === false || !preg_match('/^[a-f0-9]{64}$/i', $stored_owner) || !hash_equals($expected_owner, $stored_owner))
+{
+	message_die(GENERAL_ERROR, $lang['No_upload_in_progress']);
+}
 
 // Short JSON requests avoid the buffering that prevented the legacy streaming
 // response from updating in current FPM/web-server combinations.
@@ -70,6 +82,7 @@ if (isset($_REQUEST['status']))
 		@unlink($complete_file);
 		@unlink($info_file);
 		@unlink($data_file);
+		@unlink($owner_file);
 		echo json_encode(array('ok' => true));
 		exit;
 	}

@@ -10,38 +10,59 @@
 # Raditha Dissanayake. All Rights Reserved.
 
 
+use strict;
+use warnings;
 use CGI;
-use CGI::Carp qw(fatalsToBrowser);
 
 my $qstring = "";
+my %query = ();
 
 if (length ($ENV{'QUERY_STRING'}) > 0){
-      $buffer = $ENV{'QUERY_STRING'};
-      @pairs = split(/&/, $buffer);
-      foreach $pair (@pairs){
-           ($name, $value) = split(/=/, $pair);
+	my $buffer = $ENV{'QUERY_STRING'};
+	my @pairs = split(/&/, $buffer);
+	foreach my $pair (@pairs){
+	   my ($name, $value) = split(/=/, $pair, 2);
+	   next unless defined $name && defined $value;
+	   $name =~ tr/+/ /;
+	   $value =~ tr/+/ /;
+	   $name =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
            $value =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
-           $$name = $value;
-           $qstring .= "$name=$value&";
+	   $query{$name} = $value;
+	   if ($name =~ /^(?:cat_id|user_id|sid)$/) {
+	       my $safe_name = &url_encode($name);
+	       my $safe_value = &url_encode($value);
+	       $qstring .= "$safe_name=$safe_value&";
+	   }
       }
  }
-$psid =~ s/[^a-zA-Z0-9]//g;
 
-$post_data_file = "tmp/" . $psid . "_postdata";
-$monitor_file = "tmp/" . $psid . "_flength";
-$qstring_file = "tmp/" . $psid . "_qstring";
-$received_file = "tmp/" . $psid . "_received";
-$complete_file = "tmp/" . $psid . "_complete";
+my $psid = defined $query{'psid'} ? $query{'psid'} : '';
+if ($psid !~ /^[a-fA-F0-9]{32}$/) {
+  print "Status: 400 Bad Request\nContent-type: text/plain\n\nInvalid upload session\n";
+  exit;
+}
 
-$len = $ENV{'CONTENT_LENGTH'};
-$bRead=0;
+my $post_data_file = "tmp/" . $psid . "_postdata";
+my $monitor_file = "tmp/" . $psid . "_flength";
+my $qstring_file = "tmp/" . $psid . "_qstring";
+my $received_file = "tmp/" . $psid . "_received";
+my $complete_file = "tmp/" . $psid . "_complete";
+my $owner_file = "tmp/" . $psid . "_owner";
+
+if (!-f $owner_file) {
+  print "Status: 403 Forbidden\nContent-type: text/plain\n\nUnknown upload session\n";
+  exit;
+}
+
+my $len = defined $ENV{'CONTENT_LENGTH'} && $ENV{'CONTENT_LENGTH'} =~ /^\d+$/ ? int($ENV{'CONTENT_LENGTH'}) : 0;
+my $bRead=0;
 $|=1;
 
 unlink("$received_file") if -e "$received_file";
 unlink("$complete_file") if -e "$complete_file";
 
 # Check for max upload size, set to whatever you want
-if($len > 32000000)
+if($len <= 0 || $len > 32000000)
 {
   close (STDIN);
   print "Content-type: text/html\n\n";
@@ -53,9 +74,9 @@ if($len > 32000000)
 if (-e "$monitor_file") {
   unlink("$monitor_file");
 }
-open (MF,">", "$monitor_file") or die "can't open monitor file";
-print MF $len;
-close (MF);
+open (my $monitor_handle, '>', $monitor_file) or &bye_bye();
+print {$monitor_handle} $len;
+close ($monitor_handle);
 sleep(1);
 
 # read and store the raw post data on a temporary file so that we can
@@ -63,16 +84,17 @@ sleep(1);
 if (-e "$post_data_file") {
   unlink("$post_data_file");
 }
-open(TMP,">","$post_data_file") or &bye_bye ("can't open temp file");
+open(my $post_handle, '>', $post_data_file) or &bye_bye();
 my $i=0;
-$ofh = select(TMP); $| = 1; select ($ofh);
-while (read (STDIN ,$LINE, 4096) && $bRead < $len )
+my $ofh = select($post_handle); $| = 1; select ($ofh);
+my $line = '';
+while (read (STDIN, $line, 4096) && $bRead < $len )
 {
-  $bRead += length $LINE;
+  $bRead += length $line;
   $i++;
-  print TMP $LINE;
+  print {$post_handle} $line;
 }
-close (TMP);
+close ($post_handle);
 
 #
 # We don't want to decode the post data ourselves. That's like
@@ -86,37 +108,42 @@ close (TMP);
 # files), we just send a list of file names.
 #
 
-open(STDIN,"$post_data_file") or die "can't open temp file";
-my $cg = new CGI();
+open(STDIN, '<', $post_data_file) or &bye_bye();
+my $cg = CGI->new();
 my %vars = $cg->Vars;
 my $j = 0;
 
-while(($key,$value) = each %vars)
+while(my ($key, $value) = each %vars)
 {
-  $file_upload = $cg->param($key);
+  my $file_upload = $cg->param($key);
+  $key =~ s/[^a-zA-Z0-9_-]//g;
+  next if $key eq '';
   if(defined $value && $value ne '')
   {
     my $fh = $cg->upload($key);
     if(defined $fh)
     {
-      $tmp_filename = "tmp/$psid"."_actualdata"."$j";
-      open(TMP,">","$tmp_filename") or &bye_bye ("can't open temp file");
+	  my $tmp_filename = "tmp/$psid"."_actualdata"."$j";
+	  open(my $upload_handle, '>', $tmp_filename) or &bye_bye();
+	  binmode($upload_handle);
       while(<$fh>) {
-        print TMP $_;
+		print {$upload_handle} $_;
       }
-      close(TMP);
-      $fsize =(-s $fh);
-      $fh =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
-      $tmp_filename =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
-      $qstring .= "file[name][$j]=$fh&file[size][$j]=$fsize&";
-      $qstring .= "file[tmp_name][$j]=$tmp_filename&";
-      $qstring .= "file[field][$j]=$key&";
+	  close($upload_handle);
+	  my $fsize =(-s $tmp_filename);
+	  my $safe_upload_name = &url_encode($file_upload);
+	  my $safe_tmp_filename = &url_encode($tmp_filename);
+	  my $safe_key = &url_encode($key);
+	  $qstring .= "file[name][$j]=$safe_upload_name&file[size][$j]=$fsize&";
+	  $qstring .= "file[tmp_name][$j]=$safe_tmp_filename&";
+	  $qstring .= "file[field][$j]=$safe_key&";
       $j++;
     }
     else
     {
-      $value =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
-      $qstring .= "$key=$value&" ;
+	  my $safe_key = &url_encode($key);
+	  my $safe_value = &url_encode($value);
+	  $qstring .= "$safe_key=$safe_value&" ;
     }
   }
 }
@@ -125,9 +152,9 @@ while(($key,$value) = each %vars)
 if (-e "$qstring_file") {
   unlink("$qstring_file");
 }
-open (QSTR,">", "$qstring_file") or die "can't open output file";
-print QSTR $qstring;
-close (QSTR);
+open (my $qstring_handle, '>', $qstring_file) or &bye_bye();
+print {$qstring_handle} $qstring;
+close ($qstring_handle);
 
 # Tidy up after ourselves.
 unlink("$monitor_file");
@@ -135,10 +162,27 @@ unlink("$post_data_file");
 
 # Keep a small hand-off marker so the polling popup can distinguish server-side
 # image processing from a transfer that has not started yet.
-open (RECEIVED, ">", "$received_file") or die "can't open received marker";
-print RECEIVED $len;
-close (RECEIVED);
+open (my $received_handle, '>', $received_file) or &bye_bye();
+print {$received_handle} $len;
+close ($received_handle);
 
 # OK lets get back to album upload.
-my $url= $redirect . "?psid=$psid";
+my $url = "../album_upload.php?psid=$psid";
+if (defined $query{'sid'} && $query{'sid'} =~ /^[a-fA-F0-9]{32}$/) {
+  $url .= "&sid=" . $query{'sid'};
+}
 print "Location: $url\n\n";
+
+sub url_encode
+{
+  my ($value) = @_;
+  $value = '' unless defined $value;
+  $value =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x", ord($1))/eg;
+  return $value;
+}
+
+sub bye_bye
+{
+  print "Status: 500 Internal Server Error\nContent-type: text/plain\n\nUpload processing failed\n";
+  exit;
+}

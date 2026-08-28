@@ -90,6 +90,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Added cross-site navigation rejection to the SID-protected administration
   panel and removed the standalone shield renderer's duplicate PHP 4 request
   bootstrap.
+- Bound Nuffload upload hand-offs and progress cleanup to the initiating forum
+  session, restricted its temp cleanup to known generated files, removed the
+  CGI's caller-controlled redirect and symbolic request variables, restored
+  SQL quoting after the Perl hand-off, and require genuine PHP uploads.
 
 ### Repository and update cleanup
 
