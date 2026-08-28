@@ -147,20 +147,20 @@ class pafiledb_download extends pafiledb_public
 				'U_INDEX' => append_sid('index.'.$phpEx),
 				'U_DOWNLOAD_HOME' => append_sid('dload.'.$phpEx),
 
-				'FILE_NAME' => $file_data['file_name'],
+				'FILE_NAME' => pafiledb_html($file_data['file_name']),
 				'DOWNLOAD' => $pafiledb_config['settings_dbname'])
 			);
 
 			$pafiledb_template->assign_block_vars('mirror_row', array(
 				'U_DOWNLOAD' => append_sid('dload.php?action=download&file_id=' . $file_id . '&mirror_id=-1'),
-				'MIRROR_LOCATION' => $board_config['sitename'])
+				'MIRROR_LOCATION' => pafiledb_html($board_config['sitename']))
 			);
 
 			foreach($mirrors_data as $mir_id => $mirror_data)
 			{
 				$pafiledb_template->assign_block_vars('mirror_row', array(
 					'U_DOWNLOAD' => append_sid('dload.php?action=download&file_id=' . $file_id . '&mirror_id=' . $mir_id),
-					'MIRROR_LOCATION' => $mirror_data['mirror_location'])
+					'MIRROR_LOCATION' => pafiledb_html($mirror_data['mirror_location']))
 				);
 			}
 
@@ -211,7 +211,11 @@ class pafiledb_download extends pafiledb_public
 
 		if (!empty($file_url))
 		{
-			$file_url = ((!strstr($file_url, '://')) && (strpos($file_url, 'pafiledb/uploads') === false)) ? 'http://' . $file_url : ((strpos($file_url, 'pafiledb/uploads') && (!strstr($file_url, '://'))) ? $phpbb_root_path . $file_url : $file_url);
+			$file_url = pafiledb_normalize_remote_url($file_url);
+			if ($file_url === false)
+			{
+				message_die(GENERAL_MESSAGE, 'The stored remote download URL is invalid.');
+			}
 			pa_redirect($file_url);
 		}
 		else
@@ -377,6 +381,11 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 function pa_redirect($file_url)
 {
 	global $cache, $db;
+	$file_url = trim((string) $file_url);
+	if ($file_url === '' || preg_match('/[\r\n\x00]/', $file_url))
+	{
+		message_die(GENERAL_MESSAGE, 'The download URL is invalid.');
+	}
 	if (isset($db))
 	{
 		$db->sql_close();
@@ -391,7 +400,8 @@ function pa_redirect($file_url)
 	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
 	{
 		header('Refresh: 0; URL=' . $file_url);
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $file_url . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $file_url . '">HERE</a> to be redirected</div></body></html>';
+		$safe_url = htmlspecialchars($file_url, ENT_QUOTES, 'UTF-8');
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $safe_url . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $safe_url . '">HERE</a> to be redirected</div></body></html>';
 		exit;
 	}
 

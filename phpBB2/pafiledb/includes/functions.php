@@ -153,6 +153,12 @@ class pafiledb_functions
 		$file_info = array();
 	
 		$file_info['error'] = FALSE;
+		if ($userfile_name === '' || basename($userfile_name) !== $userfile_name)
+		{
+			$file_info['error'] = TRUE;
+			$file_info['message'] = 'Invalid upload filename.';
+			return $file_info;
+		}
 	
 		if(file_exists($phpbb_root_path . $upload_dir . $userfile_name)) 
 		{	
@@ -163,7 +169,7 @@ class pafiledb_functions
 		// if the file size is more than the allowed size another error message
 		// =======================================================
 			
-		if ($userfile_size > $pafiledb_config['max_file_size'] && $userdata['user_level'] != ADMIN && $userdata['session_logged_in'])
+		if ((int) $userfile_size > (int) $pafiledb_config['max_file_size'] && $userdata['user_level'] != ADMIN)
 		{
 			$file_info['error'] = TRUE;
 			if(!empty($file_info['message']))
@@ -184,7 +190,7 @@ class pafiledb_functions
 			$upload_mode = (@$ini_val('open_basedir') || @$ini_val('safe_mode')) ? 'move' : 'copy';
 			$upload_mode = ($local) ? 'local' : $upload_mode;
 
-			if($this->do_upload_file($upload_mode, $userfile, $phpbb_root_path . $upload_dir . $userfile_name))
+			if(!$this->do_upload_file($upload_mode, $userfile, $phpbb_root_path . $upload_dir . $userfile_name))
 			{
 				$file_info['error'] = TRUE;
 				if(!empty($file_info['message']))
@@ -201,6 +207,11 @@ class pafiledb_functions
 
 	function do_upload_file($upload_mode, $userfile, $userfile_name)
 	{
+		if ($upload_mode !== 'local' && !is_uploaded_file($userfile))
+		{
+			return false;
+		}
+
 		switch ($upload_mode)
 		{
 			case 'copy':
@@ -233,9 +244,12 @@ class pafiledb_functions
 				@chmod($userfile_name, 0664);
 				@unlink($userfile);
 				break;
+
+			default:
+				return false;
 		}
 
-		return;
+		return true;
 	}	
 	
 	function pafiledb_config() 
@@ -566,16 +580,35 @@ class pafiledb_functions
 
 function get_formated_url()
 {
-	global $board_config;
+	return rtrim(phpbb_board_url(), '/');
+}
 
-	$server_protocol = ($board_config['cookie_secure']) ? 'https://' : 'http://';
-	$server_name = preg_replace('#^\/?(.*?)\/?$#', '\1', trim($board_config['server_name']));
-	$server_port = ($board_config['server_port'] <> 80) ? ':' . trim($board_config['server_port']) : '';
-	$script_name = preg_replace('#^\/?(.*?)\/?$#', '\1', trim($board_config['script_path']));
-	$script_name = ($script_name == '') ? $script_name : '/' . $script_name;
-	$formated_url = $server_protocol . $server_name . $server_port . $script_name;
-	
-	return $formated_url;
+function pafiledb_normalize_remote_url($url, $image_only = false)
+{
+	$url = trim(stripslashes((string) $url));
+	if ($url === '' || preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
+	{
+		return false;
+	}
+
+	$parts = @parse_url($url);
+	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
+		isset($parts['user']) || isset($parts['pass']))
+	{
+		return false;
+	}
+	if ($image_only && (empty($parts['path']) || !preg_match('/\.(?:gif|jpe?g|png)$/i', $parts['path'])))
+	{
+		return false;
+	}
+
+	return $url;
+}
+
+function pafiledb_html($value)
+{
+	return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8', false);
 }
 
 

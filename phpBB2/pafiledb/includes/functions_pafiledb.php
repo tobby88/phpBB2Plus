@@ -339,14 +339,14 @@ class pafiledb
 			foreach ($cat_nav as $parent_cat_id => $parent_name)
 			{
 				$pafiledb_template->assign_block_vars('navlinks', array(
-					'CAT_NAME'	=>	$parent_name,
+					'CAT_NAME'	=>	pafiledb_html($parent_name),
 					'U_VIEW_CAT'	=>	append_sid('dload.php?action=category&cat_id=' . $parent_cat_id))
 				);
 			}
 		}
 
 		$pafiledb_template->assign_block_vars('navlinks', array(
-			'CAT_NAME'	=>	$this->cat_rowset[$cat_id]['cat_name'],
+			'CAT_NAME'	=>	pafiledb_html($this->cat_rowset[$cat_id]['cat_name']),
 			'U_VIEW_CAT'	=>	append_sid('dload.php?action=category&cat_id=' . $this->cat_rowset[$cat_id]['cat_id']))
 		);
 		
@@ -774,10 +774,10 @@ class pafiledb
 						'SUB_CAT' => ( !empty($sub_cat) ) ? $sub_cat : $lang['None'],
 						'CAT_IMAGE' => ($is_new) ? $images['folder_new'] : $images['folder'],
 						'CAT_NEW_FILE' => ($is_new) ? $lang['New_file'] : $lang['No_new_file'],
-						'CAT_NAME' => $subcat_row['cat_name'],
+						'CAT_NAME' => pafiledb_html($subcat_row['cat_name']),
 						'FILECAT' => $this->file_in_cat($subcat_id),
 						'LAST_FILE' => $last_file,
-						'CAT_DESC' => $subcat_row['cat_desc'])
+						'CAT_DESC' => pafiledb_html($subcat_row['cat_desc']))
 					);
 				}
 			}
@@ -806,7 +806,7 @@ class pafiledb
 						$pafiledb_template->assign_block_vars('no_cat_parent', array(
 							'IS_HIGHER_CAT' => TRUE,
 							'U_CAT' => append_sid('dload.php?action=category&cat_id=' . $subcat_id),
-							'CAT_NAME' => $subcat_row['cat_name'])
+							'CAT_NAME' => pafiledb_html($subcat_row['cat_name']))
 						);
 					}
 					for($k = 0; $k < $total_sub_cat; $k++)
@@ -844,10 +844,10 @@ class pafiledb
 								'SUB_CAT' => ( !empty($sub_cat) ) ? $sub_cat : $lang['None'],
 								'CAT_IMAGE' => ($is_new) ? $images['folder_new'] : $images['folder'],
 								'CAT_NEW_FILE' => ($is_new) ? $lang['New_file'] : $lang['No_new_file'],
-								'CAT_NAME' => $sub_cat_rowset[$k]['cat_name'],
+								'CAT_NAME' => pafiledb_html($sub_cat_rowset[$k]['cat_name']),
 								'FILECAT' => $this->file_in_cat($sub_cat_rowset[$k]['cat_id']),
 								'LAST_FILE' => $last_file,
-								'CAT_DESC' => $sub_cat_rowset[$k]['cat_desc'])
+								'CAT_DESC' => pafiledb_html($sub_cat_rowset[$k]['cat_desc']))
 							);
 						} // Have a permission to view the category
 					} // It is not parent category
@@ -1030,21 +1030,22 @@ class pafiledb
 			// Assign Vars
 			//===================================================
 
+			$safe_screenshot = pafiledb_normalize_remote_url($file_rowset[$i]['file_ssurl'], true);
 			$pafiledb_template->assign_block_vars("file_rows", array(
 				'L_NEW_FILE' => $lang['New_file'],
 
 				'PIN_IMAGE' => $posticon,
 				'FILE_NEW_IMAGE' => $phpbb_root_path . $images['pa_file_new'],
-				'HAS_SCREENSHOTS' => (!empty($file_rowset[$i]['file_ssurl'])) ? TRUE : FALSE,
+				'HAS_SCREENSHOTS' => ($safe_screenshot !== false),
 				'SS_AS_LINK' => ($file_rowset[$i]['file_sshot_link']) ? TRUE : FALSE,
-				'FILE_SCREENSHOT' => $file_rowset[$i]['file_ssurl'],
+				'FILE_SCREENSHOT' => ($safe_screenshot !== false) ? htmlspecialchars($safe_screenshot, ENT_QUOTES, 'UTF-8') : '',
 				'FILE_SCREENSHOT_URL' => $phpbb_root_path . 'pafiledb/images/lwin.gif',
-				'FILE_NAME' => $file_rowset[$i]['file_name'],
-				'FILE_DESC' => $file_rowset[$i]['file_desc'],
+				'FILE_NAME' => pafiledb_html($file_rowset[$i]['file_name']),
+				'FILE_DESC' => pafiledb_html($file_rowset[$i]['file_desc']),
 				'DATE' => $date,
 				'RATING' => $rating,
 				'FILE_DLS' => $file_rowset[$i]['file_dls'],
-				'CAT_NAME' => $cat_name,
+				'CAT_NAME' => pafiledb_html($cat_name),
 				'IS_NEW_FILE' => $is_new,
 
 				'U_CAT' => $cat_url,
@@ -1509,7 +1510,8 @@ class pafiledb
 	
 	function update_add_file($file_id = false)
 	{
-		global $db, $phpbb_root_path, $db, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions, $user_ip;
+		global $db, $phpbb_root_path, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions, $user_ip, $lang;
+		$file_id = (int) $file_id;
 
 		$ss_upload = ( empty($_POST['screen_shot_url']) ) ? TRUE : FALSE;
 		$ss_remote_url = ( !empty($_POST['screen_shot_url']) ) ? $_POST['screen_shot_url'] : '';
@@ -1572,6 +1574,30 @@ class pafiledb
 		{
 			$this->error[] = $lang['Missing_field'];
 		}
+		if (!empty($file_remote_url))
+		{
+			$normalized_url = pafiledb_normalize_remote_url($file_remote_url);
+			if ($normalized_url === false)
+			{
+				$this->error[] = 'The remote download URL must use HTTP or HTTPS.';
+			}
+			else
+			{
+				$file_remote_url = addslashes($normalized_url);
+			}
+		}
+		if (!empty($ss_remote_url))
+		{
+			$normalized_url = pafiledb_normalize_remote_url($ss_remote_url, true);
+			if ($normalized_url === false)
+			{
+				$this->error[] = 'The remote screenshot URL must point to a GIF, JPEG or PNG image over HTTP or HTTPS.';
+			}
+			else
+			{
+				$ss_remote_url = addslashes($normalized_url);
+			}
+		}
 		//
 		// Extension-Screenshoots
 		if ( !empty($ss_name) )
@@ -1597,6 +1623,11 @@ class pafiledb
                     message_die(GENERAL_ERROR, '<b>You are not allowed to upload this type of files for Screenshots! Allowed only  ' . $explain_extension . '</b>');
                 }
             }
+			if (!is_uploaded_file($ss_local) || @getimagesize($ss_local) === false)
+			{
+				message_die(GENERAL_ERROR, '<b>The uploaded screenshot is not a valid image.</b>');
+			}
+			$ss_name = $pafiledb_functions->gen_unique_name('.' . strtolower($chk_extension_array[$check_anzahl-1]));
         }
 		// END Extension-Screenshots
 		//
@@ -1758,11 +1789,25 @@ class pafiledb
 	
 	function mirror_add_update($file_id, $file_upload, $file_remote_url, $file_local, $file_realname, $file_size, $file_type, $mirror_location, $mirror_id = false)
 	{
-		global $db, $phpbb_root_path, $db, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions;
+		global $db, $phpbb_root_path, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions, $lang;
+		$file_id = (int) $file_id;
+		$mirror_id = (int) $mirror_id;
 		
 		if(empty($file_remote_url) && empty($file_local) && !$file_id)
 		{
 			$this->error[] = $lang['Missing_field'];
+		}
+		if (!empty($file_remote_url))
+		{
+			$normalized_url = pafiledb_normalize_remote_url($file_remote_url);
+			if ($normalized_url === false)
+			{
+				$this->error[] = 'The remote download URL must use HTTP or HTTPS.';
+			}
+			else
+			{
+				$file_remote_url = addslashes($normalized_url);
+			}
 		}
 			
 		$forbidden_extensions = array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions']));

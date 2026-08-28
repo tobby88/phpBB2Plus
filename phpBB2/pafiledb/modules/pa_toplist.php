@@ -294,13 +294,13 @@ class pafiledb_toplist extends pafiledb_public
 						//===================================================
 
 						$pafiledb_template->assign_block_vars('files_row', array(
-							'CAT_NAME' => $cat_name,
+							'CAT_NAME' => pafiledb_html($cat_name),
 							'FILE_NEW_IMAGE' => $images['pa_file_new'],
 							'PIN_IMAGE' => $posticon,
 
 							'IS_NEW_FILE' => $is_new,
-							'FILE_NAME' => $file_rowset[$i]['file_name'],
-							'FILE_DESC' => $file_rowset[$i]['file_desc'],
+							'FILE_NAME' => pafiledb_html($file_rowset[$i]['file_name']),
+							'FILE_DESC' => pafiledb_html($file_rowset[$i]['file_desc']),
 							'FILE_SUBMITER' => $poster,
 							'DATE' => $date,
 							'RATING' => $rating,
@@ -483,13 +483,13 @@ class pafiledb_toplist extends pafiledb_public
 					$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
 
 					$pafiledb_template->assign_block_vars('files_row', array(
-						'CAT_NAME' => $searchset[$i]['cat_name'],
+						'CAT_NAME' => pafiledb_html($searchset[$i]['cat_name']),
 						'FILE_NEW_IMAGE' => $images['pa_file_new'],
 						'PIN_IMAGE' => $posticon,
 
 						'IS_NEW_FILE' => $is_new,
-						'FILE_NAME' => $searchset[$i]['file_name'],
-						'FILE_DESC' => $searchset[$i]['file_desc'],
+						'FILE_NAME' => pafiledb_html($searchset[$i]['file_name']),
+						'FILE_DESC' => pafiledb_html($searchset[$i]['file_desc']),
 						'FILE_SUBMITER' => $poster,
 						'DATE' => $date,
 						'RATING' => $rating,

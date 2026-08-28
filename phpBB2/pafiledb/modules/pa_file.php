@@ -96,7 +96,7 @@ class pafiledb_file extends pafiledb_public
 			'U_INDEX' => append_sid('index.'.$phpEx),
 			'U_DOWNLOAD_HOME' => append_sid('dload.'.$phpEx),
 
-			'FILE_NAME' => $file_data['file_name'],
+			'FILE_NAME' => pafiledb_html($file_data['file_name']),
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
 		);
 
@@ -110,13 +110,15 @@ class pafiledb_file extends pafiledb_public
 
 		$file_update_time = ($file_data['file_update_time']) ? create_date($board_config['default_dateformat'], $file_data['file_update_time'], $board_config['board_timezone']) : $lang['never'];
 
-		$file_author = trim($file_data['file_creator']);
+		$file_author = pafiledb_html(trim($file_data['file_creator']));
 
-		$file_version = trim($file_data['file_version']);
+		$file_version = pafiledb_html(trim($file_data['file_version']));
 
-		$file_screenshot_url = trim($file_data['file_ssurl']);
+		$file_screenshot_url = pafiledb_normalize_remote_url($file_data['file_ssurl'], true);
+		$file_screenshot_url = ($file_screenshot_url !== false) ? htmlspecialchars($file_screenshot_url, ENT_QUOTES, 'UTF-8') : '';
 
-		$file_website_url = trim($file_data['file_docsurl']);
+		$file_website_url = pafiledb_normalize_remote_url($file_data['file_docsurl']);
+		$file_website_url = ($file_website_url !== false) ? htmlspecialchars($file_website_url, ENT_QUOTES, 'UTF-8') : '';
 
 		$file_rating = ($file_data['rating'] != 0) ? round($file_data['rating'], 2) . ' / 10' : $lang['Not_rated'];
 
@@ -126,7 +128,7 @@ class pafiledb_file extends pafiledb_public
 		$file_size = $pafiledb_functions->get_file_size($file_id, $file_data);
 
 		$file_poster = ( $file_data['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;' . POST_USERS_URL . '=' . $file_data['user_id']) . '">' : '';
-		$file_poster .= ( $file_data['user_id'] != ANONYMOUS ) ? $file_data['username'] : $lang['Guest'];
+		$file_poster .= ( $file_data['user_id'] != ANONYMOUS ) ? pafiledb_html($file_data['username']) : $lang['Guest'];
 		$file_poster .= ( $file_data['user_id'] != ANONYMOUS ) ? '</a>' : '';
 
 		$pafiledb_template->assign_vars(array(
@@ -158,8 +160,8 @@ class pafiledb_file extends pafiledb_public
 			'SHOW_SCREENSHOT' => (!empty($file_screenshot_url)) ? TRUE : FALSE,
 			'SHOW_WEBSITE' => (!empty($file_website_url)) ? TRUE : FALSE,
 			'SS_AS_LINK' => ($file_data['file_sshot_link']) ? TRUE : FALSE,
-			'FILE_NAME' => $file_data['file_name'],
-		  	'FILE_LONGDESC' => nl2br($file_data['file_longdesc']),
+			'FILE_NAME' => pafiledb_html($file_data['file_name']),
+			'FILE_LONGDESC' => nl2br(pafiledb_html($file_data['file_longdesc'])),
 			'FILE_SUBMITED_BY' => $file_poster,
 			'FILE_AUTHOR' => $file_author,
 			'FILE_VERSION' => $file_version,

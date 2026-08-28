@@ -94,7 +94,7 @@ class pafiledb_license extends pafiledb_public
 			'U_DOWNLOAD' => append_sid('dload.php?action=download&file_id=' . $file_id),
 
 			'LE_NAME' => $license['license_name'],
-			'FILE_NAME' => $file_data['file_name'],
+			'FILE_NAME' => pafiledb_html($file_data['file_name']),
 			'LE_TEXT' => nl2br($license['license_text']),
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
 		);

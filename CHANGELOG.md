@@ -63,6 +63,13 @@ changes consolidated after that baseline without implying active maintenance.
 - Required a separate, long recovery token in addition to the opt-in constant
   before the standalone Emergency Recovery Console can run, and removed its
   request-derived form actions.
+- Fixed PAFileDB upload failures being reported as success, enforced upload
+  size limits for guests, required genuine HTTP uploads, generated safe
+  screenshot names and verified screenshot image contents.
+- Restricted PAFileDB remote downloads and screenshots to validated HTTP(S)
+  URLs at write and read time, protected redirects against header injection,
+  and HTML-escaped stored file/category metadata throughout public, moderator
+  and administration views.
 
 ### Repository and update cleanup
 

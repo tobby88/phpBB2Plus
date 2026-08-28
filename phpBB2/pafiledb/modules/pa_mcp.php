@@ -405,7 +405,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 			{
 				$approve_mode = ($file_data['file_approved']) ? 'do_unapprove' : 'do_approve';
 				$pafiledb_template->assign_block_vars('file_mode.file_row', array(
-					'FILE_NAME' => $file_data['file_name'],
+					'FILE_NAME' => pafiledb_html($file_data['file_name']),
 					'FILE_NUMBER' => $i++,
 					'FILE_ID' => $file_data['file_id'],
 					'U_FILE_EDIT' => append_sid("dload.php?action=user_upload&amp;mode=edit&amp;file_id={$file_data['file_id']}"),

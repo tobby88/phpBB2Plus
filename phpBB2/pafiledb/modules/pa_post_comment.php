@@ -151,7 +151,7 @@ class pafiledb_post_comment extends pafiledb_public
 				'SMILIES_STATUS' => $smilies_status,
 				'LINKS_STATUS' => $links_status, 
 				'IMAGES_STATUS' => $images_status, 
-				'FILE_NAME' => $file_data['file_name'],
+				'FILE_NAME' => pafiledb_html($file_data['file_name']),
 				'DOWNLOAD' => $pafiledb_config['settings_dbname'],
 				'MESSAGE_LENGTH' => $pafiledb_config['max_comment_chars'],
 

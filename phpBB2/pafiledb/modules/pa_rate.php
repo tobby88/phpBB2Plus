@@ -64,7 +64,7 @@ class pafiledb_rate extends pafiledb_public
 			'U_DOWNLOAD_HOME' => append_sid('dload.'.$phpEx),
 			'U_FILE_NAME' => append_sid('dload.php?action=file&file_id=' . $file_id),
 
-			'FILE_NAME' => $file_data['file_name'],
+			'FILE_NAME' => pafiledb_html($file_data['file_name']),
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
 		);
 

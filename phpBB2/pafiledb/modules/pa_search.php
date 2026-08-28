@@ -563,13 +563,13 @@ class pafiledb_search extends pafiledb_public
 					$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
 
 					$pafiledb_template->assign_block_vars('searchresults', array( 
-						'CAT_NAME' => $searchset[$i]['cat_name'],
+						'CAT_NAME' => pafiledb_html($searchset[$i]['cat_name']),
 						'FILE_NEW_IMAGE' => $images['pa_file_new'],
 						'PIN_IMAGE' => $posticon,
 
 						'IS_NEW_FILE' => $is_new,
-						'FILE_NAME' => $searchset[$i]['file_name'],
-						'FILE_DESC' => $searchset[$i]['file_desc'],
+						'FILE_NAME' => pafiledb_html($searchset[$i]['file_name']),
+						'FILE_DESC' => pafiledb_html($searchset[$i]['file_desc']),
 						'FILE_SUBMITER' => $poster,
 						'DATE' => $date,
 						'RATING' => $rating,
