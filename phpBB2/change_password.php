@@ -4,8 +4,6 @@ define('EXTRA_SECURE', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
-//slow down to alow DB to be updated before fetching userdata..
-sleep(1);
 //
 // Start session management
 //
@@ -56,20 +54,21 @@ if ($submit)
 		$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $error_text['error_msg'];
 	} 
 	if (!$error)
-	{	//update new password + time
-		if (defined('EXTRA_SECURE'))
+	{
+		if (defined('EXTRA_SECURE') && !phpbb_password_verify($cur_password, $userdata['user_password']))
 		{
-			$secure_sql = " AND user_password='".md5($cur_password)."'";
-		} else
-		{
-			$secure_sql = "";
+			$error = true;
+			$error_msg .= $lang['Current_password_mismatch'];
 		}
-
-		$sql = "UPDATE " . USERS_TABLE . " SET user_password='".md5($new_password)."', user_passwd_change='".time()."'
-		WHERE user_active AND user_id='".$userdata['user_id']."'";
-		if ( !($result = $db->sql_query($sql.$secure_sql)) )
+	}
+	if (!$error)
+	{	//update new password + time
+		$new_password_hash = phpbb_password_hash($new_password);
+		$sql = "UPDATE " . USERS_TABLE . " SET user_password='" . str_replace("'", "''", $new_password_hash) . "', user_passwd_change='".time()."'
+		WHERE user_active AND user_id='".(int) $userdata['user_id']."'";
+		if ( !($result = $db->sql_query($sql)) )
 		{
-			message_die(GENERAL_ERROR, 'Could not update users password'.$sql." + hidden password sql", '', __LINE__, __FILE__, $sql);
+			message_die(GENERAL_ERROR, 'Could not update users password', '', __LINE__, __FILE__, $sql);
 		}
 		if ( $updated = $db->sql_affectedrows($result) )
 		{

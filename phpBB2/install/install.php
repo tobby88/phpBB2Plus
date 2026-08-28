@@ -289,6 +289,7 @@ if (!defined('IN_PHPBB'))
 // define('NO_FTP', true);
 $phpbb_root_path = './../';
 include($phpbb_root_path.'extension.inc');
+include_once($phpbb_root_path . 'includes/php_compat.' . $phpEx);
 
 // Initialise some basic arrays
 $userdata = array();
@@ -852,10 +853,10 @@ else
 				}
 			}
 
-			$admin_pass_md5 = ($confirm && $userdata['user_level'] == ADMIN) ? $admin_pass1 : md5($admin_pass1);
+			$admin_password = ($confirm && $userdata['user_level'] == ADMIN) ? $admin_pass1 : phpbb_password_hash($admin_pass1);
 
 			$sql = "UPDATE " . $table_prefix . "users 
-				SET username = '" . str_replace("\'", "''", $admin_name) . "', user_password='" . str_replace("\'", "''", $admin_pass_md5) . "', user_lang = '" . str_replace("\'", "''", $language) . "', user_email='" . str_replace("\'", "''", $board_email) . "'
+				SET username = '" . str_replace("\'", "''", $admin_name) . "', user_password='" . str_replace("\'", "''", $admin_password) . "', user_lang = '" . str_replace("\'", "''", $language) . "', user_email='" . str_replace("\'", "''", $board_email) . "'
 				WHERE username = 'Admin'";
 			if (!$db->sql_query($sql))
 			{

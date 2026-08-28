@@ -105,6 +105,7 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('max_login_error', 
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('min_password_len', '6');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('force_complex_password', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('password_not_login', '1');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('password_hashing', '1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('board_disable_msg', 'Rebuild Search in progress...');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('split_news', '1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('users_allow_absence', 0);
@@ -964,7 +965,7 @@ INSERT INTO `phpbb_captcha_config` VALUES ('lattice_color', '#FFFFFF');
 
 # Post-1.53a Arcade Mod Plus 2.1.8 defaults
 #
-+INSERT INTO phpbb_ina_data (config_name, config_value) VALUES
+INSERT INTO phpbb_ina_data (config_name, config_value) VALUES
   ('default_reward_dbfield', 'user_points'),
   ('default_cash', 'user_cash'),
   ('use_rewards_mod', '0'),

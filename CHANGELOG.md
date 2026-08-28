@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Added adaptive password hashing with transparent migration after a successful
+  legacy-MD5 login. Fresh installs and all password creation/reset paths use
+  `password_hash()`; existing installations opt in only after the guarded
+  updater widens both password columns, preventing accidental hash truncation.
 - Replaced direct deserialization of browser cookies, search data, Arcade data,
   and extension caches with a PHP 5.6-to-8.x compatibility helper that blocks
   object instantiation.
@@ -20,6 +24,9 @@ changes consolidated after that baseline without implying active maintenance.
   strict parsing and corrected repeated email-variable assignment.
 - Removed PAFiledb's shell-based Windows deletion fallback and shell-escaped
   every ImageMagick thumbnail command argument.
+- Removed stray patch-prefix characters that made the fresh-install Arcade
+  schema and seed SQL invalid, and extended the updater self-test to reject a
+  recurrence.
 
 ### Repository and update cleanup
 

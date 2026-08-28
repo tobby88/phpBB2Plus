@@ -106,6 +106,57 @@ if (!function_exists('phpbb_setcookie'))
 	}
 }
 
+/**
+ * Password helpers accept historical unsalted MD5 hashes and create only
+ * adaptive hashes. Successful legacy logins can therefore migrate in place.
+ */
+if (!function_exists('phpbb_password_hash'))
+{
+	function phpbb_password_hash($password)
+	{
+		global $board_config;
+
+		// Existing databases opt in only after their password columns have
+		// been widened by update_from_153a.php.
+		if (isset($board_config) && is_array($board_config) && empty($board_config['password_hashing']))
+		{
+			return md5($password);
+		}
+
+		return password_hash($password, PASSWORD_DEFAULT);
+	}
+}
+
+if (!function_exists('phpbb_password_verify'))
+{
+	function phpbb_password_verify($password, $stored_hash)
+	{
+		if (!is_string($stored_hash) || $stored_hash === '')
+		{
+			return false;
+		}
+
+		if (preg_match('/^[a-f0-9]{32}$/i', $stored_hash))
+		{
+			$legacy_hash = md5($password);
+			return function_exists('hash_equals')
+				? hash_equals(strtolower($stored_hash), strtolower($legacy_hash))
+				: strtolower($stored_hash) === strtolower($legacy_hash);
+		}
+
+		return password_verify($password, $stored_hash);
+	}
+}
+
+if (!function_exists('phpbb_password_needs_rehash'))
+{
+	function phpbb_password_needs_rehash($stored_hash)
+	{
+		return preg_match('/^[a-f0-9]{32}$/i', (string) $stored_hash)
+			|| password_needs_rehash($stored_hash, PASSWORD_DEFAULT);
+	}
+}
+
 if (!function_exists('phpbb_compat_posix_pattern'))
 {
 	function phpbb_compat_posix_pattern($pattern, $case_insensitive)

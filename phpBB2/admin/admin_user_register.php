@@ -185,7 +185,7 @@ if ( isset($_POST['submit']) )
 		}
 		$user_id = $row['total'] + 1;
 
-		$new_password = md5($new_password);
+		$new_password = phpbb_password_hash($new_password);
 
 		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey)
 			VALUES ($user_id, '" . str_replace("\'", "''", $username) . "',	" . time() . ",	'" . str_replace("\'", "''", $new_password) . "',	'" . str_replace("\'", "''", $email) . "', $user_style, $user_timezone, '" . str_replace("\'", "''", $user_dateformat) . "', '" . str_replace("\'", "''", $user_lang) . "', 0, 1, 'user_actkey')";

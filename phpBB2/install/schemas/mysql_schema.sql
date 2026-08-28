@@ -539,7 +539,7 @@ CREATE TABLE phpbb_users (
    user_id mediumint(8) NOT NULL,
    user_active tinyint(1) default '1',
    username varchar(25) NOT NULL,
-   user_password varchar(32) NOT NULL,
+   user_password varchar(255) NOT NULL,
    user_session_time int(11) default '0' NOT NULL,
    user_session_page smallint(5) default '0' NOT NULL,
    user_session_topic int(11) default '0' NOT NULL,
@@ -596,7 +596,7 @@ CREATE TABLE phpbb_users (
    user_occ varchar(100),
    user_interests varchar(255),
    user_actkey varchar(32),
-   user_newpasswd varchar(32),
+   user_newpasswd varchar(255),
    ct_search_time INT( 11 ) DEFAULT 1,
    ct_search_count MEDIUMINT( 8 ) DEFAULT 1,
    ct_last_mail INT( 11 ) DEFAULT 1,
@@ -1399,7 +1399,7 @@ CREATE TABLE `phpbb_captcha_config` (
 
 # Post-1.53a Arcade Mod Plus 2.1.8 schema
 #
-+ALTER TABLE phpbb_users
+ALTER TABLE phpbb_users
   ADD games_block_pm tinyint(1) NOT NULL DEFAULT 1,
   ADD arcade_banned int(11) NOT NULL DEFAULT 0;
 

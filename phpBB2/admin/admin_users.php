@@ -568,7 +568,7 @@ if( !empty($_POST['unblock_account']) )
 			}
 			else
 			{
-				$password = md5($password);
+				$password = phpbb_password_hash($password);
 				$passwd_sql = "user_password = '$password', ";
 			}
 		}
@@ -586,7 +586,7 @@ if( !empty($_POST['unblock_account']) )
 		else if ($new_user)
 		{
 			//no password given for this new user, create default password
-			$password = md5(DEFAULT_PASSWD);
+			$password = phpbb_password_hash(DEFAULT_PASSWD);
 			$passwd_sql = "user_password = '$password', ";
 			//send out email notification goes here
 		}

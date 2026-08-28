@@ -515,7 +515,7 @@ if ( isset($_POST['submit']) )
 
 				$row = $db->sql_fetchrow($result);
 
-				if ( $row['user_password'] != md5($cur_password) )
+				if ( !phpbb_password_verify($cur_password, $row['user_password']) )
 				{
 					$error = TRUE;
 					$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Current_password_mismatch'];
@@ -525,7 +525,7 @@ if ( isset($_POST['submit']) )
 			if ( !$error )
 			{
 				$profile_security->pw_create_date($user_id);
-				$new_password = md5($new_password);
+				$new_password = phpbb_password_hash($new_password);
 				$passwd_sql = "user_password = '$new_password', ";
 			}
 		}
@@ -572,7 +572,7 @@ if ( isset($_POST['submit']) )
 
 			$row = $db->sql_fetchrow($result);
 
-			if ( $row['user_password'] != md5($cur_password) )
+			if ( !phpbb_password_verify($cur_password, $row['user_password']) )
 			{
 				$email = $userdata['user_email'];
 

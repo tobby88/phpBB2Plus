@@ -103,8 +103,17 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 					}
 					*/
 					// End add - Protect user account MOD
-					if( md5($password) == $row['user_password'] && $row['user_active'] )
+					if( phpbb_password_verify($password, $row['user_password']) && $row['user_active'] )
 					{
+						if (!empty($board_config['password_hashing']) && phpbb_password_needs_rehash($row['user_password']))
+						{
+							$upgraded_password = phpbb_password_hash($password);
+							if ($upgraded_password !== false)
+							{
+								$db->sql_query("UPDATE " . USERS_TABLE . " SET user_password = '" . str_replace("'", "''", $upgraded_password) . "' WHERE user_id = " . (int) $row['user_id']);
+							}
+						}
+
 						$autologin = ( isset($_POST['autologin']) ) ? TRUE : 0;
 	
 						$admin = (isset($HTTP_POST_VARS['admin'])) ? 1 : 0;

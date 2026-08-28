@@ -874,7 +874,7 @@ function check_authorisation($die = TRUE)
 			}
 			if( $row = $db->sql_fetchrow($result) )
 			{
-				if( md5($board_password) == $row['user_password'] && $row['user_active'] && $row['user_level'] == ADMIN )
+				if( phpbb_password_verify($board_password, $row['user_password']) && $row['user_active'] && $row['user_level'] == ADMIN )
 				{
 					$allow_access = TRUE;
 				}

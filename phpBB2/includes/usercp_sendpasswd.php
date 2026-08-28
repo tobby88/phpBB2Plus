@@ -63,8 +63,9 @@ if ( isset($_POST['submit']) )
 			$new_time = time() + $ctracker_config->settings['pwreset_time'] * 60;
 			// Compatibility trick
 			(empty($ctracker_config->settings['pwreset_time']))? $new_time = time() + 20 * 60 : null;
+			$new_password_hash = phpbb_password_hash($user_password);
 			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_newpasswd = '" . md5($user_password) . "', user_actkey = '$user_actkey', ct_last_pw_reset = '$new_time' WHERE user_id = " . $row['user_id'];
+				SET user_newpasswd = '" . str_replace("'", "''", $new_password_hash) . "', user_actkey = '$user_actkey', ct_last_pw_reset = '$new_time' WHERE user_id = " . $row['user_id'];
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);

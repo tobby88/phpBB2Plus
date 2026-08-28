@@ -82,12 +82,15 @@ if (in_array('--self-test', $argv, true))
 		if (strpos($table, 'phpbb_ina_') === 0) { $arcade_tables++; }
 		if (strpos($table, 'phpbb_ctracker_') === 0) { $ctracker_tables++; }
 	}
-	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 66)
+	$schema_has_password_capacity = (bool) preg_match('/user_password\s+varchar\(255\)/i', $schema_source)
+		&& (bool) preg_match('/user_newpasswd\s+varchar\(255\)/i', $schema_source);
+	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
+	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 66 || !$schema_has_password_capacity || $has_patch_markers)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements.\n");
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
-	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements.\n";
+	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password columns ready.\n";
 	exit(0);
 }
 
@@ -195,6 +198,16 @@ function update_column_exists($connection, $database, $table, $column)
 	return (int) update_scalar($connection, $sql) > 0;
 }
 
+function update_column_max_length($connection, $database, $table, $column)
+{
+	$sql = "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" .
+		mysqli_real_escape_string($connection, $database) . "' AND TABLE_NAME = '" .
+		mysqli_real_escape_string($connection, $table) . "' AND COLUMN_NAME = '" .
+		mysqli_real_escape_string($connection, $column) . "'";
+	$value = update_scalar($connection, $sql);
+	return $value === null ? 0 : (int) $value;
+}
+
 function update_index_exists($connection, $database, $table, $index)
 {
 	$sql = "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = '" .
@@ -285,6 +298,17 @@ foreach ($user_columns as $column => $definition)
 {
 	update_queue_column($operations, $connection, $dbname, $table_prefix . 'users', $column, $definition);
 }
+$users_table = $table_prefix . 'users';
+if (update_column_max_length($connection, $dbname, $users_table, 'user_password') < 255)
+{
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($users_table) .
+		' MODIFY `user_password` VARCHAR(255) NOT NULL';
+}
+if (update_column_max_length($connection, $dbname, $users_table, 'user_newpasswd') < 255)
+{
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($users_table) .
+		' MODIFY `user_newpasswd` VARCHAR(255) DEFAULT NULL';
+}
 if (!update_index_exists($connection, $dbname, $table_prefix . 'users', 'user_reg_ip'))
 {
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table_prefix . 'users') .
@@ -300,6 +324,7 @@ foreach (array('div_class1', 'div_class2', 'div_class3', 'row_class1', 'row_clas
 $config_defaults = array(
 	'cookie_consent_enable' => '1',
 	'sfs_enable' => '0',
+	'password_hashing' => '1',
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',
 	'dbmtnc_rebuildcfg_maxmemory' => '500',
