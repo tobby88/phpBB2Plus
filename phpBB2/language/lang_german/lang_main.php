@@ -644,6 +644,7 @@ $lang['Email_banned'] = 'Die angegebene Mailadresse wurde vom Administrator gesp
 $lang['Email_invalid'] = 'Die angegebene Mailadresse ist ungültig.';
 $lang['Signature_too_long'] = 'Deine Signatur ist zu lang.';
 $lang['Fields_empty'] = 'Du musst alle benötigten Felder ausfüllen.';
+$lang['No_profile_options'] = 'Es sind keine konfigurierbaren Profiloptionen verfügbar.';
 $lang['Avatar_filetype'] = 'Der Avatar muss im GIF-, JPG- oder PNG-Format sein.';
 $lang['Avatar_filesize'] = 'Die Dateigröße muss kleiner als %d kB sein.'; // followed by xx kB, xx being the size
 $lang['Avatar_imagesize'] = 'Der Avatar muss weniger als %d Pixel breit und %d Pixel hoch sein.';

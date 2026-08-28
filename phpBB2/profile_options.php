@@ -141,9 +141,11 @@ while( $file = @readdir($dir) )
 
 // main_menu
 $menu_name = '';
-if ( isset($_POST['data']) || isset($_GET['data']) )
+if ( isset($_POST['sub']) || isset($_GET['sub']) || isset($_POST['data']) || isset($_GET['data']) )
 {
-	$menu_name = isset($_POST['data']) ? $_POST['data'] : $_GET['data'];
+	$requested_menu = isset($_POST['sub']) ? $_POST['sub'] :
+		(isset($_GET['sub']) ? $_GET['sub'] : (isset($_POST['data']) ? $_POST['data'] : $_GET['data']));
+	$menu_name = is_array($requested_menu) ? '' : (string) $requested_menu;
 }
 if ( empty($menu_name) )
 {
@@ -151,22 +153,32 @@ if ( empty($menu_name) )
 }
 else if ( !isset($mods[$menu_name]['data']) )
 {
-	// no mods
-	$menu_name = '';
+	$menu_name = 'Preferences';
+}
+if (!isset($mods[$menu_name]['data']))
+{
+	$menu_names = array_keys($mods);
+	$menu_name = !empty($menu_names) ? $menu_names[0] : '';
+}
+if ($menu_name === '' || !isset($mods[$menu_name]['data']))
+{
+	message_die(GENERAL_INFO, $lang['No_profile_options']);
 }
 
 // mod_id
 $mod_id = 0;
 if ( isset($_GET['mod']) || isset($_POST['mod_id']) )
 {
-	$mod_id = isset($_POST['mod_id']) ? intval($_POST['mod_id']) : intval($_GET['mod']);
+	$requested_mod = isset($_POST['mod_id']) ? $_POST['mod_id'] : $_GET['mod'];
+	$mod_id = is_array($requested_mod) ? 0 : intval($requested_mod);
 }
 
 // sub_id
 $sub_id = 0;
 if ( isset($_GET['msub']) || isset($_POST['mod_sub_id']) )
 {
-	$sub_id = isset($_POST['mod_sub_id']) ? intval($_POST['mod_sub_id']) : intval($_GET['msub']);
+	$requested_sub = isset($_POST['mod_sub_id']) ? $_POST['mod_sub_id'] : $_GET['msub'];
+	$sub_id = is_array($requested_sub) ? 0 : intval($requested_sub);
 }
 
 // build a key array
@@ -221,10 +233,20 @@ foreach ($mods[$menu_name]['data'] as $mod_name => $mod)
 				}
 			}
 		}
+		if (empty($sub_keys[$i]))
+		{
+			$sub_keys[$i][] = '';
+			$sub_sort[$i][] = 0;
+		}
 		@array_multisort($sub_sort[$i], $sub_keys[$i]);
 	}
 }
 @array_multisort($mod_sort, $mod_keys, $sub_sort, $sub_keys);
+
+if (empty($mod_keys))
+{
+	message_die(GENERAL_INFO, $lang['No_profile_options']);
+}
 
 // fix mod id
 if ( $mod_id < 0 || !isset($mod_keys[$mod_id]) )
@@ -256,7 +278,7 @@ $submit = isset($_POST['submit']);
 if ($submit)
 {
 	// session id check
-	if ($sid != $userdata['session_id'])
+	if (!is_string($sid) || !hash_equals((string) $userdata['session_id'], $sid))
 	{
 		message_die(GENERAL_ERROR, 'Invalid_session');
 	}
@@ -269,8 +291,13 @@ if ($submit)
 	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 	{
 		$user_field = $field['user'];
-		if ( isset($_POST[$user_field]) && is_auth($field['auth'], $user_level) )
+		if ( !empty($user_field) && preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D', $user_field) &&
+			isset($_POST[$user_field]) && is_auth($field['auth'], $user_level) )
 		{
+			if (is_array($_POST[$user_field]))
+			{
+				message_die(GENERAL_MESSAGE, $lang['Fields_empty']);
+			}
 			switch ($field['type'])
 			{
 				case 'LIST_RADIO':
@@ -292,11 +319,11 @@ if ($submit)
 				case 'VARCHAR':
 				case 'TEXT':
 				case 'DATEFMT':
-					$$user_field = trim(str_replace("\'", "''", htmlspecialchars($_POST[$user_field])));
+					$$user_field = trim((string) $_POST[$user_field]);
 					break;
 				case 'HTMLVARCHAR':
 				case 'HTMLTEXT':
-					$$user_field = trim(str_replace("\'", "''", $_POST[$user_field]));
+					$$user_field = trim((string) $_POST[$user_field]);
 					break;
 				default:
 					$$user_field = '';
@@ -326,12 +353,14 @@ if ($submit)
 	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 	{
 		$user_field = $field['user'];
-		if ( ( ( isset($$user_field) && !empty($user_field) && isset($view_userdata[$user_field]) && !$board_config[ $field_name . '_over'] ) || $field['system'] ) && is_auth($field['auth'], $user_level) )
+		if ( isset($$user_field) && !empty($user_field) && preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D', $user_field) &&
+			isset($view_userdata[$user_field]) && !$board_config[ $field_name . '_over'] && is_auth($field['auth'], $user_level) )
 		{
 			// update
+			$user_value = $db->sql_escape($$user_field);
 			$sql = "UPDATE " . USERS_TABLE . " 
-					SET $user_field='" . $$user_field . "'
-					WHERE user_id = " . $view_userdata['user_id'];
+					SET `$user_field`='$user_value'
+					WHERE user_id = " . (int) $view_userdata['user_id'];
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Failed to update user configuration for ' . $field['user'], '', __LINE__, __FILE__, $sql);
@@ -364,7 +393,7 @@ else
 		'U_OPTION'			=> append_sid("./profile_options.$phpEx?sub=$menu_name&mod=$mod_id&" . POST_USERS_URL . "=$view_user_id"),
 		'L_MOD_NAME'		=> mods_settings_get_lang($mod_name) . ( !empty($sub_name) ? ' - ' . mods_settings_get_lang($sub_name) : '' ),
 		'U_USER'			=> append_sid("./profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=$view_user_id"),
-		'L_USER'			=> $view_userdata['username'],
+		'L_USER'			=> phpbb_profile_text($view_userdata['username']),
 		'L_SUBMIT'			=> $lang['Submit'],
 		'L_RESET'			=> $lang['Reset'],
 		)
@@ -403,8 +432,11 @@ else
 	{
 		// process only fields from users table
 		$user_field = $field['user'];
-		if ( ( ( !empty($user_field) && isset($view_userdata[$user_field]) && !$board_config[ $field_name . '_over'] ) || $field['system'] ) && is_auth($field['auth'], $user_level) )
+		if ( !empty($user_field) && preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D', $user_field) &&
+			isset($view_userdata[$user_field]) && !$board_config[ $field_name . '_over'] && is_auth($field['auth'], $user_level) )
 		{
+			$safe_user_field = phpbb_profile_text($user_field);
+			$safe_value = phpbb_profile_text($view_userdata[$user_field]);
 			// get the field input statement
 			$input = '';
 			switch ($field['type'])
@@ -413,38 +445,38 @@ else
 					foreach ($field['values'] as $key => $val)
 					{
 						$selected = ($view_userdata[$user_field] == $val) ? ' checked="checked"' : '';
-						$l_key = mods_settings_get_lang($key);
-						$input .= '<input type="radio" name="' . $user_field . '" value="' . $val . '"' . $selected . ' />' . $l_key . '&nbsp;&nbsp;';
+						$l_key = phpbb_profile_text(mods_settings_get_lang($key));
+						$input .= '<input type="radio" name="' . $safe_user_field . '" value="' . phpbb_profile_text($val) . '"' . $selected . ' />' . $l_key . '&nbsp;&nbsp;';
 					}
 					break;
 				case 'LIST_DROP':
 					foreach ($field['values'] as $key => $val)
 					{
 						$selected = ($view_userdata[$user_field] == $val) ? ' selected="selected"' : '';
-						$l_key = mods_settings_get_lang($key);
-						$input .= '<option value="' . $val . '"' . $selected . '>' . $l_key . '</option>';
+						$l_key = phpbb_profile_text(mods_settings_get_lang($key));
+						$input .= '<option value="' . phpbb_profile_text($val) . '"' . $selected . '>' . $l_key . '</option>';
 					}
-					$input = '<select name="' . $user_field . '">' . $input . '</select>';
+					$input = '<select name="' . $safe_user_field . '">' . $input . '</select>';
 					break;
 				case 'TINYINT':
-					$input = '<input type="text" name="' . $user_field . '" maxlength="3" size="2" class="post" value="' . $view_userdata[$user_field] . '" />';
+					$input = '<input type="text" name="' . $safe_user_field . '" maxlength="3" size="2" class="post" value="' . $safe_value . '" />';
 					break;
 				case 'SMALLINT':
-					$input = '<input type="text" name="' . $user_field . '" maxlength="5" size="5" class="post" value="' . $view_userdata[$user_field] . '" />';
+					$input = '<input type="text" name="' . $safe_user_field . '" maxlength="5" size="5" class="post" value="' . $safe_value . '" />';
 					break;
 				case 'MEDIUMINT':
-					$input = '<input type="text" name="' . $user_field . '" maxlength="8" size="8" class="post" value="' . $view_userdata[$user_field] . '" />';
+					$input = '<input type="text" name="' . $safe_user_field . '" maxlength="8" size="8" class="post" value="' . $safe_value . '" />';
 					break;
 				case 'INT':
-					$input = '<input type="text" name="' . $user_field . '" maxlength="13" size="11" class="post" value="' . $view_userdata[$user_field] . '" />';
+					$input = '<input type="text" name="' . $safe_user_field . '" maxlength="13" size="11" class="post" value="' . $safe_value . '" />';
 					break;
 				case 'VARCHAR':
 				case 'HTMLVARCHAR':
-					$input = '<input type="text" name="' . $user_field . '" maxlength="255" size="45" class="post" value="' . $view_userdata[$user_field] . '" />';
+					$input = '<input type="text" name="' . $safe_user_field . '" maxlength="255" size="45" class="post" value="' . $safe_value . '" />';
 					break;
 				case 'TEXT':
 				case 'HTMLTEXT':
-					$input = '<textarea rows="5" cols="45" wrap="virtual" name="' . $user_field . '" class="post">' . $view_userdata[$user_field] . '</textarea>';
+					$input = '<textarea rows="5" cols="45" wrap="virtual" name="' . $safe_user_field . '" class="post">' . $safe_value . '</textarea>';
 					break;
 				default:
 					$input = '';

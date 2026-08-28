@@ -642,6 +642,7 @@ $lang['Email_banned'] = 'Sorry, but this e-mail address has been banned.';
 $lang['Email_invalid'] = 'Sorry, but this e-mail address is invalid.';
 $lang['Signature_too_long'] = 'Your signature is too long.';
 $lang['Fields_empty'] = 'You must fill in the required fields.';
+$lang['No_profile_options'] = 'No configurable profile options are available.';
 $lang['Avatar_filetype'] = 'The avatar filetype must be .jpg, .gif or .png';
 $lang['Avatar_filesize'] = 'The avatar image file size must be less than %d KB'; // The avatar image file size must be less than 6 KB
 $lang['Avatar_imagesize'] = 'The avatar must be less than %d pixels wide and %d pixels high';

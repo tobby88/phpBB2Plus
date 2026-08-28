@@ -122,6 +122,9 @@ changes consolidated after that baseline without implying active maintenance.
   reward settings, score clearing and game import, and removed unused broken
   helpers. Imports are POST-only and confined to local forum directories;
   ordinary game play and score submission no longer trigger reverse-DNS calls.
+- Hardened the generic per-user MOD settings page against array-shaped input,
+  unsafe dynamic SQL identifiers and unescaped form values, and repaired its
+  empty submenu handling on PHP 8.
 
 ### Repository and update cleanup
 
