@@ -62,57 +62,55 @@ if($arcade->arcade_config['games_offline'] && $userdata['user_level'] != ADMIN)
 //
 // Game Vars used below, extract from iNA_GAMES data.
 //
-$game_name		= $game_info['game_name'];
-$game_desc		= $game_info['game_desc'];
+$game_name		= trim((string) $game_info['game_name']);
+$game_desc		= trim((string) $game_info['game_desc']);
 $game_width		= (isset($width) && is_numeric($width)) ? intval($width) : intval($game_info['win_width']);
 $game_height	= (isset($height) && is_numeric($height)) ? intval($height) : intval($game_info['win_height']);
-$game_path		= $game_info['game_path'];
+$game_width		= ($game_width > 0) ? min($game_width, 4096) : 550;
+$game_height	= ($game_height > 0) ? min($game_height, 4096) : 450;
+$game_path		= trim((string) $game_info['game_path']);
 $game_flash		= $game_info['game_flash'];
 $game_id		  = intval($game_info['game_id']);
-$game_desc		= trim(htmlspecialchars($game_desc));
 $game_desc		= substr(str_replace("\\'", "'", $game_desc), 0, 255);
-$game_desc		= str_replace("'", "\\'", $game_desc);
+$game_desc_html = phpbb_profile_text($game_desc);
+$game_name_sql = $db->sql_escape($game_name);
+$user_id = (int) $userdata['user_id'];
+$now = time();
 $arcade_hash	= '';
 $license      = !empty($game_info['license']) ? $game_info['license'] : 'None';
 $cat_id		    = (intval($game_info['cat_id']) > 0) ? intval($game_info['cat_id']) : -1;
 //
 //	Update Game Played amount.
 //
-//  Due to errors using the single statement UPDATE played SET player = played+1
-//    first we get the number, add one, then update the number
-//
-$sql = "SELECT played, c.total_played, c.cat_parent FROM " . iNA_GAMES . ",
-   " . iNA_CAT . " AS c
-		WHERE game_id = $game_id
-    AND c.cat_id = $cat_id";
+// Keep counters atomic so simultaneous game starts cannot overwrite each other.
+$sql = "UPDATE " . iNA_GAMES . "
+	SET played = played + 1
+		WHERE game_id = $game_id";
+if (!$db->sql_query($sql))
+{
+	message_die(GENERAL_ERROR, $lang['no_game_update'], __LINE__, __FILE__, $sql);
+}
+
+$sql = "SELECT cat_parent FROM " . iNA_CAT . "
+		WHERE cat_id = $cat_id";
 if (!$result = $db->sql_query($sql))
 {
 	message_die(GENERAL_ERROR, $lang['no_game_update'], __LINE__, __FILE__, $sql);
 }
 $played_info = $db->sql_fetchrow($result);
-$played = (intval($played_info['played']))+1;
-$total_played = (intval($played_info['total_played']))+1;
-$sql = "UPDATE " . iNA_GAMES . " g, " . iNA_CAT . " c
-	SET g.played = " . $played . ", c.total_played = " . $total_played . ",  c.last_game = '" . $game_name . "', c.last_player = '" . $userdata['user_id'] . "', c.last_time = '" . time() . "'
-		WHERE g.game_id = $game_id
-    AND c.cat_id = $cat_id";
+$sql = "UPDATE " . iNA_CAT . "
+	SET total_played = total_played + 1, last_game = '$game_name_sql', last_player = $user_id, last_time = $now
+		WHERE cat_id = $cat_id";
 if (!$db->sql_query($sql))
 {
 	message_die(GENERAL_ERROR, $lang['no_game_update'], __LINE__, __FILE__, $sql);
 }
-if($played_info['cat_parent'] > 0)
+if($played_info && intval($played_info['cat_parent']) > 0)
 {
-  $sql = "SELECT total_played FROM " . iNA_CAT . " 
-		WHERE cat_id = " . $played_info['cat_parent'];
-  if (!$result = $db->sql_query($sql))
-  {
-  	message_die(GENERAL_ERROR, $lang['no_cat_update'], __LINE__, __FILE__, $sql);
-  }
-  $parent_info = $db->sql_fetchrow($result);
-  $total_played = (intval($parent_info['total_played']))+1;
+	$parent_id = (int) $played_info['cat_parent'];
   $sql = "UPDATE " . iNA_CAT . "
-    SET total_played = ". $total_played .", last_game = '" . $game_name . "', last_player = '" . $userdata['user_id'] . "', last_time = '" . time() . "'
-      WHERE cat_id = " . $played_info['cat_parent'];
+    SET total_played = total_played + 1, last_game = '$game_name_sql', last_player = $user_id, last_time = $now
+      WHERE cat_id = $parent_id";
   if (!$db->sql_query($sql))
   {
   	message_die(GENERAL_ERROR, $lang['no_cat_update'], __LINE__, __FILE__, $sql);
@@ -120,16 +118,8 @@ if($played_info['cat_parent'] > 0)
 }
 if($cat_id > 0)
 {
-  $sql = "SELECT total_played FROM " . iNA_CAT . " 
-		WHERE cat_id = -1";
-  if (!$result = $db->sql_query($sql))
-  {
-  	message_die(GENERAL_ERROR, $lang['no_cat_update'], __LINE__, __FILE__, $sql);
-  }
-  $played_info = $db->sql_fetchrow($result);
-  $total_played = (intval($played_info['total_played']))+1;
   $sql = "UPDATE " . iNA_CAT . "
-  	SET total_played = " . $total_played . ",  last_game = '" . $game_name . "', last_player = '" . $userdata['user_id'] . "', last_time = '" . time() . "'
+	SET total_played = total_played + 1, last_game = '$game_name_sql', last_player = $user_id, last_time = $now
   		WHERE cat_id = -1";
   if (!$db->sql_query($sql))
   {
@@ -140,8 +130,8 @@ if($cat_id > 0)
 // Update the users data
 //
 $sql = "UPDATE " . iNA_USER_DATA . "
-	SET last_played = '" . $game_name . "', last_played_date = '" . (time()) . "'
-		WHERE user_id = '" . $userdata['user_id'] . "'";
+	SET last_played = '$game_name_sql', last_played_date = $now
+		WHERE user_id = $user_id";
 $result = $db->sql_query($sql);
 if ( !$result )
 {
@@ -150,9 +140,12 @@ if ( !$result )
 $affected_rows = $db->sql_affectedrows();
 if ( $affected_rows < 1 )
 {
+	// A no-op UPDATE also reports zero rows. Check existence before inserting.
 	$sql = "INSERT INTO " . iNA_USER_DATA . "
 		(user_id, last_played, last_played_date)
-		VALUES ('" . $userdata['user_id'] . "', '$game_name', '" . (time()) . "')";
+		SELECT $user_id, '$game_name_sql', $now
+		FROM DUAL
+		WHERE NOT EXISTS (SELECT 1 FROM " . iNA_USER_DATA . " WHERE user_id = $user_id)";
 	if ( !$db->sql_query($sql) )
 	{
 		message_die(CRITICAL_ERROR, $lang['no_user_update'], '', __LINE__, __FILE__, $sql);
@@ -161,152 +154,75 @@ if ( $affected_rows < 1 )
 //
 // Check the extension of the game to see what we should do with it.
 //
-$extension = get_ina_extension($game_name);
+$game_file = $game_name;
+if ($game_flash && get_ina_extension($game_file) === '')
+{
+	$game_file .= '.swf';
+}
+$extension = get_ina_extension($game_file);
+$asset_path = phpbb_arcade_local_asset(rtrim($game_path, '/') . '/' . ltrim($game_file, '/'));
+if ($asset_path === '' || !is_file($phpbb_root_path . $asset_path))
+{
+	$missing_asset = ($asset_path !== '') ? $asset_path : $game_path . $game_file;
+	message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'], phpbb_profile_text($missing_asset)));
+}
+$asset_url = phpbb_profile_text($asset_path);
 $base_ref = '';
 switch ($extension)
 {
-//
-//	Java File, Load Java Applet and Display.
-//
-	case 'class':
-		$base_ref = '<base href="http://' . $board_config['server_name'] . $board_config['script_path'] . '/' . $game_path . '">';
-		$object = '<APPLET CODE="'.$game_name.'" WIDTH="100%" HEIGHT=100%"></APPLET>';
-		break;
-//
-//	Media File, Load Windows Media Player, (NOTE, Untested on Linux based Browsers)
-//
+	// Current browsers can render common media files without external plugins.
 	case 'mp3':
-	case 'wma':
-	case 'mpg':
-	case 'avi':
-	case 'wmv':
-	case 'mpeg':
-$object = '<object id="wmp" classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95" codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,0,0" standby="Loading Microsoft Windows Media Player components..." type="application/x-oleobject"> 
-<param name="FileName" value="' . $game_path . $game_name . '"> 
-<param name="ShowControls" value="1"> 
-<param name="ShowDisplay" value="0"> 
-<param name="ShowStatusBar" value="1"> 
-<param name="AutoSize" value="1"> 
-<param name="AutoStart" value="0"> 
-<param name="Visible" value="1"> 
-<param name="AnimationStart" value="0"> 
-<param name="Loop" value="1"> 
-<embed type="application/x-mplayer2" pluginspage="http://www.microsoft.com/windows/windowsmedia/download/default.asp" src="' . $game_path . $game_name . '" name=MediaPlayer2 showcontrols=1 showdisplay=0 showstatusbar=1 autosize=1 autostart=0 visible=1 animationatstart=0 loop=0></embed> 
-</object>';
+	case 'ogg':
+	case 'wav':
+	case 'm4a':
+		$object = '<audio controls preload="metadata" src="' . $asset_url . '"><a href="' . $asset_url . '">' . $lang['arcade_media_fallback'] . '</a></audio>';
 		break;
 
-//
-//  Not yet supported....!
-//		
-		case 'flv':
-$object = '<object width="320" height="240" classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" codebase="http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab#version=9,0,47,0> 
-<param name="flashvars" value="file=http://www.phpbb-arcade.com' . $game_path . $game_name . '" /> 
-<param name="movie" value="http://www.phpbb-arcade.com/flvplayer.swf" /> 
-<embed src="http://www.phpbb-arcade.com/flvplayer.swf" width="320" height="240" bgcolor="#FFFFFF" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" flashvars="file=http://www.phpbb-arcade.com' . $game_path . $game_name . '" /> 
-</object>';
+	case 'mp4':
+	case 'webm':
+	case 'ogv':
+	case 'mov':
+	case 'flv':
+	case 'mpeg':
+	case 'mpg':
+		$object = '<video controls preload="metadata" width="' . $game_width . '" height="' . $game_height . '" src="' . $asset_url . '"><a href="' . $asset_url . '">' . $lang['arcade_media_fallback'] . '</a></video>';
 		break;
-/*
-<object width="320" height="240" classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" codebase="http://fpdownload.macromedia.com/pub/ 
-shockwave/cabs/flash/swflash.cab#version=8,0,0,0"> 
-<param name="flashvars" value="file=http://www.myhomepage.com/myvideofile.flv" /> 
-<param name="movie" value="http://www.myhomepage.com/flvplayer.swf" /> 
-<embed src="http://www.myhomepage.com/flvplayer.swf" width="320" height="240" bgcolor="#FFFFFF" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" flashvars="file=http://www.myhomepage.com/myvideofile.flv" /> 
-</object>
-*/
 		
-//
-//	Image file, Simply Display it :)
-//
 	case 'gif':
 	case 'jpg':
+	case 'jpeg':
 	case 'png':
-		$object = '<img src="'.$game_path.$game_name.'">';
+	case 'webp':
+		$object = '<img src="' . $asset_url . '" alt="' . $game_desc_html . '" />';
 		break;
-//
-//	Real Media Networks Player
-//
-	case 'rpm':
-	case 'rm':
-$object = '<OBJECT ID=RVOCX CLASSID="clsid:CFCDAA03-8BE4-11cf-B84B-0020AFBBCCFA" width="100%" height="100%">
-<PARAM NAME="SRC" VALUE="'.$game_path.$game_name.'">
-<PARAM NAME="CONTROLS" VALUE="ImageWindow">
-<PARAM NAME="CONSOLE" VALUE="one">
-<EMBED SRC="' . $game_path . $game_name . '" width="100%" height="100%" NOJAVA=true CONTROLS=ImageWindow CONSOLE=one>
-</EMBED> 
-</OBJECT>';
-		break;
-//
-//	QuickTime Player
-//
-	case 'mov':
-$object = '<OBJECT CLASSID="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" WIDTH="' . $game_width . '"HEIGHT="' . $game_height . '" CODEBASE="http://www.apple.com/qtactivex/qtplugin.cab"> 
-<PARAM name="SRC" VALUE="' . $game_path . $game_name . '"> 
-<PARAM name="AUTOPLAY" VALUE="true"> 
-<PARAM NAME="type" VALUE="video/quicktime">
-<PARAM name="CONTROLLER" VALUE="true"> 
-<EMBED SRC="' . $game_path . $game_name . '" width="100%" height="100%" AUTOPLAY="true" CONTROLLER="false" PLUGINSPAGE="http://www.apple.com/quicktime/download/"> 
-</EMBED> 
-</OBJECT>'; 
-		break;
-//
-//	Macromedia Shockwave File, Load Shockwave and Display.
-//
-	case 'dcr':
-	case 'dir':
-$object = '<OBJECT CLASSID="clsid:166B1BCA-3F9C-11CF-8075-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/director/sw.cab#version=10,0,0,0" id="freegames" name="activitygame" width="100%" height="100%">
-<param name="src" value="'.$game_path.$game_name.'">
-<embed name=activitygame src="'.$game_path.$game_name.'" pluginspage="http://www.macromedia.com/shockwave/download/" width="100%" height="100%">"></embed> 
-</object>';
-		break;
-//
-//	Default mode for this is a FLASH game.
-//
-	default:
-//
-// To keep compatability with Napoleons Mod the game_flash setting is still used.
-//		
+	// Ruffle replaces the retired browser Flash plugin for SWF games.
+	case 'swf':
 		$arcade_hash = '?arcade_hash='.$session.'&game_id='.$game_id;
-
-		if($game_flash)
-		{
-			$game_name = $game_name . '.swf';
-		}
     if($game_info['score_type'] == ARCADE_pnFlashGames)
     {
-      if($fp = @fopen($game_path.$game_name, 'r'))
-      { 
-        $filecontent = fread($fp, filesize($game_path.$game_name)); 
-        fclose($fp); 
-        $checksum = md5($filecontent); 
-      }
-      $arcade_hash = '?arcade_hash='.$session . '&pn_gid=' . $game_id . '&pn_uname=' . $userdata['username'] . '&pn_licence=' . $license . '&pn_checksum=' . $checksum . '&pn_domain=' . str_replace("www.", "", $board_config['server_name']) . '&pn_script=pnFlashGames.' . $phpEx . '&pn_modvalue=phpBBArcade' . '&pn_autoupdate=true';
+		$checksum = md5_file($phpbb_root_path . $asset_path);
+		if ($checksum === false)
+		{
+			message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'], $asset_url));
+		}
+      $arcade_hash = '?arcade_hash=' . rawurlencode($session) . '&pn_gid=' . $game_id . '&pn_uname=' . rawurlencode($userdata['username']) . '&pn_licence=' . rawurlencode($license) . '&pn_checksum=' . $checksum . '&pn_domain=' . rawurlencode(str_replace("www.", "", $board_config['server_name'])) . '&pn_script=' . rawurlencode('pnFlashGames.' . $phpEx) . '&pn_modvalue=phpBBArcade&pn_autoupdate=true';
     }
-
-    if(!(@file_exists($game_path.$game_name)))
-    {
-      message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'],$game_path.$game_name));
-    }
-$ruffle_url = htmlspecialchars($game_path . $game_name . $arcade_hash, ENT_QUOTES, 'UTF-8');
-$ruffle_title = htmlspecialchars($game_desc, ENT_QUOTES, 'UTF-8');
+$ruffle_url = phpbb_profile_text($asset_path . $arcade_hash);
+$ruffle_title = $game_desc_html;
 $ruffle_error = htmlspecialchars($lang['arcade_ruffle_error'], ENT_QUOTES, 'UTF-8');
 $object = '<div class="arcade-ruffle-player" data-swf="' . $ruffle_url . '" data-width="' . intval($game_width) . '" data-height="' . intval($game_height) . '" data-title="' . $ruffle_title . '" data-error-message="' . $ruffle_error . '"><p>' . $lang['arcade_ruffle_loading'] . '</p></div>
 <script type="text/javascript" src="assets/ruffle/ruffle.js"></script>
 <script type="text/javascript" src="assets/ruffle/arcade-player.js"></script>';
-/*
-$object = '<OBJECT CLASSID="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab#version=9,0,47,0" id="freegames" name="activitygame" width="'.$game_width.'" height="'.$game_height.'">
-<param name="movie" value="'.$game_path.$game_name.$arcade_hash.'">
-<param name="quality" value="high">
-<param name="menu" value="false">
-<embed name="'.$game_name.'" src="'.$game_path.$game_name.$arcade_hash.'" width="'.$game_width.'" height="'.$game_height.'" quality="high" menu="false" swliveconnect="true" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"></embed>
-<noembed>You need the <a href="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash" target="_blank">Flash 9</a> plugin to play this game.</noembed>
-</object>';
-*/
+		break;
+	default:
+		$unsupported_format = ($extension !== '') ? $extension : $game_file;
+		$object = '<p>' . sprintf($lang['arcade_format_unsupported'], phpbb_profile_text($unsupported_format)) . '</p>';
 		break;
 }
 //
 //	Set-up template ready for output
 //
-$game_title	= $game_desc . " - " . $board_config['sitename'];
+$game_title	= $game_desc_html . " - " . phpbb_profile_text($board_config['sitename']);
 if ($win == 'SELF')
 {
   $template->set_filenames(array('body' => 'arcade_game_body_self.tpl'));
@@ -321,7 +237,7 @@ $width = ceil(($game_width/1000)*33.33);
 $template->assign_vars(array(
   'URL' => $url,
   'WIDTH' => $width.'%',
-  'GAME_NAME' => $game_desc,
+  'GAME_NAME' => $game_desc_html,
 	'OBJECT' => $object,
 	'TITLE'  => $game_title,
 	'BASE_REF' => $base_ref,

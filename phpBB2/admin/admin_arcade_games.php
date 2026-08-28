@@ -640,23 +640,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 	$check_for_gif = 
 	$flash = 0;
 	
-	$file_type = ( isset($HTTP_POST_VARS['file_type']) ) ? htmlspecialchars($HTTP_POST_VARS['file_type']) : '';
+	$file_type = (isset($HTTP_POST_VARS['file_type']) && !is_array($HTTP_POST_VARS['file_type'])) ? $HTTP_POST_VARS['file_type'] : '';
 	switch($file_type)
 	{
-		case 'director':
-			$get_name = 'dir';
-			break;
-			
 		case 'flash':
 			$get_name = 'swf';
-			break;
-			
-		case 'quick':
-			$get_name = 'mov';
-			break;
-			
-		case 'real':
-			$get_name = 'rpm';
 			break;
 			
 		case 'gif':

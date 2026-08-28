@@ -47,6 +47,8 @@ $lang['All'] = 'Alle';
 $lang['all_games'] = 'Alle Spiele';
 $lang['arcade_ruffle_loading'] = 'Flash-Spiel wird mit Ruffle geladen&hellip;';
 $lang['arcade_ruffle_error'] = 'Das Flash-Spiel konnte nicht mit Ruffle gestartet werden.';
+$lang['arcade_media_fallback'] = 'Mediendatei öffnen';
+$lang['arcade_format_unsupported'] = 'Dieses veraltete Spielformat wird von aktuellen Browsern nicht mehr unterstützt: %s';
 //
 // 2.0.6
 //
@@ -405,7 +407,7 @@ $lang['games_group_rank_limit'] = 'Sorry, mit Deinem Level hast Du hier keinen Z
 //
 //  2.1.0
 //
-$lang['arcade_file_not_found'] = '<font color="#FFFFFF">Kann folgende Datei nicht finden:> %s</font>';
+$lang['arcade_file_not_found'] = '<font color="#FFFFFF">Kann folgende Datei nicht finden: %s</font>';
 //
 //  2.1.2
 //

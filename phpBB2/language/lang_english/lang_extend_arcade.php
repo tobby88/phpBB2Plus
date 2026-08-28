@@ -39,6 +39,8 @@ $lang['All'] = 'All';
 $lang['all_games'] = 'All Activities';
 $lang['arcade_ruffle_loading'] = 'Loading Flash game with Ruffle&hellip;';
 $lang['arcade_ruffle_error'] = 'The Flash game could not be started with Ruffle.';
+$lang['arcade_media_fallback'] = 'Open media file';
+$lang['arcade_format_unsupported'] = 'This legacy game format is no longer supported by current browsers: %s';
 //
 // 2.0.6
 //
@@ -395,7 +397,7 @@ $lang['games_group_rank_limit'] = 'Sorry, your Access level does not allow acces
 //
 //  2.1.0
 //
-$lang['arcade_file_not_found'] = '<font color="#FFFFFF">Unable to find the file:> %s</font>';
+$lang['arcade_file_not_found'] = '<font color="#FFFFFF">Unable to find the file: %s</font>';
 //
 //  2.1.2
 //

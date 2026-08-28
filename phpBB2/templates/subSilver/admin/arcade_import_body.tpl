@@ -25,7 +25,7 @@
 
  <tr>
    <td class="row1"><span class="gensmall">{L_AMOD_INFO}</span></td>
-	<td class="row1" width="20%"><select name="file_type"><option value="default">Arcade Mod</option><option value="flash">All Flash</option><option value="director">Director</option><option value="quick">QuickTime</option><option value="real">Real Media</option><option value="jpg">JPG Images</option><option value="gif">GIF Images</option></select>
+	<td class="row1" width="20%"><select name="file_type"><option value="default">Arcade Mod</option><option value="flash">All Flash</option><option value="jpg">JPG Images</option><option value="gif">GIF Images</option></select>
    </td>
  </tr>
  
