@@ -150,12 +150,9 @@ if (
 	// Strip all tags from data ... may p**s some people off, bah, strip_tags is
 	// doing the job but can still break HTML output ... have no choice, have
 	// to use htmlspecialchars ... be prepared to be moaned at.
-	while( list($var, $param) = @each($strip_var_list) )
+	foreach ($strip_var_list as $var => $param)
 	{
-		if ( !empty($_POST[$param]) )
-		{
-			$$var = trim(htmlspecialchars($_POST[$param]));
-		}
+		$$var = !empty($_POST[$param]) ? trim(htmlspecialchars($_POST[$param])) : '';
 	}
 	foreach (array('fb', 'ig', 'pt', 'twr', 'skp', 'tg', 'li', 'tt', 'dc') as $social_field)
 	{
@@ -168,12 +165,9 @@ if (
 	$username = ( !empty($HTTP_POST_VARS['username']) ) ? phpbb_clean_username($HTTP_POST_VARS['username']) : '';
 	$trim_var_list = array('cur_password' => 'cur_password', 'new_password' => 'new_password', 'password_confirm' => 'password_confirm', 'signature' => 'signature');
 
-	while( list($var, $param) = @each($trim_var_list) )
+	foreach ($trim_var_list as $var => $param)
 	{
-		if ( !empty($_POST[$param]) )
-		{
-			$$var = trim($_POST[$param]);
-		}
+		$$var = !empty($_POST[$param]) ? trim($_POST[$param]) : '';
 	}
 
 	$signature = (isset($signature)) ? str_replace('<br />', "\n", $signature) : '';
@@ -208,12 +202,12 @@ if (
 // End add - Birthday MOD
 	// Run some validation on the optional fields. These are pass-by-ref, so they'll be changed to
 	// empty strings if they fail.
+	$user_absence_text = isset($_POST['user_absence_text']) ? htmlspecialchars($_POST['user_absence_text']) : '';
 	validate_optional_fields($icq, $aim, $msn, $yim, $website, $location, $occupation, $interests, $signature, $user_absence_text);
 
 	$viewemail = ( isset($_POST['viewemail']) ) ? ( ($_POST['viewemail']) ? TRUE : 0 ) : 0;
-	$user_absence_mode = abs( intval($_POST['user_absence_mode']) );
+	$user_absence_mode = isset($_POST['user_absence_mode']) ? abs(intval($_POST['user_absence_mode'])) : 0;
 	$user_absence = ( isset($_POST['user_absence']) ) ? ( ($_POST['user_absence']) ? TRUE : 0 ) : 0;
-	$user_absence_text = htmlspecialchars($_POST['user_absence_text']);
 	$allowviewonline = ( isset($_POST['hideonline']) ) ? ( ($_POST['hideonline']) ? 0 : TRUE ) : TRUE;
 	$notifyreply = ( isset($_POST['notifyreply']) ) ? ( ($_POST['notifyreply']) ? TRUE : 0 ) : 0;
 	$notifypm = ( isset($_POST['notifypm']) ) ? ( ($_POST['notifypm']) ? TRUE : 0 ) : TRUE;
@@ -277,7 +271,8 @@ if (
 	$user_avatar_category = ( isset($_POST['avatarcatname']) && $board_config['allow_avatar_local'] ) ? htmlspecialchars($_POST['avatarcatname']) : '' ;
 
 	$user_avatar_remoteurl = ( !empty($_POST['avatarremoteurl']) ) ? trim(htmlspecialchars($_POST['avatarremoteurl'])) : '';
-	$user_avatar_upload = ( !empty($_POST['avatarurl']) ) ? trim($_POST['avatarurl']) : ( ( $HTTP_POST_FILES['avatar']['tmp_name'] != "none") ? $HTTP_POST_FILES['avatar']['tmp_name'] : '' );
+	$user_avatar_upload = !empty($_POST['avatarurl']) ? trim($_POST['avatarurl']) :
+		(!empty($HTTP_POST_FILES['avatar']['tmp_name']) && $HTTP_POST_FILES['avatar']['tmp_name'] != 'none' ? $HTTP_POST_FILES['avatar']['tmp_name'] : '');
 	$user_avatar_name = ( !empty($HTTP_POST_FILES['avatar']['name']) ) ? $HTTP_POST_FILES['avatar']['name'] : '';
 	$user_avatar_size = ( !empty($HTTP_POST_FILES['avatar']['size']) ) ? $HTTP_POST_FILES['avatar']['size'] : 0;
 	$user_avatar_filetype = ( !empty($HTTP_POST_FILES['avatar']['type']) ) ? $HTTP_POST_FILES['avatar']['type'] : '';

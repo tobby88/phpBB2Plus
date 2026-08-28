@@ -5,10 +5,10 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 
-$topic = (isset($_POST['topic'])) ? $_POST['topic'] : $_GET['topic']; 
-$friendname =  $_POST['friendname'];
-$message = $_POST['message'];
-$link = $_GET['link'];
+$topic = isset($_POST['topic']) ? $_POST['topic'] : (isset($_GET['topic']) ? $_GET['topic'] : '');
+$friendname = isset($_POST['friendname']) ? $_POST['friendname'] : '';
+$message = isset($_POST['message']) ? $_POST['message'] : '';
+$link = isset($_GET['link']) ? $_GET['link'] : '';
 $PHP_SELF = $HTTP_SERVER_VARS['PHP_SELF'];
 
 $userdata = session_pagestart($user_ip, PAGE_INDEX);

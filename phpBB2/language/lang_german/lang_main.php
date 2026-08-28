@@ -542,6 +542,7 @@ $lang['Viewing_user_profile'] = 'Profil anzeigen : %s'; // %s is username
 $lang['About_user'] = 'Alles über %s';
 
 $lang['Preferences'] = 'Einstellungen';
+$lang['Ranks'] = 'Ränge';
 $lang['Items_required'] = 'Mit * markierte Felder sind erforderlich';
 $lang['Registration_info'] = 'Registrierungs-Informationen';
 $lang['Profile_info'] = 'Profil-Informationen';

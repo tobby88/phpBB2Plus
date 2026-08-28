@@ -540,6 +540,7 @@ $lang['Viewing_user_profile'] = 'Viewing profile :: %s'; // %s is username
 $lang['About_user'] = 'All about %s'; // %s is username
 
 $lang['Preferences'] = 'Preferences';
+$lang['Ranks'] = 'Ranks';
 $lang['Items_required'] = 'Items marked with a * are required unless stated otherwise.';
 $lang['Registration_info'] = 'Registration Information';
 $lang['Profile_info'] = 'Profile Information';

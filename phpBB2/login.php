@@ -402,6 +402,7 @@ else
 		}
 
 		$username = ( $userdata['user_id'] != ANONYMOUS ) ? $userdata['username'] : '';
+		$hidden_form_fields = isset($hidden_form_fields) ? $hidden_form_fields : '';
 
 		$s_hidden_fields = '<input type="hidden" name="redirect" value="' . $forward_page . '" />';
 

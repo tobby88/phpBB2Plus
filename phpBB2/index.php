@@ -227,17 +227,25 @@ if ($plus_config['show_links'])
 	{
 		message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
 	}
-	
+	$link_config = array();
 	while( $row = $db->sql_fetchrow($result) )
 	{
 		$link_config_name = $row['config_name'];
 		$link_config_value = $row['config_value'];
 		$link_config[$link_config_name] = $link_config_value;
-		$link_self_img = $link_config['site_logo'];
-		$site_logo_height = $link_config['height'];
-		$site_logo_width = $link_config['width'];
 	}
+	$link_self_img = isset($link_config['site_logo']) ? $link_config['site_logo'] : '';
+	$site_logo_height = isset($link_config['height']) ? $link_config['height'] : '';
+	$site_logo_width = isset($link_config['width']) ? $link_config['width'] : '';
 }
+$l_today_text = '';
+$l_today_users = '';
+$users_today_list = '';
+$guests_today = 0;
+$logged_visible_today = 0;
+$logged_hidden_today = 0;
+$users_lasthour = 0;
+$total_users_today = 0;
 
 // Birthday Mod, Show users with birthday
 if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
@@ -527,7 +535,7 @@ if (($board_config['display_viewonline'] == 2) || (($viewcat < 0) && ($board_con
 				'L_MEMBERS' => $lang['Members_P'],
 				'L_STATS' => $lang['Box_Stats'],
 				'L_USER_RECORD' => $lang['User_Record'],
-				'L_TOTAL_POSTS' => $lang['Total_Posts'],
+				'L_TOTAL_POSTS' => $lang['Total_posts'],
 				'L_BIRTHDAYS' => $lang['Birthdays_P'],
 				'L_FORUM_LOCKED' => $lang['Forum_is_locked'],
 				'L_MODERATOR' => $lang['Moderators'],

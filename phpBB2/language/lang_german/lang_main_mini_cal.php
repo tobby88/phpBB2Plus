@@ -14,6 +14,8 @@ $lang['Mini_Cal_calendar'] = 'Kalender';
 $lang['Mini_Cal_add_event'] = 'Neuer Termin';
 $lang['Mini_Cal_events'] = 'Kommende Events';
 $lang['Mini_Cal_no_events'] = 'Keine';
+$lang['View_previous_month'] = 'Vorheriger Monat';
+$lang['View_next_month'] = 'Nächster Monat';
 
 
 // uses MySQL DATE_FORMAT - %c  long_month, numeric (1..12) - %e  Day of the long_month, numeric (0..31)

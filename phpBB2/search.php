@@ -1752,6 +1752,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 //	//
 //	// Category to search
 //	//
+$s_categories = '';
 //	$s_categories = '<option value="-1">' . $lang['All_available'] . '</option>';
 //	while( list($cat_id, $cat_title) = @each($list_cat))
 //	{

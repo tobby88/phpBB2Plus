@@ -35,6 +35,9 @@ $plus_config += array(
 	'index_layout' => '',
 	'enable_gentime' => 0,
 );
+$board_config += array(
+	'summer_time' => 0,
+);
 
 define('HEADER_INC', TRUE);
 
@@ -124,7 +127,7 @@ unset($today_ary);
 //
 $google_visit_counter = $board_config['google_visit_counter'];
 
-$tmp_list = explode(".", $_SERVER['$REMOTE_ADDR']);
+$tmp_list = explode(".", isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
 
 if ( strstr($HTTP_SERVER_VARS['HTTP_USER_AGENT'] ,'Googlebot' )) 
 { 
@@ -495,15 +498,19 @@ else
 //
 // Generate HTML required for Mozilla Navigation bar
 //
-if (!isset($nav_links))
+if (!isset($nav_links) || !is_array($nav_links))
 {
 	$nav_links = array();
 }
 
 $nav_links_html = '';
 $nav_link_proto = '<link rel="%s" href="%s" title="%s" />' . "\n";
-while( list($nav_item, $nav_array) = @each($nav_links) )
+foreach ($nav_links as $nav_item => $nav_array)
 {
+	if (!is_array($nav_array))
+	{
+		continue;
+	}
 	if ( !empty($nav_array['url']) )
 	{
 		$nav_links_html .= sprintf($nav_link_proto, $nav_item, append_sid($nav_array['url']), $nav_array['title']);
@@ -511,9 +518,12 @@ while( list($nav_item, $nav_array) = @each($nav_links) )
 	else
 	{
 		// We have a nested array, used for items like <link rel='chapter'> that can occur more than once.
-		while( list(,$nested_array) = each($nav_array) )
+		foreach ($nav_array as $nested_array)
 		{
-			$nav_links_html .= sprintf($nav_link_proto, $nav_item, $nested_array['url'], $nested_array['title']);
+			if (is_array($nested_array) && !empty($nested_array['url']))
+			{
+				$nav_links_html .= sprintf($nav_link_proto, $nav_item, $nested_array['url'], isset($nested_array['title']) ? $nested_array['title'] : '');
+			}
 		}
 	}
 }
@@ -523,7 +533,8 @@ $l_timezone = explode('.', $board_config['board_timezone']);
 $l_timezone = (count($l_timezone) > 1 && $l_timezone[count($l_timezone)-1] != 0) ? $lang[sprintf('%.1f', $board_config['board_timezone'])] : $lang[number_format($board_config['board_timezone'])];
 
 /* CrackerTracker IP Range Scanner */
-if ( $HTTP_GET_VARS['marknow'] == 'ipfeature' && $userdata['session_logged_in'] )
+$marknow = isset($HTTP_GET_VARS['marknow']) ? $HTTP_GET_VARS['marknow'] : '';
+if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 {
 	$userdata['ct_last_ip'] = $userdata['ct_last_used_ip'];
 	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_ip = ct_last_used_ip WHERE user_id=' . $userdata['user_id'];
@@ -553,7 +564,7 @@ if ( $ctracker_config->settings['login_ip_check'] == 1 && $userdata['ct_enable_i
 }
 
 /* CrackerTracker Global Message Function */
-if ( $HTTP_GET_VARS['marknow'] == 'globmsg' && $userdata['session_logged_in'] )
+if ( $marknow == 'globmsg' && $userdata['session_logged_in'] )
 {
 	$userdata['ct_global_msg_read'] = 0;
 	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_global_msg_read = 0 WHERE user_id=' . $userdata['user_id'];
@@ -600,6 +611,9 @@ if ( CT_DEBUG_MODE === true && $userdata['user_level'] == ADMIN )
 // Start add - Complete banner MOD
 if ($plus_config['enable_banners'])
 {
+	$last_spot = '';
+	$banner_show_list = '';
+	$banner_forum_id = isset($forum_id) ? (int) $forum_id : 0;
 	$time_now=time();
 	$hour_now=create_date('Hi',$time_now,$board_config['board_timezone']);
 	$date_now=create_date('Ymd',$time_now,$board_config['board_timezone']);
@@ -622,10 +636,10 @@ if ($plus_config['enable_banners'])
 	while ($banners[$i] = $db->sql_fetchrow($result))
 	{
 		$cookie_name = $board_config['cookie_name'] . '_b_' . $banners[$i]['banner_id'];
-		if ( !($HTTP_COOKIE_VARS[$cookie_name] && $banners[$i]['banner_filter']) )
+		if ( !( !empty($HTTP_COOKIE_VARS[$cookie_name]) && $banners[$i]['banner_filter']) )
 		{
 			$banner_spot=$banners[$i]['banner_spot'];
-			if ($banner_spot<>$last_spot  AND ($banners[$i]['banner_forum']==$forum_id || empty($banners[$i]['banner_forum'])))
+			if ($banner_spot<>$last_spot  AND ($banners[$i]['banner_forum']==$banner_forum_id || empty($banners[$i]['banner_forum'])))
 			{
 				$banner_size = ($banners[$i]['banner_width'] && $banners[$i]['banner_height']) ? 'width="'.$banners[$i]['banner_width'].'" height="'.$banners[$i]['banner_height'].'"' : '';
 				switch ($banners[$i]['banner_type'])
@@ -648,7 +662,7 @@ if ($plus_config['enable_banners'])
 				}
 				$banner_show_list.= ', '.$banners[$i]['banner_id'];
 			}
-			$last_spot = ($banners[$i]['banner_forum']==$forum_id || empty($banners[$i]['banner_forum'])) ? $banner_spot : $last_spot;
+			$last_spot = ($banners[$i]['banner_forum']==$banner_forum_id || empty($banners[$i]['banner_forum'])) ? $banner_spot : $last_spot;
 		}
 		$i++;
 	}
@@ -677,6 +691,7 @@ if(strlen($site_description) > 75)
 	$site_description .= "...";
 }
 		
+$page_title = isset($page_title) ? $page_title : '';
 $template->assign_vars(array(
 	'SITENAME' => $board_config['sitename'],
 	'SITE_DESCRIPTION' => $site_description,
@@ -856,7 +871,7 @@ else
 }
 // Start add - Protect user account MOD
 // change password ?
-if ($_GET['ch_passwd'])
+if (!empty($_GET['ch_passwd']))
 {
 		$template->assign_var("PASSWD_POPUP",  
 		"<script language=\"Javascript\" type=\"text/javascript\"><!-- 
@@ -910,6 +925,7 @@ if ( empty($nav_key) && (isset($_POST['selected_id']) || isset($_GET['selected_i
    $nav_key = isset($_GET['selected_id']) ? $_GET['selected_id'] : $_POST['selected_id'];
 }
 if (empty($nav_key)) $nav_key = 'Root';
+$nav_pgm = isset($nav_pgm) ? $nav_pgm : '';
 $nav_cat_desc = make_cat_nav_tree($nav_key, $nav_pgm);
 if ($nav_cat_desc != '') $nav_cat_desc = $nav_separator . $nav_cat_desc;
 
@@ -925,8 +941,8 @@ $template->assign_vars(array(
 //-- add
 $template->assign_vars(array(
 	'U_PREFERENCES'	=> append_sid("./profile_options.$phpEx"),
-	'L_PREFERENCES'	=> $lang['Preferences'],
-	'I_PREFERENCES'	=> $images['Preferences'],
+	'L_PREFERENCES'	=> isset($lang['Preferences']) ? $lang['Preferences'] : 'Preferences',
+	'I_PREFERENCES'	=> isset($images['Preferences']) ? $images['Preferences'] : '',
 	)
 );
 //-- fin mod : mods settings -----------------------------------------------------------------------
@@ -944,9 +960,9 @@ $template->assign_vars(array(
 	'L_CALENDAR'	=> $lang['Calendar'],
 	'I_CALENDAR'	=> $images['menu_calendar'],
 	'U_CALENDAR'	=> append_sid("./calendar.$phpEx"),
-	'I_RANKS' => '<img src="' . $images['Ranks'] . '" width="12" height="13" border="0" alt="' . $lang['Ranks'] . '" hspace="3" />',
+	'I_RANKS' => !empty($images['Ranks']) ? '<img src="' . $images['Ranks'] . '" width="12" height="13" border="0" alt="' . (isset($lang['Ranks']) ? $lang['Ranks'] : 'Ranks') . '" hspace="3" />' : '',
 	'U_RANKS' => append_sid("ranks.$phpEx"),
-	'L_RANKS' => $lang['Ranks'],
+	'L_RANKS' => isset($lang['Ranks']) ? $lang['Ranks'] : 'Ranks',
 	)
 ); 
 //-- fin mod : calendar ---------------------------------------------------------------------------- 

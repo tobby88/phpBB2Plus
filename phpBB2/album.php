@@ -86,6 +86,7 @@ else
 }
 
 //--- version : 1.3.0
+$album_view_mode = '';
 if ($album_user_id != ALBUM_PUBLIC_GALLERY)
 {
 	$cat_id = ALBUM_ROOT_CATEGORY;
