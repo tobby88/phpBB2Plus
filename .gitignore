@@ -7,6 +7,8 @@
 !/phpBB2/cache/index.htm
 !/phpBB2/cache/index.html
 /phpBB2/includes/def_tree.php
+/phpBB2/includes/def_themes.php
+/phpBB2/includes/def_words.php
 
 # User-generated content
 /phpBB2/album_mod/upload/*
@@ -31,6 +33,7 @@
 /phpBB2/logs/*
 !/phpBB2/logs/.htaccess
 !/phpBB2/logs/index.html
+/phpBB2/ctracker/logfiles/*.txt
 /phpBB2/usage/*
 
 # Local tools and comparison artifacts

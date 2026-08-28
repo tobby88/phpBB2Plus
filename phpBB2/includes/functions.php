@@ -683,7 +683,7 @@ function setup_style($style)
 
 	if ( defined('CACHE_THEMES') )
 	{
-		include( $phpbb_root_path . './includes/def_themes.' . $phpEx );
+		@include( $phpbb_root_path . './includes/def_themes.' . $phpEx );
 		if ( empty($themes_style) )
 		{
 			cache_themes();
