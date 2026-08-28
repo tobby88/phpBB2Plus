@@ -80,7 +80,7 @@ if($arcade->arcade_config('use_rewards_mod'))
 $userdata			     = session_pagestart($user_ip, PAGE_ARCADE_SCORE); 
 init_userprefs($userdata); 
 $ip_num				     = decode_ip($userdata['session_ip']); 
-$ip_nam				     = @gethostbyaddr($ip_num); 
+$ip_nam				     = $ip_num;
 $gen_simple_header = TRUE; 
 $cheat_mode			   = FALSE;
 $newscore_close    = $lang['newscore_close'];

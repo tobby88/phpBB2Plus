@@ -139,6 +139,11 @@ class sql_db
 		}
 	}
 
+	function sql_escape($value)
+	{
+		return mysqli_real_escape_string($this->db_connect_id, (string) $value);
+	}
+
 	//
 	// Other query methods
 	//

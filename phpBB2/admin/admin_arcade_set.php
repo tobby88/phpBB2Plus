@@ -51,44 +51,19 @@ $file = basename(__FILE__);
 //
 // Check to see what mode we should operate in.
 // 
-if( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) )
+$allowed_fields = array('game_charge', 'game_bonus', 'at_game_bonus', 'game_reward', 'highscore_limit', 'at_highscore_limit');
+$mode = isset($HTTP_GET_VARS['mode']) ? (string) $HTTP_GET_VARS['mode'] : '';
+if (!in_array($mode, $allowed_fields, true))
 {
-	$mode = ( isset($HTTP_POST_VARS['mode']) ) ? $HTTP_POST_VARS['mode'] : $HTTP_GET_VARS['mode'];
-	$mode = trim(htmlspecialchars($mode));
+	$mode = '';
 }
 
-if( isset($HTTP_POST_VARS['game_charge']) )
-{
-	$mode = "game_charge";
-}
-else if( isset($HTTP_POST_VARS['game_bonus']) )
-{
-	$mode = "game_bonus";
-}
-else if( isset($HTTP_POST_VARS['at_game_bonus']) )
-{
-	$mode = "at_game_bonus";
-}
-else if( isset($HTTP_POST_VARS['game_reward']) )
-{
-	$mode = "game_reward";
-}
-else if( isset($HTTP_POST_VARS['highscore_limit']) )
-{
-	$mode = "highscore_limit";
-}
-else if( isset($HTTP_POST_VARS['at_highscore_limit']) )
-{
-	$mode = "at_highscore_limit";
-}
-else
-{
-	$mode = "";
-}
+$is_update = ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode !== '' &&
+	isset($HTTP_POST_VARS[$mode]) && !is_array($HTTP_POST_VARS[$mode]));
 //
 //  Main Menu 
 //
-if( $mode == "")
+if (!$is_update)
 {
   $template->set_filenames(array('body' => 'admin/arcade_set_body.tpl'));
 
@@ -126,12 +101,7 @@ else //if( $mode == "set_charge")
   echo '<tr><th>Updating the database</th></tr><tr><td><span class="genmed"><ul type="circle">';
 
 
-  $setcharge = $_POST[$mode];
-  $setcharge = intval($setcharge);
-  if ($setcharge == "")
-  {
-    $setcharge = "0";
-  }
+  $setcharge = intval($HTTP_POST_VARS[$mode]);
   
   $sql = "UPDATE `" . $table_prefix . "ina_games` SET $mode = $setcharge";
 
@@ -139,11 +109,11 @@ else //if( $mode == "set_charge")
  	{
  		$error = $db->sql_error();
 
-	  echo '<li>' . $sql . '<br /> +++ <font color="#FF0000"><b>Error:</b></font> ' . $error['message'] . '</li><br />';
+	  echo '<li><font color="#FF0000"><b>Error:</b></font> ' . phpbb_profile_text($error['message']) . '</li><br />';
  	}
  	else
  	{
- 		echo '<li>' . $sql . '<br /> +++ <font color="#00AA00"><b>Successfull</b></font></li><br />';
+	  echo '<li><font color="#00AA00"><b>Successful</b></font></li><br />';
  	}
   echo '<tr><td class="catBottom" height="28" align="center"><span class="genmed">Done<br /><br /><br /><form method="POST" action="'. append_sid('admin_arcade_set.php').'"><input type="Submit" name="Back" value="Back" /></form></span></td></table>';
 }

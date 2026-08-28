@@ -29,13 +29,15 @@ if ( !defined('IN_PHPBB') )
 function add_reward($user_id,$amount)
 {
 	global $userdata, $db;
+	$user_id = (int) $user_id;
+	$amount = phpbb_reward_number($amount);
 	$dbfield = get_db_reward();
 	if ( $userdata['user_id'] == $user_id )
 	{
 		$userdata[$dbfield] += $amount;
 	}
 	$sql = "UPDATE " . USERS_TABLE . "
-		SET $dbfield = $dbfield + $amount
+		SET `$dbfield` = `$dbfield` + $amount
 		WHERE user_id = $user_id";
 	if ( !$db->sql_query($sql) )
 	{
@@ -48,13 +50,15 @@ function add_reward($user_id,$amount)
 function subtract_reward($user_id,$amount)
 {
 	global $userdata, $db;
+	$user_id = (int) $user_id;
+	$amount = phpbb_reward_number($amount);
 	$dbfield = get_db_reward();
 	if ( $userdata['user_id'] == $user_id )
 	{
 		$userdata[$dbfield] -= $amount;
 	}
 	$sql = "UPDATE " . USERS_TABLE . "
-		SET $dbfield = $dbfield - $amount
+		SET `$dbfield` = `$dbfield` - $amount
 		WHERE user_id = $user_id";
 	if ( !$db->sql_query($sql) )
 	{
@@ -67,13 +71,15 @@ function subtract_reward($user_id,$amount)
 function set_reward($user_id,$amount)
 {
 	global $userdata, $db;
+	$user_id = (int) $user_id;
+	$amount = phpbb_reward_number($amount);
 	$dbfield = get_db_reward();
 	if ( $userdata['user_id'] == $user_id )
 	{
 		$userdata[$dbfield] = $amount;
 	}
 	$sql = "UPDATE " . USERS_TABLE . "
-		SET $dbfield = $amount
+		SET `$dbfield` = $amount
 		WHERE user_id = $user_id";
 	if ( !$db->sql_query($sql) )
 	{
@@ -86,6 +92,7 @@ function set_reward($user_id,$amount)
 function get_reward($user_id)
 {
 	global $userdata, $db;
+	$user_id = (int) $user_id;
 	$dbfield = get_db_reward();
 	if ( $userdata['user_id'] == $user_id )
 	{
@@ -93,7 +100,7 @@ function get_reward($user_id)
 	}
 	else
 	{
-		$sql = "SELECT $dbfield
+		$sql = "SELECT `$dbfield`
 			FROM " . USERS_TABLE . "
 			WHERE user_id = $user_id";
 		if ( !($result = $db->sql_query($sql)) )
@@ -126,12 +133,32 @@ function get_db_reward()
 	
 	if(!empty($board_config['default_reward_dbfield']))
 	{
-  	return $board_config['default_reward_dbfield'];
+		return phpbb_reward_field_name($board_config['default_reward_dbfield']);
   }
   else
   {
-    return $arcade->arcade_config['default_cash'];
+		return phpbb_reward_field_name($arcade->arcade_config['default_cash']);
   }
+}
+
+function phpbb_reward_field_name($field)
+{
+	$field = (string) $field;
+	if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,63}$/D', $field))
+	{
+		message_die(GENERAL_ERROR, 'Invalid reward database field configuration');
+	}
+	return $field;
+}
+
+function phpbb_reward_number($amount)
+{
+	$amount = (float) $amount;
+	if (!is_finite($amount))
+	{
+		return '0';
+	}
+	return rtrim(rtrim(number_format($amount, 8, '.', ''), '0'), '.');
 }
 //
 //  New function to get the cash system name from the db filked entered in the Arcade config
@@ -139,9 +166,10 @@ function get_db_reward()
 function get_cash_name()
 {
   global $table_prefix, $db, $arcade;
-  
+
+	$cash_field = phpbb_reward_field_name($arcade->arcade_config['default_cash']);
   $sql = "SELECT `cash_name` FROM ". $table_prefix . "cash 
-    WHERE cash_dbfield = '" . $arcade->arcade_config['default_cash'] . "'";
+	WHERE cash_dbfield = '" . $cash_field . "'";
  	$cashinfo = $db->sql_fetchrow($db->sql_query($sql));
 
   return $cashinfo['cash_name'];

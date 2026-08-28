@@ -33,7 +33,7 @@
     <tr>
 <form method="POST" action="{S_SET_REWARD}">
       <td width="50%" class="row2"><div align="right">Set Reward</div></td>
-      <td width="50%" class="row3"><input type="text" name="game_bonus" size="3"> <input type="submit" name="Set Bonus"></td>
+      <td width="50%" class="row3"><input type="text" name="game_reward" size="3"> <input type="submit" name="Set Reward"></td>
 </form>
     </tr>
     <tr>

@@ -621,18 +621,13 @@ else if( $mode == "import_game")
 //
 // Import Routines.
 //
-if( isset($HTTP_POST_VARS['import_submit']) || isset($HTTP_GET_VARS['import_submit']) )
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submit']))
 {
-	$import_path = ( isset($HTTP_POST_VARS['import_path']) ) ? htmlspecialchars($HTTP_POST_VARS['import_path']) : "";
-	if ( $import_path[strlen($import_path)-1] != '\\' && $import_path[strlen($import_path)-1] != '/' )
+	$import_path = (isset($HTTP_POST_VARS['import_path']) && !is_array($HTTP_POST_VARS['import_path'])) ? phpbb_arcade_local_asset($HTTP_POST_VARS['import_path']) : '';
+	if ($import_path !== '' && substr($import_path, -1) !== '/')
 	{
 		$import_path .= '/';
 	}
-	if ( $import_path[0] == '\\' || $import_path[0] == '/')
-	{
-		$import_path[0] = ' ';
-	}
-	$import_path = trim($import_path);
 	
 	if(empty($import_path))
 	{	
@@ -690,7 +685,7 @@ if( isset($HTTP_POST_VARS['import_submit']) || isset($HTTP_GET_VARS['import_subm
 		}
 		$game_info = $db->sql_fetchrow($result);
 		$width = $game_info['win_width'];
-		$height = $game_onfo['win_height'];
+		$height = $game_info['win_height'];
 		if($width == 0)
 		{
 			$width = 550;
@@ -709,7 +704,13 @@ if( isset($HTTP_POST_VARS['import_submit']) || isset($HTTP_GET_VARS['import_subm
 	$online = ( isset($HTTP_POST_VARS['online']) ) ? intval($HTTP_POST_VARS['online']) : 0;
 	$cat_id = ( isset($HTTP_POST_VARS['cat_id']) ) ? intval($HTTP_POST_VARS['cat_id']) : -1;
 
-	$main_dir_path = $phpbb_root_path . $import_path;
+	$forum_root = realpath($phpbb_root_path);
+	$main_dir_path = realpath($phpbb_root_path . $import_path);
+	if ($forum_root === false || $main_dir_path === false ||
+		strpos(str_replace('\\', '/', $main_dir_path) . '/', rtrim(str_replace('\\', '/', $forum_root), '/') . '/') !== 0)
+	{
+		message_die(GENERAL_MESSAGE, $lang['no_game_import']);
+	}
 
 	if($main_dir = opendir($main_dir_path))
 	{
@@ -753,7 +754,7 @@ if( isset($HTTP_POST_VARS['import_submit']) || isset($HTTP_GET_VARS['import_subm
 					//
 					// Debug information really, but it does help to know what we have skipped.
 					//
-					echo (sprintf($lang['game_skipped'], $file_name , $checked_game));
+					echo sprintf($lang['game_skipped'], phpbb_profile_text($file_name), (int) $checked_game);
 					$skipped++;
 				}
 			}
@@ -802,7 +803,7 @@ if( isset($HTTP_POST_VARS['import_submit']) || isset($HTTP_GET_VARS['import_subm
 					//
 					// It's a sub sub directory, 
 					//
-					echo "-> Skipped: " . $sub_file_name . '<br />';
+					echo "-&gt; Skipped: " . phpbb_profile_text($sub_file_name) . '<br />';
 					$skipped++;
 				}
 			}
@@ -1172,11 +1173,11 @@ else if( $mode == "clear_scores" || $mode == "clear_at_scores" )
 		}
 		while ($game_info = $db->sql_fetchrow($result))
 		{
-			$top_score = best_game_player($table, $game_name, $list_type);
-
 			$game_name = $game_info['game_name'];
+			$top_score = best_game_player($table, $game_name, $list_type);
+			$game_name_sql = $db->sql_escape($game_name);
 			$sql = "DELETE FROM " . $table . "
-				WHERE game_name = '" . $game_name . "'";
+				WHERE game_name = '" . $game_name_sql . "'";
 			if(!$delete = $db->sql_query($sql))
 			{
 				message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
@@ -1184,7 +1185,7 @@ else if( $mode == "clear_scores" || $mode == "clear_at_scores" )
 
 			$sql = "UPDATE " . iNA_USER_DATA . "
 				SET ".$places_sql."first_places = ".$places_sql."first_places-1
-				WHERE user_id = '" . $top_score['player_id'] . "'";
+				WHERE user_id = " . (int) $top_score['player_id'];
 		    if(!$update = $db->sql_query($sql)) 
 			{
 				message_die(GENERAL_ERROR, $lang['no_user_update'], "", __LINE__, __FILE__, $sql); 

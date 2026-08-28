@@ -117,6 +117,11 @@ changes consolidated after that baseline without implying active maintenance.
   member, group, album, shoutbox, knowledge-base and download views. Country
   flag input is now restricted to a safe filename before it reaches SQL or a
   generated image path.
+- Restricted Arcade statistics and reward database fields to valid columns,
+  normalized reward amounts and user IDs before SQL use, repaired global
+  reward settings, score clearing and game import, and removed unused broken
+  helpers. Imports are POST-only and confined to local forum directories;
+  ordinary game play and score submission no longer trigger reverse-DNS calls.
 
 ### Repository and update cleanup
 

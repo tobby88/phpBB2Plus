@@ -62,30 +62,24 @@ include_once($phpbb_root_path . 'includes/classes_arcade.' . $phpEx);
 $mode_types_text = array('', $lang['allow_guests'], $lang['date_added'], $lang['rating'], $lang['Comments'], $lang['alphabetically'], $lang['game_instructions'], $lang['game_cost'], $lang['game_bonuses'], $lang['game_played']);
 $mode_types = array('default', 'allow_guest', 'date_added', 'rating', 'comments', 'alphabetical', 'game_instructions', 'game_charge', 'game_bonus', 'game_played');
 
-function best_players_list($type = 'first_places', $extra = 'LIMIT 0,10')
-{	global $db, $lang;
-	$best_players_list = '';
-	$sql = "SELECT u.user_id, u.username, a.$type FROM " . USERS_TABLE . " as u,
-    LEFT JOIN " . iNA_USER_DATA . " as a
-		WHERE u.user_id = a.user_id
-		AND $type > 0
-		ORDER by $type DESC, last_won_date $extra";
-	if(!$user = $db->sql_query($sql)) 
+function phpbb_arcade_local_asset($path)
+{
+	$path = str_replace('\\', '/', trim((string) $path));
+	if ($path === '' || strpos($path, "\0") !== false || preg_match('#^[a-z][a-z0-9+.-]*:#i', $path) ||
+		preg_match('#(^|/)\.\.(/|$)#', $path) || preg_match('#^/|^[A-Za-z]:/#', $path))
 	{
-		message_die(GENERAL_ERROR, $lang['no_user_data'], "", __LINE__, __FILE__, $sql); 
+		return '';
 	}
-	$users_count = $db->sql_numrows($user);
-	$users_rows = $db->sql_fetchrowset($user);
-	for($i = 0; $i < $users_count; $i++)
-	{
-		$best_players_list .= '<b>' . $users_rows[$i][$type] . ' &raquo;</b> <a href="' . append_sid("profile.php?mode=viewprofile&u=$users_rows[$i]['user_id']") . '">' . $users_rows[$i]['username'] . '</a><br />';
-	}
-	return $best_players_list;
+	return $path;
 }
 
 function best_player($type = 'first_places')
 {
 	global $db, $lang, $arcade, $phpEx;
+	if (!in_array($type, array('first_places', 'at_first_places'), true))
+	{
+		$type = 'first_places';
+	}
 
   if ($type == 'first_places')
   {
@@ -105,15 +99,19 @@ function best_player($type = 'first_places')
   		message_die(GENERAL_ERROR, $lang['no_user_data'], "", __LINE__, __FILE__, $sql); 
   	}
   	$user_row = $db->sql_fetchrow($user);
+	if (!$user_row)
+	{
+		return '';
+	}
 
   	if ($type == 'first_places')
   	{
-      $best_player = sprintf($lang['games_best_player'] , append_sid("profile.$phpEx?mode=viewprofile&u=".$user_row['user_id']), $user_row['username'], append_sid("activity.$phpEx?mode=game_stats&amp;user_id=".$user_row['user_id']."&amp;id=4"), $user_row[$type]);
+      $best_player = sprintf($lang['games_best_player'] , append_sid("profile.$phpEx?mode=viewprofile&u=".(int) $user_row['user_id']), phpbb_profile_text($user_row['username']), append_sid("activity.$phpEx?mode=game_stats&amp;user_id=".(int) $user_row['user_id']."&amp;id=4"), (int) $user_row[$type]);
       $arcade->write_cache('best_player', $best_player);
   	}
     else
     {
-      $best_player = sprintf($lang['games_best_at_player'] , append_sid("profile.$phpEx?mode=viewprofile&u=".$user_row['user_id']), $user_row['username'], append_sid("activity.$phpEx?mode=game_stats&amp;user_id=".$user_row['user_id']."&id=1"), $user_row[$type]);
+      $best_player = sprintf($lang['games_best_at_player'] , append_sid("profile.$phpEx?mode=viewprofile&u=".(int) $user_row['user_id']), phpbb_profile_text($user_row['username']), append_sid("activity.$phpEx?mode=game_stats&amp;user_id=".(int) $user_row['user_id']."&id=1"), (int) $user_row[$type]);
       $arcade->write_cache('best_at_player', $best_player);
     }
   }
@@ -125,6 +123,7 @@ function best_player($type = 'first_places')
 function last_played($user_id)
 {	
   global $db, $lang;
+  $user_id = (int) $user_id;
   
 	$sql = "SELECT g.game_desc FROM " . iNA_GAMES . " AS g, " . iNA_USER_DATA . " AS u
 		WHERE user_id = '" . $user_id . "'
@@ -136,7 +135,7 @@ function last_played($user_id)
 	$user_row = $db->sql_fetchrow($user);
 	if ($user_row)
 	{
-		return sprintf($lang['games_last_u_viewed'], $user_row['game_desc']);
+		return sprintf($lang['games_last_u_viewed'], phpbb_profile_text($user_row['game_desc']));
 	}
 	else
 	{
@@ -188,21 +187,24 @@ function games_position($games_place)
 function update_ina_session($user_id, $user_ip, $page, $game, $old_hash = FALSE, $win = "NORM", $tour_id = 0)
 {	global $db, $userdata, $lang, $board_config;
 
+	$user_id = (int) $user_id;
+	$page = (int) $page;
+	$tour_id = (int) $tour_id;
+	$user_ip = $db->sql_escape($user_ip);
+	$game = $db->sql_escape($game);
+	$win = preg_match('/^[A-Za-z0-9_-]{1,20}$/D', (string) $win) ? (string) $win : 'NORM';
 	$start_time		= time();
 	$string			= sprintf("ARCADE_MOD %s %s %s %d %d %d", $game, $board_config['sitename'], $user_ip, $page, $user_id, $userdata['session_ip']);
 	$arcade_hash	= md5(dss_rand() . dss_rand() . $string);
 	//
-	// The next two lines are used only for the human readable part of the MCP and can be commented out if they cause problems
-	// (some sites have been set-up on a private network and do not use TCP/IP)
-	//
-  $ip_num				= decode_ip($userdata['session_ip']); 
-  $ip_nam				= @gethostbyaddr($ip_num); 
+	$ip_num = $db->sql_escape(decode_ip($userdata['session_ip']));
+	$ip_nam = '';
 	
 	$sql = "UPDATE " . iNA_SESSIONS . "
 		SET start_time = '$start_time', page = '$page', game_name = '$game', arcade_hash = '$arcade_hash', user_win = '$win', tour_id = $tour_id";
 	if($old_hash != FALSE)
 	{
-		$sql .= " WHERE arcade_hash = '$old_hash'";
+		$sql .= " WHERE arcade_hash = '" . $db->sql_escape($old_hash) . "'";
 	}
 	else
 	{
@@ -229,47 +231,30 @@ function update_ina_session($user_id, $user_ip, $page, $game, $old_hash = FALSE,
 	return $arcade_hash;
 }
 
-function user_fav_list($user_id, $number)
-{	global $db;
-
-	$sql = "SELECT g.game_desc FROM " . iNA_FAV . " f, " . iNA_GAMES . " g
-		WHERE f.user_id = '" . $user_id . "'
-			AND f.game_id = g.game_id
-			ORDER BY g.desc ASC
-			LIMIT 0,$number";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
-	}
-	while($fav_games = $db->sql_fetchrow($result))
-	{
-		$fav_list .= $fav_games['game_desc'] . '<br />';
-	}
-	return $fav_list;
-}
-
 function games_list($mode, $number, $cat_id, $option = 'played', $image_path = FALSE)
 {	
   global $db, $phpEx, $SID, $userdata, $board_config, $arcade;
 	$games_list = '';
 
-	if (empty($mode))
+	$mode = strtoupper((string) $mode);
+	if (!in_array($mode, array('ASC', 'DESC'), true))
 	{
 		$mode = 'DESC';
 	}
-	if (empty($option))
+	if (!in_array($option, array('played', 'date_added DESC, game_id'), true))
 	{
 		$option = 'played';
 	}
-	$number = intval($number);
+	$number = max(1, min(100, intval($number)));
 	$cat_id = intval($cat_id);
+	$user_id = (int) $userdata['user_id'];
 
   $level_required = isset($userdata['user_level']) ? $userdata['user_level'] : 0;
   $rank_required = isset($userdata['user_rank']) ? $userdata['user_rank'] : 0;
   
-  $sql = "SELECT g.group_id
- 		FROM " . GROUPS_TABLE . " g, " . USER_GROUP_TABLE . " ug
-    	WHERE ug.user_id = " . $userdata['user_id'] . "  
+	$sql = "SELECT g.group_id
+		FROM " . GROUPS_TABLE . " g, " . USER_GROUP_TABLE . " ug
+		WHERE ug.user_id = " . $user_id . "
   	    AND ug.group_id = g.group_id
  				AND ug.user_pending = 0
  				AND g.group_single_user <> " . TRUE . "
@@ -301,18 +286,9 @@ function games_list($mode, $number, $cat_id, $option = 'played', $image_path = F
 	}
 	while($top_games = $db->sql_fetchrow($result))
 	{
-		if($top_games['game_flash'] && $arcade->arcade_config['games_auto_size'] && !$top_games['game_autosize'])
-		{
-			$game_name = $top_games['game_name'] . '.swf';
-			$game_size = @getimagesize($top_games['game_path'].$game_name); 
-			$width = $game_size[0] + 20; 
-			$height = $game_size[1] + 25; 
-		}
-		else
-		{
-			$width = $top_games['win_width'] + 20;
-			$height = $top_games['win_height'] + 25; 
-		}
+		$width = max(20, (int) $top_games['win_width'] + 20);
+		$height = max(25, (int) $top_games['win_height'] + 25);
+		$game_desc = phpbb_profile_text($top_games['game_desc']);
 		if($image_path != FALSE)
 		{
 			$image_path = $top_games['image_path'];
@@ -331,28 +307,30 @@ function games_list($mode, $number, $cat_id, $option = 'played', $image_path = F
 			{
 				$image_path = './' . $top_games['game_path'] . $top_games['game_name'] . $top_games['image_path'];
 			}
-			if ( @file_exists($image_path ) && ($userdata['user_id'] == ANONYMOUS && $top_games['allow_guest'] == 0) || ( intval($userdata['user_posts']) < intval($board_config['games_posts_required']) && $top_games['allow_guest'] == 0) || (intval($userdata['user_rank']) < intval($arcade->arcade_config['games_rank_required']) && $top_games['allow_guest'] == 0) && $userdata['user_level'] != ADMIN )
+			$image_path = phpbb_arcade_local_asset($image_path);
+			$image_exists = ($image_path !== '' && @file_exists($image_path));
+			if ( $image_exists && (($userdata['user_id'] == ANONYMOUS && $top_games['allow_guest'] == 0) || ( intval($userdata['user_posts']) < intval($board_config['games_posts_required']) && $top_games['allow_guest'] == 0) || ((intval($userdata['user_rank']) < intval($arcade->arcade_config['games_rank_required']) && $top_games['allow_guest'] == 0) && $userdata['user_level'] != ADMIN)) )
 			{
-				$games_list .= "<img src=\"". $image_path ."\" height=\"25\" width=\"25\" border=\"0\"> " . $top_games['game_desc'] . '<br />';
+				$games_list .= "<img src=\"". phpbb_profile_text($image_path) ."\" height=\"25\" width=\"25\" border=\"0\"> " . $game_desc . '<br />';
 			}
-			else if (@file_exists($image_path ))
+			else if ($image_exists)
 			{
-        $games_list .= "<a href=\"". append_sid("activity.$phpEx?mode=game&amp;id=".$top_games['game_id']) ."\" class=\"gensmall\" onClick=\"Gk_PopTart('activity.$phpEx?mode=game&amp;id=" . $top_games['game_id'] . "$SID', 'New_Window', '$width', '$height', 'no'); return false; blur()\"><img src=\"". $image_path ."\" height=\"25\" width=\"25\" border=\"0\"> " . $top_games['game_desc'] . "</a><br />";
+        $games_list .= "<a href=\"". append_sid("activity.$phpEx?mode=game&amp;id=".(int) $top_games['game_id']) ."\" class=\"gensmall\" onClick=\"Gk_PopTart('activity.$phpEx?mode=game&amp;id=" . (int) $top_games['game_id'] . "$SID', 'New_Window', '$width', '$height', 'no'); return false; blur()\"><img src=\"". phpbb_profile_text($image_path) ."\" height=\"25\" width=\"25\" border=\"0\"> " . $game_desc . "</a><br />";
 			}
 			else
 			{
-        $games_list .= "<a href=\"". append_sid("activity.$phpEx?mode=game&amp;id=".$top_games['game_id']) ."\" class=\"gensmall\" onClick=\"Gk_PopTart('activity.$phpEx?mode=game&amp;id=" . $top_games['game_id'] . "$SID', 'New_Window', '$width', '$height', 'no'); return false; blur()\"> " . $top_games['game_desc'] . "</a><br />";
+        $games_list .= "<a href=\"". append_sid("activity.$phpEx?mode=game&amp;id=".(int) $top_games['game_id']) ."\" class=\"gensmall\" onClick=\"Gk_PopTart('activity.$phpEx?mode=game&amp;id=" . (int) $top_games['game_id'] . "$SID', 'New_Window', '$width', '$height', 'no'); return false; blur()\"> " . $game_desc . "</a><br />";
 			}
 		}
 		else
 		{
 		  if(($userdata['user_id'] == ANONYMOUS && $top_games['allow_guest'] == 0) || $top_games['level_required'] > $level_required  || $top_games['rank_required'] > $rank_required || in_array($top_games['group_required'], $group_list) == FALSE)
 		  {
-        $games_list .= $top_games['game_desc'] . '<br />';
+			$games_list .= $game_desc . '<br />';
       }
       else
       {
-			 $games_list .= "<a href=\"". append_sid("activity.$phpEx?mode=game&amp;id=".$top_games['game_id']) ."\" class=\"gensmall\" onClick=\"Gk_PopTart('activity.$phpEx?mode=game&amp;id=" . $top_games['game_id'] . "$SID', 'New_Window', '$width', '$height', 'no'); return false; blur()\"> " . $top_games['game_desc'] . "</a><br />";
+			 $games_list .= "<a href=\"". append_sid("activity.$phpEx?mode=game&amp;id=".(int) $top_games['game_id']) ."\" class=\"gensmall\" onClick=\"Gk_PopTart('activity.$phpEx?mode=game&amp;id=" . (int) $top_games['game_id'] . "$SID', 'New_Window', '$width', '$height', 'no'); return false; blur()\"> " . $game_desc . "</a><br />";
 			}
 		}
 	}
@@ -360,7 +338,10 @@ function games_list($mode, $number, $cat_id, $option = 'played', $image_path = F
 }
 
 function best_game_player($tablename, $gamename, $type)
-{	global $db;
+{	global $db, $lang;
+	$tablename = in_array($tablename, array(iNA_SCORES, iNA_AT_SCORES), true) ? $tablename : iNA_SCORES;
+	$type = (strtoupper((string) $type) === 'ASC') ? 'ASC' : 'DESC';
+	$gamename = $db->sql_escape($gamename);
 
 	$sql = "SELECT s.player_id, s.score, u.username, u.user_allow_viewonline FROM " . $tablename . " s, " . USERS_TABLE . " u
 		WHERE s.player_id = u.user_id
@@ -371,18 +352,27 @@ function best_game_player($tablename, $gamename, $type)
 		message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
 	}
 	$score_info = $db->sql_fetchrow($result);
-	if ($score_info['score'] > 0)
+	if (!$score_info)
 	{
-		return $score_info;
+		return array('player_id' => 0, 'score' => null, 'username' => '', 'user_allow_viewonline' => 0);
 	}
-	else
-	{
-		return NULL;
-	}
+	return $score_info;
 }
 
 function get_games_total($data, $extra = '')
-{	global $db;
+{	global $db, $lang;
+	if (!in_array($data, array('COUNT(*)', 'SUM(played)'), true))
+	{
+		return 0;
+	}
+	if ($extra !== '' && preg_match('/^cat_id\s*=\s*[\'\"]?(\d+)[\'\"]?$/D', trim($extra), $match))
+	{
+		$extra = 'cat_id = ' . (int) $match[1];
+	}
+	else if ($extra !== '')
+	{
+		return 0;
+	}
 
 	$sql = "SELECT $data AS total
 		FROM " . iNA_GAMES . "
@@ -463,50 +453,17 @@ function get_ina_extension($name)
 	return ($position === false) ? '' : strtolower(substr($name, $position + 1));
 }
 
-function ina_ban_user($game, $users_ip, $user_id, $username, $score)
-{	global $db,$board_config;
-
-	$currdate = create_date('d-m-Y', time(), $board_config['board_timezone']) ;
-
-	$sql = "INSERT INTO ". iNA_BANNED . " (username, user_id, player_ip, game, score, date)
-		VALUES ('$username', '$user_id', '$users_ip', '$game', '$score', '$currdate')";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_total'], '', __LINE__, __FILE__, $sql);
-	}
-//  $db->sql_freeresult($result);   
-}
-
-function check_ina_user($users_ip, $user_id, $username)
-{	global $db;
-
-	$sql = "SELECT* FROM ". iNA_BANNED . "
-		WHERE $user_id = '$user_id'";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, $lang['no_game_total'], '', __LINE__, __FILE__, $sql);
-	}
-	$row = $db->sql_fetchrow($result);
-	if($row)
-	{
-		return TRUE;
-	}
-	else
-	{
-		return FALSE;
-	}
-}
-
 function check_ina_game($game_name)
-{	global $db;
+{	global $db, $lang;
 
 	if($game_name)
 	{
+		$game_name_sql = $db->sql_escape($game_name);
 		$old_game_sql = "SELECT game_id, game_name FROM " . iNA_GAMES . "
-			WHERE game_name = '" . $game_name . "'";
+			WHERE game_name = '" . $game_name_sql . "'";
 		if( !$old_game_result = $db->sql_query($old_game_sql) )
 		{
-			message_die(GENERAL_ERROR, $lang['no_read_game_data'], "", __LINE__, __FILE__, $sql);
+			message_die(GENERAL_ERROR, $lang['no_read_game_data'], "", __LINE__, __FILE__, $old_game_sql);
 		}
 		$old_game = $db->sql_fetchrow($old_game_result);
 
@@ -522,17 +479,31 @@ function insert_ina_game($game_name, $game_path, $reverse_list = 0, $game_desc =
 {	
   if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
   {
-    global $db, $phpbb_root_path, $arcade, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
+    global $db, $phpbb_root_path, $arcade, $lang, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
   }
   else
   {
-    global $db, $phpbb_root_path, $arcade;
+    global $db, $phpbb_root_path, $arcade, $lang;
   }
-	if($win_width ==0 && $game_flash == 1)
+	$game_name = trim((string) $game_name);
+	$game_path = phpbb_arcade_local_asset($game_path);
+	if ($game_name === '' || $game_path === '')
 	{
-		$game_size = @getimagesize($phpbb_root_path.$game_path.'/'.$game_name.'.swf'); 
-		$win_width = $game_size[0];
-		$win_height = $game_size[1];
+		return false;
+	}
+	$reverse_list = !empty($reverse_list) ? 1 : 0;
+	$game_flash = !empty($game_flash) ? 1 : 0;
+	$game_avail = !empty($game_avail) ? 1 : 0;
+	$win_width = max(0, (int) $win_width);
+	$win_height = max(0, (int) $win_height);
+	$cat_id = (int) $cat_id;
+	if ($win_width === 0)
+	{
+		$win_width = 550;
+	}
+	if ($win_height === 0)
+	{
+		$win_height = 450;
 	}
 	if($cat_id == 0)
 	{
@@ -541,11 +512,14 @@ function insert_ina_game($game_name, $game_path, $reverse_list = 0, $game_desc =
 	if($game_desc == '')
 	{
 		$game_desc = trim(str_replace("_", " ", $game_name));
-		$game_desc[0] = strtoupper($game_desc[0]);
+		$game_desc = ($game_desc !== '') ? ucfirst($game_desc) : $game_name;
 	}
+	$game_name_sql = $db->sql_escape($game_name);
+	$game_path_sql = $db->sql_escape($game_path);
+	$game_desc_sql = $db->sql_escape($game_desc);
 	$inst_sql = "INSERT INTO " . iNA_GAMES . "
 		(cat_id, date_added, game_name, game_path, game_desc, win_width, win_height, reverse_list , game_flash, game_avail)
-			VALUES ('".$cat_id."', '" . (time()) . "', '$game_name', '$game_path', '$game_desc', '$win_width', '$win_height', '$rev', $game_flash, $game_avail)";
+			VALUES ($cat_id, " . time() . ", '$game_name_sql', '$game_path_sql', '$game_desc_sql', $win_width, $win_height, $reverse_list, $game_flash, $game_avail)";
 	if( !$inst_result = $db->sql_query($inst_sql) )
 	{
 		message_die(GENERAL_ERROR, $lang['no_read_game_data'], "", __LINE__, __FILE__, $inst_sql);
@@ -570,14 +544,7 @@ function insert_ina_game($game_name, $game_path, $reverse_list = 0, $game_desc =
     	}
     }
   }
-//
-//  Send users a PM to introduce the NEW GAME :)
-//
-  if($arcade->arcade_config('games_pm_new'))
-  {
-    $message = sprintf($lang['games_new_game_added'], $game_desc );
-    ina_send_user_pm($old_id, $lang['games_new_game_added_info'], $message, $new_id);
-  }
+	return (int) $db->sql_nextid();
 }
 
 function get_total_tour()
@@ -857,6 +824,10 @@ function swap_place($old_id, $new_id, $type, $game_info = NULL)
   }
 	$old_id = intval($old_id);
 	$new_id = intval($new_id);
+	if (!in_array($type, array('first_places', 'at_first_places'), true))
+	{
+		return;
+	}
 	if($old_id == $new_id)
 	{
     return;
@@ -872,7 +843,7 @@ function swap_place($old_id, $new_id, $type, $game_info = NULL)
 			message_die(GENERAL_ERROR, $lang['no_user_update'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql); 
 		}
 
-   	if($type == 'first_places' && $arcade->arcade_config('games_pm_highscore'))
+	if($type == 'first_places' && $arcade->arcade_config['games_pm_highscore'])
    	{
      	$message = sprintf($lang['games_pm_info_lost'], $board_config['server_name'] . $board_config['script_path'], $game_info['game_id'] , $game_info['game_desc'] );
       ina_send_user_pm($old_id, $lang['games_important_info'], $message, $new_id);
