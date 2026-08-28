@@ -295,6 +295,7 @@ else
 
 if( !isset($_POST['pic_title']) ) // is it not submitted?
 {
+	$personal_gallery_list = '';
 	// --------------------------------
 	// --------------------------------
 	// Build categories select

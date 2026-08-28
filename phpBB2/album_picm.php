@@ -301,9 +301,11 @@ else
 		switch ($pic_filetype)
 		{
 			case '.jpg':
-				@imagejpeg($thumbnail, '', $album_config['thumbnail_quality']);
+				header('Content-type: image/jpeg');
+				@imagejpeg($thumbnail, null, $album_config['thumbnail_quality']);
 				break;
 			case '.png':
+				header('Content-type: image/png');
 				@imagepng($thumbnail);
 				break;
 		}

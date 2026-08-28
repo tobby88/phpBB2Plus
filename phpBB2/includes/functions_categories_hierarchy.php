@@ -178,7 +178,8 @@ function get_object_lang($cur, $field, $all=false)
 				$field = ($type == POST_CAT_URL) ? 'cat_desc' : 'forum_desc';
 				break;
 		}
-		$res = ($tree['auth'][$cur]['auth_view'] || $all) ? $tree['data'][$CH_this][$field] : '';
+		$can_view = isset($tree['auth'][$cur]['auth_view']) ? $tree['auth'][$cur]['auth_view'] : false;
+		$res = ($can_view || $all) ? $tree['data'][$CH_this][$field] : '';
 		if (isset($lang[$res])) $res = $lang[$res];
 	}
 	return $res;
@@ -234,8 +235,11 @@ function cache_words()
 	$fname = $phpbb_root_path . './includes/def_words.' . $phpEx;
 	@chmod($fname, 0666);
 	$handle = @fopen($fname, 'w');
-	@fwrite($handle, $res);
-	@fclose($handle);
+	if ($handle !== false)
+	{
+		@fwrite($handle, $res);
+		@fclose($handle);
+	}
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -275,8 +279,7 @@ function cache_themes()
 	{
 		$id = $row['themes_id'];
 		$cells = array();
-		@reset($row);
-		while ( list($key, $value) = @each($row) )
+		foreach ($row as $key => $value)
 		{
 			$nkey = intval($key);
 			if ( $key != "$nkey" )
@@ -301,8 +304,11 @@ function cache_themes()
 	$fname = $phpbb_root_path . './includes/def_themes.' . $phpEx;
 	@chmod($fname, 0666);
 	$handle = @fopen($fname, 'w');
-	@fwrite($handle, $res);
-	@fclose($handle);
+	if ($handle !== false)
+	{
+		@fwrite($handle, $res);
+		@fclose($handle);
+	}
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -335,8 +341,7 @@ function cache_tree_output()
 
 	// keys
 	$cells = array();
-	@reset($tree['keys']);
-	while ( list($key, $value) = @each($tree['keys']) )
+	foreach ($tree['keys'] as $key => $value)
 	{
 		$cells[] = sprintf("'%s' => %s", $key, $value);
 	}
@@ -379,8 +384,7 @@ function cache_tree_output()
 	{
 		$template->assign_block_vars('data', array());
 
-		@reset($tree['data'][$i]);
-		while ( list($key, $value) = @each($tree['data'][$i]) )
+		foreach ($tree['data'][$i] as $key => $value)
 		{
 			$nkey = intval($key);
 			if ( $key != "$nkey" )
@@ -395,8 +399,7 @@ function cache_tree_output()
 	}
 
 	// subs
-	@reset($tree['sub']);
-	while ( list($main, $data) = @each($tree['sub']) )
+	foreach ($tree['sub'] as $main => $data)
 	{
 		$cells = array();
 		for ( $i = 0; $i < count($data); $i++ )
@@ -419,15 +422,17 @@ function cache_tree_output()
 		{
 			$s_user_ids = empty($data['user_id']) ? '' : implode(', ', $data['user_id']);
 			$s_group_ids = empty($data['group_id']) ? '' : implode(', ', $data['group_id']);
+			$usernames = isset($data['username']) && is_array($data['username']) ? $data['username'] : array();
+			$group_names = isset($data['group_name']) && is_array($data['group_name']) ? $data['group_name'] : array();
 			$s_usernames = '';
-			for ( $j = 0; $j < count($data['username']); $j++ )
+			foreach ($usernames as $username)
 			{
-				$s_usernames .= ( empty($s_usernames) ? '' : ', ' ) . sprintf("'%s'", str_replace("'", "\'", $data['username'][$j]));
+				$s_usernames .= ( empty($s_usernames) ? '' : ', ' ) . sprintf("'%s'", str_replace("'", "\'", $username));
 			}
 			$s_group_names = '';
-			for ( $j = 0; $j < count($data['group_name']); $j++ )
+			foreach ($group_names as $group_name)
 			{
-				$s_group_names .= ( empty($s_group_names) ? '' : ', ' ) . sprintf("'%s'", str_replace("'", "\'", $data['group_name'][$j]));
+				$s_group_names .= ( empty($s_group_names) ? '' : ', ' ) . sprintf("'%s'", str_replace("'", "\'", $group_name));
 			}
 			$template->assign_block_vars('mods', array(
 				'IDX'			=> $idx,
@@ -448,8 +453,11 @@ function cache_tree_output()
 	$fname = $phpbb_root_path . './includes/def_tree.' . $phpEx;
 	@chmod($fname, 0666);
 	$handle = @fopen($fname, 'w');
-	@fwrite($handle, $res);
-	@fclose($handle);
+	if ($handle !== false)
+	{
+		@fwrite($handle, $res);
+		@fclose($handle);
+	}
 }
 
 function cache_tree_level($main, &$parents, &$cats, &$forums)
@@ -457,12 +465,14 @@ function cache_tree_level($main, &$parents, &$cats, &$forums)
 	global $tree;
 
 	// read all parents
-	$tree_level = array();
+	$tree_level = array('type' => array(), 'id' => array(), 'sort' => array(), 'data' => array());
+	$forum_children = isset($parents[POST_FORUM_URL][$main]) ? $parents[POST_FORUM_URL][$main] : array();
+	$category_children = isset($parents[POST_CAT_URL][$main]) ? $parents[POST_CAT_URL][$main] : array();
 
 	// get the forums of the level
-	for ($i=0; $i < count($parents[POST_FORUM_URL][$main]); $i++)
+	for ($i=0; $i < count($forum_children); $i++)
 	{
-		$idx = $parents[POST_FORUM_URL][$main][$i];
+		$idx = $forum_children[$i];
 		$tree_level['type'][]	= POST_FORUM_URL;
 		$tree_level['id'][]		= $forums[$idx]['forum_id'];
 		$tree_level['sort'][]	= $forums[$idx]['forum_order'];
@@ -470,9 +480,9 @@ function cache_tree_level($main, &$parents, &$cats, &$forums)
 	}
 
 	// add the categories of this level
-	for ($i=0; $i < count($parents[POST_CAT_URL][$main]); $i++)
+	for ($i=0; $i < count($category_children); $i++)
 	{
-		$idx = $parents[POST_CAT_URL][$main][$i];
+		$idx = $category_children[$i];
 		$tree_level['type'][]	= POST_CAT_URL;
 		$tree_level['id'][]		= $cats[$idx]['cat_id'];
 		$tree_level['sort'][]	= $cats[$idx]['cat_order'];
@@ -539,6 +549,7 @@ function cache_tree($write=false)
 	}
 
 	// read forums
+	$forums = array();
 	$sql = "SELECT * FROM " . FORUMS_TABLE . " ORDER BY forum_order, forum_id";
 	if ( !$result = $db->sql_query($sql) ) message_die(GENERAL_ERROR, "Couldn't access list of Forums", "", __LINE__, __FILE__, $sql);
 	while ($row = $db->sql_fetchrow($result))
@@ -551,7 +562,17 @@ function cache_tree($write=false)
 	}
 	$db->sql_freeresult($result);
 	// build the tree
-	$tree = array();
+	$cached_auth = isset($tree['auth']) && is_array($tree['auth']) ? $tree['auth'] : array();
+	$tree = array(
+		'keys' => array(),
+		'main' => array(),
+		'type' => array(),
+		'id' => array(),
+		'data' => array(),
+		'sub' => array(),
+		'mods' => array(),
+		'auth' => $cached_auth
+	);
 	cache_tree_level('Root', $parents, $cats, $forums);
 
 	//
@@ -726,8 +747,7 @@ function read_tree($force=false)
 			if ( !empty($new_topic_data[$forum_id]) )
 			{
 				$forum_last_post_time = 0;
-				@reset($new_topic_data[$forum_id]);
-				while( list($check_topic_id, $check_post_time) = @each($new_topic_data[$forum_id]) )
+				foreach ($new_topic_data[$forum_id] as $check_topic_id => $check_post_time)
 				{
 					if ( empty($tracking_topics[$check_topic_id]) )
 					{
@@ -977,7 +997,8 @@ function get_auth_keys($cur='Root', $all=false, $level=-1, $max=-1, $auth_key='a
 	$last_i = -1;
 
 	// add the level
-	if ( ($cur == 'Root') || $tree['auth'][$cur][$auth_key] || $all)
+	$has_auth = isset($tree['auth'][$cur][$auth_key]) ? $tree['auth'][$cur][$auth_key] : false;
+	if ( ($cur == 'Root') || $has_auth || $all)
 	{
 		// push the level
 		if (($max < 0) || ($level < $max) || (($level==$max) && ((substr($tree['main'][$tree['keys'][$cur]], 0, 1) == POST_CAT_URL) || ($tree['main'][$tree['keys'][$cur]] == 'Root') )))
@@ -1263,9 +1284,9 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 			}
 
 			// front icon
-			$folder_image = ( $data['tree.unread_topics'] ) ? $i_new : $i_norm;
-			$folder_alt   = ( $data['tree.unread_topics'] ) ? $a_new : $a_norm;
-			if ($data['tree.locked'])
+			$folder_image = !empty($data['tree.unread_topics']) ? $i_new : $i_norm;
+			$folder_alt   = !empty($data['tree.unread_topics']) ? $a_new : $a_norm;
+			if (!empty($data['tree.locked']))
 			{
 				$folder_image	= $i_locked;
 				$folder_alt		= $a_locked;
@@ -1285,7 +1306,8 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 
 			// last post
 			$last_post = $lang['No_Posts'];
-			if ( $data['tree.topic_last_post_id'] )
+			$icon = '';
+			if ( !empty($data['tree.topic_last_post_id']) )
 			{
 				global $plus_config;
 				
@@ -1293,7 +1315,7 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 				$topic_title = $data['tree.topic_title'];
 				if ( strlen($topic_title) > (intval($board_config['last_topic_title_length'])-3) ) $topic_title = substr($topic_title, 0, intval($board_config['last_topic_title_length'])) . '...';
 				
-				$recent_url = ($plus_config['enable_shorturls']) ? append_sid("fpost" . $data['tree.topic_last_post_id'] . ".html") . "#" . $data['tree.topic_last_post_id'] : append_sid("viewtopic.$phpEx?"  . POST_POST_URL . "=" . $data['tree.topic_last_post_id']) . '#' . $data['tree.topic_last_post_id'];
+				$recent_url = (!empty($plus_config['enable_shorturls'])) ? append_sid("fpost" . $data['tree.topic_last_post_id'] . ".html") . "#" . $data['tree.topic_last_post_id'] : append_sid("viewtopic.$phpEx?"  . POST_POST_URL . "=" . $data['tree.topic_last_post_id']) . '#' . $data['tree.topic_last_post_id'];
 				
 				$topic_title = '<a href="' . $recent_url . '" title="' . $data['tree.topic_title'] . '">' . $topic_title . '</a><br />';
 				
@@ -1336,6 +1358,7 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 							break;
 					}
 					$link = '';
+					$wlast_post = '';
 					$wdesc = ereg_replace('<[^>]+>', '', $wdesc);
 					if ($wname != '') $link = '<a href="' . $wpgm . '" title="' . $wdesc . '" class="gensmall">' . $wname . '</a>';
 
@@ -1375,15 +1398,18 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 						}
 
 						// front icon
-						$wfolder_image	= ( $wdata['tree.unread_topics'] ) ? $wi_new : $wi_norm;
-						$wfolder_alt	= ( $wdata['tree.unread_topics'] ) ? $wa_new : $wa_norm;
-						if ($wdata['tree.locked'])
+						$wfolder_image	= !empty($wdata['tree.unread_topics']) ? $wi_new : $wi_norm;
+						$wfolder_alt	= !empty($wdata['tree.unread_topics']) ? $wa_new : $wa_norm;
+						if (!empty($wdata['tree.locked']))
 						{
 							$wfolder_image	= $wi_locked;
 							$wfolder_alt	= $wa_locked;
 						}
-						$wlast_post  = '<a href="' . append_sid("./viewtopic.$phpEx?"  . POST_POST_URL . '=' . $wdata['tree.topic_last_post_id']) . '#' . $wdata['tree.topic_last_post_id'] . '">';
-						$wlast_post .= '<img src="' . $wfolder_image . '" border="0" alt="' . $wfolder_alt . '" title="' . $wfolder_alt . '" align="middle" /></a>';
+						if (!empty($wdata['tree.topic_last_post_id']))
+						{
+							$wlast_post  = '<a href="' . append_sid("./viewtopic.$phpEx?"  . POST_POST_URL . '=' . $wdata['tree.topic_last_post_id']) . '#' . $wdata['tree.topic_last_post_id'] . '">';
+							$wlast_post .= '<img src="' . $wfolder_image . '" border="0" alt="' . $wfolder_alt . '" title="' . $wfolder_alt . '" align="middle" /></a>';
+						}
 					}
 					if ($link != '') $links .= (($links != '') ? ', ' : '') . $wlast_post . $link;
 				}

@@ -116,7 +116,7 @@ function calendar_get_tree_option($cur='')
 	// get auth read
 	$is_auth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
 	$forum_ids = array();
-	while ( list($forum_id, $auth) = each($is_auth) )
+	foreach ($is_auth as $forum_id => $auth)
 	{
 		if ($auth['auth_read'] && $auth['auth_view'])
 		{
@@ -187,6 +187,8 @@ function date_dsp($format, $date)
 function get_calendar_title_date($calendar_start, $calendar_duration)
 {
 	global $lang, $images, $phpbb_root_path, $phpEx, $board_config, $userdata;
+	$calendar_start = intval($calendar_start);
+	$calendar_duration = intval($calendar_duration);
 	if (empty($calendar_start)) return '';
 
 	// get the component of the date and duration
@@ -997,7 +999,7 @@ if ($userdata['user_id'] != ANONYMOUS && $userdata['user_level'] != ADMIN)
 	$is_auth = array();
 	$forum_ids = '';
 	$is_auth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
-	while ( list($forum_id, $auth) = each($is_auth) )
+	foreach ($is_auth as $forum_id => $auth)
 	{
 		if ($auth['auth_read'] && $auth['auth_view'])
 		{

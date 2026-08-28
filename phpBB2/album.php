@@ -383,6 +383,10 @@ $catrows = array ();
 //--- version :  1.3.0
 $options = ($album_view_mode == ALBUM_VIEW_LIST ) ? ALBUM_READ_ALL_CATEGORIES|ALBUM_AUTH_VIEW : ALBUM_AUTH_VIEW;
 $catrows = album_read_tree($album_user_id, $options);
+if (!is_array($catrows))
+{
+	$catrows = array();
+}
 //--- version : <= 1.1.0
 // --------------------------------
 // Build allowed category-list (for recent pics after here)

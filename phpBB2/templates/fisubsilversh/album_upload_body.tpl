@@ -1,6 +1,8 @@
 <script language="JavaScript" type="text/javascript">
 <!--
 var inpIndex = 0;
+var uploadProgressWindow = null;
+var uploadRequestStarted = false;
 
 function addInput()
 {
@@ -67,12 +69,90 @@ function openUploadProgress()
 	var left = (screen.width - width) / 2;
 	var top = (screen.height - height) / 2;
 	var properties = 'height=' + height + ',width=' + width + ',top=' + top + ',left=' + left + ',scrollbars=no,resizable=no,menubar=no,status=no,toolbar=no';
-	var progressWindow = window.open('album_nuffload_pbar.php?sessionid={PSID}', 'Uploader', properties);
-	if (progressWindow)
+	uploadProgressWindow = window.open('album_nuffload_pbar.php?sessionid={PSID}', 'Uploader', properties);
+	if (uploadProgressWindow)
 	{
-		progressWindow.focus();
+		uploadProgressWindow.focus();
+	}
+	return uploadProgressWindow;
+}
+
+<!-- BEGIN switch_show_progress_bar -->
+function storeUploadProgress(state, loaded, total, startedAt)
+{
+	var elapsedSeconds = Math.max(0, (new Date().getTime() - startedAt) / 1000);
+	var speed = elapsedSeconds > 0 ? loaded / elapsedSeconds : 0;
+	var remainingSeconds = speed > 0 && total > loaded ? (total - loaded) / speed : 0;
+	var payload = {
+		type: 'album-upload-progress',
+		sessionid: '{PSID}',
+		state: state,
+		loaded: loaded,
+		total: total,
+		speed_kb: speed / 1024,
+		elapsed_seconds: elapsedSeconds,
+		remaining_seconds: remainingSeconds,
+		timestamp: new Date().getTime()
+	};
+
+	try {
+		window.localStorage.setItem('albumUploadProgress:{PSID}', JSON.stringify(payload));
+	} catch (ignore) { ignore = null; }
+
+	if (uploadProgressWindow && !uploadProgressWindow.closed) {
+		try {
+			uploadProgressWindow.postMessage(payload, window.location.protocol + '//' + window.location.host);
+		} catch (ignore) { ignore = null; }
 	}
 }
+
+function startTrackedUpload(form)
+{
+	if (uploadRequestStarted) {
+		return false;
+	}
+
+	uploadRequestStarted = true;
+	var startedAt = new Date().getTime();
+	var request = new XMLHttpRequest();
+	var formData = new FormData(form);
+	formData.append('submit', '{L_SUBMIT}');
+	storeUploadProgress('uploading', 0, 0, startedAt);
+	openUploadProgress();
+
+	request.open((form.method || 'POST').toUpperCase(), form.action, true);
+	request.withCredentials = true;
+	request.upload.onprogress = function (event) {
+		if (event.lengthComputable) {
+			storeUploadProgress('uploading', event.loaded, event.total, startedAt);
+		}
+	};
+	request.upload.onload = function () {
+		storeUploadProgress('processing', 1, 1, startedAt);
+	};
+	request.onerror = function () {
+		uploadRequestStarted = false;
+		storeUploadProgress('error', 0, 0, startedAt);
+	};
+	request.onabort = request.onerror;
+	request.onload = function () {
+		if (request.status < 200 || request.status >= 400) {
+			request.onerror();
+			return;
+		}
+
+		var responseUrl = request.responseURL;
+		document.open('text/html', 'replace');
+		document.write(request.responseText);
+		document.close();
+		if (responseUrl && window.history && window.history.replaceState) {
+			window.history.replaceState(null, document.title, responseUrl);
+		}
+	};
+	request.send(formData);
+	return false;
+}
+<!-- END switch_show_progress_bar -->
 
 function postIt()
 {
@@ -82,6 +162,10 @@ function postIt()
 	}
 
 <!-- BEGIN switch_show_progress_bar -->
+	if (window.XMLHttpRequest && window.FormData)
+	{
+		return startTrackedUpload(document.upload);
+	}
 	openUploadProgress();
 <!-- END switch_show_progress_bar -->
 	return true;

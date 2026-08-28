@@ -258,7 +258,7 @@ function album_init_personal_gallery($user_id)
 // ------------------------------------------------------------------------
 function album_get_personal_root_id($user_id)
 {
-	global $db, $album_data;
+	global $db, $album_data, $userdata;
 
 	// ------------------------------------------------------------------------
 	// if we aren't in a personal gallery cat
@@ -267,8 +267,10 @@ function album_get_personal_root_id($user_id)
 	if ($user_id == ALBUM_PUBLIC_GALLERY)
 	    return ALBUM_ROOT_CATEGORY;
 
-	//if ( is_array($album_data ) && count($album_data['data']) > 0)
-	if ( $userdata['user_id'] == $user_id && is_array($album_data ) && count($album_data['data']) > 0 && $album_data['personal'][0] == 1)
+	if (isset($userdata['user_id']) && $userdata['user_id'] == $user_id &&
+		isset($album_data['data'], $album_data['personal'][0], $album_data['id'][0]) &&
+		is_array($album_data['data']) && count($album_data['data']) > 0 &&
+		$album_data['personal'][0] == 1)
 	{
 		return $album_data['id'][0]; // the first array index is always root
 	}
@@ -535,10 +537,12 @@ function album_no_newest_pictures($check_date, $cats, $exclude_cat_id = 0)
 
 	$pictotalrows = array();
 
-	if (is_null($cats))
+	if (empty($cats))
 	{
 		return $pictotalrows;
 	}
+
+	$multiplier = 0;
 
 	// --------------------------------------------------------------------
 	// NOTE : this function is weighted, meaning that days has higher
@@ -634,8 +638,9 @@ function album_is_personal_gallery($cat_id) // for backward compability... for n
 function album_get_cat_user_id($cat_id)
 {
 	global $db, $album_data;
+	$cat_id = intval($cat_id);
 
-	if ( @!array_key_exists($cat_id,$album_data['keys']) || !isset($album_data) || !is_array($album_data))
+	if (!isset($album_data) || !is_array($album_data) || !isset($album_data['keys']) || !is_array($album_data['keys']) || !array_key_exists($cat_id, $album_data['keys']))
 	{
 	 	$sql = 'SELECT cat_user_id FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_id = ' . $cat_id . ' LIMIT 1';
 
@@ -648,7 +653,7 @@ function album_get_cat_user_id($cat_id)
 		
 		$db->sql_freeresult($result);
 
-	    return ($row['cat_user_id'] != 0) ? $row['cat_user_id'] : false;
+	    return (isset($row['cat_user_id']) && $row['cat_user_id'] != 0) ? $row['cat_user_id'] : false;
 	}
 	else
 	{
@@ -1045,6 +1050,7 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 			{
 				break;
 			}
+			$approval_link = '';
 
 			if ($thiscat['cat_approval'] != ALBUM_USER)
 			{
@@ -1121,7 +1127,7 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 				)
 			);
 
-			if ( is_array($cats) )
+			if (strpos($cat_ids, ',') !== false)
 			{
 				// is a personal category that the picture belongs to AND
 				// is it the main category in the personal gallery ?

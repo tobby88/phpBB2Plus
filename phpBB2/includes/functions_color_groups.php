@@ -267,7 +267,7 @@ function cg_get_data($user_id, $all = false)
 		} 
 	} 
 
-	if($do_update || !$user_style[$user_id]['name']) 
+	if($do_update || !isset($user_style[$user_id]['name']) || !$user_style[$user_id]['name'])
 	{ 
 		if (!$use_cache && !$all)
 		{

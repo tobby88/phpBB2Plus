@@ -25,6 +25,17 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 }
 
+if (!isset($plus_config) || !is_array($plus_config))
+{
+	$plus_config = array();
+}
+$plus_config += array(
+	'enable_shorturls' => 0,
+	'enable_banners' => 0,
+	'index_layout' => '',
+	'enable_gentime' => 0,
+);
+
 define('HEADER_INC', TRUE);
 
 // Cookie-consent notice. The preference is intentionally stored in a simple,

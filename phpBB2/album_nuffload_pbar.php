@@ -25,153 +25,122 @@ include($album_root_path . 'album_common.'.$phpEx);
 
 function hms($sec)
 {
-	$thetime = str_pad(intval(intval($sec) / 3600),2,"0",STR_PAD_LEFT).":". str_pad(intval(($sec / 60) % 60),2,"0",STR_PAD_LEFT).":". str_pad(intval($sec % 60),2,"0",STR_PAD_LEFT) ;
+	$thetime = str_pad(intval(intval($sec) / 3600), 2, '0', STR_PAD_LEFT) . ':'
+		. str_pad(intval(($sec / 60) % 60), 2, '0', STR_PAD_LEFT) . ':'
+		. str_pad(intval($sec % 60), 2, '0', STR_PAD_LEFT);
 	return $thetime;
 }
 
-// Check session_id and monitor upload or quit
-if(isset($_REQUEST['sessionid']))
+function upload_progress_file_size($filename)
 {
-	// Set unlimited timeout
-	set_time_limit(0);
-	$start_time = time(); //Set start time as now
-	$sessionid = $_REQUEST['sessionid'];
-	
-	// Path to data files
-	$info_file = $album_config['path_to_bin'] . "tmp/$sessionid"."_flength";
-	$data_file = $album_config['path_to_bin'] . "tmp/$sessionid"."_postdata";
-
-	// Dump page header
-	$gen_simple_header = TRUE;
-	$page_title = $lang['upload_in_progress'];
-	if(!$album_config['simple_format']){
-	include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-	}
-
-	// Load template
-	$template->set_filenames(array(
-		'body' => 'album_nuffload_pbar_body.tpl'
-		)
-	);
-
-	// Load template variable
-	$template->assign_vars(array(
-		'L_ALBUM' => $lang['album'],
-		'L_UPLOAD_PIC' => $lang['Upload_Pic'],
-		'L_UPLOAD_IN_PROGRESS' => $lang['upload_in_progress'],
-		'L_TIME_ELAPSED' => $lang['time_elapsed'],
-		'L_TIME_REMAINING' => $lang['time_remaining'],
-		'L_NUFFLOAD_VERSION' => "v1.4.2"
-		)
-	);
-
-	//Output page
-	$template->pparse('body');
-
-	$template->set_filenames(array(
-		'overall_footer' => 'simple_footer.tpl'
-		)
-	);
-
-	$template->pparse('overall_footer');
-
-	$db->sql_close();
-
-	// Loop/monitor filesize until complete
-	$upload_started = false;
-	for(;$percent_done < 100;)
-	{
-		// Open info file to find filesize
-		// info file created by perl script
-		if (intval($total_size) <= 0)
-		{
-			if ($fp = @fopen($info_file,"r"))
-			{
-				$fd = fread($fp,1000);
-				fclose($fp);
-				$total_size = $fd;
-			}
-		}
-		
-		$time_elapsed = time()- $start_time;
-		$previous_size = $current_size;
-		clearstatcache();
-		if (file_exists($data_file))
-		{
-			$current_size = filesize($data_file);
-			$upload_started = true;
-		}
-		else
-		{
-			if ($upload_started)
-			{
-				?>
-				<script language="JavaScript" type="text/javascript">
-					<!--
-						top.close();
-					// -->
-				</script>
-				<?php
-				exit;
-			}
-		}
-		// This section checks for no activity and stops processing
-		if ($previous_size < $current_size)
-		{
-			$activity_time = 0;
-		}
-		else
-		{
-			$activity_time++;
-		}
-		if ($activity_time >= $album_config['max_pause'])
-		{
-			?>
-			<script language="JavaScript" type="text/javascript">
-				<!--
-					top.close();
-				// -->
-			</script>
-			<?php
-			exit;
-		}
-		
-		// Calculate progress values if upload started.
-		if ($current_size > 0 && $time_elapsed > 0)
-		{
-			$percent_done = sprintf("%.0f",($current_size / $total_size) * 100);
-			$speed = ($current_size / $time_elapsed);
-			if ($speed == 0) {$speed = 1024;}
-			$time_remain_str = hms(($total_size-$current_size) / $speed);
-			$time_elapsed_str = hms($time_elapsed);
-		}
-		if ($percent_done < 1)
-		{
-			$percent_done = 1;
-		}
-		?>
-		<script language="JavaScript" type="text/javascript">
-			<!--
-				document.getElementById("progress1").width = "<?php print $percent_done; ?>%";
-				document.getElementById("progress2").innerHTML = '<? echo $current_size; ?>/<? echo $total_size; ?> (<? echo $percent_done; ?>%) <? echo printf("%.2f",$speed/1024); ?> kbit/s<br><? echo $lang['time_elapsed'] . ": " . $time_elapsed_str; ?><br><? echo $lang['time_remaining'] . ": " . $time_remain_str; ?>';
-			// -->
-		</script>
-<?php
-		ob_flush();
-		flush();
-		sleep(1);
-	}
-	
-	// Send javascript to close form if required
-	if ($album_config['close_on_finish'])
-	{
-		?>
-		<script language="JavaScript" type="text/javascript">
-			<!--
-				top.close();
-			// -->
-		</script>
-		<?php
-	}
+	clearstatcache(true, $filename);
+	return is_file($filename) ? max(0, intval(filesize($filename))) : 0;
 }
+
+// The progress endpoint is only meaningful for an active upload. Showing a
+// regular forum message for direct visits avoids an empty or unstyled page.
+if (!isset($_REQUEST['sessionid']))
+{
+	message_die(GENERAL_MESSAGE, $lang['No_upload_in_progress']);
+}
+
+$sessionid = (string) $_REQUEST['sessionid'];
+if (!preg_match('/^[a-f0-9]{32}$/i', $sessionid))
+{
+	message_die(GENERAL_ERROR, $lang['No_upload_in_progress']);
+}
+
+$tmp_path = rtrim($album_config['path_to_bin'], '/\\') . '/tmp/';
+$info_file = $tmp_path . $sessionid . '_flength';
+$data_file = $tmp_path . $sessionid . '_postdata';
+$received_file = $tmp_path . $sessionid . '_received';
+$complete_file = $tmp_path . $sessionid . '_complete';
+
+// Short JSON requests avoid the buffering that prevented the legacy streaming
+// response from updating in current FPM/web-server combinations.
+if (isset($_REQUEST['status']))
+{
+	header('Content-Type: application/json; charset=UTF-8');
+	header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+	header('Pragma: no-cache');
+
+	if (isset($_REQUEST['cleanup']))
+	{
+		@unlink($received_file);
+		@unlink($complete_file);
+		@unlink($info_file);
+		@unlink($data_file);
+		echo json_encode(array('ok' => true));
+		exit;
+	}
+
+	$total_size = upload_progress_file_size($info_file) > 0 ? intval(trim(@file_get_contents($info_file))) : 0;
+	$current_size = upload_progress_file_size($data_file);
+	$received = is_file($received_file);
+	$complete = is_file($complete_file);
+	if ($total_size <= 0 && $received)
+	{
+		$total_size = intval(trim(@file_get_contents($received_file)));
+	}
+
+	$start_time = is_file($info_file) ? intval(filemtime($info_file)) : time();
+	$elapsed = max(0, time() - $start_time);
+	$speed = ($current_size > 0 && $elapsed > 0) ? ($current_size / $elapsed) : 0;
+	$remaining = ($speed > 0 && $total_size > $current_size) ? (($total_size - $current_size) / $speed) : 0;
+	$percent = ($total_size > 0) ? intval(floor(($current_size / $total_size) * 100)) : 0;
+	$percent = max(0, min(($received || $complete) ? 100 : 99, $percent));
+
+	$state = 'waiting';
+	if ($complete)
+	{
+		$state = 'complete';
+		$percent = 100;
+		$current_size = max($current_size, $total_size);
+	}
+	else if ($received)
+	{
+		$state = 'processing';
+		$percent = 100;
+		$current_size = max($current_size, $total_size);
+	}
+	else if ($total_size > 0 || $current_size > 0)
+	{
+		$state = 'uploading';
+	}
+
+	echo json_encode(array(
+		'state' => $state,
+		'percent' => $percent,
+		'current' => $current_size,
+		'total' => $total_size,
+		'speed_kb' => round($speed / 1024, 2),
+		'elapsed' => hms($elapsed),
+		'remaining' => hms($remaining),
+		'done' => $complete
+	));
+	exit;
+}
+
+$gen_simple_header = TRUE;
+$page_title = $lang['upload_in_progress'];
+include($phpbb_root_path . 'includes/page_header.'.$phpEx);
+
+$template->set_filenames(array('body' => 'album_nuffload_pbar_body.tpl'));
+$template->assign_vars(array(
+	'L_UPLOAD_IN_PROGRESS' => $lang['upload_in_progress'],
+	'L_TIME_ELAPSED' => $lang['time_elapsed'],
+	'L_TIME_REMAINING' => $lang['time_remaining'],
+	'L_UPLOAD_WAITING' => $lang['upload_waiting'],
+	'L_UPLOAD_WAITING_JSON' => json_encode($lang['upload_waiting']),
+	'L_UPLOAD_PROCESSING_JSON' => json_encode($lang['upload_processing']),
+	'L_UPLOAD_COMPLETE_JSON' => json_encode($lang['upload_complete']),
+	'L_UPLOAD_STALLED_JSON' => json_encode($lang['upload_stalled']),
+	'UPLOAD_SESSION_JSON' => json_encode($sessionid),
+	'STATUS_URL' => "album_nuffload_pbar.$phpEx?sessionid=$sessionid&amp;status=1",
+	'MAX_IDLE_POLLS' => max(60, intval($album_config['max_pause']) * 2),
+	'CLOSE_ON_FINISH' => !empty($album_config['close_on_finish']) ? 'true' : 'false',
+	'L_NUFFLOAD_VERSION' => 'v1.4.2'
+));
+$template->pparse('body');
+include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 ?>

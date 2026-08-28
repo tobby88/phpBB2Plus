@@ -118,6 +118,14 @@ if (empty($hour) && empty($min))
 
 // start event
 $topic_calendar_time = 0;
+$s_topic_calendar_year = '';
+$s_topic_calendar_month = '';
+$s_topic_calendar_day = '';
+$topic_calendar_hour = '';
+$topic_calendar_min = '';
+$topic_calendar_duration_day = '';
+$topic_calendar_duration_hour = '';
+$topic_calendar_duration_min = '';
 if (!empty($year))
 {
 	$topic_calendar_time = mktime( intval($hour), intval($min), 0, intval($month), intval($day), intval($year) );
@@ -865,9 +873,11 @@ else if ( $submit || $confirm )
 			$message = ( !empty($_POST['message']) ) ? $_POST['message'] : '';
 			//-- mod : calendar --------------------------------------------------------------------------------
 //-- add
-			$topic_calendar_time = ( $topic_calendar_time != $post_data['topic_calendar_time'] && !$is_auth['auth_cal']) ? $post_data['topic_calendar_time'] : $topic_calendar_time;
+			$post_calendar_time = isset($post_data['topic_calendar_time']) ? intval($post_data['topic_calendar_time']) : 0;
+			$post_calendar_duration = isset($post_data['topic_calendar_duration']) ? intval($post_data['topic_calendar_duration']) : 0;
+			$topic_calendar_time = ( $topic_calendar_time != $post_calendar_time && !$is_auth['auth_cal']) ? $post_calendar_time : $topic_calendar_time;
 			if (empty($topic_calendar_time)) $topic_calendar_time = 0;
-			$topic_calendar_duration = ( $topic_calendar_duration != $post_data['topic_calendar_duration'] && !$is_auth['auth_cal']) ? $post_data['topic_calendar_duration'] : $topic_calendar_duration;
+			$topic_calendar_duration = ( $topic_calendar_duration != $post_calendar_duration && !$is_auth['auth_cal']) ? $post_calendar_duration : $topic_calendar_duration;
 			if ( !empty($topic_calendar_duration) )
 			{
 				$topic_calendar_duration--;
@@ -1000,7 +1010,7 @@ if( $refresh || isset($_POST['del_poll_option']) || $error_msg != '' )
 	$poll_options = array();
 	if ( !empty($_POST['poll_option_text']) )
 	{
-		while( list($option_id, $option_text) = @each($_POST['poll_option_text']) )
+		foreach ($_POST['poll_option_text'] as $option_id => $option_text)
 		{
 			if( isset($_POST['del_poll_option'][$option_id]) )
 			{
@@ -1946,7 +1956,7 @@ if( ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['edit_poll']) )
 
 	if( !empty($poll_options) )
 	{
-		while( list($option_id, $option_text) = each($poll_options) )
+		foreach ($poll_options as $option_id => $option_text)
 		{
 			$template->assign_block_vars('poll_option_rows', array(
 				'POLL_OPTION' => str_replace('"', '&quot;', $option_text), 

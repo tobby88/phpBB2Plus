@@ -84,7 +84,8 @@ if ( !album_check_permission($auth_data, ALBUM_AUTH_VIEW) )
 // ------------------------------------------------------------------------
 // Check personal gallery creation/upload permission
 // ------------------------------------------------------------------------
-if ( !album_check_permission($auth_data,ALBUM_AUTH_UPLOAD) && count($album_data['data']) <= 1 )
+$personal_category_count = (isset($album_data['data']) && is_array($album_data['data'])) ? count($album_data['data']) : 0;
+if ( !album_check_permission($auth_data,ALBUM_AUTH_UPLOAD) && $personal_category_count <= 1 )
 {
 	if ($album_user_id == $userdata['user_id'])
 	{
@@ -165,8 +166,7 @@ else
 		$tmp_array = array();
 		album_get_sub_cat_ids(album_get_personal_root_id($album_user_id), $tmp_array, ALBUM_AUTH_VIEW, true);
 
-		reset($tmp_array);
-		while (list($key, $id) = each($tmp_array))
+		foreach ($tmp_array as $id)
 		{
 			if ($id != $cat_id)
 			{
@@ -345,6 +345,9 @@ $template->assign_block_vars('personal_gallery_header', array());
 // ------------------------------------------------------------------------
 // Do our template info...
 // ------------------------------------------------------------------------
+$album_jumpbox = album_build_jumpbox($cat_id, $album_user_id);
+$sort_username_option = '';
+
 $template->assign_vars(array(
 	'L_ALBUM' => $lang['Album'],
 

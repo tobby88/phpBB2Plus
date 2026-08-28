@@ -45,8 +45,7 @@ function phpbb_schild($smilie, $parameter, $text)
 		
 		if ( !empty($parameter) )
 		{
-			reset($parameter);
-			while ( list( , $line) = each($parameter) )
+			foreach ($parameter as $line)
 			{
 				if ( ( $pos = strpos(' ' . $line, '=') ) )
 				{

@@ -32,6 +32,12 @@ include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 //-- mod : calendar --------------------------------------------------------------------------------
 //-- add
 include_once($phpbb_root_path . 'includes/functions_calendar.'.$phpEx);
+
+if (!defined('IN_MINI_CAL'))
+{
+	define('IN_MINI_CAL', 1);
+}
+include_once($phpbb_root_path . 'mods/netclectic/mini_cal/mini_cal_config.'.$phpEx);
 //-- fin mod : calendar ----------------------------------------------------------------------------
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx); 
 include($phpbb_root_path . 'includes/functions_bookmark.'.$phpEx);
@@ -356,7 +362,6 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			else if ( MINI_CAL_CALENDAR_VERSION != 'NONE' && $search_id == 'mini_cal_events')
             {
 		        // include the required events calendar support
-				define('IN_MINI_CAL', 1);
 				include_once($phpbb_root_path . 'mods/netclectic/mini_cal/mini_cal_config.'.$phpEx);
 		        $mini_cal_inc = 'mini_cal_' . MINI_CAL_CALENDAR_VERSION;
 		    	include_once($phpbb_root_path . 'mods/netclectic/mini_cal/' . $mini_cal_inc . '.' . $phpEx);

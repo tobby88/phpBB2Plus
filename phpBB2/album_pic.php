@@ -138,7 +138,7 @@ function mergePics($sourcefile, $insertfile, $pos = 0, $transition = 50, $filety
    switch( $filetype ) 
    { 
       case '.jpg': 
-         Imagejpeg($sourcefile_id, '', 75); 
+         Imagejpeg($sourcefile_id, null, 75);
          break; 
       case '.png': 
          Imagepng($sourcefile_id); 

@@ -242,7 +242,8 @@ function album_build_index($user_id, &$keys, $cur_cat_id = ALBUM_ROOT_CATEGORY, 
         $keys = album_get_auth_keys($cur_cat_id, ALBUM_AUTH_VIEW ); //, true, -1, -1);
         $max_level = album_get_max_depth($keys, ALBUM_AUTH_VIEW, $cur_cat_id ); //, false);
 
-        $newestpic = album_no_newest_pictures($album_config['new_pic_check_interval'], $album_data['id']);
+		$album_category_ids = (isset($album_data['id']) && is_array($album_data['id'])) ? $album_data['id'] : array();
+		$newestpic = empty($album_category_ids) ? array() : album_no_newest_pictures($album_config['new_pic_check_interval'], $album_category_ids);
     }
 
 	// get the level
@@ -909,7 +910,7 @@ function album_build_jumpbox($cat_id, $user_id = ALBUM_PUBLIC_GALLERY, $auth_key
 {
 	global $phpEx, $lang, $album_data , $userdata;
 
-	if ( count($album_data['data']) == 0 )
+	if (!isset($album_data['data']) || !is_array($album_data['data']) || count($album_data['data']) == 0)
 	{
 		// if $user_id != 0 then it's a personal gallery
   		album_read_tree($user_id);

@@ -24,6 +24,15 @@ if ( !defined('IN_PHPBB') )
 {
 	die('Hacking attempt');
 }
+
+if (!isset($plus_config) || !is_array($plus_config))
+{
+	$plus_config = array();
+}
+$plus_config += array(
+	'enable_shorturls' => 0,
+	'enable_gentime' => 0,
+);
 // Start add - Complete banner MOD
 if ($banner_show_list)
 {
@@ -68,6 +77,24 @@ $template->assign_vars(array(
 // Begin speaking links ShortURL
 if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 {
+	if (!function_exists('phpbb_short_url_slug'))
+	{
+		function phpbb_short_url_slug($name)
+		{
+			$name = html_entity_decode($name, ENT_QUOTES, 'UTF-8');
+			$name = strtr($name, array(
+				'Ä' => 'Ae', 'Ö' => 'Oe', 'Ü' => 'Ue', 'ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss',
+				'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'à' => 'a', 'á' => 'a', 'â' => 'a',
+				'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'é' => 'e', 'è' => 'e', 'ê' => 'e'
+			));
+			$name = strtolower($name);
+			$name = preg_replace('/[^a-z0-9]+/', '-', $name);
+			$name = trim($name, '-');
+
+			return ($name !== '') ? $name : 'forum';
+		}
+	}
+
 	$cache_seo = $phpbb_root_path . 'cache/c_seolist.'.$phpEx;
 
 	if (@!file_exists($cache_seo))
@@ -88,17 +115,7 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 			// cache Forums
 			while ( $row = $db->sql_fetchrow($result) )
 			{
-				$search = array( 'Ö',  'Ä',  'Ü',  'ö',  'ä',  'à', 'é', 'è', 'ü', '$','\\','/', '---');
-				$replace = array( 'oe', 'ae', 'ue', 'oe', 'ae', 'a', 'e', 'e', 'ue', '-', '-', '-', '-');
-				$name = eregi_replace (",|:|'|´|`|\"|\/|-|( )+|#|_", "-", $row['forum_name']);
-				$name = eregi_replace ("&amp", "-and-", $name);
-				$name = eregi_replace ("!|\?", "", $name);
-				$name = eregi_replace ("&", "-and-", $name);
-				$name = eregi_replace ("\(|\)|;", "", $name);
-				$name = eregi_replace ("\[|\]", "", $name);
-				$name = eregi_replace ("(-)+", "-", $name);
-				$name = str_replace ($search, $replace, $name);
-				$name = strtolower ( $name );
+				$name = phpbb_short_url_slug($row['forum_name']);
 
 				$write_string .= '\'|"(?:./)?viewforum.php\?f='.$row['forum_id'].'&(?:amp;)topicdays=([0-9]*)&(?:amp;)start=([0-9]*)"|\','."\n".'\'|"(?:./)?viewforum.php\?f='.$row['forum_id'].'"|\','."\n";
 				$write_string_b .= '\'"viewforum'. $row['forum_id'] . '-\\1-\\2,'. $name . '.html"\','."\n".'\'"forum'. $row['forum_id'] . ','. $name . '.html"\','."\n";
@@ -115,17 +132,7 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 			// cache Categories
 			while ( $row = $db->sql_fetchrow($result) )
 			{
-				$search = array( 'Ö',  'Ä',  'Ü',  'ö',  'ä',  'à', 'é', 'è', 'ü', '$','\\','/', '---');
-				$replace = array( 'oe', 'ae', 'ue', 'oe', 'ae', 'a', 'e', 'e', 'ue', '-', '-', '-', '-');
-				$name = eregi_replace (",|:|'|´|`|\"|\/|-|( )+|#|_", "-", $row['cat_title']);
-				$name = eregi_replace ("&amp", "-and-", $name);
-				$name = eregi_replace ("!|\?", "", $name);
-				$name = eregi_replace ("&", "-and-", $name);
-				$name = eregi_replace ("\(|\)|;", "", $name);
-				$name = eregi_replace ("\[|\]", "", $name);
-				$name = eregi_replace ("(-)+", "-", $name);
-				$name = str_replace ($search, $replace, $name);
-				$name = strtolower ( $name );
+				$name = phpbb_short_url_slug($row['cat_title']);
 
 				$write_string .= '\'|"(?:./)?index.php\?c='.$row['cat_id'].'"|\','."\n";
 				$write_string_b .= '\'"forumc'. $row['cat_id'] . ','. $name . '.html"\','."\n";

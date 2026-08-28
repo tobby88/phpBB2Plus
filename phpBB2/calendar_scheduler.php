@@ -55,8 +55,8 @@ if ($date == 0)
 }
 
 // date per jumpbox
-$start_month = intval($_POST['start_month']);
-$start_year = intval($_POST['start_year']);
+$start_month = isset($_POST['start_month']) ? intval($_POST['start_month']) : 0;
+$start_year = isset($_POST['start_year']) ? intval($_POST['start_year']) : 0;
 if ( !empty($start_month) && !empty($start_year) )
 {
 	$day = 01;
@@ -316,7 +316,7 @@ for ($j=0; $j < $nb_rows; $j++)
 		{
 			$class = 'quote';
 		}
-		if ($days[$cur])
+		if (!empty($days[$cur]))
 		{
 			$url = append_sid("./calendar_scheduler.$phpEx?d=$offset&fid=$fid");
 			$cur = sprintf('<a href="%s" class="gen"><b>%s</b></a>', $url, $cur);
@@ -331,7 +331,7 @@ for ($j=0; $j < $nb_rows; $j++)
 }
 
 // list of topics
-$period = ($mode == 'hour') ? 3600-1 : '';
+$period = ($mode == 'hour') ? 3600-1 : 0;
 $title = get_calendar_title_date($start_date, $period);
 
 // move events to topic_rowset format

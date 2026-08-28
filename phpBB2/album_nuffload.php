@@ -37,9 +37,22 @@ if (!$album_config['perl_uploader']) {$show_progress_bar = 0;}
 
 fix_magic_quotes();
 
+$multi_id = 0;
+$multi_max = 0;
+$multi_tag = '';
+$pic_type_error = false;
+$thumb_type_error = false;
+$file = array('field' => array(), 'name' => array(), 'size' => array(), 'tmp_name' => array());
+
 // This part handles files after the upload and passes variables across
 if (isset($_REQUEST['psid']))
 {
+	$psid = (string) $_REQUEST['psid'];
+	if (!preg_match('/^[a-f0-9]{32}$/i', $psid))
+	{
+		message_die(GENERAL_ERROR, 'Invalid upload session');
+	}
+
 	// Clean up old files first
 	$dir = $path_to_bin . "tmp/";
 	if (is_dir($dir))
@@ -58,37 +71,27 @@ if (isset($_REQUEST['psid']))
 	}
 	
 	// Session id for this upload.
-	$psid = $_REQUEST['psid'];
-	
 	// Check if this a multi upload so we transfer the correct upload file
-	if ($_GET['multi_id'])
+	if (!empty($_GET['multi_id']))
 	{
-		$multi_tag = "-" . $_GET['multi_id'];
-		$multi_id = $_GET['multi_id'];
+		$multi_id = intval($_GET['multi_id']);
+		$multi_tag = '-' . $multi_id;
 	}
 
 	// Routine for php uploading, save files to disk.
 	// hmmm should probably check full compatibility with this.
 	if (!$album_config['perl_uploader'] && !$multi_id)
 	{
-		$qstr = "";
-		$key_names = array_keys($_GET);
-		for($a=0;$a<count($key_names);$a++)
-		{
-			$qstr .= "&" . $key_names[$a] . "=" . $_GET[$key_names[$a]];
-		}
-		$key_names = array_keys($_POST);
-		for($a=0;$a<count($key_names);$a++)
-		{
-			$qstr .= "&" . $key_names[$a] . "=" . $_POST[$key_names[$a]];
-		}
+		$form_data = array_merge($_GET, $_POST);
+		$qstr = http_build_query($form_data, '', '&');
+		$qstr = ($qstr === '') ? '' : '&' . $qstr;
 		$key_names = array_keys($_FILES);
 		for($a=0;$a<count($key_names);$a++)
 		{
-			$qstr .= "&file[field][$a]=" . $key_names[$a];
-			$qstr .= "&file[name][$a]=" . $_FILES[$key_names[$a]][name];
-			$qstr .= "&file[size][$a]=" . $_FILES[$key_names[$a]][size];
-			$qstr .= "&file[tmp_name][$a]=" . "tmp/" . $psid . "_actualdata" . $a;
+			$qstr .= "&file[field][$a]=" . rawurlencode($key_names[$a]);
+			$qstr .= "&file[name][$a]=" . rawurlencode($_FILES[$key_names[$a]]['name']);
+			$qstr .= "&file[size][$a]=" . intval($_FILES[$key_names[$a]]['size']);
+			$qstr .= "&file[tmp_name][$a]=" . rawurlencode("tmp/" . $psid . "_actualdata" . $a);
 			// Move this file to upload directory
 			// Inefficient but works at the moment
 			$ini_val = ( @phpversion() >= '4.0.0' ) ? 'ini_get' : 'get_cfg_var';
@@ -104,42 +107,50 @@ if (isset($_REQUEST['psid']))
 			{
 				$move_file = 'copy';
 			}
-			$move_file($_FILES[$key_names[$a]][tmp_name], $path_to_bin . "tmp/" . $psid . "_actualdata" . $a);
+			$move_file($_FILES[$key_names[$a]]['tmp_name'], $path_to_bin . "tmp/" . $psid . "_actualdata" . $a);
 		}
 		@unlink($path_to_bin . "tmp/" . $psid . "_qstring");
-		$handle = fopen($path_to_bin . "tmp/" . $psid . "_qstring", 'w');
+		$handle = @fopen($path_to_bin . "tmp/" . $psid . "_qstring", 'w');
+		if ($handle === false)
+		{
+			message_die(GENERAL_ERROR, 'Could not initialize upload session');
+		}
 		fwrite($handle, $qstr);
 		fclose($handle);
 	}
 	
 	// Create variables from query string file.
 	$qstr = @join("",@file($path_to_bin . "tmp/" . $psid . "_qstring"));
-	parse_str($qstr);
-	$qstr_array = explode("&",$qstr);
-	for($i=0; $i < count($qstr_array); $i++)
+	$parsed_upload_data = array();
+	parse_str(ltrim($qstr, '&'), $parsed_upload_data);
+	if (isset($parsed_upload_data['file']) && is_array($parsed_upload_data['file']))
 	{
-		$temp = explode("=",$qstr_array[$i]);
-		if (!preg_match("/^file\[/", $qstr_array[$i]))
+		$file = $parsed_upload_data['file'];
+	}
+	foreach ($parsed_upload_data as $field_name => $field_value)
+	{
+		if ($field_name !== 'file')
 		{
-			$_GET[$temp[0]] = urldecode($temp[1]);
-			$_POST[$temp[0]] = urldecode($temp[1]);
+			$_GET[$field_name] = $field_value;
+			$_POST[$field_name] = $field_value;
 		}
 	}
 	//print "Query string = " . $qstr . "<br />";
 
 
 	// Needed for album hierarchy mod
-	$album_user_id = $_GET['user_id'];
+	$album_user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
 
 	// Find the total number of file inputs from the form
 	$multi_max = 0;
-	$k = count($file['name']);
+	$k = isset($file['name']) && is_array($file['name']) ? count($file['name']) : 0;
 	for($i=0 ; $i < $k ; $i++)
 	{
 		$multi_array = explode("-",$file['field'][$i]);
-		if (intval($multi_array[1])>$multi_max)
+		$field_index = isset($multi_array[1]) ? intval($multi_array[1]) : 0;
+		if ($field_index > $multi_max)
 		{
-			$multi_max = intval($multi_array[1]);
+			$multi_max = $field_index;
 		}
 	}
 	//print "File inputs = " . $multi_max . "<br />";
@@ -205,7 +216,11 @@ if (isset($_REQUEST['psid']))
 		}
 		$multi_max = ($pfm >= $ptm) ? $pfm : $ptm;
 		unlink($path_to_bin . "tmp/" . $psid . "_qstring");
-		$handle = fopen($path_to_bin . "tmp/" . $psid . "_qstring", 'w');
+		$handle = @fopen($path_to_bin . "tmp/" . $psid . "_qstring", 'w');
+		if ($handle === false)
+		{
+			message_die(GENERAL_ERROR, 'Could not update upload session');
+		}
 		fwrite($handle, $qstr);
 		fclose($handle);
 	}
@@ -413,7 +428,9 @@ else
 	$album_user_id = $user_id;
 	if($album_config['perl_uploader'])
 	{
-		$uploader = (function_exists('album_append_uid'))? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") . "&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'] : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'];
+		$upload_scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) != 'off') ? 'https' : 'http';
+		$upload_redirect = $upload_scheme . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
+		$uploader = (function_exists('album_append_uid'))? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") . "&redirect=" . $upload_redirect : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id&redirect=" . $upload_redirect;
 	}
 	else
 	{
@@ -429,7 +446,12 @@ else
 //******************************************************************************
 function multi_loop($message, $success=false)
 {
-	global $multi_id, $multi_max, $template, $phpEx, $psid, $lang, $thiscat, $cat_id, $pic_thumbnail, $album_user_id;
+	global $multi_id, $multi_max, $template, $phpEx, $psid, $lang, $thiscat, $cat_id, $pic_thumbnail, $album_user_id, $path_to_bin;
+
+	if ($multi_id >= $multi_max && preg_match('/^[a-f0-9]{32}$/i', $psid))
+	{
+		@file_put_contents($path_to_bin . 'tmp/' . $psid . '_complete', (string) time(), LOCK_EX);
+	}
 
 	if($success)
 	{

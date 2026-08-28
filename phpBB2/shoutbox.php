@@ -232,6 +232,7 @@ if ((isset($_POST['start']) || isset($_GET['start'])) && !$submit)
 $template->assign_vars(array( 
 	'U_SHOUTBOX' => append_sid("shoutbox.$phpEx?start=$start"),
 	'U_SHOUTBOX_VIEW' => append_sid("shoutbox_view.$phpEx?start=$start"),
+	'U_MORE_SMILIES' => append_sid("shoutbox.$phpEx?mode=smilies"),
 	'T_HEAD_STYLESHEET' => $theme['head_stylesheet'],
 	'T_NAME' => $theme['template_name'],
 

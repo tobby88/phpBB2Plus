@@ -177,7 +177,7 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 		if(!empty($poll_options))
 		{
 			$temp_option_text = array();
-			while(list($option_id, $option_text) = @each($poll_options))
+			foreach ($poll_options as $option_id => $option_text)
 			{
 				$option_text = trim($option_text);
 				if (!empty($option_text))
@@ -383,10 +383,8 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 			$poll_id = $db->sql_nextid();
 		}
 
-		@reset($poll_options);
-
 		$poll_option_id = 1;
-		while (list($option_id, $option_text) = each($poll_options))
+		foreach ($poll_options as $option_id => $option_text)
 		{
 			if (!empty($option_text))
 			{
@@ -469,12 +467,15 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 		{
 			if ($post_data['first_post'])
 			{
-				$forum_update_sql .= ', forum_topics = forum_topics - 1';
+				if ($sign != '')
+				{
+					$forum_update_sql .= ', forum_topics = GREATEST(forum_topics - 1, 0)';
+				}
 			}
 			else
 			{
 
-				$topic_update_sql .= 'topic_replies = topic_replies - 1';
+				$topic_update_sql .= ($sign != '') ? 'topic_replies = GREATEST(topic_replies - 1, 0)' : 'topic_replies = topic_replies';
 
 				$sql = "SELECT MAX(post_id) AS last_post_id
 					FROM " . POSTS_TABLE . " 
@@ -523,12 +524,12 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 
 			if ($row = $db->sql_fetchrow($result))
 			{
-				$topic_update_sql .= 'topic_replies = topic_replies - 1, topic_first_post_id = ' . $row['first_post_id'];
+				$topic_update_sql .= (($sign != '') ? 'topic_replies = GREATEST(topic_replies - 1, 0)' : 'topic_replies = topic_replies') . ', topic_first_post_id = ' . $row['first_post_id'];
 			}
 		}
 		else
 		{
-			$topic_update_sql .= 'topic_replies = topic_replies - 1';
+			$topic_update_sql .= ($sign != '') ? 'topic_replies = GREATEST(topic_replies - 1, 0)' : 'topic_replies = topic_replies';
 		}
 	}
 	else if ($mode != 'poll_delete')
@@ -612,8 +613,7 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		{
 			if ($post_data['first_post'])
 			{
-				$forum_update_sql .= ', forum_topics = forum_topics - 1';
-				$sql = "DELETE FROM " . TOPICS_TABLE . " 
+				$sql = "DELETE FROM " . TOPICS_TABLE . "
 					WHERE topic_id = $topic_id 
 						OR topic_moved_id = $topic_id";
 				if (!$db->sql_query($sql))
@@ -771,8 +771,7 @@ function user_notification($mode, &$post_data, &$topic_title, &$forum_id, &$topi
 
 					$topic_title = (count($orig_word)) ? preg_replace($orig_word, $replacement_word, unprepare_message($topic_title)) : unprepare_message($topic_title);
 
-					@reset($bcc_list_ary);
-					while (list($user_lang, $bcc_list) = each($bcc_list_ary))
+					foreach ($bcc_list_ary as $user_lang => $bcc_list)
 					{
 						$emailer->use_template('topic_notify', $user_lang);
 		
@@ -904,7 +903,7 @@ function generate_smilies($mode, $page_id)
 			$row = 0;
 			$col = 0;
 
-			while (list($smile_url, $data) = @each($rowset))
+			foreach ($rowset as $smile_url => $data)
 			{
 				if (!$col)
 				{

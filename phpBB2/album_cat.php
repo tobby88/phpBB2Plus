@@ -102,6 +102,7 @@ else
 
 //--- Album Category Hierarchy : begin
 //--- version : 1.2.0
+$album_view_mode = '';
 if (isset ($_POST['mode']))
 {
 	$album_view_mode = strtolower($_POST['mode']);
