@@ -25,15 +25,6 @@
 //
 $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
-if (!empty($board_config))
-{
-if ( !defined('IN_PHPBB') )
-{
-die('Hacking attempt');
-exit;
-}
-include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_statistics.' . $phpEx);
-}
 define('IN_PHPBB', true);
 
 if( !empty($setmodules) )

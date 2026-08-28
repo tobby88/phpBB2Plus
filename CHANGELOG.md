@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Repository and update cleanup
 
+- Reconciled the later `phpbb2premods/phpBB2Plus` snapshot against the
+  preserved 1.53a baseline. Retained its valid statistics bootstrap cleanup;
+  the remaining PHP compatibility fixes were already present or superseded,
+  while generated installation data and blanket schema-engine changes were
+  intentionally not imported.
 - Removed the development-only Docker setup and generated upstream audit
   documents; their complete provenance remains available in Git history.
 - Removed the now-empty `mods/` staging area after integrating the selected
