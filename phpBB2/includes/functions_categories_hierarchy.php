@@ -964,7 +964,13 @@ function get_auth_keys($cur='Root', $all=false, $level=-1, $max=-1, $auth_key='a
 	global $board_config;
 	global $tree;
 
-	$keys = array();
+	$keys = array(
+		'keys' => array(),
+		'id' => array(),
+		'real_level' => array(),
+		'level' => array(),
+		'idx' => array()
+	);
 	$last_i = -1;
 
 	// add the level
@@ -989,10 +995,11 @@ function get_auth_keys($cur='Root', $all=false, $level=-1, $max=-1, $auth_key='a
 			$keys['idx'][$last_i]			= (isset($tree['keys'][$cur]) ? $tree['keys'][$cur] : -1);
 
 			// get sub-levels
-			for ($i=0; $i < count($tree['sub'][$cur]); $i++)
+			$sub_items = (isset($tree['sub'][$cur]) && is_array($tree['sub'][$cur])) ? $tree['sub'][$cur] : array();
+			for ($i=0; $i < count($sub_items); $i++)
 			{
 				$tkeys = array();
-				$tkeys = get_auth_keys($tree['sub'][$cur][$i], $all, $orig_level+1, $max, $auth_key);
+				$tkeys = get_auth_keys($sub_items[$i], $all, $orig_level+1, $max, $auth_key);
 
 				// add sub-levels
 				for ($j=0; $j < count($tkeys['id']); $j++)

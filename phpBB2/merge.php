@@ -195,7 +195,7 @@ if (isset($_POST['fid']) || isset($_GET['fid']))
 if (($select_from || $select_to) && (!$cancel))
 {
 	// get the list of forums
-	if (function_exists(selectbox))
+	if (function_exists('selectbox'))
 	{
 		$list_forums = selectbox('fid', false, POST_FORUM_URL . $forum_id);
 	}

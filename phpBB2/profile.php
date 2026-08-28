@@ -110,7 +110,7 @@ if ( isset($_GET['mode']) || isset($_POST['mode']) )
 			exit;
 		}
 
-		if (function_exists(imagettftext) && defined('ADV_CAPTCHA'))
+		if (function_exists('imagettftext') && defined('ADV_CAPTCHA'))
 			include($phpbb_root_path . 'includes/usercp_confirm_adv.'.$phpEx);
 		else
 			include($phpbb_root_path . 'includes/usercp_confirm.'.$phpEx);

@@ -118,7 +118,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 	if (!$announce) return false;
 
 	// read the forums authorized
-	$cat_hierarchy = function_exists(get_auth_keys);
+	$cat_hierarchy = function_exists('get_auth_keys');
 	$auth_forum_ids = array();
 	$tree_forum_ids = array();
 	if (!$cat_hierarchy)

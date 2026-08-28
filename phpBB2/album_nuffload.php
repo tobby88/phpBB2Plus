@@ -413,11 +413,11 @@ else
 	$album_user_id = intval($_REQUEST['user_id']);
 	if($album_config['perl_uploader'])
 	{
-		$uploader = (function_exists(album_append_uid))? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") . "&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'] : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'];
+		$uploader = (function_exists('album_append_uid'))? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") . "&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'] : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'];
 	}
 	else
 	{
-		$uploader = (function_exists(album_append_uid))? album_append_uid("album_upload.php?psid=$psid&cat_id=$cat_id") : "album_upload.php?psid=$psid&cat_id=$cat_id";
+		$uploader = (function_exists('album_append_uid'))? album_append_uid("album_upload.php?psid=$psid&cat_id=$cat_id") : "album_upload.php?psid=$psid&cat_id=$cat_id";
 	}
 	$uploader = append_sid($uploader);
 }
@@ -446,7 +446,7 @@ function multi_loop($message, $success=false)
 	if ($multi_id < $multi_max)
 	{
 		$multi_id++;
-		$return_page = (function_exists(album_append_uid))? album_append_uid("album_upload.$phpEx?psid=$psid&multi_id=$multi_id") : "album_upload.$phpEx?psid=$psid&multi_id=$multi_id";
+		$return_page = (function_exists('album_append_uid'))? album_append_uid("album_upload.$phpEx?psid=$psid&multi_id=$multi_id") : "album_upload.$phpEx?psid=$psid&multi_id=$multi_id";
 		$template->assign_vars(array(
 			'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid($return_page) . '">'
 			)
@@ -459,7 +459,7 @@ function multi_loop($message, $success=false)
 		$message .= "<br /><br /><span class='gen'>" . str_replace("%multi_id%", $multi_id, str_replace("%multi_max%", $multi_max + 1, $lang['uploaded'])) . "</span><br /><br />";
 		if ($cat_id != PERSONAL_GALLERY)
 		{
-			$return_page = (function_exists(album_append_uid))? album_append_uid("album_cat.$phpEx?cat_id=$cat_id") : "album_cat.$phpEx?cat_id=$cat_id";
+			$return_page = (function_exists('album_append_uid'))? album_append_uid("album_cat.$phpEx?cat_id=$cat_id") : "album_cat.$phpEx?cat_id=$cat_id";
 			if ($thiscat['cat_approval'] == 0)
 			{
 				$template->assign_vars(array(

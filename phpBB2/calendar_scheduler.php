@@ -248,7 +248,7 @@ for ($i=1971; $i < 2070; $i++)
 $s_year .= '</select>';
 
 // build a forum select list
-$cat_hierarchy = function_exists(get_auth_keys);
+$cat_hierarchy = function_exists('get_auth_keys');
 if (!$cat_hierarchy)
 {
 	$s_forum_list = '<select name="selected_id" onchange="forms[\'_calendar_scheduler\'].submit();">' . calendar_get_tree_option($fid) . '</select>';

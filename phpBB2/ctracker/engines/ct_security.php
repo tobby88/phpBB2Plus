@@ -210,7 +210,7 @@ else if ( CT_SECLEVEL == 'MEDIUM' ||  CT_SECLEVEL == 'LOW' )
 $ct_attack_detection = false;
 
 // Write query String in the var $cracktrack and make it lowercase
-$cracktrack = strtolower($HTTP_SERVER_VARS['QUERY_STRING']);
+$cracktrack = strtolower(isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '');
 
 // Filter out the unchecked fields
 $unchecked_get_fields 	= implode('|', $unchecked_get_fields);
@@ -238,7 +238,7 @@ else
 	  $ct_attack_detection = true;
 	  ct_debugger($crackcheck, 'RAWGET');
   }
-  elseif ( CT_SECLEVEL != 'LOW' || !defined('CT_SECLEVEL') )
+  elseif ( !defined('CT_SECLEVEL') || CT_SECLEVEL != 'LOW' )
   {
     // We create a copy of the $HTTP_POST_VARS for checking
     $checkpost = ( is_array($HTTP_POST_VARS) ) ? $HTTP_POST_VARS : array();

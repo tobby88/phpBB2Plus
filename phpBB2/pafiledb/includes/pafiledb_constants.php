@@ -50,12 +50,12 @@ define('PA_AUTH_COMMENT_EDIT', 10);
 define('PA_AUTH_COMMENT_DELETE', 11);
 
 //Field Types
-define('INPUT', 0);
-define('TEXTAREA', 1);
-define('RADIO', 2);
-define('SELECT', 3);
-define('SELECT_MULTIPLE', 4);
-define('CHECKBOX', 5);
+defined('INPUT') || define('INPUT', 0);
+defined('TEXTAREA') || define('TEXTAREA', 1);
+defined('RADIO') || define('RADIO', 2);
+defined('SELECT') || define('SELECT', 3);
+defined('SELECT_MULTIPLE') || define('SELECT_MULTIPLE', 4);
+defined('CHECKBOX') || define('CHECKBOX', 5);
 
 define('ICONS_DIR', 'pafiledb/images/icons/');
  

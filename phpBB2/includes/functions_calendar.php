@@ -330,7 +330,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 	}
 
 	// get the forums authorized (compliency with categories hierarchy v2 mod)
-	$cat_hierarchy = function_exists(get_auth_keys);
+	$cat_hierarchy = function_exists('get_auth_keys');
 	$s_forums_ids = '';
 	if (!$cat_hierarchy)
 	{
@@ -475,7 +475,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		}
 		$short_title = (strlen($topic_title) > $topic_title_length + 3) ? substr($topic_title, 0, $topic_title_length) . '...' : $topic_title;
 		$dsp_topic_icon = '';
-		if (function_exists(get_icon_title))
+		if (function_exists('get_icon_title'))
 		{
 			$dsp_topic_icon = get_icon_title($topic_icon, 0, POST_CALENDAR);
 		}
@@ -1067,6 +1067,10 @@ if ( !$use_cache || $cal_ttl < time() )
 		// search a free day map offset in the start day
 		$event_id = $events[$i]['event_id'];
 		$offset_date = $event_start;
+		if (!isset($map[$event_start]) || !is_array($map[$event_start]))
+		{
+			$map[$event_start] = array();
+		}
 		$map_offset = count($map[$event_start]);
 		$found = false;
 		for ($k=0; ($k < count($map[$event_start])) && !$found; $k++)
@@ -1082,6 +1086,10 @@ if ( !$use_cache || $cal_ttl < time() )
 		$offset_date = $event_start;
 		while ($offset_date <= $event_end)
 		{
+			if (!isset($map[$offset_date]) || !is_array($map[$offset_date]))
+			{
+				$map[$offset_date] = array();
+			}
 			for ($l=count($map[$offset_date]); $l <= $map_offset; $l++)
 			{
 				$map[$offset_date][$l] = -1;
@@ -1117,7 +1125,7 @@ if ( !$use_cache || $cal_ttl < time() )
 	$s_year .= '</select>';
 
 	// build a forum select list
-	$cat_hierarchy = function_exists(get_auth_keys);
+	$cat_hierarchy = function_exists('get_auth_keys');
 	if (!$cat_hierarchy)
 	{
 		$s_forum_list = '<select name="selected_id" onchange="forms[\'_calendar\'].submit();">' . calendar_get_tree_option($fid) . '</select>';
@@ -1216,6 +1224,10 @@ if ( !$use_cache || $cal_ttl < time() )
 
 				// send events
 				$more = false;
+				if (!isset($map[$offset_date]) || !is_array($map[$offset_date]))
+				{
+					$map[$offset_date] = array();
+				}
 				$over = ( count($map[$offset_date]) > $nb_row_per_cell);
 				for ($k=0; $k < count($map[$offset_date]); $k++)
 				{

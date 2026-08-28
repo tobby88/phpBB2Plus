@@ -230,7 +230,7 @@
     
 	$template->assign_vars(array(
 		'U_MINI_CAL_CALENDAR' => append_sid($phpbb_root_path . 'mycalendar.' . $phpEx),
-		'U_MINI_CAL_ADD_EVENT' => append_sid($phpbb_root_path . 'posting.' . $phpEx . '?mode=newtopic&f=' . MINI_CAL_EVENTS_FORUM )
+		'U_MINI_CAL_ADD_EVENT' => append_sid($phpbb_root_path . 'posting.' . $phpEx . '?mode=newtopic' . (defined('MINI_CAL_EVENTS_FORUM') ? '&f=' . MINI_CAL_EVENTS_FORUM : ''))
         )
     );    
     

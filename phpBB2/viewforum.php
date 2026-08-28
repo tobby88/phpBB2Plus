@@ -837,7 +837,7 @@ if( $total_topics )
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 		//-- mod : announces -------------------------------------------------------------------------------
 //-- add
-		if (function_exists(get_announces_title) && !empty($topic_rowset[$i]['topic_announce_duration']))
+		if (function_exists('get_announces_title') && !empty($topic_rowset[$i]['topic_announce_duration']))
 		{
 			$topic_title .= '</a></span>&nbsp;&nbsp;<span class="gensmall"><a name="ann_' . $topic_id . '">' . get_announces_title( $topic_rowset[$i]['topic_time'], $topic_rowset[$i]['topic_announce_duration'] ) . '</span><span class="topictitle">';
 		}
