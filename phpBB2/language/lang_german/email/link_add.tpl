@@ -1,8 +1,8 @@
 Subject: Link added
-Charset: iso-8859-1
+Charset: UTF-8
 
 Hallo Boardadmin,
 
-Der Link {LINK_URL} wurde im Forum {SITENAME} hinzugefügt, bitte gehe zum Links Management und prüfe diesen.
+Der Link {LINK_URL} wurde im Forum {SITENAME} hinzugefÃ¼gt, bitte gehe zum Links Management und prÃ¼fe diesen.
 
-Wenn Du nicht weiter diese Nachrichten erhalten möchtest, dann stelle dieses in der Links Konfiguration ab.
+Wenn Du nicht weiter diese Nachrichten erhalten mÃ¶chtest, dann stelle dieses in der Links Konfiguration ab.

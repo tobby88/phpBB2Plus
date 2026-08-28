@@ -92,6 +92,10 @@ var $day;									// return array s.a.
 *
 * Sets default values for e.g. language (default=english)
 **/
+function __construct(){
+	$this->calendarSuite();
+}
+
 function calendarSuite(){
 	switch (language) {
 
@@ -322,4 +326,4 @@ function formatDate($stamp, $option = dateFormat) {
 // end of class
 }
 
-?> 
+?>

@@ -261,6 +261,14 @@ function auth($type, $forum_id, $userdata, $f_access = '')
 		//
 		if ( $forum_id != AUTH_LIST_ALL )
 		{
+			// Some callers request optional permissions that are not present in
+			// every forum ACL row. Treat those entries as AUTH_ALL instead of
+			// emitting an undefined-index warning.
+			if ( !isset($f_access[$key]) )
+			{
+				$f_access[$key] = AUTH_ALL;
+			}
+
 			$value = $f_access[$key];
 
 			switch( $value )

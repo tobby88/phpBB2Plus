@@ -58,6 +58,11 @@ class NewsModule
   *
   * @access public
   */
+  function __construct( $root_path )
+  {
+    $this->NewsModule( $root_path );
+  }
+
   function NewsModule( $root_path )
   {
     global $CFG, $db, $phpEx, $template, $board_config;
@@ -81,7 +86,7 @@ class NewsModule
         'ROOT_PATH' => $this->root_path
         ));
 
-    $this->data =& new NewsDataAccess( $root_path );
+    $this->data = new NewsDataAccess( $root_path );
   }
   function assignToBlock( $block ) 
   { 

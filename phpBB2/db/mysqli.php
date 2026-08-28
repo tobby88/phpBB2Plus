@@ -34,6 +34,11 @@ class sql_db
 	//
 	// Constructor
 	//
+	function __construct($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
+	{
+		$this->sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency);
+	}
+
 	function sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
 	{
 
@@ -54,6 +59,15 @@ class sql_db
 
 		if($this->db_connect_id)
 		{
+			// Keep the connection encoding aligned with the UTF-8 source,
+			// templates, language files and fresh-install schema.
+			if (!@mysqli_set_charset($this->db_connect_id, 'utf8'))
+			{
+				@mysqli_close($this->db_connect_id);
+				$this->db_connect_id = false;
+				return false;
+			}
+
 			if($database != "")
 			{
 				$this->dbname = $database;

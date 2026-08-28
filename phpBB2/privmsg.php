@@ -232,7 +232,7 @@ else if ( $mode == 'read' )
 	//
 	// Major query obtains the message ...
 	//
-	$sql = "SELECT u.username AS username_1, u.user_id AS user_id_1, u.user_absence, u.user_absence_mode, u2.username AS username_2, u2.user_id AS user_id_2, u.user_sig_bbcode_uid, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_viewemail, u.user_rank, u.user_sig, u.user_avatar, pm.*, pmt.privmsgs_bbcode_uid, pmt.privmsgs_text
+	$sql = "SELECT u.username AS username_1, u.user_id AS user_id_1, u.user_absence, u.user_absence_mode, u2.username AS username_2, u2.user_id AS user_id_2, u.user_sig_bbcode_uid, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, u.user_viewemail, u.user_rank, u.user_sig, u.user_avatar, pm.*, pmt.privmsgs_bbcode_uid, pmt.privmsgs_text
 		FROM " . PRIVMSGS_TABLE . " pm, " . PRIVMSGS_TEXT_TABLE . " pmt, " . USERS_TABLE . " u, " . USERS_TABLE . " u2 
 		WHERE pm.privmsgs_id = $privmsgs_id
 			AND pmt.privmsgs_text_id = pm.privmsgs_id 
@@ -541,6 +541,7 @@ else if ( $mode == 'read' )
 
 	$yim_img = ( $privmsg['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
 	$yim = ( $privmsg['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg">' . $lang['YIM'] . '</a>' : '';
+	$social = phpbb_social_profile_links($privmsg);
 
 	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username_from) . "&amp;showresults=posts");
 	$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $username_from) . '" title="' . sprintf($lang['Search_user_posts'], $username_from) . '" border="0" /></a>';
@@ -650,7 +651,25 @@ else if ( $mode == 'read' )
 		'MSN_IMG' => $msn_img,
 		'MSN' => $msn,
 		'YIM_IMG' => $yim_img,
-		'YIM' => $yim)
+		'YIM' => $yim,
+		'FB_IMG' => $social['FB_IMG'],
+		'FB' => $social['FB'],
+		'IG_IMG' => $social['IG_IMG'],
+		'IG' => $social['IG'],
+		'PT_IMG' => $social['PT_IMG'],
+		'PT' => $social['PT'],
+		'TWR_IMG' => $social['TWR_IMG'],
+		'TWR' => $social['TWR'],
+		'SKP_IMG' => $social['SKP_IMG'],
+		'SKP' => $social['SKP'],
+		'TG_IMG' => $social['TG_IMG'],
+		'TG' => $social['TG'],
+		'LI_IMG' => $social['LI_IMG'],
+		'LI' => $social['LI'],
+		'TT_IMG' => $social['TT_IMG'],
+		'TT' => $social['TT'],
+		'DC_IMG' => $social['DC_IMG'],
+		'DC' => $social['DC'])
 	);
 
 	$template->pparse('body');

@@ -18,19 +18,19 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
- 
+
   /***************************************************************************
  *                            MODIFICATIONS
  *                           ---------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5.1
  *
  *	 MODIFICATIONS:
  *		-renamed page to album_showpage.php
  *		-combined rating and comment system to page
- *		-added smilies, user avatar, contact buttons and made layout have 
+ *		-added smilies, user avatar, contact buttons and made layout have
  *		 forum type look
  *		-made the page use midthumbnail...enabled/desabled via admin panel
  *		-and more tweaks..
@@ -46,7 +46,7 @@ if( isset($_GET['mode']) && $_GET['mode'] == 'smilies' )
     include($phpbb_root_path . 'extension.inc');
     include($phpbb_root_path . 'common.'.$phpEx);
     include($phpbb_root_path . 'album_mod/clown_album_functions.'.$phpEx);
-        
+
     generate_album_smilies('window', PAGE_ALBUM_PICTURE);
     exit;
 }
@@ -151,8 +151,8 @@ if( isset($_GET['mode']) )
 		{
 			message_die(GENERAL_ERROR, 'Bad pic_id');
 		}
-		
-		$pic_cat_id_temp = $row['pic_cat_id']; 
+
+		$pic_cat_id_temp = $row['pic_cat_id'];
       	$pic_id_temp =  $row['pic_id'];
 
 		$sql = "SELECT new.pic_id, new.pic_time
@@ -176,28 +176,28 @@ if( isset($_GET['mode']) )
 
 		if( empty($row) )
 		{
-			$sql = "SELECT new.pic_id, new.pic_time 
-	         	FROM ". ALBUM_TABLE ." AS new, ". ALBUM_TABLE ." AS cur 
-	         	WHERE cur.pic_id = $pic_id_temp 
-	            AND new.pic_id <> $pic_id_temp 
-	            AND new.pic_cat_id = $pic_cat_id_temp "; 
+			$sql = "SELECT new.pic_id, new.pic_time
+	         	FROM ". ALBUM_TABLE ." AS new, ". ALBUM_TABLE ." AS cur
+	         	WHERE cur.pic_id = $pic_id_temp
+	            AND new.pic_id <> $pic_id_temp
+	            AND new.pic_cat_id = $pic_cat_id_temp ";
 
-	         $sql .= ($pic_cat_id_temp == PERSONAL_GALLERY) ? " AND new.pic_user_id = cur.pic_user_id" : ""; 
+	         $sql .= ($pic_cat_id_temp == PERSONAL_GALLERY) ? " AND new.pic_user_id = cur.pic_user_id" : "";
 
-	         $sql .= ($_GET['mode'] == 'next') ? " ORDER BY pic_time ASC LIMIT 0,1" : " ORDER BY pic_time DESC LIMIT 0,1"; 
+	         $sql .= ($_GET['mode'] == 'next') ? " ORDER BY pic_time ASC LIMIT 0,1" : " ORDER BY pic_time DESC LIMIT 0,1";
 
 
-	         if( !($result = $db->sql_query($sql)) ) 
-	         { 
-	            message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql); 
-	         } 
+	         if( !($result = $db->sql_query($sql)) )
+	         {
+	            message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
+	         }
 
-	         $row = $db->sql_fetchrow($result); 
+	         $row = $db->sql_fetchrow($result);
 
-	         if( empty($row) ) 
-	         { 
-	            message_die(GENERAL_ERROR, $lang['Pic_not_exist']); 
-	         } 
+	         if( empty($row) )
+	         {
+	            message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
+	         }
 
 			}
 
@@ -335,7 +335,7 @@ if ($album_nav_cat_desc != '') $album_nav_cat_desc = ALBUM_NAV_ARROW . $album_na
 
 if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 {
-	
+
 	/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                Comments Screen
 	   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -415,7 +415,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 	if ($total_comments > 0)
 	{
 		$template->assign_block_vars('coment_switcharo_top', array());
-		
+
 		$limit_sql = ($start == 0) ? $comments_per_page : $start .','. $comments_per_page;
 
 		$sql = "SELECT c.*, u.user_id, u.username, u.user_regdate, u.user_posts, u.user_allowavatar, u.user_rank, u.user_avatar, u.user_avatar_type, u.user_email, u.user_icq, u.user_website, u.user_from, u.user_aim, u.user_yim, u.user_msnm
@@ -471,17 +471,17 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			{
 				$edit_info = '';
 			}
-			
+
 			// Smilies
 			$commentrow[$i]['comment_text'] = smilies_pass($commentrow[$i]['comment_text']);
 			$commentrow[$i]['comment_text'] = make_clickable($commentrow[$i]['comment_text']);
 			$commentrow[$i]['comment_text'] = nl2br($commentrow[$i]['comment_text']);
-			
+
 			//email, profile, pm links
 			$email_uri = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL .'=' . $commentrow[$i]['user_id']) : 'mailto:' . $commentrow[$i]['user_email'];
 			$profile_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $commentrow[$i]['user_id'] );
 			$pm_url = append_sid("privmsg.$phpEx?mode=post&amp;" . POST_USERS_URL . "=" . $commentrow[$i]['user_id']);
-			
+
 			//avatar
 			$poster_avatar = '';
 			if ( $commentrow[$i]['user_avatar_type'] && $commentrow[$i]['user_id'] != ANONYMOUS && $commentrow[$i]['user_allowavatar'] )
@@ -499,7 +499,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 						break;
 				}
 			}
-			
+
 			//rank & rank image
 			$sql = "SELECT *
 				FROM " . RANKS_TABLE . "
@@ -553,13 +553,13 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				$poster = $commentrow[$i]['post_username'];
 				$poster_rank = $lang['Guest'];
 			}
-			
+
 			$template->assign_block_vars('commentrow', array(
 				'ID' => $commentrow[$i]['comment_id'],
 				'POSTER_NAME' => $poster,
 				'TIME' => create_date($board_config['default_dateformat'], $commentrow[$i]['comment_time'], $board_config['board_timezone']),
 				'IP' => ($userdata['user_level'] == ADMIN) ? '<a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($commentrow[$i]['comment_user_ip']) . '" target="_blank">' . decode_ip($commentrow[$i]['comment_user_ip']) .'</a><br />' : '',
-				
+
 				//users mesangers, website, email
 				'PROFILE_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_profile'] . '" alt="' . $lang['Read_profile'] . '" title="' . $lang['Read_profile'] . '" border="0" /></a>' : '',
 				'PM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $pm_url . '"><img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" /></a>' : '',
@@ -569,14 +569,14 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				'ICQ_IMG' =>  ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_icq'] ) ? '<a href="http://wwp.icq.com/scripts/search.dll?to=' . $commentrow[$i]['user_icq'] . '"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>' : '' : '',
 				'EMAIL_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '',
 				'WWW_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_website'] ) ? '<a href="' . $commentrow[$i]['user_website'] . '" target="_userwww"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '' : '',
-				
+
 				'POSTER_AVATAR' => $poster_avatar,
 				'POSTER_RANK' => $poster_rank,
 				'POSTER_RANK_IMGAGE' => $rank_image,
 				'POSTER_JOINED' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $commentrow[$i]['user_regdate'], $board_config['board_timezone']) : '',
 				'POSTER_POSTS' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $commentrow[$i]['user_posts'] : '',
 				'POSTER_FROM' => ( $commentrow[$i]['user_from'] && $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . $commentrow[$i]['user_from'] : '',
-				
+
 
 				'TEXT' => $commentrow[$i]['comment_text'],
 				'EDIT_INFO' => $edit_info,
@@ -620,9 +620,9 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 	//---------------------------------
 	// Comment Posting Form
 	//---------------------------------
-	
+
 	$image_rating = ImageRating($thispic['rating']);
-	
+
 	if ($album_config['comment'] == 1 && !$auth_data['comment'] == 0)
 	{
 		$template->assign_block_vars('switch_comment_post', array());
@@ -631,12 +631,12 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 		{
 			$template->assign_block_vars('switch_comment_post.logout', array());
 		}
-		
+
         //begin shows smilies
         $max_smilies = 20;
 
          $sql = 'SELECT emoticon, code, smile_url
-                        FROM ' . SMILIES_TABLE . ' 
+                        FROM ' . SMILIES_TABLE . '
                         GROUP BY smile_url
                         ORDER BY smilies_id LIMIT ' . $max_smilies;
 
@@ -646,7 +646,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
         }
         $smilies_count = $db->sql_numrows($result);
         $smilies_data = $db->sql_fetchrowset($result);
-        
+
         for ($i = 1; $i < $smilies_count+1; $i++)
 	        {
 	        	$template->assign_block_vars('switch_comment_post.smilies', array(
@@ -654,53 +654,53 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 	            	'URL' => $board_config['smilies_path'] . '/' . $smilies_data[$i - 1]['smile_url'],
 	            	'DESC' => $smilies_data[$i - 1]['emoticon']
 	            ));
-	            
+
 	            if ( is_integer($i / 5) )
 	            	$template->assign_block_vars('switch_comment_post.smilies.new_col', array());
-	            	
+
 	        }
         }
-        
-    // -------------------------------- 
-    // Rate Scale 
-    // -------------------------------- 
 
-    if ($album_config['rate'] && !$auth_data['rate'] == 0) 
-    { 
-		$template->assign_block_vars('rate_switch', array()); 
-		  
-		if ($album_config['comment'] == 0 || $auth_data['comment'] == 0) 
-		{ 
-		  $template->assign_block_vars('rate_switch_only', array()); 
-		} 
-		else 
-		{ 
-		  $template->assign_block_vars('switch_comment_post.rate_comment', array()); 
-		} 
-		
-		if (!$already_rated && ($album_config['comment'] == 1 && !$auth_data['comment'] == 0)) 
-		{ 
-			for ($i = 0; $i < $album_config['rate_scale']; $i++) 
-			{      
-				$template->assign_block_vars('switch_comment_post.rate_comment.rate_row', array( 
-					'POINT' => ($i + 1) 
-				)); 
-			} 
-		} 
-		elseif (!$already_rated && ($album_config['comment'] == 0 || $auth_data['comment'] == 0)) 
-		{ 
-			for ($i = 0; $i < $album_config['rate_scale']; $i++) 
-			{      
-				$template->assign_block_vars('rate_switch_only.rate_row', array( 
-					'POINT' => ($i + 1) 
-				)); 
-			} 
-		} 
-  } 
-  else if ($album_config['rate']) 
-  { 
-	$template->assign_block_vars('rate_switch', array()); 
-  } 
+    // --------------------------------
+    // Rate Scale
+    // --------------------------------
+
+    if ($album_config['rate'] && !$auth_data['rate'] == 0)
+    {
+		$template->assign_block_vars('rate_switch', array());
+
+		if ($album_config['comment'] == 0 || $auth_data['comment'] == 0)
+		{
+		  $template->assign_block_vars('rate_switch_only', array());
+		}
+		else
+		{
+		  $template->assign_block_vars('switch_comment_post.rate_comment', array());
+		}
+
+		if (!$already_rated && ($album_config['comment'] == 1 && !$auth_data['comment'] == 0))
+		{
+			for ($i = 0; $i < $album_config['rate_scale']; $i++)
+			{
+				$template->assign_block_vars('switch_comment_post.rate_comment.rate_row', array(
+					'POINT' => ($i + 1)
+				));
+			}
+		}
+		elseif (!$already_rated && ($album_config['comment'] == 0 || $auth_data['comment'] == 0))
+		{
+			for ($i = 0; $i < $album_config['rate_scale']; $i++)
+			{
+				$template->assign_block_vars('rate_switch_only.rate_row', array(
+					'POINT' => ($i + 1)
+				));
+			}
+		}
+  }
+  else if ($album_config['rate'])
+  {
+	$template->assign_block_vars('rate_switch', array());
+  }
 
 	$template->assign_vars(array(
 		'CAT_TITLE' => $thispic['cat_title'],
@@ -716,12 +716,12 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 		'U_PIC_L1' => ( $picm ) ? '' : '<a href="album_showpage.php?full=&pic_id=' . $pic_id . '">',
 		'U_PIC_L2' => ( $picm ) ? '' : '</a>',
 		'U_PIC_CLICK' => ( $picm ) ? '' : $lang['Click_larger'],
-		
+
 		'U_NEXT' => append_sid("album_showpage.$phpEx?pic_id=$pic_id&amp;mode=next"),
 		'U_PREVIOUS' => append_sid("album_showpage.$phpEx?pic_id=$pic_id&amp;mode=previous"),
-		
+
 		'PIC_RATING' => $image_rating,
-		
+
 		'PIC_TITLE' => $thispic['pic_title'],
 		'PIC_DESC' => nl2br($thispic['pic_desc']),
 
@@ -803,7 +803,7 @@ else
 
 	$comment_username = (!$userdata['session_logged_in']) ? str_replace("\'", "''", substr(htmlspecialchars(trim($_POST['comment_username'])), 0, 32)) : str_replace("'", "''", htmlspecialchars(trim($userdata['username'])));
 
-	
+
 
 
 	// --------------------------------
@@ -856,12 +856,12 @@ else
 	$row = $db->sql_fetchrow($result);
 
 	$comment_id = $row['max'] + 1;
-	
+
 
 	// --------------------------------
 	// Insert into DB
 	// --------------------------------
-	
+
 	if ($comment_text != '')//if user only rated, but didnt enter a comment ..... only update rating
 	{
 		$sql = "INSERT INTO ". ALBUM_COMMENT_TABLE ." (comment_id, comment_pic_id, comment_cat_id, comment_user_id, comment_username, comment_user_ip, comment_time, comment_text)
@@ -871,10 +871,10 @@ else
 			message_die(GENERAL_ERROR, 'Could not insert new entry', '', __LINE__, __FILE__, $sql);
 		}
 	}
-	
+
 	//rating
 	$rate_point = intval($_POST['rate']);
-	
+
 	if ($rate_point != -1 && $album_config['rate'] == 1 && !$already_rated && !$auth_data['rate'] == 0)//if user didnt vote, dont update database
 	{
 		if( ($rate_point <= 0) or ($rate_point > $album_config['rate_scale']) )
@@ -884,7 +884,7 @@ else
 
 		$rate_user_id = $userdata['user_id'];
 		$rate_user_ip = $userdata['session_ip'];
-		
+
 		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_point)
 				VALUES ('$pic_id', '$rate_user_id', '$rate_user_ip', '$rate_point')";
 
@@ -910,6 +910,6 @@ else
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 ?>

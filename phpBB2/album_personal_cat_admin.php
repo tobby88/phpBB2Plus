@@ -3,13 +3,13 @@
 /***************************************************************************
  *                    album_personal_cat_admin.php
  *                           ---------------
- * copyright: © IdleVoid
+ * copyright: Â© IdleVoid
  * email    : idlevoid@slater.dk
  * file version : 1.0.7
  * release      : 1.2.0
  *
  ***************************************************************************/
- 
+
 /***************************************************************************
  *
  *   This program is free software; you can redistribute it and/or modify
@@ -94,7 +94,7 @@ if (album_get_personal_root_id($album_user_id) == ALBUM_ROOT_CATEGORY)
 		album_init_personal_gallery($album_user_id);
 	}
 	else
-	{		
+	{
 		album_create_personal_gallery($album_user_id, $album_config['personal_gallery_view'], ALBUM_PRIVATE);
 		album_read_tree($album_user_id);
 	}
@@ -118,17 +118,17 @@ if ( !album_check_permission($auth_data, ALBUM_AUTH_MANAGE_PERSONAL_CATEGORIES) 
 		{
 			redirect(append_sid("login.$phpEx?redirect=album_cat.$phpEx"));
 		}
-	
+
 		if( !isset($_GET['action']) )
 		{
 			redirect(append_sid(album_append_uid("album.$phpEx")));
 		}
-	
+
 		$album_user_id = $userdata['user_id'];
 	}
 	else
 	{
-		include_once($phpbb_root_path . 'includes/page_header.'.$phpEx);	
+		include_once($phpbb_root_path . 'includes/page_header.'.$phpEx);
 		$message = $lang['No_Personal_Category_admin'];
 		$message .= "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid(album_append_uid("album.$phpEx")) . "\">", "</a>");
 		message_die(GENERAL_MESSAGE, $message);
@@ -232,33 +232,33 @@ if( !isset($_POST['mode']) )
 		if( $_GET['action'] == 'edit' )
 		{
 			$cat_id = intval($_GET['cat_id']);
-			
-			//$is_personal_root_cat = ($cat_id == album_get_personal_root_id($album_user_id)) ? true : false;    
-			if (($cat_id == album_get_personal_root_id($album_user_id)) || -1 == album_get_personal_root_id($album_user_id)) 
+
+			//$is_personal_root_cat = ($cat_id == album_get_personal_root_id($album_user_id)) ? true : false;
+			if (($cat_id == album_get_personal_root_id($album_user_id)) || -1 == album_get_personal_root_id($album_user_id))
 			{
-				$is_personal_root_cat = true;    
+				$is_personal_root_cat = true;
 			}
 			else
 			{
 				$is_personal_root_cat = false;
 			}
-			
-			if ($cat_id != 0) 
-			{	
+
+			if ($cat_id != 0)
+			{
 				$sql = "SELECT cat.*, cat2.cat_title AS cat_parent_title, cat2.cat_id AS cat_parent_id
 						FROM ". ALBUM_CAT_TABLE ." AS cat LEFT OUTER JOIN ". ALBUM_CAT_TABLE ." AS cat2
 						ON cat2.cat_id = cat.cat_parent WHERE cat.cat_id = '$cat_id' AND cat.cat_user_id = " . $album_user_id;
-	
+
 				if(!$result = $db->sql_query($sql))
 				{
 					message_die(GENERAL_ERROR, 'Could not query Album Categories information', '', __LINE__, __FILE__, $sql);
 				}
-	
+
 				if( $db->sql_numrows($result) == 0 )
 				{
 					message_die(GENERAL_ERROR, 'The requested category is not existed');
 				}
-	
+
 				$catrow = $db->sql_fetchrow($result);
 			}
 			else
@@ -273,7 +273,7 @@ if( !isset($_POST['mode']) )
 			{
 				$cat_id = ALBUM_ROOT_CATEGORY;
 			}
-			
+
 			$template->set_filenames(array(
 				'body' => 'admin/album_personal_cat_new_body.tpl')
 			);
@@ -289,16 +289,16 @@ if( !isset($_POST['mode']) )
 				'L_RATE_LEVEL' => $lang['Rate_level'],
 				'L_COMMENT_LEVEL' => $lang['Comment_level'],
 				'L_EDIT_LEVEL' => $lang['Edit_level'],
-				
+
 				'ALBUM_NAVIGATION_ARROW' => ALBUM_NAV_ARROW,
 				'U_PERSONAL_ALBUM' => append_sid(album_append_uid("album.$phpEx")),
 				'L_PERSONAL_ALBUM' => sprintf($lang['Personal_Gallery_Of_User'], $username),
 				'U_PERSONAL_CAT_ADMIN' => append_sid(album_append_uid("album_personal_cat_admin.$phpEx?cat_id=$cat_id")),
 				'L_PERSONAL_CAT_ADMIN' => $lang['Personal_Cat_Admin'],
 
-				'L_GUEST' => $lang['Forum_ALL'], 
-				'L_REG' => $lang['Forum_REG'], 
-				'L_PRIVATE' => $lang['Forum_PRIVATE'], 
+				'L_GUEST' => $lang['Forum_ALL'],
+				'L_REG' => $lang['Forum_REG'],
+				'L_PRIVATE' => $lang['Forum_PRIVATE'],
 
 				'L_DISABLED' => $lang['Disabled'],
 
@@ -332,7 +332,7 @@ if( !isset($_POST['mode']) )
 				'DELETE_PRIVATE' => ($catrow['cat_delete_level'] == ALBUM_PRIVATE) ? 'selected="selected"' : '',
 
 				'S_MODE' => 'edit',
-				
+
 				'CATEGORY_ID' => $cat_id,
 				'ROOT_CATEGORY_ID' => album_get_personal_root_id($album_user_id),
 				'ALBUM_PUBLIC_GALLERY' => intval(ALBUM_JUMPBOX_PUBLIC_GALLERY),
@@ -340,7 +340,7 @@ if( !isset($_POST['mode']) )
 				'ALBUM_USERS_GALLERY' => intval(ALBUM_JUMPBOX_USERS_GALLERY),
 				'ALBUM_JUMPBOX_SEPERATOR' => intval(ALBUM_JUMPBOX_SEPERATOR),
 				'L_NO_SELF_REFERING' => $lang['No_Self_Refering_Cat'],
-				'L_NO_VALID_CAT_SELECTED' => $lang['No_valid_category_selected'],				
+				'L_NO_VALID_CAT_SELECTED' => $lang['No_valid_category_selected'],
 
 				'S_GUEST' => ALBUM_GUEST,
 				'S_USER' => ALBUM_USER,
@@ -360,7 +360,7 @@ if( !isset($_POST['mode']) )
 			$sql = "SELECT cat_id, cat_title, cat_order
 					FROM ". ALBUM_CAT_TABLE ."
 					ORDER BY cat_order ASC";
-			
+
 			if(!$result = $db->sql_query($sql))
 			{
 				message_die(GENERAL_ERROR, 'Could not query Album Categories information', '', __LINE__, __FILE__, $sql);
@@ -393,7 +393,7 @@ if( !isset($_POST['mode']) )
 			{
 				$select_to .= album_get_tree_option($catrow['cat_parent_id'], ALBUM_AUTH_VIEW, ALBUM_SELECTBOX_ALL);
 			}
-			
+
 			$select_to .= '</select>';
 
 			$template->set_filenames(array(
@@ -423,8 +423,8 @@ if( !isset($_POST['mode']) )
 
 			include($phpbb_root_path . 'includes/page_tail.'.$phpEx); //include('./page_footer_admin.'.$phpEx);
 		}
-		else if( $_GET['action'] == 'move' ) 
-		{ 
+		else if( $_GET['action'] == 'move' )
+		{
          	$cat_id = intval($_GET['cat_id']);
          	$move = intval($_GET['move']);
 
@@ -439,19 +439,19 @@ else
 {
 	if( $_POST['mode'] == 'new' )
 	{
-		if ( is_array($_POST['addcategory'])) 
+		if ( is_array($_POST['addcategory']))
 		{
 			list($cat_id) = each($_POST['addcategory']);
 			$cat_title = stripslashes($_POST['name'][$cat_id]);
 			$cat_parent = $cat_id;
 			$cat_id = -1;
 		}
-		
+
 		if( !isset($_POST['cat_title']) )
 		{
 			$s_album_cat_list = album_get_tree_option($cat_parent, ALBUM_AUTH_VIEW);
-			
-			if (empty($s_album_cat_list) || $cat_parent == 0) 
+
+			if (empty($s_album_cat_list) || $cat_parent == 0)
 			{
 			    $s_album_cat_list = '<option value="-1" selected="selected">'. sprintf($lang['Personal_Gallery_Of_User'], $username). '</option>';
 			}
@@ -472,15 +472,15 @@ else
 				'L_PERSONAL_ALBUM' => sprintf($lang['Personal_Gallery_Of_User'], $username),
 				'U_PERSONAL_CAT_ADMIN' => append_sid(album_append_uid("album_personal_cat_admin.$phpEx?cat_id=$cat_id")),
 				'L_PERSONAL_CAT_ADMIN' => $lang['Personal_Cat_Admin'],
-				
+
 				'L_VIEW_LEVEL' => $lang['View_level'],
 				'L_UPLOAD_LEVEL' => $lang['Upload_level'],
 				'L_RATE_LEVEL' => $lang['Rate_level'],
 				'L_COMMENT_LEVEL' => $lang['Comment_level'],
 
-				'L_GUEST' => $lang['Forum_ALL'], 
-				'L_REG' => $lang['Forum_REG'], 
-				'L_PRIVATE' => $lang['Forum_PRIVATE'], 
+				'L_GUEST' => $lang['Forum_ALL'],
+				'L_REG' => $lang['Forum_REG'],
+				'L_PRIVATE' => $lang['Forum_PRIVATE'],
 
 				'VIEW_GUEST' => ($album_config['personal_gallery_view'] == ALBUM_GUEST) ? 'selected="selected"' : '',
 				'VIEW_REG' => ($album_config['personal_gallery_view'] == ALBUM_USER) ? 'selected="selected"' : '',
@@ -492,7 +492,7 @@ else
 
 				'S_CAT_TITLE' => $cat_title,
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
-				
+
 				'CATEGORY_ID'=> 0,
 				'ROOT_CATEGORY_ID' => ALBUM_ROOT_CATEGORY,
 				'ALBUM_PUBLIC_GALLERY' => intval(ALBUM_JUMPBOX_PUBLIC_GALLERY),
@@ -513,7 +513,7 @@ else
 			);
 
 			$template->pparse('body');
-			
+
 			include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 		}
 		else
@@ -534,7 +534,7 @@ else
 			$sql = "SELECT cat_order FROM ". ALBUM_CAT_TABLE ."
 					ORDER BY cat_order DESC
 					LIMIT 1";
-			
+
 			if(!$result = $db->sql_query($sql))
 			{
 				message_die(GENERAL_ERROR, 'Could not query Album Categories information', '', __LINE__, __FILE__, $sql);
@@ -548,7 +548,7 @@ else
 			$sql = "INSERT INTO ". ALBUM_CAT_TABLE ." (cat_title, cat_desc, cat_order, cat_view_level, cat_upload_level, cat_rate_level, cat_comment_level, cat_edit_level, cat_delete_level, cat_approval, cat_parent, cat_user_id)
 					VALUES ('$cat_title', '$cat_desc', '$cat_order', '$view_level', '$upload_level', '$rate_level', '$comment_level', '" . ALBUM_PRIVATE . "', '" . ALBUM_PRIVATE . "', '0', '$cat_parent', '$album_user_id')";
 
-			
+
 			if(!$result = $db->sql_query($sql))
 			{
 				message_die(GENERAL_ERROR, 'Could not create new Album Category', '', __LINE__, __FILE__, $sql);
@@ -577,12 +577,12 @@ else
 		{
 			showResultMessage($lang['No_Self_Refering_Cat']);
 		}
-		
+
 		if ( (album_get_personal_root_id($album_user_id) == $cat_id) && ($cat_parent != 0) )
 		{
 			showResultMessage($lang['Can_Not_Change_Main_Parent']);
 		}
-		
+
 		// Now we update this row
 
 		$sql = "UPDATE ". ALBUM_CAT_TABLE ."
@@ -602,7 +602,7 @@ else
 		$parent_cat_id = 0;
 		$parent_cat_title = "";
 		$parent_cat_deleted = false;
-		
+
 		$source_cat_id = intval($_GET['cat_id']);
 		$target_cat_id = intval($_POST['target']);
 
@@ -614,14 +614,14 @@ else
 			{
 				message_die(GENERAL_ERROR, 'Could not query Album information for existing child categories', '', __LINE__, __FILE__, $sql);
 			}
-			
+
 			// the selected category is parent to another...proceed
-			if ($db->sql_numrows($result) > 0) 
+			if ($db->sql_numrows($result) > 0)
 			{
 				$parent_cat_id = 0;
 				//set the indicator that we are deleting a parent category
 				$parent_cat_deleted = true;
-				
+
 				if (isset($lang[$board_config['sitename']]))
 				{
 					$parent_cat_title = sprintf($lang['Forum_Index'], $lang[$board_config['sitename']]);
@@ -630,32 +630,32 @@ else
 				{
 					$parent_cat_title = sprintf($lang['Forum_Index'], $board_config['sitename']);
 				}
-				
+
 				//... then check if the selected category is a child to another category
 				$sql = "SELECT cat.cat_id, parent.cat_title AS cat_parent_title, parent.cat_id AS cat_parent_id
 						FROM ". ALBUM_CAT_TABLE ." AS cat, ". ALBUM_CAT_TABLE ." AS parent
 						WHERE cat.cat_id = '$source_cat_id' AND parent.cat_id = cat.cat_parent";
-				
+
 				if(!$result = $db->sql_query($sql))
 				{
 					message_die(GENERAL_ERROR, 'Could not query Album information for existing parent categories', '', __LINE__, __FILE__, $sql);
 				}
-					
-				if ($db->sql_numrows($result) > 0) 
+
+				if ($db->sql_numrows($result) > 0)
 				{
 					while( $row = $db ->sql_fetchrow($result) )
 					{
 						// get the paretn id for the selected id
 						$parent_cat_id = $row['cat_parent_id'];
 						$parent_cat_title = $row['cat_parent_title'];
-					}										
+					}
 				}
-			
+
 				// move the the selected category's child categories to the selected parent category (which can be nothing = cat_parent = 0)
 				$sql = "UPDATE ". ALBUM_CAT_TABLE ."  SET cat_parent = '" . $parent_cat_id . "' WHERE cat_parent = '" . $source_cat_id . "'";
 				$result = $db->sql_query($sql);
-			}			
-			
+			}
+
 			// Get file information of all pics in this category
 			$sql = "SELECT pic_id, pic_filename, pic_thumbnail, pic_cat_id
 					FROM ". ALBUM_TABLE ."
@@ -679,7 +679,7 @@ else
 					@unlink('../' . ALBUM_CACHE_PATH . $picrow[$i]['pic_thumbnail']);
 
 					@unlink('../' . ALBUM_UPLOAD_PATH . $picrow[$i]['pic_filename']);
-					
+
 					if 	(defined('ALBUM_SP_CONFIG_TABLE'))
 					{
 						@unlink('../' . ALBUM_MED_CACHE_PATH . $picrow[$i]['pic_filename']);

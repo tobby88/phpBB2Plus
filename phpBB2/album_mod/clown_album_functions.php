@@ -3,9 +3,9 @@
  *                            clown_functions.php
  *                           -------------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © 2003 Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© 2003 Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
- *   
+ *
  *   some of the code was taken from phpbb forum (generate_album_smilies function)
  *
  ***************************************************************************/
@@ -29,10 +29,10 @@ include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 
 function ImageRating($rating, $css_style = 'border-style: none')
 {
-//Pre: returns what type of rating style to display 
+//Pre: returns what type of rating style to display
 
 	global $db, $album_sp_config, $lang;
-	
+
 	//deside how user wants to show their rating
 	//
 	if ($album_sp_config['rate_type'] == 0)//display only images
@@ -46,10 +46,10 @@ function ImageRating($rating, $css_style = 'border-style: none')
 			{
 				$r .= "<img src='album_mod/rank.gif' style='$css_style'/>&nbsp;";
 			}
-			
+
 			return ($r);
 		}
-	}	
+	}
 	else if ($album_sp_config['rate_type'] == 1) //display just text
 	{
 		if (!$rating)
@@ -69,7 +69,7 @@ function ImageRating($rating, $css_style = 'border-style: none')
 				$r .= "<img src='album_mod/rank.gif' style='$css_style'/>&nbsp;";
 			}
 		}
-		
+
 		return (round($rating, 2) .  '&nbsp;' . $r);
 	}
 }
@@ -100,8 +100,8 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 		);
 	}
 
-	$sql = "SELECT emoticon, code, smile_url   
-		FROM " . SMILIES_TABLE . " 
+	$sql = "SELECT emoticon, code, smile_url
+		FROM " . SMILIES_TABLE . "
 		ORDER BY smilies_id";
 	if ($result = $db->sql_query($sql))
 	{
@@ -161,14 +161,14 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 				$template->assign_block_vars('switch_smilies_extra', array());
 
 				$template->assign_vars(array(
-					'L_MORE_SMILIES' => $lang['More_emoticons'], 
+					'L_MORE_SMILIES' => $lang['More_emoticons'],
 					'U_MORE_SMILIES' => append_sid("posting.$phpEx?mode=smilies"))
 				);
 			}
 
 			$template->assign_vars(array(
-				'L_EMOTICONS' => $lang['Emoticons'], 
-				'L_CLOSE_WINDOW' => $lang['Close_window'], 
+				'L_EMOTICONS' => $lang['Emoticons'],
+				'L_CLOSE_WINDOW' => $lang['Close_window'],
 				'S_SMILIES_COLSPAN' => $s_colspan)
 			);
 		}
@@ -186,7 +186,7 @@ function CanRated ($picID, $userID)
 {
 //PRE: deside if user can rate things on hot or not
 	global $db, $album_sp_config, $userdata;
-	
+
 	if (! $userdata['session_logged_in'] && $album_sp_config['hon_rate_users'] == 1)
 	{
 		$alowed = true;
@@ -198,7 +198,7 @@ function CanRated ($picID, $userID)
 					WHERE rate_pic_id = $picID
 						AND rate_user_id = $userID
 					LIMIT 1";
- 
+
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not query rating information', '', __LINE__, __FILE__, $sql);
@@ -206,18 +206,18 @@ function CanRated ($picID, $userID)
 
 		if ($db->sql_numrows($result) > 0)
 		{
-			$alowed = false;			
+			$alowed = false;
 		}
 		else
 		{
-			$alowed =  true;	
+			$alowed =  true;
 		}
 	}
 	else
 	{
 		$alowed = true;
 	}
-	
+
 	return ($alowed);
 }
 

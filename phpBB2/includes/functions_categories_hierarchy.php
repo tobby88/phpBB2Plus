@@ -1016,7 +1016,7 @@ function get_auth_keys($cur='Root', $all=false, $level=-1, $max=-1, $auth_key='a
 // get_max_depth() : return the maximum level in the branch of the tree
 //
 //--------------------------------------------------------------------------------------------------
-function get_max_depth($cur='Root', $all=false, $level=-1, &$keys, $max=-1)
+function get_max_depth($cur='Root', $all=false, $level=-1, &$keys = null, $max=-1)
 {
 	global $tree;
 	if (empty($keys['id']))
@@ -1079,7 +1079,7 @@ function get_tree_option($cur='', $all=false)
 // build_index() : display a level and its sublevels : use dislay_index() as entry point
 //
 //--------------------------------------------------------------------------------------------------
-function build_index($cur='Root', $cat_break=false, &$forum_moderators, $real_level=-1, $max_level=-1, &$keys)
+function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $real_level=-1, $max_level=-1, &$keys = null)
 {
 	global $template, $phpEx, $board_config, $lang, $images;
 	global $tree;

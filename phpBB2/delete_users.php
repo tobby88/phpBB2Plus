@@ -1,6 +1,6 @@
 <?php
 #########################################################
-## Author: Niels Chr. Rød
+## Author: Niels Chr. RÃ¸d
 ## Nickname: Niels Chr. Denmark
 ## Email: ncr@db9.dk
 ## http://mods.db9.dk
@@ -11,11 +11,11 @@
 ## phpBB2 drop-in mod, that checks for unused accounts for X days
 ## use the script while logged in as ADMIN, add the days=X as a extra parameter
 ##   e.g. www.yourdomain.com/delete_users.php?mode=not_login&days=10
-## will delete all accounts who have never logged in and are older than 10 days 
+## will delete all accounts who have never logged in and are older than 10 days
 ##
 ## And zero postes
 ##   e.g. www.yourdomain.com/delete_users.php?mode=zero_poster&days=10
-## will delete all accounts who have never posted and are older than 10 days 
+## will delete all accounts who have never posted and are older than 10 days
 ##
 ## You can also delete specific users
 ##   e.g. www.yourdomain.com/delete_users.php?mode=user_name&del_user=Niels
@@ -28,7 +28,7 @@
 ##	1.0.0. - initial release
 ##	1.0.3. - history started, added delete not activated
 ##	1.1.0. - The old version did not delete all entrys, therfore this one works as the original code in ADMIN panel
-##	1.2.0. - updated the code to work same as phpBB2 ver 2.0.2. 
+##	1.2.0. - updated the code to work same as phpBB2 ver 2.0.2.
 ##	1.2.1. - fix, "could not update posts table"
 ##	1.2.2. - fix, there was a error in the sql, regarding the new prune option #4
 ##	1.2.3. - fix, usernames with ' was giving a erro, when trying to delete, this is now posible
@@ -48,7 +48,7 @@ define('NOTIFY_USERS', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
-include($phpbb_root_path . 'includes/emailer.'.$phpEx); 
+include($phpbb_root_path . 'includes/emailer.'.$phpEx);
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_prune_users.' . $phpEx);
 
 ############################################### Do not change anything below this line #######################################
@@ -71,7 +71,7 @@ $days = ( isset($_POST['days']) ) ? intval($_POST['days']) : (( isset($_GET['day
 
 // ******************************************************************************************
 // Define you own modes here
-	
+
 switch ($mode)
 {
 	case 'user_name' :	$sql=' FROM '. USERS_TABLE .' WHERE username="'.str_replace("'","\'",$del_user).'"';break;
@@ -88,10 +88,10 @@ switch ($mode)
 					$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_lastvisit="0" AND user_active="0" AND user_actkey<>"" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
 	case 'prune_3' :  $mode='Long time visit';
-					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_lastvisit<'.(time()-86400*60).' AND user_regdate<"'.(time()-(86400*$days)).'"';break; 
+					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_lastvisit<'.(time()-86400*60).' AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
 	case 'prune_4' :  $mode='Avarage posts';
-					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_posts/((user_lastvisit - user_regdate)/86400) < "0.1" AND user_regdate<"'.(time()-(86400*$days)).'"';break; 
+					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_posts/((user_lastvisit - user_regdate)/86400) < "0.1" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
 	default:		message_die(GENERAL_ERROR, 'No mode specifyed', '', __LINE__, __FILE__);
 }
@@ -112,10 +112,10 @@ while (isset($user_list[$i]['user_id']))
 	$username = str_replace("'","\'",$user_list[$i]['username']);
 	$user_email = $user_list[$i]['user_email'];
 	$user_lang =  $user_list[$i]['user_lang'];
-	$sql = "SELECT g.group_id 
-		FROM " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g  
-		WHERE ug.user_id = $user_id 
-		AND g.group_id = ug.group_id 
+	$sql = "SELECT g.group_id
+		FROM " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g
+		WHERE ug.user_id = $user_id
+		AND g.group_id = ug.group_id
 		AND g.group_single_user = 1";
 	if( !($result = $db->sql_query($sql)) )
 	{
@@ -126,22 +126,22 @@ while (isset($user_list[$i]['user_id']))
 	{
 		message_die(GENERAL_ERROR, 'Could not find group information for this user: "'.$user_id.'"', '', __LINE__, __FILE__);
 	}
-	
+
 	$sql = "UPDATE " . POSTS_TABLE . "
-		SET poster_id = " . DELETED . ", post_username = '$username' 
+		SET poster_id = " . DELETED . ", post_username = '$username'
 		WHERE poster_id = $user_id";
 	if( !$db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not update posts for this user', '', __LINE__, __FILE__, $sql);
 	}
 	$sql = "UPDATE " . TOPICS_TABLE . "
-		SET topic_poster = " . DELETED . " 
+		SET topic_poster = " . DELETED . "
 		WHERE topic_poster = $user_id";
 	if( !$db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not update topics for this user', '', __LINE__, __FILE__, $sql);
 	}
-	
+
 	$sql = "UPDATE " . VOTE_USERS_TABLE . "
 		SET vote_user_id = " . DELETED . "
 		WHERE vote_user_id = $user_id";
@@ -149,7 +149,7 @@ while (isset($user_list[$i]['user_id']))
 	{
 		message_die(GENERAL_ERROR, 'Could not update votes for this user', '', __LINE__, __FILE__, $sql);
 	}
-				
+
 	$sql = "SELECT group_id
 		FROM " . GROUPS_TABLE . "
 		WHERE group_moderator = $user_id";
@@ -157,12 +157,12 @@ while (isset($user_list[$i]['user_id']))
 	{
 		message_die(GENERAL_ERROR, 'Could not select groups where user was moderator', '', __LINE__, __FILE__, $sql);
 	}
-		
+
 	while ( $row_group = $db->sql_fetchrow($result) )
 	{
 		$group_moderator[] = $row_group['group_id'];
 	}
-		
+
 	if ( count($group_moderator) )
 	{
 		$update_moderator_id = implode(', ', $group_moderator);
@@ -211,7 +211,7 @@ while (isset($user_list[$i]['user_id']))
 
 	$sql = "SELECT privmsgs_id
 		FROM " . PRIVMSGS_TABLE . "
-		WHERE ( ( privmsgs_from_userid = $user_id 
+		WHERE ( ( privmsgs_from_userid = $user_id
 		AND privmsgs_type = " . PRIVMSGS_NEW_MAIL . " )
 		OR ( privmsgs_from_userid = $user_id
 		AND privmsgs_type = " . PRIVMSGS_SENT_MAIL . " )
@@ -225,48 +225,48 @@ while (isset($user_list[$i]['user_id']))
 	{
 		message_die(GENERAL_ERROR, 'Could not select all user\'s private messages', '', __LINE__, __FILE__, $sql);
 	}
-		
+
 	//
 	// This little bit of code directly from the private messaging section.
 	// Thanks Paul!
 	//
-				
+
 	while ( $row_privmsgs = $db->sql_fetchrow($result) )
 	{
 		$mark_list[] = $row_privmsgs['privmsgs_id'];
 	}
-			
+
 	if ( count($mark_list) )
 	{
 		$delete_sql_id = implode(', ', $mark_list);
-			
+
 		//
 		// We shouldn't need to worry about updating conters here...
 		// They are already gone!
 		//
-						
+
 		$delete_text_sql = "DELETE FROM " . PRIVMSGS_TEXT_TABLE . "
 		WHERE privmsgs_text_id IN ($delete_sql_id)";
 		$delete_sql = "DELETE FROM " . PRIVMSGS_TABLE . "
 		WHERE privmsgs_id IN ($delete_sql_id)";
-					
+
 		//
 		// Shouldn't need the switch statement here, either, as we just want
 		// to take out all of the private messages.  This will not affect
 		// the other messages we want to keep; the ids are unique.
 		//
-					
+
 		if ( !$db->sql_query($delete_sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not delete private message info', '', __LINE__, __FILE__, $delete_sql);
 		}
-					
+
 		if ( !$db->sql_query($delete_text_sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not delete private message text', '', __LINE__, __FILE__, $delete_text_sql);
 		}
 	}
-				
+
 	$sql = "UPDATE " . PRIVMSGS_TABLE . "
 		SET privmsgs_to_userid = " . DELETED . "
 		WHERE privmsgs_to_userid = $user_id";
@@ -274,7 +274,7 @@ while (isset($user_list[$i]['user_id']))
 	{
 		message_die(GENERAL_ERROR, 'Could not update private messages saved to the user', '', __LINE__, __FILE__, $sql);
 	}
-				
+
 	$sql = "UPDATE " . PRIVMSGS_TABLE . "
 		SET privmsgs_from_userid = " . DELETED . "
 		WHERE privmsgs_from_userid = $user_id";
@@ -291,30 +291,30 @@ if (NOTIFY_USERS && !empty($user_email))
 		$server_protocol = ( $board_config['cookie_secure'] ) ? 'https://' : 'http://';
 		$server_port = ( $board_config['server_port'] <> 80 ) ? ':' . trim($board_config['server_port']) . '/' : '/';
 
-            $emailer = new emailer($board_config['smtp_delivery']); 
-	      $emailer->email_address($user_email); 
-      	$email_headers = "To: \"".$username."\" <".$user_email. ">\r\n"; 
-	            $email_headers .= "From: \"".$board_config['sitename']."\" <".$board_config['board_email'].">\r\n"; 
-      	      $email_headers .= "Return-Path: " . (($userdata['user_email']&&$userdata['user_viewemail'])? $userdata['user_email']."\r\n":"\r\n"); 
-            	$email_headers .= "X-AntiAbuse: Board servername - " . $server_name . "\r\n"; 
-	            $email_headers .= "X-AntiAbuse: User_id - " . $userdata['user_id'] . "\r\n"; 
-      	      $email_headers .= "X-AntiAbuse: Username - " . $userdata['username'] . "\r\n"; 
-            	$email_headers .= "X-AntiAbuse: User IP - " . decode_ip($user_ip) . "\r\n"; 
-	            $emailer->use_template("delete_users",(file_exists($phpbb_root_path . "language/lang_" . $user_lang . "/email/delete_users.tpl"))? $user_lang : ""); 
-	            $emailer->extra_headers($email_headers); 
-      	      $emailer->assign_vars(array( 
+            $emailer = new emailer($board_config['smtp_delivery']);
+	      $emailer->email_address($user_email);
+      	$email_headers = "To: \"".$username."\" <".$user_email. ">\r\n";
+	            $email_headers .= "From: \"".$board_config['sitename']."\" <".$board_config['board_email'].">\r\n";
+      	      $email_headers .= "Return-Path: " . (($userdata['user_email']&&$userdata['user_viewemail'])? $userdata['user_email']."\r\n":"\r\n");
+            	$email_headers .= "X-AntiAbuse: Board servername - " . $server_name . "\r\n";
+	            $email_headers .= "X-AntiAbuse: User_id - " . $userdata['user_id'] . "\r\n";
+      	      $email_headers .= "X-AntiAbuse: Username - " . $userdata['username'] . "\r\n";
+            	$email_headers .= "X-AntiAbuse: User IP - " . decode_ip($user_ip) . "\r\n";
+	            $emailer->use_template("delete_users",(file_exists($phpbb_root_path . "language/lang_" . $user_lang . "/email/delete_users.tpl"))? $user_lang : "");
+	            $emailer->extra_headers($email_headers);
+      	      $emailer->assign_vars(array(
 			   'U_REGISTER' => $server_protocol . $server_name . $server_port . $script_name,
 	               'USER' => $userdata['username'],
 			   'USERNAME' =>  $username,
-	               'SITENAME' => $board_config['sitename'], 
-      	         'BOARD_EMAIL' => $board_config['board_email'])); 
-            	$emailer->send(); 
-	            $emailer->reset(); 
+	               'SITENAME' => $board_config['sitename'],
+      	         'BOARD_EMAIL' => $board_config['board_email']));
+            	$emailer->send();
+	            $emailer->reset();
 	}
 	$name_list .= (($name_list) ? ' , ':'</br>') .$username;
 	$i++;
 }
 $messages .= ((DEBUG) ? '<b>Mode:['.$mode.']</b> </br>':'').(($i) ? sprintf($lang['Prune_users_number'],$i).$name_list : $lang['Prune_no_users']);
 message_die(GENERAL_MESSAGE,$messages.'</br>'.sprintf($lang['Click_return_forum'],'<A HREF="'.append_sid("admin/index.$phpEx").'">','</A>')
-); 
+);
 ?>

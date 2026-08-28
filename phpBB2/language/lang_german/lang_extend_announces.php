@@ -31,22 +31,22 @@ if ( $lang_extend_admin )
 	$lang['Lang_extend_announces'] = 'Announces Suite';
 }
 
-$lang['Board_announcement']						= 'Board Ankündigungen';
-$lang['announcement_duration']					= 'Dauer der Ankündigung';
-$lang['announcement_duration_explain']			= 'Anzahl Tage, die die Ankündigung dauert. Setze -1 für eine dauerhafte Ankündigung';
-$lang['Announce_settings']						= 'Ankündigungen';
-$lang['announcement_date_display']				= 'Zeige Datum der Ankündigung';
-$lang['announcement_display']					= 'Zeige Board Ankündigungen im Index';
-$lang['announcement_display_forum']				= 'Zeige Board Ankündigungen im Forum';
-$lang['announcement_split']						= 'Teile den Ankündigungstyp in der Board Ankündigungsbox';
-$lang['announcement_forum']						= 'Zeige den Forennamen unter dem Ankündigungstitel in der Board Ankündigungsbox';
-$lang['announcement_prune_strategy']			= 'Strategie zum löschen der Ankündigungen';
-$lang['announcement_prune_strategy_explain']	= 'Das ist der Typ des Ankündigungsthemas nach der automatischen Löschung';
+$lang['Board_announcement']						= 'Board AnkÃ¼ndigungen';
+$lang['announcement_duration']					= 'Dauer der AnkÃ¼ndigung';
+$lang['announcement_duration_explain']			= 'Anzahl Tage, die die AnkÃ¼ndigung dauert. Setze -1 fÃ¼r eine dauerhafte AnkÃ¼ndigung';
+$lang['Announce_settings']						= 'AnkÃ¼ndigungen';
+$lang['announcement_date_display']				= 'Zeige Datum der AnkÃ¼ndigung';
+$lang['announcement_display']					= 'Zeige Board AnkÃ¼ndigungen im Index';
+$lang['announcement_display_forum']				= 'Zeige Board AnkÃ¼ndigungen im Forum';
+$lang['announcement_split']						= 'Teile den AnkÃ¼ndigungstyp in der Board AnkÃ¼ndigungsbox';
+$lang['announcement_forum']						= 'Zeige den Forennamen unter dem AnkÃ¼ndigungstitel in der Board AnkÃ¼ndigungsbox';
+$lang['announcement_prune_strategy']			= 'Strategie zum lÃ¶schen der AnkÃ¼ndigungen';
+$lang['announcement_prune_strategy_explain']	= 'Das ist der Typ des AnkÃ¼ndigungsthemas nach der automatischen LÃ¶schung';
 
-$lang['Global_announce']						= 'Globale Ankündigung';
-$lang['Sorry_auth_global_announce']				= 'Sorry, aber nur %s können in diesem Forum Globale Ankündigungen posten.';
-$lang['Post_Global_Announcement']				= 'Globale Ankündigung';
-$lang['Topic_Global_Announcement']				= '<b>Globale Ankündigung:</b>';
+$lang['Global_announce']						= 'Globale AnkÃ¼ndigung';
+$lang['Sorry_auth_global_announce']				= 'Sorry, aber nur %s kÃ¶nnen in diesem Forum Globale AnkÃ¼ndigungen posten.';
+$lang['Post_Global_Announcement']				= 'Globale AnkÃ¼ndigung';
+$lang['Topic_Global_Announcement']				= '<b>Globale AnkÃ¼ndigung:</b>';
 
 $lang['Announces_from_to']						= '(vom %s bis %s)';
 

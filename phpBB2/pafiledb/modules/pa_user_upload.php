@@ -1,7 +1,7 @@
-<?php                  
+<?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -15,11 +15,11 @@ class pafiledb_user_upload extends pafiledb_public
 	{
 		global $_REQUEST, $_POST, $pafiledb_config, $phpbb_root_path;
 		global $pafiledb_template, $db, $lang, $userdata, $user_ip, $phpEx, $pafiledb_functions;
-		
+
 		// =======================================================
 		// Get Vars
 		// =======================================================
-		
+
 		include($phpbb_root_path . 'pafiledb/includes/functions_field.'.$phpEx);
 
 		$custom_field = new custom_field();
@@ -33,7 +33,7 @@ class pafiledb_user_upload extends pafiledb_public
 		$mirrors = (isset($_POST['mirrors'])) ? TRUE : 0;
 
 		$dropmenu = (!$cat_id) ? $this->jumpmenu_option(0, 0, '', true, true) : $this->jumpmenu_option(0, 0, array($cat_id => 1), true, true);
-		
+
 		if(!empty($cat_id))
 		{
 			if(!$this->auth[$cat_id]['auth_upload'])
@@ -60,7 +60,7 @@ class pafiledb_user_upload extends pafiledb_public
 				message_die(GENERAL_MESSAGE, $message);
 			}
 		}
-		
+
 		// =======================================================
 		// MX Addon
 		// =======================================================
@@ -92,7 +92,7 @@ class pafiledb_user_upload extends pafiledb_public
 		// =======================================================
 		// IF submit then upload the file and update the sql for it
 		// =======================================================
-		
+
 		if ( isset($_POST['submit']) )
 		{
 			if(!$file_id)
@@ -119,7 +119,7 @@ class pafiledb_user_upload extends pafiledb_public
 //				$mode = 'edit';
 			}
 			$message = $lang['Fileadded'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("dload.php?action=user_upload") . '">', '</a>');
-			message_die(GENERAL_MESSAGE, $message);	
+			message_die(GENERAL_MESSAGE, $message);
 		}
 		else
 		// =======================================================
@@ -148,7 +148,7 @@ class pafiledb_user_upload extends pafiledb_public
 				$ss_checked_no = ' checked';
 				$file_url = '';
 				$custom_exist = $custom_field->display_edit();
-				$mode = 'ADD';			
+				$mode = 'ADD';
 				$l_title = $lang['Afiletitle'];
 			}
 			elseif($file_id != '' )
@@ -161,14 +161,14 @@ class pafiledb_user_upload extends pafiledb_public
 						message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
 					}
 					$file_info = $db->sql_fetchrow($result);
-					
+
 					// AUTH CHECK
 					if ( !(($this->auth[$file_info['file_catid']]['auth_edit_file'] && $file_info['user_id'] == $userdata['user_id']) || $this->auth[$file_info['file_catid']]['auth_mod']) )
 					{
 						$message = sprintf($lang['Sorry_auth_edit'], $this->auth[$cat_id]['auth_upload_type']);
 						message_die(GENERAL_MESSAGE, $message);
-					}	
-		
+					}
+
 					$file_name = $file_info['file_name'];
 					$file_desc = $file_info['file_desc'];
 					$file_long_desc = $file_info['file_longdesc'];
@@ -192,17 +192,17 @@ class pafiledb_user_upload extends pafiledb_public
 					$file_unique_name = $file_info['unique_name'];
 					$file_dir = $file_info['file_dir'];
 					$custom_exist = $custom_field->display_edit($file_id);
-					$mode = 'EDIT';			
+					$mode = 'EDIT';
 					$l_title = $lang['Efiletitle'];
 					$s_hidden_fields = '<input type="hidden" name="file_id" value="' . $file_id . '">';
 				}
-			
+
 				$s_hidden_fields .= '<input type="hidden" name="action" value="user_upload">';
 
 
 			$pafiledb_template->assign_vars(array(
 				'S_ADD_FILE_ACTION' => append_sid("dload.$phpEx"),
-				
+
 				'DOWNLOAD' => $pafiledb_config['settings_dbname'],
 				'FILESIZE' => intval($pafiledb_config['max_file_size']),
 				'FILE_NAME' => $file_name,
@@ -228,7 +228,7 @@ class pafiledb_user_upload extends pafiledb_public
 				'L_FILE_TITLE' => $l_title,
 				'L_FILE_APPROVED' => $lang['Approved'],
 				'L_FILE_APPROVED_INFO' => $lang['Approved_info'],
-				'L_ADDTIONAL_FIELD' => $lang['Addtional_field'],		
+				'L_ADDTIONAL_FIELD' => $lang['Addtional_field'],
 				'L_SCREENSHOT' => $lang['Scrsht'],
 				'L_FILES' => $lang['Files'],
 				'L_FILE_NAME' => $lang['Filename'],

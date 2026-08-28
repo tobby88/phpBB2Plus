@@ -12,6 +12,7 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_name','phpb
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_path','/');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_domain','');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_secure','0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('cookie_consent_enable','1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('session_length','3600');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_html','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_html_tags','b,i,u,pre');
@@ -24,6 +25,7 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_local
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_remote','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_upload','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('enable_confirm', '1');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('sfs_enable', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_autologin','1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('max_autologin_time','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('override_user_style','0');
@@ -123,10 +125,10 @@ INSERT INTO phpbb_forums (forum_id, forum_name, forum_desc, cat_id, forum_order,
 
 
 # -- Users
-INSERT INTO phpbb_users (user_id, username, user_level, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_interests, user_sig, user_viewemail, user_style, user_aim, user_yim, user_msnm, user_posts, user_attachsig, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_pm, user_notify_pm, user_allow_viewonline, user_rank, user_avatar, user_lang, user_timezone, user_dateformat, user_actkey, user_newpasswd, user_notify, user_active) VALUES ( -1, 'Anonymous', 0, 0, '', '', '', '', '', '', '', '', 0, NULL, '', '', '', 0, 0, 1, 1, 1, 0, 1, 1, NULL, '', '', 0, '', '', '', 0, 0);
+INSERT INTO phpbb_users (user_id, username, user_level, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_interests, user_sig, user_viewemail, user_style, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_posts, user_attachsig, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_pm, user_notify_pm, user_allow_viewonline, user_rank, user_avatar, user_lang, user_timezone, user_dateformat, user_actkey, user_newpasswd, user_notify, user_active) VALUES ( -1, 'Anonymous', 0, 0, '', '', '', '', '', '', '', '', 0, NULL, '', '', '', '', '', '', '', '', '', '', '', '', 0, 0, 1, 1, 1, 0, 1, 1, NULL, '', '', 0, '', '', '', 0, 0);
 
 # -- username: admin    password: admin (change this or remove it once everything is working!)
-INSERT INTO phpbb_users (user_id, username, user_level, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_interests, user_sig, user_viewemail, user_style, user_aim, user_yim, user_msnm, user_posts, user_attachsig, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_pm, user_notify_pm, user_popup_pm, user_allow_viewonline, user_rank, user_avatar, user_lang, user_timezone, user_dateformat, user_actkey, user_newpasswd, user_notify, user_active, user_color_group) VALUES ( 2, 'Admin', 1, 0, '21232f297a57a5a743894a0e4a801fc3', 'admin@yourdomain.com', '', '', '', '', '', '', 1, 1, '', '', '', 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, '', 'english', 0, 'd M Y h:i a', '', '', 0, 1, 1);
+INSERT INTO phpbb_users (user_id, username, user_level, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_interests, user_sig, user_viewemail, user_style, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_posts, user_attachsig, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_pm, user_notify_pm, user_popup_pm, user_allow_viewonline, user_rank, user_avatar, user_lang, user_timezone, user_dateformat, user_actkey, user_newpasswd, user_notify, user_active, user_color_group) VALUES ( 2, 'Admin', 1, 0, '21232f297a57a5a743894a0e4a801fc3', 'admin@yourdomain.com', '', '', '', '', '', '', 1, 1, '', '', '', '', '', '', '', '', '', '', '', '', 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, '', 'english', 0, 'd M Y h:i a', '', '', 0, 1, 1);
 
 
 # -- Ranks

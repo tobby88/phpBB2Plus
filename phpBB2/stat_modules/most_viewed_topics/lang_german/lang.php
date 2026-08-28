@@ -3,6 +3,6 @@
 //
 // German Language File
 //
-$lang['module_name'] = 'Die am häufigsten aufgerufenen Themen';
+$lang['module_name'] = 'Die am hÃ¤ufigsten aufgerufenen Themen';
 
 ?>

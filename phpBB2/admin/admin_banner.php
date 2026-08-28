@@ -3,7 +3,7 @@
  *                              admin_banner.php
  *                            -------------------
  *		ver 1.2.3
- *          Author: Niels Chr. Rød, Denmark
+ *          Author: Niels Chr. RÃ¸d, Denmark
  *
  ***************************************************************************/
 
@@ -54,7 +54,7 @@ if( isset($_GET['mode']) || isset($_POST['mode']) )
 {
 	$mode = (isset($_GET['mode'])) ? $_GET['mode'] : $_POST['mode'];
 }
-else 
+else
 {
 	//
 	// These could be entered via a form button
@@ -89,9 +89,9 @@ if( $mode!= "")
 		{
 			$banner_id = 0;
 		}
-		
+
 		$s_hidden_fields = "";
-		
+
 		if( $mode == "edit" )
 		{
 			if( empty($banner_id) )
@@ -105,7 +105,7 @@ if( $mode!= "")
 			{
 				message_die(GENERAL_ERROR, "Couldn't obtain banner data", "", __LINE__, __FILE__, $sql);
 			}
-			
+
 			$banner_info = $db->sql_fetchrow($result);
 			$s_hidden_fields .= '<input type="hidden" name="id" value="' . $banner_id . '" />';
 		}
@@ -126,7 +126,7 @@ if( $mode!= "")
 		$s_hidden_fields .= '<input type="hidden" name="mode" value="save" />';
 		$banner_is_active = ( $banner_info['banner_active'] ) ? "checked=\"checked\"" : "";
 		$banner_is_not_active = ( !$banner_info['banner_active'] ) ? "checked=\"checked\"" : "";
-		
+
 		$template->set_filenames(array(
 			'body' => 'admin/banner_edit_body.tpl')
 		);
@@ -249,7 +249,7 @@ if( $mode!= "")
 				$rule_begin = $lang['None'];
 				$rule_end = $lang['None'];
 				$c_no_time = 'CHECKED';break;
-			case 2:	
+			case 2:
 				$time_begin = $banner_info['time_begin'];
 				$hour_begin=$time_begin['0'].$time_begin['1'];
 				$min_begin=$time_begin['2'].$time_begin['3'];
@@ -264,7 +264,7 @@ if( $mode!= "")
 				$rule_begin = sprintf("%04d",$banner_info['time_begin']);
 				$rule_end = sprintf("%04d",$banner_info['time_end']);
 				$c_by_time = 'CHECKED';break;
-			case 4 :	
+			case 4 :
 				$time_begin = $banner_info['time_begin'];
 				$hour_begin=$time_begin['0'].$time_begin['1'];
 				$min_begin=$time_begin['2'].$time_begin['3'];
@@ -284,7 +284,7 @@ if( $mode!= "")
 				$rule_begin = $lang['datetime'][$day_array[$banner_info['date_begin']]].', '.sprintf("%04d",$banner_info['time_begin']);
 				$rule_end = $lang['datetime'][$day_array[$banner_info['date_end']]].', '.sprintf("%04d",$banner_info['time_end']);
 				$c_by_week = 'CHECKED';break;
-			case 6:	
+			case 6:
 				$time_begin = $banner_info['time_begin'];
 				$hour_begin=$time_begin['0'].$time_begin['1'];
 				$min_begin=$time_begin['2'].$time_begin['3'];
@@ -301,7 +301,7 @@ if( $mode!= "")
 				$day_begin=$date_begin['6'].$date_begin['7'];
 				$date_end = $banner_info['date_end'];
 				$year_end=$date_end['0'].$date_end['1'].$date_end['2'].$date_end['3'];
-				$month_end=$date_end['4'].$date_end['5'];	
+				$month_end=$date_end['4'].$date_end['5'];
 				$day_end=$date_end['6'].$date_end['7'];
 				$s_time_year_begin = str_replace("value=\"$year_begin\">", "value=\"$year_begin\" SELECTED>" ,$s_time_year_begin);
 				$s_time_year_end = str_replace("value=\"$year_end\">", "value=\"$year_end\" SELECTED>" ,$s_time_year_end);
@@ -318,8 +318,8 @@ if( $mode!= "")
 		$n=0;
 		while ( $lang['Banner_spot'][$n] )
 		{
-			$s_banner_spot.= ( $banner_info['banner_spot']==$n ) ? 
-			'<option value="'.$n.'" SELECTED>* '.$lang['Banner_spot'][$n] : 
+			$s_banner_spot.= ( $banner_info['banner_spot']==$n ) ?
+			'<option value="'.$n.'" SELECTED>* '.$lang['Banner_spot'][$n] :
 			'<option value="'.$n.'" >'.$lang['Banner_spot'][$n];
 			$n++;
 		}
@@ -327,22 +327,22 @@ if( $mode!= "")
 		$s_level='<select name="banner_level">';
 		while ( $lang['Banner_level'][$n] )
 		{
-			$s_level.= ( $banner_info['banner_level']==$n ) ? 
-			'<option value="'.$n.'" SELECTED>* '.$lang['Banner_level'][$n] : 
+			$s_level.= ( $banner_info['banner_level']==$n ) ?
+			'<option value="'.$n.'" SELECTED>* '.$lang['Banner_level'][$n] :
 			'<option value="'.$n.'" >'.$lang['Banner_level'][$n];
 			$n++;
 		}
-		$s_level .='</select>';			
+		$s_level .='</select>';
 		$n=0;
 		$s_level_type = '<select name="banner_level_type">';
 		while ( $lang['Banner_level_type'][$n] )
 		{
-			$s_level_type.= ( $banner_info['banner_level_type']==$n ) ? 
-			'<option value="'.$n.'" SELECTED> '.$lang['Banner_level_type'][$n] : 
+			$s_level_type.= ( $banner_info['banner_level_type']==$n ) ?
+			'<option value="'.$n.'" SELECTED> '.$lang['Banner_level_type'][$n] :
 			'<option value="'.$n.'" >'.$lang['Banner_level_type'][$n];
 			$n++;
 		}
-		$s_level_type .='</select>';			
+		$s_level_type .='</select>';
 
 
 		//forum selection
@@ -380,7 +380,7 @@ if( $mode!= "")
 			case 6 :
 				// swf
 				$banner_example = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,23,0" id="macromedia" '.$banner_size.' align="abscenter"	border="0" ><param name=movie value="'.$banner_info['banner_name'].'" /><param name=quality value=high /><embed src="'.$banner_info['banner_name'].'" quality=high pluginspage="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash" type="application/x-shockwave-flash" autostart="true" />
-				<noembed><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_info['banner_id']).'" target="_blank">'.$banner_info['banner_description'].'</a></noembed></object>'; 
+				<noembed><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_info['banner_id']).'" target="_blank">'.$banner_info['banner_description'].'</a></noembed></object>';
 				break;
 			case 4 :
 				// custom
@@ -390,7 +390,7 @@ if( $mode!= "")
 				$banner_example = '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_info['banner_id']).'" target="_blank">'.$banner_info['banner_name'].'</a>';
 				break;
 			case 0 :
-			default: 
+			default:
 				$banner_example = '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_info['banner_id']).'" target="_blank"><img src="'.$banner_info['banner_name'].'" '.$banner_size.' border="0" alt="'.$banner_info['banner_description'].'" title="'.$banner_info['banner_description'].'" /></a>';
 		}
 
@@ -398,7 +398,7 @@ if( $mode!= "")
 		$template->assign_vars(array(
 			'L_BANNER_TITLE' => $lang['Banner_title'],
 			'L_BANNER_TEXT' => $lang['Banner_add_text'],
-			'L_BANNER_ACTIVATE' => $lang['Banner_activate'], 
+			'L_BANNER_ACTIVATE' => $lang['Banner_activate'],
 			'BANNER_NOT_ACTIVE' => $banner_is_not_active,
 			'BANNER_ACTIVE' => $banner_is_active,
 'L_BANNER_TYPE' => $lang['Banner_type_text'],
@@ -445,7 +445,7 @@ if( $mode!= "")
 			'L_BANNER_OWNER' => $lang['Banner_owner'],
 			'L_BANNER_OWNER_EXPLAIN' => $lang['Banner_owner_explain'],
 			'BANNER_OWNER' => $owner['username'],
-			'U_SEARCH_USER' => append_sid("./../search.$phpEx?mode=searchuser"), 
+			'U_SEARCH_USER' => append_sid("./../search.$phpEx?mode=searchuser"),
 			'L_FIND_USERNAME' => $lang['Find_username'],
 
 			'L_BANNER_WEIGTH' => $lang['Banner_weigth'],
@@ -498,7 +498,7 @@ if( $mode!= "")
 			'L_RESET' => $lang['Reset'],
 			'L_YES' => $lang['Yes'],
 			'L_NO' => $lang['No'],
-		
+
 			'S_BANNER_ACTION' => append_sid("admin_banner.$phpEx"),
 			'S_HIDDEN_FIELDS' => $s_hidden_fields)
 		);
@@ -591,7 +591,7 @@ if( $mode!= "")
 					banner_url = '" . str_replace("\'", "''", $banner_url) . "', banner_owner = ".$owner['user_id'].",
 					banner_type = '$banner_type', banner_width = '$banner_width', banner_height = '$banner_height',
 					banner_filter = '$banner_filter',banner_filter_time='$banner_filter_time',
-					banner_spot = $banner_spot, banner_forum= $banner_forum, banner_weigth = $banner_weigth,	
+					banner_spot = $banner_spot, banner_forum= $banner_forum, banner_weigth = $banner_weigth,
 					banner_level = '$banner_level', banner_level_type = '$banner_level_type', banner_timetype = $time_type,
 					date_begin=$date_begin, date_end=$date_end, time_begin=$time_begin, time_end=$time_end,
 					banner_comment='" . str_replace("\'", "''", $banner_comment) . "'	WHERE banner_id = '$banner_id'";
@@ -622,7 +622,7 @@ if( $mode!= "")
 		//
 		// Ok, they lets delete the selected banner
 		//
-		
+
 		if( isset($_POST['id']) || isset($_GET['id']) )
 		{
 			$banner_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : intval($_GET['id']);
@@ -631,12 +631,12 @@ if( $mode!= "")
 		{
 			$banner_id = '';
 		}
-		
+
 		if( !empty($banner_id ))
 		{
 			$sql = "DELETE FROM " . BANNERS_TABLE . "
 				WHERE banner_id = '$banner_id'";
-			
+
 			if( !$result = $db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, "Couldn't delete banner data", "", __LINE__, __FILE__, $sql);
@@ -682,10 +682,10 @@ $template->set_filenames(array(
 		"L_DELETE" => $lang['Delete'],
 		"L_ADD_BANNER" => $lang['Add_new_banner'],
 		"L_ACTION" => $lang['Action'],
-		
+
 		"S_BANNER_ACTION" => append_sid("admin_banner.$phpEx"))
 	);
-	
+
 	for($i = 0; $i < $banners_count; $i++)
 	{
 		$banner_name = $banners_rows[$i]['banner_name'];
@@ -709,7 +709,7 @@ $template->set_filenames(array(
 					$rule_begin = $banners_rows[$i]['date_begin'].', '.sprintf("%04d",$banners_rows[$i]['time_begin']).'</br>';
 					$rule_end = $banners_rows[$i]['date_end'].', '.sprintf("%04d",$banners_rows[$i]['time_end']);break;
 		default:		$rule_type=$lang['Not_specify'];
-		}	
+		}
 		$template->assign_block_vars("banners", array(
 			'ROW_COLOR' => "#" . $row_color,
 			'ROW_CLASS' => $row_class,

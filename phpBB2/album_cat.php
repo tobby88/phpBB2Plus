@@ -19,25 +19,25 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
- 
+
   /***************************************************************************
  *                            MODIFICATIONS
  *                           ---------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
  *	 MODIFICATIONS:
  *		-fixed links to link to album_showpage.php
- *   
+ *
  *
  ***************************************************************************/
 
 /***************************************************************************
  *                            MODIFICATIONS
  *                           ---------------
- * copyright    : ï¿½ IdleVoid
+ * copyright    : Â© IdleVoid
  * email        : idlevoid@slater.dk
  * file version : 1.1.8
  * release      : 1.3.0
@@ -143,12 +143,12 @@ if ($cat_id == PERSONAL_GALLERY)
 // then show root album instead
 if ($cat_id <= ALBUM_ROOT_CATEGORY+1 || album_get_personal_root_id($album_user_id) == $cat_id)
 {
-	if ($cat_id == ALBUM_JUMPBOX_PUBLIC_GALLERY) 
+	if ($cat_id == ALBUM_JUMPBOX_PUBLIC_GALLERY)
 	{
 		redirect(append_sid("album.$phpEx"));
 	}
 
-	if ($cat_id == ALBUM_JUMPBOX_USERS_GALLERY) 
+	if ($cat_id == ALBUM_JUMPBOX_USERS_GALLERY)
 	{
 		redirect(append_sid(album_append_uid("album_personal_index.$phpEx")));
 	}
@@ -229,7 +229,7 @@ if( !$auth_data['view'] )
 {
 	if (!$userdata['session_logged_in'])
 	{
-		redirect( append_sid(album_append_uid("login.$phpEx?redirect=album_cat.$phpEx&cat_id=$cat_id") ) );		
+		redirect( append_sid(album_append_uid("login.$phpEx?redirect=album_cat.$phpEx&cat_id=$cat_id") ) );
 	}
 	else
 	{
@@ -552,9 +552,9 @@ if ($total_pics > 0)
 			{
 				$pic_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $picrow[$j]['user_id']) .'">'. $picrow[$j]['username'] .'</a>';
 			}
-			
+
 			$image_rating = ImageRating( $picrow[$j]['rating']);
-			
+
 			$template->assign_block_vars('picrow.pic_detail', array(
 				'TITLE' => '<a href = "album_showpage.' . $phpEx . '?pic_id=' . $picrow[$j]['pic_id'] . '">' . $picrow[$j]['pic_title'] . '</a>',
 				'POSTER' => $pic_poster,
@@ -675,10 +675,10 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 	if( empty($moderators_list) )
 	{
 		$moderators_list = $lang['None'];
-	}	
-	
+	}
+
     include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-	
+
 	$template->set_filenames(array(
 	    'body' => 'album_cat_body.tpl')
 	);
@@ -686,7 +686,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 	if ($total_pics > 0)
 	{
 		album_build_picture_table($album_user_id, $cat_id, $thiscat, $auth_data, $start, $sort_method, $sort_order, $total_pics);
-		
+
 		if ($album_config['show_recent_in_subcats'] == 1)
 		{
 			album_build_recent_pics($allowed_cat);
@@ -707,73 +707,73 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 			$template->assign_block_vars('index_pics_block.no_pics', array());
 		}
 	}
-	
+
 	//
 	// END thumbnails table
 	//
-	
+
 	// Maybe we should also add a new check to see if user really can upload or not
 	// this is not even in the original code by smartor
 	$template->assign_block_vars('enable_picture_upload', array());
-	
+
 	$template->assign_vars(array(
 		'L_ALBUM' => $lang['Album'],
-	
+
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
 		'CAT_TITLE' => $thiscat['cat_title'],
-	
+
 		'ALBUM_NAVIGATION_ARROW' => ALBUM_NAV_ARROW,
 		'NAV_CAT_DESC' => $album_nav_cat_desc,
-	
+
 		'L_MODERATORS' => $lang['Moderators'],
 		'MODERATORS' => $moderators_list,
-	
+
 		'U_UPLOAD_PIC' => append_sid(album_append_uid("album_upload.$phpEx?cat_id=$cat_id")),
 		'UPLOAD_PIC_IMG' => $images['upload_pic'],
 		'L_UPLOAD_PIC' => $lang['Upload_Pic'],
-	
+
 		'L_CATEGORY' => $lang['Category'],
-	
+
 		'L_NO_PICS' => $lang['No_Pics'],
 		'L_RECENT_PUBLIC_PICS' => $lang['Recent_Public_Pics'],
-	
+
 		'S_COLS' => $album_config['cols_per_page'],
 		'S_COL_WIDTH' => (100/$album_config['cols_per_page']) . '%',
-	
+
 		'L_VIEW' => $lang['View'],
 		'L_POSTER' => $lang['Poster'],
 		'L_POSTED' => $lang['Posted'],
-	
+
 		'ALBUM_JUMPBOX' => $album_jumpbox,
-	
+
 		'S_ALBUM_ACTION' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
-	
+
 		'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
-	
+
 		'L_SELECT_SORT_METHOD' => $lang['Select_sort_method'],
 		'L_ORDER' => $lang['Order'],
 		'L_SORT' => $lang['Sort'],
-	
+
 		'L_TIME' => $lang['Time'],
 		'L_PIC_TITLE' => $lang['Pic_Title'],
-	
+
 		'SORT_TIME' => ($sort_method == 'pic_time') ? 'selected="selected"' : '',
 		'SORT_PIC_TITLE' => ($sort_method == 'pic_title') ? 'selected="selected"' : '',
 		'SORT_VIEW' => ($sort_method == 'pic_view_count') ? 'selected="selected"' : '',
-	
+
 		'SORT_RATING_OPTION' => $sort_rating_option,
 		'SORT_COMMENTS_OPTION' => $sort_comments_option,
 		'SORT_NEW_COMMENT_OPTION' => $sort_new_comment_option,
 	    'SORT_USERNAME_OPTION' => $sort_username_option,
-	
+
 		'L_ASC' => $lang['Sort_Ascending'],
 		'L_DESC' => $lang['Sort_Descending'],
-	
+
 		'SORT_ASC' => ($sort_order == 'ASC') ? 'selected="selected"' : '',
 		'SORT_DESC' => ($sort_order == 'DESC') ? 'selected="selected"' : '',
-	
+
 		'S_AUTH_LIST' => $auth_list)
-	);	
+	);
 }
 else
 {
@@ -799,7 +799,7 @@ include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

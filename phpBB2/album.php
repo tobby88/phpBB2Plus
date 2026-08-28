@@ -18,12 +18,12 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
- 
+
  /***************************************************************************
  *                            MODIFICATIONS
  *                           ---------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
@@ -89,7 +89,7 @@ else
 if ($album_user_id != ALBUM_PUBLIC_GALLERY)
 {
 	$cat_id = ALBUM_ROOT_CATEGORY;
-	
+
 	if (isset ($_POST['mode']))
 	{
 		$album_view_mode = strtolower($_POST['mode']);
@@ -240,7 +240,7 @@ for ($i = 0; $i < count($catrows); $i++)
 		$last_pic_info = $lang['No_Pics'];
 		$u_last_pic = '';
 		$last_pic_title = '';
-		
+
 		//last coments
 		$last_comment_info = "No Comments";
 		$cat_total_comments = 0;
@@ -268,7 +268,7 @@ for ($i = 0; $i < count($catrows); $i++)
 		$sql = "SELECT p.pic_id, p.pic_title, p.pic_user_id, p.pic_username, p.pic_time, p.pic_cat_id, u.user_id, u.username, COUNT(c.comment_id) AS comment_count
 				FROM ". ALBUM_TABLE ." AS p
 				LEFT JOIN " . ALBUM_COMMENT_TABLE . " AS c ON p.pic_cat_id = c.comment_cat_id
-				LEFT JOIN ". USERS_TABLE ." AS u  ON p.pic_user_id = u.user_id 
+				LEFT JOIN ". USERS_TABLE ." AS u  ON p.pic_user_id = u.user_id
 				WHERE p.pic_cat_id = '". $catrows[$i]['cat_id'] ."' $pic_approval_sql
 				GROUP BY p.pic_time
 				ORDER BY p.pic_time DESC
@@ -278,21 +278,21 @@ for ($i = 0; $i < count($catrows); $i++)
 			message_die(GENERAL_ERROR, 'Could not get last pic information', '', __LINE__, __FILE__, $sql);
 		}
 		$lastrow = $db->sql_fetchrow($result);
-		
+
 		$sql = "SELECT c.comment_pic_id, c.comment_user_id, c.comment_username, c.comment_time, u.user_id, u.username, a.pic_id, a.pic_cat_id
-				FROM " . ALBUM_COMMENT_TABLE . " AS c 
+				FROM " . ALBUM_COMMENT_TABLE . " AS c
 				LEFT JOIN " . USERS_TABLE . " AS u ON c.comment_user_id = u.user_id
 				LEFT JOIN " . ALBUM_TABLE . " AS a ON c.comment_pic_id = a.pic_id
-				WHERE a.pic_cat_id = '" . $catrows[$i]['cat_id'] . "' 
+				WHERE a.pic_cat_id = '" . $catrows[$i]['cat_id'] . "'
 				ORDER BY c.comment_time DESC
 				LIMIT 1";
-				
+
 		if ( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not get last pic information', '', __LINE__, __FILE__, $sql);
 		}
 		$lastcrow = $db->sql_fetchrow($result);
-		
+
 		// ----------------------------
 		// Write the Date
 		// ----------------------------
@@ -338,7 +338,7 @@ for ($i = 0; $i < count($catrows); $i++)
 		$last_pic_info .= ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $lastrow['pic_id']) .'" target="_blank">' : append_sid("album_showpage.$phpEx?pic_id=". $lastrow['pic_id']) .'">' ;
 
 		$last_pic_info .= $lastrow['pic_title'] .'</a>';
-		
+
 		//last comment
 		if ( $lastrow['comment_count'] == 0 )
 		{
@@ -354,7 +354,7 @@ for ($i = 0; $i < count($catrows); $i++)
 			else
 				$last_comment_info .= '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $lastcrow['user_id']) .'">'. $lastcrow['username'] .'</a>';
 		}
-		
+
 		//comment count
 		$cat_total_comments = $lastrow['comment_count'];
 	}
@@ -434,7 +434,7 @@ if ($album_sp_config['disp_late'] == 1)
 		}
 
 		 $template->assign_block_vars('recent_pics_block', array());
-		
+
 		if (count($recentrow) > 0)
 		{
 			for ($i = 0; $i < count($recentrow); $i += $album_sp_config['img_cols'])
@@ -463,9 +463,9 @@ if ($album_sp_config['disp_late'] == 1)
 					{
 						$recent_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $recentrow[$j]['user_id']) .'">'. $recentrow[$j]['username'] .'</a>';
 					}
-					
+
 					$rating_image = ImageRating($recentrow[$j]['rating']);
-					
+
 					$template->assign_block_vars('recent_pics_block.recent_pics.recent_detail', array(
 						'TITLE' => '<a href = "album_showpage.' . $phpEx . '?pic_id=' . $recentrow[$j]['pic_id'] . '">' . $recentrow[$j]['pic_title'] . '</a>',
 						'POSTER' => $recent_poster,
@@ -497,107 +497,107 @@ if ($album_sp_config['disp_late'] == 1)
 		$template->assign_block_vars('recent_pics_block.no_pics', array());
 	}
 }
-/* 
-+---------------------------------------------------------- 
-| Highest Rated Pics 
+/*
++----------------------------------------------------------
+| Highest Rated Pics
 | by MarkFulton.com ...added RAND() part so highest pics dont always appear in same order..
-+---------------------------------------------------------- 
-*/ 
++----------------------------------------------------------
+*/
 /*
 if ($album_sp_config['disp_high'] == 1)
 {
-	if ($allowed_cat != '') 
-	{ 
-	   $sql = "SELECT p.pic_id, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments 
-	         FROM ". ALBUM_TABLE ." AS p 
-	            LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id 
-	            LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id 
-	            LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id 
-	            LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id 
-	         WHERE p.pic_cat_id IN ($allowed_cat) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 ) 
-	         GROUP BY p.pic_id 
+	if ($allowed_cat != '')
+	{
+	   $sql = "SELECT p.pic_id, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments
+	         FROM ". ALBUM_TABLE ." AS p
+	            LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
+	            LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
+	            LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
+	            LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
+	         WHERE p.pic_cat_id IN ($allowed_cat) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 )
+	         GROUP BY p.pic_id
 	         ORDER BY rating DESC, RAND()
-	         LIMIT ". $album_sp_config['img_cols'] * $album_sp_config['img_rows']; 
-	   if( !($result = $db->sql_query($sql)) ) 
-	   { 
-	      message_die(GENERAL_ERROR, 'Could not query highest rated pics information', '', __LINE__, __FILE__, $sql); 
-	   } 
+	         LIMIT ". $album_sp_config['img_cols'] * $album_sp_config['img_rows'];
+	   if( !($result = $db->sql_query($sql)) )
+	   {
+	      message_die(GENERAL_ERROR, 'Could not query highest rated pics information', '', __LINE__, __FILE__, $sql);
+	   }
 
-	   $highestrow = array(); 
+	   $highestrow = array();
 
-	   while( $row = $db->sql_fetchrow($result) ) 
-	   { 
-	      $highestrow[] = $row; 
-	   } 
-		
+	   while( $row = $db->sql_fetchrow($result) )
+	   {
+	      $highestrow[] = $row;
+	   }
+
 		$template->assign_block_vars('highest_pics_block', array());
 
-	   if (count($highestrow) > 0) 
-	   { 
-	      for ($i = 0; $i < count($highestrow); $i += $album_sp_config['img_cols']) 
-	      { 
-	         $template->assign_block_vars('highest_pics_block.highest_pics', array()); 
+	   if (count($highestrow) > 0)
+	   {
+	      for ($i = 0; $i < count($highestrow); $i += $album_sp_config['img_cols'])
+	      {
+	         $template->assign_block_vars('highest_pics_block.highest_pics', array());
 
-	         for ($j = $i; $j < ($i + $album_sp_config['img_cols']); $j++) 
-	         { 
-	            if( $j >= count($highestrow) ) 
-	            { 
-	               break; 
-	            } 
+	         for ($j = $i; $j < ($i + $album_sp_config['img_cols']); $j++)
+	         {
+	            if( $j >= count($highestrow) )
+	            {
+	               break;
+	            }
 
-	            $template->assign_block_vars('highest_pics_block.highest_pics.highest_col', array( 
-	               'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $highestrow[$j]['pic_id']) : append_sid("album_showpage.$phpEx?pic_id=". $highestrow[$j]['pic_id']), 
-	               'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $highestrow[$j]['pic_id']), 
-	               'DESC' => $highestrow[$j]['pic_desc'] 
-	               ) 
-	            ); 
+	            $template->assign_block_vars('highest_pics_block.highest_pics.highest_col', array(
+	               'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $highestrow[$j]['pic_id']) : append_sid("album_showpage.$phpEx?pic_id=". $highestrow[$j]['pic_id']),
+	               'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $highestrow[$j]['pic_id']),
+	               'DESC' => $highestrow[$j]['pic_desc']
+	               )
+	            );
 
-	            if( ($highestrow[$j]['user_id'] == ALBUM_GUEST) or ($highestrow[$j]['username'] == '') ) 
-	            { 
-	               $highest_poster = ($highestrow[$j]['pic_username'] == '') ? $lang['Guest'] : $highestrow[$j]['pic_username']; 
-	            } 
-	            else 
-	            { 
-	               $highest_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&". POST_USERS_URL .'='. $highestrow[$j]['user_id']) .'">'. $highestrow[$j]['username'] .'</a>'; 
-	            } 
-				
+	            if( ($highestrow[$j]['user_id'] == ALBUM_GUEST) or ($highestrow[$j]['username'] == '') )
+	            {
+	               $highest_poster = ($highestrow[$j]['pic_username'] == '') ? $lang['Guest'] : $highestrow[$j]['pic_username'];
+	            }
+	            else
+	            {
+	               $highest_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&". POST_USERS_URL .'='. $highestrow[$j]['user_id']) .'">'. $highestrow[$j]['username'] .'</a>';
+	            }
+
 				$rating_image = ImageRating($highestrow[$j]['rating']);
-				
-	            $template->assign_block_vars('highest_pics_block.highest_pics.highest_detail', array( 
-	               'H_TITLE' => '<a href = "album_showpage.' . $phpEx . '?pic_id=' . $highestrow[$j]['pic_id'] . '">' . $highestrow[$j]['pic_title'] . '</a>', 
-	               'H_POSTER' => $highest_poster, 
-	               'H_TIME' => create_date($board_config['default_dateformat'], $highestrow[$j]['pic_time'], $board_config['board_timezone']), 
 
-	               'H_VIEW' => $highestrow[$j]['pic_view_count'], 
+	            $template->assign_block_vars('highest_pics_block.highest_pics.highest_detail', array(
+	               'H_TITLE' => '<a href = "album_showpage.' . $phpEx . '?pic_id=' . $highestrow[$j]['pic_id'] . '">' . $highestrow[$j]['pic_title'] . '</a>',
+	               'H_POSTER' => $highest_poster,
+	               'H_TIME' => create_date($board_config['default_dateformat'], $highestrow[$j]['pic_time'], $board_config['board_timezone']),
 
-	               'H_RATING' => ($album_config['rate'] == 1) ? ( $lang['Rating'] . ': ' . $rating_image . '<br />') : '', 
+	               'H_VIEW' => $highestrow[$j]['pic_view_count'],
 
-	               'H_IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($highestrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($highestrow[$j]['pic_user_ip']) .'</a><br />' : '' 
-	               ) 
-	            ); 
-	         } 
-	      } 
-	   } 
-	   else 
-	   { 
-	      // 
-	      // No Pics Found 
-	      // 
-	      $template->assign_block_vars('highest_pics_block.no_pics', array()); 
-	   } 
-	} 
-	else 
-	{ 
-	   // 
-	   // No Cats Found 
-	   // 
-	   $template->assign_block_vars('highest_pics_block.no_pics', array()); 
-	} 
+	               'H_RATING' => ($album_config['rate'] == 1) ? ( $lang['Rating'] . ': ' . $rating_image . '<br />') : '',
+
+	               'H_IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($highestrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($highestrow[$j]['pic_user_ip']) .'</a><br />' : ''
+	               )
+	            );
+	         }
+	      }
+	   }
+	   else
+	   {
+	      //
+	      // No Pics Found
+	      //
+	      $template->assign_block_vars('highest_pics_block.no_pics', array());
+	   }
+	}
+	else
+	{
+	   //
+	   // No Cats Found
+	   //
+	   $template->assign_block_vars('highest_pics_block.no_pics', array());
+	}
 }
 
 /*
 +----------------------------------------------------------
-| Random Pics 
+| Random Pics
 | by CLowN
 +----------------------------------------------------------
 */
@@ -627,7 +627,7 @@ if ($album_sp_config['disp_rand'] == 1)
 		{
 			$randrow[] = $row;
 		}
-		
+
 		$template->assign_block_vars('random_pics_block', array());
 
 		if (count($randrow) > 0)
@@ -658,10 +658,10 @@ if ($album_sp_config['disp_rand'] == 1)
 					{
 						$rand_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $randrow[$j]['user_id']) .'">'. $randrow[$j]['username'] .'</a>';
 					}
-					
-					
+
+
 					$rating_image = ImageRating($randrow[$j]['rating']);
-					
+
 
 					$template->assign_block_vars('random_pics_block.rand_pics.rand_detail', array(
 						'TITLE' => '<a href = "album_showpage.' . $phpEx . '?pic_id=' . $randrow[$j]['pic_id'] . '">' . $randrow[$j]['pic_title'] . '</a>',
@@ -915,7 +915,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 		{
 	        album_build_highest_rated_pics($allowed_cat);
 		}
-		
+
 		//----------------------------------------------------------
 		//Random Pics by CLowN
 		//----------------------------------------------------------
@@ -932,11 +932,11 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 		//----------------------------------------------------------
   		// recent pictures are always on when not using CLowN's Super Charged Pack
 		album_build_recent_pics($allowed_cat);
-		
+
         // these aren't enabled since they are infact part of CLowN's Super Charged Pack;
         // they do work even if you haven't installed his mod.
         //album_build_highest_rated_pics($cat_id, $allowed_cat);
-        //album_build_random_pics($cat_id, $allowed_cat);		
+        //album_build_random_pics($cat_id, $allowed_cat);
 	}
 
 	$template->assign_vars(array(
@@ -951,7 +951,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 		'L_HIGHEST_RATED_PICS' => $lang['Highest_Rated_Pics'],
 		'L_RANDOM_PICS' => $lang['Random_Pics'],
 		'L_POSTED' => $lang['Posted'])
-	);	
+	);
 }
 // it's a personal gallery, and in the root folder
 else
@@ -985,7 +985,7 @@ include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

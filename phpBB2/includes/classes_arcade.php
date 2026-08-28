@@ -1191,6 +1191,11 @@ class mxlookup
      var $dns_repl_domain;
      var $arrMX = array();
 
+     function __construct($domain, $dns="localhost")
+     {
+        $this->mxlookup($domain, $dns);
+     }
+
      function mxlookup($domain, $dns="localhost")
      {
         $this->QNAME($domain);

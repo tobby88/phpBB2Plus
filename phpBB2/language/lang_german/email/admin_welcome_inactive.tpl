@@ -1,5 +1,5 @@
 Subject: Willkommen auf {SITENAME}
-Charset: iso-8859-1
+Charset: UTF-8
 
 {WELCOME_MSG}
 
@@ -12,8 +12,8 @@ Passwort: {PASSWORD}
 
 Dein Account ist im Moment inaktiv. Der Administrator muss ihn erst aktivieren, bevor du dich einloggen kannst. Du bekommst eine weitere E-Mail, wenn dies geschehen ist.
 
-Das Passwort wurde nur verschlüsselt in unserer Datenbank gespeichert, wenn du es also vergisst, können wir es dir nicht mehr zusenden. Wenn du es trotzdem vergessen solltest, kannst du aber jederzeit ein neues anfordern.
+Das Passwort wurde nur verschlÃ¼sselt in unserer Datenbank gespeichert, wenn du es also vergisst, kÃ¶nnen wir es dir nicht mehr zusenden. Wenn du es trotzdem vergessen solltest, kannst du aber jederzeit ein neues anfordern.
 
-Vielen Dank für deine Registrierung!
+Vielen Dank fÃ¼r deine Registrierung!
 
 {EMAIL_SIG}

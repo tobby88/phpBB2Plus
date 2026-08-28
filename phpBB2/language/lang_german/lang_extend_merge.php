@@ -34,21 +34,21 @@ if ( $lang_extend_admin )
 }
 
 $lang['Refresh'] = 'Refresh';
-$lang['Merge_topics'] = 'Themen zusammenführen';
+$lang['Merge_topics'] = 'Themen zusammenfÃ¼hren';
 $lang['Merge_title'] = 'Neuer Thementitel';
 $lang['Merge_title_explain'] = 'Dies ist der neue Thementitel. Leerlassen, um den vorgegebenen Titel zu benutzen.';
-$lang['Merge_topic_from'] = 'Zusammenzuführendes Thema';
-$lang['Merge_topic_from_explain'] = 'Dieses Thema wird mit einem anderen zusammengeführt. Man kann entweder die Topic-ID, die URL des Themas oder die URL eines einzigen Beitrags angeben.';
+$lang['Merge_topic_from'] = 'ZusammenzufÃ¼hrendes Thema';
+$lang['Merge_topic_from_explain'] = 'Dieses Thema wird mit einem anderen zusammengefÃ¼hrt. Man kann entweder die Topic-ID, die URL des Themas oder die URL eines einzigen Beitrags angeben.';
 $lang['Merge_topic_to'] = 'Zielthema';
-$lang['Merge_topic_to_explain'] = 'Dieses Thema wird um die Beiträge des zusammenzuführenden Themas ergänzt. Man kann entweder die Topic-ID, die URL des Themas oder die URL eines einzigen Beitrags angeben.';
-$lang['Merge_from_not_found'] = 'Das zusammenzuführende Thema wurde nicht gefunden.';
+$lang['Merge_topic_to_explain'] = 'Dieses Thema wird um die BeitrÃ¤ge des zusammenzufÃ¼hrenden Themas ergÃ¤nzt. Man kann entweder die Topic-ID, die URL des Themas oder die URL eines einzigen Beitrags angeben.';
+$lang['Merge_from_not_found'] = 'Das zusammenzufÃ¼hrende Thema wurde nicht gefunden.';
 $lang['Merge_to_not_found'] = 'Das Zielthema wurde nicht gefunden.';
-$lang['Merge_topics_equals'] = 'Man kann ein Thema nicht mit sich selbst zusammenführen.';
-$lang['Merge_from_not_authorized'] = 'Du bist nicht autorisiert das Forum zu moderieren, dass das Thema enthält, das zusammengeführt werden soll.';
-$lang['Merge_to_not_authorized'] =  'Du bist nicht autorisiert das Forum zu moderieren, dass das Zielthema enthält.';
-$lang['Merge_poll_from'] = 'Die Umfrage im zusammenzuführenden Thema wird zum Zielthema kopiert.';
-$lang['Merge_poll_from_and_to'] = 'Das Zielthema enthält bereits eine Umfrage. Die Umfrage des zusammenzuführenden Themas wird daher gelöscht.';
-$lang['Merge_confirm_process'] = 'Bist Du sicher, <br />"<b>%s</b>"<br />mit<br />"<b>%s</b>"<br />zusammenzuführen?"';
-$lang['Merge_topic_done'] = 'Die Themen wurden erfolgreich zusammengeführt.';
+$lang['Merge_topics_equals'] = 'Man kann ein Thema nicht mit sich selbst zusammenfÃ¼hren.';
+$lang['Merge_from_not_authorized'] = 'Du bist nicht autorisiert das Forum zu moderieren, dass das Thema enthÃ¤lt, das zusammengefÃ¼hrt werden soll.';
+$lang['Merge_to_not_authorized'] =  'Du bist nicht autorisiert das Forum zu moderieren, dass das Zielthema enthÃ¤lt.';
+$lang['Merge_poll_from'] = 'Die Umfrage im zusammenzufÃ¼hrenden Thema wird zum Zielthema kopiert.';
+$lang['Merge_poll_from_and_to'] = 'Das Zielthema enthÃ¤lt bereits eine Umfrage. Die Umfrage des zusammenzufÃ¼hrenden Themas wird daher gelÃ¶scht.';
+$lang['Merge_confirm_process'] = 'Bist Du sicher, <br />"<b>%s</b>"<br />mit<br />"<b>%s</b>"<br />zusammenzufÃ¼hren?"';
+$lang['Merge_topic_done'] = 'Die Themen wurden erfolgreich zusammengefÃ¼hrt.';
 
 ?>

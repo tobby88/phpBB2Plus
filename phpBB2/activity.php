@@ -1416,7 +1416,7 @@ if( $mode != '' )
     }
 		if((($mod_id && $mod_id == $user_id) || $userdata['user_level'] == ADMIN) && $arcade->arcade_config['games_moderators_mode'])
 		{
-			$moderate = '<a href="arcade_modcp.'.$phpEx.'?mode=mod&amp;cat_id='.$arcade->cat_id.'"><img src="images/moderate.gif" border="0" alt="'.$lang{'Rules_moderate2'}.'"></a> ';
+			$moderate = '<a href="arcade_modcp.'.$phpEx.'?mode=mod&amp;cat_id='.$arcade->cat_id.'"><img src="images/moderate.gif" border="0" alt="'.$lang['Rules_moderate2'].'"></a> ';
 		}
 		if ($arcade->arcade_config['games_show_stats'] == 1)
 		{

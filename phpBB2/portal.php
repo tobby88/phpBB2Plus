@@ -1126,7 +1126,7 @@ include($phpbb_root_path . 'mods/netclectic/mini_cal/mini_cal.'.$phpEx);
 $template->assign_vars(array( 
 "TELL_LINK" => append_sid("http://".$HTTP_SERVER_VARS['HTTP_HOST'].$HTTP_SERVER_VARS['PHP_SELF']."?t=$topic_id", true)));
 
-$content =& new NewsModule( $phpbb_root_path ); 
+$content = new NewsModule( $phpbb_root_path ); 
 
 $content->setVariables( array( 
     'L_INDEX' => $lang['Index'], 

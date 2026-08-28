@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -419,7 +419,7 @@ class pafiledb_search extends pafiledb_public
 				$result_array = serialize($store_search_data);
 				unset($store_search_data);
 
-				mt_srand ((double) microtime() * 1000000);
+				mt_srand ((float) microtime() * 1000000);
 				$search_id = mt_rand();
 
 				$sql = "UPDATE " . SEARCH_TABLE . " 

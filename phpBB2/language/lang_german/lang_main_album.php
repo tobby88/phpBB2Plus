@@ -32,137 +32,137 @@ include($phpbb_root_path.'language/lang_german/lang_hierarchy_album.' . $phpEx);
 // Album Index
 //
 $lang['Photo_Album'] = 'Photo Album';
-$lang['Pics'] = 'Bilder'; 
-$lang['Last_Pic'] = 'Letztes Bild'; 
-$lang['Public_Categories'] = 'Öffentliche Kategorien'; 
-$lang['No_Pics'] = 'Keine Bilder'; 
-$lang['Users_Personal_Galleries'] = 'Persönliche Galerien'; 
-$lang['Your_Personal_Gallery'] = 'Deine persönliche Galerie'; 
-$lang['Recent_Public_Pics'] = 'Neue Öffentliche Bilder'; 
+$lang['Pics'] = 'Bilder';
+$lang['Last_Pic'] = 'Letztes Bild';
+$lang['Public_Categories'] = 'Ã–ffentliche Kategorien';
+$lang['No_Pics'] = 'Keine Bilder';
+$lang['Users_Personal_Galleries'] = 'PersÃ¶nliche Galerien';
+$lang['Your_Personal_Gallery'] = 'Deine persÃ¶nliche Galerie';
+$lang['Recent_Public_Pics'] = 'Neue Ã–ffentliche Bilder';
 $lang['Highest_Rated_Pics'] = 'Top bewertete Bilder';
-$lang['Random_Pics'] = 'Zufällige Bilder';
+$lang['Random_Pics'] = 'ZufÃ¤llige Bilder';
 
-$lang['View'] = 'Aufrufe'; 
+$lang['View'] = 'Aufrufe';
 
 //
 // Category View
 //
-$lang['Category_not_exist'] = 'Diese Kategorie existiert nicht'; 
-$lang['Upload_Pic'] = 'Bild hochladen'; 
-$lang['Pic_Title'] = 'Titel'; 
+$lang['Category_not_exist'] = 'Diese Kategorie existiert nicht';
+$lang['Upload_Pic'] = 'Bild hochladen';
+$lang['Pic_Title'] = 'Titel';
 
-$lang['Album_upload_can'] = 'Du <b>kannst</b> neue Bilder in dieser Kategorie hochladen'; 
-$lang['Album_upload_cannot'] = 'Du kannst <b>keine</b> neuen Bilder in dieser Kategorie hochladen'; 
-$lang['Album_rate_can'] = 'Du <b>kannst</b> Bilder in dieser Kategorie bewerten'; 
-$lang['Album_rate_cannot'] = 'Du kannst <b>keine</b> Bilder in dieser Kategorie bewerten'; 
-$lang['Album_comment_can'] = 'Du <b>kannst</b> Kommentare zu diesem Bilder in der Kategorie schreiben'; 
-$lang['Album_comment_cannot'] = 'Du kannst <b>keine</b> Kommentare zu diesem Bilder in der Kategorie schreiben'; 
-$lang['Album_edit_can'] = 'Du <b>kannst</b> Bilder editieren und Kommentare dazu erstellen in dieser Kategorie'; 
-$lang['Album_edit_cannot'] = 'Du kannst <b>keine</b> Bilder editieren und Kommentare dazu erstellen in dieser Kategorie'; 
-$lang['Album_delete_can'] = 'Du <b>kannst</b> Bilder löschen und kommentieren in dieser Kategorie'; 
-$lang['Album_delete_cannot'] = 'Du kannst<b>keine</b> Bilder löschen und kommentieren in dieser Kategorie'; 
-$lang['Album_moderate_can'] = 'Du <b>kannst</b> diese Kategorie %smoderieren%s'; 
+$lang['Album_upload_can'] = 'Du <b>kannst</b> neue Bilder in dieser Kategorie hochladen';
+$lang['Album_upload_cannot'] = 'Du kannst <b>keine</b> neuen Bilder in dieser Kategorie hochladen';
+$lang['Album_rate_can'] = 'Du <b>kannst</b> Bilder in dieser Kategorie bewerten';
+$lang['Album_rate_cannot'] = 'Du kannst <b>keine</b> Bilder in dieser Kategorie bewerten';
+$lang['Album_comment_can'] = 'Du <b>kannst</b> Kommentare zu diesem Bilder in der Kategorie schreiben';
+$lang['Album_comment_cannot'] = 'Du kannst <b>keine</b> Kommentare zu diesem Bilder in der Kategorie schreiben';
+$lang['Album_edit_can'] = 'Du <b>kannst</b> Bilder editieren und Kommentare dazu erstellen in dieser Kategorie';
+$lang['Album_edit_cannot'] = 'Du kannst <b>keine</b> Bilder editieren und Kommentare dazu erstellen in dieser Kategorie';
+$lang['Album_delete_can'] = 'Du <b>kannst</b> Bilder lÃ¶schen und kommentieren in dieser Kategorie';
+$lang['Album_delete_cannot'] = 'Du kannst<b>keine</b> Bilder lÃ¶schen und kommentieren in dieser Kategorie';
+$lang['Album_moderate_can'] = 'Du <b>kannst</b> diese Kategorie %smoderieren%s';
 
-$lang['Edit_pic'] = 'Bearbeiten'; 
-$lang['Delete_pic'] = 'Löschen'; 
-$lang['Rating'] = 'Bewertung'; 
-$lang['Comments'] = 'Kommentare'; 
-$lang['New_Comment'] = 'Neuer Kommentar'; 
+$lang['Edit_pic'] = 'Bearbeiten';
+$lang['Delete_pic'] = 'LÃ¶schen';
+$lang['Rating'] = 'Bewertung';
+$lang['Comments'] = 'Kommentare';
+$lang['New_Comment'] = 'Neuer Kommentar';
 
-$lang['Not_rated'] = '<i>nicht bewertet</i>'; 
+$lang['Not_rated'] = '<i>nicht bewertet</i>';
 
 //
 // Upload
 //
-$lang['Pic_Desc'] = 'Bild-Beschreibung'; 
-$lang['Plain_text_only'] = 'nur reiner Text'; 
-$lang['Max_length'] = 'Max. Länge (bytes)'; 
-$lang['Upload_pic_from_machine'] = 'Bild von Deinem Computer hochladen'; 
-$lang['Upload_to_Category'] = 'In Kategorie hochladen'; 
-$lang['Upload_thumbnail_from_machine'] = 'Vorschaubild von Deinem Computer hochladen (muss der selbe Typ wie Dein Bild sein)'; 
+$lang['Pic_Desc'] = 'Bild-Beschreibung';
+$lang['Plain_text_only'] = 'nur reiner Text';
+$lang['Max_length'] = 'Max. LÃ¤nge (bytes)';
+$lang['Upload_pic_from_machine'] = 'Bild von Deinem Computer hochladen';
+$lang['Upload_to_Category'] = 'In Kategorie hochladen';
+$lang['Upload_thumbnail_from_machine'] = 'Vorschaubild von Deinem Computer hochladen (muss der selbe Typ wie Dein Bild sein)';
 $lang['Upload_thumbnail'] = 'Vorschaubild hochladen';
 $lang['Upload_thumbnail_explain'] = 'Es muss der gleiche Dateityp wie Dein Bild sein';
-$lang['Thumbnail_size'] = 'Vorschau-Größe (Pixel)'; 
-$lang['Filetype_and_thumbtype_do_not_match'] = 'Dein Bild und das Vorschaubild müssen vom selben Typ sein!'; 
+$lang['Thumbnail_size'] = 'Vorschau-GrÃ¶ÃŸe (Pixel)';
+$lang['Filetype_and_thumbtype_do_not_match'] = 'Dein Bild und das Vorschaubild mÃ¼ssen vom selben Typ sein!';
 
-$lang['Upload_no_title'] = 'Du mußt einen Titel für Dein Bild angeben!'; 
-$lang['Upload_no_file'] = 'Du mußt einen Pfad und den Dateinamen angeben!'; 
-$lang['Desc_too_long'] = 'Deine Beschreibung des Bildes ist zu lang!'; 
+$lang['Upload_no_title'] = 'Du muÃŸt einen Titel fÃ¼r Dein Bild angeben!';
+$lang['Upload_no_file'] = 'Du muÃŸt einen Pfad und den Dateinamen angeben!';
+$lang['Desc_too_long'] = 'Deine Beschreibung des Bildes ist zu lang!';
 
-$lang['Max_file_size'] = 'Max. Dateigröße (bytes)'; 
-$lang['Max_width'] = 'Max. Bilderbreite (pixel)'; 
-$lang['Max_height'] = 'Max. Bilderhöhe(pixel)'; 
+$lang['Max_file_size'] = 'Max. DateigrÃ¶ÃŸe (bytes)';
+$lang['Max_width'] = 'Max. Bilderbreite (pixel)';
+$lang['Max_height'] = 'Max. BilderhÃ¶he(pixel)';
 
-$lang['JPG_allowed'] = 'Erlaubnis JPG Dateien hochzuladen'; 
-$lang['PNG_allowed'] = 'Erlaubnis PNG Dateien hochzuladen'; 
-$lang['GIF_allowed'] = 'Erlaubnis GIF Dateien hochzuladen'; 
+$lang['JPG_allowed'] = 'Erlaubnis JPG Dateien hochzuladen';
+$lang['PNG_allowed'] = 'Erlaubnis PNG Dateien hochzuladen';
+$lang['GIF_allowed'] = 'Erlaubnis GIF Dateien hochzuladen';
 
-$lang['Album_reached_quota'] = 'Das System hat die Grenze der Bilder erreicht. Du kannst nun keine mehr hochladen. Bitte benachrichtige den Administrator für mehr Informationen'; 
-$lang['User_reached_pics_quota'] = 'Du hast die Grenze der hochzuladenen Bilder erreicht. Du kannst nun keine mehr hochladen. Bitte benachrichtige den Administrator für mehr Informationen'; 
+$lang['Album_reached_quota'] = 'Das System hat die Grenze der Bilder erreicht. Du kannst nun keine mehr hochladen. Bitte benachrichtige den Administrator fÃ¼r mehr Informationen';
+$lang['User_reached_pics_quota'] = 'Du hast die Grenze der hochzuladenen Bilder erreicht. Du kannst nun keine mehr hochladen. Bitte benachrichtige den Administrator fÃ¼r mehr Informationen';
 
-$lang['Bad_upload_file_size'] = 'Dein hochzuladenes Bild ist zu groß oder die Datei ist beschädigt'; 
-$lang['Not_allowed_file_type'] = 'Deine Dateiendung ist hier nicht erlaubt'; 
-$lang['Upload_image_size_too_big'] = 'Die Abmessungen Deines Bildes sind zu groß!'; 
-$lang['Upload_thumbnail_size_too_big'] = 'Die Abmessungen des Vorschau-Bildes sind zu groß!'; 
+$lang['Bad_upload_file_size'] = 'Dein hochzuladenes Bild ist zu groÃŸ oder die Datei ist beschÃ¤digt';
+$lang['Not_allowed_file_type'] = 'Deine Dateiendung ist hier nicht erlaubt';
+$lang['Upload_image_size_too_big'] = 'Die Abmessungen Deines Bildes sind zu groÃŸ!';
+$lang['Upload_thumbnail_size_too_big'] = 'Die Abmessungen des Vorschau-Bildes sind zu groÃŸ!';
 
-$lang['Missed_pic_title'] = 'Du mußt Deinen Bildtitel eintragen'; 
+$lang['Missed_pic_title'] = 'Du muÃŸt Deinen Bildtitel eintragen';
 
-$lang['Album_upload_successful'] = 'Dein Bild wurde erfolgreich hochgeladen'; 
-$lang['Album_upload_need_approval'] = 'Dein Bild wurde erfolgreich hochgeladen<br /><br />Sobald ein Administrator oder Moderator das Bild akzeptiert hat, wird es freigeschaltet'; 
-$lang['Click_return_category'] = 'Klicke bitte %shier%s um zur Kategorie zurückzukehren'; 
-$lang['Click_return_album_index'] = 'Klicke bitte %shier%s um zum Album Index zurückzukehren'; 
+$lang['Album_upload_successful'] = 'Dein Bild wurde erfolgreich hochgeladen';
+$lang['Album_upload_need_approval'] = 'Dein Bild wurde erfolgreich hochgeladen<br /><br />Sobald ein Administrator oder Moderator das Bild akzeptiert hat, wird es freigeschaltet';
+$lang['Click_return_category'] = 'Klicke bitte %shier%s um zur Kategorie zurÃ¼ckzukehren';
+$lang['Click_return_album_index'] = 'Klicke bitte %shier%s um zum Album Index zurÃ¼ckzukehren';
 
 // View Pic
-$lang['Pic_not_exist'] = 'Das Bild existiert nicht'; 
+$lang['Pic_not_exist'] = 'Das Bild existiert nicht';
 
 // Edit Pic
-$lang['Edit_Pic_Info'] = 'Bilder Informationen bearbeiten'; 
-$lang['Pics_updated_successfully'] = 'Deine Bilder Informationen sind erfolgreich geändert worden'; 
+$lang['Edit_Pic_Info'] = 'Bilder Informationen bearbeiten';
+$lang['Pics_updated_successfully'] = 'Deine Bilder Informationen sind erfolgreich geÃ¤ndert worden';
 
 // Delete Pic
-$lang['Album_delete_confirm'] = 'Bist Du sicher, das Bild (die Bilder) zu löschen?'; 
-$lang['Pic_deleted_successful'] = 'Dieses Bild (diese Bilder) sind erfolgreich gelöscht worden'; 
+$lang['Album_delete_confirm'] = 'Bist Du sicher, das Bild (die Bilder) zu lÃ¶schen?';
+$lang['Pic_deleted_successful'] = 'Dieses Bild (diese Bilder) sind erfolgreich gelÃ¶scht worden';
 
 //
 // ModCP
 //
-$lang['Approval'] = 'Bilder-Freischaltung'; 
-$lang['Approve'] = 'genehmigen'; 
-$lang['Unapprove'] = 'ablehnen'; 
+$lang['Approval'] = 'Bilder-Freischaltung';
+$lang['Approve'] = 'genehmigen';
+$lang['Unapprove'] = 'ablehnen';
 $lang['Status'] = 'Status';
-$lang['Locked'] = 'gesperrt'; 
-$lang['Not_approved'] = 'nicht genehmigt'; 
-$lang['Approved'] = 'genehmigt'; 
-$lang['Move_to_Category'] = 'In eine Kategorie verschieben'; 
-$lang['Pics_moved_successfully'] = 'Dein(e) Bild(er) wurden erfolgreich verschoben'; 
-$lang['Pics_locked_successfully'] = 'Dein(e) Bild(er) wurden erfolgreich gesperrt'; 
-$lang['Pics_unlocked_successfully'] = 'Dein(e) Bild(er) wurden erfolgreich entsperrt'; 
-$lang['Pics_approved_successfully'] = 'Dein(e) Bild(er) wurden freigeschalten'; 
-$lang['Pics_unapproved_successfully'] = 'Dein(e) Bild(er) wurden abgelehnt'; 
+$lang['Locked'] = 'gesperrt';
+$lang['Not_approved'] = 'nicht genehmigt';
+$lang['Approved'] = 'genehmigt';
+$lang['Move_to_Category'] = 'In eine Kategorie verschieben';
+$lang['Pics_moved_successfully'] = 'Dein(e) Bild(er) wurden erfolgreich verschoben';
+$lang['Pics_locked_successfully'] = 'Dein(e) Bild(er) wurden erfolgreich gesperrt';
+$lang['Pics_unlocked_successfully'] = 'Dein(e) Bild(er) wurden erfolgreich entsperrt';
+$lang['Pics_approved_successfully'] = 'Dein(e) Bild(er) wurden freigeschalten';
+$lang['Pics_unapproved_successfully'] = 'Dein(e) Bild(er) wurden abgelehnt';
 
 //
 // Rate
 //
-$lang['Current_Rating'] = 'Aktuelle Bewertung'; 
-$lang['Please_Rate_It'] = 'Bitte bewerte das Bild'; 
-$lang['Already_rated'] = 'Du hast dieses Bild bereits bewertet'; 
-$lang['Album_rate_successfully'] = 'Dein Bild wurde erfolgreich bewertet'; 
+$lang['Current_Rating'] = 'Aktuelle Bewertung';
+$lang['Please_Rate_It'] = 'Bitte bewerte das Bild';
+$lang['Already_rated'] = 'Du hast dieses Bild bereits bewertet';
+$lang['Album_rate_successfully'] = 'Dein Bild wurde erfolgreich bewertet';
 
 //
 // Comment
 //
-$lang['Comment_no_text'] = 'Bitte füge einen Kommentar hinzu'; 
-$lang['Comment_too_long'] = 'Dein Kommentar ist zu lang'; 
-$lang['Comment_delete_confirm'] = 'Bist Du sicher, dass du den Kommentar löschen willst?'; 
-$lang['Pic_Locked'] = 'Das Bild ist gesperrt, deshalb kannst Du keine Kommentare mehr posten'; 
+$lang['Comment_no_text'] = 'Bitte fÃ¼ge einen Kommentar hinzu';
+$lang['Comment_too_long'] = 'Dein Kommentar ist zu lang';
+$lang['Comment_delete_confirm'] = 'Bist Du sicher, dass du den Kommentar lÃ¶schen willst?';
+$lang['Pic_Locked'] = 'Das Bild ist gesperrt, deshalb kannst Du keine Kommentare mehr posten';
 
 //
 // Personal Gallery
 //
-$lang['Personal_Gallery_Explain'] = 'Du kannst die persönliche Galerie von anderen Benutzern betrachten, indem Du auf den Link in Ihrem Profil klickst'; 
-$lang['Personal_gallery_not_created'] = 'Die persönliche Galerie von %s ist leer oder wurde noch nicht erstellt'; 
-$lang['Not_allowed_to_create_personal_gallery'] = 'Wende Dich bitte an einen Administrator, wenn Du eine persönliche Galerie anlegen willst!'; 
-$lang['Click_return_personal_gallery'] = 'Klicke %shier%s um zur persönlichen Galerie zurückzukehren'; 
+$lang['Personal_Gallery_Explain'] = 'Du kannst die persÃ¶nliche Galerie von anderen Benutzern betrachten, indem Du auf den Link in Ihrem Profil klickst';
+$lang['Personal_gallery_not_created'] = 'Die persÃ¶nliche Galerie von %s ist leer oder wurde noch nicht erstellt';
+$lang['Not_allowed_to_create_personal_gallery'] = 'Wende Dich bitte an einen Administrator, wenn Du eine persÃ¶nliche Galerie anlegen willst!';
+$lang['Click_return_personal_gallery'] = 'Klicke %shier%s um zur persÃ¶nlichen Galerie zurÃ¼ckzukehren';
 /* Album Hierarchy - START */
 $lang['Last_Comments'] = 'Letzer Kommentar';
 $lang['No_Comment_Info'] = 'Keine Kommentare';
@@ -172,24 +172,24 @@ $lang['Total_Comments'] = 'Kommentare insgesamt';
 $lang['Last_Index_Thumbnail'] = 'Letztes Bild';
 $lang['Sub_Total_Pics'] = 'Bilder insgesamt';
 /* Album Hierarchy - STOP  */
-/* Album Hierarchy - START */ 
-$lang['Album_sub_categories'] = 'Sub Kategorien'; 
-/* Album Hierarchy - STOP  */ 
+/* Album Hierarchy - START */
+$lang['Album_sub_categories'] = 'Sub Kategorien';
+/* Album Hierarchy - STOP  */
 
 
 // Album Nuffload
 $lang['time_elapsed'] = 'Vergangene Zeit';
 $lang['time_remaining'] = 'Verbleibende Zeit';
-$lang['upload_in_progress'] = 'Upload läuft';
+$lang['upload_in_progress'] = 'Upload lÃ¤uft';
 $lang['please_wait'] = 'Bitte warten...';
 $lang['uploaded'] = '%multi_id% von %multi_max% Bildern hochgeladen.';
 $lang['no_file_received'] = 'Keine Bilddatei empfangen';
 $lang['no_thumbnail_file_received'] = 'Kein Vorschaubild empfangen';
-$lang['file_too_big'] = 'Bilddatei ist zu groß';
-$lang['thumbnail_too_big'] = 'Vorschaudatei ist zu groß';
-$lang['image_res_too_high'] = 'Bildauflösung ist zu hoch';
-$lang['add_field'] = 'Weiteres Bild-Upload-Feld hinzufügen';
+$lang['file_too_big'] = 'Bilddatei ist zu groÃŸ';
+$lang['thumbnail_too_big'] = 'Vorschaudatei ist zu groÃŸ';
+$lang['image_res_too_high'] = 'BildauflÃ¶sung ist zu hoch';
+$lang['add_field'] = 'Weiteres Bild-Upload-Feld hinzufÃ¼gen';
 $lang['remove_field'] = 'Letztes Bild-Upload-Feld entfernen';
-$lang['ZIP_allowed'] = 'ZIP-Dateien dürfen hochgeladen werden';
+$lang['ZIP_allowed'] = 'ZIP-Dateien dÃ¼rfen hochgeladen werden';
 
 ?>

@@ -1,4 +1,4 @@
-<?php 
+<?php
 if ( !defined('IN_PHPBB') )
 {
 	die("Hacking attempt");
@@ -82,7 +82,7 @@ $s_hidden_fields .= '<input type="hidden" name="allowbbcode" value="' . $allowbb
 $s_hidden_fields .= '<input type="hidden" name="allowhtml" value="' . $allowhtml . '" />';
 $s_hidden_fields .= '<input type="hidden" name="allowsmilies" value="' . $allowsmilies . '" />';
 $s_hidden_fields .= '<input type="hidden" name="language" value="' . $user_lang . '" />';
-$s_hidden_fields .= '<input type="hidden" name="style" value="' . $user_style . '" />'; 
+$s_hidden_fields .= '<input type="hidden" name="style" value="' . $user_style . '" />';
 $s_hidden_fields .= '<input type="hidden" name="timezone" value="' . $user_timezone . '" />';
 $s_hidden_fields .= '<input type="hidden" name="dateformat" value="' . str_replace("\"", "&quot;", $user_dateformat) . '" />';
 $s_hidden_fields .= '<input type="hidden" name="user_flag" value="' . $user_flag . '" />';
@@ -122,10 +122,10 @@ while( list($var, $param) = @each($trim_var_list) )
 	}
 }
 
-if ($editprofile) 
-{ 
-        $template->assign_vars(array('RETURN_PROFILE' => 1)); 
-        $sig_link = append_sid("profile.$phpEx?mode=editprofile"); 
+if ($editprofile)
+{
+        $template->assign_vars(array('RETURN_PROFILE' => 1));
+        $sig_link = append_sid("profile.$phpEx?mode=editprofile");
 }
 else
 {
@@ -197,26 +197,26 @@ else if ($preview)
 			$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
 			$preview_sig = stripslashes(prepare_message(addslashes(unprepare_message($preview_sig)), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
 
-			if( $preview_sig != '' ) 
-			{ 
+			if( $preview_sig != '' )
+			{
 				if ( $bbcode_on  == 1 ) { $preview_sig = bbencode_second_pass($preview_sig, $bbcode_uid); }
 				if ( $bbcode_on  == 1 ) { $preview_sig = bbencode_first_pass($preview_sig, $bbcode_uid); }
 				if ( $bbcode_on  == 1 ) { $preview_sig = make_clickable($preview_sig); }
 				if ( $smilies_on == 1 ) { $preview_sig = smilies_pass($preview_sig); }
 
-				$preview_sig = '_________________<br />' . $preview_sig; 
+				$preview_sig = '_________________<br />' . $preview_sig;
 				$preview_sig = nl2br($preview_sig);
 			}
 
 			else
-			{ 
-				$preview_sig = $lang['sig_none']; 
+			{
+				$preview_sig = $lang['sig_none'];
 			}
 		}
 	}
 }
 
-// read current signature and prepare it for a preview 
+// read current signature and prepare it for a preview
 else if ($mode || empty($mode))
 {
 
@@ -227,18 +227,18 @@ else if ($mode || empty($mode))
 	$bbcode_uid = $userdata['user_sig_bbcode_uid'];
 	$user_sig = prepare_message($userdata['user_sig'], $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
 
-	if( $user_sig != '' ) 
-	{ 
+	if( $user_sig != '' )
+	{
 		if ( $bbcode_on  == 1 ) { $user_sig = bbencode_second_pass($user_sig, $bbcode_uid); }
 		if ( $bbcode_on  == 1 ) { $user_sig = bbencode_first_pass($user_sig, $bbcode_uid); }
 		if ( $bbcode_on  == 1 ) { $user_sig = make_clickable($user_sig); }
 		if ( $smilies_on == 1 ) { $user_sig = smilies_pass($user_sig); }
-		$user_sig = '_________________<br />' . $user_sig; 
-		$user_sig = nl2br($user_sig); 
+		$user_sig = '_________________<br />' . $user_sig;
+		$user_sig = nl2br($user_sig);
 	}
-	else 
-	{ 
-		$user_sig = $lang['sig_none']; 
+	else
+	{
+		$user_sig = $lang['sig_none'];
 	}
 }
 
@@ -248,9 +248,9 @@ else if ($mode || empty($mode))
 
 	));
 
-	$template->assign_vars(array( 
+	$template->assign_vars(array(
 
-		// added some pic´s for a better preview ;)
+		// added some picÂ´s for a better preview ;)
 		'PROFIL_IMG' => '<img src="' . $images['icon_profile'] . '" alt="' . $lang['Read_profile'] . '" title="' . $lang['Read_profile'] . '" border="0" />',
 		'EMAIL_IMG'  => '<img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" />',
 		'PM_IMG'     => '<img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" />',
@@ -270,7 +270,7 @@ else if ($mode || empty($mode))
 		'L_SIGNATURE' => $lang['Signature'],
 		'L_SIGNATURE_EXPLAIN' => sprintf($lang['Signature_explain'], $board_config['max_sig_chars']),
 		'HTML_STATUS' => $html_status,
-		'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
+		'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'),
 		'SMILIES_STATUS' => $smilies_status,
 
 		'SIGNATURE' => $signature_text,

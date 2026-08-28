@@ -23,7 +23,7 @@ if ( !defined('IN_PHPBB') )
 {
    die("Hacking attempt");
 }
- 
+
 $lang['KB_title'] = 'Knowledge Base';
 $lang['Article'] = 'Artikel';
 $lang['Category'] = 'Kategorie';
@@ -131,7 +131,7 @@ $lang['Allow_anonymos_rating_explain'] = 'Wenn Bewertungen erlaubt sind, erlaube
 $lang['KB_config_updated'] = 'Die Konfiguration der Knowledge-Base wurde erfolgreich aktualisiert.';
 
 $lang['New_article'] = 'Neuer Artikel in der Knowledge Base!';
-$lang['Email_body'] = 'Es wurde ein Artikel an die Knowledge-Base gesendet.<br />\nPrüfe den Artikel, dann genehmige ihn oder lösche ihn.<br />\nDer Artikel ist unten angehängt:<br />\n'; 
+$lang['Email_body'] = 'Es wurde ein Artikel an die Knowledge-Base gesendet.<br />\nPrÃ¼fe den Artikel, dann genehmige ihn oder lÃ¶sche ihn.<br />\nDer Artikel ist unten angehÃ¤ngt:<br />\n';
 
 //Added by Haplo
 $lang['Comments_show'] = 'Zeige Artikel Kommentare.';
@@ -141,17 +141,17 @@ $lang['Comments_show_title'] = 'Benutzer Kommentare';
 $lang['Mod_group'] = 'KB Moderatoren-Gruppe';
 $lang['Mod_group_explain'] = '- mit KB Admin Befugnissen!';
 
-$lang['Bump_post'] = 'Bumping Artikel Beitrag'; 
-$lang['Bump_post_explain'] = 'Wird ein Artikel bearbeitet, wird eine Antwort in Thema des Artikels gepostet. Dadurch wird darüber informiert, das der Artikel aktualisiert wurde'; 
+$lang['Bump_post'] = 'Bumping Artikel Beitrag';
+$lang['Bump_post_explain'] = 'Wird ein Artikel bearbeitet, wird eine Antwort in Thema des Artikels gepostet. Dadurch wird darÃ¼ber informiert, das der Artikel aktualisiert wurde';
 
-$lang['Stats_list'] = 'Zeige KB Statistik'; 
-$lang['Stats_list_explain'] = 'Zeigt KB Statistiken im Header.'; 
+$lang['Stats_list'] = 'Zeige KB Statistik';
+$lang['Stats_list_explain'] = 'Zeigt KB Statistiken im Header.';
 
-$lang['Header_banner'] = 'Zeige Top Logo'; 
-$lang['Header_banner_explain'] = 'Zeige KB Logo im Header.'; 
+$lang['Header_banner'] = 'Zeige Top Logo';
+$lang['Header_banner_explain'] = 'Zeige KB Logo im Header.';
 
-$lang['Comment_info'] = 'Kommentar Einstellungen'; 
-$lang['Rating_info'] = 'Bewertungs Einstellungen'; 
+$lang['Comment_info'] = 'Kommentar Einstellungen';
+$lang['Rating_info'] = 'Bewertungs Einstellungen';
 
 
 //types
@@ -162,7 +162,7 @@ $lang['Type_created'] = 'Artikel-Typ erfolgreich erstellt.';
 $lang['Click_return_type_manager'] = 'Klicken Sie %shier%s um zum Typen Manager zur&uuml;ckzukehren';
 
 $lang['Edit_type'] = 'Typ bearbeiten';
-$lang['Edit_type_description'] = 'Hier können Sie den Namen des Typs bearbeiten';
+$lang['Edit_type_description'] = 'Hier kÃ¶nnen Sie den Namen des Typs bearbeiten';
 $lang['Type_edited'] = 'Artikel Typ erfolgreich bearbeitet.';
 
 $lang['Type_delete_title'] = 'Artikel-Typ l&ouml;schen';
@@ -179,14 +179,14 @@ $lang['Show'] = 'Zeige';
 $lang['Hide'] = 'Verstecken';
 $lang['Empty_category'] ='Sie m&uuml;ssen eine Kategorie w&auml;hlen';
 $lang['Empty_type']='Sie m&uuml;ssen einen Typ w&auml;hlen';
-$lang['Empty_article_name'] = 'Sie müssen den Artikel-Namen ausfüllen';
-$lang['Empty_article_desc'] = 'Sie müssen die Artikel-Beschreibung ausfüllen';
+$lang['Empty_article_name'] = 'Sie mÃ¼ssen den Artikel-Namen ausfÃ¼llen';
+$lang['Empty_article_desc'] = 'Sie mÃ¼ssen die Artikel-Beschreibung ausfÃ¼llen';
 
 $lang['Read_full_article'] = '>>Ganzen Artikel anzeigen';
 $lang['Comments'] = 'Kommentare';
 
-$lang['No_add'] = 'Sie können keinen neuen Artikel hinzufügen!';
-$lang['No_edit'] = 'Sie können diesen Artikel nicht bearbeiten!';
+$lang['No_add'] = 'Sie kÃ¶nnen keinen neuen Artikel hinzufÃ¼gen!';
+$lang['No_edit'] = 'Sie kÃ¶nnen diesen Artikel nicht bearbeiten!';
 $lang['Post_comments'] = 'Kommentar abgeben';
 
 $lang['Category_sub'] = 'Unterkategorien';
@@ -205,8 +205,8 @@ $lang['Votes'] = 'Stimme(n)';
 $lang['Rate'] = 'Artikel bewerten';
 $lang['ADD_RATING'] = '[Artikel bewerten]';
 $lang['Rerror'] = 'Sorry, Sie haben diesen Artikel bereits bewertet.';
-$lang['Rateinfo'] = 'Sie sind dabei, den Artikel <i>{filename}</i> zu bewerten.<br />Bitte wählen Sie eine Bewertung. 1 ist die schlechteste, 10 ist die beste.';
-$lang['Rconf'] = 'Sie haben <i>{filename}</i> eine Bewertung von {rate} gegeben.<br />Das führt zu einer neuen Bewertung von {newrating}/10.';
+$lang['Rateinfo'] = 'Sie sind dabei, den Artikel <i>{filename}</i> zu bewerten.<br />Bitte wÃ¤hlen Sie eine Bewertung. 1 ist die schlechteste, 10 ist die beste.';
+$lang['Rconf'] = 'Sie haben <i>{filename}</i> eine Bewertung von {rate} gegeben.<br />Das fÃ¼hrt zu einer neuen Bewertung von {newrating}/10.';
 $lang['R1'] = '1';
 $lang['R2'] = '2';
 $lang['R3'] = '3';
@@ -217,49 +217,49 @@ $lang['R7'] = '7';
 $lang['R8'] = '8';
 $lang['R9'] = '9';
 $lang['R10'] = '10';
-$lang['Click_return_rate'] = 'Klicken Sie %shier%s um zum Artikel zurückzukehren';
+$lang['Click_return_rate'] = 'Klicken Sie %shier%s um zum Artikel zurÃ¼ckzukehren';
 
 // Print version
 $lang['Print_version'] = '[Druckbare Version]';
 
 // Stats
 $lang['Top_toprated'] = 'Bestbewertete Artikel';
-$lang['Top_most_popular'] = 'Populärste Artikel';
+$lang['Top_most_popular'] = 'PopulÃ¤rste Artikel';
 $lang['Top_latest'] = 'Neueste Artikel';
 
 // Votes check
-$lang['Votes_check_ip'] = 'Bewertungen überprüfen - IP'; 
-$lang['Votes_check_ip_explain'] = 'Nur eine Bewertung pro IP-Adresse ist erlaubt.'; 
+$lang['Votes_check_ip'] = 'Bewertungen Ã¼berprÃ¼fen - IP';
+$lang['Votes_check_ip_explain'] = 'Nur eine Bewertung pro IP-Adresse ist erlaubt.';
 
-$lang['Votes_check_userid'] = 'Bewertungen überprüfen - Benutzer'; 
-$lang['Votes_check_userid_explain'] = 'Benutzer dürfen nur eine Bewertung abgeben.'; 
+$lang['Votes_check_userid'] = 'Bewertungen Ã¼berprÃ¼fen - Benutzer';
+$lang['Votes_check_userid_explain'] = 'Benutzer dÃ¼rfen nur eine Bewertung abgeben.';
 
-$lang['Article_pag'] = 'Artikel Seitenanzeige'; 
-$lang['Article_pag_explain'] = 'Anzahl Artikel in einer Kategorie, bevor die nächste Seite angezeigt wird.'; 
+$lang['Article_pag'] = 'Artikel Seitenanzeige';
+$lang['Article_pag_explain'] = 'Anzahl Artikel in einer Kategorie, bevor die nÃ¤chste Seite angezeigt wird.';
 
-$lang['Comments_pag'] = 'Kommentare Seitenanzeige'; 
-$lang['Comments_pag_explain'] = 'Anzahl Kommentare, bevor die nächste Seite angezeigt wird.'; 
+$lang['Comments_pag'] = 'Kommentare Seitenanzeige';
+$lang['Comments_pag_explain'] = 'Anzahl Kommentare, bevor die nÃ¤chste Seite angezeigt wird.';
 
-$lang['News_sort'] = 'Artikel Sortierung'; 
-$lang['News_sort_explain'] = 'Definiere, wie die Artikel in der jeweiligen Kategorie sortiert werden.'; 
+$lang['News_sort'] = 'Artikel Sortierung';
+$lang['News_sort_explain'] = 'Definiere, wie die Artikel in der jeweiligen Kategorie sortiert werden.';
 
-$lang['News_sort_par'] = 'Aufsteigend oder Absteigend'; 
-$lang['News_sort_par_explain'] = ''; 
+$lang['News_sort_par'] = 'Aufsteigend oder Absteigend';
+$lang['News_sort_par_explain'] = '';
 
-// 
+//
 // General strings from the news admin panel
-// 
+//
 
 $lang['News_settings'] = "KB Block Einstellungen";
-$lang['News_settings_short_explain'] = "Konfigureren Sie einige Optionen für die News auf der Hauptseite";
-$lang['News_settings_explain'] = "Hier können Sie die Konfiguration des KB Blocks bearbeiten. Hier können Sie einstellen, welche Kategorien der Block darstellen soll.";
+$lang['News_settings_short_explain'] = "Konfigureren Sie einige Optionen fÃ¼r die News auf der Hauptseite";
+$lang['News_settings_explain'] = "Hier kÃ¶nnen Sie die Konfiguration des KB Blocks bearbeiten. Hier kÃ¶nnen Sie einstellen, welche Kategorien der Block darstellen soll.";
 
-// 
+//
 // Update result messages
-// 
+//
 
-$lang['News_updated_return_settings'] = "KB Block Konfiguration erfolgreich aktualisiert.<br /><br />Klicken Sie %shier%s um zur Hauptseite zurückzukehren."; // %s's for URI params - DO NOT REMOVE
-$lang['News_update_error'] = "Konnte die KB Block Konfiguration nicht aktualisieren.<br /><br />Dieser Mod funktioniert mit MySQL, kontaktieren Sie bitte den Author, falls es Probleme gibt. Wenn Sie eine Übersetzung eines anderen Datenbankformats anbieten können senden Sie es bitte an:<br />";
+$lang['News_updated_return_settings'] = "KB Block Konfiguration erfolgreich aktualisiert.<br /><br />Klicken Sie %shier%s um zur Hauptseite zurÃ¼ckzukehren."; // %s's for URI params - DO NOT REMOVE
+$lang['News_update_error'] = "Konnte die KB Block Konfiguration nicht aktualisieren.<br /><br />Dieser Mod funktioniert mit MySQL, kontaktieren Sie bitte den Author, falls es Probleme gibt. Wenn Sie eine Ãœbersetzung eines anderen Datenbankformats anbieten kÃ¶nnen senden Sie es bitte an:<br />";
 
 
 // kb

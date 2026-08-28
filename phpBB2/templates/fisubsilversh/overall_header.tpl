@@ -159,6 +159,13 @@ function Gk_PopTart(mypage, myname, w, h, scroll)
 </tr>
 </table>
 <table border="0" cellpadding="0" cellspacing="0" class="tbl"><tr><td class="tbll"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblbot"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblr"><img src="images/spacer.gif" alt="" width="8" height="4" /></td></tr></table>
+<!-- BEGIN switch_cookie_consent -->
+<div id="cookie_notice" class="forumline" style="margin-top: 8px; padding: 8px; text-align: center; background-color: #fdf4e3;">
+<span class="gensmall">{cookie_consent_msg} [ <a href="#" onclick="document.getElementById('privacy_dropdown').style.display = (document.getElementById('privacy_dropdown').style.display == 'none') ? 'block' : 'none'; return false;">{L_PRIVACY}</a> ]</span>
+<div id="privacy_dropdown" class="gensmall" style="display: none; margin: 8px auto; width: 80%; text-align: left;">{L_PRIVACY_POLICY}</div>
+<input type="button" class="mainoption" value="{L_COOKIE_ACCEPT}" onclick="document.cookie='cookie_consent=1; path=/; max-age=31536000; SameSite=Lax'; document.getElementById('cookie_notice').style.display='none'; return false;" />
+</div>
+<!-- END switch_cookie_consent -->
 <!-- BEGIN ctracker_message -->
 <br />
 <div align="center"><table width="80%" cellspacing="1" cellpadding="3" border="0" class="forumline">

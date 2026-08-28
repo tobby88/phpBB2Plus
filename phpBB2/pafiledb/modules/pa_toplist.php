@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -16,15 +16,15 @@ class pafiledb_toplist extends pafiledb_public
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
 		global $_REQUEST, $phpbb_root_path, $userdata, $db;
-		
-		
+
+
 		if(!$this->auth_global['auth_toplist'])
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=stats", true));
 			}
-	
+
 			$message = sprintf($lang['Sorry_auth_toplist'], $this->auth_global['auth_toplist_type']);
 			message_die(GENERAL_MESSAGE, $message);
 		}
@@ -38,7 +38,7 @@ class pafiledb_toplist extends pafiledb_public
 		$most_num = ( isset($_REQUEST['most_num']) ) ? intval($_REQUEST['most_num']) : 10;
 
 		$most_type = ( isset($_REQUEST['most_type']) ) ? htmlspecialchars($_REQUEST['most_type']) : 'num';
-		
+
 		if ($mode == 'downloads')
 		{
 			$l_current_toplist = $lang['Most_downloads'];
@@ -54,13 +54,13 @@ class pafiledb_toplist extends pafiledb_public
 
 		$pafiledb_template->assign_vars(array(
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
-	
+
 			'U_INDEX' => append_sid('index.'.$phpEx),
 			'U_DOWNLOAD' => append_sid('dload.'.$phpEx),
 			'U_NEWEST_FILE' => append_sid('dload.'.$phpEx.'?action=toplist&mode=newest'),
 			'U_MOST_POPULAR' => append_sid('dload.'.$phpEx.'?action=toplist&mode=downloads'),
 			'U_TOP_RATED' => append_sid('dload.'.$phpEx.'?action=toplist&mode=rating'),
-			
+
 			'L_CURRENT_TOPLIST'	=> $l_current_toplist,
 			'L_NEWEST_FILE' => $lang['Latest_downloads'],
 			'L_MOST_POPULAR' => $lang['Most_downloads'],
@@ -68,7 +68,7 @@ class pafiledb_toplist extends pafiledb_public
 			'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
 			'L_TOPLIST' => $lang['Toplist'])
 		);
-		
+
 		$sql = 'SELECT file_time, file_id, file_catid
 			FROM ' . PA_FILES_TABLE . "
 			WHERE file_approved = '1'
@@ -86,7 +86,7 @@ class pafiledb_toplist extends pafiledb_public
 				$rowset[] = $row;
 			}
 		}
-		
+
 		$db->sql_freeresult($result);
 
 		switch ($mode)
@@ -121,7 +121,7 @@ class pafiledb_toplist extends pafiledb_public
 
 					'TOTAL_FILE_WEEK' => $file_num_week,
 					'TOTAL_FILE_MONTH' => $file_num_month,
-					
+
 					'L_TOTAL_NEW_FILE' => $lang['Total_new_files'],
 					'L_LAST_WEEK' => $lang['Last_week'],
 					'L_LAST_30_DAYS' => $lang['Last_30_days'],
@@ -130,7 +130,7 @@ class pafiledb_toplist extends pafiledb_public
 					'L_TWO_WEEK' => $lang['Two_week'],
 					'L_30_DAYS' => $lang['30_days'],
 					'L_NEW_FILES' => sprintf($lang['New_Files'], $days),
-					
+
 					'U_ONE_WEEK' => append_sid('dload.'.$phpEx.'?action=toplist&mode=newest&days=7'),
 					'U_TWO_WEEK' => append_sid('dload.'.$phpEx.'?action=toplist&mode=newest&days=14'),
 					'U_30_DAYS' => append_sid('dload.'.$phpEx.'?action=toplist&mode=newest&days=30'))
@@ -173,12 +173,12 @@ class pafiledb_toplist extends pafiledb_public
 						'L_SUBMITER' => $lang['Submiter'],
 						'L_CATEGORY' => $lang['Category'])
 					);
-					
+
 					$file_ids = array();
 					for($i = 0; $i < count($rowset); $i++)
 					{
 						$formated_date = Date('Y-m-d', $selected_date);
-						$file_date = Date('Y-m-d', $rowset[$i]['file_time']); 
+						$file_date = Date('Y-m-d', $rowset[$i]['file_time']);
 						if($file_date == $formated_date)
 						{
 							$file_ids[] = $rowset[$i]['file_id'];
@@ -192,13 +192,13 @@ class pafiledb_toplist extends pafiledb_public
 							case 'oracle':
 								$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name, COUNT(c.comments_id) AS total_comments
 									FROM " . PA_FILES_TABLE . " AS f1, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_CATEGORY_TABLE . " AS c, " . PA_COMMENTS_TABLE . " AS cm
-									WHERE f1.file_id = r.votes_file(+) 
-									AND f1.user_id = u.user_id(+) 
-									AND c.cat_id = f1.file_catid 
+									WHERE f1.file_id = r.votes_file(+)
+									AND f1.user_id = u.user_id(+)
+									AND c.cat_id = f1.file_catid
 									AND f1.file_id IN ($file_ids)
-									AND f1.file_approved = '1' 
+									AND f1.file_approved = '1'
 									AND f1.file_id = cm.file_id(+)
-									GROUP BY f1.file_id 
+									GROUP BY f1.file_id
 									ORDER BY file_time DESC";
 								break;
 
@@ -210,12 +210,12 @@ class pafiledb_toplist extends pafiledb_public
 										LEFT JOIN " . PA_COMMENTS_TABLE . " AS cm ON (f1.file_id = cm.file_id)
 									WHERE c.cat_id = f1.file_catid
 									AND f1.file_id IN ($file_ids)
-									AND f1.file_approved = '1' 
-									GROUP BY f1.file_id 
+									AND f1.file_approved = '1'
+									GROUP BY f1.file_id
 									ORDER BY file_time DESC";
 								break;
 						}
-					
+
 						if ( !($result = $db->sql_query($sql)) )
 						{
 							message_die(GENERAL_ERROR, 'Couldnt Query stat info', '', __LINE__, __FILE__, $sql);
@@ -233,13 +233,13 @@ class pafiledb_toplist extends pafiledb_public
 						$file_rowset = array();
 					}
 
-					
 
-					for ($i = 0; $i < count($file_rowset); $i++) 
+
+					for ($i = 0; $i < count($file_rowset); $i++)
 					{
 
 						$cat_url = append_sid('dload.'.$phpEx.'?action=category&cat_id=' . $file_rowset[$i]['file_catid']);
-						$file_url = append_sid('dload.'.$phpEx.'?action=file&file_id=' . $file_rowset[$i]['file_id']);							
+						$file_url = append_sid('dload.'.$phpEx.'?action=file&file_id=' . $file_rowset[$i]['file_id']);
 						//===================================================
 						// Format the date for the given file
 						//===================================================
@@ -255,7 +255,7 @@ class pafiledb_toplist extends pafiledb_public
 						//===================================================
 						// If the file is new then put a new image in front of it
 						//===================================================
-		
+
 						$is_new = FALSE;
 						if (time() - ($pafiledb_config['settings_newdays'] * 24 * 60 * 60) < $file_rowset[$i]['file_time'])
 						{
@@ -263,19 +263,19 @@ class pafiledb_toplist extends pafiledb_public
 						}
 
 						$cat_name = $file_rowset[$i]['cat_name'];
-							
-							
-							
+
+
+
 						//===================================================
 						// Get the post icon fot this file
 						//===================================================
 						if ($file_rowset[$i]['file_pin'] != FILE_PINNED)
 						{
-							if ($file_rowset[$i]['file_posticon'] == 'none' || $file_rowset[$i]['file_posticon'] == 'none.gif') 
+							if ($file_rowset[$i]['file_posticon'] == 'none' || $file_rowset[$i]['file_posticon'] == 'none.gif')
 							{
 								$posticon = '&nbsp;';
-							} 
-							else 
+							}
+							else
 							{
 								$posticon = '<img src="' . ICONS_DIR . $file_rowset[$i]['file_posticon'] . '" border="0" />';
 							}
@@ -288,7 +288,7 @@ class pafiledb_toplist extends pafiledb_public
 						$poster = ( $file_rowset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;' . POST_USERS_URL . '=' . $file_rowset[$i]['user_id']) . '">' : '';
 						$poster .= ( $file_rowset[$i]['user_id'] != ANONYMOUS ) ? $file_rowset[$i]['username'] : $lang['Guest'];
 						$poster .= ( $file_rowset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
-		
+
 						//===================================================
 						// Assign Vars
 						//===================================================
@@ -311,7 +311,7 @@ class pafiledb_toplist extends pafiledb_public
 						);
 					}
 				}
-				
+
 
 				break;
 			case 'downloads':
@@ -320,20 +320,20 @@ class pafiledb_toplist extends pafiledb_public
 				$join_statement = ($mode == 'rating') ? 'LEFT JOIN ' . PA_VOTES_TABLE . ' AS r ON f.file_id = r.votes_file' : '';
 				$group_statement = ($mode == 'rating') ? 'GROUP BY f.file_id' : '';
 
-				$sql = "SELECT file_id$rating_field 
+				$sql = "SELECT file_id$rating_field
 					FROM " . PA_FILES_TABLE . " AS f
 					$join_statement
-					WHERE f.file_approved = '1' 
+					WHERE f.file_approved = '1'
 					$group_statement
 					ORDER BY f.file_time DESC";
-					
+
 				if ( !($result = $db->sql_query($sql)) )
 				{
 					message_die(GENERAL_ERROR, 'Couldnt Query category info for parent categories', '', __LINE__, __FILE__, $sql);
 				}
-				
+
 				$file_num = 0;
-				
+
 				if($mode == 'downloads')
 				{
 					$file_num = $db->sql_numrows($result);
@@ -361,7 +361,7 @@ class pafiledb_toplist extends pafiledb_public
 				$pafiledb_template->assign_vars(array(
 					'IS_POPULAR' => TRUE,
 					'FILE_LIST' => TRUE,
-					
+
 					'L_NEW_FILES' => sprintf( ($most_type == 'num') ? $lang['Popular_num'] : $lang['Popular_per'], $most_num, $file_num),
 					'L_NEW_FILE' => $lang['New_file'],
 					'L_SHOW_TOP' => $lang['Show_top'],
@@ -373,12 +373,12 @@ class pafiledb_toplist extends pafiledb_public
 					'L_FILE' => $lang['File'],
 					'L_SUBMITER' => $lang['Submiter'],
 					'L_CATEGORY' => $lang['Category'],
-					
-					
+
+
 					'U_TOP_10' => append_sid('dload.'.$phpEx.'?action=toplist&mode='.$mode.'&most_type=num&most_num=10'),
 					'U_TOP_25' => append_sid('dload.'.$phpEx.'?action=toplist&mode='.$mode.'&most_type=num&most_num=25'),
 					'U_TOP_50' => append_sid('dload.'.$phpEx.'?action=toplist&mode='.$mode.'&most_type=num&most_num=50'),
-					
+
 					'U_TOP_PER_1' => append_sid('dload.'.$phpEx.'?action=toplist&mode='.$mode.'&most_type=per&most_num=1'),
 					'U_TOP_PER_5' => append_sid('dload.'.$phpEx.'?action=toplist&mode='.$mode.'&most_type=per&most_num=5'),
 					'U_TOP_PER_10' => append_sid('dload.'.$phpEx.'?action=toplist&mode='.$mode.'&most_type=per&most_num=10'))
@@ -392,12 +392,12 @@ class pafiledb_toplist extends pafiledb_public
 						case 'oracle':
 							$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name
 								FROM " . PA_FILES_TABLE . " AS f1, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_CATEGORY_TABLE . " AS c
-								WHERE f1.file_id = r.votes_file(+) 
-								AND f1.user_id = u.user_id(+) 
-								AND c.cat_id = f1.file_catid 
-								AND f1.file_approved = '1' 
-								GROUP BY f1.file_id 
-								ORDER BY $sort_method DESC 
+								WHERE f1.file_id = r.votes_file(+)
+								AND f1.user_id = u.user_id(+)
+								AND c.cat_id = f1.file_catid
+								AND f1.file_approved = '1'
+								GROUP BY f1.file_id
+								ORDER BY $sort_method DESC
 								$sql_limit";
 							break;
 
@@ -407,13 +407,13 @@ class pafiledb_toplist extends pafiledb_public
 								LEFT JOIN " . PA_VOTES_TABLE . " AS r ON (f1.file_id = r.votes_file)
 								LEFT JOIN ". USERS_TABLE ." AS u ON (f1.user_id = u.user_id)
 								WHERE c.cat_id = f1.file_catid
-								AND f1.file_approved = '1' 
-								GROUP BY f1.file_id 
-								ORDER BY $sort_method DESC 
+								AND f1.file_approved = '1'
+								GROUP BY f1.file_id
+								ORDER BY $sort_method DESC
 								$sql_limit";
 							break;
 					}
-					
+
 					if ( !($result = $db->sql_query($sql)) )
 					{
 						message_die(GENERAL_ERROR, 'Couldnt Query category info for parent categories', '', __LINE__, __FILE__, $sql);
@@ -424,7 +424,7 @@ class pafiledb_toplist extends pafiledb_public
 				{
 					$searchset[] = $row;
 				}
-				
+
 				for($i = 0; $i < count($searchset); $i++)
 				{
 					if($mode == 'rating')
@@ -452,7 +452,7 @@ class pafiledb_toplist extends pafiledb_public
 					//===================================================
 					// If the file is new then put a new image in front of it
 					//===================================================
-		
+
 					$is_new = FALSE;
 					if (time() - ($pafiledb_config['settings_newdays'] * 24 * 60 * 60) < $searchset[$i]['file_time'])
 					{
@@ -464,11 +464,11 @@ class pafiledb_toplist extends pafiledb_public
 					//===================================================
 					if ($searchset[$i]['file_pin'] != FILE_PINNED)
 					{
-						if ($searchset[$i]['file_posticon'] == 'none' || $searchset[$i]['file_posticon'] == 'none.gif') 
+						if ($searchset[$i]['file_posticon'] == 'none' || $searchset[$i]['file_posticon'] == 'none.gif')
 						{
 							$posticon = '&nbsp;';
-						} 
-						else 
+						}
+						else
 						{
 							$posticon = '<img src="' . ICONS_DIR . $searchset[$i]['file_posticon'] . '" border="0" />';
 						}
@@ -482,7 +482,7 @@ class pafiledb_toplist extends pafiledb_public
 					$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? $searchset[$i]['username'] : $lang['Guest'];
 					$poster .= ( $searchset[$i]['user_id'] != ANONYMOUS ) ? '</a>' : '';
 
-					$pafiledb_template->assign_block_vars('files_row', array( 
+					$pafiledb_template->assign_block_vars('files_row', array(
 						'CAT_NAME' => $searchset[$i]['cat_name'],
 						'FILE_NEW_IMAGE' => $images['pa_file_new'],
 						'PIN_IMAGE' => $posticon,
@@ -500,7 +500,7 @@ class pafiledb_toplist extends pafiledb_public
 				}
 				break;
 		}
-		
+
 		$this->display($lang['Download'], 'pa_toplist_body.tpl');
 	}
 }

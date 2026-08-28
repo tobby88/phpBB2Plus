@@ -19,15 +19,15 @@
 	Last Backup of Configuration Table: <b>{BACKUP}</b><br />
 	{RESTORE_OUTPUT}
 	</font>
-	
+
 	<br /><br />
 	<br /><br />
-	
+
 	<form action="emergency.{PHPEX}?mode=psrt" method="post">
 	<font face="Verdana" size="3" color="#FFFFFF">
 	Manually override Board Configuration Settings<br /><br />
 	</font>
-	
+
 	<table width="80%" cellpadding="6" cellspacing="1" border="1" align="center" bgcolor="#3F3F3F">
 	<tr>
 		<td><font face="Verdana" size="3" color="#FFFFFF">Server Name:</font></td>
@@ -65,10 +65,10 @@
 		<td align="center" colspan="2"><br /><br /><input type="Submit" name="submit" value="Do it now!"></td>
 	</tr>
 	</table>
-	
+
 	<br /><br />
 	</form>
-	
-	<font face="Verdana" size="1" color="#FFFFFF">CrackerTracker Professional © 2004 - {YEAR} <a href="http://www.cback.de" target="_blank" style="color:#FDFF00">CBACK.de</a></font>
+
+	<font face="Verdana" size="1" color="#FFFFFF">CrackerTracker Professional Â© 2004 - {YEAR} <a href="http://www.cback.de" target="_blank" style="color:#FDFF00">CBACK.de</a></font>
 </body>
 </html>

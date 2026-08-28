@@ -170,6 +170,8 @@ $lang['Users_per_day'] = 'Users per day';
 $lang['Board_started'] = 'Board started';
 $lang['Avatar_dir_size'] = 'Avatar directory size';
 $lang['Database_size'] = 'Database size';
+$lang['Version_of_PHP'] = 'PHP version';
+$lang['Version_of_MySQL'] = 'Database version';
 $lang['Gzip_compression'] ='Gzip compression';
 $lang['Not_available'] = 'Not available';
 
@@ -418,6 +420,9 @@ $lang['Cookie_path'] = 'Cookie path';
 $lang['Cookie_secure'] = 'Cookie secure';
 $lang['Cookie_secure_explain'] = 'If your server is running via SSL, set this to enabled, else leave as disabled';
 $lang['Session_length'] = 'Session length [ seconds ]';
+$lang['cookie_consent_enable'] = 'Enable cookie consent notice?';
+$lang['sfs_enable'] = 'Enable StopForumSpam registration check';
+$lang['sfs_enable_explain'] = 'Checks registration usernames, email addresses and IP addresses against the external stopforumspam.com service.';
 
 // Visual Confirmation
 $lang['Visual_confirm'] = 'Enable Visual Confirmation';
@@ -763,6 +768,15 @@ $lang['fontcolor3'] = 'Font Colour 3';
 $lang['span_class1'] = 'Span Class 1';
 $lang['span_class2'] = 'Span Class 2';
 $lang['span_class3'] = 'Span Class 3';
+$lang['div_class1'] = 'Container Class 1';
+$lang['div_class2'] = 'Container Class 2';
+$lang['div_class3'] = 'Container Class 3';
+$lang['row_class1'] = 'Row Class 1';
+$lang['row_class2'] = 'Row Class 2';
+$lang['row_class3'] = 'Row Class 3';
+$lang['col_class1'] = 'Column Class 1';
+$lang['col_class2'] = 'Column Class 2';
+$lang['col_class3'] = 'Column Class 3';
 $lang['img_poll_size'] = 'Polling Image Size [px]';
 $lang['img_pm_size'] = 'Private Message Status size [px]';
 

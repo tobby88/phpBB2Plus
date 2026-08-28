@@ -206,9 +206,9 @@ $menu_cat_id = 0;
 			$row = $db->sql_fetchrow($result);
 			$version = $row['mysql_version'];
 
-			if( preg_match("/^(3\.23|4\.|5\.)/", $version) )
+			if( preg_match("/^[0-9]+\./", $version) )
 			{
-				$db_name = ( preg_match("/^(3\.23\.[6-9])|(3\.23\.[1-9][1-9])|(4\.)|(5\.)/", $version) ) ? "`$dbname`" : $dbname;
+				$db_name = "`" . str_replace("`", "``", $dbname) . "`";
 
 				$sql = "SHOW TABLE STATUS 
 					FROM " . $db_name;
@@ -281,6 +281,7 @@ $menu_cat_id = 0;
 	}
 
 	$template->assign_vars(array(
+		'MYSQL_VERSION' => isset($version) ? $version : SQL_LAYER,
 		"NUMBER_OF_POSTS" => $total_posts,
 		"NUMBER_OF_TOPICS" => $total_topics,
 		"NUMBER_OF_USERS" => $total_users,
@@ -289,8 +290,11 @@ $menu_cat_id = 0;
 		"TOPICS_PER_DAY" => $topics_per_day,
 		"USERS_PER_DAY" => $users_per_day,
 		"AVATAR_DIR_SIZE" => $avatar_dir_size,
-		"DB_SIZE" => $dbsize, 
-		"GZIP_COMPRESSION" => ( $board_config['gzip_compress'] ) ? $lang['ON'] : $lang['OFF'])
+		"DB_SIZE" => $dbsize,
+		'PHP_VERSION' => PHP_VERSION,
+		"GZIP_COMPRESSION" => ( $board_config['gzip_compress'] ) ? $lang['ON'] : $lang['OFF'],
+		'L_PHP_VERSION' => $lang['Version_of_PHP'],
+		'L_MYSQL_VERSION' => $lang['Version_of_MySQL'])
 	);
 	//
 	// End forum statistics

@@ -4,9 +4,9 @@ $last_post_length = '30';		// post title length
 $last_post_limit = '5';		// post limit
 
 // optional part
-$exclude_users = '';		// enter user´s ID to exclude any user (separate them with a comma)
-$special_users = '';		// enter user´s ID if you want to a further area (separate them with a comma)
-$exclude_special_users = '';	// enter user´s ID if you added a further area and want to exlude user from a certain area (separate them with a comma)
+$exclude_users = '';		// enter userÂ´s ID to exclude any user (separate them with a comma)
+$special_users = '';		// enter userÂ´s ID if you want to a further area (separate them with a comma)
+$exclude_special_users = '';	// enter userÂ´s ID if you added a further area and want to exlude user from a certain area (separate them with a comma)
 // ############         Edit above         ########################################################################
 
 define('IN_PHPBB', true);

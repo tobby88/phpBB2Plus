@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -14,7 +14,7 @@ class pafiledb_file extends pafiledb_public
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
 		global $_REQUEST, $phpbb_root_path, $userdata, $db, $pafiledb_functions;
-		
+
 		if ( isset($_REQUEST['file_id']))
 		{
 			$file_id = intval($_REQUEST['file_id']);
@@ -50,7 +50,7 @@ class pafiledb_file extends pafiledb_public
 			default:
 				$sql = "SELECT f.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, COUNT(c.comments_id) as total_comments
 					FROM " . PA_FILES_TABLE . " AS f
-						LEFT JOIN " . PA_VOTES_TABLE . " AS r ON f.file_id = r.votes_file 
+						LEFT JOIN " . PA_VOTES_TABLE . " AS r ON f.file_id = r.votes_file
 						LEFT JOIN ". USERS_TABLE ." AS u ON f.user_id = u.user_id
 						LEFT JOIN " . PA_COMMENTS_TABLE . " AS c ON f.file_id = c.file_id
 					WHERE f.file_id = $file_id
@@ -63,7 +63,7 @@ class pafiledb_file extends pafiledb_public
 		{
 			message_die(GENERAL_ERROR, 'Couldnt Query file info', '', __LINE__, __FILE__, $sql);
 		}
-		
+
 		//===================================================
 		// file doesn't exist'
 		//===================================================
@@ -72,7 +72,7 @@ class pafiledb_file extends pafiledb_public
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
 		$db->sql_freeresult($result);
-		
+
 		//===================================================
 		// Pafiledb auth for viewing file
 		//===================================================
@@ -98,8 +98,8 @@ class pafiledb_file extends pafiledb_public
 
 			'FILE_NAME' => $file_data['file_name'],
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
-		); 
-		
+		);
+
 		//===================================================
 		// Prepare file info to display them
 		//===================================================
@@ -107,9 +107,9 @@ class pafiledb_file extends pafiledb_public
 		$file_time = create_date($board_config['default_dateformat'], $file_data['file_time'], $board_config['board_timezone']);
 
 		$file_last_download = ($file_data['file_last']) ? create_date($board_config['default_dateformat'], $file_data['file_last'], $board_config['board_timezone']) : $lang['never'];
-		
+
 		$file_update_time = ($file_data['file_update_time']) ? create_date($board_config['default_dateformat'], $file_data['file_update_time'], $board_config['board_timezone']) : $lang['never'];
-		
+
 		$file_author = trim($file_data['file_creator']);
 
 		$file_version = trim($file_data['file_version']);
@@ -124,7 +124,7 @@ class pafiledb_file extends pafiledb_public
 
 
 		$file_size = $pafiledb_functions->get_file_size($file_id, $file_data);
-		
+
 		$file_poster = ( $file_data['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;' . POST_USERS_URL . '=' . $file_data['user_id']) . '">' : '';
 		$file_poster .= ( $file_data['user_id'] != ANONYMOUS ) ? $file_data['username'] : $lang['Guest'];
 		$file_poster .= ( $file_data['user_id'] != ANONYMOUS ) ? '</a>' : '';
@@ -168,7 +168,7 @@ class pafiledb_file extends pafiledb_public
 // MX Addon
 			'AUTH_EDIT' => ( ($this->auth[$file_data['file_catid']]['auth_edit_file'] && $file_data['user_id'] == $userdata['user_id']) || $this->auth[$file_data['file_catid']]['auth_mod']) ? TRUE : FALSE,
 			'AUTH_DELETE' => ( ($this->auth[$file_data['file_catid']]['auth_delete_file'] && $file_data['user_id'] == $userdata['user_id']) || $this->auth[$file_data['file_catid']]['auth_mod']) ? TRUE : FALSE,
- 
+
 			'AUTH_DOWNLOAD' => ($this->auth[$file_data['file_catid']]['auth_download']) ? TRUE : FALSE,
 			'AUTH_RATE' => ($this->auth[$file_data['file_catid']]['auth_rate']) ? TRUE : FALSE,
 			'AUTH_EMAIL' => ($this->auth[$file_data['file_catid']]['auth_email']) ? TRUE : FALSE,

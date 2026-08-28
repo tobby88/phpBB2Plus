@@ -1,4 +1,9 @@
 <?php
+/*
+ * WARNING: This driver uses the mysql_* extension which was REMOVED in PHP 7.0.
+ * It is NOT compatible with PHP 7.0 or later.
+ * Use db/mysqli.php or db/pdo.php instead and update $dbms in config.php accordingly.
+ */
 /***************************************************************************
  *                                 mysql.php
  *                            -------------------
@@ -36,6 +41,11 @@ class sql_db
 	//
 	// Constructor
 	//
+	function __construct($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
+	{
+		$this->sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency);
+	}
+
 	function sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
 	{
 
@@ -55,6 +65,15 @@ class sql_db
 		}
 		if($this->db_connect_id)
 		{
+			if (function_exists('mysql_set_charset'))
+			{
+				@mysql_set_charset('utf8', $this->db_connect_id);
+			}
+			else
+			{
+				@mysql_query("SET NAMES 'utf8'", $this->db_connect_id);
+			}
+
 			if($database != "")
 			{
 				$this->dbname = $database;

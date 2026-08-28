@@ -1,8 +1,8 @@
-Charset: iso-8859-1
+Charset: UTF-8
 
 Hallo {TO_USERNAME}!
 
-Die folgende E-Mail wurde von {FROM_USERNAME} über deinen Account auf {SITENAME} gesendet. Wenn diese E-Mail unerwünschten Inhalt (Spam) enthält, dann kontaktiere bitte den Administrator unter:
+Die folgende E-Mail wurde von {FROM_USERNAME} Ã¼ber deinen Account auf {SITENAME} gesendet. Wenn diese E-Mail unerwÃ¼nschten Inhalt (Spam) enthÃ¤lt, dann kontaktiere bitte den Administrator unter:
 
 {BOARD_EMAIL}
 

@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -25,9 +25,9 @@ class pafiledb_email extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
-		
+
 		$sql = 'SELECT file_catid, file_name
-			FROM ' . PA_FILES_TABLE . " 
+			FROM ' . PA_FILES_TABLE . "
 			WHERE file_id = $file_id";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -39,9 +39,9 @@ class pafiledb_email extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
-		
+
 		$db->sql_freeresult($result);
-		
+
 		if( (!$this->auth[$file_data['file_catid']]['auth_email']) )
 		{
 			if ( !$userdata['session_logged_in'] )
@@ -59,7 +59,7 @@ class pafiledb_email extends pafiledb_public
 			if (!isset($_POST['sid']) || $_POST['sid'] != $userdata['session_id'])
 			{
 				message_die(GENERAL_ERROR, 'Invalid_session');
-			}			
+			}
 
 			$error = FALSE;
 
@@ -75,7 +75,7 @@ class pafiledb_email extends pafiledb_public
 
 			$username = trim(stripslashes($_POST['fname']));
 			$sender_name = trim(strip_tags(stripslashes($_POST['sname'])));
-			
+
 			if (!$userdata['session_logged_in'] || ($userdata['session_logged_in'] && $sender_name != $userdata['username']))
 			{
 				include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
@@ -91,11 +91,11 @@ class pafiledb_email extends pafiledb_public
 			{
 				$sender_name = $userdata['username'];
 			}
-			
-			
+
+
 			if(!$userdata['session_logged_in'])
 			{
-				if ( !empty($_POST['semail']) && preg_match('/^[a-z0-9\.\-_\+]+@[a-z0-9\-_]+\.([a-z0-9\-_]+\.)*?[a-z]+$/is', $_POST['semail']))				
+				if ( !empty($_POST['semail']) && preg_match('/^[a-z0-9\.\-_\+]+@[a-z0-9\-_]+\.([a-z0-9\-_]+\.)*?[a-z]+$/is', $_POST['semail']))
 				{
 					$sender_email = trim(stripslashes($_POST['semail']));
 				}
@@ -103,13 +103,13 @@ class pafiledb_email extends pafiledb_public
 				{
 					$error = TRUE;
 					$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['Email_invalid'] : $lang['Email_invalid'];
-				}				
+				}
 			}
 			else
 			{
 				$sender_email = $userdata['user_email'];
 			}
-  
+
 			if ( !empty($_POST['subject']) )
 			{
 				$subject = trim(stripslashes($_POST['subject']));
@@ -138,7 +138,7 @@ class pafiledb_email extends pafiledb_public
 
 				$email_headers = 'Return-Path: ' . $sender_email . "\nFrom: " . $sender_email . "\n";
 
-				$email_headers .= 'X-AntiAbuse: Board servername - ' . $server_name . "\n";		
+				$email_headers .= 'X-AntiAbuse: Board servername - ' . $server_name . "\n";
 
 				$email_headers .= 'X-AntiAbuse: Username - ' . $sender_name . "\n";
 
@@ -151,10 +151,10 @@ class pafiledb_email extends pafiledb_public
 				$emailer->extra_headers($email_headers);
 
 				$emailer->assign_vars(array(
-					'SITENAME' => $board_config['sitename'], 
-					'BOARD_EMAIL' => $board_config['board_email'], 
-					'FROM_USERNAME' => $sender_name, 
-					'TO_USERNAME' => $username, 
+					'SITENAME' => $board_config['sitename'],
+					'BOARD_EMAIL' => $board_config['board_email'],
+					'FROM_USERNAME' => $sender_name,
+					'TO_USERNAME' => $username,
 					'MESSAGE' => $message)
 				);
 
@@ -169,17 +169,17 @@ class pafiledb_email extends pafiledb_public
 
 			if ( $error )
 			{
-				message_die(GENERAL_MESSAGE, $error_msg);  
+				message_die(GENERAL_MESSAGE, $error_msg);
 			}
 
 		}
 
 
 		$this->generate_category_nav($file_data['file_catid']);
-		
+
 		$pafiledb_template->assign_vars(array(
 			'USER_LOGGED' => (!$userdata['session_logged_in']) ? TRUE : FALSE,
-		
+
 			'S_EMAIL_ACTION' => append_sid('dload.'.$phpEx),
 			'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />',
 
@@ -189,9 +189,9 @@ class pafiledb_email extends pafiledb_public
 			'L_EMAILINFO' => $lang['Emailinfo'],
 			'L_YNAME' => $lang['Yname'],
 			'L_YEMAIL' => $lang['Yemail'],
-			'L_FNAME' => $lang['Fname'],				
+			'L_FNAME' => $lang['Fname'],
 			'L_FEMAIL' => $lang['Femail'],
-			'L_ETEXT' => $lang['Etext'],   
+			'L_ETEXT' => $lang['Etext'],
 			'L_DEFAULTMAIL' => $lang['Defaultmail'],
 			'L_SEMAIL' => $lang['Semail'],
 			'L_ESUB' => $lang['Esub'],
@@ -207,7 +207,7 @@ class pafiledb_email extends pafiledb_public
 			'SEMAIL' => $userdata['user_email'],
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
 			'FILE_URL' => get_formated_url() . '/dload.'.$phpEx.'?action=file&file_id=' . $file_id,
-			'ID' => $file_id) 
+			'ID' => $file_id)
 		);
 		$this->display($lang['Download'], 'pa_email_body.tpl');
 	}

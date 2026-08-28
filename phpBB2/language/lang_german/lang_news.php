@@ -28,7 +28,7 @@
 
 $lang['Regular_Post'] = 'Normaler Beitrag (Wird nicht als News angezeigt)';
 $lang['Current_Selection'] = 'Aktuelle Auswahl';
-$lang['Select_News_Category'] = 'Wähle News Kategorie';
+$lang['Select_News_Category'] = 'WÃ¤hle News Kategorie';
 $lang['News'] = 'News';
 $lang['View_Comments'] = 'Zeige Kommentare';
 $lang['Read_More'] = 'Mehr lesen';
@@ -38,54 +38,54 @@ $lang['News_Categories'] = 'Kategorien';
 //
 // News Config
 //
-$lang['Add_news_categories'] = 'News Kategorie hinzufügen';
+$lang['Add_news_categories'] = 'News Kategorie hinzufÃ¼gen';
 $lang['News_Configuration'] = 'News Konfiguration';
-$lang['News_Add_Description'] = 'In diesem Einstellungsmenu kannst Du neue News Kartegorien hinzufügen';
+$lang['News_Add_Description'] = 'In diesem Einstellungsmenu kannst Du neue News Kartegorien hinzufÃ¼gen';
 $lang['Icon'] = 'News Icon';
-$lang['Add_new_category'] = 'Eine neue News Kategorie hinzufügen';
+$lang['Add_new_category'] = 'Eine neue News Kategorie hinzufÃ¼gen';
 
-$lang['Click_return_newsadmin'] = 'Klicke %shier%s um zur News Konfiguration zurückzukehren';
-$lang['Category_Deleted'] = 'News Kategorie erfolgreich gelöscht';
+$lang['Click_return_newsadmin'] = 'Klicke %shier%s um zur News Konfiguration zurÃ¼ckzukehren';
+$lang['Category_Deleted'] = 'News Kategorie erfolgreich gelÃ¶scht';
 $lang['Category_Updated'] = 'News Kategorie erfolgreich aktualisiert';
-$lang['Category_Added'] = 'News Kategorie erfolgreich hinzugefügt';
+$lang['Category_Added'] = 'News Kategorie erfolgreich hinzugefÃ¼gt';
 
 $lang['News_Editing_Utility'] = 'News Kategorie Bearbeitung';
 $lang['News_Config'] = 'News Kategorie Konfiguration';
-$lang['News_Explain'] = 'Auf dieser Seite können News Kategorien angelegt, bearbeitet und gelöscht werden.';
+$lang['News_Explain'] = 'Auf dieser Seite kÃ¶nnen News Kategorien angelegt, bearbeitet und gelÃ¶scht werden.';
 
 $lang['Enable_News'] = 'Aktiviere News';
 $lang['News_Path'] = 'News Icons Pfad';
-$lang['News_Path_Explain'] = 'Pfad unterhalb des phpBB Root Verzeichnisses, z.B. images/news'; 
+$lang['News_Path_Explain'] = 'Pfad unterhalb des phpBB Root Verzeichnisses, z.B. images/news';
 
 $lang['News_explain'] = 'Auf dieser Seite kannst Du den Slashdot News Mod von CMX konfigurieren.';
-$lang['News_settings'] = 'News Einstellungen'; 
+$lang['News_settings'] = 'News Einstellungen';
 
-$lang['News_trim'] = 'News Trim Länge';
-$lang['News_trim_explain'] = 'Setzt die maximale Länge der News bevor sie gekürzt werden. (0 = keine Kürzung).';
+$lang['News_trim'] = 'News Trim LÃ¤nge';
+$lang['News_trim_explain'] = 'Setzt die maximale LÃ¤nge der News bevor sie gekÃ¼rzt werden. (0 = keine KÃ¼rzung).';
 
-$lang['News_topic_trim'] = 'News Trim Thema Länge';
-$lang['News_topic_trim_explain'] = 'Setzt die maximale Länge für News Themen bevor sie gekürzt werden. (0 = keine Kürzung).'; 
+$lang['News_topic_trim'] = 'News Trim Thema LÃ¤nge';
+$lang['News_topic_trim_explain'] = 'Setzt die maximale LÃ¤nge fÃ¼r News Themen bevor sie gekÃ¼rzt werden. (0 = keine KÃ¼rzung).';
 
 $lang['News_item_num'] = 'Darzustellende News Meldungen';
 $lang['News_item_num_explain'] = 'Die Default Anzahl an News welche in der news_viewnews.php dargestellt werden.';
 
 $lang['RSS_Configuration'] = 'RSS News Feed Konfiguration';
 $lang['Enable_RSS'] = 'Aktiviere RSS Sydikation';
-$lang['Enable_RSS_explain'] = 'RSS Sydikation erlaubt anderen Webseiten die Darstellung Deiner News auf deren Seite'; 
+$lang['Enable_RSS_explain'] = 'RSS Sydikation erlaubt anderen Webseiten die Darstellung Deiner News auf deren Seite';
 
 $lang['Feed_Description'] = 'Feed Beschreibung';
-$lang['Feed_Description_Explain'] = 'Beschreibung des Feeds.'; 
+$lang['Feed_Description_Explain'] = 'Beschreibung des Feeds.';
 
 $lang['Feed_Language'] = 'Feed Sprache';
-$lang['Feed_Language_Explain'] = 'Die Sprache in der der Feed gesendet wird. Du kannst die Möglichkeiten der W3C verwenden.'; 
+$lang['Feed_Language_Explain'] = 'Die Sprache in der der Feed gesendet wird. Du kannst die MÃ¶glichkeiten der W3C verwenden.';
 
 $lang['Feed_TTL'] = 'Feed TTL (Time To Live)';
-$lang['Feed_TTL_Explain'] = 'TTL beschreibt die Länge in Minuten, die der entsprechende Kanal gecached wird bevor er von der jeweiligen Quelle aktualisiert wird.';
+$lang['Feed_TTL_Explain'] = 'TTL beschreibt die LÃ¤nge in Minuten, die der entsprechende Kanal gecached wird bevor er von der jeweiligen Quelle aktualisiert wird.';
 
-$lang['Feed_Category'] = 'Feed Kategorie'; 
+$lang['Feed_Category'] = 'Feed Kategorie';
 
 $lang['Feed_Image'] = 'Feed Bild';
-$lang['Feed_Image_Explain'] = 'Ein Bild passend zum News Feed. (Kann nur ein kleines Bild in Button-Grösse sein)'; 
+$lang['Feed_Image_Explain'] = 'Ein Bild passend zum News Feed. (Kann nur ein kleines Bild in Button-GrÃ¶sse sein)';
 
 $lang['Feed_Image_Desc'] = 'Feed Bild Beschreibung';
 

@@ -1,5 +1,5 @@
 Subject: Dein Konto ist jetzt gesperrt.
-Charset: iso-8859-1
+Charset: UTF-8
 
 Hallo {WARNED_POSTER}!
 
@@ -10,7 +10,7 @@ folgenden Beitrags:
 {POST_URL}
 
 Du kannst {WARNER}, die/der dich gesperrt hat, kontaktieren und deinen
-Beitrag erkl‰ren oder nachfragen, warum sie/er dich verwarnt hat.
+Beitrag erkl√§ren oder nachfragen, warum sie/er dich verwarnt hat.
 
 
 {EMAIL_SIG}

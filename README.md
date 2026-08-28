@@ -19,8 +19,9 @@ administration interface. Major bundled features include:
 - a shoutbox, custom profile fields, user groups, and additional moderation
   tools;
 - CrackerTracker security and logging features;
-- the FI Subsilver Shadow template and English, German, and Spanish language
-  directories.
+- seven bundled styles, including FI Subsilver Shadow and six responsive
+  styles preserved from IntegraMOD;
+- English and German language directories.
 
 This list is intentionally not a version inventory. The source tree and
 [CHANGELOG.md](CHANGELOG.md) are the authoritative records of the integrated
@@ -71,6 +72,17 @@ modules that are actually present in the deployed source tree:
 - `install_nuffload_142.sql` for the Nuffload album uploader;
 - `install_db_maintenance_138.sql` for DB Maintenance Mod.
 
+The IntegraMOD-derived additions have one-time scripts for existing databases:
+
+- `install_integramod_styles.sql` adds responsive-style metadata columns;
+- `install_integramod_social_profiles.sql` adds the modern social-profile
+  fields while retaining the legacy contact fields;
+- `install_integramod_privacy_antispam.sql` adds cookie-consent and optional
+  StopForumSpam configuration.
+
+These additions are already present in the fresh-install schema. Do not run
+their one-time scripts on a fresh installation or more than once.
+
 The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
 is disabled by default because it can make extensive database changes. To use
 it, temporarily add `define('DBMTNC_ENABLE_ERC', true);` to `config.php`, open
@@ -93,6 +105,23 @@ Before replacing files or running anything from `update/`:
 `update/db_uninstall_4x.php` is a destructive legacy CrackerTracker removal
 reference. It uses the removed `mysql_*` API and must not be deployed or
 executed unchanged.
+
+## Encoding and database support
+
+Distributed text sources, templates, English/German language files and mail
+templates are UTF-8. Fresh MySQL/MariaDB tables and the MySQLi connection use
+MySQL's `utf8` character set. Existing databases are deliberately not converted
+by an automatic repository script: the safe conversion depends on their real
+column encodings and on whether older data already contains UTF-8 bytes in
+mislabelled columns. Back up and inspect an existing database before converting
+it, otherwise an unconditional `ALTER TABLE ... CONVERT` can create mojibake.
+
+MySQLi is the supported modern database driver. Existing `config.php` files
+which still name `mysql` or `mysql4` automatically use MySQLi when available,
+so they do not call the removed PHP `mysql_*` extension on PHP 7 or 8. The
+experimental PDO source imported from IntegraMOD is preserved for provenance
+but was never offered by the upstream installer and is not advertised as a
+supported database path here.
 
 ## Writable permissions
 

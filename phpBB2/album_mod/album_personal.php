@@ -16,8 +16,8 @@
  *   the Free Software Foundation; either version 2 of the License, or
  *   (at your option) any later version.
  *
- ***************************************************************************/ 
- 
+ ***************************************************************************/
+
 if ( !defined('IN_PHPBB') )
 {
 	die('Hacking attempt');
@@ -102,7 +102,7 @@ if ( !album_check_permission($auth_data,ALBUM_AUTH_UPLOAD) && count($album_data[
 
 // if $cat_id is equal to the non existing root category id, then it wasn't supplied to the call of the page
 // try to get the personal gallery root category instead (if it doesn't exists it returns ALBUM_ROOT_CATEGORY
-if ($cat_id == ALBUM_ROOT_CATEGORY) 
+if ($cat_id == ALBUM_ROOT_CATEGORY)
 {
 	$cat_id = album_get_personal_root_id($album_user_id);
 }
@@ -144,9 +144,9 @@ if ($album_view_mode != ALBUM_VIEW_ALL)
 	{
 	 	$album_nav_cat_desc = ALBUM_NAV_ARROW . $album_nav_cat_desc;
 	}
-	
-	$cat_ids = $cat_id;	
-	
+
+	$cat_ids = $cat_id;
+
   	$image_toggle_button = $images['all_pic_view_mode'];
  	$view_mode_url = append_sid(album_append_uid("$album_page_url?cat_id=" . intval($cat_id) . "&mode=" . ALBUM_VIEW_ALL));
     $view_mode_text = $lang['Show_all_pic_view_mode'];
@@ -159,22 +159,22 @@ else
 	 	$album_nav_cat_desc = ALBUM_NAV_ARROW . $album_nav_cat_desc;
 	}
 
-	if (album_get_personal_root_id($album_user_id) != $cat_id) 
+	if (album_get_personal_root_id($album_user_id) != $cat_id)
 	{
 		$allowed_cat = $cat_id;
 		$tmp_array = array();
 		album_get_sub_cat_ids(album_get_personal_root_id($album_user_id), $tmp_array, ALBUM_AUTH_VIEW, true);
 
 		reset($tmp_array);
-		while (list($key, $id) = each($tmp_array)) 
+		while (list($key, $id) = each($tmp_array))
 		{
-			if ($id != $cat_id) 
+			if ($id != $cat_id)
 			{
-				$allowed_cat .= ',' . $id;    
+				$allowed_cat .= ',' . $id;
 			}
 		}
 	}
-	
+
 	$cat_ids = $allowed_cat;
 
  	$image_toggle_button = $images['normal_pic_view_mode'];
@@ -186,9 +186,9 @@ $row['count'] = 0;
 
 if ($cat_ids != '')
 {
-	
+
 // ------------------------------------------------------------------------
-// Count Pics of the root category of personal gallery, 
+// Count Pics of the root category of personal gallery,
 // - $cat_ids is set in the above IF statement
 // ------------------------------------------------------------------------
 $sql = 'SELECT COUNT(p.pic_id) AS count
@@ -196,7 +196,7 @@ $sql = 'SELECT COUNT(p.pic_id) AS count
 		WHERE c.cat_user_id = '.$album_user_id.'
 			AND c.cat_id IN ('.$cat_ids.')
 			AND p.pic_cat_id = c.cat_id';
-			
+
 if( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, 'Could not count pics !!', '', __LINE__, __FILE__, $sql);
@@ -211,18 +211,18 @@ $total_pics = $row['count'];
 // Build up the page
 // ------------------------------------------------------------------------
 //
-// I will try to explain how this SHOULD work. Only some testing and studying 
+// I will try to explain how this SHOULD work. Only some testing and studying
 // of the code will tell if really does do what it should.
 //
-// NOTE : this might be change alittle AFTER this has been written so don't 
+// NOTE : this might be change alittle AFTER this has been written so don't
 //        take it for granted that it does work this way a 100%
-//        But feel free to tell me if this(the description) need updating or 
+//        But feel free to tell me if this(the description) need updating or
 //        if the code needs fixing.
 //
 // $cat_id     : is the currently selected category
-// $allowed_cat: is a list of all the allowed categories that the current user 
+// $allowed_cat: is a list of all the allowed categories that the current user
 //               is allowed to view
-// £cat_ids    : is synomous with $allowed_cat OR $cat_id, depending on the view mode
+// Â£cat_ids    : is synomous with $allowed_cat OR $cat_id, depending on the view mode
 //
 // 0: Begin of 'work flow'
 //
@@ -231,7 +231,7 @@ $total_pics = $row['count'];
 //    -  No: No pictures found, go to step 2
 //    - Yes: One or more pictures found, go to step 5
 //
-// 2: Do another check to see if the use got any pictures in all of her 
+// 2: Do another check to see if the use got any pictures in all of her
 //    personal gallery categories, that the current user is allowed to view
 //    -  No: No pictures found, goto step 3
 //    - Yes: One or more pictures found, goto step 4
@@ -281,19 +281,19 @@ if ($row['count'] == 0)
 		$sql = 'SELECT COUNT(p.pic_id) AS count
 				FROM '. ALBUM_TABLE .' AS p, ' . ALBUM_CAT_TABLE .' AS c
 				WHERE c.cat_user_id = ' . $album_user_id . '
-					AND c.cat_id IN (' . $allowed_cat.')				
+					AND c.cat_id IN (' . $allowed_cat.')
 					AND p.pic_cat_id = c.cat_id';
-						
+
 		if( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not count pics !!', '', __LINE__, __FILE__, $sql);
 		}
 		$row = $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);		
-		
+		$db->sql_freeresult($result);
+
 		$total_pics = $row['count'];
 	}
-	
+
 	if ($album_config['personal_show_recent_instead_of_nopics'] == 1 && $row['count'] > 0)
 	{
 		album_build_recent_pics($allowed_cat);
@@ -376,7 +376,7 @@ $template->assign_vars(array(
 	'S_COL_WIDTH' => (100/$album_config['cols_per_page']) . '%',
 
 	'L_VIEW' => $lang['View'],
-	'L_PIC_CAT' => $lang['Pic_Cat'], 
+	'L_PIC_CAT' => $lang['Pic_Cat'],
 	'L_POSTER' => $lang['Poster'],
 	'L_POSTED' => $lang['Posted'],
 

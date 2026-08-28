@@ -170,6 +170,11 @@ class Template {
 	/**
 	 * Constructor. Installs XS mod on first run or updates it and sets the root dir.
 	 */
+	function __construct($root = '.')
+	{
+		$this->Template($root);
+	}
+
 	function Template($root = '.')
 	{
 		// setting pointer "vars"
@@ -1974,7 +1979,7 @@ class Template {
 				case 'false':
 					$match[5] = strtoupper($match[5]);
 					break;
-				case '.';
+				case '.':
 					$match[5] = doubleval($match[5]);
 					break;
 				default:

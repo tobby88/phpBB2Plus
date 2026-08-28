@@ -1,12 +1,12 @@
 <?php
 /***************************************************************************
- *                             Kontakt Formular von Carsten Schäfer
+ *                             Kontakt Formular von Carsten SchÃ¤fer
  *                          ------------------------
  *   Version              : Version 1.00 - 26.04.2003
- *   copyright            : (C) 2003 Carsten Schäfer
+ *   copyright            : (C) 2003 Carsten SchÃ¤fer
  *   email			      : cs-mailbox@web.de
  *
- *   $Id: kontakt.php,v 1.00 2003/04/26 Carsten Schäfer $
+ *   $Id: kontakt.php,v 1.00 2003/04/26 Carsten SchÃ¤fer $
  *
  ***************************************************************************/
 
@@ -31,9 +31,9 @@ init_userprefs($userdata);
 $page_title = $lang['Kontakt'];
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
-$textfeld = ( isset($_POST['textfeld']) ) ? trim(stripslashes($_POST['textfeld'])) : false; 
-$name = ( isset($_POST['name']) ) ?  trim(stripslashes($_POST['name'])) : false; 
-$mail = ( isset($_POST['mail']) ) ? ( ( preg_match('/^[a-z0-9_\.\-]+@[a-z0-9\.\-]+\.[a-z]{2,}$/i',$_POST['mail']) ) ? trim(stripslashes($_POST['mail'])) :false) : false; 
+$textfeld = ( isset($_POST['textfeld']) ) ? trim(stripslashes($_POST['textfeld'])) : false;
+$name = ( isset($_POST['name']) ) ?  trim(stripslashes($_POST['name'])) : false;
+$mail = ( isset($_POST['mail']) ) ? ( ( preg_match('/^[a-z0-9_\.\-]+@[a-z0-9\.\-]+\.[a-z]{2,}$/i',$_POST['mail']) ) ? trim(stripslashes($_POST['mail'])) :false) : false;
 $betreff = ( isset($_POST['betreff']) ) ? trim(stripslashes($_POST['betreff'])) : false;
 $email_from = "$name<$mail>";
 $email_to = $plus_config['contact_email'];

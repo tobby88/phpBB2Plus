@@ -43,6 +43,11 @@ class sql_db
 	//
 	// Constructor
 	//
+	function __construct($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
+	{
+		$this->sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency);
+	}
+
 	function sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
 	{
 		$this->persistency = $persistency;
@@ -331,7 +336,7 @@ class sql_db
 		}
 	}
 
-	function sql_fetchfield($field, $row = -1, $query_id)
+	function sql_fetchfield($field, $row = -1, $query_id = 0)
 	{
 		if( !$query_id )
 		{

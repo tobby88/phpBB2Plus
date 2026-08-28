@@ -942,7 +942,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		$result_array = serialize($store_search_data);
 		unset($store_search_data);
 
-		mt_srand ((double) microtime() * 1000000);
+		mt_srand ((float) microtime() * 1000000);
 		$search_id = mt_rand();
 
 		$sql = "UPDATE " . SEARCH_TABLE . " 

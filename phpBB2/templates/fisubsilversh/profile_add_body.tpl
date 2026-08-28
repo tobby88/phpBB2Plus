@@ -138,6 +138,18 @@
 </td>
 </tr>
 <tr>
+<td class="row1"><span class="explaintitle">{L_DISCORD}:</span><br /><span class="gensmall">{L_USER_ID_EXPLAIN}</span></td>
+<td class="row2"><input type="text" class="post" style="width: 150px" name="dc" size="20" maxlength="255" value="{DC}" /></td>
+</tr>
+<tr><td class="row1"><span class="explaintitle">{L_FACEBOOK}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="fb" size="20" maxlength="255" value="{FB}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_INSTAGRAM}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="ig" size="20" maxlength="255" value="{IG}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_LINKEDIN}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="li" size="20" maxlength="255" value="{LI}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_PINTEREST}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="pt" size="20" maxlength="255" value="{PT}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_SKYPE}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="skp" size="20" maxlength="255" value="{SKP}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_TELEGRAM}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="tg" size="20" maxlength="255" value="{TG}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_TIKTOK}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="tt" size="20" maxlength="255" value="{TT}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_TWITTER}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="twr" size="20" maxlength="255" value="{TWR}" /></td></tr>
+<tr>
 <td class="row1"><span class="explaintitle">{L_WEBSITE}:</span></td>
 <td class="row2">
 <input type="text" class="post" style="width: 200px"  name="website" size="25" maxlength="255" value="{WEBSITE}" />

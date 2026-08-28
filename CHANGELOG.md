@@ -63,6 +63,30 @@ notable changes made since that baseline.
   gallery code.
 - Synchronized the installer with the maintained phpBB 2.0.23.x branch.
 
+### IntegraMOD phpBB2x preservation merge
+
+- Merged the complete 201-commit IntegraMOD phpBB2x history after mapping its
+  `phpBB/` product directory to `phpBB2/`, retaining upstream authorship and
+  merge ancestry.
+- Imported all six responsive styles and their redistributable assets; added
+  complete subSilver fallback coverage for phpBB2 Plus modules.
+- Retained only English and German from the upstream language collection.
+- Added modern social-profile fields throughout registration, profiles,
+  messages, member/group views and all seven styles while preserving legacy
+  contact fields.
+- Integrated cookie consent and optional StopForumSpam registration checks;
+  external spam checking is disabled by default.
+- Normalized distributed text sources, language files, mail templates and
+  charset declarations to UTF-8 and aligned fresh MySQL/MariaDB schemas and
+  MySQL-family connections with that encoding.
+- Restored PHP-4-style constructor behavior through PHP 8-compatible wrappers,
+  including the database, template, attachment, statistics and module classes.
+- Preserved historical MOD packages as source where upstream never installed
+  them; documented superseded modules and the experimental, unsupported PDO
+  driver instead of presenting incomplete installations as active features.
+- Excluded BootstrapMade HeroBiz demo media and proprietary form files while
+  retaining redistributable style code and recording third-party licenses.
+
 ### Repository and deployment maintenance
 
 - Added a reproducible Unix file-permissions script and documented the required

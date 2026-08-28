@@ -221,7 +221,7 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 //	, $topic_calendar_time = 0, $topic_calendar_duration = 0
 //-- modify
 
-function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id, &$topic_type, &$bbcode_on, &$html_on, &$smilies_on, &$attach_sig, &$bbcode_uid, $post_username, $post_subject, $post_message, $poll_title, &$poll_options, &$poll_length, &$topic_desc, $topic_announce_duration = 0, $post_icon = 0, $topic_calendar_time = 0, $topic_calendar_duration = 0, &$news_category)
+function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id, &$topic_type, &$bbcode_on, &$html_on, &$smilies_on, &$attach_sig, &$bbcode_uid, $post_username, $post_subject, $post_message, $poll_title, &$poll_options, &$poll_length, &$topic_desc, $topic_announce_duration = 0, $post_icon = 0, $topic_calendar_time = 0, $topic_calendar_duration = 0, &$news_category = 0)
 {
 	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
 	global $userdata, $user_ip;

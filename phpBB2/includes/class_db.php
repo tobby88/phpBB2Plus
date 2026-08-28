@@ -97,6 +97,11 @@ class db_class extends sql_db
 	var $sql_stack_fields;
 	var $sql_stack_values;
 
+	function __construct($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
+	{
+		$this->db_class($sqlserver, $sqluser, $sqlpassword, $database, $persistency);
+	}
+
 	function db_class($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
 	{
 		parent::sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency);
@@ -145,6 +150,11 @@ class db_class extends sql_db
 class stat_run_class
 {
 	var $endtime;
+
+	function __construct($endtime)
+	{
+		$this->stat_run_class($endtime);
+	}
 
 	function stat_run_class($endtime)
 	{

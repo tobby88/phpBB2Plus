@@ -2,14 +2,14 @@
 
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=windows-1256">
-<title>تدرج الألوان</title>
+<title>طھط¯ط±ط¬ ط§ظ„ط£ظ„ظˆط§ظ†</title>
 <script language="javascript">
-function openDialog() {	
+function openDialog() {
   window.dialogLeft = parseFloat(window.dialogLeft) - (frm.clientWidth - parseFloat(window.dialogWidth)) / 2 + "px";
   window.dialogTop = parseFloat(window.dialogTop) - (frm.clientHeight - parseFloat(window.dialogHeight)) / 2 + "px";
   window.dialogWidth = frm.clientWidth + 50 + "px";
   window.dialogHeight = frm.clientHeight + 50 + "px";
-}  
+}
 <!-- 1001 Astuces Nam@ni , la Source JavaScript!! -->
 <!-- http://www.namani.net
 var browser = "unknown";
@@ -74,7 +74,7 @@ function lowcolorindex (x, y, z) {
   if (y == 1) return 0
   else return Math.floor( (x*(z-1))/(y-1) )
 }
-function hicolorindex (x, y, z, low) { 
+function hicolorindex (x, y, z, low) {
   if ( low*(y-1) == x*(z-1) ) return low
   else if (y == 1) return 0
   else return Math.floor( (x*(z-1))/(y-1) + 1 )
@@ -85,8 +85,8 @@ function gradient (thetext,priv) {
   thecolors+=getValue(clr2);
   thecolors+=getValue(clr3);
   thecolors+=getValue(clr4);
-  thecolors+=getValue(clr5);  
-  thecolors=thecolors.substr(1);  
+  thecolors+=getValue(clr5);
+  thecolors=thecolors.substr(1);
   if (((browser == "netscape")||(browser == "msie")||(browser == "opera"))&&(version>=3.0)) {
     var colors = new ColorList(thecolors);
     if (colors.len<2) return  thetext;
@@ -112,13 +112,13 @@ function gradient (thetext,priv) {
         else { grad+="[color="+"#"+tohex[rr]+tohex[gg]+tohex[bb]+"]"+thetext.charAt(i)+"[/color]"; }
     }
   }
-  else 
+  else
     grad=thetext;
   return grad;
 }
 // 1001 Astuces Nam@ni -->
 function gradient_template() {
-  var i, t=template.options[template.selectedIndex].value.split(",");  
+  var i, t=template.options[template.selectedIndex].value.split(",");
   clr1.selectedIndex=t[0];
   clr2.selectedIndex=t[1];
   clr3.selectedIndex=t[2];
@@ -140,7 +140,7 @@ priv="priv"
 function gradient_accept() {
   add = "add"
   window.dialogArguments.text = gradient(window.dialogArguments.text).replace(/<FONT /gi,"[").replace(/<\/FONT>/g,"[/COLOR]").replace(/>/g,"]",add);
-  window.close();  
+  window.close();
 }
 </script>
 </head>
@@ -148,7 +148,7 @@ function gradient_accept() {
 <table id="frm" align="center" border="0"><tr><td align="center" nowrap>
 		<select id="clr1" onchange="document.body.focus();gradient_preview();">
 		    <option value="">x
-            <option value="000000" style="background-color:black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>            
+            <option value="000000" style="background-color:black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
             <option value="FFFFFF" style="background-color:white"></option>
             <option value="00BFFF" style="background-color:skyblue"></option>
 			<option value="4169E1" style="background-color:royalblue"></option>
@@ -298,7 +298,7 @@ function gradient_accept() {
         </select>&nbsp;
         <select id="template" onchange="document.body.focus();gradient_template();" name="hi">
            <option value="3,4,5,0,0">Selected Colors
-           <option value="3,4,5,0,0">1           
+           <option value="3,4,5,0,0">1
            <option value="14,12,9,0,0">2
            <option value="6,8,15,20,0">3
            <option value="1,27,26,2,0">4

@@ -32,7 +32,7 @@ require_once($phpbb_root_path . 'extension.inc');
 require_once($phpbb_root_path . 'common.'.$phpEx);
 
 $banner_id = ( isset($_POST['banner_id']) ) ? intval ($_POST['banner_id']) : 
-( isset($_GET['banner_id']) ) ? intval ($_GET['banner_id']) : '';
+	(( isset($_GET['banner_id']) ) ? intval ($_GET['banner_id']) : '');
 
 //
 // Start session management
@@ -44,7 +44,7 @@ init_userprefs($userdata);
 //
 
 $banner_id = ( isset($_POST['banner_id']) ) ? intval ($_POST['banner_id']) : 
-( isset($_GET['banner_id']) ) ? intval ($_GET['banner_id']) : '';
+	(( isset($_GET['banner_id']) ) ? intval ($_GET['banner_id']) : '');
 if ( !isset($banner_id ))
 {
 	message_die(GENERAL_ERROR, "No banner id specified", "", __LINE__, __FILE__,"banner_id='".$banner_id."'"); 

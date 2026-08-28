@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -43,14 +43,14 @@ else
 		$config_name = $row['config_name'];
 		$config_value = $row['config_value'];
 		$default_config[$config_name] = $config_value;
-				
+
 		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
 
 		if ((empty($size)) && (!$submit) && ($config_name == 'max_file_size'))
 		{
 			$size = (intval($default_config[$config_name]) >= 1048576) ? 'mb' : ( (intval($default_config[$config_name]) >= 1024) ? 'kb' : 'b' );
 		}
-		
+
 		if ( (!$submit) && ($config_name == 'max_file_size') )
 		{
 			if($new[$config_name] >= 1048576)
@@ -62,10 +62,10 @@ else
 				$new[$config_name] = round($new[$config_name] / 1024 * 100) / 100;
 			}
 		}
-		
+
 		if($submit)
 		{
-		
+
 			if ($config_name == 'max_file_size')
 			{
 				$new[$config_name] = ( $size == 'kb' ) ? round($new[$config_name] * 1024) : ( ($size == 'mb') ? round($new[$config_name] * 1048576) : $new[$config_name] );
@@ -84,13 +84,13 @@ else
 	{
 		$cache->unload();
 		$message = $lang['Settings_changed'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_settings.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
-		message_die(GENERAL_MESSAGE, $message); 
+		message_die(GENERAL_MESSAGE, $message);
 	}
 }
 
 $template->set_filenames(array(
 	'admin' => 'admin/pa_admin_settings.tpl')
-);  
+);
 
 $cat_auth_levels = array('ALL', 'REG', 'PRIVATE', 'MOD', 'ADMIN');
 $cat_auth_const = array(AUTH_ALL, AUTH_REG, AUTH_ACL, AUTH_MOD, AUTH_ADMIN);
@@ -112,31 +112,31 @@ foreach($global_auth as $auth)
 
 $view_all_yes = ($new['settings_viewall']) ? ' selected' : '';
 $view_all_no = (!$new['settings_viewall']) ? ' selected' : '';
-	
+
 $download_disable_yes = ($new['settings_disable']) ? ' selected' : '';
 $download_disable_no = (!$new['settings_disable']) ? ' selected' : '';
 
 $hotlink_prevent_yes = ($new['hotlink_prevent']) ? ' selected' : '';
-$hotlink_prevent_no = (!$new['hotlink_prevent']) ? ' selected' : '';	
+$hotlink_prevent_no = (!$new['hotlink_prevent']) ? ' selected' : '';
 
 $php_template_yes = ($new['settings_tpl_php']) ? ' selected' : '';
-$php_template_no = (!$new['settings_tpl_php']) ? ' selected' : '';	
-	
+$php_template_no = (!$new['settings_tpl_php']) ? ' selected' : '';
+
 $allow_html_yes = ($new['allow_html']) ? ' selected' : '';
 $allow_html_no = (!$new['allow_html']) ? ' selected' : '';
-	
+
 $allow_bbcode_yes = ($new['allow_bbcode']) ? ' selected' : '';
 $allow_bbcode_no = (!$new['allow_bbcode']) ? ' selected' : '';
-	
+
 $allow_smilies_yes = ($new['allow_smilies']) ? ' selected' : '';
-$allow_smilies_no = (!$new['allow_smilies']) ? ' selected' : '';	
+$allow_smilies_no = (!$new['allow_smilies']) ? ' selected' : '';
 
 $allow_comment_links_yes = ($new['allow_comment_links']) ? ' selected' : '';
 $allow_comment_links_no = (!$new['allow_comment_links']) ? ' selected' : '';
-	
+
 $allow_comment_images_yes = ($new['allow_comment_images']) ? ' selected' : '';
 $allow_comment_images_no = (!$new['allow_comment_images']) ? ' selected' : '';
-	
+
 // MX Addon
 $need_validation_yes = ($new['need_validation']) ? ' selected' : '';
 $need_validation_no = (!$new['need_validation']) ? ' selected' : '';
@@ -164,7 +164,7 @@ $template->assign_vars(array(
 	'L_ATUH_TOPLIST_INFO' => $lang['Auth_toplist_explain'],
 	'L_ATUH_VIEWALL' => $lang['Auth_viewall'],
 	'L_ATUH_VIEWALL_INFO' => $lang['Auth_viewall_explain'],
-	
+
 	'L_FILE_IN_PAGE' => $lang['File_per_page'],
 	'L_FILE_IN_PAGE_INFO' => $lang['File_per_page_info'],
 	'L_HOTLINK' => $lang['Hotlink_prevent'],
@@ -211,7 +211,7 @@ $template->assign_vars(array(
 	'L_UPDATE_TIME' => $lang['Update_time'],
 	'L_ASC' => $lang['Sort_Ascending'],
 	'L_DESC' => $lang['Sort_Descending'],
-	
+
 	// MX Addon
 	'L_VALIDATION_SETTINGS' => $lang['Validation_settings'],
 	'L_NEED_VALIDATION' => $lang['Need_validate'],
@@ -230,7 +230,7 @@ $template->assign_vars(array(
 	'MESSAGE_LINK' => $new['no_comment_link_message'],
 	'MAX_CHAR' => $new['max_comment_chars'],
 	'MESSAGE_IMAGE' => $new['no_comment_image_message'],
-	
+
 	'SORT_NAME' => ($new['sort_method'] == 'file_name') ? 'selected="selected"' : '',
 	'SORT_TIME' => ($new['sort_method'] == 'file_time') ? 'selected="selected"' : '',
 	'SORT_RATING' => ($new['sort_method'] == 'file_rating') ? 'selected="selected"' : '',
@@ -247,7 +247,7 @@ $template->assign_vars(array(
 	'UPLOAD_DIR' => $new['upload_dir'],
 	'SCREENSHOT_DIR' => $new['screenshots_dir'],
 	'FORBIDDEN_EXTENSIONS' => $new['forbidden_extensions'],
-	
+
 	'S_FILESIZE' => pa_size_select('max_size', $size),
 	'S_ATUH_SEARCH' => $auth_select['auth_search'],
 	'S_ATUH_STATS' => $auth_select['auth_stats'],
@@ -278,7 +278,7 @@ $template->assign_vars(array(
 
 	'S_ALLOW_IMAGES_YES' => $allow_comment_images_yes,
 	'S_ALLOW_IMAGES_NO' => $allow_comment_images_no)
-);                 
+);
 
 $template->pparse('admin');
 
@@ -303,7 +303,7 @@ function pa_size_select($select_name, $size_compare)
 
 		$select_field .= '<option value="' . $size_types[$i] . '"' . $selected . '>' . $size_types_text[$i] . '</option>';
 	}
-	
+
 	$select_field .= '</select>';
 
 	return ($select_field);

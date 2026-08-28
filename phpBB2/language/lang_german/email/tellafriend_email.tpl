@@ -1,8 +1,10 @@
+Charset: UTF-8
+
 {MESSAGE}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Diese Nachricht wurde Dir von {FROM_USERNAME} über seinen Account auf {SITENAME} geschickt. Sollte es sich um SPAM handeln, oder diese Nachricht sonstigen unerwünschten Inhalt enthalten, kontaktiere bitte den Webmaster der Seite über die folgende Adresse:
+Diese Nachricht wurde Dir von {FROM_USERNAME} Ã¼ber seinen Account auf {SITENAME} geschickt. Sollte es sich um SPAM handeln, oder diese Nachricht sonstigen unerwÃ¼nschten Inhalt enthalten, kontaktiere bitte den Webmaster der Seite Ã¼ber die folgende Adresse:
 
 {BOARD_EMAIL}
 
-Bitte leite die gesamte EMail weiter (zumindest den Header). Die Antwort-Adresse auf diese EMail wurde übrigens auf die von {FROM_USERNAME} gesetzt.
+Bitte leite die gesamte EMail weiter (zumindest den Header). Die Antwort-Adresse auf diese EMail wurde Ã¼brigens auf die von {FROM_USERNAME} gesetzt.

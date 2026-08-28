@@ -52,7 +52,7 @@
 </tr>
 <tr>
 <td height="28" valign="bottom" colspan="2" class="row1"> {PROFILE_IMG} {PM_IMG} 
-{EMAIL_IMG} {WWW_IMG} {AIM_IMG} {YIM_IMG} {MSN_IMG} {ICQ_IMG}</td>
+{EMAIL_IMG} {WWW_IMG} {AIM_IMG} {YIM_IMG} {MSN_IMG} {ICQ_IMG} {FB_IMG} {IG_IMG} {PT_IMG} {TWR_IMG} {SKP_IMG} {TG_IMG} {LI_IMG} {TT_IMG} {DC_IMG}</td>
 </tr>
 <tr>
 <td class="cat" colspan="2" align="right">{S_HIDDEN_FIELDS}

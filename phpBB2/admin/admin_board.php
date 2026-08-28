@@ -134,6 +134,8 @@ $registration_status_no = ( !$new['registration_status'] ) ? "checked=\"checked\
 
 $cookie_secure_yes = ( $new['cookie_secure'] ) ? "checked=\"checked\"" : "";
 $cookie_secure_no = ( !$new['cookie_secure'] ) ? "checked=\"checked\"" : "";
+$cookie_consent_yes = ( !empty($new['cookie_consent_enable']) ) ? "checked=\"checked\"" : "";
+$cookie_consent_no = ( empty($new['cookie_consent_enable']) ) ? "checked=\"checked\"" : "";
 
 $html_tags = $new['allow_html_tags'];
 
@@ -152,6 +154,8 @@ $activation_admin = ( $new['require_activation'] == USER_ACTIVATION_ADMIN ) ? "c
 
 $confirm_yes = ($new['enable_confirm']) ? 'checked="checked"' : '';
 $confirm_no = (!$new['enable_confirm']) ? 'checked="checked"' : '';
+$sfs_enable_yes = ( !empty($new['sfs_enable']) ) ? 'checked="checked"' : '';
+$sfs_enable_no = ( empty($new['sfs_enable']) ) ? 'checked="checked"' : '';
 
 $allow_autologin_yes = ($new['allow_autologin']) ? 'checked="checked"' : '';
 $allow_autologin_no = (!$new['allow_autologin']) ? 'checked="checked"' : '';
@@ -436,6 +440,10 @@ $template->assign_vars(array(
 	"ACTIVATION_ADMIN_CHECKED" => $activation_admin, 
 	"CONFIRM_ENABLE" => $confirm_yes,
 	"CONFIRM_DISABLE" => $confirm_no,
+	"SFS_ENABLE_YES" => $sfs_enable_yes,
+	"SFS_ENABLE_NO" => $sfs_enable_no,
+	"L_SFS_ENABLE" => $lang['sfs_enable'],
+	"L_SFS_ENABLE_EXPLAIN" => $lang['sfs_enable_explain'],
 	"ACTIVATION_NONE_CHECKED" => $activation_none,
 	'ALLOW_AUTOLOGIN_YES' => $allow_autologin_yes,
 	'ALLOW_AUTOLOGIN_NO' => $allow_autologin_no,
@@ -464,8 +472,11 @@ $template->assign_vars(array(
 	"COOKIE_NAME" => $new['cookie_name'], 
 	"COOKIE_PATH" => $new['cookie_path'], 
 	"SESSION_LENGTH" => $new['session_length'], 
-	"S_COOKIE_SECURE_ENABLED" => $cookie_secure_yes, 
-	"S_COOKIE_SECURE_DISABLED" => $cookie_secure_no, 
+	"S_COOKIE_SECURE_ENABLED" => $cookie_secure_yes,
+	"S_COOKIE_SECURE_DISABLED" => $cookie_secure_no,
+	"COOKIE_CONSENT_YES" => $cookie_consent_yes,
+	"COOKIE_CONSENT_NO" => $cookie_consent_no,
+	"L_COOKIE_CONSENT_ENABLE" => $lang['cookie_consent_enable'],
 	"GZIP_YES" => $gzip_yes,
 	"GZIP_NO" => $gzip_no,
 	"PRUNE_YES" => $prune_yes,

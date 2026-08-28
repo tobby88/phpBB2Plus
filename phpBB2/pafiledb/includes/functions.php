@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -126,7 +126,7 @@ class pafiledb_functions
 	{
 		global $pafiledb_config;
 	
-		srand((double)microtime()*1000000);	// for older than version 4.2.0 of PHP
+		srand((float)microtime()*1000000);	// for older than version 4.2.0 of PHP
 
 		do
 		{
@@ -318,7 +318,7 @@ class pafiledb_functions
 			$path = $url['path']; 
 			$port = (!empty($url['port'])) ? $url['port'] : 80;
 
-			$fp = @fsockopen($host, $port, &$errno, &$errstr, 20);
+			$fp = @fsockopen($host, $port, $errno, $errstr, 20);
 		
 			if(!$fp)
 			{ 
@@ -703,7 +703,12 @@ class user_info
 	 heuristic examination of user agent string.
 	 @param $user_agent allows override of user agent string for testing.
 	*/
-	
+
+	function __construct( $user_agent = '' )
+	{
+		$this->user_info( $user_agent );
+	}
+
 	function user_info( $user_agent = '' )
 	{
 		global $_SERVER, $HTTP_USER_AGENT, $HTTP_SERVER_VARS;

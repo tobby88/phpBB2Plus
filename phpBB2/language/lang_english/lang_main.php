@@ -33,7 +33,7 @@
 // varies ... give it your best guess!
 //
 
-$lang['ENCODING'] = 'iso-8859-1';
+$lang['ENCODING'] = 'UTF-8';
 $lang['DIRECTION'] = 'ltr';
 $lang['LEFT'] = 'left';
 $lang['RIGHT'] = 'right';
@@ -103,6 +103,16 @@ $lang['ICQ'] = 'ICQ Number';
 $lang['AIM'] = 'AIM Address';
 $lang['MSNM'] = 'MSN Messenger';
 $lang['YIM'] = 'Yahoo Messenger';
+$lang['FB'] = 'Facebook';
+$lang['IG'] = 'Instagram';
+$lang['PT'] = 'Pinterest';
+$lang['TWR'] = 'X / Twitter';
+$lang['SKP'] = 'Skype';
+$lang['TG'] = 'Telegram';
+$lang['LI'] = 'LinkedIn';
+$lang['TT'] = 'TikTok';
+$lang['DC'] = 'Discord';
+$lang['Social_user_id_explain'] = 'Enter the account name or user ID, not a complete URL.';
 
 $lang['Forum_Index'] = '%s Forum Index';  // eg. sitename Forum Index, %s can be removed if you prefer
 
@@ -174,7 +184,7 @@ $lang['Posted_article_total'] = 'Our users have posted a total of <b>%d</b> arti
 $lang['Registered_users_zero_total'] = 'We have <b>0</b> registered users'; // # registered users
 $lang['Registered_users_total'] = 'We have <b>%d</b> registered users'; // # registered users
 $lang['Registered_user_total'] = 'We have <b>%d</b> registered user'; // # registered users
-$lang['Newest_user'] = 'The newest registered user is <b>%s%s%s</b>'; // a href, username, /a 
+$lang['Newest_user'] = 'The newest registered user is <b>%s%s%s</b>'; // a href, username, /a
 
 $lang['No_new_posts_last_visit'] = 'No new posts since your last visit';
 $lang['No_new_posts'] = 'No new posts';
@@ -245,7 +255,7 @@ $lang['Rules_delete_can'] = 'You <b>can</b> delete your posts in this forum';
 $lang['Rules_delete_cannot'] = 'You <b>cannot</b> delete your posts in this forum';
 $lang['Rules_vote_can'] = 'You <b>can</b> vote in polls in this forum';
 $lang['Rules_vote_cannot'] = 'You <b>cannot</b> vote in polls in this forum';
-$lang['Rules_moderate'] = 'You <b>can</b> %smoderate this forum%s'; // %s replaced by a href links, do not remove! 
+$lang['Rules_moderate'] = 'You <b>can</b> %smoderate this forum%s'; // %s replaced by a href links, do not remove!
 
 $lang['No_topics_post_one'] = 'There are no posts in this forum.<br />Click on the <b>Post New Topic</b> link on this page to post one.';
 
@@ -275,7 +285,7 @@ $lang['Oldest_First'] = 'Oldest First';
 
 $lang['Back_to_top'] = 'Back to top';
 
-$lang['Read_profile'] = 'View user\'s profile'; 
+$lang['Read_profile'] = 'View user\'s profile';
 $lang['Send_email'] = 'Send e-mail to user';
 $lang['Visit_website'] = 'Visit poster\'s website';
 $lang['ICQ_status'] = 'ICQ Status';
@@ -471,7 +481,7 @@ $lang['Sent'] = 'Sent';
 $lang['Saved'] = 'Saved';
 $lang['Delete_marked'] = 'Delete Marked';
 $lang['Delete_all'] = 'Delete All';
-$lang['Save_marked'] = 'Save Marked'; 
+$lang['Save_marked'] = 'Save Marked';
 $lang['Save_message'] = 'Save Message';
 $lang['Delete_message'] = 'Delete Message';
 
@@ -515,8 +525,8 @@ $lang['Confirm_delete_pm'] = 'Are you sure you want to delete this message?';
 $lang['Confirm_delete_pms'] = 'Are you sure you want to delete these messages?';
 
 $lang['Inbox_size'] = 'Your Inbox is %d%% full'; // eg. Your Inbox is 50% full
-$lang['Sentbox_size'] = 'Your Sentbox is %d%% full'; 
-$lang['Savebox_size'] = 'Your Savebox is %d%% full'; 
+$lang['Sentbox_size'] = 'Your Sentbox is %d%% full';
+$lang['Savebox_size'] = 'Your Savebox is %d%% full';
 
 $lang['Click_view_privmsg'] = 'Click %sHere%s to visit your Inbox';
 
@@ -526,7 +536,7 @@ $lang['No_username'] = 'You must enter a username.';
 //
 // Profiles/Registration
 //
-$lang['Viewing_user_profile'] = 'Viewing profile :: %s'; // %s is username 
+$lang['Viewing_user_profile'] = 'Viewing profile :: %s'; // %s is username
 $lang['About_user'] = 'All about %s'; // %s is username
 
 $lang['Preferences'] = 'Preferences';
@@ -546,7 +556,7 @@ $lang['Send_private_message'] = 'Send private message';
 $lang['Hidden_email'] = '[ Hidden ]';
 $lang['Search_user_posts'] = 'Search for posts by this user';
 $lang['Interests'] = 'Interests';
-$lang['Occupation'] = 'Occupation'; 
+$lang['Occupation'] = 'Occupation';
 $lang['Poster_rank'] = 'Poster rank';
 
 $lang['Total_posts'] = 'Total posts';
@@ -610,7 +620,7 @@ $lang['Current_Image'] = 'Current Image';
 $lang['Notify_on_privmsg'] = 'Notify on new Private Message';
 
 $lang['Block_Arcade_pm'] = 'Block private messages from the Arcade';
-$lang['Popup_on_privmsg'] = 'Pop up window on new Private Message'; 
+$lang['Popup_on_privmsg'] = 'Pop up window on new Private Message';
 $lang['Popup_on_privmsg_explain'] = 'Some templates may open a new window to inform you when new private messages arrive.';
 $lang['Hide_user'] = 'Hide your online status';
 
@@ -631,7 +641,7 @@ $lang['Signature_too_long'] = 'Your signature is too long.';
 $lang['Fields_empty'] = 'You must fill in the required fields.';
 $lang['Avatar_filetype'] = 'The avatar filetype must be .jpg, .gif or .png';
 $lang['Avatar_filesize'] = 'The avatar image file size must be less than %d KB'; // The avatar image file size must be less than 6 KB
-$lang['Avatar_imagesize'] = 'The avatar must be less than %d pixels wide and %d pixels high'; 
+$lang['Avatar_imagesize'] = 'The avatar must be less than %d pixels wide and %d pixels high';
 
 $lang['Welcome_subject'] = 'Welcome to %s Forums'; // Welcome to my.com forums
 $lang['New_account_subject'] = 'New user account';
@@ -654,7 +664,7 @@ $lang['Agree_over_13'] = 'I Agree to these terms and am <b>over</b> or <b>exactl
 $lang['Agree_not'] = 'I do not agree to these terms';
 
 $lang['Wrong_activation'] = 'The activation key you supplied does not match any in the database.';
-$lang['Send_password'] = 'Send me a new password'; 
+$lang['Send_password'] = 'Send me a new password';
 $lang['Password_updated'] = 'A new password has been created; please check your e-mail for details on how to activate it.';
 $lang['No_email_match'] = 'The e-mail address you supplied does not match the one listed for that username.';
 $lang['New_password_activation'] = 'New password activation';
@@ -736,7 +746,7 @@ $lang['No_pending_group_members'] = 'This group has no pending members';
 $lang['Group_joined'] = 'You have successfully subscribed to this group.<br />You will be notified when your subscription is approved by the group moderator.';
 $lang['Group_request'] = 'A request to join your group has been made.';
 $lang['Group_approved'] = 'Your request has been approved.';
-$lang['Group_added'] = 'You have been added to this usergroup.'; 
+$lang['Group_added'] = 'You have been added to this usergroup.';
 $lang['Already_member_group'] = 'You are already a member of this group';
 $lang['User_is_member_group'] = 'User is already a member of this group';
 $lang['Group_type_updated'] = 'Successfully updated group type.';
@@ -815,11 +825,11 @@ $lang['Close_window'] = 'Close Window';
 //
 // Note the %s will be replaced with one of the following 'user' arrays
 $lang['Sorry_auth_announce'] = 'Sorry, but only %s can post announcements in this forum.';
-$lang['Sorry_auth_sticky'] = 'Sorry, but only %s can post sticky messages in this forum.'; 
-$lang['Sorry_auth_read'] = 'Sorry, but only %s can read topics in this forum.'; 
-$lang['Sorry_auth_post'] = 'Sorry, but only %s can post topics in this forum.'; 
+$lang['Sorry_auth_sticky'] = 'Sorry, but only %s can post sticky messages in this forum.';
+$lang['Sorry_auth_read'] = 'Sorry, but only %s can read topics in this forum.';
+$lang['Sorry_auth_post'] = 'Sorry, but only %s can post topics in this forum.';
 $lang['Sorry_auth_reply'] = 'Sorry, but only %s can reply to posts in this forum.';
-$lang['Sorry_auth_edit'] = 'Sorry, but only %s can edit posts in this forum.'; 
+$lang['Sorry_auth_edit'] = 'Sorry, but only %s can edit posts in this forum.';
 $lang['Sorry_auth_delete'] = 'Sorry, but only %s can delete posts in this forum.';
 $lang['Sorry_auth_vote'] = 'Sorry, but only %s can vote in polls in this forum.';
 
@@ -1037,7 +1047,7 @@ $lang['An_error_occured'] = 'An Error Occurred';
 $lang['A_critical_error'] = 'A Critical Error Occurred';
 
 // Additional Stuff for phpBB2 Plus only ! Translators should get original Language Files for phpBB 2.0.8
-// for the language they want to translate from http://www.phpbb.com/downloads.php. Then they need to translate 
+// for the language they want to translate from http://www.phpbb.com/downloads.php. Then they need to translate
 // the following stuff only and use the rest from the original language files !
 
 //-- mod : mods settings ---------------------------------------------------------------------------
@@ -1049,7 +1059,7 @@ $lang['Click_return_preferences'] = 'Click %sHere%s to return to Preferences';
 $lang['Birthday'] = 'Birthday';
 $lang['No_birthday_specify'] = 'None Specified';
 $lang['Age'] = 'Age';
-$lang['Wrong_birthday_format'] = 'The birthday format was entered incorrectly.'; 
+$lang['Wrong_birthday_format'] = 'The birthday format was entered incorrectly.';
 $lang['Birthday_to_high'] = 'Sorry, this site does not accept users over %d years of age';
 $lang['Birthday_require'] = 'Your Birthday is required on this site';
 $lang['Birthday_to_low'] = 'Sorry, this site does not accept users below %d years of age';
@@ -1060,7 +1070,7 @@ $lang['Greeting_Messaging'] = 'Congratulations';
 $lang['Birthday_today'] = 'Users with a birthday today:';
 $lang['Birthday_week'] = 'Users with a birthday within the next %d days:';
 $lang['Nobirthday_week'] = 'No users with a birthday in the upcoming %d days'; // %d is substitude with the number of days
-$lang['Nobirthday_today'] = 'No users with a birthday today'; 
+$lang['Nobirthday_today'] = 'No users with a birthday today';
 $lang['Year'] = 'Year';
 $lang['Month'] = 'Month';
 $lang['Day'] = 'Day';
@@ -1103,20 +1113,20 @@ $lang['Dog'] = 'Dog';
 $lang['Pig'] = 'Pig';
 
 // Start add - Gender MOD
-$lang['Gender'] = 'Gender';//used in users profile to display witch gender he/she is 
-$lang['Male'] = 'Male'; 
-$lang['Female']='Female'; 
-$lang['No_gender_specify'] = 'None Specified'; 
+$lang['Gender'] = 'Gender';//used in users profile to display witch gender he/she is
+$lang['Male'] = 'Male';
+$lang['Female']='Female';
+$lang['No_gender_specify'] = 'None Specified';
 // End add - Gender MOD
 
 // Start add - Last visit MOD
-$lang['Last_logon'] = 'Last Visit'; 
-$lang['Hidde_last_logon'] = 'Hidden'; 
-$lang['Never_last_logon'] = 'Never'; 
+$lang['Last_logon'] = 'Last Visit';
+$lang['Hidde_last_logon'] = 'Hidden';
+$lang['Never_last_logon'] = 'Never';
 $lang['Users_today_zero_total'] = 'In total <b>0</b> users have visited this site today :: ';
 $lang['Users_today_total'] = 'In total <b>%d</b> user have visited this site today :: ';
 $lang['User_today_total'] = 'In total <b>%d</b> users have visited this site today :: ';
-$lang['Users_lasthour_explain'] = ', %d of them within the last hour.'; 
+$lang['Users_lasthour_explain'] = ', %d of them within the last hour.';
 $lang['Users_lasthour_none_explain'] = ''; //showen of none have visited the last hour, fill if you like
 
 $lang['Years'] = 'Years';
@@ -1124,10 +1134,10 @@ $lang['Year'] = 'Year';
 $lang['Weeks'] = 'Weeks';
 $lang['Week'] = 'Week';
 $lang['Day'] = 'Day';
-$lang['Total_online_time'] = 'Total Online Duration'; 
-$lang['Last_online_time'] = 'Last Online Duration'; 
-$lang['Number_of_visit'] = 'Number of visits'; 
-$lang['Number_of_pages'] = 'Number of page hits'; 
+$lang['Total_online_time'] = 'Total Online Duration';
+$lang['Last_online_time'] = 'Last Online Duration';
+$lang['Number_of_visit'] = 'Number of visits';
+$lang['Number_of_pages'] = 'Number of page hits';
 // End add - Last visit MOD
 
 // FLAGHACK-start
@@ -1195,7 +1205,7 @@ $lang['Advanced_Search'] = 'Advanced Search';
 // Photo Album Addon v2.x.x by Smartor
 //
 $lang['Album'] = 'Album';
-$lang['Personal_Gallery_Of_User'] = 'Personal Gallery of %s'; 
+$lang['Personal_Gallery_Of_User'] = 'Personal Gallery of %s';
 $lang['Newest_pic'] = 'Recent Photo';
 //--- Album Category Hierarchy : begin
 //--- Version : 1.2.0
@@ -1215,7 +1225,7 @@ $lang['Quick_add_smilies'] = 'Smilies';
 $lang['QuoteSelelected'] = 'Quote selected';
 $lang['QuoteSelelectedEmpty'] = 'Select a text anywhere on a page and try again';
 $lang['Quick_Reply_smilies'] = 'all';
-// End Quick Reply Mod 
+// End Quick Reply Mod
 
 $lang['Recent_topics'] = 'Recent topics'; // Recent Topics
 $lang['No_recent_topics'] = '<br />No topics at the moment<br /><br />'; // No recent Topics
@@ -1276,8 +1286,8 @@ $lang['Viewing_Shoutbox']= 'Viewing shoutbox';
 $lang['Censor'] ='Censor';
 // End add - Fully integrated shoutbox MOD
 
-$lang['bbcode_g_help'] = "Glow: [glow=colour]text[/glow] (alt+g)"; 
-$lang['bbcode_d_help'] = "Shadow: [shadow=colour]text[/shadow] (alt+d)"; 
+$lang['bbcode_g_help'] = "Glow: [glow=colour]text[/glow] (alt+g)";
+$lang['bbcode_d_help'] = "Shadow: [shadow=colour]text[/shadow] (alt+d)";
 $lang['bbcode_e_help'] = "Align: [align=left|right|center|justify]text[/align] (alt+e)";
 $lang['bbcode_h_help'] = "Fade text: [fade]some text[/fade] (alt+h)";
 $lang['bbcode_j_help'] = "Scrolling text: [scroll**]text[/scroll**] (alt+j)";
@@ -1291,7 +1301,7 @@ $lang['bbcode_x_help'] = "Right Aligned Pic: [right]Path_to_Picture[/right] (alt
 $lang['PHPCode'] = 'PHP'; // PHP MOD
 $lang['bbcode_y_help'] = 'PHP syntax highlighter. [php]<?php code ?>[/php] (alt+y)'; // PHP MOD
 $lang['bbcode_z_help'] = "Google: [google]String to search for[/google] (alt+z)";
-$lang['bbcode_sc_help'] = 'Smilie Creator: [schild=1]Text[/schild] Generates a Shield Smilie'; 
+$lang['bbcode_sc_help'] = 'Smilie Creator: [schild=1]Text[/schild] Generates a Shield Smilie';
 $lang['bbcode_th_help'] = 'Strikethrough: [s]text[/s] (alt+th)';
 $lang['Smilie_creator'] = 'Smilie Creator';
 $lang['SC_shieldtext'] = 'Smilie Text';
@@ -1307,7 +1317,7 @@ $lang['SC_create_smilie'] = 'Create';
 $lang['SC_stop_creating'] = 'Cancel';
 $lang['SC_error'] = 'Here is your Shield - you have forgotten the Text...';
 $lang['SC_another_shield'] = 'Do you want to create another Smilie ?';
-$lang['SC_notext_error'] = 'You can not create Smilies without Text'; 
+$lang['SC_notext_error'] = 'You can not create Smilies without Text';
 
 //
 // TELL A FRIEND
@@ -1318,7 +1328,7 @@ $lang['Tell_Friend_Reciever_User'] = "Your Friend's Name:";
 $lang['Tell_Friend_Reciever_Email'] = "Your Friend's Email:";
 $lang['Tell_Friend_Msg'] = "Your message:";
 $lang['Tell_Friend_Title'] = "Tell A Friend";
-$lang['Tell_Friend_Body'] = "Hi,\nI just read the topic >>{TOPIC}<< at {SITENAME} and thought you might be interested. Here is the link: {LINK}\n\nGo and read it and if you want to reply you can register for your own account if you have not done so already."; 
+$lang['Tell_Friend_Body'] = "Hi,\nI just read the topic >>{TOPIC}<< at {SITENAME} and thought you might be interested. Here is the link: {LINK}\n\nGo and read it and if you want to reply you can register for your own account if you have not done so already.";
 
 // Start add - Who viewed a topic MOD
 $lang['Topic_view_users'] = 'List users that have viewed this topic';
@@ -1350,37 +1360,37 @@ $lang['Recent_title_last24'] = ' from the last 24 hours';
 $lang['Recent_title_lastweek'] = ' from the last week';
 $lang['Recent_title_lastXdays'] = ' from the last %s days'; // %s = days
 $lang['Recent_no_topics'] = 'No topics were found.';
-$lang['Recent_wrong_mode'] = 'You´ve selected a wrong mode.';
+$lang['Recent_wrong_mode'] = 'YouÂ´ve selected a wrong mode.';
 $lang['Recent_click_return'] = 'Click %shere%s to return to recent site.';
 
 // Bottom of Page Link MOD - Daz - ForumImages.com - START/END Line Below
 $lang['Go_to_bottom'] = 'Bottom of Page';
 
 // Start add - Yellow card admin MOD
-$lang['Give_G_card']='Re-activate user'; 
-$lang['Give_Y_card']='Give user warning #%d'; 
-$lang['Give_R_card']='Ban this user now'; 
-$lang['Ban_update_sucessful'] = 'The banlist has been updated successfully'; 
-$lang['Ban_update_green'] = 'The user is now re-activated'; 
-$lang['Ban_update_yellow'] = 'The user has recieved a warning, and has now a total of %d warnings of a maximum %d warnings'; 
-$lang['Ban_update_red'] = 'The user is now banned'; 
-$lang['Ban_reactivate'] = 'Your account has been re-activated'; 
-$lang['Ban_warning'] = 'You\'ve recieved a warning'; 
-$lang['Ban_blocked'] = 'Your account is now blocked'; 
-$lang['Click_return_viewtopic'] = 'Click %sHere%s to return to the topic'; 
-$lang['Rules_ban_can'] = 'You <b>can</b> ban other users in this forum'; 
-$lang['user_no_email'] = 'The user has no email, therefore no message about this action can be sent. You should submit him/her a private message'; 
-$lang['user_already_banned'] = 'The selected user is already banned'; 
-$lang['Ban_no_admin'] ='This user in an ADMIN and therefore cannot be warned or banned'; 
-$lang['Rules_greencard_can'] = 'You <b>can</b> un-ban users in this forum'; 
-$lang['Rules_bluecard_can'] = 'You <b>can</b> report post to moderators in this forum'; 
-$lang['Give_b_card'] = 'Report this post to the moderators of this forum'; 
-$lang['Clear_b_card'] = 'This post has %d blue cards now. If you press this button you will clear this'; 
-$lang['No_moderators'] = 'The forum has no moderators, No reports can be therfore sent!'; 
-$lang['Post_repported'] = 'This post has now been reported to %d moderators'; 
-$lang['Post_repported_1'] = 'This post has now been reported to the moderator'; 
+$lang['Give_G_card']='Re-activate user';
+$lang['Give_Y_card']='Give user warning #%d';
+$lang['Give_R_card']='Ban this user now';
+$lang['Ban_update_sucessful'] = 'The banlist has been updated successfully';
+$lang['Ban_update_green'] = 'The user is now re-activated';
+$lang['Ban_update_yellow'] = 'The user has recieved a warning, and has now a total of %d warnings of a maximum %d warnings';
+$lang['Ban_update_red'] = 'The user is now banned';
+$lang['Ban_reactivate'] = 'Your account has been re-activated';
+$lang['Ban_warning'] = 'You\'ve recieved a warning';
+$lang['Ban_blocked'] = 'Your account is now blocked';
+$lang['Click_return_viewtopic'] = 'Click %sHere%s to return to the topic';
+$lang['Rules_ban_can'] = 'You <b>can</b> ban other users in this forum';
+$lang['user_no_email'] = 'The user has no email, therefore no message about this action can be sent. You should submit him/her a private message';
+$lang['user_already_banned'] = 'The selected user is already banned';
+$lang['Ban_no_admin'] ='This user in an ADMIN and therefore cannot be warned or banned';
+$lang['Rules_greencard_can'] = 'You <b>can</b> un-ban users in this forum';
+$lang['Rules_bluecard_can'] = 'You <b>can</b> report post to moderators in this forum';
+$lang['Give_b_card'] = 'Report this post to the moderators of this forum';
+$lang['Clear_b_card'] = 'This post has %d blue cards now. If you press this button you will clear this';
+$lang['No_moderators'] = 'The forum has no moderators, No reports can be therfore sent!';
+$lang['Post_repported'] = 'This post has now been reported to %d moderators';
+$lang['Post_repported_1'] = 'This post has now been reported to the moderator';
 $lang['Post_repport'] = 'Post Report'; //Subject in email notification
-$lang['Post_reset'] = 'The blue cards for this post have now been reset'; 
+$lang['Post_reset'] = 'The blue cards for this post have now been reset';
 $lang['Search_only_bluecards'] = 'Search only among posts with blue cards';
 $lang['Send_message'] = 'Click %sHere%s to write a message to the moderators or <br />';
 $lang['Send_PM_user'] = 'Click %sHere%s to write a PM to the user or';
@@ -1388,26 +1398,26 @@ $lang['Link_to_post'] = 'Click %sHere%s to go to the reported post  <br/>-------
 $lang['Post_a_report'] = 'Post a report';
 $lang['Report_stored'] = 'Your report has been entered successfully';
 $lang['Send_report'] = 'Click %sHere%s to go back to the original message';
-$lang['Red_card_warning'] = 'You are about to give the user:%s a red card, this will ban the user, are you sure ?'; 
-$lang['Yellow_card_warning'] = 'You are about to give the user:%s a yellow card, this will isue a warning to the user, are you sure ?'; 
-$lang['Green_card_warning'] = 'You are about to give the user:%s a green card, this will unban the user, are you sure ?'; 
-$lang['Blue_card_warning'] = 'You are about to give the post a blue card, this will alert the moderators about this post, Are you sure you want to Alert the moderators about this post ?'; 
+$lang['Red_card_warning'] = 'You are about to give the user:%s a red card, this will ban the user, are you sure ?';
+$lang['Yellow_card_warning'] = 'You are about to give the user:%s a yellow card, this will isue a warning to the user, are you sure ?';
+$lang['Green_card_warning'] = 'You are about to give the user:%s a green card, this will unban the user, are you sure ?';
+$lang['Blue_card_warning'] = 'You are about to give the post a blue card, this will alert the moderators about this post, Are you sure you want to Alert the moderators about this post ?';
 $lang['Clear_blue_card_warning'] = 'You are about to reset the blue card counter for this post, Do you wan to continue ?';
 $lang['Warnings'] = 'Warnings : %d'; //shown beside users post, if any warnings given to the user
 $lang['Banned'] = 'Currently banned';//shown beside users post, if user are banned
 
 // Start add - Protect user account MOD
-$lang['Error_login_tomutch']='You have specified a locked username, please try again later'; 
-$lang['Password_not_complex'] ='The specified password, does not comply with the complexity rules, you should verify that: the password '; 
-$lang['Password_to_short'] = 'is at least %d characters long'; 
-$lang['Password_mixed'] = 'has both numbers and letters'; 
-$lang['Password_not_same'] = 'is not the same as your username'; 
-$lang['Time_format'] = 'D d. M, Y H:i:s';// how time should be shown in email notification 
-$lang['Passwd_have_expired'] = 'Your password has expired, you may request a new one'; 
-$lang['Passwd_expired'] = 'Your password has expired and is no longer valid. However, you still have the opportunity to choose a new one now. If, for some reason, you cannot change it now, do not panic. You may request a new random password, using the appropriate link at your next logon.'; 
-$lang['Passwd_soon_expired'] = 'Your password will expire in %d days. We recommend that you change it before it actually expires. Should you let your password expire, you may request a new one using the appropriate link at your next logon.'; 
-$lang['Send_new_passwd'] = 'Send me a new password'; 
-$lang['Passwd_updated'] = 'Thank you <br />Your new password is now stored'; 
+$lang['Error_login_tomutch']='You have specified a locked username, please try again later';
+$lang['Password_not_complex'] ='The specified password, does not comply with the complexity rules, you should verify that: the password ';
+$lang['Password_to_short'] = 'is at least %d characters long';
+$lang['Password_mixed'] = 'has both numbers and letters';
+$lang['Password_not_same'] = 'is not the same as your username';
+$lang['Time_format'] = 'D d. M, Y H:i:s';// how time should be shown in email notification
+$lang['Passwd_have_expired'] = 'Your password has expired, you may request a new one';
+$lang['Passwd_expired'] = 'Your password has expired and is no longer valid. However, you still have the opportunity to choose a new one now. If, for some reason, you cannot change it now, do not panic. You may request a new random password, using the appropriate link at your next logon.';
+$lang['Passwd_soon_expired'] = 'Your password will expire in %d days. We recommend that you change it before it actually expires. Should you let your password expire, you may request a new one using the appropriate link at your next logon.';
+$lang['Send_new_passwd'] = 'Send me a new password';
+$lang['Passwd_updated'] = 'Thank you <br />Your new password is now stored';
 $lang['Passwd_title'] = 'Please change your password';
 // End add - Protect user account MOD
 
@@ -1418,7 +1428,7 @@ $lang['Description'] = 'Topic Description';
 $lang['Browsing_topic'] = 'Users browsing this topic:';
 // End add - Topic in Who is online MOD
 
-//admin user list mail 
+//admin user list mail
 $lang['Usersname'] = "Users Name";
 $lang['Admin_Users_List_Mail_Title'] = "List users e-mail";
 $lang['Admin_Users_List_Mail_Explain'] = "Here a list of your users's e-mail";
@@ -1460,7 +1470,7 @@ $lang['Normalise'] = 'Normal';
 $lang['Topics_Stickyd'] = 'The selected topics have been stickied';
 $lang['Topics_Announced'] = 'The selected topics have been announced';
 $lang['Topics_Normalised'] = 'The selected topics have been normalised';
-$lang['Check_All'] = 'Check All'; 
+$lang['Check_All'] = 'Check All';
 $lang['Uncheck_All'] = 'Uncheck All';
 // MOD MODCP EXTENSION END
 $lang['Search_new2'] = 'New Posts';
@@ -1574,6 +1584,13 @@ $lang['custom_field_notice'] = 'These items have been created by an administrato
 $lang['and'] = ' and ';
 
 $lang['Session_invalid'] = 'Invalid Session. Please resubmit the form.';
+$lang['cookie_consent_msg'] = 'This site uses cookies to provide the forum and keep sessions working.';
+$lang['L_PRIVACY'] = 'Privacy information';
+$lang['L_PRIVACY_POLICY'] = 'This forum stores cookies on your device for sessions, login preferences and forum features. Account information is handled according to the site operator\'s privacy information.';
+$lang['L_COOKIE_ACCEPT'] = 'Accept';
+$lang['sfs_service_unavailable'] = 'The registration spam check is temporarily unavailable. Please try again later.';
+$lang['sfs_invalid_response'] = 'The registration spam check returned an invalid response. Please try again later.';
+$lang['sfs_missing_extension'] = 'The server cannot perform the configured registration spam check.';
 //
 // END Custom Profile Fields MOD
 //

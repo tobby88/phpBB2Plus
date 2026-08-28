@@ -28,6 +28,11 @@ class ct_adminfunctions
 	 * <b>ct_adminfunctions</b>
 	 * Constructor
 	 */
+	function __construct()
+	{
+		$this->ct_adminfunctions();
+	}
+
 	function ct_adminfunctions()
 	{
 		// Currently nothing to do
@@ -194,7 +199,7 @@ class ct_adminfunctions
 	 * @param $prefix    = Current File Path
 	 * @param $extension = File Extension to find
 	 */
-	function recursive_filechk($dir, $prefix = '', $extension)
+	function recursive_filechk($dir, $prefix = '', $extension = '')
 	{
 		global $db, $lang;
 
@@ -497,7 +502,7 @@ class ct_adminfunctions
 	 * @param $prefix    = current file path
 	 * @param $extension = file extension to find
 	 */
-	function CreateFileList($dir, $prefix = '', $extension)
+	function CreateFileList($dir, $prefix = '', $extension = '')
 	{
 	  	global $db, $lang;
 

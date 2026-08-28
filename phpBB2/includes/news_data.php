@@ -109,6 +109,11 @@ class NewsDataAccess
   *
   * @access public
   **/
+  function __construct( $phpbb_root )
+  {
+    $this->NewsDataAccess( $phpbb_root );
+  }
+
   function NewsDataAccess( $phpbb_root )
   {
     global $db, $phpEx, $board_config;

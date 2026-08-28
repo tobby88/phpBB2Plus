@@ -32,8 +32,8 @@ if ( $lang_extend_admin )
 }
 
 $lang['Split_settings']			= 'Teile Themen nach Typ';
-$lang['split_global_announce']	= 'Teile Globale Ankündigungen';
-$lang['split_announce']			= 'Teile Ankündigungen';
+$lang['split_global_announce']	= 'Teile Globale AnkÃ¼ndigungen';
+$lang['split_announce']			= 'Teile AnkÃ¼ndigungen';
 $lang['split_sticky']			= 'Teile Wichtig';
 $lang['split_news']			= 'Teile News';
 $lang['split_topic_split']		= 'Teile Topic Typen in seperate Boxen';

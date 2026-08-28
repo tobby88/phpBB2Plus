@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -29,7 +29,7 @@ class pafiledb_rate extends pafiledb_public
 
 
 		$sql = 'SELECT file_name, file_catid
-			FROM ' . PA_FILES_TABLE . " 
+			FROM ' . PA_FILES_TABLE . "
 			WHERE file_id = $file_id";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -41,9 +41,9 @@ class pafiledb_rate extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
-		
+
 		$db->sql_freeresult($result);
-		
+
 		if( (!$this->auth[$file_data['file_catid']]['auth_rate']) )
 		{
 			if ( !$userdata['session_logged_in'] )
@@ -66,27 +66,27 @@ class pafiledb_rate extends pafiledb_public
 
 			'FILE_NAME' => $file_data['file_name'],
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'])
-		); 
+		);
 
 		if ( isset($_POST['submit']) )
 		{
 			$result_msg = str_replace("{filename}", $file_data['file_name'], $lang['Rconf']);
 
 			$result_msg = str_replace("{rate}", $rating, $result_msg);
-			
+
 			if( ($rating <= 0) or ($rating > 10) )
 			{
 				message_die(GENERAL_ERROR, 'Bad submited value');
 			}
-			
+
 			$pafiledb_user->update_voter_info($file_id, $rating);
 
 			$rate_info = $pafiledb_functions->get_rating($file_id);
 
 			$result_msg = str_replace("{newrating}", $rate_info, $result_msg);
-			
+
 			$message = $result_msg . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid('dload.php?action=file&file_id=' . $file_id) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid('index.' . $phpEx) . '">', '</a>');
-			message_die(GENERAL_MESSAGE, $message);  
+			message_die(GENERAL_MESSAGE, $message);
 
 		}
 		else
@@ -107,8 +107,8 @@ class pafiledb_rate extends pafiledb_public
 				'L_R8' => $lang['R8'],
 				'L_R9' => $lang['R9'],
 				'L_R10' => $lang['R10'],
-				'RATEINFO' => $rate_info, 
-				'ID' => $file_id) 
+				'RATEINFO' => $rate_info,
+				'ID' => $file_id)
 			);
 		}
 		$this->display($lang['Download'], 'pa_rate_body.tpl');

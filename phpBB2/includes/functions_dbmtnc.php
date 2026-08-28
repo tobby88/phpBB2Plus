@@ -385,8 +385,8 @@ function check_mysql_version()
 //
 function getmicrotime()
 {
-	list($usec, $sec) = explode(" ", microtime()); 
-	return ((float)$usec + (float)$sec); 
+	list($usec, $sec) = explode(" ", microtime());
+	return ((float)$usec + (float)$sec);
 }
 
 
@@ -407,7 +407,7 @@ function get_table_statistic()
 	$stat['core']['count'] = 0;
 	$stat['core']['records'] = 0;
 	$stat['core']['size'] = 0;
-	
+
 	$sql = 'SHOW TABLE STATUS';
 	$result = $db->sql_query($sql);
 	if( !$result )
@@ -470,7 +470,7 @@ function create_cat()
 
 	if (!$cat_created)
 	{
-		// Höchten Wert von cat_order ermitteln
+		// HÃ¶chten Wert von cat_order ermitteln
 		$sql = 'SELECT Max(cat_order) AS cat_order
 			FROM ' . CATEGORIES_TABLE;
 		$result = $db->sql_query($sql);
@@ -512,7 +512,7 @@ function create_forum()
 
 	if (!$forum_created)
 	{
-		// Höchten Wert von forum_id ermitteln
+		// HÃ¶chten Wert von forum_id ermitteln
 		$sql = 'SELECT Max(forum_id) AS forum_id
 			FROM ' . FORUMS_TABLE;
 		$result = $db->sql_query($sql);
@@ -527,7 +527,7 @@ function create_forum()
 			throw_error("Couldn't get forum data!", __LINE__, __FILE__, $sql);
 		}
 		$next_forum_id = $row['forum_id'] + 1;
-		// Höchten Wert von forum_order ermitteln
+		// HÃ¶chten Wert von forum_order ermitteln
 		$sql = 'SELECT Max(forum_order) AS forum_order
 			FROM ' . FORUMS_TABLE . "
 			WHERE cat_id = $cat_id";
@@ -590,7 +590,7 @@ function create_topic()
 function get_poster($topic_id)
 {
 	global $db;
-	
+
 	$sql = 'SELECT Min(post_id) AS first_post
 		FROM ' . POSTS_TABLE . "
 		WHERE topic_id = $topic_id";
@@ -628,7 +628,7 @@ function get_poster($topic_id)
 function catch_error($errno, $errstr)
 {
 	global $execution_time;
-	
+
 	$execution_time = ini_get('max_execution_time'); // Will only get executet when running on PHP 4+
 }
 
@@ -639,7 +639,7 @@ function get_word_id($word)
 {
 	global $board_config, $db, $lang, $phpEx, $template, $theme;
 	global $stopword_array, $synonym_array;
-	
+
 	// Check whether word is in stopword array
 	if ( in_array($word, $stopword_array) )
 	{
@@ -650,9 +650,9 @@ function get_word_id($word)
 		$key = array_search($word, $synonym_array[1]);
 		$word = $synonym_array[0][$key];
 	}
-	
+
 	$sql = "SELECT word_id, word_common
-		FROM " . SEARCH_WORD_TABLE . "  
+		FROM " . SEARCH_WORD_TABLE . "
 		WHERE word_text = '$word'";
 	$result = $db->sql_query($sql);
 	if ( !$result )
@@ -917,7 +917,7 @@ function check_authorisation($die = TRUE)
 function get_config_data($option)
 {
 	global $db;
-	
+
 	$sql = "SELECT config_value
 		FROM " . CONFIG_TABLE . "
 		WHERE config_name = '$option'";
@@ -939,7 +939,7 @@ function get_config_data($option)
 function success_message($text)
 {
 	global $lang, $lg, $HTTP_SERVER_VARS;
-	
+
 ?>
 	<p><?php echo $text; ?></p>
 	<p style="text-align:center"><a href="<?php echo $HTTP_SERVER_VARS['PHP_SELF'] . '?lg=' . $lg; ?>"><?php echo $lang['Return_ERC']; ?></a></p>

@@ -351,6 +351,15 @@ if( $_POST['unblock_account'] )
 		$aim = ( !empty($_POST['aim']) ) ? trim(strip_tags( $_POST['aim'] ) ) : '';
 		$msn = ( !empty($_POST['msn']) ) ? trim(strip_tags( $_POST['msn'] ) ) : '';
 		$yim = ( !empty($_POST['yim']) ) ? trim(strip_tags( $_POST['yim'] ) ) : '';
+		$fb = ( !empty($_POST['fb']) ) ? trim(strip_tags( $_POST['fb'] ) ) : '';
+		$ig = ( !empty($_POST['ig']) ) ? trim(strip_tags( $_POST['ig'] ) ) : '';
+		$pt = ( !empty($_POST['pt']) ) ? trim(strip_tags( $_POST['pt'] ) ) : '';
+		$twr = ( !empty($_POST['twr']) ) ? trim(strip_tags( $_POST['twr'] ) ) : '';
+		$skp = ( !empty($_POST['skp']) ) ? trim(strip_tags( $_POST['skp'] ) ) : '';
+		$tg = ( !empty($_POST['tg']) ) ? trim(strip_tags( $_POST['tg'] ) ) : '';
+		$li = ( !empty($_POST['li']) ) ? trim(strip_tags( $_POST['li'] ) ) : '';
+		$tt = ( !empty($_POST['tt']) ) ? trim(strip_tags( $_POST['tt'] ) ) : '';
+		$dc = ( !empty($_POST['dc']) ) ? trim(strip_tags( $_POST['dc'] ) ) : '';
 
 		$website = ( !empty($_POST['website']) ) ? trim(strip_tags( $_POST['website'] ) ) : '';
 		$location = ( !empty($_POST['location']) ) ? trim(strip_tags( $_POST['location'] ) ) : '';
@@ -445,6 +454,15 @@ if( $_POST['unblock_account'] )
 			$aim = htmlspecialchars(stripslashes($aim));
 			$msn = htmlspecialchars(stripslashes($msn));
 			$yim = htmlspecialchars(stripslashes($yim));
+			$fb = htmlspecialchars(stripslashes($fb));
+			$ig = htmlspecialchars(stripslashes($ig));
+			$pt = htmlspecialchars(stripslashes($pt));
+			$twr = htmlspecialchars(stripslashes($twr));
+			$skp = htmlspecialchars(stripslashes($skp));
+			$tg = htmlspecialchars(stripslashes($tg));
+			$li = htmlspecialchars(stripslashes($li));
+			$tt = htmlspecialchars(stripslashes($tt));
+			$dc = htmlspecialchars(stripslashes($dc));
 
 			$website = htmlspecialchars(stripslashes($website));
 			$location = htmlspecialchars(stripslashes($location));
@@ -915,7 +933,7 @@ if( $_POST['unblock_account'] )
    else $no_error_ban=true; 
 }
 			$sql = "UPDATE " . USERS_TABLE . "
-				SET " . $username_sql . $passwd_sql . "user_email = '" . str_replace("\'", "''", $email) . "', user_icq = '" . str_replace("\'", "''", $icq) . "', user_website = '" . str_replace("\'", "''", $website) . "', user_occ = '" . str_replace("\'", "''", $occupation) . "', user_from = '" . str_replace("\'", "''", $location) . "', user_from_flag = '$user_flag', user_interests = '" . str_replace("\'", "''", $interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . str_replace("\'", "''", $user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . str_replace("\'", "''", $signature) . "', user_viewemail = $viewemail, user_aim = '" . str_replace("\'", "''", $aim) . "', user_yim = '" . str_replace("\'", "''", $yim) . "', user_msnm = '" . str_replace("\'", "''", $msn) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '$signature_bbcode_uid', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . str_replace("\'", "''", $user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . str_replace("\'", "''", $user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '$gender'" . $avatar_sql . $force_new_passwd_sql . "
+				SET " . $username_sql . $passwd_sql . "user_email = '" . str_replace("\'", "''", $email) . "', user_icq = '" . str_replace("\'", "''", $icq) . "', user_website = '" . str_replace("\'", "''", $website) . "', user_occ = '" . str_replace("\'", "''", $occupation) . "', user_from = '" . str_replace("\'", "''", $location) . "', user_from_flag = '$user_flag', user_interests = '" . str_replace("\'", "''", $interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . str_replace("\'", "''", $user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . str_replace("\'", "''", $signature) . "', user_viewemail = $viewemail, user_aim = '" . str_replace("\'", "''", $aim) . "', user_yim = '" . str_replace("\'", "''", $yim) . "', user_msnm = '" . str_replace("\'", "''", $msn) . "', user_fb = '" . str_replace("\'", "''", $fb) . "', user_ig = '" . str_replace("\'", "''", $ig) . "', user_pt = '" . str_replace("\'", "''", $pt) . "', user_twr = '" . str_replace("\'", "''", $twr) . "', user_skp = '" . str_replace("\'", "''", $skp) . "', user_tg = '" . str_replace("\'", "''", $tg) . "', user_li = '" . str_replace("\'", "''", $li) . "', user_tt = '" . str_replace("\'", "''", $tt) . "', user_dc = '" . str_replace("\'", "''", $dc) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '$signature_bbcode_uid', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . str_replace("\'", "''", $user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . str_replace("\'", "''", $user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '$gender'" . $avatar_sql . $force_new_passwd_sql . "
 				WHERE user_id = $user_id";
 
 			if( $result = $db->sql_query($sql) )
@@ -1081,6 +1099,15 @@ if( $_POST['unblock_account'] )
 		$aim = htmlspecialchars(str_replace('+', ' ', $this_userdata['user_aim'] ));
 		$msn = htmlspecialchars($this_userdata['user_msnm']);
 		$yim = htmlspecialchars($this_userdata['user_yim']);
+		$fb = htmlspecialchars(isset($this_userdata['user_fb']) ? $this_userdata['user_fb'] : '');
+		$ig = htmlspecialchars(isset($this_userdata['user_ig']) ? $this_userdata['user_ig'] : '');
+		$pt = htmlspecialchars(isset($this_userdata['user_pt']) ? $this_userdata['user_pt'] : '');
+		$twr = htmlspecialchars(isset($this_userdata['user_twr']) ? $this_userdata['user_twr'] : '');
+		$skp = htmlspecialchars(isset($this_userdata['user_skp']) ? $this_userdata['user_skp'] : '');
+		$tg = htmlspecialchars(isset($this_userdata['user_tg']) ? $this_userdata['user_tg'] : '');
+		$li = htmlspecialchars(isset($this_userdata['user_li']) ? $this_userdata['user_li'] : '');
+		$tt = htmlspecialchars(isset($this_userdata['user_tt']) ? $this_userdata['user_tt'] : '');
+		$dc = htmlspecialchars(isset($this_userdata['user_dc']) ? $this_userdata['user_dc'] : '');
 
 		$website = htmlspecialchars($this_userdata['user_website']);
 		$location = htmlspecialchars($this_userdata['user_from']);
@@ -1241,6 +1268,15 @@ if( $_POST['unblock_account'] )
 			$s_hidden_fields .= '<input type="hidden" name="aim" value="' . str_replace("\"", "&quot;", $aim) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="msn" value="' . str_replace("\"", "&quot;", $msn) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="yim" value="' . str_replace("\"", "&quot;", $yim) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="fb" value="' . str_replace("\"", "&quot;", $fb) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="ig" value="' . str_replace("\"", "&quot;", $ig) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="pt" value="' . str_replace("\"", "&quot;", $pt) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="twr" value="' . str_replace("\"", "&quot;", $twr) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="skp" value="' . str_replace("\"", "&quot;", $skp) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="tg" value="' . str_replace("\"", "&quot;", $tg) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="li" value="' . str_replace("\"", "&quot;", $li) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="tt" value="' . str_replace("\"", "&quot;", $tt) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="dc" value="' . str_replace("\"", "&quot;", $dc) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="website" value="' . str_replace("\"", "&quot;", $website) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="location" value="' . str_replace("\"", "&quot;", $location) . '" />';
 			// FLAGHACK-start
@@ -1603,6 +1639,15 @@ if ($this_userdata['user_passwd_change']>0)
 			'ICQ' => $icq,
 			'MSN' => $msn,
 			'AIM' => $aim,
+			'FB' => $fb,
+			'IG' => $ig,
+			'PT' => $pt,
+			'TWR' => $twr,
+			'SKP' => $skp,
+			'TG' => $tg,
+			'LI' => $li,
+			'TT' => $tt,
+			'DC' => $dc,
 			'OCCUPATION' => $occupation,
 			'INTERESTS' => $interests,
 			'L_USER_ABSENCE' => $lang['User_absence'],
@@ -1684,6 +1729,16 @@ if ($this_userdata['user_passwd_change']>0)
 			'L_YAHOO' => $lang['YIM'],
 			'L_WEBSITE' => $lang['Website'],
 			'L_AIM' => $lang['AIM'],
+			'L_FACEBOOK' => $lang['FB'],
+			'L_INSTAGRAM' => $lang['IG'],
+			'L_PINTEREST' => $lang['PT'],
+			'L_TWITTER' => $lang['TWR'],
+			'L_SKYPE' => $lang['SKP'],
+			'L_TELEGRAM' => $lang['TG'],
+			'L_LINKEDIN' => $lang['LI'],
+			'L_TIKTOK' => $lang['TT'],
+			'L_DISCORD' => $lang['DC'],
+			'L_USER_ID_EXPLAIN' => $lang['Social_user_id_explain'],
 			'L_LOCATION' => $lang['Location'],
 			'L_OCCUPATION' => $lang['Occupation'],
 			'L_BOARD_LANGUAGE' => $lang['Board_lang'],

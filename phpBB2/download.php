@@ -1,10 +1,10 @@
 <?php
-/** 
+/**
 *
 * @package attachment_mod
 * @version $Id: download.php,v 1.5 2006/04/13 14:48:50 acydburn Exp $
 * @copyright (c) 2002 Meik Sievertsen
-* @license http://opensource.org/licenses/gpl-license.php GNU Public License 
+* @license http://opensource.org/licenses/gpl-license.php GNU Public License
 *
 */
 
@@ -67,7 +67,7 @@ $url = trim($site[0]);
 if ($url != '')
 {
 	$allowed = ($allow_deny_order == ALLOWED_DENIED) ? FALSE : TRUE;
-	
+
 	for ($i = 0; $i < count($sites); $i++)
 	{
 		if (strstr($url, $sites[$i]))
@@ -118,7 +118,7 @@ function send_file_to_browser($attachment, $upload_dir)
 	// Determine the Browser the User is using, because of some nasty incompatibilities.
 	// Most of the methods used in this function are from phpMyAdmin. :)
 	//
-	if (!empty($HTTP_SERVER_VARS['HTTP_USER_AGENT'])) 
+	if (!empty($HTTP_SERVER_VARS['HTTP_USER_AGENT']))
 	{
 		$HTTP_USER_AGENT = $HTTP_SERVER_VARS['HTTP_USER_AGENT'];
 	}
@@ -127,37 +127,37 @@ function send_file_to_browser($attachment, $upload_dir)
 		$HTTP_USER_AGENT = '';
 	}
 
-	if (ereg('Opera(/| )([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version)) 
+	if (ereg('Opera(/| )([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[2];
 		$browser_agent = 'opera';
-	} 
-	else if (ereg('MSIE ([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version)) 
+	}
+	else if (ereg('MSIE ([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'ie';
-	} 
-	else if (ereg('OmniWeb/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version)) 
+	}
+	else if (ereg('OmniWeb/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'omniweb';
-	} 
-	else if (ereg('Netscape([0-9]{1})', $HTTP_USER_AGENT, $log_version)) 
+	}
+	else if (ereg('Netscape([0-9]{1})', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'netscape';
-	} 
-	else if (ereg('Mozilla/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version)) 
+	}
+	else if (ereg('Mozilla/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'mozilla';
-	} 
-	else if (ereg('Konqueror/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version)) 
+	}
+	else if (ereg('Konqueror/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'konqueror';
-	} 
-	else 
+	}
+	else
 	{
 		$browser_version = 0;
 		$browser_agent = 'other';
@@ -183,7 +183,7 @@ function send_file_to_browser($attachment, $upload_dir)
 	header('Content-Disposition: inline; filename="' . $real_filename . '"');
 
 	unset($real_filename);
-	
+
 	//
 	// Now send the File Contents to the Browser
 	//
@@ -215,11 +215,11 @@ function send_file_to_browser($attachment, $upload_dir)
 
 		$result = @ftp_get($conn_id, $tmp_filename, $filename, $mode);
 
-		if (!$result) 
+		if (!$result)
 		{
 			message_die(GENERAL_ERROR, $lang['Error_no_attachment'] . "<br /><br /><b>404 File Not Found:</b> The File <i>" . $filename . "</i> does not exist.");
-		} 
-	
+		}
+
 		@ftp_quit($conn_id);
 
 		$size = @filesize($tmp_filename);
@@ -256,7 +256,7 @@ if ($attach_config['disable_mod'] && $userdata['user_level'] != ADMIN)
 {
 	message_die(GENERAL_MESSAGE, $lang['Attachment_feature_disabled']);
 }
-	
+
 $sql = 'SELECT *
 	FROM ' . ATTACHMENTS_DESC_TABLE . '
 	WHERE attach_id = ' . (int) $download_id;
@@ -310,7 +310,7 @@ for ($i = 0; $i < $num_auth_pages && $authorised == false; $i++)
 		$forum_id = $row['forum_id'];
 
 		$is_auth = array();
-		$is_auth = auth(AUTH_ALL, $forum_id, $userdata); 
+		$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
 
 		if ($is_auth['auth_download'])
 		{
@@ -358,7 +358,7 @@ for ($i = 0; $i < $num_rows; $i++)
 if (!in_array($attachment['extension'], $allowed_extensions) && $userdata['user_level'] != ADMIN)
 {
 	message_die(GENERAL_MESSAGE, sprintf($lang['Extension_disabled_after_posting'], $attachment['extension']));
-} 
+}
 
 $download_mode = intval($download_mode[$attachment['extension']]);
 
@@ -370,10 +370,10 @@ if ($thumbnail)
 // Update download count
 if (!$thumbnail)
 {
-	$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' 
-	SET download_count = download_count + 1 
+	$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . '
+	SET download_count = download_count + 1
 	WHERE attach_id = ' . (int) $attachment['attach_id'];
-	
+
 	if (!$db->sql_query($sql))
 	{
 		message_die(GENERAL_ERROR, 'Couldn\'t update attachment download count', '', __LINE__, __FILE__, $sql);
@@ -399,7 +399,7 @@ if ($download_mode == PHYSICAL_LINK)
 		{
 			message_die(GENERAL_ERROR, 'Physical Download not possible with the current Attachment Setting');
 		}
-		
+
 		$url = trim($attach_config['download_path']) . '/' . $attachment['physical_filename'];
 		$redirect_path = $url;
 	}
@@ -414,7 +414,7 @@ if ($download_mode == PHYSICAL_LINK)
 	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
 	{
 		header('Refresh: 0; URL=' . $redirect_path);
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><meta http-equiv="refresh" content="0; url=' . $redirect_path . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $redirect_path . '">HERE</a> to be redirected</div></body></html>';
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $redirect_path . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $redirect_path . '">HERE</a> to be redirected</div></body></html>';
 		exit;
 	}
 

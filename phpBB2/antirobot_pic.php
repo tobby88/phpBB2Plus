@@ -29,7 +29,7 @@ function gen_reg_key()
 
 	$count = count($chars) - 1;
 
-	srand((double)microtime()*1000000);
+	srand((float)microtime()*1000000);
 
 	for($i = 0; $i < $max_length_reg_key; $i++)
 	{

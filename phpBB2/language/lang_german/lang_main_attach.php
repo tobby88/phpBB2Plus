@@ -1,12 +1,12 @@
 <?php
-/** 
+/**
 *
 * attachment mod main [English]
 *
 * @package attachment_mod
 * @version $Id: lang_main_attach.php,v 1.1 2005/11/05 10:25:02 acydburn Exp $
 * @copyright (c) 2002 Meik Sievertsen
-* @license http://opensource.org/licenses/gpl-license.php GNU Public License 
+* @license http://opensource.org/licenses/gpl-license.php GNU Public License
 *
 */
 
@@ -33,19 +33,19 @@ $lang['Sorry_auth_view_attach'] = 'Entschuldigung, aber du bist nicht autorisier
 $lang['Description'] = 'Beschreibung';
 $lang['Downloaded'] = 'Heruntergeladen';
 $lang['Download'] = 'Download';
-$lang['Filesize'] = 'Dateigröße';
+$lang['Filesize'] = 'DateigrÃ¶ÃŸe';
 $lang['Viewed'] = 'Angeschaut';
 $lang['Download_number'] = '%d mal'; // replace %d with count
 $lang['Extension_disabled_after_posting'] = 'Die Dateiendung \'%s\' wurde vom Board Admin deaktiviert, deshalb wird die Datei nicht angezeigt.'; // used in Posts and PM's, replace %s with Extension
 
 // Posting/PM -> Initial Display
 $lang['Attach_posting_cp'] = 'Attachment Kontrollzentrum';
-$lang['Attach_posting_cp_explain'] = 'Wenn du auf \'Attachment hinzufügen\' klickst, dann siehst du eine Box zum Hinzufügen von Attachments.<br />Wenn du auf \'gepostete Attachments\' klickst, dann siehst du eine Liste der bereits hinzugefügten Attachments, du kannst sie dann nach Belieben editieren.<br />Wenn du ein Attachment ersetzen (Neue Version hochladen) möchtest, dann musst du beide Links anklicken. Füge das Attachment so hinzu wie du es normalerweise tun würdest, klicke aber nicht auf \'Attachment hinzufügen\', sondern klicke bei dem Attachment das du austauschen möchtest auf \'Neue Version hochladen\'.';
+$lang['Attach_posting_cp_explain'] = 'Wenn du auf \'Attachment hinzufÃ¼gen\' klickst, dann siehst du eine Box zum HinzufÃ¼gen von Attachments.<br />Wenn du auf \'gepostete Attachments\' klickst, dann siehst du eine Liste der bereits hinzugefÃ¼gten Attachments, du kannst sie dann nach Belieben editieren.<br />Wenn du ein Attachment ersetzen (Neue Version hochladen) mÃ¶chtest, dann musst du beide Links anklicken. FÃ¼ge das Attachment so hinzu wie du es normalerweise tun wÃ¼rdest, klicke aber nicht auf \'Attachment hinzufÃ¼gen\', sondern klicke bei dem Attachment das du austauschen mÃ¶chtest auf \'Neue Version hochladen\'.';
 
 // Posting/PM -> Posting Attachments
-$lang['Add_attachment'] = 'Attachment hinzufügen';
-$lang['Add_attachment_title'] = 'Attachment hinzufügen';
-$lang['Add_attachment_explain'] = 'Wenn du kein Attachment hinzufügen möchtest, dann lasse die Felder einfach leer';
+$lang['Add_attachment'] = 'Attachment hinzufÃ¼gen';
+$lang['Add_attachment_title'] = 'Attachment hinzufÃ¼gen';
+$lang['Add_attachment_explain'] = 'Wenn du kein Attachment hinzufÃ¼gen mÃ¶chtest, dann lasse die Felder einfach leer';
 $lang['File_name'] = 'Dateiname';
 $lang['File_comment'] = 'Kommentar';
 
@@ -53,60 +53,60 @@ $lang['File_comment'] = 'Kommentar';
 $lang['Posted_attachments'] = 'gepostete Attachments';
 $lang['Options'] = 'Optionen';
 $lang['Update_comment'] = 'Kommentar aktualisieren';
-$lang['Delete_attachments'] = 'Attachments löschen';
-$lang['Delete_attachment'] = 'Attachment löschen';
-$lang['Delete_thumbnail'] = 'Thumbnail löschen';
+$lang['Delete_attachments'] = 'Attachments lÃ¶schen';
+$lang['Delete_attachment'] = 'Attachment lÃ¶schen';
+$lang['Delete_thumbnail'] = 'Thumbnail lÃ¶schen';
 $lang['Upload_new_version'] = 'Neue Version hochladen';
 
 // Errors -> Posting Attachments
-$lang['Invalid_filename'] = '%s ist ein ungültiger Dateiname'; // replace %s with given filename
-$lang['Attachment_php_size_na'] = 'Das Attachment ist zu groß.<br />Vorgegebene Maximale Größe von PHP kann nicht ermittelt werden.<br />Das Attachment Mod kann die in der php.ini definierte Größe nicht ermitteln.'; 
-$lang['Attachment_php_size_overrun'] = 'Das Attachment ist zu groß.<br />Vorgegebene Maximale Größe in der php.ini: %d MB<br />Bitte beachte das diese Größe in der php.ini definiert ist, das bedeutet, daß es von PHP gesetzt wurde und vom Attachment Mod nicht überschrieben werden kann.'; // replace %d with ini_get('upload_max_filesize')
-$lang['Disallowed_extension'] = 'Die Erweiterung %s ist hier verboten'; // replace %s with extension (e.g. .php) 
+$lang['Invalid_filename'] = '%s ist ein ungÃ¼ltiger Dateiname'; // replace %s with given filename
+$lang['Attachment_php_size_na'] = 'Das Attachment ist zu groÃŸ.<br />Vorgegebene Maximale GrÃ¶ÃŸe von PHP kann nicht ermittelt werden.<br />Das Attachment Mod kann die in der php.ini definierte GrÃ¶ÃŸe nicht ermitteln.';
+$lang['Attachment_php_size_overrun'] = 'Das Attachment ist zu groÃŸ.<br />Vorgegebene Maximale GrÃ¶ÃŸe in der php.ini: %d MB<br />Bitte beachte das diese GrÃ¶ÃŸe in der php.ini definiert ist, das bedeutet, daÃŸ es von PHP gesetzt wurde und vom Attachment Mod nicht Ã¼berschrieben werden kann.'; // replace %d with ini_get('upload_max_filesize')
+$lang['Disallowed_extension'] = 'Die Erweiterung %s ist hier verboten'; // replace %s with extension (e.g. .php)
 $lang['Disallowed_extension_within_forum'] = 'Die Erweiterung %s ist in diesem Forum verboten';
-$lang['Attachment_too_big'] = 'Das Attachment ist zu groß.<br />Maximale Größe: %d %s'; // replace %d with maximum file size, %s with size var
-$lang['Attach_quota_reached'] = 'Entschuldingung, aber die maximale Größe aller Attachments wurde erreicht. Bitte kontaktiere den Board Administrator wenn du Fragen hast.';
-$lang['Too_many_attachments'] = 'Attachment kann nicht hinzugefügt werden, da die maximale Anzahl von %d Attachments in dieser Nachricht erreicht wurde'; // replace %d with maximum number of attachments
-$lang['Error_imagesize'] = 'Das Attachment/Bild muss kleiner als %dx%d Pixel sein.'; 
-$lang['General_upload_error'] = 'Upload Error: Kann das Attachment %s nicht hochladen.'; // replace %s with local path 
+$lang['Attachment_too_big'] = 'Das Attachment ist zu groÃŸ.<br />Maximale GrÃ¶ÃŸe: %d %s'; // replace %d with maximum file size, %s with size var
+$lang['Attach_quota_reached'] = 'Entschuldingung, aber die maximale GrÃ¶ÃŸe aller Attachments wurde erreicht. Bitte kontaktiere den Board Administrator wenn du Fragen hast.';
+$lang['Too_many_attachments'] = 'Attachment kann nicht hinzugefÃ¼gt werden, da die maximale Anzahl von %d Attachments in dieser Nachricht erreicht wurde'; // replace %d with maximum number of attachments
+$lang['Error_imagesize'] = 'Das Attachment/Bild muss kleiner als %dx%d Pixel sein.';
+$lang['General_upload_error'] = 'Upload Error: Kann das Attachment %s nicht hochladen.'; // replace %s with local path
 
-$lang['Error_empty_add_attachbox'] = 'Du musst Daten in dem Feld für das hinzufügen von Attachments eintragen.';
-$lang['Error_missing_old_entry'] = 'Unmöglich das Attachment zu aktualisieren, alter Attachment Eintrag kann nicht gefunden werden.';
+$lang['Error_empty_add_attachbox'] = 'Du musst Daten in dem Feld fÃ¼r das hinzufÃ¼gen von Attachments eintragen.';
+$lang['Error_missing_old_entry'] = 'UnmÃ¶glich das Attachment zu aktualisieren, alter Attachment Eintrag kann nicht gefunden werden.';
 
 // Errors -> PM Related
-$lang['Attach_quota_sender_pm_reached'] = 'Entschuldigung, aber die maximale Größe aller Attachments in deinen Privaten Nachrichten wurde erreicht. Bitte lösche einige Attachments von deinen empfangenen/gesendeten Privaten Nachrichten.';
-$lang['Attach_quota_receiver_pm_reached'] = 'Entschuldigung, aber die maximale Größe aller Attachments in der Privaten Nachrichten Box von \'%s\' wurde erreicht. Bitte lass ihm/ihr das wissen oder warte bis er/sie einige Attachments gelöscht hat.';
+$lang['Attach_quota_sender_pm_reached'] = 'Entschuldigung, aber die maximale GrÃ¶ÃŸe aller Attachments in deinen Privaten Nachrichten wurde erreicht. Bitte lÃ¶sche einige Attachments von deinen empfangenen/gesendeten Privaten Nachrichten.';
+$lang['Attach_quota_receiver_pm_reached'] = 'Entschuldigung, aber die maximale GrÃ¶ÃŸe aller Attachments in der Privaten Nachrichten Box von \'%s\' wurde erreicht. Bitte lass ihm/ihr das wissen oder warte bis er/sie einige Attachments gelÃ¶scht hat.';
 
 // Errors -> Download
 $lang['No_attachment_selected'] = 'Du hast kein Attachment zum Herunterladen oder Betrachten angegeben.';
-$lang['Error_no_attachment'] = 'Das ausgewählte Attachment existiert leider nicht mehr';
+$lang['Error_no_attachment'] = 'Das ausgewÃ¤hlte Attachment existiert leider nicht mehr';
 
 // Delete Attachments
-$lang['Confirm_delete_attachments'] = 'Bist du sicher, daß du die ausgewählten Attachments löschen möchtest';
-$lang['Deleted_attachments'] = 'Die ausgewählten Attachments wurden gelöscht';
-$lang['Error_deleted_attachments'] = 'Das Attachment konnte nicht gelöscht werden';
-$lang['Confirm_delete_pm_attachments'] = 'Bist du sicher alle Attachments in dieser Privaten Nachricht zu löschen?';
+$lang['Confirm_delete_attachments'] = 'Bist du sicher, daÃŸ du die ausgewÃ¤hlten Attachments lÃ¶schen mÃ¶chtest';
+$lang['Deleted_attachments'] = 'Die ausgewÃ¤hlten Attachments wurden gelÃ¶scht';
+$lang['Error_deleted_attachments'] = 'Das Attachment konnte nicht gelÃ¶scht werden';
+$lang['Confirm_delete_pm_attachments'] = 'Bist du sicher alle Attachments in dieser Privaten Nachricht zu lÃ¶schen?';
 
 // General Error Messages
 $lang['Attachment_feature_disabled'] = 'Das Attachment Feature ist abgeschaltet.';
 
 $lang['Directory_does_not_exist'] = 'Das Verzeichnis \'%s\' existiert nicht oder kann nicht gefunden werden.'; // replace %s with directory
-$lang['Directory_is_not_a_dir'] = 'Bitte prüfe ob \'%s\' ein Verzeichnis ist.'; // replace %s with directory
-$lang['Directory_not_writeable'] = 'Das Verzeichnis \'%s\' ist nicht schreibbar. Du musst das Upload Verzeichnis erstellen und zu 777 chmodden (oder den Besitzer des Verzeichnisses auf den Besitzer des HTTP-Servers stellen) um Dateien hochladen zu können.<br />Wenn du nur FTP-Zugriff hast, dann ändere das \'Attribut\' des Verzeichnisses auf rwxrwxrwx.'; // replace %s with directory
+$lang['Directory_is_not_a_dir'] = 'Bitte prÃ¼fe ob \'%s\' ein Verzeichnis ist.'; // replace %s with directory
+$lang['Directory_not_writeable'] = 'Das Verzeichnis \'%s\' ist nicht schreibbar. Du musst das Upload Verzeichnis erstellen und zu 777 chmodden (oder den Besitzer des Verzeichnisses auf den Besitzer des HTTP-Servers stellen) um Dateien hochladen zu kÃ¶nnen.<br />Wenn du nur FTP-Zugriff hast, dann Ã¤ndere das \'Attribut\' des Verzeichnisses auf rwxrwxrwx.'; // replace %s with directory
 
-$lang['Ftp_error_connect'] = 'Kann den FTP-Server nicht erreichen: \'%s\'. Bitte prüfe die FTP Einstellungen.';
-$lang['Ftp_error_login'] = 'Login Fehlgeschlagen. Der Benutzername \'%s\' oder das Passwort sind falsch. Bitte prüfe die FTP Einstellungen.';
-$lang['Ftp_error_path'] = 'Kann FTP Verzeichnis nicht finden oder darauf zugreifen: \'%s\'. Bitte prüfe die FTP Einstellungen.';
-$lang['Ftp_error_upload'] = 'Kann Dateien nicht in das FTP Verzeichnis hochladen: \'%s\'. Bitte prüfe die FTP Einstellungen.';
-$lang['Ftp_error_delete'] = 'Kann Dateien im FTP Verzeichnis nicht löschen: \'%s\'. Bitte prüfe die FTP Einstellungen.<br />Ein anderer Grund für diesen Fehler kann das nicht vorhandensein eines Attachments sein, bitte prüfe das erst im Menü Shadow Attachments.';
+$lang['Ftp_error_connect'] = 'Kann den FTP-Server nicht erreichen: \'%s\'. Bitte prÃ¼fe die FTP Einstellungen.';
+$lang['Ftp_error_login'] = 'Login Fehlgeschlagen. Der Benutzername \'%s\' oder das Passwort sind falsch. Bitte prÃ¼fe die FTP Einstellungen.';
+$lang['Ftp_error_path'] = 'Kann FTP Verzeichnis nicht finden oder darauf zugreifen: \'%s\'. Bitte prÃ¼fe die FTP Einstellungen.';
+$lang['Ftp_error_upload'] = 'Kann Dateien nicht in das FTP Verzeichnis hochladen: \'%s\'. Bitte prÃ¼fe die FTP Einstellungen.';
+$lang['Ftp_error_delete'] = 'Kann Dateien im FTP Verzeichnis nicht lÃ¶schen: \'%s\'. Bitte prÃ¼fe die FTP Einstellungen.<br />Ein anderer Grund fÃ¼r diesen Fehler kann das nicht vorhandensein eines Attachments sein, bitte prÃ¼fe das erst im MenÃ¼ Shadow Attachments.';
 $lang['Ftp_error_pasv_mode'] = 'Kann den FTP Passiv Modus nicht ein-/ausschalten.';
 
 // Attach Rules Window
 $lang['Rules_page'] = 'Attachment Regeln';
-$lang['Attach_rules_title'] = 'Erlaubte Dateierweiterungen und deren Dateigrößen';
-$lang['Group_rule_header'] = '%s -> Maximale Upload Größe: %s';
+$lang['Attach_rules_title'] = 'Erlaubte Dateierweiterungen und deren DateigrÃ¶ÃŸen';
+$lang['Group_rule_header'] = '%s -> Maximale Upload GrÃ¶ÃŸe: %s';
 $lang['Allowed_extensions_and_sizes'] = 'Erlaubte Dateierweiterungen';
-$lang['Note_user_empty_group_permissions'] = 'BEACHTE:<br />Es ist normalerweise erlaubt Dateien in diesem Forum zu posten, <br />aber da hier alle Dateierweiterungen verboten wurden <br />ist es unmöglich eine Datei zu posten. Wenn du es <br />versuchst, dann wirst du eine Fehlernachricht erhalten.<br />';
+$lang['Note_user_empty_group_permissions'] = 'BEACHTE:<br />Es ist normalerweise erlaubt Dateien in diesem Forum zu posten, <br />aber da hier alle Dateierweiterungen verboten wurden <br />ist es unmÃ¶glich eine Datei zu posten. Wenn du es <br />versuchst, dann wirst du eine Fehlernachricht erhalten.<br />';
 
 // Quota Variables
 $lang['Upload_quota'] = 'Upload Quota';
@@ -127,7 +127,7 @@ $lang['MB'] = 'MB';
 $lang['Attach_search_query'] = 'Suche Attachments';
 $lang['Test_settings'] = 'Einstellungen Testen';
 $lang['Not_assigned'] = 'Nicht zugewiesen';
-$lang['No_file_comment_available'] = 'Kein Datei-Kommentar verfügbar';
+$lang['No_file_comment_available'] = 'Kein Datei-Kommentar verfÃ¼gbar';
 $lang['Attachbox_limit'] = 'Deine Attachbox ist zu %d%% voll';
 $lang['No_quota_limit'] = 'Keine Quota Grenze';
 $lang['Unlimited'] = 'Unbegrenzt';

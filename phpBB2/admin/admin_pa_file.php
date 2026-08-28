@@ -1,7 +1,7 @@
-<?php                  
+<?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -93,13 +93,13 @@ else
 	$sort_order = $pafiledb_config['sort_order'];
 }
 
-$s_file_actions = array('approved' => $lang['Approved_files'], 
-						'broken' => $lang['Broken_files'], 
-						'file_cat' => $lang['File_cat'], 
-						'all_file' => $lang['All_files'], 
+$s_file_actions = array('approved' => $lang['Approved_files'],
+						'broken' => $lang['Broken_files'],
+						'file_cat' => $lang['File_cat'],
+						'all_file' => $lang['All_files'],
 						'maintenance' => $lang['Maintenance']);
 
-						
+
 
 
 switch($mode)
@@ -156,7 +156,7 @@ if($mode == 'do_add' && !$file_id)
 	if(!$mirrors)
 	{
 		$message = $lang['Fileadded'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_file.php") . '">', '</a>');
-		message_die(GENERAL_MESSAGE, $message);	
+		message_die(GENERAL_MESSAGE, $message);
 	}
 }
 elseif($mode == 'do_add' && $file_id)
@@ -239,7 +239,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 				{
 					message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
 				}
-		
+
 				$total_files = $db->sql_numrows($result);
 			}
 
@@ -252,7 +252,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 			$all_file_rowset[] = $row;
 		}
 	}
-	
+
 
 	if($mode == '' || $mode == 'approved' || $mode == 'broken' || $mode == 'file_cat' || $mode == 'all_file')
 	{
@@ -266,7 +266,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 			$limit = $pafiledb_config['settings_file_page'];
 			$temp_start = $start;
 		}
-		
+
 		if($mode == '' || $mode == 'approved')
 		{
 			$sql = "SELECT file_name, file_approved, file_id, file_broken
@@ -280,7 +280,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 				{
 					message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
 				}
-			
+
 				$total_files = $db->sql_numrows($result);
 			}
 
@@ -294,7 +294,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 				$approved_file_rowset[] = $row;
 			}
 		}
-		
+
 		if($mode == '' || $mode == 'broken')
 		{
 			$sql = "SELECT file_name, file_approved, file_id, file_broken
@@ -308,7 +308,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 				{
 					message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
 				}
-			
+
 				$total_files = $db->sql_numrows($result);
 			}
 
@@ -322,7 +322,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 				$broken_file_rowset[] = $row;
 			}
 		}
-		
+
 		if($mode == '')
 		{
 			$global_array = array(0 => array('lang_var' => $lang['Approved_files'],
@@ -354,7 +354,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 											 'approval' => 'both'));
 		}
 	}
-	
+
 	$s_file_list = '';
 	foreach($s_file_actions as $file_mode => $lang_var)
 	{
@@ -365,9 +365,9 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 		}
 		$s_file_list .= '<option value="' . $file_mode . '"' . $s . '>' . $lang_var . '</option>';
 	}
-	
+
 	$cat_list = '<select name="cat_id">';
-	if (!$pafiledb->cat_rowset[$cat_id]['cat_parent']) 
+	if (!$pafiledb->cat_rowset[$cat_id]['cat_parent'])
 	{
 		$cat_list .= '<option value="0" selected>' . $lang['None'] . '</option>\n';
 	}
@@ -377,9 +377,9 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 	}
 	$cat_list .= $pafiledb->jumpmenu_option(0, 0, array($cat_id => 1), true);
 	$cat_list .= '</select>';
-	
+
 	$pafiledb_template->assign_vars(array(
-		'L_EDIT' => $lang['Edit'], 
+		'L_EDIT' => $lang['Edit'],
 		'L_DELETE' => $lang['Delete'],
 		'L_CATEGORY' => $lang['Category'],
 		'L_MODE' => $lang['View'],
@@ -390,14 +390,14 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 		'L_APPROVE_FILE' => $lang['Approve_selected'],
 		'L_UNAPPROVE_FILE' => $lang['Unapprove_selected'],
 		'L_NO_FILES' => $lang['No_file'],
-		
+
 		'PAGINATION' => generate_pagination(append_sid("admin_pa_file.$phpEx?mode=$mode&amp;sort_method=$sort_method&amp;sort_order=$sort_order&cat_id=$cat_id"), $total_files, $pafiledb_config['settings_file_page'], $start),
 		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $pafiledb_config['settings_file_page'] ) + 1 ), ceil( $total_files / $pafiledb_config['settings_file_page'] )),
-		
+
 		'S_CAT_LIST' => $cat_list,
 		'S_MODE_SELECT' => $s_file_list)
 	);
-	
+
 	foreach($global_array as $files_data)
 	{
 		$approve = false;
@@ -437,7 +437,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 					'U_FILE_APPROVE' => append_sid("admin_pa_file.$phpEx?mode=$approve_mode&file_id={$file_data['file_id']}"),
 					'L_APPROVE' => ($file_data['file_approved']) ? $lang['Unapprove'] : $lang['Approve'])
 				);
-		
+
 			}
 		}
 	}
@@ -476,7 +476,7 @@ elseif($mode == 'add' || $mode == 'edit' || $mirrors)
 			message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
 		}
 		$file_info = $db->sql_fetchrow($result);
-		
+
 		$file_name = $file_info['file_name'];
 		$file_desc = $file_info['file_desc'];
 		$file_long_desc = $file_info['file_longdesc'];
@@ -499,7 +499,7 @@ elseif($mode == 'add' || $mode == 'edit' || $mirrors)
 		$file_dir = $file_info['file_dir'];
 		$custom_exist = $custom_field->display_edit($file_id);
 	}
-	
+
 	$pafiledb_template->assign_vars(array(
 		'U_MIRRORS_PAGE' => append_sid("admin_pa_file.$phpEx?mode=mirrors&file_id=$file_id"),
 
@@ -525,10 +525,10 @@ elseif($mode == 'add' || $mode == 'edit' || $mirrors)
 		'PIN_CHECKED_NO' => $pin_checked_no,
 		'MIRROR_FILE' => $file_unique_name,
 		'U_UPLOADED_MIRROR' => get_formated_url() . '/' . $file_dir . $file_unique_name,
-		
+
 		'L_FILE_APPROVED' => $lang['Approved'],
 		'L_FILE_APPROVED_INFO' => $lang['Approved_info'],
-		'L_ADDTIONAL_FIELD' => $lang['Addtional_field'],		
+		'L_ADDTIONAL_FIELD' => $lang['Addtional_field'],
 		'L_SCREENSHOT' => $lang['Scrsht'],
 		'L_FILES' => $lang['Files'],
 		'L_FILE_NAME' => $lang['Filename'],
@@ -596,23 +596,23 @@ elseif($mode == 'mirrors')
 		$file_size = ( !empty($_FILES['new_userfile']['size']) ) ? $_FILES['new_userfile']['size'] : '';
 		$file_type = ( !empty($_FILES['new_userfile']['type']) ) ? $_FILES['new_userfile']['type'] : '';
 		$mirror_location = (!empty($_POST['new_location'])) ? $_POST['new_location'] : '';
-		
+
 		$pafiledb->mirror_add_update($file_id, $file_upload, $file_remote_url, $file_local, $file_realname, $file_size, $file_type, $mirror_location);
 	}
-	
+
 	if(isset($_POST['modify']))
 	{
 		$file_urls = (!empty($_POST['download_url'])) ? $_POST['download_url'] : array();
 		$userfiles = (!empty($_FILES['userfile'])) ? $_FILES['userfile'] : array();
 		$locations = (!empty($_POST['location'])) ? $_POST['location'] : array();
-	
+
 		$data = array();
-		
+
 		foreach($file_urls as $mirror_id => $file_url)
 		{
 			$data[$mirror_id]['download_url'] = $file_url;
 		}
-		
+
 		foreach(array_keys($userfiles) as $key)
 		{
 			foreach($userfiles[$key] as $mirror_id => $userfile)
@@ -620,17 +620,17 @@ elseif($mode == 'mirrors')
 				$data[$mirror_id][$key] = $userfile;
 			}
 		}
-		
+
 		foreach($locations as $mirror_id => $location)
 		{
 			$data[$mirror_id]['location'] = $location;
 		}
-		
-		
+
+
 		unset($file_urls);
 		unset($userfiles);
 		unset($locations);
-		
+
 		foreach($data as $mirror_id => $mirror_data)
 		{
 			$file_upload = ( empty($mirror_data['download_url']) ) ? TRUE : FALSE;
@@ -639,12 +639,12 @@ elseif($mode == 'mirrors')
 			$file_realname = ( $mirror_data['name'] !== 'none' ) ? $mirror_data['name'] : '';
 			$file_size = ( !empty($mirror_data['size']) ) ? $mirror_data['size'] : '';
 			$file_type = ( !empty($mirror_data['type']) ) ? $mirror_data['type'] : '';
-		
+
 			$mirror_location = (!empty($mirror_data['location'])) ? $mirror_data['location'] : '';
-			
+
 			$pafiledb->mirror_add_update($file_id, $file_upload, $file_remote_url, $file_local, $file_realname, $file_size, $file_type, $mirror_location, $mirror_id);
 		}
-		
+
 		unset($data);
 	}
 
@@ -657,24 +657,24 @@ elseif($mode == 'mirrors')
 	{
 		message_die(GENERAL_ERROR, 'Couldnt select download', '', __LINE__, __FILE__, $sql);
 	}
-		
+
 	$mirrors_data = array();
 	while($row = $db->sql_fetchrow($result))
 	{
 		$mirrors_data[$row['mirror_id']] = $row;
 	}
-	
+
 	$pafiledb_template->assign_vars(array(
 		'ROW_NOT_EMPTY' => (empty($mirrors_data)) ? FALSE : TRUE,
 		'FILESIZE' => intval($pafiledb_config['max_file_size']),
-		
+
 		'L_MIRROR_LOCATION' => $lang['Mirror_location'],
 		'L_FILE_UPLOAD' => $lang['File_upload'],
 		'L_FILE_DELETE' => $lang['Delete'],
 		'L_DELETE' => $lang['Delete_selected'],
 		'L_FILEINFO_UPLOAD' => $lang['Fileinfo_upload'],
 		'L_UPLOADED_FILE' => $lang['Uploaded_file'],
-		'L_FILE_URL' => $lang['Fileurl'], 
+		'L_FILE_URL' => $lang['Fileurl'],
 		'L_FILE_URL_INFO' => $lang['Fileurl'],
 		'L_MODIFY' => $lang['Efiletitle'],
 		'L_ADD_NEW' => $lang['Afiletitle'],
@@ -690,7 +690,7 @@ elseif($mode == 'mirrors')
 			'MIRROR_FILE' => $mirror_data['unique_name'],
 			'U_UPLOADED_MIRROR' => get_formated_url() . '/' . $mirror_data['file_dir'] . $mirror_data['unique_name'])
 		);
-	}	
+	}
 }
 
 $pafiledb_template->assign_vars(array(

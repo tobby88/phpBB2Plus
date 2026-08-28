@@ -75,20 +75,20 @@ switch (strtolower($album_view_type))
 {
  	case ALBUM_LISTTYPE_RATINGS:
  		$album_view_type = ALBUM_LISTTYPE_RATINGS;
-		
+
 		// default sorting if not specified directly
         if ( !isset($_GET['sort_method']) && !isset($_POST['sort_method']) )
         {
             $sort_method = 'rating';
             $sort_order = 'ASC';
         }
-		
+
 		$count_sql = 'SELECT COUNT(r.rate_pic_id) AS count
-						FROM '. ALBUM_RATE_TABLE .' AS r, '. ALBUM_TABLE .' AS p, '.ALBUM_CAT_TABLE .' AS ct 
+						FROM '. ALBUM_RATE_TABLE .' AS r, '. ALBUM_TABLE .' AS p, '.ALBUM_CAT_TABLE .' AS ct
 						WHERE r.rate_user_id = '. $album_user_id .'
 							AND ct.cat_id IN (' . $allowed_cat .')
-							AND p.pic_id = r.rate_pic_id 
-							AND p.pic_cat_id = ct.cat_id';							
+							AND p.pic_id = r.rate_pic_id
+							AND p.pic_cat_id = ct.cat_id';
 
 		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id, r.rate_pic_id,
 						AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
@@ -103,8 +103,8 @@ switch (strtolower($album_view_type))
  		break;
  	case ALBUM_LISTTYPE_COMMENTS:
  		$album_view_type = ALBUM_LISTTYPE_COMMENTS;
-		
-		// default sorting if not specified directly		
+
+		// default sorting if not specified directly
         if ( !isset($_GET['sort_method']) && !isset($_POST['sort_method']) )
         {
             $sort_method = 'comments';
@@ -115,7 +115,7 @@ switch (strtolower($album_view_type))
 						FROM '. ALBUM_COMMENT_TABLE .', '. ALBUM_CAT_TABLE .'
 						WHERE comment_user_id = '. $album_user_id .'
 							AND cat_id IN (' . $allowed_cat .')
-							AND comment_cat_id = cat_id';						
+							AND comment_cat_id = cat_id';
 
 		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id,
 						AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment, c.comment_pic_id
@@ -135,7 +135,7 @@ switch (strtolower($album_view_type))
 						FROM '. ALBUM_TABLE .', '. ALBUM_CAT_TABLE .'
 						WHERE pic_user_id = '. $album_user_id . '
 							AND cat_id IN (' . $allowed_cat .')
-							AND pic_cat_id = cat_id';						
+							AND pic_cat_id = cat_id';
 
 		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id,
 						AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
@@ -158,9 +158,9 @@ if (!empty($allowed_cat))
 	{
 		message_die(GENERAL_ERROR, 'Could not count ' . $album_view_type. 's', '', __LINE__, __FILE__, $count_sql);
 	}
-	
+
 	$row = $db->sql_fetchrow($result);
-	
+
 	$total_pics = $row['count'];
 }
 // ------------------------------------
@@ -270,7 +270,7 @@ if ($total_pics > 0 && !empty($allowed_cat))
 	// --------------------------------
 	// Pagination
 	// --------------------------------
-		
+
 	$template->assign_vars(array(
 		'PAGINATION' => generate_pagination(append_sid("album.$phpEx?user_id=$album_user_id&amp;sort_method=$sort_method&amp;sort_order=$sort_order$album_view_mode_param$album_view_type_param"), $total_pics, $pics_per_page, $start),
 		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $pics_per_page ) + 1 ), ceil( $total_pics / $pics_per_page ))
@@ -326,21 +326,21 @@ switch (strtolower($album_view_type))
 {
 	case 'comment':
 		$template->assign_block_vars('switch_show_all_pics', array());
-		$template->assign_block_vars('switch_show_all_ratings', array());		
+		$template->assign_block_vars('switch_show_all_ratings', array());
 		$list_title = sprintf($lang['Comment_List_Of_User'], $username);
-		break;		
+		break;
 	case 'rating':
 		$template->assign_block_vars('switch_show_all_pics', array());
-		$template->assign_block_vars('switch_show_all_comments', array());				
+		$template->assign_block_vars('switch_show_all_comments', array());
 		$list_title = sprintf($lang['Rating_List_Of_User'], $username);
-		break;		
+		break;
 	default:
 		$template->assign_block_vars('switch_show_all_ratings', array());
-		$template->assign_block_vars('switch_show_all_comments', array());	
+		$template->assign_block_vars('switch_show_all_comments', array());
 		$list_title = sprintf($lang['Picture_List_Of_User'], $username);
 }
 
-if (defined('ALBUM_SP_CONFIG_TABLE')) 
+if (defined('ALBUM_SP_CONFIG_TABLE'))
 {
 	$template->assign_block_vars('switch_show_album_search', array());
 }
@@ -354,7 +354,7 @@ $template->assign_vars(array(
 	'L_NO_PICTURES_BY_USER' => $lang['No_Pics'],
 	'U_MEMBERLIST_GALLERY' => append_sid("album.$phpEx?user_id=$album_user_id&mode=$album_view_mode&type=$album_view_type"),
 	'L_MEMBERLIST_GALLERY_EXPLAIN' => $lang['Member_Picture_List_Explain'],
-	
+
 	'U_SHOW_ALL_PICS' => append_sid("album.$phpEx?user_id=$album_user_id$album_view_mode_param&type=pic"),
 	'L_SHOW_ALL_PICS' => sprintf($lang['Show_All_Pictures_Of_user'], $username),
 	'SHOW_ALL_PICS_IMG' => $images['show_all_pics'],
@@ -362,11 +362,11 @@ $template->assign_vars(array(
 	'U_SHOW_ALL_RATINGS' => append_sid("album.$phpEx?user_id=$album_user_id$album_view_mode_param&type=rating"),
 	'L_SHOW_ALL_RATINGS' => sprintf($lang['Show_All_Ratings_Of_user'], $username),
 	'SHOW_ALL_RATINGS_IMG' => $images['show_all_ratings'],
-	
+
 	'U_SHOW_ALL_COMMENTS' => append_sid("album.$phpEx?user_id=$album_user_id$album_view_mode_param&type=comment"),
 	'L_SHOW_ALL_COMMENTS' => sprintf($lang['Show_All_Comments_Of_user'], $username),
 	'SHOW_ALL_COMMENTS_IMG' => $images['show_all_comments'],
-			
+
 	'L_PICTURES_OF_USER' => $list_title,
 
 	'L_PIC_TITLE' => $lang['Pic_Title'],
@@ -405,7 +405,7 @@ include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

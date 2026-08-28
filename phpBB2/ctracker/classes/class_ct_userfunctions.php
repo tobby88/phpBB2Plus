@@ -249,8 +249,8 @@ class ct_userfunctions
 			$eur_count  = 0;
 			$match1		= array();
 			$match2		= array();
-			$match1     = preg_split('/US|\\$|€/m', $HTTP_POST_VARS['message']);
-			$match2     = preg_split('/US|\\$|€/m', $HTTP_POST_VARS['subject']);
+			$match1     = preg_split('/US|\\$|â‚¬/m', $HTTP_POST_VARS['message']);
+			$match2     = preg_split('/US|\\$|â‚¬/m', $HTTP_POST_VARS['subject']);
 			$eur_count  = count($match1) + count($match2) - 2;
 
 			if ( $url_count > 6 || $eur_count > 6 )
@@ -292,7 +292,7 @@ class ct_userfunctions
 	function block_handler()
 	{
 		global $db, $lang, $ctracker_config, $userdata, $phpbb_root_path, $phpEx;
-		
+
 		if ( $userdata['user_id'] == ANONYMOUS )
 		{
 			return;
@@ -316,7 +316,7 @@ class ct_userfunctions
 				message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
 			}
 		}
-		
+
 		// Remove Profile data
 		$sql = 'UPDATE ' . USERS_TABLE . ' SET user_allowavatar = 0, user_email=\'info@example.com\', user_icq = \'\', user_website=\'\', user_from=\'\', user_sig=\'\', user_aim=\'\', user_yim=\'\', user_msnm=\'\', user_occ=\'\', user_interests=\'\' WHERE user_id = ' . $userdata['user_id'];
 		if ( !$result = $db->sql_query($sql) )

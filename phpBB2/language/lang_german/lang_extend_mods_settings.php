@@ -9,7 +9,7 @@
  *	version				: 1.1.9 - 18/10/2003
  *
  ***************************************************************************/
- 
+
 /***************************************************************************
  *
  *   This program is free software; you can redistribute it and/or modify
@@ -29,8 +29,8 @@ if ( $lang_extend_admin )
 {
 	$lang['Lang_extend_mods_settings'] = 'Mods Einstellungen Sprackpaket';
 	$lang['Configuration_extend']	= 'Konfiguration +';
-	$lang['Override_user_choices']	= 'Überschreibe Benutzereinstellungen';
+	$lang['Override_user_choices']	= 'Ãœberschreibe Benutzereinstellungen';
 }
-$lang['Click_return_preferences'] = 'Klicke %shier%s um zu den Einstellungen zurückzukehren';
+$lang['Click_return_preferences'] = 'Klicke %shier%s um zu den Einstellungen zurÃ¼ckzukehren';
 
 ?>
