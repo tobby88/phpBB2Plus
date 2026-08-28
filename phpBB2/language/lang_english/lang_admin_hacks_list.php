@@ -20,8 +20,8 @@
 ***************************************************************************/
 
 /* General */
-$lang['Hacks_List'] = 'Hacks/Mods List';
-$lang['Page_Desc'] = 'This module allows you to add/edit/delete the list of current hacks/mods on your board.  They are displayed for users when they visit the hacks_list.php page.';
+$lang['Hacks_List'] = 'Components and Credits';
+$lang['Page_Desc'] = 'This module maintains the list of integrated components and their original authors. It is displayed to users on the hacks_list.php page.';
 $lang['Deleted_Hack'] = 'Deleted hack %s from the list.<br />';
 $lang['Updated_Hack'] = 'Updated info for hack %s.<br />';
 $lang['Added_Hack'] = 'Added info for hack %s.<br />';
@@ -30,7 +30,7 @@ $lang['No_Website'] = 'No website is available.';
 $lang['No_Hacks'] = 'No hacks to display.';
 $lang['Add_New_Hack'] = 'Add A New Hack';
 $lang['User_Viewable'] = 'Hide From User List?';
-$lang['Hack_Name'] = 'Hack Name';
+$lang['Hack_Name'] = 'Component';
 $lang['Description'] = 'Description';
 $lang['Required'] = 'Required';
 $lang['Author_Email'] = 'Author Email';

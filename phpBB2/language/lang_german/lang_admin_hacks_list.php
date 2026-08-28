@@ -21,8 +21,8 @@
 ***************************************************************************/
 
 /* General */
-$lang['Hacks_List'] = 'Hacks/Mods Liste';
-$lang['Page_Desc'] = 'Dieses Modul erlaubt das hinzufügen/bearbeiten und löschen der Hacks/Mods Liste Deines Boards.  Diese werden angezeigt, wenn die Benutzer die Seite hacks_list.php öffnen.';
+$lang['Hacks_List'] = 'Komponenten und Danksagungen';
+$lang['Page_Desc'] = 'Dieses Modul verwaltet die Liste der integrierten Komponenten und ihrer ursprünglichen Autoren. Sie wird den Benutzern über hacks_list.php angezeigt.';
 $lang['Deleted_Hack'] = 'Hack %s wurde aus der Liste gelöscht.<br />';
 $lang['Updated_Hack'] = 'Info für Hack %s aktualisiert.<br />';
 $lang['Added_Hack'] = 'Info für Hack %s hinzugefügt.<br />';
@@ -31,7 +31,7 @@ $lang['No_Website'] = 'Keine Webseite verfügbar.';
 $lang['No_Hacks'] = 'Keine darzustellenden Hacks.';
 $lang['Add_New_Hack'] = 'Einen neuen Hack hinzufügen';
 $lang['User_Viewable'] = 'Vor der Benutzerliste verstecken ?';
-$lang['Hack_Name'] = 'Hack Name';
+$lang['Hack_Name'] = 'Komponente';
 $lang['Description'] = 'Beschreibung';
 $lang['Required'] = 'Erforderlich';
 $lang['Author_Email'] = 'Autor Email';

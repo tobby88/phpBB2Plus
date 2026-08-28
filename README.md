@@ -48,8 +48,6 @@ scripts before running them against an existing forum.
 - `update/` contains clearly named legacy upgrade paths plus the consolidated
   post-1.53a database updater and UTF-8/search maintenance scripts. They are
   not needed during normal operation and must not remain in a public web root.
-- `mods/` contains only optional source packages which are **not** installed in
-  the forum application.
 - `set-permissions.sh` applies the writable Unix permissions required by the
   forum.
 - `folder+file-permissions.txt` documents the same writable paths and the
@@ -119,21 +117,23 @@ the incompatible 4.x tables and user columns after preparing the 5.x schema.
 The old CrackerTracker settings and logs cannot be migrated and are discarded;
 the mandatory backup confirmation therefore also covers this cleanup.
 
-## Optional MOD source packages
+## Integrated and excluded MOD packages
 
-The following packages remain under `mods/` because their code is not
-installed in the application tree:
+Admin Userlist 2.1 (including Color Groups compatibility), Log Actions MOD
+1.1.6 with Enhanced Log Actions, and Registration IP 1.1.2 are integrated in
+the application and in both fresh-install and post-1.53a database paths. Their
+historical source-package copies are therefore not duplicated in the
+repository.
 
-- Admin Userlist;
-- Digests 1.0.14;
-- Log Actions MOD;
-- Registration IP;
-- Registration Spam MOD;
-- Rules & Policies 1.0.1.
+Registration IP stores an IP address as account metadata. Operators must
+document and retain that data according to the privacy rules that apply to
+their deployment.
 
-Cookie Consent and StopForumSpam are already integrated. The duplicate IM
-Portal package and the older paFileDB package were removed because the forum
-contains its own authoritative implementations.
+Digests, Registration Spam, and Rules & Policies are intentionally not part of
+the application. The duplicate IM Portal package is also excluded: phpBB2 Plus
+already contains the authoritative Smartor ezPortal implementation. Responsive
+portal templates in the style directories extend that existing portal and are
+not an installation of IM Portal.
 
 ## Encoding and database support
 

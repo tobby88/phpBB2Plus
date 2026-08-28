@@ -33,7 +33,13 @@ init_userprefs($userdata);
 // End session management
 //
 include($phpbb_root_path.'includes/functions_hacks_list.'.$phpEx);
-include($phpbb_root_path.'language/lang_'.$board_config['default_lang'].'/lang_admin_hacks_list.'.$phpEx);
+$credits_lang = !empty($userdata['user_lang']) ? $userdata['user_lang'] : $board_config['default_lang'];
+$credits_lang_file = $phpbb_root_path.'language/lang_'.$credits_lang.'/lang_admin_hacks_list.'.$phpEx;
+if (!file_exists($credits_lang_file))
+{
+	$credits_lang_file = $phpbb_root_path.'language/lang_'.$board_config['default_lang'].'/lang_admin_hacks_list.'.$phpEx;
+}
+include($credits_lang_file);
 
 /****************************************************************************
 /** Constants and Main Vars.
@@ -73,14 +79,30 @@ switch($mode)
 		$i = 0;
 		while ($row = $db->sql_fetchrow($result))
 		{
+			$author = htmlspecialchars(stripslashes($row['hack_author']), ENT_QUOTES, 'UTF-8');
+			$email = stripslashes($row['hack_author_email']);
+			if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL))
+			{
+				$author = '<a href="mailto:' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '">' . $author . '</a>';
+			}
+			$website = stripslashes($row['hack_author_website']);
+			$website_link = ($website !== '' && filter_var($website, FILTER_VALIDATE_URL) && preg_match('~^https?://~i', $website))
+				? '<a href="' . htmlspecialchars($website, ENT_QUOTES, 'UTF-8') . '" rel="noopener noreferrer">' . htmlspecialchars($website, ENT_QUOTES, 'UTF-8') . '</a>'
+				: $lang['No_Website'];
+			$name = htmlspecialchars(stripslashes($row['hack_name']), ENT_QUOTES, 'UTF-8');
+			$download = stripslashes($row['hack_download_url']);
+			if ($download !== '' && filter_var($download, FILTER_VALIDATE_URL) && preg_match('~^https?://~i', $download))
+			{
+				$name = '<a href="' . htmlspecialchars($download, ENT_QUOTES, 'UTF-8') . '" rel="noopener noreferrer">' . $name . '</a>';
+			}
 			$template->assign_block_vars('listrow', array(
 			'ROW_CLASS' => (!(++$i% 2)) ? $theme['td_class1'] : $theme['td_class2'],
 			'HACK_ID' => $row['hack_id'],
-			'HACK_AUTHOR' => ($row['hack_author_email'] != '') ? ((USE_CRYPTIC_EMAIL) ? stripslashes($row['hack_author']) . '<br>' . cryptize_hl_email(stripslashes($row['hack_author_email'])) : '<a href="mailto:' . stripslashes($row['hack_author_email']) . '">' . stripslashes($row['hack_author']) . '</a>') : stripslashes($row['hack_author']),
-			'HACK_WEBSITE' => ($row['hack_author_website'] != '') ? '<a href="' . stripslashes($row['hack_author_website']) . '">' . stripslashes($row['hack_author_website']) . '</a>' : $lang['No_Website'],
-			'HACK_NAME' => ($row['hack_download_url'] != '') ? '<a href="' . stripslashes($row['hack_download_url']) . '">' . stripslashes($row['hack_name']) . '</a>' : stripslashes($row['hack_name']),
-			'HACK_DESC' => stripslashes($row['hack_desc']),
-			'HACK_VERSION' => ($row['hack_version'] != '') ? ' v' . stripslashes($row['hack_version']) : ''));
+			'HACK_AUTHOR' => $author,
+			'HACK_WEBSITE' => $website_link,
+			'HACK_NAME' => $name,
+			'HACK_DESC' => htmlspecialchars(stripslashes($row['hack_desc']), ENT_QUOTES, 'UTF-8'),
+			'HACK_VERSION' => ($row['hack_version'] != '') ? ' v' . htmlspecialchars(stripslashes($row['hack_version']), ENT_QUOTES, 'UTF-8') : ''));
 		}
 		
 		if ($i == 0 || !isset($i))

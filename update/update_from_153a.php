@@ -33,7 +33,7 @@ function update_usage()
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:ina|ctracker)_[A-Za-z0-9_]+)`?\s*\(.*?\)\s*ENGINE\s*=\s*MyISAM[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs))`?\s*\(.*?\)\s*ENGINE\s*=\s*MyISAM[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)
@@ -82,7 +82,7 @@ if (in_array('--self-test', $argv, true))
 		if (strpos($table, 'phpbb_ina_') === 0) { $arcade_tables++; }
 		if (strpos($table, 'phpbb_ctracker_') === 0) { $ctracker_tables++; }
 	}
-	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || count($seed_statements) < 66)
+	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 66)
 	{
 		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements.\n");
 		exit(3);
@@ -195,6 +195,15 @@ function update_column_exists($connection, $database, $table, $column)
 	return (int) update_scalar($connection, $sql) > 0;
 }
 
+function update_index_exists($connection, $database, $table, $index)
+{
+	$sql = "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = '" .
+		mysqli_real_escape_string($connection, $database) . "' AND TABLE_NAME = '" .
+		mysqli_real_escape_string($connection, $table) . "' AND INDEX_NAME = '" .
+		mysqli_real_escape_string($connection, $index) . "'";
+	return (int) update_scalar($connection, $sql) > 0;
+}
+
 function update_queue_column(&$operations, $connection, $database, $table, $column, $definition)
 {
 	if (!update_column_exists($connection, $database, $table, $column))
@@ -268,11 +277,18 @@ $user_columns = array(
 	'user_tg' => 'VARCHAR(255) DEFAULT NULL',
 	'user_li' => 'VARCHAR(255) DEFAULT NULL',
 	'user_tt' => 'VARCHAR(255) DEFAULT NULL',
-	'user_dc' => 'VARCHAR(255) DEFAULT NULL'
+	'user_dc' => 'VARCHAR(255) DEFAULT NULL',
+	'user_reg_ip' => 'VARCHAR(45) DEFAULT NULL',
+	'user_reg_host' => 'VARCHAR(255) DEFAULT NULL'
 );
 foreach ($user_columns as $column => $definition)
 {
 	update_queue_column($operations, $connection, $dbname, $table_prefix . 'users', $column, $definition);
+}
+if (!update_index_exists($connection, $dbname, $table_prefix . 'users', 'user_reg_ip'))
+{
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table_prefix . 'users') .
+		' ADD INDEX `user_reg_ip` (`user_reg_ip`)';
 }
 
 foreach (array('div_class1', 'div_class2', 'div_class3', 'row_class1', 'row_class2', 'row_class3', 'col_class1', 'col_class2', 'col_class3') as $column)
@@ -316,6 +332,27 @@ foreach ($album_defaults as $key => $value)
 foreach ($seed_statements as $seed_sql)
 {
 	$operations[] = preg_replace('/\bphpbb_/', $table_prefix, $seed_sql);
+}
+
+// Keep the public components/credits list useful on upgraded installations.
+$hacks_table = update_quote_identifier($table_prefix . 'hacks_list');
+$operations[] = "UPDATE $hacks_table SET hack_desc = 'User administration list with filtering, safe bulk status, ban and group actions, and Color Groups integration.', hack_author = 'Brent Pirolli, Eric Faerber, Helter, Smartor', hack_author_email = '', hack_author_website = '', hack_version = '2.1' WHERE hack_name = 'Admin Userlist'";
+$credit_rows = array(
+	array('Arcade Mod Plus', 'Integrated arcade framework; game packages and user-generated game data are not distributed.', 'Arcade Mod Plus contributors', '', '2.1.8'),
+	array('Nuffload Album Upload', 'Multiple and archive upload support for the integrated photo album.', 'Nuffload contributors', '', '1.4.2'),
+	array('DB Maintenance Mod', 'Administration tools for database consistency checks and search-index maintenance.', 'DB Maintenance contributors', '', '1.3.8'),
+	array('Cookie Consent', 'Displays the configurable cookie information banner.', 'IntegraMOD contributors', '', 'integrated'),
+	array('Stop Forum Spam', 'Optional registration checks against the Stop Forum Spam service.', 'Stop Forum Spam MOD contributors', 'https://www.stopforumspam.com/', '2.0'),
+	array('Log Actions MOD', 'Records moderation actions and provides an administration log.', 'Morpheus', '', '1.1.6'),
+	array('Enhanced Log Actions', 'Extends moderation logging to sticky, announcement and normal topic changes.', 'François-Xavier', '', '1.1.0'),
+	array('Registration IP', 'Records the server-verified IP address used for account registration.', 'Woody', '', '1.1.2 adapted'),
+	array('Admin Userlist ColorGroups Compatibility', 'Uses Color Groups formatting in the Admin Userlist.', 'Brent Pirolli, Octavius', '', '1.0.1')
+);
+foreach ($credit_rows as $credit)
+{
+	$values = array();
+	foreach ($credit as $value) { $values[] = "'" . mysqli_real_escape_string($connection, $value) . "'"; }
+	$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0) ON DUPLICATE KEY UPDATE hack_desc = VALUES(hack_desc), hack_author = VALUES(hack_author), hack_author_website = VALUES(hack_author_website), hack_version = VALUES(hack_version), hack_hide = 'No'";
 }
 
 // CrackerTracker 5 is a complete redevelopment. Its official 4.x-to-5.x

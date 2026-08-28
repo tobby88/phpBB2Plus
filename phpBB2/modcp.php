@@ -37,6 +37,7 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_log.'.$phpEx);
 
 //
 // Obtain initial var settings
@@ -457,6 +458,7 @@ switch( $mode )
 			}
 			// End add - Who viewed a topic MOD
 			sync('forum', $forum_id);
+			log_action('delete', $topic_id_sql, $userdata['user_id'], $userdata['username']);
 
 			if ( !empty($topic_id) )
 			{
@@ -621,6 +623,7 @@ switch( $mode )
 				// Sync the forum indexes
 				sync('forum', $new_forum_id);
 				sync('forum', $old_forum_id);
+				log_action('move', $topic_list, $userdata['user_id'], $userdata['username']);
 
 				$message = $lang['Topics_Moved'] . '<br /><br />';
 
@@ -728,6 +731,7 @@ switch( $mode )
 		{
 			message_die(GENERAL_ERROR, 'Could not update topics table', '', __LINE__, __FILE__, $sql);
 		}
+		log_action('lock', $topic_id_sql, $userdata['user_id'], $userdata['username']);
 
 		if ( !empty($topic_id) )
 		{
@@ -773,6 +777,7 @@ switch( $mode )
 		{
 			message_die(GENERAL_ERROR, 'Could not update topics table', '', __LINE__, __FILE__, $sql);
 		}
+		log_action('unlock', $topic_id_sql, $userdata['user_id'], $userdata['username']);
 
 		if ( !empty($topic_id) )
 		{
@@ -830,6 +835,8 @@ switch( $mode )
 		{
 			message_die(GENERAL_ERROR, 'Could not update topics table', '', __LINE__, __FILE__, $sql);
 		}
+		$log_mode = ($mode == 'normalise') ? 'normal' : $mode;
+		log_action($log_mode, $topic_id_sql, $userdata['user_id'], $userdata['username']);
 
 		if ( !empty($topic_id) )
 		{
@@ -1000,6 +1007,7 @@ switch( $mode )
 				sync('topic', $topic_id);
 				sync('forum', $new_forum_id);
 				sync('forum', $forum_id);
+				log_action('split', array($topic_id, $new_topic_id), $userdata['user_id'], $userdata['username']);
 
 				$template->assign_vars(array(
 					'META' => '<meta http-equiv="refresh" content="3;url=' . "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'] . '">')

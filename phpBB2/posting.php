@@ -32,6 +32,7 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_log.'.$phpEx);
 //-- mod : post icon -------------------------------------------------------------------------------
 //-- add
 include($phpbb_root_path . 'includes/def_icons.'.$phpEx);
@@ -933,17 +934,25 @@ if ($lock_subject)
 				$tmp_poll_title = str_replace("\'", "''", $poll_title); 
 				$tmp_topic_desc = str_replace("\'", "''", $topic_desc); 
 				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $tmp_username, $tmp_subject, $tmp_message, $tmp_poll_title, $poll_options, $poll_length, $tmp_topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
+				if ($mode == 'editpost' && !empty($is_auth['auth_mod']))
+				{
+					log_action('edit', $topic_id, $userdata['user_id'], $userdata['username']);
+				}
 //				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, str_replace("\'", "''", $username), str_replace("\'", "''", $subject), str_replace("\'", "''", $message), str_replace("\'", "''", $poll_title), $poll_options, $poll_length, str_replace("\'", "''", $topic_desc), $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
 			}
 			break;
 
 		case 'delete':
 		case 'poll_delete':
-		if ($error_msg != '')
+			if ($error_msg != '')
 			{
 				message_die(GENERAL_MESSAGE, $error_msg);
 			}
 			delete_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id);
+			if ($mode == 'delete' && !empty($is_auth['auth_mod']))
+			{
+				log_action('delete', $topic_id, $userdata['user_id'], $userdata['username']);
+			}
 			break;
 	}
 

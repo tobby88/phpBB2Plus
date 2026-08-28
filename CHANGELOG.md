@@ -10,8 +10,8 @@ changes consolidated after that baseline without implying active maintenance.
 
 - Removed the development-only Docker setup and generated upstream audit
   documents; their complete provenance remains available in Git history.
-- Reduced `mods/` to six optional source packages which are not installed in
-  the application, removing copies of integrated or superseded modules.
+- Removed the now-empty `mods/` staging area after integrating the selected
+  packages and discarding the packages that are intentionally not shipped.
 - Removed one-time PowerShell integration helpers and moved the two useful PHP
   maintenance tools into `update/` with explicit names.
 - Renamed every legacy updater so its source and target are visible instead of
@@ -70,6 +70,25 @@ changes consolidated after that baseline without implying active maintenance.
   `mysqli`, current database version strings, and PHP 5.6 through PHP 8.x.
 - The standalone Emergency Recovery Console is disabled by default and must be
   explicitly enabled in `config.php` for a short maintenance window.
+
+### Administration and audit modules
+
+- Updated Admin Userlist from 1.1 to an adapted 2.1 implementation with safe
+  sorting and filtering, bulk activation, banning and group assignment, and
+  Color Groups name formatting. User deletion remains in the central user
+  editor so phpBB2 Plus data is cleaned through one authoritative path.
+- Integrated Log Actions MOD 1.1.6 and Enhanced Log Actions with IPv4/IPv6
+  support, an administration viewer, guarded deletion and pruning, and logging
+  for delete, move, lock, unlock, split, edit, sticky and announcement actions.
+- Integrated Registration IP 1.1.2 with IPv6-capable storage, server-verified
+  remote addresses, optional on-demand reverse DNS, and a German translation.
+- Updated `hacks_list.php` into a maintained components-and-credits page,
+  refreshed recent component entries, and escaped database-provided output.
+- Confirmed that IntegraMOD's IM Portal was not installed: the existing
+  Smartor ezPortal remains authoritative, with responsive templates retained
+  solely as additional style coverage.
+- Removed the unused Digests, Registration Spam, and Rules & Policies source
+  packages.
 
 ### Modern PHP compatibility
 

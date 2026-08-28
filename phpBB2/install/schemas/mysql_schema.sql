@@ -545,6 +545,8 @@ CREATE TABLE phpbb_users (
    user_session_topic int(11) default '0' NOT NULL,
    user_lastvisit int(11) default '0' NOT NULL,
    user_regdate int(11) default '0' NOT NULL,
+   user_reg_ip varchar(45) default NULL,
+   user_reg_host varchar(255) default NULL,
    user_level tinyint(4) default '0',
    user_posts mediumint(8) UNSIGNED default '0' NOT NULL,
    user_timezone decimal(5,2) default '0' NOT NULL,
@@ -649,7 +651,24 @@ CREATE TABLE phpbb_users (
    user_use_ajax_preview tinyint(1) default '1' NOT NULL,
    user_use_ajax_edit tinyint(1) default '1' NOT NULL,
    PRIMARY KEY (user_id),
-   KEY user_session_time (user_session_time)
+   KEY user_session_time (user_session_time),
+   KEY user_reg_ip (user_reg_ip)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+# --------------------------------------------------------
+# Moderation action log
+# --------------------------------------------------------
+CREATE TABLE phpbb_logs (
+  id_log int(11) UNSIGNED NOT NULL auto_increment,
+  mode varchar(32) NOT NULL,
+  topic_id mediumint(8) UNSIGNED NOT NULL default '0',
+  user_id mediumint(8) NOT NULL default '0',
+  username varchar(255) NOT NULL default '',
+  user_ip varchar(45) NOT NULL default '',
+  log_time int(11) NOT NULL default '0',
+  PRIMARY KEY (id_log),
+  KEY topic_id (topic_id),
+  KEY log_time (log_time)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 # --------------------------------------------------------

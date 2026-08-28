@@ -214,6 +214,7 @@ define('FLAG_TABLE', $table_prefix.'flags');
 define('FORUMS_TABLE', $table_prefix.'forums');
 define('GROUPS_TABLE', $table_prefix.'groups');
 define('HACKS_LIST_TABLE', $table_prefix.'hacks_list');
+define('LOGS_TABLE', $table_prefix.'logs');
 define('JR_ADMIN_TABLE', $table_prefix.'jr_admin_users');
 define('LINKS_TABLE', $table_prefix.'links');
 define('LINK_CATEGORIES_TABLE', $table_prefix.'link_categories');

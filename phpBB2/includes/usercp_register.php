@@ -911,6 +911,21 @@ if ( isset($_POST['submit']) )
 				message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);
 			}
 
+			// Registration IP 1.1.2 (adapted): trust only the address supplied by
+			// the web server. Forwarding headers are user-controlled unless a
+			// deployment has an explicitly configured trusted proxy.
+			$registration_ip = isset($_SERVER['REMOTE_ADDR']) ? trim((string) $_SERVER['REMOTE_ADDR']) : '';
+			if (filter_var($registration_ip, FILTER_VALIDATE_IP) === false)
+			{
+				$registration_ip = '';
+			}
+			$registration_ip_sql = str_replace("'", "''", substr($registration_ip, 0, 45));
+			$sql = "UPDATE " . USERS_TABLE . " SET user_reg_ip = '$registration_ip_sql' WHERE user_id = $user_id";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Could not store registration IP', '', __LINE__, __FILE__, $sql);
+			}
+
 			// BEGIN CrackerTracker v5.x
 			($mode == 'register')? $profile_security->pw_create_date($user_id) : null;
 			($mode == 'register')? $profile_security->reg_done() : null;

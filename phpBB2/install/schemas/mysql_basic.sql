@@ -829,7 +829,7 @@ INSERT INTO phpbb_hacks_list (hack_id, hack_add_date, hack_name, hack_desc, hack
 (133, 0, 'Admin Add Users Mod', 'Admin can now create a new user, using admin panel user management.', 'Niels', 'ncr@db9.dk', 'http://mods.db9.dk', '0.10.4', 'No', '', '', 0),
 (140, 0, 'Count posts Mod', 'Allows you to select if posts in forum are counted upon creation', 'Antony Bailey', '', '', '1.0.0', 'No', '', '', 0),
 (142, 0, 'Topic in Who is online', 'This mod will make it possible to view exactly witch topic a user is looking at. The information is applyed in the Who-is-online list', 'Niels', '', 'http://mods.db9.dk', '1.2.9', 'No', '', '', 0),
-(145, 0, 'Admin Userlist', 'This MOD will add an userlist into your AdminCP', 'Smartor', 'smartor_xp@hotmail.com', 'http://smartor.is-root.com', '1.1.0', 'No', '', '', 0),
+(145, 0, 'Admin Userlist', 'User administration list with filtering, safe bulk status, ban and group actions, and Color Groups integration.', 'Brent Pirolli, Eric Faerber, Helter, Smartor', '', '', '2.1', 'No', '', '', 0),
 (146, 0, 'Admin Email List', 'This mod will list all email addresses from your phpbb database, within the admin cp', 'Jamer', '', 'http://www.jamer.co.uk/scripts/phpbb2', '1.0.2', 'No', '', '', 0),
 (147, 0, 'Bottom aligned signature', 'This mod will align signatures at the bottom of posts', '-=ET=-', 'space_et@tiscali.fr', 'http://www.golfexpert.net/phpbb', '1.0.3', 'No', '', '', 0),
 (150, 0, 'Kontakt Mod', 'Adds a contact Form to your Forum', 'Carsten Schaefer', '', '', '1.0.0', 'No', '', '', 0),
@@ -853,7 +853,16 @@ INSERT INTO phpbb_hacks_list (hack_id, hack_add_date, hack_name, hack_desc, hack
 (174, 0, 'Visual Confirmation for Guests', 'Adds visual confirmation for guest posts, eliminating spam.', 'Kanuck', '', 'http://kanuck.net', '1.0.1', 'No', '', '', 0),
 (175, 0, 'Custom Profile Fields', 'Allows administrators to add fields to registration/profile/memberlist/topics, plus admin-only fields', 'Blankety Blank Man', '', 'http://edos.siteburg.com/phpBB2/index.php', '1.1.0', 'No', '', '', 0),
 (176, 0, 'AJAX features', 'This MOD introduces a lot of features based on the AJAX technology', 'alcaeus', '', 'http://www.alcaeus.org', '1.0.4', 'No', '', '', 0),
-(177, 0, 'Advanced Visual Confirmation', 'This MOD replaces the original CAPTCHA of the phpBB Visual Confirmation.', 'AmigaLink', '', 'http://www.EssenMitFreude.info', '1.1.0', 'No', '', '', 0);
+(177, 0, 'Advanced Visual Confirmation', 'This MOD replaces the original CAPTCHA of the phpBB Visual Confirmation.', 'AmigaLink', '', 'http://www.EssenMitFreude.info', '1.1.0', 'No', '', '', 0),
+(178, 0, 'Arcade Mod Plus', 'Integrated arcade framework; game packages and user-generated game data are not distributed.', 'Arcade Mod Plus contributors', '', '', '2.1.8', 'No', '', '', 0),
+(179, 0, 'Nuffload Album Upload', 'Multiple and archive upload support for the integrated photo album.', 'Nuffload contributors', '', '', '1.4.2', 'No', '', '', 0),
+(180, 0, 'DB Maintenance Mod', 'Administration tools for database consistency checks and search-index maintenance.', 'DB Maintenance contributors', '', '', '1.3.8', 'No', '', '', 0),
+(181, 0, 'Cookie Consent', 'Displays the configurable cookie information banner.', 'IntegraMOD contributors', '', '', 'integrated', 'No', '', '', 0),
+(182, 0, 'Stop Forum Spam', 'Optional registration checks against the Stop Forum Spam service.', 'Stop Forum Spam MOD contributors', '', 'https://www.stopforumspam.com/', '2.0', 'No', '', '', 0),
+(183, 0, 'Log Actions MOD', 'Records moderation actions and provides an administration log.', 'Morpheus', '', '', '1.1.6', 'No', '', '', 0),
+(184, 0, 'Enhanced Log Actions', 'Extends moderation logging to sticky, announcement and normal topic changes.', 'François-Xavier', '', '', '1.1.0', 'No', '', '', 0),
+(185, 0, 'Registration IP', 'Records the server-verified IP address used for account registration.', 'Woody', '', '', '1.1.2 adapted', 'No', '', '', 0),
+(186, 0, 'Admin Userlist ColorGroups Compatibility', 'Uses Color Groups formatting in the Admin Userlist.', 'Brent Pirolli, Octavius', '', '', '1.0.1', 'No', '', '', 0);
 
 
 INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('ipblock_enabled', '1');
