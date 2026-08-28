@@ -347,16 +347,20 @@ $credit_rows = array(
 	array('Staff Site Mod', 'Displays the board staff and their roles on a dedicated page.', 'Acid', '', '2.2.3'),
 	array('Album Hierarchy Mod', 'Adds nested categories to the integrated Photo Album.', 'IdleVoid', '', '1.30'),
 	array('CrackerTracker Professional G5', 'Integrated security system for detecting and blocking known attacks and abusive requests.', 'cback', 'http://www.cback.de', '5.0.6'),
-	array('Admin Userlist', 'User administration list with filtering, safe bulk status, ban and group actions, and Color Groups integration.', 'Brent Pirolli, Eric Faerber, Helter, Smartor', '', '2.1'),
-	array('Arcade Mod Plus', 'Integrated arcade framework; game packages and user-generated game data are not distributed.', 'Arcade Mod Plus contributors', '', '2.1.8'),
-	array('Nuffload Album Upload', 'Multiple and archive upload support for the integrated photo album.', 'Nuffload contributors', '', '1.4.2'),
-	array('DB Maintenance Mod', 'Administration tools for database consistency checks and search-index maintenance.', 'DB Maintenance contributors', '', '1.3.8'),
-	array('Cookie Consent', 'Displays the configurable cookie information banner.', 'IntegraMOD contributors', '', 'integrated'),
-	array('Stop Forum Spam', 'Optional registration checks against the Stop Forum Spam service.', 'Stop Forum Spam MOD contributors', 'https://www.stopforumspam.com/', '2.0'),
+	array('Admin Userlist', 'User administration list with filtering, safe bulk status, ban and group actions, and Color Groups integration.', 'Brent Pirolli, Eric Faerber; updated by Helter', '', '2.1'),
+	array('Arcade Mod Plus', 'Integrated arcade framework; game packages and user-generated game data are not distributed.', 'dEfEndEr, Napoleon and contributors', 'http://www.phpbb-arcade.com', '2.1.8'),
+	array('Nuffload Album Upload', 'Multiple and archive upload support for the integrated photo album.', 'Nuffmon', 'http://www.nuffmon.oftheweek.de', '1.4.2'),
+	array('DB Maintenance Mod', 'Administration tools for database consistency checks and search-index maintenance.', 'Philipp Kordowich', 'http://phpbb.kordowich.net/', '1.3.8'),
+	array('Cookie Consent', 'Configurable cookie information banner integrated from IntegraMOD.', 'Helter', 'https://www.integramod.com/', '1.0.0'),
+	array('Stop Forum Spam', 'Optional IP, email and username checks against the Stop Forum Spam service during registration.', 'gat0r; updated by Helter', 'https://www.stopforumspam.com/', '2.1'),
 	array('Log Actions MOD', 'Records moderation actions and provides an administration log.', 'Morpheus', '', '1.1.6'),
 	array('Enhanced Log Actions', 'Extends moderation logging to sticky, announcement and normal topic changes.', 'François-Xavier', '', '1.1.0'),
 	array('Registration IP', 'Records the server-verified IP address used for account registration.', 'Woody', '', '1.1.2 adapted'),
-	array('Admin Userlist ColorGroups Compatibility', 'Uses Color Groups formatting in the Admin Userlist.', 'Brent Pirolli, Octavius', '', '1.0.1')
+	array('Admin Userlist ColorGroups Compatibility', 'Uses Color Groups formatting in the Admin Userlist.', 'Brent Pirolli, Octavius', '', '1.0.1'),
+	array('Arcade Rewards API', 'Optional integration layer used by Arcade Mod Plus for Cash and Allowance reward systems.', 'Xore, Napoleon, dEfEndEr', 'http://www.phpbb-arcade.com', '2.1.6'),
+	array('IntegraMOD Responsive Styles', 'Six preserved responsive styles: BS, BS_subIce, BS_subSilver, prosilver, prosilver_se and subSilver.', 'IntegraMOD contributors', 'https://www.integramod.com/', ''),
+	array('IntegraMOD Social Profile Fields', 'Modern Facebook, Instagram, Pinterest, Twitter/X, Skype, Telegram, LinkedIn, TikTok and Discord profile fields.', 'IntegraMOD contributors', 'https://www.integramod.com/', ''),
+	array('Ruffle Flash Emulator', 'Bundled WebAssembly runtime for playing preserved Flash arcade games in modern browsers; this is a runtime component, not a phpBB MOD.', 'Ruffle contributors', 'https://ruffle.rs/', '0.5.0')
 );
 foreach ($credit_rows as $credit)
 {

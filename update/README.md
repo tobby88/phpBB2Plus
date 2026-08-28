@@ -20,6 +20,10 @@ release: phpBB 2.0.23's version marker, CrackerTracker 5 tables and user
 columns, Arcade Mod Plus 2.1.8, Nuffload 1.4.2, DB Maintenance 1.3.8, responsive
 style metadata, modern social-profile fields, cookie consent and the disabled
 StopForumSpam option. Existing current configuration values are preserved.
+It also reconciles the public components-and-credits table with the verified
+post-1.53a integrations, including Arcade Rewards API, the responsive styles,
+social-profile fields and the bundled Ruffle runtime, while retaining the
+historical phpBB2 Plus credits.
 Incompatible CrackerTracker 4.x tables and user columns are removed when
 present, as required by the original 4.x-to-5.x upgrade instructions; their
 settings and logs cannot be migrated.

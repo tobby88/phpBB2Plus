@@ -63,6 +63,14 @@ changes consolidated after that baseline without implying active maintenance.
 - Restored the missing Arcade administration arrows and popup close button
   referenced by the integrated code.
 - Restored the Rewards API used by the optional Cash and Allowance integrations.
+- Replaced the obsolete Flash plug-in/SWFObject embedding path with a locally
+  bundled Ruffle 0.5.0 self-hosting runtime and registered the WebAssembly MIME
+  type for Apache deployments.
+- Preserved the existing same-origin newscore, IBProArcade, vBulletin and
+  pnFlashGames score transports. Unknown FSCommand calls are exposed as a
+  browser event but are deliberately not guessed or converted into score
+  submissions. Game-specific Ruffle compatibility still depends on the SWF
+  and its ActionScript/API usage.
 
 ### Photo Album
 
@@ -94,9 +102,11 @@ changes consolidated after that baseline without implying active maintenance.
 - Integrated Registration IP 1.1.2 with IPv6-capable storage, server-verified
   remote addresses, optional on-demand reverse DNS, and a German translation.
 - Updated `hacks_list.php` into a maintained components-and-credits page,
-  refreshed both historical and recently integrated component versions, and
-  escaped database-provided output. The public page no longer mutates its
-  database while rendering or imports the bundled example `.hl` placeholder.
+  refreshed the historically verifiable component versions, added the Arcade
+  Rewards API, IntegraMOD responsive-style and social-profile credits, and
+  corrected the authors and versions of the later integrations. The public
+  page escapes database-provided output and no longer mutates its database
+  while rendering or imports the bundled example `.hl` placeholder.
 - Confirmed that IntegraMOD's IM Portal was not installed: the existing
   Smartor ezPortal remains authoritative, with responsive templates retained
   solely as additional style coverage.

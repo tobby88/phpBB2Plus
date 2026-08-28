@@ -37,6 +37,8 @@ $lang['Edit_Games'] = 'Edit Games';
 $lang['None'] = 'None';
 $lang['All'] = 'All';
 $lang['all_games'] = 'All Activities';
+$lang['arcade_ruffle_loading'] = 'Loading Flash game with Ruffle&hellip;';
+$lang['arcade_ruffle_error'] = 'The Flash game could not be started with Ruffle.';
 //
 // 2.0.6
 //

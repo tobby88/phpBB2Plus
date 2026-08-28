@@ -45,6 +45,8 @@ $lang['Edit_Games'] = 'Spiele ändern';
 $lang['None'] = 'Keine';
 $lang['All'] = 'Alle';
 $lang['all_games'] = 'Alle Spiele';
+$lang['arcade_ruffle_loading'] = 'Flash-Spiel wird mit Ruffle geladen&hellip;';
+$lang['arcade_ruffle_error'] = 'Das Flash-Spiel konnte nicht mit Ruffle gestartet werden.';
 //
 // 2.0.6
 //

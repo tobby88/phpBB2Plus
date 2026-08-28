@@ -27,9 +27,13 @@ administration interface. Major bundled features include:
   styles preserved from IntegraMOD;
 - English and German language directories.
 
-This list is intentionally not a version inventory. The source tree and
-[CHANGELOG.md](CHANGELOG.md) are the authoritative records of the integrated
-code and the changes preserved after the 1.53a baseline.
+The public `hacks_list.php` page is seeded with the historical phpBB2 Plus
+component credits and the later integrations whose identity can be verified
+from the preserved source. The source tree and [CHANGELOG.md](CHANGELOG.md)
+remain the authoritative records of code-level maintenance changes, which are
+not presented as separate MODs. Licenses and versions of JavaScript, CSS,
+fonts and icons bundled with the responsive styles are recorded separately in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Project status
 
@@ -136,6 +140,31 @@ the application. The duplicate IM Portal package is also excluded: phpBB2 Plus
 already contains the authoritative Smartor ezPortal implementation. Responsive
 portal templates in the style directories extend that existing portal and are
 not an installation of IM Portal.
+
+## Preserved Flash games
+
+The Arcade plays locally installed SWF games through the bundled Ruffle 0.5.0
+self-hosting runtime; no CDN or browser plug-in is required. Game files and
+historical scores are deployment data and are not included in this repository.
+The existing phpBB Arcade score protocols remain in place: ordinary
+`newscore.php` submissions, IBProArcade, vBulletin and pnFlashGames requests
+continue through the original same-origin PHP endpoints. A small bridge also
+exposes otherwise unknown FSCommand calls as a browser event for optional,
+game-specific handling without guessing a score protocol.
+
+Ruffle is an emulator rather than an exact Adobe Flash Player replacement.
+Compatibility depends on each SWF and its ActionScript/API usage, and score
+submission can only work when the game already implements one of the supported
+Arcade protocols. Games tied to unavailable remote services, unsupported
+ActionScript behavior, DRM or external assets may still fail and require an
+individual port. Only install SWFs from trusted sources: Arcade games are
+allowed same-origin networking and script access so that their legacy score
+protocols can operate.
+
+The included `.htaccess` registers the WebAssembly MIME type. Operators adding
+a Content Security Policy must permit the locally served Ruffle scripts and
+WebAssembly execution (normally `script-src 'self' 'wasm-unsafe-eval'`; older
+browsers may require the broader `'unsafe-eval'`).
 
 ## Encoding and database support
 

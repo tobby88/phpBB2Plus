@@ -15,6 +15,7 @@ part of this notice and must be preserved.
 | imagesLoaded | 5.0.0 | MIT | <https://github.com/desandro/imagesloaded> |
 | Isotope | 3.0.6 | GPL-3.0 for open-source use | <https://github.com/metafizzy/isotope> |
 | Swiper | 11.1.4 | MIT | <https://github.com/nolimits4web/swiper> |
+| Ruffle | 0.5.0 | MIT or Apache-2.0 | <https://github.com/ruffle-rs/ruffle> |
 
 The SIL Open Font License texts supplied with the IntegraMOD styles remain in
 the corresponding `templates/BS_subIce/css/Fonts` and
@@ -24,3 +25,9 @@ BootstrapMade HeroBiz demo media, HeroBiz CSS/JavaScript, and the proprietary
 PHP Email Form package are intentionally not distributed. They were present in
 the upstream history, but their redistribution terms are not compatible with a
 general source release without a separate BootstrapMade license.
+
+The unmodified Ruffle self-hosting runtime is stored in
+`phpBB2/assets/ruffle/`. Its upstream MIT and Apache 2.0 license texts are
+included beside the runtime. The bundled files come from the official
+`ruffle-0.5.0-web-selfhosted.zip` release asset (SHA-256
+`4e0d44ba990f9fe3434d7848f740348299bd6c473db59fb5f8606b750fcc5760`).

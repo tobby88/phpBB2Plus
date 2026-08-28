@@ -286,11 +286,12 @@ $object = '<OBJECT CLASSID="clsid:166B1BCA-3F9C-11CF-8075-444553540000" codebase
     {
       message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'],$game_path.$game_name));
     }
-$object = '<script type="text/javascript" src="swfobject.js"></script>
-<p id="arcade"></p><script type="text/javascript">
-	var s1 = new SWFObject("'.$game_path.$game_name.$arcade_hash.'","single","'.$game_width.'","'.$game_height.'","7");
-  s1.write("arcade");
-</script>';  
+$ruffle_url = htmlspecialchars($game_path . $game_name . $arcade_hash, ENT_QUOTES, 'UTF-8');
+$ruffle_title = htmlspecialchars($game_desc, ENT_QUOTES, 'UTF-8');
+$ruffle_error = htmlspecialchars($lang['arcade_ruffle_error'], ENT_QUOTES, 'UTF-8');
+$object = '<div class="arcade-ruffle-player" data-swf="' . $ruffle_url . '" data-width="' . intval($game_width) . '" data-height="' . intval($game_height) . '" data-title="' . $ruffle_title . '" data-error-message="' . $ruffle_error . '"><p>' . $lang['arcade_ruffle_loading'] . '</p></div>
+<script type="text/javascript" src="assets/ruffle/ruffle.js"></script>
+<script type="text/javascript" src="assets/ruffle/arcade-player.js"></script>';
 /*
 $object = '<OBJECT CLASSID="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab#version=9,0,47,0" id="freegames" name="activitygame" width="'.$game_width.'" height="'.$game_height.'">
 <param name="movie" value="'.$game_path.$game_name.$arcade_hash.'">
