@@ -94,41 +94,44 @@ $sql = "SELECT *
 		$link_config[$link_config_name] = $link_config_value;
 	}
 	$link_self_img = isset($link_config['site_logo']) ? $link_config['site_logo'] : '';
-	$site_logo_height = isset($link_config['height']) ? intval($link_config['height']) : 31;
-	$site_logo_width = isset($link_config['width']) ? intval($link_config['width']) : 88;
-	$display_interval = isset($link_config['display_interval']) ? intval($link_config['display_interval']) : 5000;
-	$display_logo_num = isset($link_config['display_logo_num']) ? intval($link_config['display_logo_num']) : 1;
+	$site_logo_height = isset($link_config['height']) ? max(1, min(1000, intval($link_config['height']))) : 31;
+	$site_logo_width = isset($link_config['width']) ? max(1, min(1000, intval($link_config['width']))) : 88;
+	$display_interval = isset($link_config['display_interval']) ? max(250, intval($link_config['display_interval'])) : 5000;
+	$display_logo_num = isset($link_config['display_logo_num']) ? max(1, intval($link_config['display_logo_num'])) : 1;
 
 $sql = "SELECT link_id, link_title, link_logo_src
 	FROM " . LINKS_TABLE . "
 	WHERE link_active = 1
 	ORDER BY link_hits DESC";
 
-// If failed just ignore
+$links_logo = array();
+// If failed just render an empty list.
 if( $result = $db->sql_query($sql) )
 {
-	$links_logo = "";
 	while($row = $db->sql_fetchrow($result))
 	{
-		//if (empty($row['link_logo_src'])) $row['link_logo_src'] = 'images/links/no_logo88a.gif';
-		if ($row['link_logo_src']) {
-			$links_logo .= ('\'<a href="' . append_sid("links.$phpEx?action=go&link_id=" . $row['link_id']) . '" target="_blank"><img src="' . $row['link_logo_src'] . '" alt="' . addslashes($row['link_title']) . '" width="' . $site_logo_width . '" height="' . $site_logo_height . '" border="0" hspace="1" /></a>\',' . "\n");
+		$logo = trim((string) $row['link_logo_src']);
+		$parts = @parse_url($logo);
+		if ($parts && !empty($parts['host']) && !empty($parts['scheme']) &&
+			in_array(strtolower($parts['scheme']), array('http', 'https'), true) &&
+			!preg_match('/[\x00-\x20\x7f]/', $logo))
+		{
+			$links_logo[] = '<a href="' . htmlspecialchars(append_sid("links.$phpEx?action=go&amp;link_id=" . intval($row['link_id'])), ENT_QUOTES, 'UTF-8', false)
+				. '" target="_blank" rel="noopener noreferrer"><img src="' . htmlspecialchars($logo, ENT_QUOTES, 'UTF-8')
+				. '" alt="' . htmlspecialchars($row['link_title'], ENT_QUOTES, 'UTF-8', false) . '" width="' . $site_logo_width
+				. '" height="' . $site_logo_height . '" border="0" hspace="1" /></a>';
 		}
 	}
 
-	if ($links_logo) {
-		$links_logo = substr($links_logo, 0, -2);
-
-		$template->assign_vars(array(
-			'S_CONTENT_ENCODING' => $lang['ENCODING'],
-			'T_BODY_BGCOLOR' => '#'.$theme['td_color1'],
-
-			'DISPLAY_INTERVAL' => $display_interval,
-			'DISPLAY_LOGO_NUM' => $display_logo_num,
-			'LINKS_LOGO' => $links_logo
-		));
-	}
 }
+
+$template->assign_vars(array(
+	'S_CONTENT_ENCODING' => $lang['ENCODING'],
+	'T_BODY_BGCOLOR' => '#'.$theme['td_color1'],
+	'DISPLAY_INTERVAL' => $display_interval,
+	'DISPLAY_LOGO_NUM' => $display_logo_num,
+	'LINKS_LOGO' => json_encode($links_logo, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)
+));
 
 $template->pparse("body");
 

@@ -45,7 +45,7 @@ init_userprefs($userdata);
 
 $banner_id = ( isset($_POST['banner_id']) ) ? intval ($_POST['banner_id']) : 
 	(( isset($_GET['banner_id']) ) ? intval ($_GET['banner_id']) : '');
-if ( !isset($banner_id ))
+if ( $banner_id <= 0 )
 {
 	message_die(GENERAL_ERROR, "No banner id specified", "", __LINE__, __FILE__,"banner_id='".$banner_id."'"); 
 }
@@ -55,7 +55,18 @@ if ( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, "Couldn't retrieve banner data", "", __LINE__, __FILE__, $sql);
 }
 $banner_data = $db->sql_fetchrow($result);
-$redirect_url = $banner_data['banner_url'];
+if (!$banner_data)
+{
+	message_die(GENERAL_ERROR, 'Unknown banner', '', __LINE__, __FILE__);
+}
+$redirect_url = trim((string) $banner_data['banner_url']);
+$redirect_parts = @parse_url($redirect_url);
+if (!$redirect_parts || empty($redirect_parts['host']) || empty($redirect_parts['scheme']) ||
+	!in_array(strtolower($redirect_parts['scheme']), array('http', 'https'), true) ||
+	preg_match('/[\x00-\x1f\x7f]/', $redirect_url))
+{
+	message_die(GENERAL_ERROR, 'Invalid banner URL', '', __LINE__, __FILE__);
+}
 $cookie_name = $board_config['cookie_name'] . '_b_' . $banner_id;
 if (!isset($HTTP_COOKIE_VARS[$cookie_name]))
 {
@@ -73,17 +84,7 @@ if ( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, "Couldn't insert banner stats", "", __LINE__, __FILE__, $sql);
 }
 
-require_once($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_banner.' . $phpEx);
-
-$template->set_filenames(array( 
-      'body' => 'redirect.tpl')); 
-$template->assign_vars(array( 
-      'REDIRECT_URL' => $redirect_url,
-	'MESSAGE' => sprintf($lang['No_redirect_error'],$redirect_url) 
-));
-
-$template->pparse('body'); 
-
 $db->sql_close();
+header('Location: ' . $redirect_url, true, 302);
 exit;
 ?>

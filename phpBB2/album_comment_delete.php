@@ -198,7 +198,13 @@ else
 */
 
 
-if( !isset($_POST['confirm']) )
+$confirmed = isset($_POST['confirm']);
+if ($confirmed && (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+{
+	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+}
+
+if( !$confirmed )
 {
 	/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                Confirm Screen
@@ -235,6 +241,7 @@ if( !isset($_POST['confirm']) )
 		'L_YES' => $lang['Yes'],
 
 		'S_CONFIRM_ACTION' => append_sid("album_comment_delete.$phpEx?comment_id=$comment_id"),
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		)
 	);
 

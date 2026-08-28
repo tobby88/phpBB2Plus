@@ -39,8 +39,26 @@ require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_link.' . $phpEx);
 
+function admin_links_html($value)
+{
+	return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8', false);
+}
+
+function admin_links_http_url($value)
+{
+	$value = trim(stripslashes((string) $value));
+	$parts = @parse_url($value);
+	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
+		preg_match('/[\x00-\x20\x7f]/', $value))
+	{
+		return '';
+	}
+	return $value;
+}
+
 // Check link_id
-$link_id = isset($_GET['link_id']) ? trim($_GET['link_id']) : '';
+$link_id = isset($_GET['link_id']) ? intval($_GET['link_id']) : 0;
 $mode = isset($_GET['mode']) ? trim($_GET['mode']) : '';
 $action = isset($_GET['action']) ? trim($_GET['action']) : '';
 $link_categories = array();
@@ -98,7 +116,7 @@ switch ($mode)
 		
 		foreach($link_categories as $cat_id => $cat_title)
 		{
-			$link_cat_option .= "<option value=\"$cat_id\">$cat_title</option>";
+			$link_cat_option .= '<option value="' . intval($cat_id) . '">' . admin_links_html($cat_title) . '</option>';
 		}
 
 		$template->assign_vars(array(
@@ -131,11 +149,11 @@ switch ($mode)
 		}
 		*/
 		$linkspp = 10;
-		$start = ( isset($_GET['start']) ) ? $_GET['start'] : 0;
+		$start = ( isset($_GET['start']) ) ? max(0, intval($_GET['start'])) : 0;
 		if ( isset($_POST['search_keywords']) || isset($_GET['search_keywords']) )
 		{
 			$search_keywords = ( isset($_POST['search_keywords']) ) ? $_POST['search_keywords'] : $_GET['search_keywords'];
-			$search_keywords = trim($search_keywords);
+			$search_keywords = substr(trim(stripslashes($search_keywords)), 0, 100);
 		}
 		else
 		{
@@ -158,7 +176,8 @@ switch ($mode)
 				WHERE l.user_id = u.user_id";
 		if ( $search_keywords )
 		{	
-			$sql .= " AND (link_title LIKE '%$search_keywords%' OR link_desc LIKE '% $search_keywords%') ORDER BY link_id DESC LIMIT $start, $linkspp";
+			$search_keywords_sql = str_replace("'", "''", $search_keywords);
+			$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '% $search_keywords_sql%') ORDER BY link_id DESC LIMIT $start, $linkspp";
 		}
 		else
 		{
@@ -176,7 +195,7 @@ switch ($mode)
 			do
 			{
 				$row_class = !($i % 2) ? $theme['td_class1'] : $theme['td_class2'];
-				$link_id = $row['link_id'];
+				$link_id = intval($row['link_id']);
 				$link_id .= '&sid=' . $userdata['session_id'] . '';
 				$user_id = $row['user_id'];
 				$username = $row['username'];
@@ -184,13 +203,13 @@ switch ($mode)
 				$template->assign_block_vars("linkrow", array(
 					'ROW_CLASS' => $row_class,
 					'LINK_ID' => $link_id,
-					'LINK_TITLE' => $row['link_title'],
-					'LINK_URL' => $row['link_url'],
-					'LINK_CATEGORY' => $link_categories[$row['link_category']],
-					'U_LINK_USER' => ($user_id != ANONYMOUS ? ("<a href=\"../profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=$user_id\" target=\"_blank\">$username</a>") : $username),
+					'LINK_TITLE' => admin_links_html($row['link_title']),
+					'LINK_URL' => admin_links_html(admin_links_http_url($row['link_url'])),
+					'LINK_CATEGORY' => admin_links_html($link_categories[$row['link_category']]),
+					'U_LINK_USER' => ($user_id != ANONYMOUS ? ("<a href=\"../profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($user_id) . "\" target=\"_blank\">" . admin_links_html($username) . "</a>") : admin_links_html($username)),
 					'LINK_JOINED' => create_date($lang['DATE_FORMAT'], $row['link_joined'], $board_config['board_timezone']),
 					'LINK_USER_IP' => decode_ip($row['user_ip']),
-					'LINK_DESC' => $row['link_desc'],
+					'LINK_DESC' => admin_links_html($row['link_desc']),
 					'LINK_ACTIVE' => '<font color="' . ($row['link_active'] ? 'green">' . $lang['ON'] : 'red">' . $lang['OFF']) . '</font>',
 					'LINK_HITS' => $row['link_hits']
 				));
@@ -204,11 +223,11 @@ switch ($mode)
 		//
 		$sql = "SELECT count(*) AS total
 			FROM " . LINKS_TABLE . "
-			WHERE link_active = 1";
+			WHERE 1 = 1";
 		if ( $search_keywords )
 		{
-			$sql .= " AND (link_title LIKE '%$search_keywords%' OR link_desc LIKE '%$search_keywords %')";
-			$link_search =  $lang['Search_site'] . " &raquo; " . $search_keywords;
+			$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '%$search_keywords_sql %')";
+			$link_search =  $lang['Search_site'] . " &raquo; " . admin_links_html($search_keywords);
 			$template->assign_vars(array(
 				'L_SEARCH_SITE' => $link_search
 			));
@@ -222,7 +241,7 @@ switch ($mode)
 		if ( $row = $db->sql_fetchrow($result) )
 		{
 			$total_links = $row['total'];
-			$pagination = generate_pagination("admin_links.$phpEx?mode=$mode&amp;search_keywords=$search_keywords", $total_links, $linkspp, $start). '&nbsp;';
+			$pagination = generate_pagination("admin_links.$phpEx?mode=view&amp;search_keywords=" . urlencode($search_keywords), $total_links, $linkspp, $start). '&nbsp;';
 		}
 		else
 		{
@@ -250,11 +269,10 @@ switch ($mode)
 			// Link categories dropdown list
 			foreach($link_categories as $cat_id => $cat_title)
 			{
-				$link_cat_option .= "<option value=\"$cat_id\"" . ($cat_id == $row['link_category'] ? " selected" : "") . ">$cat_title</option>";
+				$link_cat_option .= '<option value="' . intval($cat_id) . '"' . ($cat_id == $row['link_category'] ? ' selected="selected"' : '') . '>' . admin_links_html($cat_title) . '</option>';
 			}
 
-			$link_logo_src = $row['link_logo_src'];
-			if (empty($link_logo_src)) $link_logo_src = 'images/links/no_logo88a.gif';
+			$link_logo_src = admin_links_http_url($row['link_logo_src']);
 
 			$template->assign_vars(array(
 				'PAGE_TITLE' => ($mode == 'edit' ? $lang['Edit_link'] : $lang['Delete_link']),
@@ -264,11 +282,11 @@ switch ($mode)
 				'L_SUBMIT' => ($mode == 'edit' ? $lang['Link_update'] : $lang['Link_delete']),
 
 				'LINK_ID' => $link_id,
-				'LINK_TITLE' => $row['link_title'],
-				'LINK_DESC' => $row['link_desc'],
-				'LINK_URL' => $row['link_url'],
-				'LINK_LOGO_SRC' => $row['link_logo_src'],
-				'LINK_LOGO_IMG' => '<img src="' . (substr($link_logo_src, 0, 4) == 'http' ? $link_logo_src : "../$link_logo_src") . '" border="0" vspace="10" hspace="10" />',
+				'LINK_TITLE' => admin_links_html($row['link_title']),
+				'LINK_DESC' => admin_links_html($row['link_desc']),
+				'LINK_URL' => admin_links_html(admin_links_http_url($row['link_url'])),
+				'LINK_LOGO_SRC' => admin_links_html($link_logo_src),
+				'LINK_LOGO_IMG' => ($link_logo_src !== '' ? '<img src="' . admin_links_html($link_logo_src) . '" border="0" vspace="10" hspace="10" alt="" />' : ''),
 
 
 				'LINK_ACTIVE_YES' => ($row['link_active'] ? 'checked="checked"' : ''),
@@ -279,15 +297,24 @@ switch ($mode)
 		}
 		break;
 	case 'update':
-		$link_title = ( !empty($_POST['link_title']) ) ? trim($_POST['link_title']) : '';
-		$link_desc = ( !empty($_POST['link_desc']) ) ? trim($_POST['link_desc']) : '';
-		$link_category = ( !empty($_POST['link_category']) ) ? (is_numeric($_POST['link_category']) ? $_POST['link_category'] : 0) : 0;
-		$link_url = ( !empty($_POST['link_url']) ) ? trim($_POST['link_url']) : '';
-		$link_logo_src = ( !empty($_POST['link_logo_src']) ) ? trim($_POST['link_logo_src']) : '';
+		if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper($_SERVER['REQUEST_METHOD']) !== 'POST')
+		{
+			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+		}
+		$action_success = false;
+		$link_title = ( !empty($_POST['link_title']) ) ? substr(trim(stripslashes($_POST['link_title'])), 0, 100) : '';
+		$link_desc = ( !empty($_POST['link_desc']) ) ? substr(trim(stripslashes($_POST['link_desc'])), 0, 255) : '';
+		$link_category = ( !empty($_POST['link_category']) ) ? (is_numeric($_POST['link_category']) ? intval($_POST['link_category']) : 0) : 0;
+		$link_url = ( !empty($_POST['link_url']) ) ? substr(admin_links_http_url($_POST['link_url']), 0, 100) : '';
+		$link_logo_src = ( !empty($_POST['link_logo_src']) ) ? substr(admin_links_http_url($_POST['link_logo_src']), 0, 120) : '';
 		$link_active = ( !empty($_POST['link_active']) ) ? 1 : 0;
+		$link_title_sql = str_replace("'", "''", $link_title);
+		$link_desc_sql = str_replace("'", "''", $link_desc);
+		$link_url_sql = str_replace("'", "''", $link_url);
+		$link_logo_src_sql = str_replace("'", "''", $link_logo_src);
 
 		$link_joined = time();
-		$user_id = $userdata['user_id'];
+		$user_id = intval($userdata['user_id']);
 
 		switch ($action)
 		{
@@ -295,7 +322,7 @@ switch ($mode)
 				if($link_title && $link_desc && $link_category && $link_url)
 				{
 					$sql = "INSERT INTO " . LINKS_TABLE . " (link_title, link_desc, link_category, link_url, link_logo_src, link_joined, link_active, user_id , user_ip)
-						VALUES ('$link_title', '$link_desc', '$link_category', '$link_url', '$link_logo_src', '$link_joined', '$link_active', '$user_id ', '$user_ip')";
+						VALUES ('$link_title_sql', '$link_desc_sql', '$link_category', '$link_url_sql', '$link_logo_src_sql', '$link_joined', '$link_active', '$user_id', '$user_ip')";
 
 					if ( !$db->sql_query($sql) )
 					{
@@ -316,8 +343,8 @@ switch ($mode)
 				if($link_id && $link_title && $link_desc && $link_category && $link_url)
 				{
 
-					$sql = "UPDATE " . LINKS_TABLE . " SET link_title = '$link_title', link_desc = '$link_desc', link_url = '$link_url',
-					       link_logo_src = '$link_logo_src', link_category = '$link_category', link_active = '$link_active' WHERE link_id = '$link_id'";
+					$sql = "UPDATE " . LINKS_TABLE . " SET link_title = '$link_title_sql', link_desc = '$link_desc_sql', link_url = '$link_url_sql',
+					       link_logo_src = '$link_logo_src_sql', link_category = '$link_category', link_active = '$link_active' WHERE link_id = '" . intval($link_id) . "'";
 
 					if ( !$db->sql_query($sql) )
 					{
@@ -338,7 +365,7 @@ switch ($mode)
 
 				if($link_id)
 				{
-					$sql = "DELETE FROM " . LINKS_TABLE . " WHERE link_id = '$link_id'";
+					$sql = "DELETE FROM " . LINKS_TABLE . " WHERE link_id = '" . intval($link_id) . "'";
 
 					if ( !$db->sql_query($sql) )
 					{
@@ -359,7 +386,7 @@ switch ($mode)
 
 		if(!$action_success)
 		{
-			$message .= '<br /><br />' . sprintf($lang['Click_return_lastpage'], '<a href="' . $HTTP_REFERER . '">', '</a>');
+			$message .= '<br /><br />' . sprintf($lang['Click_return_admin_links'], '<a href="' . append_sid("admin_links.$phpEx?mode=view") . '">', '</a>');
 		}
 
 		$message .= '<br /><br />' . sprintf($lang['Click_return_admin_links'], '<a href="' . append_sid("admin_links.$phpEx?mode=view") . '">', '</a>');

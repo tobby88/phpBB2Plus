@@ -93,7 +93,7 @@ function checkForm() {
 		  <tr> 
 			<th class="thHead" align="left">&nbsp;{L_LINK_REGISTER}</th>
 		  </tr>
-		<form name="linkdata" method="post" action="{U_LINK_REG}">
+		<form name="linkdata" method="post" action="{U_LINK_REG}">{S_LINK_TOKEN}
 		<tr><td class="row1">
 		<table border="0" cellpadding="2" cellspacing="0" width="100%">
 			<tr> 

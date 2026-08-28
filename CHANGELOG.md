@@ -43,6 +43,14 @@ changes consolidated after that baseline without implying active maintenance.
 - Removed the Arcade's broken custom DNS parser, which could suppress private
   message notifications and incorrectly ban recipients when an MX lookup
   failed; notifications now use the forum's normal mail transport.
+- Converted the legacy bulk-user deletion endpoint to an explicit, session-
+  bound POST confirmation, excluded administrator accounts from pruning and
+  isolated per-user deletion lists to prevent unintended follow-on deletes.
+- Added session-bound confirmation to album image/comment deletion and
+  replaced raw JavaScript banner redirects with validated HTTP(S) redirects.
+- Hardened the public Links module against search SQL injection and stored
+  HTML/script injection, validated all outbound and logo URLs, and bound link
+  submissions to the active user session.
 - Added file-count and expanded-size limits before extracting Nuffload ZIP
   uploads to reduce archive-bomb exposure.
 - Bound Arcade score sessions to the current logged-in player (or the matching

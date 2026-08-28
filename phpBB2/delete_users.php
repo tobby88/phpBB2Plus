@@ -65,35 +65,59 @@ init_userprefs($userdata);
 if ($userdata['user_level']!=ADMIN)
       message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 
-$del_user = ( isset($_POST['del_user']) ) ? intval($_POST['del_user']) : (( isset($_GET['del_user']) ) ? intval($_GET['del_user']):'');
-$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : ( ( isset($_GET['mode']) ) ? $_GET['mode']:'');
-$days = ( isset($_POST['days']) ) ? intval($_POST['days']) : (( isset($_GET['days']) ) ? intval($_GET['days']):'');
+$del_user = ( isset($_POST['del_user']) ) ? intval($_POST['del_user']) : (( isset($_GET['del_user']) ) ? intval($_GET['del_user']) : 0);
+$mode = ( isset($_POST['mode']) ) ? (string) $_POST['mode'] : ( ( isset($_GET['mode']) ) ? (string) $_GET['mode'] : '');
+$days = ( isset($_POST['days']) ) ? intval($_POST['days']) : (( isset($_GET['days']) ) ? intval($_GET['days']) : 0);
+$days = max(1, min(36500, $days));
 
 // ******************************************************************************************
 // Define you own modes here
 
 switch ($mode)
 {
-	case 'user_name' :	$sql=' FROM '. USERS_TABLE .' WHERE username="'.str_replace("'","\'",$del_user).'"';break;
+	case 'user_id' :
+		if ($del_user <= 0)
+		{
+			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+		}
+		$sql = ' FROM ' . USERS_TABLE . ' WHERE user_id = "' . $del_user . '" AND user_id <> "' . ANONYMOUS . '" AND user_level <> "' . ADMIN . '"';
+		break;
 
-	case 'user_id' :		$sql=' FROM '. USERS_TABLE .' WHERE user_id="'.$del_user.'"';break;
+	case 'prune_0' :
+	case 'zero_poster' :	$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_posts="0" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
-	case 'prune_0' :	$mode ='Zero posters';
-	case 'zero_poster' :	$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_posts="0" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
+	case 'prune_1' :
+	case 'not_login': 	$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit="0" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
-	case 'prune_1' :	$mode ='Not logged in';
-	case 'not_login': 	$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_lastvisit="0" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
+	case 'prune_2' :
+					$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit="0" AND user_active="0" AND user_actkey<>"" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
-	case 'prune_2' :	$mode ='Not activated';
-					$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_lastvisit="0" AND user_active="0" AND user_actkey<>"" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
+	case 'prune_3' :
+					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit<'.(time()-86400*60).' AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
-	case 'prune_3' :  $mode='Long time visit';
-					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_lastvisit<'.(time()-86400*60).' AND user_regdate<"'.(time()-(86400*$days)).'"';break;
-
-	case 'prune_4' :  $mode='Avarage posts';
-					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_posts/((user_lastvisit - user_regdate)/86400) < "0.1" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
+	case 'prune_4' :
+					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit > user_regdate AND user_posts/((user_lastvisit - user_regdate)/86400) < "0.1" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
 
 	default:		message_die(GENERAL_ERROR, 'No mode specifyed', '', __LINE__, __FILE__);
+}
+
+$confirmed = isset($_SERVER['REQUEST_METHOD']) && strtoupper($_SERVER['REQUEST_METHOD']) === 'POST'
+	&& isset($_POST['confirm'])
+	&& isset($_POST['sid'])
+	&& hash_equals((string) $userdata['session_id'], (string) $_POST['sid']);
+if (!$confirmed)
+{
+	$action = append_sid('delete_users.' . $phpEx);
+	$message = '<form action="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '" method="post">'
+		. '<p>' . htmlspecialchars($lang['Confirm'], ENT_QUOTES, 'UTF-8') . ': '
+		. htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . '</p>'
+		. '<input type="hidden" name="mode" value="' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . '" />'
+		. '<input type="hidden" name="days" value="' . $days . '" />'
+		. '<input type="hidden" name="del_user" value="' . $del_user . '" />'
+		. '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
+		. '<input type="submit" name="confirm" value="' . htmlspecialchars($lang['Confirm'], ENT_QUOTES, 'UTF-8') . '" class="mainoption" />'
+		. '</form>';
+	message_die(GENERAL_MESSAGE, $message);
 }
 
 // ******************************************************************************************
@@ -105,11 +129,16 @@ if(!$result = $db->sql_query('SELECT user_id , username, user_email, user_lang '
 $user_list = $db->sql_fetchrowset($result);
 
 $i=0;
+$name_list = '';
+$messages = '';
 while (isset($user_list[$i]['user_id']))
 {
 	@set_time_limit(5);
+	$group_moderator = array();
+	$mark_list = array();
 	$user_id=$user_list[$i]['user_id'];
-	$username = str_replace("'","\'",$user_list[$i]['username']);
+	$username = $user_list[$i]['username'];
+	$username_sql = str_replace("'", "''", $username);
 	$user_email = $user_list[$i]['user_email'];
 	$user_lang =  $user_list[$i]['user_lang'];
 	$sql = "SELECT g.group_id
@@ -128,7 +157,7 @@ while (isset($user_list[$i]['user_id']))
 	}
 
 	$sql = "UPDATE " . POSTS_TABLE . "
-		SET poster_id = " . DELETED . ", post_username = '$username'
+		SET poster_id = " . DELETED . ", post_username = '$username_sql'
 		WHERE poster_id = $user_id";
 	if( !$db->sql_query($sql) )
 	{
@@ -283,38 +312,26 @@ while (isset($user_list[$i]['user_id']))
 		message_die(GENERAL_ERROR, 'Could not update private messages saved from the user', '', __LINE__, __FILE__, $sql);
 	}
 
-if (NOTIFY_USERS && !empty($user_email))
-{
-
-		$script_name = preg_replace('/^\/?(.*?)\/?$/', '\1', trim($board_config['script_path'])). '/profile.'.$phpEx.'?mode=register';
-		$server_name = trim($board_config['server_name']);
-		$server_protocol = ( $board_config['cookie_secure'] ) ? 'https://' : 'http://';
-		$server_port = ( $board_config['server_port'] <> 80 ) ? ':' . trim($board_config['server_port']) . '/' : '/';
-
-            $emailer = new emailer($board_config['smtp_delivery']);
-	      $emailer->email_address($user_email);
-      	$email_headers = "To: \"".$username."\" <".$user_email. ">\r\n";
-	            $email_headers .= "From: \"".$board_config['sitename']."\" <".$board_config['board_email'].">\r\n";
-      	      $email_headers .= "Return-Path: " . (($userdata['user_email']&&$userdata['user_viewemail'])? $userdata['user_email']."\r\n":"\r\n");
-            	$email_headers .= "X-AntiAbuse: Board servername - " . $server_name . "\r\n";
-	            $email_headers .= "X-AntiAbuse: User_id - " . $userdata['user_id'] . "\r\n";
-      	      $email_headers .= "X-AntiAbuse: Username - " . $userdata['username'] . "\r\n";
-            	$email_headers .= "X-AntiAbuse: User IP - " . decode_ip($user_ip) . "\r\n";
-	            $emailer->use_template("delete_users",(file_exists($phpbb_root_path . "language/lang_" . $user_lang . "/email/delete_users.tpl"))? $user_lang : "");
-	            $emailer->extra_headers($email_headers);
-      	      $emailer->assign_vars(array(
-			   'U_REGISTER' => $server_protocol . $server_name . $server_port . $script_name,
-	               'USER' => $userdata['username'],
-			   'USERNAME' =>  $username,
-	               'SITENAME' => $board_config['sitename'],
-      	         'BOARD_EMAIL' => $board_config['board_email']));
-            	$emailer->send();
-	            $emailer->reset();
+	if (NOTIFY_USERS && !empty($user_email))
+	{
+		$emailer = new emailer($board_config['smtp_delivery']);
+		$emailer->from($board_config['board_email']);
+		$emailer->replyto($board_config['board_email']);
+		$emailer->email_address($user_email);
+		$emailer->use_template('delete_users', (file_exists($phpbb_root_path . 'language/lang_' . $user_lang . '/email/delete_users.tpl')) ? $user_lang : '');
+		$emailer->assign_vars(array(
+			'U_REGISTER' => phpbb_board_url('profile.' . $phpEx . '?mode=register'),
+			'USER' => $userdata['username'],
+			'USERNAME' => $username,
+			'SITENAME' => $board_config['sitename'],
+			'BOARD_EMAIL' => $board_config['board_email']));
+		$emailer->send();
+		$emailer->reset();
 	}
-	$name_list .= (($name_list) ? ' , ':'</br>') .$username;
+	$name_list .= (($name_list) ? ' , ' : '<br />') . htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
 	$i++;
 }
-$messages .= ((DEBUG) ? '<b>Mode:['.$mode.']</b> </br>':'').(($i) ? sprintf($lang['Prune_users_number'],$i).$name_list : $lang['Prune_no_users']);
-message_die(GENERAL_MESSAGE,$messages.'</br>'.sprintf($lang['Click_return_forum'],'<A HREF="'.append_sid("admin/index.$phpEx").'">','</A>')
+$messages .= ((DEBUG) ? '<b>Mode:[' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . ']</b><br />' : '') . (($i) ? sprintf($lang['Prune_users_number'], $i) . $name_list : $lang['Prune_no_users']);
+message_die(GENERAL_MESSAGE,$messages.'<br />'.sprintf($lang['Click_return_forum'],'<a href="'.append_sid("admin/index.$phpEx").'">','</a>')
 );
 ?>

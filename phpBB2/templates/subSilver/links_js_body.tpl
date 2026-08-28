@@ -6,7 +6,7 @@
 <body style="margin-top:0px;margin-left:0px;background-color:#eaedf4">
 <script language="JavaScript">
 <!-- 
-var linkrow = new Array({LINKS_LOGO});
+var linkrow = {LINKS_LOGO};
 var interval = {DISPLAY_INTERVAL};
 var link_start = 0;
 var link_num = {DISPLAY_LOGO_NUM};

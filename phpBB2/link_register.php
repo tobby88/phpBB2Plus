@@ -48,12 +48,34 @@ if( !$userdata['session_logged_in'] )
 	exit;
 }
 
-$link_title = ( !empty($_POST['link_title']) ) ? htmlspecialchars(trim($_POST['link_title'])) : '';
-$link_desc = ( !empty($_POST['link_desc']) ) ? htmlspecialchars(trim($_POST['link_desc'])) : '';
+if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper($_SERVER['REQUEST_METHOD']) !== 'POST' ||
+	!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+{
+	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+}
+
+function link_register_http_url($value)
+{
+	$value = trim(stripslashes((string) $value));
+	$parts = @parse_url($value);
+	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
+		preg_match('/[\x00-\x20\x7f]/', $value))
+	{
+		return '';
+	}
+	return $value;
+}
+
+$link_title = ( !empty($_POST['link_title']) ) ? substr(trim(stripslashes($_POST['link_title'])), 0, 100) : '';
+$link_desc = ( !empty($_POST['link_desc']) ) ? substr(trim(stripslashes($_POST['link_desc'])), 0, 255) : '';
 $link_category = ( !empty($_POST['link_category']) ) ? (is_numeric($_POST['link_category']) ? intval($_POST['link_category']) : 0) : 0;
-$link_url = ( !empty($_POST['link_url']) ) ? htmlspecialchars(trim($_POST['link_url'])) : '';
-$link_logo_src = ( !empty($_POST['link_logo_src']) ) ? htmlspecialchars(trim($_POST['link_logo_src'])) : '';
-if ($link_logo_src == 'http://')  $link_logo_src = '';
+$link_url = ( !empty($_POST['link_url']) ) ? substr(link_register_http_url($_POST['link_url']), 0, 100) : '';
+$link_logo_src = ( !empty($_POST['link_logo_src']) ) ? substr(link_register_http_url($_POST['link_logo_src']), 0, 120) : '';
+$link_title_sql = str_replace("'", "''", $link_title);
+$link_desc_sql = str_replace("'", "''", $link_desc);
+$link_url_sql = str_replace("'", "''", $link_url);
+$link_logo_src_sql = str_replace("'", "''", $link_logo_src);
 $link_joined = time();
 $user_id = intval($userdata['user_id']);
 
@@ -130,7 +152,7 @@ if($link_title && $link_desc && $link_category && $link_url)
 		{
 			$is_admin = ( $userdata['user_level'] == ADMIN ) ? TRUE : 0;
 			$sql = "INSERT INTO " . LINKS_TABLE . " (link_title, link_desc, link_category, link_url, link_logo_src, link_joined,link_active , user_id , user_ip)
-				VALUES ('$link_title', '$link_desc', '$link_category', '$link_url', '$link_logo_src', '$link_joined', '$is_admin', '$user_id ', '$user_ip')";
+				VALUES ('$link_title_sql', '$link_desc_sql', '$link_category', '$link_url_sql', '$link_logo_src_sql', '$link_joined', '$is_admin', '$user_id', '$user_ip')";
 
 			if ( !$db->sql_query($sql) )
 			{
