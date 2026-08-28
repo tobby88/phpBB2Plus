@@ -86,17 +86,18 @@ $sql = "SELECT *
 		message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
 	}
 	
+	$link_config = array();
 	while( $row = $db->sql_fetchrow($result) )
 	{
 		$link_config_name = $row['config_name'];
 		$link_config_value = $row['config_value'];
 		$link_config[$link_config_name] = $link_config_value;
-		$link_self_img = $link_config['site_logo'];
-		$site_logo_height = $link_config['height'];
-		$site_logo_width = $link_config['width'];
-		$display_interval = $link_config['display_interval'];
-		$display_logo_num = $link_config['display_logo_num'];
 	}
+	$link_self_img = isset($link_config['site_logo']) ? $link_config['site_logo'] : '';
+	$site_logo_height = isset($link_config['height']) ? intval($link_config['height']) : 31;
+	$site_logo_width = isset($link_config['width']) ? intval($link_config['width']) : 88;
+	$display_interval = isset($link_config['display_interval']) ? intval($link_config['display_interval']) : 5000;
+	$display_logo_num = isset($link_config['display_logo_num']) ? intval($link_config['display_logo_num']) : 1;
 
 $sql = "SELECT link_id, link_title, link_logo_src
 	FROM " . LINKS_TABLE . "

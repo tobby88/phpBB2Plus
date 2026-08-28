@@ -691,6 +691,7 @@ $lang['Empty_message_email'] = 'Du musst einen Text zur E-Mail angeben.';
 //
 $lang['Confirm_code_wrong'] = 'Der eingegebene Bestätigungs-Code war nicht richtig';
 $lang['Too_many_registers'] = 'Du hast die zulässige Zahl von Registrierungs-Versuchen für diese Sitzung überschritten. Bitte versuche es später erneut.';
+$lang['Session_invalid'] = 'Ungültige Sitzung. Bitte sende das Formular erneut ab.';
 $lang['Confirm_code_impaired'] = 'Wenn du optisch beeinträchtigt bist oder aus einem anderen Grund den Code nicht lesen kannst, kontaktiere bitte den %sAdministrator%s für Hilfe.';
 $lang['Confirm_code'] = 'Bestätigungs-Code';
 $lang['Confirm_code_explain'] = 'Gebe den Code exakt so ein, wie du ihn siehst. Der Code unterscheidet zwischen Groß- und Kleinschreibung, die Null hat im Inneren einen schrägen Strich.';
@@ -1275,6 +1276,7 @@ $lang['Shoutbox_date'] = ' d m Y h:i:s';
 $lang['Shout_censor'] = 'shout entfernt !';
 $lang['Shout_refresh'] = 'Aktualisieren';
 $lang['Shout_text'] = 'Dein Text';
+$lang['Shoutbox_login'] = 'Zum Schreiben bitte einloggen.';
 $lang['Viewing_Shoutbox']= 'Shoutbox anzeigen';
 $lang['Censor'] ='Zensiert';
 // End add - Fully integrated shoutbox MOD
@@ -1579,7 +1581,6 @@ $lang['Please_remove_install_contrib'] = 'Bitte lösche das install/ Verzeichnis
 $lang['custom_field_notice'] = 'Diese Felder wurden von einem Administrator erstellt. Diese können müssen aber nicht für alle sichtbar sein. Felder die mit einem * markiert sind, sind Pflicht.';
 $lang['and'] = ' und ';
 
-$lang['Session_invalid'] = 'Ungültige Sitzung. Bitte sende das Formular erneut.';
 $lang['cookie_consent_msg'] = 'Diese Website verwendet Cookies, damit das Forum und die Sitzungen funktionieren.';
 $lang['L_PRIVACY'] = 'Datenschutzhinweise';
 $lang['L_PRIVACY_POLICY'] = 'Dieses Forum speichert Cookies für Sitzungen, Anmeldeeinstellungen und Forenfunktionen auf deinem Gerät. Kontodaten werden entsprechend den Datenschutzhinweisen des Seitenbetreibers verarbeitet.';

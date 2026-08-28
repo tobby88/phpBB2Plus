@@ -78,14 +78,18 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 	);
 
 	// Template Loop for Logfile output and naturally logfile output itself
-	$filename  = file($logmanager->create_ct_path($logid));
+	$filename  = @file($logmanager->create_ct_path($logid));
+	if (!is_array($filename))
+	{
+		$filename = array();
+	}
 	$a		   = 0;
 	$lastclean = 0;
+	$split_token = '|||';
 
 	for ( $i = count($filename) - 1; $i >= 0; $i-- )
 	{
-		define('SPLIT', '|||');		// File Token
-		$line = explode(SPLIT, $filename[$i]);
+		$line = explode($split_token, $filename[$i]);
 
 		if ( $line[0] == 1 )
 		{

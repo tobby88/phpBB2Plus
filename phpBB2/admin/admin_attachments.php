@@ -595,7 +595,11 @@ if ($mode == 'shadow')
 		'S_ATTACH_ACTION'	=> append_sid('admin_attachments.' . $phpEx . '?mode=shadow'))
 	);
 
-	$table_attachments = array();
+	$table_attachments = array(
+		'attach_id' => array(),
+		'physical_filename' => array(),
+		'comment' => array()
+	);
 	$assign_attachments = array();
 	$file_attachments = array();
 
@@ -638,7 +642,11 @@ if ($mode == 'shadow')
 	$file_attachments = collect_attachments();
 
 	$shadow_attachments = array();
-	$shadow_row = array();	
+	$shadow_row = array(
+		'attach_id' => array(),
+		'physical_filename' => array(),
+		'comment' => array()
+	);
 
 	// Now determine the needed Informations
 	

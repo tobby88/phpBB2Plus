@@ -166,9 +166,23 @@ function replace_for_mod_rewrite(&$s) {
 
 	if (@file_exists($cache_seo))
 	{
-		@include($cache_seo);
-	    if ( is_array($seo_list_in) && is_array($seo_list_out) )
+		$cache_contents = @file_get_contents($cache_seo);
+		$cache_is_utf8 = ($cache_contents !== false && preg_match('//u', $cache_contents) === 1);
+
+		if (!$cache_is_utf8)
+		{
+			// Generated before the UTF-8 migration: discard it so page_tail.php
+			// can rebuild the speaking-link cache from the current database.
+			@unlink($cache_seo);
+		}
+		else
+		{
+			@include($cache_seo);
+			if ( is_array($seo_list_in) && is_array($seo_list_out) )
+			{
 				$s = preg_replace($seo_list_in, $seo_list_out, $s);
+			}
+		}
 	}
 
 

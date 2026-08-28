@@ -39,6 +39,7 @@ $logmanager    = new log_manager();
 $operation_err = false;
 $mode_selected = false;
 $error_message = '';
+$ctinf         = '';
 
 // Lets test if chmod was set correctly on the logfiles
 for($i = 1; $i <= 6; $i++)
@@ -87,6 +88,7 @@ if ( $fsock = @fsockopen('www.community.cback.de', 80, $errno, $errstr, 10) )
 
 	@fclose($fsock);
 	$uplink_values = explode('|', $ctinf);
+	$uplink_values = array_pad($uplink_values, 5, $lang['ctracker_ma_unknown']);
 }
 else
 {

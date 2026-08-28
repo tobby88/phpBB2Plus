@@ -310,9 +310,10 @@ if ( isset($_POST['submit']) && ( ( $mode == 'user' && $user_id ) || ( $mode == 
 			$forum_access = array();
 			for ($i=0; $i < count($keys['id']); $i++)
 			{
-				if ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL)
+				$tree_idx = $keys['idx'][$i];
+				if (isset($tree['type'][$tree_idx]) && $tree['type'][$tree_idx] == POST_FORUM_URL)
 				{
-					$forum_access[] = $tree['data'][ $keys['idx'][$i] ];
+					$forum_access[] = $tree['data'][$tree_idx];
 				}
 			}
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
@@ -664,9 +665,10 @@ else if ( ( $mode == 'user' && ( isset($_POST['username']) || $user_id ) ) || ( 
 	$forum_access = array();
 	for ($i=0; $i < count($keys['id']); $i++)
 	{
-		if ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL)
+		$tree_idx = $keys['idx'][$i];
+		if (isset($tree['type'][$tree_idx]) && $tree['type'][$tree_idx] == POST_FORUM_URL)
 		{
-			$forum_access[] = $tree['data'][ $keys['idx'][$i] ];
+			$forum_access[] = $tree['data'][$tree_idx];
 		}
 	}
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
@@ -986,23 +988,25 @@ else if ( ( $mode == 'user' && ( isset($_POST['username']) || $user_id ) ) || ( 
 
 	$name = array();
 	$id = array();
+	$pending = array();
 	for($i = 0; $i < count($ug_info); $i++)
 	{
 		if( ( $mode == 'user' && !$ug_info[$i]['group_single_user'] ) || $mode == 'group' )
 		{
 			$name[] = ( $mode == 'user' ) ? $ug_info[$i]['group_name'] :  $ug_info[$i]['username'];
 			$id[] = ( $mode == 'user' ) ? intval($ug_info[$i]['group_id']) : intval($ug_info[$i]['user_id']);
+			$pending[] = !empty($ug_info[$i]['user_pending']);
 		}
 	}
 
 	$t_usergroup_list = $t_pending_list = '';
 	if( count($name) )
 	{
-		for($i = 0; $i < count($ug_info); $i++)
+		for($i = 0; $i < count($name); $i++)
 		{
 			$ug = ( $mode == 'user' ) ? 'group&amp;' . POST_GROUPS_URL : 'user&amp;' . POST_USERS_URL;
 
-			if (!$ug_info[$i]['user_pending'])
+			if (!$pending[$i])
 			{
 				$t_usergroup_list .= ( ( $t_usergroup_list != '' ) ? ', ' : '' ) . '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$ug=" . $id[$i]) . '">' . $name[$i] . '</a>';
 			}

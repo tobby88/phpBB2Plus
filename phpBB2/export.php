@@ -148,6 +148,8 @@ $soubor .= "Téma:\t$topic_title\r\n";
 for ($c=0; $c < strlen ($topic_title);$c++) $soubor .= "-";
 $soubor .= "--------\r\n";
 
+$limit_posts_time = '';
+
 //
 // END
 //
@@ -294,7 +296,6 @@ $filename = eregi_replace ("\[|\]", "", $filename);
 $filename = eregi_replace ("(-)+", "-", $filename);
 $filename = str_replace ($search, $replace, $filename);
 $filename = $filename.'.txt';
-$attachment = (strstr($HTTP_USER_AGENT, "MSIE")) ? "" : " attachment"; // IE 5.5 fix.
    header("Cache-control: private"); // another fix for IE
    header("Content-Type: text/x-delimtext; name=$filename");
    header("Content-Length: ".strlen($soubor));

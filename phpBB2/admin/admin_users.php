@@ -157,8 +157,11 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );
 		}
+		$username_sql = '';
+		$signature_bbcode_uid = ($new_user || empty($this_userdata['user_sig_bbcode_uid'])) ? '' : $this_userdata['user_sig_bbcode_uid'];
+		$message = '';
 
-		if( $_POST['deleteuser'] && ( $userdata['user_id'] != $user_id ) && $new_user==0)
+		if( !empty($_POST['deleteuser']) && ( $userdata['user_id'] != $user_id ) && $new_user==0)
 		{
 			$sql = "SELECT g.group_id 
 				FROM " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g  
@@ -313,7 +316,7 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 			message_die(GENERAL_MESSAGE, $message);
 		}
 		// Start add - Protect user account MOD
-if( $_POST['block_account'] )
+if( !empty($_POST['block_account']) )
 {
 	$sql = "UPDATE ".USERS_TABLE." SET 
 		user_blocktime='".(time()+$board_config['block_time']*60)."', user_block_by='$user_ip' 
@@ -329,7 +332,7 @@ if( $_POST['block_account'] )
 	}
 
 } else
-if( $_POST['unblock_account'] )
+if( !empty($_POST['unblock_account']) )
 {
 	$sql = "UPDATE ".USERS_TABLE." SET 
 		user_blocktime='0', user_badlogin='0' 

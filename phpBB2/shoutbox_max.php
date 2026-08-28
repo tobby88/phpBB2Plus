@@ -58,6 +58,7 @@ init_userprefs($userdata);
 //
 // Start auth check
 //
+$is_auth = array('auth_mod' => 0, 'auth_read' => 0, 'auth_view' => 0, 'auth_delete' => 0, 'auth_post' => 0);
 switch ($userdata['user_level'])
 {
 	//Costomice this, if you need other permission settings
@@ -87,6 +88,10 @@ $forum_id=PAGE_SHOUTBOX_MAX;
 $refresh = (isset($_POST['auto_refresh']) || isset($_POST['refresh'])) ? 1 : 0;
 $preview = (isset($_POST['preview'])) ? 1 : 0;
 $submit = (isset($_POST['shout']) && isset($_POST['message'])) ? 1 : 0;
+$error = false;
+$error_msg = '';
+$message = '';
+$s_hidden_fields = '';
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
 	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
@@ -105,7 +110,7 @@ if ( !$board_config['allow_html'] )
 }
 else
 {
-	$html_on = ( $submit || $refresh || preview) ? ( ( !empty($_POST['disable_html']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_html'] : $userdata['user_allowhtml'] );
+	$html_on = ( $submit || $refresh || $preview) ? ( ( !empty($_POST['disable_html']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_html'] : $userdata['user_allowhtml'] );
 }
 if ( !$board_config['allow_bbcode'] )
 {
@@ -113,7 +118,7 @@ if ( !$board_config['allow_bbcode'] )
 }
 else
 {
-	$bbcode_on = ( $submit || $refresh || preview) ? ( ( !empty($_POST['disable_bbcode']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_bbcode'] : $userdata['user_allowbbcode'] );
+	$bbcode_on = ( $submit || $refresh || $preview) ? ( ( !empty($_POST['disable_bbcode']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_bbcode'] : $userdata['user_allowbbcode'] );
 }
 
 if ( !$board_config['allow_smilies'] )
@@ -122,7 +127,7 @@ if ( !$board_config['allow_smilies'] )
 }
 else
 {
-	$smilies_on = ( $submit || $refresh || preview) ? ( ( !empty($_POST['disable_smilies']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_smilies'] : $userdata['user_allowsmile'] );
+	$smilies_on = ( $submit || $refresh || $preview) ? ( ( !empty($_POST['disable_smilies']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_smilies'] : $userdata['user_allowsmile'] );
 }
 if( !$userdata['session_logged_in'] || ( $mode == 'editpost' && $post_info['poster_id'] == ANONYMOUS ) )
 {
@@ -539,6 +544,7 @@ obtain_word_list($orig_word, $replacement_word);
 	{
 		message_die(GENERAL_ERROR, 'Could not get shoutbox information', '', __LINE__, __FILE__, $sql);
 	}
+		$i = 0;
 		while ($shout_row = $db->sql_fetchrow($result))
 		{
 			$i++;
@@ -551,6 +557,7 @@ obtain_word_list($orig_word, $replacement_word);
 			$user_posts = ( $shout_row['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $shout_row['user_posts'] : '';
 			$user_from = ( $shout_row['user_from'] && $shout_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . $shout_row['user_from'] : '';
 			$user_joined = ( $shout_row['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $shout_row['user_regdate'], $board_config['board_timezone']) : '';
+			$user_avatar = '';
 			if ( $shout_row['user_avatar_type'] && $user_id != ANONYMOUS && $shout_row['user_allowavatar'] )
 			{
 				switch( $shout_row['user_avatar_type'] )
@@ -565,7 +572,8 @@ obtain_word_list($orig_word, $replacement_word);
 						$user_avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $shout_row['user_avatar'] . '" alt="" border="0" />' : '';
 						break;
 				}
-				$user_avatar = ($shout_row['user_avatar_url']) ? '<a href="'.$shout_row['user_avatar_url'].'">'.$user_avatar.'</a>' : $user_avatar;
+				$user_avatar_url = isset($shout_row['user_avatar_url']) ? $shout_row['user_avatar_url'] : '';
+				$user_avatar = ($user_avatar_url != '') ? '<a href="'.$user_avatar_url.'">'.$user_avatar.'</a>' : $user_avatar;
 			} else $user_avatar='';
 			$shout = (! $shout_row['shout_active']) ? $shout_row['shout_text'] : $lang['Shout_censor'].(($is_auth['auth_mod']) ? '<br/><hr/><br/>'.$shout_row['shout_text'] : '');
 			$user_sig = ( $shout_row['enable_sig'] && $shout_row['user_sig'] != '' && $board_config['allow_sig'] ) ? $shout_row['user_sig'] : '';
@@ -600,7 +608,7 @@ obtain_word_list($orig_word, $replacement_word);
 			{
 				$user_sig = make_clickable($user_sig);
 			}
-			$message = make_clickable($message);
+			$shout = make_clickable($shout);
 
 	// 
    	// Highlight active words (primarily for search) 
@@ -629,6 +637,7 @@ obtain_word_list($orig_word, $replacement_word);
 	$shout = bbencode_second_pass($shout,$shout_row['shout_bbcode_uid']);
 	$shout = str_replace("\n", "\n<br />\n", $shout);
 
+	$ip_img = $ip = $delshout_img = $delshout = $censorshout_img = $censorshout = '';
 	if ( $is_auth['auth_mod'] && $is_auth['auth_delete'])
 	{
 		$temp_url = append_sid("shoutbox_max.$phpEx?mode=ip&amp;" . POST_POST_URL . "=" . $shout_row['shout_id']);
@@ -704,7 +713,7 @@ obtain_word_list($orig_word, $replacement_word);
 			'NUMBER_OF_SHOUTS' => $total_shouts,
 			'HTML_STATUS' => $html_status,
 			'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
-			'L_SHOUTBOX_LOGIN' => $lang['Login_join'],
+			'L_SHOUTBOX_LOGIN' => $lang['Shoutbox_login'],
 			'L_POSTED' => $lang['Posted'], 
 			'L_AUTHOR' => $lang['Author'],
 			'L_MESSAGE' => $lang['Message'],

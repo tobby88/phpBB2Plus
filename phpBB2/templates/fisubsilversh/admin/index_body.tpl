@@ -48,11 +48,6 @@
 </tr>
 </table>
 <br />
-<h1>{L_VERSION_INFORMATION}</h1>
-
-{VERSION_INFO}
-
-<br />
 <div class="subtitle">{L_WHO_IS_ONLINE}</div>
 
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">

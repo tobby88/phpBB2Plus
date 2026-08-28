@@ -119,7 +119,7 @@ function jr_admin_make_rank_list($user_id, $user_rank)
 
 function jr_admin_make_bookmark_heading($letters_list, $start)
 {
-	global $lang, $order;
+	global $lang, $order, $sort_item;
 	
 	$seperator = ' | ';
 	$startb = '[ <a href="'.append_sid("admin_jr_admin.php?sort_item=" . ( ( isset($_GET['sort_item']) || isset($_POST['sort_item']) ) ? $sort_item : 'username' ) . "&amp;start=0&amp;order=$order&amp;alphanum=0").'" class="nav">All</a> | ';

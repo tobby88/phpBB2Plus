@@ -345,7 +345,9 @@ if( $article_id <= 0 )
 
   function renderArchives( $year = 0, $month = 0, $day = 0, $key = '' )
   {
-    $this->setBlockVariables( 'arch', array( 'TITLE' => $lang['archives'] ) );
+	global $lang;
+
+    $this->setBlockVariables( 'arch', array( 'TITLE' => $lang['Archives'] ) );
 
     if( $day > 0 && $month > 0 && $year > 0 )
     {
