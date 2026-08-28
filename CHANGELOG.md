@@ -54,6 +54,15 @@ changes consolidated after that baseline without implying active maintenance.
   stripped line breaks from mail address headers.
 - Reduced generated cache, template, upload and thumbnail permissions from
   world-writable modes to owner/group-writable files and directories.
+- Removed an unused duplicate template interpreter and CAPTCHA renderer,
+  replaced the misplaced full forum script under `images/` with a directory
+  guard, and reduced the unreachable phpBB1 upgrader to its explanatory stub.
+- Disabled the browser-based legacy database updater on installed forums
+  unless an administrator explicitly enables it in `config.php` for a
+  controlled migration window.
+- Required a separate, long recovery token in addition to the opt-in constant
+  before the standalone Emergency Recovery Console can run, and removed its
+  request-derived form actions.
 
 ### Repository and update cleanup
 

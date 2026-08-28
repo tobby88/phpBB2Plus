@@ -52,6 +52,11 @@ if(!isset($dbms))
 {
 	die('Please read the upgrade instructions in the project README before attempting to update.');
 }
+if (defined('PHPBB_INSTALLED') && (!defined('PHPBB_ENABLE_LEGACY_UPDATER') || PHPBB_ENABLE_LEGACY_UPDATER !== true))
+{
+	http_response_code(403);
+	die('The legacy database updater is disabled. Read the upgrade instructions before enabling it temporarily.');
+}
 include($phpbb_root_path . 'includes/constants.'.$phpEx);
 include($phpbb_root_path . 'includes/functions.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);

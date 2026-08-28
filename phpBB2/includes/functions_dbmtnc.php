@@ -938,11 +938,11 @@ function get_config_data($option)
 
 function success_message($text)
 {
-	global $lang, $lg, $HTTP_SERVER_VARS;
+	global $lang, $lg;
 
 ?>
 	<p><?php echo $text; ?></p>
-	<p style="text-align:center"><a href="<?php echo $HTTP_SERVER_VARS['PHP_SELF'] . '?lg=' . $lg; ?>"><?php echo $lang['Return_ERC']; ?></a></p>
+	<p style="text-align:center"><a href="<?php echo 'erc.php?lg=' . rawurlencode($lg); ?>"><?php echo $lang['Return_ERC']; ?></a></p>
 <?php
 }
 ?>

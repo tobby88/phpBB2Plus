@@ -29,11 +29,18 @@ include($phpbb_root_path . 'config.'.$phpEx);
 // This standalone recovery tool can make destructive database changes and is
 // deliberately unavailable unless an administrator explicitly enables it in
 // config.php for a short maintenance window.
-if (!defined('DBMTNC_ENABLE_ERC') || DBMTNC_ENABLE_ERC !== true)
+$erc_token = defined('DBMTNC_ERC_TOKEN') ? (string) DBMTNC_ERC_TOKEN : '';
+$provided_erc_token = isset($_REQUEST['token']) ? (string) $_REQUEST['token'] : (isset($_COOKIE['phpbb_erc_token']) ? (string) $_COOKIE['phpbb_erc_token'] : '');
+if (!defined('DBMTNC_ENABLE_ERC') || DBMTNC_ENABLE_ERC !== true || strlen($erc_token) < 32 || !hash_equals($erc_token, $provided_erc_token))
 {
 	http_response_code(403);
 	header('Content-Type: text/plain; charset=UTF-8');
 	exit('Emergency Recovery Console is disabled.');
+}
+if (isset($_REQUEST['token']))
+{
+	$erc_secure = isset($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+	setcookie('phpbb_erc_token', $erc_token, 0, '/; SameSite=Strict', '', $erc_secure, true);
 }
 
 include($phpbb_root_path . 'includes/constants.'.$phpEx);
@@ -213,7 +220,7 @@ switch($mode)
 {
 	case 'select_lang':
 ?>
-<form action="<?php echo $HTTP_SERVER_VARS['PHP_SELF']; ?>" method="post">
+<form action="erc.php" method="post">
 <table border="0" cellspacing="0" cellpadding="10">
 	<tr>
 		<td><table width="100%" border="0" cellspacing="0" cellpadding="0">
@@ -230,7 +237,7 @@ switch($mode)
 		break;
 	case 'start':
 ?>
-<form action="<?php echo $HTTP_SERVER_VARS['PHP_SELF']; ?>" method="post">
+<form action="erc.php" method="post">
 <table border="0" cellspacing="0" cellpadding="10">
 	<tr>
 		<td><table width="100%" border="0" cellspacing="0" cellpadding="0">
@@ -279,7 +286,7 @@ switch($mode)
 		if ( $option != 'rcp' )
 		{
 ?>
-<form action="<?php echo $HTTP_SERVER_VARS['PHP_SELF']; ?>" method="post">
+<form action="erc.php" method="post">
 <table border="0" cellspacing="0" cellpadding="10">
 <?php
 			if ( $option != 'rld' && $option != 'rtd' )
@@ -369,7 +376,7 @@ switch($mode)
 		else
 		{
 ?>
-<form action="<?php echo $HTTP_SERVER_VARS['PHP_SELF']; ?>" method="post">
+<form action="erc.php" method="post">
 <table border="0" cellspacing="0" cellpadding="10">
 <?php
 		}
@@ -675,7 +682,7 @@ switch($mode)
 			<input type="hidden" name="mode" value="execute" />
 			<input type="hidden" name="lg" value="<?php echo $lg ?>" />
 			<input type="submit" value="<?php echo $lang['Submit_text']; ?>" />
-			- <a href="<?php echo $HTTP_SERVER_VARS['PHP_SELF'] . '?lg=' . $lg; ?>"><?php echo $lang['Cancel']; ?></a>
+			- <a href="<?php echo 'erc.php?lg=' . rawurlencode($lg); ?>"><?php echo $lang['Cancel']; ?></a>
 		</td>
 	</tr>
 </table>
@@ -1187,7 +1194,8 @@ switch($mode)
 				$ndbu = urlencode($new_dbuser);
 				$ndbp = urlencode($new_dbpasswd);
 				$ntp = urlencode($new_table_prefix);
-				success_message(sprintf($lang['rcp_success'], "<a href=\"" . $HTTP_SERVER_VARS['PHP_SELF'] . "?mode=download&ndbms=$ndbms&ndbh=$ndbh&ndbn=$ndbn&ndbu=$ndbu&ndbp=$ndbp&ntp=$ntp\">", '</a>'));
+				$download_query = http_build_query(array('mode' => 'download', 'ndbms' => $ndbms, 'ndbh' => $ndbh, 'ndbn' => $ndbn, 'ndbu' => $ndbu, 'ndbp' => $ndbp, 'ntp' => $ntp), '', '&amp;');
+				success_message(sprintf($lang['rcp_success'], '<a href="erc.php?' . htmlspecialchars($download_query, ENT_QUOTES, 'UTF-8') . '">', '</a>'));
 				break;
 			default:
 ?>

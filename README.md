@@ -81,9 +81,10 @@ separate SQL imports are required for a fresh installation.
 
 The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
 is disabled by default because it can make extensive database changes. To use
-it, temporarily add `define('DBMTNC_ENABLE_ERC', true);` to `config.php`, open
-the console only for the required recovery operation, and remove the setting
-immediately afterwards.
+it, temporarily add `define('DBMTNC_ENABLE_ERC', true);` and a random secret of
+at least 32 characters as `define('DBMTNC_ERC_TOKEN', '...');` to `config.php`.
+Open `admin/erc.php?token=...` only for the required recovery operation, then
+remove both settings immediately afterwards.
 
 ## Upgrading an existing forum
 
@@ -103,6 +104,12 @@ Use only the path matching the installed database, for example
 `update_plus_152_to_153a.php`, `update_plus_153_to_153a.php`, or
 `update_phpbb_20xx_to_plus_153a.php`. The separately named phpBB,
 Attachment MOD and CrackerTracker updaters retain their historical scope.
+
+The browser-based `phpBB2/install/update_to_latest.php` legacy updater is
+disabled on an installed forum. If that exact historical migration is needed,
+temporarily add `define('PHPBB_ENABLE_LEGACY_UPDATER', true);` to `config.php`,
+run it only against a backed-up test copy, then remove the constant and the
+entire `install/` directory.
 
 After the database has reached the original 1.53a baseline, preview every
 post-release schema addition from the repository root:
