@@ -38,7 +38,8 @@ merged history rather than being reintroduced into the final tree.
 - German and English are the only bundled languages. Other upstream language
   packs are intentionally outside the integration scope, including language
   files embedded in source packages under `mods/`.
-- All six upstream styles are included. The existing Extreme Styles fallback
+- All six upstream styles are included, giving the combined tree seven styles.
+  The existing Extreme Styles fallback
   now has every phpBB2 Plus, Album, Arcade, Portal, PAFileDB and CrackerTracker
   template, so missing style-specific templates resolve without fatal errors.
 - Freely redistributable third-party assets are imported reproducibly with
@@ -49,6 +50,27 @@ merged history rather than being reintroduced into the final tree.
 - Source packages under `mods/` are preserved for provenance. They are not
   treated as installed modules unless their files also exist in the pinned
   upstream product tree. See [`modules.md`](modules.md) for the audit.
+- Text sources, the English and German language packs, mail templates and
+  emitted charset declarations are normalized to UTF-8. Fresh MySQL/MariaDB
+  tables and MySQL-family connections use the matching `utf8` character set.
+  Existing databases require a separately audited data migration.
+
+## Final-tree audit
+
+The pinned upstream contains 2,128 files. The combined product retains every
+final-tree path except 108 explicitly classified exclusions:
+
+- 16 obsolete or dangerous development utilities, including `nuke-db.php`;
+- 5 Microsoft Access, MSSQL and PostgreSQL installer schemas which cannot be
+  selected by the retained MySQL/MariaDB-only Plus installer;
+- 5 Dutch or Italian source-package language files;
+- 79 BootstrapMade HeroBiz demo CSS, JavaScript and media assets whose general
+  redistribution rights were not established;
+- 2 proprietary PHP Email Form files;
+- 1 unrelated Start Bootstrap demonstration page at `templates/BS/index.html`.
+
+The test script verifies both this allowlist and that no additional upstream
+path disappears from the combined tree.
 
 Regenerate the ledger after fetching the pinned upstream ref with:
 
