@@ -1148,7 +1148,7 @@ if ( ($plus_config['show_shoutbox'] == 1 || $plus_config['show_shoutbox'] == 3 )
         $template->assign_block_vars('switch_show_shoutbox', array());
 }
 
-include($phpbb_root_path . 'mods/netclectic/mini_cal/mini_cal.'.$phpEx); 
+include($phpbb_root_path . 'includes/mini_cal/mini_cal.'.$phpEx);
 
 $template->assign_vars(array( 
 "TELL_LINK" => append_sid("http://".$HTTP_SERVER_VARS['HTTP_HOST'].$HTTP_SERVER_VARS['PHP_SELF']."?t=$topic_id", true)));

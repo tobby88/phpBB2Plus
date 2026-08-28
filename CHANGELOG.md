@@ -25,6 +25,17 @@ changes consolidated after that baseline without implying active maintenance.
   unsafe `mysql_*` uninstall script.
 - Moved the UTF-8 migration procedure into the project README and removed the
   separate documentation directory.
+- Removed the unused smoke-test tree, duplicated legacy phpBB documentation,
+  optional contribution utilities, and their obsolete support links. The GPL
+  text now lives at the repository root, while a concise Markdown README makes
+  the deployable `phpBB2/` directory directly readable on GitHub.
+- Reduced the database layer and fresh installer to MySQL/MariaDB through
+  MySQLi. Existing `mysql` and `mysql4` configuration values remain compatible
+  aliases, while removed-extension and unsupported alternative drivers are no
+  longer distributed.
+- Moved the actively integrated portal mini calendar from the historical
+  `mods/` package path to `includes/mini_cal/`; its portal display and calendar
+  search integration remain unchanged.
 
 ### phpBB 2 maintenance baseline and post-release patch level
 
@@ -125,8 +136,8 @@ changes consolidated after that baseline without implying active maintenance.
 - Restored PHP-4-style constructor behavior through PHP 8-compatible wrappers,
   including the database, template, attachment, statistics and module classes.
 - Preserved optional MOD packages only where upstream never installed them;
-  the experimental, unsupported PDO driver remains source-only instead of
-  being presented as an active database path.
+  unsupported database experiments imported with those sources are not exposed
+  as active database paths.
 - Excluded BootstrapMade HeroBiz demo media and proprietary form files while
   retaining redistributable style code and recording third-party licenses.
 

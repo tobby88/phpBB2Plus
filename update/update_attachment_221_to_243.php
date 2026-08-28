@@ -82,6 +82,7 @@ if (!function_exists('attach_mod_sql_escape'))
 		{
 			case 'mysql':
 			case 'mysql4':
+			case 'mysqli':
 				if (function_exists('mysql_escape_string'))
 				{
 					return mysql_escape_string($text);
@@ -109,6 +110,12 @@ $available_dbms = array(
 	"mysql4" => array(
 		"SCHEMA" => "attach_mysql", 
 		"DELIM" => ";", 
+		"DELIM_BASIC" => ";",
+		"COMMENTS" => "remove_remarks"
+	),
+	"mysqli" => array(
+		"SCHEMA" => "attach_mysql",
+		"DELIM" => ";",
 		"DELIM_BASIC" => ";",
 		"COMMENTS" => "remove_remarks"
 	)
@@ -152,7 +159,7 @@ function insert_into_config($new_name, $default = 0)
 	$db->sql_freeresult($result);
 
 	// Write new config variable
-	if ($dbms == 'mysql' || $dbms == 'mysql4')
+	if ($dbms == 'mysql' || $dbms == 'mysql4' || $dbms == 'mysqli')
 	{
 		$sql = "INSERT INTO " . $new_config_table . " (config_name, config_value) VALUES ('" . attach_mod_sql_escape($new_name) . "', '" . attach_mod_sql_escape($default) . "');";
 	}
@@ -273,7 +280,7 @@ function fill_new_quota_table_data($dbms)
 {
 	$data = '';
 
-	if ($dbms == 'mysql' || $dbms == 'mysql4')
+	if ($dbms == 'mysql' || $dbms == 'mysql4' || $dbms == 'mysqli')
 	{
 		$data = '
 CREATE TABLE phpbb_quota_limits (
@@ -351,7 +358,7 @@ insert_into_config('use_gd2', '0');
 $sql = "UPDATE phpbb_attachments_config SET config_value = '2.4.3' WHERE config_name = 'attach_version';";
 $result = evaluate_statement($sql, true, true);
 
-if ($dbms == 'mysql' || $dbms == 'mysql4')
+if ($dbms == 'mysql' || $dbms == 'mysql4' || $dbms == 'mysqli')
 {
 	$sql = "SHOW INDEX FROM phpbb_attachments_desc;";
 	$result = evaluate_statement($sql, true, true);
@@ -402,7 +409,7 @@ if ($dbms == 'mysql' || $dbms == 'mysql4')
 	}
 }
 
-if ($dbms == 'mysql' || $dbms == 'mysql4')
+if ($dbms == 'mysql' || $dbms == 'mysql4' || $dbms == 'mysqli')
 {
 	// Add INDEX to attachments table
 	$sql = "SHOW INDEX FROM phpbb_attachments;";
@@ -447,7 +454,7 @@ if ($dbms == 'mysql' || $dbms == 'mysql4')
 
 if (!row_in_schema('phpbb_extension_groups', 'forum_permissions'))
 {
-	if ($dbms == 'mysql' || $dbms == 'mysql4')
+	if ($dbms == 'mysql' || $dbms == 'mysql4' || $dbms == 'mysqli')
 	{
 		echo "<br /><h2>Add new row to the Extension Groups Table...</h2><br /><br />";
 		$sql_query = "ALTER TABLE phpbb_extension_groups ADD forum_permissions VARCHAR(255) DEFAULT '' NOT NULL;";

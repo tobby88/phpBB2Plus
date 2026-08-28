@@ -45,6 +45,8 @@ scripts before running them against an existing forum.
 ## Repository layout
 
 - `phpBB2/` contains the deployable forum application.
+- `phpBB2/README.md` summarizes the application tree and its supported runtime
+  scope for GitHub visitors browsing that directory.
 - `update/` contains clearly named legacy upgrade paths plus the consolidated
   post-1.53a database updater and UTF-8/search maintenance scripts. They are
   not needed during normal operation and must not remain in a public web root.
@@ -169,11 +171,10 @@ Latin-1 need individual inspection—an unchecked conversion can create
 mojibake.
 
 MySQLi is the supported modern database driver. Existing `config.php` files
-which still name `mysql` or `mysql4` automatically use MySQLi when available,
-so they do not call the removed PHP `mysql_*` extension on PHP 7 or 8. The
-experimental PDO source imported from IntegraMOD is preserved for provenance
-but was never offered by the upstream installer and is not advertised as a
-supported database path here.
+which still name `mysql` or `mysql4` automatically use MySQLi, so they do not
+call the removed PHP `mysql_*` extension on PHP 7 or 8. Fresh installations
+offer only MySQL/MariaDB through MySQLi; obsolete and unsupported alternative
+database-driver sources are no longer distributed.
 
 ## Writable permissions
 
@@ -197,7 +198,7 @@ world-writable fallback modes.
 ## Credits and licensing
 
 phpBB2 is copyright the phpBB Group and is distributed under the GNU General
-Public License version 2; see [phpBB2/docs/COPYING](phpBB2/docs/COPYING).
+Public License version 2; see [COPYING](COPYING).
 
 phpBB2 Plus incorporates many third-party MODs and assets. Their original
 copyright notices, author credits, and license statements remain in the source

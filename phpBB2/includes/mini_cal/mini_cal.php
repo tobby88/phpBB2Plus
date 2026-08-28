@@ -15,9 +15,9 @@ if ( !defined('IN_PHPBB') )
 }
 define ('IN_MINI_CAL', 1);
 
-	include_once($phpbb_root_path . 'mods/netclectic/mini_cal/mini_cal_config.'.$phpEx);
-	include_once($phpbb_root_path . 'mods/netclectic/mini_cal/mini_cal_common.'.$phpEx);
-	include_once($phpbb_root_path . 'mods/netclectic/mini_cal/calendarSuite.'.$phpEx);
+	include_once($phpbb_root_path . 'includes/mini_cal/mini_cal_config.'.$phpEx);
+	include_once($phpbb_root_path . 'includes/mini_cal/mini_cal_common.'.$phpEx);
+	include_once($phpbb_root_path . 'includes/mini_cal/calendarSuite.'.$phpEx);
 
     
 	// get the mode (if any)
@@ -69,7 +69,7 @@ define ('IN_MINI_CAL', 1);
     {
         // include the required events calendar support
         $mini_cal_inc = 'mini_cal_' . MINI_CAL_CALENDAR_VERSION;
-    	include_once($phpbb_root_path . 'mods/netclectic/mini_cal/' . $mini_cal_inc . '.' . $phpEx);
+		include_once($phpbb_root_path . 'includes/mini_cal/' . $mini_cal_inc . '.' . $phpEx);
 
         // include the required events calendar support
         $mini_cal_auth = getMiniCalForumsAuth($userdata);

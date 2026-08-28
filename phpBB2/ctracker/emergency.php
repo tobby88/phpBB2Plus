@@ -185,7 +185,11 @@ if( !get_magic_quotes_gpc() )
  * Include some files we need for the Emergency Console
  */
 include($phpbb_root_path . 'config.' . $phpEx);
-include($phpbb_root_path . 'db/' . $dbms . '.' . $phpEx);
+if (!in_array($dbms, array('mysql', 'mysql4', 'mysqli'), true) || !function_exists('mysqli_connect'))
+{
+	die('This build requires MySQL or MariaDB through MySQLi.');
+}
+include($phpbb_root_path . 'db/mysqli.' . $phpEx);
 include($phpbb_root_path . 'includes/template.' . $phpEx);
 define('PREFIX', $table_prefix);
 

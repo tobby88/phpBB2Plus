@@ -612,26 +612,8 @@ switch($mode)
 				break;
 			case 'rcp': // Recreate config.php
 				$available_dbms = array(
-					'mysql'=> array(
-						'LABEL'			=> 'MySQL 3.x'
-					), 
-					'mysql4' => array(
-						'LABEL'			=> 'MySQL 4.x'
-					),
 					'mysqli' => array(
 						'LABEL'			=> 'MySQL/MariaDB (mysqli)'
-					),
-					'postgres' => array(
-						'LABEL'			=> 'PostgreSQL 7.x'
-					), 
-					'mssql' => array(
-						'LABEL'			=> 'MS SQL Server 7/2000'
-					),
-					'msaccess' => array(
-						'LABEL'			=> 'MS Access [ ODBC ]'
-					),
-					'mssql-odbc' =>	array(
-						'LABEL'			=> 'MS SQL Server [ ODBC ]'
 					));
 				$dbms_select = '<select name="new_dbms">';
 				foreach ($available_dbms as $dbms_name => $details)

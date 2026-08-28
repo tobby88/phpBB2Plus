@@ -50,7 +50,7 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'config.'.$phpEx);
 if(!isset($dbms))
 {
-	die("Please read: <a href='../docs/INSTALL.html'>INSTALL.html</a> before attempting to update.");
+	die('Please read the upgrade instructions in the project README before attempting to update.');
 }
 include($phpbb_root_path . 'includes/constants.'.$phpEx);
 include($phpbb_root_path . 'includes/functions.'.$phpEx);
@@ -711,7 +711,7 @@ if (count($sql))
 			echo "SQL &nbsp; :: <b>" . $error_ary['sql'][$i] . "</b><br /><br /></li>";
 		}
 
-		echo "</ul>\n<p>This is probably nothing to worry about, update will continue. Should this fail to complete you may need to seek help at our development board. See <a href=\"docs\README.html\">README</a> for details on how to obtain advice.</p>\n";
+		echo "</ul>\n<p>The update will continue. Review the failed statements and restore your verified backup if the update cannot complete.</p>\n";
 	}
 	else
 	{
@@ -1032,6 +1032,8 @@ switch ($row['config_value'])
 		switch (SQL_LAYER)
 		{
 			case 'mysql':
+			case 'mysql4':
+			case 'mysqli':
 				$sql = "UPDATE " . USERS_TABLE . " 
 					SET user_email = '' 
 					WHERE user_email NOT REGEXP '^[a-zA-Z0-9_\+\.\-]+@.*[a-zA-Z0-9_\-]+\.[a-zA-Z]{2,}$'";
@@ -1178,7 +1180,7 @@ if ($errored)
 		echo "SQL &nbsp; :: <b>" . $error_ary['sql'][$i] . "</b><br /><br /></li>";
 	}
 
-	echo "</ul>\n<p>This is probably nothing to worry about, update will continue. Should this fail to complete you may need to seek help at our development board. See <a href=\"docs\README.html\">README</a> for details on how to obtain advice.</p>\n";
+	echo "</ul>\n<p>The update will continue. Review the failed statements and restore your verified backup if the update cannot complete.</p>\n";
 }
 else
 {

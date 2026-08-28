@@ -25,42 +25,18 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 }
 
-switch($dbms)
+if (!in_array($dbms, array('mysql', 'mysql4', 'mysqli'), true))
 {
-	case 'mysql':
-		// Preserve old config.php values while using the maintained driver on
-		// runtimes where the removed mysql extension is no longer available.
-		include($phpbb_root_path . (function_exists('mysqli_connect') ? 'db/mysqli.' : 'db/mysql.') . $phpEx);
-		break;
-
-	case 'mysql4':
-		include($phpbb_root_path . (function_exists('mysqli_connect') ? 'db/mysqli.' : 'db/mysql4.') . $phpEx);
-		break;
-
-	case 'mysqli':
-		include($phpbb_root_path . 'db/mysqli.'.$phpEx);
-		break;
-
-	case 'postgres':
-		include($phpbb_root_path . 'db/postgres7.'.$phpEx);
-		break;
-
-	case 'mssql':
-		include($phpbb_root_path . 'db/mssql.'.$phpEx);
-		break;
-
-	case 'oracle':
-		include($phpbb_root_path . 'db/oracle.'.$phpEx);
-		break;
-
-	case 'msaccess':
-		include($phpbb_root_path . 'db/msaccess.'.$phpEx);
-		break;
-
-	case 'mssql-odbc':
-		include($phpbb_root_path . 'db/mssql-odbc.'.$phpEx);
-		break;
+	message_die(CRITICAL_ERROR, 'Unsupported database driver. This build requires MySQL or MariaDB through MySQLi.');
 }
+
+if (!function_exists('mysqli_connect'))
+{
+	message_die(CRITICAL_ERROR, 'The PHP MySQLi extension is required.');
+}
+
+// Preserve legacy config.php values without retaining the removed mysql_* API.
+include($phpbb_root_path . 'db/mysqli.' . $phpEx);
 
 // Make the database connection.
 //-- mod : run stats -----------------------------------------------------------

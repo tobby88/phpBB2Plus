@@ -302,22 +302,8 @@ include($phpbb_root_path.'includes/sessions.'.$phpEx);
 
 // Define schema info
 $available_dbms = array(
-	'mysql'=> array(
-		'LABEL'			=> 'MySQL (legacy setting; MySQLi preferred)',
-		'SCHEMA'		=> 'mysql', 
-		'DELIM'			=> ';',
-		'DELIM_BASIC'	=> ';',
-		'COMMENTS'		=> 'remove_remarks'
-	), 
-	'mysql4' => array(
-		'LABEL'			=> 'MySQL 4.x/5.x (legacy setting; MySQLi preferred)',
-		'SCHEMA'		=> 'mysql', 
-		'DELIM'			=> ';', 
-		'DELIM_BASIC'	=> ';',
-		'COMMENTS'		=> 'remove_remarks'
-		),
 	'mysqli' => array(
-		'LABEL'			=> 'MySQLi',
+		'LABEL'			=> 'MySQL/MariaDB (MySQLi)',
 		'SCHEMA'		=> 'mysql',
 		'DELIM'			=> ';',
 		'DELIM_BASIC'	=> ';',
@@ -722,19 +708,10 @@ else
 {
 	// Go ahead and create the DB, then populate it
 	//
-	// MS Access is slightly different in that a pre-built, pre-
-	// populated DB is supplied, all we need do here is update
-	// the relevant entries
 	if (isset($dbms))
 	{
 		switch($dbms)
 		{
-			case 'mysql':
-			case 'mysql4':
-				$check_exts = 'mysql';
-				$check_other = 'mysqli';
-				break;
-
 			case 'mysqli':
 				$check_exts = 'mysqli';
 				$check_other = 'mysqli';
@@ -763,10 +740,8 @@ else
 	{
 		if ($upgrade != 1)
 		{
-			if ($dbms != 'msaccess')
-			{
-				// Load in the sql parser
-				include($phpbb_root_path.'includes/sql_parse.'.$phpEx);
+			// Load in the sql parser
+			include($phpbb_root_path.'includes/sql_parse.'.$phpEx);
 
 				// Ok we have the db info go ahead and read in the relevant schema
 				// and work on building the table.. probably ought to provide some
@@ -816,8 +791,6 @@ else
 						}
 					}
 				}
-			}
-
 			// Ok at this point they have entered their admin password, let's go 
 			// ahead and create the admin account with some basic default information
 			// that they can customize later, and write out the config file.  After
