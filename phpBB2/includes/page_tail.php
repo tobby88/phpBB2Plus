@@ -34,10 +34,10 @@ $plus_config += array(
 	'enable_gentime' => 0,
 );
 // Start add - Complete banner MOD
-if ($banner_show_list)
+if (!empty($banner_show_list))
 {
-	$banner_show_list['0'] = ($banner_show_list) ? ' ':'';
-	$sql = "UPDATE ".BANNERS_TABLE." SET banner_view=banner_view+1 where banner_id IN ($banner_show_list)";
+	$banner_ids = ltrim($banner_show_list, ', ');
+	$sql = "UPDATE ".BANNERS_TABLE." SET banner_view=banner_view+1 where banner_id IN ($banner_ids)";
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, "Couldn't update banners data", "", __LINE__, __FILE__, $sql);

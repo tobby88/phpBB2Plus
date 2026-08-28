@@ -35,5 +35,15 @@ if (!$passed)
 	exit(1);
 }
 
-echo "Legacy PHP compatibility helpers passed.\n";
+$phpbb_root_path = dirname(__DIR__) . '/';
+require dirname(__DIR__) . '/pafiledb/includes/functions_cache.php';
 
+$cache = new acm();
+$cache->put('fixture', array('value' => 1));
+if (!is_array($cache->vars) || $cache->vars['fixture']['value'] !== 1)
+{
+	fwrite(STDERR, "Download cache initialization check failed.\n");
+	exit(1);
+}
+
+echo "Legacy PHP compatibility helpers passed.\n";

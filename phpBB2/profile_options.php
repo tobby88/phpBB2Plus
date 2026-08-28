@@ -117,8 +117,7 @@ if ( ($view_user_id != $userdata['user_id']) && ($userdata['user_level'] != ADMI
 }
 
 // create entry if NULL : fix isset issue
-@reset($view_userdata);
-while (list($key, $data) = each($view_userdata) )
+foreach ($view_userdata as $key => $data)
 {
 	if ($view_userdata[$key] == NULL )
 	{
@@ -175,16 +174,13 @@ $mod_keys = array();
 $mod_sort = array();
 $sub_keys = array();
 $sub_sort = array();
-@reset($mods[$menu_name]['data']);
-while ( list($mod_name, $mod) = @each($mods[$menu_name]['data']) )
+foreach ($mods[$menu_name]['data'] as $mod_name => $mod)
 {
 	// check if there is some users fields
 	$found = false;
-	@reset($mod['data']);
-	while ( list($sub_name, $sub) = @each($mod['data']) )
+	foreach ($mod['data'] as $sub_name => $sub)
 	{
-		@reset($sub['data']);
-		while ( list($field_name, $field) = @each($sub['data']) )
+		foreach ($sub['data'] as $field_name => $field)
 		{
 			if ( ( ( !empty($field['user']) && isset($view_userdata[ $field['user'] ]) && !$board_config[ $field_name . '_over'] ) || $field['system'] ) && is_auth($field['auth'], $user_level) )
 			{
@@ -204,15 +200,13 @@ while ( list($mod_name, $mod) = @each($mods[$menu_name]['data']) )
 		$sub_sort[$i] = array();
 
 		// sub names
-		@reset($mod['data']);
-		while ( list($sub_name, $sub) = @each($mod['data']) )
+		foreach ($mod['data'] as $sub_name => $sub)
 		{
 			if ( !empty($sub_name) )
 			{
 				// user fields in this level
 				$found = false;
-				@reset($sub['data']);
-				while ( list($field_name, $field) = @each($sub['data']) )
+				foreach ($sub['data'] as $field_name => $field)
 				{
 					if ( ( ( !empty($field['user']) && isset($view_userdata[ $field['user'] ]) && !$board_config[ $field_name . '_over'] ) || $field['system'] ) && is_auth($field['auth'], $user_level) )
 					{
@@ -233,11 +227,11 @@ while ( list($mod_name, $mod) = @each($mods[$menu_name]['data']) )
 @array_multisort($mod_sort, $mod_keys, $sub_sort, $sub_keys);
 
 // fix mod id
-if ( $mod_id > count($mod_keys) )
+if ( $mod_id < 0 || !isset($mod_keys[$mod_id]) )
 {
 	$mod_id = 0;
 }
-if ( $sub_id > count($sub_keys[$mod_id]) )
+if ( $sub_id < 0 || !isset($sub_keys[$mod_id][$sub_id]) )
 {
 	$sub_id = 0;
 }
@@ -272,8 +266,7 @@ if ($submit)
 	$error_msg = '';
 
 	// format and verify data
-	@reset($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']);
-	while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']) )
+	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 	{
 		$user_field = $field['user'];
 		if ( isset($_POST[$user_field]) && is_auth($field['auth'], $user_level) )
@@ -330,8 +323,7 @@ if ($submit)
 	}
 
 	// save result
-	@reset($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']);
-	while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']) )
+	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 	{
 		$user_field = $field['user'];
 		if ( ( ( isset($$user_field) && !empty($user_field) && isset($view_userdata[$user_field]) && !$board_config[ $field_name . '_over'] ) || $field['system'] ) && is_auth($field['auth'], $user_level) )
@@ -407,8 +399,7 @@ else
 	}
 
 	// send items
-	@reset($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']);
-	while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']) )
+	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 	{
 		// process only fields from users table
 		$user_field = $field['user'];
@@ -419,8 +410,7 @@ else
 			switch ($field['type'])
 			{
 				case 'LIST_RADIO':
-					@reset($field['values']);
-					while ( list($key, $val) = @each($field['values']) )
+					foreach ($field['values'] as $key => $val)
 					{
 						$selected = ($view_userdata[$user_field] == $val) ? ' checked="checked"' : '';
 						$l_key = mods_settings_get_lang($key);
@@ -428,8 +418,7 @@ else
 					}
 					break;
 				case 'LIST_DROP':
-					@reset($field['values']);
-					while ( list($key, $val) = @each($field['values']) )
+					foreach ($field['values'] as $key => $val)
 					{
 						$selected = ($view_userdata[$user_field] == $val) ? ' selected="selected"' : '';
 						$l_key = mods_settings_get_lang($key);
@@ -477,6 +466,7 @@ else
 	}
 
 	// system
+	$s_hidden_fields = '';
 	$s_hidden_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="view_user_id" value="' . $view_user_id . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="sub" value="' . $menu_name . '" />';

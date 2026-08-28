@@ -113,6 +113,16 @@ function init_board_config($mod_name, $config_fields, $sub_name='', $sub_sort=0,
 
 	foreach ($config_fields as $config_key => $config_data)
 	{
+		$config_data += array(
+			'auth' => USER,
+			'chk_func' => '',
+			'explain' => '',
+			'hide' => false,
+			'system' => false,
+			'user' => '',
+			'user_only' => false,
+			'values' => array(),
+		);
 		if (!isset($config_data['user_only']) || !$config_data['user_only'])
 		{
 			// create the key value

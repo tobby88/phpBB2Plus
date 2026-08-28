@@ -274,7 +274,10 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 	//
 	if ( $search_id == 'newposts' || $search_id == 'egosearch' || $search_id == 'unanswered' || $search_id == 'bookmarks' || $search_keywords != '' || $search_author != '' || $search_id == 'mini_cal' || $search_id == 'mini_cal_events' )
 	{
-		if( !$ctracker_config['searchtime'] || !$ctracker_config['maxsearch'] )
+		$ctracker_search_enabled = is_object($ctracker_config)
+			&& isset($ctracker_config->settings['search_feature_enabled'])
+			&& intval($ctracker_config->settings['search_feature_enabled']) !== 0;
+		if ( !$ctracker_search_enabled )
 		{
 		//
 		// Flood control

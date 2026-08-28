@@ -21,7 +21,8 @@
 
 class acm
 {
-	var $vars = '';
+	var $cache_dir = '';
+	var $vars = array();
 	var $vars_ts = array();
 	var $modified = FALSE;
 
