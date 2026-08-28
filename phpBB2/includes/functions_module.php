@@ -64,9 +64,18 @@ class Statistics
 		
 		if (is_array($bars))
 		{
-			$this->loaded_bar_images['left'] = $bars['left'];
-			$this->loaded_bar_images['right'] = $bars['right'];
-			$this->loaded_bar_images['bar'] = $bars['bar'];
+			if (isset($bars['left']))
+			{
+				$this->loaded_bar_images['left'] = $bars['left'];
+			}
+			if (isset($bars['right']))
+			{
+				$this->loaded_bar_images['right'] = $bars['right'];
+			}
+			if (isset($bars['bar']))
+			{
+				$this->loaded_bar_images['bar'] = $bars['bar'];
+			}
 		}
 
 		if ($this->bar_loaded)
@@ -469,8 +478,7 @@ class Results
 			return;
 		}
 
-		reset ($vararray);
-		while (list($key, $val) = each($vararray))
+		foreach ($vararray as $key => $val)
 		{
 			$this->var_data['.'][0][$key] = $val;
 		}

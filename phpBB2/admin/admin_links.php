@@ -40,9 +40,11 @@ require('pagestart.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_link.' . $phpEx);
 
 // Check link_id
-$link_id = trim($_GET['link_id']);
-$mode = trim($_GET['mode']); 
-$action = trim($_GET['action']); 
+$link_id = isset($_GET['link_id']) ? trim($_GET['link_id']) : '';
+$mode = isset($_GET['mode']) ? trim($_GET['mode']) : '';
+$action = isset($_GET['action']) ? trim($_GET['action']) : '';
+$link_categories = array();
+$link_cat_option = '';
 //
 // Set template
 //

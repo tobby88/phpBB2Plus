@@ -111,7 +111,7 @@ function display_comments(&$file_data)
 		$poster_joined = ( $comments_row['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $comments_row['user_regdate'], $board_config['board_timezone']) : '';
 
 		$poster_avatar = '';
-		if ( $comments_row['user_avatar_type'] && $poster_id != ANONYMOUS && $comments_row['user_allowavatar'] )
+		if ( $comments_row['user_avatar_type'] && $comments_row['user_id'] != ANONYMOUS && $comments_row['user_allowavatar'] )
 		{
 			switch( $comments_row['user_avatar_type'] )
 			{

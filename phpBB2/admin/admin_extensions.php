@@ -65,6 +65,11 @@ $mode = get_var('mode', '');
 $e_mode = get_var('e_mode', '');
 
 $submit = (isset($HTTP_POST_VARS['submit'])) ? TRUE : FALSE;
+$extension_group = '';
+$add_forum = false;
+$delete_forum = false;
+$error = false;
+$error_msg = '';
 
 // Get Attachment Config
 $attach_config = array();

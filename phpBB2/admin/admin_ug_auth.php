@@ -45,7 +45,7 @@ require('./pagestart.' . $phpEx);
 
 $params = array('mode' => 'mode', 'user_id' => POST_USERS_URL, 'group_id' => POST_GROUPS_URL, 'adv' => 'adv');
 
-while( list($var, $param) = @each($params) )
+foreach ($params as $var => $param)
 {
 	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
 	{
@@ -73,9 +73,8 @@ $mode = htmlspecialchars($mode);
 include( $phpbb_root_path . './includes/def_auth.' . $phpEx );
 
 // build an indexed array on field names
-@reset($field_names);
 $forum_auth_fields = array();
-while ( list($auth_key, $auth_name) = @each($field_names) )
+foreach ($field_names as $auth_key => $auth_name)
 {
 	$forum_auth_fields[] = $auth_key;
 }

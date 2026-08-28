@@ -77,6 +77,7 @@ function sort_cmp($a, $b)
 // $album_config_tabs will hold all the configuration data for the tabs (tab = one index in that array)
 $valid_tab_selections = array(); 
 $album_config_tabs = array();
+$saved_info_message = '';
 //------------------------------------------------------------------------
 
 //------------------------------------------------------------------------
@@ -222,7 +223,7 @@ if (is_array($valid_tab_selections) && count($valid_tab_selections) > 0)
 			$tmp_array[$element] = $key;
 		}
 		*/
-		$selected_subtab = $tmp_array[0];
+		$selected_subtab = isset($tmp_array[0]) ? $tmp_array[0] : key($valid_tab_selections[$selected_tab]);
 		
 	}
 }
@@ -294,7 +295,7 @@ if (empty($selected_tab_data['config_table_name']))
 //------------------------------------------------------------------------
 // save the data from the requested tab (or tab that we are 'leaving')
 //------------------------------------------------------------------------
-if( strcmp($_POST['save_config'], 'true') == 0 )
+if( isset($_POST['save_config']) && strcmp($_POST['save_config'], 'true') == 0 )
 {
 	if (empty($config_table)) 
 	{

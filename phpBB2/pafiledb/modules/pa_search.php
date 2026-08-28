@@ -11,7 +11,7 @@
 
 class pafiledb_search extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
 		global $_REQUEST, $_POST, $phpbb_root_path, $userdata;

@@ -33,7 +33,6 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-include($phpbb_root_path . 'config.'.$phpEx);
 require($phpbb_root_path . 'includes/kb_constants.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 

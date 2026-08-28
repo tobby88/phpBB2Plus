@@ -39,7 +39,7 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 //
 // Count and forwrad
 //
-if($_GET['action'] == "go" && $_GET['link_id'])
+if(!empty($_GET['action']) && $_GET['action'] == "go" && !empty($_GET['link_id']))
 {
 	$link_id = intval($_GET['link_id']);
 	// Secure check
@@ -130,13 +130,17 @@ if(!$result = $db->sql_query($sql))
 {
 	message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
 }
+$link_config = array();
 while( $row = $db->sql_fetchrow($result) )
 {
 	$link_config_name = $row['config_name'];
 	$link_config_value = $row['config_value'];
 	$link_config[$link_config_name] = $link_config_value;
-	$linkspp=$link_config['linkspp'];
 }
+$linkspp = isset($link_config['linkspp']) ? max(1, intval($link_config['linkspp'])) : 10;
+$link_cat_option = '';
+$pagination = '&nbsp;';
+$total_links = 0;
 
 if($link_config['lock_submit_site'] == 0)
 {
@@ -324,7 +328,7 @@ if ($t=='pop' || $t=='new')
 	
 	$template->assign_vars(array(
 		'PAGINATION' => $pagination,
-		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $linkspp ) + 1 ), ceil( $total_links / $linkspp )),
+		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $linkspp ) + 1 ), max(1, ceil( $total_links / $linkspp ))),
 		'L_GOTO_PAGE' => $lang['Goto_page'],
 
 		'LINK_CAT_OPTION' => $link_cat_option
@@ -505,7 +509,7 @@ if ($t=='sub_pages')
 
 	$template->assign_vars(array(
 		'PAGINATION' => $pagination,
-		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $linkspp ) + 1 ), ceil( $total_links / $linkspp )),
+		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $linkspp ) + 1 ), max(1, ceil( $total_links / $linkspp ))),
 		'L_GOTO_PAGE' => $lang['Goto_page'],
 
 		'LINK_CAT_OPTION' => $link_cat_option
@@ -647,7 +651,7 @@ if ($t=='search')
 
 	$template->assign_vars(array(
 		'PAGINATION' => $pagination,
-		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $linkspp ) + 1 ), ceil( $total_links / $linkspp )),
+		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $linkspp ) + 1 ), max(1, ceil( $total_links / $linkspp ))),
 		'L_GOTO_PAGE' => $lang['Goto_page'],
 
 		'LINK_CAT_OPTION' => $link_cat_option

@@ -82,23 +82,21 @@ $sub_keys = array();
 $sub_sort = array();
 
 // process
-@reset($mods);
-while ( list($menu_name, $menu) = each($mods) )
+foreach ($mods as $menu_name => $menu)
 {
 	// check if there is some config fields in the mods under this menu
 	$found = false;
 
 	// menu
-	@reset($menu['data']);
-	while ( ( list($mod_name, $mod) = @each($menu['data']) ) && !$found )
+	foreach ($menu['data'] as $mod_name => $mod)
 	{
+		if ($found) { break; }
 		// sub menu
-		@reset($mod['data']);
-		while ( ( list($sub_name, $sub) = @each($mod['data']) ) && !$found )
+		foreach ($mod['data'] as $sub_name => $sub)
 		{
+			if ($found) { break; }
 			// fields
-			@reset($sub['data']);
-			while ( ( list($field_name, $field) = @each($sub['data']) ) && !$found )
+			foreach ($sub['data'] as $field_name => $field)
 			{
 				if ( !isset($field['user_only']) || !$field['user_only'] )
 				{
@@ -120,16 +118,13 @@ while ( list($menu_name, $menu) = each($mods) )
 		$mod_keys[$i] = array();
 		$mod_sort[$i] = array();
 
-		@reset($menu['data']);
-		while ( list($mod_name, $mod) = @each($menu['data']) )
+		foreach ($menu['data'] as $mod_name => $mod)
 		{
 			// check if there is some config fields
 			$found = false;
-			@reset($mod['data']);
-			while ( list($sub_name, $sub) = @each($mod['data']) )
+			foreach ($mod['data'] as $sub_name => $sub)
 			{
-				@reset($sub['data']);
-				while ( list($field_name, $field) = @each($sub['data']) )
+				foreach ($sub['data'] as $field_name => $field)
 				{
 					if ( !isset($field['user_only']) || !$field['user_only'] )
 					{
@@ -149,15 +144,13 @@ while ( list($menu_name, $menu) = each($mods) )
 				$sub_sort[$i][$j] = array();
 
 				// sub names
-				@reset($mod['data']);
-				while ( list($sub_name, $sub) = @each($mod['data']) )
+				foreach ($mod['data'] as $sub_name => $sub)
 				{
 					if ( !empty($sub_name) )
 					{
 						// check if there is some config fields in this level
 						$found = false;
-						@reset($sub['data']);
-						while ( list($field_name, $field) = @each($sub['data']) )
+						foreach ($sub['data'] as $field_name => $field)
 						{
 							if ( !isset($field['user_only']) || !$field['user_only'] )
 							{
@@ -193,7 +186,8 @@ if ( $mod_id > count($mod_keys[$menu_id]) )
 }
 
 // fix sub id
-if ( $sub_id > count($sub_keys[$menu_id][$mod_id]) )
+$available_subs = isset($sub_keys[$menu_id][$mod_id]) && is_array($sub_keys[$menu_id][$mod_id]) ? $sub_keys[$menu_id][$mod_id] : array();
+if ( $sub_id >= count($available_subs) )
 {
 	$sub_id = 0;
 }
@@ -205,7 +199,7 @@ $menu_name = $menu_keys[$menu_id];
 $mod_name = $mod_keys[$menu_id][$mod_id];
 
 // sub name
-$sub_name = $sub_keys[$menu_id][$mod_id][$sub_id];
+$sub_name = isset($available_subs[$sub_id]) ? $available_subs[$sub_id] : '';
 
 // buttons
 $submit = isset($_POST['submit']);
@@ -227,8 +221,7 @@ if ($submit)
 	$error_msg = '';
 
 	// format and verify data
-	@reset($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']);
-	while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']) )
+	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 	{
 		if (isset($_POST[$field_name]))
 		{
@@ -280,8 +273,7 @@ if ($submit)
 	}
 
 	// save data
-	@reset($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']);
-	while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']) )
+	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 	{
 		if (isset($$field_name))
 		{
@@ -394,16 +386,14 @@ for ($i = 0; $i < count($menu_keys); $i++)
 }
 
 // send items
-@reset($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']);
-while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']) )
+foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 {
 	// get the field input statement
 	$input = '';
 	switch ($field['type'])
 	{
 		case 'LIST_RADIO':
-			@reset($field['values']);
-			while ( list($key, $val) = @each($field['values']) )
+			foreach ($field['values'] as $key => $val)
 			{
 				$selected = ($config[$field_name] == $val) ? ' checked="checked"' : '';
 				$l_key = mods_settings_get_lang($key);
@@ -411,8 +401,7 @@ while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['
 			}
 			break;
 		case 'LIST_DROP':
-			@reset($field['values']);
-			while ( list($key, $val) = @each($field['values']) )
+			foreach ($field['values'] as $key => $val)
 			{
 				$selected = ($config[$field_name] == $val) ? ' selected="selected"' : '';
 				$l_key = mods_settings_get_lang($key);
@@ -454,8 +443,7 @@ while ( list($field_name, $field) = @each($mods[$menu_name]['data'][$mod_name]['
 	if ( !empty($input) && !empty($field['user']) && isset($userdata[ $field['user'] ]) )
 	{
 		$override = '';
-		@reset($list_yes_no);
-		while ( list($key, $val) = @each($list_yes_no) )
+		foreach ($list_yes_no as $key => $val)
 		{
 			$selected = ($config[$field_name . '_over'] == $val) ? ' checked="checked"' : '';
 			$l_key = mods_settings_get_lang($key);

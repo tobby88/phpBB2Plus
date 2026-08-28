@@ -879,7 +879,8 @@ class arcade
     $this->sid = $this->pass_var('sid', '');
     if(!$this->sid)
     {
-      $this->sid = $_COOKIE[$board_config['cookie_name'] .'_sid'];
+      $cookie_name = $board_config['cookie_name'] . '_sid';
+      $this->sid = isset($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : '';
     }
     
     return $this->sid;

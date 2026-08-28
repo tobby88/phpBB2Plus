@@ -36,14 +36,20 @@ class pafiledb_public extends pafiledb
 	
 	function module($module_name)
 	{
-		if (!class_exists('pafiledb_' . $module_name))
+		$class_name = 'pafiledb_' . $module_name;
+		if (!class_exists($class_name))
 		{
 			global $phpbb_root_path, $phpEx;
 			
 			$this->module_name = $module_name;
 			
 			require_once($phpbb_root_path . 'pafiledb/modules/pa_' . $module_name . '.'.$phpEx);
-			eval('$this->modules[' . $module_name . '] = new pafiledb_' . $module_name . '();');
+		}
+
+		if (!isset($this->modules[$module_name]))
+		{
+			$this->module_name = $module_name;
+			$this->modules[$module_name] = new $class_name();
 
 			if (method_exists($this->modules[$module_name], 'init'))
 			{
@@ -183,6 +189,7 @@ class pafiledb
 			{
 				if ($cat['cat_parent'] == $cat_id)
 				{
+					$sel = '';
 					if (is_array($default))
 					{
 						if (isset($default[$cat['cat_id']]))
@@ -232,7 +239,7 @@ class pafiledb
 
 	function get_sub_cat($cat_id)
 	{
-		$cat_sub .= '';
+		$cat_sub = '';
 		if(!empty($this->subcat_rowset[$cat_id]))
 		{
 			foreach($this->subcat_rowset[$cat_id] as $cat_id => $cat_row)

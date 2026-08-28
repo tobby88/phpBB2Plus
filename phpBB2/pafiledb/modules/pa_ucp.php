@@ -22,7 +22,7 @@
 
 class pafiledb_ucp extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $debug;
 		return false;

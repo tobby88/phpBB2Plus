@@ -37,6 +37,10 @@ $arcade_version = $arcade->version();
 unset($cat_id, $mode, $mod_id);
 
 $mode = $arcade->pass_var('mode', '');
+$cat_id = 0;
+$mod_id = 0;
+$catagory_name = $lang['all_games'];
+$hidden_options = '';
 
 if ($mode != '')
 {
@@ -65,7 +69,7 @@ else
 //
 $action = $arcade->pass_var('action', '');
 
-if($HTTP_POST_VARS['delete_x'])
+if(!empty($HTTP_POST_VARS['delete_x']))
 {
   $action = "delete_score";
 }

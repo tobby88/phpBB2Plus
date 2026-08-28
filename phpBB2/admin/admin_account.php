@@ -52,6 +52,10 @@ if(isset($_GET['delete']) || isset($_POST['delete']))
 
 // sort part
 $start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$mode = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : 'joindate');
+$total_members = 0;
+$l_total_members = sprintf($lang['Total_members'], 0);
+$pagination = '&nbsp;';
 if(isset($_POST['order']))
 {
         $sort_order = ($_POST['order'] == 'ASC') ? 'ASC' : 'DESC';
@@ -172,7 +176,7 @@ if ( $row = $db->sql_fetchrow($result) )
                 $l_waiting = ( $waiting == 1 ) ? $lang['Waiting_1'] : $lang['Waiting_2'];
 
                 $template->assign_block_vars('admin_account', array(
-                        'ROW_NUMBER' => $i + ( $_GET['start'] + 1 ),
+				'ROW_NUMBER' => $i + $start + 1,
 		'ROW_CLASS' => $row_class,
 		'USERNAME' => $row['username'],
                         'U_PROFILE' => append_sid("../profile.$phpEx?mode=viewprofile&u=$row[user_id]"),

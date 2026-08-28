@@ -10,9 +10,9 @@
 */
 class pafiledb_category extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
-		global $pafiledb_template, $lang, $phpEx, $pafiledb_config, $_REQUEST, $userdata;
+		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $_REQUEST, $userdata;
 
 		// =======================================================
 		// Get the id
@@ -22,7 +22,7 @@ class pafiledb_category extends pafiledb_public
 		{
 			$cat_id = intval($_REQUEST['cat_id']);
 		}
-		else if ($file_id == 0 && $action != '')
+		else if ($action !== false && $action != '')
 		{
 			$cat_id_array = array();
 			$cat_id_array = explode('=', $action);

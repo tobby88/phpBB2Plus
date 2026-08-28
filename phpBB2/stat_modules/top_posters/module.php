@@ -69,7 +69,7 @@ if ( !($result = $stat_db->sql_query($sql)) )
 $user_count = $stat_db->sql_numrows($result);
 $user_data = $stat_db->sql_fetchrowset($result);
 
-$firstcount = $user_data[0]['user_posts'];
+$firstcount = !empty($user_data) ? max(1, intval($user_data[0]['user_posts'])) : 1;
 
 for ($i = 0; $i < $user_count; $i++)
 {

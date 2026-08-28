@@ -153,9 +153,12 @@ function get_kb_cat_subs($parent, $indent)
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-include($phpbb_root_path . 'config.'.$phpEx);
 require($phpbb_root_path . 'includes/kb_constants.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
+
+$create = !empty($_POST['create']);
+$edit = !empty($_POST['edit']);
+$delete = !empty($_POST['delete']);
 
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
@@ -556,7 +559,7 @@ switch( $mode )
   
   	  'L_CREATE_CAT' => $lang['Create_cat'],
 	  'L_CREATE' => $lang['Create'],
-  	  'L_CATEGORY' => $lang['Article_category'],
+	  'L_CATEGORY' => isset($lang['Article_category']) ? $lang['Article_category'] : $lang['Category'],
   	  'L_ACTION' => $lang['Art_action'],
 	  'L_ARTICLES' => $lang['Articles'],
 	  'L_ORDER' => $lang['Update_order'],

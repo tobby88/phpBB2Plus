@@ -1028,6 +1028,7 @@ function get_auth_keys($cur='Root', $all=false, $level=-1, $max=-1, $auth_key='a
 //--------------------------------------------------------------------------------------------------
 function get_max_depth($cur='Root', $all=false, $level=-1, &$keys = null, $max=-1)
 {
+	if (!is_array($keys)) { $keys = array(); }
 	global $tree;
 	if (empty($keys['id']))
 	{
@@ -1092,6 +1093,8 @@ function get_tree_option($cur='', $all=false)
 //--------------------------------------------------------------------------------------------------
 function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $real_level=-1, $max_level=-1, &$keys = null)
 {
+	if (!is_array($forum_moderators)) { $forum_moderators = array(); }
+	if (!is_array($keys)) { $keys = array(); }
 	global $template, $phpEx, $board_config, $lang, $images;
 	global $tree;
 	//
@@ -1273,7 +1276,7 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 			$moderator_list = '';
 			if ($type == POST_FORUM_URL)
 			{
-				if ( count($forum_moderators[$id]) > 0 )
+				if ( !empty($forum_moderators[$id]) && is_array($forum_moderators[$id]) )
 				{
 					$l_moderators = ( count($forum_moderators[$id]) == 1 ) ? $lang['Moderator'] : $lang['Moderators'];
 					$moderator_list = implode(', ', $forum_moderators[$id]);
@@ -1304,7 +1307,9 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 				//$last_post .= ( $data['tree.post_user_id'] == ANONYMOUS ) ? $data['tree.post_username'] . ' ' : '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '='  . $data['tree.post_user_id']) . '">' . $data['tree.post_username'] . '</a> ';
 				$last_post .= ( $data['tree.post_user_id'] == ANONYMOUS ) ? $data['tree.post_username'] . ' ' : color_group_colorize_name ($data['tree.post_user_id']);
 				$last_post .= '<a href="' . $recent_url . '"><img src="' . $images['icon_latest_reply'] . '" border="0" alt="' . $lang['View_latest_post'] . '" title="' . $lang['View_latest_post'] . '" /></a>';
-				$icon = get_icon_title($tree['data'][$CH_this]['topic_icon'], 1, $tree['data'][$CH_this]['topic_type']);
+				$topic_icon = isset($tree['data'][$CH_this]['topic_icon']) ? $tree['data'][$CH_this]['topic_icon'] : 0;
+				$topic_type = isset($tree['data'][$CH_this]['topic_type']) ? $tree['data'][$CH_this]['topic_type'] : 0;
+				$icon = get_icon_title($topic_icon, 1, $topic_type);
 			}
 
 			// links to sub-levels
@@ -1351,7 +1356,7 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 						else
 						{
 							$wi_new		= $images['icon_minipost_new'];
-							$wa_new		= $lang['icon_minipost'];
+							$wa_new		= $lang['New_posts'];
 							$wi_norm	= $images['icon_minipost'];
 							$wa_norm	= $lang['No_new_posts'];
 							$wi_locked	= $images['icon_minipost_lock'];
@@ -1398,7 +1403,7 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 				'ICON_IMG'				=> $icon_img,
 				'FORUM_NAME'			=> $title,
 				'FORUM_DESC'			=> $desc,
-				'FORUM_ID' 				=> $data['tree.forum_id'],
+				'FORUM_ID' 				=> isset($data['tree.forum_id']) ? $data['tree.forum_id'] : (($type == POST_FORUM_URL) ? $id : 0),
 				'POSTS'					=> $data['tree.forum_posts'],
 				'TOPICS'				=> $data['tree.forum_topics'],
 				'LAST_POST'				=> $last_post,

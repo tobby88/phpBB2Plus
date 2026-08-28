@@ -72,7 +72,7 @@ $template->set_filenames(array('body' => 'arcade_tour_body.tpl') );
 //
 //  Does the user want to join a tournament?
 //
-if($HTTP_POST_VARS['join'])
+if(!empty($HTTP_POST_VARS['join']))
 {
   if(is_array($join_tour))
   {
@@ -139,7 +139,7 @@ if($HTTP_POST_VARS['join'])
 //
 //  Start a new Tournament...
 //
-else if($HTTP_POST_VARS['submit'])
+else if(!empty($HTTP_POST_VARS['submit']))
 {
 //
 //  Check to make sure a user isn't trying to create a tournament when the option is OFF
@@ -194,7 +194,7 @@ else if($HTTP_POST_VARS['submit'])
 //
 //  Does the user want to Start a New Tournament ?
 //
-else if($HTTP_POST_VARS['start'])
+else if(!empty($HTTP_POST_VARS['start']))
 {
 //
 //  Can USERS start a Tournament???
@@ -220,7 +220,7 @@ else if($HTTP_POST_VARS['start'])
 //
 //  Admin END Tournament Feature.
 //
-else if($HTTP_POST_VARS['end'])
+else if(!empty($HTTP_POST_VARS['end']))
 {
   $is_a_draw = false;
   
@@ -841,7 +841,7 @@ $template->assign_vars(array(
 		'NAME' => $lang['Name'],
 		'DATA' => $lang['Data'],
 		'JOIN' => $lang['Join'],
-		'PLAYERS' => $lang['Players'],
+		'PLAYERS' => isset($lang['Players']) ? $lang['Players'] : 'Spieler',
 
 		'U_CAT' => $url,
 		

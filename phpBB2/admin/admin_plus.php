@@ -115,6 +115,7 @@ $fulltext_yes = ( $new['enable_fulltextsearch'] ) ? "checked=\"checked\"" : "";
 $fulltext_no = ( !$new['enable_fulltextsearch'] ) ? "checked=\"checked\"" : "";
 
 $contact_mail = $new['contact_email'];
+$activation_none = '';
 
 $template->set_filenames(array(
 	"body" => "admin/plus_config_body.tpl")
@@ -130,14 +131,14 @@ $template->assign_vars(array(
 	"L_INDEX_LAYOUT" => $lang['Index_Layout'],
 	"L_PLUSSTYLE_EXPLAIN" => $lang['Plusstyle_explain'],
 	"L_PLUSSTYLE1" => $lang['Plusstyle1'],
-	"L_PLUSSTYLE1_EXPLAIN" => $lang['Plusstyle1_explain'],
+	"L_PLUSSTYLE1_EXPLAIN" => isset($lang['Plusstyle1_explain']) ? $lang['Plusstyle1_explain'] : '',
 	"L_PLUSSTYLE2" => $lang['Plusstyle2'],
-	"L_PLUSSTYLE2_EXPLAIN" => $lang['Plusstyle2_explain'],
+	"L_PLUSSTYLE2_EXPLAIN" => isset($lang['Plusstyle2_explain']) ? $lang['Plusstyle2_explain'] : '',
 	"L_PLUSSTYLE3" => $lang['Plusstyle3'],
-	"L_PLUSSTYLE3_EXPLAIN" => $lang['Plusstyle3_explain'],
+	"L_PLUSSTYLE3_EXPLAIN" => isset($lang['Plusstyle3_explain']) ? $lang['Plusstyle3_explain'] : '',
 	"L_ENABLE_DEFAULTAVATAR" => $lang['Enable_defaultavatar'],
 	"L_DEFAULTAVATAR_EXPLAIN" => $lang['Defaultavatar_explain'],
-	"L_BOARDSTATS_EXPLAIN" => $lang['Boardstats_explain'],
+	"L_BOARDSTATS_EXPLAIN" => isset($lang['Boardstats_explain']) ? $lang['Boardstats_explain'] : '',
 	"L_ENABLE_LINKS" => $lang['Enable_indexlinks'],
 	"L_LINKS_EXPLAIN" => $lang['Indexlinks_explain'],
 	"L_ENABLE_QUICKREPLY" => $lang['Enable_quickreply'],

@@ -39,6 +39,7 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+$output_info = '';
 
 if( isset($_POST['add_name']) )
 {

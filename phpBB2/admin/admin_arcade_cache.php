@@ -52,7 +52,7 @@ $file = basename(__FILE__);
 //
 //  Check to see if the SUBMIT button has been activated / Process Changes
 //
-if($HTTP_POST_VARS['submit'])
+if(!empty($HTTP_POST_VARS['submit']))
 {
   $use_cache = intval($HTTP_POST_VARS['use_cache']);
 //

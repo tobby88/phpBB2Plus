@@ -204,7 +204,7 @@ $submit_change = (isset($HTTP_POST_VARS['submit_change'])) ? TRUE : FALSE;
 $delete = (isset($HTTP_POST_VARS['delete'])) ? TRUE : FALSE;
 $delete_id_list = get_var('delete_id_list', array(0));
 
-$confirm = ($HTTP_POST_VARS['confirm']) ? TRUE : FALSE;
+$confirm = !empty($HTTP_POST_VARS['confirm']);
 
 if ($confirm && sizeof($delete_id_list) > 0)
 {

@@ -76,15 +76,17 @@ class log_manager
 	function log_manager()
 	{
 
-		global $HTTP_SERVER_VARS;
+		global $HTTP_SERVER_VARS, $HTTP_ENV_VARS;
 
 		$this->ct_type_msg      = 0;
 		$this->ct_timestamp     = time();
-		$this->ct_request       = $HTTP_SERVER_VARS['PHP_SELF'] . '?' . $HTTP_SERVER_VARS['QUERY_STRING'];
-		$this->ct_referer       = $HTTP_SERVER_VARS['HTTP_REFERER'];
-		$this->ct_user_agent    = $HTTP_SERVER_VARS['HTTP_USER_AGENT'];
+		$php_self = isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '';
+		$query_string = isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '';
+		$this->ct_request       = $php_self . ($query_string !== '' ? '?' . $query_string : '');
+		$this->ct_referer       = isset($HTTP_SERVER_VARS['HTTP_REFERER']) ? $HTTP_SERVER_VARS['HTTP_REFERER'] : '';
+		$this->ct_user_agent    = isset($HTTP_SERVER_VARS['HTTP_USER_AGENT']) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : '';
 		$this->ct_remote_addr   = ( !empty($HTTP_SERVER_VARS['REMOTE_ADDR']) ) ? $HTTP_SERVER_VARS['REMOTE_ADDR'] : ( ( !empty($HTTP_ENV_VARS['REMOTE_ADDR']) ) ? $HTTP_ENV_VARS['REMOTE_ADDR'] : getenv('REMOTE_ADDR') );
-		$this->ct_remote_host   = $HTTP_SERVER_VARS['REMOTE_HOST'];
+		$this->ct_remote_host   = isset($HTTP_SERVER_VARS['REMOTE_HOST']) ? $HTTP_SERVER_VARS['REMOTE_HOST'] : '';
 		$this->ct_counter_value = 0;
 
 	}
@@ -237,13 +239,17 @@ class log_manager
 		$path     = $this->create_ct_path($file_id);
 		if ($file_id != 6)
     {
-		  $logsize  = count(file($path)) - 1;
+		  $log_lines = @file($path);
+		  $logsize = is_array($log_lines) ? max(0, count($log_lines) - 1) : 0;
 		}
 		else
 		{
-      $debug_array = file($path);
-      $debug_delimiter = $debug_array[0];
-      $logsize  = count($debug_array) - count(array_diff($debug_array, (array) $debug_delimiter));
+      $debug_array = @file($path);
+	  if (is_array($debug_array) && isset($debug_array[0]))
+	  {
+        $debug_delimiter = $debug_array[0];
+        $logsize  = count($debug_array) - count(array_diff($debug_array, (array) $debug_delimiter));
+	  }
     }
 
 		return $logsize;

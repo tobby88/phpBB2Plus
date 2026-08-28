@@ -273,12 +273,13 @@ function album_build_index($user_id, &$keys, $cur_cat_id = ALBUM_ROOT_CATEGORY, 
 		album_get_sub_cat_ids($cat_id, $cats, ALBUM_AUTH_VIEW, ALBUM_INCLUDE_PARENT_ID);
 
 		// we got the cat_id, we now need to get the value for the next sub category for this category
-        for ($j = 0; $j < count($album_data['sub'][$cur_cat_id]); $j++)
+		$current_subcategories = isset($album_data['sub'][$cur_cat_id]) && is_array($album_data['sub'][$cur_cat_id]) ? $album_data['sub'][$cur_cat_id] : array();
+        for ($j = 0; $j < count($current_subcategories); $j++)
 		{
 		 	$link = '';
 
 			// get the 'cur' for the current sub category
-            $subcur = $album_data['sub'][$cur_cat_id][$j];
+            $subcur = $current_subcategories[$j];
 			// get the keys for current iterated sub level
             $subthis = $album_data['keys'][$subcur];
 
@@ -657,6 +658,7 @@ function album_get_max_depth(&$keys, $cur_cat_id = ALBUM_ROOT_CATEGORY, $auth_ke
 //-----------------------------------------------
 function album_get_sub_cat_ids($cur_cat_id = ALBUM_ROOT_CATEGORY, &$cats = null, $auth_key = ALBUM_AUTH_VIEW, $include_cur_cat_id = false)
 {
+	if (!is_array($cats)) { $cats = array(); }
     global $album_data;
 
 	if ($include_cur_cat_id == true) 
@@ -796,7 +798,7 @@ function album_get_tree_option($selected_cat_id = ALBUM_ROOT_CATEGORY, $auth_key
 	//--------------------------------------------------------------------------
 	// check wheter the first gallery is a personal gallery or a public gallery
 	// -------------------------------------------------------------------------
-	$offset = ($album_data['personal'][$selected_cat_id] != 0) ? 1 : 0;
+	$offset = !empty($album_data['personal'][$selected_cat_id]) ? 1 : 0;
 	$user_root_id = album_get_personal_root_id($album_user_id);
 
 	$keys = array();

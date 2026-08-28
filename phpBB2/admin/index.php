@@ -674,6 +674,10 @@ $menu_cat_id = 0;
 	{
 		if ($errstr)
 		{
+			if (!preg_match('//u', $errstr) && function_exists('mb_convert_encoding'))
+			{
+				$errstr = mb_convert_encoding($errstr, 'UTF-8', 'Windows-1252');
+			}
 			$version_info = '<p style="color:red">' . sprintf($lang['Connect_socket_error'], $errstr) . '</p>';
 		}
 		else

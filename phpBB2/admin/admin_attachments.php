@@ -68,6 +68,8 @@ $submit = (isset($HTTP_POST_VARS['submit'])) ? TRUE : FALSE;
 $check_upload = (isset($HTTP_POST_VARS['settings'])) ? TRUE : FALSE;
 $check_image_cat = (isset($HTTP_POST_VARS['cat_settings'])) ? TRUE : FALSE;
 $search_imagick = (isset($HTTP_POST_VARS['search_imagick'])) ? TRUE : FALSE;
+$hidden = '';
+$error = false;
 
 // Re-evaluate the Attachment Configuration
 $sql = 'SELECT * 

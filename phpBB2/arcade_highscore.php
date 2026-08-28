@@ -37,6 +37,7 @@
 
 define('IN_PHPBB', true);
 $phpbb_root_path = './';
+$filename = basename(__FILE__);
 
 include_once($phpbb_root_path . 'extension.inc');
 include_once($phpbb_root_path . 'common.'.$phpEx);
@@ -69,13 +70,18 @@ else
 	$date = "0";
 }
 
-$curr_m = date(m);
-$curr_y = date(Y);
+$curr_m = date('m');
+$curr_y = date('Y');
+$cat_id = 0;
+$start = 0;
+$sort_mode = '';
+$order = '';
+$highscore_id = 0;
 
 if ($date >= $curr_m)
 {
 	$date = $date - $curr_m;
-	if ($data == "0")
+	if ($date == "0")
 	{
 		$highscore_date_y = "1";
 	}
@@ -173,7 +179,7 @@ while($row = $db->sql_fetchrow($result))
 	$image_path = ina_find_image($row['game_path'], $highscore_game, $row['image_path']);
 
   $highscore_game_pic = '<img src ="'. $image_path .'" border="0" alt="'.$row['game_desc'].'" align="middle" width="'.$arcade->arcade_config['games_image_width'].'" height="'.$arcade->arcade_config['games_image_height'].'" >';
-  $highscore_temp .= "<td width=\"20%\" height=\"19\" class=\"row".$row_bg_number."\"> <div align=\"center\"><a href=\"javascript:Gk_PopTart('activity.php?mode=game&amp;id=".$row['game_id']. "', 'Game_Windows', ".$row['win_width'].", ".$row['win_height'].", 'no')\">".$highscore_game_pic."</a><br /><span class=\"gen\">$row[game_desc]</span><br /><b><span class=\"gen\">".$highscore_player." : ".$highscore_score."</span></b></div></td>\n";
+  $highscore_temp .= "<td width=\"20%\" height=\"19\" class=\"row".$row_bg_number."\"> <div align=\"center\"><a href=\"javascript:Gk_PopTart('activity.php?mode=game&amp;id=".$row['game_id']. "', 'Game_Windows', ".$row['win_width'].", ".$row['win_height'].", 'no')\">".$highscore_game_pic."</a><br /><span class=\"gen\">".$row['game_desc']."</span><br /><b><span class=\"gen\">".$highscore_player." : ".$highscore_score."</span></b></div></td>\n";
 
 // Set output to be 5 rows across
 	if ($i == "5")
@@ -202,7 +208,7 @@ if ($bgcounter == "0")
 	$highscore_temp = "<tr align=\"center\" valign=\"top\">\n<td class=\"row1\">".$lang['highscore_no_score']."</td></tr>";
 }
 
-if($HTTP_POST_VARS['cat_id'] > 0)
+if(!empty($HTTP_POST_VARS['cat_id']))
 {
   $cat_id = intval($HTTP_POST_VARS['cat_id']);
 

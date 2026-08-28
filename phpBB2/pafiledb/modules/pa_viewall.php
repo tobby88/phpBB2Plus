@@ -11,7 +11,7 @@
 
 class pafiledb_viewall extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
 		global $pafiledb_template,$lang, $phpEx, $pafiledb_config, $_REQUEST, $userdata;
 

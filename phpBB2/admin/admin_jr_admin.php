@@ -122,7 +122,7 @@ function jr_admin_make_bookmark_heading($letters_list, $start)
 	global $lang, $order;
 	
 	$seperator = ' | ';
-	$startb = '[ <a href="'.append_sid("admin_jr_admin.php?sort_item=" . ( ( isset($_GET['sort_item']) || isset($_POST['sort_item']) ) ? $sort_item : 'username' ) . "&amp;start=0&amp;order=$order&amp;alphanum=" . strtoupper(chr($first_link))).'" class="nav">All</a> | ';
+	$startb = '[ <a href="'.append_sid("admin_jr_admin.php?sort_item=" . ( ( isset($_GET['sort_item']) || isset($_POST['sort_item']) ) ? $sort_item : 'username' ) . "&amp;start=0&amp;order=$order&amp;alphanum=0").'" class="nav">All</a> | ';
 	$end = ' ]';
 	
 	$list = '';
@@ -421,8 +421,16 @@ else
 	{
 		message_die(GENERAL_ERROR, $lang['Error_User_Table'], '', __LINE__, __FILE__, $sql);
 	}
+	$current_letter = '';
+	$assigned_current_letter_link = true;
 	while ($row = $db->sql_fetchrow($result))
 	{
+		$row_letter = strtoupper(substr($row['username'], 0, 1));
+		if ($row_letter !== $current_letter)
+		{
+			$current_letter = $row_letter;
+			$assigned_current_letter_link = false;
+		}
 		$jr_admin_row = jr_admin_get_user_info($row['user_id']);
 		$module_count = (!empty($jr_admin_row['user_jr_admin'])) ? count(explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_row['user_jr_admin'])) : 0;
 		$block_text = 'userrow';

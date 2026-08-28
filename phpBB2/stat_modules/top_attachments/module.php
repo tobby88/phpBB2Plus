@@ -164,8 +164,9 @@ for ($i = 0; $i < $num_attachments; $i++)
 		$filename_link = '<a href="' . $view_attachment . '" class="gen" target="_blank">' . $filename . '</a>';
 	}
 
+	$start = isset($_GET['start']) ? intval($_GET['start']) : 0;
 	$template->assign_block_vars('attachrow', array(
-		'ROW_NUMBER' => $i + ( $_GET['start'] + 1 ),
+		'ROW_NUMBER' => $i + $start + 1,
 		'ROW_CLASS' => $class,
 
 		'FILENAME' => $filename,

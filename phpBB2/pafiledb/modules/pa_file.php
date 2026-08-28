@@ -10,7 +10,7 @@
 */
 class pafiledb_file extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
 		global $_REQUEST, $phpbb_root_path, $userdata, $db, $pafiledb_functions;

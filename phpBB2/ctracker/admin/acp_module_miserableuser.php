@@ -26,6 +26,8 @@ $template->set_filenames(array(
 	'ct_body' => 'ctracker/acp/acp_miserableuser.tpl')
 );
 
+$mode = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
+
 
 if ( isset($HTTP_POST_VARS['submit']) )
 {
@@ -64,7 +66,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 		);
 	}
 }
-else if ( $HTTP_GET_VARS['mode'] == 'unmis' )
+else if ( $mode == 'unmis' )
 {
 	$userid = intval($HTTP_GET_VARS['userid']);
 	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_miserable_user = 0 WHERE user_id = ' . $userid;

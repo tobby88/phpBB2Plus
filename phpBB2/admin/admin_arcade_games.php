@@ -28,7 +28,7 @@ if( !empty($setmodules) )
 	$module['Arcade_Games']['Add'] = "admin_arcade_games.".$phpEx."?mode=add_game";
 	$module['Arcade_Games']['Edit'] = "admin_arcade_games.".$phpEx."?mode=edit_games";
 	$module['Arcade_Games']['Import'] = "admin_arcade_games.".$phpEx."?mode=import_game";
-	$module['Arcade_Games']['View'] = $phpbb_root_path."activity.".$phpEx;
+	$module['Arcade_Games']['View'] = "../activity.".$phpEx;
 	$module['Arcade_Games']['Reset'] = "admin_arcade_reset.".$phpEx."?mode=home";
 	$module['Arcade_Games']['Set'] = "admin_arcade_set.".$phpEx;
 
@@ -41,6 +41,9 @@ require('pagestart.' . $phpEx);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 
 $version = $arcade->version('./../');
+$mode = '';
+$search_word = '';
+$pagination = '&nbsp;';
 //
 //  Get Start of page info
 //
@@ -114,7 +117,7 @@ else
 {
 	$sort_mode = 'game_id';
 }
-$start = ( isset($HTTP_GET_VARS['start']) ) ? intval($HTTP_GET_VARS['start']) : intval($HTTP_POST_VARS['start']);
+$start = $arcade->pass_var('start', 0);
 if(isset($HTTP_POST_VARS['order']))
 {
 	$sort_order = ($HTTP_POST_VARS['order'] == 'DESC') ? 'DESC' : 'ASC';
@@ -179,7 +182,7 @@ switch( $sort_mode )
 //
 //  Start Processing the Operatation
 //
-if( $mode == "game_down" || $mode == "game_up" || $HTTP_POST_VARS['move_to'])
+if( $mode == "game_down" || $mode == "game_up" || !empty($HTTP_POST_VARS['move_to']))
 {
   $move_to = $arcade->pass_var('move_to',0);
 	$old_id  = $arcade->pass_var('id',0);
@@ -297,7 +300,7 @@ if( $mode == "game_down" || $mode == "game_up" || $HTTP_POST_VARS['move_to'])
 
 else if( $mode == "edit" || $mode == "add_game" )
 {
-	$game_id = ( !empty($HTTP_POST_VARS['id']) ) ? intval($HTTP_POST_VARS['id']) : intval($HTTP_GET_VARS['id']);
+	$game_id = $arcade->pass_var('id', 0);
 	$game_id = intval($game_id);
 	if(!$game_id)
 	{
@@ -310,6 +313,17 @@ else if( $mode == "edit" || $mode == "add_game" )
 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
 	}
 	$game_info = $db->sql_fetchrow($result);
+	$game_info = array_merge(array(
+		'game_use_gl' => 0, 'game_flash' => 0, 'game_show_score' => 0,
+		'game_avail' => 0, 'allow_guest' => 0, 'reverse_list' => 0,
+		'game_autosize' => 0, 'score_type' => 0, 'group_required' => 0,
+		'rank_required' => 0, 'level_required' => 0, 'cat_id' => 0,
+		'game_control' => 0, 'game_name' => '', 'game_path' => '',
+		'image_path' => '', 'game_desc' => '', 'instructions' => '',
+		'game_charge' => 0, 'game_reward' => 0, 'game_bonus' => 0,
+		'at_game_bonus' => 0, 'highscore_limit' => 0, 'at_highscore_limit' => 0,
+		'win_width' => 0, 'win_height' => 0
+	), is_array($game_info) ? $game_info : array());
 	if($mode == "add_game")
 	{
 		if($game_id == 0)
@@ -518,7 +532,7 @@ else if( $mode == "edit" || $mode == "add_game" )
 		"L_GAME_AUTO_SIZE_INFO" => $lang['admin_game_autosize_info'],
 		"L_GAME_SCORE_TYPE" => $lang['admin_game_score_type'],
 		"L_GAME_SCORE_TYPE_INFO" => $lang['admin_game_score_type_info'],
-		"L_GAME_GROUP_REQUIRED" => $lang['admin_group_required'],
+		"L_GAME_GROUP_REQUIRED" => isset($lang['admin_group_required']) ? $lang['admin_group_required'] : $lang['admin_game_group'],
 		"L_GAME_RANK_REQUIRED" => $lang['admin_rank_required'],
 		"L_GAME_LEVEL_REQUIRED" => $lang['admin_level_required'],
 

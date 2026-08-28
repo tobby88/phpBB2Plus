@@ -25,6 +25,11 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 }
 
+$is_block = isset($is_block) ? (bool) $is_block : false;
+$category_id = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
+$category_name = '';
+$path_kb = '';
+
 //	$category_id = $_GET['cat'];
 //	$category = get_kb_cat($category_id);		
 //	$category_name = $category['category_name'];

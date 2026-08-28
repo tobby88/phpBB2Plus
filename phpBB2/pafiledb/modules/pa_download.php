@@ -11,7 +11,7 @@
 
 class pafiledb_download extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
 		global $_REQUEST, $lang, $db, $pafiledb_user, $pafiledb_config, $board_config, $phpEx, $userdata;
 		global $phpbb_root_path, $_SERVER, $pafiledb_functions;

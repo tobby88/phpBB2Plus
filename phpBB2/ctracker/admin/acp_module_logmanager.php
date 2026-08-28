@@ -27,8 +27,8 @@ $template->set_filenames(array(
 
 
 $logmanager = new log_manager();
-$mode       = $HTTP_GET_VARS['mode'];
-$logid      = $HTTP_GET_VARS['logid'];
+$mode       = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
+$logid      = isset($HTTP_GET_VARS['logid']) ? intval($HTTP_GET_VARS['logid']) : 0;
 
 if ( $mode == 'delete' )
 {

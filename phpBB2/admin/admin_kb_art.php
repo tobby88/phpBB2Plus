@@ -33,7 +33,6 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-include($phpbb_root_path . 'config.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 include($phpbb_root_path . 'includes/kb_constants.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_kb.'.$phpEx);
@@ -59,6 +58,10 @@ else
 		$kb_config[$config_name] = $config_value;
     }
 }
+
+$approve = !empty($_POST['approve']);
+$unapprove = !empty($_POST['unapprove']);
+$delete = !empty($_POST['delete']);
 
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {

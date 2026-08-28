@@ -14,7 +14,7 @@
 
 class pafiledb_mcp extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images, $debug;;
 		global $_REQUEST, $phpbb_root_path, $userdata, $db, $pafiledb_functions;

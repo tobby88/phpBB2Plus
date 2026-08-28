@@ -63,9 +63,12 @@ function getlistkb($id, $select)
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-include($phpbb_root_path . 'config.'.$phpEx);
 require($phpbb_root_path . 'includes/kb_constants.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
+
+$create = !empty($_POST['create']);
+$edit = !empty($_POST['edit']);
+$delete = !empty($_POST['delete']);
 
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {

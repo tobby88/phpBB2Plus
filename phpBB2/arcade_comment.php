@@ -37,6 +37,7 @@ init_userprefs($userdata);
 //
 // Check User Logged in
 //
+$game_id = $arcade->pass_var('game_id', 0);
 if (!$userdata['session_logged_in'])
 {
 	redirect(append_sid("login.$phpEx?redirect=arcade_comment.$phpEx?game_id=$game_id"));
@@ -104,7 +105,7 @@ if( !($result = $db->sql_query($sql)) )
 $thisgame = $db->sql_fetchrow($result);
 
 $cat_id = $thisgame['cat_id'];
-$user_id = $thisgame['comment_user_id'];
+$user_id = isset($thisgame['comment_user_id']) ? intval($thisgame['comment_user_id']) : ANONYMOUS;
 $total_comments = $thisgame['comments_count'];
 $comments_per_page = $board_config['posts_per_page'];
 $game_name = $thisgame['game_name'];
@@ -281,7 +282,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		'L_USERNAME' => $lang['Username'],
 		'L_COMMENT_NO_TEXT' => $lang['no_comment_text'],
 		'L_COMMENT_TOO_LONG' => sprintf($lang['to_much_comment_text'], $arcade->arcade_config['games_comment_size']),
-		'L_MAX_LENGTH' => $lang['Max_length'],
+		'L_MAX_LENGTH' => isset($lang['Max_length']) ? $lang['Max_length'] : 'Maximale Länge',
 		'L_SUBMIT' => $lang['Submit'],
 
 		'S_MAX_LENGTH' => $arcade->arcade_config['games_comment_size'],
@@ -530,7 +531,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		'L_USERNAME' => $lang['Username'],
 		'L_COMMENT_NO_TEXT' => $lang['no_comment_text'],
 		'L_COMMENT_TOO_LONG' => sprintf($lang['to_much_comment_text'], $arcade->arcade_config['games_comment_size']),
-		'L_MAX_LENGTH' => $lang['Max_length'],
+		'L_MAX_LENGTH' => isset($lang['Max_length']) ? $lang['Max_length'] : 'Maximale Länge',
 		'L_ORDER' => $lang['Order'],
 		'L_SORT' => $lang['Sort'],
 		'L_ASC' => $lang['Sort_Ascending'],

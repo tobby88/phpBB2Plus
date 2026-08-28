@@ -90,7 +90,10 @@ $mode = $arcade->pass_var('mode', '');
 //
 if ( !$mode || $mode == 'switches' || $mode == 'moderators' || $mode == 'messages' )
 {
-  if (($HTTP_POST_VARS['use_point_system'] == 1 && $HTTP_POST_VARS['use_cash_system'] == 1) || ($HTTP_POST_VARS['use_point_system'] == 1 && $HTTP_POST_VARS['use_allowance_system'] == 1) || ($HTTP_POST_VARS['use_cash_system'] == 1 && $HTTP_POST_VARS['use_allowance_system'] == 1))
+  $posted_point_system = !empty($HTTP_POST_VARS['use_point_system']);
+  $posted_cash_system = !empty($HTTP_POST_VARS['use_cash_system']);
+  $posted_allowance_system = !empty($HTTP_POST_VARS['use_allowance_system']);
+  if (($posted_point_system && $posted_cash_system) || ($posted_point_system && $posted_allowance_system) || ($posted_cash_system && $posted_allowance_system))
   {
     $message = $lang['admin_arcade_reward_error'];
 		$message .= sprintf($lang['admin_return_arcade'], "<a href=\"" . append_sid("admin_arcade.$phpEx?mode=".$new_mode) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
@@ -183,6 +186,10 @@ if ( !$mode || $mode == 'switches' || $mode == 'moderators' || $mode == 'message
 				}
 			}
 		}
+		$new = array_merge(array(
+			'games_group_required' => 0,
+			'games_mod_offline' => 0
+		), $new);
 		if( isset($HTTP_POST_VARS['submit']) )
 		{	
 //
@@ -225,9 +232,10 @@ if ( !$mode || $mode == 'switches' || $mode == 'moderators' || $mode == 'message
 		message_die(CRITICAL_ERROR, $lang['no_config_data'], '', __LINE__, __FILE__, $sql);
 	}
 	$select_group .= '<option value="' . 0 . '">' . $lang['All'] . '</option>';
+	$required_group_id = isset($arcade->arcade_config['games_group_required']) ? $arcade->arcade_config['games_group_required'] : 0;
 	while ($group_info = $db->sql_fetchrow($result))
 	{
-		$selected = ( $group_info['group_id'] == $arcade->arcade_config['games_group_required'] ) ? ' selected="selected"' : '';
+		$selected = ( $group_info['group_id'] == $required_group_id ) ? ' selected="selected"' : '';
 		$select_group .= '<option value="' . $group_info['group_id'] . '"' . $selected . '>' . $group_info['group_name'] . '</option>';
 	}	
 	$select_group .= '</select>';
@@ -625,7 +633,7 @@ if ( !$mode || $mode == 'switches' || $mode == 'moderators' || $mode == 'message
 		'S_GUEST_TXT' => $arcade->arcade_config['games_default_txt'],
 		'S_GAMES_ZERO_TXT' => $arcade->arcade_config['games_cat_zero'],
 		'S_GAMES_PATH' => $arcade->arcade_config['games_path'],
-		'S_GL_GAMES_PATH' => $arcade->arcade_config['games_gl_path'],
+		'S_GL_GAMES_PATH' => isset($arcade->arcade_config['games_gl_path']) ? $arcade->arcade_config['games_gl_path'] : $arcade->arcade_config['games_path'],
 		'S_GAMELIB_PATH' => $arcade->arcade_config['gamelib_path'],
 		'S_HIDDEN_FIELDS' => '<input type="hidden" name="new_mode" value="'.$mode.'">')
 	);

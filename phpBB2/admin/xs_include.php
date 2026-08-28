@@ -154,9 +154,9 @@ define('TAR_HEADER_UNPACK', 'a100filename/a8mode/a8uid/a8gid/a12size/a12mtime/a8
 define('XS_MAX_ITEMS_PER_STYLE', 32);
 define('XS_TEMP_DIR', '../cache/');
 define('XS_FTP_LOCAL', 'no_ftp');
-define('XS_UPDATE_STYLE', 1);
-define('XS_UPDATE_MOD', 2);
-define('XS_UPDATE_PHPBB', 3);
+if (!defined('XS_UPDATE_STYLE')) { define('XS_UPDATE_STYLE', 1); }
+if (!defined('XS_UPDATE_MOD')) { define('XS_UPDATE_MOD', 2); }
+if (!defined('XS_UPDATE_PHPBB')) { define('XS_UPDATE_PHPBB', 3); }
 define('XS_TPL_PATH', '../../xs_mod/tpl/');
 define('XS_BACKUP_PREFIX', 'backup.');
 define('XS_BACKUP_EXT', '.backup');

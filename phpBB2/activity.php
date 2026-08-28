@@ -114,7 +114,7 @@ if(intval($userdata['user_rank']) < intval($arcade->arcade_config['games_rank_re
 {
 	$arcade->message_die(GENERAL_MESSAGE, $lang['games_group_rank_limit'], $lang['Information']);
 }
-if($arcade->arcade_config['games_group_required'])
+if(!empty($arcade->arcade_config['games_group_required']))
 {
 	$sql = "SELECT user_id FROM " . USER_GROUP_TABLE . "
 		WHERE group_id = " . $arcade->arcade_config['games_group_required'] . "
@@ -253,6 +253,8 @@ for ($group_count = 0; $group_count < count($group_ids); $group_count++)
    $group_list .= ', ' . $group_ids[$group_count]['group_id'];
 }
 $group_array = explode(', ', $group_list);
+$cat_info = array('special_play' => 0, 'cat_name' => $lang['all_games']);
+$mod_id = 0;
 //
 //  If Catagory is set, get Catagory Info.
 //
@@ -358,7 +360,7 @@ if( $mode != '' )
     } 
     $session = update_ina_session($userdata['user_id'], $user_ip, PAGE_PLAYING_GAMES, $game_info['game_name'], '', $win);
 		$game_charge = $game_info['game_charge'];
-		$gamepath = 'loader.' . $phpEx . '?gid=' . $game_hash;
+		$gamepath = 'loader.' . $phpEx . '?gid=' . $session;
 
 		if(!$game_id)
 		{
@@ -439,7 +441,7 @@ if( $mode != '' )
 	{
 		$page_title = $game_info['game_desc'] . ' - ' . $board_config['sitename']; 
 		$page_meta_desc = $page_title;
-		$page_meta_key = trim(htmlspecialchars(str_replace(",-,",",",str_replace(" ", ",", $game_info['game_desc'] . ',' . $board_config[sitename]))));
+		$page_meta_key = trim(htmlspecialchars(str_replace(",-,",",",str_replace(" ", ",", $game_info['game_desc'] . ',' . $board_config['sitename']))));
 
 		$url .= ' &raquo; <a href="' . $filename . '?mode=game&amp;id=' . $game_info['game_id'] . '&amp;win=self">' . $game_info['game_desc'] . '</a>';
 
@@ -630,6 +632,7 @@ if( $mode != '' )
 		{
 			$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
 		}
+		$last_score = null;
 		if ($row = $db->sql_fetchrow($result)) 
 		{ 
 			$i = 1; 
@@ -811,7 +814,7 @@ if( $mode != '' )
 	{	
 		if(((intval($userdata['user_posts']) < intval($arcade->arcade_config['games_posts_required'])) || (intval($userdata['user_rank']) < intval($arcade->arcade_config['games_rank_required']))) && $userdata['user_level'] != ADMIN && $userdata['user_id'] != ANONYMOUS)
 		{
-			if(!$HTTP_GET_VARS['warning'])
+			if(empty($HTTP_GET_VARS['warning']))
 			{
 				$warning_url = '<a href="' . $filename . '?mode=cat&amp;cat_id=' . $arcade->cat_id . '&amp;start=' . $start . '&amp;sort_mode=' . $arcade->sort_mode . '&amp;order=' . $arcade->sort_order . '&amp;warning=true">OK</a>';
 				message_die(GENERAL_MESSAGE, sprintf($lang['games_not_enough_posts'], $warning_url), $lang['Information']);
@@ -825,6 +828,15 @@ if( $mode != '' )
 // Now lets start building the list of Activities for the catagory :)
 //
 		$game_count = 0;
+		$sql_and = '';
+		$pagination = '';
+		$page_number = '';
+		$select_game = '';
+		$total_tournaments = 0;
+		$moderate = '';
+		$top_games_list = '';
+		$bottom_games_list = '';
+		$bottom_games_header = '';
 		$sort_mode_link_info = append_sid("$filename?mode=cat&amp;cat_id=$arcade->cat_id&amp;");
 		
 		$template->set_filenames(array('body' => 'arcade_body.tpl') );
@@ -1221,8 +1233,8 @@ if( $mode != '' )
 
 			if ($arcade->arcade_config['games_rate'] && ($userdata['user_id'] != ANONYMOUS))
 			{
- 	      $game_rate = ' &nbsp; <a href="arcade_rate.' . $phpEx . '?game_id=' . $game_id . '")"><img src="images/rate.gif" border="0"></a> &nbsp; ';
-        if($arcade->arcade_config['games_rate_extra'])
+				$game_rate = ' &nbsp; <a href="arcade_rate.' . $phpEx . '?game_id=' . $game_id . '")"><img src="images/rate.gif" border="0"></a> &nbsp; ';
+				if(!empty($arcade->arcade_config['games_rate_extra']))
         {
 
   			  $sql ="SELECT * FROM ". iNA_GAMES_RATE ."	
@@ -1291,6 +1303,7 @@ if( $mode != '' )
         $game_control = '';
       }
 
+			$tournament = '';
 			$template->assign_block_vars("game", array(
 				'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
 
@@ -1416,7 +1429,8 @@ if( $mode != '' )
     }
 		if((($mod_id && $mod_id == $user_id) || $userdata['user_level'] == ADMIN) && $arcade->arcade_config['games_moderators_mode'])
 		{
-			$moderate = '<a href="arcade_modcp.'.$phpEx.'?mode=mod&amp;cat_id='.$arcade->cat_id.'"><img src="images/moderate.gif" border="0" alt="'.$lang['Rules_moderate2'].'"></a> ';
+			$moderate_label = isset($lang['Rules_moderate2']) ? $lang['Rules_moderate2'] : 'Moderieren';
+			$moderate = '<a href="arcade_modcp.'.$phpEx.'?mode=mod&amp;cat_id='.$arcade->cat_id.'"><img src="images/moderate.gif" border="0" alt="'.$moderate_label.'"></a> ';
 		}
 		if ($arcade->arcade_config['games_show_stats'] == 1)
 		{
@@ -1581,6 +1595,7 @@ else
 //
 //  Tournaments Output
 //
+	$tour_link = '';
 	if ($arcade->arcade_config['games_tournament_mode'])
 	{
 		$total_tournaments = get_total_tour();

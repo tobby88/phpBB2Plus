@@ -27,6 +27,8 @@ if (!defined('IN_PHPBB'))
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+$select_sort_mode = '';
+$select_sort_order = '';
 
 // -------------------------
 //
@@ -39,7 +41,7 @@ function generate_user_info(&$row, $date_format, $group_mod, &$from, &$posts, &$
 	$posts = ( $row['user_posts'] ) ? $row['user_posts'] : 0;
 
 	$poster_avatar = '';
-	if ( $row['user_avatar_type'] && $row['user_id'] != ANONYMOUS && $row['user_allowavatar'] )
+	if ( !empty($row['user_avatar_type']) && $row['user_id'] != ANONYMOUS && $row['user_allowavatar'] )
 	{
 		switch( $row['user_avatar_type'] )
 		{
