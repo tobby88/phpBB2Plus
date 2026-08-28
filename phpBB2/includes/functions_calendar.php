@@ -1049,7 +1049,7 @@ if ( !$use_cache || $cal_ttl < time() )
 		$event_time = $events[$i]['event_calendar_time'];
 
 		// adjust the event period to the start of day
-		$event_time_end = $event_time + $events[$i]['event_calendar_duration'];
+		$event_time_end = ((int) $event_time) + ((int) $events[$i]['event_calendar_duration']);
 		$event_end = mktime( 0,0,0, intval(date('m', $event_time_end)), intval(date('d', $event_time_end)), intval(date('Y', $event_time_end)) );
 		$event_start = mktime( 0,0,0, intval(date('m', $event_time)), intval(date('d', $event_time)), intval(date('Y', $event_time)) );
 

@@ -1423,29 +1423,28 @@ function realdate($date_syntax="Ymd",$date=0)
 	 	return create_date($date_syntax,$date*86400+1,0);
 	} else
 	{
-		$year= -(date%1461);
-		$days = $date + $year*1461;
-		while ($days<0)
-		{
-			$year--;
-			$days+=365;
-			if ($i++==3)
-			{
-				$i=0;
-				$days++;
-			}
-		}
+		// Convert whole days relative to 1970-01-01 to a Gregorian date without
+		// relying on platform support for negative Unix timestamps.
+		$absolute_day = (int) floor($date);
+		$shifted_day = $absolute_day + 719468;
+		$era = (int) floor($shifted_day / 146097);
+		$day_of_era = $shifted_day - ($era * 146097);
+		$year_of_era = (int) floor(($day_of_era - floor($day_of_era / 1460) +
+			floor($day_of_era / 36524) - floor($day_of_era / 146096)) / 365);
+		$civil_year = $year_of_era + ($era * 400);
+		$day_of_year_march = $day_of_era - (365 * $year_of_era +
+			floor($year_of_era / 4) - floor($year_of_era / 100));
+		$month_march = (int) floor((5 * $day_of_year_march + 2) / 153);
+		$day = $day_of_year_march - (int) floor((153 * $month_march + 2) / 5) + 1;
+		$month = $month_march + (($month_march < 10) ? 3 : -9);
+		$civil_year += ($month <= 2) ? 1 : 0;
+		$year = $civil_year - 1970;
 	}
-	$leap_year = ($i==0) ? TRUE : FALSE;
-	$months_array = ($i==0) ?
+	$leap_year = (($civil_year % 4 == 0) && ($civil_year % 100 != 0 || $civil_year % 400 == 0));
+	$months_array = ($leap_year) ?
 		array (0,31,60,91,121,152,182,213,244,274,305,335,366) :
 		array (0,31,59,90,120,151,181,212,243,273,304,334,365);
-	for ($month=1;$month<12;$month++)
-	{
-		if ($days<$months_array[$month]) break;
-	}
-
-	$day=$days-$months_array[$month-1]+1;
+	$days = $months_array[$month-1] + $day - 1;
 	//you may gain speed performance by remove som of the below entry's if they are not needed/used
 	$weekday = (($date - 3) % 7 + 7) % 7;
 	return strtr ($date_syntax, array(

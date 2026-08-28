@@ -285,6 +285,8 @@ $zodiacs = array ('Capricorn','Aquarius', 'Pisces', 'Aries', 'Taurus', 'Gemini',
 define('AUTH_CAL', 20);
 define('POST_BIRTHDAY', 9);
 define('POST_CALENDAR', 10);
+if (!defined('POST_PICTURE')) define('POST_PICTURE', 11);
+if (!defined('POST_ATTACHMENT')) define('POST_ATTACHMENT', 12);
 //-- fin mod : calendar ----------------------------------------------------------------------------
 //
 // Custom Profile Fields MOD
