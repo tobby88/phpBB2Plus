@@ -567,11 +567,9 @@ else
 	// Generate filename
 	// --------------------------------
 
-	srand((float)microtime()*1000000);	// for older than version 4.2.0 of PHP
-
 	do
 	{
-		$pic_filename = md5(uniqid(rand())) . $pic_filetype;
+		$pic_filename = md5(dss_rand() . dss_rand()) . $pic_filetype;
 	}
 	while( file_exists(ALBUM_UPLOAD_PATH . $pic_filename) );
 

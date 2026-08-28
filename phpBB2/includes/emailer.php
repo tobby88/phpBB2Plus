@@ -56,27 +56,27 @@ class emailer
 	// Sets an email address to send to
 	function email_address($address)
 	{
-		$this->addresses['to'] = trim($address);
+		$this->addresses['to'] = trim(preg_replace('#[\r\n]+#', '', $address));
 	}
 
 	function cc($address)
 	{
-		$this->addresses['cc'][] = trim($address);
+		$this->addresses['cc'][] = trim(preg_replace('#[\r\n]+#', '', $address));
 	}
 
 	function bcc($address)
 	{
-		$this->addresses['bcc'][] = trim($address);
+		$this->addresses['bcc'][] = trim(preg_replace('#[\r\n]+#', '', $address));
 	}
 
 	function replyto($address)
 	{
-		$this->reply_to = trim($address);
+		$this->reply_to = trim(preg_replace('#[\r\n]+#', '', $address));
 	}
 
 	function from($address)
 	{
-		$this->from = trim($address);
+		$this->from = trim(preg_replace('#[\r\n]+#', '', $address));
 	}
 
 	// set up subject for mail

@@ -385,7 +385,7 @@ function cg_get_data($user_id, $all = false)
 				{ 
 					fwrite($f, $write_string); 
 					fclose($f); 
-					@chmod($cache_file, 0666); 
+					@chmod($cache_file, 0664);
 				}
 	
 				include($cache_file); 

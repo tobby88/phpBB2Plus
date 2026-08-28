@@ -196,7 +196,7 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 
 	if ( $width > 0 && $height > 0 && $width <= $board_config['avatar_max_width'] && $height <= $board_config['avatar_max_height'] )
 	{
-		$new_filename = uniqid(rand()) . $imgtype;
+		$new_filename = md5(dss_rand() . dss_rand()) . $imgtype;
 
 		if ( $mode == 'editprofile' && $current_type == USER_AVATAR_UPLOAD && $current_avatar != '' )
 		{

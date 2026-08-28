@@ -190,7 +190,7 @@ function update_ina_session($user_id, $user_ip, $page, $game, $old_hash = FALSE,
 
 	$start_time		= time();
 	$string			= sprintf("ARCADE_MOD %s %s %s %d %d %d", $game, $board_config['sitename'], $user_ip, $page, $user_id, $userdata['session_ip']);
-	$arcade_hash	= md5($string);
+	$arcade_hash	= md5(dss_rand() . dss_rand() . $string);
 	//
 	// The next two lines are used only for the human readable part of the MCP and can be commented out if they cause problems
 	// (some sites have been set-up on a private network and do not use TCP/IP)

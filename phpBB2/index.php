@@ -306,7 +306,7 @@ if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonl
 			 $fp = fopen( $cache_data_file, "w" );
 			 fwrite($fp, $data);
 			 fclose($fp);
-			 @chmod($cache_data_file, 0666); 
+			 @chmod($cache_data_file, 0664);
 		  }
 	   }
 	}
@@ -391,7 +391,7 @@ if ( ($plus_config['show_last_visit'] != 0) && ($board_config['display_viewonlin
 		   $fp = fopen( $cache_data_file, "w" ); 
 		   fwrite($fp, $data); 
 		   fclose($fp); 
-		   @chmod($cache_data_file, 0666); 
+		   @chmod($cache_data_file, 0664);
 		} 
 	}
 	$users_today_list = stripslashes($users_today_list);

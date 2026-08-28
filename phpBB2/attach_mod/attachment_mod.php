@@ -138,7 +138,7 @@ if (file_exists($cache_dir) && is_dir($cache_dir) && is_writable($cache_dir))
 			fwrite($fp, '<?php $attach_config = array(' . implode(',', $lines) . '); ?>');
 			fclose($fp);
 
-			@chmod($cache_file, 0777);
+			@chmod($cache_file, 0664);
 		}
 	}
 }

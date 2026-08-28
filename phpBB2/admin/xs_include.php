@@ -508,7 +508,7 @@ function xs_check_cache($filename)
 				else
 				{
 					$str .= sprintf($lang['xs_check_createddir'], $path) . "<br />\n";
-					@chmod($path, 0777);
+					@chmod($path, 0775);
 				}
 			}
 			else
@@ -534,7 +534,7 @@ function xs_check_cache($filename)
 					else
 					{
 						$str .= sprintf($lang['xs_check_createddir'], $path) . "<br />\n";
-						@chmod($path, 0777);
+						@chmod($path, 0775);
 					}
 				}
 				else
@@ -553,7 +553,7 @@ function xs_check_cache($filename)
 		$str .= sprintf($lang['xs_check_ok'], $filename) . "<br />\n";
 		fputs($file, '&nbsp;');
 		fclose($file);
-		@chmod($filename, 0777);
+		@chmod($filename, 0664);
 		return true;
 	}
 }
@@ -925,7 +925,7 @@ function xs_write_file($filename, $data)
 	}
 	fwrite($f, $data);
 	fclose($f);
-	@chmod($filename, 0777);
+	@chmod($filename, 0664);
 	return true;
 }
 

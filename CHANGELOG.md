@@ -41,6 +41,19 @@ changes consolidated after that baseline without implying active maintenance.
 - Replaced the remaining executable regular expressions, corrected obsolete
   PHP argument order in database backup generation and replaced removed
   `utf8_decode()` use while preserving existing custom-profile column names.
+- Fixed the modern-superglobal compatibility layer so recursively quoted
+  request values are synchronized back to the legacy `$HTTP_*_VARS` arrays
+  used by phpBB2. This closes a gap where old SQL-building code could receive
+  an unquoted copy; the separately initialized `$_REQUEST` array is covered as
+  well.
+- Replaced predictable session-adjacent, activation, CAPTCHA, upload and Arcade
+  identifiers with operating-system randomness while preserving their legacy
+  database formats and a PHP 5.6 OpenSSL fallback.
+- Stopped constructing public and upload-return URLs from attacker-controlled
+  `Host`/`PHP_SELF` request values, escaped the Tell-a-Friend form values and
+  stripped line breaks from mail address headers.
+- Reduced generated cache, template, upload and thumbnail permissions from
+  world-writable modes to owner/group-writable files and directories.
 
 ### Repository and update cleanup
 

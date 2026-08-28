@@ -2075,7 +2075,7 @@ class Template {
 				}
 				else
 				{
-					@chmod($path, 0777);
+					@chmod($path, 0775);
 				}
 			}
 			$count = count($dirs);
@@ -2096,7 +2096,7 @@ class Template {
 					}
 					else
 					{
-						@chmod($path, 0777);
+						@chmod($path, 0775);
 					}
 				}
 			}
@@ -2111,7 +2111,7 @@ class Template {
 		fputs($file, "<?php\n\n// eXtreme Styles mod cache. Generated on " . date('r') . " (time=" . time() . ")\n\n?>");
 		fputs($file, $code);
 		fclose($file);
-		@chmod($filename, 0777);
+		@chmod($filename, 0664);
 		return true;
 	}
 

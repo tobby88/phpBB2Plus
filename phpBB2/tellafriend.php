@@ -9,7 +9,7 @@ $topic = isset($_POST['topic']) ? $_POST['topic'] : (isset($_GET['topic']) ? $_G
 $friendname = isset($_POST['friendname']) ? $_POST['friendname'] : '';
 $message = isset($_POST['message']) ? $_POST['message'] : '';
 $link = isset($_GET['link']) ? $_GET['link'] : '';
-$PHP_SELF = $HTTP_SERVER_VARS['PHP_SELF'];
+$PHP_SELF = 'tellafriend.' . $phpEx;
 
 $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
@@ -21,8 +21,10 @@ if( !$userdata['session_logged_in'] )
         
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
-$mail_body = str_replace("{TOPIC}", trim(stripslashes($topic)), $lang['Tell_Friend_Body']);
-$mail_body = str_replace("{LINK}", $link, $mail_body);
+$topic_plain = trim(stripslashes($topic));
+$link_plain = trim(stripslashes($link));
+$mail_body = str_replace("{TOPIC}", $topic_plain, $lang['Tell_Friend_Body']);
+$mail_body = str_replace("{LINK}", $link_plain, $mail_body);
 $mail_body = str_replace("{SITENAME}", $board_config['sitename'], $mail_body);
 
 $template->assign_vars(array(
@@ -34,13 +36,13 @@ $template->assign_vars(array(
 'L_TELL_FRIEND_RECIEVER_USER' => $lang['Tell_Friend_Reciever_User'],
 'L_TELL_FRIEND_RECIEVER_EMAIL' => $lang['Tell_Friend_Reciever_Email'],
 'L_TELL_FRIEND_MSG' => $lang['Tell_Friend_Msg'],
-'L_TELL_FRIEND_BODY' => $mail_body,
+'L_TELL_FRIEND_BODY' => htmlspecialchars($mail_body, ENT_QUOTES, 'UTF-8'),
  
 'SUBMIT_ACTION' => append_sid("$PHP_SELF", true),
 'L_SUBMIT' => $lang['Send_email'],
 'SITENAME' => $board_config['sitename'], 
-'TOPIC' => trim(stripslashes($topic)), 
-'LINK' => $link, 
+'TOPIC' => htmlspecialchars($topic_plain, ENT_QUOTES, 'UTF-8'),
+'LINK' => htmlspecialchars($link_plain, ENT_QUOTES, 'UTF-8'),
 'SENDER_NAME' => $userdata['username'], 
 'SENDER_MAIL' => $userdata['user_email'], 
 ));

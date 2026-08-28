@@ -400,7 +400,7 @@ if ($board_config['birthday_check_day'] > 0 )
 			 $fp = fopen( $cache_data_file, "w" );
 			 fwrite($fp, $data);
 			 fclose($fp);
-			 @chmod($cache_data_file, 0666); 
+			 @chmod($cache_data_file, 0664);
 		  }
 	   }
 	}
@@ -484,7 +484,7 @@ if ($plus_config['show_last_visit'] != 0 && (($board_config['display_viewonline'
 		   $fp = fopen( $cache_data_file, "w" ); 
 		   fwrite($fp, $data); 
 		   fclose($fp); 
-		   @chmod($cache_data_file, 0666); 
+		   @chmod($cache_data_file, 0664);
 		} 
 	}
 	
@@ -1151,7 +1151,7 @@ if ( ($plus_config['show_shoutbox'] == 1 || $plus_config['show_shoutbox'] == 3 )
 include($phpbb_root_path . 'includes/mini_cal/mini_cal.'.$phpEx);
 
 $template->assign_vars(array( 
-"TELL_LINK" => append_sid("http://".$HTTP_SERVER_VARS['HTTP_HOST'].$HTTP_SERVER_VARS['PHP_SELF']."?t=$topic_id", true)));
+"TELL_LINK" => rawurlencode(phpbb_board_url("viewtopic.$phpEx?t=$topic_id"))));
 
 $content = new NewsModule( $phpbb_root_path ); 
 

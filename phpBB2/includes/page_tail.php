@@ -150,7 +150,7 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 			{
 				fwrite($f, $write_string);
 				fclose($f);
-				@chmod($cache_seo, 0666);
+				@chmod($cache_seo, 0664);
 			}
 		}
     }

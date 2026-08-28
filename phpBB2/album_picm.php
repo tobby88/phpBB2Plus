@@ -261,7 +261,7 @@ else
 		else
 		{
 			copy ( $src, $thumbnail );
-        	@chmod ($outthumb, 0666);
+			@chmod ($outthumb, 0664);
         	$syscmd = "'c:\ImageMagick\mogrify.exe' -size $thumbnail_width x $thumbnail_height -quality 70 -geometry $thumbnail_width x $thumbnail_height $thumbnail ";
 		}
 	}

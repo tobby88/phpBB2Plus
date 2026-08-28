@@ -905,7 +905,7 @@ if ($check_image_cat)
 		if (!@file_exists(@amod_realpath($upload_dir)))
 		{
 			@mkdir($upload_dir, 0755);
-			@chmod($upload_dir, 0777);
+			@chmod($upload_dir, 0775);
 		
 			if (!@file_exists(@amod_realpath($upload_dir)))
 			{

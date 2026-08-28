@@ -1644,7 +1644,7 @@ else
 		$code = dss_rand();
 		$code = substr(str_replace('0', 'Z', strtoupper(base_convert($code, 16, 35))), 2, 6);
 
-		$confirm_id = md5(uniqid($user_ip));
+		$confirm_id = md5(dss_rand() . dss_rand());
 
 		$sql = 'INSERT INTO ' . CONFIRM_TABLE . " (confirm_id, session_id, code) 
 			VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";

@@ -59,7 +59,7 @@ xs_ftp_connect(append_sid('xs_chmod.'.$phpEx), array(), true);
 if($ftp === XS_FTP_LOCAL)
 {
 	@mkdir('../cache', 0777);
-	@chmod('../cache', 0777);
+	@chmod('../cache', 0775);
 	if(xs_dir_writable('../cache'))
 	{
 		xs_message($lang['Information'], $lang['xs_chmod_message1']);

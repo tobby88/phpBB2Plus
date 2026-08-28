@@ -130,7 +130,7 @@ function icons_write()
 	// output the file
 	$filename = $phpbb_root_path . 'includes/def_icons.' . $phpEx;
 	@umask(0);
-	@chmod($filename, 0666);
+	@chmod($filename, 0664);
 	@unlink($filename);
 	$f = @fopen($filename, 'w' );
 	$texte  = "<?php\n$res\n?>";

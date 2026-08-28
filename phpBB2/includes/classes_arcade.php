@@ -993,7 +993,7 @@ class arcade
       return FALSE;
     }
    	$cache_file = $cache_prefix. 'cache/arcade_' . $cache_file . '.' .$phpEx;
-   	@CHMOD($cache_file, 0766);
+		@CHMOD($cache_file, 0664);
     @unlink($cache_file);
     return TRUE;
   }

@@ -84,7 +84,7 @@ $events = array(
 	{ 
 		fwrite($f, $write_string); 
 		fclose($f); 
-		@chmod($cache_cal, 0666); 
+		@chmod($cache_cal, 0664);
 	}
 	return;
 }

@@ -107,6 +107,100 @@ if (!function_exists('phpbb_setcookie'))
 }
 
 /**
+ * Apply phpBB2's historical SQL quoting consistently to nested request data.
+ *
+ * The application predates prepared statements and expects magic-quotes-style
+ * input. Modern PHP keeps the legacy $HTTP_* aliases as copies, so changing
+ * only $_GET/$_POST leaves the aliases unquoted and reopens SQL injection.
+ */
+if (!function_exists('phpbb_addslashes_recursive'))
+{
+	function phpbb_addslashes_recursive($value)
+	{
+		if (is_array($value))
+		{
+			foreach ($value as $key => $item)
+			{
+				$value[$key] = phpbb_addslashes_recursive($item);
+			}
+			return $value;
+		}
+
+		return is_string($value) ? addslashes($value) : $value;
+	}
+}
+
+/**
+ * Return random bytes on PHP 5.6 through current PHP versions.
+ */
+if (!function_exists('phpbb_random_bytes'))
+{
+	function phpbb_random_bytes($length)
+	{
+		$length = max(1, (int) $length);
+		if (function_exists('random_bytes'))
+		{
+			try
+			{
+				return random_bytes($length);
+			}
+			catch (Exception $e)
+			{
+				// Fall through to the PHP 5.6-compatible provider.
+			}
+		}
+
+		if (function_exists('openssl_random_pseudo_bytes'))
+		{
+			$strong = false;
+			$bytes = openssl_random_pseudo_bytes($length, $strong);
+			if ($bytes !== false && $strong && strlen($bytes) === $length)
+			{
+				return $bytes;
+			}
+		}
+
+		// Last-resort compatibility fallback for unusually limited PHP 5.6
+		// builds. Modern supported installations use random_bytes().
+		$bytes = '';
+		while (strlen($bytes) < $length)
+		{
+			$bytes .= hash('sha256', uniqid((string) mt_rand(), true) . microtime(true), true);
+		}
+		return substr($bytes, 0, $length);
+	}
+}
+
+/**
+ * Build an absolute URL from the configured board origin, never HTTP_HOST.
+ */
+if (!function_exists('phpbb_board_url'))
+{
+	function phpbb_board_url($relative_path = '')
+	{
+		global $board_config;
+
+		$secure_request = isset($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+		$scheme = ($secure_request || !empty($board_config['cookie_secure'])) ? 'https' : 'http';
+		$host = isset($board_config['server_name']) ? trim($board_config['server_name']) : '';
+		if (!preg_match('/^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[a-f0-9:]+\])$/i', $host))
+		{
+			$host = 'localhost';
+		}
+
+		$port = isset($board_config['server_port']) ? (int) $board_config['server_port'] : 0;
+		$port_part = ($port > 0 && !(($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443)))
+			? ':' . $port
+			: '';
+		$script_path = isset($board_config['script_path']) ? $board_config['script_path'] : '';
+		$script_path = preg_replace('/[^a-z0-9._~!$&()*+,;=:@\/%-]/i', '', str_replace('\\', '/', $script_path));
+		$script_path = ($script_path === '' || $script_path === '/') ? '/' : '/' . trim($script_path, '/') . '/';
+
+		return $scheme . '://' . $host . $port_part . $script_path . ltrim($relative_path, '/');
+	}
+}
+
+/**
  * Password helpers accept historical unsalted MD5 hashes and create only
  * adaptive hashes. Successful legacy logins can therefore migrate in place.
  */

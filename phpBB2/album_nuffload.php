@@ -443,14 +443,13 @@ if (isset($_REQUEST['psid']))
 // In an include with no session id we create a new session id
 else
 {
-	$psid = md5(uniqid(rand()));
+	$psid = md5(dss_rand() . dss_rand());
 	$cat_id = isset($_REQUEST['cat_id']) ? intval($_REQUEST['cat_id']) : 0;
 	$user_id = isset($_REQUEST['user_id']) ? intval($_REQUEST['user_id']) : 0;
 	$album_user_id = $user_id;
 	if($album_config['perl_uploader'])
 	{
-		$upload_scheme = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) != 'off') ? 'https' : 'http';
-		$upload_redirect = $upload_scheme . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
+		$upload_redirect = rawurlencode(phpbb_board_url('album_nuffload.' . $phpEx));
 		$uploader = (function_exists('album_append_uid'))? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") . "&redirect=" . $upload_redirect : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id&redirect=" . $upload_redirect;
 	}
 	else

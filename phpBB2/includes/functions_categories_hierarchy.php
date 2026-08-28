@@ -233,7 +233,7 @@ function cache_words()
 
 	// output to file
 	$fname = $phpbb_root_path . './includes/def_words.' . $phpEx;
-	@chmod($fname, 0666);
+	@chmod($fname, 0664);
 	$handle = @fopen($fname, 'w');
 	if ($handle !== false)
 	{
@@ -302,7 +302,7 @@ function cache_themes()
 
 	// output to file
 	$fname = $phpbb_root_path . './includes/def_themes.' . $phpEx;
-	@chmod($fname, 0666);
+	@chmod($fname, 0664);
 	$handle = @fopen($fname, 'w');
 	if ($handle !== false)
 	{
@@ -451,7 +451,7 @@ function cache_tree_output()
 
 	// output to file
 	$fname = $phpbb_root_path . './includes/def_tree.' . $phpEx;
-	@chmod($fname, 0666);
+	@chmod($fname, 0664);
 	$handle = @fopen($fname, 'w');
 	if ($handle !== false)
 	{

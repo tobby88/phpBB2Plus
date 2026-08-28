@@ -1607,7 +1607,7 @@ if( !$userdata['session_logged_in'] && $ctracker_config->settings['vconfirm_gues
 	$code = dss_rand();
 	$code = strtoupper(str_replace('0', 'o', substr($code, 6)));
 	
-	$confirm_id = md5(uniqid($user_ip));
+	$confirm_id = md5(dss_rand() . dss_rand());
 	
 	$sql = 'INSERT INTO ' . CONFIRM_TABLE . " (confirm_id, session_id, code) 
 		VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";

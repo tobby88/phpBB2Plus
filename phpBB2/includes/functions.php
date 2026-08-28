@@ -245,6 +245,13 @@ function dss_rand()
 {
 	global $db, $board_config, $dss_seeded;
 
+	// Preserve the historical 16-character hexadecimal return format while
+	// using the operating system CSPRNG on supported PHP versions.
+	if (function_exists('phpbb_random_bytes'))
+	{
+		return bin2hex(phpbb_random_bytes(8));
+	}
+
 	$val = $board_config['rand_seed'] . microtime();
 	$val = md5($val);
 	$board_config['rand_seed'] = md5($board_config['rand_seed'] . $val . 'a');

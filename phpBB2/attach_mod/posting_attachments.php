@@ -1527,7 +1527,7 @@ class attach_parent
 						return;
 					}
 				} 
-				@chmod($upload_dir . '/' . basename($this->attach_filename), 0666);
+				@chmod($upload_dir . '/' . basename($this->attach_filename), 0664);
 
 			break;
 
@@ -1546,7 +1546,7 @@ class attach_parent
 						return;
 					}
 				} 
-				@chmod($upload_dir . '/' . $this->attach_filename, 0666);
+				@chmod($upload_dir . '/' . $this->attach_filename, 0664);
 
 			break;
 

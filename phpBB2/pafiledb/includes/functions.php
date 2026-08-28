@@ -128,11 +128,9 @@ class pafiledb_functions
 	{
 		global $pafiledb_config;
 	
-		srand((float)microtime()*1000000);	// for older than version 4.2.0 of PHP
-
 		do
 		{
-			$filename = md5(uniqid(rand())) . $file_type;
+			$filename = md5(dss_rand() . dss_rand()) . $file_type;
 		}
 		while( file_exists($pafiledb_config['upload_dir'] . '/' . $filename) );
 	
@@ -213,7 +211,7 @@ class pafiledb_functions
 						return false;
 					}
 				} 
-				@chmod($userfile_name, 0666);
+				@chmod($userfile_name, 0664);
 				break;
 
 			case 'move':
@@ -224,7 +222,7 @@ class pafiledb_functions
 						return false;
 					}
 				} 
-				@chmod($userfile_name, 0666);
+				@chmod($userfile_name, 0664);
 				break;
 
 			case 'local':
@@ -232,7 +230,7 @@ class pafiledb_functions
 				{
 					return false;
 				}
-				@chmod($userfile_name, 0666);
+				@chmod($userfile_name, 0664);
 				@unlink($userfile);
 				break;
 		}

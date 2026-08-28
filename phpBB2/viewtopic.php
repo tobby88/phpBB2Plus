@@ -1694,7 +1694,7 @@ if ($plus_config['show_quickreply'] == 1 && ($userdata['user_id']!= -1) && $foru
 
 
 $template->assign_vars(array( 
-	'TELL_LINK' => append_sid("http://".$HTTP_SERVER_VARS['HTTP_HOST'].$HTTP_SERVER_VARS['PHP_SELF']."?t=$topic_id", true))
+	'TELL_LINK' => rawurlencode(phpbb_board_url("viewtopic.$phpEx?t=$topic_id")))
 );
 
 $template->pparse('body');

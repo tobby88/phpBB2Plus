@@ -304,7 +304,7 @@ if(isset($HTTP_GET_VARS['edit']))
 		}
 		fwrite($f, $content);
 		fclose($f);
-		@chmod($backup_name, 0777);
+		@chmod($backup_name, 0664);
 	}
 
 	// delete backup

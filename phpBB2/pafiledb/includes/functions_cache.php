@@ -72,7 +72,7 @@ class acm
 		{ 
 			fwrite($f, $file); 
 			fclose($f); 
-			@chmod($this->cache_dir . 'data_global.' . $phpEx, 0666); 
+			@chmod($this->cache_dir . 'data_global.' . $phpEx, 0664);
 		}
 
 	}
