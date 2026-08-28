@@ -2,13 +2,13 @@
 function get_fields($where_clause = '', $expect_multiple = true, $selection = '*')
 {
   global $db;
-  
+
   $sql = "SELECT $selection FROM " . PROFILE_FIELDS_TABLE . "
     $where_clause
     ORDER BY field_id ASC";
   if(!($result = $db->sql_query($sql)))
     message_die(GENERAL_ERROR,'Could not select from ' . PROFILE_FIELDS_TABLE,'',__LINE__,__FILE__,$sql);
-  
+
   if($expect_multiple)
   {
     $profile_data = array();
@@ -18,7 +18,7 @@ function get_fields($where_clause = '', $expect_multiple = true, $selection = '*
   }
   else
     $profile_data = $db->sql_fetchrow($result);
-  
+
   return $profile_data;
 }
 
@@ -28,7 +28,7 @@ function text_to_column($text)
   $pattern = array("#&quot;#","#&amp;#","#&lt;#","#&gt;#");
   $replace = array('"','&','<','>');
   $text = preg_replace($pattern,$replace,$text);
-  $pattern = "#[\s\*\$\(\)!\.,\-\?\/\\\[\]\{\};\:'´`\"&\^+=<>\|]#";
+  $pattern = "#[\s\*\$\(\)!\.,\-\?\/\\\[\]\{\};\:'Â´`\"&\^+=<>\|]#";
   $replace = "_";
   $text = preg_replace($pattern,$replace,$text);
   return strtolower($text);
@@ -55,7 +55,7 @@ function displayable_field_data($data, $type)
       $data_list = $tmp;
       $list_size = count($data_list);
       $data = str_replace(',',', ',$data);
-      
+
       if($list_size == 0)
         return '';
       elseif($list_size == 1)
@@ -70,7 +70,7 @@ function get_topic_udata($postrow_data, $profile_data)
 	static $cp_udata_cache;
 
 	$id = $postrow_data['user_id'];
-	
+
 	if (!$cp_udata_cache[$id])
 	{
 		$profile_names = array();
@@ -83,9 +83,9 @@ function get_topic_udata($postrow_data, $profile_data)
 			$col_name = text_to_column($field['field_name']);
 			$type = $field['field_type'];
 			$location = $field['topic_location'];
-			
+
 			$profile_names[$name] = displayable_field_data($postrow_data[$col_name], $field['field_type']);
-			
+
 			if($location == AUTHOR)
 			  $cp_udata_cache[$id]['author'][] = ($profile_names[$name]) ? $name . ': ' . $profile_names[$name] : '';
 			elseif($location == ABOVE_SIGNATURE)
@@ -94,7 +94,7 @@ function get_topic_udata($postrow_data, $profile_data)
 			  $cp_udata_cache[$id]['belows'][] = ($profile_names[$name]) ? $name . ': ' . $profile_names[$name] : '';
 		}
 	}
-	
+
 	return $cp_udata_cache[$id];
 }
 
@@ -103,7 +103,7 @@ function get_udata_txt($profile_data, $add = '')
 	$cp_sql_txt = '';
 	foreach($profile_data as $field)
 		$cp_sql_txt .= ', ' . $add . text_to_column($field['field_name']);
-	
+
 	return $cp_sql_txt;
 }
 ?>

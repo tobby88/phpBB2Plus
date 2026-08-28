@@ -1,12 +1,12 @@
-<?php 
-/************************************************************* 
+<?php
+/*************************************************************
 * MOD Title:   Prune users
 * MOD Version: 1.4.2
 * Translation: English
-* Rev date:    19/12/2003 
-* 
-* Translator:  Niels < ncr@db9.dk > (Niels Chr. Rød) http://mods.db9.dk 
-* 
+* Rev date:    19/12/2003
+*
+* Translator:  Niels < ncr@db9.dk > (Niels Chr. RÃ¸d) http://mods.db9.dk
+*
 **************************************************************/
 
 // add to prune inactive
@@ -34,6 +34,6 @@ $lang['Prune_explain'][2] = 'Who have never been activated, <b>excluding</b> new
 $lang['Prune_commands'][3] = 'Prune long-time-since users';
 $lang['Prune_explain'][3] = 'Who have not visited for 60 days, <b>excluding</b> new users from the past %d days';
 $lang['Prune_commands'][4] = 'Prune not posting so often users';
-$lang['Prune_explain'][4] = 'Who have less than an avarage of 1 post for every 10 days while registered, <b>excluding</b> new users from the past %d days'; 
+$lang['Prune_explain'][4] = 'Who have less than an avarage of 1 post for every 10 days while registered, <b>excluding</b> new users from the past %d days';
 
 ?>

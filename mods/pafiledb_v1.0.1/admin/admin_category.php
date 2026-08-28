@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -41,7 +41,7 @@ require('./pagestart.' . $phpEx);
 
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_pafiledb.' . $phpEx);
 
-include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx); 
+include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx);
 
 $config = pafiledb_config();
 
@@ -64,8 +64,8 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 			{
 				$add = ( isset($HTTP_GET_VARS['add']) ) ? $HTTP_GET_VARS['add'] : $HTTP_POST_VARS['add'];
 			}
-        
-			if ($add == 'do') 
+
+			if ($add == 'do')
 			{
 				if ( isset($HTTP_GET_VARS['form']) || isset($HTTP_POST_VARS['form']) )
 				{
@@ -93,9 +93,9 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
-			if (empty($add)) 
+			if (empty($add))
 			{
-				$dropmenu .= jumpmenu('', 'admin', '');     
+				$dropmenu .= jumpmenu('', 'admin', '');
 
 				$template->assign_vars(array(
 					'S_ADD_CAT_ACTION' => append_sid("admin_category.$phpEx"),
@@ -109,14 +109,14 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 					'L_NONE' => $lang['None'],
 					'DROPMENU' => $dropmenu,
 					'L_CATPARENTINFO' => $lang['Catparentinfo'])
-				); 
+				);
 			}
 
 			$template->pparse('admin');
 
 			break;
 		}
-        
+
 		case 'edit':
 		{
 
@@ -171,7 +171,7 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 
 				$cat = $db->sql_fetchrow($result);
 
-				if ($cat['cat_parent'] == 0) 
+				if ($cat['cat_parent'] == 0)
 				{
 					$dropmenu .= '<option value="0" selected>' . $lang['None'] . '</option>\n';
 				}
@@ -224,7 +224,7 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 			$template->pparse('admin');
 
 			break;
-		} 
+		}
 
 		case 'delete':
 		{
@@ -291,7 +291,7 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 
 					message_die(GENERAL_MESSAGE, $message);
 				}
-	
+
 			}
 
 			if (empty($delete))
@@ -318,7 +318,7 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 			$template->pparse('admin');
 
 			break;
-		} 
+		}
 
 		case 'order':
 		{
@@ -326,12 +326,12 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 			$template->set_filenames(array(
 				'admin' => 'admin/pa_admin_cat_order.tpl')
 			);
-    
+
 			if ( isset($HTTP_GET_VARS['order']) || isset($HTTP_POST_VARS['order']) )
 			{
 				$order = ( isset($HTTP_GET_VARS['order']) ) ? $HTTP_GET_VARS['order'] : $HTTP_POST_VARS['order'];
 			}
-    
+
 			if ($order == 'do')
 			{
 
@@ -353,7 +353,7 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 				$message = $lang['Rcatdone'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_category.$phpEx?category=order") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
 				message_die(GENERAL_MESSAGE, $message);
-		
+
 			}
 
 			if (empty($order))
@@ -373,10 +373,10 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 
 				if ( !($result = $db->sql_query($sql)) )
 				{
-					message_die(GENERAL_ERROR, 'Couldnt Query Info', '', __LINE__, __FILE__, $sql);	
+					message_die(GENERAL_ERROR, 'Couldnt Query Info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($cat = $db->sql_fetchrow($result)) 
+				while ($cat = $db->sql_fetchrow($result))
 				{
 					$rows .= '<tr><td width="5%" class="row1" align="center" valign="middle"><input type="text" name="num[' . $cat['cat_id'] . ']" value="' . $cat['cat_order'] . '" size="2"></td>
 						<td width="95%" class="row1"><span class="cattitle"><a href="' . append_sid("admin_category.php?category=order&amp;id=" . $cat['cat_id']) . '">' . $cat['cat_name'] . '</a></span><br><span class="gensmall">' . $cat['cat_desc'] . '</span></td></tr>';
@@ -393,7 +393,7 @@ if( isset($HTTP_GET_VARS['category']) || isset($HTTP_POST_VARS['category']) )
 
 			$template->pparse('admin');
 
-			break; 
+			break;
 		}
 	}
 }

@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -29,13 +29,13 @@ require('./pagestart.' . $phpEx);
 
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_pafiledb.' . $phpEx);
 
-include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx); 
+include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx);
 
 $config = pafiledb_config();
 
 $template->set_filenames(array(
 	'admin' => 'admin/pa_admin_settings.tpl')
-);  
+);
 
 global $settings, $vadropmenu, $ssdropmenu, $dddropmenu, $html, $bbcodea, $smiliesa, $clinks, $cimage;
 
@@ -60,61 +60,61 @@ if ($settings == 'do')
 
 	$message = $lang['Settings_changed'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_settings.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
-	message_die(GENERAL_MESSAGE, $message); 
+	message_die(GENERAL_MESSAGE, $message);
 }
 
-if (empty($settings)) 
+if (empty($settings))
 {
 	if (isset($config['settings_viewall']) && $config['settings_viewall'] == 0)
 	{
 		$vadropmenu .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$vadropmenu .= '<option value="1">' . $lang['Yes'] . '</option>';
 	}
-	else 
+	else
 	{
 		$vadropmenu .= '<option value="0">' . $lang['No'] . '</option>';
 		$vadropmenu .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
 	}
-	
+
     if (isset($config['settings_showss']) && $config['settings_showss'] == 0)
 	{
 		$ssdropmenu .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$ssdropmenu .= '<option value="1">' . $lang['Yes'] . '</option>';
 	}
-	else 
+	else
 	{
 		$ssdropmenu .= '<option value="0">' . $lang['No'] . '</option>';
 		$ssdropmenu .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
 	}
-	
+
     if (isset($config['settings_disable']) && $config['settings_disable'] == 0)
 	{
 		$dddropmenu .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$dddropmenu .= '<option value="1">' . $lang['Yes'] . '</option>';
 	}
-	else 
+	else
 	{
 		$dddropmenu .= '<option value="0">' . $lang['No'] . '</option>';
 		$dddropmenu .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
 	}
-	
+
     if (isset($config['allow_html']) && $config['allow_html'] == 0)
 	{
 		$html .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$html .= '<option value="1">' . $lang['Yes'] . '</option>';
-	} 
-	else 
+	}
+	else
 	{
 		$html .= '<option value="0">' . $lang['No'] . '</option>';
 		$html .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
 	}
-	
+
     if (isset($config['allow_bbcode']) && $config['allow_bbcode'] == 0)
 	{
 		$bbcodea .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$bbcodea .= '<option value="1">' . $lang['Yes'] . '</option>';
-	} 
-	else 
+	}
+	else
 	{
 		$bbcodea .= '<option value="0">' . $lang['No'] . '</option>';
 		$bbcodea .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
@@ -125,7 +125,7 @@ if (empty($settings))
 		$smiliesa .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$smiliesa .= '<option value="1">' . $lang['Yes'] . '</option>';
 	}
-	else 
+	else
 	{
 		$smiliesa .= '<option value="0">' . $lang['No'] . '</option>';
 		$smiliesa .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
@@ -136,7 +136,7 @@ if (empty($settings))
 		$clinks .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$clinks .= '<option value="1">' . $lang['Yes'] . '</option>';
 	}
-	else 
+	else
 	{
 		$clinks .= '<option value="0">' . $lang['No'] . '</option>';
 		$clinks .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
@@ -147,12 +147,12 @@ if (empty($settings))
 		$cimage .= '<option value="0" selected>' . $lang['No'] . '</option>';
 		$cimage .= '<option value="1">' . $lang['Yes'] . '</option>';
 	}
-	else 
+	else
 	{
 		$cimage .= '<option value="0">' . $lang['No'] . '</option>';
 		$cimage .= '<option value="1" selected>' . $lang['Yes'] . '</option>';
-	}	 
-	
+	}
+
 	$template->assign_vars(array(
 		'S_SETTINGS_ACTION' => append_sid("admin_settings.$phpEx"),
 		'L_SETTINGS' => $lang['Settings'],
@@ -167,7 +167,7 @@ if (empty($settings))
 		'L_DBURL' => $lang['Dburl'],
 		'L_DBURLINFO' => $lang['Dburlinfo'],
         'SETTINGS_DBURL' => isset($config['settings_dburl']) ? $config['settings_dburl'] : null,
-		'L_TOPNUM' => $lang['topnum'] ?? '',
+		'L_TOPNUM' => isset($lang['topnum']) ? $lang['topnum'] : '',
 		'L_TOPNUMINFO' => $lang['Topnuminfo'],
         'SETTINGS_TOPNUMBER' => isset($config['settings_topnumber']) ? $config['settings_topnumber'] : null,
 		'L_HPURL' => $lang['Hpurl'],
@@ -210,7 +210,7 @@ if (empty($settings))
 		'L_IMAGE_MESSAGE_INFO' => $lang['Com_messagei_info'],
 		'MESSAGE_IMAGE' => isset($config['no_comment_image_message']) ? $config['no_comment_image_message'] : null,
 		'L_SUBMIT' => $lang['Submit'])
-	);                 
+	);
 }
 
 $template->pparse('admin');

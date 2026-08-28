@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -31,7 +31,7 @@ require('./pagestart.' . $phpEx);
 
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_pafiledb.' . $phpEx);
 
-include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx); 
+include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx);
 
 $config = pafiledb_config();
 global $add, $edit, $delete;
@@ -53,7 +53,7 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 				$add = ( isset($HTTP_GET_VARS['add']) ) ? $HTTP_GET_VARS['add'] : $HTTP_POST_VARS['add'];
 			}
 
-			if ($add == 'do') 
+			if ($add == 'do')
 			{
 				if ( isset($HTTP_GET_VARS['form']) || isset($HTTP_POST_VARS['form']) )
 				{
@@ -72,7 +72,7 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
-			if (empty($add)) 
+			if (empty($add))
 			{
 				$template->assign_vars(array(
 					'S_ADD_CUS_ACTION' => append_sid("admin_custom.$phpEx"),
@@ -112,7 +112,7 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 				{
 					$id = ( isset($HTTP_GET_VARS['id']) ) ? intval($HTTP_GET_VARS['id']) : intval($HTTP_POST_VARS['id']);
 				}
-                
+
 				$sql = "UPDATE " . PA_CUSTOM_TABLE . " SET custom_name = '" . $form['name'] . "', custom_description = '" . $form['description'] . "' WHERE custom_id = '" . $id . "'";
 
 				if ( !($db->sql_query($sql)) )
@@ -124,8 +124,8 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 
 				message_die(GENERAL_MESSAGE, $message);
 			}
-            
-			if ($edit == 'form') 
+
+			if ($edit == 'form')
 			{
 				if ( isset($HTTP_GET_VARS['select']) || isset($HTTP_POST_VARS['select']) )
 				{
@@ -147,7 +147,7 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 					'S_EDIT_CUS_ACTION' => append_sid("admin_custom.$phpEx"),
 					'L_EFIELDTITLE' => $lang['Efieldtitle'],
 					'L_FIELDEXPLAIN' => $lang['Fieldexplain'],
-					'SELECT' => $select,                    
+					'SELECT' => $select,
 					'L_FIELDNAME' => $lang['Fieldname'],
 					'L_FIELDNAMEINFO' => $lang['Fieldnameinfo'],
 					'CUSTOM_NAME' => $field['custom_name'],
@@ -157,7 +157,7 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 				);
 			}
 
-			if (empty($edit)) 
+			if (empty($edit))
 			{
 				$sql = "SELECT * FROM " . PA_CUSTOM_TABLE;
 
@@ -197,23 +197,23 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 				$delete = ( isset($HTTP_GET_VARS['delete']) ) ? $HTTP_GET_VARS['delete'] : $HTTP_POST_VARS['delete'];
 			}
 
-			if ($delete == 'do') 
+			if ($delete == 'do')
 			{
 				if ( isset($HTTP_GET_VARS['select']) || isset($HTTP_POST_VARS['select']) )
 				{
 					$select = ( isset($HTTP_GET_VARS['select']) ) ? $HTTP_GET_VARS['select'] : $HTTP_POST_VARS['select'];
 				}
-    
-				if (empty($select)) 
+
+				if (empty($select))
 				{
 					$message = $lang['Dfielderror'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_custom.$phpEx?custom=delete") . '">', '</a>');
 
-					message_die(GENERAL_MESSAGE, $message);                            
+					message_die(GENERAL_MESSAGE, $message);
 				}
-				else 
+				else
 				{
 
-					foreach ($select as $key => $value) 
+					foreach ($select as $key => $value)
 					{
 						$sql = "DELETE FROM " . PA_CUSTOM_TABLE . " WHERE custom_id = '" . $key . "'";
 
@@ -235,8 +235,8 @@ if( isset($HTTP_GET_VARS['custom']) || isset($HTTP_POST_VARS['custom']) )
 					message_die(GENERAL_MESSAGE, $message);
 				}
 			}
-            
-			if (empty($delete)) 
+
+			if (empty($delete))
 			{
 				$sql = "SELECT * FROM " . PA_CUSTOM_TABLE;
 

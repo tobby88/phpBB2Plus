@@ -17,7 +17,7 @@ $lang['Jr_Admin'] = 'Junior Admin';
 $lang['Options'] = 'Optionen';
 $lang['Example'] = 'Beispiel';
 $lang['Version'] = 'Version';
-$lang['Add_Arrow'] = 'Hinzufügen ->';
+$lang['Add_Arrow'] = 'HinzufÃ¼gen ->';
 $lang['Super_Mod'] = 'Super Moderator';
 $lang['Update'] = 'Update';
 $lang['Module_Info'] = 'Modulinfo';
@@ -27,16 +27,16 @@ $lang['Updated_Permissions'] = 'Modul User-Zugriffsrechte aktualisiert<br />';
 $lang['Color_Group'] = 'Farbengruppe';
 $lang['Users_with_Access'] = 'User mit Zugriff';
 $lang['Users_without_Access'] = 'User ohne Zugriff';
-$lang['Check_All'] = 'Alle aus-/abwählen';
-$lang['Cat_Check_All'] = 'Kategorie: Alle aus-/abwählen';
-$lang['Edit_Permissions'] = 'User-Zugriffsrechte ändern';
+$lang['Check_All'] = 'Alle aus-/abwÃ¤hlen';
+$lang['Cat_Check_All'] = 'Kategorie: Alle aus-/abwÃ¤hlen';
+$lang['Edit_Permissions'] = 'User-Zugriffsrechte Ã¤ndern';
 $lang['View_Profile'] = 'Userprofil anschauen';
-$lang['Edit_User_Details'] = 'User-Details ändern';
+$lang['Edit_User_Details'] = 'User-Details Ã¤ndern';
 $lang['Notes'] = 'Notizen';
 $lang['Allow_View'] = 'Ansicht Usern erlauben';
 $lang['Start_Date'] = 'Zugriffsrechte gegeben am ';
 $lang['Update_Date'] = 'Zugriffsrechte aktualisiert am ';
-$lang['Edit_Modules'] = 'Module ändern';
+$lang['Edit_Modules'] = 'Module Ã¤ndern';
 $lang['Rank'] = 'Rang';
 $lang['Allow_PM'] = 'PN erlauben';
 $lang['Allow_Avatar'] = 'Avatar erlauben';
@@ -47,16 +47,16 @@ $lang['Junior_Admin_Info'] = 'Deine Junior Admin Info';
 $lang['Admin_Notes'] = 'Adminnotizen';
 
 //Descriptions
-$lang['Levels_Page_Desc'] = 'Diese Seite ermöglicht es dir Userlevels zu definieren. Wähle einen Namen aus der Liste oder gebe den Namen manuell ein, um den User hinzuzufügen. Usernamen müssen in jeder Liste mit einem Komma (,) getrennt werden!';
-$lang['Permissions_Page_Desc'] = 'Diese Seite erlaubt dir nur für den Admin bestimmte Useroptionen zu ändern und deren Modulliste anzupassen.<br />Über die Tabellenüberschrift können die Einträge sortiert werden.';
+$lang['Levels_Page_Desc'] = 'Diese Seite ermÃ¶glicht es dir Userlevels zu definieren. WÃ¤hle einen Namen aus der Liste oder gebe den Namen manuell ein, um den User hinzuzufÃ¼gen. Usernamen mÃ¼ssen in jeder Liste mit einem Komma (,) getrennt werden!';
+$lang['Permissions_Page_Desc'] = 'Diese Seite erlaubt dir nur fÃ¼r den Admin bestimmte Useroptionen zu Ã¤ndern und deren Modulliste anzupassen.<br />Ãœber die TabellenÃ¼berschrift kÃ¶nnen die EintrÃ¤ge sortiert werden.';
 
 //Errors
 $lang['Error_Users_Table'] = 'Fehler beim Zugriff auf users Tabelle.';
 $lang['Error_Module_Table'] = 'Fehler beim Zugriff auf Jr Admin Modul Tabelle.';
 $lang['Error_Module_ID'] = 'Das verlangte Modul existiert nicht oder du bist nicht authorisiert darauf zuzugreifen.';
-$lang['Disabled_Color_Groups'] = 'Farbgruppen MOD nicht gefunden, Zuweisung einer Farbgruppe nicht möglich.';
-$lang['Admin_Note'] = 'Notiz: Dieser User ist als Administrator definiert. Jede Beschränkung funktioniert nicht, es sei denn er erhält wieder den Status eines Users.';
-$lang['No_Special_Ranks'] = 'Keine speziellen Ränge definiert.';
+$lang['Disabled_Color_Groups'] = 'Farbgruppen MOD nicht gefunden, Zuweisung einer Farbgruppe nicht mÃ¶glich.';
+$lang['Admin_Note'] = 'Notiz: Dieser User ist als Administrator definiert. Jede BeschrÃ¤nkung funktioniert nicht, es sei denn er erhÃ¤lt wieder den Status eines Users.';
+$lang['No_Special_Ranks'] = 'Keine speziellen RÃ¤nge definiert.';
 
 //This is the bookmark ASCII search list!  If you have odd usernames, you should add your own ASCII search numbers.
 //It uses a special format.

@@ -28,11 +28,11 @@ if ( !defined('IN_PHPBB') )
 if ($banner_show_list)
 {
 	$banner_show_list['0'] = ($banner_show_list) ? ' ':'';
-	$sql = "UPDATE ".BANNERS_TABLE." SET banner_view=banner_view+1 where banner_id IN ($banner_show_list)"; 
+	$sql = "UPDATE ".BANNERS_TABLE." SET banner_view=banner_view+1 where banner_id IN ($banner_show_list)";
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, "Couldn't update banners data", "", __LINE__, __FILE__, $sql);
-	} 
+	}
 }
 // End add - Complete banner MOD
 
@@ -74,7 +74,7 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 	{
 
 		if (is_writable($phpbb_root_path . '/cache')) {
-		
+
 			$write_string = '<?php'."\n".'if ( !defined(\'IN_PHPBB\') )'."\n".'{'."\n".'	die(\'Hacking attempt\');'."\n".'}'."\n\n".'$seo_list_in = array( ';
 			$write_string_b = "\n".'$seo_list_out = array( ';
 
@@ -88,9 +88,9 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 			// cache Forums
 			while ( $row = $db->sql_fetchrow($result) )
 			{
-				$search = array( 'Ö',  'Ä',  'Ü',  'ö',  'ä',  'à', 'é', 'è', 'ü', '$','\\','/', '---');
+				$search = array( 'Ã–',  'Ã„',  'Ãœ',  'Ã¶',  'Ã¤',  'Ã ', 'Ã©', 'Ã¨', 'Ã¼', '$','\\','/', '---');
 				$replace = array( 'oe', 'ae', 'ue', 'oe', 'ae', 'a', 'e', 'e', 'ue', '-', '-', '-', '-');
-				$name = eregi_replace (",|:|'|´|`|\"|\/|-|( )+|#|_", "-", $row['forum_name']);
+				$name = eregi_replace (",|:|'|Â´|`|\"|\/|-|( )+|#|_", "-", $row['forum_name']);
 				$name = eregi_replace ("&amp", "-and-", $name);
 				$name = eregi_replace ("!|\?", "", $name);
 				$name = eregi_replace ("&", "-and-", $name);
@@ -115,9 +115,9 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 			// cache Categories
 			while ( $row = $db->sql_fetchrow($result) )
 			{
-				$search = array( 'Ö',  'Ä',  'Ü',  'ö',  'ä',  'à', 'é', 'è', 'ü', '$','\\','/', '---');
+				$search = array( 'Ã–',  'Ã„',  'Ãœ',  'Ã¶',  'Ã¤',  'Ã ', 'Ã©', 'Ã¨', 'Ã¼', '$','\\','/', '---');
 				$replace = array( 'oe', 'ae', 'ue', 'oe', 'ae', 'a', 'e', 'e', 'ue', '-', '-', '-', '-');
-				$name = eregi_replace (",|:|'|´|`|\"|\/|-|( )+|#|_", "-", $row['cat_title']);
+				$name = eregi_replace (",|:|'|Â´|`|\"|\/|-|( )+|#|_", "-", $row['cat_title']);
 				$name = eregi_replace ("&amp", "-and-", $name);
 				$name = eregi_replace ("!|\?", "", $name);
 				$name = eregi_replace ("&", "-and-", $name);
@@ -134,14 +134,14 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 
 
 				$write_string_b .= "); \n ?>";
-				
+
 				$write_string .= "); \n". $write_string_b;
 
-			if(@$f = fopen($cache_seo, 'w')) 
-			{ 
-				fwrite($f, $write_string); 
-				fclose($f); 
-				@chmod($cache_seo, 0666); 
+			if(@$f = fopen($cache_seo, 'w'))
+			{
+				fwrite($f, $write_string);
+				fclose($f);
+				@chmod($cache_seo, 0666);
 			}
 		}
     }
@@ -187,12 +187,12 @@ if ( $do_gzip_compress )
 	$gzip_contents = ob_get_contents();
 
 if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
-{	
+{
 	//
   // Short URL implementation
   //
   $gzip_contents = replace_for_mod_rewrite($gzip_contents);
-}   
+}
 	ob_end_clean();
 
 	$gzip_size = strlen($gzip_contents);

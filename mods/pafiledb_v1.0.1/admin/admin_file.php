@@ -1,7 +1,7 @@
-<?php                  
+<?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -31,12 +31,12 @@ require('./pagestart.' . $phpEx);
 
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_pafiledb.' . $phpEx);
 
-include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx); 
+include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx);
 
 $config = pafiledb_config();
 
 global $add, $edit, $delete, $id, $upload, $dburl, $pdropmenu, $ldropmenu, $posticons, $field;
- 
+
 if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 {
 	$file = (isset($HTTP_POST_VARS['file'])) ? $HTTP_POST_VARS['file'] : $HTTP_GET_VARS['file'];
@@ -82,7 +82,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 			{
 				$template->assign_block_vars("upload_do", array());
 
-				if (file_exists($phpbb_root_path . "pafiledb/uploads/$userfile_name")) 
+				if (file_exists($phpbb_root_path . "pafiledb/uploads/$userfile_name"))
 				{
 					$message = $lang['Uploaderror'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_file.$phpEx?file=upload") . '">', '</a>');
 
@@ -100,7 +100,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 						'L_UPLOAD_MESSAGE' => $message)
 					);
 				}
-				else 
+				else
 				{
 					if (is_uploaded_file($userfile))
 					{
@@ -109,7 +109,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 						$url = 'http://' . $HTTP_SERVER_VARS['HTTP_HOST'] . '' . $board_config['script_path'] . 'pafiledb/uploads/' . $userfile_name;
 					}
 					else
-					{     
+					{
 						$message = 'This file is not a type that you can upload' . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_file.$phpEx?file=upload") . '">', '</a>');
 
 						message_die(GENERAL_MESSAGE, $message);
@@ -125,7 +125,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 				}
 			}
 
-			if (empty($upload)) 
+			if (empty($upload))
 			{
 				$template->assign_block_vars("upload", array());
 
@@ -177,11 +177,11 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 				if (!empty($custom))
 				{
-					foreach ($custom as $key => $value) 
+					foreach ($custom as $key => $value)
 					{
 						$value = trim($value);
 
-						if (!empty($value)) 
+						if (!empty($value))
 						{
 							$sql =  "INSERT INTO " . PA_CUSTOM_DATA_TABLE . " VALUES('" . $fid . "', '" . $key . "', '" . $value . "')";
 
@@ -198,17 +198,17 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
-			if (empty($add)) 
+			if (empty($add))
 			{
 				$curicons = 1;
 
 				$posticons .= '<input type="radio" name="form[posticon]" value="none" checked><a class="small">' . $lang['None'] . '</a>&nbsp;';
 
 				$handle=opendir($phpbb_root_path . '/pafiledb/icons');
-          
-				while (false!==($icon = readdir($handle))) 
+
+				while (false!==($icon = readdir($handle)))
 				{
-					if ($icon !== "." && $icon !== "..") 
+					if ($icon !== "." && $icon !== "..")
 					{
 						$posticons .= '<input type="radio" name="form[posticon]" value="' . $icon . '"><img src="' . $phpbb_root_path . 'pafiledb/icons/' . $icon . '">&nbsp;';
 
@@ -224,7 +224,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 				}
 
 				$dropmenu = jumpmenu('', 'admin', '');
-                
+
 				$sql = "SELECT * FROM " . PA_LICENSE_TABLE . " ORDER BY license_id";
 
 				if ( !($result = $db->sql_query($sql)) )
@@ -232,7 +232,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($license = $db->sql_fetchrow($result)) 
+				while ($license = $db->sql_fetchrow($result))
 				{
 					$ldropmenu .= '<option value="' . $license['license_id'] . '">' . $license['license_name'] . '</option>';
 				}
@@ -243,8 +243,8 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 				$template->assign_vars(array(
 					'S_ADD_FILE_ACTION' => append_sid("admin_file.$phpEx"),
-					'L_AFILETITLE' => $lang['Afiletitle'],                    
-					'L_FILEEXPLAIN' => $lang['Fileexplain'],                    
+					'L_AFILETITLE' => $lang['Afiletitle'],
+					'L_FILEEXPLAIN' => $lang['Fileexplain'],
 					'L_FILENAME' => $lang['Filename'],
 					'L_FILENAMEINFO' => $lang['Filenameinfo'],
 					'L_FILESD' => $lang['Filesd'],
@@ -271,11 +271,11 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					'L_FILECATINFO' => $lang['Filecatinfo'],
 					'L_FILELICENSE' => $lang['Filelicense'],
 					'L_NON' => $lang['None'],
-					'LDROPMENU' => $ldropmenu,                                                                    
+					'LDROPMENU' => $ldropmenu,
 					'DROPMENU' => $dropmenu,
 					'L_FILELICENSEINFO' => $lang['Filelicenseinfo'],
 					'L_FILEPIN' => $lang['Filepin'],
-					'L_FILEPININFO' => $lang['Filepininfo'],                 
+					'L_FILEPININFO' => $lang['Filepininfo'],
 					'L_FILEDLS' => $lang['Filedls'],
 					'L_NO' => $lang['No'],
 					'L_YES' => $lang['Yes'],
@@ -291,19 +291,19 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($field = $db->sql_fetchrow($result)) 
+				while ($field = $db->sql_fetchrow($result))
 				{
 	                $template->assign_block_vars("custom_field", array(
                         "CUSTOM_NAME" => $field['custom_name'],
-                        "CUSTOM_ID" => $field['custom_id'],    
-                        "CUSTOM_DESCRIPTION" => $field['custom_description']) 
+                        "CUSTOM_ID" => $field['custom_id'],
+                        "CUSTOM_DESCRIPTION" => $field['custom_description'])
                     );
 				}
 			}
 
 			$template->pparse('admin');
 
-			break;            
+			break;
 		}
 
 		case 'edit':
@@ -332,7 +332,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					$form = ( isset($HTTP_GET_VARS['form']) ) ? $HTTP_GET_VARS['form'] : $HTTP_POST_VARS['form'];
 				}
 
-				$sql = "UPDATE " . PA_FILES_TABLE . " SET file_name = '" . $form['name'] . "', file_desc = '" . $form['shortdesc'] . "', file_longdesc = '" . $form['longdesc'] . "', file_creator = '" . $form['creator'] . "', file_version = '" . $form['version'] . "', file_ssurl = '" . $HTTP_POST_VARS['ssurl'] . "', file_dlurl = '" . $HTTP_POST_VARS['dlurl'] . "', file_catid = '" . $form['category'] . "', file_posticon = '" . $form['posticon'] . "', file_license = '" . $form['license'] . "', file_pin = '" . $form['pin'] . "', file_docsurl = '" . $form['docs'] . "',  file_dls = '" . $form['dls'] . "' 
+				$sql = "UPDATE " . PA_FILES_TABLE . " SET file_name = '" . $form['name'] . "', file_desc = '" . $form['shortdesc'] . "', file_longdesc = '" . $form['longdesc'] . "', file_creator = '" . $form['creator'] . "', file_version = '" . $form['version'] . "', file_ssurl = '" . $HTTP_POST_VARS['ssurl'] . "', file_dlurl = '" . $HTTP_POST_VARS['dlurl'] . "', file_catid = '" . $form['category'] . "', file_posticon = '" . $form['posticon'] . "', file_license = '" . $form['license'] . "', file_pin = '" . $form['pin'] . "', file_docsurl = '" . $form['docs'] . "',  file_dls = '" . $form['dls'] . "'
 					WHERE file_id = '" . $f . "'";
 
 				if ( !($result = $db->sql_query($sql)) )
@@ -345,9 +345,9 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					$custom = ( isset($HTTP_GET_VARS['custom']) ) ? $HTTP_GET_VARS['custom'] : $HTTP_POST_VARS['custom'];
 				}
 
-				if (!empty($custom)) 
+				if (!empty($custom))
 				{
-					foreach ($custom as $key => $value) 
+					foreach ($custom as $key => $value)
 					{
 						$value = trim($value);
 
@@ -360,7 +360,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 						$db->sql_query($sql);
 
-						if (!empty($value)) 
+						if (!empty($value))
 						{
 							$sql = "INSERT INTO " . PA_CUSTOM_DATA_TABLE . " VALUES('" . $id . "', '" . $key . "', '" . $value . "')";
 
@@ -398,32 +398,32 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 	            {
 	                $posticons .= '<input type="radio" name="form[posticon]" value="none" checked><a class="small">' . $lang['None'] . '</a>&nbsp;';
 	            }
-				else 
+				else
 				{
 					$posticons .= '<input type="radio" name="form[posticon]" value="none"><a class="small">' . $lang['None'] . '</a>&nbsp;';
 				}
 
 				$handle=opendir($phpbb_root_path . '/pafiledb/icons');
 
-				while (false!==($icon = readdir($handle))) 
+				while (false!==($icon = readdir($handle)))
 				{
-	                if ($icon !== "." && $icon !== "..") 
+	                if ($icon !== "." && $icon !== "..")
 	                {
-	                    if (isset($file_info['file_posticon']) && $file_info['file_posticon'] == $icon) 
+	                    if (isset($file_info['file_posticon']) && $file_info['file_posticon'] == $icon)
 	                    {
 	                        $posticons .= '<input type="radio" name="form[posticon]" value="' . $icon . '" checked><img src="' . $phpbb_root_path . 'pafiledb/icons/' . $icon . '">&nbsp;';
-	                    } 
-	                    else 
+	                    }
+	                    else
 	                    {
 	                        $posticons .= '<input type="radio" name="form[posticon]" value="' . $icon . '"><img src="' . $phpbb_root_path . 'pafiledb/icons/' . $icon . '">&nbsp;';
 	                    }
-	 
+
 	                    $curicons++;
-	 
-	                    if ($curicons == 8) 
+
+	                    if ($curicons == 8)
 	                    {
 	                        $posticons .= '<br>';
-	 
+
 	                        $curicons = 0;
 	                    }
 	                }
@@ -431,7 +431,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
                 $dropmenu = jumpmenu('', 'admin', array(isset($file_info['file_catid']) ? $file_info['file_catid'] : null => 1));
 
-	            if (isset($file_info['file_license']) && $file_info['file_license'] == 0) 
+	            if (isset($file_info['file_license']) && $file_info['file_license'] == 0)
 	            {
 	                $ldropmenu .= '<option value="0" selected>' . $lang['None'] . '</option>';
 	            }
@@ -447,21 +447,21 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($license = $db->sql_fetchrow($result)) 
+				while ($license = $db->sql_fetchrow($result))
 				{
-					if ($file_info['file_license'] == $license['license_id']) 
+					if ($file_info['file_license'] == $license['license_id'])
 					{
 						$ldropmenu .= '<option value="' . $license['license_id'] . '" selected>' . $license['license_name'] . '</option>';
 					}
-					else 
+					else
 					{
 						$ldropmenu .= '<option value="' . $license['license_id'] . '">' . $license['license_name'] . '</option>';
 					}
 				}
-	            if (isset($file_info['file_pin']) && $file_info['file_pin'] == 0) 
+	            if (isset($file_info['file_pin']) && $file_info['file_pin'] == 0)
 	            {
 	                $pdropmenu .= '<option value="0" selected>' . $lang['No'] . '</option>';
-	 
+
 	                $pdropmenu .= '<option value="1">' . $lang['Yes'] . '</option>';
 	            }
 				else
@@ -473,9 +473,9 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 				$template->assign_vars(array(
 					'S_EDIT_FILE_ACTION' => append_sid("admin_file.$phpEx"),
-					'SELECT' => $id,                
-					'L_EFILETITLE' => $lang['Efiletitle'],                    
-					'L_FILEEXPLAIN' => $lang['Fileexplain'],                    
+					'SELECT' => $id,
+					'L_EFILETITLE' => $lang['Efiletitle'],
+					'L_FILEEXPLAIN' => $lang['Fileexplain'],
 //					'FFILE_NAME' => $file_info['file_name'],
 					'FFILE_NAME' => isset($file_info['file_name']) ? $file_info['file_name'] : '',
 					'FFILE_DESC' => isset($file_info['file_desc']) ? $file_info['file_desc'] : '',
@@ -553,7 +553,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 				$i = 0;
 
-				while ($field = $db->sql_fetchrow($result)) 
+				while ($field = $db->sql_fetchrow($result))
 				{
 					$template->assign_block_vars("file_form.custom_field", array(
 						"CUSTOM_NAME" => $field['custom_name'],
@@ -566,7 +566,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 						$field_data = $db->sql_fetchrow($result2);
 
 						$template->assign_block_vars("file_form.custom_field.custom_field_data", array(
-							"CUSTOM_NAME_DATA" => $field_data['data']) 
+							"CUSTOM_NAME_DATA" => $field_data['data'])
 						);
 					}
 					else
@@ -602,7 +602,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($cat = $db->sql_fetchrow($result)) 
+				while ($cat = $db->sql_fetchrow($result))
 				{
 					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle">&nbsp;</td><td width="97%" class="row1"><span class="cattitle"><a href="' . append_sid("admin_file.php?file=edit&amp;id=" . $cat['cat_id']) . '">' . $cat['cat_name'] . '</a></span><br><span class="gen">' . $cat['cat_desc'] . '</span></td></tr>';
 
@@ -613,7 +613,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 						message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 					}
 
-					while ($catf = $db->sql_fetchrow($catfiles)) 
+					while ($catf = $db->sql_fetchrow($catfiles))
 					{
 						$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="radio" name="id" value="' . $catf['file_id'] . '"></td><td width="97%" class="row1"><span class="cattitle">&nbsp;&nbsp;&nbsp;&nbsp;&raquo; ' . $catf['file_name'] . '</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="gensmall">' . $catf['file_desc'] . '</span></td></tr>';
 					}
@@ -621,8 +621,8 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 				$template->assign_vars(array(
 					'S_EDIT_FILE_ACTION' => append_sid("admin_file.$phpEx"),
-					'L_EFILETITLE' => $lang['Efiletitle'],                    
-					'L_FILEEXPLAIN' => $lang['Fileexplain'],                    
+					'L_EFILETITLE' => $lang['Efiletitle'],
+					'L_FILEEXPLAIN' => $lang['Fileexplain'],
 					'ROW' => $row)
 				);
 
@@ -631,7 +631,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 			$template->pparse('admin');
 
-			break;                    
+			break;
 		}
 
 		case 'delete':
@@ -645,22 +645,22 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 				$delete = ( isset($HTTP_GET_VARS['delete']) ) ? $HTTP_GET_VARS['delete'] : $HTTP_POST_VARS['delete'];
 			}
 
-			if ($delete == 'do') 
+			if ($delete == 'do')
 			{
 				if ( isset($HTTP_GET_VARS['select']) || isset($HTTP_POST_VARS['select']) )
 				{
 					$select = ( isset($HTTP_GET_VARS['select']) ) ? $HTTP_GET_VARS['select'] : $HTTP_POST_VARS['select'];
 				}
 
-				if (empty($select)) 
+				if (empty($select))
 				{
 					$message = $lang['Fderror'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_file.$phpEx?file=delete") . '">', '</a>');
 
 					message_die(GENERAL_MESSAGE, $message);
-				} 
-				else 
+				}
+				else
 				{
-					foreach ($select as $key => $value) 
+					foreach ($select as $key => $value)
 					{
 						$sql = "DELETE FROM " . PA_FILES_TABLE . " WHERE file_id = '" . $key . "'";
 
@@ -686,11 +686,11 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 					$message = $lang['Filesdeleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_file.$phpEx?file=delete") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
-					message_die(GENERAL_MESSAGE, $message);                      
+					message_die(GENERAL_MESSAGE, $message);
 				}
 			}
 
-			if (empty($delete)) 
+			if (empty($delete))
 			{
 				$rows = '';
 
@@ -711,7 +711,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 					message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($cat = $db->sql_fetchrow($result)) 
+				while ($cat = $db->sql_fetchrow($result))
 				{
 					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle">&nbsp;</td><td width="97%" class="row1"><span class="cattitle"><a href="' . append_sid("admin_file.php?file=delete&amp;id=" . $cat['cat_id']) . '">' . $cat['cat_name'] . '</a></span><br><span class="gen">' . $cat['cat_desc'] . '</span></td></tr>';
 
@@ -722,7 +722,7 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 						message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 					}
 
-					while ($catf = $db->sql_fetchrow($catfiles)) 
+					while ($catf = $db->sql_fetchrow($catfiles))
 					{
 						if ($check == $catf['file_id'])
 						{
@@ -731,8 +731,8 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 							$openbold = "<b>";
 
 							$closebold = "</b>";
-						} 
-						else 
+						}
+						else
 						{
 							$checkbox = "";
 
@@ -747,17 +747,17 @@ if( isset($HTTP_GET_VARS['file']) || isset($HTTP_POST_VARS['file']) )
 
 				$template->assign_vars(array(
 					'S_DELETE_FILE_ACTION' => append_sid("admin_file.$phpEx"),
-					'L_DFILETITLE' => $lang['Dfiletitle'],                    
-					'L_FILEEXPLAIN' => $lang['Fileexplain'],                    
+					'L_DFILETITLE' => $lang['Dfiletitle'],
+					'L_FILEEXPLAIN' => $lang['Fileexplain'],
 					'ROW' => $row)
 				);
 			}
 
 			$template->pparse('admin');
 
-			break;                               
+			break;
 		}
-	}    
+	}
 }
 
 include('./page_footer_admin.'.$phpEx);

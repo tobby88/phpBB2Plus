@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.1
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -71,7 +71,7 @@ if ($safety == 1)
 			continue;
 		}
 
-		if (!is_file($this_dir."/".str_replace($html_path, "", $temp_dlurl))) 
+		if (!is_file($this_dir."/".str_replace($html_path, "", $temp_dlurl)))
 		{
 /*			$sql = "DELETE FROM " . PA_FILES_TABLE . " WHERE file_dlurl = '" . $temp_dlurl . "'";
 			if ( !($db->sql_query($sql)) )
@@ -102,7 +102,7 @@ if ($safety == 1)
 			continue;
 		}
 
-		if (!is_file($this_dir."/".str_replace($html_path, "", $temp_ssurl))) 
+		if (!is_file($this_dir."/".str_replace($html_path, "", $temp_ssurl)))
 		{
 			/*$sql = "UPDATE " . PA_FILES_TABLE . " SET file_ssurl='' WHERE file_id = '" . $temp_file_id . "'";
 
@@ -140,7 +140,7 @@ if ($safety == 1)
 		}
 		$numhits = $db->sql_numrows($result);
 
-		if (!$numhits) 
+		if (!$numhits)
 		{
 			$saved = $saved + filesize($this_dir.$temp);
 			//unlink($this_dir.$temp);
@@ -179,7 +179,7 @@ if ($safety == 1)
 	);
 	$template->pparse('admin');
 }
-else 
+else
 {
 	$template->assign_block_vars("perform", array());
 

@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -15,9 +15,9 @@ if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);
 // MX mod
-    $module['Download']['License_title'] = $file;    
-//    $module['Download']['Alicense'] = $file."?license=add";    
-//    $module['Download']['Elicense'] = $file."?license=edit";    
+    $module['Download']['License_title'] = $file;
+//    $module['Download']['Alicense'] = $file."?license=add";
+//    $module['Download']['Elicense'] = $file."?license=edit";
 //    $module['Download']['Dlicense'] = $file."?license=delete";
 	return;
 }
@@ -68,7 +68,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
-			if (empty($add)) 
+			if (empty($add))
 			{
 				$template->assign_vars(array(
 					'S_ADD_LIC_ACTION' => append_sid("admin_pa_license.$phpEx"),
@@ -153,7 +153,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				);
 			}
 
-			if (empty($edit)) 
+			if (empty($edit))
 			{
 				$sql = "SELECT * FROM " . PA_LICENSE_TABLE;
 
@@ -179,7 +179,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 			$template->pparse('admin');
 
-			break;	
+			break;
 		}
 
 		case 'delete':
@@ -192,7 +192,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 			{
 				$delete = ( isset($_GET['delete']) ) ? $_GET['delete'] : $_POST['delete'];
 			}
-            
+
 			if ($delete == 'do')
 			{
 				if ( isset($_GET['select']) || isset($_POST['select']) )
@@ -200,13 +200,13 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 					$select = ( isset($_GET['select']) ) ? $_GET['select'] : $_POST['select'];
 				}
 
-				if (empty($select)) 
-				{ 
+				if (empty($select))
+				{
 					$message = $lang['lderror'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_license.$phpEx?license=delete") . '">', '</a>');
 
 					message_die(GENERAL_MESSAGE, $message);
 				}
-				else 
+				else
 				{
 					foreach ($select as $key => $value)
 					{
@@ -227,11 +227,11 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 					$message = $lang['Ldeleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_pa_license.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
-					message_die(GENERAL_MESSAGE, $message);                		        
+					message_die(GENERAL_MESSAGE, $message);
 				}
 			}
 
-			if (empty($delete)) 
+			if (empty($delete))
 			{
 				$sql = "SELECT * FROM " . PA_LICENSE_TABLE;
 
@@ -240,7 +240,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 					message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($license = $db->sql_fetchrow($result)) 
+				while ($license = $db->sql_fetchrow($result))
 				{
 					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="checkbox" name="select[' . $license['license_id'] . ']" value="yes"></td><td width="97%" class="row1">' . $license['license_name'] . '</td></tr>';
 				}
@@ -267,7 +267,7 @@ else
 			$template->set_filenames(array(
 				'admin' => 'admin/pa_admin_license.tpl')
 			);
-			
+
 				$sql = "SELECT * FROM " . PA_LICENSE_TABLE;
 
 				if ( !($result = $db->sql_query($sql)) )
@@ -279,7 +279,7 @@ else
 				{
 					$row .= '<tr><td width="80%" class="row1" align="center">' . $license['license_name'] . '</td></tr>';
 				}
-						
+
 				$template->assign_vars(array(
 					'S_DELETE_LIC_ACTION' => append_sid("admin_pa_license.$phpEx"),
 					'L_LICENSETITLE' => $lang['License_title'],

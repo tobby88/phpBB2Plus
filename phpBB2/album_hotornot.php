@@ -3,7 +3,7 @@
  *                             album_hotornot.php
  *                            -------------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
@@ -46,7 +46,7 @@ if ($rate_point < 1 || $rate_point > 10)
 {
 	// ------------------------------------
 	// get a random pic from album
-	// ------------------------------------ 
+	// ------------------------------------
 	if ($album_sp_config['hon_rate_where'] == '')
 	{
 		$sql = "SELECT `pic_id`  FROM " . ALBUM_TABLE . " ORDER BY RAND() LIMIT 1";
@@ -55,7 +55,7 @@ if ($rate_point < 1 || $rate_point > 10)
 	{
 		$sql = "SELECT `pic_id`  FROM " . ALBUM_TABLE . " WHERE pic_cat_id IN (" . $album_sp_config['hon_rate_where'] . ") ORDER BY RAND() LIMIT 1";
 	}
-	        
+
 	if( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
@@ -160,14 +160,14 @@ if ($rate_point < 1 || $rate_point > 10)
 
 	//deside how user wants to show their rating
 	$image_rating = ImageRating($thispic['rating']);
-		
+
 	//hot or not rating
 	if ( CanRated($pic_id, $userdata['user_id']))
 	{
-		$template->assign_block_vars('hon_rating', array());	
-			
+		$template->assign_block_vars('hon_rating', array());
+
 		for ($i = 0; $i < $album_config['rate_scale']; $i++)
-		{   
+		{
 			$template->assign_block_vars('hon_rating.hon_row', array(
 				'VALUE' => ($i + 1)));
 		}
@@ -176,7 +176,7 @@ if ($rate_point < 1 || $rate_point > 10)
 	{
 		$template->assign_block_vars('hon_rating_cant', array());
 	}
-	
+
 	$template->assign_vars(array(
 		'CAT_TITLE' => $thiscat['cat_title'],
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
@@ -197,7 +197,7 @@ if ($rate_point < 1 || $rate_point > 10)
 		'PIC_COMMENTS' => $thispic['comments'],
 
 		'U_COMMENT' => append_sid("album_showpage.$phpEx?pic_id=$pic_id"),
-		
+
 		'PICTURE_ID' => $pic_id,
 
 		'L_RATING' => $lang['Rating'],
@@ -231,7 +231,7 @@ else
 	$rate_user_id = $userdata['user_id'];
 	$rate_user_ip = $userdata['session_ip'];
 	$pic_id = ( isset($_POST['pic_id']) || isset($_GET['pic_id']) ) ? (isset($_POST['pic_id'])) ? $_POST['pic_id'] : $_GET['pic_id'] : 0;
-		
+
 	if ($album_sp_config['hon_rate_sep'] == 1)
 	{
 		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_hon_point)
@@ -242,12 +242,12 @@ else
 		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_point)
 				VALUES ('$pic_id', '$rate_user_id', '$rate_user_ip', '$rate_point')";
 	}
-	
+
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not insert new rating', '', __LINE__, __FILE__, $sql);
 	}
-	
+
 	// --------------------------------
 	// Complete... now send a message to user
 	// --------------------------------
@@ -262,7 +262,7 @@ else
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

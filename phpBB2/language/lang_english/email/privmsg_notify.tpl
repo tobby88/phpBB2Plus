@@ -1,5 +1,5 @@
 Subject: New Private Message has arrived
-Charset: iso-8859-1
+Charset: UTF-8
 
 Hello {USERNAME},
 

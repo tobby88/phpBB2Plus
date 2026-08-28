@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -17,8 +17,8 @@ if (!defined('IN_PHPBB'))
 if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);
-    $module['Download'][$lang['Alicense']] = "$file?license=add";    
-    $module['Download'][$lang['Elicense']] = "$file?license=edit";    
+    $module['Download'][$lang['Alicense']] = "$file?license=add";
+    $module['Download'][$lang['Elicense']] = "$file?license=edit";
     $module['Download'][$lang['Dlicense']] = "$file?license=delete";
 	return;
 }
@@ -31,7 +31,7 @@ require('./pagestart.' . $phpEx);
 
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_pafiledb.' . $phpEx);
 
-include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx); 
+include($phpbb_root_path . 'pafiledb/includes/functions.' . $phpEx);
 
 $config = pafiledb_config();
 
@@ -75,7 +75,7 @@ if( isset($HTTP_GET_VARS['license']) || isset($HTTP_POST_VARS['license']) )
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
-			if (empty($add)) 
+			if (empty($add))
 			{
 				$template->assign_vars(array(
 					'S_ADD_LIC_ACTION' => append_sid("admin_license.$phpEx"),
@@ -160,7 +160,7 @@ if( isset($HTTP_GET_VARS['license']) || isset($HTTP_POST_VARS['license']) )
 				);
 			}
 
-			if (empty($edit)) 
+			if (empty($edit))
 			{
 				$sql = "SELECT * FROM " . PA_LICENSE_TABLE;
 
@@ -186,7 +186,7 @@ if( isset($HTTP_GET_VARS['license']) || isset($HTTP_POST_VARS['license']) )
 
 			$template->pparse('admin');
 
-			break;	
+			break;
 		}
 
 		case 'delete':
@@ -199,7 +199,7 @@ if( isset($HTTP_GET_VARS['license']) || isset($HTTP_POST_VARS['license']) )
 			{
 				$delete = ( isset($HTTP_GET_VARS['delete']) ) ? $HTTP_GET_VARS['delete'] : $HTTP_POST_VARS['delete'];
 			}
-            
+
 			if ($delete == 'do')
 			{
 				if ( isset($HTTP_GET_VARS['select']) || isset($HTTP_POST_VARS['select']) )
@@ -207,13 +207,13 @@ if( isset($HTTP_GET_VARS['license']) || isset($HTTP_POST_VARS['license']) )
 					$select = ( isset($HTTP_GET_VARS['select']) ) ? $HTTP_GET_VARS['select'] : $HTTP_POST_VARS['select'];
 				}
 
-				if (empty($select)) 
-				{ 
+				if (empty($select))
+				{
 					$message = $lang['lderror'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_license.$phpEx?license=delete") . '">', '</a>');
 
 					message_die(GENERAL_MESSAGE, $message);
 				}
-				else 
+				else
 				{
 					foreach ($select as $key => $value)
 					{
@@ -234,11 +234,11 @@ if( isset($HTTP_GET_VARS['license']) || isset($HTTP_POST_VARS['license']) )
 
 					$message = $lang['Ldeleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("admin_license.$phpEx?license=delete") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
-					message_die(GENERAL_MESSAGE, $message);                		        
+					message_die(GENERAL_MESSAGE, $message);
 				}
 			}
 
-			if (empty($delete)) 
+			if (empty($delete))
 			{
 				$sql = "SELECT * FROM " . PA_LICENSE_TABLE;
 
@@ -247,7 +247,7 @@ if( isset($HTTP_GET_VARS['license']) || isset($HTTP_POST_VARS['license']) )
 					message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 				}
 
-				while ($license = $db->sql_fetchrow($result)) 
+				while ($license = $db->sql_fetchrow($result))
 				{
 					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="checkbox" name="select[' . $license['license_id'] . ']" value="yes"></td><td width="97%" class="row1">' . $license['license_name'] . '</td></tr>';
 				}

@@ -10,7 +10,7 @@
 [name] Top Posters this Week (Site History Mod)
 
 # your name
-[author] Acyd Burn (Site History Mod: Niels Chr. Rød Denmark)
+[author] Acyd Burn (Site History Mod: Niels Chr. RÃ¸d Denmark)
 
 # your email
 [email] acyd.burn@gmx.de (Site History Mod: ncr@db9.dk)

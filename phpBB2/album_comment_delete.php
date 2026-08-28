@@ -18,18 +18,18 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
- 
+
  /***************************************************************************
  *                            MODIFICATIONS
  *                           ---------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
  *	 MODIFICATIONS:
  *		-fixed links to link to album_showpage.php
- *   
+ *
  *
  ***************************************************************************/
 
@@ -180,7 +180,7 @@ if( ($album_user_access['comment'] == 0) or ($album_user_access['delete'] == 0) 
 	}
 }
 else
-{	
+{
 	if( (!$album_user_access['moderator']) or ($userdata['user_level'] != ADMIN) )
 	{
 		if ($thiscomment['comment_user_id'] != $userdata['user_id'])
@@ -280,7 +280,7 @@ else
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

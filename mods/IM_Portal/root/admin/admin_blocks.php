@@ -814,13 +814,13 @@ else if ($mode == "blocks")
 	{
 		$l_id = 0;
 	}
-	$move = $_GET['move'] ?? -1;
+	$move = isset($_GET['move']) ? $_GET['move'] : -1;
 
 	if( $move == '0' || $move == '1' )
 	{
 		$b_id = ( isset($_GET['bid']) ) ? intval($_GET['bid']) : 0;
-		$b_weight = $_GET['weight'] ?? 0;
-		$b_position = $_GET['pos'] ?? 0;
+		$b_weight = isset($_GET['weight']) ? $_GET['weight'] : 0;
+		$b_position = isset($_GET['pos']) ? $_GET['pos'] : 0;
 		if($b_position == '@' || $b_position == '*')
 		{
 			$layout = 0;

@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -124,11 +124,11 @@ $pafiledb_template->assign_vars(array(
 if($mode == '' || $mode == 'cat_order' || $mode == 'sync' || $mode == 'sync_all')
 {
 	$pafiledb_template->assign_vars(array(
-		'L_CREATE_CATEGORY' => $lang['Create_category'], 
-		'L_EDIT' => $lang['Edit'], 
-		'L_DELETE' => $lang['Delete'], 
-		'L_MOVE_UP' => $lang['Move_up'], 
-		'L_MOVE_DOWN' => $lang['Move_down'], 
+		'L_CREATE_CATEGORY' => $lang['Create_category'],
+		'L_EDIT' => $lang['Edit'],
+		'L_DELETE' => $lang['Delete'],
+		'L_MOVE_UP' => $lang['Move_up'],
+		'L_MOVE_DOWN' => $lang['Move_down'],
 		'L_SUB_CAT' => $lang['Sub_category'],
 		'L_RESYNC' => $lang['Resync'])
 	);
@@ -160,7 +160,7 @@ elseif($mode == 'add' || $mode == 'edit')
 	}
 	else
 	{
-		if (!$pafiledb->cat_rowset[$cat_id]['cat_parent']) 
+		if (!$pafiledb->cat_rowset[$cat_id]['cat_parent'])
 		{
 			$cat_list .= '<option value="0" selected>' . $lang['None'] . '</option>\n';
 		}
@@ -169,7 +169,7 @@ elseif($mode == 'add' || $mode == 'edit')
 			$cat_list .= '<option value="0">' . $lang['None'] . '</option>\n';
 		}
 		$cat_list .= $pafiledb->jumpmenu_option(0, 0, array($pafiledb->cat_rowset[$cat_id]['cat_parent'] => 1));
-		
+
 		if($pafiledb->cat_rowset[$cat_id]['cat_allow_file'])
 		{
 			$checked_yes = ' checked';
@@ -202,7 +202,7 @@ elseif($mode == 'add' || $mode == 'edit')
 			$checked_ratings_yes = '';
 			$checked_ratings_no = ' checked';
 		}
-						
+
 		$cat_name = $pafiledb->cat_rowset[$cat_id]['cat_name'];
 		$cat_desc = $pafiledb->cat_rowset[$cat_id]['cat_desc'];
 	}
@@ -218,7 +218,7 @@ elseif($mode == 'add' || $mode == 'edit')
 		'CHECKED_ALLOWCOMMENTS_NO' => $checked_comments_no,
 		'CHECKED_ALLOWRATINGS_YES' => $checked_ratings_yes,
 		'CHECKED_ALLOWRATINGS_NO' => $checked_ratings_no,
-		
+
 		'L_CAT_NAME' => $lang['Catname'],
 		'L_CAT_NAME_INFO' => $lang['Catnameinfo'],
 		'L_CAT_DESC' => $lang['Catdesc'],

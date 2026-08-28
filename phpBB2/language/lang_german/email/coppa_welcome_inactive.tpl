@@ -1,9 +1,9 @@
 Subject: Willkommen auf {SITENAME}
-Charset: iso-8859-1
+Charset: UTF-8
 
 {WELCOME_MSG}
 
-Gemäß den COPPA-Richtlinien ist dein Account im Moment inaktiv.
+GemÃ¤ÃŸ den COPPA-Richtlinien ist dein Account im Moment inaktiv.
 
 Bitte drucke diese Nachricht aus und gib sie deinen Eltern oder Erziehungsberechtigten zum Unterschreiben.
 Danach faxe sie an:
@@ -30,25 +30,25 @@ Ort: {FROM}
 Ausbildung: {OCC}
 Interessen: {INTERESTS}
 
-ICH HABE DIE INFORMATIONEN, DIE VON MEINEM KIND EINGETRAGEN WURDEN, GELESEN UND FÜR RICHTIG BEFUNDEN. ICH ERLAUBE IHM HIERMIT AUF {SITENAME} ZU POSTEN UND DIE OBEN ANGEFÜHRTEN INFORMATIONEN AUF DIESER SEITE ZU SPEICHERN.
-ICH HABE VERSTANDEN, DASS DIESE INFORMATIONEN JEDERZEIT NACH EINEM LOGIN GEÄNDERT WERDEN KÖNNEN.
-ICH HABE VERSTANDEN, DASS DIESE INFORMATIONEN JEDERZEIT AUF WUNSCH VON {SITENAME} ENTFERNT WERDEN KÖNNEN.
+ICH HABE DIE INFORMATIONEN, DIE VON MEINEM KIND EINGETRAGEN WURDEN, GELESEN UND FÃœR RICHTIG BEFUNDEN. ICH ERLAUBE IHM HIERMIT AUF {SITENAME} ZU POSTEN UND DIE OBEN ANGEFÃœHRTEN INFORMATIONEN AUF DIESER SEITE ZU SPEICHERN.
+ICH HABE VERSTANDEN, DASS DIESE INFORMATIONEN JEDERZEIT NACH EINEM LOGIN GEÃ„NDERT WERDEN KÃ–NNEN.
+ICH HABE VERSTANDEN, DASS DIESE INFORMATIONEN JEDERZEIT AUF WUNSCH VON {SITENAME} ENTFERNT WERDEN KÃ–NNEN.
 
 
 Elternteil/Erziehungsberechtigter
 Name:         __________________
 
-Unterschrift: __________________ 
+Unterschrift: __________________
 
 Datum:        __________________
 
 ------------------------------ Hier abschneiden ------------------------------
 
 
-Sobald der Administrator den oben angeführten Abschnitt über FAX oder Post erhalten hat, wird dieser Account aktiviert.
+Sobald der Administrator den oben angefÃ¼hrten Abschnitt Ã¼ber FAX oder Post erhalten hat, wird dieser Account aktiviert.
 
-Das Passwort wurde nur verschlüsselt in unserer Datenbank gespeichert, wenn du es also vergisst, können wir es dir nicht mehr zusenden. Wenn du es trotzdem vergessen solltest, kannst du aber jederzeit ein neues anfordern.
+Das Passwort wurde nur verschlÃ¼sselt in unserer Datenbank gespeichert, wenn du es also vergisst, kÃ¶nnen wir es dir nicht mehr zusenden. Wenn du es trotzdem vergessen solltest, kannst du aber jederzeit ein neues anfordern.
 
-Danke für deine Registrierung!
+Danke fÃ¼r deine Registrierung!
 
 {EMAIL_SIG}

@@ -18,18 +18,18 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
- 
+
  /***************************************************************************
  *                            MODIFICATIONS
  *                           ---------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
  *	 MODIFICATIONS:
  *		-fixed links to link to album_showpage.php
- *   
+ *
  *
  ***************************************************************************/
 
@@ -176,7 +176,7 @@ if( ($album_user_access['comment'] == 0) or ($album_user_access['edit'] == 0) )
 	}
 }
 else
-{	
+{
 	if( (!$album_user_access['moderator']) or ($userdata['user_level'] != ADMIN) )
 	{
 		if ($thiscomment['comment_user_id'] != $userdata['user_id'])
@@ -225,12 +225,12 @@ if( !isset($_POST['comment']) )
 	if (defined('ALBUM_SP_CONFIG_TABLE'))
 	{
 	$image_rating = ImageRating($thispic['rating']);
-	
+
     //begin shows smilies
     $max_smilies = 20;
 
     $sql = 'SELECT emoticon, code, smile_url
-                 	FROM ' . SMILIES_TABLE . ' 
+                 	FROM ' . SMILIES_TABLE . '
                     GROUP BY smile_url
                     ORDER BY smilies_id LIMIT ' . $max_smilies;
 
@@ -240,7 +240,7 @@ if( !isset($_POST['comment']) )
     }
     $smilies_count = $db->sql_numrows($result);
     $smilies_data = $db->sql_fetchrowset($result);
-        
+
 
 	for ($i = 1; $i < $smilies_count+1; $i++)
 	{
@@ -249,14 +249,14 @@ if( !isset($_POST['comment']) )
 	        'URL' => $board_config['smilies_path'] . '/' . $smilies_data[$i - 1]['smile_url'],
 	     	'DESC' => $smilies_data[$i - 1]['emoticon']
 	    ));
-	            
+
 		if ( is_integer($i / 5) )
 	    	$template->assign_block_vars('switch_comment_post.smilies.new_col', array());
 
     }
 	}
-	
-	//--- changed $thiscat to $thispic	
+
+	//--- changed $thiscat to $thispic
 	$template->assign_vars(array(
 		'CAT_TITLE' => $thispic['cat_title'],
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
@@ -345,7 +345,7 @@ else
 		$return_url = "album_showpage";
 	else
 		$return_url = "album_comment";
-		
+
 	$template->assign_vars(array(
 		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid($return_url.".$phpEx?comment_id=$comment_id") . '#'.$comment_id.'">')
 	);
@@ -358,7 +358,7 @@ else
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

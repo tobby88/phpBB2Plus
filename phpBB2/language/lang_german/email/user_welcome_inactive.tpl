@@ -1,5 +1,5 @@
 Subject: Willkommen auf {SITENAME}
-Charset: iso-8859-1
+Charset: UTF-8
 
 {WELCOME_MSG}
 
@@ -14,8 +14,8 @@ Dein Account ist im Moment inaktiv. Du kannst ihn erst benutzen, wenn du ihn dur
 
 {U_ACTIVATE}
 
-Das Passwort wurde nur verschlüsselt in unserer Datenbank gespeichert. Wenn du es also vergisst, können wir es dir nicht mehr zusenden. Wenn du es trotzdem vergessen solltest, kannst du aber jederzeit ein neues anfordern.
+Das Passwort wurde nur verschlÃ¼sselt in unserer Datenbank gespeichert. Wenn du es also vergisst, kÃ¶nnen wir es dir nicht mehr zusenden. Wenn du es trotzdem vergessen solltest, kannst du aber jederzeit ein neues anfordern.
 
-Danke für deine Registrierung!
+Danke fÃ¼r deine Registrierung!
 
 {EMAIL_SIG}

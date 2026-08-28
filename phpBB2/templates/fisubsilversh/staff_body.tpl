@@ -1,6 +1,6 @@
 <!-- BEGIN switch_list_staff -->
 <table width="90%" cellspacing="2" cellpadding="2" border="0" align="center">
-  <tr> 
+  <tr>
 	<td align="left"><a href="{U_INDEX}" class="nav">{L_INDEX}</a></td>
   </tr>
 </table>
@@ -19,7 +19,7 @@
         <td class="row3" colspan="6" align="left"><span class="nav"><b>{switch_list_staff.user_level.USER_LEVEL}</b></span></td>
   </tr>
   <!-- BEGIN staff -->
-  <tr> 
+  <tr>
         <td align="left" class="{switch_list_staff.user_level.staff.ROW_CLASS}" valign="top">
                 <span class="gen"><a href="{switch_list_staff.user_level.staff.U_PROFILE}" onclick="window.open('{switch_list_staff.user_level.staff.U_PROFILE}', 'view_profile', 'HEIGHT=400,top=10,left=10,status=no,resizable=yes,menubar=no,scrollbars=yes,toolbar=no,WIDTH=700');return false;" class="gen">{switch_list_staff.user_level.staff.USERNAME}</a></span>
                 <span class="gensmall"> {switch_list_staff.user_level.staff.USER_STATUS}<br />{switch_list_staff.user_level.staff.RANK}<br />{switch_list_staff.user_level.staff.RANK_IMAGE}<br />
@@ -40,16 +40,16 @@
 
 <!-- BEGIN switch_view_profile -->
 <table border="0" cellspacing="1" cellpadding="3" align="center" width="100%" class="forumline">
-  <tr> 
+  <tr>
         <th colspan="2" class="thHead">{L_ABOUT_USER}</th>
   </tr>
-  <tr> 
+  <tr>
         <td align="left" valign="middle" class="row1"><span class="genmed">{L_POSTS}</span></td>
-        <td align="left" valign="middle" class="row2" nowrap="nowrap">&nbsp;<span class="gen"> {POSTS} ({POST_PERCENT},&nbsp;ø {POSTS_PER_DAY})</span></td>
+        <td align="left" valign="middle" class="row2" nowrap="nowrap">&nbsp;<span class="gen"> {POSTS} ({POST_PERCENT},&nbsp;Ã¸ {POSTS_PER_DAY})</span></td>
   </tr>
-  <tr> 
+  <tr>
         <td align="left" valign="middle" class="row1"><span class="genmed">{L_TOPICS}</span></td>
-        <td align="left" valign="middle" class="row2" nowrap="nowrap">&nbsp;<span class="gen"> {TOPICS} ({TOPIC_PERCENT},&nbsp;ø {TOPICS_PER_DAY})</span></td>
+        <td align="left" valign="middle" class="row2" nowrap="nowrap">&nbsp;<span class="gen"> {TOPICS} ({TOPIC_PERCENT},&nbsp;Ã¸ {TOPICS_PER_DAY})</span></td>
   </tr>
 <!-- BEGIN last_posts -->
   <tr>
@@ -63,12 +63,12 @@
                 </table></td>
   </tr>
 <!-- END last_posts -->
-  <tr> 
+  <tr>
         <td align="left" valign="middle" class="row1"><span class="genmed">{L_JOINED}</span></td>
         <td align="left" valign="middle" class="row2" nowrap="nowrap">&nbsp;<span class="gen">{JOINED}&nbsp; {JOINED_PERIOD}</span></td>
   </tr>
 <!-- BEGIN view_signature -->
-  <tr> 
+  <tr>
         <td class="spacerow" colspan="2" height="1"></td>
   </tr>
   <tr>

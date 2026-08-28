@@ -151,8 +151,8 @@ if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
 	// add 1 to hit if count ativated
 	if ($tree['data'][$CH_this]['forum_link_hit_count'])
 	{
-		$sql = "UPDATE " . FORUMS_TABLE . " 
-					SET forum_link_hit = forum_link_hit + 1 
+		$sql = "UPDATE " . FORUMS_TABLE . "
+					SET forum_link_hit = forum_link_hit + 1
 					WHERE forum_id=$forum_id";
 		if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, 'Could not increment forum hits information', '', __LINE__, __FILE__, $sql);
 		cache_tree(true);
@@ -174,7 +174,7 @@ if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
 	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
 	{
 		header('Refresh: 0; URL=' . $url);
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><meta http-equiv="refresh" content="0; url=' . $url . '"><title>' . $lang['Redirect'] . '</title></head><body><div align="center">' . sprintf($lang['Rediect_to'], '<a href="' . $url . '">', '</a>') . '</div></body></html>';
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $url . '"><title>' . $lang['Redirect'] . '</title></head><body><div align="center">' . sprintf($lang['Rediect_to'], '<a href="' . $url . '">', '</a>') . '</div></body></html>';
 		exit;
 	}
 
@@ -221,8 +221,8 @@ if ( $mark_read == 'topics' )
 {
 	if ( $userdata['session_logged_in'] )
 	{
-		$sql = "SELECT MAX(post_time) AS last_post 
-			FROM " . POSTS_TABLE . " 
+		$sql = "SELECT MAX(post_time) AS last_post
+			FROM " . POSTS_TABLE . "
 			WHERE forum_id = $forum_id";
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -285,15 +285,15 @@ if ( $is_auth['auth_mod'] && $board_config['prune_enable'] )
 //
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- delete
-// $sql = "SELECT u.user_id, u.username 
+// $sql = "SELECT u.user_id, u.username
 //	FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g, " . USERS_TABLE . " u
-//	WHERE aa.forum_id = $forum_id 
-//		AND aa.auth_mod = " . TRUE . " 
+//	WHERE aa.forum_id = $forum_id
+//		AND aa.auth_mod = " . TRUE . "
 //		AND g.group_single_user = 1
-//		AND ug.group_id = aa.group_id 
-//		AND g.group_id = aa.group_id 
-//		AND u.user_id = ug.user_id 
-//	GROUP BY u.user_id, u.username  
+//		AND ug.group_id = aa.group_id
+//		AND g.group_id = aa.group_id
+//		AND u.user_id = ug.user_id
+//	GROUP BY u.user_id, u.username
 //	ORDER BY u.user_id";
 // if ( !($result = $db->sql_query($sql)) )
 // {
@@ -306,15 +306,15 @@ if ( $is_auth['auth_mod'] && $board_config['prune_enable'] )
 //	$moderators[] = '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $row['user_id']) . '">' . $row['username'] . '</a>';
 // }
 //
-// $sql = "SELECT g.group_id, g.group_name 
-//	FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g 
+// $sql = "SELECT g.group_id, g.group_name
+//	FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g
 //	WHERE aa.forum_id = $forum_id
-//		AND aa.auth_mod = " . TRUE . " 
+//		AND aa.auth_mod = " . TRUE . "
 //		AND g.group_single_user = 0
 //		AND g.group_type <> ". GROUP_HIDDEN ."
-//		AND ug.group_id = aa.group_id 
-//		AND g.group_id = aa.group_id 
-//	GROUP BY g.group_id, g.group_name  
+//		AND ug.group_id = aa.group_id
+//		AND g.group_id = aa.group_id
+//	GROUP BY g.group_id, g.group_name
 //	ORDER BY g.group_id";
 // if ( !($result = $db->sql_query($sql)) )
 // {
@@ -340,7 +340,7 @@ for ( $i = 0; $i < count($tree['mods'][$idx]['group_id']); $i++ )
 }
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
-	
+
 $l_moderators = ( count($moderators) == 1 ) ? $lang['Moderator'] : $lang['Moderators'];
 $forum_moderators = ( count($moderators) ) ? implode(', ', $moderators) : $lang['None'];
 unset($moderators);
@@ -358,11 +358,11 @@ if ( !empty($_POST['topicdays']) || !empty($_GET['topicdays']) )
 	$topic_days = ( !empty($_POST['topicdays']) ) ? intval($_POST['topicdays']) : intval($_GET['topicdays']);
 	$min_topic_time = time() - ($topic_days * 86400);
 
-	$sql = "SELECT COUNT(t.topic_id) AS forum_topics 
-		FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p 
-		WHERE t.forum_id = $forum_id 
+	$sql = "SELECT COUNT(t.topic_id) AS forum_topics
+		FROM " . TOPICS_TABLE . " t, " . POSTS_TABLE . " p
+		WHERE t.forum_id = $forum_id
 			AND p.post_id = t.topic_last_post_id
-			AND p.post_time >= $min_topic_time"; 
+			AND p.post_time >= $min_topic_time";
 
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -410,11 +410,11 @@ $select_topic_days .= '</select>';
 
 $sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_time, p.post_username
 	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . USERS_TABLE . " u2
-	WHERE (t.forum_id = $forum_id" . ( (intval($board_config['announcement_display_forum']) == 0) ? " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE : '' ) . ") 
+	WHERE (t.forum_id = $forum_id" . ( (intval($board_config['announcement_display_forum']) == 0) ? " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE : '' ) . ")
 		AND t.topic_poster = u.user_id
 		AND p.post_id = t.topic_last_post_id
 		AND p.poster_id = u2.user_id
-		AND (t.topic_type = " . POST_NEWS . " OR t.topic_type = " . POST_ANNOUNCE . " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE . ") 
+		AND (t.topic_type = " . POST_NEWS . " OR t.topic_type = " . POST_ANNOUNCE . " OR t.topic_type = " . POST_GLOBAL_ANNOUNCE . ")
 	ORDER BY t.topic_type <> " . POST_NEWS . " DESC, t.topic_type = " .POST_NEWS . ", t.topic_last_post_id DESC ";
 if ( !($result = $db->sql_query($sql)) )
 {
@@ -440,18 +440,18 @@ $db->sql_freeresult($result);
 //	AND t.topic_type <> " . POST_GLOBAL_ANNOUNCE . "
 //-- modify
 
-$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time 
+$sql = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time
 	FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
 	WHERE t.forum_id = $forum_id
 		AND t.topic_poster = u.user_id
 		AND p.post_id = t.topic_first_post_id
 		AND p2.post_id = t.topic_last_post_id
-		AND u2.user_id = p2.poster_id 
-		AND t.topic_type <> " . POST_NEWS . " 
-		AND t.topic_type <> " . POST_ANNOUNCE . " 
+		AND u2.user_id = p2.poster_id
+		AND t.topic_type <> " . POST_NEWS . "
+		AND t.topic_type <> " . POST_ANNOUNCE . "
 		AND t.topic_type <> " . POST_GLOBAL_ANNOUNCE . "
 		$limit_topics_time
-	ORDER BY t.topic_type DESC, t.topic_last_post_id DESC 
+	ORDER BY t.topic_type DESC, t.topic_last_post_id DESC
 	LIMIT $start, ".$board_config['topics_per_page'];
 if ( !($result = $db->sql_query($sql)) )
 {
@@ -499,8 +499,8 @@ $s_auth_can .= ( ( $is_auth['auth_reply'] ) ? $lang['Rules_reply_can'] : $lang['
 $s_auth_can .= ( ( $is_auth['auth_edit'] ) ? $lang['Rules_edit_can'] : $lang['Rules_edit_cannot'] ) . '<br />';
 $s_auth_can .= ( ( $is_auth['auth_delete'] ) ? $lang['Rules_delete_can'] : $lang['Rules_delete_cannot'] ) . '<br />';
 $s_auth_can .= ( ( $is_auth['auth_vote'] ) ? $lang['Rules_vote_can'] : $lang['Rules_vote_cannot'] ) . '<br />';
-$s_auth_can .= ( $is_auth['auth_ban'] ) ? $lang['Rules_ban_can'] . '<br />' : ''; 
-$s_auth_can .= ( $is_auth['auth_greencard'] ) ? $lang['Rules_greencard_can'] . '<br />' : ''; 
+$s_auth_can .= ( $is_auth['auth_ban'] ) ? $lang['Rules_ban_can'] . '<br />' : '';
+$s_auth_can .= ( $is_auth['auth_greencard'] ) ? $lang['Rules_greencard_can'] . '<br />' : '';
 $s_auth_can .= ( $is_auth['auth_bluecard'] ) ? $lang['Rules_bluecard_can'] . '<br />' : '';
 //-- mod : calendar --------------------------------------------------------------------------------
 //-- add
@@ -576,24 +576,24 @@ $template->assign_vars(array(
 	'L_REPLIES' => $lang['Replies'],
 	'L_VIEWS' => $lang['Views'],
 	'L_POSTS' => $lang['Posts'],
-	'L_LASTPOST' => $lang['Last_Post'], 
-	'L_MODERATOR' => $l_moderators, 
-	'L_MARK_TOPICS_READ' => $lang['Mark_all_topics'], 
-	'L_POST_NEW_TOPIC' => ( $forum_row['forum_status'] == FORUM_LOCKED ) ? $lang['Forum_locked'] : $lang['Post_new_topic'], 
+	'L_LASTPOST' => $lang['Last_Post'],
+	'L_MODERATOR' => $l_moderators,
+	'L_MARK_TOPICS_READ' => $lang['Mark_all_topics'],
+	'L_POST_NEW_TOPIC' => ( $forum_row['forum_status'] == FORUM_LOCKED ) ? $lang['Forum_locked'] : $lang['Post_new_topic'],
 	'L_NO_NEW_POSTS' => $lang['No_new_posts'],
 	'L_NEW_POSTS' => $lang['New_posts'],
-	'L_NO_NEW_POSTS_LOCKED' => $lang['No_new_posts_locked'], 
-	'L_NEW_POSTS_LOCKED' => $lang['New_posts_locked'], 
+	'L_NO_NEW_POSTS_LOCKED' => $lang['No_new_posts_locked'],
+	'L_NEW_POSTS_LOCKED' => $lang['New_posts_locked'],
 	'L_NO_NEW_POSTS_HOT' => $lang['No_new_posts_hot'],
 	'L_NEW_POSTS_HOT' => $lang['New_posts_hot'],
-	'L_ANNOUNCEMENT' => $lang['Post_Announcement'], 
-	'L_STICKY' => $lang['Post_Sticky'], 
+	'L_ANNOUNCEMENT' => $lang['Post_Announcement'],
+	'L_STICKY' => $lang['Post_Sticky'],
 	'L_POSTED' => $lang['Posted'],
 	'L_MOVED' => $lang['Moved'],
 	'L_JOINED' => $lang['Joined'],
 	'L_AUTHOR' => $lang['Author'],
 	'L_DESCRIPTION' => $lang['Description'],
-	'S_AUTH_LIST' => $s_auth_can, 
+	'S_AUTH_LIST' => $s_auth_can,
 
 	'U_VIEW_FORUM' => append_sid("viewforum.$phpEx?" . POST_FORUM_URL ."=$forum_id"),
 
@@ -658,14 +658,14 @@ if( $total_topics )
 		}
 		else
 		{
-			$topic_type = '';		
+			$topic_type = '';
 		}
 
 		if( $topic_rowset[$i]['topic_vote'] )
 		{
 			$topic_type .= $lang['Topic_Poll'] . ' ';
 		}
-		
+
 		if( $topic_rowset[$i]['topic_status'] == TOPIC_MOVED )
 		{
 			$topic_type = $lang['Topic_Moved'] . ' ';
@@ -718,7 +718,7 @@ if( $total_topics )
 			$newest_post_img = '';
 			if( $userdata['session_logged_in'] )
 			{
-				if( $topic_rowset[$i]['post_time'] > $userdata['user_lastvisit'] ) 
+				if( $topic_rowset[$i]['post_time'] > $userdata['user_lastvisit'] )
 				{
 					if( !empty($tracking_topics) || !empty($tracking_forums) || isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all']) )
 					{
@@ -771,7 +771,7 @@ if( $total_topics )
 						$newest_post_img = '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;view=newest") . '"><img src="' . $images['icon_newest_reply'] . '" alt="' . $lang['View_newest_post'] . '" title="' . $lang['View_newest_post'] . '" border="0" /></a> ';
 					}
 				}
-				else 
+				else
 				{
 					$folder_image = $folder;
 					$folder_alt = ( $topic_rowset[$i]['topic_status'] == TOPIC_LOCKED ) ? $lang['Topic_locked'] : $lang['No_new_posts'];
@@ -815,7 +815,7 @@ if( $total_topics )
 		{
 			$goto_page = '';
 		}
-		
+
 		$view_topic_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id");
 
 		$topic_author = ( $topic_rowset[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $topic_rowset[$i]['user_id']) . '">' : '';
@@ -832,7 +832,7 @@ if( $total_topics )
 		$last_post_url = '<a href="' . append_sid("viewtopic.$phpEx?"  . POST_POST_URL . '=' . $topic_rowset[$i]['topic_last_post_id']) . '#' . $topic_rowset[$i]['topic_last_post_id'] . '"><img src="' . $images['icon_latest_reply'] . '" alt="' . $lang['View_latest_post'] . '" title="' . $lang['View_latest_post'] . '" border="0" /></a>';
 
 		$views = $topic_rowset[$i]['topic_views'];
-		
+
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 		//-- mod : announces -------------------------------------------------------------------------------
@@ -847,20 +847,20 @@ if( $total_topics )
 			'ROW_CLASS' => $row_class,
 			'FORUM_ID' => $forum_id,
 			'TOPIC_ID' => $topic_id,
-			'TOPIC_FOLDER_IMG' => $folder_image, 
-			'TOPIC_AUTHOR' => $topic_author, 
+			'TOPIC_FOLDER_IMG' => $folder_image,
+			'TOPIC_AUTHOR' => $topic_author,
 			'GOTO_PAGE' => $goto_page,
 			'REPLIES' => $replies,
-			'NEWEST_POST_IMG' => $newest_post_img, 
+			'NEWEST_POST_IMG' => $newest_post_img,
 			'TOPIC_TITLE' => $topic_title,
 			'TOPIC_TYPE' => $topic_type,
 			'VIEWS' => $views,
-			'FIRST_POST_TIME' => $first_post_time, 
-			'LAST_POST_TIME' => $last_post_time, 
-			'LAST_POST_AUTHOR' => $last_post_author, 
-			'LAST_POST_IMG' => $last_post_url, 
+			'FIRST_POST_TIME' => $first_post_time,
+			'LAST_POST_TIME' => $last_post_time,
+			'LAST_POST_AUTHOR' => $last_post_author,
+			'LAST_POST_IMG' => $last_post_url,
 
-			'L_TOPIC_FOLDER_ALT' => $folder_alt, 
+			'L_TOPIC_FOLDER_ALT' => $folder_alt,
 
 			'U_VIEW_TOPIC' => $view_topic_url)
 		);
@@ -872,7 +872,7 @@ if( $total_topics )
 
 	$template->assign_vars(array(
 		'PAGINATION' => generate_pagination("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id&amp;topicdays=$topic_days", $topics_count, $board_config['topics_per_page'], $start),
-		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $topics_count / $board_config['topics_per_page'] )), 
+		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $topics_count / $board_config['topics_per_page'] )),
 
 		'L_GOTO_PAGE' => $lang['Goto_page'])
 	);

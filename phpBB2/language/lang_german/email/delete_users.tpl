@@ -1,14 +1,14 @@
 Subject: Your account on {SITENAME}
-Charset: iso-8859-1
+Charset: UTF-8
 
 Hallo {USERNAME},
 
-dies ist eine automtische Mitteilung mit dem Hinweis, dass Dein Account auf {SITENAME} wegen Inaktivität gelöscht wurde.
+dies ist eine automtische Mitteilung mit dem Hinweis, dass Dein Account auf {SITENAME} wegen InaktivitÃ¤t gelÃ¶scht wurde.
 
-Solltest Du Dich wieder als aktiver Benutzer in unserem Forum beteiligen wollen, registriere Dich bitte erneut über diesen Link:
+Solltest Du Dich wieder als aktiver Benutzer in unserem Forum beteiligen wollen, registriere Dich bitte erneut Ã¼ber diesen Link:
 
  {U_REGISTER}
 
-Du wirst keine weiteren EMails über diesen Account erhalten.
+Du wirst keine weiteren EMails Ã¼ber diesen Account erhalten.
 
 {EMAIL_SIG}

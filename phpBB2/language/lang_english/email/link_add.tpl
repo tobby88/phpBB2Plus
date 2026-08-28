@@ -1,5 +1,5 @@
 Subject: Link added
-Charset: iso-8859-1
+Charset: UTF-8
 
 Dear Site Admin,
 

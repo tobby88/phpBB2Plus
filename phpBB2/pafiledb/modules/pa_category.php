@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -107,14 +107,14 @@ class pafiledb_category extends pafiledb_public
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=category&cat_id=" . $cat_id, true));
 			}
-			
+
 			$message = sprintf($lang['Sorry_auth_view'], $this->auth[$cat_id]['auth_read_type']);
 			message_die(GENERAL_MESSAGE, $message);
 		}
 
 		if(!isset($this->cat_rowset[$cat_id]))
 		{
-			message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);	
+			message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
 		}
 
 		//===================================================
@@ -135,13 +135,13 @@ class pafiledb_category extends pafiledb_public
 
 		$filelist = FALSE;
 
-		if (isset($this->subcat_rowset[$cat_id])) 
+		if (isset($this->subcat_rowset[$cat_id]))
 		{
 			$no_file_message = FALSE;
 
 			$this->category_display($cat_id);
 		}
-		
+
 		$this->display_files($sort_method, $sort_order, $start, $no_file_message, $cat_id);
 
 		$this->display($lang['Download'], 'pa_category_body.tpl');

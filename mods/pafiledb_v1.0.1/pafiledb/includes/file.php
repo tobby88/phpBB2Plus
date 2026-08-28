@@ -45,7 +45,7 @@ $category = $db->sql_fetchrow($result);
 
 if ($category['cat_parent'] == 0)
 {
-    $locbar = '<span class="nav"><a href="' . append_sid($config['settings_homeurl'] ?? '') . '" class="nav">' . ($config['settings_sitename'] ?? '') . '</a> -> <a href="' . append_sid("dload.php") . '" class="nav">' . ($config['settings_dbname'] ?? '') . '</a> -> <a href="' . append_sid("dload.php?action=category&id=" . ($file['file_catid'] ?? '')) . '" class="nav">' . ($category['cat_name'] ?? '') . '</a> -> ' . ($file['file_name'] ?? '') . '</span>';
+    $locbar = '<span class="nav"><a href="' . append_sid(isset($config['settings_homeurl']) ? $config['settings_homeurl'] : '') . '" class="nav">' . (isset($config['settings_sitename']) ? $config['settings_sitename'] : '') . '</a> -> <a href="' . append_sid("dload.php") . '" class="nav">' . (isset($config['settings_dbname']) ? $config['settings_dbname'] : '') . '</a> -> <a href="' . append_sid("dload.php?action=category&id=" . (isset($file['file_catid']) ? $file['file_catid'] : '')) . '" class="nav">' . (isset($category['cat_name']) ? $category['cat_name'] : '') . '</a> -> ' . (isset($file['file_name']) ? $file['file_name'] : '') . '</span>';
 }
 
 if ($category['cat_parent'] > 0) 

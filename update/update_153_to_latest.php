@@ -1,7 +1,7 @@
 <?php
 #########################################################
 ## phpBB2 Update phpBB2 Plus 1.53 to latest
-## Author: Niels Chr. Rød
+## Author: Niels Chr. RÃ¸d
 ## Nickname: Niels Chr. Denmark
 ## Email: ncr@db9.dk
 ##
@@ -43,7 +43,7 @@ switch ($plus_config['plus_version'])
 	case '1.53 Beta3':
 		$sql[] = 'UPDATE '.$table_prefix.'album_config SET config_value = ".0.53" WHERE config_name = "album_version"';
 		$sql[] = 'ALTER TABLE '.$table_prefix.'album_cat ADD cat_user_id MEDIUMINT(8) UNSIGNED DEFAULT "0" NULL AFTER cat_parent';
-		$sql[] = 'INSERT INTO '.$table_prefix.'album_config (config_name, config_value) VALUES ("show_index_pics", "0")'; 
+		$sql[] = 'INSERT INTO '.$table_prefix.'album_config (config_name, config_value) VALUES ("show_index_pics", "0")';
 		$sql[] = 'INSERT INTO '.$table_prefix.'album_config (config_name, config_value) VALUES ("show_recent_in_subcats", "1")';
 		$sql[] = 'INSERT INTO '.$table_prefix.'album_config (config_name, config_value) VALUES ("show_recent_instead_of_nopics", "1")';
 		$sql[] = 'INSERT INTO '.$table_prefix.'album_config (config_name, config_value) VALUES ("personal_allow_gallery_mod", "1")';
@@ -98,22 +98,22 @@ switch ($plus_config['plus_version'])
 		KEY article_id (article_id)
 		) TYPE=MyISAM';
 		$sql[] = 'CREATE TABLE '.$table_prefix.'kb_categories (
-		category_id mediumint(8) unsigned NOT NULL auto_increment, 
-		category_name VARCHAR(255) binary NOT NULL, 
-		category_details VARCHAR(255) binary NOT NULL, 
+		category_id mediumint(8) unsigned NOT NULL auto_increment,
+		category_name VARCHAR(255) binary NOT NULL,
+		category_details VARCHAR(255) binary NOT NULL,
 		number_articles mediumint(8) unsigned NOT NULL,
 		parent mediumint(8) unsigned,
 		cat_order mediumint(8) unsigned NOT NULL,
 		KEY category_id (category_id)
 		) TYPE=MyISAM';
 		$sql[] = 'CREATE TABLE '.$table_prefix.'kb_config (
-		config_name VARCHAR(255) NOT NULL default "", 
+		config_name VARCHAR(255) NOT NULL default "",
 		config_value varchar(255) NOT NULL default "",
 		PRIMARY KEY  (config_name)
 		) TYPE=MyISAM';
 		$sql[] = 'CREATE TABLE '.$table_prefix.'kb_types (
-		id mediumint(8) unsigned NOT NULL auto_increment, 
-		type varchar(255) binary DEFAULT "" NOT NULL, 
+		id mediumint(8) unsigned NOT NULL auto_increment,
+		type varchar(255) binary DEFAULT "" NOT NULL,
 		KEY id (id)
 		) TYPE=MyISAM';
 		$sql[] = 'CREATE TABLE '.$table_prefix.'kb_votes (
@@ -251,7 +251,7 @@ switch ($plus_config['plus_version'])
 			(id mediumint(8) unsigned NOT NULL auto_increment,
 			list varchar(250),
 			PRIMARY KEY (`id`)) TYPE=MyISAM';
-			$sql[] = 'INSERT INTO `'.$table_prefix.'ct_filter` (`id`, `list`) VALUES 
+			$sql[] = 'INSERT INTO `'.$table_prefix.'ct_filter` (`id`, `list`) VALUES
 					   (1, "WebStripper"),
 					   (2, "NetMechanic"),
 					   (3, "CherryPicker"),
@@ -310,7 +310,7 @@ switch ($plus_config['plus_version'])
 			$mods[] = 'Updating Cracker Tracker Professional';
 			$mods[] = 'Updating Cracker Tracker Professional';
 			$mods[] = 'Updating Cracker Tracker Professional';
-		} 
+		}
 	case '1.53 Beta8':
 		if(!$ctracker_config['version'] || $current_ct < 410 ){
 			$sql[] = 'CREATE TABLE ' . $table_prefix . 'ct_viskey (
@@ -365,7 +365,7 @@ switch ($plus_config['plus_version'])
 		PRIMARY KEY (field_id),
 		INDEX ( `field_type` ) ,
 		UNIQUE (`field_name`)
-		) TYPE=MyISAM';	
+		) TYPE=MyISAM';
 		$mods[] = 'Custom Profile Field';
 		$sql[] = 'INSERT INTO '.$table_prefix.'plus (config_name, config_value) VALUES ("enable_fulltextsearch", "0")';
 		$mods[] = 'Adding MySQL fulltextsearch option';
@@ -452,16 +452,16 @@ function page_output($text)
 </head>
 <body bgcolor="#E5E5E5" text="#000000" link="#006699" vlink="#5584AA">
 <table class="topbkg" width="100%" cellspacing="0" cellpadding="0" border="0">
-<tr> 
+<tr>
 <td><img src="./fissh/phpbb2_logo.jpg" border="0" width="240" height="110" /></td>
 <td><span class="maintitle">Result of the SQL Queries needed for the Update phpBB2 Plus 1.53<img src="./fissh/spacer.gif" alt="" width="28" height="4" /></span></td>
 <td align="right"><img src="./fissh/phpbb2_logor.jpg" border="0" width="140" height="110" /></td>
 </tr>
 </table>
-<table width="100%" border="0" cellspacing="0" cellpadding="10" align="center"> 
+<table width="100%" border="0" cellspacing="0" cellpadding="10" align="center">
 	<tr>
 		<td class="bodyline" width="100%"><table width="100%" border="0" cellspacing="0" cellpadding="0">
-			
+
 			<tr>
 				<td><br /><br /></td>
 			</tr>
@@ -495,22 +495,22 @@ if (!isset($_POST['run']))
 		if (file_exists("./index.$phpEx"))
 			redirect(append_sid("update/index.$phpEx", true));
 
-	 page_output("Error: upload complete update/-directory"); 
+	 page_output("Error: upload complete update/-directory");
 }
 
 
 if ( !preg_match('(53)', $plus_config['plus_version']) )
-      page_output("Error: no Plus 1.53"); 
+      page_output("Error: no Plus 1.53");
 
 if ($userdata['user_level']!=ADMIN)
-      page_output("You are not Authorised to do this"); 
+      page_output("You are not Authorised to do this");
 
 $n=0;
 $message="<br/>";
 while($sql[$n])
 {
 	$message .= ($mods[$n-1] != $mods[$n]) ? '<h3>'.$mods[$n].'</h3>' : '';
-	if(!$result = $db->sql_query($sql[$n])) 
+	if(!$result = $db->sql_query($sql[$n]))
 	$message .= '<b><font color=#FF0000>[Already added]</font></b> line: '.($n+1).' , '.$sql[$n].'<br />';
 	else $message .='<b><font color=#0000fF>[Added/Updated]</font></b> line: '.($n+1).' , '.$sql[$n].'<br />';
 	$n++;

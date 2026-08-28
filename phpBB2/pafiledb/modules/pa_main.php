@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -25,7 +25,7 @@ class pafiledb_main extends pafiledb_public
 							  'parent_id' => 'cat_parent',
 							  'text' => 'cat_name',
 							  'link' => '',
-							  'title' => 'cat_name', 
+							  'title' => 'cat_name',
 							  'icon' => '',
 							  'target' => '',
 							  'orderfield' => 'cat_order',
@@ -34,13 +34,13 @@ class pafiledb_main extends pafiledb_public
 		$menu->set_table_fields($table_fields);
 		$menu->scan_table_for_menu('menu');
 		$menu->new_tree_menu('menu');
-		
+
 		$menu_output = implode('', file($phpbb_root_path . 'pafiledb/lib/layersmenu-browser_detection.js'));
 		$menu_output .= '<script language="JavaScript" type="text/javascript" src="' . $phpbb_root_path . 'pafiledb/lib/layersmenu-library.js"></script>
 									   <script language="JavaScript" type="text/javascript" src="' . $phpbb_root_path . 'pafiledb/lib/layersmenu.js"></script>
 									   <script language="JavaScript" type="text/javascript" src="' . $phpbb_root_path . 'pafiledb/lib/layerstreemenu-cookies.js"></script>';
 		$menu_output .= $menu->get_tree_menu('menu');*/
-		
+
 		$pafiledb_template->assign_vars(array(
 			'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
 
@@ -49,7 +49,7 @@ class pafiledb_main extends pafiledb_public
 
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
 			'TREE' => $menu_output)
-		); 
+		);
 
 		//===================================================
 		// Show the Category for the download database index

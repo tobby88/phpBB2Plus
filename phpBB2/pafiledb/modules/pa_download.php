@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -30,7 +30,7 @@ class pafiledb_download extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
-		
+
 		$mirror_id = ( isset($_REQUEST['mirror_id']) ) ? intval($_REQUEST['mirror_id']) : false;
 
 		$sql = 'SELECT *
@@ -50,7 +50,7 @@ class pafiledb_download extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
-		
+
 		$db->sql_freeresult($result);
 
 		//=========================================================================
@@ -79,7 +79,7 @@ class pafiledb_download extends pafiledb_public
 		{
 			$url_referer = trim($_SERVER['HTTP_REFERER']);
 		}
-		
+
 		if( ($pafiledb_config['hotlink_prevent']) and (!empty($url_referer)) )
 		{
 			$check_referer = explode('?', $url_referer);
@@ -111,8 +111,8 @@ class pafiledb_download extends pafiledb_public
 				message_die(GENERAL_MESSAGE, $lang['Directly_linked']);
 			}
 		}
-		
-		
+
+
 		$sql = 'SELECT *
 			FROM ' . PA_MIRRORS_TABLE . " AS f
 			WHERE f.file_id = $file_id
@@ -122,22 +122,22 @@ class pafiledb_download extends pafiledb_public
 		{
 			message_die(GENERAL_ERROR, 'Couldnt select download', '', __LINE__, __FILE__, $sql);
 		}
-		
+
 		$mirrors_data = array();
 		while($row = $db->sql_fetchrow($result))
 		{
 			$mirrors_data[$row['mirror_id']] = $row;
 		}
-		
+
 		$db->sql_freeresult($result);
-		
+
 		if(!empty($mirrors_data) && !$mirror_id)
 		{
 			global $pafiledb_template;
 			global $template, $db, $theme, $gen_simple_header, $starttime;
 
 			$this->generate_category_nav($file_data['file_catid']);
-			
+
 			$pafiledb_template->assign_vars(array(
 				'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
 				'L_MIRRORS' => $lang['Mirrors'],
@@ -149,13 +149,13 @@ class pafiledb_download extends pafiledb_public
 
 				'FILE_NAME' => $file_data['file_name'],
 				'DOWNLOAD' => $pafiledb_config['settings_dbname'])
-			); 
+			);
 
 			$pafiledb_template->assign_block_vars('mirror_row', array(
 				'U_DOWNLOAD' => append_sid('dload.php?action=download&file_id=' . $file_id . '&mirror_id=-1'),
 				'MIRROR_LOCATION' => $board_config['sitename'])
 			);
-			
+
 			foreach($mirrors_data as $mir_id => $mirror_data)
 			{
 				$pafiledb_template->assign_block_vars('mirror_row', array(
@@ -186,16 +186,16 @@ class pafiledb_download extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, 'Mirror doesn\'t exist');
 		}
-		
-		
+
+
 		//=========================================================================
 		// Update download counter and the last downloaded date
 		//=========================================================================
 
 		$current_time = time();
 		$file_dls = intval($file_data['file_dls']) + 1;
-		$sql = 'UPDATE ' . PA_FILES_TABLE . " 
-			SET file_dls = $file_dls, file_last = $current_time 
+		$sql = 'UPDATE ' . PA_FILES_TABLE . "
+			SET file_dls = $file_dls, file_last = $current_time
 			WHERE file_id = $file_id";
 
 		if ( !($db->sql_query($sql)) )
@@ -267,8 +267,8 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 			return false;
 		}
 	}
-	
-	
+
+
 
 
 	//
@@ -340,7 +340,7 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 	{
 		header('Content-Type: ' . $mimetype);
 		header('Content-Disposition: inline; filename="' . $real_filename . '"');
-	} 
+	}
 	else
 	{
 		header('Content-Type: ' . $mimetype . '; name="' . $real_filename . '"');
@@ -368,8 +368,8 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 	{
 		return false;
 	}
-	
-	
+
+
 	@flush();
 	exit();
 }
@@ -381,22 +381,22 @@ function pa_redirect($file_url)
 	{
 		$db->sql_close();
 	}
-	
+
 	if(isset($cache))
 	{
 		$cache->unload();
 	}
-		
+
 	// Redirect via an HTML form for PITA webservers
 	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
 	{
 		header('Refresh: 0; URL=' . $file_url);
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><meta http-equiv="refresh" content="0; url=' . $file_url . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $file_url . '">HERE</a> to be redirected</div></body></html>';
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $file_url . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $file_url . '">HERE</a> to be redirected</div></body></html>';
 		exit;
 	}
-			
+
 	// Behave as per HTTP/1.1 spec for others
 	Header("Location: $file_url");
-	exit();	
+	exit();
 }
 ?>

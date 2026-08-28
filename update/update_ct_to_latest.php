@@ -31,7 +31,7 @@ define("IN_PHPBB", true);
  include($rootpath . "extension.inc");
  include($rootpath . "config." . $phpEx);
  include($rootpath . "includes/db." . $phpEx);
- 
+
 // Database Connect
  @$sql = mysql_connect($dbhost, $dbuser, $dbpasswd)
    or die("<b>CBACK Setup System</b><br><br>Critical Error: Database connection failed.");
@@ -46,7 +46,7 @@ define("IN_PHPBB", true);
  {
 	die("Currently there is no CBACK CrackerTracker v4.x on your Webspace. Please use install.php instead!<br><br>
     	 Momentan befindet sich keine CBACK CrackerTracker Version 4.x auf Deinem Webspace. Bitte benutze die Datei
-         install.php um die Datenbankänderungen auszuführen!");
+         install.php um die DatenbankÃ¤nderungen auszufÃ¼hren!");
  }
 
  while ( $row = $db->sql_fetchrow($result) )

@@ -1,22 +1,22 @@
 <?php
-//copyright © 2004 IdleVoid & brustverein
-//copyright © 2003 Volodymy (CLowN) Skoryk 
-//this update template copyright : ©2003 Freakin' Booty ;-P & Antony Bailey 
+//copyright Â© 2004 IdleVoid & brustverein
+//copyright Â© 2003 Volodymy (CLowN) Skoryk
+//this update template copyright : Â©2003 Freakin' Booty ;-P & Antony Bailey
 
 define('IN_LOGIN', true);
-define('IN_PHPBB', true); 
+define('IN_PHPBB', true);
 $phpbb_root_path = './../';
 $album_root_path = $phpbb_root_path . 'album_mod/';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 
-// 
-// Start session management 
-// 
-$userdata = session_pagestart($user_ip, PAGE_INDEX); 
-init_userprefs($userdata); 
-// 
-// End session management 
+//
+// Start session management
+//
+$userdata = session_pagestart($user_ip, PAGE_INDEX);
+init_userprefs($userdata);
+//
+// End session management
 //
 function page_output($text)
 {
@@ -34,16 +34,16 @@ function page_output($text)
 </head>
 <body bgcolor="#E5E5E5" text="#000000" link="#006699" vlink="#5584AA">
 <table class="topbkg" width="100%" cellspacing="0" cellpadding="0" border="0">
-<tr> 
+<tr>
 <td><img src="./fissh/phpbb2_logo.jpg" border="0" width="240" height="110" /></td>
 <td><span class="maintitle">Result of the SQL Queries needed for the Update phpBB2 Plus 1.53<img src="./fissh/spacer.gif" alt="" width="28" height="4" /></span></td>
 <td align="right"><img src="./fissh/phpbb2_logor.jpg" border="0" width="140" height="110" /></td>
 </tr>
 </table>
-<table width="100%" border="0" cellspacing="0" cellpadding="10" align="center"> 
+<table width="100%" border="0" cellspacing="0" cellpadding="10" align="center">
 	<tr>
 		<td class="bodyline" width="100%"><table width="100%" border="0" cellspacing="0" cellpadding="0">
-			
+
 			<tr>
 				<td><br /><br /></td>
 			</tr>
@@ -74,7 +74,7 @@ exit;
 include($album_root_path . 'album_common.'.$phpEx);
 
 if ($userdata['user_level']!=ADMIN)
-      page_output("You are not Authorised to do this"); 
+      page_output("You are not Authorised to do this");
 
 $message="<br/>";
 

@@ -40,7 +40,7 @@ require('./pagestart.' . $phpEx);
 //
 if( isset( $_POST['mode'] ) || isset( $_GET['mode'] ) )
 {
-	$mode = $_POST['mode'] ?? $_GET['mode'];
+	$mode = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : null);
 }
 else
 {
@@ -170,7 +170,7 @@ $user_ids = array();
 //
 if ( isset($_POST[POST_USERS_URL]) || isset($_GET[POST_USERS_URL]) )
 {
-	$user_ids = $_POST[POST_USERS_URL] ?? $_GET[POST_USERS_URL];
+	$user_ids = isset($_POST[POST_USERS_URL]) ? $_POST[POST_USERS_URL] : (isset($_GET[POST_USERS_URL]) ? $_GET[POST_USERS_URL] : null);
 }
 else
 {

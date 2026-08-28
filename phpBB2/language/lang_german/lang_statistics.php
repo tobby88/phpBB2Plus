@@ -57,8 +57,8 @@ $lang['Statistics_config'] = 'Statistik Konfiguration';
 //
 $lang['Statistics_config_title'] = 'Statistik Konfiguration';
 
-$lang['Return_limit'] = 'Rückgabelimit';
-$lang['Return_limit_desc'] = 'Die Anzahl der Punkte die in jedem Ranking enthalten sind. Diese Variable ist in jedem Modul verfügbar.';
+$lang['Return_limit'] = 'RÃ¼ckgabelimit';
+$lang['Return_limit_desc'] = 'Die Anzahl der Punkte die in jedem Ranking enthalten sind. Diese Variable ist in jedem Modul verfÃ¼gbar.';
 $lang['Clear_cache'] = 'Modul Cache leeren';
 $lang['Clear_cache_desc'] = 'Leert die vorgehaltenen gecachten Daten aller Module';
 $lang['Modules_directory'] = 'Modulverzeichnis';
@@ -87,7 +87,7 @@ $lang['Auth_settings_updated'] = 'Berechtigungen - [Diese werden immer aktualisi
 //
 // Modules Management
 //
-$lang['Back_to_management'] = 'Zurück zur Modul Konfiguration';
+$lang['Back_to_management'] = 'ZurÃ¼ck zur Modul Konfiguration';
 $lang['Statistics_modules_title'] = 'Statistik Modul Verwaltung';
 
 $lang['Module_name'] = 'Name';
@@ -95,17 +95,17 @@ $lang['Directory_name'] = 'Verzeichnisname';
 $lang['Status'] = 'Status';
 $lang['Update_time_minutes'] = 'Update Zeit in Minuten';
 $lang['Update_time_desc'] = 'Zeitintervall (in Minuten) bis zum Neuladen der Daten aus dem Modul. D.h. in der eingestellten Zeit werden die gecachten Daten zum Anzeigen genommen.';
-$lang['Auto_set_update_time'] = 'Ermittle und setze die vorgeschlagenen Update Zeiten für jedes Installierte (und Aktive) Modul. Bitte Beachte: Das kann etwas länger dauern.';
+$lang['Auto_set_update_time'] = 'Ermittle und setze die vorgeschlagenen Update Zeiten fÃ¼r jedes Installierte (und Aktive) Modul. Bitte Beachte: Das kann etwas lÃ¤nger dauern.';
 $lang['Uninstall_module'] = 'Modul deinstallieren';
-$lang['Uninstall_module_desc'] = 'Markiert das Modul als "nicht installiert", so das es möglich ist das Modul noch einmal zu installieren. Es löscht das Modul nicht von der Festplatte, du musst das Modul Verzeichnis löschen um das Modul komplett zu deinstallieren.';
-$lang['Active_desc'] = 'Option, ob das Modul aktiv ist oder nicht. Im aktiviertem Zustand wird das Modul in abhängigkeit der Berechtigungen in den Statistiken angezeigt.';
+$lang['Uninstall_module_desc'] = 'Markiert das Modul als "nicht installiert", so das es mÃ¶glich ist das Modul noch einmal zu installieren. Es lÃ¶scht das Modul nicht von der Festplatte, du musst das Modul Verzeichnis lÃ¶schen um das Modul komplett zu deinstallieren.';
+$lang['Active_desc'] = 'Option, ob das Modul aktiv ist oder nicht. Im aktiviertem Zustand wird das Modul in abhÃ¤ngigkeit der Berechtigungen in den Statistiken angezeigt.';
 $lang['Go'] = 'Los';
 
-$lang['Not_allowed_to_install'] = 'Dieses Modul kann nicht installiert werden. Meistens deshalb nicht, weil das Modul ein Mod benötigt, welches du nicht installiert hast. Bitte kontaktiere den Autoren des Moduls falls du weitere Fragen hast oder wenn die obigen Informationen nicht ausreichen.';
-$lang['Wrong_stats_mod_version'] = 'Dieses Modul kann nicht installiert werden, da es eine höhere Statistik Mod Version benötigt. Um dieses Modul ordnungsgemäß ausführen zu können benötigst du mindestens eine Statistik Mod Version %s.'; // replace %s with Version (2.1.3 for example)
-$lang['Module_install_error'] = 'Es ist ein Fehler beim Installieren des Moduls aufgetreten. Bitte prüfe die obigen Ausgaben auf Fehler und kontaktiere den Modul Autoren.';
+$lang['Not_allowed_to_install'] = 'Dieses Modul kann nicht installiert werden. Meistens deshalb nicht, weil das Modul ein Mod benÃ¶tigt, welches du nicht installiert hast. Bitte kontaktiere den Autoren des Moduls falls du weitere Fragen hast oder wenn die obigen Informationen nicht ausreichen.';
+$lang['Wrong_stats_mod_version'] = 'Dieses Modul kann nicht installiert werden, da es eine hÃ¶here Statistik Mod Version benÃ¶tigt. Um dieses Modul ordnungsgemÃ¤ÃŸ ausfÃ¼hren zu kÃ¶nnen benÃ¶tigst du mindestens eine Statistik Mod Version %s.'; // replace %s with Version (2.1.3 for example)
+$lang['Module_install_error'] = 'Es ist ein Fehler beim Installieren des Moduls aufgetreten. Bitte prÃ¼fe die obigen Ausgaben auf Fehler und kontaktiere den Modul Autoren.';
 
-$lang['Preview_debug_info'] = 'Dieses Modul wurde in %f Sekunden generiert: %d queries wurden ausgeführt.'; // Replace %f with seconds and %d with queries
-$lang['Update_time_recommend'] = 'Das Statistik Mod schlägt (auf Basis der Debug Informationen) eine Update Zeit von <b>%d</b> Minuten vor.'; // Replace %d with Minutes
+$lang['Preview_debug_info'] = 'Dieses Modul wurde in %f Sekunden generiert: %d queries wurden ausgefÃ¼hrt.'; // Replace %f with seconds and %d with queries
+$lang['Update_time_recommend'] = 'Das Statistik Mod schlÃ¤gt (auf Basis der Debug Informationen) eine Update Zeit von <b>%d</b> Minuten vor.'; // Replace %d with Minutes
 
 ?>

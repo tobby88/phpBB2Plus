@@ -303,14 +303,14 @@ include($phpbb_root_path.'includes/sessions.'.$phpEx);
 // Define schema info
 $available_dbms = array(
 	'mysql'=> array(
-		'LABEL'			=> 'MySQL 3.x',
+		'LABEL'			=> 'MySQL (legacy setting; MySQLi preferred)',
 		'SCHEMA'		=> 'mysql', 
 		'DELIM'			=> ';',
 		'DELIM_BASIC'	=> ';',
 		'COMMENTS'		=> 'remove_remarks'
 	), 
 	'mysql4' => array(
-		'LABEL'			=> 'MySQL 4.x/5.x',
+		'LABEL'			=> 'MySQL 4.x/5.x (legacy setting; MySQLi preferred)',
 		'SCHEMA'		=> 'mysql', 
 		'DELIM'			=> ';', 
 		'DELIM_BASIC'	=> ';',
@@ -731,9 +731,14 @@ else
 		{
 			case 'mysql':
 			case 'mysql4':
+				$check_exts = 'mysql';
+				$check_other = 'mysqli';
+				break;
+
 			case 'mysqli':
 				$check_exts = 'mysqli';
 				$check_other = 'mysqli';
+				break;
 		}
 
 		if (!extension_loaded($check_exts) && !extension_loaded($check_other))

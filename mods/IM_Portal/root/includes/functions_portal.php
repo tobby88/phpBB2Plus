@@ -304,7 +304,7 @@ function portal_parse_blocks($layout, $forum_wide = FALSE, $type='')
 					if (($lang_exist) && ($block_info[$b_counter]['local'] == 1))
 					{
 						$template->assign_block_vars($position . '_blocks_row.title',array(
-							'TITLE' => ($lang['Title_' . $block_name] ?? null)
+							'TITLE' => (isset($lang['Title_' . $block_name]) ? $lang['Title_' . $block_name] : null)
 						));
 					}
 					else
@@ -330,8 +330,8 @@ function portal_parse_blocks($layout, $forum_wide = FALSE, $type='')
 				if ($block_info[$b_counter]['openclose'] == 1)
 				{
 					$template->assign_block_vars($position . '_blocks_row.openclose',array(
-						'OPEN_IMG' => ($images['block_open'] ?? null),
-						'CLOSE_IMG' => ($images['block_close'] ?? null)
+						'OPEN_IMG' => (isset($images['block_open']) ? $images['block_open'] : null),
+						'CLOSE_IMG' => (isset($images['block_close']) ? $images['block_close'] : null)
 					));
 				}
 
@@ -439,8 +439,8 @@ function portal_parse_blocks($layout, $forum_wide = FALSE, $type='')
 				if ($block_info[$b_counter]['openclose'] == 1)
 				{
 					$template->assign_block_vars($position . '_blocks_row.openclose',array(
-						'OPEN_IMG' => ($images['block_open'] ?? null),
-						'CLOSE_IMG' => ($images['block_close'] ?? null)
+						'OPEN_IMG' => (isset($images['block_open']) ? $images['block_open'] : null),
+						'CLOSE_IMG' => (isset($images['block_close']) ? $images['block_close'] : null)
 					));
 				}
 				if ($block_info[$b_counter]['background'] == 1)

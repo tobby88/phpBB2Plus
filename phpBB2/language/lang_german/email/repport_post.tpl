@@ -1,5 +1,5 @@
 Subject: Beanstandung abschicken
-Charset: iso-8859-1
+Charset: UTF-8
 
 Benachrichtigung von {SITENAME}
 
@@ -9,16 +9,16 @@ Dieser Beitrag wurde nun {NUMBER_OF_REPPORTS} mal gemeldet.
 Du  bekommst  diese Benachrichtigung, weil du ein Moderator auf dieser
 Seite bist.
 
-Die URL zum Beitrag ist: 
-{POST_URL} 
+Die URL zum Beitrag ist:
+{POST_URL}
 
-Der Beitrag mit dem Betreff 
+Der Beitrag mit dem Betreff
 
 "{POST_SUBJECT}"
 
-steht im Forum 
+steht im Forum
 
 "{FORUM_NAME}".
 
 
-{BOARD_EMAIL} 
+{BOARD_EMAIL}

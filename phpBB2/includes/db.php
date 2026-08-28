@@ -28,11 +28,13 @@ if ( !defined('IN_PHPBB') )
 switch($dbms)
 {
 	case 'mysql':
-		include($phpbb_root_path . 'db/mysql.'.$phpEx);
+		// Preserve old config.php values while using the maintained driver on
+		// runtimes where the removed mysql extension is no longer available.
+		include($phpbb_root_path . (function_exists('mysqli_connect') ? 'db/mysqli.' : 'db/mysql.') . $phpEx);
 		break;
 
 	case 'mysql4':
-		include($phpbb_root_path . 'db/mysql4.'.$phpEx);
+		include($phpbb_root_path . (function_exists('mysqli_connect') ? 'db/mysqli.' : 'db/mysql4.') . $phpEx);
 		break;
 
 	case 'mysqli':

@@ -28,12 +28,12 @@ if ( !defined('IN_PHPBB') )
 // admin part
 if ( $lang_extend_admin )
 {
-	$lang['Lang_extend_ranks'] = 'Ränge';
+	$lang['Lang_extend_ranks'] = 'RÃ¤nge';
 }
 
-$lang['Ranks'] = 'Ränge';
-$lang['Special_ranks'] = 'Spezialränge';
-$lang['Rank_minimum'] = 'Minimum Beiträge';
+$lang['Ranks'] = 'RÃ¤nge';
+$lang['Special_ranks'] = 'SpezialrÃ¤nge';
+$lang['Rank_minimum'] = 'Minimum BeitrÃ¤ge';
 $lang['Total_users'] = 'Gesamtanzahl Benutzer';
 
 ?>

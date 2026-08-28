@@ -1,12 +1,12 @@
 <?php
 /***************************************************************************
- *                             Kontakt Formular von Carsten Schäfer
+ *                             Kontakt Formular von Carsten SchÃ¤fer
  *                          ------------------------
  *   Version              : Version 1.00 - 26.04.2003
- *   copyright            : (C) 2003 Carsten Schäfer
+ *   copyright            : (C) 2003 Carsten SchÃ¤fer
  *   email			      : cs-mailbox@web.de
  *
- *   $Id: kontakt.php,v 1.00 2003/04/26 Carsten Schäfer $
+ *   $Id: kontakt.php,v 1.00 2003/04/26 Carsten SchÃ¤fer $
  *
  ***************************************************************************/
 

@@ -45,7 +45,7 @@ function _SXBB(id)
 }
 _SXBB.prototype.genCmd = function(cmd, txt)
 {
-	return '&nbsp;‹&nbsp;<a class="genmed" style="text-decoration:none;" href="javascript:void(0)" onclick="SXBB[\''+this.id+'\'].'+cmd+'(\''+txt+'\');" onfocus="this.blur();"><b>'+txt+'</b></a>&nbsp;›';
+	return '&nbsp;â€¹&nbsp;<a class="genmed" style="text-decoration:none;" href="javascript:void(0)" onclick="SXBB[\''+this.id+'\'].'+cmd+'(\''+txt+'\');" onfocus="this.blur();"><b>'+txt+'</b></a>&nbsp;â€º';
 }
 _SXBB.prototype.writeCmd = function()
 {
@@ -59,7 +59,7 @@ _SXBB.prototype.writeCmd = function()
 		// Actually, the [expand] link will be placed by the onload event (if necessary) :-)
 		s += '<span id="'+this.id+'x"></span>';
 	}
-	document.write(s);	// ‹Select› ‹Expand›
+	document.write(s);	// â€¹Selectâ€º â€¹Expandâ€º
 }
 _SXBB.prototype.writeDiv = function()
 {

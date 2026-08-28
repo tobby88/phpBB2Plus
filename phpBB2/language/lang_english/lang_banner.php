@@ -6,7 +6,7 @@
 *  Translation: English
 *  Rev date:    10/12/2003
 *
-*  Translator:  Niels < ncr@db9.dk > (Niels Chr. Rød) http://mods.db9.dk
+*  Translator:  Niels < ncr@db9.dk > (Niels Chr. RÃ¸d) http://mods.db9.dk
 *
 ***************************************************************/
 

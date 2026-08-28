@@ -18,18 +18,18 @@
  *   (at your option) any later version.
  *
  ***************************************************************************/
- 
+
   /***************************************************************************
  *                            MODIFICATIONS
  *                           ---------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
  *	 MODIFICATIONS:
  *		-fixed link to go to album_showpage.php
- *   
+ *
  *
  ***************************************************************************/
 
@@ -320,9 +320,9 @@ if ($total_pics > 0)
 				'DESC' => $picrow[$j]['pic_desc']
 				)
 			);
-			
+
 			$image_rating = ImageRating($picrow[$j]['rating']);
-			
+
 			$template->assign_block_vars('picrow.pic_detail', array(
 				'TITLE' => $picrow[$j]['pic_title'],
 				'TIME' => create_date($board_config['default_dateformat'], $picrow[$j]['pic_time'], $board_config['board_timezone']),
@@ -461,7 +461,7 @@ include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

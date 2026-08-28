@@ -9,7 +9,7 @@
 	{JUMPMENU}
 	</select>
 	</form>
-	
+
 	</td>
 	<td align="right" valign="top"><span class="gensmall">{S_TIMEZONE}</span></td>
   </tr>
@@ -19,6 +19,6 @@
   </tr>
 </table>
 <div align="center"><span class="copyright"><br />
-Powered by paFileDB 3.1 ©2002 <a href="http://www.phparena.net/" target="_phpbb" class="copyright">PHP Arena</a><br />
+Powered by paFileDB 3.1 Â©2002 <a href="http://www.phparena.net/" target="_phpbb" class="copyright">PHP Arena</a><br />
 This script (pafiledb integration v 0.0.9d + <a href="http://www.mx-system.com/" target="_phpbb" class="copyright">MX Addon 1.0</a>) is modified by  <a href="http://www.hostsector.com/~mohd/" target="_phpbb" class="copyright">Mohd</a><br />
 </span></div>

@@ -27,7 +27,7 @@ $forum_id = isset($forum_id) ? $forum_id : 0; // Set a default value if $forum_i
 make_jumpbox('viewforum.' . $phpEx, $forum_id); 
  
 $template->assign_vars(array(
-    'S_TIMEZONE' => sprintf($lang['All_times'], $lang[strval($board_config['board_timezone'])] ?? 'Unknown Timezone')
+    'S_TIMEZONE' => sprintf($lang['All_times'], isset($lang[strval($board_config['board_timezone'])]) ? $lang[strval($board_config['board_timezone'])] : 'Unknown Timezone')
 ));
  
  

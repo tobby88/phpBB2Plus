@@ -67,7 +67,7 @@ if(document.Formular.textfeld.value == "")
 
 <td align="left" class="row2"><textarea class="input" name="textfeld" cols="39" rows="15" type="text"></textarea></td></tr>
 <tr><td class="row1"></td>
-<td class="row2"><input type="submit" value="{kontakt6}" onClick="this.document.Formular.Name.focus()">   <input type="reset" value="{kontakt7}"></td>
+<td class="row2"><input type="submit" value="{kontakt6}" onClick="this.document.Formular.Name.focus()">Â Â Â <input type="reset" value="{kontakt7}"></td>
 </tr>
 </form>
 </span>

@@ -1,5 +1,5 @@
 Subject: Your account on {SITENAME}
-Charset: iso-8859-1
+Charset: UTF-8
 
 Dear {USERNAME},
 

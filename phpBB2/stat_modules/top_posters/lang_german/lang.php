@@ -4,6 +4,6 @@
 // English Language File
 //
 
-$lang['module_name'] = 'Die am häufigsten postenden Benutzer';
+$lang['module_name'] = 'Die am hÃ¤ufigsten postenden Benutzer';
 
 ?>

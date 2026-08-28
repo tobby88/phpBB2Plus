@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -36,7 +36,7 @@ class pafiledb_license extends pafiledb_public
 
 
 		$sql = 'SELECT file_catid, file_name
-			FROM ' . PA_FILES_TABLE . " 
+			FROM ' . PA_FILES_TABLE . "
 			WHERE file_id = $file_id";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -48,9 +48,9 @@ class pafiledb_license extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
-		
+
 		$db->sql_freeresult($result);
-		
+
 		if( (!$this->auth[$file_data['file_catid']]['auth_download']) )
 		{
 			if ( !$userdata['session_logged_in'] )
@@ -63,8 +63,8 @@ class pafiledb_license extends pafiledb_public
 		}
 
 
-		$sql = 'SELECT * 
-			FROM ' . PA_LICENSE_TABLE . " 
+		$sql = 'SELECT *
+			FROM ' . PA_LICENSE_TABLE . "
 			WHERE license_id = $license_id";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -76,11 +76,11 @@ class pafiledb_license extends pafiledb_public
 		{
 			message_die(GENERAL_MESSAGE, $lang['License_not_exist']);
 		}
-		
+
 		$db->sql_freeresult($result);
 
 		$this->generate_category_nav($file_data['file_catid']);
-		
+
 		$pafiledb_template->assign_vars(array(
 			'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
 			'L_LICENSE' => $lang['License'],

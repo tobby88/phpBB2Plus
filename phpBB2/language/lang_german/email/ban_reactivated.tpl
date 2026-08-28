@@ -1,10 +1,10 @@
 Subject: Dein Nickname wurde reaktivert
-Charset: iso-8859-1
+Charset: UTF-8
 
 Hallo {WARNED_POSTER}!
 
 
-Dein Account auf {SITENAME} wurde reaktiviert! 
+Dein Account auf {SITENAME} wurde reaktiviert!
 
 
-{EMAIL_SIG} 
+{EMAIL_SIG}

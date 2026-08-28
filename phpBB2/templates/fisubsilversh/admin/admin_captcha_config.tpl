@@ -61,7 +61,7 @@
 		<td class="row1"><b>{L_ALLOW_IMAGE}</b><br /><span class="gensmall">{L_ALLOW_IMAGE_EXPLAIN}</span></td>
 		<td class="row2"><input type="radio" name="image" value="1" {S_ALLOW_IMAGE_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="image" value="0" {S_ALLOW_IMAGE_NO} /> {L_NO}</td>
 	</tr>
-	<tr> 
+	<tr>
 		<td class="spacerow" colspan="2" height="1"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 	<tr>
@@ -78,7 +78,7 @@
 	</tr>
 	<tr>
 		<td class="row1"><b>{L_GENERATE_JPEG}</b><br /><span class="gensmall">{L_GENERATE_JPEG_EXPAIN}</span></td>
-		<td class="row2">&nbsp;<input type="radio" name="jpeg" value="1" {S_JPEG_IMAGE_YES} /> JPEG&nbsp;<b>·</b>&nbsp;{L_JPEG_QUALITY}:&nbsp;<input class="post" type="text" maxlength="2" size="2" name="jpeg_quality" value="{JPEG_QUALITY}" />&nbsp;%<br />
+		<td class="row2">&nbsp;<input type="radio" name="jpeg" value="1" {S_JPEG_IMAGE_YES} /> JPEG&nbsp;<b>Â·</b>&nbsp;{L_JPEG_QUALITY}:&nbsp;<input class="post" type="text" maxlength="2" size="2" name="jpeg_quality" value="{JPEG_QUALITY}" />&nbsp;%<br />
 		&nbsp;<input type="radio" name="jpeg" value="0" {S_JPEG_IMAGE_NO} /> PNG</td>
 	</tr>
 	<tr>

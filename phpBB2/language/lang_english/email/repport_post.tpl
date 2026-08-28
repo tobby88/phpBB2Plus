@@ -1,17 +1,17 @@
 Subject: Post report
-Charset: iso-8859-1
+Charset: UTF-8
 
-Report from {SITENAME} 
+Report from {SITENAME}
 
-The user {USER} has reported a post to the forum moderators. 
-This post has, until now, received {NUMBER_OF_REPPORTS} reports. 
+The user {USER} has reported a post to the forum moderators.
+This post has, until now, received {NUMBER_OF_REPPORTS} reports.
 
-You are recieving this report since you are a moderator of this forum. 
+You are recieving this report since you are a moderator of this forum.
 
-URL to the actual post is here: 
-{POST_URL} 
+URL to the actual post is here:
+{POST_URL}
 
-The post was located in the forum "{FORUM_NAME}" 
+The post was located in the forum "{FORUM_NAME}"
 the post's subject is "{POST_SUBJECT}"
 
 {BOARD_EMAIL}

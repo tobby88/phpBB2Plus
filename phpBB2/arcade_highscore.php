@@ -29,7 +29,7 @@
   *
   ****************************************************************************
   * 	CREDITS:
-  *  dEfEndEr - phpBB Activity / Arcade Mod © 2006 - v2.0.1 through v2.1.2
+  *  dEfEndEr - phpBB Activity / Arcade Mod Â© 2006 - v2.0.1 through v2.1.2
   *  -  Support: http://www.phpbb-arcade.com
   *  -    Email: < support@phpbb-arcade.com >
   *  Napoleon - Original Activity Mod v2.0.0

@@ -1,0 +1,9 @@
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+
+[*.{php,tpl,cfg,sql,css,js,html,htm,md,txt,ps1,sh}]
+trim_trailing_whitespace = true
+

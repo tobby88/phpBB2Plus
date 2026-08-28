@@ -58,6 +58,15 @@ class sql_db
 
 		if( $this->db_connect_id )
 		{
+			if (function_exists('mysql_set_charset'))
+			{
+				@mysql_set_charset('utf8', $this->db_connect_id);
+			}
+			else
+			{
+				@mysql_query("SET NAMES 'utf8'", $this->db_connect_id);
+			}
+
 			if( $database != "" )
 			{
 				$this->dbname = $database;
@@ -149,7 +158,7 @@ class sql_db
 					return false;
 				}
 			}
-			
+
 			return $this->query_result;
 		}
 		else

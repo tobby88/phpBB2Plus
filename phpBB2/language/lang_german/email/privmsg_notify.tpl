@@ -1,12 +1,12 @@
 Subject: Eine neue Private Nachricht ist eingetroffen
-Charset: iso-8859-1
+Charset: UTF-8
 
 Hallo {USERNAME}!
 
-Du hast eine neue Privat-Nachricht auf {SITENAME} bekommen und hast angegeben, dass du darüber benachrichtigt werden möchtest. Durch Klicken auf den folgenden Link kommst du direkt zur Privat-Nachricht:
+Du hast eine neue Privat-Nachricht auf {SITENAME} bekommen und hast angegeben, dass du darÃ¼ber benachrichtigt werden mÃ¶chtest. Durch Klicken auf den folgenden Link kommst du direkt zur Privat-Nachricht:
 
 {U_INBOX}
 
-Du kannst die Benachrichtigungen übrigens abstellen, dazu musst du einfach auf dein Profil gehen.
+Du kannst die Benachrichtigungen Ã¼brigens abstellen, dazu musst du einfach auf dein Profil gehen.
 
 {EMAIL_SIG}

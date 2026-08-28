@@ -3,7 +3,7 @@
  *                            album_picm.php
  *                            -------------------
  *   started            : Saturday, January 18, 2004
- *   copyright          : © Volodymyr (CLowN) Skoryk
+ *   copyright          : Â© Volodymyr (CLowN) Skoryk
  *   email              : blaatimmy72@yahoo.com
  *	 version            : 1.5
  *
@@ -160,16 +160,16 @@ if( ($album_config['hotlink_prevent'] == 1) and (isset($HTTP_SERVER_VARS['HTTP_R
 +----------------------------------------------------------
 */
 
-// ------------------------------------ 
-// Increase view counter 
-// ------------------------------------ 
-$sql = "UPDATE ". ALBUM_TABLE ." 
-      SET pic_view_count = pic_view_count + 1 
-      WHERE pic_id = '$pic_id'"; 
-if( !$result = $db->sql_query($sql) ) 
-{ 
-   message_die(GENERAL_ERROR, 'Could not update pic information', '', __LINE__, __FILE__, $sql); 
-} 
+// ------------------------------------
+// Increase view counter
+// ------------------------------------
+$sql = "UPDATE ". ALBUM_TABLE ."
+      SET pic_view_count = pic_view_count + 1
+      WHERE pic_id = '$pic_id'";
+if( !$result = $db->sql_query($sql) )
+{
+   message_die(GENERAL_ERROR, 'Could not update pic information', '', __LINE__, __FILE__, $sql);
+}
 
 
 // ------------------------------------
@@ -251,7 +251,7 @@ else
 			$thumbnail_height = $album_sp_config['midthumb_height'];
 			$thumbnail_width = $album_sp_config['midthumb_height'] * ($pic_width/$pic_height);
 		}
-		
+
 		if ($album_config['gd_version'] != 3)
 		{
 			$thumbnail = ($album_config['gd_version'] == 1) ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
@@ -325,7 +325,7 @@ else
 
 // +-------------------------------------------------------------+
 // |  Powered by Photo Album 2.x.x (c) 2002-2003 Smartor         |
-// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 © 2003-2004 |
+// |  with Volodymyr (CLowN) Skoryk's Service Pack 1 Â© 2003-2004 |
 // +-------------------------------------------------------------+
 
 ?>

@@ -3,7 +3,7 @@
 * <b>acp_module_logmanager.php</b><br>
 * Watch and Manage Log Files CrackerTracker creates
 *
-* @author Christian Knerr (cback) and Tekin Birdüzen (cYbercOsmOnauT)
+* @author Christian Knerr (cback) and Tekin BirdÃ¼zen (cYbercOsmOnauT)
 * @package ctracker
 * @version 5.0.5
 * @since 26.07.2006 - 13:29:09

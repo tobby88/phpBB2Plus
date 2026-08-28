@@ -215,7 +215,7 @@ function phpbb_ltrim($str, $charlist = false)
 	{
 		return ltrim($str);
 	}
-	
+
 	$php_version = explode('.', PHP_VERSION);
 
 	// php version < 4.1.0
@@ -248,13 +248,13 @@ function dss_rand()
 	$val = $board_config['rand_seed'] . microtime();
 	$val = md5($val);
 	$board_config['rand_seed'] = md5($board_config['rand_seed'] . $val . 'a');
-   
+
 	if($dss_seeded !== true)
 	{
 		$sql = "UPDATE " . CONFIG_TABLE . " SET
 			config_value = '" . $board_config['rand_seed'] . "'
 			WHERE config_name = 'rand_seed'";
-		
+
 		if( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, "Unable to reseed PRNG", "", __LINE__, __FILE__, $sql);
@@ -273,7 +273,7 @@ function phpbb_rtrim($str, $charlist = false)
 	{
 		return rtrim($str);
 	}
-	
+
 	$php_version = explode('.', PHP_VERSION);
 
 	// php version < 4.1.0
@@ -290,7 +290,7 @@ function phpbb_rtrim($str, $charlist = false)
 	}
 
 	return $str;
-} 
+}
 
 //
 // Get Userdata, $user can be username or user_id. If force_str is true, the username will be forced.
@@ -309,7 +309,7 @@ function get_userdata($user, $force_str = false)
 	}
 
 	$sql = "SELECT *
-		FROM " . USERS_TABLE . " 
+		FROM " . USERS_TABLE . "
 		WHERE ";
 	$sql .= ( ( is_integer($user) ) ? "user_id = $user" : "username = '" .  str_replace("\'", "''", $user) . "'" ) . " AND user_id <> " . ANONYMOUS;
 	if ( !($result = $db->sql_query($sql)) )
@@ -339,7 +339,7 @@ function make_jumpbox($action, $match_forum_id = 0)
 	{
 		message_die(GENERAL_ERROR, "Couldn't obtain category list.", "", __LINE__, __FILE__, $sql);
 	}
-	
+
 	$category_rows = array();
 	while ( $row = $db->sql_fetchrow($result) )
 	{
@@ -387,7 +387,7 @@ function make_jumpbox($action, $match_forum_id = 0)
 							'url' => append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=" . $forum_rows[$j]['forum_id']),
 							'title' => $forum_rows[$j]['forum_name']
 						);
-								
+
 					}
 				}
 
@@ -553,19 +553,19 @@ function init_userprefs($userdata)
 	// Defined here to correctly assign the Language Variables
 	// and be able to change the variables within code.
 	//
-	$nav_links['top'] = array ( 
+	$nav_links['top'] = array (
 		'url' => append_sid($phpbb_root_path . 'index.' . $phpEx),
 		'title' => sprintf($lang['Forum_Index'], $board_config['sitename'])
 	);
-	$nav_links['search'] = array ( 
+	$nav_links['search'] = array (
 		'url' => append_sid($phpbb_root_path . 'search.' . $phpEx),
 		'title' => $lang['Search']
 	);
-	$nav_links['help'] = array ( 
+	$nav_links['help'] = array (
 		'url' => append_sid($phpbb_root_path . 'faq.' . $phpEx),
 		'title' => $lang['FAQ']
 	);
-	$nav_links['author'] = array ( 
+	$nav_links['author'] = array (
 		'url' => append_sid($phpbb_root_path . 'memberlist.' . $phpEx),
 		'title' => $lang['Memberlist']
 	);
@@ -575,7 +575,7 @@ function init_userprefs($userdata)
 	if ($userdata['session_logged_in'] && $board_config['max_link_bookmarks'] > 0)
 	{
 		$auth_sql = '';
-		$is_auth_ary = auth(AUTH_READ, AUTH_LIST_ALL, $userdata); 
+		$is_auth_ary = auth(AUTH_READ, AUTH_LIST_ALL, $userdata);
 
 		$ignore_forum_sql = '';
 		while( list($key, $value) = each($is_auth_ary) )
@@ -809,28 +809,28 @@ function create_date($format, $gmepoch, $tz)
 	return ( !empty($translate) ) ? strtr(@gmdate($format, $gmepoch + (3600 * ($tz+date("I")))), $translate) : @gmdate($format, $gmepoch + (3600 * ($tz+date("I"))));
 
 }
-//-- mod : today at   yesterday at ------------------------------------------------------------------------ 
-//-- add 
-// 
-// Create date/time/day from format and timezone 
-// 
-function create_date_day($format, $gmepoch, $tz) 
-{ 
-   global $board_config, $lang; 
+//-- mod : today at   yesterday at ------------------------------------------------------------------------
+//-- add
+//
+// Create date/time/day from format and timezone
+//
+function create_date_day($format, $gmepoch, $tz)
+{
+   global $board_config, $lang;
 
-   $date_day = create_date($format, $gmepoch, $tz); 
-    if ( $board_config['time_today'] < $gmepoch) 
-    { 
-       $date_day = sprintf($lang['Today_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz)); 
-    } 
-      else if ( $board_config['time_yesterday'] < $gmepoch) 
-    { 
-       $date_day = sprintf($lang['Yesterday_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz)); 
-    } 
-    
-   return $date_day; 
-} 
-//-- end mod : today at   yesterday at ------------------------------------------------------------------------ 
+   $date_day = create_date($format, $gmepoch, $tz);
+    if ( $board_config['time_today'] < $gmepoch)
+    {
+       $date_day = sprintf($lang['Today_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz));
+    }
+      else if ( $board_config['time_yesterday'] < $gmepoch)
+    {
+       $date_day = sprintf($lang['Yesterday_at'], create_date($board_config['default_timeformat'], $gmepoch, $tz));
+    }
+
+   return $date_day;
+}
+//-- end mod : today at   yesterday at ------------------------------------------------------------------------
 //
 // Pagination routine, generates
 // page number sequence
@@ -936,7 +936,7 @@ function phpbb_preg_quote($str, $delimiter)
 {
 	$text = preg_quote($str);
 	$text = str_replace($delimiter, '\\' . $delimiter, $text);
-	
+
 	return $text;
 }
 
@@ -996,7 +996,7 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 
 	if ( $row = $db->sql_fetchrow($result) )
 	{
-		do 
+		do
 		{
 			$orig_word[] = '#\b(' . str_replace('\*', '\w*?', preg_quote($row['word'], '#')) . ')\b#i';
 			$replacement_word[] = $row['replacement'];
@@ -1020,14 +1020,14 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 //
 // $msg_code can be one of these constants:
 //
-// GENERAL_MESSAGE : Use for any simple text message, eg. results 
+// GENERAL_MESSAGE : Use for any simple text message, eg. results
 // of an operation, authorisation failures, etc.
 //
-// GENERAL ERROR : Use for any error which occurs _AFTER_ the 
-// common.php include and session code, ie. most errors in 
+// GENERAL ERROR : Use for any error which occurs _AFTER_ the
+// common.php include and session code, ie. most errors in
 // pages/functions
 //
-// CRITICAL_MESSAGE : Used when basic config data is available but 
+// CRITICAL_MESSAGE : Used when basic config data is available but
 // a session may not exist, eg. banned users
 //
 // CRITICAL_ERROR : Used when config data cannot be obtained, eg
@@ -1101,14 +1101,14 @@ function message_die($msg_code, $msg_text = '', $msg_title = '', $err_line = '',
 //-MOD: Fix message_die for multiple errors MOD
 
 	}
-	
+
 	define('HAS_DIED', 1);
-	
+
 
 	$sql_store = $sql;
-	
+
 	//
-	// Get SQL error if we are debugging. Do this as soon as possible to prevent 
+	// Get SQL error if we are debugging. Do this as soon as possible to prevent
 	// subsequent queries from overwriting the status of sql_error()
 	//
 	if ( DEBUG && ( $msg_code == GENERAL_ERROR || $msg_code == CRITICAL_ERROR ) )
@@ -1304,12 +1304,12 @@ function redirect($url)
 	{
 		$db->sql_close();
 	}
-	
+
 	if (strstr(urldecode($url), "\n") || strstr(urldecode($url), "\r") || strstr(urldecode($url), ';url'))
 	{
 		message_die(GENERAL_ERROR, 'Tried to redirect to potentially insecure url.');
 	}
-	
+
 	$server_protocol = ($board_config['cookie_secure']) ? 'https://' : 'http://';
 	$server_name = preg_replace('#^\/?(.*?)\/?$#', '\1', trim($board_config['server_name']));
 	$server_port = ($board_config['server_port'] <> 80) ? ':' . trim($board_config['server_port']) : '';
@@ -1321,7 +1321,7 @@ function redirect($url)
 	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
 	{
 		header('Refresh: 0; URL=' . $server_protocol . $server_name . $server_port . $script_name . $url);
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><meta http-equiv="refresh" content="0; url=' . $server_protocol . $server_name . $server_port . $script_name . $url . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $server_protocol . $server_name . $server_port . $script_name . $url . '">HERE</a> to be redirected</div></body></html>';
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $server_protocol . $server_name . $server_port . $script_name . $url . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $server_protocol . $server_name . $server_port . $script_name . $url . '">HERE</a> to be redirected</div></body></html>';
 		exit;
 	}
 
@@ -1412,7 +1412,7 @@ function mkrealdate($day,$month,$birth_year)
 
 // UNIX users should replace this function with the below code, since this should be faster
 //
-//function realdate($date_syntax="Ymd",$date=0) 
+//function realdate($date_syntax="Ymd",$date=0)
 //{ return create_date($date_syntax,$date*86400+1,0); }
 
 function realdate($date_syntax="Ymd",$date=0)
@@ -1527,7 +1527,7 @@ function create_absence_mode($absence_mode, &$pm_img, &$pm, &$email_img, &$email
 
 	$button_pos = ( $absent_button == 0 ) ? $board_config['absent_button'] : $absent_button;
 	$button_pos = ( $absent_button == 2 ) ? 0 : $button_pos;
-	
+
 	switch($absence_mode)
 	{
 		case 1:
@@ -1601,12 +1601,12 @@ function check_avatar_size($avatar, $max_avatar_size, $remote = FALSE)
 		}
 		@fclose($fsock);
 	}
-	
-	$pic_size = @getimagesize($avatar); 
+
+	$pic_size = @getimagesize($avatar);
 	if ( $pic_size !== FALSE )
 	{
-		$pic_width = $pic_size[0]; 
-		$pic_height = $pic_size[1]; 
+		$pic_width = $pic_size[0];
+		$pic_height = $pic_size[1];
 
 		if ( $pic_width > $max_avatar_size )
 		{
@@ -1649,16 +1649,16 @@ function AJAX_headers()
 function AJAX_message_die($data_ar)
 {
 	global $template, $db;
-	
+
 	if (!headers_sent())
 	{
 		AJAX_headers();
 	}
-	
+
 	$template->set_filenames(array(
 		'ajax_result' => 'ajax_result.tpl')
 	);
-	
+
 	foreach($data_ar as $key => $value)
 	{
 		if ($value !== '')
@@ -1666,16 +1666,16 @@ function AJAX_message_die($data_ar)
 			$value = utf8_encode(htmlspecialchars($value));
 			// Get special characters in posts back ;)
 			$value = preg_replace('#&amp;\#(\d{1,4});#i', '&#\1;', $value);
-			
+
 			$template->assign_block_vars('tag', array(
 				'TAGNAME' => $key,
 				'VALUE' => $value)
 			);
 		}
 	}
-	
+
 	$template->pparse('ajax_result');
-	
+
 	$db->sql_close();
 	exit;
 }
@@ -1703,11 +1703,11 @@ function utf8_rawurldecode($source)
 {
 	// Strip slashes
 	$source = stripslashes($source);
-	
+
 	$decodedStr = '';
 	$pos = 0;
 	$len = strlen ($source);
-	
+
 	while ($pos < $len)
 	{
 		$charAt = substr($source, $pos, 1);
@@ -1740,7 +1740,7 @@ function utf8_rawurldecode($source)
 		}
 	}
 
-	// Add slashes before sending it back to the browser; 
+	// Add slashes before sending it back to the browser;
 	// this keeps people from trying to inject SQL with some malformed string like %2527
 	return addslashes($decodedStr);
 }

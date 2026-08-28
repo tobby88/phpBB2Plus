@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -14,7 +14,7 @@ define('IN_PHPBB', 1);
 if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);
-// MX Addon	
+// MX Addon
     $module['Download'][$lang['Mfieldtitle']] = $file;
 //    $module['Download'][$lang['Afield']] = $file."?mode=add";
 //    $module['Download'][$lang['Efield']] = $file."?mode=edit";
@@ -73,7 +73,7 @@ if($submit)
 	elseif($mode == 'do_add' && $field_id)
 	{
 		$custom_field->update_add_field($field_type, $field_id);
-		
+
 		$message = $lang['Fieldedited'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid('admin_pa_custom.'.$phpEx) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid('index.'.$phpEx.'?pane=right') . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
 	}
@@ -83,7 +83,7 @@ if($submit)
 		{
 			$custom_field->delete_field($key);
 		}
-		
+
 		$message = $lang['Fieldsdel'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid('admin_pa_custom.'.$phpEx) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid('index.'.$phpEx.'?pane=right') . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
 	}
@@ -93,7 +93,7 @@ if($submit)
 $pafiledb_template->set_filenames(array(
 	'admin' => $template_file)
 );
-	
+
 switch($mode)
 {
 	case 'add':
@@ -157,11 +157,11 @@ if($mode == 'addfield')
 		'L_FIELD_REGEX' => $lang['Field_regex'],
 		'L_FIELD_REGEX_INFO' => sprintf($lang['Field_regex_info'], '<a href="http://www.php.net/manual/en/function.preg-match.php" target="_blank">', '</a>'),
 		'L_FIELD_ORDER' => $lang['Field_order'],
-			
+
 		'DATA' => ($field_type != INPUT && $field_type != TEXTAREA) ? TRUE : FALSE,
 		'REGEX' => ($field_type == INPUT || $field_type == TEXTAREA) ? TRUE : FALSE,
 		'ORDER' => ($field_id) ? TRUE : FALSE,
-			
+
 		'FIELD_NAME' => $data['custom_name'],
 		'FIELD_DESC' => $data['custom_description'],
 		'FIELD_DATA' => $data['data'],
@@ -172,7 +172,7 @@ if($mode == 'addfield')
 elseif($mode == 'add')
 {
 	$field_types = array(INPUT => $lang['Input'], TEXTAREA => $lang['Textarea'], RADIO => $lang['Radio'], SELECT => $lang['Select'], SELECT_MULTIPLE => $lang['Select_multiple'], CHECKBOX => $lang['Checkbox']);
-	
+
 	$field_type_list = '<select name="field_type">';
 	foreach($field_types as $key => $value)
 	{

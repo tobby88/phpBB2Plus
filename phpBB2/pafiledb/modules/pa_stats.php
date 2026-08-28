@@ -1,7 +1,7 @@
 <?php
 /*
   paFileDB 3.0
-  ©2001/2002 PHP Arena
+  Â©2001/2002 PHP Arena
   Written by Todd
   todd@phparena.net
   http://www.phparena.net
@@ -15,7 +15,7 @@ class pafiledb_stats extends pafiledb_public
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $db, $images;
 		global $_REQUEST, $phpbb_root_path, $userdata;
-		
+
 
 		if(!$this->auth_global['auth_stats'])
 		{
@@ -23,14 +23,14 @@ class pafiledb_stats extends pafiledb_public
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=stats", true));
 			}
-	
+
 			$message = sprintf($lang['Sorry_auth_stats'], $this->auth_global['auth_stats_type']);
 			message_die(GENERAL_MESSAGE, $message);
 		}
 
 		$num['cats'] = $this->total_cat;
-		
-		$sql = "SELECT file_id 
+
+		$sql = "SELECT file_id
 			FROM " . PA_FILES_TABLE . "
 			WHERE file_approved = '1'";
 
@@ -41,10 +41,10 @@ class pafiledb_stats extends pafiledb_public
 
 		$num['files'] = $db->sql_numrows($result);
 		$db->sql_freeresult($result);
-		
-		$sql = 'SELECT file_id, file_name 
+
+		$sql = 'SELECT file_id, file_name
 			FROM ' . PA_FILES_TABLE . "
-			WHERE file_approved = '1' 
+			WHERE file_approved = '1'
 			ORDER BY file_time DESC";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -55,9 +55,9 @@ class pafiledb_stats extends pafiledb_public
 		$newest = $db->sql_fetchrow($result);
 		$db->sql_freeresult($result);
 
-		$sql = 'SELECT file_id, file_name 
-			FROM ' . PA_FILES_TABLE . " 
-			WHERE file_approved = '1' 
+		$sql = 'SELECT file_id, file_name
+			FROM ' . PA_FILES_TABLE . "
+			WHERE file_approved = '1'
 			ORDER BY file_time ASC";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -66,13 +66,13 @@ class pafiledb_stats extends pafiledb_public
 		}
 
 		$oldest = $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);		
-		
+		$db->sql_freeresult($result);
+
 		$sql = "SELECT r.votes_file, AVG(r.rate_point) AS rating, f.file_id, f.file_name
 			FROM " . PA_VOTES_TABLE . " AS r, " . PA_FILES_TABLE . " AS f
 			WHERE r.votes_file = f.file_id
-			AND f.file_approved = '1' 
-			GROUP BY f.file_id 
+			AND f.file_approved = '1'
+			GROUP BY f.file_id
 			ORDER BY rating DESC";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -85,8 +85,8 @@ class pafiledb_stats extends pafiledb_public
 		$sql = "SELECT r.votes_file, AVG(r.rate_point) AS rating, f.file_id, f.file_name
 			FROM " . PA_VOTES_TABLE . " AS r, " . PA_FILES_TABLE . " AS f
 			WHERE r.votes_file = f.file_id
-			AND f.file_approved = '1' 
-			GROUP BY f.file_id 
+			AND f.file_approved = '1'
+			GROUP BY f.file_id
 			ORDER BY rating ASC";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -103,8 +103,8 @@ class pafiledb_stats extends pafiledb_public
 			$total_votes++;
 		}
 		$db->sql_freeresult($result);
-		$sql = "SELECT file_id, file_name, file_dls 
-			FROM " . PA_FILES_TABLE . " 
+		$sql = "SELECT file_id, file_name, file_dls
+			FROM " . PA_FILES_TABLE . "
 			WHERE file_approved = '1'
 			ORDER BY file_dls DESC";
 
@@ -115,10 +115,10 @@ class pafiledb_stats extends pafiledb_public
 
 		$mostdl = $db->sql_fetchrow($result);
 		$db->sql_freeresult($result);
-		
-		$sql = "SELECT file_id, file_name, file_dls 
+
+		$sql = "SELECT file_id, file_name, file_dls
 			FROM " . PA_FILES_TABLE . "
-			WHERE file_approved = '1' 
+			WHERE file_approved = '1'
 			ORDER BY file_dls ASC";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -129,7 +129,7 @@ class pafiledb_stats extends pafiledb_public
 		$leastdl = $db->sql_fetchrow($result);
 		$db->sql_freeresult($result);
 
-		$sql = "SELECT file_dls 
+		$sql = "SELECT file_dls
 			FROM " . PA_FILES_TABLE . "
 			WHERE file_approved = '1'";
 
@@ -171,23 +171,23 @@ class pafiledb_stats extends pafiledb_public
 		$lang['Stats_text'] = str_replace("{u_least_dl}", append_sid("dload.php?action=file&file_id=" . $leastdl['file_id']), $lang['Stats_text']);
 		$lang['Stats_text'] = str_replace("{least_dl}", $leastdl['file_name'], $lang['Stats_text']);
 		$lang['Stats_text'] = str_replace("{least_no}", $leastdl['file_dls'], $lang['Stats_text']);
-		
+
 		$agent_lang = array('OPERA' => 'Opera', 'IE' => 'Internet Explorer', 'MOZILLA' => 'Mozilla', 'NETSCAPE' => 'NetScape', 'OTHER' => 'Other');
 		$agent_image = array('OPERA' => 'opera.gif', 'IE' => 'explorer.gif', 'MOZILLA' => 'mozilla.gif', 'NETSCAPE' => 'netscape.gif', 'OTHER' => 'irix.gif');
 		$agent_point = array('OPERA' => 0, 'IE' => 0, 'MOZILLA' => 0, 'NETSCAPE' => 0, 'OTHER' => 0);
-		
+
 		$os_lang = array('Win' => 'Windows', 'Mac' => 'Macintosh', 'Linux' => 'Linux', 'Unix' => 'Unix', 'Other' => 'Other');
 		$os_image = array('Win' => 'windows.gif', 'Mac' => 'mac.gif', 'Linux' => 'linux.gif', 'Unix' => 'linux.gif', 'Other' => 'os2.gif');
 		$os_point = array('Win' => 0, 'Mac' => 0, 'Linux' => 0, 'Unix' => 0, 'Other' => 0);
-		
+
 		$sql = "SELECT downloader_os, downloader_browser
 			FROM " . PA_DOWNLOAD_INFO_TABLE;
-			
+
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not obtain downloads info', '', __LINE__, __FILE__, $sql);
 		}
-		
+
 		$row_downloads = $db->sql_fetchrowset($result);
 		$db->sql_freeresult($result);
 
@@ -212,7 +212,7 @@ class pafiledb_stats extends pafiledb_public
 				'OS_OPTION_RESULT' => $point,
 				'OS_OPTION_IMG' => $os_graphic_img,
 				'OS_OPTION_IMG_WIDTH' => $temp_point * 2)
-			);			
+			);
 		}
 
 		$b_graphic = 0;
@@ -230,12 +230,12 @@ class pafiledb_stats extends pafiledb_public
 				'B_OPTION_RESULT' => $point,
 				'B_OPTION_IMG' => $b_graphic_img,
 				'B_OPTION_IMG_WIDTH' => $temp_point * 2)
-			);			
+			);
 		}
 
 		$agent_point = array('OPERA' => 0, 'IE' => 0, 'MOZILLA' => 0, 'NETSCAPE' => 0, 'OTHER' => 0);
 		$os_point = array('Win' => 0, 'Mac' => 0, 'Linux' => 0, 'Unix' => 0, 'Other' => 0);
-				
+
 		$sql = "SELECT voter_os, voter_browser
 			FROM " . PA_VOTES_TABLE;
 
@@ -243,7 +243,7 @@ class pafiledb_stats extends pafiledb_public
 		{
 			message_die(GENERAL_ERROR, 'Could not obtain downloads info', '', __LINE__, __FILE__, $sql);
 		}
-		
+
 		$row_ratings = $db->sql_fetchrowset($result);
 		$db->sql_freeresult($result);
 
@@ -268,7 +268,7 @@ class pafiledb_stats extends pafiledb_public
 				'OS_OPTION_RESULT' => $point,
 				'OS_OPTION_IMG' => $os_graphic_img,
 				'OS_OPTION_IMG_WIDTH' => $temp_point)
-			);			
+			);
 		}
 
 
@@ -287,9 +287,9 @@ class pafiledb_stats extends pafiledb_public
 				'B_OPTION_RESULT' => $point,
 				'B_OPTION_IMG' => $b_graphic_img,
 				'B_OPTION_IMG_WIDTH' => $temp_point)
-			);			
+			);
 		}
-		
+
 		$pafiledb_template->assign_vars(array(
 			'S_ACTION_CHART' => append_sid('dload.'.$phpEx.'?action=stats'),
 
