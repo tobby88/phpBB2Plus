@@ -368,7 +368,7 @@ if( $mode != '' )
 		}
 		if($userdata['user_id'] < 0)
 		{
-      $cookie = setcookie($board_config['cookie_name'].'_arcade',$session,0,$board_config['cookie_path'],$board_config['cookie_domain'],$board_config['cookie_secure']);
+      $cookie = phpbb_setcookie($board_config['cookie_name'].'_arcade',$session,0,$board_config['cookie_path'],$board_config['cookie_domain'],$board_config['cookie_secure']);
       if($cookie == FALSE)
       {
       	$arcade->message_die(GENERAL_ERROR, $lang['no_cookie_data']); 

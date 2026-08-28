@@ -26,19 +26,10 @@
 # needed Statistics Mod Version
 [stats_mod_version] 2.1.3
 
-# Condition setting. Here you are able to enter PHP Code to check for an existing Mod.
-# If the condition does not return true, the Module will be not installed.
-# The result have to be placed into the variable $return_val... valid values are TRUE and FALSE
-# [/condition] will end the condition block.
+# Condition setting. The named constant must exist and contain a non-empty value.
+# [/condition] ends the condition block.
 [condition]
-if (ATTACH_VERSION != '')
-{
-	$return_val = 1;
-}
-else
-{
-	$return_val = 0;
-}
+ATTACH_VERSION
 [/condition]
 
 # extra info for the user, everything below

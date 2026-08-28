@@ -32,7 +32,7 @@
 		global $lang;
 		
         // initialise out date formatting patterns
-        $cal_date_pattern = unserialize(MINI_CAL_DATE_PATTERNS);
+        $cal_date_pattern = phpbb_safe_unserialize(MINI_CAL_DATE_PATTERNS);
 
         $cal_date_replace = array( 
             $lang['mini_cal']['day'][$cal_weekday], 

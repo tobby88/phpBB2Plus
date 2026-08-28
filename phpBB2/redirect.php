@@ -60,7 +60,7 @@ $cookie_name = $board_config['cookie_name'] . '_b_' . $banner_id;
 if (!isset($HTTP_COOKIE_VARS[$cookie_name]))
 {
 	$banner_filter_time = time() + (( $banner_data['banner_filter_time'] ) ? $banner_data['banner_filter_time'] : 600 ) ;
-	setcookie($cookie_name , 1 ,$banner_filter_time , $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']); 
+	phpbb_setcookie($cookie_name , 1 ,$banner_filter_time , $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
 	$sql ="UPDATE ".BANNERS_TABLE." SET banner_click=banner_click+1 WHERE banner_id='".$banner_id."'";
 	if ( !($result = $db->sql_query($sql)) )
 	{

@@ -953,7 +953,7 @@ class arcade
       @include($cache_file);
       if($file_cached > (time() - $cache_time))
       {
-        return unserialize(stripslashes($arcade_data));
+        return phpbb_safe_unserialize(stripslashes($arcade_data));
       }
     } 
     return FALSE;
@@ -1037,7 +1037,7 @@ class arcade
    		return false;
     }
     $user_GameData = $db->sql_fetchrow($result);
-    $old_GameData = unserialize(stripslashes($user_GameData['gamedata']));
+    $old_GameData = phpbb_safe_unserialize(stripslashes($user_GameData['gamedata']));
     $games_count = count($old_GameData );
 
     if(is_array($old_GameData))

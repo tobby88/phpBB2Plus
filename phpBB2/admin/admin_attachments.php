@@ -415,8 +415,9 @@ if ($mode == 'manage')
 
 	for ($i = 0; $i < sizeof($yes_no_switches); $i++)
 	{
-		eval("\$" . $yes_no_switches[$i] . "_yes = ( \$new_attach['" . $yes_no_switches[$i] . "'] != '0' ) ? 'checked=\"checked\"' : '';");
-		eval("\$" . $yes_no_switches[$i] . "_no = ( \$new_attach['" . $yes_no_switches[$i] . "'] == '0' ) ? 'checked=\"checked\"' : '';");
+		$switch_name = $yes_no_switches[$i];
+		${$switch_name . '_yes'} = ($new_attach[$switch_name] != '0') ? 'checked="checked"' : '';
+		${$switch_name . '_no'} = ($new_attach[$switch_name] == '0') ? 'checked="checked"' : '';
 	}
 
 	if (!function_exists('ftp_connect'))

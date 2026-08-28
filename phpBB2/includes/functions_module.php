@@ -257,7 +257,7 @@ class StatisticsDB
 		{
 			$this->db_cached = TRUE;
 			$this->use_cache = TRUE;
-			$data = unserialize(stripslashes($cached_data));
+			$data = phpbb_safe_unserialize(stripslashes($cached_data));
 			$this->numrows_data = $data->n;
 			$this->fetchrowset_data = $data->fs;
 			$this->fetchrow_data = $data->f;
@@ -451,7 +451,7 @@ class Results
 		if ($cache_enabled)
 		{
 			$this->use_cache = TRUE;
-			$data = unserialize(stripslashes($cached_data));
+			$data = phpbb_safe_unserialize(stripslashes($cached_data));
 			$this->var_data = $data->var_data;
 		}
 	}

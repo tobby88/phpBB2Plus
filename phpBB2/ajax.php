@@ -1119,8 +1119,8 @@ else if ($mode == 'mark_topic')
 		AJAX_message_die($result_ar);
 	}
 	
-	$tracking_topics = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t'])) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) : array();
-	$tracking_forums = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f'])) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
+	$tracking_topics = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t'])) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) : array();
+	$tracking_forums = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f'])) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
 
 	if (count($tracking_topics) >= 150 && empty($tracking_topics[$topic_id]))
 	{
@@ -1130,7 +1130,7 @@ else if ($mode == 'mark_topic')
 
 	$tracking_topics[$topic_id] = time();
 
-	setcookie($board_config['cookie_name'] .'_t', serialize($tracking_topics), 0, $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
+	phpbb_setcookie($board_config['cookie_name'] .'_t', serialize($tracking_topics), 0, $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
 	
 	if ($topic_row['topic_type'] == POST_ANNOUNCE)
 	{
@@ -1213,8 +1213,8 @@ else if ($mode == 'mark_forum')
 		AJAX_message_die($result_ar);
 	}
 	
-	$tracking_forums = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f'])) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
-	$tracking_topics = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t'])) ? unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) : array();
+	$tracking_forums = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f'])) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
+	$tracking_topics = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t'])) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) : array();
 
 	if ((count($tracking_forums) + count($tracking_topics)) >= 150 && empty($tracking_forums[$forum_id]))
 	{
@@ -1224,7 +1224,7 @@ else if ($mode == 'mark_forum')
 	
 	$tracking_forums[$forum_id] = time();
 	
-	setcookie($board_config['cookie_name'] .'_f', serialize($tracking_forums), 0, $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
+	phpbb_setcookie($board_config['cookie_name'] .'_f', serialize($tracking_forums), 0, $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
 	
 	if ($forum_row['forum_status'] == FORUM_LOCKED)
 	{

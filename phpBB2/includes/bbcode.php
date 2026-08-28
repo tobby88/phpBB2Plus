@@ -97,19 +97,18 @@ function load_bbcode_template()
 	$tpl_filename = $template->make_filename('bbcode.tpl');
 	$tpl = fread(fopen($tpl_filename, 'r'), filesize($tpl_filename));
 
-	// replace \ with \\ and then ' with \'.
-	$tpl = str_replace('\\', '\\\\', $tpl);
-	$tpl  = str_replace('\'', '\\\'', $tpl);
-
 	// strip newlines.
 	$tpl  = str_replace("\n", '', $tpl);
 
-	// Turn template blocks into PHP assignment statements for the values of $bbcode_tpls..
-	$tpl = preg_replace('#<!-- BEGIN (.*?) -->(.*?)<!-- END (.*?) -->#', "\n" . '$bbcode_tpls[\'\\1\'] = \'\\2\';', $tpl);
-
 	$bbcode_tpls = array();
-
-	eval($tpl);
+	$matches = array();
+	if (preg_match_all('#<!-- BEGIN (.*?) -->(.*?)<!-- END \\1 -->#', $tpl, $matches, PREG_SET_ORDER))
+	{
+		foreach ($matches as $match)
+		{
+			$bbcode_tpls[$match[1]] = $match[2];
+		}
+	}
 
 	return $bbcode_tpls;
 }

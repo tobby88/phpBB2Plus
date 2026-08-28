@@ -451,7 +451,7 @@ class pafiledb_search extends pafiledb_public
 
 					if ( $row = $db->sql_fetchrow($result) )
 					{
-						$search_data = unserialize($row['search_array']);
+						$search_data = phpbb_safe_unserialize($row['search_array']);
 						for($i = 0; $i < count($store_vars); $i++)
 						{
 							$$store_vars[$i] = $search_data[$store_vars[$i]];

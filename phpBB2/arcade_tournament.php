@@ -426,13 +426,13 @@ else if ($mode == 'tour')
     if($tour_players[$i]['user_id'] == $userdata['user_id'])
     {
       $in_tour = true;
-      $GameData = unserialize(stripslashes($tour_players[$i]['gamedata']));
+      $GameData = phpbb_safe_unserialize(stripslashes($tour_players[$i]['gamedata']));
       $played_games = count($GameData);
     }
 //
 //  Now we have that, let's build a list of what games each person has played for some stats
 // 
-    $temp_gamedata = unserialize(stripslashes($tour_players[$i]['gamedata']));
+    $temp_gamedata = phpbb_safe_unserialize(stripslashes($tour_players[$i]['gamedata']));
     $played_games_count = is_array($temp_gamedata) ? count($temp_gamedata) : 0;
 
     $played_games_list = ' [<i>';
@@ -612,7 +612,7 @@ else if ($mode == 'game')
  		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
  	}
  	$user_GameData = $db->sql_fetchrow($result);
-  $old_GameData = unserialize(stripslashes($user_GameData['gamedata']));
+  $old_GameData = phpbb_safe_unserialize(stripslashes($user_GameData['gamedata']));
   $games_count = count($old_GameData );
 
  	if(is_array($old_GameData))

@@ -149,7 +149,7 @@
 	           {
 	               // we've even got some events
 	               // initialise out date formatting patterns
-	               $cal_date_pattern = unserialize(MINI_CAL_DATE_PATTERNS);
+	               $cal_date_pattern = phpbb_safe_unserialize(MINI_CAL_DATE_PATTERNS);
 	    
 	               // output our events in the given date format for the current language
 	       	       while ($row = $db->sql_fetchrow($result))

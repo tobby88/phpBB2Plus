@@ -538,24 +538,15 @@ class pafiledb_functions
 
 	function pafiledb_unlink($filename)
 	{
-		global $pafiledb_config, $lang;
-
 		$deleted = @unlink($filename);
 
-		if (@file_exists($this->pafiledb_realpath($filename)) ) 
+		if (!$deleted && @file_exists($this->pafiledb_realpath($filename)))
 		{
-			$filesys = eregi_replace('/','\\', $filename);
-			$deleted = @system("del $filesys");
-
-			if (@file_exists($this->pafiledb_realpath($filename))) 
-			{
-				$deleted = @chmod ($filename, 0775);
-				$deleted = @unlink($filename);
-				$deleted = @system("del $filesys");
-			}
+			@chmod($filename, 0775);
+			$deleted = @unlink($filename);
 		}
 
-		return ($deleted);
+		return $deleted;
 	}
 
 

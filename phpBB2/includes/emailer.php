@@ -136,7 +136,7 @@ class emailer
 	// assign variables
 	function assign_vars($vars)
 	{
-		$this->vars = (empty($this->vars)) ? $vars : $this->vars . $vars;
+		$this->vars = (empty($this->vars)) ? $vars : array_merge($this->vars, $vars);
 	}
 
 	// Send the mail out to the recipients set previously in var $this->address
@@ -144,25 +144,15 @@ class emailer
 	{
 		global $board_config, $lang, $phpEx, $phpbb_root_path, $db;
 
-    	// Escape all quotes, else the eval will fail.
-		$this->msg = str_replace ("'", "\'", $this->msg);
-		$this->msg = preg_replace('#\{([a-z0-9\-_]*?)\}#is', "' . $\\1 . '", $this->msg);
-
-		// Set vars
-		reset ($this->vars);
-		while (list($key, $val) = each($this->vars)) 
-		{
-			$$key = $val;
-		}
-
-		eval("\$this->msg = '$this->msg';");
-
-		// Clear vars
-		reset ($this->vars);
-		while (list($key, $val) = each($this->vars)) 
-		{
-			unset($$key);
-		}
+		$vars = $this->vars;
+		$this->msg = preg_replace_callback(
+			'#\{([a-z0-9\-_]*?)\}#is',
+			function ($match) use ($vars)
+			{
+				return isset($vars[$match[1]]) ? $vars[$match[1]] : '';
+			},
+			$this->msg
+		);
 
 		// We now try and pull a subject from the email body ... if it exists,
 		// do this here because the subject may contain a variable

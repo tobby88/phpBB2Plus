@@ -32,6 +32,14 @@ if ( !defined('IN_PHPBB') )
 
 include_once($phpbb_root_path . 'includes/php_compat.' . $phpEx);
 
+if (!headers_sent())
+{
+	header('X-Content-Type-Options: nosniff');
+	header('X-Frame-Options: SAMEORIGIN');
+	header('Referrer-Policy: strict-origin-when-cross-origin');
+	header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+}
+
 //-- mod : run stats -----------------------------------------------------------
 //-- add
 $starttime = microtime();

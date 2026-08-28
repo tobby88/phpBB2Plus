@@ -213,7 +213,7 @@ src="{URL}" name=MediaPlayer2 showcontrols=1 showdisplay=0 showstatusbar=1 autos
 <!-- BEGIN s_close --></s><!-- END s_close -->
 <!-- BEGIN google --><a href="http://www.google.com/search?q={QUERY}" target="_blank">{STRING}</a><!-- END google -->
 <!-- BEGIN left --><img src="{URL}" border="0" align="left" /><!-- END left -->
-<!-- BEGIN right --><img src="{URL}" border="0" align="right" /><!-- END left -->
+<!-- BEGIN right --><img src="{URL}" border="0" align="right" /><!-- END right -->
 <!-- BEGIN scrollleft_open --><span><marquee direction="left"><!-- END scrollleft_open -->
 <!-- BEGIN scrollleft_close --></marquee></span><!-- END scrollleft_close -->
 <!-- BEGIN scrollright_open --><span><marquee direction="right"><!-- END scrollright_open -->

@@ -2454,10 +2454,9 @@
 			$v_local_header = array();
 			$this->privConvertHeader2FileInfo($p_header, $v_local_header);
 
-			// ----- Call the callback
-			// Here I do not use call_user_func() because I need to send a reference to the
-			// header.
-			eval('$v_result = '.$p_options[PCLZIP_CB_PRE_ADD].'(PCLZIP_CB_PRE_ADD, $v_local_header);');
+			// ----- Call the callback and preserve the mutable header argument.
+			$v_callback_args = array(PCLZIP_CB_PRE_ADD, &$v_local_header);
+			$v_result = call_user_func_array($p_options[PCLZIP_CB_PRE_ADD], $v_callback_args);
 			if ($v_result == 0)
 			{
 				// ----- Change the file status
@@ -2606,10 +2605,9 @@
 			$v_local_header = array();
 			$this->privConvertHeader2FileInfo($p_header, $v_local_header);
 
-			// ----- Call the callback
-			// Here I do not use call_user_func() because I need to send a reference to the
-			// header.
-			eval('$v_result = '.$p_options[PCLZIP_CB_POST_ADD].'(PCLZIP_CB_POST_ADD, $v_local_header);');
+			// ----- Call the callback and preserve the mutable header argument.
+			$v_callback_args = array(PCLZIP_CB_POST_ADD, &$v_local_header);
+			$v_result = call_user_func_array($p_options[PCLZIP_CB_POST_ADD], $v_callback_args);
 			if ($v_result == 0)
 			{
 				// ----- Ignored
@@ -3358,10 +3356,9 @@
 			$v_local_header = array();
 			$this->privConvertHeader2FileInfo($p_entry, $v_local_header);
 
-			// ----- Call the callback
-			// Here I do not use call_user_func() because I need to send a reference to the
-			// header.
-			eval('$v_result = '.$p_options[PCLZIP_CB_PRE_EXTRACT].'(PCLZIP_CB_PRE_EXTRACT, $v_local_header);');
+			// ----- Call the callback and preserve the mutable header argument.
+			$v_callback_args = array(PCLZIP_CB_PRE_EXTRACT, &$v_local_header);
+			$v_result = call_user_func_array($p_options[PCLZIP_CB_PRE_EXTRACT], $v_callback_args);
 			if ($v_result == 0)
 			{
 				// ----- Change the file status
@@ -3655,10 +3652,9 @@
 			$v_local_header = array();
 			$this->privConvertHeader2FileInfo($p_entry, $v_local_header);
 
-			// ----- Call the callback
-			// Here I do not use call_user_func() because I need to send a reference to the
-			// header.
-			eval('$v_result = '.$p_options[PCLZIP_CB_POST_EXTRACT].'(PCLZIP_CB_POST_EXTRACT, $v_local_header);');
+			// ----- Call the callback and preserve the mutable header argument.
+			$v_callback_args = array(PCLZIP_CB_POST_EXTRACT, &$v_local_header);
+			$v_result = call_user_func_array($p_options[PCLZIP_CB_POST_EXTRACT], $v_callback_args);
 
 			// ----- Look for abort result
 			if ($v_result == 2)
@@ -3709,10 +3705,9 @@
 			$v_local_header = array();
 			$this->privConvertHeader2FileInfo($p_entry, $v_local_header);
 
-			// ----- Call the callback
-			// Here I do not use call_user_func() because I need to send a reference to the
-			// header.
-			eval('$v_result = '.$p_options[PCLZIP_CB_PRE_EXTRACT].'(PCLZIP_CB_PRE_EXTRACT, $v_local_header);');
+			// ----- Call the callback and preserve the mutable header argument.
+			$v_callback_args = array(PCLZIP_CB_PRE_EXTRACT, &$v_local_header);
+			$v_result = call_user_func_array($p_options[PCLZIP_CB_PRE_EXTRACT], $v_callback_args);
 			if ($v_result == 0)
 			{
 				// ----- Change the file status
@@ -3793,10 +3788,9 @@
 			$v_local_header = array();
 			$this->privConvertHeader2FileInfo($p_entry, $v_local_header);
 
-			// ----- Call the callback
-			// Here I do not use call_user_func() because I need to send a reference to the
-			// header.
-			eval('$v_result = '.$p_options[PCLZIP_CB_POST_EXTRACT].'(PCLZIP_CB_POST_EXTRACT, $v_local_header);');
+			// ----- Call the callback and preserve the mutable header argument.
+			$v_callback_args = array(PCLZIP_CB_POST_EXTRACT, &$v_local_header);
+			$v_result = call_user_func_array($p_options[PCLZIP_CB_POST_EXTRACT], $v_callback_args);
 
 			// ----- Look for abort result
 			if ($v_result == 2)

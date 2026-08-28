@@ -6,6 +6,21 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Security and runtime hardening
+
+- Replaced direct deserialization of browser cookies, search data, Arcade data,
+  and extension caches with a PHP 5.6-to-8.x compatibility helper that blocks
+  object instantiation.
+- Added `HttpOnly`, `SameSite=Lax`, and automatic HTTPS-only handling to forum
+  cookies, plus conservative response headers against MIME sniffing, external
+  framing, and unnecessary browser-device access.
+- Removed avoidable dynamic code execution from email templates, BBCode
+  templates, statistics-module conditions, attachment administration, and ZIP
+  callbacks. Fixed the mismatched `right` BBCode template marker exposed by
+  strict parsing and corrected repeated email-variable assignment.
+- Removed PAFiledb's shell-based Windows deletion fallback and shell-escaped
+  every ImageMagick thumbnail command argument.
+
 ### Repository and update cleanup
 
 - Reconciled the later `phpbb2premods/phpBB2Plus` snapshot against the

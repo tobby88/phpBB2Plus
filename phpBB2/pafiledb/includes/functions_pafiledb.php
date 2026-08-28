@@ -331,7 +331,7 @@ class pafiledb
 		}
 		else
 		{
-			$cat_nav = unserialize(stripslashes($this->cat_rowset[$cat_id]['parents_data']));
+			$cat_nav = phpbb_safe_unserialize(stripslashes($this->cat_rowset[$cat_id]['parents_data']));
 		}
 		
 		if(!empty($cat_nav))

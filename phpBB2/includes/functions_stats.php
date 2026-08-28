@@ -49,7 +49,7 @@ function generate_module_info($module_data, $install = FALSE)
 
 	if ($module_data['module_info_time'] == filemtime($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $module_dir . '/info.txt'))
 	{
-		$ret_array = unserialize(stripslashes($module_data['module_info_cache']));
+		$ret_array = phpbb_safe_unserialize(stripslashes($module_data['module_info_cache']));
 	}
 	else
 	{
@@ -158,8 +158,10 @@ function generate_module_info($module_data, $install = FALSE)
 		// Parse the condition
 		if ($condition != '')
 		{
-			$return_val = TRUE;
-			eval($condition);
+			$condition_name = trim($condition);
+			$return_val = (bool) preg_match('/^[A-Z][A-Z0-9_]*$/', $condition_name)
+				&& defined($condition_name)
+				&& constant($condition_name) !== '';
 			$ret_array['condition_result'] = $return_val;
 		}
 	}
