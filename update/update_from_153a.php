@@ -1,0 +1,335 @@
+<?php
+/**
+ * Bring an existing phpBB2 Plus 1.53a database to this repository's schema.
+ *
+ * Dry run: php update/update_from_153a.php
+ * Apply:   php update/update_from_153a.php --apply --backup-confirmed
+ * Test:    php update/update_from_153a.php --self-test
+ *
+ * This script is intentionally CLI-only and idempotent. Existing settings and
+ * data win over installation defaults. DDL statements auto-commit, therefore
+ * a verified database backup is mandatory before --apply is accepted.
+ */
+
+if (PHP_SAPI !== 'cli')
+{
+	http_response_code(404);
+	exit(2);
+}
+
+$project_root = dirname(__DIR__);
+$forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
+$schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
+$basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
+
+function update_usage()
+{
+	echo "phpBB2 Plus post-1.53a database updater\n\n";
+	echo "  php update/update_from_153a.php                         Dry run\n";
+	echo "  php update/update_from_153a.php --apply --backup-confirmed  Apply\n";
+	echo "  php update/update_from_153a.php --database=clone_name       Use a clone\n";
+	echo "  php update/update_from_153a.php --self-test                 Test schema input\n";
+}
+
+function update_extract_create_tables($schema)
+{
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:ina|ctracker)_[A-Za-z0-9_]+)`?\s*\(.*?\)\s*ENGINE\s*=\s*MyISAM[^;]*;~is';
+	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
+	$statements = array();
+	foreach ($matches as $match)
+	{
+		$statements[$match[1]] = trim($match[0]);
+	}
+	return $statements;
+}
+
+function update_extract_seed_statements($basic)
+{
+	$pattern = '~INSERT INTO\s+`?(phpbb_(?:ina_data|ctracker_config|ctracker_ipblocker))`?\s*.*?;~is';
+	preg_match_all($pattern, $basic, $matches, PREG_SET_ORDER);
+	$statements = array();
+	foreach ($matches as $match)
+	{
+		$sql = preg_replace('/^INSERT INTO/i', 'INSERT IGNORE INTO', trim($match[0]));
+		$statements[] = $sql;
+	}
+	return $statements;
+}
+
+if (in_array('--help', $argv, true) || in_array('-h', $argv, true))
+{
+	update_usage();
+	exit(0);
+}
+
+if (!is_file($schema_file) || !is_file($basic_file))
+{
+	fwrite(STDERR, "Fresh-install schema files were not found.\n");
+	exit(2);
+}
+
+$schema_source = file_get_contents($schema_file);
+$basic_source = file_get_contents($basic_file);
+$create_statements = update_extract_create_tables($schema_source);
+$seed_statements = update_extract_seed_statements($basic_source);
+
+if (in_array('--self-test', $argv, true))
+{
+	$arcade_tables = 0;
+	$ctracker_tables = 0;
+	foreach (array_keys($create_statements) as $table)
+	{
+		if (strpos($table, 'phpbb_ina_') === 0) { $arcade_tables++; }
+		if (strpos($table, 'phpbb_ctracker_') === 0) { $ctracker_tables++; }
+	}
+	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || count($seed_statements) < 66)
+	{
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements.\n");
+		exit(3);
+	}
+	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements.\n";
+	exit(0);
+}
+
+$apply = in_array('--apply', $argv, true);
+$backup_confirmed = in_array('--backup-confirmed', $argv, true);
+if ($apply && !$backup_confirmed)
+{
+	fwrite(STDERR, "Refusing to apply: add --backup-confirmed after verifying a current backup.\n");
+	exit(2);
+}
+
+$config_file = $forum_root . DIRECTORY_SEPARATOR . 'config.php';
+if (!is_file($config_file))
+{
+	fwrite(STDERR, "phpBB2/config.php was not found.\n");
+	exit(2);
+}
+require $config_file;
+
+foreach ($argv as $argument)
+{
+	if (strpos($argument, '--database=') === 0)
+	{
+		$requested_database = substr($argument, strlen('--database='));
+		if (!preg_match('/^[A-Za-z0-9_]+$/', $requested_database))
+		{
+			fwrite(STDERR, "Invalid --database name.\n");
+			exit(2);
+		}
+		$dbname = $requested_database;
+	}
+}
+
+$required_config = array('dbhost', 'dbuser', 'dbpasswd', 'dbname', 'table_prefix');
+foreach ($required_config as $variable)
+{
+	if (!isset($$variable))
+	{
+		fwrite(STDERR, "config.php does not define \$$variable.\n");
+		exit(2);
+	}
+}
+if (!preg_match('/^[A-Za-z0-9_]+$/', $table_prefix))
+{
+	fwrite(STDERR, "The configured table prefix is not safe to use.\n");
+	exit(2);
+}
+if (isset($dbms) && !in_array($dbms, array('mysql', 'mysql4', 'mysqli'), true))
+{
+	fwrite(STDERR, "Only MySQL/MariaDB installations are supported by this updater.\n");
+	exit(2);
+}
+
+mysqli_report(MYSQLI_REPORT_OFF);
+$connection = @mysqli_connect($dbhost, $dbuser, $dbpasswd, $dbname);
+if (!$connection)
+{
+	fwrite(STDERR, "Database connection failed: " . mysqli_connect_error() . "\n");
+	exit(2);
+}
+if (!mysqli_set_charset($connection, 'utf8mb4'))
+{
+	fwrite(STDERR, "Could not select utf8mb4 for the update connection.\n");
+	exit(2);
+}
+
+function update_quote_identifier($identifier)
+{
+	return '`' . str_replace('`', '``', $identifier) . '`';
+}
+
+function update_query_or_fail($connection, $sql)
+{
+	$result = mysqli_query($connection, $sql);
+	if ($result === false)
+	{
+		fwrite(STDERR, "SQL failed: " . mysqli_error($connection) . "\nStatement: $sql\n");
+		exit(3);
+	}
+	return $result;
+}
+
+function update_scalar($connection, $sql)
+{
+	$result = update_query_or_fail($connection, $sql);
+	$row = mysqli_fetch_row($result);
+	mysqli_free_result($result);
+	return $row ? $row[0] : null;
+}
+
+function update_table_exists($connection, $database, $table)
+{
+	$sql = "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = '" .
+		mysqli_real_escape_string($connection, $database) . "' AND TABLE_NAME = '" .
+		mysqli_real_escape_string($connection, $table) . "'";
+	return (int) update_scalar($connection, $sql) > 0;
+}
+
+function update_column_exists($connection, $database, $table, $column)
+{
+	$sql = "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" .
+		mysqli_real_escape_string($connection, $database) . "' AND TABLE_NAME = '" .
+		mysqli_real_escape_string($connection, $table) . "' AND COLUMN_NAME = '" .
+		mysqli_real_escape_string($connection, $column) . "'";
+	return (int) update_scalar($connection, $sql) > 0;
+}
+
+function update_queue_column(&$operations, $connection, $database, $table, $column, $definition)
+{
+	if (!update_column_exists($connection, $database, $table, $column))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ADD ' .
+			update_quote_identifier($column) . ' ' . $definition;
+	}
+}
+
+function update_queue_default(&$operations, $connection, $table, $key_column, $value_column, $key, $value)
+{
+	$sql = 'INSERT IGNORE INTO ' . update_quote_identifier($table) . ' (' .
+		update_quote_identifier($key_column) . ', ' . update_quote_identifier($value_column) . ') VALUES (\'' .
+		mysqli_real_escape_string($connection, $key) . '\', \'' .
+		mysqli_real_escape_string($connection, $value) . '\')';
+	$operations[] = $sql;
+}
+
+$operations = array();
+
+// Reuse the fresh-install schema as the canonical definition for restored
+// Arcade and CrackerTracker tables.
+foreach ($create_statements as $generic_table => $generic_sql)
+{
+	$table = preg_replace('/^phpbb_/', $table_prefix, $generic_table);
+	if (!update_table_exists($connection, $dbname, $table))
+	{
+		$operations[] = preg_replace('/\bphpbb_/', $table_prefix, $generic_sql);
+	}
+}
+
+$user_columns = array(
+	'games_block_pm' => 'TINYINT(1) NOT NULL DEFAULT 1',
+	'arcade_banned' => 'INT(11) NOT NULL DEFAULT 0',
+	'ct_search_time' => 'INT(11) DEFAULT 1',
+	'ct_search_count' => 'MEDIUMINT(8) DEFAULT 1',
+	'ct_last_mail' => 'INT(11) DEFAULT 1',
+	'ct_last_post' => 'INT(11) DEFAULT 1',
+	'ct_post_counter' => 'MEDIUMINT(8) DEFAULT 1',
+	'ct_last_pw_reset' => 'INT(11) DEFAULT 1',
+	'ct_enable_ip_warn' => 'TINYINT(1) DEFAULT 1',
+	'ct_last_used_ip' => "VARCHAR(16) DEFAULT '0.0.0.0'",
+	'ct_last_ip' => "VARCHAR(16) DEFAULT '0.0.0.0'",
+	'ct_login_count' => 'MEDIUMINT(8) DEFAULT 1',
+	'ct_login_vconfirm' => 'TINYINT(1) DEFAULT 0',
+	'ct_last_pw_change' => 'INT(11) DEFAULT 1',
+	'ct_global_msg_read' => 'TINYINT(1) DEFAULT 0',
+	'ct_miserable_user' => 'TINYINT(1) DEFAULT 0',
+	'user_fb' => 'VARCHAR(255) DEFAULT NULL',
+	'user_ig' => 'VARCHAR(255) DEFAULT NULL',
+	'user_pt' => 'VARCHAR(255) DEFAULT NULL',
+	'user_twr' => 'VARCHAR(255) DEFAULT NULL',
+	'user_skp' => 'VARCHAR(255) DEFAULT NULL',
+	'user_tg' => 'VARCHAR(255) DEFAULT NULL',
+	'user_li' => 'VARCHAR(255) DEFAULT NULL',
+	'user_tt' => 'VARCHAR(255) DEFAULT NULL',
+	'user_dc' => 'VARCHAR(255) DEFAULT NULL'
+);
+foreach ($user_columns as $column => $definition)
+{
+	update_queue_column($operations, $connection, $dbname, $table_prefix . 'users', $column, $definition);
+}
+
+foreach (array('div_class1', 'div_class2', 'div_class3', 'row_class1', 'row_class2', 'row_class3', 'col_class1', 'col_class2', 'col_class3') as $column)
+{
+	update_queue_column($operations, $connection, $dbname, $table_prefix . 'themes', $column, 'VARCHAR(25) DEFAULT NULL');
+	update_queue_column($operations, $connection, $dbname, $table_prefix . 'themes_name', $column . '_name', 'VARCHAR(50) DEFAULT NULL');
+}
+
+$config_defaults = array(
+	'cookie_consent_enable' => '1',
+	'sfs_enable' => '0',
+	'dbmtnc_rebuild_end' => '0',
+	'dbmtnc_rebuild_pos' => '-1',
+	'dbmtnc_rebuildcfg_maxmemory' => '500',
+	'dbmtnc_rebuildcfg_minposts' => '3',
+	'dbmtnc_rebuildcfg_php3only' => '0',
+	'dbmtnc_rebuildcfg_php3pps' => '1',
+	'dbmtnc_rebuildcfg_php4pps' => '8',
+	'dbmtnc_rebuildcfg_timelimit' => '240',
+	'dbmtnc_rebuildcfg_timeoverwrite' => '0',
+	'dbmtnc_disallow_postcounter' => '0',
+	'dbmtnc_disallow_rebuild' => '0'
+);
+foreach ($config_defaults as $key => $value)
+{
+	update_queue_default($operations, $connection, $table_prefix . 'config', 'config_name', 'config_value', $key, $value);
+}
+
+$album_defaults = array(
+	'path_to_bin' => 'cgi-bin/', 'perl_uploader' => '0', 'show_progress_bar' => '0',
+	'close_on_finish' => '1', 'max_pause' => '10', 'simple_format' => '0',
+	'multiple_uploads' => '1', 'max_uploads' => '10', 'zip_uploads' => '1',
+	'resize_pic' => '0', 'resize_width' => '600', 'resize_height' => '600',
+	'resize_quality' => '70'
+);
+foreach ($album_defaults as $key => $value)
+{
+	update_queue_default($operations, $connection, $table_prefix . 'album_config', 'config_name', 'config_value', $key, $value);
+}
+
+foreach ($seed_statements as $seed_sql)
+{
+	$operations[] = preg_replace('/\bphpbb_/', $table_prefix, $seed_sql);
+}
+
+$version_table = $table_prefix . 'config';
+$version_sql = 'SELECT config_value FROM ' . update_quote_identifier($version_table) . " WHERE config_name = 'version'";
+$current_version = (string) update_scalar($connection, $version_sql);
+if ($current_version === '.0.22')
+{
+	$operations[] = 'UPDATE ' . update_quote_identifier($version_table) . " SET config_value = '.0.23' WHERE config_name = 'version'";
+}
+
+echo ($apply ? 'APPLY' : 'DRY RUN') . " post-1.53a database update\n";
+echo "Database: $dbname\n";
+echo "Table prefix: $table_prefix\n";
+echo 'Operations: ' . count($operations) . "\n\n";
+
+foreach ($operations as $sql)
+{
+	echo $sql . ";\n";
+	if ($apply)
+	{
+		update_query_or_fail($connection, $sql);
+	}
+}
+
+if ($apply)
+{
+	echo "\nDatabase update complete. Existing CrackerTracker 4.x tables and columns were deliberately retained; use the separately named legacy uninstall reference only after a manual review.\n";
+}
+else
+{
+	echo "\nDry run only. No database changes were made.\n";
+}
+
+mysqli_close($connection);

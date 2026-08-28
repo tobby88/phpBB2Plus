@@ -848,7 +848,7 @@ INSERT INTO phpbb_hacks_list (hack_id, hack_add_date, hack_name, hack_desc, hack
 (169, 0, 'Google Visit Counter', 'Adds a google bot visit counter on index ', 'Dr DLP', '', 'http://www.web-lapin.levillage.org/forum/', '1.0.0', 'No', '', '', 0),
 (170, 0, 'Fix message_die for multiple errors MOD', 'This MOD replaces the message_die was called multiple times message with something more useful', 'markus_petrux', '', 'http://www.phpmix.com', '1.0.3', 'No', '', '', 0),
 (171, 0, 'Search Engine ShortURLs Mod', 'This MOD replaces the Forum Links from .php to static .html Links', 'larsneo', '', '', '1.0.0', 'No', '', '', 0),
-(172, 0, 'CrackerTracker Professional G5', 'A fully integrated Security System for your Forum. Blocks known Worm Attacks and Floods.', 'cback', '', 'http://www.cback.de', '5.0.4', 'No', 'http://www.cback.de', '', 0),
+(172, 0, 'CrackerTracker Professional G5', 'A fully integrated Security System for your Forum. Blocks known Worm Attacks and Floods.', 'cback', '', 'http://www.cback.de', '5.0.6', 'No', 'http://www.cback.de', '', 0),
 (173, 0, 'Run stats', 'Gives stats and details about page time generation, sql requests, indexes used, etc.', 'Ptirhiik', '', 'http://ptifo.clanmckeen.com', '1.0.2', 'No', '', '', 0),
 (174, 0, 'Visual Confirmation for Guests', 'Adds visual confirmation for guest posts, eliminating spam.', 'Kanuck', '', 'http://kanuck.net', '1.0.1', 'No', '', '', 0),
 (175, 0, 'Custom Profile Fields', 'Allows administrators to add fields to registration/profile/memberlist/topics, plus admin-only fields', 'Blankety Blank Man', '', 'http://edos.siteburg.com/phpBB2/index.php', '1.1.0', 'No', '', '', 0),
@@ -949,3 +949,105 @@ INSERT INTO `phpbb_captcha_config` VALUES ('foreground_lattice_x', '15');
 INSERT INTO `phpbb_captcha_config` VALUES ('foreground_lattice_y', '15');
 INSERT INTO `phpbb_captcha_config` VALUES ('lattice_color', '#FFFFFF');
 
+# Post-1.53a Arcade Mod Plus 2.1.8 defaults
+#
++INSERT INTO phpbb_ina_data (config_name, config_value) VALUES
+  ('default_reward_dbfield', 'user_points'),
+  ('default_cash', 'user_cash'),
+  ('use_rewards_mod', '0'),
+  ('use_cash_system', '0'),
+  ('report_cheater', '1'),
+  ('warn_cheater', '1'),
+  ('use_point_system', '0'),
+  ('use_gamelib', '0'),
+  ('games_path', 'games/'),
+  ('gamelib_path', '0'),
+  ('use_gk_shop', '0'),
+  ('use_allowance_system', '0'),
+  ('games_per_page', '0'),
+  ('games_default_img', 'templates/fisubsilversh/images/games.gif'),
+  ('games_default_txt', 'No games have been installed.'),
+  ('games_default_id', '0'),
+  ('games_tournament_mode', '0'),
+  ('games_offline', '1'),
+  ('games_cheat_mode', '1'),
+  ('games_guest_highscore', '0'),
+  ('games_auto_size', '1'),
+  ('games_at_highscore', '1'),
+  ('games_show_stats', '1'),
+  ('games_image_width', '50'),
+  ('games_image_height', '50'),
+  ('games_per_admin_page', '0'),
+  ('games_cat_image_width', '80'),
+  ('games_cat_image_height', '80'),
+  ('games_tournament_max', '10'),
+  ('games_tournament_games', '6'),
+  ('games_tournament_players', '12'),
+  ('games_moderators_mode', '1'),
+  ('games_posts_required', '0'),
+  ('games_use_pms', '1'),
+  ('games_total_top', '10'),
+  ('games_new_games', '1'),
+  ('games_cat_zero', 'Show all games'),
+  ('games_use_comments', '0'),
+  ('games_use_rating', '0'),
+  ('games_show_played', '1'),
+  ('games_show_all', '1'),
+  ('games_no_guests', '1'),
+  ('games_rate', '1'),
+  ('games_comments', '1'),
+  ('games_mod_ban_users', '1'),
+  ('games_comment_size', '256'),
+  ('games_rank_required', '0'),
+  ('games_level_required', '0'),
+  ('games_pm_highscore', '1'),
+  ('games_pm_at_highscore', '1'),
+  ('games_pm_comment', '1'),
+  ('games_pm_new', '0'),
+  ('highscore_start_year', '2006'),
+  ('highscore_start_mon', '12'),
+  ('default_sort', 'date_added'),
+  ('default_sort_order', 'DESC'),
+  ('games_show_fav', '1'),
+  ('games_new_for', '604800'),
+  ('use_cache', '0'),
+  ('config_cache', '60'),
+  ('categories_cache', '60'),
+  ('games_cache', '60'),
+  ('games_show_mhm', '1'),
+  ('games_tournament_user', '1'),
+  ('version', '2.1.8'),
+  ('games_default_rate', '5'),
+  ('highscore_cache', '60'),
+  ('at_highscore_cache', '60'),
+  ('games_use_log', '1');
+
+# Post-1.53a Nuffload 1.4.2 defaults
+#
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('path_to_bin', 'cgi-bin/');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('perl_uploader', '0');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('show_progress_bar', '0');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('close_on_finish', '1');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('max_pause', '10');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('simple_format', '0');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('multiple_uploads', '1');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('max_uploads', '10');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('zip_uploads', '1');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('resize_pic', '0');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('resize_width', '600');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('resize_height', '600');
+INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('resize_quality', '70');
+
+# Post-1.53a DB Maintenance Mod 1.3.8 defaults
+#
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuild_end', '0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuild_pos', '-1');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_maxmemory', '500');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_minposts', '3');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_php3only', '0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_php3pps', '1');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_php4pps', '8');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_timelimit', '240');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_timeoverwrite', '0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_disallow_postcounter', '0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_disallow_rebuild', '0');

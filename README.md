@@ -41,17 +41,17 @@ scripts before running them against an existing forum.
 ## Repository layout
 
 - `phpBB2/` contains the deployable forum application.
-- `update/` contains historical database migration tools for specific old
-  installations. These scripts can make destructive changes and are not needed
-  during normal operation.
+- `update/` contains clearly named legacy upgrade paths plus the consolidated
+  post-1.53a database updater and UTF-8/search maintenance scripts. They are
+  not needed during normal operation and must not remain in a public web root.
+- `mods/` contains only optional source packages which are **not** installed in
+  the forum application.
 - `set-permissions.sh` applies the writable Unix permissions required by the
   forum.
 - `folder+file-permissions.txt` documents the same writable paths and the
   shared-hosting fallback modes.
 - `CHANGELOG.md` summarizes the preserved changes after 1.53a and includes the
   original phpBB2 Plus changelog.
-- `docs/upstream/` records the audited IntegraMOD history merge and the
-  semantic port from a production compatibility branch.
 
 ## Fresh installation
 
@@ -66,24 +66,10 @@ The original installation flow is retained for archival and maintenance use:
 The installer is legacy code. Perform a fresh installation only in a test
 environment until the exact PHP and database combination has been verified.
 
-Modules restored after the original package baseline have separate database
-installation scripts under `update/`. Run only the scripts for the restored
-modules that are actually present in the deployed source tree:
-
-- `install_arcade_218.sql` for Arcade Mod Plus;
-- `install_nuffload_142.sql` for the Nuffload album uploader;
-- `install_db_maintenance_138.sql` for DB Maintenance Mod.
-
-The IntegraMOD-derived additions have one-time scripts for existing databases:
-
-- `install_integramod_styles.sql` adds responsive-style metadata columns;
-- `install_integramod_social_profiles.sql` adds the modern social-profile
-  fields while retaining the legacy contact fields;
-- `install_integramod_privacy_antispam.sql` adds cookie-consent and optional
-  StopForumSpam configuration.
-
-These additions are already present in the fresh-install schema. Do not run
-their one-time scripts on a fresh installation or more than once.
+The fresh-install schema already contains the restored Arcade, Nuffload and DB
+Maintenance database structures as well as the IntegraMOD-derived responsive
+style, social-profile, cookie-consent and optional StopForumSpam fields. No
+separate SQL imports are required for a fresh installation.
 
 The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
 is disabled by default because it can make extensive database changes. To use
@@ -98,27 +84,85 @@ Before replacing files or running anything from `update/`:
 1. Back up the complete database and the complete existing web root.
 2. Preserve user-generated data, especially album uploads and thumbnails,
    attachments, avatars, smilies, ranks, screenshots, and download uploads.
-3. Confirm which source version each migration script expects. Do not run all
-   scripts indiscriminately.
+3. Confirm which source version each legacy migration script expects. Do not
+   run every legacy path indiscriminately.
 4. Test the full upgrade and login/posting/upload workflows on a copy first.
 5. Remove migration and installation scripts from the public web root when the
    upgrade is complete.
 
-`update/db_uninstall_4x.php` is a destructive legacy CrackerTracker removal
-reference. It uses the removed `mysql_*` API and must not be deployed or
-executed unchanged.
+The old upgrade paths now state both their source and target in their names.
+Use only the path matching the installed database, for example
+`update_plus_152_to_153a.php`, `update_plus_153_to_153a.php`, or
+`update_phpbb_20xx_to_plus_153a.php`. The separately named phpBB,
+Attachment MOD and CrackerTracker updaters retain their historical scope.
+
+After the database has reached the original 1.53a baseline, preview every
+post-release schema addition from the repository root:
+
+```text
+php update/update_from_153a.php
+```
+
+Apply it only to a tested copy after verifying current backups:
+
+```text
+php update/update_from_153a.php --apply --backup-confirmed
+```
+
+The updater is idempotent, preserves existing configuration values and does
+not remove obsolete CrackerTracker 4.x tables or columns. The file
+`update/uninstall_crackertracker_4x_legacy.php` is retained only as a
+destructive historical reference; it uses the removed `mysql_*` API and must
+not be deployed or executed unchanged.
+
+## Optional MOD source packages
+
+The following packages remain under `mods/` because their code is not
+installed in the application tree:
+
+- Admin Userlist;
+- Digests 1.0.14;
+- Log Actions MOD;
+- Registration IP;
+- Registration Spam MOD;
+- Rules & Policies 1.0.1.
+
+Cookie Consent and StopForumSpam are already integrated. The duplicate IM
+Portal package and the older paFileDB package were removed because the forum
+contains its own authoritative implementations.
 
 ## Encoding and database support
 
 Distributed text sources, templates, English/German language files and mail
 templates are UTF-8. Fresh MySQL/MariaDB tables and the MySQLi connection use
-the matching character set. For an existing installation,
-`tools/migrate-database-utf8mb4.php` provides a guarded and explicitly
-confirmed migration, with `tools/rebuild-search-index.php` available when the
-derived search tables must be rebuilt. See `docs/UTF8_MIGRATION.md` first. The
-safe path depends on the real column encodings and on whether older data
-already contains UTF-8 bytes in mislabelled columns; an unchecked conversion
-can create mojibake.
+the matching `utf8mb4` character set.
+
+For an existing installation, put the forum into maintenance mode and create
+verified file and database backups. Test the complete procedure on a database
+clone first. From the repository root, inspect the conversion plan with:
+
+```text
+php update/migrate_database_to_utf8mb4.php
+```
+
+An isolated database on the same server can be selected with
+`--database=clone_name`. Apply only after reviewing the selected database and
+the complete dry-run output:
+
+```text
+php update/migrate_database_to_utf8mb4.php --apply --backup-confirmed
+php update/rebuild_search_index.php --apply --backup-confirmed
+```
+
+The migration may shorten indexed configuration-name columns after first
+checking that no value would be truncated. It clears derived search tables
+before changing collations because formerly distinct words may collide under
+a Unicode collation. `ALTER TABLE` and `TRUNCATE TABLE` auto-commit; restore
+the verified backup if a conversion stops part-way through. Finally verify
+login, posting, private messages, search, administration and album uploads.
+Older databases that already contain UTF-8 bytes in columns labelled as
+Latin-1 need individual inspection—an unchecked conversion can create
+mojibake.
 
 MySQLi is the supported modern database driver. Existing `config.php` files
 which still name `mysql` or `mysql4` automatically use MySQLi when available,

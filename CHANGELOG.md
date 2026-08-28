@@ -6,6 +6,23 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Repository and update cleanup
+
+- Removed the development-only Docker setup and generated upstream audit
+  documents; their complete provenance remains available in Git history.
+- Reduced `mods/` to six optional source packages which are not installed in
+  the application, removing copies of integrated or superseded modules.
+- Removed one-time PowerShell integration helpers and moved the two useful PHP
+  maintenance tools into `update/` with explicit names.
+- Renamed every legacy updater so its source and target are visible instead of
+  using ambiguous `to_latest` names.
+- Consolidated all database additions after 1.53a into the guarded,
+  idempotent `update/update_from_153a.php` updater and incorporated the same
+  Arcade, Nuffload and DB Maintenance definitions into the fresh-install
+  schema.
+- Moved the UTF-8 migration procedure into the project README and removed the
+  separate documentation directory.
+
 ### phpBB 2 maintenance baseline
 
 - Applied the official phpBB 2.0.22 and 2.0.23 changes, bringing the bundled
@@ -17,16 +34,16 @@ changes consolidated after that baseline without implying active maintenance.
   administration, security, logging, language, database, and template changes.
 - Updated CrackerTracker from 5.0.4 to 5.0.6.
 - Preserved the destructive legacy 4.x database-uninstall script under
-  `update/db_uninstall_4x.php` as a reference. It uses the removed `mysql_*`
-  API and must not be deployed or executed unchanged.
+  `update/uninstall_crackertracker_4x_legacy.php` as a reference. It uses the
+  removed `mysql_*` API and must not be deployed or executed unchanged.
 
 ### Arcade
 
 - Restored the Arcade Mod Plus 2.1.8 framework, administration modules,
   templates, language files, and score protocols without bundled games or
   historical activity data.
-- Added an empty MySQL/MariaDB installation script and deployment permissions;
-  the Arcade is disabled by default after installation.
+- Added the Arcade definitions to the fresh-install schema and deployment
+  permissions; the Arcade is disabled by default after installation.
 - Restored the missing Arcade administration arrows and popup close button
   referenced by the integrated code.
 - Restored the Rewards API used by the optional Cash and Allowance integrations.
@@ -81,9 +98,9 @@ changes consolidated after that baseline without implying active maintenance.
   MySQL-family connections with that encoding.
 - Restored PHP-4-style constructor behavior through PHP 8-compatible wrappers,
   including the database, template, attachment, statistics and module classes.
-- Preserved historical MOD packages as source where upstream never installed
-  them; documented superseded modules and the experimental, unsupported PDO
-  driver instead of presenting incomplete installations as active features.
+- Preserved optional MOD packages only where upstream never installed them;
+  the experimental, unsupported PDO driver remains source-only instead of
+  being presented as an active database path.
 - Excluded BootstrapMade HeroBiz demo media and proprietary form files while
   retaining redistributable style code and recording third-party licenses.
 
@@ -100,8 +117,8 @@ changes consolidated after that baseline without implying active maintenance.
   restored portable database-size reporting.
 - Added guarded utf8mb4 migration and optional search-index rebuild tools for
   existing installations, plus protected local PHP error logging.
-- Recorded every source commit and disposition under
-  `docs/upstream/production-compatibility/`.
+- Preserved the complete source ancestry and individual dispositions in Git
+  history while removing generated audit ledgers from the release tree.
 
 ### Repository and deployment maintenance
 
