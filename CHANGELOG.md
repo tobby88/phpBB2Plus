@@ -70,6 +70,16 @@ changes consolidated after that baseline without implying active maintenance.
   URLs at write and read time, protected redirects against header injection,
   and HTML-escaped stored file/category metadata throughout public, moderator
   and administration views.
+- Added a compatibility-safe Origin/Fetch-Metadata check for state-changing
+  requests and a minimal CSP covering form targets, framing, base URLs and
+  legacy objects, supplementing SameSite cookies without excluding old clients
+  that send neither header.
+- Repaired the standalone shield-smiley renderer on PHP 8, validated its
+  colors and image selection, bounded missing parameters and adapted the GD
+  polygon calls for current signatures.
+- Replaced CrackerTracker's unauthenticated edit-to-unlock emergency console
+  with a permanent disabled stub; the token-protected DB Maintenance recovery
+  path remains available.
 
 ### Repository and update cleanup
 

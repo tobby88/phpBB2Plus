@@ -38,6 +38,7 @@ if (!headers_sent())
 	header('X-Frame-Options: SAMEORIGIN');
 	header('Referrer-Policy: strict-origin-when-cross-origin');
 	header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+	header("Content-Security-Policy: base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'self' blob: data:");
 }
 
 //-- mod : run stats -----------------------------------------------------------
@@ -284,6 +285,13 @@ else {
 }
 */
 // cache configs -----------------
+
+if (!phpbb_request_origin_is_valid())
+{
+	http_response_code(403);
+	header('Content-Type: text/plain; charset=UTF-8');
+	exit('Cross-site request rejected.');
+}
 
 include($phpbb_root_path . 'attach_mod/attachment_mod.'.$phpEx);
 

@@ -189,7 +189,9 @@ if (!function_exists('phpbb_board_url'))
 		}
 
 		$port = isset($board_config['server_port']) ? (int) $board_config['server_port'] : 0;
-		$port_part = ($port > 0 && !(($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443)))
+		// Old boards commonly retain port 80 after being moved behind HTTPS.
+		// Treat both standard web ports as implicit; preserve only custom ports.
+		$port_part = ($port > 0 && !in_array($port, array(80, 443), true))
 			? ':' . $port
 			: '';
 		$script_path = isset($board_config['script_path']) ? $board_config['script_path'] : '';
@@ -197,6 +199,47 @@ if (!function_exists('phpbb_board_url'))
 		$script_path = ($script_path === '' || $script_path === '/') ? '/' : '/' . trim($script_path, '/') . '/';
 
 		return $scheme . '://' . $host . $port_part . $script_path . ltrim($relative_path, '/');
+	}
+}
+
+/**
+ * Reject browser-declared cross-site state-changing requests. SameSite cookies
+ * remain the primary compatibility-safe CSRF defence; this covers clients
+ * which also provide Origin or Fetch Metadata without breaking older agents.
+ */
+if (!function_exists('phpbb_request_origin_is_valid'))
+{
+	function phpbb_request_origin_is_valid()
+	{
+		$method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+		if (!in_array($method, array('POST', 'PUT', 'PATCH', 'DELETE'), true))
+		{
+			return true;
+		}
+
+		$origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
+		if ($origin === '')
+		{
+			$fetch_site = isset($_SERVER['HTTP_SEC_FETCH_SITE']) ? strtolower((string) $_SERVER['HTTP_SEC_FETCH_SITE']) : '';
+			return $fetch_site !== 'cross-site';
+		}
+		if (strtolower($origin) === 'null')
+		{
+			return false;
+		}
+
+		$actual = @parse_url($origin);
+		$expected = @parse_url(phpbb_board_url());
+		if (!$actual || !$expected || empty($actual['scheme']) || empty($actual['host']))
+		{
+			return false;
+		}
+		$actual_port = isset($actual['port']) ? (int) $actual['port'] : (strtolower($actual['scheme']) === 'https' ? 443 : 80);
+		$expected_port = isset($expected['port']) ? (int) $expected['port'] : (strtolower($expected['scheme']) === 'https' ? 443 : 80);
+
+		return strtolower($actual['scheme']) === strtolower($expected['scheme'])
+			&& strtolower($actual['host']) === strtolower($expected['host'])
+			&& $actual_port === $expected_port;
 	}
 }
 

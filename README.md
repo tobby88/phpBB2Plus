@@ -86,6 +86,10 @@ at least 32 characters as `define('DBMTNC_ERC_TOKEN', '...');` to `config.php`.
 Open `admin/erc.php?token=...` only for the required recovery operation, then
 remove both settings immediately afterwards.
 
+CrackerTracker's separate `ctracker/emergency.php` console cannot be enabled:
+its original edit-to-unlock design had no authentication. Use the guarded DB
+Maintenance console above for emergency recovery instead.
+
 ## Upgrading an existing forum
 
 Before replacing files or running anything from `update/`:

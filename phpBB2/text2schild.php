@@ -2,6 +2,7 @@
 
 define('IN_PHPBB', 'true');
 $phpbb_root_path = './';
+include_once($phpbb_root_path . 'includes/php_compat.php');
 
 //-----------------------------------------------------------
 /* delete >>
@@ -146,12 +147,20 @@ if( !get_magic_quotes_gpc() )
 //-----------------------------------------------------------
 
 $raute = '#';
-$schriftfarbe = $raute.$_GET['fontcolor'];
+$fontcolor = isset($_GET['fontcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['fontcolor']) ? $_GET['fontcolor'] : '000000';
+$shadowcolor = isset($_GET['shadowcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['shadowcolor']) ? $_GET['shadowcolor'] : '';
+$schriftfarbe = $raute . $fontcolor;
 $schriftdatei = 'arial';
 $std_smilie = 1;
+$phpversion_nr = (float) PHP_VERSION;
+$schriftwidth = 0;
+$schriftheight = 0;
+$zeichenzahl = 0;
+$output = array();
+$text = '';
 
 
-$smilie = $_GET['smilie'];
+$smilie = isset($_GET['smilie']) ? $_GET['smilie'] : 'standard';
 if ( $smilie == 'random')
 {
 	$smilie = 'random';
@@ -165,16 +174,16 @@ else
 	$smilie = intval($smilie);
 }
 
-if ( $_GET['shadowcolor'] == '' )
+if ( $shadowcolor == '' )
 {
 	$schattenfarbe = '';
 }
 else
 {
-	$schattenfarbe = $raute.$_GET['shadowcolor'];
+	$schattenfarbe = $raute . $shadowcolor;
 }
 
-$schildschatten = ( $_GET['shieldshadow'] == '1' ) ? true : false;
+$schildschatten = ( isset($_GET['shieldshadow']) && $_GET['shieldshadow'] == '1' ) ? true : false;
 
 $anz_smilie = -1;
 $hdl = opendir($phpbb_root_path. 'smilie_creator/images/smilies/schild/');
@@ -201,7 +210,7 @@ if((!$gd_info['FreeType Support']) || (!file_exists($schriftdatei))){
 $schriftheight += 2;
 
 
-if(!$text) $text = trim($_GET['text']);
+if(!$text) $text = isset($_GET['text']) ? trim($_GET['text']) : '';
 $text = stripslashes($text);
 $text = str_replace("&lt;",'<',$text);
 $text = str_replace("&gt;",'>',$text);
@@ -250,6 +259,10 @@ if(!$smilie){
 	if($std_smilie) $smilie = $std_smilie;
 	else $smilie = mt_rand(1,$anz_smilie);
 }
+if ($smilie < 1 || $smilie > $anz_smilie || !is_file($phpbb_root_path . 'smilie_creator/images/smilies/schild/smilie' . $smilie . '.png'))
+{
+	$smilie = $std_smilie;
+}
 
 
 $smilie = imagecreatefrompng($phpbb_root_path . 'smilie_creator/images/smilies/schild/smilie'.$smilie.'.png');
@@ -286,8 +299,18 @@ imagefilledrectangle($img, 0, 4, $width, ($height - 25), $bocolor);
 imagefilledrectangle($img, 1, 5, ($width - 2), ($height - 26), $schcolor);
 
 if($schildschatten){
-	imagefilledpolygon($img, array((($width - 2) / 2 + ((($width - 2) / 4) - 3)), 5, (($width - 2) / 2 + ((($width - 2) / 4) + 3)), 5, (($width - 2) / 2 - ((($width - 2) / 4) - 3)), ($height - 26), (($width - 2) / 2 - ((($width - 2) / 4) + 3)), ($height - 26)), 4, $schatten1color);
-	imagefilledpolygon($img, array((($width - 2) / 2 + ((($width - 2) / 4) + 4)), 5, ($width - 2), 5, ($width - 2), ($height - 26), (($width - 2) / 2 - ((($width - 2) / 4) - 4)), ($height - 26)), 4, $schatten2color);
+	$shadow_points_one = array((($width - 2) / 2 + ((($width - 2) / 4) - 3)), 5, (($width - 2) / 2 + ((($width - 2) / 4) + 3)), 5, (($width - 2) / 2 - ((($width - 2) / 4) - 3)), ($height - 26), (($width - 2) / 2 - ((($width - 2) / 4) + 3)), ($height - 26));
+	$shadow_points_two = array((($width - 2) / 2 + ((($width - 2) / 4) + 4)), 5, ($width - 2), 5, ($width - 2), ($height - 26), (($width - 2) / 2 - ((($width - 2) / 4) - 4)), ($height - 26));
+	if (PHP_VERSION_ID >= 80100)
+	{
+		imagefilledpolygon($img, $shadow_points_one, $schatten1color);
+		imagefilledpolygon($img, $shadow_points_two, $schatten2color);
+	}
+	else
+	{
+		imagefilledpolygon($img, $shadow_points_one, 4, $schatten1color);
+		imagefilledpolygon($img, $shadow_points_two, 4, $schatten2color);
+	}
 }
 
 $i = 0;
