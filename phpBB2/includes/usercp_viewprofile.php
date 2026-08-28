@@ -225,7 +225,7 @@ if ($profiledata['user_birthday']!=999999)
 	$i=0;
 	while ($i<26)
 	{
-		if ($user_birthdate>=$zodiacdates[$n] && $user_birthdate<=$zodiacdates[$i+1])
+		if ($user_birthdate>=$zodiacdates[$i] && $user_birthdate<=$zodiacdates[$i+1])
 		{
 			$zodiac = $lang[$zodiacs[($i/2)]];
 			$u_zodiac = $images[$zodiacs[($i/2)]];
@@ -254,6 +254,7 @@ if ( !empty($profiledata['user_gender']))
            } 
 } else $gender=$lang['No_gender_specify']; 
 // End add - Gender MOD
+$absence_mode = '';
 if ( $profiledata['user_absence'] == TRUE )
 {
 	$nothing = '';

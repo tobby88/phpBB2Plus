@@ -22,8 +22,8 @@
 /** Module Setup
 /***************************************************************************/
 if (!defined('IN_PHPBB')) define('IN_PHPBB', true);
-define('MOD_VERSION', '1.2.0');
-define('MOD_CODE', 24);
+if (!defined('MOD_VERSION')) { define('MOD_VERSION', '1.2.0'); }
+if (!defined('MOD_CODE')) { define('MOD_CODE', 24); }
 $phpbb_root_path = '../';
 include($phpbb_root_path . 'extension.inc');
 include_once($phpbb_root_path."includes/functions_color_groups.$phpEx");

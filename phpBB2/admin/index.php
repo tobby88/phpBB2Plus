@@ -33,6 +33,13 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
+if (!defined('PAGE_KB'))
+{
+	define('PAGE_KB', -500);
+}
+
+$page_title = $lang['Admin_Index'];
+
 // ---------------
 // Begin functions
 //
@@ -57,7 +64,7 @@ include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 if( isset($_GET['pane']) && $_GET['pane'] == 'left' )
 {
 	$jr_admin_userdata = jr_admin_get_user_info($userdata['user_id']);
-	$module = jr_admin_get_module_list($jr_admin_userdata['user_jr_admin']);
+	$module = jr_admin_get_module_list(isset($jr_admin_userdata['user_jr_admin']) ? $jr_admin_userdata['user_jr_admin'] : false);
 
 	include('./page_header_admin.'.$phpEx);
 
@@ -303,7 +310,7 @@ $menu_cat_id = 0;
 	//
 	// Get users online information.
 	//
-	$sql = "SELECT u.user_id, u.username, u.user_session_time, u.user_session_page, s.session_logged_in, s.session_ip, s.session_start 
+	$sql = "SELECT u.user_id, u.username, u.user_allow_viewonline, u.user_session_time, u.user_session_page, s.session_logged_in, s.session_ip, s.session_start 
 		FROM " . USERS_TABLE . " u, " . SESSIONS_TABLE . " s
 		WHERE s.session_logged_in = " . TRUE . " 
 			AND u.user_id = s.session_user_id 
@@ -327,6 +334,7 @@ $menu_cat_id = 0;
 	}
 	$onlinerow_guest = $db->sql_fetchrowset($result);
 
+	$forum_data = array();
 	$sql = "SELECT forum_name, forum_id
 		FROM " . FORUMS_TABLE;
 	if($forums_result = $db->sql_query($sql))
@@ -342,6 +350,7 @@ $menu_cat_id = 0;
 	}
 
 	$reg_userid_ary = array();
+	$hidden_users = 0;
 
 	if( count($onlinerow_reg) )
 	{
@@ -698,6 +707,7 @@ else
 	);
 
 	$template->assign_vars(array(
+		"S_CONTENT_ENCODING" => $lang['ENCODING'],
 		"S_FRAME_NAV" => append_sid("index.$phpEx?pane=left"),
 		"S_FRAME_MAIN" => append_sid("index.$phpEx?pane=right"))
 	);

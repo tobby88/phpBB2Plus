@@ -41,7 +41,7 @@ $template->assign_vars(array(
 );
 //-- mod : run stats -----------------------------------------------------------
 //-- add
-if ( ($HTTP_GET_VARS['pane'] != 'left') && defined('DEBUG') && defined('DEBUG_SQL_ADMIN') )
+if ( ((!isset($_GET['pane']) || $_GET['pane'] != 'left')) && defined('DEBUG') && defined('DEBUG_SQL_ADMIN') )
 {
 	// send run stat (page generation, sql time, requests dump...)
 	$stat_run = new stat_run_class(microtime());

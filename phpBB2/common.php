@@ -236,7 +236,7 @@ if (@file_exists($cache_config) && defined('CCache'))
 // basic forum information is not available
 //
 // cache configs -----------------
-if (!$board_config['config_id'])
+if (empty($board_config['config_id']))
 {
 	// is /cache/ useable 
 	$use_cache = (is_writable($cache_dir) && defined('CCache') && !defined('IN_ADMIN') ) ? true : false;

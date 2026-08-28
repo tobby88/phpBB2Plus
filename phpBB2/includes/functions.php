@@ -765,7 +765,7 @@ function setup_style($style)
 
 		$img_lang = ( file_exists(@phpbb_realpath($phpbb_root_path . $current_template_path . '/images/lang_' . $board_config['default_lang'])) ) ? $board_config['default_lang'] : 'english';
 
-		while( list($key, $value) = @each($images) )
+		foreach ($images as $key => $value)
 		{
 			if ( !is_array($value) )
 			{
@@ -799,8 +799,7 @@ function create_date($format, $gmepoch, $tz)
 
 	if ( empty($translate) && $board_config['default_lang'] != 'english' )
 	{
-		@reset($lang['datetime']);
-		while ( list($match, $replace) = @each($lang['datetime']) )
+		foreach ($lang['datetime'] as $match => $replace)
 		{
 			$translate[$match] = $replace;
 		}
@@ -838,6 +837,7 @@ function create_date_day($format, $gmepoch, $tz)
 function generate_pagination($base_url, $num_items, $per_page, $start_item, $add_prevnext_text = TRUE)
 {
 	global $lang;
+	$per_page = max(1, intval($per_page));
 
 	$total_pages = ceil($num_items/$per_page);
 
@@ -973,8 +973,7 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 		{
 			$orig_word = array();
 			$replacement_word = array();
-			@reset($word_replacement);
-			while ( list($word, $replacement) = @each($word_replacement) )
+			foreach ($word_replacement as $word => $replacement)
 			{
 				$orig_word[] = '#\b(' . str_replace('\*', '\w*?', preg_quote(stripslashes($word), '#')) . ')\b#i';
 				$replacement_word[] = $replacement;
@@ -1448,13 +1447,14 @@ function realdate($date_syntax="Ymd",$date=0)
 
 	$day=$days-$months_array[$month-1]+1;
 	//you may gain speed performance by remove som of the below entry's if they are not needed/used
+	$weekday = (($date - 3) % 7 + 7) % 7;
 	return strtr ($date_syntax, array(
 		'a' => '',
 		'A' => '',
 		'\\d' => 'd',
 		'd' => ($day>9) ? $day : '0'.$day,
 		'\\D' => 'D',
-		'D' => $lang['day_short'][($date-3)%7],
+		'D' => $lang['day_short'][$weekday],
 		'\\F' => 'F',
 		'F' => $lang['month_long'][$month-1],
 		'g' => '',
@@ -1466,7 +1466,7 @@ function realdate($date_syntax="Ymd",$date=0)
 		'\\j' => 'j',
 		'j' => $day,
 		'\\l' => 'l',
-		'l' => $lang['day_long'][($date-3)%7],
+		'l' => $lang['day_long'][$weekday],
 		'\\L' => 'L',
 		'L' => $leap_year,
 		'\\m' => 'm',
@@ -1639,7 +1639,7 @@ function check_avatar_size($avatar, $max_avatar_size, $remote = FALSE)
 function AJAX_headers()
 {
 	//No caching whatsoever
-	header('Content-Type: application/xml');
+	header('Content-Type: application/xml; charset=UTF-8');
 	header('Expires: Thu, 15 Aug 1984 13:30:00 GMT');
 	header('Last-Modified: '. gmdate('D, d M Y H:i:s') .' GMT');
 	header('Cache-Control: no-cache, must-revalidate');  // HTTP/1.1
@@ -1663,7 +1663,7 @@ function AJAX_message_die($data_ar)
 	{
 		if ($value !== '')
 		{
-			$value = utf8_encode(htmlspecialchars($value));
+			$value = htmlspecialchars($value, ENT_COMPAT, 'UTF-8');
 			// Get special characters in posts back ;)
 			$value = preg_replace('#&amp;\#(\d{1,4});#i', '&#\1;', $value);
 
@@ -1722,7 +1722,7 @@ function utf8_rawurldecode($source)
 				$unicodeHexVal = substr($source, $pos, 4);
 				$unicode = hexdec($unicodeHexVal);
 				$entity = "&#". $unicode .';';
-				$decodedStr .= utf8_encode($entity);
+				$decodedStr .= $entity;
 				$pos += 4;
 			}
 			else

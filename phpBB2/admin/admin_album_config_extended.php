@@ -25,8 +25,7 @@
 //------------------------------------------------------------------------
 // just some 'cheap' anti hacking attempts ;)
 //------------------------------------------------------------------------
-define('IN_PHPBB', true);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 //------------------------------------------------------------------------
 // setup the link to this phpbb ACP 'module'
 //------------------------------------------------------------------------
@@ -145,7 +144,7 @@ while( $config_file = @readdir($dir) )
 //------------------------------------------------------------------------
 // sort the config tabs accordig to the 'order' setting in $album_config_tabs
 //------------------------------------------------------------------------
-usort($album_config_tabs,sort_cmp);
+usort($album_config_tabs, 'sort_cmp');
 
 //album_enable_debug();
 //album_debug('$album_config_tabs = %s', $album_config_tabs);

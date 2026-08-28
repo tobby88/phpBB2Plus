@@ -763,7 +763,7 @@ if ( $userdata['session_logged_in'] )
 	}
 	$template->assign_vars(array(
 		'L_BOOKMARK_ACTION' => $bm_action_l,
-		'U_BOOKMARK_ACTION' => append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . $_GET['highlight'] . $bm_action))
+		'U_BOOKMARK_ACTION' => append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . (isset($_GET['highlight']) ? $_GET['highlight'] : '') . $bm_action))
 	);
 }
 //
@@ -786,7 +786,7 @@ $template->assign_vars(array(
 
 	'POST_IMG' => $post_img,
 	'REPLY_IMG' => $reply_img,
-	'L_PRINT' => ($lang['Print_View']) ? $lang['Print_View'] : 'Printable version', 
+	'L_PRINT' => !empty($lang['Print_View']) ? $lang['Print_View'] : 'Printable version', 
     	'U_PRINT' => append_sid("printview.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start"),
 	'L_AUTHOR' => $lang['Author'],
 	'L_MESSAGE' => $lang['Message'],

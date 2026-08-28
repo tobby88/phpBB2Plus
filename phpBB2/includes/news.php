@@ -135,7 +135,7 @@ class NewsModule
                     'L_TITLE' => $article['topic_title'],
                     'L_TITLE_ICON' => get_icon_title($article['topic_icon'], 0, $article['topic_type']).'&nbsp;',
                     'ID' => $article['topic_id'],
-                    'KEY' => $article['article_key'],
+					'KEY' => isset($article['article_key']) ? $article['article_key'] : '',
                     'DAY' => $this->getDay( $article['topic_time'] ),
                     'MONTH' => $this->getMonth( $article['topic_time'] ),
                     'YEAR' => $this->getYear( $article['topic_time'] ),
@@ -480,7 +480,7 @@ if( $article_id <= 0 )
       }
 
       $this->setBlockVariables( 'pagination', array(
-          'PAGINATION' => generate_pagination( $base_url, $this->item_count, $this->config['news_item_num'], $_GET['start'] )
+          'PAGINATION' => generate_pagination( $base_url, $this->item_count, $this->config['news_item_num'], isset($_GET['start']) ? intval($_GET['start']) : 0 )
           ));
     }
   }

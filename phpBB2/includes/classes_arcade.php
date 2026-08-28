@@ -189,22 +189,9 @@ class arcade
 //
   function convert_score($score)
   {
-		unset($this->score);
-		
-		$best_display_work = explode('.', $score);
-		for ($i = strlen($best_display_work[1]); $i > 0; $i--)
-		{
-			if($best_display_work[1][$i] != 0)
-			{
-				$i = 0;
-			}
-			else
-			{
-				$best_display_work[1][$i] = ' ';
-			}			
-		}
-		$best_display_work[1] = intval($best_display_work[1]);
-		$this->score = intval($best_display_work[1]) > 0 ? number_format($score, strlen(intval($best_display_work[1])), '.', ',') : number_format($score, 0, '.', ',');
+		$parts = explode('.', (string) $score, 2);
+		$decimals = isset($parts[1]) ? strlen(rtrim($parts[1], '0')) : 0;
+		$this->score = number_format((float) $score, $decimals, '.', ',');
 		return $this->score;
   }
 //
@@ -954,7 +941,7 @@ class arcade
   {
     global $db, $phpEx;
 
-    if(!$this->arcade_config['use_cache'] && $cache_file != 'config')
+    if(empty($this->arcade_config['use_cache']) && $cache_file != 'config')
     {
       return FALSE;
     }

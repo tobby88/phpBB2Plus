@@ -20,8 +20,9 @@ define ('IN_MINI_CAL', 1);
 	include_once($phpbb_root_path . 'mods/netclectic/mini_cal/calendarSuite.'.$phpEx);
 
     
-    // get the mode (if any)
-    if( isset($_GET['mode']) || isset($_POST['mode']) )
+	// get the mode (if any)
+	$mini_cal_mode = 'default';
+	if( isset($_GET['mode']) || isset($_POST['mode']) )
     {
     	$mini_cal_mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
     }
@@ -139,8 +140,9 @@ define ('IN_MINI_CAL', 1);
     // output our general calendar bits
     $prev_qs = setQueryStringVal('month', $mini_cal_month -1);
     $next_qs = setQueryStringVal('month', $mini_cal_month +1);
-    $prev_month = '<a href="' . append_sid($HTTP_SERVER_VARS["PHP_SELF"] . $prev_qs) . '" class="gen"><img src="' . $images['mini_cal_icon_left_arrow'] . '" title="' . $lang['View_previous_month'] . '" border="0" alt="&lt;&lt;"></a>';
-    $next_month = '<a href="' . append_sid($HTTP_SERVER_VARS["PHP_SELF"] . $next_qs) . '" class="gen"><img src="' . $images['mini_cal_icon_right_arrow'] . '" title="' . $lang['View_next_month'] . '" border="0" alt="&gt;&gt;"></a>';
+	$mini_cal_self = isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '';
+	$prev_month = '<a href="' . append_sid($mini_cal_self . $prev_qs) . '" class="gen"><img src="' . $images['mini_cal_icon_left_arrow'] . '" title="' . $lang['View_previous_month'] . '" border="0" alt="&lt;&lt;"></a>';
+	$next_month = '<a href="' . append_sid($mini_cal_self . $next_qs) . '" class="gen"><img src="' . $images['mini_cal_icon_right_arrow'] . '" title="' . $lang['View_next_month'] . '" border="0" alt="&gt;&gt;"></a>';
 	$template->assign_vars(array(
 		'L_MINI_CAL_MONTH' => $lang['mini_cal']['long_month'][$mini_cal->day[0][4]] . " " . $mini_cal->day[0][5],
 		'L_MINI_CAL_ADD_EVENT' => $lang['Mini_Cal_add_event'],

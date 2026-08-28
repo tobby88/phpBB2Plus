@@ -176,8 +176,7 @@ function date_dsp($format, $date)
 
 	if ( empty($translate) && $board_config['default_lang'] != 'english' )
 	{
-		@reset($lang['datetime']);
-		while ( list($match, $replace) = @each($lang['datetime']) )
+		foreach ($lang['datetime'] as $match => $replace)
 		{
 			$translate[$match] = $replace;
 		}
@@ -331,7 +330,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 
 	// get the forums authorized (compliency with categories hierarchy v2 mod)
 	$cat_hierarchy = function_exists('get_auth_keys');
-	$s_forums_ids = '';
+	$s_forum_ids = '';
 	if (!$cat_hierarchy)
 	{
 		// standard read
@@ -365,7 +364,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		}
 
 		// get the list of authorized forums
-		while (list($forum_id, $forum_auth) = each($is_auth))
+		foreach ($is_auth as $forum_id => $forum_auth)
 		{
 			if ( $forum_auth['auth_read'] && (empty($fid) || isset($is_ask[$forum_id])) )
 			{
@@ -382,9 +381,10 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		$keys = get_auth_keys($fid, true, -1, -1, 'auth_read');
 		for ($i=0; $i < count($keys['id']); $i++)
 		{
-			if ( ($tree['type'][$keys['idx'][$i]] == POST_FORUM_URL) && $tree['auth'][ $keys['id'][$i] ]['auth_read'] )
+			$tree_idx = $keys['idx'][$i];
+			if ( ($tree_idx >= 0) && ($tree['type'][$tree_idx] == POST_FORUM_URL) && !empty($tree['auth'][ $keys['id'][$i] ]['auth_read']) )
 			{
-				$s_forum_ids .= (empty($s_forum_ids) ? '' : ', ') . $tree['id'][$keys['idx'][$i]];
+				$s_forum_ids .= (empty($s_forum_ids) ? '' : ', ') . $tree['id'][$tree_idx];
 			}
 		}
 	}
@@ -616,10 +616,6 @@ function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, 
       $user_avatar = $row['user_avatar'];
       $user_birthday = realdate($lang['DATE_FORMAT'], $row['user_birthday']); 
 
-      $ignore         = $row['user_ignore']; 
-      $friend         = $row['user_friend']; 
-      $always_visible = $row['user_visible']; 
-
       $username_link = append_sid($phpbb_root_path . "./profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=$user_id"); 
 
 
@@ -661,14 +657,14 @@ function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, 
       $new_row['event_forum_id']         = ''; 
       $new_row['event_forum_name']      = ''; 
 
-      $new_row['event_icon']				= $images['icon_birthday'];
+      $new_row['event_icon']				= isset($images['icon_birthday']) ? $images['icon_birthday'] : $images['happy_birthday'];
       $new_row['event_title']            = $username; 
       $new_row['event_short_title']      = $username; 
       $new_row['event_message']         = $message; 
       $new_row['event_calendar_time']      = $event_time; 
       $new_row['event_calendar_duration']   = ''; 
       $new_row['event_link']            = $username_link; 
-      $new_row['event_txt_class']         = $txt_class; 
+      $new_row['event_txt_class']         = 'genmed'; 
       $new_row['event_type_icon']         = '<img src="' . $images['icon_tiny_profile'] . '" border="0" align="absbottom" hspace="2" />'; 
       $events[] = $new_row; 
    } 

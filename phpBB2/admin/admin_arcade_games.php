@@ -16,9 +16,8 @@
  * 
  ***************************************************************************/
  
-define('IN_PHPBB', 1);
-define('ARCADE_ADMIN', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+if (!defined('ARCADE_ADMIN')) { define('ARCADE_ADMIN', 1); }
 $file = basename(__FILE__);
 
 if( !empty($setmodules) )
@@ -398,7 +397,7 @@ else if( $mode == "edit" || $mode == "add_game" )
 // Game Level Required
 //
 	$level_types_text = array($lang['All'], $lang['Auth_Registered_Users'], $lang['Auth_Moderators'], $lang['Auth_Administrators']);
-	$level_types = array('0', REG, MOD, ADMIN);
+	$level_types = array('0', USER, MOD, ADMIN);
 	$level_type = '<select name="level_required">';
 	for($i = 0; $i < count($level_types_text); $i++)
 	{

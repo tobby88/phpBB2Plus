@@ -19,8 +19,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);

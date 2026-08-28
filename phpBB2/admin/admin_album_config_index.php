@@ -5,6 +5,11 @@ if (!defined('IN_PHPBB'))
 	die('Hacking attempt');
 } 
 
+if (!empty($setmodules))
+{
+	return;
+}
+
 $album_config_tabs[] =  array(
 							'order'				=> 1,
 							'selection'			=> 'index',

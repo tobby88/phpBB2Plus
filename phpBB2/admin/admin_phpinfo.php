@@ -28,7 +28,7 @@ if (!empty($setmodules))
 	return;
 }
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 // Load default header
 $phpbb_root_path = '../';
 require($phpbb_root_path . 'extension.inc');

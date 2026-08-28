@@ -68,8 +68,7 @@ function album_create_user_auth($user_id)
 			$album_user_access = album_permissions($user_id, $cat_id, ALBUM_AUTH_ALL, $cat);
 			if (!empty ($album_user_access))
 			{
-				reset($album_user_access);
-				while (list ($key, $data) = each($album_user_access))
+				foreach ($album_user_access as $key => $data)
 				{
 					$album_data['auth'][$cat_id][$key] = $data;
 				}
@@ -123,13 +122,15 @@ function album_get_auth_keys($cur_cat_id = ALBUM_ROOT_CATEGORY, $auth_key = ALBU
 			$keys['idx'][$last_i] = (isset ($album_data['keys'][$cur_cat_id]) ? $album_data['keys'][$cur_cat_id] : ALBUM_ROOT_CATEGORY);
 
 			// get sub-levels
-			for ($i = 0; $i < count($album_data['sub'][$cur_cat_id]); $i ++)
+			$sub_categories = isset($album_data['sub'][$cur_cat_id]) && is_array($album_data['sub'][$cur_cat_id]) ? $album_data['sub'][$cur_cat_id] : array();
+			for ($i = 0; $i < count($sub_categories); $i ++)
 			{
 				$subkeys = array ();
-				$subkeys = album_get_auth_keys($album_data['sub'][$cur_cat_id][$i], $auth_key, $all, $orig_level +1, $max);
+				$subkeys = album_get_auth_keys($sub_categories[$i], $auth_key, $all, $orig_level +1, $max);
 
 				// add sub-levels
-				for ($j = 0; $j < count($subkeys['id']); $j ++)
+				$sub_ids = isset($subkeys['id']) && is_array($subkeys['id']) ? $subkeys['id'] : array();
+				for ($j = 0; $j < count($sub_ids); $j ++)
 				{
 					$last_i ++;
 					$keys['keys'][$subkeys['id'][$j]] = $last_i;
@@ -142,7 +143,7 @@ function album_get_auth_keys($cur_cat_id = ALBUM_ROOT_CATEGORY, $auth_key = ALBU
 		} // if ($cur_cat_id == ALBUM_ROOT....
 	} // if (($max < 0 .....
 
-    if ($level <= ALBUM_ROOT_CATEGORY && ALBUM_HIERARCHY_DEBUG_ENABLED == true)
+    if ($level <= ALBUM_ROOT_CATEGORY && album_is_debug_enabled() == true)
     {
         album_debug('album_get_auth_keys = %s', $keys);
     }
@@ -172,6 +173,7 @@ function album_permissions($user_id, $cat_id, $permission_checks, $catdata = 0)
 		}
 	}
 
+	$album_permission = null;
 	$view_check = (int) checkFlag($permission_checks, ALBUM_AUTH_VIEW);
 	$upload_check = (int) checkFlag($permission_checks, ALBUM_AUTH_UPLOAD);
 	$rate_check = (int) checkFlag($permission_checks, ALBUM_AUTH_RATE);

@@ -184,9 +184,10 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 	} // if we are above the root level
 
     // display the sub-level
-    for ($i = 0; $i < count($album_data['sub'][$cur]); $i++)
+	$sub_categories = isset($album_data['sub'][$cur]) && is_array($album_data['sub'][$cur]) ? $album_data['sub'][$cur] : array();
+    for ($i = 0; $i < count($sub_categories); $i++)
 	{
-		$column_offset = album_display_admin_index($album_data['sub'][$cur][$i], $level + 1, $max_level, $column_offset);
+		$column_offset = album_display_admin_index($sub_categories[$i], $level + 1, $max_level, $column_offset);
 	}
 
 	// if we are 'above' the root level then add the add category 'footer'
@@ -328,7 +329,7 @@ function album_build_index($user_id, &$keys, $cur_cat_id = ALBUM_ROOT_CATEGORY, 
 			 	// calculate for all the subcats in this branch
 				for ($i = 0; $i < count($sub_cats); $i++)
 				{
-					$total = $total + $newestpic[ $sub_cats[$i] ];
+					$total += isset($newestpic[$sub_cats[$i]]) ? $newestpic[$sub_cats[$i]] : 0;
 				}
 
         		if ( $total > 0 )
@@ -377,9 +378,10 @@ function album_build_index($user_id, &$keys, $cur_cat_id = ALBUM_ROOT_CATEGORY, 
             )
         );
 
-        if ( intval(($newestpic[ $cur_cat_id ])) != 0 )
-        {
-			$new_text = ($newestpic[ $cur_cat_id ] > 1) ? sprintf($lang['Multiple_new_pictures'], $newestpic[ $cur_cat_id ]) : sprintf($lang['One_new_picture'], $newestpic[ $cur_cat_id ]);
+		$current_newest_pics = isset($newestpic[$cur_cat_id]) ? intval($newestpic[$cur_cat_id]) : 0;
+		if ( $current_newest_pics != 0 )
+		{
+			$new_text = ($current_newest_pics > 1) ? sprintf($lang['Multiple_new_pictures'], $current_newest_pics) : sprintf($lang['One_new_picture'], $current_newest_pics);
         	$template->assign_block_vars('catmain.catrow.newpics', array(
 	        	'I_NEWEST_PICS' => $images['mini_new_pictures'],
 	        	'L_NEWEST_PICS' => $new_text
@@ -477,12 +479,13 @@ function album_build_index($user_id, &$keys, $cur_cat_id = ALBUM_ROOT_CATEGORY, 
         $display = true;
     } // if ($level == 0)...
 
-    // display sub-levels
-    for ($i = 0; $i < count($album_data['sub'][$cur_cat_id]); $i++)
-    {
-        if (!empty($keys['keys'][$album_data['sub'][$cur_cat_id][$i]]))
-        {
-            $subdisplay = album_build_index($user_id, $keys, $album_data['sub'][$cur_cat_id][$i], $level + 1, $max_level, $newestpic);
+	// display sub-levels
+	$sub_categories = isset($album_data['sub'][$cur_cat_id]) && is_array($album_data['sub'][$cur_cat_id]) ? $album_data['sub'][$cur_cat_id] : array();
+	for ($i = 0; $i < count($sub_categories); $i++)
+	{
+		if (isset($keys['keys'][$sub_categories[$i]]))
+		{
+			$subdisplay = album_build_index($user_id, $keys, $sub_categories[$i], $level + 1, $max_level, $newestpic);
             if ($subdisplay)
             {
             	$display = true;
@@ -507,6 +510,10 @@ function album_free_album_data()
 function album_build_tree(&$cats, &$parents, $level = ALBUM_ROOT_CATEGORY, $parent = ALBUM_ROOT_CATEGORY) {
     global $db, $album_data, $album_config;
     $album_data_level = array();
+	if (empty($parents[$parent]) || !is_array($parents[$parent]))
+	{
+		return;
+	}
 
     // add the categories of this level
     for ($i = 0; $i < count($parents[$parent]); $i++) 
@@ -659,9 +666,10 @@ function album_get_sub_cat_ids($cur_cat_id = ALBUM_ROOT_CATEGORY, &$cats = null,
 	}
 	
 	// get all the  sub categori id for current sub category
-	for ($j=0; $j < count($album_data['sub'][$cur_cat_id]); $j++)
+	$sub_categories = isset($album_data['sub'][$cur_cat_id]) && is_array($album_data['sub'][$cur_cat_id]) ? $album_data['sub'][$cur_cat_id] : array();
+	for ($j=0; $j < count($sub_categories); $j++)
 	{
-		$subcur = $album_data['sub'][$cur_cat_id][$j];
+		$subcur = $sub_categories[$j];
         $subthis = $album_data['keys'][$subcur];
         $subdata = $album_data['data'][$subthis];
 
@@ -673,9 +681,9 @@ function album_get_sub_cat_ids($cur_cat_id = ALBUM_ROOT_CATEGORY, &$cats = null,
 	}
 
 	// do this for each sub category... recursive
-	for ($i=0; $i < count($album_data['sub'][$cur_cat_id]); $i++)
+	for ($i=0; $i < count($sub_categories); $i++)
 	{
-		album_get_sub_cat_ids($album_data['sub'][$cur_cat_id][$i], $cats);
+		album_get_sub_cat_ids($sub_categories[$i], $cats, $auth_key, false);
 	}
 }
 
@@ -1063,7 +1071,7 @@ function album_display_index($user_id, $cur_cat_id = ALBUM_ROOT_CATEGORY, $show_
 				)
 			);
 			
-			$cols_span = album_generate_index_columns($username);
+			$cols_span = album_generate_index_columns();
 			
 			// but we need to specific ly specify if we want to show the public gallery header
 			if ($show_public_footer == true)

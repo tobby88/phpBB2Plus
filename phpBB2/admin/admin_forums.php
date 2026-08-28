@@ -1968,9 +1968,10 @@ function display_admin_index($cur='Root', $level=0, $max_level=-1)
 		}
 
 		// display the sub-level
-		for ($i=0; $i < count($tree['sub'][$cur]); $i++)
+		$sub_items = isset($tree['sub'][$cur]) && is_array($tree['sub'][$cur]) ? $tree['sub'][$cur] : array();
+		for ($i=0; $i < count($sub_items); $i++)
 		{
-			display_admin_index($tree['sub'][$cur][$i], $level+1, $max_level);
+			display_admin_index($sub_items[$i], $level+1, $max_level);
 		}
 
 		// forum footer

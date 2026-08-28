@@ -40,7 +40,6 @@ class ct_database
 	var $verbose         = false;
 	var $user_ip_value   = '';
 
-
 	/**
 	 * <b>Constructor</b><br>
 	 * Loads all Configuration Data from Database

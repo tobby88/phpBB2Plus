@@ -28,9 +28,8 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
-define('ARCADE_ADMIN', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+if (!defined('ARCADE_ADMIN')) { define('ARCADE_ADMIN', 1); }
 $file = basename(__FILE__);
 
 if( !empty($setmodules) )

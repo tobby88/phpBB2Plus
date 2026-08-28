@@ -44,7 +44,7 @@ include($phpbb_root_path . 'includes/functions_bookmark.'.$phpEx);
 // Check and set various parameters
 //
 $params = array('submit' => 'post', 'news_category' => 'news_category', 'preview' => 'preview', 'delete' => 'delete', 'poll_delete' => 'poll_delete', 'poll_add' => 'add_poll_option', 'poll_edit' => 'edit_poll_option', 'mode' => 'mode');
-while( list($var, $param) = @each($params) )
+foreach ($params as $var => $param)
 {
 	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
 	{
@@ -55,12 +55,15 @@ while( list($var, $param) = @each($params) )
 		$$var = '';
 	}
 }
+$news_category = intval($news_category);
+$s_hidden_fields = '';
+$topic_desc = '';
 
 $confirm = isset($_POST['confirm']) ? true : false;
 $sid = (isset($_POST['sid'])) ? $_POST['sid'] : 0;
 
 $params = array('forum_id' => POST_FORUM_URL, 'topic_id' => POST_TOPIC_URL, 'post_id' => POST_POST_URL, 'lock_subject' => 'lock_subject');
-while( list($var, $param) = @each($params) )
+foreach ($params as $var => $param)
 {
 	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
 	{
@@ -537,7 +540,8 @@ if ( !$is_auth[$is_auth_type] || (!empty($is_auth_type_cal) && !$is_auth[$is_aut
 			$redirect = "mode=quote&" . POST_POST_URL ."=" . $post_id;
 			break;
 	}
-	$redirect .= ($post_reportid) ? '&post_reportid=$post_reportid' : '';
+	$post_reportid = isset($post_reportid) ? $post_reportid : 0;
+	$redirect .= ($post_reportid) ? '&post_reportid=' . $post_reportid : '';
 	redirect(append_sid("login.$phpEx?redirect=posting.$phpEx&" . $redirect, true));
 }
 
@@ -644,7 +648,7 @@ if( $userdata['session_logged_in'] && $post_data['disp_news'] )
 	}
 	else
 	{
-		$boxstring = '<option value="' . $news_sel['news_id'] .'">' . $news_sel['news_category'] . ' (' . $lang['Current_Selection'] . ')</option>';
+		$boxstring = !empty($news_sel) ? '<option value="' . $news_sel['news_id'] .'">' . $news_sel['news_category'] . ' (' . $lang['Current_Selection'] . ')</option>' : '';
 		$boxstring .= '<option value="0">' . $lang['Regular_Post'] . '</option>';
 	} 
 
@@ -1383,7 +1387,7 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 //-- add
 	if( $is_auth['auth_announce'] || $is_auth['auth_global_announce'])
 	{
-		if (empty($topic_announce_duration)) $topic_announce_duration = $post_data['topic_announce_duration'];
+		if (empty($topic_announce_duration)) $topic_announce_duration = isset($post_data['topic_announce_duration']) ? $post_data['topic_announce_duration'] : 0;
 		$topic_type_toggle .= '<br />' . $lang['announcement_duration'] . ': <input type="post" size="3" name="topicduration" value="' . $topic_announce_duration . '" />&nbsp;' . $lang['Days'] . '<br /><span class="gensmall">(' . $lang['announcement_duration_explain'] . ')</span>';
 	}
 //-- fin mod : announces ---------------------------------------------------------------------------
@@ -1417,8 +1421,10 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 		);
 
 		// get the date
-		$topic_calendar_time = ( !isset($_POST['topic_calendar_year']) || (($topic_calendar_time != intval($post_data['topic_calendar_time'])) && !$is_auth['auth_cal']) ) ? intval($post_data['topic_calendar_time']) : $topic_calendar_time;
-		$topic_calendar_duration = ( (!isset($_POST['topic_calendar_duration_day']) && !isset($_POST['topic_calendar_duration_hour']) && !isset($_POST['topic_calendar_duration_min']) ) || (($topic_calendar_duration != intval($post_data['topic_calendar_duration'])) && !$is_auth['auth_cal']) ) ? intval($post_data['topic_calendar_duration']) : $topic_calendar_duration;
+		$post_calendar_time = isset($post_data['topic_calendar_time']) ? intval($post_data['topic_calendar_time']) : 0;
+		$post_calendar_duration = isset($post_data['topic_calendar_duration']) ? intval($post_data['topic_calendar_duration']) : 0;
+		$topic_calendar_time = ( !isset($_POST['topic_calendar_year']) || (($topic_calendar_time != $post_calendar_time) && !$is_auth['auth_cal']) ) ? $post_calendar_time : $topic_calendar_time;
+		$topic_calendar_duration = ( (!isset($_POST['topic_calendar_duration_day']) && !isset($_POST['topic_calendar_duration_hour']) && !isset($_POST['topic_calendar_duration_min']) ) || (($topic_calendar_duration != $post_calendar_duration) && !$is_auth['auth_cal']) ) ? $post_calendar_duration : $topic_calendar_duration;
 
 		// get the components of the event date
 		$year	= '';
@@ -1484,7 +1490,7 @@ if ( $mode == 'newtopic' || ( $mode == 'editpost' && $post_data['first_post'] ) 
 		$s_topic_calendar_year = '<select name="topic_calendar_year">';
 
 		$selected = empty($year) ? ' selected="selected"' : '';
-		$s_topic_calendar_year .= '<option value="0"' . $select . '> ---- </option>';
+	$s_topic_calendar_year .= '<option value="0"' . $selected . '> ---- </option>';
 
 		$start_year = ( (intval($year) > 1971 ) && (intval($year) <= date('Y', time())) ) ? intval($year) : date('Y', time());
 		for ($i = $start_year; $i <= date('Y', time())+10; $i++)

@@ -78,8 +78,8 @@ if ( isset($_GET['mode']) || isset($_POST['mode']) )
 	$mode = ( isset($_GET['mode']) ) ? $_GET['mode'] : $_POST['mode'];
 	$mode = htmlspecialchars($mode);
 
-	$mode = ($_POST['signature'] != '') ? 'signature' : $mode;
-	$mode = ($_GET['signature'] != '') ? 'signature' : $mode;
+	$mode = (!empty($_POST['signature'])) ? 'signature' : $mode;
+	$mode = (!empty($_GET['signature'])) ? 'signature' : $mode;
 
 	if ( $mode == 'viewprofile' )
 	{
@@ -87,7 +87,7 @@ if ( isset($_GET['mode']) || isset($_POST['mode']) )
 //--- version : 1.2.0
 	 	$album_root_path = $phpbb_root_path.'album_mod/';
 //--- version : 1.3.0		
-		include ($album_root_path.'album_constants.'.$phpEx);
+	 	include_once($album_root_path.'album_constants.'.$phpEx);
 //--- Album Category Hierarchy : end
 		include($phpbb_root_path . 'includes/usercp_viewprofile.'.$phpEx);
 		exit;

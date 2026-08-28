@@ -57,7 +57,7 @@ function generate_module_info($module_data, $install = FALSE)
 		$ret_array['default_update_time'] = 0;
 		$data_file = @file($phpbb_root_path . trim($__stats_config['modules_dir']) . '/' . $module_dir . '/info.txt');
 		
-		while (list($key, $data) = @each($data_file))
+		foreach ((array) $data_file as $key => $data)
 		{
 			if ((!$extra_info_mode) && (!$condition_mode))
 			{

@@ -66,9 +66,10 @@
                         
         returns:        a modified querystring prefixed with ? 
      ***************************************************************************/
-    function setQueryStringVal($var, $value)
-    {
-        $querystring = $HTTP_SERVER_VARS["QUERY_STRING"];
+	function setQueryStringVal($var, $value)
+	{
+		global $HTTP_SERVER_VARS;
+		$querystring = isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '';
     
         if (!stristr($querystring, $var))
         { 

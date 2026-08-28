@@ -139,8 +139,6 @@ function get_object_lang($cur, $field, $all=false)
 {
 	global $board_config, $lang, $tree;
 	$res	= '';
-	$CH_this	= $tree['keys'][$cur];
-	$type	= $tree['type'][$CH_this];
 	if ($cur == 'Root')
 	{
 		switch($field)
@@ -169,6 +167,8 @@ function get_object_lang($cur, $field, $all=false)
 	}
 	else
 	{
+		$CH_this = $tree['keys'][$cur];
+		$type = $tree['type'][$CH_this];
 		switch($field)
 		{
 			case 'name':
@@ -412,8 +412,8 @@ function cache_tree_output()
 	}
 
 	// moderators
-	@reset($tree['mods']);
-	while ( list($idx, $data) = @each($tree['mods']) )
+	$tree_mods = !empty($tree['mods']) && is_array($tree['mods']) ? $tree['mods'] : array();
+	foreach ($tree_mods as $idx => $data)
 	{
 		if ($idx !== '')
 		{
@@ -703,8 +703,7 @@ function read_tree($force=false)
 
 			// store the added columns
 			$idx = $tree['keys'][POST_FORUM_URL . $row['forum_id'] ];
-			@reset($row);
-			while ( list($key, $value) = @each($row) )
+			foreach ($row as $key => $value)
 			{
 				$nkey = intval($key);
 				if ( $key != "$nkey" )
@@ -812,7 +811,12 @@ function set_tree_user_auth()
 		// grant the main level
 		if ($main != 'Root')
 		{
-			$tree['auth'][$main]['tree.auth_view'] = ($tree['auth'][$main]['tree.auth_view'] || $tree['auth'][$cur]['tree.auth_view']);
+			if (!isset($tree['auth'][$main]) || !is_array($tree['auth'][$main]))
+			{
+				$tree['auth'][$main] = array();
+			}
+			$parent_auth_view = isset($tree['auth'][$main]['tree.auth_view']) ? $tree['auth'][$main]['tree.auth_view'] : false;
+			$tree['auth'][$main]['tree.auth_view'] = ($parent_auth_view || $tree['auth'][$cur]['tree.auth_view']);
 		}
 
 		//---------------------
@@ -858,8 +862,8 @@ function set_tree_user_auth()
 		}
 		if ($auth_view)
 		{
-			$tree['data'][$i]['tree.forum_posts'] += $tree['data'][$i]['forum_posts'];
-			$tree['data'][$i]['tree.forum_topics'] += $tree['data'][$i]['forum_topics'];
+			$tree['data'][$i]['tree.forum_posts'] += isset($tree['data'][$i]['forum_posts']) ? $tree['data'][$i]['forum_posts'] : 0;
+			$tree['data'][$i]['tree.forum_topics'] += isset($tree['data'][$i]['forum_topics']) ? $tree['data'][$i]['forum_topics'] : 0;
 		}
 
 		// grant the main level
@@ -890,12 +894,12 @@ function set_tree_user_auth()
 		if ($auth_read)
 		{
 			// fill the sub
-			if ( empty($tree['data'][$i]['tree.topic_last_post_id']) || ($tree['data'][$i]['post_time'] > $tree['data'][$i]['tree.post_time']) )
+			if ( isset($tree['data'][$i]['post_time']) && (empty($tree['data'][$i]['tree.topic_last_post_id']) || ($tree['data'][$i]['post_time'] > $tree['data'][$i]['tree.post_time'])) )
 			{
 				$tree['data'][$i]['tree.topic_last_post_id']	= $tree['data'][$i]['topic_last_post_id'];
 				$tree['data'][$i]['tree.post_time']				= $tree['data'][$i]['post_time'];
 				$tree['data'][$i]['tree.post_user_id']			= $tree['data'][$i]['user_id'];
-				$tree['data'][$i]['tree.post_username']			= ($tree['data'][$i]['user_id'] != ANONYMOUS) ? $tree['data'][$i]['username'] : ( (!empty($tree['data'][$i]['post_username'])) ? $tree['data'][$i]['post_username'] : $lang['Guest'] );
+				$tree['data'][$i]['tree.post_username']			= ($tree['data'][$i]['user_id'] != ANONYMOUS) ? (isset($tree['data'][$i]['username']) ? $tree['data'][$i]['username'] : '') : ( (!empty($tree['data'][$i]['post_username'])) ? $tree['data'][$i]['post_username'] : $lang['Guest'] );
 				$tree['data'][$i]['tree.topic_title']			= $tree['data'][$i]['topic_title'];
 				$tree['data'][$i]['tree.unread_topics']			= $tree['unread_topics'][$i];
 			}
@@ -904,7 +908,7 @@ function set_tree_user_auth()
 		// grant the main level
 		if ($main != 'Root')
 		{
-			if ( empty($tree['data'][$main_idx]['tree.topic_last_post_id']) || ($tree['data'][$i]['tree.post_time'] > $tree['data'][$main_idx]['tree.post_time']) )
+			if ( !empty($tree['data'][$i]['tree.topic_last_post_id']) && (empty($tree['data'][$main_idx]['tree.topic_last_post_id']) || ($tree['data'][$i]['tree.post_time'] > $tree['data'][$main_idx]['tree.post_time'])) )
 			{
 				$tree['data'][$main_idx]['tree.topic_last_post_id']	= $tree['data'][$i]['tree.topic_last_post_id'];
 				$tree['data'][$main_idx]['tree.post_time']			= $tree['data'][$i]['tree.post_time'];
@@ -935,8 +939,7 @@ function get_user_tree(&$userdata)
 		$wauth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
 		if (!empty($wauth))
 		{
-			reset($wauth);
-			while (list($key, $data) = each($wauth))
+			foreach ($wauth as $key => $data)
 			{
 				$tree['auth'][POST_FORUM_URL . $key] = $data;
 			}
@@ -1058,7 +1061,8 @@ function get_tree_option($cur='', $all=false)
 	for ($i=0; $i < count($keys['id']); $i++)
 	{
 		// only get object that are not forum links type
-		if ( ($tree['type'][ $keys['idx'][$i] ] != POST_FORUM_URL) || empty($tree['data'][ $keys['idx'][$i] ]['forum_link']) || $all)
+		$tree_idx = $keys['idx'][$i];
+		if ( ($tree_idx < 0) || ($tree['type'][$tree_idx] != POST_FORUM_URL) || empty($tree['data'][$tree_idx]['forum_link']) || $all)
 		{
 			$selected = ($cur == $keys['id'][$i]) ? ' selected="selected"' : '';
 			$res .= '<option value="' . $keys['id'][$i] . '"' .  $selected . '>';
@@ -1453,9 +1457,10 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 	}
 
 	// display sub-levels
-	for ($i=0; $i < count($tree['sub'][$cur]); $i++) if (!empty($keys['keys'][$tree['sub'][$cur][$i]]))
+	$sub_items = isset($tree['sub'][$cur]) && is_array($tree['sub'][$cur]) ? $tree['sub'][$cur] : array();
+	for ($i=0; $i < count($sub_items); $i++) if (isset($keys['keys'][$sub_items[$i]]))
 	{
-		$wdisplay = build_index($tree['sub'][$cur][$i], $cat_break, $forum_moderators, $level+1, $max_level, $keys);
+		$wdisplay = build_index($sub_items[$i], $cat_break, $forum_moderators, $level+1, $max_level, $keys);
 		if ($wdisplay) $display = true;
 	}
 
@@ -1514,8 +1519,8 @@ function display_index($cur='Root')
 
 	// moderators list
 	$forum_moderators = array();
-	@reset($tree['mods']);
-	while ( list($idx, $data) = @each($tree['mods']) )
+	$tree_mods = !empty($tree['mods']) && is_array($tree['mods']) ? $tree['mods'] : array();
+	foreach ($tree_mods as $idx => $data)
 	{
 		if ( $tree['type'][$idx] == POST_FORUM_URL )
 		{

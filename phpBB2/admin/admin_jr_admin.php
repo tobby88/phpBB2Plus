@@ -22,9 +22,9 @@
 /****************************************************************************
 /** Module Setup
 /***************************************************************************/
-define('IN_PHPBB', true);
-define('MOD_VERSION', '2.0.5');
-define('MOD_CODE', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+if (!defined('MOD_VERSION')) { define('MOD_VERSION', '2.0.5'); }
+if (!defined('MOD_CODE')) { define('MOD_CODE', 1); }
 if (!empty($setmodules))
 {
 	$filename = basename(__FILE__);

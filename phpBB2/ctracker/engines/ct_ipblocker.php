@@ -33,7 +33,7 @@ if ( !defined('IN_PHPBB') )
  * If so we use our ct_database class to load the Blocklist from the
  * Database in an array and check if someone who was blocked is in the list.
  */
-if ( $ctracker_config->settings['ipblock_enabled'] == 1 )
+if ( !empty($ctracker_config->settings['ipblock_enabled']) )
 {
 	// Fetch Blocklist from Database
 	$ctracker_config->unset_blocklist_verbose();
@@ -41,8 +41,8 @@ if ( $ctracker_config->settings['ipblock_enabled'] == 1 )
 	
 	// Fetch IP UserAgent and Remote Host
 	$ct_client_ip   = $client_ip;
-	$ct_user_agent  = $HTTP_SERVER_VARS['HTTP_USER_AGENT'];
-	$ct_remote_host = $HTTP_SERVER_VARS['REMOTE_HOST'];
+	$ct_user_agent  = isset($HTTP_SERVER_VARS['HTTP_USER_AGENT']) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : '';
+	$ct_remote_host = isset($HTTP_SERVER_VARS['REMOTE_HOST']) ? $HTTP_SERVER_VARS['REMOTE_HOST'] : '';
 	
 	/*
 	 * Now we check if IP Adress, UserAgent or RemoteHost of the User

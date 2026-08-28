@@ -32,8 +32,7 @@
 * 
 ***************************************************************************/ 
 
-define('IN_PHPBB', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$filename = basename(__FILE__);
@@ -109,7 +108,7 @@ while ( !empty($sql[$n]) )
 {
 	$vars='days_'.$n;
 	
-	$default [$n] = ($default [$n])?$default [$n]:10;
+	$default[$n] = !empty($default[$n]) ? $default[$n] : 10;
 	$days [$n] = ( isset($_GET[$vars]) ) ? $_GET[$vars] : (( isset($_POST[$vars]) ) ? intval($_POST[$vars]) : $default[$n]);
 //		<option value="'.$days[$n].'" SELECTED>&nbsp;'.$days[$n].' '.$lang['Days'].'&nbsp;</option>'.$options;
 //	'.str_replace("value=\"".$days[$n]."\"> SELECTED " , "value=\"".$days[$n]."\">" ,$options);
@@ -126,14 +125,15 @@ while ( !empty($sql[$n]) )
 		message_die(GENERAL_ERROR, 'Error obtaining userdata'.$sql[$n], '', __LINE__, __FILE__, $sql[$n]);
 	$user_list = $db->sql_fetchrowset($result);
 	$user_count=count($user_list);
+	$list[$n] = '';
 	for($i = 0; $i < $user_count; $i++) 
 	{ 
-		$style_color = ($user__list[$i]['user_level'] == ADMIN )?'style="color:#' . $theme['fontcolor3'] . '"':(( $user__list[$i]['user_level'] == MOD )?'style="color:#' . $theme['fontcolor2'] . '"':''); 
+		$style_color = ($user_list[$i]['user_level'] == ADMIN )?'style="color:#' . $theme['fontcolor3'] . '"':(( $user_list[$i]['user_level'] == MOD )?'style="color:#' . $theme['fontcolor2'] . '"':''); 
 		$list[$n] .= ' <a href="' . append_sid($phpbb_root_path."profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $user_list[$i]['user_id']) . '"' . $style_color .'><b>' . $user_list[$i]['username'] . '</b></a>'; 
 	}
 	$db->sql_freeresult($result);
 $template->assign_block_vars('prune_list', array(
-		"LIST" => ($list[$n])?$list[$n]:$lang['None'],
+		"LIST" => !empty($list[$n]) ? $list[$n] : $lang['None'],
 		"USER_COUNT" => $user_count,
 		"L_PRUNE" => $lang['Prune_commands'][$n],
 		"L_PRUNE_EXPLAIN" => sprintf($lang['Prune_explain'][$n],$days[$n]),

@@ -339,7 +339,8 @@ function unhtmlspecialchars(text)
 	return text;
 }
 
-function utf8_decode(text)
+// Decode the numeric character entities returned by the AJAX XML response.
+function decode_numeric_entities(text)
 {
 	while (res = text.match(/&#(\d{1,4});/))
 	{

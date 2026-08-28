@@ -30,6 +30,8 @@ include_once( $phpbb_root_path . 'includes/functions_mods_settings.' . $phpEx );
 
 // mod definition
 $mod_name = 'Calendar';
+$calendar_sunday = isset($lang['datetime']['Sunday']) ? $lang['datetime']['Sunday'] : 'Sunday';
+$calendar_monday = isset($lang['datetime']['Monday']) ? $lang['datetime']['Monday'] : 'Monday';
 $config_fields = array(
 
 	'calendar_display_open' => array(
@@ -50,11 +52,11 @@ $config_fields = array(
 	'calendar_week_start' => array(
 		'lang_key'	=> 'Calendar_week_start',
 		'type'		=> 'LIST_RADIO',
-		'default'	=> $lang['datetime']['Monday'],
+		'default'	=> $calendar_monday,
 		'user'		=> 'user_calendar_week_start',
 		'values'	=> array(
-			$lang['datetime']['Sunday'] => 0,
-			$lang['datetime']['Monday'] => 1,
+			$calendar_sunday => 0,
+			$calendar_monday => 1,
 			),
 		),
 

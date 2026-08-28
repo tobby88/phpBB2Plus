@@ -408,9 +408,9 @@ if (isset($_REQUEST['psid']))
 else
 {
 	$psid = md5(uniqid(rand()));
-	$cat_id = $_REQUEST['cat_id'];
-	$user_id = $_REQUEST['user_id'];
-	$album_user_id = intval($_REQUEST['user_id']);
+	$cat_id = isset($_REQUEST['cat_id']) ? intval($_REQUEST['cat_id']) : 0;
+	$user_id = isset($_REQUEST['user_id']) ? intval($_REQUEST['user_id']) : 0;
+	$album_user_id = $user_id;
 	if($album_config['perl_uploader'])
 	{
 		$uploader = (function_exists('album_append_uid'))? album_append_uid($path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id") . "&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'] : $path_to_bin . "nuffload.cgi?psid=$psid&cat_id=$cat_id&redirect=http://" . $_SERVER["HTTP_HOST"] . $_SERVER['PHP_SELF'];

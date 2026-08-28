@@ -19,8 +19,8 @@
 *
 ***************************************************************************/
 
-define('IN_PHPBB', TRUE);
-define('MOD_VERSION', '1.20');
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+if (!defined('MOD_VERSION')) { define('MOD_VERSION', '1.20'); }
 /* If for some reason you need to disable the version check in THIS HACK ONLY,
 change the blow to TRUE instead of FALSE.  No other hacks will be affected
 by this change.
@@ -241,7 +241,7 @@ switch($mode)
 			'HACK_VERSION' => ($row['hack_version'] != '') ? ' v' . stripslashes($row['hack_version']) : '',
 			'S_ACTION_EDIT' => '<a href="' . append_sid(basename(__FILE__) . '?mode=edit&hack_id=' . $row['hack_id']) . '">' . $lang['Edit'] . '</a>',
 			'HACK_DISPLAY' => $lang[$row['hack_hide']],
-			'ADD_DATE' => create_date($lang['DATE_FORMAT'], $row['log_time'], $board_config['board_timezone'])));
+			'ADD_DATE' => !empty($row['log_time']) ? create_date($lang['DATE_FORMAT'], $row['log_time'], $board_config['board_timezone']) : ''));
 		}
 		
 		if ($i == 0 || !isset($i))
@@ -292,7 +292,7 @@ if ($status_message != '')
 ************************************************************************/
 if (file_exists($phpbb_root_path.'nivisec_version_check.'.$phpEx) && !DISABLE_VERSION_CHECK)
 {
-	define('MOD_CODE', 17);
+	if (!defined('MOD_CODE')) { define('MOD_CODE', 17); }
 	include($phpbb_root_path.'nivisec_version_check.'.$phpEx);
 }
 /************************************************************************

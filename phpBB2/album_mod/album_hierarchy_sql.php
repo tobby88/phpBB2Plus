@@ -90,7 +90,7 @@ function album_read_tree($user_id = ALBUM_PUBLIC_GALLERY, $options = ALBUM_AUTH_
 	// read categories and categories with right user access rights
     $cats = array();
 
-	if ( count($album_data['data']) > 0)
+	if ( !empty($album_data['data']) && is_array($album_data['data']))
     {
 	    return ALBUM_DATA_ALREADY_READ;
 	}
@@ -160,8 +160,11 @@ function album_read_tree($user_id = ALBUM_PUBLIC_GALLERY, $options = ALBUM_AUTH_
 	$db->sql_freeresult($result);
 
     // build the tree
-    $album_data  = array();
-    album_build_tree($cats, $parents);
+	$album_data = array(
+		'sub' => array(), 'keys' => array(), 'parent' => array(),
+		'id' => array(), 'data' => array(), 'personal' => array(), 'auth' => array(),
+	);
+	album_build_tree($cats, $parents);
 
     // populate the authentication data to the album tree
     album_create_user_auth($user_id);
@@ -240,8 +243,11 @@ function album_init_personal_gallery($user_id)
 	$parents[$row['parent']][] = $idx;
 
     // build the tree
-    $album_data  = array();
-    album_build_tree($cats, $parents);
+	$album_data = array(
+		'sub' => array(), 'keys' => array(), 'parent' => array(),
+		'id' => array(), 'data' => array(), 'personal' => array(), 'auth' => array(),
+	);
+	album_build_tree($cats, $parents);
 
     // populate the authentication data to the album tree
     album_create_user_auth($user_id);
@@ -491,7 +497,15 @@ function album_move_tree($cat_id, $move, $user_id = ALBUM_PUBLIC_GALLERY)
 	}
 
 	// rebuild the tree
-	$album_data  = array();
+	$album_data = array(
+		'sub' => array(),
+		'keys' => array(),
+		'parent' => array(),
+		'id' => array(),
+		'data' => array(),
+		'personal' => array(),
+		'auth' => array(),
+	);
 	album_build_tree($cats, $parents);
 
 	// ------------------------------------------------------------------------
