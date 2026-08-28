@@ -252,6 +252,9 @@ else if ( $mode == 'read' )
 	{
 		redirect(append_sid("privmsg.$phpEx?folder=$folder", true));
 	}
+	$privmsg['user_icq'] = phpbb_profile_contact($privmsg['user_icq']);
+	$privmsg['user_aim'] = phpbb_profile_contact($privmsg['user_aim']);
+	$privmsg['user_yim'] = phpbb_profile_contact($privmsg['user_yim']);
 
 	$privmsg_id = $privmsg['privmsgs_id'];
 
@@ -517,14 +520,15 @@ else if ( $mode == 'read' )
 		$email = '';
 	}
 
-	$www_img = ( $privmsg['user_website'] ) ? '<a href="' . $privmsg['user_website'] . '" target="_userwww"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '';
-	$www = ( $privmsg['user_website'] ) ? '<a href="' . $privmsg['user_website'] . '" target="_userwww">' . $lang['Visit_website'] . '</a>' : '';
+	$website_url = phpbb_profile_http_url($privmsg['user_website']);
+	$www_img = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '';
+	$www = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer">' . $lang['Visit_website'] . '</a>' : '';
 
 	if ( !empty($privmsg['user_icq']) )
 	{
-		$icq_status_img = '<a href="http://wwp.icq.com/' . $privmsg['user_icq'] . '#pager"><img src="http://web.icq.com/whitepages/online?icq=' . $privmsg['user_icq'] . '&img=5" width="18" height="18" border="0" /></a>';
-		$icq_img = '<a href="http://wwp.icq.com/scripts/search.dll?to=' . $privmsg['user_icq'] . '"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>';
-		$icq =  '<a href="http://wwp.icq.com/scripts/search.dll?to=' . $privmsg['user_icq'] . '">' . $lang['ICQ'] . '</a>';
+		$icq_status_img = '';
+		$icq_img = '<a href="https://www.icq.com/people/' . $privmsg['user_icq'] . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>';
+		$icq =  '<a href="https://www.icq.com/people/' . $privmsg['user_icq'] . '" rel="noopener noreferrer">' . $lang['ICQ'] . '</a>';
 	}
 	else
 	{
@@ -540,8 +544,8 @@ else if ( $mode == 'read' )
 	$msn_img = ( $privmsg['user_msnm'] ) ? '<a href="' . $temp_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '';
 	$msn = ( $privmsg['user_msnm'] ) ? '<a href="' . $temp_url . '">' . $lang['MSNM'] . '</a>' : '';
 
-	$yim_img = ( $privmsg['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
-	$yim = ( $privmsg['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg">' . $lang['YIM'] . '</a>' : '';
+	$yim_img = ( $privmsg['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
+	$yim = ( $privmsg['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer">' . $lang['YIM'] . '</a>' : '';
 	$social = phpbb_social_profile_links($privmsg);
 
 	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username_from) . "&amp;showresults=posts");

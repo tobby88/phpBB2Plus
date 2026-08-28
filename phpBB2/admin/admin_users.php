@@ -422,7 +422,7 @@ if( !empty($_POST['unblock_account']) )
 		$user_lang = ( $_POST['language'] ) ? $_POST['language'] : $board_config['default_lang'];
 		$user_timezone = ( isset( $_POST['timezone']) ) ? doubleval( $_POST['timezone'] ) : $board_config['board_timezone'];
 		// FLAGHACK-start
-		$user_flag = ( !empty($_POST['user_flag']) ) ? $_POST['user_flag'] : '' ;
+		$user_flag = ( !empty($_POST['user_flag']) ) ? phpbb_profile_image_name($_POST['user_flag']) : '' ;
 		// FLAGHACK-end
 
 		$user_dateformat = ( $_POST['dateformat'] ) ? trim( $_POST['dateformat'] ) : $board_config['default_dateformat'];
@@ -1506,8 +1506,12 @@ if ($this_userdata['user_passwd_change']>0)
 	$flag_select .= "<option value=\"blank.gif\"$selected>" . $lang['Select_Country'] . "</option>";
 	for ($i = 0; $i < $num_flags; $i++)
 	{
-		$flag_name = $flag_row[$i]['flag_name'];
-		$flag_image = $flag_row[$i]['flag_image'];
+		$flag_name = phpbb_profile_text($flag_row[$i]['flag_name']);
+		$flag_image = phpbb_profile_image_name($flag_row[$i]['flag_image']);
+		if ($flag_image === '')
+		{
+			continue;
+		}
 		$selected = ( isset( $user_flag) ) ? (($user_flag == $flag_image) ? 'selected="selected"' : '' ) : '' ;
 		$flag_select .= "\t<option value=\"$flag_image\"$selected>$flag_name</option>";
 		if ( isset( $user_flag) && ($user_flag == $flag_image))

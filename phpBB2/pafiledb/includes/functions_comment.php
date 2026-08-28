@@ -106,7 +106,7 @@ function display_comments(&$file_data)
 
 		$poster_posts = ( $comments_row['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $comments_row['user_posts'] : '';
 
-		$poster_from = ( $comments_row['user_from'] && $comments_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . $comments_row['user_from'] : '';
+		$poster_from = ( $comments_row['user_from'] && $comments_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($comments_row['user_from']) : '';
 
 		$poster_joined = ( $comments_row['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $comments_row['user_regdate'], $board_config['board_timezone']) : '';
 
@@ -141,8 +141,9 @@ function display_comments(&$file_data)
 			{
 				if ( $comments_row['user_rank'] == $ranksrow[$j]['rank_id'] && $ranksrow[$j]['rank_special'] )
 				{
-					$poster_rank = $ranksrow[$j]['rank_title'];
-					$rank_image = ( $ranksrow[$j]['rank_image'] ) ? '<img src="' . $images['rank_path'] . $ranksrow[$j]['rank_image'] . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
+					$poster_rank = phpbb_profile_text($ranksrow[$j]['rank_title']);
+					$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+					$rank_image = ( $rank_image_name ) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
 				}
 			}
 		}
@@ -152,8 +153,9 @@ function display_comments(&$file_data)
 			{
 				if ( $comments_row['user_posts'] >= $ranksrow[$j]['rank_min'] && !$ranksrow[$j]['rank_special'] )
 				{
-					$poster_rank = $ranksrow[$j]['rank_title'];
-					$rank_image = ( $ranksrow[$j]['rank_image'] ) ? '<img src="' . $images['rank_path'] . $ranksrow[$j]['rank_image'] . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
+					$poster_rank = phpbb_profile_text($ranksrow[$j]['rank_title']);
+					$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+					$rank_image = ( $rank_image_name ) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
 				}
 			}
 		}

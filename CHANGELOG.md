@@ -112,6 +112,11 @@ changes consolidated after that baseline without implying active maintenance.
   session, restricted its temp cleanup to known generated files, removed the
   CGI's caller-controlled redirect and symbolic request variables, restored
   SQL quoting after the Perl hand-off, and require genuine PHP uploads.
+- Validated and context-escaped legacy profile websites, locations, messenger
+  handles, custom fields, ranks and country flags throughout topic, profile,
+  member, group, album, shoutbox, knowledge-base and download views. Country
+  flag input is now restricted to a safe filename before it reaches SQL or a
+  generated image path.
 
 ### Repository and update cleanup
 

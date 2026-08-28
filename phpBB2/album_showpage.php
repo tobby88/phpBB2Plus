@@ -439,6 +439,10 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 		for ($i = 0; $i < count($commentrow); $i++)
 		{
+			$commentrow[$i]['user_icq'] = phpbb_profile_contact($commentrow[$i]['user_icq']);
+			$commentrow[$i]['user_aim'] = phpbb_profile_contact($commentrow[$i]['user_aim']);
+			$commentrow[$i]['user_yim'] = phpbb_profile_contact($commentrow[$i]['user_yim']);
+			$comment_website_url = phpbb_profile_http_url($commentrow[$i]['user_website']);
 			if( ($commentrow[$i]['user_id'] == ALBUM_GUEST) or ($commentrow[$i]['username'] == '') )
 			{
 				$poster = ($commentrow[$i]['comment_username'] == '') ? $lang['Guest'] : $commentrow[$i]['comment_username'];
@@ -528,8 +532,9 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				{
 					if ( $commentrow[$i]['user_rank'] == $ranksrow[$j]['rank_id'] && $ranksrow[$j]['rank_special'] )
 					{
-						$poster_rank = $ranksrow[$j]['rank_title'];
-						$rank_image = ( $ranksrow[$j]['rank_image'] ) ? '<img src="' . $images['rank_path'] . $ranksrow[$j]['rank_image'] . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
+						$poster_rank = phpbb_profile_text($ranksrow[$j]['rank_title']);
+						$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+						$rank_image = ( $rank_image_name ) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
 					}
 				}
 			}
@@ -539,8 +544,9 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				{
 					if ( $commentrow[$i]['user_posts'] >= $ranksrow[$j]['rank_min'] && !$ranksrow[$j]['rank_special'] )
 					{
-						$poster_rank = $ranksrow[$j]['rank_title'];
-						$rank_image = ( $ranksrow[$j]['rank_image'] ) ? '<img src="' . $images['rank_path'] . $ranksrow[$j]['rank_image'] . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
+						$poster_rank = phpbb_profile_text($ranksrow[$j]['rank_title']);
+						$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+						$rank_image = ( $rank_image_name ) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
 					}
 				}
 			}
@@ -564,18 +570,18 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				'PROFILE_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_profile'] . '" alt="' . $lang['Read_profile'] . '" title="' . $lang['Read_profile'] . '" border="0" /></a>' : '',
 				'PM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $pm_url . '"><img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" /></a>' : '',
 				'AIM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_aim'] ) ? '<a href="aim:goim?screenname=' . $commentrow[$i]['user_aim'] . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '' : '',
-				'YIM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $commentrow[$i]['user_yim'] . '&amp;.src=pg"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '' : '',
+				'YIM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $commentrow[$i]['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '' : '',
 				'MSNM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_msnm'] ) ? '<a href="' . $temp_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '' : '',
-				'ICQ_IMG' =>  ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_icq'] ) ? '<a href="http://wwp.icq.com/scripts/search.dll?to=' . $commentrow[$i]['user_icq'] . '"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>' : '' : '',
+				'ICQ_IMG' =>  ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_icq'] ) ? '<a href="https://www.icq.com/people/' . $commentrow[$i]['user_icq'] . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>' : '' : '',
 				'EMAIL_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '',
-				'WWW_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_website'] ) ? '<a href="' . $commentrow[$i]['user_website'] . '" target="_userwww"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '' : '',
+				'WWW_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS && $comment_website_url ) ? '<a href="' . $comment_website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '',
 
 				'POSTER_AVATAR' => $poster_avatar,
 				'POSTER_RANK' => $poster_rank,
 				'POSTER_RANK_IMGAGE' => $rank_image,
 				'POSTER_JOINED' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $commentrow[$i]['user_regdate'], $board_config['board_timezone']) : '',
 				'POSTER_POSTS' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $commentrow[$i]['user_posts'] : '',
-				'POSTER_FROM' => ( $commentrow[$i]['user_from'] && $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . $commentrow[$i]['user_from'] : '',
+				'POSTER_FROM' => ( $commentrow[$i]['user_from'] && $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($commentrow[$i]['user_from']) : '',
 
 
 				'TEXT' => $commentrow[$i]['comment_text'],

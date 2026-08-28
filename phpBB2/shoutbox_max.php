@@ -555,7 +555,7 @@ obtain_word_list($orig_word, $replacement_word);
 
 			$user_profile = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id");
 			$user_posts = ( $shout_row['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $shout_row['user_posts'] : '';
-			$user_from = ( $shout_row['user_from'] && $shout_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . $shout_row['user_from'] : '';
+			$user_from = ( $shout_row['user_from'] && $shout_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($shout_row['user_from']) : '';
 			$user_joined = ( $shout_row['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $shout_row['user_regdate'], $board_config['board_timezone']) : '';
 			$user_avatar = '';
 			if ( $shout_row['user_avatar_type'] && $user_id != ANONYMOUS && $shout_row['user_allowavatar'] )
@@ -588,8 +588,9 @@ obtain_word_list($orig_word, $replacement_word);
 				{
 					if ( $shout_row['user_rank'] == $ranksrow[$j]['rank_id'] && $ranksrow[$j]['rank_special'] )
 					{
-						$user_rank = ($shout_row['user_id'] != ANONYMOUS) ? $ranksrow[$j]['rank_title'] : '';
-						$rank_image = ( $ranksrow[$j]['rank_image'] && $shout_row['user_id'] != ANONYMOUS) ? '<img src="' . $images['rank_path'] . $ranksrow[$j]['rank_image'] . '" alt="' . $user_rank . '" title="' . $user_rank . '" border="0" /><br />' : '';
+						$user_rank = ($shout_row['user_id'] != ANONYMOUS) ? phpbb_profile_text($ranksrow[$j]['rank_title']) : '';
+						$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+						$rank_image = ( $rank_image_name && $shout_row['user_id'] != ANONYMOUS) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $user_rank . '" title="' . $user_rank . '" border="0" /><br />' : '';
 					}
 				}
 			} else
@@ -598,8 +599,9 @@ obtain_word_list($orig_word, $replacement_word);
 				{
 					if ( $shout_row['user_posts'] >= $ranksrow[$j]['rank_min'] && !$ranksrow[$j]['rank_special'] )
 					{
-						$user_rank = ($shout_row['user_id'] != ANONYMOUS) ? $ranksrow[$j]['rank_title'] : '';
-						$rank_image = ( $ranksrow[$j]['rank_image'] && $shout_row['user_id'] != ANONYMOUS) ? '<img src="' . $images['rank_path'] . $ranksrow[$j]['rank_image'] . '" alt="' . $user_rank . '" title="' . $user_rank . '" border="0" /><br />' : '';
+						$user_rank = ($shout_row['user_id'] != ANONYMOUS) ? phpbb_profile_text($ranksrow[$j]['rank_title']) : '';
+						$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+						$rank_image = ( $rank_image_name && $shout_row['user_id'] != ANONYMOUS) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $user_rank . '" title="' . $user_rank . '" border="0" /><br />' : '';
 					}
 				}
 			}

@@ -28,6 +28,36 @@ if ( !defined('IN_PHPBB') )
    die('Hacking attempt');
 }
 
+function phpbb_profile_text($value)
+{
+	return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
+}
+
+function phpbb_profile_http_url($value)
+{
+	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
+	$parts = @parse_url($value);
+	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
+		isset($parts['user']) || isset($parts['pass']) || strpos($value, '\\') !== false ||
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
+		preg_match('/[\x00-\x20\x7f]/', $value))
+	{
+		return '';
+	}
+	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
+}
+
+function phpbb_profile_contact($value)
+{
+	return rawurlencode(html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8'));
+}
+
+function phpbb_profile_image_name($value)
+{
+	$value = trim((string) $value);
+	return preg_match('/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/D', $value) ? $value : '';
+}
+
 //-- mod : post icon -------------------------------------------------------------------------------
 //-- add
 function get_icon_title($icon, $empty=0, $topic_type=-1, $admin=false)

@@ -108,6 +108,11 @@ if( $mode != 'view_profile' )
 			do
 			{
 				$user_id = $staff['user_id'];
+				$staff['user_icq'] = phpbb_profile_contact($staff['user_icq']);
+				$staff['user_aim'] = phpbb_profile_contact($staff['user_aim']);
+				$staff['user_yim'] = phpbb_profile_contact($staff['user_yim']);
+				$staff['user_msnm'] = phpbb_profile_contact($staff['user_msnm']);
+				$staff_website_url = phpbb_profile_http_url($staff['user_website']);
 				$user_status = ( $staff['user_session_time'] >= (time() - 60) ) ? (( $staff['user_allow_viewonline'] ) ? $lang['Staff_online'] : (( $userdata['user_level'] == ADMIN || $userdata['user_id'] == $user_id ) ? '<i>'. $lang['Staff_online'] .'</i>' : '')) : '';
 
 				$rank = '';
@@ -118,8 +123,9 @@ if( $mode != 'view_profile' )
 					{
 						if( $staff['user_rank'] == $ranksrow[$j]['rank_id'] && $ranksrow[$j]['rank_special'] )
 						{
-							$rank = $ranksrow[$j]['rank_title'];
-							$rank_image = ( $ranksrow[$j]['rank_image'] ) ? '<img src="'. $images['rank_path'] . $ranksrow[$j]['rank_image'] .'" alt="'. $rank .'" title="'. $rank .'" border="0" />' : '';
+							$rank = phpbb_profile_text($ranksrow[$j]['rank_title']);
+							$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+							$rank_image = ( $rank_image_name ) ? '<img src="'. $images['rank_path'] . $rank_image_name .'" alt="'. $rank .'" title="'. $rank .'" border="0" />' : '';
 						}
 					}
 				}
@@ -129,8 +135,9 @@ if( $mode != 'view_profile' )
 					{
 						if( $staff['user_posts'] >= $ranksrow[$j]['rank_min'] && !$ranksrow[$j]['rank_special'] )
 						{
-							$rank = $ranksrow[$j]['rank_title'];
-							$rank_image = ( $ranksrow[$j]['rank_image'] ) ? '<img src="'. $images['rank_path'] . $ranksrow[$j]['rank_image'] .'" alt="'. $rank .'" title="'. $rank .'" border="0" />' : '';
+							$rank = phpbb_profile_text($ranksrow[$j]['rank_title']);
+							$rank_image_name = phpbb_profile_image_name($ranksrow[$j]['rank_image']);
+							$rank_image = ( $rank_image_name ) ? '<img src="'. $images['rank_path'] . $rank_image_name .'" alt="'. $rank .'" title="'. $rank .'" border="0" />' : '';
 						}
 					}
 				}
@@ -174,10 +181,10 @@ if( $mode != 'view_profile' )
 				}
 
 				$msn = ( $staff['user_msnm'] ) ? '<a href="mailto:'. $staff['user_msnm'] .'"><img src="'. $images['icon_msnm'] .'" alt="'. $lang['MSNM'] .'" title="'. $lang['MSNM'] .'" border="0" /></a>' : '';
-				$yim = ( $staff['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target='. $staff['user_yim'] .'&amp;.src=pg"><img src="'. $images['icon_yim'] .'" alt="'. $lang['YIM'] .'" title="'. $lang['YIM'] .'" border="0" /></a>' : '';
+				$yim = ( $staff['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target='. $staff['user_yim'] .'&amp;.src=pg" rel="noopener noreferrer"><img src="'. $images['icon_yim'] .'" alt="'. $lang['YIM'] .'" title="'. $lang['YIM'] .'" border="0" /></a>' : '';
 				$aim = ( $staff['user_aim'] ) ? '<a href="aim:goim?screenname='. $staff['user_aim'] .'&amp;message=Hello+Are+you+there?"><img src="'. $images['icon_aim'] .'" alt="'. $lang['AIM'] .'" title="'. $lang['AIM'] .'" border="0" /></a>' : '';
-				$icq = ( $staff['user_icq'] ) ? '<a href="http://wwp.icq.com/scripts/search.dll?to='. $staff['user_icq'] .'"><img src="'. $images['icon_icq'] .'" alt="'. $lang['ICQ'] .'" title="'. $lang['ICQ'] .'" border="0" /></a>' : '';
-				$www = ( $staff['user_website'] ) ? '<a href="'. $staff['user_website'] .'" target="_userwww"><img src="'. $images['icon_www'] .'" alt="'. $lang['Visit_website'] .'" title="'. $lang['Visit_website'] .'" border="0" /></a>' : '';
+				$icq = ( $staff['user_icq'] ) ? '<a href="https://www.icq.com/people/'. $staff['user_icq'] .'" rel="noopener noreferrer"><img src="'. $images['icon_icq'] .'" alt="'. $lang['ICQ'] .'" title="'. $lang['ICQ'] .'" border="0" /></a>' : '';
+				$www = ( $staff_website_url ) ? '<a href="'. $staff_website_url .'" target="_userwww" rel="noopener noreferrer"><img src="'. $images['icon_www'] .'" alt="'. $lang['Visit_website'] .'" title="'. $lang['Visit_website'] .'" border="0" /></a>' : '';
 
 				$template->assign_block_vars('switch_list_staff.user_level.staff', array(
 					'ROW_CLASS' => ( !($k % 2) ) ? $theme['td_class1'] : $theme['td_class2'],
@@ -188,7 +195,7 @@ if( $mode != 'view_profile' )
 					'RANK' => $rank,
 					'RANK_IMAGE' => $rank_image,
 					'AVATAR' => $avatar,
-					'LOCATION' => $staff['user_from'],
+					'LOCATION' => phpbb_profile_text($staff['user_from']),
 					'FORUMS' => $forums,
 					'PM' => $pm,
 					'EMAIL' => $mail,

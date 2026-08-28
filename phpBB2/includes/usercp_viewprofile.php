@@ -141,8 +141,9 @@ if ( $profiledata['user_rank'] )
 	{
 		if ( $profiledata['user_rank'] == $ranksrow[$i]['rank_id'] && $ranksrow[$i]['rank_special'] )
 		{
-			$poster_rank = $ranksrow[$i]['rank_title'];
-			$rank_image = ( $ranksrow[$i]['rank_image'] ) ? '<img src="' . $images['rank_path'] . $ranksrow[$i]['rank_image'] . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
+			$poster_rank = phpbb_profile_text($ranksrow[$i]['rank_title']);
+			$rank_image_name = phpbb_profile_image_name($ranksrow[$i]['rank_image']);
+			$rank_image = ( $rank_image_name ) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
 		}
 	}
 }
@@ -152,8 +153,9 @@ else
 	{
 		if ( $profiledata['user_posts'] >= $ranksrow[$i]['rank_min'] && !$ranksrow[$i]['rank_special'] )
 		{
-			$poster_rank = $ranksrow[$i]['rank_title'];
-			$rank_image = ( $ranksrow[$i]['rank_image'] ) ? '<img src="' . $images['rank_path'] . $ranksrow[$i]['rank_image'] . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : ''; 
+			$poster_rank = phpbb_profile_text($ranksrow[$i]['rank_title']);
+			$rank_image_name = phpbb_profile_image_name($ranksrow[$i]['rank_image']);
+			$rank_image = ( $rank_image_name ) ? '<img src="' . $images['rank_path'] . $rank_image_name . '" alt="' . $poster_rank . '" title="' . $poster_rank . '" border="0" /><br />' : '';
 		}
 	}
 }
@@ -161,8 +163,9 @@ else
 $temp_url = append_sid("privmsg.$phpEx?mode=post&amp;" . POST_USERS_URL . "=" . $profiledata['user_id']);
 $pm_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" /></a>';
 // FLAGHACK-start
-$location = ( $profiledata['user_from'] ) ? $profiledata['user_from'] : '&nbsp;' ;
-$flag = ( !empty($profiledata['user_from_flag']) ) ? "&nbsp;<img src=\"images/flags/" . $profiledata['user_from_flag'] . "\" alt=\"" . $profiledata['user_from_flag'] . "\">" : "";
+$location = ( $profiledata['user_from'] ) ? phpbb_profile_text($profiledata['user_from']) : '&nbsp;' ;
+$flag_image_name = phpbb_profile_image_name($profiledata['user_from_flag']);
+$flag = ( $flag_image_name ) ? "&nbsp;<img src=\"images/flags/" . $flag_image_name . "\" alt=\"" . $flag_image_name . "\">" : "";
 $location .= $flag ;
 // FLAGHACK-end
 $pm = '<a href="' . $temp_url . '">' . $lang['Send_private_message'] . '</a>';
@@ -180,14 +183,16 @@ else
 	$email = '&nbsp;';
 }
 
-$www_img = ( $profiledata['user_website'] ) ? '<a href="' . $profiledata['user_website'] . '" target="_userwww"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '&nbsp;';
-$www = ( $profiledata['user_website'] ) ? '<a href="' . $profiledata['user_website'] . '" target="_userwww">' . $profiledata['user_website'] . '</a>' : '&nbsp;';
+$website_url = phpbb_profile_http_url($profiledata['user_website']);
+$www_img = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '&nbsp;';
+$www = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer">' . $website_url . '</a>' : '&nbsp;';
 
 if ( !empty($profiledata['user_icq']) )
 {
-	$icq_status_img = '<a href="http://wwp.icq.com/' . $profiledata['user_icq'] . '#pager"><img src="http://web.icq.com/whitepages/online?icq=' . $profiledata['user_icq'] . '&img=5" width="18" height="18" border="0" /></a>';
-	$icq_img = '<a href="http://wwp.icq.com/scripts/search.dll?to=' . $profiledata['user_icq'] . '"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>';
-	$icq =  '<a href="http://wwp.icq.com/scripts/search.dll?to=' . $profiledata['user_icq'] . '">' . $lang['ICQ'] . '</a>';
+	$icq_value = phpbb_profile_contact($profiledata['user_icq']);
+	$icq_status_img = '';
+	$icq_img = '<a href="https://www.icq.com/people/' . $icq_value . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>';
+	$icq =  '<a href="https://www.icq.com/people/' . $icq_value . '" rel="noopener noreferrer">' . $lang['ICQ'] . '</a>';
 }
 else
 {
@@ -196,14 +201,16 @@ else
 	$icq = '&nbsp;';
 }
 
-$aim_img = ( $profiledata['user_aim'] ) ? '<a href="aim:goim?screenname=' . $profiledata['user_aim'] . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '&nbsp;';
-$aim = ( $profiledata['user_aim'] ) ? '<a href="aim:goim?screenname=' . $profiledata['user_aim'] . '&amp;message=Hello+Are+you+there?">' . $lang['AIM'] . '</a>' : '&nbsp;';
+$aim_value = phpbb_profile_contact($profiledata['user_aim']);
+$aim_img = ( $aim_value ) ? '<a href="aim:goim?screenname=' . $aim_value . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '&nbsp;';
+$aim = ( $aim_value ) ? '<a href="aim:goim?screenname=' . $aim_value . '&amp;message=Hello+Are+you+there?">' . $lang['AIM'] . '</a>' : '&nbsp;';
 
-$msn_img = ( $profiledata['user_msnm'] ) ? '<a href="http://members.msn.com/' . $profiledata['user_msnm'] . '" target="_blank"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : ''; 
+$msn_img = ( $profiledata['user_msnm'] ) ? '<a href="' . $temp_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '';
 $msn = $msn_img;
 
-$yim_img = ( $profiledata['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $profiledata['user_yim'] . '&amp;.src=pg"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
-$yim = ( $profiledata['user_yim'] ) ? '<a href="http://edit.yahoo.com/config/send_webmesg?.target=' . $profiledata['user_yim'] . '&amp;.src=pg">' . $lang['YIM'] . '</a>' : '';
+$yim_value = phpbb_profile_contact($profiledata['user_yim']);
+$yim_img = ( $yim_value ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $yim_value . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
+$yim = ( $yim_value ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $yim_value . '&amp;.src=pg" rel="noopener noreferrer">' . $lang['YIM'] . '</a>' : '';
 $social = phpbb_social_profile_links($profiledata);
 
 $temp_url = append_sid("search.$phpEx?search_author=" . urlencode($profiledata['username']) . "&amp;showresults=posts");
@@ -342,8 +349,8 @@ $template->assign_vars(array(
 	// FLAGHACK-start
 	'LOCATION' => $location,
 	// FLAGHACK-end
-	'OCCUPATION' => ( $profiledata['user_occ'] ) ? $profiledata['user_occ'] : '&nbsp;',
-	'INTERESTS' => ( $profiledata['user_interests'] ) ? $profiledata['user_interests'] : '&nbsp;',
+	'OCCUPATION' => ( $profiledata['user_occ'] ) ? phpbb_profile_text($profiledata['user_occ']) : '&nbsp;',
+	'INTERESTS' => ( $profiledata['user_interests'] ) ? phpbb_profile_text($profiledata['user_interests']) : '&nbsp;',
 	// Start add - Gender MOD
 	'GENDER' => $gender, 
 	// End add - Gender MOD

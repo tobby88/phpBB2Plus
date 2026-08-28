@@ -254,7 +254,7 @@ if (
 
 	$user_timezone = ( isset($_POST['timezone']) ) ? doubleval($_POST['timezone']) : $board_config['board_timezone'];
 	// FLAGHACK-start
-	$user_flag = ( !empty($_POST['user_flag']) ) ? $_POST['user_flag'] : '' ;
+	$user_flag = ( !empty($_POST['user_flag']) ) ? phpbb_profile_image_name($_POST['user_flag']) : '' ;
 	// FLAGHACK-end
 	$sql = "SELECT config_value
 		FROM " . CONFIG_TABLE . "
@@ -1258,7 +1258,7 @@ else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_
 	$user_avatar_filetype = ( !empty($HTTP_POST_FILES['avatar']['type']) ) ? $HTTP_POST_FILES['avatar']['type'] : '';
 	$user_avatar_upload = ( !empty($_POST['avatarurl']) ) ? trim($_POST['avatarurl']) : ( ( $HTTP_POST_FILES['avatar']['tmp_name'] != "none") ? $HTTP_POST_FILES['avatar']['tmp_name'] : '' );
 	$user_avatar_remoteurl = ( !empty($_POST['avatarremoteurl']) ) ? trim(htmlspecialchars($_POST['avatarremoteurl'])) : '';
-	$user_flag = ( !empty($_POST['user_flag']) ) ? $_POST['user_flag'] : '' ;
+	$user_flag = ( !empty($_POST['user_flag']) ) ? phpbb_profile_image_name($_POST['user_flag']) : '' ;
 }
 
 //
@@ -1399,6 +1399,8 @@ else
 	  {
 		$field_name = $field['field_name'];
 		$name = text_to_column($field_name);
+		$safe_field_name = phpbb_profile_text($field_name);
+		$safe_name = phpbb_profile_text($name);
 		
 		$required = ($field['is_required'] == REQUIRED) ? ' *' : '';
 		
@@ -1407,11 +1409,13 @@ else
 		  case TEXT_FIELD:
 			$value = (empty($HTTP_POST_VARS[$name])) ? $userdata[$name] : stripslashes($HTTP_POST_VARS[$name]);
 			$length = $field['text_field_maxlen'];
-			$field_html_code = "<input type=\"text\" class=\"post\" style=\"width: 200px\"  name=\"$name\" size=\"35\" maxlength=\"$length\" value=\"$value\" />";
+			$safe_value = phpbb_profile_text($value);
+			$field_html_code = "<input type=\"text\" class=\"post\" style=\"width: 200px\" name=\"$safe_name\" size=\"35\" maxlength=\"$length\" value=\"$safe_value\" />";
 			break;
 		  case TEXTAREA:
 			$value = (empty($HTTP_POST_VARS[$name])) ? $userdata[$name] : stripslashes($HTTP_POST_VARS[$name]);
-			$field_html_code = "<textarea name=\"$name\" style=\"width: 300px\" rows=\"6\" cols=\"30\" class=\"post\">$value</textarea>";
+			$safe_value = phpbb_profile_text($value);
+			$field_html_code = "<textarea name=\"$safe_name\" style=\"width: 300px\" rows=\"6\" cols=\"30\" class=\"post\">$safe_value</textarea>";
 			break;
 		  case RADIO:
 			$value = (empty($HTTP_POST_VARS[$name])) ? $userdata[$name] : stripslashes($HTTP_POST_VARS[$name]);
@@ -1419,10 +1423,11 @@ else
 			$html_list = array();
 			foreach($radio_list as $num => $radio_name)
 			{
-			  $temp = "<input type=\"radio\" name=\"$name\" value=\"$radio_name\"";
+			  $safe_radio_name = phpbb_profile_text($radio_name);
+			  $temp = "<input type=\"radio\" name=\"$safe_name\" value=\"$safe_radio_name\"";
 			  if($radio_name == $value)
 				$temp .= ' checked="checked"';
-			  $temp .= " /> <span class=\"gen\">$radio_name</span>";
+			  $temp .= " /> <span class=\"gen\">$safe_radio_name</span>";
 			  if($num < count($radio_list))
 				$temp .= '<br />';
 			  $html_list[] = $temp;
@@ -1437,14 +1442,15 @@ else
 			$html_list = array();
 			foreach($check_list as $num => $check_name)
 			{
-			  $temp = "<input type=\"checkbox\" name=\"{$name}[]\" value=\"$check_name\"";
+			  $safe_check_name = phpbb_profile_text($check_name);
+			  $temp = "<input type=\"checkbox\" name=\"{$safe_name}[]\" value=\"$safe_check_name\"";
 			  foreach($value_array as $val)
 				if($val == $check_name)
 				{
 				  $temp .= ' checked="checked"';
 				  break;
 				}
-			  $temp .= " /> <span class=\"gen\">$check_name</span>";
+			  $temp .= " /> <span class=\"gen\">$safe_check_name</span>";
 			  if($num < count($check_list))
 				$temp .= '<br />';
 			  $html_list[] = $temp;
@@ -1456,14 +1462,14 @@ else
 		}
 		
 		$template->assign_block_vars('custom_fields',array(
-		  'NAME' => $field_name,
+		  'NAME' => $safe_field_name,
 		  'FIELD' => $field_html_code,
 		  'REQUIRED' => $required)
 		  );
 		
 		if($field['field_description'] != NULL && !empty($field['field_description']))
 		  $template->assign_block_vars('custom_fields.switch_description',array(
-			'DESCRIPTION' => $field['field_description']));
+			'DESCRIPTION' => phpbb_profile_text($field['field_description'])));
 	  }
 		//
 	  // END Custom Profile Fields MOD
@@ -1505,8 +1511,12 @@ else
 	$flag_select .= "<option value=\"blank.gif\"$selected>" . $lang['Select_Country'] . "</option>";
 	for ($i = 0; $i < $num_flags; $i++)
 	{
-		$flag_name = $flag_row[$i]['flag_name'];
-		$flag_image = $flag_row[$i]['flag_image'];
+		$flag_name = phpbb_profile_text($flag_row[$i]['flag_name']);
+		$flag_image = phpbb_profile_image_name($flag_row[$i]['flag_image']);
+		if ($flag_image === '')
+		{
+			continue;
+		}
 		$selected = ( isset( $user_flag) ) ? (($user_flag == $flag_image) ? 'selected="selected"' : '' ) : '' ;
 		$flag_select .= "\t<option value=\"$flag_image\"$selected>$flag_name</option>";
 		if ( isset( $user_flag) && ($user_flag == $flag_image))
