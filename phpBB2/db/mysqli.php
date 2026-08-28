@@ -30,6 +30,11 @@ class sql_db
 	var $db_connect_id;
 	var $query_result;
 	var $num_queries = 0;
+	var $persistency;
+	var $user;
+	var $password;
+	var $server;
+	var $dbname;
 
 	//
 	// Constructor
@@ -41,6 +46,10 @@ class sql_db
 
 	function sql_db($sqlserver, $sqluser, $sqlpassword, $database, $persistency = true)
 	{
+		if (function_exists('mysqli_report'))
+		{
+			mysqli_report(MYSQLI_REPORT_OFF);
+		}
 
 		$this->persistency = $persistency;
 		$this->user = $sqluser;
@@ -61,7 +70,7 @@ class sql_db
 		{
 			// Keep the connection encoding aligned with the UTF-8 source,
 			// templates, language files and fresh-install schema.
-			if (!@mysqli_set_charset($this->db_connect_id, 'utf8'))
+			if (!@mysqli_set_charset($this->db_connect_id, 'utf8mb4') || strtolower(@mysqli_character_set_name($this->db_connect_id)) != 'utf8mb4')
 			{
 				@mysqli_close($this->db_connect_id);
 				$this->db_connect_id = false;
@@ -93,10 +102,9 @@ class sql_db
 	{
 		if($this->db_connect_id)
 		{
-			if($this->query_result)
-			{
-				@mysqli_free_result($this->query_result);
-			}
+			// Closing the connection releases outstanding results. Re-freeing a
+			// result already released by sql_freeresult() throws on PHP 8.
+			$this->query_result = false;
 			$result = @mysqli_close($this->db_connect_id);
 			return $result;
 		}
@@ -226,6 +234,7 @@ class sql_db
 	}
 	function sql_fetchrowset($query_id = 0)
 	{
+		$result = array();
 		if(!$query_id)
 		{
 			$query_id = $this->query_result;
@@ -318,9 +327,13 @@ class sql_db
 			$query_id = $this->query_result;
 		}
 
-		if ( $query_id )
+		if ( $query_id instanceof mysqli_result )
 		{
 			@mysqli_free_result($query_id);
+			if ($query_id === $this->query_result)
+			{
+				$this->query_result = false;
+			}
 
 			return true;
 		}
@@ -331,8 +344,16 @@ class sql_db
 	}
 	function sql_error($query_id = 0)
 	{
-		$result['message'] = @mysqli_error($this->db_connect_id);
-		$result['code'] = @mysqli_errno($this->db_connect_id);
+		if($this->db_connect_id instanceof mysqli)
+		{
+			$result['message'] = @mysqli_error($this->db_connect_id);
+			$result['code'] = @mysqli_errno($this->db_connect_id);
+		}
+		else
+		{
+			$result['message'] = function_exists('mysqli_connect_error') ? mysqli_connect_error() : '';
+			$result['code'] = function_exists('mysqli_connect_errno') ? mysqli_connect_errno() : 0;
+		}
 
 		return $result;
 	}
