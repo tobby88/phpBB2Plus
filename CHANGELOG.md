@@ -26,10 +26,15 @@ changes consolidated after that baseline without implying active maintenance.
 - Moved the UTF-8 migration procedure into the project README and removed the
   separate documentation directory.
 
-### phpBB 2 maintenance baseline
+### phpBB 2 maintenance baseline and post-release patch level
 
 - Applied the official phpBB 2.0.22 and 2.0.23 changes, bringing the bundled
   phpBB base to `release-2.0.23`.
+- Applied ten later fixes from the phpBB 2.0.23.x maintenance branch.
+- Ported the applicable changes which IntegraMOD described as unofficial
+  2.0.24 and 2.0.25 patch levels. These were not official phpBB releases and
+  were not imported as a replacement product; the audited database and runtime
+  version identity therefore deliberately remain `.0.23`.
 
 ### CrackerTracker
 
@@ -85,6 +90,8 @@ changes consolidated after that baseline without implying active maintenance.
 - Merged the complete 201-commit IntegraMOD phpBB2x history after mapping its
   `phpBB/` product directory to `phpBB2/`, retaining upstream authorship and
   merge ancestry.
+- Ported the applicable fixes from IntegraMOD's self-described phpBB 2.0.25
+  state while preserving the official phpBB 2.0.23 baseline identity.
 - Imported all six responsive styles and their redistributable assets; added
   complete subSilver fallback coverage for phpBB2 Plus modules.
 - Retained only English and German from the upstream language collection.

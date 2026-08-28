@@ -1,10 +1,14 @@
 # phpBB2 Plus
 
 This repository is a historical archive of **phpBB2 Plus 1.53a**, a pre-modded
-phpBB2 distribution that was originally based on phpBB 2.0.21. It preserves a
-later consolidated state that includes the official phpBB 2.0.22 and 2.0.23
-changes, CrackerTracker Professional 5.0.6, and additional compatibility fixes
-from the phpBB 2.0.23.x branch.
+phpBB2 distribution that was originally based on phpBB 2.0.21. Its official
+phpBB baseline and database version identity are 2.0.23. The preserved code is
+patched beyond that release with ten post-release changes from the phpBB
+2.0.23.x branch, applicable changes described by IntegraMOD as unofficial
+2.0.24/2.0.25 patch levels, CrackerTracker Professional 5.0.6, and later local
+compatibility fixes. These patch-level names do not represent official phpBB
+releases or a wholesale replacement of the 2.0.23-based product, so the
+database version deliberately remains `.0.23`.
 
 The repository exists to preserve the software and its history. It does not
 represent an active continuation of phpBB2 Plus, and no ongoing development,

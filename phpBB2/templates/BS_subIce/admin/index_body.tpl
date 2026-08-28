@@ -64,14 +64,10 @@ function phpbb_credits() {
 				  <td id="credits" style="display: none" colspan="3">
 				    <div> 
 					  <ul class="credits">
-						<li class="med">phpBB 2.0.23</li>
+						<li class="med">Official phpBB 2.0.23 baseline</li>
 						<li class="author">Author: The phpBB Group</li>
-						<li class="med">phpBB 2.0.23 misc fixes</li>
-						<li class="author">MOD Author: achaab & BoBmArLeY</li>
-						<li class="med">phpBB 2.0.23 to 2.0.24</li>
-						<li class="author">MOD Author: Dog Cow</li>
-						<li class="med">phpBB 2.0.24 to 2.0.25</li>
-						<li class="author">MOD Author: Helter https://integramod.com</li>
+						<li class="med">Post-release 2.0.23.x and unofficial 2.0.24/2.0.25 patches</li>
+						<li class="author">Contributors: phpBB 2.0.23.x, achaab, BoBmArLeY, Dog Cow, Helter / IntegraMOD</li>
 						<li class="med">DHTML Collapsible FAQ</li>
 						<li class="author">MOD Author: Markus_Petrux http://www.phpmix.com</li>
 						<li class="med">DHTML Collapsible ACP MENU</li>
