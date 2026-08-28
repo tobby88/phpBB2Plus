@@ -88,17 +88,20 @@ function scalar_value($connection, $sql)
 $database = mysqli_real_escape_string($connection, $dbname);
 $table_prefix = isset($table_prefix) ? $table_prefix : 'phpbb_';
 $short_index_columns = array(
-	$table_prefix . 'album_config' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'album_sp_config' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'attachments_config' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'captcha_config' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'config' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'ctracker_backup' => array('config_name', ''),
-	$table_prefix . 'ctracker_config' => array('ct_config_name', ''),
-	$table_prefix . 'kb_config' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'pa_config' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'plus' => array('config_name', "DEFAULT ''"),
-	$table_prefix . 'portal' => array('portal_name', "DEFAULT ''"),
+	array($table_prefix . 'album_config', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'album_sp_config', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'attachments_config', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'captcha_config', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'color_groups', 'group_name', "DEFAULT ''"),
+	array($table_prefix . 'config', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'ctracker_backup', 'config_name', ''),
+	array($table_prefix . 'ctracker_config', 'ct_config_name', ''),
+	array($table_prefix . 'hacks_list', 'hack_name', "DEFAULT ''"),
+	array($table_prefix . 'hacks_list', 'hack_file', "DEFAULT ''"),
+	array($table_prefix . 'kb_config', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'pa_config', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'plus', 'config_name', "DEFAULT ''"),
+	array($table_prefix . 'portal', 'portal_name', "DEFAULT ''"),
 );
 
 $tables = array();
@@ -123,9 +126,10 @@ echo "Database: $dbname\n";
 echo 'Tables: ' . count($tables) . "\n";
 echo "Character columns: $character_columns ($utf8mb4_columns already utf8mb4)\n\n";
 
-foreach ($short_index_columns as $table => $column_data)
+foreach ($short_index_columns as $column_data)
 {
-	$column = $column_data[0];
+	$table = $column_data[0];
+	$column = $column_data[1];
 	$exists = (int) scalar_value(
 		$connection,
 		"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '$database'" .
@@ -149,7 +153,7 @@ foreach ($short_index_columns as $table => $column_data)
 	}
 
 	$sql = 'ALTER TABLE ' . quote_identifier($table) . ' MODIFY ' . quote_identifier($column) .
-		' VARCHAR(191) NOT NULL ' . $column_data[1];
+		' VARCHAR(191) NOT NULL ' . $column_data[2];
 	echo "$sql; -- longest value: $max_length\n";
 	if ($apply)
 	{

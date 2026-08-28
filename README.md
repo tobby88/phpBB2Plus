@@ -50,6 +50,8 @@ scripts before running them against an existing forum.
   shared-hosting fallback modes.
 - `CHANGELOG.md` summarizes the preserved changes after 1.53a and includes the
   original phpBB2 Plus changelog.
+- `docs/upstream/` records the audited IntegraMOD history merge and the
+  semantic port from a production compatibility branch.
 
 ## Fresh installation
 
@@ -110,11 +112,13 @@ executed unchanged.
 
 Distributed text sources, templates, English/German language files and mail
 templates are UTF-8. Fresh MySQL/MariaDB tables and the MySQLi connection use
-MySQL's `utf8` character set. Existing databases are deliberately not converted
-by an automatic repository script: the safe conversion depends on their real
-column encodings and on whether older data already contains UTF-8 bytes in
-mislabelled columns. Back up and inspect an existing database before converting
-it, otherwise an unconditional `ALTER TABLE ... CONVERT` can create mojibake.
+the matching character set. For an existing installation,
+`tools/migrate-database-utf8mb4.php` provides a guarded and explicitly
+confirmed migration, with `tools/rebuild-search-index.php` available when the
+derived search tables must be rebuilt. See `docs/UTF8_MIGRATION.md` first. The
+safe path depends on the real column encodings and on whether older data
+already contains UTF-8 bytes in mislabelled columns; an unchecked conversion
+can create mojibake.
 
 MySQLi is the supported modern database driver. Existing `config.php` files
 which still name `mysql` or `mysql4` automatically use MySQLi when available,

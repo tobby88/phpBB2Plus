@@ -26,7 +26,7 @@ An isolated database on the same server can be selected with
 php tools/migrate-database-utf8mb4.php --apply --backup-confirmed
 ```
 
-The script shortens indexed configuration-name columns where older
+The script shortens indexed configuration and module-name columns where older
 MySQL/MariaDB index limits require it. It aborts if an existing value would be
 truncated. It also clears derived search tables before the collation change,
 because words that were distinct under a legacy collation can collide under a
@@ -42,4 +42,3 @@ php tools/rebuild-search-index.php --apply --backup-confirmed
 stops part-way through, restore the verified backup rather than serving a mixed
 schema. Finally verify login, posting, private messages, search, administration,
 and album upload against the converted clone.
-
