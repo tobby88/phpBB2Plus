@@ -225,6 +225,7 @@ elseif(!empty($cat_id))
 	$s_hidden_fields = '<input type="hidden" name="cat_id" value="' . $cat_id . '">';
 	$cat_name = $pafiledb->cat_rowset[$cat_id]['cat_name'];
 }
+$s_hidden_fields = isset($s_hidden_fields) ? $s_hidden_fields : '';
 $s_column_span = count($cat_auth_fields) + 2;
 
 $pafiledb_template->assign_vars(array(

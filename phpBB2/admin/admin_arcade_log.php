@@ -140,7 +140,7 @@ if(!($result = $db->sql_query($sql)))
 {
   message_die(GENERAL_ERROR, '', '', __LINE__, __FILE__, $sql);
 }
-$log = $db->sql_fetchrow($resuklt);
+$log = $db->sql_fetchrow($result);
 $record_count = $log['total'];
 //
 //  Get the Info from the table
@@ -187,10 +187,11 @@ else
 //
 //  Pagination
 //
-  if ( $record_count >= $arcade->arcade_config['games_per_admin_page'] )
+	$games_per_admin_page = max(1, intval(isset($arcade->arcade_config['games_per_admin_page']) ? $arcade->arcade_config['games_per_admin_page'] : 20));
+  if ( $record_count >= $games_per_admin_page )
   {
-  	$pagination = generate_pagination("$file?sort=$sort", $record_count, $arcade->arcade_config['games_per_admin_page'], $start) . '&nbsp;';
-  	$page_number = sprintf($lang['Page_of'], ( floor( $start / $arcade->arcade_config['games_per_admin_page'] ) + 1 ), ceil( $record_count / $arcade->arcade_config['games_per_admin_page'] ));
+	  	$pagination = generate_pagination("$file?sort=$sort", $record_count, $games_per_admin_page, $start) . '&nbsp;';
+	  	$page_number = sprintf($lang['Page_of'], ( floor( $start / $games_per_admin_page ) + 1 ), ceil( $record_count / $games_per_admin_page ));
   }
 }
 $template->assign_vars(array(

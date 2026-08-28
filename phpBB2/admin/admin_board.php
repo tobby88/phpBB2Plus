@@ -371,7 +371,7 @@ $template->assign_vars(array(
 	"L_BIRTHDAY_REQUIRED" => $lang['Birthday_required'],
 	"L_MAX_USER_AGE" => $lang['Max_user_age'],
 	"L_MIN_USER_AGE" => $lang['Min_user_age'],
-	"L_MIN_USER_AGE_EXPLAIN" => $lang['Min_user_age_explain'],
+	"L_MIN_USER_AGE_EXPLAIN" => isset($lang['Min_user_age_explain']) ? $lang['Min_user_age_explain'] : '',
 	"L_BIRTHDAY_LOOKFORWARD" => $lang['Birthday_lookforward'],
 	"L_BIRTHDAY_LOOKFORWARD_EXPLAIN" => $lang['Birthday_lookforward_explain'],
 	// End add - Birthday MOD
@@ -461,7 +461,7 @@ $template->assign_vars(array(
 	"OVERRIDE_STYLE_NO" => $override_user_style_no,
 	"LANG_SELECT" => $lang_select,
 	"L_DATE_FORMAT_EXPLAIN" => $lang['Date_format_explain'],
-	"DEFAULT_DATEFORMAT" => admin_date_format_select($new['default_dateformat'], $timezone_select),
+	"DEFAULT_DATEFORMAT" => admin_date_format_select($new['default_dateformat'], $new['board_timezone']),
 	"TIMEZONE_SELECT" => $timezone_select,
 	"S_PRIVMSG_ENABLED" => $privmsg_on, 
 	"S_PRIVMSG_DISABLED" => $privmsg_off, 

@@ -14,7 +14,7 @@
  *
  **************************************************************************/
 
-if ( !defined('IN_PHPBB') || $HTTP_GET_VARS['phpbb_root_path'])
+if ( !defined('IN_PHPBB') || !empty($_GET['phpbb_root_path']))
 {
 	die("Hacking attempt");
 }

@@ -299,7 +299,8 @@ class pafiledb_Template
 
 		for ($curr_tb = 0; $curr_tb < count($text_blocks); $curr_tb++)
 		{
-			switch ($blocks[1][$curr_tb])
+			$block_type = isset($blocks[1][$curr_tb]) ? $blocks[1][$curr_tb] : '';
+			switch ($block_type)
 			{
 				case 'BEGIN':
 					$this->block_else_level[] = false;
@@ -358,9 +359,9 @@ class pafiledb_Template
 					break;
 
 				default:
-					$this->compile_var_tags($blocks[0][$curr_tb]);
-					$trim_check = trim($blocks[0][$curr_tb]);
-					$compile_blocks[] = (!$do_not_echo) ? ((!empty($trim_check)) ? $blocks[0][$curr_tb] : '') : ((!empty($trim_check)) ? $blocks[0][$curr_tb] : '');
+					$block_source = isset($blocks[0][$curr_tb]) ? $blocks[0][$curr_tb] : '';
+					$this->compile_var_tags($block_source);
+					$compile_blocks[] = trim($block_source) !== '' ? $block_source : '';
 					break;
 			}
 		}
