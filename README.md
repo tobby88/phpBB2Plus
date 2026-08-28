@@ -109,11 +109,11 @@ Apply it only to a tested copy after verifying current backups:
 php update/update_from_153a.php --apply --backup-confirmed
 ```
 
-The updater is idempotent, preserves existing configuration values and does
-not remove obsolete CrackerTracker 4.x tables or columns. The file
-`update/uninstall_crackertracker_4x_legacy.php` is retained only as a
-destructive historical reference; it uses the removed `mysql_*` API and must
-not be deployed or executed unchanged.
+The updater is idempotent and preserves existing current configuration values.
+As required by the original CrackerTracker 4.x-to-5.x instructions, it removes
+the incompatible 4.x tables and user columns after preparing the 5.x schema.
+The old CrackerTracker settings and logs cannot be migrated and are discarded;
+the mandatory backup confirmation therefore also covers this cleanup.
 
 ## Optional MOD source packages
 

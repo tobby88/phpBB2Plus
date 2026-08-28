@@ -19,7 +19,10 @@ It installs the database additions represented by the source after the 1.53a
 release: phpBB 2.0.23's version marker, CrackerTracker 5 tables and user
 columns, Arcade Mod Plus 2.1.8, Nuffload 1.4.2, DB Maintenance 1.3.8, responsive
 style metadata, modern social-profile fields, cookie consent and the disabled
-StopForumSpam option. Existing configuration values are preserved.
+StopForumSpam option. Existing current configuration values are preserved.
+Incompatible CrackerTracker 4.x tables and user columns are removed when
+present, as required by the original 4.x-to-5.x upgrade instructions; their
+settings and logs cannot be migrated.
 
 The same definitions are part of the normal fresh-install schema, so a new
 installation does not run this updater.
@@ -40,7 +43,6 @@ path matching the actual source version:
 
 - `update_phpbb_to_2022.php` — legacy phpBB database upgrade to 2.0.22;
 - `update_attachment_221_to_243.php` — Attachment MOD 2.2.1+ to 2.4.3;
-- `update_crackertracker_4x_to_417.php` — CrackerTracker 4.x to 4.1.7;
 - `update_plus_152_to_153a.php` — phpBB2 Plus 1.52 to 1.53a;
 - `update_plus_153_to_153a.php` — phpBB2 Plus 1.53 prereleases/final to 1.53a;
 - `update_phpbb_20xx_to_plus_153a.php` — old standalone phpBB 2.0.x to Plus
@@ -50,7 +52,3 @@ path matching the actual source version:
 
 The `fissh/` directory contains presentation assets required by these browser
 based legacy scripts.
-
-`uninstall_crackertracker_4x_legacy.php` is a destructive historical reference
-using the removed `mysql_*` API. It is not compatible with current PHP and must
-not be executed unchanged.

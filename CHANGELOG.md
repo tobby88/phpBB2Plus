@@ -20,6 +20,9 @@ changes consolidated after that baseline without implying active maintenance.
   idempotent `update/update_from_153a.php` updater and incorporated the same
   Arcade, Nuffload and DB Maintenance definitions into the fresh-install
   schema.
+- Integrated the required CrackerTracker 4.x database cleanup into the
+  consolidated updater and removed the obsolete standalone 4.1.7 updater and
+  unsafe `mysql_*` uninstall script.
 - Moved the UTF-8 migration procedure into the project README and removed the
   separate documentation directory.
 
@@ -33,9 +36,6 @@ changes consolidated after that baseline without implying active maintenance.
 - Updated CrackerTracker Professional from 4.1.7 to 5.0.4, including its
   administration, security, logging, language, database, and template changes.
 - Updated CrackerTracker from 5.0.4 to 5.0.6.
-- Preserved the destructive legacy 4.x database-uninstall script under
-  `update/uninstall_crackertracker_4x_legacy.php` as a reference. It uses the
-  removed `mysql_*` API and must not be deployed or executed unchanged.
 
 ### Arcade
 

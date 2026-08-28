@@ -213,6 +213,23 @@ function update_queue_default(&$operations, $connection, $table, $key_column, $v
 	$operations[] = $sql;
 }
 
+function update_queue_drop_table(&$operations, $connection, $database, $table)
+{
+	if (update_table_exists($connection, $database, $table))
+	{
+		$operations[] = 'DROP TABLE ' . update_quote_identifier($table);
+	}
+}
+
+function update_queue_drop_column(&$operations, $connection, $database, $table, $column)
+{
+	if (update_column_exists($connection, $database, $table, $column))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' DROP ' .
+			update_quote_identifier($column);
+	}
+}
+
 $operations = array();
 
 // Reuse the fresh-install schema as the canonical definition for restored
@@ -301,6 +318,31 @@ foreach ($seed_statements as $seed_sql)
 	$operations[] = preg_replace('/\bphpbb_/', $table_prefix, $seed_sql);
 }
 
+// CrackerTracker 5 is a complete redevelopment. Its official 4.x-to-5.x
+// instructions explicitly remove these incompatible 4.x objects after the
+// new files and schema have been installed; old settings and logs cannot be
+// migrated. Queue the cleanup only for objects which still exist.
+$legacy_cleanup_start = count($operations);
+foreach (array('ctrack', 'ct_filter', 'ct_viskey') as $legacy_table)
+{
+	update_queue_drop_table($operations, $connection, $dbname, $table_prefix . $legacy_table);
+}
+
+foreach (array(
+	'ct_logintry', 'ct_unsucclogin', 'ct_pwreset', 'ct_mailcount',
+	'ct_postcount', 'ct_posttime', 'ct_searchcount', 'ct_searchtime'
+) as $legacy_column)
+{
+	update_queue_drop_column(
+		$operations,
+		$connection,
+		$dbname,
+		$table_prefix . 'users',
+		$legacy_column
+	);
+}
+$legacy_cleanup_count = count($operations) - $legacy_cleanup_start;
+
 $version_table = $table_prefix . 'config';
 $version_sql = 'SELECT config_value FROM ' . update_quote_identifier($version_table) . " WHERE config_name = 'version'";
 $current_version = (string) update_scalar($connection, $version_sql);
@@ -314,6 +356,11 @@ echo "Database: $dbname\n";
 echo "Table prefix: $table_prefix\n";
 echo 'Operations: ' . count($operations) . "\n\n";
 
+if ($legacy_cleanup_count > 0)
+{
+	echo "WARNING: $legacy_cleanup_count incompatible CrackerTracker 4.x database objects will be removed. Their old settings and logs cannot be migrated.\n\n";
+}
+
 foreach ($operations as $sql)
 {
 	echo $sql . ";\n";
@@ -325,7 +372,7 @@ foreach ($operations as $sql)
 
 if ($apply)
 {
-	echo "\nDatabase update complete. Existing CrackerTracker 4.x tables and columns were deliberately retained; use the separately named legacy uninstall reference only after a manual review.\n";
+	echo "\nDatabase update complete. Incompatible CrackerTracker 4.x tables and user columns were removed when present, as required by the official 4.x-to-5.x upgrade path.\n";
 }
 else
 {
