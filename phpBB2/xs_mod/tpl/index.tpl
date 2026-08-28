@@ -66,10 +66,6 @@
 		<td class="row1">{L_XS_CLONE_STYLES}:<br /><span class="gensmall">{L_XS_CLONE_STYLES_EXPLAIN}</span></td>
 		<td class="row2" align="center">[<a href="{U_CLONE_STYLE}">{L_XS_CLONE_STYLES_LC}</a>]</td>
 	</tr>
-<!--	<tr>
-		<td class="row1">{L_XS_DOWNLOAD_STYLES}:<br /><span class="gensmall">{L_XS_DOWNLOAD_STYLES_EXPLAIN}</span></td>
-		<td class="row2" align="center">[<a href="{U_DOWNLOAD_STYLES}">{L_XS_DOWNLOAD_STYLES_LC}</a>]</td>
-	</tr> -->
 	<tr>
 		<th class="thHead" colspan="2">{L_XS_EDIT_TEMPLATES}</th>
 	</tr>
@@ -85,14 +81,6 @@
 		<td class="row1">{L_XS_EXPORT_STYLES_DATA}:<br /><span class="gensmall">{L_XS_EXPORT_STYLES_DATA_EXPLAIN}</span></td>
 		<td class="row2" align="center">[<a href="{U_EXPORT_DATA}">{L_XS_EXPORT_STYLES_DATA_LC}</a>]</td>
 	</tr>
-	<tr>
-		<th class="thHead" colspan="2">{L_XS_OTHER_FUNCTIONS}</th>
-	</tr>
-	<tr>
-		<td class="row1">{L_XS_CHECK_FOR_UPDATES}:<br /><span class="gensmall">{L_XS_CHECK_FOR_UPDATES_EXPLAIN}</span></td>
-		<td class="row2" align="center">[<a href="{U_UPDATES}">{L_XS_CHECK_FOR_UPDATES_LC}</a>]</td>
-	</tr>
 </table>
 
 <br clear="all" />
-

@@ -264,11 +264,16 @@ function stopforumspam($value, $type)
 		return array('error' => true, 'error_msg' => $lang['sfs_missing_extension']);
 	}
 
-	$context = stream_context_create(array('http' => array(
-		'timeout' => 4,
-		'user_agent' => 'phpBB2 Plus StopForumSpam integration')));
+	$context = stream_context_create(array(
+		'http' => array(
+			'timeout' => 4,
+			'max_redirects' => 2,
+			'user_agent' => 'phpBB2 Plus StopForumSpam integration'),
+		'ssl' => array(
+			'verify_peer' => true,
+			'verify_peer_name' => true)));
 	$url = 'https://api.stopforumspam.org/api?' . $type . '=' . urlencode($value) . '&xml';
-	$xml = @file_get_contents($url, false, $context);
+	$xml = @file_get_contents($url, false, $context, 0, 262144);
 	if ($xml === false)
 	{
 		return array('error' => true, 'error_msg' => $lang['sfs_service_unavailable']);
@@ -300,6 +305,7 @@ function validate_complex_password ($username, $password)
 {
 	global $board_config, $lang;
 	$ret = FALSE;
+	$msg_explain = '';
 	//verify minimum length
 	if ( strlen($password) < $board_config['min_password_len'] )
 	{

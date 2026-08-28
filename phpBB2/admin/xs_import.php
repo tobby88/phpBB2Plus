@@ -75,15 +75,6 @@ include_once('xs_include_import.'.$phpEx);
 @set_time_limit(XS_MAX_TIMEOUT);
 
 //
-// check if need to download style
-//
-if(!empty($HTTP_GET_VARS['get_remote']))
-{
-	$HTTP_POST_VARS['action'] = 'web';
-	$HTTP_POST_VARS['source'] = $HTTP_GET_VARS['get_remote'];
-}
-
-//
 // delete style
 //
 if(isset($HTTP_GET_VARS['del']) && !defined('DEMO_MODE'))
@@ -137,78 +128,6 @@ if(isset($HTTP_GET_VARS['import']) || isset($HTTP_POST_VARS['import']))
 }
 
 //
-// Download from web
-//
-if(isset($HTTP_GET_VARS['get_web']))
-{
-	$HTTP_POST_VARS['action'] = 'web';
-	$HTTP_POST_VARS['source'] = $HTTP_GET_VARS['get_web'];
-}
-if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'web' && !defined('DEMO_MODE'))
-{
-	$src = stripslashes($HTTP_POST_VARS['source']);
-	$dst = generate_style_name('web');
-	$str = @implode('', @file($src));
-	if(empty($str))
-	{
-		xs_error(str_replace('{URL}', $src, $lang['xs_import_nodownload']) . '<br /><br />' . $lang['xs_import_back']);
-	}
-	$header = xs_get_style_header('', substr($str, 0, 10240));
-	if($header === false)
-	{
-		xs_error($lang['xs_style_header_error_reason'] . $xs_header_error . '<br /><br />' . $lang['xs_import_back']);
-	}
-	if($header['filesize'] != strlen($str))
-	{
-		xs_error($lang['xs_style_header_error_incomplete2'] . '<br /><br />' . $lang['xs_import_back']);
-	}
-	$f = @fopen(XS_TEMP_DIR . $dst, 'wb');
-	if(!$f)
-	{
-		xs_error(str_replace('{FILE}', $dst, $lang['xs_error_cannot_create_tmp']) . '<br /><br />' . $lang['xs_import_back']);
-	}
-	fwrite($f, $str);
-	fclose($f);
-	xs_message($lang['Information'], str_replace('{URL}', append_sid('xs_import.'.$phpEx.'?importstyle=' . urlencode($dst) . $return), $lang['xs_import_uploaded2']) . '<br /><br />' . $lang['xs_import_back']);
-}
-
-//
-// Copy from file
-//
-if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'copy' && !defined('DEMO_MODE'))
-{
-	$src = stripslashes($HTTP_POST_VARS['source']);
-	$dst = generate_style_name('copy');
-	$str = @implode('', @file($src));
-	if(empty($str))
-	{
-		xs_error(str_replace('{URL}', $src, $lang['xs_import_nodownload2']) . '<br /><br />' . $lang['xs_import_back']);
-	}
-	if(substr($str, 0, strlen(STYLE_HEADER_START)) !== STYLE_HEADER_START)
-	{
-		xs_error($lang['xs_style_header_error_invalid2'] . '<br /><br />' . $lang['xs_import_back']);
-	}
-	$header = xs_get_style_header('', substr($str, 0, 10240));
-	if($header === false)
-	{
-		xs_error($lang['xs_style_header_error_reason'] . $xs_header_error . '<br /><br />' . $lang['xs_import_back']);
-	}
-	if($header['filesize'] != strlen($str))
-	{
-		xs_error($lang['xs_style_header_error_incomplete2'] . '<br /><br />' . $lang['xs_import_back']);
-	}
-	$f = @fopen(XS_TEMP_DIR . $dst, 'wb');
-	if(!$f)
-	{
-		xs_error(str_replace('{FILE}', $dst, $lang['xs_error_cannot_create_tmp']) . $lang['xs_import_back']);
-	}
-	fwrite($f, $str);
-	fclose($f);
-	xs_message($lang['Information'], str_replace('{URL}', append_sid('xs_import.'.$phpEx.'?importstyle=' . urlencode($dst)), $lang['xs_import_uploaded3']) . '<br /><br />' . $lang['xs_import_back']);
-}
-
-
-//
 // Upload
 //
 if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'upload' && !defined('DEMO_MODE'))
@@ -222,7 +141,7 @@ if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'upload' &&
 	$str = @implode('', @file($src));
 	if(empty($str))
 	{
-		xs_error(str_replace('{URL}', $src, $lang['xs_import_nodownload2']) . '<br /><br />' . $lang['xs_import_back']);
+		xs_error($lang['xs_import_nodownload3'] . '<br /><br />' . $lang['xs_import_back']);
 	}
 	if(substr($str, 0, strlen(STYLE_HEADER_START)) !== STYLE_HEADER_START)
 	{
@@ -358,7 +277,6 @@ if(count($files))
 			'COMMENT'		=> htmlspecialchars($item['comment']),
 			'U_DELETE'		=> append_sid('xs_import.' . $phpEx . '?del=' . urlencode($item['file'])),
 			'U_IMPORT'		=> append_sid('xs_import.' . $phpEx . '?importstyle=' . urlencode($item['file'])),
-			'U_DOWNLOAD'	=> append_sid('xs_download.' . $phpEx),
 			'U_LIST'		=> append_sid('xs_import.' . $phpEx . '?list=1&import=' . urlencode($item['file'])),
 			));
 		if(empty($item['error']))

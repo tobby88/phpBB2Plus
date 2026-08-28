@@ -188,10 +188,6 @@
 						</dl>
 					<!-- END avatar_local_upload -->
 					<!-- BEGIN avatar_remote_upload -->
-						<dl>
-							<dt><label>{L_UPLOAD_AVATAR_URL}:</label><br /><span>{L_UPLOAD_AVATAR_URL_EXPLAIN}</span></dt>
-							<dd><input type="text" name="avatarurl" value="{AVATAR_URL}" /></dd>
-						</dl>
 					<!-- END avatar_remote_upload -->
 					<!-- BEGIN avatar_remote_link -->
 						<dl>

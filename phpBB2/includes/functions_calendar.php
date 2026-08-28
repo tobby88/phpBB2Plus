@@ -815,7 +815,7 @@ function get_event_PCP_birthday(&$events, &$number, $start_date, $end_date, $lim
 								$avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $row['user_avatar'] . '" alt="" border="0" />' : '';
 								break;
 							case USER_AVATAR_REMOTE:
-								$avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $row['user_avatar'] . '" alt="" border="0" />' : '';
+								$avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($row['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
 								break;
 							case USER_AVATAR_GALLERY:
 								$avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $row['user_avatar'] . '" alt="" border="0" />' : '';

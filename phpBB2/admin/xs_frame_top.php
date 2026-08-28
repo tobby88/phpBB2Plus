@@ -39,10 +39,6 @@ $template->assign_block_vars('left_nav', array(
 	'URL'	=> append_sid('xs_index.'.$phpEx),
 	'TEXT'	=> $lang['xs_menu_lc']
 	));
-/* $template->assign_block_vars('left_nav', array(
-	'URL'	=> append_sid('xs_download.'.$phpEx),
-	'TEXT'	=> $lang['xs_download_styles_lc']
-	)); */
 $template->assign_block_vars('left_nav', array(
 	'URL'	=> append_sid('xs_import.'.$phpEx),
 	'TEXT'	=> $lang['xs_import_styles_lc']

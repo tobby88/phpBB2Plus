@@ -492,7 +492,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 						$poster_avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $commentrow[$i]['user_avatar'] . '" alt="" border="0" />' : '';
 						break;
 					case USER_AVATAR_REMOTE:
-						$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $commentrow[$i]['user_avatar'] . '" alt="" border="0" />' : '';
+						$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($commentrow[$i]['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
 						break;
 					case USER_AVATAR_GALLERY:
 						$poster_avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $commentrow[$i]['user_avatar'] . '" alt="" border="0" />' : '';

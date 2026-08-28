@@ -1074,7 +1074,7 @@ for($i = 0; $i < $total_posts; $i++)
 				break;
 			case USER_AVATAR_REMOTE:
 				$size = check_avatar_size($postrow[$i]['user_avatar'], $board_config['avatar_max_width'], true);
-				$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $postrow[$i]['user_avatar'] . '" '.$size.' alt="" border="0" />' : '';
+				$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($postrow[$i]['user_avatar'], ENT_QUOTES, 'UTF-8') . '" '.$size.' alt="" border="0" />' : '';
 				break;
 			case USER_AVATAR_GALLERY:
 				$size = check_avatar_size($board_config['avatar_gallery_path'] . '/' . $postrow[$i]['user_avatar'], $board_config['avatar_max_width']);

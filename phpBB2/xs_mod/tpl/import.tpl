@@ -59,24 +59,6 @@
 	  <th class="thHead" colspan="2">{L_XS_ADD_STYLES}</th>
 	</tr>
 	<tr>
-		<td class="row1">{L_XS_ADD_STYLES_WEB}:</td>
-		<td class="row2" nowrap="nowrap">
-			<form action="{U_SCRIPT}" method="post" style="display: inline;"><input type="hidden" name="action" value="web" />{S_HIDDEN_FIELDS}
-			<input type="text" name="source" size="40" value="http://" />
-			<input type="submit" value="{L_XS_ADD_STYLES_WEB_GET}" class="mainoption" />
-			</form>
-		</tr>
-	</tr>
-	<tr>
-		<td class="row1">{L_XS_ADD_STYLES_COPY}:</td>
-		<td class="row2" nowrap="nowrap">
-			<form action="{U_SCRIPT}" method="post" style="display: inline;"><input type="hidden" name="action" value="copy" />{S_HIDDEN_FIELDS}
-			<input type="text" name="source" size="40" value="" />
-			<input type="submit" value="{L_XS_ADD_STYLES_COPY_GET}" class="mainoption" />
-			</form>
-		</tr>
-	</tr>
-	<tr>
 		<td class="row1">{L_XS_ADD_STYLES_UPLOAD}:</td>
 		<td class="row2" nowrap="nowrap">
 			<form action="{U_SCRIPT}" method="post" enctype="multipart/form-data" style="display: inline;"><input type="hidden" name="action" value="upload" />{S_HIDDEN_FIELDS}

@@ -222,8 +222,6 @@ class Template {
 			'xs_ftp_host'				=> '',
 			'xs_ftp_login'				=> '',
 			'xs_ftp_path'				=> '',
-			'xs_downloads_count'		=> '0',
-			'xs_downloads_default'		=> '0',
 			'xs_shownav'				=> '1',
 			'xs_template_time'			=> '0',
 			);

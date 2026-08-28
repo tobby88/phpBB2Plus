@@ -268,14 +268,6 @@
 	  </td>
 	</tr>
 	<!-- END avatar_local_upload -->
-	<!-- BEGIN avatar_remote_upload -->
-	<tr> 
-	  <td class="row1"><span class="gen">{L_UPLOAD_AVATAR_URL}</span></td>
-	  <td class="row2"> 
-		<input class="post" type="text" name="avatarurl" size="40" style="width: 200px"  />
-	  </td>
-	</tr>
-	<!-- END avatar_remote_upload -->
 	<!-- BEGIN avatar_remote_link -->
 	<tr> 
 	  <td class="row1"><span class="gen">{L_LINK_REMOTE_AVATAR}</span></td>

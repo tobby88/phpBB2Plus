@@ -49,17 +49,6 @@ foreach($HTTP_GET_VARS as $var => $value)
 	}
 }
 
-// check for style download command
-if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'web')
-{
-	$action = 'import';
-	$get_data[] = 'get_remote=' . urlencode(stripslashes($HTTP_POST_VARS['source']));
-	if(isset($HTTP_POST_VARS['return']))
-	{
-		$get_data[] = 'return=' . urlencode(stripslashes($HTTP_POST_VARS['return']));
-	}
-}
-
 $get_data = count($get_data) ? $phpEx . '?' . implode('&', $get_data) : $phpEx;
 
 $content_url = array(
@@ -71,11 +60,9 @@ $content_url = array(
 	'import'		=> append_sid('xs_import.'.$get_data),
 	'export'		=> append_sid('xs_export.'.$get_data),
 	'clone'			=> append_sid('xs_clone.'.$get_data),
-	'download'		=> append_sid('xs_download.'.$get_data),
 	'edittpl'		=> append_sid('xs_edit.'.$get_data),
 	'editdb'		=> append_sid('xs_edit_data.'.$get_data),
 	'exportdb'		=> append_sid('xs_export_data.'.$get_data),
-	'updates'		=> append_sid('xs_update.'.$get_data),
 	'portal'		=> append_sid('xs_portal.'.$get_data),
 	'style_config'	=> append_sid('xs_style_config.'.$get_data),
 	);

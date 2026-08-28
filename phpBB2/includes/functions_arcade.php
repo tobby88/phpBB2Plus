@@ -824,69 +824,21 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 
 			if($to_userdata['user_notify_pm'] && !empty($to_userdata['user_email']) && $to_userdata['user_active'] && $quiet == 'NO')
 			{
-//
-//  Get the mailer to send email
-//  Due to a number of server crashes when sending out PM's
-//  I'm going to check for a MX record for the users email address here...!
-//
-   			$DomainPass = explode("@", $to_userdata['user_email']);
-   			$Domain = isset($DomainPass[1]) ? $DomainPass[1] : '';
-   			$DomainPass = explode(".", $Domain);
-   			$DomainSuffix = isset($DomainPass[1]) ? $DomainPass[1] : '';
-  			if ($Domain != '' && $DomainSuffix != '')
-        {
-    			$mx = new mxlookup($Domain);
-          if(intval($mx->ANCOUNT) > 0) 
-          {
-    				$script_name 		= preg_replace('/^\/?(.*?)\/?$/', "\\1", trim($board_config['script_path']));
-    				$script_name 		= ( $script_name != '' ) ? $script_name . '/privmsg.'.$phpEx : 'privmsg.'.$phpEx;
-    				$server_name 		= trim($board_config['server_name']);
-    				$server_protocol 	= ( $board_config['cookie_secure'] ) ? 'https://' : 'http://';
-    				$server_port 		= ( $board_config['server_port'] <> 80 ) ? ':' . trim($board_config['server_port']) . '/' : '/';
-
-//				$mail_header = "From: ".$board_config['board_email']."\r\nReply-to: ".$board_config['board_email']."\r\n";
-//				$message = "A New PM has arrived from the Arcade ";
-//				$mail_send = mail($to_userdata['user_email'], $lang['Notification_subject'], $message, $mail_header);
-//        if($mail_send == FALSE)
-//        {
-//					echo("Failed to send to " . $to_userdata['user_email'] . "<br />");
-//        }
-
-    				include_once($phpbb_root_path . './includes/emailer.'.$phpEx);
-    				$emailer = new emailer($board_config['smtp_delivery']);
-        
-    				if($board_config['version'] >= '.0.5' )
-    				{   
-    					$emailer->from($board_config['board_email']);
-    					$emailer->replyto($board_config['board_email']);
-    					$emailer->use_template('privmsg_notify', $to_userdata['user_lang']);
-						}
-    				else
-		    		{
-    					$email_headers = 'From: ' . $board_config['board_email'] . "\nReturn-Path: " . $board_config['board_email'] . "\n";
-    					$emailer->use_template('privmsg_notify', $to_userdata['user_lang']);
-    					$emailer->extra_headers($email_headers);
-    				}
-    				$emailer->email_address($to_userdata['user_email']);
-    				$emailer->set_subject($lang['Notification_subject']);
-    				$emailer->assign_vars(array(
-    					'USERNAME' => $to_username,
-    					'SITENAME' => $board_config['sitename'],
-    					'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
-    					'U_INBOX' => $server_protocol . $server_name . $server_port . $script_name . '?folder=inbox')
-		  			 );
-
-    				$emailer->send();
-    				$emailer->reset();
-    			}
-    			else
-    			{
-            $updatesql = "UPDATE " . USERS_TABLE . "
-              SET arcade_banned = 1
-              WHERE user_id = " . $to_userdata['user_id'];
-            $db->sql_query($updatesql);
-          }
-        }
+			include_once($phpbb_root_path . 'includes/emailer.'.$phpEx);
+			$emailer = new emailer($board_config['smtp_delivery']);
+			$emailer->from($board_config['board_email']);
+			$emailer->replyto($board_config['board_email']);
+			$emailer->use_template('privmsg_notify', $to_userdata['user_lang']);
+			$emailer->email_address($to_userdata['user_email']);
+			$emailer->set_subject($lang['Notification_subject']);
+			$emailer->assign_vars(array(
+				'USERNAME' => $to_username,
+				'SITENAME' => $board_config['sitename'],
+				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
+				'U_INBOX' => phpbb_board_url('privmsg.'.$phpEx.'?folder=inbox'))
+			);
+			$emailer->send();
+			$emailer->reset();
 			}
 		}
 	}

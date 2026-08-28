@@ -123,8 +123,8 @@ if ( $profiledata['user_avatar_type'] && $profiledata['user_allowavatar'] )
 			$avatar_img = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $profiledata['user_avatar'] . '" '.$size.' alt="" border="0" />' : '';
 			break;
 		case USER_AVATAR_REMOTE:
-			$size = check_avatar_size($profiledata['user_avatar'], $board_config['avatar_max_width']);
-			$avatar_img = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $profiledata['user_avatar'] . '" '.$size.' alt="" border="0" />' : '';
+			$size = check_avatar_size($profiledata['user_avatar'], $board_config['avatar_max_width'], true);
+			$avatar_img = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($profiledata['user_avatar'], ENT_QUOTES, 'UTF-8') . '" '.$size.' alt="" border="0" />' : '';
 			break;
 		case USER_AVATAR_GALLERY:
 			$size = check_avatar_size($board_config['avatar_gallery_path'] . '/' . $profiledata['user_avatar'], $board_config['avatar_max_width']);

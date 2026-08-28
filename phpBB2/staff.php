@@ -144,7 +144,7 @@ if( $mode != 'view_profile' )
 							$avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="'. $board_config['avatar_path'] .'/'. $staff['user_avatar'] .'" border="0" />' : '';
 							break;
 						case USER_AVATAR_REMOTE:
-							$avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="'. $staff['user_avatar'] .'" border="0" />' : '';
+							$avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="'. htmlspecialchars($staff['user_avatar'], ENT_QUOTES, 'UTF-8') .'" border="0" />' : '';
 							break;
 						case USER_AVATAR_GALLERY:
 							$avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="'. $board_config['avatar_gallery_path'] .'/'. $staff['user_avatar'] .'" border="0" />' : '';

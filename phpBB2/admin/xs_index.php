@@ -51,13 +51,11 @@ $template->assign_vars(array(
 	'U_IMPORT_STYLES'		=> append_sid('xs_import.'.$phpEx),
 	'U_EXPORT_STYLES'		=> append_sid('xs_export.'.$phpEx),
 	'U_CLONE_STYLE'			=> append_sid('xs_clone.'.$phpEx),
-	'U_DOWNLOAD_STYLES'		=> append_sid('xs_download.'.$phpEx),
 	'U_INSTALL_STYLES'		=> append_sid('xs_install.'.$phpEx),
 	'U_UNINSTALL_STYLES'	=> append_sid('xs_uninstall.'.$phpEx),
 	'U_EDIT_STYLES'			=> append_sid('xs_edit.'.$phpEx),
 	'U_EDIT_STYLES_DATA'	=> append_sid('xs_edit_data.'.$phpEx),
 	'U_EXPORT_DATA'			=> append_sid('xs_export_data.'.$phpEx),
-	'U_UPDATES'				=> append_sid('xs_update.'.$phpEx),
 	));
 
 $template->set_filenames(array('body' => XS_TPL_PATH . 'index.tpl'));

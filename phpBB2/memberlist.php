@@ -204,7 +204,7 @@ if ( $row = $db->sql_fetchrow($result) )
 					$poster_avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $row['user_avatar'] . '" alt="" border="0" />' : '';
 					break;
 				case USER_AVATAR_REMOTE:
-					$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $row['user_avatar'] . '" alt="" border="0" />' : '';
+					$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($row['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
 					break;
 				case USER_AVATAR_GALLERY:
 					$poster_avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $row['user_avatar'] . '" alt="" border="0" />' : '';

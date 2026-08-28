@@ -39,7 +39,6 @@ $logmanager    = new log_manager();
 $operation_err = false;
 $mode_selected = false;
 $error_message = '';
-$ctinf         = '';
 
 // Lets test if chmod was set correctly on the logfiles
 for($i = 1; $i <= 6; $i++)
@@ -62,40 +61,12 @@ for($i = 1; $i <= 6; $i++)
 unset($logmanager);
 
 
-// Lets see what the new versions are (Uplink) [original code (C) phpBB Group]
-if ( $fsock = @fsockopen('www.community.cback.de', 80, $errno, $errstr, 10) )
+// The original maintenance page queried a discontinued, unencrypted uplink.
+// Keep the historic fields neutral instead of delaying ACP requests or trusting
+// data from an unrelated third-party endpoint.
+for ( $i = 0; $i <= 4; $i++ )
 {
-	@fputs($fsock, "GET /uplink/ctracker.txt HTTP/1.1\r\n");
-	@fputs($fsock, "HOST: www.community.cback.de\r\n");
-	@fputs($fsock, "Connection: close\r\n\r\n");
-
-	$get_info = false;
-
-	while ( !@feof($fsock) )
-	{
-		if ( $get_info )
-		{
-			$ctinf .= @fread($fsock, 1024);
-		}
-		else
-		{
-			if ( @fgets($fsock, 1024) == "\r\n" )
-			{
-				$get_info = true;
-			} // if
-		} // else
-	} // while
-
-	@fclose($fsock);
-	$uplink_values = explode('|', $ctinf);
-	$uplink_values = array_pad($uplink_values, 5, $lang['ctracker_ma_unknown']);
-}
-else
-{
-	for ( $i = 0; $i <= 4; $i++ )
-	{
-		$uplink_values[$i] = $lang['ctracker_ma_unknown'];
-	}
+	$uplink_values[$i] = $lang['ctracker_ma_unknown'];
 }
 
 
@@ -105,15 +76,8 @@ else
 ( defined('protection_unit_three') )? $testvalue[3] = $lang['ctracker_ma_active'] : $testvalue[3] = $lang['ctracker_ma_inactive'];
 ( count($ct_rules) >= 260 )         ? $testvalue[4] = $lang['ctracker_ma_active'] : $testvalue[4] = $lang['ctracker_ma_inactive'];
 
-// PHP Version test
-if ( @phpversion() >= '5.0.0' )
-{
-	($uplink_values[2] <= @phpversion())? $testvalue[5] = $lang['ctracker_ma_secure'] : $testvalue[5] = $lang['ctracker_ma_warning'];
-}
-else
-{
-	($uplink_values[1] <= @phpversion())? $testvalue[5] = $lang['ctracker_ma_secure'] : $testvalue[5] = $lang['ctracker_ma_warning'];
-}
+// CrackerTracker's 2006 PHP-version recommendation service no longer exists.
+$testvalue[5] = $lang['ctracker_ma_unknown'];
 
 // Safemode and Globals test
 $testvalue[6] = strtolower(@ini_get('safe_mode'));

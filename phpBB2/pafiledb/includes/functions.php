@@ -324,37 +324,11 @@ class pafiledb_functions
 
 			$update_filesize = TRUE;
 		}
-		elseif(empty($file_size) && ((!(substr($file_url, 0, strlen($html_path)) == $html_path)) || empty($file_data['unique_name'])))
+		elseif(empty($file_size))
 		{
-			$ourhead = "";
-			$url = parse_url($file_url);
-			$host = $url['host']; 
-			$path = $url['path']; 
-			$port = (!empty($url['port'])) ? $url['port'] : 80;
-
-			$fp = @fsockopen($host, $port, $errno, $errstr, 20);
-		
-			if(!$fp)
-			{ 
-				return $lang['Not_available'];
-			}
-			else
-			{ 
-				fputs($fp, "HEAD $file_url HTTP/1.1\r\n"); 
-				fputs($fp, "HOST: $host\r\n"); 
-				fputs($fp, "Connection: close\r\n\r\n"); 
-
-				while (!feof($fp))
-				{
-					$ourhead = sprintf('%s%s', $ourhead, fgets ($fp,128)); 
-				}
-			}
-			@fclose ($fp);
-
-			$split_head = explode('Content-Length: ', $ourhead);
-		
-			$file_size = round(abs($split_head[1]));
-			$update_filesize = TRUE;
+			// Do not issue server-side requests to stored download URLs. Besides
+			// introducing long page delays, that allowed private-network probing.
+			return $lang['Not_available'];
 		}
 
 		if($update_filesize)

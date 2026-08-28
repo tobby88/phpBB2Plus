@@ -278,10 +278,6 @@
       </div>
 	<!-- END switch_avatar_local_upload -->
 	<!-- BEGIN switch_avatar_remote_upload -->
-      <div class="row gen">
-        <div class="col-8 row1 py-1">{L_UPLOAD_AVATAR_URL}:<br /><span class="gensmall">{L_UPLOAD_AVATAR_URL_EXPLAIN}</span></div>
-        <div class="col-4 row2 py-1"><input type="text" name="avatarurl" size="40" class="post" style="width:200px" /></div>
-      </div>
 	<!-- END switch_avatar_remote_upload -->
 	<!-- BEGIN switch_avatar_remote_link -->
       <div class="row gen">

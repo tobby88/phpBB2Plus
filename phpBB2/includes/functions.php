@@ -1594,15 +1594,10 @@ function allow_send_to_absent()
 
 function check_avatar_size($avatar, $max_avatar_size, $remote = FALSE)
 {
-	if ( $remote && preg_match('/^(http:\/\/)?([\w\-\.]+)\:?([0-9]*)\/(.*)$/', $avatar, $url_ary) )
+	if ( $remote )
 	{
-		$port = ( !empty($url_ary[3]) ) ? $url_ary[3] : 80;
-
-		if ( !($fsock = @fsockopen($url_ary[2], $port, $errno, $errstr, 2)) )
-		{
-			return $size = '';
-		}
-		@fclose($fsock);
+		$max_avatar_size = max(1, intval($max_avatar_size));
+		return 'style="max-width: ' . $max_avatar_size . 'px; max-height: ' . $max_avatar_size . 'px;"';
 	}
 
 	$pic_size = @getimagesize($avatar);

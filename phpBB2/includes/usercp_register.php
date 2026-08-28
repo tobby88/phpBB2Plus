@@ -1314,7 +1314,7 @@ else
 				$avatar_img = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $user_avatar . '" alt="" />' : '';
 				break;
 			case USER_AVATAR_REMOTE:
-				$avatar_img = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $user_avatar . '" alt="" />' : '';
+				$avatar_img = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($user_avatar, ENT_QUOTES, 'UTF-8') . '" alt="" />' : '';
 				break;
 			case USER_AVATAR_GALLERY:
 				$avatar_img = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $user_avatar . '" alt="" />' : '';

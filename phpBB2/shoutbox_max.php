@@ -566,14 +566,14 @@ obtain_word_list($orig_word, $replacement_word);
 						$user_avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $shout_row['user_avatar'] . '" alt="" border="0" />' : '';
 						break;
 					case USER_AVATAR_REMOTE:
-						$user_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $shout_row['user_avatar'] . '" alt="" border="0" />' : '';
+						$user_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($shout_row['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
 						break;
 					case USER_AVATAR_GALLERY:
 						$user_avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $shout_row['user_avatar'] . '" alt="" border="0" />' : '';
 						break;
 				}
 				$user_avatar_url = isset($shout_row['user_avatar_url']) ? $shout_row['user_avatar_url'] : '';
-				$user_avatar = ($user_avatar_url != '') ? '<a href="'.$user_avatar_url.'">'.$user_avatar.'</a>' : $user_avatar;
+				$user_avatar = ($user_avatar_url != '') ? '<a href="'.htmlspecialchars($user_avatar_url, ENT_QUOTES, 'UTF-8').'">'.$user_avatar.'</a>' : $user_avatar;
 			} else $user_avatar='';
 			$shout = (! $shout_row['shout_active']) ? $shout_row['shout_text'] : $lang['Shout_censor'].(($is_auth['auth_mod']) ? '<br/><hr/><br/>'.$shout_row['shout_text'] : '');
 			$user_sig = ( $shout_row['enable_sig'] && $shout_row['user_sig'] != '' && $board_config['allow_sig'] ) ? $shout_row['user_sig'] : '';

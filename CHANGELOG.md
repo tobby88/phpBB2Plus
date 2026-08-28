@@ -33,6 +33,16 @@ changes consolidated after that baseline without implying active maintenance.
 - Disabled the legacy "upload avatar from URL" feature, whose unbounded socket
   client could reach arbitrary hosts, while retaining safe external-avatar
   links over HTTP or HTTPS and ordinary local uploads.
+- Removed discontinued eXtreme Styles update/download services and remote or
+  filesystem style imports; styles can still be imported through an
+  administrator upload without forwarding forum sessions to third parties.
+- Removed automatic outbound requests for remote PAFileDB sizes and obsolete
+  CrackerTracker version data, and bounded the remaining StopForumSpam lookup.
+- Stopped server-side image probing for linked avatars, escaped linked-avatar
+  output in every forum module and use client-side size limits instead.
+- Removed the Arcade's broken custom DNS parser, which could suppress private
+  message notifications and incorrectly ban recipients when an MX lookup
+  failed; notifications now use the forum's normal mail transport.
 - Added file-count and expanded-size limits before extracting Nuffload ZIP
   uploads to reduce archive-bomb exposure.
 - Bound Arcade score sessions to the current logged-in player (or the matching

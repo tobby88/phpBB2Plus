@@ -67,7 +67,6 @@ $lang['xs_config_shownav'] = array(
 */
 $lang['xs_menu_lc'] = 'extreme styles mod menu';
 $lang['xs_support_forum_lc'] = 'support forum';
-$lang['xs_download_styles_lc'] = 'download styles';
 $lang['xs_install_styles_lc'] = 'install styles';
 
 /*
@@ -98,8 +97,6 @@ $lang['xs_export_styles'] = 'Export Styles';
 $lang['xs_export_styles_explain'] = 'This feature allows you to save a style from your forum as a .style file and then easily transfer it to another forum or another website.';
 $lang['xs_clone_styles'] = 'Clone Styles';
 $lang['xs_clone_styles_explain'] = 'This feature allows you to quickly clone styles or a whole template.';
-$lang['xs_download_styles'] = 'Download Styles';
-$lang['xs_download_styles_explain'] = 'This feature allows you to quickly download and install styles from websites. You can configure a list of websites yourself.';
 $lang['xs_install_styles'] = 'Install Styles';
 $lang['xs_install_styles_explain'] = 'This feature allows you to install styles that are already uploaded to your forum.';
 $lang['xs_uninstall_styles'] = 'Uninstall Styles';
@@ -109,8 +106,6 @@ $lang['xs_edit_styles_data'] = 'Edit Styles Data';
 $lang['xs_edit_styles_data_explain'] = 'This feature allows you to edit style variables. It is used by some styles, but most styles don\'t use it and use a css file instead.';
 $lang['xs_export_styles_data'] = 'Export Styles Data';
 $lang['xs_export_styles_data_explain'] = 'This feature allows you to save style variables to theme_info.cfg.';
-$lang['xs_check_for_updates'] = 'Check for Updates';
-$lang['xs_check_for_updates_explain'] = 'This feature allows you to check for updated versions of styles and mods installed on your forum.';
 
 $lang['xs_set_configuration_lc'] = 'set configuration';
 $lang['xs_set_default_style_lc'] = 'set default style';
@@ -122,7 +117,6 @@ $lang['xs_uninstall_styles_lc'] = 'uninstall styles';
 $lang['xs_edit_templates_lc'] = 'edit templates';
 $lang['xs_edit_styles_data_lc'] = 'edit styles data';
 $lang['xs_export_styles_data_lc'] = 'export styles data';
-$lang['xs_check_for_updates_lc'] = 'check for updates';
 
 /*
 * ftp.tpl, ftp functions
@@ -316,10 +310,6 @@ $lang['xs_export_style_lc'] = 'export style';
 
 $lang['xs_import_no_cached'] = 'There are no cached styles to import';
 $lang['xs_add_styles'] = 'Add Styles';
-$lang['xs_add_styles_web'] = 'Download from web';
-$lang['xs_add_styles_web_get'] = 'Get it';
-$lang['xs_add_styles_copy'] = 'Copy from local file';
-$lang['xs_add_styles_copy_get'] = 'Copy';
 $lang['xs_add_styles_upload'] = 'Upload from computer';
 $lang['xs_add_styles_upload_get'] = 'Upload';
 
@@ -337,15 +327,6 @@ $lang['xs_export_where_store'] = 'Store as file on server';
 $lang['xs_export_where_store_dir'] = 'Directory';
 $lang['xs_export_where_ftp'] = 'Upload via FTP';
 $lang['xs_export_filename'] = 'Export filename';
-
-$lang['xs_download_explain2'] = 'This feature allows you to quickly download and install styles directly from different websites. Click on the link near the website name and you will be redirected to a style downloads page.<br /><br />You can also manage the list of websites.';
-
-$lang['xs_download_locations'] = 'Download Locations';
-$lang['xs_edit_link'] = 'Edit Link';
-$lang['xs_add_link'] = 'Add Link';
-$lang['xs_link_title'] = 'Link Title';
-$lang['xs_link_url'] = 'Link URL';
-$lang['xs_delete'] = 'Delete';
 
 $lang['xs_style_header_error_file'] = 'Cannot open local file';
 $lang['xs_style_header_error_server'] = 'Error on server: ';
@@ -367,11 +348,7 @@ $lang['xs_import_notinstall2'] = 'Style uploaded, but error installing style: no
 $lang['xs_import_notinstall3'] = 'Style uploaded, but error installing style: no entry for "{STYLE}" found in theme_info.cfg';
 $lang['xs_import_notinstall4'] = 'Style uploaded, but error installing style: could not obtain next themes_id information';
 $lang['xs_import_notinstall5'] = 'Style uploaded, but error installing style: could not update styles table';
-$lang['xs_import_nodownload'] = 'Cannot download style from {URL}';
-$lang['xs_import_nodownload2'] = 'Cannot copy style from {URL}';
 $lang['xs_import_nodownload3'] = 'File not uploaded.';
-$lang['xs_import_uploaded2'] = 'Style downloaded. You can now import it.<br /><br /><a href="{URL}">Click here</a> to import style.';
-$lang['xs_import_uploaded3'] = 'Style copied. You can now import it.<br /><br /><a href="{URL}">Click here</a> to import style.';
 $lang['xs_import_uploaded4'] = 'Style uploaded. You can now import it.<br /><br /><a href="{URL}">Click here</a> to import style.';
 $lang['xs_export_no_open_dir'] = 'Cannot open directory {DIR}';
 $lang['xs_export_no_open_file'] = 'Cannot open file {FILE}';
@@ -393,10 +370,8 @@ $lang['xs_clone_no_select'] = 'You should select at least one style to clone.';
 $lang['xs_no_themes'] = 'Style not found in database.';
 
 $lang['xs_import_back'] = '<a href="{URL}">Click here</a> to return to import styles page.';
-$lang['xs_import_back_download'] = '<a href="{URL}" target="main">Click here</a> to return to downloads.';
 $lang['xs_export_back'] = '<a href="{URL}">Click here</a> to return to export styles page.';
 $lang['xs_clone_back'] = '<a href="{URL}">Click here</a> to return to clone styles page.';
-$lang['xs_download_back'] = '<a href="{URL}">Click here</a> to return to downloads page.';
 
 $lang['xs_import_tpl'] = 'Import Template "{TPL}"';
 $lang['xs_import_tpl_comment'] = 'This feature will upload template to your forum. If template with this name already exists on your forum this feature will automatically overwrite old files so it can also be used to update styles.<br /><br />This feature can also automatically install styles. If you want to install style after importing it then select one or more styles below.';
@@ -560,49 +535,7 @@ $lang['xs_editdata_var'] = 'Variable';
 $lang['xs_editdata_value'] = 'Value';
 $lang['xs_editdata_comment'] = 'Comment';
 
-/*
-* updates
-*/
-
-$lang['xs_updates'] = 'Updates';
-$lang['xs_updates_comment'] = 'This feature checks for updates of some styles and mods. It works only with items that have relevant update information.';
-$lang['xs_updates_comment2'] = 'This is result of version check.';
-$lang['xs_update_total1'] = 'Total: {NUM} items';
-$lang['xs_update_info1'] = 'This administrator feature will check for available updates of phpBB, certain mods, and some styles installed on your forum. When it finds available updates it shows you the link where you can download the updated file.<br /><br />This function requires sockets to be enabled. Most free web hosts do not have this feature so if this forum is on free host (like lycos) then you cannot use update feature, but if this forum is on normal server then everything should be okay.<br /><br />When you click "continue", the script will check all software installed on forum. If your website is slow it might take some time. Be patient and don\'t click "stop" in your browser if process is delayed. If this server is slow or update website is slow then script might timeout - if this happens you should increase timeout value.';
-$lang['xs_update_name'] = 'Name';
-$lang['xs_update_type'] = 'Type';
-$lang['xs_update_current_version'] = 'Your version';
-$lang['xs_update_latest_version'] = 'Latest version';
-$lang['xs_update_downloadinfo'] = 'Download URL';
-$lang['xs_update_timeout'] = 'Update script timeout (seconds):';
-$lang['xs_update_continue'] = 'Continue';
-
-
-$lang['xs_update_total2'] = 'Errors: {NUM}';
-$lang['xs_update_total3'] = 'Updates available: {NUM} items';
-$lang['xs_update_select1'] = 'Select items to update';
-$lang['xs_update_types'] = array(
-		0 => 'Unknown',
-		1 => 'Style',
-		2 => 'Mod',
-		3 => 'phpBB'
-		);
-$lang['xs_update_fileinfo'] = 'More info';
-$lang['xs_update_nothing'] = 'There is nothing to update.';
-$lang['xs_update_noupdate'] = 'You are using the latest version.';
-
-$lang['xs_update_error_url'] = 'Error: cannot retrieve url %s';
-$lang['xs_update_error_noitem'] = 'Error: No update information available';
-$lang['xs_update_error_noconnect'] = 'Error: Cannot connect to update server';
-
-$lang['xs_update_download'] = 'download';
-$lang['xs_update_downloadinfo2'] = 'download/info';
-$lang['xs_update_info'] = 'website';
-
 $lang['xs_permission_denied'] = 'Permission Denied';
-
-$lang['xs_download_lc'] = 'download';
-$lang['xs_info_lc'] = 'info';
 
 /*
 * style configuration

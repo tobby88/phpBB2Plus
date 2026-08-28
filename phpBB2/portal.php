@@ -541,7 +541,7 @@ if ( $userdata['user_avatar_type'] && $userdata['user_allowavatar'] )
 			break;
 		case USER_AVATAR_REMOTE:
 			$size = check_avatar_size($userdata['user_avatar'], $CFG['pics_thumbsize'], true);
-			$avatar_img = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . $userdata['user_avatar'] . '" '.$size.' alt="" border="0" />' : '';
+			$avatar_img = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($userdata['user_avatar'], ENT_QUOTES, 'UTF-8') . '" '.$size.' alt="" border="0" />' : '';
 			break;
 		case USER_AVATAR_GALLERY:
 			$size = check_avatar_size($board_config['avatar_gallery_path'] . '/' . $userdata['user_avatar'], $CFG['pics_thumbsize']);

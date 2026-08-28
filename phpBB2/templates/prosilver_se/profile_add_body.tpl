@@ -221,10 +221,6 @@
 						</dl>
 						<!-- END switch_avatar_local_upload -->
 						<!-- BEGIN switch_avatar_remote_upload -->
-						<dl>
-							<dt><label>{L_UPLOAD_AVATAR_URL}:</label><br /><span>{L_UPLOAD_AVATAR_URL_EXPLAIN}</span></dt>
-							<dd><input type="text" name="avatarurl" value="" class="inputbox" /></dd>
-						</dl>
 						<!-- END switch_avatar_remote_upload -->
 						<!-- BEGIN switch_avatar_remote_link -->
 						<dl>
