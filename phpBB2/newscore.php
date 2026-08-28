@@ -234,7 +234,7 @@ switch($game_info['score_type'])
           $score_type = ARCADE_IBPRO;
           $arcade->score = $gscore;
         }
-        else if((!empty($arcade->arcade_hash)) && strlen($arcade->arcade_hash == 32))
+        else if(!empty($arcade->arcade_hash) && preg_match('/^[a-f0-9]{32}$/i', $arcade->arcade_hash))
         {
           $score_type = ARCADE_NEW;
         }
@@ -263,6 +263,10 @@ switch($game_info['score_type'])
     			$arcade->message_die(GENERAL_ERROR, $lang['no_game_update'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql); 
     		}
       break;
+}
+if (!is_finite((float) $arcade->score))
+{
+  $cheat_mode = TRUE;
 }
 //
 //  Final Check to see if we are getting the correct info back
@@ -506,7 +510,7 @@ if(!empty($game_name))
 				else
 				{
 					$sql = "INSERT INTO " . iNA_AT_SCORES . " (game_name, player_id, player_name, player_ip, score, date, time_taken) 
-						VALUES ('$game_name', $arcade->user_id, '$ip_num', '". addslashes($user_name) ."', ". $arcade->score . ", '" . time() . "', '". $total_time ."')"; 
+						VALUES ('$game_name', $arcade->user_id, '". addslashes($user_name) ."', '$ip_num', ". $arcade->score . ", '" . time() . "', '". $total_time ."')";
 					if( !$result = $db->sql_query($sql) ) 
 					{
 						$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'] . $lang['newscore_close'], "", __LINE__, __FILE__, $sql);
@@ -528,8 +532,8 @@ if(!empty($game_name))
 //  Check if an Score exist for this game.
 //
    			$sql = "SELECT highscore_id, highscore_score FROM " . iNA_HIGHSCORES . "
-    				WHERE highscore_year = '".date(Y)."'
-      				AND highscore_mon = '".date(m)."'
+				WHERE highscore_year = '".date('Y')."'
+				AND highscore_mon = '".date('m')."'
       				AND highscore_game = '" . $arcade->game_name . "'
     				ORDER BY highscore_score ".$type."
     				LIMIT 0,1";
@@ -545,7 +549,7 @@ if(!empty($game_name))
 //  Add to the Monthly Highscores list
 //
    				$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_player, highscore_score, highscore_date)
-   					VALUES ('".date(Y)."', '".date(m)."', '$game_name', '".addslashes($user_name)."', '".$arcade->score."', '" . time() . "')";
+					VALUES ('".date('Y')."', '".date('m')."', '$game_name', '".addslashes($user_name)."', '".$arcade->score."', '" . time() . "')";
    				if( !$result = $db->sql_query($sql) )
    				{
    					$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'], "", __LINE__, __FILE__, $sql);

@@ -501,7 +501,7 @@ class arcade
     unset($sql);
     $this->message = '';
     
-    if(!$this->score || !$this->game_name || (strtoupper($userdata['username']) == 'TEST'))
+    if(!$this->score || !is_finite((float) $this->score) || !$this->game_name || (strtoupper($userdata['username']) == 'TEST'))
     {
       return false;
     }
@@ -515,9 +515,9 @@ class arcade
     }
     else
     {
-      if(empty($this->arcade_cookie) || (strlen($this->arcade_cookie) <> 32))
+      if(!preg_match('/^[a-f0-9]{32}$/i', (string) $this->arcade_cookie))
       {
-    		$this->message = $lang['no_cookie_data'] . $newline; 
+			return $lang['no_cookie_data'] . $newline;
       }
       $sql = "SELECT * FROM " . iNA_SESSIONS . "
     	   WHERE arcade_hash = '".$this->arcade_cookie."'";
@@ -531,23 +531,33 @@ class arcade
 //
 //  Get the 1st Place Score and User details.
 //
-    $sql = "SELECT g.reverse_list, s.score, s.player_id, a.score as at_score, a.player_id as at_player_id
+    if (!$session_info)
+    {
+      return $lang['session_error'] . $newline;
+    }
+
+    $sql = "SELECT g.game_avail, g.reverse_list, g.score_type, s.score, s.player_id, a.score as at_score, a.player_id as at_player_id
       FROM " . iNA_GAMES . " AS g
       LEFT JOIN " . iNA_SCORES . " AS s on g.game_name = s.game_name
       LEFT JOIN " . iNA_AT_SCORES . " AS a on g.game_name = a.game_name 
-      WHERE s.game_name = '" . $this->game_name . "'
+      WHERE g.game_name = '" . $session_info['game_name'] . "'
       ORDER BY s.score, a.score";
     $result = $db->sql_query($sql);
     if(!$result)
     {
-      $this->message .= $lang['no_game_data'] . $newline;
+      return $this->message . $lang['no_game_data'] . $newline;
     }
     $old_score_info = $db->sql_fetchrowset($result);
     $db->sql_freeresult($result);
+	if (empty($old_score_info))
+	{
+		return $lang['no_game_data'] . $newline;
+	}
+	$this->game_name = $session_info['game_name'];
 //
 //  Check to see if the Game is Available (else we should ignore the call)
 //
-    if(($old_score_info[0]['game_avail'] == 1) || ( $userdata['user_id'] == ANONYMOUS && !$this->arcade_config['games_guest_highscore']))
+    if(($old_score_info[0]['game_avail'] != 1) || ($userdata['user_id'] == ANONYMOUS && !$this->arcade_config['games_guest_highscore']))
     {
       return FALSE;
     }
@@ -609,7 +619,7 @@ class arcade
           $sql = "INSERT INTO " . iNA_SCORES . " (game_name, player_id, player_ip, score, date, time_taken ) VALUES ('".$this->game_name."', ".$userdata['user_id'].", '".decode_ip($userdata['session_ip'])."', ". $this->score . ", '".time()."', '".$this->time_taken."')";
         }
         $result = $db->sql_query($sql);
-        if(!result)
+        if(!$result)
         {
           $this->message .= $lang['no_score_insert'] . $newline;
         }
@@ -634,7 +644,7 @@ class arcade
           $sql = "INSERT INTO " . iNA_AT_SCORES . " (game_name, player_id, player_ip, player_name, score, date, time_taken ) VALUES ('".$this->game_name."', ".$userdata['user_id'].", '".decode_ip($userdata['session_ip'])."', '".addslashes($this->user_name)."', ". $this->score . ", '".time()."', '".$this->time_taken."')";
         }
         $result = $db->sql_query($sql);
-        if(!result)
+        if(!$result)
         {
           $this->message .= $lang['no_score_insert'] . $newline;
         }
@@ -666,8 +676,8 @@ class arcade
 //  Check and Update Monthly Highscore
 //
   		$sql = "SELECT highscore_id, highscore_score FROM " . iNA_HIGHSCORES . "
-  			WHERE highscore_year = '".date(Y)."'
-   				AND highscore_mon = '".date(m)."'
+			WHERE highscore_year = '".date('Y')."'
+				AND highscore_mon = '".date('m')."'
    				AND highscore_game = '" . $this->game_name . "'
   			ORDER BY highscore_score ".$this->sort."
   			LIMIT 0,1";
@@ -681,7 +691,7 @@ class arcade
   		{
 // Add to Highscores list
   			$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_player, highscore_score, highscore_date)
-  				VALUES ('".date(Y)."', '".date(m)."', '".$this->game_name."', '".addslashes($this->get_username($userdata['user_id']))."', '$this->score', '" . time() . "')";
+				VALUES ('".date('Y')."', '".date('m')."', '".$this->game_name."', '".addslashes($this->get_username($userdata['user_id']))."', '$this->score', '" . time() . "')";
   			if( !$result = $db->sql_query($sql) )
   			{
   				$this->message .= $lang['no_score_insert'] . $newline;

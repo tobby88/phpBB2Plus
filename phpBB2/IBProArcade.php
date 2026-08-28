@@ -16,7 +16,7 @@
  **************************************************************************/
 
 define('IN_PHPBB', true);
-if($_GET['phpbb_root_path'])
+if(isset($_GET['phpbb_root_path']))
 {
 	die("Hacking attempt");
 }
@@ -43,10 +43,14 @@ $session_info = $arcade->get_session();
 $log = 'IBProArcade ';
 foreach($HTTP_POST_VARS as $key => $value)
 {
-  $log .= addslashes($key) . '=>' . addslashes($value) . ' ';
+  if(!is_array($value))
+  {
+    $log .= $key . '=>' . $value . ' ';
+  }
 }
+$log = mysqli_real_escape_string($db->db_connect_id, substr($log, 0, 4000));
 $sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-  VALUES ('".$userdata['user_id']."', 'GAME', '$log', '".time()."')";
+  VALUES (".(int) $userdata['user_id'].", 'GAME', '$log', ".time().")";
 $db->sql_query($sql);
 //
 //  Now Process the IBProArcade v3.x Commands
@@ -74,7 +78,7 @@ else if ($do == 'savescore' || $do == 'newscore')
 
   $decodescore = $arcade->score * $session_info['randchar1'] ^ $session_info['randchar2'];
   
-  if($enscore == $decodescore)
+  if(is_finite((float) $arcade->score) && $enscore == $decodescore)
   {  
     $arcade->game_name = $session_info['game_name'];
 
@@ -88,6 +92,6 @@ else if ($do == 'savescore' || $do == 'newscore')
 }
 
 $gen_simple_header = TRUE;
-message_die(GENERAL_MESSAGE, "DEBUG: " . $do . '#' . $enscore . ":" . $decodescore . $lang['newscore_close']);
+message_die(GENERAL_MESSAGE, $lang['newscore_close']);
 
 ?>

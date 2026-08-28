@@ -80,6 +80,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Replaced CrackerTracker's unauthenticated edit-to-unlock emergency console
   with a permanent disabled stub; the token-protected DB Maintenance recovery
   path remains available.
+- Repaired Arcade score persistence and its legacy pnFlashGames bridge: score
+  sessions are now bound to their stored game and validated hash, first scores
+  can be inserted, unavailable games are rejected correctly, monthly dates no
+  longer use PHP 8-fatal bare constants, and saved-game responses are encoded.
 
 ### Repository and update cleanup
 
