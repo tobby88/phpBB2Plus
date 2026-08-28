@@ -70,7 +70,9 @@ class sql_db
 		{
 			// Keep the connection encoding aligned with the UTF-8 source,
 			// templates, language files and fresh-install schema.
-			if (!@mysqli_set_charset($this->db_connect_id, 'utf8mb4') || strtolower(@mysqli_character_set_name($this->db_connect_id)) != 'utf8mb4')
+			if (!@mysqli_set_charset($this->db_connect_id, 'utf8mb4') ||
+				strtolower(@mysqli_character_set_name($this->db_connect_id)) != 'utf8mb4' ||
+				!@mysqli_query($this->db_connect_id, "SET collation_connection = 'utf8mb4_unicode_ci'"))
 			{
 				@mysqli_close($this->db_connect_id);
 				$this->db_connect_id = false;

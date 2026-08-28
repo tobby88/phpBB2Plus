@@ -67,11 +67,12 @@ class sql_db
 		{
 			if (function_exists('mysql_set_charset'))
 			{
-				@mysql_set_charset('utf8', $this->db_connect_id);
+				@mysql_set_charset('utf8mb4', $this->db_connect_id);
+				@mysql_query("SET collation_connection = 'utf8mb4_unicode_ci'", $this->db_connect_id);
 			}
 			else
 			{
-				@mysql_query("SET NAMES 'utf8'", $this->db_connect_id);
+				@mysql_query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'", $this->db_connect_id);
 			}
 
 			if($database != "")
