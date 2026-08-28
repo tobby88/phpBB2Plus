@@ -23,7 +23,8 @@ StopForumSpam option. Existing current configuration values are preserved.
 It also reconciles the public components-and-credits table with the verified
 post-1.53a integrations, including Arcade Rewards API, the responsive styles,
 social-profile fields and the bundled Ruffle runtime, while retaining the
-historical phpBB2 Plus credits.
+historical phpBB2 Plus credits. Existing credit IDs, author email addresses,
+download links and file metadata are preserved when a known entry is updated.
 Incompatible CrackerTracker 4.x tables and user columns are removed when
 present, as required by the original 4.x-to-5.x upgrade instructions; their
 settings and logs cannot be migrated.

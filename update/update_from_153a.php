@@ -366,8 +366,7 @@ foreach ($credit_rows as $credit)
 {
 	$values = array();
 	foreach ($credit as $value) { $values[] = "'" . mysqli_real_escape_string($connection, $value) . "'"; }
-	$operations[] = "DELETE FROM $hacks_table WHERE hack_name = " . $values[0];
-	$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0)";
+	$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0) ON DUPLICATE KEY UPDATE hack_desc = VALUES(hack_desc), hack_author = VALUES(hack_author), hack_author_website = VALUES(hack_author_website), hack_version = VALUES(hack_version)";
 }
 
 // CrackerTracker 5 is a complete redevelopment. Its official 4.x-to-5.x
