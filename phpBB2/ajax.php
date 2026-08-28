@@ -37,6 +37,11 @@ init_userprefs($userdata);
 // End session management
 //
 
+function ajax_scalar_value($source, $key, $default = '')
+{
+	return (isset($source[$key]) && !is_array($source[$key])) ? $source[$key] : $default;
+}
+
 // Get SID and check it
 if (isset($HTTP_POST_VARS['sid']) || isset($HTTP_GET_VARS['sid']))
 {
@@ -46,7 +51,7 @@ else
 {
 	$sid = '';
 }
-if ($sid != $userdata['session_id'])
+if (!is_string($sid) || !hash_equals((string) $userdata['session_id'], $sid))
 {
 	$result_ar = array(
 		'result' => AJAX_ERROR,
@@ -63,6 +68,19 @@ if (isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']))
 else
 {
 	$mode = '';
+}
+if (!is_string($mode))
+{
+	$mode = '';
+}
+
+$write_modes = array('edit_post_subject', 'edit_post_text', 'vote_poll', 'watch_topic', 'lock_topic', 'mark_topic', 'mark_forum');
+if (in_array($mode, $write_modes, true) && $_SERVER['REQUEST_METHOD'] !== 'POST')
+{
+	AJAX_message_die(array(
+		'result' => AJAX_ERROR,
+		'error_msg' => 'This action requires POST'
+	));
 }
 
 // Send AJAX headers - this is to prevent browsers from caching possible error pages
@@ -91,7 +109,7 @@ if ($mode == 'edit_post_subject')
 	{
 		$post_id = 0;
 	}
-	$subject = (isset($HTTP_POST_VARS['subject'])) ? ajax_htmlspecialchars(trim(utf8_rawurldecode($HTTP_POST_VARS['subject']))) : '';
+	$subject = ajax_htmlspecialchars(trim(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject'))));
 	
 	// Check if data was submitted
 	if (empty($post_id))
@@ -156,7 +174,7 @@ if ($mode == 'edit_post_subject')
 	}
 	
 	// Edit post subject and topic subject (if necessary)
-	$topic_title = str_replace("\'", "''", $subject);
+	$topic_title = $db->sql_escape($subject);
 	if ($row['topic_first_post_id'] == $post_id)
 	{
 		$sql = 'UPDATE '. TOPICS_TABLE ." 
@@ -215,7 +233,7 @@ if ($mode == 'edit_post_subject')
 		{
 			$row['username'] = $row['post_username'];
 		}
-		$editmessage = '<br /><br />'. sprintf($l_edit_time_total, $row['username'], create_date($board_config['default_dateformat'], $row['post_edit_time'], $board_config['board_timezone']), $row['post_edit_count']);
+		$editmessage = '<br /><br />'. sprintf($l_edit_time_total, phpbb_profile_text($row['username']), create_date($board_config['default_dateformat'], $row['post_edit_time'], $board_config['board_timezone']), $row['post_edit_count']);
 	}
 	else
 	{
@@ -223,7 +241,7 @@ if ($mode == 'edit_post_subject')
 	}
 	
 	// Truncate the topic title...just like it will be in the database
-	$subject = substr(stripslashes($subject), 0, 60);
+	$subject = substr($subject, 0, 60);
 	
 	// Refresh search index for this post (subject only)
 	remove_search_post($post_id, True, False);
@@ -264,7 +282,7 @@ else if ($mode == 'edit_post_text')
 	{
 		$post_id = 0;
 	}
-	$message = (isset($HTTP_POST_VARS['message'])) ? utf8_rawurldecode($HTTP_POST_VARS['message']) : '';
+	$message = utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'message'));
 	
 	// This is only needed on the search page
 	if (isset($HTTP_POST_VARS['return_chars']) || isset($HTTP_GET_VARS['return_chars']))
@@ -279,7 +297,7 @@ else if ($mode == 'edit_post_text')
 	if (isset($HTTP_GET_VARS['highlight']) || isset($HTTP_POST_VARS['highlight']))
 	{
 		// Split words and phrases
-		$highlight_string = (isset($HTTP_POST_VARS['highlight'])) ? $HTTP_POST_VARS['highlight'] : $HTTP_GET_VARS['highlight'];
+		$highlight_string = isset($HTTP_POST_VARS['highlight']) ? ajax_scalar_value($HTTP_POST_VARS, 'highlight') : ajax_scalar_value($HTTP_GET_VARS, 'highlight');
 		$words = explode(' ', trim(ajax_htmlspecialchars(utf8_rawurldecode($highlight_string))));
 	
 		for($i = 0; $i < sizeof($words); $i++)
@@ -350,9 +368,11 @@ else if ($mode == 'edit_post_text')
 	// Prepare message for posting and edit post text
 	$bbcode_uid = ($row['enable_bbcode']) ? make_bbcode_uid() : '';
 	$message = prepare_message(trim($message), $row['enable_html'], $row['enable_bbcode'], $row['enable_smilies'], $bbcode_uid);
+	$message = $row['enable_html'] ? stripslashes($message) : $message;
+	$message_sql = $db->sql_escape($message);
 	
-	$sql = 'UPDATE '. POSTS_TEXT_TABLE ." 
-	        SET post_text = '$message', bbcode_uid = '$bbcode_uid' 
+	$sql = 'UPDATE '. POSTS_TEXT_TABLE ."
+	        SET post_text = '$message_sql', bbcode_uid = '$bbcode_uid'
 	        WHERE post_id = $post_id";
 	if (!$db->sql_query($sql))
 	{
@@ -393,14 +413,14 @@ else if ($mode == 'edit_post_text')
 		{
 			$row['username'] = $row['post_username'];
 		}
-		$editmessage = '<br /><br />'. sprintf($l_edit_time_total, $row['username'], create_date($board_config['default_dateformat'], $row['post_edit_time'], $board_config['board_timezone']), $row['post_edit_count']);
+		$editmessage = '<br /><br />'. sprintf($l_edit_time_total, phpbb_profile_text($row['username']), create_date($board_config['default_dateformat'], $row['post_edit_time'], $board_config['board_timezone']), $row['post_edit_count']);
 	}
 	else
 	{
 		$editmessage = '';
 	}
 	
-	$raw_message = $message = stripslashes($message);
+	$raw_message = $message;
 	
 	// Refresh search index for this post (message only)
 	remove_search_post($post_id, False);
@@ -555,11 +575,15 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 		if ($can_vote)
 		{
 			$vote_id = intval($vote_info['vote_id']);
+			$vote_user_id = (int) $userdata['user_id'];
+			$vote_identity = ($vote_user_id == ANONYMOUS)
+				? "vote_user_id = " . ANONYMOUS . " AND vote_user_ip = '" . $db->sql_escape($user_ip) . "'"
+				: "vote_user_id = $vote_user_id";
 		
 			// Check if the user already voted
 			$sql = 'SELECT * FROM '. VOTE_USERS_TABLE ." 
 			        WHERE vote_id = $vote_id 
-			        AND vote_user_id = ". $userdata['user_id'];
+			        AND $vote_identity";
 			if (!($result = $db->sql_query($sql)))
 			{
 				$result_ar = array(
@@ -575,28 +599,36 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 
 			if (!$row && ($mode == 'vote_poll'))
 			{
-				$sql = 'UPDATE '. VOTE_RESULTS_TABLE ." 
-				        SET vote_result = vote_result + 1 
-				        WHERE vote_id = $vote_id 
-				        AND vote_option_id = $vote_option_id";
-				if (!$db->sql_query($sql, BEGIN_TRANSACTION))
+				$vote_ip = $db->sql_escape($user_ip);
+				$sql = 'INSERT INTO '. VOTE_USERS_TABLE ." (vote_id, vote_user_id, vote_user_ip)
+					SELECT $vote_id, $vote_user_id, '$vote_ip'
+					WHERE NOT EXISTS (
+						SELECT 1 FROM " . VOTE_USERS_TABLE . "
+						WHERE vote_id = $vote_id AND $vote_identity
+					)";
+				if (!$db->sql_query($sql))
 				{
 					$result_ar = array(
 						'result' => AJAX_ERROR,
-						'error_msg' => 'Could not update poll result (1):'. $mode
+						'error_msg' => 'Could not record poll voter'
 					);
 					AJAX_message_die($result_ar);
 				}
-			
-				$sql = 'INSERT INTO '. VOTE_USERS_TABLE ." (vote_id, vote_user_id, vote_user_ip) 
-				        VALUES ($vote_id, ". $userdata['user_id'] .", '$user_ip')";
-				if (!$db->sql_query($sql, END_TRANSACTION))
+
+				if ($db->sql_affectedrows() == 1)
 				{
-					$result_ar = array(
-						'result' => AJAX_ERROR,
-						'error_msg' => 'Could not update poll result (2):'. $mode
-					);
-					AJAX_message_die($result_ar);
+					$sql = 'UPDATE '. VOTE_RESULTS_TABLE ."
+						SET vote_result = vote_result + 1
+						WHERE vote_id = $vote_id
+						AND vote_option_id = $vote_option_id";
+					if (!$db->sql_query($sql))
+					{
+						$db->sql_query('DELETE FROM ' . VOTE_USERS_TABLE . " WHERE vote_id = $vote_id AND $vote_identity");
+						AJAX_message_die(array(
+							'result' => AJAX_ERROR,
+							'error_msg' => 'Could not update poll result'
+						));
+					}
 				}
 				$can_vote = False;
 			}
@@ -1251,7 +1283,7 @@ else if ($mode == 'checkusername_post')
 	
 	if (isset($HTTP_GET_VARS['username']) || isset($HTTP_POST_VARS['username']))
 	{
-		$username = (isset($HTTP_POST_VARS['username'])) ? utf8_rawurldecode($HTTP_POST_VARS['username']) : utf8_rawurldecode($HTTP_GET_VARS['username']);
+		$username = isset($HTTP_POST_VARS['username']) ? utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username')) : utf8_rawurldecode(ajax_scalar_value($HTTP_GET_VARS, 'username'));
 	}
 	else
 	{
@@ -1291,7 +1323,7 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 	// Get username
 	if (isset($HTTP_GET_VARS['username']) || isset($HTTP_POST_VARS['username']))
 	{
-		$username = (isset($HTTP_POST_VARS['username'])) ? utf8_rawurldecode($HTTP_POST_VARS['username']) : utf8_rawurldecode($HTTP_GET_VARS['username']);
+		$username = isset($HTTP_POST_VARS['username']) ? utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username')) : utf8_rawurldecode(ajax_scalar_value($HTTP_GET_VARS, 'username'));
 	}
 	else
 	{
@@ -1431,7 +1463,7 @@ else if ($mode == 'checkemail')
 	
 	if (isset($HTTP_GET_VARS['email']) || isset($HTTP_POST_VARS['email']))
 	{
-		$email = (isset($HTTP_POST_VARS['email'])) ? stripslashes(utf8_rawurldecode($HTTP_POST_VARS['email'])) : stripslashes(utf8_rawurldecode($HTTP_GET_VARS['email']));
+		$email = isset($HTTP_POST_VARS['email']) ? stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'email'))) : stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_GET_VARS, 'email')));
 	}
 	else
 	{
@@ -1515,9 +1547,9 @@ else if ($mode == 'post_preview')
 		$user_allowsmile = $userdata['user_allowsmile'];
 	}
 	
-	$username = (isset($HTTP_POST_VARS['username'])) ? ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode($HTTP_POST_VARS['username'])))) : $username;
-	$subject = (isset($HTTP_POST_VARS['subject'])) ? ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode($HTTP_POST_VARS['subject'])))) : '';
-	$message = (isset($HTTP_POST_VARS['message'])) ? ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode($HTTP_POST_VARS['message'])))) : '';
+	$username = isset($HTTP_POST_VARS['username']) ? ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username'))))) : $username;
+	$subject = ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject')))));
+	$message = ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'message')))));
 
 	if (!$board_config['allow_html'])
 	{
@@ -1639,9 +1671,9 @@ else if ($mode == 'pm_preview')
 	
 	$user_sig = $userdata['user_sig'];
 	
-	$to_username = (isset($HTTP_POST_VARS['username']) ) ? trim(ajax_htmlspecialchars(stripslashes(utf8_rawurldecode($HTTP_POST_VARS['username'])))) : '';
-	$subject = ( isset($HTTP_POST_VARS['subject']) ) ? trim(ajax_htmlspecialchars(stripslashes(utf8_rawurldecode($HTTP_POST_VARS['subject'])))) : '';
-	$message = ( isset($HTTP_POST_VARS['message']) ) ? trim(utf8_rawurldecode($HTTP_POST_VARS['message'])) : '';
+	$to_username = trim(ajax_htmlspecialchars(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username')))));
+	$subject = trim(ajax_htmlspecialchars(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject')))));
+	$message = trim(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'message')));
 
 	if (!$board_config['allow_html'])
 	{

@@ -129,6 +129,10 @@ changes consolidated after that baseline without implying active maintenance.
   posts, AJAX edits, print views, calendars, staff signatures, knowledge-base
   articles, acronyms and PAFileDB template compilation with non-executing
   replacements that preserve HTML tags.
+- Made all state-changing AJAX actions POST-only, strengthened their session
+  comparison, rejected array-shaped scalar input, escaped inline-edit SQL and
+  fixed anonymous poll identity plus duplicate-vote recording order. The
+  bundled JavaScript clients now use the matching request methods.
 
 ### Repository and update cleanup
 

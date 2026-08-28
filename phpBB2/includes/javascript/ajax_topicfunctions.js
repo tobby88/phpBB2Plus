@@ -554,7 +554,7 @@ function AJAXVotePoll(topic_id)
 		params += '&sid=' + S_SID;
 	}
 	params += '&'+ POST_TOPIC_URL + '=' + topic_id + '&vote_option_id=' + sel_poll_option;
-	return !loadXMLDoc(url, params, 'GET', 'error_req_change');
+	return !loadXMLDoc(url, params, 'POST', 'error_req_change');
 }
 
 function AJAXViewPollResult(topic_id)
@@ -632,7 +632,7 @@ function AJAXWatchTopic(topic_id, start, watch_status)
 		params += '&sid=' + S_SID;
 	}
 	params += '&'+ POST_TOPIC_URL + '=' + topic_id + '&watch_status=' + watch_status + '&start=' + start;
-	return !loadXMLDoc(url, params, 'GET', 'watch_topic_change');
+	return !loadXMLDoc(url, params, 'POST', 'watch_topic_change');
 }
 
 function watch_topic_change()
@@ -739,7 +739,7 @@ function AJAXLockTopic(topic_id, lock_status)
 		params += '&sid=' + S_SID;
 	}
 	params += '&'+ POST_TOPIC_URL + '=' + topic_id + '&lock_status=' + lock_status;
-	return !loadXMLDoc(url, params, 'GET', 'lock_topic_change');
+	return !loadXMLDoc(url, params, 'POST', 'lock_topic_change');
 }
 
 function lock_topic_change()
@@ -855,7 +855,7 @@ function AJAXMarkTopic(topic_id)
 		params += '&sid=' + S_SID;
 	}
 	params += '&'+ POST_TOPIC_URL + '=' + topic_id;
-	return !loadXMLDoc(url, params, 'GET', 'mark_topic_change');
+	return !loadXMLDoc(url, params, 'POST', 'mark_topic_change');
 }
 
 function mark_topic_change()

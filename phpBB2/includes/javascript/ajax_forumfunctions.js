@@ -36,7 +36,7 @@ function AJAXMarkForum(forum_id)
 		params += '&sid=' + S_SID;
 	}
 	params += '&' + POST_FORUM_URL + '=' + forum_id;
-	return !loadXMLDoc(url, params, 'GET', 'mark_forum_change');
+	return !loadXMLDoc(url, params, 'POST', 'mark_forum_change');
 }
 
 function mark_forum_change()
