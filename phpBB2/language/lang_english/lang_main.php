@@ -573,6 +573,8 @@ $lang['File_no_data'] = 'The file at the URL you gave contains no data';
 $lang['No_connection_URL'] = 'A connection could not be made to the URL you gave';
 $lang['Incomplete_URL'] = 'The URL you entered is incomplete';
 $lang['Wrong_remote_avatar_format'] = 'The URL of the remote avatar is not valid';
+$lang['Remote_avatar_upload_disabled'] = 'Uploading an avatar from a remote URL is disabled for security reasons. Upload the image from your device instead.';
+$lang['Upload_archive_too_large'] = 'The uploaded archive contains too many files or would expand beyond the permitted upload size.';
 $lang['No_send_account_inactive'] = 'Sorry, but your password cannot be retrieved because your account is currently inactive. Please contact the forum administrator for more information.';
 
 $lang['Always_smile'] = 'Always enable Smilies';

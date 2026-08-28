@@ -94,14 +94,19 @@ function user_avatar_gallery($mode, &$error, &$error_msg, $avatar_filename, $ava
 function user_avatar_url($mode, &$error, &$error_msg, $avatar_filename)
 {
 	global $lang;
-	if ( !preg_match('#^(http)|(ftp):\/\/#i', $avatar_filename) )
+	$avatar_filename = html_entity_decode(trim($avatar_filename), ENT_QUOTES, 'UTF-8');
+	if ( !preg_match('#^https?://#i', $avatar_filename) )
 	{
-		$avatar_filename = 'http://' . $avatar_filename;
+		$avatar_filename = 'https://' . $avatar_filename;
 	}
 
 	$avatar_filename = substr($avatar_filename, 0, 100);
+	$url_parts = @parse_url($avatar_filename);
 
-	if ( !preg_match("#^((ht|f)tp://)([^ \?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png))$)#is", $avatar_filename) )
+	if ( !$url_parts || empty($url_parts['host']) || empty($url_parts['path']) ||
+		!in_array(strtolower($url_parts['scheme']), array('http', 'https'), true) ||
+		!preg_match('/\.(jpg|jpeg|gif|png)$/i', $url_parts['path']) ||
+		preg_match('/[\x00-\x20\x7f]/', $avatar_filename) )
 	{
 		$error = true;
 		$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['Wrong_remote_avatar_format'] : $lang['Wrong_remote_avatar_format'];
@@ -120,75 +125,14 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 
 	$width = $height = 0;
 	$type = '';
-
-	if ( $avatar_mode == 'remote' && preg_match('/^(http:\/\/)?([\w\-\.]+)\:?([0-9]*)\/([^ \?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))$/', $avatar_filename, $url_ary) )
+	if ($avatar_mode == 'remote')
 	{
-		if ( empty($url_ary[4]) )
-		{
-			$error = true;
-			$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['Incomplete_URL'] : $lang['Incomplete_URL'];
-			return;
-		}
-
-		$base_get = '/' . $url_ary[4];
-		$port = ( !empty($url_ary[3]) ) ? $url_ary[3] : 80;
-
-		if ( !($fsock = @fsockopen($url_ary[2], $port, $errno, $errstr)) )
-		{
-			$error = true;
-			$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['No_connection_URL'] : $lang['No_connection_URL'];
-			return;
-		}
-
-		@fputs($fsock, "GET $base_get HTTP/1.1\r\n");
-		@fputs($fsock, "HOST: " . $url_ary[2] . "\r\n");
-		@fputs($fsock, "Connection: close\r\n\r\n");
-
-		unset($avatar_data);
-		while( !@feof($fsock) )
-		{
-			$avatar_data .= @fread($fsock, $board_config['avatar_filesize']);
-		}
-		@fclose($fsock);
-
-		if (!preg_match('#Content-Length\: ([0-9]+)[^ /][\s]+#i', $avatar_data, $file_data1) || !preg_match('#Content-Type\: image/[x\-]*([a-z]+)[\s]+#i', $avatar_data, $file_data2))
-		{
-			$error = true;
-			$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['File_no_data'] : $lang['File_no_data'];
-			return;
-		}
-
-		$avatar_filesize = $file_data1[1]; 
-		$avatar_filetype = $file_data2[1]; 
-
-		if ( !$error && $avatar_filesize > 0 && $avatar_filesize < $board_config['avatar_filesize'] )
-		{
-			$avatar_data = substr($avatar_data, strlen($avatar_data) - $avatar_filesize, $avatar_filesize);
-
-			$tmp_path = ( !@$ini_val('safe_mode') ) ? '/tmp' : './' . $board_config['avatar_path'] . '/tmp';
-			$tmp_filename = tempnam($tmp_path, uniqid(rand()) . '-');
-
-			$fptr = @fopen($tmp_filename, 'wb');
-			$bytes_written = @fwrite($fptr, $avatar_data, $avatar_filesize);
-			@fclose($fptr);
-
-			if ( $bytes_written != $avatar_filesize )
-			{
-				@unlink($tmp_filename);
-				message_die(GENERAL_ERROR, 'Could not write avatar file to local storage. Please contact the board administrator with this message', '', __LINE__, __FILE__);
-			}
-
-			list($width, $height, $type) = @getimagesize($tmp_filename);
-		}
-		else
-		{
-			$l_avatar_size = sprintf($lang['Avatar_filesize'], round($board_config['avatar_filesize'] / 1024));
-
-			$error = true;
-			$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $l_avatar_size : $l_avatar_size;
-		}
+		$error = true;
+		$error_msg = (!empty($error_msg) ? $error_msg . '<br />' : '') . $lang['Remote_avatar_upload_disabled'];
+		return;
 	}
-	else if ( ( file_exists(@phpbb_realpath($avatar_filename)) ) && preg_match('/\.(jpg|jpeg|gif|png)$/i', $avatar_realname) )
+
+	if ( ( file_exists(@phpbb_realpath($avatar_filename)) ) && preg_match('/\.(jpg|jpeg|gif|png)$/i', $avatar_realname) )
 	{
 		if ( $avatar_filesize <= $board_config['avatar_filesize'] && $avatar_filesize > 0 )
 		{
@@ -286,7 +230,7 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 			$move_file($avatar_filename, './' . $board_config['avatar_path'] . "/$new_filename");
 		}
 
-		@chmod('./' . $board_config['avatar_path'] . "/$new_filename", 0777);
+		@chmod('./' . $board_config['avatar_path'] . "/$new_filename", 0664);
 
 		$avatar_sql = ( $mode == 'editprofile' ) ? ", user_avatar = '$new_filename', user_avatar_type = " . USER_AVATAR_UPLOAD : "'$new_filename', " . USER_AVATAR_UPLOAD;
 	}

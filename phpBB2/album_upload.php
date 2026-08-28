@@ -604,14 +604,14 @@ else
 	$move_file($filetmp, ALBUM_UPLOAD_PATH . $pic_filename);
 	@unlink($filetmp);
 
-	@chmod(ALBUM_UPLOAD_PATH . $pic_filename, 0777);
+	@chmod(ALBUM_UPLOAD_PATH . $pic_filename, 0664);
 
 	if ($album_config['gd_version'] == 0)
 	{
 		$move_file($thumbtmp, ALBUM_CACHE_PATH . $pic_thumbnail);
 		@unlink($thumbtmp);
 
-		@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0777);
+		@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
 	}
 
 
@@ -719,7 +719,7 @@ else
 					break;
 			}
 
-			@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0777);
+			@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
 
 		} // End IF $gd_errored
 

@@ -24,14 +24,20 @@ function get_fields($where_clause = '', $expect_multiple = true, $selection = '*
 
 function text_to_column($text)
 {
-  $text = utf8_decode($text);
-  $pattern = array("#&quot;#","#&amp;#","#&lt;#","#&gt;#");
-  $replace = array('"','&','<','>');
-  $text = preg_replace($pattern,$replace,$text);
+  if (function_exists('mb_convert_encoding'))
+  {
+    $text = mb_convert_encoding($text, 'ISO-8859-1', 'UTF-8');
+  }
+  else if (function_exists('iconv'))
+  {
+    $converted = @iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text);
+    $text = ($converted === false) ? $text : $converted;
+  }
+  $pattern = array("#&quot;#", "#&amp;#", "#&lt;#", "#&gt;#");
+  $replace = array('"', '&', '<', '>');
+  $text = preg_replace($pattern, $replace, $text);
   $pattern = "#[\s\*\$\(\)!\.,\-\?\/\\\[\]\{\};\:'´`\"&\^+=<>\|]#";
-  $replace = "_";
-  $text = preg_replace($pattern,$replace,$text);
-  return strtolower($text);
+  return strtolower(preg_replace($pattern, '_', $text));
 }
 
 function displayable_field_data($data, $type)

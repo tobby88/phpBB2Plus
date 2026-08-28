@@ -432,6 +432,12 @@ if( !empty($_POST['unblock_account']) )
 
 		$user_avatar_remoteurl = ( !empty($_POST['avatarremoteurl']) ) ? trim( $_POST['avatarremoteurl'] ) : '';
 		$user_avatar_url = ( !empty($_POST['avatarurl']) ) ? trim( $_POST['avatarurl'] ) : '';
+		if ($user_avatar_url !== '')
+		{
+			$error = true;
+			$error_msg = (!empty($error_msg) ? $error_msg . '<br />' : '') . $lang['Remote_avatar_upload_disabled'];
+			$user_avatar_url = '';
+		}
 		$user_avatar_loc = ( $HTTP_POST_FILES['avatar']['tmp_name'] != "none") ? $HTTP_POST_FILES['avatar']['tmp_name'] : '';
 		$user_avatar_name = ( !empty($HTTP_POST_FILES['avatar']['name']) ) ? $HTTP_POST_FILES['avatar']['name'] : '';
 		$user_avatar_size = ( !empty($HTTP_POST_FILES['avatar']['size']) ) ? $HTTP_POST_FILES['avatar']['size'] : 0;

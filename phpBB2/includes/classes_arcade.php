@@ -840,11 +840,11 @@ class arcade
     else if(isset($HTTP_POST_VARS[$var]))
     {
       $passed_var = $HTTP_POST_VARS[$var];
-      if($quiet == false && ($this->arcade_config['games_use_log'] == 1))
+      if(!is_array($passed_var) && $quiet == false && ($this->arcade_config['games_use_log'] == 1))
       {
+		$log_value = mysqli_real_escape_string($db->db_connect_id, $var . '=>' . $passed_var);
         $post_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-          VALUES ('".$userdata['user_id']."', 'POST', '$var=>$passed_var', '".time()."')";
-        echo($sql);
+          VALUES (" . (int) $userdata['user_id'] . ", 'POST', '$log_value', " . time() . ")";
         $db->sql_query($post_sql);
       }
     }
@@ -852,6 +852,10 @@ class arcade
     {
       return (is_int($type)) ? 0 : FALSE;
     }
+	if (is_array($passed_var) && !is_array($type))
+	{
+		return is_int($type) ? 0 : false;
+	}
 //
 //  Check that we have the correct type passed to us from the URL
 //
@@ -1075,30 +1079,39 @@ class arcade
   
     $this->user_id        = $userdata['user_id'];
     $this->arcade_hash    = $this->pass_var('arcade_hash', '');
-    $this->arcade_cookie  = $_COOKIE[$board_config['cookie_name'].'_arcade'];
+    $cookie_name = $board_config['cookie_name'] . '_arcade';
+    $this->arcade_cookie  = isset($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : '';
     
     if(!empty($this->arcade_hash))
     {
-     	if(strlen($this->arcade_hash) <> 32)
-     	{
-     		$this->message_die(GENERAL_ERROR, $lang['incorrect_game_info_data'] . '[' . $this->arcade_hash . ']'. $lang['newscore_close']);
-     	}
-     	$sql = "SELECT * FROM " . iNA_SESSIONS . "
-     		WHERE arcade_hash = '" . $this->arcade_hash . "'";
+		if(!preg_match('/^[a-f0-9]{32}$/i', $this->arcade_hash))
+		{
+			$this->message_die(GENERAL_ERROR, $lang['incorrect_game_info_data'] . $lang['newscore_close']);
+		}
+		if ($this->user_id == ANONYMOUS && !hash_equals((string) $this->arcade_cookie, (string) $this->arcade_hash))
+		{
+			$this->message_die(GENERAL_ERROR, $lang['incorrect_game_info_data'] . $lang['newscore_close']);
+		}
+		$sql = "SELECT * FROM " . iNA_SESSIONS . "
+			WHERE arcade_hash = '" . $this->arcade_hash . "'" .
+			(($this->user_id != ANONYMOUS) ? " AND user_id = " . (int) $this->user_id : '') . "
+			LIMIT 1";
     }
     else if($this->user_id != ANONYMOUS)
     {
       $sql = "SELECT * FROM " . iNA_SESSIONS . "
-     	   WHERE user_id = " . $this->user_id;
+		   WHERE user_id = " . (int) $this->user_id . "
+		   LIMIT 1";
     }
     else
     {
-      if(empty($this->arcade_cookie) || (strlen($this->arcade_cookie) <> 32))
+      if(!preg_match('/^[a-f0-9]{32}$/i', $this->arcade_cookie))
       {
         $this->message_die(GENERAL_ERROR, $lang['no_cookie_data'] . $lang['newscore_close']); 
       }
       $sql = "SELECT * FROM " . iNA_SESSIONS . "
-    	   WHERE arcade_hash = '" . $this->arcade_cookie . "'";
+		   WHERE arcade_hash = '" . $this->arcade_cookie . "'
+		   LIMIT 1";
     }
     if(!$result = $db->sql_query($sql)) 
     {

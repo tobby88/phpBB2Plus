@@ -575,6 +575,8 @@ $lang['File_no_data'] = 'Die angegebene Datei enthält keine Daten';
 $lang['No_connection_URL'] = 'Es konnte keine Verbindung zur angegebenen Datei hergestellt werden';
 $lang['Incomplete_URL'] = 'Die angegebene URL ist unvollständig';
 $lang['Wrong_remote_avatar_format'] = 'Das Format des Avatars ist nicht gültig';
+$lang['Remote_avatar_upload_disabled'] = 'Das Hochladen eines Avatars von einer externen URL ist aus Sicherheitsgründen deaktiviert. Lade das Bild stattdessen von deinem Gerät hoch.';
+$lang['Upload_archive_too_large'] = 'Das hochgeladene Archiv enthält zu viele Dateien oder würde entpackt die erlaubte Upload-Größe überschreiten.';
 $lang['No_send_account_inactive'] = 'Sorry, aber ein neues Passwort kann im Moment nicht gesendet werden, da dein Account derzeit noch inaktiv ist. Bitte kontaktiere den Administrator für weitere Informationen.';
 
 $lang['Always_smile'] = 'Smilies immer aktivieren';

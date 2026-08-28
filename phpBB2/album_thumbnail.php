@@ -271,7 +271,7 @@ else
 					break;
 			}
 
-			@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0777);
+			@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
 		}
 
 

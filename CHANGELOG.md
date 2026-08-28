@@ -27,6 +27,20 @@ changes consolidated after that baseline without implying active maintenance.
 - Removed stray patch-prefix characters that made the fresh-install Arcade
   schema and seed SQL invalid, and extended the updater self-test to reject a
   recurrence.
+- Blocked server-side script execution in attachment, avatar, album and
+  PAFiledb upload directories, and stopped making uploaded or generated image
+  files world-writable.
+- Disabled the legacy "upload avatar from URL" feature, whose unbounded socket
+  client could reach arbitrary hosts, while retaining safe external-avatar
+  links over HTTP or HTTPS and ordinary local uploads.
+- Added file-count and expanded-size limits before extracting Nuffload ZIP
+  uploads to reduce archive-bomb exposure.
+- Bound Arcade score sessions to the current logged-in player (or the matching
+  guest cookie), validated session hashes, rejected array input on scalar
+  fields and escaped Arcade request-log values.
+- Replaced the remaining executable regular expressions, corrected obsolete
+  PHP argument order in database backup generation and replaced removed
+  `utf8_decode()` use while preserving existing custom-profile column names.
 
 ### Repository and update cleanup
 

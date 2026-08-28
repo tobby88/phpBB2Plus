@@ -165,8 +165,29 @@ if (isset($_REQUEST['psid']))
 		for($i=0 ; $i < $k ; $i++)
 		{
 			$archive = new PclZip($path_to_bin . $file['tmp_name'][$i]);
-			$list = $archive->extract(PCLZIP_OPT_PATH, $path_to_bin . "tmp",
-																PCLZIP_OPT_REMOVE_ALL_PATH);
+			$archive_info = $archive->listContent();
+			$archive_files = 0;
+			$archive_size = 0;
+			$archive_limit = max(1, min(50, intval($album_config['max_uploads'])));
+			$archive_size_limit = max(1, intval($album_config['max_file_size'])) * $archive_limit;
+			$list = false;
+			if (is_array($archive_info))
+			{
+				foreach ($archive_info as $archive_entry)
+				{
+					if (empty($archive_entry['folder']))
+					{
+						$archive_files++;
+						$archive_size += max(0, intval($archive_entry['size']));
+					}
+				}
+				if ($archive_files > $archive_limit || $archive_size > $archive_size_limit)
+				{
+					message_die(GENERAL_ERROR, $lang['Upload_archive_too_large']);
+				}
+				$list = $archive->extract(PCLZIP_OPT_PATH, $path_to_bin . "tmp",
+															PCLZIP_OPT_REMOVE_ALL_PATH);
+			}
 			if ($list)
 			{
 				@unlink($path_to_bin . $file['tmp_name'][$i]);
@@ -583,7 +604,7 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 			$type = 'image/png';
 			break;
 	}
-	@chmod($image_file_name, 0777);
+	@chmod($image_file_name, 0664);
 	imagedestroy($src);
 	imagedestroy($resize);
 	return $type;

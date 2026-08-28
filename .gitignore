@@ -15,8 +15,13 @@
 !/phpBB2/album_mod/upload/.htaccess
 !/phpBB2/album_mod/upload/index.html
 /phpBB2/files/*
+!/phpBB2/files/.htaccess
 !/phpBB2/files/index.php
+!/phpBB2/files/thumbs/
+/phpBB2/files/thumbs/*
+!/phpBB2/files/thumbs/.htaccess
 /phpBB2/images/avatars/*
+!/phpBB2/images/avatars/.htaccess
 !/phpBB2/images/avatars/index.htm
 /phpBB2/pafiledb/uploads/*
 !/phpBB2/pafiledb/uploads/.htaccess

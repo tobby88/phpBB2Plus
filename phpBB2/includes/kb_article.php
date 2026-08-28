@@ -418,7 +418,7 @@ if ( !defined('IN_PHPBB') )
 		//
 //		$bbcode_uid = $row['bbcode_uid'];
 //		$article_toc = preg_replace('/\:[0-9a-z\:]+\]/si', ']', $article_toc);
-		$article_toc = preg_replace("/\[(\S+)\]/e", "", $article_toc);
+		$article_toc = preg_replace("/\[(\S+)\]/", "", $article_toc);
 
 //				$txt = preg_replace("/<a href=\"(.*)\">(.*)<\/a>/i", "\\2 (\\1)", $txt);		
 		$article_toc = make_clickable($article_toc);

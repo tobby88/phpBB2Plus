@@ -290,7 +290,7 @@ else
 					break;
 			}
 
-			@chmod(ALBUM_MED_CACHE_PATH . $pic_thumbnail, 0777);
+			@chmod(ALBUM_MED_CACHE_PATH . $pic_thumbnail, 0664);
 		}
 
 
