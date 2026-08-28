@@ -295,10 +295,12 @@ $filename = eregi_replace ("\(|\)|;", "", $filename);
 $filename = eregi_replace ("\[|\]", "", $filename);
 $filename = eregi_replace ("(-)+", "-", $filename);
 $filename = str_replace ($search, $replace, $filename);
-$filename = $filename.'.txt';
+$filename = preg_replace('/[^a-z0-9._-]+/i', '-', str_replace(array("\r", "\n", "\0"), '', $filename));
+$filename = trim(substr($filename, 0, 180), '.-_');
+$filename = ($filename !== '' ? $filename : 'topic') . '.txt';
    header("Cache-control: private"); // another fix for IE
-   header("Content-Type: text/x-delimtext; name=$filename");
+   header('Content-Type: text/plain; charset=UTF-8');
    header("Content-Length: ".strlen($soubor));
-   header("Content-Disposition: attachment; filename=$filename");
+   header('Content-Disposition: attachment; filename="' . $filename . '"');
 echo $soubor;
 ?>

@@ -4,151 +4,9 @@ define('IN_PHPBB', 'true');
 $phpbb_root_path = './';
 include_once($phpbb_root_path . 'includes/php_compat.php');
 
-//-----------------------------------------------------------
-/* delete >>
-include($phpbb_root_path . 'extension.inc');
-include($phpbb_root_path . 'common.'.$phpEx);
-
-$userdata = session_pagestart($user_ip, PAGE_INDEX, $session_length);
-init_userprefs($userdata);
-
-<< delete || add >> */
-
-error_reporting  (E_ERROR | E_WARNING | E_PARSE); // This will NOT report uninitialized variables
-set_magic_quotes_runtime(0); // Disable magic_quotes_runtime
-
-// PHP5 with register_long_arrays off?
-if (@phpversion() >= '5.0.0' && (!@ini_get('register_long_arrays') || @ini_get('register_long_arrays') == '0' || strtolower(@ini_get('register_long_arrays')) == 'off'))
-{
-	$HTTP_POST_VARS = $_POST;
-	$HTTP_GET_VARS = $_GET;
-	$HTTP_SERVER_VARS = $_SERVER;
-	$HTTP_COOKIE_VARS = $_COOKIE;
-	$HTTP_ENV_VARS = $_ENV;
-	$HTTP_POST_FILES = $_FILES;
-
-	// _SESSION is the only superglobal which is conditionally set
-	if (isset($_SESSION))
-	{
-		$HTTP_SESSION_VARS = $_SESSION;
-	}
-}
-
-// Protect against GLOBALS tricks
-if (isset($HTTP_POST_VARS['GLOBALS']) || isset($HTTP_POST_FILES['GLOBALS']) || isset($HTTP_GET_VARS['GLOBALS']) || isset($HTTP_COOKIE_VARS['GLOBALS']))
-{
-	die("Hacking attempt");
-}
-
-// Protect against HTTP_SESSION_VARS tricks
-if (isset($HTTP_SESSION_VARS) && !is_array($HTTP_SESSION_VARS))
-{
-	die("Hacking attempt");
-}
-
-if (@ini_get('register_globals') == '1' || strtolower(@ini_get('register_globals')) == 'on')
-{
-	// PHP4+ path
-	$not_unset = array('HTTP_GET_VARS', 'HTTP_POST_VARS', 'HTTP_COOKIE_VARS', 'HTTP_SERVER_VARS', 'HTTP_SESSION_VARS', 'HTTP_ENV_VARS', 'HTTP_POST_FILES', 'phpEx', 'phpbb_root_path');
-	// Not only will array_merge give a warning if a parameter
-	// is not an array, it will actually fail. So we check if
-	// HTTP_SESSION_VARS has been initialised.
-	if (!isset($HTTP_SESSION_VARS) || !is_array($HTTP_SESSION_VARS))
-	{
-		$HTTP_SESSION_VARS = array();
-	}
-
-	// Merge all into one extremely huge array; unset
-	// this later
-	$input = array_merge($HTTP_GET_VARS, $HTTP_POST_VARS, $HTTP_COOKIE_VARS, $HTTP_SERVER_VARS, $HTTP_SESSION_VARS, $HTTP_ENV_VARS, $HTTP_POST_FILES);
-
-	unset($input['input']);
-	unset($input['not_unset']);
-
-	while (list($var,) = @each($input))
-	{
-		if (!in_array($var, $not_unset))
-		{
-			unset($$var);
-		}
-	} 
-   
-	unset($input);
-}
-
-//
-// addslashes to vars if magic_quotes_gpc is off
-// this is a security precaution to prevent someone
-// trying to break out of a SQL statement.
-//
-if( !get_magic_quotes_gpc() )
-{
-	if( is_array($_GET) )
-	{
-		while( list($k, $v) = each($_GET) )
-		{
-			if( is_array($_GET[$k]) )
-			{
-				while( list($k2, $v2) = each($_GET[$k]) )
-				{
-					$_GET[$k][$k2] = addslashes($v2);
-				}
-				@reset($_GET[$k]);
-			}
-			else
-			{
-				$_GET[$k] = addslashes($v);
-			}
-		}
-		@reset($_GET);
-	}
-
-	if( is_array($_POST) )
-	{
-		while( list($k, $v) = each($_POST) )
-		{
-			if( is_array($_POST[$k]) )
-			{
-				while( list($k2, $v2) = each($_POST[$k]) )
-				{
-					$_POST[$k][$k2] = addslashes($v2);
-				}
-				@reset($_POST[$k]);
-			}
-			else
-			{
-				$_POST[$k] = addslashes($v);
-			}
-		}
-		@reset($_POST);
-	}
-
-	if( is_array($HTTP_COOKIE_VARS) )
-	{
-		while( list($k, $v) = each($HTTP_COOKIE_VARS) )
-		{
-			if( is_array($HTTP_COOKIE_VARS[$k]) )
-			{
-				while( list($k2, $v2) = each($HTTP_COOKIE_VARS[$k]) )
-				{
-					$HTTP_COOKIE_VARS[$k][$k2] = addslashes($v2);
-				}
-				@reset($HTTP_COOKIE_VARS[$k]);
-			}
-			else
-			{
-				$HTTP_COOKIE_VARS[$k] = addslashes($v);
-			}
-		}
-		@reset($HTTP_COOKIE_VARS);
-	}
-}
-/* << add */
-//-----------------------------------------------------------
-
 $raute = '#';
-$fontcolor = isset($_GET['fontcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['fontcolor']) ? $_GET['fontcolor'] : '000000';
-$shadowcolor = isset($_GET['shadowcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['shadowcolor']) ? $_GET['shadowcolor'] : '';
+$fontcolor = isset($_GET['fontcolor']) && is_string($_GET['fontcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['fontcolor']) ? $_GET['fontcolor'] : '000000';
+$shadowcolor = isset($_GET['shadowcolor']) && is_string($_GET['shadowcolor']) && preg_match('/^[a-f0-9]{6}$/i', $_GET['shadowcolor']) ? $_GET['shadowcolor'] : '';
 $schriftfarbe = $raute . $fontcolor;
 $schriftdatei = 'arial';
 $std_smilie = 1;
@@ -160,7 +18,7 @@ $output = array();
 $text = '';
 
 
-$smilie = isset($_GET['smilie']) ? $_GET['smilie'] : 'standard';
+$smilie = isset($_GET['smilie']) && is_scalar($_GET['smilie']) ? (string) $_GET['smilie'] : 'standard';
 if ( $smilie == 'random')
 {
 	$smilie = 'random';
@@ -210,34 +68,33 @@ if((!$gd_info['FreeType Support']) || (!file_exists($schriftdatei))){
 $schriftheight += 2;
 
 
-if(!$text) $text = isset($_GET['text']) ? trim($_GET['text']) : '';
-$text = stripslashes($text);
-$text = str_replace("&lt;",'<',$text);
-$text = str_replace("&gt;",'>',$text);
-$text = str_replace("&quot;",'"',$text);
-
-while(substr_count($text, '<')){
-	$text = @ereg_replace(substr($text, strpos($text, '<'), (strpos($text, '>') - strpos($text, '<') + 1)), "", $text);
-}
+if(!$text) $text = isset($_GET['text']) && !is_array($_GET['text']) ? trim($_GET['text']) : '';
+$text = html_entity_decode(stripslashes($text), ENT_QUOTES, 'UTF-8');
+$text = preg_replace('/\s+/', ' ', strip_tags(substr($text, 0, 512)));
 
 if(!$text) $text = 'error';//$lang['SC_error']; 
 
 if(strlen($text) > 33){
-	$worte = split(" ", $text);
+	$worte = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
 
 	if(is_array($worte)){
 		$i = 0;
+		$output[0] = '';
 		foreach($worte as $wort){
 			if((strlen($output[$i].' '.$wort) < 33) && (!substr_count($wort, '[SM'))){
 				$output[$i] .= ' '.$wort;
 			}else{
-				if($i <= 11){
+				if($i < 11){
 					if($zeichenzahl < strlen($output[$i])) $zeichenzahl = strlen($output[$i]);
 					$i++;
-					$output[$i] = $wort;
+					$output[$i] = substr($wort, 0, 33);
+				}else{
+					$output[$i] = substr($output[$i], 0, 30) . '...';
+					break;
 				}
 			}
 		}
+		if($zeichenzahl < strlen($output[$i])) $zeichenzahl = strlen($output[$i]);
 	}else{
 		$zeichenzahl = 33;
 		$output[0] = substr($text, 0, 30)."...";

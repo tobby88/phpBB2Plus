@@ -1206,16 +1206,17 @@ function set_export_method($method, $data)
 // send file
 function xs_download_file($filename, $content, $content_type = '')
 {
-	if(empty($content_type))
+	if(empty($content_type) || !preg_match('#^[a-z0-9][a-z0-9.+-]*/[a-z0-9][a-z0-9.+-]*$#i', $content_type))
 	{
-		$content_type = 'application/unknown';
+		$content_type = 'application/octet-stream';
 	}
 	header('Content-Type: ' . $content_type);
 	header('Content-Length: ' . strlen($content));
 	header('Expires: ' . gmdate('D, d M Y H:i:s') . ' GMT');
 	if($filename)
 	{
-		header('Content-Disposition: inline; filename="' . $filename . '"');
+		$filename = trim(str_replace(array("\r", "\n", '"', '\\'), '_', basename((string) $filename)));
+		header('Content-Disposition: attachment; filename="' . ($filename !== '' ? $filename : 'download') . '"');
 	}
 	header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
 	header('Pragma: public');

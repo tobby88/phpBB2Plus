@@ -98,7 +98,8 @@ function send_file_to_browser($attachment, $upload_dir)
 {
 	global $HTTP_USER_AGENT, $HTTP_SERVER_VARS, $lang, $db, $attach_config;
 
-	$filename = ($upload_dir == '') ? $attachment['physical_filename'] : $upload_dir . '/' . $attachment['physical_filename'];
+	$physical_filename = basename((string) $attachment['physical_filename']);
+	$filename = ($upload_dir == '') ? $physical_filename : rtrim($upload_dir, '/\\') . '/' . $physical_filename;
 
 	$gotit = false;
 
@@ -106,7 +107,7 @@ function send_file_to_browser($attachment, $upload_dir)
 	{
 		if (@!file_exists(@amod_realpath($filename)))
 		{
-			message_die(GENERAL_ERROR, $lang['Error_no_attachment'] . "<br /><br /><b>404 File Not Found:</b> The File <i>" . $filename . "</i> does not exist.");
+			message_die(GENERAL_ERROR, $lang['Error_no_attachment']);
 		}
 		else
 		{
@@ -165,9 +166,15 @@ function send_file_to_browser($attachment, $upload_dir)
 
 	// Correct the mime type - we force application/octetstream for all files, except images
 	// Please do not change this, it is a security precaution
-	if (!strstr($attachment['mimetype'], 'image'))
+	$mimetype = strtolower(trim((string) $attachment['mimetype']));
+	if (!preg_match('#^[a-z0-9][a-z0-9.+-]*/[a-z0-9][a-z0-9.+-]*$#i', $mimetype))
 	{
-		$attachment['mimetype'] = ($browser_agent == 'ie' || $browser_agent == 'opera') ? 'application/octetstream' : 'application/octet-stream';
+		$mimetype = 'application/octet-stream';
+	}
+	$safe_inline_types = array('image/gif', 'image/jpeg', 'image/png', 'image/webp');
+	if (!in_array($mimetype, $safe_inline_types, true))
+	{
+		$mimetype = ($browser_agent == 'ie' || $browser_agent == 'opera') ? 'application/octetstream' : 'application/octet-stream';
 	}
 
 	// Now the tricky part... let's dance
@@ -176,11 +183,17 @@ function send_file_to_browser($attachment, $upload_dir)
 	header('Pragma: public');
 //	header('Content-Transfer-Encoding: none');
 
-	$real_filename = html_entity_decode(basename($attachment['real_filename']));
+	$real_filename = html_entity_decode(basename((string) $attachment['real_filename']), ENT_QUOTES, 'UTF-8');
+	$real_filename = trim(str_replace(array("\r", "\n", '"', '\\'), '_', $real_filename));
+	if ($real_filename === '')
+	{
+		$real_filename = 'attachment';
+	}
+	$disposition = in_array($mimetype, $safe_inline_types, true) ? 'inline' : 'attachment';
 
 	// Send out the Headers
-	header('Content-Type: ' . $attachment['mimetype'] . '; name="' . $real_filename . '"');
-	header('Content-Disposition: inline; filename="' . $real_filename . '"');
+	header('Content-Type: ' . $mimetype);
+	header('Content-Disposition: ' . $disposition . '; filename="' . $real_filename . '"');
 
 	unset($real_filename);
 
@@ -208,7 +221,7 @@ function send_file_to_browser($attachment, $upload_dir)
 		@unlink($tmp_filename);
 
 		$mode = FTP_BINARY;
-		if ( (preg_match("/text/i", $attachment['mimetype'])) || (preg_match("/html/i", $attachment['mimetype'])) )
+		if (preg_match('#^(?:text/|application/(?:xhtml\+xml|xml)$)#i', $mimetype))
 		{
 			$mode = FTP_ASCII;
 		}
@@ -217,7 +230,7 @@ function send_file_to_browser($attachment, $upload_dir)
 
 		if (!$result)
 		{
-			message_die(GENERAL_ERROR, $lang['Error_no_attachment'] . "<br /><br /><b>404 File Not Found:</b> The File <i>" . $filename . "</i> does not exist.");
+			message_die(GENERAL_ERROR, $lang['Error_no_attachment']);
 		}
 
 		@ftp_quit($conn_id);
@@ -232,7 +245,7 @@ function send_file_to_browser($attachment, $upload_dir)
 	}
 	else
 	{
-		message_die(GENERAL_ERROR, $lang['Error_no_attachment'] . "<br /><br /><b>404 File Not Found:</b> The File <i>" . $filename . "</i> does not exist.");
+		message_die(GENERAL_ERROR, $lang['Error_no_attachment']);
 	}
 
 	exit;
@@ -346,6 +359,8 @@ if ( !($result = $db->sql_query($sql)) )
 
 $rows = $db->sql_fetchrowset($result);
 $num_rows = $db->sql_numrows($result);
+$allowed_extensions = array();
+$download_mode = array();
 
 for ($i = 0; $i < $num_rows; $i++)
 {
@@ -355,12 +370,13 @@ for ($i = 0; $i < $num_rows; $i++)
 }
 
 // disallowed ?
-if (!in_array($attachment['extension'], $allowed_extensions) && $userdata['user_level'] != ADMIN)
+$attachment['extension'] = strtolower((string) $attachment['extension']);
+if (!in_array($attachment['extension'], $allowed_extensions, true) && $userdata['user_level'] != ADMIN)
 {
 	message_die(GENERAL_MESSAGE, sprintf($lang['Extension_disabled_after_posting'], $attachment['extension']));
 }
 
-$download_mode = intval($download_mode[$attachment['extension']]);
+$download_mode = isset($download_mode[$attachment['extension']]) ? intval($download_mode[$attachment['extension']]) : INLINE_LINK;
 
 if ($thumbnail)
 {
@@ -381,18 +397,8 @@ if (!$thumbnail)
 }
 
 // Determine the 'presenting'-method
-if ($download_mode == PHYSICAL_LINK)
+if ($download_mode == PHYSICAL_LINK && in_array(strtolower((string) $attachment['mimetype']), array('image/gif', 'image/jpeg', 'image/png', 'image/webp'), true))
 {
-	$server_protocol = ($board_config['cookie_secure']) ? 'https://' : 'http://';
-	$server_name = preg_replace('/^\/?(.*?)\/?$/', '\1', trim($board_config['server_name']));
-	$server_port = ($board_config['server_port'] <> 80) ? ':' . trim($board_config['server_port']) : '';
-	$script_name = preg_replace('/^\/?(.*?)\/?$/', '/\1', trim($board_config['script_path']));
-
-	if ($script_name[strlen($script_name)] != '/')
-	{
-		$script_name .= '/';
-	}
-
 	if (intval($attach_config['allow_ftp_upload']))
 	{
 		if (trim($attach_config['download_path']) == '')
@@ -400,21 +406,24 @@ if ($download_mode == PHYSICAL_LINK)
 			message_die(GENERAL_ERROR, 'Physical Download not possible with the current Attachment Setting');
 		}
 
-		$url = trim($attach_config['download_path']) . '/' . $attachment['physical_filename'];
-		$redirect_path = $url;
+		$redirect_path = rtrim(trim($attach_config['download_path']), '/') . '/' . rawurlencode($attachment['physical_filename']);
+		$redirect_parts = @parse_url($redirect_path);
+		if (!$redirect_parts || !isset($redirect_parts['scheme']) || !isset($redirect_parts['host']) || !in_array(strtolower($redirect_parts['scheme']), array('http', 'https'), true) || preg_match('/[\r\n\x00]/', $redirect_path))
+		{
+			message_die(GENERAL_ERROR, 'Physical download URL is invalid.');
+		}
 	}
 	else
 	{
-		$url = $upload_dir . '/' . $attachment['physical_filename'];
-//		$url = preg_replace('/^\/?(.*?\/)?$/', '\1', trim($url));
-		$redirect_path = $server_protocol . $server_name . $server_port . $script_name . $url;
+		$redirect_path = phpbb_board_url(trim($upload_dir, '/\\') . '/' . rawurlencode($attachment['physical_filename']));
 	}
 
 	// Redirect via an HTML form for PITA webservers
 	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
 	{
 		header('Refresh: 0; URL=' . $redirect_path);
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $redirect_path . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $redirect_path . '">HERE</a> to be redirected</div></body></html>';
+		$safe_redirect_path = htmlspecialchars($redirect_path, ENT_QUOTES, 'UTF-8');
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $safe_redirect_path . '"><title>Redirect</title></head><body><div align="center">If your browser does not support meta redirection please click <a href="' . $safe_redirect_path . '">HERE</a> to be redirected</div></body></html>';
 		exit;
 	}
 

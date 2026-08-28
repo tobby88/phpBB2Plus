@@ -224,16 +224,7 @@ class pafiledb_download extends pafiledb_public
 			//=========================================================================
 			// now send the file to the user so he can enjoy it :D
 			//=========================================================================
-			if($pafiledb_functions->get_extension($physical_filename) == 'pdf')
-			{
-				$file_url = $phpbb_root_path . $upload_dir . $physical_filename;
-				pa_redirect($file_url);
-			}
-			elseif(!send_file_to_browser($real_filename, 'application/force-download', $physical_filename, $phpbb_root_path . $upload_dir))
-			{
-				$file_url = $phpbb_root_path . $upload_dir . $physical_filename;
-				pa_redirect($file_url);
-			}
+			send_file_to_browser($real_filename, 'application/force-download', $physical_filename, $phpbb_root_path . $upload_dir);
 		}
 	}
 }
@@ -246,13 +237,14 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 {
 	global $_SERVER, $HTTP_USER_AGENT, $HTTP_SERVER_VARS, $lang, $db, $pafiledb_functions;
 
+	$physical_filename = basename((string) $physical_filename);
 	if ($upload_dir == '')
 	{
 		$filename = $physical_filename;
 	}
 	else
 	{
-		$filename = $upload_dir . $physical_filename;
+		$filename = rtrim($upload_dir, '/\\') . '/' . $physical_filename;
 	}
 
 	$gotit = FALSE;
@@ -260,16 +252,12 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 
 	if (@!file_exists(@$pafiledb_functions->pafiledb_realpath($filename)))
 	{
-		message_die(GENERAL_ERROR, $lang['Error_no_download'] . '<br /><br /><b>404 File Not Found:</b> The File <i>' . $filename . '</i> does not exist.');
+		message_die(GENERAL_ERROR, $lang['Error_no_download']);
 	}
 	else
 	{
 		$gotit = TRUE;
 		$size = @filesize($filename);
-		if($size > (1048575 * 6))
-		{
-			return false;
-		}
 	}
 
 
@@ -317,19 +305,12 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 		$browser_agent = 'other';
     }
 
-	//
-	// Correct the Mime Type, if it's an octetstream
-	//
-	if ( ($mimetype == 'application/octet-stream') || ($mimetype == 'application/octetstream') )
+	$mimetype = ($browser_agent == 'ie' || $browser_agent == 'opera') ? 'application/octetstream' : 'application/octet-stream';
+	$real_filename = html_entity_decode(basename((string) $real_filename), ENT_QUOTES, 'UTF-8');
+	$real_filename = trim(str_replace(array("\r", "\n", '"', '\\'), '_', $real_filename));
+	if ($real_filename === '')
 	{
-		if ( ($browser_agent == 'ie') || ($browser_agent == 'opera') )
-		{
-			$mimetype = 'application/octetstream';
-		}
-		else
-		{
-			$mimetype = 'application/octet-stream';
-		}
+		$real_filename = 'download';
 	}
 
 	@ob_end_clean();
@@ -340,16 +321,8 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 	//
 	// Send out the Headers
 	//
-	if ($browser_agent == 'ie')
-	{
-		header('Content-Type: ' . $mimetype);
-		header('Content-Disposition: inline; filename="' . $real_filename . '"');
-	}
-	else
-	{
-		header('Content-Type: ' . $mimetype . '; name="' . $real_filename . '"');
-		header('Content-Disposition: attachment; filename=' . $real_filename);
-	}
+	header('Content-Type: ' . $mimetype);
+	header('Content-Disposition: attachment; filename="' . $real_filename . '"');
 
 	//
 	// Now send the File Contents to the Browser

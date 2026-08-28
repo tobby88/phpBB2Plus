@@ -29,6 +29,16 @@ define('IN_ADMIN', true);
 // Include files
 include($phpbb_root_path . 'common.'.$phpEx);
 
+// The ACP still contains historical state-changing links. Its per-session SID
+// remains mandatory below; Fetch Metadata additionally blocks browser-declared
+// cross-site navigations before any module can act on them.
+if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && strtolower((string) $_SERVER['HTTP_SEC_FETCH_SITE']) === 'cross-site')
+{
+	http_response_code(403);
+	header('Content-Type: text/plain; charset=UTF-8');
+	exit('Cross-site administration request rejected.');
+}
+
 //
 // Start session management
 //
@@ -53,7 +63,7 @@ if (file_exists($phpbb_root_path . 'update'))
 	message_die(GENERAL_MESSAGE, 'Please ensure update/ directory is deleted');
 }
 
-if ($_GET['sid'] != $userdata['session_id'])
+if (!isset($_GET['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_GET['sid']))
 {
 	redirect("index.$phpEx?sid=" . $userdata['session_id']);
 }

@@ -84,6 +84,12 @@ changes consolidated after that baseline without implying active maintenance.
   sessions are now bound to their stored game and validated hash, first scores
   can be inserted, unavailable games are rejected correctly, monthly dates no
   longer use PHP 8-fatal bare constants, and saved-game responses are encoded.
+- Hardened attachment, PAFileDB and topic-export downloads against header
+  injection, path disclosure and active inline content; removed size-based
+  direct-file fallback and an unused, broken email attachment prototype.
+- Added cross-site navigation rejection to the SID-protected administration
+  panel and removed the standalone shield renderer's duplicate PHP 4 request
+  bootstrap.
 
 ### Repository and update cleanup
 
