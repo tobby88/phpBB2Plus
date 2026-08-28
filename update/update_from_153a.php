@@ -335,9 +335,19 @@ foreach ($seed_statements as $seed_sql)
 }
 
 // Keep the public components/credits list useful on upgraded installations.
+// The original sample .hl file used to insert a bogus placeholder row whenever
+// the public page was opened. It is no longer distributed or scanned there.
 $hacks_table = update_quote_identifier($table_prefix . 'hacks_list');
-$operations[] = "UPDATE $hacks_table SET hack_desc = 'User administration list with filtering, safe bulk status, ban and group actions, and Color Groups integration.', hack_author = 'Brent Pirolli, Eric Faerber, Helter, Smartor', hack_author_email = '', hack_author_website = '', hack_version = '2.1' WHERE hack_name = 'Admin Userlist'";
+$operations[] = "DELETE FROM $hacks_table WHERE hack_name = 'Hack Name' OR hack_file LIKE '%nivisec_hack_list_auto_insert.hl'";
+$operations[] = "DELETE FROM $hacks_table WHERE hack_name IN ('Cracker Tracker Professional 2nd Ed.', 'CrackerTracker Professional 2nd Ed.', 'CrackerTracker Professional G5')";
 $credit_rows = array(
+	array('Birthday Mod', 'Adds birthday and age information to user profiles and posts.', 'Niels', 'http://mods.db9.dk', '1.5.7'),
+	array('Photo Album Addon v2 for phpBB2', 'Integrated phpBB-based photo album and gallery management system.', 'Smartor', 'http://smartor.is-root.com', '2.0.53'),
+	array('Recent Topics (third version)', 'Shows recent topics for selectable time periods.', 'Acid', '', '1.22'),
+	array('Staff Site Mod', 'Displays the board staff and their roles on a dedicated page.', 'Acid', '', '2.2.3'),
+	array('Album Hierarchy Mod', 'Adds nested categories to the integrated Photo Album.', 'IdleVoid', '', '1.30'),
+	array('CrackerTracker Professional G5', 'Integrated security system for detecting and blocking known attacks and abusive requests.', 'cback', 'http://www.cback.de', '5.0.6'),
+	array('Admin Userlist', 'User administration list with filtering, safe bulk status, ban and group actions, and Color Groups integration.', 'Brent Pirolli, Eric Faerber, Helter, Smartor', '', '2.1'),
 	array('Arcade Mod Plus', 'Integrated arcade framework; game packages and user-generated game data are not distributed.', 'Arcade Mod Plus contributors', '', '2.1.8'),
 	array('Nuffload Album Upload', 'Multiple and archive upload support for the integrated photo album.', 'Nuffload contributors', '', '1.4.2'),
 	array('DB Maintenance Mod', 'Administration tools for database consistency checks and search-index maintenance.', 'DB Maintenance contributors', '', '1.3.8'),
@@ -352,7 +362,8 @@ foreach ($credit_rows as $credit)
 {
 	$values = array();
 	foreach ($credit as $value) { $values[] = "'" . mysqli_real_escape_string($connection, $value) . "'"; }
-	$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0) ON DUPLICATE KEY UPDATE hack_desc = VALUES(hack_desc), hack_author = VALUES(hack_author), hack_author_website = VALUES(hack_author_website), hack_version = VALUES(hack_version), hack_hide = 'No'";
+	$operations[] = "DELETE FROM $hacks_table WHERE hack_name = " . $values[0];
+	$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0)";
 }
 
 // CrackerTracker 5 is a complete redevelopment. Its official 4.x-to-5.x

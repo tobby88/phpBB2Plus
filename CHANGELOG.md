@@ -94,7 +94,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Integrated Registration IP 1.1.2 with IPv6-capable storage, server-verified
   remote addresses, optional on-demand reverse DNS, and a German translation.
 - Updated `hacks_list.php` into a maintained components-and-credits page,
-  refreshed recent component entries, and escaped database-provided output.
+  refreshed both historical and recently integrated component versions, and
+  escaped database-provided output. The public page no longer mutates its
+  database while rendering or imports the bundled example `.hl` placeholder.
 - Confirmed that IntegraMOD's IM Portal was not installed: the existing
   Smartor ezPortal remains authoritative, with responsive templates retained
   solely as additional style coverage.
