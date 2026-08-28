@@ -526,8 +526,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 						if ( $current_match_type == 'and' && $word_count )
 						{
-							@reset($result_list);
-							while( list($post_id, $match_count) = @each($result_list) )
+							foreach ($result_list as $post_id => $match_count)
 							{
 								if ( !$row[$post_id] )
 								{
@@ -542,10 +541,8 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 					}
 			}
 
-			@reset($result_list);
-
 			$search_ids = array();
-			while( list($post_id, $matches) = each($result_list) )
+			foreach ($result_list as $post_id => $matches)
 			{
 				if ( $matches )
 				{
@@ -608,7 +605,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		$s_flist = '';
 		for ($i=0; $i < count($keys['id']); $i++)
 		{
-			if ( ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL) && $tree['auth'][ $keys['id'][$i] ]['auth_read'] )
+			if ( isset($tree['type'][$keys['idx'][$i]], $tree['auth'][$keys['id'][$i]]['auth_read']) && ($tree['type'][$keys['idx'][$i]] == POST_FORUM_URL) && $tree['auth'][$keys['id'][$i]]['auth_read'] )
 			{
 				$s_flist .= (($s_flist != '') ? ', ' : '') . $tree['id'][ $keys['idx'][$i] ];
 			}
@@ -936,7 +933,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 		for($i = 0; $i < count($store_vars); $i++)
 		{
-			$store_search_data[$store_vars[$i]] = $$store_vars[$i];
+			$store_search_data[$store_vars[$i]] = ${$store_vars[$i]};
 		}
 
 		$result_array = serialize($store_search_data);
@@ -1162,14 +1159,15 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			}
 			$forum_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $searchset[$i]['forum_id']);
 			$topic_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $searchset[$i]['topic_id'] . "&amp;highlight=$highlight_active");
-	  		$post_url = append_sid("viewtopic.$phpEx?" . POST_POST_URL . '=' . $searchset[$i]['post_id'] . "&amp;highlight=$highlight_active") . '#' . $searchset[$i]['post_id'];
+			$post_id = isset($searchset[$i]['post_id']) ? intval($searchset[$i]['post_id']) : 0;
+	  		$post_url = $post_id ? append_sid("viewtopic.$phpEx?" . POST_POST_URL . '=' . $post_id . "&amp;highlight=$highlight_active") . '#' . $post_id : $topic_url;
 //-- mod : today at   yesterday at ------------------------------------------------------------------------ 
 //-- add 
          $post_date = create_date_day($board_config['default_dateformat'], $searchset[$i]['post_time'], $board_config['board_timezone']); 
 //-- end mod : today at   yesterday at ------------------------------------------------------------------------ 
 
 
-			$message = $searchset[$i]['post_text'];
+			$message = isset($searchset[$i]['post_text']) ? $searchset[$i]['post_text'] : '';
 			$topic_title = $searchset[$i]['topic_title'];
 
 			$forum_id = $searchset[$i]['forum_id'];
