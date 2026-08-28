@@ -58,11 +58,10 @@ if (empty($_COOKIE['cookie_consent']) && !empty($board_config['cookie_consent_en
 // gzip_compression
 //
 $do_gzip_compress = FALSE;
+$useragent = (isset($HTTP_SERVER_VARS) && isset($HTTP_SERVER_VARS['HTTP_USER_AGENT'])) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : ((isset($_SERVER['HTTP_USER_AGENT'])) ? $_SERVER['HTTP_USER_AGENT'] : getenv('HTTP_USER_AGENT'));
 if ( $board_config['gzip_compress'] && !defined('AJAX_HEADERS') )
 {
 	$phpver = phpversion();
-
-	$useragent = (isset($HTTP_SERVER_VARS['HTTP_USER_AGENT'])) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : getenv('HTTP_USER_AGENT'); 
 
 	if ( $phpver >= '4.0.4pl1' && ( strstr($useragent,'compatible') || strstr($useragent,'Gecko') ) )
 	{
@@ -73,7 +72,8 @@ if ( $board_config['gzip_compress'] && !defined('AJAX_HEADERS') )
 	}
 	else if ( $phpver > '4.0' )
 	{
-		if ( strstr($HTTP_SERVER_VARS['HTTP_ACCEPT_ENCODING'], 'gzip') )
+		$accept_encoding = (isset($HTTP_SERVER_VARS) && isset($HTTP_SERVER_VARS['HTTP_ACCEPT_ENCODING'])) ? $HTTP_SERVER_VARS['HTTP_ACCEPT_ENCODING'] : ((isset($_SERVER['HTTP_ACCEPT_ENCODING'])) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : '');
+		if ( strstr($accept_encoding, 'gzip') )
 		{
 			if ( extension_loaded('zlib') )
 			{
@@ -129,7 +129,7 @@ $google_visit_counter = $board_config['google_visit_counter'];
 
 $tmp_list = explode(".", isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
 
-if ( strstr($HTTP_SERVER_VARS['HTTP_USER_AGENT'] ,'Googlebot' )) 
+if ( strstr(isset($useragent) ? $useragent : '', 'Googlebot') )
 { 
    $sql = "UPDATE " . CONFIG_TABLE . " 
          SET config_value = config_value+1 
@@ -534,6 +534,15 @@ $l_timezone = (count($l_timezone) > 1 && $l_timezone[count($l_timezone)-1] != 0)
 
 /* CrackerTracker IP Range Scanner */
 $marknow = isset($HTTP_GET_VARS['marknow']) ? $HTTP_GET_VARS['marknow'] : '';
+$ctracker_settings = (isset($ctracker_config) && is_object($ctracker_config) && isset($ctracker_config->settings) && is_array($ctracker_config->settings)) ? $ctracker_config->settings : array();
+$ctracker_settings += array(
+	'login_ip_check' => 0,
+	'global_message' => '',
+	'global_message_type' => 0,
+	'login_history' => 0,
+	'pw_control' => 0,
+	'pw_validity' => 0
+);
 if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 {
 	$userdata['ct_last_ip'] = $userdata['ct_last_used_ip'];
@@ -549,7 +558,7 @@ if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 	}
 }
 
-if ( $ctracker_config->settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn'] == 1 && $userdata['session_logged_in'] )
+if ( $ctracker_settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn'] == 1 && $userdata['session_logged_in'] )
 {
 	include_once($phpbb_root_path . 'ctracker/classes/class_ct_userfunctions.' . $phpEx);
 	$ctracker_user = new ct_userfunctions();
@@ -579,25 +588,25 @@ if ( $marknow == 'globmsg' && $userdata['session_logged_in'] )
 	}
 }
 
-if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $ctracker_config->settings['global_message'] != '' )
+if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $ctracker_settings['global_message'] != '' )
 {
-	$global_message_output = ($ctracker_config->settings['global_message_type'] == 1)
-		? $ctracker_config->settings['global_message']
-		: sprintf($lang['ctracker_gmb_link'], $ctracker_config->settings['global_message'], $ctracker_config->settings['global_message']);
+	$global_message_output = ($ctracker_settings['global_message_type'] == 1)
+		? $ctracker_settings['global_message']
+		: sprintf($lang['ctracker_gmb_link'], $ctracker_settings['global_message'], $ctracker_settings['global_message']);
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'E1FFDF', 'ICON_GLOB' => $images['ctracker_note'],
 		'L_MESSAGE_TEXT' => $global_message_output, 'L_MARK_MESSAGE' => $lang['ctracker_gmb_mark'],
 		'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=globmsg')));
 }
 
-(($ctracker_config->settings['login_history'] == 1 || $ctracker_config->settings['login_ip_check'] == 1) && $userdata['session_logged_in']) ? $template->assign_block_vars('login_sec_link', array()) : null;
+(($ctracker_settings['login_history'] == 1 || $ctracker_settings['login_ip_check'] == 1) && $userdata['session_logged_in']) ? $template->assign_block_vars('login_sec_link', array()) : null;
 
 /* CrackerTracker Password Expirement Check */
-if ( $userdata['session_logged_in'] && $ctracker_config->settings['pw_control'] == 1 && time() > $userdata['ct_last_pw_reset'] )
+if ( $userdata['session_logged_in'] && $ctracker_settings['pw_control'] == 1 && time() > $userdata['ct_last_pw_reset'] )
 {
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
-		'L_MESSAGE_TEXT' => sprintf($lang['ctracker_info_pw_expired'], $ctracker_config->settings['pw_validity']),
+		'L_MESSAGE_TEXT' => sprintf($lang['ctracker_info_pw_expired'], $ctracker_settings['pw_validity']),
 		'L_MARK_MESSAGE' => '', 'U_MARK_MESSAGE' => ''));
 }
 
@@ -926,6 +935,7 @@ if ( empty($nav_key) && (isset($_POST['selected_id']) || isset($_GET['selected_i
 }
 if (empty($nav_key)) $nav_key = 'Root';
 $nav_pgm = isset($nav_pgm) ? $nav_pgm : '';
+$nav_separator = isset($nav_separator) ? $nav_separator : '';
 $nav_cat_desc = make_cat_nav_tree($nav_key, $nav_pgm);
 if ($nav_cat_desc != '') $nav_cat_desc = $nav_separator . $nav_cat_desc;
 

@@ -66,8 +66,8 @@ $lang['field_deleted'] = 'Das ausgewählte Objekt wurde gelöscht';
 $lang['double_check_delete'] = 'Bist du sicher ob du das Objekt "%s" endgültig aus der Datenbank löschen willst?';
 
 $lang['here'] = 'hier';
-$lang['new_field_link'] = '<a href="'.append_sid("$filename?mode=add&pfid=x").'">%s</a>';
-$lang['edit_field_link'] = '<a href="'.append_sid("$filename?mode=edit&pfid=x").'">%s</a>';
+$lang['new_field_link'] = '<a href="'.append_sid("admin_profile_fields.$phpEx?mode=add&pfid=x").'">%s</a>';
+$lang['edit_field_link'] = '<a href="'.append_sid("admin_profile_fields.$phpEx?mode=edit&pfid=x").'">%s</a>';
 $lang['index_link'] = '<a href="'.append_sid("admin_profile_fields.$phpEx?mode=edit&pfid=x").'">%s</a>';
 $lang['field_exists'] = 'Diese Feld existiert schon.<br /><br />Du kannst ein ' . sprintf($lang['new_field_link'],'neues') . ' Profilfeld erstellen,<br /><br />oder versuch das bestehende ' . sprintf($lang['edit_field_link'],'anzupassen') . '.';
 $lang['click_here_here'] = 'Klicke ' . sprintf($lang['new_field_link'],$lang['here']) . ' um ein Profilfeld zu erstellen,<br /><br />oder klicke ' . sprintf($lang['index_link'],$lang['here']) . ' um zum Admin-Index zurückzukehren.';

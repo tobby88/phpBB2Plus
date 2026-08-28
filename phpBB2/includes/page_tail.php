@@ -64,13 +64,15 @@ $template->set_filenames(array(
 
 include_once($phpbb_root_path . 'ctracker/engines/ct_footer.' . $phpEx);
 $output_login_status = ($userdata['ct_enable_ip_warn']) ? $lang['ctracker_ma_on'] : $lang['ctracker_ma_off'];
+$ctracker_settings = (isset($ctracker_config) && is_object($ctracker_config) && isset($ctracker_config->settings) && is_array($ctracker_config->settings)) ? $ctracker_config->settings : array();
+$ctracker_settings += array('footer_layout' => 0, 'login_ip_check' => 0);
 
 $template->assign_vars(array(
 	'TRANSLATION_INFO' => (isset($lang['TRANSLATION_INFO'])) ? $lang['TRANSLATION_INFO'] : ((isset($lang['TRANSLATION'])) ? $lang['TRANSLATION'] : ''),
 	'L_CREDITS' => $lang['Credits'],
 	'U_CREDITS' => append_sid("hacks_list.$phpEx"),
-	'CRACKER_TRACKER_FOOTER' => create_footer_layout($ctracker_config->settings['footer_layout']),
-	'L_STATUS_LOGIN' => ($ctracker_config->settings['login_ip_check']) ? sprintf($lang['ctracker_ipwarn_info'], $output_login_status) : '',
+	'CRACKER_TRACKER_FOOTER' => create_footer_layout($ctracker_settings['footer_layout']),
+	'L_STATUS_LOGIN' => ($ctracker_settings['login_ip_check']) ? sprintf($lang['ctracker_ipwarn_info'], $output_login_status) : '',
 	'ADMIN_LINK' => $admin_link)
 );
 
