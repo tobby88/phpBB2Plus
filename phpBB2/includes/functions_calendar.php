@@ -473,7 +473,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		if ( count($orig_word) )
 		{
 			$topic_title = preg_replace($orig_word, $replacement_word, $topic_title);
-			$message = str_replace('\"', '"', substr(preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "preg_replace(\$orig_word, \$replacement_word, '\\0')", '>' . $message . '<'), 1, -1));
+			$message = phpbb_preg_replace_outside_tags($message, $orig_word, $replacement_word);
 		}
 		$short_title = (strlen($topic_title) > $topic_title_length + 3) ? substr($topic_title, 0, $topic_title_length) . '...' : $topic_title;
 		$dsp_topic_icon = '';

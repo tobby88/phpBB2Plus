@@ -171,7 +171,7 @@ if ( !defined('IN_PHPBB') )
 	{
 		$article_title = preg_replace($orig_word, $replacement_word, $article_title);
 
-		$article = str_replace('\"', '"', substr(@preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "@preg_replace(\$orig_word, \$replacement_word, '\\0')", '>' . $article . '<'), 1, -1));
+		$article = phpbb_preg_replace_outside_tags($article, $orig_word, $replacement_word);
 	}
 
 	//
@@ -189,7 +189,7 @@ if ( !defined('IN_PHPBB') )
 	{
 		// This was shamelessly 'borrowed' from volker at multiartstudio dot de
 		// via php.net's annotated manual
-		$article = str_replace('\"', '"', substr(preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "preg_replace('#\b(" . $highlight_match . ")\b#i', '<span style=\"color:#" . $theme['fontcolor3'] . "\"><b>\\\\1</b></span>', '\\0')", '>' . $article . '<'), 1, -1));
+		$article = phpbb_preg_replace_outside_tags($article, '#\\b(' . $highlight_match . ')\\b#i', '<span style="color:#' . $theme['fontcolor3'] . '"><b>\\1</b></span>');
 	}
 	
 	$page_title = $article_title;
@@ -434,7 +434,7 @@ if ( !defined('IN_PHPBB') )
 		//
 		if ( count($orig_word) )
 		{
-			$article_toc = str_replace('\"', '"', substr(preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "preg_replace(\$orig_word, \$replacement_word, '\\0')", '>' . $article_toc . '<'), 1, -1));
+			$article_toc = phpbb_preg_replace_outside_tags($article_toc, $orig_word, $replacement_word);
 		}
 		// Replace newlines (we use this rather than nl2br because
 		// till recently it wasn't XHTML compliant)

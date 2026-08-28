@@ -125,6 +125,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Hardened the generic per-user MOD settings page against array-shaped input,
   unsafe dynamic SQL identifiers and unescaped form values, and repaired its
   empty submenu handling on PHP 8.
+- Replaced the remaining PHP-7-incompatible executable regular expressions in
+  posts, AJAX edits, print views, calendars, staff signatures, knowledge-base
+  articles, acronyms and PAFileDB template compilation with non-executing
+  replacements that preserve HTML tags.
 
 ### Repository and update cleanup
 

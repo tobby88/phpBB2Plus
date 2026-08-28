@@ -58,6 +58,29 @@ function phpbb_profile_image_name($value)
 	return preg_match('/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/D', $value) ? $value : '';
 }
 
+function phpbb_preg_replace_outside_tags($text, $patterns, $replacements)
+{
+	$segments = preg_split('#(<[^>]*>)#s', (string) $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	if (!is_array($segments))
+	{
+		return (string) $text;
+	}
+
+	foreach ($segments as $index => $segment)
+	{
+		if (($index % 2) === 0 && $segment !== '')
+		{
+			$replaced = @preg_replace($patterns, $replacements, $segment);
+			if ($replaced !== null)
+			{
+				$segments[$index] = $replaced;
+			}
+		}
+	}
+
+	return implode('', $segments);
+}
+
 //-- mod : post icon -------------------------------------------------------------------------------
 //-- add
 function get_icon_title($icon, $empty=0, $topic_type=-1, $admin=false)

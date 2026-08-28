@@ -1145,7 +1145,7 @@ function acronym_pass($message)
 		{
 			if( $seg[0] != '<' && $seg[0] != '[' )
 			{
-				$message .= str_replace('\"', '"', substr(preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "preg_replace(\$orig, \$repl, '\\0')", '>' . $seg . '<'), 1, -1));
+				$message .= phpbb_preg_replace_outside_tags($seg, $orig, $repl);
 			}
 			else
 			{

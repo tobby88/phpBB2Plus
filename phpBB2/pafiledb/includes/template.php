@@ -405,7 +405,12 @@ class pafiledb_Template
 		{
 			global $lang;
 
-			$text_blocks = preg_replace('#\{L_([A-Z0-9\-_]*?)\}#e', "'<?php echo ((isset(\$this->_tpldata[\'.\'][0][\'L_\\1\'])) ? \$this->_tpldata[\'.\'][0][\'L_\\1\'] : \'' . ((isset(\$lang['\\1'])) ? \$lang['\\1'] : '') . '\'); ?>'" , $text_blocks);
+			$text_blocks = preg_replace_callback('#\{L_([A-Z0-9\-_]*?)\}#', function ($match) use (&$lang)
+			{
+				$key = $match[1];
+				$value = isset($lang[$key]) ? $lang[$key] : '';
+				return "<?php echo ((isset(\$this->_tpldata['.'][0]['L_" . $key . "'])) ? \$this->_tpldata['.'][0]['L_" . $key . "'] : " . var_export($value, true) . "); ?>";
+			}, $text_blocks);
 		}
 		$text_blocks = preg_replace('#\{([a-z0-9\-_]*?)\}#is', "<?php echo isset(\$this->_tpldata['.'][0]['\\1']) ? \$this->_tpldata['.'][0]['\\1'] : ''; ?>", $text_blocks);
 

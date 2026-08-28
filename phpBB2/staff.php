@@ -345,7 +345,7 @@ else
 		$user_sig = ( !$board_config['allow_html'] && $userdata['user_allowhtml'] ) ? preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig) : $user_sig;
 		$user_sig = str_replace("\n", "\n<br />\n", $user_sig);
 		$user_sig = make_clickable($user_sig);
-		$user_sig = ( count($orig_word) ) ? str_replace('\"', '"', substr(preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "preg_replace(\$orig_word, \$replacement_word, '\\0')", '>' . $user_sig . '<'), 1, -1)) : '';
+		$user_sig = ( count($orig_word) ) ? phpbb_preg_replace_outside_tags($user_sig, $orig_word, $replacement_word) : '';
 	}
 
 	$template->assign_vars(array(

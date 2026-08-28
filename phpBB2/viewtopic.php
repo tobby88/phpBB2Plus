@@ -1465,10 +1465,10 @@ for($i = 0; $i < $total_posts; $i++)
 
 		if ($user_sig != '')
 		{
-			$user_sig = str_replace('\"', '"', substr(@preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "@preg_replace(\$orig_word, \$replacement_word, '\\0')", '>' . $user_sig . '<'), 1, -1));
+			$user_sig = phpbb_preg_replace_outside_tags($user_sig, $orig_word, $replacement_word);
 		}
 
-		$message = str_replace('\"', '"', substr(@preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "@preg_replace(\$orig_word, \$replacement_word, '\\0')", '>' . $message . '<'), 1, -1));
+		$message = phpbb_preg_replace_outside_tags($message, $orig_word, $replacement_word);
 	}
 
 	//

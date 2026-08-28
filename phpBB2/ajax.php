@@ -448,7 +448,7 @@ else if ($mode == 'edit_post_text')
 	obtain_word_list($orig_word, $replacement_word);
 	if (count($orig_word))
 	{
-		$message = str_replace('\"', '"', substr(@preg_replace('#(\>(((?>([^><]+|(?R)))*)\<))#se', "@preg_replace(\$orig_word, \$replacement_word, '\\0')", '>' . $message . '<'), 1, -1));
+		$message = phpbb_preg_replace_outside_tags($message, $orig_word, $replacement_word);
 	}
 	
 	if ($board_config['allow_smilies'] && $row['enable_smilies'])
