@@ -25,6 +25,11 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 }
 
+// Keep runtime diagnostics out of HTML responses while retaining a local log.
+@ini_set('display_errors', '0');
+@ini_set('log_errors', '1');
+@ini_set('error_log', dirname(__FILE__) . '/logs/php_errors.log');
+
 include_once($phpbb_root_path . 'includes/php_compat.' . $phpEx);
 
 //-- mod : run stats -----------------------------------------------------------

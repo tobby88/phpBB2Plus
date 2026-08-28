@@ -19,6 +19,7 @@ Recommended mode: 0775 when PHP runs as the owner or in the owning group.
 /files
 /files/thumbs
 /images/avatars
+/logs
 /pafiledb/cache
 /pafiledb/cache/templates
 /pafiledb/images/screenshots
