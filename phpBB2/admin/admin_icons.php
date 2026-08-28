@@ -18,8 +18,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', true);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);
@@ -113,7 +112,7 @@ function icons_write()
 
 	// process the default values
 	@reset($icon_defined_special);
-	while (list($key, $data) = @each($icon_defined_special))
+	foreach ($icon_defined_special as $key => $data)
 	{
 		$template->assign_block_vars('_outfile_default', array(
 			'NAME'		=> str_replace("''", "\'", $key),
@@ -412,7 +411,7 @@ if ($mode == 'edit')
 		$icon_url		= $icones[ $map_icon[$icon] ]['img'];
 		$icon_auth		= $icones[ $map_icon[$icon] ]['auth'];
 		@reset($icon_defined_special);
-		while (list($key, $data) = @each($icon_defined_special))
+		foreach ($icon_defined_special as $key => $data)
 		{
 			if (isset($lang[ $data['lang_key'] ]))
 			{
@@ -489,7 +488,7 @@ if ($mode == 'edit')
 
 		// consider the default sets
 		@reset($icon_defined_special);
-		while (list($key, $data) = @each($icon_defined_special))
+		foreach ($icon_defined_special as $key => $data)
 		{
 			if (isset($lang[ $data['lang_key'] ]))
 			{
@@ -559,7 +558,7 @@ if ($mode == 'edit')
 		// prepare auth level list
 		$s_auths = '';
 		@reset($auths);
-		while (list($key, $data) = @each($auths))
+		foreach ($auths as $key => $data)
 		{
 			$selected = ($icon_auth == $key) ? ' selected="selected"' : '';
 			$s_auths .= sprintf('<option value="%s"%s>%s</option>', $key, $selected, $data);
@@ -570,7 +569,7 @@ if ($mode == 'edit')
 		$s_icons = '<option value="" selected="selected">' . $lang['Image_key_pick_up'] . '</option>';
 		@ksort($images);
 		@reset($images);
-		while ( list($image_key, $image_url) = @each($images) )
+		foreach ($images as $image_key => $image_url)
 		{
 			if ( !is_array($image_url) )
 			{
@@ -583,7 +582,7 @@ if ($mode == 'edit')
 		$s_langs = '<option value="" selected="selected">' . $lang['Lang_key_pick_up'] . '</option>';
 		@ksort($lang);
 		@reset($lang);
-		while ( list($lang_key, $lang_data) = @each($lang) )
+		foreach ($lang as $lang_key => $lang_data)
 		{
 			if ( !is_array($lang_data) )
 			{
@@ -606,7 +605,7 @@ if ($mode == 'edit')
 
 		// defaults assignments
 		@reset($icon_defined_special);
-		while (list($key, $data) = @each($icon_defined_special))
+		foreach ($icon_defined_special as $key => $data)
 		{
 			if (isset($lang[ $data['lang_key'] ]))
 			{
@@ -652,7 +651,8 @@ if ($mode == '')
 		$row['post_icon'] = intval($row['post_icon']);
 		if (isset($map_icon[ $row['post_icon'] ]))
 		{
-			$icones[ $map_icon[ $row['post_icon'] ] ]['usage'] = $icones[ $map_icon[ $row['post_icon'] ] ]['usage'] + $row['count'];
+			$icon_index = $map_icon[$row['post_icon']];
+			$icones[$icon_index]['usage'] = (isset($icones[$icon_index]['usage']) ? $icones[$icon_index]['usage'] : 0) + $row['count'];
 		}
 	}
 	if ($total_posts <= 0) $total_posts = 1;
@@ -700,7 +700,7 @@ if ($mode == '')
 
 		// list of default assignement
 		@reset($icon_defined_special);
-		while (list($key, $data) = @each($icon_defined_special))
+		foreach ($icon_defined_special as $key => $data)
 		{
 			if ( ($data['icon'] == $icones[$i]['ind']) && isset($lang[ $data['lang_key'] ]) )
 			{

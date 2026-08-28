@@ -733,6 +733,7 @@ if ( $is_auth['auth_mod'] )
 // Topic watch information
 //
 $s_watching_topic = '';
+$s_watching_topic_img = '';
 if ( $can_watch_topic )
 {
 	if ( $is_watching_topic )
@@ -763,7 +764,7 @@ if ( $userdata['session_logged_in'] )
 	}
 	$template->assign_vars(array(
 		'L_BOOKMARK_ACTION' => $bm_action_l,
-		'U_BOOKMARK_ACTION' => append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . $_GET['highlight'] . $bm_action))
+		'U_BOOKMARK_ACTION' => append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . (isset($_GET['highlight']) ? $_GET['highlight'] : '') . $bm_action))
 	);
 }
 //
@@ -786,7 +787,7 @@ $template->assign_vars(array(
 
 	'POST_IMG' => $post_img,
 	'REPLY_IMG' => $reply_img,
-	'L_PRINT' => ($lang['Print_View']) ? $lang['Print_View'] : 'Printable version', 
+	'L_PRINT' => !empty($lang['Print_View']) ? $lang['Print_View'] : 'Printable version', 
     	'U_PRINT' => append_sid("printview.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start"),
 	'L_AUTHOR' => $lang['Author'],
 	'L_MESSAGE' => $lang['Message'],
@@ -1031,8 +1032,9 @@ for($i = 0; $i < $total_posts; $i++)
 		if ($this_date < $poster_birthdate) $poster_age--;
 		$poster_age = $lang['Age'] . ': ' . $poster_age;
 		$chinese = get_chinese_year (realdate('Ymd', $postrow[$i]['user_birthday']));
-		$u_chinese = $images[$chinese];
-		$chinese_img = ($chinese=='Unknown') ? '' : '<img src="' . $u_chinese . '" alt="' . $lang[$chinese] . '" title="' . $lang[$chinese] . '" align="top" border="0" />';
+		$chinese_label = isset($lang[$chinese]) ? $lang[$chinese] : '';
+		$u_chinese = isset($images[$chinese]) ? $images[$chinese] : '';
+		$chinese_img = ($chinese == 'Unknown' || $chinese_label == '' || $u_chinese == '') ? '' : '<img src="' . $u_chinese . '" alt="' . $chinese_label . '" title="' . $chinese_label . '" align="top" border="0" />';
 	} else
 	{
 		$zodiac = '';
@@ -1040,8 +1042,9 @@ for($i = 0; $i < $total_posts; $i++)
 		$zodiac_img = '';
 		$poster_age = '';
 		$chinese = '';
-	$u_chinese = '';
-	$chinese_img = '';
+		$chinese_label = '';
+		$u_chinese = '';
+		$chinese_img = '';
 	}
 	// End add - Birthday MOD
 
@@ -1550,10 +1553,10 @@ for($i = 0; $i < $total_posts; $i++)
 		'L_ZODIAC' => ($zodiac) ? $lang['Zodiac'] . ': ' : '',
 		// Start add - Birthday MOD
 		'POSTER_AGE' => $poster_age,
-		'CHINESE' => $lang[$chinese],
+		'CHINESE' => $chinese_label,
 		'CHINESE_IMG' => $chinese_img,
 		'U_CHINESE' => $u_chinese,
-		'L_CHINESE' => ($chinese) ? $lang['Chinese_zodiac'] . ': ' : '',
+		'L_CHINESE' => ($chinese_label != '') ? $lang['Chinese_zodiac'] . ': ' : '',
 		// End add - Birthday MOD
 		'POSTER_RANK' => $poster_rank,
 		// Start add - Gender MOD
@@ -1628,7 +1631,7 @@ for($i = 0; $i < $total_posts; $i++)
 		'DELETE_IMG' => $delpost_img,
 		'DELETE' => $delpost,
 		'RAW_MESSAGE' => ($can_edit) ? $raw_message : '',
-		'USER_WARNINGS' => $user_warnings,
+		'USER_WARNINGS' => isset($user_warnings) ? $user_warnings : 0,
 		'CARD_IMG' => $card_img,
 		'CARD_HIDDEN_FIELDS' => $card_hidden,
 		'CARD_EXTRA_SPACE' => ($r_card_img || $y_card_img || $g_card_img || $b_card_img) ? ' ' : '',

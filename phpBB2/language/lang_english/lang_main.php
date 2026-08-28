@@ -1282,6 +1282,7 @@ $lang['Shoutbox_date'] = ' d m Y h:i:s';
 $lang['Shout_censor'] = 'shout removed !';
 $lang['Shout_refresh'] = 'Refresh';
 $lang['Shout_text'] = 'Your text';
+$lang['Shoutbox_login'] = 'Please log in to write a shout.';
 $lang['Viewing_Shoutbox']= 'Viewing shoutbox';
 $lang['Censor'] ='Censor';
 // End add - Fully integrated shoutbox MOD

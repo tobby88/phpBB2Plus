@@ -39,6 +39,9 @@ $no_page_header = TRUE;
 $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+$error = false;
+$error_msg = '';
+$notice = '';
 
 //
 // Increase maximum execution time in case of a lot of users, but don't complain about it if it isn't

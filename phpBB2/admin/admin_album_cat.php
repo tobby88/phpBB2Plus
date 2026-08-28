@@ -19,8 +19,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', true);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$filename = basename(__FILE__);
@@ -84,8 +83,7 @@ if( !isset($_POST['mode']) )
 		//--- Album Category Hierarchy : begin
 		//--- version <= 1.1.0
 		// get the values of level selected
-		if (!empty($cat_id))
-			$parent = $cat_id;
+		$parent = !empty($cat_id) ? $cat_id : ALBUM_ROOT_CATEGORY;
 
 		if (!isset($album_cat_tree['keys'][$parent]))
 			$parent = ALBUM_ROOT_CATEGORY;

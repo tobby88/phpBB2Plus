@@ -19,8 +19,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);
@@ -34,7 +33,6 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-include($phpbb_root_path . 'config.'.$phpEx);
 require($phpbb_root_path . 'includes/kb_constants.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 

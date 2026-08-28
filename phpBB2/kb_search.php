@@ -43,6 +43,8 @@ include_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 //
 // Define initial vars
 //
+$is_block = false;
+$show_new = true;
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
 	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];

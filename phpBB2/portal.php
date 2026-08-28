@@ -47,13 +47,33 @@ include_once ($phpbb_root_path . 'pafiledb/includes/pafiledb_constants.' . $phpE
 //
 // Start session management
 //
-$userdata = session_pagestart( $user_ip, PAGE_INDEX, $session_length ); 
+$userdata = session_pagestart($user_ip, PAGE_INDEX); 
 init_userprefs($userdata);
+$logged_visible_online = 0;
+$logged_hidden_online = 0;
+$birthday_today_list = '';
+$birthday_week_list = '';
+$show_lastvbox = false;
+$users_today_list = '';
+$users_lasthour = 0;
+$guests_today = 0;
+$logged_visible_today = 0;
+$logged_hidden_today = 0;
+$total_users_today = 0;
+$l_today_text = '';
+$l_today_users = '';
+$topic_id = 0;
 //
 // End session management
 //
 // Start add  - Photo Album Block
 include($album_root_path . 'album_common.'.$phpEx);
+$picrow = array(
+	'pic_id' => 0,
+	'pic_title' => '',
+	'pic_username' => '',
+	'pic_time' => 0,
+);
 // End add  - Photo Album Block
 
 //
@@ -94,7 +114,10 @@ else
 }
 
 // Read Portal Configuration from DB
-define('PORTAL_TABLE', $table_prefix.'portal');
+if (!defined('PORTAL_TABLE'))
+{
+	define('PORTAL_TABLE', $table_prefix.'portal');
+}
 
 $CFG = array();
 $sql = "SELECT * FROM " . PORTAL_TABLE;
@@ -691,6 +714,10 @@ if ( $CFG['pics_number'] > 0 )
 			$recentrow[] = $row;
 		}
 		$db->sql_freeresult($result);
+		if (!empty($recentrow))
+		{
+			$picrow = $recentrow[0];
+		}
 		
 		if (count($recentrow) > 0)
 		{
@@ -716,8 +743,8 @@ if ( $CFG['pics_number'] > 0 )
 					}
 	
 					$pic_size = @getimagesize(ALBUM_CACHE_PATH . $recentrow[$j]['pic_thumbnail']); 
-					$pic_width = $pic_size[0]; 
-					$pic_height = $pic_size[1]; 
+					$pic_width = is_array($pic_size) ? $pic_size[0] : $CFG['pics_thumbsize']; 
+					$pic_height = is_array($pic_size) ? $pic_size[1] : $CFG['pics_thumbsize']; 
 	
 					if ($pic_width > $pic_height)
 					{
@@ -1160,14 +1187,14 @@ if( (isset( $_GET['news']  ) && $_GET['news'] == 'categories'))
 				break;
 			}
 			$template->assign_block_vars('newsrow.newscol', array(
-				'THUMBNAIL' => $N_this->root_path . 'templates/'.$theme['template_name'].'/images/news/' . $news_cats[$j]['news_image'],
+				'THUMBNAIL' => $phpbb_root_path . 'templates/'.$theme['template_name'].'/images/news/' . $news_cats[$j]['news_image'],
 				'ID' => $news_cats[$j]['news_id'],
 				'DESC' => $news_cats[$j]['news_category'],
 				)
 			);	
 			$template->assign_block_vars('newsrow.news_detail', array(
 				'NEWSCAT' => $news_cats[$j]['news_category'],
-				'CATEGORY' => $newsrow[$j]['news_category']
+				'CATEGORY' => $news_cats[$j]['news_category']
 				)
 			);
 		}
@@ -1186,7 +1213,7 @@ elseif( isset( $_GET['news']  ) && $_GET['news'] == 'archives' )
   $content->renderArchives( $year, $month, $day, $key ); 
   
 } 
-elseif (isset ($_GET['topic_id']) || $_GET['cat_id'])
+elseif (isset($_GET['topic_id']) || isset($_GET['cat_id']))
 {
 	$topic_id = 0; 
   if( isset( $_GET['topic_id'] ) ) 

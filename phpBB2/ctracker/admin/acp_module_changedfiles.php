@@ -28,7 +28,7 @@ $ct_admin = new ct_adminfunctions();
 /*
  * Wich action do we have?
  */
-$action = $HTTP_GET_VARS['action'];
+$action = isset($HTTP_GET_VARS['action']) ? $HTTP_GET_VARS['action'] : '';
 
 if ( $action == 'akt' )
 {
@@ -62,21 +62,27 @@ else if ( $action == 'chk' )
 	while( $row = $db->sql_fetchrow($result) )
 	{
 		$table_class    = !$table_class;
+		$current_hash = null;
 
-		$current_hash 	= '';
-		$current_hash = @filesize($row['filepath']) . '-' . count(@file($row['filepath']));
+		$file_size = @filesize($row['filepath']);
+		$file_lines = @file($row['filepath']);
 
-		if ( $current_hash == '-1' )
+		if ( $file_size === false || $file_lines === false )
     {
 		  $filestatus = $lang['ctracker_file_deleted'];
 		  $color 			= '#0300FF';
 		}
-    elseif( md5($current_hash) != $row['hash'])
+		else
+		{
+			$current_hash = $file_size . '-' . count($file_lines);
+		}
+
+    if (isset($current_hash) && md5($current_hash) != $row['hash'])
 		{
 			$filestatus = $lang['ctracker_file_changed'];
 			$color      = '#FF1200';
 		}
-		else
+		elseif (isset($current_hash))
 		{
 			$filestatus = $lang['ctracker_file_unchanged'];
 			$color 			= '#269F00';

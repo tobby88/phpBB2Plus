@@ -16,7 +16,7 @@
 // CTracker_Ignore: File Checked By Human
 
 // Set constants
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 define('CTRACKER_ACP', true);
 
 

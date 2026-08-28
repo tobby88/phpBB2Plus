@@ -27,8 +27,8 @@ $template->set_filenames(array(
 
 
 $logmanager = new log_manager();
-$mode       = $HTTP_GET_VARS['mode'];
-$logid      = $HTTP_GET_VARS['logid'];
+$mode       = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
+$logid      = isset($HTTP_GET_VARS['logid']) ? intval($HTTP_GET_VARS['logid']) : 0;
 
 if ( $mode == 'delete' )
 {
@@ -78,14 +78,18 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 	);
 
 	// Template Loop for Logfile output and naturally logfile output itself
-	$filename  = file($logmanager->create_ct_path($logid));
+	$filename  = @file($logmanager->create_ct_path($logid));
+	if (!is_array($filename))
+	{
+		$filename = array();
+	}
 	$a		   = 0;
 	$lastclean = 0;
+	$split_token = '|||';
 
 	for ( $i = count($filename) - 1; $i >= 0; $i-- )
 	{
-		define('SPLIT', '|||');		// File Token
-		$line = explode(SPLIT, $filename[$i]);
+		$line = explode($split_token, $filename[$i]);
 
 		if ( $line[0] == 1 )
 		{

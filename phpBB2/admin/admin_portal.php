@@ -11,8 +11,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);
@@ -27,7 +26,10 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
-define('PORTAL_TABLE', $table_prefix.'portal');
+if (!defined('PORTAL_TABLE'))
+{
+	define('PORTAL_TABLE', $table_prefix.'portal');
+}
 
 //
 // Pull all config data
@@ -77,7 +79,7 @@ $template->set_filenames(array(
 $template->assign_vars(array(
 	"S_CONFIG_ACTION" => append_sid("admin_portal.$phpEx"),
 	"L_CONFIGURATION_TITLE" => $lang['EZPortal_Config'],
-	"L_GENERAL_SETTINGS" => $lang['EZPortal_settings'],
+	"L_GENERAL_SETTINGS" => isset($lang['EZPortal_settings']) ? $lang['EZPortal_settings'] : $lang['General_Config'],
 	"L_WELCOME_TEXT" => $lang['Welcome_Text'],
 	"L_NUMBER_OF_NEWS" => $lang['Number_of_News'],
 	"L_NEWS_LENGTH" => $lang['News_length'],
@@ -96,8 +98,8 @@ $template->assign_vars(array(
 	"L_PIC_THUMBSIZE" => $lang['Portal_thumb_size'],
 	"L_SUBMIT" => $lang['Submit'], 
 	"L_RESET" => $lang['Reset'], 
-	"L_SHOW" => $lang['Portal_Show'],
-	"L_HIDE" => $lang['Portal_Hide'],
+	"L_SHOW" => isset($lang['Portal_Show']) ? $lang['Portal_Show'] : $lang['Yes'],
+	"L_HIDE" => isset($lang['Portal_Hide']) ? $lang['Portal_Hide'] : $lang['No'],
   "L_COMMA" => $lang['Comma'],
   "L_PIC_COMMA" => $lang['Pic_Comma'],
 	"L_NUMBER_TOPPOSTERS" => $lang['Number_Topposters'],

@@ -215,17 +215,22 @@ $gallery_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_gallery'
 $gallery = '<a href="' . $temp_url . '">' . sprintf($lang['Personal_Gallery_Of_User'], $profiledata['username']) . '</a>';
 // Photo Album Link MOD - Daz - ForumImages.com - END 
 // Start add - Birthday MOD
+$chinese = '';
+$chinese_label = '';
+$u_chinese = '';
+$chinese_img = '';
 if ($profiledata['user_birthday']!=999999)
 {
 	include($phpbb_root_path . 'includes/chinese.'.$phpEx);
 	$chinese = get_chinese_year( realdate('Ymd', $profiledata['user_birthday']) );
-	$u_chinese = $images[$chinese];
-	$chinese_img = ($chinese=='Unknown') ? '' : '<img src="' . $u_chinese . '" alt="' . $lang[$chinese] . '" title="' . $lang[$chinese] . '" align="top" border="0" />';
+	$chinese_label = isset($lang[$chinese]) ? $lang[$chinese] : '';
+	$u_chinese = isset($images[$chinese]) ? $images[$chinese] : '';
+	$chinese_img = ($chinese == 'Unknown' || $chinese_label == '' || $u_chinese == '') ? '' : '<img src="' . $u_chinese . '" alt="' . $chinese_label . '" title="' . $chinese_label . '" align="top" border="0" />';
 	$user_birthdate = realdate('md', $profiledata['user_birthday']);
 	$i=0;
 	while ($i<26)
 	{
-		if ($user_birthdate>=$zodiacdates[$n] && $user_birthdate<=$zodiacdates[$i+1])
+		if ($user_birthdate>=$zodiacdates[$i] && $user_birthdate<=$zodiacdates[$i+1])
 		{
 			$zodiac = $lang[$zodiacs[($i/2)]];
 			$u_zodiac = $images[$zodiacs[($i/2)]];
@@ -254,6 +259,7 @@ if ( !empty($profiledata['user_gender']))
            } 
 } else $gender=$lang['No_gender_specify']; 
 // End add - Gender MOD
+$absence_mode = '';
 if ( $profiledata['user_absence'] == TRUE )
 {
 	$nothing = '';
@@ -343,7 +349,7 @@ $template->assign_vars(array(
 	// End add - Gender MOD
 	// Start add - Birthday MOD
 	'BIRTHDAY' => $user_birthday,
-	'CHINESE' => $lang[$chinese],
+	'CHINESE' => $chinese_label,
 	'CHINESE_IMG' => $chinese_img,
 	'U_CHINESE' => $u_chinese,
 	'L_CHINESE' => $lang['Chinese_zodiac'],

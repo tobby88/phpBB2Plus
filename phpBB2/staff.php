@@ -45,6 +45,7 @@ if( $mode != 'view_profile' )
 	));
 
 	$is_auth_ary = array();
+	$forums = array();
 	$is_auth_ary = auth(AUTH_VIEW, AUTH_LIST_ALL, $userdata, $forums);
 
 	$sql_forums = "SELECT ug.user_id, f.forum_id, f.forum_name
@@ -57,7 +58,7 @@ if( $mode != 'view_profile' )
 	}
 	while( $row = $db->sql_fetchrow($result_forums) )
 	{
-		$display_forums = ( $is_auth_ary[$row['forum_id']]['auth_view'] ) ? true : false;
+		$display_forums = !empty($is_auth_ary[$row['forum_id']]['auth_view']);
 		if( $display_forums )
 		{
 			$forum_id = $row['forum_id'];
@@ -76,7 +77,7 @@ if( $mode != 'view_profile' )
 	{
 		$ranksrow[] = $row;
 	}
-	$db->sql_freeresult($result_ranks);
+	$db->sql_freeresult($results_ranks);
 
 	$level_cat = $lang['Staff_level'];
 	for( $i = 0; $i < count($level_cat); $i++ )
@@ -107,7 +108,7 @@ if( $mode != 'view_profile' )
 			do
 			{
 				$user_id = $staff['user_id'];
-				$user_status = ( $staff['user_session_time'] >= (time() - 60) ) ? (( $row['user_allow_viewonline'] ) ? $lang['Staff_online'] : (( $userdata['user_level'] == ADMIN || $userdata['user_id'] == $user_id ) ? '<i>'. $lang['Staff_online'] .'</i>' : '')) : '';
+				$user_status = ( $staff['user_session_time'] >= (time() - 60) ) ? (( $staff['user_allow_viewonline'] ) ? $lang['Staff_online'] : (( $userdata['user_level'] == ADMIN || $userdata['user_id'] == $user_id ) ? '<i>'. $lang['Staff_online'] .'</i>' : '')) : '';
 
 				$rank = '';
 				$rank_image = '';
@@ -290,7 +291,7 @@ else
 		{
 			message_die(GENERAL_ERROR, 'error getting users post information.', '', __LINE__, __FILE__, $sql_last_posts);
 		}
-		while( $last_posts = $db->sql_fetchrow($result_last_posts) )
+		while( $last_posts = $db->sql_fetchrow($results_last_posts) )
 		{
 			$last_post_title = ( !empty($last_posts['post_subject']) ) ? $last_posts['post_subject'] : $last_posts['topic_title'];
 			$last_post_title = ( count($orig_word) ) ? preg_replace($orig_word, $replacement_word, $last_post_title) : $last_post_title;
@@ -305,7 +306,7 @@ else
 				'FORUM_URL' => append_sid("viewforum.$phpEx?". POST_FORUM_URL ."=$last_posts[forum_id]"),
 			));
 		}
-		$db->sql_freeresult($result_last_posts);
+		$db->sql_freeresult($results_last_posts);
 
 		$total_posts = get_db_stat('postcount');
 		$total_topics = get_db_stat('topiccount');

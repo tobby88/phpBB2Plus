@@ -55,7 +55,7 @@ unset($game_hash, $arcade_hash);
 //
 //	Check to see if the Mod is offline, this will allow you to change your activities without taking the whole board down.
 //
-if($arcade->arcade_config['games_offline'] && $userdata[user_level] != ADMIN)
+if($arcade->arcade_config['games_offline'] && $userdata['user_level'] != ADMIN)
 {
 	message_die(GENERAL_MESSAGE, $lang['games_are_offline']);
 }
@@ -64,8 +64,8 @@ if($arcade->arcade_config['games_offline'] && $userdata[user_level] != ADMIN)
 //
 $game_name		= $game_info['game_name'];
 $game_desc		= $game_info['game_desc'];
-$game_width		= isset($width) ? $width : intval($game_info['win_width']);
-$game_height	= isset($height) ? $height : intval($game_info['win_height']);
+$game_width		= (isset($width) && is_numeric($width)) ? intval($width) : intval($game_info['win_width']);
+$game_height	= (isset($height) && is_numeric($height)) ? intval($height) : intval($game_info['win_height']);
 $game_path		= $game_info['game_path'];
 $game_flash		= $game_info['game_flash'];
 $game_id		  = intval($game_info['game_id']);
@@ -73,7 +73,7 @@ $game_desc		= trim(htmlspecialchars($game_desc));
 $game_desc		= substr(str_replace("\\'", "'", $game_desc), 0, 255);
 $game_desc		= str_replace("'", "\\'", $game_desc);
 $arcade_hash	= '';
-$license      = $game_info['license'] ? $game_info['license'] : 'None';
+$license      = !empty($game_info['license']) ? $game_info['license'] : 'None';
 $cat_id		    = (intval($game_info['cat_id']) > 0) ? intval($game_info['cat_id']) : -1;
 //
 //	Update Game Played amount.
@@ -162,6 +162,7 @@ if ( $affected_rows < 1 )
 // Check the extension of the game to see what we should do with it.
 //
 $extension = get_ina_extension($game_name);
+$base_ref = '';
 switch ($extension)
 {
 //

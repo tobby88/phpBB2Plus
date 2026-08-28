@@ -35,8 +35,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB',true);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if(!empty($setmodules))
 {
   $filename = basename(__FILE__);
@@ -54,6 +53,7 @@ $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
+$filename = basename(__FILE__);
 
 if(!isset($HTTP_GET_VARS['mode']) || !isset($HTTP_GET_VARS['pfid']))
 {

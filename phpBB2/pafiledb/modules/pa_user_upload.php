@@ -11,9 +11,9 @@
 
 class pafiledb_user_upload extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
-		global $_REQUEST, $_POST, $pafiledb_config, $phpbb_root_path;
+		global $_REQUEST, $_POST, $pafiledb_config, $phpbb_root_path, $board_config;
 		global $pafiledb_template, $db, $lang, $userdata, $user_ip, $phpEx, $pafiledb_functions;
 
 		// =======================================================
@@ -29,6 +29,7 @@ class pafiledb_user_upload extends pafiledb_public
 // MX Addon
 		$do = (isset($_REQUEST['do'])) ? intval($_REQUEST['do']) : '';
 		$file_id = (isset($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
+		$s_hidden_fields = '';
 // END
 		$mirrors = (isset($_POST['mirrors'])) ? TRUE : 0;
 
@@ -247,7 +248,7 @@ class pafiledb_user_upload extends pafiledb_public
 				'L_FILESSINFO_UPLOAD' => $lang['Filessinfo_upload'],
 				'L_FILE_SSLINK' => $lang['Filess_link'],
 				'L_FILE_SSLINK_INFO' => $lang['Filess_link_info'],
-				'L_FILESSUPLOAD' => $lang['Filessupload'],
+				'L_FILESSUPLOAD' => isset($lang['Filessupload']) ? $lang['Filessupload'] : $lang['Filess_upload'],
 				'L_FILE_WEBSITE' => $lang['Filedocs'],
 				'L_FILE_WEBSITE_INFO' => $lang['Filedocsinfo'],
 				'L_FILE_URL' => $lang['Fileurl'],

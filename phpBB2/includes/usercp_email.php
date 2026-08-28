@@ -27,6 +27,9 @@ if ( !defined('IN_PHPBB') )
 	exit;
 }
 
+$error = false;
+$error_msg = '';
+
 // Is send through board enabled? No, return to index
 if (!$board_config['board_email_form'])
 {

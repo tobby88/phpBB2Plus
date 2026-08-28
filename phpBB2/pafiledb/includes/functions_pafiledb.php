@@ -36,14 +36,20 @@ class pafiledb_public extends pafiledb
 	
 	function module($module_name)
 	{
-		if (!class_exists('pafiledb_' . $module_name))
+		$class_name = 'pafiledb_' . $module_name;
+		if (!class_exists($class_name))
 		{
 			global $phpbb_root_path, $phpEx;
 			
 			$this->module_name = $module_name;
 			
 			require_once($phpbb_root_path . 'pafiledb/modules/pa_' . $module_name . '.'.$phpEx);
-			eval('$this->modules[' . $module_name . '] = new pafiledb_' . $module_name . '();');
+		}
+
+		if (!isset($this->modules[$module_name]))
+		{
+			$this->module_name = $module_name;
+			$this->modules[$module_name] = new $class_name();
 
 			if (method_exists($this->modules[$module_name], 'init'))
 			{
@@ -171,7 +177,7 @@ class pafiledb
 			}
 		}
 
-		$cat_list .= '';
+		$cat_list = '';
 
 		$pre = str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;', $depth);
 
@@ -183,6 +189,7 @@ class pafiledb
 			{
 				if ($cat['cat_parent'] == $cat_id)
 				{
+					$sel = '';
 					if (is_array($default))
 					{
 						if (isset($default[$cat['cat_id']]))
@@ -232,7 +239,7 @@ class pafiledb
 
 	function get_sub_cat($cat_id)
 	{
-		$cat_sub .= '';
+		$cat_sub = '';
 		if(!empty($this->subcat_rowset[$cat_id]))
 		{
 			foreach($this->subcat_rowset[$cat_id] as $cat_id => $cat_row)
@@ -561,12 +568,12 @@ class pafiledb
 						break;
 
 					case AUTH_ACL:
-						$this->auth[$c_cat_id][$key] = ( $userdata['session_logged_in'] ) ? $this->auth_check_user(AUTH_ACL, $key, $u_access[$c_cat_id], $is_admin) : 0;
+					$this->auth[$c_cat_id][$key] = ( $userdata['session_logged_in'] ) ? $this->auth_check_user(AUTH_ACL, $key, isset($u_access[$c_cat_id]) ? $u_access[$c_cat_id] : array(), $is_admin) : 0;
 						$this->auth[$c_cat_id][$key . '_type'] = $lang['Auth_Users_granted_access'];
 						break;
 
 					case AUTH_MOD:
-						$this->auth[$c_cat_id][$key] = ( $userdata['session_logged_in'] ) ? $this->auth_check_user(AUTH_MOD, 'auth_mod', $u_access[$c_cat_id], $is_admin) : 0;
+					$this->auth[$c_cat_id][$key] = ( $userdata['session_logged_in'] ) ? $this->auth_check_user(AUTH_MOD, 'auth_mod', isset($u_access[$c_cat_id]) ? $u_access[$c_cat_id] : array(), $is_admin) : 0;
 						$this->auth[$c_cat_id][$key . '_type'] = $lang['Auth_Moderators'];
 						break;
 
@@ -584,7 +591,7 @@ class pafiledb
 		for($k = 0; $k < count($c_access); $k++)
 		{
 			$c_cat_id = $c_access[$k]['cat_id'];		
-			$this->auth[$c_cat_id]['auth_mod'] = ( $userdata['session_logged_in'] ) ? $this->auth_check_user(AUTH_MOD, 'auth_mod', $u_access[$c_cat_id], $is_admin) : 0;
+			$this->auth[$c_cat_id]['auth_mod'] = ( $userdata['session_logged_in'] ) ? $this->auth_check_user(AUTH_MOD, 'auth_mod', isset($u_access[$c_cat_id]) ? $u_access[$c_cat_id] : array(), $is_admin) : 0;
 		}
 
 		for($i = 0; $i < count($auth_fields_global); $i++)
@@ -631,6 +638,7 @@ class pafiledb
 	{
 		$auth_user = 0;
 
+		$u_access = is_array($u_access) ? $u_access : array();
 		if ( count($u_access) )
 		{
 			for($j = 0; $j < count($u_access); $j++)

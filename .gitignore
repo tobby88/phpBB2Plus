@@ -1,0 +1,44 @@
+# Installation-specific database credentials
+/phpBB2/config.php
+
+# Generated caches
+/phpBB2/cache/*
+!/phpBB2/cache/.htaccess
+!/phpBB2/cache/index.htm
+!/phpBB2/cache/index.html
+/phpBB2/includes/def_tree.php
+
+# User-generated content
+/phpBB2/album_mod/upload/*
+!/phpBB2/album_mod/upload/.htaccess
+!/phpBB2/album_mod/upload/index.html
+/phpBB2/files/*
+!/phpBB2/files/index.php
+/phpBB2/images/avatars/*
+!/phpBB2/images/avatars/index.htm
+/phpBB2/pafiledb/uploads/*
+!/phpBB2/pafiledb/uploads/.htaccess
+!/phpBB2/pafiledb/uploads/index.htm
+!/phpBB2/pafiledb/uploads/index.php
+
+# Runtime data
+/phpBB2/cgi-bin/tmp/*
+/phpBB2/cgi-bin/sysinfo/
+/phpBB2/logs/*
+!/phpBB2/logs/.htaccess
+!/phpBB2/logs/index.html
+/phpBB2/usage/*
+
+# Local tools and comparison artifacts
+/.reference/
+/.deploy/
+/.tools/
+/.env
+/.env.*
+!/.env.example
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp

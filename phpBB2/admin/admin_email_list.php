@@ -29,7 +29,7 @@
 ##############################################################
 
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$filename = basename(__FILE__);
@@ -43,6 +43,8 @@ if( !empty($setmodules) )
 $phpbb_root_path = "../";
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
+$start = isset($_GET['start']) ? intval($_GET['start']) : 0;
+$userrow = array();
 
 
 //
@@ -68,7 +70,7 @@ if(!$result = $db->sql_query($sql))
 $total_users = $db->sql_numrows($result);
 //
 
-$query_result = mysql_query("SELECT username,user_email FROM ".USERS_TABLE." WHERE user_id > 0");
+$query_result = $db->sql_query("SELECT user_id, username, user_email FROM ".USERS_TABLE." WHERE user_id > 0");
 
 while( $row = $db->sql_fetchrow($query_result) )
 {

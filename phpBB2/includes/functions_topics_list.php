@@ -146,7 +146,7 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 	$tracking_all		= ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all']) ) ? intval($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f_all']) : NULL;
 
 	// categories hierarchy v 2 compliancy
-	$cat_hierarchy = function_exists(get_auth_keys);
+	$cat_hierarchy = function_exists('get_auth_keys');
 	if (!$cat_hierarchy)
 	{
 		// standard read
@@ -158,7 +158,7 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 	}
 
 	// topic icon present
-	$icon_installed = function_exists(get_icon_title);
+	$icon_installed = function_exists('get_icon_title');
 
 	// get a default title
 	if (empty($list_title))
@@ -638,14 +638,14 @@ function topic_list($box, $tpl='', $topic_rowset=array(), $list_title='', $split
 
 		// get the announces dates
 		$topic_announces_dates = '';
-		if (function_exists(get_announces_title) && in_array( $topic_rowset[$i]['topic_type'], array(POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)))
+		if (function_exists('get_announces_title') && in_array( $topic_rowset[$i]['topic_type'], array(POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)))
 		{
 			$topic_announces_dates = get_announces_title($topic_rowset[$i]['topic_time'], $topic_rowset[$i]['topic_announce_duration']);
 		}
 
 		// get the calendar dates
 		$topic_calendar_dates = '';
-		if (function_exists(get_calendar_title))
+		if (function_exists('get_calendar_title'))
 		{
 			$topic_calendar_dates = get_calendar_title($topic_rowset[$i]['topic_calendar_time'], $topic_rowset[$i]['topic_calendar_duration']);
 		}

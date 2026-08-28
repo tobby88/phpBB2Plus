@@ -116,7 +116,7 @@ function calendar_get_tree_option($cur='')
 	// get auth read
 	$is_auth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
 	$forum_ids = array();
-	while ( list($forum_id, $auth) = each($is_auth) )
+	foreach ($is_auth as $forum_id => $auth)
 	{
 		if ($auth['auth_read'] && $auth['auth_view'])
 		{
@@ -176,8 +176,7 @@ function date_dsp($format, $date)
 
 	if ( empty($translate) && $board_config['default_lang'] != 'english' )
 	{
-		@reset($lang['datetime']);
-		while ( list($match, $replace) = @each($lang['datetime']) )
+		foreach ($lang['datetime'] as $match => $replace)
 		{
 			$translate[$match] = $replace;
 		}
@@ -188,6 +187,8 @@ function date_dsp($format, $date)
 function get_calendar_title_date($calendar_start, $calendar_duration)
 {
 	global $lang, $images, $phpbb_root_path, $phpEx, $board_config, $userdata;
+	$calendar_start = intval($calendar_start);
+	$calendar_duration = intval($calendar_duration);
 	if (empty($calendar_start)) return '';
 
 	// get the component of the date and duration
@@ -330,8 +331,8 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 	}
 
 	// get the forums authorized (compliency with categories hierarchy v2 mod)
-	$cat_hierarchy = function_exists(get_auth_keys);
-	$s_forums_ids = '';
+	$cat_hierarchy = function_exists('get_auth_keys');
+	$s_forum_ids = '';
 	if (!$cat_hierarchy)
 	{
 		// standard read
@@ -365,7 +366,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		}
 
 		// get the list of authorized forums
-		while (list($forum_id, $forum_auth) = each($is_auth))
+		foreach ($is_auth as $forum_id => $forum_auth)
 		{
 			if ( $forum_auth['auth_read'] && (empty($fid) || isset($is_ask[$forum_id])) )
 			{
@@ -382,9 +383,10 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		$keys = get_auth_keys($fid, true, -1, -1, 'auth_read');
 		for ($i=0; $i < count($keys['id']); $i++)
 		{
-			if ( ($tree['type'][$keys['idx'][$i]] == POST_FORUM_URL) && $tree['auth'][ $keys['id'][$i] ]['auth_read'] )
+			$tree_idx = $keys['idx'][$i];
+			if ( ($tree_idx >= 0) && ($tree['type'][$tree_idx] == POST_FORUM_URL) && !empty($tree['auth'][ $keys['id'][$i] ]['auth_read']) )
 			{
-				$s_forum_ids .= (empty($s_forum_ids) ? '' : ', ') . $tree['id'][$keys['idx'][$i]];
+				$s_forum_ids .= (empty($s_forum_ids) ? '' : ', ') . $tree['id'][$tree_idx];
 			}
 		}
 	}
@@ -475,7 +477,7 @@ function get_event_topics(&$events, &$number, $start_date, $end_date, $limit=fal
 		}
 		$short_title = (strlen($topic_title) > $topic_title_length + 3) ? substr($topic_title, 0, $topic_title_length) . '...' : $topic_title;
 		$dsp_topic_icon = '';
-		if (function_exists(get_icon_title))
+		if (function_exists('get_icon_title'))
 		{
 			$dsp_topic_icon = get_icon_title($topic_icon, 0, POST_CALENDAR);
 		}
@@ -616,10 +618,6 @@ function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, 
       $user_avatar = $row['user_avatar'];
       $user_birthday = realdate($lang['DATE_FORMAT'], $row['user_birthday']); 
 
-      $ignore         = $row['user_ignore']; 
-      $friend         = $row['user_friend']; 
-      $always_visible = $row['user_visible']; 
-
       $username_link = append_sid($phpbb_root_path . "./profile.$phpEx?mode=viewprofile&" . POST_USERS_URL . "=$user_id"); 
 
 
@@ -661,14 +659,14 @@ function get_birthday(&$events, &$number, $start_date, $end_date, $limit=false, 
       $new_row['event_forum_id']         = ''; 
       $new_row['event_forum_name']      = ''; 
 
-      $new_row['event_icon']				= $images['icon_birthday'];
+      $new_row['event_icon']				= isset($images['icon_birthday']) ? $images['icon_birthday'] : $images['happy_birthday'];
       $new_row['event_title']            = $username; 
       $new_row['event_short_title']      = $username; 
       $new_row['event_message']         = $message; 
       $new_row['event_calendar_time']      = $event_time; 
       $new_row['event_calendar_duration']   = ''; 
       $new_row['event_link']            = $username_link; 
-      $new_row['event_txt_class']         = $txt_class; 
+      $new_row['event_txt_class']         = 'genmed'; 
       $new_row['event_type_icon']         = '<img src="' . $images['icon_tiny_profile'] . '" border="0" align="absbottom" hspace="2" />'; 
       $events[] = $new_row; 
    } 
@@ -1001,7 +999,7 @@ if ($userdata['user_id'] != ANONYMOUS && $userdata['user_level'] != ADMIN)
 	$is_auth = array();
 	$forum_ids = '';
 	$is_auth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
-	while ( list($forum_id, $auth) = each($is_auth) )
+	foreach ($is_auth as $forum_id => $auth)
 	{
 		if ($auth['auth_read'] && $auth['auth_view'])
 		{
@@ -1067,6 +1065,10 @@ if ( !$use_cache || $cal_ttl < time() )
 		// search a free day map offset in the start day
 		$event_id = $events[$i]['event_id'];
 		$offset_date = $event_start;
+		if (!isset($map[$event_start]) || !is_array($map[$event_start]))
+		{
+			$map[$event_start] = array();
+		}
 		$map_offset = count($map[$event_start]);
 		$found = false;
 		for ($k=0; ($k < count($map[$event_start])) && !$found; $k++)
@@ -1082,6 +1084,10 @@ if ( !$use_cache || $cal_ttl < time() )
 		$offset_date = $event_start;
 		while ($offset_date <= $event_end)
 		{
+			if (!isset($map[$offset_date]) || !is_array($map[$offset_date]))
+			{
+				$map[$offset_date] = array();
+			}
 			for ($l=count($map[$offset_date]); $l <= $map_offset; $l++)
 			{
 				$map[$offset_date][$l] = -1;
@@ -1117,7 +1123,7 @@ if ( !$use_cache || $cal_ttl < time() )
 	$s_year .= '</select>';
 
 	// build a forum select list
-	$cat_hierarchy = function_exists(get_auth_keys);
+	$cat_hierarchy = function_exists('get_auth_keys');
 	if (!$cat_hierarchy)
 	{
 		$s_forum_list = '<select name="selected_id" onchange="forms[\'_calendar\'].submit();">' . calendar_get_tree_option($fid) . '</select>';
@@ -1216,6 +1222,10 @@ if ( !$use_cache || $cal_ttl < time() )
 
 				// send events
 				$more = false;
+				if (!isset($map[$offset_date]) || !is_array($map[$offset_date]))
+				{
+					$map[$offset_date] = array();
+				}
 				$over = ( count($map[$offset_date]) > $nb_row_per_cell);
 				for ($k=0; $k < count($map[$offset_date]); $k++)
 				{

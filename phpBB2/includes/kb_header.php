@@ -47,6 +47,15 @@ else
     }
 }
 
+if ( !isset($show_new) )
+{
+	$show_new = true;
+}
+if ( !isset($is_admin) )
+{
+	$is_admin = ( ( $userdata['user_level'] == ADMIN || is_group_member($kb_config['mod_group'], $userdata['user_id']) ) && $userdata['session_logged_in'] ) ? true : false;
+}
+
 // $dirname = $phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_kb.'.$phpEx;
 // include($dirname);
 
@@ -57,9 +66,9 @@ $template->set_filenames(array(
 	'kb_header' => 'kb_header.tpl')
 );
 
-if ( ( $kb_config['allow_new'] == ALLOW_NEW && $userdata['session_logged_in'] && $show_new ) || ( $kb_config['allow_new'] == ALLOW_NEW && $kb_config['allow_anon'] == ALLOW_ANON && $show_new ) || $is_admin && $show_new )
+if ( ( $kb_config['allow_new'] == ALLOW_NEW && $userdata['session_logged_in'] && $show_new ) || ( $kb_config['allow_new'] == ALLOW_NEW && $kb_config['allow_anon'] == ALLOW_ANON && $show_new ) || ( $is_admin && $show_new ) )
 {
-   if ( $_GET['cat'] )
+   if ( !empty($_GET['cat']) )
    {
        $temp_url = append_sid(this_kb_mxurl("mode=add&cat=" . $_GET['cat']));
        $add_article = '<a href="' . $temp_url . '">' . $lang['Add_article'] . '</a>';
@@ -70,6 +79,11 @@ if ( ( $kb_config['allow_new'] == ALLOW_NEW && $userdata['session_logged_in'] &&
    }
     
    $template->assign_block_vars('switch_add_article', array()); 
+}
+
+if (!isset($add_article))
+{
+   $add_article = '';
 }
 
 $temp_url = append_sid($phpbb_root_path . "kb_search.php");

@@ -45,10 +45,8 @@ function language_select($default, $select_name = "language", $dirname="language
 	closedir($dir);
 
 	@asort($lang);
-	@reset($lang);
-
 	$lang_select = '<select name="' . $select_name . '">';
-	while ( list($displayname, $filename) = @each($lang) )
+	foreach ($lang as $displayname => $filename)
 	{
 		$selected = ( strtolower($default) == strtolower($filename) ) ? ' selected="selected"' : '';
 		$lang_select .= '<option value="' . $filename . '"' . $selected . '>' . ucwords($displayname) . '</option>';
@@ -94,11 +92,11 @@ function tz_select($default, $select_name = 'timezone')
 
 	if ( !isset($default) )
 	{
-		$default == $sys_timezone;
+		$default = $sys_timezone;
 	}
 	$tz_select = '<select name="' . $select_name . '">';
 
-	while( list($offset, $zone) = @each($lang['tz']) )
+	foreach ($lang['tz'] as $offset => $zone)
 	{
 		$selected = ( $offset == $default ) ? ' selected="selected"' : '';
 		$tz_select .= '<option value="' . $offset . '"' . $selected . '>' . $zone . '</option>';
@@ -181,7 +179,7 @@ $date_formats = array(
 
 if ( !isset($timezone) ) 
 { 
-$timezone == $board_config['board_timezone']; 
+$timezone = $board_config['board_timezone']; 
 } 
 $now = time() + (3600 * $timezone); 
 

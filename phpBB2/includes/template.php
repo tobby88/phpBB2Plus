@@ -70,6 +70,11 @@ define('XS_TAG_DEFINE', 9);
 define('XS_TAG_UNDEFINE', 10);
 define('XS_TAG_BEGINELSE', 11);
 
+// Update type constants are referenced by legacy xs.cfg files on every load.
+defined('XS_UPDATE_STYLE') || define('XS_UPDATE_STYLE', 1);
+defined('XS_UPDATE_MOD') || define('XS_UPDATE_MOD', 2);
+defined('XS_UPDATE_PHPBB') || define('XS_UPDATE_PHPBB', 3);
+
 
 class Template {
 	var $classname = "Template";

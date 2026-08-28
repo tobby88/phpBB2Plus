@@ -39,6 +39,7 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+$output_info = '';
 
 if( isset($_POST['add_name']) )
 {
@@ -107,7 +108,7 @@ $disallowed = $db->sql_fetchrowset($result);
 //
 $disallow_select = '<select name="disallowed_id">';
 
-if( trim($disallowed) == "" )
+if( empty($disallowed) )
 {
 	$disallow_select .= '<option value="">' . $lang['no_disallowed'] . '</option>';
 }

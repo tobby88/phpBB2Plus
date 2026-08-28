@@ -19,8 +19,7 @@
 *  This file will be used for modifying the smiley settings for a board.
 **************************************************************************/
 
-define('IN_PHPBB', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 //
 // First we do the setmodules stuff for the admin cp.
 //
@@ -68,7 +67,7 @@ while($file = @readdir($dir))
   {
     $img_size = @getimagesize($phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path'] . '/' . $file);
 
-    if( $img_size[0] && $img_size[1] )
+    if( is_array($img_size) && !empty($img_size[0]) && !empty($img_size[1]) )
     {
       $category_images[] = $file;
     }
@@ -310,7 +309,7 @@ else
     'L_CATEGORY' => $lang['Category'],
     'L_TOPICS' => $lang['Topics'],
 
-    'S_HIDDEN_FIELDS' => $s_hidden_fields,
+    'S_HIDDEN_FIELDS' => isset($s_hidden_fields) ? $s_hidden_fields : '',
     'S_NEWS_ACTION' => append_sid("admin_news_cats.$phpEx"))
   );
 

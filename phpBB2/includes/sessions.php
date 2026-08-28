@@ -358,7 +358,7 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 				$thispage_id = (empty($thispage_id) || $thispage_id == '') ? 0 : $thispage_id;
 				$thistopic_id = (empty($thistopic_id) || $thistopic_id == '') ? 0 : $thistopic_id;
 
-				if ( $current_time - $userdata['session_time'] > 60 || ((( $userdata['user_id'] == ANONYMOUS )?$userdata['user_session_topic']:$userdata['session_topic']) != $thispage_topic) || (( $userdata['user_id'] == ANONYMOUS )?$userdata['user_session_page']:$userdata['session_page']) != $thispage_id)
+				if ( $current_time - $userdata['session_time'] > 60 || ((( $userdata['user_id'] == ANONYMOUS )?$userdata['user_session_topic']:$userdata['session_topic']) != $thistopic_id) || (( $userdata['user_id'] == ANONYMOUS )?$userdata['user_session_page']:$userdata['session_page']) != $thispage_id)
 				{
 					// A little trick to reset session_admin on session re-usage
 					$update_admin = (!defined('IN_ADMIN') && $current_time - $userdata['session_time'] > ($board_config['session_length']+60)) ? ', session_admin = 0' : '';

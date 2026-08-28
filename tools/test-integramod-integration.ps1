@@ -113,6 +113,20 @@ foreach ($commit in (& git rev-list HEAD))
 $unreachableMapped = @($ledger | Where-Object { -not $reachable.ContainsKey($_.MappedCommit) })
 Assert-True ($unreachableMapped.Count -eq 0) "Mapped IntegraMOD commits are not reachable from HEAD: $($unreachableMapped.MappedCommit -join ', ')"
 
+$productionLedger = @(Import-Csv 'docs/upstream/production-compatibility/commits.csv')
+Assert-True ($productionLedger.Count -eq 56) "Production compatibility ledger has $($productionLedger.Count) rows instead of 56."
+$validProductionDispositions = @('ported', 'already-present', 'superseded', 'not-applicable')
+$invalidProductionRows = @($productionLedger | Where-Object { $_.Disposition -notin $validProductionDispositions })
+Assert-True ($invalidProductionRows.Count -eq 0) 'Production compatibility ledger contains an invalid disposition.'
+$unmappedProductionRows = @($productionLedger | Where-Object {
+    $_.Disposition -ne 'not-applicable' -and -not $_.PortCommit
+})
+Assert-True ($unmappedProductionRows.Count -eq 0) 'An applicable production compatibility commit has no public port commit.'
+$unreachableProductionPorts = @($productionLedger | Where-Object {
+    $_.PortCommit -and -not $reachable.ContainsKey($_.PortCommit)
+})
+Assert-True ($unreachableProductionPorts.Count -eq 0) "Production port commits are not reachable from HEAD: $($unreachableProductionPorts.PortCommit -join ', ')"
+
 $upstreamPaths = @(& git ls-tree -r --name-only $ledger[-1].MappedCommit)
 $headPaths = @{}
 foreach ($path in (& git ls-tree -r --name-only HEAD))
@@ -162,7 +176,7 @@ foreach ($language in $expectedLanguages)
 }
 
 $mysqliDriver = [IO.File]::ReadAllText((Resolve-Path 'phpBB2/db/mysqli.php'), $strictUtf8)
-Assert-True ($mysqliDriver.Contains("mysqli_set_charset(`$this->db_connect_id, 'utf8')")) 'MySQLi does not select the UTF-8 connection character set.'
+Assert-True ($mysqliDriver.Contains("mysqli_set_charset(`$this->db_connect_id, 'utf8mb4')")) 'MySQLi does not select the utf8mb4 connection character set.'
 
 $dbLoader = [IO.File]::ReadAllText((Resolve-Path 'phpBB2/includes/db.php'), $strictUtf8)
 Assert-True ($dbLoader.Contains("function_exists('mysqli_connect')")) 'Legacy MySQL config values do not fall back to MySQLi.'
@@ -170,7 +184,8 @@ Assert-True ($dbLoader.Contains("function_exists('mysqli_connect')")) 'Legacy My
 $schema = [IO.File]::ReadAllText((Resolve-Path 'phpBB2/install/schemas/mysql_schema.sql'), $strictUtf8)
 $basic = [IO.File]::ReadAllText((Resolve-Path 'phpBB2/install/schemas/mysql_basic.sql'), $strictUtf8)
 Assert-True (-not $schema.Contains('TYPE=MyISAM')) 'Fresh schema still uses the removed TYPE= table option.'
-Assert-True ($schema.Contains('ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci')) 'Fresh schema does not declare its UTF-8 table encoding.'
+Assert-True ($schema.Contains('ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')) 'Fresh schema does not declare its utf8mb4 table encoding.'
+Assert-True (-not $schema.Contains('DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci')) 'Fresh schema still contains three-byte UTF-8 table declarations.'
 
 foreach ($field in @('user_fb', 'user_ig', 'user_pt', 'user_twr', 'user_skp', 'user_tg', 'user_li', 'user_tt', 'user_dc'))
 {
@@ -233,4 +248,4 @@ if (-not $SkipPhpLint)
     }
 }
 
-Write-Output "IntegraMOD integration checks passed: $($ledger.Count) commits, $($actualStyles.Count) styles, $($actualLanguages.Count) languages."
+Write-Output "Integration checks passed: $($ledger.Count) IntegraMOD commits, $($productionLedger.Count) production compatibility commits, $($actualStyles.Count) styles, $($actualLanguages.Count) languages."

@@ -83,8 +83,16 @@ $actions = array('download' => 'download',
 
 $action_mod = array();
 $action_mod = explode('?',$action);
+$module_action = isset($action_mod[1]) ? $action_mod[1] : false;
 
-$pafiledb->module($actions[$action_mod[0]]);
-$pafiledb->modules[$actions[$action_mod[0]]]->main($action_mod[1]);
+if (!isset($actions[$action_mod[0]]))
+{
+	$message = isset($lang['No_such_file']) ? $lang['No_such_file'] : $lang['Information'];
+	message_die(GENERAL_MESSAGE, $message);
+}
+
+$module_name = $actions[$action_mod[0]];
+$pafiledb->module($module_name);
+$pafiledb->modules[$module_name]->main($module_action);
 
 ?>

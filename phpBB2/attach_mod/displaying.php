@@ -653,7 +653,8 @@ function display_attachments($post_id)
 	global $template, $upload_dir, $userdata, $allowed_extensions, $display_categories, $download_modes, $db, $lang, $phpEx, $attachments, $upload_icons, $attach_config;
 	global $phpbb_root_path;
 
-	$num_attachments = sizeof($attachments['_' . $post_id]);
+	$post_attachments = isset($attachments['_' . $post_id]) && is_array($attachments['_' . $post_id]) ? $attachments['_' . $post_id] : array();
+	$num_attachments = sizeof($post_attachments);
 	
 	if ($num_attachments == 0)
 	{
@@ -665,7 +666,8 @@ function display_attachments($post_id)
 	for ($i = 0; $i < $num_attachments; $i++)
 	{
 		// Some basic things...
-		$filename = $upload_dir . '/' . basename($attachments['_' . $post_id][$i]['physical_filename']);
+		$attachments['_' . $post_id][$i] = $post_attachments[$i];
+		$filename = $upload_dir . '/' . basename($post_attachments[$i]['physical_filename']);
 		$thumbnail_filename = $upload_dir . '/' . THUMB_DIR . '/t_' . basename($attachments['_' . $post_id][$i]['physical_filename']);
 	
 		$upload_image = '';
@@ -950,7 +952,8 @@ function display_portal_news_attachments($post_id)
 	global $template, $upload_dir, $userdata, $allowed_extensions, $display_categories, $download_modes, $db, $lang, $phpEx, $attachments, $upload_icons, $attach_config;
 	global $phpbb_root_path;
 
-	$num_attachments = sizeof($attachments['_' . $post_id]);
+	$post_attachments = isset($attachments['_' . $post_id]) && is_array($attachments['_' . $post_id]) ? $attachments['_' . $post_id] : array();
+	$num_attachments = sizeof($post_attachments);
 
 	if ($num_attachments == 0)
 	{
@@ -961,6 +964,7 @@ function display_portal_news_attachments($post_id)
 	
 	for ($i = 0; $i < $num_attachments; $i++)
 	{
+		$attachments['_' . $post_id][$i] = $post_attachments[$i];
 		// Some basic things...
 		$filename = $upload_dir . '/' . basename($attachments['_' . $post_id][$i]['physical_filename']);
 		$thumbnail_filename = $upload_dir . '/' . THUMB_DIR . '/t_' . basename($attachments['_' . $post_id][$i]['physical_filename']);

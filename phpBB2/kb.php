@@ -46,6 +46,11 @@ include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
 $show_new = true;
+$submit = !empty($_POST['submit']);
+$refresh = !empty($_POST['refresh']);
+$mode = '';
+$stats = '';
+$is_block = false;
 
 //options
 if ( !$board_config['allow_html'] )
@@ -156,7 +161,7 @@ if ( isset($_POST['stats']) || isset($_GET['stats']) )
 	}
 	else if ( $mode == 'search' )
 	{
-		 include($phpbb_root_path. 'includes/kb_search.'.$phpEx);
+		 redirect(append_sid($phpbb_root_path . 'kb_search.' . $phpEx));
 	}
 	else if ( $mode == 'edit' )
 	{

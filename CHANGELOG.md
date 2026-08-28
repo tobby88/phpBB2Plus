@@ -1,10 +1,10 @@
 # phpBB2 Plus changelog
 
-## Continued development after phpBB2 Plus 1.53a
+## Preserved changes after phpBB2 Plus 1.53a
 
-Development in this repository continues from the `phpBB2-Plus-1.53a` tag.
-The Git history remains the authoritative record; this section summarizes the
-notable changes made since that baseline.
+The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
+history remains the authoritative record; this section summarizes notable
+changes consolidated after that baseline without implying active maintenance.
 
 ### phpBB 2 maintenance baseline
 
@@ -86,6 +86,22 @@ notable changes made since that baseline.
   driver instead of presenting incomplete installations as active features.
 - Excluded BootstrapMade HeroBiz demo media and proprietary form files while
   retaining redistributable style code and recording third-party licenses.
+
+### Production compatibility preservation
+
+- Reconciled all generally applicable changes from a 56-commit production
+  compatibility branch while excluding its private deployment automation,
+  host redirects, operational data, and acceptance records.
+- Restored posting, photo-album upload and image responses, the browser upload
+  progress display, portal and topic routes, Shoutbox rendering, guest-language
+  selection, topic export, news archives, and legacy administration modules on
+  modern PHP runtimes.
+- Replaced obsolete phpBB2 version polling in the administration dashboard and
+  restored portable database-size reporting.
+- Added guarded utf8mb4 migration and optional search-index rebuild tools for
+  existing installations, plus protected local PHP error logging.
+- Recorded every source commit and disposition under
+  `docs/upstream/production-compatibility/`.
 
 ### Repository and deployment maintenance
 

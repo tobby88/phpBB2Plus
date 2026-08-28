@@ -11,7 +11,7 @@
 
 class pafiledb_stats extends pafiledb_public
 {
-	function main($action)
+	function main($action = false)
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $db, $images;
 		global $_REQUEST, $phpbb_root_path, $userdata;
@@ -53,6 +53,7 @@ class pafiledb_stats extends pafiledb_public
 		}
 
 		$newest = $db->sql_fetchrow($result);
+		$newest = $newest ? $newest : array('file_id' => 0, 'file_name' => '');
 		$db->sql_freeresult($result);
 
 		$sql = 'SELECT file_id, file_name
@@ -66,6 +67,7 @@ class pafiledb_stats extends pafiledb_public
 		}
 
 		$oldest = $db->sql_fetchrow($result);
+		$oldest = $oldest ? $oldest : array('file_id' => 0, 'file_name' => '');
 		$db->sql_freeresult($result);
 
 		$sql = "SELECT r.votes_file, AVG(r.rate_point) AS rating, f.file_id, f.file_name
@@ -80,6 +82,7 @@ class pafiledb_stats extends pafiledb_public
 			message_die(GENERAL_ERROR, 'Couldnt Query stat info', '', __LINE__, __FILE__, $sql);
 		}
 		$popular = $db->sql_fetchrow($result);
+		$popular = $popular ? $popular : array('file_id' => 0, 'file_name' => '', 'rating' => 0);
 		$db->sql_freeresult($result);
 
 		$sql = "SELECT r.votes_file, AVG(r.rate_point) AS rating, f.file_id, f.file_name
@@ -95,6 +98,7 @@ class pafiledb_stats extends pafiledb_public
 		}
 
 		$lpopular = $db->sql_fetchrow($result);
+		$lpopular = $lpopular ? $lpopular : array('file_id' => 0, 'file_name' => '', 'rating' => 0);
 		$total_votes = $total_rating = 0;
 
 		while($row = $db->sql_fetchrow($result))
@@ -114,6 +118,7 @@ class pafiledb_stats extends pafiledb_public
 		}
 
 		$mostdl = $db->sql_fetchrow($result);
+		$mostdl = $mostdl ? $mostdl : array('file_id' => 0, 'file_name' => '', 'file_dls' => 0);
 		$db->sql_freeresult($result);
 
 		$sql = "SELECT file_id, file_name, file_dls
@@ -127,6 +132,7 @@ class pafiledb_stats extends pafiledb_public
 		}
 
 		$leastdl = $db->sql_fetchrow($result);
+		$leastdl = $leastdl ? $leastdl : array('file_id' => 0, 'file_name' => '', 'file_dls' => 0);
 		$db->sql_freeresult($result);
 
 		$sql = "SELECT file_dls
@@ -138,15 +144,16 @@ class pafiledb_stats extends pafiledb_public
 			message_die(GENERAL_ERROR, 'Couldnt Query stat info', '', __LINE__, __FILE__, $sql);
 		}
 
+		$totaldls = 0;
 		while($row = $db->sql_fetchrow($result))
 		{
 			$totaldls += $row['file_dls'];
 		}
 		$db->sql_freeresult($result);
 
-		$avg = @round($total_rating/$total_votes);
+		$avg = $total_votes ? round($total_rating / $total_votes) : 0;
 
-		$avgdls = @round($totaldls/$num['files']);
+		$avgdls = $num['files'] ? round($totaldls / $num['files']) : 0;
 
 		require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_pafiledb.' . $phpEx);
 

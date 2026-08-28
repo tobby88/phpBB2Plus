@@ -28,7 +28,10 @@ if ( !defined('IN_PHPBB') )
 include($phpbb_root_path . 'album_mod/album_constants.' . $phpEx);
 
 // Debug Level
-define('DEBUG', 1); // Debugging on
+if (!defined('DEBUG'))
+{
+	define('DEBUG', 1); // Debugging on
+}
 
 // advanced Captcha (GD2 with FreeType Support required)
 define('ADV_CAPTCHA', true); // adv captcha on

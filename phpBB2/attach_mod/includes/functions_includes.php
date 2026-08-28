@@ -252,7 +252,7 @@ function attachment_quota_settings($admin_mode, $submit = false, $mode = '')
 		);
 	}
 
-	if ($admin_mode == 'user' && $submit && $HTTP_POST_VARS['deleteuser'])
+	if ($admin_mode == 'user' && $submit && !empty($HTTP_POST_VARS['deleteuser']))
 	{
 		process_quota_settings($admin_mode, $user_id, QUOTA_UPLOAD_LIMIT, 0);
 		process_quota_settings($admin_mode, $user_id, QUOTA_PM_LIMIT, 0);

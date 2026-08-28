@@ -24,7 +24,6 @@ if (!defined('IN_PHPBB'))
 {
     define( 'IN_PHPBB', 1);
 }
-define('PCheck', true);
 //
 // Load default header
 //
@@ -32,6 +31,13 @@ $no_page_header = TRUE;
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+
+if (!defined('PAGE_KB'))
+{
+	define('PAGE_KB', -500);
+}
+
+$page_title = $lang['Admin_Index'];
 
 // ---------------
 // Begin functions
@@ -57,7 +63,7 @@ include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 if( isset($_GET['pane']) && $_GET['pane'] == 'left' )
 {
 	$jr_admin_userdata = jr_admin_get_user_info($userdata['user_id']);
-	$module = jr_admin_get_module_list($jr_admin_userdata['user_jr_admin']);
+	$module = jr_admin_get_module_list(isset($jr_admin_userdata['user_jr_admin']) ? $jr_admin_userdata['user_jr_admin'] : false);
 
 	include('./page_header_admin.'.$phpEx);
 
@@ -192,58 +198,26 @@ $menu_cat_id = 0;
 		$users_per_day = $total_users;
 	}
 
-	//
-	// DB size ... MySQL only
-	//
-	// This code is heavily influenced by a similar routine
-	// in phpMyAdmin 2.2.0
-	//
+	// Database size for the tables belonging to this phpBB installation.
+	$dbsize = $lang['Not_available'];
 	if( preg_match("/^mysql/", SQL_LAYER) )
 	{
-		$sql = "SELECT VERSION() AS mysql_version";
-		if($result = $db->sql_query($sql))
+		$db_identifier = '`' . str_replace('`', '``', $dbname) . '`';
+		$sql = "SHOW TABLE STATUS FROM " . $db_identifier;
+		if ($result = $db->sql_query($sql))
 		{
-			$row = $db->sql_fetchrow($result);
-			$version = $row['mysql_version'];
-
-			if( preg_match("/^[0-9]+\./", $version) )
+			$dbsize = 0;
+			while ($tabledata = $db->sql_fetchrow($result))
 			{
-				$db_name = "`" . str_replace("`", "``", $dbname) . "`";
-
-				$sql = "SHOW TABLE STATUS 
-					FROM " . $db_name;
-				if($result = $db->sql_query($sql))
+				$table_name = isset($tabledata['Name']) ? $tabledata['Name'] : '';
+				$table_engine = isset($tabledata['Engine']) ? $tabledata['Engine'] : (isset($tabledata['Type']) ? $tabledata['Type'] : '');
+				$is_phpbb_table = ($table_prefix == '' || strpos($table_name, $table_prefix) === 0);
+				if ($is_phpbb_table && $table_engine != 'MRG_MyISAM')
 				{
-					$tabledata_ary = $db->sql_fetchrowset($result);
-
-					$dbsize = 0;
-					for($i = 0; $i < count($tabledata_ary); $i++)
-					{
-						if( $tabledata_ary[$i]['Type'] != "MRG_MyISAM" )
-						{
-							if( $table_prefix != "" )
-							{
-								if( strstr($tabledata_ary[$i]['Name'], $table_prefix) )
-								{
-									$dbsize += $tabledata_ary[$i]['Data_length'] + $tabledata_ary[$i]['Index_length'];
-								}
-							}
-							else
-							{
-								$dbsize += $tabledata_ary[$i]['Data_length'] + $tabledata_ary[$i]['Index_length'];
-							}
-						}
-					}
-				} // Else we couldn't get the table status.
+					$dbsize += intval($tabledata['Data_length']) + intval($tabledata['Index_length']);
+				}
 			}
-			else
-			{
-				$dbsize = $lang['Not_available'];
-			}
-		}
-		else
-		{
-			$dbsize = $lang['Not_available'];
+			$db->sql_freeresult($result);
 		}
 	}
 	else if( preg_match("/^mssql/", SQL_LAYER) )
@@ -303,7 +277,7 @@ $menu_cat_id = 0;
 	//
 	// Get users online information.
 	//
-	$sql = "SELECT u.user_id, u.username, u.user_session_time, u.user_session_page, s.session_logged_in, s.session_ip, s.session_start 
+	$sql = "SELECT u.user_id, u.username, u.user_allow_viewonline, u.user_session_time, u.user_session_page, s.session_logged_in, s.session_ip, s.session_start 
 		FROM " . USERS_TABLE . " u, " . SESSIONS_TABLE . " s
 		WHERE s.session_logged_in = " . TRUE . " 
 			AND u.user_id = s.session_user_id 
@@ -327,6 +301,7 @@ $menu_cat_id = 0;
 	}
 	$onlinerow_guest = $db->sql_fetchrowset($result);
 
+	$forum_data = array();
 	$sql = "SELECT forum_name, forum_id
 		FROM " . FORUMS_TABLE;
 	if($forums_result = $db->sql_query($sql))
@@ -342,6 +317,7 @@ $menu_cat_id = 0;
 	}
 
 	$reg_userid_ary = array();
+	$hidden_users = 0;
 
 	if( count($onlinerow_reg) )
 	{
@@ -588,100 +564,6 @@ $menu_cat_id = 0;
 		);
 	}
 
-	if (defined('PCheck'))
-	{
-		$ffperms = '';
-		#################################
-		#CHMOD to 777
-		#######
-		if (!is_writable($phpbb_root_path . 'album_mod/upload')) $ffperms .= '<br /> /album_mod/upload >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'album_mod/upload/cache')) $ffperms .= '<br /> /album_mod/upload/cache >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'cache')) $ffperms .= '<br /> /cache >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'files')) $ffperms .= '<br /> /files >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'files/thumbs')) $ffperms .= '<br /> /files/thumbs >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'images/avatars')) $ffperms .= '<br /> /images/avatars >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'pafiledb/cache')) $ffperms .= '<br /> /pafiledb/cache >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'pafiledb/cache/templates')) $ffperms .= '<br /> /pafiledb/cache/templates >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'pafiledb/images/screenshots')) $ffperms .= '<br /> /pafiledb/images/screenshots >> ' . $lang['File_not_writable_777'];
-		if (!is_writable($phpbb_root_path . 'pafiledb/uploads')) $ffperms .= '<br /> /pafiledb/uploads >> ' . $lang['File_not_writable_777'];
-		#################################
-		#CHMOD to 666
-		#######
-		if (!is_writable($phpbb_root_path . 'includes/def_icons.php')) $ffperms .= '<br /> /includes/def_icons.php >> ' . $lang['File_not_writable_666'];
-		if (!is_writable($phpbb_root_path . 'includes/def_themes.php')) $ffperms .= '<br /> /includes/def_themes.php >> ' . $lang['File_not_writable_666'];
-		if (!is_writable($phpbb_root_path . 'includes/def_tree.php')) $ffperms .= '<br /> /includes/def_tree.php >> ' . $lang['File_not_writable_666'];
-		if (!is_writable($phpbb_root_path . 'includes/def_words.php')) $ffperms .= '<br /> /includes/def_words.php >> ' . $lang['File_not_writable_666'];
-		if (!is_writable($phpbb_root_path . 'ctracker/logs/counter.txt')) $ffperms .= '<br /> /ctracker/logs/counter.txt >> ' . $lang['File_not_writable_666'];
-		if (!is_writable($phpbb_root_path . 'ctracker/logs/logfile_flood.txt')) $ffperms .= '<br /> /ctracker/logs/logfile_flood.txt >> ' . $lang['File_not_writable_666'];
-		if (!is_writable($phpbb_root_path . 'ctracker/logs/logfile_proxy.txt')) $ffperms .= '<br /> /ctracker/logs/logfile_proxy.txt >> ' . $lang['File_not_writable_666'];
-		if (!is_writable($phpbb_root_path . 'ctracker/logs/logfile_worms.txt')) $ffperms .= '<br /> /ctracker/logs/logfile_worms.txt >> ' . $lang['File_not_writable_666'];
-	}
-	// Check for new version
-	$current_version = explode('.', '2' . $board_config['version']);
-	$minor_revision = (int) $current_version[2];
-
-	$errno = 0;
-	$errstr = $version_info = '';
-
-	if ($fsock = @fsockopen('www.phpbb.com', 80, $errno, $errstr, 10))
-	{
-		@fputs($fsock, "GET /updatecheck/20x.txt HTTP/1.1\r\n");
-		@fputs($fsock, "HOST: www.phpbb.com\r\n");
-		@fputs($fsock, "Connection: close\r\n\r\n");
-
-		$get_info = false;
-		while (!@feof($fsock))
-		{
-			if ($get_info)
-			{
-				$version_info .= @fread($fsock, 1024);
-			}
-			else
-			{
-				if (@fgets($fsock, 1024) == "\r\n")
-				{
-					$get_info = true;
-				}
-			}
-		}
-		@fclose($fsock);
-
-		$version_info = explode("\n", $version_info);
-		$latest_head_revision = (int) $version_info[0];
-		$latest_minor_revision = (int) $version_info[2];
-		$latest_version = (int) $version_info[0] . '.' . (int) $version_info[1] . '.' . (int) $version_info[2];
-
-		if ($latest_head_revision == 2 && $minor_revision == $latest_minor_revision)
-		{
-			$version_info = '<p style="color:green">' . $lang['Version_up_to_date'] . '</p>';
-		}
-		else
-		{
-			$version_info = '<p style="color:red">' . $lang['Version_not_up_to_date'];
-			$version_info .= '<br />' . sprintf($lang['Latest_version_info'], $latest_version) . ' ' . sprintf($lang['Current_version_info'], '2' . $board_config['version']) . '</p>';
-		}
-	}
-	else
-	{
-		if ($errstr)
-		{
-			$version_info = '<p style="color:red">' . sprintf($lang['Connect_socket_error'], $errstr) . '</p>';
-		}
-		else
-		{
-			$version_info = '<p>' . $lang['Socket_functions_disabled'] . '</p>';
-		}
-	}
-	
-	$version_info .= '<p>' . $lang['Mailing_list_subscribe_reminder'] . '</p>';
-	
-	if (defined('PCheck') && $ffperms)
-		$version_info .= '<br /><hr><p><h4>' . $lang['Permission_Check'] . '</h4>' . $ffperms . '</p><hr><br /><p>';
-		
-	$template->assign_vars(array(
-		'VERSION_INFO'	=> $version_info,
-		'L_VERSION_INFORMATION'	=> $lang['Version_information'])
-	);
 	jr_admin_make_info_box();
 	$template->pparse("body");
 
@@ -698,6 +580,7 @@ else
 	);
 
 	$template->assign_vars(array(
+		"S_CONTENT_ENCODING" => $lang['ENCODING'],
 		"S_FRAME_NAV" => append_sid("index.$phpEx?pane=left"),
 		"S_FRAME_MAIN" => append_sid("index.$phpEx?pane=right"))
 	);

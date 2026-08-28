@@ -469,7 +469,7 @@ function AJAXFinishPostEdit(result_code, post_id, new_message, raw_message, new_
 		return;
 	}
 	
-	raw_message = utf8_decode(raw_message);
+	raw_message = decode_numeric_entities(raw_message);
 	
 	var postmessage = getElementById('postmessage_'+post_id);
 	var editmessage_not_found = 0;

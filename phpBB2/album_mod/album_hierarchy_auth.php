@@ -68,8 +68,7 @@ function album_create_user_auth($user_id)
 			$album_user_access = album_permissions($user_id, $cat_id, ALBUM_AUTH_ALL, $cat);
 			if (!empty ($album_user_access))
 			{
-				reset($album_user_access);
-				while (list ($key, $data) = each($album_user_access))
+				foreach ($album_user_access as $key => $data)
 				{
 					$album_data['auth'][$cat_id][$key] = $data;
 				}
@@ -123,13 +122,15 @@ function album_get_auth_keys($cur_cat_id = ALBUM_ROOT_CATEGORY, $auth_key = ALBU
 			$keys['idx'][$last_i] = (isset ($album_data['keys'][$cur_cat_id]) ? $album_data['keys'][$cur_cat_id] : ALBUM_ROOT_CATEGORY);
 
 			// get sub-levels
-			for ($i = 0; $i < count($album_data['sub'][$cur_cat_id]); $i ++)
+			$sub_categories = isset($album_data['sub'][$cur_cat_id]) && is_array($album_data['sub'][$cur_cat_id]) ? $album_data['sub'][$cur_cat_id] : array();
+			for ($i = 0; $i < count($sub_categories); $i ++)
 			{
 				$subkeys = array ();
-				$subkeys = album_get_auth_keys($album_data['sub'][$cur_cat_id][$i], $auth_key, $all, $orig_level +1, $max);
+				$subkeys = album_get_auth_keys($sub_categories[$i], $auth_key, $all, $orig_level +1, $max);
 
 				// add sub-levels
-				for ($j = 0; $j < count($subkeys['id']); $j ++)
+				$sub_ids = isset($subkeys['id']) && is_array($subkeys['id']) ? $subkeys['id'] : array();
+				for ($j = 0; $j < count($sub_ids); $j ++)
 				{
 					$last_i ++;
 					$keys['keys'][$subkeys['id'][$j]] = $last_i;
@@ -142,7 +143,7 @@ function album_get_auth_keys($cur_cat_id = ALBUM_ROOT_CATEGORY, $auth_key = ALBU
 		} // if ($cur_cat_id == ALBUM_ROOT....
 	} // if (($max < 0 .....
 
-    if ($level <= ALBUM_ROOT_CATEGORY && ALBUM_HIERARCHY_DEBUG_ENABLED == true)
+    if ($level <= ALBUM_ROOT_CATEGORY && album_is_debug_enabled() == true)
     {
         album_debug('album_get_auth_keys = %s', $keys);
     }
@@ -172,6 +173,7 @@ function album_permissions($user_id, $cat_id, $permission_checks, $catdata = 0)
 		}
 	}
 
+	$album_permission = null;
 	$view_check = (int) checkFlag($permission_checks, ALBUM_AUTH_VIEW);
 	$upload_check = (int) checkFlag($permission_checks, ALBUM_AUTH_UPLOAD);
 	$rate_check = (int) checkFlag($permission_checks, ALBUM_AUTH_RATE);
@@ -366,15 +368,17 @@ function album_permissions($user_id, $cat_id, $permission_checks, $catdata = 0)
 		// will be authorised for all accesses which were not set to ADMIN
 		// except for the management of the categories in the personal gallery
 		// ------------------------------------------------------------------------
-		if ($album_permission['moderator'] == 1)
+		if (!empty($album_permission['moderator']))
 		{
-		 	$album_permission_keys = array_keys($album_permission);
+			$album_permission_keys = array_keys($album_permission);
 
 			for ($i = 0; $i < count($album_permission); $i++)
 			{
-				if( $thiscat['cat_'. $album_permission_keys[$i] .'_level'] != ALBUM_ADMIN && $album_permission_keys[$i] != 'manage')
+				$permission_key = $album_permission_keys[$i];
+				$level_key = 'cat_' . $permission_key . '_level';
+				if ($permission_key != 'manage' && $permission_key != 'moderator' && isset($thiscat[$level_key]) && $thiscat[$level_key] != ALBUM_ADMIN)
 				{
-					$album_permission[$album_permission_keys[$i]] = 1;
+					$album_permission[$permission_key] = 1;
 				}
 			}
 		}
@@ -495,6 +499,7 @@ function album_get_auth_data($cat_id)
 function album_build_auth_list($user_id, $cat_id = ALBUM_ROOT_CATEGORY, $auth_data = 0)
 {
 	global $phpEx, $lang, $userdata, $album_config;
+	$auth_list = '';
 
 	if (!is_array($auth_data))
 	{
@@ -508,22 +513,30 @@ function album_build_auth_list($user_id, $cat_id = ALBUM_ROOT_CATEGORY, $auth_da
 
 	$auth_key = array_keys($auth_data);
 
-	for ($i = 0; $i < (count($auth_data) - 1); $i ++) // ignore MODERATOR in this loop
+	for ($i = 0; $i < count($auth_data); $i ++)
 	{
+		if ($auth_key[$i] == 'moderator')
+		{
+			continue;
+		}
+
 		// we should skip a loop if RATE and COMMENT is disabled
 		if ((($album_config['rate'] == 0) and ($auth_key[$i] == 'rate')) or (($album_config['comment'] == 0) and ($auth_key[$i] == 'comment')))
 		{
 			continue;
 		}
 
-		$auth_list .= ($auth_data[$auth_key[$i]] == 1) ? $lang['Album_'.$auth_key[$i].'_can'] : $lang['Album_'.$auth_key[$i].'_cannot'];
-		$auth_list .= '<br />';
+		$lang_key = 'Album_' . $auth_key[$i] . (($auth_data[$auth_key[$i]] == 1) ? '_can' : '_cannot');
+		if (isset($lang[$lang_key]))
+		{
+			$auth_list .= $lang[$lang_key] . '<br />';
+		}
 	}
 
 	// ------------------------------------------------------------------------
 	// add Moderator Control Panel here
 	// ------------------------------------------------------------------------
-	if (($userdata['user_level'] == ADMIN) or ($auth_data['moderator'] == 1))
+	if (($userdata['user_level'] == ADMIN) or !empty($auth_data['moderator']))
 	{
 		$auth_list .= sprintf($lang['Album_moderate_can'], '<a href="'.append_sid(album_append_uid("album_modcp.$phpEx?cat_id=$cat_id")).'">', '</a>');
 		$auth_list .= '<br />';
@@ -534,7 +547,7 @@ function album_build_auth_list($user_id, $cat_id = ALBUM_ROOT_CATEGORY, $auth_da
 	// allowed for more then one category then enable the personal gallery
 	// category admin
 	// ------------------------------------------------------------------------
-	if ($user_id != ALBUM_PUBLIC_GALLERY && $auth_data['manage'] == 1)
+	if ($user_id != ALBUM_PUBLIC_GALLERY && !empty($auth_data['manage']))
 	{
 		if ($userdata['user_level'] == ADMIN ||
 			($album_config['personal_allow_gallery_mod'] == 1 && $album_config['personal_allow_sub_categories'] == 1 &&	$album_config['personal_sub_category_limit'] != 0) )

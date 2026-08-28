@@ -68,8 +68,7 @@ include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 //
 // Try to re-assign Images for Admin Display
 //
-@reset($images);
-while (list($key, $value) = each($images))
+foreach ($images as $key => $value)
 {
 	if ((!is_array($images[$key])) && ($images[$key] != ''))
 	{
@@ -91,7 +90,7 @@ $params = array(
 	'module_id' => POST_FORUM_URL
 );
 
-while( list($var, $param) = @each($params) )
+foreach ($params as $var => $param)
 {
 	( !empty($_POST[$param]) || !empty($_GET[$param]) )? $$var = ( !empty($_POST[$param]) ) ? $_POST[$param] : $_GET[$param] : $$var = '';
 }
@@ -362,7 +361,7 @@ if ($mode == 'auto_set')
 
 	@reset($stat_module_rows);
 	
-	while (list($module_id, $module_name) = each($stat_module_rows))
+	foreach ($stat_module_rows as $module_id => $module_name)
 	{
 		$module_name = trim($module_name);
 

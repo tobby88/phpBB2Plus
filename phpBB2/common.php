@@ -24,6 +24,14 @@ if ( !defined('IN_PHPBB') )
 {
 	die("Hacking attempt");
 }
+
+// Keep runtime diagnostics out of HTML responses while retaining a local log.
+@ini_set('display_errors', '0');
+@ini_set('log_errors', '1');
+@ini_set('error_log', dirname(__FILE__) . '/logs/php_errors.log');
+
+include_once($phpbb_root_path . 'includes/php_compat.' . $phpEx);
+
 //-- mod : run stats -----------------------------------------------------------
 //-- add
 $starttime = microtime();
@@ -50,65 +58,6 @@ if (version_compare(PHP_VERSION, '5.0.0', '>=') && (!@ini_get('register_long_arr
 	if (isset($_SESSION))
 	{
 		$HTTP_SESSION_VARS = $_SESSION;
-	}
-}
-
-// Compatibility helpers for APIs removed from modern PHP versions.
-if (!function_exists('ereg'))
-{
-	function ereg($pattern, $subject, &$matches = array())
-	{
-		return preg_match('#' . str_replace('#', '\\#', $pattern) . '#', $subject, $matches);
-	}
-}
-if (!function_exists('eregi'))
-{
-	function eregi($pattern, $subject, &$matches = array())
-	{
-		return preg_match('#' . str_replace('#', '\\#', $pattern) . '#i', $subject, $matches);
-	}
-}
-if (!function_exists('ereg_replace'))
-{
-	function ereg_replace($pattern, $replacement, $subject)
-	{
-		return preg_replace('#' . str_replace('#', '\\#', $pattern) . '#', $replacement, $subject);
-	}
-}
-if (!function_exists('eregi_replace'))
-{
-	function eregi_replace($pattern, $replacement, $subject)
-	{
-		return preg_replace('#' . str_replace('#', '\\#', $pattern) . '#i', $replacement, $subject);
-	}
-}
-if (!function_exists('split'))
-{
-	function split($pattern, $subject, $limit = -1)
-	{
-		return preg_split('#' . str_replace('#', '\\#', $pattern) . '#', $subject, $limit);
-	}
-}
-if (!function_exists('spliti'))
-{
-	function spliti($pattern, $subject, $limit = -1)
-	{
-		return preg_split('#' . str_replace('#', '\\#', $pattern) . '#i', $subject, $limit);
-	}
-}
-if (!function_exists('each'))
-{
-	function each(&$array)
-	{
-		$key = key($array);
-		if ($key === null)
-		{
-			return false;
-		}
-
-		$value = current($array);
-		next($array);
-		return array(1 => $value, 'value' => $value, 0 => $key, 'key' => $key);
 	}
 }
 
@@ -167,11 +116,11 @@ if( true )
 {
 	if( is_array($_GET) )
 	{
-		while( list($k, $v) = each($_GET) )
+		foreach( $_GET as $k => $v )
 		{
 			if( is_array($_GET[$k]) )
 			{
-				while( list($k2, $v2) = each($_GET[$k]) )
+				foreach( $_GET[$k] as $k2 => $v2 )
 				{
 					$_GET[$k][$k2] = addslashes($v2);
 				}
@@ -187,11 +136,11 @@ if( true )
 
 	if( is_array($_POST) )
 	{
-		while( list($k, $v) = each($_POST) )
+		foreach( $_POST as $k => $v )
 		{
 			if( is_array($_POST[$k]) )
 			{
-				while( list($k2, $v2) = each($_POST[$k]) )
+				foreach( $_POST[$k] as $k2 => $v2 )
 				{
 					$_POST[$k][$k2] = addslashes($v2);
 				}
@@ -207,11 +156,11 @@ if( true )
 
 	if( is_array($HTTP_COOKIE_VARS) )
 	{
-		while( list($k, $v) = each($HTTP_COOKIE_VARS) )
+		foreach( $HTTP_COOKIE_VARS as $k => $v )
 		{
 			if( is_array($HTTP_COOKIE_VARS[$k]) )
 			{
-				while( list($k2, $v2) = each($HTTP_COOKIE_VARS[$k]) )
+				foreach( $HTTP_COOKIE_VARS[$k] as $k2 => $v2 )
 				{
 					$HTTP_COOKIE_VARS[$k][$k2] = addslashes($v2);
 				}
@@ -292,7 +241,7 @@ if (@file_exists($cache_config) && defined('CCache'))
 // basic forum information is not available
 //
 // cache configs -----------------
-if (!$board_config['config_id'])
+if (empty($board_config['config_id']))
 {
 	// is /cache/ useable 
 	$use_cache = (is_writable($cache_dir) && defined('CCache') && !defined('IN_ADMIN') ) ? true : false;

@@ -18,8 +18,8 @@
 //
 //  Make this file apart of the phpBB system files.
 //
-define('IN_PHPBB', 1);
-define('ARCADE_ADMIN', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+if (!defined('ARCADE_ADMIN')) { define('ARCADE_ADMIN', 1); }
 //
 //  Make sure the ACP doesn't go and run something.
 //
@@ -52,7 +52,7 @@ $file = basename(__FILE__);
 //
 //  Check to see if the SUBMIT button has been activated / Process Changes
 //
-if($HTTP_POST_VARS['submit'])
+if(!empty($HTTP_POST_VARS['submit']))
 {
   $use_cache = intval($HTTP_POST_VARS['use_cache']);
 //

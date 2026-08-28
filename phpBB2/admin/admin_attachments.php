@@ -10,8 +10,7 @@
 
 /**
 */
-define('IN_PHPBB', true);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$filename = basename(__FILE__);
@@ -69,6 +68,8 @@ $submit = (isset($HTTP_POST_VARS['submit'])) ? TRUE : FALSE;
 $check_upload = (isset($HTTP_POST_VARS['settings'])) ? TRUE : FALSE;
 $check_image_cat = (isset($HTTP_POST_VARS['cat_settings'])) ? TRUE : FALSE;
 $search_imagick = (isset($HTTP_POST_VARS['search_imagick'])) ? TRUE : FALSE;
+$hidden = '';
+$error = false;
 
 // Re-evaluate the Attachment Configuration
 $sql = 'SELECT * 
@@ -594,7 +595,11 @@ if ($mode == 'shadow')
 		'S_ATTACH_ACTION'	=> append_sid('admin_attachments.' . $phpEx . '?mode=shadow'))
 	);
 
-	$table_attachments = array();
+	$table_attachments = array(
+		'attach_id' => array(),
+		'physical_filename' => array(),
+		'comment' => array()
+	);
 	$assign_attachments = array();
 	$file_attachments = array();
 
@@ -637,7 +642,11 @@ if ($mode == 'shadow')
 	$file_attachments = collect_attachments();
 
 	$shadow_attachments = array();
-	$shadow_row = array();	
+	$shadow_row = array(
+		'attach_id' => array(),
+		'physical_filename' => array(),
+		'comment' => array()
+	);
 
 	// Now determine the needed Informations
 	

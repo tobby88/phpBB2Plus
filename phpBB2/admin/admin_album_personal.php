@@ -19,8 +19,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', true);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
 	$filename = basename(__FILE__);
@@ -153,7 +152,7 @@ if( !isset($_POST['submit']) )
 
 		'L_IS_MODERATOR' => $lang['Is_Moderator'],
 		//--- Album Category Hierarchy : end
-		'L_PRIVATE_ACCESS' => $lang['Private_access'],
+		'L_PRIVATE_ACCESS' => isset($lang['Private_access']) ? $lang['Private_access'] : $lang['Private'],
 		'S_ALBUM_ACTION' => append_sid('admin_album_personal.'.$phpEx)
 		)
 	);

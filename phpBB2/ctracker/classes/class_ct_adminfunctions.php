@@ -51,7 +51,7 @@ class ct_adminfunctions
 		global $lang;
 
 		$switch = '';
-		$ch_sel = array();
+		$ch_sel = array_fill(0, 3, '');
 		$ch_sel[$current] = ' selected="selected"';
 
 		$switch .= '<option value="0"' . $ch_sel[0] . '>' . $lang['ctracker_blockmode_0'] . '</option>';
@@ -74,7 +74,7 @@ class ct_adminfunctions
 		global $lang;
 
 		$switch = '';
-		$ch_sel = array();
+		$ch_sel = array_fill(0, 3, '');
 		$ch_sel[$current] = ' selected="selected"';
 
 		$switch .= '<option value="0"' . $ch_sel[0] . '>' . $lang['ctracker_settings_off'] . '</option>';
@@ -97,7 +97,7 @@ class ct_adminfunctions
 		global $lang;
 
 		$switch = '';
-		$ch_sel = array();
+		$ch_sel = array_fill(0, 10, '');
 		$ch_sel[$current] = ' selected="selected"';
 
 		$switch .= '<option value="1"' . $ch_sel[1] . '>' . $lang['ctracker_complex_1'] . '</option>';

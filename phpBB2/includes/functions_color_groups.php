@@ -21,7 +21,7 @@
 if (!defined('IN_PHPBB') || !IN_PHPBB) die('Invalid Function Include, Hacking Attempt?');
 
 define('RGB_COLOR_LIST', 'aqua,black,blue,fuchsia,gray,green,lime,maroon,navy,olive,purple,red,silver,teal,white,yellow');
-define('COPYRIGHT_NIVISEC_FORMAT',
+if (!defined('COPYRIGHT_NIVISEC_FORMAT')) define('COPYRIGHT_NIVISEC_FORMAT',
 '<br /><span class="copyright"><center>
 	%s 
 	&copy; %s 
@@ -267,7 +267,7 @@ function cg_get_data($user_id, $all = false)
 		} 
 	} 
 
-	if($do_update || !$user_style[$user_id]['name']) 
+	if($do_update || !isset($user_style[$user_id]['name']) || !$user_style[$user_id]['name'])
 	{ 
 		if (!$use_cache && !$all)
 		{
@@ -359,7 +359,7 @@ function cg_get_data($user_id, $all = false)
 				}
 				else
 				{
-					$style_color = $group_style_color[$user_color_id];
+					$style_color = isset($group_style_color[$user_color_id]) ? $group_style_color[$user_color_id] : '';
 				}
 	
 				if ($use_cache) {
@@ -406,6 +406,7 @@ function cg_get_data($user_id, $all = false)
 function color_group_colorize_name($user_id, $no_profile = false)
 {
 	global $db, $lang, $phpEx;
+	global $phpbb_root_path;
 	static $cacheUsers;
 	
 	if ($user_id == ANONYMOUS)
@@ -413,7 +414,7 @@ function color_group_colorize_name($user_id, $no_profile = false)
 		return $lang['Guest'];
 	}
 
-	if ( !$cacheUsers[$user_id]['name'] )
+	if ( !isset($cacheUsers[$user_id]['name']) || !$cacheUsers[$user_id]['name'] )
 	{
 		// $cacheUsers = cg_get_data($user_id); 
 		$cacheUsers = cg_get_data($user_id, true);

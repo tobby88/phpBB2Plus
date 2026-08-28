@@ -299,7 +299,8 @@ class pafiledb_Template
 
 		for ($curr_tb = 0; $curr_tb < count($text_blocks); $curr_tb++)
 		{
-			switch ($blocks[1][$curr_tb])
+			$block_type = isset($blocks[1][$curr_tb]) ? $blocks[1][$curr_tb] : '';
+			switch ($block_type)
 			{
 				case 'BEGIN':
 					$this->block_else_level[] = false;
@@ -333,8 +334,7 @@ class pafiledb_Template
 					break;
 
 				case 'INCLUDE':
-					$temp = '';
-					list(, $temp) = each($include_blocks);
+					$temp = array_shift($include_blocks);
 					$compile_blocks[] = '<?php ' . $this->compile_tag_include($temp) . ' ?>';
 					$this->_tpl_include($temp, false);
 					break;
@@ -342,8 +342,7 @@ class pafiledb_Template
 				case 'INCLUDEPHP':
 					if ($pafiledb_config['tpl_php'])
 					{
-						$temp = '';
-						list(, $temp) = each($includephp_blocks);
+						$temp = array_shift($includephp_blocks);
 						$compile_blocks[] = '<?php ' . $this->compile_tag_include_php($temp) . ' ?>';
 					}
 					break;
@@ -351,16 +350,15 @@ class pafiledb_Template
 				case 'PHP':
 					if ($pafiledb_config['tpl_php'])
 					{
-						$temp = '';
-						list(, $temp) = each($php_blocks);
+						$temp = array_shift($php_blocks);
 						$compile_blocks[] = '<?php ' . $temp . ' ?>';
 					}
 					break;
 
 				default:
-					$this->compile_var_tags($blocks[0][$curr_tb]);
-					$trim_check = trim($blocks[0][$curr_tb]);
-					$compile_blocks[] = (!$do_not_echo) ? ((!empty($trim_check)) ? $blocks[0][$curr_tb] : '') : ((!empty($trim_check)) ? $blocks[0][$curr_tb] : '');
+					$block_source = isset($blocks[0][$curr_tb]) ? $blocks[0][$curr_tb] : '';
+					$this->compile_var_tags($block_source);
+					$compile_blocks[] = trim($block_source) !== '' ? $block_source : '';
 					break;
 			}
 		}
@@ -409,7 +407,7 @@ class pafiledb_Template
 
 			$text_blocks = preg_replace('#\{L_([A-Z0-9\-_]*?)\}#e', "'<?php echo ((isset(\$this->_tpldata[\'.\'][0][\'L_\\1\'])) ? \$this->_tpldata[\'.\'][0][\'L_\\1\'] : \'' . ((isset(\$lang['\\1'])) ? \$lang['\\1'] : '') . '\'); ?>'" , $text_blocks);
 		}
-		$text_blocks = preg_replace('#\{([a-z0-9\-_]*?)\}#is', "<?php echo \$this->_tpldata['.'][0]['\\1']; ?>", $text_blocks);
+		$text_blocks = preg_replace('#\{([a-z0-9\-_]*?)\}#is', "<?php echo isset(\$this->_tpldata['.'][0]['\\1']) ? \$this->_tpldata['.'][0]['\\1'] : ''; ?>", $text_blocks);
 
 		return;
 	}
@@ -572,7 +570,8 @@ class pafiledb_Template
 				default:
 					if (preg_match('#^(([a-z0-9\-_]+?\.)+?)?([A-Z]+[A-Z0-9\-_]+?)$#s', $token, $varrefs))
 					{
-						$token = (!empty($varrefs[1])) ? $this->generate_block_data_ref(substr($varrefs[1], 0, strlen($varrefs[1]) - 1), true) . '[\'' . $varrefs[3] . '\']' : '$this->_tpldata[\'.\'][0][\'' . $varrefs[3] . '\']';
+						$varref = (!empty($varrefs[1])) ? $this->generate_block_data_ref(substr($varrefs[1], 0, strlen($varrefs[1]) - 1), true) . '[\'' . $varrefs[3] . '\']' : '$this->_tpldata[\'.\'][0][\'' . $varrefs[3] . '\']';
+						$token = '(isset(' . $varref . ') ? ' . $varref . ' : null)';
 					}
 					break;
             }
@@ -676,7 +675,7 @@ class pafiledb_Template
 
 		// Append the variable reference.
 		$varref .= "['$varname']";
-		$varref = "<?php echo $varref; ?>";
+		$varref = "<?php echo isset($varref) ? $varref : ''; ?>";
 
 		return $varref;
 

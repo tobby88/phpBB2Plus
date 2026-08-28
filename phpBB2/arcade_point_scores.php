@@ -57,10 +57,15 @@ $mon2 = 1;       # 2 month interval between reset of Current Scores?  0 = no // 
 ######## Change data to suit your requirements - End ########
 
 $time = time();
-$s_time = microtime();
-$sx_time = $time + $s_time;
+$sx_time = microtime(true);
 $time_date = create_date($board_config['default_dateformat'], $time, $board_config['board_timezone']);
 
+$tlu = 0;
+$tlu_date = $time_date;
+$mon = array();
+$hi = array();
+$i = 0;
+$x = 0;
 $sql = "SELECT * from phpbb_config WHERE config_name = 'last_update_points'";
 if(!$result = $db->sql_query($sql)) {
    message_die(GENERAL_ERROR, 'Error retrieving last_update_points', '', __LINE__, __FILE__, $sql);
@@ -87,7 +92,7 @@ if ($mon2 == 1)
    {
       if ($t_month <= 10)
       {
-         $t_month_alt = "0" . $t_month - 1;
+         $t_month_alt = "0" . ($t_month - 1);
          $t_year_alt = $t_year;
       }
       elseif ($t_month <= 12)
@@ -129,7 +134,7 @@ while($row = $db->sql_fetchrow($result))
       {
          $i++;
          $best_player[$i] = $row['player'];
-         $hi[$row['player']] = $hi[$row['player']] +1;
+         $hi[$row['player']] = isset($hi[$row['player']]) ? $hi[$row['player']] + 1 : 1;
       }
       $last_game = $row['game_name'];
    }
@@ -150,7 +155,7 @@ while($row = $db->sql_fetchrow($result))
       {
          $i++;
          $best_player[$i] = $row['player'];
-         $hi[$row['player']] = $hi[$row['player']] +1;
+         $hi[$row['player']] = isset($hi[$row['player']]) ? $hi[$row['player']] + 1 : 1;
       }
       $last_game = $row['game_name'];
    }
@@ -165,17 +170,21 @@ while($row = $db->sql_fetchrow($result))
    while($row = $db->sql_fetchrow($result))
    {
       $user = $row['username'];
-      if ($mon[$user] > 0 OR $hi[$user] > 0)
+      $monthly_total = isset($mon[$user]) ? intval($mon[$user]) : 0;
+      $all_time_total = isset($hi[$user]) ? intval($hi[$user]) : 0;
+      if ($monthly_total > 0 OR $all_time_total > 0)
       {
          $c = $c + 1;
          if ($c >=2) { $sql .= ", "; }
-         $total = $mon[$user] * $month + $hi[$user] * $alltime;
-         if ($mon[$user] == 0) {$mon[$user] = "0";}
-         if ($hi[$user] == 0) {$hi[$user] = "0";}
-         $sql .= "($c, '$user', {$mon[$user]}, {$hi[$user]}, $total)";
+         $total = $monthly_total * $month + $all_time_total * $alltime;
+         $safe_user = str_replace("'", "''", $user);
+         $sql .= "($c, '$safe_user', $monthly_total, $all_time_total, $total)";
       }
    }
-   $db->sql_query($sql);
+   if ($c > 0)
+   {
+      $db->sql_query($sql);
+   }
    unset($mon, $hi, $total, $best_player);
 
    $sql = "UPDATE phpbb_config SET config_value = '$time' WHERE config_name = 'last_update_points' LIMIT 1";
@@ -205,9 +214,7 @@ while($row = $db->sql_fetchrow($result))
       "TOTAL" => $row['total']
    ));
 }
-$akt_ti = time();
-$akt_tim = microtime();
-$akt_time = $akt_ti + $akt_tim;
+$akt_time = microtime(true);
 $template->assign_vars(array(
    'TITLE' => $page_title,
    'C_MONTH' => $month,

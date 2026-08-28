@@ -45,7 +45,7 @@ require('./pagestart.' . $phpEx);
 
 $params = array('mode' => 'mode', 'user_id' => POST_USERS_URL, 'group_id' => POST_GROUPS_URL, 'adv' => 'adv');
 
-while( list($var, $param) = @each($params) )
+foreach ($params as $var => $param)
 {
 	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
 	{
@@ -73,9 +73,8 @@ $mode = htmlspecialchars($mode);
 include( $phpbb_root_path . './includes/def_auth.' . $phpEx );
 
 // build an indexed array on field names
-@reset($field_names);
 $forum_auth_fields = array();
-while ( list($auth_key, $auth_name) = @each($field_names) )
+foreach ($field_names as $auth_key => $auth_name)
 {
 	$forum_auth_fields[] = $auth_key;
 }
@@ -311,9 +310,10 @@ if ( isset($_POST['submit']) && ( ( $mode == 'user' && $user_id ) || ( $mode == 
 			$forum_access = array();
 			for ($i=0; $i < count($keys['id']); $i++)
 			{
-				if ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL)
+				$tree_idx = $keys['idx'][$i];
+				if (isset($tree['type'][$tree_idx]) && $tree['type'][$tree_idx] == POST_FORUM_URL)
 				{
-					$forum_access[] = $tree['data'][ $keys['idx'][$i] ];
+					$forum_access[] = $tree['data'][$tree_idx];
 				}
 			}
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
@@ -665,9 +665,10 @@ else if ( ( $mode == 'user' && ( isset($_POST['username']) || $user_id ) ) || ( 
 	$forum_access = array();
 	for ($i=0; $i < count($keys['id']); $i++)
 	{
-		if ($tree['type'][ $keys['idx'][$i] ] == POST_FORUM_URL)
+		$tree_idx = $keys['idx'][$i];
+		if (isset($tree['type'][$tree_idx]) && $tree['type'][$tree_idx] == POST_FORUM_URL)
 		{
-			$forum_access[] = $tree['data'][ $keys['idx'][$i] ];
+			$forum_access[] = $tree['data'][$tree_idx];
 		}
 	}
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
@@ -987,23 +988,25 @@ else if ( ( $mode == 'user' && ( isset($_POST['username']) || $user_id ) ) || ( 
 
 	$name = array();
 	$id = array();
+	$pending = array();
 	for($i = 0; $i < count($ug_info); $i++)
 	{
 		if( ( $mode == 'user' && !$ug_info[$i]['group_single_user'] ) || $mode == 'group' )
 		{
 			$name[] = ( $mode == 'user' ) ? $ug_info[$i]['group_name'] :  $ug_info[$i]['username'];
 			$id[] = ( $mode == 'user' ) ? intval($ug_info[$i]['group_id']) : intval($ug_info[$i]['user_id']);
+			$pending[] = !empty($ug_info[$i]['user_pending']);
 		}
 	}
 
 	$t_usergroup_list = $t_pending_list = '';
 	if( count($name) )
 	{
-		for($i = 0; $i < count($ug_info); $i++)
+		for($i = 0; $i < count($name); $i++)
 		{
 			$ug = ( $mode == 'user' ) ? 'group&amp;' . POST_GROUPS_URL : 'user&amp;' . POST_USERS_URL;
 
-			if (!$ug_info[$i]['user_pending'])
+			if (!$pending[$i])
 			{
 				$t_usergroup_list .= ( ( $t_usergroup_list != '' ) ? ', ' : '' ) . '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$ug=" . $id[$i]) . '">' . $name[$i] . '</a>';
 			}

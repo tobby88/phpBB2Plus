@@ -166,6 +166,7 @@ if ( $mode == 'newpm' )
 		$l_new_message = $lang['Login_check_pm'];
 	}
 
+	$l_box_name = isset($l_box_name) ? $l_box_name : $lang['Private_Message'];
 	$template->assign_vars(array(
 		'L_CLOSE_WINDOW' => $lang['Close_window'], 
 		'L_MESSAGE' => $l_new_message)
@@ -468,7 +469,7 @@ else if ( $mode == 'read' )
 		'OUTBOX' => $outbox_url, 
 		'SAVEBOX' => $savebox_url, 
 
-		'BOX_NAME' => $l_box_name, 
+		'BOX_NAME' => isset($l_box_name) ? $l_box_name : $lang['Private_Message'], 
 
 		'L_MESSAGE' => $lang['Message'], 
 		'L_INBOX' => $lang['Inbox'],
@@ -1854,6 +1855,7 @@ for ($i=1; $i<=$max_rows; $i++)
 	//
 	generate_smilies('inline', PAGE_PRIVMSGS);
 
+	$l_box_name = isset($l_box_name) ? $l_box_name : $lang['Private_Message'];
 	$template->assign_vars(array(
 		'SUBJECT' => $privmsg_subject, 
 		'USERNAME' => $to_username,

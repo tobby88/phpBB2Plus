@@ -35,6 +35,10 @@ $cat_id = (isset($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
 $file_id = (isset($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
 $file_ids = (isset($_POST['file_ids'])) ? array_map('intval', $_POST['file_ids']) : array();
 $start = ( isset($_REQUEST['start']) ) ? intval($_REQUEST['start']) : 0;
+$s_hidden_fields = '';
+$approved_file_rowset = array();
+$broken_file_rowset = array();
+$all_file_rowset = array();
 
 $mode = (isset($_REQUEST['mode'])) ? htmlspecialchars($_REQUEST['mode']) : '';
 $mode_js = (isset($_REQUEST['mode_js'])) ? htmlspecialchars($_REQUEST['mode_js']) : '';
@@ -367,7 +371,7 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 	}
 
 	$cat_list = '<select name="cat_id">';
-	if (!$pafiledb->cat_rowset[$cat_id]['cat_parent'])
+	if (empty($pafiledb->cat_rowset[$cat_id]['cat_parent']))
 	{
 		$cat_list .= '<option value="0" selected>' . $lang['None'] . '</option>\n';
 	}

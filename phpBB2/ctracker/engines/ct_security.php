@@ -167,6 +167,13 @@ $unchecked_post_fields   = array('username', 'password', 'subject', 'message',
 // Some fields in $HTTP_GET_VARS don't get checked to prevent wrong detection
 $unchecked_get_fields = array('submit', 'search_author');
 
+$ct_addheuristic = isset($ct_addheuristic) ? (array) $ct_addheuristic : array();
+$ct_delheuristic = isset($ct_delheuristic) ? (array) $ct_delheuristic : array();
+$ct_ignoregvar = isset($ct_ignoregvar) ? (array) $ct_ignoregvar : array();
+$ct_ignorepvar = isset($ct_ignorepvar) ? (array) $ct_ignorepvar : array();
+$ct_regex_ignorep = isset($ct_regex_ignorep) ? (array) $ct_regex_ignorep : array();
+$ct_regex_ignoreg = isset($ct_regex_ignoreg) ? (array) $ct_regex_ignoreg : array();
+
 /*
  * Let's check if a security level is set
  * and prepare our variables
@@ -210,7 +217,7 @@ else if ( CT_SECLEVEL == 'MEDIUM' ||  CT_SECLEVEL == 'LOW' )
 $ct_attack_detection = false;
 
 // Write query String in the var $cracktrack and make it lowercase
-$cracktrack = strtolower($HTTP_SERVER_VARS['QUERY_STRING']);
+$cracktrack = strtolower(isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '');
 
 // Filter out the unchecked fields
 $unchecked_get_fields 	= implode('|', $unchecked_get_fields);
@@ -238,7 +245,7 @@ else
 	  $ct_attack_detection = true;
 	  ct_debugger($crackcheck, 'RAWGET');
   }
-  elseif ( CT_SECLEVEL != 'LOW' || !defined('CT_SECLEVEL') )
+  elseif ( !defined('CT_SECLEVEL') || CT_SECLEVEL != 'LOW' )
   {
     // We create a copy of the $HTTP_POST_VARS for checking
     $checkpost = ( is_array($HTTP_POST_VARS) ) ? $HTTP_POST_VARS : array();
@@ -249,7 +256,7 @@ else
 	    if ( !in_array($post_var_fieldname, $unchecked_post_fields) )
 	    {
 			// We do a preg_replace if a smart admin used the regex ignore
-			$post_var_check = ( isset($ct_regex_ignorep) ) ? preg_replace("#^($ct_regex_ignorep)$#", '*', $post_var_fieldname) : $post_var_fieldname;
+			$post_var_check = ( is_string($ct_regex_ignorep) && $ct_regex_ignorep !== '' ) ? preg_replace("#^($ct_regex_ignorep)$#", '*', $post_var_fieldname) : $post_var_fieldname;
 			if ( $post_var_check == $post_var_fieldname)
 			{
 				if ( is_array($post_var_field_value) )

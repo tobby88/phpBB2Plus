@@ -32,6 +32,7 @@ $this_dir = $phpbb_root_path . 'pafiledb/uploads/';
 
 $html_path = get_formated_url() . '/pafiledb/uploads/';
 
+$safety = 0;
 if( isset($_GET['safety']) || isset($_POST['safety']) )
 {
     $safety = (isset($_POST['safety'])) ? intval($_POST['safety']) : intval($_GET['safety']);

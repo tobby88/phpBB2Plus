@@ -29,7 +29,7 @@
  *  Madman - Chief Tester :)
  ***************************************************************************/
 
-if ( !defined('IN_PHPBB') || $HTTP_GET_VARS['phpbb_root_path'])
+if ( !defined('IN_PHPBB') || !empty($_GET['phpbb_root_path']))
 {
 	die("Hacking attempt");
 }
@@ -251,6 +251,7 @@ function user_fav_list($user_id, $number)
 function games_list($mode, $number, $cat_id, $option = 'played', $image_path = FALSE)
 {	
   global $db, $phpEx, $SID, $userdata, $board_config, $arcade;
+	$games_list = '';
 
 	if (empty($mode))
 	{
@@ -458,11 +459,8 @@ function total_highscores($player_id, $table = iNA_SCORES)
 
 function get_ina_extension($name)
 {
-	$extension		= strrchr(strtolower($name), '.');
-	$extension[0]	= ' ';
-	$extension		= strtolower(trim($extension));
-	
-	return $extension;
+	$position = strrpos((string) $name, '.');
+	return ($position === false) ? '' : strtolower(substr($name, $position + 1));
 }
 
 function ina_ban_user($game, $users_ip, $user_id, $username, $score)
@@ -522,7 +520,7 @@ function check_ina_game($game_name)
 
 function insert_ina_game($game_name, $game_path, $reverse_list = 0, $game_desc = '', $game_flash = 1, $game_avail = 0, $win_width = 0, $win_height = 0, $cat_id = -1)
 {	
-  if ( CH_CURRENT_VERSION >= '2.1.6' )
+  if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
   {
     global $db, $phpbb_root_path, $arcade, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
   }
@@ -688,7 +686,7 @@ function game_tour_played()
 //
 function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet = 'NO')
 {
-  if ( CH_CURRENT_VERSION >= '2.1.6' )
+  if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
   {
     global $db, $phpbb_root_path, $phpEx, $lang, $user_ip, $board_config, $userdata, $arcade, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
   }
@@ -897,7 +895,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 
 function swap_place($old_id, $new_id, $type, $game_info = NULL)
 {	
-  if ( CH_CURRENT_VERSION >= '2.1.6' )
+  if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
   {
     global $db, $lang, $board_config, $arcade, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
   }
@@ -949,7 +947,7 @@ function swap_place($old_id, $new_id, $type, $game_info = NULL)
 //
 function ina_check_last_pm($to_id, $from_id)
 {
-  if ( CH_CURRENT_VERSION >= '2.1.6' )
+  if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
   {
   	global $db, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
   }

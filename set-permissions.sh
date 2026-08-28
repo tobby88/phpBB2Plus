@@ -99,6 +99,7 @@ for path in \
 	files \
 	files/thumbs \
 	images/avatars \
+	logs \
 	pafiledb/cache \
 	pafiledb/cache/templates \
 	pafiledb/images/screenshots \

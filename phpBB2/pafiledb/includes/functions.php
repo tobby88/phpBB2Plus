@@ -48,6 +48,7 @@ class pafiledb_functions
 	{
 		global $lang, $phpbb_root_path;
 		$curicons = 1;
+		$posticons = '';
 
 		if ($file_posticon == 'none' || $file_posticon == 'none.gif' or empty($file_posticon))
 		{
@@ -89,6 +90,7 @@ class pafiledb_functions
 	function license_list($license_id = 0)
 	{
 		global $db, $lang;
+		$list = '';
 
 		if ($license_id == 0) 
 		{
@@ -592,7 +594,7 @@ function get_formated_url()
 function pafiledb_page_header($page_title)
 {
 	global $pafiledb_config, $lang, $pafiledb_template, $userdata, $images, $action, $_REQUEST, $pafiledb;
-	global $template, $db, $theme, $gen_simple_header, $starttime, $phpEx, $board_config, $user_ip, $phpbb_root_path;
+	global $template, $db, $theme, $gen_simple_header, $starttime, $phpEx, $board_config, $plus_config, $user_ip, $phpbb_root_path;
 	global $admin_level, $level_prior, $tree, $do_gzip_compress; 
 	
 	if($action != 'download')
@@ -600,6 +602,8 @@ function pafiledb_page_header($page_title)
 		include_once($phpbb_root_path . 'includes/page_header.'.$phpEx);
 	}
 
+	$mcp_url = '';
+	$is_mod = false;
 	if($action == 'category')
 	{
 		$upload_url = append_sid("dload.php?action=user_upload&cat_id={$_REQUEST['cat_id']}");
@@ -607,6 +611,7 @@ function pafiledb_page_header($page_title)
 // MX Addon
 		$mcp_url = append_sid("dload.php?action=mcp&cat_id={$_REQUEST['cat_id']}");
 		$mcp_auth = $pafiledb->modules[$pafiledb->module_name]->auth[$_REQUEST['cat_id']]['auth_mod'];
+		$is_mod = $mcp_auth;
 
 	}
 	else
@@ -628,7 +633,7 @@ function pafiledb_page_header($page_title)
 		'IS_AUTH_UPLOAD' => $upload_auth,
 		'IS_ADMIN' => ( $userdata['user_level'] == ADMIN && $userdata['session_logged_in'] ) ? TRUE : 0,
 // MX		'IS_MOD' => $pafiledb->modules[$pafiledb->module_name]->is_moderator(),
-		'IS_MOD' => $pafiledb->modules[$pafiledb->module_name]->auth[$_REQUEST['cat_id']]['auth_mod'],
+		'IS_MOD' => $is_mod,
 		'IS_AUTH_MCP' => $mcp_auth,
 		'MCP_LINK' => $lang['pa_MCP'],
 		'U_MCP' => $mcp_url,
@@ -659,8 +664,9 @@ function pafiledb_page_header($page_title)
 //===================================================
 function pafiledb_page_footer()
 {
-	global $cache, $lang, $pafiledb_template, $board_config, $_GET, $pafiledb, $userdata, $phpbb_root_path;
+	global $cache, $lang, $pafiledb_template, $board_config, $plus_config, $_GET, $pafiledb, $userdata, $phpbb_root_path;
 	global $phpEx, $template, $do_gzip_compress, $debug, $db, $starttime;
+	global $action;
 		
 	$pafiledb_template->assign_vars(array(
 		'JUMPMENU' => $pafiledb->modules[$pafiledb->module_name]->jumpmenu_option(),

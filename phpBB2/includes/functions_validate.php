@@ -198,9 +198,10 @@ function validate_optional_fields(&$icq, &$aim, &$msnm, &$yim, &$website, &$loca
 
 	for($i = 0; $i < count($check_var_length); $i++)
 	{
-		if (strlen($$check_var_length[$i]) < 2)
+		$variable_name = $check_var_length[$i];
+		if (strlen(${$variable_name}) < 2)
 		{
-			$$check_var_length[$i] = '';
+			${$variable_name} = '';
 		}
 	}
 

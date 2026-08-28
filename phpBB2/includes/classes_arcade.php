@@ -14,7 +14,7 @@
  *
  **************************************************************************/
 
-if ( !defined('IN_PHPBB') || $HTTP_GET_VARS['phpbb_root_path'])
+if ( !defined('IN_PHPBB') || !empty($_GET['phpbb_root_path']))
 {
 	die("Hacking attempt");
 }
@@ -189,22 +189,9 @@ class arcade
 //
   function convert_score($score)
   {
-		unset($this->score);
-		
-		$best_display_work = explode('.', $score);
-		for ($i = strlen($best_display_work[1]); $i > 0; $i--)
-		{
-			if($best_display_work[1][$i] != 0)
-			{
-				$i = 0;
-			}
-			else
-			{
-				$best_display_work[1][$i] = ' ';
-			}			
-		}
-		$best_display_work[1] = intval($best_display_work[1]);
-		$this->score = intval($best_display_work[1]) > 0 ? number_format($score, strlen(intval($best_display_work[1])), '.', ',') : number_format($score, 0, '.', ',');
+		$parts = explode('.', (string) $score, 2);
+		$decimals = isset($parts[1]) ? strlen(rtrim($parts[1], '0')) : 0;
+		$this->score = number_format((float) $score, $decimals, '.', ',');
 		return $this->score;
   }
 //
@@ -892,7 +879,8 @@ class arcade
     $this->sid = $this->pass_var('sid', '');
     if(!$this->sid)
     {
-      $this->sid = $_COOKIE[$board_config['cookie_name'] .'_sid'];
+      $cookie_name = $board_config['cookie_name'] . '_sid';
+      $this->sid = isset($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : '';
     }
     
     return $this->sid;
@@ -954,7 +942,7 @@ class arcade
   {
     global $db, $phpEx;
 
-    if(!$this->arcade_config['use_cache'] && $cache_file != 'config')
+    if(empty($this->arcade_config['use_cache']) && $cache_file != 'config')
     {
       return FALSE;
     }

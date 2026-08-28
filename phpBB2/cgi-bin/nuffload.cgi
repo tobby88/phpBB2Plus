@@ -30,10 +30,15 @@ $psid =~ s/[^a-zA-Z0-9]//g;
 $post_data_file = "tmp/" . $psid . "_postdata";
 $monitor_file = "tmp/" . $psid . "_flength";
 $qstring_file = "tmp/" . $psid . "_qstring";
+$received_file = "tmp/" . $psid . "_received";
+$complete_file = "tmp/" . $psid . "_complete";
 
 $len = $ENV{'CONTENT_LENGTH'};
 $bRead=0;
 $|=1;
+
+unlink("$received_file") if -e "$received_file";
+unlink("$complete_file") if -e "$complete_file";
 
 # Check for max upload size, set to whatever you want
 if($len > 32000000)
@@ -127,6 +132,12 @@ close (QSTR);
 # Tidy up after ourselves.
 unlink("$monitor_file");
 unlink("$post_data_file");
+
+# Keep a small hand-off marker so the polling popup can distinguish server-side
+# image processing from a transfer that has not started yet.
+open (RECEIVED, ">", "$received_file") or die "can't open received marker";
+print RECEIVED $len;
+close (RECEIVED);
 
 # OK lets get back to album upload.
 my $url= $redirect . "?psid=$psid";

@@ -22,8 +22,8 @@
 /** Module Setup
 /***************************************************************************/
 if (!defined('IN_PHPBB')) define('IN_PHPBB', true);
-define('MOD_VERSION', '1.2.0');
-define('MOD_CODE', 24);
+if (!defined('MOD_VERSION')) { define('MOD_VERSION', '1.2.0'); }
+if (!defined('MOD_CODE')) { define('MOD_CODE', 24); }
 $phpbb_root_path = '../';
 include($phpbb_root_path . 'extension.inc');
 include_once($phpbb_root_path."includes/functions_color_groups.$phpEx");
@@ -453,8 +453,8 @@ $template->assign_vars(array(
 'L_EXAMPLE' => $lang['Example'],
 'L_DEFINE_USERS' => $lang['Define_Users'],
 'L_DELETE' => $lang['Delete'],
-'L_COLORS' => $lang['Colors'],
-'L_USER_LEVELS' => $lang['User_Levels'],
+'L_COLORS' => isset($lang['Colors']) ? $lang['Colors'] : $lang['Color'],
+'L_USER_LEVELS' => isset($lang['User_Levels']) ? $lang['User_Levels'] : $lang['User_Level'],
 'L_USER_LIST' => $lang['User_List'],
 'L_ADD' => $lang['Add_Arrow'],
 'L_VERSION' => $lang['Version'],

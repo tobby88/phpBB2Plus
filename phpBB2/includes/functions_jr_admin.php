@@ -2,7 +2,7 @@
 
 define('EXPLODE_SEPERATOR_CHAR', '|');
 define('JR_ADMIN_DIR', 'admin/');
-define('COPYRIGHT_NIVISEC_FORMAT',
+if (!defined('COPYRIGHT_NIVISEC_FORMAT')) define('COPYRIGHT_NIVISEC_FORMAT',
 '<br /><span class="copyright"><center>
 	%s 
 	&copy; %s 
@@ -348,7 +348,7 @@ function jr_admin_make_left_pane()
 		$template->assign_block_vars("catrow", array(
 		//+MOD: DHTML Menu for ACP 
          'MENU_CAT_ID' => $menu_cat_id, 
-         'MENU_CAT_ROWS' => count($action_array), 
+		 'MENU_CAT_ROWS' => count($module_array), 
 //-MOD: DHTML Menu for ACP
 		'ADMIN_CATEGORY' => (isset($lang[$cat])) ? $lang[$cat] : preg_replace("/_/", ' ', $cat)
 		));
@@ -425,7 +425,7 @@ function jr_admin_get_user_info($user_id)
 	'SELECT * FROM ' . JR_ADMIN_TABLE . "
 	WHERE user_id = $user_id",
 	
-	sprintf($lang['Error_Table'], JR_ADMIN_TABLE),
+	sprintf(isset($lang['Error_Table']) ? $lang['Error_Table'] : 'Could not query table %s', JR_ADMIN_TABLE),
 	false,
 	1
 	)

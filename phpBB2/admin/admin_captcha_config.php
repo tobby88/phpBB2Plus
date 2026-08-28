@@ -9,8 +9,7 @@
  *
  ***************************************************************************/ 
 
-define('IN_PHPBB', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 // First we do the setmodules stuff for the admin cp.
 if( !empty($setmodules) )
 {
@@ -101,7 +100,7 @@ $template->assign_vars(array(
 	'L_FOREGROUND_LATTICE_COLOR' => $lang['foreground_lattice_color'],
 	'L_FOREGROUND_LATTICE_COLOR_EXPLAIN' => $lang['foreground_lattice_color_explain'],
 	'L_GAMMACORRECT' => $lang['gammacorrect'],
-	'L_GAMMACORRECT_EXPAIN' => $lang['gammacorrect_axplain'],
+	'L_GAMMACORRECT_EXPAIN' => $lang['gammacorrect_explain'],
 	'L_GENERATE_JPEG' => $lang['generate_jpeg'],
 	'L_GENERATE_JPEG_EXPAIN' => $lang['generate_jpeg_explain'],
 	'L_JPEG_QUALITY' => $lang['generate_jpeg_quality'],

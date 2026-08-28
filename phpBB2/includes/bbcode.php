@@ -45,8 +45,7 @@ function phpbb_schild($smilie, $parameter, $text)
 		
 		if ( !empty($parameter) )
 		{
-			reset($parameter);
-			while ( list( , $line) = each($parameter) )
+			foreach ($parameter as $line)
 			{
 				if ( ( $pos = strpos(' ' . $line, '=') ) )
 				{
@@ -181,16 +180,15 @@ function prepare_bbcode_template($bbcode_tpl)
 	$bbcode_tpl['glow_open'] = str_replace('{GLOWCOLOR}', '\\1', $bbcode_tpl['glow_open']);
 	$bbcode_tpl['shadow_open'] = str_replace('{SHADOWCOLOR}', '\\1', $bbcode_tpl['shadow_open']);
 	$bbcode_tpl['highlight_open'] = str_replace('{HIGHLIGHTCOLOR}', '\\1', $bbcode_tpl['highlight_open']);
-	$bbcode_tpl['google'] = '\'' . $bbcode_tpl['google'] . '\'';
-	$bbcode_tpl['google'] = str_replace('{STRING}', "' . str_replace('\\\"', '\"', '\\1') . '", $bbcode_tpl['google']);
-	$bbcode_tpl['google'] = str_replace('{QUERY}', "' . urlencode(str_replace('\\\"', '\"', '\\1')) . '", $bbcode_tpl['google']);
+	// Google and Schild are expanded by callbacks in bbencode_second_pass().
+	// Keep their templates intact instead of turning them into PHP code for
+	// preg_replace()'s removed /e modifier.
 	$bbcode_tpl['left'] = str_replace('{URL}', '\\1', $bbcode_tpl['left']);
 	$bbcode_tpl['right'] = str_replace('{URL}', '\\1', $bbcode_tpl['right']);
 	// bbcode_box Mod
  
 	//Begin Smilie Creator Mod Copyright esperitox 2003
-	$bbcode_tpl['schild'] = str_replace('{URL}', "' . phpbb_schild('\\1', '\\2', '\\3') . '", "'" . $bbcode_tpl['schild'] . "'");
-	
+
 	//+MOD: Select Expand BBcodes MOD
 	global $phpbb_root_path;
 	$u_sxbb_jslib = $phpbb_root_path . 'templates/select_expand_bbcodes.js';
@@ -311,11 +309,13 @@ function bbencode_second_pass($text, $uid)
 	$text = str_replace("[i:$uid]", $bbcode_tpl['i_open'], $text);
 	$text = str_replace("[/i:$uid]", $bbcode_tpl['i_close'], $text);
 	
-	// [flipv] and [/flipv] for italicizing text.
-	$text = preg_replace("#\[flipv\](.*?)\[/flipv\]#si", "[flipv:$uid]\\1[/flipv:$uid]", $text);
+	// [flipv] and [/flipv] for vertically flipped text.
+	$text = str_replace("[flipv:$uid]", $bbcode_tpl['flipv_open'], $text);
+	$text = str_replace("[/flipv:$uid]", $bbcode_tpl['flipv_close'], $text);
 
-	// [fliph] and [/fliph] for italicizing text.
-	$text = preg_replace("#\[fliph\](.*?)\[/fliph\]#si", "[fliph:$uid]\\1[/fliph:$uid]", $text);
+	// [fliph] and [/fliph] for horizontally flipped text.
+	$text = str_replace("[fliph:$uid]", $bbcode_tpl['fliph_open'], $text);
+	$text = str_replace("[/fliph:$uid]", $bbcode_tpl['fliph_close'], $text);
 	
 	//[glow=red]and[/glow]for glowing text.
 	$text = preg_replace("/\[glow=(\#[0-9A-F]{6}|[a-z]+):$uid\]/si", $bbcode_tpl['glow_open'], $text);
@@ -392,8 +392,9 @@ function bbencode_second_pass($text, $uid)
 	$text = preg_replace("/\[cell=(.*?):$uid\]/si", $bbcode_tpl['cell_open'], $text);
 	$text = str_replace("[/cell:$uid]", $bbcode_tpl['cell_close'], $text);
 	// center
-	$text = preg_replace("/\[center:$uid\]/si", $bbcode_tpl['center_open'], $text);
-	$text = str_replace("[/center:$uid]", $bbcode_tpl['center_close'], $text);
+	$center_open = str_replace('\\1', 'center', $bbcode_tpl['align_open']);
+	$text = str_replace("[center:$uid]", $center_open, $text);
+	$text = str_replace("[/center:$uid]", $bbcode_tpl['align_close'], $text);
 	// font
 	$text = preg_replace("/\[font=(.*?):$uid\]/si", $bbcode_tpl['font_open'], $text);
 	$text = str_replace("[/font:$uid]", $bbcode_tpl['font_close'], $text);
@@ -402,22 +403,31 @@ function bbencode_second_pass($text, $uid)
 	$text = str_replace("[/poet:$uid]", $bbcode_tpl['poet_close'], $text);
 	//[hr]
 	$text = str_replace("[hr:$uid]", $bbcode_tpl['hr'], $text);
-	// [google]string for search[/google] code..
-	$patterns[] = "#\[google\](.*?)\[/google\]#ise";
-	$replacements[] = $bbcode_tpl['google'];
- 	// [left]image_url_here[/left] code..
-	$patterns[] = "#\[left:$uid\]([^?](?:[^\[]+|\[(?!url))*?)\[/left:$uid\]#si";
-	$replacements[] = $bbcode_tpl['left'];
+	// [google]string for search[/google] code.
+	$text = preg_replace_callback("#\[google\](.*?)\[/google\]#is",
+		function($matches) use ($bbcode_tpl)
+		{
+			$string = str_replace('\\"', '"', $matches[1]);
+			return str_replace(
+				array('{STRING}', '{QUERY}'),
+				array($string, urlencode($string)),
+				$bbcode_tpl['google']
+			);
+		},
+		$text);
+	// [left]image_url_here[/left] code..
+	$text = preg_replace("#\[left:$uid\]([^?](?:[^\[]+|\[(?!url))*?)\[/left:$uid\]#si", $bbcode_tpl['left'], $text);
 	// [right]image_url_here[/right] code..
-	$patterns[] = "#\[right:$uid\]([^?](?:[^\[]+|\[(?!url))*?)\[/right:$uid\]#si";
-	$replacements[] = $bbcode_tpl['right']; 
+	$text = preg_replace("#\[right:$uid\]([^?](?:[^\[]+|\[(?!url))*?)\[/right:$uid\]#si", $bbcode_tpl['right'], $text);
 	// bbcode_box Mod	
 	
 	//Begin Smilie Creator Mod Copyright esperitox 2003 [schild=] and [/schild] code..
-	$patterns[] = "#\[schild=([a-z0-9]+)([a-z0-9\-\.,\?!% \*_\#:;~\\&$@\/=\+\\\\)]*)\](.*?)\[/schild\]#sie";
-	$replacements[] = $bbcode_tpl['schild'];
-	
-	$text = preg_replace($patterns, $replacements, $text);
+	$text = preg_replace_callback("#\[schild=([a-z0-9]+)([a-z0-9\-\.,\?!% \*_\#:;~\\&$@\/=\+\\\\)]*)\](.*?)\[/schild\]#si",
+		function($matches) use ($bbcode_tpl)
+		{
+			return str_replace('{URL}', phpbb_schild($matches[1], $matches[2], $matches[3]), $bbcode_tpl['schild']);
+		},
+		$text);
 
 	// Remove our padding from the string..
 	$text = substr($text, 1);
@@ -495,13 +505,11 @@ function bbencode_first_pass($text, $uid)
 	// [i] and [/i] for italicizing text.
 	$text = preg_replace("#\[i\](.*?)\[/i\]#si", "[i:$uid]\\1[/i:$uid]", $text);
 	
-	// [flipv] and [/flipv] for flipped text. 
-	$text = str_replace("[flipv:$uid]", $bbcode_tpl['flipv_open'], $text);
-	$text = str_replace("[/flipv:$uid]", $bbcode_tpl['flipv_close'], $text);
+	// [flipv] and [/flipv] for flipped text.
+	$text = preg_replace("#\[flipv\](.*?)\[/flipv\]#si", "[flipv:$uid]\\1[/flipv:$uid]", $text);
 
-	// [fliph] and [/fliph] for flipped text. 
-	$text = str_replace("[fliph:$uid]", $bbcode_tpl['fliph_open'], $text);
-	$text = str_replace("[/fliph:$uid]", $bbcode_tpl['fliph_close'], $text);
+	// [fliph] and [/fliph] for flipped text.
+	$text = preg_replace("#\[fliph\](.*?)\[/fliph\]#si", "[fliph:$uid]\\1[/fliph:$uid]", $text);
 	
 	// [img]image_url_here[/img] code..
 	$text = preg_replace_callback("#\[img\]((http|ftp|https|ftps)://)([^\?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))\[/img\]#si",
@@ -547,9 +555,19 @@ function bbencode_first_pass($text, $uid)
 	// [s] and [/s] for sed text.
 	$text = preg_replace("#\[s\](.*?)\[/s\]#si", "[s:$uid]\\1[/s:$uid]", $text);
 	// [left]image_url_here[/left] code..
-	$text = preg_replace("#\[left\]((http|ftp|https|ftps)://)([^ \?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))\[/left\]#sie", "'[left:$uid]\\1' . str_replace(' ', '%20', '\\3') . '[/left:$uid]'", $text);
+	$text = preg_replace_callback("#\[left\]((http|ftp|https|ftps)://)([^ \?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))\[/left\]#si",
+		function($matches) use ($uid)
+		{
+			return "[left:$uid]" . $matches[1] . str_replace(' ', '%20', $matches[3]) . "[/left:$uid]";
+		},
+		$text);
 	// [right]image_url_here[/right] code..
-	$text = preg_replace("#\[right\]((http|ftp|https|ftps)://)([^ \?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))\[/right\]#sie", "'[right:$uid]\\1' . str_replace(' ', '%20', '\\3') . '[/right:$uid]'", $text);
+	$text = preg_replace_callback("#\[right\]((http|ftp|https|ftps)://)([^ \?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))\[/right\]#si",
+		function($matches) use ($uid)
+		{
+			return "[right:$uid]" . $matches[1] . str_replace(' ', '%20', $matches[3]) . "[/right:$uid]";
+		},
+		$text);
 	// bbcode_box Mod
  
 	

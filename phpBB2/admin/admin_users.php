@@ -141,7 +141,7 @@ if ($new_user)
 //
 if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset($_GET[POST_USERS_URL]) || isset( $_POST[POST_USERS_URL]) ) )
 {
-	attachment_quota_settings('user', $_POST['submit'], $mode);
+	attachment_quota_settings('user', isset($_POST['submit']) ? $_POST['submit'] : '', $mode);
 	//
 	// Ok, the profile has been modified and submitted, let's update
 	//
@@ -157,8 +157,11 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );
 		}
+		$username_sql = '';
+		$signature_bbcode_uid = ($new_user || empty($this_userdata['user_sig_bbcode_uid'])) ? '' : $this_userdata['user_sig_bbcode_uid'];
+		$message = '';
 
-		if( $_POST['deleteuser'] && ( $userdata['user_id'] != $user_id ) && $new_user==0)
+		if( !empty($_POST['deleteuser']) && ( $userdata['user_id'] != $user_id ) && $new_user==0)
 		{
 			$sql = "SELECT g.group_id 
 				FROM " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g  
@@ -313,7 +316,7 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 			message_die(GENERAL_MESSAGE, $message);
 		}
 		// Start add - Protect user account MOD
-if( $_POST['block_account'] )
+if( !empty($_POST['block_account']) )
 {
 	$sql = "UPDATE ".USERS_TABLE." SET 
 		user_blocktime='".(time()+$board_config['block_time']*60)."', user_block_by='$user_ip' 
@@ -329,7 +332,7 @@ if( $_POST['block_account'] )
 	}
 
 } else
-if( $_POST['unblock_account'] )
+if( !empty($_POST['unblock_account']) )
 {
 	$sql = "UPDATE ".USERS_TABLE." SET 
 		user_blocktime='0', user_badlogin='0' 
@@ -1336,6 +1339,7 @@ if( $_POST['unblock_account'] )
 	}
 	else
 	{
+		$coppa = isset($coppa) ? $coppa : false;
 		$s_hidden_fields = '<input type="hidden" name="mode" value="save" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="coppa" value="' . $coppa . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="id" value="' . $this_userdata['user_id'] . '" />';
 		// Start add - Admin add user MOD
@@ -1400,6 +1404,7 @@ if( $_POST['unblock_account'] )
 		
 		foreach($profile_data as $field)
 		{
+		  $description = isset($field['field_description']) ? $field['field_description'] : '';
 		  $field_name = $field['field_name'];
 		  $name = text_to_column($field_name);
 		  
@@ -1550,19 +1555,22 @@ if( $_POST['unblock_account'] )
 		$s_b_year = '<span class="genmed">' . $lang['Year'] . '&nbsp;</span><input type="text" class="post" style="width: 50px" name="b_year" size="4" maxlength="4" value="' . $b_year . '" />&nbsp;&nbsp;'; 
 		$i = 0;
 		$s_birthday = '';
-		for ($i=0;$i<=strlen($lang['Submit_date_format']);$i++)
+		for ($i = 0; $i < strlen($lang['Submit_date_format']); $i++)
 		{
 			switch ($lang['Submit_date_format'][$i])
 			{
-				case d:  $s_birthday .=$s_b_day;break;
-				case m:  $s_birthday .=$s_b_md;break;
-				case Y:  $s_birthday .=$s_b_year;break;
+				case 'd': $s_birthday .= $s_b_day; break;
+				case 'm': $s_birthday .= $s_b_md; break;
+				case 'Y': $s_birthday .= $s_b_year; break;
 			}
 		}
 		// End add - Birthday MOD
 		//
 		// Start add - Gender MOD
-switch ($gender) 
+$gender_no_specify_checked = '';
+$gender_male_checked = '';
+$gender_female_checked = '';
+switch ($gender)
 { 
    case 1: $gender_male_checked="checked=\"checked\"";break; 
    case 2: $gender_female_checked="checked=\"checked\"";break; 
@@ -1610,8 +1618,8 @@ if ($this_userdata['user_passwd_change']>0)
 	{
 		message_die(GENERAL_ERROR, "Couldn't obtain flags information.", "", __LINE__, __FILE__, $sql);
 	}
-	$flag_row = $db->sql_fetchrowset($ranksresult);
-	$num_flags = $db->sql_numrows($ranksresult) ;
+	$flag_row = $db->sql_fetchrowset($flags_result);
+	$num_flags = $db->sql_numrows($flags_result);
 
 	// build the html select statement
 	$flag_start_image = 'blank.gif' ;
@@ -1844,6 +1852,7 @@ if ($this_userdata['user_passwd_change']>0)
 }
 else
 {
+	$select_list = '';
 	//
 	// Default user selection box
 	//

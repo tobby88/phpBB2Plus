@@ -54,6 +54,7 @@ init_userprefs($userdata);
 //
 // Start auth check
 //
+$is_auth = array('auth_mod' => 0, 'auth_read' => 0, 'auth_view' => 0, 'auth_delete' => 0, 'auth_post' => 0);
 switch ($userdata['user_level'])
 {
 	case ADMIN : 
@@ -83,6 +84,12 @@ if( !$is_auth['auth_read'] )
 
 $refresh = (isset($_POST['auto_refresh']) || isset($_POST['refresh'])) ? 1 : 0;
 $submit = (isset($_POST['shout']) && isset($_POST['message'])) ? 1 : 0;
+$preview = 0;
+$error = false;
+$error_msg = '';
+$username = isset($userdata['username']) ? $userdata['username'] : '';
+$max = 0;
+$s_hidden_fields = '';
 if ( !empty($_POST['mode']) || !empty($_GET['mode']) )
 	{
 		$mode = ( !empty($_POST['mode']) ) ? intval($_POST['mode']) : intval($_GET['mode']);
@@ -101,7 +108,7 @@ if ( !$board_config['allow_html'] )
 }
 else
 {
-	$html_on = ( $submit || $refresh || preview) ? ( ( !empty($_POST['disable_html']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_html'] : $userdata['user_allowhtml'] );
+	$html_on = ( $submit || $refresh || $preview) ? ( ( !empty($_POST['disable_html']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_html'] : $userdata['user_allowhtml'] );
 }
 if ( !$board_config['allow_bbcode'] )
 {
@@ -109,7 +116,7 @@ if ( !$board_config['allow_bbcode'] )
 }
 else
 {
-	$bbcode_on = ( $submit || $refresh || preview) ? ( ( !empty($_POST['disable_bbcode']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_bbcode'] : $userdata['user_allowbbcode'] );
+	$bbcode_on = ( $submit || $refresh || $preview) ? ( ( !empty($_POST['disable_bbcode']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_bbcode'] : $userdata['user_allowbbcode'] );
 }
 
 if ( !$board_config['allow_smilies'] )
@@ -118,7 +125,7 @@ if ( !$board_config['allow_smilies'] )
 }
 else
 {
-	$smilies_on = ( $submit || $refresh || preview) ? ( ( !empty($_POST['disable_smilies']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_smilies'] : $userdata['user_allowsmile'] );
+	$smilies_on = ( $submit || $refresh || $preview) ? ( ( !empty($_POST['disable_smilies']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_smilies'] : $userdata['user_allowsmile'] );
 	if ($smilies_on)
 	{
 		include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
@@ -221,7 +228,7 @@ if ((isset($_POST['start']) || isset($_GET['start'])) && !$submit)
 		$template->assign_block_vars('switch_auth_no_post', array());
 	}
 
-	if ($bbcode_on)
+	if ($is_auth['auth_post'] && $bbcode_on)
 	{
 		$template->assign_block_vars('switch_auth_post.switch_bbcode', array());
 	}
@@ -232,6 +239,7 @@ if ((isset($_POST['start']) || isset($_GET['start'])) && !$submit)
 $template->assign_vars(array( 
 	'U_SHOUTBOX' => append_sid("shoutbox.$phpEx?start=$start"),
 	'U_SHOUTBOX_VIEW' => append_sid("shoutbox_view.$phpEx?start=$start"),
+	'U_MORE_SMILIES' => append_sid("shoutbox.$phpEx?mode=smilies"),
 	'T_HEAD_STYLESHEET' => $theme['head_stylesheet'],
 	'T_NAME' => $theme['template_name'],
 
@@ -240,7 +248,8 @@ $template->assign_vars(array(
 	'L_SHOUT_SUBMIT' => $lang['Go'],
 	'L_SHOUT_TEXT' => $lang['Shout_text'],
 	'L_SHOUT_REFRESH' => $lang['Shout_refresh'],
-	'L_SMILIES' => $lang['Smilies'],
+	'L_SHOUTBOX_LOGIN' => $lang['Shoutbox_login'],
+	'L_SMILIES' => $lang['Emoticons'],
 	'T_URL' => "templates/".$theme['template_name'],
 	'S_CONTENT_ENCODING' => $lang['ENCODING'],
 	'L_BBCODE_CLOSE_TAGS' => $lang['Close_Tags'], 

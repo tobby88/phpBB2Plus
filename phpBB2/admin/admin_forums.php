@@ -137,8 +137,7 @@ function admin_check_cat()
 	if (empty($mains)) return false;
 
 	// push each cat
-	reset($mains);
-	while (list($id, $main) = each($mains) )
+	foreach ($mains as $id => $main)
 	{
 		$root		= false;
 		$cur		= $id;
@@ -454,6 +453,7 @@ if( isset($_POST['addforum']) || isset($_POST['addcategory']) )
 
 if( !empty($mode) ) 
 {
+	$show_index = false;
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 	admin_check_cat();
@@ -549,6 +549,8 @@ if( !empty($mode) )
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 
+			$forumlocked = '';
+			$forumunlocked = '';
 			$forumstatus == ( FORUM_LOCKED ) ? $forumlocked = "selected=\"selected\"" : $forumunlocked = "selected=\"selected\"";
 			
 			// These two options ($lang['Status_unlocked'] and $lang['Status_locked']) seem to be missing from
@@ -704,7 +706,7 @@ if( !empty($mode) )
 			//
 			$field_sql = "";
 			$value_sql = "";
-			while( list($field, $value) = each($forum_auth_ary) )
+			foreach ($forum_auth_ary as $field => $value)
 			{
 				$field_sql .= ", $field";
 				$value_sql .= ", $value";
@@ -1866,7 +1868,7 @@ function display_admin_index($cur='Root', $level=0, $max_level=-1)
 	if ($CH_this >= -1)
 	{
 		// cat header row
-		if ($tree['type'][$CH_this] == POST_CAT_URL)
+		if ($CH_this >= 0 && $tree['type'][$CH_this] == POST_CAT_URL)
 		{
 			// display a cat row
 			$cat = $tree['data'][$CH_this];
@@ -1918,7 +1920,7 @@ function display_admin_index($cur='Root', $level=0, $max_level=-1)
 		}
 
 		// forum header row
-		if ($tree['type'][$CH_this] == POST_FORUM_URL)
+		if ($CH_this >= 0 && $tree['type'][$CH_this] == POST_FORUM_URL)
 		{
 			$forum = $tree['data'][$CH_this];
 			$forum_id = $tree['id'][$CH_this];
@@ -1968,15 +1970,16 @@ function display_admin_index($cur='Root', $level=0, $max_level=-1)
 		}
 
 		// display the sub-level
-		for ($i=0; $i < count($tree['sub'][$cur]); $i++)
+		$sub_items = isset($tree['sub'][$cur]) && is_array($tree['sub'][$cur]) ? $tree['sub'][$cur] : array();
+		for ($i=0; $i < count($sub_items); $i++)
 		{
-			display_admin_index($tree['sub'][$cur][$i], $level+1, $max_level);
+			display_admin_index($sub_items[$i], $level+1, $max_level);
 		}
 
 		// forum footer
 
 		// cat footer
-		if ($tree['type'][$CH_this] == POST_CAT_URL)
+		if ($CH_this >= 0 && $tree['type'][$CH_this] == POST_CAT_URL)
 		{
 			// add the footer
 			$template->assign_block_vars('catrow', array());

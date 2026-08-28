@@ -1334,6 +1334,9 @@ else
 	$smilies_status = ( $userdata['user_allowsmile'] && $board_config['allow_smilies']  ) ? $lang['Smilies_are_ON'] : $lang['Smilies_are_OFF'];
 	
 	// Start add - Gender MOD
+	$gender_no_specify_checked = '';
+	$gender_male_checked = '';
+	$gender_female_checked = '';
 	switch ($gender) 
 	{ 
 	   case 1: $gender_male_checked="checked=\"checked\"";break; 
@@ -1481,8 +1484,8 @@ else
 	{
 		message_die(GENERAL_ERROR, "Couldn't obtain flags information.", "", __LINE__, __FILE__, $sql);
 	}
-	$flag_row = $db->sql_fetchrowset($ranksresult);
-	$num_flags = $db->sql_numrows($ranksresult) ;
+	$flag_row = $db->sql_fetchrowset($flags_result);
+	$num_flags = $db->sql_numrows($flags_result) ;
 
 	// build the html select statement
 	$flag_start_image = 'blank.gif' ;
@@ -1566,13 +1569,13 @@ else
 	$s_b_year = '<span class="genmed">' . $lang['Year'] . '&nbsp;</span><input type="text" class="post" style="width: 50px" name="b_year" size="4" maxlength="4" value="' . $b_year . '" />&nbsp;&nbsp;'; 
 	$i = 0;
 	$s_birthday = '';
-	for ($i=0; $i<=strlen($lang['Submit_date_format']); $i++)
+	for ($i=0; $i<strlen($lang['Submit_date_format']); $i++)
 	{
 		switch ($lang['Submit_date_format'][$i])
 		{
-			case d:  $s_birthday .= $s_b_day;break;
-			case m:  $s_birthday .= $s_b_md;break;
-			case Y:  $s_birthday .= $s_b_year;break;
+			case 'd':  $s_birthday .= $s_b_day;break;
+			case 'm':  $s_birthday .= $s_b_md;break;
+			case 'Y':  $s_birthday .= $s_b_year;break;
 		}
 	}
 // End add - Birthday MOD

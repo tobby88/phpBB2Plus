@@ -18,8 +18,8 @@
 //
 //  Make this file apart of the phpBB system files.
 //
-define('IN_PHPBB', 1);
-define('ARCADE_ADMIN', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+if (!defined('ARCADE_ADMIN')) { define('ARCADE_ADMIN', 1); }
 //
 //  Make sure the ACP doesn't go and run something.
 //

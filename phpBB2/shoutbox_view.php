@@ -45,6 +45,7 @@ init_userprefs($userdata);
 //
 // Start auth check
 //
+$is_auth = array('auth_mod' => 0, 'auth_read' => 0, 'auth_view' => 0, 'auth_delete' => 0, 'auth_post' => 0);
 switch ($userdata['user_level'])
 {
 	case ADMIN : 
@@ -91,6 +92,7 @@ obtain_word_list($orig_word, $replacement_word);
 //
 // display the shoutbox
 //
+	$i = 0;
 	$sql = "SELECT s.*, u.user_allowsmile, u.username FROM " . SHOUTBOX_TABLE . " s, ".USERS_TABLE." u
 			WHERE s.shout_user_id=u.user_id ORDER BY s.shout_session_time DESC LIMIT $start, ".NUM_SHOUT;
 	if ( !($result = $db->sql_query($sql)) )
@@ -105,7 +107,7 @@ obtain_word_list($orig_word, $replacement_word);
 		$user_id = $shout_row['shout_user_id'];
 		$username = ( $user_id == ANONYMOUS ) ? (( $shout_row['shout_username'] == '' ) ? $lang['Guest'] : $shout_row['shout_username'] ) : "<a href='".append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=".$shout_row['shout_user_id'])."' target='_top'>".$shout_row['username']."</a>" ;
 		$shout = (! $shout_row['shout_active']) ? $shout_row['shout_text'] : $lang['Shout_censor'];
-		if ( $board_config['allow_smilies'] && $shout_row['user_allowsmile'] && $shout != '' & $shout_row['enable_smilies'])
+		if ( $board_config['allow_smilies'] && $shout_row['user_allowsmile'] && $shout != '' && $shout_row['enable_smilies'])
 		{
 			$shout = smilies_pass($shout);
 		} 

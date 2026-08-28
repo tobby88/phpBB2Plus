@@ -697,12 +697,12 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 			}
 
 			//$tables = array('album', 'album_cat', 'album_comment', 'album_config', 'album_rate', 'attach_quota', 'attachments', 'attachments_config', 'attachments_desc', 'auth_access', 'banlist', 'banner', 'banner_stats', 'categories', 'color_groups', 'config', 'confirm', 'disallow', 'extension_groups', 'extensions', 'flags', 'forbidden_extensions', 'forums', 'forum_prune', 'groups', 'jr_admin_users', 'link_categories', 'link_config', 'links', 'nickpagebuddies', 'nickpageconf', 'nickpagefavs', 'nickpagegalerie', 'nickpagegb', 'nickpagemod', 'nickpagevotes', 'pa_auth', 'pa_cat', 'pa_comments', 'pa_config', 'pa_custom', 'pa_customdata', 'pa_download_info', 'pa_files', 'pa_license', 'pa_mirrors', 'pa_votes', 'plus', 'posts', 'posts_text', 'privmsgs', 'privmsgs_text', 'quota_limits', 'ranks', 'search_results', 'search_wordlist', 'search_wordmatch', 'sessions', 'smilies', 'themes', 'themes_name', 'topic_view', 'topics', 'topics_watch', 'user_group', 'users', 'vote_desc', 'vote_results', 'vote_voters', 'words');
-			$result = mysql_list_tables($dbname);
-   			$i = 0;
-   				while ($i < mysql_num_rows ($result)) {
-   				$tables[$i] = mysql_tablename ($result, $i);
-   				$i++;
-   				}
+			$result = $db->sql_query('SHOW TABLES');
+			$tables = array();
+			while ($table_row = $db->sql_fetchrow($result))
+			{
+				$tables[] = reset($table_row);
+			}
 			$additional_tables = (isset($_POST['additional_tables'])) ? $_POST['additional_tables'] : ( (isset($_GET['additional_tables'])) ? $_GET['additional_tables'] : "" );
 
 			$backup_type = (isset($_POST['backup_type'])) ? $_POST['backup_type'] : ( (isset($_GET['backup_type'])) ? $_GET['backup_type'] : "" );

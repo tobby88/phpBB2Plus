@@ -35,7 +35,7 @@ if ( $board_config['gzip_compress'] )
 {
 	$phpver = phpversion();
 
-	$useragent = (isset($HTTP_SERVER_VARS['HTTP_USER_AGENT'])) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : getenv('HTTP_USER_AGENT'); 
+	$useragent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : getenv('HTTP_USER_AGENT'); 
 
 	if ( $phpver >= '4.0.4pl1' && ( strstr($useragent,'compatible') || strstr($useragent,'Gecko') ) )
 	{
@@ -46,7 +46,7 @@ if ( $board_config['gzip_compress'] )
 	}
 	else if ( $phpver > '4.0' )
 	{
-		if ( strstr($HTTP_SERVER_VARS['HTTP_ACCEPT_ENCODING'], 'gzip') )
+		if ( strstr(isset($_SERVER['HTTP_ACCEPT_ENCODING']) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : '', 'gzip') )
 		{
 			if ( extension_loaded('zlib') )
 			{
@@ -75,7 +75,7 @@ $l_timezone = (count($l_timezone) > 1 && $l_timezone[count($l_timezone)-1] != 0)
 //
 $template->assign_vars(array(
 	'SITENAME' => $board_config['sitename'],
-	'PAGE_TITLE' => $page_title,
+	'PAGE_TITLE' => isset($page_title) ? $page_title : '',
 	'PHPBB_ROOT_PATH' => $phpbb_root_path,
 	'PHPEX' => $phpEx,
 

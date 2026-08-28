@@ -15,8 +15,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
-
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
   $filename = basename(__FILE__);
@@ -107,7 +106,7 @@ $template->set_filenames(array(
 // Escape any quotes in the site description for proper display in the text
 // box on the admin page
 //
-$new['news_rss_name'] = str_replace( '"', '&quot;', $new['news_rss_name'] );
+$new['news_rss_name'] = str_replace( '"', '&quot;', isset($new['news_rss_name']) ? $new['news_rss_name'] : '' );
 $new['news_rss_desc'] = str_replace('"', '&quot;', strip_tags($new['news_rss_desc']) );
 $new['news_rss_language'] = str_replace( '"', '&quot;', $new['news_rss_language'] );
 $new['news_rss_cat'] = str_replace( '"', '&quot;', $new['news_rss_cat'] );

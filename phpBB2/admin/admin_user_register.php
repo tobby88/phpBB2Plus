@@ -9,7 +9,7 @@
  *
  ***************************************************************************/
 
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 if( !empty($setmodules) )
 {
         $filename = basename(__FILE__);
@@ -26,6 +26,16 @@ $unhtml_specialchars_replace = array('>', '<', '"', '&');
 
 $error = FALSE;
 $page_title = $lang['Register'];
+$mode = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
+$username = '';
+$cur_password = '';
+$new_password = '';
+$password_confirm = '';
+$email = '';
+$user_lang = $board_config['default_lang'];
+$user_style = $board_config['default_style'];
+$user_timezone = $board_config['board_timezone'];
+$user_dateformat = $board_config['default_dateformat'];
 
 $coppa = ( empty($_POST['coppa']) && empty($_GET['coppa']) ) ? 0 : TRUE;
 
@@ -44,7 +54,7 @@ if (
 	// Strip all tags from data ... may p**s some people off, bah, strip_tags is
 	// doing the job but can still break HTML output ... have no choice, have
 	// to use htmlspecialchars ... be prepared to be moaned at.
-	while( list($var, $param) = @each($strip_var_list) )
+	foreach ($strip_var_list as $var => $param)
 	{
 		if ( !empty($_POST[$param]) )
 		{
@@ -229,7 +239,7 @@ $coppa = FALSE;
 
 if ( !isset($user_template) )
 {
-	$selected_template = $board_config['system_template'];
+	$selected_template = isset($board_config['system_template']) ? $board_config['system_template'] : '';
 }
 
 $s_hidden_fields = '<input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="coppa" value="' . $coppa . '" />';

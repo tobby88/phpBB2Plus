@@ -88,7 +88,7 @@ while($file = @readdir($dir))
 	{
 		$img_size = @getimagesize($phpbb_root_path . $board_config['smilies_path'] . '/' . $file);
 
-		if( $img_size[0] && $img_size[1] )
+		if( is_array($img_size) && !empty($img_size[0]) && !empty($img_size[1]) )
 		{
 			$smiley_images[] = $file;
 		}
@@ -308,7 +308,7 @@ else if( isset($_POST['add']) || isset($_GET['add']) )
 		"SMILEY_IMG" => $phpbb_root_path . $board_config['smilies_path'] . '/' . $smiley_images[0], 
 
 		"S_SMILEY_ACTION" => append_sid("admin_smilies.$phpEx"), 
-		"S_HIDDEN_FIELDS" => $s_hidden_fields, 
+		"S_HIDDEN_FIELDS" => isset($s_hidden_fields) ? $s_hidden_fields : '', 
 		"S_FILENAME_OPTIONS" => $filename_list, 
 		"S_SMILEY_BASEDIR" => $phpbb_root_path . $board_config['smilies_path'])
 	);
@@ -554,7 +554,7 @@ else
 		"L_IMPORT_PACK" => $lang['import_smile_pack'],
 		"L_EXPORT_PACK" => $lang['export_smile_pack'],
 		
-		"S_HIDDEN_FIELDS" => $s_hidden_fields, 
+		"S_HIDDEN_FIELDS" => isset($s_hidden_fields) ? $s_hidden_fields : '', 
 		"S_SMILEY_ACTION" => append_sid("admin_smilies.$phpEx"))
 	);
 
