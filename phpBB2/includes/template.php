@@ -310,10 +310,9 @@ class Template {
 		$this->cache_replace = array('_', XS_SEPARATOR, XS_SEPARATOR, '.'.$this->php);
 		$old_root = $this->root;
 		$this->set_rootdir($root);
-		if(!empty($this->tpl))
-		{
-			$this->load_replacements($this->tpldir . $this->tpl . '/xs.cfg');
-		}
+		// Legacy xs.cfg files were executable PHP loaded from the active style.
+		// Their only remaining bundled use is the obsolete online update metadata,
+		// so do not execute per-style configuration during normal page requests.
 		if($old_root !== $this->root)
 		{
 			$this->clear_files();
@@ -340,12 +339,10 @@ class Template {
 		$this->tpl = $this->template_name($dir);
 		// check configuration
 		$this->get_config();
-		// check subtemplates mod
-		$sub_templates_cfg = $this->root . '/sub_templates.cfg';
-		if(defined('LANG_EXTEND_DONE') && @file_exists($sub_templates_cfg))
-		{
-			$this->subtemplates = true;
-		}
+		// Executable sub_templates.cfg files are intentionally unsupported. No
+		// bundled style uses this legacy feature, and importing one must not turn a
+		// data package into code that is executed on every request.
+		$this->subtemplates = false;
 		return true;
 	}
 
@@ -370,19 +367,6 @@ class Template {
 		$this->files_cache2 = array();
 		$this->compiled_code = array();
 		$this->uncompiled_code = array();
-	}
-
-	/**
-	 * Loads replacements from .cfg file
-	 */
-	function load_replacements($file)
-	{
-		if(@file_exists($file))
-		{
-			$replace = array();
-			@include($file);
-			$this->replace = array_merge($this->replace, $replace);
-		}
 	}
 
 	/**
@@ -428,6 +412,10 @@ class Template {
 
 	function subtemplates_make_filename($filename)
 	{
+		// The executable sub-template configuration format is disabled.
+		return $filename;
+
+		/* Legacy implementation retained below for source-history context. */
 		global $HTTP_GET_VARS, $HTTP_POST_VARS, $db, $board_config, $images, $theme;
 		global $sub_template_key_image, $sub_templates;
 		global $tree;
@@ -435,16 +423,7 @@ class Template {
 		// initiate the sub-template image pack that will be use
 		$sub_template_key_image = POST_CAT_URL . '0';
 
-		// Check if sub_templates are defined for this theme
-		if ( $board_config['version'] > '.0.5' )
-		{
-			$sub_templates_cfg = @phpbb_realpath($this->root . '/sub_templates.cfg');
-		}
-		else
-		{
-			$sub_templates_cfg = $this->root . '/sub_templates.cfg';
-		}
-		@include($sub_templates_cfg);
+		$sub_templates = array();
 		if ( isset($sub_templates) )
 		{
 			// search an id
