@@ -48,6 +48,10 @@ changes consolidated after that baseline without implying active maintenance.
   isolated per-user deletion lists to prevent unintended follow-on deletes.
 - Added session-bound confirmation to album image/comment deletion and
   replaced raw JavaScript banner redirects with validated HTTP(S) redirects.
+- Bound Hot-or-Not album ratings to POST and the active session, rechecked
+  view/rate/approval permissions in the write path, prevented disallowed
+  duplicate votes atomically, and fixed its stale category and filename
+  variables.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.
