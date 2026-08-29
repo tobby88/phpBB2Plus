@@ -412,6 +412,7 @@ $lang['tournament_end_info'] = '<br />-:- How is the Tournament to End?';
 $lang['admin_tournament_updated']  = 'Tournament Updated<br /><br />';
 $lang['admin_tournament_added']  = 'Tournament Added<br /><br />';
 $lang['admin_tournament_deleted']  = 'Tournament Deleted<br /><br />';
+$lang['Confirm_delete_tournament'] = 'Are you sure you want to permanently delete this tournament?';
 $lang['admin_add_games'] = 'Add Games';
 $lang['admin_add_players'] = 'Add Players';
 $lang['admin_tournament_add_games'] = 'Arcade Tournament - Add Games Menu';

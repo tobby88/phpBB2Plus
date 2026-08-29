@@ -1,4 +1,5 @@
 <form method="post" action="{S_ACTION}">
+{S_FORM_TOKEN}
 <table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="bodyline">
  <tr> 
   <th class="thHead" colspan="4">{L_TOUR_HEADER} {VERSION}</th>
@@ -44,7 +45,7 @@
 		<td class="{tour.ROW_CLASS}" width="50%" align="left"><span class="gen"><b>{tour.NAME}</b>&nbsp;-&nbsp;<i>{tour.DESC}</i></span></td>
     <td class="{tour.ROW_CLASS}" align="center" colspan="2"><span class="gensmall">{tour.TOTAL_GAMES}{tour.TOTAL_PLAYERS}</span></td>
 
-    <td class="{tour.ROW_CLASS}" width="20%" align="center"><span class="gen"><a href="{tour.EDIT}">{IMAGE_EDIT}</a>&nbsp;&nbsp;<a href="{tour.DELETE}">{IMAGE_DEL}</a></span></td>
+    <td class="{tour.ROW_CLASS}" width="20%" align="center"><span class="gen"><a href="{tour.EDIT}">{IMAGE_EDIT}</a>&nbsp;&nbsp;<button type="submit" name="delete_tour" value="{tour.DELETE_ID}" class="liteoption" onclick="return confirm('{L_CONFIRM_DELETE}');">{IMAGE_DEL}</button></span></td>
 	</tr>
 	<!-- END tour -->
 

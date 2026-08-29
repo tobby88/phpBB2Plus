@@ -13,6 +13,7 @@
 </table>
 
 <form action="{S_CONFIG_ACTION}" method="post">
+{S_FORM_TOKEN}
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
 	<tr> 
 		<td><span class="nav">{CATAGORY}</span></td>
@@ -22,6 +23,7 @@
 </form>
 
 <form action="{S_CONFIG_ACTION}" method="post">
+{S_FORM_TOKEN}
 <table width="99%" cellspacing="0" cellpadding="4" border="0" align="center" class="bodyline">
   <tr>
     <th class="thTop" width="15%">{L_BUTTON}</th>

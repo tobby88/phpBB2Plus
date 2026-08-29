@@ -417,6 +417,7 @@ $lang['tournament_end_info'] = '<br />Wie wird der Wettbewerb beendet?';
 $lang['admin_tournament_updated']  = 'Wettbewerb wurde aktuallisiert<br /><br />';
 $lang['admin_tournament_added']  = 'Wettbewerb wurde hinzugefügt<br /><br />';
 $lang['admin_tournament_deleted']  = 'Wettbewerb wurde gelöscht<br /><br />';
+$lang['Confirm_delete_tournament'] = 'Diesen Wettbewerb wirklich dauerhaft löschen?';
 $lang['admin_add_games'] = 'Spiele hinzufügen';
 $lang['admin_add_players'] = 'Spieler hinzufügen';
 $lang['admin_tournament_add_games'] = 'Arcade Wettbewerb - Spiele hinzufügen';

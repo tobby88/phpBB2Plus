@@ -1,4 +1,5 @@
 <form method="post" action="{S_ACTION}">
+{S_FORM_TOKEN}
 <table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="bodyline">
  <tr> 
   <th class="thHead" colspan="2">{L_TOUR_HEADER} {VERSION}</th>
