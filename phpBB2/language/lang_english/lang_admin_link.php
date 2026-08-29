@@ -39,9 +39,11 @@ $lang['New_category_created'] = 'New category has been created successfully';
 $lang['Click_return_link_category'] = 'Click %sHere%s to return to the Link Categories Manager';
 $lang['Category_updated'] = 'This category has been updated successfully';
 $lang['Delete_Category'] = 'Delete Category';
-$lang['Delete_Category_Explain'] = 'The form below will allow you to delete a category';;
+$lang['Delete_Category_Explain'] = 'Choose whether the links in this category should be deleted or moved to another category.';
 $lang['Category_deleted'] = 'This category has been deleted successfully';
 $lang['Category_changed_order'] = 'This category has re-ordered successfully';
+$lang['Link_delete_all'] = 'Delete all links in this category';
+$lang['Link_category_title_required'] = 'Please enter a category title.';
 
 //
 // Config

@@ -40,9 +40,11 @@ $lang['New_category_created'] = 'Die neue Kategorie wurde erfolgreich erstellt';
 $lang['Click_return_link_category'] = 'Klicke %shier%s um zur Kategorie Verwaltung zurückzukehren';
 $lang['Category_updated'] = 'Die Kategorie wurde erfolgreich bearbeitet';
 $lang['Delete_Category'] = 'Kategorie löschen';
-$lang['Delete_Category_Explain'] = 'The form below will allow you to delete a category';;
+$lang['Delete_Category_Explain'] = 'Wähle, ob die Links in dieser Kategorie gelöscht oder in eine andere Kategorie verschoben werden sollen.';
 $lang['Category_deleted'] = 'Diese Kategorie wurde erfolgreich gelöscht';
 $lang['Category_changed_order'] = 'Diese Kategorie wurde erfolgreich verschoben';
+$lang['Link_delete_all'] = 'Alle Links in dieser Kategorie löschen';
+$lang['Link_category_title_required'] = 'Bitte gib einen Kategorienamen ein.';
 
 //
 // Config

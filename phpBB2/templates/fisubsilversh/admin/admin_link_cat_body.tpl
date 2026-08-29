@@ -3,6 +3,7 @@
 <p>{L_LINK_CAT_EXPLAIN}</p>
 
 <form action="{S_LINK_ACTION}" method="post">
+{S_SESSION_FIELD}
 <table width="100%" cellpadding="2" cellspacing="1" border="0" class="forumline">
 	<tr>
 		<th class="thHead" height="25" colspan="4">{L_LINK_CAT_TITLE}</th>
@@ -11,7 +12,7 @@
 	<tr>
 		<td class="{catrow.COLOR}" width="60%" height="25"><span class="gen">{catrow.TITLE}<br /></span><span class="gensmall">{catrow.DESC}</span></td>
 		<td class="{catrow.COLOR}" align="center"><span
-		class="genmed"><a href="{catrow.S_MOVE_UP}">{L_MOVE_UP}</a><br /><a href="{catrow.S_MOVE_DOWN}">{L_MOVE_DOWN}</a></span></td>
+		class="genmed"><button type="submit" name="cat_action" value="{catrow.MOVE_UP_ACTION}" class="liteoption"{catrow.MOVE_UP_DISABLED}>{L_MOVE_UP}</button><br /><button type="submit" name="cat_action" value="{catrow.MOVE_DOWN_ACTION}" class="liteoption"{catrow.MOVE_DOWN_DISABLED}>{L_MOVE_DOWN}</button></span></td>
 		<td class="{catrow.COLOR}" align="center"><span
 		class="genmed"><a href="{catrow.S_EDIT_ACTION}">{L_EDIT}</a></span></td>
 		<td class="{catrow.COLOR}" align="center"><span

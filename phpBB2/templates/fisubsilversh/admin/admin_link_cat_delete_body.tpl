@@ -2,7 +2,8 @@
 
 <p>{L_CAT_DELETE_EXPLAIN}</p>
 
-<form action="{S_ALBUM_ACTION}" method="post">
+<form action="{S_LINK_ACTION}" method="post">
+  {S_HIDDEN_FIELDS}
   <table cellpadding="4" cellspacing="1" border="0" class="forumline" align="center">
 	<tr>
 	  <th colspan="2" class="thHead">{L_CAT_DELETE}</th>
@@ -10,6 +11,10 @@
 	<tr>
 	  <td class="row1"><span class="gen">{L_CAT_TITLE}</span></td>
 	  <td class="row1"><span class="genmed">{S_CAT_TITLE}</span></td>
+	</tr>
+	<tr>
+	  <td class="row1"><span class="gen">{L_MOVE_CONTENTS}</span></td>
+	  <td class="row1"><span class="genmed">{S_SELECT_TO}</span></td>
 	</tr>
 	<tr>
 	  <td class="cat" colspan="2" align="center"><input type="hidden" name="mode" value="delete" /><input type="submit" name="submit" value="{L_MOVE_DELETE}" class="mainoption" /></td>
