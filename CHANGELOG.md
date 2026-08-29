@@ -80,6 +80,13 @@ changes consolidated after that baseline without implying active maintenance.
 - Hardened legacy Arcade score submissions with bounded numeric scores,
   escaped database writes and logs, delayed one-time session consumption and
   PHP 8-safe handling of malformed log data.
+- Secured pnFlashGames save-state and score callbacks with bounded scores,
+  escaped session/game data, scalar-safe logs and the shared Arcade session
+  lookup instead of loosely scoped user-only queries.
+- Corrected Arcade score pruning after deletes and limited the cached all-time
+  player-name refresh to the actual highscore holder instead of every player.
+- Restricted Arcade cache keys to local safe filenames and stopped stripping
+  legitimate backslashes from serialized cache values while reading them.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.

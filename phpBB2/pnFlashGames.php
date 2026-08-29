@@ -37,7 +37,7 @@ $arcade_version = $arcade->arcade_config('version');
 $sql                    = '';
 $mode                   = $arcade->pass_var('func', '');
 $gameData               = $arcade->pass_var('gameData', '');
-$game_id                = $arcade->pass_var('gid' , 0);
+$game_id                = (int) $arcade->pass_var('gid' , 0);
 $arcade->score          = $arcade->pass_var('score', 0);
 $arcade->user_id        = $userdata['user_id'];
 $arcade->arcade_hash    = $arcade->pass_var('arcade_hash', '');
@@ -52,7 +52,7 @@ switch($mode)
 //
 //  pnFlashGames Score save routine
 //
-    if($arcade->score > 0 && ($userdata['user_id'] != ANONYMOUS || preg_match('/^[a-f0-9]{32}$/i', $arcade->arcade_hash)))
+    if($arcade->score > 0 && is_finite((float) $arcade->score) && abs((float) $arcade->score) <= 9999999999.9999 && ($userdata['user_id'] != ANONYMOUS || preg_match('/^[a-f0-9]{32}$/iD', $arcade->arcade_hash)))
     {
       $session_info = $arcade->get_session();
     }
@@ -63,6 +63,14 @@ switch($mode)
       $arcade->game_name  = $session_info['game_name'];
       $arcade->time_taken = time() - $session_info['start_time'];
       $arcade->score_type = ARCADE_pnFlashGames;
+	  $session_hash_sql = $db->sql_escape($session_info['arcade_hash']);
+	  $sql = "DELETE FROM " . iNA_SESSIONS . "
+		WHERE arcade_hash = '" . $session_hash_sql . "'";
+	  if (!$db->sql_query($sql) || (int) $db->sql_affectedrows() !== 1)
+	  {
+		print "&opSuccess=Missing info&endvar=1";
+		break;
+	  }
       $score_error = $arcade->newscore();
       if($score_error === '' && $session_info['page'] == PAGE_ARCADE_TOUR)
       {
@@ -70,9 +78,6 @@ switch($mode)
       }
       if($score_error === '')
       {
-        $sql = "DELETE FROM " . iNA_SESSIONS . "
-          WHERE arcade_hash = '" . $session_info['arcade_hash'] . "'";
-        $db->sql_query($sql);
         print "&opSuccess=true&endvar=1";
         break;
       }
@@ -87,30 +92,24 @@ switch($mode)
 //
     if(($userdata['user_id'] != ANONYMOUS))
     {
-      $sql = "SELECT * FROM " . iNA_SESSIONS . "
-        WHERE user_id = '" . $arcade->user_id . "'
-          LIMIT 0,1";
-      if(!($result = $db->sql_query($sql)))
-      {
-        $arcade->log_error(__LINE__, __FILE__, $sql);
-      }
-      $session_info = $db->sql_fetchrow($result);
+	  $session_info = $arcade->get_session();
       if(!$session_info)
       {
         print "&opSuccess=Missing info&endvar=1";
         break;
       }
 
+	  $session_game_name_sql = $db->sql_escape($session_info['game_name']);
       $sql = "SELECT gameData FROM " . iNA_SCORES . "
-          WHERE player_id = " . $arcade->user_id . "
-          AND game_name = '" . $session_info['game_name'] . "'";
+          WHERE player_id = " . (int) $arcade->user_id . "
+          AND game_name = '" . $session_game_name_sql . "'";
       if(!($result = $db->sql_query($sql)))
       {
         $arcade->log_error(__LINE__, __FILE__, $sql);
       }
       $game_info = $db->sql_fetchrow($result);
 
-      print 'gameData=' . rawurlencode($game_info['gameData']) . "&opSuccess=true&endvar=1";
+	  print 'gameData=' . rawurlencode($game_info ? (string) $game_info['gameData'] : '') . "&opSuccess=true&endvar=1";
     }
     else
     {
@@ -125,23 +124,19 @@ switch($mode)
 //
     if(($userdata['user_id'] != ANONYMOUS) && ($gameData))
     {
-      $sql = "SELECT * FROM " . iNA_SESSIONS . "
-        WHERE user_id = '" . $userdata['user_id'] . "'
-          LIMIT 0,1";
-      if(!($result = $db->sql_query($sql)))
-      {
-        $arcade->log_error(__LINE__, __FILE__, $sql);
-      }
-      $session_info = $db->sql_fetchrow($result);
+	  $session_info = $arcade->get_session();
       if(!$session_info)
       {
         print "&opSuccess=Missing info&endvar=1";
         break;
       }
 
-      $sql = "UPDATE " . iNA_SCORES . " SET gameData = '" . $gameData . "'
-          WHERE player_id = " . $userdata['user_id'] . "
-          AND game_name = '" . $session_info['game_name'] . "'";
+	  $game_data_value = substr(html_entity_decode($gameData, ENT_QUOTES, 'UTF-8'), 0, 65535);
+	  $game_data_sql = $db->sql_escape($game_data_value);
+	  $session_game_name_sql = $db->sql_escape($session_info['game_name']);
+	  $sql = "UPDATE " . iNA_SCORES . " SET gameData = '" . $game_data_sql . "'
+		  WHERE player_id = " . (int) $userdata['user_id'] . "
+		  AND game_name = '" . $session_game_name_sql . "'";
        if(!($result = $db->sql_query($sql)))
       {
         $arcade->log_error(__LINE__, __FILE__, $sql);
@@ -168,12 +163,12 @@ switch($mode)
 $log = 'pnFlashGames ';
 foreach($HTTP_POST_VARS as $key => $value)
 {
-  if(!is_array($value))
+	if(is_scalar($value))
   {
-    $log .= $key . '=>' . $value . ' ';
+		$log .= (string) $key . '=>' . (string) $value . ' ';
   }
 }
-$log = mysqli_real_escape_string($db->db_connect_id, substr($log, 0, 4000));
+$log = $db->sql_escape(substr($log, 0, 4000));
 $sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)
   VALUES (".(int) $userdata['user_id'].", 'GAME', '$log', ".time().")";
 $db->sql_query($sql);

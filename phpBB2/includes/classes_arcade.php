@@ -303,10 +303,12 @@ class arcade
   function check_place($game_id)
   {
     global $db, $lang;
+	$game_name_sql = $db->sql_escape((string) $this->game_name);
+	$sort = ($this->sort === 'ASC') ? 'ASC' : 'DESC';
 
 		$sql = "SELECT player_id FROM " . iNA_SCORES . "
-			WHERE game_name = '" . $this->game_name . "'
-			ORDER BY score ".$this->sort.", date ASC
+			WHERE game_name = '" . $game_name_sql . "'
+			ORDER BY score ".$sort.", date ASC
       LIMIT 0,3";
 		if(!$result = $db->sql_query($sql)) 
 		{
@@ -314,8 +316,8 @@ class arcade
 		}
   
 		$sql = "SELECT player_id FROM " . iNA_AT_SCORES . "
-			WHERE game_name = '" . $this->game_name . "'
-			ORDER BY score ".$this->sort.", date ASC
+			WHERE game_name = '" . $game_name_sql . "'
+			ORDER BY score ".$sort.", date ASC
       LIMIT 0,3";
 		if(!$result = $db->sql_query($sql)) 
 		{
@@ -328,6 +330,7 @@ class arcade
   function update_high($game_id)
   { 
     global $db, $lang;
+	$game_id = (int) $game_id;
 
     if(empty($this->game_name) && $game_id > 0)
     {
@@ -338,6 +341,10 @@ class arcade
   			message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql); 
   		}
       $game_info = $db->sql_fetchrow($result);
+	  if (!$game_info)
+	  {
+		return FALSE;
+	  }
       $this->game_name = $game_info['game_name'];
     }
     else if(empty($this->game_name))
@@ -346,42 +353,46 @@ class arcade
     }
 
     $this->check_place($game_id);
+	$game_name_sql = $db->sql_escape((string) $this->game_name);
+	$sort = ($this->sort === 'ASC') ? 'ASC' : 'DESC';
     
 		$sql = "SELECT player_id FROM " . iNA_SCORES . "
-			WHERE game_name = '" . $this->game_name . "'
-			ORDER BY score $this->sort, date ASC";
+			WHERE game_name = '" . $game_name_sql . "'
+			ORDER BY score $sort, date ASC";
 		if(!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
 		}
 		if ($row = $db->sql_fetchrow($result)) 
     {
-      $sql = "UPDATE " . iNA_GAMES . " SET highscore_id = " . $row['player_id'] . "
-        WHERE game_name = '" . $this->game_name . "'";
+      $sql = "UPDATE " . iNA_GAMES . " SET highscore_id = " . (int) $row['player_id'] . "
+        WHERE game_name = '" . $game_name_sql . "'";
   		if(!$result = $db->sql_query($sql)) 
   		{
   			message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
   		}
     }
 		$sql = "SELECT player_id, username FROM " . iNA_AT_SCORES . ", " . USERS_TABLE . "  
-			WHERE game_name = '" . $this->game_name . "'
+			WHERE game_name = '" . $game_name_sql . "'
 			AND player_id = user_id
-			ORDER BY score $this->sort, date ASC";
+			ORDER BY score $sort, date ASC";
 		if(!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
 		}
 		if ($row = $db->sql_fetchrow($result)) 
     {
-      $sql = "UPDATE " . iNA_GAMES . " SET at_highscore_id = " . $row['player_id'] . "
-        WHERE game_name = '" . $this->game_name . "'";
+      $sql = "UPDATE " . iNA_GAMES . " SET at_highscore_id = " . (int) $row['player_id'] . "
+        WHERE game_name = '" . $game_name_sql . "'";
   		if(!$result = $db->sql_query($sql)) 
   		{
   			message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
   		}
 
-      $sql = "UPDATE " . iNA_AT_SCORES . " SET player_name = '" . $row['username'] . "'
-        WHERE game_name = '" . $this->game_name . "'";
+	  $username_sql = $db->sql_escape($row['username']);
+      $sql = "UPDATE " . iNA_AT_SCORES . " SET player_name = '" . $username_sql . "'
+		WHERE game_name = '" . $game_name_sql . "'
+		AND player_id = " . (int) $row['player_id'];
   		if(!$result = $db->sql_query($sql)) 
   		{
   			message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
@@ -406,8 +417,13 @@ class arcade
     $sql = "SELECT * FROM " . iNA_GAMES . "
       WHERE game_id = '". $game_id ."'";
     $game_info = $db->sql_fetchrow($db->sql_query($sql));
+	if (!$game_info)
+	{
+		return;
+	}
 
     $this->game_name = $game_info['game_name'];
+	$game_name_sql = $db->sql_escape((string) $this->game_name);
     if(!$game_info['reverse_list'])
     {
       $sort = 'ASC';
@@ -429,7 +445,7 @@ class arcade
 //  Next do the normal scores
 //  
     $sql = "SELECT player_id, score FROM " . iNA_SCORES . "
-      WHERE game_name = '". $this->game_name ."'
+      WHERE game_name = '". $game_name_sql ."'
         ORDER BY score " . $sort;
     if($result = $db->sql_query($sql))
     {
@@ -444,10 +460,10 @@ class arcade
         for($i = 0; $i < $remove_count; $i++)
         {
           $sql = "DELETE FROM ". iNA_SCORES . "
-             WHERE game_name = '" . $this->game_name . "'
-             AND player_id = " . $scores[$i]['player_id'] . "
-            AND score = " . $scores[$i]['score'];
-          $remove_scores = $db->sql_fetchrowset($db->sql_query($sql));
+             WHERE game_name = '" . $game_name_sql . "'
+             AND player_id = " . (int) $scores[$i]['player_id'] . "
+            AND score = " . (float) $scores[$i]['score'];
+		  $db->sql_query($sql);
         }
       }
     }
@@ -464,7 +480,7 @@ class arcade
     if($this->arcade_config['games_at_highscore'])
     {
       $sql = "SELECT * FROM " . iNA_AT_SCORES . "
-        WHERE game_name = '". $this->game_name ."'
+        WHERE game_name = '". $game_name_sql ."'
         ORDER BY score " . $sort;
       if ($result = $db->sql_query($sql))
       {
@@ -479,10 +495,10 @@ class arcade
           for($i = 0; $i < $remove_count; $i++)
           {
             $sql = "DELETE FROM ". iNA_AT_SCORES . "
-              WHERE game_name = '" . $this->game_name . "'
-              AND player_id = " . $scores[$i]['player_id'] . "
-              AND score = " . $scores[$i]['score'];
-            $remove_scores = $db->sql_fetchrowset($db->sql_query($sql));
+              WHERE game_name = '" . $game_name_sql . "'
+              AND player_id = " . (int) $scores[$i]['player_id'] . "
+              AND score = " . (float) $scores[$i]['score'];
+			$db->sql_query($sql);
           }
         }
       }
@@ -500,47 +516,36 @@ class arcade
     $newline = '|';
     unset($sql);
     $this->message = '';
-    
-    if(!$this->score || !is_finite((float) $this->score) || !$this->game_name || (strtoupper($userdata['username']) == 'TEST'))
+	$user_id = (int) $userdata['user_id'];
+	$score = (float) $this->score;
+
+    if(!$score || !is_finite($score) || abs($score) > 9999999999.9999 || !$this->game_name || (strtoupper($userdata['username']) == 'TEST'))
     {
       return false;
     }
+	$this->score = round($score, 4);
 //
 //  First Get the Session Information
 //
-    if($userdata['user_id'] != ANONYMOUS)
-    {
-      $sql = "SELECT * FROM " . iNA_SESSIONS . "
-    	   WHERE user_id = " . $userdata['user_id'];
-    }
-    else
-    {
-      if(!preg_match('/^[a-f0-9]{32}$/i', (string) $this->arcade_cookie))
-      {
-			return $lang['no_cookie_data'] . $newline;
-      }
-      $sql = "SELECT * FROM " . iNA_SESSIONS . "
-    	   WHERE arcade_hash = '".$this->arcade_cookie."'";
-    }
-    if(!$result = $db->sql_query($sql)) 
-    {
-	   $this->message .= $lang['session_error'] . $newline; 
-    }
-    $session_info = $db->sql_fetchrow($result);
-    $db->sql_freeresult($result);
-//
-//  Get the 1st Place Score and User details.
-//
-    if (!$session_info)
+	$session_info = !empty($this->arcade_session) ? $this->arcade_session : $this->get_session();
+    if (!$session_info || !isset($session_info['arcade_hash']) || !preg_match('/^[a-f0-9]{32}$/iD', (string) $session_info['arcade_hash']) || ($user_id != ANONYMOUS && (int) $session_info['user_id'] !== $user_id))
     {
       return $lang['session_error'] . $newline;
     }
+	$game_name_sql = $db->sql_escape($session_info['game_name']);
+	$player_ip_sql = $db->sql_escape(decode_ip($userdata['session_ip']));
+	$time_taken = max(0, (int) $this->time_taken);
+	$player_name = (string) $this->get_username($user_id);
+	$player_name_sql = $db->sql_escape($player_name);
+//
+//  Get the 1st Place Score and User details.
+//
 
     $sql = "SELECT g.game_avail, g.reverse_list, g.score_type, s.score, s.player_id, a.score as at_score, a.player_id as at_player_id
       FROM " . iNA_GAMES . " AS g
       LEFT JOIN " . iNA_SCORES . " AS s on g.game_name = s.game_name
       LEFT JOIN " . iNA_AT_SCORES . " AS a on g.game_name = a.game_name 
-      WHERE g.game_name = '" . $session_info['game_name'] . "'
+      WHERE g.game_name = '" . $game_name_sql . "'
       ORDER BY s.score, a.score";
     $result = $db->sql_query($sql);
     if(!$result)
@@ -566,18 +571,18 @@ class arcade
     {
       $this->sort = 'ASC';
       $top_player_id = intval($old_score_info[0]['player_id']);
-      $top_score = intval($old_score_info[0]['score']);
+	  $top_score = (float) $old_score_info[0]['score'];
       $top_at_player_id = intval($old_score_info[0]['at_player_id']);
-      $top_at_score = intval($old_score_info[0]['at_score']);
+	  $top_at_score = (float) $old_score_info[0]['at_score'];
       $score_type = intval($old_score_info[0]['score_type']);
     }
     else
     {
       $count = count($old_score_info);
       $top_player_id = intval($old_score_info[count($old_score_info)-1]['player_id']);
-      $top_score = intval($old_score_info[count($old_score_info)-1]['score']);
+	  $top_score = (float) $old_score_info[count($old_score_info)-1]['score'];
       $top_at_player_id = intval($old_score_info[count($old_score_info)-1]['at_player_id']);
-      $top_at_score = intval($old_score_info[count($old_score_info)-1]['at_score']);
+	  $top_at_score = (float) $old_score_info[count($old_score_info)-1]['at_score'];
       $score_type = intval($old_score_info[count($old_score_info)-1]['score_type']);
       $this->sort = 'DESC';
     }
@@ -586,9 +591,9 @@ class arcade
 //  Look to see if the user has a highscore and see IF it needs updating.
 //
     $sql = "SELECT g.game_id, g.game_desc, s.score, a.score AS at_score FROM " . iNA_GAMES . " g
-      LEFT JOIN " . iNA_SCORES . " s ON g.game_name = s.game_name AND s.player_id = " . $userdata['user_id'] . "
-      LEFT JOIN " . iNA_AT_SCORES . " a ON g.game_name = a.game_name AND a.player_id = " . $userdata['user_id'] . "
-      WHERE g.game_name = '" . $this->game_name . "'
+      LEFT JOIN " . iNA_SCORES . " s ON g.game_name = s.game_name AND s.player_id = " . $user_id . "
+      LEFT JOIN " . iNA_AT_SCORES . " a ON g.game_name = a.game_name AND a.player_id = " . $user_id . "
+      WHERE g.game_name = '" . $game_name_sql . "'
       ORDER BY s.score, a.score " . $this->sort . " LIMIT 1";
     $result = $db->sql_query($sql);
     if(!$result)
@@ -597,8 +602,12 @@ class arcade
     }
     $old_score_info = $db->sql_fetchrow($result);
     $db->sql_freeresult($result);
-    $old_score = intval($old_score_info['score']);
-    $old_at_score = intval($old_score_info['at_score']);
+	if (!$old_score_info)
+	{
+		return $this->message . $lang['no_game_data'] . $newline;
+	}
+    $old_score = (float) $old_score_info['score'];
+    $old_at_score = (float) $old_score_info['at_score'];
     $game_id = intval($old_score_info['game_id']);
 //
 //  Check and Update HighScore
@@ -610,13 +619,13 @@ class arcade
         if($old_score > 0)
         {
           $sql = "UPDATE ". iNA_SCORES ." 
-              SET score = ". $this->score . ", date = '" . time() . "', time_taken = '" . $this->time_taken . "', player_ip = '".decode_ip($userdata['session_ip'])."'
-            WHERE game_name = '".$this->game_name."'
-              AND player_id = ".$userdata['user_id'];
+              SET score = ". $this->score . ", date = " . time() . ", time_taken = " . $time_taken . ", player_ip = '$player_ip_sql'
+            WHERE game_name = '$game_name_sql'
+              AND player_id = ".$user_id;
         }
         else
         {
-          $sql = "INSERT INTO " . iNA_SCORES . " (game_name, player_id, player_ip, score, date, time_taken ) VALUES ('".$this->game_name."', ".$userdata['user_id'].", '".decode_ip($userdata['session_ip'])."', ". $this->score . ", '".time()."', '".$this->time_taken."')";
+          $sql = "INSERT INTO " . iNA_SCORES . " (game_name, player_id, player_ip, score, date, time_taken) VALUES ('$game_name_sql', $user_id, '$player_ip_sql', ". $this->score . ", ".time().", $time_taken)";
         }
         $result = $db->sql_query($sql);
         if(!$result)
@@ -635,13 +644,13 @@ class arcade
         if($old_at_score > 0)
         {
           $sql = "UPDATE ". iNA_AT_SCORES ." 
-            SET score = ". $this->score . ", date = '" . time() . "', time_taken = '" . $this->time_taken . "', player_ip = '".decode_ip($userdata['session_ip'])."'
-            WHERE game_name = '".$this->game_name."'
-              AND player_id = ".$userdata['user_id'];
+            SET score = ". $this->score . ", date = " . time() . ", time_taken = " . $time_taken . ", player_ip = '$player_ip_sql'
+            WHERE game_name = '$game_name_sql'
+              AND player_id = ".$user_id;
         }
         else
         {
-          $sql = "INSERT INTO " . iNA_AT_SCORES . " (game_name, player_id, player_ip, player_name, score, date, time_taken ) VALUES ('".$this->game_name."', ".$userdata['user_id'].", '".decode_ip($userdata['session_ip'])."', '".addslashes($this->user_name)."', ". $this->score . ", '".time()."', '".$this->time_taken."')";
+          $sql = "INSERT INTO " . iNA_AT_SCORES . " (game_name, player_id, player_ip, player_name, score, date, time_taken) VALUES ('$game_name_sql', $user_id, '$player_ip_sql', '$player_name_sql', ". $this->score . ", ".time().", $time_taken)";
         }
         $result = $db->sql_query($sql);
         if(!$result)
@@ -654,18 +663,18 @@ class arcade
 //
   		if (( ($this->score > $top_score) && $this->sort == 'DESC' ) || ( ($this->score < $top_score || $top_score == 0) && $this->sort == 'ASC' ))
   		{
-  		   swap_place($top_player_id, $userdata['user_id'],'first_places',$old_score_info);
+		   swap_place($top_player_id, $user_id,'first_places',$old_score_info);
       }
   		if (( ($this->score > $top_at_score) && $this->sort == 'DESC' ) || ( ($this->score < $top_at_score || $top_score == 0) && $this->sort == 'ASC' ))
       {
-         swap_place($top_at_player_id, $userdata['user_id'], 'at_first_places',$old_score_info);
+		 swap_place($top_at_player_id, $user_id, 'at_first_places',$old_score_info);
       }
       unset($old_score_info);
 
       if($userdata['user_level'] == ADMIN && $score_type == 0 && $this->score_type > 0)
       {
         $sql = "UPDATE " . iNA_GAMES . " SET score_type = " . $this->score_type . "
-            WHERE game_name = '" . $this->game_name . "'";
+            WHERE game_name = '" . $game_name_sql . "'";
         $result = $db->sql_query($sql);
         if(!$result)
         {
@@ -675,10 +684,12 @@ class arcade
 //
 //  Check and Update Monthly Highscore
 //
+		if ($this->score >= 0 && $this->score <= 99999999.9999)
+		{
   		$sql = "SELECT highscore_id, highscore_score FROM " . iNA_HIGHSCORES . "
 			WHERE highscore_year = '".date('Y')."'
 				AND highscore_mon = '".date('m')."'
-   				AND highscore_game = '" . $this->game_name . "'
+				AND highscore_game = '" . $game_name_sql . "'
   			ORDER BY highscore_score ".$this->sort."
   			LIMIT 0,1";
   		if(!$result = $db->sql_query($sql))
@@ -687,11 +698,11 @@ class arcade
   		}
   		$highscore = $db->sql_fetchrow($result);
       $db->sql_freeresult($result);
-  		if ($highscore['highscore_score'] == "")
+		if (!$highscore || $highscore['highscore_score'] === '')
   		{
 // Add to Highscores list
   			$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_player, highscore_score, highscore_date)
-				VALUES ('".date('Y')."', '".date('m')."', '".$this->game_name."', '".addslashes($this->get_username($userdata['user_id']))."', '$this->score', '" . time() . "')";
+				VALUES ('".date('Y')."', '".date('m')."', '$game_name_sql', '$player_name_sql', ". $this->score .", " . time() . ")";
   			if( !$result = $db->sql_query($sql) )
   			{
   				$this->message .= $lang['no_score_insert'] . $newline;
@@ -702,15 +713,16 @@ class arcade
 // Update the Highscores list
     		if (( ($this->score > $highscore['highscore_score']) && $this->sort == 'DESC' ) || ( ($this->score < $top_score || $highscore['highscore_score'] == 0) && $this->sort == 'ASC' ))
   			{
-  				$sql = "UPDATE " . iNA_HIGHSCORES . "
-  					SET highscore_player = '".addslashes($this->get_username($userdata['user_id']))."', highscore_score = '".$this->score."', highscore_date = '" . time() . "'
-   						WHERE highscore_id = ".$highscore['highscore_id'];
+				$sql = "UPDATE " . iNA_HIGHSCORES . "
+					SET highscore_player = '$player_name_sql', highscore_score = ".$this->score.", highscore_date = " . time() . "
+					WHERE highscore_id = ".(int) $highscore['highscore_id'];
   				if( !$result = $db->sql_query($sql) )
   				{
   					$this->message .= $lang['no_score_update'] . $newline;
   				}
   			}
       }
+		}
     }
     $this->prune_scores($game_id);
 
@@ -723,10 +735,14 @@ class arcade
   {
     global $db;
 		$sql = "SELECT username FROM " . USERS_TABLE . "
-			WHERE user_id = " . $user_id;
+			WHERE user_id = " . (int) $user_id;
 		if($result = $db->sql_query($sql))
 		{
   		$info = $db->sql_fetchrow($result);
+		if (!$info)
+		{
+			return FALSE;
+		}
   		$this->user_name = $info['username'];
   		
   		return ($this->user_name);
@@ -739,8 +755,9 @@ class arcade
   function get_user_id($username)
   {
     global $db;
+	$username_sql = $db->sql_escape((string) $username);
 		$sql = "SELECT user_id FROM " . USERS_TABLE . "
-			WHERE username = '". $username . "'";
+			WHERE username = '". $username_sql . "'";
 		if($result = $db->sql_query($sql))
 		{
   		$info = $db->sql_fetchrow($result);
@@ -758,7 +775,7 @@ class arcade
   {
     global $db;
 		$sql = "SELECT tour_name FROM " . iNA_TOUR  . "
-			WHERE tour_id = '". $tour_id . "'";
+			WHERE tour_id = ". (int) $tour_id;
 		if($result = $db->sql_query($sql))
 		{
   		$info = $db->sql_fetchrow($result);
@@ -773,8 +790,9 @@ class arcade
   function get_tour_id($tourname)
   {
     global $db;
+	$tourname_sql = $db->sql_escape((string) $tourname);
 		$sql = "SELECT tour_id FROM " . iNA_TOUR . "
-			WHERE tour_name = '". $tourname . "'";
+			WHERE tour_name = '". $tourname_sql . "'";
 		if($result = $db->sql_query($sql))
 		{
   		$info = $db->sql_fetchrow($result);
@@ -852,7 +870,7 @@ class arcade
       $passed_var = $HTTP_POST_VARS[$var];
       if(!is_array($passed_var) && $quiet == false && ($this->arcade_config['games_use_log'] == 1))
       {
-		$log_value = mysqli_real_escape_string($db->db_connect_id, $var . '=>' . $passed_var);
+		$log_value = $db->sql_escape($var . '=>' . $passed_var);
         $post_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
           VALUES (" . (int) $userdata['user_id'] . ", 'POST', '$log_value', " . time() . ")";
         $db->sql_query($post_sql);
@@ -955,6 +973,10 @@ class arcade
   function read_cache($cache_file, $cache_time = 300, $cache_prefix = './')
   {
     global $db, $phpEx;
+	if (!preg_match('/^[a-z0-9_-]+$/iD', (string) $cache_file))
+	{
+		return FALSE;
+	}
 
     if(empty($this->arcade_config['use_cache']) && $cache_file != 'config')
     {
@@ -965,9 +987,9 @@ class arcade
     if(@file_exists($cache_file)) 
     {  
       @include($cache_file);
-      if($file_cached > (time() - $cache_time))
+	  if(isset($file_cached, $arcade_data) && $file_cached > (time() - $cache_time))
       {
-        return phpbb_safe_unserialize(stripslashes($arcade_data));
+		return phpbb_safe_unserialize($arcade_data);
       }
     } 
     return FALSE;
@@ -976,7 +998,7 @@ class arcade
   function write_cache($cache_file, $cache_data, $cache_prefix = './')
   {
     global $phpEx;
-    if(!$this->arcade_config['use_cache'])
+	if(!$this->arcade_config['use_cache'] || !preg_match('/^[a-z0-9_-]+$/iD', (string) $cache_file))
     {
       return FALSE;
     }
@@ -995,6 +1017,10 @@ class arcade
   function clear_cache($cache_file, $cache_prefix = './../')
   { 
     global $phpEx;
+	if (!preg_match('/^[a-z0-9_-]+$/iD', (string) $cache_file))
+	{
+		return FALSE;
+	}
 //
 //  Remove arcade_config cache file.
 //
@@ -1013,14 +1039,22 @@ class arcade
   function tour_score()
   { 
     global $db;
+	$game_name_sql = $db->sql_escape((string) $this->game_name);
+	$tour_id = (int) $this->tour_id;
+	$user_id = (int) $this->user_id;
+	$score = (float) $this->score;
+	if (!is_finite($score) || abs($score) > 9999999999.9999 || $tour_id < 1)
+	{
+		return false;
+	}
     
     $sql = "SELECT * FROM " . iNA_GAMES . "
-      WHERE game_name = '" . $this->game_name . "'";
+	  WHERE game_name = '" . $game_name_sql . "'";
    	$game_info = $db->sql_fetchrow($db->sql_query($sql));
     
     $sql = "SELECT * FROM " . iNA_TOUR_DATA . "
-      WHERE tour_id = ". $this->tour_id . " 
-        AND game_name = '" . $this->game_name . "'";
+	  WHERE tour_id = ". $tour_id . "
+		AND game_name = '" . $game_name_sql . "'";
    	$tour_data = $db->sql_fetchrow($db->sql_query($sql));
 
     if(!$game_info || !$tour_data)
@@ -1032,9 +1066,9 @@ class arcade
     if(($old_score < $this->score && !$game_info['reverse_list']) || ($old_score > $this->score && $game_info['reverse_list']))
     {
       $sql = "UPDATE " . iNA_TOUR_DATA . "
-        SET top_score = ". $this->score .", top_player = '". $this->user_id ."'
-          WHERE tour_id = " . $this->tour_id . " 
-        AND game_name = '" . $this->game_name . "'";
+		SET top_score = ". $score .", top_player = ". $user_id ."
+		WHERE tour_id = " . $tour_id . "
+		AND game_name = '" . $game_name_sql . "'";
     	if( !$result = $db->sql_query($sql) )
      	{
          return false;
@@ -1044,15 +1078,23 @@ class arcade
 //  Update the Users score
 //
     $sql = "SELECT gamedata FROM " . iNA_TOUR_PLAY . "
-      WHERE user_id = " . $this->user_id . "
-      AND tour_id = ". $this->tour_id;
+	  WHERE user_id = " . $user_id . "
+	  AND tour_id = ". $tour_id;
   	if( !$result = $db->sql_query($sql) )
    	{
    		return false;
     }
     $user_GameData = $db->sql_fetchrow($result);
-    $old_GameData = phpbb_safe_unserialize(stripslashes($user_GameData['gamedata']));
-    $games_count = count($old_GameData );
+	if (!$user_GameData)
+	{
+		return false;
+	}
+    $old_GameData = phpbb_safe_unserialize(stripslashes((string) $user_GameData['gamedata']));
+	if (!is_array($old_GameData))
+	{
+		$old_GameData = array();
+	}
+    $games_count = count($old_GameData);
 
     if(is_array($old_GameData))
     {
@@ -1070,11 +1112,12 @@ class arcade
       }
     }
     $GameData = $old_GameData;
+	$serialized_game_data_sql = $db->sql_escape(serialize($GameData));
 
     $sql = "UPDATE " . iNA_TOUR_PLAY . "
-      SET last_played_game = '". $this->game_name . "', last_played_time = ".time().", gamedata = '".addslashes(serialize($GameData))."'
-        WHERE user_id = ". $this->user_id . "
-        AND tour_id = ". $this->tour_id ;
+	  SET last_played_game = '". $game_name_sql . "', last_played_time = ".time().", gamedata = '". $serialized_game_data_sql ."'
+	  WHERE user_id = ". $user_id . "
+	  AND tour_id = ". $tour_id;
   	if( !$result = $db->sql_query($sql) )
    	{
    		return false;
@@ -1094,7 +1137,7 @@ class arcade
     
     if(!empty($this->arcade_hash))
     {
-		if(!preg_match('/^[a-f0-9]{32}$/i', $this->arcade_hash))
+		if(!preg_match('/^[a-f0-9]{32}$/iD', $this->arcade_hash))
 		{
 			$this->message_die(GENERAL_ERROR, $lang['incorrect_game_info_data'] . $lang['newscore_close']);
 		}
@@ -1111,11 +1154,12 @@ class arcade
     {
       $sql = "SELECT * FROM " . iNA_SESSIONS . "
 		   WHERE user_id = " . (int) $this->user_id . "
+		   ORDER BY start_time DESC
 		   LIMIT 1";
     }
     else
     {
-      if(!preg_match('/^[a-f0-9]{32}$/i', $this->arcade_cookie))
+	  if(!preg_match('/^[a-f0-9]{32}$/iD', $this->arcade_cookie))
       {
         $this->message_die(GENERAL_ERROR, $lang['no_cookie_data'] . $lang['newscore_close']); 
       }
@@ -1130,8 +1174,9 @@ class arcade
     $this->arcade_session = $db->sql_fetchrow($result);
     if (!$this->arcade_session)
     {
+	  $error_text_sql = $db->sql_escape($lang['no_session_data']);
       $err_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-          VALUES ('".$userdata['user_id']."', 'ERROR', '".$lang['no_session_data']."', '".time()."')";
+		  VALUES (".(int) $userdata['user_id'].", 'ERROR', '".$error_text_sql."', ".time().")";
       $db->sql_query($err_sql);
       message_die(GENERAL_ERROR, $lang['no_session_data'] . $lang['newscore_close']);
     }
@@ -1151,8 +1196,9 @@ class arcade
 
       $error = $sql_error['message'] . ' ' . $sql;    
 
-      $err_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-          VALUES ('".$userdata['user_id']."', 'ERROR', '".addslashes($error)."', '".time()."')";
+	  $error_sql = $db->sql_escape(substr($error, 0, 4000));
+      $err_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)
+		  VALUES (".(int) $userdata['user_id'].", 'ERROR', '".$error_sql."', ".time().")";
       $db->sql_query($err_sql);
     }
   
@@ -1176,8 +1222,9 @@ class arcade
         $text .= '<br><br>' . $sql_error['message'];
       }
 
-      $err_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-          VALUES ('".$userdata['user_id']."', 'ERROR', '".addslashes($arcade_text)."', '".time()."')";
+	  $arcade_text_sql = $db->sql_escape(substr($arcade_text, 0, 4000));
+      $err_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)
+		  VALUES (".(int) $userdata['user_id'].", 'ERROR', '".$arcade_text_sql."', ".time().")";
       $db->sql_query($err_sql);
     }
 //
