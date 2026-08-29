@@ -322,6 +322,7 @@ $lang['admin_score_editor'] = 'Ergebnis Editor';
 $lang['admin_score_options'] = '<br><br /><form method="POST" action="%s"><input type="Submit" name="confirm" value="Ja">&nbsp;&nbsp;&nbsp;<input type="Submit" name="cancel" value="Nein"></form>';
 $lang['admin_points'] = 'Punkte';
 $lang['arcade_delete_at_sure'] = 'Bist Du sicher, daß Du Ergebnisdaten löschen willst';
+$lang['arcade_delete_scores_sure'] = 'Bist Du sicher, dass Du die aktuellen Ergebnisdaten löschen willst?';
 //
 //  v2.1.4
 //

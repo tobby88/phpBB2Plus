@@ -319,6 +319,7 @@ $lang['admin_score_editor'] = 'Score Editor';
 $lang['admin_score_options'] = '<br><br /><form method="POST" action="%s"><input type="Submit" name="confirm" value="Yes">&nbsp;&nbsp;&nbsp;<input type="Submit" name="cancel" value="No"></form>';
 $lang['admin_points'] = 'Points';
 $lang['arcade_delete_at_sure'] = 'Are you sure you want to delete the Historical Scores Data';
+$lang['arcade_delete_scores_sure'] = 'Are you sure you want to delete the current score data?';
 //
 //  v2.1.4
 //

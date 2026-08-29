@@ -53,7 +53,7 @@
     <td class="{game.ROW_CLASS}" align="center">{game.PLAYED}</td>
     <td class="{game.ROW_CLASS}"><a href="{game.U_GAME_EDIT}">{IMAGE_EDIT}</a></td>
     <td class="{game.ROW_CLASS}" align="center">{game.IMAGE_UP}{game.IMAGE_DOWN}</td>
-    <td class="{game.ROW_CLASS}"><a href="{game.U_GAME_DELETE}">{IMAGE_DEL}</a></td>
+    <td class="{game.ROW_CLASS}"><button type="submit" name="delete" value="{game.DELETE_ID}">{IMAGE_DEL}</button></td>
     <td class="{game.ROW_CLASS}">{MOVE}<br><input type="submit" name="id" value="{game.ID}"></td>
   </tr>
   <!-- END game -->
