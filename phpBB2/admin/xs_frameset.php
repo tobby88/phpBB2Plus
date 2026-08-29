@@ -39,13 +39,19 @@ define('IN_XS', true);
 define('NO_XS_HEADER', true);
 include_once('xs_include.' . $phpEx);
 
-$action = isset($HTTP_GET_VARS['action']) ? $HTTP_GET_VARS['action'] : '';
+$action = isset($HTTP_GET_VARS['action']) && is_scalar($HTTP_GET_VARS['action']) ? (string) $HTTP_GET_VARS['action'] : '';
 $get_data = array();
+$get_data_length = 0;
 foreach($HTTP_GET_VARS as $var => $value)
 {
-	if($var !== 'action' && $var !== 'sid')
+	if($var !== 'action' && $var !== 'sid' && is_string($var) && preg_match('/^[a-zA-Z0-9_]+$/D', $var) && is_scalar($value))
 	{
-		$get_data[] = $var . '=' . urlencode(stripslashes($value));
+		$pair = urlencode($var) . '=' . urlencode(stripslashes((string) $value));
+		if($get_data_length + strlen($pair) <= 4096)
+		{
+			$get_data[] = $pair;
+			$get_data_length += strlen($pair) + 1;
+		}
 	}
 }
 

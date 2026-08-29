@@ -52,34 +52,17 @@ if(defined('DEMO_MODE'))
 
 if(!get_ftp_config(append_sid('xs_chmod.'.$phpEx), array(), false))
 {
-	exit;
+	xs_exit();
 }
-xs_ftp_connect(append_sid('xs_chmod.'.$phpEx), array(), true);
+xs_ftp_connect(append_sid('xs_chmod.'.$phpEx), array(), false);
 
-if($ftp === XS_FTP_LOCAL)
-{
-	@mkdir('../cache', 0777);
-	@chmod('../cache', 0775);
-	if(xs_dir_writable('../cache'))
-	{
-		xs_message($lang['Information'], $lang['xs_chmod_message1']);
-	}
-	xs_error($lang['xs_chmod_error1']);
-}
-
-$str = ftp_pwd($ftp);
-
-if(strlen($str) && substr($str, strlen($str) - 1) !== '/')
-{
-	$str .= '/';
-}
-$res = @ftp_site($ftp, "CHMOD 0777 {$str}cache");
+$res = @ftp_chmod($ftp, 0775, 'cache');
 if(!$res)
 {
 	@ftp_mkdir($ftp, 'cache');
-	$res = @ftp_site($ftp, "CHMOD 0777 {$str}cache");
+	$res = @ftp_chmod($ftp, 0775, 'cache');
 }
-@ftp_quit($ftp);
+@ftp_close($ftp);
 if($res)
 {
 	xs_message($lang['Information'], $lang['xs_chmod_message1']);
