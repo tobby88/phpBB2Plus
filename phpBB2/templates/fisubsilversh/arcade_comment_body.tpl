@@ -32,9 +32,9 @@
   </tr>
   
 <!-- BEGIN commentrow -->
-  <tr>
-	<td class="row3" width="85%" height="25"><a name="#{commentrow.ID}"></a><span class="name"><b>{L_POSTER}: {commentrow.POSTER} @ {commentrow.TIME}</b></span></td>
-	<td class="row3" width=15%"><span class="genmed">{commentrow.EDIT_IMG}&nbsp;{commentrow.DELETE_IMG}&nbsp;{commentrow.IP_IMG}</span></td>
+  <tr id="comment-{commentrow.ID}">
+	<td class="row3" width="85%" height="25"><span class="name"><b>{L_POSTER}: {commentrow.POSTER} @ {commentrow.TIME}</b></span></td>
+	<td class="row3" width="15%"><span class="genmed">{commentrow.EDIT_IMG}&nbsp;{commentrow.DELETE_IMG}&nbsp;{commentrow.IP_IMG}</span></td>
   </tr>
   <tr>
 	<td class="row1" width="85%"><span class="postbody">{commentrow.TEXT}</span><br />

@@ -141,6 +141,10 @@ changes consolidated after that baseline without implying active maintenance.
   configured game in an active tournament, signed launch URLs to the current
   session, normalized legacy game data on PHP 8 and protected tournament
   create, join and finish actions.
+- Revalidated Arcade comment ownership on every edit and delete, bound comment
+  and rating writes to the active session, made new comment IDs database-safe,
+  prevented duplicate ratings under concurrent requests and removed the
+  external administrator IP lookup from comment pages.
 - Hardened album moderation and category administration against forged
   actions and injected ID lists, validated move targets and signed legacy
   one-click moderation/order links. Personal-gallery management now verifies

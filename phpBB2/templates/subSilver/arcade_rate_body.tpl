@@ -15,6 +15,7 @@ function checkRateForm() {
 </script>
 
 <form name="rateform" action="{S_ARCADE_ACTION}" method="post" onsubmit="return checkRateForm();">
+{S_FORM_TOKEN}
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
   <tr>
 	<td class="nav"><span class="nav"><a href="{U_INDEX}" class="nav">{L_INDEX}</a> &raquo; <a class="nav" href="{U_ARCADE_CAT}">{L_ARCADE_CAT}</a> &raquo; <a class="nav" href="{U_ARCADE}">{L_ARCADE}</a> &raquo; <a href="{L_RATE_TITLE}" class="nav">{RATE_TITLE}</a></span></td>
