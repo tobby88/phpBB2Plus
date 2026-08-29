@@ -118,15 +118,8 @@ function xs_admin_override($modded = false)
 			$module[$module_name][$lang['xs_config_shownav'][$i]] = 'xs_frameset.'.$phpEx.'?action=' . $xs_shownav_action[$i];
 		}
 	}
-	// add menu for style configuration
-	foreach($board_config as $var => $value)
-	{
-		if(substr($var, 0, 9) === 'xs_style_')
-		{
-			$str = substr($var, 9);
-			$module['Template_Config'][$str] = 'xs_frameset.'.$phpEx.'?action=style_config&tpl='.urlencode($str);
-		}
-	}
+	// Executable per-template xs_config.cfg modules are intentionally no
+	// longer exposed; normal style management remains available above.
 }
 
 

@@ -545,5 +545,6 @@ $lang['xs_permission_denied'] = 'Permission Denied';
 */
 $lang['Template_Config'] = 'Template Config';
 $lang['xs_style_configuration'] = 'Template Configuration';
+$lang['xs_style_config_disabled'] = 'Executable per-template configuration files are no longer supported. Standard style settings remain available.';
 
 ?>

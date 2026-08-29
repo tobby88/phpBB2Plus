@@ -2247,36 +2247,8 @@ class Template {
 	*/
 	function _add_config($tpl, $add_vars = true)
 	{
-		global $phpbb_root_path;
-		if(@file_exists($phpbb_root_path . 'templates/' . $tpl . '/xs_config.cfg'))
-		{
-			$style_config = array();
-			include($phpbb_root_path . 'templates/' . $tpl . '/xs_config.cfg');
-			if(count($style_config))
-			{
-				global $board_config, $db;
-				for($i=0; $i<count($style_config); $i++)
-				{
-					$this->style_config[$style_config[$i]['var']] = $style_config[$i]['default'];
-					if($add_vars)
-					{
-						$this->vars['TPL_CFG_' . strtoupper($style_config[$i]['var'])] = $style_config[$i]['default'];
-					}
-				}
-				$str = $this->_serialize($this->style_config);
-				$config_name = 'xs_style_' . $tpl;
-				$board_config[$config_name] = $str;
-				$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value) VALUES ('" . str_replace('\\\'', '\'\'', addslashes($config_name)) . "', '" . str_replace('\\\'', '\'\'', addslashes($str)) . "')";
-				$db->sql_query($sql);
-				// recache config table for cat_hierarchy 2.1.0
-				global $config;
-				if(isset($config->data) && $config->data === $board_config && isset($config->data['mod_cat_hierarchy']))
-				{
-					$config->read(true);
-				}
-				return true;
-			}
-		}
+		// Executable xs_config.cfg files are intentionally unsupported. Style
+		// packages are data and must not introduce a PHP execution path.
 		return false;
 	}
 
@@ -2299,46 +2271,6 @@ class Template {
 	*/
 	function _refresh_config($tpl, $add_vars = false)
 	{
-		global $phpbb_root_path;
-		if(@file_exists($phpbb_root_path . 'templates/' . $tpl . '/xs_config.cfg'))
-		{
-			$style_config = array();
-			include($phpbb_root_path . 'templates/' . $tpl . '/xs_config.cfg');
-			if(count($style_config))
-			{
-				global $board_config, $db;
-				for($i=0; $i<count($style_config); $i++)
-				{
-					if(!isset($this->style_config[$style_config[$i]['var']]))
-					{
-						$this->style_config[$style_config[$i]['var']] = $style_config[$i]['default'];
-						if($add_vars)
-						{
-							$this->vars['TPL_CFG_' . strtoupper($style_config[$i]['var'])] = $style_config[$i]['default'];
-						}
-					}
-				}
-				$str = $this->_serialize($this->style_config);
-				$config_name = 'xs_style_' . $tpl;
-				if(isset($board_config[$config_name]))
-				{
-					$sql = "UPDATE " . CONFIG_TABLE . " SET config_value='" . str_replace('\\\'', '\'\'', addslashes($str)) . "' WHERE config_name='" . str_replace('\\\'', '\'\'', addslashes($config_name)) . "'";
-				}
-				else
-				{
-					$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value) VALUES ('" . str_replace('\\\'', '\'\'', addslashes($config_name)) . "', '" . str_replace('\\\'', '\'\'', addslashes($str)) . "')";
-				}
-				$db->sql_query($sql);
-				$board_config[$config_name] = $str;
-				// recache config table for cat_hierarchy 2.1.0
-				global $config;
-				if(isset($config->data) && $config->data === $board_config && isset($config->data['mod_cat_hierarchy']))
-				{
-					$config->read(true);
-				}
-				return true;
-			}
-		}
 		return false;
 	}
 

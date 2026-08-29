@@ -148,7 +148,8 @@ while($pos < $archive_length)
 		$safe_filename = xs_fix_dir($data['filename']);
 		if($safe_filename === '' || $safe_filename !== $data['filename'] || strlen($safe_filename) > 255 ||
 			preg_match('#(?:^|/)(?:\.htaccess|\.user\.ini)$#i', $safe_filename) ||
-			preg_match('#\.(?:php[0-9]*|phtml|phar|cgi|pl|sh)$#i', $safe_filename))
+			preg_match('#\.(?:php[0-9]*|phtml|phar|cgi|pl|sh)$#i', $safe_filename) ||
+			strtolower(basename($safe_filename)) === 'xs_config.cfg')
 		{
 			xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_import_back']);
 		}

@@ -545,4 +545,5 @@ $lang['xs_permission_denied'] = 'Zugriff verweigert';
 */
 $lang['Template_Config'] = 'Template Konfig';
 $lang['xs_style_configuration'] = 'Template Konfiguration';
+$lang['xs_style_config_disabled'] = 'Ausführbare Konfigurationsdateien einzelner Templates werden nicht mehr unterstützt. Die normalen Style-Einstellungen bleiben verfügbar.';
 ?>
