@@ -41,11 +41,16 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 $output_info = '';
 
+if (isset($_POST['add_name']) || isset($_POST['delete_name']))
+{
+	phpbb_admin_require_post_session();
+}
+
 if( isset($_POST['add_name']) )
 {
 	include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 
-	$disallowed_user = ( isset($_POST['disallowed_user']) ) ? trim($_POST['disallowed_user']) : trim($_GET['disallowed_user']);
+	$disallowed_user = ( isset($_POST['disallowed_user']) && is_scalar($_POST['disallowed_user']) ) ? trim((string) $_POST['disallowed_user']) : '';
 
 	if ($disallowed_user == '')
 	{
@@ -73,7 +78,11 @@ if( isset($_POST['add_name']) )
 }
 else if( isset($_POST['delete_name']) )
 {
-	$disallowed_id = ( isset($_POST['disallowed_id']) ) ? intval( $_POST['disallowed_id'] ) : intval( $_GET['disallowed_id'] );
+	$disallowed_id = ( isset($_POST['disallowed_id']) && is_scalar($_POST['disallowed_id']) ) ? intval($_POST['disallowed_id']) : 0;
+	if ($disallowed_id < 1)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Fields_empty']);
+	}
 	
 	$sql = "DELETE FROM " . DISALLOW_TABLE . " 
 		WHERE disallow_id = $disallowed_id";
@@ -101,6 +110,7 @@ if( !$result )
 }
 
 $disallowed = $db->sql_fetchrowset($result);
+$db->sql_freeresult($result);
 
 //
 // Ok now generate the info for the template, which will be put out no matter
@@ -117,7 +127,7 @@ else
 	$user = array();
 	for( $i = 0; $i < count($disallowed); $i++ )
 	{
-		$disallow_select .= '<option value="' . $disallowed[$i]['disallow_id'] . '">' . $disallowed[$i]['disallow_username'] . '</option>';
+		$disallow_select .= '<option value="' . (int) $disallowed[$i]['disallow_id'] . '">' . phpbb_profile_text($disallowed[$i]['disallow_username']) . '</option>';
 	}
 }
 
@@ -130,6 +140,7 @@ $template->set_filenames(array(
 $template->assign_vars(array(
 	"S_DISALLOW_SELECT" => $disallow_select,
 	"S_FORM_ACTION" => append_sid("admin_disallow.$phpEx"),
+	"S_HIDDEN_FIELDS" => '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 
 	"L_INFO" => $output_info,
 	"L_DISALLOW_TITLE" => $lang['Disallow_control'],

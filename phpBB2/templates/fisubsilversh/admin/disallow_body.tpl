@@ -2,7 +2,7 @@
 <br />
 <div class="genmed">{L_DISALLOW_EXPLAIN}</div>
 <br />
-<form method="post" action="{S_FORM_ACTION}">
+<form method="post" action="{S_FORM_ACTION}">{S_HIDDEN_FIELDS}
 <table width="98%" cellspacing="1" cellpadding="3" border="0" align="center" class="forumline">
 <tr> 
 <th colspan="2">{L_ADD_DISALLOW}</th>

@@ -50,7 +50,8 @@ if ($cancel)
 
 if( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = (isset($_GET['mode'])) ? $_GET['mode'] : $_POST['mode'];
+	$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] :
+		((isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '');
 	$mode = htmlspecialchars($mode);
 }
 else 
@@ -73,6 +74,11 @@ else
 }
 // Restrict mode input to valid options
 $mode = ( in_array($mode, array('add', 'edit', 'save', 'delete')) ) ? $mode : '';
+$confirm = isset($HTTP_POST_VARS['confirm']);
+if ($mode == 'save' || ($mode == 'delete' && $confirm))
+{
+	phpbb_admin_require_post_session();
+}
 
 
 if( $mode != "" )
@@ -84,7 +90,7 @@ if( $mode != "" )
 		//
 		$rank_id = ( isset($_GET['id']) ) ? intval($_GET['id']) : 0;
 		
-		$s_hidden_fields = "";
+		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 		
 		if( $mode == "edit" )
 		{
@@ -117,14 +123,15 @@ if( $mode != "" )
 		$template->set_filenames(array(
 			"body" => "admin/ranks_edit_body.tpl")
 		);
+		$rank_image_display = !empty($rank_info['rank_image']) ? phpbb_profile_image_name(basename((string) $rank_info['rank_image'])) : '';
 
 		$template->assign_vars(array(
-			"RANK" => $rank_info['rank_title'],
+			"RANK" => phpbb_profile_text(isset($rank_info['rank_title']) ? $rank_info['rank_title'] : ''),
 			"SPECIAL_RANK" => $rank_is_special,
 			"NOT_SPECIAL_RANK" => $rank_is_not_special,
 			"MINIMUM" => ( $rank_is_special ) ? "" : $rank_info['rank_min'],
-			"IMAGE" => ( $rank_info['rank_image'] != "" ) ? $rank_info['rank_image'] : "",
-			"IMAGE_DISPLAY" => ( $rank_info['rank_image'] != "" ) ? '<img src="../' . $images['rank_path'] . $rank_info['rank_image'] . '" />' : "",
+			"IMAGE" => $rank_image_display,
+			"IMAGE_DISPLAY" => ($rank_image_display !== '') ? '<img src="../' . $images['rank_path'] . $rank_image_display . '" alt="" />' : "",
 			
 			"L_RANKS_TITLE" => $lang['Ranks_title'],
 			"L_RANKS_TEXT" => $lang['Ranks_explain'],
@@ -150,10 +157,10 @@ if( $mode != "" )
 		//
 		
 		$rank_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
-		$rank_title = ( isset($_POST['title']) ) ? trim($_POST['title']) : "";
-		$special_rank = ( $_POST['special_rank'] == 1 ) ? TRUE : 0;
-		$min_posts = ( isset($_POST['min_posts']) ) ? intval($_POST['min_posts']) : -1;
-		$rank_image = ( (isset($_POST['rank_image'])) ) ? trim($_POST['rank_image']) : "";
+		$rank_title = ( isset($_POST['title']) && is_scalar($_POST['title']) ) ? trim((string) $_POST['title']) : "";
+		$special_rank = ( isset($_POST['special_rank']) && is_scalar($_POST['special_rank']) && (int) $_POST['special_rank'] === 1 ) ? TRUE : 0;
+		$min_posts = ( isset($_POST['min_posts']) && is_scalar($_POST['min_posts']) ) ? intval($_POST['min_posts']) : -1;
+		$rank_image = ( isset($_POST['rank_image']) && is_scalar($_POST['rank_image']) ) ? phpbb_profile_image_name(basename(trim((string) $_POST['rank_image']))) : "";
 
 		if( $rank_title == "" )
 		{
@@ -229,8 +236,6 @@ if( $mode != "" )
 			$rank_id = 0;
 		}
 		
-		$confirm = isset($HTTP_POST_VARS['confirm']);
-		
 		if( $rank_id && $confirm )
 		{
 			$sql = "DELETE FROM " . RANKS_TABLE . "
@@ -262,7 +267,7 @@ if( $mode != "" )
 				'body' => 'admin/confirm_body.tpl')
 			);
 
-			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $rank_id . '" />';
+			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $rank_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 
 			$template->assign_vars(array(
 				'MESSAGE_TITLE' => $lang['Confirm'],
@@ -337,7 +342,7 @@ for($i = 0; $i < $rank_count; $i++)
 	$template->assign_block_vars("ranks", array(
 		"ROW_COLOR" => "#" . $row_color,
 		"ROW_CLASS" => $row_class,
-		"RANK" => $rank,
+		"RANK" => phpbb_profile_text($rank),
 		"SPECIAL_RANK" => $rank_is_special,
 		"RANK_MIN" => $rank_min,
 

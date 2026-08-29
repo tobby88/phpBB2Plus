@@ -51,7 +51,8 @@ if ($cancel)
 
 if( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = (isset($_GET['mode'])) ? $_GET['mode'] : $_POST['mode'];
+	$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] :
+		((isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '');
 	$mode = htmlspecialchars($mode);
 }
 else 
@@ -75,6 +76,11 @@ else
 
 // Restrict mode input to valid options
 $mode = ( in_array($mode, array('add', 'edit', 'save', 'delete')) ) ? $mode : '';
+$confirm = isset($HTTP_POST_VARS['confirm']);
+if ($mode == 'save' || ($mode == 'delete' && $confirm))
+{
+	phpbb_admin_require_post_session();
+}
 
 if( $mode != "" )
 {
@@ -87,7 +93,7 @@ if( $mode != "" )
 		);
 
 		$word_info = array('word' => '', 'replacement' => '');
-		$s_hidden_fields = '';
+		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 
 		if( $mode == "edit" )
 		{
@@ -132,8 +138,8 @@ if( $mode != "" )
 	else if( $mode == "save" )
 	{
 		$word_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
-		$word = ( isset($_POST['word']) ) ? trim($_POST['word']) : "";
-		$replacement = ( isset($_POST['replacement']) ) ? trim($_POST['replacement']) : "";
+		$word = ( isset($_POST['word']) && is_scalar($_POST['word']) ) ? trim((string) $_POST['word']) : "";
+		$replacement = ( isset($_POST['replacement']) && is_scalar($_POST['replacement']) ) ? trim((string) $_POST['replacement']) : "";
 
 		if($word == "" || $replacement == "")
 		{
@@ -179,8 +185,6 @@ if( $mode != "" )
 			$word_id = 0;
 		}
 
-		$confirm = isset($HTTP_POST_VARS['confirm']);
-
 		if( $word_id && $confirm )
 		{
 			$sql = "DELETE FROM " . WORDS_TABLE . " 
@@ -206,7 +210,7 @@ if( $mode != "" )
 				'body' => 'admin/confirm_body.tpl')
 			);
 
-			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $word_id . '" />';
+			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $word_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 
 			$template->assign_vars(array(
 				'MESSAGE_TITLE' => $lang['Confirm'],

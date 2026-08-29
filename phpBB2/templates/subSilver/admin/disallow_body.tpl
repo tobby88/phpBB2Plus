@@ -3,7 +3,7 @@
 
 <p>{L_DISALLOW_EXPLAIN}</p>
 
-<form method="post" action="{S_FORM_ACTION}"><table width="80%" cellspacing="1" cellpadding="4" border="0" align="center" class="forumline">
+<form method="post" action="{S_FORM_ACTION}">{S_HIDDEN_FIELDS}<table width="80%" cellspacing="1" cellpadding="4" border="0" align="center" class="forumline">
 	<tr> 
 		<th class="thHead" colspan="2">{L_ADD_DISALLOW}</th>
 	</tr>
