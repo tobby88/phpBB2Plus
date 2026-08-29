@@ -74,13 +74,14 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 		}
 
 		$username = ($submitted_username !== '') ? phpbb_clean_username($submitted_username) : '';
+		$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
 		$password_value = (isset($_POST['password']) && is_scalar($_POST['password'])) ? (string) $_POST['password'] : '';
 		$password = (strlen($password_value) <= 128) ? $password_value : '';
 		$blocktime = '';
 
 		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, ct_login_count, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
 			FROM " . USERS_TABLE . "
-			WHERE username = '" . str_replace("\\'", "''", $username) . "'";
+			WHERE username = '" . $username_sql . "'";
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Error in obtaining userdata', '', __LINE__, __FILE__, $sql);
@@ -154,7 +155,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						{
 							// Start add - Protect user account MOD
 							$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin='0'
-								WHERE username = '" . str_replace("\'", "''", $username) . "'";
+								WHERE username = '" . $username_sql . "'";
 							if ( !($result = $db->sql_query($sql)) )
 							{
 								message_die(GENERAL_ERROR, 'Error updating correct login data', '', __LINE__, __FILE__, $sql);
@@ -233,7 +234,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						if (($row['user_badlogin'] + 1) % $max_login_error)
 						{
 							$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin=user_badlogin+1
-								WHERE username = '" . str_replace("\'", "''", $username) . "'";
+								WHERE username = '" . $username_sql . "'";
 							if ( !($result = $db->sql_query($sql)) )
 							{
 								message_die(GENERAL_ERROR, 'Error updating bad login data'.$user_ip, '', __LINE__, __FILE__, $sql);
@@ -242,7 +243,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						{
 							$blocktime = ", user_block_by='$user_ip', user_blocktime='" . (time()+($board_config['block_time']*60)) . "'";
 							$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin=user_badlogin+1 $blocktime
-								WHERE username = '" . str_replace("\'", "''", $username) . "'";
+								WHERE username = '" . $username_sql . "'";
 							if ( !($result = $db->sql_query($sql)) )
 							{
 								message_die(GENERAL_ERROR, 'Error updating bad login data'.$user_ip, '', __LINE__, __FILE__, $sql);

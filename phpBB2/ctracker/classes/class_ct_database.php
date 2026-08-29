@@ -457,6 +457,25 @@ class ct_database
 
 
 	/**
+	 * Return the lowest current administrator ID instead of assuming that the
+	 * original phpBB user ID 2 still belongs to the board founder.
+	 */
+	function first_admin_user_id()
+	{
+		global $db, $lang;
+
+		$sql = 'SELECT MIN(user_id) AS user_id FROM ' . USERS_TABLE . ' WHERE user_level = ' . ADMIN;
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_loading_config'], '', __LINE__, __FILE__, $sql);
+		}
+		$row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+
+		return ($row && intval($row['user_id']) > 0) ? intval($row['user_id']) : 0;
+	}
+
+	/**
 	 * <b>first_admin_protection</b>
 	 * Checks if submitted user id is the user id of the first admin. If so stop
 	 * the script.
@@ -465,16 +484,13 @@ class ct_database
 	 */
 	function first_admin_protection($user_id)
 	{
-		global $lang, $userdata, $phpbb_root_path, $phpEx;
+		global $lang, $userdata;
 
-		if ( $user_id != $userdata['user_id'] )
+		$user_id = intval($user_id);
+		$current_user_id = isset($userdata['user_id']) ? intval($userdata['user_id']) : ANONYMOUS;
+		if ($user_id > 0 && $user_id !== $current_user_id && $user_id === $this->first_admin_user_id())
 		{
-			include_once($phpbb_root_path . 'ctracker/constants.' . $phpEx);
-
-			if ( $user_id == CT_FIRST_ADMIN_UID )
-			{
-				message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_1stadmin']);
-			}
+			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_1stadmin']);
 		}
 	}
 

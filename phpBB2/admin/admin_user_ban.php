@@ -154,8 +154,7 @@ if ( isset($_POST['submit']) )
 		// CrackerTracker v5.x
 		if ( !empty($_POST['ban_email']) )
 		{
-			include_once($phpbb_root_path . 'ctracker/constants.' . $phpEx);
-			$temp_userdata = get_userdata(CT_FIRST_ADMIN_UID, false);
+			$temp_userdata = get_userdata($ctracker_config->first_admin_user_id(), false);
 			if ( !$temp_userdata )
 			{
 				message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);

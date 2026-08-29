@@ -196,6 +196,8 @@ if ( isset($_POST['submit']) && ( ( $mode == 'user' && $user_id ) || ( $mode == 
 	{
 		if ( $mode == 'user' && $_POST['userlevel'] == 'user' && $user_level == ADMIN )
 		{
+			$ctracker_config->first_admin_protection($user_id);
+
 			//
 			// Make admin a user (if already admin) ... ignore if you're trying
 			// to change yourself from an admin to user!

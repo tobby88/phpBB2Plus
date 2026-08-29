@@ -19,6 +19,9 @@ changes consolidated after that baseline without implying active maintenance.
   and replaced its unbounded session-list cleanup query with a database join.
   CrackerTracker IP history now validates addresses and stores IPv6 without
   truncation; the idempotent updater widens existing columns accordingly.
+- Made CrackerTracker's first-administrator protection follow the actual
+  lowest current administrator account instead of assuming user ID 2, and
+  routed login-name lookups through the active database driver's escaping.
 - Hardened CrackerTracker configuration and blocklist writes, sanitized its
   text log records, serialized concurrent log/counter updates and made a local
   logging failure non-fatal without changing the request-blocking decision.
