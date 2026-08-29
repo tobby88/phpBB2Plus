@@ -67,7 +67,12 @@ if (!$rating_submitted)
 		message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
 	}
 	$pic_id_temp = $db->sql_fetchrow($result);
-	$pic_id = $pic_id_temp['pic_id'];
+	$db->sql_freeresult($result);
+	if (!$pic_id_temp || empty($pic_id_temp['pic_id']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Pic_not_exist']);
+	}
+	$pic_id = intval($pic_id_temp['pic_id']);
 
 
 	// ------------------------------------
@@ -92,14 +97,20 @@ if (!$rating_submitted)
 		message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
 	}
 	$thispic = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
 
-	$cat_id = $thispic['pic_cat_id'];
-	$album_user_id = $thispic['cat_user_id'];
-
-	if (empty($thispic) || !is_file(ALBUM_UPLOAD_PATH . $thispic['pic_filename']))
+	if (empty($thispic))
 	{
 		message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
 	}
+	$pic_filename = str_replace('\\', '/', (string) $thispic['pic_filename']);
+	if ($pic_filename === '' || basename($pic_filename) !== $pic_filename || !is_file(ALBUM_UPLOAD_PATH . $pic_filename))
+	{
+		message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
+	}
+
+	$cat_id = intval($thispic['pic_cat_id']);
+	$album_user_id = intval($thispic['cat_user_id']);
 
 	// ------------------------------------
 	// Check the permissions
@@ -182,7 +193,7 @@ if (!$rating_submitted)
 	}
 
 	$template->assign_vars(array(
-		'CAT_TITLE' => $thiscat['cat_title'],
+		'CAT_TITLE' => $thispic['cat_title'],
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
 
 		'U_PIC' => append_sid("album_pic.$phpEx?pic_id=$pic_id"),
@@ -208,7 +219,7 @@ if (!$rating_submitted)
 		'L_ALREADY_RATED' => $lang['Already_rated'],
 
 		'L_RATING' => $lang['Rating'],
-		'L_PIC_TITLE' => $lang['Pic_Title'] . $album_config['clown_rateType'],
+		'L_PIC_TITLE' => $lang['Pic_Title'] . (isset($album_config['clown_rateType']) ? $album_config['clown_rateType'] : ''),
 		'L_PIC_DESC' => $lang['Pic_Desc'],
 		'L_POSTER' => $lang['Poster'],
 		'L_POSTED' => $lang['Posted'],
@@ -259,7 +270,8 @@ else
 		message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
 	}
 	$db->sql_freeresult($result);
-	if (!is_file(ALBUM_UPLOAD_PATH . $rated_pic['pic_filename']))
+	$rated_filename = str_replace('\\', '/', (string) $rated_pic['pic_filename']);
+	if ($rated_filename === '' || basename($rated_filename) !== $rated_filename || !is_file(ALBUM_UPLOAD_PATH . $rated_filename))
 	{
 		message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
 	}

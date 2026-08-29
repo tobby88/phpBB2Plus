@@ -159,7 +159,7 @@ if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
 	}
 
 	// prepare url
-	$url = $tree['data'][$CH_this]['forum_link'];
+	$url = trim((string) $tree['data'][$CH_this]['forum_link']);
 	if ($tree['data'][$CH_this]['forum_link_internal'])
 	{
 		$part = explode( '?', $url);
@@ -170,11 +170,23 @@ if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
 		redirect($url);
 	}
 
+	// External forum links are administrator-provided, but still validate them
+	// before they reach an HTTP header or the fallback HTML document.
+	$url_parts = @parse_url($url);
+	if (!$url_parts || empty($url_parts['scheme']) || empty($url_parts['host']) ||
+		!in_array(strtolower($url_parts['scheme']), array('http', 'https'), true) ||
+		isset($url_parts['user']) || isset($url_parts['pass']) ||
+		preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
+	{
+		message_die(GENERAL_ERROR, 'Invalid external forum URL.');
+	}
+
 	// Redirect via an HTML form for PITA webservers
 	if (@preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')))
 	{
 		header('Refresh: 0; URL=' . $url);
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $url . '"><title>' . $lang['Redirect'] . '</title></head><body><div align="center">' . sprintf($lang['Rediect_to'], '<a href="' . $url . '">', '</a>') . '</div></body></html>';
+		$safe_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="refresh" content="0; url=' . $safe_url . '"><title>' . htmlspecialchars($lang['Redirect'], ENT_QUOTES, 'UTF-8') . '</title></head><body><div align="center">' . sprintf($lang['Rediect_to'], '<a href="' . $safe_url . '">', '</a>') . '</div></body></html>';
 		exit;
 	}
 

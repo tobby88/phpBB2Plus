@@ -533,7 +533,8 @@ $l_timezone = explode('.', $board_config['board_timezone']);
 $l_timezone = (count($l_timezone) > 1 && $l_timezone[count($l_timezone)-1] != 0) ? $lang[sprintf('%.1f', $board_config['board_timezone'])] : $lang[number_format($board_config['board_timezone'])];
 
 /* CrackerTracker IP Range Scanner */
-$marknow = isset($HTTP_GET_VARS['marknow']) ? $HTTP_GET_VARS['marknow'] : '';
+$marknow = (isset($HTTP_GET_VARS['marknow']) && is_scalar($HTTP_GET_VARS['marknow'])) ? (string) $HTTP_GET_VARS['marknow'] : '';
+$mark_sid = (isset($HTTP_GET_VARS['sid']) && is_scalar($HTTP_GET_VARS['sid'])) ? (string) $HTTP_GET_VARS['sid'] : '';
 $ctracker_settings = (isset($ctracker_config) && is_object($ctracker_config) && isset($ctracker_config->settings) && is_array($ctracker_config->settings)) ? $ctracker_config->settings : array();
 $ctracker_settings += array(
 	'login_ip_check' => 0,
@@ -545,17 +546,21 @@ $ctracker_settings += array(
 );
 if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 {
+	if ($mark_sid === '' || !hash_equals((string) $userdata['session_id'], $mark_sid))
+	{
+		message_die(GENERAL_ERROR, $lang['Session_invalid']);
+	}
 	$userdata['ct_last_ip'] = $userdata['ct_last_used_ip'];
 	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_ip = ct_last_used_ip WHERE user_id=' . $userdata['user_id'];
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
 	}
-	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) )
+	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('#/([^/?#]+)(?:[?#].*)?$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
 	{
-		preg_match('#/([^/]*?)$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink);
 		redirect($backlink[1]);
 	}
+	redirect('portal.' . $phpEx);
 }
 
 if ( $ctracker_settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn'] == 1 && $userdata['session_logged_in'] )
@@ -568,24 +573,28 @@ if ( $ctracker_settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn']
 		$template->assign_block_vars('ctracker_message', array(
 			'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
 			'L_MESSAGE_TEXT' => $check_ip_range, 'L_MARK_MESSAGE' => $lang['ctracker_gmb_markip'],
-			'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=ipfeature')));
+			'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=ipfeature&sid=' . urlencode($userdata['session_id']))));
 	}
 }
 
 /* CrackerTracker Global Message Function */
 if ( $marknow == 'globmsg' && $userdata['session_logged_in'] )
 {
+	if ($mark_sid === '' || !hash_equals((string) $userdata['session_id'], $mark_sid))
+	{
+		message_die(GENERAL_ERROR, $lang['Session_invalid']);
+	}
 	$userdata['ct_global_msg_read'] = 0;
 	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_global_msg_read = 0 WHERE user_id=' . $userdata['user_id'];
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
 	}
-	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) )
+	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('#/([^/?#]+)(?:[?#].*)?$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
 	{
-		preg_match('#/([^/]*?)$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink);
 		redirect($backlink[1]);
 	}
+	redirect('portal.' . $phpEx);
 }
 
 if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $ctracker_settings['global_message'] != '' )
@@ -596,7 +605,7 @@ if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'E1FFDF', 'ICON_GLOB' => $images['ctracker_note'],
 		'L_MESSAGE_TEXT' => $global_message_output, 'L_MARK_MESSAGE' => $lang['ctracker_gmb_mark'],
-		'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=globmsg')));
+		'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=globmsg&sid=' . urlencode($userdata['session_id']))));
 }
 
 (($ctracker_settings['login_history'] == 1 || $ctracker_settings['login_ip_check'] == 1) && $userdata['session_logged_in']) ? $template->assign_block_vars('login_sec_link', array()) : null;

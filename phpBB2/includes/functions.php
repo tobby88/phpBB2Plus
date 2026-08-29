@@ -839,13 +839,29 @@ function setup_style($style)
 
 function encode_ip($dotquad_ip)
 {
-	$ip_sep = explode('.', $dotquad_ip);
-	return sprintf('%02x%02x%02x%02x', $ip_sep[0], $ip_sep[1], $ip_sep[2], $ip_sep[3]);
+	$packed_ip = @inet_pton(trim((string) $dotquad_ip));
+	if ($packed_ip === false)
+	{
+		return '00000000';
+	}
+	if (strlen($packed_ip) === 4)
+	{
+		return bin2hex($packed_ip);
+	}
+
+	// Legacy phpBB2 schemas can only retain 32 bits. Keep a stable,
+	// non-empty session identifier for IPv6 clients without raising warnings.
+	return substr(hash('sha256', $packed_ip), 0, 8);
 }
 
 function decode_ip($int_ip)
 {
-	$hexipbang = explode('.', chunk_split($int_ip, 2, '.'));
+	$int_ip = strtolower(trim((string) $int_ip));
+	if (!preg_match('/^[0-9a-f]{8}$/', $int_ip))
+	{
+		return '0.0.0.0';
+	}
+	$hexipbang = str_split($int_ip, 2);
 	return hexdec($hexipbang[0]). '.' . hexdec($hexipbang[1]) . '.' . hexdec($hexipbang[2]) . '.' . hexdec($hexipbang[3]);
 }
 

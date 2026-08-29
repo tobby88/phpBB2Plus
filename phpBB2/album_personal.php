@@ -59,11 +59,11 @@ include($album_root_path . 'album_common.'.$phpEx);
 // ------------------------------------
 // Check the request
 // ------------------------------------
-if( isset($_POST['user_id']) )
+if( isset($_POST['user_id']) && is_scalar($_POST['user_id']) )
 {
 	$user_id = intval($_POST['user_id']);
 }
-else if( isset($_GET['user_id']) )
+else if( isset($_GET['user_id']) && is_scalar($_GET['user_id']) )
 {
 	$user_id = intval($_GET['user_id']);
 }
