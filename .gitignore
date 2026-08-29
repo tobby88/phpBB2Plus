@@ -38,6 +38,9 @@
 !/phpBB2/pafiledb/cache/templates/index.htm
 
 # Runtime data
+/phpBB2/data/*
+!/phpBB2/data/.htaccess
+!/phpBB2/data/index.html
 /phpBB2/cgi-bin/tmp/*
 /phpBB2/cgi-bin/sysinfo/
 /phpBB2/logs/*

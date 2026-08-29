@@ -155,7 +155,7 @@ function phpbb_save_icon_config($icons, $special)
 {
 	global $phpbb_root_path;
 	$config = phpbb_normalize_icon_config($icons, $special);
-	return phpbb_icon_config_valid($config) && phpbb_data_cache_write($phpbb_root_path . 'cache/icons.cache', $config);
+	return phpbb_icon_config_valid($config) && phpbb_data_store_write($phpbb_root_path . 'data/icons.dat', $config);
 }
 
 function phpbb_load_icon_config()
@@ -167,7 +167,7 @@ function phpbb_load_icon_config()
 		return true;
 	}
 
-	$config = phpbb_data_cache_read($phpbb_root_path . 'cache/icons.cache');
+	$config = phpbb_data_store_read($phpbb_root_path . 'data/icons.dat');
 	if (!phpbb_icon_config_valid($config))
 	{
 		$legacy_file = $phpbb_root_path . 'includes/def_icons.php';
@@ -189,7 +189,7 @@ function phpbb_load_icon_config()
 		{
 			return false;
 		}
-		phpbb_data_cache_write($phpbb_root_path . 'cache/icons.cache', $config);
+		phpbb_data_store_write($phpbb_root_path . 'data/icons.dat', $config);
 	}
 
 	$icones = $config['icons'];
@@ -930,12 +930,11 @@ function phpbb_template_config_is_safe($filename, $templates_root)
 	return $defined;
 }
 
-function phpbb_data_cache_read($filename)
+function phpbb_serialized_data_read($filename, $allowed_root)
 {
-	global $phpbb_root_path;
-	$cache_root = @realpath($phpbb_root_path . 'cache');
+	$data_root = @realpath($allowed_root);
 	$parent = @realpath(dirname($filename));
-	if ($cache_root === false || $parent === false || $cache_root !== $parent ||
+	if ($data_root === false || $parent === false || $data_root !== $parent ||
 		!@is_file($filename) || @is_link($filename))
 	{
 		return false;
@@ -950,12 +949,11 @@ function phpbb_data_cache_read($filename)
 	return is_array($data) ? $data : false;
 }
 
-function phpbb_data_cache_write($filename, $data)
+function phpbb_serialized_data_write($filename, $data, $allowed_root)
 {
-	global $phpbb_root_path;
-	$cache_root = @realpath($phpbb_root_path . 'cache');
+	$data_root = @realpath($allowed_root);
 	$parent = @realpath(dirname($filename));
-	if ($cache_root === false || $parent === false || $cache_root !== $parent || @is_link($filename))
+	if ($data_root === false || $parent === false || $data_root !== $parent || @is_link($filename))
 	{
 		return false;
 	}
@@ -964,7 +962,7 @@ function phpbb_data_cache_write($filename, $data)
 	{
 		return false;
 	}
-	$temp = @tempnam($cache_root, 'data_');
+	$temp = @tempnam($data_root, 'data_');
 	if ($temp === false)
 	{
 		return false;
@@ -982,6 +980,30 @@ function phpbb_data_cache_write($filename, $data)
 		return false;
 	}
 	return true;
+}
+
+function phpbb_data_cache_read($filename)
+{
+	global $phpbb_root_path;
+	return phpbb_serialized_data_read($filename, $phpbb_root_path . 'cache');
+}
+
+function phpbb_data_cache_write($filename, $data)
+{
+	global $phpbb_root_path;
+	return phpbb_serialized_data_write($filename, $data, $phpbb_root_path . 'cache');
+}
+
+function phpbb_data_store_read($filename)
+{
+	global $phpbb_root_path;
+	return phpbb_serialized_data_read($filename, $phpbb_root_path . 'data');
+}
+
+function phpbb_data_store_write($filename, $data)
+{
+	global $phpbb_root_path;
+	return phpbb_serialized_data_write($filename, $data, $phpbb_root_path . 'data');
 }
 
 function setup_style($style)
