@@ -33,59 +33,48 @@ if( !empty($setmodules) )
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 
-//
-// Check to see what mode we should operate in.
-// 
-if( isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']) )
+$mode = (isset($HTTP_POST_VARS['mode']) && is_scalar($HTTP_POST_VARS['mode'])) ? (string) $HTTP_POST_VARS['mode'] : '';
+$reset_queries = array(
+	'reset_played' => "UPDATE " . $table_prefix . "ina_games SET played = 0",
+	'reset_last_player' => "UPDATE " . $table_prefix . "ina_cat SET last_player = 0",
+	'reset_last_time' => "UPDATE " . $table_prefix . "ina_cat SET last_time = 0",
+);
+
+if (isset($reset_queries[$mode]))
 {
-	$mode = ( isset($HTTP_POST_VARS['mode']) ) ? $HTTP_POST_VARS['mode'] : $HTTP_GET_VARS['mode'];
-	$mode = htmlspecialchars($mode);
-}
-else if( isset($HTTP_POST_VARS['home']) )
-{
-	$mode = "home";
-}
-else if( isset($HTTP_POST_VARS['reset_played']) )
-{
-	$mode = "reset_played";
-}
-else if( isset($HTTP_POST_VARS['reset_last_player']) )
-{
-	$mode = "reset_last_player";
-}
-else if( isset($HTTP_POST_VARS['reset_last_time']) )
-{
-	$mode = "reset_last_time";
-}
-else
-{
-	$mode = "";
+	phpbb_admin_require_post_session();
+
+	if (!$db->sql_query($reset_queries[$mode]))
+	{
+		message_die(GENERAL_ERROR, 'Unable to reset the selected Arcade statistic.');
+	}
+
+	message_die(GENERAL_MESSAGE, 'The selected Arcade statistic was reset successfully.<br /><br /><a href="' . append_sid('admin_arcade_reset.' . $phpEx) . '">Return to Arcade resets</a>');
 }
 
+$form_action = append_sid('admin_arcade_reset.' . $phpEx);
+$session_field = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
 
-//home 
-if( $mode == "" || $mode == "home")
-{
 echo '
   <table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="bodyline">
     <tr>
       <th width="20%" colspan="2" class="thHead">Reset Arcade Plays </th>
     </tr>
     <tr>
-      <td colspan="2" class="row1"><div align="center"><span class=gensmall>Before reseting the arcade plays alway backup your database first.</span><br>
+      <td colspan="2" class="row1"><div align="center"><span class="gensmall">Reset only the statistic you intentionally want to clear.</span><br />
       </div></td>
     </tr>
     <tr>
       <td width="50%" class="row2"><div align="right">Reset Played Number </div></td>
-      <td width="50%" class="row3"><a href="'. append_sid('admin_arcade_reset.php?mode=reset_played').'">Go!</a></td>
+      <td width="50%" class="row3"><form method="post" action="' . $form_action . '">' . $session_field . '<input type="hidden" name="mode" value="reset_played" /><input type="submit" class="mainoption" value="Go!" onclick="return confirm(\'Reset the played counter for every Arcade game?\');" /></form></td>
     </tr>
     <tr>
       <td width="50%" class="row2"><div align="right">Reset Last Player</div></td>
-      <td width="50%" class="row3"><a href="'. append_sid('admin_arcade_reset.php?mode=reset_last_player').'" target="_self">Go!</a></td>
+      <td width="50%" class="row3"><form method="post" action="' . $form_action . '">' . $session_field . '<input type="hidden" name="mode" value="reset_last_player" /><input type="submit" class="mainoption" value="Go!" onclick="return confirm(\'Reset the last-player statistic for every Arcade category?\');" /></form></td>
     </tr>
     <tr>
       <td width="50%" class="row2"><div align="right">Reset Last Time</div></td>
-      <td width="50%" class="row3"><a href="'. append_sid('admin_arcade_reset.php?mode=reset_last_time').'" target="_self">Go!</a></td>
+      <td width="50%" class="row3"><form method="post" action="' . $form_action . '">' . $session_field . '<input type="hidden" name="mode" value="reset_last_time" /><input type="submit" class="mainoption" value="Go!" onclick="return confirm(\'Reset the last-played time for every Arcade category?\');" /></form></td>
     </tr>
     <tr>
       <td colspan="2" align="center" class="catBottom">&nbsp;</td>
@@ -97,85 +86,6 @@ echo '
   </tr>
 </table>
 ';
-}
-
-//reset_played
-if( $mode == "reset_played")
-{
-echo '<table width="100%" cellspacing="1" cellpadding="2" border="0" class="forumline">';
-echo '<tr><th>Updating the database</th></tr><tr><td><span class="genmed"><ul type="circle">';
-
-
-$sql = array();
-$sql[] = "update " . $table_prefix . "ina_games set played = 0";
-
-for( $i = 0; $i < count($sql); $i++ )
-{
-	if( !$result = $db->sql_query ($sql[$i]) )
-	{
-		$error = $db->sql_error();
-
-		echo '<li>' . $sql[$i] . '<br /> +++ <font color="#FF0000"><b>Error:</b></font> ' . $error['message'] . '</li><br />';
-	}
-	else
-	{
-		echo '<li>' . $sql[$i] . '<br /> +++ <font color="#00AA00"><b>Successfull</b></font></li><br />';
-	}
-}
-echo '<tr><td class="catBottom" height="28" align="center"><span class="genmed">Done</span></td></table>';
-}
-
-//reset_last_player
-if( $mode == "reset_last_player")
-{
-echo '<table width="100%" cellspacing="1" cellpadding="2" border="0" class="forumline">';
-echo '<tr><th>Updating the database</th></tr><tr><td><span class="genmed"><ul type="circle">';
-
-
-$sql = array();
-$sql[] = "update " . $table_prefix . "ina_cat set last_player = 0";
-
-for( $i = 0; $i < count($sql); $i++ )
-{
-	if( !$result = $db->sql_query ($sql[$i]) )
-	{
-		$error = $db->sql_error();
-
-		echo '<li>' . $sql[$i] . '<br /> +++ <font color="#FF0000"><b>Error:</b></font> ' . $error['message'] . '</li><br />';
-	}
-	else
-	{
-		echo '<li>' . $sql[$i] . '<br /> +++ <font color="#00AA00"><b>Successfull</b></font></li><br />';
-	}
-}
-echo '<tr><td class="catBottom" height="28" align="center"><span class="genmed">Done</span></td></table>';
-}
-
-//reset_last_time
-if( $mode == "reset_last_time")
-{
-echo '<table width="100%" cellspacing="1" cellpadding="2" border="0" class="forumline">';
-echo '<tr><th>Updating the database</th></tr><tr><td><span class="genmed"><ul type="circle">';
-
-
-$sql = array();
-$sql[] = "update " . $table_prefix . "ina_cat set last_time = 0000000000";
-
-for( $i = 0; $i < count($sql); $i++ )
-{
-	if( !$result = $db->sql_query ($sql[$i]) )
-	{
-		$error = $db->sql_error();
-
-		echo '<li>' . $sql[$i] . '<br /> +++ <font color="#FF0000"><b>Error:</b></font> ' . $error['message'] . '</li><br />';
-	}
-	else
-	{
-		echo '<li>' . $sql[$i] . '<br /> +++ <font color="#00AA00"><b>Successfull</b></font></li><br />';
-	}
-}
-echo '<tr><td class="catBottom" height="28" align="center"><span class="genmed">Done</span></td></table>';
-}
 
 // Generate footer
 include('page_footer_admin.' . $phpEx);
