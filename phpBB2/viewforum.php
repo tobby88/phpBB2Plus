@@ -328,15 +328,20 @@ if ( $is_auth['auth_mod'] && $board_config['prune_enable'] )
 //-- add
 // moderators list
 $moderators = array();
-$idx = $tree['keys'][ POST_FORUM_URL . $forum_id ];
-for ( $i = 0; $i < count($tree['mods'][$idx]['user_id']); $i++ )
+$idx = isset($tree['keys'][POST_FORUM_URL . $forum_id]) ? $tree['keys'][POST_FORUM_URL . $forum_id] : null;
+$forum_mods = ($idx !== null && isset($tree['mods'][$idx]) && is_array($tree['mods'][$idx])) ? $tree['mods'][$idx] : array();
+$moderator_user_ids = (isset($forum_mods['user_id']) && is_array($forum_mods['user_id'])) ? $forum_mods['user_id'] : array();
+$moderator_group_ids = (isset($forum_mods['group_id']) && is_array($forum_mods['group_id'])) ? $forum_mods['group_id'] : array();
+$moderator_group_names = (isset($forum_mods['group_name']) && is_array($forum_mods['group_name'])) ? $forum_mods['group_name'] : array();
+for ( $i = 0; $i < count($moderator_user_ids); $i++ )
 {
-	//$moderators[] = '<a href="' . append_sid("./profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $tree['mods'][$idx]['user_id'][$i]) . '">' . $tree['mods'][$idx]['username'][$i] . '</a>';
-	$moderators[] = color_group_colorize_name($tree['mods'][$idx]['user_id'][$i]);
+	$moderators[] = color_group_colorize_name(intval($moderator_user_ids[$i]));
 }
-for ( $i = 0; $i < count($tree['mods'][$idx]['group_id']); $i++ )
+for ( $i = 0; $i < count($moderator_group_ids); $i++ )
 {
-	$moderators[] = '<a href="' . append_sid("./groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $tree['mods'][$idx]['group_id'][$i]) . '">' . $tree['mods'][$idx]['group_name'][$i] . '</a>';
+	$group_id = intval($moderator_group_ids[$i]);
+	$group_name = isset($moderator_group_names[$i]) ? htmlspecialchars($moderator_group_names[$i], ENT_QUOTES, 'UTF-8') : '';
+	$moderators[] = '<a href="' . append_sid("./groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $group_id) . '">' . $group_name . '</a>';
 }
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 

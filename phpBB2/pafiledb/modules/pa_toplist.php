@@ -71,7 +71,11 @@ class pafiledb_toplist extends pafiledb_public
 			'L_MOST_POPULAR' => $lang['Most_downloads'],
 			'L_TOP_RATED' => $lang['Rated_downloads'],
 			'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
-			'L_TOPLIST' => $lang['Toplist'])
+			'L_TOPLIST' => $lang['Toplist'],
+			'IS_NEWEST' => false,
+			'FILE_DATE' => false,
+			'IS_POPULAR' => false,
+			'FILE_LIST' => false)
 		);
 
 		$sql = 'SELECT file_time, file_id, file_catid

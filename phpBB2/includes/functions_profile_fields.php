@@ -43,6 +43,7 @@ function text_to_column($text)
 function displayable_field_data($data, $type)
 {
 	global $lang;
+  $data = is_scalar($data) ? (string) $data : '';
   switch($type)
   {
     case TEXTAREA:
@@ -67,30 +68,37 @@ function displayable_field_data($data, $type)
       elseif($list_size == 1)
         return $data_list[0];
       else
-        return substr($data,0,strrpos($data,', ')) . $lang['and'] . substr($data,strrpos($data,', ') + 2);
+        return substr($data,0,strrpos($data,', ')) . (isset($lang['and']) ? $lang['and'] : ' and ') . substr($data,strrpos($data,', ') + 2);
   }
+
+  return '';
 }
 
 function get_topic_udata($postrow_data, $profile_data)
 {
-	static $cp_udata_cache;
+	static $cp_udata_cache = array();
 
-	$id = $postrow_data['user_id'];
+	$id = (is_array($postrow_data) && isset($postrow_data['user_id'])) ? intval($postrow_data['user_id']) : 0;
 
-	if (!$cp_udata_cache[$id])
+	if (!isset($cp_udata_cache[$id]))
 	{
 		$profile_names = array();
 		$cp_udata_cache[$id]['aboves'] = array();
 		$cp_udata_cache[$id]['belows'] = array();
 		$cp_udata_cache[$id]['author'] = array();
-		foreach($profile_data as $field)
+		foreach((array) $profile_data as $field)
 		{
+			if (!is_array($field) || !isset($field['field_name'], $field['field_type'], $field['topic_location']))
+			{
+				continue;
+			}
 			$name = $field['field_name'];
 			$col_name = text_to_column($field['field_name']);
 			$type = $field['field_type'];
 			$location = $field['topic_location'];
 
-			$profile_names[$name] = displayable_field_data($postrow_data[$col_name], $field['field_type']);
+			$field_value = (is_array($postrow_data) && isset($postrow_data[$col_name])) ? $postrow_data[$col_name] : '';
+			$profile_names[$name] = displayable_field_data($field_value, $field['field_type']);
 
 			if($location == AUTHOR)
 			  $cp_udata_cache[$id]['author'][] = ($profile_names[$name]) ? $name . ': ' . $profile_names[$name] : '';
@@ -107,8 +115,13 @@ function get_topic_udata($postrow_data, $profile_data)
 function get_udata_txt($profile_data, $add = '')
 {
 	$cp_sql_txt = '';
-	foreach($profile_data as $field)
-		$cp_sql_txt .= ', ' . $add . text_to_column($field['field_name']);
+	foreach((array) $profile_data as $field)
+	{
+		if (is_array($field) && isset($field['field_name']))
+		{
+			$cp_sql_txt .= ', ' . $add . text_to_column($field['field_name']);
+		}
+	}
 
 	return $cp_sql_txt;
 }
