@@ -6,10 +6,14 @@ on:
       - main
     paths:
       - "phpBB2/**/*.php"
+      - "phpBB2/install/schemas/*.sql"
+      - "update/**/*.php"
       - ".github/workflows/php-lint.yml"
   pull_request:
     paths:
       - "phpBB2/**/*.php"
+      - "phpBB2/install/schemas/*.sql"
+      - "update/**/*.php"
       - ".github/workflows/php-lint.yml"
 
 permissions:
@@ -39,7 +43,10 @@ jobs:
 
       - name: Lint PHP sources
         shell: bash
-        run: find phpBB2 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find phpBB2 update -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Test database update schema
+        run: php update/update_from_153a.php --self-test
 
       - name: Check public security bootstrap
         shell: bash

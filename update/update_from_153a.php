@@ -84,13 +84,16 @@ if (in_array('--self-test', $argv, true))
 	}
 	$schema_has_password_capacity = (bool) preg_match('/user_password\s+varchar\(255\)/i', $schema_source)
 		&& (bool) preg_match('/user_newpasswd\s+varchar\(255\)/i', $schema_source);
+	$schema_has_ip_capacity = (bool) preg_match('/ct_last_used_ip\s+varchar\(\s*45\s*\)/i', $schema_source)
+		&& (bool) preg_match('/ct_last_ip\s+varchar\(\s*45\s*\)/i', $schema_source)
+		&& (bool) preg_match('/ct_login_ip`?\s+varchar\(45\)/i', $schema_source);
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 66 || !$schema_has_password_capacity || $has_patch_markers)
+	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 66 || !$schema_has_password_capacity || !$schema_has_ip_capacity || $has_patch_markers)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
-	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password columns ready.\n";
+	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password and IPv6 columns ready.\n";
 	exit(0);
 }
 
@@ -275,8 +278,8 @@ $user_columns = array(
 	'ct_post_counter' => 'MEDIUMINT(8) DEFAULT 1',
 	'ct_last_pw_reset' => 'INT(11) DEFAULT 1',
 	'ct_enable_ip_warn' => 'TINYINT(1) DEFAULT 1',
-	'ct_last_used_ip' => "VARCHAR(16) DEFAULT '0.0.0.0'",
-	'ct_last_ip' => "VARCHAR(16) DEFAULT '0.0.0.0'",
+	'ct_last_used_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
+	'ct_last_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
 	'ct_login_count' => 'MEDIUMINT(8) DEFAULT 1',
 	'ct_login_vconfirm' => 'TINYINT(1) DEFAULT 0',
 	'ct_last_pw_change' => 'INT(11) DEFAULT 1',
@@ -308,6 +311,22 @@ if (update_column_max_length($connection, $dbname, $users_table, 'user_newpasswd
 {
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($users_table) .
 		' MODIFY `user_newpasswd` VARCHAR(255) DEFAULT NULL';
+}
+foreach (array('ct_last_used_ip', 'ct_last_ip') as $ip_column)
+{
+	if (update_column_exists($connection, $dbname, $users_table, $ip_column) &&
+		update_column_max_length($connection, $dbname, $users_table, $ip_column) < 45)
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($users_table) .
+			' MODIFY ' . update_quote_identifier($ip_column) . " VARCHAR(45) DEFAULT '0.0.0.0'";
+	}
+}
+$login_history_table = $table_prefix . 'ctracker_loginhistory';
+if (update_table_exists($connection, $dbname, $login_history_table) &&
+	update_column_max_length($connection, $dbname, $login_history_table, 'ct_login_ip') < 45)
+{
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($login_history_table) .
+		' MODIFY `ct_login_ip` VARCHAR(45) DEFAULT NULL';
 }
 if (!update_index_exists($connection, $dbname, $table_prefix . 'users', 'user_reg_ip'))
 {

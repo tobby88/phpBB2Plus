@@ -54,7 +54,9 @@ class ct_database
 		global $db, $lang, $HTTP_SERVER_VARS, $HTTP_ENV_VARS;
 
 		// Set Up UserIP
-		$this->user_ip_value = ( !empty($HTTP_SERVER_VARS['REMOTE_ADDR']) ) ? $HTTP_SERVER_VARS['REMOTE_ADDR'] : ( ( !empty($HTTP_ENV_VARS['REMOTE_ADDR']) ) ? $HTTP_ENV_VARS['REMOTE_ADDR'] : getenv('REMOTE_ADDR') );
+		$remote_ip = ( !empty($HTTP_SERVER_VARS['REMOTE_ADDR']) ) ? $HTTP_SERVER_VARS['REMOTE_ADDR'] : ( ( !empty($HTTP_ENV_VARS['REMOTE_ADDR']) ) ? $HTTP_ENV_VARS['REMOTE_ADDR'] : getenv('REMOTE_ADDR') );
+		$remote_ip = is_scalar($remote_ip) ? trim((string) $remote_ip) : '';
+		$this->user_ip_value = (filter_var($remote_ip, FILTER_VALIDATE_IP) !== false) ? $remote_ip : '0.0.0.0';
 
 		// Load CrackerTracker configuration from database
 		$sql = 'SELECT * FROM ' . CTRACKER_CONFIG;

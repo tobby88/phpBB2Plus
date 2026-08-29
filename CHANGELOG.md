@@ -15,6 +15,10 @@ changes consolidated after that baseline without implying active maintenance.
   request values, invalid IP history and duplicate bans. Content heuristics now
   reject the submitted content without destructively erasing account profile
   data, and password expiry/complexity handling is PHP 8-safe.
+- Made CrackerTracker confirmation codes single-use under concurrent requests
+  and replaced its unbounded session-list cleanup query with a database join.
+  CrackerTracker IP history now validates addresses and stores IPv6 without
+  truncation; the idempotent updater widens existing columns accordingly.
 - Hardened CrackerTracker configuration and blocklist writes, sanitized its
   text log records, serialized concurrent log/counter updates and made a local
   logging failure non-fatal without changing the request-blocking decision.

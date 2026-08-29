@@ -604,8 +604,8 @@ CREATE TABLE phpbb_users (
    ct_post_counter MEDIUMINT( 8 ) DEFAULT 1,
    ct_last_pw_reset INT( 11 ) DEFAULT 1,
    ct_enable_ip_warn TINYINT( 1 ) DEFAULT 1,
-   ct_last_used_ip VARCHAR( 16 ) DEFAULT '0.0.0.0',
-   ct_last_ip VARCHAR( 16 ) DEFAULT '0.0.0.0',
+   ct_last_used_ip VARCHAR( 45 ) DEFAULT '0.0.0.0',
+   ct_last_ip VARCHAR( 45 ) DEFAULT '0.0.0.0',
    ct_login_count MEDIUMINT( 8 ) DEFAULT 1,
    ct_login_vconfirm TINYINT( 1 ) DEFAULT 0,
    ct_last_pw_change INT( 11 ) DEFAULT 1,
@@ -1362,7 +1362,7 @@ CREATE TABLE `phpbb_ctracker_ipblocker` (
 
 CREATE TABLE `phpbb_ctracker_loginhistory` (
 			`ct_user_id` int(10) default NULL,
-			`ct_login_ip` varchar(16) default NULL,
+			`ct_login_ip` varchar(45) default NULL,
 			`ct_login_time` int(11) NOT NULL default '0'
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
