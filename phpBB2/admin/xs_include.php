@@ -607,7 +607,7 @@ function ftp_myexec($list)
 		}
 		// connect to server
 		$ftp_log[] = str_replace('{HOST}', "{$ftp_login}:*@{$ftp_host}", $lang['xs_ftp_log_connecting']);
-		$ftp = @ftp_connect($ftp_host);
+		$ftp = @ftp_connect($ftp_host, 21, 10);
 		if(!$ftp)
 		{
 			$ftp_log[] = $ftp_error = str_replace('{HOST}', $ftp_host, $lang['xs_ftp_log_noconnect']);
@@ -635,32 +635,55 @@ function ftp_myexec($list)
 }
 
 // remove all files via ftp
-function ftp_remove_all($ftp)
+function ftp_remove_all($ftp, $depth = 0)
 {
+	if($depth > 32)
+	{
+		return false;
+	}
 	// get current directory
 	$root_dir = @ftp_pwd($ftp);
+	if($root_dir === false)
+	{
+		return false;
+	}
 	// get list of files
 	$files = @ftp_nlist($ftp, $root_dir);
+	if(!is_array($files))
+	{
+		return false;
+	}
 	// remove files/directories
 	for($i=0; $i<count($files); $i++)
 	{
+		if(basename($files[$i]) === '.' || basename($files[$i]) === '..')
+		{
+			continue;
+		}
 		$res = @ftp_chdir($ftp, $files[$i]);
 		if($res)
 		{
-			ftp_remove_all($ftp);
+			if(!ftp_remove_all($ftp, $depth + 1))
+			{
+				@ftp_chdir($ftp, $root_dir);
+				return false;
+			}
 			@ftp_chdir($ftp, $root_dir);
-			@ftp_rmdir($ftp, $files[$i]);
+			if(!@ftp_rmdir($ftp, $files[$i]))
+			{
+				return false;
+			}
 		}
 		else
 		{
-			if(!@ftp_delete($ftp, $files[$i]))
+			if(!@ftp_delete($ftp, $files[$i]) && !@ftp_rmdir($ftp, $files[$i]))
 			{
-				@ftp_rmdir($ftp, $files[$i]);
+				return false;
 			}
 		}
 	}
 	// change directory back
-	@ftp_chdir($ftp, $root_dir);
+	return @ftp_chdir($ftp, $root_dir) ? true : false;
 }
 
 // execute ftp command. recursive.
@@ -791,7 +814,11 @@ function ftp_myexec2($ftp, $list)
 		}
 		elseif($item['command'] == 'removeall')
 		{
-			ftp_remove_all($ftp);
+			if(!ftp_remove_all($ftp))
+			{
+				$ftp_log[] = $ftp_error = $lang['xs_ftp_log_invalidcommand'];
+				return false;
+			}
 		}
 		else
 		{
@@ -1006,50 +1033,57 @@ function xs_generate_themeinfo($theme_rowset, $export, $exportas, $total)
 // Checks if directory is writable
 function xs_dir_writable($dir)
 {
-	$filename = 'tmp_' . time();
-	$f = @fopen($dir . $filename, 'wb');
-	if($f)
+	$resolved_dir = @realpath($dir);
+	if($resolved_dir === false || !@is_dir($resolved_dir))
 	{
-		fclose($f);
-		@unlink($dir . $filename);
-		return true;
+		return false;
 	}
-	return false;
+	$filename = @tempnam($resolved_dir, 'xs_write_');
+	if($filename === false || @realpath(dirname($filename)) !== $resolved_dir)
+	{
+		if($filename !== false)
+		{
+			@unlink($filename);
+		}
+		return false;
+	}
+	@unlink($filename);
+	return true;
 }
 
 // Write to file. Create directory if necessary
 function xs_write_file($filename, $data)
 {
-	$f = @fopen($filename, 'wb');
-	if(!$f)
+	if(!is_string($filename) || strpos($filename, "\0") !== false || !is_string($data))
 	{
-		// try to create directories
-		$pos = strrpos($filename, '/');
-		if(!$pos)
-		{
-			return false;
-		}
-		$dir = substr($filename, 0, $pos);
-		xs_create_dir($dir);
-		$f = @fopen($filename, 'wb');
-		if(!$f)
-		{
-			return false;
-		}
+		return false;
 	}
-	fwrite($f, $data);
-	fclose($f);
-	@chmod($filename, 0664);
+	$dir = dirname($filename);
+	if(!@is_dir($dir) && !xs_create_dir($dir))
+	{
+		return false;
+	}
+	$tmp_filename = @tempnam($dir, 'xs_write_');
+	if($tmp_filename === false || @file_put_contents($tmp_filename, $data, LOCK_EX) !== strlen($data) || !@rename($tmp_filename, $filename))
+	{
+		if($tmp_filename !== false)
+		{
+			@unlink($tmp_filename);
+		}
+		return false;
+	}
+	@chmod($filename, 0644);
 	return true;
 }
 
 // Create local directory
 function xs_create_dir($dir)
 {
-	if(!$dir)
+	if(!is_string($dir) || $dir === '' || strpos($dir, "\0") !== false)
 	{
 		return false;
 	}
+	$dir = str_replace('\\', '/', $dir);
 	// remove trailing /
 	if(substr($dir, strlen($dir) - 1) === '/')
 	{
@@ -1063,7 +1097,11 @@ function xs_create_dir($dir)
 	{
 		return false;
 	}
-	$res = @mkdir($dir, 0777);
+	if(@is_dir($dir))
+	{
+		return true;
+	}
+	$res = @mkdir($dir, 0775);
 	if($res)
 	{
 		return true;
@@ -1084,7 +1122,7 @@ function xs_create_dir($dir)
 	{
 		return false;
 	}
-	$res = @mkdir($dir2, 0777);
+	$res = @mkdir($dir, 0775);
 	return $res ? true : false;
 }
 
