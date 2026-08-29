@@ -18,7 +18,14 @@ $phpbb_root_path = '../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
-$username = isset($_REQUEST['username']) ? phpbb_clean_username((string) $_REQUEST['username']) : '';
+$username_input = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] :
+	((isset($_GET['username']) && is_scalar($_GET['username'])) ? (string) $_GET['username'] : '');
+$username = phpbb_clean_username($username_input);
+$resolve = isset($_POST['resolve']) && is_scalar($_POST['resolve']) && (string) $_POST['resolve'] === '1';
+if ($resolve)
+{
+	phpbb_admin_require_post_session();
+}
 if ($username === '')
 {
 	$template->set_filenames(array('body' => 'admin/user_select_body.tpl'));
@@ -33,7 +40,7 @@ if ($username === '')
 	exit;
 }
 
-$username_sql = str_replace("'", "''", str_replace("\\'", "'", $username));
+$username_sql = $db->sql_escape($username);
 $sql = "SELECT user_id, username, user_email, user_posts, user_regdate, user_reg_ip, user_reg_host
 	FROM " . USERS_TABLE . " WHERE username = '$username_sql'";
 if (!($result = $db->sql_query($sql)))
@@ -48,15 +55,19 @@ $db->sql_freeresult($result);
 
 $ip = trim((string) $main['user_reg_ip']);
 $host = trim((string) $main['user_reg_host']);
-if ($ip !== '' && isset($_GET['resolve']) && $_GET['resolve'] === '1')
+if ($ip !== '' && $resolve && filter_var($ip, FILTER_VALIDATE_IP))
 {
 	$resolved = @gethostbyaddr($ip);
-	$host = ($resolved && $resolved !== $ip) ? $resolved : $lang['Registration_IP_no_hostname'];
-	if ($resolved && $resolved !== $ip)
+	$resolved = ($resolved && $resolved !== $ip && !preg_match('/[\x00-\x1f\x7f]/', $resolved)) ? substr($resolved, 0, 255) : '';
+	$host = ($resolved !== '') ? $resolved : $lang['Registration_IP_no_hostname'];
+	if ($resolved !== '')
 	{
-		$host_sql = str_replace("'", "''", substr($resolved, 0, 255));
+		$host_sql = $db->sql_escape($resolved);
 		$sql = "UPDATE " . USERS_TABLE . " SET user_reg_host = '$host_sql' WHERE user_id = " . intval($main['user_id']);
-		$db->sql_query($sql);
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not store registration hostname', '', __LINE__, __FILE__, $sql);
+		}
 	}
 }
 else if ($host === '')
@@ -70,17 +81,18 @@ $template->assign_vars(array(
 	'L_USERNAME' => $lang['Username'], 'L_POSTS' => $lang['Posts'], 'L_JOINED' => $lang['Joined'], 'L_EMAIL' => $lang['Email'],
 	'L_IP' => $lang['Registration_IP_address'], 'L_HOST' => $lang['Registration_IP_hostname'],
 	'L_SHARED' => $lang['Registration_IP_shared'], 'L_RESOLVE' => $lang['Registration_IP_resolve'],
-	'MAIN_USER' => htmlspecialchars($main['username'], ENT_QUOTES, 'UTF-8'),
-	'MAIN_EMAIL' => htmlspecialchars($main['user_email'], ENT_QUOTES, 'UTF-8'), 'MAIN_POSTS' => intval($main['user_posts']),
-	'MAIN_JOINED' => create_date($lang['DATE_FORMAT'], $main['user_regdate'], $board_config['board_timezone']),
-	'MAIN_IP' => ($ip === '') ? $lang['Registration_IP_unknown'] : htmlspecialchars($ip, ENT_QUOTES, 'UTF-8'),
-	'MAIN_HOST' => htmlspecialchars($host, ENT_QUOTES, 'UTF-8'),
-	'U_RESOLVE' => append_sid("admin_reg_ip.$phpEx?username=" . urlencode($main['username']) . '&amp;resolve=1')
+	'MAIN_USER' => htmlspecialchars($main['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+	'MAIN_EMAIL' => htmlspecialchars($main['user_email'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'MAIN_POSTS' => intval($main['user_posts']),
+	'MAIN_JOINED' => htmlspecialchars(create_date($lang['DATE_FORMAT'], $main['user_regdate'], $board_config['board_timezone']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+	'MAIN_IP' => ($ip === '') ? $lang['Registration_IP_unknown'] : htmlspecialchars($ip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+	'MAIN_HOST' => htmlspecialchars($host, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+	'S_RESOLVE_ACTION' => append_sid("admin_reg_ip.$phpEx"),
+	'S_RESOLVE_FIELDS' => '<input type="hidden" name="username" value="' . htmlspecialchars($main['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" /><input type="hidden" name="resolve" value="1" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />'
 ));
 
 if ($ip !== '')
 {
-	$ip_sql = str_replace("'", "''", $ip);
+	$ip_sql = $db->sql_escape($ip);
 	$sql = "SELECT user_id, username, user_email, user_posts, user_regdate
 		FROM " . USERS_TABLE . " WHERE user_reg_ip = '$ip_sql' ORDER BY user_regdate";
 	if (!($result = $db->sql_query($sql)))
@@ -92,9 +104,9 @@ if ($ip !== '')
 	{
 		$template->assign_block_vars('userrow', array(
 			'ROW_CLASS' => (($i++ % 2) === 0) ? 'row1' : 'row2',
-			'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8'),
-			'EMAIL' => htmlspecialchars($row['user_email'], ENT_QUOTES, 'UTF-8'), 'POSTS' => intval($row['user_posts']),
-			'JOINED' => create_date($lang['DATE_FORMAT'], $row['user_regdate'], $board_config['board_timezone']),
+			'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+			'EMAIL' => htmlspecialchars($row['user_email'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'POSTS' => intval($row['user_posts']),
+			'JOINED' => htmlspecialchars(create_date($lang['DATE_FORMAT'], $row['user_regdate'], $board_config['board_timezone']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 			'U_USER' => append_sid("admin_users.$phpEx?mode=edit&amp;" . POST_USERS_URL . '=' . intval($row['user_id']))
 		));
 	}

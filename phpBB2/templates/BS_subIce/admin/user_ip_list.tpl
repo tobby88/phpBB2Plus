@@ -4,7 +4,7 @@
 <table width="100%" cellpadding="5" cellspacing="1" border="0" class="forumline">
 <tr><th colspan="2">{MAIN_USER}</th></tr>
 <tr><td class="row1" width="30%"><b>{L_IP}</b></td><td class="row2">{MAIN_IP}</td></tr>
-<tr><td class="row1"><b>{L_HOST}</b></td><td class="row2">{MAIN_HOST} &nbsp; <a href="{U_RESOLVE}">{L_RESOLVE}</a></td></tr>
+<tr><td class="row1"><b>{L_HOST}</b></td><td class="row2">{MAIN_HOST} &nbsp; <form method="post" action="{S_RESOLVE_ACTION}" style="display: inline;">{S_RESOLVE_FIELDS}<input type="submit" class="liteoption" value="{L_RESOLVE}" /></form></td></tr>
 <tr><td class="row1"><b>{L_EMAIL}</b></td><td class="row2">{MAIN_EMAIL}</td></tr>
 <tr><td class="row1"><b>{L_POSTS}</b></td><td class="row2">{MAIN_POSTS}</td></tr>
 <tr><td class="row1"><b>{L_JOINED}</b></td><td class="row2">{MAIN_JOINED}</td></tr>

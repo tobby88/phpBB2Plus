@@ -18,22 +18,27 @@ $phpbb_root_path = '../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
-$start = isset($_GET['start']) ? max(0, intval($_GET['start'])) : 0;
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
 $per_page = max(10, intval($board_config['topics_per_page']));
 $sort_map = array('time' => 'l.log_time', 'user' => 'l.username', 'action' => 'l.mode', 'topic' => 'l.topic_id');
-$sort = isset($_REQUEST['sort']) ? (string) $_REQUEST['sort'] : 'time';
+$sort = (isset($_GET['sort']) && is_scalar($_GET['sort'])) ? (string) $_GET['sort'] : 'time';
 if (!isset($sort_map[$sort])) { $sort = 'time'; }
-$order = (isset($_REQUEST['order']) && strtoupper((string) $_REQUEST['order']) === 'ASC') ? 'ASC' : 'DESC';
+$order = (isset($_GET['order']) && is_scalar($_GET['order']) && strtoupper((string) $_GET['order']) === 'ASC') ? 'ASC' : 'DESC';
 
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST')
 {
-	if (!isset($_POST['sid']) || $_POST['sid'] !== $userdata['session_id'])
-	{
-		message_die(GENERAL_ERROR, $lang['Log_invalid_session']);
-	}
+	phpbb_admin_require_post_session();
 	if (isset($_POST['delete_selected']) && isset($_POST['log_id']) && is_array($_POST['log_id']))
 	{
-		$ids = array_values(array_unique(array_filter(array_map('intval', $_POST['log_id']))));
+		$ids = array();
+		foreach ($_POST['log_id'] as $log_id)
+		{
+			if (is_scalar($log_id) && intval($log_id) > 0)
+			{
+				$ids[intval($log_id)] = intval($log_id);
+			}
+		}
+		$ids = array_values($ids);
 		if (!empty($ids))
 		{
 			$sql = "DELETE FROM " . LOGS_TABLE . " WHERE id_log IN (" . implode(', ', $ids) . ")";
@@ -42,7 +47,8 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST')
 	}
 	if (isset($_POST['prune']))
 	{
-		$days = max(1, intval($_POST['prune_days']));
+		$days = (isset($_POST['prune_days']) && is_scalar($_POST['prune_days'])) ? intval($_POST['prune_days']) : 1;
+		$days = max(1, min(36500, $days));
 		$before = time() - ($days * 86400);
 		$sql = "DELETE FROM " . LOGS_TABLE . " WHERE log_time < $before";
 		if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not prune log entries', '', __LINE__, __FILE__, $sql); }
@@ -72,7 +78,7 @@ $template->assign_vars(array(
 	'L_IP' => $lang['Log_ip'], 'L_DATE' => $lang['Log_date'], 'L_DELETE_SELECTED' => $lang['Log_delete_selected'],
 	'L_PRUNE' => $lang['Log_prune'], 'L_DAYS' => $lang['Log_days'],
 	'S_SORT_OPTIONS' => $sort_options, 'ASC_SELECTED' => ($order === 'ASC') ? ' selected="selected"' : '',
-	'DESC_SELECTED' => ($order === 'DESC') ? ' selected="selected"' : '', 'S_SID' => htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8'),
+	'DESC_SELECTED' => ($order === 'DESC') ? ' selected="selected"' : '', 'S_SID' => htmlspecialchars($userdata['session_id'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 	'U_ACTION' => append_sid("admin_logs.$phpEx"),
 	'PAGINATION' => generate_pagination(append_sid("admin_logs.$phpEx?sort=$sort&amp;order=$order"), $total, $per_page, $start),
 	'PAGE_NUMBER' => sprintf($lang['Page_of'], floor($start / $per_page) + 1, max(1, ceil($total / $per_page)))
@@ -89,9 +95,9 @@ while ($row = $db->sql_fetchrow($result))
 	$user_id = intval($row['user_id']);
 	$template->assign_block_vars('logrow', array(
 		'ROW_CLASS' => (($i++ % 2) === 0) ? 'row1' : 'row2', 'ID' => intval($row['id_log']),
-		'ACTION' => htmlspecialchars($action_label, ENT_QUOTES, 'UTF-8'), 'TOPIC' => $topic_id,
-		'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8'), 'IP' => htmlspecialchars($row['user_ip'], ENT_QUOTES, 'UTF-8'),
-		'DATE' => create_date($lang['DATE_FORMAT'], $row['log_time'], $board_config['board_timezone']),
+		'ACTION' => htmlspecialchars($action_label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'TOPIC' => $topic_id,
+		'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), 'IP' => htmlspecialchars($row['user_ip'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+		'DATE' => htmlspecialchars(create_date($lang['DATE_FORMAT'], $row['log_time'], $board_config['board_timezone']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 		'U_TOPIC' => append_sid($phpbb_root_path . "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id"),
 		'U_USER' => append_sid("admin_users.$phpEx?mode=edit&amp;" . POST_USERS_URL . "=$user_id")
 	));

@@ -233,6 +233,9 @@ changes consolidated after that baseline without implying active maintenance.
   administration writes to the active admin session. Smiley-pack imports are
   size-bounded, validated completely before replacing data and confined to
   package and image files already present in the configured smiley directory.
+- Hardened moderation-log deletion and pruning against malformed identifiers
+  and moved Registration IP hostname resolution and persistence from a GET
+  link to an explicit session-bound POST action.
 - Hardened custom-profile-field administration against injected identifiers,
   array-shaped form values and unescaped database content; column names used
   by schema changes are derived and validated server-side. Also repaired the
