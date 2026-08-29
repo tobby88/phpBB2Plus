@@ -36,7 +36,31 @@ require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_main_album.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_album.' . $phpEx);
 
-if( !isset($_POST['submit']) )
+$submit = isset($_POST['submit']);
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+
+function admin_album_personal_group_ids($key)
+{
+	if (!isset($_POST[$key]) || !is_array($_POST[$key]))
+	{
+		return '';
+	}
+	$ids = array();
+	foreach ($_POST[$key] as $value)
+	{
+		if (is_scalar($value) && intval($value) > 0)
+		{
+			$ids[intval($value)] = intval($value);
+		}
+	}
+	ksort($ids, SORT_NUMERIC);
+	return implode(',', array_values($ids));
+}
+
+if (!$submit)
 {
 	$template->set_filenames(array(
 		'body' => 'admin/album_personal_body.tpl')
@@ -52,10 +76,12 @@ if( !isset($_POST['submit']) )
 		message_die(GENERAL_ERROR, "Couldn't get group list", "", __LINE__, __FILE__, $sql);
 	}
 
+	$groupdata = array();
 	while( $row = $db->sql_fetchrow($result) )
 	{
 		$groupdata[] = $row;
 	}
+	$db->sql_freeresult($result);
 
 	// Get the current album settings for non created personal galleries
 	$sql = "SELECT *
@@ -66,7 +92,8 @@ if( !isset($_POST['submit']) )
 		message_die(GENERAL_ERROR, "Couldn't get Album info", "", __LINE__, __FILE__, $sql);
 	}
 	$row = $db->sql_fetchrow($result);
-	$private_groups = explode(',', $row['config_value']);
+	$db->sql_freeresult($result);
+	$private_groups = explode(',', $row ? (string) $row['config_value'] : '');
 	//--- Album Category Hierarchy : begin
 	//--- version : 1.1.0beta6
 	// Since all personal galleries have the same private/moderator settings we fetch the first
@@ -82,6 +109,15 @@ if( !isset($_POST['submit']) )
 	}
 
 	$thiscat = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$thiscat)
+	{
+		$thiscat = array(
+			'cat_view_groups' => '', 'cat_upload_groups' => '', 'cat_rate_groups' => '',
+			'cat_comment_groups' => '', 'cat_edit_groups' => '', 'cat_delete_groups' => '',
+			'cat_moderator_groups' => ''
+		);
+	}
 
 	$view_groups = @explode(',', $thiscat['cat_view_groups']);
 	$upload_groups = @explode(',', $thiscat['cat_upload_groups']);
@@ -102,16 +138,16 @@ if( !isset($_POST['submit']) )
 		//--- added
 		$template->assign_block_vars('creation_grouprow', array(
 		//--- Album Category Hierarchy : end
-			'GROUP_ID' => $groupdata[$i]['group_id'],
-			'GROUP_NAME' => $groupdata[$i]['group_name'],
+			'GROUP_ID' => intval($groupdata[$i]['group_id']),
+			'GROUP_NAME' => phpbb_admin_html($groupdata[$i]['group_name']),
 			'PRIVATE_CHECKED' => (in_array($groupdata[$i]['group_id'], $private_groups)) ? 'checked="checked"' : ''
 			) //end array
 		);
 		//--- Album Category Hierarchy : begin
 		//--- version : 1.1.0beta6
 		$template->assign_block_vars('grouprow', array(
-			'GROUP_ID' => $groupdata[$i]['group_id'],
-			'GROUP_NAME' => $groupdata[$i]['group_name'],
+			'GROUP_ID' => intval($groupdata[$i]['group_id']),
+			'GROUP_NAME' => phpbb_admin_html($groupdata[$i]['group_name']),
 
 			'VIEW_CHECKED' => (in_array($groupdata[$i]['group_id'], $view_groups)) ? 'checked="checked"' : '',
 
@@ -153,7 +189,8 @@ if( !isset($_POST['submit']) )
 		'L_IS_MODERATOR' => $lang['Is_Moderator'],
 		//--- Album Category Hierarchy : end
 		'L_PRIVATE_ACCESS' => isset($lang['Private_access']) ? $lang['Private_access'] : $lang['Private'],
-		'S_ALBUM_ACTION' => append_sid('admin_album_personal.'.$phpEx)
+		'S_ALBUM_ACTION' => append_sid('admin_album_personal.'.$phpEx),
+		'S_HIDDEN_FIELDS' => phpbb_admin_session_field()
 		)
 	);
 
@@ -164,17 +201,17 @@ if( !isset($_POST['submit']) )
 else
 {
 	// Now we update the datatabase
-	$private_groups = @implode(',', $_POST['private']);
+	$private_groups = admin_album_personal_group_ids('private');
 	//--- Album Category Hierarchy : begin
 	//--- version : 1.1.0beta6
-	$view_groups = @implode(',', $_POST['view']);
-	$upload_groups = @implode(',', $_POST['upload']);
-	$rate_groups = @implode(',', $_POST['rate']);
-	$comment_groups = @implode(',', $_POST['comment']);
-	$edit_groups = @implode(',', $_POST['edit']);
-	$delete_groups = @implode(',', $_POST['delete']);
+	$view_groups = admin_album_personal_group_ids('view');
+	$upload_groups = admin_album_personal_group_ids('upload');
+	$rate_groups = admin_album_personal_group_ids('rate');
+	$comment_groups = admin_album_personal_group_ids('comment');
+	$edit_groups = admin_album_personal_group_ids('edit');
+	$delete_groups = admin_album_personal_group_ids('delete');
 
-	$moderator_groups = @implode(',', $_POST['moderator']);
+	$moderator_groups = admin_album_personal_group_ids('moderator');
 	//--- Album Category Hierarchy : end
 	
     // album config for non created personal galleries

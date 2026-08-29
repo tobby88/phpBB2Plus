@@ -244,6 +244,10 @@ changes consolidated after that baseline without implying active maintenance.
   HTTP(S) absolute base URLs.
 - Removed the RSS endpoint's undefined and semantically incorrect third
   session argument on current PHP versions.
+- Bound Arcade-wide value changes and personal-album group permissions to the
+  active admin session. Personal-gallery permission lists now contain only
+  positive, unique numeric group identifiers, and the Arcade forms use valid
+  table/form markup.
 - Hardened custom-profile-field administration against injected identifiers,
   array-shaped form values and unescaped database content; column names used
   by schema changes are derived and validated server-side. Also repaired the

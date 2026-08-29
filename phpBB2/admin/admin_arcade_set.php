@@ -52,14 +52,18 @@ $file = basename(__FILE__);
 // Check to see what mode we should operate in.
 // 
 $allowed_fields = array('game_charge', 'game_bonus', 'at_game_bonus', 'game_reward', 'highscore_limit', 'at_highscore_limit');
-$mode = isset($HTTP_GET_VARS['mode']) ? (string) $HTTP_GET_VARS['mode'] : '';
+$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '';
 if (!in_array($mode, $allowed_fields, true))
 {
 	$mode = '';
 }
 
-$is_update = ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode !== '' &&
-	isset($HTTP_POST_VARS[$mode]) && !is_array($HTTP_POST_VARS[$mode]));
+$is_update = (isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST' && $mode !== '' &&
+	isset($_POST[$mode]) && is_scalar($_POST[$mode]));
+if ($is_update)
+{
+	phpbb_admin_require_post_session();
+}
 //
 //  Main Menu 
 //
@@ -72,6 +76,7 @@ if (!$is_update)
 		'L_INFO' => $lang['admin_set_info'],
 		'SET_INFO' => $lang['admin_set'],
 		'L_WARNING' => $lang['admin_set_warning'],
+		'S_SESSION_FIELD' => phpbb_admin_session_field(),
 		
 		'SET_ARCADE' => $lang['admin_set_arcade'],
 		'SET_CHARGE' => $lang['admin_set_charge'],
@@ -101,7 +106,7 @@ else //if( $mode == "set_charge")
   echo '<tr><th>Updating the database</th></tr><tr><td><span class="genmed"><ul type="circle">';
 
 
-  $setcharge = intval($HTTP_POST_VARS[$mode]);
+  $setcharge = intval($_POST[$mode]);
   
   $sql = "UPDATE `" . $table_prefix . "ina_games` SET $mode = $setcharge";
 

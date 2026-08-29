@@ -13,40 +13,28 @@
       </div></td>
     </tr>
     <tr>
-<form method="POST" action="{S_SET_CHARGE}">
       <td width="50%" class="row2"><div align="right">{SET_CHARGE}</div></td>
-      <td width="50%" class="row3"><input type="text" name="game_charge" size="3"> <input type="submit" name="Set Charge"></td>
-</form>
+      <td width="50%" class="row3"><form method="post" action="{S_SET_CHARGE}" style="display: inline;">{S_SESSION_FIELD}<input type="text" name="game_charge" size="3" /> <input type="submit" value="Set Charge" /></form></td>
     </tr>
     <tr>
-<form method="POST" action="{S_SET_BONUS}">
       <td width="50%" class="row2"><div align="right">{SET_HIGHSCORE}</div></td>
-      <td width="50%" class="row3"><input type="text" name="game_bonus" size="3"> <input type="submit" name="Set Bonus"></td>
-</form>
+      <td width="50%" class="row3"><form method="post" action="{S_SET_BONUS}" style="display: inline;">{S_SESSION_FIELD}<input type="text" name="game_bonus" size="3" /> <input type="submit" value="Set Bonus" /></form></td>
     </tr>
     <tr>
-<form method="POST" action="{S_SET_AT_BONUS}">
       <td width="50%" class="row2"><div align="right">{SET_AT_HIGHSCORE}</div></td>
-      <td width="50%" class="row3"><input type="text" name="at_game_bonus" size="3"> <input type="submit" name="Set AT Bonus"></td>
-</form>
+      <td width="50%" class="row3"><form method="post" action="{S_SET_AT_BONUS}" style="display: inline;">{S_SESSION_FIELD}<input type="text" name="at_game_bonus" size="3" /> <input type="submit" value="Set AT Bonus" /></form></td>
     </tr>
     <tr>
-<form method="POST" action="{S_SET_REWARD}">
       <td width="50%" class="row2"><div align="right">Set Reward</div></td>
-      <td width="50%" class="row3"><input type="text" name="game_reward" size="3"> <input type="submit" name="Set Reward"></td>
-</form>
+      <td width="50%" class="row3"><form method="post" action="{S_SET_REWARD}" style="display: inline;">{S_SESSION_FIELD}<input type="text" name="game_reward" size="3" /> <input type="submit" value="Set Reward" /></form></td>
     </tr>
     <tr>
-<form method="POST" action="{S_SET_LIMIT}">
       <td width="50%" class="row2"><div align="right">Set Highscore limit</div></td>
-      <td width="50%" class="row3"><input type="text" name="highscore_limit" size="3"> <input type="submit" name="Set Reward"></td>
-</form>
+      <td width="50%" class="row3"><form method="post" action="{S_SET_LIMIT}" style="display: inline;">{S_SESSION_FIELD}<input type="text" name="highscore_limit" size="3" /> <input type="submit" value="Set Limit" /></form></td>
     </tr>
     <tr>
-<form method="POST" action="{S_SET_AT_LIMIT}">
       <td width="50%" class="row2"><div align="right">Set All Time Highscore Limit</div></td>
-      <td width="50%" class="row3"><input type="text" name="at_highscore_limit" size="3"> <input type="submit" name="Set Reward"></td>
-</form>
+      <td width="50%" class="row3"><form method="post" action="{S_SET_AT_LIMIT}" style="display: inline;">{S_SESSION_FIELD}<input type="text" name="at_highscore_limit" size="3" /> <input type="submit" value="Set Limit" /></form></td>
     </tr>
     <tr>
       <td colspan="2" align="center" class="cat">{L_WARNING}</td>
