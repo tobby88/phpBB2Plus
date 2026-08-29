@@ -193,7 +193,7 @@ $lang['ctracker_file_legacy_checksum'] = 'LEGACY CHECKSUM – REBUILD REQUIRED';
 /*
  * File Safety Scanner in ACP
  */
-$lang['ctracker_fscan_complete']		  = 'The Filescan was executed successfully. Please click on "Show Results", to see the results. You can correct the files.<br /><br /><br /><br /><u>TIP:</u><br /><br />Occasionally it can happen that CrackerTracker detects a file as insecure. This can happen as PHP files can be very, very different and sometimes a developer wants that the code is writeable from outside. In this case - and ONLY if are absolutely sure you can tell CRACKERTRACKER that this is a secure file. Just write in this file at the very beginning: <?php the following code: <br /><br /><br /><i>// CTracker_Ignore: File Checked By Human</i><br /><br /><br />If you are not suree you can also look at the <a href="http://www.community.cback.de" target="_blank">CBACK Community</a> for more instructions.';
+$lang['ctracker_fscan_complete']		  = 'The file scan completed successfully. Use "Show Results" to review the new report. The previous complete result set was replaced only after the scan succeeded.<br /><br /><b>Note:</b> This check identifies structural concerns; it proves neither safety nor compromise. Review reported files in context. A source-code comment can no longer disable the check wholesale.';
 $lang['ctracker_fscan_unchecked']		  = 'NOT CHECKED';
 $lang['ctracker_fscan_ok']                = 'SAFE';
 $lang['ctracker_fscan_prob_1']			  = 'extension.inc not / too late included';

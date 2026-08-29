@@ -40,9 +40,7 @@ if( $action == 'scan' )
 {
 	phpbb_admin_require_post_session();
 	// scan files
-	$admin_filescan->DropData();
-	$admin_filescan->CreateFileList($phpbb_root_path, '', $phpEx);
-	$admin_filescan->ScanFile();
+	$admin_filescan->RunFileScan($phpbb_root_path, $phpEx);
 	
 	$timestamp = time();
 	$ctracker_config->change_configuration('last_file_scan', $timestamp);

@@ -26,6 +26,8 @@ class ct_adminfunctions
 {
 	var $filechk_root = '';
 	var $filechk_count = 0;
+	var $filescan_root = '';
+	var $filescan_count = 0;
 
 	/**
 	 * <b>ct_adminfunctions</b>
@@ -365,11 +367,15 @@ class ct_adminfunctions
 	*
 	* @param $fid = File Identification Number in Database
 	*/
-	function ScanFile()
+	function ScanFile($source_table = '')
 	{
 		global $db, $phpbb_root_path, $lang;
+		if ($source_table === '')
+		{
+			$source_table = CTRACKER_FILESCANNER;
+		}
 
-	  	$sql = 'SELECT id, filepath FROM ' . CTRACKER_FILESCANNER;
+		$sql = 'SELECT id, filepath FROM ' . $source_table;
 
 	  	if((!$result = $db->sql_query($sql)))
 	  	{
@@ -396,8 +402,14 @@ class ct_adminfunctions
 			$scanline        = '';
 			$acp_flag        = false;
 
-			$filename        = file($row['filepath']);
+			$filename        = @file($row['filepath']);
 			$file_db_id      = intval($row['id']);
+			if (!is_array($filename))
+			{
+				$write_back = 'UPDATE ' . $source_table . ' SET safety = 10 WHERE id = ' . $file_db_id;
+				$db->sql_query($write_back);
+				continue;
+			}
 
 			for ($i = 0; $i <= count($filename)-1; $i++)
 	    	{
@@ -406,16 +418,6 @@ class ct_adminfunctions
 				$scanline = str_replace(' ', '', $scanline);
 				$scanline = str_replace("\t", '', $scanline);
 				$scanline = str_replace(chr(13), '', $scanline);
-
-				if(preg_match('/\/\/ctracker_ignore:filecheckedbyhuman/', $scanline))
-				{
-					// File checked and verified by a human
-					$common_included = true;
-					$constant_set    = true;
-					$root_path       = true;
-					$extension_inc   = true;
-					break;
-				}
 
 				if(!preg_match('/\\$no_page_header|\\$confirm|\\$close/', $scanline) && !preg_match('/^[ \\t]*$\\r?\\n/m', $scanline) && !preg_match('/<\\?php|\\?>|\/\/|\/\/.|\/\\*.|\/\\*|#|#.|\*|\*./m', $scanline) && !empty($scanline))
 				{
@@ -571,12 +573,64 @@ class ct_adminfunctions
 			}
 
 			// Write value back to database
-			$write_back = 'UPDATE ' . CTRACKER_FILESCANNER . ' SET safety = ' . intval($security_risk) . ' WHERE id = ' . $row['id'];
+			$write_back = 'UPDATE ' . $source_table . ' SET safety = ' . intval($security_risk) . ' WHERE id = ' . $file_db_id;
 	  		if((!$backwriter = $db->sql_query($write_back)))
 	  		{
 	    		message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $write_back);
 	  		}
 	  	} // while
+	}
+
+
+	/**
+	 * Build and analyze a new scanner report without destroying the previous
+	 * complete report when traversal, parsing or database writes fail.
+	 */
+	function RunFileScan($dir, $extension = '')
+	{
+		global $db, $lang;
+
+		$scan_root = @realpath($dir);
+		if ($scan_root === false || !is_dir($scan_root) || !is_readable($scan_root))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_fileop']);
+		}
+		$this->filescan_root = str_replace('\\', '/', rtrim($scan_root, '/\\'));
+		$this->filescan_count = 0;
+
+		$temporary_table = CTRACKER_FILESCANNER . '_new';
+		$backup_table = CTRACKER_FILESCANNER . '_old';
+		$sql = 'DROP TABLE IF EXISTS ' . $temporary_table;
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+		$sql = 'CREATE TABLE ' . $temporary_table . ' LIKE ' . CTRACKER_FILESCANNER;
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+
+		$this->CreateFileList($dir, '', $extension, $temporary_table);
+		if ($this->filescan_count < 1)
+		{
+			$db->sql_query('DROP TABLE IF EXISTS ' . $temporary_table);
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_fileop']);
+		}
+		$this->ScanFile($temporary_table);
+
+		$sql = 'DROP TABLE IF EXISTS ' . $backup_table;
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+		$sql = 'RENAME TABLE ' . CTRACKER_FILESCANNER . ' TO ' . $backup_table . ', ' .
+			$temporary_table . ' TO ' . CTRACKER_FILESCANNER;
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+		$db->sql_query('DROP TABLE IF EXISTS ' . $backup_table);
 	}
 
 
@@ -608,62 +662,77 @@ class ct_adminfunctions
 	 * @param $prefix    = current file path
 	 * @param $extension = file extension to find
 	 */
-	function CreateFileList($dir, $prefix = '', $extension = '')
+	function CreateFileList($dir, $prefix = '', $extension = '', $target_table = '')
 	{
 	  	global $db, $lang;
+		if ($target_table === '')
+		{
+			$target_table = CTRACKER_FILESCANNER;
+		}
+		if ($this->filescan_root === '')
+		{
+			$scan_root = @realpath($dir);
+			if ($scan_root === false)
+			{
+				return false;
+			}
+			$this->filescan_root = str_replace('\\', '/', rtrim($scan_root, '/\\'));
+			$this->filescan_count = 0;
+		}
 
-	    $directory = @opendir($dir);
+		$directory = @opendir($dir);
+		if ($directory === false)
+		{
+			return false;
+		}
+		$extension = strtolower(ltrim((string) $extension, '.'));
 
-		while ( @$file = readdir($directory) )
-	    {
-	        if ( !in_array( $file, array('.', '..') ) )
-	        {
-	            $is_dir = ( is_dir($dir .'/'. $file) ) ? true : false;
+		while (($file = @readdir($directory)) !== false)
+		{
+			if ($file === '.' || $file === '..')
+			{
+				continue;
+			}
 
-	            // create real filepath
-				$temp_path  = '';
-				$temp_path  = $dir . '/' . (($is_dir) ? strtoupper($file) : $file);
-				$temp_path  = str_replace('//', '/', $temp_path);
+			$path = rtrim($dir, '/\\') . '/' . $file;
+			if (@is_link($path))
+			{
+				continue;
+			}
+			$resolved_path = @realpath($path);
+			if ($resolved_path === false)
+			{
+				continue;
+			}
+			$resolved_path = str_replace('\\', '/', $resolved_path);
+			if ($resolved_path !== $this->filescan_root && strpos($resolved_path, $this->filescan_root . '/') !== 0)
+			{
+				continue;
+			}
 
-				// remove dot from extension parameter
-				$extension  = str_replace('.', '', $extension);
-
-				// special filter for file extension and folders (we don't check language folders or the cache)
-				if( preg_match("/^.*?\." . $extension . "$/", $temp_path) )
+			$is_dir = @is_dir($path);
+			$temp_path = preg_replace('~/+~', '/', $path);
+			$relative_path = substr($resolved_path, strlen($this->filescan_root));
+			if (!$is_dir && strtolower(pathinfo($resolved_path, PATHINFO_EXTENSION)) === $extension &&
+				!preg_match('~(^|/)(?:language|db|cache)(?:/|$)|(?:^|/)config\\.php$|(?:^|/)common\\.php$~i', $relative_path))
+			{
+				$newid = ++$this->filescan_count;
+				$sql = 'INSERT INTO ' . $target_table . ' (`id`, `filepath`, `safety`)
+					VALUES (' . $newid . ", '" . $db->sql_escape($temp_path) . "', 10)";
+				if (!$db->sql_query($sql))
 				{
-					if( !preg_match('/language\\/|lang_|db\\/|config\\.php|cache\\/|common\\.php/m', $temp_path) )
-				  	{
-						$sql = "SELECT MAX(id) AS total FROM " . CTRACKER_FILESCANNER;
-						if ( !($result = $db->sql_query($sql)) )
-						{
-							message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-						}
-						if ( !($row = $db->sql_fetchrow($result)) )
-						{
-							message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-						}
-						$newid = $row['total'] + 1;
-
-						$sql = 'INSERT INTO ' . CTRACKER_FILESCANNER . ' (`id`, `filepath`, `safety`)
-									VALUES (' . $newid . ', \'' . $temp_path . '\', 10)';
-
-						if(!($result = $db->sql_query($sql)))
-						{
-	    					message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-						}
-				 	 }
+					message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 				}
+			}
 
-				// Directory found, so recall this function
-	            if ( $is_dir )
-	            {
-	              $this->CreateFileList($dir .'/'. $file, $dir .'/', $extension);
-	            }
-	        } // if
-	    } // while
+			if ($is_dir)
+			{
+				$this->CreateFileList($path, '', $extension, $target_table);
+			}
+		}
 
 		@closedir($directory);
-
+		return true;
 	} // CreateFileList
 
 

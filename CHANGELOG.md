@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the CrackerTracker source scanner so a magic source-code comment
+  can no longer declare an arbitrary file safe. Traversal stays inside the
+  forum root, skips symlinks and volatile/cache data, escapes stored paths and
+  indexes files linearly instead of querying the maximum ID for every file.
+  Reports are built and analyzed in a staging table, then atomically replace
+  the last complete report only after success; unreadable files no longer
+  cause PHP 8 type errors. Filesystem behavior is covered in CI.
 - Extended CrackerTracker's central rate limiter from a manually maintained
   plugin filename list to every POST entry point, while retaining tighter
   buckets for logins, registrations, uploads, password resets and email forms.

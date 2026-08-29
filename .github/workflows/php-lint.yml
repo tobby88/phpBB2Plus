@@ -85,3 +85,6 @@ jobs:
 
       - name: Test CrackerTracker integrity checksums
         run: php .github/scripts/check-ctracker-checksums.php
+
+      - name: Test CrackerTracker file scanner
+        run: php .github/scripts/check-ctracker-file-scanner.php
