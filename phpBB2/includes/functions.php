@@ -874,20 +874,31 @@ function setup_style($style)
 	global $db, $board_config, $template, $images, $phpbb_root_path;
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
-	global $phpEx, $themes_style;
+	global $themes_style;
 
 	if ( defined('CACHE_THEMES') )
 	{
-		@include( $phpbb_root_path . './includes/def_themes.' . $phpEx );
-		if ( empty($themes_style) )
+		$themes_style = phpbb_data_cache_read($phpbb_root_path . 'cache/themes.cache');
+		$valid_themes = is_array($themes_style);
+		if ($valid_themes)
 		{
-			cache_themes();
-			@include( $phpbb_root_path . './includes/def_themes.' . $phpEx );
+			foreach ($themes_style as $theme_id => $theme_data)
+			{
+				if (!is_array($theme_data) || !isset($theme_data['themes_id']) || (int) $theme_data['themes_id'] !== (int) $theme_id)
+				{
+					$valid_themes = false;
+					break;
+				}
+			}
+		}
+		if (!$valid_themes)
+		{
+			$themes_style = cache_themes();
 		}
 	}
-	if ( !empty($themes_style[$style]) )
+	if ( isset($themes_style[(int) $style]) && is_array($themes_style[(int) $style]) )
 	{
-		$row = $themes_style[$style];
+		$row = $themes_style[(int) $style];
 	}
 	else
 	{
@@ -1167,7 +1178,7 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 //-- add
 	global $global_orig_word, $global_replacement_word;
 
-	global $phpbb_root_path, $phpEx;
+	global $phpbb_root_path;
 	if (isset($global_orig_word))
 	{
 		$orig_word			= $global_orig_word;
@@ -1177,11 +1188,22 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 	{
 		if ( defined('CACHE_WORDS') )
 		{
-			@include($phpbb_root_path . './includes/def_words.' . $phpEx);
-			if ( !isset($word_replacement) )
+			$word_replacement = phpbb_data_cache_read($phpbb_root_path . 'cache/words.cache');
+			$valid_words = is_array($word_replacement);
+			if ($valid_words)
 			{
-				cache_words();
-				@include($phpbb_root_path . './includes/def_words.' . $phpEx);
+				foreach ($word_replacement as $word => $replacement)
+				{
+					if ((!is_string($word) && !is_int($word)) || !is_string($replacement))
+					{
+						$valid_words = false;
+						break;
+					}
+				}
+			}
+			if (!$valid_words)
+			{
+				$word_replacement = cache_words();
 			}
 		}
 		if ( isset($word_replacement) )
@@ -1217,6 +1239,7 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 		}
 		while ( $row = $db->sql_fetchrow($result) );
 	}
+	$db->sql_freeresult($result);
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 		}

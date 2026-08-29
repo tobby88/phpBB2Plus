@@ -192,54 +192,26 @@ function get_object_lang($cur, $field, $all=false)
 //--------------------------------------------------------------------------------------------------
 function cache_words()
 {
-	global $tree, $phpbb_root_path, $phpEx, $userdata, $db;
+	global $phpbb_root_path, $db;
 
 	if ( !defined('CACHE_WORDS') )
 	{
-		return;
+		return array();
 	}
-
-	// template
-	include_once($phpbb_root_path . 'includes/template.' . $phpEx);
-	$template = new Template($phpbb_root_path);
-
-	$template->set_filenames(array(
-		'def_words' => 'includes/cache_tpls/def_words_def.tpl')
-	);
-
-	$template->assign_vars(array(
-		'TIME'		=> date('Y-m-d H:i:s', time()) . ' (GMT)',
-		'USERNAME'	=> $userdata['username'],
-		)
-	);
 
 	$sql = "SELECT word, replacement FROM  " . WORDS_TABLE;
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not get censored words from database', '', __LINE__, __FILE__, $sql);
 	}
+	$word_replacement = array();
 	while ( $row = $db->sql_fetchrow($result) )
 	{
-		$template->assign_block_vars('word', array(
-			'WORD'			=> str_replace( "'", "\'", $row['word']),
-			'REPLACEMENT'	=> str_replace( "'", "\'", $row['replacement']),
-			)
-		);
+		$word_replacement[(string) $row['word']] = (string) $row['replacement'];
 	}
-
-	// transfert to a var
-	$template->assign_var_from_handle('def_words', 'def_words');
-	$res = "<?php\n" . $template->_tpldata['.'][0]['def_words'] . "\n?>";
-
-	// output to file
-	$fname = $phpbb_root_path . './includes/def_words.' . $phpEx;
-	@chmod($fname, 0664);
-	$handle = @fopen($fname, 'w');
-	if ($handle !== false)
-	{
-		@fwrite($handle, $res);
-		@fclose($handle);
-	}
+	$db->sql_freeresult($result);
+	phpbb_data_cache_write($phpbb_root_path . 'cache/words.cache', $word_replacement);
+	return $word_replacement;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -249,66 +221,26 @@ function cache_words()
 //--------------------------------------------------------------------------------------------------
 function cache_themes()
 {
-	global $tree, $phpbb_root_path, $phpEx, $userdata, $db;
+	global $phpbb_root_path, $db;
 
 	if ( !defined('CACHE_THEMES') )
 	{
-		return;
+		return array();
 	}
-
-	// template
-	include_once($phpbb_root_path . 'includes/template.' . $phpEx);
-	$template = new Template($phpbb_root_path);
-
-	$template->set_filenames(array(
-		'def_themes' => 'includes/cache_tpls/def_themes_def.tpl')
-	);
-
-	$template->assign_vars(array(
-		'TIME'		=> date('Y-m-d H:i:s', time()) . ' (GMT)',
-		'USERNAME'	=> $userdata['username'],
-		)
-	);
 
 	$sql = "SELECT * FROM  " . THEMES_TABLE;
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not read themes table', '', __LINE__, __FILE__, $sql);
 	}
+	$themes_style = array();
 	while ( $row = $db->sql_fetchrow($result) )
 	{
-		$id = $row['themes_id'];
-		$cells = array();
-		foreach ($row as $key => $value)
-		{
-			$nkey = intval($key);
-			if ( $key != "$nkey" )
-			{
-				$cells[] = sprintf( "'%s' => '%s'", str_replace("'", "\'", $key), str_replace("'", "\'", $value));
-			}
-		}
-		$s_cells = empty($cells) ? '' : implode(', ', $cells);
-
-		$template->assign_block_vars('theme', array(
-			'ID'		=> $id,
-			'CELLS'		=> $s_cells,
-			)
-		);
+		$themes_style[(int) $row['themes_id']] = $row;
 	}
-
-	// transfert to a var
-	$template->assign_var_from_handle('def_themes', 'def_themes');
-	$res = "<?php\n" . $template->_tpldata['.'][0]['def_themes'] . "\n?>";
-
-	// output to file
-	$fname = $phpbb_root_path . './includes/def_themes.' . $phpEx;
-	@chmod($fname, 0664);
-	$handle = @fopen($fname, 'w');
-	if ($handle !== false)
-	{
-		@fwrite($handle, $res);
-		@fclose($handle);
-	}
+	$db->sql_freeresult($result);
+	phpbb_data_cache_write($phpbb_root_path . 'cache/themes.cache', $themes_style);
+	return $themes_style;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -318,146 +250,18 @@ function cache_themes()
 //--------------------------------------------------------------------------------------------------
 function cache_tree_output()
 {
-	global $tree, $phpbb_root_path, $phpEx, $userdata;
+	global $tree, $phpbb_root_path;
 
 	if ( !defined('CACHE_TREE') )
 	{
-		return;
+		return false;
 	}
-
-	// template
-	include_once($phpbb_root_path . 'includes/template.' . $phpEx);
-	$template = new Template($phpbb_root_path);
-
-	$template->set_filenames(array(
-		'def_tree' => 'includes/cache_tpls/def_tree_def.tpl')
-	);
-
-	$template->assign_vars(array(
-		'TIME'		=> date('Y-m-d H:i:s', time()) . ' (GMT)',
-		'USERNAME'	=> $userdata['username'],
-		)
-	);
-
-	// keys
-	$cells = array();
-	foreach ($tree['keys'] as $key => $value)
+	$tree_cache = array();
+	foreach (array('keys', 'type', 'id', 'data', 'main', 'sub', 'mods') as $key)
 	{
-		$cells[] = sprintf("'%s' => %s", $key, $value);
+		$tree_cache[$key] = isset($tree[$key]) && is_array($tree[$key]) ? $tree[$key] : array();
 	}
-	$keys = @implode(', ', $cells);
-
-	// types
-	$cells = array();
-	for ( $i = 0; $i < count($tree['type']); $i++ )
-	{
-		$cells[] = sprintf("'%s'", $tree['type'][$i]);
-	}
-	$types = @implode(', ', $cells);
-
-	// ids
-	$cells = array();
-	for ( $i = 0; $i < count($tree['id']); $i++ )
-	{
-		$cells[] = sprintf("'%s'", $tree['id'][$i]);
-	}
-	$ids = @implode(', ', $cells);
-
-	// mains
-	$cells = array();
-	for ( $i = 0; $i < count($tree['main']); $i++ )
-	{
-		$cells[] = sprintf("'%s'", $tree['main'][$i]);
-	}
-	$mains = @implode(', ', $cells);
-
-	$template->assign_vars(array(
-		'KEYS'	=> $keys,
-		'TYPES'	=> $types,
-		'IDS'	=> $ids,
-		'MAINS'	=> $mains,
-		)
-	);
-
-	// data
-	for ($i = 0; $i < count($tree['data']); $i++ )
-	{
-		$template->assign_block_vars('data', array());
-
-		foreach ($tree['data'][$i] as $key => $value)
-		{
-			$nkey = intval($key);
-			if ( $key != "$nkey" )
-			{
-				$template->assign_block_vars('data.field', array(
-					'FIELD_NAME'	=> $key,
-					'FIELD_VALUE'	=> str_replace("\n", "' . \"\\n\" . '", str_replace("\r\n", "' . \"\\r\\n\" . '", str_replace("'", "\'", $value))),
-					)
-				);
-			}
-		}
-	}
-
-	// subs
-	foreach ($tree['sub'] as $main => $data)
-	{
-		$cells = array();
-		for ( $i = 0; $i < count($data); $i++ )
-		{
-			$cells[] = sprintf("'%s'", $data[$i]);
-		}
-		$subs = @implode(', ', $cells);
-		$template->assign_block_vars('sub', array(
-			'THIS'	=> $main,
-			'SUBS'	=> $subs,
-			)
-		);
-	}
-
-	// moderators
-	$tree_mods = !empty($tree['mods']) && is_array($tree['mods']) ? $tree['mods'] : array();
-	foreach ($tree_mods as $idx => $data)
-	{
-		if ($idx !== '')
-		{
-			$s_user_ids = empty($data['user_id']) ? '' : implode(', ', $data['user_id']);
-			$s_group_ids = empty($data['group_id']) ? '' : implode(', ', $data['group_id']);
-			$usernames = isset($data['username']) && is_array($data['username']) ? $data['username'] : array();
-			$group_names = isset($data['group_name']) && is_array($data['group_name']) ? $data['group_name'] : array();
-			$s_usernames = '';
-			foreach ($usernames as $username)
-			{
-				$s_usernames .= ( empty($s_usernames) ? '' : ', ' ) . sprintf("'%s'", str_replace("'", "\'", $username));
-			}
-			$s_group_names = '';
-			foreach ($group_names as $group_name)
-			{
-				$s_group_names .= ( empty($s_group_names) ? '' : ', ' ) . sprintf("'%s'", str_replace("'", "\'", $group_name));
-			}
-			$template->assign_block_vars('mods', array(
-				'IDX'			=> $idx,
-				'USER_IDS'		=> $s_user_ids,
-				'USERNAMES'		=> $s_usernames,
-				'GROUP_IDS'		=> $s_group_ids,
-				'GROUP_NAMES'	=> $s_group_names,
-				)
-			);
-		} // if $idx
-	}
-
-	// transfert to a var
-	$template->assign_var_from_handle('def_tree', 'def_tree');
-	$res = "<?php\n" . $template->_tpldata['.'][0]['def_tree'] . "\n?>";
-
-	// output to file
-	$fname = $phpbb_root_path . './includes/def_tree.' . $phpEx;
-	@chmod($fname, 0664);
-	$handle = @fopen($fname, 'w');
-	if ($handle !== false)
-	{
-		@fwrite($handle, $res);
-		@fclose($handle);
-	}
+	return phpbb_data_cache_write($phpbb_root_path . 'cache/tree.cache', $tree_cache);
 }
 
 function cache_tree_level($main, &$parents, &$cats, &$forums)
@@ -512,7 +316,7 @@ function cache_tree_level($main, &$parents, &$cats, &$forums)
 
 function cache_tree($write=false)
 {
-	global $db, $tree, $userdata, $phpbb_root_path, $phpEx, $board_config;
+	global $db, $tree;
 
 	// extended auth compliancy
 	$sql_extend_auth = '';
@@ -547,6 +351,7 @@ function cache_tree($write=false)
 		$cats[$idx] = $row;
 		$parents[POST_CAT_URL][ $row['main'] ][] = $idx;
 	}
+	$db->sql_freeresult($result);
 
 	// read forums
 	$forums = array();
@@ -639,6 +444,57 @@ function cache_tree($write=false)
 	}
 }
 
+function phpbb_tree_cache_valid($cached_tree)
+{
+	$required = array('keys', 'type', 'id', 'data', 'main', 'sub', 'mods');
+	if (!is_array($cached_tree))
+	{
+		return false;
+	}
+	foreach ($required as $key)
+	{
+		if (!isset($cached_tree[$key]) || !is_array($cached_tree[$key]))
+		{
+			return false;
+		}
+	}
+
+	$count = count($cached_tree['data']);
+	if ($count > 10000 || count($cached_tree['type']) !== $count || count($cached_tree['id']) !== $count || count($cached_tree['main']) !== $count)
+	{
+		return false;
+	}
+	foreach ($cached_tree['data'] as $row)
+	{
+		if (!is_array($row))
+		{
+			return false;
+		}
+	}
+	foreach ($cached_tree['keys'] as $index)
+	{
+		if (!is_int($index) || $index < 0 || $index >= $count)
+		{
+			return false;
+		}
+	}
+	foreach ($cached_tree['sub'] as $children)
+	{
+		if (!is_array($children))
+		{
+			return false;
+		}
+	}
+	foreach ($cached_tree['mods'] as $moderators)
+	{
+		if (!is_array($moderators))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 //--------------------------------------------------------------------------------------------------
 //
 // read_tree() : read the tables and fill the hierarchical tree
@@ -648,7 +504,7 @@ function read_tree($force=false)
 {
 	global $db, $userdata, $board_config, $HTTP_COOKIE_VARS;
 	global $tree;
-	global $phpbb_root_path, $phpEx;
+	global $phpbb_root_path;
 
 	// get censored words
 	$orig_word = array();
@@ -668,19 +524,17 @@ function read_tree($force=false)
 	}
 
 	// try the cache
-	$use_cache_file = false;
 	if ( defined('CACHE_TREE') )
 	{
-		$cache_file = $phpbb_root_path . 'includes/def_tree.' . $phpEx;
-		@include($cache_file);
-		if ( empty($tree) || $force)
+		$cache_file = $phpbb_root_path . 'cache/tree.cache';
+		$cached_tree = $force ? false : phpbb_data_cache_read($cache_file);
+		if (phpbb_tree_cache_valid($cached_tree))
+		{
+			$tree = $cached_tree;
+		}
+		else
 		{
 			cache_tree(true);
-			@include($cache_file);
-		}
-		if ( !empty($tree) )
-		{
-			$use_cache_file = true;
 		}
 	}
 	else
