@@ -37,8 +37,9 @@ init_userprefs($userdata);
 
 function album_modcp_post_token_valid($userdata)
 {
-	return $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sid']) &&
-		hash_equals((string) $userdata['session_id'], stripslashes((string) $_POST['sid']));
+	$sid = stripslashes(phpbb_request_scalar($_POST, 'sid'));
+	return $_SERVER['REQUEST_METHOD'] === 'POST' && $sid !== '' &&
+		hash_equals((string) $userdata['session_id'], $sid);
 }
 
 function album_modcp_action_token($mode, $pic_id, $session_id)
@@ -48,20 +49,7 @@ function album_modcp_action_token($mode, $pic_id, $session_id)
 
 function album_modcp_normalize_ids($ids)
 {
-	if (!is_array($ids))
-	{
-		return array();
-	}
-	$normalized = array();
-	foreach ($ids as $id)
-	{
-		$id = (int) $id;
-		if ($id > 0)
-		{
-			$normalized[$id] = $id;
-		}
-	}
-	return array_values($normalized);
+	return phpbb_request_id_array(array('ids' => $ids), 'ids');
 }
 
 if (isset($_POST['pic_id']))
@@ -82,7 +70,7 @@ include($album_root_path . 'album_common.'.$phpEx);
 // ------------------------------------
 if( isset($_GET['pic_id']) )
 {
-	$pic_id = intval($_GET['pic_id']);
+	$pic_id = intval(phpbb_request_scalar($_GET, 'pic_id', 0));
 }
 else
 {
@@ -122,11 +110,11 @@ else
 	//
 	if( isset($_POST['cat_id']) )
 	{
-		$cat_id = intval($_POST['cat_id']);
+		$cat_id = intval(phpbb_request_scalar($_POST, 'cat_id', 0));
 	}
 	else if( isset($_GET['cat_id']) )
 	{
-		$cat_id = intval($_GET['cat_id']);
+		$cat_id = intval(phpbb_request_scalar($_GET, 'cat_id', 0));
 	}
 	else
 	{
@@ -202,7 +190,7 @@ if( isset($_POST['mode']) )
 }
 else if( isset($_GET['mode']) )
 {
-	$mode = trim($_GET['mode']);
+	$mode = trim(phpbb_request_scalar($_GET, 'mode'));
 }
 else
 {
@@ -253,7 +241,7 @@ if (in_array($mode, array('approval', 'unapproval'), true) &&
 }
 if (in_array($mode, array('lock', 'unlock', 'approval', 'unapproval'), true) && $_SERVER['REQUEST_METHOD'] !== 'POST')
 {
-	$action_token = isset($_GET['album_token']) ? stripslashes((string) $_GET['album_token']) : '';
+	$action_token = stripslashes(phpbb_request_scalar($_GET, 'album_token'));
 	$expected_token = album_modcp_action_token($mode, $pic_id, $userdata['session_id']);
 	if ($pic_id === false || !hash_equals($expected_token, $action_token))
 	{
@@ -280,11 +268,11 @@ if ($mode == '')
 	// Set Variables
 	if( isset($_GET['start']) )
 	{
-		$start = intval($_GET['start']);
+		$start = intval(phpbb_request_scalar($_GET, 'start', 0));
 	}
 	else if( isset($_POST['start']) )
 	{
-		$start = intval($_POST['start']);
+		$start = intval(phpbb_request_scalar($_POST, 'start', 0));
 	}
 	else
 	{
@@ -293,7 +281,7 @@ if ($mode == '')
 
 	if( isset($_GET['sort_method']) )
 	{
-		switch ($_GET['sort_method'])
+		switch (phpbb_request_scalar($_GET, 'sort_method'))
 		{
 			case 'pic_title':
 				$sort_method = 'pic_title';
@@ -319,7 +307,7 @@ if ($mode == '')
 	}
 	else if( isset($_POST['sort_method']) )
 	{
-		switch ($_POST['sort_method'])
+		switch (phpbb_request_scalar($_POST, 'sort_method'))
 		{
 			case 'pic_title':
 				$sort_method = 'pic_title';
@@ -350,7 +338,7 @@ if ($mode == '')
 
 	if( isset($_GET['sort_order']) )
 	{
-		switch ($_GET['sort_order'])
+		switch (phpbb_request_scalar($_GET, 'sort_order'))
 		{
 			case 'ASC':
 				$sort_order = 'ASC';
@@ -361,7 +349,7 @@ if ($mode == '')
 	}
 	else if( isset($_POST['sort_order']) )
 	{
-		switch ($_POST['sort_order'])
+		switch (phpbb_request_scalar($_POST, 'sort_order'))
 		{
 			case 'ASC':
 				$sort_order = 'ASC';
@@ -674,7 +662,7 @@ else
 			// if we are trying to move picture(s) to root category or a 
 			// personal gallary (shouldn't be possible), but better save then sorry
 			// ...then return an error
-			$target_cat_id = isset($_POST['target']) ? intval($_POST['target']) : 0;
+			$target_cat_id = intval(phpbb_request_scalar($_POST, 'target', 0));
 			if ($target_cat_id <= 0) {
 			    message_die(GENERAL_ERROR, 'Can\'t move pictures directly to Root category');
 			}
