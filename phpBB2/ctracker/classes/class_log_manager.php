@@ -318,13 +318,12 @@ class log_manager
 		 * have to use a fixed logfile size value here for this logfile. The
 		 * default value is set to 100 lines. Feel free to change it!
 		 */
-		define('WORM_LOG_SIZE', 100);
-
-
-		if ( $this->check_log_size(2) > WORM_LOG_SIZE )
+		$max_log_size = 100;
+		$current_size = $this->check_log_size(2);
+		if ($current_size >= $max_log_size)
 		{
 			$this->delete_logfile(2);
-			$this->increment_counter(WORM_LOG_SIZE);
+			$this->increment_counter($current_size);
 		}
 
 		$this->write_to_log(2, $this->to_string());
@@ -338,10 +337,12 @@ class log_manager
 	 */
 	function write_general_logfile($logsize, $file_id)
 	{
-		if ( $this->check_log_size($file_id) > $logsize )
+		$logsize = max(1, min(10000, intval($logsize)));
+		$current_size = $this->check_log_size($file_id);
+		if ($current_size >= $logsize)
 		{
 			$this->delete_logfile($file_id);
-			$this->increment_counter($logsize);
+			$this->increment_counter($current_size);
 		}
 
 		$this->write_to_log($file_id, $this->to_string());
@@ -380,7 +381,7 @@ class log_manager
 
 		// Create Path to Counter file and load the current value
 		$path                   = $this->create_ct_path(1);
-		$this->ct_counter_value = @file_get_contents($path);
+		$this->ct_counter_value = max(0, intval(@file_get_contents($path)));
 
 		// Current entries in the logfiles have to be added
 		for($i = 2; $i <= 5; $i++)
@@ -390,10 +391,8 @@ class log_manager
       $this->ct_counter_value += $this->check_log_size($i);
 		}
 
-		$this->ct_counter_value - 4; // System comment will not be counted
-
 		// Return Counter Value
-		return $this->ct_counter_value;
+		return max(0, intval($this->ct_counter_value));
 	}
 }
 

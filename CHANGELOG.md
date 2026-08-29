@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Corrected CrackerTracker log rotation so configured caps are exact and every
+  rotated entry is preserved in the cumulative counter once. Repeated logger
+  construction no longer redefines a constant, numeric counter reads are
+  bounded, and the behavior is covered by a filesystem-level CI test.
 - Replaced the CrackerTracker maintenance page's checks for removed PHP
   features and discontinued update servers with local diagnostics for the
   structural request engine, blocklist matcher, atomic rate-limit table,
