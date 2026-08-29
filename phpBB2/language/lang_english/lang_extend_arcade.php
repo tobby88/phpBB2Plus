@@ -145,6 +145,7 @@ $lang['games_pm_info'] = "Your Highscore list is being viewed by %s but he/she d
 $lang['games_new_header'] = '%d New Activities';
 $lang['games_play_again'] = '<img src="images/play_again.gif" alt="[Play Again]" border="0" />';
 $lang['games_add_fav'] = 'Add to Favourites';
+$lang['games_remove_fav'] = 'Remove from Favourites';
 $lang['games_last_viewed'] = 'The last item viewed was <b>%s</b>';
 $lang['games_last_u_viewed'] = 'The last item you viewed was <b>%s</b>';
 $lang['games_time_taken'] = 'Time';

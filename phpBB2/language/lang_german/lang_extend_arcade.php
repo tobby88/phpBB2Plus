@@ -154,6 +154,7 @@ $lang['games_pm_info'] = "Deine beste Punktzahl wurde angesehen, aber der-/dieje
 $lang['games_new_header'] = 'Die %d neusten Spiele';
 $lang['games_play_again'] = '<img src="images/play_again.gif" alt="[Nochmal spielen]" title="[Nochmal spielen]" border="0" />';
 $lang['games_add_fav'] = 'Zu den Favoriten hinzufügen';
+$lang['games_remove_fav'] = 'Aus den Favoriten entfernen';
 $lang['games_best_player'] = '<b><u>Bester Spieler</b></u><br /><img src="images/crown.gif" alt="[Bester Spieler]" title="[Bester Spieler]"border="0" /> <b><i><a href="%s">%s</a></b></i> mit <a href="%s"><b>%d</b> Siegen.</a><br />';
 $lang['games_best_at_player'] = '<b><u>Bester Spieler insgesamt</b></u><br /><img src="images/crown.gif" alt="[Bester Spieler insgesamt]" title="[Bester Spieler insgesamt]" border="0" /> <b><i><a href="%s">%s</a></b></i> mit <a href="%s"><b>%d</b> Siegen.</a><br />';
 $lang['games_last_viewed'] = 'Zuletzt angesehen/gespielt wurde <b>%s</b>';

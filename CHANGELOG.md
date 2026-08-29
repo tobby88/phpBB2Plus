@@ -75,6 +75,8 @@ changes consolidated after that baseline without implying active maintenance.
   session-bound POST confirmations.
 - Bound the CrackerTracker login-history IP-warning preference to the active
   session and normalized its stored boolean value.
+- Secured Arcade searches against SQL injection, bound favourite changes to
+  session-authenticated POST requests and rejected missing game records.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.

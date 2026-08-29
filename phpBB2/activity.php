@@ -56,6 +56,15 @@ $userdata = session_pagestart($user_ip, PAGE_ACTIVITY);
 init_userprefs($userdata);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.' .$phpEx);
+
+function arcade_favorite_form($filename, $mode, $cat_id, $game_id, $session_id, $image, $label)
+{
+	$action = append_sid($filename . '?mode=' . $mode . '&amp;cat_id=' . (int) $cat_id . '&amp;id=' . (int) $game_id);
+	return '<br /><form method="post" action="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '" style="display:inline">'
+		. '<input type="hidden" name="sid" value="' . htmlspecialchars($session_id, ENT_QUOTES, 'UTF-8') . '" />'
+		. '<input type="image" src="' . htmlspecialchars($image, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" title="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" />'
+		. '</form>';
+}
 //
 // Check the mod has been installed correctly.
 //
@@ -330,7 +339,8 @@ if( $mode != '' )
 {
   $sql_and = '';
 
-	if(($game_id = $arcade->pass_var('id', 0)) > ($arcade->last_game_id()))
+	$game_id = (int) $arcade->pass_var('id', 0);
+	if($game_id > ($arcade->last_game_id()))
   {
     $arcade->message_die(GENERAL_ERROR, $lang['game_id_error']);
   }
@@ -346,7 +356,11 @@ if( $mode != '' )
   	{
   		$arcade->message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
   	}
-  	$game_info = $db->sql_fetchrow($result);
+	$game_info = $db->sql_fetchrow($result);
+	if (!$game_info)
+	{
+		$arcade->message_die(GENERAL_MESSAGE, $lang['no_game_data']);
+	}
     $game_name = $game_info['game_name'];
   }
 //
@@ -515,11 +529,11 @@ if( $mode != '' )
 		{
 			if($game_info['fav_game_name'])
 			{
-				$add_fav = '<br /><a href="'.$filename.'?mode=fav_del&amp;id='.$game_id.'"><img src="images/remove_favorite.gif" border="0"></a>';
+				$add_fav = arcade_favorite_form($filename, 'fav_del', $arcade->cat_id, $game_id, $userdata['session_id'], 'images/remove_favorite.gif', $lang['games_remove_fav']);
 			}
 			else
 			{
-				$add_fav = '<br /><a href="'.$filename.'?mode=fav&amp;cat_id='.$arcade->cat_id.'&amp;id='.$game_id.'"><img src="images/favorite.gif" border="0"></a>';
+				$add_fav = arcade_favorite_form($filename, 'fav', $arcade->cat_id, $game_id, $userdata['session_id'], 'images/favorite.gif', $lang['games_add_fav']);
 			}
 		}
 		
@@ -796,9 +810,18 @@ if( $mode != '' )
 //
 	else if ($mode == 'fav_del')
 	{
+		if (!$game_id || empty($game_info))
+		{
+			$arcade->message_die(GENERAL_MESSAGE, $lang['no_game_data']);
+		}
+		if ($userdata['user_id'] == ANONYMOUS || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		}
+		$favorite_game_name = $db->sql_escape($game_info['game_name']);
 		$sql = "DELETE FROM " . iNA_FAV . "
-			WHERE user_id = '" . $user_id . "'
-				AND fav_game_name = '" . $game_info['game_name'] . "'";
+			WHERE user_id = " . (int) $user_id . "
+				AND fav_game_name = '" . $favorite_game_name . "'";
 		if(!$result = $db->sql_query($sql)) 
 		{
 			$arcade->message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
@@ -876,13 +899,18 @@ if( $mode != '' )
 		{
 			if ($game_id)
 			{
+				if ($userdata['user_id'] == ANONYMOUS || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+				{
+					message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+				}
 				if (isset($HTTP_GET_VARS['quiet']) || isset($HTTP_POST_VARS['quiet']))
 				{
 					$gen_simple_header	= TRUE; 
 				}
+				$favorite_game_name = $db->sql_escape($game_info['game_name']);
 				$sql = "SELECT * FROM " . iNA_FAV . "
 					WHERE user_id = " . $user_id . "
-						AND fav_game_name = '" . $game_info['game_name'] . "'";
+						AND fav_game_name = '" . $favorite_game_name . "'";
 				if(!$result = $db->sql_query($sql)) 
 				{
 					$arcade->message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
@@ -891,7 +919,7 @@ if( $mode != '' )
 				if($row_count == 0 && $user_id != ANONYMOUS)
 				{
 					$sql = "INSERT INTO " . iNA_FAV . " (user_id, fav_game_name)
-						VALUES ($user_id, '".$game_info['game_name']."')";
+						VALUES (" . (int) $user_id . ", '" . $favorite_game_name . "')";
 					if ( !$db->sql_query($sql) )
 					{
 						$arcade->message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
@@ -918,11 +946,13 @@ if( $mode != '' )
 //
 //	Seach Mode
 //
- 		else if ($mode == 'search')
- 		{
- 			$search_word	= (isset($search_word)) ? htmlspecialchars($search_word) : $lang['None'];
+		else if ($mode == 'search')
+		{
+			$search_term = isset($search_word) ? html_entity_decode($search_word, ENT_QUOTES, 'UTF-8') : '';
+			$search_word = ($search_term !== '') ? htmlspecialchars($search_term, ENT_QUOTES, 'UTF-8') : $lang['None'];
+			$search_sql = $db->sql_escape($search_term);
   
-      $sql_and = "AND game_desc LIKE '%$search_word%'";
+      $sql_and = "AND game_desc LIKE '%$search_sql%'";
   
    		$page_title = sprintf($lang['arcade_searched'], $board_config['sitename'], $search_word);
  		}
@@ -1211,16 +1241,16 @@ if( $mode != '' )
 				{
 					if($game_rows[$i]['fav_game_name'])
 					{
-						$add_fav = '<br /><a href="'.$filename.'?mode=fav_del&amp;id='.$game_id.'"><img src="images/remove_favorite.gif" border="0"></a>';
+						$add_fav = arcade_favorite_form($filename, 'fav_del', $arcade->cat_id, $game_id, $userdata['session_id'], 'images/remove_favorite.gif', $lang['games_remove_fav']);
 					}
 					else
 					{
-						$add_fav = '<br /><a href="'.$filename.'?mode=fav&amp;cat_id='.$arcade->cat_id.'&amp;id='.$game_id.'"><img src="images/favorite.gif" border="0"></a>';
+						$add_fav = arcade_favorite_form($filename, 'fav', $arcade->cat_id, $game_id, $userdata['session_id'], 'images/favorite.gif', $lang['games_add_fav']);
 					}
 				}
 				else
 				{
-					$add_fav = '<br /><a href="'.$filename.'?mode=fav_del&amp;id='.$game_id.'"><img src="images/remove_favorite.gif" border="0"></a>';
+					$add_fav = arcade_favorite_form($filename, 'fav_del', $arcade->cat_id, $game_id, $userdata['session_id'], 'images/remove_favorite.gif', $lang['games_remove_fav']);
 				}
 			}
 			if ( $game_rows[$i]['date_added'] > (time() - ($arcade->arcade_config['games_new_for'])))
