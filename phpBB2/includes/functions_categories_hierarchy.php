@@ -69,7 +69,7 @@ function board_stats()
 		{
 			message_die(GENERAL_ERROR, 'Couldn\'t update config table', '', __LINE__, __FILE__, $sql);
 		}
-		@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 
 	// topics and posts
@@ -94,7 +94,7 @@ function board_stats()
 		{
 			message_die(GENERAL_ERROR, 'Couldn\'t update config table', '', __LINE__, __FILE__, $sql);
 		}
-		@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 	if ( $board_config['max_posts'] != $max_posts )
 	{
@@ -106,7 +106,7 @@ function board_stats()
 		{
 			message_die(GENERAL_ERROR, 'Couldn\'t update config table', '', __LINE__, __FILE__, $sql);
 		}
-		@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 }
 

@@ -55,7 +55,7 @@ $template->pparse('page_footer');
 // Close our DB connection.
 //
 $db->sql_close();
-@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+@unlink($phpbb_root_path . 'cache/config_data.cache');
 
 //
 // Compress buffered output if required

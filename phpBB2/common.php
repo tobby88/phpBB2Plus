@@ -179,13 +179,19 @@ include($phpbb_root_path . 'ctracker/engines/ct_ipblocker.' . $phpEx);
 
 // cache configs -----------------
 $cache_dir = $phpbb_root_path . 'cache';
-$cache_config = $cache_dir . '/config.'.$phpEx;
+$cache_config = $cache_dir . '/config_data.cache';
 define('CCache', true);
 
 if (@file_exists($cache_config) && defined('CCache'))
-{ 
-	include($cache_config); 
-} 
+{
+	$config_cache = phpbb_data_cache_read($cache_config);
+	if (is_array($config_cache) && isset($config_cache['board'], $config_cache['plus']) &&
+		is_array($config_cache['board']) && is_array($config_cache['plus']))
+	{
+		$board_config = $config_cache['board'];
+		$plus_config = $config_cache['plus'];
+	}
+}
 // cache configs -----------------
 
 //
@@ -199,9 +205,6 @@ if (empty($board_config['config_id']))
 	// is /cache/ useable 
 	$use_cache = (is_writable($cache_dir) && defined('CCache') && !defined('IN_ADMIN') ) ? true : false;
 
-	// begin File 
-	$write_string = "<?php \n if ( !defined('IN_PHPBB') ) \n { \n die('Hacking attempt'); \n } \n";
-
 	// Boardconfig -----------------
 	$sql = "SELECT *
 		FROM " . CONFIG_TABLE;
@@ -210,20 +213,9 @@ if (empty($board_config['config_id']))
 		message_die(CRITICAL_ERROR, "Could not query config information", "", __LINE__, __FILE__, $sql);
 	}
 
-	if ($use_cache) {
-		// cache
-		$write_string .= '$board_config = array(';
-		while ( $row = $db->sql_fetchrow($result) )
-		{
-			$write_string .= "'".$row['config_name']."'=> ".(( is_numeric($row['config_value']) ) ? $row['config_value'].",\n" : "'".addslashes($row['config_value'])."',\n");
-		}
-		$write_string .= "); \n \n";
-	} else {
-		// default
-		while ( $row = $db->sql_fetchrow($result) )
-		{
-			$board_config[$row['config_name']] = $row['config_value'];
-		}
+	while ( $row = $db->sql_fetchrow($result) )
+	{
+		$board_config[$row['config_name']] = $row['config_value'];
 	}
 	// Boardconfig -----------------
 	
@@ -235,41 +227,24 @@ if (empty($board_config['config_id']))
 		message_die(CRITICAL_ERROR, "Could not query Plus-Config information", "", __LINE__, __FILE__, $sql);
 	}
 	
-	if ($use_cache) {
-		$write_string .= '$plus_config = array(';
-		// cache
-		while ( $row = $db->sql_fetchrow($result) )
-		{
-			$write_string .= "'".$row['config_name']."'=> ".(( is_numeric($row['config_value']) ) ? $row['config_value'].",\n" : "'".addslashes($row['config_value'])."',\n");
-		}
-		$write_string .= "); \n \n";
-	} else {
-		// default
-		while ( $row = $db->sql_fetchrow($result) )
-		{
-			$plus_config[$row['config_name']] = $row['config_value'];
-		}
+	while ( $row = $db->sql_fetchrow($result) )
+	{
+		$plus_config[$row['config_name']] = $row['config_value'];
 	}
 	// PLUSconfig -----------------
 	
 	$db->sql_freeresult($result);
 
-	// end File 
-	$write_string .= '?>';
-
-	// write File 
-	if ($use_cache) {
-		if(@$f = fopen($cache_config, 'w')) 
-		{ 
-			fwrite($f, $write_string); 
-			fclose($f); 
-			@chmod($cache_config, 0664);
-		}
-		include($cache_config); 
+	if ($use_cache)
+	{
+		phpbb_data_cache_write($cache_config, array(
+			'board' => $board_config,
+			'plus' => $plus_config,
+		));
 	}
 
 	// \:cls 
-	unset($write_string, $cache_config, $use_cache);
+	unset($config_cache, $cache_config, $use_cache);
 }
 /*
 else {
@@ -297,7 +272,7 @@ include($phpbb_root_path . 'attach_mod/attachment_mod.'.$phpEx);
 
 if (file_exists('install') || file_exists('contrib'))
 {
-	@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+	@unlink($phpbb_root_path . 'cache/config_data.cache');
 	message_die(GENERAL_MESSAGE, 'Please_remove_install_contrib');
 }
 

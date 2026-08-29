@@ -140,7 +140,7 @@ if ( strstr(isset($useragent) ? $useragent : '', 'Googlebot') )
    } 
 
    $google_visit_counter++; 
-	@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+	@unlink($phpbb_root_path . 'cache/config_data.cache');
 }
 // ------------------------------------
 //
@@ -361,7 +361,7 @@ $user_forum_sql = ( !empty($topic_id) ) ? "AND s.session_topic = " . intval($top
 		{
 			message_die(GENERAL_ERROR, 'Could not update online user record (date)', '', __LINE__, __FILE__, $sql);
 		}
-		@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 
 	// Start replacement - Topic in Who is online MOD

@@ -244,7 +244,7 @@ class emailer
 				{
 					message_die(GENERAL_ERROR, 'Unable to update config table', '', __LINE__, __FILE__, $sql);
 				}
-				@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+				@unlink($phpbb_root_path . 'cache/config_data.cache');
 				$board_config['sendmail_fix'] = 1;
 				$result = @mail($to, $this->subject, preg_replace("#(?<!\r)\n#s", "\n", $this->msg), $this->extra_headers);
 			}

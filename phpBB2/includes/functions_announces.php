@@ -63,7 +63,7 @@ function announces_prune($force_prune=false)
 			$sql = "UPDATE " . CONFIG_TABLE . " SET config_value = '$today' WHERE config_name= 'announcement_last_prune'";
 			if( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not update key announcement_last_prune in the config table', '', __LINE__, __FILE__, $sql);
 		}
-		@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 		$board_config['announcement_last_prune'] = $today;
 	}
 

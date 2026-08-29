@@ -47,14 +47,14 @@ function init_board_config_key($key, $value, $force=false)
 		$board_config[$key] = $value;
 		$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name,config_value) VALUES('$key','$value')";
 		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not add key ' . $key . ' in config table', '', __LINE__, __FILE__, $sql);
-		@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 	else if ($force)
 	{
 		$board_config[$key] = $value;
 		$sql = "UPDATE " . CONFIG_TABLE . " SET config_value='$value' WHERE config_name='$key'";
 		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not add key ' . $key . ' in config table', '', __LINE__, __FILE__, $sql);
-		@unlink($phpbb_root_path . 'cache/config.'.$phpEx);
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 }
 
