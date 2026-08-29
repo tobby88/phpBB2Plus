@@ -47,16 +47,31 @@ function check_image_type(&$type, &$error, &$error_msg)
 	return false;
 }
 
+function user_avatar_storage_directory()
+{
+	global $board_config, $phpbb_root_path;
+
+	$root_path = isset($phpbb_root_path) ? $phpbb_root_path : './';
+	$board_root = @realpath($root_path);
+	$avatar_dir = @realpath($root_path . $board_config['avatar_path']);
+	$normalized_root = $board_root ? rtrim(str_replace('\\', '/', $board_root), '/') . '/' : '';
+	$normalized_dir = $avatar_dir ? rtrim(str_replace('\\', '/', $avatar_dir), '/') . '/' : '';
+
+	return ($normalized_root !== '' && $normalized_dir !== '' && strpos($normalized_dir, $normalized_root) === 0) ? $avatar_dir : false;
+}
+
 function user_avatar_delete($avatar_type, $avatar_file)
 {
-	global $board_config, $userdata;
+	global $userdata;
 	$avatar_file = basename($avatar_file);
+	$avatar_dir = user_avatar_storage_directory();
 	
-	if ( $avatar_type == USER_AVATAR_UPLOAD && $avatar_file != '' )
+	if ( $avatar_type == USER_AVATAR_UPLOAD && $avatar_file != '' && $avatar_dir !== false )
 	{
-		if ( @file_exists(@phpbb_realpath('./' . $board_config['avatar_path'] . '/' . $avatar_file)) )
+		$stored_avatar = $avatar_dir . DIRECTORY_SEPARATOR . $avatar_file;
+		if ( @is_file($stored_avatar) )
 		{
-			@unlink('./' . $board_config['avatar_path'] . '/' . $avatar_file);
+			@unlink($stored_avatar);
 		}
 	}
 
@@ -121,10 +136,7 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 {
 	global $board_config, $db, $lang;
 
-	$ini_val = ( @phpversion() >= '4.0.0' ) ? 'ini_get' : 'get_cfg_var';
-
-	$width = $height = 0;
-	$type = '';
+	$avatar_sql = '';
 	if ($avatar_mode == 'remote')
 	{
 		$error = true;
@@ -132,105 +144,57 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 		return;
 	}
 
-	if ( ( file_exists(@phpbb_realpath($avatar_filename)) ) && preg_match('/\.(jpg|jpeg|gif|png)$/i', $avatar_realname) )
+	$avatar_realname = basename(str_replace('\\', '/', (string) $avatar_realname));
+	$avatar_dir = user_avatar_storage_directory();
+	if ($avatar_dir === false || !is_uploaded_file($avatar_filename))
 	{
-		if ( $avatar_filesize <= $board_config['avatar_filesize'] && $avatar_filesize > 0 )
-		{
-			preg_match('#image\/[x\-]*([a-z]+)#', $avatar_filetype, $avatar_filetype);
-			$avatar_filetype = $avatar_filetype[1];
-		}
-		else
-		{
-			$l_avatar_size = sprintf($lang['Avatar_filesize'], round($board_config['avatar_filesize'] / 1024));
-
-			$error = true;
-			$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $l_avatar_size : $l_avatar_size;
-			return;
-		}
-
-		list($width, $height, $type) = @getimagesize($avatar_filename);
+		$error = true;
+		$error_msg = (!empty($error_msg) ? $error_msg . '<br />' : '') . $lang['Avatar_filetype'];
+		return '';
 	}
 
-	if ( !($imgtype = check_image_type($avatar_filetype, $error, $error_msg)) )
+	$actual_filesize = @filesize($avatar_filename);
+	if ($actual_filesize === false || $actual_filesize < 1 || $actual_filesize > intval($board_config['avatar_filesize']))
 	{
-		return;
+		$l_avatar_size = sprintf($lang['Avatar_filesize'], round($board_config['avatar_filesize'] / 1024));
+		$error = true;
+		$error_msg = (!empty($error_msg) ? $error_msg . '<br />' : '') . $l_avatar_size;
+		return '';
 	}
 
-	switch ($type)
+	$image_info = @getimagesize($avatar_filename);
+	$allowed_types = array(
+		IMAGETYPE_GIF => array('extension' => '.gif', 'names' => array('gif')),
+		IMAGETYPE_JPEG => array('extension' => '.jpg', 'names' => array('jpg', 'jpeg')),
+		IMAGETYPE_PNG => array('extension' => '.png', 'names' => array('png'))
+	);
+	$image_type = ($image_info !== false && isset($image_info[2])) ? intval($image_info[2]) : 0;
+	$real_extension = strtolower(pathinfo($avatar_realname, PATHINFO_EXTENSION));
+	if (!isset($allowed_types[$image_type]) || !in_array($real_extension, $allowed_types[$image_type]['names'], true))
 	{
-		// GIF
-		case 1:
-			if ($imgtype != '.gif')
-			{
-				@unlink($tmp_filename);
-				message_die(GENERAL_ERROR, 'Unable to upload file', '', __LINE__, __FILE__);
-			}
-		break;
-
-		// JPG, JPC, JP2, JPX, JB2
-		case 2:
-		case 9:
-		case 10:
-		case 11:
-		case 12:
-			if ($imgtype != '.jpg' && $imgtype != '.jpeg')
-			{
-				@unlink($tmp_filename);
-				message_die(GENERAL_ERROR, 'Unable to upload file', '', __LINE__, __FILE__);
-			}
-		break;
-
-		// PNG
-		case 3:
-			if ($imgtype != '.png')
-			{
-				@unlink($tmp_filename);
-				message_die(GENERAL_ERROR, 'Unable to upload file', '', __LINE__, __FILE__);
-			}
-		break;
-
-		default:
-			@unlink($tmp_filename);
-			message_die(GENERAL_ERROR, 'Unable to upload file', '', __LINE__, __FILE__);
+		$error = true;
+		$error_msg = (!empty($error_msg) ? $error_msg . '<br />' : '') . $lang['Avatar_filetype'];
+		return '';
 	}
+	$imgtype = $allowed_types[$image_type]['extension'];
+	$width = intval($image_info[0]);
+	$height = intval($image_info[1]);
 
 	if ( $width > 0 && $height > 0 && $width <= $board_config['avatar_max_width'] && $height <= $board_config['avatar_max_height'] )
 	{
 		$new_filename = md5(dss_rand() . dss_rand()) . $imgtype;
 
+		$destination = $avatar_dir . DIRECTORY_SEPARATOR . $new_filename;
+		if (!@move_uploaded_file($avatar_filename, $destination))
+		{
+			message_die(GENERAL_ERROR, 'Unable to upload file', '', __LINE__, __FILE__);
+		}
+
+		@chmod($destination, 0664);
 		if ( $mode == 'editprofile' && $current_type == USER_AVATAR_UPLOAD && $current_avatar != '' )
 		{
 			user_avatar_delete($current_type, $current_avatar);
 		}
-
-		if( $avatar_mode == 'remote' )
-		{
-			@copy($tmp_filename, './' . $board_config['avatar_path'] . "/$new_filename");
-			@unlink($tmp_filename);
-		}
-		else
-		{
-			if ( @$ini_val('open_basedir') != '' )
-			{
-				if ( @phpversion() < '4.0.3' )
-				{
-					message_die(GENERAL_ERROR, 'open_basedir is set and your PHP version does not allow move_uploaded_file', '', __LINE__, __FILE__);
-				}
-
-				$move_file = 'move_uploaded_file';
-			}
-			else
-			{
-				$move_file = 'copy';
-			}
-			if (!is_uploaded_file($avatar_filename))
-			{
-				message_die(GENERAL_ERROR, 'Unable to upload file', '', __LINE__, __FILE__);
-			} 
-			$move_file($avatar_filename, './' . $board_config['avatar_path'] . "/$new_filename");
-		}
-
-		@chmod('./' . $board_config['avatar_path'] . "/$new_filename", 0664);
 
 		$avatar_sql = ( $mode == 'editprofile' ) ? ", user_avatar = '$new_filename', user_avatar_type = " . USER_AVATAR_UPLOAD : "'$new_filename', " . USER_AVATAR_UPLOAD;
 	}
