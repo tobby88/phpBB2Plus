@@ -66,6 +66,33 @@ include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
 $userdata			     = session_pagestart($user_ip, PAGE_ARCADE_SCORE);
 init_userprefs($userdata);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+
+// Modern browsers identify cross-site requests explicitly. Reject those
+// before resolving or consuming an arcade session, while retaining support
+// for legacy game clients which send neither Fetch Metadata nor Origin.
+$fetch_site = (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_scalar($_SERVER['HTTP_SEC_FETCH_SITE'])) ? strtolower(trim((string) $_SERVER['HTTP_SEC_FETCH_SITE'])) : '';
+if ($fetch_site === 'cross-site' || $fetch_site === 'same-site')
+{
+	message_die(GENERAL_ERROR, 'Cross-site score submissions are not accepted.');
+}
+$request_origin = (isset($_SERVER['HTTP_ORIGIN']) && is_scalar($_SERVER['HTTP_ORIGIN'])) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
+if ($request_origin !== '')
+{
+	$origin_parts = @parse_url($request_origin);
+	$board_origin_parts = @parse_url(phpbb_board_url());
+	$origin_scheme = ($origin_parts && isset($origin_parts['scheme'])) ? strtolower($origin_parts['scheme']) : '';
+	$board_scheme = ($board_origin_parts && isset($board_origin_parts['scheme'])) ? strtolower($board_origin_parts['scheme']) : '';
+	$origin_port = ($origin_parts && isset($origin_parts['port'])) ? (int) $origin_parts['port'] : (($origin_scheme === 'https') ? 443 : 80);
+	$board_port = ($board_origin_parts && isset($board_origin_parts['port'])) ? (int) $board_origin_parts['port'] : (($board_scheme === 'https') ? 443 : 80);
+	if (!$origin_parts || empty($origin_parts['scheme']) || empty($origin_parts['host']) ||
+		!in_array($origin_scheme, array('http', 'https'), true) || !$board_origin_parts ||
+		$origin_scheme !== $board_scheme ||
+		strtolower($origin_parts['host']) !== strtolower($board_origin_parts['host']) ||
+		$origin_port !== $board_port)
+	{
+		message_die(GENERAL_ERROR, 'Invalid score submission origin.');
+	}
+}
 //
 //  Check Arcade Config and Include extra files.
 //
@@ -118,6 +145,11 @@ $game_name		    = $session_info['game_name'];
 $start_time		    = $session_info['start_time'];
 $session_hash     = $session_info['arcade_hash'];
 $arcade->user_id  = $session_info['user_id'];
+if (($userdata['user_id'] == ANONYMOUS && (int) $session_info['user_id'] != ANONYMOUS) ||
+	($userdata['user_id'] != ANONYMOUS && (int) $session_info['user_id'] !== (int) $userdata['user_id']))
+{
+	$arcade->message_die(GENERAL_ERROR, $lang['no_session_data'] . $lang['newscore_close']);
+}
 if (!is_scalar($session_hash) || !preg_match('/^[a-f0-9]{32}$/iD', (string) $session_hash))
 {
 	$arcade->message_die(GENERAL_ERROR, $lang['no_session_data'] . $lang['newscore_close']);
@@ -150,7 +182,9 @@ if (!$game_info || trim((string) $game_info['game_name']) === '')
 //
 //  Now check the information passed
 //
-if(($HTTP_GET_VARS['score'] || $HTTP_GET_VARS['gscore']) && !$mode)
+$get_score = phpbb_request_scalar($HTTP_GET_VARS, 'score');
+$get_gscore = phpbb_request_scalar($HTTP_GET_VARS, 'gscore');
+if(($get_score !== '' || $get_gscore !== '') && !$mode)
 {
   $cheat_mode = TRUE;
 }

@@ -1133,7 +1133,8 @@ class arcade
     $this->user_id        = $userdata['user_id'];
     $this->arcade_hash    = $this->pass_var('arcade_hash', '');
     $cookie_name = $board_config['cookie_name'] . '_arcade';
-    $this->arcade_cookie  = isset($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : '';
+	$this->arcade_cookie  = (isset($_COOKIE[$cookie_name]) && is_scalar($_COOKIE[$cookie_name])) ? (string) $_COOKIE[$cookie_name] : '';
+	$minimum_start = time() - 86400;
     
     if(!empty($this->arcade_hash))
     {
@@ -1147,13 +1148,15 @@ class arcade
 		}
 		$sql = "SELECT * FROM " . iNA_SESSIONS . "
 			WHERE arcade_hash = '" . $this->arcade_hash . "'" .
-			(($this->user_id != ANONYMOUS) ? " AND user_id = " . (int) $this->user_id : '') . "
+			(($this->user_id != ANONYMOUS) ? " AND user_id = " . (int) $this->user_id : " AND user_id = " . ANONYMOUS) . "
+			AND start_time >= " . $minimum_start . "
 			LIMIT 1";
     }
     else if($this->user_id != ANONYMOUS)
     {
       $sql = "SELECT * FROM " . iNA_SESSIONS . "
 		   WHERE user_id = " . (int) $this->user_id . "
+		   AND start_time >= " . $minimum_start . "
 		   ORDER BY start_time DESC
 		   LIMIT 1";
     }
@@ -1165,6 +1168,8 @@ class arcade
       }
       $sql = "SELECT * FROM " . iNA_SESSIONS . "
 		   WHERE arcade_hash = '" . $this->arcade_cookie . "'
+		   AND user_id = " . ANONYMOUS . "
+		   AND start_time >= " . $minimum_start . "
 		   LIMIT 1";
     }
     if(!$result = $db->sql_query($sql)) 
