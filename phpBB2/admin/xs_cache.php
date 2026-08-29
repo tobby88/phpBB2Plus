@@ -49,7 +49,7 @@ $skip_files = array(
 	'index.htm',
 	'index.html',
 	'index.php',
-	'attach_config.php',
+	'attach_config_data.cache',
 	);
 
 function xs_cache_template_name($value)

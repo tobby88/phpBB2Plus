@@ -103,42 +103,26 @@ function get_config()
 }
 
 // Get Attachment Config
-$cache_dir = $phpbb_root_path . '/cache';
-$cache_file = $cache_dir . '/attach_config.php';
+$cache_dir = $phpbb_root_path . 'cache';
+$cache_file = $cache_dir . '/attach_config_data.cache';
 $attach_config = array();
 
-if (file_exists($cache_dir) && is_dir($cache_dir) && is_writable($cache_dir))
+if (file_exists($cache_dir) && is_dir($cache_dir))
 {
 	if (file_exists($cache_file))
 	{
-		include($cache_file);
+		$cached_attach_config = phpbb_data_cache_read($cache_file);
+		if (is_array($cached_attach_config))
+		{
+			$attach_config = $cached_attach_config;
+		}
 	}
-	else
+	if (empty($attach_config))
 	{
 		$attach_config = get_config();
-		$fp = @fopen($cache_file, 'wt+');
-		if ($fp)
+		if (is_writable($cache_dir))
 		{
-			$lines = array();
-			foreach ($attach_config as $k => $v)
-			{
-				if (is_int($v))
-				{
-					$lines[] = "'$k'=>$v";
-				}
-				else if (is_bool($v))
-				{
-					$lines[] = "'$k'=>" . (($v) ? 'TRUE' : 'FALSE');
-				}
-				else
-				{
-					$lines[] = "'$k'=>'" . str_replace("'", "\\'", str_replace('\\', '\\\\', $v)) . "'";
-				}
-			}
-			fwrite($fp, '<?php $attach_config = array(' . implode(',', $lines) . '); ?>');
-			fclose($fp);
-
-			@chmod($cache_file, 0664);
+			phpbb_data_cache_write($cache_file, $attach_config);
 		}
 	}
 }

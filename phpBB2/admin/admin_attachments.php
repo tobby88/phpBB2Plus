@@ -188,8 +188,8 @@ while ($row = $db->sql_fetchrow($result))
 }
 $db->sql_freeresult($result);
 
-$cache_dir = $phpbb_root_path . '/cache';
-$cache_file = $cache_dir . '/attach_config.php';
+$cache_dir = $phpbb_root_path . 'cache';
+$cache_file = $cache_dir . '/attach_config_data.cache';
 
 if ((file_exists($cache_dir)) && (is_dir($cache_dir)))
 {
