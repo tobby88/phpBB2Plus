@@ -60,28 +60,28 @@
 		<span class="gensmall">
 			<!-- BEGIN default -->
 				<!-- BEGIN override -->
-					[<a href="{styles.U_OVERRIDE}">{L_XS_STYLES_NO_OVERRIDE}</a>]
+					<form action="{U_SCRIPT}" method="post" style="display: inline;">{S_HIDDEN_FIELDS}<button type="submit" name="style_action" value="{styles.OVERRIDE_ACTION}" class="liteoption">{L_XS_STYLES_NO_OVERRIDE}</button></form>
 				<!-- END override -->
 				<!-- BEGIN nooverride -->
-					[<a href="{styles.U_OVERRIDE}">{L_XS_STYLES_DO_OVERRIDE}</a>]
+					<form action="{U_SCRIPT}" method="post" style="display: inline;">{S_HIDDEN_FIELDS}<button type="submit" name="style_action" value="{styles.OVERRIDE_ACTION}" class="liteoption">{L_XS_STYLES_DO_OVERRIDE}</button></form>
 				<!-- END nooverride -->
 			<!-- END default -->
 			<!-- BEGIN nodefault -->
-				[<a href="{styles.U_DEFAULT}">{L_XS_STYLES_SET_DEFAULT}</a>]
+				<form action="{U_SCRIPT}" method="post" style="display: inline;">{S_HIDDEN_FIELDS}<button type="submit" name="style_action" value="{styles.DEFAULT_ACTION}" class="liteoption">{L_XS_STYLES_SET_DEFAULT}</button></form>
 				<!-- BEGIN admin_only -->
-				[<a href="{styles.nodefault.admin_only.U_CHANGE}">{L_XS_STYLES_MAKE_PUBLIC}</a>]
+				<form action="{U_SCRIPT}" method="post" style="display: inline;">{S_HIDDEN_FIELDS}<button type="submit" name="style_action" value="{styles.nodefault.admin_only.ADMIN_ACTION}" class="liteoption">{L_XS_STYLES_MAKE_PUBLIC}</button></form>
 				<!-- END admin_only -->
 				<!-- BEGIN public -->
-				[<a href="{styles.nodefault.public.U_CHANGE}">{L_XS_STYLES_MAKE_ADMIN}</a>]
+				<form action="{U_SCRIPT}" method="post" style="display: inline;">{S_HIDDEN_FIELDS}<button type="submit" name="style_action" value="{styles.nodefault.public.ADMIN_ACTION}" class="liteoption">{L_XS_STYLES_MAKE_ADMIN}</button></form>
 				<!-- END public -->
 			<!-- END nodefault -->
 			<br />
-			[<a href="{styles.U_SWITCHALL}">{L_XS_STYLES_SWITCH_ALL}</a>]
+			<form action="{U_SCRIPT}" method="post" style="display: inline;">{S_HIDDEN_FIELDS}<button type="submit" name="style_action" value="{styles.SWITCH_ALL_ACTION}" class="liteoption" onclick="return confirm('{L_XS_MOVE_CONFIRM}');">{L_XS_STYLES_SWITCH_ALL}</button></form>
 		</span></td>
 		<td class="{styles.ROW_CLASS}" align="center" valign="middle" nowrap="nowrap"><span class="gensmall">
 			<!-- BEGIN total -->
-			<form action="{U_SCRIPT}" method="get" name="select_{styles.ID}" onsubmit="if(document.select_{styles.ID}.style.value == -1){return false;}" style="display: inline;">{S_HIDDEN_FIELDS}<input type="hidden" name="moveaway" value="{styles.ID}" />
-			<select name="movestyle" onchange="document.select_{styles.ID}.submit();">
+			<form action="{U_SCRIPT}" method="post" name="select_{styles.ID}" onsubmit="if(document.select_{styles.ID}.movestyle.value == -1){return false;} return confirm('{L_XS_MOVE_CONFIRM}');" style="display: inline;">{S_HIDDEN_FIELDS}<input type="hidden" name="style_action" value="{styles.MOVE_AWAY_ACTION}" />
+			<select name="movestyle" onchange="if(this.value !== ''){document.select_{styles.ID}.submit();}">
 			<option value="">{L_XS_STYLES_SWITCH_ALL2}</option>
 			<option value="0">{L_XS_STYLES_DEFSTYLE}</option>
 			<optgroup label="{L_XS_STYLES_AVAILABLE}">

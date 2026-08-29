@@ -46,11 +46,21 @@ $lang['xs_goto_default'] = str_replace('{URL}', append_sid('xs_styles.'.$phpEx),
 // remove timeout. useful for forum with 100+ styles
 @set_time_limit(XS_MAX_TIMEOUT);
 
-// install style
-if(!empty($HTTP_GET_VARS['style']) && !defined('DEMO_MODE'))
+// install one style
+if(!empty($HTTP_POST_VARS['install_one']) && !defined('DEMO_MODE'))
 {
-	$style = stripslashes($HTTP_GET_VARS['style']);
-	$num = intval($HTTP_GET_VARS['num']);
+	phpbb_admin_require_post_session();
+	$install_one = is_scalar($HTTP_POST_VARS['install_one']) ? (string) $HTTP_POST_VARS['install_one'] : '';
+	if(!preg_match('/^([a-zA-Z0-9][a-zA-Z0-9_.-]*):([0-9]+)$/D', $install_one, $install_match))
+	{
+		xs_error($lang['xs_install_error'] . '<br /><br />' . $lang['xs_install_back']);
+	}
+	$style = xs_tpl_name($install_match[1]);
+	$num = (int) $install_match[2];
+	if($style === '' || $num < 0 || $num >= XS_MAX_ITEMS_PER_STYLE)
+	{
+		xs_error($lang['xs_install_error'] . '<br /><br />' . $lang['xs_install_back']);
+	}
 	$res = xs_install_style($style, $num);
 	if(defined('REFRESH_NAVBAR'))
 	{
@@ -72,15 +82,21 @@ if(!empty($HTTP_GET_VARS['style']) && !defined('DEMO_MODE'))
 // install styles
 if(!empty($HTTP_POST_VARS['total']) && !defined('DEMO_MODE'))
 {
+	phpbb_admin_require_post_session();
 	$tpl = array();
 	$num = array();
-	$total = intval($HTTP_POST_VARS['total']);
+	$total = is_scalar($HTTP_POST_VARS['total']) ? max(0, min(1000, intval($HTTP_POST_VARS['total']))) : 0;
 	for($i=0; $i<$total; $i++)
 	{
 		if(!empty($HTTP_POST_VARS['install_'.$i]))
 		{
-			$tpl[] = stripslashes($HTTP_POST_VARS['install_'.$i.'_style']);
-			$num[] = intval($HTTP_POST_VARS['install_'.$i.'_num']);
+			$style = isset($HTTP_POST_VARS['install_'.$i.'_style']) && is_scalar($HTTP_POST_VARS['install_'.$i.'_style']) ? xs_tpl_name(stripslashes((string) $HTTP_POST_VARS['install_'.$i.'_style'])) : '';
+			$style_num = isset($HTTP_POST_VARS['install_'.$i.'_num']) && is_scalar($HTTP_POST_VARS['install_'.$i.'_num']) ? intval($HTTP_POST_VARS['install_'.$i.'_num']) : -1;
+			if($style !== '' && $style_num >= 0 && $style_num < XS_MAX_ITEMS_PER_STYLE)
+			{
+				$tpl[] = $style;
+				$num[] = $style_num;
+			}
 		}
 	}
 	if(count($tpl))
@@ -115,9 +131,9 @@ $style_rowset = $db->sql_fetchrowset($result);
 // find all styles to install
 $res = @opendir('../templates/');
 $styles = array();
-while(($file = readdir($res)) !== false)
+while($res && ($file = readdir($res)) !== false)
 {
-	if($file !== '.' && $file !== '..' && @file_exists('../templates/'.$file.'/theme_info.cfg') && @file_exists('../templates/'.$file.'/'.$file.'.cfg'))
+	if($file !== '.' && $file !== '..' && !is_link('../templates/' . $file) && @file_exists('../templates/'.$file.'/theme_info.cfg') && @file_exists('../templates/'.$file.'/'.$file.'.cfg'))
 	{
 		$arr = xs_get_themeinfo($file);
 		for($i=0; $i<count($arr); $i++)
@@ -142,7 +158,10 @@ while(($file = readdir($res)) !== false)
 		}
 	}
 }
-closedir($res);
+if($res)
+{
+	closedir($res);
+}
 
 if(!count($styles))
 {
@@ -157,9 +176,9 @@ foreach($styles as $var => $value)
 	$row_class = $xs_row_class[$j % 2];
 	$template->assign_block_vars('styles', array(
 			'ROW_CLASS'	=> $row_class,
-			'STYLE'		=> htmlspecialchars($value['template_name']),
-			'THEME'		=> htmlspecialchars($value['style_name']),
-			'U_INSTALL'	=> append_sid('xs_install.'.$phpEx.'?style='.urlencode($value['template_name']).'&num='.$value['num']),
+			'STYLE'		=> htmlspecialchars($value['template_name'], ENT_QUOTES, 'UTF-8'),
+			'THEME'		=> htmlspecialchars($value['style_name'], ENT_QUOTES, 'UTF-8'),
+			'INSTALL_ACTION' => htmlspecialchars($value['template_name'] . ':' . (int) $value['num'], ENT_QUOTES, 'UTF-8'),
 			'CB_NAME'	=> 'install_'.$j,
 			'NUM'		=> $value['num'],
 		)
@@ -168,7 +187,7 @@ foreach($styles as $var => $value)
 }
 
 $template->assign_vars(array(
-	'U_INSTALL'		=> append_sid('xs_install.'.$phpEx),
+	'U_ACTION'		=> append_sid('xs_install.'.$phpEx),
 	'TOTAL'			=> count($styles)
 	));
 

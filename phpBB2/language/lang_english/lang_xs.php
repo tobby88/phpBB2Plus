@@ -267,6 +267,7 @@ $lang['xs_styles_no_override'] = 'do not override user settings';
 $lang['xs_styles_do_override'] = 'override user settings';
 $lang['xs_styles_switch_all'] = 'switch all users to this style';
 $lang['xs_styles_switch_all2'] = 'switch all users to:';
+$lang['xs_styles_move_confirm'] = 'Are you sure you want to change the style for all affected users?';
 $lang['xs_styles_defstyle'] = 'default style';
 $lang['xs_styles_available'] = 'Available styles';
 $lang['xs_styles_make_public'] = 'make style public';

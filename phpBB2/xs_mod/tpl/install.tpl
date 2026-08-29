@@ -33,7 +33,7 @@
 <tr> 
 	<td class="{styles.ROW_CLASS}" align="left"><span class="gen">{styles.STYLE}</span></td>
 	<td class="{styles.ROW_CLASS}" align="left"><span class="gen">{styles.THEME}</span></td>
-	<td class="{styles.ROW_CLASS}" align="center"><span class="gen"><a href="{styles.U_INSTALL}">{L_XS_INSTALL_LC}</a></span></td>
+	<td class="{styles.ROW_CLASS}" align="center"><button type="submit" name="install_one" value="{styles.INSTALL_ACTION}" class="liteoption">{L_XS_INSTALL_LC}</button></td>
 	<td class="{styles.ROW_CLASS}" align="center"><input type="checkbox" name="{styles.CB_NAME}" /><input type="hidden" name="{styles.CB_NAME}_style" value="{styles.STYLE}" /><input type="hidden" name="{styles.CB_NAME}_num" value="{styles.NUM}" /></td>
 </tr>
 <!-- END styles -->

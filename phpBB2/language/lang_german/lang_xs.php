@@ -268,6 +268,7 @@ $lang['xs_styles_no_override'] = 'Benutzereinstellungen nicht überschreiben';
 $lang['xs_styles_do_override'] = 'Benutzereinstellungen überschreiben';
 $lang['xs_styles_switch_all'] = 'alle Benutzer auf diesen Style umschalten';
 $lang['xs_styles_switch_all2'] = 'alle Benutzer umschalten auf:';
+$lang['xs_styles_move_confirm'] = 'Möchtest Du den Style wirklich für alle betroffenen Benutzer ändern?';
 $lang['xs_styles_defstyle'] = 'Default style';
 $lang['xs_styles_available'] = 'Verfügbare Styles';
 $lang['xs_styles_make_public'] = 'Style öffentlich machen';
