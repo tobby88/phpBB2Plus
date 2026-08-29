@@ -965,7 +965,7 @@ function xs_escape_themeinfo_value($value)
 function xs_generate_themeinfo($theme_rowset, $export, $exportas, $total)
 {
 	global $HTTP_POST_VARS;
-	$vars = array('template_name', 'style_name', 'head_stylesheet', 'body_background', 'body_bgcolor', 'body_text', 'body_link', 'body_vlink', 'body_alink', 'body_hlink', 'tr_color1', 'tr_color2', 'tr_color3', 'tr_class1', 'tr_class2', 'tr_class3', 'th_color1', 'th_color2', 'th_color3', 'th_class1', 'th_class2', 'th_class3', 'td_color1', 'td_color2', 'td_color3', 'td_class1', 'td_class2', 'td_class3', 'fontface1', 'fontface2', 'fontface3', 'fontsize1', 'fontsize2', 'fontsize3', 'fontcolor1', 'fontcolor2', 'fontcolor3', 'span_class1', 'span_class2', 'span_class3', 'img_size_poll', 'img_size_privmsg');
+	$vars = array('template_name', 'style_name', 'head_stylesheet', 'body_background', 'body_bgcolor', 'body_text', 'body_link', 'body_vlink', 'body_alink', 'body_hlink', 'tr_color1', 'tr_color2', 'tr_color3', 'tr_class1', 'tr_class2', 'tr_class3', 'th_color1', 'th_color2', 'th_color3', 'th_class1', 'th_class2', 'th_class3', 'td_color1', 'td_color2', 'td_color3', 'td_class1', 'td_class2', 'td_class3', 'fontface1', 'fontface2', 'fontface3', 'fontsize1', 'fontsize2', 'fontsize3', 'fontcolor1', 'fontcolor2', 'fontcolor3', 'span_class1', 'span_class2', 'span_class3', 'div_class1', 'div_class2', 'div_class3', 'row_class1', 'row_class2', 'row_class3', 'col_class1', 'col_class2', 'col_class3', 'img_size_poll', 'img_size_privmsg');
 	$theme_data = '<?php'."\n\n";
 	$theme_data .= "//\n// eXtreme Styles mod (compatible with phpBB 2.0.x) auto-generated theme config file for $exportas\n// Do not change anything in this file unless you know exactly what you are doing!\n//\n\n";
 	for($i = 0; $i < count($theme_rowset); $i++)
@@ -983,7 +983,7 @@ function xs_generate_themeinfo($theme_rowset, $export, $exportas, $total)
 		for($j=0; $j<count($vars); $j++)
 		{
 			$key = $vars[$j];
-			$val = $theme_rowset[$i][$key];
+			$val = isset($theme_rowset[$i][$key]) ? $theme_rowset[$i][$key] : '';
 			if($key === 'style_name')
 			{
 				$theme_data .= '${\'' . $exportas . "'}[$i]['$key'] = \"" . xs_escape_themeinfo_value($theme_name) . "\";\n";
@@ -1150,8 +1150,31 @@ function pack_style($name, $newname, $themes, $comment)
       - comment
 	  - style names
 	*/
-	global $phpbb_root_path, $template_dir;
-	$data = gzcompress(pack_dir($phpbb_root_path . $template_dir . $name, '', $name, $newname));
+	global $phpbb_root_path, $template_dir, $pack_error, $pack_file_count, $pack_unpacked_bytes;
+	$pack_error = isset($pack_error) ? $pack_error : '';
+	$pack_file_count = 0;
+	$pack_unpacked_bytes = 0;
+	if(@is_link($phpbb_root_path . $template_dir . $name) || count($themes) > XS_MAX_ITEMS_PER_STYLE || strlen($newname) > 255 || strlen($comment) > 255)
+	{
+		return '';
+	}
+	for($i=0; $i<count($themes); $i++)
+	{
+		if(!isset($themes[$i]['style_name']) || strlen($themes[$i]['style_name']) > 255)
+		{
+			return '';
+		}
+	}
+	$packed_directory = pack_dir($phpbb_root_path . $template_dir . $name, '', $name, $newname);
+	if($pack_error || $packed_directory === '')
+	{
+		return '';
+	}
+	$data = gzcompress($packed_directory);
+	if($data === false)
+	{
+		return '';
+	}
 	$items_data = chr(strlen($newname)) . chr(strlen($comment));
 	$items_str = $newname . $comment;
 	for($i=0; $i<count($themes); $i++)
@@ -1169,7 +1192,7 @@ function pack_style($name, $newname, $themes, $comment)
 // pack directory
 function pack_dir($dir1, $dir2, $search, $replace)
 {
-	global $pack_error, $pack_list, $pack_replace, $lang;
+	global $pack_error, $pack_list, $pack_replace, $pack_file_count, $pack_unpacked_bytes, $lang;
 	// replacements in content
 	$search2 = array('templates/'.$search.'/'.$search, 'templates/'.$search);
 	$replace2 = array('templates/'.$replace.'/'.$replace, 'templates/'.$replace);
@@ -1185,7 +1208,7 @@ function pack_dir($dir1, $dir2, $search, $replace)
 	$str = '';
 	if(!$res)
 	{
-		$pack_error = str_replace('{DIR}', $lang['xs_export_no_open_dir'], $dir);
+		$pack_error = str_replace('{DIR}', $dir, $lang['xs_export_no_open_dir']);
 		return '';
 	}
 	// get list of files/directories
@@ -1195,7 +1218,14 @@ function pack_dir($dir1, $dir2, $search, $replace)
 	{
 		if($file !== '.' && $file !== '..')
 		{
-			if(@is_dir($dir . '/' . $file))
+			$path = $dir . '/' . $file;
+			if(@is_link($path))
+			{
+				$pack_error = str_replace('{FILE}', $path, $lang['xs_export_no_read_file']);
+				closedir($res);
+				return '';
+			}
+			if(@is_dir($path))
 			{
 				$subdir[] = $file;
 			}
@@ -1206,18 +1236,26 @@ function pack_dir($dir1, $dir2, $search, $replace)
 		}
 	}
 	closedir($res);
+	sort($files, SORT_STRING);
+	sort($subdir, SORT_STRING);
 	// add current directory
 	$base_dir = ($dir2 ? $dir2 : '.') . '/';
+	$pack_file_count++;
+	if($pack_file_count > XS_MAX_STYLE_FILES || strlen($base_dir) > 100)
+	{
+		$pack_error = str_replace('{DIR}', $base_dir, $lang['xs_export_no_open_dir']);
+		return '';
+	}
 	$header = array(
 		'filename'	=> $base_dir,
-		'mode'		=> '40777',
+		'mode'		=> '40775',
 		'uid'		=> '0',
 		'gid'		=> '0',
 		'size'		=> decoct(0),
 		'mtime'		=> decoct(@filemtime($dir)),
 		'checksum'	=> '0',	// ignore checksum
 		'typeflag'	=> '5',
-		'link'		=> '',
+		'linkname'	=> '',
 		'magic'		=> "ustar",
 		'version'	=> '',
 		'uname'		=> 'user',
@@ -1236,6 +1274,12 @@ function pack_dir($dir1, $dir2, $search, $replace)
 	{
 		$file = $files[$i];
 		$header['filename'] = $base_dir . $file;
+		$pack_file_count++;
+		if($pack_file_count > XS_MAX_STYLE_FILES || strlen($header['filename']) > 100)
+		{
+			$pack_error = str_replace('{FILE}', $header['filename'], $lang['xs_export_no_read_file']);
+			return '';
+		}
 		$pack_list[] = $header['filename'];
 		if(isset($pack_replace[$header['filename']]))
 		{
@@ -1251,6 +1295,12 @@ function pack_dir($dir1, $dir2, $search, $replace)
 				return '';
 			}
 			$file_size = @filesize($dir . '/' . $file);
+			if($file_size === false || $file_size > XS_MAX_STYLE_UPLOAD_BYTES)
+			{
+				fclose($f);
+				$pack_error = str_replace('{FILE}', $dir . '/' . $file, $lang['xs_export_no_read_file']);
+				return '';
+			}
 			if($file_size)
 			{
 				$file_str = fread($f, $file_size);
@@ -1261,6 +1311,7 @@ function pack_dir($dir1, $dir2, $search, $replace)
 			}
 			if(strlen($file_str) != $file_size)
 			{
+				fclose($f);
 				$pack_error = str_replace('{FILE}', $dir . '/' . $file, $lang['xs_export_no_read_file']);
 				return '';
 			}
@@ -1269,6 +1320,12 @@ function pack_dir($dir1, $dir2, $search, $replace)
 			{
 				$file_str = str_replace($search2, $replace2, $file_str);
 			}
+		}
+		$pack_unpacked_bytes += strlen($file_str);
+		if(strlen($file_str) > XS_MAX_STYLE_UPLOAD_BYTES || $pack_unpacked_bytes > XS_MAX_STYLE_UNPACKED_BYTES)
+		{
+			$pack_error = str_replace('{FILE}', $header['filename'], $lang['xs_export_no_read_file']);
+			return '';
 		}
 		if($search !== $replace && substr($header['filename'], strlen($header['filename']) - 4) !== '.tpl')
 		{
@@ -1281,6 +1338,11 @@ function pack_dir($dir1, $dir2, $search, $replace)
 				$header['filename'] = $replace3 . substr($header['filename'], strlen($search3));
 			}
 		}
+		if(strlen($header['filename']) > 100)
+		{
+			$pack_error = str_replace('{FILE}', $header['filename'], $lang['xs_export_no_read_file']);
+			return '';
+		}
 /*		echo 'filename: ', $header['filename'], '<br />';
 		if($header['filename'] === './overall_header.tpl')
 		{
@@ -1289,7 +1351,7 @@ function pack_dir($dir1, $dir2, $search, $replace)
 		$size = strlen($file_str);
 		$header['size'] = decoct($size);
 		$header['typeflag'] = '0';
-		$header['mode'] = '100666';
+		$header['mode'] = '100644';
 		$full_size = floor(($size + 511) / 512) * 512;
 		$extra_str = $full_size > $size ? str_repeat("\0", $full_size - $size) : '';
 		$header_str = pack(TAR_HEADER_PACK, $header['filename'], $header['mode'], $header['uid'], $header['gid'], $header['size'], $header['mtime'], $header['checksum'], $header['typeflag'], $header['linkname'], $header['magic'], $header['version'], $header['uname'], $header['gname'], $header['devmajor'], $header['devminor'], $header['prefix'], $header['extra']);
@@ -1298,7 +1360,12 @@ function pack_dir($dir1, $dir2, $search, $replace)
 	// add all directories
 	for($i=0; $i<count($subdir); $i++)
 	{
-		$str .= pack_dir($dir1, $dir2 ? $dir2 . '/' . $subdir[$i] : $subdir[$i], $search, $replace);
+		$subdir_data = pack_dir($dir1, $dir2 ? $dir2 . '/' . $subdir[$i] : $subdir[$i], $search, $replace);
+		if($pack_error)
+		{
+			return '';
+		}
+		$str .= $subdir_data;
 	}
 	if(!$dir2)
 	{
