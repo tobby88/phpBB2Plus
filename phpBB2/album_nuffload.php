@@ -177,14 +177,20 @@ if (isset($_REQUEST['psid']))
 		require_once('album_pclzip_lib.' . $phpEx);
 		$pfm = $multi_max;
 		$ptm = $multi_max;
-		for($i=0 ; $i < $k ; $i++)
+		$archive_input_count = $k;
+		for($i=0 ; $i < $archive_input_count ; $i++)
 		{
+			if (!preg_match('/\.zip$/iD', (string) $file['name'][$i]))
+			{
+				continue;
+			}
 			$archive = new PclZip($path_to_bin . $file['tmp_name'][$i]);
 			$archive_info = $archive->listContent();
 			$archive_files = 0;
 			$archive_size = 0;
 			$archive_limit = max(1, min(50, intval($album_config['max_uploads'])));
-			$archive_size_limit = max(1, intval($album_config['max_file_size'])) * $archive_limit;
+			$archive_size_limit = min(104857600, max(1, intval($album_config['max_file_size'])) * $archive_limit);
+			$archive_names = array();
 			$list = false;
 			if (is_array($archive_info))
 			{
@@ -192,44 +198,118 @@ if (isset($_REQUEST['psid']))
 				{
 					if (empty($archive_entry['folder']))
 					{
+						$stored_name = str_replace('\\', '/', (string) $archive_entry['stored_filename']);
+						$stored_name = basename($stored_name);
+						$name_key = strtolower($stored_name);
+						if ($stored_name === '' || !preg_match('/\.(?:gif|jpe?g|png)$/iD', $stored_name) || isset($archive_names[$name_key]))
+						{
+							message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
+						}
+						$archive_names[$name_key] = $stored_name;
 						$archive_files++;
 						$archive_size += max(0, intval($archive_entry['size']));
 					}
 				}
-				if ($archive_files > $archive_limit || $archive_size > $archive_size_limit)
+				if ($archive_files < 1 || $archive_files > $archive_limit || $archive_size > $archive_size_limit)
 				{
 					message_die(GENERAL_ERROR, $lang['Upload_archive_too_large']);
 				}
-				$list = $archive->extract(PCLZIP_OPT_PATH, $path_to_bin . "tmp",
-															PCLZIP_OPT_REMOVE_ALL_PATH);
-			}
-			if ($list)
-			{
-				@unlink($path_to_bin . $file['tmp_name'][$i]);
-				$original_filename = $file['tmp_name'][$i];
-				rename($path_to_bin . "tmp/" . basename($list[0]['filename']), $path_to_bin . $original_filename . "0");
-				$field_name = explode("-",$file['field'][$i]);
-				$file['size'][$i] = $list[0]['size'];
-				$file['name'][$i] = basename($list[0]['stored_filename']);
-				$file['tmp_name'][$i] = $original_filename . "0";
-				for($j=1 ; $j < count($list) ; $j++)
+				$extract_dir = $path_to_bin . 'tmp/' . $psid . '_zip_' . $i;
+				if (is_dir($extract_dir) || !@mkdir($extract_dir, 0700))
 				{
-					rename($path_to_bin . "tmp/" . basename($list[$j]['filename']), $path_to_bin . $original_filename . $j);
-					$file['size'][$k] = $list[$j]['size'];
-					$file['name'][$k] = basename($list[$j]['stored_filename']);
-					$file['tmp_name'][$k] = $original_filename . $j;
-					if($field_name[0]=="pic_file")
-					{
-						$pfm++;
-						$file['field'][$k] = $field_name[0] . "-" . $pfm;
-					}
-					if($field_name[0]=="pic_thumbnail")
-					{
-						$ptm++;
-						$file['field'][$k] = $field_name[0] . "-" . $ptm;
-					}
-					$k++;
+					message_die(GENERAL_ERROR, 'Could not initialize archive extraction.');
 				}
+				$list = $archive->extract(PCLZIP_OPT_PATH, $extract_dir,
+													PCLZIP_OPT_REMOVE_ALL_PATH);
+			}
+			if (is_array($list))
+			{
+				$extracted_files = array();
+				$actual_archive_size = 0;
+				foreach ($list as $extracted_entry)
+				{
+					if (!empty($extracted_entry['folder']))
+					{
+						continue;
+					}
+					$extracted_name = basename(str_replace('\\', '/', (string) $extracted_entry['filename']));
+					$name_key = strtolower($extracted_name);
+					$extracted_path = $extract_dir . '/' . $extracted_name;
+					if (!isset($archive_names[$name_key]) || !is_file($extracted_path))
+					{
+						foreach ($archive_names as $cleanup_name)
+						{
+							@unlink($extract_dir . '/' . $cleanup_name);
+						}
+						@rmdir($extract_dir);
+						message_die(GENERAL_ERROR, 'Invalid archive contents.');
+					}
+					$actual_archive_size += max(0, intval(@filesize($extracted_path)));
+					$extracted_files[] = array('path' => $extracted_path, 'name' => $archive_names[$name_key]);
+				}
+				if (count($extracted_files) !== $archive_files || $actual_archive_size > $archive_size_limit)
+				{
+					foreach ($archive_names as $cleanup_name)
+					{
+						@unlink($extract_dir . '/' . $cleanup_name);
+					}
+					@rmdir($extract_dir);
+					message_die(GENERAL_ERROR, $lang['Upload_archive_too_large']);
+				}
+
+				$original_filename = $file['tmp_name'][$i];
+				$field_name = explode("-",$file['field'][$i]);
+				$moved_destinations = array();
+				foreach ($extracted_files as $j => $extracted_file)
+				{
+					$destination = $path_to_bin . $original_filename . $j;
+					if (!@rename($extracted_file['path'], $destination))
+					{
+						foreach ($extracted_files as $cleanup_file)
+						{
+							@unlink($cleanup_file['path']);
+						}
+						foreach ($moved_destinations as $cleanup_file)
+						{
+							@unlink($cleanup_file);
+						}
+						@rmdir($extract_dir);
+						message_die(GENERAL_ERROR, 'Could not store extracted upload data.');
+					}
+					$moved_destinations[] = $destination;
+					$target_index = ($j === 0) ? $i : $k++;
+					$file['size'][$target_index] = max(0, intval(@filesize($destination)));
+					$file['name'][$target_index] = $extracted_file['name'];
+					$file['tmp_name'][$target_index] = $original_filename . $j;
+					if ($j > 0)
+					{
+						if($field_name[0]=="pic_file")
+						{
+							$pfm++;
+							$file['field'][$target_index] = $field_name[0] . "-" . $pfm;
+						}
+						if($field_name[0]=="pic_thumbnail")
+						{
+							$ptm++;
+							$file['field'][$target_index] = $field_name[0] . "-" . $ptm;
+						}
+					}
+				}
+				@rmdir($extract_dir);
+				@unlink($path_to_bin . $original_filename);
+				$file['tmp_name'][$i] = $original_filename . "0";
+			}
+			else
+			{
+				if (isset($extract_dir) && is_dir($extract_dir))
+				{
+					foreach ($archive_names as $cleanup_name)
+					{
+						@unlink($extract_dir . '/' . $cleanup_name);
+					}
+					@rmdir($extract_dir);
+				}
+				message_die(GENERAL_ERROR, 'Could not extract uploaded archive.');
 			}
 		}
 		// Rebuild the hand-off data with proper encoding after ZIP expansion.

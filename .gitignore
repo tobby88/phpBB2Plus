@@ -14,6 +14,10 @@
 /phpBB2/album_mod/upload/*
 !/phpBB2/album_mod/upload/.htaccess
 !/phpBB2/album_mod/upload/index.html
+!/phpBB2/album_mod/upload/tmp/
+/phpBB2/album_mod/upload/tmp/*
+!/phpBB2/album_mod/upload/tmp/.htaccess
+!/phpBB2/album_mod/upload/tmp/index.html
 /phpBB2/files/*
 !/phpBB2/files/.htaccess
 !/phpBB2/files/index.php

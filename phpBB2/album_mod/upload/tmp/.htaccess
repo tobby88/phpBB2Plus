@@ -1,0 +1,11 @@
+Options -Indexes -ExecCGI -Includes
+
+# Temporary upload payloads and progress metadata are internal state. They
+# are consumed through the album PHP/CGI endpoints and must not be served.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

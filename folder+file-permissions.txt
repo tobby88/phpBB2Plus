@@ -13,6 +13,7 @@ Recommended mode: 0775 when PHP runs as the owner or in the owning group.
 
 /album_mod/upload
 /album_mod/upload/cache
+/album_mod/upload/tmp
 /cache
 /cgi-bin/tmp
 /games

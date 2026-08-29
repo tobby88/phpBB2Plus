@@ -93,6 +93,7 @@ failed=0
 for path in \
 	album_mod/upload \
 	album_mod/upload/cache \
+	album_mod/upload/tmp \
 	cache \
 	cgi-bin/tmp \
 	games \

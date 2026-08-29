@@ -70,6 +70,23 @@ function album_nuffload_cleanup_temp($tmp_path, $max_age = 3600)
 		{
 			@unlink($tmp_path . $file);
 		}
+		else if (preg_match('/^[a-f0-9]{32}_zip_[0-9]+$/iD', $file)
+			&& is_dir($tmp_path . $file) && filemtime($tmp_path . $file) < (time() - (int) $max_age))
+		{
+			$archive_tmp_path = $tmp_path . $file . '/';
+			if ($archive_handle = @opendir($archive_tmp_path))
+			{
+				while (($archive_file = readdir($archive_handle)) !== false)
+				{
+					if ($archive_file !== '.' && $archive_file !== '..' && is_file($archive_tmp_path . $archive_file))
+					{
+						@unlink($archive_tmp_path . $archive_file);
+					}
+				}
+				closedir($archive_handle);
+				@rmdir($tmp_path . $file);
+			}
+		}
 	}
 	closedir($handle);
 }
