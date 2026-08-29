@@ -145,6 +145,10 @@ changes consolidated after that baseline without implying active maintenance.
   and rating writes to the active session, made new comment IDs database-safe,
   prevented duplicate ratings under concurrent requests and removed the
   external administrator IP lookup from comment pages.
+- Confined Arcade image discovery to local relative assets and removed its
+  unexpected public-page file copy. Monthly highscore views now select exact
+  stored months, validate legacy offsets, respect game availability and access
+  requirements, and escape stored game/player presentation data.
 - Hardened album moderation and category administration against forged
   actions and injected ID lists, validated move targets and signed legacy
   one-click moderation/order links. Personal-gallery management now verifies

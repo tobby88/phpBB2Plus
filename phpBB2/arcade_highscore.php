@@ -49,7 +49,7 @@ include_once($phpbb_root_path . 'includes/bbcode.' .$phpEx);
 //
 $userdata = session_pagestart($user_ip, PAGE_HIGHSCORE);
 init_userprefs($userdata);
-$page_title = $board_config['sitename'] . ' Monthly Highscores';
+$page_title = $board_config['sitename'] . ' - ' . $lang['highscore_table_header'];
 $user_id = $userdata['user_id'];
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 $arcade_version = $arcade->arcade_config('version');
@@ -61,58 +61,34 @@ $template->set_filenames(array(
 	'body' => 'arcade_highscore_body.tpl')
 );
 
-if ( !empty($HTTP_POST_VARS['date']) || !empty($HTTP_GET_VARS['date']) )
+$requested_month = !empty($HTTP_POST_VARS['month']) ? $HTTP_POST_VARS['month'] : (!empty($HTTP_GET_VARS['month']) ? $HTTP_GET_VARS['month'] : '');
+$legacy_date = !empty($HTTP_POST_VARS['date']) ? $HTTP_POST_VARS['date'] : (!empty($HTTP_GET_VARS['date']) ? $HTTP_GET_VARS['date'] : 0);
+if (is_array($requested_month) || is_array($legacy_date))
 {
-	$date = ( !empty($HTTP_POST_VARS['date']) ) ? $HTTP_POST_VARS['date'] : $HTTP_GET_VARS['date'];
-}
-else
-{
-	$date = "0";
+	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 }
 
-$curr_m = date('m');
-$curr_y = date('Y');
 $cat_id = 0;
 $start = 0;
 $sort_mode = '';
 $order = '';
 $highscore_id = 0;
 
-if ($date >= $curr_m)
+if (preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/D', (string) $requested_month, $month_match))
 {
-	$date = $date - $curr_m;
-	if ($date == "0")
-	{
-		$highscore_date_y = "1";
-	}
-	else
-	{
-		$highscore_date_y = floor($date/12)+1;
-	}
-	$highscore_date_m = 12 - ($date - (($highscore_date_y - 1)*12));
-	$highscore_date_y = $curr_y - $highscore_date_y;
+	$highscore_date_y = (int) $month_match[1];
+	$highscore_date_m = (int) $month_match[2];
 }
 else
 {
-    $highscore_date_m = $curr_m - $date;
-    $highscore_date_y = $curr_y;
+	$months_ago = max(0, min(120, (int) $legacy_date));
+	$month_timestamp = mktime(12, 0, 0, (int) date('n') - $months_ago, 1, (int) date('Y'));
+	$highscore_date_m = (int) date('n', $month_timestamp);
+	$highscore_date_y = (int) date('Y', $month_timestamp);
 }
 
-if ($highscore_date_m == "1")
-{
-  $highscore_date = $lang['highscore_jan']." ".$highscore_date_y;
-}
-elseif ($highscore_date_m == "2") {$highscore_date = $lang['highscore_feb']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "3") {$highscore_date = $lang['highscore_mar']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "4") {$highscore_date = $lang['highscore_apr']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "5") {$highscore_date = $lang['highscore_may']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "6") {$highscore_date = $lang['highscore_jun']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "7") {$highscore_date = $lang['highscore_jul']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "8") {$highscore_date = $lang['highscore_aug']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "9") {$highscore_date = $lang['highscore_sep']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "10") {$highscore_date = $lang['highscore_oct']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "11") {$highscore_date = $lang['highscore_nov']." ".$highscore_date_y;}
-elseif ($highscore_date_m == "12") {$highscore_date = $lang['highscore_dec']." ".$highscore_date_y;}
+$highscore_month_names = array($lang['highscore_jan'], $lang['highscore_feb'], $lang['highscore_mar'], $lang['highscore_apr'], $lang['highscore_may'], $lang['highscore_jun'], $lang['highscore_jul'], $lang['highscore_aug'], $lang['highscore_sep'], $lang['highscore_oct'], $lang['highscore_nov'], $lang['highscore_dec']);
+$highscore_date = $highscore_month_names[$highscore_date_m - 1] . ' ' . $highscore_date_y;
 //
 //  Get User Information (Group Membership, Rank and Level)
 //  ready for the Activies Passing
@@ -132,22 +108,23 @@ $group_ids = $db->sql_fetchrowset($result);
 //
 //  Build a list of Groups that this user is a member of (add Group Zero)
 //
-$group_list = '0';
+$group_list = array(0);
 for ($group_count = 0; $group_count < count($group_ids); $group_count++)
 {
-   $group_list .= ', ' . $group_ids[$group_count]['group_id'];
+	$group_list[] = (int) $group_ids[$group_count]['group_id'];
 }
 $level_required = isset($userdata['user_level']) ? $userdata['user_level'] : 0;
 $rank_required = isset($userdata['user_rank']) ? $userdata['user_rank'] : 0;
 //
 // Main query
 //
-$sql = "SELECT highscore_game, highscore_player, highscore_score, game_path, game_desc, game_id, image_path, win_width, win_height
+$sql = "SELECT highscore_game, highscore_player, highscore_score, game_path, game_desc, game_id, image_path, win_width, win_height, allow_guest, level_required, rank_required, group_required
 		FROM ".iNA_HIGHSCORES .", ". iNA_GAMES ."
-  		WHERE highscore_year = '".$highscore_date_y."'
-  	 	AND highscore_mon = '".$highscore_date_m."'
-  		AND highscore_game != ''
-  		AND game_name = highscore_game
+		WHERE highscore_year = ". (int) $highscore_date_y ."
+		AND highscore_mon = ". (int) $highscore_date_m ."
+		AND highscore_game != ''
+		AND game_name = highscore_game
+		AND game_avail = 1
 		ORDER BY highscore_score DESC LIMIT 0,60";
 if( !$result = $db->sql_query($sql) )
 {
@@ -159,6 +136,15 @@ $highscore_temp = '';
 
 while($row = $db->sql_fetchrow($result))
 {
+	$required_group = (int) $row['group_required'];
+	if (($userdata['user_id'] == ANONYMOUS && !(int) $row['allow_guest']) ||
+		(int) $row['level_required'] > (int) $level_required ||
+		(int) $row['rank_required'] > (int) $rank_required ||
+		!in_array($required_group, $group_list, true))
+	{
+		continue;
+	}
+
 	$i++;
 
 	if ($i == "1")
@@ -170,16 +156,21 @@ while($row = $db->sql_fetchrow($result))
 //  ready for the Activies Passing
 //
 
-	$highscore_game = $row['highscore_game'];
-	$highscore_image = $row['image_path'];
-	$highscore_player = $row['highscore_player'];
-	$highscore_score  = $arcade->convert_score($row['highscore_score']) ? $arcade->convert_score($row['highscore_score']) : '';
+	$highscore_game = (string) $row['highscore_game'];
+	$highscore_player = phpbb_profile_text($row['highscore_player']);
+	$converted_score = $arcade->convert_score($row['highscore_score']);
+	$highscore_score = ($converted_score !== false && $converted_score !== null) ? htmlspecialchars((string) $converted_score, ENT_QUOTES, 'UTF-8') : '';
   $row_bg_number = ($bgcounter++ % 2 == 0) ? 1 : 2;
 
 	$image_path = ina_find_image($row['game_path'], $highscore_game, $row['image_path']);
-
-  $highscore_game_pic = '<img src ="'. $image_path .'" border="0" alt="'.$row['game_desc'].'" align="middle" width="'.$arcade->arcade_config['games_image_width'].'" height="'.$arcade->arcade_config['games_image_height'].'" >';
-  $highscore_temp .= "<td width=\"20%\" height=\"19\" class=\"row".$row_bg_number."\"> <div align=\"center\"><a href=\"javascript:Gk_PopTart('activity.php?mode=game&amp;id=".$row['game_id']. "', 'Game_Windows', ".$row['win_width'].", ".$row['win_height'].", 'no')\">".$highscore_game_pic."</a><br /><span class=\"gen\">".$row['game_desc']."</span><br /><b><span class=\"gen\">".$highscore_player." : ".$highscore_score."</span></b></div></td>\n";
+	$game_desc = phpbb_profile_text($row['game_desc']);
+	$image_width = max(1, min(500, (int) $arcade->arcade_config['games_image_width']));
+	$image_height = max(1, min(500, (int) $arcade->arcade_config['games_image_height']));
+	$window_width = max(200, min(1920, (int) $row['win_width']));
+	$window_height = max(150, min(1200, (int) $row['win_height']));
+	$highscore_game_pic = $image_path ? '<img src="' . htmlspecialchars($image_path, ENT_QUOTES, 'UTF-8') . '" border="0" alt="' . $game_desc . '" align="middle" width="' . $image_width . '" height="' . $image_height . '" />' : '';
+	$game_url = append_sid("activity.$phpEx?mode=game&amp;id=" . (int) $row['game_id']);
+	$highscore_temp .= '<td width="20%" height="19" class="row' . $row_bg_number . '"><div align="center"><a href="' . $game_url . '" onclick="Gk_PopTart(\'' . $game_url . '\', \'Game_Windows\', ' . $window_width . ', ' . $window_height . ', \'no\'); return false;">' . $highscore_game_pic . '</a><br /><span class="gen">' . $game_desc . '</span><br /><b><span class="gen">' . $highscore_player . ' : ' . $highscore_score . "</span></b></div></td>\n";
 
 // Set output to be 5 rows across
 	if ($i == "5")
@@ -208,7 +199,7 @@ if ($bgcounter == "0")
 	$highscore_temp = "<tr align=\"center\" valign=\"top\">\n<td class=\"row1\">".$lang['highscore_no_score']."</td></tr>";
 }
 
-if(!empty($HTTP_POST_VARS['cat_id']))
+if(!empty($HTTP_POST_VARS['cat_id']) && !is_array($HTTP_POST_VARS['cat_id']))
 {
   $cat_id = intval($HTTP_POST_VARS['cat_id']);
 
@@ -219,7 +210,7 @@ if(!empty($HTTP_POST_VARS['cat_id']))
 	 	message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
 	}
 	$cat_info = $db->sql_fetchrow($result);
-	$catagory_name = $cat_info['cat_name'];
+	$catagory_name = $cat_info ? phpbb_profile_text($cat_info['cat_name']) : $lang['all_games'];
 }
 else
 {
@@ -234,7 +225,7 @@ if($arcade->arcade_config['games_per_page'] > 0)
 		$sql = "SELECT count(*) AS total FROM " . iNA_HIGHSCORES;
 		if($highscore_id > 0)
 		{
-			$sql .= " WHERE highscore_id = '" . $highscore_id . "'";
+			$sql .= " WHERE highscore_id = " . (int) $highscore_id;
 		}
 		if ( !($result = $db->sql_query($sql)) )
 		{

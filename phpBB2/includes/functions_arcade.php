@@ -916,41 +916,56 @@ function ina_check_last_pm($to_id, $from_id)
 function ina_find_image($game_path, $game_name, $image_path = "", $phpbb_root_path = './')
 {
   global $arcade;
-  
-	if ( empty($image_path) )
+
+	$game_path = phpbb_arcade_local_asset($game_path);
+	$games_path = phpbb_arcade_local_asset($arcade->arcade_config['games_path']);
+	$image_path = phpbb_arcade_local_asset($image_path);
+	$game_name = trim((string) $game_name);
+	if ($game_name === '' || strpos($game_name, "\0") !== false || basename(str_replace('\\', '/', $game_name)) !== $game_name)
 	{
- 		if( @file_exists($phpbb_root_path . $arcade->arcade_config['games_path'] . $game_name .".gif") )
-  	{
-    	return ($phpbb_root_path . $arcade->arcade_config['games_path'] . $game_name . '.gif');
- 		}
-  	else if( @file_exists($phpbb_root_path . $game_path . $game_name .".gif") )
+		return false;
+	}
+
+	$candidates = array();
+	if ($image_path === '')
+	{
+		if ($games_path !== '')
 		{
-      @copy($phpbb_root_path . $game_path . $game_name .".gif", $phpbb_root_path . $arcade->arcade_config['games_path'] . $game_name .".gif");
-			return ($phpbb_root_path . $game_path . $game_name . '.gif');
+			$candidates[] = rtrim($games_path, '/') . '/' . $game_name . '.gif';
+		}
+		if ($game_path !== '')
+		{
+			$candidates[] = rtrim($game_path, '/') . '/' . $game_name . '.gif';
 		}
 	}
-	else if (( strlen( $image_path ) < 5 ) && @file_exists($phpbb_root_path . $game_path . $game_name . $image_path))
+	else
 	{
-		return ($phpbb_root_path . $game_path . $game_name . $image_path);
+		if (strlen($image_path) < 5 && $game_path !== '')
+		{
+			$candidates[] = rtrim($game_path, '/') . '/' . $game_name . $image_path;
+		}
+		$candidates[] = $image_path;
+		if ($game_path !== '')
+		{
+			$candidates[] = rtrim($game_path, '/') . '/' . $game_name . $image_path;
+		}
 	}
-	else if ( @file_exists($phpbb_root_path . $image_path))
+
+	foreach (array_unique($candidates) as $candidate)
 	{
-    return ($phpbb_root_path . $image_path);
-  }
-	else if ( @file_exists($image_path))
-	{
-    return ($image_path);
-  }
-	else if ( @file_exists($phpbb_root_path . $game_path . '/' . $game_name . $image_path))
-	{
-    return ($phpbb_root_path . $game_path . '/' . $game_name . $image_path);
-  }
+		$candidate = phpbb_arcade_local_asset($candidate);
+		if ($candidate !== '' && @is_file($phpbb_root_path . $candidate))
+		{
+			return $phpbb_root_path . $candidate;
+		}
+	}
 //
 //  OK, so we've checked what we can, give up and look for the default
 //
-  if ( @file_exists($arcade->arcade_config['games_default_img']))
+	$default_image = phpbb_arcade_local_asset($arcade->arcade_config['games_default_img']);
+  if ($default_image !== '' && @is_file($phpbb_root_path . $default_image))
 	{
-		return ($arcade->arcade_config['games_default_img']);
+		return $phpbb_root_path . $default_image;
 	}
   return FALSE;
 }
@@ -979,17 +994,19 @@ function highscore_jump_box()
   <tr>
     <td class="row1" align="center"><div align="center"><span class="nav">'.$lang['highscore_other_score'].':<br />
     <form action="'.append_sid("arcade_highscore.$phpEx").'" name="mon_jump" method="post">
-    <select name="date" onchange="'."if(this.options[this.selectedIndex].value >= 0){ forms['mon_jump'].submit() }".'">
-    <option value="-1"></option>';
+    <select name="month" onchange="'."if(this.options[this.selectedIndex].value !== ''){ forms['mon_jump'].submit() }".'">
+    <option value=""></option>';
 //
 //  Loop Through the Months
 //
 	for ($i = "0"; $i < count($rows); $i++)
 	{
-    $highscore_date = $highscore_mon[($rows[$i]['highscore_mon']-1)]." ".$rows[$i]['highscore_year'];
- 		$input .= "<option value=\"".$i."\">".$lang['highscore_for']." ".$highscore_date."</option>\n";
+		$month = max(1, min(12, (int) $rows[$i]['highscore_mon']));
+		$year = (int) $rows[$i]['highscore_year'];
+		$highscore_date = $highscore_mon[$month - 1]." ".$year;
+		$input .= '<option value="' . sprintf('%04d-%02d', $year, $month) . '">' . $lang['highscore_for'] . ' ' . $highscore_date . "</option>\n";
 	}
-	$input .= '</select><br><input type="hidden" name="sid" value="' . $arcade->sid . '"><input type="hidden" name="cat_id" value="' . $arcade->cat_id . '"><input type="hidden" name="start" value="' . $arcade->start . '"><input type="hidden" name="sort_mode" value="' . $arcade->sort_mode . '"><input type="hidden" name="order" value="' . $arcade->order . '">';
+	$input .= '</select><br><input type="hidden" name="sid" value="' . htmlspecialchars((string) $arcade->sid, ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name="cat_id" value="' . (int) $arcade->cat_id . '"><input type="hidden" name="start" value="' . max(0, (int) $arcade->start) . '"><input type="hidden" name="sort_mode" value="' . htmlspecialchars((string) $arcade->sort_mode, ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name="order" value="' . htmlspecialchars((string) $arcade->order, ENT_QUOTES, 'UTF-8') . '">';
 	$input .= //'<input type="submit" value="'.$lang['highscore_submit'].'" name="submit" class="post">
   '</form></span></div>
   </td>
