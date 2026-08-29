@@ -50,7 +50,9 @@ if (!isset($_REQUEST))
 	$_REQUEST = array_merge($_GET, $_POST, $_COOKIE);
 }
 
-if (!get_magic_quotes_gpc())
+// common.php already applies phpBB2's legacy SQL escaping on modern PHP.
+// Do not quote the same request data a second time here.
+if (!function_exists('phpbb_addslashes_recursive') && !get_magic_quotes_gpc())
 {
 	$_GET = slash_input_data($_GET);
 	$_POST = slash_input_data($_POST);

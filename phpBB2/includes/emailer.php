@@ -82,7 +82,7 @@ class emailer
 	// set up subject for mail
 	function set_subject($subject = '')
 	{
-		$this->subject = trim(preg_replace('#[\n\r]+#s', '', $subject));
+		$this->subject = trim(preg_replace('#[\x00\n\r]+#s', '', (string) $subject));
 	}
 
 	// set up extra mail headers
@@ -178,6 +178,14 @@ class emailer
 			$this->subject = (($this->subject != '') ? $this->subject : 'No Subject');
 		}
 
+		// Template variables may be user-controlled (for example topic titles).
+		// Never allow them to turn the subject into additional mail headers.
+		$this->subject = trim(preg_replace('#[\x00\r\n]+#', '', (string) $this->subject));
+		if ($this->subject == '')
+		{
+			$this->subject = 'No Subject';
+		}
+
 		if (preg_match('#^(Charset:(.*?))$#m', $this->msg, $match))
 		{
 			$this->encoding = (trim($match[2]) != '') ? trim($match[2]) : trim($lang['ENCODING']);
@@ -186,6 +194,13 @@ class emailer
 		else
 		{
 			$this->encoding = trim($lang['ENCODING']);
+		}
+
+		// Charset is used verbatim in a MIME header, so keep it to a valid token.
+		$this->encoding = preg_replace('#[^a-z0-9._-]+#i', '', (string) $this->encoding);
+		if ($this->encoding == '')
+		{
+			$this->encoding = 'UTF-8';
 		}
 
 		if ($drop_header != '')

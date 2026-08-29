@@ -330,18 +330,18 @@ class custom_field
 	
 	function update_add_field($field_type, $field_id = false)
 	{
-		global $db, $db, $_POST, $lang;
-		
-		$field_name = (isset($_POST['field_name'])) ? htmlspecialchars($_POST['field_name']) : '';
-		$field_desc = (isset($_POST['field_desc'])) ? htmlspecialchars($_POST['field_desc']) : '';
-		$regex = (isset($_POST['regex'])) ? $_POST['regex'] : '';
-		$data = (isset($_POST['data'])) ? $_POST['data'] : '';
-		$field_order = (isset($_POST['field_order'])) ? $_POST['field_order'] : '';
+		global $db, $_POST, $lang;
+
+		$field_name = (isset($_POST['field_name']) && is_scalar($_POST['field_name'])) ? htmlspecialchars((string) $_POST['field_name']) : '';
+		$field_desc = (isset($_POST['field_desc']) && is_scalar($_POST['field_desc'])) ? htmlspecialchars((string) $_POST['field_desc']) : '';
+		$regex = (isset($_POST['regex']) && is_scalar($_POST['regex'])) ? (string) $_POST['regex'] : '';
+		$data = (isset($_POST['data']) && is_scalar($_POST['data'])) ? (string) $_POST['data'] : '';
+		$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? (string) $_POST['field_order'] : '';
 
 
 		if($field_id)
 		{
-			$field_order = (isset($_POST['field_order'])) ? intval($_POST['field_order']) : '';
+			$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? intval($_POST['field_order']) : '';
 		}
 
 		if(!empty($data))
@@ -435,20 +435,48 @@ class custom_field
 	function file_update_data($file_id)
 	{
 		global $_POST, $db;
-		$field = (isset($_POST['field'])) ? $_POST['field'] : '';
+		$file_id = intval($file_id);
+		$field = (isset($_POST['field']) && is_array($_POST['field'])) ? $_POST['field'] : array();
 		if(!empty($field))
 		{
 			foreach($field as $field_id => $field_data)
 			{
+				$field_id = intval($field_id);
+				if (!$field_id || !isset($this->field_rowset[$field_id]))
+				{
+					continue;
+				}
+
+				$field_type = intval($this->field_rowset[$field_id]['field_type']);
+				if (in_array($field_type, array(SELECT_MULTIPLE, CHECKBOX), true))
+				{
+					if (!is_array($field_data))
+					{
+						$field_data = array();
+					}
+					else
+					{
+						$field_data = array_values(array_filter($field_data, 'is_scalar'));
+					}
+				}
+				elseif (!is_scalar($field_data))
+				{
+					$field_data = '';
+				}
+				else
+				{
+					$field_data = (string) $field_data;
+				}
+
 				if(!empty($this->field_rowset[$field_id]['regex']))
 				{
-					if (!preg_match('#' . $this->field_rowset[$field_id]['regex'] . '#siU', $field_data))
+					if (is_array($field_data) || @preg_match('#' . $this->field_rowset[$field_id]['regex'] . '#siU', $field_data) !== 1)
 					{
 						$field_data = '';
 					}
 				}
 
-				switch($this->field_rowset[$field_id]['field_type'])
+				switch($field_type)
 				{
 					case INPUT:
 					case TEXTAREA:

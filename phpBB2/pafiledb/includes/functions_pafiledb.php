@@ -1513,45 +1513,53 @@ class pafiledb
 		global $db, $phpbb_root_path, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions, $user_ip, $lang;
 		$file_id = (int) $file_id;
 
-		$ss_upload = ( empty($_POST['screen_shot_url']) ) ? TRUE : FALSE;
-		$ss_remote_url = ( !empty($_POST['screen_shot_url']) ) ? $_POST['screen_shot_url'] : '';
-		$ss_local = ( $_FILES['screen_shot']['tmp_name'] !== 'none') ? $_FILES['screen_shot']['tmp_name'] : '';
-		$ss_name = ( $_FILES['screen_shot']['name'] !== 'none' ) ? $_FILES['screen_shot']['name'] : '';
-		$ss_size = ( !empty($_FILES['screen_shot']['size']) ) ? $_FILES['screen_shot']['size'] : '';
-		
-		$file_upload = ( empty($_POST['download_url']) ) ? TRUE : FALSE;
-		$file_remote_url = (!empty($_POST['download_url'])) ? $_POST['download_url'] : '';
-		$file_local = ( $_FILES['userfile']['tmp_name'] !== 'none') ? $_FILES['userfile']['tmp_name'] : '';
-		$file_realname = ( $_FILES['userfile']['name'] !== 'none' ) ? $_FILES['userfile']['name'] : '';
-		$file_size = ( !empty($_FILES['userfile']['size']) ) ? $_FILES['userfile']['size'] : '';
-		$file_type = ( !empty($_FILES['userfile']['type']) ) ? $_FILES['userfile']['type'] : '';
+		$posted = function ($key, $default = '')
+		{
+			return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? (string) $_POST[$key] : $default;
+		};
+		$uploaded = function ($field, $key, $default = '')
+		{
+			return (isset($_FILES[$field]) && is_array($_FILES[$field]) && isset($_FILES[$field][$key]) && is_scalar($_FILES[$field][$key])) ? (string) $_FILES[$field][$key] : $default;
+		};
 
-		$cat_id = ( isset($_REQUEST['cat_id']) ) ? intval($_REQUEST['cat_id']) : 0;
+		$ss_remote_url = $posted('screen_shot_url');
+		$ss_upload = ($ss_remote_url === '');
+		$ss_local = $uploaded('screen_shot', 'tmp_name');
+		$ss_local = ($ss_local !== 'none') ? $ss_local : '';
+		$ss_name = $uploaded('screen_shot', 'name');
+		$ss_name = ($ss_name !== 'none') ? basename($ss_name) : '';
+		$ss_size = max(0, intval($uploaded('screen_shot', 'size', 0)));
 
-		$file_name = ( isset($_POST['name']) ) ? htmlspecialchars($_POST['name']) : '';
-		
-		$file_long_desc = ( isset($_POST['long_desc']) ) ? $_POST['long_desc'] : '';
-		
-		$file_short_desc = ( isset($_POST['short_desc']) ) ? $_POST['short_desc'] : ((!empty($_POST['long_desc'])) ? substr($_POST['long_desc'], 0, 50) . '...' : '');
-		
-		$file_author = ( isset($_POST['author']) ) ? htmlspecialchars($_POST['author']) : ( ($userdata['user_id'] != ANONYMOUS) ? $userdata['username'] : '' );
-		
-		$file_version = ( isset($_POST['version']) ) ? htmlspecialchars($_POST['version']) : '';
-		
-		$file_website = ( isset($_POST['website']) ) ? htmlspecialchars($_POST['website']) : '';
+		$file_remote_url = $posted('download_url');
+		$file_upload = ($file_remote_url === '');
+		$file_local = $uploaded('userfile', 'tmp_name');
+		$file_local = ($file_local !== 'none') ? $file_local : '';
+		$file_realname = $uploaded('userfile', 'name');
+		$file_realname = ($file_realname !== 'none') ? basename($file_realname) : '';
+		$file_size = max(0, intval($uploaded('userfile', 'size', 0)));
+		$file_type = $uploaded('userfile', 'type');
+
+		$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
+
+		$file_name = htmlspecialchars($posted('name'));
+		$file_long_desc = $posted('long_desc');
+		$file_short_desc = $posted('short_desc', ($file_long_desc !== '') ? substr($file_long_desc, 0, 50) . '...' : '');
+		$file_author = htmlspecialchars($posted('author', ($userdata['user_id'] != ANONYMOUS) ? $userdata['username'] : ''));
+		$file_version = htmlspecialchars($posted('version'));
+		$file_website = htmlspecialchars($posted('website'));
 		if(!empty($file_website))
 		{
 			$file_website = (!preg_match('#^http[s]?:\/\/#i', $file_website)) ? 'http://' . $file_website : $file_website;
 			$file_website = (preg_match('#^http[s]?\\:\\/\\/[a-z0-9\-]+\.([a-z0-9\-]+\.)?[a-z]+#i', $file_website)) ? $file_website : '';			
 		}
 		
-		$file_posticon = ( isset($_POST['posticon']) ) ? htmlspecialchars($_POST['posticon']) : '';
-		
-		$file_license = ( isset($_POST['license']) ) ? intval($_POST['license']) : 0;
-		$file_pin = ( isset($_POST['pin']) ) ? intval($_POST['pin']) : 0;
-		$file_ss_link = ( isset($_POST['sshot_link']) ) ? intval($_POST['sshot_link']) : 0;		
+		$file_posticon = htmlspecialchars($posted('posticon'));
+
+		$file_license = intval($posted('license', 0));
+		$file_pin = intval($posted('pin', 0));
+		$file_ss_link = intval($posted('sshot_link', 0));
 // MX		$file_approved = ( isset($_POST['approved']) ) ? intval($_POST['approved']) : 0;
-		$file_dls = ( isset($_POST['file_download']) ) ? intval($_POST['file_download']) : 0;
+		$file_dls = intval($posted('file_download', 0));
 		
 		$file_time = time();
 		
@@ -1646,10 +1654,12 @@ class pafiledb
 		}
 
 		$physical_file_name = '';
+		$screen_shot_url = '';
+		$old_physical_path = '';
 
 		if($file_id)
 		{
-			$sql = 'SELECT file_dlurl, file_size, unique_name, file_dir, real_name, file_approved
+			$sql = 'SELECT file_dlurl, file_size, unique_name, file_dir, real_name, file_ssurl, file_approved
 				FROM ' . PA_FILES_TABLE . " 
 				WHERE file_id = '$file_id'";
 	
@@ -1661,13 +1671,17 @@ class pafiledb
 			$file_data = $db->sql_fetchrow($result);
 
 			$db->sql_freeresult($result);
+			if (!$file_data)
+			{
+				$this->error[] = $lang['File_not_exist'];
+				return;
+			}
 			
 			if(!empty($file_remote_url) || !empty($file_local))
 			{
 				if(!empty($file_data['unique_name']))
 				{
-					$pafiledb_functions->pafiledb_unlink($phpbb_root_path . $file_data['file_dir'] . $file_data['unique_name']);
-					
+					$old_physical_path = $phpbb_root_path . $file_data['file_dir'] . $file_data['unique_name'];
 				}
 			}
 			else
@@ -1680,6 +1694,11 @@ class pafiledb
 				{
 					$file_upload = false;
 				}
+			}
+
+			if (empty($ss_remote_url) && empty($ss_local))
+			{
+				$screen_shot_url = $file_data['file_ssurl'];
 			}
 		}
 		
@@ -1731,7 +1750,7 @@ class pafiledb
 		{
 			if ( !$file_id  )
 			{
-				$file_approved = ( ($pafiledb->modules[$pafiledb->module_name]->auth[$_REQUEST['cat_id']]['auth_mod'] || $userdata['user_level'] == ADMIN ) && $userdata['session_logged_in'] ) ? 1 : 0;
+				$file_approved = ( ((!empty($this->auth[$cat_id]['auth_mod'])) || $userdata['user_level'] == ADMIN) && $userdata['session_logged_in'] ) ? 1 : 0;
 			}
 			else
 			{
@@ -1742,7 +1761,7 @@ class pafiledb
 		if(!$file_id)
 		{
 			$sql = 'INSERT INTO ' . PA_FILES_TABLE . " (user_id, poster_ip, file_name, file_size, unique_name, real_name, file_dir, file_desc, file_creator, file_version, file_longdesc, file_ssurl, file_sshot_link, file_dlurl, file_time, file_update_time, file_catid, file_posticon, file_license, file_dls, file_last, file_pin, file_docsurl, file_approved)
-					VALUES('{$userdata['user_id']}', '$user_ip', '" . str_replace("\'", "''", $file_name) . "', '$file_size', '$physical_file_name', '$file_realname', '{$pafiledb_config['upload_dir']}', '" . str_replace("\'", "''", $file_short_desc) . "', '" . str_replace("\'", "''", $file_author) . "', '" . str_replace("\'", "''", $file_version) . "', '" . str_replace("\'", "''", $file_long_desc) . "', '$screen_shot_url', '$file_ss_link', '$file_remote_url', '$file_time', '$file_time', '$cat_id', '$file_posticon', '$file_license', '$file_dls', '0', '$file_pin', '$file_website', '$file_approved')";
+					VALUES('{$userdata['user_id']}', '$user_ip', '" . str_replace("\'", "''", $file_name) . "', '$file_size', '$physical_file_name', '" . $db->sql_escape($file_realname) . "', '{$pafiledb_config['upload_dir']}', '" . str_replace("\'", "''", $file_short_desc) . "', '" . str_replace("\'", "''", $file_author) . "', '" . str_replace("\'", "''", $file_version) . "', '" . str_replace("\'", "''", $file_long_desc) . "', '$screen_shot_url', '$file_ss_link', '$file_remote_url', '$file_time', '$file_time', '$cat_id', '$file_posticon', '$file_license', '$file_dls', '0', '$file_pin', '$file_website', '$file_approved')";
 		}
 		else
 		{
@@ -1750,7 +1769,7 @@ class pafiledb
 				SET file_name = '" . str_replace("\'", "''", $file_name) . "', 
 				file_size = '$file_size',
 				unique_name = '$physical_file_name',
-				real_name = '$file_realname',
+				real_name = '" . $db->sql_escape($file_realname) . "',
 				file_dir = '{$pafiledb_config['upload_dir']}',
 				file_desc = '" . str_replace("\'", "''", $file_short_desc) . "', 
 				file_longdesc = '" . str_replace("\'", "''", $file_long_desc) . "', 
@@ -1772,7 +1791,18 @@ class pafiledb
 
 		if ( !($db->sql_query($sql)) )
 		{
+			if ($file_upload && $physical_file_name !== '')
+			{
+				$pafiledb_functions->pafiledb_unlink($phpbb_root_path . $pafiledb_config['upload_dir'] . $physical_file_name);
+			}
 			message_die(GENERAL_ERROR, 'Couldnt Add the file information to the database', '', __LINE__, __FILE__, $sql);
+		}
+
+		// Only remove the previous upload after its replacement is stored and
+		// the database points at the new location.
+		if ($old_physical_path !== '')
+		{
+			$pafiledb_functions->pafiledb_unlink($old_physical_path);
 		}
 		
 		$this->modified(TRUE);

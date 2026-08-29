@@ -34,6 +34,10 @@ class pafiledb_user_upload extends pafiledb_public
 		$mirrors = (isset($_POST['mirrors'])) ? TRUE : 0;
 
 		$dropmenu = (!$cat_id) ? $this->jumpmenu_option(0, 0, '', true, true) : $this->jumpmenu_option(0, 0, array($cat_id => 1), true, true);
+		if ($cat_id && (!isset($this->cat_rowset[$cat_id]) || !isset($this->auth[$cat_id])))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
+		}
 
 		if(!empty($cat_id))
 		{
