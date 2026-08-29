@@ -923,6 +923,7 @@ $lang['Max_bookmarks_links_explain'] = 'Maximale Zahl von Lesezeichen, die zu Be
 
 // Admin Account Actions Mod
 $lang['Deleted_user'] = "User mit der ID No. #%d gelöscht"; //%d = user id
+$lang['Confirm_delete_inactive_user'] = 'Diesen inaktiven Benutzer wirklich dauerhaft löschen?';
 $lang['Activate_title'] = 'Account Aktionen';
 $lang['Reg_date'] = 'Registrierungsdatum';
 $lang['Activate'] = 'Aktivieren';

@@ -13,6 +13,7 @@ else if (navigator.appName == "Netscape")
 
 
 <form action="{S_ACTION}" {S_FORM_ENCTYPE} method="post">
+{S_FORM_TOKEN}
 
   <table width="100%" border="0" cellspacing="0" cellpadding="10"> 
    <tr> 
@@ -49,4 +50,3 @@ else if (navigator.appName == "Netscape")
    </tr> 
   </table>
 </form>
-

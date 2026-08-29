@@ -31,7 +31,7 @@
         <td class="{admin_account.ROW_CLASS}" align="center" valign="middle">&nbsp;{admin_account.EMAIL}&nbsp;</td>
         <td class="{admin_account.ROW_CLASS}" align="center" valign="middle"><span class="genmed">{admin_account.REG_DATE}</span><br />
                                                                                                                       <span class="gensmall">{admin_account.WAITING}</span></td>
-        <td class="{admin_account.ROW_CLASS}" align="center" valign="middle"><a href="{admin_account.U_DELETE}" class="gensmall">{L_DELETE}</a></td>
+        <td class="{admin_account.ROW_CLASS}" align="center" valign="middle"><button type="submit" name="delete" value="{admin_account.DELETE_ID}" class="liteoption" onclick="return confirm('{L_CONFIRM_DELETE}');">{L_DELETE}</button></td>
         <td class="{admin_account.ROW_CLASS}" align="center" valign="middle"><a href="{admin_account.U_ACTKEY}" class="gensmall">{L_ACTIVATE}</a></td>
   </tr>
 <!-- END admin_account -->
@@ -53,4 +53,5 @@
   </tr>
 </table>
 <!-- END there_are_users -->
+{S_FORM_TOKEN}
 </form>

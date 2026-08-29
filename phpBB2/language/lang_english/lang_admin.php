@@ -926,6 +926,7 @@ $lang['Max_bookmarks_links_explain'] = 'Number of bookmarks maximal send in link
 
 // Admin Account Actions Mod
 $lang['Deleted_user'] = "User with ID No. #%d deleted"; //%d = user id
+$lang['Confirm_delete_inactive_user'] = 'Are you sure you want to permanently delete this inactive user?';
 $lang['Activate_title'] = 'Account Actions';
 $lang['Reg_date'] = 'Joined';
 $lang['Activate'] = 'Activate';

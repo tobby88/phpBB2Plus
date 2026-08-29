@@ -13,11 +13,20 @@ init_userprefs($userdata);
 // End session management
 //
 $error = false;
+$error_msg = '';
 $updated = false;
+$new_password = '';
+$password_confirm = '';
+$cur_password = '';
+
+if (!$userdata['session_logged_in'])
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
 
 $submit = (isset($_POST['submit'])) ? 1 : '';
 $trim_var_list = array('new_password' => 'new_password', 'password_confirm' => 'password_confirm','cur_password' => 'cur_password');
-while( list($var, $param) = @each($trim_var_list) )
+foreach ($trim_var_list as $var => $param)
 {
 	if ( !empty($_POST[$param]) )
 	{
@@ -27,6 +36,11 @@ while( list($var, $param) = @each($trim_var_list) )
 
 if ($submit)
 {
+	if (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+
 	//verify that user is already logged in from this IP
 	$ip_check_s = substr($userdata['session_ip'], 0, 6);
 	$ip_check_u = substr($user_ip, 0, 6);
@@ -47,7 +61,7 @@ if ($submit)
 		$error_msg .= $lang['Password_mismatch'];
 	} 
 	include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
-	$error_text = validate_complex_password ($username, $new_password);
+	$error_text = validate_complex_password($userdata['username'], $new_password);
 	if ( $error_text['error'] )
 	{
 		$error = true;
@@ -127,7 +141,8 @@ if ($updated)
 		'L_CHANGE_PASSWD' => $lang['Passwd_title'],
 	      'L_CLOSE_WINDOW' => $lang['Close_window'], 
       	'L_WELCOME' => $message,
-		'S_ACTION' => append_sid('change_password.'.$phpEx)
+		'S_ACTION' => append_sid('change_password.'.$phpEx),
+		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
 	 )); 
 }
 $template->pparse('body'); 

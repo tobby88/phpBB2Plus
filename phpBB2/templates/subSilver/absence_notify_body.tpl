@@ -14,7 +14,8 @@
 	</tr>
   </table>
 <!-- END updated -->
-<form action="{S_ACTION}" name="notify" method="get">
+<form action="{S_ACTION}" name="notify" method="post">
+{S_FORM_TOKEN}
 <!-- BEGIN notify -->
   <table width="100%" cellpadding="3" cellspacing="0" border="0" class="forumline">
 	<tr>

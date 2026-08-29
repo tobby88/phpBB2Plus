@@ -21,7 +21,12 @@ init_userprefs($userdata);
 // End session management
 //
 
-$submit = ( isset($_POST['submit']) ) ? $_POST['submit'] : $_GET['submit'];
+if (!$userdata['session_logged_in'])
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+
+$submit = isset($_POST['submit']);
 $page_title=$lang['User_absence_text'];
 $gen_simple_header = TRUE;
 
@@ -30,7 +35,8 @@ include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 $template->assign_vars(array(
 	'L_VIEW_TITLE' => $page_title,
 	'L_CLOSE' => $lang['Close_window'],
-		'S_ACTION' => append_sid("absence_notify_popup.$phpEx"))
+	'S_ACTION' => append_sid("absence_notify_popup.$phpEx"),
+	'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />')
 );
 
 $template->set_filenames(array(
@@ -39,6 +45,11 @@ $template->set_filenames(array(
 
 if ( $submit )
 {
+	if (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+
 	$sql = "UPDATE " . USERS_TABLE . "
 		SET user_absence = 0
 		WHERE user_id = " . $userdata['user_id'];

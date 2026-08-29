@@ -110,7 +110,7 @@ $topic_title = '';
 if (isset($_POST['topic_title'])) $topic_title = htmlspecialchars(trim(stripslashes($_POST['topic_title'])));
 
 // start
-if (isset($_POST['start'])) $start = intval($start);
+$start = isset($_POST['start']) ? intval($_POST['start']) : 0;
 
 // buttons
 $submit = isset($_POST['submit']);

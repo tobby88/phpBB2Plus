@@ -12,11 +12,34 @@ require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin.' . $phpEx);
 
-// delete part
-if(isset($_GET['delete']) || isset($_POST['delete']))
+// Deleting an account is irreversible. Accept it only from this page's POST
+// form and only for a still-inactive, non-administrator account.
+if (isset($_POST['delete']))
 {
-        $delete = (isset($_GET['delete'])) ? $_GET['delete'] : $_POST['delete'];
-        $sql = "DELETE FROM " . USERS_TABLE . " WHERE user_id = $delete";
+        $delete = intval($_POST['delete']);
+        $posted_sid = isset($_POST['sid']) ? (string) $_POST['sid'] : '';
+        if ($delete <= 0 || !hash_equals((string) $userdata['session_id'], $posted_sid))
+        {
+                message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+        }
+
+        $sql = "SELECT user_id
+                FROM " . USERS_TABLE . "
+                WHERE user_id = $delete
+                        AND user_id <> " . ANONYMOUS . "
+                        AND user_active = 0
+                        AND user_level <> " . ADMIN;
+        if (!($delete_result = $db->sql_query($sql)))
+        {
+                message_die(GENERAL_ERROR, 'Could not verify inactive user.', '', __LINE__, __FILE__, $sql);
+        }
+        if (!$db->sql_fetchrow($delete_result))
+        {
+                message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+        }
+
+        $sql = "DELETE FROM " . USERS_TABLE . "
+                WHERE user_id = $delete AND user_active = 0 AND user_level <> " . ADMIN;
         if( !$db->sql_query($sql) )
         {
                 message_die(GENERAL_ERROR, "Unable to delete user.", "", __LINE__, __FILE__, $sql);
@@ -113,6 +136,7 @@ $template->assign_vars(array(
         'L_SELECT_SORT_METHOD' => $lang['Select_sort_method'],
         'L_ACTIVATE' => $lang['Activate'],
         'L_DELETE' => $lang['Delete'],
+        'L_CONFIRM_DELETE' => $lang['Confirm_delete_inactive_user'],
         'L_ACCOUNT_ACTIONS' => $lang['Activate_title'],
         'L_ACTIONS' => $lang['Actions'],
         'L_USERNAME' => $lang['Username'],
@@ -125,7 +149,8 @@ $template->assign_vars(array(
         'L_POSTS' => $lang['Posts'], 
         'S_MODE_SELECT' => $select_sort_mode,
         'S_ORDER_SELECT' => $select_sort_order,
-        'S_MODE_ACTION' => append_sid("admin_account.$phpEx"))
+        'S_MODE_ACTION' => append_sid("admin_account.$phpEx"),
+        'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />')
 );
 
 if ( isset($_GET['mode']) || isset($_POST['mode']) )
@@ -169,8 +194,9 @@ if ( $row = $db->sql_fetchrow($result) )
         {
                 $row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
-                $email_uri = ( $board_config['board_email_form'] ) ? append_sid("../profile.$phpEx?mode=email&u=$row[user_id]") : 'mailto:' . $row['user_email'];
-                $email = '<a href="' . $email_uri . '" class="gensmall">' . $row['user_email'] . '</a>';
+                $safe_email = htmlspecialchars($row['user_email'], ENT_QUOTES, 'UTF-8');
+                $email_uri = ( $board_config['board_email_form'] ) ? append_sid("../profile.$phpEx?mode=email&u=$row[user_id]") : 'mailto:' . rawurlencode($row['user_email']);
+                $email = '<a href="' . htmlspecialchars($email_uri, ENT_QUOTES, 'UTF-8') . '" class="gensmall">' . $safe_email . '</a>';
 
                 $waiting = max(1, round( ( time() - $row['user_regdate'] ) / 86400 ));
                 $l_waiting = ( $waiting == 1 ) ? $lang['Waiting_1'] : $lang['Waiting_2'];
@@ -178,12 +204,12 @@ if ( $row = $db->sql_fetchrow($result) )
                 $template->assign_block_vars('admin_account', array(
 				'ROW_NUMBER' => $i + $start + 1,
 		'ROW_CLASS' => $row_class,
-		'USERNAME' => $row['username'],
+		'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8'),
                         'U_PROFILE' => append_sid("../profile.$phpEx?mode=viewprofile&u=$row[user_id]"),
                         'EMAIL' => $email,
                         'REG_DATE' => create_date($board_config['default_dateformat'], $row['user_regdate'], $board_config['board_timezone']),
                         'WAITING' => sprintf($l_waiting, $waiting),
-                        'U_DELETE' => append_sid("admin_account.$phpEx?delete=$row[user_id]"),
+                        'DELETE_ID' => (int) $row['user_id'],
                         'U_ACTKEY' => append_sid("../profile.$phpEx?mode=activate&u=$row[user_id]&act_key=$row[user_actkey]"),
                 ));
                 $i++;
