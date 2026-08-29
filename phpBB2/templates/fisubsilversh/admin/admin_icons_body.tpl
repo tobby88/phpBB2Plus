@@ -39,8 +39,8 @@
 	</td>
 	<td class="row3" align="center">
 		<span class="genmed">
-			<a href="{row.U_MOVEUP}" alt="{L_MOVEUP}" class="genmed">{L_MOVEUP}</a><br />
-			<a href="{row.U_MOVEDW}" alt="{L_MOVEDW}" class="genmed">{L_MOVEDW}</a>
+			<button type="submit" name="icon_action" value="up:{row.ICON_ID}" class="liteoption">{L_MOVEUP}</button><br />
+			<button type="submit" name="icon_action" value="dw:{row.ICON_ID}" class="liteoption">{L_MOVEDW}</button>
 		</span>
 	</td>
 </tr>

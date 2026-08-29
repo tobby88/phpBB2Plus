@@ -86,26 +86,42 @@ function icons_write()
 icons_read();
 
 // mode
-$mode = '';
-if ( isset($_POST['mode']) || isset($_GET['mode']) )
-{
-	$mode = isset($_POST['mode']) ? $_POST['mode'] : $_GET['mode'];
-}
-if (!in_array($mode, array('edit', 'up', 'dw', 'del'))) $mode = '';
+$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
 
 // icon
 $icon = -1;
-if ( isset($_POST['icon']) || isset($_GET['icon']) )
+if ( isset($_POST['icon']) && is_scalar($_POST['icon']) )
 {
-	$icon = isset($_POST['icon']) ? intval($_POST['icon']) : intval($_GET['icon']);
+	$icon = intval($_POST['icon']);
 }
+else if ( isset($_GET['icon']) && is_scalar($_GET['icon']) )
+{
+	$icon = intval($_GET['icon']);
+}
+if (isset($_POST['icon_action']) && is_scalar($_POST['icon_action']) && preg_match('/^(up|dw):([0-9]+)$/D', (string) $_POST['icon_action'], $icon_action))
+{
+	$mode = $icon_action[1];
+	$icon = (int) $icon_action[2];
+}
+if (!in_array($mode, array('edit', 'up', 'dw', 'del'), true)) $mode = '';
 
 // buttons
 $create = isset($_POST['create']);
 $submit = isset($_POST['submit']);
 $confirm = isset($_POST['confirm']);
 $cancel = isset($_POST['cancel']);
-$refreh = isset($_POST['refresh']);
+$refresh = isset($_POST['refresh']);
+
+$mutating_request = (($mode == 'up') || ($mode == 'dw') || ($mode == 'del' && $confirm) || ($mode == 'edit' && $submit));
+if ($mutating_request)
+{
+	phpbb_admin_require_post_session();
+}
+if ((($mode == 'up') || ($mode == 'dw')) && (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST'))
+{
+	$mode = '';
+}
 
 // creation
 if ($create)
@@ -160,7 +176,7 @@ if ($mode == 'del')
 
 		// handle the replacement icon
 		$replace_icon = -1;
-		if (isset($_POST['replace_icon']))
+		if (isset($_POST['replace_icon']) && is_scalar($_POST['replace_icon']))
 		{
 			$replace_icon = intval($_POST['replace_icon']);
 			if (isset($map_icon[$replace_icon]))
@@ -176,7 +192,7 @@ if ($mode == 'del')
 		}
 
 		// update the table
-		icons_write();
+		if (!icons_write()) message_die(GENERAL_ERROR, 'Unable to save icon configuration');
 		icons_read();
 
 		// back to the main list
@@ -196,6 +212,7 @@ if ($mode == 'del')
 				$sql = "SELECT * FROM " . POSTS_TABLE . " WHERE post_icon=$icon LIMIT 0, 1";
 				if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, 'unable to access posts', '', __LINE__, __FILE__, $sql);
 				$used = ($row = $db->sql_fetchrow($result));
+				$db->sql_freeresult($result);
 			}
 
 			// check if topics are using this icon
@@ -204,6 +221,7 @@ if ($mode == 'del')
 				$sql = "SELECT * FROM " . TOPICS_TABLE . " WHERE topic_icon=$icon LIMIT 0, 1";
 				if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, 'unable to access topics', '', __LINE__, __FILE__, $sql);
 				$used = ($row = $db->sql_fetchrow($result));
+				$db->sql_freeresult($result);
 			}
 
 			// some prevent check
@@ -290,6 +308,7 @@ if ($mode == 'del')
 			// system
 			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $mode . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="icon" value="' . $icon . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 			$template->assign_vars(array(
 				'NAV_SEPARATOR'		=> $nav_separator,
 				'S_ACTION'			=> append_sid("./admin_icons.$phpEx"),
@@ -332,7 +351,7 @@ if ( ($mode == 'up') || ($mode == 'dw') )
 	}
 
 	// back to the main list
-	icons_write();
+	if (!icons_write()) message_die(GENERAL_ERROR, 'Unable to save icon configuration');
 	icons_read();
 	$mode = '';
 }
@@ -363,14 +382,13 @@ if ($mode == 'edit')
 	}
 
 	// read the formular
-	if (isset($_POST['icon_title']))	$icon_title		= trim(str_replace("\'", "''", $_POST['icon_title']));
-	if (isset($_POST['icon_url']))		$icon_url		= trim(str_replace("\'", "''", $_POST['icon_url']));
-	if (isset($_POST['icon_auth']))	$icon_auth		= trim(str_replace("\'", "''", $_POST['icon_auth']));
+	if (isset($_POST['icon_title']) && is_scalar($_POST['icon_title'])) $icon_title = trim((string) $_POST['icon_title']);
+	if (isset($_POST['icon_url']) && is_scalar($_POST['icon_url'])) $icon_url = trim((string) $_POST['icon_url']);
+	if (isset($_POST['icon_auth']) && is_scalar($_POST['icon_auth'])) $icon_auth = (int) $_POST['icon_auth'];
 
 	if ($refresh || $submit)
 	{
-		$icon_ids = array();
-		$icon_ids = $_POST['ids'];
+		$icon_ids = (isset($_POST['ids']) && is_array($_POST['ids'])) ? array_values(array_intersect(array_keys($icon_defined_special), array_filter($_POST['ids'], 'is_scalar'))) : array();
 	}
 
 	// process the buttons
@@ -386,7 +404,7 @@ if ($mode == 'edit')
 		$error_msg = '';
 
 		// check if the lang_key is fitted
-		if (empty($icon_title))
+		if (!preg_match('/^[A-Za-z0-9_]{1,100}$/D', $icon_title) || !preg_match('#^(?:|[A-Za-z0-9_][A-Za-z0-9_./-]{0,254})$#D', $icon_url) || strpos($icon_url, '..') !== false || !isset($auths[(int) $icon_auth]))
 		{
 			$error = true;
 			$error_msg = (empty($error_msg) ? '' : '<br />') . $lang['Icons_error_title'];
@@ -446,7 +464,7 @@ if ($mode == 'edit')
 		}
 
 		// generate the file
-		icons_write();
+		if (!icons_write()) message_die(GENERAL_ERROR, 'Unable to save icon configuration');
 		icons_read();
 
 		// back to the main list
@@ -483,7 +501,7 @@ if ($mode == 'edit')
 		);
 
 		// get the icon url
-		$url = $icon_url;
+		$url = (preg_match('#^(?:|[A-Za-z0-9_][A-Za-z0-9_./-]{0,254})$#D', $icon_url) && strpos($icon_url, '..') === false) ? $icon_url : '';
 		if (isset($images[$icon_url]))
 		{
 			$url = $images[$icon_url];
@@ -532,10 +550,10 @@ if ($mode == 'edit')
 
 		// vars
 		$template->assign_vars(array(
-			'ICON_TITLE_KEY'	=> $icon_title,
+			'ICON_TITLE_KEY'	=> phpbb_profile_text($icon_title),
 			'ICON_TITLE'		=> isset($lang[$icon_title]) ? '<br />' . $lang[$icon_title] : '',
 			'ICON'				=> $pic,
-			'ICON_URL'			=> $icon_url,
+			'ICON_URL'			=> phpbb_profile_text($icon_url),
 			'S_AUTHS'			=> $s_auths,
 			'S_ICONS'			=> $s_icons,
 			'S_LANGS'			=> $s_langs,
@@ -563,6 +581,7 @@ if ($mode == 'edit')
 		{
 			$s_hidden_fields .= '<input type="hidden" name="icon" value="' . $icon . '" />';
 		}
+		$s_hidden_fields .= '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 		$template->assign_vars(array(
 			'NAV_SEPARATOR'		=> $nav_separator,
 			'S_ACTION'			=> append_sid("./admin_icons.$phpEx"),
@@ -632,8 +651,7 @@ if ($mode == '')
 			'USAGE'		=> (intval($icones[$i]['usage']) > 0) ? $icones[$i]['usage'] . '&nbsp;(' . ( round( ($icones[$i]['usage'] * 100 )/ $total_posts ) ) . '%)' : '',
 			'U_EDIT'	=> append_sid("./admin_icons.$phpEx?mode=edit&icon=" . $icones[$i]['ind']),
 			'U_DELETE'	=> append_sid("./admin_icons.$phpEx?mode=del&icon=" . $icones[$i]['ind']),
-			'U_MOVEUP'	=> append_sid("./admin_icons.$phpEx?mode=up&icon=" . $icones[$i]['ind']),
-			'U_MOVEDW'	=> append_sid("./admin_icons.$phpEx?mode=dw&icon=" . $icones[$i]['ind']),
+			'ICON_ID'	=> (int) $icones[$i]['ind'],
 			)
 		);
 
@@ -652,7 +670,7 @@ if ($mode == '')
 	}
 
 	// system
-	$s_hidden_fields = '';
+	$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 	$template->assign_vars(array(
 		'NAV_SEPARATOR'		=> $nav_separator,
 		'S_ACTION'			=> append_sid("./admin_icons.$phpEx"),
