@@ -24,6 +24,7 @@ function checkCategoryID()
 // -->
 </script>
 <form name="acp" action="{S_ALBUM_ACTION}" method="post" onSubmit="return checkCategoryID()">
+{S_FORM_TOKEN}
 <table width="100%" cellpadding="4" cellspacing="1" border="0">
 <tr>
 	<td class="nav" width="100%"><span class="nav">&nbsp;&nbsp;&nbsp;<a href="{U_INDEX}" class="nav">{L_INDEX}</a> {ALBUM_NAVIGATION_ARROW} <a href="{U_ALBUM}" class="nav">{L_ALBUM}</a> {ALBUM_NAVIGATION_ARROW} <a href="{U_PERSONAL_ALBUM}" class="nav">{L_PERSONAL_ALBUM}</a> {ALBUM_NAVIGATION_ARROW} <a href="{U_PERSONAL_CAT_ADMIN}" class="nav">{L_PERSONAL_CAT_ADMIN}</a></span></td>

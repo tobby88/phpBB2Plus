@@ -3,6 +3,7 @@
 
 <p>{L_ALBUM_CAT_EXPLAIN}</p>
 <form method="post" action="{S_ALBUM_ACTION}">
+{S_FORM_TOKEN}
 <table width="100%" cellpadding="4" cellspacing="1" border="0">
 <tr>
 	<td><span class="nav"><a href="{S_ALBUM_ACTION}" class="nav">{L_ALBUM_INDEX}</a></span></td>

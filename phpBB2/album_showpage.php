@@ -564,7 +564,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				'ID' => $commentrow[$i]['comment_id'],
 				'POSTER_NAME' => $poster,
 				'TIME' => create_date($board_config['default_dateformat'], $commentrow[$i]['comment_time'], $board_config['board_timezone']),
-				'IP' => ($userdata['user_level'] == ADMIN) ? '<a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($commentrow[$i]['comment_user_ip']) . '" target="_blank">' . decode_ip($commentrow[$i]['comment_user_ip']) .'</a><br />' : '',
+				'IP' => ($userdata['user_level'] == ADMIN) ? htmlspecialchars(decode_ip($commentrow[$i]['comment_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : '',
 
 				//users mesangers, website, email
 				'PROFILE_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_profile'] . '" alt="' . $lang['Read_profile'] . '" title="' . $lang['Read_profile'] . '" border="0" /></a>' : '',

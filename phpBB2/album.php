@@ -480,7 +480,7 @@ if ($album_sp_config['disp_late'] == 1)
 
 						'RATING' => ($album_config['rate'] == 1) ? ( $lang['Rating'] . ': ' . $rating_image . '<br />') : '',
 
-						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($recentrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($recentrow[$j]['pic_user_ip']) .'</a><br />' : ''
+						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($recentrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 						)
 					);
 				}
@@ -577,7 +577,7 @@ if ($album_sp_config['disp_high'] == 1)
 
 	               'H_RATING' => ($album_config['rate'] == 1) ? ( $lang['Rating'] . ': ' . $rating_image . '<br />') : '',
 
-	               'H_IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($highestrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($highestrow[$j]['pic_user_ip']) .'</a><br />' : ''
+	               'H_IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($highestrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 	               )
 	            );
 	         }
@@ -679,7 +679,7 @@ if ($album_sp_config['disp_rand'] == 1)
 
 						'COMMENTS' => ($album_config['comment'] == 1) ? ( '<a href="'. append_sid("album_showpage.$phpEx?pic_id=". $randrow[$j]['pic_id']) . '">' . $lang['Comments'] . '</a>: ' . $randrow[$j]['comments'] . '<br />') : '',
 
-						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($randrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($randrow[$j]['pic_user_ip']) .'</a><br />' : ''
+						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($randrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 						)
 					);
 				}

@@ -133,6 +133,20 @@ changes consolidated after that baseline without implying active maintenance.
   comparison, rejected array-shaped scalar input, escaped inline-edit SQL and
   fixed anonymous poll identity plus duplicate-vote recording order. The
   bundled JavaScript clients now use the matching request methods.
+- Bound account-maintenance, style-cache, style-uninstall, PAFileDB-license
+  and Arcade administration actions to the active session; constrained style
+  file operations to validated template paths and repaired several malformed
+  legacy update/delete queries.
+- Repaired public Arcade tournaments so only enrolled players can launch a
+  configured game in an active tournament, signed launch URLs to the current
+  session, normalized legacy game data on PHP 8 and protected tournament
+  create, join and finish actions.
+- Hardened album moderation and category administration against forged
+  actions and injected ID lists, validated move targets and signed legacy
+  one-click moderation/order links. Personal-gallery management now verifies
+  ownership before initialization, album deletion is confined to generated
+  basenames, stored moderation labels are escaped, and obsolete external
+  Whois links no longer disclose administrator lookups to a third party.
 
 ### Repository and update cleanup
 

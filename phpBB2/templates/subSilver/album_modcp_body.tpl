@@ -28,6 +28,7 @@ function checkBoxInverse(field)
 // -->
 </script>
 <form name="modcp" action="{S_ALBUM_ACTION}" method="post">
+{S_FORM_TOKEN}
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
   <tr>
 	<td width="100%"><a class="maintitle" href="{U_VIEW_CAT}">{CAT_TITLE}</a></td>

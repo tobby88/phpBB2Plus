@@ -3,6 +3,7 @@
 <p>{L_ALBUM_CAT_EXPLAIN}</p>
 
 <form action="{S_ALBUM_ACTION}" method="post">
+{S_FORM_TOKEN}
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
 	<tr>
 		<th class="thHead" height="25" nowrap="nowrap" colspan="2">{L_PANEL_TITLE}</th>

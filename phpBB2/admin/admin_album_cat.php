@@ -43,6 +43,13 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 require($album_root_path. 'album_common.'.$phpEx);
 
 $album_user_id = ALBUM_PUBLIC_GALLERY;
+$template->assign_var('S_FORM_TOKEN', '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />');
+
+if (isset($_POST['mode']) && (!isset($_POST['sid']) ||
+	!hash_equals((string) $userdata['session_id'], stripslashes((string) $_POST['sid']))))
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
 
 function showResultMessage($in_message)
 {
@@ -163,8 +170,8 @@ if( !isset($_POST['mode']) )
 
 				'L_DISABLED' => $lang['Disabled'],
 
-				'S_CAT_TITLE' => $catrow['cat_title'],
-				'S_CAT_DESC' => $catrow['cat_desc'],
+				'S_CAT_TITLE' => htmlspecialchars($catrow['cat_title'], ENT_QUOTES, 'UTF-8'),
+				'S_CAT_DESC' => htmlspecialchars($catrow['cat_desc'], ENT_QUOTES, 'UTF-8'),
 				//--- Album Category Hierarchy : begin
 				//--- version <= 1.1.0
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
@@ -269,7 +276,7 @@ if( !isset($_POST['mode']) )
 				'L_CAT_DELETE' => $lang['Delete_Category'],
 				'L_CAT_DELETE_EXPLAIN' => $lang['Delete_Category_Explain'],
 				'L_CAT_TITLE' => $lang['Category_Title'],
-				'S_CAT_TITLE' => $thiscat['cat_title'],
+				'S_CAT_TITLE' => htmlspecialchars($thiscat['cat_title'], ENT_QUOTES, 'UTF-8'),
 				'L_MOVE_CONTENTS' => $lang['Move_contents'],
 				'L_MOVE_DELETE' => $lang['Move_and_Delete'],
 				'S_SELECT_TO' => $select_to)
@@ -281,8 +288,14 @@ if( !isset($_POST['mode']) )
 		}
 		else if( $_GET['action'] == 'move' )
 		{
-         		$cat_id = intval($_GET['cat_id']);
-         		$move = intval($_GET['move']);
+			$cat_id = intval($_GET['cat_id']);
+			$move = intval($_GET['move']);
+			$album_token = isset($_GET['album_token']) ? stripslashes((string) $_GET['album_token']) : '';
+			$expected_token = hash_hmac('sha256', 'album-category-order:' . $cat_id . ':' . $move, (string) $userdata['session_id']);
+			if (!in_array($move, array(-15, 15), true) || !hash_equals($expected_token, $album_token))
+			{
+				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+			}
 
          		//--- Album Category Hierarchy : begin
 				//--- version <= 1.1.0
@@ -350,7 +363,7 @@ else
 				'L_DISABLED' => $lang['Disabled'],
 				//--- Album Category Hierarchy : begin
 				//--- version <= 1.1.0
-				'S_CAT_TITLE' => $cat_title,
+				'S_CAT_TITLE' => htmlspecialchars($cat_title, ENT_QUOTES, 'UTF-8'),
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
 				//--- Album Category Hierarchy : end
 				'VIEW_GUEST' => 'selected="selected"',
@@ -545,13 +558,13 @@ else
 				// Delete all physical pic & cached thumbnail files
 				for ($i = 0; $i < count($picrow); $i++)
 				{
-					@unlink('../' . ALBUM_CACHE_PATH . $picrow[$i]['pic_thumbnail']);
+					@unlink('../' . ALBUM_CACHE_PATH . basename($picrow[$i]['pic_thumbnail']));
 
-					@unlink('../' . ALBUM_UPLOAD_PATH . $picrow[$i]['pic_filename']);
+					@unlink('../' . ALBUM_UPLOAD_PATH . basename($picrow[$i]['pic_filename']));
 					
 					if 	(defined('ALBUM_SP_CONFIG_TABLE'))
 					{
-						@unlink('../' . ALBUM_MED_CACHE_PATH . $picrow[$i]['pic_filename']);
+						@unlink('../' . ALBUM_MED_CACHE_PATH . basename($picrow[$i]['pic_filename']));
 					}					
 				}
 

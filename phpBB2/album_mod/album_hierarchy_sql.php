@@ -1058,7 +1058,8 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 				{
 					$approval_mode = ($picrow[$j]['pic_approval'] == 0) ? 'approval' : 'unapproval';
 
-					$approval_link = '<a href="'. append_sid("album_modcp.$phpEx?mode=$approval_mode&amp;pic_id=". $picrow[$j]['pic_id']) .'">';
+					$approval_token = hash_hmac('sha256', $approval_mode . ':' . (int) $picrow[$j]['pic_id'], (string) $userdata['session_id']);
+					$approval_link = '<a href="'. append_sid("album_modcp.$phpEx?mode=$approval_mode&amp;pic_id=". (int) $picrow[$j]['pic_id'] . "&amp;album_token=" . rawurlencode($approval_token)) .'">';
 
 					$approval_link .= ($picrow[$j]['pic_approval'] == 0) ? '<b>'. $lang['Approve'] .'</b>' : $lang['Unapprove'];
 
@@ -1121,9 +1122,9 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 
 				'MOVE' => ($auth_data['moderator']) ? '<a href="'. append_sid(album_append_uid("album_modcp.$phpEx?mode=move&amp;pic_id=". $picrow[$j]['pic_id'])) .'">'. $lang['Move'] .'</a>' : '',
 
-				'LOCK' => ($auth_data['moderator']) ? '<a href="'. append_sid(album_append_uid("album_modcp.$phpEx?mode=". (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') ."&amp;pic_id=". $picrow[$j]['pic_id'])) .'">'. (($picrow[$j]['pic_lock'] == 0) ? $lang['Lock'] : $lang['Unlock']) .'</a>' : '',
+				'LOCK' => ($auth_data['moderator']) ? '<a href="'. append_sid(album_append_uid("album_modcp.$phpEx?mode=". (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') ."&amp;pic_id=". (int) $picrow[$j]['pic_id'] . "&amp;album_token=" . rawurlencode(hash_hmac('sha256', (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') . ':' . (int) $picrow[$j]['pic_id'], (string) $userdata['session_id'])))) .'">'. (($picrow[$j]['pic_lock'] == 0) ? $lang['Lock'] : $lang['Unlock']) .'</a>' : '',
 
-				'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($picrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($picrow[$j]['pic_user_ip']) .'</a><br />' : ''
+				'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($picrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 				)
 			);
 
@@ -1262,7 +1263,7 @@ function album_build_recent_pics($cats)
 
 						'RATING' => ($album_config['rate'] == 1) ?( $lang['Rating'] . ' : <a href="'. append_sid(album_append_uid($album_rate_pic_url .'?pic_id='. $recentrow[$j]['pic_id'])) . '" ' . $image_rating_link_style .'>' . $image_rating . '</a><br />') : '',
 
-						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($recentrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($recentrow[$j]['pic_user_ip']) .'</a><br />' : ''
+						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($recentrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 						)
 					);
 				}
@@ -1390,7 +1391,7 @@ function album_build_highest_rated_pics($cats)
 
 					   'H_RATING' => ($album_config['rate'] == 1) ? ( $lang['Rating'] . ' : <a href="'. append_sid(album_append_uid($album_rate_pic_url .'?pic_id='. $highestrow[$j]['pic_id'])) . '" ' . $image_rating_link_style .'>' . $image_rating . '</a><br />') : '',
 
-					   'H_IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($highestrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($highestrow[$j]['pic_user_ip']) .'</a><br />' : ''
+					   'H_IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($highestrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 					   )
 					);
 			 	}
@@ -1518,7 +1519,7 @@ function album_build_random_pics($cats)
 
 						'RATING' => ($album_config['rate'] == 1) ?( $lang['Rating'] . ' : <a href="'. append_sid(album_append_uid($album_rate_pic_url .'?pic_id='. $randrow[$j]['pic_id'])) . '" ' . $image_rating_link_style .'>' . $image_rating . '</a><br />') : '',
 
-						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($randrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($randrow[$j]['pic_user_ip']) .'</a><br />' : ''
+						'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($randrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 						)
 					);
 				}

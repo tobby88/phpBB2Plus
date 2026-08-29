@@ -55,6 +55,7 @@ if( !isset($_POST['confirm']) )
 		'L_YES' => $lang['Yes'],
 
 		'S_CONFIRM_ACTION' => append_sid("admin_album_clearcache.$phpEx"),
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		)
 	);
 
@@ -67,6 +68,10 @@ if( !isset($_POST['confirm']) )
 }
 else
 {
+	if (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], stripslashes((string) $_POST['sid'])))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
 	$cache_dir = @opendir('../' . ALBUM_CACHE_PATH);
 
 	while( $cache_file = @readdir($cache_dir) )

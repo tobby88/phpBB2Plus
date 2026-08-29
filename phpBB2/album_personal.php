@@ -337,9 +337,9 @@ if ($total_pics > 0)
 
 				'DELETE' => ( ($userdata['user_level'] == ADMIN) or ($userdata['user_id'] == $picrow[$j]['pic_user_id']) ) ? '<a href="'. append_sid("album_delete.$phpEx?pic_id=". $picrow[$j]['pic_id']) . '">' . $lang['Delete_pic'] . '</a>' : '',
 
-				'LOCK' => ($userdata['user_level'] == ADMIN) ? '<a href="'. append_sid("album_modcp.$phpEx?mode=". (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') ."&amp;pic_id=". $picrow[$j]['pic_id']) .'">'. (($picrow[$j]['pic_lock'] == 0) ? $lang['Lock'] : $lang['Unlock']) .'</a>' : '',
+				'LOCK' => ($userdata['user_level'] == ADMIN) ? '<a href="'. append_sid("album_modcp.$phpEx?mode=". (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') ."&amp;pic_id=". (int) $picrow[$j]['pic_id'] . "&amp;album_token=" . rawurlencode(hash_hmac('sha256', (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') . ':' . (int) $picrow[$j]['pic_id'], (string) $userdata['session_id']))) .'">'. (($picrow[$j]['pic_lock'] == 0) ? $lang['Lock'] : $lang['Unlock']) .'</a>' : '',
 
-				'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($picrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($picrow[$j]['pic_user_ip']) .'</a><br />' : ''
+				'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($picrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 				)
 			);
 		}

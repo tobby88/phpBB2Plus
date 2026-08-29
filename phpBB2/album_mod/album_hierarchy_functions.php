@@ -130,7 +130,9 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 		$class_catRight = "cat";
 
 		// get category title
-		$cat_title = ($is_root) ? sprintf($lang['Personal_Gallery_Of_User'], $username): $cat['cat_title'];
+		$cat_title = ($is_root) ? sprintf($lang['Personal_Gallery_Of_User'], htmlspecialchars($username, ENT_QUOTES, 'UTF-8')) : htmlspecialchars($cat['cat_title'], ENT_QUOTES, 'UTF-8');
+		$move_up_token = hash_hmac('sha256', 'album-category-order:' . (int) $cat_id . ':-15', (string) $userdata['session_id']);
+		$move_down_token = hash_hmac('sha256', 'album-category-order:' . (int) $cat_id . ':15', (string) $userdata['session_id']);
 		
 		// send to template
 		$template->assign_block_vars('catrow', array());
@@ -147,8 +149,8 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 
 			'U_CAT_EDIT' => append_sid(album_append_uid("$admin_url?action=edit&amp;cat_id=$cat_id")),
 			'U_CAT_DELETE' => ($is_root  && $userdata['user_level'] != ADMIN) ? '' : append_sid(album_append_uid("$admin_url?action=delete&amp;cat_id=$cat_id")),
-			'U_CAT_MOVE_UP' => ($is_root) ? '' : append_sid(album_append_uid("$admin_url?action=move&amp;move=-15&amp;cat_id=$cat_id")),
-			'U_CAT_MOVE_DOWN' => ($is_root) ? '' : append_sid(album_append_uid("$admin_url?action=move&amp;move=15&amp;cat_id=$cat_id")),
+			'U_CAT_MOVE_UP' => ($is_root) ? '' : append_sid(album_append_uid("$admin_url?action=move&amp;move=-15&amp;cat_id=$cat_id&amp;album_token=" . rawurlencode($move_up_token))),
+			'U_CAT_MOVE_DOWN' => ($is_root) ? '' : append_sid(album_append_uid("$admin_url?action=move&amp;move=15&amp;cat_id=$cat_id&amp;album_token=" . rawurlencode($move_down_token))),
 			'U_VIEWCAT' => append_sid(album_append_uid("$admin_url?action=edit&cat_id=$cat_id")),
 
 			'L_MOVE_UP' => ($is_root) ? '' : $lang['Move_up'],
@@ -172,7 +174,7 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 		// send the category description to template... if its specified
 		if (!empty($cat['cat_desc']))
 		{
-			$cat_desc = $cat['cat_desc'];
+			$cat_desc = nl2br(htmlspecialchars($cat['cat_desc'], ENT_QUOTES, 'UTF-8'));
 			
 			$template->assign_block_vars('catrow', array());
 			$template->assign_block_vars('catrow.cattitle', array(

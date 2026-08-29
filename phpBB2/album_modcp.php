@@ -35,6 +35,40 @@ init_userprefs($userdata);
 // End session management
 //
 
+function album_modcp_post_token_valid($userdata)
+{
+	return $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sid']) &&
+		hash_equals((string) $userdata['session_id'], stripslashes((string) $_POST['sid']));
+}
+
+function album_modcp_action_token($mode, $pic_id, $session_id)
+{
+	return hash_hmac('sha256', (string) $mode . ':' . (int) $pic_id, (string) $session_id);
+}
+
+function album_modcp_normalize_ids($ids)
+{
+	if (!is_array($ids))
+	{
+		return array();
+	}
+	$normalized = array();
+	foreach ($ids as $id)
+	{
+		$id = (int) $id;
+		if ($id > 0)
+		{
+			$normalized[$id] = $id;
+		}
+	}
+	return array_values($normalized);
+}
+
+if (isset($_POST['pic_id']))
+{
+	$_POST['pic_id'] = album_modcp_normalize_ids($_POST['pic_id']);
+}
+
 //
 // Get general album information
 //
@@ -199,6 +233,31 @@ if ( !album_check_permission($auth_data, ALBUM_AUTH_MODERATOR) )
 	else
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
+}
+
+$album_mutation_modes = array('move', 'lock', 'unlock', 'approval', 'unapproval', 'delete');
+if (in_array($mode, $album_mutation_modes, true) && $_SERVER['REQUEST_METHOD'] === 'POST' && !album_modcp_post_token_valid($userdata))
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+if (in_array($mode, $album_mutation_modes, true) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
+	(!isset($_POST['pic_id']) || count($_POST['pic_id']) === 0))
+{
+	message_die(GENERAL_ERROR, 'No pics specified');
+}
+if (in_array($mode, array('approval', 'unapproval'), true) &&
+	(int) $thiscat['cat_approval'] === ALBUM_ADMIN && (int) $userdata['user_level'] !== ADMIN)
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+if (in_array($mode, array('lock', 'unlock', 'approval', 'unapproval'), true) && $_SERVER['REQUEST_METHOD'] !== 'POST')
+{
+	$action_token = isset($_GET['album_token']) ? stripslashes((string) $_GET['album_token']) : '';
+	$expected_token = album_modcp_action_token($mode, $pic_id, $userdata['session_id']);
+	if ($pic_id === false || !hash_equals($expected_token, $action_token))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 	}
 }
 //
@@ -367,16 +426,16 @@ if ($mode == '')
 		{
 			if( ($picrow[$i]['user_id'] == ALBUM_GUEST) or ($picrow[$i]['username'] == '') )
 			{
-				$pic_poster = ($picrow[$i]['pic_username'] == '') ? $lang['Guest'] : $picrow[$i]['pic_username'];
+				$pic_poster = ($picrow[$i]['pic_username'] == '') ? $lang['Guest'] : htmlspecialchars($picrow[$i]['pic_username'], ENT_QUOTES, 'UTF-8');
 			}
 			else
 			{
-				$pic_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $picrow[$i]['user_id']) .'">'. $picrow[$i]['username'] .'</a>';
+				$pic_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $picrow[$i]['user_id']) .'">'. htmlspecialchars($picrow[$i]['username'], ENT_QUOTES, 'UTF-8') .'</a>';
 			}
 
 			$template->assign_block_vars('picrow', array(
 				'PIC_ID' => $picrow[$i]['pic_id'],
-				'PIC_TITLE' => '<a href="'. append_sid("album_pic.$phpEx?pic_id=". $picrow[$i]['pic_id']) .'" target="_blank">'. $picrow[$i]['pic_title'] .'</a>',
+				'PIC_TITLE' => '<a href="'. append_sid("album_pic.$phpEx?pic_id=". (int) $picrow[$i]['pic_id']) .'" target="_blank">'. htmlspecialchars($picrow[$i]['pic_title'], ENT_QUOTES, 'UTF-8') .'</a>',
 				'POSTER' => $pic_poster,
 				'TIME' => create_date($board_config['default_dateformat'], $picrow[$i]['pic_time'], $board_config['board_timezone']),
 				'RATING' => ($picrow[$i]['rating'] == 0) ? $lang['Not_rated'] : round($picrow[$i]['rating'], 2),
@@ -439,7 +498,7 @@ if ($mode == '')
 	//--- Album Category Hierarchy : end
 	$template->assign_vars(array(
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_modcp.$phpEx?cat_id=$cat_id")),
-		'CAT_TITLE' => $thiscat['cat_title'],
+		'CAT_TITLE' => htmlspecialchars($thiscat['cat_title'], ENT_QUOTES, 'UTF-8'),
 
 		'L_CATEGORY' => $lang['Category'],
 		'L_MODCP' => $lang['Mod_CP'],
@@ -451,6 +510,7 @@ if ($mode == '')
 		'L_POSTED' => $lang['Posted'],
 
 		'S_ALBUM_ACTION' => append_sid(album_append_uid("album_modcp.$phpEx?cat_id=$cat_id")),
+		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 
 		'L_SELECT_SORT_METHOD' => $lang['Select_sort_method'],
 		'L_ORDER' => $lang['Order'],
@@ -575,6 +635,7 @@ else
 
 			$template->assign_vars(array(
 				'S_ALBUM_ACTION' => append_sid(album_append_uid("album_modcp.$phpEx?mode=move&amp;cat_id=$cat_id")),
+				'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 				'L_MOVE' => $lang['Move'],
 				'L_MOVE_TO_CATEGORY' => $lang['Move_to_Category'],
 				'S_CATEGORY_SELECT' => $category_select)
@@ -613,8 +674,24 @@ else
 			// if we are trying to move picture(s) to root category or a 
 			// personal gallary (shouldn't be possible), but better save then sorry
 			// ...then return an error
-			if (intval($_POST['target']) <= 0) {
+			$target_cat_id = isset($_POST['target']) ? intval($_POST['target']) : 0;
+			if ($target_cat_id <= 0) {
 			    message_die(GENERAL_ERROR, 'Can\'t move pictures directly to Root category');
+			}
+			$sql = "SELECT * FROM " . ALBUM_CAT_TABLE . " WHERE cat_id = " . $target_cat_id . " AND cat_user_id = " . (int) $album_user_id;
+			if (!($result = $db->sql_query($sql)))
+			{
+				message_die(GENERAL_ERROR, 'Could not query target category', '', __LINE__, __FILE__, $sql);
+			}
+			$target_cat = $db->sql_fetchrow($result);
+			if (!$target_cat)
+			{
+				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+			}
+			$target_auth = album_permissions($album_user_id, $target_cat_id, ALBUM_AUTH_VIEW_AND_UPLOAD|ALBUM_AUTH_MODERATOR, $target_cat);
+			if (!album_check_permission($target_auth, ALBUM_AUTH_VIEW_AND_UPLOAD))
+			{
+				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 			}
 			//--- Album Category Hierarchy : end
 			// well, we got the array of pic_id but we must do a check to make sure all these
@@ -633,7 +710,7 @@ else
 
 			// Update the DB
 			$sql = "UPDATE ". ALBUM_TABLE ."
-					SET pic_cat_id = ". intval($_POST['target']) ."
+					SET pic_cat_id = ". $target_cat_id ."
 					WHERE pic_id IN ($pic_id_sql)";
 			if( !$result = $db->sql_query($sql) )
 			{
@@ -959,7 +1036,7 @@ else
 			$template->assign_vars(array(
 				'MESSAGE_TITLE' => $lang['Confirm'],
 				'MESSAGE_TEXT' => $lang['Album_delete_confirm'],
-				'S_HIDDEN_FIELDS' => $hidden_field,
+				'S_HIDDEN_FIELDS' => $hidden_field . '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 				'L_NO' => $lang['No'],
 				'L_YES' => $lang['Yes'],
 				'S_CONFIRM_ACTION' => append_sid(album_append_uid("album_modcp.$phpEx?mode=delete&amp;cat_id=$cat_id")),
@@ -1043,9 +1120,9 @@ else
 			{
 				if( ($filerow[$i]['pic_thumbnail'] != '') and (@file_exists(ALBUM_CACHE_PATH . $filerow[$i]['pic_thumbnail'])) )
 				{
-					@unlink(ALBUM_CACHE_PATH . $filerow[$i]['pic_thumbnail']);
+					@unlink(ALBUM_CACHE_PATH . basename($filerow[$i]['pic_thumbnail']));
 				}
-				@unlink(ALBUM_UPLOAD_PATH . $filerow[$i]['pic_filename']);
+				@unlink(ALBUM_UPLOAD_PATH . basename($filerow[$i]['pic_filename']));
 			}
 
 			// Delete DB entry

@@ -43,6 +43,7 @@ init_userprefs($userdata);
 //
 // End session management
 //
+$template->assign_var('S_FORM_TOKEN', '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />');
 
 //
 // Get general album information
@@ -60,6 +61,25 @@ if( isset($_POST['user_id']) )
 else if( isset($_GET['user_id']) )
 {
 	$album_user_id = intval($_GET['user_id']);
+}
+else
+{
+	$album_user_id = (int) $userdata['user_id'];
+}
+
+if (!$userdata['session_logged_in'])
+{
+	redirect(append_sid("login.$phpEx?redirect=album_personal_cat_admin.$phpEx"));
+}
+if ($album_user_id !== (int) $userdata['user_id'] && (int) $userdata['user_level'] !== ADMIN)
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+	((isset($_POST['mode']) || isset($_POST['submit'])) && (!isset($_POST['sid']) ||
+	!hash_equals((string) $userdata['session_id'], stripslashes((string) $_POST['sid'])))))
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 }
 
 // ------------------------------------------------------------------------
@@ -305,8 +325,8 @@ if( !isset($_POST['mode']) )
 				'READ_ONLY' => ($is_personal_root_cat) ? 'readonly' :'',
 				'DISABLED' => ($is_personal_root_cat) ? 'disabled' :'',
 
-				'S_CAT_TITLE' => ($is_personal_root_cat) ? sprintf($lang['Personal_Gallery_Of_User'], $username) : $catrow['cat_title'],
-				'S_CAT_DESC' => $catrow['cat_desc'],
+				'S_CAT_TITLE' => ($is_personal_root_cat) ? sprintf($lang['Personal_Gallery_Of_User'], htmlspecialchars($username, ENT_QUOTES, 'UTF-8')) : htmlspecialchars($catrow['cat_title'], ENT_QUOTES, 'UTF-8'),
+				'S_CAT_DESC' => htmlspecialchars($catrow['cat_desc'], ENT_QUOTES, 'UTF-8'),
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
 
 				'VIEW_GUEST' => ($catrow['cat_view_level'] == ALBUM_GUEST) ? 'selected="selected"' : '',
@@ -415,7 +435,7 @@ if( !isset($_POST['mode']) )
                 'U_PERSONAL_ALBUM' => append_sid(album_append_uid("album.$phpEx")),
 				'U_PERSONAL_CAT_ADMIN' => append_sid(album_append_uid("album_personal_cat_admin.$phpEx?cat_id=$cat_id")),
 
-				'S_CAT_TITLE' => $thiscat['cat_title'],
+				'S_CAT_TITLE' => htmlspecialchars($thiscat['cat_title'], ENT_QUOTES, 'UTF-8'),
 				'S_SELECT_TO' => $select_to)
 			);
 
@@ -425,8 +445,14 @@ if( !isset($_POST['mode']) )
 		}
 		else if( $_GET['action'] == 'move' )
 		{
-         	$cat_id = intval($_GET['cat_id']);
-         	$move = intval($_GET['move']);
+			$move = isset($_GET['move']) ? intval($_GET['move']) : 0;
+			$cat_id = isset($_GET['cat_id']) ? intval($_GET['cat_id']) : 0;
+			$album_token = isset($_GET['album_token']) ? stripslashes((string) $_GET['album_token']) : '';
+			$expected_token = hash_hmac('sha256', 'album-category-order:' . $cat_id . ':' . $move, (string) $userdata['session_id']);
+			if (!in_array($move, array(-15, 15), true) || !hash_equals($expected_token, $album_token))
+			{
+				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+			}
 
          	album_move_tree($cat_id, $move);
 
@@ -490,7 +516,7 @@ else
 				'RATE_REG' => 'selected="selected"',
 				'COMMENT_REG' => 'selected="selected"',
 
-				'S_CAT_TITLE' => $cat_title,
+				'S_CAT_TITLE' => htmlspecialchars($cat_title, ENT_QUOTES, 'UTF-8'),
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
 
 				'CATEGORY_ID'=> 0,
@@ -676,13 +702,13 @@ else
 				// Delete all physical pic & cached thumbnail files
 				for ($i = 0; $i < count($picrow); $i++)
 				{
-					@unlink('../' . ALBUM_CACHE_PATH . $picrow[$i]['pic_thumbnail']);
+					@unlink('../' . ALBUM_CACHE_PATH . basename($picrow[$i]['pic_thumbnail']));
 
-					@unlink('../' . ALBUM_UPLOAD_PATH . $picrow[$i]['pic_filename']);
+					@unlink('../' . ALBUM_UPLOAD_PATH . basename($picrow[$i]['pic_filename']));
 
 					if 	(defined('ALBUM_SP_CONFIG_TABLE'))
 					{
-						@unlink('../' . ALBUM_MED_CACHE_PATH . $picrow[$i]['pic_filename']);
+						@unlink('../' . ALBUM_MED_CACHE_PATH . basename($picrow[$i]['pic_filename']));
 					}
 				}
 

@@ -198,14 +198,14 @@ else
 	// --------------------------------
 	if(($thispic['pic_thumbnail'] != '') and @file_exists(ALBUM_CACHE_PATH . $thispic['pic_thumbnail']))
 	{
-		@unlink(ALBUM_CACHE_PATH . $thispic['pic_thumbnail']);
+		@unlink(ALBUM_CACHE_PATH . basename($thispic['pic_thumbnail']));
 	}
 
 
 	// --------------------------------
 	// Delete File
 	// --------------------------------
-	@unlink(ALBUM_UPLOAD_PATH . $thispic['pic_filename']);
+	@unlink(ALBUM_UPLOAD_PATH . basename($thispic['pic_filename']));
 
 
 	// --------------------------------

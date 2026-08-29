@@ -529,7 +529,8 @@ if ($total_pics > 0)
 				{
 					$approval_mode = ($picrow[$j]['pic_approval'] == 0) ? 'approval' : 'unapproval';
 
-					$approval_link = '<a href="'. append_sid("album_modcp.$phpEx?mode=$approval_mode&amp;pic_id=". $picrow[$j]['pic_id']) .'">';
+					$approval_token = hash_hmac('sha256', $approval_mode . ':' . (int) $picrow[$j]['pic_id'], (string) $userdata['session_id']);
+					$approval_link = '<a href="'. append_sid("album_modcp.$phpEx?mode=$approval_mode&amp;pic_id=". (int) $picrow[$j]['pic_id'] . "&amp;album_token=" . rawurlencode($approval_token)) .'">';
 
 					$approval_link .= ($picrow[$j]['pic_approval'] == 0) ? '<b>'. $lang['Approve'] .'</b>' : $lang['Unapprove'];
 
@@ -573,9 +574,9 @@ if ($total_pics > 0)
 
 				'MOVE' => ($auth_data['moderator']) ? '<a href="'. append_sid("album_modcp.$phpEx?mode=move&amp;pic_id=". $picrow[$j]['pic_id']) .'">'. $lang['Move'] .'</a>' : '',
 
-				'LOCK' => ($auth_data['moderator']) ? '<a href="'. append_sid("album_modcp.$phpEx?mode=". (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') ."&amp;pic_id=". $picrow[$j]['pic_id']) .'">'. (($picrow[$j]['pic_lock'] == 0) ? $lang['Lock'] : $lang['Unlock']) .'</a>' : '',
+				'LOCK' => ($auth_data['moderator']) ? '<a href="'. append_sid("album_modcp.$phpEx?mode=". (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') ."&amp;pic_id=". (int) $picrow[$j]['pic_id'] . "&amp;album_token=" . rawurlencode(hash_hmac('sha256', (($picrow[$j]['pic_lock'] == 0) ? 'lock' : 'unlock') . ':' . (int) $picrow[$j]['pic_id'], (string) $userdata['session_id']))) .'">'. (($picrow[$j]['pic_lock'] == 0) ? $lang['Lock'] : $lang['Unlock']) .'</a>' : '',
 
-				'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': <a href="http://www.nic.com/cgi-bin/whois.cgi?query=' . decode_ip($picrow[$j]['pic_user_ip']) . '" target="_blank">' . decode_ip($picrow[$j]['pic_user_ip']) .'</a><br />' : ''
+				'IP' => ($userdata['user_level'] == ADMIN) ? $lang['IP_Address'] . ': ' . htmlspecialchars(decode_ip($picrow[$j]['pic_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : ''
 				)
 			);
 		}

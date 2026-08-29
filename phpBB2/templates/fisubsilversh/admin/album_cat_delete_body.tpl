@@ -3,6 +3,7 @@
 <p>{L_CAT_DELETE_EXPLAIN}</p>
 
 <form action="{S_ALBUM_ACTION}" method="post">
+{S_FORM_TOKEN}
   <table cellpadding="4" cellspacing="1" border="0" class="forumline" align="center">
 	<tr>
 	  <th colspan="2" class="thHead">{L_CAT_DELETE}</th>
