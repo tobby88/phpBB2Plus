@@ -48,7 +48,7 @@ function xs_empty_name()
 	$sql = "SELECT * FROM " . THEMES_NAME_TABLE . " LIMIT 0, 1";
 	if(!$result = $db->sql_query($sql))
 	{
-		$data = array();
+		return array();
 	}
 	$data = $db->sql_fetchrow($result);
 	if($data === false || !@count($data))
@@ -141,15 +141,15 @@ function xs_get_vars($theme)
 			{
 				$len = 5;
 			}
-			elseif(xs_in_array($var, $vrs_4) || xs_in_array($sub, $vars_4))
+			elseif(xs_in_array($var, $vars_4) || xs_in_array($sub, $vars_4))
 			{
 				$len = 4;
 			}
-			elseif(strpos($var, 'class'))
+			elseif(strpos($var, 'class') !== false)
 			{
 				$len = 25;
 			}
-			elseif(strpos($var, 'color'))
+			elseif(strpos($var, 'color') !== false)
 			{
 				$len = 6;
 			}
@@ -179,8 +179,8 @@ function xs_get_vars($theme)
 		// force sort for the added fields
 		$added = array(
 			'style_name' => array(),
-			'images_pack' => array('var' => $item['images_pack'], 'len' => 100, 'color' => false, 'font' => false),
-			'custom_tpls' => array('var' => $item['custom_tpls'], 'len' => 100, 'color' => false, 'font' => false),
+			'images_pack' => array('var' => 'images_pack', 'len' => 100, 'color' => false, 'font' => false),
+			'custom_tpls' => array('var' => 'custom_tpls', 'len' => 100, 'color' => false, 'font' => false),
 			'head_stylesheet' => array(),
 		);
 		$arr1 = array_merge($added, $arr1);
@@ -199,55 +199,97 @@ function xs_get_vars($theme)
 //
 if(!empty($HTTP_POST_VARS['edit']) && !defined('DEMO_MODE'))
 {
-	$id = intval($HTTP_POST_VARS['edit']);
+	phpbb_admin_require_post_session();
+	$id = is_scalar($HTTP_POST_VARS['edit']) ? intval($HTTP_POST_VARS['edit']) : 0;
 	$lang['xs_edittpl_back_edit'] = str_replace('{URL}', append_sid('xs_edit_data.'.$phpEx.'?edit='.$id), $lang['xs_edittpl_back_edit']);
+	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE themes_id = $id";
+	if($id <= 0 || !($result = $db->sql_query($sql)) || !($existing_item = $db->sql_fetchrow($result)))
+	{
+		xs_error($lang['xs_invalid_style_id'] . '<br /><br />' . $lang['xs_edittpl_back_list']);
+	}
+	$editable_vars = xs_get_vars($existing_item);
+	$name_columns = array_keys(xs_empty_name());
 	$data_item = array();
 	$data_item_update = array();
 	$data_name = array();
 	$data_name_insert_vars = array('themes_id');
 	$data_name_insert_values = array($id);
 	$data_name_update = array();
-	foreach($HTTP_POST_VARS as $var => $value)
+	foreach($editable_vars as $var => $definition)
 	{
-		if(substr($var, 0, 5) === 'edit_')
+		if(!preg_match('/^[a-zA-Z0-9_]+$/', $var))
 		{
-			$var = substr($var, 5);
-			$value = stripslashes($value);
+			continue;
+		}
+		$post_var = 'edit_' . $var;
+		if(isset($HTTP_POST_VARS[$post_var]) && is_scalar($HTTP_POST_VARS[$post_var]))
+		{
+			$value = stripslashes((string) $HTTP_POST_VARS[$post_var]);
+			$character_count = preg_match_all('/./us', $value, $characters);
+			if($character_count === false)
+			{
+				xs_error($lang['xs_edittpl_error_updating'] . '<br /><br />' . $lang['xs_edittpl_back_edit']);
+			}
+			if($character_count > $definition['len'])
+			{
+				$value = implode('', array_slice($characters[0], 0, $definition['len']));
+			}
 			$data_item[$var] = $value;
 			$data_item_update[] = $var . "='" . xs_sql($value) . "'";
 		}
-		elseif(substr($var, 0, 5) === 'name_')
+		$name_column = $var . '_name';
+		$name_post_var = 'name_' . $var;
+		if(in_array($name_column, $name_columns, true) && isset($HTTP_POST_VARS[$name_post_var]) && is_scalar($HTTP_POST_VARS[$name_post_var]))
 		{
-			$var = substr($var, 5).'_name';
-			$value = stripslashes($value);
-			$data_name[$var] = $value;
-			$data_name_update[] = $var . "='" . xs_sql($value) . "'";
-			$data_name_insert_vars[] = $var;
+			$value = stripslashes((string) $HTTP_POST_VARS[$name_post_var]);
+			$character_count = preg_match_all('/./us', $value, $characters);
+			if($character_count === false)
+			{
+				xs_error($lang['xs_edittpl_error_updating'] . '<br /><br />' . $lang['xs_edittpl_back_edit']);
+			}
+			if($character_count > 50)
+			{
+				$value = implode('', array_slice($characters[0], 0, 50));
+			}
+			$data_name[$name_column] = $value;
+			$data_name_update[] = $name_column . "='" . xs_sql($value) . "'";
+			$data_name_insert_vars[] = $name_column;
 			$data_name_insert_values[] = xs_sql($value);
 		}
 	}
+	if(!count($data_item_update))
+	{
+		xs_error($lang['xs_edittpl_error_updating'] . '<br /><br />' . $lang['xs_edittpl_back_edit']);
+	}
 	// update item
-	$sql = "UPDATE " . THEMES_TABLE . " SET " . implode(',', $data_item_update) . " WHERE themes_id='{$id}'";
+	$sql = "UPDATE " . THEMES_TABLE . " SET " . implode(',', $data_item_update) . " WHERE themes_id = $id";
 	if(!$result = $db->sql_query($sql))
 	{
 		xs_error($lang['xs_edittpl_error_updating'] . '<br /><br />' . $lang['xs_edittpl_back_edit'] . '<br /><br />' . $lang['xs_edittpl_back_list'], __LINE__, __FILE__);
 	}
 	// check if there is name
-	$sql = "SELECT themes_id FROM " . THEMES_NAME_TABLE . " WHERE themes_id='{$id}'";
+	$sql = "SELECT themes_id FROM " . THEMES_NAME_TABLE . " WHERE themes_id = $id";
 	if(!$result = $db->sql_query($sql))
 	{
-		$sql = "INSERT INTO " . THEMES_NAME_TABLE . " (" . implode(',', $data_name_insert_vars) . ") VALUES ('" . implode("', '", $data_name_insert_values) . "')";
+		xs_error($lang['xs_edittpl_error_updating'] . '<br /><br />' . $lang['xs_edittpl_back_edit'], __LINE__, __FILE__);
 	}
 	$item = $db->sql_fetchrow($result);
-	if(!is_array($item))
+	if(count($data_name_update) && !is_array($item))
 	{
 		$sql = "INSERT INTO " . THEMES_NAME_TABLE . " (" . implode(',', $data_name_insert_vars) . ") VALUES ('" . implode("', '", $data_name_insert_values) . "')";
+		if(!$db->sql_query($sql))
+		{
+			xs_error($lang['xs_edittpl_error_updating'] . '<br /><br />' . $lang['xs_edittpl_back_edit'], __LINE__, __FILE__);
+		}
 	}
-	else
+	elseif(count($data_name_update))
 	{
-		$sql = "UPDATE " . THEMES_NAME_TABLE . " SET " . implode(',', $data_name_update) . " WHERE themes_id='{$id}'";
+		$sql = "UPDATE " . THEMES_NAME_TABLE . " SET " . implode(',', $data_name_update) . " WHERE themes_id = $id";
+		if(!$db->sql_query($sql))
+		{
+			xs_error($lang['xs_edittpl_error_updating'] . '<br /><br />' . $lang['xs_edittpl_back_edit'], __LINE__, __FILE__);
+		}
 	}
-	$db->sql_query($sql);
 	// regen themes cache
 	if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
 	{
@@ -266,10 +308,10 @@ if(!empty($HTTP_POST_VARS['edit']) && !defined('DEMO_MODE'))
 //
 // edit style
 //
-if(!empty($HTTP_GET_VARS['edit']))
+if(!empty($HTTP_GET_VARS['edit']) && is_scalar($HTTP_GET_VARS['edit']))
 {
 	$id = intval($HTTP_GET_VARS['edit']);
-	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE themes_id='{$id}'";
+	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE themes_id = $id";
 	if(!$result = $db->sql_query($sql))
 	{
 		xs_error($lang['xs_no_style_info'], __LINE__, __FILE__);
@@ -279,12 +321,15 @@ if(!empty($HTTP_GET_VARS['edit']))
 	{
 		xs_error($lang['xs_invalid_style_id'] . '<br /><br />' . $lang['xs_edittpl_back_list']);
 	}
-	$sql = "SELECT * FROM " . THEMES_NAME_TABLE . " WHERE themes_id='{$id}'";
-	if(!$result = $db->sql_query($sql))
+	$sql = "SELECT * FROM " . THEMES_NAME_TABLE . " WHERE themes_id = $id";
+	if(!($result = $db->sql_query($sql)))
 	{
 		$item_name = array();
 	}
-	$item_name = $db->sql_fetchrow($result);
+	else
+	{
+		$item_name = $db->sql_fetchrow($result);
+	}
 	if($item_name === false || !@count($item_name))
 	{
 		$item_name = xs_empty_name();
@@ -293,8 +338,8 @@ if(!empty($HTTP_GET_VARS['edit']))
 	// show variables
 	$template->assign_vars(array(
 		'U_ACTION'	=> append_sid('xs_edit_data.'.$phpEx),
-		'TPL'		=> htmlspecialchars($item['template-name']),
-		'STYLE'		=> htmlspecialchars($item['style_name']),
+		'TPL'		=> htmlspecialchars($item['template_name'], ENT_QUOTES, 'UTF-8'),
+		'STYLE'		=> htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8'),
 		'ID'		=> $id
 		)
 	);
@@ -330,10 +375,10 @@ if(!empty($HTTP_GET_VARS['edit']))
 		$template->assign_block_vars('row', array(
 			'ROW_CLASS'	=> $row_class,
 			'VAR'	=> $var,
-			'VALUE'	=> isset($item[$var]) ? htmlspecialchars($item[$var]) : '',
+			'VALUE'	=> isset($item[$var]) ? htmlspecialchars($item[$var], ENT_QUOTES, 'UTF-8') : '',
 			'LEN'	=> $value['len'],
 			'SIZE'	=> $value['len'] < 10 ? 10 : 30,
-			'TEXT'	=> htmlspecialchars($text),
+			'TEXT'	=> htmlspecialchars($text, ENT_QUOTES, 'UTF-8'),
 			'EXPLAIN' => isset($lang['xs_data_' . $var . '_explain']) ? $lang['xs_data_' . $var . '_explain'] : '',
 			)
 		);
@@ -348,7 +393,7 @@ if(!empty($HTTP_GET_VARS['edit']))
 		if(isset($item_name[$var.'_name']))
 		{
 			$template->assign_block_vars('row.name', array(
-				'DATA'	=> $item_name[$var.'_name']
+				'DATA'	=> htmlspecialchars($item_name[$var.'_name'], ENT_QUOTES, 'UTF-8')
 				)
 			);
 		}
@@ -380,8 +425,8 @@ for($i=0; $i<count($style_rowset); $i++)
 	$row_class = $xs_row_class[$i % 2];
 	$template->assign_block_vars('styles', array(
 		'ROW_CLASS'		=> $row_class,
-		'TPL'			=> htmlspecialchars($item['template_name']),
-		'STYLE'			=> htmlspecialchars($item['style_name']),
+		'TPL'			=> htmlspecialchars($item['template_name'], ENT_QUOTES, 'UTF-8'),
+		'STYLE'			=> htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8'),
 		'U_EDIT'		=> append_sid('xs_edit_data.'.$phpEx.'?edit='.$item['themes_id'])
 		)
 	);
