@@ -625,14 +625,7 @@ if( !empty($_POST['unblock_account']) )
 		$avatar_sql = "";
 		if( isset($_POST['avatardel']) )
 		{
-			if( $this_userdata['user_avatar_type'] == USER_AVATAR_UPLOAD && $this_userdata['user_avatar'] != "" )
-			{
-				if( @file_exists(@phpbb_realpath('./../' . $board_config['avatar_path'] . "/" . $this_userdata['user_avatar'])) )
-				{
-					@unlink('./../' . $board_config['avatar_path'] . "/" . $this_userdata['user_avatar']);
-				}
-			}
-			$avatar_sql = ", user_avatar = '', user_avatar_type = " . USER_AVATAR_NONE;
+			$avatar_sql = user_avatar_delete($this_userdata['user_avatar_type'], $this_userdata['user_avatar']);
 		}
 		else if( ( $user_avatar_loc != "" || !empty($user_avatar_url) ) && !$error )
 		{
@@ -652,80 +645,9 @@ if( !empty($_POST['unblock_account']) )
 
 			if( $user_avatar_loc != "" )
 			{
-				if( file_exists(@phpbb_realpath($user_avatar_loc)) && ereg(".jpg$|.gif$|.png$", $user_avatar_name) )
-				{
-					if( $user_avatar_size <= $board_config['avatar_filesize'] && $user_avatar_size > 0)
-					{
-						$error_type = false;
-
-						//
-						// Opera appends the image name after the type, not big, not clever!
-						//
-						preg_match("'image\/[x\-]*([a-z]+)'", $user_avatar_filetype, $user_avatar_filetype);
-						$user_avatar_filetype = $user_avatar_filetype[1];
-
-						switch( $user_avatar_filetype )
-						{
-							case "jpeg":
-							case "pjpeg":
-							case "jpg":
-								$imgtype = '.jpg';
-								break;
-							case "gif":
-								$imgtype = '.gif';
-								break;
-							case "png":
-								$imgtype = '.png';
-								break;
-							default:
-								$error = true;
-								$error_msg = (!empty($error_msg)) ? $error_msg . "<br />" . $lang['Avatar_filetype'] : $lang['Avatar_filetype'];
-								break;
-						}
-
-						if( !$error )
-						{
-							list($width, $height) = @getimagesize($user_avatar_loc);
-
-							if( $width <= $board_config['avatar_max_width'] && $height <= $board_config['avatar_max_height'] )
-							{
-								$user_id = $this_userdata['user_id'];
-
-								$avatar_filename = $user_id . $imgtype;
-
-								if( $this_userdata['user_avatar_type'] == USER_AVATAR_UPLOAD && $this_userdata['user_avatar'] != "" )
-								{
-									if( @file_exists(@phpbb_realpath("./../" . $board_config['avatar_path'] . "/" . $this_userdata['user_avatar'])) )
-									{
-										@unlink("./../" . $board_config['avatar_path'] . "/". $this_userdata['user_avatar']);
-									}
-								}
-								@copy($user_avatar_loc, "./../" . $board_config['avatar_path'] . "/$avatar_filename");
-
-								$avatar_sql = ", user_avatar = '$avatar_filename', user_avatar_type = " . USER_AVATAR_UPLOAD;
-							}
-							else
-							{
-								$l_avatar_size = sprintf($lang['Avatar_imagesize'], $board_config['avatar_max_width'], $board_config['avatar_max_height']);
-
-								$error = true;
-								$error_msg = ( !empty($error_msg) ) ? $error_msg . "<br />" . $l_avatar_size : $l_avatar_size;
-							}
-						}
-					}
-					else
-					{
-						$l_avatar_size = sprintf($lang['Avatar_filesize'], round($board_config['avatar_filesize'] / 1024));
-
-						$error = true;
-						$error_msg = ( !empty($error_msg) ) ? $error_msg . "<br />" . $l_avatar_size : $l_avatar_size;
-					}
-				}
-				else
-				{
-					$error = true;
-					$error_msg = ( !empty($error_msg) ) ? $error_msg . "<br />" . $lang['Avatar_filetype'] : $lang['Avatar_filetype'];
-				}
+				$current_avatar = $this_userdata['user_avatar'];
+				$current_avatar_type = $this_userdata['user_avatar_type'];
+				$avatar_sql = user_avatar_upload('editprofile', 'local', $current_avatar, $current_avatar_type, $error, $error_msg, $user_avatar_loc, $user_avatar_name, $user_avatar_size, $user_avatar_filetype);
 			}
 			else if( !empty($user_avatar_name) )
 			{
@@ -737,24 +659,11 @@ if( !empty($_POST['unblock_account']) )
 		}
 		else if( $user_avatar_remoteurl != "" && $avatar_sql == "" && !$error )
 		{
-			if( !preg_match("#^http:\/\/#i", $user_avatar_remoteurl) )
-			{
-				$user_avatar_remoteurl = "http://" . $user_avatar_remoteurl;
-			}
-
-			if( preg_match("#^(http:\/\/[a-z0-9\-]+?\.([a-z0-9\-]+\.)*[a-z]+\/.*?\.(gif|jpg|png)$)#is", $user_avatar_remoteurl) )
-			{
-				$avatar_sql = ", user_avatar = '" . str_replace("\'", "''", $user_avatar_remoteurl) . "', user_avatar_type = " . USER_AVATAR_REMOTE;
-			}
-			else
-			{
-				$error = true;
-				$error_msg = ( !empty($error_msg) ) ? $error_msg . "<br />" . $lang['Wrong_remote_avatar_format'] : $lang['Wrong_remote_avatar_format'];
-			}
+			$avatar_sql = user_avatar_url('editprofile', $error, $error_msg, $user_avatar_remoteurl);
 		}
 		else if( $user_avatar_local != "" && $avatar_sql == "" && !$error )
 		{
-			$avatar_sql = ", user_avatar = '" . str_replace("\'", "''", phpbb_ltrim(basename($user_avatar_category), "'") . '/' . phpbb_ltrim(basename($user_avatar_local), "'")) . "', user_avatar_type = " . USER_AVATAR_GALLERY;
+			$avatar_sql = user_avatar_gallery('editprofile', $error, $error_msg, $user_avatar_local, $user_avatar_category);
 		}
 		// Start add - Birthday MOD
 // find the birthday values, reflected by the $lang['Submit_date_format']

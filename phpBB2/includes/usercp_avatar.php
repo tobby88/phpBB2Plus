@@ -60,6 +60,19 @@ function user_avatar_storage_directory()
 	return ($normalized_root !== '' && $normalized_dir !== '' && strpos($normalized_dir, $normalized_root) === 0) ? $avatar_dir : false;
 }
 
+function user_avatar_gallery_directory()
+{
+	global $board_config, $phpbb_root_path;
+
+	$root_path = isset($phpbb_root_path) ? $phpbb_root_path : './';
+	$board_root = @realpath($root_path);
+	$gallery_dir = @realpath($root_path . $board_config['avatar_gallery_path']);
+	$normalized_root = $board_root ? rtrim(str_replace('\\', '/', $board_root), '/') . '/' : '';
+	$normalized_dir = $gallery_dir ? rtrim(str_replace('\\', '/', $gallery_dir), '/') . '/' : '';
+
+	return ($normalized_root !== '' && $normalized_dir !== '' && strpos($normalized_dir, $normalized_root) === 0) ? $gallery_dir : false;
+}
+
 function user_avatar_delete($avatar_type, $avatar_file)
 {
 	global $userdata;
@@ -80,10 +93,9 @@ function user_avatar_delete($avatar_type, $avatar_file)
 
 function user_avatar_gallery($mode, &$error, &$error_msg, $avatar_filename, $avatar_category)
 {
-	global $board_config;
-
 	$avatar_filename = phpbb_ltrim(basename($avatar_filename), "'");
 	$avatar_category = phpbb_ltrim(basename($avatar_category), "'");
+	$gallery_dir = user_avatar_gallery_directory();
 	
 	if(!preg_match('/(\.gif$|\.png$|\.jpg|\.jpeg)$/is', $avatar_filename))
 	{
@@ -95,9 +107,9 @@ function user_avatar_gallery($mode, &$error, &$error_msg, $avatar_filename, $ava
 		return '';
 	} 
 
-	if ( file_exists(@phpbb_realpath($board_config['avatar_gallery_path'] . '/' . $avatar_category . '/' . $avatar_filename)) && ($mode == 'editprofile') )
+	if ( $gallery_dir !== false && is_file($gallery_dir . DIRECTORY_SEPARATOR . $avatar_category . DIRECTORY_SEPARATOR . $avatar_filename) && ($mode == 'editprofile') )
 	{
-		$return = ", user_avatar = '" . str_replace("\'", "''", $avatar_category . '/' . $avatar_filename) . "', user_avatar_type = " . USER_AVATAR_GALLERY;
+		$return = ", user_avatar = '" . str_replace("'", "''", stripslashes($avatar_category . '/' . $avatar_filename)) . "', user_avatar_type = " . USER_AVATAR_GALLERY;
 	}
 	else
 	{
@@ -128,7 +140,7 @@ function user_avatar_url($mode, &$error, &$error_msg, $avatar_filename)
 		return;
 	}
 
-	return ( $mode == 'editprofile' ) ? ", user_avatar = '" . str_replace("\'", "''", $avatar_filename) . "', user_avatar_type = " . USER_AVATAR_REMOTE : '';
+	return ( $mode == 'editprofile' ) ? ", user_avatar = '" . str_replace("'", "''", stripslashes($avatar_filename)) . "', user_avatar_type = " . USER_AVATAR_REMOTE : '';
 
 }
 
@@ -215,14 +227,23 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 	global $phpbb_root_path, $phpEx;
 	global $HTTP_POST_VARS;
 
-	$dir = @opendir($board_config['avatar_gallery_path']);
+	$gallery_dir = user_avatar_gallery_directory();
+	if ($gallery_dir === false || !($dir = @opendir($gallery_dir)))
+	{
+		return;
+	}
+	$gallery_url = rtrim($phpbb_root_path . $board_config['avatar_gallery_path'], '/\\');
 
 	$avatar_images = array();
 	while( $file = @readdir($dir) )
 	{
-		if( $file != '.' && $file != '..' && !is_file($board_config['avatar_gallery_path'] . '/' . $file) && !is_link($board_config['avatar_gallery_path'] . '/' . $file) )
+		if( $file != '.' && $file != '..' && !is_file($gallery_dir . '/' . $file) && !is_link($gallery_dir . '/' . $file) )
 		{
-			$sub_dir = @opendir($board_config['avatar_gallery_path'] . '/' . $file);
+			$sub_dir = @opendir($gallery_dir . '/' . $file);
+			if (!$sub_dir)
+			{
+				continue;
+			}
 
 			$avatar_row_count = 0;
 			$avatar_col_count = 0;
@@ -276,7 +297,7 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 		for($j = 0; $j < count($avatar_images[$category][$i]); $j++)
 		{
 			$template->assign_block_vars('avatar_row.avatar_column', array(
-				"AVATAR_IMAGE" => $board_config['avatar_gallery_path'] . '/' . $category . '/' . $avatar_images[$category][$i][$j], 
+				"AVATAR_IMAGE" => $gallery_url . '/' . rawurlencode($category) . '/' . rawurlencode($avatar_images[$category][$i][$j]),
 				"AVATAR_NAME" => $avatar_name[$category][$i][$j])
 			);
 
