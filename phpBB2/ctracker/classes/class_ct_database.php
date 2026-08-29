@@ -183,7 +183,7 @@ class ct_database
 
 		$blocklist_value = is_scalar($blocklist_value) ? trim((string) $blocklist_value) : '';
 		$blocklist_value = str_replace(array("\r", "\n", "\0"), '', $blocklist_value);
-		if ($blocklist_value === '' || strlen($blocklist_value) > 200)
+		if ($blocklist_value === '' || strlen($blocklist_value) > 200 || substr_count($blocklist_value, '*') > 8 || preg_match('/[\x00-\x1f\x7f]/', $blocklist_value))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_insert_blocklist']);
 		}
@@ -260,7 +260,7 @@ class ct_database
 		$blocklist_id = intval($blocklist_id);
 		$blocklist_val = is_scalar($blocklist_val) ? trim((string) $blocklist_val) : '';
 		$blocklist_val = str_replace(array("\r", "\n", "\0"), '', $blocklist_val);
-		if ($blocklist_id < 1 || $blocklist_val === '' || strlen($blocklist_val) > 200)
+		if ($blocklist_id < 1 || $blocklist_val === '' || strlen($blocklist_val) > 200 || substr_count($blocklist_val, '*') > 8 || preg_match('/[\x00-\x1f\x7f]/', $blocklist_val))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
 		}

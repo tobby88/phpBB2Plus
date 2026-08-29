@@ -27,44 +27,93 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt!");
 }
 
+function ctracker_ip_matches_cidr($ip, $cidr)
+{
+	if (!is_string($ip) || !is_string($cidr) || !preg_match('~^(.+)/([0-9]{1,3})$~D', trim($cidr), $match))
+	{
+		return false;
+	}
+
+	$packed_ip = @inet_pton($ip);
+	$packed_network = @inet_pton($match[1]);
+	if ($packed_ip === false || $packed_network === false || strlen($packed_ip) !== strlen($packed_network))
+	{
+		return false;
+	}
+
+	$bits = intval($match[2]);
+	$max_bits = strlen($packed_ip) * 8;
+	if ($bits < 0 || $bits > $max_bits)
+	{
+		return false;
+	}
+
+	$whole_bytes = intval(floor($bits / 8));
+	$remaining_bits = $bits % 8;
+	if ($whole_bytes > 0 && substr($packed_ip, 0, $whole_bytes) !== substr($packed_network, 0, $whole_bytes))
+	{
+		return false;
+	}
+	if ($remaining_bits === 0)
+	{
+		return true;
+	}
+
+	$mask = (0xff << (8 - $remaining_bits)) & 0xff;
+	return (ord($packed_ip[$whole_bytes]) & $mask) === (ord($packed_network[$whole_bytes]) & $mask);
+}
+
+function ctracker_blocklist_pattern_matches($pattern, $target)
+{
+	$pattern = is_scalar($pattern) ? trim((string) $pattern) : '';
+	$target = is_scalar($target) ? (string) $target : '';
+	if ($pattern === '' || $target === '' || strlen($pattern) > 200 || substr_count($pattern, '*') > 8 || preg_match('/[\x00-\x1f\x7f]/', $pattern))
+	{
+		return false;
+	}
+
+	$expression = str_replace('\\*', '.*', preg_quote($pattern, '~'));
+	return preg_match('~\A' . $expression . '\z~is', $target) === 1;
+}
+
+function ctracker_blocklist_matches($pattern, $ip, $user_agent, $remote_host)
+{
+	if (ctracker_ip_matches_cidr((string) $ip, (string) $pattern))
+	{
+		return true;
+	}
+
+	return ctracker_blocklist_pattern_matches($pattern, $ip) ||
+		ctracker_blocklist_pattern_matches($pattern, $user_agent) ||
+		ctracker_blocklist_pattern_matches($pattern, $remote_host);
+}
+
 
 /*
  * We check if the user has activated the IP and Hostname Blocker.
  * If so we use our ct_database class to load the Blocklist from the
  * Database in an array and check if someone who was blocked is in the list.
  */
-if ( !empty($ctracker_config->settings['ipblock_enabled']) )
+if (!defined('CTRACKER_IPBLOCKER_NO_AUTO_RUN') && !empty($ctracker_config->settings['ipblock_enabled']))
 {
 	// Fetch Blocklist from Database
 	$ctracker_config->unset_blocklist_verbose();
 	$ctracker_config->load_blocklist();
 	
 	// Fetch IP UserAgent and Remote Host
-	$ct_client_ip   = $client_ip;
-	$ct_user_agent  = isset($HTTP_SERVER_VARS['HTTP_USER_AGENT']) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : '';
-	$ct_remote_host = isset($HTTP_SERVER_VARS['REMOTE_HOST']) ? $HTTP_SERVER_VARS['REMOTE_HOST'] : '';
+	$ct_client_ip = isset($ctracker_config->user_ip_value) ? (string) $ctracker_config->user_ip_value : '';
+	$ct_user_agent = isset($HTTP_SERVER_VARS['HTTP_USER_AGENT']) && is_scalar($HTTP_SERVER_VARS['HTTP_USER_AGENT']) ? substr((string) $HTTP_SERVER_VARS['HTTP_USER_AGENT'], 0, 2048) : '';
+	$ct_remote_host = isset($HTTP_SERVER_VARS['REMOTE_HOST']) && is_scalar($HTTP_SERVER_VARS['REMOTE_HOST']) ? substr((string) $HTTP_SERVER_VARS['REMOTE_HOST'], 0, 255) : '';
 	
 	/*
 	 * Now we check if IP Adress, UserAgent or RemoteHost of the User
 	 * is blocked by CrackerTracker. You can use the Joker "*" to match
 	 * all expressions between 2 Words (adjustable in ACP)
 	 */
-	 for($i = 0; $i < $ctracker_config->blocklist_count; $i++)
-	 {
-	 	/*
-	 	 * For easyer handling we write the current Blocklist Value
-	 	 * into a new var and do a preg_quote. Because we WANT to allow
-	 	 * Joker sing "*" we str_replace the "\*" in a correct preg_match
-	 	 * layout.
-	 	 */
-	 	$current_value = preg_quote($ctracker_config->blocklist[$i]);
-	 	$current_value = str_replace('\*', '.*?', $current_value);
-	 	
-	 	/*
-	 	 * Now lets check if we have matches in the blocklist
-	 	 */
-	 	if ( preg_match('/^' . $current_value . '$/is', $ct_client_ip) || preg_match('/^' . $current_value . '$/is', $ct_user_agent) || preg_match('/^' . $current_value . '$/is', $ct_remote_host) )
-	 	{
+	for ($i = 0; $i < $ctracker_config->blocklist_count; $i++)
+	{
+		if (ctracker_blocklist_matches($ctracker_config->blocklist[$i], $ct_client_ip, $ct_user_agent, $ct_remote_host))
+		{
 	 		// We have a match, so write the log
 			include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
 	
@@ -111,9 +160,9 @@ if ( !empty($ctracker_config->settings['ipblock_enabled']) )
 	 		
 	 		// stop the script
 	 		die($htmloutput);
-	 	}
-	 	
-	 } // for
+		}
+
+	} // for
 	 
 	 /*
 	  * Now we don't need the Array with the Blocklist Information anymore so

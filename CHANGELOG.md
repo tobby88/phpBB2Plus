@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened CrackerTracker's client blocklist matching against malformed and
+  excessive wildcard patterns, bounded inspected headers and added native
+  IPv4/IPv6 CIDR support without trusting proxy-supplied client addresses.
 - Replaced CrackerTracker's unscoped 2006-era request word blacklist with
   bounded, repeatedly decoded and context-aware structural checks for SQL
   injection, traversal, executable stream wrappers and browser-script payloads.
