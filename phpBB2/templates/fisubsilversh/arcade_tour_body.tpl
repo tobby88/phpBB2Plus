@@ -8,8 +8,9 @@
 </form>
 </table>
 
-<table class="forumline" width="100%" cellspacing="1" cellpadding="5" border="0" align="center">
 <form method="post" action="{S_ACTION}">
+{S_FORM_TOKEN}
+<table class="forumline" width="100%" cellspacing="1" cellpadding="5" border="0" align="center">
 
 	<!-- BEGIN champions -->
 	<tr>
@@ -86,7 +87,7 @@
 	</tr>
 	<!-- END tour -->
 	<!-- BEGIN game -->
-	<tr><a name="{game.ID}" id="{game.ID}"></a>
+	<tr id="game-{game.ID}">
 		<td class="{game.ROW_CLASS}" width="5%">{game.IMAGE}</td>
 		<td class="{game.ROW_CLASS}"><span class="forumlink">{game.CONTROL}{game.DESC}</span></td>
 		<td colspan="2" class="{game.ROW_CLASS}" align="center" wrap="nowrap"><span class="gensmall">{game.INFO}</span></td>
@@ -98,15 +99,15 @@
 	</tr>
 	<!-- END player_head -->
 	<!-- BEGIN player -->
-	<tr><a name="{player.ID}" id="{game.ID}"></a>
+	<tr id="player-{player.ID}">
 		<td class="{player.ROW_CLASS}" colspan="4" align="center"><span class="forumlink">{player.NAME}{player.PLAYED_GAMES}</span></td>
 	</tr>
 	<!-- END player -->
 	<tr>
 		<td class="cat" colspan="4" align="center">{S_OPTIONS}</td>
 	</tr>
-</form>
 </table>
+</form>
 
 <table width="100%" cellspacing="2" cellpadding="2" border="0" align="center">
 <form method="post" action="{S_MODE_ACTION}">

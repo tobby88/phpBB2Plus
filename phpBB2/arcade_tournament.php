@@ -59,12 +59,30 @@ if($arcade->arcade_config('games_offline') && ($userdata['user_level'] != ADMIN)
 //  Get inputed data / set-up remaining defaults.
 //
 $mode       = $arcade->pass_var('mode', '');
-$tour_id    = $arcade->pass_var('id', 0);
-$game_id    = $arcade->pass_var('game_id', 0);
+$tour_id    = (int) $arcade->pass_var('id', 0);
+$game_id    = (int) $arcade->pass_var('game_id', 0);
 $join_tour  = $arcade->pass_var('join_tour', array());
 $s_options  = '<input type="Submit" name="start" value="'. $lang['Start'] . '">&nbsp;&nbsp;<input type="Submit" name="join" value="'. $lang['Join'] . '">';
 $GameData   = array("game_name" => '', "played" => 1, "score" => 0, "time_taken" => 0);
+$in_tour = false;
+$games_played_list = array();
+$tour = array('tour_name' => '', 'tour_desc' => '', 'tour_max_players' => 2, 'tour_player_turns' => 1);
 $url		    = '&nbsp;&raquo;&nbsp;<a href="activity.'.$phpEx.'" class="nav">' . $lang['games_catagories'] . '</a>&nbsp;&raquo;&nbsp;' . $lang['tournaments'];
+
+function arcade_public_tournament_require_token($userdata, $lang)
+{
+  global $HTTP_POST_VARS;
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) ||
+    !hash_equals((string) $userdata['session_id'], stripslashes((string) $HTTP_POST_VARS['sid'])))
+  {
+    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+  }
+}
+
+function arcade_public_tournament_game_token($tour_id, $game_id, $session_id)
+{
+  return hash_hmac('sha256', (int) $tour_id . ':' . (int) $game_id, (string) $session_id);
+}
 //
 //  Set the template so we don't get any errors.
 //
@@ -74,6 +92,7 @@ $template->set_filenames(array('body' => 'arcade_tour_body.tpl') );
 //
 if(!empty($HTTP_POST_VARS['join']))
 {
+  arcade_public_tournament_require_token($userdata, $lang);
   if(is_array($join_tour))
   {
     $joining = '';
@@ -81,13 +100,22 @@ if(!empty($HTTP_POST_VARS['join']))
     {
       $tour_id = intval($join_tour[$i]);
       
+      if ($tour_id <= 0)
+      {
+        continue;
+      }
       $sql = "SELECT * FROM " . iNA_TOUR . "
-        WHERE tour_id = ". $tour_id;
+        WHERE tour_id = ". $tour_id . "
+          AND tour_active = 2";
       if( !$result = $db->sql_query($sql) )
       {
       	message_die(GENERAL_ERROR, $lang['no_tour_data'], "", __LINE__, __FILE__, $sql);
       }
       $tour = $db->sql_fetchrow($result);
+      if (!$tour)
+      {
+        continue;
+      }
 
       $sql = "SELECT * FROM " . iNA_TOUR_PLAY . "
         WHERE tour_id = " . $tour_id;
@@ -100,7 +128,7 @@ if(!empty($HTTP_POST_VARS['join']))
 
       if($total_tourplayers >= $tour['tour_max_players'])
       {
-        $joining .= sprintf($lang['tour_full'], $tour['tour_name']);
+        $joining .= sprintf($lang['tour_full'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
       }
       else
       {
@@ -114,9 +142,9 @@ if(!empty($HTTP_POST_VARS['join']))
     		$tour_total = $db->sql_numrows($result);
         if($tour_total < 1)
         {
-          $joining .= sprintf($lang['tour_joined'], $tour['tour_name']);
+          $joining .= sprintf($lang['tour_joined'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
 
-          $sql = "INSERT INTO ". iNA_TOUR_PLAY . "
+          $sql = "INSERT IGNORE INTO ". iNA_TOUR_PLAY . "
             (tour_id, user_id) VALUES ($tour_id, ".$userdata['user_id'].")";
       		if( !$result = $db->sql_query($sql) )
       		{
@@ -125,11 +153,11 @@ if(!empty($HTTP_POST_VARS['join']))
         }
         else
         {
-          $joining .= sprintf($lang['tour_member'], $tour['tour_name']);
+          $joining .= sprintf($lang['tour_member'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
         }
       }
     }
-    message_die(GENERAL_MESSAGE, $joining.$lang['tour_return']);
+    message_die(GENERAL_MESSAGE, ($joining !== '' ? $joining : $lang['tour_no_join']).$lang['tour_return']);
   }
   else
   {
@@ -141,6 +169,7 @@ if(!empty($HTTP_POST_VARS['join']))
 //
 else if(!empty($HTTP_POST_VARS['submit']))
 {
+  arcade_public_tournament_require_token($userdata, $lang);
 //
 //  Check to make sure a user isn't trying to create a tournament when the option is OFF
 //
@@ -148,15 +177,27 @@ else if(!empty($HTTP_POST_VARS['submit']))
   {
     message_die(GENERAL_MESSAGE, $lang['arcade_admin_only'].$lang['tour_return']);
   }
-  $tour_name = $arcade->pass_var('tour_name', '');
-  $tour_desc = $arcade->pass_var('tour_desc', '');
+  $tour_name = isset($HTTP_POST_VARS['tour_name']) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])) : '';
+  $tour_desc = isset($HTTP_POST_VARS['tour_desc']) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])) : '';
+  $tour_name = function_exists('mb_substr') ? mb_substr($tour_name, 0, 25, 'UTF-8') : substr($tour_name, 0, 25);
+  $tour_desc = function_exists('mb_substr') ? mb_substr($tour_desc, 0, 255, 'UTF-8') : substr($tour_desc, 0, 255);
   if(strlen($tour_name) < 1 || strlen($tour_desc) < 3)
   {
     message_die(GENERAL_MESSAGE, $lang['error_no_tour_info'].$lang['tour_return']);
   }
+  $sql = "SELECT COUNT(*) AS total FROM " . iNA_TOUR . " WHERE tour_active <> 3";
+  if (!$result = $db->sql_query($sql))
+  {
+    message_die(GENERAL_ERROR, $lang['no_tour_data'], '', __LINE__, __FILE__, $sql);
+  }
+  $active_tours = $db->sql_fetchrow($result);
+  if ((int) $active_tours['total'] >= (int) $arcade->arcade_config['games_tournament_max'])
+  {
+    message_die(GENERAL_MESSAGE, $lang['Not_Authorised'] . $lang['tour_return']);
+  }
   $block_plays = $arcade->pass_var('block_plays', 0);
   $tour_max_players = $arcade->pass_var('tour_max_players', 0);
-  $tour_active = $arcade->pass_var('tour_active', 0);
+  $tour_active = 0;
   if($tour_max_players < 2)
   {
     $tour_max_players = $arcade->arcade_config['games_tournament_players'];
@@ -170,17 +211,24 @@ else if(!empty($HTTP_POST_VARS['submit']))
   {
     $tour_player_turns = 1;
   }
+  $block_plays = $block_plays ? 1 : 0;
+  $tour_max_players = (int) $tour_max_players;
+  $tour_player_turns = (int) $tour_player_turns;
   $sql = "INSERT INTO " . iNA_TOUR . " (tour_name, tour_desc, block_plays, tour_active, tour_max_players, tour_player_turns, start_id, start_date)
-      VALUES ('$tour_name', '$tour_desc', $block_plays, $tour_active, $tour_max_players, $tour_player_turns, ".$userdata['user_id'].", ". time() .")";
+      VALUES ('" . $db->sql_escape($tour_name) . "', '" . $db->sql_escape($tour_desc) . "', $block_plays, $tour_active, $tour_max_players, $tour_player_turns, ".(int) $userdata['user_id'].", ". time() .")";
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
 	}
 
-  $tour_id = $arcade->get_tour_id($tour_name);
+  $tour_id = (int) $db->sql_nextid();
+  if ($tour_id <= 0)
+  {
+    message_die(GENERAL_ERROR, $lang['no_tour_data']);
+  }
   
   $sql = "INSERT INTO ". iNA_TOUR_PLAY . " (tour_id, user_id) 
-      VALUES ($tour_id, ".$userdata['user_id'].")";
+      VALUES ($tour_id, ".(int) $userdata['user_id'].")";
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
@@ -222,6 +270,7 @@ else if(!empty($HTTP_POST_VARS['start']))
 //
 else if(!empty($HTTP_POST_VARS['end']))
 {
+  arcade_public_tournament_require_token($userdata, $lang);
   $is_a_draw = false;
   
   if($userdata['user_level'] != ADMIN)
@@ -254,7 +303,7 @@ else if(!empty($HTTP_POST_VARS['end']))
 	   	'L_YES' => $lang['Yes'],
 
   		'S_CONFIRM_ACTION' => append_sid("$filename"),
-  		'S_HIDDEN_FIELDS' => '<input type="hidden" name="end" value="'. $lang['End'] . '"><input type="hidden" name="id" value="'.$tour_id.'">',
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="end" value="1"><input type="hidden" name="id" value="'.(int) $tour_id.'"><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '">',
 	   	));
 
 	//
@@ -278,7 +327,7 @@ else if(!empty($HTTP_POST_VARS['end']))
     message_die(GENERAL_ERROR, $lang['no_tour_data']); 
   }
   
-  $message = sprintf($lang['arcade_tournament_end'], $tour['tour_name']);
+  $message = sprintf($lang['arcade_tournament_end'], htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8'));
 //
 //  Get Tournament Players
 //
@@ -309,33 +358,25 @@ else if(!empty($HTTP_POST_VARS['end']))
 //
 //  Check to make sure it's not a DRAW
 //
-  for($i = 0; $i < $row_count; $i++)
+  if ($row_count > 1 && (int) $tour_data[0]['total'] === (int) $tour_data[1]['total'])
   {
-    if( $tour_data[$i]['total'] == $tour_data[($i+1)]['total'] && $i == 0)
-    {
-      $is_a_draw = true;
-      $message .= $lang['tour_msg_draw'];
-//
-//  WE HAVE A DRAW...! remove old players and start with just the drawn players
-//
-      message_die(GENERAL_MESSAGE, 'NOT WRITTEN');
-      break;
-    }
-    else
-    {
-      $message .= sprintf($lang['tour_msg_winner'], $arcade->get_username($tour_data[$i]['top_player']));
-      break;
-    }
+    $is_a_draw = true;
+    message_die(GENERAL_MESSAGE, $message . $lang['tour_msg_draw'] . $lang['tour_return']);
   }
-  $pm_message = sprintf($lang['tour_msg_message'], $board_config['server_name'] . $board_config['script_path'], $game_info['game_id'] , $game_info['game_desc'] );
+  $winner_id = ($row_count > 0) ? (int) $tour_data[0]['top_player'] : 0;
+  if ($winner_id > 0)
+  {
+    $message .= sprintf($lang['tour_msg_winner'], htmlspecialchars($arcade->get_username($winner_id), ENT_QUOTES, 'UTF-8'));
+  }
+  $pm_message = '';
 
   if($is_a_draw == false)
   {
-    if($tour_data[0]['top_player'] > 0)
+    if($winner_id > 0)
     {
       $sql = "UPDATE " . iNA_TOUR . "
         SET tour_active = 3, end_date = " . time() . "
-          , champion = " . $tour_data[0]['top_player'] . "
+          , champion = " . $winner_id . "
         WHERE tour_id = $tour_id";
     }
     else
@@ -361,6 +402,12 @@ else if(!empty($HTTP_POST_VARS['end']))
     {
     	message_die(GENERAL_ERROR, $lang['no_tour_delete_data'], "", __LINE__, __FILE__, $sql);
     }
+    $sql = "DELETE FROM " . iNA_TOUR_INVITE . "
+      WHERE tour_id = " . $tour_id;
+    if( !$result = $db->sql_query($sql) )
+    {
+      message_die(GENERAL_ERROR, $lang['no_tour_delete_data'], "", __LINE__, __FILE__, $sql);
+    }
     
   }
 //
@@ -368,7 +415,7 @@ else if(!empty($HTTP_POST_VARS['end']))
 //
   for($i = 0; $i < $total_players; $i++)
   {
-    ina_send_user_pm($tour_players[$i]['user_id'], $lang['tour_msg_subject'], $message.$pm_message, $userdata['user_id']);
+    ina_send_user_pm((int) $tour_players[$i]['user_id'], $lang['tour_msg_subject'], $message.$pm_message, (int) $userdata['user_id']);
   }
 
   message_die(GENERAL_MESSAGE, $message.$lang['tour_return']);
@@ -379,8 +426,9 @@ else if(!empty($HTTP_POST_VARS['end']))
 else if ($mode == 'tour')
 {
   $played_games = 0;
+  $GameData = array();
   
-  $s_options = '<input type="Submit" name="join" value="'. $lang['Join'] . '"><input type="hidden" name="join_tour[]" value="'.$tour_id.'"';
+  $s_options = '<input type="Submit" name="join" value="'. $lang['Join'] . '"><input type="hidden" name="join_tour[]" value="'.(int) $tour_id.'">';
 //
 //  Get Tournament details
 //
@@ -391,6 +439,10 @@ else if ($mode == 'tour')
 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
 	}
 	$tour = $db->sql_fetchrow($result);
+  if (!$tour)
+  {
+    message_die(GENERAL_MESSAGE, $lang['no_tour_data'] . $lang['tour_return']);
+  }
 //
 //  Get Tournament Games
 //
@@ -427,6 +479,10 @@ else if ($mode == 'tour')
     {
       $in_tour = true;
       $GameData = phpbb_safe_unserialize(stripslashes($tour_players[$i]['gamedata']));
+      if (!is_array($GameData))
+      {
+        $GameData = array();
+      }
       $played_games = count($GameData);
     }
 //
@@ -436,21 +492,32 @@ else if ($mode == 'tour')
     $played_games_count = is_array($temp_gamedata) ? count($temp_gamedata) : 0;
 
     $played_games_list = ' [<i>';
-    $games_played_list[] = '';
     for($count = 0; $count < $played_games_count; $count++)
     {
       if($count > 0)
       {
         $played_games_list .= ', ';
       }
-      $played_games_list .= $temp_gamedata[$count]['game_name'] . '(P:<b>' . $temp_gamedata[$count]['played'] . '</b>:S:<b>' . $temp_gamedata[$count]['score'] . '</b>)';
-      $games_played_list[$temp_gamedata[$count]['game_name']] .= $tour_players[$i]['user_id'] . '|';
+      $played_name = isset($temp_gamedata[$count]['game_name']) ? (string) $temp_gamedata[$count]['game_name'] : '';
+      if ($played_name === '')
+      {
+        continue;
+      }
+      $played_count = isset($temp_gamedata[$count]['played']) ? (int) $temp_gamedata[$count]['played'] : 0;
+      $played_score = isset($temp_gamedata[$count]['score']) ? (int) $temp_gamedata[$count]['score'] : 0;
+      $played_games_list .= htmlspecialchars($played_name, ENT_QUOTES, 'UTF-8') . '(P:<b>' . $played_count . '</b>:S:<b>' . $played_score . '</b>)';
+      if (!isset($games_played_list[$played_name]))
+      {
+        $games_played_list[$played_name] = '';
+      }
+      $games_played_list[$played_name] .= (int) $tour_players[$i]['user_id'] . '|';
     }
     $played_games_list .= '</i>]';
 
     $template->assign_block_vars('player', array(
+      'ID' => (int) $tour_players[$i]['user_id'],
       'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
-      'NAME' => '<a href="profile.'.$phpEx.'?mode=viewprofile&amp;u='. $tour_players[$i]['user_id'] .'" class="gensmall">' . $tour_players[$i]['username'] . '</a>',
+      'NAME' => '<a href="'.append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;u='.(int) $tour_players[$i]['user_id']).'" class="gensmall">' . htmlspecialchars($tour_players[$i]['username'], ENT_QUOTES, 'UTF-8') . '</a>',
       'PLAYED_GAMES' => ($played_games_count > 0 && $userdata['user_level'] == ADMIN) ? $played_games_list : '',
 
        ));
@@ -472,7 +539,8 @@ else if ($mode == 'tour')
 //
 //  Build a list of those that have played this game
 //
-    $temp_games_players = explode('|', $games_played_list[$tour_games[$i]['game_name']]);  
+    $tour_game_name = (string) $tour_games[$i]['game_name'];
+    $temp_games_players = explode('|', isset($games_played_list[$tour_game_name]) ? $games_played_list[$tour_game_name] : '');
     $played_players = (count($temp_games_players) > 1) ? '' : $lang['No-One'];
 
     for($count = 0; $count < (count($temp_games_players)-1); $count++)
@@ -482,29 +550,33 @@ else if ($mode == 'tour')
         $played_players .= ', ';
         $played_text = $lang['have'];
       }
-      $played_games_list .= $temp_gamedata[$count]['game_name'];
-      $played_players .= '<a href="profile.'.$phpEx.'?mode=viewprofile&amp;u='.$temp_games_players[$count].'" class="gensmall">'.$arcade->get_username($temp_games_players[$count]) .'</a>';
+      $player_id = (int) $temp_games_players[$count];
+      $played_players .= '<a href="'.append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;u='.$player_id).'" class="gensmall">'.htmlspecialchars($arcade->get_username($player_id), ENT_QUOTES, 'UTF-8') .'</a>';
     }
 //
 //  Check to see what THIS user has played
 //
     for($count = 0; $count < $played_games; $count++)
     {
-      if($GameData[$count]['game_name'] == $tour_games[$i]['game_name'])
+      if(isset($GameData[$count]['game_name']) && $GameData[$count]['game_name'] == $tour_game_name)
       {
-        $played = ($GameData[$count]['played']);
+        $played = isset($GameData[$count]['played']) ? (int) $GameData[$count]['played'] : 0;
       }
     }
 //
 //  Get the Game Info
 //  
     $sql = "SELECT * FROM " . iNA_GAMES . "
-      WHERE game_name = '" . $tour_games[$i]['game_name'] . "'";
+      WHERE game_name = '" . $db->sql_escape($tour_game_name) . "'";
 		if( !$result = $db->sql_query($sql) )
  		{
  			message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
  		}
- 		$game_info = $db->sql_fetchrow($result);
+		$game_info = $db->sql_fetchrow($result);
+		if (!$game_info)
+		{
+			continue;
+		}
  		$game_id = $game_info['game_id'];
 
   	$image_path = $game_info['image_path'];
@@ -547,13 +619,15 @@ else if ($mode == 'tour')
     {
       $game_control = '';
     }
-    if($in_tour == true && (($tour['tour_player_turns']-$played) > 0) && $tour['tour_active'])
+    if($in_tour == true && (((int) $tour['tour_player_turns']-$played) > 0) && (int) $tour['tour_active'] === 2)
     { 
-		  $game_link = "<a href=\"javascript:Gk_PopTart('$filename?mode=game&amp;id=$tour_id&amp;game_id=" . $game_info['game_id'] . "$SID', 'Game_Window', '" . $game_info['win_width'] . "', '" . $game_info['win_height'] . "', 'no')\" class=\"forumlink\" onClick=\"blur()\">&nbsp;&laquo;&nbsp;" . $game_info['game_desc'] . "&nbsp;&raquo;&nbsp;</a>";
+		  $tour_token = arcade_public_tournament_game_token($tour_id, $game_info['game_id'], $userdata['session_id']);
+		  $game_url = append_sid($filename . '?mode=game&amp;id=' . (int) $tour_id . '&amp;game_id=' . (int) $game_info['game_id'] . '&amp;tour_token=' . rawurlencode($tour_token));
+		  $game_link = "<a href=\"javascript:Gk_PopTart('" . $game_url . "', 'Game_Window', '" . (int) $game_info['win_width'] . "', '" . (int) $game_info['win_height'] . "', 'no')\" class=\"forumlink\" onClick=\"blur()\">&nbsp;&laquo;&nbsp;" . htmlspecialchars($game_info['game_desc'], ENT_QUOTES, 'UTF-8') . "&nbsp;&raquo;&nbsp;</a>";
     }
     else
     {
-      $game_link = '<span class="gensmall">' . $game_info['game_desc'] . '</span>';
+      $game_link = '<span class="gensmall">' . htmlspecialchars($game_info['game_desc'], ENT_QUOTES, 'UTF-8') . '</span>';
     }
 
     $highest_scorer = $lang['No-One'];
@@ -561,7 +635,7 @@ else if ($mode == 'tour')
     $sql = "SELECT top_score, top_player FROM " . iNA_TOUR_DATA . "
       WHERE top_score IS NOT NULL
         AND tour_id = $tour_id 
-        AND game_name = '" . $game_info['game_name'] . "'";
+        AND game_name = '" . $db->sql_escape($game_info['game_name']) . "'";
    	if( !$result = $db->sql_query($sql) )
    	{
    		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
@@ -570,14 +644,16 @@ else if ($mode == 'tour')
     if($row_count > 0)
     {
    	  $tour_data = $db->sql_fetchrow($result);
-   	  $highest_scorer = '<a href="profile.'.$phpEx.'?mode=viewprofile&amp;u='.$tour_data['top_player'].'" class="gensmall">'.$arcade->get_username($tour_data['top_player']).'</a>';
+	  $top_player_id = (int) $tour_data['top_player'];
+	  $highest_scorer = '<a href="'.append_sid('profile.'.$phpEx.'?mode=viewprofile&amp;u='.$top_player_id).'" class="gensmall">'.htmlspecialchars($arcade->get_username($top_player_id), ENT_QUOTES, 'UTF-8').'</a>';
    	}
     
         
     $template->assign_block_vars('game', array(
+        'ID' => (int) $game_info['game_id'],
         'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
         'DESC' => $game_link,
-        'IMAGE' => '<img src="'.$image_path.'" width="'.$arcade->arcade_config['games_image_width'].'" height="'.$arcade->arcade_config['games_image_height'].'"/>',
+        'IMAGE' => '<img src="'.htmlspecialchars($image_path, ENT_QUOTES, 'UTF-8').'" width="'.(int) $arcade->arcade_config['games_image_width'].'" height="'.(int) $arcade->arcade_config['games_image_height'].'" alt="" />',
         'CONTROL' => $game_control,
         'INFO' => ($in_tour == true) ? sprintf($lang['tour_play_stats'], $tour['tour_player_turns']-$played, $highest_scorer, $played_players, $played_text) : sprintf($lang['tour_not_part'], $highest_scorer, $played_players)
       ));
@@ -585,77 +661,80 @@ else if ($mode == 'tour')
     
   }
     
-	$page_title = $tour['tour_name'] . '&nbsp;' . $lang['tournament']; 
-	$url		= '&nbsp;&raquo;&nbsp;<a href="'. append_sid("activity.$phpEx") .'" class="nav">' . $lang['games_catagories'] . '</a>&nbsp;&raquo;&nbsp;<a href="' . append_sid($filename) . '" class="nav">' . $lang['tournaments'] . '</a>&nbsp;&raquo;&nbsp;' . $tour['tour_name'];
+	$page_title = htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8') . '&nbsp;' . $lang['tournament'];
+	$url		= '&nbsp;&raquo;&nbsp;<a href="'. append_sid("activity.$phpEx") .'" class="nav">' . $lang['games_catagories'] . '</a>&nbsp;&raquo;&nbsp;<a href="' . append_sid($filename) . '" class="nav">' . $lang['tournaments'] . '</a>&nbsp;&raquo;&nbsp;' . htmlspecialchars($tour['tour_name'], ENT_QUOTES, 'UTF-8');
 }
 //
 //  Game Mode!!!!!!!!!
 //
 else if ($mode == 'game')
 {
-  $FOUND = FALSE;
-  
-  $sql = "SELECT * FROM " . iNA_GAMES . "
-      WHERE game_id = $game_id";
-	if( !$result = $db->sql_query($sql) )
- 	{
- 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
- 	}
- 	$game_info = $db->sql_fetchrow($result);
-
-  $sql = "SELECT gamedata, tour_player_turns FROM " . iNA_TOUR_PLAY . " AS p
-    LEFT JOIN ". iNA_TOUR ." AS t ON p.tour_id = t.tour_id
-      WHERE p.user_id = ". $userdata['user_id'] . "
-      AND p.tour_id = $tour_id";
-	if( !$result = $db->sql_query($sql) )
- 	{
- 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
- 	}
- 	$user_GameData = $db->sql_fetchrow($result);
-  $old_GameData = phpbb_safe_unserialize(stripslashes($user_GameData['gamedata']));
-  $games_count = count($old_GameData );
-
- 	if(is_array($old_GameData))
- 	{
-    for($i = 0; $i < $games_count; $i++)
-    {
-      if($old_GameData[$i]['game_name'] == $game_info['game_name'])
-      {
-        $played = ($old_GameData[$i]['played'])+1;
-        if($played > $user_GameData['tour_player_turns'])
-        {
-          $gen_simple_header = TRUE; 
-          message_die(GENERAL_MESSAGE, "Too Many Turns<br>" . $lang['newscore_close_first']);
-        }
-        $old_GameData[$i]['played'] = $played;
-        $FOUND = TRUE;
-        continue;
-      }
-    }
-    if(!($FOUND))
-    {
-      $GameData['game_name'] = $game_info['game_name']; 	
-      array_push($old_GameData, $GameData);
-    }
+  $tour_token = isset($HTTP_GET_VARS['tour_token']) ? stripslashes((string) $HTTP_GET_VARS['tour_token']) : '';
+  $expected_token = arcade_public_tournament_game_token($tour_id, $game_id, $userdata['session_id']);
+  if ($tour_id <= 0 || $game_id <= 0 || !hash_equals($expected_token, $tour_token))
+  {
+    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
   }
-  else
+
+  $sql = "SELECT g.*, p.gamedata, t.tour_player_turns
+    FROM " . iNA_TOUR_DATA . " AS td
+    INNER JOIN " . iNA_GAMES . " AS g ON td.game_name = g.game_name
+    INNER JOIN " . iNA_TOUR . " AS t ON td.tour_id = t.tour_id
+    INNER JOIN " . iNA_TOUR_PLAY . " AS p ON p.tour_id = t.tour_id
+    WHERE td.tour_id = " . $tour_id . "
+      AND g.game_id = " . $game_id . "
+      AND g.game_avail = 1
+      AND t.tour_active = 2
+      AND p.user_id = " . (int) $userdata['user_id'];
+	if( !$result = $db->sql_query($sql) )
+ 	{
+ 		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
+ 	}
+	$game_info = $db->sql_fetchrow($result);
+  if (!$game_info)
+  {
+    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+  }
+
+  $old_GameData = phpbb_safe_unserialize(stripslashes((string) $game_info['gamedata']));
+  if (!is_array($old_GameData))
   {
     $old_GameData = array();
-    $GameData['game_name'] = $game_info['game_name']; 	
-    array_push($old_GameData, $GameData);
   }
-  $GameData = $old_GameData;
+  $found = false;
+  $games_count = count($old_GameData);
+  for($i = 0; $i < $games_count; $i++)
+  {
+    if(isset($old_GameData[$i]['game_name']) && $old_GameData[$i]['game_name'] === $game_info['game_name'])
+    {
+      $played = isset($old_GameData[$i]['played']) ? (int) $old_GameData[$i]['played'] + 1 : 1;
+      if($played > (int) $game_info['tour_player_turns'])
+      {
+        $gen_simple_header = TRUE;
+        message_die(GENERAL_MESSAGE, "Too Many Turns<br>" . $lang['newscore_close_first']);
+      }
+      $old_GameData[$i]['played'] = $played;
+      $found = true;
+      break;
+    }
+  }
+  if(!$found)
+  {
+    $GameData['game_name'] = $game_info['game_name'];
+    $old_GameData[] = $GameData;
+  }
+  $serialized_game_data = serialize($old_GameData);
 
   $sql = "UPDATE " . iNA_TOUR_PLAY . "
-    SET last_played_game = '".$game_info['game_name']."', last_played_time = ".time().", gamedata = '".addslashes(serialize($GameData))."'
-      WHERE user_id = ". $userdata['user_id'] . "
+    SET last_played_game = '".$db->sql_escape($game_info['game_name'])."', last_played_time = ".time().", gamedata = '".$db->sql_escape($serialized_game_data)."'
+      WHERE user_id = ". (int) $userdata['user_id'] . "
       AND tour_id = $tour_id";
 	if( !$result = $db->sql_query($sql) )
  	{
  		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
  	}
 
-  $session = update_ina_session($userdata['user_id'], $user_ip, PAGE_ARCADE_TOUR, $game_info['game_name'], '', $win, $tour_id);
+  $session = update_ina_session($userdata['user_id'], $user_ip, PAGE_ARCADE_TOUR, $game_info['game_name'], '', 'NORM', $tour_id);
 
   require("loader.".$phpEx);
   exit;
@@ -665,30 +744,24 @@ else if ($mode == 'game')
 //
 else if ($mode == 'champions')
 {
-  $sql = "SELECT champion, tour_name from " . iNA_TOUR . "
-    WHERE tour_active = 3
-      ORDER BY tour_id ASC";
-  if( !$result = $db->sql_query($sql) )
-  {
-  	message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
-  }
-  $tour_champs = $db->sql_fetchrowset($result);
-
-  message_die(GENERAL_ERROR, 'Give me a chance');
+  redirect(append_sid($filename));
+  exit;
 }
 //
 //
 //
 else if($mode == 'add_games')
 {
-  $s_options = '<input type="Submit" name="add_games" value="'. $lang['Add'] . '">&nbsp;&nbsp;<input type="Submit" name="add_players" value="'. $lang['Invite_Players'] . '">';
+  redirect(append_sid($filename));
+  exit;
 }
 //
 //
 //
 else if($mode == 'invite_players')
 {
-  $s_options = '<input type="Submit" name="invite" value="'. $lang['Invite'] . '">&nbsp;&nbsp;<input type="Submit" name="add_games" value="'. $lang['Add_Games'] . '">';
+  redirect(append_sid($filename));
+  exit;
 
 }
 //
@@ -722,8 +795,9 @@ else
     $last_5_champions = '';
     for($i = 0; $i < $champ_count; $i++)
     {
-      $last_5_champ_name .= '<img src="images/crown.gif" /> <a href="profile.'. $phpEx .'?mode=viewprofile&amp;u='. $tour_champs[$i]['champion'] . '" class="gensmall">'. $arcade->get_username($tour_champs[$i]['champion']) . '</a> <img src="images/crown.gif" /><br />';
-      $last_5_champions .= $tour_champs[$i]['tour_name'] . ' <br />';
+      $champion_id = (int) $tour_champs[$i]['champion'];
+      $last_5_champ_name .= '<img src="images/crown.gif" alt="" /> <a href="'.append_sid('profile.'. $phpEx .'?mode=viewprofile&amp;u='. $champion_id).'" class="gensmall">'. htmlspecialchars($arcade->get_username($champion_id), ENT_QUOTES, 'UTF-8') . '</a> <img src="images/crown.gif" alt="" /><br />';
+      $last_5_champions .= htmlspecialchars($tour_champs[$i]['tour_name'], ENT_QUOTES, 'UTF-8') . ' <br />';
     }
   }  
   
@@ -781,12 +855,12 @@ else
     }
     $tour_play = $db->sql_fetchrow($result);
     
-    $join_text = '<input type="checkbox" name="join_tour[]" value="'.$tours[$i]['tour_id'].'">';
-    if(!$tours[$i]['tour_active'])
+    $join_text = '<input type="checkbox" name="join_tour[]" value="'.(int) $tours[$i]['tour_id'].'">';
+    if((int) $tours[$i]['tour_active'] !== 2)
     {
       $join_text = $lang['inactive'];
     }
-    else if($tour_play['user_id'] == $userdata['user_id'])
+    else if($tour_play && (int) $tour_play['user_id'] === (int) $userdata['user_id'])
     {
       $join_text = $lang['None'];
     }
@@ -797,19 +871,19 @@ else
     
     $template->assign_block_vars('tour', array(
         'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
-        'NAME' => '<a href="'.$filename.'?mode=tour&amp;id='.$tours[$i]['tour_id'].'" class="forumlink">'.$tours[$i]['tour_name'].'</a>',
-        'DESC' => $tours[$i]['tour_desc'],
+        'NAME' => '<a href="'.append_sid($filename.'?mode=tour&amp;id='.(int) $tours[$i]['tour_id']).'" class="forumlink">'.htmlspecialchars($tours[$i]['tour_name'], ENT_QUOTES, 'UTF-8').'</a>',
+        'DESC' => htmlspecialchars($tours[$i]['tour_desc'], ENT_QUOTES, 'UTF-8'),
 
         'TOTAL_GAMES' => sprintf($lang['tournament_games'], $total_games),
         'TOTAL_PLAYERS' => sprintf($lang['tournament_players'], $total_players),
 
         'JOIN' => $join_text,
-        'EDIT' => append_sid("$filename?mode=edit&amp;id=".$tours[$i]['tour_id']),
-        'DELETE' => append_sid("$filename?mode=delete&amp;id=".$tours[$i]['tour_id']),
+        'EDIT' => '',
+        'DELETE' => '',
 
       ));
   }
-  if($total_tournaments == $arcade->arcade_config['games_tournament_max'])
+  if($total_tournaments >= $arcade->arcade_config['games_tournament_max'])
   {
 
     $s_options = '<input type="Submit" name="join" value="'. $lang['Join'] . '">';
@@ -847,6 +921,7 @@ $template->assign_vars(array(
 		
 		'S_ACTION' => append_sid($filename),
 		'S_OPTIONS' => $s_options,
+		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		
     'L_YES' => $lang['Yes'],
     'L_NO' => $lang['No'],
