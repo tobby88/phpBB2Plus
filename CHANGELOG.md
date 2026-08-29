@@ -242,6 +242,8 @@ changes consolidated after that baseline without implying active maintenance.
 - Applied the same protections to phpBB2 Plus and News settings, and confined
   News filesystem configuration to local relative paths while accepting only
   HTTP(S) absolute base URLs.
+- Removed the RSS endpoint's undefined and semantically incorrect third
+  session argument on current PHP versions.
 - Hardened custom-profile-field administration against injected identifiers,
   array-shaped form values and unescaped database content; column names used
   by schema changes are derived and validated server-side. Also repaired the
