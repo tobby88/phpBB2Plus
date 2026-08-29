@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced CrackerTracker's file-size/line-count fingerprint with SHA-256
+  content checksums, so equal-size file tampering is detected. Baselines are
+  now built in a separate table and atomically swapped only after a complete
+  scan; symlinks outside the forum tree are skipped, database paths are safely
+  escaped, and legacy weak baselines are clearly marked for an explicit
+  administrator rebuild. Fresh and upgraded databases support 64-character
+  hashes, covered by an idempotent migration and CI regression test.
 - Corrected CrackerTracker log rotation so configured caps are exact and every
   rotated entry is preserved in the cumulative counter once. Repeated logger
   construction no longer redefines a constant, numeric counter reads are

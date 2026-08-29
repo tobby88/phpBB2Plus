@@ -171,7 +171,7 @@ $lang['ctracker_credits_info_text']		  = 'Die perfekte Erweiterung für phpBB un
  * File Hash Check in ACP
  */
 $lang['ctracker_fchk_head']				  = 'CrackerTracker Prüfsummenscanner';
-$lang['ctracker_fchk_subhead']			  = 'Dieser Scanner erzeugt für jede PHP Datei Deines Forums eine Prüfsumme, sobald Du auf "Erstelle oder aktualisiere Prüfsummen" klickst. Danach hast Du immer die Möglichkeit mit "Überprüfe Dateiänderungen" festzustellen, ob sich die Dateien seit dem letzten Erzeugen von Prüfsummen geändert haben oder nicht. Damit kannst Du überwachen, ob sich vielleicht Dateien geändert haben, ohne das Du selbst etwas editiert hast. Dies ist meist ein Anzeichen davon, dass jemand Zugang zu Deinem Foren-Datenbestand bekommen hatte. Achte übrigens auch auf die letzte Prüfzeit. So siehst Du, ob jemand unbefugt diesen Prüfsummenscanner aktiviert hat!<br /><br /><br /><b>Information:</b> Nicht alle Server unterstützen dieses Feature. Gelegentlich kann es zu Script Timeouts kommen, wenn der Server zu lange braucht, um die phpBB Dateiliste zu erzeugen. Andere Server brechen den Vorgang ab, da er recht performanceintensiv ist.<br /><br /><br />&raquo; Die letzte Aktualisierung der Dateiprüfsummen fand am <b>%s</b> statt.';
+$lang['ctracker_fchk_subhead']			  = 'Dieser Scanner erzeugt für jede PHP-Datei Deines Forums eine kryptografische SHA-256-Prüfsumme. Mit "Überprüfe Dateiänderungen" kannst Du später unerwartet geänderte oder gelöschte Dateien erkennen. Der Neuaufbau ersetzt die bisherige Vergleichsbasis erst, wenn der vollständige Scan erfolgreich war. Prüfe Änderungen sorgfältig: Sie können von einer legitimen Aktualisierung, aber auch von einem unbefugten Zugriff stammen.<br /><br /><b>Hinweis:</b> Prüfsummen aus älteren CrackerTracker-Versionen waren nicht inhaltssicher und werden als veraltet markiert. Erstelle sie nach dem Update einmal bewusst neu.<br /><br />&raquo; Die letzte Aktualisierung der Dateiprüfsummen fand am <b>%s</b> statt.';
 $lang['ctracker_fchk_funcheader']		  = 'Funktionen';
 $lang['ctracker_fchk_tableheader']		  = 'Systemausgabe';
 $lang['ctracker_fchk_option1']			  = 'Erstelle oder aktualisiere Prüfsummen';
@@ -183,6 +183,7 @@ $lang['ctracker_fchk_tablehead2']		  = 'Status';
 $lang['ctracker_file_unchanged']		  = 'UNVERÄNDERT';
 $lang['ctracker_file_changed']		 	  = 'GEÄNDERT';
 $lang['ctracker_file_deleted']        = 'GELÖSCHT';
+$lang['ctracker_file_legacy_checksum'] = 'VERALTETE PRÜFSUMME – NEU AUFBAUEN';
 
 
 /*
@@ -361,6 +362,7 @@ $lang['ctracker_rec_pab']				  = 'Wiederherstellung erst nach einem erfolgreiche
  */
 $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker konnte die Datenbankoperationen in der Benutzertabelle nicht ausführen.';
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker konnte die Datenbankoperation nicht korrekt durchführen.';
+$lang['ctracker_error_fileop']            = 'CBACK CrackerTracker konnte das Forum-Verzeichnis nicht vollständig für die Dateiprüfung lesen.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 
 

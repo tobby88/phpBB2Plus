@@ -82,3 +82,6 @@ jobs:
 
       - name: Test CrackerTracker log rotation
         run: php .github/scripts/check-ctracker-log-manager.php
+
+      - name: Test CrackerTracker integrity checksums
+        run: php .github/scripts/check-ctracker-checksums.php

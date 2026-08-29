@@ -24,6 +24,9 @@ if ( !defined('IN_PHPBB') || !defined('CTRACKER_ACP') )
 
 class ct_adminfunctions
 {
+	var $filechk_root = '';
+	var $filechk_count = 0;
+
 	/**
 	 * <b>ct_adminfunctions</b>
 	 * Constructor
@@ -178,16 +181,87 @@ class ct_adminfunctions
 	{
 		global $db, $lang, $phpbb_root_path, $phpEx;
 
-		// First we truncate the Database Table
-		$sql = 'TRUNCATE TABLE ' . CTRACKER_FILECHK;
+		$scan_root = @realpath($phpbb_root_path);
+		if ($scan_root === false || !is_dir($scan_root) || !is_readable($scan_root))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_fileop']);
+		}
 
-		if( !($result = $db->sql_query($sql)) )
+		$this->filechk_root = str_replace('\\', '/', rtrim($scan_root, '/\\'));
+		$this->filechk_count = 0;
+
+		// Build the replacement separately. The existing baseline remains usable
+		// if hashing or a database write fails halfway through the scan.
+		$temporary_table = CTRACKER_FILECHK . '_new';
+		$backup_table = CTRACKER_FILECHK . '_old';
+		$sql = 'DROP TABLE IF EXISTS ' . $temporary_table;
+		if (!$db->sql_query($sql))
 		{
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 
-		// Checksum checker ;)
-		$this->recursive_filechk($phpbb_root_path, '', $phpEx);
+		$sql = 'CREATE TABLE ' . $temporary_table . ' LIKE ' . CTRACKER_FILECHK;
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+
+		$this->recursive_filechk($phpbb_root_path, '', $phpEx, $temporary_table);
+		if ($this->filechk_count < 1)
+		{
+			$db->sql_query('DROP TABLE IF EXISTS ' . $temporary_table);
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_fileop']);
+		}
+
+		$sql = 'DROP TABLE IF EXISTS ' . $backup_table;
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+
+		$sql = 'RENAME TABLE ' . CTRACKER_FILECHK . ' TO ' . $backup_table . ', ' .
+			$temporary_table . ' TO ' . CTRACKER_FILECHK;
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+
+		$db->sql_query('DROP TABLE IF EXISTS ' . $backup_table);
+	}
+
+
+	/**
+	 * Return a content checksum suitable for detecting same-size changes.
+	 */
+	function file_checksum($path, $required_root = '')
+	{
+		if (!is_string($path) || $path === '' || !is_file($path) || !is_readable($path))
+		{
+			return false;
+		}
+		if ($required_root !== '')
+		{
+			if (@is_link($path))
+			{
+				return false;
+			}
+			$resolved_root = @realpath($required_root);
+			$resolved_path = @realpath($path);
+			if ($resolved_root === false || $resolved_path === false)
+			{
+				return false;
+			}
+			$resolved_root = str_replace('\\', '/', rtrim($resolved_root, '/\\'));
+			$resolved_path = str_replace('\\', '/', $resolved_path);
+			if ($resolved_path !== $resolved_root && strpos($resolved_path, $resolved_root . '/') !== 0)
+			{
+				return false;
+			}
+			$path = $resolved_path;
+		}
+
+		$checksum = @hash_file('sha256', $path);
+		return (is_string($checksum) && strlen($checksum) === 64) ? $checksum : false;
 	}
 
 
@@ -199,49 +273,81 @@ class ct_adminfunctions
 	 * @param $prefix    = Current File Path
 	 * @param $extension = File Extension to find
 	 */
-	function recursive_filechk($dir, $prefix = '', $extension = '')
+	function recursive_filechk($dir, $prefix = '', $extension = '', $target_table = '')
 	{
 		global $db, $lang;
 
-		$directory = @opendir($dir);
-
-		while ($file = @readdir($directory))
+		if ($target_table === '')
 		{
-			if (!in_array($file, array('.', '..')))
+			$target_table = CTRACKER_FILECHK;
+		}
+
+		$directory = @opendir($dir);
+		if ($directory === false)
+		{
+			return false;
+		}
+
+		$extension = strtolower(ltrim((string) $extension, '.'));
+
+		while (($file = @readdir($directory)) !== false)
+		{
+			if ($file === '.' || $file === '..')
 			{
-				$is_dir = (@is_dir($dir .'/'. $file)) ? true : false;
+				continue;
+			}
 
-				// Create a nice Path for the found Files / Folders
-				$temp_path  = '';
-				$temp_path  = $dir . '/' . (($is_dir) ? strtoupper($file) : $file);
-				$temp_path  = str_replace('//', '/', $temp_path);
+			$path = rtrim($dir, '/\\') . '/' . $file;
+			// Never follow links: an administrator or compromised upload must not
+			// make the integrity scan read files outside the forum tree.
+			if (@is_link($path))
+			{
+				continue;
+			}
 
-				// Remove dots from extension Parameter
-				$extension  = str_replace('.', '', $extension);
+			$resolved_path = @realpath($path);
+			if ($resolved_path === false)
+			{
+				continue;
+			}
+			$resolved_path = str_replace('\\', '/', $resolved_path);
+			if ($resolved_path !== $this->filechk_root && strpos($resolved_path, $this->filechk_root . '/') !== 0)
+			{
+				continue;
+			}
 
-				// Fill it in our File Array if the found file is matching the extension
-				if( preg_match("/^.*?\." . $extension . "$/", $temp_path) && !preg_match('/cache\\//m', $temp_path) )
-				{
-					$filehash = @filesize($temp_path) . '-' . count(@file($temp_path));
-					$filehash = md5($filehash);
+			if (@is_dir($path))
+			{
+				$this->recursive_filechk($path, '', $extension, $target_table);
+				continue;
+			}
 
-		            $sql = 'INSERT INTO ' . CTRACKER_FILECHK . " (`filepath`, `hash`) VALUES ('$temp_path', '$filehash')";
+			$relative_path = substr($resolved_path, strlen($this->filechk_root));
+			if (preg_match('~(^|/)cache(/|$)~i', $relative_path) ||
+				strtolower(pathinfo($resolved_path, PATHINFO_EXTENSION)) !== $extension)
+			{
+				continue;
+			}
 
-		            if(!($result = $db->sql_query($sql)))
-		            {
-		            	message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-		            }
-		        }
+			$filehash = $this->file_checksum($resolved_path);
+			if ($filehash === false)
+			{
+				continue;
+			}
 
-		        // Directory found, so recall this function
-		        if ($is_dir)
-		        {
-		        	$this->recursive_filechk($dir .'/'. $file, $dir .'/', $extension);
-		        }
-	        }
-	    }
+			// Keep relocatable paths in the database so the installation can move.
+			$stored_path = preg_replace('~/+~', '/', rtrim($dir, '/\\') . '/' . $file);
+			$sql = 'INSERT INTO ' . $target_table . " (`filepath`, `hash`) VALUES ('" .
+				$db->sql_escape($stored_path) . "', '" . $db->sql_escape($filehash) . "')";
+			if (!$db->sql_query($sql))
+			{
+				message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+			}
+			$this->filechk_count++;
+		}
 
-	    @closedir($directory);
+		@closedir($directory);
+		return true;
 	}
 
 

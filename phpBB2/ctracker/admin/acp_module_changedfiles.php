@@ -65,31 +65,31 @@ else if ( $action == 'chk' )
 	while( $row = $db->sql_fetchrow($result) )
 	{
 		$table_class    = !$table_class;
-		$current_hash = null;
+		$current_hash = $ct_admin->file_checksum($row['filepath'], $phpbb_root_path);
+		$stored_hash = isset($row['hash']) ? strtolower((string) $row['hash']) : '';
 
-		$file_size = @filesize($row['filepath']);
-		$file_lines = @file($row['filepath']);
-
-		if ( $file_size === false || $file_lines === false )
-    {
-		  $filestatus = $lang['ctracker_file_deleted'];
-		  $color 			= '#0300FF';
+		if ($current_hash === false)
+		{
+			$filestatus = $lang['ctracker_file_deleted'];
+			$color = '#0300FF';
+		}
+		elseif (strlen($stored_hash) !== 64)
+		{
+			// The legacy baseline only hashed size and line count and cannot prove
+			// integrity. Require an explicit administrator-triggered rebuild.
+			$filestatus = $lang['ctracker_file_legacy_checksum'];
+			$color = '#B05A00';
+		}
+		elseif (!hash_equals($stored_hash, $current_hash))
+		{
+			$filestatus = $lang['ctracker_file_changed'];
+			$color = '#FF1200';
 		}
 		else
 		{
-			$current_hash = $file_size . '-' . count($file_lines);
-		}
-
-    if (isset($current_hash) && md5($current_hash) != $row['hash'])
-		{
-			$filestatus = $lang['ctracker_file_changed'];
-			$color      = '#FF1200';
-		}
-		elseif (isset($current_hash))
-		{
 			$filestatus = $lang['ctracker_file_unchanged'];
-			$color 			= '#269F00';
-    }
+			$color = '#269F00';
+		}
 
 		$path_cleaned = str_replace('./../', '', $row['filepath']);
 

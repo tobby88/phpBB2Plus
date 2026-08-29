@@ -173,7 +173,7 @@ $lang['ctracker_credits_info_text']		  = 'The perfect add-on for phpBB and the C
  * File Hash Check in ACP
  */
 $lang['ctracker_fchk_head']				  = 'CrackerTracker Checksum Scanner';
-$lang['ctracker_fchk_subhead']			  = 'This scanner creates a checksum of each PHP file from your Board when you click on "Create or upgrade Checksums". Afterwards, you have always the possibility with “Examine File Modifications” to determine whether or not the files were changed since last producing check totals. You can see if files were changed without you doing anything. This is usually a sign that someone had gained access to your forum volume of data. Pay attention to the last time that you checked to see if an unauthorized person activated the check total scanner!<br /><br /><br /><b>Information:</b> Not all servers support this feature. Occasionally it can come to Script Timeouts, if the server takes too long to produce the phpBB file list. Other servers stop the procedure since it is quite performance intensive.<br /><br /><br />&raquo; The last actualization of the file check totals took place <b>%s</b>.';
+$lang['ctracker_fchk_subhead']			  = 'This scanner creates a cryptographic SHA-256 checksum for every PHP file in your board. "Verify File Changes" can then identify unexpectedly modified or deleted files. Rebuilding replaces the existing baseline only after the complete scan succeeds. Review changes carefully: they may be caused by a legitimate update or by unauthorized access.<br /><br /><b>Note:</b> Checksums created by older CrackerTracker versions were not content-safe and are marked as legacy. Rebuild them once after updating.<br /><br />&raquo; The file-check baseline was last updated on <b>%s</b>.';
 $lang['ctracker_fchk_funcheader']		  = 'Features';
 $lang['ctracker_fchk_tableheader']		  = 'System Output';
 $lang['ctracker_fchk_option1']			  = 'Create or upgrade Checksums';
@@ -185,6 +185,7 @@ $lang['ctracker_fchk_tablehead2']		  = 'State';
 $lang['ctracker_file_unchanged']		  = 'UNMODIFIED';
 $lang['ctracker_file_changed']		 	  = 'MODIFIED';
 $lang['ctracker_file_deleted']        = 'DELETED';
+$lang['ctracker_file_legacy_checksum'] = 'LEGACY CHECKSUM – REBUILD REQUIRED';
 
 
 /*
@@ -362,6 +363,7 @@ $lang['ctracker_rec_pab']				  = 'Recovery is not available before you have made
  */
 $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker couldn\'t run the database operation in the Usertable.';
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker couldn\'t run the database operation correctly.';
+$lang['ctracker_error_fileop']            = 'CBACK CrackerTracker could not completely read the board directory for its integrity check.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 
 

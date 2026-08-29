@@ -1344,7 +1344,7 @@ CREATE TABLE `phpbb_ctracker_config` (
 
 CREATE TABLE `phpbb_ctracker_filechk` (
 			`filepath` text,
-			`hash` varchar(32) default NULL
+			`hash` varchar(64) default NULL
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `phpbb_ctracker_filescanner` (
