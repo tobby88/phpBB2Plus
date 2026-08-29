@@ -227,8 +227,16 @@ else
 	// --------------------------------
 
 	$pic_size = @getimagesize(ALBUM_UPLOAD_PATH . $pic_filename);
-	$pic_width = $pic_size[0];
-	$pic_height = $pic_size[1];
+	$expected_image_type = ($pic_filetype == '.jpg') ? IMAGETYPE_JPEG : IMAGETYPE_PNG;
+	if ($pic_size === false || !isset($pic_size[0], $pic_size[1], $pic_size[2]) ||
+		intval($pic_size[0]) < 1 || intval($pic_size[1]) < 1 || intval($pic_size[2]) !== $expected_image_type)
+	{
+		header('Content-type: image/jpeg');
+		readfile($images['no_thumbnail']);
+		exit;
+	}
+	$pic_width = intval($pic_size[0]);
+	$pic_height = intval($pic_size[1]);
 
 	$gd_errored = FALSE;
 	switch ($pic_filetype)
@@ -256,26 +264,30 @@ else
 
 		if ($pic_width > $pic_height)
 		{
-			$thumbnail_width = $album_sp_config['midthumb_width'];
-			$thumbnail_height = $album_sp_config['midthumb_width'] * ($pic_height/$pic_width);
+			$thumbnail_width = max(1, intval($album_sp_config['midthumb_width']));
+			$thumbnail_height = max(1, (int) round($thumbnail_width * ($pic_height / $pic_width)));
 		}
 		else
 		{
-			$thumbnail_height = $album_sp_config['midthumb_height'];
-			$thumbnail_width = $album_sp_config['midthumb_height'] * ($pic_width/$pic_height);
+			$thumbnail_height = max(1, intval($album_sp_config['midthumb_height']));
+			$thumbnail_width = max(1, (int) round($thumbnail_height * ($pic_width / $pic_height)));
 		}
 
-		if ($album_config['gd_version'] != 3)
+		$use_gd1 = (intval($album_config['gd_version']) == 1 || !function_exists('imagecreatetruecolor'));
+		$thumbnail = $use_gd1 ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
+		if (!$thumbnail)
 		{
-			$thumbnail = ($album_config['gd_version'] == 1) ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
-			$resize_function = ($album_config['gd_version'] == 1) ? 'imagecopyresized' : 'imagecopyresampled';
-			@$resize_function($thumbnail, $src, 0, 0, 0, 0, $thumbnail_width, $thumbnail_height, $pic_width, $pic_height);
+			$gd_errored = TRUE;
+			$pic_thumbnail = '';
 		}
 		else
 		{
-			copy ( $src, $thumbnail );
-			@chmod ($outthumb, 0664);
-        	$syscmd = "'c:\ImageMagick\mogrify.exe' -size $thumbnail_width x $thumbnail_height -quality 70 -geometry $thumbnail_width x $thumbnail_height $thumbnail ";
+			$resize_function = $use_gd1 ? 'imagecopyresized' : 'imagecopyresampled';
+			if (!@$resize_function($thumbnail, $src, 0, 0, 0, 0, $thumbnail_width, $thumbnail_height, $pic_width, $pic_height))
+			{
+				$gd_errored = TRUE;
+				$pic_thumbnail = '';
+			}
 		}
 	}
 	else
@@ -322,6 +334,14 @@ else
 				@imagepng($thumbnail);
 				break;
 		}
+		if ($thumbnail !== $src && function_exists('imagedestroy'))
+		{
+			@imagedestroy($thumbnail);
+		}
+		if (function_exists('imagedestroy'))
+		{
+			@imagedestroy($src);
+		}
 
 		exit;
 	}
@@ -330,9 +350,17 @@ else
 		// ----------------------------
 		// It seems you have not GD installed :(
 		// ----------------------------
+		if (isset($thumbnail) && $thumbnail !== $src && function_exists('imagedestroy'))
+		{
+			@imagedestroy($thumbnail);
+		}
+		if ($src && function_exists('imagedestroy'))
+		{
+			@imagedestroy($src);
+		}
 
 		header('Content-type: image/jpeg');
-		readfile('images/nothumbnail.jpg');
+		readfile($images['no_thumbnail']);
 		exit;
 	}
 }
