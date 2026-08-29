@@ -40,7 +40,6 @@ $phpbb_root_path = './';
 $album_root_path = $phpbb_root_path . 'album_mod/';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
-include($phpbb_root_path . 'fetchposts.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 include_once ($phpbb_root_path . 'includes/news.' . $phpEx ); 
 include_once ($phpbb_root_path . 'pafiledb/includes/pafiledb_constants.' . $phpEx ); 
@@ -956,10 +955,31 @@ if ( $CFG['number_top_posters'] > 0 )
 // 	      Likewise, if it looks too short to you, increase it here.
 $length = 65;
 
-//  Get the poll forum from EZportal config above
-if( $CFG['poll_forum'] > 0)
+// Get the configured poll forums and retain only forums the current visitor
+// may both see and read.
+$poll_forums = array();
+foreach (preg_split('/[^0-9]+/', isset($CFG['poll_forum']) ? (string) $CFG['poll_forum'] : '', -1, PREG_SPLIT_NO_EMPTY) as $configured_poll_forum)
 {
-	$poll_forum = $CFG['poll_forum'];
+	$configured_poll_forum = intval($configured_poll_forum);
+	if ($configured_poll_forum > 0)
+	{
+		$poll_forums[] = $configured_poll_forum;
+	}
+}
+
+$poll_auth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
+$readable_poll_forums = array();
+foreach (array_unique($poll_forums) as $configured_poll_forum)
+{
+	if (isset($poll_auth[$configured_poll_forum]) && $poll_auth[$configured_poll_forum]['auth_view'] && $poll_auth[$configured_poll_forum]['auth_read'])
+	{
+		$readable_poll_forums[] = $configured_poll_forum;
+	}
+}
+
+if (count($readable_poll_forums))
+{
+	$poll_forum = implode(',', $readable_poll_forums);
 	$template->assign_block_vars('PORTAL_POLL', array());
 
 	$sql = 'SELECT
@@ -1022,7 +1042,7 @@ if( $CFG['poll_forum'] > 0)
 			$user_voted = ( $db->sql_numrows($result) ) ? TRUE : 0;
 			$db->sql_freeresult($result);
 
-			if( isset($_GET['vote']) || isset($_POST['vote']) )
+			if ((isset($_GET['vote']) && is_scalar($_GET['vote'])) || (isset($_POST['vote']) && is_scalar($_POST['vote'])))
 			{
 				$view_result = ( ( ( isset($_GET['vote']) ) ? $_GET['vote'] : $_POST['vote'] ) == "viewresult" ) ? TRUE : 0;
 			}
@@ -1033,7 +1053,7 @@ if( $CFG['poll_forum'] > 0)
 
 			$poll_expired = ( $vote_info[0]['vote_length'] ) ? ( ( $vote_info[0]['vote_start'] + $vote_info[0]['vote_length'] < time() ) ? TRUE : 0 ) : 0;
 
-			if( $user_voted || $view_result || $poll_expired || $forum_row['topic_status'] == TOPIC_LOCKED )
+			if( $user_voted || $view_result || $poll_expired || $pollrow[0]['topic_status'] == TOPIC_LOCKED )
 			{
 
 				$template->set_filenames(array(

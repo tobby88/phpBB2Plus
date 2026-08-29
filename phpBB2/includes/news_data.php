@@ -35,13 +35,13 @@ function get_user_news_auth_access($forum_topic)
 {
 	global $userdata;
 
-	$is_auth_ary = auth(AUTH_READ, AUTH_LIST_ALL, $userdata);
+	$is_auth_ary = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
 	$ignore_forum_sql = '';
         $auth_sql = '';
 
 	foreach ($is_auth_ary as $key => $value)
 	{
-		if ( !$value['auth_read'] )
+		if (empty($value['auth_view']) || empty($value['auth_read']))
 		{
 			$ignore_forum_sql .= ( ( $ignore_forum_sql != '' ) ? ', ' : '' ) . $key;
 		}
@@ -209,8 +209,7 @@ class NewsDataAccess
 
     if( !($result = $this->db->sql_query($sql)) )
     {
-      echo 'Error ' . __LINE__ . ' ' . __FILE__;
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
     $cats = array();
@@ -218,7 +217,10 @@ class NewsDataAccess
     while( $row = $this->db->sql_fetchrow($result) )
     {
       $row['topic_count'] = $this->fetchArticlesCount( $row['news_id'] );
-      $cats[] = $row;
+      if ($row['topic_count'] > 0)
+      {
+        $cats[] = $row;
+      }
     }
 
     $this->db->sql_freeresult( $result );
@@ -267,8 +269,7 @@ class NewsDataAccess
 
     if( !($result = $this->db->sql_query($sql)) )
     {
-      echo 'Error ' . __LINE__ . ' ' . __FILE__;
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
     $checked = array();
@@ -342,8 +343,7 @@ class NewsDataAccess
       LIMIT 1';
     if( !($result = $this->db->sql_query($sql)) )
     {
-      echo 'Error ' . __LINE__ . ' ' . __FILE__;
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
     $article = array( );
@@ -407,8 +407,7 @@ class NewsDataAccess
 
     if( !($result = $this->db->sql_query($sql)) )
     {
-      echo $sql;
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
     $article = array( );
@@ -524,8 +523,7 @@ class NewsDataAccess
 
     if( !($result = $this->db->sql_query($sql)) )
     {
-      echo 'Error ' . __LINE__ . ' ' . __FILE__;
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
     $articles = array();
@@ -763,8 +761,7 @@ class NewsDataAccess
 
     if( !($result = $this->db->sql_query($sql)) )
     {
-      echo 'Error ' . __LINE__ . ' ' . __FILE__;
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
     $articles = array();
@@ -831,8 +828,7 @@ class NewsDataAccess
 
     if( !($result = $this->db->sql_query($sql)) )
     {
-      echo 'Error ' . __LINE__ . ' ' . __FILE__;
-      return array( );
+      message_die(GENERAL_ERROR, 'Could not query forum news information', '', __LINE__, __FILE__, $sql);
     }
 
     if( $row = $this->db->sql_fetchrow($result) )
@@ -848,95 +844,5 @@ class NewsDataAccess
 
   // }}}
 
-  // {{{ fetchTitles( )
-
-  /**
-  * Fetches news titles from the phpBB database.
-  *
-  * @access public
-  *
-  * @param integer $sort (Optional) The sort order of the items.
-  * @param integer $cat_id (Optional) A specific category of news to display.
-  * @param integer $start (Optional) The first news title to display.
-  *
-  * @return array A multi element array containing the requested information.
-  **/
-  function fetchTitles( $sort = 0, $cat_id = 0, $start = 0 )
-  {
-    // Validate parameters.
-    $sort      = intval( $sort );
-    $cat_id    = intval( $cat_id );
-    $start    = intval( $start );
-
-    $num_items = $this->num_items;
-
-    if( $sort < 0 )
-    { $sort = 0; }
-
-    if( $cat_id < 0 )
-    { $cat_id = 0; }
-
-    if( $start < 0 )
-    { $start = 0; }
-
-    $auth_sql = get_user_news_auth_access('topic');
-
-    // Begin SQL Construction.
-    $sql = 'SELECT
-        t.topic_id, t.topic_title, t.topic_time, t.topic_views, t.topic_replies, t.topic_icon, t.topic_type,
-        n.*,
-        u.user_id, u.username, u.user_email, u.user_website, u.user_level, u.user_posts, u.user_rank
-      FROM
-        ' . TOPICS_TABLE     . ' AS t,
-        ' . USERS_TABLE      . ' AS u,
-        ' . NEWS_TABLE       . ' AS n
-      WHERE
-        t.topic_poster = u.user_id AND
-        t.news_id = n.news_id AND
-        t.news_id > 0 ' . $auth_sql;
-
-    if( $cat_id > 0 )
-    {
-      $sql .= 'AND t.news_id = ' . $cat_id . ' ';
-    }
-
-    switch( $sort )
-    {
-      case SORT_DATE_ASC:
-      $sql .= 'ORDER BY t.topic_time ASC LIMIT ';
-      break;
-      case SORT_ALPH_ASC:
-      $sql .= 'ORDER BY t.topic_title ASC LIMIT ';
-      break;
-      case SORT_ALPH_DEC:
-      $sql .= 'ORDER BY t.topic_title DESC LIMIT ';
-      break;
-      default:
-      $sql .= 'ORDER BY t.topic_time DESC LIMIT ';
-      break;
-    }
-
-    $sql .= $start . ', ' . $num_items;
-    // End SQL Construction.
-
-    if( !($row = $this->db->sql_fetchrow($result)) )
-    {
-      echo 'Error ' . __LINE__ . ' ' . __FILE__;
-      return array( );
-    }
-
-    $titles = array();
-
-    while( $row = $result->fetchRow( DB_FETCHMODE_ASSOC ) )
-    {
-      $titles[] = $row;
-    }
-
-    $this->db->sql_freeresult( $result );
-
-    return $titles;
-  }
-
-  // }}}
 }
 ?>

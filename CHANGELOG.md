@@ -54,6 +54,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Hardened the public recent-topics page against SQL injection and PHP 8 type
   errors, bounded its date and pagination inputs, and normalized configured
   forum filters without weakening per-forum read permissions.
+- Made Portal polls, news articles, archives, and news-category listings honor
+  both forum visibility and read permissions, removed SQL disclosure from news
+  failures, and deleted unused legacy fetch/title implementations.
 - Added file-count and expanded-size limits before extracting Nuffload ZIP
   uploads to reduce archive-bomb exposure.
 - Bound Arcade score sessions to the current logged-in player (or the matching
