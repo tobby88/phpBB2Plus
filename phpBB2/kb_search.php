@@ -24,8 +24,6 @@ $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 
-define('PAGE_KB', -500);
-
 //
 // Start session management
 //

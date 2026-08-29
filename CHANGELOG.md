@@ -13,6 +13,8 @@ changes consolidated after that baseline without implying active maintenance.
   requested owner's exact category and applies its real permissions; missing
   permission fields now default to deny rather than generating PHP 8 warnings
   or accidentally granting moderator actions.
+- Centralized the Knowledge Base session-page constant so the online-user page
+  can resolve KB sessions on PHP 8 instead of failing on an undefined constant.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

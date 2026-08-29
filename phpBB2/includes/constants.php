@@ -135,6 +135,7 @@ define('PAGE_CARD', -13);
 define('PAGE_LINKS', -14);
 define('PAGE_STAFF', -22);
 define('PAGE_RECENT', -33);
+define('PAGE_KB', -500);
 define('PAGE_TOPIC_OFFSET', 5000);
 // Start add - Complete banner MOD
 define('PAGE_REDIRECT', -1031);
