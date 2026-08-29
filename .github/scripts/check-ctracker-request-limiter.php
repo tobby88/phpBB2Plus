@@ -17,14 +17,18 @@ function limiter_assert_profile($expected, $script, $post, $get, &$errors)
 
 $errors = array();
 limiter_assert_profile('login', 'login.php', array('login' => 'Login'), array(), $errors);
-limiter_assert_profile(false, 'login.php', array(), array(), $errors);
+limiter_assert_profile('login', 'login.php', array(), array(), $errors);
 limiter_assert_profile('register', 'profile.php', array('submit' => '1'), array('mode' => 'register'), $errors);
 limiter_assert_profile('register', 'profile.php', array('submit' => '1', 'mode' => 'REGISTER'), array(), $errors);
-limiter_assert_profile(false, 'profile.php', array('submit' => '1'), array('mode' => 'editprofile'), $errors);
+limiter_assert_profile('account', 'profile.php', array(), array('mode' => 'sendpassword'), $errors);
+limiter_assert_profile('account', 'tellafriend.php', array(), array(), $errors);
+limiter_assert_profile('write', 'profile.php', array('submit' => '1'), array('mode' => 'editprofile'), $errors);
 limiter_assert_profile('upload', 'album_upload.php', array(), array(), $errors);
+limiter_assert_profile('upload', 'album_nuffload.php', array(), array(), $errors);
 limiter_assert_profile('write', 'posting.php', array(), array(), $errors);
 limiter_assert_profile('write', 'ibproarcade.php', array(), array(), $errors);
-limiter_assert_profile(false, 'search.php', array('search_keywords' => 'example'), array(), $errors);
+limiter_assert_profile('write', 'future_plugin.php', array('submit' => '1'), array(), $errors);
+limiter_assert_profile('write', 'search.php', array('search_keywords' => 'example'), array(), $errors);
 
 class limiter_test_db
 {

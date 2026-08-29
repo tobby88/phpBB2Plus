@@ -129,6 +129,8 @@ $lang['ctracker_settings_m40']             = 'Allgemeine Schreibzugriffe pro Min
 $lang['ctracker_settings_e40']             = 'Gilt für Beiträge, private Nachrichten, Kommentare, Bewertungen, Spielstände, Kontaktformulare und ähnliche Schreibaktionen.';
 $lang['ctracker_settings_m41']             = 'Album-Uploads pro Stunde';
 $lang['ctracker_settings_e41']             = 'Begrenzt aufwändige Album-Uploads unabhängig von normalen Schreibaktionen.';
+$lang['ctracker_settings_m42']             = 'Konto- und E-Mail-Aktionen pro Stunde';
+$lang['ctracker_settings_e42']             = 'Begrenzt Passwort-Resets, Kontakt- und Benutzer-E-Mails separat, damit ein Angreifer keine Nachrichtenwellen auslösen kann.';
 
 
 $lang['ctracker_settings_on']			  = 'Aktivieren';

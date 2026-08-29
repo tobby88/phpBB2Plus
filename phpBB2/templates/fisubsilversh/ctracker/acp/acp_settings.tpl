@@ -223,7 +223,7 @@
 		<th colspan="3">{L_CATNAME_9}</th>
 	</tr>
 	<tr>
-		<td class="row3" width="20%" align="center" rowspan="5"><img src="{CAT_ICON_8}" border="0"></td>
+		<td class="row3" width="20%" align="center" rowspan="6"><img src="{CAT_ICON_8}" border="0"></td>
 		<td class="row1" width="50%"><b>{L_MOD_37}</b><br />{L_EXP_37}</td>
 		<td class="row1" width="30%"><select name="request_limit_enabled">{S_OUTPUT_37}</select></td>
 	</tr>
@@ -242,6 +242,10 @@
 	<tr>
 		<td class="row1" width="50%"><b>{L_MOD_41}</b><br />{L_EXP_41}</td>
 		<td class="row1" width="30%"><select name="request_limit_upload">{S_OUTPUT_41}</select></td>
+	</tr>
+	<tr>
+		<td class="row2" width="50%"><b>{L_MOD_42}</b><br />{L_EXP_42}</td>
+		<td class="row2" width="30%"><select name="request_limit_account">{S_OUTPUT_42}</select></td>
 	</tr>
 	<tr>
 		<td class="catBottom" colspan="3" align="center"><input type="Submit" name="submit" value="{L_SUBMIT}" class="mainoption">&nbsp;<input type="reset" value="{L_RESET}" class="liteoption"></td>

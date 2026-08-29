@@ -35,6 +35,27 @@ security_expect(true, 'nested exploit value', array('filter' => array('value' =>
 security_expect(true, 'superglobal key', array('_SERVER' => 'value'), array(), array(), $options, $errors);
 security_expect(true, 'null byte in free text', array(), array('message' => "hello\0world"), array(), $options, $errors);
 
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example', 'HTTP_SEC_FETCH_SITE' => 'cross-site')) !== true)
+{
+	$errors[] = 'Fetch Metadata cross-site POST was not blocked.';
+}
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example', 'HTTP_ORIGIN' => 'https://evil.example')) !== true)
+{
+	$errors[] = 'Cross-origin POST was not blocked.';
+}
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'Forum.Example', 'HTTP_ORIGIN' => 'https://forum.example')) !== false)
+{
+	$errors[] = 'Same-origin POST was incorrectly blocked.';
+}
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example')) !== false)
+{
+	$errors[] = 'Headerless legacy POST was incorrectly blocked.';
+}
+if (!ct_security_disallowed_method(array('REQUEST_METHOD' => 'TRACE')) || ct_security_disallowed_method(array('REQUEST_METHOD' => 'GET')))
+{
+	$errors[] = 'Unsafe HTTP method classification failed.';
+}
+
 $custom_options = $options;
 $custom_options['custom_rules'] = array('project-specific-sentinel');
 security_expect(true, 'custom literal rule', array('value' => 'PROJECT-SPECIFIC-SENTINEL'), array(), array(), $custom_options, $errors);

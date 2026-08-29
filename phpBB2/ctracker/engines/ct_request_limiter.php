@@ -16,19 +16,11 @@ if (!defined('IN_PHPBB'))
 
 function ctracker_request_limit_profile($script, $post, $get)
 {
-	$write_scripts = array(
-		'posting.php', 'privmsg.php', 'shoutbox.php', 'shoutbox_max.php',
-		'album_comment_delete.php', 'album_comment_edit.php', 'album_edit.php',
-		'album_hotornot.php', 'arcade_comment.php', 'arcade_rate.php',
-		'newscore.php', 'ibproarcade.php', 'pnflashgames.php', 'dload.php',
-		'kontakt_post.php', 'tellafriend.php', 'link_register.php', 'ajax.php'
-	);
-
-	if ($script === 'login.php' && isset($post['login']))
+	if ($script === 'login.php')
 	{
 		return array('login', 600, 'request_limit_login', 30);
 	}
-	if ($script === 'profile.php' && isset($post['submit']))
+	if ($script === 'profile.php')
 	{
 		$mode_value = isset($post['mode']) ? $post['mode'] : (isset($get['mode']) ? $get['mode'] : '');
 		$mode = is_scalar($mode_value) ? strtolower((string) $mode_value) : '';
@@ -36,17 +28,25 @@ function ctracker_request_limit_profile($script, $post, $get)
 		{
 			return array('register', 3600, 'request_limit_register', 10);
 		}
+		if (in_array($mode, array('sendpassword', 'email'), true))
+		{
+			return array('account', 3600, 'request_limit_account', 20);
+		}
 	}
-	if ($script === 'album_upload.php')
+	if (in_array($script, array('album_upload.php', 'album_nuffload.php'), true))
 	{
 		return array('upload', 3600, 'request_limit_upload', 30);
 	}
-	if (in_array($script, $write_scripts, true))
+	if (in_array($script, array('change_password.php', 'kontakt_post.php', 'tellafriend.php'), true))
 	{
-		return array('write', 60, 'request_limit_write', 120);
+		return array('account', 3600, 'request_limit_account', 20);
 	}
 
-	return false;
+	// Every remaining POST is bounded by a deliberately generous fallback.
+	// This automatically covers integrated MODs and future entry points without
+	// maintaining a fragile filename allowlist. Ordinary GET/HEAD page views do
+	// not call this classifier and are never counted.
+	return array('write', 60, 'request_limit_write', 120);
 }
 
 function ctracker_rate_limit_increment($bucket, $identity, $window_seconds, $limit)

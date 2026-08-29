@@ -80,15 +80,56 @@ class log_manager
 
 		$this->ct_type_msg      = 0;
 		$this->ct_timestamp     = time();
-		$php_self = isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '';
-		$query_string = isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '';
+		$php_self = isset($HTTP_SERVER_VARS['PHP_SELF']) && is_scalar($HTTP_SERVER_VARS['PHP_SELF']) ? (string) $HTTP_SERVER_VARS['PHP_SELF'] : '';
+		$query_string = isset($HTTP_SERVER_VARS['QUERY_STRING']) && is_scalar($HTTP_SERVER_VARS['QUERY_STRING']) ? (string) $HTTP_SERVER_VARS['QUERY_STRING'] : '';
+		$query_string = $this->redact_query_string($query_string);
 		$this->ct_request       = $php_self . ($query_string !== '' ? '?' . $query_string : '');
-		$this->ct_referer       = isset($HTTP_SERVER_VARS['HTTP_REFERER']) ? $HTTP_SERVER_VARS['HTTP_REFERER'] : '';
+		$referer = isset($HTTP_SERVER_VARS['HTTP_REFERER']) && is_scalar($HTTP_SERVER_VARS['HTTP_REFERER']) ? (string) $HTTP_SERVER_VARS['HTTP_REFERER'] : '';
+		$this->ct_referer       = $this->redact_url_query($referer);
 		$this->ct_user_agent    = isset($HTTP_SERVER_VARS['HTTP_USER_AGENT']) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : '';
 		$this->ct_remote_addr   = ( !empty($HTTP_SERVER_VARS['REMOTE_ADDR']) ) ? $HTTP_SERVER_VARS['REMOTE_ADDR'] : ( ( !empty($HTTP_ENV_VARS['REMOTE_ADDR']) ) ? $HTTP_ENV_VARS['REMOTE_ADDR'] : getenv('REMOTE_ADDR') );
 		$this->ct_remote_host   = isset($HTTP_SERVER_VARS['REMOTE_HOST']) ? $HTTP_SERVER_VARS['REMOTE_HOST'] : '';
 		$this->ct_counter_value = 0;
 
+	}
+
+	function sensitive_query_key($key)
+	{
+		$key = strtolower(rawurldecode(str_replace('+', ' ', (string) $key)));
+		return preg_match('/(?:^|_)(?:password|passwd|pass|sid|session(?:id)?|token|csrf|confirm_code|autologinid|credential|secret|user_actkey)(?:$|_)/', $key) === 1;
+	}
+
+	function redact_query_string($query_string)
+	{
+		$query_string = is_scalar($query_string) ? substr((string) $query_string, 0, 8192) : '';
+		if ($query_string === '')
+		{
+			return '';
+		}
+
+		$parts = preg_split('/([&;])/', $query_string, -1, PREG_SPLIT_DELIM_CAPTURE);
+		for ($i = 0; $i < count($parts); $i += 2)
+		{
+			$separator = strpos($parts[$i], '=');
+			$key = ($separator === false) ? $parts[$i] : substr($parts[$i], 0, $separator);
+			if ($this->sensitive_query_key($key))
+			{
+				$parts[$i] = $key . '=REDACTED';
+			}
+		}
+		return implode('', $parts);
+	}
+
+	function redact_url_query($url)
+	{
+		$url = is_scalar($url) ? substr((string) $url, 0, 8192) : '';
+		$query_offset = strpos($url, '?');
+		if ($query_offset === false)
+		{
+			return $url;
+		}
+
+		return substr($url, 0, $query_offset + 1) . $this->redact_query_string(substr($url, $query_offset + 1));
 	}
 
 

@@ -59,6 +59,80 @@ function ct_security_normalize($value)
 	return html_entity_decode($value, ENT_QUOTES, 'UTF-8');
 }
 
+function ct_security_url_host($value, $is_authority)
+{
+	$value = is_scalar($value) ? trim((string) $value) : '';
+	if ($value === '' || strlen($value) > 2048 || preg_match('/[\x00-\x20\x7f]/', $value))
+	{
+		return false;
+	}
+
+	$parts = @parse_url($is_authority ? 'http://' . $value : $value);
+	if (!is_array($parts) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']))
+	{
+		return false;
+	}
+	if (!$is_authority && (!isset($parts['scheme']) || !in_array(strtolower($parts['scheme']), array('http', 'https'), true)))
+	{
+		return false;
+	}
+
+	return strtolower(rtrim($parts['host'], '.'));
+}
+
+/**
+ * Reject browser-confirmed cross-site writes without breaking old clients
+ * which legitimately omit Origin, Referer and Fetch Metadata headers.
+ */
+function ct_security_cross_site_write($server)
+{
+	$server = is_array($server) ? $server : array();
+	$method = isset($server['REQUEST_METHOD']) && is_scalar($server['REQUEST_METHOD']) ? strtoupper((string) $server['REQUEST_METHOD']) : '';
+	if ($method !== 'POST')
+	{
+		return false;
+	}
+
+	$fetch_site = isset($server['HTTP_SEC_FETCH_SITE']) && is_scalar($server['HTTP_SEC_FETCH_SITE']) ? strtolower(trim((string) $server['HTTP_SEC_FETCH_SITE'])) : '';
+	if ($fetch_site === 'cross-site')
+	{
+		return true;
+	}
+
+	$request_host = isset($server['HTTP_HOST']) ? ct_security_url_host($server['HTTP_HOST'], true) : false;
+	if ($request_host === false)
+	{
+		return false;
+	}
+
+	$source = '';
+	if (isset($server['HTTP_ORIGIN']) && is_scalar($server['HTTP_ORIGIN']))
+	{
+		$source = trim((string) $server['HTTP_ORIGIN']);
+		if (strtolower($source) === 'null')
+		{
+			return true;
+		}
+	}
+	elseif (isset($server['HTTP_REFERER']) && is_scalar($server['HTTP_REFERER']))
+	{
+		$source = trim((string) $server['HTTP_REFERER']);
+	}
+
+	if ($source === '')
+	{
+		return false;
+	}
+	$source_host = ct_security_url_host($source, false);
+	return $source_host === false || !hash_equals($request_host, $source_host);
+}
+
+function ct_security_disallowed_method($server)
+{
+	$method = isset($server['REQUEST_METHOD']) && is_scalar($server['REQUEST_METHOD']) ? strtoupper(trim((string) $server['REQUEST_METHOD'])) : '';
+	return in_array($method, array('TRACE', 'TRACK', 'CONNECT'), true);
+}
+
 function ct_security_key_is_safe($key)
 {
 	$key = strtolower(ct_security_normalize($key));
@@ -254,7 +328,9 @@ if (!defined('CTRACKER_SECURITY_NO_AUTO_RUN'))
 		'scan_post' => $scan_post
 	);
 
-	if (ct_security_request_is_attack($HTTP_GET_VARS, $HTTP_POST_VARS, $HTTP_SERVER_VARS, $options))
+	if (ct_security_disallowed_method($HTTP_SERVER_VARS) ||
+		ct_security_cross_site_write($HTTP_SERVER_VARS) ||
+		ct_security_request_is_attack($HTTP_GET_VARS, $HTTP_POST_VARS, $HTTP_SERVER_VARS, $options))
 	{
 		ct_security_block_request($phpbb_root_path, $phpEx);
 	}

@@ -24,9 +24,10 @@ foreach ($files as $name => $contents)
 $phpbb_root_path = $test_root;
 $HTTP_SERVER_VARS = array(
 	'PHP_SELF' => '/index.php',
-	'QUERY_STRING' => 'safe=1',
+	'QUERY_STRING' => 'safe=1&password=SuperSecret&sid=SessionSecret',
 	'REMOTE_ADDR' => '192.0.2.1',
-	'HTTP_USER_AGENT' => "Test\r\nInjected: no"
+	'HTTP_USER_AGENT' => "Test\r\nInjected: no",
+	'HTTP_REFERER' => 'https://forum.example/profile.php?token=RefererSecret&mode=editprofile'
 );
 $HTTP_ENV_VARS = array();
 require dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_log_manager.php';
@@ -50,6 +51,10 @@ $stored_log = implode('', (array) $stored_lines);
 if (strpos($stored_log, "\r") !== false || substr_count($stored_log, "\n") !== 2)
 {
 	$errors[] = 'Header newline sanitization failed.';
+}
+if (strpos($stored_log, 'SuperSecret') !== false || strpos($stored_log, 'SessionSecret') !== false || strpos($stored_log, 'RefererSecret') !== false || strpos($stored_log, 'REDACTED') === false)
+{
+	$errors[] = 'Sensitive query-value redaction failed.';
 }
 
 foreach (array_keys($files) as $name)

@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Extended CrackerTracker's central rate limiter from a manually maintained
+  plugin filename list to every POST entry point, while retaining tighter
+  buckets for logins, registrations, uploads, password resets and email forms.
+  Browser-confirmed cross-site writes and unsafe TRACE/TRACK/CONNECT methods
+  are rejected centrally, while headerless legacy clients remain compatible.
+  Security logs now redact passwords, session IDs, confirmation values and
+  tokens from request and referrer query strings.
 - Replaced CrackerTracker's file-size/line-count fingerprint with SHA-256
   content checksums, so equal-size file tampering is detected. Baselines are
   now built in a separate table and atomically swapped only after a complete
