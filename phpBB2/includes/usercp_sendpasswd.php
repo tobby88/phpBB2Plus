@@ -29,8 +29,16 @@ if ( !defined('IN_PHPBB') )
 
 if ( isset($_POST['submit']) )
 {
-	$username = ( !empty($_POST['username']) ) ? phpbb_clean_username($_POST['username']) : '';
-	$email = ( !empty($_POST['email']) ) ? trim(strip_tags(htmlspecialchars($_POST['email']))) : '';
+	$submitted_sid = (isset($_POST['sid']) && is_scalar($_POST['sid'])) ? (string) $_POST['sid'] : '';
+	if ($submitted_sid === '' || !hash_equals((string) $userdata['session_id'], $submitted_sid))
+	{
+		message_die(GENERAL_ERROR, $lang['Session_invalid']);
+	}
+
+	$username_value = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
+	$email_value = (isset($_POST['email']) && is_scalar($_POST['email'])) ? (string) $_POST['email'] : '';
+	$username = ( $username_value !== '' ) ? phpbb_clean_username($username_value) : '';
+	$email = ( $email_value !== '' ) ? trim(strip_tags(htmlspecialchars($email_value))) : '';
 
 	$sql = "SELECT user_id, username, user_email, user_active, user_lang, ct_last_pw_reset
 		FROM " . USERS_TABLE . " 
@@ -136,7 +144,7 @@ $template->assign_vars(array(
 	'L_SUBMIT' => $lang['Submit'],
 	'L_RESET' => $lang['Reset'],
 	
-	'S_HIDDEN_FIELDS' => '', 
+	'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />',
 	'S_PROFILE_ACTION' => append_sid("profile.$phpEx?mode=sendpassword"))
 );
 

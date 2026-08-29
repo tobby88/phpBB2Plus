@@ -38,9 +38,11 @@ init_userprefs($userdata);
 //
 
 // session id check
-if (!empty($_POST['sid']) || !empty($_GET['sid']))
+$post_sid = (isset($_POST['sid']) && is_scalar($_POST['sid'])) ? (string) $_POST['sid'] : '';
+$get_sid = (isset($_GET['sid']) && is_scalar($_GET['sid'])) ? (string) $_GET['sid'] : '';
+if ($post_sid !== '' || $get_sid !== '')
 {
-	$sid = (!empty($_POST['sid'])) ? $_POST['sid'] : $_GET['sid'];
+	$sid = ($post_sid !== '') ? $post_sid : $get_sid;
 }
 else
 {
@@ -75,8 +77,9 @@ function gen_rand_string($hash)
 //
 if ( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = ( isset($_GET['mode']) ) ? $_GET['mode'] : $_POST['mode'];
-	$mode = htmlspecialchars($mode);
+	$get_mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '';
+	$post_mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '';
+	$mode = htmlspecialchars($get_mode !== '' ? $get_mode : $post_mode);
 
 	$mode = (!empty($_POST['signature'])) ? 'signature' : $mode;
 	$mode = (!empty($_GET['signature'])) ? 'signature' : $mode;
@@ -105,7 +108,8 @@ if ( isset($_GET['mode']) || isset($_POST['mode']) )
 	else if ( $mode == 'confirm' )
 	{
 		// Visual Confirmation
-		if ( $userdata['session_logged_in'] && (htmlspecialchars($_GET['id']) != 'Admin'))
+		$confirm_id = (isset($_GET['id']) && is_scalar($_GET['id'])) ? htmlspecialchars((string) $_GET['id']) : '';
+		if ( $userdata['session_logged_in'] && ($confirm_id != 'Admin'))
 		{
 			exit;
 		}

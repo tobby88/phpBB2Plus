@@ -27,9 +27,12 @@ if ( !defined('IN_PHPBB') )
 	exit;
 }
 
-$sql = "SELECT user_active, user_id, username, user_email, user_newpasswd, user_lang, user_actkey 
+$activation_user_id = (isset($_GET[POST_USERS_URL]) && is_scalar($_GET[POST_USERS_URL])) ? intval($_GET[POST_USERS_URL]) : 0;
+$activation_key = (isset($_GET['act_key']) && is_scalar($_GET['act_key'])) ? trim((string) $_GET['act_key']) : '';
+
+$sql = "SELECT user_active, user_id, username, user_email, user_password, user_newpasswd, user_lang, user_actkey
 	FROM " . USERS_TABLE . "
-	WHERE user_id = " . intval($_GET[POST_USERS_URL]);
+	WHERE user_id = " . $activation_user_id;
 if ( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, 'Could not obtain user information', '', __LINE__, __FILE__, $sql);
@@ -45,13 +48,13 @@ if ( $row = $db->sql_fetchrow($result) )
 
 		message_die(GENERAL_MESSAGE, $lang['Already_activated']);
 	}
-	else if ((trim($row['user_actkey']) == trim($_GET['act_key'])) && (trim($row['user_actkey']) != ''))
+	else if ((trim($row['user_actkey']) == $activation_key) && (trim($row['user_actkey']) != ''))
 	{
 		if (intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $row['user_newpasswd'] == '')
 		{
 			if (!$userdata['session_logged_in'])
 			{
-				redirect(append_sid('login.' . $phpEx . '?redirect=profile.' . $phpEx . '&mode=activate&' . POST_USERS_URL . '=' . $row['user_id'] . '&act_key=' . trim($HTTP_GET_VARS['act_key'])));
+				redirect(append_sid('login.' . $phpEx . '?redirect=profile.' . $phpEx . '&mode=activate&' . POST_USERS_URL . '=' . $row['user_id'] . '&act_key=' . $activation_key));
 			}
 			else if ($userdata['user_level'] != ADMIN)
 			{
@@ -65,7 +68,11 @@ if ( $row = $db->sql_fetchrow($result) )
 			WHERE user_id = " . $row['user_id']; 
 		if ( !($result = $db->sql_query($sql)) )
 		{
-			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql_update);
+			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
+		}
+		if ( $row['user_newpasswd'] != '' )
+		{
+			session_reset_keys((int) $row['user_id'], $user_ip);
 		}
 		if ( intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $sql_update_pass == '' )
 		{
@@ -82,7 +89,7 @@ if ( $row = $db->sql_fetchrow($result) )
 			$emailer->assign_vars(array(
 				'SITENAME' => $board_config['sitename'], 
 				'USERNAME' => $row['username'],
-				'PASSWORD' => $password_confirm,
+				'PASSWORD' => '',
 				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '')
 			);
 			$emailer->send();

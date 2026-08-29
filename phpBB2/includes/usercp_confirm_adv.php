@@ -26,12 +26,12 @@ if ( !defined('IN_PHPBB') )
 }
 
 // Do we have an id? No, then just exit
-if (empty($HTTP_GET_VARS['id']))
+if (!isset($HTTP_GET_VARS['id']) || !is_scalar($HTTP_GET_VARS['id']) || $HTTP_GET_VARS['id'] === '')
 {
 	exit;
 }
 
-$confirm_id = htmlspecialchars($HTTP_GET_VARS['id']);
+$confirm_id = htmlspecialchars((string) $HTTP_GET_VARS['id']);
 
 // Define available charset
 $chars = array('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',  'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',  'U', 'V', 'W', 'X', 'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9');
