@@ -62,8 +62,12 @@ function auth($type, $forum_id, $userdata, $f_access = '')
 		$f_access = array();
 		if ( !empty($forum_id) )
 		{
-			$idx = $tree['keys'][ POST_FORUM_URL . $forum_id ];
-			$f_access = $tree['data'][$idx];
+			$key = POST_FORUM_URL . $forum_id;
+			$idx = isset($tree['keys'][$key]) ? $tree['keys'][$key] : -1;
+			if($idx >= 0 && isset($tree['data'][$idx]) && is_array($tree['data'][$idx]))
+			{
+				$f_access = $tree['data'][$idx];
+			}
 		}
 		else
 		{

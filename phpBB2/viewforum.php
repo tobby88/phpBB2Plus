@@ -137,7 +137,9 @@ include_once($phpbb_root_path . 'includes/mods_settings/mod_announces.' . $phpEx
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 // get the forum row
-$forum_row = $tree['data'][ $tree['keys'][ POST_FORUM_URL . $forum_id ] ];
+$forum_key = POST_FORUM_URL . $forum_id;
+$forum_index = isset($tree['keys'][$forum_key]) ? $tree['keys'][$forum_key] : -1;
+$forum_row = ($forum_index >= 0 && isset($tree['data'][$forum_index]) && is_array($tree['data'][$forum_index])) ? $tree['data'][$forum_index] : array();
 if ( empty($forum_row) )
 {
 	message_die(GENERAL_MESSAGE, 'Forum_not_exist');

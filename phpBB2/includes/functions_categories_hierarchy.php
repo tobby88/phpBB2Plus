@@ -595,7 +595,12 @@ function cache_tree($write=false)
 	}
 	while( $row = $db->sql_fetchrow($result) )
 	{
-		$idx = $tree['keys'][ POST_FORUM_URL . $row['forum_id'] ];
+		$key = POST_FORUM_URL . $row['forum_id'];
+		if(!isset($tree['keys'][$key]))
+		{
+			continue;
+		}
+		$idx = $tree['keys'][$key];
 		$tree['mods'][$idx]['user_id'][] = $row['user_id'];
 		$tree['mods'][$idx]['username'][] = $row['username'];
 	}
@@ -617,7 +622,12 @@ function cache_tree($write=false)
 	}
 	while( $row = $db->sql_fetchrow($result) )
 	{
-		$idx = $tree['keys'][ POST_FORUM_URL . $row['forum_id'] ];
+		$key = POST_FORUM_URL . $row['forum_id'];
+		if(!isset($tree['keys'][$key]))
+		{
+			continue;
+		}
+		$idx = $tree['keys'][$key];
 		$tree['mods'][$idx]['group_id'][] = $row['group_id'];
 		$tree['mods'][$idx]['group_name'][] = $row['group_name'];
 	}
