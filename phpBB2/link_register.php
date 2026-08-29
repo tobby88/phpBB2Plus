@@ -49,7 +49,7 @@ if( !$userdata['session_logged_in'] )
 }
 
 if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper($_SERVER['REQUEST_METHOD']) !== 'POST' ||
-	!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
 {
 	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 }
@@ -67,11 +67,17 @@ function link_register_http_url($value)
 	return $value;
 }
 
-$link_title = ( !empty($_POST['link_title']) ) ? substr(trim(stripslashes($_POST['link_title'])), 0, 100) : '';
-$link_desc = ( !empty($_POST['link_desc']) ) ? substr(trim(stripslashes($_POST['link_desc'])), 0, 255) : '';
-$link_category = ( !empty($_POST['link_category']) ) ? (is_numeric($_POST['link_category']) ? intval($_POST['link_category']) : 0) : 0;
-$link_url = ( !empty($_POST['link_url']) ) ? substr(link_register_http_url($_POST['link_url']), 0, 100) : '';
-$link_logo_src = ( !empty($_POST['link_logo_src']) ) ? substr(link_register_http_url($_POST['link_logo_src']), 0, 120) : '';
+function link_register_post($name)
+{
+	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : '';
+}
+
+$link_title = substr(trim(stripslashes(link_register_post('link_title'))), 0, 100);
+$link_desc = substr(trim(stripslashes(link_register_post('link_desc'))), 0, 255);
+$link_category_input = link_register_post('link_category');
+$link_category = is_numeric($link_category_input) ? intval($link_category_input) : 0;
+$link_url = substr(link_register_http_url(link_register_post('link_url')), 0, 100);
+$link_logo_src = substr(link_register_http_url(link_register_post('link_logo_src')), 0, 120);
 $link_title_sql = str_replace("'", "''", $link_title);
 $link_desc_sql = str_replace("'", "''", $link_desc);
 $link_url_sql = str_replace("'", "''", $link_url);
@@ -88,11 +94,28 @@ if(!$result = $db->sql_query($sql))
 {
 	message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
 }
+$link_config = array();
 while( $row = $db->sql_fetchrow($result) )
 {
 	$link_config_name = $row['config_name'];
 	$link_config_value = $row['config_value'];
 	$link_config[$link_config_name] = $link_config_value;
+}
+$db->sql_freeresult($result);
+
+if ($link_category > 0)
+{
+	$sql = 'SELECT cat_id FROM ' . LINK_CATEGORIES_TABLE . ' WHERE cat_id = ' . $link_category;
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not query link category', '', __LINE__, __FILE__, $sql);
+	}
+	$valid_category = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$valid_category)
+	{
+		$link_category = 0;
+	}
 }
 
 //
@@ -169,11 +192,13 @@ if($link_title && $link_desc && $link_category && $link_url)
 				{
 					message_die(GENERAL_ERROR, "Could not query users table", "", __LINE__, __FILE__, $sql);
 				}
+				$admin_users = $db->sql_fetchrowset($admin_result);
+				$db->sql_freeresult($admin_result);
 					
 				if ( $link_config['email_notify'] )
 				{
 				  include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-				  while( $to_userdata = $db->sql_fetchrow($admin_result) )
+				  foreach ($admin_users as $to_userdata)
 				  {
 				    if ( $to_userdata['user_email'] )
 				    {
@@ -200,7 +225,7 @@ if($link_title && $link_desc && $link_category && $link_url)
 				if ( empty($board_config['privmsg_disable']) && $link_config['pm_notify'] )
 				{
 				  $html_on = 0; $bbcode_on = 0; $smilies_on = 0; $attach_sig = 0;
-				  while( $to_userdata = $db->sql_fetchrow($admin_result) )
+				  foreach ($admin_users as $to_userdata)
 				  {
 				    //
 				    // Has admin prevented user from sending PM's?
@@ -212,7 +237,7 @@ if($link_title && $link_desc && $link_category && $link_url)
 					  //
 					  // See if recipient is at their inbox limit
 					  //
-					  $sql = "SELECT COUNT(privmsgs_id) AS inbox_items, MIN(privmsgs_date) AS oldest_post_time 
+					  $sql = "SELECT COUNT(privmsgs_id) AS inbox_items
 						FROM " . PRIVMSGS_TABLE . " 
 						WHERE ( privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
 							OR privmsgs_type = " . PRIVMSGS_READ_MAIL . "  
@@ -223,38 +248,12 @@ if($link_title && $link_desc && $link_category && $link_url)
 						message_die(GENERAL_MESSAGE, $lang['No_such_user']);
 					  }
 
-					  $sql_priority = ( SQL_LAYER == 'mysql' ) ? 'LOW_PRIORITY' : '';
-
 					  if ( $inbox_info = $db->sql_fetchrow($result) )
 					  {
 						if ( $inbox_info['inbox_items'] >= $board_config['max_inbox_privmsgs'] )
 						{
-						  $sql = "SELECT privmsgs_id FROM " . PRIVMSGS_TABLE . " 
-							WHERE ( privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
-								OR privmsgs_type = " . PRIVMSGS_READ_MAIL . " 
-								OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . "  ) 
-								AND privmsgs_date = " . $inbox_info['oldest_post_time'] . " 
-								AND privmsgs_to_userid = " . $to_userdata['user_id'];
-						  if ( !$result = $db->sql_query($sql) )
-						  {
-							message_die(GENERAL_ERROR, 'Could not find oldest privmsgs (inbox)', '', __LINE__, __FILE__, $sql);
-						  }
-						  $old_privmsgs_id = $db->sql_fetchrow($result);
-						  $old_privmsgs_id = $old_privmsgs_id['privmsgs_id'];
-				
-						  $sql = "DELETE $sql_priority FROM " . PRIVMSGS_TABLE . " 
-							WHERE privmsgs_id = $old_privmsgs_id";
-						  if ( !$db->sql_query($sql) )
-						  {
-							message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs (inbox)'.$sql, '', __LINE__, __FILE__, $sql);
-						  }
-
-						  $sql = "DELETE $sql_priority FROM " . PRIVMSGS_TEXT_TABLE . " 
-							WHERE privmsgs_text_id = $old_privmsgs_id";
-						  if ( !$db->sql_query($sql) )
-						  {
-							message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql);
-						 }
+						  // A link notification must never evict an existing private message.
+						  continue;
 					  }
 					}
 					$privmsg_subject = $lang['Link_pm_notify_subject'];
@@ -268,8 +267,6 @@ if($link_title && $link_desc && $link_category && $link_url)
 					$privmsg_sent_id = $db->sql_nextid();
 					$privmsg_message = sprintf($lang['Link_pm_notify_message'], $link_url);
 		
-					$preview_message = stripslashes(prepare_message($privmsg_message, $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
-
 					$sql = "INSERT INTO " . PRIVMSGS_TEXT_TABLE . " (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
 					VALUES ($privmsg_sent_id, '" . $bbcode_uid . "', '" . str_replace("\'", "''", $privmsg_message) . "')";
 		

@@ -32,6 +32,7 @@ $lang['Link_logo_src'] = "Site Logo (88x31 pixels, size no more than 10K), or le
 $lang['Link_logo_src1'] = "Site Logo (88x31 pixels, size no more than 10K):";
 $lang['Links_Preview'] = "Preview Logo";
 $lang['Link_category'] = "Site Category";
+$lang['Link_category_not_exist'] = 'The selected link category does not exist.';
 $lang['link_hits'] = "Hits";
 $lang['link_submiter'] = "Submited by";
 $lang['Link_us'] = "Link to ";

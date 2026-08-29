@@ -71,7 +71,7 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 //
 // Count and forwrad
 //
-if(!empty($_GET['action']) && $_GET['action'] == "go" && !empty($_GET['link_id']))
+if(!empty($_GET['action']) && is_scalar($_GET['action']) && $_GET['action'] == "go" && !empty($_GET['link_id']) && is_scalar($_GET['link_id']))
 {
 	$link_id = intval($_GET['link_id']);
 	// Secure check
@@ -110,23 +110,23 @@ include('includes/page_header.'.$phpEx);
 //
 // Define initial vars
 //
-$start = ( isset($HTTP_GET_VARS['start']) ) ? intval($HTTP_GET_VARS['start']) : 0;
+$start = (isset($HTTP_GET_VARS['start']) && is_scalar($HTTP_GET_VARS['start'])) ? max(0, intval($HTTP_GET_VARS['start'])) : 0;
 
-if ( isset($_POST['t']) || isset($_GET['t']) ) 
+if ( (isset($_POST['t']) && is_scalar($_POST['t'])) || (isset($_GET['t']) && is_scalar($_GET['t'])) )
 {
-	$t = ( isset($_POST['t']) ) ? $_POST['t'] : $_GET['t'];
+	$t = ( isset($_POST['t']) && is_scalar($_POST['t']) ) ? (string) $_POST['t'] : (string) $_GET['t'];
 } else {
 	$t = 'index';
 }
-if ( isset($_POST['cat']) || isset($_GET['cat']) )
+if ( (isset($_POST['cat']) && is_scalar($_POST['cat'])) || (isset($_GET['cat']) && is_scalar($_GET['cat'])) )
 {
-	$cat = ( isset($_POST['cat']) ) ? intval($_POST['cat']) : intval($_GET['cat']);
+	$cat = ( isset($_POST['cat']) && is_scalar($_POST['cat']) ) ? intval($_POST['cat']) : intval($_GET['cat']);
 } else {
 	$cat = 1;
 }
-if ( isset($_POST['search_keywords']) || isset($_GET['search_keywords']) )
+if ( (isset($_POST['search_keywords']) && is_scalar($_POST['search_keywords'])) || (isset($_GET['search_keywords']) && is_scalar($_GET['search_keywords'])) )
 {
-	$search_keywords = ( isset($_POST['search_keywords']) ) ? $_POST['search_keywords'] : $_GET['search_keywords'];
+	$search_keywords = ( isset($_POST['search_keywords']) && is_scalar($_POST['search_keywords']) ) ? (string) $_POST['search_keywords'] : (string) $_GET['search_keywords'];
 } else {
 	$search_keywords = '';
 }
@@ -365,20 +365,20 @@ if ($t=='pop' || $t=='new')
 
 if ($t=='sub_pages') 
 {
-	if ( isset($_GET['mode']) || isset($_POST['mode']) )
+	if ( (isset($_GET['mode']) && is_scalar($_GET['mode'])) || (isset($_POST['mode']) && is_scalar($_POST['mode'])) )
 	{
-		$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
+		$mode = ( isset($_POST['mode']) && is_scalar($_POST['mode']) ) ? (string) $_POST['mode'] : (string) $_GET['mode'];
 	}
 	else
 	{
 		$mode = 'link_joined';
 	}
 
-	if(isset($_POST['order']))
+	if(isset($_POST['order']) && is_scalar($_POST['order']))
 	{
 		$sort_order = ($_POST['order'] == 'ASC') ? 'ASC' : 'DESC';
 	}
-	else if(isset($_GET['order']))
+	else if(isset($_GET['order']) && is_scalar($_GET['order']))
 	{
 		$sort_order = ($_GET['order'] == 'ASC') ? 'ASC' : 'DESC';
 	}
@@ -440,6 +440,10 @@ if ($t=='sub_pages')
 	}
 
 	$row = $db->sql_fetchrow($result);
+	if (!$row)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Link_category_not_exist']);
+	}
 	$link_categories[$row['cat_id']] = $row['cat_title'];
 	$template->assign_vars(array(
 		'LINK_CATEGORY' => links_html($row['cat_title'])
