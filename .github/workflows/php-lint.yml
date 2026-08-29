@@ -76,3 +76,6 @@ jobs:
 
       - name: Test CrackerTracker blocklist matching
         run: php .github/scripts/check-ctracker-ipblocker.php
+
+      - name: Test login abuse protections
+        run: php .github/scripts/check-login-protection.php

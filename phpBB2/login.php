@@ -77,8 +77,6 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 		$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
 		$password_value = (isset($_POST['password']) && is_scalar($_POST['password'])) ? (string) $_POST['password'] : '';
 		$password = (strlen($password_value) <= 128) ? $password_value : '';
-		$blocktime = '';
-
 		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, ct_login_count, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
 			FROM " . USERS_TABLE . "
 			WHERE username = '" . $username_sql . "'";
@@ -226,53 +224,16 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 								$ctracker_config->handle_wrong_login($row['user_id'], $row['ct_login_count']);
 							}
 						}
-							// Start add - Protect user account MOD
-						//count bad login
-						// block the user for X min
-						$blocktime = '';
-						$max_login_error = max(1, intval($board_config['max_login_error']));
-						if (($row['user_badlogin'] + 1) % $max_login_error)
+						// Record the event without allowing an unauthenticated attacker
+						// to hard-lock another user's account or trigger email floods.
+						// CrackerTracker's per-account CAPTCHA and central per-IP limiter
+						// remain responsible for slowing repeated guesses.
+						$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin = user_badlogin + 1
+							WHERE user_id = " . intval($row['user_id']);
+						if (!$db->sql_query($sql))
 						{
-							$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin=user_badlogin+1
-								WHERE username = '" . $username_sql . "'";
-							if ( !($result = $db->sql_query($sql)) )
-							{
-								message_die(GENERAL_ERROR, 'Error updating bad login data'.$user_ip, '', __LINE__, __FILE__, $sql);
-							}
-						} else
-						{
-							$blocktime = ", user_block_by='$user_ip', user_blocktime='" . (time()+($board_config['block_time']*60)) . "'";
-							$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin=user_badlogin+1 $blocktime
-								WHERE username = '" . $username_sql . "'";
-							if ( !($result = $db->sql_query($sql)) )
-							{
-								message_die(GENERAL_ERROR, 'Error updating bad login data'.$user_ip, '', __LINE__, __FILE__, $sql);
-							}
-					
-							if ($row['user_email']  && $row['user_blocktime']<(time()-3600))
-							{
-								include($phpbb_root_path . 'includes/emailer.'.$phpEx); 
-								$server_name = trim($board_config['server_name']);
-								$emailer = new emailer($board_config['smtp_delivery']); 
-								$emailer->email_address($row['user_email']); 
-								$email_headers = "To: \"".$row['username']."\" <".$row['user_email']. ">\r\n"; 
-								$email_headers .= "From: \"".$board_config['sitename']."\" <".$board_config['board_email'].">\r\n"; 
-								$email_headers .= "X-AntiAbuse: Board servername - " . $server_name . "\r\n"; 
-								$email_headers .= "X-AntiAbuse: User IP - " . decode_ip($user_ip) . "\r\n"; 
-								$emailer->use_template('bad_login', $row['user_lang']);
-								$emailer->extra_headers($email_headers); 
-								$emailer->assign_vars(array( 
-									'USER' => '"'.$row['username'].'"',
-									'BLOCK_TIME' => $board_config['block_time'],
-									'BAD_LOGINS' => $row['user_badlogin']+1, 
-									'BLOCK_UNTIL' => create_date ($lang['Time_format'],time()+($board_config['block_time']*60),$row['user_timezone']),
-									'SITENAME' => $board_config['sitename'], 
-									'BOARD_EMAIL' => $board_config['board_email'])); 
-								$emailer->send(); 
-								$emailer->reset(); 
-							}
+							message_die(GENERAL_ERROR, 'Error updating bad login data', '', __LINE__, __FILE__, $sql);
 						}
-						// End add - Protect user account MOD
 					}
 				}
 				$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
@@ -292,7 +253,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 		/*
 				$message = $lang['Error_login'] . '<br /><br />' . sprintf($lang['Click_return_login'], "<a href=\"login.$phpEx?redirect=$redirect\">", '</a>') . '<br /><br />' .  sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
 		*/
-				$message = ( ($blocktime && $lang['Error_login_tomutch'])?$lang['Error_login_tomutch']:$lang['Error_login'] ) . '<br /><br />' . sprintf($lang['Click_return_login'], '<a href="' . append_sid("login.$phpEx?redirect=$redirect") . '">', '</a>') . '<br /><br />' .  sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
+				$message = $lang['Error_login'] . '<br /><br />' . sprintf($lang['Click_return_login'], '<a href="' . append_sid("login.$phpEx?redirect=$redirect") . '">', '</a>') . '<br /><br />' .  sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
 				// End add - Protect user account MOD
 				message_die(GENERAL_MESSAGE, $message);
 			}

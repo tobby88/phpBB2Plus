@@ -344,8 +344,6 @@ $template->assign_vars(array(
 	'L_PASSWORD_LEN_EXPLAIN' => $lang['Password_len_explain'],
 	'L_BLOCK_TIME' => $lang['Block_time'], 
 	'L_BLOCK_TIME_EXPLAIN' => $lang['Block_time_explain'], 
-	'L_MAX_LOGIN_ERROR' => $lang['Max_login_error'], 
-	'L_MAX_LOGIN_ERROR_EXPLAIN' => $lang['Max_login_error_explain'], 
 	'L_PASSWORD_INTERVALL' => $lang['Password_intervall'],
 	'L_PASSWORD_INTERVALL_EXPLAIN' => $lang['Password_intervall_explain'],
 	// End add - Protect user account MOD
@@ -489,7 +487,6 @@ $template->assign_vars(array(
 	"ABSENT_BUTTON_NO" => $absent_button_no,
 	// Start add - Protect user account MOD
 	'BLOCK_TIME' => $new['block_time'], 
-	'MAX_LOGIN_ERROR' => $new['max_login_error'], 
 	'MIN_PASSWORD_LEN' => $new['min_password_len'],
 	'PASSWORD_INTERVALL' => $new['max_password_age'],
 	'S_PASSWORD_COMPLEX_ENABLED' => $password_complex_yes,

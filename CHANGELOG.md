@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed the legacy unauthenticated account hard-lock and repeated warning
+  email path, which let an attacker deny service to a known user with only a
+  few bad passwords. Failed attempts remain counted and logged, while the
+  account-specific CAPTCHA and central per-IP limiter continue to slow guesses
+  without making the victim's account unusable. The now-unused automatic
+  lockout threshold was removed from the AdminCP form.
 - Moved CrackerTracker search throttling from shared mutable fields on the
   anonymous user record to the atomic rate-limit store. Guests are isolated by
   verified IP, signed-in members by user ID, fixed windows no longer grow after

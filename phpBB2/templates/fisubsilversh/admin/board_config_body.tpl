@@ -309,10 +309,6 @@
 <td class="row2"><input class="post" type="text" size="4" maxlength="4" name="max_password_age" value="{PASSWORD_INTERVALL}" /></td> 
 </tr> 
 <tr> 
-<td class="row1">{L_MAX_LOGIN_ERROR}<br /><span class="gensmall">{L_MAX_LOGIN_ERROR_EXPLAIN}</span></td> 
-<td class="row2"><input class="post" type="text" size="4" maxlength="4" name="max_login_error" value="{MAX_LOGIN_ERROR}" /></td> 
-</tr> 
-<tr> 
 <td class="row1">{L_BLOCK_TIME}<br /><span class="gensmall">{L_BLOCK_TIME_EXPLAIN}</span></td> 
 <td class="row2"><input class="post" type="text" size="4" maxlength="4" name="block_time" value="{BLOCK_TIME}" /></td> 
 </tr>
