@@ -27,8 +27,17 @@ $template->set_filenames(array(
 );
 
 
-// First we look wich mode the user has selected
-$mode = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
+// Maintenance mutates CrackerTracker tables and therefore accepts only a
+// session-bound POST action.
+$mode = phpbb_admin_post_string('mode');
+if ($mode !== '')
+{
+	phpbb_admin_require_post_session();
+	if (!in_array($mode, array('1', '2', '3', '4', '5'), true))
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+	}
+}
 
 // Reset used vars
 $uplink_values = array();
@@ -312,11 +321,13 @@ $template->assign_vars(array(
 		'L_SEC_INFO_OV5' => $uplink_values[0],
 		'L_SEC_INFO_D5'	 => (CTRACKER_VERSION >= $uplink_values[0])? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
 
-		'S_BUILD_LINK_1' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=7&mode=1'),
-		'S_BUILD_LINK_2' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=7&mode=2'),
-		'S_BUILD_LINK_3' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=7&mode=3'),
-		'S_BUILD_LINK_4' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=7&mode=4'),
-		'S_BUILD_LINK_5' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=7&mode=5'),
+		'S_MAINTENANCE_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=7'),
+		'S_FORM_TOKEN' => phpbb_admin_session_field(),
+		'MODE_1' => '1',
+		'MODE_2' => '2',
+		'MODE_3' => '3',
+		'MODE_4' => '4',
+		'MODE_5' => '5',
 
 		'L_DESC_1'		 => $lang['ctracker_ma_desc1'],
 		'L_DESC_2'		 => $lang['ctracker_ma_desc2'],

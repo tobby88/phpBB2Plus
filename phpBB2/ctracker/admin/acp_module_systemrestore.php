@@ -25,9 +25,10 @@ $template->set_filenames(array(
 	'ct_body' => 'ctracker/acp/acp_systemrestore.tpl')
 );
 
-$mode = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
+$mode = phpbb_admin_post_string('mode');
 if ( $mode == 'backup')
 {
+	phpbb_admin_require_post_session();
 	$backup_system = new ct_adminfunctions();
 	$backup_system->recover_configuration();
 	unset($backup_system);
@@ -40,6 +41,7 @@ if ( $mode == 'backup')
 }
 else if ( $mode == 'restore' )
 {
+	phpbb_admin_require_post_session();
 	$backup_system = new ct_adminfunctions();
 	$backup_system->restore_configuration();
 	unset($backup_system);	
@@ -56,6 +58,7 @@ else if ( $mode == 'restore' )
  */
 $save_status = '';
 $saved_now   = false;
+$backup = array();
 $sql = 'SELECT * FROM ' . CTRACKER_BACKUP . ' WHERE config_name = \'ct_last_backup\'';
 if ( !$result = $db->sql_query($sql) )
 {
@@ -63,12 +66,28 @@ if ( !$result = $db->sql_query($sql) )
 }	
 else
 {
-	$saved_now = true;
 	while ( $row = $db->sql_fetchrow($result) )
 	{
 		$backup[$row['config_name']] = $row['config_value'];
 	}
-	$save_status = sprintf($lang['ctracker_rec_last_saved'], date($board_config['default_dateformat'], $backup['ct_last_backup']));
+	if (isset($backup['ct_last_backup']) && intval($backup['ct_last_backup']) > 0)
+	{
+		$saved_now = true;
+		$save_status = sprintf($lang['ctracker_rec_last_saved'], date($board_config['default_dateformat'], intval($backup['ct_last_backup'])));
+	}
+	else
+	{
+		$save_status = $lang['ctracker_rec_never_saved'];
+	}
+}
+
+if ($saved_now)
+{
+	$template->assign_block_vars('restore_available', array());
+}
+else
+{
+	$template->assign_block_vars('restore_unavailable', array());
 }
 
 
@@ -83,8 +102,8 @@ $template->assign_vars(array(
 		'L_RESTORE'			=> ($saved_now)? $lang['ctracker_rec_restore'] : $lang['ctracker_rec_pab'],
 		'L_SAVE_STATUS'		=> $save_status,
 		
-		'U_LINK_BACKUP'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=10&mode=backup'),
-		'U_LINK_RESTORE'	=> ($saved_now)? append_sid('admin_cracker_tracker.' . $phpEx . '?modu=10&mode=restore') : '')
+		'S_FORM_ACTION'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=10'),
+		'S_FORM_TOKEN'		=> phpbb_admin_session_field())
   );
   
 

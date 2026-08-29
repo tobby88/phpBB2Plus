@@ -25,8 +25,9 @@
 	</tr>
 	<tr>
 		<td class="row1" width="80%">
-			<h3>&raquo; <a href="{U_LINK_BACKUP}">{L_BACKUP}</a></h3>
-			<h3>&raquo; <a href="{U_LINK_RESTORE}">{L_RESTORE}</a></h3>
+			<form action="{S_FORM_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="backup" /><input type="submit" value="{L_BACKUP}" class="mainoption" /></form>
+			<!-- BEGIN restore_available --><form action="{S_FORM_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="restore" /><input type="submit" value="{L_RESTORE}" class="mainoption" /></form><!-- END restore_available -->
+			<!-- BEGIN restore_unavailable --><strong>{L_RESTORE}</strong><!-- END restore_unavailable -->
 		</td>
 	</tr>
 	<tr>

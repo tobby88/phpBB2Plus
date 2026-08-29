@@ -23,7 +23,9 @@ $admin_filescan = new ct_adminfunctions();
 /*
  * Wich action do we have?
  */
-$action = isset($HTTP_GET_VARS['action']) ? $HTTP_GET_VARS['action'] : '';
+$post_action = phpbb_admin_post_string('action');
+$get_action = (isset($_GET['action']) && is_scalar($_GET['action'])) ? (string) $_GET['action'] : '';
+$action = ($post_action !== '') ? $post_action : $get_action;
 
 
 /*
@@ -36,6 +38,7 @@ $template->set_filenames(array(
 
 if( $action == 'scan' )
 {
+	phpbb_admin_require_post_session();
 	// scan files
 	$admin_filescan->DropData();
 	$admin_filescan->CreateFileList($phpbb_root_path, '', $phpEx);
@@ -112,7 +115,7 @@ else if ( $action == 'display' )
 		$path_cleaned = str_replace('./../', '', $row['filepath']);
 		
 		$template->assign_block_vars('file_output', array(
-			'PATH'	 => $path_cleaned,
+			'PATH'	 => phpbb_admin_html($path_cleaned),
 			'STATUS' => $filestatus,
 			'CLASS'  => ($table_class)? 'row1' : 'row2',
 			'COLOR'  => $color)
@@ -146,8 +149,9 @@ $template->assign_vars(array(
 	'L_TABLEHEAD_1'		=> $lang['ctracker_fchk_tablehead1'],
 	'L_TABLEHEAD_2'		=> $lang['ctracker_fchk_tablehead2'],
 	
-	'U_LINK_OPTION_1'	=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=3&action=scan'),
+	'S_ACTION_OPTION_1'	=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=3'),
 	'U_LINK_OPTION_2'	=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=3&action=display'),
+	'S_FORM_TOKEN'		=> phpbb_admin_session_field(),
 	
 	'IMG_ICON_1'		=> $phpbb_root_path . $images['ctracker_fc_icon_1'],
 	'IMG_ICON_2'		=> $phpbb_root_path . $images['ctracker_fc_icon_2'])

@@ -14,6 +14,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Bound CrackerTracker settings, global messages, footer selection, blocklist,
   log deletion and miserable-user changes to session-authenticated POST
   requests; bounded submitted values and safely rendered stored log data.
+- Bound CrackerTracker maintenance, checksum/file scans and configuration
+  recovery to authenticated POST actions. Configuration restore now updates
+  the existing table in place instead of dropping and recreating it.
 - Normalized hardened ACP form values before SQL-boundary escaping so literal
   apostrophes are stored without legacy magic-quotes backslashes.
 - Added adaptive password hashing with transparent migration after a successful

@@ -151,23 +151,23 @@
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_DESC_1}</td>
-		<td class="row1" width="20%" align="center"><b>[ <a href="{S_BUILD_LINK_1}">{L_LINK_DESC}</a> ]</b></td>
+		<td class="row1" width="20%" align="center"><form action="{S_MAINTENANCE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="{MODE_1}" /><input type="submit" value="{L_LINK_DESC}" class="liteoption" /></form></td>
 	</tr>
 	<tr>
 		<td class="row2" width="80%">{L_DESC_2}</td>
-		<td class="row2" width="20%" align="center"><b>[ <a href="{S_BUILD_LINK_2}">{L_LINK_DESC}</a> ]</b></td>
+		<td class="row2" width="20%" align="center"><form action="{S_MAINTENANCE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="{MODE_2}" /><input type="submit" value="{L_LINK_DESC}" class="liteoption" /></form></td>
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_DESC_3}</td>
-		<td class="row1" width="20%" align="center"><b>[ <a href="{S_BUILD_LINK_3}">{L_LINK_DESC}</a> ]</b></td>
+		<td class="row1" width="20%" align="center"><form action="{S_MAINTENANCE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="{MODE_3}" /><input type="submit" value="{L_LINK_DESC}" class="liteoption" /></form></td>
 	</tr>
 	<tr>
 		<td class="row2" width="80%">{L_DESC_4}</td>
-		<td class="row2" width="20%" align="center"><b>[ <a href="{S_BUILD_LINK_4}">{L_LINK_DESC}</a> ]</b></td>
+		<td class="row2" width="20%" align="center"><form action="{S_MAINTENANCE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="{MODE_4}" /><input type="submit" value="{L_LINK_DESC}" class="liteoption" /></form></td>
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_DESC_5}</td>
-		<td class="row1" width="20%" align="center"><b>[ <a href="{S_BUILD_LINK_5}">{L_LINK_DESC}</a> ]</b></td>
+		<td class="row1" width="20%" align="center"><form action="{S_MAINTENANCE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="{MODE_5}" /><input type="submit" value="{L_LINK_DESC}" class="liteoption" /></form></td>
 	</tr>
 	<tr>
 		<td colspan="2" class="catBottom">&nbsp;</td>

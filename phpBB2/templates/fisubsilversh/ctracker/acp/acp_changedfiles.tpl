@@ -8,7 +8,7 @@
 		<th colspan="2">{L_FUNC_HEADER}</th>
 	</tr>
 	<tr> 
-		<td class="row1" align="center" width="50%"><span class="gen"><a href="{U_LINK_OPTION_1}"><img src="{IMG_ICON_1}" border="0" alt="{L_ALT_TEXT}" title="{L_ALT_TEXT}"><br />{L_OPTION_1}</a></span></td>
+		<td class="row1" align="center" width="50%"><form action="{S_ACTION_OPTION_1}" method="post">{S_FORM_TOKEN}<input type="hidden" name="action" value="akt" /><button type="submit" class="liteoption"><img src="{IMG_ICON_1}" border="0" alt="{L_ALT_TEXT}" title="{L_ALT_TEXT}"><br />{L_OPTION_1}</button></form></td>
 		<td class="row2" align="center" width="50%"><span class="gen"><a href="{U_LINK_OPTION_2}"><img src="{IMG_ICON_2}" border="0" alt="{L_ALT_TEXT}" title="{L_ALT_TEXT}"><br />{L_OPTION_2}</a></span></td>
 	</tr>
 </table>

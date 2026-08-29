@@ -603,20 +603,20 @@ class ct_adminfunctions
 	{
 		global $db, $lang;
 
-		// Drop existing Backup Table
-		$sql = 'DROP TABLE IF EXISTS ' . CTRACKER_BACKUP;
+		// Keep the backup table stable so a failed refresh cannot drop the last
+		// usable snapshot before a replacement exists.
+		$sql = 'CREATE TABLE IF NOT EXISTS ' . CTRACKER_BACKUP . ' (
+					`config_name` varchar( 255 ) NOT NULL ,
+					`config_value` varchar( 255 ) NOT NULL ,
+					PRIMARY KEY ( `config_name` )
+					) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
 		if ( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 
-		// Create Backup table
-		$sql = 'CREATE TABLE ' . CTRACKER_BACKUP . ' (
-					`config_name` varchar( 255 ) NOT NULL ,
-					`config_value` varchar( 255 ) NOT NULL ,
-					PRIMARY KEY ( `config_name` )
-					)';
-		if ( !$result = $db->sql_query($sql) )
+		$sql = 'DELETE FROM ' . CTRACKER_BACKUP;
+		if (!$db->sql_query($sql))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
@@ -631,10 +631,9 @@ class ct_adminfunctions
 
 		while ( $row = $db->sql_fetchrow($result) )
 		{
-			$row['config_name'] = addslashes($row['config_name']);
-			$row['config_value'] = addslashes($row['config_value']);
-
-			$sql2 = 'INSERT INTO ' . CTRACKER_BACKUP . ' (`config_name`, `config_value`) VALUES ("'. $row['config_name'] . '", "'.  $row['config_value'] . '")';
+			$config_name = $db->sql_escape((string) $row['config_name']);
+			$config_value = $db->sql_escape((string) $row['config_value']);
+			$sql2 = "INSERT INTO " . CTRACKER_BACKUP . " (`config_name`, `config_value`) VALUES ('" . $config_name . "', '" . $config_value . "')";
 			if ( !$result2 = $db->sql_query($sql2) )
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql2);
@@ -658,25 +657,8 @@ class ct_adminfunctions
 	{
 		global $db, $lang;
 
-		// Drop existing Config Table
-		$sql = 'DROP TABLE IF EXISTS ' . CONFIG_TABLE;
-		if ( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-		}
-
-		// Create Config table
-		$sql = 'CREATE TABLE ' . CONFIG_TABLE . ' (
-					`config_name` varchar( 255 ) NOT NULL ,
-					`config_value` varchar( 255 ) NOT NULL ,
-					PRIMARY KEY ( `config_name` )
-					)';
-		if ( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-		}
-
-		// Insert config data
+		// Restore values in place. Dropping and recreating the live configuration
+		// table could lose its charset, indexes or newer settings on interruption.
 		$sql = 'SELECT * FROM ' . CTRACKER_BACKUP;
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -686,18 +668,19 @@ class ct_adminfunctions
 
 		while ( $row = $db->sql_fetchrow($result) )
 		{
-			$sql2 = 'INSERT INTO ' . CONFIG_TABLE . ' (`config_name`, `config_value`) VALUES (\''. $row['config_name'] . '\', \''. $row['config_value'] . '\')';
+			if ($row['config_name'] === 'ct_last_backup')
+			{
+				continue;
+			}
+			$config_name = $db->sql_escape((string) $row['config_name']);
+			$config_value = $db->sql_escape((string) $row['config_value']);
+			$sql2 = "INSERT INTO " . CONFIG_TABLE . " (`config_name`, `config_value`)
+				VALUES ('" . $config_name . "', '" . $config_value . "')
+				ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)";
 			if ( !$result2 = $db->sql_query($sql2) )
 			{
-				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql2);
 			}
-		}
-
-		// Remove Backup Timestamp
-		$sql = 'DELETE FROM ' . CONFIG_TABLE . ' WHERE config_name = \'ct_last_backup\'';
-		if ( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 	}
 }
