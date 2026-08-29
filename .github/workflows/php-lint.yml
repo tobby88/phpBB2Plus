@@ -1,0 +1,42 @@
+name: PHP syntax compatibility
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "phpBB2/**/*.php"
+      - ".github/workflows/php-lint.yml"
+  pull_request:
+    paths:
+      - "phpBB2/**/*.php"
+      - ".github/workflows/php-lint.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - "7.4"
+          - "8.3"
+          - "8.5"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint PHP sources
+        shell: bash
+        run: find phpBB2 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
