@@ -47,9 +47,11 @@ init_userprefs($userdata);
 //
 
 // session id check
-if (!empty($_POST['sid']) || !empty($_GET['sid']))
+$post_sid = (isset($_POST['sid']) && is_scalar($_POST['sid'])) ? (string) $_POST['sid'] : '';
+$get_sid = (isset($_GET['sid']) && is_scalar($_GET['sid'])) ? (string) $_GET['sid'] : '';
+if ($post_sid !== '' || $get_sid !== '')
 {
-	$sid = (!empty($_POST['sid'])) ? $_POST['sid'] : $_GET['sid'];
+	$sid = ($post_sid !== '') ? $post_sid : $get_sid;
 }
 else
 {
@@ -57,16 +59,24 @@ else
 }
 
 // CrackerTracker v5.x
-if ( !empty($HTTP_POST_VARS['username']) && $ctracker_config->settings['loginfeature'] == 1 )
+$submitted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
+if ( $submitted_username !== '' && $ctracker_config->settings['loginfeature'] == 1 )
 {
-	$ctracker_config->check_login_status($HTTP_POST_VARS['username']);
+	$ctracker_config->check_login_status($submitted_username);
 }
-if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) || isset($_GET['logout']) )
+if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) )
 {
-	if( ( isset($_POST['login']) || isset($_GET['login']) ) && (!$userdata['session_logged_in'] || isset($_POST['admin'])) )
+	if( isset($_POST['login']) && (!$userdata['session_logged_in'] || isset($_POST['admin'])) )
 	{
-		$username = isset($_POST['username']) ? phpbb_clean_username($_POST['username']) : '';
-		$password = isset($_POST['password']) ? $_POST['password'] : '';
+		if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+		{
+			message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		}
+
+		$username = ($submitted_username !== '') ? phpbb_clean_username($submitted_username) : '';
+		$password_value = (isset($_POST['password']) && is_scalar($_POST['password'])) ? (string) $_POST['password'] : '';
+		$password = (strlen($password_value) <= 128) ? $password_value : '';
+		$blocktime = '';
 
 		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, ct_login_count, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
 			FROM " . USERS_TABLE . "
@@ -150,7 +160,8 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 								message_die(GENERAL_ERROR, 'Error updating correct login data', '', __LINE__, __FILE__, $sql);
 							}
 							// End add - Protect user account MOD
-							$url = ( !empty($_POST['redirect']) ) ? str_replace('&amp;', '&', htmlspecialchars($_POST['redirect'])) : "portal.$phpEx";
+							$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
+							$url = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : "portal.$phpEx";
 							// Start add - Protect user account MOD
 							if ($session_id['user_id']!=ANONYMOUS )
 							{
@@ -165,7 +176,7 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 									{
 										message_die(GENERAL_ERROR, 'Error updating correct login data2', '', __LINE__, __FILE__, $sql);
 									}
-									$url .= ( ereg( "\?" , $url) ) ? '&ch_passwd=1' : '?ch_passwd=1';
+									$url .= ( strpos($url, '?') !== false ) ? '&ch_passwd=1' : '?ch_passwd=1';
 								} else
 								if ((  intval((time()-$session_id['user_passwd_change']) / 86400) >= $board_config['max_password_age'])&&$board_config['max_password_age'] > 0)
 								{
@@ -175,7 +186,7 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 								} else
 								if (( intval((time()-$session_id['user_passwd_change']) / 86400)+(($board_config['max_password_age']<14) ? 1 : 14) >= $board_config['max_password_age'] )&&$board_config['max_password_age'] > 0)
 								{
-									$url .= ( ereg( "\?" , $url) ) ? '&ch_passwd=1' : '?ch_passwd=1';
+									$url .= ( strpos($url, '?') !== false ) ? '&ch_passwd=1' : '?ch_passwd=1';
 								}
 							}
 							// End add - Protect user account MOD
@@ -218,7 +229,8 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 						//count bad login
 						// block the user for X min
 						$blocktime = '';
-						if (($row['user_badlogin']+1) % $board_config['max_login_error'])
+						$max_login_error = max(1, intval($board_config['max_login_error']));
+						if (($row['user_badlogin'] + 1) % $max_login_error)
 						{
 							$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin=user_badlogin+1
 								WHERE username = '" . str_replace("\'", "''", $username) . "'";
@@ -262,7 +274,8 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 						// End add - Protect user account MOD
 					}
 				}
-				$redirect = ( !empty($_POST['redirect']) ) ? str_replace('&amp;', '&', htmlspecialchars($_POST['redirect'])) : '';
+				$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
+				$redirect = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : '';
 				$redirect = str_replace('?', '&', $redirect);
 				
 				if (strstr(urldecode($redirect), "\n") || strstr(urldecode($redirect), "\r") || strstr(urldecode($redirect), ';url'))
@@ -285,7 +298,8 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 		}
 		else
 		{
-			$redirect = ( !empty($_POST['redirect']) ) ? str_replace('&amp;', '&', htmlspecialchars($_POST['redirect'])) : "";
+			$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
+			$redirect = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : "";
 			$redirect = str_replace("?", "&", $redirect);
 			
 			if (strstr(urldecode($redirect), "\n") || strstr(urldecode($redirect), "\r") || strstr(urldecode($redirect), ';url'))
@@ -305,7 +319,7 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 	else if( ( isset($_GET['logout']) || isset($_POST['logout']) ) && $userdata['session_logged_in'] )
 	{
 		// session id check
-		if ($sid == '' || $sid != $userdata['session_id'])
+		if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 		{
 			message_die(GENERAL_ERROR, 'Invalid_session');
 		}
@@ -315,9 +329,11 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 			session_end($userdata['session_id'], $userdata['user_id']);
 		}
 
-		if (!empty($_POST['redirect']) || !empty($_GET['redirect']))
+		$post_redirect = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
+		$get_redirect = (isset($_GET['redirect']) && is_scalar($_GET['redirect'])) ? (string) $_GET['redirect'] : '';
+		if ($post_redirect !== '' || $get_redirect !== '')
 		{
-			$url = (!empty($_POST['redirect'])) ? htmlspecialchars($_POST['redirect']) : htmlspecialchars($_GET['redirect']);
+			$url = htmlspecialchars($post_redirect !== '' ? $post_redirect : $get_redirect);
 			$url = str_replace('&amp;', '&', $url);
 			redirect(append_sid($url, true));
 		}
@@ -328,36 +344,7 @@ if( isset($_POST['login']) || isset($_GET['login']) || isset($_POST['logout']) |
 	}
 	else
 	{
-		$url = ( !empty($_POST['redirect']) ) ? str_replace('&amp;', '&', htmlspecialchars($_POST['redirect'])) : "portal.$phpEx";
-		// Start add - Protect user account MOD
-		if ($session_id['user_id']!=ANONYMOUS )
-		{
-			include($phpbb_root_path . "includes/functions_validate.$phpEx");
-			$pass_result = validate_complex_password ($username, $password);
-			if ( $session_id['user_passwd_change']==0 || $pass_result['error']== true)
-			{
-				//force a change of password, do not allow a secound login
-				$sql = "UPDATE " . USERS_TABLE . " SET user_passwd_change='-9999'
-				WHERE user_id = '" . $session_id['user_id'] . "'";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Error updating correct login data2', '', __LINE__, __FILE__, $sql);
-				}
-				$url .= ( ereg( "\?" , $url) ) ? '&ch_passwd=1' : '?ch_passwd=1';
-			} else
-			if ((  intval((time()-$session_id['user_passwd_change']) / 86400) >= $board_config['max_password_age'])&&$board_config['max_password_age'] > 0)
-			{
-				session_end($session_id['session_id'], $session_id['user_id']);
-				$message = $lang['Passwd_have_expired'] . '<br /><br /><a href="'.append_sid("profile.$phpEx?mode=sendpassword").'">'.$lang['Send_new_passwd'].'</a><br /><br />' .  sprintf($lang['Click_return_portal'], '<a href="' . append_sid("portal.$phpEx") . '">', '</a>');
-				message_die(GENERAL_MESSAGE, $message);
-			} else
-			if ((  intval((time()-$session_id['user_passwd_change']) / 86400)+(($board_config['max_password_age']<14) ? 1 : 14) >= $board_config['max_password_age'] )&&$board_config['max_password_age'] > 0)
-			{
-				$url .= ( ereg( "\?" , $url) ) ? '&ch_passwd=1' : '?ch_passwd=1';
-			}
-		}
-		// End add - Protect user account MOD
-		redirect(append_sid($url, true));
+		redirect(append_sid("portal.$phpEx", true));
 	}
 }
 else
@@ -413,7 +400,8 @@ else
 		$username = ( $userdata['user_id'] != ANONYMOUS ) ? $userdata['username'] : '';
 		$hidden_form_fields = isset($hidden_form_fields) ? $hidden_form_fields : '';
 
-		$s_hidden_fields = '<input type="hidden" name="redirect" value="' . $forward_page . '" />';
+		$s_hidden_fields = '<input type="hidden" name="redirect" value="' . phpbb_profile_text($forward_page) . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />';
 
 		$s_hidden_fields .= (isset($_GET['admin'])) ? '<input type="hidden" name="admin" value="1" />' : '';
 
