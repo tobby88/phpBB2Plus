@@ -30,6 +30,7 @@
 			<div class="inner"><span class="corners-top"><span></span></span>
 			<div class="content">
 				<fieldset class="submit-buttons">
+					{S_HIDDEN_FIELDS}
 					<input type="submit" tabindex="6" name="submit" class="button1" value="{L_SEND_EMAIL}" />
 				</fieldset>
 			</div>

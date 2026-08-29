@@ -36,9 +36,11 @@ if (!$board_config['board_email_form'])
 	redirect(append_sid("index.$phpEx", true));
 }
 
-if ( !empty($_GET[POST_USERS_URL]) || !empty($_POST[POST_USERS_URL]) )
+$get_user_id = (isset($_GET[POST_USERS_URL]) && is_scalar($_GET[POST_USERS_URL])) ? intval($_GET[POST_USERS_URL]) : 0;
+$post_user_id = (isset($_POST[POST_USERS_URL]) && is_scalar($_POST[POST_USERS_URL])) ? intval($_POST[POST_USERS_URL]) : 0;
+if ( $get_user_id || $post_user_id )
 {
-	$user_id = ( !empty($_GET[POST_USERS_URL]) ) ? intval($_GET[POST_USERS_URL]) : intval($_POST[POST_USERS_URL]);
+	$user_id = $get_user_id ? $get_user_id : $post_user_id;
 }
 else
 {
@@ -94,10 +96,16 @@ if ( $result = $db->sql_query($sql) )
 		if ( isset($_POST['submit']) )
 		{
 			$error = FALSE;
-
-			if ( !empty($_POST['email_subject']) )
+			$submitted_sid = (isset($_POST['sid']) && is_scalar($_POST['sid'])) ? (string) $_POST['sid'] : '';
+			if ($submitted_sid === '' || !hash_equals((string) $userdata['session_id'], $submitted_sid))
 			{
-				$subject = trim(stripslashes($_POST['email_subject']));
+				message_die(GENERAL_ERROR, $lang['Session_invalid']);
+			}
+
+			$submitted_subject = (isset($_POST['email_subject']) && is_scalar($_POST['email_subject'])) ? (string) $_POST['email_subject'] : '';
+			if ( $submitted_subject !== '' )
+			{
+				$subject = trim(stripslashes($submitted_subject));
 			}
 			else
 			{
@@ -105,9 +113,10 @@ if ( $result = $db->sql_query($sql) )
 				$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['Empty_subject_email'] : $lang['Empty_subject_email'];
 			}
 
-			if ( !empty($_POST['email_message']) )
+			$submitted_message = (isset($_POST['email_message']) && is_scalar($_POST['email_message'])) ? (string) $_POST['email_message'] : '';
+			if ( $submitted_message !== '' )
 			{
-				$message = trim(stripslashes($_POST['email_message']));
+				$message = trim(stripslashes($submitted_message));
 			}
 			else
 			{
@@ -148,7 +157,7 @@ if ( $result = $db->sql_query($sql) )
 					$emailer->send();
 					$emailer->reset();
 
-					if ( !empty($_POST['cc_email']) )
+					if ( isset($_POST['cc_email']) && is_scalar($_POST['cc_email']) && $_POST['cc_email'] )
 					{
 						$emailer->from($userdata['user_email']);
 						$emailer->replyto($userdata['user_email']);
@@ -203,7 +212,7 @@ if ( $result = $db->sql_query($sql) )
 		$template->assign_vars(array(
 			'USERNAME' => $username,
 
-			'S_HIDDEN_FIELDS' => '', 
+			'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />',
 			'S_POST_ACTION' => append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . "=$user_id"), 
 
 			'L_SEND_EMAIL_MSG' => $lang['Send_email_msg'], 
