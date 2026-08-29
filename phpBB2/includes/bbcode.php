@@ -342,7 +342,7 @@ function bbencode_second_pass($text, $uid)
 	$replacements[] = $bbcode_tpl['img'];
 
 	// matches a [url]xxxx://www.phpbb.com[/url] code..
-	$patterns[] = "#\[url\]([\w]+?://([\w\#$%&~/.\-;:=,?@\]+]+|\[(?!url=))*?)\[/url\]#is";
+	$patterns[] = "#\[url\]((?:https?|ftps?)://([\w\#$%&~/.\-;:=,?@\]+]+|\[(?!url=))*?)\[/url\]#is";
 	$replacements[] = $bbcode_tpl['url1'];
 
 	// [url]www.phpbb.com[/url] code.. (no xxxx:// prefix).
@@ -350,7 +350,7 @@ function bbencode_second_pass($text, $uid)
 	$replacements[] = $bbcode_tpl['url2'];
 
 	// [url=xxxx://www.phpbb.com]phpBB[/url] code..
-	$patterns[] = "#\[url=([\w]+?://[\w\#$%&~/.\-;:=,?@\[\]+]*?)\]([^?\n\r\t].*?)\[/url\]#is";
+	$patterns[] = "#\[url=((?:https?|ftps?)://[\w\#$%&~/.\-;:=,?@\[\]+]*?)\]([^?\n\r\t].*?)\[/url\]#is";
 	$replacements[] = $bbcode_tpl['url3'];
 
 	// [url=www.phpbb.com]phpBB[/url] code.. (no xxxx:// prefix).
@@ -366,16 +366,16 @@ function bbencode_second_pass($text, $uid)
 	$text = str_replace("[fade:$uid]", $bbcode_tpl['fade_open'], $text);
 	$text = str_replace("[/fade:$uid]", $bbcode_tpl['fade_close'], $text);
 	// real
-	$patterns[] = "#\[ram:$uid\]([^?].*?)\[/ram:$uid\]#si";
+	$patterns[] = "#\[ram:$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/ram:$uid\]#si";
 	$replacements[] = $bbcode_tpl['ram'];
 	// sound
-	$patterns[] = "#\[stream:$uid\]([^?].*?)\[/stream:$uid\]#si";
+	$patterns[] = "#\[stream:$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/stream:$uid\]#si";
 	$replacements[] = $bbcode_tpl['stream'];
 	// [flash width= height= loop= ] and [/flash] code..
-	$patterns[] = "#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\]([^?].*?)\[/flash:$uid\]#si";
+	$patterns[] = "#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/flash:$uid\]#si";
 	$replacements[] = $bbcode_tpl['flash'];
 	// [flash width= height= loop= ] and [/flash] code..
-	$patterns[] = "#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\]([^?].*?)\[/video:$uid\]#si";
+	$patterns[] = "#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/video:$uid\]#si";
 	$replacements[] = $bbcode_tpl['video'];
 	$text = preg_replace($patterns, $replacements, $text);
 	// align
@@ -536,13 +536,13 @@ function bbencode_first_pass($text, $uid)
 	// [center] and [/center]
 	$text = preg_replace("#\[center\](.*?)\[/center\]#si", "[center:$uid]\\1[/center:$uid]", $text);
 	// [real]and[/real]
-	$text = preg_replace("#\[ram\](.*?)\[/ram\]#si", "[ram:$uid]\\1[/ram:$uid]", $text);
+	$text = preg_replace("#\[ram\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/ram\]#si", "[ram:$uid]\\1[/ram:$uid]", $text);
 	// [stream]and[/stream]
-	$text = preg_replace("#\[stream\](.*?)\[/stream\]#si", "[stream:$uid]\\1[/stream:$uid]", $text);
+	$text = preg_replace("#\[stream\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/stream\]#si", "[stream:$uid]\\1[/stream:$uid]", $text);
 	//[flash width= heigth= loop=] and [/flash]
-	$text = preg_replace("#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\](([a-z]+?)://([^, \n\r]+))\[\/flash\]#si","[flash width=\\1 height=\\2:$uid\]\\3[/flash:$uid]", $text);
+	$text = preg_replace("#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\]((?:https?|ftps?)://([^, \n\r]+))\[\/flash\]#si","[flash width=\\1 height=\\2:$uid]\\3[/flash:$uid]", $text);
 	//[video width= heigth=] and [/video]
-	$text = preg_replace("#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\](([a-z]+?)://([^, \n\r]+))\[\/video\]#si","[video width=\\1 height=\\2:$uid\]\\3[/video:$uid]", $text);
+	$text = preg_replace("#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\]((?:https?|ftps?)://([^, \n\r]+))\[\/video\]#si","[video width=\\1 height=\\2:$uid]\\3[/video:$uid]", $text);
 	// [hr]
 	$text = preg_replace("#\[hr\]#si", "[hr:$uid]", $text);
 	//[glow=red]and[/glow]for glowing text.
@@ -970,7 +970,7 @@ function make_clickable($text)
 	// matches an "xxxx://yyyy" URL at the start of a line, or after a space.
 	// xxxx can only be alpha characters.
 	// yyyy is anything up to the first space, newline, comma, double quote or <
-	$ret = preg_replace("#(^|[\n ])([\w]+?://[\w\#$%&~/.\-;:=,?@\[\]+]*)#is", "\\1<a href=\"\\2\" target=\"_blank\">\\2</a>", $ret);
+	$ret = preg_replace("#(^|[\n ])((?:https?|ftps?)://[\w\#$%&~/.\-;:=,?@\[\]+]*)#is", "\\1<a href=\"\\2\" target=\"_blank\">\\2</a>", $ret);
 
 	// matches a "www|ftp.xxxx.yyyy[/zzzz]" kinda lazy URL thing
 	// Must contain at least 2 dots. xxxx contains either alphanum, or "-"

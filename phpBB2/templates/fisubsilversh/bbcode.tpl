@@ -163,7 +163,7 @@
 <!-- BEGIN font_open --><span style="font-family:{FONT}"><!-- END font_open --> 
 <!-- BEGIN font_close --></span><!-- END font_close --> 
 
-<!-- BEGIN poet_open --><div tag='{POET}' style='display:none'><!-- END poet_open -->
+<!-- BEGIN poet_open --><div style="display:none"><!-- END poet_open -->
 <!-- BEGIN poet_close --></div><script>doPoetry()</script><!-- END poet_close -->
 
 <!-- BEGIN ram --><div align="center"><embed src="{URL}" align="center" 
