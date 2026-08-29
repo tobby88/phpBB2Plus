@@ -1,0 +1,17 @@
+Options -Indexes -ExecCGI -Includes
+
+# Screenshots remain publicly readable, but uploaded content must never be
+# handled as server-side code.
+<IfModule mod_mime.c>
+    RemoveHandler .php .php3 .php4 .php5 .php6 .php7 .php8 .php9 .phtml .phar .cgi .pl .py .sh .shtml .shtm .asp .aspx .jsp
+    RemoveType .php .php3 .php4 .php5 .php6 .php7 .php8 .php9 .phtml .phar .cgi .pl .py .sh .shtml .shtm .asp .aspx .jsp
+</IfModule>
+<FilesMatch "(?i)\.(php[0-9]?|phtml|phar|cgi|pl|py|sh|shtml|shtm|asp|aspx|jsp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

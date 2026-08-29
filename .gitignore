@@ -31,6 +31,7 @@
 !/phpBB2/pafiledb/uploads/.htaccess
 !/phpBB2/pafiledb/uploads/index.htm
 /phpBB2/pafiledb/cache/*
+!/phpBB2/pafiledb/cache/.htaccess
 !/phpBB2/pafiledb/cache/index.htm
 !/phpBB2/pafiledb/cache/templates/
 /phpBB2/pafiledb/cache/templates/*
