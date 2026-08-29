@@ -42,12 +42,17 @@ $template->assign_block_vars('nav_left',array('ITEM' => '&raquo; <a href="' . ap
 
 $lang['xs_import_back'] = str_replace('{URL}', append_sid('xs_import.'.$phpEx), $lang['xs_import_back']);
 
-$return_url = isset($HTTP_POST_VARS['return']) ? stripslashes($HTTP_POST_VARS['return']) : (isset($HTTP_GET_VARS['return']) ? stripslashes($HTTP_GET_VARS['return']) : '');
+$return_value = isset($HTTP_POST_VARS['return']) && is_scalar($HTTP_POST_VARS['return']) ? $HTTP_POST_VARS['return'] : (isset($HTTP_GET_VARS['return']) && is_scalar($HTTP_GET_VARS['return']) ? $HTTP_GET_VARS['return'] : '');
+$return_url = stripslashes((string) $return_value);
+if($return_url !== '' && (!preg_match('#^[a-zA-Z0-9_]+\.[a-zA-Z0-9]+(?:\?[^\r\n#]*)?(?:#[^\r\n]*)?$#D', $return_url) || strpos($return_url, '//') !== false || strpos($return_url, '\\') !== false))
+{
+	$return_url = '';
+}
 $return = $return_url ? '&return=' . urlencode($return_url) : '';
 if($return)
 {
-	$lang['xs_import_back'] = str_replace('{URL}', $return_url, $lang['xs_import_back_download']);
-	$HTTP_POST_VARS['return'] = $HTTP_GET_VARS['return'] = addslashes($return_url);
+	$lang['xs_import_back'] = str_replace('{URL}', htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8'), $lang['xs_import_back_download']);
+	$HTTP_POST_VARS['return'] = $HTTP_GET_VARS['return'] = $return_url;
 }
 
 //
@@ -77,10 +82,18 @@ include_once('xs_include_import.'.$phpEx);
 //
 // delete style
 //
-if(isset($HTTP_GET_VARS['del']) && !defined('DEMO_MODE'))
+if(isset($HTTP_POST_VARS['delete_style']) && !defined('DEMO_MODE'))
 {
-	$str = xs_tpl_name($HTTP_GET_VARS['del']);
-	@unlink(XS_TEMP_DIR.$str);
+	phpbb_admin_require_post_session();
+	$str = is_scalar($HTTP_POST_VARS['delete_style']) ? xs_tpl_name((string) $HTTP_POST_VARS['delete_style']) : '';
+	if($str === '' || substr($str, -strlen(STYLE_EXTENSION)) !== STYLE_EXTENSION || !@is_file(XS_TEMP_DIR . $str))
+	{
+		xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
+	}
+	if(!@unlink(XS_TEMP_DIR . $str))
+	{
+		xs_error(str_replace('{FILE}', htmlspecialchars($str, ENT_QUOTES, 'UTF-8'), $lang['xs_error_cannot_create_tmp']) . '<br /><br />' . $lang['xs_import_back']);
+	}
 }
 
 //
@@ -88,10 +101,18 @@ if(isset($HTTP_GET_VARS['del']) && !defined('DEMO_MODE'))
 //
 if(isset($HTTP_GET_VARS['import']) || isset($HTTP_POST_VARS['import']))
 {
-	$list_only = isset($HTTP_GET_VARS['list']) ? true : false;
-	$get_file = isset($HTTP_GET_VARS['get_file']) ? stripslashes($HTTP_GET_VARS['get_file']) : '';
+	$list_only = isset($HTTP_GET_VARS['list']) && is_scalar($HTTP_GET_VARS['list']) ? true : false;
+	if(!$list_only)
+	{
+		phpbb_admin_require_post_session();
+	}
+	$get_file = isset($HTTP_GET_VARS['get_file']) && is_scalar($HTTP_GET_VARS['get_file']) ? stripslashes((string) $HTTP_GET_VARS['get_file']) : '';
 	$filename = isset($HTTP_POST_VARS['import']) ? $HTTP_POST_VARS['import'] : $HTTP_GET_VARS['import'];
 	$filename = xs_tpl_name($filename);
+	if($filename === '' || substr($filename, -strlen(STYLE_EXTENSION)) !== STYLE_EXTENSION || !@is_file(XS_TEMP_DIR . $filename))
+	{
+		xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
+	}
 	$write_local = false;
 	if(!$list_only)
 	{
@@ -100,9 +121,10 @@ if(isset($HTTP_GET_VARS['import']) || isset($HTTP_POST_VARS['import']))
 			xs_error($lang['xs_permission_denied'] . '<br /><br />' . $lang['xs_import_back']);
 		}
 		$params = array('import' => $filename);
-		$total = intval($HTTP_POST_VARS['total']);
+		$total = isset($HTTP_POST_VARS['total']) && is_scalar($HTTP_POST_VARS['total']) ? intval($HTTP_POST_VARS['total']) : 0;
+		$total = max(0, min(XS_MAX_ITEMS_PER_STYLE, $total));
 		$params['total'] = $total;
-		$params['import_default'] = isset($HTTP_POST_VARS['import_default']) && strlen($HTTP_POST_VARS['import_default']) ? intval($HTTP_POST_VARS['import_default']) : -1;
+		$params['import_default'] = isset($HTTP_POST_VARS['import_default']) && is_scalar($HTTP_POST_VARS['import_default']) && strlen((string) $HTTP_POST_VARS['import_default']) ? intval($HTTP_POST_VARS['import_default']) : -1;
 		for($i=0; $i<$total; $i++)
 		{
 			$install = empty($HTTP_POST_VARS['import_install_'.$i]) ? 0 : 1;
@@ -130,15 +152,23 @@ if(isset($HTTP_GET_VARS['import']) || isset($HTTP_POST_VARS['import']))
 //
 // Upload
 //
-if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'upload' && !defined('DEMO_MODE'))
+if(isset($HTTP_POST_VARS['action']) && is_scalar($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'upload' && !defined('DEMO_MODE'))
 {
-	if(empty($HTTP_POST_FILES['source']['tmp_name']) || !@file_exists($HTTP_POST_FILES['source']['tmp_name']))
+	phpbb_admin_require_post_session();
+	if(empty($HTTP_POST_FILES['source']['tmp_name']) || !is_scalar($HTTP_POST_FILES['source']['tmp_name']) ||
+		(isset($HTTP_POST_FILES['source']['error']) && (int) $HTTP_POST_FILES['source']['error'] !== UPLOAD_ERR_OK) ||
+		!@is_uploaded_file($HTTP_POST_FILES['source']['tmp_name']))
 	{
 		xs_error($lang['xs_import_nodownload3'] . '<br /><br />' . $lang['xs_import_back']);
 	}
 	$src = $HTTP_POST_FILES['source']['tmp_name'];
+	$src_size = @filesize($src);
+	if($src_size === false || $src_size < 1 || $src_size > XS_MAX_STYLE_UPLOAD_BYTES)
+	{
+		xs_error($lang['xs_import_nodownload3'] . '<br /><br />' . $lang['xs_import_back']);
+	}
 	$dst = generate_style_name('upload');
-	$str = @implode('', @file($src));
+	$str = @file_get_contents($src);
 	if(empty($str))
 	{
 		xs_error($lang['xs_import_nodownload3'] . '<br /><br />' . $lang['xs_import_back']);
@@ -156,13 +186,11 @@ if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'upload' &&
 	{
 		xs_error($lang['xs_style_header_error_incomplete2'] . '<br /><br />' . $lang['xs_import_back']);
 	}
-	$f = @fopen(XS_TEMP_DIR . $dst, 'wb');
-	if(!$f)
+	if(@file_put_contents(XS_TEMP_DIR . $dst, $str, LOCK_EX) !== strlen($str))
 	{
+		@unlink(XS_TEMP_DIR . $dst);
 		xs_error(str_replace('{FILE}', $dst, $lang['xs_error_cannot_create_tmp']) . '<br /><br />' . $lang['xs_import_back']);
 	}
-	fwrite($f, $str);
-	fclose($f);
 	xs_error(str_replace('{URL}', append_sid('xs_import.'.$phpEx.'?importstyle=' . urlencode($dst)), $lang['xs_import_uploaded4']) . '<br /><br />' . $lang['xs_import_back']);
 }
 
@@ -170,9 +198,13 @@ if(isset($HTTP_POST_VARS['action']) && $HTTP_POST_VARS['action'] === 'upload' &&
 //
 // Show import page
 //
-if(!empty($HTTP_GET_VARS['importstyle']))
+if(!empty($HTTP_GET_VARS['importstyle']) && is_scalar($HTTP_GET_VARS['importstyle']))
 {
 	$file = xs_tpl_name($HTTP_GET_VARS['importstyle']);
+	if($file === '' || substr($file, -strlen(STYLE_EXTENSION)) !== STYLE_EXTENSION || !@is_file(XS_TEMP_DIR . $file))
+	{
+		xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
+	}
 	$header = xs_get_style_header(XS_TEMP_DIR.$file);
 	if($header === false)
 	{
@@ -185,16 +217,16 @@ if(!empty($HTTP_GET_VARS['importstyle']))
 	$template->set_filenames(array('import' => XS_TPL_PATH . 'import2.tpl'));
 	$template->assign_vars(array(
 		'FORM_ACTION'			=> append_sid('xs_import.'.$phpEx),
-		'S_RETURN'				=> $return_url ? '<input type="hidden" name="return" value="' . htmlspecialchars($return_url) . '" />' : '',
-		'IMPORT_FILENAME'		=> htmlspecialchars($file),
-		'STYLE_TEMPLATE'		=> htmlspecialchars($header['template']),
-		'STYLE_FILENAME'		=> htmlspecialchars($file),
-		'STYLE_COMMENT'			=> htmlspecialchars($header['comment']),
+		'S_RETURN'				=> $return_url ? '<input type="hidden" name="return" value="' . htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8') . '" />' : '',
+		'IMPORT_FILENAME'		=> htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
+		'STYLE_TEMPLATE'		=> htmlspecialchars($header['template'], ENT_QUOTES, 'UTF-8'),
+		'STYLE_FILENAME'		=> htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
+		'STYLE_COMMENT'			=> htmlspecialchars($header['comment'], ENT_QUOTES, 'UTF-8'),
 		'DATE'					=> create_date($board_config['default_dateformat'], $header['date'], $board_config['board_timezone']),
 		'STYLE_SIZE'			=> $header['filesize'],
-		'STYLE_NAME'			=> htmlspecialchars($header['styles'][0]),
+		'STYLE_NAME'			=> htmlspecialchars($header['styles'][0], ENT_QUOTES, 'UTF-8'),
 		'TOTAL'					=> count($header['styles']),
-		'L_XS_IMPORT_TPL'		=> str_replace('{TPL}', htmlspecialchars($header['template']), $lang['xs_import_tpl'])
+		'L_XS_IMPORT_TPL'		=> str_replace('{TPL}', htmlspecialchars($header['template'], ENT_QUOTES, 'UTF-8'), $lang['xs_import_tpl'])
 		));
 	if(count($header['styles']) > 1)
 	{
@@ -203,7 +235,7 @@ if(!empty($HTTP_GET_VARS['importstyle']))
 		{
 			$template->assign_block_vars('switch_select_style.style', array(
 				'NUM'		=> $i,
-				'NAME'		=> htmlspecialchars($header['styles'][$i]),
+				'NAME'		=> htmlspecialchars($header['styles'][$i], ENT_QUOTES, 'UTF-8'),
 				));
 		}
 	}
@@ -275,7 +307,7 @@ if(count($files))
 			'TEMPLATE'		=> htmlspecialchars($item['template']),
 			'DATE'			=> create_date($board_config['default_dateformat'], $item['date'], $board_config['board_timezone']),
 			'COMMENT'		=> htmlspecialchars($item['comment']),
-			'U_DELETE'		=> append_sid('xs_import.' . $phpEx . '?del=' . urlencode($item['file'])),
+			'DELETE_FILE'	=> htmlspecialchars($item['file'], ENT_QUOTES, 'UTF-8'),
 			'U_IMPORT'		=> append_sid('xs_import.' . $phpEx . '?importstyle=' . urlencode($item['file'])),
 			'U_LIST'		=> append_sid('xs_import.' . $phpEx . '?list=1&import=' . urlencode($item['file'])),
 			));
@@ -284,7 +316,7 @@ if(count($files))
 			for($j=0; $j<count($item['styles']); $j++)
 			{
 				$template->assign_block_vars('styles.list', array(
-					'STYLE'		=> $item['styles'][$j]
+					'STYLE'		=> htmlspecialchars($item['styles'][$j], ENT_QUOTES, 'UTF-8')
 					));
 			}
 			$template->assign_block_vars('styles.valid', array());
@@ -301,6 +333,7 @@ else
 }
 $template->assign_vars(array(
 	'U_SCRIPT'	=> append_sid('xs_import.'.$phpEx),
+	'L_XS_DELETE_CONFIRM' => htmlspecialchars(addslashes($lang['xs_delete_file_confirm']), ENT_QUOTES, 'UTF-8'),
 	));
 
 $template->pparse('body');

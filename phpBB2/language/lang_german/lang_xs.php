@@ -308,6 +308,7 @@ $lang['xs_import_explain'] = 'Diese Funktion erlaubt den Import von Styles. Eben
 $lang['xs_import_lc'] = 'importieren';
 $lang['xs_list_files_lc'] = 'Dateien auflisten';
 $lang['xs_delete_file_lc'] = 'Datei löschen';
+$lang['xs_delete_file_confirm'] = 'Möchtest Du dieses zwischengespeicherte Style-Paket wirklich löschen?';
 $lang['xs_export_style_lc'] = 'Style exportieren';
 
 $lang['xs_import_no_cached'] = 'Es gibt keine gecachten Styles zum importieren';

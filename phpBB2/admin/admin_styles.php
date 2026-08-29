@@ -54,6 +54,14 @@ $no_page_header = (!empty($HTTP_POST_VARS['send_file']) || !empty($_POST['send_f
 
 require('./pagestart.' . $phpEx);
 
+// phpBB2 Plus ships eXtreme Styles as its active style manager. Keep this
+// legacy endpoint as a compatibility redirect so its obsolete import path
+// (which executes theme_info.cfg as PHP) cannot be reached directly.
+if (!empty($template->xs_version) && $template->xs_version === 8)
+{
+	redirect(append_sid("xs_frameset.$phpEx?action=menu", true));
+}
+
 if ($cancel)
 {
 	redirect('admin/' . append_sid("admin_styles.$phpEx", true));

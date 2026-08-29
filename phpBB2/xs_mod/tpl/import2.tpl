@@ -14,7 +14,7 @@
  ***************************************************************************/
 <!-- END xs_file_version -->
 
-<form action="{FORM_ACTION}" method="post">{S_RETURN}<input type="hidden" name="import" value="{IMPORT_FILENAME}" /><table width="100%" cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">
+<form action="{FORM_ACTION}" method="post">{S_RETURN}<input type="hidden" name="import" value="{IMPORT_FILENAME}" /><input type="hidden" name="total" value="{TOTAL}" /><table width="100%" cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">
 	<tr>
 		<th class="thHead" colspan="2">{L_XS_IMPORT_TPL}</th>
 	</tr>
@@ -37,10 +37,9 @@
 	<!-- BEGIN switch_select_nostyle -->
 	<tr>
 		<td class="row1"><span class="gen">{L_XS_IMPORT_INSTALL_STYLE}</span></td>
-		<td class="row2" nowrap="nowrap"><span class="gen"><label><input type="checkbox" name="import_install_0" /> {STYLE_NAME}</label> &nbsp;&nbsp;&nbsp;&nbsp;(<label><input type="radio" name="import_default_0" /> {L_XS_IMPORT_INSTALL_DEF_LC}</label>)</span></td>
+		<td class="row2" nowrap="nowrap"><span class="gen"><label><input type="checkbox" name="import_install_0" /> {STYLE_NAME}</label> &nbsp;&nbsp;&nbsp;&nbsp;(<label><input type="radio" name="import_default" value="0" /> {L_XS_IMPORT_INSTALL_DEF_LC}</label>)</span></td>
 	</tr>
 	<!-- END switch_select_nostyle -->
-	<input type="hidden" name="total" value="{TOTAL}" />
 	<tr>
 		<td class="catBottom" colspan="2" align="center">{S_HIDDEN_FIELDS}<input type="submit" name="submit" value="{L_XS_IMPORT}" class="mainoption" /></td>
 	</tr>

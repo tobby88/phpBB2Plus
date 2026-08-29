@@ -161,6 +161,9 @@ define('XS_TPL_PATH', '../../xs_mod/tpl/');
 define('XS_BACKUP_PREFIX', 'backup.');
 define('XS_BACKUP_EXT', '.backup');
 define('XS_MAX_TIMEOUT', 600); // maximum timeout for downloads/import/installation
+define('XS_MAX_STYLE_UPLOAD_BYTES', 32 * 1024 * 1024);
+define('XS_MAX_STYLE_UNPACKED_BYTES', 64 * 1024 * 1024);
+define('XS_MAX_STYLE_FILES', 5000);
 
 $xs_row_class = array('row1', 'row2');
 
@@ -782,11 +785,86 @@ function ftp_myexec2($ftp, $list)
 // return data from theme_info.cfg
 function xs_get_themeinfo($tpl)
 {
-	// Get contents of theme_info.cfg
-	// Run inside function to avoid theme_info.cfg accessing global variables
-	$tpl = str_replace(array('/', '\\'), array('', ''), $tpl);
-	include('../templates/' . $tpl . '/theme_info.cfg');
-	return isset($$tpl) ? $$tpl : array();
+	$tpl = xs_tpl_name($tpl);
+	if($tpl === '')
+	{
+		return array();
+	}
+	$filename = '../templates/' . $tpl . '/theme_info.cfg';
+	$filesize = @filesize($filename);
+	if($filesize === false || $filesize < 1 || $filesize > 1024 * 1024)
+	{
+		return array();
+	}
+	$contents = @file_get_contents($filename);
+	if($contents === false || strlen($contents) !== $filesize)
+	{
+		return array();
+	}
+
+	// theme_info.cfg used to be included as PHP. Parse its simple assignment
+	// format instead so an imported style cannot execute arbitrary code.
+	$allowed_keys = array(
+		'template_name', 'style_name', 'head_stylesheet', 'body_background',
+		'body_bgcolor', 'body_text', 'body_link', 'body_vlink', 'body_alink',
+		'body_hlink', 'tr_color1', 'tr_color2', 'tr_color3', 'tr_class1',
+		'tr_class2', 'tr_class3', 'th_color1', 'th_color2', 'th_color3',
+		'th_class1', 'th_class2', 'th_class3', 'td_color1', 'td_color2',
+		'td_color3', 'td_class1', 'td_class2', 'td_class3', 'fontface1',
+		'fontface2', 'fontface3', 'fontsize1', 'fontsize2', 'fontsize3',
+		'fontcolor1', 'fontcolor2', 'fontcolor3', 'span_class1', 'span_class2',
+		'span_class3', 'div_class1', 'div_class2', 'div_class3', 'row_class1',
+		'row_class2', 'row_class3', 'col_class1', 'col_class2', 'col_class3',
+		'img_size_poll', 'img_size_privmsg'
+	);
+	$data = array();
+	$lines = preg_split('/\r\n|\r|\n/', preg_replace('/^\xEF\xBB\xBF/', '', $contents));
+	$pattern = '/^\s*(?:\$([A-Za-z0-9_.-]+)|\$\{\s*[\'\"]([A-Za-z0-9_.-]+)[\'\"]\s*\})\s*\[\s*([0-9]+)\s*\]\s*\[\s*[\'\"]([A-Za-z0-9_]+)[\'\"]\s*\]\s*=\s*\"(.*)\";\s*$/D';
+	foreach($lines as $line)
+	{
+		$trimmed = trim($line);
+		if($trimmed === '' || $trimmed === '<?php' || $trimmed === '?>' ||
+			substr($trimmed, 0, 2) === '//' || substr($trimmed, 0, 1) === '#' ||
+			substr($trimmed, 0, 2) === '/*' || substr($trimmed, 0, 1) === '*' ||
+			substr($trimmed, 0, 2) === '*/')
+		{
+			continue;
+		}
+		if(strlen($line) > 8192 || !preg_match($pattern, $line, $match))
+		{
+			return array();
+		}
+		$variable = $match[1] !== '' ? $match[1] : $match[2];
+		$index = (int) $match[3];
+		$key = $match[4];
+		$value = $match[5];
+		if($variable !== $tpl || $index < 0 || $index >= XS_MAX_ITEMS_PER_STYLE ||
+			!in_array($key, $allowed_keys, true) || strlen($value) > 4096 ||
+			preg_match('/(^|[^\\\\])(?:\\\\\\\\)*\"/', $value))
+		{
+			return array();
+		}
+		$decoded_value = stripcslashes($value);
+		if(preg_match('/[\x00-\x1F\x7F]/', $decoded_value))
+		{
+			return array();
+		}
+		$data[$index][$key] = $decoded_value;
+	}
+	if(!count($data))
+	{
+		return array();
+	}
+	ksort($data);
+	$data = array_values($data);
+	foreach($data as $style)
+	{
+		if(empty($style['style_name']) || !isset($style['template_name']) || $style['template_name'] !== $tpl)
+		{
+			return array();
+		}
+	}
+	return $data;
 }
 
 // install style

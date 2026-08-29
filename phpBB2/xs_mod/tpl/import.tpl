@@ -39,7 +39,7 @@
 			[<a href="{styles.U_IMPORT}">{L_XS_IMPORT_LC}</a>]
 			[<a href="{styles.U_LIST}">{L_XS_LIST_FILES_LC}</a>]
 		<!-- END valid -->
-			[<a href="{styles.U_DELETE}">{L_XS_DELETE_FILE_LC}</a>]
+			<form action="{U_SCRIPT}" method="post" style="display: inline;">{S_HIDDEN_FIELDS}<input type="hidden" name="delete_style" value="{styles.DELETE_FILE}" /><button type="submit" class="liteoption" onclick="return confirm('{L_XS_DELETE_CONFIRM}');">{L_XS_DELETE_FILE_LC}</button></form>
 		</td>
 	</tr>
 	<!-- END styles -->
@@ -52,8 +52,6 @@
 
 <br />
 
-<table width="100%">
-
 <table width="100%" cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">
 	<tr>
 	  <th class="thHead" colspan="2">{L_XS_ADD_STYLES}</th>
@@ -65,8 +63,8 @@
 			<input type="file" name="source" size="30" />
 			<input type="submit" value="{L_XS_ADD_STYLES_UPLOAD_GET}" class="mainoption" />
 			</form>
+		</td>
 		</tr>
-	</tr>
 </table>
 
 <br />

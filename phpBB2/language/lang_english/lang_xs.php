@@ -307,6 +307,7 @@ $lang['xs_import_explain'] = 'This feature allows you to import styles. It can a
 $lang['xs_import_lc'] = 'import';
 $lang['xs_list_files_lc'] = 'list files';
 $lang['xs_delete_file_lc'] = 'delete file';
+$lang['xs_delete_file_confirm'] = 'Are you sure you want to delete this cached style package?';
 $lang['xs_export_style_lc'] = 'export style';
 
 $lang['xs_import_no_cached'] = 'There are no cached styles to import';
