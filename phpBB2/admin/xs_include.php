@@ -450,11 +450,11 @@ function xs_get_style_header($filename, $str = '')
 		$str = fread($f, 10240);
 		fclose($f);
 	}
-	if(substr($str, 0, strlen(STYLE_HEADER_START)) !== STYLE_HEADER_START)
+	if(!is_string($str) || substr($str, 0, strlen(STYLE_HEADER_START)) !== STYLE_HEADER_START)
 	{
-		if(substr($str, 0, 7) === 'error: ')
+		if(is_string($str) && substr($str, 0, 7) === 'error: ')
 		{
-			$xs_header_error = '<br /><br />' . $lang['xs_style_header_error_server'] . substr($str, 7);
+			$xs_header_error = '<br /><br />' . $lang['xs_style_header_error_server'] . htmlspecialchars(substr($str, 7, 1024), ENT_QUOTES, 'UTF-8');
 		}
 		else
 		{
@@ -463,14 +463,24 @@ function xs_get_style_header($filename, $str = '')
 		return false;
 	}
 	$start = strlen(STYLE_HEADER_START);
+	if(strlen($str) < $start + 9)
+	{
+		$xs_header_error = $lang['xs_style_header_error_invalid'];
+		return false;
+	}
 	$str1 = substr($str, $start, 8);
 	$data = unpack('Nvar1/Nvar2', $str1);
+	if(!is_array($data) || !isset($data['var1']) || !isset($data['var2']))
+	{
+		$xs_header_error = $lang['xs_style_header_error_invalid'];
+		return false;
+	}
 	$start += 8;
-	$header_size = $data['var1'];
-	$filesize = $data['var2'];
+	$header_size = (int) $data['var1'];
+	$filesize = (int) $data['var2'];
 	$total = ord($str[$start]);
 	$start ++;
-	if($total < 3)
+	if($total < 3 || $total > XS_MAX_ITEMS_PER_STYLE + 2 || strlen($str) < $start + $total)
 	{
 		$xs_header_error = $lang['xs_style_header_error_invalid'];
 		return false;
@@ -483,18 +493,40 @@ function xs_get_style_header($filename, $str = '')
 	$start += $total;
 	$items = array();
 	$tpl = '';
+	$comment = '';
 	for($i=0; $i<$total; $i++)
 	{
+		if($items_len[$i] > strlen($str) - $start)
+		{
+			$xs_header_error = $lang['xs_style_header_error_invalid'];
+			return false;
+		}
 		$str1 = substr($str, $start, $items_len[$i]);
 		if($i == 0)	$tpl = $str1;
 		elseif($i == 1)	$comment = $str1;
 		else	$items[] = $str1;
 		$start += $items_len[$i];
 	}
-	if(substr($str, $start, strlen(STYLE_HEADER_END)) !== STYLE_HEADER_END)
+	$expected_header_size = $start + strlen(STYLE_HEADER_END);
+	if($header_size !== $expected_header_size || $header_size > strlen($str) || $filesize < $header_size || $filesize > XS_MAX_STYLE_UPLOAD_BYTES || substr($str, $start, strlen(STYLE_HEADER_END)) !== STYLE_HEADER_END)
 	{
 		$xs_header_error = $lang['xs_style_header_error_invalid'];
 		return false;
+	}
+	$template_length = preg_match_all('/./us', $tpl, $template_characters);
+	if($tpl === '' || xs_tpl_name($tpl) !== $tpl || $template_length === false || $template_length > 30 || !count($items) || preg_match('/[\x00-\x1F\x7F]/', $comment) || preg_match('//u', $comment) !== 1)
+	{
+		$xs_header_error = $lang['xs_style_header_error_invalid'];
+		return false;
+	}
+	for($i=0; $i<count($items); $i++)
+	{
+		$style_length = preg_match_all('/./us', $items[$i], $style_characters);
+		if($items[$i] === '' || $style_length === false || $style_length > 30 || preg_match('/[\x00-\x1F\x7F]/', $items[$i]))
+		{
+			$xs_header_error = $lang['xs_style_header_error_invalid'];
+			return false;
+		}
 	}
 	return array(
 		'template'	=> $tpl,

@@ -111,8 +111,6 @@ if($str === false || !strlen($str))
 // unpack tar file
 //
 $pos = 0;
-$tmp_name = XS_TEMP_DIR . 'file_' . $filename . '_%02d.tmp';
-$tmp_count = 0;
 $files = array();	// complete list of files
 $list_data = array();	// result for list
 $dirs = array();	// complete list of directories
@@ -233,16 +231,18 @@ while($pos < $archive_length)
 				else
 				{
 					// write to temporary file
-					$tmp_count ++;				
-					$data['tmp'] = sprintf($tmp_name, $tmp_count);
-					if(@file_put_contents($data['tmp'], $contents, LOCK_EX) !== strlen($contents))
+					$data['tmp'] = @tempnam(XS_TEMP_DIR, 'xs_import_');
+					if($data['tmp'] === false || @file_put_contents($data['tmp'], $contents, LOCK_EX) !== strlen($contents))
 					{
-						@unlink($data['tmp']);
+						if($data['tmp'] !== false)
+						{
+							@unlink($data['tmp']);
+						}
 						if(defined('XS_CLONING'))
 						{
 							@unlink($tmp_filename);
 						}
-						xs_error(str_replace('{FILE}', $data['tmp'], $lang['xs_error_cannot_create_tmp']) . '<br /><br />' . $lang['xs_import_back']);
+						xs_error(str_replace('{FILE}', XS_TEMP_DIR, $lang['xs_error_cannot_create_tmp']) . '<br /><br />' . $lang['xs_import_back']);
 					}
 				}
 			}
@@ -255,7 +255,7 @@ while($pos < $archive_length)
 				{
 					// show as text
 					$str = '<div align="left">' . $lang['xs_import_list_contents'] . $f . ' [<a href="' . append_sid('xs_import.' . $phpEx . '?list=1&import=' . urlencode($filename) . '&get_file=' . urlencode($f) . '&get_content=1') . '">' . $lang['xs_import_download_lc'] . '</a>]<br /><br />';
-					$str .= '<textarea cols="120" rows="30" style="width: 100%">' . htmlspecialchars($contents) . '</textarea>';
+					$str .= '<textarea cols="120" rows="30" style="width: 100%">' . htmlspecialchars($contents, ENT_QUOTES, 'UTF-8') . '</textarea>';
 					$str .= '</div>';
 					xs_message($lang['Information'], $str);
 				}
@@ -324,7 +324,7 @@ if($list_only)
 	$str .= '<table border="0" cellspacing="0" cellpadding="1" align="left">';
 	foreach($list_data as $var => $value)
 	{
-		$str .= '<tr><td>' . htmlspecialchars($value['filename']) . '</td><td>';
+		$str .= '<tr><td>' . htmlspecialchars($value['filename'], ENT_QUOTES, 'UTF-8') . '</td><td>';
 		if($value['size'] > 0)
 		{
 			$ext = strtolower(substr($var, strlen($var) - 4));
@@ -398,8 +398,8 @@ if(!$write_local)
 //
 // Check if we need to install style
 //
-	$total = isset($HTTP_POST_VARS['total']) && is_scalar($HTTP_POST_VARS['total']) ? intval($HTTP_POST_VARS['total']) : 0;
-$total = max(0, min(XS_MAX_ITEMS_PER_STYLE, $total));
+$total = isset($HTTP_POST_VARS['total']) && is_scalar($HTTP_POST_VARS['total']) ? intval($HTTP_POST_VARS['total']) : 0;
+$total = max(0, min(XS_MAX_ITEMS_PER_STYLE, count($header['styles']), $total));
 $default = isset($HTTP_POST_VARS['import_default']) && is_scalar($HTTP_POST_VARS['import_default']) && strlen((string) $HTTP_POST_VARS['import_default']) ? intval($HTTP_POST_VARS['import_default']) : -1;
 $install = array();
 $default_name = '';
@@ -482,7 +482,7 @@ for($i=0; $i<count($install); $i++)
 		{
 			@unlink($tmp_filename);
 		}
-		xs_error(str_replace('{STYLE}', $style_name, $lang['xs_import_notinstall3']) . '<br /><br />' . $lang['xs_import_back']);
+		xs_error(str_replace('{STYLE}', htmlspecialchars($style_name, ENT_QUOTES, 'UTF-8'), $lang['xs_import_notinstall3']) . '<br /><br />' . $lang['xs_import_back']);
 	}
 	if($installed)
 	{
@@ -545,7 +545,14 @@ for($i=0; $i<count($install); $i++)
 	{
 		$sql = "UPDATE " . CONFIG_TABLE . " SET config_value='{$installed}' WHERE config_name='default_style'";
 		$board_config['default_style'] = $installed;
-		$db->sql_query($sql);
+		if(!$db->sql_query($sql))
+		{
+			if(defined('XS_CLONING'))
+			{
+				@unlink($tmp_filename);
+			}
+			xs_error($lang['xs_import_notinstall5'] . '<br /><br />' . $lang['xs_import_back']);
+		}
 	}
 }
 if(defined('XS_CLONING'))
