@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced CrackerTracker's account-wide failed-login CAPTCHA flag with a
+  15-minute limiter scoped to the server-verified IP and submitted username.
+  Distributed guessing is still bounded by the broader IP limiter, but an
+  attacker can no longer impose an unlock step on the victim's account.
+  Existing legacy flags are cleared after a valid login, unknown and existing
+  names follow the same limiter path, and the AdminCP now describes the actual
+  account-safe behavior.
 - Hardened the CrackerTracker source scanner so a magic source-code comment
   can no longer declare an arbitrary file safe. Traversal stays inside the
   forum root, skips symlinks and volatile/cache data, escapes stored paths and

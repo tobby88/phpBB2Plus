@@ -51,6 +51,16 @@ if (ctracker_rate_limit_increment('test', 'identity', 60, 1) !== 0 ||
 	$errors[] = 'Atomic rate-limit counter did not allow then throttle as expected.';
 }
 
+$ctracker_config = new stdClass();
+$ctracker_config->settings = array('loginfeature' => '1', 'logincount' => '20');
+$ctracker_config->user_ip_value = '192.0.2.10';
+$before_identity_count = $db->count;
+ctracker_enforce_login_identity_limit('Example User');
+if ($db->count !== $before_identity_count + 1)
+{
+	$errors[] = 'Per-IP/account login limiter did not use the atomic store.';
+}
+
 if ($errors)
 {
 	fwrite(STDERR, implode("\n", $errors) . "\n");

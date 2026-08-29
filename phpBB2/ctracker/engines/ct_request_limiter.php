@@ -146,6 +146,48 @@ function ctracker_enforce_request_limit()
 	}
 }
 
+/**
+ * Add a tighter failed-login limit for one verified IP and one submitted
+ * account name. Unlike the legacy user-table flag, another visitor can never
+ * force a CAPTCHA or lock state onto the account for its legitimate owner.
+ */
+function ctracker_enforce_login_identity_limit($username)
+{
+	global $ctracker_config;
+
+	if (empty($ctracker_config->settings['loginfeature']))
+	{
+		return;
+	}
+	$username = is_scalar($username) ? strtolower(trim((string) $username)) : '';
+	if ($username === '')
+	{
+		return;
+	}
+
+	$configured_limit = isset($ctracker_config->settings['logincount']) ? intval($ctracker_config->settings['logincount']) : 5;
+	$limit = max(5, min(20, $configured_limit));
+	$remote_ip = isset($ctracker_config->user_ip_value) ? (string) $ctracker_config->user_ip_value : '0.0.0.0';
+	$identity = $remote_ip . "\0" . hash('sha256', $username);
+	$retry_after = ctracker_rate_limit_increment('login-identity', $identity, 900, $limit);
+
+	if ($retry_after !== false && $retry_after > 0)
+	{
+		if (!headers_sent())
+		{
+			http_response_code(429);
+			header('Retry-After: ' . $retry_after);
+			header('Cache-Control: no-store');
+			header('Content-Type: text/html; charset=UTF-8');
+		}
+		echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Login temporarily limited</title></head><body>' .
+			'<h1>Login vorübergehend begrenzt / Login temporarily limited</h1>' .
+			'<p>Für diese Verbindung gab es mehrere fehlgeschlagene Versuche. Bitte warte kurz. ' .
+			'This connection made several unsuccessful attempts. Please wait briefly.</p></body></html>';
+		exit;
+	}
+}
+
 if (!defined('CTRACKER_REQUEST_LIMITER_NO_AUTO_RUN'))
 {
 	ctracker_enforce_request_limit();

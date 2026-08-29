@@ -24,9 +24,6 @@
 // Allow people to reach login page if
 // board is shut down
 //
-// CTracker_Ignore: File Checked By Human
-// Tell the CTracker Filescanner that this constant is allowed
-//
 define('IN_LOGIN', true);
 
 if (!defined('IN_PHPBB'))
@@ -58,12 +55,7 @@ else
 	$sid = '';
 }
 
-// CrackerTracker v5.x
 $submitted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
-if ( $submitted_username !== '' && $ctracker_config->settings['loginfeature'] == 1 )
-{
-	$ctracker_config->check_login_status($submitted_username);
-}
 if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) )
 {
 	if( isset($_POST['login']) && (!$userdata['session_logged_in'] || isset($_POST['admin'])) )
@@ -140,10 +132,8 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						{
 							$ctracker_config->update_login_history($row['user_id']);
 						}
-						if ( $ctracker_config->settings['loginfeature'] == 1 )
-						{
-							$ctracker_config->reset_login_system($row['user_id']);
-						}
+						// Clear any legacy account-wide CAPTCHA flag after a valid login.
+						$ctracker_config->reset_login_system($row['user_id']);
 						if ( $ctracker_config->settings['login_ip_check'] == 1 )
 						{
 							$ctracker_config->set_user_ip($row['user_id']);
@@ -219,15 +209,11 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 							$logfile->prepare_log($row['username']);
 							$logfile->write_general_logfile($ctracker_config->settings['logsize_logins'], 4);
 							unset($logfile);
-							if ( $ctracker_config->settings['loginfeature'] == 1 )
-							{
-								$ctracker_config->handle_wrong_login($row['user_id'], $row['ct_login_count']);
-							}
 						}
 						// Record the event without allowing an unauthenticated attacker
 						// to hard-lock another user's account or trigger email floods.
-						// CrackerTracker's per-account CAPTCHA and central per-IP limiter
-						// remain responsible for slowing repeated guesses.
+						// CrackerTracker's central and per-IP/account limiters remain
+						// responsible for slowing repeated guesses.
 						$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin = user_badlogin + 1
 							WHERE user_id = " . intval($row['user_id']);
 						if (!$db->sql_query($sql))
@@ -236,6 +222,9 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						}
 					}
 				}
+				// Apply this to existing and unknown names alike to avoid turning the
+				// limiter into an account-enumeration signal.
+				ctracker_enforce_login_identity_limit($submitted_username);
 				$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
 				$redirect = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : '';
 				$redirect = str_replace('?', '&', $redirect);

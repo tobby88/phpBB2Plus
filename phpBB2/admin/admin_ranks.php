@@ -9,7 +9,6 @@
  *   $Id: admin_ranks.php,v 1.13.2.4 2004/03/25 15:57:20 acydburn Exp $
  *
  ***************************************************************************/
-// CTracker_Ignore: File Checked By Human
 // Tell the Security Scanner that reachable code in this file is not a security issue
 
 

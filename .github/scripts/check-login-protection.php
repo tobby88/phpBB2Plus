@@ -6,7 +6,8 @@ $errors = array();
 
 $required = array(
 	'hash_equals((string) $userdata[\'session_id\']',
-	'$ctracker_config->handle_wrong_login',
+	'ctracker_enforce_login_identity_limit($submitted_username)',
+	'$ctracker_config->reset_login_system($row[\'user_id\'])',
 	'user_badlogin = user_badlogin + 1'
 );
 foreach ($required as $marker)
@@ -19,7 +20,9 @@ foreach ($required as $marker)
 
 $forbidden = array(
 	'$blocktime = ", user_block_by',
-	"use_template('bad_login'"
+	"use_template('bad_login'",
+	'$ctracker_config->handle_wrong_login',
+	'$ctracker_config->check_login_status'
 );
 foreach ($forbidden as $marker)
 {

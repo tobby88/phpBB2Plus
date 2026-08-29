@@ -17,8 +17,6 @@
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License
 */
 
-// CTracker_Ignore: File checked by human
-
 /*
  * We say we're the login page that the Admin has the possibility to
  * reactivate his account again if it should be deactivated on disabled

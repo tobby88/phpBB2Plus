@@ -30,7 +30,7 @@ if( isset($HTTP_POST_VARS['submit']) )
 		'search_feature_enabled' => array(0, 1), 'search_time_user' => array(1, 90),
 		'search_count_user' => array(1, 6), 'search_time_guest' => array(1, 90),
 		'search_count_guest' => array(1, 6), 'loginfeature' => array(0, 1),
-		'logsize_logins' => array(1, 400), 'logincount' => array(1, 6),
+		'logsize_logins' => array(1, 400), 'logincount' => array(5, 20),
 		'login_history' => array(0, 1), 'login_history_count' => array(1, 60),
 		'login_ip_check' => array(0, 1), 'spammer_blockmode' => array(0, 2),
 		'spammer_postcount' => array(1, 12), 'spammer_time' => array(1, 90),
@@ -77,7 +77,7 @@ $configuration['search_time_guest']       = $adminclass->ct_generate_number_fiel
 $configuration['search_count_guest']	  = $adminclass->ct_generate_number_field(1, 6, $ctracker_config->settings['search_count_guest']);
 $configuration['loginfeature'] 			  = $adminclass->ct_generate_on_off($ctracker_config->settings['loginfeature']);
 $configuration['logsize_logins']		  = $adminclass->ct_generate_number_field(1, 400, $ctracker_config->settings['logsize_logins']);
-$configuration['logincount']	  		  = $adminclass->ct_generate_number_field(1, 6, $ctracker_config->settings['logincount']);
+$configuration['logincount']	  		  = $adminclass->ct_generate_number_field(5, 20, max(5, intval($ctracker_config->settings['logincount'])));
 $configuration['login_history'] 		  = $adminclass->ct_generate_on_off($ctracker_config->settings['login_history']);
 $configuration['login_history_count']	  = $adminclass->ct_generate_number_field(1, 60, $ctracker_config->settings['login_history_count']);
 $configuration['login_ip_check'] 		  = $adminclass->ct_generate_on_off($ctracker_config->settings['login_ip_check']);

@@ -13,8 +13,6 @@
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License 
 */
 
-// CTracker_Ignore: File Checked By Human
-
 // Set constants
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 define('CTRACKER_ACP', true);
