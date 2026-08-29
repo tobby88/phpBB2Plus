@@ -50,7 +50,9 @@ if(document.Formular.textfeld.value == "")
 </tr>
 
 <tr><td colspan="2" class="row2"><span class="postbody">{kontakt1}</td></tr>
-<form name="Formular" action="kontakt_post.php" method="POST" onSubmit="return chkFormular()" OnReset="return ResetCheck()" enctype="multipart/form-data">
+<form name="Formular" action="{U_CONTACT_ACTION}" method="post" onsubmit="return chkFormular()" onreset="return ResetCheck()">
+{S_HIDDEN_FIELDS}
+<div style="display:none" aria-hidden="true"><label>Website <input type="text" name="website" value="" tabindex="-1" autocomplete="off" /></label></div>
 <tr>
 <td width="38%" class="row1"><font size="3"><span class="postbody">{kontakt2}</font></td>
 <td align="left" class="row2"><input class="input" name="name" type="text" size="40" maxlength="50"></td>

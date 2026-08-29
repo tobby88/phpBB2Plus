@@ -79,6 +79,15 @@ $mode = ( isset($_POST['report_x']) ) ? 'report' :
 		);
 $post_id = ( isset($_POST['post_id']) ) ? intval ($_POST['post_id']) : '';
 $user_id = ( isset($_POST[POST_USERS_URL]) ) ? intval ($_POST[POST_USERS_URL]) : '';
+$sid = isset($_POST['sid']) && is_string($_POST['sid']) ? $_POST['sid'] : '';
+
+$userdata = session_pagestart($user_ip, PAGE_CARD);
+init_userprefs($userdata);
+
+if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+{
+	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+}
 
 // check that we have all what is needed to know
 if ( !( $post_id + $user_id ) )
@@ -86,16 +95,22 @@ if ( !( $post_id + $user_id ) )
 if ( empty($mode) )
 	message_die(GENERAL_ERROR, "No action specified", "", __LINE__, __FILE__,'mode="'.$mode.'"');
 
-$sql = 'SELECT DISTINCT forum_id, poster_id, post_bluecard FROM ' . POSTS_TABLE . ' WHERE post_id = "'.$post_id.'"';
-if( !$result = $db->sql_query($sql) )
-      message_die(GENERAL_ERROR, "Couldn't obtain forums information.", "", __LINE__, __FILE__, $sql);
-$result = $db->sql_fetchrow($result);
-$blue_card = $result['post_bluecard'];
 if ( $post_id )
 {
 	// post mode
-	$forum_id = $result['forum_id'];
-	$poster_id = $result['poster_id'];
+	$sql = 'SELECT DISTINCT forum_id, poster_id, post_bluecard FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $post_id;
+	if (!$query_result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, "Couldn't obtain forums information.", '', __LINE__, __FILE__, $sql);
+	}
+	$post_data = $db->sql_fetchrow($query_result);
+	if (!$post_data)
+	{
+		message_die(GENERAL_ERROR, $lang['No_such_post']);
+	}
+	$blue_card = (int) $post_data['post_bluecard'];
+	$forum_id = (int) $post_data['forum_id'];
+	$poster_id = (int) $post_data['poster_id'];
 } else
 if ( $user_id )
 {
@@ -103,12 +118,10 @@ if ( $user_id )
 	//forum_id will control witch permission, when no post_id is given, and a user_id is given instead
 	//disable the frum_id line will give no default access when no post_id is given
 	// installe extra permission mod, in order to enable this feature
-//	$forum_id = PAGE_CARD;
+	$forum_id = PAGE_CARD;
 	$poster_id = $user_id;
+	$blue_card = 0;
 }
-
-$userdata = session_pagestart($user_ip, PAGE_CARD);
-init_userprefs($userdata);
 
 //
 // Start auth check
@@ -155,7 +168,7 @@ if ($mode=="report")
 	$post_details = $db->sql_fetchrow($result);
 	$post_subject=$post_details['post_subject'];
 
-	$sql = 'SELECT p.topic_id FROM '.POSTS_TEXT_TABLE.' pt, '.POSTS_TABLE.' p  WHERE pt.post_subject="('.$post_id.')'.$post_subject.'" AND pt.post_id=p.post_id';
+	$sql = "SELECT p.topic_id FROM " . POSTS_TEXT_TABLE . " pt, " . POSTS_TABLE . " p WHERE pt.post_subject = '(" . $post_id . ")" . $db->sql_escape($post_subject) . "' AND pt.post_id = p.post_id";
 	if( !$result = $db->sql_query($sql) )
      		message_die(GENERAL_ERROR, "Couldn't get topic subject information".$sql);
 	$post_details = $db->sql_fetchrow($result);
@@ -305,7 +318,7 @@ if ( $mode == 'block' )
 	$sql = 'UPDATE ' . USERS_TABLE . ' SET user_block_by="'.$user_ip.'", user_blocktime="'.(time()+$board_config['RY_block_time']*60).'" WHERE user_id="'.$poster_id.'"';
 	if(! $result = $db->sql_query($sql) )
 		message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
-	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in="0", session_user_id=".ANONYMOUS." WHERE session_user_id="'.$poster_id.'"';
+	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in = 0, session_user_id = ' . ANONYMOUS . ' WHERE session_user_id = ' . $poster_id;
 	if ( !$db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, "Couldn't update blocked sessions from database", "", __LINE__, __FILE__, $sql);

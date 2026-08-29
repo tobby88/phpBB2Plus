@@ -49,8 +49,8 @@ class emailer
 	// Resets all the data (address, template file, etc etc to default
 	function reset()
 	{
-		$this->addresses = array();
-		$this->vars = $this->msg = $this->extra_headers = '';
+		$this->addresses = array('to' => '', 'cc' => array(), 'bcc' => array());
+		$this->vars = $this->msg = $this->subject = $this->extra_headers = '';
 	}
 
 	// Sets an email address to send to
@@ -88,7 +88,15 @@ class emailer
 	// set up extra mail headers
 	function extra_headers($headers)
 	{
-		$this->extra_headers .= trim($headers) . "\n";
+		$lines = preg_split('/[\r\n]+/', (string) $headers);
+		foreach ($lines as $line)
+		{
+			$line = trim($line);
+			if (preg_match('/^X-AntiAbuse:\s*([^\r\n]*)$/iD', $line, $match))
+			{
+				$this->extra_headers .= 'X-AntiAbuse: ' . trim($match[1]) . "\n";
+			}
+		}
 	}
 
 	function use_template($template_file, $template_lang = '')
@@ -145,6 +153,8 @@ class emailer
 		global $board_config, $lang, $phpEx, $phpbb_root_path, $db;
 
 		$vars = $this->vars;
+		$board_email = trim(preg_replace('#[\r\n]+#', '', (string) $board_config['board_email']));
+		$server_name = trim(preg_replace('#[^a-z0-9.-]+#i', '', (string) $board_config['server_name']));
 		$this->msg = preg_replace_callback(
 			'#\{([a-z0-9\-_]*?)\}#is',
 			function ($match) use ($vars)
@@ -189,7 +199,7 @@ class emailer
 		$bcc = (count($this->addresses['bcc'])) ? implode(', ', $this->addresses['bcc']) : '';
 
 		// Build header
-		$this->extra_headers = (($this->reply_to != '') ? "Reply-to: $this->reply_to\n" : '') . (($this->from != '') ? "From: $this->from\n" : "From: " . $board_config['board_email'] . "\n") . "Return-Path: " . $board_config['board_email'] . "\nMessage-ID: <" . md5(uniqid(time())) . "@" . $board_config['server_name'] . ">\nMIME-Version: 1.0\nContent-type: text/plain; charset=" . $this->encoding . "\nContent-transfer-encoding: 8bit\nDate: " . date('r', time()) . "\nX-Priority: 3\nX-MSMail-Priority: Normal\nX-Mailer: PHP\nX-MimeOLE: Produced By phpBB2\n" . $this->extra_headers . (($cc != '') ? "Cc: $cc\n" : '')  . (($bcc != '') ? "Bcc: $bcc\n" : ''); 
+		$this->extra_headers = (($this->reply_to != '') ? "Reply-to: $this->reply_to\n" : '') . (($this->from != '') ? "From: $this->from\n" : "From: " . $board_email . "\n") . "Return-Path: " . $board_email . "\nMessage-ID: <" . md5(uniqid(time())) . "@" . $server_name . ">\nMIME-Version: 1.0\nContent-type: text/plain; charset=" . $this->encoding . "\nContent-transfer-encoding: 8bit\nDate: " . date('r', time()) . "\nX-Priority: 3\nX-MSMail-Priority: Normal\nX-Mailer: PHP\nX-MimeOLE: Produced By phpBB2\n" . $this->extra_headers . (($cc != '') ? "Cc: $cc\n" : '')  . (($bcc != '') ? "Bcc: $bcc\n" : '');
 
 		// Send message ... removed $this->encode() from subject for time being
 		if ( $this->use_smtp )

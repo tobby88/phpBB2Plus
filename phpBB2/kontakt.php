@@ -44,7 +44,9 @@ $template->assign_vars(array(
 'kontakt_js3' => $lang['kontakt_js3'],
 'kontakt_js4' => $lang['kontakt_js4'],
 'kontakt_js5' => $lang['kontakt_js5'],
-'kontakt_js6' => $lang['kontakt_js6'])
+'kontakt_js6' => $lang['kontakt_js6'],
+'U_CONTACT_ACTION' => append_sid('kontakt_post.' . $phpEx),
+'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />')
 );
 
 $template->set_filenames(array(

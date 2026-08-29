@@ -1361,7 +1361,7 @@ for($i = 0; $i < $total_posts; $i++)
 	} else $b_card_img = '';
 
 	// parse hidden filds if cards visible
-	$card_hidden = ($g_card_img || $r_card_img || $y_card_img || $b_card_img) ? '<input type="hidden" name="post_id" value="'. $postrow[$i]['post_id'].'">' :'';
+	$card_hidden = ($g_card_img || $r_card_img || $y_card_img || $b_card_img) ? '<input type="hidden" name="post_id" value="'. $postrow[$i]['post_id'].'"><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '">' :'';
 
 	$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? $postrow[$i]['post_subject'] : (($postrow[$i]['post_id'] == $topic_first_post_id) ? $forum_topic_data['topic_title'] : '');
 

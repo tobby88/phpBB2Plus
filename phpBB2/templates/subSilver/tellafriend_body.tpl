@@ -17,6 +17,7 @@
 		<td class="row1">
 		<br><br>
 		<form action="{SUBMIT_ACTION}" method="post">
+		{S_HIDDEN_FIELDS}
 		<table width="70%" align="center">
 			<tr>
 			<td>
@@ -59,11 +60,10 @@
 			</textarea>
 			</td>
 			</tr>
-			<input type="hidden" name="topic" value="">
 		</table>
 		<br><center>
 		<input type="hidden" name="topic" size="25" maxlength="100" value="{TOPIC}">
-		<input type="hidden" name="linkk" size="25" maxlength="100" value="{LINK}">
+		<input type="hidden" name="link" value="{LINK}">
 		<input type="submit" name="submit" class="mainoption" value="{L_SUBMIT}">
 		</center>
 		</form>
@@ -74,4 +74,3 @@
 		<td height="28" class="cat">&nbsp;</td>
 	</tr>
 </table>
-
