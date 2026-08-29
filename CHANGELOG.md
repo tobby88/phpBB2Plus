@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced the CrackerTracker maintenance page's checks for removed PHP
+  features and discontinued update servers with local diagnostics for the
+  structural request engine, blocklist matcher, atomic rate-limit table,
+  supported PHP runtime, HTTPS and adaptive password hashing. Log permissions
+  are described as read/write requirements rather than recommending CHMOD 777.
 - Removed the legacy unauthenticated account hard-lock and repeated warning
   email path, which let an attacker deny service to a known user with only a
   few bad passwords. Failed attempts remain counted and logged, while the

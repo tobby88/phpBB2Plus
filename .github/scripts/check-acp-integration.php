@@ -52,6 +52,7 @@ $integrations = array(
 	'admin/admin_db_maintenance.php' => array('$module[\'General\'][\'DB_Maintenance\']', 'admin/dbmtnc_list_body.tpl'),
 	'admin/admin_album_nuffload_config.php' => array('$module[\'Photo_Album\'][\'Nuffload\']', 'admin/admin_album_nuffload_config_body.tpl'),
 	'admin/admin_cracker_tracker.php' => array('$module[\'ctracker_module_category\'][\'ctracker_module_1\']', '?modu=11'),
+	'ctracker/admin/acp_module_maintenance.php' => array('CTRACKER_RATE_LIMITS', "version_compare(PHP_VERSION, '5.6.0'", 'password_hashing', 'HTTPS'),
 	'admin/admin_board.php' => array('cookie_consent_enable', 'sfs_enable'),
 	'admin/admin_arcade.php' => array('$module[\'Arcade\'][\'Configuration\']'),
 	'admin/admin_album_config_extended.php' => array('$module[\'Photo_Album\'][\'Configuration\']')

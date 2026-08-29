@@ -97,43 +97,43 @@
 		<th>{L_SEC_HEAD_4}</th>
 	</tr>
 	<tr>
-		<td class="row1" width="40%%"><b>{L_SEC_INFO_1}</b></td>
+		<td class="row1" width="40%"><b>{L_SEC_INFO_1}</b></td>
 		<td class="row1" width="15%" align="center">{L_SEC_INFO_V1}</td>
 		<td class="row1" width="15%" align="center">{L_SEC_INFO_OV1}</td>
 		<td class="row1" width="30%">{L_SEC_INFO_D1}</td>
 	</tr>
 	<tr>
-		<td class="row2" width="40%%">{L_SEC_INFO_2}</td>
+		<td class="row2" width="40%">{L_SEC_INFO_2}</td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_V2}</td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_OV2}</td>
 		<td class="row2" width="30%">{L_SEC_INFO_D2}</td>
 	</tr>
 	<tr>
-		<td class="row1" width="40%%">{L_SEC_INFO_3}</td>
+		<td class="row1" width="40%">{L_SEC_INFO_3}</td>
 		<td class="row1" width="15%" align="center">{L_SEC_INFO_V3}</td>
 		<td class="row1" width="15%" align="center">{L_SEC_INFO_OV3}</td>
 		<td class="row1" width="30%">{L_SEC_INFO_D3}</td>
 	</tr>
 	<tr>
-		<td class="row2" width="40%%"><b>{L_SEC_INFO_4}</b></td>
+		<td class="row2" width="40%"><b>{L_SEC_INFO_4}</b></td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_V4}</td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_OV4}</td>
 		<td class="row2" width="30%">{L_SEC_INFO_D4}</td>
 	</tr>
 	<tr>
-		<td class="row2" width="40%%">{L_SEC_INFO_4a}</td>
+		<td class="row2" width="40%">{L_SEC_INFO_4a}</td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_V4a}</td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_OV4a}</td>
 		<td class="row2" width="30%">{L_SEC_INFO_D4a}</td>
 	</tr>
 	<tr>
-		<td class="row2" width="40%%">{L_SEC_INFO_4b}</td>
+		<td class="row2" width="40%">{L_SEC_INFO_4b}</td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_V4b}</td>
 		<td class="row2" width="15%" align="center">{L_SEC_INFO_OV4b}</td>
 		<td class="row2" width="30%">{L_SEC_INFO_D4b}</td>
 	</tr>
 	<tr>
-		<td class="row1" width="40%%"><b>{L_SEC_INFO_5}</b></td>
+		<td class="row1" width="40%"><b>{L_SEC_INFO_5}</b></td>
 		<td class="row1" width="15%" align="center">{L_SEC_INFO_V5}</td>
 		<td class="row1" width="15%" align="center">{L_SEC_INFO_OV5}</td>
 		<td class="row1" width="30%">{L_SEC_INFO_D5}</td>

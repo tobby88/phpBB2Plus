@@ -40,7 +40,6 @@ if ($mode !== '')
 }
 
 // Reset used vars
-$uplink_values = array();
 $chmod_values  = array();
 $chmod_path    = array();
 $testvalue	   = array();
@@ -70,61 +69,24 @@ for($i = 1; $i <= 6; $i++)
 unset($logmanager);
 
 
-// The original maintenance page queried a discontinued, unencrypted uplink.
-// Keep the historic fields neutral instead of delaying ACP requests or trusting
-// data from an unrelated third-party endpoint.
-for ( $i = 0; $i <= 4; $i++ )
-{
-	$uplink_values[$i] = $lang['ctracker_ma_unknown'];
-}
-
-
 // Engine tests
-( defined('protection_unit_one') )  ? $testvalue[1] = $lang['ctracker_ma_active'] : $testvalue[1] = $lang['ctracker_ma_inactive'];
-( defined('protection_unit_two') )  ? $testvalue[2] = $lang['ctracker_ma_active'] : $testvalue[2] = $lang['ctracker_ma_inactive'];
-( defined('protection_unit_three') )? $testvalue[3] = $lang['ctracker_ma_active'] : $testvalue[3] = $lang['ctracker_ma_inactive'];
-( count($ct_rules) >= 260 )         ? $testvalue[4] = $lang['ctracker_ma_active'] : $testvalue[4] = $lang['ctracker_ma_inactive'];
-
-// CrackerTracker's 2006 PHP-version recommendation service no longer exists.
-$testvalue[5] = $lang['ctracker_ma_unknown'];
-
-// Safemode and Globals test
-$testvalue[6] = strtolower(@ini_get('safe_mode'));
-$testvalue[7] = strtolower(@ini_get('register_globals'));
-
-
-if ( $testvalue[6] == 'on' || $testvalue[6] >= '1' )
+$rate_table_ready = false;
+$rate_result = $db->sql_query('SELECT bucket_hash FROM ' . CTRACKER_RATE_LIMITS . ' LIMIT 1');
+if ($rate_result)
 {
-	$testvalue[6] = $lang['ctracker_ma_on'];
-	$testvalue[8] = $lang['ctracker_ma_secure'];
+	$rate_table_ready = true;
+	$db->sql_freeresult($rate_result);
 }
-else if ( !isset($testvalue[6]) )
-{
-	$testvalue[6] = $lang['ctracker_ma_unknown'];
-	$testvalue[8] = $lang['ctracker_ma_unknown'];
-}
-else
-{
-	$testvalue[6] = $lang['ctracker_ma_off'];
-	$testvalue[8] = $lang['ctracker_ma_warning'];
-}
+$request_limits_enabled = $rate_table_ready && !empty($ctracker_config->settings['request_limit_enabled']);
+$adaptive_hashing_enabled = !empty($board_config['password_hashing']);
+$https_enabled = (!empty($HTTP_SERVER_VARS['HTTPS']) && strtolower((string) $HTTP_SERVER_VARS['HTTPS']) !== 'off') ||
+	(isset($HTTP_SERVER_VARS['SERVER_PORT']) && intval($HTTP_SERVER_VARS['SERVER_PORT']) === 443);
+$php_supported = version_compare(PHP_VERSION, '5.6.0', '>=');
 
-
-if ( $testvalue[7] == 'on' || $testvalue[7] >= '1' )
-{
-	$testvalue[7] = $lang['ctracker_ma_on'];
-	$testvalue[9] = $lang['ctracker_ma_warning'];
-}
-else if ( !isset($testvalue[7]) )
-{
-	$testvalue[7] = $lang['ctracker_ma_unknown'];
-	$testvalue[9] = $lang['ctracker_ma_unknown'];
-}
-else
-{
-	$testvalue[7] = $lang['ctracker_ma_off'];
-	$testvalue[9] = $lang['ctracker_ma_secure'];
-}
+$testvalue[1] = (defined('protection_unit_one') && function_exists('ct_security_request_is_attack')) ? $lang['ctracker_ma_active'] : $lang['ctracker_ma_inactive'];
+$testvalue[2] = (defined('protection_unit_two') && function_exists('ctracker_rate_limit_increment')) ? $lang['ctracker_ma_active'] : $lang['ctracker_ma_inactive'];
+$testvalue[3] = (defined('protection_unit_three') && function_exists('ctracker_blocklist_matches')) ? $lang['ctracker_ma_active'] : $lang['ctracker_ma_inactive'];
+$testvalue[4] = $rate_table_ready ? $lang['ctracker_ma_active'] : $lang['ctracker_ma_inactive'];
 
 
 // Maintenance actions
@@ -261,7 +223,7 @@ $template->assign_vars(array(
 		'L_NAME_1'		 => $lang['ctracker_ma_name_1'],
 		'L_NAME_2'		 => $lang['ctracker_ma_name_2'],
 		'L_NAME_3'		 => $lang['ctracker_ma_name_3'],
-		'L_NAME_4'		 => sprintf($lang['ctracker_ma_name_4'], count($ct_rules) + count($ct_spammer_def) + count($ct_mailscn_def) + count($ct_userspm_def) + $ctracker_config->blocklist_count),
+		'L_NAME_4'		 => $lang['ctracker_ma_name_4'],
 		'L_VAL_1'		 => $testvalue[1],
 		'L_VAL_2'		 => $testvalue[2],
 		'L_VAL_3'		 => $testvalue[3],
@@ -287,24 +249,24 @@ $template->assign_vars(array(
 		'L_VAL_10'		 => ($chmod_values[6] == 1)? $lang['ctracker_ma_ca'] : $lang['ctracker_ma_ci'],
 
 		'L_SEC_INFO_1'	 => $lang['ctracker_ma_scheck_1'],
-		'L_SEC_INFO_V1'	 => @phpversion(),
-		'L_SEC_INFO_OV1' => (@phpversion() >= '5.0.0')? $uplink_values[2] : $uplink_values[1],
-		'L_SEC_INFO_D1'	 => $testvalue[5],
+		'L_SEC_INFO_V1'	 => PHP_VERSION,
+		'L_SEC_INFO_OV1' => '&gt;= 5.6',
+		'L_SEC_INFO_D1'	 => $php_supported ? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
 
 		'L_SEC_INFO_2'	 => $lang['ctracker_ma_scheck_2'],
-		'L_SEC_INFO_V2'	 => $testvalue[6],
+		'L_SEC_INFO_V2'	 => $request_limits_enabled ? $lang['ctracker_ma_on'] : $lang['ctracker_ma_off'],
 		'L_SEC_INFO_OV2' => $lang['ctracker_ma_on'],
-		'L_SEC_INFO_D2'	 => $testvalue[8],
+		'L_SEC_INFO_D2'	 => $request_limits_enabled ? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
 
 		'L_SEC_INFO_3'	 => $lang['ctracker_ma_scheck_3'],
-		'L_SEC_INFO_V3'	 => $testvalue[7],
-		'L_SEC_INFO_OV3' => $lang['ctracker_ma_off'],
-		'L_SEC_INFO_D3'	 => $testvalue[9],
+		'L_SEC_INFO_V3'	 => $adaptive_hashing_enabled ? $lang['ctracker_ma_on'] : $lang['ctracker_ma_off'],
+		'L_SEC_INFO_OV3' => $lang['ctracker_ma_on'],
+		'L_SEC_INFO_D3'	 => $adaptive_hashing_enabled ? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
 
 		'L_SEC_INFO_4'	 => $lang['ctracker_ma_scheck_4'],
-		'L_SEC_INFO_V4'	 => '2' . $board_config['version'],
-		'L_SEC_INFO_OV4' => $uplink_values[3],
-		'L_SEC_INFO_D4'	 => ('2' . $board_config['version'] >= $uplink_values[3])? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
+		'L_SEC_INFO_V4'	 => $https_enabled ? $lang['ctracker_ma_on'] : $lang['ctracker_ma_off'],
+		'L_SEC_INFO_OV4' => $lang['ctracker_ma_on'],
+		'L_SEC_INFO_D4'	 => $https_enabled ? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
 
 		'L_SEC_INFO_4a'	 => $lang['ctracker_ma_scheck_4a'],
 		'L_SEC_INFO_V4a' => ($board_config['enable_confirm'] == 1)? $lang['ctracker_ma_on'] : $lang['ctracker_ma_off'],
@@ -318,8 +280,8 @@ $template->assign_vars(array(
 
 		'L_SEC_INFO_5'	 => $lang['ctracker_ma_scheck_5'],
 		'L_SEC_INFO_V5'	 => CTRACKER_VERSION,
-		'L_SEC_INFO_OV5' => $uplink_values[0],
-		'L_SEC_INFO_D5'	 => (CTRACKER_VERSION >= $uplink_values[0])? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
+		'L_SEC_INFO_OV5' => $lang['ctracker_ma_active'],
+		'L_SEC_INFO_D5'	 => ($testvalue[1] == $lang['ctracker_ma_active'] && $testvalue[2] == $lang['ctracker_ma_active'] && $testvalue[3] == $lang['ctracker_ma_active']) ? $lang['ctracker_ma_secure'] : $lang['ctracker_ma_warning'],
 
 		'S_MAINTENANCE_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=7'),
 		'S_FORM_TOKEN' => phpbb_admin_session_field(),
