@@ -955,6 +955,12 @@ function xs_install_style($tpl, $num)
 	return true;
 }
 
+function xs_escape_themeinfo_value($value)
+{
+	$value = preg_replace('/[\x00-\x1F\x7F]/', '', (string) $value);
+	return str_replace(array('\\', '"', '$'), array('\\\\', '\\"', '\\$'), $value);
+}
+
 // generate theme_info.cfg for template
 function xs_generate_themeinfo($theme_rowset, $export, $exportas, $total)
 {
@@ -980,15 +986,15 @@ function xs_generate_themeinfo($theme_rowset, $export, $exportas, $total)
 			$val = $theme_rowset[$i][$key];
 			if($key === 'style_name')
 			{
-				$theme_data .= '${\'' . $exportas . "'}[$i]['$key'] = \"" . str_replace(array("'", '"'), array("\'", "\\\""), $theme_name) . "\";\n";
+				$theme_data .= '${\'' . $exportas . "'}[$i]['$key'] = \"" . xs_escape_themeinfo_value($theme_name) . "\";\n";
 			}
 			elseif($key === 'template_name')
 			{
-				$theme_data .= '${\'' . $exportas . "'}[$i]['$key'] = \"" . str_replace(array("'", '"'), array("\'", "\\\""), $exportas) . "\";\n";
+				$theme_data .= '${\'' . $exportas . "'}[$i]['$key'] = \"" . xs_escape_themeinfo_value($exportas) . "\";\n";
 			}
 			else
 			{
-				$theme_data .= '${\'' . $exportas . "'}[$i]['$key'] = \"" . str_replace(array("'", '"'), array("\'", "\\\""), str_replace($export, $exportas, $val)) . "\";\n";
+				$theme_data .= '${\'' . $exportas . "'}[$i]['$key'] = \"" . xs_escape_themeinfo_value(str_replace($export, $exportas, $val)) . "\";\n";
 			}
 		}
 		$theme_data .= "\n";

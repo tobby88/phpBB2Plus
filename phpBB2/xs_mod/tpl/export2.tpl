@@ -80,7 +80,7 @@
 		</tr>
 		<tr>
 			<td nowrap="nowrap">&nbsp;&nbsp;{L_XS_FTP_PASS}:</td>
-			<td><input class="post" type="text" name="export_to_ftp_pass" value="" size="30" /></td>
+			<td><input class="post" type="password" name="export_to_ftp_pass" value="" size="30" autocomplete="new-password" /></td>
 		</tr>
 		<tr>
 			<td nowrap="nowrap">&nbsp;&nbsp;{L_XS_FTP_REMOTEDIR}:</td>
