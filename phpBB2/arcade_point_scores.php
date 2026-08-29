@@ -2,227 +2,154 @@
 /***************************************************************************
  *                            arcade_point_scores.php
  *                            -----------------------
- *		Version  		: 2.0.0
- *		Email			: painkiller@sympatico.ca
- *		Site			: http://deadzone.runecentral.com
- *      Original Author : Gumfuzi - http://www.gumfuzi.com
- *		Copyright		: Painkiller January 12, 2007
- *
- ***************************************************************************
-                          >>>> Instructions <<<<
-
- - Run the attached SQL install.php from the root of your phpBB directory
- - Upload arcade_point_scores.php to your phpBB root directory
- - Upload arcade_point_scores.tpl to each of your template directories
-
+ *      Version         : 2.0.0, modernized for phpBB2 Plus
+ *      Original Author : Gumfuzi
+ *      Mod Author      : Painkiller
  ***************************************************************************/
 
 define('IN_PHPBB', true);
 
-if(isset($_GET['phpbb_root_path']))
+if (isset($_GET['phpbb_root_path']))
 {
-	die("Hacking attempt");
+	die('Hacking attempt');
 }
+
 $phpbb_root_path = './';
-
 include($phpbb_root_path . 'extension.inc');
-include($phpbb_root_path . 'common.'.$phpEx);
-
-$filename = basename(__FILE__);
-$phpEx    = substr(strrchr(__FILE__, '.'), 1);
+include($phpbb_root_path . 'common.' . $phpEx);
 
 $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
 
-if (!$userdata['session_logged_in'] )
+if (!$userdata['session_logged_in'])
 {
-  redirect(append_sid("login.$phpEx?redirect=arcade_point_scores.$phpEx", true));
+	redirect(append_sid("login.$phpEx?redirect=arcade_point_scores.$phpEx", true));
 }
-//
-// Change "Deadzone" to your sitename
-//
-$page_title = 'The Best Players At '. $board_config['sitename'];
 
-include($phpbb_root_path . 'includes/page_header.'.$phpEx);
+$page_title = 'The Best Players At ' . $board_config['sitename'];
+include($phpbb_root_path . 'includes/page_header.' . $phpEx);
 
 $template->set_filenames(array('body' => 'arcade_point_scores.tpl'));
 
-######## Set Values Here - Begin ########
+// Points awarded for each current monthly and all-time high score.
+$monthly_points = 1;
+$all_time_points = 4;
+$include_previous_month = true;
+$started_at = microtime(true);
+$totals = array();
 
-$month = 1;      # Points for Current HighScores
-$alltime = 4;    # Points for All Time HighScores
-$ui = 180;       # Cache update interval in seconds
-$mon2 = 1;       # 2 month interval between reset of Current Scores?  0 = no // 1 = yes
-
-######## Change data to suit your requirements - End ########
-
-$time = time();
-$sx_time = microtime(true);
-$time_date = create_date($board_config['default_dateformat'], $time, $board_config['board_timezone']);
-
-$tlu = 0;
-$tlu_date = $time_date;
-$mon = array();
-$hi = array();
-$i = 0;
-$x = 0;
-$sql = "SELECT * from phpbb_config WHERE config_name = 'last_update_points'";
-if(!$result = $db->sql_query($sql)) {
-   message_die(GENERAL_ERROR, 'Error retrieving last_update_points', '', __LINE__, __FILE__, $sql);
-}
-while($row = $db->sql_fetchrow($result))
+$year = (int) date('Y');
+$month = (int) date('n');
+$monthly_ranges = array(array($year, $month));
+if ($include_previous_month)
 {
-   $tlu = $row['config_value'];
-   $tlu_date = create_date($board_config['default_dateformat'], $tlu, $board_config['board_timezone']);
+	$previous_month_time = mktime(12, 0, 0, $month - 1, 1, $year);
+	$monthly_ranges[] = array((int) date('Y', $previous_month_time), (int) date('n', $previous_month_time));
 }
 
-if (($tlu + $ui) < $time)
+$month_conditions = array();
+foreach ($monthly_ranges as $range)
 {
-   $infotext = "List generated on " . $time_date;
+	$month_conditions[] = '(highscore_year = ' . $range[0] . ' AND highscore_mon = ' . $range[1] . ')';
+}
 
-   $sql = 'DELETE FROM `phpbb_total_scores`';
-   $db->sql_query($sql);
-
-   $t_year = date("Y", time());
-   $t_month = date("m", time());
-$mon_sql = "`highscore_mon` = $t_month AND `highscore_year` = $t_year";
-if ($mon2 == 1)
+$sql = "SELECT highscore_player, COUNT(*) AS score_count
+	FROM " . iNA_HIGHSCORES . "
+	WHERE " . implode(' OR ', $month_conditions) . "
+	GROUP BY highscore_player";
+if (!($result = $db->sql_query($sql)))
 {
-   if ($t_month >= 2)
-   {
-      if ($t_month <= 10)
-      {
-         $t_month_alt = "0" . ($t_month - 1);
-         $t_year_alt = $t_year;
-      }
-      elseif ($t_month <= 12)
-      {
-         $t_month_alt = $t_month - 1;
-         $t_year_alt = $t_year;
-      }
-   }
-   elseif ($t_month == 1)
-   {
-      $t_month_alt = $t_month = 12;
-      $t_year_alt = $t_year - 1;
-   }
-   $mon_sql =  "(" . $mon_sql . ") OR (`highscore_mon` = $t_month_alt AND `highscore_year` = $t_year_alt)";
+	message_die(GENERAL_ERROR, 'Error retrieving monthly high scores', '', __LINE__, __FILE__, $sql);
 }
-
-$sql="SELECT highscore_player, Count(*) AS Number FROM `phpbb_ina_highscore` WHERE $mon_sql GROUP BY highscore_player";
-if(!$result = $db->sql_query($sql)) {
-   message_die(GENERAL_ERROR, 'Error retrieving highscore_player', '', __LINE__, __FILE__, $sql);
-}
-while($row = $db->sql_fetchrow($result))
+while ($row = $db->sql_fetchrow($result))
 {
-   $mon[$row['highscore_player']] = $row['Number'];
+	$player = (string) $row['highscore_player'];
+	$totals[$player] = array(
+		'player' => $player,
+		'monthly' => (int) $row['score_count'],
+		'all_time' => 0,
+		'total' => 0
+	);
 }
 
-   $sql="SELECT s.game_name, u.user_id, u.username AS player, s.player_id, s.score, s.date, g.reverse_list, g.game_show_score,    g.game_avail
-      FROM phpbb_ina_at_scores s, phpbb_ina_games g, phpbb_users u
-      WHERE u.user_id = s.player_id AND s.game_name = g.game_name AND g.reverse_list = 0 AND g.game_avail = 1 AND g.game_show_score = 1
-      ORDER BY game_name ASC, score DESC, date ASC";
-
-   if(!$result = $db->sql_query($sql))
-   {
-      message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
-   }
-   $last_game = "";
-   while($row = $db->sql_fetchrow($result))
-   {
-      if ($row['game_name'] <> $last_game)
-      {
-         $i++;
-         $best_player[$i] = $row['player'];
-         $hi[$row['player']] = isset($hi[$row['player']]) ? $hi[$row['player']] + 1 : 1;
-      }
-      $last_game = $row['game_name'];
-   }
-
-   $sql="SELECT s.game_name, u.user_id, u.username AS player, s.player_id, s.score, s.date, g.reverse_list, g.game_show_score, g.game_avail
-      FROM phpbb_ina_at_scores s, phpbb_ina_games g, phpbb_users u
-      WHERE u.user_id = s.player_id AND s.game_name = g.game_name AND g.reverse_list = 1 AND g.game_avail = 1 AND g.game_show_score = 1
-      ORDER BY game_name ASC, score ASC, date ASC";
-
-   if(!$result = $db->sql_query($sql))
-   {
-      message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
-   }
-   $last_game = "";
-   while($row = $db->sql_fetchrow($result))
-   {
-      if ($row['game_name'] <> $last_game)
-      {
-         $i++;
-         $best_player[$i] = $row['player'];
-         $hi[$row['player']] = isset($hi[$row['player']]) ? $hi[$row['player']] + 1 : 1;
-      }
-      $last_game = $row['game_name'];
-   }
-
-   $sql = "SELECT username FROM " . USERS_TABLE . " ORDER BY username";
-   if( !$result = $db->sql_query($sql) )
-   {
-      message_die(GENERAL_ERROR, $lang['no_user_data'], "", __LINE__, __FILE__, $sql);
-   }
-   $sql="INSERT INTO `phpbb_total_scores` VALUES ";
-   $c = 0;
-   while($row = $db->sql_fetchrow($result))
-   {
-      $user = $row['username'];
-      $monthly_total = isset($mon[$user]) ? intval($mon[$user]) : 0;
-      $all_time_total = isset($hi[$user]) ? intval($hi[$user]) : 0;
-      if ($monthly_total > 0 OR $all_time_total > 0)
-      {
-         $c = $c + 1;
-         if ($c >=2) { $sql .= ", "; }
-         $total = $monthly_total * $month + $all_time_total * $alltime;
-         $safe_user = str_replace("'", "''", $user);
-         $sql .= "($c, '$safe_user', $monthly_total, $all_time_total, $total)";
-      }
-   }
-   if ($c > 0)
-   {
-      $db->sql_query($sql);
-   }
-   unset($mon, $hi, $total, $best_player);
-
-   $sql = "UPDATE phpbb_config SET config_value = '$time' WHERE config_name = 'last_update_points' LIMIT 1";
-   if(!$result = $db->sql_query($sql))
-   {
-      message_die(GENERAL_ERROR, 'Error updating last_update points', '', __LINE__, __FILE__, $sql);
-   }
-}
-else
+// All-time score rows contain the full history. The first row per game after
+// applying each game's direction is its current all-time winner.
+foreach (array(0 => 'DESC', 1 => 'ASC') as $reverse_list => $sort_order)
 {
-   $infotext = "List loaded from cache on " . $tlu_date . "<br />Next list generation in " . ($ui - ($time - $tlu)) . " seconds";
+	$sql = "SELECT s.game_name, u.username AS player
+		FROM " . iNA_AT_SCORES . " s
+		INNER JOIN " . iNA_GAMES . " g ON g.game_name = s.game_name
+		INNER JOIN " . USERS_TABLE . " u ON u.user_id = s.player_id
+		WHERE g.reverse_list = " . (int) $reverse_list . "
+			AND g.game_avail = 1
+			AND g.game_show_score = 1
+		ORDER BY s.game_name ASC, s.score $sort_order, s.date ASC";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, $lang['no_score_data'], '', __LINE__, __FILE__, $sql);
+	}
+
+	$last_game = null;
+	while ($row = $db->sql_fetchrow($result))
+	{
+		if ($row['game_name'] === $last_game)
+		{
+			continue;
+		}
+		$last_game = $row['game_name'];
+		$player = (string) $row['player'];
+		if (!isset($totals[$player]))
+		{
+			$totals[$player] = array(
+				'player' => $player,
+				'monthly' => 0,
+				'all_time' => 0,
+				'total' => 0
+			);
+		}
+		$totals[$player]['all_time']++;
+	}
 }
 
-$sql = 'SELECT * FROM `phpbb_total_scores` ORDER BY total DESC, hi_total DESC';
-if( !$result = $db->sql_query($sql) )
+foreach ($totals as &$player_total)
 {
-   message_die(GENERAL_ERROR, $lang['no_user_data'], "", __LINE__, __FILE__, $sql);
+	$player_total['total'] = ($player_total['monthly'] * $monthly_points) +
+		($player_total['all_time'] * $all_time_points);
 }
-while($row = $db->sql_fetchrow($result))
+unset($player_total);
+
+uasort($totals, function ($left, $right) {
+	if ($left['total'] !== $right['total'])
+	{
+		return ($left['total'] > $right['total']) ? -1 : 1;
+	}
+	if ($left['all_time'] !== $right['all_time'])
+	{
+		return ($left['all_time'] > $right['all_time']) ? -1 : 1;
+	}
+	return strcasecmp($left['player'], $right['player']);
+});
+
+$rank = 0;
+foreach ($totals as $player_total)
 {
-   $x = $x + 1;
-   $template->assign_block_vars("total", array(
-      "RANK" => $x,
-      "NAME" => $row['player'],
-      "MONTH_TOTAL" => $row['mon_total'],
-      "AT_TOTAL" => $row['hi_total'],
-      "TOTAL" => $row['total']
-   ));
+	$rank++;
+	$template->assign_block_vars('total', array(
+		'RANK' => $rank,
+		'NAME' => htmlspecialchars($player_total['player'], ENT_QUOTES, 'UTF-8'),
+		'MONTH_TOTAL' => $player_total['monthly'],
+		'AT_TOTAL' => $player_total['all_time'],
+		'TOTAL' => $player_total['total']
+	));
 }
-$akt_time = microtime(true);
+
 $template->assign_vars(array(
-   'TITLE' => $page_title,
-   'C_MONTH' => $month,
-   'C_ALL_TIME' => $alltime,
-   'INFOTEXT' => $infotext . "<br />List Generated in " . round(($akt_time - $sx_time),4) . " Seconds"
+	'TITLE' => htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'),
+	'C_MONTH' => $monthly_points,
+	'C_ALL_TIME' => $all_time_points,
+	'INFOTEXT' => 'List generated in ' . round(microtime(true) - $started_at, 4) . ' seconds'
 ));
 
 $template->pparse('body');
-include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
-
+include($phpbb_root_path . 'includes/page_tail.' . $phpEx);
 ?>

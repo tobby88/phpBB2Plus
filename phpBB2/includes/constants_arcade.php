@@ -54,7 +54,6 @@ define('iNA_PMs_TABLE',  $table_prefix.'ina_pms');
 define('iNA_USER_DATA',  $table_prefix.'ina_user_data');
 define('iNA_GAMES_RATE',  $table_prefix.'ina_rate');
 define('iNA_GAMES_COMMENT', $table_prefix.'ina_comment');
-define('iNA_HIGHSCORE', $table_prefix.'ina_highscore ');
 define('iNA_TOUR', $table_prefix.'ina_tour');
 define('iNA_TOUR_DATA', $table_prefix.'ina_tour_data');
 define('iNA_TOUR_PLAY', $table_prefix.'ina_tour_play');
