@@ -4,7 +4,7 @@
 <p>{L_LICENSEEXPLAIN}</p>
 
 <!-- BEGIN license_form -->
-<form action="{S_EDIT_LIC_ACTION}" method="post"><table width="100%" cellpadding="3" cellspacing="1" class="forumline">
+<form action="{S_EDIT_LIC_ACTION}" method="post">{S_FORM_TOKEN}<table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr>
 	<th colspan="2" class="thHead">{L_ELICENSETITLE}</b></th>
   </tr>
@@ -24,7 +24,7 @@
 <!-- END license_form -->
 
 <!-- BEGIN license -->
-<form action="{S_EDIT_LIC_ACTION}" method="post"><table width="100%" cellpadding="3" cellspacing="1" class="forumline">
+<form action="{S_EDIT_LIC_ACTION}" method="post">{S_FORM_TOKEN}<table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr>
 	<th colspan="2" class="thHead">{L_ELICENSETITLE}</th>
   </tr>

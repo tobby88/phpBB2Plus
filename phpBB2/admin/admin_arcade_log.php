@@ -55,9 +55,9 @@ $file = basename(__FILE__);
 $mode         = $arcade->pass_var('mode', '', true);
 $start        = $arcade->pass_var('start', 0, true);
 $sort         = $arcade->pass_var('sort', 0, true);
-$purge        = $arcade->pass_var('purge', '');
-$x            = $arcade->pass_var('x', 0, true);
-$y            = $arcade->pass_var('y', 0, true);
+$purge        = isset($HTTP_POST_VARS['purge']) ? (string) $HTTP_POST_VARS['purge'] : '';
+$x            = isset($HTTP_POST_VARS['x']) ? intval($HTTP_POST_VARS['x']) : 0;
+$y            = isset($HTTP_POST_VARS['y']) ? intval($HTTP_POST_VARS['y']) : 0;
 $pagination   = '';
 $page_number  = '';
 //
@@ -93,6 +93,10 @@ switch($sort)
 //
 if($purge != '')
 {
+  if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+  {
+    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+  }
   if($sort < 1)
   {
     $sql = "TRUNCATE " . iNA_LOG;
@@ -111,14 +115,20 @@ if($purge != '')
 //
 if($x > 0 && $y > 0)
 {
+  if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+  {
+    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+  }
   $record_no = isset($HTTP_POST_VARS['record_no']) ? $HTTP_POST_VARS['record_no'] : 0;
   
   if(is_array($record_no))
   {
     for($i = 0; $i < count($record_no); $i++)
     {
+      $record_id = intval($record_no[$i]);
+      if ($record_id <= 0) { continue; }
       $sql = "DELETE FROM " . iNA_LOG . "
-        WHERE record_no = '" . $record_no[$i] . "'";
+        WHERE record_no = " . $record_id;
       if(!($result = $db->sql_query($sql)))
       {
         message_die(GENERAL_ERROR, '', '', __LINE__, __FILE__, $sql);
@@ -179,9 +189,9 @@ else
     $template->assign_block_vars('log_record', array(
       'RECORD_NO' => $error_log[$i]['record_no'],
       'RECORD_DATE' => $date,
-      'RECORD_NAME' => $error_log[$i]['name'],
-      'RECORD_USERNAME' => $error_log[$i]['username'],
-      'RECORD_DATA' => $error_log[$i]['value'] 
+      'RECORD_NAME' => htmlspecialchars($error_log[$i]['name'], ENT_QUOTES, 'UTF-8'),
+      'RECORD_USERNAME' => htmlspecialchars($error_log[$i]['username'], ENT_QUOTES, 'UTF-8'),
+      'RECORD_DATA' => htmlspecialchars($error_log[$i]['value'], ENT_QUOTES, 'UTF-8')
         ));
   }
 //
@@ -211,7 +221,8 @@ $template->assign_vars(array(
   'PAGE_NO' => $page_number,
   'PAGINATION' => $pagination,
   
-  'S_ACTION' => append_sid("$file")
+  'S_ACTION' => append_sid("$file"),
+  'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
 ));
 //
 // Generate the page

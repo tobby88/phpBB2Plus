@@ -319,7 +319,7 @@ $lang['admin_allow_guests'] = 'Gast';
 $lang['admin_score_header'] = 'Arcade Ergebnis Editor';
 $lang['admin_score_info'] = 'Mit diesem Control Panel kannst Du die Ergebnsisse Deiner Benutzer festlegen. Wenn Du mit diesem Panel Probleme haben solltest, dann kontaktiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a>, damit wir die Probleme lösen köönnen.<br />';
 $lang['admin_score_editor'] = 'Ergebnis Editor';
-$lang['admin_score_options'] = '<br><br /><form method="POST" action="%s"><input type="Submit" name="confirm" value="Ja">&nbsp;&nbsp;&nbsp;<input type="Submit" name="cancel" value="Nein"></form>';
+$lang['admin_score_options'] = '<br><br /><form method="POST" action="%s">%s<input type="Submit" name="confirm" value="Ja">&nbsp;&nbsp;&nbsp;<input type="Submit" name="cancel" value="Nein"></form>';
 $lang['admin_points'] = 'Punkte';
 $lang['arcade_delete_at_sure'] = 'Bist Du sicher, daß Du Ergebnisdaten löschen willst';
 $lang['arcade_delete_scores_sure'] = 'Bist Du sicher, dass Du die aktuellen Ergebnisdaten löschen willst?';

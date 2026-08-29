@@ -23,6 +23,7 @@
     </td>
   </tr>
   <form action="{S_ACTION}" method="post">
+  {S_FORM_TOKEN}
 <!-- BEGIN log_record_none -->
     <td colspan="3"><center>{NONE}</center></td>
 <!-- END log_record_none -->
@@ -37,7 +38,7 @@
     <td width="5%" class="catLeft"><input type="image" value="delete" src="{DELETE_IMG}" border="0" /></td>
   </form>  
     <td width="90%" class="cat">
-      <form action="{S_ACTION}" method="post"><center>
+      <form action="{S_ACTION}" method="post">{S_FORM_TOKEN}<center>
         <input type="submit" name="purge" value="{PURGE}">
         <input type="hidden" name="sort" value="{SORT}">
       </center></form>

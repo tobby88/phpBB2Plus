@@ -3,7 +3,7 @@
 
 <p>{L_LICENSEEXPLAIN}</p>
 
-<form action="{S_DELETE_LIC_ACTION}" method="post"><table width="100%" cellpadding="3" cellspacing="1" class="forumline">
+<form action="{S_DELETE_LIC_ACTION}" method="post">{S_FORM_TOKEN}<table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr>
 	<th  class="thHead">{L_LICENSETITLE}</th>
   </tr>

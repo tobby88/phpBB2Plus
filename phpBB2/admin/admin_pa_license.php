@@ -30,6 +30,18 @@ require('./pagestart.' . $phpEx);
 
 include($phpbb_root_path . 'pafiledb/pafiledb_common.'.$phpEx);
 
+$row = '';
+$template->assign_var('S_FORM_TOKEN', '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />');
+
+function pa_license_require_post_token($userdata, $lang)
+{
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) ||
+		!hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+}
+
 if( isset($_GET['license']) || isset($_POST['license']) )
 {
 	$license = (isset($_POST['license'])) ? $_POST['license'] : $_GET['license'];
@@ -42,21 +54,16 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				'admin' => 'admin/pa_admin_license_add.tpl')
 			);
 
-			if ( isset($_GET['add']) || isset($_POST['add']) )
-			{
-				$add = ( isset($_GET['add']) ) ? $_GET['add'] : $_POST['add'];
-			}
+			$add = isset($_POST['add']) ? $_POST['add'] : '';
 
 			if ($add == 'do')
 			{
-				if ( isset($_GET['form']) || isset($_POST['form']) )
-				{
-					$form = ( isset($_GET['form']) ) ? $_GET['form'] : $_POST['form'];
-				}
-
-				//$form['text'] = str_replace("\n", "<br>", $form['text']);
-
-				$sql = "INSERT INTO " . PA_LICENSE_TABLE . " VALUES('NULL', '" . $form['name'] . "', '" . $form['text'] . "')";
+				pa_license_require_post_token($userdata, $lang);
+				$form = (isset($_POST['form']) && is_array($_POST['form'])) ? $_POST['form'] : array();
+				$name = isset($form['name']) ? trim($form['name']) : '';
+				$text = isset($form['text']) ? trim($form['text']) : '';
+				$sql = "INSERT INTO " . PA_LICENSE_TABLE . " (license_name, license_text)
+					VALUES ('" . $db->sql_escape($name) . "', '" . $db->sql_escape($text) . "')";
 
 				if ( !($db->sql_query($sql)) )
 				{
@@ -90,26 +97,21 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				'admin' => 'admin/pa_admin_license_edit.tpl')
 			);
 
-			if ( isset($_GET['edit']) || isset($_POST['edit']) )
-			{
-				$edit = ( isset($_GET['edit']) ) ? $_GET['edit'] : $_POST['edit'];
-			}
+			$edit = isset($_POST['edit']) ? $_POST['edit'] : '';
 
 			if ($edit == 'do')
 			{
-				if ( isset($_GET['form']) || isset($_POST['form']) )
+				pa_license_require_post_token($userdata, $lang);
+				$form = (isset($_POST['form']) && is_array($_POST['form'])) ? $_POST['form'] : array();
+				$id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+				$name = isset($form['name']) ? trim($form['name']) : '';
+				$text = isset($form['text']) ? trim($form['text']) : '';
+				if ($id <= 0)
 				{
-					$form = ( isset($_GET['form']) ) ? $_GET['form'] : $_POST['form'];
+					message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 				}
-
-				if ( isset($_GET['id']) || isset($_POST['id']) )
-				{
-					$id = ( isset($_GET['id']) ) ? intval($_GET['id']) : intval($_POST['id']);
-				}
-
-				//$form['text'] = str_replace("\n", "<br>", $form['text']);
-
-				$sql = "UPDATE " . PA_LICENSE_TABLE . " SET license_name = '" . $form['name'] . "', license_text = '" . $form['text'] . "' WHERE license_id = '" . $id . "'";
+				$sql = "UPDATE " . PA_LICENSE_TABLE . " SET license_name = '" . $db->sql_escape($name) .
+					"', license_text = '" . $db->sql_escape($text) . "' WHERE license_id = " . $id;
 
 				if ( !($db->sql_query($sql)) )
 				{
@@ -123,12 +125,9 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 			if ($edit == 'form')
 			{
-				if ( isset($_GET['select']) || isset($_POST['select']) )
-				{
-					$select = ( isset($_GET['select']) ) ? $_GET['select'] : $_POST['select'];
-				}
+				$select = isset($_POST['select']) ? intval($_POST['select']) : 0;
 
-				$sql = "SELECT * FROM " . PA_LICENSE_TABLE . " WHERE license_id = '" . $select . "'";
+				$sql = "SELECT * FROM " . PA_LICENSE_TABLE . " WHERE license_id = " . $select;
 
 				if ( !($result = $db->sql_query($sql)) )
 				{
@@ -146,8 +145,8 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 					'L_ELICENSETITLE' => $lang['Elicensetitle'],
 					'L_LICENSEEXPLAIN' => $lang['Licenseexplain'],
 					'L_LNAME' => $lang['Lname'],
-					'LICENSE_NAME' => $license['license_name'],
-					'TEXT' => $text,
+					'LICENSE_NAME' => htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8'),
+					'TEXT' => htmlspecialchars($text, ENT_QUOTES, 'UTF-8'),
 					'SELECT' => $select,
 					'L_LTEXT' => $lang['Ltext'])
 				);
@@ -164,7 +163,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 				while ($license = $db->sql_fetchrow($result))
 				{
-					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="radio" name="select" value="' . $license['license_id'] . '"></td><td width="97%" class="row1">' . $license['license_name'] . '</td></tr>';
+					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="radio" name="select" value="' . (int) $license['license_id'] . '"></td><td width="97%" class="row1">' . htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8') . '</td></tr>';
 				}
 
 				$template->assign_block_vars("license", array());
@@ -188,17 +187,12 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				'admin' => 'admin/pa_admin_license_delete.tpl')
 			);
 
-			if ( isset($_GET['delete']) || isset($_POST['delete']) )
-			{
-				$delete = ( isset($_GET['delete']) ) ? $_GET['delete'] : $_POST['delete'];
-			}
+			$delete = isset($_POST['delete']) ? $_POST['delete'] : '';
 
 			if ($delete == 'do')
 			{
-				if ( isset($_GET['select']) || isset($_POST['select']) )
-				{
-					$select = ( isset($_GET['select']) ) ? $_GET['select'] : $_POST['select'];
-				}
+				pa_license_require_post_token($userdata, $lang);
+				$select = (isset($_POST['select']) && is_array($_POST['select'])) ? $_POST['select'] : array();
 
 				if (empty($select))
 				{
@@ -210,14 +204,16 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				{
 					foreach ($select as $key => $value)
 					{
-						$sql = "DELETE FROM " . PA_LICENSE_TABLE . " WHERE license_id = '" . $key . "'";
+						$key = intval($key);
+						if ($key <= 0) { continue; }
+						$sql = "DELETE FROM " . PA_LICENSE_TABLE . " WHERE license_id = " . $key;
 
 						if ( !($db->sql_query($sql)) )
 						{
 							message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 						}
 
-						$sql = "UPDATE " . PA_FILES_TABLE . " SET file_license = '0' WHERE file_license = '$key'";
+						$sql = "UPDATE " . PA_FILES_TABLE . " SET file_license = 0 WHERE file_license = " . $key;
 
 						if ( !($db->sql_query($sql)) )
 						{
@@ -242,7 +238,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 				while ($license = $db->sql_fetchrow($result))
 				{
-					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="checkbox" name="select[' . $license['license_id'] . ']" value="yes"></td><td width="97%" class="row1">' . $license['license_name'] . '</td></tr>';
+					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="checkbox" name="select[' . (int) $license['license_id'] . ']" value="yes"></td><td width="97%" class="row1">' . htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8') . '</td></tr>';
 				}
 
 				$template->assign_vars(array(
@@ -277,7 +273,7 @@ else
 
 				while ($license = $db->sql_fetchrow($result))
 				{
-					$row .= '<tr><td width="80%" class="row1" align="center">' . $license['license_name'] . '</td></tr>';
+					$row .= '<tr><td width="80%" class="row1" align="center">' . htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8') . '</td></tr>';
 				}
 
 				$template->assign_vars(array(

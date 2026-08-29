@@ -316,7 +316,7 @@ $lang['admin_allow_guests'] = 'Guest';
 $lang['admin_score_header'] = 'Arcade Scores Editor';
 $lang['admin_score_info'] = 'This control panel will help you maintain the scores set by your users for your online activities.<br />If you are currently having a problem with our MOD, then please contact us at <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a> so we may help fix the problem.<br />';
 $lang['admin_score_editor'] = 'Score Editor';
-$lang['admin_score_options'] = '<br><br /><form method="POST" action="%s"><input type="Submit" name="confirm" value="Yes">&nbsp;&nbsp;&nbsp;<input type="Submit" name="cancel" value="No"></form>';
+$lang['admin_score_options'] = '<br><br /><form method="POST" action="%s">%s<input type="Submit" name="confirm" value="Yes">&nbsp;&nbsp;&nbsp;<input type="Submit" name="cancel" value="No"></form>';
 $lang['admin_points'] = 'Points';
 $lang['arcade_delete_at_sure'] = 'Are you sure you want to delete the Historical Scores Data';
 $lang['arcade_delete_scores_sure'] = 'Are you sure you want to delete the current score data?';
