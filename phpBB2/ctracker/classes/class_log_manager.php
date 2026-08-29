@@ -100,25 +100,32 @@ class log_manager
 	function to_string()
 	{
 		$log_entry = '';				// Logfile String
-		define('SPLITTER', '|||');		// File Token
+		$splitter = '|||';			// File Token
 
 		// Write information into Logfile String
 		$log_entry .= $this->ct_type_msg;
-		$log_entry .= SPLITTER;
+		$log_entry .= $splitter;
 		$log_entry .= $this->ct_timestamp;
-		$log_entry .= SPLITTER;
-		$log_entry .= str_replace(SPLITTER, '', $this->ct_request);
-		$log_entry .= SPLITTER;
-		$log_entry .= str_replace(SPLITTER, '', $this->ct_referer);
-		$log_entry .= SPLITTER;
-		$log_entry .= str_replace(SPLITTER, '', $this->ct_user_agent);
-		$log_entry .= SPLITTER;
-		$log_entry .= str_replace(SPLITTER, '', $this->ct_remote_addr);
-		$log_entry .= SPLITTER;
-		$log_entry .= str_replace(SPLITTER, '', $this->ct_remote_host);
+		$log_entry .= $splitter;
+		$log_entry .= $this->clean_log_value($this->ct_request, 2048);
+		$log_entry .= $splitter;
+		$log_entry .= $this->clean_log_value($this->ct_referer, 1024);
+		$log_entry .= $splitter;
+		$log_entry .= $this->clean_log_value($this->ct_user_agent, 1024);
+		$log_entry .= $splitter;
+		$log_entry .= $this->clean_log_value($this->ct_remote_addr, 64);
+		$log_entry .= $splitter;
+		$log_entry .= $this->clean_log_value($this->ct_remote_host, 255);
 
 		// Return String to write into the Logfile
 		return $log_entry;
+	}
+
+	function clean_log_value($value, $max_length)
+	{
+		$value = is_scalar($value) ? (string) $value : '';
+		$value = str_replace(array('|||', "\r", "\n", "\0"), '', $value);
+		return substr($value, 0, max(0, intval($max_length)));
 	}
 
 
@@ -173,10 +180,21 @@ class log_manager
 		$resetstring = ($file_id != 6) ? '1|||' . time() . "|||null|||null|||null|||null|||null\n" : '';
 
 		// Delete now
-		$logentry = @fopen($path, 'a') or $this->ct_file_error();
-		@ftruncate($logentry, 0);
-		@fwrite($logentry, $resetstring);
+		$logentry = @fopen($path, 'c+b');
+		if ($logentry === false)
+		{
+			return $this->ct_file_error();
+		}
+		if (@flock($logentry, LOCK_EX))
+		{
+			@ftruncate($logentry, 0);
+			@rewind($logentry);
+			@fwrite($logentry, $resetstring);
+			@fflush($logentry);
+			@flock($logentry, LOCK_UN);
+		}
 		@fclose($logentry);
+		return true;
 	}
 
 
@@ -192,9 +210,19 @@ class log_manager
 		$path = $this->create_ct_path($file_id);
 
 		// Write down new log entry
-		$logentry = @fopen($path, 'a') or $this->ct_file_error();
-		@fwrite($logentry, $str_log . "\n");
+		$logentry = @fopen($path, 'ab');
+		if ($logentry === false)
+		{
+			return $this->ct_file_error();
+		}
+		if (@flock($logentry, LOCK_EX))
+		{
+			@fwrite($logentry, $str_log . "\n");
+			@fflush($logentry);
+			@flock($logentry, LOCK_UN);
+		}
 		@fclose($logentry);
+		return true;
 	}
 
 
@@ -211,16 +239,23 @@ class log_manager
 
 		// Create Path to Counter file and load the current Status
 		$path                   = $this->create_ct_path(1);
-		$this->ct_counter_value = @file_get_contents($path);
-
-		// Set up new counter value
-		$this->ct_counter_value += $value;
-
-		// Write the new value into the Counter File
-		$counterfile = @fopen($path, 'a') or $this->ct_file_error();
-		@ftruncate($counterfile, 0);
-		@fwrite($counterfile, $this->ct_counter_value);
+		$counterfile = @fopen($path, 'c+b');
+		if ($counterfile === false)
+		{
+			return $this->ct_file_error();
+		}
+		if (@flock($counterfile, LOCK_EX))
+		{
+			@rewind($counterfile);
+			$this->ct_counter_value = max(0, intval(stream_get_contents($counterfile))) + max(0, intval($value));
+			@ftruncate($counterfile, 0);
+			@rewind($counterfile);
+			@fwrite($counterfile, (string) $this->ct_counter_value);
+			@fflush($counterfile);
+			@flock($counterfile, LOCK_UN);
+		}
 		@fclose($counterfile);
+		return true;
 
 	}
 
@@ -265,35 +300,11 @@ class log_manager
 	 */
 	function ct_file_error()
 	{
-		// Generate HTML Output
-		$htmloutput = '<html>
-					     <head>
-    					   <title>CBACK CrackerTracker :: Error</title>
-  						 </head>
-  						 <body>
-    					   <br>
-	    				   <div align="center">
-    	  				   <table style="border:2px solid #000000" border="0" width="600" cellpadding="10" cellspacing="0">
-        	 			     <tr>
-          					   <td align="left" bgcolor="#000000"><font face="Tahoma, Arial, Helvetica" size="4" color="#FFFFFF"><b>ERROR MESSAGE &raquo; &raquo; &raquo; &raquo;</b></font></td>
-        					 </tr>
-        					 <tr>
-	          				   <td bgcolor="#FFF4BF" align="left">
-    	    						<font face="Tahoma, Arial, Helvetica" size="2" color="#000000">
-        	  						  CBACK CrackerTracker could not perform file operations.<br><br>
- 									  Please ensure, that you have setted CHMOD777 to all required files
-          					          as shown in the install file of this MOD and ensure you really
-        	  						  have a PHP Interpreter Version >= 4.3.9 installed!
-        	  						</font>
-          					    </td>
-        					   </tr>
-      					     </table>
-    					   	</div>
-	  					 </body>
-					   </html>';
-
-		// Stop the script
-		die($htmloutput);
+		// Logging must never turn a blocked request or ordinary forum page into
+		// a site-wide outage. Keep the protection decision and report the local
+		// operational problem through PHP's error log instead.
+		error_log('CrackerTracker could not write its local log files.');
+		return false;
 	}
 
 
