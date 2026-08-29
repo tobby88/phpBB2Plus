@@ -246,6 +246,8 @@ $logged_visible_today = 0;
 $logged_hidden_today = 0;
 $users_lasthour = 0;
 $total_users_today = 0;
+$birthday_today_list = '';
+$birthday_week_list = '';
 
 // Birthday Mod, Show users with birthday
 if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
@@ -303,10 +305,16 @@ if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonl
 			 $data = "<?php\n";
 			 $data .= '$birthday_today_list = \'' . addslashes($birthday_today_list) . "';\n";
 			 $data .= '$birthday_week_list = \'' . addslashes($birthday_week_list) . "';\n?>";
-			 $fp = fopen( $cache_data_file, "w" );
-			 fwrite($fp, $data);
-			 fclose($fp);
-			 @chmod($cache_data_file, 0664);
+			 $cache_temp_file = $cache_data_file . '.tmp.' . getmypid();
+			 if (@file_put_contents($cache_temp_file, $data, LOCK_EX) !== false)
+			 {
+				@chmod($cache_temp_file, 0664);
+				@rename($cache_temp_file, $cache_data_file);
+			 }
+			 if (@is_file($cache_temp_file))
+			 {
+				@unlink($cache_temp_file);
+			 }
 		  }
 	   }
 	}
@@ -388,10 +396,16 @@ if ( ($plus_config['show_last_visit'] != 0) && ($board_config['display_viewonlin
 		   $data .=";\n"; 
 		   $data .='$users_today_list = \''.addslashes($users_today_list)."'"; 
 		   $data .=";\n?>"; 
-		   $fp = fopen( $cache_data_file, "w" ); 
-		   fwrite($fp, $data); 
-		   fclose($fp); 
-		   @chmod($cache_data_file, 0664);
+		   $cache_temp_file = $cache_data_file . '.tmp.' . getmypid();
+		   if (@file_put_contents($cache_temp_file, $data, LOCK_EX) !== false)
+		   {
+			  @chmod($cache_temp_file, 0664);
+			  @rename($cache_temp_file, $cache_data_file);
+		   }
+		   if (@is_file($cache_temp_file))
+		   {
+			  @unlink($cache_temp_file);
+		   }
 		} 
 	}
 	$users_today_list = stripslashes($users_today_list);
