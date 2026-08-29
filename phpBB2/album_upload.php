@@ -44,17 +44,24 @@ init_userprefs($userdata);
 include($album_root_path . 'album_common.'.$phpEx);
 
 // Nuffload album uploader
-$upload_session_supplied = isset($_REQUEST['psid']) && is_scalar($_REQUEST['psid']);
-include($phpbb_root_path . 'album_nuffload.'.$phpEx);
-$upload_submitted = isset($_POST['pic_title']);
-
-// Every actual upload must return through the session-bound Nuffload URL.
-// Without this check, a direct POST could reach write operations while the
-// include above was merely creating a fresh upload session.
-if ($upload_submitted && !$upload_session_supplied)
+if (isset($_REQUEST['psid']) && !is_scalar($_REQUEST['psid']))
 {
 	message_die(GENERAL_ERROR, 'Invalid upload session');
 }
+$upload_session_supplied = isset($_REQUEST['psid']);
+
+// Every actual upload must return through the session-bound Nuffload URL.
+// Continue existing upload sessions now so their hand-off data is restored;
+// create new sessions only after category, permission and quota checks.
+if (!$upload_session_supplied && isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST')
+{
+	message_die(GENERAL_ERROR, 'Invalid upload session');
+}
+if ($upload_session_supplied)
+{
+	include($phpbb_root_path . 'album_nuffload.'.$phpEx);
+}
+$upload_submitted = isset($_POST['pic_title']);
 
 
 /*
@@ -302,6 +309,11 @@ else
 | Main work here...
 +----------------------------------------------------------
 */
+
+if (!$upload_session_supplied)
+{
+	include($phpbb_root_path . 'album_nuffload.'.$phpEx);
+}
 
 if( !$upload_submitted ) // is it not submitted?
 {
