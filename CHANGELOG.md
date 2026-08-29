@@ -73,6 +73,8 @@ changes consolidated after that baseline without implying active maintenance.
   submit action before inserting messages, escaped stored fields through the
   active database driver and converted censor/delete links into authorized,
   session-bound POST confirmations.
+- Bound the CrackerTracker login-history IP-warning preference to the active
+  session and normalized its stored boolean value.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.

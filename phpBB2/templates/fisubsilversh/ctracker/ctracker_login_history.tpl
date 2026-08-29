@@ -50,7 +50,7 @@
 		</td>
 	</tr>
 	<tr>
-		<td class="catBottom" align="center" colspan="2"><input type="Submit" name="submit" value="{log_set.L_SEND}" class="mainoption"></td>
+		<td class="catBottom" align="center" colspan="2">{log_set.S_FORM_TOKEN}<input type="Submit" name="submit" value="{log_set.L_SEND}" class="mainoption"></td>
 	</tr>
 </table>
 </form>

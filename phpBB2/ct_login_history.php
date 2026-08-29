@@ -84,9 +84,13 @@ if ( $ctracker_config->settings['login_ip_check'] == 1 )
 	$sel1 = '';
 	$sel2 = '';
 	
-	if ( $HTTP_POST_VARS['submit'] )
+	if (!empty($HTTP_POST_VARS['submit']))
 	{
-		$newsetting = intval($HTTP_POST_VARS['ct_enable_ip_warn']);
+		if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+		{
+			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+		}
+		$newsetting = (isset($HTTP_POST_VARS['ct_enable_ip_warn']) && is_scalar($HTTP_POST_VARS['ct_enable_ip_warn']) && intval($HTTP_POST_VARS['ct_enable_ip_warn']) === 1) ? 1 : 0;
 		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_enable_ip_warn=' . $newsetting . ' WHERE user_id=' . $userdata['user_id'];
 		$userdata['ct_enable_ip_warn'] = $newsetting;
 		if ( !($result = $db->sql_query($sql)) )
@@ -99,6 +103,7 @@ if ( $ctracker_config->settings['login_ip_check'] == 1 )
 	
 	$template->assign_block_vars('log_set', array(
 			'S_FORM_ACTION'	=> append_sid('ct_login_history.' . $phpEx),
+			'S_FORM_TOKEN'	=> '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 			'L_HEADER_TEXT'	=> $lang['ctracker_ipwarn_prof'],
 			'L_DESC'		=> $lang['ctracker_ipwarn_pdes'],
 			'L_ON'			=> $lang['ctracker_settings_on'],
