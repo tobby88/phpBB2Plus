@@ -32,6 +32,13 @@ settings and logs cannot be migrated.
 The same definitions are part of the normal fresh-install schema, so a new
 installation does not run this updater.
 
+The source update also replaces legacy executable configuration/cache files
+with non-executable data. Run `set-permissions.sh` after deploying the files;
+it makes the protected `phpBB2/data` directory writable. Existing post-icon
+settings are imported automatically from `includes/def_icons.php` on first
+use and subsequently stored in `data/icons.dat`. No database operation is
+needed for that migration.
+
 ## UTF-8 and search maintenance
 
 - `migrate_database_to_utf8mb4.php` previews or applies the guarded database

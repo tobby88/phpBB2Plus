@@ -96,6 +96,7 @@ for path in \
 	album_mod/upload/tmp \
 	cache \
 	cgi-bin/tmp \
+	data \
 	games \
 	files \
 	files/thumbs \
@@ -110,10 +111,6 @@ do
 done
 
 for path in \
-	includes/def_icons.php \
-	includes/def_themes.php \
-	includes/def_tree.php \
-	includes/def_words.php \
 	ctracker/logfiles/logfile_attempt_counter.txt \
 	ctracker/logfiles/logfile_blocklist.txt \
 	ctracker/logfiles/logfile_debug_mode.txt \
@@ -123,6 +120,12 @@ for path in \
 do
 	apply_mode "$file_mode" "$web_root/$path" file || failed=1
 done
+
+# This persistent data file is generated on first use and therefore is not
+# required to exist in a fresh archive.
+if [ -f "$web_root/data/icons.dat" ]; then
+	apply_mode "$file_mode" "$web_root/data/icons.dat" file || failed=1
+fi
 
 for path in \
 	cgi-bin/nuffload.cgi

@@ -16,6 +16,7 @@ Recommended mode: 0775 when PHP runs as the owner or in the owning group.
 /album_mod/upload/tmp
 /cache
 /cgi-bin/tmp
+/data
 /games
 /files
 /files/thumbs
@@ -31,10 +32,7 @@ Writable files
 
 Recommended mode: 0664 when PHP runs as the owner or in the owning group.
 
-/includes/def_icons.php
-/includes/def_themes.php
-/includes/def_tree.php
-/includes/def_words.php
+/data/icons.dat (created automatically after the first icon configuration save)
 /ctracker/logfiles/logfile_attempt_counter.txt
 /ctracker/logfiles/logfile_blocklist.txt
 /ctracker/logfiles/logfile_debug_mode.txt
@@ -63,3 +61,8 @@ user and group, the historical modes can be applied explicitly:
 
 World-writable permissions should only be used when the hosting setup requires
 them. The script defaults to 0775 for folders and 0664 for files.
+
+The generated caches under `/cache` no longer contain executable PHP. The
+persistent post-icon configuration is stored as validated serialized data in
+`/data/icons.dat`; `/data/.htaccess` prevents it from being downloaded on
+Apache-compatible servers.
