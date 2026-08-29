@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Added a CI audit for AdminCP module registration, English/German language
+  keys and fallback templates. Invalid configured fallback-style names now
+  safely fall back to the bundled `subSilver` AdminCP templates.
 - Hardened CrackerTracker configuration and blocklist writes, sanitized its
   text log records, serialized concurrent log/counter updates and made a local
   logging failure non-fatal without changing the request-blocking decision.

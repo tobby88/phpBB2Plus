@@ -303,6 +303,12 @@ class Template {
 		}
 		$this->php = $board_config['xs_php'];
 		$this->tpldef = $board_config['xs_def_template'];
+		if (!is_string($this->tpldef) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $this->tpldef) ||
+			!is_dir($phpbb_root_path . 'templates/' . $this->tpldef))
+		{
+			$this->tpldef = 'subSilver';
+			$board_config['xs_def_template'] = 'subSilver';
+		}
 		$this->use_cache = $board_config['xs_use_cache'];
 		$this->auto_compile = $board_config['xs_auto_compile'];
 		$this->xs_check_switches = $board_config['xs_check_switches'];

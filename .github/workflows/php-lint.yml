@@ -54,3 +54,6 @@ jobs:
             fi
           done
           exit "$missing"
+
+      - name: Audit ACP integrations
+        run: php .github/scripts/check-acp-integration.php
