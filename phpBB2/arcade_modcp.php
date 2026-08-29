@@ -23,11 +23,12 @@ $phpbb_root_path = './';
 $filename = basename(__FILE__);
 include($phpbb_root_path . 'extension.inc'); 
 include($phpbb_root_path . 'common.'.$phpEx); 
-include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
 
 // Start session management 
 $userdata = session_pagestart($user_ip, PAGE_ARCADE_MOD); 
 init_userprefs($userdata); 
+include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 $arcade_version = $arcade->version();
 // End session management 
 
@@ -135,7 +136,7 @@ if ($mode == 'mod')
   	include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
     }
     
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) ||
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || is_array($_POST['sid']) ||
       !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
     {
       message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);

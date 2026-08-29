@@ -59,6 +59,12 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './'; 
 include_once($phpbb_root_path . 'extension.inc'); 
 include_once($phpbb_root_path . 'common.'.$phpEx); 
+include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
+//
+// Start session management
+//
+$userdata			     = session_pagestart($user_ip, PAGE_ARCADE_SCORE);
+init_userprefs($userdata);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 //
 //  Check Arcade Config and Include extra files.
@@ -74,11 +80,6 @@ if($arcade->arcade_config('use_rewards_mod'))
 		require($phpbb_root_path . 'includes/rewards_api.'.$phpEx);
 	}
 } 
-//
-// Start session management 
-//
-$userdata			     = session_pagestart($user_ip, PAGE_ARCADE_SCORE); 
-init_userprefs($userdata); 
 $ip_num				     = decode_ip($userdata['session_ip']); 
 $ip_nam				     = $ip_num;
 $gen_simple_header = TRUE; 

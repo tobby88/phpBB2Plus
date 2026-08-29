@@ -21,12 +21,13 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include_once($phpbb_root_path . 'extension.inc');
 include_once($phpbb_root_path . 'common.'.$phpEx);
-include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
 //
 // Start session management
 //
 $userdata			= session_pagestart($user_ip, PAGE_ACTIVITY);
 init_userprefs($userdata);
+include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 $arcade_version = $arcade->arcade_config('version');
 //
 // End session management

@@ -41,7 +41,7 @@ $filename = basename(__FILE__);
 
 include_once($phpbb_root_path . 'extension.inc');
 include_once($phpbb_root_path . 'common.'.$phpEx);
-include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.' .$phpEx);
 
 //
@@ -49,6 +49,7 @@ include_once($phpbb_root_path . 'includes/bbcode.' .$phpEx);
 //
 $userdata = session_pagestart($user_ip, PAGE_HIGHSCORE);
 init_userprefs($userdata);
+include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 $page_title = $board_config['sitename'] . ' - ' . $lang['highscore_table_header'];
 $user_id = $userdata['user_id'];
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);

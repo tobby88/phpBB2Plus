@@ -149,6 +149,9 @@ changes consolidated after that baseline without implying active maintenance.
   unexpected public-page file copy. Monthly highscore views now select exact
   stored months, validate legacy offsets, respect game availability and access
   requirements, and escape stored game/player presentation data.
+- Load Arcade translations only after session preferences are initialized, so
+  guest and member pages consistently use the forum-selected language instead
+  of an earlier stale fallback.
 - Hardened album moderation and category administration against forged
   actions and injected ID lists, validated move targets and signed legacy
   one-click moderation/order links. Personal-gallery management now verifies

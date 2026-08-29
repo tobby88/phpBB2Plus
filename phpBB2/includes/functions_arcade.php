@@ -42,10 +42,7 @@ if ( defined('ARCADE_FUNCTIONS') )
 define('ARCADE_FUNCTIONS',217);
 
 include_once($phpbb_root_path . 'includes/constants_arcade.' . $phpEx);
-if (!(isset($language)))
-{
-	$language = $board_config['default_lang'];
-}
+$language = phpbb_ltrim(basename(phpbb_rtrim((string) $board_config['default_lang'])), "'");
 if( !file_exists($phpbb_root_path . 'language/lang_' . $language . '/lang_extend_arcade.'.$phpEx) )
 {     
 	$language = 'english';

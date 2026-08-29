@@ -50,6 +50,10 @@ $filename = basename(__FILE__);
 $phpEx    = substr(strrchr(__FILE__, '.'), 1);
 
 include_once($phpbb_root_path . 'common.'.$phpEx);
+include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
+// Start session management
+$userdata = session_pagestart($user_ip, PAGE_ACTIVITY);
+init_userprefs($userdata);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.' .$phpEx);
 //
@@ -66,9 +70,6 @@ if ($arcade->version() < ARCADE_VERSION)
 {
 	$arcade->message_die(GENERAL_ERROR, sprintf($lang['arcade_incorrect_version'], $arcade->version, ARCADE_VERSION));
 }
-// Start session management
-$userdata = session_pagestart($user_ip, PAGE_ACTIVITY);
-init_userprefs($userdata);
 $page_title = $lang['Arcade']; // This is Hard Coded as it is a NAME.
 $user_id = $userdata['user_id'];
 // End session management

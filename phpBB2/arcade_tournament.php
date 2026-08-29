@@ -32,12 +32,13 @@ include($phpbb_root_path . 'extension.inc');
 $phpEx    = substr(strrchr(__FILE__, '.'), 1);
 // include standard files
 include($phpbb_root_path . 'common.'.$phpEx);
-include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
 //
 // Start session management
 //
 $userdata = session_pagestart($user_ip, PAGE_ARCADE_TOUR);
 init_userprefs($userdata);
+include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
 $version = $arcade->version();
 $page_title = $lang['Arcade'] . ' ' . $lang['tournaments']; 
 //
@@ -72,7 +73,7 @@ $url		    = '&nbsp;&raquo;&nbsp;<a href="activity.'.$phpEx.'" class="nav">' . $l
 function arcade_public_tournament_require_token($userdata, $lang)
 {
   global $HTTP_POST_VARS;
-  if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) ||
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || is_array($HTTP_POST_VARS['sid']) ||
     !hash_equals((string) $userdata['session_id'], stripslashes((string) $HTTP_POST_VARS['sid'])))
   {
     message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
