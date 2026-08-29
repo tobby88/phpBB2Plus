@@ -197,11 +197,11 @@ if ( !defined('IN_PHPBB') )
 		$preview_desc = stripslashes(phpbb_request_scalar($_POST, 'article_desc'));
 		$preview_username = stripslashes(phpbb_request_scalar($_POST, 'username'));
 		$message = stripslashes(phpbb_request_scalar($_POST, 'message'));
-		
+
 		$bbcode_uid = make_bbcode_uid();
 
 		$preview_message = stripslashes(prepare_message(addslashes($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
-		
+
 		if ($bbcode_on)
 		{
 			$preview_message = bbencode_second_pass($preview_message, $bbcode_uid);
