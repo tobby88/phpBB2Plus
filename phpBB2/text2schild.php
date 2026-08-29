@@ -1,6 +1,9 @@
 <?php
 
 define('IN_PHPBB', 'true');
+// This deliberately sessionless image endpoint validates and bounds every
+// input locally. The CI bootstrap audit requires this explicit exception.
+define('PHPBB_STANDALONE_VALIDATED', true);
 $phpbb_root_path = './';
 include_once($phpbb_root_path . 'includes/php_compat.php');
 

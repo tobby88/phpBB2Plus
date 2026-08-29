@@ -164,8 +164,10 @@ $unchecked_post_fields   = array('username', 'password', 'subject', 'message',
 								'filter', 'xs', 'edit', 'content', 'fileupload', 'filecomment',
 								'comment', 'rate', 'pic', 'search_author', 'add_poll_option_text');
 
-// Some fields in $HTTP_GET_VARS don't get checked to prevent wrong detection
-$unchecked_get_fields = array('submit', 'search_author');
+// Free-text search values are escaped and validated by search.php. Scanning
+// them for isolated words or quote characters creates false positives for
+// ordinary searches without protecting an SQL boundary.
+$unchecked_get_fields = array('submit', 'search_author', 'search_keywords', 'highlight');
 
 $ct_addheuristic = isset($ct_addheuristic) ? (array) $ct_addheuristic : array();
 $ct_delheuristic = isset($ct_delheuristic) ? (array) $ct_delheuristic : array();
@@ -216,8 +218,26 @@ else if ( CT_SECLEVEL == 'MEDIUM' ||  CT_SECLEVEL == 'LOW' )
 // Initialize detector var
 $ct_attack_detection = false;
 
+// Bound request structure before recursively inspecting it. Normal phpBB forms
+// stay far below these limits, including permission matrices and multi-upload
+// metadata; deeply nested or enormous scalar input is not meaningful here.
+$ct_request_nodes = 0;
+if (!ct_request_shape_is_safe($HTTP_GET_VARS, 0, $ct_request_nodes))
+{
+	$ct_attack_detection = true;
+}
+$ct_request_nodes = 0;
+if (!ct_request_shape_is_safe($HTTP_POST_VARS, 0, $ct_request_nodes))
+{
+	$ct_attack_detection = true;
+}
+
 // Write query String in the var $cracktrack and make it lowercase
 $cracktrack = strtolower(isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '');
+if (strlen($cracktrack) > 32768)
+{
+	$ct_attack_detection = true;
+}
 
 // Filter out the unchecked fields
 $unchecked_get_fields 	= implode('|', $unchecked_get_fields);
@@ -307,6 +327,13 @@ if ( $ct_attack_detection )
 	  $logfile = new log_manager();
 	  $logfile->write_worm();
 	  unset($logfile);
+	}
+
+	if (!headers_sent())
+	{
+		http_response_code(403);
+		header('Content-Type: text/html; charset=UTF-8');
+		header('Cache-Control: no-store');
 	}
 
 	// generate HTML Message
@@ -450,18 +477,41 @@ function modcommand($handle, $command)
 // and find those nasty rebell value hideouts
 function atatwalk($var_array)
 {
-  $complete_post = '';
-  foreach( $var_array as $var=>$key )
-  {
-    if ( !is_array($key))
-    {
-      // If we don't need to dive deeper anymore
-      // we can use php functions to fastly paste all values together
-      return implode('!', $var_array);
-    }
-    // Deeper into the dungeon my dear
-    $complete_post .= atatwalk($key) . '!';
-  }
-  return $complete_post;
+	$complete_post = array();
+	foreach ((array) $var_array as $value)
+	{
+		if (is_array($value))
+		{
+			$complete_post[] = atatwalk($value);
+		}
+		elseif (is_scalar($value))
+		{
+			$complete_post[] = (string) $value;
+		}
+	}
+	return implode('!', $complete_post);
+}
+
+function ct_request_shape_is_safe($value, $depth, &$nodes)
+{
+	$nodes++;
+	if ($nodes > 4000 || $depth > 8)
+	{
+		return false;
+	}
+
+	if (is_array($value))
+	{
+		foreach ($value as $key => $item)
+		{
+			if (strlen((string) $key) > 256 || !ct_request_shape_is_safe($item, $depth + 1, $nodes))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	return is_scalar($value) && strlen((string) $value) <= 4194304;
 }
 ?>

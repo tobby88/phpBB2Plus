@@ -17,6 +17,12 @@ changes consolidated after that baseline without implying active maintenance.
 - Bound CrackerTracker maintenance, checksum/file scans and configuration
   recovery to authenticated POST actions. Configuration restore now updates
   the existing table in place instead of dropping and recreating it.
+- Bounded CrackerTracker request depth, field count, key size and scalar size;
+  fixed complete inspection of mixed nested arrays, returned explicit 403
+  responses for blocked requests and exempted validated free-text searches
+  from obsolete single-word heuristics.
+- Added a CI guard that rejects new public PHP entry points which bypass the
+  central `common.php` security bootstrap without an explicit reviewed marker.
 - Normalized hardened ACP form values before SQL-boundary escaping so literal
   apostrophes are stored without legacy magic-quotes backslashes.
 - Added adaptive password hashing with transparent migration after a successful

@@ -73,8 +73,14 @@ if ( !empty($ctracker_config->settings['ipblock_enabled']) )
 			$logfile->write_general_logfile($ctracker_config->settings['ipblock_logsize'], 3);
 			unset($logfile);	 		
 	 		
-	 		// generate HTML output
-	 		$htmloutput = '<html>
+		// generate HTML output
+		if (!headers_sent())
+		{
+			http_response_code(403);
+			header('Content-Type: text/html; charset=UTF-8');
+			header('Cache-Control: no-store');
+		}
+		$htmloutput = '<html>
 				     		<head>
 		    				   <title>CBACK CrackerTracker :: Security Alert</title>
   							 </head>

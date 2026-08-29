@@ -40,3 +40,17 @@ jobs:
       - name: Lint PHP sources
         shell: bash
         run: find phpBB2 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Check public security bootstrap
+        shell: bash
+        run: |
+          missing=0
+          for file in phpBB2/*.php; do
+            if grep -Eq "define[[:space:]]*\\([[:space:]]*['\"]IN_PHPBB" "$file" \
+              && ! grep -Fq "common." "$file" \
+              && ! grep -Fq "PHPBB_STANDALONE_VALIDATED" "$file"; then
+              echo "Public entry point bypasses common.php: $file"
+              missing=1
+            fi
+          done
+          exit "$missing"
