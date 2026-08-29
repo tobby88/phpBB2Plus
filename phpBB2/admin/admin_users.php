@@ -49,24 +49,34 @@ include($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
 $html_entities_match = array('#<#', '#>#');
 $html_entities_replace = array('&lt;', '&gt;');
 
+function admin_user_post_string($name, $default = '')
+{
+	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
+}
+
+function admin_user_post_int($name, $default = 0)
+{
+	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (int) $_POST[$name] : $default;
+}
+
 //
 // Set mode
 //
-if( isset( $_POST['mode'] ) || isset( $_GET['mode'] ) )
+$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
+$mode = htmlspecialchars($mode);
+
+$admin_user_mutation = isset($_POST['submit']) || isset($_POST['avatargallery']) || isset($_POST['submitavatar']) || isset($_POST['cancelavatar']);
+if ($admin_user_mutation)
 {
-	$mode = ( isset( $_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
-	$mode = htmlspecialchars($mode);
-}
-else
-{
-	$mode = '';
+	phpbb_admin_require_post_session();
 }
 // Start add - Admin add user MOD
-$new_user = (isset($_POST['new_user'])) ? (($_POST['new_user']==TRUE) ? TRUE : 0 ) : 0 ;
+$new_user = ((int) admin_user_post_string('new_user') === 1) ? TRUE : 0;
 if ($new_user)
 {
 	//see if user already exist
-	if (get_userdata($_POST['username']))
+	if (get_userdata(admin_user_post_string('username')))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Username_taken'] );
 	}
@@ -148,7 +158,7 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 	if ( ( $mode == 'save' && isset( $_POST['submit'] ) ) || isset( $_POST['avatargallery'] ) || isset( $_POST['submitavatar'] ) || isset( $_POST['cancelavatar'] ) )
 	{
 		// Start replacement - Admin add user MOD
-		$user_id = ($new_user) ? $user_id : intval($_POST['id']);
+		$user_id = ($new_user) ? $user_id : admin_user_post_int('id');
 		// End replacement - Admin add user MOD
 
 		$ctracker_config->first_admin_protection($user_id);
@@ -344,53 +354,53 @@ if( !empty($_POST['unblock_account']) )
 }
 // End add - Protect user account MOD
 
-		$username = ( !empty($_POST['username']) ) ? phpbb_clean_username($_POST['username']) : '';
-		$email = ( !empty($_POST['email']) ) ? trim(strip_tags(htmlspecialchars( $_POST['email'] ) )) : '';
+		$username = ( admin_user_post_string('username') !== '' ) ? phpbb_clean_username(admin_user_post_string('username')) : '';
+		$email = trim(strip_tags(htmlspecialchars(admin_user_post_string('email'))));
 
-		$password = ( !empty($_POST['password']) ) ? trim(strip_tags(htmlspecialchars( $_POST['password'] ) )) : '';
-		$password_confirm = ( !empty($_POST['password_confirm']) ) ? trim(strip_tags(htmlspecialchars( $_POST['password_confirm'] ) )) : '';
+		$password = trim(strip_tags(htmlspecialchars(admin_user_post_string('password'))));
+		$password_confirm = trim(strip_tags(htmlspecialchars(admin_user_post_string('password_confirm'))));
 
-		$icq = ( !empty($_POST['icq']) ) ? trim(strip_tags( $_POST['icq'] ) ) : '';
-		$aim = ( !empty($_POST['aim']) ) ? trim(strip_tags( $_POST['aim'] ) ) : '';
-		$msn = ( !empty($_POST['msn']) ) ? trim(strip_tags( $_POST['msn'] ) ) : '';
-		$yim = ( !empty($_POST['yim']) ) ? trim(strip_tags( $_POST['yim'] ) ) : '';
-		$fb = ( !empty($_POST['fb']) ) ? trim(strip_tags( $_POST['fb'] ) ) : '';
-		$ig = ( !empty($_POST['ig']) ) ? trim(strip_tags( $_POST['ig'] ) ) : '';
-		$pt = ( !empty($_POST['pt']) ) ? trim(strip_tags( $_POST['pt'] ) ) : '';
-		$twr = ( !empty($_POST['twr']) ) ? trim(strip_tags( $_POST['twr'] ) ) : '';
-		$skp = ( !empty($_POST['skp']) ) ? trim(strip_tags( $_POST['skp'] ) ) : '';
-		$tg = ( !empty($_POST['tg']) ) ? trim(strip_tags( $_POST['tg'] ) ) : '';
-		$li = ( !empty($_POST['li']) ) ? trim(strip_tags( $_POST['li'] ) ) : '';
-		$tt = ( !empty($_POST['tt']) ) ? trim(strip_tags( $_POST['tt'] ) ) : '';
-		$dc = ( !empty($_POST['dc']) ) ? trim(strip_tags( $_POST['dc'] ) ) : '';
+		$icq = trim(strip_tags(admin_user_post_string('icq')));
+		$aim = trim(strip_tags(admin_user_post_string('aim')));
+		$msn = trim(strip_tags(admin_user_post_string('msn')));
+		$yim = trim(strip_tags(admin_user_post_string('yim')));
+		$fb = trim(strip_tags(admin_user_post_string('fb')));
+		$ig = trim(strip_tags(admin_user_post_string('ig')));
+		$pt = trim(strip_tags(admin_user_post_string('pt')));
+		$twr = trim(strip_tags(admin_user_post_string('twr')));
+		$skp = trim(strip_tags(admin_user_post_string('skp')));
+		$tg = trim(strip_tags(admin_user_post_string('tg')));
+		$li = trim(strip_tags(admin_user_post_string('li')));
+		$tt = trim(strip_tags(admin_user_post_string('tt')));
+		$dc = trim(strip_tags(admin_user_post_string('dc')));
 
-		$website = ( !empty($_POST['website']) ) ? trim(strip_tags( $_POST['website'] ) ) : '';
-		$location = ( !empty($_POST['location']) ) ? trim(strip_tags( $_POST['location'] ) ) : '';
-		$occupation = ( !empty($_POST['occupation']) ) ? trim(strip_tags( $_POST['occupation'] ) ) : '';
-		$interests = ( !empty($_POST['interests']) ) ? trim(strip_tags( $_POST['interests'] ) ) : '';
+		$website = trim(strip_tags(admin_user_post_string('website')));
+		$location = trim(strip_tags(admin_user_post_string('location')));
+		$occupation = trim(strip_tags(admin_user_post_string('occupation')));
+		$interests = trim(strip_tags(admin_user_post_string('interests')));
 		$user_absence = ( isset( $_POST['user_absence']) ) ? ( ( $_POST['user_absence'] ) ? TRUE : 0 ) : 0;
-		$user_absence_mode = abs( intval($_POST['user_absence_mode']) );
-		$user_absence_text = ( !empty($_POST['user_absence_text']) ) ? trim(strip_tags( $_POST['user_absence_text'] ) ): '';
+		$user_absence_mode = abs(admin_user_post_int('user_absence_mode'));
+		$user_absence_text = trim(strip_tags(admin_user_post_string('user_absence_text')));
 		// Start add - Gender MOD
-		$gender = ( isset($_POST['gender']) ) ? intval ($_POST['gender']) : 0;
+		$gender = admin_user_post_int('gender');
 		// End add - Gender MOD
 		// Start add - Birthday MOD
 		if (isset($_POST['birthday']) )
 		{
-			$birthday = intval ($_POST['birthday']);
+			$birthday = admin_user_post_int('birthday');
 			$b_day = realdate('j',$birthday);
 			$b_md = realdate('n',$birthday);
 			$b_year = realdate('Y',$birthday);
 		} else
 		{
-			$b_day = ( isset($_POST['b_day']) ) ? intval ($_POST['b_day']) : 0;
-			$b_md = ( isset($_POST['b_md']) ) ? intval ($_POST['b_md']) : 0;
-			$b_year = ( isset($_POST['b_year']) ) ? intval ($_POST['b_year']) : 0;
+			$b_day = admin_user_post_int('b_day');
+			$b_md = admin_user_post_int('b_md');
+			$b_year = admin_user_post_int('b_year');
 			$birthday = mkrealdate($b_day,$b_md,$b_year);
 		}
-		$next_birthday_greeting = ( !empty($_POST['next_birthday_greeting']) ) ? intval( $_POST['next_birthday_greeting'] ) : 0;
+		$next_birthday_greeting = admin_user_post_int('next_birthday_greeting');
 		// End add - Birthday MOD
-		$signature = ( !empty($_POST['signature']) ) ? trim(str_replace('<br />', "\n", $_POST['signature'] ) ) : '';
+		$signature = trim(str_replace('<br />', "\n", admin_user_post_string('signature')));
 
 		validate_optional_fields($icq, $aim, $msn, $yim, $website, $location, $occupation, $interests, $signature);
 
@@ -414,24 +424,24 @@ if( !empty($_POST['unblock_account']) )
 		$attachsig = ( isset( $_POST['attachsig']) ) ? ( ( $_POST['attachsig'] ) ? TRUE : 0 ) : 0;
 		$setbm = ( isset( $_POST['setbm']) ) ? ( ( $_POST['setbm'] ) ? TRUE : 0 ) : 0;
 		
-		$allowhtml = ( isset( $_POST['allowhtml']) ) ? intval( $_POST['allowhtml'] ) : $board_config['allow_html'];
-		$allowbbcode = ( isset( $_POST['allowbbcode']) ) ? intval( $_POST['allowbbcode'] ) : $board_config['allow_bbcode'];
-		$allowsmilies = ( isset( $_POST['allowsmilies']) ) ? intval( $_POST['allowsmilies'] ) : $board_config['allow_smilies'];
+		$allowhtml = admin_user_post_int('allowhtml', $board_config['allow_html']);
+		$allowbbcode = admin_user_post_int('allowbbcode', $board_config['allow_bbcode']);
+		$allowsmilies = admin_user_post_int('allowsmilies', $board_config['allow_smilies']);
 
-		$user_style = ( isset( $_POST['style'] ) ) ? intval( $_POST['style'] ) : $board_config['default_style'];
-		$user_lang = ( $_POST['language'] ) ? $_POST['language'] : $board_config['default_lang'];
-		$user_timezone = ( isset( $_POST['timezone']) ) ? doubleval( $_POST['timezone'] ) : $board_config['board_timezone'];
+		$user_style = admin_user_post_int('style', $board_config['default_style']);
+		$user_lang = (admin_user_post_string('language') !== '') ? admin_user_post_string('language') : $board_config['default_lang'];
+		$user_timezone = ( admin_user_post_string('timezone') !== '' ) ? doubleval(admin_user_post_string('timezone')) : $board_config['board_timezone'];
 		// FLAGHACK-start
-		$user_flag = ( !empty($_POST['user_flag']) ) ? phpbb_profile_image_name($_POST['user_flag']) : '' ;
+		$user_flag = ( admin_user_post_string('user_flag') !== '' ) ? phpbb_profile_image_name(admin_user_post_string('user_flag')) : '';
 		// FLAGHACK-end
 
-		$user_dateformat = ( $_POST['dateformat'] ) ? trim( $_POST['dateformat'] ) : $board_config['default_dateformat'];
+		$user_dateformat = ( admin_user_post_string('dateformat') !== '' ) ? trim(admin_user_post_string('dateformat')) : $board_config['default_dateformat'];
 
-		$user_avatar_local = ( isset( $_POST['avatarselect'] ) && !empty($_POST['submitavatar'] ) && $board_config['allow_avatar_local'] ) ? $_POST['avatarselect'] : ( ( isset( $_POST['avatarlocal'] )  ) ? $_POST['avatarlocal'] : '' );
-		$user_avatar_category = ( isset($_POST['avatarcatname']) && $board_config['allow_avatar_local'] ) ? htmlspecialchars($_POST['avatarcatname']) : '' ;
+		$user_avatar_local = ( isset($_POST['avatarselect']) && is_scalar($_POST['avatarselect']) && !empty($_POST['submitavatar']) && $board_config['allow_avatar_local'] ) ? admin_user_post_string('avatarselect') : admin_user_post_string('avatarlocal');
+		$user_avatar_category = ($board_config['allow_avatar_local']) ? htmlspecialchars(admin_user_post_string('avatarcatname')) : '';
 
-		$user_avatar_remoteurl = ( !empty($_POST['avatarremoteurl']) ) ? trim( $_POST['avatarremoteurl'] ) : '';
-		$user_avatar_url = ( !empty($_POST['avatarurl']) ) ? trim( $_POST['avatarurl'] ) : '';
+		$user_avatar_remoteurl = trim(admin_user_post_string('avatarremoteurl'));
+		$user_avatar_url = trim(admin_user_post_string('avatarurl'));
 		if ($user_avatar_url !== '')
 		{
 			$error = true;
@@ -446,11 +456,11 @@ if( !empty($_POST['unblock_account']) )
 		$user_avatar = ( empty($user_avatar_loc) ) ? $this_userdata['user_avatar'] : '';
 		$user_avatar_type = ( empty($user_avatar_loc) ) ? $this_userdata['user_avatar_type'] : '';		
 
-		$user_status = ( !empty($_POST['user_status']) ) ? intval( $_POST['user_status'] ) : 0;
-		$user_ycard = ( !empty($_POST['user_ycard']) ) ? intval( $_POST['user_ycard'] ) : 0;
-		$user_allowpm = ( !empty($_POST['user_allowpm']) ) ? intval( $_POST['user_allowpm'] ) : 0;
-		$user_rank = ( !empty($_POST['user_rank']) ) ? intval( $_POST['user_rank'] ) : 0;
-		$user_allowavatar = ( !empty($_POST['user_allowavatar']) ) ? intval( $_POST['user_allowavatar'] ) : 0;
+		$user_status = admin_user_post_int('user_status');
+		$user_ycard = admin_user_post_int('user_ycard');
+		$user_allowpm = admin_user_post_int('user_allowpm');
+		$user_rank = admin_user_post_int('user_rank');
+		$user_allowavatar = admin_user_post_int('user_allowavatar');
 
 		if( isset( $_POST['avatargallery'] ) || isset( $_POST['submitavatar'] ) || isset( $_POST['cancelavatar'] ) )
 		{
@@ -967,7 +977,7 @@ if( !empty($_POST['unblock_account']) )
 	{
 		if( !$error )
 		{
-			$user_id = intval($_POST['id']);
+			$user_id = admin_user_post_int('id');
 
 			$template->set_filenames(array(
 				"body" => "admin/user_avatar_gallery.tpl")
@@ -1006,7 +1016,7 @@ if( !empty($_POST['unblock_account']) )
 
 			if( isset($_POST['avatarcategory']) )
 			{
-				$category = htmlspecialchars($_POST['avatarcategory']);
+				$category = htmlspecialchars(admin_user_post_string('avatarcategory'));
 			}
 			else
 			{
@@ -1050,6 +1060,7 @@ if( !empty($_POST['unblock_account']) )
 			$s_hidden_fields .= '<input type="hidden" name="new_user" value="'.$new_user.'" />';
 			// End add - Admin add user MOD
 			$s_hidden_fields .= '<input type="hidden" name="id" value="' . $user_id . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 			
 			$s_hidden_fields .= '<input type="hidden" name="username" value="' . str_replace("\"", "&quot;", $username) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="email" value="' . str_replace("\"", "&quot;", $email) . '" />';
@@ -1130,6 +1141,7 @@ if( !empty($_POST['unblock_account']) )
 		$s_hidden_fields .= '<input type="hidden" name="id" value="' . $this_userdata['user_id'] . '" />';
 		// Start add - Admin add user MOD
 		$s_hidden_fields .= '<input type="hidden" name="new_user" value="'.$new_user.'" />';
+		$s_hidden_fields .= '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 		// End add - Admin add user MOD
 		if( !empty($user_avatar_local) )
 		{

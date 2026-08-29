@@ -26,7 +26,8 @@ $unhtml_specialchars_replace = array('>', '<', '"', '&');
 
 $error = FALSE;
 $page_title = $lang['Register'];
-$mode = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
+$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
 $username = '';
 $cur_password = '';
 $new_password = '';
@@ -45,6 +46,10 @@ $coppa = ( empty($_POST['coppa']) && empty($_GET['coppa']) ) ? 0 : TRUE;
 if (
 	isset($_POST['submit']) || $mode == 'register' )
 {
+	if (isset($_POST['submit']))
+	{
+		phpbb_admin_require_post_session();
+	}
 	include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 	include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 	include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
@@ -56,15 +61,15 @@ if (
 	// to use htmlspecialchars ... be prepared to be moaned at.
 	foreach ($strip_var_list as $var => $param)
 	{
-		if ( !empty($_POST[$param]) )
+		if ( isset($_POST[$param]) && is_scalar($_POST[$param]) && $_POST[$param] !== '' )
 		{
-			$$var = trim(htmlspecialchars($_POST[$param]));
+			$$var = trim(htmlspecialchars((string) $_POST[$param]));
 		}
 	}
 
-	$user_style = ( isset($_POST['style']) ) ? intval($_POST['style']) : $board_config['default_style'];
+	$user_style = ( isset($_POST['style']) && is_scalar($_POST['style']) ) ? intval($_POST['style']) : $board_config['default_style'];
 
-	if ( !empty($_POST['language']) )
+	if ( isset($_POST['language']) && is_scalar($_POST['language']) && $_POST['language'] !== '' )
 	{
 		if ( preg_match('/^[a-z_]+$/i', $_POST['language']) )
 		{
@@ -81,7 +86,7 @@ if (
 		$user_lang = $board_config['default_lang'];
 	}
 
-	$user_timezone = ( isset($_POST['timezone']) ) ? doubleval($_POST['timezone']) : $board_config['board_timezone'];
+	$user_timezone = ( isset($_POST['timezone']) && is_scalar($_POST['timezone']) ) ? doubleval($_POST['timezone']) : $board_config['board_timezone'];
 	$sql = "SELECT config_value
 		FROM " . CONFIG_TABLE . "
 		WHERE config_name = 'default_dateformat'";
@@ -91,7 +96,7 @@ if (
 	}
 	$row = $db->sql_fetchrow($result);
 	$board_config['default_dateformat'] = $row['config_value'];
-	$user_dateformat = ( !empty($_POST['dateformat']) ) ? trim(htmlspecialchars($_POST['dateformat'])) : $board_config['default_dateformat'];
+	$user_dateformat = ( isset($_POST['dateformat']) && is_scalar($_POST['dateformat']) && $_POST['dateformat'] !== '' ) ? trim(htmlspecialchars((string) $_POST['dateformat'])) : $board_config['default_dateformat'];
 
 	if ( !isset($_POST['submit']) )
 	{
@@ -242,7 +247,7 @@ if ( !isset($user_template) )
 	$selected_template = isset($board_config['system_template']) ? $board_config['system_template'] : '';
 }
 
-$s_hidden_fields = '<input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="coppa" value="' . $coppa . '" />';
+$s_hidden_fields = '<input type="hidden" name="mode" value="' . htmlspecialchars((string) $mode, ENT_QUOTES, 'UTF-8') . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="coppa" value="' . (int) $coppa . '" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 
 if ( $error )
 {
