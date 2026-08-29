@@ -32,10 +32,15 @@ function get_topic_id($topic)
 {
 	global $db;
 	$topic_id = 0;
+	if (!is_scalar($topic))
+	{
+		return 0;
+	}
+	$topic = (string) $topic;
 
 	// is this a direct value ?
 	$num_topic = intval($topic);
-	if ($topic == "$num_topic")
+	if ($num_topic > 0 && ctype_digit($topic))
 	{
 		$topic_id = intval($topic);
 	}
@@ -48,11 +53,19 @@ function get_topic_id($topic)
 		parse_str($parms, $parm);
 		$found = false;
 		$topic_id = 0;
-		while ((list($key, $val) = each($parm)) && !$found)
+		foreach ($parm as $key => $val)
 		{
+			if ($found || !is_scalar($val))
+			{
+				continue;
+			}
+
 			$vals = explode('#', $val);
-			$val = $vals[0];
-			if (empty($val)) $val = 0;
+			$val = intval($vals[0]);
+			if ($val <= 0)
+			{
+				continue;
+			}
 			switch($key)
 			{
 				case POST_POST_URL:
@@ -94,23 +107,25 @@ if (($userdata['user_level'] != MOD) && ($userdata['user_level'] != ADMIN))
 }
 
 // from topic
-$from_topic = isset($_POST['from_topic']) ? strtolower(trim(htmlspecialchars($_POST['from_topic']))) : '';
+$from_topic = strtolower(trim(htmlspecialchars(phpbb_request_scalar($_POST, 'from_topic'))));
 if (empty($from_topic) && (isset($_GET[POST_TOPIC_URL]) || isset($_GET[POST_POST_URL])))
 {
-	$from_topic = (isset($_GET[POST_TOPIC_URL])) ? intval($_GET[POST_TOPIC_URL]) : POST_POST_URL . '=' . intval($_GET[POST_POST_URL]);
+	$get_topic_id = intval(phpbb_request_scalar($_GET, POST_TOPIC_URL, 0));
+	$get_post_id = intval(phpbb_request_scalar($_GET, POST_POST_URL, 0));
+	$from_topic = ($get_topic_id > 0) ? $get_topic_id : POST_POST_URL . '=' . $get_post_id;
 }
 $from_topic_id = get_topic_id($from_topic);
 
 // to topic
-$to_topic = isset($_POST['to_topic']) ? strtolower(trim(htmlspecialchars($_POST['to_topic']))) : '';
+$to_topic = strtolower(trim(htmlspecialchars(phpbb_request_scalar($_POST, 'to_topic'))));
 $to_topic_id =  get_topic_id($to_topic);
 
 // topic title
 $topic_title = '';
-if (isset($_POST['topic_title'])) $topic_title = htmlspecialchars(trim(stripslashes($_POST['topic_title'])));
+if (isset($_POST['topic_title'])) $topic_title = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'topic_title'))));
 
 // start
-$start = isset($_POST['start']) ? intval($_POST['start']) : 0;
+$start = intval(phpbb_request_scalar($_POST, 'start', 0));
 
 // buttons
 $submit = isset($_POST['submit']);
@@ -127,7 +142,7 @@ $page_next = isset($_POST['page_next']);
 $topic_selected = 0;
 if (isset($_POST['topic_selected']))
 {
-	$topic_selected = intval(substr($_POST['topic_selected'],1));
+	$topic_selected = intval(substr(phpbb_request_scalar($_POST, 'topic_selected'), 1));
 }
 
 if ($submit && !empty($topic_selected))
@@ -149,9 +164,9 @@ if ($submit && !empty($topic_selected))
 
 // session id
 $sid = '';
-if (!empty($_POST['sid']) || !empty($_GET['sid']))
+if (phpbb_request_scalar($_POST, 'sid') !== '' || phpbb_request_scalar($_GET, 'sid') !== '')
 {
-	$sid = (!empty($_POST['sid'])) ? $_POST['sid'] : $_GET['sid'];
+	$sid = phpbb_request_scalar($_POST, 'sid', phpbb_request_scalar($_GET, 'sid'));
 }
 
 // titles
@@ -180,11 +195,11 @@ if (!empty($to_topic_id))
 $forum_id = 0;
 if (isset($_POST[POST_FORUM_URL]) || isset($_GET[POST_FORUM_URL]))
 {
-	$forum_id = (isset($_POST[POST_FORUM_URL])) ? intval($_POST[POST_FORUM_URL]) : intval($_GET[POST_FORUM_URL]);
+	$forum_id = intval(phpbb_request_scalar($_POST, POST_FORUM_URL, phpbb_request_scalar($_GET, POST_FORUM_URL, 0)));
 }
 if (isset($_POST['fid']) || isset($_GET['fid']))
 {
-	$fid = (isset($_POST['fid'])) ? $_POST['fid'] : $_GET['fid'];
+	$fid = phpbb_request_scalar($_POST, 'fid', phpbb_request_scalar($_GET, 'fid'));
 	if (substr($fid, 0, 1) == POST_FORUM_URL)
 	{
 		$forum_id = intval(substr($fid, 1));
@@ -318,7 +333,7 @@ if (($select_from || $select_to) && (!$cancel))
 if ($submit)
 {
 	// check session id
-	if ($sid == '' || $sid != $userdata['session_id'])
+	if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 	{
 		message_die(GENERAL_ERROR, 'Invalid_session');
 	}
@@ -466,7 +481,7 @@ if ($submit)
 		$sql = "SELECT * FROM " . TOPICS_WATCH_TABLE . " WHERE topic_id=$to_topic_id";
 		if ( !$result=$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not read topics watch informations', '', __LINE__, __FILE__, $sql);
 		$user_ids = array();
-		while ($row = $db->sql_fetchrow($result)) $user_ids[] = $row['user_id'];
+		while ($row = $db->sql_fetchrow($result)) $user_ids[] = intval($row['user_id']);
 		$sql_user = '';
 		if (!empty($user_ids))
 		{
@@ -510,7 +525,7 @@ if ($submit)
 		$sql_update = '';
 		if ( !empty($topic_title) )
 		{
-			$sql_title = "topic_title = '" . str_replace("\'", "''", $topic_title) . "'";
+			$sql_update .= "topic_title = '" . str_replace("'", "''", $topic_title) . "'";
 		}
 
 		// update the poll status

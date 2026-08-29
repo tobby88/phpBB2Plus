@@ -144,6 +144,43 @@ if (!function_exists('phpbb_request_scalar'))
 }
 
 /**
+ * Read a request array as unique positive integer IDs.
+ */
+if (!function_exists('phpbb_request_id_array'))
+{
+	function phpbb_request_id_array($source, $key)
+	{
+		if (!is_array($source) || !isset($source[$key]) || !is_array($source[$key]))
+		{
+			return array();
+		}
+
+		$ids = array();
+		foreach ($source[$key] as $value)
+		{
+			if (!is_scalar($value))
+			{
+				continue;
+			}
+
+			$value = (string) $value;
+			if (!preg_match('/^[1-9][0-9]*$/D', $value))
+			{
+				continue;
+			}
+
+			$id = intval($value);
+			if ($id > 0)
+			{
+				$ids[$id] = $id;
+			}
+		}
+
+		return array_values($ids);
+	}
+}
+
+/**
  * Return random bytes on PHP 5.6 through current PHP versions.
  */
 if (!function_exists('phpbb_random_bytes'))

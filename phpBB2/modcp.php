@@ -44,7 +44,7 @@ include_once($phpbb_root_path . 'includes/functions_log.'.$phpEx);
 //
 if ( isset($_GET[POST_FORUM_URL]) || isset($_POST[POST_FORUM_URL]) )
 {
-	$forum_id = (isset($_POST[POST_FORUM_URL])) ? intval($_POST[POST_FORUM_URL]) : intval($_GET[POST_FORUM_URL]);
+	$forum_id = intval(phpbb_request_scalar($_POST, POST_FORUM_URL, phpbb_request_scalar($_GET, POST_FORUM_URL, 0)));
 }
 else
 {
@@ -53,7 +53,7 @@ else
 
 if ( isset($_GET[POST_POST_URL]) || isset($_POST[POST_POST_URL]) )
 {
-	$post_id = (isset($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]);
+	$post_id = intval(phpbb_request_scalar($_POST, POST_POST_URL, phpbb_request_scalar($_GET, POST_POST_URL, 0)));
 }
 else
 {
@@ -62,19 +62,21 @@ else
 
 if ( isset($_GET[POST_TOPIC_URL]) || isset($_POST[POST_TOPIC_URL]) )
 {
-	$topic_id = (isset($_POST[POST_TOPIC_URL])) ? intval($_POST[POST_TOPIC_URL]) : intval($_GET[POST_TOPIC_URL]);
+	$topic_id = intval(phpbb_request_scalar($_POST, POST_TOPIC_URL, phpbb_request_scalar($_GET, POST_TOPIC_URL, 0)));
 }
 else
 {
 	$topic_id = '';
 }
 
-$confirm = ( $_POST['confirm'] ) ? TRUE : 0;
+$confirm = isset($_POST['confirm']);
+$topic_id_list = phpbb_request_id_array($_POST, 'topic_id_list');
+$post_id_list = phpbb_request_id_array($_POST, 'post_id_list');
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 if (isset($_GET['selected_id']) || isset($_POST['selected_id']))
 {
-	$selected_id = isset($_POST['selected_id']) ? $_POST['selected_id'] : $_GET['selected_id'];
+	$selected_id = phpbb_request_scalar($_POST, 'selected_id', phpbb_request_scalar($_GET, 'selected_id'));
 	$type	= substr($selected_id, 0, 1);
 	$id		= intval(substr($selected_id, 1));
 	if ($type == POST_FORUM_URL)
@@ -92,7 +94,7 @@ if (isset($_GET['selected_id']) || isset($_POST['selected_id']))
 //
 // Continue var definitions
 //
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = intval(phpbb_request_scalar($_GET, 'start', 0));
 $start = ($start < 0) ? 0 : $start;
 
 $delete = ( isset($_POST['delete']) ) ? TRUE : FALSE;
@@ -106,7 +108,7 @@ $normalise = ( isset($_POST['normalise']) ) ? TRUE : FALSE;
 // MOD MODCP EXTENSION END
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
+	$mode = phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode'));
 	$mode = htmlspecialchars($mode);
 }
 else
@@ -148,9 +150,9 @@ else
 }
 
 // session id check
-if (!empty($_POST['sid']) || !empty($_GET['sid']))
+if (phpbb_request_scalar($_POST, 'sid') !== '' || phpbb_request_scalar($_GET, 'sid') !== '')
 {
-	$sid = (!empty($_POST['sid'])) ? $_POST['sid'] : $_GET['sid'];
+	$sid = phpbb_request_scalar($_POST, 'sid', phpbb_request_scalar($_GET, 'sid'));
 }
 else
 {
@@ -223,7 +225,7 @@ init_userprefs($userdata);
 //
 
 // session id check
-if ($sid == '' || $sid != $userdata['session_id'])
+if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 {
 	message_die(GENERAL_ERROR, 'Invalid_session');
 }
@@ -279,14 +281,14 @@ switch( $mode )
 
 		if ( $confirm )
 		{
-  			if ( empty($HTTP_POST_VARS['topic_id_list']) && empty($topic_id) )
+			if ( empty($topic_id_list) && empty($topic_id) )
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
 
 			include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
-			$topics = ( isset($_POST['topic_id_list']) ) ? $_POST['topic_id_list'] : array($topic_id);
+			$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
 			$topic_id_sql = '';
 			for($i = 0; $i < count($topics); $i++)
@@ -480,16 +482,16 @@ switch( $mode )
 		else
 		{
 			// Not confirmed, show confirmation message
-			if ( empty($_POST['topic_id_list']) && empty($topic_id) )
+			if ( empty($topic_id_list) && empty($topic_id) )
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
 
 			$hidden_fields = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" /><input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '" />';
 
-			if ( isset($_POST['topic_id_list']) )
+			if ( !empty($topic_id_list) )
 			{
-				$topics = $_POST['topic_id_list'];
+				$topics = $topic_id_list;
 				for($i = 0; $i < count($topics); $i++)
 				{
 					$hidden_fields .= '<input type="hidden" name="topic_id_list[]" value="' . intval($topics[$i]) . '" />';
@@ -530,15 +532,15 @@ switch( $mode )
 
 		if ( $confirm )
 		{
-			if ( empty($_POST['topic_id_list']) && empty($topic_id) )
+			if ( empty($topic_id_list) && empty($topic_id) )
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
 
-			$new_forum_id = intval($_POST['new_forum']);
+			$new_forum_id = intval(phpbb_request_scalar($_POST, 'new_forum', 0));
 			//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
-			$fid = $_POST['new_forum'];
+			$fid = phpbb_request_scalar($_POST, 'new_forum');
 			if ($fid == 'Root')
 			{
 				$type = POST_CAT_URL;
@@ -567,7 +569,7 @@ switch( $mode )
 			$db->sql_freeresult($result); 
 			if ( $new_forum_id != $old_forum_id )
 			{
-				$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
+				$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
 				$topic_list = '';
 				for($i = 0; $i < count($topics); $i++)
@@ -654,16 +656,16 @@ switch( $mode )
 		}
 		else
 		{
-			if ( empty($_POST['topic_id_list']) && empty($topic_id) )
+			if ( empty($topic_id_list) && empty($topic_id) )
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
 
 			$hidden_fields = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" /><input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '" />';
 
-			if ( isset($_POST['topic_id_list']) )
+			if ( !empty($topic_id_list) )
 			{
-				$topics = $_POST['topic_id_list'];
+				$topics = $topic_id_list;
 
 				for($i = 0; $i < count($topics); $i++)
 				{
@@ -709,12 +711,12 @@ switch( $mode )
 		break;
 
 	case 'lock':
-		if ( empty($_POST['topic_id_list']) && empty($topic_id) )
+		if ( empty($topic_id_list) && empty($topic_id) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['None_selected']);
 		}
 
-		$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
+		$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
 		$topic_id_sql = '';
 		for($i = 0; $i < count($topics); $i++)
@@ -755,12 +757,12 @@ switch( $mode )
 		break;
 
 	case 'unlock':
-		if ( empty($_POST['topic_id_list']) && empty($topic_id) )
+		if ( empty($topic_id_list) && empty($topic_id) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['None_selected']);
 		}
 
-		$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
+		$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
 		$topic_id_sql = '';
 		for($i = 0; $i < count($topics); $i++)
@@ -813,17 +815,17 @@ switch( $mode )
            $message = sprintf($lang['Sorry_auth_announce'], $is_auth['auth_announce_type']); 
            message_die(GENERAL_MESSAGE, $message); 
         } 
-		if ( empty($_POST['topic_id_list']) && empty($topic_id) )
+		if ( empty($topic_id_list) && empty($topic_id) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['None_selected']);
 		}
 
-		$topics = ( isset($_POST['topic_id_list']) ) ?  $_POST['topic_id_list'] : array($topic_id);
+		$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
 		$topic_id_sql = '';
 		for($i = 0; $i < count($topics); $i++)
 		{
-			$topic_id_sql .= ( ( $topic_id_sql != "") ? ', ' : '' ) . $topics[$i];
+			$topic_id_sql .= ( ( $topic_id_sql != "") ? ', ' : '' ) . intval($topics[$i]);
 		}
 
         $topic_type = ($mode == 'sticky') ? POST_STICKY : (($mode == 'announce') ? POST_ANNOUNCE : POST_NORMAL);
@@ -880,7 +882,7 @@ switch( $mode )
 
 		if (isset($_POST['split_type_all']) || isset($_POST['split_type_beyond']))
 		{
-			$posts = $_POST['post_id_list'];
+			$posts = $post_id_list;
 
 			for ($i = 0; $i < count($posts); $i++)
 			{
@@ -935,7 +937,7 @@ switch( $mode )
 				}
 				while ($row = $db->sql_fetchrow($result));
 
-				$post_subject = trim(htmlspecialchars($_POST['subject']));
+				$post_subject = trim(htmlspecialchars(phpbb_request_scalar($_POST, 'subject')));
 				if (empty($post_subject))
 				{
 					message_die(GENERAL_MESSAGE, $lang['Empty_subject']);
@@ -945,7 +947,7 @@ switch( $mode )
 //-- delete
 //				$new_forum_id = intval($_POST['new_forum_id']);
 //-- add
-				$fid = $_POST['new_forum_id'];
+				$fid = phpbb_request_scalar($_POST, 'new_forum_id');
 				if ($fid == 'Root')
 				{
 					$type = POST_CAT_URL;
@@ -1159,7 +1161,7 @@ switch( $mode )
 		$page_title = $lang['Mod_CP'];
 		include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
-		$rdns_ip_num = ( isset($_GET['rdns']) ) ? $_GET['rdns'] : "";
+		$rdns_ip_num = phpbb_request_scalar($_GET, 'rdns');
 
 		if ( !$post_id )
 		{
