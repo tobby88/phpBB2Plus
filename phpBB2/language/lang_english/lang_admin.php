@@ -519,6 +519,8 @@ $lang['export_smiles'] = 'To create a smiley pack from your currently installed 
 $lang['smiley_add_success'] = 'The Smiley was successfully added';
 $lang['smiley_edit_success'] = 'The Smiley was successfully updated';
 $lang['smiley_import_success'] = 'The Smiley Pack was imported successfully!';
+$lang['No_smiley_selected'] = 'No valid smiley was selected.';
+$lang['No_smiley_images'] = 'No usable smiley image files are available.';
 $lang['smiley_del_success'] = 'The Smiley was successfully removed';
 $lang['Click_return_smileadmin'] = 'Click %sHere%s to return to Smiley Administration';
 

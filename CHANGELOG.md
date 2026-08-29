@@ -229,6 +229,10 @@ changes consolidated after that baseline without implying active maintenance.
   session-bound POST requests. Confirmations are retained for destructive
   operations, and failed PAFileDB mirror replacements no longer discard the
   previously stored file.
+- Bound word-censor, disallowed-name, rank, post-icon, user and smiley
+  administration writes to the active admin session. Smiley-pack imports are
+  size-bounded, validated completely before replacing data and confined to
+  package and image files already present in the configured smiley directory.
 - Hardened custom-profile-field administration against injected identifiers,
   array-shaped form values and unescaped database content; column names used
   by schema changes are derived and validated server-side. Also repaired the
@@ -253,6 +257,10 @@ changes consolidated after that baseline without implying active maintenance.
   idempotent `update/update_from_153a.php` updater and incorporated the same
   Arcade, Nuffload and DB Maintenance definitions into the fresh-install
   schema.
+- Replaced executable generated configuration and hierarchy caches with
+  validated non-executable data. Existing post-icon settings migrate
+  automatically to the protected `data/icons.dat` store; the permissions tool
+  and update instructions cover its writable directory.
 - Integrated the required CrackerTracker 4.x database cleanup into the
   consolidated updater and removed the obsolete standalone 4.1.7 updater and
   unsafe `mysql_*` uninstall script.
