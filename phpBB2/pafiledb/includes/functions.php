@@ -846,35 +846,27 @@ class user_info
 	function update_voter_info($file_id, $rating)
 	{
 		global $user_ip, $db, $userdata, $lang;
-		
-		$where_sql = ( $userdata['user_id'] != ANONYMOUS ) ? "user_id = '" . $userdata['user_id'] . "'" : "votes_ip = '" . $user_ip . "'";
-		
-		$sql = "SELECT user_id, votes_ip 
-			FROM " . PA_VOTES_TABLE . " 
-			WHERE $where_sql
-			AND votes_file = '" . $file_id . "'
-			LIMIT 1";
-		
-		if(!($result = $db->sql_query($sql)))
+
+		$file_id = intval($file_id);
+		$rating = intval($rating);
+		$user_id = intval($userdata['user_id']);
+		$ip = str_replace("'", "''", (string) $user_ip);
+		$platform = str_replace("'", "''", (string) $this->platform);
+		$agent = str_replace("'", "''", (string) $this->agent);
+		$version = str_replace("'", "''", (string) $this->ver);
+		$duplicate_sql = ($user_id != ANONYMOUS) ? "user_id = $user_id" : "votes_ip = '$ip'";
+
+		$sql = "INSERT INTO " . PA_VOTES_TABLE . " (user_id, votes_ip, votes_file, rate_point, voter_os, voter_browser, browser_version)
+			SELECT $user_id, '$ip', $file_id, $rating, '$platform', '$agent', '$version'
+			WHERE NOT EXISTS (SELECT 1 FROM " . PA_VOTES_TABLE . " WHERE $duplicate_sql AND votes_file = $file_id)";
+		if (!$db->sql_query($sql))
 		{
-			message_die(GENERAL_ERROR, 'Couldnt Query User id', '', __LINE__, __FILE__, $sql);
+			message_die(GENERAL_ERROR, 'Couldnt Update Votes Table Info', '', __LINE__, __FILE__, $sql);
 		}
-		
-		if(!$db->sql_numrows($result))
-		{
-			$sql = "INSERT INTO " . PA_VOTES_TABLE . " (user_id, votes_ip, votes_file, rate_point, voter_os, voter_browser, browser_version) 
-						VALUES('" . $userdata['user_id'] . "', '" . $user_ip . "', '" . $file_id . "','" . $rating ."', '" . $this->platform . "', '" . $this->agent . "', '" . $this->ver . "')";
-			if(!($db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Update Votes Table Info', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else
+		if (!$db->sql_affectedrows())
 		{
 			message_die(GENERAL_MESSAGE, $lang['Rerror']);
 		}
-		
-		$db->sql_freeresult($result);
 	}	
 }
 ?>

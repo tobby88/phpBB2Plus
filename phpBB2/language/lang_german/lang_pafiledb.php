@@ -152,6 +152,7 @@ $lang['Comment'] = 'Mitteilung';
 $lang['Comment_explain'] = 'Verwende die Textbox oben um deine Mitteilung über die Datei abzugeben!';
 $lang['Comment_add'] = 'Mitteilung einfügen';
 $lang['Comment_delete'] = 'Löschen';
+$lang['Comment_delete_confirm'] = 'Möchtest Du diesen Kommentar wirklich löschen?';
 $lang['Comment_posted'] = 'Deine Mitteilung wurde erfolgreich eingefügt';
 $lang['Comment_deleted'] = 'Deine Mitteilung wurde erfolgreich gelöscht';
 $lang['Comment_desc'] = 'Titel';
@@ -217,6 +218,7 @@ $lang['Dls'] = 'Heruntergeladen';
 
 // MX Addon
 $lang['Deletefile'] = 'Datei löschen';
+$lang['File_delete_confirm'] = 'Möchtest Du diese Datei wirklich löschen?';
 $lang['Editfile'] = 'Datei bearbeiten';
 $lang['pa_MCP'] = '[ModeratorCP]';
 $lang['Click_return_not_validated'] = 'Klicke %shier%s um zur vorherigen Seite zurückzukehren';

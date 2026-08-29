@@ -109,8 +109,8 @@
 	<td class="row1" align="center" width="5%"><span class="genmed">{file_mode.file_row.FILE_NUMBER}</span></td>
 	<td class="row1" width="50%"><span class="genmed">{file_mode.file_row.FILE_NAME}</span></td>
 	<td class="row1" align="center" width="10%"><span class="gen"><a href="{file_mode.file_row.U_FILE_EDIT}">{L_EDIT}</a></span></td>
-	<td class="row1" align="center" width="10%"><span class="gen"><a href="javascript:delete_file('{file_mode.file_row.U_FILE_DELETE}')">{L_DELETE}</a></span></td>
-	<td class="row1" align="center" width="20%"><span class="gen"><a href="{file_mode.file_row.U_FILE_APPROVE}">{file_mode.file_row.L_APPROVE}</a></span></td>
+	<td class="row1" align="center" width="10%"><span class="gen"><a href="{file_mode.file_row.U_FILE_DELETE}">{L_DELETE}</a></span></td>
+	<td class="row1" align="center" width="20%"><span class="gen"><button type="submit" class="liteoption" name="{file_mode.file_row.APPROVE_FIELD}" value="{file_mode.file_row.FILE_ID}">{file_mode.file_row.L_APPROVE}</button></span></td>
 	<td class="row1" align="center" width="5%"><span class="genmed"><input type="checkbox" name="file_ids[]" value="{file_mode.file_row.FILE_ID}" /></span></td>
   </tr>
    <!-- END file_row -->
@@ -141,4 +141,4 @@
 	<td align="right" nowrap="nowrap"><span class="nav">{PAGE_NUMBER}</span></td>
   </tr>
 </table>
-<!-- INCLUDE pa_footer.tpl --> 
+<!-- INCLUDE pa_footer.tpl -->

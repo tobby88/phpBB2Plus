@@ -16,7 +16,7 @@ class pafiledb_rate extends pafiledb_public
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $userdata;
 		global $_REQUEST, $_POST, $phpbb_root_path, $pafiledb_functions, $pafiledb_user;
 
-		if ( isset($_REQUEST['file_id']) )
+		if (isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id']))
 		{
 			$file_id = intval($_REQUEST['file_id']);
 		}
@@ -25,7 +25,7 @@ class pafiledb_rate extends pafiledb_public
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
 
-		$rating = ( isset($_POST['rating']) ) ? intval($_POST['rating']) : '';
+		$rating = (isset($_POST['rating']) && is_scalar($_POST['rating'])) ? intval($_POST['rating']) : 0;
 
 
 		$sql = 'SELECT file_name, file_catid
@@ -70,6 +70,11 @@ class pafiledb_rate extends pafiledb_public
 
 		if ( isset($_POST['submit']) )
 		{
+			if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+			{
+				message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+			}
+
 			$result_msg = str_replace("{filename}", $file_data['file_name'], $lang['Rconf']);
 
 			$result_msg = str_replace("{rate}", $rating, $result_msg);
@@ -95,6 +100,7 @@ class pafiledb_rate extends pafiledb_public
 
 			$pafiledb_template->assign_vars(array(
 				'S_RATE_ACTION' => append_sid('dload.php?action=rate&file_id=' . $file_id),
+				'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 				'L_RATE' => $lang['Rate'],
 				'L_RERROR' => $lang['Rerror'],
 				'L_R1' => $lang['R1'],

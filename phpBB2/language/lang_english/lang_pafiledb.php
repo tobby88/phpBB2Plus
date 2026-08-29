@@ -152,6 +152,7 @@ $lang['Comment'] = 'Comment';
 $lang['Comment_explain'] = 'Use the text box above to give your opinion on this file!'; 
 $lang['Comment_add'] = 'Add Comment'; 
 $lang['Comment_delete'] = 'Delete'; 
+$lang['Comment_delete_confirm'] = 'Are you sure you want to delete this comment?';
 $lang['Comment_posted'] = 'Your comment has been entered successfully'; 
 $lang['Comment_deleted'] = 'The comment you selected has been deleted successfully'; 
 $lang['Comment_desc'] = 'Title'; 
@@ -217,6 +218,7 @@ $lang['Dls'] = 'Downloaded';
 
 // MX Addon
 $lang['Deletefile'] = 'Delete file';
+$lang['File_delete_confirm'] = 'Are you sure you want to delete this file?';
 $lang['Editfile'] = 'Edit file';
 $lang['pa_MCP'] = '[ModeratorCP]';
 $lang['Click_return_not_validated'] = 'Click %sHere%s to return to the previous page';

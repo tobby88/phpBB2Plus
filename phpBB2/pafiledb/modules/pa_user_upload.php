@@ -25,11 +25,11 @@ class pafiledb_user_upload extends pafiledb_public
 		$custom_field = new custom_field();
 		$custom_field->init();
 
-		$cat_id = ( isset($_REQUEST['cat_id']) ) ? intval($_REQUEST['cat_id']) : 0;
+		$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
 // MX Addon
-		$do = (isset($_REQUEST['do'])) ? intval($_REQUEST['do']) : '';
-		$file_id = (isset($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
-		$s_hidden_fields = '';
+		$do = (isset($_REQUEST['do']) && is_scalar($_REQUEST['do'])) ? (string) $_REQUEST['do'] : '';
+		$file_id = (isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
+		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 // END
 		$mirrors = (isset($_POST['mirrors'])) ? TRUE : 0;
 
@@ -65,9 +65,9 @@ class pafiledb_user_upload extends pafiledb_public
 		// =======================================================
 		// MX Addon
 		// =======================================================
-		if($do == 'delete' )
+		if ($do === 'delete')
 		{
-				$sql = 'SELECT *
+			$sql = 'SELECT *
 				FROM ' . PA_FILES_TABLE . "
 				WHERE file_id = $file_id";
 			if ( !($result = $db->sql_query($sql)) )
@@ -75,19 +75,36 @@ class pafiledb_user_upload extends pafiledb_public
 				message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
 			}
 			$file_info = $db->sql_fetchrow($result);
-
-			if ( ($this->auth[$file_info['file_catid']]['auth_delete_file'] && $file_info['user_id'] == $userdata['user_id']) || $this->auth[$file_info['file_catid']]['auth_mod'] )
+			$db->sql_freeresult($result);
+			if (!$file_info)
 			{
-			$this->delete_files($file_id);
-			$this->_pafiledb();
-			$message = $lang['Filedeleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid('dload.php') . '">', '</a>');
-			message_die(GENERAL_MESSAGE, $message);
+				message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 			}
-			else
+
+			$can_delete = $this->auth[$file_info['file_catid']]['auth_mod'] ||
+				($userdata['session_logged_in'] && $this->auth[$file_info['file_catid']]['auth_delete_file'] && intval($file_info['user_id']) === intval($userdata['user_id']));
+			if (!$can_delete)
 			{
-				$message = sprintf($lang['Sorry_auth_delete'], $this->auth[$cat_id]['auth_upload_type']);
+				$message = sprintf($lang['Sorry_auth_delete'], $this->auth[$file_info['file_catid']]['auth_delete_file_type']);
 				message_die(GENERAL_MESSAGE, $message);
 			}
+
+			if (isset($_POST['confirm_delete']))
+			{
+				if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+				{
+					message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+				}
+
+				$this->delete_files($file_id);
+				$this->_pafiledb();
+				$message = $lang['Filedeleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid('dload.php') . '">', '</a>');
+				message_die(GENERAL_MESSAGE, $message);
+			}
+
+			$confirm_action = append_sid("dload.php?action=user_upload&do=delete&file_id=$file_id");
+			$confirm_message = $lang['File_delete_confirm'] . '<br /><br /><form method="post" action="' . htmlspecialchars($confirm_action, ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" /><input type="submit" name="confirm_delete" value="' . htmlspecialchars($lang['Yes'], ENT_QUOTES, 'UTF-8') . '" />&nbsp;&nbsp;<a href="' . append_sid("dload.php?action=file&file_id=$file_id") . '">' . $lang['No'] . '</a></form>';
+			message_die(GENERAL_MESSAGE, $confirm_message);
 		}
 
 		// =======================================================
@@ -96,6 +113,11 @@ class pafiledb_user_upload extends pafiledb_public
 
 		if ( isset($_POST['submit']) )
 		{
+			if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+			{
+				message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+			}
+
 			if(!$file_id)
 			{
 				$temp_id = $this->update_add_file();
@@ -113,6 +135,28 @@ class pafiledb_user_upload extends pafiledb_public
 			}
 			elseif($file_id != '')
 			{
+				$sql = 'SELECT file_id, file_catid, user_id
+					FROM ' . PA_FILES_TABLE . '
+					WHERE file_id = ' . $file_id;
+				if (!($result = $db->sql_query($sql)))
+				{
+					message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
+				}
+				$file_info = $db->sql_fetchrow($result);
+				$db->sql_freeresult($result);
+				if (!$file_info)
+				{
+					message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
+				}
+
+				$can_edit = $this->auth[$file_info['file_catid']]['auth_mod'] ||
+					($userdata['session_logged_in'] && $this->auth[$file_info['file_catid']]['auth_edit_file'] && intval($file_info['user_id']) === intval($userdata['user_id']));
+				if (!$can_edit)
+				{
+					$message = sprintf($lang['Sorry_auth_edit'], $this->auth[$file_info['file_catid']]['auth_edit_file_type']);
+					message_die(GENERAL_MESSAGE, $message);
+				}
+
 				$file_id = $this->update_add_file($file_id);
 				$custom_field->file_update_data($file_id);
 				$this->_pafiledb();
@@ -195,10 +239,10 @@ class pafiledb_user_upload extends pafiledb_public
 					$custom_exist = $custom_field->display_edit($file_id);
 					$mode = 'EDIT';
 					$l_title = $lang['Efiletitle'];
-					$s_hidden_fields = '<input type="hidden" name="file_id" value="' . $file_id . '">';
+					$s_hidden_fields .= '<input type="hidden" name="file_id" value="' . $file_id . '" />';
 				}
 
-				$s_hidden_fields .= '<input type="hidden" name="action" value="user_upload">';
+				$s_hidden_fields .= '<input type="hidden" name="action" value="user_upload" />';
 
 
 			$pafiledb_template->assign_vars(array(

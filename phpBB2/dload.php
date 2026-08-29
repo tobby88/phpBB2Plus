@@ -45,7 +45,7 @@ include($phpbb_root_path . 'pafiledb/pafiledb_common.'.$phpEx);
 // Get action variable other wise set it to the main
 //===================================================
 
-$action = ( isset($_REQUEST['action']) ) ? htmlspecialchars($_REQUEST['action']) : 'main';
+$action = (isset($_REQUEST['action']) && is_scalar($_REQUEST['action'])) ? htmlspecialchars((string) $_REQUEST['action']) : 'main';
 
 //===================================================
 // if the database disabled give them a nice message

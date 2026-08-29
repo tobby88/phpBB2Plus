@@ -33,7 +33,7 @@ class pafiledb_post_comment extends pafiledb_public
 		include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 		include_once($phpbb_root_path . 'pafiledb/includes/functions_comment.'.$phpEx);
 
-		if ( isset($_REQUEST['file_id']) )
+		if (isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id']))
 		{
 			$file_id = intval($_REQUEST['file_id']);
 		}
@@ -43,18 +43,16 @@ class pafiledb_post_comment extends pafiledb_public
 		}
 
 // MX Addon		
-		if ( isset($_REQUEST['cid']) )
-		{
-			$cid = intval($_REQUEST['cid']);
-		}
-
-		$delete = (isset($_REQUEST['delete'])) ? intval($_REQUEST['delete']) : '';
+		$cid = (isset($_REQUEST['cid']) && is_scalar($_REQUEST['cid'])) ? intval($_REQUEST['cid']) : 0;
+		$delete = (isset($_REQUEST['delete']) && is_scalar($_REQUEST['delete'])) ? (string) $_REQUEST['delete'] : '';
 
 		$submit = (isset($_POST['submit'])) ? TRUE : 0;
 		$preview = (isset($_POST['preview'])) ? TRUE : 0;
 		
-		$subject = ( !empty($_POST['subject']) ) ? htmlspecialchars(trim(stripslashes($_POST['subject']))) : '';
-		$message = ( !empty($_POST['message']) ) ? htmlspecialchars(trim(stripslashes($_POST['message']))) : '';
+		$raw_subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? (string) $_POST['subject'] : '';
+		$raw_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? (string) $_POST['message'] : '';
+		$subject = htmlspecialchars(trim(stripslashes($raw_subject)));
+		$message = htmlspecialchars(trim(stripslashes($raw_message)));
 
 
 		$sql = "SELECT file_name, file_catid
@@ -73,56 +71,73 @@ class pafiledb_post_comment extends pafiledb_public
 
 		$db->sql_freeresult($result);
 		
-		if( (!$this->auth[$file_data['file_catid']]['auth_post_comment']) )
+		// =======================================================
+		// Comment deletion
+		// =======================================================
+		if ($delete === 'do')
 		{
-			if ( !$userdata['session_logged_in'] )
+			$sql = 'SELECT c.comments_id, c.poster_id, c.file_id
+				FROM ' . PA_COMMENTS_TABLE . ' c
+				WHERE c.comments_id = ' . $cid . '
+					AND c.file_id = ' . $file_id;
+			if (!($result = $db->sql_query($sql)))
+			{
+				message_die(GENERAL_ERROR, 'Couldn\'t get comment info', '', __LINE__, __FILE__, $sql);
+			}
+			$comment_info = $db->sql_fetchrow($result);
+			$db->sql_freeresult($result);
+			if (!$comment_info)
+			{
+				message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
+			}
+
+			$can_delete = $this->auth[$file_data['file_catid']]['auth_mod'] ||
+				($userdata['session_logged_in'] && $this->auth[$file_data['file_catid']]['auth_delete_comment'] && intval($comment_info['poster_id']) === intval($userdata['user_id']));
+			if (!$can_delete)
+			{
+				$message = sprintf($lang['Sorry_auth_delete_comments'], $this->auth[$file_data['file_catid']]['auth_delete_comment_type']);
+				message_die(GENERAL_MESSAGE, $message);
+			}
+
+			if (isset($_POST['confirm_delete']))
+			{
+				if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+				{
+					message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+				}
+
+				$sql = 'DELETE FROM ' . PA_COMMENTS_TABLE . '
+					WHERE comments_id = ' . $cid . '
+						AND file_id = ' . $file_id;
+				if (!$db->sql_query($sql))
+				{
+					message_die(GENERAL_ERROR, 'Couldnt delete comment', '', __LINE__, __FILE__, $sql);
+				}
+
+				$this->_pafiledb();
+				$message = $lang['Comment_deleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("dload.php?action=file&file_id=$file_id") . '">', '</a>');
+				message_die(GENERAL_MESSAGE, $message);
+			}
+
+			$confirm_action = append_sid("dload.php?action=post_comment&file_id=$file_id&cid=$cid&delete=do");
+			$confirm_message = $lang['Comment_delete_confirm'] . '<br /><br /><form method="post" action="' . htmlspecialchars($confirm_action, ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" /><input type="submit" name="confirm_delete" value="' . htmlspecialchars($lang['Yes'], ENT_QUOTES, 'UTF-8') . '" />&nbsp;&nbsp;<a href="' . append_sid("dload.php?action=file&file_id=$file_id") . '">' . $lang['No'] . '</a></form>';
+			message_die(GENERAL_MESSAGE, $confirm_message);
+		}
+
+		if (!$this->auth[$file_data['file_catid']]['auth_post_comment'])
+		{
+			if (!$userdata['session_logged_in'])
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=post_comment&file_id=" . $file_id, true));
 			}
 
-			$message = sprintf($lang['Sorry_auth_download'], $this->auth[$file_data['file_catid']]['auth_post_comment_type']);
+			$message = sprintf($lang['Sorry_auth_post_comments'], $this->auth[$file_data['file_catid']]['auth_post_comment_type']);
 			message_die(GENERAL_MESSAGE, $message);
 		}
-		
+
 		$html_on = ( $userdata['user_allowhtml'] && $pafiledb_config['allow_html'] ) ? TRUE : 0;
 		$bbcode_on = ( $userdata['user_allowbbcode'] && $pafiledb_config['allow_bbcode']  ) ? TRUE : 0;
 		$smilies_on = ( $userdata['user_allowsmile'] && $pafiledb_config['allow_smilies']  ) ? TRUE : 0;
-
-		// =======================================================
-		// MX Addon
-		// =======================================================
-		if($delete == 'do' )
-		{
-				$sql = 'SELECT *
-				FROM ' . PA_FILES_TABLE . "
-				WHERE file_id = $file_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
-			}
-			$file_info = $db->sql_fetchrow($result);
-
-			if ( ($this->auth[$file_info['file_catid']]['auth_delete_comment'] && $file_info['user_id'] == $userdata['user_id']) || $this->auth[$file_info['file_catid']]['auth_mod'] )
-			{
-
-			$sql = 'DELETE FROM ' . PA_COMMENTS_TABLE . "
-				WHERE comments_id = $cid";
-
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Couldnt delete comment', '', __LINE__, __FILE__, $sql);
-			}
-
-			$this->_pafiledb();
-			$message = $lang['Comment_deleted'] . '<br /><br />' . sprintf($lang['Click_return'], '<a href="' . append_sid("dload.php?action=file&file_id=$file_id") . '">', '</a>');
-			message_die(GENERAL_MESSAGE, $message);
-			}
-			else
-			{
-				$message = sprintf($lang['Sorry_auth_delete'], $this->auth[$cat_id]['auth_upload_type']);
-				message_die(GENERAL_MESSAGE, $message);
-			}
-		}
 
 		if(!$submit)
 		{
@@ -135,9 +150,10 @@ class pafiledb_post_comment extends pafiledb_public
 			$smilies_status = ( $userdata['user_allowsmile'] && $pafiledb_config['allow_smilies']  ) ? $lang['Smilies_are_ON'] : $lang['Smilies_are_OFF'];
 			$links_status = ( $pafiledb_config['allow_comment_links']  ) ? $lang['Links_are_ON'] : $lang['Links_are_OFF'];
 			$images_status = ( $pafiledb_config['allow_comment_images']  ) ? $lang['Images_are_ON'] : $lang['Images_are_OFF'];
-			$hidden_form_fields = '<input type="hidden" name="action" value="post_comment">
-						<input type="hidden" name="file_id" value="' . $file_id . '">
-						<input type="hidden" name="comment" value="post">';
+			$hidden_form_fields = '<input type="hidden" name="action" value="post_comment" />
+						<input type="hidden" name="file_id" value="' . $file_id . '" />
+						<input type="hidden" name="comment" value="post" />
+						<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 
 
 			//
@@ -273,8 +289,8 @@ class pafiledb_post_comment extends pafiledb_public
 	
 				$pafiledb_template->assign_vars(array(
 					'PREVIEW' => TRUE,
-					'COMMENT' => stripslashes($_POST['message']),
-					'SUBJECT' => stripslashes($_POST['subject']),        
+					'COMMENT' => htmlspecialchars(stripslashes($raw_message)),
+					'SUBJECT' => htmlspecialchars(stripslashes($raw_subject)),
 					'PRE_COMMENT' => $comments_text)
 				);
 			}
@@ -284,15 +300,24 @@ class pafiledb_post_comment extends pafiledb_public
 
 		if($submit)
 		{
+			if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+			{
+				message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+			}
 
-			$length = strlen($_POST['message']);
-			$comments_text = str_replace('<br />', "\n", $_POST['message']);
+			$length = strlen($raw_message);
+			if (trim($raw_message) === '')
+			{
+				message_die(GENERAL_MESSAGE, $lang['Empty_message']);
+			}
+			$comments_text = str_replace('<br />', "\n", $raw_message);
 			$comment_bbcode_uid = make_bbcode_uid();
 			$comments_text = prepare_message($comments_text, $html_on, $bbcode_on, $smilies_on, $comment_bbcode_uid);
 			$comments_text = bbencode_first_pass($comments_text, $comment_bbcode_uid);
+			$comments_text_sql = $html_on ? stripslashes($comments_text) : $comments_text;
 
 			$poster_id = intval($userdata['user_id']);
-			$title = stripslashes($_POST['subject']);
+			$title = stripslashes($raw_subject);
 			$time = time();
 			if($length > $pafiledb_config['max_comment_chars'])
 			{
@@ -300,8 +325,8 @@ class pafiledb_post_comment extends pafiledb_public
 			}
 
 
-			$sql = 'INSERT INTO ' . PA_COMMENTS_TABLE . "(file_id, comments_text, comments_title, comments_time, comment_bbcode_uid, poster_id) 
-				VALUES($file_id, '" . str_replace("\'", "''", $comments_text) . "','" . str_replace("\'", "''", $title) . "', $time, '$comment_bbcode_uid', $poster_id)";
+			$sql = 'INSERT INTO ' . PA_COMMENTS_TABLE . "(file_id, comments_text, comments_title, comments_time, comment_bbcode_uid, poster_id)
+				VALUES($file_id, '" . $db->sql_escape($comments_text_sql) . "','" . $db->sql_escape($title) . "', $time, '" . $db->sql_escape($comment_bbcode_uid) . "', $poster_id)";
 			if ( !($db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Couldnt insert comments', '', __LINE__, __FILE__, $sql);

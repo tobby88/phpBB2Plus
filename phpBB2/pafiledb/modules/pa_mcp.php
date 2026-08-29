@@ -23,26 +23,46 @@ class pafiledb_mcp extends pafiledb_public
 //		$custom_field->init();
 		$this->init();
 
-		$file_id = (isset($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
-		$file_ids = (isset($_POST['file_ids'])) ? array_map('intval', $_POST['file_ids']) : array();
-		$start = ( isset($_REQUEST['start']) ) ? intval($_REQUEST['start']) : 0;
+		$file_id = (isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
+		$file_ids = array();
+		if (isset($_POST['file_ids']) && is_array($_POST['file_ids']))
+		{
+			foreach ($_POST['file_ids'] as $posted_file_id)
+			{
+				if (is_scalar($posted_file_id))
+				{
+					$file_ids[] = intval($posted_file_id);
+				}
+			}
+		}
+		$start = (isset($_REQUEST['start']) && is_scalar($_REQUEST['start'])) ? max(0, intval($_REQUEST['start'])) : 0;
 
-		$mode = (isset($_REQUEST['mode'])) ? htmlspecialchars($_REQUEST['mode']) : '';
-		$mode_js = (isset($_REQUEST['mode_js'])) ? htmlspecialchars($_REQUEST['mode_js']) : '';
+		$mode = (isset($_REQUEST['mode']) && is_scalar($_REQUEST['mode'])) ? htmlspecialchars((string) $_REQUEST['mode']) : '';
+		$mode_js = (isset($_REQUEST['mode_js']) && is_scalar($_REQUEST['mode_js'])) ? htmlspecialchars((string) $_REQUEST['mode_js']) : '';
 //		$mode = (isset($_POST['addfile'])) ? 'add' : $mode;
 //		$mode = (isset($_POST['delete'])) ? 'delete' : $mode;
 		$mode = (isset($_POST['approve'])) ? 'do_approve' : $mode;
 		$mode = (isset($_POST['unapprove'])) ? 'do_unapprove' : $mode;
+		if (isset($_POST['approve_file_id']) && is_scalar($_POST['approve_file_id']))
+		{
+			$mode = 'do_approve';
+			$file_ids = array(intval($_POST['approve_file_id']));
+		}
+		elseif (isset($_POST['unapprove_file_id']) && is_scalar($_POST['unapprove_file_id']))
+		{
+			$mode = 'do_unapprove';
+			$file_ids = array(intval($_POST['unapprove_file_id']));
+		}
 
 
 		if ( empty($mode) )
 		{
 			$mode = $mode_js;
-			$cat_id = (isset($_REQUEST['cat_js_id'])) ? intval($_REQUEST['cat_js_id']) : intval($_REQUEST['cat_id']);
+			$cat_id = (isset($_REQUEST['cat_js_id']) && is_scalar($_REQUEST['cat_js_id'])) ? intval($_REQUEST['cat_js_id']) : ((isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0);
 		}
 		else
 		{
-			$cat_id = (isset($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
+			$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
 		}
 
 
@@ -138,18 +158,38 @@ class pafiledb_mcp extends pafiledb_public
 
 if( $mode == 'do_approve' || $mode == 'do_unapprove' )
 {
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
+
 	if ( ($pafiledb_config['validator'] == 'validator_mod' && $this->auth[$cat_id]['auth_mod']) || $userdata['user_level'] == ADMIN )
 	{
-		if(is_array($file_ids) && !empty($file_ids))
+		if (!empty($file_ids))
 		{
 			foreach($file_ids as $temp_file_id)
 			{
+				$temp_file_id = intval($temp_file_id);
+				$sql = 'SELECT file_catid
+					FROM ' . PA_FILES_TABLE . '
+					WHERE file_id = ' . $temp_file_id;
+				if (!($result = $db->sql_query($sql)))
+				{
+					message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
+				}
+				$target_file = $db->sql_fetchrow($result);
+				$db->sql_freeresult($result);
+				if (!$target_file)
+				{
+					message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
+				}
+				$target_cat_id = intval($target_file['file_catid']);
+				if ($userdata['user_level'] != ADMIN && ($pafiledb_config['validator'] != 'validator_mod' || empty($this->auth[$target_cat_id]['auth_mod'])))
+				{
+					message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+				}
 				$this->file_approve($mode, $temp_file_id);
 			}
-		}
-		else
-		{
-			$this->file_approve($mode, $file_id);
 		}
 		$this->_pafiledb();
 	}
@@ -164,7 +204,7 @@ $pafiledb_template->set_filenames(array(
 	'admin' => $template_file)
 );
 
-$s_hidden_fields = '<input type="hidden" name="cat_id" value="' . $cat_id . '">';
+$s_hidden_fields = '<input type="hidden" name="cat_id" value="' . $cat_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 
 $pafiledb_template->assign_vars(array(
 			'L_INDEX' => "<<",
@@ -403,14 +443,13 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 			$i = $start + 1;
 			foreach($files_data['row_set'] as $file_data)
 			{
-				$approve_mode = ($file_data['file_approved']) ? 'do_unapprove' : 'do_approve';
 				$pafiledb_template->assign_block_vars('file_mode.file_row', array(
 					'FILE_NAME' => pafiledb_html($file_data['file_name']),
 					'FILE_NUMBER' => $i++,
 					'FILE_ID' => $file_data['file_id'],
 					'U_FILE_EDIT' => append_sid("dload.php?action=user_upload&amp;mode=edit&amp;file_id={$file_data['file_id']}"),
 					'U_FILE_DELETE' => append_sid("dload.php?action=user_upload&amp;do=delete&amp;file_id={$file_data['file_id']}"),
-					'U_FILE_APPROVE' => append_sid("dload.php?action=mcp&amp;mode=$approve_mode&amp;cat_id=$cat_id&amp;file_id={$file_data['file_id']}"),
+					'APPROVE_FIELD' => ($file_data['file_approved']) ? 'unapprove_file_id' : 'approve_file_id',
 					'L_APPROVE' => ($file_data['file_approved']) ? $lang['Unapprove'] : $lang['Approve'])
 				);
 		

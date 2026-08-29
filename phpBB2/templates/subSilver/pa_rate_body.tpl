@@ -42,9 +42,10 @@ function checkRateForm() {
 		<option value="8">{L_R8}</option>
 		<option value="9">{L_R9}</option>
 		<option value="10">{L_R10}</option>
-		<input type="hidden" name="action" value="rate">
-		<input type="hidden" name="file_id" value="{ID}">
 		</select>
+		<input type="hidden" name="action" value="rate" />
+		<input type="hidden" name="file_id" value="{ID}" />
+		{S_FORM_TOKEN}
 	</td>
   </tr>
   <tr> 

@@ -161,12 +161,14 @@ function display_comments(&$file_data)
 		}
 
 		$comments_text = str_replace("\n", "\n<br />\n", $comments_text);
+		$can_delete_comment = $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_mod'] ||
+			($userdata['session_logged_in'] && $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_delete_comment'] && intval($comments_row['poster_id']) === intval($userdata['user_id']));
 
 		$pafiledb_template->assign_block_vars('text', array(
 			'POSTER' => $poster,
-			'U_COMMENT_DELETE' => ( ($pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_delete_comment'] && $file_info['user_id'] == $userdata['user_id']) || $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_mod']) ? append_sid("dload.php?action=post_comment&cid={$comments_row['comments_id']}&delete=do&file_id={$file_data['file_id']}") : '',
-			'AUTH_COMMENT_DELETE' => ( ($pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_delete_comment'] && $file_info['user_id'] == $userdata['user_id']) || $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_mod']) ? TRUE : FALSE,
-			'DELETE_IMG' => ( ($pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_delete_comment'] && $file_info['user_id'] == $userdata['user_id']) || $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_mod']) ? $images['icon_delpost'] : '',
+			'U_COMMENT_DELETE' => $can_delete_comment ? append_sid("dload.php?action=post_comment&cid={$comments_row['comments_id']}&delete=do&file_id={$file_data['file_id']}") : '',
+			'AUTH_COMMENT_DELETE' => $can_delete_comment,
+			'DELETE_IMG' => $can_delete_comment ? $images['icon_delpost'] : '',
 			'ICON_MINIPOST_IMG' => $phpbb_root_path . $images['icon_minipost'],
 			'ICON_SPACER' => $phpbb_root_path . 'images/spacer.gif',
 			'POSTER_RANK' => $poster_rank,

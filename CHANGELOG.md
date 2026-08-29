@@ -56,6 +56,11 @@ changes consolidated after that baseline without implying active maintenance.
   ordinary ratings; enforced comment and rating permissions independently,
   used the existing auto-increment comment key instead of `MAX()+1`, and
   restored the intended moderator edit access.
+- Bound PAFileDB ratings, comments, uploads, edits, deletions and moderator
+  approvals to the active session; changed destructive links into confirmed
+  POST actions, rechecked permissions against each target record and prevented
+  duplicate rating races. Comment owners can now delete only their own
+  comments instead of inheriting the uploaded file owner's identity.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.
