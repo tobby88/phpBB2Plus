@@ -1417,15 +1417,19 @@ function display_index($cur='Root')
 	$tree_mods = !empty($tree['mods']) && is_array($tree['mods']) ? $tree['mods'] : array();
 	foreach ($tree_mods as $idx => $data)
 	{
-		if ( $tree['type'][$idx] == POST_FORUM_URL )
+		if ( isset($tree['type'][$idx]) && $tree['type'][$idx] == POST_FORUM_URL )
 		{
-			for ( $i = 0; $i < count($data['user_id']); $i++ )
+			$user_ids = isset($data['user_id']) && is_array($data['user_id']) ? $data['user_id'] : array();
+			$usernames = isset($data['username']) && is_array($data['username']) ? $data['username'] : array();
+			$group_ids = isset($data['group_id']) && is_array($data['group_id']) ? $data['group_id'] : array();
+			$group_names = isset($data['group_name']) && is_array($data['group_name']) ? $data['group_name'] : array();
+			for ( $i = 0; $i < count($user_ids) && isset($usernames[$i]); $i++ )
 			{
-				$forum_moderators[ $tree['id'][$idx] ][] = '<a href="' . append_sid("./profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $data['user_id'][$i]) . '">' . $data['username'][$i] . '</a>';
+				$forum_moderators[ $tree['id'][$idx] ][] = '<a href="' . append_sid("./profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $user_ids[$i]) . '">' . $usernames[$i] . '</a>';
 			}
-			for ( $i = 0; $i < count($data['group_id']); $i++ )
+			for ( $i = 0; $i < count($group_ids) && isset($group_names[$i]); $i++ )
 			{
-				$forum_moderators[ $tree['id'][$idx] ][] = '<a href="' . append_sid("./groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $data['group_id'][$i]) . '">' . $data['group_name'][$i] . '</a>';
+				$forum_moderators[ $tree['id'][$idx] ][] = '<a href="' . append_sid("./groupcp.$phpEx?" . POST_GROUPS_URL . "=" . $group_ids[$i]) . '">' . $group_names[$i] . '</a>';
 			}
 		}
 	}
