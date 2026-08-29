@@ -65,6 +65,10 @@ changes consolidated after that baseline without implying active maintenance.
   download counters concurrency-safe, recorded downloader history per file,
   tightened referrer host matching and normalized the legacy email form's
   scalar, address, session and header handling.
+- Bound Knowledge Base ratings, article creation/edits and moderator actions
+  to session-verified POST requests; rechecked article ownership on the write
+  path, hid unapproved rating targets and replaced timestamp-based new-article
+  lookup with the inserted database ID.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.

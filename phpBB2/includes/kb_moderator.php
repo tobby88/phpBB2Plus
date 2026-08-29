@@ -33,25 +33,27 @@ if ( !$is_admin )
 
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 
-$category_id = $_GET['cat'];
-$page_id = $_GET['page'];
+$category_id = (isset($_REQUEST['cat']) && is_scalar($_REQUEST['cat'])) ? intval($_REQUEST['cat']) : 0;
+$page_id = (isset($_REQUEST['page']) && is_scalar($_REQUEST['page'])) ? intval($_REQUEST['page']) : 0;
 $ref_stats = ( isset($_GET['ref']) ) ? true : 0;
 
 if ( isset($_POST['action']) || isset($_GET['action']) )
 {
-	$action = ( isset($_POST['action']) ) ? $_POST['action'] : $_GET['action'];
+	$action_value = (isset($_POST['action']) && is_scalar($_POST['action'])) ? $_POST['action'] : ((isset($_GET['action']) && is_scalar($_GET['action'])) ? $_GET['action'] : '');
+	$action = (string) $action_value;
 }
+
 else
 {
-	if ( $approve )
+	if (!empty($approve))
 	{
 		$action = 'approve';
 	}
-	else if ( $unapprove )
+	else if (!empty($unapprove))
 	{
 		$action = 'unapprove';
 	}
-	else if ( $delete )
+	else if (!empty($delete))
 	{
 		$action = 'delete';
 	}
@@ -61,12 +63,43 @@ else
 	}
 }
 
+$article_id = (isset($_REQUEST['a']) && is_scalar($_REQUEST['a'])) ? intval($_REQUEST['a']) : 0;
+$confirmed = isset($_POST['confirm_action']) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sid']) && is_scalar($_POST['sid']) && hash_equals((string) $userdata['session_id'], (string) $_POST['sid']);
+if (in_array($action, array('approve', 'unapprove', 'delete'), true))
+{
+	if ($article_id <= 0)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
+	}
+	$sql = 'SELECT * FROM ' . KB_ARTICLES_TABLE . ' WHERE article_id = ' . $article_id;
+	if (!($moderated_result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain article data', '', __LINE__, __FILE__, $sql);
+	}
+	$moderated_article = $db->sql_fetchrow($moderated_result);
+	$db->sql_freeresult($moderated_result);
+	if (!$moderated_article)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
+	}
+	if ($category_id <= 0)
+	{
+		$category_id = intval($moderated_article['article_category_id']);
+	}
+	if (!$confirmed)
+	{
+		$action_labels = array('approve' => $lang['Approve'], 'unapprove' => $lang['Unapprove'], 'delete' => $lang['Delete']);
+		$confirm_text = ($action === 'delete') ? $lang['Confirm_art_delete'] : sprintf($lang['Confirm_art_action'], $action_labels[$action]);
+		$confirm_url = append_sid($phpbb_root_path . "kb.$phpEx?mode=moderate");
+		$confirm_message = $confirm_text . '<br /><br /><form method="post" action="' . htmlspecialchars($confirm_url, ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name="action" value="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '" /><input type="hidden" name="a" value="' . $article_id . '" /><input type="hidden" name="cat" value="' . $category_id . '" /><input type="hidden" name="page" value="' . $page_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" /><input type="submit" name="confirm_action" value="' . htmlspecialchars($lang['Yes'], ENT_QUOTES, 'UTF-8') . '" />&nbsp;&nbsp;<a href="' . append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&cat=$category_id") . '">' . $lang['No'] . '</a></form>';
+		message_die(GENERAL_MESSAGE, $confirm_message);
+	}
+}
+
 switch( $action )
 {
 
  	case 'approve':
-	
-	$article_id = $_GET['a'];
 	
 	$topic_sql = '';
 	if ( $kb_config['comments'] )
@@ -154,9 +187,11 @@ switch( $action )
 		$body = $article['article_body'];
 	 }
 	 
-	 update_kb_number($article_category_id, '+ 1');
-	 
-	 add_kb_words($article_id, $body);
+	 if (empty($moderated_article['approved']))
+	 {
+		update_kb_number($article_category_id, '+ 1');
+		add_kb_words($article_id, $body);
+	 }
 	
 	$message = $lang['Article_approved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 
@@ -164,8 +199,6 @@ switch( $action )
 	break;
 
 	case 'unapprove':
-	
-	$article_id = $_GET['a'];
 	
 	$sql = "UPDATE " . KB_ARTICLES_TABLE .
 		 " SET approved = 0
@@ -190,7 +223,10 @@ switch( $action )
 	  	$article_category_id = $article['article_category_id'];
 	 }
 	 
-	 update_kb_number($article_category_id, '- 1');
+	 if (!empty($moderated_article['approved']))
+	 {
+		update_kb_number($article_category_id, '- 1');
+	 }
 	
 	$message = $lang['Article_unapproved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 
@@ -199,10 +235,8 @@ switch( $action )
 	
 	case 'delete':
 	
-	if ($_GET['c'] == "yes")
+	if ($confirmed)
 	{	
-	$article_id = $_GET['a'];
-	
 	$sql = "SELECT article_category_id, approved, topic_id  
 	 FROM " . KB_ARTICLES_TABLE . "
 	 WHERE article_id = " . $article_id;
@@ -359,14 +393,6 @@ switch( $action )
 	$message = $lang['Article_deleted'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 
 	message_die(GENERAL_MESSAGE, $message);
-	}
-	else
-	{
-		$category_id = ($ref_stats ? 1 : $category_id);
-		
-	 	$message = $lang['Confirm_art_delete'] . '<br /><br />' . sprintf($lang['Confirm_art_delete_yes'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=moderate&action=delete&page=$page_id&cat=$article_category_id&amp;c=yes&amp;a=" . $_GET['a']) . '">', '</a>') . '<br /><br />' . sprintf($lang['Confirm_art_delete_no'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=cat&cat=$category_id") . '">', '</a>');
-
-		message_die(GENERAL_MESSAGE, $message);
 	}
 	break;
 }

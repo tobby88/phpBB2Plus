@@ -83,8 +83,8 @@ else
 //
 if ( isset($_POST['page_num']) || isset($_GET['page_num']) )
 {
-	$page_num = ( isset($_POST['page_num']) ) ? intval($_POST['page_num']) : intval($_GET['page_num']);
-	$page_num = $page_num - 1;
+	$page_num_value = (isset($_POST['page_num']) && is_scalar($_POST['page_num'])) ? $_POST['page_num'] : ((isset($_GET['page_num']) && is_scalar($_GET['page_num'])) ? $_GET['page_num'] : 1);
+	$page_num = max(0, intval($page_num_value) - 1);
 }
 else
 {
@@ -94,7 +94,8 @@ else
 // Print version
 if ( isset($_POST['print']) || isset($_GET['print']) )
 {
-	$print_version = ( isset($_POST['print']) ) ? $_POST['print'] : $_GET['print'];
+	$print_value = (isset($_POST['print']) && is_scalar($_POST['print'])) ? $_POST['print'] : ((isset($_GET['print']) && is_scalar($_GET['print'])) ? $_GET['print'] : '');
+	$print_version = (string) $print_value;
 }
 else
 {
@@ -137,14 +138,14 @@ $is_admin = ( ( $userdata['user_level'] == ADMIN || is_group_member($kb_config['
 //
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
-	$mode = htmlspecialchars($mode);
+	$mode_value = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? $_POST['mode'] : ((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? $_GET['mode'] : '');
+	$mode = htmlspecialchars((string) $mode_value);
 }
 
 if ( isset($_POST['stats']) || isset($_GET['stats']) )
 {
-	$stats = ( isset($_POST['stats']) ) ? $_POST['stats'] : $_GET['stats'];
-	$stats = htmlspecialchars($stats);
+	$stats_value = (isset($_POST['stats']) && is_scalar($_POST['stats'])) ? $_POST['stats'] : ((isset($_GET['stats']) && is_scalar($_GET['stats'])) ? $_GET['stats'] : '');
+	$stats = htmlspecialchars((string) $stats_value);
 }
 
 	if ( $mode == 'article' )

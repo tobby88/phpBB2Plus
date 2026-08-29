@@ -25,10 +25,23 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 }
 
-  $category_id = ( isset($_GET['cat']) ) ? $_GET['cat'] : $_POST['cat'];
+  $category_id = (isset($_GET['cat']) && is_scalar($_GET['cat'])) ? intval($_GET['cat']) : ((isset($_POST['cat']) && is_scalar($_POST['cat'])) ? intval($_POST['cat']) : 0);
+  $article_submit = !empty($_POST['article_submit']);
+  $preview = !empty($_POST['preview']);
+
+  if (!$is_admin && ((!$userdata['session_logged_in'] && $kb_config['allow_anon'] != ALLOW_ANON) || $kb_config['allow_new'] == 0))
+  {
+	  $message = $lang['No_add'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
+	  message_die(GENERAL_MESSAGE, $message);
+  }
+
+  if ($article_submit && ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+  {
+	  message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+  }
 
   //show article form
-	if ( !$_POST['article_submit'] || $_POST['preview'] )
+	if (!$article_submit || $preview)
 	{
 	   $page_title = $lang['Add_article'];
 	    if ( !$is_block )
@@ -79,16 +92,6 @@ if ( !defined('IN_PHPBB') )
 	   //load header
 	   include ($phpbb_root_path ."includes/kb_header.".$phpEx);
 	
-	   if ( !$is_admin )
-	   {
-	       if ( (!$userdata['session_logged_in'] && $kb_config['allow_anon'] != ALLOW_ANON ) || $kb_config['allow_new'] == 0 )
-	   	   {
-		       $message = $lang['No_add'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
-
-	    	   message_die(GENERAL_MESSAGE, $message);
-		   }
-	   }
-	
 	   //set up page
 	   $template->set_filenames(array(
 		  'body' => 'kb_add_body.tpl')
@@ -114,7 +117,7 @@ if ( !defined('IN_PHPBB') )
 		  'HTML_STATUS' => $html_status,
 		  'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
 		  'SMILIES_STATUS' => $smilies_status,
-		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat" value="' . $category_id . '">',
+		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat" value="' . $category_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		
 		  'L_BBCODE_B_HELP' => $lang['bbcode_b_help'], 
 		  'L_BBCODE_I_HELP' => $lang['bbcode_i_help'], 
@@ -233,7 +236,7 @@ if ( !defined('IN_PHPBB') )
 	
 	
 //post article ----------------------------------------------------------------------------ADD
-if ( $_POST['article_submit'] )
+if ($article_submit)
 {
 
 	$page_title = $lang['Add_article'];
@@ -247,19 +250,23 @@ if ( $_POST['article_submit'] )
 	//load header
 	include ($phpbb_root_path ."includes/kb_header.".$phpEx);
 	   
-	if ( !$_POST['article_name'] || !$_POST['article_desc'] || !$_POST['message'] )
+	$posted_name = (isset($_POST['article_name']) && is_scalar($_POST['article_name'])) ? trim((string) $_POST['article_name']) : '';
+	$posted_desc = (isset($_POST['article_desc']) && is_scalar($_POST['article_desc'])) ? trim((string) $_POST['article_desc']) : '';
+	$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
+	$type = (isset($_POST['type_id']) && is_scalar($_POST['type_id'])) ? intval($_POST['type_id']) : 0;
+	$posted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? trim((string) $_POST['username']) : '';
+	if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || $category_id <= 0 || $type <= 0)
 	{
 	  	echo "<br /><br /><center>Please fill out all parts of the form.  <a href=".this_kb_mxurl('mode=add').">Click Here</a> to go back to the form.</center>";
 		exit;
 	}
 
-	$article_text = ( !empty($_POST['message']) ) ? addslashes($_POST['message']) : '';	   
-	$title = ( !empty($_POST['article_name']) ) ? htmlspecialchars($_POST['article_name']) : ''; 
-	$description = ( !empty($_POST['article_desc']) ) ? htmlspecialchars($_POST['article_desc']) : ''; 
+	$article_text = $posted_message;
+	$title = htmlspecialchars($posted_name);
+	$description = htmlspecialchars($posted_desc);
 	$date = time();
 	$author_id = $userdata['user_id'];	   
-	$type = $_POST['type_id'];
-	$username = $_POST['username'];
+	$username = $userdata['session_logged_in'] ? $userdata['username'] : $posted_username;
    	$category = $category_id;
 	   
 	// Check message
@@ -281,13 +288,23 @@ if ( $_POST['article_submit'] )
 	}	   
 
 	   
-	$sql = "INSERT INTO " . KB_ARTICLES_TABLE . " ( article_category_id , article_title , article_description , article_date , article_author_id , username , bbcode_uid , article_body , article_type , approved, views ) 
-	VALUES ( '$category', '$title', '$description', '$date', '$author_id', '$username', '$bbcode_uid', '$article_text', '$type', '$approve', '0')";   
+	$sql = "INSERT INTO " . KB_ARTICLES_TABLE . " ( article_category_id , article_title , article_description , article_date , article_author_id , username , bbcode_uid , article_body , article_type , approved, views )
+	VALUES ($category, '" . $db->sql_escape($title) . "', '" . $db->sql_escape($description) . "', $date, " . intval($author_id) . ", '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "', '" . $db->sql_escape($article_text) . "', $type, $approve, 0)";
 
 	if ( !($results = $db->sql_query($sql)) )
 	{
 	    message_die(GENERAL_ERROR, "Could not submit aritcle", '', __LINE__, __FILE__, $sql);
 	}
+	$article_id = intval($db->sql_nextid());
+	$row = array(
+		'article_id' => $article_id,
+		'article_category_id' => $category,
+		'article_type' => $type,
+		'article_author_id' => $author_id,
+		'article_title' => $title,
+		'article_description' => $description,
+		'article_body' => $article_text
+	);
 
 	if (  !$approve || $approve == 0)
 	{	   
@@ -296,16 +313,7 @@ if ( $_POST['article_submit'] )
 	}
 	   
 	if ( $approve == 1 && $kb_config['comments'] )
-	{		  
-		  $sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE article_date = '" . $date . "'";
-	   	  if ( !($results = $db->sql_query($sql)) )
-	   	  {
-	       	 message_die(GENERAL_ERROR, "Could not get aritcle id", '', __LINE__, __FILE__, $sql);
-	   	  }
-	   	  $row = $db->sql_fetchrow($results);
-		  
-		  $article_id = $row['article_id'];
-		  
+	{
 		  // choose a user
 //		  $user_id = $kb_config['admin_id'];
 		  $user_id = $userdata['user_id'];
@@ -364,7 +372,7 @@ if ( $_POST['article_submit'] )
 	}
 	if ($approve == 1)
 	{
-	       add_kb_words($article_id, $row['article_body']);
+	       add_kb_words($article_id, $article_text);
 		   $message = $lang['Article_submitted'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
 	}
   	else

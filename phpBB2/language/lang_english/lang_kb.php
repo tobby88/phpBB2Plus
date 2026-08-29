@@ -71,6 +71,7 @@ $lang['Article_unapproved'] = 'Article is now Not Approved.';
 //delete
 $lang['Delete'] = 'Delete';
 $lang['Confirm_art_delete'] = 'Are you sure you want to delete this article?';
+$lang['Confirm_art_action'] = 'Are you sure you want to %s this article?';
 $lang['Confirm_art_delete_yes'] = '%sYes, I want to delete this article%s'; 
 $lang['Confirm_art_delete_no'] = '%sNo, I don\'t want to delete this article%s';
 $lang['Article_deleted'] = 'Article Deleted Successfully.';

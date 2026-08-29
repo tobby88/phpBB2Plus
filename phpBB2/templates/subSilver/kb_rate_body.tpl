@@ -48,6 +48,7 @@
 		<input type="hidden" name="action" value="rate">
 		<input type="hidden" name="id" value="{ID}">
 		<input type="hidden" name="rate" value="dorate">
+		{S_FORM_TOKEN}
 	</td>
   </tr>
   <tr> 

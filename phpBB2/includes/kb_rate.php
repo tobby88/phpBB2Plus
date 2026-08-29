@@ -23,36 +23,22 @@ if ( !defined('IN_PHPBB') )
 //
 // Start initial var setup
 //
-if ( isset($_GET['cat']) )
-{
-	$category_id = intval($_GET['cat']);
-}
-else
-{
-//	message_die(GENERAL_MESSAGE, 'no category');
-}
+$category_id = (isset($_REQUEST['cat']) && is_scalar($_REQUEST['cat'])) ? intval($_REQUEST['cat']) : 0;
 
 
-if ( isset($_GET['k']) || isset($_POST['k']) )
+if (isset($_REQUEST['k']) && is_scalar($_REQUEST['k']))
 {
-	$article_id = ( isset($_GET['k']) ) ? $_GET['k'] : $_POST['k'];
+	$article_id = intval($_REQUEST['k']);
 }
 else
 {
 	message_die(GENERAL_MESSAGE, 'no article');
 }
 
- if ( isset($_GET['rate']) || isset($_POST['rate']) )
- {
- 	$rate = ( isset($_GET['rate']) ) ? $_GET['rate'] : $_POST['rate'];
- }
- 
- if ( isset($_GET['rating']) || isset($_POST['rating']) )
- {
- 	$rating = ( isset($_GET['rating']) ) ? intval($_GET['rating']) : intval($_POST['rating']);
- }
+$rate = (isset($_POST['rate']) && is_scalar($_POST['rate'])) ? (string) $_POST['rate'] : '';
+$rating = (isset($_POST['rating']) && is_scalar($_POST['rating'])) ? intval($_POST['rating']) : 0;
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
 //
 // End initial var setup
 //
@@ -75,6 +61,16 @@ if ( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, 'Couldnt Query Article info', '', __LINE__, __FILE__, $sql);
 }
 $article = $db->sql_fetchrow($result);
+if (!$article)
+{
+	message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
+}
+
+$can_rate_unapproved = $is_admin || ($userdata['session_logged_in'] && intval($article['article_author_id']) === intval($userdata['user_id']));
+if (empty($article['approved']) && !$can_rate_unapproved)
+{
+	message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
+}
 
 $sql = "SELECT * FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = '" . $article['article_category_id'] . "'";
 if ( !($result = $db->sql_query($sql)) )
@@ -85,45 +81,18 @@ $category = $db->sql_fetchrow($result);
 
 $ipaddy= getenv ("REMOTE_ADDR");
 
-if ($kb_config['votes_check_ip'] == 1)
-{
-	$sql = "SELECT * FROM " . KB_VOTES_TABLE . " WHERE votes_ip = '" . $ipaddy . "' AND votes_file = '" . $article_id . "'";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-	   	message_die(GENERAL_ERROR, 'Couldnt Query rate ip', '', __LINE__, __FILE__, $sql);
-	}
-
-	if ( $db->sql_numrows($result) > 0 )
-	{
-		$template->assign_vars(array(
-			"META" => '<meta http-equiv="refresh" content="3;url='  . append_sid("kb.$phpEx?action=url&amp;k=" . $article_id) . '">')
-		);
-		$message = $lang['Rerror'] . "<br /><br />" . sprintf($lang['Click_return_rate'], "<a href=\"" . append_sid("kb.$phpEx?action=url&amp;k=$article_id") . "\">", "</a>");
-		message_die(GENERAL_MESSAGE, $message);
-	}
-}
-
-if ($kb_config['votes_check_userid'] == 1)
-{
-	$sql = "SELECT * FROM " . KB_VOTES_TABLE . " WHERE votes_userid = '" . $userdata['user_id'] . "' AND votes_file = '" . $article_id . "'";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-	   	message_die(GENERAL_ERROR, 'Couldnt Query rate ip', '', __LINE__, __FILE__, $sql);
-	}
-
-	if ( $db->sql_numrows($result) > 0 )
-	{
-		$template->assign_vars(array(
-			"META" => '<meta http-equiv="refresh" content="3;url='  . append_sid("kb.$phpEx?action=url&amp;k=" . $article_id) . '">')
-		);
-		$message = $lang['Rerror'] . "<br /><br />" . sprintf($lang['Click_return_rate'], "<a href=\"" . append_sid("kb.$phpEx?action=url&amp;k=$article_id") . "\">", "</a>");
-		message_die(GENERAL_MESSAGE, $message);
-	}
-}
-
 if ($rate == 'dorate')
 {
-	$conf = str_replace("{filename}", $article['article_name'], $lang['Rconf']);
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
+	if ($rating < 1 || $rating > 10)
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
+
+	$conf = str_replace("{filename}", $article['article_title'], $lang['Rconf']);
 	$conf = str_replace("{rate}", $rating, $conf);
 
 	if ($article['article_totalvotes'] == 1)
@@ -135,20 +104,36 @@ if ($rate == 'dorate')
 		$add = 1;
 	}
  
-    $sql = "UPDATE " . KB_ARTICLES_TABLE . " SET article_rating=article_rating+" . $rating . ", article_totalvotes=article_totalvotes+1 WHERE article_id = '" . $article_id . "'";
+	$ipaddy = $db->sql_escape((string) getenv('REMOTE_ADDR'));
+	$user_id = intval($userdata['user_id']);
+	$duplicate_conditions = array();
+	if ($kb_config['votes_check_ip'] == 1)
+	{
+		$duplicate_conditions[] = "votes_ip = '$ipaddy'";
+	}
+	if ($kb_config['votes_check_userid'] == 1)
+	{
+		$duplicate_conditions[] = "votes_userid = $user_id";
+	}
+	$duplicate_sql = empty($duplicate_conditions) ? '0 = 1' : '(' . implode(' OR ', $duplicate_conditions) . ')';
+	$sql = "INSERT INTO " . KB_VOTES_TABLE . " (votes_ip, votes_userid, votes_file)
+		SELECT '$ipaddy', $user_id, $article_id
+		WHERE NOT EXISTS (SELECT 1 FROM " . KB_VOTES_TABLE . " WHERE votes_file = $article_id AND $duplicate_sql)";
+
+    if ( !($insert = $db->sql_query($sql)) )
+    {
+		message_die(GENERAL_ERROR, 'Couldnt Update rating table', '', __LINE__, __FILE__, $sql);
+    }
+	if (!$db->sql_affectedrows())
+	{
+		message_die(GENERAL_MESSAGE, $lang['Rerror']);
+	}
+
+    $sql = "UPDATE " . KB_ARTICLES_TABLE . " SET article_rating = article_rating + $rating, article_totalvotes = article_totalvotes + 1 WHERE article_id = $article_id";
 
     if ( !($update = $db->sql_query($sql)) )
     {
         message_die(GENERAL_ERROR, 'Couldnt Update rating table', '', __LINE__, __FILE__, $sql);
-    }
-
-	$ipaddy = getenv ("REMOTE_ADDR");
-
-	$sql = "INSERT INTO " . KB_VOTES_TABLE . " VALUES('" . $ipaddy . "', '" . $userdata['user_id'] . "', '" . $article_id . "')";
-
-    if ( !($insert = $db->sql_query($sql)) )
-    {
-       	message_die(GENERAL_ERROR, 'Couldnt Update rating table', '', __LINE__, __FILE__, $sql);
     }
 
     $sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE article_id = '" . $article_id . "'";
@@ -180,7 +165,7 @@ if ($rate == 'dorate')
 }
 else
 {
-	$rateinfo = str_replace("{filename}", $article['article_name'], $lang['Rateinfo']);
+	$rateinfo = str_replace("{filename}", $article['article_title'], $lang['Rateinfo']);
 
 	$template->assign_block_vars("rate", array());
 
@@ -189,6 +174,7 @@ else
 //
 	$template->assign_vars(array(
 		'S_RATE_ACTION' => append_sid($phpbb_root_path . "kb.$phpEx?mode=rate&amp;cat=$category_id&amp;k=$article_id"),
+		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		'L_RATE' => $lang['Rate'],
 		'L_RERROR' => $lang['Rerror'],
 		'L_R1' => $lang['R1'],

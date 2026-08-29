@@ -24,10 +24,32 @@ if ( !defined('IN_PHPBB') )
 {
 	die("Hacking attempt");
 }
-	$article_id = ( isset($_GET['k']) ) ? $_GET['k'] : $_POST['k'];	
+	$article_id = (isset($_GET['k']) && is_scalar($_GET['k'])) ? intval($_GET['k']) : ((isset($_POST['k']) && is_scalar($_POST['k'])) ? intval($_POST['k']) : 0);
+	$article_submit = !empty($_POST['article_submit']);
+	$preview = !empty($_POST['preview']);
+	$sql = 'SELECT * FROM ' . KB_ARTICLES_TABLE . ' WHERE article_id = ' . $article_id;
+	if (!($permission_result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain article data', '', __LINE__, __FILE__, $sql);
+	}
+	$permission_row = $db->sql_fetchrow($permission_result);
+	$db->sql_freeresult($permission_result);
+	if (!$permission_row)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
+	}
+	if (!$is_admin && (!$userdata['session_logged_in'] || intval($permission_row['article_author_id']) !== intval($userdata['user_id'])))
+	{
+		$message = $lang['No_edit'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
+		message_die(GENERAL_MESSAGE, $message);
+	}
+	if ($article_submit && ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
 // main / preview -------------------------------------------------------------------------	
 	//show article form
-	if ( !$_POST['article_submit'] || $_POST['preview'] )
+	if (!$article_submit || $preview)
 	{
 		  
 		$sql = "SELECT *
@@ -106,16 +128,6 @@ if ( !defined('IN_PHPBB') )
 	   //load header
 	   include ($phpbb_root_path ."includes/kb_header.".$phpEx);
    
-	   if ( !$is_admin )
-	   {
-	       if ( ( $userdata['user_id'] != $author_id && $userdata['session_logged_in'] ) ||  !$userdata['session_logged_in'])
-	   	   {
-		       $message = $lang['No_edit'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
-
-	    	   message_die(GENERAL_MESSAGE, $message);
-		   }
-	   }
-	
 	   //set up page
 	   $template->set_filenames(array(
 		  'body' => 'kb_add_body.tpl')
@@ -146,7 +158,7 @@ if ( !defined('IN_PHPBB') )
 		  'ARTICLE_DESC' => $article_desc,
 		  'ARTICLE_BODY' => $article_body,
 		  'TOPIC' => $topic,
-		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="k" value="' . $article_id . '"><input type="hidden" name="bbcode_uid" value="' . $bbcode_uid . '"><input type="hidden" name="author_id" value="' . $author_id . '">',
+		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="k" value="' . $article_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		
       	  'L_BBCODE_B_HELP' => $lang['bbcode_b_help'], 
 		  'L_BBCODE_I_HELP' => $lang['bbcode_i_help'], 
@@ -261,7 +273,7 @@ if ( !defined('IN_PHPBB') )
 	}
 	
 // update -------------------------------------------------------------------------	
-	if ( $_POST['article_submit'] )
+	if ($article_submit)
 	{		   
 	   	$page_title = $lang['Edit'];
 	    
@@ -275,21 +287,24 @@ if ( !defined('IN_PHPBB') )
 	   	//load header
 	   	include ($phpbb_root_path ."includes/kb_header.".$phpEx);
 	   
-	   	if ( !$_POST['article_name'] || !$_POST['article_desc'] || !$_POST['message'] )
+		$posted_name = (isset($_POST['article_name']) && is_scalar($_POST['article_name'])) ? trim((string) $_POST['article_name']) : '';
+		$posted_desc = (isset($_POST['article_desc']) && is_scalar($_POST['article_desc'])) ? trim((string) $_POST['article_desc']) : '';
+		$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
+		$category = (isset($_POST['category_id']) && is_scalar($_POST['category_id'])) ? intval($_POST['category_id']) : 0;
+		$type_id = (isset($_POST['type_id']) && is_scalar($_POST['type_id'])) ? intval($_POST['type_id']) : 0;
+		$topic = (isset($_POST['topic']) && is_scalar($_POST['topic'])) ? intval($_POST['topic']) : 0;
+		if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || $category <= 0 || $type_id <= 0)
 	   	{
 	   		$message = "Please fill out all parts of the form.<br /><br />Click <a href=" . this_kb_mxurl('mode=add').">Here</a> to return to the form";
     		message_die(GENERAL_MESSAGE, $message);
 	   	}
    		
-		$article_text = ( !empty($_POST['message']) ) ? addslashes($_POST['message']) : '';	   
-   		$category = $_POST['category_id'];
-   		$title = ( !empty($_POST['article_name']) ) ? htmlspecialchars($_POST['article_name']) : ''; 
-   		$description = ( !empty($_POST['article_desc']) ) ? htmlspecialchars($_POST['article_desc']) : ''; 
-   		$date = time();
-   		$author_id = $_POST['author_id'];	   
-   		$type_id = $_POST['type_id'];
-   		$topic = $_POST['topic'];
-  		$bbcode_uid = $_POST['bbcode_uid'];
+		$article_text = $posted_message;
+		$title = htmlspecialchars($posted_name);
+		$description = htmlspecialchars($posted_desc);
+		$date = time();
+		$author_id = intval($permission_row['article_author_id']);
+		$bbcode_uid = (string) $permission_row['bbcode_uid'];
 
 	   	if ( $type_id == 'select_one' )
 	   	{
@@ -342,17 +357,17 @@ if ( !defined('IN_PHPBB') )
 	   	}
 
 	  	$sql = "UPDATE " . KB_ARTICLES_TABLE . "
-	   		SET article_category_id = '$category', 
-			article_title = '$title', 
-			article_description = '$description', 
-			article_date = '$date', 
-			article_author_id = '$author_id', 
-			article_body = '$article_text', 
-			article_type = '$type_id', 
-			approved = '$approve', 
-			topic_id = '$topic',
-			bbcode_uid = '$bbcode_uid' 
-			WHERE article_id = '$article_id'";
+			SET article_category_id = $category,
+			article_title = '" . $db->sql_escape($title) . "',
+			article_description = '" . $db->sql_escape($description) . "',
+			article_date = $date,
+			article_author_id = $author_id,
+			article_body = '" . $db->sql_escape($article_text) . "',
+			article_type = $type_id,
+			approved = $approve,
+			topic_id = $topic,
+			bbcode_uid = '" . $db->sql_escape($bbcode_uid) . "'
+			WHERE article_id = $article_id";
 			  
 	   	if ( !($edit_article = $db->sql_query($sql)) )
 	   	{

@@ -71,6 +71,7 @@ $lang['Article_unapproved'] = 'Artikel ist hiermit nicht ver&ouml;ffentlicht.';
 //delete
 $lang['Delete'] = 'L&ouml;schen';
 $lang['Confirm_art_delete'] = 'Sind Sie sich sicher, dass Sie diesen Artikel l&ouml;schen wollen?';
+$lang['Confirm_art_action'] = 'Möchtest Du diesen Artikel wirklich %s?';
 $lang['Confirm_art_delete_yes'] = '%sJa, Ich mochten den/die Artikel l&ouml;schen.';
 $lang['Confirm_art_delete_no'] = '%sNein, ich bin mir nicht sicher.';
 $lang['Article_deleted'] = 'Artikel l&ouml;schen erfolgreich.';

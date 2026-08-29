@@ -26,8 +26,8 @@ if ( !defined('IN_PHPBB') )
 }
 
 
-	$article_id = intval($_GET['k']);
-	$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+	$article_id = (isset($_GET['k']) && is_scalar($_GET['k'])) ? intval($_GET['k']) : 0;
+	$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
 	
 	$sql = "SELECT *
 		FROM " . KB_ARTICLES_TABLE . "
@@ -37,7 +37,7 @@ if ( !defined('IN_PHPBB') )
 		message_die(GENERAL_ERROR, "Could not obtain article data", '', __LINE__, __FILE__, $sql);
 	}
 
-	if ( $row = $db->sql_fetchrow($result) )
+	if ($row = $db->sql_fetchrow($result))
 	{
 	
 	   $article_title = stripslashes($row['article_title']);
@@ -68,6 +68,7 @@ if ( !defined('IN_PHPBB') )
 	   }
 	
 	   $art_pages = explode('[page]', stripslashes($row['article_body']));
+	   $page_num = min($page_num, max(0, count($art_pages) - 1));
 	   $article = trim($art_pages[$page_num]);
 	   $article = str_replace('[toc]', '', $article);
 	   $kb_art_description  = stripslashes($row['article_description']);
@@ -92,24 +93,32 @@ if ( !defined('IN_PHPBB') )
 			$rating_message = $rating.'/10, '.$rating_votes. ' ' .$lang['Votes'] ;	
 	   		$rate_message = '<b>' . $lang['Votes_label'] . '</b> ' . $rating_message;
 		}
-  	}	
+	}
+	else
+	{
+		message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
+	}
+	$db->sql_freeresult($result);
+
+	if (!$approved && !$is_admin)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
+	}
 	
 	if ( $page_num == 0 )
 	{	
-	   $sql = "UPDATE " . KB_ARTICLES_TABLE . " SET
-		    views = '" . $new_views . "'
-		    WHERE article_id = " . $article_id;
-    }
-	if ( !($result2 = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, "Could not update article's views", '', __LINE__, __FILE__, $sql);
+	   $sql = "UPDATE " . KB_ARTICLES_TABLE . " SET views = views + 1 WHERE article_id = " . $article_id;
+		if (!($result2 = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, "Could not update article's views", '', __LINE__, __FILE__, $sql);
+		}
 	}
 	
 	//
 	// Was a highlight request part of the URI?
 	//
 	$highlight_match = $highlight = '';
-	if (isset($_GET['highlight']))
+	if (isset($_GET['highlight']) && is_scalar($_GET['highlight']))
 	{
 	    // Split words and phrases
 		$words = explode(' ', trim(htmlspecialchars(urldecode($_GET['highlight']))));
@@ -234,7 +243,7 @@ if ( !defined('IN_PHPBB') )
 		);
 	}	
 	
-	if ( !$article_title || (!$approved && !$is_admin) )
+	if (!$article_title)
 	{
 	    $message = $lang['Article_not_exsist'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
       	message_die(GENERAL_MESSAGE, $message);
