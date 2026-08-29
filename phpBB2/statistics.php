@@ -98,6 +98,12 @@ for ($__count = 0; $__count < count($__stat_module_rows); $__count++)
 		print '<a name="' . $__module_id . '"></a>';
 
 		$__module_info = generate_module_info($__stat_module_data[$__module_id]);
+		$__module_file = stats_module_path($__module_name, 'module.php');
+		$__module_tpl = stats_module_path($__module_name, 'module.tpl');
+		if (!$__module_file || !$__module_tpl || empty($__module_info['dname']))
+		{
+			continue;
+		}
 
 		$__tpl_name = 'module_tpl_' . $__module_id;
 		$__module_root_path = './../../' . $phpbb_root_path;
@@ -119,11 +125,16 @@ for ($__count = 0; $__count < count($__stat_module_rows); $__count++)
 
 		$__language = $board_config['default_lang'];
 
-		if (!@file_exists(@realpath($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $__module_name . '/lang_' . $__language . '/lang.' . $phpEx)))
+		$__module_lang = stats_module_path($__module_name, 'lang_' . $__language . '/lang.' . $phpEx);
+		if (!$__module_lang)
 		{
 			$__language = 'english';
+			$__module_lang = stats_module_path($__module_name, 'lang_english/lang.' . $phpEx);
 		}
-		include($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $__module_name . '/lang_' . $__language . '/lang.' . $phpEx);
+		if ($__module_lang)
+		{
+			include($__module_lang);
+		}
 		$__reload = FALSE;
 
 		if ((trim($__module_data['module_db_cache']) != '') || (trim($__module_data['module_result_cache']) != ''))
@@ -142,7 +153,7 @@ for ($__count = 0; $__count < count($__stat_module_rows); $__count++)
 					$result_cache->begin_cached_results(TRUE, trim($__module_data['module_result_cache']));
 				}
 
-				include($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $__module_name . '/module.php');
+				include($__module_file);
 
 				if (trim($__module_data['module_db_cache']) != '')
 				{
@@ -170,13 +181,13 @@ for ($__count = 0; $__count < count($__stat_module_rows); $__count++)
 
 			$stat_db->begin_cached_query();
 			$result_cache->begin_cached_results();
-			include($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $__module_name . '/module.php');
+			include($__module_file);
 			$stat_db->end_cached_query($__module_id);
 			$result_cache->end_cached_query($__module_id);
 		}
 				
 		$template->set_filenames(array(
-			$__tpl_name => $__module_root_path . $__stats_config['modules_dir'] . '/' . $__module_info['dname'] . '/module.tpl')
+			$__tpl_name => $__module_tpl)
 		);
 	
 		$template->pparse($__tpl_name);

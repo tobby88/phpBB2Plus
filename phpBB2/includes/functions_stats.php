@@ -34,11 +34,83 @@ function sql_quote($data)
 	return ($data);
 }
 
+function stats_modules_root()
+{
+	global $phpbb_root_path, $__stats_config;
+
+	$relative = isset($__stats_config['modules_dir']) ? trim(str_replace('\\', '/', $__stats_config['modules_dir']), '/') : '';
+	if ($relative === '' || strpos($relative, '..') !== false || !preg_match('#^[a-zA-Z0-9_./-]+$#D', $relative))
+	{
+		return false;
+	}
+	$board_root = @realpath($phpbb_root_path);
+	$modules_root = @realpath($phpbb_root_path . $relative);
+	if (!$board_root || !$modules_root)
+	{
+		return false;
+	}
+	$board_root = rtrim(str_replace('\\', '/', $board_root), '/');
+	$modules_root_normalized = str_replace('\\', '/', $modules_root);
+	if (strpos($modules_root_normalized, $board_root . '/') !== 0)
+	{
+		return false;
+	}
+	return $modules_root;
+}
+
+function stats_module_path($module_name, $relative_file = '')
+{
+	if (!is_string($module_name) || !preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/D', $module_name))
+	{
+		return false;
+	}
+	$modules_root = stats_modules_root();
+	if (!$modules_root)
+	{
+		return false;
+	}
+	$module_root = @realpath($modules_root . '/' . $module_name);
+	$modules_root_normalized = rtrim(str_replace('\\', '/', $modules_root), '/');
+	$module_root_normalized = $module_root ? str_replace('\\', '/', $module_root) : '';
+	if (!$module_root || strpos($module_root_normalized, $modules_root_normalized . '/') !== 0 || !@is_dir($module_root))
+	{
+		return false;
+	}
+	if ($relative_file === '')
+	{
+		return $module_root;
+	}
+	$relative_file = str_replace('\\', '/', (string) $relative_file);
+	if ($relative_file === '' || strpos($relative_file, '..') !== false || substr($relative_file, 0, 1) === '/')
+	{
+		return false;
+	}
+	$file = @realpath($module_root . '/' . $relative_file);
+	$file_normalized = $file ? str_replace('\\', '/', $file) : '';
+	if (!$file || strpos($file_normalized, rtrim($module_root_normalized, '/') . '/') !== 0 || !@is_file($file))
+	{
+		return false;
+	}
+	return $file;
+}
+
 function generate_module_info($module_data, $install = FALSE)
 {
 	global $db, $phpbb_root_path, $__stats_config;
 
 	$module_dir = trim($module_data['name']);
+	$info_file = stats_module_path($module_dir, 'info.txt');
+	if (!$info_file)
+	{
+		return array(
+			'name' => $module_dir,
+			'dname' => '',
+			'condition_result' => false,
+			'update_time' => 0,
+			'auth_value' => 0,
+			'active' => 0
+		);
+	}
 
 	//
 	// Get Info from Cache or not...
@@ -47,15 +119,24 @@ function generate_module_info($module_data, $install = FALSE)
 	$ret_array['condition_result'] = TRUE;
 	$condition = '';
 
-	if ($module_data['module_info_time'] == filemtime($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $module_dir . '/info.txt'))
+	$cache_valid = $module_data['module_info_time'] == filemtime($info_file);
+	if ($cache_valid)
 	{
-		$ret_array = phpbb_safe_unserialize(stripslashes($module_data['module_info_cache']));
+		$cached_info = phpbb_safe_unserialize(stripslashes($module_data['module_info_cache']));
+		if (is_array($cached_info))
+		{
+			$ret_array = $cached_info;
+		}
+		else
+		{
+			$cache_valid = false;
+		}
 	}
-	else
+	if (!$cache_valid)
 	{
 		$extra_info_mode = FALSE;
 		$ret_array['default_update_time'] = 0;
-		$data_file = @file($phpbb_root_path . trim($__stats_config['modules_dir']) . '/' . $module_dir . '/info.txt');
+		$data_file = @file($info_file);
 		
 		foreach ((array) $data_file as $key => $data)
 		{
@@ -113,7 +194,7 @@ function generate_module_info($module_data, $install = FALSE)
 
 		$sql = "UPDATE " . MODULES_TABLE . "
 		SET module_info_cache = '" . addslashes(serialize($ret_array)) . "',
-		module_info_time = " . filemtime($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $module_dir . '/info.txt') . "
+		module_info_time = " . filemtime($info_file) . "
 		WHERE module_id = " . intval($module_data['module_id']);
 
 		if (!$db->sql_query($sql))
@@ -130,9 +211,9 @@ function generate_module_info($module_data, $install = FALSE)
 
 	if ($install)
 	{
-		$data_file = @file($phpbb_root_path . trim($__stats_config['modules_dir']) . '/' . $module_dir . '/info.txt');
+		$data_file = @file($info_file);
 
-		while (list($key, $data) = @each($data_file))
+		foreach ((array) $data_file as $key => $data)
 		{
 			if (!$condition_mode)
 			{
@@ -181,18 +262,19 @@ function update_module_list()
 	//
 	$ret_list = array();
 	
-	$handle = @opendir($phpbb_root_path . $__stats_config['modules_dir']);
+	$modules_root = stats_modules_root();
+	$handle = $modules_root ? @opendir($modules_root) : false;
 
 	if (!$handle)
 	{
-		message_die(GENERAL_ERROR, "Unable to open directory " . $phpbb_root_path . $__stats_config['modules_dir']);
+		message_die(GENERAL_ERROR, 'Unable to open statistics modules directory');
 	}
 
 	$dir_list = '';
 	
 	while ($file = readdir($handle))
 	{
-		if ($file != '.' && $file != '..' && is_dir($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $file) && ($file != '_vti_cnf') && ($file != 'CVS') )
+		if ($file != '.' && $file != '..' && preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/D', $file) && is_dir($modules_root . '/' . $file) && ($file != '_vti_cnf') && ($file != 'CVS') )
 		{
 			$dir_list .= ($dir_list == '') ? "'$file'" : ", '$file'";
 			
@@ -260,8 +342,11 @@ function update_module_list()
 	//
 	// Kill old module folders that were deleted
 	//
-	$sql = "DELETE FROM " . MODULES_TABLE . "
-	WHERE (name NOT IN ($dir_list))";
+	if ($dir_list === '')
+	{
+		message_die(GENERAL_ERROR, 'No valid statistics modules were found.');
+	}
+	$sql = "DELETE FROM " . MODULES_TABLE . " WHERE name NOT IN ($dir_list)";
 
 	if (!$db->sql_query($sql))
 	{

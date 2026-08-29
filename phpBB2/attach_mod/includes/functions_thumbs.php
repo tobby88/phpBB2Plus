@@ -161,14 +161,16 @@ function create_thumbnail($source, $new_file, $mimetype)
 
 	$used_imagick = false;
 
-	if (is_imagick()) 
+	if (function_exists('exec') && is_imagick())
 	{
 		$command = escapeshellarg($imagick)
 			. ' -quality 85 -antialias -sample ' . intval($new_width) . 'x' . intval($new_height)
 			. ' ' . escapeshellarg(str_replace('\\', '/', $source))
 			. ' +profile "*" ' . escapeshellarg(str_replace('\\', '/', $new_file));
-		passthru($command);
-		if (@file_exists($new_file))
+		$output = array();
+		$status = 1;
+		@exec($command, $output, $status);
+		if ($status === 0 && @file_exists($new_file))
 		{
 			$used_imagick = true;
 		}

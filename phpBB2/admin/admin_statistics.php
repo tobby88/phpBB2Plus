@@ -357,6 +357,12 @@ if ($mode == 'auto_set')
 		$module_name = trim($module_name);
 
 		$module_info = generate_module_info($stat_module_data[$module_id]);
+		$module_file = stats_module_path($module_name, 'module.php');
+		$module_tpl = stats_module_path($module_name, 'module.tpl');
+		if (!$module_file || !$module_tpl || empty($module_info['dname']))
+		{
+			continue;
+		}
 
 		//
 		// Start Time
@@ -385,21 +391,26 @@ if ($mode == 'auto_set')
 
 		$language = $board_config['default_lang'];
 
-		if (!file_exists($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $module_name . '/lang_' . $language . '/lang.' . $phpEx))
+		$module_lang = stats_module_path($module_name, 'lang_' . $language . '/lang.' . $phpEx);
+		if (!$module_lang)
 		{
 			$language = 'english';
+			$module_lang = stats_module_path($module_name, 'lang_english/lang.' . $phpEx);
 		}
-		include($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $module_name . '/lang_' . $language . '/lang.' . $phpEx);
+		if ($module_lang)
+		{
+			include($module_lang);
+		}
 
 		$statistics->result_cache_used = FALSE;
 		$statistics->db_cache_used = FALSE;
 
 		$stat_db->begin_cached_query();
 		$result_cache->begin_cached_results();
-		include($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $module_name . '/module.php');
+		include($module_file);
 				
 		$template->set_filenames(array(
-			'module_tpl_' . $module_id => './../' . $phpbb_root_path . $__stats_config['modules_dir'] . '/' . $module_info['dname'] . '/module.tpl')
+			'module_tpl_' . $module_id => $module_tpl)
 		);
 	
 		$template->pparse('module_tpl_' . $module_id);
@@ -852,6 +863,12 @@ if ($mode == 'edit')
 	$__module_id = $module_id;
 	$__module_info = generate_module_info($__stat_module_data[$__module_id]);
 	$__module_name = $module_name;
+	$__module_file = stats_module_path($__module_name, 'module.php');
+	$__module_tpl = stats_module_path($__module_name, 'module.tpl');
+	if (!$__module_file || !$__module_tpl || empty($__module_info['dname']))
+	{
+		message_die(GENERAL_ERROR, 'Invalid statistics module path.');
+	}
 
 	$__tpl_name = 'preview';
 	$__module_root_path = './../' . $phpbb_root_path;
@@ -867,23 +884,28 @@ if ($mode == 'edit')
 
 	$__language = $board_config['default_lang'];
 
-	if (!@file_exists(@realpath($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $__module_name . '/lang_' . $__language . '/lang.' . $phpEx)))
+	$__module_lang = stats_module_path($__module_name, 'lang_' . $__language . '/lang.' . $phpEx);
+	if (!$__module_lang)
 	{
 		$__language = 'english';
+		$__module_lang = stats_module_path($__module_name, 'lang_english/lang.' . $phpEx);
 	}
-	include($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $__module_name . '/lang_' . $__language . '/lang.' . $phpEx);
+	if ($__module_lang)
+	{
+		include($__module_lang);
+	}
 
 	$statistics->result_cache_used = FALSE;
 	$statistics->db_cache_used = FALSE;
 
 	$stat_db->begin_cached_query();
 	$result_cache->begin_cached_results();
-	include($phpbb_root_path . $__stats_config['modules_dir'] . '/' . $__module_name . '/module.php');
+	include($__module_file);
 	$stat_db->end_cached_query($__module_id);
 	$result_cache->end_cached_query($__module_id);
 				
 	$template->set_filenames(array(
-		$__tpl_name => $__module_root_path . $__stats_config['modules_dir'] . '/' . $__module_info['dname'] . '/module.tpl')
+		$__tpl_name => $__module_tpl)
 	);
 	
 	//

@@ -207,41 +207,17 @@ $select_pm_size_mode = size_select('pm_size', $pm_size);
 if ($search_imagick)
 {
 	$imagick = '';
-	
-	if (eregi('convert', $imagick)) 
+	$candidates = (stripos(PHP_OS, 'WIN') === 0)
+		? array('c:/imagemagick/convert.exe')
+		: array('/usr/bin/convert', '/usr/local/bin/convert');
+	foreach ($candidates as $candidate)
 	{
-		return true;
-	} 
-	else if ($imagick != 'none') 
-	{
-		if (!eregi('WIN', PHP_OS)) 
+		if (@is_file($candidate) && @is_executable($candidate))
 		{
-			$retval = @exec('whereis convert');
-			$paths = explode(' ', $retval);
-
-			if (is_array($paths)) 
-			{
-				for ($i = 0; $i < sizeof($paths); $i++) 
-				{
-					$path = basename($paths[$i]);
-
-					if ($path == 'convert') 
-					{
-						$imagick = $paths[$i];
-					}
-				}
-			}
+			$imagick = $candidate;
+			break;
 		}
-		else if (eregi('WIN', PHP_OS))
-		{
-			$path = 'c:/imagemagick/convert.exe';
-
-			if (@file_exists(@amod_realpath($path)))
-			{
-				$imagick = $path;
-			}
-		}
-	} 
+	}
 
 	if (@file_exists(@amod_realpath(trim($imagick))))
 	{
