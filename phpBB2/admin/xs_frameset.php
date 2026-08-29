@@ -60,7 +60,6 @@ $content_url = array(
 	'import'		=> append_sid('xs_import.'.$get_data),
 	'export'		=> append_sid('xs_export.'.$get_data),
 	'clone'			=> append_sid('xs_clone.'.$get_data),
-	'edittpl'		=> append_sid('xs_edit.'.$get_data),
 	'editdb'		=> append_sid('xs_edit_data.'.$get_data),
 	'exportdb'		=> append_sid('xs_export_data.'.$get_data),
 	'portal'		=> append_sid('xs_portal.'.$get_data),

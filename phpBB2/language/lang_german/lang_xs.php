@@ -103,6 +103,7 @@ $lang['xs_install_styles_explain'] = 'Diese Funktion erlaubt Dir die Installatio
 $lang['xs_uninstall_styles'] = 'Styles deinstallieren';
 $lang['xs_uninstall_styles_explain'] = 'Diese Funktion erlaubt Dir, Styles von Deinem Forum zu entfernen.';
 $lang['xs_edit_templates_explain'] = 'Diese Funktion erlaubt Dir, tpl Dateien online zu editieren.';
+$lang['xs_edit_templates_disabled'] = 'Der webbasierte Template-Editor wurde deaktiviert. Template-Dateien werden über das Quellcode-Repository und den Deployment-Prozess verwaltet.';
 $lang['xs_edit_styles_data'] = 'Styles Daten bearbeiten';
 $lang['xs_edit_styles_data_explain'] = 'Diese Funktion erlaubt Dir, Styles Variablen zu bearbeiten. Es wird von einigen Styles verwendet, meist werden jedoch stattdessen css Files verwendet.';
 $lang['xs_export_styles_data'] = 'Styles Daten exportieren';

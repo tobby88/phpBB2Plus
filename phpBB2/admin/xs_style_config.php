@@ -38,14 +38,16 @@ if(empty($template->xs_version) || $template->xs_version !== 8)
 define('IN_XS', true);
 include_once('xs_include.' . $phpEx);
 
-$tpl = isset($HTTP_POST_VARS['tpl']) ? $HTTP_POST_VARS['tpl'] : (isset($HTTP_GET_VARS['tpl']) ? $HTTP_GET_VARS['tpl'] : '');
+$tpl = isset($HTTP_POST_VARS['tpl']) ? xs_tpl_name($HTTP_POST_VARS['tpl']) : (isset($HTTP_GET_VARS['tpl']) ? xs_tpl_name($HTTP_GET_VARS['tpl']) : '');
 $filename = $phpbb_root_path . 'templates/' . $tpl . '/xs_config.cfg';
 
 if(empty($tpl))
 {
 	xs_error($lang['xs_invalid_style_name']);
 }
-if(!@file_exists($filename))
+$templates_root = @realpath($phpbb_root_path . 'templates');
+$resolved_filename = @realpath($filename);
+if(!$templates_root || !$resolved_filename || strpos(str_replace('\\', '/', $resolved_filename), rtrim(str_replace('\\', '/', $templates_root), '/') . '/') !== 0 || !@is_file($resolved_filename))
 {
 	// remove from config
 	$config_name = 'xs_style_' . $tpl;
@@ -65,7 +67,7 @@ if(!@file_exists($filename))
 
 // get configuration
 $style_config = array();
-include($filename);
+include($resolved_filename);
 $data = $template->get_config($tpl, false);
 for($i=0; $i<count($style_config); $i++)
 {

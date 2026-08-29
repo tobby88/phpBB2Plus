@@ -113,7 +113,7 @@ function xs_admin_override($modded = false)
 	for($i=0; $i<XS_SHOWNAV_MAX; $i++)
 	{
 		$num = pow(2, $i);
-		if($i != XS_SHOWNAV_DOWNLOAD && ($board_config['xs_shownav'] & $num) > 0)
+		if($i != XS_SHOWNAV_DOWNLOAD && $i != XS_SHOWNAV_EDITTPL && ($board_config['xs_shownav'] & $num) > 0)
 		{
 			$module[$module_name][$lang['xs_config_shownav'][$i]] = 'xs_frameset.'.$phpEx.'?action=' . $xs_shownav_action[$i];
 		}
@@ -1236,7 +1236,16 @@ function xs_sql($sql, $strip = false)
 // clean template name
 function xs_tpl_name($name)
 {
-	return str_replace(array('\\', '/', "'", '"'), array('','','',''), $name);
+	if(!is_string($name))
+	{
+		return '';
+	}
+	$name = trim($name);
+	if($name === '' || strpos($name, '..') !== false || !preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/D', $name))
+	{
+		return '';
+	}
+	return $name;
 }
 
 // close database and maybe do some other stuff
@@ -1253,13 +1262,30 @@ function xs_exit()
 // check directory name/filename
 function xs_fix_dir($dir)
 {
-	$dir = str_replace('\\', '/', $dir);
-	$dir = str_replace('../', './', $dir);
-	while(strlen($dir > 1) && substr($dir, strlen($dir) - 2) === '..')
+	if(!is_string($dir) || strpos($dir, "\0") !== false)
 	{
-		$dir = substr($dir, 0, strlen($dir) - 1);
+		return '';
 	}
-	return $dir;
+	$dir = str_replace('\\', '/', $dir);
+	if($dir === '' || substr($dir, 0, 1) === '/' || preg_match('/^[a-zA-Z]:/', $dir))
+	{
+		return '';
+	}
+	$parts = explode('/', $dir);
+	$safe = array();
+	foreach($parts as $part)
+	{
+		if($part === '' || $part === '.')
+		{
+			continue;
+		}
+		if($part === '..' || !preg_match('/^[^\x00-\x1f<>:"|?*]+$/D', $part))
+		{
+			return '';
+		}
+		$safe[] = $part;
+	}
+	return implode('/', $safe);
 }
 
 ?>

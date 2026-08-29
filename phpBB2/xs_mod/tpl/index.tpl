@@ -70,10 +70,6 @@
 		<th class="thHead" colspan="2">{L_XS_EDIT_TEMPLATES}</th>
 	</tr>
 	<tr>
-		<td class="row1">{L_XS_EDIT_TEMPLATES}:<br /><span class="gensmall">{L_XS_EDIT_TEMPLATES_EXPLAIN}</span></td>
-		<td class="row2" align="center">[<a href="{U_EDIT_STYLES}">{L_XS_EDIT_TEMPLATES_LC}</a>]</td>
-	</tr>
-	<tr>
 		<td class="row1">{L_XS_EDIT_STYLES_DATA}:<br /><span class="gensmall">{L_XS_EDIT_STYLES_DATA_EXPLAIN}</span></td>
 		<td class="row2" align="center">[<a href="{U_EDIT_STYLES_DATA}">{L_XS_EDIT_STYLES_DATA_LC}</a>]</td>
 	</tr>

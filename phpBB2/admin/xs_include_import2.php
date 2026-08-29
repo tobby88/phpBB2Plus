@@ -74,6 +74,12 @@ if($header['filesize'] != filesize($file))
 	}
 	xs_error($lang['xs_style_header_error_incomplete'] . '<br /><br />' . $lang['xs_import_back']);
 }
+$safe_template = isset($header['template']) ? xs_tpl_name($header['template']) : '';
+if($safe_template === '' || $safe_template !== $header['template'])
+{
+	xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_import_back']);
+}
+$header['template'] = $safe_template;
 $f = @fopen($file, 'rb');
 if(!$f)
 {
@@ -117,6 +123,15 @@ while($pos < strlen($str))
 	if(substr($data['filename'], 0, 2) === './')
 	{
 		$data['filename'] = substr($data['filename'], 2);
+	}
+	if($data['filename'] !== '')
+	{
+		$safe_filename = xs_fix_dir($data['filename']);
+		if($safe_filename === '' || $safe_filename !== $data['filename'])
+		{
+			xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_import_back']);
+		}
+		$data['filename'] = $safe_filename;
 	}
 	if($write_local)
 	{
