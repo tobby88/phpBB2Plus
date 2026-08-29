@@ -113,6 +113,7 @@ $lang['Missing_date'] ="When you define a banner by date, you must at least prov
 $lang['Missing_week'] ="When you define a banner by week day, you must at least provide a day of week and a time interval";
 
 $lang['Banner_removed'] = "The banner is now removed";
+$lang['Confirm_delete_banner'] = 'Are you sure you want to delete this banner?';
 $lang['Banner_updated'] = "The banner is now updated";
 $lang['Banner_added'] = "The banner is now added";
 $lang['Click_return_banneradmin'] = 'Click %sHere%s to return to the Banner management';

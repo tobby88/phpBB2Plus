@@ -1041,6 +1041,7 @@ $lang['No_acronym_selected'] = 'No acronym selected for editing';
 $lang['Acronym_updated'] = 'The selected acronym has been successfully updated';
 $lang['Acronym_added'] = 'The acronym has been successfully added';
 $lang['Acronym_removed'] = 'The selected acronym has been successfully removed';
+$lang['Confirm_delete_acronym'] = 'Are you sure you want to delete this acronym?';
 
 $lang['Click_return_acronymadmin'] = 'Click %sHere%s to return to Acronym Administration'; 
 

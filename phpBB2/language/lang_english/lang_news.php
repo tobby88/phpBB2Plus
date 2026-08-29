@@ -45,6 +45,8 @@ $lang['Add_new_category'] = 'Add new news category';
 
 $lang['Click_return_newsadmin'] = 'Click %sHere%s to return to News Administration';
 $lang['Category_Deleted'] = 'News category succesfully deleted';
+$lang['Confirm_delete_news_category'] = 'Are you sure you want to delete this news category?';
+$lang['No_news_category_selected'] = 'No news category was selected.';
 $lang['Category_Updated'] = 'News category succesfully updated';
 $lang['Category_Added'] = 'News category succesfully added';
 

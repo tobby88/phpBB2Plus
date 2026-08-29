@@ -1039,6 +1039,7 @@ $lang['No_acronym_selected'] = 'Es wurden keine Akronyme zur Bearbeitung ausgew�
 $lang['Acronym_updated'] = 'Das ausgewählte Akronym wurde erfolgreich aktualisiert';
 $lang['Acronym_added'] = 'Das Akronym wurde erfolgreich hinzugefügt';
 $lang['Acronym_removed'] = 'Das ausgewählte Akronym wurde erfolgreich gelöscht';
+$lang['Confirm_delete_acronym'] = 'Möchtest Du dieses Akronym wirklich löschen?';
 
 $lang['Click_return_acronymadmin'] = 'Klicke %shier%s um zur Akronym Administration zurückzukehren';
 

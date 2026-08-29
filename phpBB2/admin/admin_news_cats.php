@@ -45,9 +45,9 @@ include_once ($phpbb_root_path . 'includes/news_data.' . $phpEx );
 //
 // Check to see what mode we should operate in.
 //
-if( isset($_POST['mode']) || isset($_GET['mode']) )
+if( (isset($_POST['mode']) && is_scalar($_POST['mode'])) || (isset($_GET['mode']) && is_scalar($_GET['mode'])) )
 {
-  $mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
+  $mode = ( isset($_POST['mode']) && is_scalar($_POST['mode']) ) ? (string) $_POST['mode'] : (string) $_GET['mode'];
 }
 else
 {
@@ -55,6 +55,7 @@ else
 }
 
 $dir = @opendir($phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path']);
+$category_images = array();
 
 if( !$dir )
 {
@@ -76,9 +77,13 @@ while($file = @readdir($dir))
 
 @closedir($dir);
 
-if( is_array( $category_images ) )
+if( !empty( $category_images ) )
 {
   sort( $category_images );
+}
+else
+{
+  message_die(GENERAL_ERROR, "Couldn't find usable news images");
 }
 
 if( isset($_POST['add']) || isset($_GET['add']) )
@@ -97,7 +102,7 @@ if( isset($_POST['add']) || isset($_GET['add']) )
     $filename_list .= '<option value="' . $category_images[$i] . '">' . $category_images[$i] . '</option>';
   }
 
-  $s_hidden_fields = '<input type="hidden" name="mode" value="savenew" />';
+  $s_hidden_fields = '<input type="hidden" name="mode" value="savenew" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
 
   $template->assign_vars(array(
     "L_NEWS_TITLE"     => $lang['Add_news_categories'],
@@ -127,7 +132,41 @@ else if ( $mode != "" )
       // Admin has selected to delete a category.
       //
 
-      $news_id = ( !empty($_POST['id']) ) ? $_POST['id'] : $_GET['id'];
+      $news_id = ( isset($_POST['id']) && is_scalar($_POST['id']) ) ? (int) $_POST['id'] : ((isset($_GET['id']) && is_scalar($_GET['id'])) ? (int) $_GET['id'] : 0);
+
+      if (isset($_POST['cancel']))
+      {
+        redirect(append_sid("admin_news_cats.$phpEx"));
+      }
+
+      if (!$news_id)
+      {
+        message_die(GENERAL_MESSAGE, $lang['No_news_category_selected']);
+      }
+
+      if (!isset($_POST['confirm']))
+      {
+        $template->set_filenames(array(
+          'body' => 'admin/confirm_body.tpl')
+        );
+
+        $hidden_fields = '<input type="hidden" name="mode" value="delete" />' .
+          '<input type="hidden" name="id" value="' . $news_id . '" />' .
+          '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+
+        $template->assign_vars(array(
+          'MESSAGE_TITLE' => $lang['Confirm'],
+          'MESSAGE_TEXT' => $lang['Confirm_delete_news_category'],
+          'L_YES' => $lang['Yes'],
+          'L_NO' => $lang['No'],
+          'S_CONFIRM_ACTION' => append_sid("admin_news_cats.$phpEx"),
+          'S_HIDDEN_FIELDS' => $hidden_fields)
+        );
+        $template->pparse('body');
+        break;
+      }
+
+      phpbb_admin_require_post_session();
 
       $sql = "DELETE FROM " . NEWS_TABLE . "
         WHERE news_id = " . $news_id;
@@ -156,7 +195,12 @@ else if ( $mode != "" )
       // Admin has selected to edit a smiley.
       //
 
-      $news_id = ( !empty($_POST['id']) ) ? $_POST['id'] : $_GET['id'];
+      $news_id = ( isset($_POST['id']) && is_scalar($_POST['id']) ) ? (int) $_POST['id'] : ((isset($_GET['id']) && is_scalar($_GET['id'])) ? (int) $_GET['id'] : 0);
+
+      if (!$news_id)
+      {
+        message_die(GENERAL_MESSAGE, $lang['No_news_category_selected']);
+      }
 
       $sql = "SELECT *
         FROM " . NEWS_TABLE . "
@@ -169,13 +213,18 @@ else if ( $mode != "" )
       }
       $category_data = $db->sql_fetchrow($result);
 
+      if (!$category_data)
+      {
+        message_die(GENERAL_MESSAGE, $lang['No_news_category_selected']);
+      }
+
       $filename_list = "";
+      $category_edit_img = in_array($category_data['news_image'], $category_images, true) ? $category_data['news_image'] : $category_images[0];
       for( $i = 0; $i < count($category_images); $i++ )
       {
-        if( $category_images[$i] == $category_data['news_image'] )
+        if( $category_images[$i] == $category_edit_img )
         {
           $category_selected = "selected=\"selected\"";
-          $category_edit_img = $category_images[$i];
         }
         else
         {
@@ -189,12 +238,12 @@ else if ( $mode != "" )
         "body" => "admin/news_cat_edit_body.tpl")
       );
 
-      $s_hidden_fields = '<input type="hidden" name="mode" value="save" /><input type="hidden" name="news_id" value="' . $category_data['news_id'] . '" />';
+      $s_hidden_fields = '<input type="hidden" name="mode" value="save" /><input type="hidden" name="news_id" value="' . $category_data['news_id'] . '" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
 
 
       $template->assign_vars(array(
-        "NEWS_CATEGORY" => $category_data['news_category'],
-        "NEWS_ICON" => $phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path'] . '/' . $category_data['news_image'],
+        "NEWS_CATEGORY" => htmlspecialchars((string) $category_data['news_category']),
+        "NEWS_ICON" => $phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path'] . '/' . $category_edit_img,
 
         "L_NEWS_TITLE" => $lang['News_Editing_Utility'],
         "L_NEWS_CONFIG" => $lang['News_Config'],
@@ -224,9 +273,10 @@ else if ( $mode != "" )
       // Get the submitted data, being careful to ensure that we only
       // accept the data we are looking for.
       //
-      $news_category = ( isset($_POST['category']) ) ? trim($_POST['category']) : trim($_GET['category']);
-      $news_image = ( isset($_POST['image_url']) ) ? trim($_POST['image_url']) : trim($_GET['image_url']);
-      $news_id = ( isset($_POST['news_id']) ) ? intval($_POST['news_id']) : intval($_GET['news_id']);
+      phpbb_admin_require_post_session();
+      $news_category = ( isset($_POST['category']) && is_scalar($_POST['category']) ) ? trim((string) $_POST['category']) : '';
+      $news_image = ( isset($_POST['image_url']) && is_scalar($_POST['image_url']) ) ? trim((string) $_POST['image_url']) : '';
+      $news_id = ( isset($_POST['news_id']) && is_scalar($_POST['news_id']) ) ? intval($_POST['news_id']) : 0;
 
       // If no code was entered complain ...
       if ($news_category == '' || $news_image == '' || $news_id == '' )
@@ -234,11 +284,19 @@ else if ( $mode != "" )
         message_die(MESSAGE, $lang['Fields_empty']);
       }
 
+      if (!in_array($news_image, $category_images, true))
+      {
+        message_die(GENERAL_MESSAGE, $lang['Fields_empty']);
+      }
+
+      $news_category_sql = $db->sql_escape($news_category);
+      $news_image_sql = $db->sql_escape($news_image);
+
       //
       // Proceed with updating the news table.
       //
       $sql = "UPDATE " . NEWS_TABLE . "
-        SET  news_category = '$news_category', news_image = '$news_image'
+        SET  news_category = '$news_category_sql', news_image = '$news_image_sql'
         WHERE news_id = $news_id";
       if( !($result = $db->sql_query($sql)) )
       {
@@ -259,8 +317,9 @@ else if ( $mode != "" )
       // Get the submitted data being careful to ensure the the data
       // we recieve and process is only the data we are looking for.
       //
-      $news_category = ( isset($_POST['category']) ) ? trim($_POST['category']) : trim($_GET['category']);
-      $news_image = ( isset($_POST['image_url']) ) ? trim($_POST['image_url']) : trim($_GET['image_url']);
+      phpbb_admin_require_post_session();
+      $news_category = ( isset($_POST['category']) && is_scalar($_POST['category']) ) ? trim((string) $_POST['category']) : '';
+      $news_image = ( isset($_POST['image_url']) && is_scalar($_POST['image_url']) ) ? trim((string) $_POST['image_url']) : '';
 
       // If no code was entered complain ...
       if ($news_category == '' || $news_image == '' )
@@ -268,11 +327,19 @@ else if ( $mode != "" )
         message_die(MESSAGE, $lang['Fields_empty']);
       }
 
+      if (!in_array($news_image, $category_images, true))
+      {
+        message_die(GENERAL_MESSAGE, $lang['Fields_empty']);
+      }
+
+      $news_category_sql = $db->sql_escape($news_category);
+      $news_image_sql = $db->sql_escape($news_image);
+
       //
       // Save the data to the smiley table.
       //
       $sql = "INSERT INTO " . NEWS_TABLE . " ( news_image, news_category)
-        VALUES ( '$news_image', '$news_category')";
+        VALUES ( '$news_image_sql', '$news_category_sql')";
       $result = $db->sql_query($sql);
       if( !$result )
       {
@@ -325,14 +392,15 @@ else
     $row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
     $row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
+    $stored_news_image = in_array($news_cats[$i]['news_image'], $category_images, true) ? $news_cats[$i]['news_image'] : $category_images[0];
     $template->assign_block_vars("news_cats", array(
       'ROW_COLOR' => '#' . $row_color,
       'ROW_CLASS' => $row_class,
 
       'TOPIC_COUNT' => $news_cats[$i]['topic_count'],
 
-      'CATEGORY_IMG' => $phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path']. '/' . $news_cats[$i]['news_image'],
-      'L_CATEGORY' => $news_cats[$i]['news_category'],
+      'CATEGORY_IMG' => $phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path']. '/' . $stored_news_image,
+      'L_CATEGORY' => htmlspecialchars((string) $news_cats[$i]['news_category']),
 
       'U_NEWS_EDIT' => append_sid("admin_news_cats.$phpEx?mode=edit&amp;id=" . $news_cats[$i]['news_id']),
       'U_NEWS_DELETE' => append_sid("admin_news_cats.$phpEx?mode=delete&amp;id=" . $news_cats[$i]['news_id']))

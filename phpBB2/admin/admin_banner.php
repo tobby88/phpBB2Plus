@@ -50,9 +50,9 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_banner.' . $phpEx);
 
-if( isset($_GET['mode']) || isset($_POST['mode']) )
+if( (isset($_GET['mode']) && is_scalar($_GET['mode'])) || (isset($_POST['mode']) && is_scalar($_POST['mode'])) )
 {
-	$mode = (isset($_GET['mode'])) ? $_GET['mode'] : $_POST['mode'];
+	$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : (string) $_POST['mode'];
 }
 else
 {
@@ -90,7 +90,7 @@ if( $mode!= "")
 			$banner_id = 0;
 		}
 
-		$s_hidden_fields = "";
+		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
 
 		if( $mode == "edit" )
 		{
@@ -505,6 +505,7 @@ if( $mode!= "")
 	}
 	else if( $mode == "save" )
 	{
+		phpbb_admin_require_post_session();
 		//
 		// Ok, they sent us our info, let's update it.
 		//
@@ -632,8 +633,15 @@ if( $mode!= "")
 			$banner_id = '';
 		}
 
-		if( !empty($banner_id ))
+		$confirmed = isset($_POST['confirm']);
+		if (isset($_POST['cancel']))
 		{
+			redirect(append_sid("admin_banner.$phpEx"));
+		}
+
+		if( !empty($banner_id) && $confirmed )
+		{
+			phpbb_admin_require_post_session();
 			$sql = "DELETE FROM " . BANNERS_TABLE . "
 				WHERE banner_id = '$banner_id'";
 
@@ -643,6 +651,25 @@ if( $mode!= "")
 			}
 			$message = $lang['Banner_removed'] . "<br /><br />" . sprintf($lang['Click_return_banneradmin'], "<a href=\"" . append_sid("admin_banner.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 			message_die(GENERAL_MESSAGE, $message);
+		}
+		else if( !empty($banner_id) )
+		{
+			$template->set_filenames(array(
+				'body' => 'admin/confirm_body.tpl')
+			);
+
+			$hidden_fields = '<input type="hidden" name="mode" value="delete" />' .
+				'<input type="hidden" name="id" value="' . $banner_id . '" />' .
+				'<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+
+			$template->assign_vars(array(
+				'MESSAGE_TITLE' => $lang['Confirm'],
+				'MESSAGE_TEXT' => $lang['Confirm_delete_banner'],
+				'L_YES' => $lang['Yes'],
+				'L_NO' => $lang['No'],
+				'S_CONFIRM_ACTION' => append_sid("admin_banner.$phpEx"),
+				'S_HIDDEN_FIELDS' => $hidden_fields)
+			);
 		}
 		else
 		{

@@ -57,19 +57,9 @@ if (isset($_POST['file_action']) && is_scalar($_POST['file_action']) &&
 	$file_id = (int) $file_action_match[2];
 }
 
-function pa_file_require_post_session($userdata)
-{
-	if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST' ||
-		!isset($_POST['sid']) || !is_scalar($_POST['sid']) ||
-		!hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
-	{
-		message_die(GENERAL_ERROR, 'Invalid administration request.');
-	}
-}
-
 if (in_array($mode, array('do_add', 'delete', 'do_maintenace', 'do_approve', 'do_unapprove'), true))
 {
-	pa_file_require_post_session($userdata);
+	phpbb_admin_require_post_session();
 }
 
 $mirrors = (isset($_POST['mirrors'])) ? TRUE : 0;
@@ -610,7 +600,7 @@ elseif($mode == 'mirrors')
 {
 	if (isset($_POST['delete_mirrors']) || isset($_POST['add_new']) || isset($_POST['modify']))
 	{
-		pa_file_require_post_session($userdata);
+		phpbb_admin_require_post_session();
 	}
 	if(isset($_POST['delete_mirrors']))
 	{

@@ -27,9 +27,9 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
-if( isset($_GET['mode']) || isset($_POST['mode']) )
+if( (isset($_GET['mode']) && is_scalar($_GET['mode'])) || (isset($_POST['mode']) && is_scalar($_POST['mode'])) )
 {
-	$mode = ($_GET['mode']) ? $_GET['mode'] : $_POST['mode'];
+	$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : (string) $_POST['mode'];
 }
 else 
 {
@@ -60,7 +60,7 @@ if( $mode != "" )
 			"body" => "admin/acronyms_edit_body.tpl")
 		);
 
-		$s_hidden_fields = '';
+		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
 
 		if( $mode == "edit" )
 		{
@@ -105,9 +105,10 @@ if( $mode != "" )
 	}
 	else if( $mode == "save" )
 	{
+		phpbb_admin_require_post_session();
 		$acronym_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
-		$acronym = ( isset($_POST['acronym']) ) ? trim($_POST['acronym']) : "";
-		$description = ( isset($_POST['description']) ) ? trim($_POST['description']) : "";
+		$acronym = ( isset($_POST['acronym']) && is_scalar($_POST['acronym']) ) ? trim((string) $_POST['acronym']) : "";
+		$description = ( isset($_POST['description']) && is_scalar($_POST['description']) ) ? trim((string) $_POST['description']) : "";
 
 		if($acronym == "" || $description == "")
 		{
@@ -168,8 +169,15 @@ if( $mode != "" )
 			$acronym_id = 0;
 		}
 
-		if( $acronym_id )
+		$confirmed = isset($_POST['confirm']);
+		if (isset($_POST['cancel']))
 		{
+			redirect(append_sid("admin_acronyms.$phpEx"));
+		}
+
+		if( $acronym_id && $confirmed )
+		{
+			phpbb_admin_require_post_session();
 			$sql = "DELETE FROM " . ACRONYMS_TABLE . "
 				WHERE acronym_id = $acronym_id";
 
@@ -181,6 +189,25 @@ if( $mode != "" )
 			$message = $lang['Acronym_removed'] . "<br /><br />" . sprintf($lang['Click_return_acronymadmin'], "<a href=\"" . append_sid("admin_acronyms.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
 			message_die(GENERAL_MESSAGE, $message);
+		}
+		else if( $acronym_id )
+		{
+			$template->set_filenames(array(
+				'body' => 'admin/confirm_body.tpl')
+			);
+
+			$hidden_fields = '<input type="hidden" name="mode" value="delete" />' .
+				'<input type="hidden" name="id" value="' . $acronym_id . '" />' .
+				'<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+
+			$template->assign_vars(array(
+				'MESSAGE_TITLE' => $lang['Confirm'],
+				'MESSAGE_TEXT' => $lang['Confirm_delete_acronym'],
+				'L_YES' => $lang['Yes'],
+				'L_NO' => $lang['No'],
+				'S_CONFIRM_ACTION' => append_sid("admin_acronyms.$phpEx"),
+				'S_HIDDEN_FIELDS' => $hidden_fields)
+			);
 		}
 		else
 		{

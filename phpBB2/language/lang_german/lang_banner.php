@@ -112,6 +112,7 @@ $lang['Missing_date'] ="Wenn du ein Banner datenbasiert angibst, mußt du zumind
 $lang['Missing_week'] ="Wenn du ein Banner nach Wochentag angibst, mußt du zumindest den Wochentag und das Zeitintervall angeben";
 
 $lang['Banner_removed'] = "Das Banner wurde entfernt";
+$lang['Confirm_delete_banner'] = 'Möchtest Du dieses Banner wirklich löschen?';
 $lang['Banner_updated'] = "Das Banner wurde aktualisiert";
 $lang['Banner_added'] = "Das Banner wurde hinzugefügt";
 $lang['Click_return_banneradmin'] = 'Klicke %shier%s, um zur Bannerverwaltung zurückzukehren';

@@ -71,6 +71,30 @@ if (!$userdata['session_admin'])
 {
 	redirect(append_sid("login.$phpEx?redirect=admin/index.$phpEx&admin=1", true));
 }
+
+if (!function_exists('phpbb_admin_post_session_valid'))
+{
+	function phpbb_admin_post_session_valid()
+	{
+		global $userdata;
+
+		return isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST' &&
+			isset($_POST['sid']) && is_scalar($_POST['sid']) &&
+			hash_equals((string) $userdata['session_id'], (string) $_POST['sid']);
+	}
+}
+
+if (!function_exists('phpbb_admin_require_post_session'))
+{
+	function phpbb_admin_require_post_session()
+	{
+		if (!phpbb_admin_post_session_valid())
+		{
+			message_die(GENERAL_ERROR, 'Invalid administration request.');
+		}
+	}
+}
+
 if (empty($no_page_header))
 {
 	// Not including the pageheader can be neccesarry if META tags are

@@ -46,6 +46,8 @@ $lang['Add_new_category'] = 'Eine neue News Kategorie hinzufügen';
 
 $lang['Click_return_newsadmin'] = 'Klicke %shier%s um zur News Konfiguration zurückzukehren';
 $lang['Category_Deleted'] = 'News Kategorie erfolgreich gelöscht';
+$lang['Confirm_delete_news_category'] = 'Möchtest Du diese News-Kategorie wirklich löschen?';
+$lang['No_news_category_selected'] = 'Es wurde keine News-Kategorie ausgewählt.';
 $lang['Category_Updated'] = 'News Kategorie erfolgreich aktualisiert';
 $lang['Category_Added'] = 'News Kategorie erfolgreich hinzugefügt';
 
