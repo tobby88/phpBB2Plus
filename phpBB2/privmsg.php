@@ -54,16 +54,28 @@ $confirm = ( isset($_POST['confirm']) ) ? TRUE : 0;
 $delete = ( isset($_POST['delete']) ) ? TRUE : 0;
 $delete_all = ( isset($_POST['deleteall']) ) ? TRUE : 0;
 $save = ( isset($_POST['save']) ) ? TRUE : 0;
-$sid = (isset($_POST['sid'])) ? $_POST['sid'] : 0;
+$sid = (isset($_POST['sid']) && is_scalar($_POST['sid'])) ? (string) $_POST['sid'] : '';
 
 $refresh = $preview || $submit_search;
 
-$mark_list = ( !empty($_POST['mark']) ) ? $_POST['mark'] : 0;
+$mark_list = array();
+if (isset($_POST['mark']) && is_array($_POST['mark']))
+{
+	foreach ($_POST['mark'] as $marked_id)
+	{
+		if (is_scalar($marked_id) && intval($marked_id) > 0)
+		{
+			$mark_list[intval($marked_id)] = intval($marked_id);
+		}
+	}
+	$mark_list = array_values($mark_list);
+}
 
 if ( isset($_POST['folder']) || isset($_GET['folder']) )
 {
-	$folder = ( isset($_POST['folder']) ) ? $_POST['folder'] : $_GET['folder'];
-	$folder = htmlspecialchars($folder);
+	$post_folder = (isset($_POST['folder']) && is_scalar($_POST['folder'])) ? (string) $_POST['folder'] : '';
+	$get_folder = (isset($_GET['folder']) && is_scalar($_GET['folder'])) ? (string) $_GET['folder'] : '';
+	$folder = htmlspecialchars($post_folder !== '' ? $post_folder : $get_folder);
 
 	if ( $folder != 'inbox' && $folder != 'outbox' && $folder != 'sentbox' && $folder != 'savebox' )
 	{
@@ -97,20 +109,23 @@ if ( $cancel )
 //
 if ( !empty($_POST['mode']) || !empty($_GET['mode']) )
 {
-	$mode = ( !empty($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
-	$mode = htmlspecialchars($mode);
+	$post_mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '';
+	$get_mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '';
+	$mode = htmlspecialchars($post_mode !== '' ? $post_mode : $get_mode);
 }
 else
 {
 	$mode = '';
 }
 
-$start = ( !empty($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? intval($_GET['start']) : 0;
 $start = ($start < 0) ? 0 : $start;
 
 if ( isset($_POST[POST_POST_URL]) || isset($_GET[POST_POST_URL]) )
 {
-	$privmsg_id = ( isset($_POST[POST_POST_URL]) ) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]);
+	$post_privmsg_id = (isset($_POST[POST_POST_URL]) && is_scalar($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : 0;
+	$get_privmsg_id = (isset($_GET[POST_POST_URL]) && is_scalar($_GET[POST_POST_URL])) ? intval($_GET[POST_POST_URL]) : 0;
+	$privmsg_id = $post_privmsg_id ? $post_privmsg_id : $get_privmsg_id;
 }
 else
 {
@@ -179,7 +194,7 @@ if ( $mode == 'newpm' )
 }
 else if ( $mode == 'read' )
 {
-	if ( !empty($_GET[POST_POST_URL]) )
+	if ( isset($_GET[POST_POST_URL]) && is_scalar($_GET[POST_POST_URL]) && intval($_GET[POST_POST_URL]) )
 	{
 		$privmsgs_id = intval($_GET[POST_POST_URL]);
 	}
@@ -730,8 +745,13 @@ else if ( ( $delete && $mark_list ) || $delete_all )
 		include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 
 	}
-	else if ($confirm && $sid === $userdata['session_id'])
+	else if ($confirm)
 	{
+		if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+		{
+			message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		}
+
 		$delete_sql_id = '';
 
 		if (!$delete_all)
@@ -926,6 +946,10 @@ else if ( $save && $mark_list && $folder != 'savebox' && $folder != 'outbox' )
 	{
 		redirect(append_sid("login.$phpEx?redirect=privmsg.$phpEx&folder=inbox", true));
 	}
+	if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+	{
+		message_die(GENERAL_ERROR, $lang['Session_invalid']);
+	}
 	
 	if (sizeof($mark_list))
 	{
@@ -1110,7 +1134,7 @@ else if ( $submit || $refresh || $mode != '' )
 {
 	if ( !$userdata['session_logged_in'] )
 	{
-		$user_id = ( isset($_GET[POST_USERS_URL]) ) ? '&' . POST_USERS_URL . '=' . intval($_GET[POST_USERS_URL]) : '';
+		$user_id = (isset($_GET[POST_USERS_URL]) && is_scalar($_GET[POST_USERS_URL])) ? '&' . POST_USERS_URL . '=' . intval($_GET[POST_USERS_URL]) : '';
 		redirect(append_sid("login.$phpEx?redirect=privmsg.$phpEx&folder=$folder&mode=$mode" . $user_id, true));
 	}
 	
@@ -1202,9 +1226,10 @@ else if ( $submit || $refresh || $mode != '' )
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ) . $lang['Session_invalid'];
 		}
 
-		if ( !empty($_POST['username']) )
+		$submitted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
+		if ( $submitted_username !== '' )
 		{
-			$to_username = phpbb_clean_username($_POST['username']);
+			$to_username = phpbb_clean_username($submitted_username);
 
 			$sql = "SELECT user_id, user_notify_pm, user_email, user_lang, user_active, user_absence, user_absence_mode, user_absence_text 
 				FROM " . USERS_TABLE . "
@@ -1227,21 +1252,23 @@ else if ( $submit || $refresh || $mode != '' )
 			$error = TRUE;
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ) . $lang['No_to_user'];
 		}
-		if ( $to_userdata['user_absence'] == TRUE && allow_send_to_absent() == FALSE )
+		if ( isset($to_userdata) && $to_userdata['user_absence'] == TRUE && allow_send_to_absent() == FALSE )
 		{
 			$error = true;
 			$send_to_user = $to_username;
 			$absence_mode = create_absence_mode($to_userdata['user_absence_mode'], $pm_img, $pm, $email_img, $email, $to_username, 1);
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ).sprintf($lang['User_absent'], $send_to_user, $absence_mode, $to_userdata['user_absence_text'], $send_to_user);
 		}
-		$privmsg_subject = trim(htmlspecialchars($_POST['subject']));
+		$submitted_subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? (string) $_POST['subject'] : '';
+		$privmsg_subject = trim(htmlspecialchars($submitted_subject));
 		if ( empty($privmsg_subject) )
 		{
 			$error = TRUE;
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ) . $lang['Empty_subject'];
 		}
 
-		if ( !empty($_POST['message']) )
+		$submitted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? (string) $_POST['message'] : '';
+		if ( $submitted_message !== '' )
 		{
 			if ( !$error )
 			{
@@ -1250,7 +1277,7 @@ else if ( $submit || $refresh || $mode != '' )
 					$bbcode_uid = make_bbcode_uid();
 				}
 
-				$privmsg_message = prepare_message($_POST['message'], $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+				$privmsg_message = prepare_message($submitted_message, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
 
 			}
 		}
@@ -1419,9 +1446,12 @@ else if ( $submit || $refresh || $mode != '' )
 		// passed to the script, process it a little, do some checks
 		// where neccessary, etc.
 		//
-		$to_username = (isset($_POST['username']) ) ? trim(htmlspecialchars(stripslashes($_POST['username']))) : '';
-		$privmsg_subject = ( isset($_POST['subject']) ) ? trim(htmlspecialchars(stripslashes($_POST['subject']))) : '';
-		$privmsg_message = ( isset($_POST['message']) ) ? trim($_POST['message']) : '';
+		$submitted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
+		$submitted_subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? (string) $_POST['subject'] : '';
+		$submitted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? (string) $_POST['message'] : '';
+		$to_username = trim(htmlspecialchars(stripslashes($submitted_username)));
+		$privmsg_subject = trim(htmlspecialchars(stripslashes($submitted_subject)));
+		$privmsg_message = trim($submitted_message);
 		// $privmsg_message = preg_replace('#<textarea>#si', '&lt;textarea&gt;', $privmsg_message);
 		if ( !$preview )
 		{
@@ -1476,7 +1506,7 @@ else if ( $submit || $refresh || $mode != '' )
 			message_die(GENERAL_ERROR, $lang['No_post_id']);
 		}
 
-		if ( !empty($_GET[POST_USERS_URL]) )
+		if ( isset($_GET[POST_USERS_URL]) && is_scalar($_GET[POST_USERS_URL]) && intval($_GET[POST_USERS_URL]) )
 		{
 			$user_id = intval($_GET[POST_USERS_URL]);
 
@@ -1493,24 +1523,24 @@ else if ( $submit || $refresh || $mode != '' )
 			if ( $row = $db->sql_fetchrow($result) )
 			{
 				$to_username = $row['username'];
-			}
-			if ( $row['user_absence'] == TRUE )
-			{
-				$send_to_user = $row['username'];
-				$absence_mode = create_absence_mode($row['user_absence_mode'], $pm_img, $pm, $email_img, $email, $row['username']);
-				$error_msg = sprintf($lang['User_absent'], $send_to_user, $absence_mode, $row['user_absence_text'], $send_to_user);
+				if ( $row['user_absence'] == TRUE )
+				{
+					$send_to_user = $row['username'];
+					$absence_mode = create_absence_mode($row['user_absence_mode'], $pm_img, $pm, $email_img, $email, $row['username']);
+					$error_msg = sprintf($lang['User_absent'], $send_to_user, $absence_mode, $row['user_absence_text'], $send_to_user);
 
-				include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-				$template->set_filenames(array(
-					'reg_header' => 'error_body.tpl')
-				);
-				$template->assign_vars(array(
-					'ERROR_MESSAGE' => $error_msg)
-				);
-				$template->pparse('reg_header');
-				include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
+					include($phpbb_root_path . 'includes/page_header.'.$phpEx);
+					$template->set_filenames(array(
+						'reg_header' => 'error_body.tpl')
+					);
+					$template->assign_vars(array(
+						'ERROR_MESSAGE' => $error_msg)
+					);
+					$template->pparse('reg_header');
+					include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
 
-				exit;
+					exit;
+				}
 			}
 		}
 
@@ -2095,15 +2125,17 @@ switch( $folder )
 //
 // Show messages over previous x days/months
 //
-if ( $submit_msgdays && ( !empty($_POST['msgdays']) || !empty($_GET['msgdays']) ) )
+$post_msg_days = (isset($_POST['msgdays']) && is_scalar($_POST['msgdays'])) ? intval($_POST['msgdays']) : 0;
+$get_msg_days = (isset($_GET['msgdays']) && is_scalar($_GET['msgdays'])) ? intval($_GET['msgdays']) : 0;
+if ( $submit_msgdays && ( $post_msg_days || $get_msg_days ) )
 {
-	$msg_days = ( !empty($_POST['msgdays']) ) ? intval($_POST['msgdays']) : intval($_GET['msgdays']);
+	$msg_days = $post_msg_days ? $post_msg_days : $get_msg_days;
 	$min_msg_time = time() - ($msg_days * 86400);
 
 	$limit_msg_time_total = " AND privmsgs_date > $min_msg_time";
 	$limit_msg_time = " AND pm.privmsgs_date > $min_msg_time ";
 
-	if ( !empty($_POST['msgdays']) )
+	if ( $post_msg_days )
 	{
 		$start = 0;
 	}
@@ -2240,7 +2272,7 @@ $template->assign_vars(array(
 	'L_SAVE_MARKED' => $lang['Save_marked'], 
 
 	'S_PRIVMSGS_ACTION' => append_sid("privmsg.$phpEx?folder=$folder"),
-	'S_HIDDEN_FIELDS' => '',
+	'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />',
 	'S_POST_NEW_MSG' => $post_new_mesg_url,
 	'S_SELECT_MSG_DAYS' => $select_msg_days,
 
