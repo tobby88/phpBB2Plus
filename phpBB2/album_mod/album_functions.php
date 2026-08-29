@@ -34,6 +34,10 @@ if ( !defined('IN_PHPBB') )
 function album_nuffload_base_path($configured_path)
 {
 	$path = str_replace('\\', '/', trim((string) $configured_path));
+	while (strpos($path, './') === 0)
+	{
+		$path = substr($path, 2);
+	}
 	if ($path === '' || $path[0] === '/' || preg_match('#^[a-z]:|://|[\x00\r\n]#i', $path) || preg_match('#(^|/)\.\.?(?:/|$)#', $path))
 	{
 		return false;
