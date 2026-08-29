@@ -17,25 +17,35 @@ include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 $userdata = session_pagestart($user_ip, PAGE_RECENT);
 init_userprefs($userdata);
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
 
-if( isset($_GET['mode']) || isset($_POST['mode']) )
+$mode = $set_mode;
+if (isset($_GET['mode']) && is_scalar($_GET['mode']))
 {
-	$mode = ( isset($_GET['mode']) ) ? $_GET['mode'] : $_POST['mode'];
+	$mode = (string) $_GET['mode'];
 }
-else
+else if (isset($_POST['mode']) && is_scalar($_POST['mode']))
+{
+	$mode = (string) $_POST['mode'];
+}
+
+$valid_modes = array('today', 'yesterday', 'last24', 'lastweek', 'lastXdays');
+if (!in_array($mode, $valid_modes, true))
 {
 	$mode = $set_mode;
 }
 
-if( isset($_GET['amount_days']) || isset($_POST['amount_days']) )
+$amount_days = intval($set_days);
+if (isset($_GET['amount_days']) && is_scalar($_GET['amount_days']))
 {
-	$amount_days = ( isset($_GET['amount_days']) ) ? $_GET['amount_days'] : $_POST['amount_days'];
+	$amount_days = intval($_GET['amount_days']);
 }
-else
+else if (isset($_POST['amount_days']) && is_scalar($_POST['amount_days']))
 {
-	$amount_days = $set_days;
+	$amount_days = intval($_POST['amount_days']);
 }
+$amount_days = max(1, min(365, $amount_days));
+$topic_limit = max(1, intval($topic_limit));
 
 $page_title = $lang['Recent_topics'];
 include($phpbb_root_path .'includes/page_header.'.$phpEx);
@@ -55,23 +65,27 @@ $db->sql_freeresult($result_auth);
 $is_auth_ary = array();
 $is_auth_ary = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
 
-$except_forums = '\'start\'';
+$except_forums = array();
 for( $f = 0; $f < count($forums); $f++ )
 {
-	if( (!$is_auth_ary[$forums[$f]['forum_id']]['auth_read']) || (!$is_auth_ary[$forums[$f]['forum_id']]['auth_view']) )
+	$current_forum_id = intval($forums[$f]['forum_id']);
+	if (!isset($is_auth_ary[$current_forum_id]) || !$is_auth_ary[$current_forum_id]['auth_read'] || !$is_auth_ary[$current_forum_id]['auth_view'])
 	{
-		if( $except_forums == '\'start\'' )
-		{
-			$except_forums = $forums[$f]['forum_id'];
-		}
-		else
-		{
-			$except_forums .= ','. $forums[$f]['forum_id'];
-		}
+		$except_forums[] = $current_forum_id;
 	}
 }
 
-$where_forums = ( $special_forums == '0' ) ? 't.forum_id NOT IN ('. $except_forums .')' : 't.forum_id NOT IN ('. $except_forums .') AND t.forum_id IN ('. $forum_ids .')';
+$except_forums_sql = count($except_forums) ? implode(',', array_unique($except_forums)) : '0';
+$where_forums = 't.forum_id NOT IN (' . $except_forums_sql . ')';
+if ($special_forums != '0')
+{
+	$selected_forums = array();
+	foreach (preg_split('/[^0-9]+/', (string) $forum_ids, -1, PREG_SPLIT_NO_EMPTY) as $selected_forum_id)
+	{
+		$selected_forums[] = intval($selected_forum_id);
+	}
+	$where_forums .= count($selected_forums) ? ' AND t.forum_id IN (' . implode(',', array_unique($selected_forums)) . ')' : ' AND 1 = 0';
+}
 $sql_start = "SELECT t.*, p.poster_id, p.post_username AS last_poster_name, p.post_id, p.post_time, f.forum_name, f.forum_id, u.username AS last_poster, u.user_id AS last_poster_id, u2.username AS first_poster, u2.user_id AS first_poster_id, p2.post_username AS first_poster_name
 	        FROM (". TOPICS_TABLE ." t, ". POSTS_TABLE ." p)
 		LEFT OUTER JOIN ". POSTS_TABLE ." p2 ON (p2.post_id = t.topic_first_post_id)
@@ -79,7 +93,7 @@ $sql_start = "SELECT t.*, p.poster_id, p.post_username AS last_poster_name, p.po
 		LEFT OUTER JOIN ". USERS_TABLE ." u ON (u.user_id = p.poster_id)
 		LEFT OUTER JOIN ". USERS_TABLE ." u2 ON (u2.user_id = t.topic_poster)
 	        WHERE $where_forums AND p.post_id = t.topic_last_post_id AND ";
-$sql_end = "  ORDER BY t.topic_last_post_id DESC LIMIT $start, $topic_limit";
+$sql_end = "  ORDER BY t.topic_last_post_id DESC LIMIT " . intval($start) . ", " . intval($topic_limit);
 
 switch( $mode )
 {
@@ -112,9 +126,9 @@ switch( $mode )
 		break;
 
 	case 'lastXdays':
-		$sql    = $sql_start ."UNIX_TIMESTAMP(NOW()) - p.post_time < 86400 * $amount_days". $sql_end;
+		$sql    = $sql_start ."UNIX_TIMESTAMP(NOW()) - p.post_time < 86400 * " . intval($amount_days) . $sql_end;
 		$template->assign_vars(array('STATUS' => sprintf($lang['Recent_lastXdays'], $amount_days)));
-		$where_count = "$where_forums AND UNIX_TIMESTAMP(NOW()) - p.post_time < 86400 * $amount_days";
+		$where_count = "$where_forums AND UNIX_TIMESTAMP(NOW()) - p.post_time < 86400 * " . intval($amount_days);
 		$l_mode = sprintf($lang['Recent_title_lastXdays'], $amount_days);
 		break;
 
@@ -323,10 +337,12 @@ if( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, 'error getting total topics.', '', __LINE__, __FILE__, $sql);
 }
+$total_topics = 0;
+$pagination = '';
 if( $total = $db->sql_fetchrow($result) )
 {
-	$total_topics = $total['total_topics'];
-	$pagination = generate_pagination("recent.$phpEx?amount_days=$amount_days&mode=$mode", $total_topics, $topic_limit, $start) .'&nbsp;';
+	$total_topics = intval($total['total_topics']);
+	$pagination = generate_pagination("recent.$phpEx?amount_days=" . intval($amount_days) . "&amp;mode=" . urlencode($mode), $total_topics, $topic_limit, $start) .'&nbsp;';
 }
 
 if( $total_topics == '0' )

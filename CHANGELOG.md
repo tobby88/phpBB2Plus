@@ -51,6 +51,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.
+- Hardened the public recent-topics page against SQL injection and PHP 8 type
+  errors, bounded its date and pagination inputs, and normalized configured
+  forum filters without weakening per-forum read permissions.
 - Added file-count and expanded-size limits before extracting Nuffload ZIP
   uploads to reduce archive-bomb exposure.
 - Bound Arcade score sessions to the current logged-in player (or the matching
