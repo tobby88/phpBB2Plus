@@ -431,7 +431,7 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Repository and deployment maintenance
 
-- Added a pinned GitHub Actions syntax-check matrix for PHP 7.4, 8.3 and 8.5.
+- Added a pinned GitHub Actions syntax-check matrix for PHP 5.6, 7.4 and 8.5.
 - Added a reproducible Unix file-permissions script and documented the required
   writable paths.
 - Added a project README.
