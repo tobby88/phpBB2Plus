@@ -223,19 +223,34 @@ function get_ftp_config($action, $post = array(), $allow_local = false, $show_er
 	// check if we have configuration
 	if(!empty($HTTP_POST_VARS['get_ftp_config']))
 	{
+		phpbb_admin_require_post_session();
+		$use_local = $allow_local && !empty($HTTP_POST_VARS['xs_ftp_local']);
 		$vars = array('xs_ftp_host', 'xs_ftp_login', 'xs_ftp_path');
 		for($i=0; $i<count($vars); $i++)
 		{
 			$var = $vars[$i];
-			if($board_config[$var] !== $HTTP_POST_VARS[$var])
+			$value = isset($HTTP_POST_VARS[$var]) && is_scalar($HTTP_POST_VARS[$var]) ? trim(stripslashes((string) $HTTP_POST_VARS[$var])) : '';
+			$max_length = $var === 'xs_ftp_path' ? 512 : 255;
+			if((!$use_local && $value === '') || strlen($value) > $max_length || strpos($value, "\0") !== false || ($value !== '' && $var === 'xs_ftp_host' && !preg_match('/^[a-zA-Z0-9.\-:\[\]]+$/D', $value)))
 			{
-				$board_config[$var] = stripslashes($HTTP_POST_VARS[$var]);
+				xs_error($lang['xs_ftp_error_fatal']);
+			}
+			if($value !== '' && (!isset($board_config[$var]) || $board_config[$var] !== $value))
+			{
+				$board_config[$var] = $value;
 				$sql = "UPDATE " . CONFIG_TABLE . " SET config_value = '" . xs_sql($board_config[$var]) . "' WHERE config_name = '{$var}'";
-				$db->sql_query($sql);
+				if(!$db->sql_query($sql))
+				{
+					xs_error($lang['xs_ftp_error_fatal'], __LINE__, __FILE__);
+				}
 			}
 		}
-		$board_config['xs_ftp_pass'] = stripslashes($HTTP_POST_VARS['xs_ftp_pass']);
-		$board_config['xs_ftp_local'] = empty($HTTP_POST_VARS['xs_ftp_local']) ? false : true;
+		$board_config['xs_ftp_pass'] = isset($HTTP_POST_VARS['xs_ftp_pass']) && is_scalar($HTTP_POST_VARS['xs_ftp_pass']) ? stripslashes((string) $HTTP_POST_VARS['xs_ftp_pass']) : '';
+		if(strlen($board_config['xs_ftp_pass']) > 1024 || strpos($board_config['xs_ftp_pass'], "\0") !== false)
+		{
+			xs_error($lang['xs_ftp_error_fatal']);
+		}
+		$board_config['xs_ftp_local'] = $use_local;
 		// recache config table
 		if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
 		{
@@ -248,16 +263,16 @@ function get_ftp_config($action, $post = array(), $allow_local = false, $show_er
 		return true;
 	}
 	// check ftp configuration
-	$xs_ftp_host = $board_config['xs_ftp_host'];
+	$xs_ftp_host = isset($board_config['xs_ftp_host']) ? (string) $board_config['xs_ftp_host'] : '';
 	if(empty($xs_ftp_host))
 	{
-		$str = $HTTP_SERVER_VARS['HTTP_HOST'];
+		$str = isset($HTTP_SERVER_VARS['HTTP_HOST']) ? preg_replace('/[^a-zA-Z0-9.-]/', '', (string) $HTTP_SERVER_VARS['HTTP_HOST']) : '';
 		$template->assign_vars(array(
-			'HOST_GUESS' => str_replace(array('{HOST}', '{CLICK}'), array($str, 'document.ftp.xs_ftp_host.value=\''.$str.'\''), $lang['xs_ftp_host_guess'])
+			'HOST_GUESS' => str_replace(array('{HOST}', '{CLICK}'), array(htmlspecialchars($str, ENT_QUOTES, 'UTF-8'), 'document.ftp.xs_ftp_host.value=\'' . $str . '\''), $lang['xs_ftp_host_guess'])
 			));
 	}
 	$dir = getcwd();
-	$xs_ftp_login = $board_config['xs_ftp_login'];
+	$xs_ftp_login = isset($board_config['xs_ftp_login']) ? (string) $board_config['xs_ftp_login'] : '';
 	if(empty($xs_ftp_login))
 	{
 		if(substr($dir, 0, 6) === '/home/')
@@ -266,29 +281,31 @@ function get_ftp_config($action, $post = array(), $allow_local = false, $show_er
 			$pos = strpos($str, '/');
 			if($pos)
 			{
-				$str = substr($str, 0, $pos);
+				$str = preg_replace('/[^a-zA-Z0-9._-]/', '', substr($str, 0, $pos));
 				$template->assign_vars(array(
-					'LOGIN_GUESS' => str_replace(array('{LOGIN}', '{CLICK}'), array($str, 'document.ftp.xs_ftp_login.value=\''.$str.'\''), $lang['xs_ftp_login_guess'])
+					'LOGIN_GUESS' => str_replace(array('{LOGIN}', '{CLICK}'), array(htmlspecialchars($str, ENT_QUOTES, 'UTF-8'), 'document.ftp.xs_ftp_login.value=\'' . $str . '\''), $lang['xs_ftp_login_guess'])
 				));
 			}
 		}
 	}
-	$xs_ftp_path = $board_config['xs_ftp_path'];
+	$xs_ftp_path = isset($board_config['xs_ftp_path']) ? (string) $board_config['xs_ftp_path'] : '';
 	if(empty($xs_ftp_path))
 	{
-		if(substr($dir, 0, 6) === '/home/');
-		$str = substr($dir, 6);
-		$pos = strpos($str, '/');
-		if($pos)
+		if(substr($dir, 0, 6) === '/home/')
 		{
-			$str = substr($str, $pos + 1);
-			$pos = strrpos($str, 'admin');
+			$str = substr($dir, 6);
+			$pos = strpos($str, '/');
 			if($pos)
 			{
-				$str = substr($str, 0, $pos-1);
-				$template->assign_vars(array(
-					'PATH_GUESS' => str_replace(array('{PATH}', '{CLICK}'), array($str, 'document.ftp.xs_ftp_path.value=\''.$str.'\''), $lang['xs_ftp_path_guess'])
-				));
+				$str = substr($str, $pos + 1);
+				$pos = strrpos($str, 'admin');
+				if($pos)
+				{
+					$str = substr($str, 0, $pos-1);
+					$template->assign_vars(array(
+						'PATH_GUESS' => str_replace(array('{PATH}', '{CLICK}'), array(htmlspecialchars($str, ENT_QUOTES, 'UTF-8'), 'document.ftp.xs_ftp_path.value=\'' . addslashes($str) . '\''), $lang['xs_ftp_path_guess'])
+						));
+				}
 			}
 		}
 	}
@@ -303,14 +320,17 @@ function get_ftp_config($action, $post = array(), $allow_local = false, $show_er
 	$str = '<input type="hidden" name="get_ftp_config" value="1" />';
 	foreach($post as $var => $value)
 	{
-		$str .= '<input type="hidden" name="' . htmlspecialchars($var) . '" value="' . htmlspecialchars($value) . '" />';
+		if(is_scalar($var) && is_scalar($value))
+		{
+			$str .= '<input type="hidden" name="' . htmlspecialchars((string) $var, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '" />';
+		}
 	}
 	$template->assign_vars(array(
 			'FORM_ACTION'		=> $action,
 			'S_EXTRA_FIELDS'	=> $str,
-			'XS_FTP_HOST'		=> $xs_ftp_host,
-			'XS_FTP_LOGIN'		=> $xs_ftp_login,
-			'XS_FTP_PATH'		=> $xs_ftp_path,
+			'XS_FTP_HOST'		=> htmlspecialchars($xs_ftp_host, ENT_QUOTES, 'UTF-8'),
+			'XS_FTP_LOGIN'		=> htmlspecialchars($xs_ftp_login, ENT_QUOTES, 'UTF-8'),
+			'XS_FTP_PATH'		=> htmlspecialchars($xs_ftp_path, ENT_QUOTES, 'UTF-8'),
 		));
 	if($show_error)
 	{
@@ -331,24 +351,39 @@ function xs_ftp_connect($action, $post = array(), $allow_local = false)
 		$ftp = XS_FTP_LOCAL;
 		return true;
 	}
-	$ftp = @ftp_connect($board_config['xs_ftp_host']);
+	$ftp_host = isset($board_config['xs_ftp_host']) ? (string) $board_config['xs_ftp_host'] : '';
+	$ftp_login = isset($board_config['xs_ftp_login']) ? (string) $board_config['xs_ftp_login'] : '';
+	$ftp_pass = isset($board_config['xs_ftp_pass']) ? (string) $board_config['xs_ftp_pass'] : '';
+	$ftp_path = isset($board_config['xs_ftp_path']) ? (string) $board_config['xs_ftp_path'] : '';
+	$ftp = @ftp_connect($ftp_host, 21, 10);
 	if(!$ftp)
 	{
-		get_ftp_config($action, $post, $allow_local, str_replace('{HOST}', $board_config['xs_ftp_host'], $lang['xs_ftp_error_connect']));
+		get_ftp_config($action, $post, $allow_local, str_replace('{HOST}', htmlspecialchars($ftp_host, ENT_QUOTES, 'UTF-8'), $lang['xs_ftp_error_connect']));
+		xs_exit();
 	}
-	$res = @ftp_login($ftp, $board_config['xs_ftp_login'], $board_config['xs_ftp_pass']);
+	$res = @ftp_login($ftp, $ftp_login, $ftp_pass);
 	if(!$res)
 	{
+		@ftp_close($ftp);
 		get_ftp_config($action, $post, $allow_local, $lang['xs_ftp_error_login']);
+		xs_exit();
 	}
-	$res = @ftp_chdir($ftp, $board_config['xs_ftp_path']);
+	$res = @ftp_chdir($ftp, $ftp_path);
 	if(!$res)
 	{
-		get_ftp_config($action, $post, $allow_local, str_replace('{DIR}', $board_config['xs_ftp_path'], $lang['xs_ftp_error_chdir']));
+		@ftp_close($ftp);
+		get_ftp_config($action, $post, $allow_local, str_replace('{DIR}', htmlspecialchars($ftp_path, ENT_QUOTES, 'UTF-8'), $lang['xs_ftp_error_chdir']));
+		xs_exit();
 	}
 	// check current directory
 	$current_dir = @ftp_pwd($ftp);
 	$list = @ftp_nlist($ftp, $current_dir);
+	if(!is_array($list))
+	{
+		@ftp_close($ftp);
+		get_ftp_config($action, $post, $allow_local, $lang['xs_ftp_error_nonphpbbdir']);
+		xs_exit();
+	}
 	for($i=0; $i<count($list); $i++)
 	{
 		$list[$i] = strtolower(basename($list[$i]));
@@ -376,7 +411,9 @@ function xs_ftp_connect($action, $post = array(), $allow_local = false)
 	}
 	if($error)
 	{
+		@ftp_close($ftp);
 		get_ftp_config($action, $post, $allow_local, $lang['xs_ftp_error_nonphpbbdir']);
+		xs_exit();
 	}
 	$HTTP_POST_VARS['get_ftp_config'] = '1';
 }
