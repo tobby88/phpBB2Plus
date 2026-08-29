@@ -908,7 +908,7 @@ else if ($mode == 'watch_topic')
 			AJAX_message_die($result_ar);
 		}
 		
-		$link_url = append_sid("viewtopic.$phpEx?". POST_TOPIC_URL . "=$topic_id&watch=topic&start=$start");
+		$link_url = "viewtopic.$phpEx?". POST_TOPIC_URL . "=$topic_id&watch=topic&start=$start&sid=" . urlencode($userdata['session_id']);
 		$link_text = $lang['Start_watching_topic'];
 		$img_url = $images['Topic_watch'];
 		$watching = 0;
@@ -937,7 +937,7 @@ else if ($mode == 'watch_topic')
 			AJAX_message_die($result_ar);
 		}
 		
-		$link_url = append_sid("viewtopic.$phpEx?". POST_TOPIC_URL . "=$topic_id&unwatch=topic&start=$start");
+		$link_url = "viewtopic.$phpEx?". POST_TOPIC_URL . "=$topic_id&unwatch=topic&start=$start&sid=" . urlencode($userdata['session_id']);
 		$link_text = $lang['Stop_watching_topic'];
 		$img_url = $images['topic_un_watch'];
 		$watching = 1;

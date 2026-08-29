@@ -38,23 +38,24 @@ include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
 // Start initial var setup
 //
 $topic_id = $post_id = 0;
-if ( isset($_GET[POST_TOPIC_URL]) )
+if ( isset($_GET[POST_TOPIC_URL]) && is_scalar($_GET[POST_TOPIC_URL]) )
 {
 	$topic_id = intval($_GET[POST_TOPIC_URL]);
 }
-else if ( isset($_GET['topic']) )
+else if ( isset($_GET['topic']) && is_scalar($_GET['topic']) )
 {
 	$topic_id = intval($_GET['topic']);
 }
 
-if ( isset($_GET[POST_POST_URL]))
+if ( isset($_GET[POST_POST_URL]) && is_scalar($_GET[POST_POST_URL]))
 {
 	$post_id = intval($_GET[POST_POST_URL]);
 }
 
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = ( isset($_GET['start']) && is_scalar($_GET['start']) ) ? intval($_GET['start']) : 0;
 $start = ($start < 0) ? 0 : $start;
+$requested_highlight = phpbb_request_scalar($_GET, 'highlight');
 
 if (!$topic_id && !$post_id)
 {
@@ -200,28 +201,25 @@ init_userprefs($userdata);
 //
 if ( isset($_GET['setbm']) || isset($_GET['removebm']) )
 {
-	$redirect = "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&start=$start&postdays=$post_days&postorder=$post_order&highlight=" . $_GET['highlight'];
+	$redirect = "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&start=$start&highlight=" . urlencode($requested_highlight);
 	if ( $userdata['session_logged_in'] )
 	{
-		if (isset($_GET['setbm']) && $_GET['setbm'])
+		$bookmark_sid = phpbb_request_scalar($_GET, 'sid');
+		if ($bookmark_sid === '' || !hash_equals((string) $userdata['session_id'], $bookmark_sid))
+		{
+			message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		}
+		if (phpbb_request_scalar($_GET, 'setbm') !== '')
 		{
 			set_bookmark($topic_id);
 		}
-		else if (isset($_GET['removebm']) && $_GET['removebm'])
+		else if (phpbb_request_scalar($_GET, 'removebm') !== '')
 		{
 			remove_bookmark($topic_id);
 		}
 	}
 	else
 	{
-		if (isset($_GET['setbm']) && $_GET['setbm'])
-		{
-			$redirect .= '&setbm=true';
-		}
-		else if (isset($_GET['removebm']) && $_GET['removebm'])
-		{
-			$redirect .= '&removebm=true';
-		}
 		redirect(append_sid("login.$phpEx?redirect=$redirect", true));
 	}
 	redirect(append_sid($redirect, true));
@@ -306,6 +304,16 @@ if ($post_id)
 if( $userdata['session_logged_in'] )
 {
 	$can_watch_topic = TRUE;
+	$watch_action = phpbb_request_scalar($_GET, 'watch');
+	$unwatch_action = phpbb_request_scalar($_GET, 'unwatch');
+	if ($watch_action !== '' || $unwatch_action !== '')
+	{
+		$watch_sid = phpbb_request_scalar($_GET, 'sid');
+		if ($watch_sid === '' || !hash_equals((string) $userdata['session_id'], $watch_sid))
+		{
+			message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		}
+	}
 
 	$sql = "SELECT notify_status
 		FROM " . TOPICS_WATCH_TABLE . "
@@ -318,9 +326,9 @@ if( $userdata['session_logged_in'] )
 
 	if ( $row = $db->sql_fetchrow($result) )
 	{
-		if ( isset($_GET['unwatch']) )
+		if ( $unwatch_action !== '' )
 		{
-			if ( $_GET['unwatch'] == 'topic' )
+			if ( $unwatch_action == 'topic' )
 			{
 				$is_watching_topic = 0;
 
@@ -361,9 +369,9 @@ if( $userdata['session_logged_in'] )
 	}
 	else
 	{
-		if ( isset($_GET['watch']) )
+		if ( $watch_action !== '' )
 		{
-			if ( $_GET['watch'] == 'topic' )
+			if ( $watch_action == 'topic' )
 			{
 				$is_watching_topic = TRUE;
 
@@ -391,11 +399,12 @@ if( $userdata['session_logged_in'] )
 }
 else
 {
-	if ( isset($_GET['unwatch']) )
+	$anonymous_unwatch = phpbb_request_scalar($_GET, 'unwatch');
+	if ( $anonymous_unwatch !== '' )
 	{
-		if ( $_GET['unwatch'] == 'topic' )
+		if ( $anonymous_unwatch == 'topic' )
 		{
-			redirect(append_sid("login.$phpEx?redirect=viewtopic.$phpEx&" . POST_TOPIC_URL . "=$topic_id&unwatch=topic", true));
+			redirect(append_sid("login.$phpEx?redirect=viewtopic.$phpEx&" . POST_TOPIC_URL . "=$topic_id", true));
 		}
 	}
 	else
@@ -764,7 +773,7 @@ if ( $userdata['session_logged_in'] )
 	}
 	$template->assign_vars(array(
 		'L_BOOKMARK_ACTION' => $bm_action_l,
-		'U_BOOKMARK_ACTION' => append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . (isset($_GET['highlight']) ? $_GET['highlight'] : '') . $bm_action))
+		'U_BOOKMARK_ACTION' => "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . urlencode($requested_highlight) . $bm_action . '&amp;sid=' . urlencode($userdata['session_id']))
 	);
 }
 //

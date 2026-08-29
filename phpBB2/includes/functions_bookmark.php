@@ -25,7 +25,8 @@ function is_bookmark_set($topic_id)
 {
 	global $db, $userdata;
 
-	$user_id = $userdata['user_id'];
+	$topic_id = intval($topic_id);
+	$user_id = intval($userdata['user_id']);
 	$sql = "SELECT topic_id, user_id
 		FROM " . BOOKMARK_TABLE . " 
 		WHERE topic_id = $topic_id AND user_id = $user_id";
@@ -50,8 +51,9 @@ function set_bookmark($topic_id)
 {
 	global $db, $userdata;
 
-	$user_id = $userdata['user_id'];
-	if ( !is_bookmark_set($topic_id, $user_id) )
+	$topic_id = intval($topic_id);
+	$user_id = intval($userdata['user_id']);
+	if ( !is_bookmark_set($topic_id) )
 	{
 		$sql = "INSERT INTO " . BOOKMARK_TABLE . " (topic_id, user_id)
 			VALUES ($topic_id, $user_id)";
@@ -70,7 +72,8 @@ function remove_bookmark($topic_id)
 {
 	global $db, $userdata;
 
-	$user_id = $userdata['user_id'];
+	$topic_id = intval($topic_id);
+	$user_id = intval($userdata['user_id']);
 	$sql = "DELETE FROM " . BOOKMARK_TABLE . "
 		WHERE topic_id IN ($topic_id) AND user_id = $user_id";
 	if ( !$db->sql_query($sql) )
