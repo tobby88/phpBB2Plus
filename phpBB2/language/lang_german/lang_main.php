@@ -758,6 +758,7 @@ $lang['Group_added'] = 'Du bist dieser Gruppe beigetreten.';
 $lang['Already_member_group'] = 'Du bist bereits Mitglied dieser Gruppe.';
 $lang['User_is_member_group'] = 'Dieser Benutzer ist bereits ein Mitglied dieser Gruppe.';
 $lang['Group_type_updated'] = 'Gruppentyp wurde erfolgreich aktualisiert.';
+$lang['Invalid_group_type'] = 'Der ausgewählte Gruppentyp ist ungültig.';
 
 $lang['Could_not_add_user'] = 'Die gewählte Gruppe existiert nicht.';
 $lang['Could_not_anon_user'] = 'Ein anonymer Benutzer kann kein Gruppenmitglied werden.';

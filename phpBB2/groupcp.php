@@ -136,7 +136,9 @@ $server_url = $server_protocol . $server_name . $server_port . $script_name;
 
 if ( isset($_GET[POST_GROUPS_URL]) || isset($_POST[POST_GROUPS_URL]) )
 {
-	$group_id = ( isset($_POST[POST_GROUPS_URL]) ) ? intval($_POST[POST_GROUPS_URL]) : intval($_GET[POST_GROUPS_URL]);
+	$post_group_id = (isset($_POST[POST_GROUPS_URL]) && is_scalar($_POST[POST_GROUPS_URL])) ? intval($_POST[POST_GROUPS_URL]) : 0;
+	$get_group_id = (isset($_GET[POST_GROUPS_URL]) && is_scalar($_GET[POST_GROUPS_URL])) ? intval($_GET[POST_GROUPS_URL]) : 0;
+	$group_id = $post_group_id ? $post_group_id : $get_group_id;
 }
 else
 {
@@ -145,8 +147,9 @@ else
 
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
-	$mode = htmlspecialchars($mode);
+	$post_mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '';
+	$get_mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '';
+	$mode = htmlspecialchars($post_mode !== '' ? $post_mode : $get_mode);
 }
 else
 {
@@ -155,8 +158,8 @@ else
 
 $confirm = ( isset($_POST['confirm']) ) ? TRUE : 0;
 $cancel = ( isset($_POST['cancel']) ) ? TRUE : 0;
-$sid = ( isset($_POST['sid']) ) ? $_POST['sid'] : '';
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$sid = (isset($_POST['sid']) && is_scalar($_POST['sid'])) ? (string) $_POST['sid'] : '';
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? intval($_GET['start']) : 0;
 $start = ($start < 0) ? 0 : $start;
 
 //
@@ -169,6 +172,10 @@ if ( isset($_POST['groupstatus']) && $group_id )
 	if ( !$userdata['session_logged_in'] )
 	{
 		redirect(append_sid("login.$phpEx?redirect=groupcp.$phpEx&" . POST_GROUPS_URL . "=$group_id", true));
+	}
+	else if ( $sid !== $userdata['session_id'] )
+	{
+		message_die(GENERAL_ERROR, $lang['Session_invalid']);
 	}
 
 	$sql = "SELECT group_moderator 
@@ -192,8 +199,14 @@ if ( isset($_POST['groupstatus']) && $group_id )
 		message_die(GENERAL_MESSAGE, $message);
 	}
 
+	$group_type = (isset($_POST['group_type']) && is_scalar($_POST['group_type'])) ? intval($_POST['group_type']) : -1;
+	if ( !in_array($group_type, array(GROUP_OPEN, GROUP_CLOSED, GROUP_HIDDEN), true) )
+	{
+		message_die(GENERAL_ERROR, $lang['Invalid_group_type']);
+	}
+
 	$sql = "UPDATE " . GROUPS_TABLE . " 
-		SET group_type = " . intval($_POST['group_type']) . "
+		SET group_type = " . $group_type . "
 		WHERE group_id = $group_id";
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -314,7 +327,7 @@ else if ( isset($_POST['joingroup']) && $group_id )
 
 	message_die(GENERAL_MESSAGE, $message);
 }
-else if ( isset($_POST['unsub']) || isset($_POST['unsubpending']) && $group_id )
+else if ( (isset($_POST['unsub']) || isset($_POST['unsubpending'])) && $group_id )
 {
 	//
 	// Second, unsubscribing from a group
@@ -499,7 +512,8 @@ else if ( $group_id )
 
 			if ( isset($_POST['add']) )
 			{
-				$username = ( isset($_POST['username']) ) ? phpbb_clean_username($_POST['username']) : '';
+				$username_value = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
+				$username = ($username_value !== '') ? phpbb_clean_username($username_value) : '';
 				
 				$sql = "SELECT user_id, user_email, user_lang, user_level  
 					FROM " . USERS_TABLE . " 
@@ -614,12 +628,24 @@ else if ( $group_id )
 				{
 
 					$members = ( isset($_POST['approve']) || isset($_POST['deny']) ) ? $_POST['pending_members'] : $_POST['members'];
-
-					$sql_in = '';
-					for($i = 0; $i < count($members); $i++)
+					if (!is_array($members))
 					{
-						$sql_in .= ( ( $sql_in != '' ) ? ', ' : '' ) . intval($members[$i]);
+						message_die(GENERAL_MESSAGE, $lang['No_user_specified']);
 					}
+
+					$member_ids = array();
+					foreach ($members as $member_id)
+					{
+						if (is_scalar($member_id) && intval($member_id) > 0)
+						{
+							$member_ids[intval($member_id)] = intval($member_id);
+						}
+					}
+					if (empty($member_ids))
+					{
+						message_die(GENERAL_MESSAGE, $lang['No_user_specified']);
+					}
+					$sql_in = implode(', ', $member_ids);
 
 					if ( isset($_POST['approve']) )
 					{

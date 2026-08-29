@@ -755,6 +755,7 @@ $lang['Group_added'] = 'You have been added to this usergroup.';
 $lang['Already_member_group'] = 'You are already a member of this group';
 $lang['User_is_member_group'] = 'User is already a member of this group';
 $lang['Group_type_updated'] = 'Successfully updated group type.';
+$lang['Invalid_group_type'] = 'The selected group type is invalid.';
 
 $lang['Could_not_add_user'] = 'The user you selected does not exist.';
 $lang['Could_not_anon_user'] = 'You cannot make Anonymous a group member.';
