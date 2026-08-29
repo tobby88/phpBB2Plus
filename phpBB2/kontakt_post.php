@@ -9,6 +9,54 @@ include($phpbb_root_path . 'common.' . $phpEx);
 $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
 
+function kontakt_claim_rate_limit($cache_dir, $client_key, $interval)
+{
+	$cache_dir = rtrim((string) $cache_dir, '/\\') . '/';
+	if (!is_dir($cache_dir))
+	{
+		return false;
+	}
+
+	$now = time();
+	if ($handle = @opendir($cache_dir))
+	{
+		while (($entry = readdir($handle)) !== false)
+		{
+			if (preg_match('/^contact-[a-f0-9]{64}\.rate$/', $entry)
+				&& is_file($cache_dir . $entry) && @filemtime($cache_dir . $entry) < $now - 2592000)
+			{
+				@unlink($cache_dir . $entry);
+			}
+		}
+		closedir($handle);
+	}
+
+	$rate_file = $cache_dir . 'contact-' . hash('sha256', (string) $client_key) . '.rate';
+	$rate_handle = @fopen($rate_file, 'c+');
+	if (!$rate_handle || !@flock($rate_handle, LOCK_EX))
+	{
+		if ($rate_handle)
+		{
+			@fclose($rate_handle);
+		}
+		return false;
+	}
+
+	$previous = trim((string) stream_get_contents($rate_handle));
+	$allowed = !ctype_digit($previous) || intval($previous) <= $now - max(1, intval($interval));
+	if ($allowed)
+	{
+		@rewind($rate_handle);
+		@ftruncate($rate_handle, 0);
+		$allowed = @fwrite($rate_handle, (string) $now) !== false;
+		@fflush($rate_handle);
+		@chmod($rate_file, 0660);
+	}
+	@flock($rate_handle, LOCK_UN);
+	@fclose($rate_handle);
+	return $allowed;
+}
+
 $page_title = $lang['Kontakt'];
 include($phpbb_root_path . 'includes/page_header.' . $phpEx);
 
@@ -40,6 +88,14 @@ $valid = isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQU
 	&& $subject !== '' && strlen($subject) <= 150
 	&& $body !== '' && strlen($body) <= 10000
 	&& filter_var($email_to, FILTER_VALIDATE_EMAIL);
+$rate_limited = false;
+
+if ($valid)
+{
+	$rate_interval = max(60, intval($board_config['flood_interval']));
+	$rate_limited = !kontakt_claim_rate_limit($phpbb_root_path . 'cache', $user_ip, $rate_interval);
+	$valid = !$rate_limited;
+}
 
 if ($valid)
 {
@@ -55,7 +111,7 @@ if ($valid)
 }
 else
 {
-	$false = $lang['kontakt8'];
+	$false = $rate_limited ? $lang['Flood_email_limit'] : $lang['kontakt8'];
 }
 
 $template->assign_vars(array(
