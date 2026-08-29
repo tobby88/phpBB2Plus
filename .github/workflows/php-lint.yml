@@ -57,3 +57,6 @@ jobs:
 
       - name: Audit ACP integrations
         run: php .github/scripts/check-acp-integration.php
+
+      - name: Test CrackerTracker user functions
+        run: php .github/scripts/check-ctracker-userfunctions.php

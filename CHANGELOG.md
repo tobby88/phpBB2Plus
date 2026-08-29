@@ -11,6 +11,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Added a CI audit for AdminCP module registration, English/German language
   keys and fallback templates. Invalid configured fallback-style names now
   safely fall back to the bundled `subSilver` AdminCP templates.
+- Hardened CrackerTracker's user and spam functions against malformed PHP 8
+  request values, invalid IP history and duplicate bans. Content heuristics now
+  reject the submitted content without destructively erasing account profile
+  data, and password expiry/complexity handling is PHP 8-safe.
 - Hardened CrackerTracker configuration and blocklist writes, sanitized its
   text log records, serialized concurrent log/counter updates and made a local
   logging failure non-fatal without changing the request-blocking decision.
