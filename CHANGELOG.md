@@ -28,8 +28,9 @@ changes consolidated after that baseline without implying active maintenance.
   schema and seed SQL invalid, and extended the updater self-test to reject a
   recurrence.
 - Blocked server-side script execution in attachment, avatar, album and
-  PAFiledb upload directories, and stopped making uploaded or generated image
-  files world-writable.
+  PAFiledb upload directories, protected the remaining writable game,
+  screenshot and download-cache directories according to the files they must
+  serve, and stopped making uploaded or generated image files world-writable.
 - Disabled the legacy "upload avatar from URL" feature, whose unbounded socket
   client could reach arbitrary hosts, while retaining safe external-avatar
   links over HTTP or HTTPS and ordinary local uploads.
@@ -100,7 +101,8 @@ changes consolidated after that baseline without implying active maintenance.
   both forum visibility and read permissions, removed SQL disclosure from news
   failures, and deleted unused legacy fetch/title implementations.
 - Added file-count and expanded-size limits before extracting Nuffload ZIP
-  uploads to reduce archive-bomb exposure.
+  uploads to reduce archive-bomb exposure. Each upload now uses an isolated,
+  unpredictable extraction directory, with bounded cleanup of stale sessions.
 - Bound Arcade score sessions to the current logged-in player (or the matching
   guest cookie), validated session hashes, rejected array input on scalar
   fields and escaped Arcade request-log values.
@@ -115,7 +117,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Replaced predictable session-adjacent, activation, CAPTCHA, upload and Arcade
   identifiers, including legacy anti-robot keys and physical attachment-name
   suffixes, with operating-system randomness while preserving their legacy
-  database formats and a PHP 5.6 OpenSSL fallback.
+  database formats and a PHP 5.6 OpenSSL fallback. New forum sessions use the
+  full 128 bits represented by their existing 32-character hexadecimal field,
+  and malformed incoming session identifiers are ignored.
 - Stopped constructing public and upload-return URLs from attacker-controlled
   `Host`/`PHP_SELF` request values, escaped the Tell-a-Friend form values and
   stripped line breaks from mail address headers.
@@ -130,9 +134,11 @@ changes consolidated after that baseline without implying active maintenance.
 - Required a separate, long recovery token in addition to the opt-in constant
   before the standalone Emergency Recovery Console can run, and removed its
   request-derived form actions.
-- Fixed PAFileDB upload failures being reported as success, enforced upload
-  size limits for guests, required genuine HTTP uploads, generated safe
-  screenshot names and verified screenshot image contents.
+- Fixed PAFileDB upload failures being reported as success, enforced limits
+  against the actual temporary-file size for every uploader, required genuine
+  HTTP uploads, blocked executable types independently of administrator
+  settings, confined replacement and deletion paths, generated safe screenshot
+  names and verified screenshot image contents.
 - Restricted PAFileDB remote downloads and screenshots to validated HTTP(S)
   URLs at write and read time, protected redirects against header injection,
   and HTML-escaped stored file/category metadata throughout public, moderator
@@ -209,6 +215,15 @@ changes consolidated after that baseline without implying active maintenance.
   Whois links no longer disclose administrator lookups to a third party.
 - Restored album-comment permalinks, mini-post icons and rank images instead
   of emitting an empty image request and an unusable link in picture views.
+- Repaired medium-size album previews by removing the unusable historical
+  Windows ImageMagick branch and consistently validating and processing images
+  with the available GD runtime.
+- Hardened local avatar uploads against spoofed extensions and request sizes,
+  confined replacement and deletion paths, and made the administration panel
+  use the same validation and gallery handling as the public profile editor.
+- Removed stale Shoutbox profile state and fixed anonymous online-list entries
+  so guest rows no longer attempt to build member-profile links or emit PHP 8
+  warnings.
 
 ### Repository and update cleanup
 
@@ -380,6 +395,7 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Repository and deployment maintenance
 
+- Added a pinned GitHub Actions syntax-check matrix for PHP 7.4, 8.3 and 8.5.
 - Added a reproducible Unix file-permissions script and documented the required
   writable paths.
 - Added a project README.
