@@ -61,6 +61,10 @@ changes consolidated after that baseline without implying active maintenance.
   POST actions, rechecked permissions against each target record and prevented
   duplicate rating races. Comment owners can now delete only their own
   comments instead of inheriting the uploaded file owner's identity.
+- Hid unapproved PAFileDB downloads from unauthorized direct requests, made
+  download counters concurrency-safe, recorded downloader history per file,
+  tightened referrer host matching and normalized the legacy email form's
+  scalar, address, session and header handling.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.

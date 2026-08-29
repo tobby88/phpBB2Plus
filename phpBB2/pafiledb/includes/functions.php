@@ -818,29 +818,22 @@ class user_info
 	function update_downloader_info($file_id)
 	{
 		global $user_ip, $db, $userdata;
-		
-		$where_sql = ( $userdata['user_id'] != ANONYMOUS ) ? "user_id = '" . $userdata['user_id'] . "'" : "downloader_ip = '" . $user_ip . "'";
-		
-		$sql = "SELECT user_id, downloader_ip 
-			FROM " . PA_DOWNLOAD_INFO_TABLE . " 
-			WHERE $where_sql";
-		
-		if(!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Query User id', '', __LINE__, __FILE__, $sql);
-		}
-		
-		if(!$db->sql_numrows($result))
-		{
-			$sql = "INSERT INTO " . PA_DOWNLOAD_INFO_TABLE . " (file_id, user_id, downloader_ip, downloader_os, downloader_browser, browser_version) 
-						VALUES('" . $file_id . "', '" . $userdata['user_id'] . "', '" . $user_ip . "', '" . $this->platform . "', '" . $this->agent . "', '" . $this->ver . "')";
-			if(!($db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Couldnt Update Downloader Table Info', '', __LINE__, __FILE__, $sql);
-			}
-		}
 
-		$db->sql_freeresult($result);
+		$file_id = intval($file_id);
+		$user_id = intval($userdata['user_id']);
+		$ip = $db->sql_escape((string) $user_ip);
+		$platform = $db->sql_escape((string) $this->platform);
+		$agent = $db->sql_escape((string) $this->agent);
+		$version = $db->sql_escape((string) $this->ver);
+		$duplicate_sql = ($user_id != ANONYMOUS) ? "user_id = $user_id" : "downloader_ip = '$ip'";
+
+		$sql = "INSERT INTO " . PA_DOWNLOAD_INFO_TABLE . " (file_id, user_id, downloader_ip, downloader_os, downloader_browser, browser_version)
+			SELECT $file_id, $user_id, '$ip', '$platform', '$agent', '$version'
+			WHERE NOT EXISTS (SELECT 1 FROM " . PA_DOWNLOAD_INFO_TABLE . " WHERE $duplicate_sql AND file_id = $file_id)";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Couldnt Update Downloader Table Info', '', __LINE__, __FILE__, $sql);
+		}
 	}
 	
 	function update_voter_info($file_id, $rating)
@@ -850,10 +843,10 @@ class user_info
 		$file_id = intval($file_id);
 		$rating = intval($rating);
 		$user_id = intval($userdata['user_id']);
-		$ip = str_replace("'", "''", (string) $user_ip);
-		$platform = str_replace("'", "''", (string) $this->platform);
-		$agent = str_replace("'", "''", (string) $this->agent);
-		$version = str_replace("'", "''", (string) $this->ver);
+		$ip = $db->sql_escape((string) $user_ip);
+		$platform = $db->sql_escape((string) $this->platform);
+		$agent = $db->sql_escape((string) $this->agent);
+		$version = $db->sql_escape((string) $this->ver);
 		$duplicate_sql = ($user_id != ANONYMOUS) ? "user_id = $user_id" : "votes_ip = '$ip'";
 
 		$sql = "INSERT INTO " . PA_VOTES_TABLE . " (user_id, votes_ip, votes_file, rate_point, voter_os, voter_browser, browser_version)

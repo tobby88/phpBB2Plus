@@ -16,22 +16,22 @@ class pafiledb_download extends pafiledb_public
 		global $_REQUEST, $lang, $db, $pafiledb_user, $pafiledb_config, $board_config, $phpEx, $userdata;
 		global $phpbb_root_path, $_SERVER, $pafiledb_functions;
 
-		if ( isset($_REQUEST['file_id']) )
+		$file_id = 0;
+		if (isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id']))
 		{
 			$file_id = intval($_REQUEST['file_id']);
 		}
-		else if ($file_id == 0 && $action != '')
+		else if ($action != '' && is_scalar($action))
 		{
-			$file_id_array = array();
-			$file_id_array = explode('=', $action);
-			$file_id = $file_id_array[1];
+			$file_id_array = explode('=', (string) $action, 2);
+			$file_id = isset($file_id_array[1]) ? intval($file_id_array[1]) : 0;
 		}
-		else
+		if ($file_id <= 0)
 		{
 			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 		}
 
-		$mirror_id = ( isset($_REQUEST['mirror_id']) ) ? intval($_REQUEST['mirror_id']) : false;
+		$mirror_id = (isset($_REQUEST['mirror_id']) && is_scalar($_REQUEST['mirror_id'])) ? intval($_REQUEST['mirror_id']) : false;
 
 		$sql = 'SELECT *
 			FROM ' . PA_FILES_TABLE . " AS f
@@ -52,6 +52,14 @@ class pafiledb_download extends pafiledb_public
 		}
 
 		$db->sql_freeresult($result);
+
+		$can_view_unapproved = $userdata['user_level'] == ADMIN ||
+			!empty($this->auth[$file_data['file_catid']]['auth_mod']) ||
+			($userdata['session_logged_in'] && intval($file_data['user_id']) === intval($userdata['user_id']));
+		if (empty($file_data['file_approved']) && !$can_view_unapproved)
+		{
+			message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
+		}
 
 		//=========================================================================
 		// Check if the user is authorized to download the file
@@ -74,16 +82,15 @@ class pafiledb_download extends pafiledb_public
 		//=========================================================================
 
 
-		$url_referer = trim(getenv('HTTP_REFERER'));
+		$url_referer = trim((string) getenv('HTTP_REFERER'));
 		if ($url_referer == '')
 		{
-			$url_referer = trim($_SERVER['HTTP_REFERER']);
+			$url_referer = isset($_SERVER['HTTP_REFERER']) && is_scalar($_SERVER['HTTP_REFERER']) ? trim((string) $_SERVER['HTTP_REFERER']) : '';
 		}
 
 		if( ($pafiledb_config['hotlink_prevent']) and (!empty($url_referer)) )
 		{
-			$check_referer = explode('?', $url_referer);
-			$check_referer = trim($check_referer[0]);
+			$referer_host = strtolower((string) parse_url($url_referer, PHP_URL_HOST));
 
 			$good_referers = array();
 
@@ -98,9 +105,14 @@ class pafiledb_download extends pafiledb_public
 
 			for ($i = 0; $i < count($good_referers); $i++)
 			{
-				$good_referers[$i] = trim($good_referers[$i]);
+				$allowed_host = strtolower(trim((string) $good_referers[$i]));
+				if (strpos($allowed_host, '://') !== false)
+				{
+					$allowed_host = strtolower((string) parse_url($allowed_host, PHP_URL_HOST));
+				}
+				$allowed_host = preg_replace('/:\\d+$/', '', $allowed_host);
 
-				if( (strstr($check_referer, $good_referers[$i])) and ($good_referers[$i] != '') )
+				if ($allowed_host !== '' && ($referer_host === $allowed_host || substr($referer_host, -strlen('.' . $allowed_host)) === '.' . $allowed_host))
 				{
 					$errored = FALSE;
 				}
@@ -193,9 +205,8 @@ class pafiledb_download extends pafiledb_public
 		//=========================================================================
 
 		$current_time = time();
-		$file_dls = intval($file_data['file_dls']) + 1;
 		$sql = 'UPDATE ' . PA_FILES_TABLE . "
-			SET file_dls = $file_dls, file_last = $current_time
+			SET file_dls = file_dls + 1, file_last = $current_time
 			WHERE file_id = $file_id";
 
 		if ( !($db->sql_query($sql)) )
