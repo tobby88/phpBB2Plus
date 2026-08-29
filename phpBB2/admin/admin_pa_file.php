@@ -33,20 +33,44 @@ $pafiledb->init();
 
 $cat_id = (isset($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
 $file_id = (isset($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
-$file_ids = (isset($_POST['file_ids'])) ? array_map('intval', $_POST['file_ids']) : array();
+$file_ids = (isset($_POST['file_ids']) && is_array($_POST['file_ids'])) ? array_map('intval', $_POST['file_ids']) : array();
 $start = ( isset($_REQUEST['start']) ) ? intval($_REQUEST['start']) : 0;
 $s_hidden_fields = '';
 $approved_file_rowset = array();
 $broken_file_rowset = array();
 $all_file_rowset = array();
 
-$mode = (isset($_REQUEST['mode'])) ? htmlspecialchars($_REQUEST['mode']) : '';
-$mode_js = (isset($_REQUEST['mode_js'])) ? htmlspecialchars($_REQUEST['mode_js']) : '';
+$mode = (isset($_REQUEST['mode']) && is_scalar($_REQUEST['mode'])) ? (string) $_REQUEST['mode'] : '';
+$mode_js = (isset($_REQUEST['mode_js']) && is_scalar($_REQUEST['mode_js'])) ? (string) $_REQUEST['mode_js'] : '';
 $mode = (isset($_POST['addfile'])) ? 'add' : $mode;
 $mode = (isset($_POST['delete'])) ? 'delete' : $mode;
 $mode = (isset($_POST['approve'])) ? 'do_approve' : $mode;
 $mode = (isset($_POST['unapprove'])) ? 'do_unapprove' : $mode;
 $mode = (empty($mode)) ? $mode_js : $mode;
+
+// Single-row administration actions share the surrounding bulk-action form.
+// Keep the action and target together without exposing a state-changing URL.
+if (isset($_POST['file_action']) && is_scalar($_POST['file_action']) &&
+	preg_match('/^(delete|do_approve|do_unapprove):([1-9][0-9]*)$/D', (string) $_POST['file_action'], $file_action_match))
+{
+	$mode = $file_action_match[1];
+	$file_id = (int) $file_action_match[2];
+}
+
+function pa_file_require_post_session($userdata)
+{
+	if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST' ||
+		!isset($_POST['sid']) || !is_scalar($_POST['sid']) ||
+		!hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_ERROR, 'Invalid administration request.');
+	}
+}
+
+if (in_array($mode, array('do_add', 'delete', 'do_maintenace', 'do_approve', 'do_unapprove'), true))
+{
+	pa_file_require_post_session($userdata);
+}
 
 $mirrors = (isset($_POST['mirrors'])) ? TRUE : 0;
 
@@ -150,6 +174,8 @@ switch($mode)
 		$s_hidden_fields .= '<input type="hidden" name="file_id" value="' . $file_id . '">';
 		break;
 }
+
+$s_hidden_fields .= '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '">';
 
 if($mode == 'do_add' && !$file_id)
 {
@@ -437,8 +463,8 @@ if(in_array($mode, array('', 'approved', 'broken', 'do_approve', 'do_unapprove',
 					'FILE_NUMBER' => $i++,
 					'FILE_ID' => $file_data['file_id'],
 					'U_FILE_EDIT' => append_sid("admin_pa_file.$phpEx?mode=edit&file_id={$file_data['file_id']}"),
-					'U_FILE_DELETE' => append_sid("admin_pa_file.$phpEx?mode=delete&file_id={$file_data['file_id']}"),
-					'U_FILE_APPROVE' => append_sid("admin_pa_file.$phpEx?mode=$approve_mode&file_id={$file_data['file_id']}"),
+					'FILE_DELETE_ACTION' => 'delete:' . (int) $file_data['file_id'],
+					'FILE_APPROVE_ACTION' => $approve_mode . ':' . (int) $file_data['file_id'],
 					'L_APPROVE' => ($file_data['file_approved']) ? $lang['Unapprove'] : $lang['Approve'])
 				);
 
@@ -582,9 +608,13 @@ elseif($mode == 'add' || $mode == 'edit' || $mirrors)
 }
 elseif($mode == 'mirrors')
 {
+	if (isset($_POST['delete_mirrors']) || isset($_POST['add_new']) || isset($_POST['modify']))
+	{
+		pa_file_require_post_session($userdata);
+	}
 	if(isset($_POST['delete_mirrors']))
 	{
-		$mirror_ids = (isset($_POST['mirror_ids'])) ? array_map('intval', $_POST['mirror_ids']) : array();
+		$mirror_ids = (isset($_POST['mirror_ids']) && is_array($_POST['mirror_ids'])) ? array_map('intval', $_POST['mirror_ids']) : array();
 
 		if(!empty($mirror_ids))
 		{

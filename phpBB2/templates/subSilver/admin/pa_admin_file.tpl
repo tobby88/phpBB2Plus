@@ -2,6 +2,7 @@
     <!--
 	var add_file = false;
 	var deletefile = false;
+	var direct_action = false;
 	
 	function set_add_file(status)
 	{
@@ -12,19 +13,16 @@
 	{
 		deletefile = status;
 	}
-	
-	
-    function delete_file(theURL) 
+	function set_direct_action(status)
 	{
-       if (confirm('Are you sure you want to delete this file??')) 
-	   {
-          window.location.href=theURL;
-       }
-       else
-	   {
-          alert ('No Action has been taken.');
-       } 
-    }
+		direct_action = status;
+	}
+
+	function confirm_direct_delete()
+	{
+		direct_action = confirm('Are you sure you want to delete this file?');
+		return direct_action;
+	}
 	
 	function disable_cat_list()
 	{
@@ -51,7 +49,7 @@
 
 	function check()
 	{
-		if(add_file)
+		if(add_file || direct_action)
 		{
 			return true;
 		}
@@ -102,8 +100,8 @@
 	<td class="row1" align="center" width="5%"><span class="genmed">{file_mode.file_row.FILE_NUMBER}</span></td>
 	<td class="row1" width="50%"><span class="genmed">{file_mode.file_row.FILE_NAME}</span></td>
 	<td class="row1" align="center" width="10%"><span class="gen"><a href="{file_mode.file_row.U_FILE_EDIT}">{L_EDIT}</a></span></td>
-	<td class="row1" align="center" width="10%"><span class="gen"><a href="javascript:delete_file('{file_mode.file_row.U_FILE_DELETE}')">{L_DELETE}</a></span></td>
-	<td class="row1" align="center" width="20%"><span class="gen"><a href="{file_mode.file_row.U_FILE_APPROVE}">{file_mode.file_row.L_APPROVE}</a></span></td>
+	<td class="row1" align="center" width="10%"><span class="gen"><button type="submit" class="liteoption" name="file_action" value="{file_mode.file_row.FILE_DELETE_ACTION}" onClick="return confirm_direct_delete();">{L_DELETE}</button></span></td>
+	<td class="row1" align="center" width="20%"><span class="gen"><button type="submit" class="liteoption" name="file_action" value="{file_mode.file_row.FILE_APPROVE_ACTION}" onClick="set_direct_action(true);">{file_mode.file_row.L_APPROVE}</button></span></td>
 	<td class="row1" align="center" width="5%"><span class="genmed"><input type="checkbox" name="file_ids[]" value="{file_mode.file_row.FILE_ID}" /></span></td>
   </tr>
    <!-- END file_row -->

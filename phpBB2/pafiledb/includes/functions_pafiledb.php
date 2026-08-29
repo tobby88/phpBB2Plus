@@ -1859,7 +1859,8 @@ class pafiledb
 			return;
 		}
 
-		$physical_file_name = '';		
+		$physical_file_name = '';
+		$old_physical_path = '';
 		
 		if($mirror_id)
 		{
@@ -1875,13 +1876,17 @@ class pafiledb
 			$mirror_data = $db->sql_fetchrow($result);
 
 			$db->sql_freeresult($result);
+			if (!$mirror_data)
+			{
+				$this->error[] = $lang['File_not_exist'];
+				return;
+			}
 			
 			if(!empty($file_remote_url) || !empty($file_local))
 			{
 				if(!empty($mirror_data['unique_name']))
 				{
-					$pafiledb_functions->pafiledb_unlink($phpbb_root_path . $mirror_data['file_dir'] . $mirror_data['unique_name']);
-					
+					$old_physical_path = $phpbb_root_path . $mirror_data['file_dir'] . $mirror_data['unique_name'];
 				}
 			}
 			else
@@ -1928,7 +1933,18 @@ class pafiledb
 
 		if ( !($db->sql_query($sql)) )
 		{
+			if ($file_upload && $physical_file_name !== '')
+			{
+				$pafiledb_functions->pafiledb_unlink($phpbb_root_path . $pafiledb_config['upload_dir'] . $physical_file_name);
+			}
 			message_die(GENERAL_ERROR, 'Couldnt Add the file information to the database', '', __LINE__, __FILE__, $sql);
+		}
+
+		// Keep the previous mirror available until both its replacement and the
+		// database update have completed successfully.
+		if ($old_physical_path !== '')
+		{
+			$pafiledb_functions->pafiledb_unlink($old_physical_path);
 		}
 	}
 	
