@@ -1,495 +1,24 @@
 <?php
 /**
-* <b>CrackerTracker File: ct_security.php</b><br><br>
-*
-* This file is responsible for the worm protection Unit of the CrackerTracker
-* Security System. The File includes a definition Array wich is used to
-* heuristically scan URL requests for attacks.
-*
-* We included some virtual Troopers for you. ;-)
-*
-*
-* @author Christian Knerr (cback) and Tekin Birdüzen (cYbercOsmOnauT)
-* @package ctracker
-* @version 5.0.6
-* @since 15.07.2006 - 21:36:24
-* @copyright (c) 2006 www.cback.de
-*
-* @license http://opensource.org/licenses/gpl-license.php GNU Public License
-*/
-
-if( !defined('IN_PHPBB') )
-{
-	die("Hacking attempt!");
-}
-
-/*
- * Change the following to define('CT_DEBUG_MODE', true);
- * if you want to activate the debug mode of CrackerTracker
- * but don't forget to deactivate it again as soon as possible
- */
-define('CT_DEBUG_MODE', false);
-
-/*
- * DO NOT CHANGE ANYTHING BELOW!
- * CHANGING STUFF BELOW CAN DRAMATICALLY DECREASE
- * THE SECURITY OF YOUR BOARD SO PLEASE
- * DO NOT CHANGE ANYTHING BELOW THIS LINE!
+ * Central request-shape and exploit-signature protection.
+ *
+ * CrackerTracker 5.0.6 used hundreds of unscoped word fragments (including
+ * quotes, "and", "or", ".js" and ordinary shell words). That both blocked
+ * legitimate forum use and encouraged a false sense that substring matching
+ * could replace validation at an SQL, HTML or command boundary. This engine
+ * keeps the central early-request barrier, but limits it to structural abuse
+ * and high-confidence exploit syntax. Free-text fields are shape-checked and
+ * remain the responsibility of their proper output/database boundary.
  */
 
-/*
- * The first thing we do now is checking the integrity of the $phpbb_root_path
- * because CrackerTracker will need it later. With this step we prevent that
- * scripts without the $phpbb_root_path or without a validated $phpbb_root_path
- * can be executed.
- */
-if ( !isset($phpbb_root_path) || empty($phpbb_root_path) )
+if (!defined('IN_PHPBB'))
 {
-	/*
-	 * Create a HTML error Message output
-	 */
-	$htmloutput =<<<EOM
-  <html>
-				     <head>
-    				   <title>CBACK CrackerTracker :: Security Alert</title>
-  					 </head>
-  					 <body>
-    				   <br>
-    				   <div align="center">
-      				   <table style="border:2px solid #000000" border="0" width="600" cellpadding="10" cellspacing="0">
-         			     <tr>
-          				   <td align="left" bgcolor="#000000"><font face="Tahoma, Arial, Helvetica" size="4" color="#FFFFFF"><b>SECURITY ALERT &raquo; &raquo; &raquo; &raquo;</b></font></td>
-        				 </tr>
-        				 <tr>
-          				   <td bgcolor="#FFF4BF" align="left">
-          						<font face="Tahoma, Arial, Helvetica" size="2" color="#000000">
-          						  CBACK CrackerTracker stopped your script because the engine detected
-          						  that the script you want to execute has not initialized the var
-          						  <b>\$phpbb_root_path</b> correctly.
-          						  <br><br>
-          						  This could be a potential security risk for this board.
-          						  <br><br>
-          						  If you are not the admin of this Board please contact him and tell him from
-          						  this warning message and what you have done that he has the possibility to
-          						  fix that problem.
-          						</font>
-          				    </td>
-        				   </tr>
-      				     </table>
-    				   </div>
-  					 </body>
-				   </html>
-EOM;
-
-	// Lets stop the script
-	die($htmloutput);
+	die('Hacking attempt!');
 }
 
-/*
- * Now we define an array where all definition data is saved in.
- * After that we check URL committals for potential worm acitivities
- */
-$ct_rules = array('http_', '_server', 'delete%20', 'delete ', 'delete-', 'delete(', '(delete', 'drop%20',
-				  'drop ', 'create%20', 'update-', 'update(', '(update', 'insert-', 'insert(', '(insert',
-				  'create ', 'create(', 'create-', '(create', 'update%20', 'update ', 'insert%20', 'insert ',
-				  'select%20', 'select ', 'bulk%20', 'bulk ', 'union%20', 'union ', 'select-', 'select(',
-				  '(select', 'union-', '(union', 'union(',
-				  'or%20', 'or ', 'and%20', 'and ', 'exec', '@@', '%22', '"', 'openquery',
-				  'openrowset', 'msdasql', 'sqloledb', 'sysobjects', 'syscolums',
-				  'syslogins', 'sysxlogins', 'char%20', 'char ', 'into%20', 'into ',
-				  'load%20', 'load ', 'msys', 'alert%20', 'alert ', 'eval%20', 'eval ',
-				  'onkeyup', 'x5cx', 'fromcharcode', 'javascript:', 'javascript.', 'vbscript:',
-				  'vbscript.', 'http-equiv', '->', 'expression%20', 'expression ',
-				  'url%20', 'url ', 'innerhtml', 'document.', 'dynsrc', 'jsessionid',
-				  'style%20', 'style ', 'phpsessid', '<applet', '<div', '<emded', '<iframe', '<img',
-				  '<meta', '<object', '<script', '<textarea', 'onabort', 'onblur',
-				  'onchange', 'onclick', 'ondblclick', 'ondragdrop', 'onerror',
-				  'onfocus', 'onkeydown', 'onkeypress', 'onload', 'onmouse',
-				  'onmove', 'onreset', 'onresize', 'onselect', 'onsubmit',
-				  'onunload', 'onreadystatechange', 'xmlhttp', 'uname%20', 'uname ',
-				  '%2C', 'union+', 'select+', 'delete+', 'create+', 'bulk+', 'or+', 'and+',
-				  'into+', 'kill+', '+echr', '+chr', 'cmd+', '+1', 'user_password',
-				  'id%20', 'id ', 'ls%20', 'ls ', 'cat%20', 'cat ', 'rm%20', 'rm ',
-				  'kill%20', 'kill ', 'mail%20', 'mail ', 'wget%20', 'wget ', 'wget(',
-				  'pwd%20', 'pwd ', 'objectclass', 'objectcategory', '<!-%20', '<!- ',
-				  'total%20', 'total ', 'http%20request', 'http request', 'phpb8b4f2a0',
-				  'phpinfo', 'php:', 'globals', '%2527', '%27', '\'', 'chr(',
-				  'chr=', 'chr%20', 'chr ', '%20chr', ' chr', 'cmd=', 'cmd%20', 'cmd',
-				  '%20cmd', ' cmd', 'rush=', '%20rush', ' rush', 'rush%20', 'rush ',
-				  'union%20', 'union ', '%20union', ' union', 'union(', 'union=',
-				  '%20echr', ' echr', 'esystem', 'cp%20', 'cp ', 'cp(', '%20cp', ' cp',
-				  'mdir%20', 'mdir ', '%20mdir', ' mdir', 'mdir(', 'mcd%20', 'mcd ',
-				  'mrd%20', 'mrd ', 'rm%20', 'rm ', '%20mcd', ' mcd', '%20mrd', ' mrd',
-				  '%20rm', ' rm', 'mcd(', 'mrd(', 'rm(', 'mcd=', 'mrd=', 'mv%20', 'mv ',
-				  'rmdir%20', 'rmdir ', 'mv(', 'rmdir(', 'chmod(', 'chmod%20', 'chmod ',
-				  'cc%20', 'cc ', '%20chmod', ' chmod', 'chmod(', 'chmod=', 'chown%20', 'chown ',
-				  'chgrp%20', 'chgrp ', 'chown(', 'chgrp(', 'locate%20', 'locate ', 'grep%20', 'grep ',
-				  'locate(', 'grep(', 'diff%20', 'diff ', 'kill%20', 'kill ', 'kill(', 'killall',
-				  'passwd%20', 'passwd ', '%20passwd', ' passwd', 'passwd(', 'telnet%20', 'telnet ',
-				  'vi(', 'vi%20', 'vi ', 'nigga(', '%20nigga', ' nigga', 'nigga%20', 'nigga ',
-				  'fopen', 'fwrite', '%20like', ' like', 'like%20', 'like ', '$_',
-				  '$get', '.system', 'http_php', '%20getenv', ' getenv', 'getenv%20', 'getenv ',
-				  'new_password', '/password', 'etc/', '/groups', '/gshadow',
-				  'http_user_agent', 'http_host', 'bin/', 'wget%20', 'wget ', 'uname%5c',
-				  'uname', 'usr', '/chgrp', '=chown', 'usr/bin', 'g%5c',
-				  'g\\', 'bin/python', 'bin/tclsh', 'bin/nasm', 'perl%20', 'perl ', '.pl',
-				  'traceroute%20', 'traceroute ', 'tracert%20', 'tracert ', 'ping%20', 'ping ',
-				  '/usr/x11r6/bin/xterm', 'lsof%20', 'lsof ', '/mail', '.conf', 'motd%20', 'motd ',
-				  'http/1.', '.inc.php', 'config.php', 'cgi-', '.eml', 'file%5c://',
-				  'file\:', 'file://', 'window.open', 'img src', 'img%20src', 'img src',
-				  '.jsp', 'ftp.', 'xp_enumdsn', 'xp_availablemedia',
-				  'xp_filelist', 'nc.exe', '.htpasswd', 'servlet', '/etc/passwd', '/etc/shadow',
-				  'wwwacl', '~root', '~ftp', '.js', '.jsp', '.history',
-				  'bash_history', '~nobody', 'server-info', 'server-status',
-				  '%20reboot', ' reboot', '%20halt', ' halt', '%20powerdown', ' powerdown',
-				  '/home/ftp', '=reboot', 'www/', 'init%20', 'init ','=halt', '=powerdown',
-				  'ereg(', 'secure_site', 'chunked', 'org.apache', '/servlet/con',
-				  '/robot', 'mod_gzip_status', '.inc', '.system', 'getenv',
-				  'http_', '_php', 'php_', 'phpinfo()', '<?php', '?>', '%3C%3Fphp',
-				  '%3F>', 'sql=', '_global', 'global_', 'global[', '_server',
-				  'server_', 'server[', '/modules', 'modules/', 'phpadmin',
-				  'root_path', '_globals', 'globals_', 'globals[', 'iso-8859-1',
-				  '?hl=', '%3fhl=', '.exe', '.sh', '%00', rawurldecode('%00'), '_env', '/*', '\\*');
-
-// Some fields in $HTTP_POST_VARS don't get checked to prevent wrong detection
-$unchecked_post_fields   = array('username', 'password', 'subject', 'message',
-								'poll_title', 'poll_option', 'poll_delete',
-								'email', 'confirm_code', 'aim', 'msn', 'yim',
-								'interests', 'occupation', 'signature', 'website',
-								'location', 'search', 'sitename', 'word',
-								'replacement', 'help', 'last_msg', 'quote', 'dl',
-								'preview', 'post', 'mode', 'content', 'server_name',
-								'script_path', 'sitename', 'site_desc', 'disable_reg_msg',
-								'disable_msg', 'cookie', 'avatar', 'file', 'picture',
-								'filter', 'xs', 'edit', 'content', 'fileupload', 'filecomment',
-								'comment', 'rate', 'pic', 'search_author', 'add_poll_option_text');
-
-// Free-text search values are escaped and validated by search.php. Scanning
-// them for isolated words or quote characters creates false positives for
-// ordinary searches without protecting an SQL boundary.
-$unchecked_get_fields = array('submit', 'search_author', 'search_keywords', 'highlight');
-
-$ct_addheuristic = isset($ct_addheuristic) ? (array) $ct_addheuristic : array();
-$ct_delheuristic = isset($ct_delheuristic) ? (array) $ct_delheuristic : array();
-$ct_ignoregvar = isset($ct_ignoregvar) ? (array) $ct_ignoregvar : array();
-$ct_ignorepvar = isset($ct_ignorepvar) ? (array) $ct_ignorepvar : array();
-$ct_regex_ignorep = isset($ct_regex_ignorep) ? (array) $ct_regex_ignorep : array();
-$ct_regex_ignoreg = isset($ct_regex_ignoreg) ? (array) $ct_regex_ignoreg : array();
-
-/*
- * Let's check if a security level is set
- * and prepare our variables
- */
-if ( !defined('CT_SECLEVEL') || CT_SECLEVEL == 'HIGH' )
+if (!defined('CT_DEBUG_MODE'))
 {
-  // Empty the variables for security reasons
-  $ct_addheuristic 	= $ct_delheuristic 	= array();
-  $ct_ignoregvar 	= $ct_ignorepvar 	= array();
-  $ct_regex_ignorep = $ct_regex_ignoreg = array();
-}
-else if ( CT_SECLEVEL == 'MEDIUM' ||  CT_SECLEVEL == 'LOW' )
-{
-  // Delete all duplicate heuristics and then merge with the standard rules
-  $ct_addheuristic 	= array_diff((array) $ct_addheuristic, $ct_rules);
-  $ct_rules 		= array_merge($ct_rules, $ct_addheuristic);
-
-  // Now let's check if there are heuristics we want to ignore for this time
-  $ct_rules = array_diff($ct_rules, (array) $ct_delheuristic);
-
-  // Maybe also some new $_POST fields to ignore?
-  $ct_ignorepvar 			= array_diff((array) $ct_ignorepvar, $unchecked_post_fields);
-  $unchecked_post_fields 	= array_merge($unchecked_post_fields, $ct_ignorepvar);
-
-  // Last but not least the same with $_GET
-  $ct_ignoregvar 		= array_diff((array) $ct_ignoregvar, $unchecked_get_fields);
-  $unchecked_get_fields = array_merge($unchecked_get_fields, $ct_ignoregvar);
-
-  // Oh look, a new regex ignore method for smart admins and mod coders
-  if ( isset($ct_regex_ignorep) )
-  {
-    $ct_regex_ignorep = implode('|', $ct_regex_ignorep);
-  }
-  if ( isset($ct_regex_ignoreg) )
-  {
-    $ct_regex_ignoreg = implode('|', $ct_regex_ignoreg);
-  }
-}
-
-// Initialize detector var
-$ct_attack_detection = false;
-
-// Bound request structure before recursively inspecting it. Normal phpBB forms
-// stay far below these limits, including permission matrices and multi-upload
-// metadata; deeply nested or enormous scalar input is not meaningful here.
-$ct_request_nodes = 0;
-if (!ct_request_shape_is_safe($HTTP_GET_VARS, 0, $ct_request_nodes))
-{
-	$ct_attack_detection = true;
-}
-$ct_request_nodes = 0;
-if (!ct_request_shape_is_safe($HTTP_POST_VARS, 0, $ct_request_nodes))
-{
-	$ct_attack_detection = true;
-}
-
-// Write query String in the var $cracktrack and make it lowercase
-$cracktrack = strtolower(isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '');
-if (strlen($cracktrack) > 32768)
-{
-	$ct_attack_detection = true;
-}
-
-// Filter out the unchecked fields
-$unchecked_get_fields 	= implode('|', $unchecked_get_fields);
-$cracktrack 			= preg_replace('#((' . $unchecked_get_fields . ')=([^&]|&amp;)*)#', '', $cracktrack);
-
-// Prevent Slash Tricks (SQL Tricks with /* are now stopped directly! So we don't replace this now!)
-$cracktrack = str_replace('\\', '/', $cracktrack);
-
-// Save copies for the debug mode check
-$crackcheck = $cracktrack;
-
-// Now we do a very simple method to mark potential Worm activities
-$checkworm = str_replace($ct_rules, '*', $cracktrack);
-if ( $cracktrack != $checkworm )
-{
-	$ct_attack_detection = true;
-	ct_debugger($crackcheck, 'GET');
-}
-else
-{
-  // We also check for rawurldecode-tricks
-  $checkworm = str_replace($ct_rules, '*', strtolower(rawurldecode($cracktrack)));
-  if ( strtolower(rawurldecode($cracktrack)) != $checkworm )
-  {
-	  $ct_attack_detection = true;
-	  ct_debugger($crackcheck, 'RAWGET');
-  }
-  elseif ( !defined('CT_SECLEVEL') || CT_SECLEVEL != 'LOW' )
-  {
-    // We create a copy of the $HTTP_POST_VARS for checking
-    $checkpost = ( is_array($HTTP_POST_VARS) ) ? $HTTP_POST_VARS : array();
-
-    // Now we have a look to $HTTP_POST_VARS
-    foreach ( $checkpost as $post_var_fieldname => $post_var_field_value )
-    {
-	    if ( !in_array($post_var_fieldname, $unchecked_post_fields) )
-	    {
-			// We do a preg_replace if a smart admin used the regex ignore
-			$post_var_check = ( is_string($ct_regex_ignorep) && $ct_regex_ignorep !== '' ) ? preg_replace("#^($ct_regex_ignorep)$#", '*', $post_var_fieldname) : $post_var_fieldname;
-			if ( $post_var_check == $post_var_fieldname)
-			{
-				if ( is_array($post_var_field_value) )
-				{
-					// We proudly present AT-AT our new imperial array walker
-					$post_var_field_value = atatwalk($post_var_field_value);
-				}
-
-				// Prevent tricks wich comment out SQL command
-				$post_var_field_value = strtolower(str_replace('\\', '/', $post_var_field_value));
-
-				// Now we do a very simple method to mark potential Worm activities
-				$check_var = str_replace($ct_rules, '*', strtolower($post_var_field_value));
-
-				if ( $post_var_field_value != $check_var )
-				{
-					ct_debugger($checkpost, 'POST');
-					$ct_attack_detection = true;
-					// Attack found so we can leave the foreach loop
-					break;
-				}
-				else
-				{
-					// We again check for rawurldecode tricks
-					$check_var = str_replace($ct_rules, '*', strtolower(rawurldecode($post_var_field_value)));
-					if ( strtolower(rawurldecode($post_var_field_value)) != $check_var )
-					{
-						ct_debugger($checkpost, 'RAWPOST');
-						$ct_attack_detection = true;
-						// Attack found so we can leave the foreach loop
-						break;
-					}
-				}
-			}
-	    }
-    }
-  }
-}
-
-if ( $ct_attack_detection )
-{
-  if (CT_DEBUG_MODE !== true)
-  {
-	  // include class for Logfile Management
-	  include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
-
-	  // write data into logfile
-	  $logfile = new log_manager();
-	  $logfile->write_worm();
-	  unset($logfile);
-	}
-
-	if (!headers_sent())
-	{
-		http_response_code(403);
-		header('Content-Type: text/html; charset=UTF-8');
-		header('Cache-Control: no-store');
-	}
-
-	// generate HTML Message
-	$htmloutput =<<<EOM
-  <html>
-				     <head>
-    				   <title>CBACK CrackerTracker :: Security Alert</title>
-  					 </head>
-  					 <body>
-    				   <br>
-    				   <div align="center">
-      				   <table style="border:2px solid #000000" border="0" width="600" cellpadding="10" cellspacing="0">
-         			     <tr>
-          				   <td align="left" bgcolor="#000000"><font face="Tahoma, Arial, Helvetica" size="4" color="#FFFFFF"><b>SECURITY ALERT &raquo; &raquo; &raquo; &raquo;</b></font></td>
-        				 </tr>
-        				 <tr>
-          				   <td bgcolor="#FFDFDF" align="left">
-          						<font face="Tahoma, Arial, Helvetica" size="2" color="#000000">
-          						  <b>CBACK CrackerTracker</b> has detected a potential attack on this site with a worm
-          						  or exploit script so the Security System stopped the script.
-          						  <br><br><br>
-          						  If you can see this page after including a new MOD into your board or after clicking
-          						  on a link please contact the Board Administrator with this error message and a description
-          						  what you have done before you could see this page, that the Admin has the possibility to
-          						  fix the problem.
-          						</font>
-          				    </td>
-        				   </tr>
-      				     </table>
-    				   </div>
-  					 </body>
-				   </html>
-EOM;
-
-	// stop the script
-	die($htmloutput);
-}
-
-// Tell the self test that this script was included correctly
-define('protection_unit_one', true);
-
-function ct_debugger($checkstring, $checkmode)
-{
-  if (CT_DEBUG_MODE === false)
-  {
-    return;
-  }
-  global $ct_rules, $HTTP_SERVER_VARS, $phpbb_root_path, $unchecked_post_fields;
-
-  $dbgunchecked_post_fields = implode('|', $unchecked_post_fields);
-
-  if (in_array($checkmode, array('POST', 'RAWPOST')))
-  {
-    $temp = '&';
-    foreach($checkstring as $key=>$val)
-    {
-      $val = ( is_array($val) ) ? atatwalk($val) : $val;
-      $temp .= "$key=$val&";
-    };
-    $checkstring = $temp;
-
-    // Cut out the keys we already ignore
-    $checkstring = preg_replace('#((' . $dbgunchecked_post_fields . ')=([^&]|&amp;)*)#', '', $checkstring);
-  }
-  if (in_array($checkmode, array('RAWGET', 'RAWPOST')))
-  {
-    $checkstring = rawurldecode($checkstring);
-  }
-
-  // Now we start debugging
-  $matching_vars = array();
-  $found_matches = '';
-  foreach($ct_rules as $rule)
-  {
-    $preg_rule = preg_quote($rule, "#");
-    if (preg_match_all('#(^|&)([^&]*?)=[^&]*?' . $preg_rule . '[^&]*($|&)#is', $checkstring, $dbgmatch, PREG_PATTERN_ORDER))
-    {
-      $found_matches .= "Matching rule: $rule\n";
-      foreach($dbgmatch[2] as $matchline)
-      {
-        $found_matches .= "In variable:   $matchline\n";
-        $matching_vars[] = $matchline;
-      }
-      $found_matches .= "\n";
-    }
-  }
-  $matching_vars = array_unique($matching_vars);
-  $matching_vars = implode("','", $matching_vars);
-  $matching_vars = "'" . $matching_vars . "'";
-
-  if ( count($matching_vars) )
-  {
-    // let's open the debug file and write in some stuff ;)
-    $debugstream = @fopen($phpbb_root_path . 'ctracker/logfiles/logfile_debug_mode.txt', 'ab');
-    $scriptname = str_replace($HTTP_SERVER_VARS['DOCUMENT_ROOT'], '', $HTTP_SERVER_VARS['SCRIPT_FILENAME']);
-    $scriptname = (( substr($scriptname, 0, 1) == '/' ) ? '' : '/') . $scriptname;
-    $scriptname = str_replace('//', '/', $scriptname);
-
-    @fputs($debugstream, "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-    @fputs($debugstream,'Script-Filename: ' . $scriptname . "\n----------------\n\n");
-    @fputs($debugstream,'Attack-Time: ' . date('d.m.Y G:i a') . "\n------------\n\n");
-    @fputs($debugstream, 'Request-Method: ' . (strpos($checkmode, 'POST') !== false ? 'POST' : 'GET') . "\n\n");
-    @fputs($debugstream, $found_matches);
-    @fputs($debugstream,"Possible solution:\n------------------\n\n");
-    modcommand($debugstream, 'OPEN');
-    @fputs($debugstream,"$scriptname\n\n");
-    modcommand($debugstream, 'FIND');
-    if (preg_match('#^/admin/(admin_|index\.php)#', $scriptname))
-    {
-      @fputs($debugstream,"require('./pagestart.' . \$phpEx);\n\n");
-    }
-    else
-    {
-      @fputs($debugstream,"include(\$phpbb_root_path . 'common.'.\$phpEx);\n\n");
-    }
-    modcommand($debugstream, 'BEFORE, ADD');
-    @fputs($debugstream,"define('CT_SECLEVEL', 'MEDIUM');\n");
-    if (strpos($checkmode, 'POST') !== false)
-    {
-      @fputs($debugstream,"\$ct_ignorepvar = array($matching_vars);\n\n");
-    }
-    else
-    {
-      @fputs($debugstream,"\$ct_ignoregvar = array($matching_vars);\n\n");
-    }
-    modcommand($debugstream, 'SAVE/CLOSE ALL FILES');
-    @fputs($debugstream,"# EoM\n\n");
-
-    @fclose($debugstream);
-  }
-}
-
-function modcommand($handle, $command)
-{
-  @fputs($handle,"#\n");
-  @fputs($handle,"#-----[ " . strtoupper($command) . " ]------------------------------------------\n");
-  @fputs($handle,"#\n");
-}
-
-// Function to walk through arrays
-// and find those nasty rebell value hideouts
-function atatwalk($var_array)
-{
-	$complete_post = array();
-	foreach ((array) $var_array as $value)
-	{
-		if (is_array($value))
-		{
-			$complete_post[] = atatwalk($value);
-		}
-		elseif (is_scalar($value))
-		{
-			$complete_post[] = (string) $value;
-		}
-	}
-	return implode('!', $complete_post);
+	define('CT_DEBUG_MODE', false);
 }
 
 function ct_request_shape_is_safe($value, $depth, &$nodes)
@@ -514,4 +43,223 @@ function ct_request_shape_is_safe($value, $depth, &$nodes)
 
 	return is_scalar($value) && strlen((string) $value) <= 4194304;
 }
+
+function ct_security_normalize($value)
+{
+	$value = is_scalar($value) ? (string) $value : '';
+	for ($i = 0; $i < 3; $i++)
+	{
+		$decoded = rawurldecode($value);
+		if ($decoded === $value)
+		{
+			break;
+		}
+		$value = $decoded;
+	}
+	return html_entity_decode($value, ENT_QUOTES, 'UTF-8');
+}
+
+function ct_security_key_is_safe($key)
+{
+	$key = strtolower(ct_security_normalize($key));
+	if ($key === '' || preg_match('/[\x00-\x1f\x7f]/', $key))
+	{
+		return false;
+	}
+
+	return !preg_match('/^(?:globals|_(?:get|post|cookie|request|server|env|files|session)|http_(?:get|post|cookie|server|env|session)_vars)$/D', $key);
+}
+
+function ct_security_value_is_attack($value, $free_text, $custom_rules)
+{
+	$value = ct_security_normalize($value);
+	if (strpos($value, "\0") !== false)
+	{
+		return true;
+	}
+
+	if (!$free_text)
+	{
+		$patterns = array(
+			'~<\?(?:php|=)?|\?>~i',
+			'~\b(?:php|data|expect|phar|zip|glob)\s*:(?://|text/html)~i',
+			'~(?:^|[/\\\\])\.\.(?:[/\\\\]|$)~',
+			'~(?:/etc/(?:passwd|shadow)|/proc/self/environ|(?:^|[/\\\\])\.ht(?:access|passwd)(?:$|[?&#]))~i',
+			'~<(?:script|iframe|object|embed|svg|math)\b~i',
+			'~\b(?:java|vb)script\s*:|\bon[a-z]+\s*=~i',
+			'~\bunion\s+(?:all\s+)?select\b~i',
+			'~[\'\"]\s*(?:or|and)\s+(?:\d+\s*=\s*\d+|[\'\"][^\'\"]*[\'\"]\s*=\s*[\'\"])~i',
+			'~\b(?:sleep|benchmark|load_file)\s*\(~i',
+			'~\binto\s+(?:out|dump)file\b~i',
+			'~;\s*(?:select|insert|update|delete|drop|alter|create|truncate)\b~i',
+			'~[\'\"]\s*(?:--|#|/\*)~'
+		);
+		foreach ($patterns as $pattern)
+		{
+			if (preg_match($pattern, $value))
+			{
+				return true;
+			}
+		}
+	}
+
+	$value_lower = strtolower($value);
+	foreach ((array) $custom_rules as $rule)
+	{
+		$rule = is_scalar($rule) ? strtolower((string) $rule) : '';
+		if ($rule !== '' && strpos($value_lower, $rule) !== false)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function ct_security_array_is_attack($values, $ignored_fields, $free_text_fields, $custom_rules, $scan_values)
+{
+	foreach ((array) $values as $field => $value)
+	{
+		if (!ct_security_key_is_safe($field))
+		{
+			return true;
+		}
+
+		$field_name = strtolower((string) $field);
+		if (is_array($value))
+		{
+			if (ct_security_array_is_attack($value, $ignored_fields, $free_text_fields, $custom_rules, $scan_values))
+			{
+				return true;
+			}
+			continue;
+		}
+
+		if (!is_scalar($value))
+		{
+			return true;
+		}
+		$free_text = in_array($field_name, $free_text_fields, true);
+		if (strpos((string) $value, "\0") !== false)
+		{
+			return true;
+		}
+		if ($scan_values && !in_array($field_name, $ignored_fields, true) &&
+			ct_security_value_is_attack($value, $free_text, $custom_rules))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function ct_security_request_is_attack($get, $post, $server, $options)
+{
+	$get = is_array($get) ? $get : array();
+	$post = is_array($post) ? $post : array();
+	$server = is_array($server) ? $server : array();
+	$options = is_array($options) ? $options : array();
+
+	$nodes = 0;
+	if (!ct_request_shape_is_safe($get, 0, $nodes))
+	{
+		return true;
+	}
+	$nodes = 0;
+	if (!ct_request_shape_is_safe($post, 0, $nodes))
+	{
+		return true;
+	}
+
+	$query_string = isset($server['QUERY_STRING']) && is_scalar($server['QUERY_STRING']) ? (string) $server['QUERY_STRING'] : '';
+	if (strlen($query_string) > 32768)
+	{
+		return true;
+	}
+
+	$get_ignored = isset($options['get_ignored']) ? (array) $options['get_ignored'] : array();
+	$post_ignored = isset($options['post_ignored']) ? (array) $options['post_ignored'] : array();
+	$get_free_text = isset($options['get_free_text']) ? (array) $options['get_free_text'] : array();
+	$post_free_text = isset($options['post_free_text']) ? (array) $options['post_free_text'] : array();
+	$custom_rules = isset($options['custom_rules']) ? (array) $options['custom_rules'] : array();
+	$scan_post = !isset($options['scan_post']) || (bool) $options['scan_post'];
+
+	return ct_security_array_is_attack($get, $get_ignored, $get_free_text, $custom_rules, true) ||
+		ct_security_array_is_attack($post, $post_ignored, $post_free_text, $custom_rules, $scan_post);
+}
+
+function ct_security_block_request($phpbb_root_path, $phpEx)
+{
+	if (CT_DEBUG_MODE !== true)
+	{
+		include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
+		$logfile = new log_manager();
+		$logfile->write_worm();
+		unset($logfile);
+	}
+
+	if (!headers_sent())
+	{
+		http_response_code(403);
+		header('Content-Type: text/html; charset=UTF-8');
+		header('Cache-Control: no-store');
+	}
+
+	echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CrackerTracker security alert</title></head>' .
+		'<body><h1>Sicherheitsprüfung / Security check</h1>' .
+		'<p>Die Anfrage enthielt eine nicht zulässige technische Struktur und wurde abgewiesen. ' .
+		'The request contained a disallowed technical structure and was rejected.</p></body></html>';
+	exit;
+}
+
+if (!defined('CTRACKER_SECURITY_NO_AUTO_RUN'))
+{
+	if (!isset($phpbb_root_path) || !is_string($phpbb_root_path) || $phpbb_root_path === '')
+	{
+		die('CrackerTracker: invalid phpBB root path.');
+	}
+
+	$free_post_fields = array(
+		'username', 'password', 'subject', 'message', 'poll_title', 'poll_option',
+		'email', 'aim', 'msn', 'yim', 'interests', 'occupation', 'signature',
+		'website', 'location', 'search', 'sitename', 'word', 'replacement', 'help',
+		'last_msg', 'quote', 'content', 'site_desc', 'disable_reg_msg', 'disable_msg',
+		'pic_desc', 'pic_title', 'filecomment', 'comment', 'search_author',
+		'add_poll_option_text', 'global_message'
+	);
+	$free_get_fields = array('search_author', 'search_keywords', 'highlight', 'topic', 'q');
+	$ignored_get = array('submit');
+	$ignored_post = array();
+	$custom_rules = array();
+	$scan_post = !defined('CT_SECLEVEL') || CT_SECLEVEL !== 'LOW';
+
+	if (defined('CT_SECLEVEL') && (CT_SECLEVEL === 'MEDIUM' || CT_SECLEVEL === 'LOW'))
+	{
+		$ignored_get = array_merge($ignored_get, isset($ct_ignoregvar) ? (array) $ct_ignoregvar : array());
+		$ignored_post = isset($ct_ignorepvar) ? (array) $ct_ignorepvar : array();
+		$custom_rules = isset($ct_addheuristic) ? (array) $ct_addheuristic : array();
+		if (isset($ct_delheuristic))
+		{
+			$custom_rules = array_diff($custom_rules, (array) $ct_delheuristic);
+		}
+	}
+
+	$options = array(
+		'get_ignored' => array_map('strtolower', $ignored_get),
+		'post_ignored' => array_map('strtolower', $ignored_post),
+		'get_free_text' => $free_get_fields,
+		'post_free_text' => $free_post_fields,
+		'custom_rules' => $custom_rules,
+		'scan_post' => $scan_post
+	);
+
+	if (ct_security_request_is_attack($HTTP_GET_VARS, $HTTP_POST_VARS, $HTTP_SERVER_VARS, $options))
+	{
+		ct_security_block_request($phpbb_root_path, $phpEx);
+	}
+}
+
+define('protection_unit_one', true);
+
 ?>

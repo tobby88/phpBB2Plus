@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced CrackerTracker's unscoped 2006-era request word blacklist with
+  bounded, repeatedly decoded and context-aware structural checks for SQL
+  injection, traversal, executable stream wrappers and browser-script payloads.
+  Normal prose, apostrophes, filenames and technical discussions in free-text
+  fields no longer trigger the central firewall merely because they contain a
+  blacklisted word.
 - Added central, configurable per-IP rate limits for login attempts,
   registrations, uploads and write actions. The limiter uses only the verified
   connection address, returns a standards-compliant `429` response, cleans up
