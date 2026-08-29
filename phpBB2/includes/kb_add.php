@@ -344,7 +344,7 @@ if ($article_submit)
                  ">"
 				 );
 
-		  $temp_url = "http://" . $board_config['server_name'] . $board_config['script_path'] . "kb.".$phpEx."?mode=article&k=".$article_id;
+		  $temp_url = phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . $article_id);
 		  $message = "[b]" . $lang['Category'] . ":[/b] "  . $kb_cat['category_name'] . "\n";
 		  $message .= "[b]" . $lang['Article_type'] . ":[/b] " . $type . "\n\n";
 		  $message .= "[b]" . $lang['Article_title'] . ":[/b] " . preg_replace($search, $replace, $row['article_title']) . "\n";

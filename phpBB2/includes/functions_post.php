@@ -756,12 +756,6 @@ function user_notification($mode, &$post_data, &$topic_title, &$forum_id, &$topi
 					include($phpbb_root_path . 'includes/emailer.'.$phpEx);
 					$emailer = new emailer($board_config['smtp_delivery']);
 
-					$script_name = preg_replace('/^\/?(.*?)\/?$/', '\1', trim($board_config['script_path']));
-					$script_name = ($script_name != '') ? $script_name . '/viewtopic.'.$phpEx : 'viewtopic.'.$phpEx;
-					$server_name = trim($board_config['server_name']);
-					$server_protocol = ($board_config['cookie_secure']) ? 'https://' : 'http://';
-					$server_port = ($board_config['server_port'] <> 80) ? ':' . trim($board_config['server_port']) . '/' : '/';
-
 					$orig_word = array();
 					$replacement_word = array();
 					obtain_word_list($orig_word, $replacement_word);
@@ -794,8 +788,8 @@ function user_notification($mode, &$post_data, &$topic_title, &$forum_id, &$topi
 							'SITENAME' => $board_config['sitename'],
 							'TOPIC_TITLE' => $topic_title, 
 
-							'U_TOPIC' => $server_protocol . $server_name . $server_port . $script_name . '?' . POST_POST_URL . "=$post_id#$post_id",
-							'U_STOP_WATCHING_TOPIC' => $server_protocol . $server_name . $server_port . $script_name . '?' . POST_TOPIC_URL . "=$topic_id&unwatch=topic")
+							'U_TOPIC' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . "=$post_id#$post_id"),
+							'U_STOP_WATCHING_TOPIC' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_TOPIC_URL . "=$topic_id&unwatch=topic"))
 						);
 
 						$emailer->send();

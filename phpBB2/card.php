@@ -198,10 +198,7 @@ if ($mode=="report")
 	      include($phpbb_root_path . 'includes/emailer.'.$phpEx);
 	      while ($i<$total_mods)
       	{
-			$script_name = preg_replace('/^\/?(.*?)\/?$/', '\1', trim($board_config['script_path'])). '/viewtopic.'.$phpEx;
 			$server_name = trim($board_config['server_name']);
-			$server_protocol = ( $board_config['cookie_secure'] ) ? 'https://' : 'http://';
-			$server_port = ( $board_config['server_port'] <> 80 ) ? ':' . trim($board_config['server_port']) . '/' : '';
 			$emailer = new emailer($board_config['smtp_delivery']);
 			$emailer->email_address($mods_rowset[$i]['user_email']);
 			$email_headers = "To: \"".$mods_rowset[$i]['username']."\" <".$mods_rowset[$i]['user_email']. ">\r\n";
@@ -216,7 +213,7 @@ if ($mode=="report")
 			$emailer->set_subject($lang['Post_repport']);
 			$emailer->extra_headers($email_headers);
 			$emailer->assign_vars(array(
-				'POST_URL' => $server_protocol . $server_name . $server_port . $script_name . '?' . POST_POST_URL . "=$post_id#$post_id",
+				'POST_URL' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . "=$post_id#$post_id"),
 				'POST_SUBJECT' => $post_subject,
 				'FORUM_NAME' => $forum_name,
 				'USER' => '"'.$userdata['username'].'"',
@@ -397,10 +394,7 @@ if ($no_error_ban)
       if (!empty($warning_data['user_email']))
       {
 		include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-		$script_name = preg_replace('/^\/?(.*?)\/?$/', '\1', trim($board_config['script_path'])). '/viewtopic.'.$phpEx;
 		$server_name = trim($board_config['server_name']);
-		$server_protocol = ( $board_config['cookie_secure'] ) ? 'https://' : 'http://';
-		$server_port = ( $board_config['server_port'] <> 80 ) ? ':' . trim($board_config['server_port']) . '/' : '/';
             $emailer = new emailer($board_config['smtp_delivery']);
             $email_headers = "TO: '".$warning_data['username']."' <".$warning_data['user_email']. ">\r\n";
 		$email_headers .= ($userdata['user_email'] && $userdata['user_viewemail']) ?
@@ -414,7 +408,7 @@ if ($no_error_ban)
             	'SITENAME' => $board_config['sitename'],
 	            'WARNINGS' => $warning_data['user_warnings'],
       	      'TOTAL_WARN' => $board_config['max_user_bancard'],
-			'POST_URL' => $server_protocol . $server_name . $server_port . $script_name . '?' . POST_POST_URL . "=$post_id#$post_id",
+			'POST_URL' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . "=$post_id#$post_id"),
       	      'EMAIL_SIG' => str_replace("<br />", "\n", "-- \n" . $board_config['board_email_sig']),
             	'WARNER' => $userdata['username'],
 			'BLOCK_TIME' => $block_time,

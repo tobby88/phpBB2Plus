@@ -67,9 +67,7 @@ class NewsModule
   {
     global $CFG, $db, $phpEx, $template, $board_config;
     
-    $server_port = ($board_config['server_port'] <> 80) ? ':' . trim($board_config['server_port']) : '';
-    
-    $this->root_path  = 'http://' . $board_config['server_name'] . $server_port . $board_config['script_path'];
+    $this->root_path  = phpbb_board_url();
     $this->phpEx      = $phpEx;
     $this->template   = &$template;
     $this->config     = &$board_config;
@@ -373,7 +371,7 @@ if( $article_id <= 0 )
   {
     $this->setVariables( array( 
       'TITLE'       => $this->config['sitename'],
-      'URL'         => 'http://' . trim( $this->config['server_name'] ) . trim( $this->config['script_path'] ),
+      'URL'         => phpbb_board_url(),
       'FORUM_PATH'  => $this->config['script_path'],
       'DESC'        => $this->config['news_rss_desc'],
       'LANGUAGE'    => $this->config['news_rss_language'],

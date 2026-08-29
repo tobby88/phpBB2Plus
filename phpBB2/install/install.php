@@ -821,15 +821,17 @@ else
 				$error .= "Could not insert default_lang :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
 			}
 			
+			$https_request = !empty($HTTP_SERVER_VARS['HTTPS']) && strtolower((string) $HTTP_SERVER_VARS['HTTPS']) !== 'off';
+			$site_protocol = ($https_request || intval($server_port) === 443) ? 'https://' : 'http://';
 			$sql = "INSERT INTO " . $table_prefix . "link_config (config_name, config_value) 
-			        VALUES ('site_logo', 'http://".$server_name .$script_path."images/links/web_logo88a.gif')";
+			        VALUES ('site_logo', '" . $site_protocol . $server_name . $script_path . "images/links/web_logo88a.gif')";
 			if (!$db->sql_query($sql))
 			{
 				$error .= "Could not insert site logo data :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
 			}
 			        
 			$sql = "INSERT INTO " . $table_prefix . "link_config (config_name, config_value) 
-			        VALUES ('site_url', 'http://". $server_name .$script_path."')";
+			        VALUES ('site_url', '" . $site_protocol . $server_name . $script_path . "')";
 			if (!$db->sql_query($sql))
 			{
 				$error .= "Could not insert site url data :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
@@ -840,6 +842,7 @@ else
 				'script_path'	=> $script_path,
 				'server_port'	=> $server_port,
 				'server_name'	=> $server_name,
+				'cookie_secure'	=> ($site_protocol === 'https://') ? 1 : 0,
 			);
 
 			while (list($config_name, $config_value) = each($update_config))

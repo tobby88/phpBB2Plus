@@ -1,2 +1,3 @@
-# -Disable Browsing By Default-
-Options FollowSymLinks  Includes
+# The hack-list importer reads this directory from PHP; it never needs direct
+# directory listings, CGI execution or server-side includes.
+Options -Indexes -ExecCGI -Includes
