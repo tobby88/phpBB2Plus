@@ -52,13 +52,36 @@ $skip_files = array(
 	'attach_config.php',
 	);
 
+function xs_cache_template_name($value)
+{
+	$value = (string) $value;
+	return ($value !== '' && $value !== '.' && $value !== '..' && preg_match('/^[A-Za-z0-9_.-]+$/', $value)) ? $value : '';
+}
+
+$cache_action = '';
+$cache_template = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($HTTP_POST_VARS['clear_cache']) || isset($HTTP_POST_VARS['compile_cache'])))
+{
+	if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+	$cache_action = isset($HTTP_POST_VARS['clear_cache']) ? 'clear' : 'compile';
+	$requested_template = isset($HTTP_POST_VARS['template']) ? (string) $HTTP_POST_VARS['template'] : '';
+	$cache_template = ($requested_template === '') ? '' : xs_cache_template_name($requested_template);
+	if ($requested_template !== '' && $cache_template === '')
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+}
+
 //
 // clear cache
 //
-if(isset($HTTP_GET_VARS['clear']) && !defined('DEMO_MODE'))
+if($cache_action === 'clear' && !defined('DEMO_MODE'))
 {
 	@set_time_limit(XS_MAX_TIMEOUT);
-	$clear = $HTTP_GET_VARS['clear'];
+	$clear = $cache_template;
 	if(!$clear)
 	{
 		// clear all cache
@@ -128,25 +151,36 @@ if(isset($HTTP_GET_VARS['clear']) && !defined('DEMO_MODE'))
 //
 // compile cache
 //
-if(isset($HTTP_GET_VARS['compile']) && !defined('DEMO_MODE'))
+if($cache_action === 'compile' && !defined('DEMO_MODE'))
 {
-	$tpl = $HTTP_GET_VARS['compile'];
+	$tpl = $cache_template;
 	@set_time_limit(XS_MAX_TIMEOUT);
 	$num_errors = 0;
 	$num_compiled = 0;
 	if($tpl)
 	{
 		$dir = $template->tpldir . $tpl . '/';
+		$templates_root = realpath($template->tpldir);
+		$template_dir = realpath($dir);
+		if ($templates_root === false || $template_dir === false || strpos($template_dir . DIRECTORY_SEPARATOR, rtrim($templates_root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) !== 0)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		}
 		compile_cache($dir, '', $tpl);
 	}
 	else
 	{
 		$res = opendir('../templates');
+		$templates_root = realpath('../templates');
 		while(($file = readdir($res)) !== false)
 		{
-			if($file !== '.' && $file !== '..' && is_dir('../templates/'.$file) && @file_exists('../templates/'.$file.'/overall_header.tpl'))
+			$template_path = '../templates/' . $file;
+			$template_dir = realpath($template_path);
+			if($file !== '.' && $file !== '..' && !is_link($template_path) && $templates_root !== false && $template_dir !== false &&
+				strpos($template_dir . DIRECTORY_SEPARATOR, rtrim($templates_root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) === 0 &&
+				is_dir($template_path) && @file_exists($template_path . '/overall_header.tpl'))
 			{
-				compile_cache('../templates/'.$file.'/', '', $file);
+				compile_cache($template_path . '/', '', $file);
 			}
 		}
 		closedir($res);
@@ -168,7 +202,7 @@ function compile_cache($dir, $subdir, $tpl)
 	}
 	while(($file = readdir($res)) !== false)
 	{
-		if(@is_dir($str . $file) && $file !== '.' && $file !== '..' && $file !== 'CVS')
+		if(@is_dir($str . $file) && !is_link($str . $file) && $file !== '.' && $file !== '..' && $file !== 'CVS')
 		{
 			compile_cache($dir, $subdir . $file . '/', $tpl);
 		}
@@ -211,49 +245,45 @@ for($i=0; $i<count($style_rowset); $i++)
 	$item = $style_rowset[$i];
 	if($item['template_name'] === $prev_tpl)
 	{
-		$style_names[] = htmlspecialchars($item['style_name']);
+		$style_names[] = htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8');
 	}
 	else
 	{
 		if($prev_id > 0)
 		{
 			$str = implode('<br />', $style_names);
-			$str2 = urlencode($prev_tpl);
 			$row_class = $xs_row_class[$j % 2];
 			$j++;
 			$template->assign_block_vars('styles', array(
 					'ROW_CLASS'	=> $row_class,
-					'TPL'		=> $prev_tpl,
+					'TPL'		=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 					'STYLES'	=> $str,
-					'U_CLEAR'	=> "xs_cache.{$phpEx}?clear={$str2}&sid={$userdata['session_id']}",
-					'U_COMPILE'	=> "xs_cache.{$phpEx}?compile={$str2}&sid={$userdata['session_id']}",
+					'TPL_VALUE'	=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 				)
 			);
 		}
 		$prev_id = $item['themes_id'];
 		$prev_tpl = $item['template_name'];
-		$style_names = array(htmlspecialchars($item['style_name']));
+		$style_names = array(htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8'));
 	}
 }
 if($prev_id > 0)
 {
 	$str = implode('<br />', $style_names);
-	$str2 = urlencode($prev_tpl);
 	$row_class = $xs_row_class[$j % 2];
 	$j++;
 	$template->assign_block_vars('styles', array(
 			'ROW_CLASS'	=> $row_class,
-			'TPL'		=> $prev_tpl,
+			'TPL'		=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 			'STYLES'	=> $str,
-			'U_CLEAR'	=> "xs_cache.{$phpEx}?clear={$str2}&sid={$userdata['session_id']}",
-			'U_COMPILE'	=> "xs_cache.{$phpEx}?compile={$str2}&sid={$userdata['session_id']}",
+			'TPL_VALUE'	=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 		)
 	);
 }
 
 $template->assign_vars(array(
-	'U_CLEAR_ALL'	=> "xs_cache.{$phpEx}?clear=&sid={$userdata['session_id']}",
-	'U_COMPILE_ALL'	=> "xs_cache.{$phpEx}?compile=&sid={$userdata['session_id']}",
+	'S_CACHE_ACTION'	=> append_sid("xs_cache.{$phpEx}"),
+	'S_FORM_TOKEN'	=> '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 	'RESULT'		=> '<br /><br />' . $data
 	)
 );

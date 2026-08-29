@@ -28,15 +28,15 @@
 <tr>
 	<td class="catLeft" align="center"><span class="gen">{L_XS_TEMPLATE}</span></td>
 	<td class="cat" align="center"><span class="gen">{L_XS_STYLES}</span></td>
-	<td class="cat" align="center"><span class="gen"><span class="gen"><a href="{U_CLEAR_ALL}">{L_XS_CLEAR_ALL_LC}</a></span></td>
-	<td class="catRight" align="center"><span class="gen"><span class="gen"><a href="{U_COMPILE_ALL}" onclick="return confirm('{L_XS_CACHE_CONFIRM}'); ">{L_XS_COMPILE_ALL_LC}</a></span></td>
+	<td class="cat" align="center"><form method="post" action="{S_CACHE_ACTION}">{S_FORM_TOKEN}<button type="submit" name="clear_cache" value="1" class="liteoption">{L_XS_CLEAR_ALL_LC}</button></form></td>
+	<td class="catRight" align="center"><form method="post" action="{S_CACHE_ACTION}" onsubmit="return confirm('{L_XS_CACHE_CONFIRM}');">{S_FORM_TOKEN}<button type="submit" name="compile_cache" value="1" class="liteoption">{L_XS_COMPILE_ALL_LC}</button></form></td>
 </tr>
 <!-- BEGIN styles -->
 <tr> 
 	<td class="{styles.ROW_CLASS}" align="left" valign="middle"><span class="gen">{styles.TPL}</span></td>
 	<td class="{styles.ROW_CLASS}" align="left" valign="middle"><span class="gen">{styles.STYLES}</span></td>
-	<td class="{styles.ROW_CLASS}" align="center" valign="middle" nowrap="nowrap"><span class="gen"><a href="{styles.U_CLEAR}">{L_XS_CLEAR_CACHE_LC}</a></span></td>
-	<td class="{styles.ROW_CLASS}" align="center" valign="middle" nowrap="nowrap"><span class="gen"><a href="{styles.U_COMPILE}">{L_XS_COMPILE_CACHE_LC}</a></span></td>
+	<td class="{styles.ROW_CLASS}" align="center" valign="middle" nowrap="nowrap"><form method="post" action="{S_CACHE_ACTION}">{S_FORM_TOKEN}<input type="hidden" name="template" value="{styles.TPL_VALUE}" /><button type="submit" name="clear_cache" value="1" class="liteoption">{L_XS_CLEAR_CACHE_LC}</button></form></td>
+	<td class="{styles.ROW_CLASS}" align="center" valign="middle" nowrap="nowrap"><form method="post" action="{S_CACHE_ACTION}">{S_FORM_TOKEN}<input type="hidden" name="template" value="{styles.TPL_VALUE}" /><button type="submit" name="compile_cache" value="1" class="liteoption">{L_XS_COMPILE_CACHE_LC}</button></form></td>
 </tr>
 <!-- END styles -->
 </table>

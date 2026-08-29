@@ -63,9 +63,9 @@ top.nav.location = top.nav.location; // '{left_refresh.ACTION}';
 <tr> 
 	<td class="{styles.ROW_CLASS}" align="left"><span class="gen">{styles.TPL}</span></td>
 	<td class="{styles.ROW_CLASS}" align="left"><span class="gen">{styles.item.THEME}</span></td>
-	<td class="{styles.ROW_CLASS}" align="center"><span class="gen"><a href="{styles.item.U_DELETE}">{L_XS_UNINSTALL_LC}</a></td>
+	<td class="{styles.ROW_CLASS}" align="center"><form method="post" action="{S_UNINSTALL_ACTION}">{S_FORM_TOKEN}<input type="hidden" name="remove_id" value="{styles.item.REMOVE_ID}" /><input type="hidden" name="keep_config" value="{styles.item.KEEP_CONFIG}" /><button type="submit" class="liteoption">{L_XS_UNINSTALL_LC}</button></form></td>
 	<!-- BEGIN delete -->
-	<td class="{styles.ROW_CLASS}" align="center"><span class="gen"><a href="{styles.item.delete.U_DELETE}">{L_XS_UNINSTALL2_LC}</a></span></td>
+	<td class="{styles.ROW_CLASS}" align="center"><form method="post" action="{S_UNINSTALL_ACTION}">{S_FORM_TOKEN}<input type="hidden" name="remove_id" value="{styles.item.REMOVE_ID}" /><input type="hidden" name="remove_files" value="1" /><button type="submit" class="liteoption">{L_XS_UNINSTALL2_LC}</button></form></td>
 	<!-- END delete -->
 	<!-- BEGIN nodelete -->
 	<td class="{styles.ROW_CLASS}" align="center"><span class="gen">&nbsp;</td>

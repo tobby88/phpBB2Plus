@@ -44,11 +44,17 @@ $lang['xs_uninstall_back'] = str_replace('{URL}', append_sid('xs_uninstall.'.$ph
 $lang['xs_goto_default'] = str_replace('{URL}', append_sid('xs_styles.'.$phpEx), $lang['xs_goto_default']);
 
 //
-// uninstall style
+// Uninstall a style only through a session-bound POST request.
 //
-if(isset($HTTP_GET_VARS['remove']) && !defined('DEMO_MODE'))
+if(isset($HTTP_POST_VARS['remove_id']) && !defined('DEMO_MODE'))
 {
-	$remove_id = intval($HTTP_GET_VARS['remove']);
+	if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+	$remove_id = intval($HTTP_POST_VARS['remove_id']);
+	$remove_files = !empty($HTTP_POST_VARS['remove_files']);
+	$keep_config = !empty($HTTP_POST_VARS['keep_config']);
 	if($board_config['default_style'] == $remove_id)
 	{
 		xs_error(str_replace('{URL}', append_sid('xs_styles.'.$phpEx), $lang['xs_uninstall_default']) . '<br /><br />' . $lang['xs_uninstall_back']);
@@ -63,18 +69,23 @@ if(isset($HTTP_GET_VARS['remove']) && !defined('DEMO_MODE'))
 	{
 		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_uninstall_back'], __LINE__, __FILE__);
 	}
+	if (!preg_match('/^[A-Za-z0-9_.-]+$/', $row['template_name']) || $row['template_name'] === '.' || $row['template_name'] === '..')
+	{
+		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_uninstall_back']);
+	}
 	$sql = "UPDATE " . USERS_TABLE . " SET user_style=NULL WHERE user_style='{$remove_id}'";
 	$db->sql_query($sql);
 	$sql = "DELETE FROM " . THEMES_TABLE . " WHERE themes_id='{$remove_id}'";
 	$db->sql_query($sql);
 	$template->assign_block_vars('removed', array());
 	// remove files
-	if(!empty($HTTP_GET_VARS['dir']))
+	if($remove_files)
 	{
 		$HTTP_POST_VARS['remove'] = addslashes($row['template_name']);
+		$HTTP_POST_VARS['remove_token'] = hash_hmac('sha256', $row['template_name'], (string) $userdata['session_id']);
 	}
 	// remove config
-	if(empty($HTTP_GET_VARS['nocfg']) && isset($board_config['xs_style_'.$row['template_name']]))
+	if(!$keep_config && isset($board_config['xs_style_'.$row['template_name']]))
 	{
 		$sql = "DELETE FROM " . CONFIG_TABLE . " WHERE config_name='" . addslashes("xs_style_{$row['template_name']}") . "'";
 		$db->sql_query($sql);
@@ -114,7 +125,11 @@ function remove_all($dir)
 		if($file !== '.' && $file !== '..')
 		{
 			$str = $dir . '/' . $file;
-			if(is_dir($str))
+			if(is_link($str))
+			{
+				@unlink($str);
+			}
+			elseif(is_dir($str))
 			{
 				remove_all($str);
 				@rmdir($str);
@@ -134,7 +149,14 @@ function remove_all($dir)
 if(isset($HTTP_POST_VARS['remove']) && !defined('DEMO_MODE'))
 {
 	$remove = stripslashes($HTTP_POST_VARS['remove']);
-	$params = array('remove' => $remove);
+	$remove_token = isset($HTTP_POST_VARS['remove_token']) ? (string) $HTTP_POST_VARS['remove_token'] : '';
+	$expected_token = hash_hmac('sha256', $remove, (string) $userdata['session_id']);
+	if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']) ||
+		!hash_equals($expected_token, $remove_token) || !preg_match('/^[A-Za-z0-9_.-]+$/', $remove) || $remove === '.' || $remove === '..')
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+	$params = array('remove' => $remove, 'remove_token' => $remove_token);
 	if(!get_ftp_config(append_sid('xs_uninstall.'.$phpEx), $params, true))
 	{
 		xs_exit();
@@ -186,8 +208,15 @@ if(isset($HTTP_POST_VARS['remove']) && !defined('DEMO_MODE'))
 	}
 	else
 	{
-		remove_all('../templates/'.$remove);
-		@rmdir('../templates/'.$remove);
+		$templates_root = realpath('../templates');
+		$remove_path = realpath('../templates/' . $remove);
+		if ($templates_root === false || $remove_path === false || is_link('../templates/' . $remove) ||
+			strpos($remove_path . DIRECTORY_SEPARATOR, rtrim($templates_root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) !== 0)
+		{
+			xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_uninstall_back']);
+		}
+		remove_all($remove_path);
+		@rmdir($remove_path);
 	}
 	$template->assign_block_vars('removed', array());
 }
@@ -218,7 +247,7 @@ foreach($tpl as $tpl => $styles)
 	$j++;
 	$template->assign_block_vars('styles', array(
 			'ROW_CLASS'	=> $row_class,
-			'TPL'		=> htmlspecialchars($tpl),
+			'TPL'		=> htmlspecialchars($tpl, ENT_QUOTES, 'UTF-8'),
 			'ROWS'		=> count($styles),
 		)
 	);
@@ -228,8 +257,9 @@ foreach($tpl as $tpl => $styles)
 		{
 			$template->assign_block_vars('styles.item', array(
 					'ID'		=> $styles[$i]['themes_id'],
-					'THEME'		=> htmlspecialchars($styles[$i]['style_name']),
-					'U_DELETE'	=> append_sid('xs_uninstall.'.$phpEx.'?remove='.$styles[$i]['themes_id'].'&nocfg=1'),
+					'THEME'		=> htmlspecialchars($styles[$i]['style_name'], ENT_QUOTES, 'UTF-8'),
+					'REMOVE_ID'	=> (int) $styles[$i]['themes_id'],
+					'KEEP_CONFIG'	=> 1,
 				)
 			);
 			$template->assign_block_vars('styles.item.nodelete', array());
@@ -240,16 +270,22 @@ foreach($tpl as $tpl => $styles)
 		$i = 0;
 		$template->assign_block_vars('styles.item', array(
 				'ID'		=> $styles[$i]['themes_id'],
-				'THEME'		=> htmlspecialchars($styles[$i]['style_name']),
-				'U_DELETE'	=> append_sid('xs_uninstall.'.$phpEx.'?remove='.$styles[$i]['themes_id']),
+				'THEME'		=> htmlspecialchars($styles[$i]['style_name'], ENT_QUOTES, 'UTF-8'),
+				'REMOVE_ID'	=> (int) $styles[$i]['themes_id'],
+				'KEEP_CONFIG'	=> 0,
 			)
 		);
 		$template->assign_block_vars('styles.item.delete', array(
-				'U_DELETE'	=> append_sid('xs_uninstall.'.$phpEx.'?dir=1&remove='.$styles[$i]['themes_id']),
+				'REMOVE_ID'	=> (int) $styles[$i]['themes_id'],
 			)
 		);
 	}
 }
+
+$template->assign_vars(array(
+	'S_UNINSTALL_ACTION' => append_sid('xs_uninstall.' . $phpEx),
+	'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
+));
 
 $template->set_filenames(array('body' => XS_TPL_PATH . 'uninstall.tpl'));
 $template->pparse('body');
