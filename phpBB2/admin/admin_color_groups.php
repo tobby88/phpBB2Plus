@@ -430,7 +430,7 @@ else
 		$template->assign_block_vars('emptyswitch', array());
 	}
 
-	@unlink($phpbb_root_path . '/cache/cg-user.'.$phpEx);
+	@unlink($phpbb_root_path . 'cache/cg_users.cache');
 	
 }
 //Common Variables

@@ -243,33 +243,39 @@ function color_groups_setup_list()
 
 function cg_get_data($user_id, $all = false)
 {
-	global $phpEx, $db, $phpbb_root_path;
+	global $db, $phpbb_root_path;
+	$user_id = (int) $user_id;
 
 	// Version cache mod start 
 	// Change following two variables if you need to: 
 	$cache_update = 86400; // 1 day cache timeout. change it to whatever you want 
 	$cache_dir = $phpbb_root_path . 'cache';
-	$cache_file = $cache_dir . '/cg-user.'.$phpEx;
+	$cache_file = $cache_dir . '/cg_users.cache';
 
-	$use_cache = ( is_writable($cache_dir) && defined('CCache') ) ? true : false;
-	//$use_cache = false; 
+	$use_cache = defined('CCache');
+	$can_write_cache = ($use_cache && is_writable($cache_dir));
 
 	$do_update = true; 
 
 	$user_style = array();
-	if (@file_exists($cache_file) && $use_cache )
+	if (@file_exists($cache_file) && $use_cache)
 	{ 
-		$last_update = 0; 
-		include($cache_file); 
-		if($last_update > (time() - $cache_update)) 
+		$cached_colors = phpbb_data_cache_read($cache_file);
+		if (is_array($cached_colors) && isset($cached_colors['updated'], $cached_colors['users']) &&
+			is_numeric($cached_colors['updated']) && is_array($cached_colors['users']))
 		{ 
-			$do_update = false; 
+			$last_update = (int) $cached_colors['updated'];
+			$user_style = $cached_colors['users'];
+			if ($last_update > (time() - $cache_update))
+			{
+				$do_update = false;
+			}
 		} 
 	} 
 
 	if($do_update || !isset($user_style[$user_id]['name']) || !$user_style[$user_id]['name'])
 	{ 
-		if (!$use_cache && !$all)
+		if (!$can_write_cache && !$all)
 		{
 			// Get the user info and see if they are assigned a color_group //
 			$sql = 'SELECT u.user_color_group, u.username, c.* FROM (' . USERS_TABLE . ' u LEFT JOIN ' . COLOR_GROUPS_TABLE . " c ON u.user_color_group = c.group_id)
@@ -322,8 +328,6 @@ function cg_get_data($user_id, $all = false)
 			$user_color_id = '';
 			$group_style_color = array();
 			$user_style = array();
-
-			$write_string = "<?php \n ".'$last_update'." = ".time()."; \n";
 	
 			// Start looking for user group memberships //
 			$sql = 'SELECT c.group_color, u.user_id FROM ' . USER_GROUP_TABLE . ' ug, ' . USERS_TABLE . ' u, ' . COLOR_GROUPS_TABLE . ' c, ' . GROUPS_TABLE . ' g
@@ -346,7 +350,6 @@ function cg_get_data($user_id, $all = false)
 				ORDER BY u.user_id";
 			$result = $db->sql_query($sql);
 	
-			$write_string .= '$user_style = array(';
 			while($row = $db->sql_fetchrow($result))
 			{
 				$style_color = '';
@@ -362,33 +365,17 @@ function cg_get_data($user_id, $all = false)
 					$style_color = isset($group_style_color[$user_color_id]) ? $group_style_color[$user_color_id] : '';
 				}
 	
-				if ($use_cache) {
-					// write cachefile
-					$write_string .= $user_color_id." => array( 'name' => '".addslashes($username)."', 'color' => '".addslashes($style_color)."'),\n ";
-				} else {
-					// create datacache directly
-					$user_style[$user_color_id]['name'] = $username;
-					$user_style[$user_color_id]['color'] = $style_color;
-				}
+				$user_style[$user_color_id]['name'] = $username;
+				$user_style[$user_color_id]['color'] = $style_color;
 			}
 			$db->sql_freeresult($result);
 			
-			// filecache only
-			if ($use_cache) {
-				$write_string .= "); \n \n ";
-				$write_string .= "?>";
-		
-				@unlink($cache_file);
-		
-				// Version cache mod start 
-				if(@$f = fopen($cache_file, 'w')) 
-				{ 
-					fwrite($f, $write_string); 
-					fclose($f); 
-					@chmod($cache_file, 0664);
-				}
-	
-				include($cache_file); 
+			if ($can_write_cache)
+			{
+				phpbb_data_cache_write($cache_file, array(
+					'updated' => time(),
+					'users' => $user_style,
+				));
 			}
 		}
 	}
@@ -396,7 +383,7 @@ function cg_get_data($user_id, $all = false)
 	$cacheUsers = array();
 	// filecache only
 	if (!$all)
-		$cacheUsers[$user_id] = $user_style[$user_id];
+		$cacheUsers[$user_id] = isset($user_style[$user_id]) ? $user_style[$user_id] : array('name' => '', 'color' => '');
 	else 
 		$cacheUsers = $user_style;
 
