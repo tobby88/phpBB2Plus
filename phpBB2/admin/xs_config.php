@@ -50,6 +50,7 @@ $lang['xs_config_back'] = str_replace('{URL}', append_sid('xs_config.'.$phpEx), 
 //
 if(isset($HTTP_POST_VARS['submit']) && !defined('DEMO_MODE'))
 {
+	phpbb_admin_require_post_session();
 	$vars = array('xs_use_cache', 'xs_auto_compile', 'xs_auto_recompile', 'xs_php', 'xs_def_template', 'xs_check_switches', 'xs_warn_includes', 'xs_add_comments', 'xs_ftp_host', 'xs_ftp_login', 'xs_ftp_path', 'xs_shownav');
 	// checking navigation config
 	$shownav = 0;
@@ -61,7 +62,7 @@ if(isset($HTTP_POST_VARS['submit']) && !defined('DEMO_MODE'))
 			$shownav += $num;
 		}
 	}
-	if($shownav !== $board_config['xs_shownav'])
+	if($shownav !== (int) $board_config['xs_shownav'])
 	{
 		$template->assign_block_vars('left_refresh', array(
 				'ACTION'	=> append_sid('index.' . $phpEx . '?pane=left')
@@ -70,9 +71,39 @@ if(isset($HTTP_POST_VARS['submit']) && !defined('DEMO_MODE'))
 	$HTTP_POST_VARS['xs_shownav'] = $shownav;
 	// checking submitted data
 	$update_time = false;
+	$new = array();
 	foreach($vars as $var)
 	{
-		$new[$var] = stripslashes(trim($HTTP_POST_VARS[$var]));
+		$value = isset($HTTP_POST_VARS[$var]) && is_scalar($HTTP_POST_VARS[$var]) ? stripslashes(trim((string) $HTTP_POST_VARS[$var])) : '';
+		if(in_array($var, array('xs_use_cache', 'xs_auto_compile', 'xs_auto_recompile', 'xs_warn_includes', 'xs_add_comments'), true))
+		{
+			$value = $value === '1' ? '1' : '0';
+		}
+		elseif($var === 'xs_check_switches')
+		{
+			$value = in_array($value, array('0', '1', '2'), true) ? $value : '0';
+		}
+		elseif($var === 'xs_php')
+		{
+			$value = preg_match('/^[a-zA-Z0-9]{1,10}$/D', $value) ? $value : $phpEx;
+		}
+		elseif($var === 'xs_def_template')
+		{
+			$value = xs_tpl_name($value);
+			if($value === '' || !@is_dir('../templates/' . $value))
+			{
+				$value = $board_config['xs_def_template'];
+			}
+		}
+		elseif(in_array($var, array('xs_ftp_host', 'xs_ftp_login', 'xs_ftp_path'), true))
+		{
+			$value = preg_replace('/[\x00-\x1F\x7F]/', '', substr($value, 0, 255));
+		}
+		elseif($var === 'xs_shownav')
+		{
+			$value = (string) $shownav;
+		}
+		$new[$var] = $value;
 		if(($var == 'xs_auto_recompile') && !$new['xs_auto_compile'])
 		{
 			$new[$var] = 0;
@@ -116,10 +147,14 @@ if(isset($HTTP_POST_VARS['submit']) && !defined('DEMO_MODE'))
 $xs_ftp_host = $board_config['xs_ftp_host'];
 if(empty($xs_ftp_host) && !empty($HTTP_SERVER_VARS['HTTP_HOST']))
 {
-	$str = $HTTP_SERVER_VARS['HTTP_HOST'];
-	$template->assign_vars(array(
-		'HOST_GUESS' => str_replace(array('{HOST}', '{CLICK}'), array($str, 'document.config.xs_ftp_host.value=\''.$str.'\''), $lang['xs_ftp_host_guess'])
-		));
+	$str = is_scalar($HTTP_SERVER_VARS['HTTP_HOST']) ? (string) $HTTP_SERVER_VARS['HTTP_HOST'] : '';
+	if(preg_match('/^[a-zA-Z0-9.-]+(?::[0-9]{1,5})?$/D', $str))
+	{
+		$click = htmlspecialchars('document.config.xs_ftp_host.value=' . json_encode($str), ENT_QUOTES, 'UTF-8');
+		$template->assign_vars(array(
+			'HOST_GUESS' => str_replace(array('{HOST}', '{CLICK}'), array(htmlspecialchars($str, ENT_QUOTES, 'UTF-8'), $click), $lang['xs_ftp_host_guess'])
+			));
+	}
 }
 $dir = getcwd();
 $xs_ftp_login = $board_config['xs_ftp_login'];
@@ -132,8 +167,9 @@ if(empty($xs_ftp_login))
 		if($pos)
 		{
 			$str = substr($str, 0, $pos);
+			$click = htmlspecialchars('document.config.xs_ftp_login.value=' . json_encode($str), ENT_QUOTES, 'UTF-8');
 			$template->assign_vars(array(
-				'LOGIN_GUESS' => str_replace(array('{LOGIN}', '{CLICK}'), array($str, 'document.config.xs_ftp_login.value=\''.$str.'\''), $lang['xs_ftp_login_guess'])
+				'LOGIN_GUESS' => str_replace(array('{LOGIN}', '{CLICK}'), array(htmlspecialchars($str, ENT_QUOTES, 'UTF-8'), $click), $lang['xs_ftp_login_guess'])
 			));
 		}
 	}
@@ -141,19 +177,22 @@ if(empty($xs_ftp_login))
 $xs_ftp_path = $board_config['xs_ftp_path'];
 if(empty($xs_ftp_path))
 {
-	if(substr($dir, 0, 6) === '/home/');
-	$str = substr($dir, 6);
-	$pos = strpos($str, '/');
-	if($pos)
+	if(substr($dir, 0, 6) === '/home/')
 	{
-		$str = substr($str, $pos + 1);
-		$pos = strrpos($str, 'admin');
+		$str = substr($dir, 6);
+		$pos = strpos($str, '/');
 		if($pos)
 		{
-			$str = substr($str, 0, $pos-1);
-			$template->assign_vars(array(
-				'PATH_GUESS' => str_replace(array('{PATH}', '{CLICK}'), array($str, 'document.config.xs_ftp_path.value=\''.$str.'\''), $lang['xs_ftp_path_guess'])
-				));
+			$str = substr($str, $pos + 1);
+			$pos = strrpos($str, 'admin');
+			if($pos)
+			{
+				$str = substr($str, 0, $pos-1);
+				$click = htmlspecialchars('document.config.xs_ftp_path.value=' . json_encode($str), ENT_QUOTES, 'UTF-8');
+				$template->assign_vars(array(
+					'PATH_GUESS' => str_replace(array('{PATH}', '{CLICK}'), array(htmlspecialchars($str, ENT_QUOTES, 'UTF-8'), $click), $lang['xs_ftp_path_guess'])
+					));
+			}
 		}
 	}
 }
@@ -165,8 +204,8 @@ $template->assign_vars(array(
 	'XS_AUTO_COMPILE_1'			=> $board_config['xs_auto_compile'] ? ' checked="checked"' : '',
 	'XS_AUTO_RECOMPILE_0'		=> $board_config['xs_auto_recompile'] ? '' : ' checked="checked"',
 	'XS_AUTO_RECOMPILE_1'		=> $board_config['xs_auto_recompile'] ? ' checked="checked"' : '',
-	'XS_PHP'					=> htmlspecialchars($board_config['xs_php']),
-	'XS_DEF_TEMPLATE'			=> htmlspecialchars($board_config['xs_def_template']),
+	'XS_PHP'					=> htmlspecialchars($board_config['xs_php'], ENT_QUOTES, 'UTF-8'),
+	'XS_DEF_TEMPLATE'			=> htmlspecialchars($board_config['xs_def_template'], ENT_QUOTES, 'UTF-8'),
 	'XS_CHECK_SWITCHES_0'		=> !$board_config['xs_check_switches'] ? ' checked="checked"' : '', // no check
 	'XS_CHECK_SWITCHES_1'		=> $board_config['xs_check_switches'] == 1 ? ' checked="checked"' : '', // smart check
 	'XS_CHECK_SWITCHES_2'		=> $board_config['xs_check_switches'] == 2 ? ' checked="checked"' : '', // simple check
@@ -174,9 +213,9 @@ $template->assign_vars(array(
 	'XS_WARN_INCLUDES_1'		=> $board_config['xs_warn_includes'] ? ' checked="checked"' : '',
 	'XS_ADD_COMMENTS_0'			=> $board_config['xs_add_comments'] ? '' : ' checked="checked"',
 	'XS_ADD_COMMENTS_1'			=> $board_config['xs_add_comments'] ? ' checked="checked"' : '',
-	'XS_FTP_HOST'				=> defined('DEMO_MODE') ? '' : $xs_ftp_host,
-	'XS_FTP_LOGIN'				=> defined('DEMO_MODE') ? '' : $xs_ftp_login,
-	'XS_FTP_PATH'				=> defined('DEMO_MODE') ? '' : $xs_ftp_path,
+	'XS_FTP_HOST'				=> defined('DEMO_MODE') ? '' : htmlspecialchars($xs_ftp_host, ENT_QUOTES, 'UTF-8'),
+	'XS_FTP_LOGIN'				=> defined('DEMO_MODE') ? '' : htmlspecialchars($xs_ftp_login, ENT_QUOTES, 'UTF-8'),
+	'XS_FTP_PATH'				=> defined('DEMO_MODE') ? '' : htmlspecialchars($xs_ftp_path, ENT_QUOTES, 'UTF-8'),
 	'FORM_ACTION'				=> append_sid('xs_config.' . $phpEx),
 	));
 

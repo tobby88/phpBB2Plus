@@ -60,14 +60,11 @@ function xs_cache_template_name($value)
 
 $cache_action = '';
 $cache_template = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($HTTP_POST_VARS['clear_cache']) || isset($HTTP_POST_VARS['compile_cache'])))
+if (isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST' && (isset($HTTP_POST_VARS['clear_cache']) || isset($HTTP_POST_VARS['compile_cache'])))
 {
-	if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-	}
+	phpbb_admin_require_post_session();
 	$cache_action = isset($HTTP_POST_VARS['clear_cache']) ? 'clear' : 'compile';
-	$requested_template = isset($HTTP_POST_VARS['template']) ? (string) $HTTP_POST_VARS['template'] : '';
+	$requested_template = isset($HTTP_POST_VARS['template']) && is_scalar($HTTP_POST_VARS['template']) ? (string) $HTTP_POST_VARS['template'] : '';
 	$cache_template = ($requested_template === '') ? '' : xs_cache_template_name($requested_template);
 	if ($requested_template !== '' && $cache_template === '')
 	{
