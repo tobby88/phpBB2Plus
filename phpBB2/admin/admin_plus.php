@@ -26,9 +26,17 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
+$submit = isset($_POST['submit']);
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+
 //
 // Pull all config data
 //
+$default_config = array();
+$new = array();
 $sql = "SELECT *
 	FROM " . PLUS_TABLE;
 if(!$result = $db->sql_query($sql))
@@ -43,21 +51,22 @@ else
 		$config_value = $row['config_value'];
 		$default_config[$config_name] = $config_value;
 		
-		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
+		$new[$config_name] = $submit ? phpbb_admin_post_string($config_name, $default_config[$config_name]) : $default_config[$config_name];
 
-		if( isset($_POST['submit']) )
+		if ($submit)
 		{
 			$sql = "UPDATE " . PLUS_TABLE . " SET
-				config_value = '" . str_replace("\'", "''", $new[$config_name]) . "'
-				WHERE config_name = '$config_name'";
+				config_value = '" . $db->sql_escape($new[$config_name]) . "'
+				WHERE config_name = '" . $db->sql_escape($config_name) . "'";
 			if( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, "Failed to update Plus configuration for $config_name", "", __LINE__, __FILE__, $sql);
 			}
 		}
 	}
+	$db->sql_freeresult($result);
 
-	if( isset($_POST['submit']) )
+	if ($submit)
 	{
 		$message = $lang['Config_updated'] . "<br /><br />" . sprintf($lang['Click_return_config'], "<a href=\"" . append_sid("admin_plus.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -114,7 +123,7 @@ $gentime_no = ( !$new['enable_gentime'] ) ? "checked=\"checked\"" : "";
 $fulltext_yes = ( $new['enable_fulltextsearch'] ) ? "checked=\"checked\"" : "";
 $fulltext_no = ( !$new['enable_fulltextsearch'] ) ? "checked=\"checked\"" : "";
 
-$contact_mail = $new['contact_email'];
+$contact_mail = phpbb_admin_html($new['contact_email']);
 $activation_none = '';
 
 $template->set_filenames(array(
@@ -123,6 +132,7 @@ $template->set_filenames(array(
 
 $template->assign_vars(array(
 	"S_CONFIG_ACTION" => append_sid("admin_plus.$phpEx"),
+	"S_HIDDEN_FIELDS" => phpbb_admin_session_field(),
 
 	"L_YES" => $lang['Yes'],
 	"L_NO" => $lang['No'],

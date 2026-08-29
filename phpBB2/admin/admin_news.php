@@ -31,9 +31,44 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_selects.'.$phpEx);
 
+$submit = isset($_POST['submit']);
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+
+function admin_news_relative_path($value, $allow_empty = false)
+{
+	$value = trim(str_replace('\\', '/', (string) $value));
+	if (($allow_empty && $value === '') ||
+		($value !== '' && strlen($value) <= 255 && $value[0] !== '/' && strpos($value, '..') === false && preg_match('#^[A-Za-z0-9_./-]+$#D', $value)))
+	{
+		return $value;
+	}
+	message_die(GENERAL_ERROR, 'Invalid local news path.');
+}
+
+function admin_news_base_url($value)
+{
+	$value = trim((string) $value);
+	if ($value === '')
+	{
+		return '';
+	}
+	$parts = @parse_url($value);
+	if (!$parts || empty($parts['scheme']) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) ||
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) || strpos($value, '\\') !== false || preg_match('/[\x00-\x20\x7f]/', $value))
+	{
+		message_die(GENERAL_ERROR, 'Invalid news base URL.');
+	}
+	return $value;
+}
+
 //
 // Pull all news config data only
 //
+$default_config = array();
+$new = array();
 $sql = "SELECT *
   FROM " . CONFIG_TABLE . ' as c ' .
   " WHERE
@@ -66,13 +101,25 @@ else
     $config_value = $row['config_value'];
     $default_config[$config_name] = $config_value;
 
-    $new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
+    $new[$config_name] = $submit ? phpbb_admin_post_string($config_name, $default_config[$config_name]) : $default_config[$config_name];
 
-    if( isset($_POST['submit']) )
+    if ($submit)
     {
+      if ($config_name === 'news_path')
+      {
+        $new[$config_name] = admin_news_relative_path($new[$config_name]);
+      }
+      else if ($config_name === 'news_index_file')
+      {
+        $new[$config_name] = admin_news_relative_path($new[$config_name]);
+      }
+      else if ($config_name === 'news_base_url')
+      {
+        $new[$config_name] = admin_news_base_url($new[$config_name]);
+      }
       $sql = "UPDATE " . CONFIG_TABLE . " SET
-        config_value = '" . str_replace("\'", "''", $new[$config_name]) . "'
-        WHERE config_name = '$config_name'";
+        config_value = '" . $db->sql_escape($new[$config_name]) . "'
+        WHERE config_name = '" . $db->sql_escape($config_name) . "'";
 
       if( !$db->sql_query($sql) )
       {
@@ -80,8 +127,9 @@ else
       }
     }
   }
+	$db->sql_freeresult($result);
 
-  if( isset($_POST['submit']) )
+  if ($submit)
   {
     $message = $lang['Config_updated'] . "<br /><br />" . sprintf($lang['Click_return_newsadmin'], "<a href=\"" . append_sid("admin_news.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -106,14 +154,11 @@ $template->set_filenames(array(
 // Escape any quotes in the site description for proper display in the text
 // box on the admin page
 //
-$new['news_rss_name'] = str_replace( '"', '&quot;', isset($new['news_rss_name']) ? $new['news_rss_name'] : '' );
-$new['news_rss_desc'] = str_replace('"', '&quot;', strip_tags($new['news_rss_desc']) );
-$new['news_rss_language'] = str_replace( '"', '&quot;', $new['news_rss_language'] );
-$new['news_rss_cat'] = str_replace( '"', '&quot;', $new['news_rss_cat'] );
-$new['news_rss_image_desc'] = str_replace( '"', '&quot;', $new['news_rss_image_desc'] );
+$new['news_rss_desc'] = strip_tags($new['news_rss_desc']);
 
 $template->assign_vars(array(
   'S_CONFIG_ACTION' => append_sid("admin_news.$phpEx"),
+  'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 
   'L_YES' => $lang['Yes'],
   'L_NO' => $lang['No'],
@@ -170,28 +215,28 @@ $template->assign_vars(array(
   'NEWS_YES' => $news_yes,
   'NEWS_NO' => $news_no,
   
-  'NEWS_BASE_URL' => $new['news_base_url'],
+  'NEWS_BASE_URL' => phpbb_admin_html($new['news_base_url']),
 
-  'NEWS_INDEX_FILE' => $new['news_index_file'],
+  'NEWS_INDEX_FILE' => phpbb_admin_html($new['news_index_file']),
 
-  'NEWS_ITEM_LENGTH' => $new['news_item_trim'],
-  'NEWS_TITLE_LENGTH' => $new['news_title_trim'],
-  'NEWS_ITEM_NUM' => $new['news_item_num'],
+  'NEWS_ITEM_LENGTH' => phpbb_admin_html($new['news_item_trim']),
+  'NEWS_TITLE_LENGTH' => phpbb_admin_html($new['news_title_trim']),
+  'NEWS_ITEM_NUM' => phpbb_admin_html($new['news_item_num']),
 
-  'NEWS_PATH' => $new['news_path'],
+  'NEWS_PATH' => phpbb_admin_html($new['news_path']),
 
   'RSS_YES' => $rss_yes,
   'RSS_NO' => $rss_no,
   'RSS_ABSTRACT_YES' => $rss_abstract_yes,
   'RSS_ABSTRACT_NO' => $rss_abstract_no,
 
-  'RSS_ITEM_COUNT' => $new['news_rss_item_count'],
-  'RSS_DESC' => $new['news_rss_desc'],
-  'RSS_LANG' => $new['news_rss_language'],
-  'RSS_TTL'  => $new['news_rss_ttl'],
-  'RSS_CAT'  => $new['news_rss_cat'],
-  'RSS_IMG'  => $new['news_rss_image'],
-  'RSS_IMG_DESC' => $new['news_rss_image_desc']
+  'RSS_ITEM_COUNT' => phpbb_admin_html($new['news_rss_item_count']),
+  'RSS_DESC' => phpbb_admin_html($new['news_rss_desc']),
+  'RSS_LANG' => phpbb_admin_html($new['news_rss_language']),
+  'RSS_TTL'  => phpbb_admin_html($new['news_rss_ttl']),
+  'RSS_CAT'  => phpbb_admin_html($new['news_rss_cat']),
+  'RSS_IMG'  => phpbb_admin_html($new['news_rss_image']),
+  'RSS_IMG_DESC' => phpbb_admin_html($new['news_rss_image_desc'])
 
   )
 );
