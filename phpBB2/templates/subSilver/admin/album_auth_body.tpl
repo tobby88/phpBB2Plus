@@ -41,7 +41,7 @@
 	</tr>
 	<!-- END grouprow -->
 	<tr>
-		<td class="cat" height="25" align="center" colspan="8"><input type="reset" value="{L_RESET}" class="liteoption" />&nbsp;&nbsp;&nbsp;<input name="submit" type="submit" value="{L_SUBMIT}" class="mainoption" /></td>
+		<td class="cat" height="25" align="center" colspan="8">{S_HIDDEN_FIELDS}<input type="reset" value="{L_RESET}" class="liteoption" />&nbsp;&nbsp;&nbsp;<input name="submit" type="submit" value="{L_SUBMIT}" class="mainoption" /></td>
 	</tr>
 </table>
 </form>

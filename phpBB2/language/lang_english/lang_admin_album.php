@@ -99,6 +99,7 @@ $lang['Album_Auth_Explain'] = 'Here you can choose which usergroup(s) can be the
 $lang['Select_a_Category'] = 'Select a Category';
 $lang['Look_up_Category'] = 'Look up Category';
 $lang['Album_Auth_successfully'] = 'Auth has been updated successfully';
+$lang['No_category_selected'] = 'No valid album category was selected.';
 $lang['Click_return_album_auth'] = 'Click %sHere%s to return to the Album Permissions';
 
 $lang['Upload'] = 'Upload';

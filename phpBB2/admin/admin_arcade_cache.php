@@ -52,9 +52,11 @@ $file = basename(__FILE__);
 //
 //  Check to see if the SUBMIT button has been activated / Process Changes
 //
-if(!empty($HTTP_POST_VARS['submit']))
+$submit = isset($_POST['submit']);
+if ($submit)
 {
-  $use_cache = intval($HTTP_POST_VARS['use_cache']);
+	phpbb_admin_require_post_session();
+  $use_cache = (isset($_POST['use_cache']) && is_scalar($_POST['use_cache']) && intval($_POST['use_cache']) === 1) ? 1 : 0;
 //
 //  First Set the Main Cache Option
 //
@@ -86,8 +88,8 @@ if(!empty($HTTP_POST_VARS['submit']))
 //
 //  next update the different Cache settings
 //
-		$new[$config_name] = ( isset($HTTP_POST_VARS[$config_name]) ) ? $HTTP_POST_VARS[$config_name] : $default_config[$config_name];
-    $newvalue = (intval($new[$config_name]) < 10080) ? (intval($new[$config_name])*60) : 10080*60;
+		$new[$config_name] = phpbb_admin_post_string($config_name, $default_config[$config_name]);
+    $newvalue = max(0, min(10080, intval($new[$config_name]))) * 60;
 
 		$sql = "UPDATE " . iNA . "
   			SET config_value = '" . $newvalue . "'
@@ -98,6 +100,7 @@ if(!empty($HTTP_POST_VARS['submit']))
   		message_die(GENERAL_ERROR, $lang['no_config_update'] . $config_name, '', __LINE__, __FILE__, $sql);
   	}
   }
+	$db->sql_freeresult($result);
 //
 //  Clear the cached copy of the config
 //
@@ -161,7 +164,7 @@ $template->assign_vars(array(
   'S_HIGHSCORE_CACHE' => ($arcade->arcade_config['highscore_cache'] / 60),
   'S_AT_HIGHSCORE_CACHE' => ($arcade->arcade_config['at_highscore_cache'] / 60),
 		
-	'S_HIDDEN_FIELDS' => '' ));
+	'S_HIDDEN_FIELDS' => phpbb_admin_session_field() ));
 //
 //  Generate the page
 //

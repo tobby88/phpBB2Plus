@@ -248,6 +248,10 @@ changes consolidated after that baseline without implying active maintenance.
   active admin session. Personal-gallery permission lists now contain only
   positive, unique numeric group identifiers, and the Arcade forms use valid
   table/form markup.
+- Applied the same numeric permission normalization to individual Album
+  categories, separated category selection from the authenticated write, and
+  repaired the misspelled hidden-field placeholder that had left Arcade cache
+  settings without a usable session token.
 - Hardened custom-profile-field administration against injected identifiers,
   array-shaped form values and unescaped database content; column names used
   by schema changes are derived and validated server-side. Also repaired the

@@ -51,7 +51,7 @@
   
 <!-- END cache_menu_on -->
   <tr>
-   <td class="cat" colspan="2" align="center">{S_HIDDEN_postS} 
+   <td class="cat" colspan="2" align="center">{S_HIDDEN_FIELDS}
     <input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" />&nbsp;
     <input type="reset" value="{L_RESET}" class="mainoption" />
    </td>

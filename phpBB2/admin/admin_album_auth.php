@@ -42,7 +42,32 @@ require($album_root_path. 'album_common.'.$phpEx);
 $album_user_id = ALBUM_PUBLIC_GALLERY;
 //--- Album Category Hierarchy : end
 
-if( !isset($_POST['submit']) )
+$submit = isset($_POST['submit']);
+$save_permissions = isset($_POST['save_permissions']) && is_scalar($_POST['save_permissions']) && (string) $_POST['save_permissions'] === '1';
+if ($save_permissions)
+{
+	phpbb_admin_require_post_session();
+}
+
+function admin_album_auth_group_ids($key)
+{
+	if (!isset($_POST[$key]) || !is_array($_POST[$key]))
+	{
+		return '';
+	}
+	$ids = array();
+	foreach ($_POST[$key] as $value)
+	{
+		if (is_scalar($value) && intval($value) > 0)
+		{
+			$ids[intval($value)] = intval($value);
+		}
+	}
+	ksort($ids, SORT_NUMERIC);
+	return implode(',', array_values($ids));
+}
+
+if (!$submit && !$save_permissions)
 {
 	//--- Album Category Hierarchy : begin
 	//--- version : 1.1.0
@@ -95,10 +120,15 @@ if( !isset($_POST['submit']) )
 }
 else
 {
-	if( !isset($_GET['cat_id']) )
+	$cat_id = (isset($_POST['cat_id']) && is_scalar($_POST['cat_id'])) ? intval($_POST['cat_id']) :
+		((isset($_GET['cat_id']) && is_scalar($_GET['cat_id'])) ? intval($_GET['cat_id']) : 0);
+	if ($cat_id < 1)
 	{
-		$cat_id = intval($_POST['cat_id']);
+		message_die(GENERAL_MESSAGE, $lang['No_category_selected']);
+	}
 
+	if (!$save_permissions)
+	{
 		$template->set_filenames(array(
 			'body' => 'admin/album_auth_body.tpl')
 		);
@@ -120,6 +150,7 @@ else
 
 			'L_IS_MODERATOR' => $lang['Is_Moderator'],
 			'S_ALBUM_ACTION' => append_sid("admin_album_auth.$phpEx?cat_id=$cat_id"),
+			'S_HIDDEN_FIELDS' => '<input type="hidden" name="save_permissions" value="1" />' . phpbb_admin_session_field(),
 			)
 		);
 
@@ -133,21 +164,28 @@ else
 			message_die(GENERAL_ERROR, 'Could not get group list', '', __LINE__, __FILE__, $sql);
 		}
 
+		$groupdata = array();
 		while( $row = $db->sql_fetchrow($result) )
 		{
 			$groupdata[] = $row;
 		}
+		$db->sql_freeresult($result);
 
 		// Get info of this cat
 		$sql = "SELECT cat_id, cat_title, cat_view_groups, cat_upload_groups, cat_rate_groups, cat_comment_groups, cat_edit_groups, cat_delete_groups, cat_moderator_groups
 				FROM ". ALBUM_CAT_TABLE ."
-				WHERE cat_id = '$cat_id'";
+				WHERE cat_id = $cat_id";
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not get Category information', '', __LINE__, __FILE__, $sql);
 		}
 
 		$thiscat = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if (!$thiscat)
+		{
+			message_die(GENERAL_MESSAGE, $lang['No_category_selected']);
+		}
 
 		$view_groups = @explode(',', $thiscat['cat_view_groups']);
 		$upload_groups = @explode(',', $thiscat['cat_upload_groups']);
@@ -161,8 +199,8 @@ else
 		for ($i = 0; $i < count($groupdata); $i++)
 		{
 			$template->assign_block_vars('grouprow', array(
-				'GROUP_ID' => $groupdata[$i]['group_id'],
-				'GROUP_NAME' => $groupdata[$i]['group_name'],
+				'GROUP_ID' => intval($groupdata[$i]['group_id']),
+				'GROUP_NAME' => phpbb_admin_html($groupdata[$i]['group_name']),
 
 				'VIEW_CHECKED' => (in_array($groupdata[$i]['group_id'], $view_groups)) ? 'checked="checked"' : '',
 
@@ -186,20 +224,18 @@ else
 	}
 	else
 	{
-		$cat_id = intval($_GET['cat_id']);
+		$view_groups = admin_album_auth_group_ids('view');
+		$upload_groups = admin_album_auth_group_ids('upload');
+		$rate_groups = admin_album_auth_group_ids('rate');
+		$comment_groups = admin_album_auth_group_ids('comment');
+		$edit_groups = admin_album_auth_group_ids('edit');
+		$delete_groups = admin_album_auth_group_ids('delete');
 
-		$view_groups = @implode(',', $_POST['view']);
-		$upload_groups = @implode(',', $_POST['upload']);
-		$rate_groups = @implode(',', $_POST['rate']);
-		$comment_groups = @implode(',', $_POST['comment']);
-		$edit_groups = @implode(',', $_POST['edit']);
-		$delete_groups = @implode(',', $_POST['delete']);
-
-		$moderator_groups = @implode(',', $_POST['moderator']);
+		$moderator_groups = admin_album_auth_group_ids('moderator');
 
 		$sql = "UPDATE ". ALBUM_CAT_TABLE ."
 				SET cat_view_groups = '$view_groups', cat_upload_groups = '$upload_groups', cat_rate_groups = '$rate_groups', cat_comment_groups = '$comment_groups', cat_edit_groups = '$edit_groups', cat_delete_groups = '$delete_groups',	cat_moderator_groups = '$moderator_groups'
-				WHERE cat_id = '$cat_id'";
+				WHERE cat_id = $cat_id";
 		if ( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not update Album config table', '', __LINE__, __FILE__, $sql);

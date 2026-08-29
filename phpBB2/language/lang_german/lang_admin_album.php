@@ -101,6 +101,7 @@ $lang['Album_Auth_Explain'] = 'Hier kannst du auswählen, welche Benutzergruppe(
 $lang['Select_a_Category'] = 'Kategorie auswählen';
 $lang['Look_up_Category'] = 'Kategorie suchen';
 $lang['Album_Auth_successfully'] = 'Zugriffsrechte wurden erfolgreicht aktualisiert';
+$lang['No_category_selected'] = 'Es wurde keine gültige Album-Kategorie ausgewählt.';
 $lang['Click_return_album_auth'] = 'Klicke %shier%s um zu den Album-Zugriffsrechten zurückzukehren.';
 
 $lang['Upload'] = 'Upload';
