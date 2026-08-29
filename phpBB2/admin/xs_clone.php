@@ -55,10 +55,16 @@ if(!@function_exists('gzcompress'))
 //
 if(!empty($HTTP_POST_VARS['clone_style']) && !defined('DEMO_MODE'))
 {
-	$style = intval($HTTP_POST_VARS['clone_style']);
-	$new_name = stripslashes($HTTP_POST_VARS['clone_name']);
+	phpbb_admin_require_post_session();
+	$style = is_scalar($HTTP_POST_VARS['clone_style']) ? intval($HTTP_POST_VARS['clone_style']) : 0;
+	$new_name = isset($HTTP_POST_VARS['clone_name']) && is_scalar($HTTP_POST_VARS['clone_name']) ? trim(stripslashes((string) $HTTP_POST_VARS['clone_name'])) : '';
+	$new_name_length = preg_match_all('/./us', $new_name, $new_name_characters);
+	if($style <= 0 || $new_name === '' || $new_name_length === false || $new_name_length > 30)
+	{
+		xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_clone_back']);
+	}
 	// get theme data
-	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE themes_id='{$style}'";
+	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE themes_id = $style";
 	if(!$result = $db->sql_query($sql))
 	{
 		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_clone_back'], __LINE__, __FILE__);
@@ -68,7 +74,7 @@ if(!empty($HTTP_POST_VARS['clone_style']) && !defined('DEMO_MODE'))
 	{
 		xs_error($lang['xs_no_themes'] . '<br /><br />' . $lang['xs_clone_back']);
 	}
-	if($theme['style_name'] === stripslashes($new_name))
+	if($theme['style_name'] === $new_name)
 	{
 		xs_error($lang['xs_clone_taken'] . '<br /><br />' . $lang['xs_clone_back']);
 	}
@@ -88,7 +94,7 @@ if(!empty($HTTP_POST_VARS['clone_style']) && !defined('DEMO_MODE'))
 	$values = array(xs_sql($new_name));
 	foreach($theme as $var => $value)
 	{
-		if(!is_integer($var) && $var !== 'style_name' && $var !== 'themes_id')
+		if(!is_integer($var) && $var !== 'style_name' && $var !== 'themes_id' && preg_match('/^[a-zA-Z0-9_]+$/D', $var))
 		{
 			$vars[] = $var;
 			$values[] = xs_sql($value);
@@ -119,9 +125,11 @@ if(!empty($HTTP_POST_VARS['clone_style']) && !defined('DEMO_MODE'))
 //
 if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 {
-	$old_name = xs_tpl_name($HTTP_POST_VARS['clone_tpl']);
-	$new_name = xs_tpl_name($HTTP_POST_VARS['clone_style_name']);
-	if(empty($new_name) || $new_name === $old_name)
+	phpbb_admin_require_post_session();
+	$old_name = xs_tpl_name(is_scalar($HTTP_POST_VARS['clone_tpl']) ? (string) $HTTP_POST_VARS['clone_tpl'] : '');
+	$new_name = xs_tpl_name(isset($HTTP_POST_VARS['clone_style_name']) && is_scalar($HTTP_POST_VARS['clone_style_name']) ? (string) $HTTP_POST_VARS['clone_style_name'] : '');
+	$new_name_length = preg_match_all('/./us', $new_name, $new_name_characters);
+	if(empty($old_name) || empty($new_name) || $new_name === $old_name || $new_name_length === false || $new_name_length > 30 || !@is_dir('../templates/' . $old_name))
 	{
 		xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_clone_back']);
 	}
@@ -131,7 +139,11 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 		xs_error($lang['xs_clone_style_exists'] . '<br /><br />' . $lang['xs_clone_back']);
 	}
 	// check variables
-	$total = intval($HTTP_POST_VARS['total']);
+	$total = isset($HTTP_POST_VARS['total']) && is_scalar($HTTP_POST_VARS['total']) ? intval($HTTP_POST_VARS['total']) : 0;
+	if($total <= 0 || $total > 1000)
+	{
+		xs_error($lang['xs_clone_no_select'] . '<br /><br />' . $lang['xs_clone_back']);
+	}
 	$vars = array('clone_tpl', 'clone_style_name', 'total');
 	$count = 0;
 	$list = array();
@@ -140,13 +152,19 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 		$vars[] = 'clone_style_id_'.$i;
 		$vars[] = 'clone_style_'.$i;
 		$vars[] = 'clone_style_name_'.$i;
-		if(!empty($HTTP_POST_VARS['clone_style_'.$i]) && !empty($HTTP_POST_VARS['clone_style_name_'.$i]))
+		if(!empty($HTTP_POST_VARS['clone_style_'.$i]) && isset($HTTP_POST_VARS['clone_style_name_'.$i]) && is_scalar($HTTP_POST_VARS['clone_style_name_'.$i]) && isset($HTTP_POST_VARS['clone_style_id_'.$i]) && is_scalar($HTTP_POST_VARS['clone_style_id_'.$i]))
 		{
+			$clone_style_name = trim(stripslashes((string) $HTTP_POST_VARS['clone_style_name_'.$i]));
+			$clone_style_name_length = preg_match_all('/./us', $clone_style_name, $clone_style_name_characters);
+			if($clone_style_name === '' || $clone_style_name_length === false || $clone_style_name_length > 30)
+			{
+				xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_clone_back']);
+			}
 			// prepare for export
 			$list[] = intval($HTTP_POST_VARS['clone_style_id_'.$i]);
 			$HTTP_POST_VARS['export_style_'.$i] = $HTTP_POST_VARS['clone_style_'.$i];
 			$HTTP_POST_VARS['export_style_id_'.$i] = $HTTP_POST_VARS['clone_style_id_'.$i];
-			$HTTP_POST_VARS['export_style_name_'.$i] = $HTTP_POST_VARS['clone_style_name_'.$i];
+			$HTTP_POST_VARS['export_style_name_'.$i] = $clone_style_name;
 			// prepare for import
 			$HTTP_POST_VARS['import_install_'.$count] = '1';
 			$count ++;
@@ -159,7 +177,7 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 	$request = array();
 	for($i=0; $i<count($vars); $i++)
 	{
-		$request[$vars[$i]] = stripslashes($HTTP_POST_VARS[$vars[$i]]);
+		$request[$vars[$i]] = isset($HTTP_POST_VARS[$vars[$i]]) && is_scalar($HTTP_POST_VARS[$vars[$i]]) ? stripslashes((string) $HTTP_POST_VARS[$vars[$i]]) : '';
 	}
 	// get ftp configuration
 	$write_local = false;
@@ -217,15 +235,16 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 		xs_error(str_replace('{TPL}', $export, $lang['xs_export_error2']) . '<br /><br />' . $lang['xs_clone_back']);
 	}
 	// save as file
-	$filename = 'clone_' . time() . '.tmp';
-	$tmp_filename = XS_TEMP_DIR . $filename;
-	$f = @fopen($tmp_filename, 'wb');
-	if(!$f)
+	$tmp_filename = @tempnam(XS_TEMP_DIR, 'clone_');
+	if($tmp_filename === false || @file_put_contents($tmp_filename, $data, LOCK_EX) !== strlen($data))
 	{
-		xs_error(str_replace('{FILE}', $tpl_filename, $lang['xs_error_cannot_create_tmp']) . '<br /><br />' . $lang['xs_clone_back']);
+		if($tmp_filename !== false)
+		{
+			@unlink($tmp_filename);
+		}
+		xs_error(str_replace('{FILE}', XS_TEMP_DIR, $lang['xs_error_cannot_create_tmp']) . '<br /><br />' . $lang['xs_clone_back']);
 	}
-	fwrite($f, $data);
-	fclose($f);
+	$filename = basename($tmp_filename);
 	// prepare import variables
 	$total = $count;
 	$HTTP_POST_VARS['total'] = $count;
@@ -241,10 +260,14 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 //
 // clone style menu
 //
-if(!empty($HTTP_GET_VARS['clone']))
+if(!empty($HTTP_GET_VARS['clone']) && is_scalar($HTTP_GET_VARS['clone']))
 {
-	$style = stripslashes($HTTP_GET_VARS['clone']);
-	$sql = "SELECT themes_id, style_name FROM " . THEMES_TABLE . " WHERE template_name = '" . xs_sql($style) . "' ORDER BY style_name ASC";
+	$style = xs_tpl_name(stripslashes((string) $HTTP_GET_VARS['clone']));
+	if($style === '')
+	{
+		xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_clone_back']);
+	}
+	$sql = "SELECT themes_id, template_name, style_name FROM " . THEMES_TABLE . " WHERE template_name = '" . xs_sql($style) . "' ORDER BY style_name ASC";
 	if(!$result = $db->sql_query($sql))
 	{
 		xs_error($lang['xs_no_theme_data'] . '<br /><br />' . $lang['xs_clone_back'], __LINE__, __FILE__);
@@ -258,20 +281,20 @@ if(!empty($HTTP_GET_VARS['clone']))
 	// clone template
 	$template->assign_vars(array(
 			'FORM_ACTION'		=> append_sid('xs_clone.'.$phpEx),
-			'CLONE_TEMPLATE'	=> htmlspecialchars($style),
+			'CLONE_TEMPLATE'	=> htmlspecialchars($style, ENT_QUOTES, 'UTF-8'),
 			'STYLE_ID'			=> $theme_rowset[0]['themes_id'],
-			'STYLE_NAME'		=> htmlspecialchars($theme_rowset[0]['style_name']),
+			'STYLE_NAME'		=> htmlspecialchars($theme_rowset[0]['style_name'], ENT_QUOTES, 'UTF-8'),
 			'TOTAL'				=> count($theme_rowset),
-			'L_CLONE_STYLE3'	=> str_replace('{STYLE}', htmlspecialchars($style), $lang['xs_clone_style3'])
+			'L_CLONE_STYLE3'	=> str_replace('{STYLE}', htmlspecialchars($style, ENT_QUOTES, 'UTF-8'), $lang['xs_clone_style3'])
 			));
 	// clone styles
 	for($i=0; $i<count($theme_rowset); $i++)
 	{
 		$template->assign_block_vars('styles', array(
 			'ID'		=> $theme_rowset[$i]['themes_id'],
-			'TPL'		=> htmlspecialchars($theme_rowset[$i]['template_name']),
-			'STYLE'		=> htmlspecialchars($theme_rowset[$i]['style_name']),
-			'L_CLONE'	=> str_replace('{STYLE}', htmlspecialchars($theme_rowset[$i]['style_name']), $lang['xs_clone_style2'])
+			'TPL'		=> htmlspecialchars($theme_rowset[$i]['template_name'], ENT_QUOTES, 'UTF-8'),
+			'STYLE'		=> htmlspecialchars($theme_rowset[$i]['style_name'], ENT_QUOTES, 'UTF-8'),
+			'L_CLONE'	=> str_replace('{STYLE}', htmlspecialchars($theme_rowset[$i]['style_name'], ENT_QUOTES, 'UTF-8'), $lang['xs_clone_style2'])
 			));
 	}
 	if(count($theme_rowset) == 1)
@@ -290,7 +313,7 @@ if(!empty($HTTP_GET_VARS['clone']))
 			$template->assign_block_vars('switch_select_style.style', array(
 				'NUM'		=> $i,
 				'ID'		=> $theme_rowset[$i]['themes_id'],
-				'NAME'		=> htmlspecialchars($theme_rowset[$i]['style_name'])
+				'NAME'		=> htmlspecialchars($theme_rowset[$i]['style_name'], ENT_QUOTES, 'UTF-8')
 				));
 		}
 	}
@@ -319,7 +342,7 @@ for($i=0; $i<count($style_rowset); $i++)
 	$item = $style_rowset[$i];
 	if($item['template_name'] === $prev_tpl)
 	{
-		$style_names[] = htmlspecialchars($item['style_name']);
+		$style_names[] = htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8');
 	}
 	else
 	{
@@ -331,7 +354,7 @@ for($i=0; $i<count($style_rowset); $i++)
 			$j++;
 			$template->assign_block_vars('styles', array(
 					'ROW_CLASS'	=> $row_class,
-					'TPL'		=> $prev_tpl,
+					'TPL'		=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 					'STYLES'	=> $str,
 					'U_CLONE'	=> "xs_clone.{$phpEx}?clone={$str2}&sid={$userdata['session_id']}",
 				)
@@ -339,7 +362,7 @@ for($i=0; $i<count($style_rowset); $i++)
 		}
 		$prev_id = $item['themes_id'];
 		$prev_tpl = $item['template_name'];
-		$style_names = array(htmlspecialchars($item['style_name']));
+		$style_names = array(htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8'));
 	}
 }
 
@@ -351,7 +374,7 @@ if($prev_id > 0)
 	$j++;
 	$template->assign_block_vars('styles', array(
 			'ROW_CLASS'	=> $row_class,
-			'TPL'		=> $prev_tpl,
+			'TPL'		=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 			'STYLES'	=> $str,
 			'U_CLONE'	=> "xs_clone.{$phpEx}?clone={$str2}&sid={$userdata['session_id']}",
 		)
