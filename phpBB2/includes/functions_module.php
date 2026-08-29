@@ -199,28 +199,6 @@ class Statistics
 	}
 }
 
-//
-// cached database results
-//
-class cached_db
-{
-	var $n = array();
-	var $fs = array();
-	var $f = array();
-
-	function __construct($numrows, $fetchrowset, $fetchrow)
-	{
-		$this->cached_db($numrows, $fetchrowset, $fetchrow);
-	}
-
-	function cached_db($numrows, $fetchrowset, $fetchrow)
-	{
-		$this->n = $numrows;
-		$this->fs = $fetchrowset;
-		$this->f = $fetchrow;
-	}
-}
-
 class StatisticsDB
 {
 	var $db_result = array();
@@ -255,15 +233,19 @@ class StatisticsDB
 	
 		if ($cache_enabled)
 		{
-			$this->db_cached = TRUE;
-			$this->use_cache = TRUE;
 			$data = phpbb_safe_unserialize(stripslashes($cached_data));
-			$this->numrows_data = $data->n;
-			$this->fetchrowset_data = $data->fs;
-			$this->fetchrow_data = $data->f;
-			$this->curr_n_row = 0;
-			$this->curr_fs_row = 0;
-			$this->curr_f_row = 0;
+			if (is_array($data) && isset($data['n'], $data['fs'], $data['f'])
+				&& is_array($data['n']) && is_array($data['fs']) && is_array($data['f']))
+			{
+				$this->db_cached = TRUE;
+				$this->use_cache = TRUE;
+				$this->numrows_data = $data['n'];
+				$this->fetchrowset_data = $data['fs'];
+				$this->fetchrow_data = $data['f'];
+				$this->curr_n_row = 0;
+				$this->curr_fs_row = 0;
+				$this->curr_f_row = 0;
+			}
 		}
 	}
 
@@ -391,7 +373,11 @@ class StatisticsDB
 		}
 		else
 		{
-			$data = new cached_db($this->numrows_data, $this->fetchrowset_data, $this->fetchrow_data);
+			$data = array(
+				'n' => $this->numrows_data,
+				'fs' => $this->fetchrowset_data,
+				'f' => $this->fetchrow_data,
+			);
 	
 			$sql = "UPDATE " . MODULES_TABLE . "
 			SET module_db_cache = '" . sql_quote(serialize($data)) . "',
@@ -405,25 +391,6 @@ class StatisticsDB
 		}
 	}
 }
-
-//
-// cached result data
-//
-class cached_result
-{
-	var $var_data = array();
-
-	function __construct($var_data)
-	{
-		$this->cached_result($var_data);
-	}
-
-	function cached_result($var_data)
-	{
-		$this->var_data = $var_data;
-	}
-}
-
 
 class Results
 {
@@ -450,9 +417,12 @@ class Results
 
 		if ($cache_enabled)
 		{
-			$this->use_cache = TRUE;
 			$data = phpbb_safe_unserialize(stripslashes($cached_data));
-			$this->var_data = $data->var_data;
+			if (is_array($data) && isset($data['var_data']) && is_array($data['var_data']))
+			{
+				$this->use_cache = TRUE;
+				$this->var_data = $data['var_data'];
+			}
 		}
 	}
 
@@ -564,7 +534,7 @@ class Results
 		}
 		else
 		{
-			$data = new cached_result($this->var_data);
+			$data = array('var_data' => $this->var_data);
 	
 			$sql = "UPDATE " . MODULES_TABLE . "
 			SET module_result_cache = '" . sql_quote(serialize($data)) . "',
