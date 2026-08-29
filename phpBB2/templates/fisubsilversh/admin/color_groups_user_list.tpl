@@ -62,6 +62,7 @@ function make_real_lists()
 <br><br>
 <span class="gen">{L_LIST_INFO}</span>
 <form action="{S_ACTION}" name="ul_form" method="post">
+{S_FORM_TOKEN}
 <table  border="0" cellpadding="3" cellspacing="1" width="90%" class="forumline" align="center">
 <tr>
 <th class="thCat" align="center">{L_USERS_LIST}</th>

@@ -62,18 +62,26 @@ $order_num_min = get_color_group_order_min();
 function count_users_in_color_group($group_id)
 {
 	global $db, $lang;
+	$group_id = (int) $group_id;
+	if ($group_id <= 0)
+	{
+		return 0;
+	}
 	$sql = 'SELECT COUNT(user_id) as count FROM ' . USERS_TABLE . "
 		WHERE user_color_group = $group_id";
-	if (!empty($group_id))
-	{
-		if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
-		$row = $db->sql_fetchrow($result);
-	}
+	if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
+	$row = $db->sql_fetchrow($result);
 	return max(0, $row['count']);
 }
 function swap_color_group_order_num($g1, $g2)
 {
 	global $lang, $status_message, $next_order_num;
+	$g1 = (int) $g1;
+	$g2 = (int) $g2;
+	if ($g1 <= 0 || $g2 <= 0 || $g1 === $g2)
+	{
+		return false;
+	}
 	
 	do_query_nivisec(
 	'SELECT group_id, group_name, order_num FROM ' . COLOR_GROUPS_TABLE . "
@@ -83,6 +91,10 @@ function swap_color_group_order_num($g1, $g2)
 	$row_items,
 	$lang['Error_Group_Table']
 	);
+	if (count($row_items) !== 2)
+	{
+		return false;
+	}
 	
 	//On the small chance the two order numbers are equal somehow, fix it
 	if ($row_items[0]['order_num'] == $row_items[1]['order_num'])
@@ -112,10 +124,16 @@ function swap_color_group_order_num($g1, $g2)
 		$lang['Error_Group_Table']
 		);
 	}
+	return true;
 }
 function hide_toggle_color_group($group_id, $mode)
 {
 	global $lang;
+	$group_id = (int) $group_id;
+	if ($group_id <= 0)
+	{
+		return false;
+	}
 	
 	switch($mode)
 	{
@@ -125,6 +143,8 @@ function hide_toggle_color_group($group_id, $mode)
 		case 'unhide':
 		$hide_mode = 0;
 		break;
+		default:
+		return false;
 	}
 	
 	do_fast_query_nivisec(
@@ -133,6 +153,7 @@ function hide_toggle_color_group($group_id, $mode)
 	WHERE group_id = $group_id",
 	$lang['Error_Group_Table']
 	);
+	return true;
 }
 
 function make_color_group_reference()
@@ -152,7 +173,7 @@ function make_color_group_reference()
 /*******************************************************************************************
 /** Get parameters.  'var_name' => 'default'
 /******************************************************************************************/
-$params = array('mode' => '', 'action' => '', 'switch1' => '', 'switch2' => '');
+$params = array('mode' => '');
 if ($debug)
 {
 	//Dump out the get and post vars if in debug mode
@@ -169,7 +190,8 @@ foreach($params as $var => $default)
 	$$var = $default;
 	if( isset($_POST[$var]) || isset($_GET[$var]) )
 	{
-		$$var = ( isset($_POST[$var]) ) ? $_POST[$var] : $_GET[$var];
+		$value = isset($_POST[$var]) ? $_POST[$var] : $_GET[$var];
+		$$var = is_scalar($value) ? (string) $value : $default;
 	}
 }
 	$color_group_list = make_color_group_reference();
@@ -181,37 +203,52 @@ $found_list = false;
 $found_delete = false;
 $found_hide = false;
 $found_unhide = false;
+$found_move = false;
 if (count($_POST))
 {
 	foreach ($_POST as $key => $val)
 	{
-		if (preg_match("/^edit_group_/", $key))
+		if (preg_match('/^edit_group_([0-9]+)$/D', $key, $matches))
 		{
-			$group_id = str_replace('edit_group_', '', $key);
+			$group_id = (int) $matches[1];
 			$found_list = true;
 		}
-		elseif (preg_match("/^delete_group_/", $key))
+		elseif (preg_match('/^delete_group_([0-9]+)$/D', $key, $matches))
 		{
-			$group_id_delete = str_replace('delete_group_', '', $key);
+			$group_id_delete = (int) $matches[1];
 			$found_delete = true;
 		}
-		elseif (preg_match("/^hide_group_/", $key))
+		elseif (preg_match('/^hide_group_([0-9]+)$/D', $key, $matches))
 		{
-			$group_id_hide = str_replace('hide_group_', '', $key);
+			$group_id_hide = (int) $matches[1];
 			$found_hide = true;
 		}
-		elseif (preg_match("/^unhide_group_/", $key))
+		elseif (preg_match('/^unhide_group_([0-9]+)$/D', $key, $matches))
 		{
-			$group_id_unhide = str_replace('unhide_group_', '', $key);
+			$group_id_unhide = (int) $matches[1];
 			$found_unhide = true;
 		}
+		elseif (preg_match('/^move_group_([0-9]+)_([0-9]+)$/D', $key, $matches))
+		{
+			$group_id_move = (int) $matches[1];
+			$group_id_swap = (int) $matches[2];
+			$found_move = true;
+		}
 	}
+}
+
+$mutating_request = isset($_POST['update_groups']) || isset($_POST['update_group_list']) ||
+	isset($_POST['add_new_group']) || $found_delete || $found_hide || $found_unhide || $found_move;
+if ($mutating_request)
+{
+	phpbb_admin_require_post_session();
 }
 /*******************************************************************************************
 /** Edit user lists
 /******************************************************************************************/
 if ($found_list && isset($group_id))
 {
+	$group_id = (int) $group_id;
 	$page_title = $lang['Color_Group_User_List'];
 	$page_desc = $lang['Color_Group_User_List_Desc'];
 
@@ -221,6 +258,10 @@ if ($found_list && isset($group_id))
 		WHERE group_id = $group_id";
 	if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
 	$group_row = $db->sql_fetchrow($result);
+	if (!$group_row)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
 	
 	//Make Our List
 	$user_list = array();
@@ -238,14 +279,15 @@ if ($found_list && isset($group_id))
 			WHERE user_id <> ' . ANONYMOUS . '
 			ORDER BY username ASC';
 	if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Users_Table'], '', __LINE__, __FILE__, $sql);
-	$user_list_box = '<select class="post" name="user_list_box" size="20" multiple />';
+	$user_list_box = '<select class="post" name="user_list_box" size="20" multiple="multiple">';
 	while ($row = $db->sql_fetchrow($result))
 	{
 		$selected = (in_array($row['user_id'], $user_list)) ? 'selected="true"' : '';
-		$username = $row['username'];
-		$c_group = ($row['user_color_group'] != 0) ? '('.$color_group_list[$row['user_color_group']].')' : '';
-		$id = $row['user_id'];
-		$user_list_box .= "<option value=\"$id\" $selected />$username $c_group</option>";
+		$username = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8');
+		$c_group_name = isset($color_group_list[$row['user_color_group']]) ? $color_group_list[$row['user_color_group']] : '';
+		$c_group = ($row['user_color_group'] != 0 && $c_group_name !== '') ? '(' . htmlspecialchars($c_group_name, ENT_QUOTES, 'UTF-8') . ')' : '';
+		$id = (int) $row['user_id'];
+		$user_list_box .= "<option value=\"$id\" $selected>$username $c_group</option>";
 	}
 	$user_list_box .= '</select>';
 
@@ -265,14 +307,15 @@ if ($found_list && isset($group_id))
 		WHERE group_single_user = 0		
 		ORDER BY group_name ASC';
 	if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Users_Table'], '', __LINE__, __FILE__, $sql);
-	$group_list_box = '<select class="post" name="group_list_box" size="20" multiple />';
+	$group_list_box = '<select class="post" name="group_list_box" size="20" multiple="multiple">';
 	while ($row = $db->sql_fetchrow($result))
 	{
 		$selected = (in_array($row['group_id'], $group_list)) ? 'selected="true"' : '';
-		$username = $row['group_name'];
-		$c_group = ($row['group_color_group'] != 0) ? '('.$color_group_list[$row['group_color_group']].')' : '';
-		$id = $row['group_id'];
-		$group_list_box .= "<option value=\"$id\" $selected />$username $c_group</option>";
+		$group_name = htmlspecialchars($row['group_name'], ENT_QUOTES, 'UTF-8');
+		$c_group_name = isset($color_group_list[$row['group_color_group']]) ? $color_group_list[$row['group_color_group']] : '';
+		$c_group = ($row['group_color_group'] != 0 && $c_group_name !== '') ? '(' . htmlspecialchars($c_group_name, ENT_QUOTES, 'UTF-8') . ')' : '';
+		$id = (int) $row['group_id'];
+		$group_list_box .= "<option value=\"$id\" $selected>$group_name $c_group</option>";
 	}
 	$group_list_box .= '</select>';
 	
@@ -280,9 +323,9 @@ if ($found_list && isset($group_id))
 	'S_USER_LIST'=> $user_list,
 	'S_USER_LIST_BOX' => $user_list_box,
 	'S_GROUP_LIST_BOX' => $group_list_box,
-	'L_EDITING_GROUP' => sprintf($lang['Editing_Group'], $group_row['group_name']),
-	'S_GROUP_COLOR' => $group_row['group_color'],
-	'S_GROUP_ID' => $group_row['group_id']
+	'L_EDITING_GROUP' => sprintf($lang['Editing_Group'], htmlspecialchars($group_row['group_name'], ENT_QUOTES, 'UTF-8')),
+	'S_GROUP_COLOR' => check_font_color_nivisec($group_row['group_color']) ? htmlspecialchars($group_row['group_color'], ENT_QUOTES, 'UTF-8') : '',
+	'S_GROUP_ID' => (int) $group_row['group_id']
 	));
 	$template->set_filenames(array('body' => 'admin/color_groups_user_list.tpl'));
 }
@@ -301,13 +344,20 @@ else
 		//We have to loop through all the color sets, each group_id
 		while ($row = $db->sql_fetchrow($result))
 		{
-			if (isset($_POST['color_change_'.$row['group_id']]) && $_POST['color_change_'.$row['group_id']] != $row['group_color'])
+			$color_key = 'color_change_' . (int) $row['group_id'];
+			$new_color = isset($_POST[$color_key]) && is_scalar($_POST[$color_key]) ? trim((string) $_POST[$color_key]) : $row['group_color'];
+			if ($new_color != $row['group_color'])
 			{
+				if (!check_font_color_nivisec($new_color))
+				{
+					$status_message .= $lang['Error_Font_Color'];
+					continue;
+				}
 				$sql = 'UPDATE ' . COLOR_GROUPS_TABLE . "
-					SET group_color = '" . $_POST['color_change_'.$row['group_id']] . "'
-					WHERE group_id = " . $row['group_id'];
+					SET group_color = '" . $db->sql_escape($new_color) . "'
+					WHERE group_id = " . (int) $row['group_id'];
 				if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
-				$status_message .= sprintf($lang['Group_Updated'], $row['group_name']);
+				$status_message .= sprintf($lang['Group_Updated'], htmlspecialchars($row['group_name'], ENT_QUOTES, 'UTF-8'));
 			}
 		}
 	}
@@ -317,7 +367,10 @@ else
 	/******************************************************************************************/
 	if (isset($_POST['update_group_list']))
 	{
-		color_groups_update_group_id($_POST['real_group_list'], $_POST['real_user_list'], $_POST['group_id']);
+		$real_group_list = isset($_POST['real_group_list']) ? $_POST['real_group_list'] : '';
+		$real_user_list = isset($_POST['real_user_list']) ? $_POST['real_user_list'] : '';
+		$posted_group_id = isset($_POST['group_id']) ? $_POST['group_id'] : 0;
+		color_groups_update_group_id($real_group_list, $real_user_list, $posted_group_id);
 	}
 	
 	/*******************************************************************************************
@@ -325,13 +378,17 @@ else
 	/******************************************************************************************/
 	if ($found_hide)
 	{
-		hide_toggle_color_group($group_id_hide, 'hide');
-		$status_message .= $lang['Group_Hidden'];
+		if (hide_toggle_color_group($group_id_hide, 'hide'))
+		{
+			$status_message .= $lang['Group_Hidden'];
+		}
 	}
 	if ($found_unhide)
 	{
-		hide_toggle_color_group($group_id_unhide, 'unhide');
-		$status_message .= $lang['Group_Unhidden'];
+		if (hide_toggle_color_group($group_id_unhide, 'unhide'))
+		{
+			$status_message .= $lang['Group_Unhidden'];
+		}
 	}
 	
 	/*******************************************************************************************
@@ -339,6 +396,11 @@ else
 	/******************************************************************************************/
 	if ($found_delete)
 	{
+		$group_id_delete = (int) $group_id_delete;
+		if ($group_id_delete <= 0)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		}
 		$sql = 'DELETE FROM ' . COLOR_GROUPS_TABLE . "
 			WHERE group_id = $group_id_delete";
 		if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
@@ -354,21 +416,24 @@ else
 	/******************************************************************************************/
 	if (isset($_POST['add_new_group']))
 	{
+		$new_group_name = isset($_POST['new_group_name']) && is_scalar($_POST['new_group_name']) ? trim((string) $_POST['new_group_name']) : '';
+		$new_group_color = isset($_POST['new_group_color']) && is_scalar($_POST['new_group_color']) ? trim((string) $_POST['new_group_color']) : '';
+		$new_group_name = substr($new_group_name, 0, 255);
 		$invalid_add = false;
-		if (empty($_POST['new_group_name'])) $invalid_add = true;
+		if ($new_group_name === '' || !check_font_color_nivisec($new_group_color)) $invalid_add = true;
 		else
 		{
 			//Check for duplicate name
 			$sql = 'SELECT group_name FROM ' . COLOR_GROUPS_TABLE . "
-			WHERE group_name = '" . $_POST['new_group_name'] . "'";
+			WHERE group_name = '" . $db->sql_escape($new_group_name) . "'";
 			if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
 			$group_row = $db->sql_fetchrow($result);
-			if ($group_row['group_name'] == $_POST['new_group_name']) $invalid_add = true;
+			if ($group_row && $group_row['group_name'] == $new_group_name) $invalid_add = true;
 		}
 		// Don't try to add it if it is invalid!
 		if ($invalid_add)
 		{
-			$status_message .= sprintf($lang['Invalid_Group_Add'], $_POST['new_group_name']);
+			$status_message .= sprintf($lang['Invalid_Group_Add'], htmlspecialchars($new_group_name, ENT_QUOTES, 'UTF-8'));
 		}
 		else
 		{
@@ -376,7 +441,7 @@ else
 			do_fast_query_nivisec(
 			'INSERT INTO ' . COLOR_GROUPS_TABLE . "
 			 	(order_num, group_name, group_color) VALUES 
-				($next_order_num, '" . $_POST['new_group_name'] . "', '" . $_POST['new_group_color'] . "')",
+				(" . (int) $next_order_num . ", '" . $db->sql_escape($new_group_name) . "', '" . $db->sql_escape($new_group_color) . "')",
 			
 			$lang['Error_Group_Table']
 			);
@@ -385,10 +450,12 @@ else
 		
 		
 	}
-	if ($action == 'switch')
+	if ($found_move)
 	{
-		swap_color_group_order_num($switch1, $switch2);
-		$status_message .= $lang['Moved_Group'];
+		if (swap_color_group_order_num($group_id_move, $group_id_swap))
+		{
+			$status_message .= $lang['Moved_Group'];
+		}
 	}
 	
 	$page_title = $lang['Manage_Color_Groups'];
@@ -412,16 +479,28 @@ else
 	for ($i = 0; $i < count($result_list); $i++)
 	{
 		$empty = false;
+		$row_group_id = (int) $result_list[$i]['group_id'];
+		$row_color = check_font_color_nivisec($result_list[$i]['group_color']) ? $result_list[$i]['group_color'] : '';
+		$move_up = '';
+		$move_down = '';
+		if ($result_list[$i]['order_num'] > $order_num_min && isset($result_list[$i - 1]))
+		{
+			$move_up = '<input type="submit" class="liteoption" name="move_group_' . $row_group_id . '_' . (int) $result_list[$i - 1]['group_id'] . '" value="' . htmlspecialchars($lang['Move_Up'], ENT_QUOTES, 'UTF-8') . '" />';
+		}
+		if ($result_list[$i]['order_num'] < $order_num_max && isset($result_list[$i + 1]))
+		{
+			$move_down = '<input type="submit" class="liteoption" name="move_group_' . $row_group_id . '_' . (int) $result_list[$i + 1]['group_id'] . '" value="' . htmlspecialchars($lang['Move_Down'], ENT_QUOTES, 'UTF-8') . '" />';
+		}
 		$template->assign_block_vars('grouprow', array(
-		'ID' => $result_list[$i]['group_id'],
-		'HIDE' => ($result_list[$i]['hidden']) ? 'unhide_group_'.$result_list[$i]['group_id'] : 'hide_group_'.$result_list[$i]['group_id'],
+		'ID' => $row_group_id,
+		'HIDE' => ($result_list[$i]['hidden']) ? 'unhide_group_'.$row_group_id : 'hide_group_'.$row_group_id,
 		'L_HIDE' => ($result_list[$i]['hidden']) ? $lang['Un-hide'] : $lang['Hide'],
-		'MOVE_UP' => ($result_list[$i]['order_num'] > $order_num_min) ? '<a href="'.append_sid($filename.'?action=switch&amp;switch1='.$result_list[$i]['group_id'].'&amp;switch2='.$result_list[$i-1]['group_id']).'">'.$lang['Move_Up'].'</a>' : '',
-		'MOVE_DOWN' => ($result_list[$i]['order_num'] < $order_num_max) ? '<a href="'.append_sid($filename.'?action=switch&amp;switch1='.$result_list[$i]['group_id'].'&amp;switch2='.$result_list[$i+1]['group_id']).'">'.$lang['Move_Down'].'</a>' : '',
-		'NAME' => $result_list[$i]['group_name'],
-		'COUNT' => count_users_in_color_group($result_list[$i]['group_id']),
-		'COLOR' => $result_list[$i]['group_color'],
-		'STATUS' => (check_font_color_nivisec($result_list[$i]['group_color'])) ? $lang['Color_Ok'] : $lang['Error_Font_Color']
+		'MOVE_UP' => $move_up,
+		'MOVE_DOWN' => $move_down,
+		'NAME' => htmlspecialchars($result_list[$i]['group_name'], ENT_QUOTES, 'UTF-8'),
+		'COUNT' => count_users_in_color_group($row_group_id),
+		'COLOR' => htmlspecialchars($row_color, ENT_QUOTES, 'UTF-8'),
+		'STATUS' => ($row_color !== '') ? $lang['Color_Ok'] : $lang['Error_Font_Color']
 		));
 	}
 	
@@ -436,6 +515,7 @@ else
 //Common Variables
 $template->assign_vars(array(
 'S_ACTION' => append_sid(basename(__FILE__)),
+'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 'S_MODE' => $mode,
 'L_USERS_LIST' => $lang['Users_List'],
 'L_GROUPS_LIST' => $lang['Groups_List'],

@@ -18,6 +18,7 @@
 
 <br />
 <form action="{S_ACTION}" name="user_list_form" method="post">
+{S_FORM_TOKEN}
 
 <table  border="0" cellpadding="3" cellspacing="1" width="95%" class="forumline" align="center">
 	<tr> 

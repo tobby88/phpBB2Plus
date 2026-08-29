@@ -51,9 +51,9 @@ if (!function_exists('check_font_color_nivisec'))
 	*/
 	function check_font_color_nivisec($item)
 	{
-		global $colors;
+		$item = trim((string) $item);
 		//Find out if it's a valid hex or valid word
-		if (!preg_match("/#[0-9,A-F,a-f]{6}/", $item) && !in_array($item, explode(",", RGB_COLOR_LIST)))
+		if (!preg_match('/^#[0-9A-Fa-f]{6}$/D', $item) && !in_array(strtolower($item), explode(',', RGB_COLOR_LIST), true))
 		{
 			return false;
 		}
@@ -176,6 +176,29 @@ function get_color_group_order_min()
 function color_groups_update_group_id($group_list, $user_list, $group_id)
 {
 	global $lang, $db, $status_message;
+	$group_id = (int) $group_id;
+	if ($group_id <= 0)
+	{
+		return;
+	}
+	$user_ids = array();
+	foreach (preg_split('/\s*,\s*/', is_scalar($user_list) ? (string) $user_list : '', -1, PREG_SPLIT_NO_EMPTY) as $id)
+	{
+		$id = (int) $id;
+		if ($id > 0)
+		{
+			$user_ids[$id] = $id;
+		}
+	}
+	$group_ids = array();
+	foreach (preg_split('/\s*,\s*/', is_scalar($group_list) ? (string) $group_list : '', -1, PREG_SPLIT_NO_EMPTY) as $id)
+	{
+		$id = (int) $id;
+		if ($id > 0)
+		{
+			$group_ids[$id] = $id;
+		}
+	}
 	/* Debugging for this function */
 	$debug = false;
 	
@@ -189,17 +212,17 @@ function color_groups_update_group_id($group_list, $user_list, $group_id)
 		SET group_color_group = 0
 		WHERE group_color_group = $group_id";
 	// Set all new list items to have the color group, if we were given a list //
-	if (!empty($user_list))
+	if (!empty($user_ids))
 	{
 		$sql[] = 'UPDATE ' . USERS_TABLE . "
 		SET user_color_group = $group_id
-		WHERE user_id IN ($user_list)";
+		WHERE user_id IN (" . implode(',', $user_ids) . ')';
 	}
-	if (!empty($group_list))
+	if (!empty($group_ids))
 	{
 		$sql[] = 'UPDATE ' . GROUPS_TABLE . "
 		SET group_color_group = $group_id
-		WHERE group_id IN ($group_list)";
+		WHERE group_id IN (" . implode(',', $group_ids) . ')';
 	}
 	
 	// DO the actual SQL commands now //
@@ -228,14 +251,18 @@ function color_groups_setup_list()
 		{ 
 			while ($row = $db->sql_fetchrow($result))
 			{
-				$list .= '&nbsp;[ <span style="font-weight:bold;color:' . $row['group_color'] . '">' . $row['group_name'] . '</span> ]&nbsp;<br />';
+				$color = check_font_color_nivisec($row['group_color']) ? htmlspecialchars($row['group_color'], ENT_QUOTES, 'UTF-8') : '';
+				$style = ($color !== '') ? ' style="font-weight:bold;color:' . $color . '"' : '';
+				$list .= '&nbsp;[ <span' . $style . '>' . htmlspecialchars($row['group_name'], ENT_QUOTES, 'UTF-8') . '</span> ]&nbsp;<br />';
 			}
 		}
 	else
 		{
 			while ($row = $db->sql_fetchrow($result))
 			{
-				$list .= '&nbsp;[ <span style="font-weight:bold;color:' . $row['group_color'] . '">' . $row['group_name'] . '</span> ]&nbsp;';
+				$color = check_font_color_nivisec($row['group_color']) ? htmlspecialchars($row['group_color'], ENT_QUOTES, 'UTF-8') : '';
+				$style = ($color !== '') ? ' style="font-weight:bold;color:' . $color . '"' : '';
+				$list .= '&nbsp;[ <span' . $style . '>' . htmlspecialchars($row['group_name'], ENT_QUOTES, 'UTF-8') . '</span> ]&nbsp;';
 			}
 		}
 				$template->assign_var('COLOR_GROUPS_LIST', $list);
@@ -395,6 +422,7 @@ function color_group_colorize_name($user_id, $no_profile = false)
 	global $db, $lang, $phpEx;
 	global $phpbb_root_path;
 	static $cacheUsers;
+	$user_id = (int) $user_id;
 	
 	if ($user_id == ANONYMOUS)
 	{
@@ -406,8 +434,13 @@ function color_group_colorize_name($user_id, $no_profile = false)
 		// $cacheUsers = cg_get_data($user_id); 
 		$cacheUsers = cg_get_data($user_id, true);
 	}	
+	if (!isset($cacheUsers[$user_id]) || !is_array($cacheUsers[$user_id]))
+	{
+		$cacheUsers[$user_id] = array('name' => '', 'color' => '');
+	}
 
-	$style_color = ($cacheUsers[$user_id]['color'] != '') ? 'style="font-weight:bold;color:'.$cacheUsers[$user_id]['color'].'"' : '';
+	$color = check_font_color_nivisec($cacheUsers[$user_id]['color']) ? htmlspecialchars($cacheUsers[$user_id]['color'], ENT_QUOTES, 'UTF-8') : '';
+	$style_color = ($color !== '') ? 'style="font-weight:bold;color:' . $color . '"' : '';
 
 	$username = stripslashes($cacheUsers[$user_id]['name']);
 
@@ -420,10 +453,11 @@ function color_group_colorize_name($user_id, $no_profile = false)
 			$username = 'John Doe_'.$user_id;
 		} else {
 			$row = $db->sql_fetchrow($result);
-			$username = $row['username'];
+			$username = ($row && isset($row['username'])) ? $row['username'] : $lang['Guest'];
 			$db->sql_freeresult($result);
 		}
 	}
+	$username = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
 
 	// Make the profile link or no and return it //
 	if ($no_profile)
