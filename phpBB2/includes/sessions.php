@@ -55,7 +55,7 @@ if ($files)
 	}
 
 	//
-	if (!preg_match('/^[A-Za-z0-9]*$/', $session_id)) 
+	if (!preg_match('/^[a-f0-9]{32}$/iD', (string) $session_id))
 	{
 		$session_id = '';
 	}
@@ -183,7 +183,7 @@ if ($files)
 			AND session_ip = '$user_ip'";
 	if ( !$db->sql_query($sql) || !$db->sql_affectedrows() )
 	{
-		$session_id = md5(dss_rand());
+		$session_id = md5(dss_rand() . dss_rand());
 
 		$sql = "INSERT INTO " . SESSIONS_TABLE . "
 			(session_id, session_user_id, session_start, session_time, session_ip, session_page, session_logged_in, session_admin)
@@ -306,7 +306,7 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 	}
 	
 	// 
-	if (!preg_match('/^[A-Za-z0-9]*$/', $session_id))
+	if (!preg_match('/^[a-f0-9]{32}$/iD', (string) $session_id))
 	{
 		$session_id = '';
 	}
