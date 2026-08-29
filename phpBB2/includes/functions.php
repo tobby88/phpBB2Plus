@@ -734,6 +734,87 @@ function init_userprefs($userdata)
 	return;
 }
 
+/**
+ * Validate the small, legacy PHP assignment grammar used by <template>.cfg.
+ *
+ * The file must remain compatible with existing phpBB2 styles, but a style
+ * archive must not be able to turn this include into arbitrary PHP execution.
+ */
+function phpbb_template_config_is_safe($filename, $templates_root)
+{
+	$root = @realpath($templates_root);
+	$file = @realpath($filename);
+	if ($root === false || $file === false || !@is_file($file) || @is_link($file))
+	{
+		return false;
+	}
+
+	$root = rtrim(str_replace('\\', '/', $root), '/') . '/';
+	$file_normalized = str_replace('\\', '/', $file);
+	if (strpos($file_normalized, $root) !== 0 || @filesize($file) > 1048576)
+	{
+		return false;
+	}
+
+	$lines = @file($file);
+	if (!is_array($lines) || count($lines) > 5000)
+	{
+		return false;
+	}
+
+	$allowed_scalars = array(
+		'current_template_images', 'topic_iw', 'topic_ih', 'post_iw', 'post_ih',
+		'icon_iw', 'icon_ih', 'folder_iw', 'folder_ih', 'folderbig_iw',
+		'folderbig_ih', 'ifade'
+	);
+	$variable = '\\$(?:current_template_path|current_template_images|topic_iw|topic_ih|post_iw|post_ih|icon_iw|icon_ih|folder_iw|folder_ih|folderbig_iw|folderbig_ih|ifade)';
+	$quoted = '(?:"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\')';
+	$term = '(?:' . $variable . '|-?[0-9]+(?:\\.[0-9]+)?|TRUE|FALSE|' . $quoted . ')';
+	$expression = $term . '(?:\\s*\\.\\s*' . $term . ')*';
+	$defined = false;
+
+	foreach ($lines as $source_line)
+	{
+		$line = trim($source_line);
+		if ($line === '' || $line === '<?php' || $line === '?>' || strpos($line, '//') === 0)
+		{
+			continue;
+		}
+		if (preg_match('/^define\\(\\s*[\'\"]TEMPLATE_CONFIG[\'\"]\\s*,\\s*TRUE\\s*\\);$/D', $line))
+		{
+			$defined = true;
+			continue;
+		}
+		if (!preg_match('/^\\$([A-Za-z_][A-Za-z0-9_]*)(.*?)\\s*=\\s*(' . $expression . ')\\s*;$/D', $line, $match))
+		{
+			return false;
+		}
+
+		$base = $match[1];
+		$indexes = $match[2];
+		if ($base === 'images')
+		{
+			if (!preg_match('/^\\[[\'\"][A-Za-z0-9_]+[\'\"]\\](?:\\[[0-9]+\\])?$/D', $indexes))
+			{
+				return false;
+			}
+		}
+		elseif ($base === 'board_config')
+		{
+			if (!preg_match('/^\\[[\'\"](?:vote_graphic_length|privmsg_graphic_length)[\'\"]\\]$/D', $indexes))
+			{
+				return false;
+			}
+		}
+		elseif (!in_array($base, $allowed_scalars, true) || $indexes !== '')
+		{
+			return false;
+		}
+	}
+
+	return $defined;
+}
+
 function setup_style($style)
 {
 	global $db, $board_config, $template, $images, $phpbb_root_path;
@@ -816,7 +897,11 @@ function setup_style($style)
 	if ( $template )
 	{
 		$current_template_path = $template_path . $template_name;
-		@include($phpbb_root_path . $template_path . $template_name . '/' . $template_name . '.cfg');
+		$template_config = $phpbb_root_path . $template_path . $template_name . '/' . $template_name . '.cfg';
+		if (phpbb_template_config_is_safe($template_config, $phpbb_root_path . $template_path))
+		{
+			include($template_config);
+		}
 
 		if ( !defined('TEMPLATE_CONFIG') )
 		{
