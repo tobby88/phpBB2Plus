@@ -45,11 +45,15 @@ $lang['xs_export_data_back'] = str_replace('{URL}', append_sid('xs_export_data.'
 //
 // export style
 //
-if(isset($HTTP_GET_VARS['export']))
+if(isset($HTTP_GET_VARS['export']) && is_scalar($HTTP_GET_VARS['export']))
 {
-	$export = str_replace(array('\\', '/'), array('',''), stripslashes($HTTP_GET_VARS['export']));
+	$export = xs_tpl_name(stripslashes((string) $HTTP_GET_VARS['export']));
+	if($export === '')
+	{
+		xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_export_data_back']);
+	}
 	// get list of themes for style
-	$sql = "SELECT themes_id, style_name FROM " . THEMES_TABLE . " WHERE template_name = '$export' ORDER BY style_name ASC";
+	$sql = "SELECT themes_id, style_name FROM " . THEMES_TABLE . " WHERE template_name = '" . xs_sql($export) . "' ORDER BY style_name ASC";
 	if(!$result = $db->sql_query($sql))
 	{
 		xs_error($lang['xs_no_theme_data'] . '<br /><br />' . $lang['xs_export_data_back']);
@@ -59,50 +63,60 @@ if(isset($HTTP_GET_VARS['export']))
 	{
 		xs_error($lang['xs_no_themes'] . '<br /><br />' . $lang['xs_export_data_back']);
 	}
-	if(count($theme_rowset) == 1)
+	$template->set_filenames(array('body' => XS_TPL_PATH . 'export_data2.tpl'));
+	$template->assign_vars(array(
+		'TOTAL'		=> count($theme_rowset),
+		'EXPORT'	=> htmlspecialchars($export, ENT_QUOTES, 'UTF-8'),
+		'U_ACTION'	=> append_sid("xs_export_data.{$phpEx}")
+		)
+	);
+	for($i=0; $i<count($theme_rowset); $i++)
 	{
-		$HTTP_POST_VARS['export'] = $HTTP_GET_VARS['export'];
-		$HTTP_POST_VARS['export_total'] = '1';
-		$HTTP_POST_VARS['export_id_0'] = $theme_rowset[0]['themes_id'];
-		$HTTP_POST_VARS['export_check_0'] = 'checked';
-	}
-	else
-	{
-		$template->set_filenames(array('body' => XS_TPL_PATH . 'export_data2.tpl'));
-		$template->assign_vars(array(
-			'TOTAL'		=> count($theme_rowset),
-			'EXPORT'	=> htmlspecialchars($export),
-			'U_ACTION'	=> append_sid("xs_export_data.{$phpEx}")
+		$row_class = $xs_row_class[$i % 2];
+		$template->assign_block_vars('styles', array(
+			'ROW_CLASS'		=> $row_class,
+			'NUM'			=> $i,
+			'ID'			=> $theme_rowset[$i]['themes_id'],
+			'STYLE'			=> htmlspecialchars($theme_rowset[$i]['style_name'], ENT_QUOTES, 'UTF-8')
 			)
 		);
-		for($i=0; $i<count($theme_rowset); $i++)
-		{
-			$row_class = $xs_row_class[$i % 2];
-			$template->assign_block_vars('styles', array(
-				'ROW_CLASS'		=> $row_class,
-				'NUM'			=> $i,
-				'ID'			=> $theme_rowset[$i]['themes_id'],
-				'STYLE'			=> htmlspecialchars($theme_rowset[$i]['style_name'])
-				)
-			);
-		}
-		$template->pparse('body');
-		xs_exit();
 	}
+	$template->pparse('body');
+	xs_exit();
 }
 
 if(!empty($HTTP_POST_VARS['export']) && !defined('DEMO_MODE'))
 {
-	$export = xs_tpl_name($HTTP_POST_VARS['export']);
+	phpbb_admin_require_post_session();
+	$export = xs_tpl_name(is_scalar($HTTP_POST_VARS['export']) ? (string) $HTTP_POST_VARS['export'] : '');
+	if($export === '' || !@is_dir('../templates/' . $export))
+	{
+		xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_export_data_back']);
+	}
 	// get ftp configuration
 	$params = array('export' => $export);
-	$total = intval($HTTP_POST_VARS['export_total']);
+	$total = isset($HTTP_POST_VARS['export_total']) && is_scalar($HTTP_POST_VARS['export_total']) ? intval($HTTP_POST_VARS['export_total']) : 0;
+	if($total <= 0 || $total > 1000)
+	{
+		xs_error($lang['xs_export_noselect_themes'] . '<br /><br />' . $lang['xs_export_data_back']);
+	}
 	$count = 0;
+	$export_list = array();
 	for($i=0; $i<$total; $i++)
 	{
-		if(!empty($HTTP_POST_VARS['export_check_'.$i]))
+		if(!empty($HTTP_POST_VARS['export_check_'.$i]) && isset($HTTP_POST_VARS['export_id_'.$i]) && is_scalar($HTTP_POST_VARS['export_id_'.$i]))
 		{
-			$params['export_id_'.$count] = intval($HTTP_POST_VARS['export_id_'.$i]);
+			$style_id = intval($HTTP_POST_VARS['export_id_'.$i]);
+			if($style_id <= 0)
+			{
+				xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_export_data_back']);
+			}
+			if(isset($export_list[$style_id]))
+			{
+				continue;
+			}
+			$export_list[$style_id] = $style_id;
+			$params['export_id_'.$count] = $style_id;
 			$params['export_check_'.$count] = 'checked';
 			$count ++;
 		}
@@ -121,42 +135,57 @@ if(!empty($HTTP_POST_VARS['export']) && !defined('DEMO_MODE'))
 	if($ftp === XS_FTP_LOCAL)
 	{
 		$write_local = true;
-		$local_filename = '../templates/'. $export . '/theme_info.cfg';
+		$template_path = @realpath('../templates/' . $export);
+		$templates_root = @realpath('../templates');
+		if($template_path === false || $templates_root === false || strpos(rtrim(str_replace('\\', '/', $template_path), '/') . '/', rtrim(str_replace('\\', '/', $templates_root), '/') . '/') !== 0)
+		{
+			xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_export_data_back']);
+		}
+		$local_filename = $template_path . DIRECTORY_SEPARATOR . 'theme_info.cfg';
 	}
 	else
 	{
-		$local_filename = XS_TEMP_DIR . 'export_' . time() . '.tmp';
+		$local_filename = '';
 	}
 	// get all themes for style
-	$export_list = array();
-	for($i=0; $i<$total; $i++)
-	{
-		if(!empty($HTTP_POST_VARS['export_check_'.$i]))
-		{
-			$export_list[] = intval($HTTP_POST_VARS['export_id_'.$i]);
-		}
-	}
-	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE themes_id IN (" . implode(', ', $export_list) . ") ORDER BY style_name ASC";
+	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE template_name = '" . xs_sql($export) . "' AND themes_id IN (" . implode(', ', $export_list) . ") ORDER BY style_name ASC";
 	if(!$result = $db->sql_query($sql))
 	{
 		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_export_data_back'], __LINE__, __FILE__);
 	}
 	$style_rowset = $db->sql_fetchrowset($result);
-	if(!count($style_rowset))
+	if(!count($style_rowset) || count($style_rowset) !== count($export_list))
 	{
 		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_export_data_back'], __LINE__, __FILE__);
 	}
 	$data = xs_generate_themeinfo($style_rowset, $export, $export, 0);
-	$f = @fopen($local_filename, 'wb');
-	if(!$f)
+	if(strlen($data) > 1024 * 1024)
 	{
-		xs_error(str_replace('{FILE}', $local_filename, $lang['xs_error_cannot_create_file']) . '<br /><br />' . $lang['xs_export_data_back']);
+		xs_error(str_replace('{FILE}', htmlspecialchars($local_filename, ENT_QUOTES, 'UTF-8'), $lang['xs_error_cannot_create_file']) . '<br /><br />' . $lang['xs_export_data_back']);
 	}
-	fwrite($f, $data);
-	fclose($f);
 	if($write_local)
 	{
+		$tmp_filename = @tempnam(dirname($local_filename), 'xs_theme_');
+		if($tmp_filename === false || @file_put_contents($tmp_filename, $data, LOCK_EX) !== strlen($data) || !@rename($tmp_filename, $local_filename))
+		{
+			if($tmp_filename !== false)
+			{
+				@unlink($tmp_filename);
+			}
+			xs_error(str_replace('{FILE}', htmlspecialchars($local_filename, ENT_QUOTES, 'UTF-8'), $lang['xs_error_cannot_create_file']) . '<br /><br />' . $lang['xs_export_data_back']);
+		}
+		@chmod($local_filename, 0664);
 		xs_message($lang['Information'], $lang['xs_export_data_saved'] . '<br /><br />' . $lang['xs_export_data_back']);
+	}
+	$local_filename = @tempnam(XS_TEMP_DIR, 'xs_theme_');
+	if($local_filename === false)
+	{
+		xs_error(str_replace('{FILE}', XS_TEMP_DIR, $lang['xs_error_cannot_create_file']) . '<br /><br />' . $lang['xs_export_data_back']);
+	}
+	if(@file_put_contents($local_filename, $data, LOCK_EX) !== strlen($data))
+	{
+		@unlink($local_filename);
+		xs_error(str_replace('{FILE}', XS_TEMP_DIR, $lang['xs_error_cannot_create_file']) . '<br /><br />' . $lang['xs_export_data_back']);
 	}
 	// generate ftp actions
 	$actions = array();
@@ -214,7 +243,7 @@ for($i=0; $i<count($style_rowset); $i++)
 	$item = $style_rowset[$i];
 	if($item['template_name'] === $prev_tpl)
 	{
-		$style_names[] = htmlspecialchars($item['style_name']);
+		$style_names[] = htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8');
 	}
 	else
 	{
@@ -226,7 +255,7 @@ for($i=0; $i<count($style_rowset); $i++)
 			$j++;
 			$template->assign_block_vars('styles', array(
 					'ROW_CLASS'	=> $row_class,
-					'TPL'		=> $prev_tpl,
+					'TPL'		=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 					'STYLES'	=> $str,
 					'U_EXPORT'	=> "xs_export_data.{$phpEx}?export={$str2}&sid={$userdata['session_id']}",
 				)
@@ -234,7 +263,7 @@ for($i=0; $i<count($style_rowset); $i++)
 		}
 		$prev_id = $item['themes_id'];
 		$prev_tpl = $item['template_name'];
-		$style_names = array(htmlspecialchars($item['style_name']));
+		$style_names = array(htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8'));
 	}
 }
 
@@ -246,7 +275,7 @@ if($prev_id > 0)
 	$j++;
 	$template->assign_block_vars('styles', array(
 			'ROW_CLASS'	=> $row_class,
-			'TPL'		=> $prev_tpl,
+			'TPL'		=> htmlspecialchars($prev_tpl, ENT_QUOTES, 'UTF-8'),
 			'STYLES'	=> $str,
 			'U_EXPORT'	=> "xs_export_data.{$phpEx}?export={$str2}&sid={$userdata['session_id']}",
 		)
