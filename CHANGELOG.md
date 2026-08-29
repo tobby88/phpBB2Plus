@@ -224,6 +224,15 @@ changes consolidated after that baseline without implying active maintenance.
 - Removed stale Shoutbox profile state and fixed anonymous online-list entries
   so guest rows no longer attempt to build member-profile links or emit PHP 8
   warnings.
+- Converted legacy PAFileDB, acronym, banner, news-category, Arcade-reset and
+  statistics administration writes from immediate GET actions to explicit,
+  session-bound POST requests. Confirmations are retained for destructive
+  operations, and failed PAFileDB mirror replacements no longer discard the
+  previously stored file.
+- Hardened custom-profile-field administration against injected identifiers,
+  array-shaped form values and unescaped database content; column names used
+  by schema changes are derived and validated server-side. Also repaired the
+  statistics ACP bootstrap that previously stopped at its own include guard.
 
 ### Repository and update cleanup
 
