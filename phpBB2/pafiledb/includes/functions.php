@@ -602,11 +602,13 @@ function pafiledb_page_header($page_title)
 	$is_mod = false;
 	if($action == 'category')
 	{
-		$upload_url = append_sid("dload.php?action=user_upload&cat_id={$_REQUEST['cat_id']}");
-		$upload_auth = $pafiledb->modules[$pafiledb->module_name]->auth[$_REQUEST['cat_id']]['auth_upload'];
+		$page_cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
+		$category_auth = isset($pafiledb->modules[$pafiledb->module_name]->auth[$page_cat_id]) ? $pafiledb->modules[$pafiledb->module_name]->auth[$page_cat_id] : array();
+		$upload_url = append_sid("dload.php?action=user_upload&cat_id=$page_cat_id");
+		$upload_auth = !empty($category_auth['auth_upload']);
 // MX Addon
-		$mcp_url = append_sid("dload.php?action=mcp&cat_id={$_REQUEST['cat_id']}");
-		$mcp_auth = $pafiledb->modules[$pafiledb->module_name]->auth[$_REQUEST['cat_id']]['auth_mod'];
+		$mcp_url = append_sid("dload.php?action=mcp&cat_id=$page_cat_id");
+		$mcp_auth = !empty($category_auth['auth_mod']);
 		$is_mod = $mcp_auth;
 
 	}

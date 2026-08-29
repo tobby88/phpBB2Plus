@@ -16,7 +16,7 @@ class pafiledb_license extends pafiledb_public
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images, $userdata;
 		global $_REQUEST, $phpbb_root_path;
 
-		if ( isset($_REQUEST['license_id']) )
+		if ( isset($_REQUEST['license_id']) && is_scalar($_REQUEST['license_id']) )
 		{
 			$license_id = intval($_REQUEST['license_id']);
 		}
@@ -25,7 +25,7 @@ class pafiledb_license extends pafiledb_public
 			message_die(GENERAL_MESSAGE, $lang['License_not_exist']);
 		}
 
-		if ( isset($_REQUEST['file_id']) )
+		if ( isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id']) )
 		{
 			$file_id = intval($_REQUEST['file_id']);
 		}

@@ -15,15 +15,15 @@ class pafiledb_file extends pafiledb_public
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
 		global $_REQUEST, $phpbb_root_path, $userdata, $db, $pafiledb_functions;
 
-		if ( isset($_REQUEST['file_id']))
+		$file_id = 0;
+		if ( isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id']))
 		{
 			$file_id = intval($_REQUEST['file_id']);
 		}
-		else if ($file_id == 0 && $action != '')
+		else if ($action !== false && $action != '')
 		{
-			$file_id_array = array();
-			$file_id_array = explode('=', $action);
-			$file_id = $file_id_array[1];
+			$file_id_array = explode('=', (string) $action, 2);
+			$file_id = isset($file_id_array[1]) ? intval($file_id_array[1]) : 0;
 		}
 		else
 		{

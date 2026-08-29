@@ -13,11 +13,11 @@ class pafiledb_viewall extends pafiledb_public
 {
 	function main($action = false)
 	{
-		global $pafiledb_template,$lang, $phpEx, $pafiledb_config, $_REQUEST, $userdata;
+		global $pafiledb_template,$lang, $phpEx, $pafiledb_config, $_REQUEST, $userdata, $board_config;
 
-		$start = ( isset($_REQUEST['start']) ) ? intval($_REQUEST['start']) : 0;
+		$start = (isset($_REQUEST['start']) && is_scalar($_REQUEST['start'])) ? max(0, intval($_REQUEST['start'])) : 0;
 
-		if( isset($_REQUEST['sort_method']) )
+		if( isset($_REQUEST['sort_method']) && is_scalar($_REQUEST['sort_method']) )
 		{
 			switch ($_REQUEST['sort_method'])
 			{
@@ -45,7 +45,7 @@ class pafiledb_viewall extends pafiledb_public
 			$sort_method = $pafiledb_config['sort_method'];
 		}
 
-		if( isset($_REQUEST['sort_order']) )
+		if( isset($_REQUEST['sort_order']) && is_scalar($_REQUEST['sort_order']) )
 		{
 			switch ($_REQUEST['sort_order'])
 			{

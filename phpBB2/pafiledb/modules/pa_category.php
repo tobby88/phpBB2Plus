@@ -18,25 +18,24 @@ class pafiledb_category extends pafiledb_public
 		// Get the id
 		// =======================================================
 
-		if ( isset($_REQUEST['cat_id']))
+		if ( isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id']))
 		{
 			$cat_id = intval($_REQUEST['cat_id']);
 		}
 		else if ($action !== false && $action != '')
 		{
-			$cat_id_array = array();
-			$cat_id_array = explode('=', $action);
-			$cat_id = $cat_id_array[1];
+			$cat_id_array = explode('=', (string) $action, 2);
+			$cat_id = isset($cat_id_array[1]) ? intval($cat_id_array[1]) : 0;
 		}
 		else
 		{
 			message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
 		}
 
-		$start = ( isset($_REQUEST['start']) ) ? intval($_REQUEST['start']) : 0;
+		$start = (isset($_REQUEST['start']) && is_scalar($_REQUEST['start'])) ? max(0, intval($_REQUEST['start'])) : 0;
 
 
-		if( isset($_REQUEST['sort_method']) )
+		if( isset($_REQUEST['sort_method']) && is_scalar($_REQUEST['sort_method']) )
 		{
 			switch ($_REQUEST['sort_method'])
 			{
@@ -64,7 +63,7 @@ class pafiledb_category extends pafiledb_public
 			$sort_method = $pafiledb_config['sort_method'];
 		}
 
-		if( isset($_REQUEST['sort_order']) )
+		if( isset($_REQUEST['sort_order']) && is_scalar($_REQUEST['sort_order']) )
 		{
 			switch ($_REQUEST['sort_order'])
 			{
@@ -87,13 +86,17 @@ class pafiledb_category extends pafiledb_public
 		// If user not allowed to view file listing (read) and there is no sub Category
 		// or the user is not allowed to view these category we gave him a nice message.
 		// =======================================================
+		if($cat_id <= 0 || !isset($this->cat_rowset[$cat_id], $this->auth[$cat_id]))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
+		}
 
 		$show_category = FALSE;
 		if (isset($this->subcat_rowset[$cat_id]))
 		{
 			foreach($this->subcat_rowset[$cat_id] as $sub_cat_id => $sub_cat_row)
 			{
-				if($this->auth[$sub_cat_id]['auth_view'])
+				if(!empty($this->auth[$sub_cat_id]['auth_view']))
 				{
 					$show_category = TRUE;
 					break;
@@ -110,11 +113,6 @@ class pafiledb_category extends pafiledb_public
 
 			$message = sprintf($lang['Sorry_auth_view'], $this->auth[$cat_id]['auth_read_type']);
 			message_die(GENERAL_MESSAGE, $message);
-		}
-
-		if(!isset($this->cat_rowset[$cat_id]))
-		{
-			message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
 		}
 
 		//===================================================

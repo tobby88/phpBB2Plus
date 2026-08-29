@@ -30,20 +30,20 @@ class pafiledb_search extends pafiledb_public
 		
 		include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
-		if ( isset($_REQUEST['search_keywords']) )
+		if ( isset($_REQUEST['search_keywords']) && is_scalar($_REQUEST['search_keywords']) )
 		{
-			$search_keywords = htmlspecialchars($_REQUEST['search_keywords']);
+			$search_keywords = htmlspecialchars(substr((string) $_REQUEST['search_keywords'], 0, 200));
 		}
 		else
 		{
 			$search_keywords = '';
 		}
 
-		$search_author = ( isset($_REQUEST['search_author']) ) ? htmlspecialchars($_REQUEST['search_author']) : '';
+		$search_author = (isset($_REQUEST['search_author']) && is_scalar($_REQUEST['search_author'])) ? htmlspecialchars(substr((string) $_REQUEST['search_author'], 0, 100)) : '';
 		
-		$search_id = ( isset($_REQUEST['search_id']) ) ? intval($_REQUEST['search_id']) : 0;
+		$search_id = (isset($_REQUEST['search_id']) && is_scalar($_REQUEST['search_id'])) ? intval($_REQUEST['search_id']) : 0;
 
-		if ( isset($_REQUEST['search_terms']) )
+		if ( isset($_REQUEST['search_terms']) && is_scalar($_REQUEST['search_terms']) )
 		{
 			$search_terms = ( $_REQUEST['search_terms'] == 'all' ) ? 1 : 0;
 		}
@@ -52,10 +52,10 @@ class pafiledb_search extends pafiledb_public
 			$search_terms = 0;
 		}
 
-		$cat_id = ( isset($_REQUEST['cat_id']) ) ? intval($_REQUEST['cat_id']) : 0;
+		$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
 
 
-		if ( isset($_REQUEST['comments_search']) )
+		if ( isset($_REQUEST['comments_search']) && is_scalar($_REQUEST['comments_search']) )
 		{
 			$comments_search = ( $_REQUEST['comments_search'] == 'YES' ) ? 1 : 0;
 		}
@@ -64,9 +64,9 @@ class pafiledb_search extends pafiledb_public
 			$comments_search =  0;
 		}
 
-		$start = ( isset($_REQUEST['start']) ) ? intval($_REQUEST['start']) : 0;
+		$start = (isset($_REQUEST['start']) && is_scalar($_REQUEST['start'])) ? max(0, intval($_REQUEST['start'])) : 0;
 
-		if( isset($_REQUEST['sort_method']) )
+		if( isset($_REQUEST['sort_method']) && is_scalar($_REQUEST['sort_method']) )
 		{
 			switch ($_REQUEST['sort_method'])
 			{
@@ -94,7 +94,7 @@ class pafiledb_search extends pafiledb_public
 			$sort_method = $pafiledb_config['sort_method'];
 		}
 
-		if( isset($_REQUEST['sort_order']) )
+		if( isset($_REQUEST['sort_order']) && is_scalar($_REQUEST['sort_order']) )
 		{
 			switch ($_REQUEST['sort_order'])
 			{

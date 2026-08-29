@@ -29,15 +29,20 @@ class pafiledb_toplist extends pafiledb_public
 			message_die(GENERAL_MESSAGE, $message);
 		}
 
-		$mode = ( isset($_REQUEST['mode']) ) ? htmlspecialchars($_REQUEST['mode']) : 'newest';
+		$mode = (isset($_REQUEST['mode']) && is_scalar($_REQUEST['mode'])) ? (string) $_REQUEST['mode'] : 'newest';
+		if (!in_array($mode, array('newest', 'downloads', 'rating'), true))
+		{
+			$mode = 'newest';
+		}
 
-		$days = ( isset($_REQUEST['days']) ) ? intval($_REQUEST['days']) : 7;
+		$days = (isset($_REQUEST['days']) && is_scalar($_REQUEST['days'])) ? max(1, min(365, intval($_REQUEST['days']))) : 7;
 
-		$selected_date = ( isset($_REQUEST['selected_date']) ) ? $_REQUEST['selected_date'] : '';
+		$selected_date = (isset($_REQUEST['selected_date']) && is_scalar($_REQUEST['selected_date'])) ? max(0, intval($_REQUEST['selected_date'])) : 0;
 
-		$most_num = ( isset($_REQUEST['most_num']) ) ? intval($_REQUEST['most_num']) : 10;
+		$most_num = (isset($_REQUEST['most_num']) && is_scalar($_REQUEST['most_num'])) ? max(1, min(1000, intval($_REQUEST['most_num']))) : 10;
 
-		$most_type = ( isset($_REQUEST['most_type']) ) ? htmlspecialchars($_REQUEST['most_type']) : 'num';
+		$most_type = (isset($_REQUEST['most_type']) && is_scalar($_REQUEST['most_type']) && $_REQUEST['most_type'] === 'per') ? 'per' : 'num';
+		$rowset = array();
 
 		if ($mode == 'downloads')
 		{
