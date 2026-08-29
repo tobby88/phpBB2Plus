@@ -29,7 +29,7 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_color_groups.'.$phpEx);
-include($phpbb_root_path . 'includes/def_icons.'. $phpEx);
+phpbb_load_icon_config();
 include_once($phpbb_root_path . 'includes/functions_calendar.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_bookmark.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);

@@ -83,12 +83,127 @@ function phpbb_preg_replace_outside_tags($text, $patterns, $replacements)
 
 //-- mod : post icon -------------------------------------------------------------------------------
 //-- add
+function phpbb_icon_config_valid($config)
+{
+	if (!is_array($config) || !isset($config['icons'], $config['special']) || !is_array($config['icons']) || !is_array($config['special']) || count($config['icons']) > 256 || count($config['special']) > 64)
+	{
+		return false;
+	}
+	$ids = array();
+	foreach ($config['icons'] as $icon)
+	{
+		if (!is_array($icon) || !isset($icon['ind'], $icon['img'], $icon['alt'], $icon['auth']) || !is_scalar($icon['ind']) || !is_string($icon['img']) || !is_string($icon['alt']) || !is_scalar($icon['auth']))
+		{
+			return false;
+		}
+		$id = (int) $icon['ind'];
+		$auth = (int) $icon['auth'];
+		if ($id < 0 || $id > 65535 || isset($ids[$id]) || !in_array($auth, array(AUTH_ALL, AUTH_REG, AUTH_MOD, AUTH_ADMIN), true) || !preg_match('#^(?:|[A-Za-z0-9_][A-Za-z0-9_./-]{0,254})$#D', $icon['img']) || strpos($icon['img'], '..') !== false || !preg_match('/^[A-Za-z0-9_]{1,100}$/D', $icon['alt']))
+		{
+			return false;
+		}
+		$ids[$id] = true;
+	}
+	if (!isset($ids[0]))
+	{
+		return false;
+	}
+	foreach ($config['special'] as $key => $special)
+	{
+		if (!is_string($key) || !preg_match('/^[A-Z_]{1,64}$/D', $key) || !is_array($special) || !isset($special['lang_key'], $special['icon']) || !is_string($special['lang_key']) || !preg_match('/^[A-Za-z0-9_]{1,100}$/D', $special['lang_key']) || !is_scalar($special['icon']) || !isset($ids[(int) $special['icon']]))
+		{
+			return false;
+		}
+	}
+	foreach (array('POST_ATTACHMENT', 'POST_PICTURE', 'POST_CALENDAR', 'POST_BIRTHDAY', 'POST_GLOBAL_ANNOUNCE', 'POST_ANNOUNCE', 'POST_STICKY', 'POST_NORMAL') as $key)
+	{
+		if (!isset($config['special'][$key]))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+function phpbb_normalize_icon_config($icons, $special)
+{
+	$config = array('icons' => array(), 'special' => array());
+	if (is_array($icons))
+	{
+		foreach ($icons as $icon)
+		{
+			if (is_array($icon) && isset($icon['ind'], $icon['img'], $icon['alt'], $icon['auth']))
+			{
+				$config['icons'][] = array('ind' => (int) $icon['ind'], 'img' => (string) $icon['img'], 'alt' => (string) $icon['alt'], 'auth' => (int) $icon['auth']);
+			}
+		}
+	}
+	if (is_array($special))
+	{
+		foreach ($special as $key => $data)
+		{
+			if (is_array($data) && isset($data['lang_key'], $data['icon']))
+			{
+				$config['special'][(string) $key] = array('lang_key' => (string) $data['lang_key'], 'icon' => (int) $data['icon']);
+			}
+		}
+	}
+	return $config;
+}
+
+function phpbb_save_icon_config($icons, $special)
+{
+	global $phpbb_root_path;
+	$config = phpbb_normalize_icon_config($icons, $special);
+	return phpbb_icon_config_valid($config) && phpbb_data_cache_write($phpbb_root_path . 'cache/icons.cache', $config);
+}
+
+function phpbb_load_icon_config()
+{
+	global $phpbb_root_path, $icones, $icon_defined_special;
+	static $loaded = false;
+	if ($loaded && is_array($icones) && is_array($icon_defined_special))
+	{
+		return true;
+	}
+
+	$config = phpbb_data_cache_read($phpbb_root_path . 'cache/icons.cache');
+	if (!phpbb_icon_config_valid($config))
+	{
+		$legacy_file = $phpbb_root_path . 'includes/def_icons.php';
+		if (is_file($legacy_file) && !is_link($legacy_file) && @filesize($legacy_file) <= 65536)
+		{
+			$icones = array();
+			$icon_defined_special = array();
+			include($legacy_file);
+			$config = phpbb_normalize_icon_config($icones, $icon_defined_special);
+		}
+		if (!phpbb_icon_config_valid($config))
+		{
+			$icon_default_icons = array();
+			$icon_default_special = array();
+			include($phpbb_root_path . 'includes/icon_defaults.php');
+			$config = phpbb_normalize_icon_config($icon_default_icons, $icon_default_special);
+		}
+		if (!phpbb_icon_config_valid($config))
+		{
+			return false;
+		}
+		phpbb_data_cache_write($phpbb_root_path . 'cache/icons.cache', $config);
+	}
+
+	$icones = $config['icons'];
+	$icon_defined_special = $config['special'];
+	$loaded = true;
+	return true;
+}
+
 function get_icon_title($icon, $empty=0, $topic_type=-1, $admin=false)
 {
-	global $lang, $images, $phpEx, $phpbb_root_path;
+	global $lang, $images, $phpEx, $phpbb_root_path, $icones, $icon_defined_special;
 
 	// get icons parameters
-	include($phpbb_root_path . './includes/def_icons.' . $phpEx);
+	phpbb_load_icon_config();
 
 	// admin path
 	$admin_path = ($admin) ? '../' : './';
@@ -147,7 +262,7 @@ function get_icon_title($icon, $empty=0, $topic_type=-1, $admin=false)
 				$icon = $icon_defined_special['POST_PICTURE']['icon'];
 				break;
 			case POST_ATTACHMENT:
-				$icon = $icon_defined_special['POST_ATTACHEMENT']['icon'];
+				$icon = isset($icon_defined_special['POST_ATTACHMENT']['icon']) ? $icon_defined_special['POST_ATTACHMENT']['icon'] : 0;
 				break;
 			default:
 				$change=false;
@@ -183,7 +298,7 @@ function get_icon_title($icon, $empty=0, $topic_type=-1, $admin=false)
 				$res = '<img width="20" align="' . $align . '" src="' . $admin_path . $images['spacer'] . '" alt="" border="0">';
 				break;
 			case 2:
-				$res = isset($lang[ $icones[$icon_map]['alt'] ]) ? $lang[ $icones[$icon_map]['alt'] ] : $icones[$icon_map]['alt'];
+				$res = ($icon_map >= 0 && isset($icones[$icon_map]['alt'])) ? (isset($lang[ $icones[$icon_map]['alt'] ]) ? $lang[ $icones[$icon_map]['alt'] ] : $icones[$icon_map]['alt']) : '';
 				break;
 		}
 	}

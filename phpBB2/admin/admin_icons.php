@@ -50,11 +50,10 @@ if (!isset($nav_separator)) $nav_separator = '&nbsp;->&nbsp;';
 //
 function icons_read()
 {
-	global $phpEx, $phpbb_root_path;
 	global $icones, $icon_defined_special, $map_icon;
 
 	// read icons
-	include( $phpbb_root_path . './includes/def_icons.' . $phpEx);
+	phpbb_load_icon_config();
 
 	// build a map
 	$map_icon = array();
@@ -67,7 +66,6 @@ function icons_read()
 
 function icons_write()
 {
-	global $phpEx, $phpbb_root_path, $template;
 	global $icones, $icon_defined_special, $map_icon;
 
 	// rebuild the map
@@ -77,66 +75,7 @@ function icons_write()
 		$map_icon[ $icones[$i]['ind'] ] = $i;
 	}
 
-	// set the outfile template
-	$template->set_filenames(array(
-		'outfile' => 'admin/icons_def_icons.tpl')
-	);
-
-	// process the icones
-	for ($i=0; $i < count($icones); $i++)
-	{
-		$auth = "''";
-		switch ($icones[$i]['auth'])
-		{
-			case AUTH_REG:
-				$auth = 'AUTH_REG';
-				break;
-			case AUTH_MOD:
-				$auth = 'AUTH_MOD';
-				break;
-			case AUTH_ADMIN:
-				$auth = 'AUTH_ADMIN';
-				break;
-			default:
-				$auth = 'AUTH_ALL';
-				break;
-		}
-		$template->assign_block_vars('_outfile_icon', array(
-			'IND'	=> $icones[$i]['ind'],
-			'IMG'	=> str_replace("''", "\'", $icones[$i]['img']),
-			'ALT'	=> str_replace("''", "\'", $icones[$i]['alt']),
-			'AUTH'	=> $auth,
-			)
-		);
-	}
-
-	// process the default values
-	@reset($icon_defined_special);
-	foreach ($icon_defined_special as $key => $data)
-	{
-		$template->assign_block_vars('_outfile_default', array(
-			'NAME'		=> str_replace("''", "\'", $key),
-			'LANG_KEY'	=> str_replace("''", "\'", $data['lang_key']),
-			'ICON'		=> empty($data['icon']) ? 0 : $data['icon'],
-			)
-		);
-	}
-
-	// generate a var for the content
-	$file_data = '_file_data';
-	$template->assign_var_from_handle($file_data, 'outfile');
-	$res = $template->_tpldata['.'][0][$file_data];
-
-	// output the file
-	$filename = $phpbb_root_path . 'includes/def_icons.' . $phpEx;
-	@umask(0);
-	@chmod($filename, 0664);
-	@unlink($filename);
-	$f = @fopen($filename, 'w' );
-	$texte  = "<?php\n$res\n?>";
-	@fputs( $f, $texte );
-	@ftruncate( $f );
-	@fclose( $f );
+	return phpbb_save_icon_config($icones, $icon_defined_special);
 }
 
 

@@ -35,7 +35,7 @@ include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_log.'.$phpEx);
 //-- mod : post icon -------------------------------------------------------------------------------
 //-- add
-include($phpbb_root_path . 'includes/def_icons.'.$phpEx);
+phpbb_load_icon_config();
 //-- fin mod : post icon ---------------------------------------------------------------------------
 //-- add
 include_once($phpbb_root_path . 'includes/functions_calendar.'.$phpEx);

@@ -1,7 +1,7 @@
 <?php
 
 /***************************************************************************
- *                            def_icons.php
+ *                         icon_defaults.php
  *                            -------------
  *	begin			: 06/09/2003
  *	copyright		: Ptirhiik
@@ -24,7 +24,7 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 }
 
-$icones = array(
+$icon_default_icons = array(
 	array(
 			'ind'	=> 1,
 			'img'	=> 'images/icon/icon1.gif',
@@ -166,7 +166,7 @@ $icones = array(
 );
 
 // definition of special topic
-$icon_defined_special = array(
+$icon_default_special = array(
 	'POST_ATTACHMENT' => array(
 		'lang_key'	=> 'Sort_Attachments',
 		'icon'		=> 0,
