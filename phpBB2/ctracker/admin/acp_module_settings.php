@@ -24,11 +24,33 @@ if ( !defined('IN_PHPBB') || !defined('CTRACKER_ACP') )
  */
 if( isset($HTTP_POST_VARS['submit']) )
 {
-	// Update new config
-	for($i = 0; $i < count($ctracker_config->fieldnames_set); $i++)
+	phpbb_admin_require_post_session();
+	$setting_ranges = array(
+		'ipblock_enabled' => array(0, 1), 'ipblock_logsize' => array(1, 400),
+		'search_feature_enabled' => array(0, 1), 'search_time_user' => array(1, 90),
+		'search_count_user' => array(1, 6), 'search_time_guest' => array(1, 90),
+		'search_count_guest' => array(1, 6), 'loginfeature' => array(0, 1),
+		'logsize_logins' => array(1, 400), 'logincount' => array(1, 6),
+		'login_history' => array(0, 1), 'login_history_count' => array(1, 60),
+		'login_ip_check' => array(0, 1), 'spammer_blockmode' => array(0, 2),
+		'spammer_postcount' => array(1, 12), 'spammer_time' => array(1, 90),
+		'logsize_spammer' => array(1, 400), 'reg_protection' => array(0, 1),
+		'reg_blocktime' => array(1, 200), 'reg_ip_scan' => array(0, 1),
+		'pw_control' => array(0, 1), 'pw_validity' => array(6, 365),
+		'pw_complex' => array(0, 1), 'pw_complex_mode' => array(1, 9),
+		'pw_complex_min' => array(1, 20), 'pw_reset_feature' => array(0, 1),
+		'pwreset_time' => array(1, 180), 'massmail_protection' => array(0, 1),
+		'massmail_time' => array(1, 180), 'auto_recovery' => array(0, 1),
+		'vconfirm_guest' => array(0, 1), 'autoban_mails' => array(0, 1),
+		'detect_misconfiguration' => array(0, 1), 'spam_attack_boost' => array(0, 1),
+		'spam_keyword_det' => array(0, 2)
+	);
+	foreach ($setting_ranges as $setting_name => $range)
 	{
-		isset($HTTP_POST_VARS[$ctracker_config->fieldnames_set[$i]])? $ctracker_config->change_configuration($ctracker_config->fieldnames_set[$i], str_replace("'", "\'", $HTTP_POST_VARS[$ctracker_config->fieldnames_set[$i]])) : null;	
-		isset($HTTP_POST_VARS[$ctracker_config->fieldnames_set[$i]])? $ctracker_config->settings[$ctracker_config->fieldnames_set[$i]] = str_replace("'", "\'", $HTTP_POST_VARS[$ctracker_config->fieldnames_set[$i]]) : null;
+		$value = intval(phpbb_admin_post_string($setting_name, isset($ctracker_config->settings[$setting_name]) ? $ctracker_config->settings[$setting_name] : $range[0]));
+		$value = min($range[1], max($range[0], $value));
+		$ctracker_config->change_configuration($setting_name, (string) $value);
+		$ctracker_config->settings[$setting_name] = (string) $value;
 	}	
 }
 
@@ -223,6 +245,7 @@ $template->assign_vars(array(
 		'S_OUTPUT_35'  => $configuration['spam_attack_boost'],
 		'S_OUTPUT_36'  => $configuration['spam_keyword_det'],
 		
+		'S_FORM_TOKEN' => phpbb_admin_session_field(),
 		'S_FORM_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=9'))
 	);
 

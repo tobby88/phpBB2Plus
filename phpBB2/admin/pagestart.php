@@ -99,7 +99,10 @@ if (!function_exists('phpbb_admin_post_string'))
 {
 	function phpbb_admin_post_string($key, $default = '')
 	{
-		return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? (string) $_POST[$key] : (string) $default;
+		// common.php supplies the magic-quotes-style aliases required by old
+		// modules. Hardened ACP code escapes at the SQL boundary, so return the
+		// original value here instead of persisting an extra backslash.
+		return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? stripslashes((string) $_POST[$key]) : (string) $default;
 	}
 }
 

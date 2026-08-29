@@ -32,13 +32,16 @@ $template->set_filenames(array(
  */
 if ( isset($HTTP_POST_VARS['submit']) )
 {
+	phpbb_admin_require_post_session();
 	$adminfunctions = new ct_adminfunctions();
+	$message_type = intval(phpbb_admin_post_string('global_message_type', '0')) === 1 ? '1' : '0';
+	$global_message = substr(phpbb_admin_post_string('global_message'), 0, 255);
 
-	$ctracker_config->change_configuration('global_message_type', str_replace("'", "\'", $HTTP_POST_VARS['global_message_type']));	
-	$ctracker_config->settings['global_message_type'] = str_replace("'", "\'", $HTTP_POST_VARS['global_message_type']);
+	$ctracker_config->change_configuration('global_message_type', $message_type);
+	$ctracker_config->settings['global_message_type'] = $message_type;
 	
-	$ctracker_config->change_configuration('global_message', str_replace("'", "\'", $HTTP_POST_VARS['global_message']));	
-	$ctracker_config->settings['global_message'] = str_replace("'", "\'", $HTTP_POST_VARS['global_message']);
+	$ctracker_config->change_configuration('global_message', $global_message);
+	$ctracker_config->settings['global_message'] = $global_message;
 	
 	$adminfunctions->set_global_message();
 	unset($adminfunctions);
@@ -48,6 +51,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 }
 else if ( isset($HTTP_POST_VARS['pull_back']) )
 {
+	phpbb_admin_require_post_session();
 	$adminfunctions = new ct_adminfunctions();
 	$adminfunctions->unset_global_message();
 	unset($adminfunctions);
@@ -98,7 +102,8 @@ $template->assign_vars(array(
 	
 	'S_CHK_STATUS_1'	=> $check_status_1,
 	'S_CHK_STATUS_2'	=> $check_status_2,
-	'S_CURRENT_TEXT'	=> $ctracker_config->settings['global_message'],
+	'S_CURRENT_TEXT'	=> phpbb_admin_html($ctracker_config->settings['global_message']),
+	'S_FORM_TOKEN'		=> phpbb_admin_session_field(),
 	'S_FORM_ACTION'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=4') )
   );
   

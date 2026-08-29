@@ -37,8 +37,10 @@ $template->set_filenames(array(
  */
 if ( isset($HTTP_POST_VARS['submit']) )
 {
-	$ctracker_config->change_configuration('footer_layout', intval($HTTP_POST_VARS['footer_layout']));	
-	$ctracker_config->settings['footer_layout'] = intval($HTTP_POST_VARS['footer_layout']);
+	phpbb_admin_require_post_session();
+	$footer_layout = min(8, max(1, intval(phpbb_admin_post_string('footer_layout', '1'))));
+	$ctracker_config->change_configuration('footer_layout', $footer_layout);
+	$ctracker_config->settings['footer_layout'] = $footer_layout;
 	$template->assign_block_vars('infobox', array());
 }
 
@@ -65,6 +67,7 @@ $template->assign_vars(array(
 		'L_SELECT_FOOTER' 	=> $lang['ctracker_select_footer'],
 		'L_SUBMIT_BUTTON'	=> $lang['ctracker_footer_saveit'],
 		'L_MESSAGE_TEXT'	=> $lang['ctracker_footer_done'],
+		'S_FORM_TOKEN'		=> phpbb_admin_session_field(),
 		'S_FORM_ACTION'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=11'))
   );
   

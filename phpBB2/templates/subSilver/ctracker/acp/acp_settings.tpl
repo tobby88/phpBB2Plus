@@ -4,6 +4,7 @@
 <br />
 
 <form action="{S_FORM_ACTION}" method="post">
+{S_FORM_TOKEN}
 
 <table width="100%" cellspacing="1" cellpadding="3" border="0" class="forumline">
 	<tr> 

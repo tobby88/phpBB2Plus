@@ -11,6 +11,11 @@ changes consolidated after that baseline without implying active maintenance.
 - Hardened CrackerTracker configuration and blocklist writes, sanitized its
   text log records, serialized concurrent log/counter updates and made a local
   logging failure non-fatal without changing the request-blocking decision.
+- Bound CrackerTracker settings, global messages, footer selection, blocklist,
+  log deletion and miserable-user changes to session-authenticated POST
+  requests; bounded submitted values and safely rendered stored log data.
+- Normalized hardened ACP form values before SQL-boundary escaping so literal
+  apostrophes are stored without legacy magic-quotes backslashes.
 - Added adaptive password hashing with transparent migration after a successful
   legacy-MD5 login. Fresh installs and all password creation/reset paths use
   `password_hash()`; existing installations opt in only after the guarded

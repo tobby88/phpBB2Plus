@@ -67,8 +67,9 @@ $ct_ignorepvar = array('global_message');
 require('./pagestart.' . $phpEx);
 
 
-// Get module number from URL
-$module_number   = $HTTP_GET_VARS['modu'];
+// Get module number from URL without allowing array-shaped input to reach the
+// dispatcher or response headers.
+$module_number = (isset($_GET['modu']) && is_scalar($_GET['modu'])) ? intval($_GET['modu']) : 0;
 
 
 // Include CrackerTracker Class Files
@@ -81,13 +82,18 @@ include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
 if ( $module_number == 99 )
 {
 	$log_filepath = $phpbb_root_path . 'ctracker/logfiles/logfile_debug_mode.txt';
-	$size = filesize($log_filepath);
-	header("Content-Type: text/plain");
-    header("Content-disposition: attachment; filename=logfile_debug_mode.txt");
-    header("Content-Length: ".$size);
+	if (!is_file($log_filepath) || !is_readable($log_filepath))
+	{
+		message_die(GENERAL_ERROR, 'CrackerTracker debug log is not available.');
+	}
+	$size = max(0, intval(filesize($log_filepath)));
+	header('Content-Type: text/plain; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="logfile_debug_mode.txt"');
+    header('Content-Length: ' . $size);
     header("Pragma: no-cache");
     header("Expires: 0");
     readfile($log_filepath);
+	exit;
 }
 
 // Include default & CrackerTracker Admin Header

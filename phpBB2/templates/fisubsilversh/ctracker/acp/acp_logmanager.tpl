@@ -31,7 +31,6 @@
 
 			<br /><br />
 
-			<form action="{overview.S_DELETE_FORM}" method="post">
 			<table border="0" class="forumline" cellspacing="1" cellpadding="3" width="100%">
 				<tr>
 					<th colspan="3">{overview.L_LOG_OVERVIEW}</th>
@@ -43,33 +42,32 @@
 				<tr>
 					<td class="row2"><b>{overview.L_LOGNAME_2}</b></td>
 					<td class="row2">{overview.S_LOGVALUE_2}</td>
-					<td class="row2" align="center"><b>[ <a href="{overview.S_VIEW_2}">{overview.L_VIEW}</a> | <a href="{overview.S_DELETE_2}">{overview.L_DELETE}</a> ]</b></td>
+					<td class="row2" align="center"><a href="{overview.S_VIEW_2}">{overview.L_VIEW}</a><form action="{S_DELETE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="delete" /><input type="hidden" name="logid" value="{overview.LOG_ID_2}" /><input type="submit" value="{overview.L_DELETE}" class="liteoption" /></form></td>
 				</tr>
 				<tr>
 					<td class="row1"><b>{overview.L_LOGNAME_3}</b></td>
 					<td class="row1">{overview.S_LOGVALUE_3}</td>
-					<td class="row1" align="center"><b>[ <a href="{overview.S_VIEW_3}">{overview.L_VIEW}</a> | <a href="{overview.S_DELETE_3}">{overview.L_DELETE}</a> ]</b></td>
+					<td class="row1" align="center"><a href="{overview.S_VIEW_3}">{overview.L_VIEW}</a><form action="{S_DELETE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="delete" /><input type="hidden" name="logid" value="{overview.LOG_ID_3}" /><input type="submit" value="{overview.L_DELETE}" class="liteoption" /></form></td>
 				</tr>
 				<tr>
 					<td class="row2"><b>{overview.L_LOGNAME_4}</b></td>
 					<td class="row2">{overview.S_LOGVALUE_4}</td>
-					<td class="row2" align="center"><b>[ <a href="{overview.S_VIEW_4}">{overview.L_VIEW}</a> | <a href="{overview.S_DELETE_4}">{overview.L_DELETE}</a> ]</b></td>
+					<td class="row2" align="center"><a href="{overview.S_VIEW_4}">{overview.L_VIEW}</a><form action="{S_DELETE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="delete" /><input type="hidden" name="logid" value="{overview.LOG_ID_4}" /><input type="submit" value="{overview.L_DELETE}" class="liteoption" /></form></td>
 				</tr>
 				<tr>
 					<td class="row1"><b>{overview.L_LOGNAME_5}</b></td>
 					<td class="row1">{overview.S_LOGVALUE_5}</td>
-					<td class="row1" align="center"><b>[ <a href="{overview.S_VIEW_5}">{overview.L_VIEW}</a> | <a href="{overview.S_DELETE_5}">{overview.L_DELETE}</a> ]</b></td>
+					<td class="row1" align="center"><a href="{overview.S_VIEW_5}">{overview.L_VIEW}</a><form action="{S_DELETE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="delete" /><input type="hidden" name="logid" value="{overview.LOG_ID_5}" /><input type="submit" value="{overview.L_DELETE}" class="liteoption" /></form></td>
 				</tr>
 				<tr>
 					<td class="row2"><b>{overview.L_LOGNAME_6}</b></td>
 					<td class="row2">{overview.S_LOGVALUE_6}</td>
-					<td class="row2" align="center"><b>[ <a href="{overview.S_VIEW_6}">{overview.L_VIEW}</a> |  <a href="{overview.S_DELETE_6}">{overview.L_DELETE}</a> ]</b></td>
+					<td class="row2" align="center"><a href="{overview.S_VIEW_6}">{overview.L_VIEW}</a><form action="{S_DELETE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="delete" /><input type="hidden" name="logid" value="{overview.LOG_ID_6}" /><input type="submit" value="{overview.L_DELETE}" class="liteoption" /></form></td>
 				</tr>
 				<tr>
-					<td class="catBottom" colspan="3" align="center"><input type="Submit" name="submit" value="{overview.L_DELETE_ALL}" class="mainoption"></td>
+					<td class="catBottom" colspan="3" align="center"><form action="{overview.S_DELETE_FORM}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="delete_all" /><input type="submit" value="{overview.L_DELETE_ALL}" class="mainoption" /></form></td>
 				</tr>
 			</table>
-			</form>
 		</td>
 	</tr>
 </table>
@@ -103,7 +101,7 @@
 
 <!-- BEGIN show_system_message -->
 	<tr>
-		<td class="row3" colspan="7" align="center"><b>{show_system_message.L_SYS_MSG}</b> - [ <a href="{show_system_message.S_DELETE}">{show_system_message.L_DELETE}</a> ]</td>
+		<td class="row3" colspan="7" align="center"><b>{show_system_message.L_SYS_MSG}</b><form action="{S_DELETE_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="delete" /><input type="hidden" name="logid" value="{show_system_message.LOG_ID}" /><input type="submit" value="{show_system_message.L_DELETE}" class="liteoption" /></form></td>
 	</tr>
 <!-- END show_system_message -->
 

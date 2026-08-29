@@ -27,11 +27,20 @@ $template->set_filenames(array(
 
 
 $logmanager = new log_manager();
-$mode       = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
-$logid      = isset($HTTP_GET_VARS['logid']) ? intval($HTTP_GET_VARS['logid']) : 0;
+$post_mode  = phpbb_admin_post_string('mode');
+$get_mode   = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '';
+$mode       = ($post_mode !== '') ? $post_mode : $get_mode;
+$logid_source = ($post_mode !== '') ? phpbb_admin_post_string('logid', '0') : ((isset($_GET['logid']) && is_scalar($_GET['logid'])) ? $_GET['logid'] : '0');
+$logid      = intval($logid_source);
+$valid_log_ids = array(2, 3, 4, 5, 6);
 
 if ( $mode == 'delete' )
 {
+	phpbb_admin_require_post_session();
+	if (!in_array($logid, $valid_log_ids, true))
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+	}
 	if ($logid != 6)
   {
 	  // Do not increment the counter for debug entrys
@@ -45,6 +54,7 @@ if ( $mode == 'delete' )
 }
 else if ( $mode == 'delete_all' )
 {
+	phpbb_admin_require_post_session();
 	for($i = 2; $i <= 6; $i++)
 	{
 		if ($i != 6)
@@ -61,6 +71,10 @@ else if ( $mode == 'delete_all' )
 }
 else if ( $mode == 'view' || $mode == 'downloaddebug' )
 {
+	if (!in_array($logid, $valid_log_ids, true))
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+	}
 	// Header for logfile output
 
 	// cell 3 has another description if it is the malformed login log
@@ -90,6 +104,10 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 	for ( $i = count($filename) - 1; $i >= 0; $i-- )
 	{
 		$line = explode($split_token, $filename[$i]);
+		if (count($line) < 7)
+		{
+			continue;
+		}
 
 		if ( $line[0] == 1 )
 		{
@@ -98,7 +116,7 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 			$template->assign_block_vars('show_system_message', array(
 					'L_SYS_MSG'		=>	sprintf($lang['ctracker_log_manager_sysmsg'], date($board_config['default_dateformat'], $lastclean)),
 					'L_DELETE'		=> $lang['ctracker_log_manager_delete'],
-					'S_DELETE'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=' . $logid . '&mode=delete'))
+					'LOG_ID'		=> $logid)
 				);
 		}
 		else
@@ -109,11 +127,11 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 			$template->assign_block_vars('show_log', array(
 					'TABLE_CLASS'	=> ( $i % 2 == 0)? 'row1' : 'row2',
 					'L_OUTPUT_1'	=> date($board_config['default_dateformat'], $entrytime),
-					'L_OUTPUT_2'	=> htmlspecialchars($line[2]),
-					'L_OUTPUT_3'	=> htmlspecialchars($line[3]),
-					'L_OUTPUT_4'	=> htmlspecialchars($line[4]),
-					'L_OUTPUT_5'	=> htmlspecialchars($line[5]),
-					'L_OUTPUT_6'	=> htmlspecialchars($line[6]),
+					'L_OUTPUT_2'	=> phpbb_admin_html($line[2]),
+					'L_OUTPUT_3'	=> phpbb_admin_html($line[3]),
+					'L_OUTPUT_4'	=> phpbb_admin_html($line[4]),
+					'L_OUTPUT_5'	=> phpbb_admin_html($line[5]),
+					'L_OUTPUT_6'	=> phpbb_admin_html($line[6]),
 					'L_NUMBER'		=> $a)
 				);
 		}
@@ -142,17 +160,17 @@ if ( $mode != 'view')
 			'L_DELETE_ALL'	    => $lang['ctracker_log_manager_delete_all'],
 
 			'S_VIEW_2'			=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=2&mode=view'),
-			'S_DELETE_2'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=2&mode=delete'),
+			'LOG_ID_2'			=> 2,
 			'S_VIEW_3'			=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=3&mode=view'),
-			'S_DELETE_3'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=3&mode=delete'),
+			'LOG_ID_3'			=> 3,
 			'S_VIEW_4'			=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=4&mode=view'),
-			'S_DELETE_4'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=4&mode=delete'),
+			'LOG_ID_4'			=> 4,
 			'S_VIEW_5'			=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=5&mode=view'),
-			'S_DELETE_5'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=5&mode=delete'),
+			'LOG_ID_5'			=> 5,
 			'S_VIEW_6'			=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=99&mode=downloaddebug'),
-      'S_DELETE_6'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&logid=6&mode=delete'),
+      'LOG_ID_6'			=> 6,
 
-			'S_DELETE_FORM'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6&mode=delete_all'),
+			'S_DELETE_FORM'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6'),
 
 			'S_LOGVALUE_2' 		=> $logmanager->check_log_size(2),
 			'S_LOGVALUE_3' 		=> $logmanager->check_log_size(3),
@@ -171,6 +189,12 @@ $template->assign_vars(array(
 		'L_HEADLINE'	=> $lang['ctracker_log_manager_title'],
 		'L_SUBHEADLINE'	=> $lang['ctracker_log_manager_subtitle'])
   );
+
+$template->assign_vars(array(
+	'S_DELETE_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=6'),
+	'S_FORM_TOKEN' => phpbb_admin_session_field(),
+	'L_DELETE' => $lang['ctracker_log_manager_delete']
+));
 
 
 // Generate the page

@@ -4,6 +4,8 @@
 <br />
 
 <form action="{S_FORM_ACTION}" method="post">
+{S_FORM_TOKEN}
+<input type="hidden" name="mode" value="add" />
 <div align="center">
 <table width="50%" cellspacing="1" cellpadding="3" border="0" class="forumline">
 	<tr> 
@@ -52,7 +54,7 @@
 <!-- BEGIN ipblocker -->
 	<tr> 
 		<td width="90%" class="{ipblocker.ROW_CLASS}">{ipblocker.BLOCKER_VALUE}</td>
-		<td width="10%" class="{ipblocker.ROW_CLASS}" align="center"><a href="{ipblocker.BLOCKER_ID}"><img src="{ipblocker.IMG_ICON}" border="0" alt="{ipblocker.L_DELETE}" title="{ipblocker.L_DELETE}"></a></td>
+		<td width="10%" class="{ipblocker.ROW_CLASS}" align="center"><form action="{S_FORM_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="remove" /><input type="hidden" name="id" value="{ipblocker.BLOCKER_ID}" /><button type="submit" title="{ipblocker.L_DELETE}"><img src="{ipblocker.IMG_ICON}" border="0" alt="{ipblocker.L_DELETE}"></button></form></td>
 	</tr>
 <!-- END ipblocker -->
 </table>

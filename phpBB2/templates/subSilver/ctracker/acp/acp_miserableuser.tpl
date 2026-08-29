@@ -16,6 +16,7 @@
 <!-- END infobox -->
 
 <form method="post" name="post" action="{S_FORM_ACTION}">
+{S_FORM_TOKEN}
 <table cellspacing="1" cellpadding="4" border="0" align="center" class="forumline">
 	<tr>
 		<th align="center">{L_MARK_MU}</th>
@@ -43,7 +44,7 @@
 <!-- BEGIN output -->
 	<tr> 
 		<td class="{output.ROW_CLASS}">{output.L_USERNAME}</td>
-		<td class="{output.ROW_CLASS}" align="center"><b>[ <a href="{output.U_DELLINK}">{L_DELETE}</a> ]</b></td>
+		<td class="{output.ROW_CLASS}" align="center"><form action="{S_FORM_ACTION}" method="post">{S_FORM_TOKEN}<input type="hidden" name="mode" value="unmis" /><input type="hidden" name="userid" value="{output.USER_ID}" /><input type="submit" value="{L_DELETE}" class="liteoption" /></form></td>
 	</tr>
 <!-- END output -->
 <!-- BEGIN no_entry -->

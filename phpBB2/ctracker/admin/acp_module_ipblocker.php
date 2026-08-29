@@ -29,17 +29,19 @@ $template->set_filenames(array(
 /*
  * Delete entry?
  */
-$mode = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
+$mode = phpbb_admin_post_string('mode');
 if ( $mode == 'remove' )
 {
-	$ctracker_config->delete_from_blocklist($HTTP_GET_VARS['id']);
+	phpbb_admin_require_post_session();
+	$ctracker_config->delete_from_blocklist(intval(phpbb_admin_post_string('id', '0')));
 	$template->assign_block_vars('deleted', array(
 			'L_SUCCESSFULLY_DELETED' => $lang['ctracker_ipb_deleted'])
 	);
 }
 else if ( $mode == 'add' )
 {
-	$ctracker_config->save_to_blocklist($HTTP_POST_VARS['entry']);
+	phpbb_admin_require_post_session();
+	$ctracker_config->save_to_blocklist(phpbb_admin_post_string('entry'));
 	$template->assign_block_vars('added', array(
 			'L_SUCCESSFULLY_ADDED' => $lang['ctracker_ipb_added'])
 	);	
@@ -58,8 +60,8 @@ for ( $i = 0; $i < $ctracker_config->blocklist_count; $i++ )
 
 	$template->assign_block_vars('ipblocker', array(
 		'ROW_CLASS'		=> ( $row_class )? 'row1': 'row2',
-		'BLOCKER_VALUE'	=> $ctracker_config->blocklist[$i],
-		'BLOCKER_ID'	=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=5&mode=remove&id=' . $ctracker_config->blocklist_id[$i]),
+		'BLOCKER_VALUE'	=> phpbb_admin_html($ctracker_config->blocklist[$i]),
+		'BLOCKER_ID'	=> intval($ctracker_config->blocklist_id[$i]),
 		'IMG_ICON'		=> $phpbb_root_path . $images['ctracker_global_res'],
 		'L_DELETE'		=> $lang['ctracker_ipb_delete'])
 	);
@@ -79,7 +81,8 @@ $template->assign_vars(array(
 		'IMG_INFO'		=> $phpbb_root_path . $images['ctracker_fc_icon_2'],
 		'IMG_DELETED'	=> $phpbb_root_path . $images['ctracker_global_res'],
 				
-		'S_FORM_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=5&mode=add'))
+		'S_FORM_TOKEN' => phpbb_admin_session_field(),
+		'S_FORM_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=5'))
   );
   
 

@@ -26,14 +26,15 @@ $template->set_filenames(array(
 	'ct_body' => 'ctracker/acp/acp_miserableuser.tpl')
 );
 
-$mode = isset($HTTP_GET_VARS['mode']) ? $HTTP_GET_VARS['mode'] : '';
+$mode = phpbb_admin_post_string('mode');
 
 
 if ( isset($HTTP_POST_VARS['submit']) )
 {
+	phpbb_admin_require_post_session();
 	$user_id 	= 0;
 	$user_level = 0;
-	$this_userdata = get_userdata($HTTP_POST_VARS['username'], true);
+	$this_userdata = get_userdata(phpbb_clean_username(phpbb_admin_post_string('username')), true);
 	
 	if( !$this_userdata )
 	{
@@ -52,7 +53,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 	else
 	{
 		// Mark user as miserable user
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_miserable_user = 1 WHERE user_id = ' . $this_userdata['user_id'];
+		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_miserable_user = 1 WHERE user_id = ' . intval($this_userdata['user_id']);
 				
 		// Execute SQL Command in database
 		if ( !$result = $db->sql_query($sql) )
@@ -68,7 +69,8 @@ if ( isset($HTTP_POST_VARS['submit']) )
 }
 else if ( $mode == 'unmis' )
 {
-	$userid = intval($HTTP_GET_VARS['userid']);
+	phpbb_admin_require_post_session();
+	$userid = intval(phpbb_admin_post_string('userid', '0'));
 	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_miserable_user = 0 WHERE user_id = ' . $userid;
 				
 	// Execute SQL Command in database
@@ -103,8 +105,8 @@ while ( $row = $db->sql_fetchrow($result) )
 	
 	$template->assign_block_vars('output', array(
 			'ROW_CLASS'		=>	($row_class)? 'row1' : 'row2',
-			'U_DELLINK'		=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=8&mode=unmis&userid=' . $row['user_id']),
-			'L_USERNAME'	=> $row['username'])
+			'USER_ID'		=> intval($row['user_id']),
+			'L_USERNAME'	=> phpbb_admin_html($row['username']))
 	);
 }
 
@@ -117,6 +119,7 @@ while ( $row = $db->sql_fetchrow($result) )
 $template->assign_vars(array(
 		'U_SEARCH_USER' 	=> append_sid("./../search.$phpEx?mode=searchuser"),
 		'S_FORM_ACTION'	 	=> append_sid('admin_cracker_tracker.' . $phpEx . '?modu=8'),
+		'S_FORM_TOKEN'		=> phpbb_admin_session_field(),
 		'L_HEADLINE'		=> $lang['ctracker_mu_head'],
 		'L_SUBHEADLINE' 	=> $lang['ctracker_mu_subhead'],
 		'L_MARK_MU'			=> $lang['ctracker_mu_select'],
