@@ -175,6 +175,7 @@ $lang['admin_cat_menu'] = 'Kategorien Menü';
 $lang['admin_cat_header'] = 'Mit diesem Menu kannst Du Deine Kategorien und die Spiele verwalten. Solltest Du hier auf Probleme stossen, dann kontaktiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a>, damit wir diese lösen können.';
 $lang['admin_cat_saved'] = 'Kategorie wurde gespeichert.<br /><br />';
 $lang['admin_cat_deleted'] = 'Kategorie wurde gelöscht.<br /><br />';
+$lang['admin_cat_delete_confirm'] = 'Möchtest Du diese Kategorie wirklich löschen? Enthaltene Spiele werden keiner Kategorie mehr zugeordnet.';
 $lang['admin_cat_not_deleted'] = 'Kategorie wurde NICHT gelöscht.<br /><br />';
 $lang['admin_cat_icon'] = '<b>Kategorien Bild</b><br />';
 $lang['admin_cat_icon_info'] = 'Pfad zum Bild ür diese Kategorie. Wenn Du das Feld leer läßt, wird nichts angezeigt.';

@@ -1,6 +1,7 @@
 <!-- phpBB Arcade Admin Categories Template v2.1.7 -->
 
 <form action="{S_CONFIG_ACTION}" method="post">
+  {S_SESSION_FIELD}
   <table width="99%" cellpadding="2" cellspacing="0" border="0" align="center" class="bodyline">
     <tr> 
       <th class="thHead" colspan="6">{L_CONFIG_MENU} {VERSION}</th>
@@ -26,8 +27,8 @@
     </tr>
     <tr> 
       <td class="{cats.ROW_CLASS}" align="right"><a href="{cats.U_CAT_EDIT}">{IMAGE_EDIT}</a></td>
-      <td class="{cats.ROW_CLASS}" align="center"><a href="{cats.U_CAT_UP}">{cats.IMAGE_UP}</a><a href="{cats.U_CAT_DOWN}">{cats.IMAGE_DOWN}</a></td>
-      <td class="{cats.ROW_CLASS}"><a href="{cats.U_CAT_DELETE}">{IMAGE_DEL}</a></td>
+      <td class="{cats.ROW_CLASS}" align="center"><button type="submit" name="cat_action" value="{cats.CAT_UP_ACTION}" class="liteoption"{cats.CAT_UP_DISABLED}>{cats.IMAGE_UP}</button><button type="submit" name="cat_action" value="{cats.CAT_DOWN_ACTION}" class="liteoption"{cats.CAT_DOWN_DISABLED}>{cats.IMAGE_DOWN}</button></td>
+      <td class="{cats.ROW_CLASS}"><button type="submit" name="cat_action" value="{cats.CAT_DELETE_ACTION}" class="liteoption" onclick="return confirm('{L_CONFIRM_DELETE}');">{IMAGE_DEL}</button></td>
     </tr>
     <!-- END cats --> 
     <tr> 
