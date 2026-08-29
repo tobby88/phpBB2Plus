@@ -41,15 +41,24 @@ include($phpbb_root_path . 'includes/def_icons.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_calendar.'.$phpEx);
 //-- fin mod : calendar ---------------------------------------------------------------------------- 
 include($phpbb_root_path . 'includes/functions_bookmark.'.$phpEx);
+
+// PHP 8 throws TypeErrors when array-shaped request values reach string
+// functions. Posting only accepts scalar values except for poll option lists.
+$request_scalar = function ($source, $key, $default = '')
+{
+	return (is_array($source) && isset($source[$key]) && is_scalar($source[$key])) ? (string) $source[$key] : $default;
+};
 //
 // Check and set various parameters
 //
 $params = array('submit' => 'post', 'news_category' => 'news_category', 'preview' => 'preview', 'delete' => 'delete', 'poll_delete' => 'poll_delete', 'poll_add' => 'add_poll_option', 'poll_edit' => 'edit_poll_option', 'mode' => 'mode');
 foreach ($params as $var => $param)
 {
-	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
+	$post_param = $request_scalar($_POST, $param);
+	$get_param = $request_scalar($_GET, $param);
+	if ($post_param !== '' || $get_param !== '')
 	{
-		$$var = ( !empty($_POST[$param]) ) ? htmlspecialchars($_POST[$param]) : htmlspecialchars($_GET[$param]);
+		$$var = ($post_param !== '') ? htmlspecialchars($post_param) : htmlspecialchars($get_param);
 	}
 	else
 	{
@@ -60,15 +69,17 @@ $news_category = intval($news_category);
 $s_hidden_fields = '';
 $topic_desc = '';
 
-$confirm = isset($_POST['confirm']) ? true : false;
-$sid = (isset($_POST['sid'])) ? $_POST['sid'] : 0;
+$confirm = ($request_scalar($_POST, 'confirm') !== '');
+$sid = $request_scalar($_POST, 'sid');
 
 $params = array('forum_id' => POST_FORUM_URL, 'topic_id' => POST_TOPIC_URL, 'post_id' => POST_POST_URL, 'lock_subject' => 'lock_subject');
 foreach ($params as $var => $param)
 {
-	if ( !empty($_POST[$param]) || !empty($_GET[$param]) )
+	$post_param = $request_scalar($_POST, $param);
+	$get_param = $request_scalar($_GET, $param);
+	if ($post_param !== '' || $get_param !== '')
 	{
-		$$var = ( !empty($_POST[$param]) ) ? intval($_POST[$param]) : intval($_GET[$param]);
+		$$var = ($post_param !== '') ? intval($post_param) : intval($get_param);
 	}
 	else
 	{
@@ -80,24 +91,24 @@ $refresh = $preview || $poll_add || $poll_edit || $poll_delete;
 $orig_word = $replacement_word = array();
 //-- mod : post icon -------------------------------------------------------------------------------
 //-- add
-$post_icon = isset($_POST['post_icon']) ? intval($_POST['post_icon']) : 0;
+$post_icon = intval($request_scalar($_POST, 'post_icon', 0));
 //-- fin mod : post icon ---------------------------------------------------------------------------
 
 //
 // Set topic type
 //
-$topic_type = ( !empty($_POST['topictype']) ) ? intval($_POST['topictype']) : POST_NORMAL;
+$topic_type = ($request_scalar($_POST, 'topictype') !== '') ? intval($request_scalar($_POST, 'topictype')) : POST_NORMAL;
 $topic_type = ( in_array($topic_type, array(POST_NORMAL, POST_STICKY, POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)) ) ? $topic_type : POST_NORMAL;
 //-- mod : calendar --------------------------------------------------------------------------------
 //-- add
-$year	= ( !empty($_POST['topic_calendar_year']) ) ? intval($_POST['topic_calendar_year']) : '';
-$month	= ( !empty($_POST['topic_calendar_month']) ) ? intval($_POST['topic_calendar_month']) : '';
-$day	= ( !empty($_POST['topic_calendar_day']) ) ? intval($_POST['topic_calendar_day']) : '';
-$hour	= ( !empty($_POST['topic_calendar_hour']) ) ? intval($_POST['topic_calendar_hour']) : '';
-$min	= ( !empty($_POST['topic_calendar_min']) ) ? intval($_POST['topic_calendar_min']) : '';
-$d_day	= ( !empty($_POST['topic_calendar_duration_day']) ) ? intval($_POST['topic_calendar_duration_day']) : '';
-$d_hour	= ( !empty($_POST['topic_calendar_duration_hour']) ) ? intval($_POST['topic_calendar_duration_hour']) : '';
-$d_min	= ( !empty($_POST['topic_calendar_duration_min']) ) ? intval($_POST['topic_calendar_duration_min']) : '';
+$year	= ($request_scalar($_POST, 'topic_calendar_year') !== '') ? intval($request_scalar($_POST, 'topic_calendar_year')) : '';
+$month	= ($request_scalar($_POST, 'topic_calendar_month') !== '') ? intval($request_scalar($_POST, 'topic_calendar_month')) : '';
+$day	= ($request_scalar($_POST, 'topic_calendar_day') !== '') ? intval($request_scalar($_POST, 'topic_calendar_day')) : '';
+$hour	= ($request_scalar($_POST, 'topic_calendar_hour') !== '') ? intval($request_scalar($_POST, 'topic_calendar_hour')) : '';
+$min	= ($request_scalar($_POST, 'topic_calendar_min') !== '') ? intval($request_scalar($_POST, 'topic_calendar_min')) : '';
+$d_day	= ($request_scalar($_POST, 'topic_calendar_duration_day') !== '') ? intval($request_scalar($_POST, 'topic_calendar_duration_day')) : '';
+$d_hour	= ($request_scalar($_POST, 'topic_calendar_duration_hour') !== '') ? intval($request_scalar($_POST, 'topic_calendar_duration_hour')) : '';
+$d_min	= ($request_scalar($_POST, 'topic_calendar_duration_min') !== '') ? intval($request_scalar($_POST, 'topic_calendar_duration_min')) : '';
 if ( empty($year) || empty($month) || empty($day) )
 {
 	$year = '';
@@ -820,14 +831,16 @@ else if ( $submit || $confirm )
 
 			if ( $ctracker_config->settings['vconfirm_guest'] != 1 && $plus_config['enable_confirm_post'] && !$userdata['session_logged_in'] )
 			{
-				if ( empty($_POST['confirm_id']) || empty($_POST['confirm_code']) )
+				$posted_confirm_id = $request_scalar($_POST, 'confirm_id');
+				$posted_confirm_code = $request_scalar($_POST, 'confirm_code');
+				if ($posted_confirm_id === '' || $posted_confirm_code === '')
 				{
 					$error = TRUE;
 					$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
 				}
 				else
 				{
-					$confirm_id = htmlspecialchars($_POST['confirm_id']);
+					$confirm_id = htmlspecialchars($posted_confirm_id);
 					if (!preg_match('/^[A-Za-z0-9]+$/', $confirm_id))
 					{
 						$confirm_id = '';
@@ -844,7 +857,7 @@ else if ( $submit || $confirm )
 		
 					if ($row = $db->sql_fetchrow($result))
 					{
-						if ($row['code'] != $_POST['confirm_code'])
+						if ($row['code'] != $posted_confirm_code)
 						{
 							$error = TRUE;
 							$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Confirm_code_wrong'];
@@ -868,10 +881,10 @@ else if ( $submit || $confirm )
 					$db->sql_freeresult($result);
 				}
 			}
-			$username = ( !empty($_POST['username']) ) ? $_POST['username'] : '';
-			$subject = ( !empty($_POST['subject']) ) ? trim($_POST['subject']) : '';
-			$topic_desc = ( !empty($_POST['topic_desc']) ) ? trim($_POST['topic_desc']) : '';
-			$message = ( !empty($_POST['message']) ) ? $_POST['message'] : '';
+			$username = $request_scalar($_POST, 'username');
+			$subject = trim($request_scalar($_POST, 'subject'));
+			$topic_desc = trim($request_scalar($_POST, 'topic_desc'));
+			$message = $request_scalar($_POST, 'message');
 			//-- mod : calendar --------------------------------------------------------------------------------
 //-- add
 			$post_calendar_time = isset($post_data['topic_calendar_time']) ? intval($post_data['topic_calendar_time']) : 0;
@@ -885,9 +898,9 @@ else if ( $submit || $confirm )
 			}
 			if (empty($topic_calendar_time) || empty($topic_calendar_duration)) $topic_calendar_duration = 0;
 //-- fin mod : calendar ----------------------------------------------------------------------------
-			$poll_title = ( isset($_POST['poll_title']) && $is_auth['auth_pollcreate'] ) ? $_POST['poll_title'] : '';
-			$poll_options = ( isset($_POST['poll_option_text']) && $is_auth['auth_pollcreate'] ) ? $_POST['poll_option_text'] : '';
-			$poll_length = ( isset($_POST['poll_length']) && $is_auth['auth_pollcreate'] ) ? $_POST['poll_length'] : '';
+			$poll_title = ($is_auth['auth_pollcreate']) ? $request_scalar($_POST, 'poll_title') : '';
+			$poll_options = (isset($_POST['poll_option_text']) && is_array($_POST['poll_option_text']) && $is_auth['auth_pollcreate']) ? array_filter($_POST['poll_option_text'], 'is_scalar') : array();
+			$poll_length = ($is_auth['auth_pollcreate']) ? intval($request_scalar($_POST, 'poll_length', 0)) : 0;
 			$bbcode_uid = '';
 			//-- mod : calendar --------------------------------------------------------------------------------
 // here we have added
@@ -1003,38 +1016,40 @@ if ($lock_subject)
 
 if( $refresh || isset($_POST['del_poll_option']) || $error_msg != '' )
 {
-	$username = ( !empty($_POST['username']) ) ? htmlspecialchars(trim(stripslashes($_POST['username']))) : '';
-	$subject = ( !empty($_POST['subject']) ) ? htmlspecialchars(trim(stripslashes($_POST['subject']))) : '';
-	$message = ( !empty($_POST['message']) ) ? htmlspecialchars(trim(stripslashes($_POST['message']))) : '';
-	$topic_desc = ( !empty($_POST['topic_desc']) ) ? htmlspecialchars(trim(stripslashes($_POST['topic_desc']))) : '';
+	$username = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'username'))));
+	$subject = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'subject'))));
+	$message = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'message'))));
+	$topic_desc = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'topic_desc'))));
 	//-- mod : post icon -------------------------------------------------------------------------------
 //-- add
-	$post_icon = ( !empty($_POST['post_icon']) ) ? intval($_POST['post_icon']) : 0;
+	$post_icon = intval($request_scalar($_POST, 'post_icon', 0));
 //-- fin mod : post icon ---------------------------------------------------------------------------
 
 
-	$poll_title = ( !empty($_POST['poll_title']) ) ? htmlspecialchars(trim(stripslashes($_POST['poll_title']))) : '';
-	$poll_length = ( isset($_POST['poll_length']) ) ? max(0, intval($_POST['poll_length'])) : 0;
+	$poll_title = htmlspecialchars(trim(stripslashes($request_scalar($_POST, 'poll_title'))));
+	$poll_length = max(0, intval($request_scalar($_POST, 'poll_length', 0)));
 
 	$poll_options = array();
-	if ( !empty($_POST['poll_option_text']) )
+	$deleted_poll_options = (isset($_POST['del_poll_option']) && is_array($_POST['del_poll_option'])) ? $_POST['del_poll_option'] : array();
+	if (isset($_POST['poll_option_text']) && is_array($_POST['poll_option_text']))
 	{
 		foreach ($_POST['poll_option_text'] as $option_id => $option_text)
 		{
-			if( isset($_POST['del_poll_option'][$option_id]) )
+			if(isset($deleted_poll_options[$option_id]))
 			{
 				unset($poll_options[$option_id]);
 			}
-			else if ( !empty($option_text) ) 
+			else if (is_scalar($option_text) && (string) $option_text !== '')
 			{
-				$poll_options[intval($option_id)] = htmlspecialchars(trim(stripslashes($option_text)));
+				$poll_options[intval($option_id)] = htmlspecialchars(trim(stripslashes((string) $option_text)));
 			}
 		}
 	}
 
-	if ( isset($poll_add) && !empty($_POST['add_poll_option_text']) )
+	$add_poll_option_text = $request_scalar($_POST, 'add_poll_option_text');
+	if (isset($poll_add) && $add_poll_option_text !== '')
 	{
-		$poll_options[] = htmlspecialchars(trim(stripslashes($_POST['add_poll_option_text'])));
+		$poll_options[] = htmlspecialchars(trim(stripslashes($add_poll_option_text)));
 	}
 
 	if ( $mode == 'newtopic' || $mode == 'reply')
