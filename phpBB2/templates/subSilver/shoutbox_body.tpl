@@ -38,6 +38,6 @@
 		 <iframe src="{U_SHOUTBOX_VIEW}" align="left" width="100%" height="160" frameborder="0" marginheight="0" marginwidth="0" allowtransparency="true">
 		</iframe>
 
-
+{S_HIDDEN_FIELDS}
 </form>
 </body>

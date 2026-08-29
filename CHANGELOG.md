@@ -69,6 +69,10 @@ changes consolidated after that baseline without implying active maintenance.
   to session-verified POST requests; rechecked article ownership on the write
   path, hid unapproved rating targets and replaced timestamp-based new-article
   lookup with the inserted database ID.
+- Added the previously missing Shoutbox form tokens, required an explicit
+  submit action before inserting messages, escaped stored fields through the
+  active database driver and converted censor/delete links into authorized,
+  session-bound POST confirmations.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.

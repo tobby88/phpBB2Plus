@@ -91,10 +91,11 @@ $submit = (isset($_POST['shout']) && isset($_POST['message'])) ? 1 : 0;
 $error = false;
 $error_msg = '';
 $message = '';
-$s_hidden_fields = '';
+$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
+	$mode_value = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? $_POST['mode'] : ((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? $_GET['mode'] : '');
+	$mode = (string) $mode_value;
 }
 else
 {
@@ -133,7 +134,7 @@ if( !$userdata['session_logged_in'] || ( $mode == 'editpost' && $post_info['post
 {
 	$template->assign_block_vars('switch_username_select', array());
 }
-$username = ( !empty($_POST['username']) ) ? $_POST['username'] : '';
+$username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
 // Check username
 if ( !empty($username) )
 {
@@ -195,6 +196,10 @@ if ($refresh || $preview)
 } else
 if ($submit || isset($_POST['message']))
 {
+	if ($submit && ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
 	$current_time = time();
 	//
 	// Flood control
@@ -215,15 +220,15 @@ if ($submit || isset($_POST['message']))
 		}
 	}
 
-	$message = (isset($_POST['message'])) ? trim($_POST['message']) : '';
+	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
 	// insert shout !
-	if (!empty($message) && $is_auth['auth_post'] && !$error)
+	if ($submit && !empty($message) && $is_auth['auth_post'] && !$error)
 	{
 		require_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 		$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
 		$message = prepare_message(trim($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
-		$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies) 
-				VALUES ('$message', '".time()."', '".$userdata['user_id']."', '$user_ip', '".$username."', '".$bbcode_uid."',$bbcode_on,$html_on,$smilies_on)";
+		$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies)
+				VALUES ('" . $db->sql_escape($message) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "',$bbcode_on,$html_on,$smilies_on)";
 		if (!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, 'Error inserting shout.', '', __LINE__, __FILE__, $sql);
@@ -256,7 +261,29 @@ if ($mode=='delete' || $mode=='censor')
 		message_die(GENERAL_ERROR, 'Could not get shoutbox information', '', __LINE__, __FILE__, $sql);
 	}
 	$shout_identifyer = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$shout_identifyer)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
 	$user_id = $shout_identifyer['shout_user_id'];
+	$can_censor = ($userdata['user_id'] != ANONYMOUS || ($userdata['user_id'] == ANONYMOUS && $userdata['session_ip'] == $shout_identifyer['shout_ip'])) &&
+		(($userdata['user_id'] == $user_id && $is_auth['auth_delete']) || $is_auth['auth_mod']);
+	$can_delete = $is_auth['auth_mod'];
+	if (($mode === 'censor' && !$can_censor) || ($mode === 'delete' && !$can_delete))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+	if (!isset($_POST['confirm_shout_action']))
+	{
+		$confirm_url = append_sid("shoutbox_max.$phpEx");
+		$confirm_message = sprintf($lang['Confirm_shout_action'], ($mode === 'delete') ? $lang['Delete_post'] : $lang['Censor']) . '<br /><br /><form method="post" action="' . htmlspecialchars($confirm_url, ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name="mode" value="' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . '" /><input type="hidden" name="' . POST_POST_URL . '" value="' . $post_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" /><input type="submit" name="confirm_shout_action" value="' . htmlspecialchars($lang['Yes'], ENT_QUOTES, 'UTF-8') . '" />&nbsp;&nbsp;<a href="' . append_sid("shoutbox_max.$phpEx") . '">' . $lang['No'] . '</a></form>';
+		message_die(GENERAL_MESSAGE, $confirm_message);
+	}
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
 
 	if (
 ($userdata['user_id'] != ANONYMOUS || ( $userdata['user_id'] == ANONYMOUS && $userdata['session_ip'] == $shout_identifyer['shout_ip'])) &&
@@ -727,7 +754,7 @@ obtain_word_list($orig_word, $replacement_word);
 			'L_SHOUT_SUBMIT' => $lang['Go'],
 			'L_SHOUT_TEXT' => $lang['Shout_text'],
 			'L_SHOUT_REFRESH' => $lang['Shout_refresh'],
-			'S_HIDDEN_FIELDS' => $s_hidden_fields,
+			'S_HIDDEN_FORM_FIELDS' => $s_hidden_fields,
 			
 			'SMILIES_STATUS' => $smilies_status,
 			'L_BBCODE_B_HELP' => $lang['bbcode_b_help'], 

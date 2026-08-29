@@ -338,6 +338,7 @@ $lang['Post_Sticky'] = 'Wichtig';
 $lang['Post_Normal'] = 'Normal';
 
 $lang['Confirm_delete'] = 'Sicher, dass dieser Beitrag gelöscht werden soll?';
+$lang['Confirm_shout_action'] = 'Möchtest Du diesen Shout wirklich %s?';
 $lang['Confirm_delete_poll'] = 'Sicher, dass diese Umfrage gelöscht werden soll?';
 
 $lang['Flood_Error'] = 'Du kannst einen Beitrag nicht so schnell nach deinem letzten absenden, bitte warte einen Augenblick.';

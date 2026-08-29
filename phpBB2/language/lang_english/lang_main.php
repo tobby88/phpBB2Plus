@@ -336,6 +336,7 @@ $lang['Post_Sticky'] = 'Sticky';
 $lang['Post_Normal'] = 'Normal';
 
 $lang['Confirm_delete'] = 'Are you sure you want to delete this post?';
+$lang['Confirm_shout_action'] = 'Are you sure you want to %s this shout?';
 $lang['Confirm_delete_poll'] = 'Are you sure you want to delete this poll?';
 
 $lang['Flood_Error'] = 'You cannot make another post so soon after your last; please try again in a short while.';
