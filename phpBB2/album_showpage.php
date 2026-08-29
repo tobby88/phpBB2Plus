@@ -560,11 +560,17 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				$poster_rank = $lang['Guest'];
 			}
 
+			$comment_id = (int) $commentrow[$i]['comment_id'];
+			$mini_post_url = append_sid("album_showpage.$phpEx?pic_id=" . (int) $pic_id) . '#comment-' . $comment_id;
+
 			$template->assign_block_vars('commentrow', array(
-				'ID' => $commentrow[$i]['comment_id'],
+				'ID' => $comment_id,
 				'POSTER_NAME' => $poster,
 				'TIME' => create_date($board_config['default_dateformat'], $commentrow[$i]['comment_time'], $board_config['board_timezone']),
 				'IP' => ($userdata['user_level'] == ADMIN) ? htmlspecialchars(decode_ip($commentrow[$i]['comment_user_ip']), ENT_QUOTES, 'UTF-8') . '<br />' : '',
+				'MINI_POST_IMG' => $images['icon_minipost'],
+				'L_MINI_POST_ALT' => $lang['Post'],
+				'U_MINI_POST' => $mini_post_url,
 
 				//users mesangers, website, email
 				'PROFILE_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_profile'] . '" alt="' . $lang['Read_profile'] . '" title="' . $lang['Read_profile'] . '" border="0" /></a>' : '',
@@ -578,7 +584,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 				'POSTER_AVATAR' => $poster_avatar,
 				'POSTER_RANK' => $poster_rank,
-				'POSTER_RANK_IMGAGE' => $rank_image,
+				'POSTER_RANK_IMAGE' => $rank_image,
 				'POSTER_JOINED' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $commentrow[$i]['user_regdate'], $board_config['board_timezone']) : '',
 				'POSTER_POSTS' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $commentrow[$i]['user_posts'] : '',
 				'POSTER_FROM' => ( $commentrow[$i]['user_from'] && $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($commentrow[$i]['user_from']) : '',

@@ -64,7 +64,7 @@
 <!-- END coment_switcharo_top -->	
   
 <!-- BEGIN commentrow -->
-<tr> 
+<tr id="comment-{commentrow.ID}">
 	<td width="150" align="left" valign="top" class="row1"><span class="name"><b>{commentrow.POSTER_NAME}</b></span><br /><span class="postdetails">{commentrow.POSTER_RANK}<br />{commentrow.POSTER_RANK_IMAGE}{commentrow.POSTER_AVATAR}<br /><br />{commentrow.POSTER_JOINED}<br />{commentrow.POSTER_POSTS}<br />{commentrow.POSTER_FROM}</span><br /></td>
 	<td class="row1" width="100%" height="28" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
 		<tr>

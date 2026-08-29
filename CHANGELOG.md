@@ -147,6 +147,8 @@ changes consolidated after that baseline without implying active maintenance.
   ownership before initialization, album deletion is confined to generated
   basenames, stored moderation labels are escaped, and obsolete external
   Whois links no longer disclose administrator lookups to a third party.
+- Restored album-comment permalinks, mini-post icons and rank images instead
+  of emitting an empty image request and an unusable link in picture views.
 
 ### Repository and update cleanup
 
