@@ -35,12 +35,32 @@ class acm
 	{
 		global $phpbb_root_path;
 		$this->cache_dir = $phpbb_root_path . 'pafiledb/cache/';
+		$this->load();
 	}
 
 	function load()
 	{
-		global $phpEx;
-		@include($this->cache_dir . 'data_global.' . $phpEx);
+		$this->vars = array();
+		$this->vars_ts = array();
+		$cache_file = $this->cache_dir . 'data_global.cache';
+		$cache_root = @realpath($this->cache_dir);
+		if ($cache_root === false || !@is_file($cache_file) || @is_link($cache_file) ||
+			@realpath(dirname($cache_file)) !== $cache_root)
+		{
+			return;
+		}
+		$size = @filesize($cache_file);
+		if ($size === false || $size < 0 || $size > 4194304)
+		{
+			return;
+		}
+		$payload = phpbb_safe_unserialize(@file_get_contents($cache_file));
+		if (is_array($payload) && isset($payload['vars'], $payload['timestamps']) &&
+			is_array($payload['vars']) && is_array($payload['timestamps']))
+		{
+			$this->vars = $payload['vars'];
+			$this->vars_ts = $payload['timestamps'];
+		}
 	}
 
 	function unload()
@@ -57,31 +77,49 @@ class acm
 			return;
 		}
 
-		global $phpEx;
-		$file = '<?php $this->vars=' . $this->format_array($this->vars) . ";\n\$this->vars_ts=" . $this->format_array($this->vars_ts) . ' ?>';
-		/*
-		if ($fp = @fopen($this->cache_dir . 'data_global.' . $phpEx, 'wb'))
+		$cache_root = @realpath($this->cache_dir);
+		$cache_file = $this->cache_dir . 'data_global.cache';
+		if ($cache_root === false || @is_link($cache_file))
 		{
-			@flock($fp, LOCK_EX);
-			fwrite($fp, $file);
-			@flock($fp, LOCK_UN);
-			fclose($fp);
+			return false;
 		}
-		*/
-		if(@$f = fopen($this->cache_dir . 'data_global.' . $phpEx, 'w')) 
-		{ 
-			fwrite($f, $file); 
-			fclose($f); 
-			@chmod($this->cache_dir . 'data_global.' . $phpEx, 0664);
+		$serialized = serialize(array(
+			'vars' => $this->vars,
+			'timestamps' => $this->vars_ts,
+		));
+		if (strlen($serialized) > 4194304)
+		{
+			return false;
 		}
+		$temp = @tempnam($cache_root, 'data_');
+		if ($temp === false)
+		{
+			return false;
+		}
+		$written = @file_put_contents($temp, $serialized, LOCK_EX);
+		if ($written !== strlen($serialized))
+		{
+			@unlink($temp);
+			return false;
+		}
+		@chmod($temp, 0644);
+		if (!@rename($temp, $cache_file))
+		{
+			@unlink($temp);
+			return false;
+		}
+		$this->modified = FALSE;
+		return true;
 
 	}
 
 	function tidy($expire_time = 0)
 	{
-		global $phpEx;
-
-		$dir = opendir($this->cache_dir);
+		$dir = @opendir($this->cache_dir);
+		if (!$dir)
+		{
+			return;
+		}
 		while ($entry = readdir($dir))
 		{
 			if ($entry[0] == '.' || substr($entry, 0, 4) != 'sql_')
@@ -94,8 +132,9 @@ class acm
 				unlink($this->cache_dir . $entry);
 			}
 		}
+		closedir($dir);
 
-		if (file_exists($this->cache_dir . 'data_global.' . $phpEx))
+		if (file_exists($this->cache_dir . 'data_global.cache'))
 		{
 			foreach ($this->vars_ts as $varname => $timestamp)
 			{
@@ -151,31 +190,6 @@ class acm
 		}
 
 		return isset($this->vars[$varname]);
-	}
-
-	function format_array($array)
-	{
-		$lines = array();
-		foreach ($array as $k => $v)
-		{
-			if (is_array($v))
-			{
-				$lines[] = "'$k'=>" . $this->format_array($v);
-			}
-			elseif (is_int($v))
-			{
-				$lines[] = "'$k'=>$v";
-			}
-			elseif (is_bool($v))
-			{
-				$lines[] = "'$k'=>" . (($v) ? 'TRUE' : 'FALSE');
-			}
-			else
-			{
-				$lines[] = "'$k'=>'" . str_replace("'", "\'", str_replace('\\', '\\\\', $v)) . "'";
-			}
-		}
-		return 'array(' . implode(',', $lines) . ')';
 	}
 }
 ?>

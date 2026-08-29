@@ -1,7 +1,7 @@
 Options -Indexes -ExecCGI -Includes
 
-# PA FileDB writes PHP cache payloads here. They are application-internal and
-# must never be requested or executed through the web server.
+# PA FileDB writes application-internal cache payloads here. They must never
+# be requested through the web server.
 <IfModule mod_authz_core.c>
     Require all denied
 </IfModule>
