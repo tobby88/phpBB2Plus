@@ -45,6 +45,10 @@ else
 		$default_config[$config_name] = $config_value;
 
 		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
+		if ($config_name === 'tpl_php')
+		{
+			$new[$config_name] = '0';
+		}
 
 		if ((empty($size)) && (!$submit) && ($config_name == 'max_file_size'))
 		{
@@ -71,7 +75,7 @@ else
 				$new[$config_name] = ( $size == 'kb' ) ? round($new[$config_name] * 1024) : ( ($size == 'mb') ? round($new[$config_name] * 1048576) : $new[$config_name] );
 			}
 
-			if($config_name == 'tpl_php' && isset($_POST[$config_name]) && $new[$config_name] != $default_config[$config_name])
+			if($config_name == 'tpl_php' && $new[$config_name] != $default_config[$config_name])
 			{
 				$pafiledb_template->compile_cache_clear();
 			}
@@ -118,10 +122,6 @@ $download_disable_no = (!$new['settings_disable']) ? ' selected' : '';
 
 $hotlink_prevent_yes = ($new['hotlink_prevent']) ? ' selected' : '';
 $hotlink_prevent_no = (!$new['hotlink_prevent']) ? ' selected' : '';
-
-$php_template_enabled = !empty($new['settings_tpl_php']);
-$php_template_yes = $php_template_enabled ? ' selected' : '';
-$php_template_no = !$php_template_enabled ? ' selected' : '';
 
 $allow_html_yes = ($new['allow_html']) ? ' selected' : '';
 $allow_html_no = (!$new['allow_html']) ? ' selected' : '';
@@ -258,8 +258,6 @@ $template->assign_vars(array(
 	'S_VIEW_ALL_NO' => $view_all_no,
 	'S_DISABLE_YES' => $download_disable_yes,
 	'S_DISABLE_NO' => $download_disable_no,
-	'S_PHP_TPL_YES' => $php_template_yes,
-	'S_PHP_TPL_NO' => $php_template_no,
 	'S_HOTLINK_YES' => $hotlink_prevent_yes,
 	'S_HOTLINK_NO' => $hotlink_prevent_no,
 	'S_ALLOW_HTML_YES' => $allow_html_yes,

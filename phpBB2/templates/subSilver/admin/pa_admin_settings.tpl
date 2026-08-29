@@ -77,14 +77,6 @@
 	  </td>
 	</tr>
   <tr>
-	<td class="row1">{L_PHP_TPL}<br><span class="gensmall">{L_PHP_TPL_INFO}</span></td>
-	<td class="row2">
-	<select name="settings_tpl_php" class="forminput">
-	<option value="1"{S_PHP_TPL_YES}>{L_YES}</option>
-	<option value="0"{S_PHP_TPL_NO}>{L_NO}</option>	
-	</select></td>
-  </tr>
-  <tr>
 	<td class="row1">{L_MAX_FILE_SIZE}<br><span class="gensmall">{L_MAX_FILE_SIZE_INFO}</span></td>
 	<td class="row2"><input type="text" class="post" size="8" maxlength="15" name="max_file_size" value="{MAX_FILE_SIZE}" /> {S_FILESIZE}</td>
   </tr>

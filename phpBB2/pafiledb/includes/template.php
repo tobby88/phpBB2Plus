@@ -265,6 +265,7 @@ class pafiledb_Template
 	function compile($code, $no_echo = false, $echo_var = '')
 	{
 		global $pafiledb_config;
+		$pafiledb_config['tpl_php'] = 0;
 
 		// Remove any "loose" php ... we want to give admins the ability
 		// to switch on/off PHP for a given template. Allowing unchecked
@@ -273,6 +274,11 @@ class pafiledb_Template
 		// if they wish to display < and >
 		$match_php_tags = array('#\<\?php .*?\?\>#is', '#\<\script language="php"\>.*?\<\/script\>#is', '#\<\?.*?\?\>#s', '#\<%.*?%\>#s');
 		$code = preg_replace($match_php_tags, '', $code);
+		$code = preg_replace('#<!--\\s*PHP\\s*-->.*?(?:<!--\\s*ENDPHP\\s*-->|$)#is', '', $code);
+		$code = preg_replace('#<script\\s+[^>]*language\\s*=\\s*["\']?php["\']?[^>]*>.*?(?:</script\\s*>|$)#is', '', $code);
+		$code = preg_replace('#<\\?(?!xml\\b).*?(?:\\?>|$)#is', '', $code);
+		$code = preg_replace('#<%.*?(?:%>|$)#s', '', $code);
+		$code = preg_replace('#<!--\\s*INCLUDEPHP\\s+.*?-->#is', '', $code);
 
 		// Pull out all block/statement level elements and seperate
 		// plain text

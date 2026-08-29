@@ -1249,10 +1249,14 @@ class Template {
 			$code = @implode('', @file($filename));
 		}
 
-		// Replace phpBB 2.2 <!-- (END)PHP --> tags
-		$search = array('<!-- PHP -->', '<!-- ENDPHP -->');
-		$replace = array('<'.'?php ', ' ?'.'>');
-		$code = str_replace($search, $replace, $code);
+		// Templates are data. Legacy engines allowed raw PHP, PHP blocks and
+		// alternate PHP tags in .tpl files; imported styles must never gain a
+		// server-side execution path. Engine directives are compiled below after
+		// all author-supplied PHP syntax has been removed.
+		$code = preg_replace('#<!--\\s*PHP\\s*-->.*?(?:<!--\\s*ENDPHP\\s*-->|$)#is', '', $code);
+		$code = preg_replace('#<script\\s+[^>]*language\\s*=\\s*["\']?php["\']?[^>]*>.*?(?:</script\\s*>|$)#is', '', $code);
+		$code = preg_replace('#<\\?(?!xml\\b).*?(?:\\?>|$)#is', '', $code);
+		$code = preg_replace('#<%.*?(?:%>|$)#s', '', $code);
 
 		// Break it up into lines and put " -->" back.
 		$code_lines = explode(' -->', $code);
