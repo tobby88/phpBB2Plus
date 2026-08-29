@@ -968,13 +968,16 @@ function clean_html($tag)
 	}
 
 	$allowed_html_tags = preg_split('/, */', strtolower($board_config['allow_html_tags']));
-	$disallowed_attributes = '/^(?:style|on)/i';
+	$unsafe_html_tags = array('script', 'style', 'iframe', 'object', 'embed', 'applet', 'link', 'meta', 'base', 'form', 'input', 'button', 'textarea', 'select', 'option', 'svg', 'math');
+	$disallowed_attributes = '/^(?:style|on|srcdoc$|formaction$)/i';
+	$tag_name = strtolower($tag[1]);
 
 	// Check if this is an end tag
 	preg_match('/<[^\w\/]*\/[\W]*(\w+)/', $tag[0], $matches);
 	if (sizeof($matches))
 	{
-		if (in_array(strtolower($matches[1]), $allowed_html_tags))
+		$end_tag_name = strtolower($matches[1]);
+		if (in_array($end_tag_name, $allowed_html_tags) && !in_array($end_tag_name, $unsafe_html_tags))
 		{
 			return  '</' . $matches[1] . '>';
 		}
@@ -985,7 +988,7 @@ function clean_html($tag)
 	}
 
 	// Check if this is an allowed tag
-	if (in_array(strtolower($tag[1]), $allowed_html_tags))
+	if (in_array($tag_name, $allowed_html_tags) && !in_array($tag_name, $unsafe_html_tags))
 	{
 		$attributes = '';
 		if (!empty($tag[2]))
@@ -993,14 +996,26 @@ function clean_html($tag)
 			preg_match_all('/[\W]*?(\w+)[\W]*?=[\W]*?(["\'])((?:(?!\2).)*)\2/', $tag[2], $test);
 			for ($i = 0; $i < sizeof($test[0]); $i++)
 			{
-				if (preg_match($disallowed_attributes, $test[1][$i]))
+				$attribute_name = strtolower($test[1][$i]);
+				if (preg_match($disallowed_attributes, $attribute_name))
 				{
 					continue;
 				}
-				$attributes .= ' ' . $test[1][$i] . '=' . $test[2][$i] . str_replace(array('[', ']'), array('&#91;', '&#93;'), htmlspecialchars($test[3][$i])) . $test[2][$i];
+
+				if (in_array($attribute_name, array('href', 'src', 'action', 'background', 'dynsrc', 'lowsrc', 'poster'), true))
+				{
+					$decoded_url = html_entity_decode($test[3][$i], ENT_QUOTES, 'UTF-8');
+					$scheme_test = strtolower(preg_replace('/[\x00-\x20\x7f]+/', '', $decoded_url));
+					if (preg_match('/^[a-z][a-z0-9+.-]*:/i', $scheme_test) && !preg_match('/^(?:https?|ftp|mailto):/i', $scheme_test))
+					{
+						continue;
+					}
+				}
+
+				$attributes .= ' ' . $attribute_name . '=' . $test[2][$i] . str_replace(array('[', ']'), array('&#91;', '&#93;'), htmlspecialchars($test[3][$i])) . $test[2][$i];
 			}
 		}
-		if (in_array(strtolower($tag[1]), $allowed_html_tags))
+		if (in_array($tag_name, $allowed_html_tags) && !in_array($tag_name, $unsafe_html_tags))
 		{
 			return '<' . $tag[1] . $attributes . '>';
 		}

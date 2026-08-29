@@ -25,8 +25,8 @@ if ( !defined('IN_PHPBB') )
 	die("Hacking attempt");
 }
 	$article_id = (isset($_GET['k']) && is_scalar($_GET['k'])) ? intval($_GET['k']) : ((isset($_POST['k']) && is_scalar($_POST['k'])) ? intval($_POST['k']) : 0);
-	$article_submit = !empty($_POST['article_submit']);
-	$preview = !empty($_POST['preview']);
+	$article_submit = phpbb_request_scalar($_POST, 'article_submit') !== '';
+	$preview = phpbb_request_scalar($_POST, 'preview') !== '';
 	$sql = 'SELECT * FROM ' . KB_ARTICLES_TABLE . ' WHERE article_id = ' . $article_id;
 	if (!($permission_result = $db->sql_query($sql)))
 	{
@@ -43,7 +43,7 @@ if ( !defined('IN_PHPBB') )
 		$message = $lang['No_edit'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);
 	}
-	if ($article_submit && ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+	if (($article_submit || $preview) && ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
@@ -154,9 +154,9 @@ if ( !defined('IN_PHPBB') )
 		  'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid($phpbb_root_path . "faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
 		  'SMILIES_STATUS' => $smilies_status,
 		  
-		  'ARTICLE_TITLE' => $article_name,
-		  'ARTICLE_DESC' => $article_desc,
-		  'ARTICLE_BODY' => $article_body,
+		  'ARTICLE_TITLE' => htmlspecialchars(unprepare_message($article_name)),
+		  'ARTICLE_DESC' => htmlspecialchars(unprepare_message($article_desc)),
+		  'ARTICLE_BODY' => htmlspecialchars(unprepare_message($article_body)),
 		  'TOPIC' => $topic,
 		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="k" value="' . $article_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		
@@ -217,7 +217,7 @@ if ( !defined('IN_PHPBB') )
 	}
 
 // Preview -------------------------------------------------------------------------	
-	if( $_POST['preview'] )
+	if ($preview)
 	{
 		$sql = "SELECT bbcode_uid
 		  FROM " . KB_ARTICLES_TABLE . "
@@ -233,10 +233,10 @@ if ( !defined('IN_PHPBB') )
 		$replacement_word = array();
 		obtain_word_list($orig_word, $replacement_word);
 
-		$message_name = htmlspecialchars(stripslashes($_POST['article_name']));
-		$message_desc = htmlspecialchars(stripslashes($_POST['article_desc']));
+		$message_name = htmlspecialchars(stripslashes(phpbb_request_scalar($_POST, 'article_name')));
+		$message_desc = htmlspecialchars(stripslashes(phpbb_request_scalar($_POST, 'article_desc')));
 
-		$message = ( !empty($_POST['message']) ) ? stripslashes($_POST['message']) : '';
+		$message = stripslashes(phpbb_request_scalar($_POST, 'message'));
 		
 		$bbcode_uid = ( $row['bbcode_uid'] ) ? $row['bbcode_uid'] : '';
 		$preview_message = stripslashes(prepare_message(addslashes(unprepare_message($message)), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
@@ -265,7 +265,7 @@ if ( !defined('IN_PHPBB') )
 		$template->assign_vars(array(
 			'ARTICLE_TITLE' => $message_name,
 			'ARTICLE_DESC' => $message_desc,
-			'ARTICLE_BODY' => $message,
+			'ARTICLE_BODY' => htmlspecialchars($message),
 			
 			'PREVIEW_MESSAGE' => $preview_message)
 		);

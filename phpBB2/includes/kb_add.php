@@ -26,8 +26,8 @@ if ( !defined('IN_PHPBB') )
 }
 
   $category_id = (isset($_GET['cat']) && is_scalar($_GET['cat'])) ? intval($_GET['cat']) : ((isset($_POST['cat']) && is_scalar($_POST['cat'])) ? intval($_POST['cat']) : 0);
-  $article_submit = !empty($_POST['article_submit']);
-  $preview = !empty($_POST['preview']);
+  $article_submit = phpbb_request_scalar($_POST, 'article_submit') !== '';
+  $preview = phpbb_request_scalar($_POST, 'preview') !== '';
 
   if (!$is_admin && ((!$userdata['session_logged_in'] && $kb_config['allow_anon'] != ALLOW_ANON) || $kb_config['allow_new'] == 0))
   {
@@ -35,7 +35,7 @@ if ( !defined('IN_PHPBB') )
 	  message_die(GENERAL_MESSAGE, $message);
   }
 
-  if ($article_submit && ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+  if (($article_submit || $preview) && ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
   {
 	  message_die(GENERAL_ERROR, $lang['Not_Authorised']);
   }
@@ -118,7 +118,7 @@ if ( !defined('IN_PHPBB') )
 		  'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid("faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
 		  'SMILIES_STATUS' => $smilies_status,
 		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat" value="' . $category_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
-		
+
 		  'L_BBCODE_B_HELP' => $lang['bbcode_b_help'], 
 		  'L_BBCODE_I_HELP' => $lang['bbcode_i_help'], 
 		  'L_BBCODE_U_HELP' => $lang['bbcode_u_help'], 
@@ -164,7 +164,7 @@ if ( !defined('IN_PHPBB') )
 		  'L_BBCODE_CLOSE_TAGS' => $lang['Close_Tags'], 
 		  'L_STYLES_TIP' => $lang['Styles_tip'])
 	   );
-	   $type_id = $_POST['type_id'];
+	   $type_id = phpbb_request_scalar($_POST, 'type_id');
 		if ( $type_id == 'select_one' )
 		{
 			$message = "Please select article type.<br /><br />Click <a href=" . append_sid(this_kb_mxurl()) .">Here</a> to return to the form";
@@ -187,28 +187,25 @@ if ( !defined('IN_PHPBB') )
 	}
 	//END - PreText HIDE/SHOW
 	
-	if( $_POST['preview'] )
+	if ($preview)
 	{
 		$orig_word = array();
 		$replacement_word = array();
 		obtain_word_list($orig_word, $replacement_word);
 
-		$message = $_POST['message'];
+		$preview_title = stripslashes(phpbb_request_scalar($_POST, 'article_name'));
+		$preview_desc = stripslashes(phpbb_request_scalar($_POST, 'article_desc'));
+		$preview_username = stripslashes(phpbb_request_scalar($_POST, 'username'));
+		$message = stripslashes(phpbb_request_scalar($_POST, 'message'));
 		
 		$bbcode_uid = make_bbcode_uid();
 
-		$preview_message = stripslashes(prepare_message($message, $html_on, $bbcode_on, $smilies_on, $bbcode_uid)); 
-
-		$message = stripslashes($message);
-
-		if ( $row['bbcode_uid'] != '' )
-		{
-			$message = preg_replace('/\:(([a-z0-9]:)?)' . $row['bbcode_uid'] . '/s', '', $message);
-		}
-
-		$preview_message = bbencode_first_pass($preview_message, $bbcode_uid);
+		$preview_message = stripslashes(prepare_message(addslashes($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
 		
-		$preview_message = bbencode_second_pass($preview_message, $bbcode_uid);
+		if ($bbcode_on)
+		{
+			$preview_message = bbencode_second_pass($preview_message, $bbcode_uid);
+		}
 
 		$preview_message = make_clickable($preview_message);
 
@@ -224,10 +221,10 @@ if ( !defined('IN_PHPBB') )
 		);
 
 		$template->assign_vars(array(
-			'ARTICLE_TITLE' => htmlspecialchars(stripslashes($_POST['article_name'])),
-			'ARTICLE_DESC' => htmlspecialchars(stripslashes($_POST['article_desc'])),
-			'ARTICLE_BODY' => $message,
-			'USERNAME' => $_POST['username'],
+			'ARTICLE_TITLE' => htmlspecialchars($preview_title),
+			'ARTICLE_DESC' => htmlspecialchars($preview_desc),
+			'ARTICLE_BODY' => htmlspecialchars($message),
+			'USERNAME' => htmlspecialchars($preview_username),
 			
 			'PREVIEW_MESSAGE' => $preview_message)
 		);
