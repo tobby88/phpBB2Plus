@@ -58,7 +58,33 @@ else
 	{
 		$cat_id = $check_cat_id;
 	}
-	$thiscat = $album_data['data'][ $album_data['keys'][$cat_id] ];
+
+	$cat_id = (int) $cat_id;
+	if (isset($album_data['keys'][$cat_id]) && isset($album_data['data'][$album_data['keys'][$cat_id]]))
+	{
+		$thiscat = $album_data['data'][$album_data['keys'][$cat_id]];
+	}
+	else
+	{
+		// A filtered or stale hierarchy cache may omit an otherwise valid
+		// personal category. Load only the requested owner's category; using a
+		// synthetic category here would bypass its real access settings.
+		$sql = 'SELECT *
+				FROM ' . ALBUM_CAT_TABLE . '
+				WHERE cat_id = ' . $cat_id . '
+					AND cat_user_id = ' . (int) $album_user_id;
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Could not query Album Category information', '', __LINE__, __FILE__, $sql);
+		}
+
+		$thiscat = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if (!$thiscat)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Category_not_exist']);
+		}
+	}
 }
 
 // ------------------------------------------------------------------------
@@ -265,6 +291,7 @@ $total_pics = $row['count'];
 // 10: End of 'work flow'
 //
 // ------------------------------------------------------------------------
+$no_picture_message = '';
 if ($row['count'] == 0)
 {
 	if ( !strstr($album_nav_cat_desc, sprintf($lang['Personal_Gallery_Of_User'], $username)) )

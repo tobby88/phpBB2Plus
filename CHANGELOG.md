@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repaired personal-album category resolution when an otherwise valid category
+  is absent from the filtered hierarchy cache. The fallback loads only the
+  requested owner's exact category and applies its real permissions; missing
+  permission fields now default to deny rather than generating PHP 8 warnings
+  or accidentally granting moderator actions.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

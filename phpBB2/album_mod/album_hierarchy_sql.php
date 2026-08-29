@@ -973,6 +973,22 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 {
 	global $board_config, $album_data, $album_config, $template, $lang, $phpEx, $userdata, $db;
 
+	// Keep malformed legacy rows and partially populated permission arrays on
+	// the safe side. Missing rights must never turn into moderator privileges,
+	// and missing category levels must remain administrator-only.
+	$thiscat = is_array($thiscat) ? $thiscat : array();
+	$thiscat += array(
+		'cat_approval' => ALBUM_USER,
+		'cat_edit_level' => ALBUM_ADMIN,
+		'cat_delete_level' => ALBUM_ADMIN
+	);
+	$auth_data = is_array($auth_data) ? $auth_data : array();
+	$auth_data += array(
+		'moderator' => 0,
+		'edit' => 0,
+		'delete' => 0
+	);
+
 	$viewmode = (strpos($cat_ids, ',') != false) ? '&mode=' . ALBUM_VIEW_ALL : '';
 	
 	if 	(defined('ALBUM_SP_CONFIG_TABLE'))

@@ -91,3 +91,6 @@ jobs:
 
       - name: Test CrackerTracker configuration recovery
         run: php .github/scripts/check-ctracker-recovery.php
+
+      - name: Test personal-album category safety
+        run: php .github/scripts/check-album-personal-safety.php
