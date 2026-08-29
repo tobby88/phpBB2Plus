@@ -155,15 +155,6 @@ if( isset($_POST['submit']) )
 //-- add
 	cache_tree(true);
 
-	$files = glob($phpbb_root_path."cache/cal_cache_*.php"); 
-	if ($files)
-    {
-      foreach ( $files as $filename)
-      {
-        @unlink ($filename);
-      }
-    }
-
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	$template->assign_vars(array(

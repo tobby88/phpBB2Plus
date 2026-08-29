@@ -28,68 +28,6 @@ include_once($phpbb_root_path . './includes/functions_post.' . $phpEx);
 include_once($phpbb_root_path . './includes/bbcode.' . $phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
-function _cal_cache($events, $cache_cal)
-{
-	$cal_ttl = 3600+time();
-	$write_string = '<?php'."
-
-if ( !defined('IN_PHPBB') )
-{
-	die('Hacking attempt');
-}
-
-".'$cal_ttl = '. $cal_ttl .';
-
-$events = array(
-';
-	
-	for ($i=0; $i < count($events); $i++)
-	{
-		// data
-		$write_string .="$i => array(
-'event_id'					=> ". ( ( is_numeric($events[$i]['event_id']) ) ? $events[$i]['event_id'] : "'". addslashes(trim($events[$i]['event_id'])) ."'").",
-'event_author_id'			=> ". ((is_numeric($events[$i]['event_author_id'])) ? $events[$i]['event_author_id'] : "'". addslashes(trim($events[$i]['event_author_id'])) ."'").",
-'event_author'				=> '". addslashes(trim($events[$i]['event_author'])) ."',
-'event_time'				=> ". ((is_numeric($events[$i]['event_time'])) ? $events[$i]['event_time'] : "'". addslashes(trim($events[$i]['event_time'])) ."'").",
-'event_last_author_id'		=> ". ((is_numeric($events[$i]['event_last_author_id'])) ? $events[$i]['event_last_author_id'] : "'". addslashes(trim($events[$i]['event_last_author_id'])) ."'").",
-'event_last_author'			=> '". addslashes(trim($events[$i]['event_last_author'])) ."',
-'event_last_time'			=> ". ((is_numeric($events[$i]['event_last_time'])) ? $events[$i]['event_last_time'] : "'". addslashes(trim($events[$i]['event_last_time'])) ."'").",
-'event_replies'				=> ". ((is_numeric($events[$i]['event_replies'])) ? $events[$i]['event_replies'] : "'". addslashes(trim($events[$i]['event_replies'])) ."'").",
-'event_views'				=> ". ((is_numeric($events[$i]['event_views'])) ? $events[$i]['event_views'] : "'". addslashes(trim($events[$i]['event_views'])) ."'").",
-'event_type'				=> ". ((is_numeric($events[$i]['event_type'])) ? $events[$i]['event_type'] : "'". addslashes(trim($events[$i]['event_type'])) ."'").",
-'event_vote'				=> ". ((is_numeric($events[$i]['event_vote'])) ? $events[$i]['event_vote'] : "'". addslashes(trim($events[$i]['event_vote'])) ."'").",
-'event_status'				=> ". ((is_numeric($events[$i]['event_status'])) ? $events[$i]['event_status'] : "'". addslashes(trim($events[$i]['event_status'])) ."'").",
-'event_moved_id'			=> ". ((is_numeric($events[$i]['event_moved_id'])) ? $events[$i]['event_moved_id'] : "'". addslashes(trim($events[$i]['event_moved_id'])) ."'").",
-'event_last_id'				=> ". ((is_numeric($events[$i]['event_last_id'])) ? $events[$i]['event_last_id'] : "'". addslashes(trim($events[$i]['event_last_id'])) ."'").",
-'event_forum_id'			=> ". ((is_numeric($events[$i]['event_forum_id'])) ? $events[$i]['event_forum_id'] : "'". addslashes(trim($events[$i]['event_forum_id'])) ."'").",
-'event_forum_name'			=> '". addslashes(trim($events[$i]['event_forum_name'])) ."',
-'event_icon'				=> ". ((is_numeric($events[$i]['event_icon'])) ? $events[$i]['event_icon'] : "'". addslashes(trim($events[$i]['event_icon'])) ."'").",
-'event_title'				=> '". addslashes(trim($events[$i]['event_title'])) ."',
-'event_short_title'			=> '". addslashes(trim($events[$i]['event_short_title'])) ."',
-'event_message'				=> '". addslashes(trim($events[$i]['event_message'])) ."',
-'event_calendar_time'		=> ". ((is_numeric($events[$i]['event_calendar_time'])) ? $events[$i]['event_calendar_time'] : "'". addslashes(trim($events[$i]['event_calendar_time'])) ."'").",
-'event_calendar_duration'	=> ". ((is_numeric($events[$i]['event_calendar_duration'])) ? $events[$i]['event_calendar_duration'] : "'". addslashes(trim($events[$i]['event_calendar_duration'])) ."'").",
-'event_link'				=> '". addslashes(trim($events[$i]['event_link'])) ."',
-'event_txt_class'			=> '". addslashes(trim($events[$i]['event_txt_class'])) ."',
-'event_type_icon'			=> '". addslashes(trim($events[$i]['event_type_icon'])) ."'),
-
-";
-		// data
-	}
-	
-	$write_string .= ");\n".'?>';
-	
-	
-	if(@$f = fopen($cache_cal, 'w')) 
-	{ 
-		fwrite($f, $write_string); 
-		fclose($f); 
-		@chmod($cache_cal, 0664);
-	}
-	return;
-}
-
-
 // function select
 function calendar_get_tree_option($cur='')
 {
@@ -991,53 +929,12 @@ function display_calendar($main_template, $nb_days=0, $start=0, $fid='')
 	$events = array();
 	$number = 0;
 
-// cache calendar -----------------
-$cache_dir = $phpbb_root_path . 'cache';
-$cal_cache_file_id = '';
-if ($userdata['user_id'] != ANONYMOUS && $userdata['user_level'] != ADMIN)
-{
-	$is_auth = array();
-	$forum_ids = '';
-	$is_auth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
-	foreach ($is_auth as $forum_id => $auth)
-	{
-		if ($auth['auth_read'] && $auth['auth_view'])
-		{
-			$forum_ids .= $forum_id;
-		}
-	}
-	$cal_cache_file_id = md5($forum_ids);
-	unset($forum_ids,$is_auth);
-} else
-	$cal_cache_file_id = $userdata['user_id'];
-	
-$cache_cal = $cache_dir . '/cal_cache_'.$cal_cache_file_id.'.'.$phpEx;
-$cal_ttl = 0;
-
-$use_cache = (is_writable($cache_dir) && defined('CCache') && $nb_days > 0  ) ? true : false;
-
-if ( $use_cache && file_exists($cache_cal) )
-	@include_once($cache_cal);
-
-if ( !$use_cache || $cal_ttl < time() )
-{
-	$events = array();
-	$number = 0;
-// cache calendar -----------------
-
 	// topics
 	get_event_topics($events, $number, $start_date, $end_date, false, 0, -1, $fid);
 
 	// birthday
 //	get_event_PCP_birthday($events, $number, $start_date, $end_date);
 	get_birthday($events, $number, $start_date, $end_date); 
-	
-// cache calendar -----------------
-	if ($use_cache)
-		_cal_cache($events, $cache_cal);
-}
-// cache calendar -----------------
-
         //
 	// And now display them
 	//
