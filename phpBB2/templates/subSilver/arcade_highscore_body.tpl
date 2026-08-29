@@ -4,6 +4,8 @@
 	</tr>
 </table>
 
+<div align="center">{HIGHSCORE_INPUT}</div>
+<br />
 
 <table class="forumline" width="98%" cellpadding="0" border="0" align="center">
   <tr> 
