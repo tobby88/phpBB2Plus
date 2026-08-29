@@ -26,6 +26,12 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
+$submit = isset($_POST['submit']);
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+
 if (!defined('PORTAL_TABLE'))
 {
 	define('PORTAL_TABLE', $table_prefix.'portal');
@@ -34,6 +40,8 @@ if (!defined('PORTAL_TABLE'))
 //
 // Pull all config data
 //
+$default_portal = array();
+$new = array();
 $sql = "SELECT * FROM " . PORTAL_TABLE;
 if(!$result = $db->sql_query($sql))
 {
@@ -47,20 +55,21 @@ else
 		$portal_value = $row['portal_value'];
 		$default_portal[$portal_name] = $portal_value;
 		
-		$new[$portal_name] = ( isset($_POST[$portal_name]) ) ? $_POST[$portal_name] : $default_portal[$portal_name];
-		if( isset($_POST['submit']) )
+		$new[$portal_name] = $submit ? phpbb_admin_post_string($portal_name, $default_portal[$portal_name]) : $default_portal[$portal_name];
+		if ($submit)
 		{
 			$sql = "UPDATE " . PORTAL_TABLE . " SET
-				portal_value = '" . str_replace("\'", "''", $new[$portal_name]) . "'
-				WHERE portal_name = '$portal_name'";
+				portal_value = '" . $db->sql_escape($new[$portal_name]) . "'
+				WHERE portal_name = '" . $db->sql_escape($portal_name) . "'";
 			if( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, "Failed to update general configuration for $portal_name", "", __LINE__, __FILE__, $sql);
 			}
 		}
 	}
+	$db->sql_freeresult($result);
 
-	if( isset($_POST['submit']) )
+	if ($submit)
 	{
 		$message = $lang['Config_updated'] . "<br /><br />" . sprintf($lang['Click_return_config'], "<a href=\"" . append_sid("admin_portal.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -78,6 +87,7 @@ $template->set_filenames(array(
 
 $template->assign_vars(array(
 	"S_CONFIG_ACTION" => append_sid("admin_portal.$phpEx"),
+	"S_HIDDEN_FIELDS" => phpbb_admin_session_field(),
 	"L_CONFIGURATION_TITLE" => $lang['EZPortal_Config'],
 	"L_GENERAL_SETTINGS" => isset($lang['EZPortal_settings']) ? $lang['EZPortal_settings'] : $lang['General_Config'],
 	"L_WELCOME_TEXT" => $lang['Welcome_Text'],
@@ -112,19 +122,19 @@ $template->assign_vars(array(
 	"PIC_SORT_NO" => $pics_sort_no,
 	"PIC_SORT_YES" => $pics_sort_yes,
 
-	"WELCOME_TEXT" => $new['welcome_text'], 
-	"NUMBER_OF_NEWS" => $new['number_of_news'],
-	"NEWS_LENGTH" => $new['news_length'],
-	"NEWS_FORUM" => $new['news_forum'],
-	"POLL_FORUM" => $new['poll_forum'],
-	"NUMBER_RECENT_TOPICS" => $new['number_recent_topics'],
-	"NUMBER_RECENT_FILES" => $new['number_recent_files'],
-	"EXCEPT_FORUM" => $new['exceptional_forums'],
-	"PIC_CAT_ID" => $new['cat_id'],
-	"PIC_NUMBER" => $new['pics_number'],
-	"PIC_THUMBSIZE" => $new['pics_thumbsize'],
-	"NUMBER_TOP_POSTERS" => $new['number_top_posters'],
-	"LAST_SEEN" => $new['last_seen'])
+	"WELCOME_TEXT" => phpbb_admin_html($new['welcome_text']),
+	"NUMBER_OF_NEWS" => phpbb_admin_html($new['number_of_news']),
+	"NEWS_LENGTH" => phpbb_admin_html($new['news_length']),
+	"NEWS_FORUM" => phpbb_admin_html($new['news_forum']),
+	"POLL_FORUM" => phpbb_admin_html($new['poll_forum']),
+	"NUMBER_RECENT_TOPICS" => phpbb_admin_html($new['number_recent_topics']),
+	"NUMBER_RECENT_FILES" => phpbb_admin_html($new['number_recent_files']),
+	"EXCEPT_FORUM" => phpbb_admin_html($new['exceptional_forums']),
+	"PIC_CAT_ID" => phpbb_admin_html($new['cat_id']),
+	"PIC_NUMBER" => phpbb_admin_html($new['pics_number']),
+	"PIC_THUMBSIZE" => phpbb_admin_html($new['pics_thumbsize']),
+	"NUMBER_TOP_POSTERS" => phpbb_admin_html($new['number_top_posters']),
+	"LAST_SEEN" => phpbb_admin_html($new['last_seen']))
 );
 
 $template->pparse("body");
@@ -132,4 +142,3 @@ $template->pparse("body");
 include('./page_footer_admin.'.$phpEx);
 
 ?>
-

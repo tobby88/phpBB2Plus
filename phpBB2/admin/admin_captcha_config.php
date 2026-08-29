@@ -24,7 +24,15 @@ $phpbb_root_path = '../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
+$submit = isset($_POST['submit']);
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+
 // Pull config data
+$default_config = array();
+$new = array();
 $sql = "SELECT * FROM " . CAPTCHA_CONFIG_TABLE;
 if(!$result = $db->sql_query($sql))
 {
@@ -38,21 +46,22 @@ else
 		$config_value = $row['config_value'];
 		$default_config[$config_name] = $config_value;
 
-		$new[$config_name] = ( isset($HTTP_POST_VARS[$config_name]) ) ? $HTTP_POST_VARS[$config_name] : $default_config[$config_name];
+		$new[$config_name] = $submit ? phpbb_admin_post_string($config_name, $default_config[$config_name]) : $default_config[$config_name];
 
-		if( isset($HTTP_POST_VARS['submit']) )
+		if ($submit)
 		{
 			$sql = "UPDATE " . CAPTCHA_CONFIG_TABLE . " SET
-				config_value = '" . str_replace("\'", "''", $new[$config_name]) . "'
-				WHERE config_name = '$config_name'";
+				config_value = '" . $db->sql_escape($new[$config_name]) . "'
+				WHERE config_name = '" . $db->sql_escape($config_name) . "'";
 			if( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, "Failed to update Lexicon configuration for $config_name", "", __LINE__, __FILE__, $sql);
 			}
 		}
 	}
+	$db->sql_freeresult($result);
 
-	if( isset($HTTP_POST_VARS['submit']) )
+	if ($submit)
 	{
 		$message = $lang['captcha_config_updated'] . "<br />" . sprintf($lang['Click_return_captcha_config'], "<a href=\"" . append_sid("admin_captcha_config.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>") . "<br /><br />";
 
@@ -105,15 +114,15 @@ $template->assign_vars(array(
 	'L_GENERATE_JPEG_EXPAIN' => $lang['generate_jpeg_explain'],
 	'L_JPEG_QUALITY' => $lang['generate_jpeg_quality'],
 
-	'WIDTH' => $new['width'],
-	'HEIGHT' => $new['height'],
-	'BACKGROUND_COLOR' => $new['background_color'],
-	'PRE_LETTERS' => $new['pre_letters'],
-	'LATTICE_X_LINES' => $new['foreground_lattice_x'],
-	'LATTICE_Y_LINES' => $new['foreground_lattice_y'],
-	'LATTICE_COLOR' => $new['lattice_color'],
-	'GAMMACORRECT' => $new['gammacorrect'],
-	'JPEG_QUALITY' => $new['jpeg_quality'],
+	'WIDTH' => phpbb_admin_html($new['width']),
+	'HEIGHT' => phpbb_admin_html($new['height']),
+	'BACKGROUND_COLOR' => phpbb_admin_html($new['background_color']),
+	'PRE_LETTERS' => phpbb_admin_html($new['pre_letters']),
+	'LATTICE_X_LINES' => phpbb_admin_html($new['foreground_lattice_x']),
+	'LATTICE_Y_LINES' => phpbb_admin_html($new['foreground_lattice_y']),
+	'LATTICE_COLOR' => phpbb_admin_html($new['lattice_color']),
+	'GAMMACORRECT' => phpbb_admin_html($new['gammacorrect']),
+	'JPEG_QUALITY' => phpbb_admin_html($new['jpeg_quality']),
 
 	'CAPTCHA_IMG' => '<img src="'.append_sid($phpbb_root_path.'profile.'.$phpEx.'?mode=confirm&amp;id=Admin').'">',
 
@@ -138,7 +147,7 @@ $template->assign_vars(array(
 	'S_JPEG_IMAGE_YES' => ($new['jpeg'] == 1) ? 'checked="checked"' : '',
 	'S_JPEG_IMAGE_NO' => ($new['jpeg'] == 0) ? 'checked="checked"' : '',
 
-	'S_HIDDEN_FIELDS' => '',
+	'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 	'S_CAPTCHA_CONFIG_ACTION' => append_sid('admin_captcha_config.'.$phpEx))
 );
 

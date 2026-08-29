@@ -236,6 +236,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Hardened moderation-log deletion and pruning against malformed identifiers
   and moved Registration IP hostname resolution and persistence from a GET
   link to an explicit session-bound POST action.
+- Added shared scalar-input, output-escaping and session-field helpers for the
+  administration panel, then applied them to Portal, Nuffload, Links and
+  CAPTCHA configuration writes.
 - Hardened custom-profile-field administration against injected identifiers,
   array-shaped form values and unescaped database content; column names used
   by schema changes are derived and validated server-side. Also repaired the

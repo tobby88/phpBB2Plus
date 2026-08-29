@@ -95,6 +95,31 @@ if (!function_exists('phpbb_admin_require_post_session'))
 	}
 }
 
+if (!function_exists('phpbb_admin_post_string'))
+{
+	function phpbb_admin_post_string($key, $default = '')
+	{
+		return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? (string) $_POST[$key] : (string) $default;
+	}
+}
+
+if (!function_exists('phpbb_admin_html'))
+{
+	function phpbb_admin_html($value)
+	{
+		return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	}
+}
+
+if (!function_exists('phpbb_admin_session_field'))
+{
+	function phpbb_admin_session_field()
+	{
+		global $userdata;
+		return '<input type="hidden" name="sid" value="' . phpbb_admin_html($userdata['session_id']) . '" />';
+	}
+}
+
 if (empty($no_page_header))
 {
 	// Not including the pageheader can be neccesarry if META tags are

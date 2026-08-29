@@ -39,10 +39,18 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_link.' . $phpEx);
 
+$submit = isset($_POST['submit']);
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+
 
 //
 // Pull all config data
 //
+$default_config = array();
+$new = array();
 $sql = "SELECT * FROM " . LINK_CONFIG_TABLE;
 if(!$result = $db->sql_query($sql))
 {
@@ -56,21 +64,22 @@ else
 		$config_value = $row['config_value'];
 		$default_config[$config_name] = $config_value;
 
-		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
+		$new[$config_name] = $submit ? phpbb_admin_post_string($config_name, $default_config[$config_name]) : $default_config[$config_name];
 
-		if( isset($_POST['submit']) )
+		if ($submit)
 		{
 			$sql = "UPDATE " . LINK_CONFIG_TABLE . " SET
-				config_value = '" . str_replace("\'", "''", $new[$config_name]) . "'
-				WHERE config_name = '$config_name'";
+				config_value = '" . $db->sql_escape($new[$config_name]) . "'
+				WHERE config_name = '" . $db->sql_escape($config_name) . "'";
 			if( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, "Failed to update Link configuration for $config_name", "", __LINE__, __FILE__, $sql);
 			}
 		}
 	}
+	$db->sql_freeresult($result);
 
-	if( isset($_POST['submit']) )
+	if ($submit)
 	{
 		$message = $lang['Link_config_updated'] . "<br /><br />" . sprintf($lang['Click_return_link_config'], "<a href=\"" . append_sid("admin_links_config.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -99,6 +108,7 @@ $template->assign_vars(array(
 	'L_LINK_CONFIG' => $lang['Link_Config'],
 	'L_LINK_CONFIG_EXPLAIN' => $lang['Link_config_explain'],
 	'S_LINK_CONFIG_ACTION' => append_sid('admin_links_config.'.$phpEx),
+	'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 
 	'LOCK_SUBMIT_SITE_YES' => $lock_submit_site_yes,
 	'LOCK_SUBMIT_SITE_NO' => $lock_submit_site_no,
@@ -110,13 +120,13 @@ $template->assign_vars(array(
 	'L_LINKSPP' => $lang['linkspp'],
 	'L_DISPLAY_INTERVAL' => $lang['interval'],
 	'L_DISPLAY_LOGO_NUM' => $lang['display_logo'],
-	'INTERVAL' => $new['display_interval'],
-	'LOGO_NUM' => $new['display_logo_num'],
-	'SITE_LOGO' => $new['site_logo'],
-	'SITE_URL' => $new['site_url'],
-	'WIDTH' => $new['width'],
-	'HEIGHT' => $new['height'],
-	'LINKSPP' => $new['linkspp'],
+	'INTERVAL' => phpbb_admin_html($new['display_interval']),
+	'LOGO_NUM' => phpbb_admin_html($new['display_logo_num']),
+	'SITE_LOGO' => phpbb_admin_html($new['site_logo']),
+	'SITE_URL' => phpbb_admin_html($new['site_url']),
+	'WIDTH' => phpbb_admin_html($new['width']),
+	'HEIGHT' => phpbb_admin_html($new['height']),
+	'LINKSPP' => phpbb_admin_html($new['linkspp']),
 
 	// 'ALLOW_GUEST_SUBMIT_SITE_YES' => $allow_guest_submit_site_yes,
 	// 'ALLOW_GUEST_SUBMIT_SITE_NO' => $allow_guest_submit_site_no,
