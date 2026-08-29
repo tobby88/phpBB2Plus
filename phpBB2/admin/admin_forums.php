@@ -773,7 +773,7 @@ if( !empty($mode) )
 //-- add
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 			$message = $lang['Forums_updated'] . "<br /><br />" . sprintf($lang['Click_return_forumadmin'], "<a href=\"" . append_sid("admin_forums.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
@@ -923,7 +923,7 @@ if( !empty($mode) )
 //-- add
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 			$message = $lang['Forums_updated'] . "<br /><br />" . sprintf($lang['Click_return_forumadmin'], "<a href=\"" . append_sid("admin_forums.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
@@ -1012,7 +1012,7 @@ if( !empty($mode) )
 			move_tree('Root', 0, 0);
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 			$message = $lang['Forums_updated'] . "<br /><br />" . sprintf($lang['Click_return_forumadmin'], "<a href=\"" . append_sid("admin_forums.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
@@ -1159,7 +1159,7 @@ if( !empty($mode) )
 //-- add
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 			$err = admin_check_cat();
 			if ( $err ) $message = $lang['Category_config_error_fixed'] . "<br /><br />" . $message;
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
@@ -1414,7 +1414,7 @@ if( !empty($mode) )
 //-- add
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 			$message = $lang['Forums_updated'] . "<br /><br />" . sprintf($lang['Click_return_forumadmin'], "<a href=\"" . append_sid("admin_forums.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
@@ -1637,7 +1637,7 @@ if( !empty($mode) )
 //-- add
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 			$err = admin_check_cat();
 			if ( $err ) $message = $lang['Category_config_error_fixed'] . "<br /><br />" . $message;
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
@@ -1673,7 +1673,7 @@ if( !empty($mode) )
 			move_tree(POST_FORUM_URL, $forum_id, $move);
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 			$show_index = TRUE;
@@ -1707,7 +1707,7 @@ if( !empty($mode) )
 			$cat_id = $tree['id'][ $tree['keys'][$main] ];
 			cache_tree(true);			
 			board_stats();
-			@unlink($phpbb_root_path . 'cache/c_seolist.'.$phpEx);
+			@unlink($phpbb_root_path . 'cache/c_seolist.cache');
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 			$show_index = TRUE;

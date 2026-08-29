@@ -97,15 +97,15 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 		}
 	}
 
-	$cache_seo = $phpbb_root_path . 'cache/c_seolist.'.$phpEx;
+	$cache_seo = $phpbb_root_path . 'cache/c_seolist.cache';
 
 	if (@!file_exists($cache_seo))
 	{
 
-		if (is_writable($phpbb_root_path . '/cache')) {
+		if (is_writable($phpbb_root_path . 'cache')) {
 
-			$write_string = '<?php'."\n".'if ( !defined(\'IN_PHPBB\') )'."\n".'{'."\n".'	die(\'Hacking attempt\');'."\n".'}'."\n\n".'$seo_list_in = array( ';
-			$write_string_b = "\n".'$seo_list_out = array( ';
+			$seo_forums = array();
+			$seo_categories = array();
 
 			// cache Forums (read)
 			$sql = "SELECT forum_id, forum_name FROM  " . FORUMS_TABLE;
@@ -119,9 +119,10 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 			{
 				$name = phpbb_short_url_slug($row['forum_name']);
 
-				$write_string .= '\'|"(?:./)?viewforum.php\?f='.$row['forum_id'].'&(?:amp;)topicdays=([0-9]*)&(?:amp;)start=([0-9]*)"|\','."\n".'\'|"(?:./)?viewforum.php\?f='.$row['forum_id'].'"|\','."\n";
-				$write_string_b .= '\'"viewforum'. $row['forum_id'] . '-\\1-\\2,'. $name . '.html"\','."\n".'\'"forum'. $row['forum_id'] . ','. $name . '.html"\','."\n";
+				$forum_id = (int) $row['forum_id'];
+				$seo_forums[$forum_id] = $name;
 			}
+			$db->sql_freeresult($result);
 			//-----------------------------------------------
 
 			// cache Categories (read)
@@ -136,22 +137,17 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 			{
 				$name = phpbb_short_url_slug($row['cat_title']);
 
-				$write_string .= '\'|"(?:./)?index.php\?c='.$row['cat_id'].'"|\','."\n";
-				$write_string_b .= '\'"forumc'. $row['cat_id'] . ','. $name . '.html"\','."\n";
+				$cat_id = (int) $row['cat_id'];
+				$seo_categories[$cat_id] = $name;
 			}
+			$db->sql_freeresult($result);
 			//-----------------------------------------------
 
 
-				$write_string_b .= "); \n ?>";
-
-				$write_string .= "); \n". $write_string_b;
-
-			if(@$f = fopen($cache_seo, 'w'))
-			{
-				fwrite($f, $write_string);
-				fclose($f);
-				@chmod($cache_seo, 0664);
-			}
+			phpbb_data_cache_write($cache_seo, array(
+				'forums' => $seo_forums,
+				'categories' => $seo_categories,
+			));
 		}
     }
 }

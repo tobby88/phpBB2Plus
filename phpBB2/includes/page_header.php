@@ -163,27 +163,64 @@ ob_start();
 
 function replace_for_mod_rewrite(&$s) {
 
-	global $phpbb_root_path, $phpEx;
+	global $phpbb_root_path;
 	
-	$cache_seo = $phpbb_root_path . 'cache/c_seolist.'.$phpEx;
+	$cache_seo = $phpbb_root_path . 'cache/c_seolist.cache';
 
 	if (@file_exists($cache_seo))
 	{
-		$cache_contents = @file_get_contents($cache_seo);
-		$cache_is_utf8 = ($cache_contents !== false && preg_match('//u', $cache_contents) === 1);
-
-		if (!$cache_is_utf8)
+		$seo_cache = phpbb_data_cache_read($cache_seo);
+		if (!is_array($seo_cache) || !isset($seo_cache['forums'], $seo_cache['categories']) ||
+			!is_array($seo_cache['forums']) || !is_array($seo_cache['categories']) ||
+			count($seo_cache['forums']) + count($seo_cache['categories']) > 10000)
 		{
-			// Generated before the UTF-8 migration: discard it so page_tail.php
-			// can rebuild the speaking-link cache from the current database.
 			@unlink($cache_seo);
 		}
 		else
 		{
-			@include($cache_seo);
-			if ( is_array($seo_list_in) && is_array($seo_list_out) )
+			$seo_list_in = array();
+			$seo_list_out = array();
+			$seo_cache_valid = true;
+			foreach ($seo_cache['forums'] as $forum_id => $slug)
 			{
-				$s = preg_replace($seo_list_in, $seo_list_out, $s);
+				if ((string) (int) $forum_id !== (string) $forum_id || (int) $forum_id < 0 ||
+					!is_string($slug) || !preg_match('/^[a-z0-9-]+$/D', $slug))
+				{
+					$seo_cache_valid = false;
+					break;
+				}
+				$forum_id = (int) $forum_id;
+				$seo_list_in[] = '|"(?:./)?viewforum.php\?f=' . $forum_id . '&(?:amp;)topicdays=([0-9]*)&(?:amp;)start=([0-9]*)"|';
+				$seo_list_out[] = '"viewforum' . $forum_id . '-\\1-\\2,' . $slug . '.html"';
+				$seo_list_in[] = '|"(?:./)?viewforum.php\?f=' . $forum_id . '"|';
+				$seo_list_out[] = '"forum' . $forum_id . ',' . $slug . '.html"';
+			}
+			if ($seo_cache_valid)
+			{
+				foreach ($seo_cache['categories'] as $cat_id => $slug)
+				{
+					if ((string) (int) $cat_id !== (string) $cat_id || (int) $cat_id < 0 ||
+						!is_string($slug) || !preg_match('/^[a-z0-9-]+$/D', $slug))
+					{
+						$seo_cache_valid = false;
+						break;
+					}
+					$cat_id = (int) $cat_id;
+					$seo_list_in[] = '|"(?:./)?index.php\?c=' . $cat_id . '"|';
+					$seo_list_out[] = '"forumc' . $cat_id . ',' . $slug . '.html"';
+				}
+			}
+			if ($seo_cache_valid)
+			{
+				$seo_rewritten = preg_replace($seo_list_in, $seo_list_out, $s);
+				if (is_string($seo_rewritten))
+				{
+					$s = $seo_rewritten;
+				}
+			}
+			else
+			{
+				@unlink($cache_seo);
 			}
 		}
 	}
