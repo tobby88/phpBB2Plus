@@ -73,14 +73,14 @@ init_userprefs($userdata);
 // Make sure a topic id was passed
 if(isset($_GET[POST_TOPIC_URL]))
 {
-	$topic_id = intval($_GET[POST_TOPIC_URL]);
+	$topic_id = intval(phpbb_request_scalar($_GET, POST_TOPIC_URL, 0));
 }
 else if(isset($_GET['topic']))
 {
-	$topic_id = intval($_GET['topic']);
+	$topic_id = intval(phpbb_request_scalar($_GET, 'topic', 0));
 }
 
-if( !isset($topic_id) )
+if( empty($topic_id) )
 {
 	message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 }
@@ -208,11 +208,6 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	if ( !$board_config['allow_html'] || !$userdata['user_allowhtml'])
 	{
-		if ( $user_sig != '' )
-		{
-			$user_sig = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig);
-		}
-
 		if ( $postrow[$i]['enable_html'] )
 		{
 			$message = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $message);
@@ -222,20 +217,11 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	// Parse message and/or sig for BBCode if reqd
 	//
-	if ($user_sig != '' && $user_sig_bbcode_uid != '')
-	{
-		$user_sig = ($board_config['allow_bbcode']) ? bbencode_second_pass($user_sig, $user_sig_bbcode_uid) : preg_replace("/\:$user_sig_bbcode_uid/si", '', $user_sig);
-	}
-
 	if ($bbcode_uid != '')
 	{
 		$message = ($board_config['allow_bbcode']) ? bbencode_second_pass($message, $bbcode_uid) : preg_replace("/\:$bbcode_uid/si", '', $message);
 	}
 
-	if ( $user_sig != '' )
-	{
-		$user_sig = make_clickable($user_sig);
-	}
 	$message = make_clickable($message);
 
  	//
@@ -246,11 +232,6 @@ for($i = 0; $i < $total_posts; $i++)
 	{
 		$post_subject = preg_replace($orig_word, $replacement_word, $post_subject);
 
-		if ($user_sig != '')
-		{
-			$user_sig = phpbb_preg_replace_outside_tags($user_sig, $orig_word, $replacement_word);
-		}
-
 		$message = phpbb_preg_replace_outside_tags($message, $orig_word, $replacement_word);
 	}
 
@@ -259,11 +240,6 @@ for($i = 0; $i < $total_posts; $i++)
 	//
 	if ( $board_config['allow_smilies'] )
 	{
-		if ( $postrow[$i]['user_allowsmile'] && $user_sig != '' )
-		{
-			$user_sig = smilies_pass($user_sig);
-		}
-
 		if ( $postrow[$i]['enable_smilies'] )
 		{
 			$message = smilies_pass($message);
