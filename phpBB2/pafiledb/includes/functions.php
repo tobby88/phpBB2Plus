@@ -153,23 +153,51 @@ class pafiledb_functions
 		$file_info = array();
 	
 		$file_info['error'] = FALSE;
-		if ($userfile_name === '' || basename($userfile_name) !== $userfile_name)
+		if ($userfile_name === '' || basename($userfile_name) !== $userfile_name || preg_match('/[\x00-\x1f\x7f]/', $userfile_name))
 		{
 			$file_info['error'] = TRUE;
 			$file_info['message'] = 'Invalid upload filename.';
 			return $file_info;
 		}
 	
-		if(file_exists($phpbb_root_path . $upload_dir . $userfile_name)) 
+		$board_root = @realpath($phpbb_root_path);
+		$storage_dir = @realpath($phpbb_root_path . $upload_dir);
+		$normalized_root = $board_root ? rtrim(str_replace('\\', '/', $board_root), '/') . '/' : '';
+		$normalized_dir = $storage_dir ? rtrim(str_replace('\\', '/', $storage_dir), '/') . '/' : '';
+		if ($normalized_root === '' || $normalized_dir === '' || strpos($normalized_dir, $normalized_root) !== 0)
+		{
+			$file_info['error'] = TRUE;
+			$file_info['message'] = 'Invalid upload directory.';
+			return $file_info;
+		}
+		$target_file = $storage_dir . DIRECTORY_SEPARATOR . $userfile_name;
+
+		if (!$local && !is_uploaded_file($userfile))
+		{
+			$file_info['error'] = TRUE;
+			$file_info['message'] = 'Invalid upload data.';
+			return $file_info;
+		}
+		$actual_size = @filesize($userfile);
+		if ($actual_size === false || $actual_size < 1)
+		{
+			$file_info['error'] = TRUE;
+			$file_info['message'] = 'Invalid upload size.';
+			return $file_info;
+		}
+		$file_info['size'] = (int) $actual_size;
+
+		if(file_exists($target_file))
 		{	
 			$userfile_name = time() . $userfile_name;
+			$target_file = $storage_dir . DIRECTORY_SEPARATOR . $userfile_name;
 		}
 			
 		// =======================================================
 		// if the file size is more than the allowed size another error message
 		// =======================================================
 			
-		if ((int) $userfile_size > (int) $pafiledb_config['max_file_size'] && $userdata['user_level'] != ADMIN)
+		if ((int) $actual_size > (int) $pafiledb_config['max_file_size'] && $userdata['user_level'] != ADMIN)
 		{
 			$file_info['error'] = TRUE;
 			if(!empty($file_info['message']))
@@ -190,7 +218,7 @@ class pafiledb_functions
 			$upload_mode = (@$ini_val('open_basedir') || @$ini_val('safe_mode')) ? 'move' : 'copy';
 			$upload_mode = ($local) ? 'local' : $upload_mode;
 
-			if(!$this->do_upload_file($upload_mode, $userfile, $phpbb_root_path . $upload_dir . $userfile_name))
+			if(!$this->do_upload_file($upload_mode, $userfile, $target_file))
 			{
 				$file_info['error'] = TRUE;
 				if(!empty($file_info['message']))
@@ -524,12 +552,31 @@ class pafiledb_functions
 
 	function pafiledb_unlink($filename)
 	{
-		$deleted = @unlink($filename);
-
-		if (!$deleted && @file_exists($this->pafiledb_realpath($filename)))
+		global $phpbb_root_path, $pafiledb_config;
+		$resolved_file = @realpath($filename);
+		$normalized_file = $resolved_file ? str_replace('\\', '/', $resolved_file) : '';
+		$allowed = false;
+		foreach (array('upload_dir', 'screenshots_dir') as $directory_config)
 		{
-			@chmod($filename, 0775);
-			$deleted = @unlink($filename);
+			$storage_dir = isset($pafiledb_config[$directory_config]) ? @realpath($phpbb_root_path . $pafiledb_config[$directory_config]) : false;
+			$normalized_dir = $storage_dir ? rtrim(str_replace('\\', '/', $storage_dir), '/') . '/' : '';
+			if ($normalized_dir !== '' && strpos($normalized_file, $normalized_dir) === 0)
+			{
+				$allowed = true;
+				break;
+			}
+		}
+		if (!$allowed || $normalized_file === '' || !is_file($resolved_file))
+		{
+			return false;
+		}
+
+		$deleted = @unlink($resolved_file);
+
+		if (!$deleted && @file_exists($resolved_file))
+		{
+			@chmod($resolved_file, 0664);
+			$deleted = @unlink($resolved_file);
 		}
 
 		return $deleted;

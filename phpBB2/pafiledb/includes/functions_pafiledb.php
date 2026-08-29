@@ -1527,7 +1527,7 @@ class pafiledb
 		$ss_local = $uploaded('screen_shot', 'tmp_name');
 		$ss_local = ($ss_local !== 'none') ? $ss_local : '';
 		$ss_name = $uploaded('screen_shot', 'name');
-		$ss_name = ($ss_name !== 'none') ? basename($ss_name) : '';
+		$ss_name = ($ss_name !== 'none') ? basename(str_replace('\\', '/', $ss_name)) : '';
 		$ss_size = max(0, intval($uploaded('screen_shot', 'size', 0)));
 
 		$file_remote_url = $posted('download_url');
@@ -1535,7 +1535,7 @@ class pafiledb
 		$file_local = $uploaded('userfile', 'tmp_name');
 		$file_local = ($file_local !== 'none') ? $file_local : '';
 		$file_realname = $uploaded('userfile', 'name');
-		$file_realname = ($file_realname !== 'none') ? basename($file_realname) : '';
+		$file_realname = ($file_realname !== 'none') ? basename(str_replace('\\', '/', $file_realname)) : '';
 		$file_size = max(0, intval($uploaded('userfile', 'size', 0)));
 		$file_type = $uploaded('userfile', 'type');
 
@@ -1639,11 +1639,12 @@ class pafiledb
         }
 		// END Extension-Screenshots
 		//
-		$forbidden_extensions = array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions']));
+		$forbidden_extensions = array_map('strtolower', array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions'])));
+		$forbidden_extensions = array_unique(array_merge($forbidden_extensions, array('php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'php9', 'phtml', 'phar', 'cgi', 'pl', 'py', 'sh', 'shtml', 'shtm', 'asp', 'aspx', 'jsp')));
 
 		$file_extension = $pafiledb_functions->get_extension($file_realname);
 			
-		if(in_array($file_extension, $forbidden_extensions))
+		if($file_upload && (!preg_match('/^[a-z0-9]{1,16}$/D', $file_extension) || in_array($file_extension, $forbidden_extensions, true)))
 		{
 			$this->error[] = 'You are not allowed to upload this type of files';
 		}
@@ -1713,6 +1714,7 @@ class pafiledb
 			{
 				message_die(GENERAL_ERROR, $file_info['message']);
 			}
+			$file_size = (int) $file_info['size'];
 		}
 
 			
@@ -1726,6 +1728,7 @@ class pafiledb
 				{
 					message_die(GENERAL_ERROR, $screen_shot_info['message']);
 				}
+				$ss_size = (int) $screen_shot_info['size'];
 				$screen_shot_url = $screen_shot_info['url'];
 			}
 			else
@@ -1840,12 +1843,13 @@ class pafiledb
 			}
 		}
 			
-		$forbidden_extensions = array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions']));
+		$forbidden_extensions = array_map('strtolower', array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions'])));
+		$forbidden_extensions = array_unique(array_merge($forbidden_extensions, array('php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'php9', 'phtml', 'phar', 'cgi', 'pl', 'py', 'sh', 'shtml', 'shtm', 'asp', 'aspx', 'jsp')));
 
 		$file_extension = $pafiledb_functions->get_extension($file_realname);
 
 			
-		if(in_array($file_extension, $forbidden_extensions))
+		if($file_upload && (!preg_match('/^[a-z0-9]{1,16}$/D', $file_extension) || in_array($file_extension, $forbidden_extensions, true)))
 		{
 			$this->error[] = 'You are not allowed to upload this type of files';
 		}
@@ -1903,6 +1907,7 @@ class pafiledb
 			{
 				message_die(GENERAL_ERROR, $file_info['message']);
 			}
+			$file_size = (int) $file_info['size'];
 		}
 		
 		if(!$mirror_id)

@@ -1094,6 +1094,10 @@ class attach_parent
 			$r_file = trim(basename(htmlspecialchars($this->filename)));
 			$file = $HTTP_POST_FILES['fileupload']['tmp_name'];
 			$this->type = $HTTP_POST_FILES['fileupload']['type'];
+			if (!is_uploaded_file($file))
+			{
+				message_die(GENERAL_ERROR, 'Invalid attachment upload data');
+			}
 
 			if (isset($HTTP_POST_FILES['fileupload']['size']) && $HTTP_POST_FILES['fileupload']['size'] == 0)
 			{
@@ -1107,6 +1111,12 @@ class attach_parent
 
 			$this->filesize = @filesize($file);
 			$this->filesize = intval($this->filesize);
+			$executable_extensions = array('php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'php9', 'phtml', 'phar', 'cgi', 'pl', 'py', 'sh', 'shtml', 'shtm', 'asp', 'aspx', 'jsp');
+			if ($this->filesize < 1 || !preg_match('/^[a-z0-9]{1,16}$/D', $this->extension) || in_array($this->extension, $executable_extensions, true))
+			{
+				$error = TRUE;
+				$error_msg .= (!empty($error_msg) ? '<br />' : '') . sprintf($lang['Disallowed_extension'], htmlspecialchars($this->extension));
+			}
 
 			$sql = 'SELECT g.allow_group, g.max_filesize, g.cat_id, g.forum_permissions
 				FROM ' . EXTENSION_GROUPS_TABLE . ' g, ' . EXTENSIONS_TABLE . " e
@@ -1121,10 +1131,38 @@ class attach_parent
 
 			$row = $db->sql_fetchrow($result);
 			$db->sql_freeresult($result);
+			if (!$row)
+			{
+				$row = array('allow_group' => 0, 'max_filesize' => 0, 'cat_id' => 0, 'forum_permissions' => '');
+			}
 
 			$allowed_filesize = ($row['max_filesize']) ? $row['max_filesize'] : $attach_config['max_filesize'];
 			$cat_id = intval($row['cat_id']);
 			$auth_cache = trim($row['forum_permissions']);
+
+			if (!$error && $cat_id == IMAGE_CAT)
+			{
+				$image_info = @getimagesize($file);
+				$allowed_image_types = array(
+					IMAGETYPE_GIF => array('gif'),
+					IMAGETYPE_JPEG => array('jpg', 'jpeg'),
+					IMAGETYPE_PNG => array('png')
+				);
+				if (defined('IMAGETYPE_WEBP'))
+				{
+					$allowed_image_types[constant('IMAGETYPE_WEBP')] = array('webp');
+				}
+				$image_type = ($image_info !== false && isset($image_info[2])) ? intval($image_info[2]) : 0;
+				if (!isset($allowed_image_types[$image_type]) || !in_array($this->extension, $allowed_image_types[$image_type], true))
+				{
+					$error = TRUE;
+					$error_msg .= (!empty($error_msg) ? '<br />' : '') . sprintf($lang['Disallowed_extension'], htmlspecialchars($this->extension));
+				}
+				else if (function_exists('image_type_to_mime_type'))
+				{
+					$this->type = image_type_to_mime_type($image_type);
+				}
+			}
 
 			// check Filename
 			if (preg_match("#[\\/:*?\"<>|]#i", $this->filename))
