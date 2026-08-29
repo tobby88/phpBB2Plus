@@ -130,7 +130,7 @@ else
 {
 	$smilies_on = ( $submit || $refresh || $preview) ? ( ( !empty($_POST['disable_smilies']) ) ? 0 : TRUE ) : ( ( $userdata['user_id'] == ANONYMOUS ) ? $board_config['allow_smilies'] : $userdata['user_allowsmile'] );
 }
-if( !$userdata['session_logged_in'] || ( $mode == 'editpost' && $post_info['poster_id'] == ANONYMOUS ) )
+if( !$userdata['session_logged_in'] )
 {
 	$template->assign_block_vars('switch_username_select', array());
 }
@@ -579,7 +579,9 @@ obtain_word_list($orig_word, $replacement_word);
 			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 			$user_id = $shout_row['shout_user_id'];
-			$shout_username = ( $user_id == ANONYMOUS ) ? (( $shout_row['shout_username'] == '' ) ? $lang['Guest'] : $shout_row['shout_username'] ) : "<a href='".append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=".$shout_row['shout_user_id'])."' target='_top'>".$shout_row['username']."</a>" ;
+			$display_username = ($user_id == ANONYMOUS) ? (($shout_row['shout_username'] == '') ? $lang['Guest'] : $shout_row['shout_username']) : $shout_row['username'];
+			$display_username = phpbb_profile_text($display_username);
+			$shout_username = ($user_id == ANONYMOUS) ? $display_username : "<a href='" . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($shout_row['shout_user_id'])) . "' target='_top'>" . $display_username . "</a>";
 
 			$user_profile = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id");
 			$user_posts = ( $shout_row['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $shout_row['user_posts'] : '';
@@ -588,20 +590,23 @@ obtain_word_list($orig_word, $replacement_word);
 			$user_avatar = '';
 			if ( $shout_row['user_avatar_type'] && $user_id != ANONYMOUS && $shout_row['user_allowavatar'] )
 			{
+				$avatar_name = phpbb_profile_image_name($shout_row['user_avatar']);
 				switch( $shout_row['user_avatar_type'] )
 				{
 					case USER_AVATAR_UPLOAD:
-						$user_avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $shout_row['user_avatar'] . '" alt="" border="0" />' : '';
+						$user_avatar = ( $board_config['allow_avatar_upload'] && $avatar_name !== '' ) ? '<img src="' . $board_config['avatar_path'] . '/' . rawurlencode($avatar_name) . '" alt="" border="0" />' : '';
 						break;
 					case USER_AVATAR_REMOTE:
 						$user_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($shout_row['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
 						break;
 					case USER_AVATAR_GALLERY:
-						$user_avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $shout_row['user_avatar'] . '" alt="" border="0" />' : '';
+						$gallery_parts = explode('/', str_replace('\\', '/', (string) $shout_row['user_avatar']));
+						$user_avatar = ( $board_config['allow_avatar_local'] && count($gallery_parts) === 2 && phpbb_profile_image_name($gallery_parts[0]) !== '' && phpbb_profile_image_name($gallery_parts[1]) !== '' ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . rawurlencode($gallery_parts[0]) . '/' . rawurlencode($gallery_parts[1]) . '" alt="" border="0" />' : '';
 						break;
 				}
 				$user_avatar_url = isset($shout_row['user_avatar_url']) ? $shout_row['user_avatar_url'] : '';
-				$user_avatar = ($user_avatar_url != '') ? '<a href="'.htmlspecialchars($user_avatar_url, ENT_QUOTES, 'UTF-8').'">'.$user_avatar.'</a>' : $user_avatar;
+				$user_avatar_url = phpbb_profile_http_url($user_avatar_url);
+				$user_avatar = ($user_avatar_url != '') ? '<a href="' . $user_avatar_url . '">' . $user_avatar . '</a>' : $user_avatar;
 			} else $user_avatar='';
 			$shout = (! $shout_row['shout_active']) ? $shout_row['shout_text'] : $lang['Shout_censor'].(($is_auth['auth_mod']) ? '<br/><hr/><br/>'.$shout_row['shout_text'] : '');
 			$user_sig = ( $shout_row['enable_sig'] && $shout_row['user_sig'] != '' && $board_config['allow_sig'] ) ? $shout_row['user_sig'] : '';
