@@ -815,6 +815,60 @@ function phpbb_template_config_is_safe($filename, $templates_root)
 	return $defined;
 }
 
+function phpbb_data_cache_read($filename)
+{
+	global $phpbb_root_path;
+	$cache_root = @realpath($phpbb_root_path . 'cache');
+	$parent = @realpath(dirname($filename));
+	if ($cache_root === false || $parent === false || $cache_root !== $parent ||
+		!@is_file($filename) || @is_link($filename))
+	{
+		return false;
+	}
+	$size = @filesize($filename);
+	if ($size === false || $size < 0 || $size > 4194304)
+	{
+		return false;
+	}
+	$serialized = @file_get_contents($filename);
+	$data = phpbb_safe_unserialize($serialized);
+	return is_array($data) ? $data : false;
+}
+
+function phpbb_data_cache_write($filename, $data)
+{
+	global $phpbb_root_path;
+	$cache_root = @realpath($phpbb_root_path . 'cache');
+	$parent = @realpath(dirname($filename));
+	if ($cache_root === false || $parent === false || $cache_root !== $parent || @is_link($filename))
+	{
+		return false;
+	}
+	$serialized = serialize($data);
+	if (strlen($serialized) > 4194304)
+	{
+		return false;
+	}
+	$temp = @tempnam($cache_root, 'data_');
+	if ($temp === false)
+	{
+		return false;
+	}
+	$written = @file_put_contents($temp, $serialized, LOCK_EX);
+	if ($written !== strlen($serialized))
+	{
+		@unlink($temp);
+		return false;
+	}
+	@chmod($temp, 0644);
+	if (!@rename($temp, $filename))
+	{
+		@unlink($temp);
+		return false;
+	}
+	return true;
+}
+
 function setup_style($style)
 {
 	global $db, $board_config, $template, $images, $phpbb_root_path;

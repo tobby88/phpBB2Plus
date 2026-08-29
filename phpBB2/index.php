@@ -252,7 +252,7 @@ $birthday_week_list = '';
 // Birthday Mod, Show users with birthday
 if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
 {
-	$cache_data_file = $phpbb_root_path."cache/birthday_". $board_config['board_timezone'] . ".dat";
+	$cache_data_file = $phpbb_root_path . 'cache/birthday_data_' . md5((string) $board_config['board_timezone']) . '.cache';
 	if (@is_file($cache_data_file)  && empty($SID))
 	{
 		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false;
@@ -263,10 +263,18 @@ if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonl
 	
 	if ($valid )
 	{
-	   include ($cache_data_file);
-	   $birthday_today_list = stripslashes($birthday_today_list);
-	   $birthday_week_list = stripslashes($birthday_week_list);
-	} else
+	   $birthday_cache = phpbb_data_cache_read($cache_data_file);
+	   if (is_array($birthday_cache) && isset($birthday_cache['today'], $birthday_cache['week']))
+	   {
+		  $birthday_today_list = (string) $birthday_cache['today'];
+		  $birthday_week_list = (string) $birthday_cache['week'];
+	   }
+	   else
+	   {
+		  $valid = false;
+	   }
+	}
+	if (!$valid)
 	{
 	   $sql = ($board_config['birthday_check_day']) ? "SELECT user_id, username, user_birthday,user_level FROM " . USERS_TABLE. " WHERE user_birthday!=999999 ORDER BY username" :"";
 	   if($result = $db->sql_query($sql))
@@ -302,19 +310,10 @@ if (($board_config['birthday_check_day'] > 0) && ($board_config['display_viewonl
 		  if (empty($SID))
 		  {
 			 // stores the data set in a cache file
-			 $data = "<?php\n";
-			 $data .= '$birthday_today_list = \'' . addslashes($birthday_today_list) . "';\n";
-			 $data .= '$birthday_week_list = \'' . addslashes($birthday_week_list) . "';\n?>";
-			 $cache_temp_file = $cache_data_file . '.tmp.' . getmypid();
-			 if (@file_put_contents($cache_temp_file, $data, LOCK_EX) !== false)
-			 {
-				@chmod($cache_temp_file, 0664);
-				@rename($cache_temp_file, $cache_data_file);
-			 }
-			 if (@is_file($cache_temp_file))
-			 {
-				@unlink($cache_temp_file);
-			 }
+			 phpbb_data_cache_write($cache_data_file, array(
+				'today' => $birthday_today_list,
+				'week' => $birthday_week_list,
+			 ));
 		  }
 	   }
 	}
@@ -328,7 +327,7 @@ $birthday_week_list = stripslashes($birthday_week_list);
 if ( ($plus_config['show_last_visit'] != 0) && ($board_config['display_viewonline'] == 2) || ( ($viewcat < 0) && ($board_config['display_viewonline'] == 1) ))
 {
     $template->assign_block_vars('switch_show_lastvisit', array()); 
-	$cache_data_file = $phpbb_root_path."cache/last_visit_". $userdata['user_level'] . "_". $board_config['board_timezone'] . ".dat"; 
+	$cache_data_file = $phpbb_root_path . 'cache/last_visit_data_' . intval($userdata['user_level']) . '_' . md5((string) $board_config['board_timezone']) . '.cache';
 	if (@is_file($cache_data_file)) 
 	{ 
 		$valid = (date('YmdH',time()) - date('YmdH',@filemtime($cache_data_file))<1) ? true : false; 
@@ -339,8 +338,22 @@ if ( ($plus_config['show_last_visit'] != 0) && ($board_config['display_viewonlin
 	
 	if ($valid ) 
 	{ 
-	   include ($cache_data_file); 
-	} else 
+	   $visit_cache = phpbb_data_cache_read($cache_data_file);
+	   if (is_array($visit_cache))
+	   {
+		  $total_users_today = isset($visit_cache['total']) ? intval($visit_cache['total']) : 0;
+		  $users_lasthour = isset($visit_cache['last_hour']) ? intval($visit_cache['last_hour']) : 0;
+		  $guests_today = isset($visit_cache['guests']) ? intval($visit_cache['guests']) : 0;
+		  $logged_visible_today = isset($visit_cache['visible']) ? intval($visit_cache['visible']) : 0;
+		  $logged_hidden_today = isset($visit_cache['hidden']) ? intval($visit_cache['hidden']) : 0;
+		  $users_today_list = isset($visit_cache['users']) ? (string) $visit_cache['users'] : '';
+	   }
+	   else
+	   {
+		  $valid = false;
+	   }
+	}
+	if (!$valid)
 	{
 		$time_now=time();
 		$time1Hour=$time_now-3600;
@@ -383,29 +396,14 @@ if ( ($plus_config['show_last_visit'] != 0) && ($board_config['display_viewonlin
 		if ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_sid'])) 
 		{ 
 		   // stores the data set in a cache file 
-		   $data = "<?php\n"; 
-		   $data .='$total_users_today = '.intval($total_users_today); 
-		   $data .=";\n"; 
-		   $data .='$users_lasthour = '.intval($users_lasthour); 
-		   $data .=";\n"; 
-		   $data .='$guests_today = '.intval($guests_today); 
-		   $data .=";\n"; 
-		   $data .='$logged_visible_today = '.intval($logged_visible_today); 
-		   $data .=";\n"; 
-		   $data .='$logged_hidden_today = '.intval($logged_hidden_today); 
-		   $data .=";\n"; 
-		   $data .='$users_today_list = \''.addslashes($users_today_list)."'"; 
-		   $data .=";\n?>"; 
-		   $cache_temp_file = $cache_data_file . '.tmp.' . getmypid();
-		   if (@file_put_contents($cache_temp_file, $data, LOCK_EX) !== false)
-		   {
-			  @chmod($cache_temp_file, 0664);
-			  @rename($cache_temp_file, $cache_data_file);
-		   }
-		   if (@is_file($cache_temp_file))
-		   {
-			  @unlink($cache_temp_file);
-		   }
+		   phpbb_data_cache_write($cache_data_file, array(
+			  'total' => intval($total_users_today),
+			  'last_hour' => intval($users_lasthour),
+			  'guests' => intval($guests_today),
+			  'visible' => intval($logged_visible_today),
+			  'hidden' => intval($logged_hidden_today),
+			  'users' => $users_today_list,
+		   ));
 		} 
 	}
 	$users_today_list = stripslashes($users_today_list);
