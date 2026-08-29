@@ -197,9 +197,16 @@ if( empty($thispic) )
 $cat_id = $thispic['pic_cat_id'];
 $album_user_id = $thispic['cat_user_id'];
 
-$pic_filetype = substr($thispic['pic_filename'], strlen($thispic['pic_filename']) - 4, 4); 
-$pic_filename = $thispic['pic_filename']; 
-$pic_thumbnail = $thispic['pic_thumbnail']; 
+$stored_pic_filename = str_replace('\\', '/', (string) $thispic['pic_filename']);
+$pic_filename = basename($stored_pic_filename);
+$stored_pic_thumbnail = str_replace('\\', '/', (string) $thispic['pic_thumbnail']);
+$pic_thumbnail = ($stored_pic_thumbnail === '') ? '' : basename($stored_pic_thumbnail);
+if ($pic_filename === '' || $pic_filename !== $stored_pic_filename ||
+	($stored_pic_thumbnail !== '' && $pic_thumbnail !== $stored_pic_thumbnail))
+{
+	message_die(GENERAL_MESSAGE, 'The filename data in the DB was corrupted');
+}
+$pic_filetype = strtolower(substr($pic_filename, -4));
 
 if( !file_exists(ALBUM_UPLOAD_PATH . $pic_filename) )
 { 
@@ -320,7 +327,7 @@ if( $pic_filetype != '.gif' && (!$userdata['session_logged_in'] || $userdata['us
    $position  = $album_sp_config['disp_watermark_at']; 
    $transition = 50; 
 
-   $sourcefile = ALBUM_UPLOAD_PATH  . $thispic['pic_filename']; 
+   $sourcefile = ALBUM_UPLOAD_PATH . $pic_filename;
    $insertfile = $album_root_path  . 'mark.png'; 
    mergePics($sourcefile, $insertfile, $position, $transition, $pic_filetype); 
 }
@@ -329,17 +336,17 @@ else if ($pic_filetype != '.gif' && $album_sp_config['wut_users'] == 1 && $album
    $position  = $album_sp_config['disp_watermark_at']; 
    $transition = 70; 
 
-   $sourcefile = ALBUM_UPLOAD_PATH  . $thispic['pic_filename']; 
+   $sourcefile = ALBUM_UPLOAD_PATH . $pic_filename;
    $insertfile = $album_root_path  . 'mark.png'; 
    mergePics($sourcefile, $insertfile, $position, $transition, $pic_filetype);
 }
 else 
 { 
-   readfile(ALBUM_UPLOAD_PATH  . $thispic['pic_filename']); 
+   readfile(ALBUM_UPLOAD_PATH . $pic_filename);
 } 
 }
 else
-   readfile(ALBUM_UPLOAD_PATH  . $thispic['pic_filename']);
+   readfile(ALBUM_UPLOAD_PATH . $pic_filename);
 exit; 
 
 

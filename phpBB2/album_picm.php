@@ -87,9 +87,16 @@ if( empty($thispic) )
 $cat_id = $thispic['pic_cat_id'];
 $album_user_id = $thispic['cat_user_id'];
 
-$pic_filetype = substr($thispic['pic_filename'], strlen($thispic['pic_filename']) - 4, 4);
-$pic_filename = $thispic['pic_filename'];
-$pic_thumbnail = $thispic['pic_thumbnail'];
+$stored_pic_filename = str_replace('\\', '/', (string) $thispic['pic_filename']);
+$pic_filename = basename($stored_pic_filename);
+$stored_pic_thumbnail = str_replace('\\', '/', (string) $thispic['pic_thumbnail']);
+$pic_thumbnail = ($stored_pic_thumbnail === '') ? '' : basename($stored_pic_thumbnail);
+if ($pic_filename === '' || $pic_filename !== $stored_pic_filename ||
+	($stored_pic_thumbnail !== '' && $pic_thumbnail !== $stored_pic_thumbnail))
+{
+	message_die(GENERAL_MESSAGE, 'The filename data in the DB was corrupted');
+}
+$pic_filetype = strtolower(substr($pic_filename, -4));
 
 if( !file_exists(ALBUM_UPLOAD_PATH . $pic_filename) )
 {
