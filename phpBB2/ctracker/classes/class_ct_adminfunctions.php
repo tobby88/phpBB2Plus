@@ -790,7 +790,14 @@ class ct_adminfunctions
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 
-		$sql = 'DELETE FROM ' . CTRACKER_BACKUP;
+		$temporary_table = CTRACKER_BACKUP . '_new';
+		$backup_table = CTRACKER_BACKUP . '_old';
+		$sql = 'DROP TABLE IF EXISTS ' . $temporary_table;
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+		$sql = 'CREATE TABLE ' . $temporary_table . ' LIKE ' . CTRACKER_BACKUP;
 		if (!$db->sql_query($sql))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
@@ -808,7 +815,7 @@ class ct_adminfunctions
 		{
 			$config_name = $db->sql_escape((string) $row['config_name']);
 			$config_value = $db->sql_escape((string) $row['config_value']);
-			$sql2 = "INSERT INTO " . CTRACKER_BACKUP . " (`config_name`, `config_value`) VALUES ('" . $config_name . "', '" . $config_value . "')";
+			$sql2 = "INSERT INTO " . $temporary_table . " (`config_name`, `config_value`) VALUES ('" . $config_name . "', '" . $config_value . "')";
 			if ( !$result2 = $db->sql_query($sql2) )
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql2);
@@ -816,11 +823,24 @@ class ct_adminfunctions
 		}
 
 		// Insert Backup Timestamp
-		$sql = 'INSERT INTO ' . CTRACKER_BACKUP . ' (`config_name`, `config_value`) VALUES (\'ct_last_backup\', \'' . time() . '\')';
+		$sql = 'INSERT INTO ' . $temporary_table . ' (`config_name`, `config_value`) VALUES (\'ct_last_backup\', \'' . time() . '\')';
 		if ( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
+
+		$sql = 'DROP TABLE IF EXISTS ' . $backup_table;
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+		$sql = 'RENAME TABLE ' . CTRACKER_BACKUP . ' TO ' . $backup_table . ', ' .
+			$temporary_table . ' TO ' . CTRACKER_BACKUP;
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
+		}
+		$db->sql_query('DROP TABLE IF EXISTS ' . $backup_table);
 	}
 
 
@@ -841,6 +861,7 @@ class ct_adminfunctions
 			message_die(GENERAL_ERROR, $lang['ctracker_error_loading_config'], '', __LINE__, __FILE__, $sql);
 		}
 
+		$restored_values = 0;
 		while ( $row = $db->sql_fetchrow($result) )
 		{
 			if ($row['config_name'] === 'ct_last_backup')
@@ -856,7 +877,15 @@ class ct_adminfunctions
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql2);
 			}
+			$restored_values++;
 		}
+		if ($restored_values < 1)
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_rec_never_saved']);
+		}
+
+		global $phpbb_root_path;
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 }
 

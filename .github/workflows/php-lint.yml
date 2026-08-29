@@ -88,3 +88,6 @@ jobs:
 
       - name: Test CrackerTracker file scanner
         run: php .github/scripts/check-ctracker-file-scanner.php
+
+      - name: Test CrackerTracker configuration recovery
+        run: php .github/scripts/check-ctracker-recovery.php

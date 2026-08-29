@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Made CrackerTracker configuration snapshots atomic: a failed refresh no
+  longer empties the last usable snapshot first. Restore refuses empty
+  snapshots, preserves settings added after the snapshot and invalidates the
+  configuration cache after success. The AdminCP no longer directs operators
+  to the deliberately disabled public emergency console, and CI verifies the
+  staging/rename sequence and escaping.
 - Replaced CrackerTracker's account-wide failed-login CAPTCHA flag with a
   15-minute limiter scoped to the server-verified IP and submitted username.
   Distributed guessing is still bounded by the broader IP limiter, but an
