@@ -145,7 +145,7 @@ class pafiledb_Template
 	{
 		global $phpEx, $userdata;
 
-		$filename = $this->cachedir . $this->filename[$handle] . '.' . (($this->static_lang) ? $userdata['user_lang'] . '.' : '') . $phpEx;
+		$filename = $this->cachedir . 'safe2_' . $this->filename[$handle] . '.' . (($this->static_lang) ? $userdata['user_lang'] . '.' : '') . $phpEx;
 		// Recompile page if the original template is newer, otherwise load the compiled version
 
 		if (file_exists($filename) && !$this->force_recompile && @filemtime($filename) == @filemtime($this->files[$handle]))
@@ -729,7 +729,7 @@ class pafiledb_Template
 	{
 		global $phpEx, $user;
 
-		$filename = $this->cachedir . $this->filename[$handle] . '.' . (($this->static_lang) ? $userdata['user_lang'] . '.' : '') . $phpEx;
+		$filename = $this->cachedir . 'safe2_' . $this->filename[$handle] . '.' . (($this->static_lang) ? $userdata['user_lang'] . '.' : '') . $phpEx;
 
 		if ($fp = @fopen($filename, 'w+'))
 		{

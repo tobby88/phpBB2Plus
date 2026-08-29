@@ -49,8 +49,8 @@ define('XS_DIR_CACHE', 'cache');
 define('XS_USE_ISSET', '1');
 
 // cache filenames prefix
-define('XS_TPL_PREFIX', 'tpl_');
-define('XS_TPL_PREFIX2', 'tpl2_');
+define('XS_TPL_PREFIX', 'tpl_safe2_');
+define('XS_TPL_PREFIX2', 'tpl2_safe2_');
 
 // templates directory
 define('XS_TPL_START', 'templates/');
