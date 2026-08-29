@@ -48,11 +48,8 @@ $lang['xs_goto_default'] = str_replace('{URL}', append_sid('xs_styles.'.$phpEx),
 //
 if(isset($HTTP_POST_VARS['remove_id']) && !defined('DEMO_MODE'))
 {
-	if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-	}
-	$remove_id = intval($HTTP_POST_VARS['remove_id']);
+	phpbb_admin_require_post_session();
+	$remove_id = is_scalar($HTTP_POST_VARS['remove_id']) ? intval($HTTP_POST_VARS['remove_id']) : 0;
 	$remove_files = !empty($HTTP_POST_VARS['remove_files']);
 	$keep_config = !empty($HTTP_POST_VARS['keep_config']);
 	if($board_config['default_style'] == $remove_id)
@@ -81,13 +78,13 @@ if(isset($HTTP_POST_VARS['remove_id']) && !defined('DEMO_MODE'))
 	// remove files
 	if($remove_files)
 	{
-		$HTTP_POST_VARS['remove'] = addslashes($row['template_name']);
+		$HTTP_POST_VARS['remove'] = $row['template_name'];
 		$HTTP_POST_VARS['remove_token'] = hash_hmac('sha256', $row['template_name'], (string) $userdata['session_id']);
 	}
 	// remove config
 	if(!$keep_config && isset($board_config['xs_style_'.$row['template_name']]))
 	{
-		$sql = "DELETE FROM " . CONFIG_TABLE . " WHERE config_name='" . addslashes("xs_style_{$row['template_name']}") . "'";
+		$sql = "DELETE FROM " . CONFIG_TABLE . " WHERE config_name='" . $db->sql_escape("xs_style_{$row['template_name']}") . "'";
 		$db->sql_query($sql);
 		$template->assign_block_vars('left_refresh', array(
 				'ACTION'	=> append_sid('index.' . $phpEx . '?pane=left')
@@ -148,11 +145,11 @@ function remove_all($dir)
 //
 if(isset($HTTP_POST_VARS['remove']) && !defined('DEMO_MODE'))
 {
-	$remove = stripslashes($HTTP_POST_VARS['remove']);
-	$remove_token = isset($HTTP_POST_VARS['remove_token']) ? (string) $HTTP_POST_VARS['remove_token'] : '';
+	phpbb_admin_require_post_session();
+	$remove = is_scalar($HTTP_POST_VARS['remove']) ? stripslashes((string) $HTTP_POST_VARS['remove']) : '';
+	$remove_token = isset($HTTP_POST_VARS['remove_token']) && is_scalar($HTTP_POST_VARS['remove_token']) ? (string) $HTTP_POST_VARS['remove_token'] : '';
 	$expected_token = hash_hmac('sha256', $remove, (string) $userdata['session_id']);
-	if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']) ||
-		!hash_equals($expected_token, $remove_token) || !preg_match('/^[A-Za-z0-9_.-]+$/', $remove) || $remove === '.' || $remove === '..')
+	if (!hash_equals($expected_token, $remove_token) || xs_tpl_name($remove) !== $remove)
 	{
 		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 	}
@@ -284,7 +281,9 @@ foreach($tpl as $tpl => $styles)
 
 $template->assign_vars(array(
 	'S_UNINSTALL_ACTION' => append_sid('xs_uninstall.' . $phpEx),
-	'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
+	'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+	'L_XS_UNINSTALL_CONFIRM' => htmlspecialchars(addslashes($lang['xs_uninstall_confirm']), ENT_QUOTES, 'UTF-8'),
+	'L_XS_UNINSTALL_FILES_CONFIRM' => htmlspecialchars(addslashes($lang['xs_uninstall_files_confirm']), ENT_QUOTES, 'UTF-8')
 ));
 
 $template->set_filenames(array('body' => XS_TPL_PATH . 'uninstall.tpl'));
