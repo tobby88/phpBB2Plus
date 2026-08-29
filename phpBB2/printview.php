@@ -92,8 +92,7 @@ $template->set_filenames(array(
 $sql = "SELECT t.topic_id, t.topic_title, t.topic_status, t.topic_replies, t.topic_time, t.topic_type, t.topic_vote, f.forum_name, f.forum_status, f.forum_id, f.auth_view, f.auth_read
 	FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f
 	WHERE t.topic_id = " . $topic_id . "
-		AND f.forum_id = t.forum_id
-		$order_sql";
+		AND f.forum_id = t.forum_id";
 if( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, "Couldn't obtain topic information", "", __LINE__, __FILE__, $sql);
