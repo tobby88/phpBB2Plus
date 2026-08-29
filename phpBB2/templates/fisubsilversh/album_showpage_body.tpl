@@ -174,6 +174,7 @@ function openAllSmiles()
 
 <!-- BEGIN rate_switch_only --> 
 <form name="commentform" action="{S_ALBUM_ACTION}" method="post" onsubmit="return checkForm();"> 
+{S_FORM_TOKEN}
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline"> 
   <tr> 
    <th class="thTop" height="25" colspan="3">{L_PLEASE_RATE_IT}</th> 
@@ -201,6 +202,7 @@ function openAllSmiles()
 
 <!-- BEGIN switch_comment_post -->
 <form name="commentform" action="{S_ALBUM_ACTION}" method="post" onsubmit="return checkForm();">
+{S_FORM_TOKEN}
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
   <tr>
 	<th class="thTop" height="25" colspan="3">{L_POST_YOUR_COMMENT}</th>

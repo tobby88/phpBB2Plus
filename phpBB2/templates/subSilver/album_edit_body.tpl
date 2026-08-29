@@ -26,6 +26,7 @@ function checkAlbumForm() {
 </script>
 
 <form name="editform" action="{S_ALBUM_ACTION}" method="post" onsubmit="return checkAlbumForm()">
+{S_FORM_TOKEN}
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
   <tr>
 	<td class="nav"><span class="nav"><a href="{U_INDEX}" class="nav">{L_INDEX}</a> -> <a class="nav" href="{U_ALBUM}">{L_ALBUM}</a> -> <a class="nav" href="{U_VIEW_CAT}">{CAT_TITLE}</a></span></td>

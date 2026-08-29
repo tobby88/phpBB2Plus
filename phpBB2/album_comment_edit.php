@@ -177,7 +177,7 @@ if( ($album_user_access['comment'] == 0) or ($album_user_access['edit'] == 0) )
 }
 else
 {
-	if( (!$album_user_access['moderator']) or ($userdata['user_level'] != ADMIN) )
+	if (!$album_user_access['moderator'] && $userdata['user_level'] != ADMIN)
 	{
 		if ($thiscomment['comment_user_id'] != $userdata['user_id'])
 		{
@@ -290,7 +290,8 @@ if( !isset($_POST['comment']) )
 
 		'L_SUBMIT' => $lang['Submit'],
 
-		'S_ALBUM_ACTION' => append_sid("album_comment_edit.$phpEx?comment_id=$comment_id")
+		'S_ALBUM_ACTION' => append_sid("album_comment_edit.$phpEx?comment_id=$comment_id"),
+		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
 		)
 	);
 
@@ -303,6 +304,11 @@ if( !isset($_POST['comment']) )
 }
 else
 {
+	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']) || !is_scalar($_POST['comment']))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
+
 	/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
               Comment Submited
 	   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */

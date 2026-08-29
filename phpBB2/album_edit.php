@@ -106,7 +106,7 @@ if ($album_user_access['edit'] == 0)
 }
 else
 {	
-	if( (!$album_user_access['moderator']) or ($userdata['user_level'] != ADMIN) )
+	if (!$album_user_access['moderator'] && $userdata['user_level'] != ADMIN)
 	{
 		if ($thispic['pic_user_id'] != $userdata['user_id'])
 		{
@@ -156,6 +156,7 @@ if( !isset($_POST['pic_title']) )
 		'L_SUBMIT' => $lang['Submit'],
 
 		'S_ALBUM_ACTION' => append_sid("album_edit.$phpEx?pic_id=$pic_id"),
+		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		)
 	);
 
@@ -168,13 +169,19 @@ if( !isset($_POST['pic_title']) )
 }
 else
 {
+	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']) || !is_scalar($_POST['pic_title']) || (isset($_POST['pic_desc']) && !is_scalar($_POST['pic_desc'])))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
+
 	// --------------------------------
 	// Check posted info
 	// --------------------------------
 
 	$pic_title = str_replace("\'", "''", htmlspecialchars(trim($_POST['pic_title'])));
 
-	$pic_desc = str_replace("\'", "''", htmlspecialchars(substr(trim($_POST['pic_desc']), 0, $album_config['desc_length'])));
+	$pic_desc_input = isset($_POST['pic_desc']) ? (string) $_POST['pic_desc'] : '';
+	$pic_desc = str_replace("\'", "''", htmlspecialchars(substr(trim($pic_desc_input), 0, $album_config['desc_length'])));
 
 	if( empty($pic_title) )
 	{

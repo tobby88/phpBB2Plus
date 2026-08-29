@@ -775,6 +775,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 		'L_SUBMIT' => $lang['Submit'],
 
 		'S_ALBUM_ACTION' => append_sid("album_showpage.$phpEx?pic_id=$pic_id"),
+		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		'L_MORE_SMILIES' => $lang['More_emoticons'],
 		//rating
 		'S_RATE_MSG' => (  !$userdata['session_logged_in'] && $auth_data['rate'] == 0 ) ? 'Login to vote!' : ( ($already_rated) ? $lang['Already_rated'] : $lang['Rating'] ),
@@ -799,7 +800,18 @@ else
 	// Check the permissions: COMMENT
 	// ------------------------------------
 
-	if ($auth_data['comment'] == 0 && $auth_data['rate'] == 0)
+	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
+
+	$comment_input = (isset($_POST['comment']) && is_scalar($_POST['comment'])) ? (string) $_POST['comment'] : '';
+	$comment_username_input = (isset($_POST['comment_username']) && is_scalar($_POST['comment_username'])) ? (string) $_POST['comment_username'] : '';
+	$rate_point = (isset($_POST['rate']) && is_scalar($_POST['rate'])) ? intval($_POST['rate']) : -1;
+	$has_comment = (trim($comment_input) !== '');
+	$has_rating = ($rate_point !== -1);
+
+	if ((!$has_comment && !$has_rating) || ($has_comment && (empty($album_config['comment']) || empty($auth_data['comment']))) || ($has_rating && (empty($album_config['rate']) || empty($auth_data['rate']))))
 	{
 		if (!$userdata['session_logged_in'])
 		{
@@ -811,9 +823,9 @@ else
 		}
 	}
 
-	$comment_text = str_replace("\'", "''", htmlspecialchars(substr(trim($_POST['comment']), 0, $album_config['desc_length'])));
+	$comment_text = str_replace("\'", "''", htmlspecialchars(substr(trim($comment_input), 0, $album_config['desc_length'])));
 
-	$comment_username = (!$userdata['session_logged_in']) ? str_replace("\'", "''", substr(htmlspecialchars(trim($_POST['comment_username'])), 0, 32)) : str_replace("'", "''", htmlspecialchars(trim($userdata['username'])));
+	$comment_username = (!$userdata['session_logged_in']) ? str_replace("\'", "''", substr(htmlspecialchars(trim($comment_username_input)), 0, 32)) : str_replace("'", "''", htmlspecialchars(trim($userdata['username'])));
 
 
 
@@ -825,6 +837,10 @@ else
 	if( ($thispic['pic_lock'] == 1) and (!$auth_data['moderator']) )
 	{
 		message_die(GENERAL_ERROR, $lang['Pic_Locked']);
+	}
+	if ($has_rating && (($rate_point <= 0) || ($rate_point > $album_config['rate_scale']) || $already_rated))
+	{
+		message_die(GENERAL_ERROR, $already_rated ? $lang['Already_rated'] : $lang['Not_Authorised']);
 	}
 
 
@@ -855,54 +871,40 @@ else
 
 
 	// --------------------------------
-	// Get $comment_id
-	// --------------------------------
-	$sql = "SELECT MAX(comment_id) AS max
-			FROM ". ALBUM_COMMENT_TABLE;
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not found comment_id', '', __LINE__, __FILE__, $sql);
-	}
-
-	$row = $db->sql_fetchrow($result);
-
-	$comment_id = $row['max'] + 1;
-
-
-	// --------------------------------
 	// Insert into DB
 	// --------------------------------
 
 	if ($comment_text != '')//if user only rated, but didnt enter a comment ..... only update rating
 	{
-		$sql = "INSERT INTO ". ALBUM_COMMENT_TABLE ." (comment_id, comment_pic_id, comment_cat_id, comment_user_id, comment_username, comment_user_ip, comment_time, comment_text)
-				VALUES ('$comment_id', '$pic_id', '$cat_id', '$comment_user_id', '$comment_username', '$comment_user_ip', '$comment_time', '$comment_text')";
+		$sql = "INSERT INTO ". ALBUM_COMMENT_TABLE ." (comment_pic_id, comment_cat_id, comment_user_id, comment_username, comment_user_ip, comment_time, comment_text)
+				VALUES ('$pic_id', '$cat_id', '$comment_user_id', '$comment_username', '$comment_user_ip', '$comment_time', '$comment_text')";
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert new entry', '', __LINE__, __FILE__, $sql);
 		}
+		$comment_id = $db->sql_nextid();
 	}
 
 	//rating
-	$rate_point = intval($_POST['rate']);
-
-	if ($rate_point != -1 && $album_config['rate'] == 1 && !$already_rated && !$auth_data['rate'] == 0)//if user didnt vote, dont update database
+	if ($has_rating)
 	{
-		if( ($rate_point <= 0) or ($rate_point > $album_config['rate_scale']) )
-		{
-			message_die(GENERAL_ERROR, 'Bad submited value');
-		}
-
 		$rate_user_id = $userdata['user_id'];
 		$rate_user_ip = $userdata['session_ip'];
 
 		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_point)
-				VALUES ('$pic_id', '$rate_user_id', '$rate_user_ip', '$rate_point')";
+				SELECT '$pic_id', '$rate_user_id', '$rate_user_ip', '$rate_point'";
+		if ($userdata['session_logged_in'])
+		{
+			$sql .= " WHERE NOT EXISTS (SELECT 1 FROM " . ALBUM_RATE_TABLE . " WHERE rate_pic_id = " . intval($pic_id) . " AND rate_user_id = " . intval($rate_user_id) . ")";
+		}
 
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert new rating', '', __LINE__, __FILE__, $sql);
+		}
+		if ($userdata['session_logged_in'] && !$db->sql_affectedrows())
+		{
+			message_die(GENERAL_MESSAGE, $lang['Already_rated']);
 		}
 	}
 

@@ -52,6 +52,10 @@ changes consolidated after that baseline without implying active maintenance.
   view/rate/approval permissions in the write path, prevented disallowed
   duplicate votes atomically, and fixed its stale category and filename
   variables.
+- Added session tokens to album picture edits, comment edits, new comments and
+  ordinary ratings; enforced comment and rating permissions independently,
+  used the existing auto-increment comment key instead of `MAX()+1`, and
+  restored the intended moderator edit access.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.
