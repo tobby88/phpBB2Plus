@@ -2,6 +2,7 @@
 
 define('IN_PHPBB', true);
 define('CTRACKER_REQUEST_LIMITER_NO_AUTO_RUN', true);
+define('CTRACKER_RATE_LIMITS', 'phpbb_ctracker_rate_limits');
 require dirname(dirname(__DIR__)) . '/phpBB2/ctracker/engines/ct_request_limiter.php';
 
 function limiter_assert_profile($expected, $script, $post, $get, &$errors)
@@ -24,6 +25,27 @@ limiter_assert_profile('upload', 'album_upload.php', array(), array(), $errors);
 limiter_assert_profile('write', 'posting.php', array(), array(), $errors);
 limiter_assert_profile('write', 'ibproarcade.php', array(), array(), $errors);
 limiter_assert_profile(false, 'search.php', array('search_keywords' => 'example'), array(), $errors);
+
+class limiter_test_db
+{
+	var $count = 0;
+
+	function sql_escape($value) { return addslashes((string) $value); }
+	function sql_query($sql)
+	{
+		if (strpos($sql, 'INSERT INTO') === 0) { $this->count++; }
+		return true;
+	}
+	function sql_fetchrow($result) { return array('request_count' => $this->count); }
+	function sql_freeresult($result) { return true; }
+}
+
+$db = new limiter_test_db();
+if (ctracker_rate_limit_increment('test', 'identity', 60, 1) !== 0 ||
+	ctracker_rate_limit_increment('test', 'identity', 60, 1) <= 0)
+{
+	$errors[] = 'Atomic rate-limit counter did not allow then throttle as expected.';
+}
 
 if ($errors)
 {

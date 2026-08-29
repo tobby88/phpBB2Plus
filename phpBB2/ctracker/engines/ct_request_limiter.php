@@ -49,6 +49,53 @@ function ctracker_request_limit_profile($script, $post, $get)
 	return false;
 }
 
+function ctracker_rate_limit_increment($bucket, $identity, $window_seconds, $limit)
+{
+	global $db;
+
+	$bucket = is_scalar($bucket) ? (string) $bucket : '';
+	$identity = is_scalar($identity) ? (string) $identity : '';
+	$window_seconds = max(1, min(86400, intval($window_seconds)));
+	$limit = max(1, min(10000, intval($limit)));
+	if ($bucket === '' || $identity === '')
+	{
+		return false;
+	}
+
+	$now = time();
+	$window_start = intval(floor($now / $window_seconds) * $window_seconds);
+	$bucket_hash = hash('sha256', $bucket . "\0" . $identity);
+	$sql = 'INSERT INTO ' . CTRACKER_RATE_LIMITS . "
+		(bucket_hash, window_start, request_count, updated_at)
+		VALUES ('" . $db->sql_escape($bucket_hash) . "', $window_start, 1, $now)
+		ON DUPLICATE KEY UPDATE
+			request_count = IF(window_start = VALUES(window_start), request_count + 1, 1),
+			window_start = VALUES(window_start), updated_at = VALUES(updated_at)";
+	if (!$db->sql_query($sql))
+	{
+		return false;
+	}
+
+	$sql = 'SELECT request_count FROM ' . CTRACKER_RATE_LIMITS . "
+		WHERE bucket_hash = '" . $db->sql_escape($bucket_hash) . "'
+			AND window_start = $window_start";
+	if (!($result = $db->sql_query($sql)))
+	{
+		return false;
+	}
+	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+
+	if (mt_rand(1, 100) === 1)
+	{
+		$db->sql_query('DELETE FROM ' . CTRACKER_RATE_LIMITS . ' WHERE updated_at < ' . ($now - 172800));
+	}
+
+	return ($row && intval($row['request_count']) > $limit)
+		? max(1, ($window_start + $window_seconds) - $now)
+		: 0;
+}
+
 function ctracker_enforce_request_limit()
 {
 	global $db, $ctracker_config, $HTTP_SERVER_VARS, $HTTP_POST_VARS, $HTTP_GET_VARS;
@@ -80,39 +127,10 @@ function ctracker_enforce_request_limit()
 	$configured_limit = isset($ctracker_config->settings[$setting_name]) ? intval($ctracker_config->settings[$setting_name]) : $default_limit;
 	$limit = max(1, min(10000, $configured_limit));
 	$remote_ip = isset($ctracker_config->user_ip_value) ? (string) $ctracker_config->user_ip_value : '0.0.0.0';
-	$now = time();
-	$window_start = intval(floor($now / $window_seconds) * $window_seconds);
-	$bucket_hash = hash('sha256', $bucket . "\0" . $remote_ip);
+	$retry_after = ctracker_rate_limit_increment($bucket, $remote_ip, $window_seconds, $limit);
 
-	$sql = 'INSERT INTO ' . CTRACKER_RATE_LIMITS . "
-		(bucket_hash, window_start, request_count, updated_at)
-		VALUES ('" . $db->sql_escape($bucket_hash) . "', $window_start, 1, $now)
-		ON DUPLICATE KEY UPDATE
-			request_count = IF(window_start = VALUES(window_start), request_count + 1, 1),
-			window_start = VALUES(window_start), updated_at = VALUES(updated_at)";
-	if (!$db->sql_query($sql))
+	if ($retry_after !== false && $retry_after > 0)
 	{
-		return;
-	}
-
-	$sql = 'SELECT request_count FROM ' . CTRACKER_RATE_LIMITS . "
-		WHERE bucket_hash = '" . $db->sql_escape($bucket_hash) . "'
-			AND window_start = $window_start";
-	if (!($result = $db->sql_query($sql)))
-	{
-		return;
-	}
-	$row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-
-	if (mt_rand(1, 100) === 1)
-	{
-		$db->sql_query('DELETE FROM ' . CTRACKER_RATE_LIMITS . ' WHERE updated_at < ' . ($now - 172800));
-	}
-
-	if ($row && intval($row['request_count']) > $limit)
-	{
-		$retry_after = max(1, ($window_start + $window_seconds) - $now);
 		if (!headers_sent())
 		{
 			http_response_code(429);

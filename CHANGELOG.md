@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Moved CrackerTracker search throttling from shared mutable fields on the
+  anonymous user record to the atomic rate-limit store. Guests are isolated by
+  verified IP, signed-in members by user ID, fixed windows no longer grow after
+  repeated retries, and the wait response now uses HTTP 429 without fragile
+  inline JavaScript.
 - Hardened CrackerTracker's client blocklist matching against malformed and
   excessive wildcard patterns, bounded inspected headers and added native
   IPv4/IPv6 CIDR support without trusting proxy-supplied client addresses.

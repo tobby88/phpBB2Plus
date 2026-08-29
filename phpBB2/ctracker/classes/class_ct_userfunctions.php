@@ -48,7 +48,7 @@ class ct_userfunctions
 	 */
 	function search_handler()
 	{
-		global $userdata, $db, $ctracker_config, $lang;
+		global $userdata, $ctracker_config, $lang;
 
 		if ( $ctracker_config->settings['search_feature_enabled'] == 0 )
 		{
@@ -56,93 +56,37 @@ class ct_userfunctions
 			return;
 		}
 
-		// Initialize later used vars
-		$max_searches = 0;
-		$wait_time    = 0;
-
 		if ( $userdata['user_id'] == ANONYMOUS )
 		{
-			$max_searches = $ctracker_config->settings['search_count_guest'];
-			$wait_time    = $ctracker_config->settings['search_time_guest'];
+			$max_searches = max(1, intval($ctracker_config->settings['search_count_guest']));
+			$wait_time = max(1, intval($ctracker_config->settings['search_time_guest']));
+			$identity = 'ip:' . (string) $ctracker_config->user_ip_value;
 		}
 		else
 		{
-			$max_searches = $ctracker_config->settings['search_count_user'];
-			$wait_time    = $ctracker_config->settings['search_time_user'];
+			$max_searches = max(1, intval($ctracker_config->settings['search_count_user']));
+			$wait_time = max(1, intval($ctracker_config->settings['search_time_user']));
+			$identity = 'user:' . intval($userdata['user_id']);
 		}
 
-
-		/*
-		 * Now we do the Search control
-		 */
-		if ( $userdata['ct_search_time'] < time() )
+		if (!function_exists('ctracker_rate_limit_increment'))
 		{
-			/*
-			 * Block-Time is not there, so reset the values in Usertable
-			 */
-			$search_time_new = time() + $wait_time;
-
-			$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_search_time = ' . $search_time_new . ', ct_search_count = 1 WHERE user_id = ' . $userdata['user_id'];
-
-			// Execute SQL Command in database
-			if ( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-			}
-
+			return;
 		}
-		else if ( $userdata['ct_search_count'] < $max_searches )
+
+		$retry_after = ctracker_rate_limit_increment('search', $identity, $wait_time, $max_searches);
+		if ($retry_after !== false && $retry_after > 0)
 		{
-			/*
-			 * We're still in the time limitations, but the user has
-			 * a possibility to start multiple searches in this time
-			 * but we have to count all these searches.
-			 */
-			$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_search_count = ct_search_count + 1 WHERE user_id = ' . $userdata['user_id'];
-
-			// Execute SQL Command in database
-			if ( !$result = $db->sql_query($sql) )
+			if (!headers_sent())
 			{
-				message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+				http_response_code(429);
+				header('Retry-After: ' . intval($retry_after));
+				header('Cache-Control: no-store');
 			}
-		}
-		else
-		{
-			// How long a user really has to wait?
-			$real_wait_time = $userdata['ct_search_time'] - time();
-
-			/*
-			 * So a user or guest wanted to search once more so to really
-			 * have an efficient blocking we will set a new Time Span to wait.
-			 * Also we increment the Search counter one time that no new search
-			 * wait time will be set if someone tries AGAIN to search.
-			 */
-			if ( $userdata['ct_search_count'] == $max_searches )
-			{
-				$search_time_new = time() + $wait_time;
-				$real_wait_time  = $search_time_new - time();
-
-				$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_search_time = ' . $search_time_new . ', ct_search_count = ct_search_count + 1 WHERE user_id = ' . $userdata['user_id'] . ';';
-
-				// Execute SQL Command in database
-				if ( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-				}
-
-			}
-
-
-			/*
-			 * Output the wait message
-			 */
-			$waitmessage = '';
-			$waitmessage = sprintf($lang['ctracker_info_search_time'], $max_searches, $wait_time, $real_wait_time, $real_wait_time);
-
+			$waitmessage = sprintf($lang['ctracker_info_search_time'], $max_searches, $wait_time, intval($retry_after));
 			message_die(GENERAL_MESSAGE, $waitmessage);
-
-		} // else
-	} // search_handler
+		}
+	}
 
 
 	/**
