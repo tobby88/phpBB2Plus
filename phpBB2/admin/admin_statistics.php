@@ -75,15 +75,20 @@ $board_config['smilies_path'] = './../' . $board_config['smilies_path'];
 //
 // Init Vars
 //
-$params = array(
-	'mode' => 'mode',
-	'submit' => 'submit',
-	'module_id' => POST_FORUM_URL
-);
+$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
+$submit = isset($_POST['submit']);
+$module_id = (isset($_POST[POST_FORUM_URL]) && is_scalar($_POST[POST_FORUM_URL])) ? (int) $_POST[POST_FORUM_URL] :
+	((isset($_GET[POST_FORUM_URL]) && is_scalar($_GET[POST_FORUM_URL])) ? (int) $_GET[POST_FORUM_URL] : 0);
 
-foreach ($params as $var => $param)
+$write_modes = array('order', 'activate', 'deactivate', 'uninstall', 'install', 'install_activate', 'auto_set');
+if (in_array($mode, $write_modes, true) || ($submit && in_array($mode, array('config', 'edit'), true)))
 {
-	( !empty($_POST[$param]) || !empty($_GET[$param]) )? $$var = ( !empty($_POST[$param]) ) ? $_POST[$param] : $_GET[$param] : $$var = '';
+	phpbb_admin_require_post_session();
+}
+if (in_array($mode, array('order', 'activate', 'deactivate', 'uninstall', 'install', 'install_activate'), true) && $module_id < 1)
+{
+	message_die(GENERAL_ERROR, 'Invalid statistics module.');
 }
 
 $msg = '';
@@ -106,6 +111,18 @@ function gen_auth_select($default_auth_value)
 	$select_list .= '</select>';
 
 	return ($select_list);
+}
+
+function stats_admin_action_form($mode, $module_id, $label, $confirm = '')
+{
+	global $phpEx, $userdata;
+
+	$confirm_attribute = ($confirm !== '') ? ' onclick="return confirm(\'' . htmlspecialchars(addslashes($confirm), ENT_QUOTES) . '\');"' : '';
+	return '<form method="post" action="' . append_sid('admin_statistics.' . $phpEx) . '" style="display:inline; margin:0">' .
+		'<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />' .
+		'<input type="hidden" name="mode" value="' . htmlspecialchars($mode) . '" />' .
+		(($module_id > 0) ? '<input type="hidden" name="' . POST_FORUM_URL . '" value="' . (int) $module_id . '" />' : '') .
+		'<input type="submit" class="liteoption" value="' . htmlspecialchars($label) . '"' . $confirm_attribute . ' /></form>';
 }
 
 function renumbering_order()
@@ -142,7 +159,8 @@ if ($mode == 'order')
 	//
 	// Change order of modules in the DB
 	//
-	$move = intval($_GET['move']);
+	$move = (isset($_POST['move']) && is_scalar($_POST['move'])) ? (int) $_POST['move'] : 0;
+	$move = ($move < 0) ? -15 : 15;
 
 	$sql = "UPDATE " . MODULES_TABLE . "
 	SET display_order = display_order + $move
@@ -160,9 +178,9 @@ if ($mode == 'order')
 
 if ($submit && $mode == 'config')
 {
-	if ( !empty($_POST['return_limit_set']) )
+	if ( isset($_POST['return_limit_set']) && is_scalar($_POST['return_limit_set']) && $_POST['return_limit_set'] !== '' )
 	{
-		$update_value = ( !empty($_POST['return_limit_set']) ) ? intval($_POST['return_limit_set']) : 0;
+		$update_value = max(1, intval($_POST['return_limit_set']));
 
 		if (intval($__stats_config['return_limit']) != intval($update_value))
 		{
@@ -193,14 +211,18 @@ if ($submit && $mode == 'config')
 		$msg .= '<br>' . $lang['Updated'] . ' : ' . $lang['Clear_cache'];
 	}
 	
-	if ( !empty($_POST['modules_dir_set']) )
+	if ( isset($_POST['modules_dir_set']) && is_scalar($_POST['modules_dir_set']) )
 	{
-		$update_value = ( !empty($_POST['modules_dir_set']) ) ? $_POST['modules_dir_set'] : '';
+		$update_value = trim(str_replace('\\', '/', (string) $_POST['modules_dir_set']), '/');
+		if ($update_value === '' || strpos($update_value, '..') !== false || !preg_match('#^[a-zA-Z0-9_/-]+$#D', $update_value))
+		{
+			message_die(GENERAL_ERROR, 'Invalid statistics module directory.');
+		}
 	
 		if ($__stats_config['modules_dir'] != $update_value)
 		{
 			$sql = "UPDATE " . STATS_CONFIG_TABLE . "
-			SET config_value = '$update_value'
+			SET config_value = '" . $db->sql_escape($update_value) . "'
 			WHERE (config_name = 'modules_dir')";
 
 			if (!($result = $db->sql_query($sql)))
@@ -252,7 +274,8 @@ if ($mode == 'config')
 		'RETURN_LIMIT' => $__stats_config['return_limit'],
 		'MODULES_DIR' => $__stats_config['modules_dir'],
 
-		'S_ACTION' => append_sid("admin_statistics.$phpEx?mode=config"))
+		'S_ACTION' => append_sid("admin_statistics.$phpEx?mode=config"),
+		'S_SESSION_FIELD' => '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />')
 	);
 }
 
@@ -502,34 +525,34 @@ if ($mode == 'manage')
 		
 		if ($rows[$i]['display_order'] != $curr_min)
 		{
-			$link = append_sid("admin_statistics.$phpEx?mode=order&amp;move=-15&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']);
-			$move_up = '<a href="' . $link . '">' . $lang['Move_up'] . '</a>';
+			$move_up = stats_admin_action_form('order', $rows[$i]['module_id'], $lang['Move_up']);
+			$move_up = str_replace('</form>', '<input type="hidden" name="move" value="-15" /></form>', $move_up);
 		}
 
 		if ($rows[$i]['display_order'] != $curr_max) 
 		{
-			$link = append_sid("admin_statistics.$phpEx?mode=order&amp;move=15&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']);
-			$move_down = '<a href="' . $link . '">' . $lang['Move_down'] . '</a>';
+			$move_down = stats_admin_action_form('order', $rows[$i]['module_id'], $lang['Move_down']);
+			$move_down = str_replace('</form>', '<input type="hidden" name="move" value="15" /></form>', $move_down);
 		}
 
 		if (intval($rows[$i]['installed']) == 1)
 		{
 			$edit_install = '<a href="' . append_sid("admin_statistics.$phpEx?mode=edit&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']) . '">' . $lang['Edit'] . '</a>';
-			$edit_install .= '<br /><a href="' . append_sid("admin_statistics.$phpEx?mode=uninstall&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']) . '">' . $lang['Uninstall'] . '</a>';
+			$edit_install .= '<br />' . stats_admin_action_form('uninstall', $rows[$i]['module_id'], $lang['Uninstall'], $lang['Uninstall_module_desc']);
 		}
 		else
 		{
-			$edit_install = '<a href="' . append_sid("admin_statistics.$phpEx?mode=install_activate&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']) . '">' . $lang['Install'] . ' & ' . $lang['Activate'] . '</a>';
-			$edit_install .= '<br /><a href="' . append_sid("admin_statistics.$phpEx?mode=install&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']) . '">' . $lang['Install'] . '</a>';
+			$edit_install = stats_admin_action_form('install_activate', $rows[$i]['module_id'], $lang['Install'] . ' & ' . $lang['Activate']);
+			$edit_install .= '<br />' . stats_admin_action_form('install', $rows[$i]['module_id'], $lang['Install']);
 		}
 
 		if (intval($rows[$i]['active']) == 1)
 		{
-			$state_link = '<a href="' . append_sid("admin_statistics.$phpEx?mode=deactivate&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']) . '" alt="' . $lang['Deactivate'] . '">' . $lang['Active'] . '</a>';
+			$state_link = stats_admin_action_form('deactivate', $rows[$i]['module_id'], $lang['Active']);
 		}
 		else if ( (intval($rows[$i]['active']) == 0) && (intval($rows[$i]['installed']) == 1) )
 		{
-			$state_link = '<a href="' . append_sid("admin_statistics.$phpEx?mode=activate&amp;" . POST_FORUM_URL . "=" . $rows[$i]['module_id']) . '" alt="' . $lang['Activate'] . '">' . $lang['Not_active'] . '</a>';
+			$state_link = stats_admin_action_form('activate', $rows[$i]['module_id'], $lang['Not_active']);
 		}
 		else if (intval($rows[$i]['active']) == 0)
 		{
@@ -557,7 +580,7 @@ if ($mode == 'manage')
 		'L_UPDATE_TIME' => $lang['Update_time'],
 		'L_AUTO_SET' => $lang['Auto_set_update_time'],
 		'L_GO' => $lang['Go'],
-		'U_AUTO_SET' => append_sid("admin_statistics.$phpEx?mode=auto_set"),
+		'S_AUTO_SET' => stats_admin_action_form('auto_set', 0, $lang['Go'], $lang['Auto_set_update_time']),
 
 		'MESSAGE' => $msg)
 	);
@@ -742,7 +765,7 @@ if ($mode == 'install')
 
 if ($submit && $mode == 'edit')
 {
-	$auth_value = ( !empty($_POST['auth_fields']) ) ? intval($_POST['auth_fields']) : 0;
+	$auth_value = ( isset($_POST['auth_fields']) && is_scalar($_POST['auth_fields']) ) ? intval($_POST['auth_fields']) : 0;
 
 	$sql = "UPDATE " . MODULES_TABLE . "
 	SET auth_value = " . $auth_value . "
@@ -765,7 +788,8 @@ if ($submit && $mode == 'edit')
 			
 	$msg .= '<br>' . $lang['Updated'] . ' : ' . $lang['Auth_settings_updated'] . ' : ' . $module_info['name'];
 
-	$update_value = ( isset($_POST['active']) ) ? intval($_POST['active']) : 0;
+	$update_value = ( isset($_POST['active']) && is_scalar($_POST['active']) ) ? intval($_POST['active']) : 0;
+	$update_value = ($update_value === 1) ? 1 : 0;
 
 	if (intval($module_info['active']) != $update_value)
 	{
@@ -781,7 +805,7 @@ if ($submit && $mode == 'edit')
 		$msg .= '<br>' . $lang['Updated'] . ' : ' . $lang['Active'] . ' : ' . $module_info['name'];
 	}
 
-	$update_value = ( isset($_POST['updatetime']) ) ? intval($_POST['updatetime']) : 0;
+	$update_value = ( isset($_POST['updatetime']) && is_scalar($_POST['updatetime']) ) ? max(0, intval($_POST['updatetime'])) : 0;
 	
 	if (intval($module_info['update_time']) != intval($update_value))
 	{
@@ -797,7 +821,7 @@ if ($submit && $mode == 'edit')
 		$msg .= '<br>' . $lang['Updated'] . ' : ' . $lang['Update_time'] . ' : ' . $module_info['name'];
 	}
 
-	if ( isset($_POST['uninstall']) && (intval($_POST['uninstall']) == 0))
+	if ( isset($_POST['uninstall']) && is_scalar($_POST['uninstall']) && intval($_POST['uninstall']) == 0)
 	{
 		$sql = "UPDATE " . MODULES_TABLE . "
 		SET installed = 0, active = 0
@@ -947,7 +971,8 @@ if ($mode == 'edit')
 		'L_BACK_TO_MANAGEMENT' => $lang['Back_to_management'],
 		'U_MANAGEMENT' => append_sid("admin_statistics.$phpEx?mode=manage"),
 
-		'S_ACTION' => append_sid("admin_statistics.$phpEx?mode=edit&amp;" . POST_FORUM_URL . "=$module_id"))
+		'S_ACTION' => append_sid("admin_statistics.$phpEx?mode=edit&amp;" . POST_FORUM_URL . "=$module_id"),
+		'S_SESSION_FIELD' => '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />')
 	);
 
 	$template->assign_var_from_handle('PREVIEW_MODULE', 'preview');

@@ -14,7 +14,7 @@
 
 <table class="forumline" align="center" width="80%">
 	<tr>
-		<td class="row3" align="center"><span class="gen">{L_AUTO_SET}<br /><a href="{U_AUTO_SET}" class="gen">{L_GO}</a></td>
+		<td class="row3" align="center"><span class="gen">{L_AUTO_SET}<br />{S_AUTO_SET}</span></td>
 	</tr>
 </table>
 

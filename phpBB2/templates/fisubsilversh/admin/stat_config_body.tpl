@@ -11,6 +11,7 @@
 </table>
 
 <form action="{S_ACTION}" method="post">
+{S_SESSION_FIELD}
 <table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">
 	<tr>
 	  <th class="thHead" colspan="2">{L_STATS_CONFIG}</th>
