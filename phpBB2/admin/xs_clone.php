@@ -147,6 +147,7 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 	$vars = array('clone_tpl', 'clone_style_name', 'total');
 	$count = 0;
 	$list = array();
+	$selected_style_names = array();
 	for($i=0; $i<$total; $i++)
 	{
 		$vars[] = 'clone_style_id_'.$i;
@@ -155,22 +156,29 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 		if(!empty($HTTP_POST_VARS['clone_style_'.$i]) && isset($HTTP_POST_VARS['clone_style_name_'.$i]) && is_scalar($HTTP_POST_VARS['clone_style_name_'.$i]) && isset($HTTP_POST_VARS['clone_style_id_'.$i]) && is_scalar($HTTP_POST_VARS['clone_style_id_'.$i]))
 		{
 			$clone_style_name = trim(stripslashes((string) $HTTP_POST_VARS['clone_style_name_'.$i]));
+			$clone_style_id = intval($HTTP_POST_VARS['clone_style_id_'.$i]);
 			$clone_style_name_length = preg_match_all('/./us', $clone_style_name, $clone_style_name_characters);
-			if($clone_style_name === '' || $clone_style_name_length === false || $clone_style_name_length > 30)
+			if($clone_style_id <= 0 || $clone_style_name === '' || $clone_style_name_length === false || $clone_style_name_length > 30)
 			{
 				xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_clone_back']);
 			}
+			if(isset($selected_style_names[$clone_style_id]))
+			{
+				continue;
+			}
 			// prepare for export
-			$list[] = intval($HTTP_POST_VARS['clone_style_id_'.$i]);
-			$HTTP_POST_VARS['export_style_'.$i] = $HTTP_POST_VARS['clone_style_'.$i];
-			$HTTP_POST_VARS['export_style_id_'.$i] = $HTTP_POST_VARS['clone_style_id_'.$i];
-			$HTTP_POST_VARS['export_style_name_'.$i] = $clone_style_name;
+			$list[$clone_style_id] = $clone_style_id;
+			$selected_style_names[$clone_style_id] = $clone_style_name;
 			// prepare for import
 			$HTTP_POST_VARS['import_install_'.$count] = '1';
 			$count ++;
 		}
 	}
 	if(!$count)
+	{
+		xs_error($lang['xs_clone_no_select'] . '<br /><br />' . $lang['xs_clone_back']);
+	}
+	if($count > XS_MAX_ITEMS_PER_STYLE)
 	{
 		xs_error($lang['xs_clone_no_select'] . '<br /><br />' . $lang['xs_clone_back']);
 	}
@@ -201,36 +209,28 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 		xs_error($lang['xs_no_theme_data'] . $lang['xs_clone_back']);
 	}
 	$theme_rowset = $db->sql_fetchrowset($result);
-	if(count($theme_rowset) == 0)
+	if(count($theme_rowset) == 0 || count($theme_rowset) !== count($list))
 	{
 		xs_error($lang['xs_no_themes']  . '<br /><br />' . $lang['xs_clone_back']);
 	}
-	$theme_data = xs_generate_themeinfo($theme_rowset, $export, $exportas, $total);
-	// prepare to pack	
-	$pack_error = '';
-	$pack_list = array();
-	$pack_replace = array('./theme_info.cfg' => $theme_data);
 	// pack style
 	for($i = 0; $i < count($theme_rowset); $i++)
 	{
 		$id = $theme_rowset[$i]['themes_id'];
-		$theme_name = $theme_rowset[$i]['style_name'];
-		for($j=0; $j<$total; $j++)
-		{
-			if(!empty($HTTP_POST_VARS['export_style_name_'.$j]) && $HTTP_POST_VARS['export_style_id_'.$j] == $id)
-			{
-				$theme_name = stripslashes($HTTP_POST_VARS['export_style_name_'.$j]);
-			}
-		}
-		$theme_rowset[$i]['style_name'] = $theme_name;
+		$theme_rowset[$i]['style_name'] = $selected_style_names[$id];
 	}
+	$theme_data = xs_generate_themeinfo($theme_rowset, $export, $exportas);
+	// prepare to pack
+	$pack_error = '';
+	$pack_list = array();
+	$pack_replace = array('./theme_info.cfg' => $theme_data);
 	$data = pack_style($export, $exportas, $theme_rowset, '');
 	// check errors
 	if($pack_error)
 	{
 		xs_error(str_replace('{TPL}', $export, $lang['xs_export_error']) . $pack_error  . '<br /><br />' . $lang['xs_clone_back']);
 	}
-	if(!$data)
+	if(!$data || strlen($data) > XS_MAX_STYLE_UPLOAD_BYTES)
 	{
 		xs_error(str_replace('{TPL}', $export, $lang['xs_export_error2']) . '<br /><br />' . $lang['xs_clone_back']);
 	}

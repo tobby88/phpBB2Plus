@@ -158,7 +158,7 @@ if(!empty($HTTP_POST_VARS['export']) && !defined('DEMO_MODE'))
 	{
 		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_export_data_back'], __LINE__, __FILE__);
 	}
-	$data = xs_generate_themeinfo($style_rowset, $export, $export, 0);
+	$data = xs_generate_themeinfo($style_rowset, $export, $export);
 	if(strlen($data) > 1024 * 1024)
 	{
 		xs_error(str_replace('{FILE}', htmlspecialchars($local_filename, ENT_QUOTES, 'UTF-8'), $lang['xs_error_cannot_create_file']) . '<br /><br />' . $lang['xs_export_data_back']);

@@ -211,7 +211,7 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 		$theme_name = isset($export_style_names[$id]) ? $export_style_names[$id] : $theme_name;
 		$theme_rowset[$i]['style_name'] = $theme_name;
 	}
-	$theme_data = xs_generate_themeinfo($theme_rowset, $export, $exportas, 0);
+	$theme_data = xs_generate_themeinfo($theme_rowset, $export, $exportas);
 
 	// prepare to pack
 	$pack_error = '';
