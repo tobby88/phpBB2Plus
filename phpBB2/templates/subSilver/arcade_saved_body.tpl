@@ -9,7 +9,7 @@
 				<td>&nbsp;</td>
 			</tr>
 			<tr> 
-				<td align="center"><span class="gen">{SAVED}<br />{HIGHSCORESAVED}<br />{CLOSE}&nbsp;<a href="{GAME_ID}">{PLAY_AGAIN}</a>{RATE_ID}{COMMENT_ID}&nbsp;<a href="javascript:self.close();opener.location='{FAV_ID}'"><img src="images/favorite.gif" alt=" - [{ADD_TO_FAV}]" title="{FAV_TITLE}" border="0" /></a></span></td>
+				<td align="center"><span class="gen">{SAVED}<br />{HIGHSCORESAVED}<br />{CLOSE}&nbsp;<a href="{GAME_ID}">{PLAY_AGAIN}</a>{RATE_ID}{COMMENT_ID}&nbsp;{FAV_FORM}</span></td>
 			</tr>
          <tr> 
  			<tr> 

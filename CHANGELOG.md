@@ -77,6 +77,9 @@ changes consolidated after that baseline without implying active maintenance.
   session and normalized its stored boolean value.
 - Secured Arcade searches against SQL injection, bound favourite changes to
   session-authenticated POST requests and rejected missing game records.
+- Hardened legacy Arcade score submissions with bounded numeric scores,
+  escaped database writes and logs, delayed one-time session consumption and
+  PHP 8-safe handling of malformed log data.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.
