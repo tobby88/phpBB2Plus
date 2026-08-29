@@ -55,14 +55,43 @@ require('./pagestart.' . $phpEx);
 include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
 $filename = basename(__FILE__);
 
-if(!isset($HTTP_GET_VARS['mode']) || !isset($HTTP_GET_VARS['pfid']))
+if(!isset($HTTP_GET_VARS['mode']) || !is_scalar($HTTP_GET_VARS['mode']) ||
+  !isset($HTTP_GET_VARS['pfid']) || !is_scalar($HTTP_GET_VARS['pfid']))
 {
   message_die(GENERAL_ERROR,'Required GET variables not set','Could not reach admin page; Insufficient data',__LINE__,__FILE__);
 }
 
+$mode = (string) $HTTP_GET_VARS['mode'];
+$pfid = ((string) $HTTP_GET_VARS['pfid'] === 'x') ? 'x' : (int) $HTTP_GET_VARS['pfid'];
+if (!in_array($mode, array('add', 'update', 'edit', 'delete', 'confirmdelete'), true) || ($pfid !== 'x' && $pfid < 1))
+{
+  message_die(GENERAL_ERROR, 'Invalid profile-field request.');
+}
 
-$mode = $HTTP_GET_VARS['mode'];
-$pfid = $HTTP_GET_VARS['pfid'];
+if (in_array($mode, array('update', 'confirmdelete'), true))
+{
+  phpbb_admin_require_post_session();
+}
+
+function profile_field_post_value($name, $default = '')
+{
+  global $HTTP_POST_VARS;
+
+  return (isset($HTTP_POST_VARS[$name]) && is_scalar($HTTP_POST_VARS[$name])) ? (string) $HTTP_POST_VARS[$name] : $default;
+}
+
+function profile_field_column_identifier($display_name)
+{
+  $identifier = text_to_column($display_name);
+  if (!preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $identifier))
+  {
+    return false;
+  }
+
+  return $identifier;
+}
+
+$session_field = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
 
 if($mode == 'add')
 {
@@ -81,29 +110,32 @@ if($mode == 'add')
     'L_ADD_FIELD_TITLE' => $lang['add_field_title'],
     'L_ADD_FIELD_EXPLAIN' => $lang['add_field_explain'],
     
-    'S_ADD_FIELD_ACTION' => append_sid("$filename?mode=update&pfid=x")
+    'S_ADD_FIELD_ACTION' => append_sid("$filename?mode=update&pfid=x"),
+    'S_HIDDEN_FIELDS' => $session_field
     ));
 }
 elseif($mode == 'update')
 {
   $template->set_filenames(array('body' => 'admin/admin_message_body.tpl'));
   
-  $name = htmlspecialchars($HTTP_POST_VARS['field_name']);
+  $name = htmlspecialchars(trim(profile_field_post_value('field_name')), ENT_QUOTES);
   if(empty($name))
     message_die(GENERAL_ERROR,$lang['enter_a_name']);
   
-  $description = htmlspecialchars($HTTP_POST_VARS['field_descrition']);
+  $description = htmlspecialchars(profile_field_post_value('field_descrition'), ENT_QUOTES);
   
-  $type = intval($HTTP_POST_VARS['field_type']);
-  $text_field_default = htmlspecialchars($HTTP_POST_VARS['text_field_default']);
-  $text_field_maxlen = empty($HTTP_POST_VARS['text_field_maxlen']) ? TEXT_FIELD_MAXLENGTH : intval($HTTP_POST_VARS['text_field_maxlen']);
-  $text_field_maxlen = $text_field_maxlen > TEXT_FIELD_MAXLENGTH ? TEXT_FIELD_MAXLENGTH : $text_field_maxlen;
-  $text_area_default = htmlspecialchars($HTTP_POST_VARS['text_area_default']);
-  $text_area_maxlen = empty($HTTP_POST_VARS['text_area_maxlen']) ? TEXTAREA_MINLENGTH : intval($HTTP_POST_VARS['text_area_maxlen']);
-  $text_area_maxlen = $text_area_maxlen > TEXTAREA_MAXLENGTH ? TEXTAREA_MAXLENGTH : $text_area_maxlen;
+  $type = intval(profile_field_post_value('field_type'));
+  if (!in_array($type, array(TEXT_FIELD, TEXTAREA, RADIO, CHECKBOX), true))
+    message_die(GENERAL_ERROR, 'Invalid profile-field type.');
+  $text_field_default = htmlspecialchars(profile_field_post_value('text_field_default'), ENT_QUOTES);
+  $text_field_maxlen = profile_field_post_value('text_field_maxlen') === '' ? TEXT_FIELD_MAXLENGTH : intval(profile_field_post_value('text_field_maxlen'));
+  $text_field_maxlen = max(1, min(TEXT_FIELD_MAXLENGTH, $text_field_maxlen));
+  $text_area_default = htmlspecialchars(profile_field_post_value('text_area_default'), ENT_QUOTES);
+  $text_area_maxlen = profile_field_post_value('text_area_maxlen') === '' ? TEXTAREA_MINLENGTH : intval(profile_field_post_value('text_area_maxlen'));
+  $text_area_maxlen = max(TEXTAREA_MINLENGTH, min(TEXTAREA_MAXLENGTH, $text_area_maxlen));
   
-  $radio_values = htmlspecialchars($HTTP_POST_VARS['radio_values']);
-  $radio_default_value = htmlspecialchars($HTTP_POST_VARS['radio_default_value']);
+  $radio_values = htmlspecialchars(profile_field_post_value('radio_values'), ENT_QUOTES);
+  $radio_default_value = htmlspecialchars(profile_field_post_value('radio_default_value'), ENT_QUOTES);
   $radio_values = explode("\n",str_replace("\r",'',$radio_values));
   if(empty($radio_default_value))
     $radio_default_value = $radio_values[0];
@@ -112,8 +144,8 @@ elseif($mode == 'update')
     $temp .= $val . ',';
   $radio_values = substr($temp,0,strlen($temp)-1);
   
-  $checkbox_values = htmlspecialchars($HTTP_POST_VARS['checkbox_values']);
-  $check_default_values = htmlspecialchars($HTTP_POST_VARS['check_default_values']);
+  $checkbox_values = htmlspecialchars(profile_field_post_value('checkbox_values'), ENT_QUOTES);
+  $check_default_values = htmlspecialchars(profile_field_post_value('check_default_values'), ENT_QUOTES);
   $checkbox_values = explode("\n",str_replace("\r",'',$checkbox_values));
   if(!empty($check_default_values))
   {
@@ -128,18 +160,18 @@ elseif($mode == 'update')
     $temp .= $val . ',';
   $checkbox_values = substr($temp,0,strlen($temp)-1);
   
-  $required = intval($HTTP_POST_VARS['required']);
-  $user_can_view = intval($HTTP_POST_VARS['user_can_view']);
-  $view_in_profile = intval($HTTP_POST_VARS['view_in_profile']);
-  $profile_location = intval($HTTP_POST_VARS['profile_location']);
-  $view_in_memberlist = intval($HTTP_POST_VARS['view_in_memberlist']);
-  $view_in_topic = intval($HTTP_POST_VARS['view_in_topic']);
-  $signature_wrap = intval($HTTP_POST_VARS['signature_wrap']);
+  $required = intval(profile_field_post_value('required'));
+  $user_can_view = intval(profile_field_post_value('user_can_view'));
+  $view_in_profile = intval(profile_field_post_value('view_in_profile'));
+  $profile_location = intval(profile_field_post_value('profile_location'));
+  $view_in_memberlist = intval(profile_field_post_value('view_in_memberlist'));
+  $view_in_topic = intval(profile_field_post_value('view_in_topic'));
+  $signature_wrap = intval(profile_field_post_value('signature_wrap'));
   
   if($pfid == 'x')
   {
     $sql = "SELECT field_name FROM " . PROFILE_FIELDS_TABLE . "
-      WHERE field_name='$name'";
+      WHERE field_name='" . $db->sql_escape($name) . "'";
     if(!($result = $db->sql_query($sql)))
       message_die(GENERAL_ERROR,'Could not query database for field name information','',__LINE__,__FILE__,$sql);
     $temp = $db->sql_fetchrowset($result);
@@ -159,19 +191,23 @@ elseif($mode == 'update')
     if(!($result = $db->sql_query($sql)))
       message_die(GENERAL_ERROR,'Could not find old name','',__LINE__,__FILE__,$sql);
     $old_name = $db->sql_fetchrow($result);
-    $old_name = text_to_column($old_name['field_name']);
+    $old_name = $old_name ? profile_field_column_identifier($old_name['field_name']) : false;
+    if ($old_name === false)
+      message_die(GENERAL_ERROR, 'Invalid existing profile-field column.');
   }
   
   $name_display = $name;
-  $name = str_replace("\'","''",text_to_column($name));
-  $description = str_replace("\'","''",$description);
-  $text_field_default = str_replace("\'","''",$text_field_default);
-  $text_area_default = str_replace("\'","''",$text_area_default);
-  $text_area_maxlen = str_replace("\'","''",$text_area_maxlen);
-  $radio_default_value = str_replace("\'","''",$radio_default_value);
-  $radio_values = str_replace("\'","''",$radio_values);
-  $check_default_values = str_replace("\'","''",$check_default_values);
-  $checkbox_values = str_replace("\'","''",$checkbox_values);
+  $name = profile_field_column_identifier($name);
+  if ($name === false)
+    message_die(GENERAL_ERROR, 'The profile-field name cannot be represented as a safe database column.');
+  $name_display_sql = $db->sql_escape($name_display);
+  $description = $db->sql_escape($description);
+  $text_field_default = $db->sql_escape($text_field_default);
+  $text_area_default = $db->sql_escape($text_area_default);
+  $radio_default_value = $db->sql_escape($radio_default_value);
+  $radio_values = $db->sql_escape($radio_values);
+  $check_default_values = $db->sql_escape($check_default_values);
+  $checkbox_values = $db->sql_escape($checkbox_values);
 
   $sql = "SELECT $name FROM " . USERS_TABLE . " WHERE user_id = ".$userdata['user_id']." LIMIT 1";
   if($db->sql_query($sql))
@@ -188,14 +224,14 @@ elseif($mode == 'update')
       (field_name, field_description, field_type, text_field_default, text_field_maxlen, text_area_default, text_area_maxlen,
       radio_button_default, radio_button_values, checkbox_default, checkbox_values, is_required,
       users_can_view, view_in_profile, profile_location, view_in_memberlist, view_in_topic, topic_location)
-      VALUES ('$name_display','$description',$type,'$text_field_default',$text_field_maxlen,'$text_area_default',$text_area_maxlen,
+      VALUES ('$name_display_sql','$description',$type,'$text_field_default',$text_field_maxlen,'$text_area_default',$text_area_maxlen,
       '$radio_default_value','$radio_values','$check_default_values','$checkbox_values',$required,$user_can_view,
       $view_in_profile,$profile_location,$view_in_memberlist,$view_in_topic,$signature_wrap)";
   }
   else
   {
     $sql = "UPDATE " . PROFILE_FIELDS_TABLE . "
-      SET field_name = '$name_display',
+      SET field_name = '$name_display_sql',
         field_description = '$description',
         field_type = $type,
         text_field_default = '$text_field_default',
@@ -384,32 +420,44 @@ elseif($mode == 'edit')
       'L_ADD_FIELD_TITLE' => $lang['edit_field_title'],
       'L_ADD_FIELD_EXPLAIN' => $lang['edit_field_explain'],
       
-      'S_ADD_FIELD_ACTION' => append_sid("$filename?mode=update&pfid=$pfid")
+      'S_ADD_FIELD_ACTION' => append_sid("$filename?mode=update&pfid=$pfid"),
+      'S_HIDDEN_FIELDS' => $session_field
       ));
   }
 }
 elseif($mode == 'delete')
 {
-  $field_name = get_fields('WHERE field_id = '.$pfid,false,'field_name');
-  $name = text_to_column($field_name['field_name']);
-  
-  $del_link = '<a href="' . append_sid("$filename?mode=confirmdelete&pfid=$pfid&name=$name") . '">' . $lang['Yes'] . '</a>';
-  $nodel_link = sprintf($lang['index_link'],$lang['No']);
-  
-  $template->set_filenames(array('body' => 'admin/admin_message_body.tpl'));
+  $field_name = get_fields('WHERE field_id = '.(int) $pfid,false,'field_name');
+  if (!$field_name)
+    message_die(GENERAL_ERROR, 'Profile field not found.');
+
+  $template->set_filenames(array('body' => 'admin/confirm_body.tpl'));
+  $hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />' .
+    '<input type="hidden" name="pfid" value="' . (int) $pfid . '" />';
   $template->assign_vars(array(
-    'MESSAGE_TITLE' => sprintf($lang['double_check_delete'],$field_name['field_name']),
-    'MESSAGE_TEXT' => $del_link . ' &nbsp; ' . $nodel_link
+    'MESSAGE_TITLE' => $lang['Confirm'],
+    'MESSAGE_TEXT' => sprintf($lang['double_check_delete'], htmlspecialchars((string) $field_name['field_name'])),
+    'L_YES' => $lang['Yes'],
+    'L_NO' => $lang['No'],
+    'S_CONFIRM_ACTION' => append_sid("$filename?mode=confirmdelete&pfid=$pfid"),
+    'S_HIDDEN_FIELDS' => $hidden_fields
     ));
 }
 elseif($mode == 'confirmdelete')
 {
+  if (!isset($HTTP_POST_VARS['confirm']))
+    redirect(append_sid("$filename?mode=edit&pfid=x"));
+
+  $field_name = get_fields('WHERE field_id = '.(int) $pfid,false,'field_name');
+  $name = $field_name ? profile_field_column_identifier($field_name['field_name']) : false;
+  if ($name === false)
+    message_die(GENERAL_ERROR, 'Invalid profile-field column.');
+
   $sql = "DELETE FROM " . PROFILE_FIELDS_TABLE . "
-    WHERE field_id = $pfid";
+    WHERE field_id = " . (int) $pfid;
   if(!$db->sql_query($sql))
     message_die(GENERAL_ERROR,'Could not delete profile form database','',__LINE__,__FILE__,$sql);
   
-  $name = $HTTP_GET_VARS['name'];
   $sql = "ALTER TABLE " . USERS_TABLE . "
     DROP COLUMN $name";
   if(!$db->sql_query($sql))
