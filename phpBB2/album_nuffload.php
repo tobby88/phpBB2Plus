@@ -52,6 +52,10 @@ $file = array('field' => array(), 'name' => array(), 'size' => array(), 'tmp_nam
 // This part handles files after the upload and passes variables across
 if (isset($_REQUEST['psid']))
 {
+	if (!is_scalar($_REQUEST['psid']))
+	{
+		message_die(GENERAL_ERROR, 'Invalid upload session');
+	}
 	$psid = (string) $_REQUEST['psid'];
 	if (!preg_match('/^[a-f0-9]{32}$/i', $psid))
 	{
@@ -67,7 +71,7 @@ if (isset($_REQUEST['psid']))
 
 	// Session id for this upload.
 	// Check if this a multi upload so we transfer the correct upload file
-	if (!empty($_GET['multi_id']))
+	if (!empty($_GET['multi_id']) && is_scalar($_GET['multi_id']))
 	{
 		$multi_id = intval($_GET['multi_id']);
 		$multi_tag = '-' . $multi_id;
@@ -138,9 +142,25 @@ if (isset($_REQUEST['psid']))
 
 	// Find the total number of file inputs from the form
 	$multi_max = 0;
-	$k = isset($file['name']) && is_array($file['name']) ? count($file['name']) : 0;
+	$required_file_fields = array('field', 'name', 'size', 'tmp_name');
+	foreach ($required_file_fields as $required_file_field)
+	{
+		if (!isset($file[$required_file_field]) || !is_array($file[$required_file_field]))
+		{
+			message_die(GENERAL_ERROR, 'Invalid upload data');
+		}
+	}
+	$k = count($file['name']);
 	for($i=0 ; $i < $k ; $i++)
 	{
+		if (!isset($file['field'][$i], $file['name'][$i], $file['size'][$i], $file['tmp_name'][$i])
+			|| !is_scalar($file['field'][$i]) || !is_scalar($file['name'][$i])
+			|| !is_scalar($file['size'][$i]) || !is_scalar($file['tmp_name'][$i])
+			|| !preg_match('/^pic_(?:file|thumbnail)(?:-[0-9]+)?$/', (string) $file['field'][$i])
+			|| !preg_match('#^tmp/' . preg_quote($psid, '#') . '_actualdata[0-9]+$#i', (string) $file['tmp_name'][$i]))
+		{
+			message_die(GENERAL_ERROR, 'Invalid upload data');
+		}
 		$multi_array = explode("-",$file['field'][$i]);
 		$field_index = isset($multi_array[1]) ? intval($multi_array[1]) : 0;
 		if ($field_index > $multi_max)
@@ -243,7 +263,8 @@ if (isset($_REQUEST['psid']))
 			$HTTP_POST_FILES['pic_thumbnail']['size'] = $file['size'][$i];
 			// Find image type and check if allowed
 			$image_data = @getimagesize($path_to_bin . $file['tmp_name'][$i]);
-			switch ($image_data[2])
+			$image_type = ($image_data !== false && isset($image_data[2])) ? intval($image_data[2]) : 0;
+			switch ($image_type)
 			{
 				case '1':
 					if (!$album_config['gif_allowed'])
@@ -284,9 +305,10 @@ if (isset($_REQUEST['psid']))
 			$HTTP_POST_FILES['pic_file']['size'] = $file['size'][$i];
 			// Find image type and check if allowed
 			$image_data = @getimagesize($path_to_bin . $file['tmp_name'][$i]);
-			$pic_width = $image_data[0];
-			$pic_height = $image_data[1];
-			switch ($image_data[2])
+			$pic_width = ($image_data !== false && isset($image_data[0])) ? intval($image_data[0]) : 0;
+			$pic_height = ($image_data !== false && isset($image_data[1])) ? intval($image_data[1]) : 0;
+			$image_type = ($image_data !== false && isset($image_data[2])) ? intval($image_data[2]) : 0;
+			switch ($image_type)
 			{
 				case '1':
 					if (!$album_config['gif_allowed'])
@@ -315,8 +337,19 @@ if (isset($_REQUEST['psid']))
 		}
 	}
 
+	if (!isset($HTTP_POST_FILES['pic_file']) || !is_array($HTTP_POST_FILES['pic_file'])
+		|| !isset($HTTP_POST_FILES['pic_file']['name'], $HTTP_POST_FILES['pic_file']['size'], $HTTP_POST_FILES['pic_file']['tmp_name'], $HTTP_POST_FILES['pic_file']['type']))
+	{
+		message_die(GENERAL_ERROR, 'Invalid upload data');
+	}
+	if ($album_config['gd_version'] == 0 && (!isset($HTTP_POST_FILES['pic_thumbnail']) || !is_array($HTTP_POST_FILES['pic_thumbnail'])
+		|| !isset($HTTP_POST_FILES['pic_thumbnail']['name'], $HTTP_POST_FILES['pic_thumbnail']['size'], $HTTP_POST_FILES['pic_thumbnail']['tmp_name'], $HTTP_POST_FILES['pic_thumbnail']['type'])))
+	{
+		message_die(GENERAL_ERROR, 'Invalid upload data');
+	}
+
 	// Build picture title
-	if (!isset($_POST['pic_title']) || $_POST['pic_title'] == '')
+	if (!isset($_POST['pic_title']) || !is_scalar($_POST['pic_title']) || $_POST['pic_title'] == '')
 	{
 		$tmp_pic_file_name = explode(".", $HTTP_POST_FILES['pic_file']['name']);
 		$_POST['pic_title'] = $tmp_pic_file_name[0];
@@ -324,7 +357,7 @@ if (isset($_REQUEST['psid']))
 	}
 	elseif ($multi_max > 0)
 	{
-		$_POST['pic_title'] .= " - " . str_pad(($multi_id + 1), 3, "0", STR_PAD_LEFT);
+		$_POST['pic_title'] = (string) $_POST['pic_title'] . " - " . str_pad(($multi_id + 1), 3, "0", STR_PAD_LEFT);
 	}
 
 	// Handle no pic file error.
@@ -431,8 +464,8 @@ else
 		message_die(GENERAL_ERROR, 'Could not initialize upload session');
 	}
 	@chmod($owner_file, 0660);
-	$cat_id = isset($_REQUEST['cat_id']) ? intval($_REQUEST['cat_id']) : 0;
-	$user_id = isset($_REQUEST['user_id']) ? intval($_REQUEST['user_id']) : 0;
+	$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
+	$user_id = (isset($_REQUEST['user_id']) && is_scalar($_REQUEST['user_id'])) ? intval($_REQUEST['user_id']) : 0;
 	$album_user_id = $user_id;
 	if($album_config['perl_uploader'])
 	{

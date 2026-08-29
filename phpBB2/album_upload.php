@@ -44,7 +44,17 @@ init_userprefs($userdata);
 include($album_root_path . 'album_common.'.$phpEx);
 
 // Nuffload album uploader
+$upload_session_supplied = isset($_REQUEST['psid']) && is_scalar($_REQUEST['psid']);
 include($phpbb_root_path . 'album_nuffload.'.$phpEx);
+$upload_submitted = isset($_POST['pic_title']);
+
+// Every actual upload must return through the session-bound Nuffload URL.
+// Without this check, a direct POST could reach write operations while the
+// include above was merely creating a fresh upload session.
+if ($upload_submitted && !$upload_session_supplied)
+{
+	message_die(GENERAL_ERROR, 'Invalid upload session');
+}
 
 
 /*
@@ -60,11 +70,11 @@ include($phpbb_root_path . 'album_nuffload.'.$phpEx);
 // ------------------------------------
 //--- Album Category Hierarchy : begin
 //--- version : 1.1.0
-if( isset($_POST['user_id']) )
+if( isset($_POST['user_id']) && is_scalar($_POST['user_id']) )
 {
 	$album_user_id = intval($_POST['user_id']);
 }
-else if( isset($_GET['user_id']) )
+else if( isset($_GET['user_id']) && is_scalar($_GET['user_id']) )
 {
 	$album_user_id = intval($_GET['user_id']);
 }
@@ -74,11 +84,11 @@ else
 	$album_user_id = ALBUM_PUBLIC_GALLERY;
 }
 //--- Album Category Hierarchy : end
-if( isset($_POST['cat_id']) )
+if( isset($_POST['cat_id']) && is_scalar($_POST['cat_id']) )
 {
 	$cat_id = intval($_POST['cat_id']);
 }
-else if( isset($_GET['cat_id']) )
+else if( isset($_GET['cat_id']) && is_scalar($_GET['cat_id']) )
 {
 	$cat_id = intval($_GET['cat_id']);
 }
@@ -89,7 +99,7 @@ else
 //--- Album Category Hierarchy : begin
 //--- version : 1.3.0
 // check if it's a 'fake' category id, which look like this -<user_id> (a minus sign followed by the userid)
-if( isset($_POST['pic_title']) ) // is it submitted?
+if( $upload_submitted ) // is it submitted?
 {
 	if (!album_validate_jumpbox_selection($cat_id))
 	{
@@ -293,7 +303,7 @@ else
 +----------------------------------------------------------
 */
 
-if( !isset($_POST['pic_title']) ) // is it not submitted?
+if( !$upload_submitted ) // is it not submitted?
 {
 	$personal_gallery_list = '';
 	// --------------------------------
@@ -438,18 +448,25 @@ else
 	// Check posted info
 	// --------------------------------
 
-	$pic_title = str_replace("\'", "''", htmlspecialchars(trim($_POST['pic_title'])));
+	$pic_title_input = (isset($_POST['pic_title']) && is_scalar($_POST['pic_title'])) ? (string) $_POST['pic_title'] : '';
+	$pic_desc_input = (isset($_POST['pic_desc']) && is_scalar($_POST['pic_desc'])) ? (string) $_POST['pic_desc'] : '';
+	$pic_username_input = (isset($_POST['pic_username']) && is_scalar($_POST['pic_username'])) ? (string) $_POST['pic_username'] : '';
 
-	$pic_desc = str_replace("\'", "''", htmlspecialchars(substr(trim($_POST['pic_desc']), 0, $album_config['desc_length'])));
+	$pic_title = str_replace("\'", "''", htmlspecialchars(trim($pic_title_input)));
 
-	$pic_username = (!$userdata['session_logged_in']) ? substr(str_replace("\'", "''", htmlspecialchars(trim($_POST['pic_username']))), 0, 32) : str_replace("'", "''", $userdata['username']);
+	$pic_desc = str_replace("\'", "''", htmlspecialchars(substr(trim($pic_desc_input), 0, $album_config['desc_length'])));
+
+	$pic_username = (!$userdata['session_logged_in']) ? substr(str_replace("\'", "''", htmlspecialchars(trim($pic_username_input))), 0, 32) : str_replace("'", "''", $userdata['username']);
 
 	if( empty($pic_title) )
 	{
 		message_die(GENERAL_ERROR, $lang['Missed_pic_title']);
 	}
 
-	if( !isset($HTTP_POST_FILES['pic_file']) )
+	if( !isset($HTTP_POST_FILES['pic_file']) || !is_array($HTTP_POST_FILES['pic_file'])
+		|| !isset($HTTP_POST_FILES['pic_file']['type'], $HTTP_POST_FILES['pic_file']['size'], $HTTP_POST_FILES['pic_file']['tmp_name'])
+		|| !is_scalar($HTTP_POST_FILES['pic_file']['type']) || !is_scalar($HTTP_POST_FILES['pic_file']['size'])
+		|| !is_scalar($HTTP_POST_FILES['pic_file']['tmp_name']) )
 	{
 		message_die(GENERAL_ERROR, 'Bad Upload');
 	}
@@ -479,15 +496,22 @@ else
 	// Get File Upload Info
 	// --------------------------------
 
-	$filetype = $HTTP_POST_FILES['pic_file']['type'];
-	$filesize = $HTTP_POST_FILES['pic_file']['size'];
-	$filetmp = $HTTP_POST_FILES['pic_file']['tmp_name'];
+	$filetype = (string) $HTTP_POST_FILES['pic_file']['type'];
+	$filesize = intval($HTTP_POST_FILES['pic_file']['size']);
+	$filetmp = (string) $HTTP_POST_FILES['pic_file']['tmp_name'];
 
 	if ($album_config['gd_version'] == 0)
 	{
-		$thumbtype = $HTTP_POST_FILES['pic_thumbnail']['type'];
-		$thumbsize = $HTTP_POST_FILES['pic_thumbnail']['size'];
-		$thumbtmp = $HTTP_POST_FILES['pic_thumbnail']['tmp_name'];
+		if (!isset($HTTP_POST_FILES['pic_thumbnail']) || !is_array($HTTP_POST_FILES['pic_thumbnail'])
+			|| !isset($HTTP_POST_FILES['pic_thumbnail']['type'], $HTTP_POST_FILES['pic_thumbnail']['size'], $HTTP_POST_FILES['pic_thumbnail']['tmp_name'])
+			|| !is_scalar($HTTP_POST_FILES['pic_thumbnail']['type']) || !is_scalar($HTTP_POST_FILES['pic_thumbnail']['size'])
+			|| !is_scalar($HTTP_POST_FILES['pic_thumbnail']['tmp_name']))
+		{
+			message_die(GENERAL_ERROR, 'Bad Upload');
+		}
+		$thumbtype = (string) $HTTP_POST_FILES['pic_thumbnail']['type'];
+		$thumbsize = intval($HTTP_POST_FILES['pic_thumbnail']['size']);
+		$thumbtmp = (string) $HTTP_POST_FILES['pic_thumbnail']['tmp_name'];
 	}
 
 
@@ -599,14 +623,21 @@ else
 		$move_file = 'copy';
 	}
 
-	$move_file($filetmp, ALBUM_UPLOAD_PATH . $pic_filename);
+	if (!$move_file($filetmp, ALBUM_UPLOAD_PATH . $pic_filename))
+	{
+		message_die(GENERAL_ERROR, 'Could not store uploaded data');
+	}
 	@unlink($filetmp);
 
 	@chmod(ALBUM_UPLOAD_PATH . $pic_filename, 0664);
 
 	if ($album_config['gd_version'] == 0)
 	{
-		$move_file($thumbtmp, ALBUM_CACHE_PATH . $pic_thumbnail);
+		if (!$move_file($thumbtmp, ALBUM_CACHE_PATH . $pic_thumbnail))
+		{
+			@unlink(ALBUM_UPLOAD_PATH . $pic_filename);
+			message_die(GENERAL_ERROR, 'Could not store uploaded thumbnail');
+		}
 		@unlink($thumbtmp);
 
 		@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
@@ -617,7 +648,12 @@ else
 	// Well, it's an image. Check its image size
 	// --------------------------------
 
-	$pic_size = getimagesize(ALBUM_UPLOAD_PATH . $pic_filename);
+	$pic_size = @getimagesize(ALBUM_UPLOAD_PATH . $pic_filename);
+	if ($pic_size === false)
+	{
+		@unlink(ALBUM_UPLOAD_PATH . $pic_filename);
+		message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
+	}
 
 	$pic_width = $pic_size[0];
 	$pic_height = $pic_size[1];

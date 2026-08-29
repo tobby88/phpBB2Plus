@@ -47,11 +47,11 @@ include($album_root_path . 'album_common.'.$phpEx);
 // Check the request
 // ------------------------------------
 
-if( isset($_GET['pic_id']) )
+if( isset($_GET['pic_id']) && is_scalar($_GET['pic_id']) )
 {
 	$pic_id = intval($_GET['pic_id']);
 }
-else if( isset($_POST['pic_id']) )
+else if( isset($_POST['pic_id']) && is_scalar($_POST['pic_id']) )
 {
 	$pic_id = intval($_POST['pic_id']);
 }
@@ -77,6 +77,12 @@ if( !($result = $db->sql_query($sql)) )
 }
 
 $thispic = $db->sql_fetchrow($result);
+$db->sql_freeresult($result);
+
+if( empty($thispic) )
+{
+	message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
+}
 
 $cat_id = $thispic['pic_cat_id'];
 $album_user_id = $thispic['cat_user_id'];
@@ -85,7 +91,7 @@ $pic_filetype = substr($thispic['pic_filename'], strlen($thispic['pic_filename']
 $pic_filename = $thispic['pic_filename'];
 $pic_thumbnail = $thispic['pic_thumbnail'];
 
-if( empty($thispic) or !file_exists(ALBUM_UPLOAD_PATH . $pic_filename) )
+if( !file_exists(ALBUM_UPLOAD_PATH . $pic_filename) )
 {
 	message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
 }

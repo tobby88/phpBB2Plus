@@ -39,25 +39,35 @@ init_userprefs($userdata);
 // End session management
 
 
-// session id check
-if (!empty($HTTP_POST_VARS['sid']) || !empty($HTTP_GET_VARS['sid']))
-{
-	$sid = (!empty($HTTP_POST_VARS['sid'])) ? $HTTP_POST_VARS['sid'] : $HTTP_GET_VARS['sid'];
-}
-else
-{
-	$sid = '';
-}
-
 // Get URL vars
-$mode		  = $HTTP_GET_VARS['mode'];
-$user_id      = $HTTP_GET_VARS['uid'];
+$mode = (isset($_GET['mode']) && is_scalar($_GET['mode']) && $_SERVER['REQUEST_METHOD'] === 'POST') ? (string) $_GET['mode'] : '';
+$user_id = (isset($_GET['uid']) && is_scalar($_GET['uid'])) ? intval($_GET['uid']) : 0;
 
 
 // Ensure that a user is not logged in
 if ( $userdata['session_logged_in'] )
 {
 	message_die(GENERAL_MESSAGE, $lang['ctracker_login_logged']);
+}
+
+// Only locked, real accounts may enter the self-service unlock flow.
+if ($user_id <= 0)
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+$sql = 'SELECT user_id
+	FROM ' . USERS_TABLE . '
+	WHERE user_id = ' . $user_id . '
+		AND ct_login_vconfirm = 1';
+if (!($result = $db->sql_query($sql)))
+{
+	message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+}
+$locked_user = $db->sql_fetchrow($result);
+$db->sql_freeresult($result);
+if (empty($locked_user))
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 }
 
 
