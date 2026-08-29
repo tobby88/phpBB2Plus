@@ -43,6 +43,7 @@ $lang['ctracker_set_catname5']			  = 'Registrierschutz-System';
 $lang['ctracker_set_catname6']			  = 'Passwortkontrolle';
 $lang['ctracker_set_catname7']			  = 'Allgemeine Sicherheitsfunktionen';
 $lang['ctracker_set_catname8']			  = 'Sonstige Einstellungen';
+$lang['ctracker_set_catname9']             = 'Zentrale Anfragedrosselung';
 $lang['ctracker_settings_head']           = 'CrackerTracker Einstellungen';
 $lang['ctracker_settings_expl']           = 'Hier kannst Du alle Einstellungen des CBACK CrackerTracker Sicherheitssystems anpassen.';
 $lang['ctracker_button_submit']			  = 'Einstellungen speichern';
@@ -118,6 +119,16 @@ $lang['ctracker_settings_m35']			  = 'Spammer Detection Boost';
 $lang['ctracker_settings_e35']			  = 'Wenn Du diese Funktion aktivierst, wird CrackerTracker gezielter auf menschlich durchgeführte Spamregistrierungen oder Spamposts achten. Die meisten können somit erkannt und blockiert werden.';
 $lang['ctracker_settings_m36']			  = 'Spammer Keyword Check';
 $lang['ctracker_settings_e36']			  = 'Wenn "Spammer Detection Boost" aktiviert wurde, dann kannst Du mit dieser Option zuschalten, dass zusätzlich Schlüsselwörter in Profil und Posts gescannt werden, um Spammer als solche zu identifizieren.<br /><br /><b>ACHTUNG:</b> Hier besteht eine höhere Gefahr von Fehlerkennungen für neue User. Es sollte dann ständig das Logfile für Spammer Detection überprüft werden.';
+$lang['ctracker_settings_m37']             = 'Zentrale Anfragedrosselung aktivieren';
+$lang['ctracker_settings_e37']             = 'Begrenzt wiederholte POST-Anfragen an sicherheitskritische Einstiegspunkte anhand der serverseitig ermittelten Client-IP. Normale Seitenaufrufe werden nie gezählt.';
+$lang['ctracker_settings_m38']             = 'Login-Versuche pro 10 Minuten';
+$lang['ctracker_settings_e38']             = 'Der Grenzwert ist hoch genug für gemeinsam genutzte Netze, bremst aber automatisiertes Passwort-Raten. Erfolgreiche und fehlgeschlagene Anfragen werden gezählt.';
+$lang['ctracker_settings_m39']             = 'Registrierungsversuche pro Stunde';
+$lang['ctracker_settings_e39']             = 'Begrenzt automatisierte Registrierungswellen, ohne eine IP-Adresse dauerhaft zu sperren.';
+$lang['ctracker_settings_m40']             = 'Allgemeine Schreibzugriffe pro Minute';
+$lang['ctracker_settings_e40']             = 'Gilt für Beiträge, private Nachrichten, Kommentare, Bewertungen, Spielstände, Kontaktformulare und ähnliche Schreibaktionen.';
+$lang['ctracker_settings_m41']             = 'Album-Uploads pro Stunde';
+$lang['ctracker_settings_e41']             = 'Begrenzt aufwändige Album-Uploads unabhängig von normalen Schreibaktionen.';
 
 
 $lang['ctracker_settings_on']			  = 'Aktivieren';

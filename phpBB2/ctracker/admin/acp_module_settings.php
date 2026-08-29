@@ -43,7 +43,9 @@ if( isset($HTTP_POST_VARS['submit']) )
 		'massmail_time' => array(1, 180), 'auto_recovery' => array(0, 1),
 		'vconfirm_guest' => array(0, 1), 'autoban_mails' => array(0, 1),
 		'detect_misconfiguration' => array(0, 1), 'spam_attack_boost' => array(0, 1),
-		'spam_keyword_det' => array(0, 2)
+		'spam_keyword_det' => array(0, 2), 'request_limit_enabled' => array(0, 1),
+		'request_limit_login' => array(5, 100), 'request_limit_register' => array(1, 50),
+		'request_limit_write' => array(20, 500), 'request_limit_upload' => array(1, 100)
 	);
 	foreach ($setting_ranges as $setting_name => $range)
 	{
@@ -100,6 +102,11 @@ $configuration['autoban_mails']	 	 	  = $adminclass->ct_generate_on_off($ctracke
 $configuration['detect_misconfiguration'] = $adminclass->ct_generate_on_off($ctracker_config->settings['detect_misconfiguration']);
 $configuration['spam_attack_boost'] 	  = $adminclass->ct_generate_on_off($ctracker_config->settings['spam_attack_boost']);
 $configuration['spam_keyword_det'] 		  = $adminclass->ct_keyword_b_block($ctracker_config->settings['spam_keyword_det']);
+$configuration['request_limit_enabled']  = $adminclass->ct_generate_on_off($ctracker_config->settings['request_limit_enabled']);
+$configuration['request_limit_login']    = $adminclass->ct_generate_number_field(5, 100, $ctracker_config->settings['request_limit_login']);
+$configuration['request_limit_register'] = $adminclass->ct_generate_number_field(1, 50, $ctracker_config->settings['request_limit_register']);
+$configuration['request_limit_write']    = $adminclass->ct_generate_number_field(20, 500, $ctracker_config->settings['request_limit_write']);
+$configuration['request_limit_upload']   = $adminclass->ct_generate_number_field(1, 100, $ctracker_config->settings['request_limit_upload']);
 
 /*
  * Kick Objects we don't use anymore now
@@ -123,6 +130,7 @@ $template->assign_vars(array(
 		'L_CATNAME_6'  => $lang['ctracker_set_catname6'],
 		'L_CATNAME_7'  => $lang['ctracker_set_catname7'],
 		'L_CATNAME_8'  => $lang['ctracker_set_catname8'],
+		'L_CATNAME_9'  => $lang['ctracker_set_catname9'],
 		
 		'L_CT_HEAD'	   => $lang['ctracker_settings_head'],
 		'L_CT_EXPL'	   => $lang['ctracker_settings_expl'],
@@ -199,6 +207,16 @@ $template->assign_vars(array(
 		'L_EXP_35'	   => $lang['ctracker_settings_e35'],
 		'L_MOD_36'     => $lang['ctracker_settings_m36'],
 		'L_EXP_36'	   => $lang['ctracker_settings_e36'],
+		'L_MOD_37'     => $lang['ctracker_settings_m37'],
+		'L_EXP_37'	   => $lang['ctracker_settings_e37'],
+		'L_MOD_38'     => $lang['ctracker_settings_m38'],
+		'L_EXP_38'	   => $lang['ctracker_settings_e38'],
+		'L_MOD_39'     => $lang['ctracker_settings_m39'],
+		'L_EXP_39'	   => $lang['ctracker_settings_e39'],
+		'L_MOD_40'     => $lang['ctracker_settings_m40'],
+		'L_EXP_40'	   => $lang['ctracker_settings_e40'],
+		'L_MOD_41'     => $lang['ctracker_settings_m41'],
+		'L_EXP_41'	   => $lang['ctracker_settings_e41'],
 		
 		'CAT_ICON_1'   => $phpbb_root_path . $images['ctracker_icon_set_1'],
 		'CAT_ICON_2'   => $phpbb_root_path . $images['ctracker_icon_set_2'],
@@ -244,6 +262,11 @@ $template->assign_vars(array(
 		'S_OUTPUT_34'  => $configuration['detect_misconfiguration'],
 		'S_OUTPUT_35'  => $configuration['spam_attack_boost'],
 		'S_OUTPUT_36'  => $configuration['spam_keyword_det'],
+		'S_OUTPUT_37'  => $configuration['request_limit_enabled'],
+		'S_OUTPUT_38'  => $configuration['request_limit_login'],
+		'S_OUTPUT_39'  => $configuration['request_limit_register'],
+		'S_OUTPUT_40'  => $configuration['request_limit_write'],
+		'S_OUTPUT_41'  => $configuration['request_limit_upload'],
 		
 		'S_FORM_TOKEN' => phpbb_admin_session_field(),
 		'S_FORM_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=9'))

@@ -67,3 +67,6 @@ jobs:
 
       - name: Test CrackerTracker user functions
         run: php .github/scripts/check-ctracker-userfunctions.php
+
+      - name: Test CrackerTracker request limiter
+        run: php .github/scripts/check-ctracker-request-limiter.php

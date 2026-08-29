@@ -44,6 +44,7 @@ $lang['ctracker_set_catname5']			  = 'Registration Protection System';
 $lang['ctracker_set_catname6']			  = 'Check Password	';
 $lang['ctracker_set_catname7']			  = 'General Safety Features';
 $lang['ctracker_set_catname8']			  = 'Other Settings';
+$lang['ctracker_set_catname9']             = 'Central Request Rate Limiting';
 $lang['ctracker_settings_head']           = 'CrackerTracker Settings';
 $lang['ctracker_settings_expl']           = 'Here you can customise all Settings of CBACK CrackerTracker Safety System.';
 $lang['ctracker_button_submit']			  = 'Save Settings';
@@ -120,6 +121,16 @@ $lang['ctracker_settings_m35']			  = 'Spammer Detection Boost';
 $lang['ctracker_settings_e35']			  = 'When you activate this feature CrackerTracker will watch human Spammers or Spamposts. Most of them will be blocked.';
 $lang['ctracker_settings_m36']			  = 'Spammer Keyword Check';
 $lang['ctracker_settings_e36']			  = 'When you activate "Spammer Detection Boost", keywords in Profile and Posts will be scanned to identify Spammers.<br /><br /><b>ATTENTION</b> here it exists higher risk of Bugdetection for new users. Please check the Log file for Spammer detection.';
+$lang['ctracker_settings_m37']             = 'Enable central request rate limiting';
+$lang['ctracker_settings_e37']             = 'Limits repeated POST requests to security-sensitive entry points by the server-verified client IP. Ordinary page views are never counted.';
+$lang['ctracker_settings_m38']             = 'Login submissions per 10 minutes';
+$lang['ctracker_settings_e38']             = 'High enough for shared networks while slowing automated password guessing. Successful and unsuccessful submissions both count.';
+$lang['ctracker_settings_m39']             = 'Registration submissions per hour';
+$lang['ctracker_settings_e39']             = 'Restricts automated registration bursts without permanently blocking an IP address.';
+$lang['ctracker_settings_m40']             = 'General write requests per minute';
+$lang['ctracker_settings_e40']             = 'Applies to posts, private messages, comments, ratings, scores, contact forms and similar write actions.';
+$lang['ctracker_settings_m41']             = 'Album uploads per hour';
+$lang['ctracker_settings_e41']             = 'Limits expensive album upload submissions independently from normal write actions.';
 
 
 $lang['ctracker_settings_on']			  = 'Activate';

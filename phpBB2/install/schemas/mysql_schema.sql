@@ -1366,6 +1366,15 @@ CREATE TABLE `phpbb_ctracker_loginhistory` (
 			`ct_login_time` int(11) NOT NULL default '0'
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `phpbb_ctracker_rate_limits` (
+			`bucket_hash` char(64) NOT NULL,
+			`window_start` int(10) unsigned NOT NULL,
+			`request_count` int(10) unsigned NOT NULL default '0',
+			`updated_at` int(10) unsigned NOT NULL,
+			PRIMARY KEY (`bucket_hash`),
+			KEY `updated_at` (`updated_at`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_profile_fields (
 field_id MEDIUMINT( 8 ) UNSIGNED NOT NULL AUTO_INCREMENT,
 field_name VARCHAR( 255 ) NOT NULL ,

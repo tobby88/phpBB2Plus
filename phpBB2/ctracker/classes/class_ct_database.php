@@ -71,6 +71,21 @@ class ct_database
 			$this->fieldnames_set[] = $row['ct_config_name'];
 			$this->settings[$row['ct_config_name']] = $row['ct_config_value'];
 		}
+
+		$runtime_defaults = array(
+			'request_limit_enabled' => '1',
+			'request_limit_login' => '30',
+			'request_limit_register' => '10',
+			'request_limit_write' => '120',
+			'request_limit_upload' => '30'
+		);
+		foreach ($runtime_defaults as $setting_name => $setting_value)
+		{
+			if (!isset($this->settings[$setting_name]))
+			{
+				$this->settings[$setting_name] = $setting_value;
+			}
+		}
 	}
 
 

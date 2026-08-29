@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Added central, configurable per-IP rate limits for login attempts,
+  registrations, uploads and write actions. The limiter uses only the verified
+  connection address, returns a standards-compliant `429` response, cleans up
+  expired counters opportunistically and fails open if its table is not yet
+  available during an interrupted update.
 - Added a CI audit for AdminCP module registration, English/German language
   keys and fallback templates. Invalid configured fallback-style names now
   safely fall back to the bundled `subSilver` AdminCP templates.

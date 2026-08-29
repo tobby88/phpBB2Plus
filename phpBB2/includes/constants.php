@@ -264,6 +264,7 @@ define('CTRACKER_LOGINHISTORY', $table_prefix . 'ctracker_loginhistory');
 define('CTRACKER_FILECHK', $table_prefix . 'ctracker_filechk');
 define('CTRACKER_FILESCANNER', $table_prefix . 'ctracker_filescanner');
 define('CTRACKER_BACKUP', $table_prefix . 'ctracker_backup');
+define('CTRACKER_RATE_LIMITS', $table_prefix . 'ctracker_rate_limits');
 // END CrackerTracker v5.x
 
 //added for birthday zodiac

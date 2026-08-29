@@ -175,6 +175,7 @@ $user_ip = encode_ip($client_ip);
 
 // CrackerTracker v5.x
 include($phpbb_root_path . 'ctracker/engines/ct_varsetter.' . $phpEx);
+include($phpbb_root_path . 'ctracker/engines/ct_request_limiter.' . $phpEx);
 include($phpbb_root_path . 'ctracker/engines/ct_ipblocker.' . $phpEx);
 
 // cache configs -----------------

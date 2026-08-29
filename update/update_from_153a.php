@@ -88,7 +88,7 @@ if (in_array('--self-test', $argv, true))
 		&& (bool) preg_match('/ct_last_ip\s+varchar\(\s*45\s*\)/i', $schema_source)
 		&& (bool) preg_match('/ct_login_ip`?\s+varchar\(45\)/i', $schema_source);
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 18 || $ctracker_tables !== 5 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 66 || !$schema_has_password_capacity || !$schema_has_ip_capacity || $has_patch_markers)
+	if ($arcade_tables !== 18 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || $has_patch_markers)
 	{
 		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);

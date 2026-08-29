@@ -69,8 +69,8 @@ $language_markers = array(
 	'language/lang_german/lang_color_groups.php' => array('$lang[\'Color_Groups\']'),
 	'language/lang_english/lang_dbmtnc.php' => array('$lang[\'DB_Maintenance\']'),
 	'language/lang_german/lang_dbmtnc.php' => array('$lang[\'DB_Maintenance\']'),
-	'language/lang_english/lang_cback_ctracker.php' => array('$lang[\'ctracker_module_1\']', '$lang[\'ctracker_module_11\']'),
-	'language/lang_german/lang_cback_ctracker.php' => array('$lang[\'ctracker_module_1\']', '$lang[\'ctracker_module_11\']'),
+	'language/lang_english/lang_cback_ctracker.php' => array('$lang[\'ctracker_module_1\']', '$lang[\'ctracker_module_11\']', '$lang[\'ctracker_settings_m41\']'),
+	'language/lang_german/lang_cback_ctracker.php' => array('$lang[\'ctracker_module_1\']', '$lang[\'ctracker_module_11\']', '$lang[\'ctracker_settings_m41\']'),
 	'language/lang_english/lang_admin_album.php' => array('Nuffload'),
 	'language/lang_german/lang_admin_album.php' => array('Nuffload')
 );
@@ -109,6 +109,11 @@ foreach (glob($phpbb_root . '/templates/*', GLOB_ONLYDIR) as $style_dir)
 	}
 	$board_template = $style_dir . '/admin/board_config_body.tpl';
 	acp_audit_require_text($board_template, array('cookie_consent_enable', 'sfs_enable'), $errors);
+	$ctracker_settings = $style_dir . '/ctracker/acp/acp_settings.tpl';
+	if (is_file($ctracker_settings))
+	{
+		acp_audit_require_text($ctracker_settings, array('request_limit_enabled', 'request_limit_login', 'request_limit_register', 'request_limit_write', 'request_limit_upload'), $errors);
+	}
 }
 
 if ($errors)
