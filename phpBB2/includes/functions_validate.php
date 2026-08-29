@@ -312,6 +312,12 @@ function validate_complex_password ($username, $password)
 		$ret= TRUE;
 		$msg_explain .= sprintf ($lang['Password_to_short'],$board_config['min_password_len']);
 	}
+	if ( strlen($password) > 128 )
+	{
+		$ret = TRUE;
+		$msg_explain .= ($msg_explain) ? ', ' : '';
+		$msg_explain .= $lang['Password_long'];
+	}
 	// verify password not the same as login
 	if ($board_config['password_not_login'] && $username == $password )
 	{	

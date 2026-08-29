@@ -85,7 +85,7 @@
 	  <div class="col hr5  py-2"><span class="gensmall">{L_USERNAME}: 
 		<input class="post" type="text" name="username" size="10" />
 		&nbsp;&nbsp;&nbsp;{L_PASSWORD}: 
-		<input class="post" type="password" name="password" size="10" maxlength="32" />
+		<input class="post" type="password" name="password" size="10" maxlength="128" autocomplete="current-password" />
 		<!-- BEGIN switch_allow_autologin -->
 		&nbsp;&nbsp; &nbsp;&nbsp;{L_AUTO_LOGIN} 
 		<input class="text" type="checkbox" name="autologin" />

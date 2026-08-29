@@ -26,7 +26,7 @@
 <tr>
 <td align="right" class="explaintitle">{L_PASSWORD}:</td>
 <td>
-<input type="password" name="password" size="25" maxlength="32" class="post" />
+<input type="password" name="password" size="25" maxlength="128" class="post" autocomplete="current-password" />
 </td>
 </tr>
 <!-- BEGIN switch_allow_autologin -->

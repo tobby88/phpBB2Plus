@@ -137,7 +137,7 @@ if (
 	if ( $mode == 'editprofile' )
 	{
 		$user_id = intval($_POST['user_id']);
-		$current_email = trim(htmlspecialchars($_POST['current_email']));
+		$current_email = (isset($_POST['current_email']) && is_scalar($_POST['current_email'])) ? trim(htmlspecialchars((string) $_POST['current_email'])) : '';
 	}
 
 	$strip_var_list = array('email' => 'email', 'icq' => 'icq', 'aim' => 'aim', 'msn' => 'msn', 'yim' => 'yim', 'fb' => 'fb', 'ig' => 'ig', 'pt' => 'pt', 'twr' => 'twr', 'skp' => 'skp', 'tg' => 'tg', 'li' => 'li', 'tt' => 'tt', 'dc' => 'dc', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests', 'confirm_code' => 'confirm_code');
@@ -147,7 +147,7 @@ if (
 	// to use htmlspecialchars ... be prepared to be moaned at.
 	foreach ($strip_var_list as $var => $param)
 	{
-		$$var = !empty($_POST[$param]) ? trim(htmlspecialchars($_POST[$param])) : '';
+		$$var = (!empty($_POST[$param]) && is_scalar($_POST[$param])) ? trim(htmlspecialchars((string) $_POST[$param])) : '';
 	}
 	foreach (array('fb', 'ig', 'pt', 'twr', 'skp', 'tg', 'li', 'tt', 'dc') as $social_field)
 	{
@@ -157,13 +157,12 @@ if (
 		}
 	}
 
-	$username = ( !empty($HTTP_POST_VARS['username']) ) ? phpbb_clean_username($HTTP_POST_VARS['username']) : '';
-	$trim_var_list = array('cur_password' => 'cur_password', 'new_password' => 'new_password', 'password_confirm' => 'password_confirm', 'signature' => 'signature');
-
-	foreach ($trim_var_list as $var => $param)
+	$username = ( !empty($HTTP_POST_VARS['username']) && is_scalar($HTTP_POST_VARS['username']) ) ? phpbb_clean_username((string) $HTTP_POST_VARS['username']) : '';
+	foreach (array('cur_password', 'new_password', 'password_confirm') as $password_var)
 	{
-		$$var = !empty($_POST[$param]) ? trim($_POST[$param]) : '';
+		$$password_var = (isset($_POST[$password_var]) && is_scalar($_POST[$password_var])) ? (string) $_POST[$password_var] : '';
 	}
+	$signature = (!empty($_POST['signature']) && is_scalar($_POST['signature'])) ? trim((string) $_POST['signature']) : '';
 
 	$signature = (isset($signature)) ? str_replace('<br />', "\n", $signature) : '';
 	$signature_bbcode_uid = '';
@@ -490,11 +489,6 @@ if ( isset($_POST['submit']) )
 		{
 			$error = TRUE;
 			$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];
-		}
-		else if ( strlen($new_password) > 32 )
-		{
-			$error = TRUE;
-			$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_long'];
 		}
 		else
 		{

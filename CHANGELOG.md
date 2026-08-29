@@ -87,6 +87,9 @@ changes consolidated after that baseline without implying active maintenance.
   player-name refresh to the actual highscore holder instead of every player.
 - Restricted Arcade cache keys to local safe filenames and stopped stripping
   legitimate backslashes from serialized cache values while reading them.
+- Made password changes PHP 8-safe for malformed inputs, preserved intentional
+  whitespace, invalidated other sessions and persistent-login keys, supported
+  longer passwords and removed obsolete autoplay browser markup.
 - Hardened the public Links module against search SQL injection and stored
   HTML/script injection, validated all outbound and logo URLs, and bound link
   submissions to the active user session.

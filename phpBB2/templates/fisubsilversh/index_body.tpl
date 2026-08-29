@@ -95,7 +95,7 @@
 <td class="gensmall">{L_USERNAME}:&nbsp;</td>
 <td><input class="post" type="text" name="username" size="10" /></td>
 <td class="gensmall">&nbsp;&nbsp;&nbsp;{L_PASSWORD}:</td>
-<td><input class="post" type="password" name="password" size="10" maxlength="32" /></td>
+<td><input class="post" type="password" name="password" size="10" maxlength="128" autocomplete="current-password" /></td>
 <!-- BEGIN switch_allow_autologin -->
 <td class="gensmall">&nbsp;&nbsp;&nbsp;{L_AUTO_LOGIN}</td>
 <td><input class="text" type="checkbox" name="autologin" /></td>

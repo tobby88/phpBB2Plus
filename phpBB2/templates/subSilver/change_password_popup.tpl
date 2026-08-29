@@ -1,17 +1,3 @@
-<script language="Javascript" type="text/javascript">
-<!-- 
-var filename="{SOUND}";
-if (navigator.appName == "Microsoft Internet Explorer")
-    document.writeln ('<BGSOUND SRC="' + filename + '" LOOP="1">');
-else if (navigator.appName == "Netscape")
-    document.writeln ('<EMBED SRC="' + filename + '" AUTOSTART=TRUE HIDDEN="True"><P>');
-// -->
-</script><noscript>
-<EMBED SRC="{SOUND}" AUTOSTART="True" HIDDEN="True" LOOP= "1"> 
-<BGSOUND SRC="{SOUND}" LOOP="1">
-</noscript>
-
-
 <form action="{S_ACTION}" {S_FORM_ENCTYPE} method="post">
 {S_FORM_TOKEN}
 
@@ -24,19 +10,19 @@ else if (navigator.appName == "Netscape")
 <!-- BEGIN switch_cur_passwd_on -->
 	   <tr>
 		<td class="row1" align="right"><span class="gensmall">{L_CUR_PASSWORD}:</span></td>
-		<td class="row2" align="left"><span class="gensmall"><input type="password" class="post" style="width: 200px" name="cur_password" size="25" maxlength="32" value="{CUR_PASSWORD}" /></span></td>
+		<td class="row2" align="left"><span class="gensmall"><input type="password" class="post" style="width: 200px" name="cur_password" size="25" maxlength="128" value="{CUR_PASSWORD}" autocomplete="current-password" /></span></td>
 	   </tr>
 <!-- END switch_cur_passwd_on -->
 	   <tr>
 		<td class="row1" align="right"><span class="gensmall">{L_NEW_PASSWORD}:</span></td>
 		<td class="row2" align="left"><span class="gensmall">
-<input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="32" value="{NEW_PASSWORD}" />
+<input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="128" value="{NEW_PASSWORD}" autocomplete="new-password" />
 </span></td>
 	   </tr>
 	   <tr>
 		<td class="row1" align="right"><span class="gensmall">{L_CONFIRM_PASSWORD}:</span></td>
 		<td class="row2" align="left"><span class="gensmall">
-<input type="password" class="post" style="width: 200px" name="password_confirm" size="25" maxlength="32" value="{PASSWORD_CONFIRM}" />
+<input type="password" class="post" style="width: 200px" name="password_confirm" size="25" maxlength="128" value="{PASSWORD_CONFIRM}" autocomplete="new-password" />
 </span></td>
 	   </tr>
 	   <tr>

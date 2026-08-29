@@ -22,7 +22,7 @@
 
           <div class="py-1 pl-1">
             {L_PASSWORD}:
-            <input class="post" type="password" name="password" size="10" maxlength="32" />
+            <input class="post" type="password" name="password" size="10" maxlength="128" autocomplete="current-password" />
           </div>
 
           <!-- BEGIN switch_allow_autologin -->

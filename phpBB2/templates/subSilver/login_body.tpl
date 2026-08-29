@@ -19,7 +19,7 @@
 
     <tr>
       <td class="row1"><span class="gen">{L_PASSWORD}:</span></td>
-      <td class="row2"><input class="post" type="password" name="password" size="25" maxlength="32" /></td>
+      <td class="row2"><input class="post" type="password" name="password" size="25" maxlength="128" autocomplete="current-password" /></td>
     </tr>
 
     <!-- BEGIN switch_allow_autologin -->

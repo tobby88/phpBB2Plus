@@ -635,7 +635,7 @@ $lang['Profile_updated_inactive'] = 'Dein Profil wurde aktualisiert. Du hast jed
 
 $lang['Password_mismatch'] = 'Du musst zweimal das gleiche Passwort eingeben.';
 $lang['Current_password_mismatch'] = 'Das aktuelle Passwort stimmt nicht mit dem in der Datenbank überein.';
-$lang['Password_long'] = 'Dein Passwort kann nicht länger als 32 Zeichen sein.';
+$lang['Password_long'] = 'Dein Passwort kann nicht länger als 128 Zeichen sein.';
 $lang['Too_many_registers'] = 'Du hast zu oft versucht, dich zu registrieren. Bitte versuche es später erneut.';
 $lang['Username_taken'] = 'Der gewünschte Benutzername ist leider bereits belegt.';
 $lang['Username_invalid'] = 'Der gewünschte Benutzername enthält ein ungültiges Sonderzeichen (z.B. \').';

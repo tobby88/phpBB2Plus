@@ -42,7 +42,7 @@
           <span class="gensmall">{L_CONFIRM_PASSWORD_EXPLAIN}</span>
         </div>
         <div class="col-8 row2 py-1">
-          <input type="password" class="post" style="width: 200px" name="cur_password" size="25" maxlength="32" value="{CUR_PASSWORD}" autocomplete="current-password" />
+          <input type="password" class="post" style="width: 200px" name="cur_password" size="25" maxlength="128" value="{CUR_PASSWORD}" autocomplete="current-password" />
         </div>
       </div>
 <!-- END switch_edit_profile -->
@@ -51,7 +51,7 @@
           <span class="gensmall">{L_PASSWORD_CONFIRM_IF_CHANGED}</span>
         </div>
         <div class="col-8 row2 py-1">
-          <input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="32" value="{NEW_PASSWORD}" autocomplete="new-password" />
+          <input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="128" value="{NEW_PASSWORD}" autocomplete="new-password" />
         </div>
       </div>
       <div class="row gen">
@@ -59,7 +59,7 @@
           <span class="gensmall">{L_PASSWORD_CONFIRM_IF_CHANGED}</span>
         </div>
         <div class="col-8 row2 py-1">
-          <input type="password" class="post" style="width: 200px" name="password_confirm" size="25" maxlength="32" value="{PASSWORD_CONFIRM}" autocomplete="new-password" />
+          <input type="password" class="post" style="width: 200px" name="password_confirm" size="25" maxlength="128" value="{PASSWORD_CONFIRM}" autocomplete="new-password" />
         </div>
       </div>
 	<!-- Visual Confirmation -->

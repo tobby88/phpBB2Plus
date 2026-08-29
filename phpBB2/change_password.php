@@ -24,19 +24,19 @@ if (!$userdata['session_logged_in'])
 	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 }
 
-$submit = (isset($_POST['submit'])) ? 1 : '';
-$trim_var_list = array('new_password' => 'new_password', 'password_confirm' => 'password_confirm','cur_password' => 'cur_password');
-foreach ($trim_var_list as $var => $param)
+$submit = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) ? 1 : '';
+$password_var_list = array('new_password', 'password_confirm', 'cur_password');
+foreach ($password_var_list as $var)
 {
-	if ( !empty($_POST[$param]) )
+	if (isset($_POST[$var]) && is_scalar($_POST[$var]))
 	{
-		$$var = trim($_POST[$param]);
+		$$var = (string) $_POST[$var];
 	}
 }
 
 if ($submit)
 {
-	if (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 	}
@@ -78,14 +78,29 @@ if ($submit)
 	if (!$error)
 	{	//update new password + time
 		$new_password_hash = phpbb_password_hash($new_password);
-		$sql = "UPDATE " . USERS_TABLE . " SET user_password='" . str_replace("'", "''", $new_password_hash) . "', user_passwd_change='".time()."'
-		WHERE user_active AND user_id='".(int) $userdata['user_id']."'";
+		$new_password_hash_sql = $db->sql_escape($new_password_hash);
+		$user_id = (int) $userdata['user_id'];
+		$sql = "UPDATE " . USERS_TABLE . " SET user_password='" . $new_password_hash_sql . "', user_passwd_change=".time()."
+		WHERE user_active = 1 AND user_id=". $user_id;
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not update users password', '', __LINE__, __FILE__, $sql);
 		}
-		if ( $updated = $db->sql_affectedrows($result) )
+		if ( $updated = $db->sql_affectedrows() )
 		{
+			$sql = "DELETE FROM " . SESSIONS_KEYS_TABLE . " WHERE user_id = " . $user_id;
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Could not invalidate persistent login keys', '', __LINE__, __FILE__, $sql);
+			}
+			$session_id_sql = $db->sql_escape($userdata['session_id']);
+			$sql = "DELETE FROM " . SESSIONS_TABLE . "
+				WHERE session_user_id = " . $user_id . "
+				AND session_id <> '" . $session_id_sql . "'";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Could not invalidate other sessions', '', __LINE__, __FILE__, $sql);
+			}
 			$template->assign_var("CLOSE_POPUP", "onLoad='setTimeout(window.close, 5000)'");
 		} else
 		{
@@ -132,7 +147,6 @@ if ($updated)
 	}
 	$template->assign_vars(array( 
 		'USERNAME' => $userdata['username'],
-		'SOUND' => $phpbb_root_path."sounds/gun.mid",
 		'L_CUR_PASSWORD' => $lang['Current_password'],
 		'L_NEW_PASSWORD' => $lang['New_password'],
 		'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],

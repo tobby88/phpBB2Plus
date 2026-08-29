@@ -53,7 +53,7 @@
 <td class="row1"><span class="explaintitle">{L_CURRENT_PASSWORD}:</span> *<br />
 <span class="gensmall">{L_CONFIRM_PASSWORD_EXPLAIN}</span></td>
 <td class="row2">
-<input type="password" class="post" style="width: 200px" name="cur_password" size="25" maxlength="32" value="{CUR_PASSWORD}" />
+<input type="password" class="post" style="width: 200px" name="cur_password" size="25" maxlength="128" value="{CUR_PASSWORD}" autocomplete="current-password" />
 </td>
 </tr>
 <!-- END switch_edit_profile -->
@@ -61,14 +61,14 @@
 <td class="row1"><span class="explaintitle">{L_NEW_PASSWORD}:</span> *<br />
 <span class="gensmall">{L_PASSWORD_IF_CHANGED}</span></td>
 <td class="row2">
-<input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="32" value="{NEW_PASSWORD}" onchange="ComparePasswords(this.value, document.addprofile.password_confirm.value);" />
+<input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="128" value="{NEW_PASSWORD}" autocomplete="new-password" onchange="ComparePasswords(this.value, document.addprofile.password_confirm.value);" />
 </td>
 </tr>
 <tr>
 <td class="row1"><span class="explaintitle">{L_CONFIRM_PASSWORD}:</span> * <br />
 <span class="gensmall">{L_PASSWORD_CONFIRM_IF_CHANGED}</span></td>
 <td class="row2">
-<input type="password" class="post" style="width: 200px" name="password_confirm" size="25" maxlength="32" value="{PASSWORD_CONFIRM}" onchange="ComparePasswords(document.addprofile.new_password.value, this.value);" />
+<input type="password" class="post" style="width: 200px" name="password_confirm" size="25" maxlength="128" value="{PASSWORD_CONFIRM}" autocomplete="new-password" onchange="ComparePasswords(document.addprofile.new_password.value, this.value);" />
 </td>
 </tr>
 <tr id="pass_compare_error_tbl" style="display:none;">
