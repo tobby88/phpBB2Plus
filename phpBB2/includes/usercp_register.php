@@ -32,17 +32,12 @@ function gen_reg_key()
 {
 	$key = "";
 	$max_length_reg_key = 5;
-	$chars = array(
-		"a","b","c","d","e","f","g","h","i","j","k","l","m",
-		"n","o","p","q","r","s","t","u","v","w","x","y","z");
-
-	$count = count($chars) - 1;
-
-	srand((float)microtime()*1000000);
+	$chars = "abcdefghijklmnopqrstuvwxyz";
+	$random_bytes = phpbb_random_bytes($max_length_reg_key);
 
 	for($i = 0; $i < $max_length_reg_key; $i++)
 	{
-		$key .= $chars[rand(0, $count)];
+		$key .= $chars[ord($random_bytes[$i]) % 26];
 	}
 
 	return($key);

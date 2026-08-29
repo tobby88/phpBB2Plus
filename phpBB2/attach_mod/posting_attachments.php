@@ -1228,7 +1228,7 @@ class attach_parent
 
 					do
 					{
-						$this->attach_filename = $new_filename . '_' . substr(rand(), 0, 3) . '.' . $this->extension;
+						$this->attach_filename = $new_filename . '_' . bin2hex(phpbb_random_bytes(6)) . '.' . $this->extension;
 					}
 					while (physical_filename_already_stored($this->attach_filename));
 

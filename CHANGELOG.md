@@ -71,7 +71,8 @@ changes consolidated after that baseline without implying active maintenance.
   an unquoted copy; the separately initialized `$_REQUEST` array is covered as
   well.
 - Replaced predictable session-adjacent, activation, CAPTCHA, upload and Arcade
-  identifiers with operating-system randomness while preserving their legacy
+  identifiers, including legacy anti-robot keys and physical attachment-name
+  suffixes, with operating-system randomness while preserving their legacy
   database formats and a PHP 5.6 OpenSSL fallback.
 - Stopped constructing public and upload-return URLs from attacker-controlled
   `Host`/`PHP_SELF` request values, escaped the Tell-a-Friend form values and
