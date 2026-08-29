@@ -2050,66 +2050,65 @@ class Template {
 		{
 			return false;
 		}
-		// check if filename is valid
-		if(substr($filename, 0, strlen($this->cachedir)) !== $this->cachedir)
+		$cache_dir = rtrim(str_replace('\\', '/', (string) $this->cachedir), '/') . '/';
+		$normalized_filename = is_string($filename) ? str_replace('\\', '/', $filename) : '';
+		$relative_filename = strpos($normalized_filename, $cache_dir) === 0 ? substr($normalized_filename, strlen($cache_dir)) : '';
+		if($relative_filename === '' || strpos($normalized_filename, "\0") !== false || preg_match('#(?:^|/)\.\.(?:/|$)#', $relative_filename) || @is_link($filename))
 		{
 			return false;
 		}
-		// try to open file
-		$file = @fopen($filename, 'w');
-		if(!$file)
-		{
-			// try to create directories
-			$dir = substr($filename, strlen($this->cachedir), strlen($filename));
-			$dirs = explode('/', $dir);
-			$path = $this->cachedir; 
-			@umask(0);
-			if(!@is_dir($path))
-			{
-				if(!@mkdir($path))
-				{
-					$this->cache_writable = 0;
-					return false;
-				}
-				else
-				{
-					@chmod($path, 0775);
-				}
-			}
-			$count = count($dirs);
-			if($count > 0)
-			for($i=0; $i<$count-1; $i++)
-			{
-				if($i>0)
-				{
-					$path .= '/';
-				}
-				$path .= $dirs[$i];
-				if(!@is_dir($path))
-				{
-					if(!@mkdir($path))
-					{
-						$this->cache_writable = 0;
-						return false;
-					}
-					else
-					{
-						@chmod($path, 0775);
-					}
-				}
-			}
-			// try to open file again after directories were created
-			$file = @fopen($filename, 'w');
-		}
-		if(!$file)
+		$root_path = rtrim($this->cachedir, '/\\');
+		if(@is_link($root_path))
 		{
 			$this->cache_writable = 0;
 			return false;
 		}
-		fputs($file, "<?php\n\n// eXtreme Styles mod cache. Generated on " . date('r') . " (time=" . time() . ")\n\n?>");
-		fputs($file, $code);
-		fclose($file);
-		@chmod($filename, 0664);
+		if(!@is_dir($root_path) && !@mkdir($root_path, 0775))
+		{
+			$this->cache_writable = 0;
+			return false;
+		}
+		$relative_parent = str_replace('\\', '/', dirname($relative_filename));
+		$parent_path = $root_path;
+		if($relative_parent !== '.' && $relative_parent !== '')
+		{
+			$path_parts = explode('/', $relative_parent);
+			for($i=0; $i<count($path_parts); $i++)
+			{
+				if($path_parts[$i] === '' || $path_parts[$i] === '.')
+				{
+					continue;
+				}
+				$parent_path .= '/' . $path_parts[$i];
+				if(@is_link($parent_path) || (!@is_dir($parent_path) && !@mkdir($parent_path, 0775)))
+				{
+					$this->cache_writable = 0;
+					return false;
+				}
+				@chmod($parent_path, 0775);
+			}
+		}
+		$cache_root = @realpath($root_path);
+		$parent_root = @realpath($parent_path);
+		$cache_prefix = $cache_root === false ? '' : rtrim(str_replace('\\', '/', $cache_root), '/') . '/';
+		$parent_prefix = $parent_root === false ? '' : rtrim(str_replace('\\', '/', $parent_root), '/') . '/';
+		if($cache_prefix === '' || $parent_prefix === '' || strpos($parent_prefix, $cache_prefix) !== 0)
+		{
+			$this->cache_writable = 0;
+			return false;
+		}
+		$contents = "<?php\n\n// eXtreme Styles mod cache. Generated on " . date('r') . " (time=" . time() . ")\n\n?>" . (string) $code;
+		$tmp_filename = @tempnam($parent_path, 'xs_cache_');
+		if($tmp_filename === false || @file_put_contents($tmp_filename, $contents, LOCK_EX) !== strlen($contents) || !@rename($tmp_filename, $filename))
+		{
+			if($tmp_filename !== false)
+			{
+				@unlink($tmp_filename);
+			}
+			$this->cache_writable = 0;
+			return false;
+		}
+		@chmod($filename, 0644);
 		return true;
 	}
 
