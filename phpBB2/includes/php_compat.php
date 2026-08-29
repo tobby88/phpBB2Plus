@@ -131,6 +131,19 @@ if (!function_exists('phpbb_addslashes_recursive'))
 }
 
 /**
+ * Read one scalar request value without allowing PHP 8 string TypeErrors.
+ */
+if (!function_exists('phpbb_request_scalar'))
+{
+	function phpbb_request_scalar($source, $key, $default = '')
+	{
+		return (is_array($source) && isset($source[$key]) && is_scalar($source[$key]))
+			? (string) $source[$key]
+			: $default;
+	}
+}
+
+/**
  * Return random bytes on PHP 5.6 through current PHP versions.
  */
 if (!function_exists('phpbb_random_bytes'))

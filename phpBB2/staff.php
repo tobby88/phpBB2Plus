@@ -18,14 +18,7 @@ include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 $userdata = session_pagestart($user_ip, PAGE_STAFF);
 init_userprefs($userdata);
 
-if( isset($_GET['mode']) || isset($_POST['mode']) )
-{
-	$mode = ( isset($_POST['mode']) ) ? htmlspecialchars($_POST['mode']) : htmlspecialchars($_GET['mode']);
-}
-else
-{
-	$mode = '';
-}
+$mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode')));
 
 $page_title = $lang['Staff'];
 $gen_simple_header = ( $mode == 'view_profile' ) ? TRUE : '';

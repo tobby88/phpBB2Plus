@@ -456,9 +456,9 @@ $select_post_days .= '</select>';
 //
 // Decide how to order the post display
 //
-if ( !empty($_POST['postorder']) || !empty($_GET['postorder']) )
+if (phpbb_request_scalar($_POST, 'postorder') !== '' || phpbb_request_scalar($_GET, 'postorder') !== '')
 {
-	$post_order = (!empty($_POST['postorder'])) ? htmlspecialchars($_POST['postorder']) : htmlspecialchars($_GET['postorder']);
+	$post_order = phpbb_request_scalar($_POST, 'postorder', phpbb_request_scalar($_GET, 'postorder', 'asc'));
 	$post_time_order = ($post_order == "asc") ? "ASC" : "DESC";
 }
 else

@@ -90,9 +90,9 @@ $error_msg = '';
 $username = isset($userdata['username']) ? $userdata['username'] : '';
 $max = 0;
 $s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
-if ( !empty($_POST['mode']) || !empty($_GET['mode']) )
+if (phpbb_request_scalar($_POST, 'mode') !== '' || phpbb_request_scalar($_GET, 'mode') !== '')
 	{
-		$mode = ( !empty($_POST['mode']) ) ? intval($_POST['mode']) : intval($_GET['mode']);
+		$mode = intval(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 0)));
 	}
 	else
 	{
@@ -141,7 +141,7 @@ else
 
 if ($refresh)
 {
-	$message = ( !empty($_POST['message']) ) ? htmlspecialchars(trim(stripslashes($_POST['message']))) : '';
+	$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
 	if (!empty($message))
 	{
 		$template->assign_var('MESSAGE',$message);
@@ -274,7 +274,7 @@ $template->assign_vars(array(
 			'ERROR_MESSAGE' => $error_msg)
 		);
 		$template->assign_var_from_handle('ERROR_BOX', 'reg_header');
-		$message = ( !empty($_POST['message']) ) ? htmlspecialchars(trim(stripslashes($_POST['message']))) : '';
+		$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
 		$template->assign_var('MESSAGE',$message);
 	}
 

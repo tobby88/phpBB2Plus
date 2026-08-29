@@ -69,22 +69,15 @@ $forum_id = $forum_topic_data['forum_id'];
 
 $start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
 
-if ( isset($_GET['mode']) || isset($_POST['mode']) )
-{
-	$mode = ( isset($_POST['mode']) ) ? htmlspecialchars($_POST['mode']) : htmlspecialchars($_GET['mode']);
-}
-else
-{
-	$mode = 'joined';
-}
+$mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined')));
 
-if(isset($_POST['order']))
+if(phpbb_request_scalar($_POST, 'order') !== '')
 {
-	$sort_order = ($_POST['order'] == 'ASC') ? 'ASC' : 'DESC';
+	$sort_order = (phpbb_request_scalar($_POST, 'order') == 'ASC') ? 'ASC' : 'DESC';
 }
-else if(isset($_GET['order']))
+else if(phpbb_request_scalar($_GET, 'order') !== '')
 {
-	$sort_order = ($_GET['order'] == 'ASC') ? 'ASC' : 'DESC';
+	$sort_order = (phpbb_request_scalar($_GET, 'order') == 'ASC') ? 'ASC' : 'DESC';
 }
 else
 {

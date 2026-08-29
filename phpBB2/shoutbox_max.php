@@ -153,7 +153,7 @@ if ( !empty($username) )
 
 if ($refresh || $preview)
 {
-	$message = ( !empty($_POST['message']) ) ? htmlspecialchars(trim(stripslashes($_POST['message']))) : '';
+	$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
 	if (!empty($message))
 	{
 		if ($preview)
@@ -327,7 +327,7 @@ if ($mode=='ip')
 	}
 	$shout_identifyer = $db->sql_fetchrow($result);
 	$poster_id = $shout_identifyer['shout_user_id'];
-	$rdns_ip_num = ( isset($_GET['rdns']) ) ? $_GET['rdns'] : "";
+	$rdns_ip_num = phpbb_request_scalar($_GET, 'rdns');
 
 	$ip_this_post = decode_ip($shout_identifyer['shout_ip']);
 	$ip_this_post = ( $rdns_ip_num == $ip_this_post ) ? gethostbyaddr($ip_this_post) : $ip_this_post;
@@ -462,10 +462,11 @@ if ((isset($_POST['start']) || isset($_GET['start'])) && !$submit)
 // Was a highlight request part of the URI?
 //
 $highlight_match = $highlight = '';
-if (isset($_GET['highlight']))
+if (phpbb_request_scalar($_GET, 'highlight') !== '')
 {
    // Split words and phrases
-   $words = explode(' ', trim(htmlspecialchars($_GET['highlight'])));
+   $highlight_value = phpbb_request_scalar($_GET, 'highlight');
+   $words = explode(' ', trim(htmlspecialchars($highlight_value)));
 
    for($i = 0; $i < sizeof($words); $i++)
    {
@@ -476,7 +477,7 @@ if (isset($_GET['highlight']))
    }
    unset($words);
 
-   $highlight = urlencode($HTTP_GET_VARS['highlight']);
+   $highlight = urlencode($highlight_value);
    $highlight_match = phpbb_rtrim($highlight_match, "\\");
 }
 
@@ -815,7 +816,7 @@ obtain_word_list($orig_word, $replacement_word);
 			'ERROR_MESSAGE' => $error_msg)
 		);
 		$template->assign_var_from_handle('ERROR_BOX', 'reg_header');
-		$message = ( isset($_POST['message']) ) ? htmlspecialchars(trim(stripslashes($_POST['message']))) : '';
+		$message = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'message'))));
 		$template->assign_var('MESSAGE_MAX',$message);
 	}
 
