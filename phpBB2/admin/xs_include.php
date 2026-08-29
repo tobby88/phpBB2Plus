@@ -543,84 +543,67 @@ function xs_get_style_header($filename, $str = '')
 // check if cache is writable
 function xs_check_cache($filename)
 {
-	// check if filename is valid
 	global $str, $template, $lang;
-	if(substr($filename, 0, strlen($template->cachedir)) !== $template->cachedir)
+	$cache_dir = rtrim(str_replace('\\', '/', (string) $template->cachedir), '/') . '/';
+	$normalized_filename = is_string($filename) ? str_replace('\\', '/', $filename) : '';
+	$relative_filename = strpos($normalized_filename, $cache_dir) === 0 ? substr($normalized_filename, strlen($cache_dir)) : '';
+	if($relative_filename === '' || strpos($normalized_filename, "\0") !== false || preg_match('#(?:^|/)\.\.(?:/|$)#', $relative_filename) || @is_link($filename))
 	{
 		$str .= $lang['xs_check_filename'] . "<br />\n";
 		return false;
 	}
-	else
+	$relative_parent = str_replace('\\', '/', dirname($relative_filename));
+	$path_check = rtrim($template->cachedir, '/\\');
+	if($relative_parent !== '.' && $relative_parent !== '')
 	{
-		// try to open file
-		$file = @fopen($filename, 'w');
-		if(!$file)
+		foreach(explode('/', $relative_parent) as $path_part)
 		{
-			$str .= sprintf($lang['xs_check_openfile1'], $filename) . "<br />\n";
-			// try to create directories
-			$dir = substr($filename, strlen($template->cachedir), strlen($filename));
-			$dirs = explode('/', $dir);
-			$path = $template->cachedir; 
-			@umask(0);
-			if(!@is_dir($path))
+			$path_check .= '/' . $path_part;
+			if(@is_link($path_check))
 			{
-				$str .= sprintf($lang['xs_check_nodir'], $path) . "<br />\n";
-				if(!@mkdir($path))
-				{
-					$str .= sprintf($lang['xs_check_nodir2'], $path) . "<br />\n";
-					return false;
-				}
-				else
-				{
-					$str .= sprintf($lang['xs_check_createddir'], $path) . "<br />\n";
-					@chmod($path, 0775);
-				}
+				$str .= $lang['xs_check_filename'] . "<br />\n";
+				return false;
 			}
-			else
-			{
-				$str .= sprintf($lang['xs_check_dir'] , $path) . "<br />\n";
-			}
-			if(count($dirs) > 0)
-			for($i=0; $i<count($dirs)-1; $i++)
-			{
-				if($i>0)
-				{
-					$path .= '/';
-				}
-				$path .= $dirs[$i];
-				if(!@is_dir($path))
-				{
-					$str .= sprintf($lang['xs_check_nodir'], $path) . "<br />\n";
-					if(!@mkdir($path))
-					{
-						$str .= sprintf($lang['xs_check_nodir2'], $path) . "<br />\n";
-						return false;
-					}
-					else
-					{
-						$str .= sprintf($lang['xs_check_createddir'], $path) . "<br />\n";
-						@chmod($path, 0775);
-					}
-				}
-				else
-				{
-					$str .= sprintf($lang['xs_check_dir'] , $path) . "<br />\n";
-				}
-			}
-			// try to open file again after directories were created
-			$file = @fopen($filename, 'w');
 		}
-		if(!$file)
+	}
+	if(!@is_dir($template->cachedir))
+	{
+		$str .= sprintf($lang['xs_check_nodir'], $template->cachedir) . "<br />\n";
+		if(!xs_create_dir($template->cachedir))
 		{
-			$str .= sprintf($lang['xs_check_openfile2'], $filename) . "<br />\n";
+			$str .= sprintf($lang['xs_check_nodir2'], $template->cachedir) . "<br />\n";
 			return false;
 		}
-		$str .= sprintf($lang['xs_check_ok'], $filename) . "<br />\n";
-		fputs($file, '&nbsp;');
-		fclose($file);
-		@chmod($filename, 0664);
-		return true;
+		$str .= sprintf($lang['xs_check_createddir'], $template->cachedir) . "<br />\n";
 	}
+	$parent_dir = dirname($filename);
+	if(!@is_dir($parent_dir))
+	{
+		$str .= sprintf($lang['xs_check_nodir'], $parent_dir) . "<br />\n";
+		if(!xs_create_dir($parent_dir))
+		{
+			$str .= sprintf($lang['xs_check_nodir2'], $parent_dir) . "<br />\n";
+			return false;
+		}
+		$str .= sprintf($lang['xs_check_createddir'], $parent_dir) . "<br />\n";
+	}
+	$cache_root = @realpath($template->cachedir);
+	$parent_root = @realpath($parent_dir);
+	$cache_prefix = $cache_root === false ? '' : rtrim(str_replace('\\', '/', $cache_root), '/') . '/';
+	$parent_prefix = $parent_root === false ? '' : rtrim(str_replace('\\', '/', $parent_root), '/') . '/';
+	if($cache_prefix === '' || $parent_prefix === '' || strpos($parent_prefix, $cache_prefix) !== 0)
+	{
+		$str .= $lang['xs_check_filename'] . "<br />\n";
+		return false;
+	}
+	if(@file_put_contents($filename, '&nbsp;', LOCK_EX) !== 6)
+	{
+		$str .= sprintf($lang['xs_check_openfile2'], $filename) . "<br />\n";
+		return false;
+	}
+	@chmod($filename, 0644);
+	$str .= sprintf($lang['xs_check_ok'], $filename) . "<br />\n";
+	return true;
 }
 
 // run ftp commands
