@@ -40,132 +40,112 @@ $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
+function admin_ban_post_string($name)
+{
+	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? trim(stripslashes((string) $_POST[$name])) : '';
+}
+
+function admin_ban_add_ip(&$ip_list, $ip)
+{
+	if (count($ip_list) >= 4096)
+	{
+		message_die(GENERAL_MESSAGE, 'The requested IP range is too large.');
+	}
+	$ip_list[] = encode_ip($ip);
+}
+
 //
 // Start program
 //
 if ( isset($_POST['submit']) )
 {
-	$user_bansql = '';
-	$email_bansql = '';
-	$ip_bansql = '';
+	phpbb_admin_require_post_session();
 
 	$user_list = array();
-	if ( !empty($_POST['username']) )
+	$username = admin_ban_post_string('username');
+	if ( $username !== '' )
 	{
-		$this_userdata = get_userdata($_POST['username'], true);
+		$this_userdata = get_userdata($username, true);
 		if( !$this_userdata )
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );
 		}
 
-		$user_id = $this_userdata['user_id'];
+		$user_id = intval($this_userdata['user_id']);
 		$ctracker_config->first_admin_protection($user_id);
 		$user_list[] = $user_id;
 	}
 
 	$ip_list = array();
-	if ( isset($_POST['ban_ip']) )
+	$ban_ip_input = admin_ban_post_string('ban_ip');
+	if ( $ban_ip_input !== '' )
 	{
-		$ip_list_temp = explode(',', $_POST['ban_ip']);
+		$ip_list_temp = array_slice(explode(',', $ban_ip_input), 0, 100);
 
-		for($i = 0; $i < (is_countable($ip_list_temp) ? count($ip_list_temp) : 0); $i++)
+		for($i = 0; $i < count($ip_list_temp); $i++)
 		{
-			if ( preg_match('/^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})[ ]*\-[ ]*([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/', trim($ip_list_temp[$i]), $ip_range_explode) )
+			$ip_entry = trim($ip_list_temp[$i]);
+			if ( preg_match('/^([0-9.]+)[ ]*\-[ ]*([0-9.]+)$/D', $ip_entry, $ip_range_explode) )
 			{
-				//
-				// Don't ask about all this, just don't ask ... !
-				//
-				$ip_1_counter = $ip_range_explode[1];
-				$ip_1_end = $ip_range_explode[5];
-
-				while ( $ip_1_counter <= $ip_1_end )
+				if (!filter_var($ip_range_explode[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || !filter_var($ip_range_explode[2], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4))
 				{
-					$ip_2_counter = ( $ip_1_counter == $ip_range_explode[1] ) ? $ip_range_explode[2] : 0;
-					$ip_2_end = ( $ip_1_counter < $ip_1_end ) ? 254 : $ip_range_explode[6];
-
-					if ( $ip_2_counter == 0 && $ip_2_end == 254 )
-					{
-						$ip_2_counter = 255;
-						$ip_2_fragment = 255;
-
-						$ip_list[] = encode_ip("$ip_1_counter.255.255.255");
-					}
-
-					while ( $ip_2_counter <= $ip_2_end )
-					{
-						$ip_3_counter = ( $ip_2_counter == $ip_range_explode[2] && $ip_1_counter == $ip_range_explode[1] ) ? $ip_range_explode[3] : 0;
-						$ip_3_end = ( $ip_2_counter < $ip_2_end || $ip_1_counter < $ip_1_end ) ? 254 : $ip_range_explode[7];
-
-						if ( $ip_3_counter == 0 && $ip_3_end == 254 )
-						{
-							$ip_3_counter = 255;
-							$ip_3_fragment = 255;
-
-							$ip_list[] = encode_ip("$ip_1_counter.$ip_2_counter.255.255");
-						}
-
-						while ( $ip_3_counter <= $ip_3_end )
-						{
-							$ip_4_counter = ( $ip_3_counter == $ip_range_explode[3] && $ip_2_counter == $ip_range_explode[2] && $ip_1_counter == $ip_range_explode[1] ) ? $ip_range_explode[4] : 0;
-							$ip_4_end = ( $ip_3_counter < $ip_3_end || $ip_2_counter < $ip_2_end ) ? 254 : $ip_range_explode[8];
-
-							if ( $ip_4_counter == 0 && $ip_4_end == 254 )
-							{
-								$ip_4_counter = 255;
-								$ip_4_fragment = 255;
-
-								$ip_list[] = encode_ip("$ip_1_counter.$ip_2_counter.$ip_3_counter.255");
-							}
-
-							while ( $ip_4_counter <= $ip_4_end )
-							{
-								$ip_list[] = encode_ip("$ip_1_counter.$ip_2_counter.$ip_3_counter.$ip_4_counter");
-								$ip_4_counter++;
-							}
-							$ip_3_counter++;
-						}
-						$ip_2_counter++;
-					}
-					$ip_1_counter++;
+					message_die(GENERAL_MESSAGE, 'The requested IP range is invalid.');
+				}
+				$range_start = ip2long($ip_range_explode[1]);
+				$range_end = ip2long($ip_range_explode[2]);
+				if ($range_start === false || $range_end === false || $range_end < $range_start || ($range_end - $range_start) > 4095)
+				{
+					message_die(GENERAL_MESSAGE, 'The requested IP range is invalid or too large.');
+				}
+				for ($range_ip = $range_start; $range_ip <= $range_end; $range_ip++)
+				{
+					admin_ban_add_ip($ip_list, long2ip($range_ip));
 				}
 			}
-			else if ( preg_match('/^([\w\-_]\.?){2,}$/is', trim($ip_list_temp[$i])) )
+			else if ( preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/D', $ip_entry) && !preg_match('/^[0-9.*]+$/D', $ip_entry) )
 			{
-				$ip = gethostbynamel(trim($ip_list_temp[$i]));
+				$ip = gethostbynamel($ip_entry);
 
 				for($j = 0; $j < (is_countable($ip) ? count($ip) : 0); $j++)
 				{
-					if ( !empty($ip[$j]) )
+					if ( filter_var($ip[$j], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) )
 					{
-						$ip_list[] = encode_ip($ip[$j]);
+						admin_ban_add_ip($ip_list, $ip[$j]);
 					}
 				}
 			}
-			else if ( preg_match('/^([0-9]{1,3})\.([0-9\*]{1,3})\.([0-9\*]{1,3})\.([0-9\*]{1,3})$/', trim($ip_list_temp[$i])) )
+			else if ( preg_match('/^(\*|[0-9]{1,3})\.(\*|[0-9]{1,3})\.(\*|[0-9]{1,3})\.(\*|[0-9]{1,3})$/D', $ip_entry, $ip_parts) )
 			{
-				$ip_list[] = encode_ip(str_replace('*', '255', trim($ip_list_temp[$i])));
+				for ($part = 1; $part <= 4; $part++)
+				{
+					if ($ip_parts[$part] !== '*' && intval($ip_parts[$part]) > 255)
+					{
+						message_die(GENERAL_MESSAGE, 'The requested IP address is invalid.');
+					}
+				}
+				admin_ban_add_ip($ip_list, str_replace('*', '255', $ip_entry));
 			}
 		}
+		$ip_list = array_values(array_unique($ip_list));
 	}
 
 	$email_list = array();
-	if ( isset($_POST['ban_email']) )
+	$ban_email_input = admin_ban_post_string('ban_email');
+	if ( $ban_email_input !== '' )
 	{
 		// CrackerTracker v5.x
-		if ( !empty($_POST['ban_email']) )
+		$protected_email = '';
+		if ( $ban_email_input !== '' )
 		{
 			$temp_userdata = get_userdata($ctracker_config->first_admin_user_id(), false);
 			if ( !$temp_userdata )
 			{
 				message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
 			}
-			if ( $temp_userdata['user_email'] == $_POST['ban_email'] )
-			{
-				message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_1stadmin']);
-			}
+			$protected_email = (string) $temp_userdata['user_email'];
 		}
 
-		$email_list_temp = explode(',', $_POST['ban_email']);
+		$email_list_temp = array_slice(explode(',', $ban_email_input), 0, 100);
 
 		for($i = 0; $i < (is_countable($email_list_temp) ? count($email_list_temp) : 0); $i++)
 		{
@@ -176,7 +156,16 @@ if ( isset($_POST['submit']) )
 			//
 			if (preg_match('/^(([a-z0-9&\'\.\-_\+])|(\*))+@(([a-z0-9\-])|(\*))+\.([a-z0-9\-]+\.)*?[a-z]+$/is', trim($email_list_temp[$i])))
 			{
-				$email_list[] = trim($email_list_temp[$i]);
+				$email_value = trim($email_list_temp[$i]);
+				if (strlen($email_value) <= 255)
+				{
+					$protected_pattern = '/^' . str_replace('\\*', '.*', preg_quote($email_value, '/')) . '$/iD';
+					if ($protected_email !== '' && preg_match($protected_pattern, $protected_email))
+					{
+						message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_1stadmin']);
+					}
+					$email_list[] = $email_value;
+				}
 			}
 		}
 	}
@@ -213,9 +202,9 @@ if ( isset($_POST['submit']) )
 			{
 				message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql);
 			}
-			$sql = "UPDATE " . USERS_TABLE . " 
-	   SET user_warnings=".$board_config['max_user_bancard']." 
-	   WHERE user_id=".$user_list[$i]; 
+		$sql = "UPDATE " . USERS_TABLE . "
+			SET user_warnings = " . intval($board_config['max_user_bancard']) . "
+			WHERE user_id = " . intval($user_list[$i]);
 	if ( !$db->sql_query($sql) ) 
 	{ 
 	     message_die(GENERAL_ERROR, "Couldn't update users warnings info".$sql, "", __LINE__, __FILE__, $sql); 
@@ -285,7 +274,7 @@ if ( isset($_POST['submit']) )
 		if ( !$in_banlist )
 		{
 			$sql = "INSERT INTO " . BANLIST_TABLE . " (ban_email)
-				VALUES ('" . str_replace("\'", "''", $email_list[$i]) . "')";
+				VALUES ('" . $db->sql_escape($email_list[$i]) . "')";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, "Couldn't insert ban_email info into database", "", __LINE__, __FILE__, $sql);
@@ -293,69 +282,47 @@ if ( isset($_POST['submit']) )
 		}
 	}
 
-	$where_sql = '';
-
-	if ( isset($_POST['unban_user']) )
+	$unban_ids = array();
+	foreach (array('unban_user', 'unban_ip', 'unban_email') as $unban_field)
 	{
-		$user_list = $_POST['unban_user'];
-
-		for($i = 0; $i < (is_countable($user_list) ? count($user_list) : 0); $i++)
+		if (!isset($_POST[$unban_field]) || !is_array($_POST[$unban_field]))
 		{
-			if ( $user_list[$i] != -1 )
-			{
-				$where_sql .= ( ( $where_sql != '' ) ? ', ' : '' ) . intval($user_list[$i]);
-			}
+			continue;
 		}
-		if (! empty($where_sql))
-{
-	$sql = "SELECT ban_userid FROM ".BANLIST_TABLE." 
-	   WHERE ban_id IN ($where_sql)"; 
-	if ( !($result = $db->sql_query($sql) )) 
-	{ 
-	   message_die(GENERAL_ERROR, "Couldn't get user warnings info from database".$sql, "", __LINE__, __FILE__, $sql); 
-	} 
-	while ($user_id_list = $db->sql_fetchrow($result)) 
-	{ 
-	   $where_user_sql .= ( ( $where_user_sql != '' ) ? ', ' : '' ) . $user_id_list['ban_userid']; 
-	} 
-	$sql = "UPDATE " . USERS_TABLE . " 
-	   SET user_warnings='0' 
-	   WHERE user_id IN ($where_user_sql)"; 
-	if ( !$db->sql_query($sql) ) 
-	{ 
-	     message_die(GENERAL_ERROR, "Couldn't update user warnings info from database".$sql, "", __LINE__, __FILE__, $sql); 
-	}
-}
-	}
-
-	if ( isset($_POST['unban_ip']) )
-	{
-		$ip_list = $_POST['unban_ip'];
-
-		for($i = 0; $i < (is_countable($ip_list) ? count($ip_list) : 0); $i++)
+		foreach ($_POST[$unban_field] as $ban_id_value)
 		{
-			if ( $ip_list[$i] != -1 )
+			if (is_scalar($ban_id_value) && intval($ban_id_value) > 0)
 			{
-				$where_sql .= ( ( $where_sql != '' ) ? ', ' : '' ) . str_replace("\'", "''", $ip_list[$i]);
+				$unban_ids[] = intval($ban_id_value);
 			}
 		}
 	}
-
-	if ( isset($_POST['unban_email']) )
+	$unban_ids = array_values(array_unique($unban_ids));
+	if (!empty($unban_ids))
 	{
-		$email_list = $_POST['unban_email'];
-
-		for($i = 0; $i < (is_countable($email_list) ? count($email_list) : 0); $i++)
+		$where_sql = implode(', ', $unban_ids);
+		$user_ids = array();
+		$sql = "SELECT ban_userid FROM " . BANLIST_TABLE . " WHERE ban_id IN ($where_sql) AND ban_userid > 0";
+		if (!($result = $db->sql_query($sql)))
 		{
-			if ( $email_list[$i] != -1 )
+			message_die(GENERAL_ERROR, "Couldn't get user warnings info from database", "", __LINE__, __FILE__, $sql);
+		}
+		while ($user_id_list = $db->sql_fetchrow($result))
+		{
+			$user_ids[] = intval($user_id_list['ban_userid']);
+		}
+		$db->sql_freeresult($result);
+		$user_ids = array_values(array_unique(array_filter($user_ids)));
+		if (!empty($user_ids))
+		{
+			$user_id_sql = implode(', ', $user_ids);
+			$sql = "UPDATE " . USERS_TABLE . " SET user_warnings = 0 WHERE user_id IN ($user_id_sql)";
+			if (!$db->sql_query($sql))
 			{
-				$where_sql .= ( ( $where_sql != '' ) ? ', ' : '' ) . str_replace("\'", "''", $email_list[$i]);
+				message_die(GENERAL_ERROR, "Couldn't update user warnings info from database", "", __LINE__, __FILE__, $sql);
 			}
 		}
-	}
 
-	if ( $where_sql != '' )
-	{
 		$sql = "DELETE FROM " . BANLIST_TABLE . "
 			WHERE ban_id IN ($where_sql)";
 		if ( !$db->sql_query($sql) )
@@ -384,7 +351,8 @@ else
 		'L_SUBMIT' => $lang['Submit'],
 		'L_RESET' => $lang['Reset'],
 
-		'S_BANLIST_ACTION' => append_sid("admin_user_ban.$phpEx"))
+		'S_BANLIST_ACTION' => append_sid("admin_user_ban.$phpEx"),
+		'S_HIDDEN_FIELDS' => phpbb_admin_session_field())
 	);
 
 	$template->assign_vars(array(
@@ -417,7 +385,7 @@ else
 	$select_userlist = '';
 	for($i = 0; $i < (is_countable($user_list) ? count($user_list) : 0); $i++)
 	{
-		$select_userlist .= '<option value="' . $user_list[$i]['ban_id'] . '">' . $user_list[$i]['username'] . '</option>';
+		$select_userlist .= '<option value="' . intval($user_list[$i]['ban_id']) . '">' . phpbb_admin_html($user_list[$i]['username']) . '</option>';
 		$userban_count++;
 	}
 
@@ -443,18 +411,18 @@ else
 
 	for($i = 0; $i < (is_countable($banlist) ? count($banlist) : 0); $i++)
 	{
-		$ban_id = $banlist[$i]['ban_id'];
+		$ban_id = intval($banlist[$i]['ban_id']);
 
 		if ( !empty($banlist[$i]['ban_ip']) )
 		{
 			$ban_ip = str_replace('255', '*', decode_ip($banlist[$i]['ban_ip']));
-			$select_iplist .= '<option value="' . $ban_id . '">' . $ban_ip . '</option>';
+			$select_iplist .= '<option value="' . $ban_id . '">' . phpbb_admin_html($ban_ip) . '</option>';
 			$ipban_count++;
 		}
 		else if ( !empty($banlist[$i]['ban_email']) )
 		{
 			$ban_email = $banlist[$i]['ban_email'];
-			$select_emaillist .= '<option value="' . $ban_id . '">' . $ban_email . '</option>';
+			$select_emaillist .= '<option value="' . $ban_id . '">' . phpbb_admin_html($ban_email) . '</option>';
 			$emailban_count++;
 		}
 	}

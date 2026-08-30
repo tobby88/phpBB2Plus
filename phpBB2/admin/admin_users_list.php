@@ -22,8 +22,10 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 include_once($phpbb_root_path . 'includes/functions_color_groups.' . $phpEx);
 
-$start = isset($_GET['start']) ? max(0, intval($_GET['start'])) : 0;
-$show = isset($_REQUEST['show']) ? intval($_REQUEST['show']) : intval($board_config['topics_per_page']);
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
+$show_value = (isset($_POST['show']) && is_scalar($_POST['show'])) ? $_POST['show'] :
+	((isset($_GET['show']) && is_scalar($_GET['show'])) ? $_GET['show'] : $board_config['topics_per_page']);
+$show = intval($show_value);
 $show = min(200, max(1, $show));
 
 $allowed_sorts = array(
@@ -35,30 +37,52 @@ $allowed_sorts = array(
 	'user_email' => 'u.user_email',
 	'user_active' => 'u.user_active'
 );
-$sort = isset($_REQUEST['sort']) ? (string) $_REQUEST['sort'] : 'user_regdate';
+$sort = (isset($_POST['sort']) && is_scalar($_POST['sort'])) ? (string) $_POST['sort'] :
+	((isset($_GET['sort']) && is_scalar($_GET['sort'])) ? (string) $_GET['sort'] : 'user_regdate');
 if (!isset($allowed_sorts[$sort]))
 {
 	$sort = 'user_regdate';
 }
-$order = (isset($_REQUEST['order']) && strtoupper((string) $_REQUEST['order']) === 'ASC') ? 'ASC' : 'DESC';
+$order_value = (isset($_POST['order']) && is_scalar($_POST['order'])) ? $_POST['order'] :
+	((isset($_GET['order']) && is_scalar($_GET['order'])) ? $_GET['order'] : 'DESC');
+$order = strtoupper((string) $order_value) === 'ASC' ? 'ASC' : 'DESC';
 
-$alpha = isset($_REQUEST['alpha']) ? trim((string) $_REQUEST['alpha']) : '';
+$alpha = (isset($_POST['alpha']) && is_scalar($_POST['alpha'])) ? trim((string) $_POST['alpha']) :
+	((isset($_GET['alpha']) && is_scalar($_GET['alpha'])) ? trim((string) $_GET['alpha']) : '');
 if ($alpha !== '' && !preg_match('/^[A-Za-z0-9]$/', $alpha))
 {
 	$alpha = '';
 }
 $alpha_sql = ($alpha === '') ? '' : (($alpha === '0')
 	? " AND u.username NOT REGEXP '^[A-Za-z]'"
-	: " AND u.username LIKE '" . str_replace("'", "''", $alpha) . "%'");
+	: " AND u.username LIKE '" . $db->sql_escape($alpha) . "%'");
 
 $selected_users = isset($_POST[POST_USERS_URL]) && is_array($_POST[POST_USERS_URL])
 	? array_values(array_unique(array_filter(array_map('intval', $_POST[POST_USERS_URL]))))
 	: array();
 $selected_users = array_values(array_diff($selected_users, array(ANONYMOUS, intval($userdata['user_id']))));
-$action = isset($_POST['bulk_action']) ? (string) $_POST['bulk_action'] : '';
+$action = (isset($_POST['bulk_action']) && is_scalar($_POST['bulk_action'])) ? (string) $_POST['bulk_action'] : '';
 
 if (!empty($selected_users) && in_array($action, array('activate', 'deactivate', 'ban', 'unban', 'group'), true))
 {
+	phpbb_admin_require_post_session();
+	$requested_user_id_sql = implode(', ', $selected_users);
+	$sql = "SELECT user_id FROM " . USERS_TABLE . "
+		WHERE user_id IN ($requested_user_id_sql) AND user_level <> " . ADMIN;
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not verify selected users', '', __LINE__, __FILE__, $sql);
+	}
+	$selected_users = array();
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$selected_users[] = intval($row['user_id']);
+	}
+	$db->sql_freeresult($result);
+	if (empty($selected_users))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Admin_userlist_updated']);
+	}
 	$user_id_sql = implode(', ', $selected_users);
 
 	if ($action === 'activate' || $action === 'deactivate')
@@ -179,6 +203,7 @@ $template->assign_vars(array(
 	'S_SORT_OPTIONS' => $sort_options, 'S_GROUP_OPTIONS' => $groups_select, 'S_SHOW' => $show,
 	'ASC_SELECTED' => ($order === 'ASC') ? ' selected="selected"' : '', 'DESC_SELECTED' => ($order === 'DESC') ? ' selected="selected"' : '',
 	'U_LIST_ACTION' => append_sid("admin_users_list.$phpEx"),
+	'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 	'PAGINATION' => generate_pagination(append_sid("admin_users_list.$phpEx?sort=$sort&amp;order=$order&amp;show=$show&amp;alpha=$alpha"), $total_users, $show, $start),
 	'PAGE_NUMBER' => sprintf($lang['Page_of'], floor($start / $show) + 1, max(1, ceil($total_users / $show)))
 ));

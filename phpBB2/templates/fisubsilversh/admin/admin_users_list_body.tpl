@@ -18,6 +18,7 @@
 </p>
 
 <form action="{U_LIST_ACTION}" method="post" name="userlistform">
+{S_HIDDEN_FIELDS}
 <table width="100%" cellpadding="5" cellspacing="1" border="0" class="forumline">
 <tr>
   <th><input type="checkbox" onclick="for(var i=0;i<this.form.elements.length;i++){if(this.form.elements[i].name=='u[]')this.form.elements[i].checked=this.checked;}" /></th>

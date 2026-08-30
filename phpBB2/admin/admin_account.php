@@ -14,11 +14,11 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 
 // Deleting an account is irreversible. Accept it only from this page's POST
 // form and only for a still-inactive, non-administrator account.
-if (isset($_POST['delete']))
+if (isset($_POST['delete']) && is_scalar($_POST['delete']))
 {
+	phpbb_admin_require_post_session();
         $delete = intval($_POST['delete']);
-        $posted_sid = isset($_POST['sid']) ? (string) $_POST['sid'] : '';
-        if ($delete <= 0 || !hash_equals((string) $userdata['session_id'], $posted_sid))
+		if ($delete <= 0)
         {
                 message_die(GENERAL_ERROR, $lang['Not_Authorised']);
         }
@@ -61,7 +61,7 @@ if (isset($_POST['delete']))
         }
         while ( $row = $db->sql_fetchrow($result) )
         {
-                $sql2 = "DELETE FROM " . GROUPS_TABLE . " WHERE group_id = " . $row['group_id'];
+				$sql2 = "DELETE FROM " . GROUPS_TABLE . " WHERE group_id = " . intval($row['group_id']);
                 if ( !($db->sql_query($sql2)) )
                 {
                         message_die(GENERAL_ERROR, 'Could not delete group.', '', __LINE__, __FILE__, $sql2);
@@ -74,16 +74,18 @@ if (isset($_POST['delete']))
 }
 
 // sort part
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
-$mode = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : 'joindate');
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
+$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : 'joindate');
+$mode = in_array($mode, array('joindate', 'username', 'email'), true) ? $mode : 'joindate';
 $total_members = 0;
 $l_total_members = sprintf($lang['Total_members'], 0);
 $pagination = '&nbsp;';
-if(isset($_POST['order']))
+if(isset($_POST['order']) && is_scalar($_POST['order']))
 {
         $sort_order = ($_POST['order'] == 'ASC') ? 'ASC' : 'DESC';
 }
-else if(isset($_GET['order']))
+else if(isset($_GET['order']) && is_scalar($_GET['order']))
 {
         $sort_order = ($_GET['order'] == 'ASC') ? 'ASC' : 'DESC';
 }
@@ -150,12 +152,11 @@ $template->assign_vars(array(
         'S_MODE_SELECT' => $select_sort_mode,
         'S_ORDER_SELECT' => $select_sort_order,
         'S_MODE_ACTION' => append_sid("admin_account.$phpEx"),
-        'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />')
+        'S_FORM_TOKEN' => phpbb_admin_session_field())
 );
 
-if ( isset($_GET['mode']) || isset($_POST['mode']) )
+if ( $mode !== '' )
 {
-        $mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
         switch( $mode )
         {
                 case 'joindate':

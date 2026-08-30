@@ -141,3 +141,6 @@ jobs:
 
       - name: Test profile-field and user-pruning safety
         run: php .github/scripts/check-profile-prune-admin-safety.php
+
+      - name: Test user administration safety
+        run: php .github/scripts/check-user-admin-safety.php

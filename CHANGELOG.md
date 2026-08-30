@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Protected user bulk actions, inactive-account deletion and ban management
+  with the centralized AdminCP POST/session check. Bulk activation, blocking
+  and group assignment can no longer target administrator accounts. Ban input
+  is scalar-normalized, IPv4 ranges are validated and capped before expansion,
+  wildcard email bans cannot catch the protected first administrator, and
+  selected unban IDs are normalized before SQL. This also removes an undefined
+  warning-reset accumulator, empty `IN ()` queries and unescaped values in ban
+  selection lists.
 - Hardened custom-profile-field administration and account pruning. Profile
   field writes now carry their mode and final target in the session-bound POST
   form, dynamic column identifiers and option values are strictly bounded,
