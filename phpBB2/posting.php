@@ -978,10 +978,9 @@ if ($lock_subject)
 				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $username, $subject, $message, $poll_title, $poll_options, $poll_length, $topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
 				if ($mode == 'editpost' && !empty($is_auth['auth_mod']))
 				{
-					log_action('edit', $topic_id, $userdata['user_id'], $userdata['username']);
-				}
-//				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, str_replace("\'", "''", $username), str_replace("\'", "''", $subject), str_replace("\'", "''", $message), str_replace("\'", "''", $poll_title), $poll_options, $poll_length, str_replace("\'", "''", $topic_desc), $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
+				log_action('edit', $topic_id, $userdata['user_id'], $userdata['username']);
 			}
+		}
 			break;
 
 		case 'delete':
