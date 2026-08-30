@@ -15,6 +15,7 @@ $admin_custom = file_get_contents($root . '/phpBB2/admin/admin_pa_custom.php');
 $admin_flags = file_get_contents($root . '/phpBB2/admin/admin_flags.php');
 $admin_catauth = file_get_contents($root . '/phpBB2/admin/admin_pa_catauth.php');
 $admin_settings = file_get_contents($root . '/phpBB2/admin/admin_pa_settings.php');
+$admin_ug_auth = file_get_contents($root . '/phpBB2/admin/admin_pa_ug_auth.php');
 $pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions.php');
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
@@ -55,5 +56,14 @@ pafiledb_admin_assert(strpos($admin_settings, "'S_HIDDEN_FIELDS' => phpbb_admin_
 pafiledb_admin_assert(strpos($admin_settings, "'UPLOAD_DIR' => phpbb_admin_html") !== false, 'configuration text must be escaped in form output');
 pafiledb_admin_assert(substr_count($pafiledb_functions, '$db->sql_escape(') >= 2, 'paFileDB configuration SQL must use driver escaping');
 pafiledb_admin_assert(strpos($pafiledb_functions, "preg_match('/^[a-z0-9_]{1,191}$/Di'") !== false, 'paFileDB configuration names must be bounded identifiers');
+
+pafiledb_admin_assert(strpos($admin_ug_auth, 'phpbb_admin_require_post_session();') !== false, 'user/group permission writes must require a POST token');
+pafiledb_admin_assert(strpos($admin_ug_auth, "array('user', 'group', 'glb_user', 'glb_group')") !== false, 'user/group permission modes must use an allowlist');
+pafiledb_admin_assert(strpos($admin_ug_auth, 'function pa_admin_ug_post_map') !== false, 'category permission maps must be normalized');
+pafiledb_admin_assert(strpos($admin_ug_auth, 'group_single_user = 0') !== false, 'group targets must exclude personal groups');
+pafiledb_admin_assert(strpos($admin_ug_auth, 'group_single_user = 1') !== false, 'user targets must resolve through their personal group');
+pafiledb_admin_assert(strpos($admin_ug_auth, '@each(') === false, 'PHP 8-incompatible permission iterators must not return');
+pafiledb_admin_assert(strpos($admin_ug_auth, 'static $cache = array();') !== false, 'moderator status must be cached per group');
+pafiledb_admin_assert(strpos($admin_ug_auth, 'phpbb_admin_html($target[\'name\'])') !== false, 'permission target names must be escaped');
 
 echo "paFileDB administration safety tests passed.\n";

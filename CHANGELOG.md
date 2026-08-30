@@ -15,6 +15,12 @@ changes consolidated after that baseline without implying active maintenance.
   module. Numeric, boolean and enum values are normalized, storage paths reject
   traversal and absolute/URL targets, displayed values are escaped, and the
   central paFileDB configuration writer now uses database-driver escaping.
+- Reworked paFileDB user, group and global permission administration around
+  validated user/public-group targets and fixed boolean permission maps. The
+  PHP 8-removed `each()` paths and ambiguous merged request input are gone,
+  writes require the AdminCP session token, irrelevant zero rows are removed,
+  names are escaped in output, and moderator lookups are cached independently
+  per group instead of leaking the first result to every subsequent group.
 - Hardened attachment configuration, extension management and the attachment
   control panel with session-bound AdminCP POST checks. Attachment
   synchronization is no longer a state-changing GET request and now requires

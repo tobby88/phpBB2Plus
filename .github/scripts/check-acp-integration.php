@@ -73,6 +73,7 @@ $integrations = array(
 	'admin/admin_pa_category.php' => array("array('do_add', 'do_delete', 'cat_order', 'sync', 'sync_all')", 'phpbb_admin_session_field()', 'pa_admin_category_action_form'),
 	'admin/admin_pa_catauth.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'in_array($auth_value, $cat_auth_const, true)'),
 	'admin/admin_pa_settings.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$editable_config'),
+	'admin/admin_pa_ug_auth.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function pa_admin_ug_post_map', "array('user', 'group', 'glb_user', 'glb_group')"),
 	'admin/admin_flags.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function phpbb_flag_image_name'),
 	'admin/admin_db_maintenance.php' => array('dbmtnc_continuation_token', 'phpbb_admin_require_post_session();', "array('', 'start', 'perform')"),
 	'admin/admin_db_utilities.php' => array("in_array(\$perform, array('backup', 'restore'), true)", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'is_uploaded_file($backup_file_tmpname)'),
