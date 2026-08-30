@@ -28,6 +28,31 @@ include_once($phpbb_root_path . './includes/functions_post.' . $phpEx);
 include_once($phpbb_root_path . './includes/bbcode.' . $phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
+function calendar_normalize_forum_filter($value)
+{
+	if (!is_scalar($value))
+	{
+		return '';
+	}
+
+	$value = (string) $value;
+	if ($value === 'Root')
+	{
+		return 'Root';
+	}
+	if (!preg_match('/^([' . preg_quote(POST_FORUM_URL . POST_CAT_URL, '/') . '])(\d+)$/D', $value, $match))
+	{
+		return '';
+	}
+
+	$id = (int) $match[2];
+	if ($match[1] === POST_CAT_URL && $id === 0)
+	{
+		return 'Root';
+	}
+	return ($id > 0) ? $match[1] . $id : '';
+}
+
 // function select
 function calendar_get_tree_option($cur='')
 {
@@ -85,13 +110,13 @@ function calendar_get_tree_option($cur='')
 			$cat_id = $row['cat_id'];
 			$fid = POST_CAT_URL . $row['cat_id'];
 			$selected = ($cur == $fid) ? ' selected="selected"' : '';
-			$res .= sprintf('<option value="%s"%s>|--[ %s ]</option>', $fid, $selected, str_replace("''", "\'", $row['cat_title']) );
+			$res .= sprintf('<option value="%s"%s>|--[ %s ]</option>', $fid, $selected, htmlspecialchars($row['cat_title'], ENT_QUOTES, 'UTF-8'));
 		}
 
 		// forum
 		$fid = POST_FORUM_URL . $row['forum_id'];
 		$selected = ($cur == $fid) ? ' selected="selected"' : '';
-		$res .= sprintf('<option value="%s"%s>|&nbsp;&nbsp;&nbsp;|--- %s</option>', $fid, $selected, str_replace("''", "\'", $row['forum_name']) );
+		$res .= sprintf('<option value="%s"%s>|&nbsp;&nbsp;&nbsp;|--- %s</option>', $fid, $selected, htmlspecialchars($row['forum_name'], ENT_QUOTES, 'UTF-8'));
 	}
 
 	return $res;

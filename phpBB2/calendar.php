@@ -49,27 +49,22 @@ include ($phpbb_root_path . 'includes/page_header.' . $phpEx);
 // get paramters
 //
 $start_date = 0;
-if (isset($_GET['start']))
+if (isset($_GET['start']) && is_scalar($_GET['start']) && preg_match('/^(19[7-9][1-9]|20[0-6][0-9])(0[1-9]|1[0-2])([0-2][0-9]|3[01])$/D', (string) $_GET['start'], $date_match))
 {
-	$p_date		= intval($_GET['start']);
-	$year		= intval(substr($p_date, 0, 4));
-	$month		= intval(substr($p_date, 4, 2));
-	$day		= intval(substr($p_date, 6, 2));
-	if (($year <= 0) || ($month <= 0) || ($day <= 0))
+	$year = (int) $date_match[1];
+	$month = (int) $date_match[2];
+	$day = (int) $date_match[3];
+	if (checkdate($month, $day, $year))
 	{
-		$year = 0;
-	}
-	if (!empty($year))
-	{
-		$start_date = mktime( 0,0,0, $month, $day, $year);
+		$start_date = mktime(0, 0, 0, $month, $day, $year);
 	}
 }
 
-if (isset($_POST['start_month']))
+if (isset($_POST['start_month'], $_POST['start_year']) && is_scalar($_POST['start_month']) && is_scalar($_POST['start_year']))
 {
 	$month	= intval($_POST['start_month']);
 	$year	= intval($_POST['start_year']);
-	if (($month > 0) && ($year > 0))
+	if (($month >= 1) && ($month <= 12) && ($year >= 1971) && ($year <= 2069))
 	{
 		$start_date = mktime( 0,0,0, $month, 01, $year);
 	}
@@ -84,22 +79,7 @@ if (empty($start_date) || ($start_date <= 0))
 $fid = '';
 if ( isset($_POST['selected_id']) || isset($_GET['fid']) )
 {
-	$fid = isset($_POST['selected_id']) ? $_POST['selected_id'] : $_GET['fid'];
-	if ($fid != 'Root')
-	{
-		$type = substr($fid, 0, 1);
-		$id = intval(substr($fid, 1));
-		if ( !in_array($type, array(POST_FORUM_URL, POST_CAT_URL)) )
-		{
-			$type = POST_CAT_URL;
-			$id = 0;
-		}
-		$fid = $type . $id;
-		if ($fid == POST_CAT_URL . '0')
-		{
-			$fid = 'Root';
-		}
-	}
+	$fid = calendar_normalize_forum_filter(isset($_POST['selected_id']) ? $_POST['selected_id'] : $_GET['fid']);
 }
 
 //

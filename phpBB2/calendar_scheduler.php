@@ -47,17 +47,18 @@ $set_of_days = array('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
 $date = 0;
 if ( isset($_POST['date']) || isset($_GET['d']) )
 {
-	$date = isset($_POST['date']) ? intval($_POST['date']) : intval($_GET['d']);
+	$date_value = isset($_POST['date']) ? $_POST['date'] : $_GET['d'];
+	$date = is_scalar($date_value) ? intval($date_value) : 0;
 }
-if ($date == 0)
+if ($date < 31536000 || $date > 3155759999)
 {
 	$date = time();
 }
 
 // date per jumpbox
-$start_month = isset($_POST['start_month']) ? intval($_POST['start_month']) : 0;
-$start_year = isset($_POST['start_year']) ? intval($_POST['start_year']) : 0;
-if ( !empty($start_month) && !empty($start_year) )
+$start_month = (isset($_POST['start_month']) && is_scalar($_POST['start_month'])) ? intval($_POST['start_month']) : 0;
+$start_year = (isset($_POST['start_year']) && is_scalar($_POST['start_year'])) ? intval($_POST['start_year']) : 0;
+if ($start_month >= 1 && $start_month <= 12 && $start_year >= 1971 && $start_year <= 2069)
 {
 	$day = 01;
 	if (!empty($date))
@@ -71,7 +72,8 @@ if ( !empty($start_month) && !empty($start_year) )
 $mode = '';
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = isset($_POST['mode']) ? $_POST['mode'] : $_GET['mode'];
+	$mode_value = isset($_POST['mode']) ? $_POST['mode'] : $_GET['mode'];
+	$mode = is_scalar($mode_value) ? (string) $mode_value : '';
 }
 if ( !in_array($mode, array('hour')) )
 {
@@ -81,7 +83,8 @@ if ( !in_array($mode, array('hour')) )
 $start = 0;
 if ( isset($_POST['start']) || isset($_GET['start']) )
 {
-	$start = isset($_POST['start']) ? intval($_POST['start']) : intval($_GET['start']);
+	$start_value = isset($_POST['start']) ? $_POST['start'] : $_GET['start'];
+	$start = is_scalar($start_value) ? max(0, min(1000000, intval($start_value))) : 0;
 }
 
 // get the period
@@ -105,22 +108,7 @@ else
 $fid = '';
 if ( isset($_POST['selected_id']) || isset($_GET['fid']) )
 {
-	$fid = isset($_POST['selected_id']) ? intval($_POST['selected_id']) : intval($_GET['fid']);
-	if ($fid != 'Root')
-	{
-		$type = substr($fid, 0, 1);
-		$id = intval(substr($fid, 1));
-		if ( ($id == 0) || !in_array($type, array(POST_FORUM_URL, POST_CAT_URL)) )
-		{
-			$type = POST_CAT_URL;
-			$id = 0;
-		}
-		$fid = $type . $id;
-		if ($fid == POST_CAT_URL . '0')
-		{
-			$fid = 'Root';
-		}
-	}
+	$fid = calendar_normalize_forum_filter(isset($_POST['selected_id']) ? $_POST['selected_id'] : $_GET['fid']);
 }
 
 //

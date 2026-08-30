@@ -12,6 +12,12 @@ init_userprefs($userdata);
 // End session management
 //
 
+$birthday_value = isset($userdata['user_birthday']) ? (string) $userdata['user_birthday'] : '';
+if (!$userdata['session_logged_in'] || $birthday_value === '999999' || !preg_match('/^(\d{4})(\d{2})(\d{2})$/D', $birthday_value, $birthday_match) || !checkdate((int) $birthday_match[2], (int) $birthday_match[3], (int) $birthday_match[1]))
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+
 $gen_simple_header = TRUE; 
 $page_title = $lang['Greeting_Messaging']; 
 include($phpbb_root_path . 'includes/page_header.'.$phpEx); 

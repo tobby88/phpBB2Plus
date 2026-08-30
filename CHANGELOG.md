@@ -16,6 +16,10 @@ changes consolidated after that baseline without implying active maintenance.
   stale all-time-score snapshot, while retaining a safe fallback for deleted
   accounts and applying profile-visibility rules consistently. New scores and
   the idempotent upgrade path also reconcile the historical snapshot column.
+- Hardened Calendar dates, paging and typed forum/category filters, fixing a
+  scheduler bug that discarded the filter prefix before validation. Calendar
+  option labels are escaped and the birthday popup now rejects anonymous or
+  invalid direct requests instead of producing runtime warnings.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.
