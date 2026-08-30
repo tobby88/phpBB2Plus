@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Arcade configuration with allowlisted pages, scalar and type-aware
+  setting normalization, safe relative asset directories, driver-escaped
+  database writes and escaped AdminCP text. Configuration changes now require
+  the central session-bound POST token, automatic reward-field corrections no
+  longer mutate state during a page view, and the misspelled template marker
+  that previously discarded hidden fields on the main page is repaired.
 - Hardened paFileDB category permissions and configuration. Both AdminCP forms
   now require the central session-bound POST token; category IDs and access
   levels are checked against real categories and strict allowlists, while
