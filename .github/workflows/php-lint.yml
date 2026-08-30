@@ -139,6 +139,9 @@ jobs:
       - name: Test directory runtime safety
         run: php .github/scripts/check-directory-runtime-safety.php
 
+      - name: Test mutation token safety
+        run: php .github/scripts/check-mutation-token-safety.php
+
       - name: Test Knowledge Base runtime safety
         run: php .github/scripts/check-kb-runtime-safety.php
 

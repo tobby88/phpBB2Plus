@@ -136,7 +136,7 @@ if ($mode == 'mod')
   	include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
     }
     
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || is_array($_POST['sid']) ||
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) ||
       !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
     {
       message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);

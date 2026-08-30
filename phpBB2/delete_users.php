@@ -107,6 +107,7 @@ switch ($mode)
 $confirmed = isset($_SERVER['REQUEST_METHOD']) && strtoupper($_SERVER['REQUEST_METHOD']) === 'POST'
 	&& isset($_POST['confirm'])
 	&& isset($_POST['sid'])
+	&& is_scalar($_POST['sid'])
 	&& hash_equals((string) $userdata['session_id'], (string) $_POST['sid']);
 if (!$confirmed)
 {

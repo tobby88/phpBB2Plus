@@ -25,6 +25,9 @@ changes consolidated after that baseline without implying active maintenance.
   viewer now enforces the source forum's view/read permissions; the staff
   profile no longer loses signatures when no censor words exist, divides by
   zero in empty boards, or renders its page tail twice.
+- Completed scalar session-token and POST-method checks on remaining account,
+  Album, Arcade and administration mutations, preventing malformed array
+  requests from reaching `hash_equals()` on PHP 8.x.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.

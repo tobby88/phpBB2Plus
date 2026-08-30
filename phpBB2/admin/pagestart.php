@@ -63,7 +63,7 @@ if (file_exists($phpbb_root_path . 'update'))
 	message_die(GENERAL_MESSAGE, 'Please ensure update/ directory is deleted');
 }
 
-if (!isset($_GET['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_GET['sid']))
+if (!isset($_GET['sid']) || !is_scalar($_GET['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_GET['sid']))
 {
 	redirect("index.$phpEx?sid=" . $userdata['session_id']);
 }

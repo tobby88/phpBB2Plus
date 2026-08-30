@@ -199,7 +199,7 @@ else
 
 
 $confirmed = isset($_POST['confirm']);
-if ($confirmed && (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+if ($confirmed && (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
 {
 	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 }

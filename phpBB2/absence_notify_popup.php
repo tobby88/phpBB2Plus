@@ -45,14 +45,14 @@ $template->set_filenames(array(
 
 if ( $submit )
 {
-	if (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 	}
 
 	$sql = "UPDATE " . USERS_TABLE . "
 		SET user_absence = 0
-		WHERE user_id = " . $userdata['user_id'];
+		WHERE user_id = " . (int) $userdata['user_id'];
 	if ( !$db->sql_query($sql) )
 	{
 	   message_die(GENERAL_ERROR, "Could not update user data.", '', __LINE__, __FILE__, $sql);
