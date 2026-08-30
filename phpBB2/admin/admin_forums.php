@@ -464,8 +464,8 @@ if( isset($_POST['addforum']) || isset($_POST['addcategory']) )
 
 	if( $mode == "addforum" )
 	{
-		list($cat_id) = each($_POST['addforum']);
-		$cat_id = intval($cat_id);
+		$add_forum = is_array($_POST['addforum']) ? array_keys($_POST['addforum']) : array();
+		$cat_id = !empty($add_forum) ? intval($add_forum[0]) : 0;
 		// 
 		// stripslashes needs to be run on this because slashes are added when the forum name is posted
 		//
@@ -473,13 +473,14 @@ if( isset($_POST['addforum']) || isset($_POST['addcategory']) )
 //-- delete
 //		$forumname = stripslashes($_POST['forumname'][$cat_id]);
 //-- add
-		$forumname = stripslashes($_POST['name'][$cat_id]);
+		$forumname = isset($_POST['name'][$cat_id]) && is_scalar($_POST['name'][$cat_id]) ? stripslashes((string) $_POST['name'][$cat_id]) : '';
 	}
 	
 	if( $mode == "addcat" )
 	{
-		list($cat_id) = each($_POST['addcategory']);
-		$cat_title = stripslashes($_POST['name'][$cat_id]);
+		$add_category = is_array($_POST['addcategory']) ? array_keys($_POST['addcategory']) : array();
+		$cat_id = !empty($add_category) ? intval($add_category[0]) : 0;
+		$cat_title = isset($_POST['name'][$cat_id]) && is_scalar($_POST['name'][$cat_id]) ? stripslashes((string) $_POST['name'][$cat_id]) : '';
 		$cat_main = $cat_id;
 		$cat_id = -1;
 //-- fin mod : categories hierarchy ----------------------------------------------------------------

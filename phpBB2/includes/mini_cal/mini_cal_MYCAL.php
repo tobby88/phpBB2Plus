@@ -36,7 +36,7 @@
         $mini_cal_auth['view'] = '';
         $mini_cal_auth['post'] = '';
         
-        while ( list($mini_cal_forum_id, $mini_cal_auth_level) = each($mini_cal_auth_ary) )
+        foreach ($mini_cal_auth_ary as $mini_cal_forum_id => $mini_cal_auth_level)
         {
             if ( $mini_cal_auth_level[MINI_CAL_EVENT_AUTH_LEVEL] )
             {

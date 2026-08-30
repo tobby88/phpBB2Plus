@@ -6,23 +6,6 @@
  * Every helper is conditional so PHP 5.6 continues to use its native API.
  */
 
-if (!function_exists('each'))
-{
-	function each(&$array)
-	{
-		$key = key($array);
-		if ($key === null)
-		{
-			return false;
-		}
-
-		$value = current($array);
-		next($array);
-
-		return array(1 => $value, 'value' => $value, 0 => $key, 'key' => $key);
-	}
-}
-
 if (!function_exists('get_magic_quotes_gpc'))
 {
 	function get_magic_quotes_gpc()

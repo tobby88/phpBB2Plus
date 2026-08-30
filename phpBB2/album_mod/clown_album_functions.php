@@ -126,7 +126,7 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 			$row = 0;
 			$col = 0;
 
-			while (list($smile_url, $data) = @each($rowset))
+			foreach ($rowset as $smile_url => $data)
 			{
 				if (!$col)
 				{

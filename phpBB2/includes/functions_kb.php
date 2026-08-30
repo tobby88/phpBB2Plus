@@ -836,6 +836,7 @@ function insert_post(
 function add_kb_words($post_id, $post_text, $post_title = '')
 {
 	global $db, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id;
+	$post_id = intval($post_id);
 
 	$stopword_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_stopwords.txt"); 
 	$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_synonyms.txt"); 
@@ -846,7 +847,7 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 
 	$word = array();
 	$word_insert_sql = array();
-	while ( list($word_in, $search_matches) = @each($search_raw_words) )
+	foreach ($search_raw_words as $word_in => $search_matches)
 	{
 		$word_insert_sql[$word_in] = '';
 		if ( !empty($search_matches) )
@@ -858,9 +859,10 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 				if( $search_matches[$i] != '' ) 
 				{
 					$word[] = $search_matches[$i];
-					if ( !strstr($word_insert_sql[$word_in], "'" . $search_matches[$i] . "'") )
+					$escaped_match = $db->sql_escape($search_matches[$i]);
+					if ( !strstr($word_insert_sql[$word_in], "'" . $escaped_match . "'") )
 					{
-						$word_insert_sql[$word_in] .= ( $word_insert_sql[$word_in] != "" ) ? ", '" . $search_matches[$i] . "'" : "'" . $search_matches[$i] . "'";
+						$word_insert_sql[$word_in] .= ( $word_insert_sql[$word_in] != "" ) ? ", '" . $escaped_match . "'" : "'" . $escaped_match . "'";
 					}
 				} 
 			}
@@ -879,7 +881,7 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 			if ( $word[$i] != $prev_word )
 			{
 				$temp_word[] = $word[$i];
-				$word_text_sql .= ( ( $word_text_sql != '' ) ? ', ' : '' ) . "'" . $word[$i] . "'";
+				$word_text_sql .= ( ( $word_text_sql != '' ) ? ', ' : '' ) . "'" . $db->sql_escape($word[$i]) . "'";
 			}
 			$prev_word = $word[$i];
 		}
@@ -924,14 +926,14 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 				{
 					case 'mysql':
 					case 'mysql4':
-						$value_sql .= ( ( $value_sql != '' ) ? ', ' : '' ) . '(\'' . $word[$i] . '\', 0)';
+						$value_sql .= ( ( $value_sql != '' ) ? ', ' : '' ) . '(\'' . $db->sql_escape($word[$i]) . '\', 0)';
 						break;
 					case 'mssql':
-						$value_sql .= ( ( $value_sql != '' ) ? ' UNION ALL ' : '' ) . "SELECT '" . $word[$i] . "', 0";
+						$value_sql .= ( ( $value_sql != '' ) ? ' UNION ALL ' : '' ) . "SELECT '" . $db->sql_escape($word[$i]) . "', 0";
 						break;
 					default:
 						$sql = "INSERT INTO " . KB_WORD_TABLE . " (word_text, word_common) 
-							VALUES ('" . $word[$i] . "', 0)"; 
+							VALUES ('" . $db->sql_escape($word[$i]) . "', 0)";
 						if( !$db->sql_query($sql) )
 						{
 							message_die(GENERAL_ERROR, 'Could not insert new word', '', __LINE__, __FILE__, $sql);
@@ -963,7 +965,7 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 		}
 	}
 
-	while( list($word_in, $match_sql) = @each($word_insert_sql) )
+	foreach ($word_insert_sql as $word_in => $match_sql)
 	{
 		$title_match = ( $word_in == 'title' ) ? 1 : 0;
 

@@ -13,6 +13,7 @@ $root = dirname(dirname(__DIR__));
 $functions = file_get_contents($root . '/phpBB2/includes/functions_kb.php');
 $admin = file_get_contents($root . '/phpBB2/admin/admin_kb_art.php');
 $moderator = file_get_contents($root . '/phpBB2/includes/kb_moderator.php');
+$search = file_get_contents($root . '/phpBB2/kb_search.php');
 
 kb_runtime_assert(strpos($functions, "\$article_link = '<a") !== false, 'article link must not overwrite the database row');
 kb_runtime_assert(strpos($functions, "\$postrow[\$i]['link_rating']") === false, 'KB ratings must not read an unrelated post row');
@@ -26,5 +27,9 @@ kb_runtime_assert(strpos($admin, "isset(\$_POST['c'])") !== false, 'article dele
 kb_runtime_assert(strpos($admin, "isset(\$_POST['a']) ? (int) \$_POST['a']") !== false, 'admin article ID must be normalized');
 kb_runtime_assert(strpos($admin, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'AdminCP article deletion must remove vote rows');
 kb_runtime_assert(strpos($moderator, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'moderator article deletion must remove vote rows');
+kb_runtime_assert(strpos($functions, '$db->sql_escape($search_matches[$i])') !== false, 'indexed Knowledge Base words must be escaped at the SQL boundary');
+kb_runtime_assert(strpos($search, "\$row[\$temp_row['article_id']] = 1") !== false, 'AND searches must track article IDs rather than an undefined post ID');
+kb_runtime_assert(strpos($search, '$db->sql_escape(str_replace') !== false, 'Knowledge Base search terms must be escaped at the SQL boundary');
+kb_runtime_assert(strpos($search, '$result_list[$post_id]') === false, 'Knowledge Base result intersection must not use an undefined post ID');
 
 echo "Knowledge Base runtime safety tests passed.\n";

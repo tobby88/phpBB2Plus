@@ -1218,7 +1218,7 @@ else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_
 else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_POST['submitavatar']) && !isset($_POST['cancelavatar']) && isset($_GET['second']) )
 {
 	$strip_var_list = array('user_id' => 'user_id', 'username' => 'username', 'email' => 'email', 'icq' => 'icq', 'aim' => 'aim', 'msn' => 'msn', 'yim' => 'yim', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests');
-	while( list($var, $param) = @each($strip_var_list) )
+	foreach ($strip_var_list as $var => $param)
 	{
 		if ( usercp_post_scalar($param) !== '' )
 		{

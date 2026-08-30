@@ -937,9 +937,14 @@ function get_var($var_name, $default, $multibyte = false)
 	}
 	else
 	{
-		list($key_type, $type) = each($default);
-		$type = gettype($type);
-		$key_type = gettype($key_type);
+		$key_sample = null;
+		$type_sample = null;
+		foreach ($default as $key_sample => $type_sample)
+		{
+			break;
+		}
+		$type = gettype($type_sample);
+		$key_type = gettype($key_sample);
 	}
 
 	if (is_array($var))

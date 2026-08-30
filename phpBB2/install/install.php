@@ -193,7 +193,7 @@ function guess_lang()
 		for ($i = 0; $i < sizeof($accept_lang_ary); $i++)
 		{
 			@reset($match_lang);
-			while (list($lang, $match) = each($match_lang))
+			foreach ($match_lang as $lang => $match)
 			{
 				if (preg_match('#' . $match . '#i', trim($accept_lang_ary[$i])))
 				{
@@ -216,68 +216,31 @@ function guess_lang()
 // Begin
 error_reporting  (E_ERROR | E_WARNING | E_PARSE); // This will NOT report uninitialized variables
 
-// Slash data if it isn't slashed
-if (true)
+function install_slash_request_value($value)
 {
-	if (is_array($_GET))
+	if (is_array($value))
 	{
-		while (list($k, $v) = each($_GET))
+		foreach ($value as $key => $child)
 		{
-			if (is_array($_GET[$k]))
-			{
-				while (list($k2, $v2) = each($_GET[$k]))
-				{
-					$_GET[$k][$k2] = addslashes($v2);
-				}
-				@reset($_GET[$k]);
-			}
-			else
-			{
-				$_GET[$k] = addslashes($v);
-			}
+			$value[$key] = install_slash_request_value($child);
 		}
-		@reset($_GET);
+		return $value;
 	}
+	return is_scalar($value) ? addslashes((string) $value) : '';
+}
 
-	if (is_array($_POST))
-	{
-		while (list($k, $v) = each($_POST))
-		{
-			if (is_array($_POST[$k]))
-			{
-				while (list($k2, $v2) = each($_POST[$k]))
-				{
-					$_POST[$k][$k2] = addslashes($v2);
-				}
-				@reset($_POST[$k]);
-			}
-			else
-			{
-				$_POST[$k] = addslashes($v);
-			}
-		}
-		@reset($_POST);
-	}
-
-	if (is_array($HTTP_COOKIE_VARS))
-	{
-		while (list($k, $v) = each($HTTP_COOKIE_VARS))
-		{
-			if (is_array($HTTP_COOKIE_VARS[$k]))
-			{
-				while (list($k2, $v2) = each($HTTP_COOKIE_VARS[$k]))
-				{
-					$HTTP_COOKIE_VARS[$k][$k2] = addslashes($v2);
-				}
-				@reset($HTTP_COOKIE_VARS[$k]);
-			}
-			else
-			{
-				$HTTP_COOKIE_VARS[$k] = addslashes($v);
-			}
-		}
-		@reset($HTTP_COOKIE_VARS);
-	}
+// The legacy installer SQL builder expects slashed request values.
+if (is_array($_GET))
+{
+	$_GET = install_slash_request_value($_GET);
+}
+if (is_array($_POST))
+{
+	$_POST = install_slash_request_value($_POST);
+}
+if (is_array($HTTP_COOKIE_VARS))
+{
+	$HTTP_COOKIE_VARS = install_slash_request_value($HTTP_COOKIE_VARS);
 }
 
 // Begin main prog
@@ -593,7 +556,7 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 	@reset($lang_options);
 
 	$lang_select = '<select name="lang" onchange="this.form.submit()">';
-	while (list($displayname, $filename) = @each($lang_options))
+	foreach ($lang_options as $displayname => $filename)
 	{
 		$selected = ($language == $filename) ? ' selected="selected"' : '';
 		$lang_select .= '<option value="' . $filename . '"' . $selected . '>' . ucwords($displayname) . '</option>';
@@ -601,7 +564,7 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 	$lang_select .= '</select>';
 
 	$dbms_select = '<select name="dbms" onchange="if(this.form.upgrade.options[this.form.upgrade.selectedIndex].value == 1){ this.selectedIndex = 0;}">';
-	while (list($dbms_name, $details) = @each($available_dbms))
+	foreach ($available_dbms as $dbms_name => $details)
 	{
 		$selected = ($dbms_name == $dbms) ? 'selected="selected"' : '';
 		$dbms_select .= '<option value="' . $dbms_name . '">' . $details['LABEL'] . '</option>';
@@ -845,11 +808,11 @@ else
 				'cookie_secure'	=> ($site_protocol === 'https://') ? 1 : 0,
 			);
 
-			while (list($config_name, $config_value) = each($update_config))
+			foreach ($update_config as $config_name => $config_value)
 			{
-				$sql = "UPDATE " . $table_prefix . "config 
-					SET config_value = '$config_value' 
-					WHERE config_name = '$config_name'";
+				$sql = "UPDATE " . $table_prefix . "config
+					SET config_value = '" . $db->sql_escape($config_value) . "'
+					WHERE config_name = '" . $db->sql_escape($config_name) . "'";
 				if (!$db->sql_query($sql))
 				{
 					$error .= "Could not insert default_lang :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";

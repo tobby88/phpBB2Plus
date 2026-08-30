@@ -150,7 +150,7 @@ switch($mode)
 
 							if ( !strstr($multibyte_charset, $lang['ENCODING']) )
 							{
-							    $match_word = str_replace('*', '%', $split_search[$i]);
+							    $match_word = $db->sql_escape(str_replace('*', '%', $split_search[$i]));
 								$sql = "SELECT m.article_id 
 								    FROM " . KB_WORD_TABLE . " w, " . KB_MATCH_TABLE . " m 
 									WHERE w.word_text LIKE '$match_word' 
@@ -160,7 +160,7 @@ switch($mode)
 							}
 							else
 							{
-							    $match_word =  addslashes('%' . str_replace('*', '', $split_search[$i]) . '%');
+							    $match_word = $db->sql_escape('%' . str_replace('*', '', $split_search[$i]) . '%');
 								$search_msg_only = ( $search_fields ) ? "OR article_title LIKE '$match_word'" : '';
 								$sql = "SELECT article_id
 								    FROM " . KB_ARTICLE_TABLE . "
@@ -175,7 +175,7 @@ switch($mode)
 							$row = array();
 							while( $temp_row = $db->sql_fetchrow($result) )
 							{
-							    $row[$temp_row['post_id']] = 1;
+							    $row[$temp_row['article_id']] = 1;
 
 								if ( !$word_count )
 								{
@@ -193,12 +193,11 @@ switch($mode)
 
 							if ( $current_match_type == 'and' && $word_count )
 							{
-							    @reset($result_list);
-							    while( list($article_id, $match_count) = @each($result_list) )
+							    foreach ($result_list as $article_id => $match_count)
 							    {
-								    if ( !$row[$post_id] )
-									{
-									    $result_list[$post_id] = 0;
+								    if ( empty($row[$article_id]) )
+								{
+									    $result_list[$article_id] = 0;
 									}
 								}
 							}
@@ -209,10 +208,8 @@ switch($mode)
 					    }
 			    	}
 
-					@reset($result_list);
-
 					$search_ids = array();
-					while( list($article_id, $matches) = each($result_list) )
+					foreach ($result_list as $article_id => $matches)
 					{
 				        if ( $matches )
 						{

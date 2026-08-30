@@ -33,6 +33,20 @@ foreach (array('phpBB2/includes/usercp_avatar.php', 'phpBB2/admin/admin_users.ph
 	}
 }
 
+$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/phpBB2', FilesystemIterator::SKIP_DOTS));
+foreach ($iterator as $file)
+{
+	if (strtolower($file->getExtension()) !== 'php')
+	{
+		continue;
+	}
+	$body = (string) @file_get_contents($file->getPathname());
+	if (preg_match('/(?<![A-Za-z0-9_])each\s*\(/', $body))
+	{
+		$errors[] = 'Removed each() iterator returned in ' . $file->getPathname();
+	}
+}
+
 if ($errors)
 {
 	fwrite(STDERR, implode("\n", $errors) . "\n");
@@ -40,4 +54,3 @@ if ($errors)
 }
 
 echo "Directory iteration safety checks passed.\n";
-

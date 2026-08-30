@@ -22,6 +22,7 @@ $admin_fchecker = file_get_contents($root . '/phpBB2/admin/admin_pa_fchecker.php
 $pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions.php');
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
+$pafiledb_search = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_search.php');
 
 pafiledb_admin_assert(strpos($admin_category, "array('do_add', 'do_delete', 'cat_order', 'sync', 'sync_all')") !== false, 'all category mutations must be identified');
 pafiledb_admin_assert(strpos($admin_category, 'phpbb_admin_require_post_session();') !== false, 'category mutations must require a POST token');
@@ -92,5 +93,7 @@ pafiledb_admin_assert(strpos($admin_fchecker, "basename(str_replace('\\\\', '/',
 pafiledb_admin_assert(strpos($admin_fchecker, 'UNION SELECT mirror_id') !== false, 'file checker must count mirror uploads as referenced');
 pafiledb_admin_assert(strpos($admin_fchecker, '$db->sql_escape($temp)') !== false, 'file checker filenames must be escaped at the SQL boundary');
 pafiledb_admin_assert(strpos($admin_fchecker, "'DEL_FILE' => phpbb_admin_html") !== false, 'file checker output must be escaped');
+pafiledb_admin_assert(strpos($pafiledb_search, '$db->sql_escape(') !== false, 'paFileDB search terms must be escaped at the SQL boundary');
+pafiledb_admin_assert(strpos($pafiledb_search, 'each($result_list)') === false, 'paFileDB search must not use the removed each() iterator');
 
 echo "paFileDB administration safety tests passed.\n";

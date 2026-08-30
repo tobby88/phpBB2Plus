@@ -1005,9 +1005,7 @@ function album_build_url_parameters($parameters)
 {
 	$url_prefix = '?';
 	$url_parameters = '';		
-	reset($parameters);
-	
-	while (list($key, $value) = each($parameters)) 
+	foreach ($parameters as $key => $value)
 	{
 		$url_parameters .= "$url_prefix$key=$value";
 		$url_prefix = '&';

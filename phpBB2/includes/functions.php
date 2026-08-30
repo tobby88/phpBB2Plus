@@ -756,7 +756,7 @@ function init_userprefs($userdata)
 		$is_auth_ary = auth(AUTH_READ, AUTH_LIST_ALL, $userdata);
 
 		$ignore_forum_sql = '';
-		while( list($key, $value) = each($is_auth_ary) )
+		foreach ($is_auth_ary as $key => $value)
 		{
 			if ( !$value['auth_read'] )
 			{

@@ -26,7 +26,7 @@ function usercp_signature_avatar_file_scalar($name, $default = '')
 }
 
 $strip_var_list = array('editprofile' => 'editprofile', 'username' => 'username', 'email' => 'email', 'icq' => 'icq', 'aim' => 'aim', 'msn' => 'msn', 'yim' => 'yim', 'fb' => 'fb', 'ig' => 'ig', 'pt' => 'pt', 'twr' => 'twr', 'skp' => 'skp', 'tg' => 'tg', 'li' => 'li', 'tt' => 'tt', 'dc' => 'dc', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests');
-while( list($var, $param) = @each($strip_var_list) )
+foreach ($strip_var_list as $var => $param)
 {
 	if ( usercp_signature_post_scalar($param) !== '' )
 	{

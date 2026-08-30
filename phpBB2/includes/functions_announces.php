@@ -128,7 +128,7 @@ function announces_from_forums($cur='Root', $force_prune=false)
 		$is_auth = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
 
 		// get the list of authorized forums except the current one
-		while (list($forum_id, $forum_auth) = each($is_auth))
+		foreach ($is_auth as $forum_id => $forum_auth)
 		{
 			if ( $forum_auth['auth_read'] && ($cur != POST_FORUM_URL . $forum_id) )
 			{

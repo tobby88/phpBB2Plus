@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed the final runtime and installer dependencies on PHP's removed
+  `each()` API, including authorization, bookmarks, Album/paFileDB smilies,
+  attachment input normalization, Knowledge Base and paFileDB search, private
+  message counters, groups, registration, signatures, MiniCal and upgrade
+  routines. The compatibility polyfill is no longer needed. Knowledge Base
+  AND-search now intersects real article IDs instead of undefined post IDs,
+  and both Knowledge Base indexing/search and paFileDB search escape terms at
+  their SQL boundaries.
 - Removed another set of PHP 8 failure paths from language, MOD-settings,
   database-maintenance, Album and avatar-gallery directory scans by checking
   directory handles before iteration. User and AdminCP avatar galleries no

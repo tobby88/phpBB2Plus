@@ -592,7 +592,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 //			}
 //
 //			$ignore_forum_sql = '';
-//			while( list($key, $value) = each($is_auth_ary) )
+//			foreach ($is_auth_ary as $key => $value)
 //			{
 //				if ( !$value['auth_read'] )
 //				{
@@ -1757,7 +1757,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 //	//
 $s_categories = '';
 //	$s_categories = '<option value="-1">' . $lang['All_available'] . '</option>';
-//	while( list($cat_id, $cat_title) = @each($list_cat))
+//	foreach ($list_cat as $cat_id => $cat_title)
 //	{
 //		$s_categories .= '<option value="' . $cat_id . '">' . $cat_title . '</option>';
 //	}
