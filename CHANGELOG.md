@@ -29,7 +29,9 @@ changes consolidated after that baseline without implying active maintenance.
   and to country-flag saves/deletes. Flag image names are confined to plain
   local GIF, PNG or JPEG filenames and SQL values use the database driver's
   escaping boundary. The same scalar/type and SQL-boundary checks now protect
-  paFileDB category and custom-field internals.
+  paFileDB category and custom-field internals. Category ordering and
+  synchronization now also use tokenized POST forms instead of write-capable
+  GET links, with strict category and movement validation.
 - Kept localized Arcade highscore positions available when extension language
   files are loaded from inside phpBB's user-preference initializer. Position
   formatting now also handles incomplete language packs and invalid ranks

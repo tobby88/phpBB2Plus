@@ -31,10 +31,16 @@ $pafiledb->init();
 $mode = (isset($_REQUEST['mode']) && is_scalar($_REQUEST['mode'])) ? htmlspecialchars((string) $_REQUEST['mode']) : '';
 $cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
 $cat_id_other = (isset($_REQUEST['cat_id_other']) && is_scalar($_REQUEST['cat_id_other'])) ? intval($_REQUEST['cat_id_other']) : 0;
+$move = (isset($_POST['move']) && is_scalar($_POST['move'])) ? intval($_POST['move']) : 0;
 
-if (in_array($mode, array('do_add', 'do_delete'), true))
+if (in_array($mode, array('do_add', 'do_delete', 'cat_order', 'sync', 'sync_all'), true))
 {
 	phpbb_admin_require_post_session();
+}
+
+if (in_array($mode, array('cat_order', 'sync'), true) && !isset($pafiledb->cat_rowset[$cat_id_other]))
+{
+	message_die(GENERAL_ERROR, 'Invalid paFileDB category.');
 }
 
 if($mode == 'do_add' && !$cat_id)
@@ -70,7 +76,11 @@ elseif($mode == 'do_delete')
 }
 elseif($mode == 'cat_order')
 {
-	$pafiledb->order_cat($cat_id_other);
+	if (!in_array($move, array(-15, 15), true))
+	{
+		message_die(GENERAL_ERROR, 'Invalid paFileDB category move.');
+	}
+	$pafiledb->order_cat($cat_id_other, $move);
 }
 elseif($mode == 'sync')
 {
@@ -136,7 +146,8 @@ if($mode == '' || $mode == 'cat_order' || $mode == 'sync' || $mode == 'sync_all'
 		'L_MOVE_UP' => $lang['Move_up'],
 		'L_MOVE_DOWN' => $lang['Move_down'],
 		'L_SUB_CAT' => $lang['Sub_category'],
-		'L_RESYNC' => $lang['Resync'])
+		'L_RESYNC' => $lang['Resync'],
+		'S_SYNC_ALL_FORM' => pa_admin_category_action_form('sync_all', 0, $lang['Resync']))
 	);
 	admin_cat_main($cat_id);
 }
@@ -278,7 +289,7 @@ include('./page_footer_admin.'.$phpEx);
 
 function admin_cat_main($cat_parent = 0, $depth = 0)
 {
-	global $pafiledb, $phpbb_root_path, $pafiledb_template, $phpEx;
+	global $pafiledb, $phpbb_root_path, $pafiledb_template, $phpEx, $lang;
 
 	$pre = str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;', $depth);
 	if(isset($pafiledb->subcat_rowset[$cat_parent]))
@@ -290,9 +301,9 @@ function admin_cat_main($cat_parent = 0, $depth = 0)
 				'U_CAT' => append_sid('admin_pa_category.php?cat_id=' . $subcat_id),
 				'U_CAT_EDIT' => append_sid("admin_pa_category.$phpEx?mode=edit&amp;cat_id=$subcat_id"),
 				'U_CAT_DELETE' => append_sid("admin_pa_category.$phpEx?mode=delete&amp;cat_id=$subcat_id"),
-				'U_CAT_MOVE_UP' => append_sid("admin_pa_category.$phpEx?mode=cat_order&amp;move=-15&amp;cat_id_other=$subcat_id"),
-				'U_CAT_MOVE_DOWN' => append_sid("admin_pa_category.$phpEx?mode=cat_order&amp;move=15&amp;cat_id_other=$subcat_id"),
-				'U_CAT_RESYNC' => append_sid("admin_pa_category.$phpEx?mode=sync&amp;cat_id_other=$subcat_id"),
+				'S_CAT_MOVE_UP_FORM' => pa_admin_category_action_form('cat_order', $subcat_id, $lang['Move_up'], -15),
+				'S_CAT_MOVE_DOWN_FORM' => pa_admin_category_action_form('cat_order', $subcat_id, $lang['Move_down'], 15),
+				'S_CAT_RESYNC_FORM' => pa_admin_category_action_form('sync', $subcat_id, $lang['Resync']),
 				'CAT_NAME' => $cat_data['cat_name'],
 				'PRE' => $pre)
 			);
@@ -301,5 +312,24 @@ function admin_cat_main($cat_parent = 0, $depth = 0)
 		return;
 	}
 	return;
+}
+
+function pa_admin_category_action_form($mode, $cat_id, $label, $move = 0)
+{
+	global $phpEx;
+
+	$fields = '<input type="hidden" name="mode" value="' . phpbb_admin_html($mode) . '" />';
+	if ($cat_id)
+	{
+		$fields .= '<input type="hidden" name="cat_id_other" value="' . (int) $cat_id . '" />';
+	}
+	if ($move)
+	{
+		$fields .= '<input type="hidden" name="move" value="' . (int) $move . '" />';
+	}
+	$fields .= phpbb_admin_session_field();
+
+	return '<form method="post" action="' . append_sid("admin_pa_category.$phpEx") . '" style="display: inline;">' .
+		$fields . '<input type="submit" class="liteoption" value="' . phpbb_admin_html($label) . '" /></form>';
 }
 ?>

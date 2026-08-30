@@ -1447,11 +1447,16 @@ class pafiledb
 		}
 	}
 	
-	function order_cat($cat_id)
+	function order_cat($cat_id, $move)
 	{
-		global $db, $_GET;
+		global $db;
 
-		$move = (isset($_GET['move'])) ? intval($_GET['move']) : 15;
+		$cat_id = (int) $cat_id;
+		$move = (int) $move;
+		if (!isset($this->cat_rowset[$cat_id]) || !in_array($move, array(-15, 15), true))
+		{
+			return;
+		}
 		$cat_parent = $this->cat_rowset[$cat_id]['cat_parent'];
 
 		$sql = 'UPDATE ' . PA_CATEGORY_TABLE . "
@@ -1470,6 +1475,11 @@ class pafiledb
 	function sync($cat_id, $init = true)
 	{
 		global $db;
+		$cat_id = (int) $cat_id;
+		if (!isset($this->cat_rowset[$cat_id]))
+		{
+			return;
+		}
 
 		$cat_nav = array();
 		$this->category_nav($this->cat_rowset[$cat_id]['cat_parent'], $cat_nav);

@@ -16,14 +16,19 @@ $admin_flags = file_get_contents($root . '/phpBB2/admin/admin_flags.php');
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
 
-pafiledb_admin_assert(strpos($admin_category, "array('do_add', 'do_delete')") !== false, 'category mutations must be identified');
+pafiledb_admin_assert(strpos($admin_category, "array('do_add', 'do_delete', 'cat_order', 'sync', 'sync_all')") !== false, 'all category mutations must be identified');
 pafiledb_admin_assert(strpos($admin_category, 'phpbb_admin_require_post_session();') !== false, 'category mutations must require a POST token');
+pafiledb_admin_assert(strpos($admin_category, "\$_POST['move']") !== false, 'category ordering must read its direction from POST');
+pafiledb_admin_assert(strpos($admin_category, 'pa_admin_category_action_form') !== false, 'category maintenance actions must render tokenized POST forms');
+pafiledb_admin_assert(strpos($admin_category, '?mode=cat_order') === false, 'category ordering must not use a GET mutation');
+pafiledb_admin_assert(strpos($admin_category, '?mode=sync') === false, 'category synchronization must not use a GET mutation');
 pafiledb_admin_assert(strpos($admin_custom, 'phpbb_admin_require_post_session();') !== false, 'custom-field mutations must require a POST token');
 pafiledb_admin_assert(strpos($admin_custom, "isset(\$_POST['field_ids']) && is_array") !== false, 'custom-field deletion IDs must be a POST array');
 
 pafiledb_admin_assert(strpos($field_functions, '$field_id = (int) $field_id;') !== false, 'custom-field IDs must be integers');
 pafiledb_admin_assert(strpos($field_functions, '$db->sql_escape(serialize($data))') !== false, 'serialized custom-field data must be escaped at the SQL boundary');
 pafiledb_admin_assert(strpos($category_functions, '$cat_id = (int) $cat_id;') !== false, 'category IDs must be integers');
+pafiledb_admin_assert(strpos($category_functions, 'function order_cat($cat_id, $move)') !== false, 'category ordering must receive a validated move value');
 pafiledb_admin_assert(strpos($category_functions, "array('move', 'delete'), true") !== false, 'category delete modes must use a strict allowlist');
 pafiledb_admin_assert(strpos($category_functions, '!isset($this->cat_rowset[$cat_parent])') !== false, 'category parents must exist');
 
