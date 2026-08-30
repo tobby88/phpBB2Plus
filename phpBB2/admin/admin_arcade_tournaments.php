@@ -51,8 +51,9 @@ $file = basename(__FILE__);
 //
 //  Get required Variables
 //
-$mode       = $arcade->pass_var('mode', '');
-$tour_id    = (int) $arcade->pass_var('id', 0);
+$mode       = (string) $arcade->pass_var('mode', '');
+$mode       = in_array($mode, array('', 'add_tour', 'edit', 'add_games'), true) ? $mode : '';
+$tour_id    = max(0, (int) $arcade->pass_var('id', 0));
 $tour_name  = $tour_desc = '';
 $tour_players = 2;
 $tour_turns = 1;
@@ -64,28 +65,18 @@ $select_active = '';
 $select_cat = '';
 $tour_info = array('tour_name' => '', 'tour_desc' => '', 'tour_max_players' => 2, 'tour_player_turns' => 1, 'block_plays' => 0, 'tour_active' => 0);
 
-function arcade_tournament_require_token($userdata, $lang)
+if (isset($HTTP_POST_VARS['delete_tour']) && is_scalar($HTTP_POST_VARS['delete_tour']))
 {
-  global $HTTP_POST_VARS;
-  if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) ||
-    !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-  {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-  }
-}
-
-if (isset($HTTP_POST_VARS['delete_tour']))
-{
-  arcade_tournament_require_token($userdata, $lang);
+  phpbb_admin_require_post_session();
   $mode = 'delete';
-  $tour_id = intval($HTTP_POST_VARS['delete_tour']);
+  $tour_id = max(0, intval($HTTP_POST_VARS['delete_tour']));
 }
 //
 //  Update Tournament Config
 //
 if(isset($HTTP_POST_VARS['tour_submit']))
 {
-  arcade_tournament_require_token($userdata, $lang);
+  phpbb_admin_require_post_session();
   $sql = "SELECT * FROM " . iNA . "
   	WHERE config_name IN('games_tournament_mode','games_tournament_max','games_tournament_games','games_tournament_players', 'games_tournament_user')";
   if( !$result = $db->sql_query($sql) )
@@ -103,9 +94,9 @@ if(isset($HTTP_POST_VARS['tour_submit']))
 //
 //  next update the different Cache settings
 //
-		$new[$config_name] = isset($HTTP_POST_VARS[$config_name]) ? max(0, intval($HTTP_POST_VARS[$config_name])) : $default_config[$config_name];
-		if (in_array($config_name, array('games_tournament_max', 'games_tournament_games'), true)) { $new[$config_name] = max(1, (int) $new[$config_name]); }
-		if ($config_name === 'games_tournament_players') { $new[$config_name] = max(2, (int) $new[$config_name]); }
+		$new[$config_name] = (isset($HTTP_POST_VARS[$config_name]) && is_scalar($HTTP_POST_VARS[$config_name])) ? max(0, intval($HTTP_POST_VARS[$config_name])) : $default_config[$config_name];
+		if (in_array($config_name, array('games_tournament_max', 'games_tournament_games'), true)) { $new[$config_name] = min(10000, max(1, (int) $new[$config_name])); }
+		if ($config_name === 'games_tournament_players') { $new[$config_name] = min(10000, max(2, (int) $new[$config_name])); }
 		if ($config_name === 'games_tournament_user') { $new[$config_name] = $new[$config_name] ? 1 : 0; }
 
 		$sql = "UPDATE " . iNA . "
@@ -131,12 +122,12 @@ if(isset($HTTP_POST_VARS['tour_submit']))
 //
 else if(isset($HTTP_POST_VARS['add_tour_submit']))
 {
-  arcade_tournament_require_token($userdata, $lang);
+  phpbb_admin_require_post_session();
 //
 //  Here we have to ADD the games and save the header information
 //
-  $tour_name = isset($HTTP_POST_VARS['tour_name']) ? substr(trim(stripslashes($HTTP_POST_VARS['tour_name'])), 0, 25) : '';
-  $tour_desc = isset($HTTP_POST_VARS['tour_desc']) ? trim(stripslashes($HTTP_POST_VARS['tour_desc'])) : '';
+  $tour_name = (isset($HTTP_POST_VARS['tour_name']) && is_scalar($HTTP_POST_VARS['tour_name'])) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])), 0, 25) : '';
+  $tour_desc = (isset($HTTP_POST_VARS['tour_desc']) && is_scalar($HTTP_POST_VARS['tour_desc'])) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])), 0, 65535) : '';
   if ($tour_name === '')
   {
     message_die(GENERAL_MESSAGE, $lang['error_no_tour_info']);
@@ -153,7 +144,7 @@ else if(isset($HTTP_POST_VARS['add_tour_submit']))
   {
     $tour_max_players = $maximum_players;
   }
-  $tour_player_turns = (int) $arcade->pass_var('tour_player_turns', 0);
+  $tour_player_turns = min(10000, (int) $arcade->pass_var('tour_player_turns', 0));
   if($tour_player_turns < 1)
   {
     $tour_player_turns = 1;
@@ -161,6 +152,12 @@ else if(isset($HTTP_POST_VARS['add_tour_submit']))
 
   if($tour_id > 0)
   {
+	$sql = "SELECT tour_id FROM " . iNA_TOUR . " WHERE tour_id = $tour_id";
+	$result = $db->sql_query($sql);
+	if (!$result || !$db->sql_fetchrow($result))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
 //
 //  Update OLD Tournament
 //
@@ -171,6 +168,17 @@ else if(isset($HTTP_POST_VARS['add_tour_submit']))
   }
   else
   {
+	$maximum_tournaments = max(1, (int) $arcade->arcade_config['games_tournament_max']);
+	$sql = "SELECT COUNT(*) AS total FROM " . iNA_TOUR . " WHERE tour_active <> 3";
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+	}
+	$active_tournaments = $db->sql_fetchrow($result);
+	if ((int) $active_tournaments['total'] >= $maximum_tournaments)
+	{
+		message_die(GENERAL_MESSAGE, $lang['error_no_tour_info']);
+	}
 //
 //  New Tournmament
 //
@@ -212,7 +220,7 @@ else if(isset($HTTP_POST_VARS['add_games']))
 //
 if(isset($HTTP_POST_VARS['add_game']))
 {
-  arcade_tournament_require_token($userdata, $lang);
+  phpbb_admin_require_post_session();
   $games_list = isset($HTTP_POST_VARS['game_id']) ? $HTTP_POST_VARS['game_id'] : 0;
 
   if($tour_id <= 0)
@@ -226,8 +234,21 @@ if(isset($HTTP_POST_VARS['add_game']))
   }
   if(is_array($games_list))
   {
+	$maximum_games = max(1, (int) $arcade->arcade_config['games_tournament_games']);
+	$sql = "SELECT game_name FROM " . iNA_TOUR_DATA . " WHERE tour_id = " . (int) $tour_id;
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+	}
+	$existing_games = array();
+	while ($existing_game = $db->sql_fetchrow($result))
+	{
+		$existing_games[(string) $existing_game['game_name']] = true;
+	}
     for($i = (count($games_list)); $i > 0;$i--)
     {
+	  if (count($existing_games) >= $maximum_games) { break; }
+	  if (!is_scalar($games_list[$i - 1])) { continue; }
       $selected_game_id = intval($games_list[($i - 1)]);
       if ($selected_game_id <= 0) { continue; }
       $sql = "SELECT game_name FROM " . iNA_GAMES . "
@@ -241,13 +262,14 @@ if(isset($HTTP_POST_VARS['add_game']))
 //
 //
 //
-      if (!$game_info) { continue; }
+      if (!$game_info || isset($existing_games[(string) $game_info['game_name']])) { continue; }
       $sql = "INSERT IGNORE INTO " . iNA_TOUR_DATA . "
         (tour_id, game_name) VALUES (" . (int) $tour_id . ", '" . $db->sql_escape($game_info['game_name']) . "')";
-    	if( !$result = $db->sql_query($sql) )
-    	{
-    		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
+      if (!$result = $db->sql_query($sql))
+      {
+        message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
       }
+	  $existing_games[(string) $game_info['game_name']] = true;
     }
   }
 
@@ -260,6 +282,12 @@ if ($mode == 'delete')
   {
     message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
   }
+	$sql = "SELECT tour_id FROM " . iNA_TOUR . " WHERE tour_id = $tour_id";
+	$result = $db->sql_query($sql);
+	if (!$result || !$db->sql_fetchrow($result))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
   $sql = "DELETE FROM " . iNA_TOUR . "
     WHERE tour_id = ". $tour_id;
 	if( !$result = $db->sql_query($sql) )
@@ -354,7 +382,7 @@ else if ($mode == 'add_games')
   }
   $sql = "SELECT * FROM " . iNA_GAMES . "
     WHERE game_avail = 1
-      ORDER by game_id " . $arcade->arcade_config['default_sort_order'];
+      ORDER by game_id " . (strtoupper((string) $arcade->arcade_config['default_sort_order']) === 'ASC' ? 'ASC' : 'DESC');
  	if( !$result = $db->sql_query($sql) )
  	{
  		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
@@ -373,18 +401,22 @@ else if ($mode == 'add_games')
        	{
        		message_die(GENERAL_ERROR, $lang['no_game_data'], "", __LINE__, __FILE__, $sql);
        	}
-        $cat_row = $db->sql_fetchrow($result);
+        $loaded_cat_row = $db->sql_fetchrow($result);
+		if ($loaded_cat_row)
+		{
+			$cat_row = $loaded_cat_row;
+		}
       }
       
       $template->assign_block_vars('game', array(
   			'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2',
   			
 			'ID' => (int) $game_rows[$i]['game_id'],
-        'NAME' => htmlspecialchars($game_rows[$i]['game_name'], ENT_QUOTES, 'UTF-8'),
-        'DESC' => htmlspecialchars($game_rows[$i]['game_desc'], ENT_QUOTES, 'UTF-8'),
-        'CAT_ID' => htmlspecialchars(($game_rows[$i]['cat_id'] > 0) ? $cat_row['cat_name'] : $lang['None'], ENT_QUOTES, 'UTF-8'),
+        'NAME' => phpbb_admin_html($game_rows[$i]['game_name']),
+        'DESC' => phpbb_admin_html($game_rows[$i]['game_desc']),
+        'CAT_ID' => phpbb_admin_html(($game_rows[$i]['cat_id'] > 0) ? $cat_row['cat_name'] : $lang['None']),
 		'SELECT' => '<input type="checkbox" name="game_id[]" value="'.(int) $game_rows[$i]['game_id'].'">'
-		,'IMAGE' => htmlspecialchars(ina_find_image($game_rows[$i]['game_path'], $game_rows[$i]['game_name'], $game_rows[$i]['image_path'], './../'), ENT_QUOTES, 'UTF-8')
+		,'IMAGE' => phpbb_admin_html(ina_find_image($game_rows[$i]['game_path'], $game_rows[$i]['game_name'], $game_rows[$i]['image_path'], './../'))
 		,'IMAGE_WIDTH' => (int) $arcade->arcade_config['games_image_width']
 		,'IMAGE_HEIGHT' => (int) $arcade->arcade_config['games_image_height']
         
@@ -486,7 +518,7 @@ if(is_array($cat_rows))
   for($i = 0; $i < count($cat_rows); $i++)
   {
   	$selected = ( $cat_rows[$i]['cat_id'] == -1 ) ? ' selected="selected"' : '';
-	$select_cat .= '<option value="' . (int) $cat_rows[$i]['cat_id'] . '"' . $selected . '>' . htmlspecialchars($cat_rows[$i]['cat_name'], ENT_QUOTES, 'UTF-8') . '</option>';
+	$select_cat .= '<option value="' . (int) $cat_rows[$i]['cat_id'] . '"' . $selected . '>' . phpbb_admin_html($cat_rows[$i]['cat_name']) . '</option>';
   }
   $select_cat.= '</select>';
 }
@@ -537,7 +569,7 @@ $template->assign_vars(array(
 		'L_NONE' => $lang['None'],
 		'L_YES' => $lang['Yes'],
 		'L_NO' => $lang['No'],
-		'L_CONFIRM_DELETE' => $lang['Confirm_delete_tournament'],
+		'L_CONFIRM_DELETE' => phpbb_admin_html(addslashes($lang['Confirm_delete_tournament'])),
 
     'NAME' => htmlspecialchars($tour_name, ENT_QUOTES, 'UTF-8'),
     'DESC' => htmlspecialchars($tour_desc, ENT_QUOTES, 'UTF-8'),
@@ -567,7 +599,7 @@ $template->assign_vars(array(
 		'S_USER_START_NO' => ($arcade->arcade_config['games_tournament_user'] ? '' : 'checked=checked'),
 		
 		'S_HIDDEN_ADD' => '<input type="hidden" name="id" value="'.(int) $tour_id.'">',
-		'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+		'S_FORM_TOKEN' => phpbb_admin_session_field(),
 		'S_ACTION' => append_sid($file),
 		'S_CONFIG_ACTION' => append_sid($file)
       ));

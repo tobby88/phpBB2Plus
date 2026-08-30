@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Arcade tournament administration with allowlisted modes, scalar and
+  bounded settings, verified tournament/game records and the central
+  session-bound AdminCP POST token. Creation now enforces the configured number
+  of concurrent tournaments, game assignment enforces the per-tournament
+  maximum without duplicating entries, and the configured SQL sort direction
+  is reduced to `ASC` or `DESC`. Tournament, category and game text is escaped
+  consistently in administration output.
 - Hardened Arcade category hierarchy management. Category actions and IDs use
   strict modes and validated records; ordering swaps only an adjacent category
   on the same hierarchy level. Deleting or demoting a parent promotes its
