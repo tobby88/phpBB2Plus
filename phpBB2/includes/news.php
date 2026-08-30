@@ -48,6 +48,7 @@ class NewsModule
   var $config;
   var $name;
   var $item_count;
+  var $syndication;
 
   /**
   * Class constructor.
@@ -73,6 +74,7 @@ class NewsModule
     $this->config     = &$board_config;
     $this->name = 'news';
     $this->item_count = 1;
+	$this->syndication = false;
     
     $index_file = $this->config['news_index_file'];
     if( $this->config['news_base_url'] != '' ) {
@@ -129,15 +131,24 @@ class NewsModule
 	
 	$recent_title = ($plus_config['enable_shorturls']) ? $recent_title_short : $recent_title_long;
 	
+		$article_title = $this->syndication ? $this->xmlText($article['topic_title']) : $article['topic_title'];
+		$article_category = $this->syndication ? $this->xmlText($article['news_category']) : $article['news_category'];
+		$article_body = ($show_abstract && $trimmed) ? $article['post_abstract'] : $article['post_text'];
+		if ($this->syndication)
+		{
+			$article_body = str_replace(']]>', ']]]]><![CDATA[>', $article_body);
+		}
+
         $this->setBlockVariables( 'articles', array(
-                    'L_TITLE' => $article['topic_title'],
+                    'L_TITLE' => $article_title,
                     'L_TITLE_ICON' => get_icon_title($article['topic_icon'], 0, $article['topic_type']).'&nbsp;',
                     'ID' => $article['topic_id'],
 					'KEY' => isset($article['article_key']) ? $article['article_key'] : '',
                     'DAY' => $this->getDay( $article['topic_time'] ),
                     'MONTH' => $this->getMonth( $article['topic_time'] ),
                     'YEAR' => $this->getYear( $article['topic_time'] ),
-                    'CATEGORY' => $article['news_category'],
+					'CATEGORY' => $article_category,
+					'FORUM_NAME' => $article_category,
                     'CAT_ID' => $article['news_id'],
                     'COUNT_VIEWS' => $article['topic_views'],
                     'CAT_IMG' => $this->root_path . 'templates/'.$theme['template_name'].'/images/news/' . $article['news_image'],
@@ -150,7 +161,7 @@ class NewsModule
                     'U_VIEWS' => $this->root_path . 'topic_view_users.' . $this->phpEx . '?t=' . $article['topic_id'],
                     'U_POST_COMMENT' => append_sid('posting.' . $this->phpEx . '?mode=reply&amp;t=' . $article['topic_id']),
                     'COUNT_COMMENTS' => $article['topic_replies'],
-                    'BODY' => ($show_abstract && $trimmed) ? $article['post_abstract'] : $article['post_text'],
+					'BODY' => $article_body,
                     'READ_MORE_LINK' => ($show_abstract && $trimmed) ? '<a href="' . $this->config['news_base_url'] . $this->config['news_index_file'] . '?topic_id=' . $article['topic_id'] . '" alt="' . $lang['Read_More'] . '">' . $lang['Read_More'] . '</a>' : ''
                     ) );
 	display_portal_news_attachments($article['post_id']);
@@ -158,7 +169,7 @@ class NewsModule
       }
     }
 
-    if ( count($articles) == 0 )
+    if (!is_array($articles) || count($articles) == 0)
     {
 	$this->setBlockVariables('no_articles', array(
 		'L_NO_NEWS' => $lang['No_articles']));
@@ -369,27 +380,28 @@ if( $article_id <= 0 )
   */
   function renderSyndication( $num_items = 0 ) 
   {
+	$this->syndication = true;
     $this->setVariables( array( 
-      'TITLE'       => $this->config['sitename'],
-      'URL'         => phpbb_board_url(),
-      'FORUM_PATH'  => $this->config['script_path'],
-      'DESC'        => $this->config['news_rss_desc'],
-      'LANGUAGE'    => $this->config['news_rss_language'],
-      'COPY_RIGHT'  => 'Copyright 2003, ' . $this->config['sitename'],
-      'EDITOR'      => $this->config['board_email'],
-      'WEBMASTER'   => $this->config['board_email'],
-      'TTL'         => $this->config['news_rss_ttl'],
-      'CATEGORY'    => $this->config['news_rss_cat'],
+	  'TITLE'       => $this->xmlText($this->config['sitename']),
+	  'URL'         => $this->xmlText(phpbb_board_url()),
+	  'FORUM_PATH'  => $this->xmlText($this->config['script_path']),
+	  'DESC'        => $this->xmlText($this->config['news_rss_desc']),
+	  'LANGUAGE'    => $this->xmlText($this->config['news_rss_language']),
+	  'COPY_RIGHT'  => $this->xmlText('Copyright 2003, ' . $this->config['sitename']),
+	  'EDITOR'      => $this->xmlText($this->config['board_email']),
+	  'WEBMASTER'   => $this->xmlText($this->config['board_email']),
+	  'TTL'         => max(0, intval($this->config['news_rss_ttl'])),
+	  'CATEGORY'    => $this->xmlText($this->config['news_rss_cat']),
 
-      'GENERATOR'   => 'phpBB2 : CMX News Mod',
+	  'GENERATOR'   => 'phpBB2 : CMX News Mod',
       'PUB_DATE'    => date( 'r', mktime( 0,0,0,date('m'),date('d'),date('y') ) )
       ) );
     
     if( $this->config['news_rss_image'] != '' &&
         $this->config['news_rss_image_desc'] != '' ) {
       $this->setBlockVariables( 'image', array(
-        'IMAGE'       => $this->config['news_rss_image'],
-        'IMAGE_TITLE' => $this->config['news_rss_image_desc']
+		'IMAGE'       => $this->xmlText($this->config['news_rss_image']),
+		'IMAGE_TITLE' => $this->xmlText($this->config['news_rss_image_desc'])
         ));
     }
     
@@ -471,17 +483,19 @@ if( $article_id <= 0 )
     if( $this->item_count > $this->config['news_item_num'] )
     {
       $base_url = $this->config['news_index_file'] . '?news=article';
-       if( isset( $_GET['topic_id'] ) )
+	  $pagination_topic_id = max(0, intval(phpbb_request_scalar($_GET, 'topic_id', 0)));
+	  $pagination_cat_id = max(0, intval(phpbb_request_scalar($_GET, 'cat_id', 0)));
+	  if ($pagination_topic_id > 0)
       {
-        $base_url .= '&amp;topic_id=' . $_GET['topic_id'];
+		$base_url .= '&amp;topic_id=' . $pagination_topic_id;
       }
-	  if( isset( $_GET['cat_id'] ) )
+	  if ($pagination_cat_id > 0)
       {
-        $base_url .= '&amp;cat_id=' . $_GET['cat_id'];
+		$base_url .= '&amp;cat_id=' . $pagination_cat_id;
       }
 
       $this->setBlockVariables( 'pagination', array(
-          'PAGINATION' => generate_pagination( $base_url, $this->item_count, $this->config['news_item_num'], isset($_GET['start']) ? intval($_GET['start']) : 0 )
+		  'PAGINATION' => generate_pagination($base_url, $this->item_count, $this->config['news_item_num'], max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0)))))
           ));
     }
   }
@@ -512,6 +526,12 @@ if( $article_id <= 0 )
     $result = substr( $result, 0, $length );
 
     return htmlspecialchars( $result );
+  }
+
+  function xmlText($value)
+  {
+	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
+	return htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
   }
 
   // }}}

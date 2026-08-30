@@ -32,6 +32,10 @@ changes consolidated after that baseline without implying active maintenance.
   parameters at the central browsing entry points. Invalid day-range filters,
   nested parameters and stale navigation targets now degrade safely instead of
   causing PHP 8.x warnings/500 responses or oversized database offsets.
+- Hardened print, plain-text export and RSS alternatives: print view now checks
+  both forum visibility and read access, export parameters and filenames stay
+  on strict scalar/header boundaries, and the RSS feed emits its correct media
+  type with XML-safe metadata and CDATA termination handling.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.

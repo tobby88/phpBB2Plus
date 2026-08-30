@@ -24,11 +24,13 @@ include_once ($phpbb_root_path . 'includes/news.' . $phpEx );
 
 if( $board_config['allow_rss'] != 1 )
 {
+  header('Content-Type: text/plain; charset=UTF-8');
   echo 'RSS has been disabled for this site';
-  return;
+  exit;
 }
 
-header("Content-type: text/xml");
+header('Content-Type: application/rss+xml; charset=UTF-8');
+header('Cache-Control: private, no-store');
 //
 // Start session management
 //

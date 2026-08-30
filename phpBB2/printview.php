@@ -112,16 +112,16 @@ $topic_time = $forum_row['topic_time'];
 // Start auth check
 //
 $is_auth = array();
-$is_auth = auth(AUTH_READ, $forum_id, $userdata, $forum_row);
+$is_auth = auth(AUTH_ALL, $forum_id, $userdata, $forum_row);
 
-if( !$is_auth['auth_read'] )
+if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
 {
 	if ( !$userdata['session_logged_in'] )
 	{
 		redirect(append_sid("login.$phpEx?redirect=printview.$phpEx&t=" . $topic_id, true));
 	}
 
-	$message = sprintf($lang['Sorry_auth_read'], $is_auth['auth_read_type']);
+	$message = empty($is_auth['auth_view']) ? $lang['Topic_post_not_exist'] : sprintf($lang['Sorry_auth_read'], $is_auth['auth_read_type']);
 
 	message_die(GENERAL_MESSAGE, $message);
 }

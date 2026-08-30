@@ -145,6 +145,9 @@ jobs:
       - name: Test browsing request safety
         run: php .github/scripts/check-browsing-request-safety.php
 
+      - name: Test alternate output safety
+        run: php .github/scripts/check-alternate-output-safety.php
+
       - name: Test Knowledge Base runtime safety
         run: php .github/scripts/check-kb-runtime-safety.php
 

@@ -22,21 +22,21 @@ include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 // Start initial var setup
 //
 $topic_id = $post_id = 0;
-if ( isset($_GET[POST_TOPIC_URL]) )
+if (phpbb_request_scalar($_GET, POST_TOPIC_URL) !== '')
 {
-   $topic_id = intval($_GET[POST_TOPIC_URL]);
+   $topic_id = intval(phpbb_request_scalar($_GET, POST_TOPIC_URL));
 }
-else if ( isset($_GET['topic']) )
+else if (phpbb_request_scalar($_GET, 'topic') !== '')
 {
-   $topic_id = intval($_GET['topic']);
-}
-
-if ( isset($_GET[POST_POST_URL]))
-{
-   $post_id = intval($_GET[POST_POST_URL]);
+   $topic_id = intval(phpbb_request_scalar($_GET, 'topic'));
 }
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+if (phpbb_request_scalar($_GET, POST_POST_URL) !== '')
+{
+   $post_id = intval(phpbb_request_scalar($_GET, POST_POST_URL));
+}
+
+$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
 if (!$topic_id && !$post_id)
 {
@@ -297,7 +297,8 @@ $filename = str_replace ($search, $replace, $filename);
 $filename = preg_replace('/[^a-z0-9._-]+/i', '-', str_replace(array("\r", "\n", "\0"), '', $filename));
 $filename = trim(substr($filename, 0, 180), '.-_');
 $filename = ($filename !== '' ? $filename : 'topic') . '.txt';
-   header("Cache-control: private"); // another fix for IE
+   header('Cache-Control: private, no-store');
+   header('X-Content-Type-Options: nosniff');
    header('Content-Type: text/plain; charset=UTF-8');
    header("Content-Length: ".strlen($soubor));
    header('Content-Disposition: attachment; filename="' . $filename . '"');
