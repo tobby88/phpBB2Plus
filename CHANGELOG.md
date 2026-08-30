@@ -14,6 +14,13 @@ changes consolidated after that baseline without implying active maintenance.
   the central session-bound POST token, automatic reward-field corrections no
   longer mutate state during a page view, and the misspelled template marker
   that previously discarded hidden fields on the main page is repaired.
+- Hardened Album category administration. Creation, editing and deletion now
+  use allowlisted POST modes and the central AdminCP session token; IDs,
+  parents and permission levels are validated; text uses driver escaping and
+  HTML output escaping; and the removed PHP 8 `each()` iterator is gone.
+  Moving a category below one of its descendants is rejected, deletion cannot
+  move pictures into that subtree, and child categories are reliably moved to
+  the deleted category's parent instead of retaining an orphaned parent ID.
 - Hardened paFileDB category permissions and configuration. Both AdminCP forms
   now require the central session-bound POST token; category IDs and access
   levels are checked against real categories and strict allowlists, while

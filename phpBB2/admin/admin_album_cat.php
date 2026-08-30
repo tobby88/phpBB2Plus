@@ -43,12 +43,46 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 require($album_root_path. 'album_common.'.$phpEx);
 
 $album_user_id = ALBUM_PUBLIC_GALLERY;
-$template->assign_var('S_FORM_TOKEN', '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />');
+$template->assign_var('S_FORM_TOKEN', phpbb_admin_session_field());
 
-if (isset($_POST['mode']) && (!isset($_POST['sid']) ||
-	!hash_equals((string) $userdata['session_id'], stripslashes((string) $_POST['sid']))))
+function album_admin_post_scalar($key, $default = '')
 {
-	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? stripslashes((string) $_POST[$key]) : (string) $default;
+}
+
+function album_admin_category_exists($cat_id)
+{
+	global $db;
+	$cat_id = intval($cat_id);
+	if ($cat_id === 0 || $cat_id === ALBUM_ROOT_CATEGORY)
+	{
+		return true;
+	}
+	$sql = 'SELECT cat_id FROM ' . ALBUM_CAT_TABLE . " WHERE cat_id = $cat_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not validate Album Category', '', __LINE__, __FILE__, $sql);
+	}
+	$exists = (bool) $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	return $exists;
+}
+
+function album_admin_permission_level($key, $default, $allow_guest = true)
+{
+	$value = intval(album_admin_post_scalar($key, $default));
+	$allowed = $allow_guest ? array(ALBUM_GUEST, ALBUM_USER, ALBUM_PRIVATE, ALBUM_MOD, ALBUM_ADMIN) : array(ALBUM_USER, ALBUM_PRIVATE, ALBUM_MOD, ALBUM_ADMIN);
+	return in_array($value, $allowed, true) ? $value : $default;
+}
+
+$post_mode = album_admin_post_scalar('mode');
+if ($post_mode !== '')
+{
+	if (!in_array($post_mode, array('new', 'edit', 'delete'), true))
+	{
+		message_die(GENERAL_ERROR, 'Invalid Album category action.');
+	}
+	phpbb_admin_require_post_session();
 }
 
 function showResultMessage($in_message)
@@ -60,9 +94,15 @@ function showResultMessage($in_message)
 	message_die(GENERAL_MESSAGE, $message);
 }
 
-if( !isset($_POST['mode']) )
+$get_action = (isset($_GET['action']) && is_scalar($_GET['action'])) ? (string) $_GET['action'] : '';
+if (!in_array($get_action, array('', 'edit', 'delete', 'move'), true))
 {
-	if( !isset($_GET['action']) )
+	$get_action = '';
+}
+
+if( $post_mode === '' )
+{
+	if( $get_action === '' )
 	{
 		//--- Album Category Hierarchy : begin
 		//--- version <= 1.1.0
@@ -105,9 +145,9 @@ if( !isset($_POST['mode']) )
 	}
 	else
 	{
-		if( $_GET['action'] == 'edit' )
+		if( $get_action == 'edit' )
 		{
-			$cat_id = intval($_GET['cat_id']);
+			$cat_id = (isset($_GET['cat_id']) && is_scalar($_GET['cat_id'])) ? intval($_GET['cat_id']) : 0;
 
 			//--- Album Category Hierarchy : begin
 			//--- version <= 1.1.0
@@ -170,8 +210,8 @@ if( !isset($_POST['mode']) )
 
 				'L_DISABLED' => $lang['Disabled'],
 
-				'S_CAT_TITLE' => htmlspecialchars($catrow['cat_title'], ENT_QUOTES, 'UTF-8'),
-				'S_CAT_DESC' => htmlspecialchars($catrow['cat_desc'], ENT_QUOTES, 'UTF-8'),
+				'S_CAT_TITLE' => phpbb_admin_html($catrow['cat_title']),
+				'S_CAT_DESC' => phpbb_admin_html($catrow['cat_desc']),
 				//--- Album Category Hierarchy : begin
 				//--- version <= 1.1.0
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
@@ -215,6 +255,7 @@ if( !isset($_POST['mode']) )
 				'APPROVAL_ADMIN' => ($catrow['cat_approval'] == ALBUM_ADMIN) ? 'selected="selected"' : '',
 
 				'S_MODE' => 'edit',
+				'S_CAT_ID' => $cat_id,
 
 				'S_GUEST' => ALBUM_GUEST,
 				'S_USER' => ALBUM_USER,
@@ -229,11 +270,11 @@ if( !isset($_POST['mode']) )
 
 			include('./page_footer_admin.'.$phpEx);
 		}
-		else if( $_GET['action'] == 'delete' )
+		else if( $get_action == 'delete' )
 		{
-			$cat_id = intval($_GET['cat_id']);
+			$cat_id = (isset($_GET['cat_id']) && is_scalar($_GET['cat_id'])) ? intval($_GET['cat_id']) : 0;
 
-			$sql = "SELECT cat_id, cat_title, cat_order
+			$sql = "SELECT cat_id, cat_title, cat_order, cat_parent
 					FROM ". ALBUM_CAT_TABLE ."
 					ORDER BY cat_order ASC";
 			if(!$result = $db->sql_query($sql))
@@ -263,7 +304,7 @@ if( !isset($_POST['mode']) )
 			//--- version <= 1.1.0
 			album_read_tree();
 			$select_to = '<select name="target">';
-			$select_to .= album_get_tree_option($catrow['cat_parent_id'], ALBUM_AUTH_VIEW, ALBUM_SELECTBOX_ALL);
+			$select_to .= album_get_tree_option($thiscat['cat_parent'], ALBUM_AUTH_VIEW, ALBUM_SELECTBOX_ALL);
 			$select_to .= '</select>';
 			//--- Album Category Hierarchy : end
 
@@ -276,7 +317,8 @@ if( !isset($_POST['mode']) )
 				'L_CAT_DELETE' => $lang['Delete_Category'],
 				'L_CAT_DELETE_EXPLAIN' => $lang['Delete_Category_Explain'],
 				'L_CAT_TITLE' => $lang['Category_Title'],
-				'S_CAT_TITLE' => htmlspecialchars($thiscat['cat_title'], ENT_QUOTES, 'UTF-8'),
+				'S_CAT_TITLE' => phpbb_admin_html($thiscat['cat_title']),
+				'S_CAT_ID' => $cat_id,
 				'L_MOVE_CONTENTS' => $lang['Move_contents'],
 				'L_MOVE_DELETE' => $lang['Move_and_Delete'],
 				'S_SELECT_TO' => $select_to)
@@ -286,11 +328,11 @@ if( !isset($_POST['mode']) )
 
 			include('./page_footer_admin.'.$phpEx);
 		}
-		else if( $_GET['action'] == 'move' )
+		else if( $get_action == 'move' )
 		{
-			$cat_id = intval($_GET['cat_id']);
-			$move = intval($_GET['move']);
-			$album_token = isset($_GET['album_token']) ? stripslashes((string) $_GET['album_token']) : '';
+			$cat_id = (isset($_GET['cat_id']) && is_scalar($_GET['cat_id'])) ? intval($_GET['cat_id']) : 0;
+			$move = (isset($_GET['move']) && is_scalar($_GET['move'])) ? intval($_GET['move']) : 0;
+			$album_token = (isset($_GET['album_token']) && is_scalar($_GET['album_token'])) ? stripslashes((string) $_GET['album_token']) : '';
 			$expected_token = hash_hmac('sha256', 'album-category-order:' . $cat_id . ':' . $move, (string) $userdata['session_id']);
 			if (!in_array($move, array(-15, 15), true) || !hash_equals($expected_token, $album_token))
 			{
@@ -309,14 +351,15 @@ if( !isset($_POST['mode']) )
 }
 else
 {
-	if( $_POST['mode'] == 'new' )
+	if( $post_mode == 'new' )
 	{
 		//--- Album Category Hierarchy : begin
 		//--- version <= 1.1.0
-		if ( is_array($_POST['addcategory']))
+		if (isset($_POST['addcategory']) && is_array($_POST['addcategory']))
 		{
-			list($cat_id) = each($_POST['addcategory']);
-			$cat_title = stripslashes($_POST['name'][$cat_id]);
+			$add_category_ids = array_keys($_POST['addcategory']);
+			$cat_id = count($add_category_ids) ? intval($add_category_ids[0]) : 0;
+			$cat_title = (isset($_POST['name'][$cat_id]) && is_scalar($_POST['name'][$cat_id])) ? stripslashes((string) $_POST['name'][$cat_id]) : '';
 			$cat_parent = $cat_id;
 			$cat_id = -1;
 		}
@@ -363,7 +406,7 @@ else
 				'L_DISABLED' => $lang['Disabled'],
 				//--- Album Category Hierarchy : begin
 				//--- version <= 1.1.0
-				'S_CAT_TITLE' => htmlspecialchars($cat_title, ENT_QUOTES, 'UTF-8'),
+				'S_CAT_TITLE' => phpbb_admin_html($cat_title),
 				'S_CAT_PARENT_OPTIONS' => $s_album_cat_list,
 				//--- Album Category Hierarchy : end
 				'VIEW_GUEST' => 'selected="selected"',
@@ -375,6 +418,7 @@ else
 				'APPROVAL_DISABLED' => 'selected="selected"',
 
 				'S_MODE' => 'new',
+				'S_CAT_ID' => 0,
 
 				'S_GUEST' => ALBUM_GUEST,
 				'S_USER' => ALBUM_USER,
@@ -392,18 +436,26 @@ else
 		else
 		{
 			// Get posting variables
-			$cat_title = str_replace("\'", "''", htmlspecialchars(trim($_POST['cat_title'])));
-			$cat_desc = str_replace("\'", "''", trim($_POST['cat_desc']));
-			$view_level = intval($_POST['cat_view_level']);
-			$upload_level = intval($_POST['cat_upload_level']);
-			$rate_level = intval($_POST['cat_rate_level']);
-			$comment_level = intval($_POST['cat_comment_level']);
-			$edit_level = intval($_POST['cat_edit_level']);
-			$delete_level = intval($_POST['cat_delete_level']);
-			$cat_approval = intval($_POST['cat_approval']);
+			$cat_title = trim(album_admin_post_scalar('cat_title'));
+			$cat_desc = trim(album_admin_post_scalar('cat_desc'));
+			$view_level = album_admin_permission_level('cat_view_level', ALBUM_GUEST);
+			$upload_level = album_admin_permission_level('cat_upload_level', ALBUM_USER);
+			$rate_level = album_admin_permission_level('cat_rate_level', ALBUM_USER);
+			$comment_level = album_admin_permission_level('cat_comment_level', ALBUM_USER);
+			$edit_level = album_admin_permission_level('cat_edit_level', ALBUM_USER, false);
+			$delete_level = album_admin_permission_level('cat_delete_level', ALBUM_MOD, false);
+			$cat_approval = intval(album_admin_post_scalar('cat_approval', ALBUM_USER));
+			$cat_approval = in_array($cat_approval, array(ALBUM_USER, ALBUM_MOD, ALBUM_ADMIN), true) ? $cat_approval : ALBUM_USER;
 			//--- Album Category Hierarchy : begin
 			//--- version <= 1.1.0
-			$cat_parent = ($_POST['cat_parent_id'] == ALBUM_ROOT_CATEGORY) ? 0 : intval($_POST['cat_parent_id']);
+			$posted_parent = intval(album_admin_post_scalar('cat_parent_id', ALBUM_ROOT_CATEGORY));
+			$cat_parent = ($posted_parent == ALBUM_ROOT_CATEGORY) ? 0 : $posted_parent;
+			if ($cat_title === '' || !album_admin_category_exists($cat_parent))
+			{
+				message_die(GENERAL_ERROR, 'Invalid Album category data.');
+			}
+			$cat_title_sql = $db->sql_escape($cat_title);
+			$cat_desc_sql = $db->sql_escape($cat_desc);
 			//--- Album Category Hierarchy : end
 
 			// Get the last ordered category
@@ -415,14 +467,14 @@ else
 				message_die(GENERAL_ERROR, 'Could not query Album Categories information', '', __LINE__, __FILE__, $sql);
 			}
 			$row = $db->sql_fetchrow($result);
-			$last_order = $row['cat_order'];
+			$last_order = $row ? intval($row['cat_order']) : 0;
 			$cat_order = $last_order + 10;
 
 			// Here we insert a new row into the db
 			//--- Album Category Hierarchy : begin
 			//--- version <= 1.1.0
 			$sql = "INSERT INTO ". ALBUM_CAT_TABLE ." (cat_title, cat_desc, cat_order, cat_view_level, cat_upload_level, cat_rate_level, cat_comment_level, cat_edit_level, cat_delete_level, cat_approval, cat_parent, cat_user_id)
-					VALUES ('$cat_title', '$cat_desc', '$cat_order', '$view_level', '$upload_level', '$rate_level', '$comment_level', '$edit_level', '$delete_level', '$cat_approval', '$cat_parent' ,'" . ALBUM_PUBLIC_GALLERY ."')";
+					VALUES ('$cat_title_sql', '$cat_desc_sql', $cat_order, $view_level, $upload_level, $rate_level, $comment_level, $edit_level, $delete_level, $cat_approval, $cat_parent, " . ALBUM_PUBLIC_GALLERY . ")";
    			//--- Album Category Hierarchy : end
 
 			if(!$result = $db->sql_query($sql))
@@ -434,22 +486,28 @@ else
 			showResultMessage($lang['New_category_created']);
 		}
 	}
-	else if( $_POST['mode'] == 'edit' )
+	else if( $post_mode == 'edit' )
 	{
 		// Get posting variables
-		$cat_id = intval($_GET['cat_id']);
-		$cat_title = str_replace("\'", "''", htmlspecialchars(trim($_POST['cat_title'])));
-		$cat_desc = str_replace("\'", "''", trim($_POST['cat_desc']));
-		$view_level = intval($_POST['cat_view_level']);
-		$upload_level = intval($_POST['cat_upload_level']);
-		$rate_level = intval($_POST['cat_rate_level']);
-		$comment_level = intval($_POST['cat_comment_level']);
-		$edit_level = intval($_POST['cat_edit_level']);
-		$delete_level = intval($_POST['cat_delete_level']);
-		$cat_approval = intval($_POST['cat_approval']);
+		$cat_id = intval(album_admin_post_scalar('cat_id', 0));
+		$cat_title = trim(album_admin_post_scalar('cat_title'));
+		$cat_desc = trim(album_admin_post_scalar('cat_desc'));
+		$view_level = album_admin_permission_level('cat_view_level', ALBUM_GUEST);
+		$upload_level = album_admin_permission_level('cat_upload_level', ALBUM_USER);
+		$rate_level = album_admin_permission_level('cat_rate_level', ALBUM_USER);
+		$comment_level = album_admin_permission_level('cat_comment_level', ALBUM_USER);
+		$edit_level = album_admin_permission_level('cat_edit_level', ALBUM_USER, false);
+		$delete_level = album_admin_permission_level('cat_delete_level', ALBUM_MOD, false);
+		$cat_approval = intval(album_admin_post_scalar('cat_approval', ALBUM_USER));
+		$cat_approval = in_array($cat_approval, array(ALBUM_USER, ALBUM_MOD, ALBUM_ADMIN), true) ? $cat_approval : ALBUM_USER;
 		//--- Album Category Hierarchy : begin
 		//--- version <= 1.1.0
-		$cat_parent = ($_POST['cat_parent_id'] == ALBUM_ROOT_CATEGORY) ? 0 : intval($_POST['cat_parent_id']);
+		$posted_parent = intval(album_admin_post_scalar('cat_parent_id', ALBUM_ROOT_CATEGORY));
+		$cat_parent = ($posted_parent == ALBUM_ROOT_CATEGORY) ? 0 : $posted_parent;
+		if ($cat_id <= 0 || !album_admin_category_exists($cat_id) || !album_admin_category_exists($cat_parent) || $cat_title === '')
+		{
+			message_die(GENERAL_ERROR, 'Invalid Album category data.');
+		}
 		//--- Album Category Hierarchy : end
 		
 		if ( ($cat_id == $cat_parent) && (album_get_personal_root_id($album_user_id) != $cat_id)  )
@@ -461,13 +519,22 @@ else
 		{
 			showResultMessage($lang['Can_Not_Change_Main_Parent']);
 		}		
+		album_read_tree();
+		$descendant_ids = array();
+		album_get_sub_cat_ids($cat_id, $descendant_ids, ALBUM_AUTH_VIEW, false);
+		if (in_array($cat_parent, array_map('intval', $descendant_ids), true))
+		{
+			showResultMessage($lang['No_Self_Refering_Cat']);
+		}
+		$cat_title_sql = $db->sql_escape($cat_title);
+		$cat_desc_sql = $db->sql_escape($cat_desc);
 
 		// Now we update this row
 		//--- Album Category Hierarchy : begin
 		//--- version <= 1.1.0
 		$sql = "UPDATE ". ALBUM_CAT_TABLE ."
-				SET cat_title = '$cat_title', cat_desc = '$cat_desc', cat_view_level = '$view_level', cat_upload_level = '$upload_level', cat_rate_level = '$rate_level', cat_comment_level = '$comment_level', cat_edit_level = '$edit_level', cat_delete_level = '$delete_level', cat_approval = '$cat_approval', cat_parent = '$cat_parent'
-				WHERE cat_id = '$cat_id'";
+				SET cat_title = '$cat_title_sql', cat_desc = '$cat_desc_sql', cat_view_level = $view_level, cat_upload_level = $upload_level, cat_rate_level = $rate_level, cat_comment_level = $comment_level, cat_edit_level = $edit_level, cat_delete_level = $delete_level, cat_approval = $cat_approval, cat_parent = $cat_parent
+				WHERE cat_id = $cat_id";
 		//--- Album Category Hierarchy : end
 
 		if(!$result = $db->sql_query($sql))
@@ -478,7 +545,7 @@ else
 		// Return a message...
 		showResultMessage($lang['Category_updated']);
 	}
-	else if( $_POST['mode'] == 'delete' )
+	else if( $post_mode == 'delete' )
 	{
 		//--- Album Category Hierarchy : begin
 		//--- version <= 1.1.0
@@ -487,8 +554,32 @@ else
 		$parent_cat_title = "";
 		//--- Album Category Hierarchy : end
 
-		$cat_id = intval($_GET['cat_id']);
-		$target = intval($_POST['target']);
+		$cat_id = intval(album_admin_post_scalar('cat_id', 0));
+		$target = intval(album_admin_post_scalar('target', 0));
+		if ($cat_id <= 0 || !album_admin_category_exists($cat_id) || $target === $cat_id || ($target != ALBUM_JUMPBOX_DELETE && !album_admin_category_exists($target)))
+		{
+			message_die(GENERAL_ERROR, 'Invalid Album category deletion.');
+		}
+		album_read_tree();
+		$descendant_ids = array();
+		album_get_sub_cat_ids($cat_id, $descendant_ids, ALBUM_AUTH_VIEW, false);
+		if ($target != ALBUM_JUMPBOX_DELETE && in_array($target, array_map('intval', $descendant_ids), true))
+		{
+			message_die(GENERAL_ERROR, 'Invalid Album category deletion target.');
+		}
+		$sql = 'SELECT cat_parent FROM ' . ALBUM_CAT_TABLE . " WHERE cat_id = $cat_id";
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Could not query Album category parent', '', __LINE__, __FILE__, $sql);
+		}
+		$deleted_category = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		$deleted_parent_id = $deleted_category ? max(0, intval($deleted_category['cat_parent'])) : 0;
+		$sql = 'UPDATE ' . ALBUM_CAT_TABLE . " SET cat_parent = $deleted_parent_id WHERE cat_parent = $cat_id";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not move Album child categories', '', __LINE__, __FILE__, $sql);
+		}
 
 		if( $target == ALBUM_JUMPBOX_DELETE ) // Delete All
 		{
