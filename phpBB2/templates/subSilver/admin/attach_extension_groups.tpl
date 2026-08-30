@@ -10,6 +10,7 @@
 {ERROR_BOX}
 
 <form method="post" action="{S_ATTACH_ACTION}">
+{S_HIDDEN_FIELDS}
   <table width="100%" align="center" cellpadding="4" cellspacing="1" border="0" class="forumline">
 	<tr> 
 	  <td class="catHead" colspan="8" align="center" height="28"><span class="cattitle">{L_EXTENSION_GROUPS_TITLE}</span> 

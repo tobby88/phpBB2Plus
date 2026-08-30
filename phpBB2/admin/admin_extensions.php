@@ -63,8 +63,14 @@ $modes_category = array($lang['Category_images'], $lang['Category_stream_files']
 $size = get_var('size', '');
 $mode = get_var('mode', '');
 $e_mode = get_var('e_mode', '');
+$mode = in_array($mode, array('extensions', 'groups', 'forbidden'), true) ? $mode : 'extensions';
 
 $submit = (isset($HTTP_POST_VARS['submit'])) ? TRUE : FALSE;
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+$template->assign_var('S_HIDDEN_FIELDS', phpbb_admin_session_field());
 $extension_group = '';
 $add_forum = false;
 $delete_forum = false;
@@ -166,8 +172,8 @@ if ($submit && $mode == 'extensions')
 	if ($extension != '' && $add)
 	{
 		$template->assign_vars(array(
-			'ADD_EXTENSION'			=> $extension,
-			'ADD_EXTENSION_EXPLAIN'	=> $extension_explain)
+			'ADD_EXTENSION'			=> phpbb_admin_html($extension),
+			'ADD_EXTENSION_EXPLAIN'	=> phpbb_admin_html($extension_explain))
 		);
 	
 		if (!$error)
@@ -320,8 +326,8 @@ if ($mode == 'extensions')
 			{
 				$template->assign_block_vars('extension_row', array(
 					'EXT_ID'			=> $extension_row[$i]['ext_id'],
-					'EXTENSION'			=> $extension_row[$i]['extension'],
-					'EXTENSION_EXPLAIN'	=> $extension_explain_list[$i], 
+					'EXTENSION'			=> phpbb_admin_html($extension_row[$i]['extension']),
+					'EXTENSION_EXPLAIN'	=> phpbb_admin_html($extension_explain_list[$i]),
 					'S_GROUP_SELECT'	=> group_select('group_select[]', $group_select_list[$i]))
 				);
 			}
@@ -329,8 +335,8 @@ if ($mode == 'extensions')
 			{
 				$template->assign_block_vars('extension_row', array(
 					'EXT_ID'			=> $extension_row[$i]['ext_id'],
-					'EXTENSION'			=> $extension_row[$i]['extension'],
-					'EXTENSION_EXPLAIN'	=> $extension_row[$i]['comment'],
+					'EXTENSION'			=> phpbb_admin_html($extension_row[$i]['extension']),
+					'EXTENSION_EXPLAIN'	=> phpbb_admin_html($extension_row[$i]['comment']),
 					'S_GROUP_SELECT'	=> group_select('group_select[]', $extension_row[$i]['group_id']))
 				);
 			}
@@ -575,8 +581,8 @@ if ($mode == 'groups')
 			
 		$template->assign_block_vars('grouprow', array(
 			'GROUP_ID'			=> $extension_group[$i]['group_id'],
-			'EXTENSION_GROUP'	=> $extension_group[$i]['group_name'],
-			'UPLOAD_ICON'		=> $extension_group[$i]['upload_icon'],
+			'EXTENSION_GROUP'	=> phpbb_admin_html($extension_group[$i]['group_name']),
+			'UPLOAD_ICON'		=> phpbb_admin_html($extension_group[$i]['upload_icon']),
 
 			'S_ALLOW_SELECTED'	=> $s_allowed,
 			'S_SELECT_CAT'		=> category_select('category_list[]', $extension_group[$i]['group_id']),
@@ -607,8 +613,8 @@ if ($mode == 'groups')
 			for ($j = 0; $j < $num_extension; $j++)
 			{
 				$template->assign_block_vars('grouprow.extensionrow', array(
-					'EXPLANATION'	=> $extension[$j]['comment'],
-					'EXTENSION'		=> $extension[$j]['extension'])
+					'EXPLANATION'	=> phpbb_admin_html($extension[$j]['comment']),
+					'EXTENSION'		=> phpbb_admin_html($extension[$j]['extension']))
 				);
 			}
 		}
@@ -759,7 +765,7 @@ if ($mode == 'forbidden')
 		{
 			$template->assign_block_vars('extensionrow', array(
 				'EXTENSION_ID'		=> $extensionrow[$i]['ext_id'],
-				'EXTENSION_NAME'	=> $extensionrow[$i]['extension'])
+				'EXTENSION_NAME'	=> phpbb_admin_html($extensionrow[$i]['extension']))
 			);
 		}
 	}
@@ -771,6 +777,10 @@ if ($e_mode == 'perm')
 
 	$add_forum = (isset($HTTP_POST_VARS['add_forum'])) ? TRUE : FALSE;
 	$delete_forum = (isset($HTTP_POST_VARS['del_forum'])) ? TRUE : FALSE;
+	if ($add_forum || $delete_forum)
+	{
+		phpbb_admin_require_post_session();
+	}
 
 	if (isset($HTTP_POST_VARS['close_perm']))
 	{
@@ -943,12 +953,12 @@ if ($e_mode == 'perm' && $group)
 	{
 		$template->assign_block_vars('allow_option_values', array(
 			'VALUE'		=> $forum_perm[$i]['forum_id'],
-			'OPTION'	=> $forum_perm[$i]['forum_name'])
+			'OPTION'	=> phpbb_admin_html($forum_perm[$i]['forum_name']))
 		);
 	}
 
 	$template->assign_vars(array(
-		'L_GROUP_PERMISSIONS_TITLE'		=> sprintf($lang['Group_permissions_title'], trim($group_name)),
+		'L_GROUP_PERMISSIONS_TITLE'		=> sprintf($lang['Group_permissions_title'], phpbb_admin_html(trim($group_name))),
 		'L_GROUP_PERMISSIONS_EXPLAIN'	=> $lang['Group_permissions_explain'],
 		'L_REMOVE_SELECTED'				=> $lang['Remove_selected'],
 		'L_CLOSE_WINDOW'				=> $lang['Close_window'],
@@ -977,7 +987,7 @@ if ($e_mode == 'perm' && $group)
 	{
 		$template->assign_block_vars('forum_option_values', array(
 			'VALUE'		=> $value,
-			'OPTION'	=> $option)
+			'OPTION'	=> phpbb_admin_html($option))
 		);
 	}
 

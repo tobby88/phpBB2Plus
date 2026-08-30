@@ -203,8 +203,22 @@ $select_sort_order .= '</select>';
 $submit_change = (isset($HTTP_POST_VARS['submit_change'])) ? TRUE : FALSE;
 $delete = (isset($HTTP_POST_VARS['delete'])) ? TRUE : FALSE;
 $delete_id_list = get_var('delete_id_list', array(0));
+$normalized_delete_ids = array();
+foreach ($delete_id_list as $delete_id)
+{
+	$delete_id = intval($delete_id);
+	if ($delete_id > 0)
+	{
+		$normalized_delete_ids[$delete_id] = $delete_id;
+	}
+}
+$delete_id_list = array_values($normalized_delete_ids);
 
 $confirm = !empty($HTTP_POST_VARS['confirm']);
+if ($submit_change || $delete || $confirm)
+{
+	phpbb_admin_require_post_session();
+}
 
 if ($confirm && sizeof($delete_id_list) > 0)
 {
@@ -220,6 +234,7 @@ else if ($delete && sizeof($delete_id_list) > 0)
 	$hidden_fields .= '<input type="hidden" name="order" value="' . $sort_order . '" />';
 	$hidden_fields .= '<input type="hidden" name="u_id" value="' . $uid . '" />';
 	$hidden_fields .= '<input type="hidden" name="start" value="' . $start . '" />';
+	$hidden_fields .= phpbb_admin_session_field();
 
 	for ($i = 0; $i < sizeof($delete_id_list); $i++)
 	{
@@ -256,7 +271,8 @@ $template->assign_vars(array(
 	'L_CONTROL_PANEL_EXPLAIN'	=> $lang['Control_panel_explain'],
 
 	'S_VIEW_SELECT'	=> $select_view,
-	'S_MODE_ACTION'	=> append_sid('admin_attach_cp.' . $phpEx))
+	'S_MODE_ACTION'	=> append_sid('admin_attach_cp.' . $phpEx),
+	'S_HIDDEN_FIELDS' => phpbb_admin_session_field())
 );
 
 if ($submit_change && $view == 'attachments')
@@ -581,6 +597,8 @@ if ($view == 'username')
 
 			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 			$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
+			$row_color = preg_match('/^[A-Fa-f0-9]{6}$/D', (string) $row_color) ? $row_color : 'FFFFFF';
+			$row_class = preg_match('/^[A-Za-z0-9_-]+$/D', (string) $row_class) ? $row_class : 'row1';
 
 			$template->assign_block_vars('memberrow', array(
 				'ROW_NUMBER'		=> $i + ( $HTTP_GET_VARS['start'] + 1 ),
@@ -778,7 +796,7 @@ if ($view == 'attachments')
 					$row = $db->sql_fetchrow($result);
 					$db->sql_freeresult($result);
 			
-					$post_title = $row['topic_title'];
+					$post_title = $row ? (string) $row['topic_title'] : '';
 
 					if (strlen($post_title) > 32)
 					{
@@ -787,7 +805,7 @@ if ($view == 'attachments')
 
 					$view_topic = append_sid($phpbb_root_path . 'viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $ids[$j]['post_id'] . '#' . $ids[$j]['post_id']);
 
-					$post_titles[] = '<a href="' . $view_topic . '" class="gen" target="_blank">' . $post_title . '</a>';
+					$post_titles[] = '<a href="' . phpbb_admin_html($view_topic) . '" class="gen" target="_blank">' . phpbb_admin_html($post_title) . '</a>';
 				}
 				else
 				{
@@ -800,13 +818,13 @@ if ($view == 'attachments')
 			$hidden_field = '<input type="hidden" name="attach_id_list[]" value="' . intval($attachments[$i]['attach_id']) . '" />';
 
 			$template->assign_block_vars('attachrow', array(
-				'ROW_NUMBER'	=> $i + ( $HTTP_GET_VARS['start'] + 1 ),
+				'ROW_NUMBER'	=> $i + $start + 1,
 				'ROW_COLOR'		=> '#' . $row_color,
 				'ROW_CLASS'		=> $row_class,
 
-				'FILENAME'		=> $attachments[$i]['real_filename'],
-				'COMMENT'		=> $attachments[$i]['comment'],
-				'EXTENSION'		=> $attachments[$i]['extension'],
+				'FILENAME'		=> phpbb_admin_html($attachments[$i]['real_filename']),
+				'COMMENT'		=> phpbb_admin_html($attachments[$i]['comment']),
+				'EXTENSION'		=> phpbb_admin_html($attachments[$i]['extension']),
 				'SIZE'			=> round(($attachments[$i]['filesize'] / MEGABYTE), 2),
 				'DOWNLOAD_COUNT'=> $attachments[$i]['download_count'],
 				'POST_TIME'		=> create_date($board_config['default_dateformat'], $attachments[$i]['filetime'], $board_config['board_timezone']),

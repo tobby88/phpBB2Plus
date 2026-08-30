@@ -60,6 +60,7 @@ if (!isset($lang['Test_settings_successful']))
 // Init Vars
 $mode = get_var('mode', '');
 $e_mode = get_var('e_mode', '');
+$mode = in_array($mode, array('manage', 'shadow', 'cats', 'sync', 'quota'), true) ? $mode : 'manage';
 $size = get_var('size', '');
 $quota_size = get_var('quota_size', '');
 $pm_size = get_var('pm_size', '');
@@ -68,8 +69,15 @@ $submit = (isset($HTTP_POST_VARS['submit'])) ? TRUE : FALSE;
 $check_upload = (isset($HTTP_POST_VARS['settings'])) ? TRUE : FALSE;
 $check_image_cat = (isset($HTTP_POST_VARS['cat_settings'])) ? TRUE : FALSE;
 $search_imagick = (isset($HTTP_POST_VARS['search_imagick'])) ? TRUE : FALSE;
-$hidden = '';
+$sync_confirm = (isset($HTTP_POST_VARS['confirm'])) ? TRUE : FALSE;
+$sync_cancel = (isset($HTTP_POST_VARS['cancel'])) ? TRUE : FALSE;
+if ($submit || $check_upload || $check_image_cat || $search_imagick || $sync_confirm || $sync_cancel)
+{
+	phpbb_admin_require_post_session();
+}
+$hidden = phpbb_admin_session_field();
 $error = false;
+$template->assign_var('S_HIDDEN_FIELDS', phpbb_admin_session_field());
 
 // Re-evaluate the Attachment Configuration
 $sql = 'SELECT * 
@@ -700,10 +708,10 @@ if ($mode == 'shadow')
 	for ($i = 0; $i < sizeof($shadow_attachments); $i++)
 	{
 		$template->assign_block_vars('file_shadow_row', array(
-			'ATTACH_ID'			=> $shadow_attachments[$i],
-			'ATTACH_FILENAME'	=> $shadow_attachments[$i],
+			'ATTACH_ID'			=> phpbb_admin_html($shadow_attachments[$i]),
+			'ATTACH_FILENAME'	=> phpbb_admin_html($shadow_attachments[$i]),
 			'ATTACH_COMMENT'	=> $lang['No_file_comment_available'],
-			'U_ATTACHMENT'		=> $upload_dir . '/' . basename($shadow_attachments[$i]))
+			'U_ATTACHMENT'		=> phpbb_admin_html($upload_dir . '/' . rawurlencode(basename($shadow_attachments[$i]))))
 		);
 	}
 
@@ -711,8 +719,8 @@ if ($mode == 'shadow')
 	{
 		$template->assign_block_vars('table_shadow_row', array(
 			'ATTACH_ID'			=> $shadow_row['attach_id'][$i],
-			'ATTACH_FILENAME'	=> basename($shadow_row['physical_filename'][$i]),
-			'ATTACH_COMMENT'	=> (trim($shadow_row['comment'][$i]) == '') ? $lang['No_file_comment_available'] : trim($shadow_row['comment'][$i]))
+			'ATTACH_FILENAME'	=> phpbb_admin_html(basename($shadow_row['physical_filename'][$i])),
+			'ATTACH_COMMENT'	=> (trim($shadow_row['comment'][$i]) == '') ? $lang['No_file_comment_available'] : phpbb_admin_html(trim($shadow_row['comment'][$i])))
 		);
 	}
 }
@@ -998,7 +1006,27 @@ if ($check_image_cat)
 	}
 }
 
-if ($mode == 'sync')
+if ($mode == 'sync' && !$sync_confirm)
+{
+	if ($sync_cancel)
+	{
+		message_die(GENERAL_MESSAGE, sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
+	}
+	$template->set_filenames(array('body' => 'confirm_body.tpl'));
+	$template->assign_vars(array(
+		'MESSAGE_TITLE' => $lang['Sync_attachments'],
+		'MESSAGE_TEXT' => $lang['Sync_attachments'],
+		'L_YES' => $lang['Yes'],
+		'L_NO' => $lang['No'],
+		'S_CONFIRM_ACTION' => append_sid('admin_attachments.' . $phpEx),
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="sync" />' . phpbb_admin_session_field()
+	));
+	$template->pparse('body');
+	include('page_footer_admin.' . $phpEx);
+	exit;
+}
+
+if ($mode == 'sync' && $sync_confirm)
 {
 	$info = '';
 	@set_time_limit(0);

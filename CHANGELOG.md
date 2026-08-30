@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened attachment configuration, extension management and the attachment
+  control panel with session-bound AdminCP POST checks. Attachment
+  synchronization is no longer a state-changing GET request and now requires
+  explicit confirmation. Shadow deletion and control-panel identifiers are
+  normalized, extension-group permission forms carry the session token, and
+  attachment, extension, forum and topic text is escaped in administration
+  output.
 - Hardened forum, group and user/group permission administration. All rights
   and group mutations now require the centralized AdminCP POST/session token;
   user, group, forum and permission values are normalized against real targets

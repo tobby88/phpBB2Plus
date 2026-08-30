@@ -153,3 +153,6 @@ jobs:
 
       - name: Test permission administration safety
         run: php .github/scripts/check-permissions-admin-safety.php
+
+      - name: Test attachment administration safety
+        run: php .github/scripts/check-attachment-admin-safety.php

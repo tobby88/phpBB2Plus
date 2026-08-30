@@ -21,6 +21,7 @@
 </script>
 
 <form method="post" name="attach_list" action="{S_MODE_ACTION}">
+{S_HIDDEN_FIELDS}
   <table width="100%" cellspacing="2" cellpadding="2" border="0" align="center">
 	<tr> 
 	  <td align="right" nowrap="nowrap"><span class="genmed">{L_VIEW}:&nbsp;{S_VIEW_SELECT}&nbsp;&nbsp;{L_SELECT_SORT_METHOD}:&nbsp;{S_MODE_SELECT}&nbsp;&nbsp;{L_ORDER}&nbsp;{S_ORDER_SELECT}&nbsp;&nbsp; 

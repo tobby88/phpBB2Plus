@@ -7,6 +7,7 @@
 	<tr>
 		<td align="center">
 			<form method="post" action="{A_PERM_ACTION}">
+			{S_HIDDEN_FIELDS}
 			<table width="90%" class="forumline" cellspacing="1" cellpadding="4" border="0" align="center">
 				<tr>
 					<th>{L_ALLOWED_FORUMS}</th>
@@ -30,6 +31,7 @@
 	<tr>
 		<td>
 			<form method="post" action="{A_PERM_ACTION}">
+			{S_HIDDEN_FIELDS}
 			<table width="90%" class="forumline" cellspacing="1" cellpadding="4" border="0" align="center">
 				<tr>
 					<th>{L_ADD_FORUMS}</th>
