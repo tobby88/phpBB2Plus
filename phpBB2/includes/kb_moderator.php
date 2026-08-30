@@ -389,6 +389,13 @@ switch( $action )
 	{
    	   message_die(GENERAL_ERROR, "Could not delete article wordmatch data", '', __LINE__, __FILE__, $sql);
 	}	
+
+	$sql = "DELETE FROM " . KB_VOTES_TABLE . "
+		WHERE votes_file = " . $article_id;
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, "Could not delete article vote data", '', __LINE__, __FILE__, $sql);
+	}
 	
 	$message = $lang['Article_deleted'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 

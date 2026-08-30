@@ -12,6 +12,7 @@ function kb_runtime_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $functions = file_get_contents($root . '/phpBB2/includes/functions_kb.php');
 $admin = file_get_contents($root . '/phpBB2/admin/admin_kb_art.php');
+$moderator = file_get_contents($root . '/phpBB2/includes/kb_moderator.php');
 
 kb_runtime_assert(strpos($functions, "\$article_link = '<a") !== false, 'article link must not overwrite the database row');
 kb_runtime_assert(strpos($functions, "\$postrow[\$i]['link_rating']") === false, 'KB ratings must not read an unrelated post row');
@@ -23,5 +24,7 @@ kb_runtime_assert(strpos($functions, 'function kb_admin_article_action_form') !=
 kb_runtime_assert(substr_count($admin, 'phpbb_admin_require_post_session();') >= 3, 'article mutations must require POST session tokens');
 kb_runtime_assert(strpos($admin, "isset(\$_POST['c'])") !== false, 'article deletion confirmation must be submitted by POST');
 kb_runtime_assert(strpos($admin, "isset(\$_POST['a']) ? (int) \$_POST['a']") !== false, 'admin article ID must be normalized');
+kb_runtime_assert(strpos($admin, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'AdminCP article deletion must remove vote rows');
+kb_runtime_assert(strpos($moderator, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'moderator article deletion must remove vote rows');
 
 echo "Knowledge Base runtime safety tests passed.\n";

@@ -38,7 +38,8 @@ changes consolidated after that baseline without implying active maintenance.
   normalization, SQL-boundary escaping and POST/session tokens for every
   write. Category ordering is no longer a GET mutation, invalid parent cycles
   are rejected, deleting a category keeps children reachable and bulk article
-  deletion removes dependent search and vote rows.
+  deletion removes dependent search and vote rows. Single-article deletion
+  now removes its vote rows in both AdminCP and moderator workflows as well.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the
