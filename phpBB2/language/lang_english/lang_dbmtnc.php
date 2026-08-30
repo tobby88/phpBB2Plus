@@ -189,6 +189,9 @@ $mtnc[] = array('unlock_db',
 	'',
 	3);
 
+$lang['Confirm_dbmtnc_action'] = 'This maintenance action can change database contents. Do you want to continue?';
+$lang['Invalid_dbmtnc_request'] = 'Invalid database-maintenance request.';
+
 //
 // Function specific vars
 //

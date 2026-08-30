@@ -60,11 +60,36 @@ if ( !file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $board_c
 }
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_dbmtnc.' . $phpEx);
 
+function dbmtnc_continuation_token($function, $db_state)
+{
+	global $userdata;
+
+	return hash_hmac('sha256', (string) $function . '|' . (int) $db_state, (string) $userdata['session_id']);
+}
+
+function dbmtnc_continuation_url($function, $db_state)
+{
+	global $phpEx;
+
+	$db_state = (int) $db_state;
+	return append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=" . rawurlencode((string) $function) .
+		'&amp;db_state=' . $db_state . '&amp;dbmtnc_token=' . dbmtnc_continuation_token($function, $db_state));
+}
+
+function dbmtnc_post_int($key, $default)
+{
+	return (isset($_POST[$key]) && is_scalar($_POST[$key]) && is_numeric($_POST[$key])) ? intval($_POST[$key]) : (int) $default;
+}
+
 //
 // Set up variables and constants
 //
-$function = ( isset($HTTP_GET_VARS['function']) ) ? htmlspecialchars(trim( $HTTP_GET_VARS['function'] )) : '';
-$mode_id = ( isset($HTTP_GET_VARS['mode']) ) ? htmlspecialchars(trim( $HTTP_GET_VARS['mode'] )) : '';
+$function = (isset($_GET['function']) && is_scalar($_GET['function'])) ? trim((string) $_GET['function']) : '';
+$mode_id = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? trim((string) $_GET['mode']) : '';
+if (!in_array($mode_id, array('', 'start', 'perform'), true))
+{
+	message_die(GENERAL_ERROR, $lang['Invalid_dbmtnc_request']);
+}
 // Check for parameters
 foreach ($config_data as $value)
 {
@@ -77,13 +102,48 @@ foreach ($config_data as $value)
 //
 // Get form-data if specified and override old settings
 //
-if ( isset($HTTP_POST_VARS['mode']) && $HTTP_POST_VARS['mode'] == 'perform' )
+if (isset($_POST['mode']) && is_scalar($_POST['mode']) && $_POST['mode'] == 'perform')
 {
-	if ( isset($HTTP_POST_VARS['confirm']) )
+	if (isset($_POST['confirm']))
 	{
 		$mode_id = 'perform';
-		$function = ( isset($HTTP_POST_VARS['function']) ) ? htmlspecialchars(trim( $HTTP_POST_VARS['function'] )) : '';
+		$function = (isset($_POST['function']) && is_scalar($_POST['function'])) ? trim((string) $_POST['function']) : '';
 	}
+}
+
+$dbmtnc_allowed_functions = array('perform_rebuild', 'synchronize_post_direct');
+foreach ($mtnc as $dbmtnc_function)
+{
+	if (!empty($dbmtnc_function[0]) && $dbmtnc_function[0] != '--')
+	{
+		$dbmtnc_allowed_functions[] = $dbmtnc_function[0];
+	}
+}
+if ($function !== '' && !in_array($function, $dbmtnc_allowed_functions, true))
+{
+	message_die(GENERAL_ERROR, $lang['function_unknown']);
+}
+
+if ($mode_id == 'perform')
+{
+	if (in_array($function, array('perform_rebuild', 'synchronize_post_direct'), true))
+	{
+		$dbmtnc_state = (isset($_GET['db_state']) && is_scalar($_GET['db_state'])) ? intval($_GET['db_state']) : 0;
+		$dbmtnc_token = (isset($_GET['dbmtnc_token']) && is_scalar($_GET['dbmtnc_token'])) ? (string) $_GET['dbmtnc_token'] : '';
+		if (!hash_equals(dbmtnc_continuation_token($function, $dbmtnc_state), $dbmtnc_token))
+		{
+			message_die(GENERAL_ERROR, $lang['Invalid_dbmtnc_request']);
+		}
+	}
+	else
+	{
+		phpbb_admin_require_post_session();
+	}
+}
+
+if ($mode_id == 'start' && $function == 'config' && isset($_POST['submit']))
+{
+	phpbb_admin_require_post_session();
 }
 
 //
@@ -128,10 +188,16 @@ switch($mode_id)
 		{
 			message_die(GENERAL_ERROR, $lang['function_unknown']);
 		}
-		elseif ($warning_message[3] != '')
+		elseif ($warning_message[3] == '' && !in_array($function, array('statistic', 'config'), true))
+		{
+			$warning_message[3] = $lang['Confirm_dbmtnc_action'];
+		}
+
+		if ($warning_message[3] != '')
 		{
 			$s_hidden_fields = '<input type="hidden" name="mode" value="perform" />';
-			$s_hidden_fields .= '<input type="hidden" name="function" value="' . $function . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="function" value="' . phpbb_admin_html($function) . '" />';
+			$s_hidden_fields .= phpbb_admin_session_field();
 
 			$template->set_filenames(array(
 				'body' => 'admin/dbmtnc_confirm_body.tpl')
@@ -319,19 +385,19 @@ switch($mode_id)
 				$template->pparse("body");
 				break;
 			case 'config': // Configuration
-				if( isset($HTTP_POST_VARS['submit']) )
+				if (isset($_POST['submit']))
 				{
-					$disallow_postcounter = (isset($HTTP_POST_VARS['disallow_postcounter'])) ? intval($HTTP_POST_VARS['disallow_postcounter']) : 0;
-					$disallow_rebuild = (isset($HTTP_POST_VARS['disallow_rebuild'])) ? intval($HTTP_POST_VARS['disallow_rebuild']) : 0;
-					$rebuildcfg_timelimit = (isset($HTTP_POST_VARS['rebuildcfg_timelimit']) && is_numeric($HTTP_POST_VARS['rebuildcfg_timelimit'])) ? intval($HTTP_POST_VARS['rebuildcfg_timelimit']) : 240;
-					$rebuildcfg_timeoverwrite = (isset($HTTP_POST_VARS['rebuildcfg_timeoverwrite']) && is_numeric($HTTP_POST_VARS['rebuildcfg_timeoverwrite'])) ? intval($HTTP_POST_VARS['rebuildcfg_timeoverwrite']) : 0;
-					$rebuildcfg_maxmemory = (isset($HTTP_POST_VARS['rebuildcfg_maxmemory']) && is_numeric($HTTP_POST_VARS['rebuildcfg_maxmemory'])) ? intval($HTTP_POST_VARS['rebuildcfg_maxmemory']) : 500;
-					$rebuildcfg_minposts = (isset($HTTP_POST_VARS['rebuildcfg_minposts']) && is_numeric($HTTP_POST_VARS['rebuildcfg_minposts'])) ? intval($HTTP_POST_VARS['rebuildcfg_minposts']) : 3;
-					$rebuildcfg_php3only = (isset($HTTP_POST_VARS['rebuildcfg_php3only'])) ? intval($HTTP_POST_VARS['rebuildcfg_php3only']) : 0;
-					$rebuildcfg_php4pps = (isset($HTTP_POST_VARS['rebuildcfg_php4pps']) && is_numeric($HTTP_POST_VARS['rebuildcfg_php4pps'])) ? intval($HTTP_POST_VARS['rebuildcfg_php4pps']) : 8;
-					$rebuildcfg_php3pps = (isset($HTTP_POST_VARS['rebuildcfg_php3pps']) && is_numeric($HTTP_POST_VARS['rebuildcfg_php3pps'])) ? intval($HTTP_POST_VARS['rebuildcfg_php3pps']) : 1;
-					$rebuild_pos = (isset($HTTP_POST_VARS['rebuild_pos']) && is_numeric($HTTP_POST_VARS['rebuild_pos'])) ? intval($HTTP_POST_VARS['rebuild_pos']) : -1;
-					$rebuild_end = (isset($HTTP_POST_VARS['rebuild_end']) && is_numeric($HTTP_POST_VARS['rebuild_end'])) ? intval($HTTP_POST_VARS['rebuild_end']) : 0;
+					$disallow_postcounter = dbmtnc_post_int('disallow_postcounter', 0);
+					$disallow_rebuild = dbmtnc_post_int('disallow_rebuild', 0);
+					$rebuildcfg_timelimit = dbmtnc_post_int('rebuildcfg_timelimit', 240);
+					$rebuildcfg_timeoverwrite = dbmtnc_post_int('rebuildcfg_timeoverwrite', 0);
+					$rebuildcfg_maxmemory = dbmtnc_post_int('rebuildcfg_maxmemory', 500);
+					$rebuildcfg_minposts = dbmtnc_post_int('rebuildcfg_minposts', 3);
+					$rebuildcfg_php3only = dbmtnc_post_int('rebuildcfg_php3only', 0);
+					$rebuildcfg_php4pps = dbmtnc_post_int('rebuildcfg_php4pps', 8);
+					$rebuildcfg_php3pps = dbmtnc_post_int('rebuildcfg_php3pps', 1);
+					$rebuild_pos = dbmtnc_post_int('rebuild_pos', -1);
+					$rebuild_end = dbmtnc_post_int('rebuild_end', 0);
 
 					switch(CONFIG_LEVEL)
 					{
@@ -393,6 +459,7 @@ switch($mode_id)
 
 				$template->assign_vars(array(
 					'S_CONFIG_ACTION' => append_sid("admin_db_maintenance.$phpEx?mode=start&function=config"),
+					'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 
 					'L_DBMTNC_TITLE' => $lang['DB_Maintenance'],
 					'L_DBMTNC_SUB_TITLE' => $lang['Config_title'],
@@ -2065,7 +2132,7 @@ switch($mode_id)
 				// If post or topic data has been updated, we interrupt here and add a link to resync the data
 				if ($update_post_data)
 				{
-					echo("<p class=\"gen\"><a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=synchronize_post_direct&amp;db_state=" . (($db_state) ? '1' : '0')) . "\">" . $lang['Must_synchronize'] . "</a></p>\n");
+					echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('synchronize_post_direct', (($db_state) ? 1 : 0)) . "\">" . $lang['Must_synchronize'] . "</a></p>\n");
 					// Send Information about processing time
 					echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
 					include('./page_footer_admin.'.$phpEx);
@@ -3084,7 +3151,7 @@ switch($mode_id)
 				update_config('dbmtnc_rebuild_end', intval($row['max_post_id']));
 				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
 
-				echo("<p class=\"gen\"><a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=perform_rebuild&amp;db_state=" . (($db_state) ? '1' : '0')) . "\">" . $lang['Can_start_rebuilding'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
+				echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('perform_rebuild', (($db_state) ? 1 : 0)) . "\">" . $lang['Can_start_rebuilding'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
 				// Send Information about processing time
 				echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
 				include('./page_footer_admin.'.$phpEx);
@@ -3110,7 +3177,7 @@ switch($mode_id)
 				}
 				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
 
-				echo("<p class=\"gen\"><a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=perform_rebuild&amp;db_state=" . (($db_state) ? '1' : '0')) . "\">" . $lang['Can_start_rebuilding'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
+				echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('perform_rebuild', (($db_state) ? 1 : 0)) . "\">" . $lang['Can_start_rebuilding'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
 				// Send Information about processing time
 				echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
 				include('./page_footer_admin.'.$phpEx);
@@ -3118,7 +3185,7 @@ switch($mode_id)
 				break;
 			case 'perform_rebuild': // Rebuild search index (perform part)
 				// ATTENTION: page_header not sent yet!
-				$db_state = ( isset($HTTP_GET_VARS['db_state']) ) ? intval( $HTTP_GET_VARS['db_state'] ) : 0;
+				$db_state = (isset($_GET['db_state']) && is_scalar($_GET['db_state'])) ? intval($_GET['db_state']) : 0;
 				// Load functions
 				include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 				// Identify PHP version and time limit configuration
@@ -3313,7 +3380,7 @@ switch($mode_id)
 				update_config('dbmtnc_rebuild_pos', $last_post);
 				// OK, all actions are done - send headers
 				$template->assign_vars(array(
-					'META' => '<meta http-equiv="refresh" content="1;url=' . append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=perform_rebuild&amp;db_state=$db_state") . '">')
+					'META' => '<meta http-equiv="refresh" content="1;url=' . dbmtnc_continuation_url('perform_rebuild', $db_state) . '">')
 				);
 				include('./page_header_admin.'.$phpEx);
 				ob_end_flush();
@@ -3345,7 +3412,7 @@ switch($mode_id)
 				}
 				
 				echo("<p class=\"gen\">" . sprintf($lang['Indexing_progress'], $posts_indexed, $posts_total, ($posts_indexed / $posts_total) * 100, $last_post) . "</p>\n");
-				echo("<p class=\"gen\"><a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=perform_rebuild&amp;db_state=$db_state") . "\">" . $lang['Click_or_wait_to_proceed'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
+				echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('perform_rebuild', $db_state) . "\">" . $lang['Click_or_wait_to_proceed'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
 				// Send Information about processing time
 				echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
 				include('./page_footer_admin.'.$phpEx);
@@ -3356,7 +3423,7 @@ switch($mode_id)
 				echo("<h1>" . $lang['Synchronize_posts'] . "</h1>\n");
 				if ($function == 'synchronize_post_direct')
 				{
-					$db_state = ( isset($HTTP_GET_VARS['db_state']) ) ? intval($HTTP_GET_VARS['db_state']) : 1;
+					$db_state = (isset($_GET['db_state']) && is_scalar($_GET['db_state'])) ? intval($_GET['db_state']) : 1;
 				}
 				else
 				{
@@ -3481,7 +3548,7 @@ switch($mode_id)
 					}
 					else
 					{
-						throw_error(sprintf($lang['Inconsistencies_found'], "<a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=check_post") . "\">", '</a>'));
+						throw_error(sprintf($lang['Inconsistencies_found'], "<a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=start&amp;function=check_post") . "\">", '</a>'));
 					}
 					$db->sql_freeresult($result2);
 				}

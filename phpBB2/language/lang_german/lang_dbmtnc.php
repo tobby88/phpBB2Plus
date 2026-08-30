@@ -206,6 +206,9 @@ $mtnc[] = array('unlock_db',
 	'',
 	3);
 
+$lang['Confirm_dbmtnc_action'] = 'Diese Wartungsaktion kann Datenbankinhalte verändern. Möchtest Du fortfahren?';
+$lang['Invalid_dbmtnc_request'] = 'Ungültige Anfrage an die Datenbankwartung.';
+
 //
 // Function specific vars
 //

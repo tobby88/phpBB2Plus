@@ -111,3 +111,6 @@ jobs:
 
       - name: Test Knowledge Base structure administration safety
         run: php .github/scripts/check-kb-admin-structure-safety.php
+
+      - name: Test database maintenance safety
+        run: php .github/scripts/check-db-maintenance-safety.php

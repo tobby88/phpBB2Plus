@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the DB Maintenance AdminCP module: function and numeric inputs now
+  use strict allowlists/scalar parsing, database-changing actions always show a
+  confirmation and require a session-bound POST token, and the multi-request
+  search-index workflow uses signed, session-bound continuation URLs. Direct
+  GET execution of ordinary maintenance operations is rejected.
 - Repaired personal-album category resolution when an otherwise valid category
   is absent from the filtered hierarchy cache. The fallback loads only the
   requested owner's exact category and applies its real permissions; missing
