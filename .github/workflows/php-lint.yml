@@ -138,3 +138,6 @@ jobs:
 
       - name: Test content administration safety
         run: php .github/scripts/check-content-admin-safety.php
+
+      - name: Test profile-field and user-pruning safety
+        run: php .github/scripts/check-profile-prune-admin-safety.php

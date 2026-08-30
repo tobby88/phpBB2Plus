@@ -55,14 +55,17 @@ require('./pagestart.' . $phpEx);
 include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
 $filename = basename(__FILE__);
 
-if(!isset($HTTP_GET_VARS['mode']) || !is_scalar($HTTP_GET_VARS['mode']) ||
-  !isset($HTTP_GET_VARS['pfid']) || !is_scalar($HTTP_GET_VARS['pfid']))
+$mode_value = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+  ((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
+$pfid_value = (isset($_POST['pfid']) && is_scalar($_POST['pfid'])) ? (string) $_POST['pfid'] :
+  ((isset($_GET['pfid']) && is_scalar($_GET['pfid'])) ? (string) $_GET['pfid'] : '');
+if($mode_value === '' || $pfid_value === '')
 {
-  message_die(GENERAL_ERROR,'Required GET variables not set','Could not reach admin page; Insufficient data',__LINE__,__FILE__);
+  message_die(GENERAL_ERROR,'Required request variables not set','Could not reach admin page; Insufficient data',__LINE__,__FILE__);
 }
 
-$mode = (string) $HTTP_GET_VARS['mode'];
-$pfid = ((string) $HTTP_GET_VARS['pfid'] === 'x') ? 'x' : (int) $HTTP_GET_VARS['pfid'];
+$mode = $mode_value;
+$pfid = ($pfid_value === 'x') ? 'x' : (int) $pfid_value;
 if (!in_array($mode, array('add', 'update', 'edit', 'delete', 'confirmdelete'), true) || ($pfid !== 'x' && $pfid < 1))
 {
   message_die(GENERAL_ERROR, 'Invalid profile-field request.');
@@ -75,9 +78,7 @@ if (in_array($mode, array('update', 'confirmdelete'), true))
 
 function profile_field_post_value($name, $default = '')
 {
-  global $HTTP_POST_VARS;
-
-  return (isset($HTTP_POST_VARS[$name]) && is_scalar($HTTP_POST_VARS[$name])) ? (string) $HTTP_POST_VARS[$name] : $default;
+  return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? stripslashes((string) $_POST[$name]) : $default;
 }
 
 function profile_field_column_identifier($display_name)
@@ -91,7 +92,7 @@ function profile_field_column_identifier($display_name)
   return $identifier;
 }
 
-$session_field = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+$session_field = phpbb_admin_session_field();
 
 if($mode == 'add')
 {
@@ -110,32 +111,40 @@ if($mode == 'add')
     'L_ADD_FIELD_TITLE' => $lang['add_field_title'],
     'L_ADD_FIELD_EXPLAIN' => $lang['add_field_explain'],
     
-    'S_ADD_FIELD_ACTION' => append_sid("$filename?mode=update&pfid=x"),
-    'S_HIDDEN_FIELDS' => $session_field
+    'S_ADD_FIELD_ACTION' => append_sid($filename),
+    'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="pfid" value="x" />' . $session_field
     ));
 }
 elseif($mode == 'update')
 {
   $template->set_filenames(array('body' => 'admin/admin_message_body.tpl'));
   
-  $name = htmlspecialchars(trim(profile_field_post_value('field_name')), ENT_QUOTES);
-  if(empty($name))
+  $name_input = trim(profile_field_post_value('field_name'));
+  if($name_input === '' || strlen($name_input) > 255)
+    message_die(GENERAL_ERROR,$lang['enter_a_name']);
+  $name = htmlspecialchars($name_input, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  if (strlen($name) > 255)
     message_die(GENERAL_ERROR,$lang['enter_a_name']);
   
-  $description = htmlspecialchars(profile_field_post_value('field_descrition'), ENT_QUOTES);
+  $description_input = profile_field_post_value('field_descrition');
+  if (strlen($description_input) > 255)
+    message_die(GENERAL_ERROR, 'The profile-field description is too long.');
+  $description = htmlspecialchars($description_input, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  if (strlen($description) > 255)
+    message_die(GENERAL_ERROR, 'The profile-field description is too long.');
   
   $type = intval(profile_field_post_value('field_type'));
   if (!in_array($type, array(TEXT_FIELD, TEXTAREA, RADIO, CHECKBOX), true))
     message_die(GENERAL_ERROR, 'Invalid profile-field type.');
-  $text_field_default = htmlspecialchars(profile_field_post_value('text_field_default'), ENT_QUOTES);
+  $text_field_default = htmlspecialchars(profile_field_post_value('text_field_default'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $text_field_maxlen = profile_field_post_value('text_field_maxlen') === '' ? TEXT_FIELD_MAXLENGTH : intval(profile_field_post_value('text_field_maxlen'));
   $text_field_maxlen = max(1, min(TEXT_FIELD_MAXLENGTH, $text_field_maxlen));
-  $text_area_default = htmlspecialchars(profile_field_post_value('text_area_default'), ENT_QUOTES);
+  $text_area_default = htmlspecialchars(profile_field_post_value('text_area_default'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $text_area_maxlen = profile_field_post_value('text_area_maxlen') === '' ? TEXTAREA_MINLENGTH : intval(profile_field_post_value('text_area_maxlen'));
   $text_area_maxlen = max(TEXTAREA_MINLENGTH, min(TEXTAREA_MAXLENGTH, $text_area_maxlen));
   
-  $radio_values = htmlspecialchars(profile_field_post_value('radio_values'), ENT_QUOTES);
-  $radio_default_value = htmlspecialchars(profile_field_post_value('radio_default_value'), ENT_QUOTES);
+  $radio_values = htmlspecialchars(profile_field_post_value('radio_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  $radio_default_value = htmlspecialchars(profile_field_post_value('radio_default_value'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $radio_values = explode("\n",str_replace("\r",'',$radio_values));
   if(empty($radio_default_value))
     $radio_default_value = $radio_values[0];
@@ -144,8 +153,8 @@ elseif($mode == 'update')
     $temp .= $val . ',';
   $radio_values = substr($temp,0,strlen($temp)-1);
   
-  $checkbox_values = htmlspecialchars(profile_field_post_value('checkbox_values'), ENT_QUOTES);
-  $check_default_values = htmlspecialchars(profile_field_post_value('check_default_values'), ENT_QUOTES);
+  $checkbox_values = htmlspecialchars(profile_field_post_value('checkbox_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  $check_default_values = htmlspecialchars(profile_field_post_value('check_default_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $checkbox_values = explode("\n",str_replace("\r",'',$checkbox_values));
   if(!empty($check_default_values))
   {
@@ -159,14 +168,21 @@ elseif($mode == 'update')
   foreach($checkbox_values as $val)
     $temp .= $val . ',';
   $checkbox_values = substr($temp,0,strlen($temp)-1);
+
+  if (strlen($text_field_default) > $text_field_maxlen || strlen($text_area_default) > $text_area_maxlen ||
+    strlen($radio_default_value) > 255 || strlen($radio_values) > 60000 ||
+    strlen($check_default_values) > 60000 || strlen($checkbox_values) > 60000)
+    message_die(GENERAL_ERROR, 'One or more profile-field values exceed their configured limit.');
   
-  $required = intval(profile_field_post_value('required'));
-  $user_can_view = intval(profile_field_post_value('user_can_view'));
-  $view_in_profile = intval(profile_field_post_value('view_in_profile'));
-  $profile_location = intval(profile_field_post_value('profile_location'));
-  $view_in_memberlist = intval(profile_field_post_value('view_in_memberlist'));
-  $view_in_topic = intval(profile_field_post_value('view_in_topic'));
-  $signature_wrap = intval(profile_field_post_value('signature_wrap'));
+  $required = intval(profile_field_post_value('required')) === REQUIRED ? REQUIRED : NOT_REQUIRED;
+  $user_can_view = intval(profile_field_post_value('user_can_view')) === ALLOW_VIEW ? ALLOW_VIEW : DISALLOW_VIEW;
+  $view_in_profile = intval(profile_field_post_value('view_in_profile')) === VIEW_IN_PROFILE ? VIEW_IN_PROFILE : NO_VIEW_IN_PROFILE;
+  $profile_location_value = intval(profile_field_post_value('profile_location'));
+  $profile_location = in_array($profile_location_value, array(CONTACTS, ABOUT), true) ? $profile_location_value : ABOUT;
+  $view_in_memberlist = intval(profile_field_post_value('view_in_memberlist')) === VIEW_IN_MEMBERLIST ? VIEW_IN_MEMBERLIST : NO_VIEW_IN_MEMBERLIST;
+  $view_in_topic = intval(profile_field_post_value('view_in_topic')) === VIEW_IN_TOPIC ? VIEW_IN_TOPIC : NO_VIEW_IN_TOPIC;
+  $signature_wrap_value = intval(profile_field_post_value('signature_wrap'));
+  $signature_wrap = in_array($signature_wrap_value, array(AUTHOR, ABOVE_SIGNATURE, BELOW_SIGNATURE), true) ? $signature_wrap_value : AUTHOR;
   
   if($pfid == 'x')
   {
@@ -197,7 +213,7 @@ elseif($mode == 'update')
   }
   
   $name_display = $name;
-  $name = profile_field_column_identifier($name);
+  $name = profile_field_column_identifier($name_input);
   if ($name === false)
     message_die(GENERAL_ERROR, 'The profile-field name cannot be represented as a safe database column.');
   $name_display_sql = $db->sql_escape($name_display);
@@ -334,7 +350,7 @@ elseif($mode == 'update')
   
   $template->assign_vars(array(
     'MESSAGE_TITLE' => $pfid == 'x' ? $lang['profile_field_created'] : $lang['profile_field_updated'],
-    'MESSAGE_TEXT' => $lang['field_success'] . '<br /><br />' . $create_second_field_link));
+    'MESSAGE_TEXT' => $lang['field_success']));
 }
 elseif($mode == 'edit')
 {
@@ -372,7 +388,7 @@ elseif($mode == 'edit')
         $template->assign_block_vars('switch_fields.profile_fields',array(
           'ROW_CLASS' => $row,
           'ID' => $id,
-          'NAME' => $name,
+          'NAME' => phpbb_admin_html(html_entity_decode((string) $name, ENT_QUOTES, 'UTF-8')),
           
           'U_PROFILE_FIELD_EDIT' => $edit_url,
           'U_PROFILE_FIELD_DELETE' => $delete_url
@@ -386,9 +402,12 @@ elseif($mode == 'edit')
     
     $profile_rows = get_fields('WHERE field_id = ' . $pfid,false);
     
+    if (!is_array($profile_rows) || empty($profile_rows))
+      message_die(GENERAL_ERROR, 'Profile field not found.');
+
     $template->assign_vars(array(
-      'FIELD_NAME' => $profile_rows['field_name'],
-      'FIELD_DESCRIPTION' => $profile_rows['field_description'],
+      'FIELD_NAME' => phpbb_admin_html(html_entity_decode((string) $profile_rows['field_name'], ENT_QUOTES, 'UTF-8')),
+      'FIELD_DESCRIPTION' => phpbb_admin_html(html_entity_decode((string) $profile_rows['field_description'], ENT_QUOTES, 'UTF-8')),
       'TEXT_FIELD_CHECKED' => $profile_rows['field_type'] == TEXT_FIELD ? ' checked="checked"' : '',
       'TEXTAREA_CHECKED' => $profile_rows['field_type'] == TEXTAREA ? ' checked="checked"' : '',
       'RADIO_CHECKED' => $profile_rows['field_type'] == RADIO ? ' checked="checked"' : '',
@@ -420,8 +439,8 @@ elseif($mode == 'edit')
       'L_ADD_FIELD_TITLE' => $lang['edit_field_title'],
       'L_ADD_FIELD_EXPLAIN' => $lang['edit_field_explain'],
       
-      'S_ADD_FIELD_ACTION' => append_sid("$filename?mode=update&pfid=$pfid"),
-      'S_HIDDEN_FIELDS' => $session_field
+      'S_ADD_FIELD_ACTION' => append_sid($filename),
+      'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="pfid" value="' . (int) $pfid . '" />' . $session_field
       ));
   }
 }
@@ -432,20 +451,20 @@ elseif($mode == 'delete')
     message_die(GENERAL_ERROR, 'Profile field not found.');
 
   $template->set_filenames(array('body' => 'admin/confirm_body.tpl'));
-  $hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />' .
-    '<input type="hidden" name="pfid" value="' . (int) $pfid . '" />';
+  $hidden_fields = '<input type="hidden" name="mode" value="confirmdelete" />' .
+    '<input type="hidden" name="pfid" value="' . (int) $pfid . '" />' . phpbb_admin_session_field();
   $template->assign_vars(array(
     'MESSAGE_TITLE' => $lang['Confirm'],
     'MESSAGE_TEXT' => sprintf($lang['double_check_delete'], htmlspecialchars((string) $field_name['field_name'])),
     'L_YES' => $lang['Yes'],
     'L_NO' => $lang['No'],
-    'S_CONFIRM_ACTION' => append_sid("$filename?mode=confirmdelete&pfid=$pfid"),
+    'S_CONFIRM_ACTION' => append_sid($filename),
     'S_HIDDEN_FIELDS' => $hidden_fields
     ));
 }
 elseif($mode == 'confirmdelete')
 {
-  if (!isset($HTTP_POST_VARS['confirm']))
+  if (!isset($_POST['confirm']))
     redirect(append_sid("$filename?mode=edit&pfid=x"));
 
   $field_name = get_fields('WHERE field_id = '.(int) $pfid,false,'field_name');

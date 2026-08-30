@@ -87,16 +87,17 @@ $default[4] =360;
 // ********************************************************************************
 // ****************** Do not change any thing below *******************************
 
-$options = '<option value="1">&nbsp;'.$lang['1_Day'].'</option>
-	<option value="7">&nbsp;'.$lang['7_Days'].'</option>
-	<option value="14">&nbsp;'.$lang['2_Weeks'].'</option>
-	<option value="21">&nbsp;'.sprintf($lang['X_Weeks'],3).'</option>
-	<option value="30">&nbsp;'.$lang['1_Month'].'</option>
-	<option value="60">&nbsp;'.sprintf($lang['X_Months'],2).'</option>
-	<option value="90">&nbsp;'.$lang['3_Months'].'</option>
-	<option value="180">&nbsp;'.$lang['6_Months'].'</option>
-	<option value="365">&nbsp;'.$lang['1_Year'].'</option>
-  	</select>';
+$day_options = array(
+	1 => $lang['1_Day'],
+	7 => $lang['7_Days'],
+	14 => $lang['2_Weeks'],
+	21 => sprintf($lang['X_Weeks'], 3),
+	30 => $lang['1_Month'],
+	60 => sprintf($lang['X_Months'], 2),
+	90 => $lang['3_Months'],
+	180 => $lang['6_Months'],
+	365 => $lang['1_Year']
+);
 //
 // Generate page
 //
@@ -109,17 +110,22 @@ while ( !empty($sql[$n]) )
 	$vars='days_'.$n;
 	
 	$default[$n] = !empty($default[$n]) ? $default[$n] : 10;
-	$days [$n] = ( isset($_GET[$vars]) ) ? $_GET[$vars] : (( isset($_POST[$vars]) ) ? intval($_POST[$vars]) : $default[$n]);
-//		<option value="'.$days[$n].'" SELECTED>&nbsp;'.$days[$n].' '.$lang['Days'].'&nbsp;</option>'.$options;
-//	'.str_replace("value=\"".$days[$n]."\"> SELECTED " , "value=\"".$days[$n]."\">" ,$options);
-
-	// make a extra option if the parsed days value does not already exisit
-	if (!strpos($options,"value=\"".$days[$n]))
+	$day_value = (isset($_POST[$vars]) && is_scalar($_POST[$vars])) ? $_POST[$vars] :
+		((isset($_GET[$vars]) && is_scalar($_GET[$vars])) ? $_GET[$vars] : $default[$n]);
+	$days[$n] = max(1, min(36500, intval($day_value)));
+	$current_options = $day_options;
+	if (!isset($current_options[$days[$n]]))
 	{
-		$options = '<option value="'.$days[$n].'">&nbsp;'.sprintf($lang['X_Days'],$days[$n]).'</option>'.$options;
+		$current_options[$days[$n]] = sprintf($lang['X_Days'], $days[$n]);
+		ksort($current_options, SORT_NUMERIC);
 	}
-	$select[$n] = '<select name="days_'.$n.'" size="1" onchange="SetDays();" class="gensmall">
-		'.str_replace("value=\"".$days[$n]."\">&nbsp;", "value=\"".$days[$n]."\" SELECTED>&nbsp;*" ,$options);
+	$select[$n] = '<select name="days_'.$n.'" size="1" onchange="SetDays();" class="gensmall">';
+	foreach ($current_options as $option_days => $option_label)
+	{
+		$selected = ((int) $option_days === $days[$n]) ? ' selected="selected"' : '';
+		$select[$n] .= '<option value="' . (int) $option_days . '"' . $selected . '>&nbsp;' . phpbb_admin_html($option_label) . '</option>';
+	}
+	$select[$n] .= '</select>';
 
 	if(!($result = $db->sql_query('SELECT user_id , username, user_level FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'"'.$sql[$n].' AND user_regdate<"'.(time()-(86400*$days [$n])).'" ORDER BY username LIMIT 800')))
 		message_die(GENERAL_ERROR, 'Error obtaining userdata'.$sql[$n], '', __LINE__, __FILE__, $sql[$n]);
@@ -129,7 +135,7 @@ while ( !empty($sql[$n]) )
 	for($i = 0; $i < $user_count; $i++) 
 	{ 
 		$style_color = ($user_list[$i]['user_level'] == ADMIN )?'style="color:#' . $theme['fontcolor3'] . '"':(( $user_list[$i]['user_level'] == MOD )?'style="color:#' . $theme['fontcolor2'] . '"':''); 
-		$list[$n] .= ' <a href="' . append_sid($phpbb_root_path."profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $user_list[$i]['user_id']) . '"' . $style_color .'><b>' . $user_list[$i]['username'] . '</b></a>'; 
+		$list[$n] .= ' <a href="' . append_sid($phpbb_root_path."profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($user_list[$i]['user_id'])) . '"' . $style_color .'><b>' . phpbb_admin_html($user_list[$i]['username']) . '</b></a>';
 	}
 	$db->sql_freeresult($result);
 $template->assign_block_vars('prune_list', array(
@@ -139,7 +145,7 @@ $template->assign_block_vars('prune_list', array(
 		"L_PRUNE_EXPLAIN" => sprintf($lang['Prune_explain'][$n],$days[$n]),
 		'S_PRUNE_USERS' => append_sid("admin_prune_users.$phpEx"),
 		"S_DAYS" => $select[$n],
-		"U_PRUNE" => '<a href="'.append_sid($phpbb_root_path.'delete_users.php?mode=prune_'.$n.'&days='.$days[$n]).'" onClick="return confirm(\''.sprintf($lang['Prune_on_click'],$user_count).'\')">'.$lang['Prune_commands'][$n].'</a>',));
+		"U_PRUNE" => '<a href="'.append_sid($phpbb_root_path.'delete_users.php?mode=prune_'.$n.'&amp;days='.$days[$n]).'">'.phpbb_admin_html($lang['Prune_commands'][$n]).'</a>',));
 	$n++;
 }
 

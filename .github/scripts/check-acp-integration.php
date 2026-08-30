@@ -72,6 +72,8 @@ $integrations = array(
 	'admin/admin_words.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape($word)'),
 	'admin/admin_ranks.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape($rank_title)'),
 	'admin/admin_smilies.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape($smile_code)'),
+	'admin/admin_profile_fields.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'profile_field_column_identifier($name_input)'),
+	'admin/admin_links_cat.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "array('', 'new', 'edit', 'delete')"),
 	'admin/admin_forums.php' => array('$forum_write_modes', 'admin_forum_action_button', 'phpbb_admin_require_post_session();'),
 	'admin/admin_styles.php' => array('xs_frameset.$phpEx?action=menu', '$no_page_header = true'),
 	'admin/xs_include.php' => array('$module[\'Styles\'][\'Menu\']', 'phpbb_admin_require_post_session();'),

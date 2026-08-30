@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened custom-profile-field administration and account pruning. Profile
+  field writes now carry their mode and final target in the session-bound POST
+  form, dynamic column identifiers and option values are strictly bounded,
+  missing edit records are handled without PHP 8 warnings, and the success
+  page no longer references an undefined variable. Link-category session
+  fields use the same centralized mechanism. Account-pruning day values are
+  scalar-normalized and bounded before SQL or HTML use, displayed usernames
+  are escaped, and the deletion worker normalizes request values and database
+  identifiers at their boundaries.
 - Modernized acronym, word-censor, rank and smiley administration. All writes
   now use session-bound POST requests, confirmed deletes take their target
   only from the confirmation form, request modes and scalar identifiers are

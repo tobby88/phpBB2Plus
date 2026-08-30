@@ -65,9 +65,12 @@ init_userprefs($userdata);
 if ($userdata['user_level']!=ADMIN)
       message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 
-$del_user = ( isset($_POST['del_user']) ) ? intval($_POST['del_user']) : (( isset($_GET['del_user']) ) ? intval($_GET['del_user']) : 0);
-$mode = ( isset($_POST['mode']) ) ? (string) $_POST['mode'] : ( ( isset($_GET['mode']) ) ? (string) $_GET['mode'] : '');
-$days = ( isset($_POST['days']) ) ? intval($_POST['days']) : (( isset($_GET['days']) ) ? intval($_GET['days']) : 0);
+$del_user = (isset($_POST['del_user']) && is_scalar($_POST['del_user'])) ? intval($_POST['del_user']) :
+	((isset($_GET['del_user']) && is_scalar($_GET['del_user'])) ? intval($_GET['del_user']) : 0);
+$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
+$days = (isset($_POST['days']) && is_scalar($_POST['days'])) ? intval($_POST['days']) :
+	((isset($_GET['days']) && is_scalar($_GET['days'])) ? intval($_GET['days']) : 0);
 $days = max(1, min(36500, $days));
 
 // ******************************************************************************************
@@ -136,9 +139,9 @@ while (isset($user_list[$i]['user_id']))
 	@set_time_limit(5);
 	$group_moderator = array();
 	$mark_list = array();
-	$user_id=$user_list[$i]['user_id'];
+	$user_id = intval($user_list[$i]['user_id']);
 	$username = $user_list[$i]['username'];
-	$username_sql = str_replace("'", "''", $username);
+	$username_sql = $db->sql_escape($username);
 	$user_email = $user_list[$i]['user_email'];
 	$user_lang =  $user_list[$i]['user_lang'];
 	$sql = "SELECT g.group_id
@@ -189,14 +192,14 @@ while (isset($user_list[$i]['user_id']))
 
 	while ( $row_group = $db->sql_fetchrow($result) )
 	{
-		$group_moderator[] = $row_group['group_id'];
+		$group_moderator[] = intval($row_group['group_id']);
 	}
 
 	if ( count($group_moderator) )
 	{
 		$update_moderator_id = implode(', ', $group_moderator);
 		$sql = "UPDATE " . GROUPS_TABLE . "
-			SET group_moderator = " . $userdata['user_id'] . "
+			SET group_moderator = " . intval($userdata['user_id']) . "
 			WHERE group_moderator IN ($update_moderator_id)";
 		if( !$db->sql_query($sql) )
 		{
@@ -218,14 +221,14 @@ while (isset($user_list[$i]['user_id']))
 	}
 
 	$sql = "DELETE FROM " . GROUPS_TABLE . "
-		WHERE group_id = " . $row['group_id'];
+		WHERE group_id = " . intval($row['group_id']);
 		if( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
 		}
 
 	$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . "
-		WHERE group_id = " . $row['group_id'];
+		WHERE group_id = " . intval($row['group_id']);
 	if( !$db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);

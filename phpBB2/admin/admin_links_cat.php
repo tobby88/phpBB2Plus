@@ -71,6 +71,8 @@ function reorder_category()
 
 $post_mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '';
 $action = (isset($_GET['action']) && is_scalar($_GET['action'])) ? (string) $_GET['action'] : '';
+$post_mode = in_array($post_mode, array('', 'new', 'edit', 'delete'), true) ? $post_mode : '';
+$action = in_array($action, array('', 'edit', 'delete'), true) ? $action : '';
 
 if (isset($_POST['cat_action']) && is_scalar($_POST['cat_action']) &&
 	preg_match('/^move_(up|down):([0-9]+)$/D', (string) $_POST['cat_action'], $move_action))
@@ -124,7 +126,7 @@ if( $post_mode === '' )
 			'L_LINK_CAT_TITLE' => $lang['Link_Categories_Title'],
 			'L_LINK_CAT_EXPLAIN' => $lang['Link_Categories_Explain'],
 			'S_LINK_ACTION' => append_sid("admin_links_cat.$phpEx"),
-			'S_SESSION_FIELD' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+			'S_SESSION_FIELD' => phpbb_admin_session_field(),
 			'L_MOVE_UP' => $lang['Move_up'],
 			'L_MOVE_DOWN' => $lang['Move_down'],
 			'L_EDIT' => $lang['Edit'],
@@ -192,7 +194,7 @@ if( $post_mode === '' )
 				'L_LINK_CAT_TITLE' => $lang['Link_Categories_Title'],
 				'L_LINK_CAT_EXPLAIN' => $lang['Link_Categories_Explain'],
 				'S_LINK_ACTION' => append_sid("admin_links_cat.$phpEx"),
-				'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat_id" value="' . $cat_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+				'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat_id" value="' . $cat_id . '" />' . phpbb_admin_session_field(),
 				'L_CAT_TITLE' => $lang['Category_Title'],
 
 				'L_DISABLED' => $lang['Disabled'],
@@ -254,7 +256,7 @@ if( $post_mode === '' )
 
 			$template->assign_vars(array(
 				'S_LINK_ACTION' => append_sid("admin_links_cat.$phpEx"),
-				'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat_id" value="' . $cat_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+				'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat_id" value="' . $cat_id . '" />' . phpbb_admin_session_field(),
 				'L_CAT_DELETE' => $lang['Delete_Category'],
 				'L_CAT_DELETE_EXPLAIN' => $lang['Delete_Category_Explain'],
 				'L_CAT_TITLE' => $lang['Category_Title'],
@@ -288,7 +290,7 @@ else
 				'L_LINK_CAT_TITLE' => $lang['Link_Categories_Title'],
 				'L_LINK_CAT_EXPLAIN' => $lang['Link_Categories_Explain'],
 				'S_LINK_ACTION' => append_sid("admin_links_cat.$phpEx"),
-				'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+				'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 				'L_CAT_TITLE' => $lang['Category_Title'],
 
 
