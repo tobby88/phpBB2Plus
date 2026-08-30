@@ -75,7 +75,11 @@ function scan_hl_files()
 	
 	foreach($scan_dir_list as $dir_item)
 	{
-		$dir_handle = opendir($dir_item);
+		$dir_handle = @opendir($dir_item);
+		if ($dir_handle === false)
+		{
+			continue;
+		}
 		
 		while (false !== ($file = readdir($dir_handle)))
 		{
@@ -102,7 +106,12 @@ function update_hl_file_cache($filename)
 	{
 		//Open up the file and read in the data to send to the parse function
 		// in an array for each newline
-		$parsed_array = parse_hl_file(@file($filename));
+		$file_data = @file($filename);
+		if ($file_data === false)
+		{
+			return;
+		}
+		$parsed_array = parse_hl_file($file_data);
 		$parsed_array['hack_file'] = $filename;
 		$parsed_array['hack_file_mtime'] = filemtime($filename);
 		
@@ -116,7 +125,7 @@ function update_hl_file_cache($filename)
 			
 			$sql_1 .= $key;
 			//Version is also considered numeric here, but we don't want it to be!
-			$sql_2 .= (is_numeric($val) && $key != 'hack_version') ? $val : "'".addslashes($val)."'";
+			$sql_2 .= (is_numeric($val) && $key != 'hack_version') ? $val : "'" . $db->sql_escape($val) . "'";
 		}
 		$sql = 'REPLACE INTO ' . HACKS_LIST_TABLE . " ($sql_1) VALUES ($sql_2)";
 		if(!$db->sql_query($sql))
@@ -133,6 +142,10 @@ function update_hl_file_cache($filename)
 function parse_hl_file($file_data)
 {
 	$data_array = array();
+	if (!is_array($file_data))
+	{
+		return $data_array;
+	}
 	//Remove commented lines (##) from data
 	for ($i=0; $i < count($file_data); $i++)
 	{
@@ -154,6 +167,10 @@ function parse_hl_file($file_data)
 	'Version' => 'hack_version', 'Download_URL' => 'hack_download_url', 'Author_EMAIL' => 'hack_author_email',
 	'Author_WEB' => 'hack_author_website'
 	);
+	foreach ($database_columns as $column)
+	{
+		$data_array[$column] = '';
+	}
 	
 	//Sort out the two arrays
 	sort($file_data, SORT_STRING);
@@ -174,7 +191,7 @@ function parse_hl_file($file_data)
 				//Make into tokens
 				$tmp = preg_replace($pattern, '', trim($file_data[$i]));
 				if (DEBUG_THIS_MOD) print "<font color=\"green\">DEBUG - Found $search_item in $i; using pattern \"$pattern\"<br></font>";
-				$data_array[$database_columns[$search_item]] .= substr($tmp, 1, strlen($tmp) - 2);
+				$data_array[$database_columns[$search_item]] = substr($tmp, 1, strlen($tmp) - 2);
 				if (DEBUG_THIS_MOD) print "<font color=\"gray\">DEBUG - Tokens Data - " . $data_array[$database_columns[$search_item]] . "</font><br>";
 				$found = true;
 			}

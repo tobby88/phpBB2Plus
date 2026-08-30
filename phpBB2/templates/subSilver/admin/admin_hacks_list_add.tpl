@@ -44,6 +44,7 @@
 </tr>
 <tr>
 	<td align="center" class="cat" colspan="2">
+	{S_HIDDEN_FIELDS}
 	<input type="hidden" name="{S_HIDDEN}" value="{S_HACK_ID}">
 	<input type="submit" value="{L_SUBMIT}" class="mainoption">&nbsp;&nbsp;<input type="reset" value="{L_RESET}" class="liteoption"></td>
 </tr>

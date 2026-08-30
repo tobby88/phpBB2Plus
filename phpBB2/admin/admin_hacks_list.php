@@ -52,126 +52,134 @@ $update_sql = '';
 $insert_sql = '';
 $insert_val_sql = '';
 
+function admin_hacks_scalar($source, $key, $default = '')
+{
+	return isset($source[$key]) && is_scalar($source[$key]) ? trim((string) $source[$key]) : $default;
+}
+
+function admin_hacks_limit($value, $length)
+{
+	if (function_exists('mb_substr'))
+	{
+		return mb_substr($value, 0, $length, 'UTF-8');
+	}
+	return substr($value, 0, $length);
+}
+
+function admin_hacks_form_values()
+{
+	$limits = array(
+		'hack_download_url' => 2048, 'hack_name' => 191,
+		'hack_desc' => 255, 'hack_author' => 255,
+		'hack_author_email' => 255, 'hack_author_website' => 255,
+		'hack_version' => 32
+	);
+	$values = array();
+	foreach ($limits as $field => $limit)
+	{
+		$values[$field] = admin_hacks_limit(admin_hacks_scalar($_POST, $field), $limit);
+	}
+	$values['hack_hide'] = admin_hacks_scalar($_POST, 'hack_hide') === 'Yes' ? 'Yes' : 'No';
+	return $values;
+}
+
+function admin_hacks_http_url($value)
+{
+	$parts = $value !== '' ? @parse_url($value) : false;
+	if ($parts === false || empty($parts['scheme']) || empty($parts['host']))
+	{
+		return '';
+	}
+	$scheme = strtolower($parts['scheme']);
+	return ($scheme === 'http' || $scheme === 'https') ? $value : '';
+}
+
 /*******************************************************************************************
 /** Get parameters.  'var_name' => 'default'
 /******************************************************************************************/
 $params = array('mode' => '', 'hack_id' => '');
 
-foreach($params as $var => $default)
+$mode = admin_hacks_scalar($_POST, 'mode', admin_hacks_scalar($_GET, 'mode'));
+$mode = in_array($mode, array('', 'display', 'add', 'edit'), true) ? $mode : '';
+$hack_id = max(0, intval(admin_hacks_scalar($_POST, 'hack_id', admin_hacks_scalar($_GET, 'hack_id'))));
+
+$actions = array();
+foreach (array_keys($_POST) as $key)
 {
-	$$var = $default;
-	if( isset($_POST[$var]) || isset($_GET[$var]) )
+	if (preg_match('/^(delete|update|add)_id_([0-9]+)$/D', $key, $match))
 	{
-		$$var = ( isset($_POST[$var]) ) ? $_POST[$var] : $_GET[$var];
+		$actions[] = array($match[1], intval($match[2]));
 	}
 }
 
-$hack_id = intval($hack_id);
-if (count($_POST))
+if (!empty($actions))
 {
-	foreach($_POST as $key => $valx)
-	{
-		/*******************************************************************************************
-		/** Check for deletion items
-		/******************************************************************************************/
-		if (substr_count($key, 'delete_id_'))
-		{
-			$hack_id = substr($key, 10);
-			
-			$sql = 'SELECT hack_name FROM ' . HACKS_LIST_TABLE . "
-			   WHERE hack_id = $hack_id";
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
-			}
-			$row = $db->sql_fetchrow($result);
-			
-			$neat_bc_name = addslashes(str_replace(" ", "_", $row['hack_name'])) . '_list_info';
-			$sql = 'DELETE FROM ' . CONFIG_TABLE . "
-			   WHERE config_name = '$neat_bc_name'";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
-			}
-			
-			$sql = "DELETE FROM " . HACKS_LIST_TABLE . "
-			   WHERE hack_id = $hack_id";
-			if(!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
-			}
-			else
-			{
-				$status_message .= sprintf($lang['Deleted_Hack'], stripslashes($row['hack_name']));
-			}
-		}
-		
-		/*******************************************************************************************
-		/** Check for update items
-		/******************************************************************************************/
-		elseif (substr_count($key, 'update_id_'))
-		{
-			$hack_id = substr($key, 10);
-			
-			foreach ($dbase_fields as $val)
-			{
-				/* Check for required items */
-				if (in_array($val, $required_fields) && $_POST[$val] == '')
-				{
-					message_die(GENERAL_ERROR, $lang['Required_Field_Missing'], '', __LINE__, __FILE__);
-				}
-				
-				/* Compile the SQL Lists */
-				$update_sql .= ($update_sql != '') ? ", $val = '" . addslashes($_POST[$val]) . "'" : "$val = '" . addslashes($_POST[$val]) . "'";
-			}
-			
-			$sql = 'UPDATE ' . HACKS_LIST_TABLE . "
-			   SET $update_sql
-			   WHERE hack_id = '$hack_id'";
-			if(!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
-			}
-			else
-			{
-				$status_message .= sprintf($lang['Updated_Hack'], stripslashes($_POST['hack_name']));
-			}
-		}
-		
-		/*******************************************************************************************
-		/** Check for add items
-		/******************************************************************************************/
-		elseif (substr_count($key, 'add_id_'))
-		{
-			$hack_id = substr($key, 7);
-			
-			foreach ($dbase_fields as $val)
-			{
-				/* Check for required items */
-				if (in_array($val, $required_fields) && $_POST[$val] == '')
-				{
-					message_die(GENERAL_ERROR, $lang['Required_Field_Missing'], '', __LINE__, __FILE__);
-				}
-				
-				/* Compile the SQL Lists */
-				$insert_sql .= ($insert_sql != '') ? ", $val" : $val;
-				$insert_val_sql .= ($insert_val_sql != '') ? ", '" . addslashes($_POST[$val]) . "'" : "'" . addslashes($_POST[$val]) . "'";
-			}
+	phpbb_admin_require_post_session();
+}
 
-			$sql = 'INSERT INTO ' . HACKS_LIST_TABLE . "
-			   ($insert_sql)
-			   VALUES
-			   ($insert_val_sql)";
-			if(!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
-			}
-			else
-			{
-				$status_message .= sprintf($lang['Added_Hack'], stripslashes($_POST['hack_name']));
-			}
+foreach ($actions as $action)
+{
+	$action_name = $action[0];
+	$action_id = $action[1];
+	if ($action_name === 'delete' && $action_id > 0)
+	{
+		$sql = 'SELECT hack_name FROM ' . HACKS_LIST_TABLE . ' WHERE hack_id = ' . $action_id;
+		if (!$result = $db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
+		}
+		$row = $db->sql_fetchrow($result);
+		if (!$row)
+		{
+			continue;
+		}
+
+		$neat_bc_name = str_replace(' ', '_', $row['hack_name']) . '_list_info';
+		$sql = "DELETE FROM " . CONFIG_TABLE . " WHERE config_name = '" . $db->sql_escape($neat_bc_name) . "'";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
+		}
+		$sql = 'DELETE FROM ' . HACKS_LIST_TABLE . ' WHERE hack_id = ' . $action_id;
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
+		}
+		$status_message .= sprintf($lang['Deleted_Hack'], phpbb_admin_html($row['hack_name']));
+		continue;
+	}
+
+	if ($action_name !== 'add' && ($action_name !== 'update' || $action_id < 1))
+	{
+		continue;
+	}
+	$values = admin_hacks_form_values();
+	foreach ($required_fields as $required_field)
+	{
+		if ($values[$required_field] === '')
+		{
+			message_die(GENERAL_ERROR, $lang['Required_Field_Missing'], '', __LINE__, __FILE__);
 		}
 	}
+	$assignments = array();
+	foreach ($dbase_fields as $field)
+	{
+		$assignments[] = $field . " = '" . $db->sql_escape($values[$field]) . "'";
+	}
+	if ($action_name === 'update')
+	{
+		$sql = 'UPDATE ' . HACKS_LIST_TABLE . ' SET ' . implode(', ', $assignments) . ' WHERE hack_id = ' . $action_id;
+	}
+	else
+	{
+		$assignments[] = 'hack_add_date = ' . time();
+		$sql = 'INSERT INTO ' . HACKS_LIST_TABLE . ' SET ' . implode(', ', $assignments);
+	}
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
+	}
+	$status_message .= sprintf($action_name === 'update' ? $lang['Updated_Hack'] : $lang['Added_Hack'], phpbb_admin_html($values['hack_name']));
 }
 /*******************************************************************************************
 /** Parse for modes...Two seperate pages (add + edit, display list)
@@ -182,6 +190,10 @@ switch($mode)
 {
 	case 'edit':
 	{
+		if ($hack_id < 1)
+		{
+			message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table']);
+		}
 		/* Fetch the data for the specified ID in edit mode, then do the same thing as add */
 		$sql = 'SELECT * FROM ' . HACKS_LIST_TABLE . "
 	WHERE hack_id = $hack_id";
@@ -190,19 +202,23 @@ switch($mode)
 			message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table'], '', __LINE__, __FILE__, $sql);
 		}
 		$row = $db->sql_fetchrow($result);
+		if (!$row)
+		{
+			message_die(GENERAL_ERROR, $lang['Error_Hacks_List_Table']);
+		}
 		
 		$template->assign_vars(array(
-		'S_HACK_ID' => $row['hack_id'],
+		'S_HACK_ID' => intval($row['hack_id']),
 		'S_HIDDEN' => 'update_id_' . $row['hack_id'],
-		'S_HACK_NAME' => stripslashes($row['hack_name']),
-		'S_HACK_DESC' => stripslashes($row['hack_desc']),
-		'S_HACK_DOWNLOAD' => $row['hack_download_url'],
-		'S_HACK_AUTHOR' => stripslashes($row['hack_author']),
-		'S_HACK_AUTHOR_EMAIL' => stripslashes($row['hack_author_email']),
-		'S_HACK_WEBSITE' => stripslashes($row['hack_author_website']),
+		'S_HACK_NAME' => phpbb_admin_html($row['hack_name']),
+		'S_HACK_DESC' => phpbb_admin_html($row['hack_desc']),
+		'S_HACK_DOWNLOAD' => phpbb_admin_html($row['hack_download_url']),
+		'S_HACK_AUTHOR' => phpbb_admin_html($row['hack_author']),
+		'S_HACK_AUTHOR_EMAIL' => phpbb_admin_html($row['hack_author_email']),
+		'S_HACK_WEBSITE' => phpbb_admin_html($row['hack_author_website']),
 		'S_HACK_HIDE_NO' => ($row['hack_hide'] == 'No') ? 'checked="checked"' : '',
 		'S_HACK_HIDE_YES' => ($row['hack_hide'] == 'Yes') ? 'checked="checked"' : '',
-		'S_HACK_VERSION' => stripslashes($row['hack_version'])));
+		'S_HACK_VERSION' => phpbb_admin_html($row['hack_version'])));
 		
 	}
 	case 'add':
@@ -210,7 +226,8 @@ switch($mode)
 		if ($mode != 'edit')
 		{
 			$template->assign_vars(array(
-			'S_HIDDEN' => 'add_id_' . $row['hack_id'],
+			'S_HACK_ID' => 0,
+			'S_HIDDEN' => 'add_id_0',
 			'S_HACK_HIDE_NO' => 'checked="checked"'));
 		}
 		
@@ -231,17 +248,31 @@ switch($mode)
 		$i = 0;
 		while ($row = $db->sql_fetchrow($result))
 		{
+			$author = phpbb_admin_html($row['hack_author']);
+			$email = filter_var($row['hack_author_email'], FILTER_VALIDATE_EMAIL) ? $row['hack_author_email'] : '';
+			if ($email !== '')
+			{
+				$author = '<a href="mailto:' . phpbb_admin_html($email) . '">' . $author . '</a>';
+			}
+			$website = admin_hacks_http_url($row['hack_author_website']);
+			$website_link = $website !== '' ? '<a href="' . phpbb_admin_html($website) . '" rel="noopener noreferrer">' . phpbb_admin_html($website) . '</a>' : $lang['No_Website'];
+			$name = phpbb_admin_html($row['hack_name']);
+			$download = admin_hacks_http_url($row['hack_download_url']);
+			if ($download !== '')
+			{
+				$name = '<a href="' . phpbb_admin_html($download) . '" rel="noopener noreferrer">' . $name . '</a>';
+			}
 			$template->assign_block_vars('listrow', array(
 			'ROW_CLASS' => (!(++$i% 2)) ? $theme['td_class1'] : $theme['td_class2'],
-			'HACK_ID' => $row['hack_id'],
-			'HACK_AUTHOR' => ($row['hack_author_email'] != '') ? '<a href="mailto:' . stripslashes($row['hack_author_email']) . '">' . stripslashes($row['hack_author']) . '</a>' : stripslashes($row['hack_author']),
-			'HACK_WEBSITE' => ($row['hack_author_website'] != '') ? '<a href="' . stripslashes($row['hack_author_website']) . '">' . stripslashes($row['hack_author_website']) . '</a>' : $lang['No_Website'],
-			'HACK_NAME' => ($row['hack_download_url'] != '') ? '<a href="' . stripslashes($row['hack_download_url']) . '">' . stripslashes($row['hack_name']) . '</a>' : stripslashes($row['hack_name']),
-			'HACK_DESC' => stripslashes($row['hack_desc']),
-			'HACK_VERSION' => ($row['hack_version'] != '') ? ' v' . stripslashes($row['hack_version']) : '',
-			'S_ACTION_EDIT' => '<a href="' . append_sid(basename(__FILE__) . '?mode=edit&hack_id=' . $row['hack_id']) . '">' . $lang['Edit'] . '</a>',
-			'HACK_DISPLAY' => $lang[$row['hack_hide']],
-			'ADD_DATE' => !empty($row['log_time']) ? create_date($lang['DATE_FORMAT'], $row['log_time'], $board_config['board_timezone']) : ''));
+			'HACK_ID' => intval($row['hack_id']),
+			'HACK_AUTHOR' => $author,
+			'HACK_WEBSITE' => $website_link,
+			'HACK_NAME' => $name,
+			'HACK_DESC' => phpbb_admin_html($row['hack_desc']),
+			'HACK_VERSION' => ($row['hack_version'] != '') ? ' v' . phpbb_admin_html($row['hack_version']) : '',
+			'S_ACTION_EDIT' => '<a href="' . append_sid(basename(__FILE__) . '?mode=edit&hack_id=' . intval($row['hack_id'])) . '">' . $lang['Edit'] . '</a>',
+			'HACK_DISPLAY' => isset($lang[$row['hack_hide']]) ? $lang[$row['hack_hide']] : $lang['No'],
+			'ADD_DATE' => !empty($row['hack_add_date']) ? create_date($lang['DATE_FORMAT'], $row['hack_add_date'], $board_config['board_timezone']) : ''));
 		}
 		
 		if ($i == 0 || !isset($i))
@@ -260,6 +291,7 @@ $template->assign_vars(array(
 'S_ACTION_ADD' => '<a href="' . append_sid(basename(__FILE__) . '?mode=add') . '">' . $lang['Add_New_Hack'] . '</a>',
 
 'S_MODE_ACTION' => append_sid(basename(__FILE__)),
+'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 'L_EDIT' => $lang['Edit'],
 'L_DELETE' => $lang['Delete'],
 'L_ADD_NEW_HACK' => $lang['Add_New_Hack'],

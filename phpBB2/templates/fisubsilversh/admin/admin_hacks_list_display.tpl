@@ -22,6 +22,7 @@
 <br /><br />
 
 <form method="post" action="{S_MODE_ACTION}" name="listrow_values">
+  {S_HIDDEN_FIELDS}
   <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
 	<tr> 
 	  <th height="25" class="thCornerL">{L_HACK_NAME}</th>

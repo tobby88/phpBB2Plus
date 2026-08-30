@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Reworked MOD/Credits administration around exact actions, validated record
+  identifiers, bounded scalar fields, database-driver escaping and the central
+  session-bound AdminCP token. Stored names, descriptions, e-mail addresses
+  and HTTP(S) links are now rendered safely, new entries receive their real
+  creation time, and invalid edit records no longer produce PHP warnings.
+  Legacy `.hl` metadata scanning also tolerates unreadable directories/files
+  on PHP 8 and escapes imported metadata at the database boundary.
 - Hardened the extended MOD settings module with the central session-bound
   AdminCP POST token, scalar and allowlisted form values, database-driver
   escaping and UTF-8-safe output escaping. Invalid menu indices and missing or
