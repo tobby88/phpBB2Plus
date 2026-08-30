@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Clarified the Arcade's current and all-time scoreboard links. Games whose
+  complete score lists are identical now show one concise `Bestenliste` link;
+  differing lists are labelled as current and all-time lists, without the
+  unexplained legacy separator.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.

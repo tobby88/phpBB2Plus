@@ -608,12 +608,12 @@ if( $mode != '' )
 		$game_name			= $game_info['game_name'];
 
 		$highscore_limit	= $game_info['highscore_limit']; 
-		$high_score_text	= $lang['game_highscores'];
+		$high_score_text	= $lang['game_current_highscores'];
 		$high_score_table	= iNA_SCORES;
 
 		if( $mode == "at_highscore" )
 		{
-			$high_score_text = $lang['game_at_highscores'] . ' ' . $lang['game_highscores'];
+			$high_score_text = $lang['game_all_time_highscores'];
 			$high_score_table = iNA_AT_SCORES;
 			$highscore_limit = $game_info['at_highscore_limit'];
 		}
@@ -1153,6 +1153,9 @@ if( $mode != '' )
 			if ($game_rows[$i]['game_show_score'] == '1')
 			{
 				$bonus_info = $game_rows[$i]['game_bonus'] ? $bonus_info = $game_rows[$i]['game_bonus'] : '';
+				$all_time_enabled = !empty($arcade->arcade_config['games_at_highscore']);
+				$scoreboards_equal = $all_time_enabled && arcade_scoreboards_are_equal($game_rows[$i]['game_name']);
+				$highscore_label = (!$all_time_enabled || $scoreboards_equal) ? $lang['game_highscores'] : $lang['game_current_highscores'];
         $best_player_id = $game_rows[$i]['highscore_id'];
         $best_player = ($game_rows[$i]['highscore_id'] == ANONYMOUS) ? $lang['Guest'] : $game_rows[$i]['username'];
         
@@ -1179,7 +1182,7 @@ if( $mode != '' )
 					{
 						$best_player = $lang['Guest'];
 					}
-					$highscore_link = "<a href=\"" . append_sid("$filename?mode=highscore&amp;id=$game_id&amp;cat_id=$arcade->cat_id&amp;start=$start&amp;order=$arcade->sort_order&amp;sort_mode=$arcade->sort_mode") . "\"> " . $lang['game_highscores'] . "</a>";
+					$highscore_link = "<a href=\"" . append_sid("$filename?mode=highscore&amp;id=$game_id&amp;cat_id=$arcade->cat_id&amp;start=$start&amp;order=$arcade->sort_order&amp;sort_mode=$arcade->sort_mode") . "\">" . $highscore_label . "</a>";
 				}
 				else
 				{
@@ -1202,13 +1205,13 @@ if( $mode != '' )
 						$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=".$game_rows[$i]['at_highscore_id']);
 						$profile = '<a href="' . $temp_url . '"><span class="gentbl">' . $best_at_player . '</span></a>';
 						$best_at_player = '<br /><br />'.$profile;
-						if($best_player != '')
+						if ($scoreboards_equal)
 						{
-							$at_highscore_link = " <br />-:-<br /><a href=\"" . append_sid("$filename?mode=at_highscore&amp;id=$game_id&amp;cat_id=$arcade->cat_id&amp;start=$start&amp;order=$arcade->sort_order&amp;sort_mode=$arcade->sort_mode") . "\">" . $lang['game_at_highscores'] . "</a>";
+							$at_highscore_link = '';
 						}
 						else
 						{
-							$at_highscore_link = " <br /> <br /><a href=\"" . append_sid("$filename?mode=at_highscore&amp;id=$game_id&amp;cat_id=$arcade->cat_id&amp;start=$start&amp;order=$arcade->sort_order&amp;sort_mode=$arcade->sort_mode") . "\">" . $lang['game_at_highscores'] . "</a>";
+							$at_highscore_link = "<br /><a href=\"" . append_sid("$filename?mode=at_highscore&amp;id=$game_id&amp;cat_id=$arcade->cat_id&amp;start=$start&amp;order=$arcade->sort_order&amp;sort_mode=$arcade->sort_mode") . "\">" . $lang['game_all_time_highscores'] . "</a>";
 						}
 					}
 					else 

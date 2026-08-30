@@ -11,6 +11,7 @@ function arcade_position_assert($condition, $message)
 
 $root = dirname(dirname(__DIR__));
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
+$activity = file_get_contents($root . '/phpBB2/activity.php');
 $english = file_get_contents($root . '/phpBB2/language/lang_english/lang_extend_arcade.php');
 $german = file_get_contents($root . '/phpBB2/language/lang_german/lang_extend_arcade.php');
 $admin_config = file_get_contents($root . '/phpBB2/admin/admin_arcade.php');
@@ -28,6 +29,14 @@ arcade_position_assert(strpos($functions, 'array_replace($default_position_text,
 arcade_position_assert(strpos($functions, '$games_place = max(0, (int) $games_place);') !== false, 'the submitted rank must be normalized');
 arcade_position_assert(strpos($english, "\$lang['games_position_text'] = array") !== false, 'English position labels must survive scoped language loading');
 arcade_position_assert(strpos($german, "\$lang['games_position_text'] = array") !== false, 'German position labels must survive scoped language loading');
+arcade_position_assert(strpos($functions, 'function arcade_scoreboards_are_equal') !== false, 'equivalent Arcade scoreboards need a shared comparison');
+arcade_position_assert(strpos($functions, '$db->sql_escape((string) $game_name)') !== false, 'scoreboard comparison must use driver escaping');
+arcade_position_assert(strpos($functions, 'UNION ALL') !== false, 'scoreboard comparison must read both complete score lists');
+arcade_position_assert(strpos($english, "\$lang['game_current_highscores']") !== false && strpos($english, "\$lang['game_all_time_highscores']") !== false, 'English scoreboard labels must explain their scope');
+arcade_position_assert(strpos($german, "\$lang['game_current_highscores']") !== false && strpos($german, "\$lang['game_all_time_highscores']") !== false, 'German scoreboard labels must explain their scope');
+arcade_position_assert(strpos($activity, "(!\$all_time_enabled || \$scoreboards_equal) ? \$lang['game_highscores'] : \$lang['game_current_highscores']") !== false, 'identical or single scoreboards must use one generic link');
+arcade_position_assert(strpos($activity, "\$at_highscore_link = '';") !== false, 'the redundant all-time link must be omitted');
+arcade_position_assert(strpos($activity, '-:-') === false, 'the unexplained scoreboard separator must remain removed');
 arcade_position_assert(strpos($admin_config, 'phpbb_admin_require_post_session();') !== false, 'Arcade configuration writes must verify the AdminCP token');
 arcade_position_assert(strpos($admin_config, "in_array(\$mode, array('', 'switches', 'moderators', 'messages'), true)") !== false, 'Arcade configuration modes must use an allowlist');
 arcade_position_assert(strpos($admin_config, '$db->sql_escape($new[$config_name])') !== false, 'Arcade configuration values must use driver escaping');

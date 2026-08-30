@@ -365,6 +365,44 @@ function best_game_player($tablename, $gamename, $type)
 	return $score_info;
 }
 
+function arcade_scoreboards_are_equal($game_name)
+{
+	global $db;
+
+	static $comparison_cache = array();
+	$cache_key = md5((string) $game_name);
+	if (array_key_exists($cache_key, $comparison_cache))
+	{
+		return $comparison_cache[$cache_key];
+	}
+
+	$game_name_sql = $db->sql_escape((string) $game_name);
+	$sql = "SELECT 'current' AS scoreboard, player_id, score
+		FROM " . iNA_SCORES . "
+		WHERE game_name = '" . $game_name_sql . "'
+		UNION ALL
+		SELECT 'all_time' AS scoreboard, player_id, score
+		FROM " . iNA_AT_SCORES . "
+		WHERE game_name = '" . $game_name_sql . "'";
+	if (!($result = $db->sql_query($sql)))
+	{
+		$comparison_cache[$cache_key] = false;
+		return false;
+	}
+
+	$scoreboards = array('current' => array(), 'all_time' => array());
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$scoreboards[$row['scoreboard']][] = (int) $row['player_id'] . ':' . (string) $row['score'];
+	}
+	$db->sql_freeresult($result);
+	sort($scoreboards['current'], SORT_STRING);
+	sort($scoreboards['all_time'], SORT_STRING);
+
+	$comparison_cache[$cache_key] = ($scoreboards['current'] === $scoreboards['all_time']);
+	return $comparison_cache[$cache_key];
+}
+
 function get_games_total($data, $extra = '')
 {	global $db, $lang;
 	if (!in_array($data, array('COUNT(*)', 'SUM(played)'), true))
