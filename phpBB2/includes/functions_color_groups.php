@@ -179,7 +179,17 @@ function color_groups_update_group_id($group_list, $user_list, $group_id)
 	$group_id = (int) $group_id;
 	if ($group_id <= 0)
 	{
-		return;
+		return false;
+	}
+	$sql = 'SELECT group_id FROM ' . COLOR_GROUPS_TABLE . "
+		WHERE group_id = $group_id";
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
+	}
+	if (!$db->sql_fetchrow($result))
+	{
+		return false;
 	}
 	$user_ids = array();
 	foreach (preg_split('/\s*,\s*/', is_scalar($user_list) ? (string) $user_list : '', -1, PREG_SPLIT_NO_EMPTY) as $id)
@@ -199,9 +209,6 @@ function color_groups_update_group_id($group_list, $user_list, $group_id)
 			$group_ids[$id] = $id;
 		}
 	}
-	/* Debugging for this function */
-	$debug = false;
-	
 	$sql = array();
 	
 	// Set all old user's and groups to "NO COLOR GROUP" to take care of any deletions //
@@ -235,6 +242,7 @@ function color_groups_update_group_id($group_list, $user_list, $group_id)
 	}
 	
 	$status_message .= $lang['Updated_Group'];
+	return true;
 }
 
 function color_groups_setup_list()

@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed dormant raw-request debug output from the ColorGroups AdminCP module.
+  Its user-color cache is now invalidated only after an actual administrative
+  write instead of on every page view, while all write controls continue to
+  require a session-bound POST token.
 - Hardened the DB Maintenance AdminCP module: function and numeric inputs now
   use strict allowlists/scalar parsing, database-changing actions always show a
   confirmation and require a session-bound POST token, and the multi-request

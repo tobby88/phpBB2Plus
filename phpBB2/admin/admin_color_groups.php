@@ -44,13 +44,11 @@ change the blow to TRUE instead of FALSE.  No other hacks will be affected
 by this change.
 */
 define('DISABLE_VERSION_CHECK', FALSE);
-/* Debugging for this file */
-$debug = false;
-
 /****************************************************************************
 /** Main Vars
 /***************************************************************************/
 $status_message = '';
+$color_groups_changed = false;
 $next_order_num = get_color_group_order_max() + 1;
 $filename = basename(__FILE__);
 $order_num_max = get_color_group_order_max();
@@ -174,16 +172,6 @@ function make_color_group_reference()
 /** Get parameters.  'var_name' => 'default'
 /******************************************************************************************/
 $params = array('mode' => '');
-if ($debug)
-{
-	//Dump out the get and post vars if in debug mode
-	echo '<pre><span  class="gensmall"><font color="blue">DEBUG - POST VARS -<br>';
-	print_r($_POST);
-	echo '</font><br>';
-	echo '<font color="red">DEBUG - GET VARS -<br>';
-	print_r($_GET);
-	echo '</font><br></pre></span>';
-}
 
 foreach($params as $var => $default)
 {
@@ -357,6 +345,7 @@ else
 					SET group_color = '" . $db->sql_escape($new_color) . "'
 					WHERE group_id = " . (int) $row['group_id'];
 				if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
+				$color_groups_changed = true;
 				$status_message .= sprintf($lang['Group_Updated'], htmlspecialchars($row['group_name'], ENT_QUOTES, 'UTF-8'));
 			}
 		}
@@ -370,7 +359,10 @@ else
 		$real_group_list = isset($_POST['real_group_list']) ? $_POST['real_group_list'] : '';
 		$real_user_list = isset($_POST['real_user_list']) ? $_POST['real_user_list'] : '';
 		$posted_group_id = isset($_POST['group_id']) ? $_POST['group_id'] : 0;
-		color_groups_update_group_id($real_group_list, $real_user_list, $posted_group_id);
+		if (color_groups_update_group_id($real_group_list, $real_user_list, $posted_group_id))
+		{
+			$color_groups_changed = true;
+		}
 	}
 	
 	/*******************************************************************************************
@@ -380,6 +372,7 @@ else
 	{
 		if (hide_toggle_color_group($group_id_hide, 'hide'))
 		{
+			$color_groups_changed = true;
 			$status_message .= $lang['Group_Hidden'];
 		}
 	}
@@ -387,6 +380,7 @@ else
 	{
 		if (hide_toggle_color_group($group_id_unhide, 'unhide'))
 		{
+			$color_groups_changed = true;
 			$status_message .= $lang['Group_Unhidden'];
 		}
 	}
@@ -408,6 +402,7 @@ else
 			SET user_color_group = 0
 			WHERE user_color_group = $group_id_delete";
 		if (!$db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Users_Table'], '', __LINE__, __FILE__, $sql);
+		$color_groups_changed = true;
 		$status_message .= $lang['Deleted_Group'];
 	}
 	
@@ -446,6 +441,7 @@ else
 			$lang['Error_Group_Table']
 			);
 			$next_order_num++;
+			$color_groups_changed = true;
 		}
 		
 		
@@ -454,6 +450,7 @@ else
 	{
 		if (swap_color_group_order_num($group_id_move, $group_id_swap))
 		{
+			$color_groups_changed = true;
 			$status_message .= $lang['Moved_Group'];
 		}
 	}
@@ -509,13 +506,16 @@ else
 		$template->assign_block_vars('emptyswitch', array());
 	}
 
-	@unlink($phpbb_root_path . 'cache/cg_users.cache');
+	if ($color_groups_changed)
+	{
+		@unlink($phpbb_root_path . 'cache/cg_users.cache');
+	}
 	
 }
 //Common Variables
 $template->assign_vars(array(
 'S_ACTION' => append_sid(basename(__FILE__)),
-'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+'S_FORM_TOKEN' => phpbb_admin_session_field(),
 'S_MODE' => $mode,
 'L_USERS_LIST' => $lang['Users_List'],
 'L_GROUPS_LIST' => $lang['Groups_List'],

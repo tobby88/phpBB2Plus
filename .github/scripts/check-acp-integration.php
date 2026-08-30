@@ -50,7 +50,7 @@ foreach (glob($phpbb_root . '/admin/admin_*.php') as $admin_file)
 
 $integrations = array(
 	'admin/admin_users_list.php' => array('$module[\'Users\'][\'Users List\']', 'admin/admin_users_list_body.tpl'),
-	'admin/admin_color_groups.php' => array('$module[\'Groups\'][\'Color_Groups\']', 'admin/color_groups_manager.tpl'),
+	'admin/admin_color_groups.php' => array('$module[\'Groups\'][\'Color_Groups\']', 'admin/color_groups_manager.tpl', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'if ($color_groups_changed)'),
 	'admin/admin_logs.php' => array('$module[\'Logs\'][\'Logs Actions\']', 'admin/logs_body.tpl'),
 	'admin/admin_reg_ip.php' => array('$module[\'Users\'][\'Registration IP\']', 'admin/user_ip_list.tpl'),
 	'admin/admin_db_maintenance.php' => array('$module[\'General\'][\'DB_Maintenance\']', 'admin/dbmtnc_list_body.tpl'),
