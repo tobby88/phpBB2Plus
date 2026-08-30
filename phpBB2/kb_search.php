@@ -69,6 +69,7 @@ $searchset = array();
 $stopword_array = array();
 $synonym_array = array();
 $store_vars = array('search_results', 'total_match_count', 'split_search', 'sort_dir');
+$multibyte_charset = 'utf-8, big5, shift_jis, euc-kr, gb2312';
 $search_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&
 	is_dir($phpbb_root_path . 'language/lang_' . $board_config['default_lang'])
 	? (string) $board_config['default_lang']

@@ -343,7 +343,7 @@ class pafiledb_search extends pafiledb_public
 			
 				for($i = 0; $i < count($store_vars); $i++)
 				{
-					$store_search_data[$store_vars[$i]] = $$store_vars[$i];
+					$store_search_data[$store_vars[$i]] = ${$store_vars[$i]};
 				}
 
 				$result_array_sql = $db->sql_escape(serialize($store_search_data));
