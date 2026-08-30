@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened forum search input, SQL and cached-result boundaries. Request
+  values, modes, paging and result sizes are bounded; author, full-text,
+  word-index and multibyte searches use database-driver escaping; dictionary
+  paths use installed languages; cached IDs and options are validated before
+  reuse; and highlight terms are quoted before becoming regular expressions.
+  Removing bookmarks from search results is now POST-only, session-token
+  protected and restricted to unique positive topic IDs.
 - Hardened personal Album category administration with allowlisted modes,
   installed-language paths, normalized permission values, owner-bound move and
   edit targets, bounded category text and database-driver escaping. Root
