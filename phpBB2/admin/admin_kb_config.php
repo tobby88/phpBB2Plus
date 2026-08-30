@@ -61,7 +61,7 @@ function get_forums($sel_id)
 		{
 		    $status = '';
 		}
-		$forumlist .= '<option value="' .$row['forum_id'] . '" ' . $status . '>' . $row['forum_name'] . '</option>';
+		$forumlist .= '<option value="' . intval($row['forum_id']) . '" ' . $status . '>' . phpbb_admin_html($row['forum_name']) . '</option>';
 	}
 
 	$forumlist .= '</select>';
@@ -71,7 +71,7 @@ function get_forums($sel_id)
 
 function get_groups($sel_id)
 {
- 	global $db;
+	global $db, $lang;
 
 	$sql = "SELECT group_id, group_name
 		FROM " . GROUPS_TABLE;
@@ -82,7 +82,8 @@ function get_groups($sel_id)
 		message_die(GENERAL_ERROR, "Couldn't get list of groups", "", __LINE__, __FILE__, $sql);
 	}
 
-	$grouplist = '<select name="mod_group">';
+	$none_selected = intval($sel_id) === 0 ? ' selected="selected"' : '';
+	$grouplist = '<select name="mod_group"><option value="0"' . $none_selected . '>' . phpbb_admin_html($lang['Acc_None']) . '</option>';
 
 	while( $row = $db->sql_fetchrow($result) )
 	{ 
@@ -96,13 +97,39 @@ function get_groups($sel_id)
 		{
 		    $status = '';
 		}
-		$grouplist .= '<option value="' .$row['group_id'] . '" ' . $status . '>' . $row['group_name'] . '</option>';
+		$grouplist .= '<option value="' . intval($row['group_id']) . '" ' . $status . '>' . phpbb_admin_html($row['group_name']) . '</option>';
 	  }
 	}
 
 	$grouplist .= '</select>';
 	
 	return $grouplist;
+}
+
+function kb_admin_post_scalar($key, $default = '')
+{
+	return isset($_POST[$key]) && is_scalar($_POST[$key]) ? trim((string) $_POST[$key]) : $default;
+}
+
+function kb_admin_record_exists($table, $column, $id)
+{
+	global $db;
+	$id = intval($id);
+	if ($id < 1)
+	{
+		return false;
+	}
+	$sql = 'SELECT ' . $column . ' FROM ' . $table . ' WHERE ' . $column . ' = ' . $id;
+	if (!$result = $db->sql_query($sql))
+	{
+		return false;
+	}
+	return (bool) $db->sql_fetchrow($result);
+}
+
+function kb_admin_limit_text($value, $length)
+{
+	return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
 }
 
 	//
@@ -116,32 +143,66 @@ function get_groups($sel_id)
 	}
 	else
 	{
+		$default_config = array();
 	 	while( $row = $db->sql_fetchrow($result) )
 		{
-		 	   $config_name = $row['config_name'];
-			   $config_value = $row['config_value'];
-			   $default_config[$config_name] = $config_value;
-		
-			   $new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
-
-			   if( isset($_POST['submit']) )
-			   {
-			   	   $sql = "UPDATE " . KB_CONFIG_TABLE . " SET
-				   		config_value = '" . str_replace("\'", "''", $new[$config_name]) . "'
-						WHERE config_name = '$config_name'";
-				   if( !$db->sql_query($sql) )
-				   {
-				   	   message_die(GENERAL_ERROR, "Failed to update general configuration for $config_name", "", __LINE__, __FILE__, $sql);
-				   }
-			   }
+			$default_config[$row['config_name']] = $row['config_value'];
 		}
+		$new = $default_config;
 
-		if( isset($_POST['submit']) )
+		if (isset($_POST['submit']))
 		{
-		 	$message = $lang['KB_config_updated'] . "<br /><br />" . sprintf($lang['Click_return_kb_config'], "<a href=\"" . append_sid("admin_kb_config.$phpEx?mode=config") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . "\">", "</a>");
+			phpbb_admin_require_post_session();
+			$boolean_fields = array('allow_new', 'approve_new', 'allow_edit', 'approve_edit', 'show_pretext', 'comments', 'allow_anon', 'del_topic', 'comments_show', 'bump_post', 'stats_list', 'header_banner', 'allow_rating', 'allow_anonymos_rating', 'votes_check_ip', 'votes_check_userid');
+			foreach ($boolean_fields as $config_name)
+			{
+				$value = kb_admin_post_scalar($config_name, isset($new[$config_name]) ? $new[$config_name] : '0');
+				$new[$config_name] = $value === '1' ? '1' : '0';
+			}
 
+			$notify = kb_admin_post_scalar('notify', isset($new['notify']) ? $new['notify'] : '0');
+			$new['notify'] = in_array($notify, array('0', '1', '2'), true) ? $notify : '0';
+			$news_sort = kb_admin_post_scalar('news_sort', isset($new['news_sort']) ? $new['news_sort'] : 'Alphabetic');
+			$new['news_sort'] = in_array($news_sort, array('Latest', 'Creation', 'Id', 'Userrank', 'Alphabetic'), true) ? $news_sort : 'Alphabetic';
+			$news_sort_par = strtoupper(kb_admin_post_scalar('news_sort_par', isset($new['news_sort_par']) ? $new['news_sort_par'] : 'ASC'));
+			$new['news_sort_par'] = in_array($news_sort_par, array('ASC', 'DESC'), true) ? $news_sort_par : 'ASC';
+
+			$new['art_pagination'] = (string) max(1, min(1000, intval(kb_admin_post_scalar('art_pagination', 5))));
+			$new['comments_pagination'] = (string) max(1, min(1000, intval(kb_admin_post_scalar('comments_pagination', 5))));
+			$new['pt_header'] = kb_admin_limit_text(kb_admin_post_scalar('pt_header'), 100);
+			$new['pt_body'] = kb_admin_limit_text(kb_admin_post_scalar('pt_body'), 255);
+
+			$record_fields = array(
+				'admin_id' => array(USERS_TABLE, 'user_id'),
+				'forum_id' => array(FORUMS_TABLE, 'forum_id'),
+				'mod_group' => array(GROUPS_TABLE, 'group_id')
+			);
+			foreach ($record_fields as $config_name => $record)
+			{
+				$value = max(0, intval(kb_admin_post_scalar($config_name)));
+				if ($value === 0 || kb_admin_record_exists($record[0], $record[1], $value))
+				{
+					$new[$config_name] = (string) $value;
+				}
+			}
+
+			$editable_fields = array_merge($boolean_fields, array('notify', 'news_sort', 'news_sort_par', 'art_pagination', 'comments_pagination', 'pt_header', 'pt_body', 'admin_id', 'forum_id', 'mod_group'));
+			foreach ($editable_fields as $config_name)
+			{
+				if (!array_key_exists($config_name, $default_config) || !array_key_exists($config_name, $new))
+				{
+					continue;
+				}
+				$sql = "UPDATE " . KB_CONFIG_TABLE . " SET config_value = '" . $db->sql_escape($new[$config_name]) . "' WHERE config_name = '" . $db->sql_escape($config_name) . "'";
+				if (!$db->sql_query($sql))
+				{
+					message_die(GENERAL_ERROR, 'Failed to update knowledge base configuration', '', __LINE__, __FILE__, $sql);
+				}
+			}
+
+			$message = $lang['KB_config_updated'] . "<br /><br />" . sprintf($lang['Click_return_kb_config'], "<a href=\"" . append_sid("admin_kb_config.$phpEx?mode=config") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . "\">", "</a>");
 			message_die(GENERAL_MESSAGE, $message);
-	    }
+		}
 	}
 	$new_yes = ( $new['allow_new'] ) ? "checked=\"checked\"" : "";
 	$new_no = ( !$new['allow_new'] ) ? "checked=\"checked\"" : "";
@@ -158,14 +219,14 @@ function get_groups($sel_id)
 	$pretext_show = (  $new['show_pretext'] ) ? "checked=\"checked\"" : "";
 	$pretext_hide = ( !$new['show_pretext'] ) ? "checked=\"checked\"" : "";
 
-	$pt_header = $new['pt_header'];
-	$pt_body = $new['pt_body'];
+	$pt_header = phpbb_admin_html($new['pt_header']);
+	$pt_body = phpbb_admin_html($new['pt_body']);
 
 	$notify_none = ( $new['notify'] == 0 ) ? "checked=\"checked\"" : "";
 	$notify_pm = ( $new['notify'] == 1 ) ? "checked=\"checked\"" : "";
 	$notify_email = ( $new['notify'] == 2 ) ? "checked=\"checked\"" : "";
 	
-	$admin_id = $new['admin_id'];
+	$admin_id = intval($new['admin_id']);
 	
 	$comments_yes = (  $new['comments'] ) ? "checked=\"checked\"" : "";
 	$comments_no = ( !$new['comments'] ) ? "checked=\"checked\"" : "";
@@ -251,6 +312,7 @@ function get_groups($sel_id)
 
 	$template->assign_vars(array(
 		'S_ACTION' => append_sid("admin_kb_config.$phpEx?mode=config"),
+		'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 		'L_SUBMIT' => $lang['Submit'], 
 		'L_RESET' => $lang['Reset'],
 		

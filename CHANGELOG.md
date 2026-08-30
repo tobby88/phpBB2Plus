@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Knowledge Base configuration with the central session-bound
+  AdminCP token and an explicit editable-setting list. Boolean, sort, paging
+  and referenced user/forum/group values are normalized before driver-escaped
+  updates; stored preface text and forum/group names are escaped in the form,
+  and pagination can no longer be configured to zero.
 - Reworked MOD/Credits administration around exact actions, validated record
   identifiers, bounded scalar fields, database-driver escaping and the central
   session-bound AdminCP token. Stored names, descriptions, e-mail addresses

@@ -115,7 +115,7 @@
 	</tr>
 	<tr>
 		<td class="row1" width="50%">{L_PRE_TEXT_HEADER}</td>
-		<td class="row2" width="50%"><input text="text" name="pt_header" value="{L_PT_HEADER}" size="40" maxlength="100" /></td>
+		<td class="row2" width="50%"><input type="text" name="pt_header" value="{L_PT_HEADER}" size="40" maxlength="100" /></td>
 	</tr>
 	<tr>
 		<td class="row1" width="50%">{L_PRE_TEXT_BODY}</td>

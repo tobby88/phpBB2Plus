@@ -103,7 +103,8 @@ $integrations = array(
 	'admin/admin_styles.php' => array('xs_frameset.$phpEx?action=menu', '$no_page_header = true'),
 	'admin/xs_include.php' => array('$module[\'Styles\'][\'Menu\']', 'phpbb_admin_require_post_session();'),
 	'admin/admin_kb_cat.php' => array('kb_admin_category_order_form', 'kb_admin_category_parent_valid', 'phpbb_admin_require_post_session();'),
-	'admin/admin_kb_types.php' => array('phpbb_admin_require_post_session();', '$db->sql_escape($type_name)')
+	'admin/admin_kb_types.php' => array('phpbb_admin_require_post_session();', '$db->sql_escape($type_name)'),
+	'admin/admin_kb_config.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$editable_fields', 'kb_admin_record_exists', '$db->sql_escape($new[$config_name])')
 );
 
 foreach ($integrations as $relative_path => $needles)
