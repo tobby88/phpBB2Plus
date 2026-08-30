@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Junior Admin delegation and user lookup. Permission changes now use
+  the centralized AdminCP POST/session check, accept only module hashes from
+  the installed module list, normalize user, sorting, paging and color-group
+  identifiers, and escape notes and searches at the database boundary. The
+  user and color-group lists are escaped for HTML, malformed colors cannot
+  inject style markup, and users without a prior Junior Admin record no longer
+  trigger PHP 8 array warnings.
 - Hardened general board configuration writes with session-bound POST checks,
   scalar-only values, database-driver escaping and the actual 255-character
   schema bound. Displayed configuration values and forum names are escaped

@@ -147,3 +147,6 @@ jobs:
 
       - name: Test board configuration safety
         run: php .github/scripts/check-board-admin-safety.php
+
+      - name: Test Junior Admin safety
+        run: php .github/scripts/check-jr-admin-safety.php

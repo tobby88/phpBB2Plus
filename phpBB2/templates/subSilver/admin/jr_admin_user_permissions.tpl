@@ -70,6 +70,7 @@ function toggle_check_all(main, sub_num)
 
 
 <form action="{S_ACTION}" name="module_form" method="post">
+{S_HIDDEN_FIELDS}
 
 <select name="color_group_id" class="post" {DISABLED} size="6">
 <option {DEFAULT_SELECT} value="0">{L_NONE}</option>

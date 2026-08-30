@@ -60,6 +60,7 @@ $integrations = array(
 	'admin/admin_cracker_tracker.php' => array('$module[\'ctracker_module_category\'][\'ctracker_module_1\']', '?modu=11'),
 	'ctracker/admin/acp_module_maintenance.php' => array('CTRACKER_RATE_LIMITS', "version_compare(PHP_VERSION, '5.6.0'", 'password_hashing', 'HTTPS'),
 	'admin/admin_board.php' => array('cookie_consent_enable', 'sfs_enable', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape($new[$config_name])'),
+	'admin/admin_jr_admin.php' => array('$module['Users']['Jr_Admin']', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$allowed_module_hashes', 'jr_admin_safe_color'),
 	'admin/admin_arcade.php' => array('$module[\'Arcade\'][\'Configuration\']'),
 	'admin/admin_album_config_extended.php' => array('$module[\'Photo_Album\'][\'Configuration\']'),
 	'admin/admin_pa_custom.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()'),

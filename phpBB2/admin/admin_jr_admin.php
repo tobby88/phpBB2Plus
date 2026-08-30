@@ -45,9 +45,6 @@ change the blow to TRUE instead of FALSE.  No other hacks will be affected
 by this change.
 */
 define('DISABLE_VERSION_CHECK', FALSE);
-/* Debugging for this file */
-$debug = false;
-
 /****************************************************************************
 /** Constants and Main Vars.
 /***************************************************************************/
@@ -55,7 +52,6 @@ $status_message = '';
 //Check for color groups mod
 $color_group = (defined('COLOR_GROUPS_TABLE')) ? 'user_color_group, ' : '';
 define('UPDATE_MODULE_PREFIX', 'update_module_');
-$update_find_pattern = "/^.+_".UPDATE_MODULE_PREFIX."/";
 
 /****************************************************************************
 /** Functions
@@ -63,6 +59,7 @@ $update_find_pattern = "/^.+_".UPDATE_MODULE_PREFIX."/";
 function jr_admin_user_exist($user_id)
 {
 	global $db, $lang;
+	$user_id = max(0, intval($user_id));
 	
 	//Do a query and see if our user exists with isset
 	$row = sql_query_nivisec(
@@ -74,9 +71,17 @@ function jr_admin_user_exist($user_id)
 	return (isset($row['start_date']));
 }
 
+function jr_admin_safe_color($value)
+{
+	$value = ltrim(trim((string) $value), '#');
+	return preg_match('/^(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/D', $value) ? $value : '000000';
+}
+
 function jr_admin_make_rank_list($user_id, $user_rank)
 {
 	global $lang;
+	$user_id = max(0, intval($user_id));
+	$user_rank = max(0, intval($user_rank));
 	
 	/****************
 	** Due to a damn bug in some browsers (mozilla firebird for sure)
@@ -112,7 +117,7 @@ function jr_admin_make_rank_list($user_id, $user_rank)
 	1
 	);
 	
-	$rank_list = $row['rank_title'];
+	$rank_list = isset($row['rank_title']) ? phpbb_admin_html($row['rank_title']) : '';
 	
 	return $rank_list;
 }
@@ -198,26 +203,23 @@ function jr_admin_make_bookmark_heading($letters_list, $start)
 /*******************************************************************************************
 /** Get parameters.  'var_name' => 'default'
 /******************************************************************************************/
-$params = array('mode' => '', 'user_id' => '', 'color_group_id' => '', 'order' => 'ASC', 'sort_item' => 'username', 'start' => '0', 'alphanum' => '');
-if ($debug)
-{
-	//Dump out the get and post vars if in debug mode
-	echo '<pre><span  class="gensmall"><font color="blue">DEBUG - POST VARS -<br>';
-	print_r($_POST);
-	echo '</font><br>';
-	echo '<font color="red">DEBUG - GET VARS -<br>';
-	print_r($_GET);
-	echo '</font><br></pre></span>';
-}
-
-foreach($params as $var => $default)
-{
-	$$var = $default;
-	if( isset($_POST[$var]) || isset($_GET[$var]) )
-	{
-		$$var = ( isset($_POST[$var]) ) ? $_POST[$var] : $_GET[$var];
-	}
-}
+$user_id_value = (isset($_POST['user_id']) && is_scalar($_POST['user_id'])) ? $_POST['user_id'] :
+	((isset($_GET['user_id']) && is_scalar($_GET['user_id'])) ? $_GET['user_id'] : 0);
+$user_id = max(0, intval($user_id_value));
+$color_group_id = (isset($_POST['color_group_id']) && is_scalar($_POST['color_group_id'])) ? max(0, intval($_POST['color_group_id'])) : 0;
+$order_value = (isset($_POST['order']) && is_scalar($_POST['order'])) ? $_POST['order'] :
+	((isset($_GET['order']) && is_scalar($_GET['order'])) ? $_GET['order'] : 'ASC');
+$order = strtoupper((string) $order_value) === 'DESC' ? 'DESC' : 'ASC';
+$sort_item_value = (isset($_POST['sort_item']) && is_scalar($_POST['sort_item'])) ? (string) $_POST['sort_item'] :
+	((isset($_GET['sort_item']) && is_scalar($_GET['sort_item'])) ? (string) $_GET['sort_item'] : 'username');
+$allowed_sort_items = array('username', 'user_color_group', 'user_rank', 'user_active', 'user_allowavatar', 'user_allow_pm');
+$sort_item = in_array($sort_item_value, $allowed_sort_items, true) ? $sort_item_value : 'username';
+$start_value = (isset($_POST['start']) && is_scalar($_POST['start'])) ? $_POST['start'] :
+	((isset($_GET['start']) && is_scalar($_GET['start'])) ? $_GET['start'] : 0);
+$start = max(0, intval($start_value));
+$alphanum_value = (isset($_POST['alphanum']) && is_scalar($_POST['alphanum'])) ? (string) $_POST['alphanum'] :
+	((isset($_GET['alphanum']) && is_scalar($_GET['alphanum'])) ? (string) $_GET['alphanum'] : '');
+$alphanum = preg_match('/^(?:0|[A-Z])$/D', strtoupper($alphanum_value)) ? strtoupper($alphanum_value) : '';
 
 //*******************************************************************************************
 /** Check for edit user
@@ -228,7 +230,7 @@ if (count($_POST))
 	{
 		if (preg_match("/^edit_user_/", $key))
 		{
-			$user_id = str_replace('edit_user_', '', $key);
+			$user_id = max(0, intval(str_replace('edit_user_', '', $key)));
 		}
 	}
 }
@@ -246,26 +248,24 @@ if (!empty($user_id) && !isset($_POST['update_user']))
 		message_die(GENERAL_ERROR, $lang['Error_User_Table'], '', __LINE__, __FILE__, $sql);
 	}
 	$row = $db->sql_fetchrow($result);
-	if ($debug)
+	$db->sql_freeresult($result);
+	if (!$row)
 	{
-		//Dump out the get and post vars if in debug mode
-		echo '<pre><span  class="gensmall"><font color="green">DEBUG - User Info -<br>';
-		print_r($row);
-		echo '</font><br></pre></span>';
+		message_die(GENERAL_MESSAGE, $lang['Error_User_Table']);
 	}
 	$jr_admin_row = jr_admin_get_user_info($user_id);
-	$module_list = jr_admin_get_module_list();
-	$user_module_list = explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_row['user_jr_admin']);
-	if ($debug)
+	if (!is_array($jr_admin_row))
 	{
-		//Dump out the get and post vars if in debug mode
-		echo '<pre><span  class="gensmall"><font color="purple">DEBUG - Modules -<br>';
-		print_r($module_list);
-		echo '</font><br>';
-		echo '<font color="maroon">DEBUG - User Modules -<br>';
-		print_r($user_module_list);
-		echo '</font><br></pre></span>';
+		$jr_admin_row = array(
+			'user_jr_admin' => '',
+			'start_date' => 0,
+			'update_date' => 0,
+			'admin_notes' => '',
+			'notes_view' => 0
+		);
 	}
+	$module_list = jr_admin_get_module_list();
+	$user_module_list = !empty($jr_admin_row['user_jr_admin']) ? explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_row['user_jr_admin']) : array();
 	
 	jr_admin_include_all_lang_files();
 	
@@ -273,7 +273,7 @@ if (!empty($user_id) && !isset($_POST['update_user']))
 	foreach($module_list as $cat => $info_array)
 	{
 		$template->assign_block_vars('catrow', array(
-		'CAT' => (isset($lang[$cat])) ? $lang[$cat] : preg_replace("/_/", ' ', $cat),
+		'CAT' => phpbb_admin_html((isset($lang[$cat])) ? $lang[$cat] : preg_replace("/_/", ' ', $cat)),
 		'NUM' => $i,
 		));
 		foreach($info_array as $module_name => $file_array)
@@ -282,9 +282,9 @@ if (!empty($user_id) && !isset($_POST['update_user']))
 			$checked = (in_array($file_hash, $user_module_list)) ? 'checked="checked"' : '';
 			$template->assign_block_vars('catrow.modulerow', array(
 			'ROW' => ($i % 2) ? 'row1' : 'row2',
-			'NAME' => (isset($lang[$module_name])) ? $lang[$module_name] : preg_replace("/_/", ' ', $module_name),
-			'FILENAME' => $file_array['filename'],
-			'FILE_HASH' => $file_hash,
+			'NAME' => phpbb_admin_html((isset($lang[$module_name])) ? $lang[$module_name] : preg_replace("/_/", ' ', $module_name)),
+			'FILENAME' => phpbb_admin_html($file_array['filename']),
+			'FILE_HASH' => phpbb_admin_html($file_hash),
 			'CHECKED' => $checked
 			));
 		}
@@ -301,21 +301,22 @@ if (!empty($user_id) && !isset($_POST['update_user']))
 		{
 			message_die(GENERAL_ERROR, $lang['Error_User_Table'], '', __LINE__, __FILE__, $sql);
 		}
-		$folund_selected = false;
+		$found_selected = false;
 		while ($crow = $db->sql_fetchrow($cresult))
 		{
+			$group_color = jr_admin_safe_color($crow['group_color']);
 			$selected = ($row['user_color_group'] == $crow['group_id']) ? 'SELECTED' : '';
 			if (!empty($selected)) $found_selected = true;
 			$template->assign_block_vars('grouprow', array(
-			'NAME' => $crow['group_name'],
-			'ID' => $crow['group_id'],
+			'NAME' => phpbb_admin_html($crow['group_name']),
+			'ID' => intval($crow['group_id']),
 			'SELECTED' => $selected
 			));
 			if ($row['user_color_group'] == $crow['group_id'])
 			{
 				$template->assign_vars(array(
-				'GROUP_NAME' => '[&nbsp;<font color="'.$crow['group_color'].'">'.$crow['group_name'].'</font>&nbsp;]',
-				'GROUP_COLOR' => $crow['group_color']
+				'GROUP_NAME' => '[&nbsp;<span style="color:#' . $group_color . '">' . phpbb_admin_html($crow['group_name']) . '</span>&nbsp;]',
+				'GROUP_COLOR' => $group_color
 				));
 			}
 		}
@@ -331,12 +332,12 @@ if (!empty($user_id) && !isset($_POST['update_user']))
 	}
 	$template->assign_vars(array(
 	'USER_ID' => $user_id,
-	'USERNAME' => $row['username'],
+	'USERNAME' => phpbb_admin_html($row['username']),
 	'DISABLED' => $disabled,
 	'DISABLED_TEXT' => $disabled_text,
 	'START_DATE' => create_date($board_config['default_dateformat'], $jr_admin_row['start_date'], $board_config['board_timezone']),
 	'UPDATE_DATE' => create_date($board_config['default_dateformat'], $jr_admin_row['update_date'], $board_config['board_timezone']),
-	'NOTES' => $jr_admin_row['admin_notes'],
+	'NOTES' => phpbb_admin_html(isset($jr_admin_row['admin_notes']) ? $jr_admin_row['admin_notes'] : ''),
 	'NOTES_VIEW_CHECKED' => ($jr_admin_row['notes_view']) ? 'checked="checked"' : '',
 	'ADMIN_TEXT' => ($row['user_level'] == ADMIN) ? $lang['Admin_Note'] : ''
 	));
@@ -348,15 +349,34 @@ else
 	//Update info like module list and color groups
 	if (isset($_POST['update_user']) && !empty($user_id))
 	{
-		$user_update_list = '';
-		foreach ($_POST as $key => $val)
+		phpbb_admin_require_post_session();
+		$sql = "SELECT user_id FROM " . USERS_TABLE . " WHERE user_id = $user_id AND user_id <> " . ANONYMOUS;
+		if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
 		{
-			if (preg_match($update_find_pattern, $key))
+			message_die(GENERAL_MESSAGE, $lang['Error_User_Table']);
+		}
+		$db->sql_freeresult($result);
+
+		$allowed_module_hashes = array();
+		foreach (jr_admin_get_module_list() as $module_category)
+		{
+			foreach ($module_category as $module_data)
 			{
-				$user_update_list .= (!empty($user_update_list)) ? EXPLODE_SEPERATOR_CHAR : '';
-				$user_update_list .= preg_replace($update_find_pattern, '', $key);
+				if (isset($module_data['file_hash']) && preg_match('/^[a-f0-9]{32}$/D', $module_data['file_hash']))
+				{
+					$allowed_module_hashes[$module_data['file_hash']] = true;
+				}
 			}
 		}
+		$user_update_hashes = array();
+		foreach ($_POST as $key => $val)
+		{
+			if (preg_match('/^[0-9]+_' . UPDATE_MODULE_PREFIX . '([a-f0-9]{32})$/D', (string) $key, $module_match) && isset($allowed_module_hashes[$module_match[1]]))
+			{
+				$user_update_hashes[$module_match[1]] = true;
+			}
+		}
+		$user_update_list = implode(EXPLODE_SEPERATOR_CHAR, array_keys($user_update_hashes));
 		
 		if (!jr_admin_user_exist($user_id))
 		{
@@ -371,6 +391,15 @@ else
 		
 		if (!empty($color_group) && isset($color_group_id))
 		{
+			if ($color_group_id > 0)
+			{
+				$sql = 'SELECT group_id FROM ' . COLOR_GROUPS_TABLE . " WHERE group_id = $color_group_id";
+				if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
+				{
+					message_die(GENERAL_MESSAGE, $lang['Error_User_Table']);
+				}
+				$db->sql_freeresult($result);
+			}
 			$sql = 'UPDATE ' . USERS_TABLE . "
 			SET user_color_group = $color_group_id
 			WHERE user_id = $user_id";
@@ -381,13 +410,17 @@ else
 		}
 		
 		$notes_view = (isset($_POST['notes_view'])) ? 1 : 0;
-		$admin_notes = $_POST['admin_notes'];
+		$admin_notes = (isset($_POST['admin_notes']) && is_scalar($_POST['admin_notes'])) ? trim(stripslashes((string) $_POST['admin_notes'])) : '';
+		if (strlen($admin_notes) > 60000)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Error_User_Table']);
+		}
 		
 		//Do the information update
 		$sql = 'UPDATE ' . JR_ADMIN_TABLE . "
-			SET user_jr_admin = '$user_update_list',
+			SET user_jr_admin = '" . $db->sql_escape($user_update_list) . "',
 			update_date = " . time() . ",
-			admin_notes = '$admin_notes',
+			admin_notes = '" . $db->sql_escape($admin_notes) . "',
 			notes_view = $notes_view
 			WHERE user_id = $user_id";
 		if (!$db->sql_query($sql))
@@ -407,9 +440,16 @@ else
 	}
 	$alpha_where = ( $alphanum == '0' ) ? $proof : (($alphanum != '') ? "AND username LIKE '$alphanum%'" : ''); 
 
-	$user_where = (isset($_POST['user_search'])) ? " AND username LIKE ('".$_POST['user_search']."')" : '';
+	$user_search_value = (isset($_POST['user_search']) && is_scalar($_POST['user_search'])) ? $_POST['user_search'] :
+		((isset($_GET['user_search']) && is_scalar($_GET['user_search'])) ? $_GET['user_search'] : '');
+	$user_search = trim(stripslashes((string) $user_search_value));
+	if (strlen($user_search) > 50)
+	{
+		$user_search = substr($user_search, 0, 50);
+	}
+	$user_where = ($user_search !== '') ? " AND username LIKE '" . $db->sql_escape($user_search) . "'" : '';
 
-	$per_page = $board_config['topics_per_page'];
+	$per_page = max(1, min(200, intval($board_config['topics_per_page'])));
 	$sql = "SELECT $color_group username, user_id, user_rank, user_allow_pm, user_allowavatar, user_active
 		FROM " . USERS_TABLE . "
 		WHERE user_id <> " . ANONYMOUS . "
@@ -423,6 +463,7 @@ else
 	}
 	$current_letter = '';
 	$assigned_current_letter_link = true;
+	$row_index = 0;
 	while ($row = $db->sql_fetchrow($result))
 	{
 		$row_letter = strtoupper(substr($row['username'], 0, 1));
@@ -434,17 +475,18 @@ else
 		$jr_admin_row = jr_admin_get_user_info($row['user_id']);
 		$module_count = (!empty($jr_admin_row['user_jr_admin'])) ? count(explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_row['user_jr_admin'])) : 0;
 		$block_text = 'userrow';
+		$has_bookmark = (!$assigned_current_letter_link && preg_match('/^[A-Z0-9]$/D', $current_letter));
 		
 		$template->assign_block_vars($block_text, array(
-		'NAME' => $row['username'],
-		'ID' => $row['user_id'],
+		'NAME' => phpbb_admin_html($row['username']),
+		'ID' => intval($row['user_id']),
 		'ALLOW_PM' => ($row['user_allow_pm']) ? 'checked="checked"' : '',
 		'ALLOW_AVATAR' => ($row['user_allowavatar']) ? 'checked="checked"' : '',
 		'ACTIVE' =>($row['user_active']) ? 'checked="checked"' : '',
-		'ROW_CLASS' => ($i++ % 2) ? 'row1' : 'row2',
+		'ROW_CLASS' => ($row_index++ % 2) ? 'row1' : 'row2',
 		'RANK_LIST' => jr_admin_make_rank_list($row['user_id'], $row['user_rank']),
-		'BOOKMARK' => (!$assigned_current_letter_link) ? '<a name="'.$current_letter.'">' : '',
-		'BOOKMARK_END' => (!$assigned_current_letter_link) ? '</a>' : '',
+		'BOOKMARK' => $has_bookmark ? '<a id="jr-user-' . $current_letter . '">' : '',
+		'BOOKMARK_END' => $has_bookmark ? '</a>' : '',
 		'MODULE_COUNT' => ($module_count != 0) ? sprintf($lang['Modules_Owned'], $module_count) : ''
 		));
 		
@@ -457,16 +499,24 @@ else
 			{
 				//If we have the color groups mod installed, make use of it here.
 				$sql = 'SELECT * FROM ' . COLOR_GROUPS_TABLE . '
-				WHERE group_id = ' . $row['user_color_group'];
+				WHERE group_id = ' . intval($row['user_color_group']);
 				if (!$cresult = $db->sql_query($sql))
 				{
 					message_die(GENERAL_ERROR, $lang['Error_User_Table'], '', __LINE__, __FILE__, $sql);
 				}
 				$crow = $db->sql_fetchrow($cresult);
-				$template->assign_block_vars($block_text.'.colorrow', array(
-				'GROUP_COLOR' => $crow['group_color'],
-				'GROUP_NAME' => $crow['group_name']
-				));
+				$db->sql_freeresult($cresult);
+				if ($crow)
+				{
+					$template->assign_block_vars($block_text.'.colorrow', array(
+					'GROUP_COLOR' => jr_admin_safe_color($crow['group_color']),
+					'GROUP_NAME' => phpbb_admin_html($crow['group_name'])
+					));
+				}
+				else
+				{
+					$template->assign_block_vars($block_text.'.blank_colorrow', array());
+				}
 			}
 			else
 			{
@@ -486,8 +536,9 @@ else
 	$row = $db->sql_numrows($result);
 	$total_users_count = $row;
 
+	$user_search_query = ($user_search !== '') ? '&amp;user_search=' . rawurlencode($user_search) : '';
 	$template->assign_vars(array(
-		'PAGINATION' => generate_pagination("admin_jr_admin.$phpEx?sort_item=$sort_item&amp;order=$order&amp;alphanum=$alphanum", $total_users_count, $per_page, $start),
+		'PAGINATION' => generate_pagination("admin_jr_admin.$phpEx?sort_item=$sort_item&amp;order=$order&amp;alphanum=$alphanum$user_search_query", $total_users_count, $per_page, $start),
 		'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $per_page ) + 1 ), ceil( $total_users_count / $per_page )))
 	);
 
@@ -503,14 +554,16 @@ else
 	'IMG_ACTIVE' => ($sort_item == 'user_active') ? ($order == 'ASC') ? $asc_img : $desc_img : '',
 	'IMG_AVATAR' => ($sort_item == 'user_allowavatar') ? ($order == 'ASC') ? $asc_img : $desc_img : '',
 	'IMG_PM' => ($sort_item == 'user_allow_pm') ? ($order == 'ASC') ? $asc_img : $desc_img : '',
-	'S_USERNAME' => $base_filename . '&sort_item=username&alphanum='.$alphanum,
-	'S_COLORGROUP' => $base_filename . '&sort_item=user_color_group&alphanum='.$alphanum,
-	'S_RANK' => $base_filename . '&sort_item=user_rank&alphanum='.$alphanum,
-	'S_ACTIVE' => $base_filename . '&sort_item=user_active&alphanum='.$alphanum,
-	'S_AVATAR' => $base_filename . '&sort_item=user_allowavatar&alphanum='.$alphanum,
-	'S_PM' => $base_filename . '&sort_item=user_allow_pm&alphanum='.$alphanum
+	'S_USERNAME' => $base_filename . '&sort_item=username&alphanum='.$alphanum.$user_search_query,
+	'S_COLORGROUP' => $base_filename . '&sort_item=user_color_group&alphanum='.$alphanum.$user_search_query,
+	'S_RANK' => $base_filename . '&sort_item=user_rank&alphanum='.$alphanum.$user_search_query,
+	'S_ACTIVE' => $base_filename . '&sort_item=user_active&alphanum='.$alphanum.$user_search_query,
+	'S_AVATAR' => $base_filename . '&sort_item=user_allowavatar&alphanum='.$alphanum.$user_search_query,
+	'S_PM' => $base_filename . '&sort_item=user_allow_pm&alphanum='.$alphanum.$user_search_query
 	));
 	
+	$letter_list = array();
+	$current_letter = '';
 	$sql = "SELECT username	FROM " . USERS_TABLE . "
 		WHERE user_id <> " . ANONYMOUS;
 	if (!$result = $db->sql_query($sql))
@@ -547,6 +600,8 @@ $template->assign_vars(array(
 'S_USER_PERM' => append_sid('admin_ug_auth.'.$phpEx),
 'S_PROFILE' => append_sid($phpbb_root_path.'profile.'.$phpEx),
 'S_MANAGEMENT' => append_sid('admin_users.'.$phpEx),
+'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
+'USER_SEARCH' => phpbb_admin_html(isset($user_search) ? $user_search : ''),
 'S_USER_POST_URL' => POST_USERS_URL,
 'L_SEARCH' => $lang['Search'],
 'L_NONE' => $lang['None'],
