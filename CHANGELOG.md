@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Corrected the banner redirect's PHP 8 regular expression, retained strict
+  HTTP(S)-only destinations and moved click IP/identity/duration values onto
+  explicit database and integer boundaries.
 - Hardened paFileDB search requests, author matching and cached-result reuse.
   Search IDs, cached file IDs, sort fields, paging and dictionaries are now
   validated and bounded; serialized state and session/author values use the

@@ -62,22 +62,27 @@ $redirect_parts = @parse_url($redirect_url);
 if (!$redirect_parts || empty($redirect_parts['host']) || empty($redirect_parts['scheme']) ||
 	!in_array(strtolower($redirect_parts['scheme']), array('http', 'https'), true) ||
 	isset($redirect_parts['user']) || isset($redirect_parts['pass']) ||
-	preg_match('/[\\\x00-\x20\x7f]/', $redirect_url))
+	preg_match('/[\x00-\x20\x7F\\\\]/', $redirect_url))
 {
 	message_die(GENERAL_ERROR, 'Invalid banner URL', '', __LINE__, __FILE__);
 }
 $cookie_name = $board_config['cookie_name'] . '_b_' . $banner_id;
 if (!isset($HTTP_COOKIE_VARS[$cookie_name]))
 {
-	$banner_filter_time = time() + (( $banner_data['banner_filter_time'] ) ? $banner_data['banner_filter_time'] : 600 ) ;
+	$filter_seconds = max(1, intval($banner_data['banner_filter_time']) ?: 600);
+	$banner_filter_time = time() + $filter_seconds;
 	phpbb_setcookie($cookie_name , 1 ,$banner_filter_time , $board_config['cookie_path'], $board_config['cookie_domain'], $board_config['cookie_secure']);
-	$sql ="UPDATE ".BANNERS_TABLE." SET banner_click=banner_click+1 WHERE banner_id='".$banner_id."'";
+	$sql = "UPDATE " . BANNERS_TABLE . " SET banner_click = banner_click + 1 WHERE banner_id = " . intval($banner_id);
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, "Couldn't update banner data", "", __LINE__, __FILE__, $sql);
 	}
 }
-$sql ="INSERT INTO ".BANNER_STATS_TABLE." (banner_id,click_date,click_ip,click_user,user_duration) VALUES ('".$banner_id."', '".time()."', '".$userdata['session_ip']."', '".$userdata['user_id']."', '".($userdata['session_time']-$userdata['session_start']+$board_config['session_length'])."')";
+$click_ip_sql = $db->sql_escape($userdata['session_ip']);
+$click_user_id = intval($userdata['user_id']);
+$user_duration = max(0, intval($userdata['session_time']) - intval($userdata['session_start']) + intval($board_config['session_length']));
+$sql = "INSERT INTO " . BANNER_STATS_TABLE . " (banner_id, click_date, click_ip, click_user, user_duration)
+	VALUES (" . intval($banner_id) . ", " . time() . ", '$click_ip_sql', $click_user_id, $user_duration)";
 if ( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, "Couldn't insert banner stats", "", __LINE__, __FILE__, $sql);

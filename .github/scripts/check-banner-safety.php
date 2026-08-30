@@ -47,6 +47,22 @@ foreach (array('is_scalar($banner_id_value)', "isset(\$redirect_parts['user'])",
 	}
 }
 
+foreach (array('$db->sql_escape($userdata[\'session_ip\'])', '$user_duration = max(0,', 'intval($banner_id)') as $marker)
+{
+	if (strpos($redirect, $marker) === false)
+	{
+		$errors[] = 'Banner redirect hardening is missing: ' . $marker;
+	}
+}
+if (strpos($redirect, "preg_match('/[\\x00-\\x20\\x7F\\\\\\\\]/', \$redirect_url)") === false)
+{
+	$errors[] = 'Banner redirect must reject control characters and backslashes with a valid PCRE pattern';
+}
+if (preg_match('/[\x00-\x20\x7F\\\\]/', 'https://example.com/path') !== 0 || preg_match('/[\x00-\x20\x7F\\\\]/', "https://example.com/bad\\path") !== 1)
+{
+	$errors[] = 'Banner redirect control-character pattern is invalid';
+}
+
 if ($errors)
 {
 	fwrite(STDERR, implode("\n", $errors) . "\n");
