@@ -186,6 +186,12 @@ function CanRated ($picID, $userID)
 {
 //PRE: deside if user can rate things on hot or not
 	global $db, $album_sp_config, $userdata;
+	$picID = intval($picID);
+	$userID = intval($userID);
+	if ($picID < 1)
+	{
+		return false;
+	}
 
 	if (! $userdata['session_logged_in'] && $album_sp_config['hon_rate_users'] == 1)
 	{

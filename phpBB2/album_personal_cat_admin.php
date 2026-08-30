@@ -31,9 +31,32 @@ $album_root_path = $phpbb_root_path . 'album_mod/';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 
-require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_main_album.' . $phpEx);
-require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_album.' . $phpEx);
-require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin.' . $phpEx);
+$personal_album_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&
+	is_dir($phpbb_root_path . 'language/lang_' . $board_config['default_lang'])
+	? (string) $board_config['default_lang']
+	: 'english';
+require($phpbb_root_path . 'language/lang_' . $personal_album_language . '/lang_main_album.' . $phpEx);
+require($phpbb_root_path . 'language/lang_' . $personal_album_language . '/lang_admin_album.' . $phpEx);
+require($phpbb_root_path . 'language/lang_' . $personal_album_language . '/lang_admin.' . $phpEx);
+
+function album_personal_permission_value($value, $is_admin, $default)
+{
+	$allowed = array(ALBUM_GUEST, ALBUM_USER, ALBUM_PRIVATE);
+	if ($is_admin)
+	{
+		$allowed[] = ALBUM_MOD;
+		$allowed[] = ALBUM_ADMIN;
+	}
+	$value = intval($value);
+	return in_array($value, $allowed, true) ? $value : intval($default);
+}
+
+function album_personal_category_text($value, $length, $encode_html)
+{
+	$value = trim(stripslashes((string) $value));
+	$value = function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
+	return $encode_html ? htmlspecialchars($value, ENT_QUOTES, 'UTF-8') : $value;
+}
 
 //
 // Start session management
@@ -52,6 +75,10 @@ include($album_root_path. 'album_common.'.$phpEx);
 $page_title = $lang['Personal_Cat_Admin'];
 $mode = phpbb_request_scalar($_POST, 'mode');
 $action = phpbb_request_scalar($_GET, 'action');
+if (!in_array($mode, array('', 'new', 'edit', 'delete'), true) || !in_array($action, array('', 'edit', 'delete', 'move'), true))
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
 
 // ------------------------------------------------------------------------
 // Get $album_user_id
@@ -485,8 +512,15 @@ if( $mode === '' )
 			{
 				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 			}
+			$sql = "SELECT cat_id FROM " . ALBUM_CAT_TABLE . "
+				WHERE cat_id = " . (int) $cat_id . "
+					AND cat_user_id = " . (int) $album_user_id;
+			if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
+			{
+				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+			}
 
-         	album_move_tree($cat_id, $move);
+			album_move_tree($cat_id, $move);
 
 			// Return a message...
 			showResultMessage($lang['Category_changed_order']);
@@ -585,15 +619,17 @@ else
 		else
 		{
 			// Get posting variables
-			$cat_title = str_replace("\'", "''", htmlspecialchars(trim(phpbb_request_scalar($_POST, 'cat_title'))));
-			$cat_desc = str_replace("\'", "''", trim(phpbb_request_scalar($_POST, 'cat_desc')));
-			$view_level = intval(phpbb_request_scalar($_POST, 'cat_view_level', 0));
-			$upload_level = intval(phpbb_request_scalar($_POST, 'cat_upload_level', 0));
-			$rate_level = intval(phpbb_request_scalar($_POST, 'cat_rate_level', 0));
-			$comment_level = intval(phpbb_request_scalar($_POST, 'cat_comment_level', 0));
-			$edit_level = intval(phpbb_request_scalar($_POST, 'cat_edit_level', 0));
-			$delete_level = intval(phpbb_request_scalar($_POST, 'cat_delete_level', 0));
-			$cat_approval = intval(phpbb_request_scalar($_POST, 'cat_approval', 0));
+			$cat_title = album_personal_category_text(phpbb_request_scalar($_POST, 'cat_title'), 255, true);
+			$cat_desc = album_personal_category_text(phpbb_request_scalar($_POST, 'cat_desc'), 65535, false);
+			if ($cat_title === '')
+			{
+				message_die(GENERAL_MESSAGE, $lang['No_valid_category_selected']);
+			}
+			$is_album_admin = ((int) $userdata['user_level'] === ADMIN);
+			$view_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_view_level', ALBUM_PRIVATE), $is_album_admin, ALBUM_PRIVATE);
+			$upload_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_upload_level', ALBUM_PRIVATE), $is_album_admin, ALBUM_PRIVATE);
+			$rate_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_rate_level', ALBUM_USER), $is_album_admin, ALBUM_USER);
+			$comment_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_comment_level', ALBUM_USER), $is_album_admin, ALBUM_USER);
 			$requested_parent = intval(phpbb_request_scalar($_POST, 'cat_parent_id', ALBUM_ROOT_CATEGORY));
 			$cat_parent = ($requested_parent == ALBUM_ROOT_CATEGORY) ? album_get_personal_root_id($album_user_id) : $requested_parent;
 
@@ -615,13 +651,15 @@ else
 				message_die(GENERAL_ERROR, 'Could not query Album Categories information', '', __LINE__, __FILE__, $sql);
 			}
 			$row = $db->sql_fetchrow($result);
-			$last_order = $row['cat_order'];
+			$last_order = $row ? intval($row['cat_order']) : 0;
 			$cat_order = $last_order + 10;
 
 			// Here we insert a new row into the db
 
+			$cat_title_sql = $db->sql_escape($cat_title);
+			$cat_desc_sql = $db->sql_escape($cat_desc);
 			$sql = "INSERT INTO ". ALBUM_CAT_TABLE ." (cat_title, cat_desc, cat_order, cat_view_level, cat_upload_level, cat_rate_level, cat_comment_level, cat_edit_level, cat_delete_level, cat_approval, cat_parent, cat_user_id)
-					VALUES ('$cat_title', '$cat_desc', '$cat_order', '$view_level', '$upload_level', '$rate_level', '$comment_level', '" . ALBUM_PRIVATE . "', '" . ALBUM_PRIVATE . "', '0', '$cat_parent', '$album_user_id')";
+					VALUES ('$cat_title_sql', '$cat_desc_sql', " . intval($cat_order) . ", $view_level, $upload_level, $rate_level, $comment_level, " . ALBUM_PRIVATE . ", " . ALBUM_PRIVATE . ", 0, " . intval($cat_parent) . ", " . intval($album_user_id) . ")";
 
 
 			if(!$result = $db->sql_query($sql))
@@ -636,20 +674,34 @@ else
 	else if( $mode == 'edit' )
 	{
 		// Get posting variables
-		$cat_title = str_replace("\'", "''", htmlspecialchars(trim(phpbb_request_scalar($_POST, 'cat_title'))));
-		$cat_desc = str_replace("\'", "''", trim(phpbb_request_scalar($_POST, 'cat_desc')));
-		$view_level = intval(phpbb_request_scalar($_POST, 'cat_view_level', 0));
-		$upload_level = intval(phpbb_request_scalar($_POST, 'cat_upload_level', 0));
-		$rate_level = intval(phpbb_request_scalar($_POST, 'cat_rate_level', 0));
-		$comment_level = intval(phpbb_request_scalar($_POST, 'cat_comment_level', 0));
-		$edit_level = intval(phpbb_request_scalar($_POST, 'cat_edit_level', 0));
-		$delete_level = intval(phpbb_request_scalar($_POST, 'cat_delete_level', 0));
-		$cat_approval = intval(phpbb_request_scalar($_POST, 'cat_approval', 0));
+		$cat_title = album_personal_category_text(phpbb_request_scalar($_POST, 'cat_title'), 255, true);
+		$cat_desc = album_personal_category_text(phpbb_request_scalar($_POST, 'cat_desc'), 65535, false);
+		if ($cat_title === '')
+		{
+			message_die(GENERAL_MESSAGE, $lang['No_valid_category_selected']);
+		}
+		$is_album_admin = ((int) $userdata['user_level'] === ADMIN);
+		$view_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_view_level', ALBUM_PRIVATE), $is_album_admin, ALBUM_PRIVATE);
+		$upload_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_upload_level', ALBUM_PRIVATE), $is_album_admin, ALBUM_PRIVATE);
+		$rate_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_rate_level', ALBUM_USER), $is_album_admin, ALBUM_USER);
+		$comment_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_comment_level', ALBUM_USER), $is_album_admin, ALBUM_USER);
 		$personal_root_id = album_get_personal_root_id($album_user_id);
 		$requested_parent = intval(phpbb_request_scalar($_POST, 'cat_parent_id', ALBUM_ROOT_CATEGORY));
 		$cat_parent = ($cat_id == $personal_root_id)
 			? 0
 			: (($requested_parent == ALBUM_ROOT_CATEGORY) ? $personal_root_id : $requested_parent);
+		$sql = "SELECT cat_title, cat_desc FROM " . ALBUM_CAT_TABLE . "
+			WHERE cat_id = " . (int) $cat_id . "
+				AND cat_user_id = " . (int) $album_user_id;
+		if (!($result = $db->sql_query($sql)) || !($current_category = $db->sql_fetchrow($result)))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		}
+		if ($cat_id == $personal_root_id)
+		{
+			$cat_title = (string) $current_category['cat_title'];
+			$cat_desc = (string) $current_category['cat_desc'];
+		}
 
 		if ( ($cat_id == $cat_parent) && (album_get_personal_root_id($album_user_id) != $cat_id)  )
 		{
@@ -679,10 +731,12 @@ else
 
 		// Now we update this row
 
+		$cat_title_sql = $db->sql_escape($cat_title);
+		$cat_desc_sql = $db->sql_escape($cat_desc);
 		$sql = "UPDATE ". ALBUM_CAT_TABLE ."
-				SET cat_title = '$cat_title', cat_desc = '$cat_desc', cat_view_level = '$view_level', cat_upload_level = '$upload_level', cat_rate_level = '$rate_level', cat_comment_level = '$comment_level', cat_edit_level = '" . ALBUM_PRIVATE . "', cat_delete_level = '" . ALBUM_PRIVATE . "', cat_approval = '0', cat_parent = '$cat_parent', cat_user_id = '$album_user_id'
-				WHERE cat_id = '$cat_id'
-					AND cat_user_id = '$album_user_id'";
+				SET cat_title = '$cat_title_sql', cat_desc = '$cat_desc_sql', cat_view_level = $view_level, cat_upload_level = $upload_level, cat_rate_level = $rate_level, cat_comment_level = $comment_level, cat_edit_level = " . ALBUM_PRIVATE . ", cat_delete_level = " . ALBUM_PRIVATE . ", cat_approval = 0, cat_parent = " . intval($cat_parent) . ", cat_user_id = " . intval($album_user_id) . "
+				WHERE cat_id = " . intval($cat_id) . "
+					AND cat_user_id = " . intval($album_user_id);
 
 		if(!$result = $db->sql_query($sql))
 		{

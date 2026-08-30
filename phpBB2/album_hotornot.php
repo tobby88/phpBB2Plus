@@ -253,6 +253,7 @@ else
 
 	$rate_user_id = $userdata['user_id'];
 	$rate_user_ip = $userdata['session_ip'];
+	$rate_user_ip_sql = $db->sql_escape($rate_user_ip);
 	$pic_id = (isset($_POST['pic_id']) && is_scalar($_POST['pic_id'])) ? intval($_POST['pic_id']) : 0;
 	$max_rate = max(1, intval($album_config['rate_scale']));
 
@@ -299,7 +300,7 @@ else
 	{
 		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_point) ";
 	}
-	$sql .= "SELECT " . intval($pic_id) . ", " . intval($rate_user_id) . ", '" . str_replace("'", "''", $rate_user_ip) . "', " . intval($rate_point);
+	$sql .= "SELECT " . intval($pic_id) . ", " . intval($rate_user_id) . ", '$rate_user_ip_sql', " . intval($rate_point);
 	if ($prevent_duplicate)
 	{
 		$sql .= " WHERE NOT EXISTS (SELECT 1 FROM " . ALBUM_RATE_TABLE . " WHERE rate_pic_id = " . intval($pic_id) . " AND rate_user_id = " . intval($rate_user_id) . ")";

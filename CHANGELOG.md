@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened personal Album category administration with allowlisted modes,
+  installed-language paths, normalized permission values, owner-bound move and
+  edit targets, bounded category text and database-driver escaping. Root
+  personal-category names can no longer be changed by bypassing the readonly
+  browser field, empty category sets receive a safe ordering baseline, and
+  Hot-or-Not rating IPs now use the active database driver.
 - Hardened the legacy Arcade score protocols, including GET-capable Flash
   callbacks, with a shared strict same-origin check that remains compatible
   with older clients lacking browser metadata. IBPro logging no longer calls

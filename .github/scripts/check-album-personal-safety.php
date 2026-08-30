@@ -18,6 +18,8 @@ $admin_config = file_get_contents($root . '/phpBB2/admin/admin_album_config_exte
 $config_helpers = file_get_contents($root . '/phpBB2/album_mod/album_acp_functions.php');
 $config_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/album_config_body_extended.tpl');
 $clear_cache = file_get_contents($root . '/phpBB2/admin/admin_album_clearcache.php');
+$personal_admin = file_get_contents($root . '/phpBB2/album_personal_cat_admin.php');
+$hotornot = file_get_contents($root . '/phpBB2/album_hotornot.php');
 
 album_test_assert(strpos($personal, "isset(\$album_data['keys'][\$cat_id])") !== false, 'hierarchy cache lookup must be guarded');
 album_test_assert(strpos($personal, "WHERE cat_id = ' . \$cat_id") !== false, 'fallback must select the exact category');
@@ -51,5 +53,10 @@ album_test_assert(strpos($clear_cache, 'phpbb_admin_require_post_session();') !=
 album_test_assert(strpos($clear_cache, "preg_match('/\\.(?:gif|png|jpe?g|webp)\$/iD'") !== false, 'thumbnail cache deletion must use an end-anchored image extension');
 album_test_assert(strpos($clear_cache, '!is_link($cache_item)') !== false, 'thumbnail cache deletion must not follow symbolic links');
 album_test_assert(strpos($clear_cache, "isset(\$_POST['cancel'])") !== false, 'thumbnail cache cancellation must leave the confirmation page');
+album_test_assert(strpos($personal_admin, "in_array(\$mode, array('', 'new', 'edit', 'delete'), true)") !== false, 'personal category write modes must use an allowlist');
+album_test_assert(strpos($personal_admin, 'function album_personal_permission_value') !== false, 'personal category permission values must be normalized');
+album_test_assert(substr_count($personal_admin, '$cat_title_sql = $db->sql_escape($cat_title)') >= 2, 'personal category text must use database-driver escaping');
+album_test_assert(strpos($personal_admin, "AND cat_user_id = \" . (int) \$album_user_id") !== false, 'personal category ordering must remain bound to its owner');
+album_test_assert(strpos($hotornot, '$rate_user_ip_sql = $db->sql_escape($rate_user_ip)') !== false, 'Hot-or-Not rating IPs must use database-driver escaping');
 
 echo "Personal-album safety tests passed.\n";
