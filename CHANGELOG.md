@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened posting, editing, deletion and non-AJAX poll voting with a shared
+  POST-only, timing-safe session guard. Text, subjects, guest names, topic
+  descriptions and poll content are now escaped by the active database driver
+  at their storage boundary instead of by partial apostrophe replacement.
+  Poll option normalization now updates the actual option list, portal and
+  AJAX-rendered ballots carry the session ID, repeated votes no longer increase
+  the result after a competing voter row was inserted, and negative
+  announcement durations are corrected by assignment rather than a no-op
+  comparison.
 - Hardened private-message send, edit, save and delete operations with a shared
   POST-only, timing-safe session guard and database-driver escaping. Editing is
   now limited to messages that have not been delivered, including the related

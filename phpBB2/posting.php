@@ -48,6 +48,15 @@ $request_scalar = function ($source, $key, $default = '')
 {
 	return (is_array($source) && isset($source[$key]) && is_scalar($source[$key])) ? (string) $source[$key] : $default;
 };
+
+function posting_post_session_is_valid($submitted_sid, $session_id)
+{
+	return isset($_SERVER['REQUEST_METHOD'])
+		&& strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST'
+		&& is_string($submitted_sid)
+		&& $submitted_sid !== ''
+		&& hash_equals((string) $session_id, $submitted_sid);
+}
 //
 // Check and set various parameters
 //
@@ -555,6 +564,9 @@ if ( !$is_auth[$is_auth_type] || (!empty($is_auth_type_cal) && !$is_auth[$is_aut
 		case 'topicreview':
 			$redirect = "mode=reply&" . POST_TOPIC_URL . "=" . $topic_id;
 			break;
+		case 'vote':
+			$redirect = POST_TOPIC_URL . "=" . $topic_id;
+			break;
 		case 'quote':
 		case 'editpost':
 			$redirect = "mode=quote&" . POST_POST_URL ."=" . $post_id;
@@ -730,6 +742,11 @@ else if ( $mode == 'vote' )
 	//
 	// Vote in a poll
 	//
+	if (!posting_post_session_is_valid($sid, $userdata['session_id']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Session_invalid']);
+	}
+
 	if ( !empty($_POST['vote_id']) )
 	{
 		$vote_option_id = intval($_POST['vote_id']);
@@ -749,10 +766,15 @@ else if ( $mode == 'vote' )
 		{
 			$vote_id = $vote_info['vote_id'];
 
-			$sql = "SELECT * 
-				FROM " . VOTE_USERS_TABLE . "  
-				WHERE vote_id = $vote_id 
-					AND vote_user_id = " . $userdata['user_id'];
+			$vote_user_id = intval($userdata['user_id']);
+			$vote_ip = $db->sql_escape($user_ip);
+			$vote_identity = ($vote_user_id == ANONYMOUS)
+				? "vote_user_id = " . ANONYMOUS . " AND vote_user_ip = '$vote_ip'"
+				: "vote_user_id = $vote_user_id";
+			$sql = "SELECT vote_id
+				FROM " . VOTE_USERS_TABLE . "
+				WHERE vote_id = $vote_id
+					AND $vote_identity";
 			if ( !($result2 = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Could not obtain user vote data for this topic', '', __LINE__, __FILE__, $sql);
@@ -760,23 +782,35 @@ else if ( $mode == 'vote' )
 
 			if ( !($row = $db->sql_fetchrow($result2)) )
 			{
-				$sql = "UPDATE " . VOTE_RESULTS_TABLE . " 
-					SET vote_result = vote_result + 1 
-					WHERE vote_id = $vote_id 
-						AND vote_option_id = $vote_option_id";
+				$sql = "INSERT INTO " . VOTE_USERS_TABLE . " (vote_id, vote_user_id, vote_user_ip)
+					SELECT $vote_id, $vote_user_id, '$vote_ip'
+					WHERE NOT EXISTS (
+						SELECT 1 FROM " . VOTE_USERS_TABLE . "
+						WHERE vote_id = $vote_id AND $vote_identity
+					)";
 				if ( !$db->sql_query($sql, BEGIN_TRANSACTION) )
 				{
-					message_die(GENERAL_ERROR, 'Could not update poll result', '', __LINE__, __FILE__, $sql);
+					message_die(GENERAL_ERROR, 'Could not record poll voter', '', __LINE__, __FILE__, $sql);
 				}
 
-				$sql = "INSERT INTO " . VOTE_USERS_TABLE . " (vote_id, vote_user_id, vote_user_ip) 
-					VALUES ($vote_id, " . $userdata['user_id'] . ", '$user_ip')";
-				if ( !$db->sql_query($sql, END_TRANSACTION) )
+				if ($db->sql_affectedrows() == 1)
 				{
-					message_die(GENERAL_ERROR, "Could not insert user_id for poll", "", __LINE__, __FILE__, $sql);
-				}
+					$sql = "UPDATE " . VOTE_RESULTS_TABLE . "
+						SET vote_result = vote_result + 1
+						WHERE vote_id = $vote_id
+							AND vote_option_id = $vote_option_id";
+					if ( !$db->sql_query($sql, END_TRANSACTION) )
+					{
+						$db->sql_query("DELETE FROM " . VOTE_USERS_TABLE . " WHERE vote_id = $vote_id AND $vote_identity");
+						message_die(GENERAL_ERROR, 'Could not update poll result', '', __LINE__, __FILE__, $sql);
+					}
 
-				$message = $lang['Vote_cast'];
+					$message = $lang['Vote_cast'];
+				}
+				else
+				{
+					$message = $lang['Already_voted'];
+				}
 			}
 			else
 			{
@@ -809,7 +843,7 @@ else if ( $submit || $confirm )
 	$return_message = '';
 	$return_meta = '';
 	// session id check
-	if ($sid == '' || $sid != $userdata['session_id'])
+	if (!posting_post_session_is_valid($sid, $userdata['session_id']))
 	{
 		$error_msg .= (!empty($error_msg)) ? '<br />' . $lang['Session_invalid'] : $lang['Session_invalid'];
 	}
@@ -914,7 +948,7 @@ else if ( $submit || $confirm )
 				$topic_type = ( $topic_type != $post_data['topic_type'] && !$is_auth['auth_sticky'] && !$is_auth['auth_announce'] && !$is_auth['auth_global_announce'] ) ? $post_data['topic_type'] : $topic_type;
 				//-- mod : announces -------------------------------------------------------------------------------
 //-- add
-				if ($topic_announce_duration < -1) $topic_announce_duration == 0;
+				if ($topic_announce_duration < -1) $topic_announce_duration = 0;
 				if ( !in_array($topic_type, array(POST_ANNOUNCE, POST_GLOBAL_ANNOUNCE)) )
 				{
 					$topic_announce_duration = 0;
@@ -941,12 +975,7 @@ if ($lock_subject)
 	$url = "<a href='viewtopic.$phpEx?" . POST_POST_URL . "=" .$lock_subject."#".$lock_subject."'> ";
 	$message = addslashes(sprintf($lang['Link_to_post'],$url,"</a>")).$message;	
 }
-				$tmp_username = str_replace("\'", "''", $username); 
-				$tmp_subject = str_replace("\'", "''", $subject); 
-				$tmp_message = str_replace("\'", "''", $message); 
-				$tmp_poll_title = str_replace("\'", "''", $poll_title); 
-				$tmp_topic_desc = str_replace("\'", "''", $topic_desc); 
-				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $tmp_username, $tmp_subject, $tmp_message, $tmp_poll_title, $poll_options, $poll_length, $tmp_topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
+				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $username, $subject, $message, $poll_title, $poll_options, $poll_length, $topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
 				if ($mode == 'editpost' && !empty($is_auth['auth_mod']))
 				{
 					log_action('edit', $topic_id, $userdata['user_id'], $userdata['username']);

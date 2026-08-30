@@ -185,7 +185,7 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 					$temp_option_text[intval($option_id)] = htmlspecialchars($option_text);
 				}
 			}
-			$option_text = $temp_option_text;
+			$poll_options = $temp_option_text;
 
 			if (count($poll_options) < 2)
 			{
@@ -226,6 +226,16 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
 	global $userdata, $user_ip;
 	global $ctracker_config;
+
+	// Request data is slash-normalized by common.php for legacy callers. Undo
+	// that representation once, then let the active driver quote SQL values.
+	$post_username_sql = $db->sql_escape(stripslashes((string) $post_username));
+	$post_subject_sql = $db->sql_escape(stripslashes((string) $post_subject));
+	$post_message_sql = $db->sql_escape(stripslashes((string) $post_message));
+	$poll_title_sql = $db->sql_escape(stripslashes((string) $poll_title));
+	$topic_desc_sql = $db->sql_escape(stripslashes((string) $topic_desc));
+	$bbcode_uid_sql = $db->sql_escape((string) $bbcode_uid);
+	$user_ip_sql = $db->sql_escape((string) $user_ip);
 
 	// CrackerTracker v5.x
 	if ( ($mode == 'newtopic' || $mode == 'reply') && ($ctracker_config->settings['spammer_blockmode'] > 0 || $ctracker_config->settings['spam_attack_boost'] == 1) && $userdata['user_id'] != ANONYMOUS )
@@ -303,7 +313,7 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 //	, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration
 //-- modify
 
-		$sql  = ($mode != "editpost") ? "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_desc, topic_poster, topic_time, forum_id, news_id, topic_status, topic_type, topic_calendar_time, topic_calendar_duration, topic_icon, topic_announce_duration, topic_vote) VALUES ('$post_subject', '$topic_desc', " . $userdata['user_id'] . ", $current_time, $forum_id, $news_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_calendar_time, $topic_calendar_duration, $post_icon, $topic_announce_duration, $topic_vote)" : "UPDATE " . TOPICS_TABLE . " SET topic_title = '$post_subject', topic_desc = '$topic_desc', news_id = $news_id, topic_type = $topic_type, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration, topic_icon=$post_icon, topic_announce_duration = $topic_announce_duration " . (($post_data['edit_vote'] || !empty($poll_title)) ? ", topic_vote = " . $topic_vote : "") . " WHERE topic_id = $topic_id";
+		$sql  = ($mode != "editpost") ? "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_desc, topic_poster, topic_time, forum_id, news_id, topic_status, topic_type, topic_calendar_time, topic_calendar_duration, topic_icon, topic_announce_duration, topic_vote) VALUES ('$post_subject_sql', '$topic_desc_sql', " . $userdata['user_id'] . ", $current_time, $forum_id, $news_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_calendar_time, $topic_calendar_duration, $post_icon, $topic_announce_duration, $topic_vote)" : "UPDATE " . TOPICS_TABLE . " SET topic_title = '$post_subject_sql', topic_desc = '$topic_desc_sql', news_id = $news_id, topic_type = $topic_type, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration, topic_icon=$post_icon, topic_announce_duration = $topic_announce_duration " . (($post_data['edit_vote'] || !empty($poll_title)) ? ", topic_vote = " . $topic_vote : "") . " WHERE topic_id = $topic_id";
 		if (!$db->sql_query($sql))
 		{
 			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -325,7 +335,7 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 //  , post_icon = $post_icon
 //-- modify
 
-	$sql = ($mode != "editpost") ? "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig, post_icon) VALUES ($topic_id, $forum_id, " . $userdata['user_id'] . ", '$post_username', $current_time, '$user_ip', $bbcode_on, $html_on, $smilies_on, $attach_sig, $post_icon)" : "UPDATE " . POSTS_TABLE . " SET post_username = '$post_username', enable_bbcode = $bbcode_on, enable_html = $html_on, enable_smilies = $smilies_on, enable_sig = $attach_sig, post_icon = $post_icon" . $edited_sql . " WHERE post_id = $post_id";
+	$sql = ($mode != "editpost") ? "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig, post_icon) VALUES ($topic_id, $forum_id, " . $userdata['user_id'] . ", '$post_username_sql', $current_time, '$user_ip_sql', $bbcode_on, $html_on, $smilies_on, $attach_sig, $post_icon)" : "UPDATE " . POSTS_TABLE . " SET post_username = '$post_username_sql', enable_bbcode = $bbcode_on, enable_html = $html_on, enable_smilies = $smilies_on, enable_sig = $attach_sig, post_icon = $post_icon" . $edited_sql . " WHERE post_id = $post_id";
 	if (!$db->sql_query($sql, BEGIN_TRANSACTION))
 	{
 		message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -336,7 +346,7 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		$post_id = $db->sql_nextid();
 	}
 
-	$sql = ($mode != 'editpost') ? "INSERT INTO " . POSTS_TEXT_TABLE . " (post_id, post_subject, bbcode_uid, post_text) VALUES ($post_id, '$post_subject', '$bbcode_uid', '$post_message')" : "UPDATE " . POSTS_TEXT_TABLE . " SET post_text = '$post_message',  bbcode_uid = '$bbcode_uid', post_subject = '$post_subject' WHERE post_id = $post_id";
+	$sql = ($mode != 'editpost') ? "INSERT INTO " . POSTS_TEXT_TABLE . " (post_id, post_subject, bbcode_uid, post_text) VALUES ($post_id, '$post_subject_sql', '$bbcode_uid_sql', '$post_message_sql')" : "UPDATE " . POSTS_TEXT_TABLE . " SET post_text = '$post_message_sql',  bbcode_uid = '$bbcode_uid_sql', post_subject = '$post_subject_sql' WHERE post_id = $post_id";
 	if (!$db->sql_query($sql))
 	{
 		message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -349,7 +359,7 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	// 
 	if (($mode == 'newtopic' || ($mode == 'editpost' && $post_data['edit_poll'])) && !empty($poll_title) && count($poll_options) >= 2)
 	{
-		$sql = (!$post_data['has_poll']) ? "INSERT INTO " . VOTE_DESC_TABLE . " (topic_id, vote_text, vote_start, vote_length) VALUES ($topic_id, '$poll_title', $current_time, " . ($poll_length * 86400) . ")" : "UPDATE " . VOTE_DESC_TABLE . " SET vote_text = '$poll_title', vote_length = " . ($poll_length * 86400) . " WHERE topic_id = $topic_id";
+		$sql = (!$post_data['has_poll']) ? "INSERT INTO " . VOTE_DESC_TABLE . " (topic_id, vote_text, vote_start, vote_length) VALUES ($topic_id, '$poll_title_sql', $current_time, " . ($poll_length * 86400) . ")" : "UPDATE " . VOTE_DESC_TABLE . " SET vote_text = '$poll_title_sql', vote_length = " . ($poll_length * 86400) . " WHERE topic_id = $topic_id";
 		if (!$db->sql_query($sql))
 		{
 			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -388,7 +398,7 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		{
 			if (!empty($option_text))
 			{
-				$option_text = str_replace("\'", "''", htmlspecialchars($option_text));
+				$option_text = $db->sql_escape(stripslashes((string) $option_text));
 				$poll_result = ($mode == "editpost" && isset($old_poll_result[$option_id])) ? $old_poll_result[$option_id] : 0;
 
 				$sql = ($mode != "editpost" || !isset($old_poll_result[$option_id])) ? "INSERT INTO " . VOTE_RESULTS_TABLE . " (vote_id, vote_option_id, vote_option_text, vote_result) VALUES ($poll_id, $poll_option_id, '$option_text', $poll_result)" : "UPDATE " . VOTE_RESULTS_TABLE . " SET vote_option_text = '$option_text', vote_result = $poll_result WHERE vote_option_id = $option_id AND vote_id = $poll_id";

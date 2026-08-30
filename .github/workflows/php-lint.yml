@@ -115,6 +115,9 @@ jobs:
       - name: Test private message safety
         run: php .github/scripts/check-private-message-safety.php
 
+      - name: Test posting and poll safety
+        run: php .github/scripts/check-posting-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 

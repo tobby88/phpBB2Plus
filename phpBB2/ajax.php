@@ -700,7 +700,7 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 			'L_VIEW_RESULTS' => $lang['View_results'],
 			
 			'U_VIEW_RESULTS' => append_sid("viewtopic.$phpEx?". POST_TOPIC_URL ."=$topic_id&amp;postdays=$post_days&amp;postorder=$post_order&amp;vote=viewresult"),
-			'S_HIDDEN_FIELDS' => '<input type="hidden" name="topic_id" value="' . $topic_id . '" /><input type="hidden" name="mode" value="vote" />')
+			'S_HIDDEN_FIELDS' => '<input type="hidden" name="topic_id" value="' . $topic_id . '" /><input type="hidden" name="mode" value="vote" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />')
 		);
 	}
 	else
