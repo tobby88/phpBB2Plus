@@ -121,6 +121,9 @@ jobs:
       - name: Test warning-card safety
         run: php .github/scripts/check-card-safety.php
 
+      - name: Test link submission safety
+        run: php .github/scripts/check-link-submission-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 

@@ -35,7 +35,13 @@ include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 //
 $userdata = session_pagestart($user_ip, PAGE_LINKS);
 init_userprefs($userdata);
-require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_main_link.' . $phpEx);
+$link_language = (isset($board_config['default_lang']) && preg_match('/^[a-z0-9_-]+$/i', (string) $board_config['default_lang'])) ? $board_config['default_lang'] : 'english';
+$link_language_file = $phpbb_root_path . 'language/lang_' . $link_language . '/lang_main_link.' . $phpEx;
+if (!is_file($link_language_file))
+{
+	$link_language_file = $phpbb_root_path . 'language/lang_english/lang_main_link.' . $phpEx;
+}
+require($link_language_file);
 //
 // End session management
 //
@@ -59,7 +65,7 @@ function link_register_http_url($value)
 	$value = trim(stripslashes((string) $value));
 	$parts = @parse_url($value);
 	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
-		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) || isset($parts['user']) || isset($parts['pass']) ||
 		preg_match('/[\x00-\x20\x7f]/', $value))
 	{
 		return '';
@@ -76,14 +82,18 @@ $link_title = substr(trim(stripslashes(link_register_post('link_title'))), 0, 10
 $link_desc = substr(trim(stripslashes(link_register_post('link_desc'))), 0, 255);
 $link_category_input = link_register_post('link_category');
 $link_category = is_numeric($link_category_input) ? intval($link_category_input) : 0;
-$link_url = substr(link_register_http_url(link_register_post('link_url')), 0, 100);
-$link_logo_src = substr(link_register_http_url(link_register_post('link_logo_src')), 0, 120);
-$link_title_sql = str_replace("'", "''", $link_title);
-$link_desc_sql = str_replace("'", "''", $link_desc);
-$link_url_sql = str_replace("'", "''", $link_url);
-$link_logo_src_sql = str_replace("'", "''", $link_logo_src);
+$link_url = link_register_http_url(link_register_post('link_url'));
+$link_logo_src = link_register_http_url(link_register_post('link_logo_src'));
+$link_url = (strlen($link_url) <= 100) ? $link_url : '';
+$link_logo_src = (strlen($link_logo_src) <= 120) ? $link_logo_src : '';
+$link_title_sql = $db->sql_escape($link_title);
+$link_desc_sql = $db->sql_escape($link_desc);
+$link_url_sql = $db->sql_escape($link_url);
+$link_logo_src_sql = $db->sql_escape($link_logo_src);
 $link_joined = time();
 $user_id = intval($userdata['user_id']);
+$user_ip_sql = $db->sql_escape($user_ip);
+$max_inbox_privmsgs = max(1, isset($board_config['max_inbox_privmsgs']) ? intval($board_config['max_inbox_privmsgs']) : 50);
 
 //
 // Get Link Config
@@ -102,6 +112,12 @@ while( $row = $db->sql_fetchrow($result) )
 	$link_config[$link_config_name] = $link_config_value;
 }
 $db->sql_freeresult($result);
+$link_config = array_merge(array(
+	'lock_submit_site' => 0,
+	'allow_no_logo' => 1,
+	'email_notify' => 0,
+	'pm_notify' => 0,
+), $link_config);
 
 if ($link_category > 0)
 {
@@ -154,7 +170,7 @@ if($link_title && $link_desc && $link_category && $link_url)
 {
 	// Check regiter interval
 	$sql = "SELECT MAX(link_joined) AS last_link_joined FROM " . LINKS_TABLE . " 
-		WHERE " . ($user_id != ANONYMOUS ? "user_id = '$user_id'" : "user_ip = '$user_ip'");
+		WHERE " . ($user_id != ANONYMOUS ? "user_id = $user_id" : "user_ip = '$user_ip_sql'");
 		
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -175,7 +191,7 @@ if($link_title && $link_desc && $link_category && $link_url)
 		{
 			$is_admin = ( $userdata['user_level'] == ADMIN ) ? TRUE : 0;
 			$sql = "INSERT INTO " . LINKS_TABLE . " (link_title, link_desc, link_category, link_url, link_logo_src, link_joined,link_active , user_id , user_ip)
-				VALUES ('$link_title_sql', '$link_desc_sql', '$link_category', '$link_url_sql', '$link_logo_src_sql', '$link_joined', '$is_admin', '$user_id', '$user_ip')";
+				VALUES ('$link_title_sql', '$link_desc_sql', $link_category, '$link_url_sql', '$link_logo_src_sql', $link_joined, $is_admin, $user_id, '$user_ip_sql')";
 
 			if ( !$db->sql_query($sql) )
 			{
@@ -187,7 +203,7 @@ if($link_title && $link_desc && $link_category && $link_url)
 			  {
 			    $sql = "SELECT user_id, username, user_notify_pm, user_allow_pm, user_email, user_lang, user_active 
 				FROM " . USERS_TABLE . "
-				WHERE user_level = " . ADMIN;
+				WHERE user_level = " . ADMIN . " AND user_active = 1";
 				if ( !($admin_result = $db->sql_query($sql)) )
 				{
 					message_die(GENERAL_ERROR, "Could not query users table", "", __LINE__, __FILE__, $sql);
@@ -207,7 +223,12 @@ if($link_title && $link_desc && $link_category && $link_url)
 					  $emailer->from($board_config['board_email']);
 					  $emailer->replyto($board_config['board_email']);
 
-					  $emailer->use_template('link_add', $to_userdata['user_lang']);
+					  $admin_language = preg_match('/^[a-z0-9_-]+$/i', (string) $to_userdata['user_lang']) ? $to_userdata['user_lang'] : '';
+					  if ($admin_language === '' || !is_file($phpbb_root_path . 'language/lang_' . $admin_language . '/email/link_add.tpl'))
+					  {
+						$admin_language = $link_language;
+					  }
+					  $emailer->use_template('link_add', $admin_language);
 					  $emailer->email_address($to_userdata['user_email']);
 					
 					  $emailer->assign_vars(array(
@@ -237,12 +258,13 @@ if($link_title && $link_desc && $link_category && $link_url)
 					  //
 					  // See if recipient is at their inbox limit
 					  //
+					  $admin_user_id = intval($to_userdata['user_id']);
 					  $sql = "SELECT COUNT(privmsgs_id) AS inbox_items
 						FROM " . PRIVMSGS_TABLE . " 
 						WHERE ( privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
 							OR privmsgs_type = " . PRIVMSGS_READ_MAIL . "  
 							OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " ) 
-							AND privmsgs_to_userid = " . $to_userdata['user_id'];
+							AND privmsgs_to_userid = $admin_user_id";
 					  if ( !($result = $db->sql_query($sql)) )
 					  {
 						message_die(GENERAL_MESSAGE, $lang['No_such_user']);
@@ -250,15 +272,17 @@ if($link_title && $link_desc && $link_category && $link_url)
 
 					  if ( $inbox_info = $db->sql_fetchrow($result) )
 					  {
-						if ( $inbox_info['inbox_items'] >= $board_config['max_inbox_privmsgs'] )
+						if ( $inbox_info['inbox_items'] >= $max_inbox_privmsgs )
 						{
 						  // A link notification must never evict an existing private message.
 						  continue;
 					  }
 					}
 					$privmsg_subject = $lang['Link_pm_notify_subject'];
+					$privmsg_subject_sql = $db->sql_escape($privmsg_subject);
+					$bbcode_uid_sql = $db->sql_escape($bbcode_uid);
 					$sql_info = "INSERT INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
-					VALUES (" . PRIVMSGS_NEW_MAIL . ", '" . str_replace("\'", "''", $privmsg_subject) . "', " . $to_userdata['user_id'] . ", " . $to_userdata['user_id'] . ", $msg_time, '$user_ip', $html_on, $bbcode_on, $smilies_on, $attach_sig)";
+					VALUES (" . PRIVMSGS_NEW_MAIL . ", '$privmsg_subject_sql', $user_id, $admin_user_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on, $attach_sig)";
 					if ( !($result = $db->sql_query($sql_info, BEGIN_TRANSACTION)) )
 					{
 						message_die(GENERAL_ERROR, "Could not insert/update private message sent info.", "", __LINE__, __FILE__, $sql_info);
@@ -266,9 +290,10 @@ if($link_title && $link_desc && $link_category && $link_url)
 		
 					$privmsg_sent_id = $db->sql_nextid();
 					$privmsg_message = sprintf($lang['Link_pm_notify_message'], $link_url);
+					$privmsg_message_sql = $db->sql_escape($privmsg_message);
 		
 					$sql = "INSERT INTO " . PRIVMSGS_TEXT_TABLE . " (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
-					VALUES ($privmsg_sent_id, '" . $bbcode_uid . "', '" . str_replace("\'", "''", $privmsg_message) . "')";
+					VALUES ($privmsg_sent_id, '$bbcode_uid_sql', '$privmsg_message_sql')";
 		
 					if ( !$db->sql_query($sql, END_TRANSACTION) )
 					{
@@ -280,7 +305,7 @@ if($link_title && $link_desc && $link_category && $link_url)
 					//
 					$sql = "UPDATE " . USERS_TABLE . "
 						SET user_new_privmsg = user_new_privmsg + 1, user_last_privmsg = " . time() . "  
-						WHERE user_id = " . $to_userdata['user_id']; 
+						WHERE user_id = $admin_user_id";
 					if ( !$status = $db->sql_query($sql) )
 					{
 						message_die(GENERAL_ERROR, 'Could not update private message new/read status for user', '', __LINE__, __FILE__, $sql);
@@ -288,8 +313,8 @@ if($link_title && $link_desc && $link_category && $link_url)
 				  }
 				}
 			  }
+			  $message = $lang['Link_update_success'];
 			}
-			$message = $lang['Link_update_success'];
 		  }	
 		}
 		else

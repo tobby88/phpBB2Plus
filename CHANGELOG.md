@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened public link submissions and their administrator notifications.
+  Link, URL, logo and IP values now use database-driver escaping; URL fields
+  reject embedded credentials and overlong values instead of silently storing
+  truncated destinations. Only active administrators are notified, language
+  directory names are allowlisted, notification PM content is escaped and the
+  submitting member is recorded as its sender. A failed link insert can no
+  longer be overwritten by a misleading success response.
 - Hardened the warning/report-card endpoint with an explicit POST-only,
   timing-safe session check, exact action selection and scalar target IDs.
   Missing posts and users now fail before record fields are read, direct user
