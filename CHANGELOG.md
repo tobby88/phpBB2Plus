@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened paFileDB search requests, author matching and cached-result reuse.
+  Search IDs, cached file IDs, sort fields, paging and dictionaries are now
+  validated and bounded; serialized state and session/author values use the
+  active database driver. Comment matches are correctly combined with file
+  matches, cache records carry their module identity and expiry time, and the
+  result query no longer multiplies rating votes by comments.
 - Rebuilt the Knowledge Base search boundary for current PHP and database
   drivers. Scalar and bounded requests, installed-language dictionaries,
   escaped terms/session/cache data, validated cached article IDs and approved-

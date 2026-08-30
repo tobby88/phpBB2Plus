@@ -14,7 +14,7 @@ class pafiledb_search extends pafiledb_public
 	function main($action = false)
 	{
 		global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
-		global $_REQUEST, $_POST, $phpbb_root_path, $userdata;
+		global $_POST, $_GET, $phpbb_root_path, $userdata;
 		
 		
 		if(!$this->auth_global['auth_search'])
@@ -30,91 +30,44 @@ class pafiledb_search extends pafiledb_public
 		
 		include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
-		if ( isset($_REQUEST['search_keywords']) && is_scalar($_REQUEST['search_keywords']) )
-		{
-			$search_keywords = htmlspecialchars(substr((string) $_REQUEST['search_keywords'], 0, 200));
-		}
-		else
-		{
-			$search_keywords = '';
-		}
+		$search_keywords = trim(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords')));
+		$search_keywords = substr($search_keywords, 0, 500);
+		$search_author = trim(phpbb_request_scalar($_POST, 'search_author', phpbb_request_scalar($_GET, 'search_author')));
+		$search_author = substr($search_author, 0, 100);
+		$search_id_value = phpbb_request_scalar($_POST, 'search_id', phpbb_request_scalar($_GET, 'search_id'));
+		$search_id = preg_match('/^[1-9][0-9]*$/D', $search_id_value) ? intval($search_id_value) : 0;
+		$search_terms = (phpbb_request_scalar($_POST, 'search_terms', phpbb_request_scalar($_GET, 'search_terms')) === 'all') ? 1 : 0;
+		$cat_id = max(0, intval(phpbb_request_scalar($_POST, 'cat_id', phpbb_request_scalar($_GET, 'cat_id', 0))));
+		$comments_search = (phpbb_request_scalar($_POST, 'comments_search', phpbb_request_scalar($_GET, 'comments_search')) === 'YES') ? 1 : 0;
+		$start = max(0, intval(phpbb_request_scalar($_POST, 'start', phpbb_request_scalar($_GET, 'start', 0))));
 
-		$search_author = (isset($_REQUEST['search_author']) && is_scalar($_REQUEST['search_author'])) ? htmlspecialchars(substr((string) $_REQUEST['search_author'], 0, 100)) : '';
-		
-		$search_id = (isset($_REQUEST['search_id']) && is_scalar($_REQUEST['search_id'])) ? intval($_REQUEST['search_id']) : 0;
-
-		if ( isset($_REQUEST['search_terms']) && is_scalar($_REQUEST['search_terms']) )
+		$allowed_sort_methods = array('file_name', 'file_time', 'file_dls', 'rating', 'file_update_time');
+		$config_sort_method = isset($pafiledb_config['sort_method']) ? (string) $pafiledb_config['sort_method'] : 'file_time';
+		if ($config_sort_method === 'file_rating')
 		{
-			$search_terms = ( $_REQUEST['search_terms'] == 'all' ) ? 1 : 0;
+			$config_sort_method = 'rating';
 		}
-		else
+		if (!in_array($config_sort_method, $allowed_sort_methods, true))
 		{
-			$search_terms = 0;
+			$config_sort_method = 'file_time';
 		}
+		$requested_sort_method = phpbb_request_scalar($_POST, 'sort_method', phpbb_request_scalar($_GET, 'sort_method', $config_sort_method));
+		$requested_sort_method = ($requested_sort_method === 'file_rating') ? 'rating' : $requested_sort_method;
+		$sort_method = in_array($requested_sort_method, $allowed_sort_methods, true) ? $requested_sort_method : $config_sort_method;
 
-		$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
-
-
-		if ( isset($_REQUEST['comments_search']) && is_scalar($_REQUEST['comments_search']) )
-		{
-			$comments_search = ( $_REQUEST['comments_search'] == 'YES' ) ? 1 : 0;
-		}
-		else
-		{
-			$comments_search =  0;
-		}
-
-		$start = (isset($_REQUEST['start']) && is_scalar($_REQUEST['start'])) ? max(0, intval($_REQUEST['start'])) : 0;
-
-		if( isset($_REQUEST['sort_method']) && is_scalar($_REQUEST['sort_method']) )
-		{
-			switch ($_REQUEST['sort_method'])
-			{
-				case 'file_name':
-					$sort_method = 'file_name';
-					break;
-				case 'file_time':
-					$sort_method = 'file_time';
-					break;
-				case 'file_dls':
-					$sort_method = 'file_dls';
-					break;
-				case 'file_rating':
-					$sort_method = 'rating';
-					break;
-				case 'file_update_time':
-					$sort_method = 'file_update_time';
-					break;
-				default:
-					$sort_method = $pafiledb_config['sort_method'];
-			}
-		}
-		else
-		{
-			$sort_method = $pafiledb_config['sort_method'];
-		}
-
-		if( isset($_REQUEST['sort_order']) && is_scalar($_REQUEST['sort_order']) )
-		{
-			switch ($_REQUEST['sort_order'])
-			{
-				case 'ASC':
-					$sort_order = 'ASC';
-					break;
-				case 'DESC':
-					$sort_order = 'DESC';
-					break;
-				default:
-					$sort_order = $pafiledb_config['sort_order'];
-			}
-		}
-		else
-		{
-			$sort_order = $pafiledb_config['sort_order'];
-		}
-
-
-		$limit_sql = ($start == 0) ? $pafiledb_config['settings_file_page'] : $start .','. $pafiledb_config['settings_file_page'];
+		$config_sort_order = (isset($pafiledb_config['sort_order']) && $pafiledb_config['sort_order'] === 'ASC') ? 'ASC' : 'DESC';
+		$requested_sort_order = phpbb_request_scalar($_POST, 'sort_order', phpbb_request_scalar($_GET, 'sort_order', $config_sort_order));
+		$sort_order = ($requested_sort_order === 'ASC') ? 'ASC' : 'DESC';
+		$per_page = max(1, min(100, intval($pafiledb_config['settings_file_page'])));
+		$limit_sql = $start . ', ' . $per_page;
+		$search_results = '';
+		$total_match_count = 0;
+		$split_search = array();
+		$searchset = array();
+		$search_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&
+			is_dir($phpbb_root_path . 'language/lang_' . $board_config['default_lang'])
+			? (string) $board_config['default_lang']
+			: 'english';
 		//
 		// encoding match for workaround
 		//
@@ -130,13 +83,15 @@ class pafiledb_search extends pafiledb_public
 				if ( $search_author != '' && $search_keywords == '' )
 				{
 					$search_author = str_replace('*', '%', trim($search_author));
+					$search_author_sql = $db->sql_escape($search_author);
 
 					$sql = "SELECT user_id
 						FROM " . USERS_TABLE . "
-						WHERE username LIKE '" . str_replace("\'", "''", $search_author) . "'";
+						WHERE username LIKE '$search_author_sql'
+						LIMIT 500";
 					if ( !($result = $db->sql_query($sql)) )
 					{
-						message_die(GENERAL_ERROR, "Couldn't obtain list of matching users (searching for: $search_author)", "", __LINE__, __FILE__, $sql);
+						message_die(GENERAL_ERROR, "Couldn't obtain list of matching users", "", __LINE__, __FILE__, $sql);
 					}
 
 					$matching_userids = '';
@@ -144,7 +99,11 @@ class pafiledb_search extends pafiledb_public
 					{
 						do
 						{
-							$matching_userids .= ( ( $matching_userids != '' ) ? ', ' : '' ) . $row['user_id'];
+							$user_id = intval($row['user_id']);
+							if ($user_id > 0)
+							{
+								$matching_userids .= (($matching_userids != '') ? ', ' : '') . $user_id;
+							}
 						}
 						while( $row = $db->sql_fetchrow($result) );
 					}
@@ -152,10 +111,16 @@ class pafiledb_search extends pafiledb_public
 					{
 						message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 					}
+					if ($matching_userids === '')
+					{
+						message_die(GENERAL_MESSAGE, $lang['No_search_match']);
+					}
 				
 					$sql = "SELECT * 
 						FROM " . PA_FILES_TABLE . " 
-						WHERE user_id IN ($matching_userids)";
+						WHERE user_id IN ($matching_userids)
+							AND file_approved = 1
+						LIMIT 12000";
 					
 					if ( !($result = $db->sql_query($sql)) )
 					{
@@ -165,9 +130,11 @@ class pafiledb_search extends pafiledb_public
 					$search_ids = array();
 					while( $row = $db->sql_fetchrow($result) )
 					{
-						if($this->auth[$row['file_catid']]['auth_view'])
+						$file_id = intval($row['file_id']);
+						$file_cat_id = intval($row['file_catid']);
+						if ($file_id > 0 && !empty($this->auth[$file_cat_id]['auth_view']))
 						{
-							$search_ids[] = $row['file_id'];
+							$search_ids[$file_id] = $file_id;
 						}
 					}
 					$db->sql_freeresult($result);
@@ -176,141 +143,120 @@ class pafiledb_search extends pafiledb_public
 				}
 				else if ( $search_keywords != '' )
 				{
-					$stopword_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/search_stopwords.txt'); 
-					$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/search_synonyms.txt'); 
+					$stopword_array = @file($phpbb_root_path . 'language/lang_' . $search_language . '/search_stopwords.txt');
+					$synonym_array = @file($phpbb_root_path . 'language/lang_' . $search_language . '/search_synonyms.txt');
+					$stopword_array = is_array($stopword_array) ? $stopword_array : array();
+					$synonym_array = is_array($synonym_array) ? $synonym_array : array();
 	
-					$split_search = array();
 					$split_search = ( !strstr($multibyte_charset, $lang['ENCODING']) ) ? split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search') : preg_split('/\s+/', trim($search_keywords), -1, PREG_SPLIT_NO_EMPTY);
+					$split_search = is_array($split_search) ? array_slice($split_search, 0, 50) : array();
+					foreach ($split_search as $index => $search_word)
+					{
+						$split_search[$index] = substr((string) $search_word, 0, 100);
+					}
 
 					$word_count = 0;
 					$current_match_type = 'or';
-
-					$word_match = array();
 					$result_list = array();
 
-					for($i = 0; $i < count($split_search); $i++)
+					foreach ($split_search as $search_word)
 					{
-						switch ( $split_search[$i] )
+						switch ($search_word)
 						{
 							case 'and':
-								$current_match_type = 'and';
-								break;
-
 							case 'or':
-								$current_match_type = 'or';
-								break;
-
 							case 'not':
-								$current_match_type = 'not';
-								break;
+								$current_match_type = $search_word;
+								continue 2;
+						}
 
-							default:
-								if ( !empty($search_terms) )
-								{
-									$current_match_type = 'and';
-								}
-								$match_word = $db->sql_escape('%' . str_replace('*', '', $split_search[$i]) . '%');
+						if (!empty($search_terms))
+						{
+							$current_match_type = 'and';
+						}
+						$match_word = $db->sql_escape('%' . str_replace('*', '', $search_word) . '%');
+						$current_results = array();
 
-								$sql = "SELECT file_id 
-									FROM " . PA_FILES_TABLE . " 
-									WHERE (file_name LIKE '$match_word' 
-									OR file_creator LIKE '$match_word' 
-									OR file_desc LIKE '$match_word' 
-									OR file_longdesc LIKE '$match_word')";
-
-								if ( !($result = $db->sql_query($sql)) )
-								{
-									message_die(GENERAL_ERROR, 'Could not obtain matched files list', '', __LINE__, __FILE__, $sql);
-								}
-
-							$row = array();
-							while( $temp_row = $db->sql_fetchrow($result) )
+						$sql = "SELECT file_id
+							FROM " . PA_FILES_TABLE . "
+							WHERE file_name LIKE '$match_word'
+								OR file_creator LIKE '$match_word'
+								OR file_desc LIKE '$match_word'
+								OR file_longdesc LIKE '$match_word'
+							LIMIT 12000";
+						if (!($result = $db->sql_query($sql)))
+						{
+							message_die(GENERAL_ERROR, 'Could not obtain matched files list', '', __LINE__, __FILE__, $sql);
+						}
+						while ($temp_row = $db->sql_fetchrow($result))
+						{
+							$file_id = intval($temp_row['file_id']);
+							if ($file_id > 0)
 							{
-								$row[$temp_row['file_id']] = 1;
+								$current_results[$file_id] = 1;
+							}
+						}
+						$db->sql_freeresult($result);
 
-								if ( !$word_count )
+						if ($comments_search)
+						{
+							$sql = "SELECT file_id
+								FROM " . PA_COMMENTS_TABLE . "
+								WHERE comments_title LIKE '$match_word'
+									OR comments_text LIKE '$match_word'
+								LIMIT 12000";
+							if (!($result = $db->sql_query($sql)))
+							{
+								message_die(GENERAL_ERROR, 'Could not obtain matched comments list', '', __LINE__, __FILE__, $sql);
+							}
+							while ($temp_row = $db->sql_fetchrow($result))
+							{
+								$file_id = intval($temp_row['file_id']);
+								if ($file_id > 0)
 								{
-									$result_list[$temp_row['file_id']] = 1;
-								}
-								else if ( $current_match_type == 'or' )
-								{
-									$result_list[$temp_row['file_id']] = 1;
-								}
-								else if ( $current_match_type == 'not' )
-								{
-									$result_list[$temp_row['file_id']] = 0;
+									$current_results[$file_id] = 1;
 								}
 							}
-
-							if ( $current_match_type == 'and' && $word_count )
-							{
-								foreach ($result_list as $file_id => $match_count)
-								{
-									if ( empty($row[$file_id]) )
-									{
-										$result_list[$file_id] = 0;
-									}
-								}
-							}
-
-							if($comments_search)
-							{
-								$sql = "SELECT file_id 
-									FROM " . PA_COMMENTS_TABLE . " 
-									WHERE (comments_title LIKE '$match_word' 
-									OR comments_text LIKE '$match_word')";
-
-								if ( !($result = $db->sql_query($sql)) )
-								{
-									message_die(GENERAL_ERROR, 'Could not obtain matched files list', '', __LINE__, __FILE__, $sql);
-								}
-
-								$row = array();
-								while( $temp_row = $db->sql_fetchrow($result) )
-								{
-									$row[$temp_row['file_id']] = 1;
-
-									if ( !$word_count )
-									{
-										$result_list[$temp_row['file_id']] = 1;
-									}
-									else if ( $current_match_type == 'or' )
-									{
-										$result_list[$temp_row['file_id']] = 1;
-									}
-									else if ( $current_match_type == 'not' )
-									{
-										$result_list[$temp_row['file_id']] = 0;
-									}
-								}
-
-								if ( $current_match_type == 'and' && $word_count )
-								{
-									foreach ($result_list as $file_id => $match_count)
-									{
-										if ( empty($row[$file_id]) )
-										{
-											$result_list[$file_id] = 0;
-										}
-									}
-								}
-							}
-
-							$word_count++;
-
 							$db->sql_freeresult($result);
 						}
+
+						foreach ($current_results as $file_id => $match)
+						{
+							if (!$word_count || $current_match_type === 'or')
+							{
+								$result_list[$file_id] = 1;
+							}
+							else if ($current_match_type === 'not')
+							{
+								$result_list[$file_id] = 0;
+							}
+						}
+						if ($current_match_type === 'and' && $word_count)
+						{
+							foreach ($result_list as $file_id => $match)
+							{
+								if (empty($current_results[$file_id]))
+								{
+									$result_list[$file_id] = 0;
+								}
+							}
+						}
+						if (count($result_list) > 12000)
+						{
+							$result_list = array_slice($result_list, 0, 12000, true);
+						}
+						$word_count++;
 					}
 					$search_ids = array();
 					foreach ($result_list as $file_id => $matches)
 					{
-						if ( $matches )
+						$file_id = intval($file_id);
+						if ($matches && $file_id > 0)
 						{
-							$search_ids[] = $file_id;
+							$search_ids[$file_id] = $file_id;
 						}
 					}	
-			
-					unset($result_list);
+					$search_ids = array_slice(array_values($search_ids), 0, 12000);
 					$total_match_count = count($search_ids);
 				}
 			//
@@ -318,7 +264,8 @@ class pafiledb_search extends pafiledb_public
 			//
 				if ( $search_author != '' )
 				{
-					$search_author = str_replace('*', '%', trim(str_replace("\'", "''", $search_author)));
+					$search_author = str_replace('*', '%', trim($search_author));
+					$search_author_sql = $db->sql_escape($search_author);
 				}	
 
 				if ( $total_match_count )
@@ -339,10 +286,8 @@ class pafiledb_search extends pafiledb_public
 						if ( $search_author != '' )
 						{
 							$from_sql .= ", " . USERS_TABLE . " u";
-							$where_sql .= " AND u.user_id = f.user_id AND u.username LIKE '$search_author' ";
+							$where_sql .= " AND u.user_id = f.user_id AND u.username LIKE '$search_author_sql' ";
 						}
-					
-						$where_sql .= ($cat_id) ? 'AND file_catid IN (' . $this->gen_cat_ids($cat_id, '') . ')' : '';
 
 						$sql = "SELECT f.file_id, f.file_catid
 							FROM $from_sql 
@@ -359,13 +304,16 @@ class pafiledb_search extends pafiledb_public
 					$search_ids = array();
 					while( $row = $db->sql_fetchrow($result) )
 					{
-						if($this->auth[$row['file_catid']]['auth_view'])
+						$file_id = intval($row['file_id']);
+						$file_cat_id = intval($row['file_catid']);
+						if ($file_id > 0 && !empty($this->auth[$file_cat_id]['auth_view']))
 						{
-							$search_ids[] = $row['file_id'];
+							$search_ids[$file_id] = $file_id;
 						}
 					}
 					$db->sql_freeresult($result);				
-					$total_match_count = sizeof($search_ids);
+					$search_ids = array_slice(array_values($search_ids), 0, 12000);
+					$total_match_count = count($search_ids);
 				}
 				else
 				{
@@ -376,28 +324,13 @@ class pafiledb_search extends pafiledb_public
 				// Finish building query (for all combinations)
 				// and run it ...
 				//
-				$expiry_time = $current_time - $board_config['session_length'];
-				$sql = "SELECT session_id
-					FROM " . SESSIONS_TABLE ." 
-					WHERE session_time > $expiry_time";
-
-				if ( $result = $db->sql_query($sql) )
+				$current_time = time();
+				$session_length = max(60, intval($board_config['session_length']));
+				$sql = "DELETE FROM " . SEARCH_TABLE . "
+					WHERE search_time < " . ($current_time - $session_length);
+				if (!$db->sql_query($sql))
 				{
-					$delete_search_ids = array();
-					while( $row = $db->sql_fetchrow($result) )
-					{
-						$delete_search_ids[] = "'" . $row['session_id'] . "'";
-					}
-
-					if ( count($delete_search_ids) )
-					{
-						$sql = "DELETE FROM " . SEARCH_TABLE . " 
-							WHERE session_id NOT IN (" . implode(", ", $delete_search_ids) . ")";
-						if ( !$result = $db->sql_query($sql) )
-						{
-							message_die(GENERAL_ERROR, 'Could not delete old search id sessions', '', __LINE__, __FILE__, $sql);
-						}
-					}
+					message_die(GENERAL_ERROR, 'Could not delete old search id sessions', '', __LINE__, __FILE__, $sql);
 				}
 			
 				//
@@ -406,25 +339,25 @@ class pafiledb_search extends pafiledb_public
 				$search_results = implode(', ', $search_ids);
 	
 				$store_search_data = array();
+				$store_search_data['pafiledb'] = 1;
 			
 				for($i = 0; $i < count($store_vars); $i++)
 				{
 					$store_search_data[$store_vars[$i]] = $$store_vars[$i];
 				}
 
-				$result_array = serialize($store_search_data);
+				$result_array_sql = $db->sql_escape(serialize($store_search_data));
 				unset($store_search_data);
-
-				mt_srand ((float) microtime() * 1000000);
-				$search_id = mt_rand();
+				$search_session_id_sql = $db->sql_escape($userdata['session_id']);
+				$search_id = mt_rand(1, 2147483647);
 
 				$sql = "UPDATE " . SEARCH_TABLE . " 
-					SET search_id = $search_id, search_array = '" . str_replace("\'", "''", $result_array) . "'
-					WHERE session_id = '" . $userdata['session_id'] . "'";
+					SET search_id = $search_id, search_time = $current_time, search_array = '$result_array_sql'
+					WHERE session_id = '$search_session_id_sql'";
 				if ( !($result = $db->sql_query($sql)) || !$db->sql_affectedrows() )
 				{
-					$sql = "INSERT INTO " . SEARCH_TABLE . " (search_id, session_id, search_array) 
-						VALUES($search_id, '" . $userdata['session_id'] . "', '" . str_replace("\'", "''", $result_array) . "')";
+					$sql = "INSERT INTO " . SEARCH_TABLE . " (search_id, session_id, search_time, search_array)
+						VALUES ($search_id, '$search_session_id_sql', $current_time, '$result_array_sql')";
 					if ( !($result = $db->sql_query($sql)) )
 					{
 						message_die(GENERAL_ERROR, 'Could not insert search results', '', __LINE__, __FILE__, $sql);
@@ -433,13 +366,13 @@ class pafiledb_search extends pafiledb_public
 			}
 			else
 			{
-				$search_id = intval($search_id);
 				if ( $search_id )
 				{
+					$search_session_id_sql = $db->sql_escape($userdata['session_id']);
 					$sql = "SELECT search_array 
 						FROM " . SEARCH_TABLE . " 
-						WHERE search_id = $search_id  
-						AND session_id = '" . $userdata['session_id'] . "'";
+						WHERE search_id = " . intval($search_id) . "
+							AND session_id = '$search_session_id_sql'";
 					if ( !($result = $db->sql_query($sql)) )
 					{
 						message_die(GENERAL_ERROR, 'Could not obtain search results', '', __LINE__, __FILE__, $sql);
@@ -448,47 +381,61 @@ class pafiledb_search extends pafiledb_public
 					if ( $row = $db->sql_fetchrow($result) )
 					{
 						$search_data = phpbb_safe_unserialize($row['search_array']);
-						for($i = 0; $i < count($store_vars); $i++)
+						if (!is_array($search_data) || empty($search_data['pafiledb']))
 						{
-							$$store_vars[$i] = $search_data[$store_vars[$i]];
+							message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 						}
+						$cached_ids = isset($search_data['search_results']) && is_scalar($search_data['search_results'])
+							? preg_split('/\s*,\s*/', (string) $search_data['search_results'], -1, PREG_SPLIT_NO_EMPTY)
+							: array();
+						$validated_ids = array();
+						foreach (array_slice($cached_ids, 0, 12000) as $cached_id)
+						{
+							if (preg_match('/^[1-9][0-9]*$/D', (string) $cached_id))
+							{
+								$validated_ids[intval($cached_id)] = intval($cached_id);
+							}
+						}
+						$search_results = implode(', ', $validated_ids);
+						$total_match_count = count($validated_ids);
+						$split_search = array();
+						if (isset($search_data['split_search']) && is_array($search_data['split_search']))
+						{
+							foreach (array_slice($search_data['split_search'], 0, 50) as $cached_word)
+							{
+								if (is_scalar($cached_word))
+								{
+									$split_search[] = substr((string) $cached_word, 0, 100);
+								}
+							}
+						}
+						$cached_sort_method = isset($search_data['sort_method']) && is_scalar($search_data['sort_method']) ? (string) $search_data['sort_method'] : '';
+						$sort_method = in_array($cached_sort_method, $allowed_sort_methods, true) ? $cached_sort_method : $config_sort_method;
+						$sort_order = (isset($search_data['sort_order']) && $search_data['sort_order'] === 'ASC') ? 'ASC' : 'DESC';
 					}
+					else
+					{
+						message_die(GENERAL_MESSAGE, $lang['No_search_match']);
+					}
+					$db->sql_freeresult($result);
 				}
 			}
 		
 
 			if ( $search_results != '' )
 			{		
-				switch(SQL_LAYER)
-				{
-					case 'oracle':
-						$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name, COUNT(cm.comments_id) AS total_comments
-							FROM " . PA_FILES_TABLE . " AS f1, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_CATEGORY_TABLE . " AS c, " . PA_COMMENTS_TABLE . " AS cm
-							WHERE f1.file_id IN ($search_results) 
-							AND f1.file_id = r.votes_file(+) 
-							AND f1.user_id = u.user_id(+) 
-							AND f1.file_id = cm.file_id(+)
-							AND c.cat_id = f1.file_catid 
-							AND f1.file_approved = '1' 
-							GROUP BY f1.file_id 
-							ORDER BY $sort_method $sort_order 
-							LIMIT $limit_sql";			
-						break;
-
-					default:
-						$sql = "SELECT f1.*, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, c.cat_id, c.cat_name, COUNT(cm.comments_id) AS total_comments
-							FROM " . PA_FILES_TABLE . " AS f1, " . PA_CATEGORY_TABLE . " AS c
-								LEFT JOIN " . PA_VOTES_TABLE . " AS r ON f1.file_id = r.votes_file 
-								LEFT JOIN ". USERS_TABLE ." AS u ON f1.user_id = u.user_id
-								LEFT JOIN " . PA_COMMENTS_TABLE . " AS cm ON f1.file_id = cm.file_id
-							WHERE f1.file_id IN ($search_results) 
-							AND c.cat_id = f1.file_catid
-							AND f1.file_approved = '1' 
-							GROUP BY f1.file_id 
-							ORDER BY $sort_method $sort_order 
-							LIMIT $limit_sql";
-						break;
-				}
+				$sql = "SELECT f1.*,
+						(SELECT AVG(r.rate_point) FROM " . PA_VOTES_TABLE . " r WHERE r.votes_file = f1.file_id) AS rating,
+						(SELECT COUNT(*) FROM " . PA_VOTES_TABLE . " r WHERE r.votes_file = f1.file_id) AS total_votes,
+						u.user_id, u.username, c.cat_id, c.cat_name,
+						(SELECT COUNT(*) FROM " . PA_COMMENTS_TABLE . " cm WHERE cm.file_id = f1.file_id) AS total_comments
+					FROM " . PA_FILES_TABLE . " f1
+					INNER JOIN " . PA_CATEGORY_TABLE . " c ON c.cat_id = f1.file_catid
+					LEFT JOIN " . USERS_TABLE . " u ON u.user_id = f1.user_id
+					WHERE f1.file_id IN ($search_results)
+						AND f1.file_approved = 1
+					ORDER BY $sort_method $sort_order
+					LIMIT $limit_sql";
 
 				if ( !$result = $db->sql_query($sql) )
 				{
@@ -577,8 +524,8 @@ class pafiledb_search extends pafiledb_public
 				$base_url = append_sid("dload.$phpEx?action=search&amp;search_id=$search_id");
 
 				$pafiledb_template->assign_vars(array(
-					'PAGINATION' => generate_pagination($base_url, $total_match_count, $pafiledb_config['settings_file_page'], $start),
-					'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $pafiledb_config['settings_file_page'] ) + 1 ), ceil( $total_match_count / $pafiledb_config['settings_file_page'] )),
+					'PAGINATION' => generate_pagination($base_url, $total_match_count, $per_page, $start),
+					'PAGE_NUMBER' => sprintf($lang['Page_of'], (floor($start / $per_page) + 1), ceil($total_match_count / $per_page)),
 					'DOWNLOAD' => $pafiledb_config['settings_dbname'],
 	
 					'U_INDEX' => append_sid('index.'.$phpEx),
