@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Album uploads from staging through persistence. The storage path is
+  now bound to the owning Nuffload session, actual server-side file sizes and
+  image signatures determine acceptance and extensions instead of client MIME
+  claims, limits are clamped, manual thumbnails are verified before storage,
+  generated thumbnails handle allocation/write failures cleanly, and all
+  metadata uses database-driver escaping. Files are removed again when their
+  database insert fails, preventing untracked uploads from accumulating.
 - Hardened compact and full-page Shoutbox writes with bounded message,
   flood-control, pruning and pagination values and driver-escaped normalized
   message/IP data. Full-page moderation now accepts only scalar positive shout

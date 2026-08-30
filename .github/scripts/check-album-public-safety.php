@@ -14,6 +14,8 @@ $delete = file_get_contents($root . '/phpBB2/album_delete.php');
 $edit = file_get_contents($root . '/phpBB2/album_edit.php');
 $comment_edit = file_get_contents($root . '/phpBB2/album_comment_edit.php');
 $showpage = file_get_contents($root . '/phpBB2/album_showpage.php');
+$upload = file_get_contents($root . '/phpBB2/album_upload.php');
+$functions = file_get_contents($root . '/phpBB2/album_mod/album_functions.php');
 
 foreach (array('delete' => $delete, 'edit' => $edit, 'comment edit' => $comment_edit) as $name => $source)
 {
@@ -36,5 +38,10 @@ album_public_test_assert(strpos($showpage, "['post_username']") === false, 'gues
 $missing_picture_check = strpos($showpage, 'if( empty($thispic) )');
 $picture_field_read = strpos($showpage, "\$cat_id = (\$thispic['pic_cat_id']");
 album_public_test_assert($missing_picture_check !== false && $picture_field_read !== false && $missing_picture_check < $picture_field_read, 'missing pictures must be rejected before their fields are read');
+album_public_test_assert(strpos($functions, 'function album_nuffload_is_staged_file') !== false && strpos($functions, "realpath(\$source)") !== false, 'upload sources must remain inside the verified Nuffload staging directory');
+album_public_test_assert(strpos($upload, '$filesize = @filesize($filetmp)') !== false, 'upload limits must use the server-side file size');
+album_public_test_assert(strpos($upload, '$pic_size = @getimagesize($filetmp)') !== false && strpos($upload, 'switch ($pic_image_type)') !== false, 'stored extensions must use the server-detected image type');
+album_public_test_assert(strpos($upload, '$pic_title_sql = $db->sql_escape($pic_title)') !== false && strpos($upload, '$pic_user_ip_sql = $db->sql_escape($pic_user_ip)') !== false, 'uploaded picture metadata must use database-driver escaping');
+album_public_test_assert(strpos($upload, "if( !\$result = \$db->sql_query(\$sql) )\n\t{\n\t\t@unlink(ALBUM_UPLOAD_PATH . \$pic_filename);") !== false, 'failed picture inserts must remove the stored upload');
 
 echo "Public Album action safety tests passed.\n";

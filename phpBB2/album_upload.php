@@ -464,11 +464,13 @@ else
 	$pic_desc_input = (isset($_POST['pic_desc']) && is_scalar($_POST['pic_desc'])) ? (string) $_POST['pic_desc'] : '';
 	$pic_username_input = (isset($_POST['pic_username']) && is_scalar($_POST['pic_username'])) ? (string) $_POST['pic_username'] : '';
 
-	$pic_title = str_replace("\'", "''", htmlspecialchars(trim($pic_title_input)));
-
-	$pic_desc = str_replace("\'", "''", htmlspecialchars(substr(trim($pic_desc_input), 0, $album_config['desc_length'])));
-
-	$pic_username = (!$userdata['session_logged_in']) ? substr(str_replace("\'", "''", htmlspecialchars(trim($pic_username_input))), 0, 32) : str_replace("'", "''", $userdata['username']);
+	$desc_length = max(0, min(65535, intval($album_config['desc_length'])));
+	$pic_title_raw = trim(stripslashes($pic_title_input));
+	$pic_desc_raw = substr(trim(stripslashes($pic_desc_input)), 0, $desc_length);
+	$pic_username_raw = (!$userdata['session_logged_in']) ? substr(trim(stripslashes($pic_username_input)), 0, 32) : (string) $userdata['username'];
+	$pic_title = htmlspecialchars($pic_title_raw, ENT_QUOTES, 'UTF-8');
+	$pic_desc = htmlspecialchars($pic_desc_raw, ENT_QUOTES, 'UTF-8');
+	$pic_username = (!$userdata['session_logged_in']) ? htmlspecialchars($pic_username_raw, ENT_QUOTES, 'UTF-8') : $pic_username_raw;
 
 	if( empty($pic_title) )
 	{
@@ -493,9 +495,9 @@ else
 
 	if (!$userdata['session_logged_in'])
 	{
-		if ($pic_username != '')
+		if ($pic_username_raw != '')
 		{
-			$result = validate_username($pic_username);
+			$result = validate_username($pic_username_raw);
 			if ( $result['error'] )
 			{
 				message_die(GENERAL_MESSAGE, $result['error_msg']);
@@ -508,8 +510,6 @@ else
 	// Get File Upload Info
 	// --------------------------------
 
-	$filetype = (string) $HTTP_POST_FILES['pic_file']['type'];
-	$filesize = intval($HTTP_POST_FILES['pic_file']['size']);
 	$filetmp = (string) $HTTP_POST_FILES['pic_file']['tmp_name'];
 
 	if ($album_config['gd_version'] == 0)
@@ -521,9 +521,38 @@ else
 		{
 			message_die(GENERAL_ERROR, 'Bad Upload');
 		}
-		$thumbtype = (string) $HTTP_POST_FILES['pic_thumbnail']['type'];
-		$thumbsize = intval($HTTP_POST_FILES['pic_thumbnail']['size']);
 		$thumbtmp = (string) $HTTP_POST_FILES['pic_thumbnail']['tmp_name'];
+	}
+	if (!album_nuffload_is_staged_file($filetmp, $path_to_bin, $psid))
+	{
+		message_die(GENERAL_ERROR, 'Invalid upload data');
+	}
+	$filesize = @filesize($filetmp);
+	$pic_size = @getimagesize($filetmp);
+	if ($filesize === false || $pic_size === false || !isset($pic_size[0], $pic_size[1], $pic_size[2]))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
+	}
+	$filesize = intval($filesize);
+	$pic_width = intval($pic_size[0]);
+	$pic_height = intval($pic_size[1]);
+	$pic_image_type = intval($pic_size[2]);
+	if ($album_config['gd_version'] == 0)
+	{
+		if (!album_nuffload_is_staged_file($thumbtmp, $path_to_bin, $psid))
+		{
+			message_die(GENERAL_ERROR, 'Invalid upload data');
+		}
+		$thumbsize = @filesize($thumbtmp);
+		$thumb_size = @getimagesize($thumbtmp);
+		if ($thumbsize === false || $thumb_size === false || !isset($thumb_size[0], $thumb_size[1], $thumb_size[2]))
+		{
+			message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
+		}
+		$thumbsize = intval($thumbsize);
+		$thumb_width = intval($thumb_size[0]);
+		$thumb_height = intval($thumb_size[1]);
+		$thumb_image_type = intval($thumb_size[2]);
 	}
 
 
@@ -540,14 +569,15 @@ else
 	// Check file size
 	// --------------------------------
 
-	if( ($filesize == 0) or ($filesize > $album_config['max_file_size']) )
+	$max_file_size = max(1, intval($album_config['max_file_size']));
+	if( ($filesize == 0) or ($filesize > $max_file_size) )
 	{
 		message_die(GENERAL_MESSAGE, $lang['Bad_upload_file_size']);
 	}
 
 	if ($album_config['gd_version'] == 0)
 	{
-		if( ($thumbsize == 0) or ($thumbsize > $album_config['max_file_size']) )
+		if( ($thumbsize == 0) or ($thumbsize > $max_file_size) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['Bad_upload_file_size']);
 		}
@@ -558,11 +588,9 @@ else
 	// Check file type
 	// --------------------------------
 
-	switch ($filetype)
+	switch ($pic_image_type)
 	{
-		case 'image/jpeg':
-		case 'image/jpg':
-		case 'image/pjpeg':
+		case IMAGETYPE_JPEG:
 			if ($album_config['jpg_allowed'] == 0)
 			{
 				message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
@@ -570,8 +598,7 @@ else
 			$pic_filetype = '.jpg';
 			break;
 
-		case 'image/png':
-		case 'image/x-png':
+		case IMAGETYPE_PNG:
 			if ($album_config['png_allowed'] == 0)
 			{
 				message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
@@ -579,7 +606,7 @@ else
 			$pic_filetype = '.png';
 			break;
 
-		case 'image/gif':
+		case IMAGETYPE_GIF:
 			if ($album_config['gif_allowed'] == 0)
 			{
 				message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
@@ -592,7 +619,7 @@ else
 
 	if ($album_config['gd_version'] == 0)
 	{
-		if ($filetype != $thumbtype)
+		if ($pic_image_type !== $thumb_image_type)
 		{
 			message_die(GENERAL_ERROR, $lang['Filetype_and_thumbtype_do_not_match']);
 		}
@@ -619,39 +646,20 @@ else
 	// Move this file to upload directory
 	// --------------------------------
 
-	$ini_val = ( @phpversion() >= '4.0.0' ) ? 'ini_get' : 'get_cfg_var';
-
-	if ( @$ini_val('open_basedir') != '' )
-	{
-		if ( @phpversion() < '4.0.3' )
-		{
-			message_die(GENERAL_ERROR, 'open_basedir is set and your PHP version does not allow move_uploaded_file<br /><br />Please contact your server admin', '', __LINE__, __FILE__);
-		}
-
-		$move_file = 'rename';
-	}
-	else
-	{
-		$move_file = 'copy';
-	}
-
-	if (!$move_file($filetmp, ALBUM_UPLOAD_PATH . $pic_filename))
+	if (!album_store_staged_upload($filetmp, ALBUM_UPLOAD_PATH . $pic_filename, $path_to_bin, $psid))
 	{
 		message_die(GENERAL_ERROR, 'Could not store uploaded data');
 	}
-	@unlink($filetmp);
 
 	@chmod(ALBUM_UPLOAD_PATH . $pic_filename, 0664);
 
 	if ($album_config['gd_version'] == 0)
 	{
-		if (!$move_file($thumbtmp, ALBUM_CACHE_PATH . $pic_thumbnail))
+		if (!album_store_staged_upload($thumbtmp, ALBUM_CACHE_PATH . $pic_thumbnail, $path_to_bin, $psid))
 		{
 			@unlink(ALBUM_UPLOAD_PATH . $pic_filename);
 			message_die(GENERAL_ERROR, 'Could not store uploaded thumbnail');
 		}
-		@unlink($thumbtmp);
-
 		@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
 	}
 
@@ -660,17 +668,9 @@ else
 	// Well, it's an image. Check its image size
 	// --------------------------------
 
-	$pic_size = @getimagesize(ALBUM_UPLOAD_PATH . $pic_filename);
-	if ($pic_size === false)
-	{
-		@unlink(ALBUM_UPLOAD_PATH . $pic_filename);
-		message_die(GENERAL_ERROR, $lang['Not_allowed_file_type']);
-	}
-
-	$pic_width = $pic_size[0];
-	$pic_height = $pic_size[1];
-
-	if ( ($pic_width > $album_config['max_width']) or ($pic_height > $album_config['max_height']) )
+	$max_width = max(1, intval($album_config['max_width']));
+	$max_height = max(1, intval($album_config['max_height']));
+	if ( ($pic_width > $max_width) or ($pic_height > $max_height) )
 	{
 		@unlink(ALBUM_UPLOAD_PATH . $pic_filename);
 
@@ -684,12 +684,8 @@ else
 
 	if ($album_config['gd_version'] == 0)
 	{
-		$thumb_size = getimagesize(ALBUM_CACHE_PATH . $pic_thumbnail);
-
-		$thumb_width = $thumb_size[0];
-		$thumb_height = $thumb_size[1];
-
-		if ( ($thumb_width > $album_config['thumbnail_size']) or ($thumb_height > $album_config['thumbnail_size']) )
+		$thumbnail_size = max(1, intval($album_config['thumbnail_size']));
+		if ( ($thumb_width > $thumbnail_size) or ($thumb_height > $thumbnail_size) )
 		{
 			@unlink(ALBUM_UPLOAD_PATH . $pic_filename);
 
@@ -719,31 +715,42 @@ else
 		}
 
 		$src = @$read_function(ALBUM_UPLOAD_PATH  . $pic_filename);
+		$thumbnail_size = max(1, intval($album_config['thumbnail_size']));
 
 		if (!$src)
 		{
 			$gd_errored = TRUE;
 			$pic_thumbnail = '';
 		}
-		else if( ($pic_width > $album_config['thumbnail_size']) or ($pic_height > $album_config['thumbnail_size']) )
+		else if( ($pic_width > $thumbnail_size) or ($pic_height > $thumbnail_size) )
 		{
 			// Resize it
 			if ($pic_width > $pic_height)
 			{
-				$thumbnail_width = $album_config['thumbnail_size'];
-				$thumbnail_height = $album_config['thumbnail_size'] * ($pic_height/$pic_width);
+				$thumbnail_width = $thumbnail_size;
+				$thumbnail_height = max(1, intval(round($thumbnail_size * ($pic_height/$pic_width))));
 			}
 			else
 			{
-				$thumbnail_height = $album_config['thumbnail_size'];
-				$thumbnail_width = $album_config['thumbnail_size'] * ($pic_width/$pic_height);
+				$thumbnail_height = $thumbnail_size;
+				$thumbnail_width = max(1, intval(round($thumbnail_size * ($pic_width/$pic_height))));
 			}
 
 			$thumbnail = ($album_config['gd_version'] == 1) ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
-
-			$resize_function = ($album_config['gd_version'] == 1) ? 'imagecopyresized' : 'imagecopyresampled';
-
-			@$resize_function($thumbnail, $src, 0, 0, 0, 0, $thumbnail_width, $thumbnail_height, $pic_width, $pic_height);
+			if (!$thumbnail)
+			{
+				$gd_errored = TRUE;
+				$pic_thumbnail = '';
+			}
+			else
+			{
+				$resize_function = ($album_config['gd_version'] == 1) ? 'imagecopyresized' : 'imagecopyresampled';
+				if (!@$resize_function($thumbnail, $src, 0, 0, 0, 0, $thumbnail_width, $thumbnail_height, $pic_width, $pic_height))
+				{
+					$gd_errored = TRUE;
+					$pic_thumbnail = '';
+				}
+			}
 		}
 		else
 		{
@@ -753,21 +760,39 @@ else
 		if (!$gd_errored)
 		{
 			$pic_thumbnail = $pic_filename;
+			$thumbnail_written = false;
 
 			// Write to disk
 			switch ($pic_filetype)
 			{
 				case '.jpg':
-					@imagejpeg($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail, $album_config['thumbnail_quality']);
+					$thumbnail_quality = max(0, min(100, intval($album_config['thumbnail_quality'])));
+					$thumbnail_written = @imagejpeg($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail, $thumbnail_quality);
 					break;
 				case '.png':
-					@imagepng($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail);
+					$thumbnail_written = @imagepng($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail);
 					break;
 			}
 
-			@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
+			if ($thumbnail_written)
+			{
+				@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
+			}
+			else
+			{
+				@unlink(ALBUM_CACHE_PATH . $pic_thumbnail);
+				$pic_thumbnail = '';
+			}
 
 		} // End IF $gd_errored
+		if (isset($thumbnail) && $thumbnail && $thumbnail !== $src)
+		{
+			@imagedestroy($thumbnail);
+		}
+		if ($src)
+		{
+			@imagedestroy($src);
+		}
 
 	} // End Thumbnail Cache
 	else if ($album_config['gd_version'] > 0)
@@ -786,10 +811,21 @@ else
 	// Insert into DB
 	// --------------------------------
 
+	$pic_filename_sql = $db->sql_escape($pic_filename);
+	$pic_thumbnail_sql = $db->sql_escape($pic_thumbnail);
+	$pic_title_sql = $db->sql_escape($pic_title);
+	$pic_desc_sql = $db->sql_escape($pic_desc);
+	$pic_user_ip_sql = $db->sql_escape($pic_user_ip);
+	$pic_username_sql = $db->sql_escape($pic_username);
 	$sql = "INSERT INTO ". ALBUM_TABLE ." (pic_filename, pic_thumbnail, pic_title, pic_desc, pic_user_id, pic_user_ip, pic_username, pic_time, pic_cat_id, pic_approval)
-			VALUES ('$pic_filename', '$pic_thumbnail', '$pic_title', '$pic_desc', '$pic_user_id', '$pic_user_ip', '$pic_username', '$pic_time', '$cat_id', '$pic_approval')";
+			VALUES ('$pic_filename_sql', '$pic_thumbnail_sql', '$pic_title_sql', '$pic_desc_sql', " . intval($pic_user_id) . ", '$pic_user_ip_sql', '$pic_username_sql', " . intval($pic_time) . ", " . intval($cat_id) . ", " . intval($pic_approval) . ")";
 	if( !$result = $db->sql_query($sql) )
 	{
+		@unlink(ALBUM_UPLOAD_PATH . $pic_filename);
+		if ($pic_thumbnail !== '')
+		{
+			@unlink(ALBUM_CACHE_PATH . $pic_thumbnail);
+		}
 		message_die(GENERAL_ERROR, 'Could not insert new entry', '', __LINE__, __FILE__, $sql);
 	}
 

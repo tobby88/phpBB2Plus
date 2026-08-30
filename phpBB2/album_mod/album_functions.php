@@ -91,6 +91,47 @@ function album_nuffload_cleanup_temp($tmp_path, $max_age = 3600)
 	closedir($handle);
 }
 
+function album_nuffload_is_staged_file($source, $configured_path, $psid)
+{
+	if (!preg_match('/^[a-f0-9]{32}$/i', (string) $psid) || !is_string($source) || $source === '' || is_link($source))
+	{
+		return false;
+	}
+	$base_path = album_nuffload_base_path($configured_path);
+	if ($base_path === false)
+	{
+		return false;
+	}
+	$source_real = realpath($source);
+	$tmp_real = realpath($base_path . 'tmp');
+	if ($source_real === false || $tmp_real === false || !is_file($source_real))
+	{
+		return false;
+	}
+	$source_dir = str_replace('\\', '/', dirname($source_real));
+	$tmp_dir = rtrim(str_replace('\\', '/', $tmp_real), '/');
+	return $source_dir === $tmp_dir
+		&& preg_match('/^' . preg_quote((string) $psid, '/') . '_actualdata[0-9]+$/iD', basename($source_real));
+}
+
+function album_store_staged_upload($source, $destination, $configured_path, $psid)
+{
+	if (!album_nuffload_is_staged_file($source, $configured_path, $psid))
+	{
+		return false;
+	}
+	if (@rename($source, $destination))
+	{
+		return true;
+	}
+	if (!@copy($source, $destination))
+	{
+		return false;
+	}
+	@unlink($source);
+	return true;
+}
+
 
 
 
