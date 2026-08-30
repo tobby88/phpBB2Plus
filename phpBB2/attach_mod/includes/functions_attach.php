@@ -350,7 +350,7 @@ function attachment_exists($filename)
 
 		for ($i = 0, $size = sizeof($file_listing); $i < $size; $i++)
 		{
-			if (ereg("([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)", $file_listing[$i], $regs))
+			if (preg_match("#([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)#", $file_listing[$i], $regs))
 			{
 				if ($regs[1] == 'd') 
 				{	
@@ -407,7 +407,7 @@ function thumbnail_exists($filename)
 
 		for ($i = 0, $size = sizeof($file_listing); $i < $size; $i++)
 		{
-			if (ereg("([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)", $file_listing[$i], $regs))
+			if (preg_match("#([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)#", $file_listing[$i], $regs))
 			{
 				if ($regs[1] == 'd')
 				{	

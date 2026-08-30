@@ -45,6 +45,10 @@ foreach ($iterator as $file)
 	{
 		$errors[] = 'Removed each() iterator returned in ' . $file->getPathname();
 	}
+	if (preg_match('/(?<![A-Za-z0-9_])(?:ereg|eregi|ereg_replace|eregi_replace|split|spliti)\s*\(/', $body))
+	{
+		$errors[] = 'Removed POSIX-regex API returned in ' . $file->getPathname();
+	}
 }
 
 if ($errors)

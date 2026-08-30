@@ -109,8 +109,9 @@ if( $userdata['session_logged_in'] )
 // PARSE DATEFORMAT TO GET TIME FORMAT 
 // 
 $time_reg = '([gh][[:punct:][:space:]]{1,2}[i][[:punct:][:space:]]{0,2}[a]?[[:punct:][:space:]]{0,2}[S]?)'; 
-eregi($time_reg, $board_config['default_dateformat'], $regs); 
-$board_config['default_timeformat'] = $regs[1]; 
+$regs = array();
+preg_match('#' . $time_reg . '#i', $board_config['default_dateformat'], $regs);
+$board_config['default_timeformat'] = isset($regs[1]) ? $regs[1] : 'H:i';
 unset($time_reg); 
 unset($regs); 
 

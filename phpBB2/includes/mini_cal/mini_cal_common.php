@@ -78,7 +78,7 @@
         } 
         else 
         { 
-            $querystring = ereg_replace("($var=[[:digit:]]{1,3})", "$var=$value", $querystring);
+            $querystring = preg_replace('/(' . preg_quote($var, '/') . '=[0-9]{1,3})/', $var . '=' . $value, $querystring);
         } 
         return '?' . $querystring;
     }    

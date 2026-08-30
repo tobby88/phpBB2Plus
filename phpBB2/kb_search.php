@@ -116,7 +116,7 @@ switch($mode)
 				$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/search_synonyms.txt'); 
 		
 				$split_search = array();
-				$split_search = ( !strstr($multibyte_charset, $lang['ENCODING']) ) ?  split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search') : split(' ', $search_keywords);	
+				$split_search = ( !strstr($multibyte_charset, $lang['ENCODING']) ) ? split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search') : preg_split('/\s+/', trim($search_keywords), -1, PREG_SPLIT_NO_EMPTY);
 
 				$search_msg_only = ( !$search_fields ) ? "AND m.title_match = 0" : ( ( strstr($multibyte_charset, $lang['ENCODING']) ) ? '' : '' );
 
@@ -371,7 +371,9 @@ switch($mode)
 
 						for ($k = 0; $k < count($synonym_array); $k++)
 						{ 
-					        list($replace_synonym, $match_synonym) = split(' ', trim(strtolower($synonym_array[$k]))); 
+					        $synonym_parts = preg_split('/\s+/', trim(strtolower($synonym_array[$k])), 2, PREG_SPLIT_NO_EMPTY);
+					        $replace_synonym = isset($synonym_parts[0]) ? $synonym_parts[0] : '';
+					        $match_synonym = isset($synonym_parts[1]) ? $synonym_parts[1] : '';
 
 							if ( $replace_synonym == $split_word )
 							{

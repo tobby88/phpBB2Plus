@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced the remaining removed POSIX-regex APIs (`ereg*`, `split*`) with
+  native PCRE/string operations across downloads, attachments, SMTP, page
+  dates, Album archives/hierarchy, export filenames, Knowledge Base,
+  paFileDB and MiniCal. The broad regex compatibility shims were removed, date
+  parsing now has a safe fallback, multibyte searches split whitespace without
+  empty terms and generated export filenames remain bounded safe basenames.
 - Removed the final runtime and installer dependencies on PHP's removed
   `each()` API, including authorization, bookmarks, Album/paFileDB smilies,
   attachment input normalization, Knowledge Base and paFileDB search, private

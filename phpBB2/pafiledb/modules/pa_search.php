@@ -180,7 +180,7 @@ class pafiledb_search extends pafiledb_public
 					$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/search_synonyms.txt'); 
 	
 					$split_search = array();
-					$split_search = ( !strstr($multibyte_charset, $lang['ENCODING']) ) ?  split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search') : split(' ', $search_keywords);	
+					$split_search = ( !strstr($multibyte_charset, $lang['ENCODING']) ) ? split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search') : preg_split('/\s+/', trim($search_keywords), -1, PREG_SPLIT_NO_EMPTY);
 
 					$word_count = 0;
 					$current_match_type = 'or';

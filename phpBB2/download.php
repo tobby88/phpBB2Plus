@@ -128,32 +128,32 @@ function send_file_to_browser($attachment, $upload_dir)
 		$HTTP_USER_AGENT = '';
 	}
 
-	if (ereg('Opera(/| )([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
+	if (preg_match('#Opera(/| )([0-9]\.[0-9]{1,2})#', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[2];
 		$browser_agent = 'opera';
 	}
-	else if (ereg('MSIE ([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
+	else if (preg_match('#MSIE ([0-9]\.[0-9]{1,2})#', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'ie';
 	}
-	else if (ereg('OmniWeb/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
+	else if (preg_match('#OmniWeb/([0-9]\.[0-9]{1,2})#', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'omniweb';
 	}
-	else if (ereg('Netscape([0-9]{1})', $HTTP_USER_AGENT, $log_version))
+	else if (preg_match('#Netscape([0-9]{1})#', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'netscape';
 	}
-	else if (ereg('Mozilla/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
+	else if (preg_match('#Mozilla/([0-9]\.[0-9]{1,2})#', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'mozilla';
 	}
-	else if (ereg('Konqueror/([0-9].[0-9]{1,2})', $HTTP_USER_AGENT, $log_version))
+	else if (preg_match('#Konqueror/([0-9]\.[0-9]{1,2})#', $HTTP_USER_AGENT, $log_version))
 	{
 		$browser_version = $log_version[1];
 		$browser_agent = 'konqueror';
