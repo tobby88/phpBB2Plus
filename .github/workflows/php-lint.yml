@@ -150,3 +150,6 @@ jobs:
 
       - name: Test Junior Admin safety
         run: php .github/scripts/check-jr-admin-safety.php
+
+      - name: Test permission administration safety
+        run: php .github/scripts/check-permissions-admin-safety.php

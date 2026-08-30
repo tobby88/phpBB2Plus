@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened forum, group and user/group permission administration. All rights
+  and group mutations now require the centralized AdminCP POST/session token;
+  user, group, forum and permission values are normalized against real targets
+  and allowed values. Crafted group deletion can no longer target personal
+  one-user groups, group text uses database-driver escaping and HTML output
+  escaping, and PHP 8-incompatible `each()` permission loops were replaced.
+  Empty membership and missing permission records no longer generate invalid
+  `IN ()` queries or undefined-array warnings.
 - Hardened Junior Admin delegation and user lookup. Permission changes now use
   the centralized AdminCP POST/session check, accept only module hashes from
   the installed module list, normalize user, sorting, paging and color-group

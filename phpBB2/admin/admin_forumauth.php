@@ -67,9 +67,11 @@ if(isset($_GET[POST_FORUM_URL]) || isset($_POST[POST_FORUM_URL]))
 //	$forum_id = (isset($_POST[POST_FORUM_URL])) ? intval($_POST[POST_FORUM_URL]) : intval($_GET[POST_FORUM_URL]);
 //	$forum_sql = "AND forum_id = $forum_id";
 //-- add
-	$fid = (isset($_POST[POST_FORUM_URL])) ? $_POST[POST_FORUM_URL] : $_GET[POST_FORUM_URL];
+	$fid_value = (isset($_POST[POST_FORUM_URL]) && is_scalar($_POST[POST_FORUM_URL])) ? $_POST[POST_FORUM_URL] :
+		((isset($_GET[POST_FORUM_URL]) && is_scalar($_GET[POST_FORUM_URL])) ? $_GET[POST_FORUM_URL] : '');
+	$fid = (string) $fid_value;
 	$f_type = substr($fid, 0, 1);
-	if ($f_type == POST_FORUM_URL)
+	if ($f_type == POST_FORUM_URL && preg_match('/^' . preg_quote(POST_FORUM_URL, '/') . '[0-9]+$/D', $fid))
 	{
 		$forum_id = intval(substr($fid, 1));
 		$forum_sql = " WHERE forum_id = $forum_id";
@@ -88,7 +90,7 @@ else
 	$forum_sql = '';
 }
 
-if( isset($_GET['adv']) )
+if( isset($_GET['adv']) && is_scalar($_GET['adv']) )
 {
 	$adv = intval($_GET['adv']);
 }
@@ -102,12 +104,25 @@ else
 //
 if( isset($_POST['submit']) )
 {
+	phpbb_admin_require_post_session();
+	if (empty($forum_id))
+	{
+		message_die(GENERAL_MESSAGE, isset($lang['No_forum']) ? $lang['No_forum'] : 'Invalid forum.');
+	}
 	$sql = '';
 
 	if(!empty($forum_id))
 	{
+		if (!isset($tree['keys'][POST_FORUM_URL . $forum_id]))
+		{
+			message_die(GENERAL_MESSAGE, isset($lang['No_forum']) ? $lang['No_forum'] : 'Invalid forum.');
+		}
 		if(isset($_POST['simpleauth']))
 		{
+			if (!is_scalar($_POST['simpleauth']) || !isset($simple_auth_ary[intval($_POST['simpleauth'])]))
+			{
+				message_die(GENERAL_MESSAGE, 'Invalid forum permissions.');
+			}
 			$simple_ary = $simple_auth_ary[intval($_POST['simpleauth'])];
 
 			for($i = 0; $i < count($simple_ary); $i++)
@@ -124,11 +139,12 @@ if( isset($_POST['submit']) )
 		{
 			for($i = 0; $i < count($forum_auth_fields); $i++)
 			{
-				$value = intval($_POST[$forum_auth_fields[$i]]);
+				$post_auth_value = (isset($_POST[$forum_auth_fields[$i]]) && is_scalar($_POST[$forum_auth_fields[$i]])) ? intval($_POST[$forum_auth_fields[$i]]) : AUTH_ALL;
+				$value = in_array($post_auth_value, $forum_auth_const, true) ? $post_auth_value : AUTH_ALL;
 
 				if ( $forum_auth_fields[$i] == 'auth_vote' )
 				{
-					if ( $_POST['auth_vote'] == AUTH_ALL )
+					if ( $value == AUTH_ALL )
 					{
 						$value = AUTH_REG;
 					}
@@ -223,6 +239,10 @@ if( empty($forum_id) )
 }
 else
 {
+	if (!isset($tree['keys'][POST_FORUM_URL . $forum_id]))
+	{
+		message_die(GENERAL_MESSAGE, isset($lang['No_forum']) ? $lang['No_forum'] : 'Invalid forum.');
+	}
 	//
 	// Output the authorisation details if an id was
 	// specified
@@ -274,7 +294,7 @@ else
 		$adv = 1;
 	}
 
-	$s_column_span == 0;
+	$s_column_span = 0;
 
 	if ( empty($adv) )
 	{
@@ -342,12 +362,12 @@ else
 //-- delete
 //	$s_hidden_fields = '<input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '">';
 //-- add
-	$s_hidden_fields = '<input type="hidden" name="' . POST_FORUM_URL . '" value="f' . $forum_id . '">';
+	$s_hidden_fields = '<input type="hidden" name="' . POST_FORUM_URL . '" value="f' . $forum_id . '">' . phpbb_admin_session_field();
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 
 	$template->assign_vars(array(
-		'FORUM_NAME' => $forum_name,
+		'FORUM_NAME' => phpbb_admin_html($forum_name),
 
 		'L_FORUM' => $lang['Forum'], 
 		'L_AUTH_TITLE' => $lang['Auth_Control_Forum'],

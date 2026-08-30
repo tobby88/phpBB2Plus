@@ -40,9 +40,24 @@ $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
+function admin_group_text_length($value)
+{
+	if (function_exists('mb_strlen'))
+	{
+		return mb_strlen($value, 'UTF-8');
+	}
+	if (preg_match_all('/./us', $value, $matches))
+	{
+		return count($matches[0]);
+	}
+	return strlen($value);
+}
+
 if ( isset($_POST[POST_GROUPS_URL]) || isset($_GET[POST_GROUPS_URL]) )
 {
-	$group_id = ( isset($_POST[POST_GROUPS_URL]) ) ? intval($_POST[POST_GROUPS_URL]) : intval($_GET[POST_GROUPS_URL]);
+	$group_id_value = (isset($_POST[POST_GROUPS_URL]) && is_scalar($_POST[POST_GROUPS_URL])) ? $_POST[POST_GROUPS_URL] :
+		((isset($_GET[POST_GROUPS_URL]) && is_scalar($_GET[POST_GROUPS_URL])) ? $_GET[POST_GROUPS_URL] : 0);
+	$group_id = max(0, intval($group_id_value));
 }
 else
 {
@@ -51,14 +66,35 @@ else
 
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
-	$mode = htmlspecialchars($mode);
+	$mode_value = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? $_POST['mode'] :
+		((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? $_GET['mode'] : '');
+	$mode = in_array((string) $mode_value, array('editgroup', 'newgroup'), true) ? (string) $mode_value : '';
 }
 else
 {
 	$mode = '';
 }
-attachment_quota_settings('group', isset($_POST['group_update']) ? $_POST['group_update'] : '', $mode);
+
+$validated_group_info = false;
+if (isset($_POST['group_update']))
+{
+	phpbb_admin_require_post_session();
+	if ($mode === 'editgroup')
+	{
+		$sql = 'SELECT * FROM ' . GROUPS_TABLE . '
+			WHERE group_single_user <> ' . TRUE . "
+				AND group_id = $group_id";
+		if (!($result = $db->sql_query($sql)) || !($validated_group_info = $db->sql_fetchrow($result)))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Group_not_exist']);
+		}
+		$db->sql_freeresult($result);
+	}
+	else if ($mode !== 'newgroup')
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_group_action']);
+	}
+}
 if ( isset($_POST['edit']) || isset($_POST['new']) )
 {
 	//
@@ -111,7 +147,7 @@ if ( isset($_POST['edit']) || isset($_POST['new']) )
 	{
 		$sql = "SELECT user_id, username
 			FROM " . USERS_TABLE . "
-			WHERE user_id = " . $group_info['group_moderator'];
+			WHERE user_id = " . intval($group_info['group_moderator']);
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not obtain user info for moderator list', '', __LINE__, __FILE__, $sql);
@@ -132,13 +168,14 @@ if ( isset($_POST['edit']) || isset($_POST['new']) )
 	$group_open = ( $group_info['group_type'] == GROUP_OPEN ) ? ' checked="checked"' : '';
 	$group_closed = ( $group_info['group_type'] == GROUP_CLOSED ) ? ' checked="checked"' : '';
 	$group_hidden = ( $group_info['group_type'] == GROUP_HIDDEN ) ? ' checked="checked"' : '';
+	attachment_quota_settings('group', false, $mode);
 
-	$s_hidden_fields = '<input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="' . POST_GROUPS_URL . '" value="' . $group_id . '" />';
+	$s_hidden_fields = '<input type="hidden" name="mode" value="' . phpbb_admin_html($mode) . '" /><input type="hidden" name="' . POST_GROUPS_URL . '" value="' . $group_id . '" />' . phpbb_admin_session_field();
 
 	$template->assign_vars(array(
-		'GROUP_NAME' => $group_info['group_name'],
-		'GROUP_DESCRIPTION' => $group_info['group_description'], 
-		'GROUP_MODERATOR' => $group_moderator, 
+		'GROUP_NAME' => phpbb_admin_html($group_info['group_name']),
+		'GROUP_DESCRIPTION' => phpbb_admin_html($group_info['group_description']),
+		'GROUP_MODERATOR' => phpbb_admin_html($group_moderator),
 
 		'L_GROUP_TITLE' => $lang['Group_administration'],
 		'L_GROUP_EDIT_DELETE' => ( isset($_POST['new']) ) ? $lang['New_group'] : $lang['Edit_group'], 
@@ -180,12 +217,17 @@ else if ( isset($_POST['group_update']) )
 	//
 	if ( isset($_POST['group_delete']) )
 	{
+		if ($mode !== 'editgroup' || !$validated_group_info)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Group_not_exist']);
+		}
+		attachment_quota_settings('group', true, $mode);
 		//
 		// Reset User Moderator Level
 		//
 
 		// Is Group moderating a forum ?
-		$sql = "SELECT auth_mod FROM " . AUTH_ACCESS_TABLE . " 
+		$sql = "SELECT MAX(auth_mod) AS auth_mod FROM " . AUTH_ACCESS_TABLE . "
 			WHERE group_id = " . $group_id;
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -193,7 +235,7 @@ else if ( isset($_POST['group_update']) )
 		}
 
 		$row = $db->sql_fetchrow($result);
-		if (intval($row['auth_mod']) == 1)
+		if ($row && intval($row['auth_mod']) == 1)
 		{
 			// Yes, get the assigned users and update their Permission if they are no longer moderator of one of the forums
 			$sql = "SELECT user_id FROM " . USER_GROUP_TABLE . "
@@ -257,10 +299,11 @@ else if ( isset($_POST['group_update']) )
 	}
 	else
 	{
-		$group_type = isset($_POST['group_type']) ? intval($_POST['group_type']) : GROUP_OPEN;
-		$group_name = isset($_POST['group_name']) ? htmlspecialchars(trim($_POST['group_name'])) : '';
-		$group_description = isset($_POST['group_description']) ? trim($_POST['group_description']) : '';
-		$group_moderator = isset($_POST['username']) ? $_POST['username'] : '';
+		$group_type_value = (isset($_POST['group_type']) && is_scalar($_POST['group_type'])) ? intval($_POST['group_type']) : GROUP_OPEN;
+		$group_type = in_array($group_type_value, array(GROUP_OPEN, GROUP_CLOSED, GROUP_HIDDEN), true) ? $group_type_value : GROUP_OPEN;
+		$group_name = trim(phpbb_admin_post_string('group_name'));
+		$group_description = trim(phpbb_admin_post_string('group_description'));
+		$group_moderator = trim(phpbb_admin_post_string('username'));
 		$delete_old_moderator = isset($_POST['delete_old_moderator']) ? true : false;
 
 		if ( $group_name == '' )
@@ -271,9 +314,13 @@ else if ( isset($_POST['group_update']) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['No_group_moderator']);
 		}
+		else if (admin_group_text_length($group_name) > 40 || admin_group_text_length($group_description) > 255)
+		{
+			message_die(GENERAL_MESSAGE, $lang['No_group_action']);
+		}
 		
 		$this_userdata = get_userdata($group_moderator, true);
-		$group_moderator = $this_userdata['user_id'];
+		$group_moderator = (is_array($this_userdata) && isset($this_userdata['user_id'])) ? max(0, intval($this_userdata['user_id'])) : 0;
 
 		if ( !$group_moderator )
 		{
@@ -282,19 +329,8 @@ else if ( isset($_POST['group_update']) )
 				
 		if( $mode == "editgroup" )
 		{
-			$sql = "SELECT *
-				FROM " . GROUPS_TABLE . "
-				WHERE group_single_user <> " . TRUE . "
-				AND group_id = " . $group_id;
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Error getting group information', '', __LINE__, __FILE__, $sql);
-			}
-
-			if( !($group_info = $db->sql_fetchrow($result)) )
-			{
-				message_die(GENERAL_MESSAGE, $lang['Group_not_exist']);
-			}
+			$group_info = $validated_group_info;
+			attachment_quota_settings('group', true, $mode);
 		
 			if ( $group_info['group_moderator'] != $group_moderator )
 			{
@@ -330,7 +366,7 @@ else if ( isset($_POST['group_update']) )
 			}
 
 			$sql = "UPDATE " . GROUPS_TABLE . "
-				SET group_type = $group_type, group_name = '" . str_replace("\'", "''", $group_name) . "', group_description = '" . str_replace("\'", "''", $group_description) . "', group_moderator = $group_moderator 
+				SET group_type = $group_type, group_name = '" . $db->sql_escape($group_name) . "', group_description = '" . $db->sql_escape($group_description) . "', group_moderator = $group_moderator
 				WHERE group_id = $group_id";
 			if ( !$db->sql_query($sql) )
 			{
@@ -344,7 +380,7 @@ else if ( isset($_POST['group_update']) )
 		else if( $mode == 'newgroup' )
 		{
 			$sql = "INSERT INTO " . GROUPS_TABLE . " (group_type, group_name, group_description, group_moderator, group_single_user) 
-				VALUES ($group_type, '" . str_replace("\'", "''", $group_name) . "', '" . str_replace("\'", "''", $group_description) . "', $group_moderator,	'0')";
+				VALUES ($group_type, '" . $db->sql_escape($group_name) . "', '" . $db->sql_escape($group_description) . "', $group_moderator,	'0')";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Could not insert new group', '', __LINE__, __FILE__, $sql);
@@ -386,7 +422,7 @@ else
 		$select_list .= '<select name="' . POST_GROUPS_URL . '">';
 		do
 		{
-			$select_list .= '<option value="' . $row['group_id'] . '">' . $row['group_name'] . '</option>';
+			$select_list .= '<option value="' . intval($row['group_id']) . '">' . phpbb_admin_html($row['group_name']) . '</option>';
 		}
 		while ( $row = $db->sql_fetchrow($result) );
 		$select_list .= '</select>';
@@ -404,7 +440,8 @@ else
 		'L_CREATE_NEW_GROUP' => $lang['New_group'],
 
 		'S_GROUP_ACTION' => append_sid("admin_groups.$phpEx"),
-		'S_GROUP_SELECT' => $select_list)
+		'S_GROUP_SELECT' => $select_list,
+		'S_HIDDEN_FIELDS' => phpbb_admin_session_field())
 	);
 
 	if ( $select_list != '' )
