@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened news-category administration with allowlisted modes, strict
+  positive identifiers and centralized session-token fields. Confirmed
+  deletion takes its target only from POST, category labels are length-bounded
+  and escaped, and selected icons must still resolve to an image discovered in
+  the configured style directory.
 - Protected link creation, editing and deletion with session-bound POST forms.
   Mutation modes and actions are allowlisted, write values no longer fall back
   to query-string input, category references are verified, SQL values use the

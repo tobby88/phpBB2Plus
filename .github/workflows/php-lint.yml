@@ -129,3 +129,6 @@ jobs:
 
       - name: Test link administration safety
         run: php .github/scripts/check-links-admin-safety.php
+
+      - name: Test news category administration safety
+        run: php .github/scripts/check-news-admin-safety.php

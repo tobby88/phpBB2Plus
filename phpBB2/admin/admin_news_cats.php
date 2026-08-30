@@ -45,13 +45,21 @@ include_once ($phpbb_root_path . 'includes/news_data.' . $phpEx );
 //
 // Check to see what mode we should operate in.
 //
-if( (isset($_POST['mode']) && is_scalar($_POST['mode'])) || (isset($_GET['mode']) && is_scalar($_GET['mode'])) )
+if (isset($_POST['mode']))
 {
-  $mode = ( isset($_POST['mode']) && is_scalar($_POST['mode']) ) ? (string) $_POST['mode'] : (string) $_GET['mode'];
+  $mode = is_scalar($_POST['mode']) ? (string) $_POST['mode'] : '';
+}
+else if (isset($_GET['mode']))
+{
+  $mode = is_scalar($_GET['mode']) ? (string) $_GET['mode'] : '';
 }
 else
 {
   $mode = "";
+}
+if (!in_array($mode, array('', 'delete', 'edit', 'save', 'savenew'), true))
+{
+  message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 }
 
 $dir = @opendir($phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path']);
@@ -99,10 +107,11 @@ if( isset($_POST['add']) || isset($_GET['add']) )
   $filename_list = "";
   for( $i = 0; $i < count($category_images); $i++ )
   {
-    $filename_list .= '<option value="' . $category_images[$i] . '">' . $category_images[$i] . '</option>';
+    $safe_filename = htmlspecialchars((string) $category_images[$i], ENT_QUOTES, 'UTF-8');
+    $filename_list .= '<option value="' . $safe_filename . '">' . $safe_filename . '</option>';
   }
 
-  $s_hidden_fields = '<input type="hidden" name="mode" value="savenew" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+  $s_hidden_fields = '<input type="hidden" name="mode" value="savenew" />' . phpbb_admin_session_field();
 
   $template->assign_vars(array(
     "L_NEWS_TITLE"     => $lang['Add_news_categories'],
@@ -139,7 +148,7 @@ else if ( $mode != "" )
         redirect(append_sid("admin_news_cats.$phpEx"));
       }
 
-      if (!$news_id)
+      if ($news_id <= 0)
       {
         message_die(GENERAL_MESSAGE, $lang['No_news_category_selected']);
       }
@@ -151,8 +160,7 @@ else if ( $mode != "" )
         );
 
         $hidden_fields = '<input type="hidden" name="mode" value="delete" />' .
-          '<input type="hidden" name="id" value="' . $news_id . '" />' .
-          '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+          '<input type="hidden" name="id" value="' . $news_id . '" />' . phpbb_admin_session_field();
 
         $template->assign_vars(array(
           'MESSAGE_TITLE' => $lang['Confirm'],
@@ -166,6 +174,15 @@ else if ( $mode != "" )
         break;
       }
 
+      if (!isset($_POST['id']) || !is_scalar($_POST['id']))
+      {
+        message_die(GENERAL_MESSAGE, $lang['No_news_category_selected']);
+      }
+      $news_id = (int) $_POST['id'];
+      if ($news_id <= 0)
+      {
+        message_die(GENERAL_MESSAGE, $lang['No_news_category_selected']);
+      }
       phpbb_admin_require_post_session();
 
       $sql = "DELETE FROM " . NEWS_TABLE . "
@@ -197,7 +214,7 @@ else if ( $mode != "" )
 
       $news_id = ( isset($_POST['id']) && is_scalar($_POST['id']) ) ? (int) $_POST['id'] : ((isset($_GET['id']) && is_scalar($_GET['id'])) ? (int) $_GET['id'] : 0);
 
-      if (!$news_id)
+      if ($news_id <= 0)
       {
         message_die(GENERAL_MESSAGE, $lang['No_news_category_selected']);
       }
@@ -231,14 +248,15 @@ else if ( $mode != "" )
           $category_selected = "";
         }
 
-        $filename_list .= '<option value="' . $category_images[$i] . '"' . $category_selected . '>' . $category_images[$i] . '</option>';
+        $safe_filename = htmlspecialchars((string) $category_images[$i], ENT_QUOTES, 'UTF-8');
+        $filename_list .= '<option value="' . $safe_filename . '" ' . $category_selected . '>' . $safe_filename . '</option>';
       }
 
       $template->set_filenames(array(
         "body" => "admin/news_cat_edit_body.tpl")
       );
 
-      $s_hidden_fields = '<input type="hidden" name="mode" value="save" /><input type="hidden" name="news_id" value="' . $category_data['news_id'] . '" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+      $s_hidden_fields = '<input type="hidden" name="mode" value="save" /><input type="hidden" name="news_id" value="' . (int) $category_data['news_id'] . '" />' . phpbb_admin_session_field();
 
 
       $template->assign_vars(array(
@@ -274,12 +292,12 @@ else if ( $mode != "" )
       // accept the data we are looking for.
       //
       phpbb_admin_require_post_session();
-      $news_category = ( isset($_POST['category']) && is_scalar($_POST['category']) ) ? trim((string) $_POST['category']) : '';
+      $news_category = ( isset($_POST['category']) && is_scalar($_POST['category']) ) ? substr(trim((string) $_POST['category']), 0, 70) : '';
       $news_image = ( isset($_POST['image_url']) && is_scalar($_POST['image_url']) ) ? trim((string) $_POST['image_url']) : '';
       $news_id = ( isset($_POST['news_id']) && is_scalar($_POST['news_id']) ) ? intval($_POST['news_id']) : 0;
 
       // If no code was entered complain ...
-      if ($news_category == '' || $news_image == '' || $news_id == '' )
+      if ($news_category == '' || $news_image == '' || $news_id <= 0)
       {
         message_die(MESSAGE, $lang['Fields_empty']);
       }
@@ -318,7 +336,7 @@ else if ( $mode != "" )
       // we recieve and process is only the data we are looking for.
       //
       phpbb_admin_require_post_session();
-      $news_category = ( isset($_POST['category']) && is_scalar($_POST['category']) ) ? trim((string) $_POST['category']) : '';
+      $news_category = ( isset($_POST['category']) && is_scalar($_POST['category']) ) ? substr(trim((string) $_POST['category']), 0, 70) : '';
       $news_image = ( isset($_POST['image_url']) && is_scalar($_POST['image_url']) ) ? trim((string) $_POST['image_url']) : '';
 
       // If no code was entered complain ...
@@ -397,10 +415,10 @@ else
       'ROW_COLOR' => '#' . $row_color,
       'ROW_CLASS' => $row_class,
 
-      'TOPIC_COUNT' => $news_cats[$i]['topic_count'],
+      'TOPIC_COUNT' => (int) $news_cats[$i]['topic_count'],
 
       'CATEGORY_IMG' => $phpbb_root_path . 'templates/'.$theme['template_name'].'/'.$board_config['news_path']. '/' . $stored_news_image,
-      'L_CATEGORY' => htmlspecialchars((string) $news_cats[$i]['news_category']),
+      'L_CATEGORY' => htmlspecialchars((string) $news_cats[$i]['news_category'], ENT_QUOTES, 'UTF-8'),
 
       'U_NEWS_EDIT' => append_sid("admin_news_cats.$phpEx?mode=edit&amp;id=" . $news_cats[$i]['news_id']),
       'U_NEWS_DELETE' => append_sid("admin_news_cats.$phpEx?mode=delete&amp;id=" . $news_cats[$i]['news_id']))
