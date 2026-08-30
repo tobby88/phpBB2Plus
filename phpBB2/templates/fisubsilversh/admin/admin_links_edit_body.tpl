@@ -2,7 +2,8 @@
 <h1>{PAGE_TITLE}</h1>
 <p>{PAGE_EXPLAIN}</p>
 
-<form name="link_form" action="{PAGE_ACTION}" method="POST">
+<form name="link_form" action="{PAGE_ACTION}" method="post">
+{S_HIDDEN_FIELDS}
   <table cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">
 	<tr>
 	  <th class="thHead" colspan="2">{L_LINK_BASIC_SETTING}</th>
@@ -41,7 +42,6 @@
 </form>
 <div align="center"><span class="copyright">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank">phpBB2.de</a> and OOHOO</span></div>
 <br clear="all" />
-
 
 
 

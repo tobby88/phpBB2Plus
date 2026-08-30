@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Protected link creation, editing and deletion with session-bound POST forms.
+  Mutation modes and actions are allowlisted, write values no longer fall back
+  to query-string input, category references are verified, SQL values use the
+  database escaping boundary, and per-row edit/delete URLs no longer splice a
+  raw session ID into template data.
 - Hardened the built-in database backup and restore utility. Backup options
   can no longer be replayed through GET URLs, both data export and SQL restore
   require a session-bound POST, table names must resolve to real database

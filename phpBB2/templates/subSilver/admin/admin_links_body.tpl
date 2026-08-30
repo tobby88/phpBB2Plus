@@ -29,8 +29,8 @@
 		<td class="{linkrow.ROW_CLASS}" align="center" nowrap="nowrap">{linkrow.LINK_ACTIVE}</td>
 		<td class="{linkrow.ROW_CLASS}" align="center" nowrap="nowrap">{linkrow.LINK_HITS}</td>
 		<td class="{linkrow.ROW_CLASS}" nowrap="nowrap">
-		<a href="{U_LINK}?mode=edit&link_id={linkrow.LINK_ID}">{L_EDIT}</a>
-		<a href="{U_LINK}?mode=delete&link_id={linkrow.LINK_ID}">{L_DELETE}</a>	
+		<a href="{linkrow.U_LINK_EDIT}">{L_EDIT}</a>
+		<a href="{linkrow.U_LINK_DELETE}">{L_DELETE}</a>
 		</td>
 	</tr>
 	<!-- END linkrow -->

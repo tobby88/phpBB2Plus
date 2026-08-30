@@ -46,21 +46,48 @@ function admin_links_html($value)
 
 function admin_links_http_url($value)
 {
-	$value = trim(stripslashes((string) $value));
+	$value = trim((string) $value);
 	$parts = @parse_url($value);
 	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
 		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
-		preg_match('/[\x00-\x20\x7f]/', $value))
+		isset($parts['user']) || isset($parts['pass']) || preg_match('/[\\\x00-\x20\x7f]/', $value))
 	{
 		return '';
 	}
 	return $value;
 }
 
+function admin_links_request_scalar($name, $default)
+{
+	if (isset($_POST[$name]))
+	{
+		return is_scalar($_POST[$name]) ? (string) $_POST[$name] : $default;
+	}
+	if (isset($_GET[$name]))
+	{
+		return is_scalar($_GET[$name]) ? (string) $_GET[$name] : $default;
+	}
+	return $default;
+}
+
+function admin_links_post_scalar($name, $default)
+{
+	return isset($_POST[$name]) && is_scalar($_POST[$name]) ? (string) $_POST[$name] : $default;
+}
+
 // Check link_id
-$link_id = isset($_GET['link_id']) ? intval($_GET['link_id']) : 0;
-$mode = isset($_GET['mode']) ? trim($_GET['mode']) : '';
-$action = isset($_GET['action']) ? trim($_GET['action']) : '';
+$link_id = max(0, (int) admin_links_request_scalar('link_id', '0'));
+$mode = trim(admin_links_request_scalar('mode', ''));
+$action = trim(admin_links_request_scalar('action', ''));
+if ($mode === '')
+{
+	$mode = 'view';
+}
+if (!in_array($mode, array('add', 'view', 'edit', 'delete', 'update'), true) ||
+	($mode === 'update' && !in_array($action, array('add', 'modify', 'delete'), true)))
+{
+	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
 $link_categories = array();
 $link_cat_option = '';
 //
@@ -122,7 +149,8 @@ switch ($mode)
 		$template->assign_vars(array(
 			'PAGE_TITLE' => $lang['Add_link'],
 			'PAGE_EXPLAIN' => $lang['Add_link_explain'],
-			'PAGE_ACTION' => append_sid ("admin_links.$phpEx?mode=update&action=add"),
+			'PAGE_ACTION' => append_sid("admin_links.$phpEx"),
+			'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="action" value="add" />' . phpbb_admin_session_field(),
 			'LINK_ACTIVE_YES' => 'checked="checked"',
 			'LINK_CAT_OPTION' => $link_cat_option,
 			'L_SUBMIT' => $lang['Add_link']
@@ -149,11 +177,10 @@ switch ($mode)
 		}
 		*/
 		$linkspp = 10;
-		$start = ( isset($_GET['start']) ) ? max(0, intval($_GET['start'])) : 0;
+		$start = max(0, (int) admin_links_request_scalar('start', '0'));
 		if ( isset($_POST['search_keywords']) || isset($_GET['search_keywords']) )
 		{
-			$search_keywords = ( isset($_POST['search_keywords']) ) ? $_POST['search_keywords'] : $_GET['search_keywords'];
-			$search_keywords = substr(trim(stripslashes($search_keywords)), 0, 100);
+			$search_keywords = substr(trim(admin_links_request_scalar('search_keywords', '')), 0, 100);
 		}
 		else
 		{
@@ -165,7 +192,6 @@ switch ($mode)
 			'PAGE_EXPLAIN' => $lang['Links_explain'],
 			'PAGE_ACTION' => append_sid ("admin_links.$phpEx?mode=view"),
 			'L_SEARCH_SITE_TITLE' => $lang['Search_site_title'],
-			'U_LINK' => "admin_links.$phpEx",
 			'L_EDIT' => $lang['Edit_link'],
 			'L_DELETE' => $lang['Delete_link'],
 			'L_SUBMIT' => $lang['Submit']
@@ -176,8 +202,8 @@ switch ($mode)
 				WHERE l.user_id = u.user_id";
 		if ( $search_keywords )
 		{	
-			$search_keywords_sql = str_replace("'", "''", $search_keywords);
-			$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '% $search_keywords_sql%') ORDER BY link_id DESC LIMIT $start, $linkspp";
+			$search_keywords_sql = $db->sql_escape($search_keywords);
+			$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '%$search_keywords_sql%') ORDER BY link_id DESC LIMIT $start, $linkspp";
 		}
 		else
 		{
@@ -196,7 +222,6 @@ switch ($mode)
 			{
 				$row_class = !($i % 2) ? $theme['td_class1'] : $theme['td_class2'];
 				$link_id = intval($row['link_id']);
-				$link_id .= '&sid=' . $userdata['session_id'] . '';
 				$user_id = $row['user_id'];
 				$username = $row['username'];
 
@@ -205,7 +230,9 @@ switch ($mode)
 					'LINK_ID' => $link_id,
 					'LINK_TITLE' => admin_links_html($row['link_title']),
 					'LINK_URL' => admin_links_html(admin_links_http_url($row['link_url'])),
-					'LINK_CATEGORY' => admin_links_html($link_categories[$row['link_category']]),
+					'LINK_CATEGORY' => admin_links_html(isset($link_categories[$row['link_category']]) ? $link_categories[$row['link_category']] : ''),
+					'U_LINK_EDIT' => append_sid("admin_links.$phpEx?mode=edit&amp;link_id=$link_id"),
+					'U_LINK_DELETE' => append_sid("admin_links.$phpEx?mode=delete&amp;link_id=$link_id"),
 					'U_LINK_USER' => ($user_id != ANONYMOUS ? ("<a href=\"../profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($user_id) . "\" target=\"_blank\">" . admin_links_html($username) . "</a>") : admin_links_html($username)),
 					'LINK_JOINED' => create_date($lang['DATE_FORMAT'], $row['link_joined'], $board_config['board_timezone']),
 					'LINK_USER_IP' => decode_ip($row['user_ip']),
@@ -226,7 +253,7 @@ switch ($mode)
 			WHERE 1 = 1";
 		if ( $search_keywords )
 		{
-			$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '%$search_keywords_sql %')";
+			$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '%$search_keywords_sql%')";
 			$link_search =  $lang['Search_site'] . " &raquo; " . admin_links_html($search_keywords);
 			$template->assign_vars(array(
 				'L_SEARCH_SITE' => $link_search
@@ -257,7 +284,11 @@ switch ($mode)
 		break;
 	case 'edit':
 	case 'delete':
-		$sql = "SELECT * FROM " . LINKS_TABLE . " WHERE link_id = '$link_id'";
+		if ($link_id <= 0)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		}
+		$sql = "SELECT * FROM " . LINKS_TABLE . " WHERE link_id = $link_id";
 
 		if(!$result = $db->sql_query($sql))
 		{
@@ -277,7 +308,8 @@ switch ($mode)
 			$template->assign_vars(array(
 				'PAGE_TITLE' => ($mode == 'edit' ? $lang['Edit_link'] : $lang['Delete_link']),
 				'PAGE_EXPLAIN' => ($mode == 'edit' ? $lang['Edit_link_explain'] . (' <a href="' . append_sid("admin_links.$phpEx?mode=delete&link_id=$link_id") . '">' . $lang['Delete_link'] . '</a>') : $lang['Delete_link_explain'] . (' <a href="' . append_sid("admin_links.$phpEx?mode=edit&link_id=$link_id") . '">' . $lang['Edit_link'] . '</a>')),
-				'PAGE_ACTION' => ($mode == 'edit' ? "admin_links.$phpEx?mode=update&action=modify&link_id=$link_id&sid=" . $userdata['session_id'] . "" : "admin_links.$phpEx?mode=update&action=delete&link_id=$link_id&sid=" . $userdata['session_id'] . ""),
+				'PAGE_ACTION' => append_sid("admin_links.$phpEx"),
+				'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="action" value="' . ($mode == 'edit' ? 'modify' : 'delete') . '" /><input type="hidden" name="link_id" value="' . $link_id . '" />' . phpbb_admin_session_field(),
 
 				'L_SUBMIT' => ($mode == 'edit' ? $lang['Link_update'] : $lang['Link_delete']),
 
@@ -295,23 +327,24 @@ switch ($mode)
 				'LINK_CAT_OPTION' => $link_cat_option
 			));
 		}
+		else
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		}
 		break;
 	case 'update':
-		if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper($_SERVER['REQUEST_METHOD']) !== 'POST')
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
+		phpbb_admin_require_post_session();
 		$action_success = false;
-		$link_title = ( !empty($_POST['link_title']) ) ? substr(trim(stripslashes($_POST['link_title'])), 0, 100) : '';
-		$link_desc = ( !empty($_POST['link_desc']) ) ? substr(trim(stripslashes($_POST['link_desc'])), 0, 255) : '';
-		$link_category = ( !empty($_POST['link_category']) ) ? (is_numeric($_POST['link_category']) ? intval($_POST['link_category']) : 0) : 0;
-		$link_url = ( !empty($_POST['link_url']) ) ? substr(admin_links_http_url($_POST['link_url']), 0, 100) : '';
-		$link_logo_src = ( !empty($_POST['link_logo_src']) ) ? substr(admin_links_http_url($_POST['link_logo_src']), 0, 120) : '';
-		$link_active = ( !empty($_POST['link_active']) ) ? 1 : 0;
-		$link_title_sql = str_replace("'", "''", $link_title);
-		$link_desc_sql = str_replace("'", "''", $link_desc);
-		$link_url_sql = str_replace("'", "''", $link_url);
-		$link_logo_src_sql = str_replace("'", "''", $link_logo_src);
+		$link_title = substr(trim(admin_links_post_scalar('link_title', '')), 0, 100);
+		$link_desc = substr(trim(admin_links_post_scalar('link_desc', '')), 0, 255);
+		$link_category = max(0, (int) admin_links_post_scalar('link_category', '0'));
+		$link_url = substr(admin_links_http_url(admin_links_post_scalar('link_url', '')), 0, 100);
+		$link_logo_src = substr(admin_links_http_url(admin_links_post_scalar('link_logo_src', '')), 0, 120);
+		$link_active = admin_links_post_scalar('link_active', '0') === '1' ? 1 : 0;
+		$link_title_sql = $db->sql_escape($link_title);
+		$link_desc_sql = $db->sql_escape($link_desc);
+		$link_url_sql = $db->sql_escape($link_url);
+		$link_logo_src_sql = $db->sql_escape($link_logo_src);
 
 		$link_joined = time();
 		$user_id = intval($userdata['user_id']);
@@ -319,7 +352,7 @@ switch ($mode)
 		switch ($action)
 		{
 			case 'add':
-				if($link_title && $link_desc && $link_category && $link_url)
+				if($link_title && $link_desc && isset($link_categories[$link_category]) && $link_url)
 				{
 					$sql = "INSERT INTO " . LINKS_TABLE . " (link_title, link_desc, link_category, link_url, link_logo_src, link_joined, link_active, user_id , user_ip)
 						VALUES ('$link_title_sql', '$link_desc_sql', '$link_category', '$link_url_sql', '$link_logo_src_sql', '$link_joined', '$link_active', '$user_id', '$user_ip')";
@@ -340,7 +373,7 @@ switch ($mode)
 				}
 				break;
 			case 'modify':
-				if($link_id && $link_title && $link_desc && $link_category && $link_url)
+				if($link_id && $link_title && $link_desc && isset($link_categories[$link_category]) && $link_url)
 				{
 
 					$sql = "UPDATE " . LINKS_TABLE . " SET link_title = '$link_title_sql', link_desc = '$link_desc_sql', link_url = '$link_url_sql',

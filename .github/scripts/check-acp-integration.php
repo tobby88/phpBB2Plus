@@ -65,6 +65,7 @@ $integrations = array(
 	'admin/admin_flags.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function phpbb_flag_image_name'),
 	'admin/admin_db_maintenance.php' => array('dbmtnc_continuation_token', 'phpbb_admin_require_post_session();', "array('', 'start', 'perform')"),
 	'admin/admin_db_utilities.php' => array("in_array(\$perform, array('backup', 'restore'), true)", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'is_uploaded_file($backup_file_tmpname)'),
+	'admin/admin_links.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function admin_links_post_scalar', "'U_LINK_DELETE' => append_sid"),
 	'admin/admin_forums.php' => array('$forum_write_modes', 'admin_forum_action_button', 'phpbb_admin_require_post_session();'),
 	'admin/admin_styles.php' => array('xs_frameset.$phpEx?action=menu', '$no_page_header = true'),
 	'admin/xs_include.php' => array('$module[\'Styles\'][\'Menu\']', 'phpbb_admin_require_post_session();'),

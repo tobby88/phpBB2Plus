@@ -126,3 +126,6 @@ jobs:
 
       - name: Test database backup and restore safety
         run: php .github/scripts/check-db-utilities-safety.php
+
+      - name: Test link administration safety
+        run: php .github/scripts/check-links-admin-safety.php
