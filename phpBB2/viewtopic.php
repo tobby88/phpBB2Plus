@@ -204,8 +204,18 @@ if ( isset($_GET['setbm']) || isset($_GET['removebm']) )
 	$redirect = "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&start=$start&highlight=" . urlencode($requested_highlight);
 	if ( $userdata['session_logged_in'] )
 	{
+		$set_bookmark_requested = (phpbb_request_scalar($_GET, 'setbm') !== '');
+		$remove_bookmark_requested = (phpbb_request_scalar($_GET, 'removebm') !== '');
+		if ($set_bookmark_requested === $remove_bookmark_requested)
+		{
+			message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		}
 		$bookmark_sid = phpbb_request_scalar($_GET, 'sid');
-		if ($bookmark_sid === '' || !hash_equals((string) $userdata['session_id'], $bookmark_sid))
+		$bookmark_action = $set_bookmark_requested ? 'set-bookmark' : 'remove-bookmark';
+		$bookmark_token = phpbb_request_scalar($_GET, 'action_token');
+		$expected_bookmark_token = phpbb_session_action_token('topic-preference', $bookmark_action, $topic_id, $userdata['session_id']);
+		if ($bookmark_sid === '' || !hash_equals((string) $userdata['session_id'], $bookmark_sid) ||
+			$bookmark_token === '' || !hash_equals($expected_bookmark_token, $bookmark_token))
 		{
 			message_die(GENERAL_ERROR, $lang['Session_invalid']);
 		}
@@ -308,8 +318,18 @@ if( $userdata['session_logged_in'] )
 	$unwatch_action = phpbb_request_scalar($_GET, 'unwatch');
 	if ($watch_action !== '' || $unwatch_action !== '')
 	{
+		if (($watch_action !== '' && $unwatch_action !== '') ||
+			($watch_action !== '' && $watch_action !== 'topic') ||
+			($unwatch_action !== '' && $unwatch_action !== 'topic'))
+		{
+			message_die(GENERAL_ERROR, $lang['Session_invalid']);
+		}
 		$watch_sid = phpbb_request_scalar($_GET, 'sid');
-		if ($watch_sid === '' || !hash_equals((string) $userdata['session_id'], $watch_sid))
+		$preference_action = ($watch_action !== '') ? 'watch' : 'unwatch';
+		$watch_token = phpbb_request_scalar($_GET, 'action_token');
+		$expected_watch_token = phpbb_session_action_token('topic-preference', $preference_action, $topic_id, $userdata['session_id']);
+		if ($watch_sid === '' || !hash_equals((string) $userdata['session_id'], $watch_sid) ||
+			$watch_token === '' || !hash_equals($expected_watch_token, $watch_token))
 		{
 			message_die(GENERAL_ERROR, $lang['Session_invalid']);
 		}
@@ -755,13 +775,15 @@ if ( $can_watch_topic )
 {
 	if ( $is_watching_topic )
 	{
-		$s_watching_topic = "<a id=\"watchlink\" onclick=\"return AJAXWatchTopic($topic_id, $start, 0);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;unwatch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '">' . $lang['Stop_watching_topic'] . '</a>';
-		$s_watching_topic_img = ( isset($images['topic_un_watch']) ) ? "<a id=\"watchlink_img\" onclick=\"return AJAXWatchTopic($topic_id, $start, 0);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;unwatch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '"><img id="watchimage" src="' . $images['topic_un_watch'] . '" alt="' . $lang['Stop_watching_topic'] . '" title="' . $lang['Stop_watching_topic'] . '" border="0"></a>' : '';
+		$watch_token = rawurlencode(phpbb_session_action_token('topic-preference', 'unwatch', $topic_id, $userdata['session_id']));
+		$s_watching_topic = "<a id=\"watchlink\" onclick=\"return AJAXWatchTopic($topic_id, $start, 0);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;unwatch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '&amp;action_token=' . $watch_token . '">' . $lang['Stop_watching_topic'] . '</a>';
+		$s_watching_topic_img = ( isset($images['topic_un_watch']) ) ? "<a id=\"watchlink_img\" onclick=\"return AJAXWatchTopic($topic_id, $start, 0);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;unwatch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '&amp;action_token=' . $watch_token . '"><img id="watchimage" src="' . $images['topic_un_watch'] . '" alt="' . $lang['Stop_watching_topic'] . '" title="' . $lang['Stop_watching_topic'] . '" border="0"></a>' : '';
 	}
 	else
 	{
-		$s_watching_topic = "<a id=\"watchlink\" onclick=\"return AJAXWatchTopic($topic_id, $start, 1);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;watch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '">' . $lang['Start_watching_topic'] . '</a>';
-		$s_watching_topic_img = ( isset($images['Topic_watch']) ) ? "<a id=\"watchlink_img\" onclick=\"return AJAXWatchTopic($topic_id, $start, 1);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;watch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '"><img id="watchimage" src="' . $images['Topic_watch'] . '" alt="' . $lang['Start_watching_topic'] . '" title="' . $lang['Start_watching_topic'] . '" border="0"></a>' : '';
+		$watch_token = rawurlencode(phpbb_session_action_token('topic-preference', 'watch', $topic_id, $userdata['session_id']));
+		$s_watching_topic = "<a id=\"watchlink\" onclick=\"return AJAXWatchTopic($topic_id, $start, 1);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;watch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '&amp;action_token=' . $watch_token . '">' . $lang['Start_watching_topic'] . '</a>';
+		$s_watching_topic_img = ( isset($images['Topic_watch']) ) ? "<a id=\"watchlink_img\" onclick=\"return AJAXWatchTopic($topic_id, $start, 1);\" href=\"viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;watch=topic&amp;start=$start&amp;sid=" . $userdata['session_id'] . '&amp;action_token=' . $watch_token . '"><img id="watchimage" src="' . $images['Topic_watch'] . '" alt="' . $lang['Start_watching_topic'] . '" title="' . $lang['Start_watching_topic'] . '" border="0"></a>' : '';
 	}
 }
 //
@@ -774,14 +796,17 @@ if ( $userdata['session_logged_in'] )
 	if (is_bookmark_set($topic_id))
 	{
 		$bm_action = "&amp;removebm=true";
+		$bm_token_action = 'remove-bookmark';
 		$bm_action_l = $lang['Remove_Bookmark'];
 	}else{
 		$bm_action = "&amp;setbm=true";
+		$bm_token_action = 'set-bookmark';
 		$bm_action_l = $lang['Set_Bookmark'];
 	}
+	$bm_token = rawurlencode(phpbb_session_action_token('topic-preference', $bm_token_action, $topic_id, $userdata['session_id']));
 	$template->assign_vars(array(
 		'L_BOOKMARK_ACTION' => $bm_action_l,
-		'U_BOOKMARK_ACTION' => "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . urlencode($requested_highlight) . $bm_action . '&amp;sid=' . urlencode($userdata['session_id']))
+		'U_BOOKMARK_ACTION' => "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start&amp;postdays=$post_days&amp;postorder=$post_order&amp;highlight=" . urlencode($requested_highlight) . $bm_action . '&amp;sid=' . urlencode($userdata['session_id']) . '&amp;action_token=' . $bm_token)
 	);
 }
 //

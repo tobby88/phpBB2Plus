@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Bound the legacy topic-watch and bookmark fallback links to their session,
+  action and topic. The normal AJAX controls remain POST-only and now return
+  equally protected fallback URLs, while forged GET links can no longer add or
+  remove a user's subscriptions or bookmarks.
 - Protected the legacy one-click topic moderation links with session-, action-
   and topic-bound HMAC capabilities. Lock/unlock and normal/sticky/announcement
   controls retain their existing non-JavaScript fallback, but a copied or
