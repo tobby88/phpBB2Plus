@@ -191,6 +191,11 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
     global $db, $template, $images, $phpEx, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id, $is_admin, $userdata;
 	global $kb_news_sort_method_extra, $kb_news_sort_method, $kb_news_sort_method_lj, $kb_news_sort_par, $kb_config, $is_admin;
 	
+	$id = (int) $id;
+	$approve = (int) $approve;
+	$start = (int) $start;
+	$articles_in_cat = (int) $articles_in_cat;
+
 	$sql = "SELECT t.*, u.username, u.user_id, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_allowsmile
 			FROM " . KB_ARTICLES_TABLE  . " t, " . USERS_TABLE . " u".(($kb_news_sort_method_lj) ?  ",". TOPICS_TABLE  . " tt" : '')."
 			WHERE ";	
@@ -261,10 +266,12 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 		
 	   $article_id = $article['article_id'];
 	   $views = $article['views'];
+	   $article_rating = (float) $article['article_rating'];
+	   $article_totalvotes = (int) $article['article_totalvotes'];
 		
 	   $article_title = stripslashes($article['article_title']);
 	   $temp_url = append_sid(this_kb_mxurl("mode=article&amp;k=$article_id"));
-	   $article = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
+	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
 	   $approve = '';
 	   $delete = '';
@@ -315,7 +322,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 		   	$delete = '<a href="' . $temp_url . '"><img src="'.$phpbb_root_path . $images['icon_delpost'] . '" border="0" alt="' . $lang['Delete'] . '"></a>';
 	  }
 	   
-	if ($article['article_rating'] == 0 || $article['article_totalvotes'] == 0 )
+	if ($article_rating == 0 || $article_totalvotes == 0)
 	{
 		$rating = 0;
 		$rating_votes = 0;
@@ -323,14 +330,14 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	}
 	else
 	{
-		$rating = round($postrow[$i]['link_rating']/$postrow[$i]['link_totalvotes'],2);
-		$rating_votes = $postrow[$i]['link_totalvotes'];	
+		$rating = round($article_rating / $article_totalvotes, 2);
+		$rating_votes = $article_totalvotes;
 		$rating_message = '('.$rating.'/10, </span><span class="gensmall">'.$rating_votes.' votes)';	
 		
 	}
   
 	   $template->assign_block_vars($block_name, array(
-			'ARTICLE' => $article ,
+			'ARTICLE' => $article_link,
 			'ARTICLE_DESCRIPTION' => $article_description,
 			'ARTICLE_TYPE' => $article_type,
 			'ARTICLE_DATE' => $article_date,
@@ -1318,10 +1325,12 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 		
 	   $article_id = $article['article_id'];
 	   $views = $article['views'];
+	   $article_rating = (float) $article['article_rating'];
+	   $article_totalvotes = (int) $article['article_totalvotes'];
 		
 	   $article_title = $article['article_title'];
 	   $temp_url = append_sid(this_kb_mxurl("mode=article&amp;k=$article_id"));
-	   $article = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
+	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
 	   $approve = '';
 	   $delete = '';
@@ -1356,7 +1365,7 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 		   	$delete = '<a href="' . $temp_url . '"><img src="'. $images['icon_delpost'] . '" border="0" alt="' . $lang['Delete'] . '"></a>';
 	  }
 	   
-	if ($article['article_rating'] == 0 || $article['article_totalvotes'] == 0 )
+	if ($article_rating == 0 || $article_totalvotes == 0)
 	{
 		$rating = 0;
 		$rating_votes = 0;
@@ -1364,14 +1373,14 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	}
 	else
 	{
-		$rating = round($postrow[$i]['link_rating']/$postrow[$i]['link_totalvotes'],2);
-		$rating_votes = $postrow[$i]['link_totalvotes'];	
+		$rating = round($article_rating / $article_totalvotes, 2);
+		$rating_votes = $article_totalvotes;
 		$rating_message = '('.$rating.'/10, </span><span class="gensmall">'.$rating_votes.' votes)';	
 		
 	}
   
 	   $template->assign_block_vars($block_name, array(
-			'ARTICLE' => $article ,
+			'ARTICLE' => $article_link,
 			'ARTICLE_DESCRIPTION' => $article_description,
 			'ARTICLE_TYPE' => $article_type,
 			'ARTICLE_DATE' => $article_date,

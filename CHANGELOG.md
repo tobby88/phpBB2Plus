@@ -18,6 +18,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Stopped legacy Download, Banner and Statistics AdminCP modules from
   redefining the phpBB bootstrap constant while the module menu is discovered.
   The ACP integration audit now rejects this warning-prone pattern.
+- Repaired Knowledge Base article and statistics lists with rated articles:
+  rendering no longer overwrites a database row before reading its rating, and
+  ratings now use the actual article fields. Admin article IDs are normalized
+  before they reach SQL.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

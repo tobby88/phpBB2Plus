@@ -97,3 +97,6 @@ jobs:
 
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
+
+      - name: Test Knowledge Base runtime safety
+        run: php .github/scripts/check-kb-runtime-safety.php

@@ -62,6 +62,7 @@ else
 $approve = !empty($_POST['approve']);
 $unapprove = !empty($_POST['unapprove']);
 $delete = !empty($_POST['delete']);
+$article_id = isset($_POST['a']) ? (int) $_POST['a'] : (isset($_GET['a']) ? (int) $_GET['a'] : 0);
 
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
@@ -92,7 +93,10 @@ switch( $mode )
 
  	case 'approve':
 	
-	$article_id = $_GET['a'];
+	if ($article_id <= 0)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_Articles']);
+	}
 	
 	$topic_sql = '';
 	if ( $kb_config['comments'] )
@@ -191,7 +195,10 @@ switch( $mode )
 
 	case 'unapprove':
 	
-	$article_id = $_GET['a'];
+	if ($article_id <= 0)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_Articles']);
+	}
 	
 	$sql = "UPDATE " . KB_ARTICLES_TABLE .
 		 " SET approved = 0
@@ -225,9 +232,12 @@ switch( $mode )
 	
 	case 'delete':
 	
-	if ($_GET['c'] == "yes")
+	if (isset($_GET['c']) && $_GET['c'] == "yes")
 	{	
-	$article_id = $_GET['a'];
+	if ($article_id <= 0)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_Articles']);
+	}
 	
 	$sql = "SELECT article_category_id, approved, topic_id  
 	 FROM " . KB_ARTICLES_TABLE . "
@@ -388,7 +398,7 @@ switch( $mode )
 	}
 	else
 	{
-	 	$message = $lang['Confirm_art_delete'] . '<br /><br />' . sprintf($lang['Confirm_art_delete_yes'], '<a href="' . append_sid("admin_kb_art.$phpEx?mode=delete&amp;c=yes&amp;a=" . $_GET['a']) . '">', '</a>') . '<br /><br />' . sprintf($lang['Confirm_art_delete_no'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>');
+		$message = $lang['Confirm_art_delete'] . '<br /><br />' . sprintf($lang['Confirm_art_delete_yes'], '<a href="' . append_sid("admin_kb_art.$phpEx?mode=delete&amp;c=yes&amp;a=" . $article_id) . '">', '</a>') . '<br /><br />' . sprintf($lang['Confirm_art_delete_no'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>');
 
 		message_die(GENERAL_MESSAGE, $message);
 	}
