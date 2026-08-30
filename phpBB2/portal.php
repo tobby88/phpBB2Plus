@@ -1230,13 +1230,13 @@ if( (isset( $_GET['news']  ) && $_GET['news'] == 'categories'))
 		}
 	}			
 } 
-elseif( isset( $_GET['news']  ) && $_GET['news'] == 'archives' ) 
+elseif (phpbb_request_scalar($_GET, 'news') === 'archives')
 { 
   // View the news Archives. 
-  $year   = (isset( $_GET['year'] )) ? intval($_GET['year']) : 0; 
-  $month  = (isset( $_GET['month'] )) ? intval($_GET['month']) : 0; 
-  $day    = (isset( $_GET['day'] )) ? intval($_GET['day']) : 0; 
-  $key    = (isset( $_GET['key'] )) ? $_GET['key'] : ''; 
+  $year = max(0, min(2069, intval(phpbb_request_scalar($_GET, 'year', 0))));
+  $month = max(0, min(12, intval(phpbb_request_scalar($_GET, 'month', 0))));
+  $day = max(0, min(31, intval(phpbb_request_scalar($_GET, 'day', 0))));
+  $key = substr(phpbb_request_scalar($_GET, 'key'), 0, 100);
   
   $template->assign_block_vars('news_archives', array());
   $content->setVariables( array( 'TITLE' => $lang['News'] . ' ' . $lang['Archives'] ) ); 
@@ -1248,11 +1248,11 @@ elseif (isset($_GET['topic_id']) || isset($_GET['cat_id']))
 	$topic_id = 0; 
   if( isset( $_GET['topic_id'] ) ) 
   { 
-    $topic_id = intval($_GET['topic_id']); 
+    $topic_id = intval(phpbb_request_scalar($_GET, 'topic_id', 0));
   } 
   elseif( isset( $_GET['news_id'] ) ) 
   { 
-    $topic_id = intval($_GET['news_id']); 
+    $topic_id = intval(phpbb_request_scalar($_GET, 'news_id', 0));
   }
   
   $content->setVariables( array( 'TITLE' => $lang['News'] . ' ' . $lang['Articles'] ) ); 
@@ -1264,11 +1264,11 @@ else
   $topic_id = 0; 
   if( isset( $_GET['topic_id'] ) ) 
   { 
-    $topic_id = intval($_GET['topic_id']); 
+    $topic_id = intval(phpbb_request_scalar($_GET, 'topic_id', 0));
   } 
   elseif( isset( $_GET['news_id'] ) ) 
   { 
-    $topic_id = intval($_GET['news_id']); 
+    $topic_id = intval(phpbb_request_scalar($_GET, 'news_id', 0));
   } 
   $template->assign_block_vars('welcome_text', array());
   $content->setVariables( array( 'TITLE' => $lang['News'] . ' ' . $lang['Articles'] ) ); 

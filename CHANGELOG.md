@@ -28,6 +28,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Completed scalar session-token and POST-method checks on remaining account,
   Album, Arcade and administration mutations, preventing malformed array
   requests from reaching `hash_equals()` on PHP 8.x.
+- Normalized and bounded topic, forum, news archive and hierarchy-navigation
+  parameters at the central browsing entry points. Invalid day-range filters,
+  nested parameters and stale navigation targets now degrade safely instead of
+  causing PHP 8.x warnings/500 responses or oversized database offsets.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.

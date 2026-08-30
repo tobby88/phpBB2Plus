@@ -964,25 +964,26 @@ if (!defined('AJAX_HEADERS'))
 //-- add
 // get the nav sentence
 $nav_key = '';
-if (isset($_POST[POST_CAT_URL]) || isset($_GET[POST_CAT_URL]))
+if (phpbb_request_scalar($_POST, POST_CAT_URL) !== '' || phpbb_request_scalar($_GET, POST_CAT_URL) !== '')
 {
-	$nav_key = POST_CAT_URL . ((isset($_POST[POST_CAT_URL])) ? intval($_POST[POST_CAT_URL]) : intval($_GET[POST_CAT_URL]));
+	$nav_key = POST_CAT_URL . intval(phpbb_request_scalar($_POST, POST_CAT_URL, phpbb_request_scalar($_GET, POST_CAT_URL)));
 }
-if (isset($_POST[POST_FORUM_URL]) || isset($_GET[POST_FORUM_URL]))
+if (phpbb_request_scalar($_POST, POST_FORUM_URL) !== '' || phpbb_request_scalar($_GET, POST_FORUM_URL) !== '')
 {
-	$nav_key = POST_FORUM_URL . ((isset($_POST[POST_FORUM_URL])) ? intval($_POST[POST_FORUM_URL]) : intval($_GET[POST_FORUM_URL]));
+	$nav_key = POST_FORUM_URL . intval(phpbb_request_scalar($_POST, POST_FORUM_URL, phpbb_request_scalar($_GET, POST_FORUM_URL)));
 }
-if (isset($_POST[POST_TOPIC_URL]) || isset($_GET[POST_TOPIC_URL]))
+if (phpbb_request_scalar($_POST, POST_TOPIC_URL) !== '' || phpbb_request_scalar($_GET, POST_TOPIC_URL) !== '')
 {
-	$nav_key = POST_TOPIC_URL . ((isset($_POST[POST_TOPIC_URL])) ? intval($_POST[POST_TOPIC_URL]) : intval($_GET[POST_TOPIC_URL]));
+	$nav_key = POST_TOPIC_URL . intval(phpbb_request_scalar($_POST, POST_TOPIC_URL, phpbb_request_scalar($_GET, POST_TOPIC_URL)));
 }
-if (isset($_POST[POST_POST_URL]) || isset($_GET[POST_POST_URL]))
+if (phpbb_request_scalar($_POST, POST_POST_URL) !== '' || phpbb_request_scalar($_GET, POST_POST_URL) !== '')
 {
-	$nav_key = POST_POST_URL . ((isset($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]));
+	$nav_key = POST_POST_URL . intval(phpbb_request_scalar($_POST, POST_POST_URL, phpbb_request_scalar($_GET, POST_POST_URL)));
 }
 if ( empty($nav_key) && (isset($_POST['selected_id']) || isset($_GET['selected_id'])) )
 {
-   $nav_key = isset($_GET['selected_id']) ? $_GET['selected_id'] : $_POST['selected_id'];
+	$selected_nav = phpbb_request_scalar($_GET, 'selected_id', phpbb_request_scalar($_POST, 'selected_id'));
+	$nav_key = preg_match('/^(Root|[' . preg_quote(POST_CAT_URL . POST_FORUM_URL, '/') . ']\d+)$/D', $selected_nav) ? $selected_nav : 'Root';
 }
 if (empty($nav_key)) $nav_key = 'Root';
 $nav_pgm = isset($nav_pgm) ? $nav_pgm : '';

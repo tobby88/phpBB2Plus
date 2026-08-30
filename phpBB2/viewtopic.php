@@ -53,9 +53,9 @@ if ( isset($_GET[POST_POST_URL]) && is_scalar($_GET[POST_POST_URL]))
 }
 
 
-$start = ( isset($_GET['start']) && is_scalar($_GET['start']) ) ? intval($_GET['start']) : 0;
-$start = ($start < 0) ? 0 : $start;
+$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 $requested_highlight = phpbb_request_scalar($_GET, 'highlight');
+$view_mode = phpbb_request_scalar($_GET, 'view');
 
 if (!$topic_id && !$post_id)
 {
@@ -66,13 +66,13 @@ if (!$topic_id && !$post_id)
 // Find topic id if user requested a newer
 // or older topic
 //
-if ( isset($_GET['view']) && empty($_GET[POST_POST_URL]) )
+if ($view_mode !== '' && phpbb_request_scalar($_GET, POST_POST_URL) === '')
 {
-	if ( $_GET['view'] == 'newest' )
+	if ($view_mode == 'newest')
 	{
 		if ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_sid']) || isset($_GET['sid']) )
 		{
-			$session_id = isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_sid']) ? $HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_sid'] : $_GET['sid'];
+			$session_id = phpbb_request_scalar($HTTP_COOKIE_VARS, $board_config['cookie_name'] . '_sid', phpbb_request_scalar($_GET, 'sid'));
 			
 			if (!preg_match('/^[A-Za-z0-9]*$/', $session_id)) 
 			{
@@ -114,10 +114,10 @@ if ( isset($_GET['view']) && empty($_GET[POST_POST_URL]) )
 
 		redirect(append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id", true));
 	}
-	else if ( $_GET['view'] == 'next' || $_GET['view'] == 'previous' )
+	else if ($view_mode == 'next' || $view_mode == 'previous')
 	{
-		$sql_condition = ( $_GET['view'] == 'next' ) ? '>' : '<';
-		$sql_ordering = ( $_GET['view'] == 'next' ) ? 'ASC' : 'DESC';
+		$sql_condition = ($view_mode == 'next') ? '>' : '<';
+		$sql_ordering = ($view_mode == 'next') ? 'ASC' : 'DESC';
 
 		$sql = "SELECT t.topic_id
 			FROM " . TOPICS_TABLE . " t, " . TOPICS_TABLE . " t2
@@ -144,7 +144,7 @@ if ( isset($_GET['view']) && empty($_GET[POST_POST_URL]) )
 		}
 		else
 		{
-			$message = ( $_GET['view'] == 'next' ) ? 'No_newer_topics' : 'No_older_topics';
+			$message = ($view_mode == 'next') ? 'No_newer_topics' : 'No_older_topics';
 			message_die(GENERAL_MESSAGE, $message);
 		}
 	}
@@ -442,9 +442,14 @@ else
 $previous_days = array(0, 1, 7, 14, 30, 90, 180, 364);
 $previous_days_text = array($lang['All_Posts'], $lang['1_Day'], $lang['7_Days'], $lang['2_Weeks'], $lang['1_Month'], $lang['3_Months'], $lang['6_Months'], $lang['1_Year']);
 
-if( !empty($_POST['postdays']) || !empty($_GET['postdays']) )
+$post_days_value = phpbb_request_scalar($_POST, 'postdays', phpbb_request_scalar($_GET, 'postdays'));
+$post_days = intval($post_days_value);
+if (!in_array($post_days, $previous_days, true))
 {
-	$post_days = ( !empty($_POST['postdays']) ) ? intval($_POST['postdays']) : intval($_GET['postdays']);
+	$post_days = 0;
+}
+if ($post_days > 0)
+{
 	$min_post_time = time() - (intval($post_days) * 86400);
 
 	$sql = "SELECT COUNT(p.post_id) AS num_posts
@@ -461,7 +466,7 @@ if( !empty($_POST['postdays']) || !empty($_GET['postdays']) )
 
 	$limit_posts_time = "AND p.post_time >= $min_post_time ";
 
-	if ( !empty($_POST['postdays']))
+	if (phpbb_request_scalar($_POST, 'postdays') !== '')
 	{
 		$start = 0;
 	}

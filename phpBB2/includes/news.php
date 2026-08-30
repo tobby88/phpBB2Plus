@@ -178,8 +178,8 @@ class NewsModule
   {
     $this->item_count = 1;
 
-      $catid  = (isset( $_GET['cat_id'] )) ? $_GET['cat_id'] : 0;
-      $start  = (isset( $_GET['start'] )) ? $_GET['start'] : 0;
+	  $catid = max(0, intval(phpbb_request_scalar($_GET, 'cat_id', 0)));
+	  $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
       $this->item_count = $this->data->fetchArticlesCount( $catid );
 
 if( $article_id <= 0 )
@@ -195,7 +195,7 @@ if( $article_id <= 0 )
         }
     else
     {
-      $start  = (isset( $_GET['start'] )) ? $_GET['start'] : 0;
+	  $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
       $articles = $this->data->fetchArticle( $article_id );
       $this->renderComments( $article_id, $start );
@@ -395,7 +395,7 @@ if( $article_id <= 0 )
     
     $this->item_count = 1;
 
-    $catid  = (isset( $_GET['cat_id'] )) ? $_GET['cat_id'] : 0;
+    $catid = max(0, intval(phpbb_request_scalar($_GET, 'cat_id', 0)));
 
     if( $num_items > 0 ) {
       $this->data->setItemCount( $num_items );
@@ -428,17 +428,18 @@ if( $article_id <= 0 )
         'L_ARCHIVES' => $lang['Archives']
         ) );
 
-    if( (isset( $_GET['news']  ) && $_GET['news'] == 'topics') )
+    $news_mode = phpbb_request_scalar($_GET, 'news');
+    if ($news_mode == 'topics')
     {
       $this->setVariables( array( 'TITLE' => $lang['News'] . ' ' . $lang['Categories'] ) );
       $this->renderTopics( );
     }
-    elseif( isset( $_GET['news']  ) && $_GET['news'] == 'archives' )
+    elseif ($news_mode == 'archives')
     {
-      $year   = (isset( $_GET['year'] )) ? $_GET['year'] : 0;
-      $month  = (isset( $_GET['month'] )) ? $_GET['month'] : 0;
-      $day     = (isset( $_GET['day'] )) ? $_GET['day'] : 0;
-      $key     = (isset( $_GET['key'] )) ? $_GET['key'] : '';
+      $year = max(0, min(2069, intval(phpbb_request_scalar($_GET, 'year', 0))));
+      $month = max(0, min(12, intval(phpbb_request_scalar($_GET, 'month', 0))));
+      $day = max(0, min(31, intval(phpbb_request_scalar($_GET, 'day', 0))));
+      $key = substr(phpbb_request_scalar($_GET, 'key'), 0, 100);
 
       $this->setVariables( array( 'TITLE' => $lang['News'] . ' ' . $lang['Archives'] ) );
       $this->renderArchives( $year, $month, $day, $key );
@@ -446,13 +447,13 @@ if( $article_id <= 0 )
     else
     {
       $topic_id = 0;
-      if( isset( $_GET['topic_id'] ) )
+      if (phpbb_request_scalar($_GET, 'topic_id') !== '')
       {
-        $topic_id = $_GET['topic_id'];
+        $topic_id = max(0, intval(phpbb_request_scalar($_GET, 'topic_id')));
       }
-      elseif( isset( $_GET['news_id'] ) )
+      elseif (phpbb_request_scalar($_GET, 'news_id') !== '')
       {
-        $topic_id = $_GET['news_id'];
+        $topic_id = max(0, intval(phpbb_request_scalar($_GET, 'news_id')));
       }
 
       $this->setVariables( array( 'TITLE' => $lang['News'] . ' ' . $lang['Articles'] ) );

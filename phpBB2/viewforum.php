@@ -41,13 +41,13 @@ include_once($phpbb_root_path . 'includes/functions_topics_list.'. $phpEx);
 //
 // Start initial var setup
 //
-if ( isset($_GET[POST_FORUM_URL]) || isset($_POST[POST_FORUM_URL]) )
+if (phpbb_request_scalar($_GET, POST_FORUM_URL) !== '' || phpbb_request_scalar($_POST, POST_FORUM_URL) !== '')
 {
-	$forum_id = ( isset($_GET[POST_FORUM_URL]) ) ? intval($_GET[POST_FORUM_URL]) : intval($_POST[POST_FORUM_URL]);
+	$forum_id = intval(phpbb_request_scalar($_GET, POST_FORUM_URL, phpbb_request_scalar($_POST, POST_FORUM_URL)));
 }
-else if ( isset($_GET['forum']))
+else if (phpbb_request_scalar($_GET, 'forum') !== '')
 {
-	$forum_id = intval($_GET['forum']);
+	$forum_id = intval(phpbb_request_scalar($_GET, 'forum'));
 }
 else
 {
@@ -58,7 +58,7 @@ else
 define('IN_VIEWFORUM', true);
 if (isset($_GET['selected_id']) || isset($_POST['selected_id']))
 {
-	$selected_id = isset($_POST['selected_id']) ? $_POST['selected_id'] : $_GET['selected_id'];
+	$selected_id = phpbb_request_scalar($_POST, 'selected_id', phpbb_request_scalar($_GET, 'selected_id'));
 	$type	= substr($selected_id, 0, 1);
 	$id		= intval(substr($selected_id, 1));
 	if ($type == POST_FORUM_URL)
@@ -74,12 +74,11 @@ if (isset($_GET['selected_id']) || isset($_POST['selected_id']))
 }
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
-$start = ($start < 0) ? 0 : $start;
+$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
 if ( isset($_GET['mark']) || isset($_POST['mark']) )
 {
-	$mark_read = (isset($_POST['mark'])) ? $_POST['mark'] : $_GET['mark'];
+	$mark_read = phpbb_request_scalar($_POST, 'mark', phpbb_request_scalar($_GET, 'mark'));
 }
 else
 {
@@ -372,9 +371,14 @@ unset($moderators);
 $previous_days = array(0, 1, 7, 14, 30, 90, 180, 364);
 $previous_days_text = array($lang['All_Topics'], $lang['1_Day'], $lang['7_Days'], $lang['2_Weeks'], $lang['1_Month'], $lang['3_Months'], $lang['6_Months'], $lang['1_Year']);
 
-if ( !empty($_POST['topicdays']) || !empty($_GET['topicdays']) )
+$topic_days_value = phpbb_request_scalar($_POST, 'topicdays', phpbb_request_scalar($_GET, 'topicdays'));
+$topic_days = intval($topic_days_value);
+if (!in_array($topic_days, $previous_days, true))
 {
-	$topic_days = ( !empty($_POST['topicdays']) ) ? intval($_POST['topicdays']) : intval($_GET['topicdays']);
+	$topic_days = 0;
+}
+if ($topic_days > 0)
+{
 	$min_topic_time = time() - ($topic_days * 86400);
 
 	$sql = "SELECT COUNT(t.topic_id) AS forum_topics
@@ -392,7 +396,7 @@ if ( !empty($_POST['topicdays']) || !empty($_GET['topicdays']) )
 	$topics_count = ( $row['forum_topics'] ) ? $row['forum_topics'] : 1;
 	$limit_topics_time = "AND p.post_time >= $min_topic_time";
 
-	if ( !empty($_POST['topicdays']) )
+	if (phpbb_request_scalar($_POST, 'topicdays') !== '')
 	{
 		$start = 0;
 	}

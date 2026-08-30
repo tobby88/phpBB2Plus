@@ -142,6 +142,9 @@ jobs:
       - name: Test mutation token safety
         run: php .github/scripts/check-mutation-token-safety.php
 
+      - name: Test browsing request safety
+        run: php .github/scripts/check-browsing-request-safety.php
+
       - name: Test Knowledge Base runtime safety
         run: php .github/scripts/check-kb-runtime-safety.php
 
