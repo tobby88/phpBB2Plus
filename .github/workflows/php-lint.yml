@@ -109,6 +109,9 @@ jobs:
       - name: Test topic preference safety
         run: php .github/scripts/check-topic-preference-safety.php
 
+      - name: Test group control safety
+        run: php .github/scripts/check-group-control-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 

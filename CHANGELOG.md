@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Consolidated public group membership and moderation writes behind one
+  POST-only, timing-safe session guard. Joining now verifies the open group
+  independently of its existing members, works for empty groups, avoids
+  duplicate pending rows and duplicate moderator notifications, while manual
+  member lookup uses database-driver escaping and missing records fail cleanly.
 - Bound the legacy topic-watch and bookmark fallback links to their session,
   action and topic. The normal AJAX controls remain POST-only and now return
   equally protected fallback URLs, while forged GET links can no longer add or
