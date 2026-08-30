@@ -51,20 +51,31 @@ $file = basename(__FILE__);
 //
 //  Get the Required Information
 //
-$mode               = $arcade->pass_var('mode', '');
-$edit               = $arcade->pass_var('edit', 0);
+$mode               = (string) $arcade->pass_var('mode', '');
+$allowed_modes      = array('scores', 'at_scores', 'delete', 'delete_at');
+if (!in_array($mode, $allowed_modes, true))
+{
+  message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+$edit               = max(0, (int) $arcade->pass_var('edit', 0));
 $arcade->game_name  = $arcade->pass_var('game_name', '');
-$game_id            = $arcade->pass_var('game_id', 0);
-$player_id          = $arcade->pass_var('player_id', 0);
-$score              = $arcade->pass_var('score', 0);
-$old_score          = $arcade->pass_var('old_score', 0);
+$game_id            = max(0, (int) $arcade->pass_var('game_id', 0));
+$player_id          = max(0, (int) $arcade->pass_var('player_id', 0));
+$score              = (float) $arcade->pass_var('score', 0);
+$old_score          = (float) $arcade->pass_var('old_score', 0);
+if (!is_finite($score) || !is_finite($old_score) || abs($score) > 9999999999.9999 || abs($old_score) > 9999999999.9999)
+{
+  message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+}
+$score = round($score, 4);
+$old_score = round($old_score, 4);
 $s_mode             = $lang['admin_edit_games'];
 $s_action           = append_sid("admin_arcade_games.$phpEx?mode=edit_games");
 $s_hidden           = '';
 //
 //  Set the Table we are working on
 //
-if($mode == 'scores' || $mode == 'delete')
+if($mode === 'scores' || $mode === 'delete')
 {
   $table = iNA_SCORES;
   $action = 'delete';
@@ -118,10 +129,7 @@ $arcade->sort_method($game_info['reverse_list']);
 //
 if(isset($HTTP_POST_VARS['submit']) && isset($HTTP_POST_VARS['score']))
 {
-  if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-  {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-  }
+  phpbb_admin_require_post_session();
   $sql = "UPDATE " . $table . " SET score = " . $score . "
     WHERE player_id = " . $player_id . "
     AND game_name = '" . $db->sql_escape($arcade->game_name) . "'
@@ -131,6 +139,7 @@ if(isset($HTTP_POST_VARS['submit']) && isset($HTTP_POST_VARS['score']))
   {
     message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
   }
+  $arcade->update_high($game_id);
 }
 //
 //  Default View
@@ -157,16 +166,13 @@ if($mode != '' && $game_id > 0)
 // Output Confirm 
 //
 		$message = sprintf($lang['arcade_score_sure'], $score, $player_id . ' (' . htmlspecialchars($arcade->get_username($player_id), ENT_QUOTES, 'UTF-8') . ')');
-		$message .= sprintf($lang['admin_score_options'], append_sid("admin_arcade_scores.$phpEx?mode=$action&amp;game_id=$game_id&amp;score=$score&amp;player_id=$player_id"), '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />');
+		$message .= sprintf($lang['admin_score_options'], append_sid("admin_arcade_scores.$phpEx?mode=$action&amp;game_id=$game_id&amp;score=" . rawurlencode((string) $score) . "&amp;player_id=$player_id"), phpbb_admin_session_field());
     		message_die(GENERAL_MESSAGE, $message, '', __LINE__, __FILE__, $sql);
      }
     }
     else
     {
-      if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-      {
-        message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-      }
+      phpbb_admin_require_post_session();
 //
 //  Delete Score Selected.
 //  
@@ -183,7 +189,7 @@ if($mode != '' && $game_id > 0)
 //
       $arcade->update_high($game_id);
       
-      $mode = ($mode == 'delete') ? 'scores' : 'scores_at';
+      $mode = ($mode == 'delete') ? 'scores' : 'at_scores';
     }
   }
 //
@@ -204,12 +210,16 @@ if($mode != '' && $game_id > 0)
 //
   for($i = 0; $i < count($score_info); $i++)
   {
+    if (!isset($score_info[$i]['player_id']) || $score_info[$i]['player_id'] === null)
+    {
+      continue;
+    }
     if($edit > 0 && $edit == $score_info[$i]['player_id'])
     {
       $score = '<input class="post" type="text" size="10" name="score" value="' . $score_info[$i]['score'] . '" />';
       $s_mode = $lang['Submit'];
       $s_action = append_sid("$file");
-      $s_hidden = '<input type="hidden" name="game_id" value="'.(int) $game_id.'"><input type="hidden" name="mode" value="'.htmlspecialchars($mode, ENT_QUOTES, 'UTF-8').'"><input type="hidden" name="player_id" value="'.(int) $player_id.'"><input type="hidden" name="old_score" value="'.htmlspecialchars($score_info[$i]['score'], ENT_QUOTES, 'UTF-8').'">';
+      $s_hidden = '<input type="hidden" name="game_id" value="'.(int) $game_id.'"><input type="hidden" name="mode" value="'.phpbb_admin_html($mode).'"><input type="hidden" name="player_id" value="'.(int) $score_info[$i]['player_id'].'"><input type="hidden" name="old_score" value="'.phpbb_admin_html($score_info[$i]['score']).'">';
     }
     else
     {
@@ -217,12 +227,12 @@ if($mode != '' && $game_id > 0)
     }
     
 		$template->assign_block_vars("highscores", array(
-		'PLAYER' => htmlspecialchars($score_info[$i]['username'], ENT_QUOTES, 'UTF-8'),
+		'PLAYER' => phpbb_admin_html(isset($score_info[$i]['username']) ? $score_info[$i]['username'] : ''),
         'SCORE' => $score,
         'DATE' => create_date($board_config['default_dateformat'], $score_info[$i]['date'], $board_config['board_timezone']),
         'TIME' => ($score_info[$i]['time_taken']) ? ($arcade->convert_time($score_info[$i]['time_taken'])) : '',
- 				'EDIT_IMG' => '<a href="'. append_sid("$file?mode=$mode&amp;edit=".$score_info[$i]['player_id']."&amp;game_id=$game_id&amp;player_id=".$score_info[$i]['player_id']) .'"><img src="./../' . $images['icon_edit'] . '" alt="' . $lang['Edit'] . '" title="' . $lang['Edit'] . '" border="0" /></a>',
-				'DELETE_IMG' => '<a href="'. append_sid("$file?mode=$action&amp;game_id=$game_id&amp;player_id=". $score_info[$i]['player_id'] . "&amp;score=".$score_info[$i]['score']) .'"><img src="./../' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . '" title="' . $lang['Delete'] . '" border="0" /></a>',
+				'EDIT_IMG' => '<a href="'. append_sid("$file?mode=$mode&amp;edit=".(int) $score_info[$i]['player_id']."&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id']) .'"><img src="./../' . $images['icon_edit'] . '" alt="' . $lang['Edit'] . '" title="' . $lang['Edit'] . '" border="0" /></a>',
+				'DELETE_IMG' => '<a href="'. append_sid("$file?mode=$action&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id'] . "&amp;score=".rawurlencode((string) $score_info[$i]['score'])) .'"><img src="./../' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . '" title="' . $lang['Delete'] . '" border="0" /></a>',
 				'IP_IMG' => '<a href="https://network-tools.com/default.asp?host='.rawurlencode($score_info[$i]['player_ip']).'" target="_blank"><img src="./../' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
        ));     
   }
@@ -239,7 +249,7 @@ $template->assign_vars(array(
     'VERSION' => $arcade->version,
 		
 		'S_MODE' => '<input type="submit" name="submit" value="'.$s_mode.'" class="mainoption" />',
-		'S_HIDDEN_FIELDS' => $s_hidden . '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+		'S_HIDDEN_FIELDS' => $s_hidden . phpbb_admin_session_field(),
 		'S_ACTION' => $s_action
 		));
 //

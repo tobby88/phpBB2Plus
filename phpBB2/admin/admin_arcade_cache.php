@@ -126,7 +126,7 @@ $template->set_filenames(array('body' => 'admin/arcade_cache.tpl'));
 //  Build Template
 //
 $template->assign_vars(array(
-	'S_GAME_ACTION' => append_sid("$file"),
+	'S_CONFIG_ACTION' => append_sid("$file"),
 	'VERSION' => $version,
 
 	'L_CACHE_MENU' => $lang['admin_cache_menu'],
@@ -158,11 +158,11 @@ $template->assign_vars(array(
   'S_USE_CACHE_YES' => ( $arcade->arcade_config['use_cache'] ) ? 'checked="checked"' : '',
   'S_USE_CACHE_NO' => ( !$arcade->arcade_config['use_cache'] ) ? 'checked="checked"' : '',
 
-  'S_CONFIG_CACHE' => ($arcade->arcade_config['config_cache'] / 60),
-  'S_CAT_CACHE' => ($arcade->arcade_config['categories_cache'] / 60),
-  'S_GAMES_CACHE' => ($arcade->arcade_config['games_cache'] / 60),
-  'S_HIGHSCORE_CACHE' => ($arcade->arcade_config['highscore_cache'] / 60),
-  'S_AT_HIGHSCORE_CACHE' => ($arcade->arcade_config['at_highscore_cache'] / 60),
+  'S_CONFIG_CACHE' => max(0, (int) $arcade->arcade_config['config_cache']) / 60,
+  'S_CAT_CACHE' => max(0, (int) $arcade->arcade_config['categories_cache']) / 60,
+  'S_GAMES_CACHE' => max(0, (int) $arcade->arcade_config['games_cache']) / 60,
+  'S_HIGHSCORE_CACHE' => max(0, (int) $arcade->arcade_config['highscore_cache']) / 60,
+  'S_AT_HIGHSCORE_CACHE' => max(0, (int) $arcade->arcade_config['at_highscore_cache']) / 60,
 		
 	'S_HIDDEN_FIELDS' => phpbb_admin_session_field() ));
 //

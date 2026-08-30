@@ -52,12 +52,12 @@ $file = basename(__FILE__);
 //
 // Lets start work :)
 //
-$mode         = $arcade->pass_var('mode', '', true);
-$start        = $arcade->pass_var('start', 0, true);
-$sort         = $arcade->pass_var('sort', 0, true);
-$purge        = isset($HTTP_POST_VARS['purge']) ? (string) $HTTP_POST_VARS['purge'] : '';
-$x            = isset($HTTP_POST_VARS['x']) ? intval($HTTP_POST_VARS['x']) : 0;
-$y            = isset($HTTP_POST_VARS['y']) ? intval($HTTP_POST_VARS['y']) : 0;
+$start        = max(0, (int) $arcade->pass_var('start', 0, true));
+$sort         = (int) $arcade->pass_var('sort', 0, true);
+$sort         = ($sort >= 0 && $sort <= 5) ? $sort : 0;
+$purge        = (isset($HTTP_POST_VARS['purge']) && is_scalar($HTTP_POST_VARS['purge'])) ? (string) $HTTP_POST_VARS['purge'] : '';
+$x            = (isset($HTTP_POST_VARS['x']) && is_scalar($HTTP_POST_VARS['x'])) ? intval($HTTP_POST_VARS['x']) : 0;
+$y            = (isset($HTTP_POST_VARS['y']) && is_scalar($HTTP_POST_VARS['y'])) ? intval($HTTP_POST_VARS['y']) : 0;
 $pagination   = '';
 $page_number  = '';
 //
@@ -93,10 +93,7 @@ switch($sort)
 //
 if($purge != '')
 {
-  if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-  {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-  }
+  phpbb_admin_require_post_session();
   if($sort < 1)
   {
     $sql = "TRUNCATE " . iNA_LOG;
@@ -115,10 +112,7 @@ if($purge != '')
 //
 if($x > 0 && $y > 0)
 {
-  if (!isset($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
-  {
-    message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-  }
+  phpbb_admin_require_post_session();
   $record_no = isset($HTTP_POST_VARS['record_no']) ? $HTTP_POST_VARS['record_no'] : 0;
   
   if(is_array($record_no))
@@ -163,9 +157,10 @@ $sql = "SELECT u.username, l.*, COUNT(l.record_no) AS count FROM " . iNA_LOG . "
 //
 //  Use the games per page to display the results
 //
-if($arcade->arcade_config['games_per_admin_page'] > 0)
+$games_per_admin_page = max(1, intval(isset($arcade->arcade_config['games_per_admin_page']) ? $arcade->arcade_config['games_per_admin_page'] : 20));
+if($games_per_admin_page > 0)
 {
-  $sql .= " LIMIT ".$start.",".$arcade->arcade_config['games_per_admin_page'];
+  $sql .= " LIMIT ".$start.",".$games_per_admin_page;
 }
 if(!($result = $db->sql_query($sql)))
 {
@@ -189,15 +184,14 @@ else
     $template->assign_block_vars('log_record', array(
       'RECORD_NO' => $error_log[$i]['record_no'],
       'RECORD_DATE' => $date,
-      'RECORD_NAME' => htmlspecialchars($error_log[$i]['name'], ENT_QUOTES, 'UTF-8'),
-      'RECORD_USERNAME' => htmlspecialchars($error_log[$i]['username'], ENT_QUOTES, 'UTF-8'),
-      'RECORD_DATA' => htmlspecialchars($error_log[$i]['value'], ENT_QUOTES, 'UTF-8')
+      'RECORD_NAME' => phpbb_admin_html($error_log[$i]['name']),
+      'RECORD_USERNAME' => phpbb_admin_html(isset($error_log[$i]['username']) ? $error_log[$i]['username'] : ''),
+      'RECORD_DATA' => phpbb_admin_html($error_log[$i]['value'])
         ));
   }
 //
 //  Pagination
 //
-	$games_per_admin_page = max(1, intval(isset($arcade->arcade_config['games_per_admin_page']) ? $arcade->arcade_config['games_per_admin_page'] : 20));
   if ( $record_count >= $games_per_admin_page )
   {
 	  	$pagination = generate_pagination("$file?sort=$sort", $record_count, $games_per_admin_page, $start) . '&nbsp;';
@@ -222,7 +216,7 @@ $template->assign_vars(array(
   'PAGINATION' => $pagination,
   
   'S_ACTION' => append_sid("$file"),
-  'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
+  'S_FORM_TOKEN' => phpbb_admin_session_field()
 ));
 //
 // Generate the page

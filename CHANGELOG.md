@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repaired and consolidated Arcade cache, error-log and score maintenance. The
+  cache form now submits to its real action; log and score mutations use the
+  central session-bound AdminCP token; pagination, modes, identifiers and score
+  values are normalized. Score edits are bound to the displayed player and
+  refresh highscore state, while the empty, unregistered Arcade ban stub was
+  removed as dead code.
 - Hardened Arcade game editing, importing, ordering and maintenance. Every
   write and confirmation now carries and verifies the central AdminCP session
   token; IDs, pagination, import paths, categories and form values are bounded

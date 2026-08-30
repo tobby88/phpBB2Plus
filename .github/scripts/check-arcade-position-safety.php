@@ -15,6 +15,9 @@ $english = file_get_contents($root . '/phpBB2/language/lang_english/lang_extend_
 $german = file_get_contents($root . '/phpBB2/language/lang_german/lang_extend_arcade.php');
 $admin_config = file_get_contents($root . '/phpBB2/admin/admin_arcade.php');
 $admin_games = file_get_contents($root . '/phpBB2/admin/admin_arcade_games.php');
+$admin_cache = file_get_contents($root . '/phpBB2/admin/admin_arcade_cache.php');
+$admin_log = file_get_contents($root . '/phpBB2/admin/admin_arcade_log.php');
+$admin_scores = file_get_contents($root . '/phpBB2/admin/admin_arcade_scores.php');
 $config_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/arcade_config_body.tpl');
 
 arcade_position_assert(strpos($functions, "isset(\$lang['games_position_text'])") !== false, 'positions must use the regular language array');
@@ -37,5 +40,12 @@ arcade_position_assert(strpos($admin_games, 'arcade_admin_delete_game_references
 arcade_position_assert(strpos($admin_games, 'WHERE game_id = $old_id') !== false, 'game reordering must verify its source record');
 arcade_position_assert(strpos($admin_games, "AND cat_type <> 'l'") !== false, 'imports must target a real playable category');
 arcade_position_assert(strpos($admin_games, '$admin_page_size = max(0, (int)') !== false, 'Arcade pagination limits must be numeric');
+arcade_position_assert(!is_file($root . '/phpBB2/admin/admin_arcade_ban.php'), 'the empty, unregistered Arcade ban stub must remain removed');
+arcade_position_assert(strpos($admin_cache, "'S_CONFIG_ACTION' =>") !== false, 'the Arcade cache form must use the template action it actually renders');
+arcade_position_assert(strpos($admin_log, 'phpbb_admin_require_post_session();') !== false && strpos($admin_log, 'phpbb_admin_session_field()') !== false, 'Arcade log deletion must use the central AdminCP token');
+arcade_position_assert(strpos($admin_scores, '$allowed_modes') !== false, 'Arcade score actions must use an allowlist');
+arcade_position_assert(strpos($admin_scores, 'phpbb_admin_require_post_session();') !== false, 'Arcade score writes must verify the central AdminCP token');
+arcade_position_assert(strpos($admin_scores, "(int) \$score_info[\$i]['player_id']") !== false, 'score editing must bind the submitted player to the displayed row');
+arcade_position_assert(substr_count($admin_scores, '$arcade->update_high($game_id);') >= 2, 'score edits and deletions must refresh highscore state');
 
 echo "Arcade position safety tests passed.\n";
