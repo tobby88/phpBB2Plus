@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened general board configuration writes with session-bound POST checks,
+  scalar-only values, database-driver escaping and the actual 255-character
+  schema bound. Displayed configuration values and forum names are escaped
+  consistently, server schemes are normalized, and the writable avatar path
+  can no longer traverse outside the forum directory. CrackerTracker's
+  misconfiguration checks and pre-change recovery snapshot remain integrated.
 - Protected user bulk actions, inactive-account deletion and ban management
   with the centralized AdminCP POST/session check. Bulk activation, blocking
   and group assignment can no longer target administrator accounts. Ban input

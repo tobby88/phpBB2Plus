@@ -144,3 +144,6 @@ jobs:
 
       - name: Test user administration safety
         run: php .github/scripts/check-user-admin-safety.php
+
+      - name: Test board configuration safety
+        run: php .github/scripts/check-board-admin-safety.php

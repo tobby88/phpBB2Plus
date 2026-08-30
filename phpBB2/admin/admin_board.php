@@ -30,6 +30,11 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_selects.'.$phpEx);
+$is_submit = isset($_POST['submit']);
+if ($is_submit)
+{
+	phpbb_admin_require_post_session();
+}
 
 //
 // Pull all config data
@@ -43,27 +48,27 @@ if(!$result = $db->sql_query($sql))
 else
 {
 	// CrackerTracker v5.x
-	if ( isset($HTTP_POST_VARS['submit']) && $ctracker_config->settings['detect_misconfiguration'] == 1 )
+	if ( $is_submit && $ctracker_config->settings['detect_misconfiguration'] == 1 )
 	{
-		if ( $HTTP_POST_VARS['server_port'] == '21' )
+		if ( phpbb_admin_post_string('server_port') == '21' )
 		{
 			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_1']);
 		}
-		if ( $HTTP_POST_VARS['session_length'] < '100' )
+		if ( intval(phpbb_admin_post_string('session_length')) < 100 )
 		{
 			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_2']);
 		}
-		if ( !preg_match('/\\A\/$|\\A\/.*\/$/', $HTTP_POST_VARS['script_path']) )
+		if ( !preg_match('/\\A\/$|\\A\/.*\/$/', phpbb_admin_post_string('script_path')) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_3']);
 		}
-		if ( preg_match('/\/$/', $HTTP_POST_VARS['server_name']) )
+		if ( preg_match('/\/$/', phpbb_admin_post_string('server_name')) )
 		{
 			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_4']);
 		}
 	}
 
-	if ( isset($HTTP_POST_VARS['submit']) && $ctracker_config->settings['auto_recovery'] == 1 )
+	if ( $is_submit && $ctracker_config->settings['auto_recovery'] == 1 )
 	{
 		define('CTRACKER_ACP', true);
 		include_once($phpbb_root_path . 'ctracker/classes/class_ct_adminfunctions.' . $phpEx);
@@ -76,9 +81,14 @@ else
 	{
 		$config_name = $row['config_name'];
 		$config_value = $row['config_value'];
-		$default_config[$config_name] = isset($_POST['submit']) ? str_replace("'", "\'", $config_value) : $config_value;
-		
-		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
+		$default_config[$config_name] = $config_value;
+		$new[$config_name] = ($is_submit && isset($_POST[$config_name]) && is_scalar($_POST[$config_name]))
+			? phpbb_admin_post_string($config_name)
+			: $default_config[$config_name];
+		if ($is_submit && strlen($new[$config_name]) > 255)
+		{
+			message_die(GENERAL_MESSAGE, 'The submitted value for ' . phpbb_admin_html($config_name) . ' is too long.');
+		}
 
 		if ($config_name == 'cookie_name')
 		{
@@ -89,22 +99,23 @@ else
 		// http:// is the protocol and not part of the server name
 		if ($config_name == 'server_name')
 		{
-			$new['server_name'] = str_replace('http://', '', $new['server_name']);
+			$new['server_name'] = preg_replace('#^https?://#i', '', trim($new['server_name']));
 		}
 		// Attempt to prevent a mistake with this value.
 		if ($config_name == 'avatar_path')
 		{
-			$new['avatar_path'] = trim($new['avatar_path']);
-			if (strstr($new['avatar_path'], "\0") || !is_dir($phpbb_root_path . $new['avatar_path']) || !is_writable($phpbb_root_path . $new['avatar_path']))
+			$new['avatar_path'] = str_replace('\\', '/', trim($new['avatar_path']));
+			if (strstr($new['avatar_path'], "\0") || preg_match('#(?:^|/)\.\.(?:/|$)#', $new['avatar_path']) || substr($new['avatar_path'], 0, 1) === '/' ||
+				!is_dir($phpbb_root_path . $new['avatar_path']) || !is_writable($phpbb_root_path . $new['avatar_path']))
 			{
 				$new['avatar_path'] = $default_config['avatar_path'];
 			}
 		}
-		if( isset($_POST['submit']) )
+		if( $is_submit )
 		{
 			$sql = "UPDATE " . CONFIG_TABLE . " SET
-				config_value = '" . str_replace("\'", "''", $new[$config_name]) . "'
-				WHERE config_name = '$config_name'";
+				config_value = '" . $db->sql_escape($new[$config_name]) . "'
+				WHERE config_name = '" . $db->sql_escape($config_name) . "'";
 			if( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, "Failed to update general configuration for $config_name", "", __LINE__, __FILE__, $sql);
@@ -112,7 +123,7 @@ else
 		}
 	}
 
-	if( isset($_POST['submit']) )
+	if( $is_submit )
 	{
 		$message = $lang['Config_updated'] . "<br /><br />" . sprintf($lang['Click_return_config'], "<a href=\"" . append_sid("admin_board.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -234,24 +245,21 @@ $report_forum_select_list = '<select name="report_forum">';
 $report_forum_select_list .= '<option value="0">' . $lang['None'] . '</option>';
 for($i = 0; $i < count($report_forum_rows); $i++)
 {
-	$report_forum_select_list .= '<option value="' . $report_forum_rows[$i]['forum_id'] . '">' . $report_forum_rows[$i]['forum_name'] . '</option>';
+	$report_forum_select_list .= '<option value="' . intval($report_forum_rows[$i]['forum_id']) . '">' . phpbb_admin_html($report_forum_rows[$i]['forum_name']) . '</option>';
 }
 $report_forum_select_list .= '</select>';
 $report_forum_select_list = str_replace("value=\"".$new['report_forum']."\">", "value=\"".$new['report_forum']."\" SELECTED>*" ,$report_forum_select_list);
 
-//
-// Escape any quotes in the site description for proper display in the text
-// box on the admin page 
-//
-$new['site_desc'] = str_replace('"', '&quot;', $new['site_desc']);
-$new['sitename'] = str_replace('"', '&quot;', strip_tags($new['sitename']));
-
-// BEGIN Disable Registration MOD
-$new['registration_closed'] = str_replace('"', '&quot;', $new['registration_closed']);
-// END Disable Registration MOD
+$date_format_select = admin_date_format_select($new['default_dateformat'], $new['board_timezone']);
+foreach ($new as $config_name => $config_value)
+{
+	$new[$config_name] = phpbb_admin_html($config_value);
+}
+$html_tags = phpbb_admin_html($html_tags);
 
 $template->assign_vars(array(
 	"S_CONFIG_ACTION" => append_sid("admin_board.$phpEx"),
+	"S_HIDDEN_FIELDS" => phpbb_admin_session_field(),
 
 	"L_YES" => $lang['Yes'],
 	"L_NO" => $lang['No'],
@@ -459,7 +467,7 @@ $template->assign_vars(array(
 	"OVERRIDE_STYLE_NO" => $override_user_style_no,
 	"LANG_SELECT" => $lang_select,
 	"L_DATE_FORMAT_EXPLAIN" => $lang['Date_format_explain'],
-	"DEFAULT_DATEFORMAT" => admin_date_format_select($new['default_dateformat'], $new['board_timezone']),
+	"DEFAULT_DATEFORMAT" => $date_format_select,
 	"TIMEZONE_SELECT" => $timezone_select,
 	"S_PRIVMSG_ENABLED" => $privmsg_on, 
 	"S_PRIVMSG_DISABLED" => $privmsg_off, 
