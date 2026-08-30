@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the legacy Arcade score protocols, including GET-capable Flash
+  callbacks, with a shared strict same-origin check that remains compatible
+  with older clients lacking browser metadata. IBPro logging no longer calls
+  MySQLi behind the active database driver, its score challenge uses the
+  compatibility-safe random source and validates challenge/score bounds.
+  Arcade-generated private messages now use driver escaping, bounded inbox
+  configuration, real recipient names and allowlisted installed languages.
 - Hardened Album uploads from staging through persistence. The storage path is
   now bound to the owning Nuffload session, actual server-side file sizes and
   image signatures determine acceptance and extensions instead of client MIME

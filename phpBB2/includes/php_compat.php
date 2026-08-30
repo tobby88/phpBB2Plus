@@ -253,6 +253,51 @@ if (!function_exists('phpbb_request_origin_is_valid'))
 }
 
 /**
+ * Origin check for legacy endpoints which may change state through GET because
+ * the embedded game protocol predates normal HTML form conventions.
+ */
+if (!function_exists('phpbb_request_source_is_same_origin'))
+{
+	function phpbb_request_source_is_same_origin()
+	{
+		$fetch_site = isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_scalar($_SERVER['HTTP_SEC_FETCH_SITE'])
+			? strtolower(trim((string) $_SERVER['HTTP_SEC_FETCH_SITE']))
+			: '';
+		if ($fetch_site === 'cross-site' || $fetch_site === 'same-site')
+		{
+			return false;
+		}
+
+		$origin = isset($_SERVER['HTTP_ORIGIN']) && is_scalar($_SERVER['HTTP_ORIGIN'])
+			? trim((string) $_SERVER['HTTP_ORIGIN'])
+			: '';
+		if ($origin === '')
+		{
+			// Older Flash clients provide neither Origin nor Fetch Metadata.
+			return true;
+		}
+		if (strtolower($origin) === 'null')
+		{
+			return false;
+		}
+
+		$actual = @parse_url($origin);
+		$expected = @parse_url(phpbb_board_url());
+		if (!$actual || !$expected || empty($actual['scheme']) || empty($actual['host']) ||
+			!in_array(strtolower($actual['scheme']), array('http', 'https'), true))
+		{
+			return false;
+		}
+		$actual_port = isset($actual['port']) ? (int) $actual['port'] : (strtolower($actual['scheme']) === 'https' ? 443 : 80);
+		$expected_port = isset($expected['port']) ? (int) $expected['port'] : (strtolower($expected['scheme']) === 'https' ? 443 : 80);
+
+		return strtolower($actual['scheme']) === strtolower($expected['scheme'])
+			&& strtolower($actual['host']) === strtolower($expected['host'])
+			&& $actual_port === $expected_port;
+	}
+}
+
+/**
  * Bind a compact action capability to the current session without storing
  * additional server-side state. This is intended for legacy GET controls
  * which cannot be converted to forms without breaking their UI contract.

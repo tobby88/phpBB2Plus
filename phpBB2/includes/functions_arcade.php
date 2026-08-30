@@ -667,7 +667,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
   {
   	global $db, $phpbb_root_path, $phpEx, $lang, $user_ip, $board_config, $userdata, $arcade;
   }
-	if(!($arcade->arcade_config('games_use_pms')) || $userdata['games_block_pm'] || !$dest_user)
+	if(!($arcade->arcade_config('games_use_pms')) || !empty($userdata['games_block_pm']) || !$dest_user)
 	{
 		return;
 	}
@@ -705,9 +705,9 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 		}
 		else
 		{
-			$sql = "SELECT user_id, user_notify_pm, user_email, user_lang, user_active, games_block_pm
+			$sql = "SELECT user_id, username, user_notify_pm, user_email, user_lang, user_active, games_block_pm
 			 	FROM ". USERS_TABLE ."
-			 	WHERE user_id = '". $dest_user ."'";
+				WHERE user_id = ". $dest_user;
 			if (!($result = $db->sql_query($sql)))
 			{
 				$error = TRUE;
@@ -716,7 +716,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 			}
 			$to_userdata = $db->sql_fetchrow($result);
 
-			if($to_userdata['games_block_pm'] || !$to_userdata)
+			if(!$to_userdata || $to_userdata['games_block_pm'])
 			{
 				return;
 			}
@@ -726,7 +726,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 				WHERE ( privmsgs_type = ". PRIVMSGS_NEW_MAIL ."
 			  	OR privmsgs_type = ". PRIVMSGS_READ_MAIL ." 
 				OR privmsgs_type = ". PRIVMSGS_UNREAD_MAIL ." )
-				AND privmsgs_to_userid = '". $dest_user ."'";
+				AND privmsgs_to_userid = ". $dest_user;
 			if (!($result = $db->sql_query($sql)))
 			{
 				message_die(GENERAL_MESSAGE, $lang['No_such_user']);
@@ -736,7 +736,8 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 
 			if($inbox_info = $db->sql_fetchrow($result))
 			{
-				if ($inbox_info['inbox_items'] >= $board_config['max_inbox_privmsgs'])
+				$max_inbox_privmsgs = max(1, intval($board_config['max_inbox_privmsgs']));
+				if ((int) $inbox_info['inbox_items'] >= $max_inbox_privmsgs)
 				{
 					$sql = "SELECT privmsgs_id 
 						FROM ". PRIVMSGS_TABLE ."
@@ -744,17 +745,21 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 						OR privmsgs_type = ". PRIVMSGS_READ_MAIL ."
 						OR privmsgs_type = ". PRIVMSGS_UNREAD_MAIL ."  )
 						AND privmsgs_date = ". $inbox_info['oldest_post_time'] . "
-						AND privmsgs_to_userid = '". $dest_user ."'";
+						AND privmsgs_to_userid = ". $dest_user;
 					if (!$result = $db->sql_query($sql))
 					{	
 						message_die(GENERAL_ERROR, 'Could not find oldest privmsgs (inbox)', '', __LINE__, __FILE__, $sql);
 					}
 					$old_privmsgs_id = $db->sql_fetchrow($result);
-					$old_privmsgs_id = $old_privmsgs_id['privmsgs_id'];
+					$old_privmsgs_id = $old_privmsgs_id ? intval($old_privmsgs_id['privmsgs_id']) : 0;
+					if ($old_privmsgs_id < 1)
+					{
+						return;
+					}
            
 					$sql = "DELETE $sql_priority 
 						FROM ". PRIVMSGS_TABLE ."
-						WHERE privmsgs_id = '". $old_privmsgs_id ."'";
+						WHERE privmsgs_id = ". $old_privmsgs_id;
 					if(!$db->sql_query($sql))
 					{
 						message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs (inbox)'.$sql, '', __LINE__, __FILE__, $sql);
@@ -762,17 +767,22 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 
 					$sql = "DELETE $sql_priority 
 						FROM " . PRIVMSGS_TEXT_TABLE . "
-						WHERE privmsgs_text_id = '". $old_privmsgs_id ."'";
+						WHERE privmsgs_text_id = ". $old_privmsgs_id;
 					if (!$db->sql_query($sql))
 					{
 						message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql);
 					}
 				}
 			}
-     
+			$privmsg_subject_sql = $db->sql_escape($privmsg_subject);
+			$privmsg_message_sql = $db->sql_escape($privmsg_message);
+			$bbcode_uid_sql = $db->sql_escape($bbcode_uid);
+			$user_ip_sql = $db->sql_escape($user_ip);
+			$from_id = intval($from_id);
+			$to_user_id = intval($to_userdata['user_id']);
 			$sql_info = "INSERT INTO ". PRIVMSGS_TABLE ." 
 					(privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies)
-					VALUES ( 1 , '". str_replace("\'", "''", addslashes($privmsg_subject)) ."' , ". $from_id .", ". $to_userdata['user_id'] .", $msg_time, '$user_ip' , $html_on, $bbcode_on, $smilies_on)";
+					VALUES (1, '$privmsg_subject_sql', $from_id, $to_user_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on)";
 			if(!$db->sql_query($sql_info))
 			{
 				message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql_info);
@@ -781,7 +791,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 			$privmsg_sent_id = $db->sql_nextid();
 
 			$sql = "INSERT INTO ". PRIVMSGS_TEXT_TABLE ." (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
-				VALUES ($privmsg_sent_id, '" . $bbcode_uid . "', '" . str_replace("\'", "''", addslashes($privmsg_message)) . "')"; 
+				VALUES (" . intval($privmsg_sent_id) . ", '$bbcode_uid_sql', '$privmsg_message_sql')";
 			if (!$db->sql_query($sql, END_TRANSACTION))
 			{
 				message_die(GENERAL_ERROR, "Could not insert/update private message sent text.", "", __LINE__, __FILE__, $sql);
@@ -789,7 +799,7 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 
 			$sql = "UPDATE ". USERS_TABLE ."
 				SET user_new_privmsg = user_new_privmsg + 1, user_last_privmsg = " . time() . " 
-				WHERE user_id = '". $to_userdata['user_id'] ."'";
+				WHERE user_id = ". $to_user_id;
 			if(!$status = $db->sql_query($sql))
 			{
 				message_die(GENERAL_ERROR, 'Could not update private message new/read status for user', '', __LINE__, __FILE__, $sql);
@@ -801,11 +811,19 @@ function ina_send_user_pm($dest_user, $subject, $message, $from_id = -1, $quiet 
 			$emailer = new emailer($board_config['smtp_delivery']);
 			$emailer->from($board_config['board_email']);
 			$emailer->replyto($board_config['board_email']);
-			$emailer->use_template('privmsg_notify', $to_userdata['user_lang']);
+			$default_mail_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&
+				is_dir($phpbb_root_path . 'language/lang_' . $board_config['default_lang'])
+				? (string) $board_config['default_lang']
+				: 'english';
+			$mail_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $to_userdata['user_lang']) &&
+				is_dir($phpbb_root_path . 'language/lang_' . $to_userdata['user_lang'])
+				? (string) $to_userdata['user_lang']
+				: $default_mail_language;
+			$emailer->use_template('privmsg_notify', $mail_language);
 			$emailer->email_address($to_userdata['user_email']);
 			$emailer->set_subject($lang['Notification_subject']);
 			$emailer->assign_vars(array(
-				'USERNAME' => $to_username,
+				'USERNAME' => $to_userdata['username'],
 				'SITENAME' => $board_config['sitename'],
 				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
 				'U_INBOX' => phpbb_board_url('privmsg.'.$phpEx.'?folder=inbox'))

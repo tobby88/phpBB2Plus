@@ -28,6 +28,11 @@ include_once($phpbb_root_path . 'includes/constants_arcade.'.$phpEx);
 $userdata			= session_pagestart($user_ip, PAGE_ACTIVITY);
 init_userprefs($userdata);
 include_once($phpbb_root_path . 'includes/functions_arcade.'.$phpEx);
+if (!phpbb_request_source_is_same_origin())
+{
+	print "&opSuccess=Missing info&endvar=1";
+	exit;
+}
 $arcade_version = $arcade->arcade_config('version');
 //
 // End session management
