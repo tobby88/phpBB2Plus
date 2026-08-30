@@ -45,15 +45,19 @@ include($album_root_path . 'album_common.'.$phpEx);
 // Check the request
 // ------------------------------------
 
-if( isset($_GET['pic_id']) )
+if( isset($_GET['pic_id']) && is_scalar($_GET['pic_id']) )
 {
 	$pic_id = intval($_GET['pic_id']);
 }
-else if( isset($_POST['pic_id']) )
+else if( isset($_POST['pic_id']) && is_scalar($_POST['pic_id']) )
 {
 	$pic_id = intval($_POST['pic_id']);
 }
 else
+{
+	message_die(GENERAL_ERROR, 'No pics specified');
+}
+if ($pic_id <= 0)
 {
 	message_die(GENERAL_ERROR, 'No pics specified');
 }
@@ -66,7 +70,7 @@ else
 // ------------------------------------
 $sql = "SELECT p.*, c.*
 		FROM ". ALBUM_TABLE ." AS p, ". ALBUM_CAT_TABLE ."  AS c
-		WHERE p.pic_id = '$pic_id'
+		WHERE p.pic_id = $pic_id
 			AND c.cat_id = p.pic_cat_id";
 
 if( !($result = $db->sql_query($sql)) )
@@ -74,17 +78,15 @@ if( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
 }
 $thispic = $db->sql_fetchrow($result);
-
-$cat_id = $thispic['cat_id'];
-$album_user_id = $thispic['cat_user_id'];
-
-$pic_filename = $thispic['pic_filename'];
-$pic_thumbnail = $thispic['pic_thumbnail'];
+$db->sql_freeresult($result);
 
 if( empty($thispic) )
 {
 	message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
 }
+
+$cat_id = intval($thispic['cat_id']);
+$album_user_id = intval($thispic['cat_user_id']);
 
 // ------------------------------------
 // Check the permissions
@@ -105,7 +107,7 @@ if ($album_user_access['delete'] == 0)
 }
 else
 {
-	if( (!$album_user_access['moderator']) or ($userdata['user_level'] != ADMIN) )
+	if (!$album_user_access['moderator'] && $userdata['user_level'] != ADMIN)
 	{
 		if ($thispic['pic_user_id'] != $userdata['user_id'])
 		{
@@ -123,7 +125,9 @@ else
 */
 
 $confirmed = isset($_POST['confirm']);
-if ($confirmed && (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
+if ($confirmed &&
+	($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) ||
+	!hash_equals((string) $userdata['session_id'], (string) $_POST['sid'])))
 {
 	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 }
@@ -175,7 +179,7 @@ else
 	// It's confirmed. First delete all comments
 	// --------------------------------
 	$sql = "DELETE FROM ". ALBUM_COMMENT_TABLE ."
-			WHERE comment_pic_id = '$pic_id'";
+			WHERE comment_pic_id = $pic_id";
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not delete related comments', '', __LINE__, __FILE__, $sql);
@@ -186,7 +190,7 @@ else
 	// Delete all ratings
 	// --------------------------------
 	$sql = "DELETE FROM ". ALBUM_RATE_TABLE ."
-			WHERE rate_pic_id = '$pic_id'";
+			WHERE rate_pic_id = $pic_id";
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not delete related ratings', '', __LINE__, __FILE__, $sql);
@@ -212,7 +216,7 @@ else
 	// Delete DB entry
 	// --------------------------------
 	$sql = "DELETE FROM ". ALBUM_TABLE ."
-			WHERE pic_id = '$pic_id'";
+			WHERE pic_id = $pic_id";
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not delete DB entry', '', __LINE__, __FILE__, $sql);

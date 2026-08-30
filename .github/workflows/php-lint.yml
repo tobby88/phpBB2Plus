@@ -100,6 +100,9 @@ jobs:
       - name: Test personal-album category safety
         run: php .github/scripts/check-album-personal-safety.php
 
+      - name: Test public Album action safety
+        run: php .github/scripts/check-album-public-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 

@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the public Album edit and delete endpoints with scalar positive
+  identifiers, explicit POST-only session-token checks and database-driver
+  escaping. Missing picture records are now rejected before their fields are
+  read, authorized category moderators can manage pictures without also being
+  global administrators, and comment edits remain bound to the picture that
+  was verified during authorization.
 - Removed obsolete magic-quotes emulation from Nuffload and paFileDB instead
   of reprocessing request globals already normalized by `common.php`. The
   Attachment MOD no longer calls removed driver-specific `mysql_*`/PostgreSQL

@@ -69,15 +69,19 @@ if( $album_config['comment'] == 0 )
 // Check the request
 // ------------------------------------
 
-if( isset($_GET['comment_id']) )
+if( isset($_GET['comment_id']) && is_scalar($_GET['comment_id']) )
 {
 	$comment_id = intval($_GET['comment_id']);
 }
-else if( isset($_POST['comment_id']) )
+else if( isset($_POST['comment_id']) && is_scalar($_POST['comment_id']) )
 {
 	$comment_id = intval($_POST['comment_id']);
 }
 else
+{
+	message_die(GENERAL_ERROR, 'No comment_id specified');
+}
+if ($comment_id <= 0)
 {
 	message_die(GENERAL_ERROR, 'No comment_id specified');
 }
@@ -88,7 +92,7 @@ else
 // ------------------------------------
 $sql = "SELECT *
 		FROM ". ALBUM_COMMENT_TABLE ."
-		WHERE comment_id = '$comment_id'";
+		WHERE comment_id = $comment_id";
 
 if( !($result = $db->sql_query($sql)) )
 {
@@ -96,6 +100,7 @@ if( !($result = $db->sql_query($sql)) )
 }
 
 $thiscomment = $db->sql_fetchrow($result);
+$db->sql_freeresult($result);
 
 if( empty($thiscomment) )
 {
@@ -103,22 +108,7 @@ if( empty($thiscomment) )
 }
 
 
-// ------------------------------------
-// Get $pic_id from $comment_id
-// ------------------------------------
-
-$sql = "SELECT comment_id, comment_pic_id
-		FROM ". ALBUM_COMMENT_TABLE ."
-		WHERE comment_id = '$comment_id'";
-
-if( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, 'Could not query comment and pic information', '', __LINE__, __FILE__, $sql);
-}
-
-$row = $db->sql_fetchrow($result);
-
-$pic_id = $row['comment_pic_id'];
+$pic_id = intval($thiscomment['comment_pic_id']);
 
 
 //--- Album Category Hierarchy : begin
@@ -132,7 +122,7 @@ $sql = "SELECT p.*, cat.*, u.user_id, u.username, COUNT(c.comment_id) as comment
 		FROM ". ALBUM_CAT_TABLE ."  AS cat, ". ALBUM_TABLE ." AS p
 			LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
 			LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-		WHERE pic_id = '$pic_id'
+		WHERE pic_id = $pic_id
 			AND cat.cat_id = p.pic_cat_id
 		GROUP BY p.pic_id
 		LIMIT 1";
@@ -142,20 +132,17 @@ if( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
 }
 $thispic = $db->sql_fetchrow($result);
-
-$cat_id = $thispic['pic_cat_id'];
-$album_user_id = $thispic['cat_user_id'];
-
-$total_comments = $thispic['comments_count'];
-$comments_per_page = $board_config['posts_per_page'];
-
-$pic_filename = $thispic['pic_filename'];
-$pic_thumbnail = $thispic['pic_thumbnail'];
+$db->sql_freeresult($result);
 
 if( empty($thispic) )
 {
 	message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
 }
+
+$cat_id = intval($thispic['pic_cat_id']);
+$album_user_id = intval($thispic['cat_user_id']);
+$total_comments = intval($thispic['comments_count']);
+$comments_per_page = intval($board_config['posts_per_page']);
 
 
 // ------------------------------------
@@ -304,7 +291,7 @@ if( !isset($_POST['comment']) )
 }
 else
 {
-	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']) || !is_scalar($_POST['comment']))
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']) || !is_scalar($_POST['comment']))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
@@ -313,7 +300,7 @@ else
               Comment Submited
 	   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-	$comment_text = str_replace("\'", "''", htmlspecialchars(substr(trim($_POST['comment']), 0, $album_config['desc_length'])));
+	$comment_text = htmlspecialchars(substr(trim(stripslashes((string) $_POST['comment'])), 0, intval($album_config['desc_length'])), ENT_QUOTES, 'UTF-8');
 
 	if( empty($comment_text) )
 	{
@@ -326,7 +313,7 @@ else
 	// --------------------------------
 
 	$comment_edit_time = time();
-	$comment_edit_user_id = $userdata['user_id'];
+	$comment_edit_user_id = intval($userdata['user_id']);
 
 
 	// --------------------------------
@@ -334,8 +321,9 @@ else
 	// --------------------------------
 
 	$sql = "UPDATE ". ALBUM_COMMENT_TABLE ."
-			SET comment_text = '$comment_text', comment_edit_time = '$comment_edit_time', comment_edit_count = comment_edit_count + 1, comment_edit_user_id = '$comment_edit_user_id'
-			WHERE comment_id = '$comment_id'";
+			SET comment_text = '" . $db->sql_escape($comment_text) . "', comment_edit_time = $comment_edit_time, comment_edit_count = comment_edit_count + 1, comment_edit_user_id = $comment_edit_user_id
+			WHERE comment_id = $comment_id
+				AND comment_pic_id = $pic_id";
 
 	if( !$result = $db->sql_query($sql) )
 	{

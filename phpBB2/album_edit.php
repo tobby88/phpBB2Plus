@@ -45,15 +45,19 @@ include($album_root_path . 'album_common.'.$phpEx);
 // Check the request
 // ------------------------------------
 
-if( isset($_GET['pic_id']) )
+if( isset($_GET['pic_id']) && is_scalar($_GET['pic_id']) )
 {
 	$pic_id = intval($_GET['pic_id']);
 }
-else if( isset($_POST['pic_id']) )
+else if( isset($_POST['pic_id']) && is_scalar($_POST['pic_id']) )
 {
 	$pic_id = intval($_POST['pic_id']);
 }
 else
+{
+	message_die(GENERAL_ERROR, 'No pics specified');
+}
+if ($pic_id <= 0)
 {
 	message_die(GENERAL_ERROR, 'No pics specified');
 }
@@ -66,7 +70,7 @@ else
 // ------------------------------------
 $sql = "SELECT p.*, c.*
 		FROM ". ALBUM_TABLE ." AS p, ". ALBUM_CAT_TABLE ."  AS c
-		WHERE p.pic_id = '$pic_id'
+		WHERE p.pic_id = $pic_id
 			AND c.cat_id = p.pic_cat_id";
 
 if( !($result = $db->sql_query($sql)) )
@@ -74,17 +78,15 @@ if( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, 'Could not query pic information', '', __LINE__, __FILE__, $sql);
 }
 $thispic = $db->sql_fetchrow($result);
-
-$cat_id = $thispic['cat_id'];
-$album_user_id = $thispic['cat_user_id'];
-
-$pic_filename = $thispic['pic_filename'];
-$pic_thumbnail = $thispic['pic_thumbnail'];
+$db->sql_freeresult($result);
 
 if( empty($thispic) )
 {
 	message_die(GENERAL_ERROR, $lang['Pic_not_exist']);
 }
+
+$cat_id = intval($thispic['cat_id']);
+$album_user_id = intval($thispic['cat_user_id']);
 
 // ------------------------------------
 // Check the permissions
@@ -169,7 +171,7 @@ if( !isset($_POST['pic_title']) )
 }
 else
 {
-	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']) || !is_scalar($_POST['pic_title']) || (isset($_POST['pic_desc']) && !is_scalar($_POST['pic_desc'])))
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']) || !is_scalar($_POST['pic_title']) || (isset($_POST['pic_desc']) && !is_scalar($_POST['pic_desc'])))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
@@ -178,10 +180,10 @@ else
 	// Check posted info
 	// --------------------------------
 
-	$pic_title = str_replace("\'", "''", htmlspecialchars(trim($_POST['pic_title'])));
+	$pic_title = htmlspecialchars(trim(stripslashes((string) $_POST['pic_title'])), ENT_QUOTES, 'UTF-8');
 
-	$pic_desc_input = isset($_POST['pic_desc']) ? (string) $_POST['pic_desc'] : '';
-	$pic_desc = str_replace("\'", "''", htmlspecialchars(substr(trim($pic_desc_input), 0, $album_config['desc_length'])));
+	$pic_desc_input = isset($_POST['pic_desc']) ? stripslashes((string) $_POST['pic_desc']) : '';
+	$pic_desc = htmlspecialchars(substr(trim($pic_desc_input), 0, intval($album_config['desc_length'])), ENT_QUOTES, 'UTF-8');
 
 	if( empty($pic_title) )
 	{
@@ -194,8 +196,8 @@ else
 	// --------------------------------
 
 	$sql = "UPDATE ". ALBUM_TABLE ."
-			SET pic_title = '$pic_title', pic_desc= '$pic_desc'
-			WHERE pic_id = '$pic_id'";
+			SET pic_title = '" . $db->sql_escape($pic_title) . "', pic_desc = '" . $db->sql_escape($pic_desc) . "'
+			WHERE pic_id = $pic_id";
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, 'Could not update pic information', '', __LINE__, __FILE__, $sql);
