@@ -16,6 +16,7 @@ $admin_flags = file_get_contents($root . '/phpBB2/admin/admin_flags.php');
 $admin_catauth = file_get_contents($root . '/phpBB2/admin/admin_pa_catauth.php');
 $admin_settings = file_get_contents($root . '/phpBB2/admin/admin_pa_settings.php');
 $admin_ug_auth = file_get_contents($root . '/phpBB2/admin/admin_pa_ug_auth.php');
+$admin_file = file_get_contents($root . '/phpBB2/admin/admin_pa_file.php');
 $pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions.php');
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
@@ -65,5 +66,16 @@ pafiledb_admin_assert(strpos($admin_ug_auth, 'group_single_user = 1') !== false,
 pafiledb_admin_assert(strpos($admin_ug_auth, '@each(') === false, 'PHP 8-incompatible permission iterators must not return');
 pafiledb_admin_assert(strpos($admin_ug_auth, 'static $cache = array();') !== false, 'moderator status must be cached per group');
 pafiledb_admin_assert(strpos($admin_ug_auth, 'phpbb_admin_html($target[\'name\'])') !== false, 'permission target names must be escaped');
+
+pafiledb_admin_assert(strpos($admin_file, 'function pa_admin_file_request_scalar') !== false, 'file administration must normalize scalar request values');
+pafiledb_admin_assert(strpos($admin_file, "\$_REQUEST") === false, 'file administration must not merge GET and POST input');
+pafiledb_admin_assert(strpos($admin_file, '$allowed_modes = array(') !== false, 'file administration modes must use an allowlist');
+pafiledb_admin_assert(strpos($admin_file, 'phpbb_admin_require_post_session();') !== false, 'file mutations must require a POST token');
+pafiledb_admin_assert(strpos($admin_file, '$pafiledb->delete_mirror($mirror_ids, $file_id)') !== false, 'mirror deletion must stay scoped to its download');
+pafiledb_admin_assert(strpos($admin_file, "'MIRROR_URL' => pafiledb_html") !== false, 'mirror values must be escaped in administration output');
+pafiledb_admin_assert(strpos($category_functions, "\$mode = (\$mode === 'category') ? 'category' : 'file';") !== false, 'file deletion modes must be normalized');
+pafiledb_admin_assert(strpos($category_functions, 'AND file_id = $file_id') !== false, 'mirror updates must verify their parent download');
+pafiledb_admin_assert(strpos($category_functions, 'function delete_mirror($mirror_id, $file_id = 0)') !== false, 'mirror deletion must accept a parent scope');
+pafiledb_admin_assert(strpos($category_functions, '$db->sql_escape($file_long_desc)') !== false, 'download text must use database-driver escaping');
 
 echo "paFileDB administration safety tests passed.\n";

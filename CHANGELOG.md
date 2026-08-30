@@ -21,6 +21,13 @@ changes consolidated after that baseline without implying active maintenance.
   writes require the AdminCP session token, irrelevant zero rows are removed,
   names are escaped in output, and moderator lookups are cached independently
   per group instead of leaking the first result to every subsequent group.
+- Hardened paFileDB file and mirror administration. Modes, IDs, paging and
+  sorting are normalized; writes use session-bound POST actions and database-
+  driver escaping; category, file and mirror relationships are verified; and
+  stored download and mirror text is escaped in AdminCP forms. Mirror updates
+  can no longer cross download boundaries, while deletion now removes an
+  associated uploaded mirror only after its database row is deleted and only
+  through the storage-root-constrained unlink helper.
 - Hardened attachment configuration, extension management and the attachment
   control panel with session-bound AdminCP POST checks. Attachment
   synchronization is no longer a state-changing GET request and now requires

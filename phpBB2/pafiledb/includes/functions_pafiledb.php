@@ -1259,6 +1259,12 @@ class pafiledb
 	function delete_files($id, $mode = 'file')
 	{
 		global $db, $phpbb_root_path, $pafiledb_functions;
+		$id = (int) $id;
+		$mode = ($mode === 'category') ? 'category' : 'file';
+		if ($id <= 0)
+		{
+			return;
+		}
 
 		if($mode == 'category')
 		{
@@ -1551,31 +1557,44 @@ class pafiledb
 		$file_size = max(0, intval($uploaded('userfile', 'size', 0)));
 		$file_type = $uploaded('userfile', 'type');
 
-		$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
+		$cat_id = intval($posted('cat_id', 0));
 
-		$file_name = htmlspecialchars($posted('name'));
+		$file_name = trim($posted('name'));
 		$file_long_desc = $posted('long_desc');
 		$file_short_desc = $posted('short_desc', ($file_long_desc !== '') ? substr($file_long_desc, 0, 50) . '...' : '');
-		$file_author = htmlspecialchars($posted('author', ($userdata['user_id'] != ANONYMOUS) ? $userdata['username'] : ''));
-		$file_version = htmlspecialchars($posted('version'));
-		$file_website = htmlspecialchars($posted('website'));
+		$file_author = trim($posted('author', ($userdata['user_id'] != ANONYMOUS) ? $userdata['username'] : ''));
+		$file_version = trim($posted('version'));
+		$file_website = trim($posted('website'));
 		if(!empty($file_website))
 		{
-			$file_website = (!preg_match('#^http[s]?:\/\/#i', $file_website)) ? 'http://' . $file_website : $file_website;
-			$file_website = (preg_match('#^http[s]?\\:\\/\\/[a-z0-9\-]+\.([a-z0-9\-]+\.)?[a-z]+#i', $file_website)) ? $file_website : '';			
+			$file_website = (!preg_match('#^https?://#i', $file_website)) ? 'https://' . $file_website : $file_website;
+			$normalized_website = pafiledb_normalize_remote_url($file_website);
+			if ($normalized_website === false)
+			{
+				$this->error[] = 'The documentation URL must use HTTP or HTTPS.';
+				$file_website = '';
+			}
+			else
+			{
+				$file_website = $normalized_website;
+			}
 		}
 		
-		$file_posticon = htmlspecialchars($posted('posticon'));
+		$file_posticon = basename(str_replace('\\', '/', $posted('posticon')));
+		if ($file_posticon !== 'none' && !preg_match('/^[a-z0-9_.-]{1,100}$/Di', $file_posticon))
+		{
+			$file_posticon = 'none';
+		}
 
-		$file_license = intval($posted('license', 0));
-		$file_pin = intval($posted('pin', 0));
-		$file_ss_link = intval($posted('sshot_link', 0));
+		$file_license = max(0, intval($posted('license', 0)));
+		$file_pin = (intval($posted('pin', 0)) === 1) ? 1 : 0;
+		$file_ss_link = (intval($posted('sshot_link', 0)) === 1) ? 1 : 0;
 // MX		$file_approved = ( isset($_POST['approved']) ) ? intval($_POST['approved']) : 0;
-		$file_dls = intval($posted('file_download', 0));
+		$file_dls = max(0, intval($posted('file_download', 0)));
 		
 		$file_time = time();
 		
-		if($cat_id == -1)
+		if($cat_id <= 0 || !isset($this->cat_rowset[$cat_id]))
 		{
 			$this->error[] = $lang['Missing_field'];
 		}
@@ -1603,7 +1622,7 @@ class pafiledb
 			}
 			else
 			{
-				$file_remote_url = addslashes($normalized_url);
+				$file_remote_url = $normalized_url;
 			}
 		}
 		if (!empty($ss_remote_url))
@@ -1615,7 +1634,7 @@ class pafiledb
 			}
 			else
 			{
-				$ss_remote_url = addslashes($normalized_url);
+				$ss_remote_url = $normalized_url;
 			}
 		}
 		//
@@ -1773,35 +1792,50 @@ class pafiledb
 			}
 		}
 		
+		$user_id_sql = intval($userdata['user_id']);
+		$user_ip_sql = $db->sql_escape((string) $user_ip);
+		$file_name_sql = $db->sql_escape($file_name);
+		$physical_file_name_sql = $db->sql_escape($physical_file_name);
+		$file_realname_sql = $db->sql_escape($file_realname);
+		$file_dir_sql = $db->sql_escape($pafiledb_config['upload_dir']);
+		$file_short_desc_sql = $db->sql_escape($file_short_desc);
+		$file_author_sql = $db->sql_escape($file_author);
+		$file_version_sql = $db->sql_escape($file_version);
+		$file_long_desc_sql = $db->sql_escape($file_long_desc);
+		$screen_shot_url_sql = $db->sql_escape($screen_shot_url);
+		$file_remote_url_sql = $db->sql_escape($file_remote_url);
+		$file_posticon_sql = $db->sql_escape($file_posticon);
+		$file_website_sql = $db->sql_escape($file_website);
+
 		if(!$file_id)
 		{
 			$sql = 'INSERT INTO ' . PA_FILES_TABLE . " (user_id, poster_ip, file_name, file_size, unique_name, real_name, file_dir, file_desc, file_creator, file_version, file_longdesc, file_ssurl, file_sshot_link, file_dlurl, file_time, file_update_time, file_catid, file_posticon, file_license, file_dls, file_last, file_pin, file_docsurl, file_approved)
-					VALUES('{$userdata['user_id']}', '$user_ip', '" . str_replace("\'", "''", $file_name) . "', '$file_size', '$physical_file_name', '" . $db->sql_escape($file_realname) . "', '{$pafiledb_config['upload_dir']}', '" . str_replace("\'", "''", $file_short_desc) . "', '" . str_replace("\'", "''", $file_author) . "', '" . str_replace("\'", "''", $file_version) . "', '" . str_replace("\'", "''", $file_long_desc) . "', '$screen_shot_url', '$file_ss_link', '$file_remote_url', '$file_time', '$file_time', '$cat_id', '$file_posticon', '$file_license', '$file_dls', '0', '$file_pin', '$file_website', '$file_approved')";
+					VALUES($user_id_sql, '$user_ip_sql', '$file_name_sql', $file_size, '$physical_file_name_sql', '$file_realname_sql', '$file_dir_sql', '$file_short_desc_sql', '$file_author_sql', '$file_version_sql', '$file_long_desc_sql', '$screen_shot_url_sql', $file_ss_link, '$file_remote_url_sql', $file_time, $file_time, $cat_id, '$file_posticon_sql', $file_license, $file_dls, 0, $file_pin, '$file_website_sql', $file_approved)";
 		}
 		else
 		{
 			$sql = "UPDATE " . PA_FILES_TABLE . " 
-				SET file_name = '" . str_replace("\'", "''", $file_name) . "', 
-				file_size = '$file_size',
-				unique_name = '$physical_file_name',
-				real_name = '" . $db->sql_escape($file_realname) . "',
-				file_dir = '{$pafiledb_config['upload_dir']}',
-				file_desc = '" . str_replace("\'", "''", $file_short_desc) . "', 
-				file_longdesc = '" . str_replace("\'", "''", $file_long_desc) . "', 
-				file_creator = '" . str_replace("\'", "''", $file_author) . "', 
-				file_version = '" . str_replace("\'", "''", $file_version) . "', 
-				file_ssurl = '$screen_shot_url', 
-				file_sshot_link = '$file_ss_link',  
-				file_dlurl = '$file_remote_url', 
-				file_update_time = '$file_time', 
-				file_catid = '$cat_id', 
-				file_posticon = '$file_posticon', 
-				file_license = '$file_license', 
-				file_pin = '$file_pin', 
-				file_docsurl = '$file_website', 
-				file_dls = '$file_dls', 
-				file_approved = '$file_approved' 
-				WHERE file_id = '$file_id'";
+				SET file_name = '$file_name_sql',
+				file_size = $file_size,
+				unique_name = '$physical_file_name_sql',
+				real_name = '$file_realname_sql',
+				file_dir = '$file_dir_sql',
+				file_desc = '$file_short_desc_sql',
+				file_longdesc = '$file_long_desc_sql',
+				file_creator = '$file_author_sql',
+				file_version = '$file_version_sql',
+				file_ssurl = '$screen_shot_url_sql',
+				file_sshot_link = $file_ss_link,
+				file_dlurl = '$file_remote_url_sql',
+				file_update_time = $file_time,
+				file_catid = $cat_id,
+				file_posticon = '$file_posticon_sql',
+				file_license = $file_license,
+				file_pin = $file_pin,
+				file_docsurl = '$file_website_sql',
+				file_dls = $file_dls,
+				file_approved = $file_approved
+				WHERE file_id = $file_id";
 		}
 
 		if ( !($db->sql_query($sql)) )
@@ -1837,6 +1871,28 @@ class pafiledb
 		global $db, $phpbb_root_path, $_POST, $userdata, $pafiledb_config, $_FILES, $_REQUEST, $pafiledb_functions, $lang;
 		$file_id = (int) $file_id;
 		$mirror_id = (int) $mirror_id;
+		if ($file_id <= 0)
+		{
+			$this->error[] = $lang['File_not_exist'];
+			return;
+		}
+		$file_remote_url = is_scalar($file_remote_url) ? (string) $file_remote_url : '';
+		$file_local = is_scalar($file_local) ? (string) $file_local : '';
+		$file_realname = is_scalar($file_realname) ? basename(str_replace('\\', '/', (string) $file_realname)) : '';
+		$file_size = max(0, (int) $file_size);
+		$mirror_location = is_scalar($mirror_location) ? (string) $mirror_location : '';
+		$sql = 'SELECT file_id FROM ' . PA_FILES_TABLE . " WHERE file_id = $file_id";
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Couldnt validate mirror download', '', __LINE__, __FILE__, $sql);
+		}
+		$file_exists = (bool) $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if (!$file_exists)
+		{
+			$this->error[] = $lang['File_not_exist'];
+			return;
+		}
 		
 		if(empty($file_remote_url) && empty($file_local) && !$file_id)
 		{
@@ -1851,8 +1907,12 @@ class pafiledb
 			}
 			else
 			{
-				$file_remote_url = addslashes($normalized_url);
+				$file_remote_url = $normalized_url;
 			}
+		}
+		if (strlen($file_remote_url) > 255 || strlen($mirror_location) > 255)
+		{
+			$this->error[] = 'Mirror URLs and locations may not exceed 255 bytes.';
 		}
 			
 		$forbidden_extensions = array_map('strtolower', array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions'])));
@@ -1878,7 +1938,8 @@ class pafiledb
 		{
 			$sql = 'SELECT file_dlurl, unique_name, file_dir
 				FROM ' . PA_MIRRORS_TABLE . " 
-				WHERE mirror_id = $mirror_id";
+				WHERE mirror_id = $mirror_id
+					AND file_id = $file_id";
 	
 			if ( !($result = $db->sql_query($sql)) )
 			{
@@ -1927,20 +1988,26 @@ class pafiledb
 			$file_size = (int) $file_info['size'];
 		}
 		
+		$physical_file_name_sql = $db->sql_escape($physical_file_name);
+		$file_dir_sql = $db->sql_escape($pafiledb_config['upload_dir']);
+		$file_remote_url_sql = $db->sql_escape(stripslashes($file_remote_url));
+		$mirror_location_sql = $db->sql_escape(stripslashes($mirror_location));
+
 		if(!$mirror_id)
 		{
 			$sql = 'INSERT INTO ' . PA_MIRRORS_TABLE . " (file_id, unique_name, file_dir, file_dlurl, mirror_location)
-					VALUES($file_id, '$physical_file_name', '{$pafiledb_config['upload_dir']}', '$file_remote_url', '" . str_replace("\'", "''", $mirror_location) . "')";
+					VALUES($file_id, '$physical_file_name_sql', '$file_dir_sql', '$file_remote_url_sql', '$mirror_location_sql')";
 		}
 		else
 		{
 			$sql = "UPDATE " . PA_MIRRORS_TABLE . " 
 				SET file_id = $file_id,
-				unique_name = '$physical_file_name',
-				file_dir = '{$pafiledb_config['upload_dir']}',
-				file_dlurl = '$file_remote_url', 
-				mirror_location = '" . str_replace("\'", "''", $mirror_location) . "'
-				WHERE mirror_id = '$mirror_id'";
+				unique_name = '$physical_file_name_sql',
+				file_dir = '$file_dir_sql',
+				file_dlurl = '$file_remote_url_sql',
+				mirror_location = '$mirror_location_sql'
+				WHERE mirror_id = $mirror_id
+					AND file_id = $file_id";
 		}
 
 		if ( !($db->sql_query($sql)) )
@@ -1960,18 +2027,52 @@ class pafiledb
 		}
 	}
 	
-	function delete_mirror($mirror_id)
+	function delete_mirror($mirror_id, $file_id = 0)
 	{
-		global $db;
-		
-		$where_sql = (is_array($mirror_id)) ? 'IN (' . implode(', ', $mirror_id) . ')' : "= $mirror_id";
+		global $db, $phpbb_root_path, $pafiledb_functions;
+		$mirror_ids = is_array($mirror_id) ? $mirror_id : array($mirror_id);
+		$normalized_ids = array();
+		foreach ($mirror_ids as $selected_id)
+		{
+			$selected_id = (int) $selected_id;
+			if ($selected_id > 0)
+			{
+				$normalized_ids[$selected_id] = $selected_id;
+			}
+		}
+		if (!$normalized_ids)
+		{
+			return;
+		}
+		$file_id = (int) $file_id;
+		$where_sql = 'IN (' . implode(', ', $normalized_ids) . ')';
+		$file_sql = ($file_id > 0) ? " AND file_id = $file_id" : '';
+		$sql = 'SELECT unique_name, file_dir FROM ' . PA_MIRRORS_TABLE . "
+			WHERE mirror_id $where_sql$file_sql";
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Couldnt select mirror files', '', __LINE__, __FILE__, $sql);
+		}
+		$physical_paths = array();
+		while ($row = $db->sql_fetchrow($result))
+		{
+			if (!empty($row['unique_name']))
+			{
+				$physical_paths[] = $phpbb_root_path . $row['file_dir'] . $row['unique_name'];
+			}
+		}
+		$db->sql_freeresult($result);
 		
 		$sql = 'DELETE FROM ' . PA_MIRRORS_TABLE . "
-			WHERE mirror_id $where_sql";
+			WHERE mirror_id $where_sql$file_sql";
 			
 		if ( !($db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Couldnt delete mirror for this file', '', __LINE__, __FILE__, $sql);
+		}
+		foreach ($physical_paths as $physical_path)
+		{
+			$pafiledb_functions->pafiledb_unlink($physical_path);
 		}
 	}
 	
@@ -1984,6 +2085,11 @@ class pafiledb
 	{
 		global $db;
 		
+		$file_id = (int) $file_id;
+		if ($file_id <= 0 || !in_array($mode, array('do_approve', 'do_unapprove'), true))
+		{
+			return;
+		}
 		$file_approved = ($mode == 'do_approve') ? 1 : 0;
 		
 		$sql = 'UPDATE ' . PA_FILES_TABLE . "
