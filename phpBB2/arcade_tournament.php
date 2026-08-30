@@ -73,7 +73,7 @@ $url		    = '&nbsp;&raquo;&nbsp;<a href="activity.'.$phpEx.'" class="nav">' . $l
 function arcade_public_tournament_require_token($userdata, $lang)
 {
   global $HTTP_POST_VARS;
-  if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || is_array($HTTP_POST_VARS['sid']) ||
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid']) ||
     !hash_equals((string) $userdata['session_id'], stripslashes((string) $HTTP_POST_VARS['sid'])))
   {
     message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
@@ -97,7 +97,20 @@ if(!empty($HTTP_POST_VARS['join']))
   if(is_array($join_tour))
   {
     $joining = '';
-    for($i=0; $i < (count($join_tour)); $i++)
+	$normalized_join_tours = array();
+	foreach ($join_tour as $join_tour_value)
+	{
+	  if (is_scalar($join_tour_value) && intval($join_tour_value) > 0)
+	  {
+		$normalized_join_tours[intval($join_tour_value)] = intval($join_tour_value);
+		if (count($normalized_join_tours) >= 100)
+		{
+		  break;
+		}
+	  }
+	}
+	$join_tour = array_values($normalized_join_tours);
+    for($i=0; $i < count($join_tour); $i++)
     {
       $tour_id = intval($join_tour[$i]);
       
@@ -178,8 +191,10 @@ else if(!empty($HTTP_POST_VARS['submit']))
   {
     message_die(GENERAL_MESSAGE, $lang['arcade_admin_only'].$lang['tour_return']);
   }
-  $tour_name = isset($HTTP_POST_VARS['tour_name']) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])) : '';
-  $tour_desc = isset($HTTP_POST_VARS['tour_desc']) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])) : '';
+	$tour_name = (isset($HTTP_POST_VARS['tour_name']) && is_scalar($HTTP_POST_VARS['tour_name'])) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_name'])) : '';
+	$tour_desc = (isset($HTTP_POST_VARS['tour_desc']) && is_scalar($HTTP_POST_VARS['tour_desc'])) ? trim(stripslashes((string) $HTTP_POST_VARS['tour_desc'])) : '';
+	$tour_name = trim(preg_replace('/[\x00-\x1f\x7f]+/u', ' ', strip_tags($tour_name)));
+	$tour_desc = trim(preg_replace('/[\x00-\x1f\x7f]+/u', ' ', strip_tags($tour_desc)));
   $tour_name = function_exists('mb_substr') ? mb_substr($tour_name, 0, 25, 'UTF-8') : substr($tour_name, 0, 25);
   $tour_desc = function_exists('mb_substr') ? mb_substr($tour_desc, 0, 255, 'UTF-8') : substr($tour_desc, 0, 255);
   if(strlen($tour_name) < 1 || strlen($tour_desc) < 3)
@@ -670,7 +685,7 @@ else if ($mode == 'tour')
 //
 else if ($mode == 'game')
 {
-  $tour_token = isset($HTTP_GET_VARS['tour_token']) ? stripslashes((string) $HTTP_GET_VARS['tour_token']) : '';
+	$tour_token = (isset($HTTP_GET_VARS['tour_token']) && is_scalar($HTTP_GET_VARS['tour_token'])) ? stripslashes((string) $HTTP_GET_VARS['tour_token']) : '';
   $expected_token = arcade_public_tournament_game_token($tour_id, $game_id, $userdata['session_id']);
   if ($tour_id <= 0 || $game_id <= 0 || !hash_equals($expected_token, $tour_token))
   {

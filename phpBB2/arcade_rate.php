@@ -171,12 +171,12 @@ else
 //
 // Get the submited rating
 //
-	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || is_array($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid']) || !hash_equals((string) $userdata['session_id'], (string) $HTTP_POST_VARS['sid']))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
 
-	if (is_array($HTTP_POST_VARS['rate']))
+	if (!is_scalar($HTTP_POST_VARS['rate']))
 	{
 		message_die(GENERAL_ERROR, $lang['bad_submitted_value']);
 	}

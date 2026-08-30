@@ -28,7 +28,7 @@ include_once($phpbb_root_path . 'includes/bbcode.' .$phpEx);
 
 function arcade_comment_require_token($userdata, $post_vars, $lang)
 {
-	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($post_vars['sid']) || is_array($post_vars['sid']) || !hash_equals((string) $userdata['session_id'], (string) $post_vars['sid']))
+	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($post_vars['sid']) || !is_scalar($post_vars['sid']) || !hash_equals((string) $userdata['session_id'], (string) $post_vars['sid']))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
@@ -160,13 +160,13 @@ if( !isset($HTTP_POST_VARS['comment']) )
 //
 	if( !isset($comment_id) )
 	{
-		if( isset($HTTP_GET_VARS['start']) )
+		if (phpbb_request_scalar($HTTP_GET_VARS, 'start') !== '')
 		{
-			$start = max(0, intval($HTTP_GET_VARS['start']));
+			$start = max(0, min(1000000, intval(phpbb_request_scalar($HTTP_GET_VARS, 'start'))));
 		}
-		else if( isset($HTTP_POST_VARS['start']) )
+		else if (phpbb_request_scalar($HTTP_POST_VARS, 'start') !== '')
 		{
-			$start = max(0, intval($HTTP_POST_VARS['start']));		}
+			$start = max(0, min(1000000, intval(phpbb_request_scalar($HTTP_POST_VARS, 'start'))));		}
 		else
 		{
 			$start = 0;
@@ -219,6 +219,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
   	$template->pparse('body');
 
   	include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
+	exit;
   }
   else
   {
@@ -338,6 +339,7 @@ if( !isset($HTTP_POST_VARS['comment']) )
 	$template->pparse('body');
 
 	include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
+	exit;
   }
 	else
   {
@@ -364,9 +366,10 @@ if( !isset($HTTP_POST_VARS['comment']) )
 		}
 	}
 
-	if( isset($HTTP_GET_VARS['sort_order']) )
+	$requested_sort_order = phpbb_request_scalar($HTTP_GET_VARS, 'sort_order', phpbb_request_scalar($HTTP_POST_VARS, 'sort_order', 'ASC'));
+	if ($requested_sort_order !== '')
 	{
-		switch ($HTTP_GET_VARS['sort_order'])
+		switch ($requested_sort_order)
 		{
 			case 'ASC':
 				$sort_order = 'ASC';
@@ -374,21 +377,6 @@ if( !isset($HTTP_POST_VARS['comment']) )
 			default:
 				$sort_order = 'DESC';
 		}
-	}
-	else if( isset($HTTP_POST_VARS['sort_order']) )
-	{
-		switch ($HTTP_POST_VARS['sort_order'])
-		{
-			case 'ASC':
-				$sort_order = 'ASC';
-				break;
-			default:
-				$sort_order = 'DESC';
-		}
-	}
-	else
-	{
-		$sort_order = 'ASC';
 	}
 
 	if ($total_comments > 0)
