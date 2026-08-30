@@ -296,16 +296,16 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	       $category = get_kb_cat($article_cat);
 		   $category_name = $category['category_name'];
 
-		   if ( $article_approved == 2 || $article_approved == 0)
-		   {
-		       //approve
-		   	$approve = kb_admin_article_action_form('approve', $article_id, $images['icon_approve'], $lang['Approve']);
-		   }
-		   elseif ( $article_approved == 1 )
-		   {		   
-			   //unapprove
-			   $approve = kb_admin_article_action_form('unapprove', $article_id, $images['icon_unapprove'], $lang['Un_approve']);
-		   }
+		if ($article_approved == 2 || $article_approved == 0)
+		{
+			// approve
+			$approve = kb_admin_article_action_form('approve', $article_id, $images['icon_approve'], $lang['Approve']);
+		}
+		elseif ($article_approved == 1)
+		{
+			// unapprove
+			$approve = kb_admin_article_action_form('unapprove', $article_id, $images['icon_unapprove'], $lang['Un_approve']);
+		}
 	
 		   	//delete
 		   	$temp_url = append_sid($phpbb_root_path . "admin/admin_kb_art.$phpEx?mode=delete&amp;a=$article_id");
