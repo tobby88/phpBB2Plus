@@ -31,7 +31,7 @@ $helper_files = array(
 	'admin_album_config_settings.php', 'admin_album_config_thumb.php',
 	'admin_album_config_upload.php', 'admin_arcade_reset.php',
 	'admin_arcade_scores.php', 'admin_arcade_set.php',
-	'admin_arcade_tournaments.php', 'admin_xs.php'
+	'admin_arcade_tournaments.php', 'admin_pa_ug_auth.php', 'admin_xs.php'
 );
 
 foreach (glob($phpbb_root . '/admin/admin_*.php') as $admin_file)
