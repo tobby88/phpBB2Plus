@@ -438,7 +438,7 @@ if( !empty($_POST['unblock_account']) )
 		$user_dateformat = ( admin_user_post_string('dateformat') !== '' ) ? trim(admin_user_post_string('dateformat')) : $board_config['default_dateformat'];
 
 		$user_avatar_local = ( isset($_POST['avatarselect']) && is_scalar($_POST['avatarselect']) && !empty($_POST['submitavatar']) && $board_config['allow_avatar_local'] ) ? admin_user_post_string('avatarselect') : admin_user_post_string('avatarlocal');
-		$user_avatar_category = ($board_config['allow_avatar_local']) ? htmlspecialchars(admin_user_post_string('avatarcatname')) : '';
+		$user_avatar_category = ($board_config['allow_avatar_local']) ? admin_user_post_string('avatarcatname') : '';
 
 		$user_avatar_remoteurl = trim(admin_user_post_string('avatarremoteurl'));
 		$user_avatar_url = trim(admin_user_post_string('avatarurl'));
@@ -983,21 +983,26 @@ if( !empty($_POST['unblock_account']) )
 				"body" => "admin/user_avatar_gallery.tpl")
 			);
 
-			$dir = @opendir("../" . $board_config['avatar_gallery_path']);
+			$gallery_dir = user_avatar_gallery_directory();
+			$dir = $gallery_dir !== false ? @opendir($gallery_dir) : false;
 
 			$avatar_images = array();
-			while( $file = @readdir($dir) )
+			while( $dir !== false && ($file = @readdir($dir)) !== false )
 			{
-				if( $file != "." && $file != ".." && !is_file(phpbb_realpath("./../" . $board_config['avatar_gallery_path'] . "/" . $file)) && !is_link(phpbb_realpath("./../" . $board_config['avatar_gallery_path'] . "/" . $file)) )
+				if( $file != "." && $file != ".." && is_dir($gallery_dir . '/' . $file) && !is_link($gallery_dir . '/' . $file) )
 				{
-					$sub_dir = @opendir("../" . $board_config['avatar_gallery_path'] . "/" . $file);
+					$sub_dir = @opendir($gallery_dir . '/' . $file);
+					if ($sub_dir === false)
+					{
+						continue;
+					}
 
 					$avatar_row_count = 0;
 					$avatar_col_count = 0;
 
-					while( $sub_file = @readdir($sub_dir) )
+					while( ($sub_file = @readdir($sub_dir)) !== false )
 					{
-						if( preg_match("/(\.gif$|\.png$|\.jpg)$/is", $sub_file) )
+						if( preg_match('/\.(?:gif|png|jpe?g)$/iD', $sub_file) && is_file($gallery_dir . '/' . $file . '/' . $sub_file) )
 						{
 							$avatar_images[$file][$avatar_row_count][$avatar_col_count] = $sub_file;
 
@@ -1009,53 +1014,58 @@ if( !empty($_POST['unblock_account']) )
 							}
 						}
 					}
+					@closedir($sub_dir);
 				}
 			}
 	
-			@closedir($dir);
+			if ($dir !== false)
+			{
+				@closedir($dir);
+			}
 
 			if( isset($_POST['avatarcategory']) )
 			{
-				$category = htmlspecialchars(admin_user_post_string('avatarcategory'));
+				$category = admin_user_post_string('avatarcategory');
 			}
-			else
+			if (empty($category) || !isset($avatar_images[$category]))
 			{
-				list($category, ) = each($avatar_images);
+				$avatar_categories = array_keys($avatar_images);
+				$category = !empty($avatar_categories) ? $avatar_categories[0] : '';
 			}
-			@reset($avatar_images);
 
 			$s_categories = "";
-			while( list($key) = each($avatar_images) )
+			foreach ($avatar_images as $key => $category_images)
 			{
 				$selected = ( $key == $category ) ? "selected=\"selected\"" : "";
-				if( count($avatar_images[$key]) )
+				if( count($category_images) )
 				{
-					$s_categories .= '<option value="' . $key . '"' . $selected . '>' . ucfirst($key) . '</option>';
+					$s_categories .= '<option value="' . phpbb_admin_html($key) . '"' . $selected . '>' . phpbb_admin_html(ucfirst($key)) . '</option>';
 				}
 			}
 
 			$s_colspan = 0;
-			for($i = 0; $i < count($avatar_images[$category]); $i++)
+			$current_images = isset($avatar_images[$category]) ? $avatar_images[$category] : array();
+			for($i = 0; $i < count($current_images); $i++)
 			{
 				$template->assign_block_vars("avatar_row", array());
 
-				$s_colspan = max($s_colspan, count($avatar_images[$category][$i]));
+				$s_colspan = max($s_colspan, count($current_images[$i]));
 
-				for($j = 0; $j < count($avatar_images[$category][$i]); $j++)
+				for($j = 0; $j < count($current_images[$i]); $j++)
 				{
 					$template->assign_block_vars("avatar_row.avatar_column", array(
-						"AVATAR_IMAGE" => "../" . $board_config['avatar_gallery_path'] . '/' . $category . '/' . $avatar_images[$category][$i][$j])
+						"AVATAR_IMAGE" => "../" . $board_config['avatar_gallery_path'] . '/' . rawurlencode($category) . '/' . rawurlencode($current_images[$i][$j]))
 					);
 
 					$template->assign_block_vars("avatar_row.avatar_option_column", array(
-						"S_OPTIONS_AVATAR" => $avatar_images[$category][$i][$j])
+						"S_OPTIONS_AVATAR" => phpbb_admin_html($current_images[$i][$j]))
 					);
 				}
 			}
 
 			$coppa = ( ( !$_POST['coppa'] && !$_GET['coppa'] ) || $mode == "register") ? 0 : TRUE;
 
-			$s_hidden_fields = '<input type="hidden" name="mode" value="edit" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="coppa" value="' . $coppa . '" /><input type="hidden" name="avatarcatname" value="' . $category . '" />';
+			$s_hidden_fields = '<input type="hidden" name="mode" value="edit" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="coppa" value="' . $coppa . '" /><input type="hidden" name="avatarcatname" value="' . phpbb_admin_html($category) . '" />';
 			// Start add - Admin add user MOD
 			$s_hidden_fields .= '<input type="hidden" name="new_user" value="'.$new_user.'" />';
 			// End add - Admin add user MOD
@@ -1145,7 +1155,7 @@ if( !empty($_POST['unblock_account']) )
 		// End add - Admin add user MOD
 		if( !empty($user_avatar_local) )
 		{
-			$s_hidden_fields .= '<input type="hidden" name="avatarlocal" value="' . $user_avatar_local . '" /><input type="hidden" name="avatarcatname" value="' . $user_avatar_category . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="avatarlocal" value="' . phpbb_admin_html($user_avatar_local) . '" /><input type="hidden" name="avatarcatname" value="' . phpbb_admin_html($user_avatar_category) . '" />';
 		}
 
 		if( $user_avatar_type )

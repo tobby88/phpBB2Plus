@@ -617,14 +617,17 @@ function init_userprefs($userdata)
 
 	//	get all the mods settings
 	$dir = @opendir($phpbb_root_path . 'includes/mods_settings');
-	while( $file = @readdir($dir) )
+	while( $dir !== false && ($file = @readdir($dir)) !== false )
 	{
 		if( preg_match("/^mod_.*?\." . $phpEx . "$/", $file) )
 		{
 			include_once($phpbb_root_path . 'includes/mods_settings/' . $file);
 		}
 	}
-	@closedir($dir);
+	if ($dir !== false)
+	{
+		@closedir($dir);
+	}
 //-- fin mod : mods settings -----------------------------------------------------------------------
 
 	if ( $userdata['user_id'] != ANONYMOUS )

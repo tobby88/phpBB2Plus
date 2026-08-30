@@ -785,10 +785,10 @@ function language_select($default, $select_name = "language", $file_to_check = "
 {
 	global $phpEx, $phpbb_root_path, $lang;
 
-	$dir = opendir($phpbb_root_path . $dirname);
+	$dir = @opendir($phpbb_root_path . $dirname);
 
 	$lg = array();
-	while ( $file = readdir($dir) )
+	while ( $dir !== false && ($file = readdir($dir)) !== false )
 	{
 		if (preg_match('#^lang_#i', $file) && !is_file(@phpbb_realpath($phpbb_root_path . $dirname . '/' . $file)) && !is_link(@phpbb_realpath($phpbb_root_path . $dirname . '/' . $file)) && is_file(@phpbb_realpath($phpbb_root_path . $dirname . '/' . $file . '/lang_' . $file_to_check . '.' . $phpEx)) )
 		{
@@ -799,7 +799,10 @@ function language_select($default, $select_name = "language", $file_to_check = "
 		}
 	}
 
-	closedir($dir);
+	if ($dir !== false)
+	{
+		closedir($dir);
+	}
 
 	@asort($lg);
 

@@ -36,7 +36,7 @@ if ( !defined('LANG_EXTEND_DONE') )
 	if ( $board_config['default_lang'] != 'english' )
 	{
 		$dir = @opendir($phpbb_root_path . 'language/lang_english');
-		while( $file = @readdir($dir) )
+		while( $dir !== false && ($file = @readdir($dir)) !== false )
 		{
 			if( preg_match("/^lang_extend_.*?\." . $phpEx . "$/", $file) )
 			{
@@ -45,14 +45,17 @@ if ( !defined('LANG_EXTEND_DONE') )
 		}
 		// include the personalisations
 		@include_once($phpbb_root_path . 'language/lang_english/lang_extend.' . $phpEx);
-		@closedir($dir);
+		if ($dir !== false)
+		{
+			@closedir($dir);
+		}
 	}
 
 	// get the user settings
 	if ( !empty($board_config['default_lang']) )
 	{
 		$dir = @opendir($phpbb_root_path . 'language/lang_' . $board_config['default_lang']);
-		while( $file = @readdir($dir) )
+		while( $dir !== false && ($file = @readdir($dir)) !== false )
 		{
 			if( preg_match("/^lang_extend_.*?\." . $phpEx . "$/", $file) )
 			{
@@ -61,7 +64,10 @@ if ( !defined('LANG_EXTEND_DONE') )
 		}
 		// include the personalisations
 		@include_once($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_extend.' . $phpEx);
-		@closedir($dir);
+		if ($dir !== false)
+		{
+			@closedir($dir);
+		}
 	}
 	define('LANG_EXTEND_DONE', true);
 }

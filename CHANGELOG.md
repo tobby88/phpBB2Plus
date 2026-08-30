@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed another set of PHP 8 failure paths from language, MOD-settings,
+  database-maintenance, Album and avatar-gallery directory scans by checking
+  directory handles before iteration. User and AdminCP avatar galleries no
+  longer depend on the removed `each()` function, close nested handles, accept
+  only real image files and handle empty galleries. Gallery category/file and
+  custom-profile values are escaped and array-checked before being carried
+  through hidden form fields.
 - Hardened Knowledge Base configuration with the central session-bound
   AdminCP token and an explicit editable-setting list. Boolean, sort, paging
   and referenced user/forum/group values are normalized before driver-escaped

@@ -67,6 +67,9 @@ jobs:
       - name: Audit ACP integrations
         run: php .github/scripts/check-acp-integration.php
 
+      - name: Test directory iteration safety
+        run: php .github/scripts/check-directory-iteration-safety.php
+
       - name: Test CrackerTracker user functions
         run: php .github/scripts/check-ctracker-userfunctions.php
 

@@ -90,7 +90,7 @@ $config_selection = '';
 //------------------------------------------------------------------------
 $dir = @opendir(".");
 $config_tabs_index = 0;
-while( $config_file = @readdir($dir) )
+while( $dir !== false && ($config_file = @readdir($dir)) !== false )
 {
 	if( preg_match('/^admin_album_config_.*?\.' . $phpEx . '$/', $config_file) && strcmp("admin_album_config_extended.$phpEx",$config_file) != 0)
 	{
@@ -144,7 +144,10 @@ while( $config_file = @readdir($dir) )
 		$config_tabs_index++;
 	}
 }
-@closedir($dir);
+if ($dir !== false)
+{
+	@closedir($dir);
+}
 
 //------------------------------------------------------------------------
 // sort the config tabs accordig to the 'order' setting in $album_config_tabs

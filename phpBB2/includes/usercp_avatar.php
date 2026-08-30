@@ -247,9 +247,9 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 
 			$avatar_row_count = 0;
 			$avatar_col_count = 0;
-			while( $sub_file = @readdir($sub_dir) )
+			while( ($sub_file = @readdir($sub_dir)) !== false )
 			{
-				if( preg_match('/(\.gif$|\.png$|\.jpg|\.jpeg)$/is', $sub_file) )
+				if( preg_match('/\.(?:gif|png|jpe?g)$/iD', $sub_file) && is_file($gallery_dir . '/' . $file . '/' . $sub_file) )
 				{
 					$avatar_images[$file][$avatar_row_count][$avatar_col_count] = $sub_file; 
 					$avatar_name[$file][$avatar_row_count][$avatar_col_count] = ucfirst(str_replace("_", " ", preg_replace('/^(.*)\..*$/', '\1', $sub_file)));
@@ -262,58 +262,60 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 					}
 				}
 			}
+			@closedir($sub_dir);
 		}
 	}
 
 	@closedir($dir);
 
 	@ksort($avatar_images);
-	@reset($avatar_images);
-
-	if( empty($category) )
+	$avatar_categories = array_keys($avatar_images);
+	if( empty($category) || !isset($avatar_images[$category]) )
 	{
-		list($category, ) = each($avatar_images);
+		$category = !empty($avatar_categories) ? $avatar_categories[0] : '';
 	}
-	@reset($avatar_images);
 
 	$s_categories = '<select name="avatarcategory">';
-	while( list($key) = each($avatar_images) )
+	foreach ($avatar_images as $key => $category_images)
 	{
 		$selected = ( $key == $category ) ? ' selected="selected"' : '';
-		if( count($avatar_images[$key]) )
+		if( count($category_images) )
 		{
-			$s_categories .= '<option value="' . $key . '"' . $selected . '>' . ucfirst($key) . '</option>';
+			$s_categories .= '<option value="' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '"' . $selected . '>' . htmlspecialchars(ucfirst($key), ENT_QUOTES, 'UTF-8') . '</option>';
 		}
 	}
 	$s_categories .= '</select>';
 
 	$s_colspan = 0;
-	for($i = 0; $i < count($avatar_images[$category]); $i++)
+	$current_images = isset($avatar_images[$category]) ? $avatar_images[$category] : array();
+	for($i = 0; $i < count($current_images); $i++)
 	{
 		$template->assign_block_vars("avatar_row", array());
 
-		$s_colspan = max($s_colspan, count($avatar_images[$category][$i]));
+		$s_colspan = max($s_colspan, count($current_images[$i]));
 
-		for($j = 0; $j < count($avatar_images[$category][$i]); $j++)
+		for($j = 0; $j < count($current_images[$i]); $j++)
 		{
 			$template->assign_block_vars('avatar_row.avatar_column', array(
-				"AVATAR_IMAGE" => $gallery_url . '/' . rawurlencode($category) . '/' . rawurlencode($avatar_images[$category][$i][$j]),
+				"AVATAR_IMAGE" => $gallery_url . '/' . rawurlencode($category) . '/' . rawurlencode($current_images[$i][$j]),
 				"AVATAR_NAME" => $avatar_name[$category][$i][$j])
 			);
 
 			$template->assign_block_vars('avatar_row.avatar_option_column', array(
-				"S_OPTIONS_AVATAR" => $avatar_images[$category][$i][$j])
+				"S_OPTIONS_AVATAR" => htmlspecialchars($current_images[$i][$j], ENT_QUOTES, 'UTF-8'))
 			);
 		}
 	}
 
 	$params = array('coppa', 'user_id', 'username', 'email', 'current_email', 'cur_password', 'new_password', 'password_confirm', 'icq', 'aim', 'msn', 'yim', 'fb', 'ig', 'pt', 'twr', 'skp', 'tg', 'li', 'tt', 'dc', 'website', 'location', 'user_flag', 'occupation', 'interests', 'signature', 'viewemail', 'notifypm', 'games_block_pm', 'popup_pm', 'notifyreply', 'attachsig', 'setbm', 'allowhtml', 'allowbbcode', 'allowsmilies', 'hideonline', 'style', 'language', 'timezone', 'dateformat', 'user_absence_mode', 'user_absence', 'user_absence_text', 'birthday', 'gender');
 
-	$s_hidden_vars = '<input type="hidden" name="sid" value="' . $session_id . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="avatarcatname" value="' . $category . '" />';
+	$s_hidden_vars = '<input type="hidden" name="sid" value="' . htmlspecialchars($session_id, ENT_QUOTES, 'UTF-8') . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="avatarcatname" value="' . htmlspecialchars($category, ENT_QUOTES, 'UTF-8') . '" />';
 
 	for($i = 0; $i < count($params); $i++)
 	{
-		$s_hidden_vars .= '<input type="hidden" name="' . $params[$i] . '" value="' . str_replace('"', '&quot;', $$params[$i]) . '" />';
+		$param_name = $params[$i];
+		$hidden_value = isset($$param_name) && is_scalar($$param_name) ? (string) $$param_name : '';
+		$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($param_name, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($hidden_value, ENT_QUOTES, 'UTF-8') . '" />';
 	}
 	//
 	// Custom Profile Fields MOD
@@ -322,17 +324,18 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 	foreach($profile_data as $field) {
 		$name = text_to_column($field['field_name']);
 		$required = ($field['is_required'] == REQUIRED) ? true : false;
-		$checkbox_tally = count($HTTP_POST_VARS[$name]);
-		if (($field['field_type'] == CHECKBOX) && ($checkbox_tally > 1)) {
-			foreach ($HTTP_POST_VARS[$name] as $checkbox_value) {
-				$checkbox_value = stripslashes($checkbox_value);
-				$s_hidden_vars .= '<input type="hidden" name="' . $name . '[]" value="' . str_replace('"', '&quot;', $checkbox_value) . '" />';
+		$field_value = isset($HTTP_POST_VARS[$name]) ? $HTTP_POST_VARS[$name] : '';
+		if (($field['field_type'] == CHECKBOX) && is_array($field_value)) {
+			foreach ($field_value as $checkbox_value) {
+				if (!is_scalar($checkbox_value)) {
+					continue;
+				}
+				$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '[]" value="' . htmlspecialchars(stripslashes((string) $checkbox_value), ENT_QUOTES, 'UTF-8') . '" />';
 			}
 		}
 		else {
-			$value = $HTTP_POST_VARS[$name];
-			$value = stripslashes($value);
-			$s_hidden_vars .= "<input type=\"hidden\" name=\"$name\" value=\"" . str_replace('"', '&quot;', $value) . "\" />";
+			$value = is_scalar($field_value) ? stripslashes((string) $field_value) : '';
+			$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '" />';
 		}
 	}
 	//
