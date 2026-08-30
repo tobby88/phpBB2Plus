@@ -124,6 +124,9 @@ jobs:
       - name: Test link submission safety
         run: php .github/scripts/check-link-submission-safety.php
 
+      - name: Test shoutbox safety
+        run: php .github/scripts/check-shoutbox-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 

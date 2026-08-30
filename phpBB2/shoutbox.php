@@ -89,6 +89,7 @@ $error = false;
 $error_msg = '';
 $username = isset($userdata['username']) ? $userdata['username'] : '';
 $max = 0;
+$shout_max_length = 16000;
 $s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 if (phpbb_request_scalar($_POST, 'mode') !== '' || phpbb_request_scalar($_GET, 'mode') !== '')
 	{
@@ -154,10 +155,11 @@ if ($submit || isset($_POST['message']))
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
 	$current_time = time();
+	$flood_interval = max(0, isset($board_config['flood_interval']) ? intval($board_config['flood_interval']) : 0);
 	//
 	// Flood control
 	//
-	$where_sql = ( $userdata['user_id'] == ANONYMOUS ) ? "shout_ip = '$user_ip'" : 'shout_user_id = ' . $userdata['user_id'];
+	$where_sql = ( $userdata['user_id'] == ANONYMOUS ) ? "shout_ip = '" . $db->sql_escape($user_ip) . "'" : 'shout_user_id = ' . intval($userdata['user_id']);
 	$sql = "SELECT MAX(shout_session_time) AS last_post_time
 		FROM " . SHOUTBOX_TABLE . "
 		WHERE $where_sql";
@@ -165,7 +167,7 @@ if ($submit || isset($_POST['message']))
 	{
 		if ( $row = $db->sql_fetchrow($result) )
 		{
-			if ( $row['last_post_time'] > 0 && ( $current_time - $row['last_post_time'] ) < $board_config['flood_interval'] )
+			if ( $row['last_post_time'] > 0 && ( $current_time - $row['last_post_time'] ) < $flood_interval )
 			{
 				$error = true;
 				$error_msg .= ( !empty($error_msg) ) ? '<br />' . $lang['Flood_Error'] : $lang['Flood_Error'];
@@ -188,7 +190,7 @@ if ($submit || isset($_POST['message']))
 			}
 		}
 	}
-	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
+	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? substr(trim((string) $_POST['message']), 0, $shout_max_length) : '';
 	// insert shout !
 	if ($submit && !empty($message) && $is_auth['auth_post'] && !$error)
 	{
@@ -196,15 +198,16 @@ if ($submit || isset($_POST['message']))
 		$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
 		$message = prepare_message(trim($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
 		$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies)
-				VALUES ('" . $db->sql_escape($message) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "',$bbcode_on,$html_on,$smilies_on)";
+				VALUES ('" . $db->sql_escape(stripslashes($message)) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "'," . intval($bbcode_on) . "," . intval($html_on) . "," . intval($smilies_on) . ")";
 		if (!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, 'Error inserting shout.', '', __LINE__, __FILE__, $sql);
 		}
 		// auto prune
-		if ($board_config['prune_shouts'])
+		$prune_shout_days = isset($board_config['prune_shouts']) ? max(0, intval($board_config['prune_shouts'])) : 0;
+		if ($prune_shout_days)
 		{
-			$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time<=".(time()-86400*$board_config['prune_shouts']);
+			$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time <= " . (time() - 86400 * $prune_shout_days);
 			if (!$result = $db->sql_query($sql)) 
 			{
 				message_die(GENERAL_ERROR, 'Error autoprune shouts.', '', __LINE__, __FILE__, $sql);
@@ -214,9 +217,9 @@ if ($submit || isset($_POST['message']))
 } 
 
 // see if we need offset
-if ((isset($_POST['start']) || isset($_GET['start'])) && !$submit)
+if (((isset($_POST['start']) && is_scalar($_POST['start'])) || (isset($_GET['start']) && is_scalar($_GET['start']))) && !$submit)
 {
-	$start=(isset($_POST['start'])) ? intval($_POST['start']) : intval($_GET['start']);
+	$start = max(0, (isset($_POST['start']) && is_scalar($_POST['start'])) ? intval($_POST['start']) : intval($_GET['start']));
 } else $start=0;
 
 	//

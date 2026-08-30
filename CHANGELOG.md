@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened compact and full-page Shoutbox writes with bounded message,
+  flood-control, pruning and pagination values and driver-escaped normalized
+  message/IP data. Full-page moderation now accepts only scalar positive shout
+  IDs, handles missing records before reading their fields, and keeps reverse-
+  DNS lookups restricted to validated encoded IPs. The IP detail view no longer
+  reads an undefined post-row variable, and a zero posts-per-page setting can
+  no longer break Shoutbox pagination or SQL limits.
 - Hardened public link submissions and their administrator notifications.
   Link, URL, logo and IP values now use database-driver escaping; URL fields
   reject embedded credentials and overlong values instead of silently storing

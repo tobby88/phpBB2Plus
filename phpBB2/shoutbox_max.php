@@ -91,6 +91,8 @@ $submit = (isset($_POST['shout']) && isset($_POST['message'])) ? 1 : 0;
 $error = false;
 $error_msg = '';
 $message = '';
+$shout_max_length = 16000;
+$shouts_per_page = max(1, isset($board_config['posts_per_page']) ? intval($board_config['posts_per_page']) : 10);
 $s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
@@ -201,10 +203,11 @@ if ($submit || isset($_POST['message']))
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
 	$current_time = time();
+	$flood_interval = max(0, isset($board_config['flood_interval']) ? intval($board_config['flood_interval']) : 0);
 	//
 	// Flood control
 	//
-		$where_sql = ( $userdata['user_id'] == ANONYMOUS ) ? "shout_ip = '$user_ip'" : 'shout_user_id = ' . $userdata['user_id'];
+		$where_sql = ( $userdata['user_id'] == ANONYMOUS ) ? "shout_ip = '" . $db->sql_escape($user_ip) . "'" : 'shout_user_id = ' . intval($userdata['user_id']);
 		$sql = "SELECT MAX(shout_session_time) AS last_post_time
 		FROM " . SHOUTBOX_TABLE . "
 		WHERE $where_sql";
@@ -212,7 +215,7 @@ if ($submit || isset($_POST['message']))
 	{
 		if ( $row = $db->sql_fetchrow($result) )
 		{
-			if ( $row['last_post_time'] > 0 && ( $current_time - $row['last_post_time'] ) < $board_config['flood_interval'] )
+			if ( $row['last_post_time'] > 0 && ( $current_time - $row['last_post_time'] ) < $flood_interval )
 			{
 				$error = true;
 				$error_msg .= ( !empty($error_msg) ) ? '<br />' . $lang['Flood_Error'] : $lang['Flood_Error'];
@@ -220,7 +223,7 @@ if ($submit || isset($_POST['message']))
 		}
 	}
 
-	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
+	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? substr(trim((string) $_POST['message']), 0, $shout_max_length) : '';
 	// insert shout !
 	if ($submit && !empty($message) && $is_auth['auth_post'] && !$error)
 	{
@@ -228,15 +231,16 @@ if ($submit || isset($_POST['message']))
 		$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
 		$message = prepare_message(trim($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
 		$sql = "INSERT INTO " . SHOUTBOX_TABLE. " (shout_text, shout_session_time, shout_user_id, shout_ip, shout_username, shout_bbcode_uid,enable_bbcode,enable_html,enable_smilies)
-				VALUES ('" . $db->sql_escape($message) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape($username) . "', '" . $db->sql_escape($bbcode_uid) . "',$bbcode_on,$html_on,$smilies_on)";
+				VALUES ('" . $db->sql_escape(stripslashes($message)) . "', " . time() . ", " . intval($userdata['user_id']) . ", '" . $db->sql_escape($user_ip) . "', '" . $db->sql_escape(stripslashes($username)) . "', '" . $db->sql_escape($bbcode_uid) . "'," . intval($bbcode_on) . "," . intval($html_on) . "," . intval($smilies_on) . ")";
 		if (!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, 'Error inserting shout.', '', __LINE__, __FILE__, $sql);
 		}
 		// auto prune
-		if ($board_config['prune_shouts'])
+		$prune_shout_days = isset($board_config['prune_shouts']) ? max(0, intval($board_config['prune_shouts'])) : 0;
+		if ($prune_shout_days)
 		{
-			$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time<=".(time()-86400*$board_config['prune_shouts']);
+			$sql = "DELETE FROM " . SHOUTBOX_TABLE. " WHERE shout_session_time <= " . (time() - 86400 * $prune_shout_days);
 			if (!$result = $db->sql_query($sql)) 
 			{
 				message_die(GENERAL_ERROR, 'Error autoprune shouts.', '', __LINE__, __FILE__, $sql);
@@ -247,15 +251,19 @@ if ($submit || isset($_POST['message']))
 if ($mode=='delete' || $mode=='censor')
 {
 	//	make shout inavtive
-	if ( isset($_GET[POST_POST_URL]) || isset($_POST[POST_POST_URL]) )
+	if ( (isset($_GET[POST_POST_URL]) && is_scalar($_GET[POST_POST_URL])) || (isset($_POST[POST_POST_URL]) && is_scalar($_POST[POST_POST_URL])) )
 	{
-		$post_id = (isset($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]);
+		$post_id = (isset($_POST[POST_POST_URL]) && is_scalar($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]);
 	}
 	else
 	{
 		message_die(GENERAL_ERROR, 'Error no shout id specifyed for delete/censor.', '', __LINE__, __FILE__);
 	}
-	$sql = "SELECT s.shout_user_id, shout_ip FROM " . SHOUTBOX_TABLE . " s WHERE s.shout_id='$post_id'";
+	if ($post_id <= 0)
+	{
+		message_die(GENERAL_ERROR, 'Invalid shout id');
+	}
+	$sql = "SELECT s.shout_user_id, shout_ip FROM " . SHOUTBOX_TABLE . " s WHERE s.shout_id = $post_id";
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not get shoutbox information', '', __LINE__, __FILE__, $sql);
@@ -266,7 +274,7 @@ if ($mode=='delete' || $mode=='censor')
 	{
 		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 	}
-	$user_id = $shout_identifyer['shout_user_id'];
+	$user_id = intval($shout_identifyer['shout_user_id']);
 	$can_censor = ($userdata['user_id'] != ANONYMOUS || ($userdata['user_id'] == ANONYMOUS && $userdata['session_ip'] == $shout_identifyer['shout_ip'])) &&
 		(($userdata['user_id'] == $user_id && $is_auth['auth_delete']) || $is_auth['auth_mod']);
 	$can_delete = $is_auth['auth_mod'];
@@ -289,7 +297,7 @@ if ($mode=='delete' || $mode=='censor')
 ($userdata['user_id'] != ANONYMOUS || ( $userdata['user_id'] == ANONYMOUS && $userdata['session_ip'] == $shout_identifyer['shout_ip'])) &&
 (($userdata['user_id'] == $user_id && $is_auth['auth_delete']) || $is_auth['auth_mod']) && $mode=='censor')
 	{
-		$sql = "UPDATE ".SHOUTBOX_TABLE." SET shout_active='".$userdata['user_id']."' WHERE shout_id='$post_id'";
+		$sql = "UPDATE ".SHOUTBOX_TABLE." SET shout_active = " . intval($userdata['user_id']) . " WHERE shout_id = $post_id";
 		if (!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, 'Error censor shout.', '', __LINE__, __FILE__, $sql);
@@ -297,7 +305,7 @@ if ($mode=='delete' || $mode=='censor')
 	} else
 	if ( $is_auth['auth_mod'] && $mode=='delete')
 	{
-		$sql = "DELETE FROM ".SHOUTBOX_TABLE." WHERE shout_id='$post_id'";
+		$sql = "DELETE FROM ".SHOUTBOX_TABLE." WHERE shout_id = $post_id";
 		if (!$result = $db->sql_query($sql)) 
 		{
 			message_die(GENERAL_ERROR, 'Error removing shout.', '', __LINE__, __FILE__, $sql);
@@ -312,25 +320,38 @@ if ($mode=='ip')
 	{
 		message_die(GENERAL_MESSAGE, 'Not allowed.', '', __LINE__, __FILE__);
 	}
-	if ( isset($_GET[POST_POST_URL]) || isset($_POST[POST_POST_URL]) )
+	if ( (isset($_GET[POST_POST_URL]) && is_scalar($_GET[POST_POST_URL])) || (isset($_POST[POST_POST_URL]) && is_scalar($_POST[POST_POST_URL])) )
 	{
-		$post_id = (isset($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]);
+		$post_id = (isset($_POST[POST_POST_URL]) && is_scalar($_POST[POST_POST_URL])) ? intval($_POST[POST_POST_URL]) : intval($_GET[POST_POST_URL]);
 	}
 	else
 	{
 		message_die(GENERAL_ERROR, 'Error no shout id specifyed for show ip', '', __LINE__, __FILE__);
 	}
-	$sql = "SELECT s.shout_user_id, shout_username, shout_ip FROM " . SHOUTBOX_TABLE . " s WHERE s.shout_id='$post_id'";
+	if ($post_id <= 0)
+	{
+		message_die(GENERAL_ERROR, 'Invalid shout id');
+	}
+	$sql = "SELECT s.shout_user_id, shout_username, shout_ip FROM " . SHOUTBOX_TABLE . " s WHERE s.shout_id = $post_id";
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not get shoutbox information', '', __LINE__, __FILE__, $sql);
 	}
 	$shout_identifyer = $db->sql_fetchrow($result);
-	$poster_id = $shout_identifyer['shout_user_id'];
+	$db->sql_freeresult($result);
+	if (!$shout_identifyer)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+	$poster_id = intval($shout_identifyer['shout_user_id']);
 	$rdns_ip_num = phpbb_request_scalar($_GET, 'rdns');
+	if ($rdns_ip_num !== 'all' && !preg_match('/^[a-f0-9]{8}$/i', $rdns_ip_num))
+	{
+		$rdns_ip_num = '';
+	}
 
 	$ip_this_post = decode_ip($shout_identifyer['shout_ip']);
-	$ip_this_post = ( $rdns_ip_num == $ip_this_post ) ? gethostbyaddr($ip_this_post) : $ip_this_post;
+	$ip_this_post = ( $rdns_ip_num === $shout_identifyer['shout_ip'] ) ? gethostbyaddr($ip_this_post) : $ip_this_post;
 	require_once($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 	//
@@ -348,7 +369,7 @@ if ($mode=='ip')
 		'L_SEARCH' => $lang['Search'],
 		'SEARCH_IMG' => $images['icon_search'], 
 		'IP' => $ip_this_post, 
-		'U_LOOKUP_IP' => append_sid("shoutbox_max.$phpEx?mode=ip&amp;" . POST_POST_URL . "=$post_id&amp;rdns=" . $ip_this_post))
+		'U_LOOKUP_IP' => append_sid("shoutbox_max.$phpEx?mode=ip&amp;" . POST_POST_URL . "=$post_id&amp;rdns=" . rawurlencode($shout_identifyer['shout_ip'])))
 		);
 
 	//
@@ -368,7 +389,7 @@ if ($mode=='ip')
 		$i = 0;
 		do
 		{
-				if ( $row['shout_ip'] == $post_row['shout_ip'] )
+				if ( $row['shout_ip'] == $shout_identifyer['shout_ip'] )
 				{
 					$template->assign_vars(array(
 						'POSTS' => $row['postings'] . ' ' . ( ( $row['postings'] == 1 ) ? $lang['Post'] : $lang['Posts'] ))
@@ -450,9 +471,9 @@ if ($mode=='ip')
 //
 
 // see if we need offset
-if ((isset($_POST['start']) || isset($_GET['start'])) && !$submit)
+if (((isset($_POST['start']) && is_scalar($_POST['start'])) || (isset($_GET['start']) && is_scalar($_GET['start']))) && !$submit)
 {
-	$start=(isset($_POST['start'])) ? intval($_POST['start']) : intval($_GET['start']);
+	$start = max(0, (isset($_POST['start']) && is_scalar($_POST['start'])) ? intval($_POST['start']) : intval($_GET['start']));
 } else $start=0;
 
 	require_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
@@ -521,7 +542,7 @@ obtain_word_list($orig_word, $replacement_word);
 		$template->set_filenames(array('body' => 'shoutbox_max_guest_body.tpl'));
 	}
 	// Generate pagination for shoutbox view
-	$pagination = ( $highlight_match ) ? generate_pagination("shoutbox_max.$phpEx?highlight=".$highlight, $total_shouts, $board_config['posts_per_page'], $start) : generate_pagination("shoutbox_max.$phpEx?dummy=1", $total_shouts, $board_config['posts_per_page'], $start);
+	$pagination = ( $highlight_match ) ? generate_pagination("shoutbox_max.$phpEx?highlight=".$highlight, $total_shouts, $shouts_per_page, $start) : generate_pagination("shoutbox_max.$phpEx?dummy=1", $total_shouts, $shouts_per_page, $start);
 
 	// Generate smilies listing for page output
 	generate_smilies('inline', PAGE_SHOUTBOX_MAX);
@@ -567,7 +588,7 @@ obtain_word_list($orig_word, $replacement_word);
 	// display the shoutbox
 	//
 	$sql = "SELECT s.*, u.* FROM " . SHOUTBOX_TABLE . " s, ".USERS_TABLE." u
-		WHERE s.shout_user_id=u.user_id ORDER BY s.shout_session_time DESC LIMIT $start, ".$board_config['posts_per_page'];
+		WHERE s.shout_user_id=u.user_id ORDER BY s.shout_session_time DESC LIMIT $start, $shouts_per_page";
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not get shoutbox information', '', __LINE__, __FILE__, $sql);
