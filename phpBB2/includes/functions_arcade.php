@@ -158,27 +158,36 @@ function last_played_score()
 }
 
 function games_position($games_place)
-{	global $games_position_text;
-	$place_text = '';
+{
+	global $lang, $games_position_text;
 
-	if($games_place > 3)
+	$default_position_text = array('> 20th place', 'st place', 'nd place', 'rd place', 'th place');
+	if (isset($lang['games_position_text']) && is_array($lang['games_position_text']))
 	{
-		if($games_place < 21)
-		{
-			$place_text = $games_place . $games_position_text[4];
-		}
-		else
-		{
-			$place_text = $games_position_text[0];
-			
-		}
+		$position_text = $lang['games_position_text'];
+	}
+	elseif (isset($games_position_text) && is_array($games_position_text))
+	{
+		// Compatibility with language packs written for the original Arcade MOD.
+		$position_text = $games_position_text;
 	}
 	else
 	{
-		$place_text = $games_place . $games_position_text[$games_place];
+		$position_text = $default_position_text;
 	}
-	
-	return $place_text;
+	$position_text = array_replace($default_position_text, $position_text);
+	$games_place = max(0, (int) $games_place);
+
+	if($games_place > 20)
+	{
+		return $position_text[0];
+	}
+	if($games_place > 3 || $games_place < 1)
+	{
+		return $games_place . $position_text[4];
+	}
+
+	return $games_place . $position_text[$games_place];
 }
 
 function update_ina_session($user_id, $user_ip, $page, $game, $old_hash = FALSE, $win = "NORM", $tour_id = 0)

@@ -30,6 +30,10 @@ changes consolidated after that baseline without implying active maintenance.
   local GIF, PNG or JPEG filenames and SQL values use the database driver's
   escaping boundary. The same scalar/type and SQL-boundary checks now protect
   paFileDB category and custom-field internals.
+- Kept localized Arcade highscore positions available when extension language
+  files are loaded from inside phpBB's user-preference initializer. Position
+  formatting now also handles incomplete language packs and invalid ranks
+  without PHP warnings.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

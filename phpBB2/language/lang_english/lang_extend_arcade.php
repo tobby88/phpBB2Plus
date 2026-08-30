@@ -61,7 +61,8 @@ $lang['games_athighscore'] = '<br /><b>All Time ';
 $lang['highscore_you_have'] = ' you have:</b><br /><br />';
 $lang['place'] = ' place';
 $lang['places'] = ' places.';
-$games_position_text = array('> 20th place','st place','nd place','rd place','th place');
+$lang['games_position_text'] = array('> 20th place', 'st place', 'nd place', 'rd place', 'th place');
+$games_position_text = $lang['games_position_text'];
 //
 // 2.1.2
 //

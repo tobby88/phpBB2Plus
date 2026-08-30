@@ -69,7 +69,8 @@ $lang['games_athighscore'] = '<br /><b>Bester Spieler insgesamt ';
 $lang['highscore_you_have'] = ' Du hast:</b><br /><br />';
 $lang['place'] = ' Platz';
 $lang['places'] = ' Plätze.';
-$games_position_text = array('> 20. Platz','. Platz','. Platz','. Platz','. Platz');
+$lang['games_position_text'] = array('> 20. Platz', '. Platz', '. Platz', '. Platz', '. Platz');
+$games_position_text = $lang['games_position_text'];
 //
 // 2.1.2
 //
