@@ -23,7 +23,8 @@ changes consolidated after that baseline without implying active maintenance.
   ratings now use the actual article fields. Admin article IDs are normalized
   before they reach SQL. Guest authors no longer depend on an undefined
   variable, and article-notification private messages no longer persist
-  privileged action URLs containing an old session ID.
+  privileged action URLs containing an old session ID. Approve, unapprove and
+  confirmed-delete operations now require POST plus the active AdminCP token.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

@@ -92,6 +92,7 @@ switch( $mode )
 {
 
  	case 'approve':
+	phpbb_admin_require_post_session();
 	
 	if ($article_id <= 0)
 	{
@@ -194,6 +195,7 @@ switch( $mode )
 	break;
 
 	case 'unapprove':
+	phpbb_admin_require_post_session();
 	
 	if ($article_id <= 0)
 	{
@@ -232,8 +234,9 @@ switch( $mode )
 	
 	case 'delete':
 	
-	if (isset($_GET['c']) && $_GET['c'] == "yes")
+	if (isset($_POST['c']) && $_POST['c'] == "yes")
 	{	
+	phpbb_admin_require_post_session();
 	if ($article_id <= 0)
 	{
 		message_die(GENERAL_MESSAGE, $lang['No_Articles']);
@@ -398,7 +401,14 @@ switch( $mode )
 	}
 	else
 	{
-		$message = $lang['Confirm_art_delete'] . '<br /><br />' . sprintf($lang['Confirm_art_delete_yes'], '<a href="' . append_sid("admin_kb_art.$phpEx?mode=delete&amp;c=yes&amp;a=" . $article_id) . '">', '</a>') . '<br /><br />' . sprintf($lang['Confirm_art_delete_no'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>');
+		$confirm_action = append_sid("admin_kb_art.$phpEx");
+		$message = $lang['Confirm_art_delete'] . '<br /><br /><form method="post" action="' . htmlspecialchars($confirm_action, ENT_QUOTES, 'UTF-8') . '">'
+			. phpbb_admin_session_field()
+			. '<input type="hidden" name="mode" value="delete" />'
+			. '<input type="hidden" name="c" value="yes" />'
+			. '<input type="hidden" name="a" value="' . $article_id . '" />'
+			. '<input type="submit" value="' . htmlspecialchars($lang['Yes'], ENT_QUOTES, 'UTF-8') . '" />'
+			. '&nbsp;&nbsp;<a href="' . append_sid("admin_kb_art.$phpEx") . '">' . htmlspecialchars($lang['No'], ENT_QUOTES, 'UTF-8') . '</a></form>';
 
 		message_die(GENERAL_MESSAGE, $message);
 	}

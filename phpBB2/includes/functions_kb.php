@@ -186,6 +186,19 @@ function get_kb_nav($parent)
 //
 // get articles for the category
 //
+function kb_admin_article_action_form($mode, $article_id, $icon, $label)
+{
+	global $phpbb_root_path, $phpEx, $userdata;
+
+	$action = append_sid($phpbb_root_path . 'admin/admin_kb_art.' . $phpEx);
+	return '<form method="post" action="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '" style="display:inline">'
+		. '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
+		. '<input type="hidden" name="mode" value="' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . '" />'
+		. '<input type="hidden" name="a" value="' . (int) $article_id . '" />'
+		. '<input type="image" src="' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" title="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" />'
+		. '</form>';
+}
+
 function get_kb_articles($id = false, $approve = false, $block_name = '', $start = -1, $articles_in_cat = 0)
 {
     global $db, $template, $images, $phpEx, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id, $is_admin, $userdata;
@@ -286,14 +299,12 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 		   if ( $article_approved == 2 || $article_approved == 0)
 		   {
 		       //approve
-		   	   $temp_url = append_sid($phpbb_root_path . "admin/admin_kb_art.$phpEx?mode=approve&amp;a=$article_id");
-		   	   $approve = '<a href="' . $temp_url . '"><img src="'. $images['icon_approve'] . '" border="0" alt="' . $lang['Approve'] . '"></a>';
+		   	$approve = kb_admin_article_action_form('approve', $article_id, $images['icon_approve'], $lang['Approve']);
 		   }
 		   elseif ( $article_approved == 1 )
 		   {		   
 			   //unapprove
-			   $temp_url = append_sid($phpbb_root_path . "admin/admin_kb_art.$phpEx?mode=unapprove&amp;a=$article_id");
-			   $approve = '<a href="' . $temp_url . '"><img src="'.  $images['icon_unapprove'] . '" border="0" alt="' . $lang['Un_approve'] . '"></a>';
+			   $approve = kb_admin_article_action_form('unapprove', $article_id, $images['icon_unapprove'], $lang['Un_approve']);
 		   }
 	
 		   	//delete
