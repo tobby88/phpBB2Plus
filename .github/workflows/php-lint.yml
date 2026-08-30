@@ -114,3 +114,6 @@ jobs:
 
       - name: Test database maintenance safety
         run: php .github/scripts/check-db-maintenance-safety.php
+
+      - name: Test forum administration safety
+        run: php .github/scripts/check-forum-admin-safety.php

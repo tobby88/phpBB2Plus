@@ -59,14 +59,36 @@ $forum_auth_ary['auth_download'] = AUTH_REG;
 //
 // Mode setting
 //
-if( isset($_POST['mode']) || isset($_GET['mode']) )
+if (isset($_POST['mode']) && is_scalar($_POST['mode']))
 {
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
-	$mode = htmlspecialchars($mode);
+	$mode = (string) $_POST['mode'];
+}
+elseif (isset($_GET['mode']) && is_scalar($_GET['mode']))
+{
+	$mode = (string) $_GET['mode'];
 }
 else
 {
 	$mode = "";
+}
+
+if (isset($_POST['forum_admin_action']) && is_scalar($_POST['forum_admin_action']))
+{
+	$action = explode('|', (string) $_POST['forum_admin_action']);
+	if (count($action) != 4 || !in_array($action[0], array('forum_order', 'cat_order', 'forum_sync'), true) ||
+		!in_array($action[1], array(POST_CAT_URL, POST_FORUM_URL), true) || !is_numeric($action[2]) || !is_numeric($action[3]))
+	{
+		message_die(GENERAL_ERROR, 'Invalid forum administration action.');
+	}
+	$mode = $action[0];
+	$_POST[$action[1]] = intval($action[2]);
+	$_POST['move'] = intval($action[3]);
+}
+
+$forum_write_modes = array('createforum', 'modforum', 'createcat', 'modcat', 'movedelforum', 'movedelcat', 'forum_order', 'cat_order', 'forum_sync');
+if (in_array($mode, $forum_write_modes, true))
+{
+	phpbb_admin_require_post_session();
 }
 
 // ------------------
@@ -84,15 +106,23 @@ if ( $db->sql_query($sql) )
 
 // get the ids
 $cat_id = 0;
-if (isset($_POST[POST_CAT_URL]) || isset($_GET[POST_CAT_URL]))
+if (isset($_POST[POST_CAT_URL]) && is_scalar($_POST[POST_CAT_URL]))
 {
-	$cat_id = isset($_POST[POST_CAT_URL]) ? intval($_POST[POST_CAT_URL]) : intval($_GET[POST_CAT_URL]);
+	$cat_id = intval($_POST[POST_CAT_URL]);
+}
+elseif (isset($_GET[POST_CAT_URL]) && is_scalar($_GET[POST_CAT_URL]))
+{
+	$cat_id = intval($_GET[POST_CAT_URL]);
 }
 
 $forum_id = 0;
-if (isset($_POST[POST_FORUM_URL]) || isset($_GET[POST_FORUM_URL]))
+if (isset($_POST[POST_FORUM_URL]) && is_scalar($_POST[POST_FORUM_URL]))
 {
-	$forum_id = isset($_POST[POST_FORUM_URL]) ? intval($_POST[POST_FORUM_URL]) : intval($_GET[POST_FORUM_URL]);
+	$forum_id = intval($_POST[POST_FORUM_URL]);
+}
+elseif (isset($_GET[POST_FORUM_URL]) && is_scalar($_GET[POST_FORUM_URL]))
+{
+	$forum_id = intval($_GET[POST_FORUM_URL]);
 }
 
 // check and fix parm
@@ -258,6 +288,12 @@ function move_tree($type, $id, $move)
 		}
 		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Couldn\'t update cat/forum order', '', __LINE__, __FILE__, $sql);
 	}
+}
+
+function admin_forum_action_button($mode, $id_name, $id, $label, $move = 0)
+{
+	$value = (string) $mode . '|' . (string) $id_name . '|' . (int) $id . '|' . (int) $move;
+	return '<button type="submit" class="liteoption" name="forum_admin_action" value="' . phpbb_admin_html($value) . '">' . phpbb_admin_html($label) . '</button>';
 }
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
@@ -475,7 +511,7 @@ if( !empty($mode) )
 				$newmode = 'modforum';
 				$buttonvalue = $lang['Update'];
 
-				$forum_id = intval($_GET[POST_FORUM_URL]);
+				$forum_id = (int) $forum_id;
 
 				$row = get_info('forum', $forum_id);
 
@@ -565,7 +601,7 @@ if( !empty($mode) )
 				"body" => "admin/forum_edit_body.tpl")
 			);
 
-			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode .'" /><input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '" />';
+			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode .'" /><input type="hidden" name="' . POST_FORUM_URL . '" value="' . $forum_id . '" />' . phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				'S_FORUM_ACTION' => append_sid("admin_forums.$phpEx"),
@@ -1039,7 +1075,7 @@ if( !empty($mode) )
 			$newmode = 'modcat';
 			$buttonvalue = $lang['Update'];
 
-			$cat_id = intval($_GET[POST_CAT_URL]);
+			$cat_id = (int) $cat_id;
 
 			$row = get_info('category', $cat_id);
 			$cat_title = $row['cat_title'];
@@ -1078,7 +1114,7 @@ if( !empty($mode) )
 				"body" => "admin/category_edit_body.tpl")
 			);
 
-			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode . '" /><input type="hidden" name="' . POST_CAT_URL . '" value="' . $cat_id . '" />';
+			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode . '" /><input type="hidden" name="' . POST_CAT_URL . '" value="' . $cat_id . '" />' . phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				'CAT_TITLE' => $cat_title,
@@ -1170,7 +1206,7 @@ if( !empty($mode) )
 			
 		case 'deleteforum':
 			// Show form to delete a forum
-			$forum_id = intval($_GET[POST_FORUM_URL]);
+			$forum_id = (int) $forum_id;
 
 			$select_to = '<select name="to_id">';
 			$select_to .= "<option value=\"-1\"$s>" . $lang['Delete_all_posts'] . "</option>\n";
@@ -1208,7 +1244,7 @@ if( !empty($mode) )
 				"body" => "admin/forum_delete_body.tpl")
 			);
 
-			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode . '" /><input type="hidden" name="from_id" value="' . $forum_id . '" />';
+			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode . '" /><input type="hidden" name="from_id" value="' . $forum_id . '" />' . phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				'NAME' => $name, 
@@ -1427,7 +1463,7 @@ if( !empty($mode) )
 			//
 			// Show form to delete a category
 			//
-			$cat_id = intval($_GET[POST_CAT_URL]);
+			$cat_id = (int) $cat_id;
 
 			$buttonvalue = $lang['Move_and_Delete'];
 			$newmode = 'movedelcat';
@@ -1506,7 +1542,7 @@ if( !empty($mode) )
 				"body" => "admin/forum_delete_body.tpl")
 			);
 
-			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode . '" /><input type="hidden" name="from_id" value="' . $cat_id . '" />';
+			$s_hidden_fields = '<input type="hidden" name="mode" value="' . $newmode . '" /><input type="hidden" name="from_id" value="' . $cat_id . '" />' . phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				'NAME' => $name, 
@@ -1650,8 +1686,12 @@ if( !empty($mode) )
 			//
 			// Change order of forums in the DB
 			//
-			$move = intval($_GET['move']);
-			$forum_id = intval($_GET[POST_FORUM_URL]);
+			$move = (isset($_POST['move']) && is_scalar($_POST['move'])) ? intval($_POST['move']) : 0;
+			$forum_id = (int) $forum_id;
+			if (!in_array($move, array(-15, 15), true) || !isset($tree['keys'][POST_FORUM_URL . $forum_id]))
+			{
+				message_die(GENERAL_ERROR, 'Invalid forum ordering request.');
+			}
 
 			//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- delete
@@ -1684,8 +1724,12 @@ if( !empty($mode) )
 			//
 			// Change order of categories in the DB
 			//
-			$move = intval($_GET['move']);
-			$cat_id = intval($_GET[POST_CAT_URL]);
+			$move = (isset($_POST['move']) && is_scalar($_POST['move'])) ? intval($_POST['move']) : 0;
+			$cat_id = (int) $cat_id;
+			if (!in_array($move, array(-15, 15), true) || !isset($tree['keys'][POST_CAT_URL . $cat_id]))
+			{
+				message_die(GENERAL_ERROR, 'Invalid category ordering request.');
+			}
 
 			//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- delete
@@ -1715,7 +1759,11 @@ if( !empty($mode) )
 			break;
 
 		case 'forum_sync':
-			sync('forum', intval($_GET[POST_FORUM_URL]));
+			if (!$forum_id || !isset($tree['keys'][POST_FORUM_URL . $forum_id]))
+			{
+				message_die(GENERAL_ERROR, 'Invalid forum synchronization request.');
+			}
+			sync('forum', $forum_id);
 			$show_index = TRUE;
 
 			break;
@@ -1746,6 +1794,7 @@ $template->assign_vars(array(
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	'S_FORUM_ACTION' => append_sid("admin_forums.$phpEx"),
+	'S_SESSION_FIELD' => phpbb_admin_session_field(),
 	'L_FORUM_TITLE' => $lang['Forum_admin'], 
 	'L_FORUM_EXPLAIN' => $lang['Forum_admin_explain'], 
 	'L_CREATE_FORUM' => $lang['Create_forum'], 
@@ -1893,7 +1942,9 @@ function display_admin_index($cur='Root', $level=0, $max_level=-1)
 			$cat_icon = empty($cat['icon']) ? '' : '<img src="' . ( isset($images[ $cat['icon'] ]) ? $phpbb_root_path . $images[ $cat['icon'] ] : $cat['icon'] ) . '" border="0" alt="' . $cat['icon'] . '" title="' . $cat['icon'] . '" />';
 
 			// send to template
-			$template->assign_block_vars('catrow', array());
+			$template->assign_block_vars('catrow', array(
+				'S_CAT_MOVE_UP_BUTTON' => admin_forum_action_button('cat_order', POST_CAT_URL, $cat_id, $lang['Move_up'], -15),
+				'S_CAT_MOVE_DOWN_BUTTON' => admin_forum_action_button('cat_order', POST_CAT_URL, $cat_id, $lang['Move_down'], 15)));
 			$template->assign_block_vars('catrow.cathead', array(
 				'CAT_ID'			=> $cat_id,
 				'CAT_TITLE'			=> $cat_title,
@@ -1908,8 +1959,8 @@ function display_admin_index($cur='Root', $level=0, $max_level=-1)
 
 				'U_CAT_EDIT'		=> append_sid("admin_forums.$phpEx?mode=editcat&amp;" . POST_CAT_URL . "=$cat_id"),
 				'U_CAT_DELETE'		=> append_sid("admin_forums.$phpEx?mode=deletecat&amp;" . POST_CAT_URL . "=$cat_id"),
-				'U_CAT_MOVE_UP'		=> append_sid("admin_forums.$phpEx?mode=cat_order&amp;move=-15&amp;" . POST_CAT_URL . "=$cat_id"),
-				'U_CAT_MOVE_DOWN'	=> append_sid("admin_forums.$phpEx?mode=cat_order&amp;move=15&amp;" . POST_CAT_URL . "=$cat_id"),
+				'S_CAT_MOVE_UP_BUTTON' => admin_forum_action_button('cat_order', POST_CAT_URL, $cat_id, $lang['Move_up'], -15),
+				'S_CAT_MOVE_DOWN_BUTTON' => admin_forum_action_button('cat_order', POST_CAT_URL, $cat_id, $lang['Move_down'], 15),
 				'U_VIEWCAT'			=> append_sid("admin_forums.$phpEx?" . POST_CAT_URL . "=$cat_id"))
 			);
 			// add indentation to the display
@@ -1961,9 +2012,9 @@ function display_admin_index($cur='Root', $level=0, $max_level=-1)
 				'U_VIEWFORUM'		=> append_sid("admin_forums.$phpEx?" . POST_FORUM_URL . "=$forum_id"),
 				'U_FORUM_EDIT'		=> append_sid("admin_forums.$phpEx?mode=editforum&amp;" . POST_FORUM_URL . "=$forum_id"),
 				'U_FORUM_DELETE'	=> append_sid("admin_forums.$phpEx?mode=deleteforum&amp;" . POST_FORUM_URL . "=$forum_id"),
-				'U_FORUM_MOVE_UP'	=> append_sid("admin_forums.$phpEx?mode=forum_order&amp;move=-15&amp;" . POST_FORUM_URL . "=$forum_id"),
-				'U_FORUM_MOVE_DOWN'	=> append_sid("admin_forums.$phpEx?mode=forum_order&amp;move=15&amp;" . POST_FORUM_URL . "=$forum_id"),
-				'U_FORUM_RESYNC'	=> append_sid("admin_forums.$phpEx?mode=forum_sync&amp;" . POST_FORUM_URL . "=$forum_id"))
+				'S_FORUM_MOVE_UP_BUTTON' => admin_forum_action_button('forum_order', POST_FORUM_URL, $forum_id, $lang['Move_up'], -15),
+				'S_FORUM_MOVE_DOWN_BUTTON' => admin_forum_action_button('forum_order', POST_FORUM_URL, $forum_id, $lang['Move_down'], 15),
+				'S_FORUM_RESYNC_BUTTON' => admin_forum_action_button('forum_sync', POST_FORUM_URL, $forum_id, $lang['Resync']))
 			);
 			// add indentation to the display
 			for ($k=1; $k <= $level; $k++) $template->assign_block_vars('catrow.forumrow.inc', array());

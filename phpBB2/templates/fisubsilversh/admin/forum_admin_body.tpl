@@ -4,6 +4,7 @@
 <div class="genmed">{L_FORUM_EXPLAIN}</div>
 <br />
 <form method="post" action="{S_FORUM_ACTION}">
+{S_SESSION_FIELD}
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
 <tr>
 <td><span class="nav"><a href="{S_FORUM_ACTION}" class="nav">{L_INDEX}</a>{NAV_CAT_DESC}</span></td>
@@ -23,7 +24,7 @@
 	<td class="{catrow.cathead.CLASS_CATLEFT}"   colspan="{catrow.cathead.INC_SPAN}" {catrow.cathead.WIDTH}><span class="cattitle"><b><a href="{catrow.cathead.U_VIEWCAT}" class="cattitle">{catrow.cathead.CAT_TITLE}</a></b></span></td>
 	<td class="{catrow.cathead.CLASS_CATMIDDLE}" align="center" valign="middle"><span class="gen"><a href="{catrow.cathead.U_CAT_EDIT}" class="gen">{L_EDIT}</a></span></td>
 	<td class="{catrow.cathead.CLASS_CATMIDDLE}" align="center" valign="middle"><span class="gen"><a href="{catrow.cathead.U_CAT_DELETE}" class="gen">{L_DELETE}</a></span></td>
-	<td class="{catrow.cathead.CLASS_CATMIDDLE}" align="center" valign="middle" nowrap="nowrap"><span class="gen"><a href="{catrow.cathead.U_CAT_MOVE_UP}" class="gen">{L_MOVE_UP}</a> <a href="{catrow.cathead.U_CAT_MOVE_DOWN}" class="gen">{L_MOVE_DOWN}</a></span></td>
+	<td class="{catrow.cathead.CLASS_CATMIDDLE}" align="center" valign="middle" nowrap="nowrap"><span class="gen">{catrow.cathead.S_CAT_MOVE_UP_BUTTON} {catrow.cathead.S_CAT_MOVE_DOWN_BUTTON}</span></td>
 	<td class="{catrow.cathead.CLASS_CATRIGHT}"  align="center" valign="middle"><span class="gen">&nbsp;</span></td>
 </tr>
 <tr>
@@ -47,8 +48,8 @@
 	<td class="row2" align="center" valign="middle"><span class="gen">{catrow.forumrow.NUM_POSTS}</span></td>
 	<td class="row1" align="center" valign="middle"><span class="gen"><a href="{catrow.forumrow.U_FORUM_EDIT}">{L_EDIT}</a></span></td>
 	<td class="row2" align="center" valign="middle"><span class="gen"><a href="{catrow.forumrow.U_FORUM_DELETE}">{L_DELETE}</a></span></td>
-	<td class="row1" align="center" valign="middle"><span class="gen"><a href="{catrow.forumrow.U_FORUM_MOVE_UP}">{L_MOVE_UP}</a> <br /> <a href="{catrow.forumrow.U_FORUM_MOVE_DOWN}">{L_MOVE_DOWN}</a></span></td>
-	<td class="row2" align="center" valign="middle"><span class="gen"><a href="{catrow.forumrow.U_FORUM_RESYNC}">{L_RESYNC}</a></span></td>
+	<td class="row1" align="center" valign="middle"><span class="gen">{catrow.forumrow.S_FORUM_MOVE_UP_BUTTON}<br />{catrow.forumrow.S_FORUM_MOVE_DOWN_BUTTON}</span></td>
+	<td class="row2" align="center" valign="middle"><span class="gen">{catrow.forumrow.S_FORUM_RESYNC_BUTTON}</span></td>
 </tr>
 <!-- END forumrow -->
 <!-- BEGIN catfoot -->
