@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Modernized acronym, word-censor, rank and smiley administration. All writes
+  now use session-bound POST requests, confirmed deletes take their target
+  only from the confirmation form, request modes and scalar identifiers are
+  normalized, and database text uses the driver escaping boundary. Missing
+  edit records no longer trigger PHP 8 array warnings. Acronym data is stored
+  as text and escaped when rendered, while legacy entity-encoded entries stay
+  readable and can no longer inject markup through acronym tooltips.
 - Repaired banner administration on PHP 8 by replacing removed `each()` and
   `ereg()` calls. Saves now take scalar values only from POST, scheduling and
   modes are allowlisted/bounded, SQL strings use the driver escape boundary,

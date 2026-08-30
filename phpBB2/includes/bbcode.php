@@ -1129,9 +1129,17 @@ function acronym_pass($message)
 
 		for ($i = 0; $i < count($acronyms); $i++)
 		{
-			$orig[] = '#\b(' . preg_quote( $acronyms[$i]['acronym'], "/") . ')\b#';
+			$acronym_text = html_entity_decode((string) $acronyms[$i]['acronym'], ENT_QUOTES, 'UTF-8');
+			$description_text = html_entity_decode((string) $acronyms[$i]['description'], ENT_QUOTES, 'UTF-8');
+			if ($acronym_text === '')
+			{
+				continue;
+			}
+			$acronym_html = htmlspecialchars($acronym_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+			$description_html = htmlspecialchars($description_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+			$orig[] = '#\b(' . preg_quote($acronym_text, "/") . ')\b#';
 			//$orig[] = "/(?<=.\W|\W.|^\W)" . phpbb_preg_quote($acronyms[$i]['acronym'], "/") . "(?=.\W|\W.|\W$)/";
-			$repl[] = '<acronym title="' . $acronyms[$i]['description'] . '">' . $acronyms[$i]['acronym'] . '</acronym>'; ;
+			$repl[] = str_replace(array('\\', '$'), array('\\\\', '\\$'), '<acronym title="' . $description_html . '">' . $acronym_html . '</acronym>');
 		}
 	}
 	

@@ -27,9 +27,9 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
-if( (isset($_GET['mode']) && is_scalar($_GET['mode'])) || (isset($_POST['mode']) && is_scalar($_POST['mode'])) )
+if( (isset($_POST['mode']) && is_scalar($_POST['mode'])) || (isset($_GET['mode']) && is_scalar($_GET['mode'])) )
 {
-	$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : (string) $_POST['mode'];
+	$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : (string) $_GET['mode'];
 }
 else 
 {
@@ -49,18 +49,20 @@ else
 		$mode = "";
 	}
 }
+$mode = in_array($mode, array('', 'add', 'edit', 'save', 'delete'), true) ? $mode : '';
 
 if( $mode != "" )
 {
 	if( $mode == "edit" || $mode == "add" )
 	{
-		$acronym_id = ( isset($_GET['id']) ) ? intval($_GET['id']) : 0;
+		$acronym_id = (isset($_GET['id']) && is_scalar($_GET['id'])) ? max(0, intval($_GET['id'])) : 0;
+		$acronym_info = array('acronym' => '', 'description' => '');
 
 		$template->set_filenames(array(
 			"body" => "admin/acronyms_edit_body.tpl")
 		);
 
-		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+		$s_hidden_fields = phpbb_admin_session_field();
 
 		if( $mode == "edit" )
 		{
@@ -76,6 +78,11 @@ if( $mode != "" )
 				}
 
 				$acronym_info = $db->sql_fetchrow($result);
+				$db->sql_freeresult($result);
+				if (!$acronym_info)
+				{
+					message_die(GENERAL_MESSAGE, $lang['No_acronym_selected']);
+				}
 				$s_hidden_fields .= '<input type="hidden" name="id" value="' . $acronym_id . '" />';
 			}
 			else
@@ -85,8 +92,8 @@ if( $mode != "" )
 		}
 
 		$template->assign_vars(array(
-			'ACRONYM' => $acronym_info['acronym'],
-			'DESCRIPTION' => $acronym_info['description'],
+			'ACRONYM' => phpbb_admin_html(html_entity_decode((string) $acronym_info['acronym'], ENT_QUOTES, 'UTF-8')),
+			'DESCRIPTION' => phpbb_admin_html(html_entity_decode((string) $acronym_info['description'], ENT_QUOTES, 'UTF-8')),
 
 			'L_ACRONYMS_TITLE' => $lang['Acronyms_title'],
 			'L_ACRONYMS_TEXT' => $lang['Acronyms_explain'],
@@ -110,21 +117,23 @@ if( $mode != "" )
 		$acronym = ( isset($_POST['acronym']) && is_scalar($_POST['acronym']) ) ? trim((string) $_POST['acronym']) : "";
 		$description = ( isset($_POST['description']) && is_scalar($_POST['description']) ) ? trim((string) $_POST['description']) : "";
 
-		if($acronym == "" || $description == "")
+		if($acronym == "" || $description == "" || strlen($acronym) > 80 || strlen($description) > 255)
 		{
 			message_die(GENERAL_MESSAGE, $lang['Must_enter_acronym']);
 		}
+		$acronym_sql = $db->sql_escape($acronym);
+		$description_sql = $db->sql_escape($description);
 
 		if( $acronym_id )
 		{
 			$sql = "UPDATE " . ACRONYMS_TABLE . "
-				SET acronym = '" . str_replace("\'", "''", htmlspecialchars($acronym) ) . "', description = '" . str_replace("\'", "''", htmlspecialchars($description)) . "'
+				SET acronym = '" . $acronym_sql . "', description = '" . $description_sql . "'
 				WHERE acronym_id = $acronym_id";
 			$message = $lang['Acronym_updated'];
 		}
 		else
 		{
-			$sql = 'SELECT acronym FROM ' . ACRONYMS_TABLE . " WHERE acronym = '" . str_replace("\'", "''", htmlspecialchars($acronym) ) . "'";
+			$sql = 'SELECT acronym FROM ' . ACRONYMS_TABLE . " WHERE acronym = '" . $acronym_sql . "'";
 			
 			if(!$result = $db->sql_query($sql))
 			{
@@ -144,7 +153,7 @@ if( $mode != "" )
 			$db->sql_freeresult( $result );
 			
 			$sql = "INSERT INTO " . ACRONYMS_TABLE . " (acronym, description)
-				VALUES ('" . str_replace("\'", "''", htmlspecialchars($acronym)) . "', '" . str_replace("\'", "''", htmlspecialchars($description)) . "')";
+				VALUES ('" . $acronym_sql . "', '" . $description_sql . "')";
 			
 			$message = $lang['Acronym_added'];
 		}
@@ -160,16 +169,10 @@ if( $mode != "" )
 	}
 	else if( $mode == "delete" )
 	{
-		if( isset($_POST['id']) ||  isset($_GET['id']) )
-		{
-			$acronym_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : intval($_GET['id']);
-		}
-		else
-		{
-			$acronym_id = 0;
-		}
-
 		$confirmed = isset($_POST['confirm']);
+		$acronym_id = ($confirmed && isset($_POST['id']) && is_scalar($_POST['id']))
+			? max(0, intval($_POST['id']))
+			: ((isset($_GET['id']) && is_scalar($_GET['id'])) ? max(0, intval($_GET['id'])) : 0);
 		if (isset($_POST['cancel']))
 		{
 			redirect(append_sid("admin_acronyms.$phpEx"));
@@ -198,7 +201,7 @@ if( $mode != "" )
 
 			$hidden_fields = '<input type="hidden" name="mode" value="delete" />' .
 				'<input type="hidden" name="id" value="' . $acronym_id . '" />' .
-				'<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id']) . '" />';
+				phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				'MESSAGE_TITLE' => $lang['Confirm'],
@@ -258,8 +261,8 @@ else
 		$template->assign_block_vars('acronyms', array(
 			'ROW_COLOR' => "#" . $row_color,
 			'ROW_CLASS' => $row_class,
-			'ACRONYM' => $acronym,
-			'DESCRIPTION' => $description,
+			'ACRONYM' => phpbb_admin_html($acronym),
+			'DESCRIPTION' => phpbb_admin_html($description),
 
 			'U_ACRONYM_EDIT' => append_sid("admin_acronyms.$phpEx?mode=edit&amp;id=$acronym_id"),
 			'U_ACRONYM_DELETE' => append_sid("admin_acronyms.$phpEx?mode=delete&amp;id=$acronym_id"))

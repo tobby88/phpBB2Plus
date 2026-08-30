@@ -38,7 +38,7 @@ if (!defined('IN_PHPBB'))
 //
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
-$cancel = ( isset($HTTP_POST_VARS['cancel']) || isset($_POST['cancel']) ) ? true : false;
+$cancel = isset($_POST['cancel']);
 $no_page_header = $cancel;
 
 require('./pagestart.' . $phpEx);
@@ -47,11 +47,10 @@ if ($cancel)
 	redirect('admin/' . append_sid("admin_ranks.$phpEx", true));
 }
 
-if( isset($_GET['mode']) || isset($_POST['mode']) )
+if( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] :
-		((isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '');
-	$mode = htmlspecialchars($mode);
+	$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+		((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
 }
 else 
 {
@@ -72,8 +71,8 @@ else
 	}
 }
 // Restrict mode input to valid options
-$mode = ( in_array($mode, array('add', 'edit', 'save', 'delete')) ) ? $mode : '';
-$confirm = isset($HTTP_POST_VARS['confirm']);
+$mode = in_array($mode, array('add', 'edit', 'save', 'delete'), true) ? $mode : '';
+$confirm = isset($_POST['confirm']);
 if ($mode == 'save' || ($mode == 'delete' && $confirm))
 {
 	phpbb_admin_require_post_session();
@@ -87,9 +86,9 @@ if( $mode != "" )
 		//
 		// They want to add a new rank, show the form.
 		//
-		$rank_id = ( isset($_GET['id']) ) ? intval($_GET['id']) : 0;
+		$rank_id = (isset($_GET['id']) && is_scalar($_GET['id'])) ? max(0, intval($_GET['id'])) : 0;
 		
-		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
+		$s_hidden_fields = phpbb_admin_session_field();
 		
 		if( $mode == "edit" )
 		{
@@ -106,12 +105,17 @@ if( $mode != "" )
 			}
 			
 			$rank_info = $db->sql_fetchrow($result);
+			$db->sql_freeresult($result);
+			if (!$rank_info)
+			{
+				message_die(GENERAL_MESSAGE, $lang['Must_select_rank']);
+			}
 			$s_hidden_fields .= '<input type="hidden" name="id" value="' . $rank_id . '" />';
 
 		}
 		else
 		{
-			$rank_info['rank_special'] = 0;
+			$rank_info = array('rank_title' => '', 'rank_special' => 0, 'rank_min' => 0, 'rank_image' => '');
 		}
 
 		$s_hidden_fields .= '<input type="hidden" name="mode" value="save" />';
@@ -161,7 +165,7 @@ if( $mode != "" )
 		$min_posts = ( isset($_POST['min_posts']) && is_scalar($_POST['min_posts']) ) ? intval($_POST['min_posts']) : -1;
 		$rank_image = ( isset($_POST['rank_image']) && is_scalar($_POST['rank_image']) ) ? phpbb_profile_image_name(basename(trim((string) $_POST['rank_image']))) : "";
 
-		if( $rank_title == "" )
+		if( $rank_title == "" || strlen($rank_title) > 50 )
 		{
 			message_die(GENERAL_MESSAGE, $lang['Must_select_rank']);
 		}
@@ -170,6 +174,10 @@ if( $mode != "" )
 		{
 			$max_posts = -1;
 			$min_posts = -1;
+		}
+		else
+		{
+			$min_posts = max(0, min(8388607, $min_posts));
 		}
 
 		//
@@ -197,7 +205,7 @@ if( $mode != "" )
 				}
 			}
 			$sql = "UPDATE " . RANKS_TABLE . "
-				SET rank_title = '" . str_replace("\'", "''", $rank_title) . "', rank_special = $special_rank, rank_min = $min_posts, rank_image = '" . str_replace("\'", "''", $rank_image) . "'
+				SET rank_title = '" . $db->sql_escape($rank_title) . "', rank_special = " . intval($special_rank) . ", rank_min = $min_posts, rank_image = '" . $db->sql_escape($rank_image) . "'
 				WHERE rank_id = $rank_id";
 
 			$message = $lang['Rank_updated'];
@@ -205,7 +213,7 @@ if( $mode != "" )
 		else
 		{
 			$sql = "INSERT INTO " . RANKS_TABLE . " (rank_title, rank_special, rank_min, rank_image)
-				VALUES ('" . str_replace("\'", "''", $rank_title) . "', $special_rank, $min_posts, '" . str_replace("\'", "''", $rank_image) . "')";
+				VALUES ('" . $db->sql_escape($rank_title) . "', " . intval($special_rank) . ", $min_posts, '" . $db->sql_escape($rank_image) . "')";
 
 			$message = $lang['Rank_added'];
 		}
@@ -226,14 +234,9 @@ if( $mode != "" )
 		// Ok, they want to delete their rank
 		//
 		
-		if( isset($_POST['id']) || isset($_GET['id']) )
-		{
-			$rank_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : intval($_GET['id']);
-		}
-		else
-		{
-			$rank_id = 0;
-		}
+		$rank_id = ($confirm && isset($_POST['id']) && is_scalar($_POST['id']))
+			? max(0, intval($_POST['id']))
+			: ((isset($_GET['id']) && is_scalar($_GET['id'])) ? max(0, intval($_GET['id'])) : 0);
 		
 		if( $rank_id && $confirm )
 		{
@@ -266,7 +269,7 @@ if( $mode != "" )
 				'body' => 'admin/confirm_body.tpl')
 			);
 
-			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $rank_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
+			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $rank_id . '" />' . phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				'MESSAGE_TITLE' => $lang['Confirm'],

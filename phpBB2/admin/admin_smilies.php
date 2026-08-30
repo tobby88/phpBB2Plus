@@ -276,7 +276,7 @@ if( isset($_GET['import_pack']) || isset($_POST['import_pack']) )
 		}
 		$smile_paks_select .= "</select>";
 
-		$hidden_vars = '<input type="hidden" name="mode" value="import" /><input type="hidden" name="sid" value="' . admin_smiley_html($userdata['session_id']) . '" />';
+		$hidden_vars = '<input type="hidden" name="mode" value="import" />' . phpbb_admin_session_field();
 
 		$template->set_filenames(array(
 			"body" => "admin/smile_import_body.tpl")
@@ -362,7 +362,7 @@ else if( isset($_POST['add']) || isset($_GET['add']) )
 		$filename_list .= '<option value="' . admin_smiley_html($smiley_images[$i]) . '">' . admin_smiley_html($smiley_images[$i]) . '</option>';
 	}
 
-	$s_hidden_fields = '<input type="hidden" name="mode" value="savenew" /><input type="hidden" name="sid" value="' . admin_smiley_html($userdata['session_id']) . '" />';
+	$s_hidden_fields = '<input type="hidden" name="mode" value="savenew" />' . phpbb_admin_session_field();
 
 	$template->assign_vars(array(
 		"L_SMILEY_TITLE" => $lang['smiley_title'],
@@ -395,11 +395,7 @@ else if ( $mode != "" )
 			// Admin has selected to delete a smiley.
 			//
 
-			$smiley_id = admin_smiley_request_int($_POST, 'id');
-			if (!$smiley_id)
-			{
-				$smiley_id = admin_smiley_request_int($_GET, 'id');
-			}
+			$smiley_id = $confirm ? admin_smiley_request_int($_POST, 'id') : admin_smiley_request_int($_GET, 'id');
 			if (!$smiley_id)
 			{
 				message_die(GENERAL_MESSAGE, $lang['No_smiley_selected']);
@@ -426,7 +422,7 @@ else if ( $mode != "" )
 					'body' => 'admin/confirm_body.tpl')
 				);
 
-				$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $smiley_id . '" /><input type="hidden" name="sid" value="' . admin_smiley_html($userdata['session_id']) . '" />';
+				$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $smiley_id . '" />' . phpbb_admin_session_field();
 
 				$template->assign_vars(array(
 					'MESSAGE_TITLE' => $lang['Confirm'],
@@ -497,7 +493,7 @@ else if ( $mode != "" )
 				"body" => "admin/smile_edit_body.tpl")
 			);
 
-			$s_hidden_fields = '<input type="hidden" name="mode" value="save" /><input type="hidden" name="smile_id" value="' . intval($smile_data['smilies_id']) . '" /><input type="hidden" name="sid" value="' . admin_smiley_html($userdata['session_id']) . '" />';
+			$s_hidden_fields = '<input type="hidden" name="mode" value="save" /><input type="hidden" name="smile_id" value="' . intval($smile_data['smilies_id']) . '" />' . phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				"SMILEY_CODE" => admin_smiley_html($smile_data['code']),
@@ -642,7 +638,7 @@ else
 		"L_IMPORT_PACK" => $lang['import_smile_pack'],
 		"L_EXPORT_PACK" => $lang['export_smile_pack'],
 		
-		"S_HIDDEN_FIELDS" => '<input type="hidden" name="sid" value="' . admin_smiley_html($userdata['session_id']) . '" />',
+		"S_HIDDEN_FIELDS" => phpbb_admin_session_field(),
 		"S_SMILEY_ACTION" => append_sid("admin_smilies.$phpEx"))
 	);
 

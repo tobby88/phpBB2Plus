@@ -135,3 +135,6 @@ jobs:
 
       - name: Test banner safety
         run: php .github/scripts/check-banner-safety.php
+
+      - name: Test content administration safety
+        run: php .github/scripts/check-content-admin-safety.php

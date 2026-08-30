@@ -39,7 +39,7 @@ if (!defined('IN_PHPBB'))
 //
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
-$cancel = (isset($HTTP_POST_VARS['cancel']) || isset($_POST['cancel'])) ? true : false;
+$cancel = isset($_POST['cancel']);
 $no_page_header = $cancel;
 
 require('./pagestart.' . $phpEx);
@@ -48,11 +48,10 @@ if ($cancel)
 	redirect('admin/' . append_sid("admin_words.$phpEx", true));
 }
 
-if( isset($_GET['mode']) || isset($_POST['mode']) )
+if( isset($_POST['mode']) || isset($_GET['mode']) )
 {
-	$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] :
-		((isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '');
-	$mode = htmlspecialchars($mode);
+	$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
+		((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
 }
 else 
 {
@@ -74,8 +73,8 @@ else
 }
 
 // Restrict mode input to valid options
-$mode = ( in_array($mode, array('add', 'edit', 'save', 'delete')) ) ? $mode : '';
-$confirm = isset($HTTP_POST_VARS['confirm']);
+$mode = in_array($mode, array('add', 'edit', 'save', 'delete'), true) ? $mode : '';
+$confirm = isset($_POST['confirm']);
 if ($mode == 'save' || ($mode == 'delete' && $confirm))
 {
 	phpbb_admin_require_post_session();
@@ -85,14 +84,14 @@ if( $mode != "" )
 {
 	if( $mode == "edit" || $mode == "add" )
 	{
-		$word_id = ( isset($_GET['id']) ) ? intval($_GET['id']) : 0;
+		$word_id = (isset($_GET['id']) && is_scalar($_GET['id'])) ? max(0, intval($_GET['id'])) : 0;
 
 		$template->set_filenames(array(
 			"body" => "admin/words_edit_body.tpl")
 		);
 
 		$word_info = array('word' => '', 'replacement' => '');
-		$s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
+		$s_hidden_fields = phpbb_admin_session_field();
 
 		if( $mode == "edit" )
 		{
@@ -107,6 +106,11 @@ if( $mode != "" )
 				}
 
 				$word_info = $db->sql_fetchrow($result);
+				$db->sql_freeresult($result);
+				if (!$word_info)
+				{
+					message_die(GENERAL_MESSAGE, $lang['No_word_selected']);
+				}
 				$s_hidden_fields .= '<input type="hidden" name="id" value="' . $word_id . '" />';
 			}
 			else
@@ -140,7 +144,7 @@ if( $mode != "" )
 		$word = ( isset($_POST['word']) && is_scalar($_POST['word']) ) ? trim((string) $_POST['word']) : "";
 		$replacement = ( isset($_POST['replacement']) && is_scalar($_POST['replacement']) ) ? trim((string) $_POST['replacement']) : "";
 
-		if($word == "" || $replacement == "")
+		if($word == "" || $replacement == "" || strlen($word) > 100 || strlen($replacement) > 100)
 		{
 			message_die(GENERAL_MESSAGE, $lang['Must_enter_word']);
 		}
@@ -148,14 +152,14 @@ if( $mode != "" )
 		if( $word_id )
 		{
 			$sql = "UPDATE " . WORDS_TABLE . " 
-				SET word = '" . str_replace("\'", "''", $word) . "', replacement = '" . str_replace("\'", "''", $replacement) . "' 
+				SET word = '" . $db->sql_escape($word) . "', replacement = '" . $db->sql_escape($replacement) . "'
 				WHERE word_id = $word_id";
 			$message = $lang['Word_updated'];
 		}
 		else
 		{
 			$sql = "INSERT INTO " . WORDS_TABLE . " (word, replacement) 
-				VALUES ('" . str_replace("\'", "''", $word) . "', '" . str_replace("\'", "''", $replacement) . "')";
+				VALUES ('" . $db->sql_escape($word) . "', '" . $db->sql_escape($replacement) . "')";
 			$message = $lang['Word_added'];
 		}
 
@@ -174,15 +178,9 @@ if( $mode != "" )
 	}
 	else if( $mode == "delete" )
 	{
-		if( isset($_POST['id']) ||  isset($_GET['id']) )
-		{
-			$word_id = ( isset($_POST['id']) ) ? $_POST['id'] : $_GET['id'];
-			$word_id = intval($word_id);
-		}
-		else
-		{
-			$word_id = 0;
-		}
+		$word_id = ($confirm && isset($_POST['id']) && is_scalar($_POST['id']))
+			? max(0, intval($_POST['id']))
+			: ((isset($_GET['id']) && is_scalar($_GET['id'])) ? max(0, intval($_GET['id'])) : 0);
 
 		if( $word_id && $confirm )
 		{
@@ -209,7 +207,7 @@ if( $mode != "" )
 				'body' => 'admin/confirm_body.tpl')
 			);
 
-			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $word_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
+			$hidden_fields = '<input type="hidden" name="mode" value="delete" /><input type="hidden" name="id" value="' . $word_id . '" />' . phpbb_admin_session_field();
 
 			$template->assign_vars(array(
 				'MESSAGE_TITLE' => $lang['Confirm'],
@@ -272,8 +270,8 @@ else
 		$template->assign_block_vars("words", array(
 			"ROW_COLOR" => "#" . $row_color,
 			"ROW_CLASS" => $row_class,
-			"WORD" => htmlspecialchars($word),
-			"REPLACEMENT" => htmlspecialchars($replacement),
+			"WORD" => phpbb_admin_html($word),
+			"REPLACEMENT" => phpbb_admin_html($replacement),
 
 			"U_WORD_EDIT" => append_sid("admin_words.$phpEx?mode=edit&amp;id=$word_id"),
 			"U_WORD_DELETE" => append_sid("admin_words.$phpEx?mode=delete&amp;id=$word_id"))
