@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the extended MOD settings module with the central session-bound
+  AdminCP POST token, scalar and allowlisted form values, database-driver
+  escaping and UTF-8-safe output escaping. Invalid menu indices and missing or
+  unreadable settings directories are now handled without PHP 8 warnings or
+  type errors.
 - Hardened Album thumbnail-cache cleanup with the central session-bound
   AdminCP POST token, a verified cache directory and end-anchored image
   extensions. It now ignores links and non-files, handles unreadable cache

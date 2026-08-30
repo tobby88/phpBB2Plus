@@ -39,14 +39,17 @@ require('./pagestart.' . $phpEx);
 //
 $mods = array();
 $dir = @opendir($phpbb_root_path . 'includes/mods_settings');
-while( $file = @readdir($dir) )
+while( $dir !== false && ($file = @readdir($dir)) !== false )
 {
 	if( preg_match("/^mod_.*?\." . $phpEx . "$/", $file) )
 	{
 		include($phpbb_root_path . 'includes/mods_settings/' . $file);
 	}
 }
-@closedir($dir);
+if ($dir !== false)
+{
+	@closedir($dir);
+}
 
 // menu_id
 $menu_id = 0;
@@ -174,13 +177,18 @@ foreach ($mods as $menu_name => $menu)
 @array_multisort($menu_sort, $menu_keys, $mod_sort, $mod_keys, $sub_sort, $sub_keys);
 
 // fix menu id
-if ( $menu_id > count($menu_keys) )
+if ( !isset($menu_keys[$menu_id]) )
 {
 	$menu_id = 0;
 }
 
+if ( !isset($menu_keys[$menu_id]) || empty($mod_keys[$menu_id]) )
+{
+	message_die(GENERAL_ERROR, 'No extended configuration modules are available.');
+}
+
 // fix mod id
-if ( $mod_id > count($mod_keys[$menu_id]) )
+if ( !isset($mod_keys[$menu_id][$mod_id]) )
 {
 	$mod_id = 0;
 }
@@ -216,6 +224,8 @@ while ($row = $db->sql_fetchrow($result))
 // validate
 if ($submit)
 {
+	phpbb_admin_require_post_session();
+
 	// init for error
 	$error = false;
 	$error_msg = '';
@@ -225,12 +235,24 @@ if ($submit)
 	{
 		if (isset($_POST[$field_name]))
 		{
+			if (!is_scalar($_POST[$field_name]))
+			{
+				$error = true;
+				$msg = mods_settings_get_lang($field['lang_key']);
+				$error_msg .= (empty($error_msg) ? '' : '<br />') . $lang['Error'] . ':&nbsp;' . phpbb_admin_html($msg);
+				$post_value = '';
+			}
+			else
+			{
+				$post_value = (string) $_POST[$field_name];
+			}
 			switch ($field['type'])
 			{
 				case 'LIST_RADIO':
 				case 'LIST_DROP':
-					$$field_name = $_POST[$field_name];
-					if (!in_array($$field_name, $mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'][$field_name]['values']))
+					$$field_name = $post_value;
+					$allowed_values = array_map('strval', $field['values']);
+					if (!in_array($$field_name, $allowed_values, true))
 					{
 						$error = true;
 						$msg = mods_settings_get_lang( $mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'][$field_name]['lang_key'] );
@@ -241,22 +263,22 @@ if ($submit)
 				case 'SMALLINT':
 				case 'MEDIUMINT':
 				case 'INT':
-					$$field_name = intval($_POST[$field_name]);
+					$$field_name = intval($post_value);
 					break;
 				case 'VARCHAR':
 				case 'TEXT':
 				case 'DATEFMT':
-					$$field_name = trim(str_replace("\'", "''", htmlspecialchars($_POST[$field_name])));
+					$$field_name = trim($post_value);
 					break;
 				case 'HTMLVARCHAR':
 				case 'HTMLTEXT':
-					$$field_name = trim(str_replace("\'", "''", $_POST[$field_name]));
+					$$field_name = trim($post_value);
 					break;
 				default:
 					$$field_name = '';
 					if ( !empty($field['chk_func']) && function_exists($field['chk_func']) )
 					{
-						$$field_name = $field['chk_func']($field_name, $_POST[$field_name]);
+						$$field_name = $field['chk_func']($field_name, $post_value);
 					}
 					else
 					{
@@ -279,8 +301,8 @@ if ($submit)
 		{
 			// update
 			$sql = "UPDATE " . CONFIG_TABLE . " 
-					SET config_value = '" . $$field_name . "'
-					WHERE config_name = '" . $field_name . "'";
+			SET config_value = '" . $db->sql_escape((string) $$field_name) . "'
+					WHERE config_name = '" . $db->sql_escape($field_name) . "'";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Failed to update general configuration for ' . $field_name, '', __LINE__, __FILE__, $sql);
@@ -288,10 +310,11 @@ if ($submit)
 		}
 		if ( isset($_POST[$field_name . '_over']) && !empty($field['user']) && isset($userdata[ $field['user'] ]) )
 		{
+			$override_value = is_scalar($_POST[$field_name . '_over']) ? intval($_POST[$field_name . '_over']) : 0;
 			// update
 			$sql = "UPDATE " . CONFIG_TABLE . " 
-					SET config_value = '" . intval($_POST[$field_name . '_over']) . "'
-					WHERE config_name = '$field_name" . "_over'";
+					SET config_value = '" . $override_value . "'
+					WHERE config_name = '" . $db->sql_escape($field_name . '_over') . "'";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Failed to update general configuration for ' . $field_name, '', __LINE__, __FILE__, $sql);
@@ -388,6 +411,10 @@ for ($i = 0; $i < count($menu_keys); $i++)
 // send items
 foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
 {
+	$config_value = isset($config[$field_name]) ? (string) $config[$field_name] : '';
+	$config_value_html = phpbb_admin_html($config_value);
+	$field_name_html = phpbb_admin_html($field_name);
+
 	// get the field input statement
 	$input = '';
 	switch ($field['type'])
@@ -395,45 +422,45 @@ foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $fie
 		case 'LIST_RADIO':
 			foreach ($field['values'] as $key => $val)
 			{
-				$selected = ($config[$field_name] == $val) ? ' checked="checked"' : '';
+				$selected = ($config_value == $val) ? ' checked="checked"' : '';
 				$l_key = mods_settings_get_lang($key);
-				$input .= '<input type="radio" name="' . $field_name . '" value="' . $val . '"' . $selected . ' />' . $l_key . '&nbsp;&nbsp;';
+				$input .= '<input type="radio" name="' . $field_name_html . '" value="' . phpbb_admin_html($val) . '"' . $selected . ' />' . phpbb_admin_html($l_key) . '&nbsp;&nbsp;';
 			}
 			break;
 		case 'LIST_DROP':
 			foreach ($field['values'] as $key => $val)
 			{
-				$selected = ($config[$field_name] == $val) ? ' selected="selected"' : '';
+				$selected = ($config_value == $val) ? ' selected="selected"' : '';
 				$l_key = mods_settings_get_lang($key);
-				$input .= '<option value="' . $val . '"' . $selected . '>' . $l_key . '</option>';
+				$input .= '<option value="' . phpbb_admin_html($val) . '"' . $selected . '>' . phpbb_admin_html($l_key) . '</option>';
 			}
-			$input = '<select name="' . $field_name . '">' . $input . '</select>';
+			$input = '<select name="' . $field_name_html . '">' . $input . '</select>';
 			break;
 		case 'TINYINT':
-			$input = '<input type="text" name="' . $field_name . '" maxlength="3" size="2" class="post" value="' . $config[$field_name] . '" />';
+			$input = '<input type="text" name="' . $field_name_html . '" maxlength="3" size="2" class="post" value="' . $config_value_html . '" />';
 			break;
 		case 'SMALLINT':
-			$input = '<input type="text" name="' . $field_name . '" maxlength="5" size="5" class="post" value="' . $config[$field_name] . '" />';
+			$input = '<input type="text" name="' . $field_name_html . '" maxlength="5" size="5" class="post" value="' . $config_value_html . '" />';
 			break;
 		case 'MEDIUMINT':
-			$input = '<input type="text" name="' . $field_name . '" maxlength="8" size="8" class="post" value="' . $config[$field_name] . '" />';
+			$input = '<input type="text" name="' . $field_name_html . '" maxlength="8" size="8" class="post" value="' . $config_value_html . '" />';
 			break;
 		case 'INT':
-			$input = '<input type="text" name="' . $field_name . '" maxlength="13" size="11" class="post" value="' . $config[$field_name] . '" />';
+			$input = '<input type="text" name="' . $field_name_html . '" maxlength="13" size="11" class="post" value="' . $config_value_html . '" />';
 			break;
 		case 'VARCHAR':
 		case 'HTMLVARCHAR':
-			$input = '<input type="text" name="' . $field_name . '" maxlength="255" size="45" class="post" value="' . $config[$field_name] . '" />';
+			$input = '<input type="text" name="' . $field_name_html . '" maxlength="255" size="45" class="post" value="' . $config_value_html . '" />';
 			break;
 		case 'TEXT':
 		case 'HTMLTEXT':
-			$input = '<textarea rows="5" cols="45" wrap="virtual" name="' . $field_name . '" class="post">' . $config[$field_name] . '</textarea>';
+			$input = '<textarea rows="5" cols="45" wrap="virtual" name="' . $field_name_html . '" class="post">' . $config_value_html . '</textarea>';
 			break;
 		default:
 			$input = '';
 			if ( !empty($field['get_func']) && function_exists($field['get_func']) )
 			{
-				$input = $field['get_func']($field_name, $config[$field_name]);
+				$input = $field['get_func']($field_name, $config_value);
 			}
 			break;
 	}
@@ -445,9 +472,10 @@ foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $fie
 		$override = '';
 		foreach ($list_yes_no as $key => $val)
 		{
-			$selected = ($config[$field_name . '_over'] == $val) ? ' checked="checked"' : '';
+			$override_value = isset($config[$field_name . '_over']) ? $config[$field_name . '_over'] : '';
+			$selected = ($override_value == $val) ? ' checked="checked"' : '';
 			$l_key = mods_settings_get_lang($key);
-			$override .= '<input type="radio" name="' . $field_name . '_over' . '" value="' . $val . '"' . $selected . ' />' . $l_key . '&nbsp;&nbsp;';
+			$override .= '<input type="radio" name="' . $field_name_html . '_over' . '" value="' . phpbb_admin_html($val) . '"' . $selected . ' />' . phpbb_admin_html($l_key) . '&nbsp;&nbsp;';
 		}
 		$override = '<hr />' . $lang['Override_user_choices'] . ':&nbsp;'. $override;
 	}
@@ -467,6 +495,7 @@ $s_hidden_fields = '';
 $s_hidden_fields .= '<input type="hidden" name="menu_id" value="' . $menu_id . '" />';
 $s_hidden_fields .= '<input type="hidden" name="mod_id" value="' . $mod_id . '" />';
 $s_hidden_fields .= '<input type="hidden" name="sub_id" value="' . $sub_id . '" />';
+$s_hidden_fields .= phpbb_admin_session_field();
 $template->assign_vars(array(
 	'S_ACTION'			=> append_sid("./admin_board_extend.$phpEx"),
 	'S_HIDDEN_FIELDS'	=> $s_hidden_fields,
