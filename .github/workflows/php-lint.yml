@@ -132,3 +132,6 @@ jobs:
 
       - name: Test news category administration safety
         run: php .github/scripts/check-news-admin-safety.php
+
+      - name: Test banner safety
+        run: php .github/scripts/check-banner-safety.php

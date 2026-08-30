@@ -31,8 +31,8 @@ $phpbb_root_path = './';
 require_once($phpbb_root_path . 'extension.inc');
 require_once($phpbb_root_path . 'common.'.$phpEx);
 
-$banner_id = ( isset($_POST['banner_id']) ) ? intval ($_POST['banner_id']) : 
-	(( isset($_GET['banner_id']) ) ? intval ($_GET['banner_id']) : '');
+$banner_id_value = isset($_POST['banner_id']) ? $_POST['banner_id'] : (isset($_GET['banner_id']) ? $_GET['banner_id'] : 0);
+$banner_id = is_scalar($banner_id_value) ? max(0, (int) $banner_id_value) : 0;
 
 //
 // Start session management
@@ -43,13 +43,11 @@ init_userprefs($userdata);
 // End session management
 //
 
-$banner_id = ( isset($_POST['banner_id']) ) ? intval ($_POST['banner_id']) : 
-	(( isset($_GET['banner_id']) ) ? intval ($_GET['banner_id']) : '');
 if ( $banner_id <= 0 )
 {
 	message_die(GENERAL_ERROR, "No banner id specified", "", __LINE__, __FILE__,"banner_id='".$banner_id."'"); 
 }
-$sql ="select * FROM ".BANNERS_TABLE." WHERE banner_id='".$banner_id."'";
+$sql ="select * FROM ".BANNERS_TABLE." WHERE banner_id=".$banner_id;
 if ( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, "Couldn't retrieve banner data", "", __LINE__, __FILE__, $sql);
@@ -63,7 +61,8 @@ $redirect_url = trim((string) $banner_data['banner_url']);
 $redirect_parts = @parse_url($redirect_url);
 if (!$redirect_parts || empty($redirect_parts['host']) || empty($redirect_parts['scheme']) ||
 	!in_array(strtolower($redirect_parts['scheme']), array('http', 'https'), true) ||
-	preg_match('/[\x00-\x1f\x7f]/', $redirect_url))
+	isset($redirect_parts['user']) || isset($redirect_parts['pass']) ||
+	preg_match('/[\\\x00-\x20\x7f]/', $redirect_url))
 {
 	message_die(GENERAL_ERROR, 'Invalid banner URL', '', __LINE__, __FILE__);
 }

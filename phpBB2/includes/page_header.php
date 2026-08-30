@@ -696,12 +696,16 @@ if ($plus_config['enable_banners'])
 			$banner_spot=$banners[$i]['banner_spot'];
 			if ($banner_spot<>$last_spot  AND ($banners[$i]['banner_forum']==$banner_forum_id || empty($banners[$i]['banner_forum'])))
 			{
-				$banner_size = ($banners[$i]['banner_width'] && $banners[$i]['banner_height']) ? 'width="'.$banners[$i]['banner_width'].'" height="'.$banners[$i]['banner_height'].'"' : '';
+				$banner_spot = (int) $banner_spot;
+				$banner_id = (int) $banners[$i]['banner_id'];
+				$banner_size = ($banners[$i]['banner_width'] && $banners[$i]['banner_height']) ? 'width="'.(int) $banners[$i]['banner_width'].'" height="'.(int) $banners[$i]['banner_height'].'"' : '';
+				$safe_banner_name = htmlspecialchars((string) $banners[$i]['banner_name'], ENT_QUOTES, 'UTF-8');
+				$safe_banner_description = htmlspecialchars((string) $banners[$i]['banner_description'], ENT_QUOTES, 'UTF-8');
 				switch ($banners[$i]['banner_type'])
 				{
 					case 6 :
 						// swf file
-						$template->assign_vars(array('BANNER_'.$banner_spot.'_IMG' => '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,23,0" id=macromedia '.$banner_size.' align="abscenter"><param name=movie value="'.$banners[$i]['banner_name'].'"><param name=quality value=high><embed src="'.$banners[$i]['banner_name'].'" quality=high pluginspage="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash" type="application/x-shockwave-flash" autostart="true" /><noembed><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banners[$i]['banner_id']).'" target="_blank">'.$banners[$i]['banner_description'].'</a></noembed></object>')); 
+						$template->assign_vars(array('BANNER_'.$banner_spot.'_IMG' => '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" '.$banner_size.'><param name="movie" value="'.$safe_banner_name.'"><embed src="'.$safe_banner_name.'" type="application/x-shockwave-flash" /><noembed><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank">'.$safe_banner_description.'</a></noembed></object>'));
 						break;
 					case 4 :
 						// custom code
@@ -709,11 +713,11 @@ if ($plus_config['enable_banners'])
 						break;
 					case 2 :
 						// Text link
-						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banners[$i]['banner_id']).'" target="_blank" alt="'.$banners[$i]['banner_description'].'" title="'.$banners[$i]['banner_description'].'">'.$banners[$i]['banner_name'].'</a>');
+						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank" title="'.$safe_banner_description.'">'.$safe_banner_name.'</a>');
 						break;
 					case 0 :
 					default: 
-						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banners[$i]['banner_id']).'" target="_blank"><img src="'.$banners[$i]['banner_name'].'" '.$banner_size.' border="0" alt="'.$banners[$i]['banner_description'].'" title="'.$banners[$i]['banner_description'].'" /></a>');
+						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank"><img src="'.$safe_banner_name.'" '.$banner_size.' border="0" alt="'.$safe_banner_description.'" title="'.$safe_banner_description.'" /></a>');
 				}
 				$banner_show_list.= ', '.$banners[$i]['banner_id'];
 			}

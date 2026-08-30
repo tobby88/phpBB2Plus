@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repaired banner administration on PHP 8 by replacing removed `each()` and
+  `ereg()` calls. Saves now take scalar values only from POST, scheduling and
+  modes are allowlisted/bounded, SQL strings use the driver escape boundary,
+  and deletion uses the confirmed POST target. Normal image, text and legacy
+  Flash banner output is HTML-escaped; the explicitly selected custom-code
+  banner type remains raw by design. Redirects reject credentials, control
+  characters and backslashes in addition to non-HTTP(S) destinations.
 - Hardened news-category administration with allowlisted modes, strict
   positive identifiers and centralized session-token fields. Confirmed
   deletion takes its target only from POST, category labels are length-bounded
