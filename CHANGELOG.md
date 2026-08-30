@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened private-message send, edit, save and delete operations with a shared
+  POST-only, timing-safe session guard and database-driver escaping. Editing is
+  now limited to messages that have not been delivered, including the related
+  text row. Opening an already-read message no longer reuses an undefined sent-
+  copy ID or attempts to duplicate its attachments a second time.
 - Consolidated public group membership and moderation writes behind one
   POST-only, timing-safe session guard. Joining now verifies the open group
   independently of its existing members, works for empty groups, avoids

@@ -31,6 +31,12 @@ include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
+function privmsg_post_session_is_valid($sid, $userdata)
+{
+	$request_method = isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : '';
+	return $request_method === 'POST' && $sid !== '' && hash_equals((string) $userdata['session_id'], (string) $sid);
+}
+
 //
 // Is PM disabled?
 //
@@ -354,8 +360,10 @@ else if ( $mode == 'read' )
 		// not the most DB friendly way but a lot easier to manage, besides the admin will be able to
 		// set limits on numbers of storable posts for users ... hopefully!
 		//
+		$copy_subject = $db->sql_escape((string) $privmsg['privmsgs_subject']);
+		$copy_ip = $db->sql_escape((string) $privmsg['privmsgs_ip']);
 		$sql = "INSERT $sql_priority INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
-			VALUES (" . PRIVMSGS_SENT_MAIL . ", '" . str_replace("\'", "''", addslashes($privmsg['privmsgs_subject'])) . "', " . $privmsg['privmsgs_from_userid'] . ", " . $privmsg['privmsgs_to_userid'] . ", " . $privmsg['privmsgs_date'] . ", '" . $privmsg['privmsgs_ip'] . "', " . $privmsg['privmsgs_enable_html'] . ", " . $privmsg['privmsgs_enable_bbcode'] . ", " . $privmsg['privmsgs_enable_smilies'] . ", " .  $privmsg['privmsgs_attach_sig'] . ")";
+			VALUES (" . PRIVMSGS_SENT_MAIL . ", '$copy_subject', " . intval($privmsg['privmsgs_from_userid']) . ", " . intval($privmsg['privmsgs_to_userid']) . ", " . intval($privmsg['privmsgs_date']) . ", '$copy_ip', " . intval($privmsg['privmsgs_enable_html']) . ", " . intval($privmsg['privmsgs_enable_bbcode']) . ", " . intval($privmsg['privmsgs_enable_smilies']) . ", " . intval($privmsg['privmsgs_attach_sig']) . ")";
 		if ( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert private message sent info', '', __LINE__, __FILE__, $sql);
@@ -363,14 +371,16 @@ else if ( $mode == 'read' )
 
 		$privmsg_sent_id = $db->sql_nextid();
 
+		$copy_bbcode_uid = $db->sql_escape((string) $privmsg['privmsgs_bbcode_uid']);
+		$copy_text = $db->sql_escape((string) $privmsg['privmsgs_text']);
 		$sql = "INSERT $sql_priority INTO " . PRIVMSGS_TEXT_TABLE . " (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
-			VALUES ($privmsg_sent_id, '" . $privmsg['privmsgs_bbcode_uid'] . "', '" . str_replace("\'", "''", addslashes($privmsg['privmsgs_text'])) . "')";
+			VALUES ($privmsg_sent_id, '$copy_bbcode_uid', '$copy_text')";
 		if ( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert private message sent text', '', __LINE__, __FILE__, $sql);
 		}
+		$attachment_mod['pm']->duplicate_attachment_pm($privmsg['privmsgs_attachment'], $privmsg['privmsgs_id'], $privmsg_sent_id);
 	}
-	$attachment_mod['pm']->duplicate_attachment_pm($privmsg['privmsgs_attachment'], $privmsg['privmsgs_id'], $privmsg_sent_id);
 	//
 	// Pick a folder, any folder, so long as it's one below ...
 	//
@@ -747,7 +757,7 @@ else if ( ( $delete && $mark_list ) || $delete_all )
 	}
 	else if ($confirm)
 	{
-		if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+		if (!privmsg_post_session_is_valid($sid, $userdata))
 		{
 			message_die(GENERAL_ERROR, $lang['Session_invalid']);
 		}
@@ -947,7 +957,7 @@ else if ( $save && $mark_list && $folder != 'savebox' && $folder != 'outbox' )
 	{
 		redirect(append_sid("login.$phpEx?redirect=privmsg.$phpEx&folder=inbox", true));
 	}
-	if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+	if (!privmsg_post_session_is_valid($sid, $userdata))
 	{
 		message_die(GENERAL_ERROR, $lang['Session_invalid']);
 	}
@@ -1203,7 +1213,8 @@ else if ( $submit || $refresh || $mode != '' )
 		$sql = 'SELECT privmsgs_from_userid
 			FROM ' . PRIVMSGS_TABLE . '
 			WHERE privmsgs_id = ' . (int) $privmsg_id . '
-				AND privmsgs_from_userid = ' . $userdata['user_id'];
+				AND privmsgs_from_userid = ' . (int) $userdata['user_id'] . '
+				AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ', ' . PRIVMSGS_UNREAD_MAIL . ')';
 
 		if (!($result = $db->sql_query($sql)))
 		{
@@ -1222,7 +1233,7 @@ else if ( $submit || $refresh || $mode != '' )
 	if ( $submit )
 	{
 		// session id check
-		if ($sid == '' || $sid != $userdata['session_id'])
+		if (!privmsg_post_session_is_valid($sid, $userdata))
 		{
 			$error = true;
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ) . $lang['Session_invalid'];
@@ -1232,10 +1243,11 @@ else if ( $submit || $refresh || $mode != '' )
 		if ( $submitted_username !== '' )
 		{
 			$to_username = phpbb_clean_username($submitted_username);
+			$to_username_sql = $db->sql_escape(stripslashes($to_username));
 
 			$sql = "SELECT user_id, user_notify_pm, user_email, user_lang, user_active, user_absence, user_absence_mode, user_absence_text 
 				FROM " . USERS_TABLE . "
-				WHERE username = '" . str_replace("\'", "''", $to_username) . "'
+				WHERE username = '$to_username_sql'
 					AND user_id <> " . ANONYMOUS;
 			if ( !($result = $db->sql_query($sql)) )
 			{
@@ -1302,6 +1314,16 @@ else if ( $submit || $refresh || $mode != '' )
 		}
 
 		$msg_time = time();
+		$sender_id = intval($userdata['user_id']);
+		$recipient_id = intval($to_userdata['user_id']);
+		$subject_sql = $db->sql_escape(stripslashes($privmsg_subject));
+		$message_sql = $db->sql_escape(stripslashes($privmsg_message));
+		$bbcode_uid_sql = $db->sql_escape((string) $bbcode_uid);
+		$user_ip_sql = $db->sql_escape((string) $user_ip);
+		$html_on = intval($html_on);
+		$bbcode_on = intval($bbcode_on);
+		$smilies_on = intval($smilies_on);
+		$attach_sig = intval($attach_sig);
 
 		if ( $mode != 'edit' )
 		{
@@ -1355,13 +1377,15 @@ else if ( $submit || $refresh || $mode != '' )
 			}
 
 			$sql_info = "INSERT INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
-				VALUES (" . PRIVMSGS_NEW_MAIL . ", '" . str_replace("\'", "''", $privmsg_subject) . "', " . $userdata['user_id'] . ", " . $to_userdata['user_id'] . ", $msg_time, '$user_ip', $html_on, $bbcode_on, $smilies_on, $attach_sig)";
+				VALUES (" . PRIVMSGS_NEW_MAIL . ", '$subject_sql', $sender_id, $recipient_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on, $attach_sig)";
 		}
 		else
 		{
 			$sql_info = "UPDATE " . PRIVMSGS_TABLE . "
-				SET privmsgs_type = " . PRIVMSGS_NEW_MAIL . ", privmsgs_subject = '" . str_replace("\'", "''", $privmsg_subject) . "', privmsgs_from_userid = " . $userdata['user_id'] . ", privmsgs_to_userid = " . $to_userdata['user_id'] . ", privmsgs_date = $msg_time, privmsgs_ip = '$user_ip', privmsgs_enable_html = $html_on, privmsgs_enable_bbcode = $bbcode_on, privmsgs_enable_smilies = $smilies_on, privmsgs_attach_sig = $attach_sig 
-				WHERE privmsgs_id = $privmsg_id";
+				SET privmsgs_type = " . PRIVMSGS_NEW_MAIL . ", privmsgs_subject = '$subject_sql', privmsgs_from_userid = $sender_id, privmsgs_to_userid = $recipient_id, privmsgs_date = $msg_time, privmsgs_ip = '$user_ip_sql', privmsgs_enable_html = $html_on, privmsgs_enable_bbcode = $bbcode_on, privmsgs_enable_smilies = $smilies_on, privmsgs_attach_sig = $attach_sig
+				WHERE privmsgs_id = " . intval($privmsg_id) . "
+					AND privmsgs_from_userid = $sender_id
+					AND privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . ", " . PRIVMSGS_UNREAD_MAIL . ")";
 		}
 
 		if ( !($result = $db->sql_query($sql_info, BEGIN_TRANSACTION)) )
@@ -1374,13 +1398,19 @@ else if ( $submit || $refresh || $mode != '' )
 			$privmsg_sent_id = $db->sql_nextid();
 
 			$sql = "INSERT INTO " . PRIVMSGS_TEXT_TABLE . " (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
-				VALUES ($privmsg_sent_id, '" . $bbcode_uid . "', '" . str_replace("\'", "''", $privmsg_message) . "')";
+				VALUES ($privmsg_sent_id, '$bbcode_uid_sql', '$message_sql')";
 		}
 		else
 		{
 			$sql = "UPDATE " . PRIVMSGS_TEXT_TABLE . "
-				SET privmsgs_text = '" . str_replace("\'", "''", $privmsg_message) . "', privmsgs_bbcode_uid = '$bbcode_uid' 
-				WHERE privmsgs_text_id = $privmsg_id";
+				SET privmsgs_text = '$message_sql', privmsgs_bbcode_uid = '$bbcode_uid_sql'
+				WHERE privmsgs_text_id = " . intval($privmsg_id) . "
+					AND EXISTS (
+						SELECT 1 FROM " . PRIVMSGS_TABLE . "
+						WHERE privmsgs_id = " . intval($privmsg_id) . "
+							AND privmsgs_from_userid = $sender_id
+							AND privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . ", " . PRIVMSGS_UNREAD_MAIL . ")
+					)";
 		}
 
 		if ( !$db->sql_query($sql, END_TRANSACTION) )

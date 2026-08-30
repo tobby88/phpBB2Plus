@@ -112,6 +112,9 @@ jobs:
       - name: Test group control safety
         run: php .github/scripts/check-group-control-safety.php
 
+      - name: Test private message safety
+        run: php .github/scripts/check-private-message-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 
