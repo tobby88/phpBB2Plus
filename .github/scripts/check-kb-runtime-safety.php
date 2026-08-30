@@ -28,8 +28,16 @@ kb_runtime_assert(strpos($admin, "isset(\$_POST['a']) ? (int) \$_POST['a']") !==
 kb_runtime_assert(strpos($admin, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'AdminCP article deletion must remove vote rows');
 kb_runtime_assert(strpos($moderator, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'moderator article deletion must remove vote rows');
 kb_runtime_assert(strpos($functions, '$db->sql_escape($search_matches[$i])') !== false, 'indexed Knowledge Base words must be escaped at the SQL boundary');
-kb_runtime_assert(strpos($search, "\$row[\$temp_row['article_id']] = 1") !== false, 'AND searches must track article IDs rather than an undefined post ID');
+kb_runtime_assert(strpos($search, '$current_results[$article_id] = 1') !== false, 'AND searches must track normalized article IDs');
 kb_runtime_assert(strpos($search, '$db->sql_escape(str_replace') !== false, 'Knowledge Base search terms must be escaped at the SQL boundary');
 kb_runtime_assert(strpos($search, '$result_list[$post_id]') === false, 'Knowledge Base result intersection must not use an undefined post ID');
+kb_runtime_assert(strpos($search, 'KB_ARTICLE_TABLE') === false, 'Knowledge Base search must use the defined plural article table constant');
+kb_runtime_assert(strpos($search, "preg_match('/^[1-9][0-9]*\$/D', \$search_id_value)") !== false, 'Knowledge Base cached search IDs must be positive integers');
+kb_runtime_assert(strpos($search, "preg_match('/^[1-9][0-9]*\$/D', (string) \$cached_id)") !== false, 'cached Knowledge Base result IDs must be validated');
+kb_runtime_assert(strpos($search, "\$db->sql_escape(serialize(\$store_search_data))") !== false, 'serialized Knowledge Base search state must use driver escaping');
+kb_runtime_assert(strpos($search, "\$db->sql_escape(\$userdata['session_id'])") !== false, 'Knowledge Base search sessions must use driver escaping');
+kb_runtime_assert(strpos($search, 'AND t.approved = 1') !== false, 'Knowledge Base search results must not expose unapproved articles');
+kb_runtime_assert(strpos($search, 'mode=results&amp;search_id=') !== false, 'Knowledge Base pagination must retain results mode');
+kb_runtime_assert(strpos($search, 'str_replace("\\\'", "\'\'", $result_array)') === false, 'legacy manual search cache escaping must be removed');
 
 echo "Knowledge Base runtime safety tests passed.\n";

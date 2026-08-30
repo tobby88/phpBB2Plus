@@ -43,402 +43,324 @@ include_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 //
 $is_block = false;
 $show_new = true;
-if ( isset($_POST['mode']) || isset($_GET['mode']) )
-{
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
-}
-else
+$mode = phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode'));
+$mode = ($mode === 'results') ? 'results' : '';
+$search_keywords = trim(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords')));
+$search_keywords = substr($search_keywords, 0, 500);
+$search_id_value = phpbb_request_scalar($_GET, 'search_id');
+$search_id = preg_match('/^[1-9][0-9]*$/D', $search_id_value) ? intval($search_id_value) : 0;
+
+if ($search_keywords === '' && !$search_id)
 {
 	$mode = '';
 }
 
-if ( isset($_POST['search_keywords']) || isset($_GET['search_keywords']) )
-{
-	$search_keywords = ( isset($_POST['search_keywords']) ) ? $_POST['search_keywords'] : $_GET['search_keywords'];
-}
-else
-{
-	$search_keywords = '';
-}
-
-if ( !$search_keywords || $search_keywords == '' )
-{
-    $mode = '';
-}
-
-$search_id = ( isset($_GET['search_id']) ) ? $_GET['search_id'] : '';
-
-$show_results = ( isset($_POST['show_results']) ) ? $_POST['show_results'] : 'posts';
-
-if ( isset($_POST['search_terms']) )
-{
-	$search_terms = ( $_POST['search_terms'] == 'all' ) ? 1 : 0;
-}
-else
-{
-	$search_terms = 0;
-}
-
-if ( isset($_POST['search_fields']) )
-{
-	$search_fields = ( $_POST['search_fields'] == 'all' ) ? 1 : 0;
-}
-else
-{
-	$search_fields = 0;
-}
-
-$sort_by = ( isset($_POST['sort_by']) ) ? intval($_POST['sort_by']) : 0;
-
-if ( isset($_POST['sort_dir']) )
-{
-	$sort_dir = ( $_POST['sort_dir'] == 'DESC' ) ? 'DESC' : 'ASC';
-}
-else
-{
-	$sort_dir =  'DESC';
-}
-
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$show_results = 'posts';
+$search_terms = (phpbb_request_scalar($_POST, 'search_terms') === 'all') ? 1 : 0;
+$search_fields = (phpbb_request_scalar($_POST, 'search_fields') === 'all') ? 1 : 0;
+$sort_by = 0;
+$sort_dir = (phpbb_request_scalar($_POST, 'sort_dir') === 'ASC') ? 'ASC' : 'DESC';
+$start = max(0, intval(phpbb_request_scalar($_GET, 'start', 0)));
+$per_page = max(1, min(100, intval($board_config['topics_per_page'])));
+$search_results = '';
+$total_match_count = 0;
+$split_search = array();
+$searchset = array();
+$stopword_array = array();
+$synonym_array = array();
+$store_vars = array('search_results', 'total_match_count', 'split_search', 'sort_dir');
+$search_language = preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang']) &&
+	is_dir($phpbb_root_path . 'language/lang_' . $board_config['default_lang'])
+	? (string) $board_config['default_lang']
+	: 'english';
 
 switch($mode)
 {
     case "results":
-	
-	    //
-		// Cycle through options ...
-		//
-		if ( $search_keywords != '' )
+		if ($search_keywords !== '')
 		{
-		    if ( $search_keywords != '' )
+			$stopword_array = @file($phpbb_root_path . 'language/lang_' . $search_language . '/search_stopwords.txt');
+			$synonym_array = @file($phpbb_root_path . 'language/lang_' . $search_language . '/search_synonyms.txt');
+			$stopword_array = is_array($stopword_array) ? $stopword_array : array();
+			$synonym_array = is_array($synonym_array) ? $synonym_array : array();
+
+			$split_search = (!strstr($multibyte_charset, $lang['ENCODING']))
+				? split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search')
+				: preg_split('/\s+/', trim($search_keywords), -1, PREG_SPLIT_NO_EMPTY);
+			$split_search = is_array($split_search) ? array_slice($split_search, 0, 50) : array();
+			foreach ($split_search as $index => $search_word)
 			{
-   		     $stopword_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/search_stopwords.txt');
-				$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/search_synonyms.txt'); 
-		
-				$split_search = array();
-				$split_search = ( !strstr($multibyte_charset, $lang['ENCODING']) ) ? split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search') : preg_split('/\s+/', trim($search_keywords), -1, PREG_SPLIT_NO_EMPTY);
+				$split_search[$index] = substr((string) $search_word, 0, 100);
+			}
 
-				$search_msg_only = ( !$search_fields ) ? "AND m.title_match = 0" : ( ( strstr($multibyte_charset, $lang['ENCODING']) ) ? '' : '' );
+			$search_msg_only = (!$search_fields) ? 'AND m.title_match = 0' : '';
+			$word_count = 0;
+			$current_match_type = 'or';
+			$result_list = array();
 
-				$word_count = 0;
-				$current_match_type = 'or';
-
-				$word_match = array();
-				$result_list = array();
-
-				for($i = 0; $i < count($split_search); $i++)
+			foreach ($split_search as $search_word)
+			{
+				switch ($search_word)
 				{
-				    switch ( $split_search[$i] )
+					case 'and':
+					case 'or':
+					case 'not':
+						$current_match_type = $search_word;
+						continue 2;
+				}
+
+				if (!empty($search_terms))
+				{
+					$current_match_type = 'and';
+				}
+
+				if (!strstr($multibyte_charset, $lang['ENCODING']))
+				{
+					$match_word = $db->sql_escape(str_replace('*', '%', $search_word));
+					$sql = "SELECT m.article_id
+						FROM " . KB_WORD_TABLE . " w, " . KB_MATCH_TABLE . " m, " . KB_ARTICLES_TABLE . " a
+						WHERE w.word_text LIKE '$match_word'
+							AND m.word_id = w.word_id
+							AND a.article_id = m.article_id
+							AND a.approved = 1
+							AND w.word_common <> 1
+							$search_msg_only";
+				}
+				else
+				{
+					$match_word = $db->sql_escape('%' . str_replace('*', '', $search_word) . '%');
+					$title_sql = $search_fields ? " OR article_title LIKE '$match_word'" : '';
+					$sql = "SELECT article_id
+						FROM " . KB_ARTICLES_TABLE . "
+						WHERE approved = 1
+							AND (article_body LIKE '$match_word'$title_sql)";
+				}
+
+				if (!($result = $db->sql_query($sql)))
+				{
+					message_die(GENERAL_ERROR, 'Could not obtain matched articles list', '', __LINE__, __FILE__, $sql);
+				}
+
+				$current_results = array();
+				while ($temp_row = $db->sql_fetchrow($result))
+				{
+					$article_id = intval($temp_row['article_id']);
+					if ($article_id <= 0)
 					{
-					    case 'and':
-						    $current_match_type = 'and';
-							break;
+						continue;
+					}
+					$current_results[$article_id] = 1;
+					if (!$word_count || $current_match_type === 'or')
+					{
+						$result_list[$article_id] = 1;
+					}
+					else if ($current_match_type === 'not')
+					{
+						$result_list[$article_id] = 0;
+					}
+				}
+				$db->sql_freeresult($result);
 
-						case 'or':
-						    $current_match_type = 'or';
-							break;
-
-						case 'not':
-							$current_match_type = 'not';
-							break;
-
-						default:
-							if ( !empty($search_terms) )
-							{
-							    $current_match_type = 'and';
-							}
-
-							if ( !strstr($multibyte_charset, $lang['ENCODING']) )
-							{
-							    $match_word = $db->sql_escape(str_replace('*', '%', $split_search[$i]));
-								$sql = "SELECT m.article_id 
-								    FROM " . KB_WORD_TABLE . " w, " . KB_MATCH_TABLE . " m 
-									WHERE w.word_text LIKE '$match_word' 
-									    AND m.word_id = w.word_id 
-										AND w.word_common <> 1 
-										$search_msg_only";
-							}
-							else
-							{
-							    $match_word = $db->sql_escape('%' . str_replace('*', '', $split_search[$i]) . '%');
-								$search_msg_only = ( $search_fields ) ? "OR article_title LIKE '$match_word'" : '';
-								$sql = "SELECT article_id
-								    FROM " . KB_ARTICLE_TABLE . "
-									WHERE article_body  LIKE '$match_word'
-									$search_msg_only";
-							}
-							if ( !($result = $db->sql_query($sql)) )
-							{
-							    message_die(GENERAL_ERROR, 'Could not obtain matched articles list', '', __LINE__, __FILE__, $sql);
-							}
-
-							$row = array();
-							while( $temp_row = $db->sql_fetchrow($result) )
-							{
-							    $row[$temp_row['article_id']] = 1;
-
-								if ( !$word_count )
-								{
-								    $result_list[$temp_row['article_id']] = 1;
-								}
-								else if ( $current_match_type == 'or' )
-								{
-								    $result_list[$temp_row['article_id']] = 1;
-								}
-								else if ( $current_match_type == 'not' )
-								{
-								    $result_list[$temp_row['article_id']] = 0;
-							    }
-							}
-
-							if ( $current_match_type == 'and' && $word_count )
-							{
-							    foreach ($result_list as $article_id => $match_count)
-							    {
-								    if ( empty($row[$article_id]) )
-								{
-									    $result_list[$article_id] = 0;
-									}
-								}
-							}
-
-						    $word_count++;
-
-						    $db->sql_freeresult($result);
-					    }
-			    	}
-
-					$search_ids = array();
+				if ($current_match_type === 'and' && $word_count)
+				{
 					foreach ($result_list as $article_id => $matches)
 					{
-				        if ( $matches )
+						if (empty($current_results[$article_id]))
 						{
-					        $search_ids[] = $article_id;
-						}
-					}	
-			
-					unset($result_list);
-					$total_match_count = count($search_ids);
-				}
-		
-				//
-				// Store new result data
-				//
-				$search_results = implode(', ', $search_ids);
-				$per_page = $board_config['topics_per_page'];
-
-				//
-				// Combine both results and search data (apart from original query)
-				// so we can serialize it and place it in the DB
-				//
-				$store_search_data = array();
-
-				//
-				// Limit the character length (and with this the results displayed at all following pages) to prevent
-				// truncated result arrays. Normally, search results above 12000 are affected.
-				// - to include or not to include
-				/*
-				$max_result_length = 60000;
-				if (strlen($search_results) > $max_result_length)
-				{
-			        $search_results = substr($search_results, 0, $max_result_length);
-					$search_results = substr($search_results, 0, strrpos($search_results, ','));
-					$total_match_count = count(explode(', ', $search_results));
-			    }
-				*/
-
-				for($i = 0; $i < count($store_vars); $i++)
-				{
-			        $store_search_data[$store_vars[$i]] = $$store_vars[$i];
-				}
-
-				$result_array = serialize($store_search_data);
-				unset($store_search_data);
-
-				mt_srand ((float) microtime() * 1000000);
-				$search_id = mt_rand();
-
-				$sql = "UPDATE " . KB_SEARCH_TABLE . " 
-			        SET search_id = $search_id, search_array = '" . str_replace("\'", "''", $result_array) . "'
-					WHERE session_id = '" . $userdata['session_id'] . "'";
-		    	if ( !($result = $db->sql_query($sql)) || !$db->sql_affectedrows() )
-				{
-			        $sql = "INSERT INTO " . KB_SEARCH_TABLE . " (search_id, session_id, search_array) 
-				    	 VALUES($search_id, '" . $userdata['session_id'] . "', '" . str_replace("\'", "''", $result_array) . "')";
-			    	if ( !($result = $db->sql_query($sql)) )
-					{
-				        message_die(GENERAL_ERROR, 'Could not insert search results', '', __LINE__, __FILE__, $sql);
-					}
-			    }
-				else
-				{
-		            if ( intval($search_id) )
-					{
-				        $sql = "SELECT search_array 
-					        FROM " . KB_SEARCH_TABLE . " 
-						    WHERE search_id = $search_id  
-						        AND session_id = '". $userdata['session_id'] . "'";
-				        if ( !($result = $db->sql_query($sql)) )
-						{
-					        message_die(GENERAL_ERROR, 'Could not obtain search results', '', __LINE__, __FILE__, $sql);
-						}
-
-						if ( $row = $db->sql_fetchrow($result) )
-						{
-					        $search_data = phpbb_safe_unserialize($row['search_array']);
-							for($i = 0; $i < count($store_vars); $i++)
-							{
-						        $$store_vars[$i] = $search_data[$store_vars[$i]];
-							}
+							$result_list[$article_id] = 0;
 						}
 					}
 				}
-			
-				//
-				// Look up data ...
-				//
-				if ( $search_results != '' )
+				$word_count++;
+			}
+
+			$search_ids = array();
+			foreach ($result_list as $article_id => $matches)
+			{
+				$article_id = intval($article_id);
+				if ($matches && $article_id > 0)
 				{
-			        $sql = "SELECT t.*, u.username, u.user_id 
-				        FROM " . KB_ARTICLES_TABLE . " t, " . USERS_TABLE . " u 
-					    WHERE t.article_id IN ($search_results) 
-					        AND t.article_author_id = u.user_id";	
-						
-				    $per_page = $board_config['topics_per_page'];
+					$search_ids[$article_id] = $article_id;
+				}
+			}
+			$search_ids = array_slice(array_values($search_ids), 0, 12000);
+			$search_results = implode(', ', $search_ids);
+			$total_match_count = count($search_ids);
 
-					$sql .= " ORDER BY t.article_title $sort_dir LIMIT $start, " . $per_page;
+			$store_search_data = array();
+			foreach ($store_vars as $store_var)
+			{
+				$store_search_data[$store_var] = ${$store_var};
+			}
+			$result_array_sql = $db->sql_escape(serialize($store_search_data));
+			$search_session_id_sql = $db->sql_escape($userdata['session_id']);
+			$search_id = mt_rand(1, 2147483647);
 
-					if ( !$result = $db->sql_query($sql) )
-					{
-				        message_die(GENERAL_ERROR, 'Could not obtain search results', '', __LINE__, __FILE__, $sql);
-					}
-
-		  			$searchset = array();
-					while( $row = $db->sql_fetchrow($result) )
-					{
-				        $searchset[] = $row;
-					}
-		
-					$db->sql_freeresult($result);		
-		
-					//
-					// Define censored word matches
-					//
-					$orig_word = array();
-					$replacement_word = array();
-					obtain_word_list($orig_word, $replacement_word);
+			$sql = "UPDATE " . KB_SEARCH_TABLE . "
+				SET search_id = $search_id, search_array = '$result_array_sql'
+				WHERE session_id = '$search_session_id_sql'";
+			if (!($result = $db->sql_query($sql)) || !$db->sql_affectedrows())
+			{
+				$sql = "INSERT INTO " . KB_SEARCH_TABLE . " (search_id, session_id, search_array)
+					VALUES ($search_id, '$search_session_id_sql', '$result_array_sql')";
+				if (!($result = $db->sql_query($sql)))
+				{
+					message_die(GENERAL_ERROR, 'Could not insert search results', '', __LINE__, __FILE__, $sql);
+				}
+			}
+		}
+		else if ($search_id)
+		{
+			$search_session_id_sql = $db->sql_escape($userdata['session_id']);
+			$sql = "SELECT search_array
+				FROM " . KB_SEARCH_TABLE . "
+				WHERE search_id = " . intval($search_id) . "
+					AND session_id = '$search_session_id_sql'";
+			if (!($result = $db->sql_query($sql)))
+			{
+				message_die(GENERAL_ERROR, 'Could not obtain search results', '', __LINE__, __FILE__, $sql);
+			}
+			if ($row = $db->sql_fetchrow($result))
+			{
+				$search_data = phpbb_safe_unserialize($row['search_array']);
+				if (!is_array($search_data))
+				{
+					message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 				}
 
-					//
-					// Output header
-					//
-					$page_title = $lang['Search'];
- 					if ( !$is_block )
- 					{
-						include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-					}	
-					
-					include ($phpbb_root_path ."includes/kb_header.".$phpEx);
-
-					$template->set_filenames(array(
-				        'body' => 'kb_search_results.tpl')
-					);
-			
-				make_jumpbox($phpbb_root_path .'viewforum.'.$phpEx);
-
-				if ( $total_match_count == 1 )
+				$cached_ids = isset($search_data['search_results']) && is_scalar($search_data['search_results'])
+					? preg_split('/\s*,\s*/', (string) $search_data['search_results'], -1, PREG_SPLIT_NO_EMPTY)
+					: array();
+				$validated_ids = array();
+				foreach (array_slice($cached_ids, 0, 12000) as $cached_id)
 				{
-				$template->assign_vars(array(
-						'L_SEARCH_MATCHES' => sprintf($lang['Found_search_match'], $total_match_count), 
-			    	'L_ARTICLE' => $lang['Article'])
-			    );
-				}
-				else
-				{
-					$template->assign_block_vars('no_results', array(
-						'NO_RESULTS' => $lang['No_search_match']));
-				}
-				$highlight_active = '';
-				$highlight_match = array();
-				for($j = 0; $j < count($split_search); $j++ )
-				{
-			        $split_word = $split_search[$j];
-
-					if ( $split_word != 'and' && $split_word != 'or' && $split_word != 'not' )
+					if (preg_match('/^[1-9][0-9]*$/D', (string) $cached_id))
 					{
-				        $highlight_match[] = '#\b(' . str_replace("*", "([\w]+)?", $split_word) . ')\b#is';
-						$highlight_active .= " " . $split_word;
-
-						for ($k = 0; $k < count($synonym_array); $k++)
-						{ 
-					        $synonym_parts = preg_split('/\s+/', trim(strtolower($synonym_array[$k])), 2, PREG_SPLIT_NO_EMPTY);
-					        $replace_synonym = isset($synonym_parts[0]) ? $synonym_parts[0] : '';
-					        $match_synonym = isset($synonym_parts[1]) ? $synonym_parts[1] : '';
-
-							if ( $replace_synonym == $split_word )
-							{
-						        $highlight_match[] = '#\b(' . str_replace("*", "([\w]+)?", $replace_synonym) . ')\b#is';
-						    	$highlight_active .= ' ' . $match_synonym;
-							}
-						} 
+						$validated_ids[intval($cached_id)] = intval($cached_id);
 					}
 				}
-
-			    $highlight_active = urlencode(trim($highlight_active));
-		
-				for($i = 0; $i < count($searchset); $i++)
+				$search_results = implode(', ', $validated_ids);
+				$total_match_count = count($validated_ids);
+				$split_search = array();
+				if (isset($search_data['split_search']) && is_array($search_data['split_search']))
 				{
-			        $article_url = append_sid(this_kb_mxurl("mode=article&amp;k=" . $searchset[$i]['article_id'] . "&amp;highlight=$highlight_active"));
-			
-					$post_date = create_date($board_config['default_dateformat'], $searchset[$i]['article_date'], $board_config['board_timezone']);
-
-					$message = $searchset[$i]['article_body'];
-					$article_title = $searchset[$i]['article_title'];
-					$article_id = $searchset[$i]['article_id'];
-
-					$kb_cat = get_kb_cat($searchset[$i]['article_category_id']);
-					$temp_url = append_sid(this_kb_mxurl('mode=cat&amp;cat=' . $searchset[$i]['article_category_id']));
-					$category = '<a href="' . $temp_url . '" class="name">' . $kb_cat['category_name'] . '</a>';
-					
-		  			$type = get_kb_type($searchset[$i]['article_type']);
-
-					$message = '';
-
-					if ( count($orig_word) )
+					foreach (array_slice($search_data['split_search'], 0, 50) as $cached_word)
 					{
-				        $article_title = preg_replace($orig_word, $replacement_word, $searchset[$i]['article_title']);
+						if (is_scalar($cached_word))
+						{
+							$split_search[] = substr((string) $cached_word, 0, 100);
+						}
 					}
-						
-					$article_author = '<a href="' . append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $searchset[$i]['user_id']) . '" class="name">';
-					$article_author .= $searchset[$i]['username'];
-					$article_author .= '</a>';
-
-					$template->assign_block_vars('searchresults', array( 
-						'ARTICLE_ID' => $article_id,
-						'ARTICLE_AUTHOR' => $article_author, 
-						'ARTICLE_TITLE' => $article_title,
-						'ARTICLE_DESCRIPTION' => $searchset[$i]['article_description'],
-						'ARTICLE_CATEGORY' => $category,
-						'ARTICLE_TYPE' => $type,
-							 
-						'U_VIEW_ARTICLE' => $article_url)
-					);
 				}
-		    }
+				$sort_dir = (isset($search_data['sort_dir']) && $search_data['sort_dir'] === 'ASC') ? 'ASC' : 'DESC';
+			}
+			else
+			{
+				message_die(GENERAL_MESSAGE, $lang['No_search_match']);
+			}
+			$db->sql_freeresult($result);
+		}
 
-			$base_url = this_kb_mxurl_search("search_id=$search_id");
+		$orig_word = array();
+		$replacement_word = array();
+		if ($search_results !== '')
+		{
+			$sql = "SELECT t.*, u.username, u.user_id
+				FROM " . KB_ARTICLES_TABLE . " t, " . USERS_TABLE . " u
+				WHERE t.article_id IN ($search_results)
+					AND t.approved = 1
+					AND t.article_author_id = u.user_id
+				ORDER BY t.article_title $sort_dir
+				LIMIT $start, $per_page";
+			if (!($result = $db->sql_query($sql)))
+			{
+				message_die(GENERAL_ERROR, 'Could not obtain search results', '', __LINE__, __FILE__, $sql);
+			}
+			while ($row = $db->sql_fetchrow($result))
+			{
+				$searchset[] = $row;
+			}
+			$db->sql_freeresult($result);
+			obtain_word_list($orig_word, $replacement_word);
+		}
 
-			$template->assign_vars(array(
-			    'PAGINATION' => generate_pagination($base_url, $total_match_count, $per_page, $start),
-			    'PAGE_NUMBER' => (count($searchset) != 0) ? sprintf($lang['Page_of'], ( floor( $start / $per_page ) + 1 ), ceil( $total_match_count / $per_page )) : '', 
+		$page_title = $lang['Search'];
+		if (!$is_block)
+		{
+			include($phpbb_root_path . 'includes/page_header.' . $phpEx);
+		}
+		include($phpbb_root_path . 'includes/kb_header.' . $phpEx);
+		$template->set_filenames(array('body' => 'kb_search_results.tpl'));
+		make_jumpbox($phpbb_root_path . 'viewforum.' . $phpEx);
 
-				'L_AUTHOR' => $lang['Author'],
-				'L_MESSAGE' => $lang['Message'],
-				'L_TOPICS' => $lang['Article'],
-				'L_TYPE' => $lang['Article_type'],
-				'L_CATEGORY' => $lang['Category'])
-		    );
-		
+		if ($total_match_count > 0)
+		{
+			$matches_label = ($total_match_count == 1) ? $lang['Found_search_match'] : $lang['Found_search_matches'];
+			$template->assign_vars(array('L_SEARCH_MATCHES' => sprintf($matches_label, $total_match_count)));
+		}
+		else
+		{
+			$template->assign_vars(array('L_SEARCH_MATCHES' => sprintf($lang['Found_search_matches'], 0)));
+			$template->assign_block_vars('no_results', array('NO_RESULTS' => $lang['No_search_match']));
+		}
+
+		$highlight_active = '';
+		foreach ($split_search as $split_word)
+		{
+			$split_word = (string) $split_word;
+			if ($split_word !== 'and' && $split_word !== 'or' && $split_word !== 'not')
+			{
+				$highlight_active .= ' ' . $split_word;
+				foreach ($synonym_array as $synonym)
+				{
+					$synonym_parts = preg_split('/\s+/', trim(strtolower($synonym)), 2, PREG_SPLIT_NO_EMPTY);
+					if (isset($synonym_parts[1]) && $synonym_parts[0] === $split_word)
+					{
+						$highlight_active .= ' ' . $synonym_parts[1];
+					}
+				}
+			}
+		}
+		$highlight_active = urlencode(trim($highlight_active));
+
+		foreach ($searchset as $article)
+		{
+			$article_id = intval($article['article_id']);
+			$article_url = append_sid(this_kb_mxurl("mode=article&amp;k=$article_id&amp;highlight=$highlight_active"));
+			$article_title = $article['article_title'];
+			if (count($orig_word))
+			{
+				$article_title = preg_replace($orig_word, $replacement_word, $article_title);
+			}
+			$category_id = intval($article['article_category_id']);
+			$kb_cat = get_kb_cat($category_id);
+			$temp_url = append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id"));
+			$category = '<a href="' . $temp_url . '" class="name">' . $kb_cat['category_name'] . '</a>';
+			$type = get_kb_type($article['article_type']);
+			$author_url = append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . intval($article['user_id']));
+			$article_author = '<a href="' . $author_url . '" class="name">' . $article['username'] . '</a>';
+
+			$template->assign_block_vars('searchresults', array(
+				'ARTICLE_ID' => $article_id,
+				'ARTICLE_AUTHOR' => $article_author,
+				'ARTICLE_TITLE' => $article_title,
+				'ARTICLE_DESCRIPTION' => $article['article_description'],
+				'ARTICLE_CATEGORY' => $category,
+				'ARTICLE_TYPE' => $type,
+				'U_VIEW_ARTICLE' => $article_url
+			));
+		}
+
+		$base_url = this_kb_mxurl_search("mode=results&amp;search_id=$search_id");
+		$template->assign_vars(array(
+			'PAGINATION' => generate_pagination($base_url, $total_match_count, $per_page, $start),
+			'PAGE_NUMBER' => count($searchset) ? sprintf($lang['Page_of'], (floor($start / $per_page) + 1), ceil($total_match_count / $per_page)) : '',
+			'L_AUTHOR' => $lang['Author'],
+			'L_MESSAGE' => $lang['Message'],
+			'L_TOPICS' => $lang['Article'],
+			'L_TYPE' => $lang['Article_type'],
+			'L_CATEGORY' => $lang['Category']
+		));
 		break;
 		
 	default:

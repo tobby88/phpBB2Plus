@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Rebuilt the Knowledge Base search boundary for current PHP and database
+  drivers. Scalar and bounded requests, installed-language dictionaries,
+  escaped terms/session/cache data, validated cached article IDs and approved-
+  article filtering replace the legacy raw SQL paths. Multibyte search now
+  uses the real article-table constant, result counts work for more than one
+  match, and cached-result pagination retains its search mode.
 - Hardened forum search input, SQL and cached-result boundaries. Request
   values, modes, paging and result sizes are bounded; author, full-text,
   word-index and multibyte searches use database-driver escaping; dictionary
