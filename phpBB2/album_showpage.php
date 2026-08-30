@@ -83,21 +83,21 @@ include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 // Check the request
 // ------------------------------------
 
-if( isset($_GET['pic_id']) )
+if( isset($_GET['pic_id']) && is_scalar($_GET['pic_id']) )
 {
 	$pic_id = intval($_GET['pic_id']);
 }
-else if( isset($_POST['pic_id']) )
+else if( isset($_POST['pic_id']) && is_scalar($_POST['pic_id']) )
 {
 	$pic_id = intval($_POST['pic_id']);
 }
 else
 {
-	if( isset($_GET['comment_id']) )
+	if( isset($_GET['comment_id']) && is_scalar($_GET['comment_id']) )
 	{
 		$comment_id = intval($_GET['comment_id']);
 	}
-	else if( isset($_POST['comment_id']) )
+	else if( isset($_POST['comment_id']) && is_scalar($_POST['comment_id']) )
 	{
 		$comment_id = intval($_POST['comment_id']);
 	}
@@ -254,16 +254,16 @@ if( !($result = $db->sql_query($sql)) )
 }
 $thispic = $db->sql_fetchrow($result);
 
-$cat_id = ($thispic['pic_cat_id'] != 0) ? $thispic['pic_cat_id'] : $thispic['cat_id'];
-$album_user_id = $thispic['cat_user_id'];
-
-$total_comments = $thispic['comments_count'];
-$comments_per_page = $board_config['posts_per_page'];
-
 if( empty($thispic) )
 {
 	message_die(GENERAL_ERROR, $lang['Pic_not_exist'] . ' -> ' . $pic_id);
 }
+
+$cat_id = ($thispic['pic_cat_id'] != 0) ? $thispic['pic_cat_id'] : $thispic['cat_id'];
+$album_user_id = $thispic['cat_user_id'];
+
+$total_comments = $thispic['comments_count'];
+$comments_per_page = max(1, isset($board_config['posts_per_page']) ? intval($board_config['posts_per_page']) : 10);
 
 // ------------------------------------
 // Check the permissions
@@ -289,32 +289,22 @@ if ($auth_data['view'] == 0)
 //RATING:  Additional Check: if this user already rated
 // ------------------------------------
 
-if( $userdata['session_logged_in'] )
-{
-	$sql = "SELECT *
-			FROM ". ALBUM_RATE_TABLE ."
-			WHERE rate_pic_id = '$pic_id'
-				AND rate_user_id = '". $userdata['user_id'] ."'
-			LIMIT 1";
+$rate_identity = $userdata['session_logged_in']
+	? 'rate_user_id = ' . intval($userdata['user_id'])
+	: 'rate_user_id = ' . ANONYMOUS . " AND rate_user_ip = '" . $db->sql_escape($userdata['session_ip']) . "'";
+$sql = "SELECT rate_pic_id
+		FROM ". ALBUM_RATE_TABLE ."
+		WHERE rate_pic_id = " . intval($pic_id) . "
+			AND $rate_identity
+		LIMIT 1";
 
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not query rating information', '', __LINE__, __FILE__, $sql);
-	}
-
-	if ($db->sql_numrows($result) > 0)
-	{
-		$already_rated = TRUE;
-	}
-	else
-	{
-		$already_rated = FALSE;
-	}
-}
-else
+if( !$result = $db->sql_query($sql) )
 {
-	$already_rated = FALSE;
+	message_die(GENERAL_ERROR, 'Could not query rating information', '', __LINE__, __FILE__, $sql);
 }
+
+$already_rated = ($db->sql_numrows($result) > 0);
+$db->sql_freeresult($result);
 
 
 
@@ -554,9 +544,9 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			//
 			// Handle anon users posting with usernames
 			//
-			if ( $commentrow[$i]['user_id'] == ANONYMOUS && $commentrow[$i]['post_username'] != '' )
+			if ( $commentrow[$i]['user_id'] == ANONYMOUS && $commentrow[$i]['comment_username'] != '' )
 			{
-				$poster = $commentrow[$i]['post_username'];
+				$poster = $commentrow[$i]['comment_username'];
 				$poster_rank = $lang['Guest'];
 			}
 
@@ -577,7 +567,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				'PM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $pm_url . '"><img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" /></a>' : '',
 				'AIM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_aim'] ) ? '<a href="aim:goim?screenname=' . $commentrow[$i]['user_aim'] . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '' : '',
 				'YIM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $commentrow[$i]['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '' : '',
-				'MSNM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_msnm'] ) ? '<a href="' . $temp_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '' : '',
+				'MSNM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS && $commentrow[$i]['user_msnm'] ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '',
 				'ICQ_IMG' =>  ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_icq'] ) ? '<a href="https://www.icq.com/people/' . $commentrow[$i]['user_icq'] . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>' : '' : '',
 				'EMAIL_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '',
 				'WWW_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS && $comment_website_url ) ? '<a href="' . $comment_website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '',
@@ -800,7 +790,7 @@ else
 	// Check the permissions: COMMENT
 	// ------------------------------------
 
-	if (!isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
+	if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
 	{
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
@@ -823,9 +813,11 @@ else
 		}
 	}
 
-	$comment_text = str_replace("\'", "''", htmlspecialchars(substr(trim($comment_input), 0, $album_config['desc_length'])));
-
-	$comment_username = (!$userdata['session_logged_in']) ? str_replace("\'", "''", substr(htmlspecialchars(trim($comment_username_input)), 0, 32)) : str_replace("'", "''", htmlspecialchars(trim($userdata['username'])));
+	$comment_max_length = max(1, isset($album_config['desc_length']) ? intval($album_config['desc_length']) : 255);
+	$comment_raw = substr(trim(stripslashes($comment_input)), 0, $comment_max_length);
+	$comment_text = htmlspecialchars($comment_raw, ENT_QUOTES, 'UTF-8');
+	$comment_username_raw = (!$userdata['session_logged_in']) ? substr(trim(stripslashes($comment_username_input)), 0, 32) : trim((string) $userdata['username']);
+	$comment_username = htmlspecialchars($comment_username_raw, ENT_QUOTES, 'UTF-8');
 
 
 
@@ -850,9 +842,9 @@ else
 
 	if (!$userdata['session_logged_in'])
 	{
-		if ($comment_username != '')
+		if ($comment_username_raw != '')
 		{
-			$result = validate_username($comment_username);
+			$result = validate_username($comment_username_raw);
 			if ( $result['error'] )
 			{
 				message_die(GENERAL_MESSAGE, $result['error_msg']);
@@ -866,8 +858,10 @@ else
 	// --------------------------------
 
 	$comment_time = time();
-	$comment_user_id = $userdata['user_id'];
-	$comment_user_ip = $userdata['session_ip'];
+	$comment_user_id = intval($userdata['user_id']);
+	$comment_user_ip = $db->sql_escape($userdata['session_ip']);
+	$comment_username_sql = $db->sql_escape($comment_username);
+	$comment_text_sql = $db->sql_escape($comment_text);
 
 
 	// --------------------------------
@@ -877,7 +871,7 @@ else
 	if ($comment_text != '')//if user only rated, but didnt enter a comment ..... only update rating
 	{
 		$sql = "INSERT INTO ". ALBUM_COMMENT_TABLE ." (comment_pic_id, comment_cat_id, comment_user_id, comment_username, comment_user_ip, comment_time, comment_text)
-				VALUES ('$pic_id', '$cat_id', '$comment_user_id', '$comment_username', '$comment_user_ip', '$comment_time', '$comment_text')";
+				VALUES (" . intval($pic_id) . ", " . intval($cat_id) . ", $comment_user_id, '$comment_username_sql', '$comment_user_ip', $comment_time, '$comment_text_sql')";
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert new entry', '', __LINE__, __FILE__, $sql);
@@ -888,21 +882,18 @@ else
 	//rating
 	if ($has_rating)
 	{
-		$rate_user_id = $userdata['user_id'];
-		$rate_user_ip = $userdata['session_ip'];
+		$rate_user_id = intval($userdata['user_id']);
+		$rate_user_ip = $db->sql_escape($userdata['session_ip']);
 
 		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_point)
-				SELECT '$pic_id', '$rate_user_id', '$rate_user_ip', '$rate_point'";
-		if ($userdata['session_logged_in'])
-		{
-			$sql .= " WHERE NOT EXISTS (SELECT 1 FROM " . ALBUM_RATE_TABLE . " WHERE rate_pic_id = " . intval($pic_id) . " AND rate_user_id = " . intval($rate_user_id) . ")";
-		}
+				SELECT " . intval($pic_id) . ", $rate_user_id, '$rate_user_ip', " . intval($rate_point) . "
+				WHERE NOT EXISTS (SELECT 1 FROM " . ALBUM_RATE_TABLE . " WHERE rate_pic_id = " . intval($pic_id) . " AND $rate_identity)";
 
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert new rating', '', __LINE__, __FILE__, $sql);
 		}
-		if ($userdata['session_logged_in'] && !$db->sql_affectedrows())
+		if (!$db->sql_affectedrows())
 		{
 			message_die(GENERAL_MESSAGE, $lang['Already_rated']);
 		}

@@ -28,5 +28,13 @@ album_public_test_assert(strpos($edit, "\$db->sql_escape(\$pic_title)") !== fals
 album_public_test_assert(strpos($comment_edit, "\$db->sql_escape(\$comment_text)") !== false, 'edited comments must use database-driver escaping');
 album_public_test_assert(strpos($comment_edit, 'AND comment_pic_id = $pic_id') !== false, 'comment updates must remain bound to the verified picture');
 album_public_test_assert(strpos($showpage, "'S_FORM_TOKEN' => '<input type=\"hidden\" name=\"sid\"") !== false, 'picture comments and ratings must carry the session token');
+album_public_test_assert(strpos($showpage, "strtoupper((string) \$_SERVER['REQUEST_METHOD']) !== 'POST'") !== false, 'picture comments and ratings must require POST');
+album_public_test_assert(strpos($showpage, "\$comment_text_sql = \$db->sql_escape(\$comment_text)") !== false, 'new comments must use database-driver escaping');
+album_public_test_assert(strpos($showpage, "ANONYMOUS . \" AND rate_user_ip = '\"") !== false, 'guest ratings must be identified by IP');
+album_public_test_assert(strpos($showpage, "WHERE NOT EXISTS (SELECT 1 FROM \" . ALBUM_RATE_TABLE") !== false, 'ratings must not add a second voter row');
+album_public_test_assert(strpos($showpage, "['post_username']") === false, 'guest comments must not read a nonexistent post username');
+$missing_picture_check = strpos($showpage, 'if( empty($thispic) )');
+$picture_field_read = strpos($showpage, "\$cat_id = (\$thispic['pic_cat_id']");
+album_public_test_assert($missing_picture_check !== false && $picture_field_read !== false && $missing_picture_check < $picture_field_read, 'missing pictures must be rejected before their fields are read');
 
 echo "Public Album action safety tests passed.\n";
