@@ -386,6 +386,18 @@ foreach ($seed_statements as $seed_sql)
 	$operations[] = preg_replace('/\bphpbb_/', $table_prefix, $seed_sql);
 }
 
+// All-time Arcade scores historically kept a display-name snapshot in
+// addition to the authoritative user ID. Keep existing rows consistent after
+// account renames; runtime views also join the users table directly.
+$arcade_all_time_table = $table_prefix . 'ina_at_scores';
+if (update_table_exists($connection, $dbname, $arcade_all_time_table) &&
+	update_column_exists($connection, $dbname, $arcade_all_time_table, 'player_name'))
+{
+	$operations[] = 'UPDATE ' . update_quote_identifier($arcade_all_time_table) . ' s INNER JOIN ' .
+		update_quote_identifier($users_table) . ' u ON u.user_id = s.player_id SET s.player_name = u.username ' .
+		"WHERE s.player_id > 0 AND (s.player_name IS NULL OR s.player_name <> u.username)";
+}
+
 // Keep the public components/credits list useful on upgraded installations.
 // The original sample .hl file used to insert a bogus placeholder row whenever
 // the public page was opened. It is no longer distributed or scanned there.

@@ -1077,12 +1077,13 @@ if( $mode != '' )
 //
 // Main Query to get as much Information as we can.
 //
- 		$sql = "SELECT g.*, f.fav_game_name, c.cat_name, c.total_games, c.total_played, AVG(r.rate_point) AS rating, COUNT(comment_id) AS comment_count, s.score, u.username, u.user_allow_viewonline, a.score AS at_score, a.player_name
+		$sql = "SELECT g.*, f.fav_game_name, c.cat_name, c.total_games, c.total_played, AVG(r.rate_point) AS rating, COUNT(comment_id) AS comment_count, s.score, u.username, u.user_allow_viewonline, a.score AS at_score, a.player_name, au.username AS at_username, au.user_allow_viewonline AS at_user_allow_viewonline
       FROM " . iNA_CAT . " c, 
            " . iNA_GAMES . " g
         LEFT JOIN " . iNA_SCORES . " s ON g.highscore_id = s.player_id AND g.game_name = s.game_name
         LEFT JOIN " . USERS_TABLE . " u ON g.highscore_id = u.user_id
         LEFT JOIN " . iNA_AT_SCORES . " a ON g.at_highscore_id = a.player_id AND g.game_name = a.game_name
+		LEFT JOIN " . USERS_TABLE . " au ON g.at_highscore_id = au.user_id
 			  LEFT JOIN " . iNA_FAV . " f ON g.game_name = f.fav_game_name AND f.user_id = " . $userdata['user_id'] . "
         LEFT JOIN " . iNA_GAMES_RATE . " r ON g.game_name = r.rate_game_name
         LEFT JOIN " . iNA_GAMES_COMMENT . " ON g.game_name = comment_game_name
@@ -1200,11 +1201,22 @@ if( $mode != '' )
 //
 // Requested thousands by Painkiller
 //
-				    $best_at_player = ($game_rows[$i]['player_name'] == '') ? '?????' : $game_rows[$i]['player_name'];
+					$best_at_player_id = (int) $game_rows[$i]['at_highscore_id'];
+					$best_at_player = ($game_rows[$i]['at_username'] !== null && $game_rows[$i]['at_username'] !== '')
+						? $game_rows[$i]['at_username']
+						: (($game_rows[$i]['player_name'] == '') ? '?????' : $game_rows[$i]['player_name']);
             $best_at_score = $arcade->convert_score($game_rows[$i]['at_score']) ? '<br /><br />' . $arcade->score : '';
-						$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=".$game_rows[$i]['at_highscore_id']);
-						$profile = '<a href="' . $temp_url . '"><span class="gentbl">' . $best_at_player . '</span></a>';
-						$best_at_player = '<br /><br />'.$profile;
+						$best_at_player = htmlspecialchars($best_at_player, ENT_QUOTES, 'UTF-8');
+						if ($game_rows[$i]['at_username'] !== null && ($game_rows[$i]['at_user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD))
+						{
+							$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $best_at_player_id);
+							$best_at_player = '<a href="' . $temp_url . '"><span class="gentbl">' . $best_at_player . '</span></a>';
+						}
+						else if ($game_rows[$i]['at_username'] !== null)
+						{
+							$best_at_player = $lang['game_hidden'];
+						}
+						$best_at_player = '<br /><br />' . $best_at_player;
 						if ($scoreboards_equal)
 						{
 							$at_highscore_link = '';

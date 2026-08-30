@@ -543,7 +543,7 @@ if(!empty($game_name))
 					if ((( $arcade->score > $at_score_info['score'] ) && !$game_info['reverse_list'] ) || (( $arcade->score < $at_score_info['score'] ) && $game_info['reverse_list'] ))
 					{
 						$sql = "UPDATE " . iNA_AT_SCORES . " 
-							SET score = ". $score_sql . ", player_ip = '$ip_num_sql', date = " . time() . ", time_taken = ". (int) $total_time ."
+							SET score = ". $score_sql . ", player_name = '$user_name_sql', player_ip = '$ip_num_sql', date = " . time() . ", time_taken = ". (int) $total_time ."
 								WHERE player_id = " . $arcade_user_id . " AND game_name = '" . $session_game_name_sql . "'";
 						if( !$update_result = $db->sql_query($sql) ) 
 						{

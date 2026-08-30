@@ -12,6 +12,8 @@ function arcade_position_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
+$newscore = file_get_contents($root . '/phpBB2/newscore.php');
+$updater = file_get_contents($root . '/update/update_from_153a.php');
 $english = file_get_contents($root . '/phpBB2/language/lang_english/lang_extend_arcade.php');
 $german = file_get_contents($root . '/phpBB2/language/lang_german/lang_extend_arcade.php');
 $admin_config = file_get_contents($root . '/phpBB2/admin/admin_arcade.php');
@@ -37,6 +39,11 @@ arcade_position_assert(strpos($german, "\$lang['game_current_highscores']") !== 
 arcade_position_assert(strpos($activity, "(!\$all_time_enabled || \$scoreboards_equal) ? \$lang['game_highscores'] : \$lang['game_current_highscores']") !== false, 'identical or single scoreboards must use one generic link');
 arcade_position_assert(strpos($activity, "\$at_highscore_link = '';") !== false, 'the redundant all-time link must be omitted');
 arcade_position_assert(strpos($activity, '-:-') === false, 'the unexplained scoreboard separator must remain removed');
+arcade_position_assert(strpos($activity, 'au.username AS at_username') !== false, 'all-time winners must use the authoritative current account name');
+arcade_position_assert(strpos($activity, 'au.user_allow_viewonline AS at_user_allow_viewonline') !== false, 'all-time winners must respect profile visibility');
+arcade_position_assert(strpos($activity, "\$game_rows[\$i]['at_username'] !== null") !== false, 'deleted accounts need a safe historical-name fallback');
+arcade_position_assert(strpos($newscore, "player_name = '\$user_name_sql'") !== false, 'new all-time score updates must refresh their name snapshot');
+arcade_position_assert(strpos($updater, 'SET s.player_name = u.username') !== false, 'the upgrade path must reconcile historical Arcade name snapshots');
 arcade_position_assert(strpos($admin_config, 'phpbb_admin_require_post_session();') !== false, 'Arcade configuration writes must verify the AdminCP token');
 arcade_position_assert(strpos($admin_config, "in_array(\$mode, array('', 'switches', 'moderators', 'messages'), true)") !== false, 'Arcade configuration modes must use an allowlist');
 arcade_position_assert(strpos($admin_config, '$db->sql_escape($new[$config_name])') !== false, 'Arcade configuration values must use driver escaping');

@@ -12,6 +12,10 @@ changes consolidated after that baseline without implying active maintenance.
   complete score lists are identical now show one concise `Bestenliste` link;
   differing lists are labelled as current and all-time lists, without the
   unexplained legacy separator.
+- Made Arcade winner names follow the authoritative user account instead of a
+  stale all-time-score snapshot, while retaining a safe fallback for deleted
+  accounts and applying profile-visibility rules consistently. New scores and
+  the idempotent upgrade path also reconcile the historical snapshot column.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.
