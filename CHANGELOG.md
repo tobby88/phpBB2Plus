@@ -28,6 +28,13 @@ changes consolidated after that baseline without implying active maintenance.
   can no longer cross download boundaries, while deletion now removes an
   associated uploaded mirror only after its database row is deleted and only
   through the storage-root-constrained unlink helper.
+- Hardened paFileDB license administration and repaired its file checker.
+  License actions, identifiers and form text are normalized, all writes use
+  the central AdminCP POST/session check, missing edit targets are handled and
+  stored names/text are escaped. The read-only checker now follows the actual
+  configured upload and screenshot directories, rejects traversing paths,
+  counts mirror files as references, escapes disk names at SQL/HTML boundaries
+  and reports orphaned screenshots as well as downloads.
 - Hardened attachment configuration, extension management and the attachment
   control panel with session-bound AdminCP POST checks. Attachment
   synchronization is no longer a state-changing GET request and now requires

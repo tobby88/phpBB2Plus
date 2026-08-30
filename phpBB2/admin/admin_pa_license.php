@@ -31,20 +31,26 @@ require('./pagestart.' . $phpEx);
 include($phpbb_root_path . 'pafiledb/pafiledb_common.'.$phpEx);
 
 $row = '';
-$template->assign_var('S_FORM_TOKEN', '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />');
+$template->assign_var('S_FORM_TOKEN', phpbb_admin_session_field());
 
-function pa_license_require_post_token($userdata, $lang)
+function pa_license_form_scalar($form, $key)
 {
-	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) ||
-		!hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-	}
+	return (is_array($form) && isset($form[$key]) && is_scalar($form[$key])) ? trim(stripslashes((string) $form[$key])) : '';
 }
 
-if( isset($_GET['license']) || isset($_POST['license']) )
+$license_action = '';
+if (isset($_POST['license']) && is_scalar($_POST['license']))
 {
-	$license = (isset($_POST['license'])) ? $_POST['license'] : $_GET['license'];
+	$license_action = (string) $_POST['license'];
+}
+elseif (isset($_GET['license']) && is_scalar($_GET['license']))
+{
+	$license_action = (string) $_GET['license'];
+}
+
+if (in_array($license_action, array('add', 'edit', 'delete'), true))
+{
+	$license = $license_action;
 
 	switch($license)
 	{
@@ -54,14 +60,18 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				'admin' => 'admin/pa_admin_license_add.tpl')
 			);
 
-			$add = isset($_POST['add']) ? $_POST['add'] : '';
+			$add = (isset($_POST['add']) && is_scalar($_POST['add'])) ? (string) $_POST['add'] : '';
 
 			if ($add == 'do')
 			{
-				pa_license_require_post_token($userdata, $lang);
+				phpbb_admin_require_post_session();
 				$form = (isset($_POST['form']) && is_array($_POST['form'])) ? $_POST['form'] : array();
-				$name = isset($form['name']) ? trim($form['name']) : '';
-				$text = isset($form['text']) ? trim($form['text']) : '';
+				$name = pa_license_form_scalar($form, 'name');
+				$text = pa_license_form_scalar($form, 'text');
+				if ($name === '')
+				{
+					message_die(GENERAL_ERROR, 'A license name is required.');
+				}
 				$sql = "INSERT INTO " . PA_LICENSE_TABLE . " (license_name, license_text)
 					VALUES ('" . $db->sql_escape($name) . "', '" . $db->sql_escape($text) . "')";
 
@@ -97,16 +107,16 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				'admin' => 'admin/pa_admin_license_edit.tpl')
 			);
 
-			$edit = isset($_POST['edit']) ? $_POST['edit'] : '';
+			$edit = (isset($_POST['edit']) && is_scalar($_POST['edit'])) ? (string) $_POST['edit'] : '';
 
 			if ($edit == 'do')
 			{
-				pa_license_require_post_token($userdata, $lang);
+				phpbb_admin_require_post_session();
 				$form = (isset($_POST['form']) && is_array($_POST['form'])) ? $_POST['form'] : array();
-				$id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-				$name = isset($form['name']) ? trim($form['name']) : '';
-				$text = isset($form['text']) ? trim($form['text']) : '';
-				if ($id <= 0)
+				$id = (isset($_POST['id']) && is_scalar($_POST['id'])) ? intval($_POST['id']) : 0;
+				$name = pa_license_form_scalar($form, 'name');
+				$text = pa_license_form_scalar($form, 'text');
+				if ($id <= 0 || $name === '')
 				{
 					message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 				}
@@ -125,7 +135,11 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 			if ($edit == 'form')
 			{
-				$select = isset($_POST['select']) ? intval($_POST['select']) : 0;
+				$select = (isset($_POST['select']) && is_scalar($_POST['select'])) ? intval($_POST['select']) : 0;
+				if ($select <= 0)
+				{
+					message_die(GENERAL_ERROR, 'Invalid paFileDB license.');
+				}
 
 				$sql = "SELECT * FROM " . PA_LICENSE_TABLE . " WHERE license_id = " . $select;
 
@@ -135,6 +149,11 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				}
 
 				$license = $db->sql_fetchrow($result);
+				$db->sql_freeresult($result);
+				if (!$license)
+				{
+					message_die(GENERAL_ERROR, 'Invalid paFileDB license.');
+				}
 
 				$text = str_replace("<br>", "\n", $license['license_text']);
 
@@ -145,8 +164,8 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 					'L_ELICENSETITLE' => $lang['Elicensetitle'],
 					'L_LICENSEEXPLAIN' => $lang['Licenseexplain'],
 					'L_LNAME' => $lang['Lname'],
-					'LICENSE_NAME' => htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8'),
-					'TEXT' => htmlspecialchars($text, ENT_QUOTES, 'UTF-8'),
+					'LICENSE_NAME' => phpbb_admin_html($license['license_name']),
+					'TEXT' => phpbb_admin_html($text),
 					'SELECT' => $select,
 					'L_LTEXT' => $lang['Ltext'])
 				);
@@ -163,7 +182,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 				while ($license = $db->sql_fetchrow($result))
 				{
-					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="radio" name="select" value="' . (int) $license['license_id'] . '"></td><td width="97%" class="row1">' . htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8') . '</td></tr>';
+					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="radio" name="select" value="' . (int) $license['license_id'] . '"></td><td width="97%" class="row1">' . phpbb_admin_html($license['license_name']) . '</td></tr>';
 				}
 
 				$template->assign_block_vars("license", array());
@@ -187,11 +206,11 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				'admin' => 'admin/pa_admin_license_delete.tpl')
 			);
 
-			$delete = isset($_POST['delete']) ? $_POST['delete'] : '';
+			$delete = (isset($_POST['delete']) && is_scalar($_POST['delete'])) ? (string) $_POST['delete'] : '';
 
 			if ($delete == 'do')
 			{
-				pa_license_require_post_token($userdata, $lang);
+				phpbb_admin_require_post_session();
 				$select = (isset($_POST['select']) && is_array($_POST['select'])) ? $_POST['select'] : array();
 
 				if (empty($select))
@@ -202,10 +221,14 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 				}
 				else
 				{
+					$license_ids = array();
 					foreach ($select as $key => $value)
 					{
 						$key = intval($key);
-						if ($key <= 0) { continue; }
+						if ($key > 0) { $license_ids[$key] = $key; }
+					}
+					foreach ($license_ids as $key)
+					{
 						$sql = "DELETE FROM " . PA_LICENSE_TABLE . " WHERE license_id = " . $key;
 
 						if ( !($db->sql_query($sql)) )
@@ -238,7 +261,7 @@ if( isset($_GET['license']) || isset($_POST['license']) )
 
 				while ($license = $db->sql_fetchrow($result))
 				{
-					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="checkbox" name="select[' . (int) $license['license_id'] . ']" value="yes"></td><td width="97%" class="row1">' . htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8') . '</td></tr>';
+					$row .= '<tr><td width="3%" class="row1" align="center" valign="middle"><input type="checkbox" name="select[' . (int) $license['license_id'] . ']" value="yes"></td><td width="97%" class="row1">' . phpbb_admin_html($license['license_name']) . '</td></tr>';
 				}
 
 				$template->assign_vars(array(
@@ -273,7 +296,7 @@ else
 
 				while ($license = $db->sql_fetchrow($result))
 				{
-					$row .= '<tr><td width="80%" class="row1" align="center">' . htmlspecialchars($license['license_name'], ENT_QUOTES, 'UTF-8') . '</td></tr>';
+					$row .= '<tr><td width="80%" class="row1" align="center">' . phpbb_admin_html($license['license_name']) . '</td></tr>';
 				}
 
 				$template->assign_vars(array(

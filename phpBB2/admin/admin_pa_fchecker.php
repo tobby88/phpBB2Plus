@@ -28,14 +28,18 @@ include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 
 include($phpbb_root_path . 'pafiledb/pafiledb_common.'.$phpEx);
 
-$this_dir = $phpbb_root_path . 'pafiledb/uploads/';
-
-$html_path = get_formated_url() . '/pafiledb/uploads/';
+$upload_dir = isset($pafiledb_config['upload_dir']) ? trim((string) $pafiledb_config['upload_dir'], '/\\') . '/' : 'pafiledb/uploads/';
+$screenshot_dir = isset($pafiledb_config['screenshots_dir']) ? trim((string) $pafiledb_config['screenshots_dir'], '/\\') . '/' : 'pafiledb/images/screenshots/';
+$this_dir = $phpbb_root_path . $upload_dir;
+$screenshot_path = $phpbb_root_path . $screenshot_dir;
+$html_path = get_formated_url() . '/' . $upload_dir;
+$html_screenshot_path = get_formated_url() . '/' . $screenshot_dir;
 
 $safety = 0;
 if( isset($_GET['safety']) || isset($_POST['safety']) )
 {
-    $safety = (isset($_POST['safety'])) ? intval($_POST['safety']) : intval($_GET['safety']);
+	$safety_value = (isset($_POST['safety']) && is_scalar($_POST['safety'])) ? $_POST['safety'] : ((isset($_GET['safety']) && is_scalar($_GET['safety'])) ? $_GET['safety'] : 0);
+	$safety = (intval($safety_value) === 1) ? 1 : 0;
 }
 
 $template->set_filenames(array(
@@ -57,7 +61,7 @@ if ($safety == 1)
 		'L_FILE_CHECKER_SP1' => $lang['Checker_sp1'])
 	);
 
-	$sql = "SELECT * FROM " . PA_FILES_TABLE;
+	$sql = "SELECT file_id, file_dlurl, unique_name, file_dir FROM " . PA_FILES_TABLE;
 
 	if ( !($overall_result = $db->sql_query($sql)) )
 	{
@@ -67,12 +71,13 @@ if ($safety == 1)
 	while ($temp = $db->sql_fetchrow($overall_result))
 	{
 		$temp_dlurl = $temp['file_dlurl'];
-		if (substr($temp_dlurl,0,strlen($html_path)) !== $html_path)
+		$temp_name = basename(str_replace('\\', '/', (string) $temp['unique_name']));
+		if ($temp_name === '' || $temp_name !== $temp['unique_name'] || trim(str_replace('\\', '/', (string) $temp['file_dir']), '/') . '/' !== trim(str_replace('\\', '/', $upload_dir), '/') . '/')
 		{
 			continue;
 		}
 
-		if (!is_file($this_dir."/".str_replace($html_path, "", $temp_dlurl)))
+		if (!is_file($this_dir . $temp_name))
 		{
 /*			$sql = "DELETE FROM " . PA_FILES_TABLE . " WHERE file_dlurl = '" . $temp_dlurl . "'";
 			if ( !($db->sql_query($sql)) )
@@ -80,7 +85,7 @@ if ($safety == 1)
 				message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
 			}*/
 			$template->assign_block_vars("check.check_step1", array(
-				'DEL_DURL' => $temp_dlurl)
+				'DEL_DURL' => phpbb_admin_html($temp_dlurl))
 			);
 		}
 	}
@@ -88,7 +93,7 @@ if ($safety == 1)
 	$template->assign_vars(array(
 		'L_FILE_CHECKER_SP2' => $lang['Checker_sp2'])
 	);
-	$sql = "SELECT * FROM " . PA_FILES_TABLE;
+	$sql = "SELECT file_id, file_ssurl FROM " . PA_FILES_TABLE;
 
 	if ( !($overall_result = $db->sql_query($sql)) )
 	{
@@ -98,12 +103,17 @@ if ($safety == 1)
 	{
 		$temp_ssurl = $temp['file_ssurl'];
 		$temp_file_id = $temp['file_id'];
-		if (substr($temp_ssurl,0,strlen($html_path)) !== $html_path)
+		if (substr($temp_ssurl, 0, strlen($html_screenshot_path)) !== $html_screenshot_path)
+		{
+			continue;
+		}
+		$temp_ssname = substr($temp_ssurl, strlen($html_screenshot_path));
+		if ($temp_ssname === '' || basename(str_replace('\\', '/', $temp_ssname)) !== $temp_ssname)
 		{
 			continue;
 		}
 
-		if (!is_file($this_dir."/".str_replace($html_path, "", $temp_ssurl)))
+		if (!is_file($screenshot_path . $temp_ssname))
 		{
 			/*$sql = "UPDATE " . PA_FILES_TABLE . " SET file_ssurl='' WHERE file_id = '" . $temp_file_id . "'";
 
@@ -122,36 +132,51 @@ if ($safety == 1)
 		'L_FILE_CHECKER_SP3' => $lang['Checker_sp3'])
 	);
 
-	$files = opendir($this_dir);
-	while ($temp = readdir($files))
+	$scan_directories = array(
+		array('path' => $this_dir, 'type' => 'upload'),
+		array('path' => $screenshot_path, 'type' => 'screenshot')
+	);
+	foreach ($scan_directories as $scan_directory)
 	{
-		if ($temp == "." || $temp == "..")
+		$files = @opendir($scan_directory['path']);
+		if (!$files)
 		{
 			continue;
 		}
-		if (!is_file($this_dir.$temp))
+		while (($temp = readdir($files)) !== false)
 		{
-			continue;
-		}
+			if ($temp === '.' || $temp === '..' || basename($temp) !== $temp || !is_file($scan_directory['path'] . $temp))
+			{
+				continue;
+			}
 
-		$sql = "SELECT * FROM " . PA_FILES_TABLE . " WHERE file_dlurl = '" . $html_path.$temp . "' OR file_ssurl = '" . $html_path.$temp . "'";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
-		}
-		$numhits = $db->sql_numrows($result);
+			$temp_sql = $db->sql_escape($temp);
+			if ($scan_directory['type'] === 'upload')
+			{
+				$sql = 'SELECT file_id FROM ' . PA_FILES_TABLE . " WHERE unique_name = '$temp_sql' UNION SELECT mirror_id FROM " . PA_MIRRORS_TABLE . " WHERE unique_name = '$temp_sql'";
+			}
+			else
+			{
+				$url_sql = $db->sql_escape($html_screenshot_path . $temp);
+				$sql = 'SELECT file_id FROM ' . PA_FILES_TABLE . " WHERE file_ssurl = '$url_sql'";
+			}
+			if (!($result = $db->sql_query($sql)))
+			{
+				message_die(GENERAL_ERROR, 'Couldnt Query info', '', __LINE__, __FILE__, $sql);
+			}
+			$numhits = $db->sql_numrows($result);
+			$db->sql_freeresult($result);
 
-		if (!$numhits)
-		{
-			$saved = $saved + filesize($this_dir.$temp);
-			//unlink($this_dir.$temp);
-			$template->assign_block_vars("check.check_step3", array(
-				'DEL_FILE' => $temp)
-			);
+			if (!$numhits)
+			{
+				$saved += max(0, intval(@filesize($scan_directory['path'] . $temp)));
+				$template->assign_block_vars("check.check_step3", array(
+					'DEL_FILE' => phpbb_admin_html($temp))
+				);
+			}
 		}
-
+		closedir($files);
 	}
-	closedir($files);
 
 	if($saved == 0)
 	{
@@ -184,7 +209,7 @@ else
 {
 	$template->assign_block_vars("perform", array());
 
-	$lang['File_saftey'] = str_replace("{html_path}", $html_path, $lang['File_saftey']);
+	$lang['File_saftey'] = str_replace("{html_path}", phpbb_admin_html($html_path), $lang['File_saftey']);
 
 	$template->assign_vars(array(
 		'L_FILE_CHECKER' => $lang['File_checker'],

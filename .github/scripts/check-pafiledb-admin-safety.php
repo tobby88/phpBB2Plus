@@ -17,6 +17,8 @@ $admin_catauth = file_get_contents($root . '/phpBB2/admin/admin_pa_catauth.php')
 $admin_settings = file_get_contents($root . '/phpBB2/admin/admin_pa_settings.php');
 $admin_ug_auth = file_get_contents($root . '/phpBB2/admin/admin_pa_ug_auth.php');
 $admin_file = file_get_contents($root . '/phpBB2/admin/admin_pa_file.php');
+$admin_license = file_get_contents($root . '/phpBB2/admin/admin_pa_license.php');
+$admin_fchecker = file_get_contents($root . '/phpBB2/admin/admin_pa_fchecker.php');
 $pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions.php');
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
@@ -77,5 +79,18 @@ pafiledb_admin_assert(strpos($category_functions, "\$mode = (\$mode === 'categor
 pafiledb_admin_assert(strpos($category_functions, 'AND file_id = $file_id') !== false, 'mirror updates must verify their parent download');
 pafiledb_admin_assert(strpos($category_functions, 'function delete_mirror($mirror_id, $file_id = 0)') !== false, 'mirror deletion must accept a parent scope');
 pafiledb_admin_assert(strpos($category_functions, '$db->sql_escape($file_long_desc)') !== false, 'download text must use database-driver escaping');
+
+pafiledb_admin_assert(strpos($admin_license, 'phpbb_admin_session_field()') !== false, 'license forms must use the central session token');
+pafiledb_admin_assert(substr_count($admin_license, 'phpbb_admin_require_post_session();') >= 3, 'all license writes must verify the POST token');
+pafiledb_admin_assert(strpos($admin_license, "in_array(\$license_action, array('add', 'edit', 'delete'), true)") !== false, 'license actions must use an allowlist');
+pafiledb_admin_assert(strpos($admin_license, 'function pa_license_form_scalar') !== false, 'license form values must be scalar-normalized');
+pafiledb_admin_assert(strpos($admin_license, 'phpbb_admin_html($license[\'license_name\'])') !== false, 'license names must be escaped in output');
+
+pafiledb_admin_assert(strpos($admin_fchecker, "\$pafiledb_config['upload_dir']") !== false, 'file checker must use the configured upload directory');
+pafiledb_admin_assert(strpos($admin_fchecker, "\$pafiledb_config['screenshots_dir']") !== false, 'file checker must use the configured screenshot directory');
+pafiledb_admin_assert(strpos($admin_fchecker, "basename(str_replace('\\\\', '/', \$temp_ssname))") !== false, 'file checker must reject traversing screenshot paths');
+pafiledb_admin_assert(strpos($admin_fchecker, 'UNION SELECT mirror_id') !== false, 'file checker must count mirror uploads as referenced');
+pafiledb_admin_assert(strpos($admin_fchecker, '$db->sql_escape($temp)') !== false, 'file checker filenames must be escaped at the SQL boundary');
+pafiledb_admin_assert(strpos($admin_fchecker, "'DEL_FILE' => phpbb_admin_html") !== false, 'file checker output must be escaped');
 
 echo "paFileDB administration safety tests passed.\n";
