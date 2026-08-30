@@ -124,7 +124,7 @@ if (!empty($selected_users) && in_array($action, array('activate', 'deactivate',
 	}
 	else
 	{
-		$group_id = isset($_POST['group_id']) ? intval($_POST['group_id']) : 0;
+		$group_id = (isset($_POST['group_id']) && is_scalar($_POST['group_id'])) ? intval($_POST['group_id']) : 0;
 		$sql = "SELECT group_id FROM " . GROUPS_TABLE . " WHERE group_id = $group_id AND group_single_user = 0";
 		if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
 		{

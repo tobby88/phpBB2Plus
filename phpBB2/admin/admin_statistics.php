@@ -180,7 +180,7 @@ if ($submit && $mode == 'config')
 {
 	if ( isset($_POST['return_limit_set']) && is_scalar($_POST['return_limit_set']) && $_POST['return_limit_set'] !== '' )
 	{
-		$update_value = max(1, intval($_POST['return_limit_set']));
+		$update_value = (isset($_POST['return_limit_set']) && is_scalar($_POST['return_limit_set'])) ? max(1, intval($_POST['return_limit_set'])) : 1;
 
 		if (intval($__stats_config['return_limit']) != intval($update_value))
 		{

@@ -112,7 +112,7 @@ if ($cat_parent && !isset($pafiledb->cat_rowset[$cat_parent]))
 
 if(isset($_GET['cat_id']) && is_scalar($_GET['cat_id']))
 {
-	$cat_id = max(0, intval($_GET['cat_id']));
+	$cat_id = (isset($_GET['cat_id']) && is_scalar($_GET['cat_id'])) ? max(0, intval($_GET['cat_id'])) : 0;
 	if (!$cat_id || !isset($pafiledb->cat_rowset[$cat_id]))
 	{
 		message_die(GENERAL_ERROR, 'Invalid download category.');

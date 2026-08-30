@@ -17,7 +17,7 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 if (isset($_POST['delete']) && is_scalar($_POST['delete']))
 {
 	phpbb_admin_require_post_session();
-        $delete = intval($_POST['delete']);
+        $delete = (isset($_POST['delete']) && is_scalar($_POST['delete'])) ? intval($_POST['delete']) : 0;
 		if ($delete <= 0)
         {
                 message_die(GENERAL_ERROR, $lang['Not_Authorised']);

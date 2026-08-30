@@ -75,7 +75,7 @@ if ( isset($_POST['submit']) )
 		$error_msg .= ( !empty($error_msg) ) ? '<br />' . $lang['Empty_message'] : $lang['Empty_message'];
 	}
 
-	$group_id = intval($_POST[POST_GROUPS_URL]);
+	$group_id = (isset($_POST[POST_GROUPS_URL]) && is_scalar($_POST[POST_GROUPS_URL])) ? intval($_POST[POST_GROUPS_URL]) : 0;
 
 	$sql = ( $group_id != -1 ) ? "SELECT u.user_email FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug WHERE ug.group_id = $group_id AND ug.user_pending <> " . TRUE . " AND u.user_id = ug.user_id" : "SELECT user_email FROM " . USERS_TABLE;
 	if ( !($result = $db->sql_query($sql)) )

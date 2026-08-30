@@ -29,7 +29,7 @@ require('./pagestart.' . $phpEx);
 
 if( (isset($_POST['mode']) && is_scalar($_POST['mode'])) || (isset($_GET['mode']) && is_scalar($_GET['mode'])) )
 {
-	$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : (string) $_GET['mode'];
+	$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : ((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
 }
 else 
 {
@@ -113,7 +113,7 @@ if( $mode != "" )
 	else if( $mode == "save" )
 	{
 		phpbb_admin_require_post_session();
-		$acronym_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
+		$acronym_id = (isset($_POST['id']) && is_scalar($_POST['id'])) ? intval($_POST['id']) : 0;
 		$acronym = ( isset($_POST['acronym']) && is_scalar($_POST['acronym']) ) ? trim((string) $_POST['acronym']) : "";
 		$description = ( isset($_POST['description']) && is_scalar($_POST['description']) ) ? trim((string) $_POST['description']) : "";
 

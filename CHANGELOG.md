@@ -44,6 +44,9 @@ changes consolidated after that baseline without implying active maintenance.
   repaired the compact Shoutbox pagination URL, escaped its displayed account
   names, and supplied safe Knowledge Base sort/pagination defaults for damaged
   or incomplete legacy configuration.
+- Completed a further PHP 8.x request-boundary pass over administration lists,
+  statistics, mass mail, permissions, acronyms, ranks and word filters so nested
+  request values cannot produce conversion warnings or unexpected identifiers.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.

@@ -159,7 +159,7 @@ if( $mode != "" )
 		// Ok, they sent us our info, let's update it.
 		//
 		
-		$rank_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
+		$rank_id = (isset($_POST['id']) && is_scalar($_POST['id'])) ? intval($_POST['id']) : 0;
 		$rank_title = ( isset($_POST['title']) && is_scalar($_POST['title']) ) ? trim((string) $_POST['title']) : "";
 		$special_rank = ( isset($_POST['special_rank']) && is_scalar($_POST['special_rank']) && (int) $_POST['special_rank'] === 1 ) ? TRUE : 0;
 		$min_posts = ( isset($_POST['min_posts']) && is_scalar($_POST['min_posts']) ) ? intval($_POST['min_posts']) : -1;

@@ -140,7 +140,7 @@ if( $mode != "" )
 	}
 	else if( $mode == "save" )
 	{
-		$word_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
+		$word_id = (isset($_POST['id']) && is_scalar($_POST['id'])) ? intval($_POST['id']) : 0;
 		$word = ( isset($_POST['word']) && is_scalar($_POST['word']) ) ? trim((string) $_POST['word']) : "";
 		$replacement = ( isset($_POST['replacement']) && is_scalar($_POST['replacement']) ) ? trim((string) $_POST['replacement']) : "";
 

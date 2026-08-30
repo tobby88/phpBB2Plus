@@ -92,7 +92,7 @@ else
 
 if( isset($_GET['adv']) && is_scalar($_GET['adv']) )
 {
-	$adv = intval($_GET['adv']);
+	$adv = (isset($_GET['adv']) && is_scalar($_GET['adv'])) ? intval($_GET['adv']) : 0;
 }
 else
 {

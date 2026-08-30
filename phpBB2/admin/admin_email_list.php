@@ -43,7 +43,7 @@ if( !empty($setmodules) )
 $phpbb_root_path = "../";
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
-$start = isset($_GET['start']) ? intval($_GET['start']) : 0;
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, min(1000000, intval($_GET['start']))) : 0;
 $userrow = array();
 
 

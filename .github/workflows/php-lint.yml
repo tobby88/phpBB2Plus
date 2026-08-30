@@ -154,6 +154,9 @@ jobs:
       - name: Test Shoutbox and Knowledge Base listings
         run: php .github/scripts/check-community-listing-safety.php
 
+      - name: Test administration request boundaries
+        run: php .github/scripts/check-admin-request-boundaries.php
+
       - name: Test Knowledge Base runtime safety
         run: php .github/scripts/check-kb-runtime-safety.php
 
