@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Arcade game editing, importing, ordering and maintenance. Every
+  write and confirmation now carries and verifies the central AdminCP session
+  token; IDs, pagination, import paths, categories and form values are bounded
+  before use. Reordering verifies its source record, imports remain inside the
+  forum tree, duplicate game names are rejected, and renaming or deleting a
+  game now updates or removes dependent scores, favourites, comments, ratings,
+  sessions, tournament assignments and cached last-game references instead of
+  leaving inconsistent records behind.
 - Consolidated Album settings on the tabbed AdminCP configuration and removed
   the redundant legacy settings module and templates. Album configuration
   writes now require the central session-bound POST token, accept only scalar

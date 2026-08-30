@@ -56,6 +56,71 @@ function arcade_admin_post_int($name, $default = 0)
 	return ($value === null) ? (int) $default : (int) $value;
 }
 
+function arcade_admin_rename_game_references($old_name, $new_name)
+{
+	global $db, $lang;
+
+	$old_sql = $db->sql_escape($old_name);
+	$new_sql = $db->sql_escape($new_name);
+	$references = array(
+		array(iNA_SCORES, 'game_name'), array(iNA_AT_SCORES, 'game_name'),
+		array(iNA_FAV, 'fav_game_name'), array(iNA_GAMES_COMMENT, 'comment_game_name'),
+		array(iNA_GAMES_COMMENT, 'game_name'), array(iNA_GAMES_RATE, 'rate_game_name'),
+		array(iNA_SESSIONS, 'game_name'), array(iNA_HIGHSCORES, 'highscore_game'),
+		array(iNA_BANNED, 'game'), array(iNA_TOUR_DATA, 'game_name'),
+		array(iNA_TOUR_PLAY, 'last_played_game'), array(iNA_USER_DATA, 'last_played'),
+		array(iNA_CAT, 'last_game')
+	);
+	foreach ($references as $reference)
+	{
+		$sql = "UPDATE " . $reference[0] . " SET " . $reference[1] . " = '$new_sql' WHERE " . $reference[1] . " = '$old_sql'";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['no_game_update'], '', __LINE__, __FILE__, $sql);
+		}
+	}
+}
+
+function arcade_admin_delete_game_references($game_name, $game_id)
+{
+	global $db, $lang;
+
+	$game_sql = $db->sql_escape($game_name);
+	$delete_references = array(
+		array(iNA_SCORES, 'game_name'), array(iNA_AT_SCORES, 'game_name'),
+		array(iNA_GAMES_COMMENT, 'comment_game_name'), array(iNA_GAMES_COMMENT, 'game_name'),
+		array(iNA_GAMES_RATE, 'rate_game_name'),
+		array(iNA_SESSIONS, 'game_name'), array(iNA_TOUR_DATA, 'game_name')
+	);
+	foreach ($delete_references as $reference)
+	{
+		$sql = "DELETE FROM " . $reference[0] . " WHERE " . $reference[1] . " = '$game_sql'";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['no_game_delete'], '', __LINE__, __FILE__, $sql);
+		}
+	}
+
+	$sql = "DELETE FROM " . iNA_FAV . " WHERE fav_game_id = " . (int) $game_id . " OR fav_game_name = '$game_sql'";
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['no_game_delete'], '', __LINE__, __FILE__, $sql);
+	}
+
+	$clear_references = array(
+		array(iNA_TOUR_PLAY, 'last_played_game'), array(iNA_USER_DATA, 'last_played'),
+		array(iNA_CAT, 'last_game')
+	);
+	foreach ($clear_references as $reference)
+	{
+		$sql = "UPDATE " . $reference[0] . " SET " . $reference[1] . " = NULL WHERE " . $reference[1] . " = '$game_sql'";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['no_game_update'], '', __LINE__, __FILE__, $sql);
+		}
+	}
+}
+
 $version = $arcade->version('./../');
 $mode = '';
 $search_word = '';
@@ -63,11 +128,12 @@ $pagination = '&nbsp;';
 //
 //  Get Start of page info
 //
-$start = $arcade->pass_var('start', 0);
+$start = max(0, (int) $arcade->pass_var('start', 0));
 //
 //  Get Catagory Info
 //
-$cat_id = $arcade->pass_var('cat_id', 0);
+$cat_id = max(0, (int) $arcade->pass_var('cat_id', 0));
+$admin_page_size = max(0, (int) $arcade->arcade_config['games_per_admin_page']);
 //
 // See which mode we are to operate in
 //
@@ -127,7 +193,19 @@ else if( isset($HTTP_POST_VARS['sort_submit']) )
 	$mode = "sort_submit";
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && in_array($mode, array('game_up', 'game_down', 'clear_scores', 'clear_at_scores', 'delete', 'repair_game'), true))
+$request_is_post = isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST';
+$move_requested = $request_is_post && arcade_admin_post_int('move_to') > 0 && arcade_admin_post_int('id') > 0;
+$write_modes = array('game_up', 'game_down', 'clear_scores', 'clear_at_scores', 'delete', 'repair_game');
+$write_requested = $request_is_post && (
+	in_array($mode, $write_modes, true) || $move_requested ||
+	isset($HTTP_POST_VARS['save_game']) || isset($HTTP_POST_VARS['import_submit'])
+);
+if ($write_requested)
+{
+	phpbb_admin_require_post_session();
+}
+
+if (!$request_is_post && in_array($mode, $write_modes, true))
 {
 	$mode = 'edit_games';
 }
@@ -143,7 +221,7 @@ else
 {
 	$sort_mode = 'game_id';
 }
-$start = $arcade->pass_var('start', 0);
+$start = max(0, (int) $arcade->pass_var('start', 0));
 if(isset($HTTP_POST_VARS['order']))
 {
 	$sort_order = ($HTTP_POST_VARS['order'] == 'DESC') ? 'DESC' : 'ASC';
@@ -240,6 +318,20 @@ if( $mode == "game_down" || $mode == "game_up" || !empty($HTTP_POST_VARS['move_t
     }
     $new_id = $move_to;
   }
+	if ($old_id < 1 || $new_id < 1 || $old_id === $new_id)
+	{
+		message_die(GENERAL_MESSAGE, $lang['admin_move_failed']);
+	}
+
+	$sql = "SELECT game_id FROM " . iNA_GAMES . " WHERE game_id = $old_id";
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+	}
+	if (!$db->sql_fetchrow($result))
+	{
+		message_die(GENERAL_MESSAGE, $lang['admin_move_failed']);
+	}
 	$sql = "SELECT game_id FROM " . iNA_GAMES . "
 		ORDER BY game_id DESC LIMIT 0,1";
 	if( !$result = $db->sql_query($sql) )
@@ -589,7 +681,7 @@ else if( $mode == "edit" || $mode == "add_game" )
 		'S_REVERSE_LIST_NO' => $reverse_list_no,
 		'S_AUTO_SIZE_YES' => $autosize_yes,
 		'S_AUTO_SIZE_NO' => $autosize_no,
-		'S_HIDDEN_FIELDS' => '<input type="hidden" name="order" value="'. $sort_order .'"><input type="hidden" name="sort_mode" value="'. $sort_mode .'"><input type="hidden" name="start" value="'. $start .'"><input type="hidden" name="save_game"><input type="hidden" name="id" value="' . $game_id . '"><input type="hidden" name="cat_id" value="' . $cat_id . '">',
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="order" value="'. $sort_order .'"><input type="hidden" name="sort_mode" value="'. $sort_mode .'"><input type="hidden" name="start" value="'. (int) $start .'"><input type="hidden" name="save_game" value="1"><input type="hidden" name="id" value="' . (int) $game_id . '"><input type="hidden" name="cat_id" value="' . (int) $cat_id . '">' . phpbb_admin_session_field(),
 		'S_SCORE_ACTION' => append_sid("$file"),
 		'S_SCORE_HIDDEN' => '<input type="hidden" name="game_name" value="' . phpbb_profile_text($game_info['game_name']) . '">'));
 }
@@ -606,7 +698,7 @@ else if( $mode == "import_game")
     {
       continue;
     }
-    $cat_list .= '<option value="'.$catrows[$i]['cat_id'].'">'.$catrows[$i]['cat_name'].'</option>';
+    $cat_list .= '<option value="'.(int) $catrows[$i]['cat_id'].'">'.phpbb_admin_html($catrows[$i]['cat_name']).'</option>';
   }
   $cat_list .= '</select>';
 
@@ -615,7 +707,7 @@ else if( $mode == "import_game")
 		"S_ACTION" => append_sid($file),
 		"VERSION" => $version,
 		"DASH" => $lang['game_dash'],
-		"DIR_NAME" => $arcade->arcade_config['games_path'],
+		"DIR_NAME" => phpbb_admin_html($arcade->arcade_config['games_path']),
 		
 		"L_MENU_HEADER" => $lang['admin_game_import'],
 		"L_MENU_INFO" => $lang['admin_import_info'],
@@ -630,7 +722,7 @@ else if( $mode == "import_game")
 		
 		"L_SUBMIT" => $lang['Submit'],
 		
-		"S_HIDDEN_FIELDS" => '<input type="hidden" name="import_submit">') );
+		"S_HIDDEN_FIELDS" => '<input type="hidden" name="import_submit" value="1">' . phpbb_admin_session_field()) );
 }
 
 //
@@ -677,7 +769,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 			break;
 	}
 	
-	$autosize = ( isset($HTTP_POST_VARS['autosize']) ) ? intval($HTTP_POST_VARS['autosize']) : 0;
+	$autosize = arcade_admin_post_int('autosize') ? 1 : 0;
 	if ( $autosize )
 	{
 		$sql = "SELECT win_width, win_height FROM " . iNA_GAMES . "
@@ -704,8 +796,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 		$height = 0;
 	}
 	
-	$online = ( isset($HTTP_POST_VARS['online']) ) ? intval($HTTP_POST_VARS['online']) : 0;
-	$cat_id = ( isset($HTTP_POST_VARS['cat_id']) ) ? intval($HTTP_POST_VARS['cat_id']) : -1;
+	$online = arcade_admin_post_int('online') ? 1 : 0;
+	$cat_id = arcade_admin_post_int('cat_id', -1);
+	if ($cat_id > 0)
+	{
+		$sql = "SELECT cat_id FROM " . iNA_CAT . " WHERE cat_id = $cat_id AND cat_type <> 'l'";
+		if (!$result = $db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['no_cat_data'], '', __LINE__, __FILE__, $sql);
+		}
+		if (!$db->sql_fetchrow($result))
+		{
+			$cat_id = -1;
+		}
+	}
 
 	$forum_root = realpath($phpbb_root_path);
 	$main_dir_path = realpath($phpbb_root_path . $import_path);
@@ -730,7 +834,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 						//
 						// Check for GIF is used for the Arcade Games Only Import
 						//
-						if( @file_exists($arcade->arcade_config['games_path'] . $new_name[0] .".gif") || @file_exists($main_dir_path . $new_name[0] . '.gif') )
+						if (@file_exists($main_dir_path . '/' . $new_name[0] . '.gif'))
 						{
 							insert_ina_game($new_name[0], $import_path, 0, '', $flash, $online, $width, $height, $cat_id);
 							$i++;
@@ -777,7 +881,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 							{
 								if($check_for_gif == 1)
 								{	
-									if( @file_exists($arcade->arcade_config['games_path'] . $new_name[0] . ".gif") || @file_exists($main_dir_path . $file_name . '/' . $new_name[0] . '.gif') )
+									if (@file_exists($main_dir_path . '/' . $file_name . '/' . $new_name[0] . '.gif'))
 									{	
 										insert_ina_game($new_name[0], $import_path.$file_name.'/', 0, '', $flash, $online, $width, $height, $cat_id);
 										$i++;
@@ -789,7 +893,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['import_submi
 								}
 								else
 								{
-									insert_ina_game($sub_file_name, $import_path.'/'.$file_name, 0, '', $flash, $online, $width, $height, $cat_id);
+									insert_ina_game($sub_file_name, $import_path . $file_name . '/', 0, '', $flash, $online, $width, $height, $cat_id);
 									$i++;
 								}
 							}
@@ -837,7 +941,7 @@ else if( !$mode || $mode == "edit_games" || $mode == "game_down" || $mode == "ga
 	{
 		$money_name = $lang['admin_charge'];
 	}
-	if($arcade->arcade_config['games_per_admin_page'] > 0)
+	if($admin_page_size > 0)
 	{
 		$sql = "SELECT count(*) AS total FROM " . iNA_GAMES;
 		if($cat_id > 0)
@@ -849,10 +953,10 @@ else if( !$mode || $mode == "edit_games" || $mode == "game_down" || $mode == "ga
 			message_die(GENERAL_ERROR, $lang['no_game_total'], '', __LINE__, __FILE__, $sql);
 		}
 		$total = $db->sql_fetchrow($result);
-		if ( $total['total'] >= $arcade->arcade_config['games_per_admin_page'])
+		if ((int) $total['total'] >= $admin_page_size)
 		{
 			$total_games = $total['total'];
-			$pagination = generate_pagination("$file?mode=edit_games&amp;cat_id=$cat_id&amp;order=$sort_order&amp;sort_mode=$sort_mode", $total_games, $arcade->arcade_config['games_per_admin_page'], $start). '&nbsp;';
+			$pagination = generate_pagination("$file?mode=edit_games&amp;cat_id=$cat_id&amp;order=$sort_order&amp;sort_mode=$sort_mode", $total_games, $admin_page_size, $start). '&nbsp;';
 		}
 	}
 
@@ -883,9 +987,9 @@ else if( !$mode || $mode == "edit_games" || $mode == "game_down" || $mode == "ga
 		$sql .= " WHERE g.cat_id = '" . $cat_id . "'";
 	}
 	$sql .= " ORDER BY $order_by $sort_order";
-	if($arcade->arcade_config['games_per_admin_page'] > 0)
+	if($admin_page_size > 0)
 	{
-		$sql .= " LIMIT $start," . $arcade->arcade_config['games_per_admin_page'];
+		$sql .= " LIMIT $start,$admin_page_size";
 	}
 	if( !$result = $db->sql_query($sql) )
 	{
@@ -1074,7 +1178,7 @@ else if( !$mode || $mode == "edit_games" || $mode == "game_down" || $mode == "ga
 		'SEARCH_WORD' => phpbb_profile_text($search_word),
 		'S_MODE_SELECT' => $select_sort_mode,
 		'S_ORDER_SELECT' => $select_sort_order,
-		'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat_id" value="'.$cat_id.'">',
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="cat_id" value="'.(int) $cat_id.'">' . phpbb_admin_session_field(),
 		'VERSION' => $version,
 		'PAGINATION' => $pagination,
 
@@ -1144,7 +1248,7 @@ else if( $mode == "clear_scores" || $mode == "clear_at_scores" )
 			'L_NO' => $lang['No'],
 			'L_YES' => $lang['Yes'],
 			'S_CONFIRM_ACTION' => append_sid("$filename"),
-			'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="' . $mode . '"><input type="hidden" name="cat_id" value="' . (int) $cat_id . '">',
+			'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="' . phpbb_admin_html($mode) . '"><input type="hidden" name="cat_id" value="' . (int) $cat_id . '">' . phpbb_admin_session_field(),
 		));
 		$template->pparse('body');
 		exit;
@@ -1225,7 +1329,7 @@ else if( $mode == "delete")
 	$game_id = arcade_admin_post_int('delete');
 	if( $game_id )
 	{
-		$sql = "SELECT game_name, cat_id, played, game_avail FROM " . iNA_GAMES . "
+		$sql = "SELECT game_name, cat_id, played, game_avail, reverse_list FROM " . iNA_GAMES . "
 			WHERE game_id = $game_id";
 		if( !$result = $db->sql_query($sql) )
 		{
@@ -1236,6 +1340,21 @@ else if( $mode == "delete")
 		{
 			message_die(GENERAL_MESSAGE, $lang['admin_game_not_deleted']);
 		}
+		$list_type = !empty($game_info['reverse_list']) ? 'ASC' : 'DESC';
+		foreach (array(iNA_SCORES => 'first_places', iNA_AT_SCORES => 'at_first_places') as $score_table => $places_column)
+		{
+			$top_score = best_game_player($score_table, $game_info['game_name'], $list_type);
+			$top_player_id = isset($top_score['player_id']) ? (int) $top_score['player_id'] : 0;
+			if ($top_player_id > 0)
+			{
+				$sql = "UPDATE " . iNA_USER_DATA . " SET $places_column = GREATEST($places_column - 1, 0) WHERE user_id = $top_player_id";
+				if (!$db->sql_query($sql))
+				{
+					message_die(GENERAL_ERROR, $lang['no_user_update'], '', __LINE__, __FILE__, $sql);
+				}
+			}
+		}
+		arcade_admin_delete_game_references($game_info['game_name'], $game_id);
 		$sql = "DELETE FROM " . iNA_GAMES . "
 			WHERE game_id = $game_id";
 		if( !$result = $db->sql_query($sql) )
@@ -1323,6 +1442,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['save_game'])
 		$message = $lang['admin_game_wrong_name'];
 		$message .= sprintf($lang['admin_return_games'], "<a href=\"" . append_sid("$file?mode=edit_games&amp;cat_id=$cat_id&amp;order=$sort_order&amp;sort_mode=$sort_mode&amp;start=$start") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 		message_die(GENERAL_MESSAGE, $message);
+	}
+	$sql = "SELECT game_id FROM " . iNA_GAMES . " WHERE game_name = '" . $db->sql_escape($game_name) . "'";
+	if ($game_id > 0)
+	{
+		$sql .= " AND game_id <> $game_id";
+	}
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['no_game_data'], '', __LINE__, __FILE__, $sql);
+	}
+	if ($db->sql_fetchrow($result))
+	{
+		message_die(GENERAL_MESSAGE, $lang['admin_game_exists']);
 	}
 
 	$game_path = phpbb_arcade_local_asset(arcade_admin_post_string('game_path'));
@@ -1436,7 +1568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['save_game'])
 //
 	if( $game_id > 0)
 	{
-    $sql = "SELECT cat_id, played, game_avail FROM " . iNA_GAMES . "
+	$sql = "SELECT game_name, cat_id, played, game_avail FROM " . iNA_GAMES . "
       WHERE game_id = $game_id";
     if( !$result = $db->sql_query($sql) )
   	{
@@ -1473,6 +1605,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($HTTP_POST_VARS['save_game'])
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, $lang['no_game_save'], "", __LINE__, __FILE__, $sql);
+	}
+	if ($game_id > 0 && strcmp((string) $old_game_info['game_name'], $game_name) !== 0)
+	{
+		arcade_admin_rename_game_references($old_game_info['game_name'], $game_name);
 	}
 
 	// Keep category totals in sync only after the game write succeeds.
