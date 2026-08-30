@@ -6,7 +6,7 @@
 <table width="100%" cellpadding="4" cellspacing="1" border="0">
 	<tr>
 <form action="{S_ACTION}" method="post">
-	  <td align="right" width="100%">{L_CREATE_TYPE} &nbsp; <input class="post" type="text" name="new_type_name"> &nbsp; <input type="submit" value="{L_CREATE}" class="liteoption"></td>
+	  <td align="right" width="100%">{L_CREATE_TYPE} &nbsp; <input class="post" type="text" name="new_type_name"> {S_HIDDEN_FIELDS} &nbsp; <input type="submit" value="{L_CREATE}" class="liteoption"></td>
 </form>
 	</tr>
 </table>

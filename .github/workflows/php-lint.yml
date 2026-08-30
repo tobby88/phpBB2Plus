@@ -108,3 +108,6 @@ jobs:
 
       - name: Test Arcade position safety
         run: php .github/scripts/check-arcade-position-safety.php
+
+      - name: Test Knowledge Base structure administration safety
+        run: php .github/scripts/check-kb-admin-structure-safety.php

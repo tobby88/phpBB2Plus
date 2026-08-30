@@ -34,6 +34,11 @@ changes consolidated after that baseline without implying active maintenance.
   files are loaded from inside phpBB's user-preference initializer. Position
   formatting now also handles incomplete language packs and invalid ranks
   without PHP warnings.
+- Hardened Knowledge Base category and type administration with scalar input
+  normalization, SQL-boundary escaping and POST/session tokens for every
+  write. Category ordering is no longer a GET mutation, invalid parent cycles
+  are rejected, deleting a category keeps children reachable and bulk article
+  deletion removes dependent search and vote rows.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the
