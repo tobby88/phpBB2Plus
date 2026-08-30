@@ -21,7 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Repaired Knowledge Base article and statistics lists with rated articles:
   rendering no longer overwrites a database row before reading its rating, and
   ratings now use the actual article fields. Admin article IDs are normalized
-  before they reach SQL.
+  before they reach SQL. Guest authors no longer depend on an undefined
+  variable, and article-notification private messages no longer persist
+  privileged action URLs containing an old session ID.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

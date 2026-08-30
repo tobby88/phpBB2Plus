@@ -254,7 +254,8 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   $author_id = $article['article_author_id'];
 	   if ( $author_id == 0 )
 	   {
-	       $author = ( $username != '' ) ? $lang['Guest'] : $article['username'];
+	       $guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
+	       $author = ($guest_username !== '') ? htmlspecialchars(stripslashes($guest_username), ENT_QUOTES, 'UTF-8') : $lang['Guest'];
 	   }
 	   else
 	   {
@@ -454,10 +455,8 @@ function email_kb_admin($action)
 		      message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
            }
 			
-			// added by snake for extended PM 
-			$approve_pm_view = "<table width=". "100%" . " border=" . "1" . " cellspacing=" . "0" . " cellpadding=" . "0" . "><tr><td>".$lang['Category']."</td><td>".$lang['Art_action']."</td></tr>"; 
-			
-			$sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE approved = '2' ORDER BY article_id DESC LIMIT 1"; 
+			// Never persist privileged action URLs or session IDs in a PM.
+			$sql = "SELECT article_body, bbcode_uid FROM " . KB_ARTICLES_TABLE . " WHERE approved = '2' ORDER BY article_id DESC LIMIT 1";
 			if ( !($article_result = $db->sql_query($sql)) ) 
 			{ 
 				message_die(GENERAL_ERROR, "Could not obtain article data", '', __LINE__, __FILE__, $sql); 
@@ -465,70 +464,15 @@ function email_kb_admin($action)
 
 			while($article = $db->sql_fetchrow($article_result)) 
 			{ 
-				$approved_yesno = $article['approved']; 
-				$article_description = $article['article_description']; 
-				$article_cat = $article['article_category_id']; 
-				$bbcode_uid = $article['bbcode_uid']; // to enadbe bbcode from article html seems to wolr by default even whwn off 
-				$articlebody = "[quote:$bbcode_uid]" .$article['article_body'] . "<br>[/quote:$bbcode_uid]"; // include the post for approve.. 
-			
-				//type 
-				$type_id = $article['article_type']; 
-				$article_type = get_kb_type($type_id); 
-				$article_date = create_date($board_config['default_dateformat'], $article['article_date'], $board_config['board_timezone']); 
-				
-				// author information 
-				$author_id = $article['article_author_id'];
-				 
-				if ( $author_id == 0 ) 
-				{ 
-					$author = ( $username != '' ) ? $lang['Guest'] : $article['username']; 
-				} 
-				else 
-				{ 
-					$author_name = get_kb_author($author_id); 
-					$temp_url = append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"); 
-					$author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>'; 
-				} 
-
-				$article_id = $article['article_id']; 
-				$views = $article['views']; 
-				$article_title = $article['article_title']; 
-				$temp_url = append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")); 
-				$article = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>'; 
-
-				$approve = ''; 
-				$delete = ''; 
-				$category_name = ''; 
-
-				$category = get_kb_cat($article_cat); 
-				$category_name = $category['category_name']; 
-			
-				if ( $approved_yesno == 2) 
-				{ 
-				//approve 
-					$temp_url = append_sid($phpbb_root_path . "admin/admin_kb_art.$phpEx?mode=approve&amp;a=$article_id"); 
-					$approve = '<a href="' . $temp_url . '"><img src="'. $images['icon_approve'] . '" border="0" alt="' . $lang['Approve'] . '"></a>'; 
-				}
-				else
-				{ 
-				//unapprove 
-					$temp_url = append_sid($phpbb_root_path . "admin/admin_kb_art.$phpEx?mode=unapprove&amp;a=$article_id"); 
-					$unapprove = '<a href="' . $temp_url . '"><img src="'. $images['icon_unapprove'] . '" border="0" alt="' . $lang['Un_approve'] . '"></a>'; 
-				}
-					$temp_url = append_sid($phpbb_root_path . "admin/admin_kb_art.$phpEx?mode=delete&amp;a=$article_id"); 
-					$delete = '<a href="' . $temp_url . '"><img src="'.$images['icon_delpost'] . '" border="0" alt="' . $lang['Delete'] . '"></a>'; 
-					$approve_pm_view .= "<tr><td>$category_name</td><td>$approve ' ' $delete ' ' $unapprove</td></tr>"; // the action table 
-			
+				$bbcode_uid = $article['bbcode_uid'];
+				$articlebody = "[quote:$bbcode_uid]" . $article['article_body'] . "\n[/quote:$bbcode_uid]";
 			} 
-					
-			$approve_pm_view .= "</table>"; // end action table 
 
 			$user_id = $kb_config['admin_id']; 
 			$new_article_subject = $lang['New_article']; 
 			$new_article = $lang['Email_body']; // original code 
 			$new_article .= $articlebody; // the extended Pm body 
-			$new_article .= '<p>'. $approve_pm_view; // the extended Pm body 
-			$new_article .= '<br><a href='. $phpbb_root_path . 'admin/admin_kb_art.'.$phpEx .'>KB Admin page</a><br>'; // the extended Pm body 
+			$new_article .= "\n[url=" . phpbb_board_url('admin/admin_kb_art.' . $phpEx) . "]" . $lang['Art_man'] . "[/url]\n";
 		  	$new_article = addslashes($new_article);
 
 			$privmsgs_date = date("U"); 
@@ -1313,7 +1257,8 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	   $author_id = $article['article_author_id'];
 	   if ( $author_id == 0 )
 	   {
-	       $author = ( $username != '' ) ? $lang['Guest'] : $article['username'];
+	       $guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
+	       $author = ($guest_username !== '') ? htmlspecialchars(stripslashes($guest_username), ENT_QUOTES, 'UTF-8') : $lang['Guest'];
 	   }
 	   else
 	   {
