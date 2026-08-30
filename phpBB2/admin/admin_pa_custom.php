@@ -35,10 +35,10 @@ $custom_field = new custom_field();
 $custom_field->init();
 
 // MX Modified - select
-$mode = (isset($_REQUEST['mode'])) ? htmlspecialchars($_REQUEST['mode']) : 'select';
-$field_id = (isset($_REQUEST['field_id'])) ? intval($_REQUEST['field_id']) : 0;
-$field_type = isset($_REQUEST['field_type']) ? intval($_REQUEST['field_type']) : (isset($custom_field->field_rowset[$field_id]['field_type']) ? $custom_field->field_rowset[$field_id]['field_type'] : 0);
-$field_ids = (isset($_REQUEST['field_ids'])) ? $_REQUEST['field_ids'] : '';
+$mode = (isset($_REQUEST['mode']) && is_scalar($_REQUEST['mode'])) ? htmlspecialchars((string) $_REQUEST['mode']) : 'select';
+$field_id = (isset($_REQUEST['field_id']) && is_scalar($_REQUEST['field_id'])) ? intval($_REQUEST['field_id']) : 0;
+$field_type = (isset($_REQUEST['field_type']) && is_scalar($_REQUEST['field_type'])) ? intval($_REQUEST['field_type']) : (isset($custom_field->field_rowset[$field_id]['field_type']) ? $custom_field->field_rowset[$field_id]['field_type'] : 0);
+$field_ids = (isset($_POST['field_ids']) && is_array($_POST['field_ids'])) ? $_POST['field_ids'] : array();
 $submit = (isset($_POST['submit'])) ? TRUE : FALSE;
 $s_hidden_fields = '';
 
@@ -64,6 +64,7 @@ switch($mode)
 
 if($submit)
 {
+	phpbb_admin_require_post_session();
 	if($mode == 'do_add' && !$field_id)
 	{
 		$custom_field->update_add_field($field_type);
@@ -131,6 +132,7 @@ elseif($mode == 'delete')
 {
 	$s_hidden_fields = '<input type="hidden" name="mode" value="delete">';
 }
+$s_hidden_fields .= phpbb_admin_session_field();
 
 $pafiledb_template->assign_vars(array(
 	'L_FIELD_TITLE' => $l_title,

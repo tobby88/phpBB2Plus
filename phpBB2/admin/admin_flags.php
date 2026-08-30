@@ -32,9 +32,16 @@ $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
+function phpbb_flag_image_name($value)
+{
+	$value = basename(str_replace('\\', '/', trim((string) $value)));
+	return preg_match('/^[A-Za-z0-9._-]+\.(?:gif|png|jpe?g)$/iD', $value) ? $value : '';
+}
+
 if( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = ($_GET['mode']) ? $_GET['mode'] : $_POST['mode'];
+	$mode_value = isset($_POST['mode']) ? $_POST['mode'] : $_GET['mode'];
+	$mode = is_scalar($mode_value) ? (string) $mode_value : '';
 }
 else 
 {
@@ -59,7 +66,7 @@ else
 if ( $mode == 'do_delete')
 {
 	// user bailed out, return to flag admin
-	if ( !$_POST['confirm'] )
+	if ( empty($_POST['confirm']) )
 	{
 		$mode = '' ;
 	}
@@ -75,7 +82,8 @@ if( $mode != "" )
 		//
 		$flag_id = ( isset($_GET['id']) ) ? intval($_GET['id']) : 0;
 		
-		$s_hidden_fields = "";
+		$s_hidden_fields = phpbb_admin_session_field();
+		$flag_info = array('flag_name' => '', 'flag_image' => '');
 		
 		if( $mode == "edit" )
 		{
@@ -92,6 +100,7 @@ if( $mode != "" )
 			}
 			
 			$flag_info = $db->sql_fetchrow($result);
+			$flag_info['flag_image'] = phpbb_flag_image_name($flag_info['flag_image']);
 			$s_hidden_fields .= '<input type="hidden" name="id" value="' . $flag_id . '" />';
 
 		}
@@ -103,9 +112,9 @@ if( $mode != "" )
 		);
 
 		$template->assign_vars(array(
-			"FLAG" => $flag_info['flag_name'],
-			"IMAGE" => ( $flag_info['flag_image'] != "" ) ? $flag_info['flag_image'] : "",
-			"IMAGE_DISPLAY" => ( $flag_info['flag_image'] != "" ) ? '<img src="../images/flags/' . $flag_info['flag_image'] . '" />' : "",
+			"FLAG" => phpbb_admin_html($flag_info['flag_name']),
+			"IMAGE" => phpbb_admin_html($flag_info['flag_image']),
+			"IMAGE_DISPLAY" => ( $flag_info['flag_image'] != "" ) ? '<img src="../images/flags/' . phpbb_admin_html($flag_info['flag_image']) . '" alt="" />' : "",
 			
 			"L_FLAGS_TITLE" => $lang['Flags_title'],
 			"L_FLAGS_TEXT" => $lang['Flags_explain'],
@@ -122,13 +131,14 @@ if( $mode != "" )
 	}
 	else if( $mode == "save" )
 	{
+		phpbb_admin_require_post_session();
 		//
 		// Ok, they sent us our info, let's update it.
 		//
 		
 		$flag_id = ( isset($_POST['id']) ) ? intval($_POST['id']) : 0;
-		$flag_name = ( isset($_POST['title']) ) ? trim($_POST['title']) : "";
-		$flag_image = ( (isset($_POST['flag_image'])) ) ? trim($_POST['flag_image']) : "";
+		$flag_name = (isset($_POST['title']) && is_scalar($_POST['title'])) ? trim(stripslashes((string) $_POST['title'])) : "";
+		$flag_image = (isset($_POST['flag_image']) && is_scalar($_POST['flag_image'])) ? phpbb_flag_image_name($_POST['flag_image']) : "";
 
 		if( $flag_name == "" )
 		{
@@ -138,18 +148,13 @@ if( $mode != "" )
 		//
 		// The flag image has to be a jpg, gif or png
 		//
-		if($flag_image != "")
-		{
-			if ( !preg_match("/(\.gif|\.png|\.jpg)$/is", $flag_image))
-			{
-				$flag_image = "";
-			}
-		}
+		$flag_name_sql = $db->sql_escape($flag_name);
+		$flag_image_sql = $db->sql_escape($flag_image);
 
 		if ($flag_id)
 		{
 			$sql = "UPDATE " . FLAG_TABLE . "
-				SET flag_name = '" . str_replace("\'", "''", $flag_name) . "', flag_image = '" . str_replace("\'", "''", $flag_image) . "'
+				SET flag_name = '" . $flag_name_sql . "', flag_image = '" . $flag_image_sql . "'
 				WHERE flag_id = $flag_id";
 
 			$message = $lang['Flag_updated'];
@@ -157,7 +162,7 @@ if( $mode != "" )
 		else
 		{
 			$sql = "INSERT INTO " . FLAG_TABLE . " (flag_name, flag_image)
-				VALUES ('" . str_replace("\'", "''", $flag_name) . "', '" . str_replace("\'", "''", $flag_image) . "')";
+				VALUES ('" . $flag_name_sql . "', '" . $flag_image_sql . "')";
 
 			$message = $lang['Flag_added'];
 		}
@@ -182,7 +187,7 @@ if( $mode != "" )
 		{
 			$flag_id = 0;
 		}
-		$hidden_fields = '<input type="hidden" name="id" value="' . $flag_id . '" /><input type="hidden" name="mode" value="do_delete" />';
+		$hidden_fields = '<input type="hidden" name="id" value="' . $flag_id . '" /><input type="hidden" name="mode" value="do_delete" />' . phpbb_admin_session_field();
 
 		//
 		// Set template files
@@ -205,6 +210,7 @@ if( $mode != "" )
 	}
 	else if( $mode == 'do_delete' )
 	{
+		phpbb_admin_require_post_session();
 
 		//
 		// Ok, they want to delete their flag
@@ -229,7 +235,7 @@ if( $mode != "" )
 				message_die(GENERAL_ERROR, "Couldn't get flag data", "", __LINE__, __FILE__, $sql);
 			}
 			$row = $db->sql_fetchrow($result);
-			$flag_image = $row['flag_image'] ;
+			$flag_image = isset($row['flag_image']) ? $db->sql_escape($row['flag_image']) : '';
 
 
 			// delete the flag
@@ -296,7 +302,8 @@ if( $mode != "" )
 		
 		for( $i = 0; $i < $flag_count; $i++)
 		{
-			$flag = $flag_rows[$i]['flag_name'];
+			$flag = phpbb_admin_html($flag_rows[$i]['flag_name']);
+			$flag_image = phpbb_flag_image_name($flag_rows[$i]['flag_image']);
 			$flag_id = $flag_rows[$i]['flag_id'];
 			
 			$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
@@ -307,7 +314,7 @@ if( $mode != "" )
 				"ROW_CLASS" => $row_class,
 
 				"FLAG" => $flag,
-				"IMAGE_DISPLAY" => ( $flag_rows[$i]['flag_image'] != "" ) ? '<img src="../images/flags/' . $flag_rows[$i]['flag_image'] . '" />' : "",
+				"IMAGE_DISPLAY" => ( $flag_image != "" ) ? '<img src="../images/flags/' . phpbb_admin_html($flag_image) . '" alt="" />' : "",
 
 				"U_FLAG_EDIT" => append_sid("admin_flags.$phpEx?mode=edit&amp;id=$flag_id"),
 				"U_FLAG_DELETE" => append_sid("admin_flags.$phpEx?mode=delete&amp;id=$flag_id"))
@@ -349,7 +356,8 @@ else
 	
 	for($i = 0; $i < $flag_count; $i++)
 	{
-		$flag = $flag_rows[$i]['flag_name'];
+		$flag = phpbb_admin_html($flag_rows[$i]['flag_name']);
+		$flag_image = phpbb_flag_image_name($flag_rows[$i]['flag_image']);
 		$flag_id = $flag_rows[$i]['flag_id'];
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
@@ -358,7 +366,7 @@ else
 			"ROW_COLOR" => "#" . $row_color,
 			"ROW_CLASS" => $row_class,
 			"FLAG" => $flag,
-			"IMAGE_DISPLAY" => ( $flag_rows[$i]['flag_image'] != "" ) ? '<img src="../images/flags/' . $flag_rows[$i]['flag_image'] . '" />' : "",
+			"IMAGE_DISPLAY" => ( $flag_image != "" ) ? '<img src="../images/flags/' . phpbb_admin_html($flag_image) . '" alt="" />' : "",
 
 			"U_FLAG_EDIT" => append_sid("admin_flags.$phpEx?mode=edit&amp;id=$flag_id"),
 			"U_FLAG_DELETE" => append_sid("admin_flags.$phpEx?mode=delete&amp;id=$flag_id"))

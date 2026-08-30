@@ -25,6 +25,11 @@ changes consolidated after that baseline without implying active maintenance.
   variable, and article-notification private messages no longer persist
   privileged action URLs containing an old session ID. Approve, unapprove and
   confirmed-delete operations now require POST plus the active AdminCP token.
+- Added POST/session-token checks to paFileDB category and custom-field writes
+  and to country-flag saves/deletes. Flag image names are confined to plain
+  local GIF, PNG or JPEG filenames and SQL values use the database driver's
+  escaping boundary. The same scalar/type and SQL-boundary checks now protect
+  paFileDB category and custom-field internals.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

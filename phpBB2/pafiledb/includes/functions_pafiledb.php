@@ -1109,8 +1109,9 @@ class pafiledb
 	{
 		global $db, $_POST, $lang;
 		
-		$cat_name = ( isset($_POST['cat_name']) ) ? htmlspecialchars($_POST['cat_name']) : '';
-		$cat_desc = ( isset($_POST['cat_desc']) ) ? htmlspecialchars($_POST['cat_desc']) : '';
+		$cat_id = (int) $cat_id;
+		$cat_name = (isset($_POST['cat_name']) && is_scalar($_POST['cat_name'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_name']), ENT_QUOTES, 'UTF-8') : '';
+		$cat_desc = (isset($_POST['cat_desc']) && is_scalar($_POST['cat_desc'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_desc']), ENT_QUOTES, 'UTF-8') : '';
 		$cat_parent = ( isset($_POST['cat_parent']) ) ? intval($_POST['cat_parent']) : 0;
 		$cat_allow_file = ( isset($_POST['cat_allow_file']) ) ? intval($_POST['cat_allow_file']) : 0;
 // MX Addon
@@ -1124,7 +1125,7 @@ class pafiledb
 		
 		if($cat_parent)
 		{
-			if(!$this->cat_rowset[$cat_parent]['cat_allow_file'] && !$cat_allow_file)
+			if(!isset($this->cat_rowset[$cat_parent]) || (!$this->cat_rowset[$cat_parent]['cat_allow_file'] && !$cat_allow_file))
 			{
 				$this->error[] = $lang['Cat_conflict'];
 			}
@@ -1135,8 +1136,8 @@ class pafiledb
 			return;
 		}
 
-		$cat_name = str_replace("\'", "''", $cat_name);
-		$cat_desc = str_replace("\'", "''", $cat_desc);
+		$cat_name = $db->sql_escape($cat_name);
+		$cat_desc = $db->sql_escape($cat_desc);
 		
 		if(!$cat_id)
 		{		
@@ -1194,11 +1195,12 @@ class pafiledb
 	function delete_cat($cat_id = false)
 	{
 		global $db, $_POST, $lang;
+		$cat_id = (int) $cat_id;
 		
 		$file_to_cat_id = ( isset($_POST['file_to_cat_id']) ) ? intval($_POST['file_to_cat_id']) : '';
 		$subcat_to_cat_id = ( isset($_POST['subcat_to_cat_id']) ) ? intval($_POST['subcat_to_cat_id']) : '';
-		$file_mode = ( isset($_POST['file_mode']) ) ? htmlspecialchars($_POST['file_mode']) : 'move';
-		$subcat_mode = ( isset($_POST['subcat_mode']) ) ? htmlspecialchars($_POST['subcat_mode']) : 'move';
+		$file_mode = (isset($_POST['file_mode']) && is_scalar($_POST['file_mode']) && in_array((string) $_POST['file_mode'], array('move', 'delete'), true)) ? (string) $_POST['file_mode'] : 'move';
+		$subcat_mode = (isset($_POST['subcat_mode']) && is_scalar($_POST['subcat_mode']) && in_array((string) $_POST['subcat_mode'], array('move', 'delete'), true)) ? (string) $_POST['subcat_mode'] : 'move';
 		
 		
 		

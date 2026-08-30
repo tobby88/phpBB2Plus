@@ -59,7 +59,10 @@ $integrations = array(
 	'ctracker/admin/acp_module_maintenance.php' => array('CTRACKER_RATE_LIMITS', "version_compare(PHP_VERSION, '5.6.0'", 'password_hashing', 'HTTPS'),
 	'admin/admin_board.php' => array('cookie_consent_enable', 'sfs_enable'),
 	'admin/admin_arcade.php' => array('$module[\'Arcade\'][\'Configuration\']'),
-	'admin/admin_album_config_extended.php' => array('$module[\'Photo_Album\'][\'Configuration\']')
+	'admin/admin_album_config_extended.php' => array('$module[\'Photo_Album\'][\'Configuration\']'),
+	'admin/admin_pa_custom.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()'),
+	'admin/admin_pa_category.php' => array("array('do_add', 'do_delete')", 'phpbb_admin_session_field()'),
+	'admin/admin_flags.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function phpbb_flag_image_name')
 );
 
 foreach ($integrations as $relative_path => $needles)

@@ -8,12 +8,14 @@ on:
       - "phpBB2/**/*.php"
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
+      - ".github/scripts/*.php"
       - ".github/workflows/php-lint.yml"
   pull_request:
     paths:
       - "phpBB2/**/*.php"
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
+      - ".github/scripts/*.php"
       - ".github/workflows/php-lint.yml"
 
 permissions:
@@ -100,3 +102,6 @@ jobs:
 
       - name: Test Knowledge Base runtime safety
         run: php .github/scripts/check-kb-runtime-safety.php
+
+      - name: Test paFileDB administration safety
+        run: php .github/scripts/check-pafiledb-admin-safety.php

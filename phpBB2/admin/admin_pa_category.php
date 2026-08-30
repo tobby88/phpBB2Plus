@@ -28,9 +28,14 @@ include($phpbb_root_path . 'pafiledb/pafiledb_common.'.$phpEx);
 
 $pafiledb->init();
 
-$mode = (isset($_REQUEST['mode'])) ? htmlspecialchars($_REQUEST['mode']) : '';
-$cat_id = (isset($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
-$cat_id_other = (isset($_REQUEST['cat_id_other'])) ? intval($_REQUEST['cat_id_other']) : 0;
+$mode = (isset($_REQUEST['mode']) && is_scalar($_REQUEST['mode'])) ? htmlspecialchars((string) $_REQUEST['mode']) : '';
+$cat_id = (isset($_REQUEST['cat_id']) && is_scalar($_REQUEST['cat_id'])) ? intval($_REQUEST['cat_id']) : 0;
+$cat_id_other = (isset($_REQUEST['cat_id_other']) && is_scalar($_REQUEST['cat_id_other'])) ? intval($_REQUEST['cat_id_other']) : 0;
+
+if (in_array($mode, array('do_add', 'do_delete'), true))
+{
+	phpbb_admin_require_post_session();
+}
 
 if($mode == 'do_add' && !$cat_id)
 {
@@ -107,6 +112,7 @@ switch($mode)
 		$s_hidden_fields = '<input type="hidden" name="mode" value="do_delete">';
 		break;
 }
+$s_hidden_fields .= phpbb_admin_session_field();
 
 $pafiledb_template->set_filenames(array(
 	'admin' => $template_file)
@@ -138,7 +144,11 @@ elseif($mode == 'add' || $mode == 'edit')
 {
 	if($mode == 'add')
 	{
-		if(!$_POST['cat_parent'])
+		$posted_cat_parent = (isset($_POST['cat_parent']) && is_scalar($_POST['cat_parent'])) ? intval($_POST['cat_parent']) : 0;
+		$posted_cat_allow_file = !empty($_POST['cat_allow_file']);
+		$posted_cat_allow_comments = !empty($_POST['cat_allow_comments']);
+		$posted_cat_allow_ratings = !empty($_POST['cat_allow_ratings']);
+		if(!$posted_cat_parent)
 		{
 			$cat_list .= '<option value="0" selected>' . $lang['None'] . '</option>';
 		}
@@ -146,17 +156,17 @@ elseif($mode == 'add' || $mode == 'edit')
 		{
 			$cat_list .= '<option value="0">' . $lang['None'] . '</option>';
 		}
-		$cat_list .= (!$_POST['cat_parent']) ? $pafiledb->jumpmenu_option() : $pafiledb->jumpmenu_option(0, 0, array($_POST['cat_parent'] => 1));
-		$checked_yes = ($_POST['cat_allow_file']) ? ' checked' : '';
-		$checked_no = (!$_POST['cat_allow_file']) ? ' checked' : '';
+		$cat_list .= (!$posted_cat_parent) ? $pafiledb->jumpmenu_option() : $pafiledb->jumpmenu_option(0, 0, array($posted_cat_parent => 1));
+		$checked_yes = $posted_cat_allow_file ? ' checked' : '';
+		$checked_no = !$posted_cat_allow_file ? ' checked' : '';
 		// MX Addon
-		$checked_comments_yes = ($_POST['cat_allow_comments']) ? ' checked' : '';
-		$checked_comments_no = (!$_POST['cat_allow_comments']) ? ' checked' : '';
-		$checked_ratings_yes = ($_POST['cat_allow_ratings']) ? ' checked' : '';
-		$checked_ratings_no = (!$_POST['cat_allow_ratings']) ? ' checked' : '';
+		$checked_comments_yes = $posted_cat_allow_comments ? ' checked' : '';
+		$checked_comments_no = !$posted_cat_allow_comments ? ' checked' : '';
+		$checked_ratings_yes = $posted_cat_allow_ratings ? ' checked' : '';
+		$checked_ratings_no = !$posted_cat_allow_ratings ? ' checked' : '';
 		// End
-		$cat_name = (!empty($_POST['cat_name'])) ? $_POST['cat_name'] : '';
-		$cat_desc = (!empty($_POST['cat_desc'])) ? $_POST['cat_desc'] : '';
+		$cat_name = (isset($_POST['cat_name']) && is_scalar($_POST['cat_name'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_name']), ENT_QUOTES, 'UTF-8') : '';
+		$cat_desc = (isset($_POST['cat_desc']) && is_scalar($_POST['cat_desc'])) ? htmlspecialchars(stripslashes((string) $_POST['cat_desc']), ENT_QUOTES, 'UTF-8') : '';
 	}
 	else
 	{

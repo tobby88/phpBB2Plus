@@ -332,16 +332,18 @@ class custom_field
 	{
 		global $db, $_POST, $lang;
 
-		$field_name = (isset($_POST['field_name']) && is_scalar($_POST['field_name'])) ? htmlspecialchars((string) $_POST['field_name']) : '';
-		$field_desc = (isset($_POST['field_desc']) && is_scalar($_POST['field_desc'])) ? htmlspecialchars((string) $_POST['field_desc']) : '';
-		$regex = (isset($_POST['regex']) && is_scalar($_POST['regex'])) ? (string) $_POST['regex'] : '';
-		$data = (isset($_POST['data']) && is_scalar($_POST['data'])) ? (string) $_POST['data'] : '';
-		$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? (string) $_POST['field_order'] : '';
+		$field_type = (int) $field_type;
+		$field_id = (int) $field_id;
+		$field_name = (isset($_POST['field_name']) && is_scalar($_POST['field_name'])) ? $db->sql_escape(htmlspecialchars(stripslashes((string) $_POST['field_name']), ENT_QUOTES, 'UTF-8')) : '';
+		$field_desc = (isset($_POST['field_desc']) && is_scalar($_POST['field_desc'])) ? $db->sql_escape(htmlspecialchars(stripslashes((string) $_POST['field_desc']), ENT_QUOTES, 'UTF-8')) : '';
+		$regex = (isset($_POST['regex']) && is_scalar($_POST['regex'])) ? $db->sql_escape(stripslashes((string) $_POST['regex'])) : '';
+		$data = (isset($_POST['data']) && is_scalar($_POST['data'])) ? stripslashes((string) $_POST['data']) : '';
+		$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? (int) $_POST['field_order'] : 0;
 
 
 		if($field_id)
 		{
-			$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? intval($_POST['field_order']) : '';
+			$field_order = (isset($_POST['field_order']) && is_scalar($_POST['field_order'])) ? intval($_POST['field_order']) : 0;
 		}
 
 		if(!empty($data))
@@ -352,7 +354,7 @@ class custom_field
 			{
 				$data[$key] = trim($value);
 			}
-			$data = addslashes(serialize($data));
+			$data = $db->sql_escape(serialize($data));
 		}
 		
 		if(empty($field_name))
@@ -403,6 +405,7 @@ class custom_field
 	function delete_field($field_id)
 	{
 		global $db;
+		$field_id = (int) $field_id;
 		
 		$sql = "DELETE FROM " . PA_CUSTOM_DATA_TABLE . "
 			WHERE customdata_custom = '$field_id'";
