@@ -26,7 +26,8 @@ if ( !defined('IN_PHPBB') )
 }
 
 $is_block = isset($is_block) ? (bool) $is_block : false;
-$category_id = isset($_GET['cat']) ? intval($_GET['cat']) : 0;
+$category_id = max(0, intval(phpbb_request_scalar($_GET, 'cat', 0)));
+$stats = in_array($stats, array('toprated', 'latest', 'mostpopular'), true) ? $stats : 'latest';
 $category_name = '';
 $path_kb = '';
 

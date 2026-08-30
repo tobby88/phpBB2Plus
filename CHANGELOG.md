@@ -40,6 +40,10 @@ changes consolidated after that baseline without implying active maintenance.
   Malformed tokens/offsets and nested tournament fields are rejected, join
   batches are deduplicated and bounded, and comment edit/delete confirmation
   pages now terminate cleanly instead of rendering a second page afterwards.
+- Normalized Shoutbox and Knowledge Base listing offsets and identifiers,
+  repaired the compact Shoutbox pagination URL, escaped its displayed account
+  names, and supplied safe Knowledge Base sort/pagination defaults for damaged
+  or incomplete legacy configuration.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.

@@ -76,7 +76,7 @@ if( !$is_auth['auth_read'] )
 // see if we need offset
 if (isset($_POST['start']) || isset($_GET['start']))
 {
-	$start=(isset($_POST['start'])) ? intval($_POST['start']) : intval($_GET['start']);
+	$start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', phpbb_request_scalar($_GET, 'start', 0)))));
 } else $start=0;
 
 $template->set_filenames(array( 
@@ -105,7 +105,9 @@ obtain_word_list($orig_word, $replacement_word);
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 		$user_id = $shout_row['shout_user_id'];
-		$username = ( $user_id == ANONYMOUS ) ? (( $shout_row['shout_username'] == '' ) ? $lang['Guest'] : $shout_row['shout_username'] ) : "<a href='".append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=".$shout_row['shout_user_id'])."' target='_top'>".$shout_row['username']."</a>" ;
+		$display_username = ($user_id == ANONYMOUS) ? (($shout_row['shout_username'] == '') ? $lang['Guest'] : $shout_row['shout_username']) : $shout_row['username'];
+		$display_username = phpbb_profile_text($display_username);
+		$username = ($user_id == ANONYMOUS) ? $display_username : "<a href='" . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . (int) $shout_row['shout_user_id']) . "' target='_top'>" . $display_username . "</a>";
 		$shout = (! $shout_row['shout_active']) ? $shout_row['shout_text'] : $lang['Shout_censor'];
 		if ( $board_config['allow_smilies'] && $shout_row['user_allowsmile'] && $shout != '' && $shout_row['enable_smilies'])
 		{
@@ -124,7 +126,7 @@ obtain_word_list($orig_word, $replacement_word);
 		));
 }
 $template->assign_vars(array( 
-	'U_SHOUTBOX_VIEW' => append_sid("shoutbox_view.$phpEx?$start"),
+	'U_SHOUTBOX_VIEW' => append_sid("shoutbox_view.$phpEx?start=$start"),
 	'T_NAME' => $theme['template_name'],
 'T_URL' => "templates/".$theme['template_name'],
 	'T_HEAD_STYLESHEET' => $theme['head_stylesheet'],

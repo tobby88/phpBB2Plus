@@ -24,9 +24,9 @@ if ( !defined('IN_PHPBB') )
 {
 	die("Hacking attempt");
 }
-	$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+	$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
-	$category_id = ( isset( $HTTP_GET_VARS['cat'] ) ) ? intval ( $HTTP_GET_VARS['cat'])  : intval ( $HTTP_POST_VARS['cat'] );
+	$category_id = max(0, intval(phpbb_request_scalar($HTTP_GET_VARS, 'cat', phpbb_request_scalar($HTTP_POST_VARS, 'cat', 0))));
 	$category = get_kb_cat($category_id);		
 	$category_name = $category['category_name'];
 	
@@ -39,6 +39,7 @@ if ( !defined('IN_PHPBB') )
 
 	$kb_news_sort_par = $kb_config['news_sort_par'];
 	$kb_news_sort_method_lj = false; 
+	$kb_news_sort_method = 't.article_date';
 	
 	switch( $kb_config['news_sort'] ) 
 	{ 
@@ -100,15 +101,18 @@ if ( !defined('IN_PHPBB') )
 
 	if ( $total = $db->sql_fetchrow($result) )
 	{
-		$total_articles = $total['total'];
-		$pagination = generate_pagination("kb.$phpEx?mode=cat&cat=$category_id", $total_articles, $kb_config['art_pagination'], $start). '&nbsp;';
+		$total_articles = (int) $total['total'];
+		$articles_per_page = max(1, (int) $kb_config['art_pagination']);
+		$pagination = generate_pagination("kb.$phpEx?mode=cat&cat=$category_id", $total_articles, $articles_per_page, $start). '&nbsp;';
 	}
 
-	$total_cat_pages = ceil( $total_articles / $kb_config['art_pagination'] );
+	$articles_per_page = isset($articles_per_page) ? $articles_per_page : max(1, (int) $kb_config['art_pagination']);
+	$total_articles = isset($total_articles) ? $total_articles : 0;
+	$total_cat_pages = ceil($total_articles / $articles_per_page);
 
 	$template->assign_vars(array(
 		'PAGINATION' => ( $total_cat_pages > 1 ) ? $pagination : '',
-		'PAGE_NUMBER' => ( $total_cat_pages > 1 ) ? sprintf($lang['Page_of'], ( floor( $start / $kb_config['art_pagination'] ) + 1 ), ceil( $total_articles / $kb_config['art_pagination'] )) : '',
+		'PAGE_NUMBER' => ($total_cat_pages > 1) ? sprintf($lang['Page_of'], (floor($start / $articles_per_page) + 1), ceil($total_articles / $articles_per_page)) : '',
 		'L_GOTO_PAGE' => $lang['Goto_page'],
 
 		'L_CATEGORY_NAME' => $category_name,
@@ -127,7 +131,7 @@ if ( !defined('IN_PHPBB') )
 		
 		'U_CAT' => append_sid(this_kb_mxurl('mode=cat&cat=' . $category_id)))
 	);
-	get_kb_articles($category_id, '1', 'articlerow', $start, $kb_config['art_pagination']);
+	get_kb_articles($category_id, '1', 'articlerow', $start, $articles_per_page);
 
 	}
 	

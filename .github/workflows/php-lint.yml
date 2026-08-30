@@ -151,6 +151,9 @@ jobs:
       - name: Test Arcade secondary page safety
         run: php .github/scripts/check-arcade-secondary-safety.php
 
+      - name: Test Shoutbox and Knowledge Base listings
+        run: php .github/scripts/check-community-listing-safety.php
+
       - name: Test Knowledge Base runtime safety
         run: php .github/scripts/check-kb-runtime-safety.php
 

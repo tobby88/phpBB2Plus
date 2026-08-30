@@ -219,7 +219,7 @@ if ($submit || isset($_POST['message']))
 // see if we need offset
 if (((isset($_POST['start']) && is_scalar($_POST['start'])) || (isset($_GET['start']) && is_scalar($_GET['start']))) && !$submit)
 {
-	$start = max(0, (isset($_POST['start']) && is_scalar($_POST['start'])) ? intval($_POST['start']) : intval($_GET['start']));
+	$start = min(1000000, max(0, (isset($_POST['start']) && is_scalar($_POST['start'])) ? intval($_POST['start']) : intval($_GET['start'])));
 } else $start=0;
 
 	//
