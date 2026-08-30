@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened paFileDB category permissions and configuration. Both AdminCP forms
+  now require the central session-bound POST token; category IDs and access
+  levels are checked against real categories and strict allowlists, while
+  configuration writes are limited to the settings actually exposed by the
+  module. Numeric, boolean and enum values are normalized, storage paths reject
+  traversal and absolute/URL targets, displayed values are escaped, and the
+  central paFileDB configuration writer now uses database-driver escaping.
 - Hardened attachment configuration, extension management and the attachment
   control panel with session-bound AdminCP POST checks. Attachment
   synchronization is no longer a state-changing GET request and now requires

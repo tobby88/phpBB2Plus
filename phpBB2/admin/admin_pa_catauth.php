@@ -51,7 +51,7 @@ if (!function_exists('admin_display_cat_auth'))
 			foreach($pafiledb->subcat_rowset[$cat_parent] as $sub_cat_id => $cat_data)
 			{
 				$pafiledb_template->assign_block_vars('cat_row', array(
-					'CATEGORY_NAME' => $cat_data['cat_name'],
+					'CATEGORY_NAME' => phpbb_admin_html($cat_data['cat_name']),
 					'IS_HIGHER_CAT' => ($cat_data['cat_allow_file']) ? false : true,
 					'PRE' => $pre,
 					'U_CAT' => append_sid("admin_pa_catauth.$phpEx?cat_parent=$sub_cat_id"))
@@ -104,17 +104,23 @@ $field_names = array(
 $cat_auth_levels = array('ALL', 'REG', 'PRIVATE', 'MOD', 'ADMIN');
 $cat_auth_const = array(AUTH_ALL, AUTH_REG, AUTH_ACL, AUTH_MOD, AUTH_ADMIN);
 
-$cat_parent = (isset($_REQUEST['cat_parent'])) ? intval($_REQUEST['cat_parent']) : 0;
-
-if(isset($_REQUEST['cat_id']))
+$cat_parent = (isset($_GET['cat_parent']) && is_scalar($_GET['cat_parent'])) ? max(0, intval($_GET['cat_parent'])) : 0;
+if ($cat_parent && !isset($pafiledb->cat_rowset[$cat_parent]))
 {
-	$cat_id = intval($_REQUEST['cat_id']);
-	$cat_sql = "AND cat_id = $cat_id";
+	$cat_parent = 0;
+}
+
+if(isset($_GET['cat_id']) && is_scalar($_GET['cat_id']))
+{
+	$cat_id = max(0, intval($_GET['cat_id']));
+	if (!$cat_id || !isset($pafiledb->cat_rowset[$cat_id]))
+	{
+		message_die(GENERAL_ERROR, 'Invalid download category.');
+	}
 }
 else
 {
 	unset($cat_id);
-	$cat_sql = '';
 }
 
 
@@ -123,19 +129,43 @@ else
 //
 if( isset($_POST['submit']) )
 {
+	phpbb_admin_require_post_session();
 	$temp_sql = array();
 
 	for($i = 0; $i < count($cat_auth_fields); $i++)
 	{
-		foreach($_POST[$cat_auth_fields[$i]] as $temp_cat_id => $value)
+		$field = $cat_auth_fields[$i];
+		if (!isset($_POST[$field]) || !is_array($_POST[$field]))
 		{
-			$temp_sql[$temp_cat_id] .= ( ( $temp_sql[$temp_cat_id] != '' ) ? ', ' : '' ) .$cat_auth_fields[$i] . ' = ' . $value;
+			continue;
+		}
+
+		foreach($_POST[$field] as $temp_cat_id => $value)
+		{
+			$temp_cat_id = intval($temp_cat_id);
+			if (!$temp_cat_id || !isset($pafiledb->cat_rowset[$temp_cat_id]) || !is_scalar($value))
+			{
+				continue;
+			}
+
+			$auth_value = intval($value);
+			if (!in_array($auth_value, $cat_auth_const, true))
+			{
+				continue;
+			}
+
+			if (!isset($temp_sql[$temp_cat_id]))
+			{
+				$temp_sql[$temp_cat_id] = array();
+			}
+			$temp_sql[$temp_cat_id][] = $field . ' = ' . $auth_value;
 		}
 	}
 	
 	$sql = array();
-	foreach($temp_sql as $temp_cat_id => $update_sql)
+	foreach($temp_sql as $temp_cat_id => $update_fields)
 	{
+		$update_sql = implode(', ', $update_fields);
 		$sql[] = "UPDATE " . PA_CATEGORY_TABLE . " 
 			SET $update_sql WHERE cat_id = $temp_cat_id";
 	}
@@ -149,7 +179,7 @@ if( isset($_POST['submit']) )
 		{
 			if ( !$db->sql_query($do_sql) )
 			{
-				message_die(GENERAL_ERROR, 'Could not update auth table' . $do_sql, '', __LINE__, __FILE__, $sql);
+				message_die(GENERAL_ERROR, 'Could not update category permissions', '', __LINE__, __FILE__, $do_sql);
 			}
 		}
 	}
@@ -202,8 +232,8 @@ if(empty($cat_id))
 elseif(!empty($cat_id))
 {
 	$pafiledb_template->assign_block_vars('cat_row', array(
-		'CATEGORY_NAME' => $pafiledb->cat_rowset[$cat_id]['cat_name'],
-		'IS_HIGHER_CAT' => ($pafiledb->cat_rowset[$cat_id]) ? false : true,
+		'CATEGORY_NAME' => phpbb_admin_html($pafiledb->cat_rowset[$cat_id]['cat_name']),
+		'IS_HIGHER_CAT' => ($pafiledb->cat_rowset[$cat_id]['cat_allow_file']) ? false : true,
 		'U_CAT' => append_sid("admin_pa_catauth.$phpEx?cat_parent={$pafiledb->cat_rowset[$cat_id]['cat_parent']}"))
 	);
 
@@ -222,10 +252,10 @@ elseif(!empty($cat_id))
 			'S_AUTH_LEVELS_SELECT' => $custom_auth[$j])
 		);
 	}
-	$s_hidden_fields = '<input type="hidden" name="cat_id" value="' . $cat_id . '">';
-	$cat_name = $pafiledb->cat_rowset[$cat_id]['cat_name'];
+	$s_hidden_fields = '<input type="hidden" name="cat_id" value="' . $cat_id . '" />';
+	$cat_name = phpbb_admin_html($pafiledb->cat_rowset[$cat_id]['cat_name']);
 }
-$s_hidden_fields = isset($s_hidden_fields) ? $s_hidden_fields : '';
+$s_hidden_fields = (isset($s_hidden_fields) ? $s_hidden_fields : '') . phpbb_admin_session_field();
 $s_column_span = count($cat_auth_fields) + 2;
 
 $pafiledb_template->assign_vars(array(

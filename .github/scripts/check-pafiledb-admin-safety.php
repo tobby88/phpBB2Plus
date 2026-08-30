@@ -13,6 +13,9 @@ $root = dirname(dirname(__DIR__));
 $admin_category = file_get_contents($root . '/phpBB2/admin/admin_pa_category.php');
 $admin_custom = file_get_contents($root . '/phpBB2/admin/admin_pa_custom.php');
 $admin_flags = file_get_contents($root . '/phpBB2/admin/admin_flags.php');
+$admin_catauth = file_get_contents($root . '/phpBB2/admin/admin_pa_catauth.php');
+$admin_settings = file_get_contents($root . '/phpBB2/admin/admin_pa_settings.php');
+$pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions.php');
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
 
@@ -36,5 +39,21 @@ pafiledb_admin_assert(strpos($admin_flags, 'function phpbb_flag_image_name') !==
 pafiledb_admin_assert(strpos($admin_flags, "basename(str_replace('\\\\', '/', trim") !== false, 'flag paths must be reduced to a basename');
 pafiledb_admin_assert(substr_count($admin_flags, 'phpbb_admin_require_post_session();') >= 2, 'flag saves and deletes must require POST tokens');
 pafiledb_admin_assert(substr_count($admin_flags, 'phpbb_admin_html($flag_image)') >= 2, 'stored flag images must be escaped when rendered');
+
+pafiledb_admin_assert(strpos($admin_catauth, 'phpbb_admin_require_post_session();') !== false, 'category permission writes must require a POST token');
+pafiledb_admin_assert(strpos($admin_catauth, 'in_array($auth_value, $cat_auth_const, true)') !== false, 'category permission levels must use a strict allowlist');
+pafiledb_admin_assert(strpos($admin_catauth, '!isset($pafiledb->cat_rowset[$temp_cat_id])') !== false, 'category permission targets must exist');
+pafiledb_admin_assert(strpos($admin_catauth, "\$_REQUEST") === false, 'category permissions must not merge GET and POST input');
+pafiledb_admin_assert(strpos($admin_catauth, 'phpbb_admin_session_field()') !== false, 'category permission forms must carry a session token');
+pafiledb_admin_assert(strpos($admin_catauth, "'CATEGORY_NAME' => phpbb_admin_html") !== false, 'category names must be escaped in permission output');
+
+pafiledb_admin_assert(strpos($admin_settings, 'phpbb_admin_require_post_session();') !== false, 'configuration writes must require a POST token');
+pafiledb_admin_assert(strpos($admin_settings, '$editable_config = array(') !== false, 'configuration writes need a field allowlist');
+pafiledb_admin_assert(strpos($admin_settings, 'in_array($config_name, $editable_config, true)') !== false, 'only allowlisted configuration fields may be written');
+pafiledb_admin_assert(strpos($admin_settings, "(^|/)\\.\\.(/|$)") !== false, 'storage directories must reject traversal');
+pafiledb_admin_assert(strpos($admin_settings, "'S_HIDDEN_FIELDS' => phpbb_admin_session_field()") !== false, 'configuration forms must carry a session token');
+pafiledb_admin_assert(strpos($admin_settings, "'UPLOAD_DIR' => phpbb_admin_html") !== false, 'configuration text must be escaped in form output');
+pafiledb_admin_assert(substr_count($pafiledb_functions, '$db->sql_escape(') >= 2, 'paFileDB configuration SQL must use driver escaping');
+pafiledb_admin_assert(strpos($pafiledb_functions, "preg_match('/^[a-z0-9_]{1,191}$/Di'") !== false, 'paFileDB configuration names must be bounded identifiers');
 
 echo "paFileDB administration safety tests passed.\n";

@@ -3,6 +3,7 @@
 <p>{L_SETTINGSEXPLAIN}</p>
 
 <form action="{S_SETTINGS_ACTION}" method="post" name="form">
+{S_HIDDEN_FIELDS}
 <table width="100%" cellpadding="3" cellspacing="1" class="forumline">
   <tr>
 	<th colspan="2" class="thHead">{L_SETTINGS}</th>

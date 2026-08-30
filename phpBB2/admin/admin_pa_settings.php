@@ -27,7 +27,30 @@ require('./pagestart.' . $phpEx);
 include($phpbb_root_path . 'pafiledb/pafiledb_common.'.$phpEx);
 
 $submit = (isset($_POST['submit'])) ? true : false;
-$size = (isset($_POST['max_size'])) ? $_POST['max_size'] : '';
+$size = (isset($_POST['max_size']) && is_scalar($_POST['max_size'])) ? strtolower((string) $_POST['max_size']) : '';
+if (!in_array($size, array('', 'b', 'kb', 'mb'), true))
+{
+	$size = '';
+}
+
+if ($submit)
+{
+	phpbb_admin_require_post_session();
+}
+
+$editable_config = array(
+	'settings_dbname', 'settings_topnumber', 'settings_newdays', 'settings_file_page',
+	'settings_viewall', 'settings_disable', 'hotlink_prevent', 'hotlink_allowed',
+	'sort_method', 'sort_order', 'max_file_size', 'upload_dir', 'screenshots_dir',
+	'forbidden_extensions', 'auth_search', 'auth_stats', 'auth_toplist', 'auth_viewall',
+	'allow_html', 'allow_bbcode', 'allow_smilies', 'allow_comment_links',
+	'no_comment_link_message', 'allow_comment_images', 'no_comment_image_message',
+	'max_comment_chars', 'need_validation', 'validator', 'pm_notify', 'tpl_php'
+);
+$boolean_config = array('settings_viewall', 'settings_disable', 'hotlink_prevent', 'allow_html', 'allow_bbcode', 'allow_smilies', 'allow_comment_links', 'allow_comment_images', 'need_validation', 'pm_notify', 'tpl_php');
+$integer_config = array('settings_topnumber', 'settings_newdays', 'settings_file_page', 'max_comment_chars');
+$auth_config = array('auth_search', 'auth_stats', 'auth_toplist', 'auth_viewall');
+$auth_values = array(AUTH_ALL, AUTH_REG, AUTH_ACL, AUTH_MOD, AUTH_ADMIN);
 
 $sql = 'SELECT *
 	FROM ' . PA_CONFIG_TABLE;
@@ -44,7 +67,55 @@ else
 		$config_value = $row['config_value'];
 		$default_config[$config_name] = $config_value;
 
-		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
+		$new[$config_name] = $default_config[$config_name];
+		if ($submit && in_array($config_name, $editable_config, true))
+		{
+			$new[$config_name] = phpbb_admin_post_string($config_name, $default_config[$config_name]);
+
+			if (in_array($config_name, $boolean_config, true))
+			{
+				$new[$config_name] = (intval($new[$config_name]) === 1) ? '1' : '0';
+			}
+			elseif (in_array($config_name, $integer_config, true))
+			{
+				$new[$config_name] = (string) min(1000000, max(0, intval($new[$config_name])));
+			}
+			elseif (in_array($config_name, $auth_config, true))
+			{
+				$auth_value = intval($new[$config_name]);
+				$new[$config_name] = in_array($auth_value, $auth_values, true) ? (string) $auth_value : (string) $default_config[$config_name];
+			}
+			elseif ($config_name === 'sort_method')
+			{
+				$new[$config_name] = in_array($new[$config_name], array('file_name', 'file_time', 'file_rating', 'file_dls', 'file_update_time'), true) ? $new[$config_name] : 'file_time';
+			}
+			elseif ($config_name === 'sort_order')
+			{
+				$new[$config_name] = in_array(strtoupper($new[$config_name]), array('ASC', 'DESC'), true) ? strtoupper($new[$config_name]) : 'DESC';
+			}
+			elseif ($config_name === 'validator')
+			{
+				$new[$config_name] = in_array($new[$config_name], array('validator_admin', 'validator_mod'), true) ? $new[$config_name] : 'validator_admin';
+			}
+			elseif ($config_name === 'max_file_size')
+			{
+				$new[$config_name] = is_numeric($new[$config_name]) ? (string) min(1099511627776, max(0, (float) $new[$config_name])) : '0';
+			}
+			elseif ($config_name === 'upload_dir' || $config_name === 'screenshots_dir')
+			{
+				$new[$config_name] = str_replace('\\', '/', trim($new[$config_name]));
+				if ($new[$config_name] === '' || preg_match('/[\x00-\x1f\x7f?#]/', $new[$config_name]) || preg_match('#(^|/)\.\.(/|$)|^[a-z]+://|^/|^[a-z]:#i', $new[$config_name]))
+				{
+					message_die(GENERAL_ERROR, 'Invalid paFileDB storage directory.');
+				}
+				$new[$config_name] = rtrim($new[$config_name], '/') . '/';
+			}
+
+			if (strlen($new[$config_name]) > 255)
+			{
+				message_die(GENERAL_ERROR, 'A paFileDB setting exceeds the supported length.');
+			}
+		}
 		if ($config_name === 'tpl_php')
 		{
 			$new[$config_name] = '0';
@@ -67,7 +138,7 @@ else
 			}
 		}
 
-		if($submit)
+		if($submit && in_array($config_name, $editable_config, true))
 		{
 
 			if ($config_name == 'max_file_size')
@@ -147,6 +218,7 @@ $pm_notify_no = (!$new['pm_notify']) ? ' selected' : '';
 
 $template->assign_vars(array(
 	'S_SETTINGS_ACTION' => append_sid("admin_pa_settings.$phpEx"),
+	'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 
 	'L_MAX_FILE_SIZE' => $lang['Max_filesize'],
 	'L_MAX_FILE_SIZE_INFO' => $lang['Max_filesize_explain'],
@@ -222,15 +294,14 @@ $template->assign_vars(array(
 	'L_VALIDATOR_ADMIN_OPTION' => $lang['Validator_admin_option'],
 	'L_VALIDATOR_MOD_OPTION' => $lang['Validator_mod_option'],
 
-	'SETTINGS_DBNAME' => $new['settings_dbname'],
-	'SETTINGS_FILE_PAGE' => $new['settings_file_page'],
-	'HOTLINK_ALLOWED' => $new['hotlink_allowed'],
-	'SETTINGS_TOPNUMBER' => $new['settings_topnumber'],
-	'SETTINGS_NEWDAYS' => $new['settings_newdays'],
-	'SETTINGS_TOPNUMBER' => $new['settings_topnumber'],
-	'MESSAGE_LINK' => $new['no_comment_link_message'],
-	'MAX_CHAR' => $new['max_comment_chars'],
-	'MESSAGE_IMAGE' => $new['no_comment_image_message'],
+	'SETTINGS_DBNAME' => phpbb_admin_html($new['settings_dbname']),
+	'SETTINGS_FILE_PAGE' => phpbb_admin_html($new['settings_file_page']),
+	'HOTLINK_ALLOWED' => phpbb_admin_html($new['hotlink_allowed']),
+	'SETTINGS_TOPNUMBER' => phpbb_admin_html($new['settings_topnumber']),
+	'SETTINGS_NEWDAYS' => phpbb_admin_html($new['settings_newdays']),
+	'MESSAGE_LINK' => phpbb_admin_html($new['no_comment_link_message']),
+	'MAX_CHAR' => phpbb_admin_html($new['max_comment_chars']),
+	'MESSAGE_IMAGE' => phpbb_admin_html($new['no_comment_image_message']),
 
 	'SORT_NAME' => ($new['sort_method'] == 'file_name') ? 'selected="selected"' : '',
 	'SORT_TIME' => ($new['sort_method'] == 'file_time') ? 'selected="selected"' : '',
@@ -244,10 +315,10 @@ $template->assign_vars(array(
 	'VALIDATOR_ADMIN' => ($new['validator'] == 'validator_admin') ? 'selected="selected"' : '',
 	'VALIDATOR_MOD' => ($new['validator'] == 'validator_mod') ? 'selected="selected"' : '',
 
-	'MAX_FILE_SIZE' => $new['max_file_size'],
-	'UPLOAD_DIR' => $new['upload_dir'],
-	'SCREENSHOT_DIR' => $new['screenshots_dir'],
-	'FORBIDDEN_EXTENSIONS' => $new['forbidden_extensions'],
+	'MAX_FILE_SIZE' => phpbb_admin_html($new['max_file_size']),
+	'UPLOAD_DIR' => phpbb_admin_html($new['upload_dir']),
+	'SCREENSHOT_DIR' => phpbb_admin_html($new['screenshots_dir']),
+	'FORBIDDEN_EXTENSIONS' => phpbb_admin_html($new['forbidden_extensions']),
 
 	'S_FILESIZE' => pa_size_select('max_size', $size),
 	'S_ATUH_SEARCH' => $auth_select['auth_search'],

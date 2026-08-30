@@ -20,10 +20,19 @@ class pafiledb_functions
 	function set_config($config_name, $config_value)
 	{
 		global $cache, $pafiledb_config, $db;
+
+		$config_name = (string) $config_name;
+		$config_value = is_scalar($config_value) ? (string) $config_value : '';
+		if (!preg_match('/^[a-z0-9_]{1,191}$/Di', $config_name))
+		{
+			message_die(GENERAL_ERROR, 'Invalid paFileDB configuration name.');
+		}
+		$config_name_sql = $db->sql_escape($config_name);
+		$config_value_sql = $db->sql_escape($config_value);
 		
 		$sql = "UPDATE " . PA_CONFIG_TABLE . " SET
-			config_value = '" . str_replace("\'", "''", $config_value) . "'
-			WHERE config_name = '$config_name'";
+			config_value = '$config_value_sql'
+			WHERE config_name = '$config_name_sql'";
 		if( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, "Failed to update pafiledb configuration for $config_name", "", __LINE__, __FILE__, $sql);
@@ -32,7 +41,7 @@ class pafiledb_functions
 		if (!$db->sql_affectedrows() && !isset($pafiledb_config[$config_name]))
 		{
 			$sql = 'INSERT INTO ' . PA_CONFIG_TABLE . " (config_name, config_value)
-				VALUES ('$config_name', '" . str_replace("\'", "''", $config_value) . "')";
+				VALUES ('$config_name_sql', '$config_value_sql')";
 
 			if( !$db->sql_query($sql) )
 			{
