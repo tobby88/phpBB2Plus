@@ -15,7 +15,7 @@
     <tr> 
       <th class="thCornerL" width="5%">{L_CAT_ID}</th>
       <th class="thTop" colspan="2" width="60%">{L_CATS}</th>
-    <th class="thCornerR" colspan=3" width="5%">{L_ACTION}</th>
+    <th class="thCornerR" colspan="3" width="5%">{L_ACTION}</th>
     </tr>
     <!-- BEGIN cats --> 
     <tr> 

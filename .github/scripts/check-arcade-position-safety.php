@@ -18,6 +18,8 @@ $admin_games = file_get_contents($root . '/phpBB2/admin/admin_arcade_games.php')
 $admin_cache = file_get_contents($root . '/phpBB2/admin/admin_arcade_cache.php');
 $admin_log = file_get_contents($root . '/phpBB2/admin/admin_arcade_log.php');
 $admin_scores = file_get_contents($root . '/phpBB2/admin/admin_arcade_scores.php');
+$admin_categories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.php');
+$category_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/arcade_cats_body.tpl');
 $config_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/arcade_config_body.tpl');
 
 arcade_position_assert(strpos($functions, "isset(\$lang['games_position_text'])") !== false, 'positions must use the regular language array');
@@ -47,5 +49,11 @@ arcade_position_assert(strpos($admin_scores, '$allowed_modes') !== false, 'Arcad
 arcade_position_assert(strpos($admin_scores, 'phpbb_admin_require_post_session();') !== false, 'Arcade score writes must verify the central AdminCP token');
 arcade_position_assert(strpos($admin_scores, "(int) \$score_info[\$i]['player_id']") !== false, 'score editing must bind the submitted player to the displayed row');
 arcade_position_assert(substr_count($admin_scores, '$arcade->update_high($game_id);') >= 2, 'score edits and deletions must refresh highscore state');
+arcade_position_assert(strpos($admin_categories, '$target_scope') !== false && strpos($admin_categories, 'WHERE cat_id = " . (int) $target_cat') !== false, 'category ordering must swap one adjacent category in the same hierarchy level');
+arcade_position_assert(substr_count($admin_categories, "SET cat_type = 'p', cat_parent = 0") >= 2, 'category removal or demotion must promote child categories');
+arcade_position_assert(strpos($admin_categories, '`group_required`') !== false, 'new categories must persist their group restriction');
+arcade_position_assert(strpos($admin_categories, '@parse_url($desc)') !== false, 'link categories must validate their destination URL');
+arcade_position_assert(strpos($admin_categories, 'phpbb_arcade_local_asset($icon_input)') !== false, 'category icons must stay on a relative local asset path');
+arcade_position_assert(strpos($category_template, 'colspan="3"') !== false, 'category action header markup must be valid');
 
 echo "Arcade position safety tests passed.\n";

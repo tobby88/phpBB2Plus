@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Arcade category hierarchy management. Category actions and IDs use
+  strict modes and validated records; ordering swaps only an adjacent category
+  on the same hierarchy level. Deleting or demoting a parent promotes its
+  children instead of orphaning them, link categories accept only HTTP(S)
+  destinations, icons remain relative local assets, public-group restrictions
+  are validated and are now actually persisted for newly created categories.
+  Deletion also refreshes the global game totals, and malformed category table
+  markup was corrected in both shipped styles.
 - Repaired and consolidated Arcade cache, error-log and score maintenance. The
   cache form now submits to its real action; log and score mutations use the
   central session-bound AdminCP token; pagination, modes, identifiers and score

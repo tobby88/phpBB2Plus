@@ -70,6 +70,11 @@ else
 {
 	$mode = $arcade->pass_var('mode', '');
 }
+$mode = is_scalar($mode) ? (string) $mode : '';
+if (!in_array($mode, array('', 'categories', 'add_cat', 'edit_cat', 'cat_up', 'cat_down', 'del_cat', 'resync_cats'), true))
+{
+	$mode = '';
+}
 
 if (isset($HTTP_POST_VARS['cat_action']) && is_scalar($HTTP_POST_VARS['cat_action']) &&
 	preg_match('/^(cat_up|cat_down|del_cat):([0-9]+)$/D', (string) $HTTP_POST_VARS['cat_action'], $cat_action))
@@ -82,7 +87,7 @@ if (isset($HTTP_POST_VARS['cat_action']) && is_scalar($HTTP_POST_VARS['cat_actio
 //
 if (!isset($cat_id))
 {
-	$cat_id = (int) $arcade->pass_var('cat_id', 0);
+	$cat_id = max(0, (int) $arcade->pass_var('cat_id', 0));
 }
 
 if (in_array($mode, array('cat_up', 'cat_down', 'del_cat', 'resync_cats'), true) || isset($HTTP_POST_VARS['save_cat']))
@@ -97,13 +102,17 @@ if( $mode == "cat_down" || $mode == "cat_up" )
 //
 //  Get cat_order
 //
-	$sql = "SELECT cat_type, cat_order FROM " . iNA_CAT . "
+	$sql = "SELECT cat_type, cat_order, cat_parent FROM " . iNA_CAT . "
 		WHERE cat_id = " . $cat_id;
 	if( !$result = $db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, $lang['no_cat_data'], "", __LINE__, __FILE__, $sql);
 	}
 	$cat = $db->sql_fetchrow($result);
+	if (!$cat)
+	{
+		message_die(GENERAL_MESSAGE, $lang['no_cat_data']);
+	}
 
   $cat_order = $cat['cat_order'];
  	if($cat['cat_type'] == 's')
@@ -124,9 +133,22 @@ if( $mode == "cat_down" || $mode == "cat_up" )
 	}
 //  Update the OLD category order first.
 //
+	$target_scope = ($cat['cat_type'] === 's') ?
+		"cat_type = 's' AND cat_parent = " . (int) $cat['cat_parent'] :
+		"cat_type <> 's' AND cat_id > 0";
+	$sql = "SELECT cat_id FROM " . iNA_CAT . " WHERE cat_order = $new_order AND $target_scope LIMIT 1";
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['no_cat_data'], '', __LINE__, __FILE__, $sql);
+	}
+	$target_cat = $db->sql_fetchrow($result);
+	if (!$target_cat)
+	{
+		message_die(GENERAL_MESSAGE, $lang['no_cat_data']);
+	}
 	$sql = "UPDATE " . iNA_CAT . "
-		SET cat_order = " . $cat_order . "
-			WHERE cat_order = $new_order";
+		SET cat_order = " . (int) $cat_order . "
+			WHERE cat_id = " . (int) $target_cat['cat_id'];
 	if(!$result = $db->sql_query($sql))
 	{
 		message_die(GENERAL_ERROR, $lang['no_cat_data'], "", __LINE__, __FILE__, $sql);
@@ -186,7 +208,7 @@ if( $mode == "edit_cat" || $mode == "add_cat" )
 			message_die(GENERAL_ERROR, $lang['no_user_data'], "", __LINE__, __FILE__, $sql);
 		}
 		$mod_info = $db->sql_fetchrow($result);
-		$moderator = $mod_info['username'];
+		$moderator = $mod_info ? (string) $mod_info['username'] : '';
 	}
 	else
 	{
@@ -269,7 +291,7 @@ if( $mode == "edit_cat" || $mode == "add_cat" )
 		"SPECIAL" => $cat_info['special_play'],
 		"DISPLAY_ICON" => $icon_path,
 		
-		'S_HIDDEN_FIELDS' => '<input type="hidden" name="save_cat" value="1" /><input type="hidden" name="cat_order" value="' . (int) $cat_info['cat_order'] . '" /><input type="hidden" name="cat_id" value="' . $cat_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />' ));
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="save_cat" value="1" /><input type="hidden" name="cat_order" value="' . (int) $cat_info['cat_order'] . '" /><input type="hidden" name="cat_id" value="' . (int) $cat_id . '" />' . phpbb_admin_session_field() ));
 }
 //
 //  Delete a Category.
@@ -278,6 +300,17 @@ if( $mode == "del_cat")
 {
 	if( $cat_id )
 	{
+		$sql = "SELECT cat_id FROM " . iNA_CAT . " WHERE cat_id = $cat_id";
+		$result = $db->sql_query($sql);
+		if (!$result || !$db->sql_fetchrow($result))
+		{
+			message_die(GENERAL_MESSAGE, $lang['admin_cat_not_deleted']);
+		}
+		$sql = "UPDATE " . iNA_CAT . " SET cat_type = 'p', cat_parent = 0, cat_order = cat_id * 10 WHERE cat_parent = $cat_id";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['no_cat_update'], '', __LINE__, __FILE__, $sql);
+		}
 		$sql = "DELETE FROM " . iNA_CAT . "
 			WHERE cat_id = $cat_id";
 		if( !$result = $db->sql_query($sql) )
@@ -290,6 +323,13 @@ if( $mode == "del_cat")
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, $lang['no_game_update'], "", __LINE__, __FILE__, $sql);
+		}
+		$total_played = max(0, (int) get_games_total('SUM(played)'));
+		$total_games = max(0, (int) get_games_total('COUNT(*)'));
+		$sql = "UPDATE " . iNA_CAT . " SET total_played = $total_played, total_games = $total_games WHERE cat_id = -1";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['no_cat_update'], '', __LINE__, __FILE__, $sql);
 		}
     $arcade->clear_cache('categories', $phpbb_root_path);
 		$message = $lang['admin_cat_deleted'];
@@ -308,19 +348,24 @@ if( $mode == "del_cat")
 //
 if( isset($HTTP_POST_VARS['save_cat']) )
 {
-	$icon = isset($HTTP_POST_VARS['icon']) && is_scalar($HTTP_POST_VARS['icon']) ? trim((string) $HTTP_POST_VARS['icon']) : '';
-	$name = isset($HTTP_POST_VARS['name']) && is_scalar($HTTP_POST_VARS['name']) ? trim((string) $HTTP_POST_VARS['name']) : '';
+	$icon_input = isset($HTTP_POST_VARS['icon']) && is_scalar($HTTP_POST_VARS['icon']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['icon'])), 0, 255) : '';
+	$icon = ($icon_input === '') ? '' : phpbb_arcade_local_asset($icon_input);
+	$name = isset($HTTP_POST_VARS['name']) && is_scalar($HTTP_POST_VARS['name']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['name'])), 0, 100) : '';
 	$type = isset($HTTP_POST_VARS['cat_type']) && is_scalar($HTTP_POST_VARS['cat_type']) ? (string) $HTTP_POST_VARS['cat_type'] : 'p';
-	$desc = isset($HTTP_POST_VARS['desc']) && is_scalar($HTTP_POST_VARS['desc']) ? trim((string) $HTTP_POST_VARS['desc']) : '';
-	$order = isset($HTTP_POST_VARS['cat_order']) ? (int) $HTTP_POST_VARS['cat_order'] : 0;
-	$parent = isset($HTTP_POST_VARS['cat_parent']) ? (int) $HTTP_POST_VARS['cat_parent'] : 0;
+	$desc = isset($HTTP_POST_VARS['desc']) && is_scalar($HTTP_POST_VARS['desc']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['desc'])), 0, 65535) : '';
+	$order = (isset($HTTP_POST_VARS['cat_order']) && is_scalar($HTTP_POST_VARS['cat_order'])) ? (int) $HTTP_POST_VARS['cat_order'] : 0;
+	$parent = (isset($HTTP_POST_VARS['cat_parent']) && is_scalar($HTTP_POST_VARS['cat_parent'])) ? (int) $HTTP_POST_VARS['cat_parent'] : 0;
 	$mod_id = 0;
 
 	if (!in_array($type, array('p', 's', 'l'), true))
 	{
 		$type = 'p';
 	}
-	if ($icon !== '' && (strpos($icon, '..') !== false || !preg_match('#^[a-zA-Z0-9_./-]+\.(?:gif|jpe?g|png|webp)$#D', $icon)))
+	if ($name === '')
+	{
+		message_die(GENERAL_MESSAGE, $lang['no_cat_data_enter']);
+	}
+	if ($icon_input !== '' && ($icon === '' || !preg_match('#^[a-zA-Z0-9_./-]+\.(?:gif|jpe?g|png|webp)$#D', $icon)))
 	{
 		message_die(GENERAL_MESSAGE, $lang['no_cat_data_enter']);
 	}
@@ -349,7 +394,7 @@ if( isset($HTTP_POST_VARS['save_cat']) )
     		message_die(GENERAL_ERROR, $lang['no_cat_data'], "", __LINE__, __FILE__, $sql);
       }
       $parent_id = $db->sql_fetchrow($result);
-      if($parent_id['cat_type'] == 's')
+	  if(!$parent_id || $parent_id['cat_type'] != 'p')
       {
         message_die(GENERAL_MESSAGE, $message);
       }
@@ -361,16 +406,33 @@ if( isset($HTTP_POST_VARS['save_cat']) )
   }
   else if($type == 'l')
   {
-    if (strlen($desc) < 5)
+	$link_parts = @parse_url($desc);
+    if (!$link_parts || empty($link_parts['scheme']) || empty($link_parts['host']) ||
+		isset($link_parts['user']) || isset($link_parts['pass']) ||
+		!in_array(strtolower($link_parts['scheme']), array('http', 'https'), true) ||
+		preg_match('/[\x00-\x20\x7f]/', $desc))
     {
       $message = $lang['game_link_error'];
     	$message .= sprintf($lang['admin_return_cats'], "<a href=\"" . append_sid("$file?mode=categories") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
       message_die(GENERAL_ERROR, $message);
     }
   }
-	$group = isset($HTTP_POST_VARS['group_required']) ? (int) $HTTP_POST_VARS['group_required'] : 0;
-	$moderator = isset($HTTP_POST_VARS['moderator']) && is_scalar($HTTP_POST_VARS['moderator']) ? trim((string) $HTTP_POST_VARS['moderator']) : '';
-	$special_play = ( isset($HTTP_POST_VARS['special']) ) ? intval($HTTP_POST_VARS['special']) : 0;
+	if ($type !== 's')
+	{
+		$parent = 0;
+	}
+	$group = (isset($HTTP_POST_VARS['group_required']) && is_scalar($HTTP_POST_VARS['group_required'])) ? (int) $HTTP_POST_VARS['group_required'] : 0;
+	if ($group > 0)
+	{
+		$sql = "SELECT group_id FROM " . GROUPS_TABLE . " WHERE group_id = $group AND group_single_user <> " . TRUE;
+		$result = $db->sql_query($sql);
+		if (!$result || !$db->sql_fetchrow($result))
+		{
+			$group = 0;
+		}
+	}
+	$moderator = isset($HTTP_POST_VARS['moderator']) && is_scalar($HTTP_POST_VARS['moderator']) ? substr(trim(stripslashes((string) $HTTP_POST_VARS['moderator'])), 0, 25) : '';
+	$special_play = max(0, min(65535, (isset($HTTP_POST_VARS['special']) && is_scalar($HTTP_POST_VARS['special'])) ? intval($HTTP_POST_VARS['special']) : 0));
 	if($moderator)
 	{
 		$sql = "SELECT user_id FROM " . USERS_TABLE . "
@@ -387,6 +449,20 @@ if( isset($HTTP_POST_VARS['save_cat']) )
 	$icon_sql = $db->sql_escape($icon);
 	if($cat_id > 0)
 	{
+		$sql = "SELECT cat_id FROM " . iNA_CAT . " WHERE cat_id = $cat_id";
+		$result = $db->sql_query($sql);
+		if (!$result || !$db->sql_fetchrow($result))
+		{
+			message_die(GENERAL_MESSAGE, $lang['no_cat_data']);
+		}
+		if ($type !== 'p')
+		{
+			$sql = "UPDATE " . iNA_CAT . " SET cat_type = 'p', cat_parent = 0, cat_order = cat_id * 10 WHERE cat_parent = $cat_id";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, $lang['no_cat_update'], '', __LINE__, __FILE__, $sql);
+			}
+		}
   	if($order == 0)
   	{
       $order = ($cat_id * 10);
@@ -406,8 +482,8 @@ if( isset($HTTP_POST_VARS['save_cat']) )
     {
       $order = ($cat_id*10);
     }
-		$sql = "INSERT INTO " . iNA_CAT . " (`cat_id`, `cat_order`, `cat_name`, `cat_type`, `cat_parent`, `cat_icon`, `mod_id`, `special_play`, `cat_desc`)
-			VALUES (" . (int) $cat_id . ", " . (int) $order . ", '$name_sql', '$type', " . (int) $parent . ", '$icon_sql', " . (int) $mod_id . ", " . (int) $special_play . ", '$desc_sql')";
+		$sql = "INSERT INTO " . iNA_CAT . " (`cat_id`, `cat_order`, `cat_name`, `cat_type`, `cat_parent`, `cat_icon`, `group_required`, `mod_id`, `special_play`, `cat_desc`)
+			VALUES (" . (int) $cat_id . ", " . (int) $order . ", '$name_sql', '$type', " . (int) $parent . ", '$icon_sql', " . (int) $group . ", " . (int) $mod_id . ", " . (int) $special_play . ", '$desc_sql')";
 	}
 	if( !$result = $db->sql_query($sql) )
 	{
@@ -539,7 +615,7 @@ if( $mode == "categories" || $mode == "cat_down" || $mode == "cat_up" || $mode =
 
 	$template->assign_vars(array(
  		'S_CONFIG_ACTION' => append_sid("$file"),
-		'S_SESSION_FIELD' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+		'S_SESSION_FIELD' => phpbb_admin_session_field(),
 		'L_CONFIRM_DELETE' => htmlspecialchars(addslashes($lang['admin_cat_delete_confirm']), ENT_QUOTES, 'UTF-8'),
 
    	'IMAGE_DEL' => '<img src="./../' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . '" title="' . $lang['Delete'] . '" border="0" />',
