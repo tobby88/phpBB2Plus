@@ -253,6 +253,21 @@ if (!function_exists('phpbb_request_origin_is_valid'))
 }
 
 /**
+ * Bind a compact action capability to the current session without storing
+ * additional server-side state. This is intended for legacy GET controls
+ * which cannot be converted to forms without breaking their UI contract.
+ */
+if (!function_exists('phpbb_session_action_token'))
+{
+	function phpbb_session_action_token($scope, $action, $target_id, $session_id)
+	{
+		$scope = preg_replace('/[^a-z0-9_-]/i', '', (string) $scope);
+		$action = preg_replace('/[^a-z0-9_-]/i', '', (string) $action);
+		return hash_hmac('sha256', $scope . ':' . $action . ':' . (int) $target_id, (string) $session_id);
+	}
+}
+
+/**
  * Password helpers accept historical unsalted MD5 hashes and create only
  * adaptive hashes. Successful legacy logins can therefore migrate in place.
  */

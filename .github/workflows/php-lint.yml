@@ -103,6 +103,9 @@ jobs:
       - name: Test public Album action safety
         run: php .github/scripts/check-album-public-safety.php
 
+      - name: Test moderator action safety
+        run: php .github/scripts/check-moderator-action-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 

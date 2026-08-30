@@ -230,6 +230,20 @@ if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 	message_die(GENERAL_ERROR, 'Invalid_session');
 }
 
+// The legacy topic toolbar uses GET links as a non-JavaScript fallback.
+// Bind direct mutations to the exact session, action and topic so a copied or
+// cross-site URL cannot change moderator state.
+$direct_topic_modes = array('lock', 'unlock', 'sticky', 'announce', 'normalise');
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && in_array($mode, $direct_topic_modes, true))
+{
+	$submitted_token = phpbb_request_scalar($_GET, 'mod_token');
+	$expected_token = phpbb_session_action_token('moderate-topic', $mode, $topic_id, $userdata['session_id']);
+	if ($topic_id <= 0 || $submitted_token === '' || !hash_equals($expected_token, $submitted_token))
+	{
+		message_die(GENERAL_ERROR, 'Invalid_session');
+	}
+}
+
 //
 // Check if user did or did not confirm
 // If they did not, forward them to the last page they were on

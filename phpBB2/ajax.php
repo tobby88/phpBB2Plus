@@ -1040,7 +1040,8 @@ else if ($mode == 'lock_topic')
 			AJAX_message_die($result_ar);
 		}
 		
-		$linkurl = "modcp.$phpEx?". POST_TOPIC_URL ."=$topic_id&mode=lock&sid=". $userdata['session_id'];
+		$mod_token = rawurlencode(phpbb_session_action_token('moderate-topic', 'lock', $topic_id, $userdata['session_id']));
+		$linkurl = "modcp.$phpEx?". POST_TOPIC_URL ."=$topic_id&mode=lock&sid=". $userdata['session_id'] . '&mod_token=' . $mod_token;
 		$imgurl = $images['topic_mod_lock'];
 		$imgtext = $lang['Lock_topic'];
 		$replyurl = $images['reply_new'];
@@ -1070,7 +1071,8 @@ else if ($mode == 'lock_topic')
 			AJAX_message_die($result_ar);
 		}
 		
-		$linkurl = "modcp.$phpEx?". POST_TOPIC_URL ."=$topic_id&mode=unlock&sid=". $userdata['session_id'];
+		$mod_token = rawurlencode(phpbb_session_action_token('moderate-topic', 'unlock', $topic_id, $userdata['session_id']));
+		$linkurl = "modcp.$phpEx?". POST_TOPIC_URL ."=$topic_id&mode=unlock&sid=". $userdata['session_id'] . '&mod_token=' . $mod_token;
 		$imgurl = $images['topic_mod_unlock'];
 		$imgtext = $lang['Unlock_topic'];
 		$replyurl = $images['reply_locked'];

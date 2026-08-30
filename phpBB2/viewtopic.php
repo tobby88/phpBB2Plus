@@ -711,7 +711,12 @@ if ( $is_auth['auth_mod'] )
 
 	$topic_mod .= "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=move&amp;sid=" . $userdata['session_id'] . '"><img src="' . $images['topic_mod_move'] . '" alt="' . $lang['Move_topic'] . '" title="' . $lang['Move_topic'] . '" border="0" /></a>&nbsp;';
 
-	$topic_mod .= ( $forum_topic_data['topic_status'] == TOPIC_UNLOCKED ) ? "<a id=\"topic_locklink\" onclick=\"return AJAXLockTopic($topic_id, 1);\" href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=lock&amp;sid=" . $userdata['session_id'] . '"><img id="topic_lockimg" src="' . $images['topic_mod_lock'] . '" alt="' . $lang['Lock_topic'] . '" title="' . $lang['Lock_topic'] . '" border="0" /></a>&nbsp;' : "<a id=\"topic_locklink\" onclick=\"return AJAXLockTopic($topic_id, 0);\" href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=unlock&amp;sid=" . $userdata['session_id'] . '"><img id="topic_lockimg" src="' . $images['topic_mod_unlock'] . '" alt="' . $lang['Unlock_topic'] . '" title="' . $lang['Unlock_topic'] . '" border="0" /></a>&nbsp;';
+	$lock_mode = ($forum_topic_data['topic_status'] == TOPIC_UNLOCKED) ? 'lock' : 'unlock';
+	$lock_status = ($lock_mode == 'lock') ? 1 : 0;
+	$lock_token = rawurlencode(phpbb_session_action_token('moderate-topic', $lock_mode, $topic_id, $userdata['session_id']));
+	$lock_image = ($lock_mode == 'lock') ? $images['topic_mod_lock'] : $images['topic_mod_unlock'];
+	$lock_text = ($lock_mode == 'lock') ? $lang['Lock_topic'] : $lang['Unlock_topic'];
+	$topic_mod .= "<a id=\"topic_locklink\" onclick=\"return AJAXLockTopic($topic_id, $lock_status);\" href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=$lock_mode&amp;sid=" . $userdata['session_id'] . '&amp;mod_token=' . $lock_token . '"><img id="topic_lockimg" src="' . $lock_image . '" alt="' . $lock_text . '" title="' . $lock_text . '" border="0" /></a>&nbsp;';
 
 	$topic_mod .= "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=split&amp;sid=" . $userdata['session_id'] . '"><img src="' . $images['topic_mod_split'] . '" alt="' . $lang['Split_topic'] . '" title="' . $lang['Split_topic'] . '" border="0" /></a>&nbsp;&nbsp;';
 	//-- mod : merge -----------------------------------------------------------------------------------
@@ -720,9 +725,12 @@ if ( $is_auth['auth_mod'] )
 	//-- fin mod : merge -------------------------------------------------------------------------------
 
 	// MOD Modcp Extansion BEGIN
-    $normal_button = "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=normalise&amp;sid=" . $userdata['session_id'] . '"><img src="' . $images['topic_mod_normal'] . '" alt="' . $lang['Normal_topic'] . '" title="' . $lang['Normal_topic'] . '" border="0" /></a>&nbsp;';
-    $sticky_button = ( $is_auth['auth_sticky'] ) ? "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=sticky&amp;sid=" . $userdata['session_id'] . '"><img src="' . $images['topic_mod_sticky'] . '" alt="' . $lang['Sticky_topic'] . '" title="' . $lang['Sticky_topic'] . '" border="0" /></a>&nbsp;' : "";
-    $announce_button = ( $is_auth['auth_announce'] ) ? "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=announce&amp;sid=" . $userdata['session_id'] . '"><img src="' . $images['topic_mod_announce'] . '" alt="' . $lang['Announce_topic'] . '" title="' . $lang['Announce_topic'] . '" border="0" /></a>&nbsp;' : "";
+	$normal_token = rawurlencode(phpbb_session_action_token('moderate-topic', 'normalise', $topic_id, $userdata['session_id']));
+	$sticky_token = rawurlencode(phpbb_session_action_token('moderate-topic', 'sticky', $topic_id, $userdata['session_id']));
+	$announce_token = rawurlencode(phpbb_session_action_token('moderate-topic', 'announce', $topic_id, $userdata['session_id']));
+	$normal_button = "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=normalise&amp;sid=" . $userdata['session_id'] . '&amp;mod_token=' . $normal_token . '"><img src="' . $images['topic_mod_normal'] . '" alt="' . $lang['Normal_topic'] . '" title="' . $lang['Normal_topic'] . '" border="0" /></a>&nbsp;';
+	$sticky_button = ( $is_auth['auth_sticky'] ) ? "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=sticky&amp;sid=" . $userdata['session_id'] . '&amp;mod_token=' . $sticky_token . '"><img src="' . $images['topic_mod_sticky'] . '" alt="' . $lang['Sticky_topic'] . '" title="' . $lang['Sticky_topic'] . '" border="0" /></a>&nbsp;' : "";
+	$announce_button = ( $is_auth['auth_announce'] ) ? "<a href=\"modcp.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;mode=announce&amp;sid=" . $userdata['session_id'] . '&amp;mod_token=' . $announce_token . '"><img src="' . $images['topic_mod_announce'] . '" alt="' . $lang['Announce_topic'] . '" title="' . $lang['Announce_topic'] . '" border="0" /></a>&nbsp;' : "";
     switch( $forum_topic_data['topic_type'] )
     {
         case POST_NORMAL: 

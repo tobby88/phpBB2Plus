@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Protected the legacy one-click topic moderation links with session-, action-
+  and topic-bound HMAC capabilities. Lock/unlock and normal/sticky/announcement
+  controls retain their existing non-JavaScript fallback, but a copied or
+  cross-site GET URL can no longer change topic state; AJAX responses also
+  preserve the protected fallback link.
 - Hardened the public Album edit and delete endpoints with scalar positive
   identifiers, explicit POST-only session-token checks and database-driver
   escaping. Missing picture records are now rejected before their fields are

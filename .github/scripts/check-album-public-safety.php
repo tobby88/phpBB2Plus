@@ -22,7 +22,7 @@ foreach (array('delete' => $delete, 'edit' => $edit, 'comment edit' => $comment_
 	album_public_test_assert(strpos($source, "hash_equals((string) \$userdata['session_id']") !== false, $name . ' writes must use the session token');
 }
 
-album_public_test_assert(strpos($delete, "if (!$album_user_access['moderator'] && \$userdata['user_level'] != ADMIN)") !== false, 'authorized category moderators must be allowed to delete pictures');
+album_public_test_assert(strpos($delete, "if (!\$album_user_access['moderator'] && \$userdata['user_level'] != ADMIN)") !== false, 'authorized category moderators must be allowed to delete pictures');
 album_public_test_assert(strpos($delete, "basename(\$thispic['pic_filename'])") !== false, 'picture deletion must keep file removal inside the upload directory');
 album_public_test_assert(strpos($edit, "\$db->sql_escape(\$pic_title)") !== false && strpos($edit, "\$db->sql_escape(\$pic_desc)") !== false, 'picture metadata must use database-driver escaping');
 album_public_test_assert(strpos($comment_edit, "\$db->sql_escape(\$comment_text)") !== false, 'edited comments must use database-driver escaping');
