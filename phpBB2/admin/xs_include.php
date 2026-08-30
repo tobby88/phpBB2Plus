@@ -105,8 +105,8 @@ function xs_admin_override($modded = false)
 				unset($module['Styles'][$unset[$i]]);
 			}
 		}
-		$module['Styles']['Menu'] = 'xs_frameset.'.$phpEx.'?action=menu&showwarning=1';
 	}
+	$module['Styles']['Menu'] = 'xs_frameset.'.$phpEx.'?action=menu&showwarning=1';
 	// add new menu
 	$module_name = 'Extreme_Styles';
 	$module[$module_name]['Styles_Management'] = 'xs_frameset.'.$phpEx.'?action=menu';

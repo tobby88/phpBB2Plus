@@ -65,6 +65,8 @@ $integrations = array(
 	'admin/admin_flags.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function phpbb_flag_image_name'),
 	'admin/admin_db_maintenance.php' => array('dbmtnc_continuation_token', 'phpbb_admin_require_post_session();', "array('', 'start', 'perform')"),
 	'admin/admin_forums.php' => array('$forum_write_modes', 'admin_forum_action_button', 'phpbb_admin_require_post_session();'),
+	'admin/admin_styles.php' => array('xs_frameset.$phpEx?action=menu', '$no_page_header = true'),
+	'admin/xs_include.php' => array('$module[\'Styles\'][\'Menu\']', 'phpbb_admin_require_post_session();'),
 	'admin/admin_kb_cat.php' => array('kb_admin_category_order_form', 'kb_admin_category_parent_valid', 'phpbb_admin_require_post_session();'),
 	'admin/admin_kb_types.php' => array('phpbb_admin_require_post_session();', '$db->sql_escape($type_name)')
 );

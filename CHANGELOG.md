@@ -17,6 +17,10 @@ changes consolidated after that baseline without implying active maintenance.
   synchronization with AdminCP POST/session tokens. Ordering and resync links
   are now in-form POST buttons, movement values are allowlisted, and category
   and forum identifiers are scalar-normalized before use.
+- Retired phpBB2's duplicate built-in style manager and its unused AdminCP
+  templates. Old direct bookmarks now lead to the integrated eXtreme Styles
+  manager, whose replacement menu is always registered; this removes the dead
+  executable `theme_info.cfg` importer and legacy GET write paths entirely.
 - Repaired personal-album category resolution when an otherwise valid category
   is absent from the filtered hierarchy cache. The fallback loads only the
   requested owner's exact category and applies its real permissions; missing

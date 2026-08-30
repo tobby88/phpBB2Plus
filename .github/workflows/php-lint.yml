@@ -117,3 +117,6 @@ jobs:
 
       - name: Test forum administration safety
         run: php .github/scripts/check-forum-admin-safety.php
+
+      - name: Test style administration safety
+        run: php .github/scripts/check-style-admin-safety.php
