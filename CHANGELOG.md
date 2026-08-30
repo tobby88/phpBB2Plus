@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed obsolete magic-quotes emulation from Nuffload and paFileDB instead
+  of reprocessing request globals already normalized by `common.php`. The
+  Attachment MOD no longer calls removed driver-specific `mysql_*`/PostgreSQL
+  escaping functions or maintains a hand-written fallback; it delegates all
+  SQL text escaping to the active database driver. The now-unused compatibility
+  shims were deleted and CI prevents these removed APIs from returning.
 - Replaced the remaining removed POSIX-regex APIs (`ereg*`, `split*`) with
   native PCRE/string operations across downloads, attachments, SMTP, page
   dates, Album archives/hierarchy, export filenames, Knowledge Base,

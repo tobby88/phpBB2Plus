@@ -49,6 +49,10 @@ foreach ($iterator as $file)
 	{
 		$errors[] = 'Removed POSIX-regex API returned in ' . $file->getPathname();
 	}
+	if (preg_match('/(?<![A-Za-z0-9_])(?:mysql_escape_string|get_magic_quotes_gpc|get_magic_quotes_runtime|set_magic_quotes_runtime)\s*\(/', $body))
+	{
+		$errors[] = 'Removed PHP input/SQL API returned in ' . $file->getPathname();
+	}
 }
 
 if ($errors)

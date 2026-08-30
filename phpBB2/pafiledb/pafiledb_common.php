@@ -27,43 +27,6 @@ if ( !defined('IN_PHPBB') )
 
 
 //===================================================
-// addslashes to vars if magic_quotes_gpc is off
-//===================================================
-if(!@function_exists('slash_input_data'))
-{
-	function slash_input_data(&$data)
-	{
-		if (is_array($data))
-		{
-			foreach ($data as $k => $v)
-			{
-				$data[$k] = (is_array($v)) ? slash_input_data($v) : addslashes($v);
-			}
-		}
-		return $data;
-	}
-}
-
-
-if (!isset($_REQUEST))
-{
-	$_REQUEST = array_merge($_GET, $_POST, $_COOKIE);
-}
-
-// common.php already applies phpBB2's legacy SQL escaping on modern PHP.
-// Do not quote the same request data a second time here.
-if (!function_exists('phpbb_addslashes_recursive') && !get_magic_quotes_gpc())
-{
-	$_GET = slash_input_data($_GET);
-	$_POST = slash_input_data($_POST);
-	$_COOKIE = slash_input_data($_COOKIE);
-	$_REQUEST = slash_input_data($_REQUEST);
-}
-
-
-
- 
-//===================================================
 // Get Language
 //===================================================
  

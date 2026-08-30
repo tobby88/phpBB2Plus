@@ -6,30 +6,6 @@
  * Every helper is conditional so PHP 5.6 continues to use its native API.
  */
 
-if (!function_exists('get_magic_quotes_gpc'))
-{
-	function get_magic_quotes_gpc()
-	{
-		return false;
-	}
-}
-
-if (!function_exists('get_magic_quotes_runtime'))
-{
-	function get_magic_quotes_runtime()
-	{
-		return false;
-	}
-}
-
-if (!function_exists('set_magic_quotes_runtime'))
-{
-	function set_magic_quotes_runtime($enabled)
-	{
-		return false;
-	}
-}
-
 /**
  * Decode legacy serialized arrays without allowing object instantiation.
  *

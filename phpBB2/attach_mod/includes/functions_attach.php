@@ -983,28 +983,8 @@ function get_var($var_name, $default, $multibyte = false)
 */
 function attach_mod_sql_escape($text)
 {
-	switch (SQL_LAYER)
-	{
-		case 'postgresql':
-			return pg_escape_string($text);
-		break;
-
-		case 'mysql':
-		case 'mysql4':
-			if (function_exists('mysql_escape_string'))
-			{
-				return mysql_escape_string($text);
-			}
-			else
-			{
-				return str_replace("'", "''", str_replace('\\', '\\\\', $text));
-			}
-		break;
-
-		default:
-			return str_replace("'", "''", str_replace('\\', '\\\\', $text));
-		break;
-	}
+	global $db;
+	return $db->sql_escape((string) $text);
 }
 
 /**
