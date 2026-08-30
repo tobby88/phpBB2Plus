@@ -64,38 +64,50 @@ $phpbb_root_path = "./";
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 
-// Find what we are to do
-$mode = ( isset($_POST['report_x']) ) ? 'report' :
-		((isset($_POST['report_reset_x']) ) ? 'report_reset' :
-			((isset($_POST['ban_x']) ) ? 'ban' :
-				((isset($_POST['unban_x']) ) ? 'unban' :
-					((isset($_POST['warn_x']) ) ? 'warn' :
-						((isset($_POST['block_x']) ) ? 'block' : ''
-						)
-					)
-
-				)
-			)
-		);
-$post_id = ( isset($_POST['post_id']) ) ? intval ($_POST['post_id']) : '';
-$user_id = ( isset($_POST[POST_USERS_URL]) ) ? intval ($_POST[POST_USERS_URL]) : '';
+// Find exactly one submitted card action. Image buttons add an _x suffix.
+$card_actions = array(
+	'report_x' => 'report',
+	'report_reset_x' => 'report_reset',
+	'ban_x' => 'ban',
+	'unban_x' => 'unban',
+	'warn_x' => 'warn',
+	'block_x' => 'block',
+);
+$submitted_actions = array();
+foreach ($card_actions as $field => $action)
+{
+	if (isset($_POST[$field]))
+	{
+		$submitted_actions[] = $action;
+	}
+}
+$mode = (count($submitted_actions) === 1) ? $submitted_actions[0] : '';
+$post_id = (isset($_POST['post_id']) && is_scalar($_POST['post_id'])) ? intval($_POST['post_id']) : 0;
+$user_id = (isset($_POST[POST_USERS_URL]) && is_scalar($_POST[POST_USERS_URL])) ? intval($_POST[POST_USERS_URL]) : 0;
 $sid = isset($_POST['sid']) && is_string($_POST['sid']) ? $_POST['sid'] : '';
 
 $userdata = session_pagestart($user_ip, PAGE_CARD);
 init_userprefs($userdata);
 
-if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST' || $sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 {
 	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 }
 
 // check that we have all what is needed to know
-if ( !( $post_id + $user_id ) )
+if ($post_id <= 0 && $user_id <= 0)
 	message_die(GENERAL_ERROR, "No user/post specified", "", __LINE__, __FILE__,'post_id="'.$post_id.'", user_id="'.$user_id.'"');
 if ( empty($mode) )
 	message_die(GENERAL_ERROR, "No action specified", "", __LINE__, __FILE__,'mode="'.$mode.'"');
 
-if ( $post_id )
+$no_error_ban = false;
+$block_time = '';
+$bluecard_limit = max(1, isset($board_config['bluecard_limit']) ? intval($board_config['bluecard_limit']) : 1);
+$bluecard_limit_2 = max(1, isset($board_config['bluecard_limit_2']) ? intval($board_config['bluecard_limit_2']) : 1);
+$max_user_bancard = max(1, isset($board_config['max_user_bancard']) ? intval($board_config['max_user_bancard']) : 1);
+$configured_block_minutes = max(1, isset($board_config['block_time']) ? intval($board_config['block_time']) : 15);
+
+if ( $post_id > 0 )
 {
 	// post mode
 	$sql = 'SELECT DISTINCT forum_id, poster_id, post_bluecard FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $post_id;
@@ -111,8 +123,8 @@ if ( $post_id )
 	$blue_card = (int) $post_data['post_bluecard'];
 	$forum_id = (int) $post_data['forum_id'];
 	$poster_id = (int) $post_data['poster_id'];
-} else
-if ( $user_id )
+}
+else if ( $user_id > 0 )
 {
 	//user mode
 	//forum_id will control witch permission, when no post_id is given, and a user_id is given instead
@@ -120,7 +132,17 @@ if ( $user_id )
 	// installe extra permission mod, in order to enable this feature
 	$forum_id = PAGE_CARD;
 	$poster_id = $user_id;
+	$post_id = -1;
 	$blue_card = 0;
+}
+
+if (($mode === 'report' || $mode === 'report_reset') && $post_id <= 0)
+{
+	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+}
+if (in_array($mode, array('ban', 'unban', 'warn', 'block'), true) && $poster_id <= 0)
+{
+	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 }
 
 //
@@ -138,6 +160,10 @@ if ($mode=="report_reset")
 	if( !$result = $db->sql_query($sql) )
 	     	message_die(GENERAL_ERROR, "Couldn't get post subject information".$sql);
 	$subject = $db->sql_fetchrow($result);
+	if (!$subject)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_post']);
+	}
 	$post_subject=$subject['post_subject'];
 	$forum_name=$subject['forum_name'];
 
@@ -160,30 +186,40 @@ if ($mode=="report")
 	     	message_die(GENERAL_ERROR, "Couldn't get post subject information");
 
 	$post_details = $db->sql_fetchrow($result);
+	if (!$post_details)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_post']);
+	}
 	$forum_name=$post_details['forum_name'];
 	$topic_id=$post_details['topic_id'];
 	$sql = 'SELECT pt.post_subject FROM '.POSTS_TEXT_TABLE.' pt, '.TOPICS_TABLE.' t WHERE t.topic_id="'.$topic_id.'" AND pt.post_id=t.topic_first_post_id';
 	if( !$result = $db->sql_query($sql) )
      		message_die(GENERAL_ERROR, "Couldn't get topic subject information".$sql);
 	$post_details = $db->sql_fetchrow($result);
+	if (!$post_details)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_post']);
+	}
 	$post_subject=$post_details['post_subject'];
 
 	$sql = "SELECT p.topic_id FROM " . POSTS_TEXT_TABLE . " pt, " . POSTS_TABLE . " p WHERE pt.post_subject = '(" . $post_id . ")" . $db->sql_escape($post_subject) . "' AND pt.post_id = p.post_id";
 	if( !$result = $db->sql_query($sql) )
      		message_die(GENERAL_ERROR, "Couldn't get topic subject information".$sql);
 	$post_details = $db->sql_fetchrow($result);
-	$allready_reported= ($blue_card) ? $post_details['topic_id'] : '';
+	$allready_reported = ($blue_card && $post_details) ? intval($post_details['topic_id']) : 0;
 
 	$blue_card++;
 	$sql = 'UPDATE ' . POSTS_TABLE . ' SET post_bluecard="'.$blue_card.'" WHERE post_id="'.$post_id.'"';
 	if( !$result = $db->sql_query($sql) )
 	     	message_die(GENERAL_ERROR, "Couldn't update blue card information");
 	//
-      // Obtain list of moderators of this forum
-     	$sql = "SELECT g.group_name, u.username, u.user_email, u.user_lang
-     		FROM " . AUTH_ACCESS_TABLE . " aa,  " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g, " . USERS_TABLE . " u
+	// Obtain list of moderators of this forum without duplicate notifications.
+	$sql = "SELECT DISTINCT u.user_id, u.username, u.user_email, u.user_lang
+		FROM " . AUTH_ACCESS_TABLE . " aa,  " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g, " . USERS_TABLE . " u
 	      WHERE aa.forum_id = $forum_id   AND aa.auth_mod = " . TRUE . "
-     		AND ug.group_id = aa.group_id   AND g.group_id = aa.group_id AND u.user_id = ug.user_id";
+			AND ug.group_id = aa.group_id AND ug.user_pending = 0
+			AND g.group_id = aa.group_id AND u.user_id = ug.user_id
+			AND u.user_active = 1 AND u.user_email <> ''";
       if( !$result_mods = $db->sql_query($sql) )
 		message_die(GENERAL_ERROR, "Couldn't obtain moderators information.", "", __LINE__, __FILE__, $sql);
 	$total_mods = $db->sql_numrows($result_mods);
@@ -192,7 +228,7 @@ if ($mode=="report")
 		 message_die(GENERAL_MESSAGE, $lang['No_moderators']."<br /><br />".
 		(($board_config['report_forum'])? sprintf($lang['Send_message'], "<a href=\"" . append_sid("posting.$phpEx?mode=".(($allready_reported)?"reply&t=".$allready_reported:"newtopic&f=".$board_config['report_forum'])."&postreport=".$post_id). "\">", "</a>"):"").
 		sprintf($lang['Click_return_viewtopic'], "<a href=\"" . append_sid("viewtopic.$phpEx?p=".$post_id."#".$post_id). "\">", "</a>"));
-      if ((	$blue_card>=$board_config['bluecard_limit_2'] && (!(($blue_card-$board_config['bluecard_limit_2'])%$board_config['bluecard_limit']))) || $blue_card==$board_config['bluecard_limit_2'])
+      if ((	$blue_card >= $bluecard_limit_2 && (!(($blue_card - $bluecard_limit_2) % $bluecard_limit))) || $blue_card == $bluecard_limit_2)
 	{
 		$mods_rowset = $db->sql_fetchrowset($result_mods);
 	      include($phpbb_root_path . 'includes/emailer.'.$phpEx);
@@ -208,7 +244,8 @@ if ($mode=="report")
 			$email_headers .= "X-AntiAbuse: User_id - " . $userdata['user_id'] . "\r\n";
 			$email_headers .= "X-AntiAbuse: Username - " . $userdata['username'] . "\r\n";
 			$email_headers .= "X-AntiAbuse: User IP - " . decode_ip($user_ip) . "\r\n";
-			$emailer->use_template("repport_post",(file_exists($phpbb_root_path . "language/lang_" . $mods_rowset[$i]['user_lang'] . "/email/repport_post.tpl"))?$mods_rowset[$i]['user_lang'] : "");
+			$moderator_lang = preg_match('/^[a-z0-9_-]+$/i', (string) $mods_rowset[$i]['user_lang']) ? $mods_rowset[$i]['user_lang'] : '';
+			$emailer->use_template("repport_post", ($moderator_lang !== '' && file_exists($phpbb_root_path . "language/lang_" . $moderator_lang . "/email/repport_post.tpl")) ? $moderator_lang : '');
 			$i++;
 			$emailer->set_subject($lang['Post_repport']);
 			$emailer->extra_headers($email_headers);
@@ -238,6 +275,10 @@ if ( $mode == 'unban' )
 	if( !$result = $db->sql_query($sql) )
       	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
 	$the_user = $db->sql_fetchrow($result);
+	if (!$the_user)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
+	}
       // remove the user from ban list
       $sql = 'DELETE FROM ' . BANLIST_TABLE . ' WHERE ban_userid="'.$poster_id.'"';
       if (! $result = $db->sql_query($sql) )
@@ -263,6 +304,10 @@ if ( $mode == 'ban' )
 	if( !$result = $db->sql_query($sql) )
       	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
 	$the_user = $db->sql_fetchrow($result);
+	if (!$the_user)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
+	}
 	if ($the_user['user_level']== ADMIN )
 		message_die(GENERAL_ERROR, $lang['Ban_no_admin']);
 
@@ -277,7 +322,7 @@ if ( $mode == 'ban' )
 			if (!$result = $db->sql_query($sql) )
 				message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql);
 			// update the user table with new status
- 			$sql = 'UPDATE ' . USERS_TABLE . ' SET user_warnings="'.$board_config['max_user_bancard'].'" WHERE user_id="'.$poster_id.'"';
+			$sql = 'UPDATE ' . USERS_TABLE . ' SET user_warnings="'.$max_user_bancard.'" WHERE user_id="'.$poster_id.'"';
 			if(! $result = $db->sql_query($sql) )
 				message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
 			$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in="0" WHERE session_user_id="'.$poster_id.'"';
@@ -299,8 +344,6 @@ if ( $mode == 'ban' )
 
 if ( $mode == 'block' )
 {
-	if (empty($board_config['block_time']) )
-		message_die(GENERAL_ERROR, "Protect user account mod not installed, this is required for this operation");
       $no_error_ban=FALSE;
 	if (! $is_auth['auth_ban'] )
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
@@ -309,10 +352,15 @@ if ( $mode == 'block' )
 	if( !$result = $db->sql_query($sql) )
       	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
 	$the_user = $db->sql_fetchrow($result);
+	if (!$the_user)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
+	}
 	if ($the_user['user_level']== ADMIN )
 		message_die(GENERAL_ERROR, $lang['Block_no_admin']);
 	// update the user table with new status
-	$sql = 'UPDATE ' . USERS_TABLE . ' SET user_block_by="'.$user_ip.'", user_blocktime="'.(time()+$board_config['RY_block_time']*60).'" WHERE user_id="'.$poster_id.'"';
+	$user_ip_sql = $db->sql_escape($user_ip);
+	$sql = 'UPDATE ' . USERS_TABLE . ' SET user_block_by="'.$user_ip_sql.'", user_blocktime="'.(time() + $configured_block_minutes * 60).'" WHERE user_id="'.$poster_id.'"';
 	if(! $result = $db->sql_query($sql) )
 		message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
 	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in = 0, session_user_id = ' . ANONYMOUS . ' WHERE session_user_id = ' . $poster_id;
@@ -322,7 +370,7 @@ if ( $mode == 'block' )
 	}
 
 	$no_error_ban=true;
-	$block_time = make_time_text ($board_config['RY_block_time']);
+	$block_time = make_time_text($configured_block_minutes);
 	$message = sprintf($lang['Block_update'],$block_time) . "<br /><br />".
 	sprintf($lang['Send_PM_user'], "<a href=\"" . append_sid("privmsg.$phpEx?mode=post&u=$poster_id"). "\">", "</a>");
 	$e_temp="card_block";
@@ -339,6 +387,10 @@ if ( $mode == 'warn' )
 	if( !$result = $db->sql_query($sql) )
       	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
 	$the_user = $db->sql_fetchrow($result);
+	if (!$the_user)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
+	}
 	if ($the_user['user_level']== ADMIN )
 		message_die(GENERAL_ERROR, $lang['Ban_no_admin']);
 
@@ -348,7 +400,7 @@ if ( $mode == 'warn' )
 		message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
 
       // se if the user are to be banned, if so do it ...
-      if ($the_user['user_warnings']+1>=$board_config['max_user_bancard'])
+      if ($the_user['user_warnings'] + 1 >= $max_user_bancard)
       {
 	$sql = 'SELECT ban_userid FROM ' . BANLIST_TABLE . ' WHERE ban_userid="'.$poster_id.'"';
 	if( $result = $db->sql_query($sql) )
@@ -378,7 +430,7 @@ if ( $mode == 'warn' )
 	} else
 	{
 		// the user shall not be baned this time, update the counter
-	      $message = sprintf($lang['Ban_update_yellow'],$the_user['user_warnings']+1,$board_config['max_user_bancard'])."<br /><br />".
+	      $message = sprintf($lang['Ban_update_yellow'], $the_user['user_warnings'] + 1, $max_user_bancard)."<br /><br />".
 sprintf($lang['Send_PM_user'], "<a href=\"" . append_sid("privmsg.$phpEx?mode=post&u=$poster_id"). "\">", "</a>");		$no_error_ban=true;
 	      $e_temp="ban_warning";
 //	      $e_subj=$lang['Ban_warning'];
@@ -391,6 +443,10 @@ if ($no_error_ban)
       if( !$result = $db->sql_query($sql) )
 		message_die(GENERAL_ERROR, "Couldn't find the users personal information", "", __LINE__, __FILE__, $sql);
 	$warning_data=$db->sql_fetchrow($result);
+	if (!$warning_data)
+	{
+		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
+	}
       if (!empty($warning_data['user_email']))
       {
 		include($phpbb_root_path . 'includes/emailer.'.$phpEx);
@@ -400,14 +456,15 @@ if ($no_error_ban)
 		$email_headers .= ($userdata['user_email'] && $userdata['user_viewemail']) ?
 			"FROM: \"".$userdata['username']."\" <".$userdata['user_email'].">\r\n"  :
 			"FROM: \"".$board_config['sitename']."\" <" .$board_config['board_email'] . ">\r\n";
-	      $emailer->use_template($e_temp, stripslashes($warning_data['user_lang']));
+	      $warning_lang = preg_match('/^[a-z0-9_-]+$/i', (string) $warning_data['user_lang']) ? stripslashes($warning_data['user_lang']) : '';
+	      $emailer->use_template($e_temp, $warning_lang);
             $emailer->email_address($warning_data['user_email']);
 //            $emailer->set_subject($e_subj);
             $emailer->extra_headers($email_headers);
             $emailer->assign_vars(array(
             	'SITENAME' => $board_config['sitename'],
 	            'WARNINGS' => $warning_data['user_warnings'],
-      	      'TOTAL_WARN' => $board_config['max_user_bancard'],
+			'TOTAL_WARN' => $max_user_bancard,
 			'POST_URL' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . "=$post_id#$post_id"),
       	      'EMAIL_SIG' => str_replace("<br />", "\n", "-- \n" . $board_config['board_email_sig']),
             	'WARNER' => $userdata['username'],

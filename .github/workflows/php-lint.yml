@@ -118,6 +118,9 @@ jobs:
       - name: Test posting and poll safety
         run: php .github/scripts/check-posting-safety.php
 
+      - name: Test warning-card safety
+        run: php .github/scripts/check-card-safety.php
+
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 

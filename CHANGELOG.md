@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the warning/report-card endpoint with an explicit POST-only,
+  timing-safe session check, exact action selection and scalar target IDs.
+  Missing posts and users now fail before record fields are read, direct user
+  mode can no longer be confused with a post report, report notification
+  intervals are clamped away from division by zero, moderator recipients are
+  active confirmed members without duplicates, and stored language names are
+  allowlisted before use in mail-template paths. Temporary account blocks now
+  use the installed `block_time` setting instead of the nonexistent legacy
+  `RY_block_time` key.
 - Hardened posting, editing, deletion and non-AJAX poll voting with a shared
   POST-only, timing-safe session guard. Text, subjects, guest names, topic
   descriptions and poll content are now escaped by the active database driver
