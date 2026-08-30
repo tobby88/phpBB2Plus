@@ -114,6 +114,7 @@ $lang['Comment'] = 'Kommentar';
 $lang['Clear_Cache'] = 'Cache löschen';
 $lang['Album_clear_cache_confirm'] = 'Wenn Du das Vorschau-Cache-Feature benutzt, mußt Du den Cache löschen, nachdem du die Vorschau-Einstellungen in der Album-Konfiguration geändert hast - erst dann wird der Cache wiederhergestellt.<br /><br /> Willst Du den Cache jetzt löschen?';
 $lang['Thumbnail_cache_cleared_successfully'] = '<br />Der Vorschau-Cache wurde erfolgreich gelöscht.<br /><br />';
+$lang['Album_cache_directory_error'] = 'Der Vorschau-Cache konnte nicht gelesen oder nicht vollständig geleert werden.';
 
 
 // Nuffload

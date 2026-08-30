@@ -75,6 +75,7 @@ $integrations = array(
 	'admin/admin_arcade_tournaments.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$maximum_games', '$maximum_tournaments'),
 	'admin/admin_album_config_extended.php' => array('$module[\'Photo_Album\'][\'Configuration\']', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'album_admin_editable_config', '$db->sql_escape($config_value)'),
 	'admin/admin_album_cat.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function album_admin_permission_level', 'album_get_sub_cat_ids'),
+	'admin/admin_album_clearcache.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '!is_link($cache_item)'),
 	'admin/admin_pa_custom.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()'),
 	'admin/admin_pa_category.php' => array("array('do_add', 'do_delete', 'cat_order', 'sync', 'sync_all')", 'phpbb_admin_session_field()', 'pa_admin_category_action_form'),
 	'admin/admin_pa_catauth.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'in_array($auth_value, $cat_auth_const, true)'),

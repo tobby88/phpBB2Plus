@@ -37,6 +37,12 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_album.' . $phpEx);
 
 
+if (isset($_POST['cancel']))
+{
+	redirect(append_sid("index.$phpEx?pane=right", true));
+	exit;
+}
+
 if( !isset($_POST['confirm']) )
 {
 	//
@@ -55,7 +61,7 @@ if( !isset($_POST['confirm']) )
 		'L_YES' => $lang['Yes'],
 
 		'S_CONFIRM_ACTION' => append_sid("admin_album_clearcache.$phpEx"),
-		'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+		'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
 		)
 	);
 
@@ -68,21 +74,42 @@ if( !isset($_POST['confirm']) )
 }
 else
 {
-	if (!isset($_POST['sid']) || !hash_equals((string) $userdata['session_id'], stripslashes((string) $_POST['sid'])))
+	phpbb_admin_require_post_session();
+	$cache_path = realpath('../' . ALBUM_CACHE_PATH);
+	$album_root = realpath('../');
+	if ($cache_path === false || $album_root === false ||
+		strpos(str_replace('\\', '/', $cache_path) . '/', rtrim(str_replace('\\', '/', $album_root), '/') . '/') !== 0 ||
+		!is_dir($cache_path))
 	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']);
 	}
-	$cache_dir = @opendir('../' . ALBUM_CACHE_PATH);
+	$cache_dir = @opendir($cache_path);
+	if ($cache_dir === false)
+	{
+		message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']);
+	}
+	$delete_failed = false;
 
 	while( $cache_file = @readdir($cache_dir) )
 	{
-		if( preg_match('/(\.gif$|\.png$|\.jpg|\.jpeg)$/is', $cache_file) )
+		if (preg_match('/\.(?:gif|png|jpe?g|webp)$/iD', $cache_file))
 		{
-			@unlink('../' . ALBUM_CACHE_PATH . $cache_file);
+			$cache_item = $cache_path . DIRECTORY_SEPARATOR . basename($cache_file);
+			if (is_file($cache_item) && !is_link($cache_item))
+			{
+				if (!@unlink($cache_item))
+				{
+					$delete_failed = true;
+				}
+			}
 		}
 	}
 
 	@closedir($cache_dir);
+	if ($delete_failed)
+	{
+		message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']);
+	}
 
 	message_die(GENERAL_MESSAGE, $lang['Thumbnail_cache_cleared_successfully']);
 }

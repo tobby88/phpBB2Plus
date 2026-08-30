@@ -17,6 +17,7 @@ $category_template = file_get_contents($root . '/phpBB2/templates/subSilver/admi
 $admin_config = file_get_contents($root . '/phpBB2/admin/admin_album_config_extended.php');
 $config_helpers = file_get_contents($root . '/phpBB2/album_mod/album_acp_functions.php');
 $config_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/album_config_body_extended.tpl');
+$clear_cache = file_get_contents($root . '/phpBB2/admin/admin_album_clearcache.php');
 
 album_test_assert(strpos($personal, "isset(\$album_data['keys'][\$cat_id])") !== false, 'hierarchy cache lookup must be guarded');
 album_test_assert(strpos($personal, "WHERE cat_id = ' . \$cat_id") !== false, 'fallback must select the exact category');
@@ -46,5 +47,9 @@ album_test_assert(strpos($admin_config, '$db->sql_escape($config_value)') !== fa
 album_test_assert(strpos($admin_config, 'phpbb_admin_html($default_config[$config_name])') !== false, 'stored configuration must be escaped for AdminCP output');
 album_test_assert(strpos($config_helpers, '#^admin/album_config_[A-Za-z0-9_/-]+\\.tpl$#D') !== false, 'configuration field discovery must stay inside known Album templates');
 album_test_assert(strpos($config_template, '{S_FORM_TOKEN}') !== false, 'configuration forms must carry the session token');
+album_test_assert(strpos($clear_cache, 'phpbb_admin_require_post_session();') !== false && strpos($clear_cache, 'phpbb_admin_session_field()') !== false, 'thumbnail cache deletion must use the central AdminCP token');
+album_test_assert(strpos($clear_cache, "preg_match('/\\.(?:gif|png|jpe?g|webp)\$/iD'") !== false, 'thumbnail cache deletion must use an end-anchored image extension');
+album_test_assert(strpos($clear_cache, '!is_link($cache_item)') !== false, 'thumbnail cache deletion must not follow symbolic links');
+album_test_assert(strpos($clear_cache, "isset(\$_POST['cancel'])") !== false, 'thumbnail cache cancellation must leave the confirmation page');
 
 echo "Personal-album safety tests passed.\n";

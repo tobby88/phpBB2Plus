@@ -112,6 +112,7 @@ $lang['Comment'] = 'Comment';
 $lang['Clear_Cache'] = 'Clear Cache';
 $lang['Album_clear_cache_confirm'] = 'If you use the Thumbnail Cache feature you must clear your thumbnail cache after changing your thumbnail settings in Album Configuration to make them re-generated.<br /><br /> Do you want to clear them now?';
 $lang['Thumbnail_cache_cleared_successfully'] = '<br />Your thumbnail cache has been cleared successfully<br />&nbsp;';
+$lang['Album_cache_directory_error'] = 'The thumbnail cache directory could not be read or completely cleared.';
 
 // Nuffload
 $lang['progress_bar_configuration'] = 'Progress Bar Configuration';

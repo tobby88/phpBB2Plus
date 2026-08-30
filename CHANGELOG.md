@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened Album thumbnail-cache cleanup with the central session-bound
+  AdminCP POST token, a verified cache directory and end-anchored image
+  extensions. It now ignores links and non-files, handles unreadable cache
+  directories without PHP 8 type errors, and the cancel action actually leaves
+  the confirmation page.
 - Hardened Arcade tournament administration with allowlisted modes, scalar and
   bounded settings, verified tournament/game records and the central
   session-bound AdminCP POST token. Creation now enforces the configured number
