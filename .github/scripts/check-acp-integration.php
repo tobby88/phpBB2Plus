@@ -42,6 +42,10 @@ foreach (glob($phpbb_root . '/admin/admin_*.php') as $admin_file)
 	{
 		$errors[] = 'Unregistered ACP entry point: ' . $name;
 	}
+	if (strpos($body, "define('IN_PHPBB'") !== false && strpos($body, "if (!defined('IN_PHPBB'))") === false)
+	{
+		$errors[] = 'ACP module redefines IN_PHPBB during menu discovery: ' . $name;
+	}
 }
 
 $integrations = array(

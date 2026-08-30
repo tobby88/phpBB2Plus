@@ -15,6 +15,9 @@ changes consolidated after that baseline without implying active maintenance.
   or accidentally granting moderator actions.
 - Centralized the Knowledge Base session-page constant so the online-user page
   can resolve KB sessions on PHP 8 instead of failing on an undefined constant.
+- Stopped legacy Download, Banner and Statistics AdminCP modules from
+  redefining the phpBB bootstrap constant while the module menu is discovered.
+  The ACP integration audit now rejects this warning-prone pattern.
 - Made CrackerTracker configuration snapshots atomic: a failed refresh no
   longer empties the last usable snapshot first. Restore refuses empty
   snapshots, preserves settings added after the snapshot and invalidates the

@@ -9,7 +9,7 @@
   Please read the license included with this script for more information.
   This script was programmed by Andrew Langland <andy@razza.org>
 */
-define('IN_PHPBB', 1);
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 
 if( !empty($setmodules) )
 {
@@ -198,4 +198,3 @@ else
 include('./page_footer_admin.'.$phpEx);
 
 ?>
-
