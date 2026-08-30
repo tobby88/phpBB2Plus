@@ -59,6 +59,7 @@ $template->assign_vars(array(
 //
 // Forum info
 //
+$forum_data = array();
 $sql = "SELECT forum_name, forum_id
 	FROM " . FORUMS_TABLE;
 if ( $result = $db->sql_query($sql) )
@@ -110,6 +111,8 @@ $prev_ip = '';
 while ( $row = $db->sql_fetchrow($result) )
 {
 	$view_online = false;
+	$session_page = intval($row['session_page']);
+	$session_topic = intval($row['session_topic']);
 
 	if ( $row['session_logged_in'] ) 
 	{
@@ -156,9 +159,9 @@ while ( $row = $db->sql_fetchrow($result) )
 
 	if ( $view_online )
 	{
-		if ( $row['session_page'] < 1 || !$is_auth_ary[$row['session_page']]['auth_view'] )
+		if ($session_page < 1 || empty($is_auth_ary[$session_page]['auth_view']))
 		{
-			switch( $row['session_page'] )
+			switch($session_page)
 			{
 				case PAGE_INDEX:
 					$location = $lang['Forum_index'];
@@ -236,9 +239,9 @@ while ( $row = $db->sql_fetchrow($result) )
 				case PAGE_REDIRECT: 
 					require_once($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_banner.' . $phpEx);
 				
-					if ($row['session_topic'])
+					if ($session_topic > 0)
 					{
-						$sql = "SELECT banner_description FROM " . BANNERS_TABLE . " WHERE banner_id=" . $row['session_topic'];
+						$sql = "SELECT banner_description FROM " . BANNERS_TABLE . " WHERE banner_id=" . $session_topic;
 						if ( $result2 = $db->sql_query($sql) )
 						{
 							$banner_data = $db->sql_fetchrow($result2);
@@ -247,8 +250,8 @@ while ( $row = $db->sql_fetchrow($result) )
 						{	
 							message_die(GENERAL_ERROR, 'Could not obtain redirect online information', '', __LINE__, __FILE__, $sql);
 						}
-						$location_url = append_sid("redirect.$phpEx?banner_id=" . $row['session_topic']);
-						$location = $lang['Left_via_banner'] .' --> '.$banner_data['banner_description'];
+						$location_url = append_sid("redirect.$phpEx?banner_id=" . $session_topic);
+						$location = $lang['Left_via_banner'] .' --> '. phpbb_profile_text(isset($banner_data['banner_description']) ? $banner_data['banner_description'] : '');
 					} else
 					{
 						$location_url = "";
@@ -259,7 +262,7 @@ while ( $row = $db->sql_fetchrow($result) )
 				// Start add - Who viewed a topic MOD
 				case PAGE_TOPIC_VIEW: 
 				$location = $lang['Topic_view_count']; 
-				$location_url = ($row['session_topic']) ? "topic_view_users.$phpEx?" . POST_TOPIC_URL . '=' .$row['session_topic'] : '#'; 
+				$location_url = ($session_topic > 0) ? "topic_view_users.$phpEx?" . POST_TOPIC_URL . '=' . $session_topic : '#';
 				break;
 				// End add - Who viewed a topic MOD
 				default:
@@ -270,12 +273,12 @@ while ( $row = $db->sql_fetchrow($result) )
 		else
 		{
 			// Start replacement - Topic in Who is online MOD
-			if ($row['session_topic'])
+			if ($session_topic > 0)
 			{
 				//
 				// Topic info
 				//
-				$sql = "SELECT topic_title FROM " . TOPICS_TABLE . " WHERE topic_id=" . $row['session_topic'];
+				$sql = "SELECT topic_title FROM " . TOPICS_TABLE . " WHERE topic_id=" . $session_topic;
 				if ( $result2 = $db->sql_query($sql) )
 				{
 					$topic_title = $db->sql_fetchrow($result2);
@@ -284,12 +287,13 @@ while ( $row = $db->sql_fetchrow($result) )
 				{	
 					message_die(GENERAL_ERROR, 'Could not obtain user/online forums information', '', __LINE__, __FILE__, $sql);
 				}
-				$location_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $row['session_topic']);
-				$location = $forum_data[$row['session_page']] .' -> '.$topic_title['topic_title'];
+				$location_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $session_topic);
+				$forum_label = isset($forum_data[$session_page]) ? phpbb_profile_text($forum_data[$session_page]) : $lang['Forum_index'];
+				$location = $forum_label .' -> '. phpbb_profile_text(isset($topic_title['topic_title']) ? $topic_title['topic_title'] : '');
 			} else 
 			{
-				$location_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $row['session_page']);
-				$location = $forum_data[$row['session_page']];
+				$location_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $session_page);
+				$location = isset($forum_data[$session_page]) ? phpbb_profile_text($forum_data[$session_page]) : $lang['Forum_index'];
 			}
 			// End replacement - Topic in Who is online MOD
 

@@ -20,6 +20,11 @@ changes consolidated after that baseline without implying active maintenance.
   scheduler bug that discarded the filter prefix before validation. Calendar
   option labels are escaped and the birthday popup now rejects anonymous or
   invalid direct requests instead of producing runtime warnings.
+- Hardened member, staff, topic-viewer and online directories against array
+  request values, unbounded offsets and stale session references. The topic
+  viewer now enforces the source forum's view/read permissions; the staff
+  profile no longer loses signatures when no censor words exist, divides by
+  zero in empty boards, or renders its page tail twice.
 - Corrected the banner redirect's PHP 8 regular expression, retained strict
   HTTP(S)-only destinations and moved click IP/identity/duration values onto
   explicit database and integer boundaries.

@@ -19,6 +19,7 @@ $userdata = session_pagestart($user_ip, PAGE_STAFF);
 init_userprefs($userdata);
 
 $mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode')));
+$staff2 = array();
 
 $page_title = $lang['Staff'];
 $gen_simple_header = ( $mode == 'view_profile' ) ? TRUE : '';
@@ -55,7 +56,7 @@ if( $mode != 'view_profile' )
 		if( $display_forums )
 		{
 			$forum_id = $row['forum_id'];
-			$staff2[$row['user_id']][$row['forum_id']] = '&nbsp;<a href="'. append_sid("viewforum.$phpEx?f=$forum_id") .'" class="gen">'. $row['forum_name'] .'</a>';
+			$staff2[$row['user_id']][$row['forum_id']] = '&nbsp;<a href="'. append_sid("viewforum.$phpEx?f=$forum_id") .'" class="gen">'. phpbb_profile_text($row['forum_name']) .'</a>';
 		}
 	}
 	$db->sql_freeresult($result_forums);
@@ -232,11 +233,12 @@ else
 		}
 	}
 
-	if( empty($_GET[POST_USERS_URL]) || $_GET[POST_USERS_URL] == ANONYMOUS )
+	$view_user_id = intval(phpbb_request_scalar($_GET, POST_USERS_URL, 0));
+	if ($view_user_id <= 0 || $view_user_id == ANONYMOUS)
 	{
 		message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
 	}
-	$view_profile = get_userdata($_GET[POST_USERS_URL]);
+	$view_profile = get_userdata($view_user_id);
 	if( $view_profile == FALSE )
 	{
 		message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
@@ -245,10 +247,12 @@ else
 	$template->assign_block_vars('switch_view_profile', array());
 	$template->set_filenames(array(	'profile_body' => 'staff_body.tpl'));
 
+	$total_posts = 0;
+	$total_topics = 0;
+	$orig_word = array();
+	$replacement_word = array();
 	if( $view_profile['user_posts'] != '0' )
 	{
-		$orig_word = array();
-		$replacement_word = array();
 		obtain_word_list($orig_word, $replacement_word);
 
 		$sql_auth = "SELECT * FROM ". FORUMS_TABLE;
@@ -298,11 +302,11 @@ else
 			$last_post_title = ( strlen($last_post_title) < $last_post_length ) ? $last_post_title : substr(stripslashes($last_post_title), 0, $last_post_length) .'...';
 
 			$template->assign_block_vars('switch_view_profile.last_posts', array(
-				'LAST_POST_TITLE' => $last_post_title,
+				'LAST_POST_TITLE' => phpbb_profile_text($last_post_title),
 				'LAST_POST_URL' => append_sid("viewtopic.$phpEx?". POST_POST_URL ."=$last_posts[post_id]#$last_posts[post_id]"),
 				'LAST_POST_TIME' => create_date($board_config['default_dateformat'], $last_posts['post_time'], $board_config['board_timezone']),
 				'LAST_POST_PERIOD' => sprintf($lang['Staff_ago'], period(time() - $last_posts['post_time'])),
-				'FORUM_NAME' => $last_posts['forum_name'],
+				'FORUM_NAME' => phpbb_profile_text($last_posts['forum_name']),
 				'FORUM_URL' => append_sid("viewforum.$phpEx?". POST_FORUM_URL ."=$last_posts[forum_id]"),
 			));
 		}
@@ -322,9 +326,9 @@ else
 
 	$memberdays = max(2, ( time() - $view_profile['user_regdate'] ) / 86400 );
 	$posts_per_day = $view_profile['user_posts'] / $memberdays;
-	$post_percent = ( $total_posts || $view_profile['user_posts'] != '0' ) ? min(100, ($view_profile['user_posts'] / $total_posts) * 100) : 0;
+	$post_percent = ($total_posts > 0) ? min(100, ($view_profile['user_posts'] / $total_posts) * 100) : 0;
 	$topics_per_day = $user_topics / $memberdays;
-	$topic_percent = ( $total_topics || $view_profile['user_posts'] != '0' ) ? min(100, ($user_topics / $total_topics) * 100) : 0;
+	$topic_percent = ($total_topics > 0) ? min(100, ($user_topics / $total_topics) * 100) : 0;
 
 	include_once($phpbb_root_path .'includes/bbcode.'.$phpEx);
 	$user_sig = ( $view_profile['user_sig'] != '' && $board_config['allow_sig'] ) ? $view_profile['user_sig'] : '';
@@ -338,11 +342,11 @@ else
 		$user_sig = ( !$board_config['allow_html'] && $userdata['user_allowhtml'] ) ? preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig) : $user_sig;
 		$user_sig = str_replace("\n", "\n<br />\n", $user_sig);
 		$user_sig = make_clickable($user_sig);
-		$user_sig = ( count($orig_word) ) ? phpbb_preg_replace_outside_tags($user_sig, $orig_word, $replacement_word) : '';
+		$user_sig = ( count($orig_word) ) ? phpbb_preg_replace_outside_tags($user_sig, $orig_word, $replacement_word) : $user_sig;
 	}
 
 	$template->assign_vars(array(
-		'L_ABOUT_USER' => sprintf($lang['Staff_about'], $view_profile['username']),
+		'L_ABOUT_USER' => sprintf($lang['Staff_about'], phpbb_profile_text($view_profile['username'])),
 		'L_CLOSE_WINDOW' => $lang['Close_window'],
 		'L_POSTS' => $lang['Posts'],
 		'L_TOPICS' => $lang['Topics'],
@@ -360,6 +364,7 @@ else
 
 	$template->pparse('profile_body');
 	include($phpbb_root_path .'includes/page_tail.'.$phpEx);
+	exit;
 }
 
 $template->pparse('body');

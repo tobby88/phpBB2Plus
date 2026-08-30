@@ -136,6 +136,9 @@ jobs:
       - name: Test calendar runtime safety
         run: php .github/scripts/check-calendar-runtime-safety.php
 
+      - name: Test directory runtime safety
+        run: php .github/scripts/check-directory-runtime-safety.php
+
       - name: Test Knowledge Base runtime safety
         run: php .github/scripts/check-kb-runtime-safety.php
 

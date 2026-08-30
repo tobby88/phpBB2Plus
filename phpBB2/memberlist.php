@@ -38,8 +38,7 @@ init_userprefs($userdata);
 // End session management
 //
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
-$start = ($start < 0) ? 0 : $start;
+$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
 $mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined')));
 

@@ -26,16 +26,22 @@ include($phpbb_root_path . 'common.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
 // Start add - Who viewed a topic MOD
-if ( isset($_GET[POST_TOPIC_URL]) )
+if (phpbb_request_scalar($_GET, POST_TOPIC_URL) !== '')
 {
-	$topic_id = intval($_GET[POST_TOPIC_URL]);
+	$topic_id = intval(phpbb_request_scalar($_GET, POST_TOPIC_URL));
 }
-else if ( isset($_POST[POST_TOPIC_URL]) )
+else if (phpbb_request_scalar($_POST, POST_TOPIC_URL) !== '')
 {
-	$topic_id = intval($_POST[POST_TOPIC_URL]);
+	$topic_id = intval(phpbb_request_scalar($_POST, POST_TOPIC_URL));
 }
 else
+
 	message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
+
+if ($topic_id <= 0)
+{
+	message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
+}
 
 //
 // Start session management
@@ -51,7 +57,7 @@ if ( !$userdata['session_logged_in'] )
 }
 
 // find the forum, in witch the topic are located
-$sql = "SELECT f.forum_id 
+$sql = "SELECT f.*
 	FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f  
 	WHERE f.forum_id = t.forum_id AND t.topic_id=$topic_id";
 if ( !($result = $db->sql_query($sql)) )
@@ -64,10 +70,15 @@ if ( !($forum_topic_data = $db->sql_fetchrow($result)) )
 	message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 }
 $forum_id = $forum_topic_data['forum_id'];
+$is_auth = auth(AUTH_ALL, $forum_id, $userdata, $forum_topic_data);
+if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
+{
+	message_die(GENERAL_MESSAGE, isset($lang['Topic_post_not_exist']) ? $lang['Topic_post_not_exist'] : 'Topic_post_not_exist');
+}
 // End add - Who viewed a topic MOD
 
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
 $mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined')));
 
@@ -312,7 +323,7 @@ if ( $row = $db->sql_fetchrow($result) )
 		}
 
 		$template->assign_block_vars('memberrow', array(
-			'ROW_NUMBER' => $i + ( $_GET['start'] + 1 ),
+			'ROW_NUMBER' => $i + $start + 1,
 			'ROW_COLOR' => '#' . $row_color,
 			'ROW_CLASS' => $row_class,
 			'USERNAME' => color_group_colorize_name($user_id, true),
