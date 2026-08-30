@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the built-in database backup and restore utility. Backup options
+  can no longer be replayed through GET URLs, both data export and SQL restore
+  require a session-bound POST, table names must resolve to real database
+  tables, and the normal backup set is limited to the configured forum prefix.
+  Restore now uses PHP's current upload API, verifies a genuine upload and
+  accepts only the utility's `.sql` and `.sql.gz` formats.
+  MySQL/MariaDB schema exports now use `SHOW CREATE TABLE`, preserving modern
+  utf8mb4, engine, index and default definitions and avoiding the PHP-8-removed
+  `each()` path; exported identifiers and values are safely quoted.
 - Removed dormant raw-request debug output from the ColorGroups AdminCP module.
   Its user-color cache is now invalidated only after an actual administrative
   write instead of on every page view, while all write controls continue to

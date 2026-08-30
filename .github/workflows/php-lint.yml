@@ -123,3 +123,6 @@ jobs:
 
       - name: Test ColorGroups administration safety
         run: php .github/scripts/check-color-groups-admin-safety.php
+
+      - name: Test database backup and restore safety
+        run: php .github/scripts/check-db-utilities-safety.php

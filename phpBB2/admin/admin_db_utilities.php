@@ -73,6 +73,7 @@ define("VERBOSE", 0);
 //
 function gzip_PrintFourChars($Val)
 {
+	$return = '';
 	for ($i = 0; $i < 4; $i ++)
 	{
 		$return .= chr($Val % 256);
@@ -353,111 +354,17 @@ function get_table_def_postgresql($table, $crlf)
 function get_table_def_mysql($table, $crlf)
 {
 	global $drop, $db;
-
-	$schema_create = "";
-	$field_query = "SHOW FIELDS FROM $table";
-	$key_query = "SHOW KEYS FROM $table";
-
-	//
-	// If the user has selected to drop existing tables when doing a restore.
-	// Then we add the statement to drop the tables....
-	//
-	if ($drop == 1)
+	$quoted_table = '`' . str_replace('`', '``', $table) . '`';
+	$query = 'SHOW CREATE TABLE ' . $quoted_table;
+	$result = $db->sql_query($query);
+	if (!$result || !($row = $db->sql_fetchrow($result)))
 	{
-		$schema_create .= "DROP TABLE IF EXISTS $table;$crlf";
+		message_die(GENERAL_ERROR, 'Failed in get_table_def (show create table)', '', __LINE__, __FILE__, $query);
 	}
-
-	$schema_create .= "CREATE TABLE $table($crlf";
-
-	//
-	// Ok lets grab the fields...
-	//
-	$result = $db->sql_query($field_query);
-	if(!$result)
-	{
-		message_die(GENERAL_ERROR, "Failed in get_table_def (show fields)", "", __LINE__, __FILE__, $field_query);
-	}
-
-	while ($row = $db->sql_fetchrow($result))
-	{
-		$schema_create .= '	' . $row['Field'] . ' ' . $row['Type'];
-
-		if(!empty($row['Default']))
-		{
-			$schema_create .= ' DEFAULT \'' . $row['Default'] . '\'';
-		}
-
-		if($row['Null'] != "YES")
-		{
-			$schema_create .= ' NOT NULL';
-		}
-
-		if($row['Extra'] != "")
-		{
-			$schema_create .= ' ' . $row['Extra'];
-		}
-
-		$schema_create .= ",$crlf";
-	}
-	//
-	// Drop the last ',$crlf' off ;)
-	//
-	$schema_create = preg_replace('/,/' . $crlf . '$', "", $schema_create);
-
-	//
-	// Get any Indexed fields from the database...
-	//
-	$result = $db->sql_query($key_query);
-	if(!$result)
-	{
-		message_die(GENERAL_ERROR, "FAILED IN get_table_def (show keys)", "", __LINE__, __FILE__, $key_query);
-	}
-
-	while($row = $db->sql_fetchrow($result))
-	{
-		$kname = $row['Key_name'];
-
-		if(($kname != 'PRIMARY') && ($row['Non_unique'] == 0))
-		{
-			$kname = "UNIQUE|$kname";
-		}
-
-		if(!is_array($index[$kname]))
-		{
-			$index[$kname] = array();
-		}
-
-		$index[$kname][] = $row['Column_name'];
-	}
-
-	while(list($x, $columns) = @each($index))
-	{
-		$schema_create .= ", $crlf";
-
-		if($x == 'PRIMARY')
-		{
-			$schema_create .= '	PRIMARY KEY (' . implode(', ', $columns) . ')';
-		}
-		elseif (substr($x,0,6) == 'UNIQUE')
-		{
-			$schema_create .= '	UNIQUE ' . substr($x,7) . ' (' . implode(', ', $columns) . ')';
-		}
-		else
-		{
-			$schema_create .= "	KEY $x (" . implode(', ', $columns) . ')';
-		}
-	}
-
-	$schema_create .= "$crlf);";
-
-	if(false)
-	{
-		return(stripslashes($schema_create));
-	}
-	else
-	{
-		return($schema_create);
-	}
+	$create_sql = isset($row['Create Table']) ? $row['Create Table'] : end($row);
+	$schema_create = ($drop == 1) ? 'DROP TABLE IF EXISTS ' . $quoted_table . ';' . $crlf : '';
+	$schema_create .= $create_sql . ';';
+	return $schema_create;
 
 } // End get_table_def_mysql
 
@@ -569,11 +476,12 @@ function get_table_content_postgresql($table, $handler)
 function get_table_content_mysql($table, $handler)
 {
 	global $db;
+	$quoted_table = '`' . str_replace('`', '``', $table) . '`';
 
 	// Grab the data from the table.
-	if (!($result = $db->sql_query("SELECT * FROM $table")))
+	if (!($result = $db->sql_query("SELECT * FROM $quoted_table")))
 	{
-		message_die(GENERAL_ERROR, "Failed in get_table_content (select *)", "", __LINE__, __FILE__, "SELECT * FROM $table");
+		message_die(GENERAL_ERROR, "Failed in get_table_content (select *)", "", __LINE__, __FILE__, "SELECT * FROM $quoted_table");
 	}
 
 	// Loop through the resulting rows and build the sql statement.
@@ -588,7 +496,7 @@ function get_table_content_mysql($table, $handler)
 		for ($j = 0; $j < $num_fields; $j++)
 		{
 			$field_names[$j] = $db->sql_fieldname($j, $result);
-			$table_list .= (($j > 0) ? ', ' : '') . $field_names[$j];
+			$table_list .= (($j > 0) ? ', ' : '') . '`' . str_replace('`', '``', $field_names[$j]) . '`';
 			
 		}
 		$table_list .= ')';
@@ -596,7 +504,7 @@ function get_table_content_mysql($table, $handler)
 		do
 		{
 			// Start building the SQL statement.
-			$schema_insert = "INSERT INTO $table $table_list VALUES(";
+			$schema_insert = "INSERT INTO $quoted_table $table_list VALUES(";
 
 			// Loop through the rows and fill in data for each column
 			for ($j = 0; $j < $num_fields; $j++)
@@ -615,7 +523,7 @@ function get_table_content_mysql($table, $handler)
 				}
 				elseif ($row[$field_names[$j]] != '')
 				{
-					$schema_insert .= '\'' . addslashes($row[$field_names[$j]]) . '\'';
+					$schema_insert .= '\'' . $db->sql_escape($row[$field_names[$j]]) . '\'';
 				}
 				else
 				{
@@ -654,89 +562,62 @@ function output_table_content($content)
 //
 if( isset($_GET['perform']) || isset($_POST['perform']) )
 {
-	$perform = (isset($_POST['perform'])) ? $_POST['perform'] : $_GET['perform'];
+	$perform_value = isset($_POST['perform']) ? $_POST['perform'] : $_GET['perform'];
+	$perform = is_scalar($perform_value) ? (string) $perform_value : '';
+	if (!in_array($perform, array('backup', 'restore'), true))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
+	if (!in_array(SQL_LAYER, array('mysql', 'mysql4', 'mysqli'), true))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Backups_not_supported']);
+	}
 
 	switch($perform)
 	{
 		case 'backup':
-
-			$error = false;
-			switch(SQL_LAYER)
-			{
-				case 'oracle':
-					$error = true;
-					break;
-				case 'db2':
-					$error = true;
-					break;
-				case 'msaccess':
-					$error = true;
-					break;
-				case 'mssql':
-				case 'mssql-odbc':
-					$error = true;
-					break;
-			}
-
-			if ($error)
-			{
-				include('./page_header_admin.'.$phpEx);
-
-				$template->set_filenames(array(
-					"body" => "admin/admin_message_body.tpl")
-				);
-
-				$template->assign_vars(array(
-					"MESSAGE_TITLE" => $lang['Information'],
-					"MESSAGE_TEXT" => $lang['Backups_not_supported'])
-				);
-
-				$template->pparse("body");
-
-				include('./page_footer_admin.'.$phpEx);
-			}
-
-			//$tables = array('album', 'album_cat', 'album_comment', 'album_config', 'album_rate', 'attach_quota', 'attachments', 'attachments_config', 'attachments_desc', 'auth_access', 'banlist', 'banner', 'banner_stats', 'categories', 'color_groups', 'config', 'confirm', 'disallow', 'extension_groups', 'extensions', 'flags', 'forbidden_extensions', 'forums', 'forum_prune', 'groups', 'jr_admin_users', 'link_categories', 'link_config', 'links', 'nickpagebuddies', 'nickpageconf', 'nickpagefavs', 'nickpagegalerie', 'nickpagegb', 'nickpagemod', 'nickpagevotes', 'pa_auth', 'pa_cat', 'pa_comments', 'pa_config', 'pa_custom', 'pa_customdata', 'pa_download_info', 'pa_files', 'pa_license', 'pa_mirrors', 'pa_votes', 'plus', 'posts', 'posts_text', 'privmsgs', 'privmsgs_text', 'quota_limits', 'ranks', 'search_results', 'search_wordlist', 'search_wordmatch', 'sessions', 'smilies', 'themes', 'themes_name', 'topic_view', 'topics', 'topics_watch', 'user_group', 'users', 'vote_desc', 'vote_results', 'vote_voters', 'words');
 			$result = $db->sql_query('SHOW TABLES');
+			$available_tables = array();
 			$tables = array();
 			while ($table_row = $db->sql_fetchrow($result))
 			{
-				$tables[] = reset($table_row);
+				$table_name = (string) reset($table_row);
+				$available_tables[$table_name] = true;
+				if (strpos($table_name, $table_prefix) === 0)
+				{
+					$tables[$table_name] = $table_name;
+				}
 			}
-			$additional_tables = (isset($_POST['additional_tables'])) ? $_POST['additional_tables'] : ( (isset($_GET['additional_tables'])) ? $_GET['additional_tables'] : "" );
-
-			$backup_type = (isset($_POST['backup_type'])) ? $_POST['backup_type'] : ( (isset($_GET['backup_type'])) ? $_GET['backup_type'] : "" );
-
-			$gzipcompress = (!empty($_POST['gzipcompress'])) ? $_POST['gzipcompress'] : ( (!empty($_GET['gzipcompress'])) ? $_GET['gzipcompress'] : 0 );
-
-			$drop = (!empty($_POST['drop'])) ? intval($_POST['drop']) : ( (!empty($_GET['drop'])) ? intval($_GET['drop']) : 0 );
+			$additional_tables = isset($_POST['additional_tables']) && is_scalar($_POST['additional_tables']) ? (string) $_POST['additional_tables'] : '';
+			$backup_type = isset($_POST['backup_type']) && is_scalar($_POST['backup_type']) ? (string) $_POST['backup_type'] : 'full';
+			if (!in_array($backup_type, array('full', 'structure', 'data'), true))
+			{
+				$backup_type = 'full';
+			}
+			$gzipcompress = !empty($_POST['gzipcompress']) ? 1 : 0;
+			$drop = 1;
 
 			if(!empty($additional_tables))
 			{
-				if(preg_match("/,/", $additional_tables))
+				foreach (preg_split('/\s*,\s*/', $additional_tables, -1, PREG_SPLIT_NO_EMPTY) as $additional_table)
 				{
-					$additional_tables = explode(",", $additional_tables);
-
-					for($i = 0; $i < count($additional_tables); $i++)
+					$additional_table = trim($additional_table);
+					if (preg_match('/^[A-Za-z0-9_]+$/D', $additional_table) && isset($available_tables[$additional_table]))
 					{
-						$tables[] = trim($additional_tables[$i]);
+						$tables[$additional_table] = $additional_table;
 					}
-
-				}
-				else
-				{
-					$tables[] = trim($additional_tables);
 				}
 			}
+			$tables = array_values($tables);
 
-			if( !isset($_POST['backupstart']) && !isset($_GET['backupstart']))
+			if( !isset($_POST['backupstart']))
 			{
 				include('./page_header_admin.'.$phpEx);
 
 				$template->set_filenames(array(
 					"body" => "admin/db_utils_backup_body.tpl")
 				);	
-				$s_hidden_fields = "<input type=\"hidden\" name=\"perform\" value=\"backup\" /><input type=\"hidden\" name=\"drop\" value=\"1\" /><input type=\"hidden\" name=\"perform\" value=\"$perform\" />";
+				$s_hidden_fields = "<input type=\"hidden\" name=\"perform\" value=\"backup\" />" . phpbb_admin_session_field();
 
 				$template->assign_vars(array(
 					"L_DATABASE_BACKUP" => $lang['Database_Utilities'] . " : " . $lang['Backup'],
@@ -759,55 +640,22 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 				break;
 
 			}
-			else if( !isset($_POST['startdownload']) && !isset($_GET['startdownload']) )
-			{
-				if(is_array($additional_tables))
-				{
-					$additional_tables = implode(',', $additional_tables);
-				}
-				$template->set_filenames(array(
-					"body" => "admin/admin_message_body.tpl")
-				);
-
-				$template->assign_vars(array(
-					"META" => '<meta http-equiv="refresh" content="2;url=' . append_sid("admin_db_utilities.$phpEx?perform=backup&additional_tables=" . quotemeta($additional_tables) . "&backup_type=$backup_type&drop=1&amp;backupstart=1&gzipcompress=$gzipcompress&startdownload=1") . '">',
-
-					"MESSAGE_TITLE" => $lang['Database_Utilities'] . " : " . $lang['Backup'],
-					"MESSAGE_TEXT" => $lang['Backup_download'])
-				);
-
-				include('./page_header_admin.'.$phpEx);
-
-				$template->pparse("body");
-
-				include('./page_footer_admin.'.$phpEx);
-
-			}
+			phpbb_admin_require_post_session();
 			header("Pragma: no-cache");
-			$do_gzip_compress = FALSE;
-			if( $gzipcompress )
-			{
-				$phpver = phpversion();
-
-				if($phpver >= "4.0")
-				{
-					if(extension_loaded("zlib"))
-					{
-						$do_gzip_compress = TRUE;
-					}
-				}
-			}
+			header('Cache-Control: no-store, no-cache, must-revalidate');
+			header('X-Content-Type-Options: nosniff');
+			$do_gzip_compress = $gzipcompress && extension_loaded('zlib');
 			if($do_gzip_compress)
 			{
 				@ob_start();
 				@ob_implicit_flush(0);
 				header("Content-Type: application/x-gzip; name=\"phpbb_db_backup.sql.gz\"");
-				header("Content-disposition: attachment; filename=phpbb_db_backup.sql.gz");
+				header('Content-Disposition: attachment; filename="phpbb_db_backup.sql.gz"');
 			}
 			else
 			{
 				header("Content-Type: text/x-delimtext; name=\"phpbb_db_backup.sql\"");
-				header("Content-disposition: attachment; filename=phpbb_db_backup.sql");
+				header('Content-Disposition: attachment; filename="phpbb_db_backup.sql"');
 			}
 
 			//
@@ -817,7 +665,7 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 			echo "# phpBB Backup Script\n";
 			echo "# Dump of tables for $dbname\n";
 			echo "#\n# DATE : " .  gmdate("d-m-Y H:i:s", time()) . " GMT\n";
-			echo "#\n";
+			echo "#\n\nSET FOREIGN_KEY_CHECKS=0;\n";
 
 			if(SQL_LAYER == 'postgresql')
 			{
@@ -853,6 +701,7 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 					$table_content_function($table_name, "output_table_content");
 				}
 			}
+			echo "\nSET FOREIGN_KEY_CHECKS=1;\n";
 			
 			if($do_gzip_compress)
 			{
@@ -878,7 +727,7 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 					"body" => "admin/db_utils_restore_body.tpl")
 				);
 
-				$s_hidden_fields = "<input type=\"hidden\" name=\"perform\" value=\"restore\" /><input type=\"hidden\" name=\"perform\" value=\"$perform\" />";
+				$s_hidden_fields = "<input type=\"hidden\" name=\"perform\" value=\"restore\" />" . phpbb_admin_session_field();
 
 				$template->assign_vars(array(
 					"L_DATABASE_RESTORE" => $lang['Database_Utilities'] . " : " . $lang['Restore'],
@@ -896,15 +745,17 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 			}
 			else
 			{
+				phpbb_admin_require_post_session();
 				//
 				// Handle the file upload ....
 				// If no file was uploaded report an error...
 				//
-				$backup_file_name = (!empty($HTTP_POST_FILES['backup_file']['name'])) ? $HTTP_POST_FILES['backup_file']['name'] : "";
-				$backup_file_tmpname = ($HTTP_POST_FILES['backup_file']['tmp_name'] != "none") ? $HTTP_POST_FILES['backup_file']['tmp_name'] : "";
-				$backup_file_type = (!empty($HTTP_POST_FILES['backup_file']['type'])) ? $HTTP_POST_FILES['backup_file']['type'] : "";
+				$backup_file = isset($_FILES['backup_file']) && is_array($_FILES['backup_file']) ? $_FILES['backup_file'] : array();
+				$backup_file_name = isset($backup_file['name']) && is_scalar($backup_file['name']) ? basename((string) $backup_file['name']) : '';
+				$backup_file_tmpname = isset($backup_file['tmp_name']) && is_scalar($backup_file['tmp_name']) ? (string) $backup_file['tmp_name'] : '';
+				$backup_file_error = isset($backup_file['error']) ? (int) $backup_file['error'] : UPLOAD_ERR_NO_FILE;
 
-				if($backup_file_tmpname == "" || $backup_file_name == "")
+				if($backup_file_error !== UPLOAD_ERR_OK || $backup_file_tmpname === '' || $backup_file_name === '')
 				{
 					message_die(GENERAL_MESSAGE, $lang['Restore_Error_no_file']);
 				}
@@ -914,30 +765,27 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 				// a hackers attempt at getting us to process a local system
 				// file.
 				//
-				if( file_exists(phpbb_realpath($backup_file_tmpname)) )
+				if( is_uploaded_file($backup_file_tmpname) )
 				{
-					if( preg_match("/^(text\/[a-zA-Z]+)|(application\/(x\-)?gzip(\-compressed)?)|(application\/octet-stream)$/is", $backup_file_type) )
+					if( preg_match('/\.sql(?:\.gz)?$/iD', $backup_file_name) )
 					{
-						if( preg_match("/\.gz$/is",$backup_file_name) )
+						if( preg_match('/\.gz$/iD', $backup_file_name) )
 						{
-							$do_gzip_compress = FALSE;
-							$phpver = phpversion();
-							if($phpver >= "4.0")
-							{
-								if(extension_loaded("zlib"))
-								{
-									$do_gzip_compress = TRUE;
-								}
-							}
+							$do_gzip_compress = extension_loaded('zlib');
 
 							if($do_gzip_compress)
 							{
 								$gz_ptr = gzopen($backup_file_tmpname, 'rb');
+								if (!$gz_ptr)
+								{
+									message_die(GENERAL_ERROR, $lang['Restore_Error_decompress']);
+								}
 								$sql_query = "";
 								while( !gzeof($gz_ptr) )
 								{
 									$sql_query .= gzgets($gz_ptr, 100000);
 								}
+								gzclose($gz_ptr);
 							}
 							else
 							{
@@ -946,7 +794,11 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 						}
 						else
 						{
-							$sql_query = fread(fopen($backup_file_tmpname, 'r'), filesize($backup_file_tmpname));
+							$sql_query = file_get_contents($backup_file_tmpname);
+							if ($sql_query === false)
+							{
+								message_die(GENERAL_ERROR, $lang['Restore_Error_uploading']);
+							}
 						}
 						//
 						// Comment this line out to see if this fixes the stuff...
@@ -955,7 +807,7 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 					}
 					else
 					{
-						message_die(GENERAL_ERROR, $lang['Restore_Error_filename'] ." $backup_file_type $backup_file_name");
+						message_die(GENERAL_ERROR, $lang['Restore_Error_filename']);
 					}
 				}
 				else
