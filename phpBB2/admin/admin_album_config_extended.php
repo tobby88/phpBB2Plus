@@ -78,6 +78,10 @@ function sort_cmp($a, $b)
 $valid_tab_selections = array(); 
 $album_config_tabs = array();
 $saved_info_message = '';
+$selected_tab = '';
+$selected_subtab = '';
+$config_table = '';
+$config_selection = '';
 //------------------------------------------------------------------------
 
 //------------------------------------------------------------------------
@@ -154,13 +158,13 @@ usort($album_config_tabs, 'sort_cmp');
 //------------------------------------------------------------------------
 // get the selected tab selection from the submitted form
 //------------------------------------------------------------------------
-if (isset ($_POST['tab']))
+if (isset($_POST['tab']) && is_scalar($_POST['tab']))
 {
-	$selected_tab = strtolower($_POST['tab']);
+	$selected_tab = strtolower((string) $_POST['tab']);
 }
-elseif (isset ($_GET['tab']))
+elseif (isset($_GET['tab']) && is_scalar($_GET['tab']))
 {
-	$selected_tab = strtolower($_GET['tab']);
+	$selected_tab = strtolower((string) $_GET['tab']);
 }
 
 //------------------------------------------------------------------------
@@ -168,13 +172,13 @@ elseif (isset ($_GET['tab']))
 // NOTE : a sub tab, is a tab in the left or right side of a configuration
 // for alittle hint see the template file 'admin/album_config_sub_body.tpl'
 //------------------------------------------------------------------------
-if (isset ($_POST['subtab']))
+if (isset($_POST['subtab']) && is_scalar($_POST['subtab']))
 {
-	$selected_subtab = strtolower($_POST['subtab']);
+	$selected_subtab = strtolower((string) $_POST['subtab']);
 }
-elseif (isset ($_GET['subtab']))
+elseif (isset($_GET['subtab']) && is_scalar($_GET['subtab']))
 {
-	$selected_subtab = strtolower($_GET['subtab']);
+	$selected_subtab = strtolower((string) $_GET['subtab']);
 }
 
 //------------------------------------------------------------------------
@@ -185,13 +189,15 @@ elseif (isset ($_GET['subtab']))
 //
 // We don't post the actual table name for security reasons !!!
 //------------------------------------------------------------------------
-if (isset ($_POST['config_table']))
+if (isset($_POST['config_table']) && is_scalar($_POST['config_table']))
 {
-	$config_table = get_config_table($_POST['config_table']);
+	$config_selection = strtolower((string) $_POST['config_table']);
+	$config_table = get_config_table($config_selection);
 }
-elseif (isset ($_GET['config_table']))
+elseif (isset($_GET['config_table']) && is_scalar($_GET['config_table']))
 {
-	$config_table = get_config_table($_GET['config_table']);
+	$config_selection = strtolower((string) $_GET['config_table']);
+	$config_table = get_config_table($config_selection);
 }
 
 //------------------------------------------------------------------------
@@ -295,12 +301,22 @@ if (empty($selected_tab_data['config_table_name']))
 //------------------------------------------------------------------------
 // save the data from the requested tab (or tab that we are 'leaving')
 //------------------------------------------------------------------------
-if( isset($_POST['save_config']) && strcmp($_POST['save_config'], 'true') == 0 )
+if (isset($_POST['save_config']) && is_scalar($_POST['save_config']) && (string) $_POST['save_config'] === 'true')
 {
+	phpbb_admin_require_post_session();
+
 	if (empty($config_table)) 
 	{
 	    $config_table = $selected_tab_data['config_table_name'];
+		$config_selection = $selected_tab_data['selection'];
 	}
+
+	$submitted_tab_data = get_config_tab_data($config_selection);
+	if (empty($submitted_tab_data) || $config_table !== strtolower($submitted_tab_data['config_table_name']))
+	{
+		message_die(GENERAL_ERROR, 'Invalid Album configuration section.');
+	}
+	$editable_config = album_admin_editable_config($submitted_tab_data, $phpbb_root_path);
 
 	$sql = "SELECT * FROM " . $config_table;
 	
@@ -312,12 +328,16 @@ if( isset($_POST['save_config']) && strcmp($_POST['save_config'], 'true') == 0 )
 	{
 		while( $row = $db->sql_fetchrow($result) )
 		{
-			$config_name = $row['config_name'];
-			$config_value = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $row['config_value'];
+			$config_name = (string) $row['config_name'];
+			if (!isset($editable_config[$config_name]) || !isset($_POST[$config_name]) || !is_scalar($_POST[$config_name]))
+			{
+				continue;
+			}
+			$config_value = phpbb_admin_post_string($config_name, $row['config_value']);
 	
 			$sql = "UPDATE " . $config_table . " SET
-				config_value = '" . str_replace("\'", "''", $config_value) . "'
-				WHERE config_name = '$config_name'";
+				config_value = '" . $db->sql_escape($config_value) . "'
+				WHERE config_name = '" . $db->sql_escape($config_name) . "'";
 	
 			if( !$db->sql_query($sql) )
 			{
@@ -361,11 +381,11 @@ else
 {
 	while( $row = $db->sql_fetchrow($result) )
 	{
-		$config_name = $row['config_name'];
-		$config_value = $row['config_value'];
+		$config_name = (string) $row['config_name'];
+		$config_value = (string) $row['config_value'];
 		$default_config[$config_name] = $config_value;
 
-		$new[$config_name] = ( isset($_POST[$config_name]) ) ? $_POST[$config_name] : $default_config[$config_name];
+		$new[$config_name] = phpbb_admin_html($default_config[$config_name]);
 	}
 	$db->sql_freeresult($result);
 }
@@ -393,6 +413,7 @@ $template->assign_vars(array(
 	'V_SELECTED_TAB' => $selected_subtab,
 	'CONFIG_TABLE' => $selected_tab_data['selection'],
 	'S_ALBUM_CONFIG_ACTION' => append_sid('admin_album_config_extended.'.$phpEx),
+	'S_FORM_TOKEN' => phpbb_admin_session_field(),
 
 	'L_CONFIG_TAB' => $selected_tab_data['title'],
 	'L_ALBUM_CONFIG' => $lang['Album_config'],

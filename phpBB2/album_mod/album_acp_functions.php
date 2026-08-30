@@ -115,6 +115,65 @@ function get_config_table($selection)
 	return '';
 }
 
+function get_config_tab_data($selection)
+{
+	global $album_config_tabs;
+
+	foreach ($album_config_tabs as $config_tab)
+	{
+		if (isset($config_tab['selection']) && strcasecmp((string) $config_tab['selection'], (string) $selection) === 0)
+		{
+			return $config_tab;
+		}
+	}
+
+	return array();
+}
+
+function album_admin_editable_config($config_data, $phpbb_root_path)
+{
+	$templates = array();
+	if (!empty($config_data['template_file']))
+	{
+		$templates[] = $config_data['template_file'];
+	}
+	if (!empty($config_data['selected_subtab']['template_file']))
+	{
+		$templates[] = $config_data['selected_subtab']['template_file'];
+	}
+	else if (!empty($config_data['sub_config']))
+	{
+		foreach ($config_data['sub_config'] as $sub_config)
+		{
+			if (!empty($sub_config['template_file']))
+			{
+				$templates[] = $sub_config['template_file'];
+			}
+		}
+	}
+
+	$editable = array();
+	foreach (array_unique($templates) as $template_file)
+	{
+		$template_file = str_replace('\\', '/', (string) $template_file);
+		if (!preg_match('#^admin/album_config_[A-Za-z0-9_/-]+\.tpl$#D', $template_file))
+		{
+			continue;
+		}
+		$template_path = $phpbb_root_path . 'templates/subSilver/' . $template_file;
+		$template_body = @file_get_contents($template_path);
+		if ($template_body !== false && preg_match_all('/\bname=["\']([A-Za-z0-9_]+)["\']/', $template_body, $matches))
+		{
+			foreach ($matches[1] as $config_name)
+			{
+				$editable[$config_name] = true;
+			}
+		}
+	}
+
+	return $editable;
+}
+
 function is_valid_config_tab($config_array)
 {
 	// these two array holds the minimum required fields for an config tab array

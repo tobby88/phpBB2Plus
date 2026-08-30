@@ -14,6 +14,9 @@ $personal = file_get_contents($root . '/phpBB2/album_mod/album_personal.php');
 $hierarchy = file_get_contents($root . '/phpBB2/album_mod/album_hierarchy_sql.php');
 $admin_categories = file_get_contents($root . '/phpBB2/admin/admin_album_cat.php');
 $category_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/album_cat_new_body.tpl');
+$admin_config = file_get_contents($root . '/phpBB2/admin/admin_album_config_extended.php');
+$config_helpers = file_get_contents($root . '/phpBB2/album_mod/album_acp_functions.php');
+$config_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/album_config_body_extended.tpl');
 
 album_test_assert(strpos($personal, "isset(\$album_data['keys'][\$cat_id])") !== false, 'hierarchy cache lookup must be guarded');
 album_test_assert(strpos($personal, "WHERE cat_id = ' . \$cat_id") !== false, 'fallback must select the exact category');
@@ -34,5 +37,14 @@ album_test_assert(strpos($admin_categories, 'SET cat_parent = $deleted_parent_id
 album_test_assert(strpos($admin_categories, '$db->sql_escape($cat_title)') !== false, 'category text must use database-driver escaping');
 album_test_assert(strpos($admin_categories, '= each(') === false, 'PHP 8-incompatible category iteration must not return');
 album_test_assert(strpos($category_template, 'name="cat_id"') !== false, 'category write targets must travel in the tokenized POST form');
+
+album_test_assert(!is_file($root . '/phpBB2/admin/admin_album_config.php'), 'the duplicate legacy configuration module must remain removed');
+album_test_assert(strpos($admin_config, 'phpbb_admin_require_post_session();') !== false, 'configuration writes must verify the AdminCP POST token');
+album_test_assert(strpos($admin_config, 'is_scalar($_POST[\'save_config\'])') !== false, 'configuration actions must reject array input');
+album_test_assert(strpos($admin_config, 'album_admin_editable_config($submitted_tab_data') !== false, 'configuration writes must be limited to fields on the submitted tab');
+album_test_assert(strpos($admin_config, '$db->sql_escape($config_value)') !== false, 'configuration values must use database-driver escaping');
+album_test_assert(strpos($admin_config, 'phpbb_admin_html($default_config[$config_name])') !== false, 'stored configuration must be escaped for AdminCP output');
+album_test_assert(strpos($config_helpers, '#^admin/album_config_[A-Za-z0-9_/-]+\\.tpl$#D') !== false, 'configuration field discovery must stay inside known Album templates');
+album_test_assert(strpos($config_template, '{S_FORM_TOKEN}') !== false, 'configuration forms must carry the session token');
 
 echo "Personal-album safety tests passed.\n";

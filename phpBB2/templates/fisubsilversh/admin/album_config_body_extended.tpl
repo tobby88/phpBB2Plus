@@ -100,6 +100,7 @@ function checkForm(tab,subtab)
 		<input type="hidden" name="subtab" value="{V_SELECTED_TAB}" />
 		<input type="hidden" name="config_table" value="{CONFIG_TABLE}" />
 		<input type="hidden" name="save_config" value="false" />
+		{S_FORM_TOKEN}
 		<table width="100%" cellpadding="4" cellspacing="1" border="0" class="forumline">
 			<tr>
 				<th class="thHead" colspan="2">{L_CONFIG_TAB}</th>

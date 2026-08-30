@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Consolidated Album settings on the tabbed AdminCP configuration and removed
+  the redundant legacy settings module and templates. Album configuration
+  writes now require the central session-bound POST token, accept only scalar
+  values exposed by the submitted tab, use database-driver escaping and render
+  stored values through UTF-8-safe HTML escaping. Invalid tab and table
+  selections can no longer steer configuration updates.
 - Hardened Arcade configuration with allowlisted pages, scalar and type-aware
   setting normalization, safe relative asset directories, driver-escaped
   database writes and escaped AdminCP text. Configuration changes now require
