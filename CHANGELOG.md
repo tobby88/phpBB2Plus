@@ -16,6 +16,11 @@ changes consolidated after that baseline without implying active maintenance.
   private message sent merely by opening another member's scores. The Arcade
   welcome now receives an escaped username from PHP instead of parsing a
   translated login label through inline JavaScript.
+- Removed the now-unreferenced automatic-statistics-PM throttle and its table
+  from fresh-install schemas. Existing installations may retain the harmless
+  legacy table; update code deliberately performs no destructive table drop.
+  Existing category and game image references are constrained to local assets
+  and escaped before HTML output.
 - Extended opener isolation to PHP-generated automatic BBCode links, Album
   index thumbnails and external forms, and taught the regression audit to cover
   escaped PHP fragments and form targets in addition to literal anchors.

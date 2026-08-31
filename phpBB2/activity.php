@@ -487,7 +487,7 @@ if( $mode != '' )
 		$page_meta_desc = $page_title;
 		$page_meta_key = trim(htmlspecialchars(str_replace(",-,",",",str_replace(" ", ",", $game_info['game_desc'] . ',' . $board_config['sitename']))));
 
-		$url .= ' &raquo; <a href="' . $filename . '?mode=game&amp;id=' . $game_info['game_id'] . '&amp;win=self">' . $game_info['game_desc'] . '</a>';
+		$url .= ' &raquo; <a href="' . $filename . '?mode=game&amp;id=' . (int) $game_info['game_id'] . '&amp;win=self">' . arcade_output_html($game_info['game_desc']) . '</a>';
 
 		$arcade->sort_method($game_info['reverse_list']);
 
@@ -541,6 +541,7 @@ if( $mode != '' )
 		}
 	
     $image_path = ina_find_image($game_info['game_path'], $game_info['game_name'], $game_info['image_path']);
+	$image_path_html = arcade_output_html($image_path);
 
 		$best_player = $score_info['username'];
 		if( $best_player == 'Anonymous' )
@@ -602,7 +603,7 @@ if( $mode != '' )
 			'PATH' => $game_info['game_path'],
 			'U_ADD_FAV' => $add_fav,
 			'L_ADD_FAV' => $lang['games_add_fav'],
-			'IMAGE' => $image_path,
+			'IMAGE' => $image_path_html,
       'CONTROL' => $game_control,
       'CATEGORY' => $lang['None'],
       'TIMES' => $lang['times'],
@@ -1011,15 +1012,16 @@ if( $mode != '' )
 //  Check for an Icon
 //
       		$icon = '';
-      		if($catrows[$i]['cat_icon'])
+			$cat_icon = phpbb_arcade_local_asset($catrows[$i]['cat_icon']);
+			if($cat_icon !== '')
       		{
       			if($arcade->arcade_config['games_cat_image_width'])
       			{
-      				$icon = "<img src=\"" . $catrows[$i]['cat_icon'] . "\" width=\"" . $arcade->arcade_config['games_cat_image_width'] . "\" height=\"" . $arcade->arcade_config['games_cat_image_height'] . "\" border=\"0\">";
+				$icon = '<img src="' . arcade_output_html($cat_icon) . '" width="' . max(1, (int) $arcade->arcade_config['games_cat_image_width']) . '" height="' . max(1, (int) $arcade->arcade_config['games_cat_image_height']) . '" border="0">';
       			}
       			else
       			{
-      				$icon = "<img src=\"" . $catrows[$i]['cat_icon'] . "\" border=\"0\">";
+				$icon = '<img src="' . arcade_output_html($cat_icon) . '" border="0">';
       			}
 		      }
 //
@@ -1142,6 +1144,7 @@ if( $mode != '' )
 			$game_path = $game_rows[$i]['game_path'];
 
       $image_path = ina_find_image($game_path, $game_name, $game_rows[$i]['image_path']);
+		$image_path_html = arcade_output_html($image_path);
 
 			if($arcade->arcade_config['use_rewards_mod'])
 			{
@@ -1368,12 +1371,12 @@ if( $mode != '' )
       }
 			if ( $user_id == ANONYMOUS && ($game_rows[$i]['allow_guest'] != 1))
 			{
-				$image_info = '<img src ="'. $image_path .'" border="0" align="middle" width="'.$arcade->arcade_config['games_image_width'].'" height="'.$arcade->arcade_config['games_image_height'].'" alt="REGISTER" /></a>';
+				$image_info = '<img src ="'. $image_path_html .'" border="0" align="middle" width="'.max(1, (int) $arcade->arcade_config['games_image_width']).'" height="'.max(1, (int) $arcade->arcade_config['games_image_height']).'" alt="REGISTER" />';
         $desc_info = $lang['register_to_play'];
 			}
 			else
 			{
-				$image_info = '<a href="'. append_sid("$filename?mode=game&amp;id=$game_id") .'" onClick="Gk_PopTart(\''. append_sid("$filename?mode=game&amp;id=$game_id") .'\', \'Activity_Window\', \''.$win_width.'\', \''.$win_height.'\', \'no\'); return false; blur();"><img src ="'. $image_path .'" border="0" align="middle" width="'.$arcade->arcade_config['games_image_width'].'" height="'.$arcade->arcade_config['games_image_height'].'" alt="Popup" /></a>';
+				$image_info = '<a href="'. append_sid("$filename?mode=game&amp;id=$game_id") .'" onClick="Gk_PopTart(\''. append_sid("$filename?mode=game&amp;id=$game_id") .'\', \'Activity_Window\', \''.$win_width.'\', \''.$win_height.'\', \'no\'); return false; blur();"><img src ="'. $image_path_html .'" border="0" align="middle" width="'.max(1, (int) $arcade->arcade_config['games_image_width']).'" height="'.max(1, (int) $arcade->arcade_config['games_image_height']).'" alt="Popup" /></a>';
 				$desc_info = '<a href="'. append_sid("$filename?mode=game&amp;id=$game_id") .'" class="forumlink" onClick="Gk_PopTart(\''. append_sid("$filename?mode=game&amp;id=$game_id") .'\', \'Activity_Window\', \''.$win_width.'\', \''.$win_height.'\', \'no\'); return false; blur();">&nbsp;&laquo;&nbsp;' . arcade_output_smilies($game_desc) . '&nbsp;&raquo;&nbsp;</a>';
       }
       if($game_rows[$i]['game_control'] == 1)
@@ -1606,15 +1609,16 @@ else
 //  Check for an Icon
 //
 		$icon = '';
-		if($catrows[$i]['cat_icon'])
+		$cat_icon = phpbb_arcade_local_asset($catrows[$i]['cat_icon']);
+		if($cat_icon !== '')
 		{
 			if($arcade->arcade_config['games_cat_image_width'])
 			{
-				$icon = "<img src=\"" . $catrows[$i]['cat_icon'] . "\" width=\"" . $arcade->arcade_config['games_cat_image_width'] . "\" height=\"" . $arcade->arcade_config['games_cat_image_height'] . "\" border=\"0\">";
+				$icon = '<img src="' . arcade_output_html($cat_icon) . '" width="' . max(1, (int) $arcade->arcade_config['games_cat_image_width']) . '" height="' . max(1, (int) $arcade->arcade_config['games_cat_image_height']) . '" border="0">';
 			}
 			else
 			{
-				$icon = "<img src=\"" . $catrows[$i]['cat_icon'] . "\" border=\"0\">";
+				$icon = '<img src="' . arcade_output_html($cat_icon) . '" border="0">';
 			}
 		}
 //

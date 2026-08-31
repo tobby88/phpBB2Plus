@@ -936,54 +936,6 @@ function swap_place($old_id, $new_id, $type, $game_info = NULL)
 	return;
 }
 
-//
-// Simple code that makes sure a user does not get any more than one PM from each user every 24 hours.
-//
-function ina_check_last_pm($to_id, $from_id)
-{
-  if ( defined('CH_CURRENT_VERSION') && CH_CURRENT_VERSION >= '2.1.6' )
-  {
-  	global $db, $config, $user, $forums, $censored_words, $icons, $navigation, $themes, $smilies;
-  }
-  else
-  {
-  	global $db;
-  }
-	if($to_id == $from_id)
-	{
-		return TRUE;
-	}
-	$sql = "SELECT * FROM " . iNA_PMs_TABLE . "
-		WHERE to_id = '" . $to_id . "'
-			AND from_id = '" . $from_id . "'";
-	if(!$result = $db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
-	}
-	$row = $db->sql_fetchrow($result);
-	if($row['last_sent'] < (time() - 86400))
-	{
-		$sql = "UPDATE " . iNA_PMs_TABLE . "
-			SET last_sent = '" . time() . "', total_sent = total_sent+1
-				WHERE to_id = '" . $to_id . "'
-			AND from_id = '" . $from_id . "'";
-		if ( !$db->sql_query($sql) || !$db->sql_affectedrows() )
-		{
-			$sql = "INSERT INTO " . iNA_PMs_TABLE . "
-				(to_id, from_id, last_sent, total_sent)
-				VALUES ('$to_id', '$from_id', '". time() . "', 1)";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(CRITICAL_ERROR, $lang['session_error'], '', __LINE__, __FILE__, $sql);
-			}
-		}
-		return FALSE;
-	
-	}
-	
-	return TRUE;
-}
-
 function ina_find_image($game_path, $game_name, $image_path = "", $phpbb_root_path = './')
 {
   global $arcade;

@@ -1544,15 +1544,6 @@ CREATE TABLE phpbb_ina_log (
   PRIMARY KEY (record_no)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE phpbb_ina_pms (
-  to_id mediumint(8) NOT NULL DEFAULT 0,
-  from_id mediumint(8) NOT NULL DEFAULT 0,
-  last_sent int(11) NOT NULL DEFAULT 0,
-  total_sent mediumint(8) DEFAULT NULL,
-  code tinyint(4) DEFAULT NULL,
-  KEY to_id (to_id)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE phpbb_ina_rate (
   rate_game_name varchar(50) DEFAULT NULL,
   rate_user_id mediumint(8) NOT NULL DEFAULT 0,

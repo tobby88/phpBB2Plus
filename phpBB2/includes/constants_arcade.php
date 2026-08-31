@@ -50,7 +50,6 @@ define('iNA_AT_SCORES', $table_prefix.'ina_at_scores');
 define('iNA_SESSIONS', $table_prefix.'ina_sessions');
 define('iNA_CAT', $table_prefix.'ina_cat');
 define('iNA_FAV',  $table_prefix.'ina_fav');
-define('iNA_PMs_TABLE',  $table_prefix.'ina_pms');
 define('iNA_USER_DATA',  $table_prefix.'ina_user_data');
 define('iNA_GAMES_RATE',  $table_prefix.'ina_rate');
 define('iNA_GAMES_COMMENT', $table_prefix.'ina_comment');

@@ -16,6 +16,8 @@ $tournament = file_get_contents($root . '/phpBB2/arcade_tournament.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
 $classes = file_get_contents($root . '/phpBB2/includes/classes_arcade.php');
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
+$constants = file_get_contents($root . '/phpBB2/includes/constants_arcade.php');
+$schema = file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
 $arcade_template = file_get_contents($root . '/phpBB2/templates/subSilver/arcade_body.tpl');
 
 arcade_secondary_assert(strpos($rate, "!is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'ratings must reject nested tokens');
@@ -44,5 +46,8 @@ arcade_secondary_assert(strpos($activity, "\$score_names_sql[] = \"'\" . \$db->s
 arcade_secondary_assert(strpos($functions, "\$game_name_sql = \$db->sql_escape(\$rows[\$i]['game_name'])") !== false, 'highscore aggregation must escape stored game names');
 arcade_secondary_assert(strpos($classes, "htmlspecialchars(\$this->categories[\$i]['cat_name'], ENT_QUOTES, 'UTF-8')") !== false, 'category jump labels must be HTML escaped');
 arcade_secondary_assert(strpos($arcade_template, '{ARCADE_USERNAME}') !== false && strpos($arcade_template, 'document.write') === false, 'the Arcade welcome must not parse translated login text with JavaScript');
+arcade_secondary_assert(substr_count($activity, '$cat_icon = phpbb_arcade_local_asset(') === 2, 'category icons must remain restricted to local assets in both views');
+arcade_secondary_assert(substr_count($activity, '$image_path_html = arcade_output_html($image_path);') === 2, 'game image paths must be escaped in statistics and list views');
+arcade_secondary_assert(strpos($functions, 'function ina_check_last_pm(') === false && strpos($constants, 'iNA_PMs_TABLE') === false && strpos($schema, 'phpbb_ina_pms') === false, 'the unused automatic-statistics-PM tracker must not return');
 
 echo "Arcade secondary safety tests passed.\n";
