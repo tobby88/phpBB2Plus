@@ -19,6 +19,14 @@ $classes = file_get_contents($root . '/phpBB2/includes/classes_arcade.php');
 $monthly = file_get_contents($root . '/phpBB2/arcade_highscore.php');
 $points = file_get_contents($root . '/phpBB2/arcade_point_scores.php');
 $schema = file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
+$point_templates = array(
+	file_get_contents($root . '/phpBB2/templates/subSilver/arcade_point_scores.tpl'),
+	file_get_contents($root . '/phpBB2/templates/fisubsilversh/arcade_point_scores.tpl')
+);
+$arcade_languages = array(
+	file_get_contents($root . '/phpBB2/language/lang_english/lang_extend_arcade.php'),
+	file_get_contents($root . '/phpBB2/language/lang_german/lang_extend_arcade.php')
+);
 
 arcade_score_assert(strpos($compat, 'function phpbb_request_source_is_same_origin') !== false, 'legacy GET-capable protocols need a strict request-source check');
 foreach (array('newscore' => $newscore, 'IBProArcade' => $ibpro, 'pnFlashGames' => $pnflash) as $name => $source)
@@ -36,5 +44,17 @@ arcade_score_assert(strpos($classes, 'highscore_user_id, highscore_player') !== 
 arcade_score_assert(strpos($monthly, 'LEFT JOIN " . USERS_TABLE . " u ON u.user_id = h.highscore_user_id') !== false, 'monthly displays must prefer the authoritative username');
 arcade_score_assert(strpos($points, "\$player_key = 'u:' . (int) \$row['player_id']") !== false, 'Arcade point totals must aggregate renamed users by stable ID');
 arcade_score_assert(strpos($schema, 'highscore_user_id mediumint(8) NOT NULL DEFAULT 0') !== false, 'fresh installs need stable monthly-highscore owners');
+foreach ($arcade_languages as $language)
+{
+	foreach (array('arcade_points_title', 'arcade_points_monthly', 'arcade_points_period_info', 'arcade_points_generated') as $language_key)
+	{
+		arcade_score_assert(strpos($language, "\$lang['" . $language_key . "']") !== false, 'Arcade point ranking is missing a translation: ' . $language_key);
+	}
+}
+foreach ($point_templates as $point_template)
+{
+	arcade_score_assert(strpos($point_template, '{L_MONTHLY_POINTS}') !== false && strpos($point_template, '{L_PERIOD_INFO}') !== false, 'Arcade point templates must use the localized explanation');
+	arcade_score_assert(strpos($point_template, 'Every 3 months') === false && strpos($point_template, 'Design Layout') === false, 'Arcade point templates must not retain misleading hardcoded copy');
+}
 
 echo "Arcade score safety tests passed.\n";

@@ -489,6 +489,20 @@ $lang['highscore_count_err'] = "Konnte Dein bestes Ergbnis nicht zählen";
 $lang['highscore_other_score'] = "Beste Ergebnisse für den Monat";
 $lang['highscore_new_mon_score'] = '<b>Neues bestes Ergebnis für diesen Monat hinzugefügt</b>';
 $lang['highscore_no_new_mon_score'] = 'Du hast kein neues bestes Ergebnis für diesen Monat erreicht.';
+$lang['arcade_points_title'] = 'Beste Spieler bei %s';
+$lang['arcade_points_rank'] = 'Rang';
+$lang['arcade_points_name'] = 'Name';
+$lang['arcade_points_monthly'] = 'Monatliche Bestleistungen';
+$lang['arcade_points_all_time'] = 'Allzeit-Bestleistungen';
+$lang['arcade_points_total'] = 'Gesamtpunkte';
+$lang['arcade_points_explanation_title'] = 'So entsteht diese Rangliste';
+$lang['arcade_points_explanation'] = 'Die Liste vergibt Punkte für monatliche und Allzeit-Bestleistungen, die ein Spieler aktuell hält.';
+$lang['arcade_points_calculation'] = 'Punkteberechnung:';
+$lang['arcade_points_monthly_points'] = 'Monatliche Bestleistung: %d Punkt(e)';
+$lang['arcade_points_all_time_points'] = 'Allzeit-Bestleistung: %d Punkt(e)';
+$lang['arcade_points_period_info'] = 'Die Monatspunkte berücksichtigen den aktuellen und den vorherigen Kalendermonat.';
+$lang['arcade_points_stats'] = 'Listenstatistik';
+$lang['arcade_points_generated'] = 'Liste in %.4f Sekunden erstellt.';
 
 //
 // TFFT - The End...!

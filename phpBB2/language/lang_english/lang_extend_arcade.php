@@ -484,6 +484,20 @@ $lang['highscore_count_err'] = 'Wasn\'t able to count Highscores';
 $lang['highscore_other_score'] = "Highscores for the month";
 $lang['highscore_new_mon_score'] = '<b>New Highscore for the month added</b>';
 $lang['highscore_no_new_mon_score'] = 'No new Highscore for the month reached';
+$lang['arcade_points_title'] = 'Best players at %s';
+$lang['arcade_points_rank'] = 'Rank';
+$lang['arcade_points_name'] = 'Name';
+$lang['arcade_points_monthly'] = 'Monthly highscores';
+$lang['arcade_points_all_time'] = 'All-time highscores';
+$lang['arcade_points_total'] = 'Total points';
+$lang['arcade_points_explanation_title'] = 'How this ranking works';
+$lang['arcade_points_explanation'] = 'This list awards points for current monthly and all-time highscores held by each player.';
+$lang['arcade_points_calculation'] = 'Point calculation:';
+$lang['arcade_points_monthly_points'] = 'Monthly highscore: %d point(s)';
+$lang['arcade_points_all_time_points'] = 'All-time highscore: %d point(s)';
+$lang['arcade_points_period_info'] = 'Monthly points include the current and previous calendar month.';
+$lang['arcade_points_stats'] = 'List statistics';
+$lang['arcade_points_generated'] = 'List generated in %.4f seconds.';
 //
 // TFFT - The End...!
 //

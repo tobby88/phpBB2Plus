@@ -17,6 +17,10 @@ changes consolidated after that baseline without implying active maintenance.
   writes retain it, score and point views prefer the authoritative account
   name, and the updater backfills unambiguous historical owners before
   normalizing their old name snapshots.
+- Localized the Arcade point ranking in German and English and replaced its
+  inaccurate hardcoded three-month notice with the actual calculation period
+  (current and previous calendar month). The shared eXtreme Styles fallback
+  templates now expose only translated labels and explanatory text.
 - Centralized custom profile-field parsing for registration and administrator
   user management. Dynamic columns now have a strict identifier boundary,
   values obey their configured type, choices and length, and database writes

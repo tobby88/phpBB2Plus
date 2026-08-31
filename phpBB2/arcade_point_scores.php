@@ -26,7 +26,7 @@ if (!$userdata['session_logged_in'])
 	redirect(append_sid("login.$phpEx?redirect=arcade_point_scores.$phpEx", true));
 }
 
-$page_title = 'The Best Players At ' . $board_config['sitename'];
+$page_title = sprintf($lang['arcade_points_title'], $board_config['sitename']);
 include($phpbb_root_path . 'includes/page_header.' . $phpEx);
 
 $template->set_filenames(array('body' => 'arcade_point_scores.tpl'));
@@ -151,7 +151,19 @@ $template->assign_vars(array(
 	'TITLE' => htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'),
 	'C_MONTH' => $monthly_points,
 	'C_ALL_TIME' => $all_time_points,
-	'INFOTEXT' => 'List generated in ' . round(microtime(true) - $started_at, 4) . ' seconds'
+	'INFOTEXT' => sprintf($lang['arcade_points_generated'], round(microtime(true) - $started_at, 4)),
+	'L_RANK' => $lang['arcade_points_rank'],
+	'L_NAME' => $lang['arcade_points_name'],
+	'L_MONTHLY' => $lang['arcade_points_monthly'],
+	'L_ALL_TIME' => $lang['arcade_points_all_time'],
+	'L_TOTAL' => $lang['arcade_points_total'],
+	'L_EXPLANATION_TITLE' => $lang['arcade_points_explanation_title'],
+	'L_EXPLANATION' => $lang['arcade_points_explanation'],
+	'L_CALCULATION' => $lang['arcade_points_calculation'],
+	'L_MONTHLY_POINTS' => sprintf($lang['arcade_points_monthly_points'], $monthly_points),
+	'L_ALL_TIME_POINTS' => sprintf($lang['arcade_points_all_time_points'], $all_time_points),
+	'L_PERIOD_INFO' => $lang['arcade_points_period_info'],
+	'L_STATS' => $lang['arcade_points_stats']
 ));
 
 $template->pparse('body');

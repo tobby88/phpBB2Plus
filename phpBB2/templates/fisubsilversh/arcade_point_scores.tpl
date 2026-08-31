@@ -6,11 +6,11 @@
 <p align="center"><span class="cattitle">{TITLE}</span></p>
 <table class="forumline" width="100%" cellspacing="1" cellpadding="3" border="0" align="center">
    <tr>
-      <th class="thCornerL" width="50">Rank</th>
-      <th class="thTop" width="100">Name</th>
-      <th class="thTop" width="200">Current Monthly HiScores</th>
-      <th class="thTop" width="200">Total All Time HiScores</th>
-      <th class="thCornerR" width="200">Total Points</th>
+      <th class="thCornerL" width="50">{L_RANK}</th>
+      <th class="thTop" width="100">{L_NAME}</th>
+      <th class="thTop" width="200">{L_MONTHLY}</th>
+      <th class="thTop" width="200">{L_ALL_TIME}</th>
+      <th class="thCornerR" width="200">{L_TOTAL}</th>
    </tr>
 
 <!-- BEGIN total -->
@@ -32,13 +32,13 @@
    </tr>
 </table>
 <span class="gen">
-<b>Design Layout:</b><br />
-This list adds all Current HiScores and All Time HiScores per player.<br />
-Calculation of total points:<br />
-      * Current HiScores = {C_MONTH} Point(s)<br />
-      * All Time HiScores = {C_ALL_TIME} Points<br /><br />
-** Every 3 months, the High Scores are reset and the list changes **<br /><br />
-<b>List Stats:</b><br />
+<b>{L_EXPLANATION_TITLE}:</b><br />
+{L_EXPLANATION}<br />
+{L_CALCULATION}<br />
+      * {L_MONTHLY_POINTS}<br />
+      * {L_ALL_TIME_POINTS}<br /><br />
+{L_PERIOD_INFO}<br /><br />
+<b>{L_STATS}:</b><br />
 {INFOTEXT}<br />
 <br />
 </span>
