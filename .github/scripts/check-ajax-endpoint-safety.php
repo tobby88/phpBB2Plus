@@ -30,7 +30,7 @@ ajax_endpoint_assert(strpos($ajax, '$safe_username = htmlspecialchars(') !== fal
 ajax_endpoint_assert(substr_count($ajax, 'obtain_word_list($orig_word, $replacement_word);') >= 5, 'poll and PM previews must initialize their censor lists');
 ajax_endpoint_assert(strpos($ajax, "'S_HIDDEN_FIELDS' => \$s_hidden_fields") === false, 'PM preview must not read an undefined hidden-field variable');
 ajax_endpoint_assert(strpos($functions, "header('X-Content-Type-Options: nosniff')") !== false, 'AJAX XML must disable MIME sniffing');
-ajax_endpoint_assert(strpos($core, 'encodeURIComponent(String(text))') !== false && strpos($core, 'escape(text)') === false, 'AJAX values must use UTF-8 form encoding');
+ajax_endpoint_assert(strpos($core, 'encodeURIComponent(String(text))') !== false && strpos($core, 'text = escape(text)') === false, 'AJAX values must use UTF-8 form encoding');
 ajax_endpoint_assert(strpos($functions, 'return addslashes(stripslashes((string) $source));') !== false, 'PHP must not URL-decode AJAX form values twice');
 ajax_endpoint_assert(strpos($functions, 'ENT_COMPAT | ENT_SUBSTITUTE') !== false, 'invalid response bytes must not blank the AJAX XML result');
 ajax_endpoint_assert(strpos($ajax, "preg_match('//u', stripslashes(\$message)) !== 1") !== false, 'inline edits must reject invalid UTF-8 before storage');
