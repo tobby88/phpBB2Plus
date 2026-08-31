@@ -72,7 +72,68 @@ class ct_database
 			$this->settings[$row['ct_config_name']] = $row['ct_config_value'];
 		}
 
-		$runtime_defaults = array(
+		$runtime_defaults = $this->default_settings();
+		foreach ($runtime_defaults as $setting_name => $setting_value)
+		{
+			if (!isset($this->settings[$setting_name]))
+			{
+				$this->settings[$setting_name] = $setting_value;
+			}
+			if (!in_array($setting_name, $this->fieldnames_set, true))
+			{
+				$this->fieldnames_set[] = $setting_name;
+			}
+		}
+	}
+
+
+	/**
+	 * Canonical CrackerTracker defaults. These keep a partially upgraded or
+	 * damaged configuration usable until the idempotent updater (or the ACP
+	 * upsert path) restores the missing database rows.
+	 */
+	function default_settings()
+	{
+		return array(
+			'ipblock_enabled' => '1',
+			'ipblock_logsize' => '100',
+			'auto_recovery' => '1',
+			'vconfirm_guest' => '1',
+			'autoban_mails' => '1',
+			'detect_misconfiguration' => '1',
+			'search_time_guest' => '30',
+			'search_time_user' => '20',
+			'search_count_guest' => '1',
+			'search_count_user' => '4',
+			'massmail_protection' => '1',
+			'reg_protection' => '1',
+			'reg_blocktime' => '30',
+			'pwreset_time' => '20',
+			'massmail_time' => '20',
+			'spammer_time' => '30',
+			'spammer_postcount' => '4',
+			'spammer_blockmode' => '1',
+			'loginfeature' => '1',
+			'pw_reset_feature' => '1',
+			'login_history' => '1',
+			'login_history_count' => '10',
+			'login_ip_check' => '1',
+			'pw_validity' => '30',
+			'password_timestamps_split' => '1',
+			'pw_complex_min' => '4',
+			'pw_complex_mode' => '1',
+			'pw_control' => '0',
+			'pw_complex' => '0',
+			'last_file_scan' => '0',
+			'last_checksum_scan' => '0',
+			'logsize_logins' => '100',
+			'global_message' => '',
+			'global_message_type' => '1',
+			'logincount' => '5',
+			'search_feature_enabled' => '1',
+			'spam_attack_boost' => '1',
+			'spam_keyword_det' => '1',
+			'footer_layout' => '3',
 			'request_limit_enabled' => '1',
 			'request_limit_login' => '30',
 			'request_limit_register' => '10',
@@ -80,13 +141,6 @@ class ct_database
 			'request_limit_write' => '120',
 			'request_limit_upload' => '30'
 		);
-		foreach ($runtime_defaults as $setting_name => $setting_value)
-		{
-			if (!isset($this->settings[$setting_name]))
-			{
-				$this->settings[$setting_name] = $setting_value;
-			}
-		}
 	}
 
 
@@ -105,21 +159,26 @@ class ct_database
 
 		$setting = is_scalar($setting) ? trim((string) $setting) : '';
 		$value = is_scalar($value) ? trim((string) $value) : '';
-		if (!preg_match('/^[a-z0-9_]{1,64}$/D', $setting) || !in_array($setting, $this->fieldnames_set, true))
+		$known_settings = $this->default_settings();
+		if (!preg_match('/^[a-z0-9_]{1,64}$/D', $setting) || !array_key_exists($setting, $known_settings))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config']);
 		}
 
-		// Generate SQL Query
-		$sql = "UPDATE " . CTRACKER_CONFIG . "
-			SET ct_config_value = '" . $db->sql_escape($value) . "'
-			WHERE ct_config_name = '" . $db->sql_escape($setting) . "'";
+		// INSERT ... ON DUPLICATE KEY UPDATE also repairs a missing row. A plain
+		// UPDATE silently affected zero rows in partially upgraded databases.
+		$setting_sql = $db->sql_escape($setting);
+		$value_sql = $db->sql_escape($value);
+		$sql = "INSERT INTO " . CTRACKER_CONFIG . " (ct_config_name, ct_config_value)
+			VALUES ('$setting_sql', '$value_sql')
+			ON DUPLICATE KEY UPDATE ct_config_value = VALUES(ct_config_value)";
 
 		// Execute SQL Command in database
 		if ( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config'], '', __LINE__, __FILE__, $sql);
 		}
+		$this->settings[$setting] = $value;
 	}
 
 

@@ -167,6 +167,7 @@ $lang['ctracker_credits_info_text']		  = 'Die perfekte Erweiterung für phpBB un
  */
 $lang['ctracker_fchk_head']				  = 'CrackerTracker Prüfsummenscanner';
 $lang['ctracker_fchk_subhead']			  = 'Dieser Scanner erzeugt für jede PHP-Datei Deines Forums eine kryptografische SHA-256-Prüfsumme. Mit "Überprüfe Dateiänderungen" kannst Du später unerwartet geänderte oder gelöschte Dateien erkennen. Der Neuaufbau ersetzt die bisherige Vergleichsbasis erst, wenn der vollständige Scan erfolgreich war. Prüfe Änderungen sorgfältig: Sie können von einer legitimen Aktualisierung, aber auch von einem unbefugten Zugriff stammen.<br /><br /><b>Hinweis:</b> Prüfsummen aus älteren CrackerTracker-Versionen waren nicht inhaltssicher und werden als veraltet markiert. Erstelle sie nach dem Update einmal bewusst neu.<br /><br />&raquo; Die letzte Aktualisierung der Dateiprüfsummen fand am <b>%s</b> statt.';
+$lang['ctracker_never']				  = 'noch nie';
 $lang['ctracker_fchk_funcheader']		  = 'Funktionen';
 $lang['ctracker_fchk_tableheader']		  = 'Systemausgabe';
 $lang['ctracker_fchk_option1']			  = 'Erstelle oder aktualisiere Prüfsummen';

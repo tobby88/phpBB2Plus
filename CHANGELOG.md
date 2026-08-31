@@ -14,6 +14,11 @@ changes consolidated after that baseline without implying active maintenance.
   blocklist; the updater and ACP cleanup preserve every custom IP, CIDR,
   hostname and User-Agent rule. Blocklist IDs are allocated atomically by the
   database, and invalid legacy selector values no longer trigger PHP warnings.
+- Added canonical runtime defaults for every active CrackerTracker setting.
+  A missing row in an incomplete legacy upgrade no longer emits warnings or
+  silently disables protection, and saving the ACP form repairs absent rows
+  through a whitelisted upsert. Fresh installs no longer start with a
+  decades-old scan timestamp or the sample global message “Hello world!”.
 - Removed CrackerTracker's two obsolete per-user search counters. Search
   protection already uses the shared atomic rate-limit table for guests and
   members, so fresh schemas no longer create parallel state and the updater

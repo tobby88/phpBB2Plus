@@ -169,6 +169,7 @@ $lang['ctracker_credits_info_text']		  = 'The perfect add-on for phpBB and the C
  */
 $lang['ctracker_fchk_head']				  = 'CrackerTracker Checksum Scanner';
 $lang['ctracker_fchk_subhead']			  = 'This scanner creates a cryptographic SHA-256 checksum for every PHP file in your board. "Verify File Changes" can then identify unexpectedly modified or deleted files. Rebuilding replaces the existing baseline only after the complete scan succeeds. Review changes carefully: they may be caused by a legitimate update or by unauthorized access.<br /><br /><b>Note:</b> Checksums created by older CrackerTracker versions were not content-safe and are marked as legacy. Rebuild them once after updating.<br /><br />&raquo; The file-check baseline was last updated on <b>%s</b>.';
+$lang['ctracker_never']				  = 'never';
 $lang['ctracker_fchk_funcheader']		  = 'Features';
 $lang['ctracker_fchk_tableheader']		  = 'System Output';
 $lang['ctracker_fchk_option1']			  = 'Create or upgrade Checksums';

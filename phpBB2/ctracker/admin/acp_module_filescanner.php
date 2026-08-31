@@ -135,9 +135,13 @@ else
 /*
  * Send some vars to the template
  */
+$last_file_scan = intval($ctracker_config->settings['last_file_scan']);
+$last_file_scan_text = ($last_file_scan > 0)
+	? date($board_config['default_dateformat'], $last_file_scan)
+	: $lang['ctracker_never'];
 $template->assign_vars(array(
 	'L_HEADLINE' 		=> $lang['ctracker_fscan_head'],
-	'L_SUBHEADLINE'		=> sprintf($lang['ctracker_fscan_subhead'], date($board_config['default_dateformat'], $ctracker_config->settings['last_file_scan'])),
+	'L_SUBHEADLINE'		=> sprintf($lang['ctracker_fscan_subhead'], $last_file_scan_text),
 	'L_FUNC_HEADER'		=> $lang['ctracker_fchk_funcheader'],
 	'L_TABLE_HEADER'	=> $lang['ctracker_fchk_tableheader'],
 	'L_OPTION_1'		=> $lang['ctracker_fscan_option1'],
