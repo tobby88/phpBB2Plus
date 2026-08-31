@@ -101,9 +101,9 @@ pafiledb_admin_assert(strpos($pafiledb_search, "preg_match('/^[1-9][0-9]*\$/D', 
 pafiledb_admin_assert(strpos($pafiledb_search, "\$db->sql_escape(\$search_author)") !== false, 'paFileDB author searches must use driver escaping');
 pafiledb_admin_assert(strpos($pafiledb_search, "\$db->sql_escape(serialize(\$store_search_data))") !== false, 'serialized paFileDB search state must use driver escaping');
 pafiledb_admin_assert(strpos($pafiledb_search, "\$db->sql_escape(\$userdata['session_id'])") !== false, 'paFileDB search sessions must use driver escaping');
-pafiledb_admin_assert(strpos($pafiledb_search, "\$store_search_data['pafiledb'] = 1") !== false, 'paFileDB cached results must be namespaced');
-pafiledb_admin_assert(strpos($pafiledb_search, '${$store_vars[$i]}') !== false, 'paFileDB cache storage must use unambiguous PHP 8 variable-variable syntax');
-pafiledb_admin_assert(strpos($pafiledb_search, '$$store_vars[$i]') === false, 'ambiguous legacy variable-variable syntax must be removed');
+pafiledb_admin_assert(strpos($pafiledb_search, "'pafiledb' => 1") !== false, 'paFileDB cached results must be namespaced');
+pafiledb_admin_assert(strpos($pafiledb_search, "'search_results' => \$search_results") !== false, 'paFileDB cache storage must use an explicit field map');
+pafiledb_admin_assert(strpos($pafiledb_search, '${$store_vars[$i]}') === false && strpos($pafiledb_search, '$$store_vars[$i]') === false, 'dynamic variable-variable cache storage must be removed');
 pafiledb_admin_assert(strpos($pafiledb_search, 'in_array($cached_sort_method, $allowed_sort_methods, true)') !== false, 'cached paFileDB sort fields must use an allowlist');
 pafiledb_admin_assert(strpos($pafiledb_search, 'LEFT JOIN " . PA_VOTES_TABLE') === false, 'paFileDB result totals must not multiply vote and comment joins');
 
