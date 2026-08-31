@@ -12,6 +12,15 @@ function host_alias_assert($condition, $message)
 	}
 }
 
+$_SERVER = array('HTTPS' => 'on', 'SERVER_PORT' => '80');
+host_alias_assert(phpbb_request_is_https(), 'HTTPS server flag was ignored');
+$_SERVER = array('HTTPS' => 'off', 'SERVER_PORT' => '443');
+host_alias_assert(phpbb_request_is_https(), 'direct TLS port was ignored');
+$_SERVER = array('HTTPS' => 'off', 'SERVER_PORT' => '80', 'HTTP_X_FORWARDED_PROTO' => 'https');
+host_alias_assert(!phpbb_request_is_https(), 'untrusted forwarded protocol enabled TLS state');
+$common_source = file_get_contents($root . '/phpBB2/common.php');
+host_alias_assert(strpos($common_source, "header('Strict-Transport-Security: max-age=31536000')") !== false, 'HTTPS responses omit HSTS');
+
 host_alias_assert(phpbb_board_hosts_match('www.example.com', 'example.com'), 'www/apex pair rejected');
 host_alias_assert(phpbb_board_hosts_match('EXAMPLE.com.', 'example.com'), 'case/trailing-dot normalization failed');
 host_alias_assert(!phpbb_board_hosts_match('forum.example.com', 'www.example.com'), 'unrelated subdomain accepted');

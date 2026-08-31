@@ -39,6 +39,10 @@ if (!headers_sent())
 	header('Referrer-Policy: strict-origin-when-cross-origin');
 	header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 	header("Content-Security-Policy: base-uri 'self'; form-action 'self'; frame-ancestors 'self'; object-src 'self' blob: data:");
+	if (phpbb_request_is_https())
+	{
+		header('Strict-Transport-Security: max-age=31536000');
+	}
 }
 
 //-- mod : run stats -----------------------------------------------------------

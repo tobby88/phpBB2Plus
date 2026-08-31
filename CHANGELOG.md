@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Added a shared, spoof-resistant HTTPS detector for secure cookies, absolute
+  board URLs and response policy. Direct TLS responses now advertise a
+  one-year HSTS policy without claiming unrelated subdomains or preload
+  eligibility; untrusted forwarding headers cannot enable secure-request
+  state.
 - Moved CrackerTracker's internal-mail cooldown from a user-table deadline to
   the shared per-account rate-limit store. Merely opening a mail form or
   submitting invalid data no longer blocks it, and the cooldown starts only

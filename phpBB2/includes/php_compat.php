@@ -105,13 +105,26 @@ if (!function_exists('phpbb_tracking_cookie_array'))
 /**
  * Set application cookies with modern browser protections on every PHP level.
  */
+if (!function_exists('phpbb_request_is_https'))
+{
+	function phpbb_request_is_https()
+	{
+		$https = isset($_SERVER['HTTPS']) && is_scalar($_SERVER['HTTPS']) ? strtolower(trim((string) $_SERVER['HTTPS'])) : '';
+		if ($https !== '' && $https !== 'off' && $https !== '0')
+		{
+			return true;
+		}
+
+		return isset($_SERVER['SERVER_PORT']) && intval($_SERVER['SERVER_PORT']) === 443;
+	}
+}
+
 if (!function_exists('phpbb_setcookie'))
 {
 	function phpbb_setcookie($name, $value, $expires, $path, $domain, $secure)
 	{
 		$path = ($path === '') ? '/' : $path;
-		$request_secure = isset($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
-		$secure = (bool) $secure || $request_secure;
+		$secure = (bool) $secure || phpbb_request_is_https();
 
 		if (version_compare(PHP_VERSION, '7.3.0', '>='))
 		{
@@ -253,7 +266,7 @@ if (!function_exists('phpbb_board_url'))
 	{
 		global $board_config;
 
-		$secure_request = isset($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+		$secure_request = phpbb_request_is_https();
 		$scheme = ($secure_request || !empty($board_config['cookie_secure'])) ? 'https' : 'http';
 		$host = isset($board_config['server_name']) ? trim($board_config['server_name']) : '';
 		if (!preg_match('/^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[a-f0-9:]+\])$/i', $host))
