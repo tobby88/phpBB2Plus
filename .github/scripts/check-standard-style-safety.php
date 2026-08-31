@@ -33,6 +33,7 @@ standard_style_assert(strpos($basic, "'fisubsilversh', 'FI Subsilver Shadow'") !
 standard_style_assert(strpos($updater, 'function update_queue_standard_style') !== false, 'the updater must normalize existing style records');
 standard_style_assert(strpos($updater, "WHERE template_name <> 'fisubsilversh'") !== false, 'the updater must remove obsolete style records');
 standard_style_assert(strpos($updater, "config_name = 'xs_def_template'") !== false, 'the updater must normalize the eXtreme Styles fallback');
+standard_style_assert(strpos($updater, "'xs_def_template' => 'fisubsilversh'") !== false, 'the updater must create a missing fallback setting');
 standard_style_assert(strpos($template_engine, "var \$tpldef = 'fisubsilversh';") !== false, 'the template fallback must use FI Subsilver Shadow');
 
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($templates_root . '/fisubsilversh', FilesystemIterator::SKIP_DOTS));

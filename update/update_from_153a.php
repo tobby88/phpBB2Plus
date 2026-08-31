@@ -360,12 +360,15 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 	$themes_name_sql = update_quote_identifier($themes_name_table);
 	$users_sql = update_quote_identifier($users_table);
 	$config_sql = update_quote_identifier($config_table);
-	$standard_id = '(SELECT themes_id FROM ' . $themes_sql . " WHERE template_name = 'fisubsilversh' ORDER BY themes_id LIMIT 1)";
+	$standard_id_select = 'SELECT themes_id FROM ' . $themes_sql . " WHERE template_name = 'fisubsilversh' ORDER BY themes_id LIMIT 1";
+	$standard_id = '(' . $standard_id_select . ')';
 	$operations[] = 'UPDATE ' . $config_sql . ' SET config_value = ' . $standard_id . " WHERE config_name = 'default_style'";
 	$operations[] = 'UPDATE ' . $config_sql . " SET config_value = 'fisubsilversh' WHERE config_name = 'xs_def_template'";
 	$operations[] = 'UPDATE ' . $users_sql . ' SET user_style = ' . $standard_id . ' WHERE user_style IS NULL OR user_style <> ' . $standard_id;
-	$operations[] = 'DELETE FROM ' . $themes_name_sql . ' WHERE themes_id NOT IN (' . $standard_id . ')';
+	$operations[] = 'DELETE FROM ' . $themes_name_sql . ' WHERE themes_id NOT IN (' . $standard_id_select . ')';
 	$operations[] = 'DELETE FROM ' . $themes_sql . " WHERE template_name <> 'fisubsilversh'";
+	$operations[] = 'DELETE FROM ' . $themes_sql . ' WHERE themes_id <> (SELECT themes_id FROM (SELECT themes_id FROM ' .
+		$themes_sql . " WHERE template_name = 'fisubsilversh' ORDER BY themes_id LIMIT 1) standard_theme)";
 }
 
 $operations = array();
@@ -471,6 +474,7 @@ update_queue_standard_style(
 );
 
 $config_defaults = array(
+	'xs_def_template' => 'fisubsilversh',
 	'cookie_consent_enable' => '1',
 	'sfs_enable' => '0',
 	'password_hashing' => '1',
