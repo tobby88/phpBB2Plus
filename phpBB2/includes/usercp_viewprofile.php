@@ -432,13 +432,17 @@ $abouts = array();
 $contacts = array();
 foreach($profile_data as $field)
 {
-  $name = $field['field_name'];
-  $col_name = text_to_column($field['field_name']);
+  $name = phpbb_profile_display_text($field['field_name']);
+  $col_name = phpbb_profile_field_column($field);
+  if ($col_name === '')
+  {
+    continue;
+  }
   $id = $profiledata['user_id'];
   $type = $field['field_type'];
   $location = $field['profile_location'];
   
-  $profile_names[$name] = displayable_field_data($profiledata[$col_name],$field['field_type']);
+  $profile_names[$name] = displayable_field_data(isset($profiledata[$col_name]) ? $profiledata[$col_name] : '',$field['field_type']);
   
   if($location == 1) {
     $contacts[$name]['name'] = $name;

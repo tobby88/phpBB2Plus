@@ -23,7 +23,7 @@ require_marker($functions, 'return false;', $errors);
 require_marker($functions, '$cache_update = 300;', $errors);
 require_marker($functions, 'AND ug.user_pending = 0', $errors);
 require_marker($functions, 'SELECT MIN(c2.order_num)', $errors);
-require_marker($functions, "($row && isset($row['username']))", $errors);
+require_marker($functions, '($row && isset($row[\'username\']))', $errors);
 
 $profile = $root . '/phpBB2/includes/usercp_register.php';
 $admin_users = $root . '/phpBB2/admin/admin_users.php';

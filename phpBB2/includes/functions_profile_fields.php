@@ -127,15 +127,20 @@ function phpbb_profile_field_assignments($profile_data, $source, &$profile_names
   return $assignments;
 }
 
+function phpbb_profile_display_text($value)
+{
+  $value = is_scalar($value) ? (string) $value : '';
+  return htmlspecialchars(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 function displayable_field_data($data, $type)
 {
 	global $lang;
-  $data = is_scalar($data) ? (string) $data : '';
+  $data = phpbb_profile_display_text($data);
   switch($type)
   {
     case TEXTAREA:
-      return str_replace("\r\n","<br />",$data);
-      break;
+      return nl2br(str_replace("\r\n", "\n", $data));
     case TEXT_FIELD:
     case RADIO:
       return $data;
@@ -179,8 +184,12 @@ function get_topic_udata($postrow_data, $profile_data)
 			{
 				continue;
 			}
-			$name = $field['field_name'];
-			$col_name = text_to_column($field['field_name']);
+			$name = phpbb_profile_display_text($field['field_name']);
+			$col_name = phpbb_profile_field_column($field);
+			if ($col_name === '')
+			{
+				continue;
+			}
 			$type = $field['field_type'];
 			$location = $field['topic_location'];
 
@@ -206,7 +215,11 @@ function get_udata_txt($profile_data, $add = '')
 	{
 		if (is_array($field) && isset($field['field_name']))
 		{
-			$cp_sql_txt .= ', ' . $add . text_to_column($field['field_name']);
+			$column = phpbb_profile_field_column($field);
+			if ($column !== '')
+			{
+				$cp_sql_txt .= ', ' . $add . $column;
+			}
 		}
 	}
 

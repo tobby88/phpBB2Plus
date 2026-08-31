@@ -168,7 +168,7 @@ if ( $row = $db->sql_fetchrow($result) )
 	// Custom Profile Fields MOD
 	//
 	foreach($profile_data as $field)
-		$template->assign_block_vars('custom_field_names',array('FIELD_NAME' => $field['field_name']));
+		$template->assign_block_vars('custom_field_names',array('FIELD_NAME' => phpbb_profile_display_text($field['field_name'])));
 	
 	$template->assign_vars(array('NUMCOLS' => count($profile_data)+11));
 	//
@@ -348,8 +348,8 @@ if ( $row = $db->sql_fetchrow($result) )
 		//
 		foreach($profile_data as $field)
 		{
-		  $name = text_to_column($field['field_name']);
-		  $val = displayable_field_data($row[$name],$field['field_type']);
+		  $name = phpbb_profile_field_column($field);
+		  $val = ($name === '') ? '' : displayable_field_data(isset($row[$name]) ? $row[$name] : '',$field['field_type']);
 		  
 		  $template->assign_block_vars('memberrow.custom_fields',array('CUSTOM_FIELD' => $val));
 		}

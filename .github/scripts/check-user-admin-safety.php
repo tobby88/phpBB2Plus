@@ -7,6 +7,9 @@ $account = (string) file_get_contents($root . '/phpBB2/admin/admin_account.php')
 $admin_users = (string) file_get_contents($root . '/phpBB2/admin/admin_users.php');
 $profile_functions = (string) file_get_contents($root . '/phpBB2/includes/functions_profile_fields.php');
 $profile = (string) file_get_contents($root . '/phpBB2/includes/usercp_register.php');
+$profile_admin = (string) file_get_contents($root . '/phpBB2/admin/admin_profile_fields.php');
+$profile_view = (string) file_get_contents($root . '/phpBB2/includes/usercp_viewprofile.php');
+$memberlist = (string) file_get_contents($root . '/phpBB2/memberlist.php');
 $templates = array(
 	(string) file_get_contents($root . '/phpBB2/templates/subSilver/admin/admin_users_list_body.tpl'),
 	(string) file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/admin_users_list_body.tpl')
@@ -76,7 +79,9 @@ foreach (array(
 	'function phpbb_profile_field_input',
 	'array_slice($source[$column], 0, 100)',
 	'in_array($item, $allowed, true)',
-	'$db->sql_escape($profile_names[$column])'
+	'$db->sql_escape($profile_names[$column])',
+	'function phpbb_profile_display_text',
+	"html_entity_decode(\$value, ENT_QUOTES, 'UTF-8')"
 ) as $marker)
 {
 	if (strpos($profile_functions, $marker) === false)
@@ -111,6 +116,13 @@ foreach (array('$temp = $_POST[$name]', '$sql2_tmp', 'str_replace("\\\'","\'\'",
 	if (strpos($admin_users . $profile, $marker) !== false)
 	{
 		$errors[] = 'Legacy custom-profile input path remains: ' . $marker;
+	}
+}
+foreach (array($profile_admin, $profile_view, $memberlist) as $index => $output_path)
+{
+	if (strpos($output_path, 'phpbb_profile_display_text(') === false)
+	{
+		$errors[] = 'Profile output path ' . $index . ' lacks entity normalization.';
 	}
 }
 
