@@ -20,6 +20,6 @@ pafiledb_template_assert(strpos($source, "tempnam(\$this->cachedir, '.pa-tpl-')"
 pafiledb_template_assert(strpos($source, 'file_put_contents($temp, $data, LOCK_EX)') !== false, 'compiled templates need a complete locked write');
 pafiledb_template_assert(strpos($source, 'rename($temp, $filename)') !== false, 'compiled templates must be published atomically');
 pafiledb_template_assert(strpos($source, 'mkdir($this->cachedir, 0777') === false, 'cache directories must not be created world-writable');
-pafiledb_template_assert(strpos($source, "preg_replace('#<!--\\s*PHP") !== false, 'legacy template PHP blocks must remain disabled');
+pafiledb_template_assert(strpos($source, "preg_replace('#<!--\\\\s*PHP") !== false, 'legacy template PHP blocks must remain disabled');
 
 echo "paFileDB template safety tests passed.\n";

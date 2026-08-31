@@ -106,6 +106,9 @@ jobs:
       - name: Test mail workflow safety
         run: php .github/scripts/check-mail-workflow-safety.php
 
+      - name: Test SMTP transport safety
+        run: php .github/scripts/check-smtp-transport-safety.php
+
       - name: Test CrackerTracker log rotation
         run: php .github/scripts/check-ctracker-log-manager.php
 

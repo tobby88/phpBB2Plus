@@ -19,6 +19,11 @@ changes consolidated after that baseline without implying active maintenance.
   directories are not created world-writable, and compiled templates are
   published with a complete atomic write instead of being included while a
   concurrent request may still be writing them.
+- Bounded SMTP response reads, validated every envelope address, and escaped
+  remote server diagnostics before HTML rendering. SMTP DATA is now correctly
+  dot-stuffed as one payload, preventing a user-authored line containing only
+  a period from ending the message early and turning following text into SMTP
+  protocol commands.
 - Removed CrackerTracker's obsolete factory blocklist of 32 spoofable
   User-Agent strings, which included legitimate archival and scripting
   clients. Fresh installations now start with an empty administrator-managed

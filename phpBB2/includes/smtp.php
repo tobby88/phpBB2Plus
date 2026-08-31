@@ -22,6 +22,24 @@
 // Tell the Security Scanner that this constant is allowed
 define('SMTP_INCLUDED', 1);
 
+function smtp_envelope_address($address)
+{
+	$address = trim(preg_replace('/[\r\n]+/', '', (string) $address));
+	if (preg_match('/<([^<>]+)>/', $address, $match))
+	{
+		$address = trim($match[1]);
+	}
+
+	return filter_var($address, FILTER_VALIDATE_EMAIL) !== false ? $address : '';
+}
+
+function smtp_dot_stuff($data)
+{
+	$data = str_replace(array("\r\n", "\r"), "\n", (string) $data);
+	$data = preg_replace('/^\./m', '..', $data);
+	return str_replace("\n", "\r\n", $data);
+}
+
 //
 // This function has been modified as provided
 // by SirSir to allow multiline responses when 
@@ -30,17 +48,37 @@ define('SMTP_INCLUDED', 1);
 function server_parse($socket, $response, $line = __LINE__) 
 {
 	$server_response = '';
-	while (substr($server_response, 3, 1) != ' ') 
+	$response_complete = false;
+	$deadline = microtime(true) + 20;
+	for ($response_line = 0; $response_line < 100; $response_line++)
 	{
+		$remaining = (int) ceil($deadline - microtime(true));
+		if ($remaining <= 0)
+		{
+			message_die(GENERAL_ERROR, 'Mail server response timed out', '', $line, __FILE__);
+		}
+		stream_set_timeout($socket, $remaining);
 		if (!($server_response = fgets($socket, 256))) 
-		{ 
-			message_die(GENERAL_ERROR, "Couldn't get mail server response codes", "", $line, __FILE__); 
-		} 
-	} 
+		{
+			$metadata = stream_get_meta_data($socket);
+			$error = !empty($metadata['timed_out']) ? 'Mail server response timed out' : "Couldn't get mail server response codes";
+			message_die(GENERAL_ERROR, $error, '', $line, __FILE__);
+		}
+		if (substr($server_response, 3, 1) === ' ')
+		{
+			$response_complete = true;
+			break;
+		}
+	}
+	if (!$response_complete)
+	{
+		message_die(GENERAL_ERROR, 'Mail server sent an excessive multiline response', '', $line, __FILE__);
+	}
 
 	if (!(substr($server_response, 0, 3) == $response)) 
 	{ 
-		message_die(GENERAL_ERROR, "Ran into problems sending Mail. Response: $server_response", "", $line, __FILE__); 
+		$safe_response = htmlspecialchars(substr(trim($server_response), 0, 500), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+		message_die(GENERAL_ERROR, "Ran into problems sending Mail. Response: $safe_response", '', $line, __FILE__);
 	} 
 }
 
@@ -48,6 +86,8 @@ function server_parse($socket, $response, $line = __LINE__)
 function smtpmail($mail_to, $subject, $message, $headers = '')
 {
 	global $board_config;
+	$cc = array();
+	$bcc = array();
 
 	// Fix any bare linefeeds in the message to make it RFC821 Compliant.
 	$message = preg_replace("#(?<!\r)\n#si", "\r\n", $message);
@@ -108,10 +148,16 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 
 	// Ok we have error checked as much as we can to this point let's get on
 	// it already.
-	if( !$socket = @fsockopen($board_config['smtp_host'], 25, $errno, $errstr, 20) )
+	$smtp_host = trim((string) $board_config['smtp_host']);
+	if ($smtp_host === '' || preg_match('/[\x00-\x20\x7f]/', $smtp_host))
 	{
-		message_die(GENERAL_ERROR, "Could not connect to smtp host : $errno : $errstr", "", __LINE__, __FILE__);
+		message_die(GENERAL_ERROR, 'No SMTP host configured', '', __LINE__, __FILE__);
 	}
+	if( !$socket = @fsockopen($smtp_host, 25, $errno, $errstr, 20) )
+	{
+		message_die(GENERAL_ERROR, 'Could not connect to SMTP host (' . intval($errno) . ')', '', __LINE__, __FILE__);
+	}
+	stream_set_timeout($socket, 20);
 
 	// Wait for reply
 	server_parse($socket, "220", __LINE__);
@@ -120,7 +166,9 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 	// This improved as provided by SirSir to accomodate
 	if( !empty($board_config['smtp_username']) && !empty($board_config['smtp_password']) )
 	{ 
-		fputs($socket, "EHLO " . $board_config['smtp_host'] . "\r\n");
+		$smtp_identity = preg_replace('/[^a-z0-9.-]/i', '', (string) $board_config['server_name']);
+		$smtp_identity = ($smtp_identity !== '') ? $smtp_identity : 'localhost';
+		fputs($socket, "EHLO " . $smtp_identity . "\r\n");
 		server_parse($socket, "250", __LINE__);
 
 		fputs($socket, "AUTH LOGIN\r\n");
@@ -134,24 +182,36 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 	}
 	else
 	{
-		fputs($socket, "HELO " . $board_config['smtp_host'] . "\r\n");
+		$smtp_identity = preg_replace('/[^a-z0-9.-]/i', '', (string) $board_config['server_name']);
+		$smtp_identity = ($smtp_identity !== '') ? $smtp_identity : 'localhost';
+		fputs($socket, "HELO " . $smtp_identity . "\r\n");
 		server_parse($socket, "250", __LINE__);
 	}
 
 	// From this point onward most server response codes should be 250
 	// Specify who the mail is from....
-	fputs($socket, "MAIL FROM: <" . $board_config['board_email'] . ">\r\n");
+	$from_address = smtp_envelope_address($board_config['board_email']);
+	if ($from_address === '')
+	{
+		fclose($socket);
+		message_die(GENERAL_ERROR, 'Invalid board email address', '', __LINE__, __FILE__);
+	}
+	fputs($socket, "MAIL FROM: <" . $from_address . ">\r\n");
 	server_parse($socket, "250", __LINE__);
 
 	// Specify each user to send to and build to header.
 	$to_header = '';
 
 	// Add an additional bit of error checking to the To field.
-	$mail_to = (trim($mail_to) == '') ? 'Undisclosed-recipients:;' : trim($mail_to);
-	if (preg_match('#[^ ]+\@[^ ]+#', $mail_to))
+	$mail_to = trim(preg_replace('/[\r\n]+/', '', (string) $mail_to));
+	$to_address = smtp_envelope_address($mail_to);
+	$to_header = ($to_address !== '') ? $to_address : 'Undisclosed-recipients:;';
+	$recipient_count = 0;
+	if ($to_address !== '')
 	{
-		fputs($socket, "RCPT TO: <$mail_to>\r\n");
+		fputs($socket, "RCPT TO: <$to_address>\r\n");
 		server_parse($socket, "250", __LINE__);
+		$recipient_count++;
 	}
 
 	// Ok now do the CC and BCC fields...
@@ -160,10 +220,12 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 	{
 		// Add an additional bit of error checking to bcc header...
 		$bcc_address = trim($bcc_address);
-		if (preg_match('#[^ ]+\@[^ ]+#', $bcc_address))
+		$bcc_address = smtp_envelope_address($bcc_address);
+		if ($bcc_address !== '')
 		{
 			fputs($socket, "RCPT TO: <$bcc_address>\r\n");
 			server_parse($socket, "250", __LINE__);
+			$recipient_count++;
 		}
 	}
 
@@ -172,11 +234,18 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 	{
 		// Add an additional bit of error checking to cc header
 		$cc_address = trim($cc_address);
-		if (preg_match('#[^ ]+\@[^ ]+#', $cc_address))
+		$cc_address = smtp_envelope_address($cc_address);
+		if ($cc_address !== '')
 		{
 			fputs($socket, "RCPT TO: <$cc_address>\r\n");
 			server_parse($socket, "250", __LINE__);
+			$recipient_count++;
 		}
+	}
+	if ($recipient_count === 0)
+	{
+		fclose($socket);
+		message_die(GENERAL_ERROR, 'No valid email recipient specified', '', __LINE__, __FILE__);
 	}
 
 	// Ok now we tell the server we are ready to start sending data
@@ -185,21 +254,14 @@ function smtpmail($mail_to, $subject, $message, $headers = '')
 	// This is the last response code we look for until the end of the message.
 	server_parse($socket, "354", __LINE__);
 
-	// Send the Subject Line...
-	if (stripos($subject, 'Subject:') === false) fputs($socket, "Subject: $subject\r\n");
-
-	// Now the To Header.
-	if (stripos($headers, 'To:') === false) fputs($socket, "To: $mail_to\r\n");
-
-
-	// Now any custom headers....
-	fputs($socket, "$headers\r\n\r\n");
-
-	// Ok now we are ready for the message...
-	fputs($socket, "$message\r\n");
-
-	// Ok the all the ingredients are mixed in let's cook this puppy...
-	fputs($socket, ".\r\n");
+	$subject = trim(preg_replace('/[\x00\r\n]+/', '', (string) $subject));
+	$data = "Subject: $subject\r\n";
+	if (stripos($headers, 'To:') === false)
+	{
+		$data .= "To: $to_header\r\n";
+	}
+	$data .= $headers . "\r\n\r\n" . $message;
+	fputs($socket, smtp_dot_stuff($data) . "\r\n.\r\n");
 	server_parse($socket, "250", __LINE__);
 
 	// Now tell the server we are done and close the socket...
