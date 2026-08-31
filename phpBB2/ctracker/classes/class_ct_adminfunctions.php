@@ -45,29 +45,6 @@ class ct_adminfunctions
 
 
 	/**
-	 * <b>ct_spammer_block</b>
-	 * Generates the Block Modes Switchfields
-	 *
-	 * @param $current (Integer) -> Current Setting
-	 * @return $switch (String)
-	 */
-	function ct_spammer_block($current)
-	{
-		global $lang;
-
-		$switch = '';
-		$ch_sel = array_fill(0, 3, '');
-		$ch_sel[$current] = ' selected="selected"';
-
-		$switch .= '<option value="0"' . $ch_sel[0] . '>' . $lang['ctracker_blockmode_0'] . '</option>';
-		$switch .= '<option value="1"' . $ch_sel[1] . '>' . $lang['ctracker_blockmode_1'] . '</option>';
-		$switch .= '<option value="2"' . $ch_sel[2] . '>' . $lang['ctracker_blockmode_2'] . '</option>';
-
-		return $switch;
-	}
-
-
-	/**
 	 * <b>ct_keyword_b_block</b>
 	 * Generates the Block Modes Switchfields
 	 *

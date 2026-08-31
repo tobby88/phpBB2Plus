@@ -90,7 +90,7 @@
 		<th colspan="3">{L_CATNAME_4}</th>
 	</tr>
 	<tr>
-		<td class="row3" width="20%" align="center" rowspan="6"><img src="{CAT_ICON_4}" border="0"></td> 
+		<td class="row3" width="20%" align="center" rowspan="5"><img src="{CAT_ICON_4}" border="0"></td>
 		<td class="row1" width="50%"><b>{L_MOD_14}</b><br />{L_EXP_14}</td>
 		<td class="row1" width="30%"><select name="spammer_blockmode">{S_OUTPUT_14}</select></td>
 	</tr>
@@ -101,10 +101,6 @@
 	<tr> 
 		<td class="row1" width="50%"><b>{L_MOD_16}</b><br />{L_EXP_16}</td>
 		<td class="row1" width="30%"><select name="spammer_postcount">{S_OUTPUT_16}</select></td>
-	</tr>
-	<tr> 
-		<td class="row2" width="50%"><b>{L_MOD_17}</b><br />{L_EXP_17}</td>
-		<td class="row2" width="30%"><select name="logsize_spammer">{S_OUTPUT_17}</select></td>
 	</tr>
 	<tr> 
 		<td class="row1" width="50%"><b>{L_MOD_35}</b><br />{L_EXP_35}</td>

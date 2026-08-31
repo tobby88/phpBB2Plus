@@ -127,38 +127,13 @@ class ct_userfunctions
 
 	/**
 	 * <b>handle_postings</b>
-	 * This is the spammer post detection. Every features for post scanning you
-	 * can find here in one place. This function includes two features. Standard
-	 * Spammer detection system and the System for Spam Detection Boost and Spam
-	 * Detection Wordfilter.
-	 *
-	 * <br><br>
-	 *
-	 * I will show in a little diagram how this function works because the code
-	 * is little bit tricky if you have not programmed it. ;-)
-	 *
-	 * <br><br>
-	 *
-	 * First we check if time() >= spammer_time. If so we have to start a new
-	 * counting for this user. So we write ct_last_post = time() +
-	 * $ctracker_config->settings['spammer_time'] into the usertable and we set
-	 * the Database field ct_post_counter to 1.
-	 *
-	 * If time is not >= spammer_time we have to check if ct_post_counter
-	 * < $ctracker_config->settings['spammer_postcount'] to see if the maximum
-	 * number of posts in the timespan is exceeded. One post before banning the
-	 * user we output a warning message that a user is informed.
-	 *
-	 * We do the warning message in a very simple way: If the new counter value
-	 * == the maximum post count in the timespan we output a message_die() and
-	 * we don't write the post into the database then.
-	 *
-	 * If the user starts his next attempt we handle it as spammer and block the
-	 * user.
+	 * Apply a bounded per-account posting rate and the low-post-count content
+	 * checks. A posting burst is not proof that an account is malicious, so it
+	 * must never create a permanent ban or deactivate the account.
 	 */
 	function handle_postings()
 	{
-		global $lang, $db, $ctracker_config, $userdata, $phpbb_root_path, $phpEx;
+		global $lang, $ctracker_config, $userdata, $phpbb_root_path, $phpEx;
 
 		// MOD or ADMIN? - No Action please.
 		if ( $userdata['user_level'] > 0 )
@@ -167,38 +142,25 @@ class ct_userfunctions
 		}
 
 
-		// Standard Spammer detection system
-		// Why String and Int Check? Well some servers have problems to cast values from an Object so we make here little compatibility tricks
-		if ( $ctracker_config->settings['spammer_blockmode'] != '0' || intval($ctracker_config->settings['spammer_blockmode']) > 0 )
+		// The old modes 1 (ban) and 2 (deactivate) are both treated as enabled
+		// while upgraded databases normalize them to 1. This preserves the
+		// administrator's on/off choice without preserving the destructive action.
+		if (intval($ctracker_config->settings['spammer_blockmode']) > 0 && function_exists('ctracker_rate_limit_increment'))
 		{
-			if ( time() >= $userdata['ct_last_post'] )
+			$window = max(1, min(90, intval($ctracker_config->settings['spammer_time'])));
+			$limit = max(1, min(12, intval($ctracker_config->settings['spammer_postcount'])));
+			$retry_after = ctracker_rate_limit_increment('posting-user', 'user:' . intval($userdata['user_id']), $window, $limit);
+			if ($retry_after !== false && $retry_after > 0)
 			{
-				$last_post = time() + max(0, intval($ctracker_config->settings['spammer_time']));
-				$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_post_counter = 1, ct_last_post = ' . $last_post . ' WHERE user_id = ' . intval($userdata['user_id']);
-				if ( !$result = $db->sql_query($sql) )
+				if (!headers_sent())
 				{
-					message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+					http_response_code(429);
+					header('Retry-After: ' . intval($retry_after));
+					header('Cache-Control: no-store');
 				}
+				message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_binf_spammer'], $limit, $window, intval($retry_after)));
 			}
-			else if ( $userdata['ct_post_counter'] < intval($ctracker_config->settings['spammer_postcount']) )
-			{
-				$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_post_counter = ct_post_counter + 1 WHERE user_id = ' . intval($userdata['user_id']);
-				if ( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-				}
-
-				$userdata['ct_post_counter']++;
-				if ( $userdata['ct_post_counter'] == intval($ctracker_config->settings['spammer_postcount']) )
-				{
-					message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_binf_spammer'], $ctracker_config->settings['spammer_time'], $ctracker_config->settings['spammer_time']));
-				}
-			}
-			else
-			{
-				$this->block_handler();
-			} // else
-		} // standard spammer detection
+		}
 
 		// Spammer Boost
 		if ($ctracker_config->settings['spam_attack_boost'] == '1' || intval($ctracker_config->settings['spam_attack_boost']) == 1 )
@@ -243,70 +205,6 @@ class ct_userfunctions
 			} // if
 		} // spammer boost
 	}
-
-
-	/**
-	 * <b>block_handler</b>
-	 * Blocks a user if required
-	 */
-	function block_handler()
-	{
-		global $db, $lang, $ctracker_config, $userdata, $phpbb_root_path, $phpEx;
-
-		$user_id = isset($userdata['user_id']) ? intval($userdata['user_id']) : ANONYMOUS;
-		$block_mode = intval($ctracker_config->settings['spammer_blockmode']);
-		if ($user_id == ANONYMOUS || ($block_mode !== 1 && $block_mode !== 2))
-		{
-			return;
-		}
-
-		if ( $block_mode === 1 )
-		{
-			// Ban the user once; repeated detections must not grow the ban table.
-			$sql = 'SELECT ban_id FROM ' . BANLIST_TABLE . ' WHERE ban_userid = ' . $user_id . ' LIMIT 1';
-			if (!$result = $db->sql_query($sql))
-			{
-				message_die(CRITICAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-			}
-			$ban_exists = $db->sql_fetchrow($result);
-			$db->sql_freeresult($result);
-			if (!$ban_exists)
-			{
-				$sql = 'INSERT INTO ' . BANLIST_TABLE . " (ban_userid, ban_ip, ban_email) VALUES (" . $user_id . ", '', NULL)";
-				if (!$db->sql_query($sql))
-				{
-					message_die(CRITICAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
-		else if ( $block_mode === 2 )
-		{
-			// Block user
-			$sql = 'UPDATE ' . USERS_TABLE . ' SET user_active = 0 WHERE user_id = ' . $user_id;
-			if ( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-      	// Log it
-		include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
-		$logfile = new log_manager();
-		$logfile->prepare_log($userdata['username']);
-		$logfile->write_general_logfile($ctracker_config->settings['logsize_spammer'], 5);
-		unset($logfile);
-
-		// Log out user
-		if( $userdata['session_logged_in'] )
-      	{
-	    	session_end($userdata['session_id'], $userdata['user_id']);
-      	}
-
-		// Output Info Message
-		message_die(GENERAL_MESSAGE, $lang['ctracker_binf_sban']);
-	}
-
-
 	/**
 	 * <b>handle_profile</b>
 	 * This function includes all the register protection

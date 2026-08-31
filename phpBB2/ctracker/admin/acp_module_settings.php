@@ -32,9 +32,9 @@ if( isset($HTTP_POST_VARS['submit']) )
 		'search_count_guest' => array(1, 6), 'loginfeature' => array(0, 1),
 		'logsize_logins' => array(1, 400), 'logincount' => array(5, 20),
 		'login_history' => array(0, 1), 'login_history_count' => array(1, 60),
-		'login_ip_check' => array(0, 1), 'spammer_blockmode' => array(0, 2),
+		'login_ip_check' => array(0, 1), 'spammer_blockmode' => array(0, 1),
 		'spammer_postcount' => array(1, 12), 'spammer_time' => array(1, 90),
-		'logsize_spammer' => array(1, 400), 'reg_protection' => array(0, 1),
+		'reg_protection' => array(0, 1),
 		'reg_blocktime' => array(1, 200),
 		'pw_control' => array(0, 1), 'pw_validity' => array(6, 365),
 		'pw_complex' => array(0, 1), 'pw_complex_mode' => array(1, 9),
@@ -81,10 +81,9 @@ $configuration['logincount']	  		  = $adminclass->ct_generate_number_field(5, 20
 $configuration['login_history'] 		  = $adminclass->ct_generate_on_off($ctracker_config->settings['login_history']);
 $configuration['login_history_count']	  = $adminclass->ct_generate_number_field(1, 60, $ctracker_config->settings['login_history_count']);
 $configuration['login_ip_check'] 		  = $adminclass->ct_generate_on_off($ctracker_config->settings['login_ip_check']);
-$configuration['spammer_blockmode']		  = $adminclass->ct_spammer_block($ctracker_config->settings['spammer_blockmode']);
+$configuration['spammer_blockmode']		  = $adminclass->ct_generate_on_off(intval($ctracker_config->settings['spammer_blockmode']) > 0 ? 1 : 0);
 $configuration['spammer_postcount']	  	  = $adminclass->ct_generate_number_field(1, 12, $ctracker_config->settings['spammer_postcount']);
 $configuration['spammer_time']       	  = $adminclass->ct_generate_number_field(1, 90, $ctracker_config->settings['spammer_time']);
-$configuration['logsize_spammer']		  = $adminclass->ct_generate_number_field(1, 400, $ctracker_config->settings['logsize_spammer']);
 $configuration['reg_protection'] 		  = $adminclass->ct_generate_on_off($ctracker_config->settings['reg_protection']);
 $configuration['reg_blocktime']       	  = $adminclass->ct_generate_number_field(1, 200, $ctracker_config->settings['reg_blocktime']);
 $configuration['pw_control'] 			  = $adminclass->ct_generate_on_off($ctracker_config->settings['pw_control']);
@@ -170,8 +169,6 @@ $template->assign_vars(array(
 		'L_EXP_15'	   => $lang['ctracker_settings_e15'],
 		'L_MOD_16'     => $lang['ctracker_settings_m16'],
 		'L_EXP_16'	   => $lang['ctracker_settings_e16'],
-		'L_MOD_17'     => $lang['ctracker_settings_m17'],
-		'L_EXP_17'	   => $lang['ctracker_settings_e17'],
 		'L_MOD_18'     => $lang['ctracker_settings_m18'],
 		'L_EXP_18'	   => $lang['ctracker_settings_e18'],
 		'L_MOD_19'     => $lang['ctracker_settings_m19'],
@@ -244,7 +241,6 @@ $template->assign_vars(array(
 		'S_OUTPUT_14'  => $configuration['spammer_blockmode'],
 		'S_OUTPUT_15'  => $configuration['spammer_time'],
 		'S_OUTPUT_16'  => $configuration['spammer_postcount'],
-		'S_OUTPUT_17'  => $configuration['logsize_spammer'],
 		'S_OUTPUT_18'  => $configuration['reg_protection'],
 		'S_OUTPUT_19'  => $configuration['reg_blocktime'],
 		'S_OUTPUT_22'  => $configuration['pw_control'],

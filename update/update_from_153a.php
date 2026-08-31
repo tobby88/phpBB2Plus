@@ -395,8 +395,6 @@ $user_columns = array(
 	'ct_search_time' => 'INT(11) DEFAULT 1',
 	'ct_search_count' => 'MEDIUMINT(8) DEFAULT 1',
 	'ct_last_mail' => 'INT(11) DEFAULT 1',
-	'ct_last_post' => 'INT(11) DEFAULT 1',
-	'ct_post_counter' => 'MEDIUMINT(8) DEFAULT 1',
 	'ct_last_pw_reset' => 'INT(11) DEFAULT 0',
 	'ct_enable_ip_warn' => 'TINYINT(1) DEFAULT 1',
 	'ct_last_used_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
@@ -424,6 +422,10 @@ foreach ($user_columns as $column => $definition)
 }
 $users_table = $table_prefix . 'users';
 $ctracker_config_table = $table_prefix . 'ctracker_config';
+$operations[] = 'UPDATE ' . update_quote_identifier($ctracker_config_table) .
+	" SET ct_config_value = '1' WHERE ct_config_name = 'spammer_blockmode' AND CAST(ct_config_value AS UNSIGNED) > 0";
+$operations[] = 'DELETE FROM ' . update_quote_identifier($ctracker_config_table) .
+	" WHERE ct_config_name = 'logsize_spammer'";
 // Retire the original board-global registration locks. One completed signup
 // used to block every visitor for reg_blocktime seconds, while reg_lastip
 // could block a shared IP indefinitely. Runtime protection is now stored per
@@ -662,6 +664,17 @@ foreach (array('ct_login_count', 'ct_login_vconfirm') as $obsolete_login_column)
 		$dbname,
 		$table_prefix . 'users',
 		$obsolete_login_column
+	);
+}
+
+foreach (array('ct_last_post', 'ct_post_counter') as $obsolete_posting_column)
+{
+	update_queue_drop_column(
+		$operations,
+		$connection,
+		$dbname,
+		$table_prefix . 'users',
+		$obsolete_posting_column
 	);
 }
 

@@ -603,8 +603,6 @@ CREATE TABLE phpbb_users (
    ct_search_time INT( 11 ) DEFAULT 1,
    ct_search_count MEDIUMINT( 8 ) DEFAULT 1,
    ct_last_mail INT( 11 ) DEFAULT 1,
-   ct_last_post INT( 11 ) DEFAULT 1,
-   ct_post_counter MEDIUMINT( 8 ) DEFAULT 1,
    ct_last_pw_reset INT( 11 ) DEFAULT 0,
    ct_enable_ip_warn TINYINT( 1 ) DEFAULT 1,
    ct_last_used_ip VARCHAR( 45 ) DEFAULT '0.0.0.0',

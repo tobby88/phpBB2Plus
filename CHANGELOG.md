@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced CrackerTracker's destructive posting-burst response with a bounded
+  per-account rate limit. Rapid legitimate posting is no longer treated as
+  proof of abuse and can never automatically ban or deactivate an account;
+  excess attempts receive HTTP 429 and a precise retry delay. The ACP now
+  exposes a clear on/off switch, old ban/deactivate mode values normalize to
+  enabled, and the updater removes the obsolete user counters and unused spam
+  log-size setting.
 - Removed the remaining dead code and database columns for CrackerTracker's
   former account-wide CAPTCHA lock. The login path had already stopped
   setting or honoring that flag because any unauthenticated visitor could
