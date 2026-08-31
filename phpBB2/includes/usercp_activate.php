@@ -29,6 +29,10 @@ if ( !defined('IN_PHPBB') )
 
 $activation_user_id = (isset($_GET[POST_USERS_URL]) && is_scalar($_GET[POST_USERS_URL])) ? intval($_GET[POST_USERS_URL]) : 0;
 $activation_key = (isset($_GET['act_key']) && is_scalar($_GET['act_key'])) ? trim((string) $_GET['act_key']) : '';
+if ($activation_user_id <= 0 || !preg_match('/^[a-f0-9]{6,32}$/iD', $activation_key))
+{
+	message_die(GENERAL_MESSAGE, $lang['Wrong_activation']);
+}
 
 $sql = "SELECT user_active, user_id, username, user_email, user_password, user_newpasswd, user_lang, user_actkey
 	FROM " . USERS_TABLE . "
@@ -48,7 +52,7 @@ if ( $row = $db->sql_fetchrow($result) )
 
 		message_die(GENERAL_MESSAGE, $lang['Already_activated']);
 	}
-	else if ((trim($row['user_actkey']) == $activation_key) && (trim($row['user_actkey']) != ''))
+	else if (trim($row['user_actkey']) !== '' && hash_equals(trim($row['user_actkey']), $activation_key))
 	{
 		if (intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $row['user_newpasswd'] == '')
 		{

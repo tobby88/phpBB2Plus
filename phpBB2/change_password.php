@@ -69,7 +69,7 @@ if ($submit)
 	} 
 	if (!$error)
 	{
-		if (defined('EXTRA_SECURE') && !phpbb_password_verify($cur_password, $userdata['user_password']))
+		if ($cur_password === '' || !phpbb_password_verify($cur_password, $userdata['user_password']))
 		{
 			$error = true;
 			$error_msg .= $lang['Current_password_mismatch'];
@@ -134,10 +134,7 @@ if ($updated)
 {
 	$template->set_filenames(array( 
       	'body' => 'change_password_popup.tpl')); 
-	if (defined('EXTRA_SECURE'))
-	{
-		$template->assign_block_vars('switch_cur_passwd_on', array());
-	}
+	$template->assign_block_vars('switch_cur_passwd_on', array());
 	if ($userdata['user_passwd_change']=='-9999')
 	{
 		$message = $lang['Passwd_expired'];

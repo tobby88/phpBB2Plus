@@ -85,6 +85,9 @@ jobs:
       - name: Test login abuse protections
         run: php .github/scripts/check-login-protection.php
 
+      - name: Test account lifecycle safety
+        run: php .github/scripts/check-account-lifecycle-safety.php
+
       - name: Test CrackerTracker log rotation
         run: php .github/scripts/check-ctracker-log-manager.php
 

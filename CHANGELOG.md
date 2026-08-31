@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the complete account lifecycle across sessions, activation, profile
+  updates and password changes. Invalid serialized cookies and nested session
+  identifiers can no longer reach PHP 8 string/hash operations, new sessions
+  use direct operating-system randomness, activation keys use constant-time
+  comparison, and account-changing names as well as passwords/emails require
+  the current password. Submitted languages, styles, time zones and date
+  formats are restricted to usable installed values; profile links use the
+  validated board origin and the long-broken time-zone fallback now assigns
+  rather than merely compares the default value.
 - Clarified the Arcade's current and all-time scoreboard links. Games whose
   complete score lists are identical now show one concise `Bestenliste` link;
   differing lists are labelled as current and all-time lists, without the

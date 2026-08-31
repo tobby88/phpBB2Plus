@@ -85,6 +85,57 @@ function usercp_avatar_file_scalar($name, $default = '')
 		: $default;
 }
 
+function usercp_installed_language($language, $fallback)
+{
+	global $phpbb_root_path;
+
+	$language = strtolower(trim((string) $language));
+	if (!preg_match('/^[a-z_]{1,30}$/D', $language))
+	{
+		return $fallback;
+	}
+
+	$directory = $phpbb_root_path . 'language/lang_' . $language;
+	return (is_dir($directory) && !is_link($directory) && is_file($directory . '/lang_main.php')) ? $language : $fallback;
+}
+
+function usercp_installed_style($style, $fallback)
+{
+	global $db;
+
+	$style = (int) $style;
+	$sql = 'SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id = ' . $style;
+	$result = $db->sql_query($sql);
+	if (!$result)
+	{
+		return (int) $fallback;
+	}
+	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	return $row ? $style : (int) $fallback;
+}
+
+function usercp_timezone($timezone, $fallback)
+{
+	global $lang;
+
+	$timezone = (float) $timezone;
+	foreach ($lang['tz'] as $offset => $label)
+	{
+		if ((float) $offset === $timezone)
+		{
+			return $timezone;
+		}
+	}
+	return (float) $fallback;
+}
+
+function usercp_dateformat($format, $fallback)
+{
+	$format = trim((string) $format);
+	return ($format !== '' && strlen($format) <= 64 && !preg_match('/[\x00-\x1f\x7f]/', $format)) ? $format : $fallback;
+}
+
 $unhtml_specialchars_match = array('#&gt;#', '#&lt;#', '#&quot;#', '#&amp;#');
 $unhtml_specialchars_replace = array('>', '<', '"', '&');
 
@@ -270,14 +321,15 @@ if (
 		$allowsmilies = ( isset($_POST['allowsmilies']) ) ? ( ($_POST['allowsmilies']) ? TRUE : 0 ) : $userdata['user_allowsmile'];
 	}
 
-	$user_style = isset($_POST['style']) && is_scalar($_POST['style']) ? intval($_POST['style']) : $board_config['default_style'];
+	$user_style = usercp_installed_style(usercp_post_scalar('style', (string) $board_config['default_style']), $board_config['default_style']);
 
 	$submitted_language = usercp_post_scalar('language');
 	if ( $submitted_language !== '' )
 	{
-		if ( preg_match('/^[a-z_]+$/i', $submitted_language) )
+		$installed_language = usercp_installed_language($submitted_language, '');
+		if ($installed_language !== '')
 		{
-			$user_lang = htmlspecialchars($submitted_language);
+			$user_lang = htmlspecialchars($installed_language);
 		}
 		else
 		{
@@ -290,7 +342,7 @@ if (
 		$user_lang = $board_config['default_lang'];
 	}
 
-	$user_timezone = isset($_POST['timezone']) && is_scalar($_POST['timezone']) ? doubleval($_POST['timezone']) : $board_config['board_timezone'];
+	$user_timezone = usercp_timezone(usercp_post_scalar('timezone', (string) $board_config['board_timezone']), $board_config['board_timezone']);
 	// FLAGHACK-start
 	$user_flag_value = usercp_post_scalar('user_flag');
 	$user_flag = ( $user_flag_value !== '' ) ? phpbb_profile_image_name($user_flag_value) : '' ;
@@ -305,7 +357,7 @@ if (
 	$row = $db->sql_fetchrow($result);
 	$board_config['default_dateformat'] = $row['config_value'];
 	$dateformat_value = usercp_post_scalar('dateformat');
-	$user_dateformat = ( $dateformat_value !== '' ) ? trim(htmlspecialchars($dateformat_value)) : $board_config['default_dateformat'];
+	$user_dateformat = htmlspecialchars(usercp_dateformat($dateformat_value, $board_config['default_dateformat']));
 
 	$avatarselect_value = usercp_post_scalar('avatarselect');
 	$avatarlocal_value = usercp_post_scalar('avatarlocal');
@@ -511,6 +563,7 @@ if ( isset($_POST['submit']) )
 	// END Custom Profile Fields MOD
 	//
 
+	$current_password_valid = ($mode == 'editprofile' && $cur_password !== '' && phpbb_password_verify($cur_password, $userdata['user_password']));
 	$passwd_sql = '';
 	if ( !empty($new_password) && !empty($password_confirm) )
 	{
@@ -533,17 +586,7 @@ if ( isset($_POST['submit']) )
 		{
 			if ( $mode == 'editprofile' )
 			{
-				$sql = "SELECT user_password
-					FROM " . USERS_TABLE . "
-					WHERE user_id = $user_id";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not obtain user_password information', '', __LINE__, __FILE__, $sql);
-				}
-
-				$row = $db->sql_fetchrow($result);
-
-				if ( !phpbb_password_verify($cur_password, $row['user_password']) )
+				if ( !$current_password_valid )
 				{
 					$error = TRUE;
 					$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Current_password_mismatch'];
@@ -590,17 +633,7 @@ if ( isset($_POST['submit']) )
 
 		if ( $mode == 'editprofile' )
 		{
-			$sql = "SELECT user_password
-				FROM " . USERS_TABLE . "
-				WHERE user_id = $user_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain user_password information', '', __LINE__, __FILE__, $sql);
-			}
-
-			$row = $db->sql_fetchrow($result);
-
-			if ( !phpbb_password_verify($cur_password, $row['user_password']) )
+			if ( !$current_password_valid )
 			{
 				$email = $userdata['user_email'];
 
@@ -620,6 +653,11 @@ if ( isset($_POST['submit']) )
 		}
 		else if ( $username != $userdata['username'] || $mode == 'register' )
 		{
+			if ($mode == 'editprofile' && !$current_password_valid)
+			{
+				$error = TRUE;
+				$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Current_password_mismatch'];
+			}
 			if (strtolower($username) != strtolower($userdata['username']) || $mode == 'register')
 			{
 				$result = validate_username($username, $mode == 'register');
@@ -1253,11 +1291,11 @@ else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_
 	$allowbbcode = ( isset($_POST['allowbbcode']) ) ? ( ($_POST['allowbbcode']) ? TRUE : 0 ) : $userdata['user_allowbbcode'];
 	$allowhtml = ( isset($_POST['allowhtml']) ) ? ( ($_POST['allowhtml']) ? TRUE : 0 ) : $userdata['user_allowhtml'];
 	$allowsmilies = ( isset($_POST['allowsmilies']) ) ? ( ($_POST['allowsmilies']) ? TRUE : 0 ) : $userdata['user_allowsmile'];
-	$user_lang = htmlspecialchars(usercp_post_scalar('language', $board_config['default_lang']));
-	$user_style = intval(usercp_post_scalar('style', (string) $board_config['default_style']));
-	$user_timezone = isset($_POST['timezone']) && is_scalar($_POST['timezone']) ? doubleval($_POST['timezone']) : $board_config['board_timezone'];
+	$user_lang = htmlspecialchars(usercp_installed_language(usercp_post_scalar('language', $board_config['default_lang']), $board_config['default_lang']));
+	$user_style = usercp_installed_style(usercp_post_scalar('style', (string) $board_config['default_style']), $board_config['default_style']);
+	$user_timezone = usercp_timezone(usercp_post_scalar('timezone', (string) $board_config['board_timezone']), $board_config['board_timezone']);
 	$dateformat_value = usercp_post_scalar('dateformat');
-	$user_dateformat = ( $dateformat_value !== '' ) ? trim(htmlspecialchars($dateformat_value)) : $board_config['default_dateformat'];
+	$user_dateformat = htmlspecialchars(usercp_dateformat($dateformat_value, $board_config['default_dateformat']));
 	$user_avatar_name = usercp_avatar_file_scalar('name');
 	$user_avatar_size = intval(usercp_avatar_file_scalar('size', '0'));
 	$user_avatar_filetype = usercp_avatar_file_scalar('type');

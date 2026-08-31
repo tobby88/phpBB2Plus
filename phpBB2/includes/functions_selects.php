@@ -135,7 +135,7 @@ function date_format_select($default, $timezone, $select_name = 'dateformat')
 
 	if ( !isset($timezone) )
 	{
-		$timezone == $board_config['board_timezone'];
+		$timezone = $board_config['board_timezone'];
 	}
 	$now = time() + (3600 * $timezone);
 

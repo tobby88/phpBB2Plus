@@ -43,16 +43,23 @@ if ($files)
 
 	if ( isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) || isset($HTTP_COOKIE_VARS[$cookiename . '_data']) )
 	{
-		$session_id = isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) ? $HTTP_COOKIE_VARS[$cookiename . '_sid'] : '';
+		$session_id = (isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) && is_scalar($HTTP_COOKIE_VARS[$cookiename . '_sid'])) ? (string) $HTTP_COOKIE_VARS[$cookiename . '_sid'] : '';
 		$sessiondata = isset($HTTP_COOKIE_VARS[$cookiename . '_data']) ? phpbb_safe_unserialize(stripslashes($HTTP_COOKIE_VARS[$cookiename . '_data'])) : array();
 		$sessionmethod = SESSION_METHOD_COOKIE;
 	}
 	else
 	{
 		$sessiondata = array();
-		$session_id = ( isset($_GET['sid']) ) ? $_GET['sid'] : '';
+		$session_id = (isset($_GET['sid']) && is_scalar($_GET['sid'])) ? (string) $_GET['sid'] : '';
 		$sessionmethod = SESSION_METHOD_GET;
 	}
+	$sessiondata = is_array($sessiondata) ? $sessiondata : array();
+	if (!isset($sessiondata['autologinid']) || !is_scalar($sessiondata['autologinid']) ||
+		!preg_match('/^[a-f0-9]{32}$/iD', (string) $sessiondata['autologinid']))
+	{
+		$sessiondata['autologinid'] = '';
+	}
+	$sessiondata['userid'] = isset($sessiondata['userid']) && is_scalar($sessiondata['userid']) ? (int) $sessiondata['userid'] : ANONYMOUS;
 
 	//
 	if (!preg_match('/^[a-f0-9]{32}$/iD', (string) $session_id))
@@ -183,7 +190,7 @@ if ($files)
 			AND session_ip = '$user_ip'";
 	if ( !$db->sql_query($sql) || !$db->sql_affectedrows() )
 	{
-		$session_id = md5(dss_rand() . dss_rand());
+		$session_id = bin2hex(phpbb_random_bytes(16));
 
 		$sql = "INSERT INTO " . SESSIONS_TABLE . "
 			(session_id, session_user_id, session_start, session_time, session_ip, session_page, session_logged_in, session_admin)
@@ -295,15 +302,22 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 	if ( isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) || isset($HTTP_COOKIE_VARS[$cookiename . '_data']) )
 	{
 		$sessiondata = isset( $HTTP_COOKIE_VARS[$cookiename . '_data'] ) ? phpbb_safe_unserialize(stripslashes($HTTP_COOKIE_VARS[$cookiename . '_data'])) : array();
-		$session_id = isset( $HTTP_COOKIE_VARS[$cookiename . '_sid'] ) ? $HTTP_COOKIE_VARS[$cookiename . '_sid'] : '';
+		$session_id = (isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) && is_scalar($HTTP_COOKIE_VARS[$cookiename . '_sid'])) ? (string) $HTTP_COOKIE_VARS[$cookiename . '_sid'] : '';
 		$sessionmethod = SESSION_METHOD_COOKIE;
 	}
 	else
 	{
 		$sessiondata = array();
-		$session_id = ( isset($_GET['sid']) ) ? $_GET['sid'] : '';
+		$session_id = (isset($_GET['sid']) && is_scalar($_GET['sid'])) ? (string) $_GET['sid'] : '';
 		$sessionmethod = SESSION_METHOD_GET;
 	}
+	$sessiondata = is_array($sessiondata) ? $sessiondata : array();
+	if (!isset($sessiondata['autologinid']) || !is_scalar($sessiondata['autologinid']) ||
+		!preg_match('/^[a-f0-9]{32}$/iD', (string) $sessiondata['autologinid']))
+	{
+		$sessiondata['autologinid'] = '';
+	}
+	$sessiondata['userid'] = isset($sessiondata['userid']) && is_scalar($sessiondata['userid']) ? (int) $sessiondata['userid'] : ANONYMOUS;
 	
 	// 
 	if (!preg_match('/^[a-f0-9]{32}$/iD', (string) $session_id))

@@ -1729,6 +1729,11 @@ function checkFlag($flags, $flag)
 
 function mkrealdate($day,$month,$birth_year)
 {
+	$day = (int) $day;
+	$month = (int) $month;
+	$birth_year = (int) $birth_year;
+	$epoch = 0;
+	if ($day < 1 || $birth_year < 1901 || $birth_year > 2099) return "error";
 	// range check months
 	if ($month<1 || $month>12) return "error";
 	// range check days
