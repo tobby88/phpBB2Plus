@@ -17,12 +17,13 @@ php update/update_from_153a.php --apply --backup-confirmed
 
 It installs the database additions represented by the source after the 1.53a
 release: phpBB 2.0.23's version marker, CrackerTracker 5 tables and user
-columns, Arcade Mod Plus 2.1.8, Nuffload 1.4.2, DB Maintenance 1.3.8, responsive
-style metadata, modern social-profile fields, cookie consent and the disabled
-StopForumSpam option. Existing current configuration values are preserved.
+columns, Arcade Mod Plus 2.1.8, Nuffload 1.4.2, DB Maintenance 1.3.8, modern
+social-profile fields, cookie consent and the disabled StopForumSpam option.
+It also normalizes all theme and member-style records to FI Subsilver Shadow.
+Existing unrelated configuration values are preserved.
 It also reconciles the public components-and-credits table with the verified
-post-1.53a integrations, including Arcade Rewards API, the responsive styles,
-social-profile fields and the bundled Ruffle runtime, while retaining the
+post-1.53a integrations, including Arcade Rewards API, social-profile fields
+and the bundled Ruffle runtime, while retaining the
 historical phpBB2 Plus credits. Existing credit IDs, author email addresses,
 download links and file metadata are preserved when a known entry is updated.
 Incompatible CrackerTracker 4.x tables and user columns are removed when

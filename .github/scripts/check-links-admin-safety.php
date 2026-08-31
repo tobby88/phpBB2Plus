@@ -40,7 +40,7 @@ foreach ($forbidden as $marker)
 	}
 }
 
-foreach (array('subSilver', 'fisubsilversh') as $style)
+foreach (array('fisubsilversh') as $style)
 {
 	$edit = (string) file_get_contents($root . '/phpBB2/templates/' . $style . '/admin/admin_links_edit_body.tpl');
 	$list = (string) file_get_contents($root . '/phpBB2/templates/' . $style . '/admin/admin_links_body.tpl');

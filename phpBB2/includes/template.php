@@ -111,7 +111,7 @@ class Template {
 
 	// Default template directory.
 	// If file for default template isn't found file from this template is used.
-	var $tpldef = 'subSilver';
+	var $tpldef = 'fisubsilversh';
 
 	// this will hash handle names to the compiled code for that handle.
 	var $compiled_code = array();
@@ -215,7 +215,7 @@ class Template {
 			'xs_auto_recompile'			=> 1,
 			'xs_use_cache'				=> 1,
 			'xs_php'					=> $phpEx,
-			'xs_def_template'			=> 'subSilver',
+			'xs_def_template'			=> 'fisubsilversh',
 			'xs_check_switches'			=> 1,
 			'xs_warn_includes'			=> 1,
 			'xs_add_comments'			=> 0,
@@ -306,8 +306,8 @@ class Template {
 		if (!is_string($this->tpldef) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $this->tpldef) ||
 			!is_dir($phpbb_root_path . 'templates/' . $this->tpldef))
 		{
-			$this->tpldef = 'subSilver';
-			$board_config['xs_def_template'] = 'subSilver';
+			$this->tpldef = 'fisubsilversh';
+			$board_config['xs_def_template'] = 'fisubsilversh';
 		}
 		$this->use_cache = $board_config['xs_use_cache'];
 		$this->auto_compile = $board_config['xs_auto_compile'];
@@ -397,7 +397,7 @@ class Template {
 			$str = substr($dir, $pos + strlen($tpl), strlen($dir));
 		}
 		// searching for one more 'templates/'
-		// that can happen if full path is like /home/some_dude/templates/phpbb/templates/subSilver/
+		// that can happen if full path is like /home/some_dude/templates/phpbb/templates/fisubsilversh/
 		$dir = $this->template_name($str);
 		if(!$dir)
 		{
@@ -853,7 +853,7 @@ class Template {
 		// checking if tpl and/or php file exists
 		if(empty($this->files_cache[$handle]) && !@file_exists($this->files[$handle]))
 		{
-			// trying to load alternative filename (usually subSilver)
+			// trying to load the configured fallback template (normally fisubsilversh)
 			if(!empty($this->tpldef) && !empty($this->tpl) && ($this->tpldef !== $this->tpl))
 			{
 				$this->files[$handle] = '';

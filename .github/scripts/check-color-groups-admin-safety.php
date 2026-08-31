@@ -40,7 +40,7 @@ if (strpos($combined, 'print_r($_POST)') !== false || strpos($combined, 'print_r
 	$errors[] = 'ColorGroups still contains raw request debugging output.';
 }
 
-foreach (array('subSilver', 'fisubsilversh') as $style)
+foreach (array('fisubsilversh') as $style)
 {
 	foreach (array('color_groups_manager.tpl', 'color_groups_user_list.tpl') as $template)
 	{

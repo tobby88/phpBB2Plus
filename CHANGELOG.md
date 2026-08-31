@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed the six incomplete alternative style packages and the experimental
+  automatic mobile-style selection. FI Subsilver Shadow is now the only
+  bundled style; fresh installs seed only it, while the idempotent updater
+  migrates the board default and all member preferences before deleting stale
+  theme records. Legacy template fallbacks now consistently target the
+  remaining style.
 - Synchronized legacy Album, Arcade, shoutbox and personal-group display-name
   snapshots whenever an account is renamed. Public and ACP renames now use one
   path, identify personal groups by membership instead of a colliding name,

@@ -90,16 +90,12 @@ if (in_array('--self-test', $argv, true))
 	$schema_has_checksum_capacity = (bool) preg_match('/`hash`\s+varchar\(64\)/i', $schema_source);
 	$schema_has_public_styles = (bool) preg_match('/theme_public\s+tinyint\(1\)/i', $schema_source);
 	$basic_has_named_theme_insert = (bool) preg_match('/INSERT INTO\s+phpbb_themes\s*\([^;]*theme_public[^;]*\)\s*VALUES/i', $basic_source);
-	$bundled_style_seed_count = preg_match_all('/^INSERT INTO\s+phpbb_themes\s*\(/im', $basic_source, $unused_theme_matches);
-	$bundled_style_config_count = 0;
-	foreach (array('BS', 'BS_subIce', 'BS_subSilver', 'prosilver', 'prosilver_se', 'subSilver') as $template_name)
-	{
-		$bundled_style_config_count += count(update_read_theme_info($forum_root, $template_name));
-	}
+	$theme_seed_count = preg_match_all('/^INSERT INTO\s+phpbb_themes\s*\(/im', $basic_source, $unused_theme_matches);
+	$standard_style_config_count = count(update_read_theme_info($forum_root, 'fisubsilversh'));
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_public_styles || !$basic_has_named_theme_insert || $bundled_style_seed_count !== 7 || $bundled_style_config_count !== 6 || $has_patch_markers)
+	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", bundled styles $bundled_style_seed_count seeds/$bundled_style_config_count configs, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
 	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password, IPv6 and SHA-256 checksum columns ready.\n";
@@ -336,20 +332,16 @@ function update_read_theme_info($forum_root, $template_name)
 	return $rows;
 }
 
-function update_queue_bundled_styles(&$operations, $connection, $forum_root, $themes_table)
+function update_queue_standard_style(&$operations, $connection, $forum_root, $themes_table, $themes_name_table, $users_table, $config_table)
 {
-	foreach (array('BS', 'BS_subIce', 'BS_subSilver', 'prosilver', 'prosilver_se', 'subSilver') as $template_name)
+	foreach (update_read_theme_info($forum_root, 'fisubsilversh') as $style)
 	{
-		foreach (update_read_theme_info($forum_root, $template_name) as $style)
+		$template_sql = mysqli_real_escape_string($connection, $style['template_name']);
+		$style_sql = mysqli_real_escape_string($connection, $style['style_name']);
+		$exists_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($themes_table) .
+			" WHERE template_name = '$template_sql' AND style_name = '$style_sql'";
+		if ((int) update_scalar($connection, $exists_sql) === 0)
 		{
-			$template_sql = mysqli_real_escape_string($connection, $style['template_name']);
-			$style_sql = mysqli_real_escape_string($connection, $style['style_name']);
-			$exists_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($themes_table) .
-				" WHERE template_name = '$template_sql' AND style_name = '$style_sql'";
-			if ((int) update_scalar($connection, $exists_sql) > 0)
-			{
-				continue;
-			}
 			$style['theme_public'] = '1';
 			$columns = array();
 			$values = array();
@@ -363,6 +355,17 @@ function update_queue_bundled_styles(&$operations, $connection, $forum_root, $th
 				" WHERE template_name = '$template_sql' AND style_name = '$style_sql')";
 		}
 	}
+
+	$themes_sql = update_quote_identifier($themes_table);
+	$themes_name_sql = update_quote_identifier($themes_name_table);
+	$users_sql = update_quote_identifier($users_table);
+	$config_sql = update_quote_identifier($config_table);
+	$standard_id = '(SELECT themes_id FROM ' . $themes_sql . " WHERE template_name = 'fisubsilversh' ORDER BY themes_id LIMIT 1)";
+	$operations[] = 'UPDATE ' . $config_sql . ' SET config_value = ' . $standard_id . " WHERE config_name = 'default_style'";
+	$operations[] = 'UPDATE ' . $config_sql . " SET config_value = 'fisubsilversh' WHERE config_name = 'xs_def_template'";
+	$operations[] = 'UPDATE ' . $users_sql . ' SET user_style = ' . $standard_id . ' WHERE user_style IS NULL OR user_style <> ' . $standard_id;
+	$operations[] = 'DELETE FROM ' . $themes_name_sql . ' WHERE themes_id NOT IN (' . $standard_id . ')';
+	$operations[] = 'DELETE FROM ' . $themes_sql . " WHERE template_name <> 'fisubsilversh'";
 }
 
 $operations = array();
@@ -457,7 +460,15 @@ foreach (array('div_class1', 'div_class2', 'div_class3', 'row_class1', 'row_clas
 	update_queue_column($operations, $connection, $dbname, $table_prefix . 'themes_name', $column . '_name', 'VARCHAR(50) DEFAULT NULL');
 }
 update_queue_column($operations, $connection, $dbname, $table_prefix . 'themes', 'theme_public', "TINYINT(1) UNSIGNED NOT NULL DEFAULT '1'");
-update_queue_bundled_styles($operations, $connection, $forum_root, $table_prefix . 'themes');
+update_queue_standard_style(
+	$operations,
+	$connection,
+	$forum_root,
+	$table_prefix . 'themes',
+	$table_prefix . 'themes_name',
+	$table_prefix . 'users',
+	$table_prefix . 'config'
+);
 
 $config_defaults = array(
 	'cookie_consent_enable' => '1',
@@ -586,7 +597,7 @@ foreach ($username_snapshot_tables as $snapshot)
 // the public page was opened. It is no longer distributed or scanned there.
 $hacks_table = update_quote_identifier($table_prefix . 'hacks_list');
 $operations[] = "DELETE FROM $hacks_table WHERE hack_name = 'Hack Name' OR hack_file LIKE '%nivisec_hack_list_auto_insert.hl'";
-$operations[] = "DELETE FROM $hacks_table WHERE hack_name IN ('Cracker Tracker Professional 2nd Ed.', 'CrackerTracker Professional 2nd Ed.', 'CrackerTracker Professional G5')";
+$operations[] = "DELETE FROM $hacks_table WHERE hack_name IN ('Cracker Tracker Professional 2nd Ed.', 'CrackerTracker Professional 2nd Ed.', 'CrackerTracker Professional G5', 'IntegraMOD Responsive Styles')";
 $credit_rows = array(
 	array('Birthday Mod', 'Adds birthday and age information to user profiles and posts.', 'Niels', 'http://mods.db9.dk', '1.5.7'),
 	array('Photo Album Addon v2 for phpBB2', 'Integrated phpBB-based photo album and gallery management system.', 'Smartor', 'http://smartor.is-root.com', '2.0.53'),
@@ -605,7 +616,6 @@ $credit_rows = array(
 	array('Registration IP', 'Records the server-verified IP address used for account registration.', 'Woody', '', '1.1.2 adapted'),
 	array('Admin Userlist ColorGroups Compatibility', 'Uses Color Groups formatting in the Admin Userlist.', 'Brent Pirolli, Octavius', '', '1.0.1'),
 	array('Arcade Rewards API', 'Optional integration layer used by Arcade Mod Plus for Cash and Allowance reward systems.', 'Xore, Napoleon, dEfEndEr', 'http://www.phpbb-arcade.com', '2.1.6'),
-	array('IntegraMOD Responsive Styles', 'Six preserved responsive styles: BS, BS_subIce, BS_subSilver, prosilver, prosilver_se and subSilver.', 'IntegraMOD contributors', 'https://www.integramod.com/', ''),
 	array('IntegraMOD Social Profile Fields', 'Modern Facebook, Instagram, Pinterest, Twitter/X, Skype, Telegram, LinkedIn, TikTok and Discord profile fields.', 'IntegraMOD contributors', 'https://www.integramod.com/', ''),
 	array('Ruffle Flash Emulator', 'Bundled WebAssembly runtime for playing preserved Flash arcade games in modern browsers; this is a runtime component, not a phpBB MOD.', 'Ruffle contributors', 'https://ruffle.rs/', '0.5.0')
 );

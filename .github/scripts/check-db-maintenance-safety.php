@@ -14,9 +14,7 @@ $admin = file_get_contents($root . '/phpBB2/admin/admin_db_maintenance.php');
 $english = file_get_contents($root . '/phpBB2/language/lang_english/lang_dbmtnc.php');
 $german = file_get_contents($root . '/phpBB2/language/lang_german/lang_dbmtnc.php');
 $templates = array(
-	file_get_contents($root . '/phpBB2/templates/subSilver/admin/dbmtnc_confirm_body.tpl'),
 	file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/dbmtnc_confirm_body.tpl'),
-	file_get_contents($root . '/phpBB2/templates/subSilver/admin/dbmtnc_config_body.tpl'),
 	file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/dbmtnc_config_body.tpl')
 );
 

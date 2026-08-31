@@ -57,8 +57,7 @@ if ( file_exists( $phpbb_root_path . "templates/".$theme['template_name']."/imag
 else
 {
 // ----------
-//	$current_template_images = $module_root_path . "templates/"."subSilver"."/images" ;
-	$current_template_images = $phpbb_root_path . 'templates/subSilver/images' ;
+	$current_template_images = $phpbb_root_path . 'templates/fisubsilversh/images' ;
 // ----------
 } 
 

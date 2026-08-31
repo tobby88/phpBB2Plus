@@ -40,7 +40,7 @@ foreach (array(
 	}
 }
 
-foreach (array('subSilver', 'fisubsilversh') as $style)
+foreach (array('fisubsilversh') as $style)
 {
 	$template = (string) file_get_contents($root . '/phpBB2/templates/' . $style . '/admin/jr_admin_user_permissions.tpl');
 	if (strpos($template, '{S_HIDDEN_FIELDS}') === false)

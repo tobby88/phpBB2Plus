@@ -13,9 +13,7 @@ $root = dirname(dirname(__DIR__));
 $categories = file_get_contents($root . '/phpBB2/admin/admin_kb_cat.php');
 $types = file_get_contents($root . '/phpBB2/admin/admin_kb_types.php');
 $templates = array(
-	$root . '/phpBB2/templates/subSilver/admin/kb_cat_admin_body.tpl',
 	$root . '/phpBB2/templates/fisubsilversh/admin/kb_cat_admin_body.tpl',
-	$root . '/phpBB2/templates/subSilver/admin/kb_type_body.tpl',
 	$root . '/phpBB2/templates/fisubsilversh/admin/kb_type_body.tpl'
 );
 

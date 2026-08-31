@@ -1,4 +1,4 @@
-<div align="center" class="gensmall"><br />{ADMIN_LINK}<br />{STYLE_SWITCHER}<br />
+<div align="center" class="gensmall"><br />{ADMIN_LINK}<br />
 <!-- BEGIN switch_user_logged_in -->
 {L_STATUS_LOGIN}<br /><br />
 <!-- END switch_user_logged_in -->

@@ -146,9 +146,9 @@ foreach ($template_sources as $source)
 	{
 		foreach (array_unique($matches[1]) as $template_path)
 		{
-			if (!is_file($phpbb_root . '/templates/subSilver/' . $template_path))
+			if (!is_file($phpbb_root . '/templates/fisubsilversh/' . $template_path))
 			{
-				$errors[] = 'Missing subSilver ACP fallback template ' . $template_path . ' referenced by ' . basename($source);
+				$errors[] = 'Missing fisubsilversh ACP fallback template ' . $template_path . ' referenced by ' . basename($source);
 			}
 		}
 	}

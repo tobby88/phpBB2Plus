@@ -160,7 +160,7 @@ function album_admin_editable_config($config_data, $phpbb_root_path)
 		{
 			continue;
 		}
-		$template_path = $phpbb_root_path . 'templates/subSilver/' . $template_file;
+		$template_path = $phpbb_root_path . 'templates/fisubsilversh/' . $template_file;
 		$template_body = @file_get_contents($template_path);
 		if ($template_body !== false && preg_match_all('/\bname=["\']([A-Za-z0-9_]+)["\']/', $template_body, $matches))
 		{

@@ -198,7 +198,7 @@ $lang['xs_config_navbar'] = 'Show on left frame:';
 $lang['xs_config_navbar_explain'] = 'You can select what items to show on left frame in admin control panel.';
 
 $lang['xs_config_def_template'] = 'Default template directory';
-$lang['xs_config_def_template_explain'] = 'If a required tpl file is not found in current template directory (that might happen if you modded phpBB incorrectly) then template system will look for same file in a related directory (like if current template is "myTemplate" and script requires file "myTemplate/myfile.tpl" and that file isn\'t there template system will look for that file as "subSilver/myfile.tpl"). Set to empty to disable this feature.';
+$lang['xs_config_def_template_explain'] = 'If a required tpl file is not found in the current template directory, the template system can look for it in the configured fallback directory. FI Subsilver Shadow is the bundled fallback. Set this field to empty to disable the feature.';
 
 $lang['xs_config_check_switches'] = 'Check switches while compiling';
 $lang['xs_config_check_switches_explain'] = 'This feature checks for errors in templates. Turning it off will speed up compilation, but the compiler might skip some errors in templates if it contains errors.<br /><br />Smart check will check templates for errors and automatically fix all known errors (there are few known typos in different mods). Works little bit slower than simple check.<br /><br />But sometimes template looks proper only when error check is disabled; this happens because of bad html coding - contact whoever wrote the tpl file if you want to fix errors.<br /><br />If cache feature is disabled, then turn this off for faster compilation.';

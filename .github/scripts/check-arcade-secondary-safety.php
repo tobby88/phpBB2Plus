@@ -18,7 +18,7 @@ $classes = file_get_contents($root . '/phpBB2/includes/classes_arcade.php');
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
 $constants = file_get_contents($root . '/phpBB2/includes/constants_arcade.php');
 $schema = file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
-$arcade_template = file_get_contents($root . '/phpBB2/templates/subSilver/arcade_body.tpl');
+$arcade_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/arcade_body.tpl');
 
 arcade_secondary_assert(strpos($rate, "!is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'ratings must reject nested tokens');
 arcade_secondary_assert(substr_count($comment, "include(\$phpbb_root_path . 'includes/page_tail.'.\$phpEx);\n\texit;") >= 2, 'comment confirmation and edit pages must stop after their page tail');

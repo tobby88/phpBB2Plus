@@ -12,7 +12,6 @@ $add_user = (string) file_get_contents($root . '/phpBB2/admin/admin_user_registe
 $profile_view = (string) file_get_contents($root . '/phpBB2/includes/usercp_viewprofile.php');
 $memberlist = (string) file_get_contents($root . '/phpBB2/memberlist.php');
 $templates = array(
-	(string) file_get_contents($root . '/phpBB2/templates/subSilver/admin/admin_users_list_body.tpl'),
 	(string) file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/admin_users_list_body.tpl')
 );
 $errors = array();

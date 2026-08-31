@@ -29,7 +29,7 @@ foreach (glob($root . '/phpBB2/templates/*/overall_header.tpl') as $header_file)
 	legacy_media_assert(strpos($header, 'assets/ruffle/ruffle.js') !== false, basename(dirname($header_file)) . ' must load Ruffle');
 	$header_count++;
 }
-legacy_media_assert($header_count >= 7, 'all bundled styles must be covered');
+legacy_media_assert($header_count === 1, 'the sole bundled style must be covered');
 
 $legacy_patterns = array(
 	'clsid:D27CDB6E',

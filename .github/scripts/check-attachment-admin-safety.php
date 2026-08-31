@@ -45,7 +45,7 @@ foreach (array('$normalized_delete_ids', 'phpbb_admin_html($attachments[$i][\'co
 	}
 }
 
-foreach (array('subSilver', 'fisubsilversh') as $style)
+foreach (array('fisubsilversh') as $style)
 {
 	foreach (array('attach_extension_groups.tpl', 'extension_groups_permissions.tpl', 'attach_cp_attachments.tpl') as $template_name)
 	{

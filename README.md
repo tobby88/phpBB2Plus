@@ -23,16 +23,15 @@ administration interface. Major bundled features include:
 - a shoutbox, custom profile fields, user groups, and additional moderation
   tools;
 - CrackerTracker security and logging features;
-- seven bundled styles, including FI Subsilver Shadow and six responsive
-  styles preserved from IntegraMOD;
+- the classic FI Subsilver Shadow style used by phpBB2 Plus;
 - English and German language directories.
 
 The public `hacks_list.php` page is seeded with the historical phpBB2 Plus
 component credits and the later integrations whose identity can be verified
 from the preserved source. The source tree and [CHANGELOG.md](CHANGELOG.md)
 remain the authoritative records of code-level maintenance changes, which are
-not presented as separate MODs. Licenses and versions of JavaScript, CSS,
-fonts and icons bundled with the responsive styles are recorded separately in
+not presented as separate MODs. The self-hosted Ruffle runtime used by the
+preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Project status
@@ -75,25 +74,17 @@ The installer is legacy code. Perform a fresh installation only in a test
 environment until the exact PHP and database combination has been verified.
 
 The fresh-install schema already contains the restored Arcade, Nuffload and DB
-Maintenance database structures as well as the IntegraMOD-derived responsive
-style, social-profile, cookie-consent and optional StopForumSpam fields. No
-separate SQL imports are required for a fresh installation.
+Maintenance database structures as well as social-profile, cookie-consent and
+optional StopForumSpam fields. No separate SQL imports are required for a
+fresh installation.
 
-### Styles and mobile display
+### Style
 
-FI Subsilver Shadow is activated by the fresh installer. The six additional
-bundled style directories can be registered from the local eXtreme Styles
-administration page; no external download or executable style importer is
-needed. Registered public styles remain selectable in a member profile.
-
-When `BS_subSilver`, `BS_subIce` or `BS` is installed and public, phones and
-tablets automatically use the first available responsive style. The footer
-offers `Automatic`, `Mobile` and `Desktop` display modes for guests and signed-
-in members and remembers that choice in a protected first-party cookie. Board
-administrators can still disable all per-visitor selection with phpBB's
-existing style-override setting. Mod pages for which a responsive template was
-never supplied use eXtreme Styles' established `subSilver` fallback; they stay
-functional but may retain their legacy table layout.
+FI Subsilver Shadow is the sole bundled and supported style. Fresh installs
+activate it directly, and the consolidated post-1.53a updater moves the board
+default and every stored member preference to it before removing obsolete
+theme records. The experimental automatic mobile-style selection and its
+footer switcher are no longer part of the application.
 
 The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
 is disabled by default because it can make extensive database changes. To use

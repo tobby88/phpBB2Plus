@@ -35,7 +35,7 @@ $retired_templates = array(
 	'styles_exporter.tpl',
 	'styles_list_body.tpl'
 );
-foreach (array('subSilver', 'fisubsilversh') as $style)
+foreach (array('fisubsilversh') as $style)
 {
 	foreach ($retired_templates as $template)
 	{

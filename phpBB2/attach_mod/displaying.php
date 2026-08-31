@@ -177,27 +177,6 @@ function display_news_attachments($post_id, $switch_attachment)
 
 	display_portal_news_attachments($post_id);
 }
-/*
-//
-// Generate the Display Assign File Link
-//
-function display_assign_link($post_id)
-{
-	global $attach_config, $is_auth, $phpEx;
-
-	$image = 'templates/subSilver/images/icon_mini_message.gif';
-
-	if ( (intval($attach_config['disable_mod'])) || (!( ($is_auth['auth_download']) && ($is_auth['auth_view']))) )
-	{
-		return ('');
-	}
-
-	$temp_url = append_sid("assign_file.$phpEx?p=" . $post_id);
-	$link = '<a href="' . $temp_url . '" target="_blank" rel="noopener noreferrer"><img src="' . $image . '" alt="Add File" title="Add File" border="0" /></a>';
-	
-	return ($link);
-}
-*/
 
 /**
 * Initializes some templating variables for displaying Attachments in Posts

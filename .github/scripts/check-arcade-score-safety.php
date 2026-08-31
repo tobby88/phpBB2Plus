@@ -20,7 +20,6 @@ $monthly = file_get_contents($root . '/phpBB2/arcade_highscore.php');
 $points = file_get_contents($root . '/phpBB2/arcade_point_scores.php');
 $schema = file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
 $point_templates = array(
-	file_get_contents($root . '/phpBB2/templates/subSilver/arcade_point_scores.tpl'),
 	file_get_contents($root . '/phpBB2/templates/fisubsilversh/arcade_point_scores.tpl')
 );
 $arcade_languages = array(

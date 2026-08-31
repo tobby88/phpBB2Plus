@@ -312,8 +312,8 @@ class pafiledb_stats extends pafiledb_public
 			'U_DOWNLOAD' => append_sid('dload.'.$phpEx),
 
 // Mx Addon
-			'U_VOTE_LCAP' => "templates/subSilver/images/vote_lcap.gif",
-			'U_VOTE_RCAP' => "templates/subSilver/images/vote_rcap.gif",
+			'U_VOTE_LCAP' => "templates/fisubsilversh/images/vote_lcap.gif",
+			'U_VOTE_RCAP' => "templates/fisubsilversh/images/vote_rcap.gif",
 
 			'DOWNLOAD' => $pafiledb_config['settings_dbname'],
 		 	'STATS_TEXT' => $lang['Stats_text'])
