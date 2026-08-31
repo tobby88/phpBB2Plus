@@ -91,6 +91,9 @@ foreach (array(
 }
 foreach (array(
 	'phpbb_profile_field_assignments($profile_data, $_POST, $profile_names)',
+	'function admin_user_sql_value',
+	'admin_user_sql_value($email)',
+	'admin_user_sql_value($signature)',
 	"phpbb_profile_text(\$field['field_description'])",
 	'implode(\', \', $profile_assignments)',
 	'WHERE user_id = " . (int) $user_id'
@@ -102,6 +105,10 @@ foreach (array(
 	}
 }
 foreach (array(
+	'function usercp_sql_value',
+	'usercp_sql_value($email)',
+	'usercp_sql_value($signature)',
+	'usercp_sql_value(substr($registration_ip',
 	'phpbb_profile_field_input($fields, $HTTP_POST_VARS)',
 	'phpbb_profile_field_assignments($profile_data, $HTTP_POST_VARS, $profile_names)'
 ) as $marker)
@@ -111,7 +118,7 @@ foreach (array(
 		$errors[] = 'Missing public profile-field boundary: ' . $marker;
 	}
 }
-foreach (array('$temp = $_POST[$name]', '$sql2_tmp', 'str_replace("\\\'","\'\'",$profile_names') as $marker)
+foreach (array('$temp = $_POST[$name]', '$sql2_tmp', 'str_replace("\\\'","\'\'",$profile_names', 'str_replace("\\\'", "\'\'", $email)') as $marker)
 {
 	if (strpos($admin_users . $profile, $marker) !== false)
 	{

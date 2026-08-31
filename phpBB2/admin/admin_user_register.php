@@ -171,7 +171,7 @@ if ( isset($_POST['submit']) )
 
 		if (!$error)
 		{
-			$username_sql = "username = '" . str_replace("\'", "''", $username) . "', ";
+			$username_sql = "username = '" . $db->sql_escape($username) . "', ";
 		}
 	}
 
@@ -193,7 +193,7 @@ if ( isset($_POST['submit']) )
 		$new_password = phpbb_password_hash($new_password);
 
 		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey)
-			VALUES ($user_id, '" . str_replace("\'", "''", $username) . "',	" . time() . ",	'" . str_replace("\'", "''", $new_password) . "',	'" . str_replace("\'", "''", $email) . "', $user_style, $user_timezone, '" . str_replace("\'", "''", $user_dateformat) . "', '" . str_replace("\'", "''", $user_lang) . "', 0, 1, 'user_actkey')";
+			VALUES ($user_id, '" . $db->sql_escape($username) . "',	" . time() . ",	'" . $db->sql_escape($new_password) . "',	'" . $db->sql_escape($email) . "', $user_style, $user_timezone, '" . $db->sql_escape($user_dateformat) . "', '" . $db->sql_escape($user_lang) . "', 0, 1, 'user_actkey')";
 		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);

@@ -59,6 +59,12 @@ function admin_user_post_int($name, $default = 0)
 	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (int) $_POST[$name] : $default;
 }
 
+function admin_user_sql_value($value)
+{
+	global $db;
+	return $db->sql_escape((string) $value);
+}
+
 //
 // Set mode
 //
@@ -186,7 +192,7 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 			$row = $db->sql_fetchrow($result);
 			
 			$sql = "UPDATE " . POSTS_TABLE . "
-				SET poster_id = " . DELETED . ", post_username = '" . str_replace("\\'", "''", addslashes($this_userdata['username'])) . "' 
+				SET poster_id = " . DELETED . ", post_username = '" . admin_user_sql_value($this_userdata['username']) . "'
 				WHERE poster_id = $user_id";
 			if( !$db->sql_query($sql) )
 			{
@@ -519,7 +525,7 @@ if( !empty($_POST['unblock_account']) )
 					$error = TRUE;
 					$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $result['error_msg'];
 				}
-				else if ( strtolower(str_replace("\\'", "''", $username)) == strtolower($userdata['username']) )
+				else if ( strtolower($username) == strtolower($userdata['username']) )
 				{
 					$error = TRUE;
 					$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Username_taken'];
@@ -528,7 +534,7 @@ if( !empty($_POST['unblock_account']) )
 
 			if (!$error)
 			{
-				$username_sql = "username = '" . str_replace("\\'", "''", $username) . "', ";
+				$username_sql = "username = '" . admin_user_sql_value($username) . "', ";
 				$rename_user = $username; // Used for renaming usergroup
 			}
 		}
@@ -720,7 +726,7 @@ if( !empty($_POST['unblock_account']) )
    else $no_error_ban=true; 
 }
 			$sql = "UPDATE " . USERS_TABLE . "
-				SET " . $username_sql . $passwd_sql . "user_email = '" . str_replace("\'", "''", $email) . "', user_icq = '" . str_replace("\'", "''", $icq) . "', user_website = '" . str_replace("\'", "''", $website) . "', user_occ = '" . str_replace("\'", "''", $occupation) . "', user_from = '" . str_replace("\'", "''", $location) . "', user_from_flag = '$user_flag', user_interests = '" . str_replace("\'", "''", $interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . str_replace("\'", "''", $user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . str_replace("\'", "''", $signature) . "', user_viewemail = $viewemail, user_aim = '" . str_replace("\'", "''", $aim) . "', user_yim = '" . str_replace("\'", "''", $yim) . "', user_msnm = '" . str_replace("\'", "''", $msn) . "', user_fb = '" . str_replace("\'", "''", $fb) . "', user_ig = '" . str_replace("\'", "''", $ig) . "', user_pt = '" . str_replace("\'", "''", $pt) . "', user_twr = '" . str_replace("\'", "''", $twr) . "', user_skp = '" . str_replace("\'", "''", $skp) . "', user_tg = '" . str_replace("\'", "''", $tg) . "', user_li = '" . str_replace("\'", "''", $li) . "', user_tt = '" . str_replace("\'", "''", $tt) . "', user_dc = '" . str_replace("\'", "''", $dc) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '$signature_bbcode_uid', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . str_replace("\'", "''", $user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . str_replace("\'", "''", $user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '$gender'" . $avatar_sql . $force_new_passwd_sql . "
+				SET " . $username_sql . $passwd_sql . "user_email = '" . admin_user_sql_value($email) . "', user_icq = '" . admin_user_sql_value($icq) . "', user_website = '" . admin_user_sql_value($website) . "', user_occ = '" . admin_user_sql_value($occupation) . "', user_from = '" . admin_user_sql_value($location) . "', user_from_flag = '" . admin_user_sql_value($user_flag) . "', user_interests = '" . admin_user_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . admin_user_sql_value($user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . admin_user_sql_value($signature) . "', user_viewemail = $viewemail, user_aim = '" . admin_user_sql_value($aim) . "', user_yim = '" . admin_user_sql_value($yim) . "', user_msnm = '" . admin_user_sql_value($msn) . "', user_fb = '" . admin_user_sql_value($fb) . "', user_ig = '" . admin_user_sql_value($ig) . "', user_pt = '" . admin_user_sql_value($pt) . "', user_twr = '" . admin_user_sql_value($twr) . "', user_skp = '" . admin_user_sql_value($skp) . "', user_tg = '" . admin_user_sql_value($tg) . "', user_li = '" . admin_user_sql_value($li) . "', user_tt = '" . admin_user_sql_value($tt) . "', user_dc = '" . admin_user_sql_value($dc) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '" . admin_user_sql_value($signature_bbcode_uid) . "', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . admin_user_sql_value($user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . admin_user_sql_value($user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '" . admin_user_sql_value($gender) . "'" . $avatar_sql . $force_new_passwd_sql . "
 				WHERE user_id = $user_id";
 
 			if( $result = $db->sql_query($sql) )
@@ -732,8 +738,8 @@ if( !empty($_POST['unblock_account']) )
 				if( isset($rename_user) )
 				{
 					$sql = "UPDATE " . GROUPS_TABLE . "
-						SET group_name = '".str_replace("\'", "''", $rename_user)."'
-						WHERE group_name = '".str_replace("'", "''", $this_userdata['username'] )."'";
+						SET group_name = '" . admin_user_sql_value($rename_user) . "'
+						WHERE group_name = '" . admin_user_sql_value($this_userdata['username']) . "'";
 					if( !$result = $db->sql_query($sql) )
 					{
 						message_die(GENERAL_ERROR, 'Could not rename users group', '', __LINE__, __FILE__, $sql);

@@ -15,6 +15,10 @@ changes consolidated after that baseline without implying active maintenance.
   values are escaped before form rendering. Public profile, member-list and
   topic rendering also normalizes both legacy raw text and entity-encoded
   values to one safe HTML representation.
+- Replaced the remaining Magic-Quotes-era SQL substitutions in public and ACP
+  account creation and profile updates with the active database driver's
+  escaping API. Apostrophes in legitimate profile data therefore work on
+  modern PHP without weakening the query boundary.
 - Extended the central CrackerTracker request boundary to reject unsupported
   HTTP methods and structurally abusive cookie or upload metadata. Normal GET,
   POST, HEAD and legacy upload/cookie shapes remain accepted; uploaded file
