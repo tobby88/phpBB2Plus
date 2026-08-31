@@ -69,7 +69,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 		$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
 		$password_value = (isset($_POST['password']) && is_scalar($_POST['password'])) ? (string) $_POST['password'] : '';
 		$password = (strlen($password_value) <= 128) ? $password_value : '';
-		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, ct_login_count, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
+		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
 			FROM " . USERS_TABLE . "
 			WHERE username = '" . $username_sql . "'";
 		if ( !($result = $db->sql_query($sql)) )
@@ -132,8 +132,6 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						{
 							$ctracker_config->update_login_history($row['user_id']);
 						}
-						// Clear any legacy account-wide CAPTCHA flag after a valid login.
-						$ctracker_config->reset_login_system($row['user_id']);
 						if ( $ctracker_config->settings['login_ip_check'] == 1 )
 						{
 							$ctracker_config->set_user_ip($row['user_id']);

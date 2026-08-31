@@ -410,17 +410,7 @@ $lang['ctracker_info_pw_expired']		  = "The administrator has made adjustments s
  */
 $lang['ctracker_login_wrong']   = 'The entered Visual Confirmation Code was incorrect!';
 $lang['ctracker_code_dbconn']   = 'Couldn\'t load Visual Confirmation Code from database! If you have a phpBB Plus you have to install the phpBB internat modules for the Visual Confirmation. Please read the references to phpBB Plus in the "add_ons" folder of CrackerTracker Mod Package!';
-$lang['ctracker_login_success'] = 'Your Account has been activated again.<br /><br />Click <a href="%s">HERE</a> to go back to Login.';
 $lang['ctracker_code_count']    = 'The number of entries of Visual Confirmation has exceeded the limit in this session.';
-
-
-/*
- * Language Strings used in ctracker_login.php
- */
-$lang['ctracker_login_title']   = 'CrackerTracker Account Activation';
-$lang['ctracker_login_logged']  = 'Logged In Users cannot access the site.';
-$lang['ctracker_login_confim']  = 'The adjusted number of wrong Logins for your Account was reached. Therefore your Account has been locked. It will have to be reactivated using  Visual Confirmation.<br /><br />Please type in the following code and click on "Unlock" to unlock your account. If this is done you can log on again.';
-$lang['ctracker_login_button']  = 'Activate';
 
 
 /*

@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed the remaining dead code and database columns for CrackerTracker's
+  former account-wide CAPTCHA lock. The login path had already stopped
+  setting or honoring that flag because any unauthenticated visitor could
+  impose it on another account. Failed attempts are now handled solely by the
+  bounded IP and IP/account-pair limiters; the obsolete public unlock route,
+  template and class methods are gone, and upgraded databases drop their two
+  unused per-user columns.
 - Replaced CrackerTracker's board-global registration locks with a rolling
   cooldown keyed only by the web server's verified client IP. The old design
   allowed one completed signup to block every visitor temporarily and could

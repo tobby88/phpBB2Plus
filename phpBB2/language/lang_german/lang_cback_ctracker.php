@@ -409,17 +409,7 @@ $lang['ctracker_info_pw_expired']		  = 'Der Administrator hat eingestellt, dass 
  */
 $lang['ctracker_login_wrong']   = 'Der eingegebene visuelle Bestätigungscode war leider nicht korrekt!';
 $lang['ctracker_code_dbconn']   = 'Konnte visuellen Bestätigungscode nicht von der Datenbank laden! Wenn Du ein phpBB Plus hast musst Du die phpBB-eigenen Module für die Visuelle Bestätigung nachinstallieren. Lies hierzu bitte im Ordner "add_ons" des CrackerTracker MODPaketes die Hinweise zu phpBB Plus!';
-$lang['ctracker_login_success'] = 'Dein Account wurde nun wieder freischaltet.<br /><br />Klicke <a href="%s">HIER</a> um zur Loginseite zu gelangen.';
 $lang['ctracker_code_count']    = 'Die maximale Anzahl der Eingabeversuche für die Visuelle Bestätigung wurde für diese Session überschritten.';
-
-
-/*
- * Language Strings used in ctracker_login.php
- */
-$lang['ctracker_login_title']   = 'CrackerTracker Accountfreischaltung';
-$lang['ctracker_login_logged']  = 'Eingeloggte Benutzer können diese Seite nicht aufrufen.';
-$lang['ctracker_login_confim']  = 'Die eingestellte Anzahl fehlerhafter Loginversuche für Deinen Account wurde erreicht. Zum Schutze Deines Accounts wurde dieser nun für den Login gesperrt und muss von Dir über die visuelle Bestätigung wieder freigeschaltet werden.<br /><br />Bitte trage dazu nun den folgenden Buchstaben- und Zahlencode in das Eingabefeld ein und drücke auf den Button "Freischalten", um Deinen Account wieder freizuschalten. Wenn dies getan ist, kannst Du Dich wie gewohnt über die Loginseite einloggen.';
-$lang['ctracker_login_button']  = 'Freischalten';
 
 
 /*

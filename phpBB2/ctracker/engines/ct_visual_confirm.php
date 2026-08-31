@@ -6,8 +6,7 @@
 * in CrackerTracker. We used the Visual Confirm generator from the phpBB Group
 * that we don't have to include new files.
 *
-* We can use this file to generate the visual code on login and guest postings
-* if we need it.
+* This file generates and verifies the visual code used for guest postings.
 *
 *
 * @author Christian Knerr (cback)
@@ -97,20 +96,7 @@ if ( $mode == 'check' || defined('POST_CONFIRM_CHECK') )
 
 	if ( $error )
 	{
-		if ( defined('IN_LOGIN') )
-    {
-		  $error_msg .= '<br /><br />' . sprintf($lang['Click_return_login'], "<a href='ctracker_login.$phpEx'>", '</a>');
-		}
-    message_die(GENERAL_MESSAGE, $error_msg);
-	}
- 	else if( defined('CTRACKER_ACCOUNT_FREE') )
-	{
-		$ctracker_config->reset_login_system($user_id);
-
-		$message_text = '';
-		$message_text = sprintf($lang['ctracker_login_success'], 'login.' . $phpEx );
-
-		message_die(GENERAL_MESSAGE, $message_text);
+		message_die(GENERAL_MESSAGE, $error_msg);
 	}
 }
 else

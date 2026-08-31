@@ -346,30 +346,6 @@ class ct_database
 
 
 	/**
-	 * <b>reset_login_system</b><br>
-	 * Resets User Wrong Login Markers on successful login
-	 *
-	 * @param $user_id (Integer) User ID
-	 */
-	function reset_login_system($user_id)
-	{
-		global $db, $lang;
-
-		// Ensure that $user_id is integer
-		$user_id = intval($user_id);
-
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_login_vconfirm = 0, ct_login_count = 1 WHERE user_id = ' . $user_id;
-
-		// Execute SQL Command in database
-		if ( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-		}
-
-	}
-
-
-	/**
 	 * <b>set_user_ip</b><br>
 	 * Saves last Logged in IP Adress for the IP Scanner
 	 *
@@ -404,72 +380,6 @@ class ct_database
 		// Update Userdata Array (wich is already available here!)
 		$userdata['ct_last_used_ip'] = $this->user_ip_value;
 	}
-
-
-	/**
-	 * <b>handle_wrong_login</b><br>
-	 * Handles wrong Logins in the Database...
-	 *
-	 * @param $user_id (Integer) User ID
-	 * @param $logincount (Integer) Count how often a user tried to login
-	 */
-	function handle_wrong_login($user_id, $logincount)
-	{
-		global $db, $lang, $ctracker_config;
-		$user_id = intval($user_id);
-		$logincount = max(0, intval($logincount));
-
-		if ( $logincount < $ctracker_config->settings['logincount'] )
-		{
-			$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_login_count = ct_login_count + 1 WHERE user_id = ' . $user_id;
-
-			// Execute SQL Command in database
-			if ( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else
-		{
-			$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_login_vconfirm = 1 WHERE user_id = ' . $user_id;
-
-			// Execute SQL Command in database
-			if ( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-			}
-		} // else
-	} // handle_wrong_login
-
-
-	/**
-	 * <b>check_login_status</b><br>
-	 * Checks if Visual Confirmation for a login is required
-	 *
-	 * @param $username (String) Name of the User who tried to login
-	 */
-	function check_login_status($username)
-	{
-		global $lang, $db, $phpEx;
-
-		// Secure submitted username
-		$username = phpbb_clean_username($username);
-
-		// Build SQL Query
-		$sql = "SELECT ct_login_vconfirm, user_id FROM " . USERS_TABLE . " WHERE username = '" . $db->sql_escape($username) . "'";
-
-		// Execute SQL Command in database
-		if ( $result = $db->sql_query($sql) )
-		{
-			if ( $row = $db->sql_fetchrow($result) )
-			{
-				if ( $row['ct_login_vconfirm'] == 1 )
-				{
-					redirect(append_sid("ctracker_login.$phpEx?uid=" . $row['user_id'], true));
-				}
-			}
-		}
-	} // check_login_status
 
 
 	/**

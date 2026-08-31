@@ -401,8 +401,6 @@ $user_columns = array(
 	'ct_enable_ip_warn' => 'TINYINT(1) DEFAULT 1',
 	'ct_last_used_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
 	'ct_last_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
-	'ct_login_count' => 'MEDIUMINT(8) DEFAULT 1',
-	'ct_login_vconfirm' => 'TINYINT(1) DEFAULT 0',
 	'ct_last_pw_change' => 'INT(11) DEFAULT 0',
 	'ct_global_msg_read' => 'TINYINT(1) DEFAULT 0',
 	'ct_miserable_user' => 'TINYINT(1) DEFAULT 0',
@@ -651,6 +649,20 @@ foreach ($credit_rows as $credit)
 	$values = array();
 	foreach ($credit as $value) { $values[] = "'" . mysqli_real_escape_string($connection, $value) . "'"; }
 	$operations[] = "INSERT INTO $hacks_table (hack_add_date, hack_name, hack_desc, hack_author, hack_author_email, hack_author_website, hack_version, hack_hide, hack_download_url, hack_file, hack_file_mtime) VALUES (0, " . $values[0] . ', ' . $values[1] . ', ' . $values[2] . ", '', " . $values[3] . ', ' . $values[4] . ", 'No', '', '', 0) ON DUPLICATE KEY UPDATE hack_desc = VALUES(hack_desc), hack_author = VALUES(hack_author), hack_author_website = VALUES(hack_author_website), hack_version = VALUES(hack_version)";
+}
+
+// The account-wide visual-confirmation lock was disabled because an
+// unauthenticated visitor could set it on somebody else's account. Remove its
+// now-unused CrackerTracker 5 columns independently of the 4.x cleanup below.
+foreach (array('ct_login_count', 'ct_login_vconfirm') as $obsolete_login_column)
+{
+	update_queue_drop_column(
+		$operations,
+		$connection,
+		$dbname,
+		$table_prefix . 'users',
+		$obsolete_login_column
+	);
 }
 
 // CrackerTracker 5 is a complete redevelopment. Its official 4.x-to-5.x
