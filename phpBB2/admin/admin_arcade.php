@@ -52,10 +52,6 @@ if( !empty($setmodules) )
 //
 	$module['Arcade']['Configuration'] = $file;
 	$module['Arcade']['Switches'] = $file."?mode=switches";
-	if($arcade_config['games_moderators_mode'])
-	{
-		$module['Arcade']['Moderators'] = $file."?mode=moderators";
-	}
 	if($arcade_config['games_use_pms'])
 	{
 		$module['Arcade']['Private MS'] = $file."?mode=messages";
@@ -85,13 +81,13 @@ if ($submit)
 // Check to see what mode we should operate in.
 // 
 $new_mode = (isset($HTTP_POST_VARS['new_mode']) && is_scalar($HTTP_POST_VARS['new_mode'])) ? (string) $HTTP_POST_VARS['new_mode'] : ((isset($HTTP_GET_VARS['new_mode']) && is_scalar($HTTP_GET_VARS['new_mode'])) ? (string) $HTTP_GET_VARS['new_mode'] : '');
-$new_mode = in_array($new_mode, array('', 'switches', 'moderators', 'messages'), true) ? $new_mode : '';
+$new_mode = in_array($new_mode, array('', 'switches', 'messages'), true) ? $new_mode : '';
 $mode = $arcade->pass_var('mode', '');
-$mode = in_array($mode, array('', 'switches', 'moderators', 'messages'), true) ? $mode : '';
+$mode = in_array($mode, array('', 'switches', 'messages'), true) ? $mode : '';
 //
 //  Main Config Menu
 //
-if ( !$mode || $mode == 'switches' || $mode == 'moderators' || $mode == 'messages' )
+if ( !$mode || $mode == 'switches' || $mode == 'messages' )
 {
   $posted_point_system = !empty($HTTP_POST_VARS['use_point_system']);
   $posted_cash_system = !empty($HTTP_POST_VARS['use_cash_system']);
@@ -383,10 +379,6 @@ if ( !$mode || $mode == 'switches' || $mode == 'moderators' || $mode == 'message
 	{
 		$template->set_filenames(array('body' => 'admin/arcade_switches_body.tpl'));
 	}
-	else if ( $mode == 'moderators' )
-	{
-		$template->set_filenames(array('body' => 'admin/arcade_moderators_body.tpl') );
-	}
 	else if ( $mode == 'messages' )
 	{
 		$template->set_filenames(array('body' => 'admin/arcade_messages_body.tpl') );
@@ -435,10 +427,7 @@ if ( !$mode || $mode == 'switches' || $mode == 'moderators' || $mode == 'message
 		'L_TOGGLES' => $lang['admin_toggles'],
 		'L_REWARDS' => $lang['admin_rewards'],
 		'L_ARCADE_CONFIG' => $lang['admin_arcade_config'],
-  	'L_MOD_HEADER' => $lang['admin_moderators_header'],
-		'L_MOD_INFO' => $lang['admin_moderators_info'],
-		'L_MODERATORS_OPTIONS' => $lang['moderators_options'],
- 		'L_MESS_HEADER' => $lang['admin_messages_header'],
+		'L_MESS_HEADER' => $lang['admin_messages_header'],
 		'L_MESS_INFO' => $lang['admin_messages_info'],
 
 		"L_MOD_OFFLINE" => $lang['admin_games_offline'],

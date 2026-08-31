@@ -259,7 +259,6 @@ $lang['arcade_rate_return_forum'] = 'Klicke, um zum %sForum%s zurückzukehren';
 // Moderators
 *****************************************************************************/
 $lang['amod_mod_config_updated'] = 'Die Konfiguration der Spiele Moderatoren wurde aktualisiert<br /><br />';
-$lang['moderators_options'] = 'Optionen für Moderatoren';
 $lang['amod_admin_offline'] = '<b>Die Spielhalle deaktivieren</b><br />Sollen die Moderatoren die Möglichkeit haben, die Spielhalle zu deaktivieren?';
 $lang['amod_admin_scores'] = '<b>Ergnisoption für Moderatoren</b><br />Welche Kontrolle sollen über die Ergebnisverwaltung sollen die Moderatoren erhalten?';
 $lang['amod_admin_games'] = '<b>Spieleoption für Moderatoren</b><br />Sollen Moderatoren Spiele installieren/deinstallieren können?';

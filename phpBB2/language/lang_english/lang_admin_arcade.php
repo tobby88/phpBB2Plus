@@ -144,8 +144,6 @@ $lang['admin_default_img_info'] = '-:- Default games image, this image will be d
 //
 // 2.0.4
 //
-$lang['admin_moderators_header'] = 'Online Arcade Moderators Options Menu';
-$lang['admin_moderators_info'] = 'This control panel will allow you to set-up the moderators options for the categories sections.<br />If you are currently having a problem with our MOD, then please contact us at <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a> so we may help fix the problem.';
 $lang['admin_default_txt'] = '<b>Default Guest Text</b><br />';
 $lang['admin_default_txt_info'] = '-:- Default text that is displayed to Guests to try to get them to register.';
 $lang['admin_tournament_txt'] = '<b>Use Tournament Mode</b><br />';

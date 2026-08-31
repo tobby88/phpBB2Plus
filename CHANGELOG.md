@@ -21,6 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
   inaccurate hardcoded three-month notice with the actual calculation period
   (current and previous calendar month). The shared eXtreme Styles fallback
   templates now expose only translated labels and explanatory text.
+- Removed the empty Arcade ACP "Moderators" page and its unused templates. The
+  working moderator-mode and moderator-action switches remain available on
+  the existing Arcade switches page.
 - Centralized custom profile-field parsing for registration and administrator
   user management. Dynamic columns now have a strict identifier boundary,
   values obey their configured type, choices and length, and database writes

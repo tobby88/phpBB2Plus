@@ -250,7 +250,6 @@ $lang['arcade_rate_return_forum'] = 'Click to return to the %sForum%s';
 // Moderators
 *****************************************************************************/
 $lang['amod_mod_config_updated'] = 'Arcade / Activites Moderators Configuration Updated<br /><br />';
-$lang['moderators_options'] = 'Moderators Options';
 $lang['amod_admin_offline'] = '<b>Take Mod Offline</b><br />-:- Will your moderators be able to take the mod offline.';
 $lang['amod_admin_scores'] = '<b>Moderators Scores Options</b><br />-:- What control over the scores will your Moderators have?';
 $lang['amod_admin_games'] = '<b>Moderators Game Options</b><br />-:- Can your Moderators take games online/offline?';

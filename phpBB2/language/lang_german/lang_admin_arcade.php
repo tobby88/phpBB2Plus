@@ -147,8 +147,6 @@ $lang['admin_default_img_info'] = 'Ein Bild, das angezeigt wird, wenn Du kein ei
 //
 // 2.0.4
 //
-$lang['admin_moderators_header'] = 'Moderatoren Menü';
-$lang['admin_moderators_info'] = 'Mit diesem Control Panel kannst Du die Optionen für die Moderatoren im Kategoriemenü festlegen. <br /> Solltest Du mit diesem Menü auf Probleme stossen, dann kontaktieren uns unter <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a>, damit wir das Problem lösen können.';
 $lang['admin_default_txt'] = '<b>Standard Text, der Gästen angezeigt wird</b><br />';
 $lang['admin_default_txt_info'] = 'Der Text den Gäste angezeigt bekommen und der sie zum Registrieren animieren soll.';
 $lang['admin_tournament_txt'] = '<b>Verwende den Wettbewerbsmodus</b><br />';
