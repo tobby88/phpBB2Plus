@@ -148,6 +148,9 @@ jobs:
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php
 
+      - name: Test authenticated session rotation
+        run: php .github/scripts/check-session-rotation-safety.php
+
       - name: Test calendar runtime safety
         run: php .github/scripts/check-calendar-runtime-safety.php
 

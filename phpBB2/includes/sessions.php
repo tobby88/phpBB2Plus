@@ -181,6 +181,24 @@ if ($files)
 	}
 
 	$page_id = (empty($page_id) || $page_id == '') ? 0 : $page_id;
+
+	// Never promote an existing anonymous/session-cookie identifier into an
+	// authenticated session. Reusing the pre-login id makes classic session
+	// fixation possible when an attacker can cause a browser to adopt a known
+	// sid before the victim logs in. This also covers automatic login and ACP
+	// re-authentication because both set $login after validating credentials.
+	if (!empty($login) && $session_id !== '')
+	{
+		$sql = "DELETE FROM " . SESSIONS_TABLE . "
+			WHERE session_id = '" . $db->sql_escape($session_id) . "'
+				AND session_ip = '" . $db->sql_escape($user_ip) . "'";
+		if (!$db->sql_query($sql))
+		{
+			message_die(CRITICAL_ERROR, 'Error rotating authenticated session', '', __LINE__, __FILE__, $sql);
+		}
+		$session_id = '';
+	}
+
 	//
 	// Create or update the session
 	//
