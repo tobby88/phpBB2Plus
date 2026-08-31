@@ -203,7 +203,7 @@ else
 	$pic_size = @getimagesize(ALBUM_UPLOAD_PATH . $pic_filename);
 	$expected_image_type = ($pic_filetype == '.jpg') ? IMAGETYPE_JPEG : IMAGETYPE_PNG;
 	if ($pic_size === false || !isset($pic_size[0], $pic_size[1], $pic_size[2]) ||
-		intval($pic_size[0]) < 1 || intval($pic_size[1]) < 1 || intval($pic_size[2]) !== $expected_image_type)
+		intval($pic_size[2]) !== $expected_image_type || !phpbb_image_dimensions_safe($pic_size[0], $pic_size[1]))
 	{
 		header('Content-type: image/jpeg');
 		readfile($images['no_thumbnail']);

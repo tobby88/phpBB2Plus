@@ -537,6 +537,10 @@ else
 	$pic_width = intval($pic_size[0]);
 	$pic_height = intval($pic_size[1]);
 	$pic_image_type = intval($pic_size[2]);
+	if (!phpbb_image_dimensions_safe($pic_width, $pic_height))
+	{
+		message_die(GENERAL_ERROR, $lang['Upload_image_size_too_big']);
+	}
 	if ($album_config['gd_version'] == 0)
 	{
 		if (!album_nuffload_is_staged_file($thumbtmp, $path_to_bin, $psid))
@@ -553,6 +557,10 @@ else
 		$thumb_width = intval($thumb_size[0]);
 		$thumb_height = intval($thumb_size[1]);
 		$thumb_image_type = intval($thumb_size[2]);
+		if (!phpbb_image_dimensions_safe($thumb_width, $thumb_height))
+		{
+			message_die(GENERAL_ERROR, $lang['Upload_thumbnail_size_too_big']);
+		}
 	}
 
 

@@ -123,7 +123,7 @@ function create_thumbnail($source, $new_file, $mimetype)
 
 	list($width, $height, $type, ) = getimagesize($source);
 
-	if (!$width || !$height)
+	if (!$width || !$height || !phpbb_image_dimensions_safe($width, $height))
 	{
 		return false;
 	}

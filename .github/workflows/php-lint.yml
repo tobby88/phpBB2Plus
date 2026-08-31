@@ -133,6 +133,9 @@ jobs:
       - name: Test public Album action safety
         run: php .github/scripts/check-album-public-safety.php
 
+      - name: Test image processing safety
+        run: php .github/scripts/check-image-processing-safety.php
+
       - name: Test moderator action safety
         run: php .github/scripts/check-moderator-action-safety.php
 

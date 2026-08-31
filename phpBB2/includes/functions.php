@@ -509,6 +509,23 @@ function dss_rand()
 	return substr($val, 4, 16);
 }
 
+/**
+ * Bound decoded raster allocations before GD opens attacker-controlled files.
+ * Compressed PNG/JPEG/GIF files can be tiny while requiring hundreds of
+ * megabytes once expanded.  Keep the check multiplication-free so it also
+ * behaves correctly on 32-bit PHP 5.6 builds.
+ */
+function phpbb_image_dimensions_safe($width, $height, $max_pixels = 20000000, $max_dimension = 10000)
+{
+	$width = (int) $width;
+	$height = (int) $height;
+	$max_pixels = max(1, (int) $max_pixels);
+	$max_dimension = max(1, (int) $max_dimension);
+
+	return $width > 0 && $height > 0 && $width <= $max_dimension && $height <= $max_dimension
+		&& $width <= floor($max_pixels / $height);
+}
+
 // added at phpBB 2.0.12 to fix a bug in PHP 4.3.10 (only supporting charlist in php >= 4.1.0)
 function phpbb_rtrim($str, $charlist = false)
 {

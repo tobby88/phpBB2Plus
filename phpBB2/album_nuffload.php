@@ -342,6 +342,10 @@ if (isset($_REQUEST['psid']))
 			// Find image type and check if allowed
 			$image_data = @getimagesize($path_to_bin . $file['tmp_name'][$i]);
 			$image_type = ($image_data !== false && isset($image_data[2])) ? intval($image_data[2]) : 0;
+			if ($image_data === false || !isset($image_data[0], $image_data[1]) || !phpbb_image_dimensions_safe($image_data[0], $image_data[1]))
+			{
+				$thumb_type_error = true;
+			}
 			switch ($image_type)
 			{
 				case '1':
@@ -386,6 +390,10 @@ if (isset($_REQUEST['psid']))
 			$pic_width = ($image_data !== false && isset($image_data[0])) ? intval($image_data[0]) : 0;
 			$pic_height = ($image_data !== false && isset($image_data[1])) ? intval($image_data[1]) : 0;
 			$image_type = ($image_data !== false && isset($image_data[2])) ? intval($image_data[2]) : 0;
+			if (!phpbb_image_dimensions_safe($pic_width, $pic_height))
+			{
+				$pic_type_error = true;
+			}
 			switch ($image_type)
 			{
 				case '1':
@@ -482,8 +490,10 @@ if (isset($_REQUEST['psid']))
 	}
 
 	// Handle large resolution pic error.
-	$image_data = getimagesize($HTTP_POST_FILES['pic_file']['tmp_name']);
-	if ($image_data[0] > $album_config['max_width'] || $image_data[1] > $album_config['max_height'])
+	$image_data = @getimagesize($HTTP_POST_FILES['pic_file']['tmp_name']);
+	if ($image_data === false || !isset($image_data[0], $image_data[1]) ||
+		!phpbb_image_dimensions_safe($image_data[0], $image_data[1]) ||
+		$image_data[0] > $album_config['max_width'] || $image_data[1] > $album_config['max_height'])
 	{
 		message_die(GENERAL_MESSAGE, multi_loop($lang['image_res_too_high']));
 	}
@@ -491,8 +501,10 @@ if (isset($_REQUEST['psid']))
 	// Handle large resolution thumbnail error.
 	if ($album_config['gd_version'] == 0)
 	{
-		$image_data = getimagesize($HTTP_POST_FILES['pic_thumbnail']['tmp_name']);
-		if ($image_data[0] > $album_config['thumbnail_size'] || $image_data[1] > $album_config['thumbnail_size'])
+		$image_data = @getimagesize($HTTP_POST_FILES['pic_thumbnail']['tmp_name']);
+		if ($image_data === false || !isset($image_data[0], $image_data[1]) ||
+			!phpbb_image_dimensions_safe($image_data[0], $image_data[1]) ||
+			$image_data[0] > $album_config['thumbnail_size'] || $image_data[1] > $album_config['thumbnail_size'])
 		{
 			message_die(GENERAL_MESSAGE, multi_loop($lang['thumb_res_too_high']));
 		}
@@ -634,9 +646,14 @@ function multi_loop($message, $success=false)
 function resize_image($image_file_name, $resize_width, $resize_height, $resize_quality)
 {
 	// Check file and read into memory
-	$image_data = getimagesize($image_file_name);
-	$pic_width = $image_data[0];
-	$pic_height = $image_data[1];
+	$image_data = @getimagesize($image_file_name);
+	if ($image_data === false || !isset($image_data[0], $image_data[1], $image_data[2]) ||
+		!phpbb_image_dimensions_safe($image_data[0], $image_data[1]))
+	{
+		return false;
+	}
+	$pic_width = intval($image_data[0]);
+	$pic_height = intval($image_data[1]);
 	switch ($image_data[2])
 	{
 		case '1':

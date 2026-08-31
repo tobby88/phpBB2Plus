@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Added a shared decoded-image pixel and dimension budget before GD opens
+  avatars, attachments, Album uploads, Nuffload resizes or generated Album
+  thumbnails. Small compressed raster files can no longer force unbounded
+  memory allocation, and corrupt legacy Album images fall back to the standard
+  placeholder instead of emitting warnings or calling an invalid decoder.
 - Centralized validation of To, Cc, Bcc, From and Reply-To mailboxes for both
   PHP `mail()` and SMTP delivery. Invalid or control-character-bearing values
   are discarded before header construction, duplicate carbon-copy recipients

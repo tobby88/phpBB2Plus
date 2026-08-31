@@ -192,7 +192,7 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 	$width = intval($image_info[0]);
 	$height = intval($image_info[1]);
 
-	if ( $width > 0 && $height > 0 && $width <= $board_config['avatar_max_width'] && $height <= $board_config['avatar_max_height'] )
+	if ( phpbb_image_dimensions_safe($width, $height) && $width <= $board_config['avatar_max_width'] && $height <= $board_config['avatar_max_height'] )
 	{
 		$new_filename = md5(dss_rand() . dss_rand()) . $imgtype;
 
