@@ -58,6 +58,28 @@ if ($userdata['session_logged_in'])
 	$admin_link = '';
 }
 
+$style_switcher = '';
+if (empty($board_config['override_user_style']) && phpbb_mobile_style_id() > 0)
+{
+	$current_script = isset($_SERVER['PHP_SELF']) && is_scalar($_SERVER['PHP_SELF']) ? basename((string) $_SERVER['PHP_SELF']) : 'portal.' . $phpEx;
+	if (!preg_match('/^[A-Za-z0-9_.-]+\.php$/D', $current_script))
+	{
+		$current_script = 'portal.' . $phpEx;
+	}
+	$current_query = isset($_SERVER['QUERY_STRING']) && is_scalar($_SERVER['QUERY_STRING']) ? substr((string) $_SERVER['QUERY_STRING'], 0, 1800) : '';
+	$current_query = preg_replace('/[\x00-\x20<>]/', '', $current_query);
+	$return_url = $current_script . ($current_query !== '' ? '?' . $current_query : '');
+	$style_mode = phpbb_style_mode();
+	$style_switcher = '<form action="' . append_sid('style_switch.' . $phpEx) . '" method="post" style="display:inline-block;margin:.4em 0">'
+		. '<span class="gensmall">' . htmlspecialchars($lang['Style_display'], ENT_QUOTES, 'UTF-8') . ': </span>'
+		. '<button type="submit" name="mode" value="auto"' . ($style_mode === 'auto' ? ' disabled="disabled"' : '') . '>' . htmlspecialchars($lang['Style_auto'], ENT_QUOTES, 'UTF-8') . '</button> '
+		. '<button type="submit" name="mode" value="mobile"' . ($style_mode === 'mobile' ? ' disabled="disabled"' : '') . '>' . htmlspecialchars($lang['Style_mobile'], ENT_QUOTES, 'UTF-8') . '</button> '
+		. '<button type="submit" name="mode" value="desktop"' . ($style_mode === 'desktop' ? ' disabled="disabled"' : '') . '>' . htmlspecialchars($lang['Style_desktop'], ENT_QUOTES, 'UTF-8') . '</button>'
+		. '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
+		. '<input type="hidden" name="return" value="' . htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8') . '" />'
+		. '</form>';
+}
+
 $template->set_filenames(array(
 	'overall_footer' => ( empty($gen_simple_header) ) ? 'overall_footer.tpl' : 'simple_footer.tpl')
 );
@@ -73,6 +95,7 @@ $template->assign_vars(array(
 	'U_CREDITS' => append_sid("hacks_list.$phpEx"),
 	'CRACKER_TRACKER_FOOTER' => create_footer_layout($ctracker_settings['footer_layout']),
 	'L_STATUS_LOGIN' => ($ctracker_settings['login_ip_check']) ? sprintf($lang['ctracker_ipwarn_info'], $output_login_status) : '',
+	'STYLE_SWITCHER' => $style_switcher,
 	'ADMIN_LINK' => $admin_link)
 );
 

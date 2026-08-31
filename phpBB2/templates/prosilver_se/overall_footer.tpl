@@ -13,6 +13,7 @@
 			<span class="corners-bottom"><span></span></span></div>
 		</div>
 		<div class="copyright">
+			{STYLE_SWITCHER}<br />
 			Powered by <a href="http://www.phpbb.com/">phpBB</a> &copy; 2001, 2005 phpBB Group
 			<br />{TRANSLATION_INFO}
 			<br /><strong>{ADMIN_LINK}</strong>

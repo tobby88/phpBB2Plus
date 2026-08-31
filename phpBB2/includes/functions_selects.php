@@ -66,7 +66,7 @@ function style_select($default_style, $select_name = "style", $dirname = "templa
 {
 	global $db;
 
-	$sql = "SELECT themes_id, style_name
+	$sql = "SELECT *
 		FROM " . THEMES_TABLE . "
 		ORDER BY template_name, themes_id";
 	if ( !($result = $db->sql_query($sql)) )
@@ -77,9 +77,13 @@ function style_select($default_style, $select_name = "style", $dirname = "templa
 	$style_select = '<select name="' . $select_name . '">';
 	while ( $row = $db->sql_fetchrow($result) )
 	{
+		if ($dirname === 'templates' && isset($row['theme_public']) && !$row['theme_public'])
+		{
+			continue;
+		}
 		$selected = ( $row['themes_id'] == $default_style ) ? ' selected="selected"' : '';
 
-		$style_select .= '<option value="' . $row['themes_id'] . '"' . $selected . '>' . $row['style_name'] . '</option>';
+		$style_select .= '<option value="' . intval($row['themes_id']) . '"' . $selected . '>' . htmlspecialchars($row['style_name'], ENT_QUOTES, 'UTF-8') . '</option>';
 	}
 	$style_select .= "</select>";
 

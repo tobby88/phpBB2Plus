@@ -428,6 +428,7 @@ CREATE TABLE phpbb_themes (
    col_class3 varchar(25) default NULL,
    img_size_poll smallint(5) UNSIGNED,
    img_size_privmsg smallint(5) UNSIGNED,
+   theme_public tinyint(1) UNSIGNED NOT NULL default '1',
    PRIMARY KEY  (themes_id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

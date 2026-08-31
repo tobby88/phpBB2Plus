@@ -79,6 +79,22 @@ Maintenance database structures as well as the IntegraMOD-derived responsive
 style, social-profile, cookie-consent and optional StopForumSpam fields. No
 separate SQL imports are required for a fresh installation.
 
+### Styles and mobile display
+
+FI Subsilver Shadow is activated by the fresh installer. The six additional
+bundled style directories can be registered from the local eXtreme Styles
+administration page; no external download or executable style importer is
+needed. Registered public styles remain selectable in a member profile.
+
+When `BS_subSilver`, `BS_subIce` or `BS` is installed and public, phones and
+tablets automatically use the first available responsive style. The footer
+offers `Automatic`, `Mobile` and `Desktop` display modes for guests and signed-
+in members and remembers that choice in a protected first-party cookie. Board
+administrators can still disable all per-visitor selection with phpBB's
+existing style-override setting. Mod pages for which a responsive template was
+never supplied use eXtreme Styles' established `subSilver` fallback; they stay
+functional but may retain their legacy table layout.
+
 The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
 is disabled by default because it can make extensive database changes. To use
 it, temporarily add `define('DBMTNC_ENABLE_ERC', true);` and a random secret of

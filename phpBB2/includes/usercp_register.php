@@ -101,10 +101,10 @@ function usercp_installed_language($language, $fallback)
 
 function usercp_installed_style($style, $fallback)
 {
-	global $db;
+	global $db, $phpbb_root_path;
 
 	$style = (int) $style;
-	$sql = 'SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id = ' . $style;
+	$sql = 'SELECT * FROM ' . THEMES_TABLE . ' WHERE themes_id = ' . $style;
 	$result = $db->sql_query($sql);
 	if (!$result)
 	{
@@ -112,7 +112,12 @@ function usercp_installed_style($style, $fallback)
 	}
 	$row = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
-	return $row ? $style : (int) $fallback;
+	if (!$row || (isset($row['theme_public']) && !$row['theme_public']))
+	{
+		return (int) $fallback;
+	}
+	$template_name = isset($row['template_name']) ? (string) $row['template_name'] : '';
+	return preg_match('/^[A-Za-z0-9_-]+$/D', $template_name) && is_dir($phpbb_root_path . 'templates/' . $template_name) ? $style : (int) $fallback;
 }
 
 function usercp_timezone($timezone, $fallback)

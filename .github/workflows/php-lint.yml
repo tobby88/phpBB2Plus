@@ -187,6 +187,9 @@ jobs:
       - name: Test style administration safety
         run: php .github/scripts/check-style-admin-safety.php
 
+      - name: Test responsive style selection
+        run: php .github/scripts/check-responsive-style-safety.php
+
       - name: Test ColorGroups administration safety
         run: php .github/scripts/check-color-groups-admin-safety.php
 

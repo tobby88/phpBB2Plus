@@ -605,6 +605,76 @@ function make_jumpbox($action, $match_forum_id = 0)
 }
 
 //
+/**
+ * Return the visitor's persisted responsive-style preference.
+ *
+ * No cookie means automatic selection. A separate cookie deliberately keeps
+ * this display preference independent from login/session cookies and from the
+ * member's saved desktop style.
+ */
+function phpbb_style_mode()
+{
+	global $board_config;
+
+	$cookie_name = $board_config['cookie_name'] . '_style_mode';
+	$value = isset($_COOKIE[$cookie_name]) && is_scalar($_COOKIE[$cookie_name]) ? (string) $_COOKIE[$cookie_name] : 'auto';
+	return in_array($value, array('auto', 'mobile', 'desktop'), true) ? $value : 'auto';
+}
+
+function phpbb_mobile_user_agent()
+{
+	$user_agent = isset($_SERVER['HTTP_USER_AGENT']) && is_scalar($_SERVER['HTTP_USER_AGENT']) ? (string) $_SERVER['HTTP_USER_AGENT'] : '';
+	return $user_agent !== '' && (bool) preg_match('/Android|iPhone|iPad|iPod|Windows Phone|IEMobile|BlackBerry|Opera Mini|Mobile/i', $user_agent);
+}
+
+/**
+ * Find an installed responsive style without relying on fixed database IDs.
+ */
+function phpbb_mobile_style_id()
+{
+	global $db, $phpbb_root_path;
+	static $mobile_style_id = null;
+
+	if ($mobile_style_id !== null)
+	{
+		return $mobile_style_id;
+	}
+
+	$mobile_style_id = 0;
+	$preferred_templates = array('BS_subSilver', 'BS_subIce', 'BS');
+	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE template_name IN ('BS_subSilver', 'BS_subIce', 'BS')";
+	if (!($result = $db->sql_query($sql)))
+	{
+		return 0;
+	}
+
+	$installed = array();
+	while ($row = $db->sql_fetchrow($result))
+	{
+		if (isset($row['theme_public']) && !$row['theme_public'])
+		{
+			continue;
+		}
+		$template_name = isset($row['template_name']) ? (string) $row['template_name'] : '';
+		if (in_array($template_name, $preferred_templates, true) && is_dir($phpbb_root_path . 'templates/' . $template_name))
+		{
+			$installed[$template_name] = intval($row['themes_id']);
+		}
+	}
+	$db->sql_freeresult($result);
+
+	foreach ($preferred_templates as $template_name)
+	{
+		if (!empty($installed[$template_name]))
+		{
+			$mobile_style_id = $installed[$template_name];
+			break;
+		}
+	}
+
+	return $mobile_style_id;
+}
+
 // Initialise user settings on page load
 function init_userprefs($userdata)
 {
@@ -838,6 +908,16 @@ function init_userprefs($userdata)
 	//
 	if ( !$board_config['override_user_style'] )
 	{
+		$style_mode = phpbb_style_mode();
+		if ($style_mode === 'mobile' || ($style_mode === 'auto' && phpbb_mobile_user_agent()))
+		{
+			$mobile_style = phpbb_mobile_style_id();
+			if ($mobile_style > 0 && ($theme = setup_style($mobile_style)))
+			{
+				return;
+			}
+		}
+
 		if ( $userdata['user_id'] != ANONYMOUS && $userdata['user_style'] > 0 )
 		{
 			if ( $theme = setup_style($userdata['user_style']) )

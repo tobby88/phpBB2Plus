@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Restored coherent responsive-style handling. Installed public Bootstrap
+  styles are selected automatically for mobile clients, footer controls let
+  visitors retain automatic, mobile or desktop display without changing their
+  account style, and private/missing styles are excluded. Fresh installations
+  and the idempotent updater now provide the `theme_public` column expected by
+  eXtreme Styles; the long-broken positional default-theme seed was replaced
+  by an explicit, schema-stable column list.
 - Repaired legacy helper pages around the Smilie creator, Quick Reply, credits
   and recent topics. Smilie assets are enumerated by their real file names,
   missing GD/assets fail deliberately instead of producing PHP 8 fatals,
