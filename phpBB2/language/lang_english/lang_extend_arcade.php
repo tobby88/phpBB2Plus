@@ -258,12 +258,26 @@ $lang['amod_admin_ban'] = '<b>Moderators Ban Users</b><br />-:- Can your moderat
 // 2.0.8
 //
 $lang['arcade_mod_menu'] = 'phpBB Arcade Mod - Moderators Menu';
+$lang['arcade_mod_current_scores'] = 'Current scores';
+$lang['arcade_mod_all_time_scores'] = 'All-time scores';
+$lang['arcade_mod_image'] = 'Image';
+$lang['arcade_mod_filename'] = 'Game';
+$lang['arcade_mod_description'] = 'Description and instructions';
+$lang['arcade_mod_path'] = 'Game path';
+$lang['arcade_mod_stats'] = 'Window size';
+$lang['arcade_mod_player'] = 'Player';
+$lang['arcade_mod_date'] = 'Date';
+$lang['arcade_mod_time'] = 'Playing time';
+$lang['arcade_mod_score'] = 'Score';
+$lang['arcade_mod_actions'] = 'Delete / IP address';
+$lang['arcade_mod_flash'] = 'Flash';
+$lang['arcade_mod_autosize'] = 'Automatic size';
 //
 // 2.1.0
 //
 $lang['games_rate'] = "[Rate]";
 $lang['games_add_comments'] = "[Comment]";
-$lang['arcade_score_sure'] = "<br />Remove Score '<b>%d</b>' for user '<b><i>%s</i></b>'<br /><br />Are you Sure?";
+$lang['arcade_score_sure'] = "<br />Remove score '<b>%s</b>' for user '<b><i>%s</i></b>'?<br /><br />";
 
 /******************************************************************************
 // Tournament

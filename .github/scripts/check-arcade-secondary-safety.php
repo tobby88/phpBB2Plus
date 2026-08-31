@@ -14,11 +14,13 @@ $rate = file_get_contents($root . '/phpBB2/arcade_rate.php');
 $comment = file_get_contents($root . '/phpBB2/arcade_comment.php');
 $tournament = file_get_contents($root . '/phpBB2/arcade_tournament.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
+$modcp = file_get_contents($root . '/phpBB2/arcade_modcp.php');
 $classes = file_get_contents($root . '/phpBB2/includes/classes_arcade.php');
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
 $constants = file_get_contents($root . '/phpBB2/includes/constants_arcade.php');
 $schema = file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
 $arcade_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/arcade_body.tpl');
+$modcp_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/arcade_mod_body.tpl');
 
 arcade_secondary_assert(strpos($rate, "!is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'ratings must reject nested tokens');
 arcade_secondary_assert(substr_count($comment, "include(\$phpbb_root_path . 'includes/page_tail.'.\$phpEx);\n\texit;") >= 2, 'comment confirmation and edit pages must stop after their page tail');
@@ -49,5 +51,12 @@ arcade_secondary_assert(strpos($arcade_template, '{ARCADE_USERNAME}') !== false 
 arcade_secondary_assert(substr_count($activity, '$cat_icon = phpbb_arcade_local_asset(') === 2, 'category icons must remain restricted to local assets in both views');
 arcade_secondary_assert(substr_count($activity, '$image_path_html = arcade_output_html($image_path);') === 2, 'game image paths must be escaped in statistics and list views');
 arcade_secondary_assert(strpos($functions, 'function ina_check_last_pm(') === false && strpos($constants, 'iNA_PMs_TABLE') === false && strpos($schema, 'phpbb_ina_pms') === false, 'the unused automatic-statistics-PM tracker must not return');
+arcade_secondary_assert(strpos($modcp, 'network-tools.com') === false, 'score moderation must not disclose player addresses to a third-party lookup service');
+arcade_secondary_assert(strpos($modcp, 'FILTER_VALIDATE_IP') !== false, 'score moderation must validate stored IP addresses before display');
+arcade_secondary_assert(strpos($modcp, "array('', 'scores', 'at_scores', 'delete_score', 'delete_at_score')") !== false, 'score moderation actions must be allowlisted');
+arcade_secondary_assert(strpos($modcp, 'ina_find_image(') !== false, 'moderator game images must use the local Arcade asset resolver');
+arcade_secondary_assert(substr_count($modcp, 'AND g.cat_id = " . (int) $cat_id') === 2, 'both score views must remain confined to the moderated category');
+arcade_secondary_assert(strpos($modcp, 'action=edit_score') === false && strpos($modcp, 'action=edit_at_score') === false, 'unimplemented score editing links must not return');
+arcade_secondary_assert(strpos($modcp_template, 'game_edit_menu') === false && strpos($modcp_template, 'ALPHA RELEASE') === false, 'the moderator template must not expose the abandoned alpha game editor');
 
 echo "Arcade secondary safety tests passed.\n";

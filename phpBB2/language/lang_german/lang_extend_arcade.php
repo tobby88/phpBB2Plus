@@ -267,12 +267,26 @@ $lang['amod_admin_ban'] = '<b>Bneutzer bannen für Moderatoren</b><br />Sollen M
 // 2.0.8
 //
 $lang['arcade_mod_menu'] = 'phpBB Arcade Mod - Moderatoren Menü';
+$lang['arcade_mod_current_scores'] = 'Aktuelle Ergebnisse';
+$lang['arcade_mod_all_time_scores'] = 'Ewige Ergebnisse';
+$lang['arcade_mod_image'] = 'Bild';
+$lang['arcade_mod_filename'] = 'Spiel';
+$lang['arcade_mod_description'] = 'Beschreibung und Anleitung';
+$lang['arcade_mod_path'] = 'Spielpfad';
+$lang['arcade_mod_stats'] = 'Fenstergröße';
+$lang['arcade_mod_player'] = 'Spieler';
+$lang['arcade_mod_date'] = 'Datum';
+$lang['arcade_mod_time'] = 'Spielzeit';
+$lang['arcade_mod_score'] = 'Ergebnis';
+$lang['arcade_mod_actions'] = 'Löschen / IP-Adresse';
+$lang['arcade_mod_flash'] = 'Flash';
+$lang['arcade_mod_autosize'] = 'Automatische Größe';
 //
 // 2.1.0
 //
 $lang['games_rate'] = "[Bewerte]";
 $lang['games_add_comments'] = "[Kommentar]";
-$lang['arcade_score_sure'] = "<br />Lösche Ergebnis '<b>%d</b>' für Benutzer '<b><i>%s</i></b>'<br /><br />Bist Du sicher?";
+$lang['arcade_score_sure'] = "<br />Ergebnis '<b>%s</b>' von Benutzer '<b><i>%s</i></b>' löschen?<br /><br />";
 
 /******************************************************************************
 // Tournament

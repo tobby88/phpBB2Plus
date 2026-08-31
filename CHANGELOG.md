@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Rebuilt the Arcade category-moderator screen around its working score
+  controls. It no longer sends player IP addresses to an obsolete third-party
+  lookup site, advertises unimplemented score/game editing actions, or trusts
+  stored game metadata as HTML and asset paths; score queries are confined to
+  the moderator's authorized category and the German/English interface no
+  longer presents the original alpha placeholder layout.
 - Replaced four hand-built HTTP gzip responses and the database-backup
   compressor with `gzencode()`. The old code advertised gzip while embedding
   a zlib stream, which made standards-compliant clients reject affected
