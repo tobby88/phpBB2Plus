@@ -811,6 +811,10 @@ if ( isset($_POST['submit']) )
 			{
 				message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
 			}
+			if ($username_sql !== '')
+			{
+				@unlink($phpbb_root_path . 'cache/cg_users.cache');
+			}
 
 			// We remove all stored login keys since the password has been updated
 			// and change the current one (if applicable)

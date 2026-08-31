@@ -737,6 +737,10 @@ if( !empty($_POST['unblock_account']) )
 
 			if( $result = $db->sql_query($sql) )
 			{
+				if (isset($rename_user))
+				{
+					@unlink($phpbb_root_path . 'cache/cg_users.cache');
+				}
 				if( isset($rename_user) )
 				{
 					$sql = "UPDATE " . GROUPS_TABLE . "

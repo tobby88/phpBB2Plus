@@ -20,6 +20,16 @@ require_marker($admin, 'if ($color_groups_changed)', $errors);
 require_marker($admin, "@unlink(\$phpbb_root_path . 'cache/cg_users.cache');", $errors);
 require_marker($functions, "SELECT group_id FROM ' . COLOR_GROUPS_TABLE", $errors);
 require_marker($functions, 'return false;', $errors);
+require_marker($functions, '$cache_update = 300;', $errors);
+require_marker($functions, 'AND ug.user_pending = 0', $errors);
+require_marker($functions, 'SELECT MIN(c2.order_num)', $errors);
+require_marker($functions, "($row && isset($row['username']))", $errors);
+
+$profile = $root . '/phpBB2/includes/usercp_register.php';
+$admin_users = $root . '/phpBB2/admin/admin_users.php';
+require_marker($profile, "if (\$username_sql !== '')", $errors);
+require_marker($profile, "@unlink(\$phpbb_root_path . 'cache/cg_users.cache');", $errors);
+require_marker($admin_users, "@unlink(\$phpbb_root_path . 'cache/cg_users.cache');", $errors);
 
 $combined = (string) file_get_contents($admin) . (string) file_get_contents($functions);
 if (strpos($combined, 'print_r($_POST)') !== false || strpos($combined, 'print_r($_GET)') !== false)

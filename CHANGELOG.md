@@ -16,6 +16,11 @@ changes consolidated after that baseline without implying active maintenance.
   state, safe directory failures and validated language fallbacks. Numeric user
   lookups and administrator notes now have explicit SQL/HTML boundaries, while
   an unused legacy configuration helper with a raw-SQL API was removed.
+- Made ColorGroups ignore pending memberships and choose the highest-priority
+  confirmed group without relying on MySQL's nondeterministic non-aggregate
+  `GROUP BY` behaviour. Empty records are PHP-8-safe, renamed users invalidate
+  cached display names immediately, and other stale color data is bounded to
+  five minutes instead of a full day.
 - Escaped administrator-supplied Arcade game, category and tournament metadata
   across score, category, statistics and jump-list views. Stored game names can
   no longer alter score-list SQL, sort order is explicitly allowlisted, and

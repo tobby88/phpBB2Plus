@@ -156,20 +156,26 @@ function get_color_group_order_max()
 	global $db, $lang;
 	
 	$sql = 'SELECT max(order_num) as max FROM ' . COLOR_GROUPS_TABLE;
-	$result = $db->sql_query($sql);
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
+	}
 	$row = $db->sql_fetchrow($result);
 	
-	return $row['max'];
+	return ($row && isset($row['max'])) ? (int) $row['max'] : 0;
 }
 function get_color_group_order_min()
 {
 	global $db, $lang;
 	
 	$sql = 'SELECT MIN(order_num) as min FROM ' . COLOR_GROUPS_TABLE;
-	$result = $db->sql_query($sql);
+	if (!$result = $db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
+	}
 	$row = $db->sql_fetchrow($result);
 	
-	return $row['min'];
+	return ($row && isset($row['min'])) ? (int) $row['min'] : 0;
 }
 /**
 * @return void
@@ -260,7 +266,7 @@ function color_groups_setup_list()
 	if (!$result = $db->sql_query($sql)) message_die(GENERAL_ERROR, $lang['Error_Group_Table'], '', __LINE__, __FILE__, $sql);
 	$list = '';
 	
-	if ($plus_config['index_layout'] == 'index_body_plus.tpl')
+	if (isset($plus_config['index_layout']) && $plus_config['index_layout'] == 'index_body_plus.tpl')
 		{ 
 			while ($row = $db->sql_fetchrow($result))
 			{
@@ -288,7 +294,7 @@ function cg_get_data($user_id, $all = false)
 
 	// Version cache mod start 
 	// Change following two variables if you need to: 
-	$cache_update = 86400; // 1 day cache timeout. change it to whatever you want 
+	$cache_update = 300; // bound stale names and group membership colors to five minutes
 	$cache_dir = $phpbb_root_path . 'cache';
 	$cache_file = $cache_dir . '/cg_users.cache';
 
@@ -330,7 +336,7 @@ function cg_get_data($user_id, $all = false)
 				$result = $db->sql_query($sql);
 				$row = $db->sql_fetchrow($result);
 			}
-			$user_style[$user_id]['name'] = $row['username'];
+			$user_style[$user_id]['name'] = ($row && isset($row['username'])) ? $row['username'] : '';
 			$user_style[$user_id]['color'] = '';
 
 			if (isset($row['group_color']))
@@ -345,6 +351,7 @@ function cg_get_data($user_id, $all = false)
 				WHERE ug.user_id = ' . $user_id . '
 				AND u.user_id = ug.user_id
 				AND ug.group_id = g.group_id
+				AND ug.user_pending = 0
 				AND g.group_color_group = c.group_id
 				AND g.group_single_user = 0
 				ORDER BY c.order_num ASC LIMIT 1';
@@ -373,10 +380,18 @@ function cg_get_data($user_id, $all = false)
 			$sql = 'SELECT c.group_color, u.user_id FROM ' . USER_GROUP_TABLE . ' ug, ' . USERS_TABLE . ' u, ' . COLOR_GROUPS_TABLE . ' c, ' . GROUPS_TABLE . ' g
 				WHERE u.user_id = ug.user_id
 					AND ug.group_id = g.group_id
+					AND ug.user_pending = 0
 					AND g.group_color_group = c.group_id
 					AND g.group_single_user = 0
-				GROUP BY u.user_id
-				ORDER BY c.order_num';
+					AND c.order_num = (
+						SELECT MIN(c2.order_num)
+						FROM ' . USER_GROUP_TABLE . ' ug2, ' . GROUPS_TABLE . ' g2, ' . COLOR_GROUPS_TABLE . ' c2
+						WHERE ug2.user_id = u.user_id
+							AND ug2.group_id = g2.group_id
+							AND ug2.user_pending = 0
+							AND g2.group_color_group = c2.group_id
+							AND g2.group_single_user = 0)
+				ORDER BY u.user_id';
 			$result = $db->sql_query($sql);
 			while ($row = $db->sql_fetchrow($result))
 			{
