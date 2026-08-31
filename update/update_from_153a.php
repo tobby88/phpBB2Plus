@@ -97,7 +97,7 @@ if (in_array('--self-test', $argv, true))
 		$bundled_style_config_count += count(update_read_theme_info($forum_root, $template_name));
 	}
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 18 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_public_styles || !$basic_has_named_theme_insert || $bundled_style_seed_count !== 7 || $bundled_style_config_count !== 6 || $has_patch_markers)
+	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_public_styles || !$basic_has_named_theme_insert || $bundled_style_seed_count !== 7 || $bundled_style_config_count !== 6 || $has_patch_markers)
 	{
 		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", bundled styles $bundled_style_seed_count seeds/$bundled_style_config_count configs, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
