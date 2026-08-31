@@ -48,6 +48,8 @@ arcade_position_assert(strpos($newscore, "player_name = '\$user_name_sql'") !== 
 arcade_position_assert(strpos($updater, 'SET s.player_name = u.username') !== false, 'the upgrade path must reconcile historical Arcade name snapshots');
 arcade_position_assert(strpos($updater, "'highscore_user_id', 'MEDIUMINT(8) NOT NULL DEFAULT 0'") !== false, 'the upgrade path must add stable monthly-highscore owners');
 arcade_position_assert(strpos($updater, 'HAVING COUNT(DISTINCT player_id) = 1') !== false, 'monthly-highscore owners must only be inferred from unambiguous history');
+arcade_position_assert(strpos($updater, 's.game_name = h2.highscore_game AND s.score = h2.highscore_score') !== false, 'partially migrated monthly highscores need an exact game-and-score fallback');
+arcade_position_assert(strpos($updater, 'HAVING COUNT(DISTINCT s.player_id) = 1') !== false, 'game-and-score ownership must remain unambiguous');
 arcade_position_assert(strpos($admin_config, 'phpbb_admin_require_post_session();') !== false, 'Arcade configuration writes must verify the AdminCP token');
 arcade_position_assert(strpos($admin_config, "in_array(\$mode, array('', 'switches', 'messages'), true)") !== false, 'Arcade configuration modes must use an allowlist');
 arcade_position_assert(strpos($admin_config, "['Moderators']") === false && strpos($admin_config, "mode=moderators") === false, 'the empty Arcade moderator settings page must remain removed');

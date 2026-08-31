@@ -516,6 +516,14 @@ if (update_table_exists($connection, $dbname, $arcade_monthly_table))
 			'SELECT player_name, MIN(player_id) AS player_id FROM ' . update_quote_identifier($arcade_all_time_table) .
 			' WHERE player_id > 0 GROUP BY player_name HAVING COUNT(DISTINCT player_id) = 1' .
 			') s ON s.player_name = h.highscore_player SET h.highscore_user_id = s.player_id WHERE h.highscore_user_id = 0';
+		$operations[] = 'UPDATE ' . update_quote_identifier($arcade_monthly_table) . ' h INNER JOIN (' .
+			'SELECT h2.highscore_id, MIN(s.player_id) AS player_id FROM ' . update_quote_identifier($arcade_monthly_table) .
+			' h2 INNER JOIN ' . update_quote_identifier($arcade_all_time_table) .
+			' s ON s.game_name = h2.highscore_game AND s.score = h2.highscore_score ' .
+			'WHERE h2.highscore_user_id = 0 AND s.player_id > 0 GROUP BY h2.highscore_id ' .
+			'HAVING COUNT(DISTINCT s.player_id) = 1' .
+			') matched ON matched.highscore_id = h.highscore_id SET h.highscore_user_id = matched.player_id ' .
+			'WHERE h.highscore_user_id = 0';
 	}
 	$operations[] = 'UPDATE ' . update_quote_identifier($arcade_monthly_table) . ' h INNER JOIN ' .
 		update_quote_identifier($users_table) . ' u ON u.user_id = h.highscore_user_id ' .

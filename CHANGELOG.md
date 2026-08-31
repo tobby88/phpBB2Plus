@@ -16,7 +16,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Added the missing stable user ID to monthly Arcade highscores. Fresh score
   writes retain it, score and point views prefer the authoritative account
   name, and the updater backfills unambiguous historical owners before
-  normalizing their old name snapshots.
+  normalizing their old name snapshots. A conservative exact game-and-score
+  fallback also recovers owners on installations whose all-time name snapshot
+  had already been normalized; ambiguous matches remain untouched.
 - Localized the Arcade point ranking in German and English and replaced its
   inaccurate hardcoded three-month notice with the actual calculation period
   (current and previous calendar month). The shared eXtreme Styles fallback
