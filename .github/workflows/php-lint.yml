@@ -118,6 +118,9 @@ jobs:
       - name: Test raw upload storage rules
         run: php .github/scripts/check-upload-storage-safety.php
 
+      - name: Test runtime diagnostics safety
+        run: php .github/scripts/check-runtime-diagnostics-safety.php
+
       - name: Test StopForumSpam integration safety
         run: php .github/scripts/check-stopforumspam-safety.php
 

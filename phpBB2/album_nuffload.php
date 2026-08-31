@@ -751,27 +751,11 @@ function gdVersion($user_ver = 0)
 		$gd_ver = $match[0];
 		return $match[0];
 	}
-	if (preg_match('/phpinfo/', ini_get('disable_functions')))
-	{
-		if ($user_ver == 2)
-		{
-			$gd_ver = 2;
-			return 2;
-		}
-		else
-		{
-			$gd_ver = 1;
-			return 1;
-		}
-	}
-	ob_start();
-	phpinfo(8);
-	$info = ob_get_contents();
-	ob_end_clean();
-	$info = stristr($info, 'gd version');
-	preg_match('/\d/', $info, $match);
-	$gd_ver = $match[0];
-	return $match[0];
+	// gd_info() exists throughout the supported PHP range. If an unusual GD
+	// build omits it, use the GD2-capable path instead of scraping the full PHP diagnostics page,
+	// which exposes runtime configuration and request data to output buffers.
+	$gd_ver = 2;
+	return $gd_ver;
 }
 
 ?>

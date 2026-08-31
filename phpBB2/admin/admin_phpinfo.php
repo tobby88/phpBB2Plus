@@ -1,22 +1,8 @@
 <?php
 /***************************************************************************
- *                              admin_board.php
- *                            -------------------
- *   begin                : Thursday, Jul 12, 2001
- *   copyright            : (C) 2001 The phpBB Group
- *   email                : support@phpbb.com
- *
- *   $Id: admin_phpinfo.php,v 1.5 2003/09/07 16:52:50 psotfx Exp $
- *
- ***************************************************************************/
-
-/***************************************************************************
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
+ *                           admin_phpinfo.php
+ *                           -----------------
+ * Safe PHP runtime summary for the administration panel.
  ***************************************************************************/
 
 if (!empty($setmodules))
@@ -24,65 +10,56 @@ if (!empty($setmodules))
 	$file = basename(__FILE__);
 	$module['Systeminfo']['PHPInfo'] = $file;
 	return;
-
-	return;
 }
 
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
-// Load default header
 $phpbb_root_path = '../';
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 
-
-ob_start(); 
-phpinfo(INFO_GENERAL | INFO_CONFIGURATION | INFO_MODULES | INFO_VARIABLES); 
-$phpinfo = ob_get_contents(); 
-ob_end_clean(); 
-
-// Get used layout
-$layout = (preg_match('#bgcolor#i', $phpinfo)) ? 'old' : 'new';
-
-// Here we play around a little with the PHP Info HTML to try and stylise
-// it along phpBB's lines ... hopefully without breaking anything. The idea
-// for this was nabbed from the PHP annotated manual
-preg_match_all('#<body[^>]*>(.*)</body>#siU', $phpinfo, $output); 
-
-switch ($layout)
+function phpbb_runtime_info_html($value)
 {
-	case 'old':
-		$output = preg_replace('#<table#', '<table class="bg"', $output[1][0]);
-		$output = preg_replace('# bgcolor="\#(\w){6}"#', '', $output);
-		$output = preg_replace('#(\w),(\w)#', '\1, \2', $output);
-		$output = preg_replace('#border="0" cellpadding="3" cellspacing="1" width="600"#', 'border="0" cellspacing="1" cellpadding="4" width="95%"', $output);
-		$output = preg_replace('#<tr valign="top"><td align="left">(.*?<a .*?</a>)(.*?)</td></tr>#s', '<tr class="row1"><td style="{background-color: #9999cc;}"><table width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td style="{background-color: #9999cc;}">\2</td><td style="{background-color: #9999cc;}">\1</td></tr></table></td></tr>', $output);
-		$output = preg_replace('#<tr valign="baseline"><td[ ]{0,1}><b>(.*?)</b>#', '<tr><td class="row1" nowrap="nowrap">\1', $output);
-		$output = preg_replace('#<td align="(center|left)">#', '<td class="row2">', $output);
-		$output = preg_replace('#<td>#', '<td class="row2">', $output);
-		$output = preg_replace('#valign="middle"#', '', $output);
-		$output = preg_replace('#<tr >#', '<tr>', $output);
-		$output = preg_replace('#<hr(.*?)>#', '', $output);
-		$output = preg_replace('#<h1 align="center">#i', '<h1>', $output);
-		$output = preg_replace('#<h2 align="center">#i', '<h2>', $output);
-		break;
-	case 'new':
-		$output = preg_replace('#<table#', '<table class="bg" align="center"', $output[1][0]);
-		$output = preg_replace('#(\w),(\w)#', '\1, \2', $output);
-		$output = preg_replace('#border="0" cellpadding="3" width="600"#', 'border="0" cellspacing="1" cellpadding="4" width="95%"', $output);
-		$output = preg_replace('#<tr class="v"><td>(.*?<a .*?</a>)(.*?)</td></tr>#s', '<tr class="row1"><td><table width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td>\2</td><td>\1</td></tr></table></td></tr>', $output);
-		$output = preg_replace('#<td>#', '<td style="{background-color: #9999cc;}">', $output);
-		$output = preg_replace('#class="e"#', 'class="row1" nowrap="nowrap"', $output);
-		$output = preg_replace('#class="v"#', 'class="row2"', $output);
-		$output = preg_replace('# class="h"#', '', $output);
-		$output = preg_replace('#<hr />#', '', $output);
-		preg_match_all('#<div class="center">(.*)</div>#siU', $output, $output); 
-		$output = $output[1][0];
-		break;
+	return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
-echo '<h1>PHP Info</h1>';
-echo $output; 
+$german = isset($board_config['default_lang']) && $board_config['default_lang'] === 'german';
+$title = $german ? 'PHP-Laufzeitinformationen' : 'PHP runtime information';
+$labels = $german
+	? array(
+		'PHP-Version', 'Server-Schnittstelle', 'Betriebssystem', 'Architektur',
+		'Speicherlimit', 'Maximale Uploadgröße', 'Maximale POST-Größe',
+		'Maximale Laufzeit', 'Geladene Erweiterungen'
+	)
+	: array(
+		'PHP version', 'Server API', 'Operating system', 'Architecture',
+		'Memory limit', 'Maximum upload size', 'Maximum POST size',
+		'Maximum execution time', 'Loaded extensions'
+	);
 
-include('./page_footer_admin.'.$phpEx);
+$extensions = get_loaded_extensions();
+sort($extensions, SORT_STRING | SORT_FLAG_CASE);
+$rows = array(
+	array($labels[0], PHP_VERSION),
+	array($labels[1], PHP_SAPI),
+	array($labels[2], PHP_OS),
+	array($labels[3], PHP_INT_SIZE >= 8 ? '64 bit' : '32 bit'),
+	array($labels[4], ini_get('memory_limit')),
+	array($labels[5], ini_get('upload_max_filesize')),
+	array($labels[6], ini_get('post_max_size')),
+	array($labels[7], ini_get('max_execution_time') . ' s'),
+	array($labels[8], implode(', ', $extensions))
+);
+
+echo '<h1>' . phpbb_runtime_info_html($title) . '</h1>';
+echo '<table width="95%" cellspacing="1" cellpadding="4" border="0" align="center" class="forumline">';
+foreach ($rows as $index => $row)
+{
+	$row_class = ($index % 2) ? 'row2' : 'row1';
+	echo '<tr><th align="left" width="25%">' . phpbb_runtime_info_html($row[0]) . '</th>' .
+		'<td class="' . $row_class . '">' . phpbb_runtime_info_html($row[1]) . '</td></tr>';
+}
+echo '</table>';
+
+include('./page_footer_admin.' . $phpEx);
 
 ?>

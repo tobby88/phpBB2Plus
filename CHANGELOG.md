@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed legacy `phpinfo()` scraping from public GD detection and replaced
+  the AdminCP's full configuration/request dump with a concise escaped runtime
+  summary. Useful version, limit and extension diagnostics remain available
+  without exposing environment, request or cookie contents.
 - Prevented raw attachment, Album, avatar and paFileDB storage URLs from
   rendering active HTML, SVG, JavaScript, CSS, Flash or PDF documents inside
   the forum origin. Authorized PHP download paths remain available, while
