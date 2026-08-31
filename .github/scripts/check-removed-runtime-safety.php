@@ -11,13 +11,34 @@ function removed_runtime_assert($condition, $message)
 
 $root = dirname(dirname(__DIR__));
 $update_sources = '';
+$removed_calls = array();
 foreach (glob($root . '/update/*.php') as $file)
 {
-	$update_sources .= file_get_contents($file) . "\n";
+	$source = file_get_contents($file);
+	$update_sources .= $source . "\n";
+	$tokens = token_get_all($source);
+	for ($i = 0; $i < count($tokens); $i++)
+	{
+		if (!is_array($tokens[$i]) || $tokens[$i][0] !== T_STRING)
+		{
+			continue;
+		}
+		$name = strtolower($tokens[$i][1]);
+		if (!in_array($name, array('each', 'mysql_escape_string'), true))
+		{
+			continue;
+		}
+		for ($j = $i + 1; $j < count($tokens); $j++)
+		{
+			if (is_array($tokens[$j]) && $tokens[$j][0] === T_WHITESPACE) { continue; }
+			if ($tokens[$j] === '(') { $removed_calls[] = $name; }
+			break;
+		}
+	}
 }
 
-removed_runtime_assert(!preg_match('/\beach\s*\(/i', $update_sources), 'update scripts must not call removed each()');
-removed_runtime_assert(!preg_match('/\bmysql_escape_string\s*\(/i', $update_sources), 'update scripts must use the active database driver escape routine');
+removed_runtime_assert(!in_array('each', $removed_calls, true), 'update scripts must not call removed each()');
+removed_runtime_assert(!in_array('mysql_escape_string', $removed_calls, true), 'update scripts must use the active database driver escape routine');
 removed_runtime_assert(strpos($update_sources, '" WHERE topic_id = " . $row[') === false, 'topic cleanup must retain the known topic ID when no posts exist');
 
 $captcha = file_get_contents($root . '/phpBB2/includes/usercp_confirm_adv.php');

@@ -11,6 +11,15 @@ function forum_admin_assert($condition, $message)
 
 $root = dirname(dirname(__DIR__));
 $admin = file_get_contents($root . '/phpBB2/admin/admin_forums.php');
+$admin_executable = '';
+foreach (token_get_all($admin) as $token)
+{
+	if (is_array($token) && ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT))
+	{
+		continue;
+	}
+	$admin_executable .= is_array($token) ? $token[1] : $token;
+}
 
 forum_admin_assert(strpos($admin, '$forum_write_modes = array(') !== false, 'forum write modes need one explicit allowlist');
 forum_admin_assert(strpos($admin, 'phpbb_admin_require_post_session();') !== false, 'forum writes must require a POST session token');
@@ -23,7 +32,7 @@ forum_admin_assert(strpos($admin, "sync('forum', intval(\$_GET") === false, 'for
 forum_admin_assert(strpos($admin, 'function admin_forum_post_scalar(') !== false, 'forum mutations need typed scalar request helpers');
 forum_admin_assert(substr_count($admin, '$db->sql_escape(') >= 10, 'forum and category text must use the active database escape routine');
 forum_admin_assert(strpos($admin, 'function admin_forum_resource_value(') !== false, 'forum links and icons need a safe scheme boundary');
-forum_admin_assert(strpos($admin, 'str_replace("\\\'", "\'\'", $_POST') === false, 'legacy quote replacement must not protect forum SQL');
+forum_admin_assert(strpos($admin_executable, 'str_replace("\\\'", "\'\'", $_POST') === false, 'legacy quote replacement must not protect forum SQL');
 
 foreach (glob($root . '/phpBB2/templates/*/admin/forum_admin_body.tpl') as $forum_index_file)
 {
