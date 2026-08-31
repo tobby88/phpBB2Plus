@@ -61,7 +61,8 @@ class pafiledb_user_upload extends pafiledb_public
 					redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=user_upload", true));
 				}
 
-				$message = sprintf($lang['Sorry_auth_upload'], $this->auth[$cat_id]['auth_upload_type']);
+				$auth_upload_type = isset($this->auth[$cat_id]['auth_upload_type']) ? $this->auth[$cat_id]['auth_upload_type'] : '';
+				$message = sprintf($lang['Sorry_auth_upload'], $auth_upload_type);
 				message_die(GENERAL_MESSAGE, $message);
 			}
 		}
@@ -85,11 +86,16 @@ class pafiledb_user_upload extends pafiledb_public
 				message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 			}
 
-			$can_delete = $this->auth[$file_info['file_catid']]['auth_mod'] ||
-				($userdata['session_logged_in'] && $this->auth[$file_info['file_catid']]['auth_delete_file'] && intval($file_info['user_id']) === intval($userdata['user_id']));
+			$source_cat_id = intval($file_info['file_catid']);
+			if (!isset($this->auth[$source_cat_id]))
+			{
+				message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
+			}
+			$can_delete = !empty($this->auth[$source_cat_id]['auth_mod']) ||
+				($userdata['session_logged_in'] && !empty($this->auth[$source_cat_id]['auth_delete_file']) && intval($file_info['user_id']) === intval($userdata['user_id']));
 			if (!$can_delete)
 			{
-				$message = sprintf($lang['Sorry_auth_delete'], $this->auth[$file_info['file_catid']]['auth_delete_file_type']);
+				$message = sprintf($lang['Sorry_auth_delete'], isset($this->auth[$source_cat_id]['auth_delete_file_type']) ? $this->auth[$source_cat_id]['auth_delete_file_type'] : '');
 				message_die(GENERAL_MESSAGE, $message);
 			}
 
@@ -153,11 +159,16 @@ class pafiledb_user_upload extends pafiledb_public
 					message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
 				}
 
-				$can_edit = $this->auth[$file_info['file_catid']]['auth_mod'] ||
-					($userdata['session_logged_in'] && $this->auth[$file_info['file_catid']]['auth_edit_file'] && intval($file_info['user_id']) === intval($userdata['user_id']));
+				$source_cat_id = intval($file_info['file_catid']);
+				if (!isset($this->auth[$source_cat_id]))
+				{
+					message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
+				}
+				$can_edit = !empty($this->auth[$source_cat_id]['auth_mod']) ||
+					($userdata['session_logged_in'] && !empty($this->auth[$source_cat_id]['auth_edit_file']) && intval($file_info['user_id']) === intval($userdata['user_id']));
 				if (!$can_edit)
 				{
-					$message = sprintf($lang['Sorry_auth_edit'], $this->auth[$file_info['file_catid']]['auth_edit_file_type']);
+					$message = sprintf($lang['Sorry_auth_edit'], isset($this->auth[$source_cat_id]['auth_edit_file_type']) ? $this->auth[$source_cat_id]['auth_edit_file_type'] : '');
 					message_die(GENERAL_MESSAGE, $message);
 				}
 
@@ -210,11 +221,21 @@ class pafiledb_user_upload extends pafiledb_public
 						message_die(GENERAL_ERROR, 'Couldn\'t get file info', '', __LINE__, __FILE__, $sql);
 					}
 					$file_info = $db->sql_fetchrow($result);
+					$db->sql_freeresult($result);
+					if (!$file_info)
+					{
+						message_die(GENERAL_MESSAGE, $lang['File_not_exist']);
+					}
+					$source_cat_id = intval($file_info['file_catid']);
+					if (!isset($this->auth[$source_cat_id]))
+					{
+						message_die(GENERAL_MESSAGE, $lang['Cat_not_exist']);
+					}
 
 					// AUTH CHECK
-					if ( !(($this->auth[$file_info['file_catid']]['auth_edit_file'] && $file_info['user_id'] == $userdata['user_id']) || $this->auth[$file_info['file_catid']]['auth_mod']) )
+					if ( !((!empty($this->auth[$source_cat_id]['auth_edit_file']) && intval($file_info['user_id']) === intval($userdata['user_id'])) || !empty($this->auth[$source_cat_id]['auth_mod'])) )
 					{
-						$message = sprintf($lang['Sorry_auth_edit'], $this->auth[$cat_id]['auth_upload_type']);
+						$message = sprintf($lang['Sorry_auth_edit'], isset($this->auth[$source_cat_id]['auth_edit_file_type']) ? $this->auth[$source_cat_id]['auth_edit_file_type'] : '');
 						message_die(GENERAL_MESSAGE, $message);
 					}
 
@@ -256,12 +277,12 @@ class pafiledb_user_upload extends pafiledb_public
 				'FILESIZE' => intval($pafiledb_config['max_file_size']),
 				'FILE_NAME' => pafiledb_html($file_name),
 				'FILE_DESC' => pafiledb_html($file_desc),
-				'FILE_LONG_DESC' => $file_long_desc,
+				'FILE_LONG_DESC' => pafiledb_html($file_long_desc),
 				'FILE_AUTHOR' => pafiledb_html($file_author),
 				'FILE_VERSION' => pafiledb_html($file_version),
 				'FILE_SSURL' => pafiledb_html($file_ssurl),
 				'FILE_WEBSITE' => pafiledb_html($file_website),
-				'FILE_DLURL' => $file_url,
+				'FILE_DLURL' => pafiledb_html($file_url),
 				'FILE_DOWNLOAD' => $file_download,
 				'CUSTOM_EXIST' => $custom_exist,
 				'AUTH_APPROVAL' => false,

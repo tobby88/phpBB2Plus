@@ -17,6 +17,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Routed paFileDB recommendation mail through the configured board sender with
   a validated Reply-To address, bounded its user-controlled fields and placed
   the endpoint under CrackerTracker's tighter hourly mail/account throttle.
+- Escaped stored paFileDB descriptions and URLs when redisplaying edit forms,
+  made stale download/category references fail before permission lookups, and
+  normalized and bounded moderator batch and sorting inputs.
 - Reworked the legacy AJAX controller around one typed request boundary and an
   explicit operation allowlist. Inline edits now enforce forum edit rights,
   private poll/topic/forum data cannot leak through alternate AJAX views,

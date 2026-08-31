@@ -22,6 +22,11 @@ class pafiledb_mcp extends pafiledb_public
 //		$custom_field = new custom_field();
 //		$custom_field->init();
 		$this->init();
+		$all_file_rowset = array();
+		$approved_file_rowset = array();
+		$broken_file_rowset = array();
+		$global_array = array();
+		$total_files = 0;
 
 		$file_id = (isset($_REQUEST['file_id']) && is_scalar($_REQUEST['file_id'])) ? intval($_REQUEST['file_id']) : 0;
 		$file_ids = array();
@@ -31,10 +36,15 @@ class pafiledb_mcp extends pafiledb_public
 			{
 				if (is_scalar($posted_file_id))
 				{
-					$file_ids[] = intval($posted_file_id);
+					$normalized_file_id = intval($posted_file_id);
+					if ($normalized_file_id > 0)
+					{
+						$file_ids[$normalized_file_id] = $normalized_file_id;
+					}
 				}
 			}
 		}
+		$file_ids = array_slice(array_values($file_ids), 0, 500);
 		$start = (isset($_REQUEST['start']) && is_scalar($_REQUEST['start'])) ? max(0, intval($_REQUEST['start'])) : 0;
 
 		$mode = (isset($_REQUEST['mode']) && is_scalar($_REQUEST['mode'])) ? htmlspecialchars((string) $_REQUEST['mode']) : '';
@@ -72,19 +82,19 @@ class pafiledb_mcp extends pafiledb_public
 		// Pafiledb auth for mcp
 		//===================================================
 
-		if( (!$this->auth[$cat_id]['auth_mod']) || !$userdata['session_logged_in'])
+		if( !isset($this->cat_rowset[$cat_id], $this->auth[$cat_id]) || empty($this->auth[$cat_id]['auth_mod']) || !$userdata['session_logged_in'])
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
 				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=file&file_id=" . $file_id, true));
 			}
 
-			$message = sprintf($lang['Sorry_auth_mcp'], $this->auth[$cat_id]['auth_mod']);
+			$message = sprintf($lang['Sorry_auth_mcp'], isset($this->auth[$cat_id]['auth_mod']) ? $this->auth[$cat_id]['auth_mod'] : 0);
 			message_die(GENERAL_MESSAGE, $message);
 		}
 		
 		
-		if( isset($_REQUEST['sort_method']) )
+		if( isset($_REQUEST['sort_method']) && is_scalar($_REQUEST['sort_method']) )
 		{
 			switch ($_REQUEST['sort_method'])
 			{
@@ -112,7 +122,7 @@ class pafiledb_mcp extends pafiledb_public
 			$sort_method = $pafiledb_config['sort_method'];
 		}
 
-		if( isset($_REQUEST['sort_order']) )
+		if( isset($_REQUEST['sort_order']) && is_scalar($_REQUEST['sort_order']) )
 		{
 			switch ($_REQUEST['sort_order'])
 			{

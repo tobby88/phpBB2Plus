@@ -23,6 +23,8 @@ $pafiledb_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/funct
 $category_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_pafiledb.php');
 $field_functions = file_get_contents($root . '/phpBB2/pafiledb/includes/functions_field.php');
 $pafiledb_search = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_search.php');
+$pafiledb_upload = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_user_upload.php');
+$pafiledb_mcp = file_get_contents($root . '/phpBB2/pafiledb/modules/pa_mcp.php');
 
 pafiledb_admin_assert(strpos($admin_category, "array('do_add', 'do_delete', 'cat_order', 'sync', 'sync_all')") !== false, 'all category mutations must be identified');
 pafiledb_admin_assert(strpos($admin_category, 'phpbb_admin_require_post_session();') !== false, 'category mutations must require a POST token');
@@ -106,5 +108,11 @@ pafiledb_admin_assert(strpos($pafiledb_search, "'search_results' => \$search_res
 pafiledb_admin_assert(strpos($pafiledb_search, '${$store_vars[$i]}') === false && strpos($pafiledb_search, '$$store_vars[$i]') === false, 'dynamic variable-variable cache storage must be removed');
 pafiledb_admin_assert(strpos($pafiledb_search, 'in_array($cached_sort_method, $allowed_sort_methods, true)') !== false, 'cached paFileDB sort fields must use an allowlist');
 pafiledb_admin_assert(strpos($pafiledb_search, 'LEFT JOIN " . PA_VOTES_TABLE') === false, 'paFileDB result totals must not multiply vote and comment joins');
+pafiledb_admin_assert(strpos($pafiledb_upload, "'FILE_LONG_DESC' => pafiledb_html(\$file_long_desc)") !== false, 'download descriptions must be escaped in edit forms');
+pafiledb_admin_assert(strpos($pafiledb_upload, "'FILE_DLURL' => pafiledb_html(\$file_url)") !== false, 'download URLs must be escaped in edit forms');
+pafiledb_admin_assert(strpos($pafiledb_upload, 'if (!$file_info)') !== false && strpos($pafiledb_upload, '!isset($this->auth[$source_cat_id])') !== false, 'stale download/category rows must fail before permission lookup');
+pafiledb_admin_assert(strpos($pafiledb_mcp, 'array_slice(array_values($file_ids), 0, 500)') !== false, 'moderator batch IDs must be normalized and bounded');
+pafiledb_admin_assert(substr_count($pafiledb_mcp, "isset(\$_REQUEST['sort_") === 2 && substr_count($pafiledb_mcp, "is_scalar(\$_REQUEST['sort_") === 2, 'moderator sort fields must reject arrays');
+pafiledb_admin_assert(strpos($pafiledb_mcp, '$approved_file_rowset = array();') !== false && strpos($pafiledb_mcp, '$total_files = 0;') !== false, 'moderator result collections must be initialized for empty categories');
 
 echo "paFileDB administration safety tests passed.\n";
