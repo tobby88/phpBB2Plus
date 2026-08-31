@@ -33,6 +33,11 @@ if (!function_exists('find_lang_file_nivisec'))
 	function find_lang_file_nivisec($filename)
 	{
 		global $lang, $phpbb_root_path, $board_config, $phpEx;
+		if (!is_scalar($filename) || !preg_match('/^lang_[a-z0-9_]+$/iD', (string) $filename))
+		{
+			message_die(GENERAL_ERROR, 'Invalid language file request.', '');
+		}
+		$filename = (string) $filename;
 		
 		if (file_exists($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/$filename.$phpEx"))
 		{
@@ -50,36 +55,6 @@ if (!function_exists('find_lang_file_nivisec'))
 	}
 }
 
-if (!function_exists('config_update_nivisec'))
-{
-	/**
-	* @return boolean
-	* @param item string
-	* @param value string
-	* @param prefix [optional]string
-	* @desc Updates a configuration item.  If the 3rd param is specified, that text is cut off before insertion.  Assumes $status_message is predefined.
-	*/
-	function config_update_nivisec($item, $value, $prefix = '')
-	{
-		global $board_config, $db, $status_message, $lang;
-		
-		if ($prefix != '') $item = preg_replace("/^$prefix/", '', $item);
-		//Only bother updating if the value is different
-		if ($board_config[$item] != $value)
-		{
-			$sql = 'UPDATE ' . CONFIG_TABLE . "
-				SET config_value = '$value'
-				WHERE config_name = '$item'";
-			if (!$db->sql_query($sql))
-			{
-				return false;
-			}
-			$board_config[$item] = $value;
-			$status_message .= sprintf($lang['Updated_Config'], $lang[$item]);
-		}
-		return true;
-	}
-}
 if (!function_exists('set_filename_nivisec'))
 {
 	/**
@@ -148,6 +123,12 @@ if (!function_exists('sql_query_nivisec'))
 function jr_admin_check_file_hashes($file)
 {
 	global $phpbb_root_path, $phpEx, $userdata;
+	$file = is_scalar($file) ? basename((string) $file) : '';
+	if (!preg_match('/^admin_[a-z0-9_]+\.' . preg_quote($phpEx, '/') . '$/iD', $file))
+	{
+		return false;
+	}
+	$module = array();
 	
 	//Include the file to get the module list
 	$setmodules = 1;
@@ -167,7 +148,7 @@ function jr_admin_check_file_hashes($file)
 			//Make our unique ID
 			$file_hash = md5($cat.$module_name.$module_file);
 			//See if it is in the array
-			if (in_array($file_hash, $user_modules))
+			if (in_array($file_hash, $user_modules, true))
 			{
 				return true;
 			}
@@ -181,6 +162,8 @@ function jr_admin_check_file_hashes($file)
 function jr_admin_get_module_list($user_module_list = false)
 {
 	global $db, $phpbb_root_path, $lang, $phpEx, $board_config, $userdata;
+	$module = array();
+	$module_list = array();
 	
 	/* Debugging for this function. Debugging in this function causes changes to the way ADMIN users
 	are interpreted.  You are warned */
@@ -191,6 +174,10 @@ function jr_admin_get_module_list($user_module_list = false)
 	//Read all the modules
 	$setmodules = 1;
 	$dir = @opendir($phpbb_root_path.JR_ADMIN_DIR);
+	if ($dir === false)
+	{
+		return $module_list;
+	}
 	$pattern = "/^admin_.+\.$phpEx$/";
 	while (($file = @readdir($dir)) !== false)
 	{
@@ -248,6 +235,7 @@ function jr_admin_get_module_list($user_module_list = false)
 function jr_admin_secure($file)
 {
 	global $_GET, $_POST, $db, $lang, $userdata;
+	$file = is_scalar($file) ? basename((string) $file) : '';
 	
 	/* Debugging in this function causes changes to the way ADMIN users
 	are interpreted.  You are warned */
@@ -279,7 +267,7 @@ function jr_admin_secure($file)
 		//We are at the index file, which is already secure pretty much
 		return true;
 	}
-	elseif (isset($_GET['module']) && in_array($_GET['module'], explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_userdata['user_jr_admin'])))
+	elseif (isset($_GET['module']) && is_scalar($_GET['module']) && preg_match('/^[a-f0-9]{32}$/D', (string) $_GET['module']) && in_array((string) $_GET['module'], explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_userdata['user_jr_admin']), true))
 	{
 		//The user has access for sure by module_id security from GET vars only
 		return true;
@@ -297,7 +285,7 @@ function jr_admin_secure($file)
 	elseif (!isset($_GET['module']) && isset($_GET['sid']))
 	{
 		//This user has clicked on a url that specified items
-		if ($_GET['sid'] != $userdata['session_id'])
+		if (!is_scalar($_GET['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_GET['sid']))
 		{
 			return false;
 		}
@@ -320,13 +308,25 @@ function jr_admin_include_all_lang_files()
 {
 	global $lang, $phpbb_root_path, $board_config, $phpEx;
 
-	$dir = @opendir($phpbb_root_path.'language/lang_'.$board_config['default_lang']);
+	$language = isset($board_config['default_lang']) && preg_match('/^[a-z0-9_-]+$/iD', (string) $board_config['default_lang'])
+		? (string) $board_config['default_lang']
+		: 'english';
+	$language_dir = $phpbb_root_path . 'language/lang_' . $language;
+	if (!is_dir($language_dir))
+	{
+		$language_dir = $phpbb_root_path . 'language/lang_english';
+	}
+	$dir = @opendir($language_dir);
+	if ($dir === false)
+	{
+		return;
+	}
 	$pattern = "/^lang.+\.$phpEx$/";
 	while (($file = @readdir($dir)) !== false)
 	{
 		if (preg_match($pattern, $file))
 		{
-			include_once($phpbb_root_path.'language/lang_'.$board_config['default_lang'].'/'.$file);
+			include_once($language_dir . '/' . $file);
 		}
 	}
 	@closedir($dir);	
@@ -394,7 +394,7 @@ function jr_admin_make_info_box()
 		$template->assign_vars(array(
 		'JR_ADMIN_START_DATE' => create_date($board_config['default_dateformat'], $jr_admin_userdata['start_date'], $board_config['board_timezone']),
 		'JR_ADMIN_UPDATE_DATE' => create_date($board_config['default_dateformat'], $jr_admin_userdata['update_date'], $board_config['board_timezone']),
-		'JR_ADMIN_ADMIN_NOTES' => $jr_admin_userdata['admin_notes'],
+		'JR_ADMIN_ADMIN_NOTES' => phpbb_profile_text(isset($jr_admin_userdata['admin_notes']) ? $jr_admin_userdata['admin_notes'] : ''),
 		'L_VERSION' => $lang['Version'],
 		'L_JR_ADMIN_TITLE' => $lang['Junior_Admin_Info'],
 		'VERSION' => MOD_VERSION,
@@ -419,6 +419,7 @@ function jr_admin_make_info_box()
 function jr_admin_get_user_info($user_id)
 {
 	global $lang;
+	$user_id = max(0, intval($user_id));
 	//Do the query and get the results, return the user row as well.
 	return (
 	sql_query_nivisec(

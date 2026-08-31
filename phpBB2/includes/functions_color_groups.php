@@ -72,6 +72,11 @@ if (!function_exists('find_lang_file_nivisec'))
 	function find_lang_file_nivisec($filename)
 	{
 		global $lang, $phpbb_root_path, $board_config, $phpEx;
+		if (!is_scalar($filename) || !preg_match('/^lang_[a-z0-9_]+$/iD', (string) $filename))
+		{
+			message_die(GENERAL_ERROR, 'Invalid language file request.', '');
+		}
+		$filename = (string) $filename;
 		
 		if (file_exists($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/$filename.$phpEx"))
 		{
