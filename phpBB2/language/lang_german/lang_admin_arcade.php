@@ -32,7 +32,7 @@ $lang['admin_game_menu'] = 'Online Arcade/Activity Menü';
 $lang['admin_game_editor'] = 'Online Arcade/Activity Editor Menü';
 $lang['admin_game_import'] = 'Online Arcade/Activity Import Menü';
 $lang['admin_editor_info'] = 'Mit diesem Control Panel kannst neue Spiele hinzufügen. Jedes Spiel, das von <a href="http://www.phpbb-arcade.com" target="new_window">dEfEndEr</a>, Buddystuart, Whoo, Mullac oder Alegis veröffentlicht wurde, läßt sich ganz einfach in Dein Forum integrieren und die Punktezahlen speichern. Daneben können tausende frei downloadbare Spiele, Filme oder Bilder installiert werden, die Dein Forum drastisch aufwerden. Wenn Du ein Spiel konvertieren möchtest, das mit diesem Control zusammen funktioniert, dann frage uns in unserem <a href="http://www.phpbb-arcade.com/" target="new_window">Forum</a>. Solltest Du auf Probleme mit diesem Control Panel stossen, dann informiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank>www.phpbb-arcade.com</a>.';
-$lang['admin_import_info'] = 'Mit diesem Control Panel kannst Du Daten direkt in die Datenbank importieren. Solltest Du auf Probleme mit diesem Control Panel stossen, dann informiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank>www.phpbb-arcade.com</a>.';
+$lang['admin_import_info'] = 'Importiert Spieldateien, die bereits in einem lokalen Arcade-Verzeichnis liegen. Bitte Zielkategorie und Verfügbarkeit vor dem Start prüfen.';
 $lang['admin_game_deleted'] = 'Spiel gelöscht<br /><br />';
 $lang['admin_game_not_deleted'] = 'Spiel NICHT gelöscht<br /><br />';
 $lang['admin_game_repaired'] = 'Datenbank wurde repaiert<br /><br />';
@@ -197,7 +197,8 @@ $lang['admin_return_games'] = 'Klicke %shier%s, um zum Spiele Menü zurückzukeh
 // 2.0.7
 //
 $lang['admin_messages_header'] = 'Menü für Persönliche Nachrichten';
-$lang['admin_messages_info'] = 'Hier kannst Du einstellen, welche privaten Nachrichten die Benutzer vom Arcade MOD erhalten sollen. Wenn Du mit diesem Menü Probleme haben solltest, dann kontaktiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a>, damit wir diese lösen können.';
+$lang['admin_messages_info'] = 'Hier lässt sich auswählen, bei welchen Arcade-Ereignissen private Benachrichtigungen versendet werden dürfen.';
+$lang['admin_messages_system'] = 'Private Benachrichtigungen';
 $lang['admin_moderators_txt'] = '<b>Verwende das Moderatoren Menü</b><br />';
 $lang['admin_moderators_txt_info'] = 'Aktiviere das MCP (Moderatoren Control Panel).';
 $lang['admin_min_posts_txt'] = '<b>Anzahl an Beiträgen, die ein Benutzer haben muß, um überhaupt Zugriff zum Arcade MOD zu erhalten.</b><br />';
@@ -343,6 +344,15 @@ $lang['admin_cat_link'] = 'Link';
 $lang['admin_cat_no_parent'] = '<br>Du MUSST die Hauptkategorie setzen, wenn Du eine Subkategorie verwenden willst<br><br />';
 $lang['admin_cat_wrong_parent'] = '<br>Dein Hauptkategorie kann keine Subkategorie sein<br><br />';
 $lang['admin_import_cat'] = 'Kategorie, in die importiert werden soll.';
+$lang['admin_import_auto'] = 'Automatischer Spieleimport';
+$lang['admin_import_file_package'] = 'Arcade-Paket (SWF und passendes Bild)';
+$lang['admin_import_file_flash'] = 'Alle SWF-Dateien';
+$lang['admin_import_file_jpg'] = 'JPG-Bilder';
+$lang['admin_import_file_gif'] = 'GIF-Bilder';
+$lang['admin_import_size_detect'] = 'Mediengröße erkennen';
+$lang['admin_import_size_default'] = 'Standard-Spielgröße verwenden';
+$lang['admin_import_offline'] = 'Offline';
+$lang['admin_import_online_state'] = 'Online';
 $lang['admin_move_to'] = 'Verschiebe nach:';
 $lang['admin_move'] = 'Verschiebe';
 $lang['admin_move_failed'] = 'Du musst ein gültige Position zum Verschieben nach wählen';

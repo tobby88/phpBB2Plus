@@ -14,7 +14,7 @@
  </tr>
 
   <tr>
-   <th class="thHead" colspan="2" align="center">Auto Import</td>
+   <th class="thHead" colspan="2" align="center">{L_AUTO_IMPORT}</th>
   </tr>
 
  <tr>
@@ -25,19 +25,19 @@
 
  <tr>
    <td class="row1"><span class="gensmall">{L_AMOD_INFO}</span></td>
-	<td class="row1" width="20%"><select name="file_type"><option value="default">Arcade Mod</option><option value="flash">All Flash</option><option value="jpg">JPG Images</option><option value="gif">GIF Images</option></select>
+	<td class="row1" width="20%"><select name="file_type"><option value="default">{L_FILE_PACKAGE}</option><option value="flash">{L_FILE_FLASH}</option><option value="jpg">{L_FILE_JPG}</option><option value="gif">{L_FILE_GIF}</option></select>
    </td>
  </tr>
  
  <tr>
    <td class="row1"><span class="gensmall">{L_SIZE_INFO}</span></td>
-	<td class="row1" width="20%"><select name="autosize"><option value="0">AutoSize</option><option value="1">Default Game</option></select>
+	<td class="row1" width="20%"><select name="autosize"><option value="0">{L_SIZE_DETECT}</option><option value="1">{L_SIZE_DEFAULT}</option></select>
    </td>
  </tr>
 
  <tr>
    <td class="row1"><span class="gensmall">{L_ONLINE_INFO}</span></td>
-	<td class="row1" width="20%"> <select name="online"><option value="0">OFFLINE</option><option value="1">ONLINE</option></select>
+	<td class="row1" width="20%"> <select name="online"><option value="0">{L_OFFLINE}</option><option value="1">{L_ONLINE}</option></select>
    </td>
  </tr>
 
@@ -47,7 +47,6 @@
    </td>
  </tr>
 
-  </tr>
   <tr>
    <td class="cat" colspan="2" align="center">{S_HIDDEN_FIELDS} 
     <input type="submit" name="import_submit" value="{L_SUBMIT}" class="mainoption" />&nbsp;

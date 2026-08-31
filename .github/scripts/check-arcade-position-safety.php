@@ -25,6 +25,8 @@ $admin_categories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.p
 $category_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/arcade_cats_body.tpl');
 $admin_tournaments = file_get_contents($root . '/phpBB2/admin/admin_arcade_tournaments.php');
 $config_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/arcade_config_body.tpl');
+$import_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/arcade_import_body.tpl');
+$message_template = file_get_contents($root . '/phpBB2/templates/subSilver/admin/arcade_messages_body.tpl');
 
 arcade_position_assert(strpos($functions, "isset(\$lang['games_position_text'])") !== false, 'positions must use the regular language array');
 arcade_position_assert(strpos($functions, 'array_replace($default_position_text, $position_text)') !== false, 'incomplete translations need defaults');
@@ -58,6 +60,10 @@ arcade_position_assert(strpos($config_template, '{S_HIDDEN_FIELDS}') !== false, 
 arcade_position_assert(strpos($config_template, '{S_HIDDEN_postS}') === false, 'the broken legacy hidden-field placeholder must not return');
 arcade_position_assert(strpos($admin_games, '$write_requested') !== false && strpos($admin_games, 'phpbb_admin_require_post_session();') !== false, 'all Arcade game writes must verify the AdminCP token');
 arcade_position_assert(substr_count($admin_games, 'phpbb_admin_session_field()') >= 4, 'edit, import, list and confirmation forms must carry the AdminCP token');
+arcade_position_assert(strpos($admin_games, '"L_AUTO_IMPORT" =>') !== false && strpos($import_template, '{L_FILE_PACKAGE}') !== false, 'Arcade import controls must use translated labels');
+arcade_position_assert(strpos($import_template, 'Auto Import') === false && strpos($import_template, 'All Flash') === false, 'Arcade import templates must not retain hardcoded English labels');
+arcade_position_assert(strpos($admin_config, "'L_PM_SYSTEM' =>") !== false && strpos($message_template, '{L_PM_SYSTEM}') !== false, 'Arcade message settings must use a translated heading');
+arcade_position_assert(strpos($message_template, 'Private Message System') === false, 'Arcade message templates must not retain a hardcoded English heading');
 arcade_position_assert(strpos($admin_games, 'arcade_admin_rename_game_references') !== false, 'renaming a game must preserve dependent records');
 arcade_position_assert(strpos($admin_games, 'arcade_admin_delete_game_references') !== false, 'deleting a game must remove or clear dependent records');
 arcade_position_assert(strpos($admin_games, 'WHERE game_id = $old_id') !== false, 'game reordering must verify its source record');

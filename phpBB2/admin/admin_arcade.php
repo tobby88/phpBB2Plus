@@ -429,6 +429,7 @@ if ( !$mode || $mode == 'switches' || $mode == 'messages' )
 		'L_ARCADE_CONFIG' => $lang['admin_arcade_config'],
 		'L_MESS_HEADER' => $lang['admin_messages_header'],
 		'L_MESS_INFO' => $lang['admin_messages_info'],
+		'L_PM_SYSTEM' => $lang['admin_messages_system'],
 
 		"L_MOD_OFFLINE" => $lang['admin_games_offline'],
 		"L_MOD_OFFLINE_INFO" => $lang['admin_games_offline_info'],

@@ -28,6 +28,9 @@ changes consolidated after that baseline without implying active maintenance.
   non-negative integers within the destination column's supported range, and
   success, failure, buttons and formerly hardcoded field labels use the active
   ACP language instead of emitting ad-hoc English HTML.
+- Localized Arcade game-import choices and private-message settings, removed
+  obsolete external support instructions and repaired malformed table markup
+  in both ACP fallback templates.
 - Centralized custom profile-field parsing for registration and administrator
   user management. Dynamic columns now have a strict identifier boundary,
   values obey their configured type, choices and length, and database writes

@@ -711,6 +711,7 @@ else if( $mode == "import_game")
 		
 		"L_MENU_HEADER" => $lang['admin_game_import'],
 		"L_MENU_INFO" => $lang['admin_import_info'],
+		"L_AUTO_IMPORT" => $lang['admin_import_auto'],
 		"L_IN_INFO" => $lang['admin_import_path'],
 		"L_IN_PATH_INFO" => $lang['admin_import_dir'],
 		"L_SIZE_INFO" => $lang['admin_auto_size'],
@@ -718,6 +719,14 @@ else if( $mode == "import_game")
 		"L_AMOD_INFO" => $lang['admin_import_amod'],
 		"L_ONLINE_INFO" => $lang['admin_import_online'],
 		"L_CAT_INFO" => $lang['admin_import_cat'],
+		"L_FILE_PACKAGE" => $lang['admin_import_file_package'],
+		"L_FILE_FLASH" => $lang['admin_import_file_flash'],
+		"L_FILE_JPG" => $lang['admin_import_file_jpg'],
+		"L_FILE_GIF" => $lang['admin_import_file_gif'],
+		"L_SIZE_DETECT" => $lang['admin_import_size_detect'],
+		"L_SIZE_DEFAULT" => $lang['admin_import_size_default'],
+		"L_OFFLINE" => $lang['admin_import_offline'],
+		"L_ONLINE" => $lang['admin_import_online_state'],
 		"CATS" => $cat_list,
 		
 		"L_SUBMIT" => $lang['Submit'],

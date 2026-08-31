@@ -13,7 +13,7 @@
    <td class="catBottom" colspan="2" align="center">&nbsp;</td>
  </tr>
   <tr>
-   <th class="thHead" colspan="2" align="center">Private Message System</td>
+   <th class="thHead" colspan="2" align="center">{L_PM_SYSTEM}</th>
   </tr>
 
  <tr>
@@ -22,7 +22,6 @@
      <input type="radio" name="games_pm_new" value="1" {S_PM_NEW_YES} /> {L_YES}&nbsp;&nbsp;
      <input type="radio" name="games_pm_new" value="0" {S_PM_NEW_NO} /> {L_NO}</td>
   </tr>
- </tr>
  <tr>
    <td class="row2"><span class="gensmall">{L_MESS_HIGHSCORE}</span></td>
    <td class="row2" align="center" width="20%">
@@ -42,7 +41,6 @@
      <input type="radio" name="games_pm_comment" value="0" {S_PM_COMMENT_NO} /> {L_NO}</td>
  </tr>
 
-  </tr>
   <tr>
    <td class="cat" colspan="2" align="center">{S_HIDDEN_FIELDS} 
     <input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" />&nbsp;
