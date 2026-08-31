@@ -7,6 +7,18 @@ if (!mkdir($log_root, 0700, true))
 	fwrite(STDERR, "Could not create log-manager test directory.\n");
 	exit(1);
 }
+mkdir($test_root . 'cache', 0700, true);
+
+function phpbb_data_cache_read($filename)
+{
+	$value = @unserialize(@file_get_contents($filename));
+	return is_array($value) ? $value : false;
+}
+
+function phpbb_data_cache_write($filename, $value)
+{
+	return file_put_contents($filename, serialize($value), LOCK_EX) !== false;
+}
 
 $files = array(
 	'logfile_attempt_counter.txt' => '0',
@@ -42,6 +54,25 @@ if ($manager->get_counter_value() !== 3)
 {
 	$errors[] = 'Rotated log entries were not counted exactly once.';
 }
+$counter_cache = $test_root . 'cache/ctracker_counter.cache';
+if (!is_file($counter_cache))
+{
+	$errors[] = 'The footer counter did not create its bounded cache.';
+}
+file_put_contents($log_root . 'logfile_worms.txt', "1|||0|||null|||null|||null|||null|||null\n0|||1|||request|||referrer|||agent|||ip|||host\n");
+if ($manager->get_counter_value() !== 3)
+{
+	$errors[] = 'The footer counter ignored its valid cache.';
+}
+$manager->write_to_log(2, '0|||2|||request|||referrer|||agent|||ip|||host');
+if (is_file($counter_cache))
+{
+	$errors[] = 'Writing a security event did not invalidate the footer counter cache.';
+}
+if ($manager->get_counter_value() !== 5)
+{
+	$errors[] = 'The invalidated footer counter was not recomputed.';
+}
 $stored_lines = file($log_root . 'logfile_blocklist.txt');
 if (!is_array($stored_lines) || count($stored_lines) !== 2)
 {
@@ -63,13 +94,25 @@ foreach (array_keys($files) as $name)
 {
 	unlink($log_root . $name);
 }
+if (is_file($counter_cache))
+{
+	unlink($counter_cache);
+}
 rmdir($log_root);
+rmdir($test_root . 'cache');
 rmdir($test_root . 'ctracker');
 rmdir($test_root);
 
 if ($errors)
 {
 	fwrite(STDERR, implode("\n", $errors) . "\n");
+	exit(1);
+}
+
+$htaccess = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/logfiles/.htaccess');
+if (strpos($htaccess, 'Require all denied') === false || strpos($htaccess, 'Allow from localhost') !== false)
+{
+	fwrite(STDERR, "CrackerTracker log files are not fully denied over HTTP.\n");
 	exit(1);
 }
 

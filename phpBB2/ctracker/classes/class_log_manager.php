@@ -210,6 +210,16 @@ class log_manager
 		return $ct_filepath;
 	}
 
+	function invalidate_counter_cache()
+	{
+		global $phpbb_root_path;
+		$cache_file = $phpbb_root_path . 'cache/ctracker_counter.cache';
+		if (@is_file($cache_file) && !@is_link($cache_file))
+		{
+			@unlink($cache_file);
+		}
+	}
+
 
 	/**
 	 * Just delete a File in a way wich works without delete it and
@@ -238,6 +248,7 @@ class log_manager
 			@flock($logentry, LOCK_UN);
 		}
 		@fclose($logentry);
+		$this->invalidate_counter_cache();
 		return true;
 	}
 
@@ -266,6 +277,7 @@ class log_manager
 			@flock($logentry, LOCK_UN);
 		}
 		@fclose($logentry);
+		$this->invalidate_counter_cache();
 		return true;
 	}
 
@@ -299,6 +311,7 @@ class log_manager
 			@flock($counterfile, LOCK_UN);
 		}
 		@fclose($counterfile);
+		$this->invalidate_counter_cache();
 		return true;
 
 	}
@@ -316,20 +329,34 @@ class log_manager
 		$path     = '';
 
 		$path     = $this->create_ct_path($file_id);
-		if ($file_id != 6)
-    {
-		  $log_lines = @file($path);
-		  $logsize = is_array($log_lines) ? max(0, count($log_lines) - 1) : 0;
-		}
-		else
+		$handle = @fopen($path, 'rb');
+		if ($handle === false)
 		{
-      $debug_array = @file($path);
-	  if (is_array($debug_array) && isset($debug_array[0]))
-	  {
-        $debug_delimiter = $debug_array[0];
-        $logsize  = count($debug_array) - count(array_diff($debug_array, (array) $debug_delimiter));
-	  }
-    }
+			return 0;
+		}
+		$first_line = @fgets($handle);
+		if ($first_line !== false)
+		{
+			if ($file_id != 6)
+			{
+				while (@fgets($handle) !== false)
+				{
+					$logsize++;
+				}
+			}
+			else
+			{
+				$logsize = 1;
+				while (($line = @fgets($handle)) !== false)
+				{
+					if ($line === $first_line)
+					{
+						$logsize++;
+					}
+				}
+			}
+		}
+		@fclose($handle);
 
 		return $logsize;
 	}
@@ -419,9 +446,21 @@ class log_manager
 	 */
 	function get_counter_value()
 	{
+		global $phpbb_root_path;
+
 		// Variable Reset
 		$path                   = '';
 		$this->ct_counter_value = 0;
+		$cache_file = $phpbb_root_path . 'cache/ctracker_counter.cache';
+		if (function_exists('phpbb_data_cache_read') && @is_file($cache_file) && !@is_link($cache_file) && @filemtime($cache_file) >= time() - 60)
+		{
+			$cached = phpbb_data_cache_read($cache_file);
+			if (is_array($cached) && isset($cached['value']))
+			{
+				$this->ct_counter_value = max(0, intval($cached['value']));
+				return $this->ct_counter_value;
+			}
+		}
 
 		// Create Path to Counter file and load the current value
 		$path                   = $this->create_ct_path(1);
@@ -433,6 +472,10 @@ class log_manager
 			// Ignore the wrong logins
       if ($i == 4) continue;
       $this->ct_counter_value += $this->check_log_size($i);
+		}
+		if (function_exists('phpbb_data_cache_write'))
+		{
+			phpbb_data_cache_write($cache_file, array('value' => $this->ct_counter_value));
 		}
 
 		// Return Counter Value

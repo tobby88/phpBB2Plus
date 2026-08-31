@@ -14,6 +14,11 @@ changes consolidated after that baseline without implying active maintenance.
   local debugging; query profiling is disabled with debug mode, recursive
   error handling no longer bypasses the restriction, and session creation no
   longer scans and deletes obsolete `last*.dat` cache files on every request.
+- Stopped CrackerTracker's default footer from reading several complete log
+  files on every page view. Its cumulative counter now uses a bounded cache
+  invalidated on each security event, log-size checks stream lines instead of
+  loading whole files, and the log directory is denied over HTTP even to local
+  proxy requests.
 - Replaced password-reset e-mails containing temporary plaintext passwords
   with expiring, one-use links on which users choose their own password. The
   reset is consumed atomically, enforces the configured CrackerTracker expiry,

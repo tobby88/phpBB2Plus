@@ -1,8 +1,7 @@
 <IfModule mod_authz_core.c>
-    Require local
+	Require all denied
 </IfModule>
 <IfModule !mod_authz_core.c>
-    Order deny,allow
-    Deny from all
-    Allow from localhost 127.0.0.1
+	Order allow,deny
+	Deny from all
 </IfModule>
