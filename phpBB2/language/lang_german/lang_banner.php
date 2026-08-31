@@ -30,16 +30,16 @@ $lang['Banner_spot']['12'] = "Bottom rigth 2"; // used for {BANNER_12_IMG} tag i
 $lang['Banner_spot']['13'] = "Forum_view top"; // used for {BANNER_13_IMG} tag in the template files
 $lang['Banner_spot']['14'] = "Topic view top"; // used for {BANNER_14_IMG} tag in the template files
 $lang['Banner_spot']['15'] = "Topic view botton"; // used for {BANNER_15_IMG} tag in the template files
-$lang['Banner_spot']['16'] = "Portal Banner 1"; // used for {BANNER_16_IMG} tag in the template files
-$lang['Banner_spot']['17'] = "Portal Banner 2"; // used for {BANNER_17_IMG} tag in the template files
-$lang['Banner_spot']['18'] = "Portal Banner 3"; // used for {BANNER_18_IMG} tag in the template files
-$lang['Banner_spot']['19'] = "Portal Banner 4"; // used for {BANNER_19_IMG} tag in the template files
+$lang['Banner_spot']['16'] = "Portal-Link 1 (linke Spalte)"; // used for {BANNER_16_IMG} tag in the template files
+$lang['Banner_spot']['17'] = "Portal-Link 2 (linke Spalte)"; // used for {BANNER_17_IMG} tag in the template files
+$lang['Banner_spot']['18'] = "Portal-Link 3 (linke Spalte)"; // used for {BANNER_18_IMG} tag in the template files
+$lang['Banner_spot']['19'] = "Portal-Link 4 (linke Spalte)"; // used for {BANNER_19_IMG} tag in the template files
 
 //
 // please do not modify the text below (except if you are translating)
 //
-$lang['Banner_title'] = "Banner Administration";
-$lang['Banner_text'] = "Hier kannst du die Banner modifizieren, die auf deiner Seite erscheinen. Banner können mit zeitbasierten Regeln versehen werden";
+$lang['Banner_title'] = "Banner- und Portal-Link-Verwaltung";
+$lang['Banner_text'] = "Hier kannst du die Banner und Portal-Links verwalten. Die Einträge der Linkliste in der linken Portalspalte verwenden die Positionen 16 bis 19. Mehrere aktive Einträge an derselben Position werden abwechselnd angezeigt.";
 $lang['Add_new_banner'] = "Neues Banner";
 $lang['Banner_add_text'] = "Hier kannst du ein Banner hinzufügen oder ändern";
 

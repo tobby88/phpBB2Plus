@@ -1133,7 +1133,7 @@ $lang['registration_closed_explain'] = 'Text, mit einer Erklärung, warum die Re
 
 $lang['Plus'] = 'Plus';
 $lang['Portal'] = 'Portal';
-$lang['Banner'] = 'Banner';
+$lang['Banner'] = 'Banner / Portal-Links';
 $lang['Org. Configuration'] = 'Orig. Konfiguration';
 $lang['News Admin'] = 'News Admin';
 $lang['Download'] = 'Download';

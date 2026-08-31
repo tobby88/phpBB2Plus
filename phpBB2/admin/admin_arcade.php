@@ -34,32 +34,12 @@ $file = basename(__FILE__);
 
 if( !empty($setmodules) )
 {
-//
-//	Load DB
-//
-  $build_array = array();
-	$sql = "SELECT * FROM " . $table_prefix . "ina_data";
- 	$result = $db->sql_query($sql);
- 	$ina_info = $db->sql_fetchrowset($result);
-  foreach ($ina_info as $key => $value)
-  {
-    $build_array[$value['config_name']]  = $value['config_value'];
-  }      
-	unset($ina_info);
- 	$arcade_config = $build_array;
-//
-//  Main Arcade Options
-//
+	// Register the complete Arcade administration without querying the
+	// database while the AdminCP is merely building its navigation.
 	$module['Arcade']['Configuration'] = $file;
 	$module['Arcade']['Switches'] = $file."?mode=switches";
-	if($arcade_config['games_use_pms'])
-	{
-		$module['Arcade']['Private MS'] = $file."?mode=messages";
-	}
-	if($arcade_config['games_tournament_mode'])
-	{
-		$module['Arcade']['Tournaments'] = "admin_arcade_tournaments.$phpEx";
-	}
+	$module['Arcade']['Private MS'] = $file."?mode=messages";
+	$module['Arcade']['Tournaments'] = "admin_arcade_tournaments.$phpEx";
 	return;
 }
 

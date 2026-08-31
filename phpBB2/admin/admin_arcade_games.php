@@ -25,12 +25,12 @@ if( !empty($setmodules) )
 //
 //  Arcade Games Options
 //	
-	$module['Arcade_Games']['Add'] = "admin_arcade_games.".$phpEx."?mode=add_game";
-	$module['Arcade_Games']['Edit'] = "admin_arcade_games.".$phpEx."?mode=edit_games";
-	$module['Arcade_Games']['Import'] = "admin_arcade_games.".$phpEx."?mode=import_game";
-	$module['Arcade_Games']['View'] = "../activity.".$phpEx;
-	$module['Arcade_Games']['Reset'] = "admin_arcade_reset.".$phpEx."?mode=home";
-	$module['Arcade_Games']['Set'] = "admin_arcade_set.".$phpEx;
+	$module['Arcade']['Add'] = "admin_arcade_games.".$phpEx."?mode=add_game";
+	$module['Arcade']['Edit'] = "admin_arcade_games.".$phpEx."?mode=edit_games";
+	$module['Arcade']['Import'] = "admin_arcade_games.".$phpEx."?mode=import_game";
+	$module['Arcade']['View'] = "../activity.".$phpEx;
+	$module['Arcade']['Reset'] = "admin_arcade_reset.".$phpEx."?mode=home";
+	$module['Arcade']['Set'] = "admin_arcade_set.".$phpEx;
 
 	return;
 }

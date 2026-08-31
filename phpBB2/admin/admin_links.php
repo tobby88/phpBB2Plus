@@ -50,7 +50,8 @@ function admin_links_http_url($value)
 	$parts = @parse_url($value);
 	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
 		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
-		isset($parts['user']) || isset($parts['pass']) || preg_match('/[\\\x00-\x20\x7f]/', $value))
+		isset($parts['user']) || isset($parts['pass']) || strpos($value, '\\') !== false ||
+		preg_match('/[\x00-\x20\x7f]/', $value))
 	{
 		return '';
 	}

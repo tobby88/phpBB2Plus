@@ -11,6 +11,8 @@ $required = array(
 	'phpbb_admin_require_post_session();',
 	'phpbb_admin_session_field()',
 	'function admin_links_post_scalar',
+	"strpos(\$value, '\\\\') !== false",
+	"preg_match('/[\\x00-\\x20\\x7f]/', \$value)",
 	'isset($link_categories[$link_category])',
 	'$db->sql_escape($link_title)',
 	"'U_LINK_EDIT' => append_sid",
@@ -29,7 +31,8 @@ $forbidden = array(
 	"admin_links.\$phpEx?mode=update",
 	"'&sid=' . \$userdata['session_id']",
 	"str_replace(\"'\", \"''\", \$link_title)",
-	"WHERE link_id = '\$link_id'"
+	"WHERE link_id = '\$link_id'",
+	"preg_match('/[\\\\\\x00-\\x20\\x7f]/', \$value)"
 );
 
 foreach ($forbidden as $marker)

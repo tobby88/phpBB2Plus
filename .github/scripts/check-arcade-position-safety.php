@@ -27,6 +27,7 @@ $admin_tournaments = file_get_contents($root . '/phpBB2/admin/admin_arcade_tourn
 $config_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_config_body.tpl');
 $import_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_import_body.tpl');
 $message_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/arcade_messages_body.tpl');
+$admin_config_registration = substr($admin_config, 0, strpos($admin_config, '$phpbb_root_path'));
 
 arcade_position_assert(strpos($functions, "isset(\$lang['games_position_text'])") !== false, 'positions must use the regular language array');
 arcade_position_assert(strpos($functions, 'array_replace($default_position_text, $position_text)') !== false, 'incomplete translations need defaults');
@@ -53,6 +54,9 @@ arcade_position_assert(strpos($updater, 'HAVING COUNT(DISTINCT s.player_id) = 1'
 arcade_position_assert(strpos($admin_config, 'phpbb_admin_require_post_session();') !== false, 'Arcade configuration writes must verify the AdminCP token');
 arcade_position_assert(strpos($admin_config, "in_array(\$mode, array('', 'switches', 'messages'), true)") !== false, 'Arcade configuration modes must use an allowlist');
 arcade_position_assert(strpos($admin_config, "['Moderators']") === false && strpos($admin_config, "mode=moderators") === false, 'the empty Arcade moderator settings page must remain removed');
+arcade_position_assert(strpos($admin_config_registration, '$db->') === false, 'building the Arcade AdminCP navigation must not query configuration tables');
+arcade_position_assert(strpos($admin_games, "\$module['Arcade_Games']") === false, 'Arcade game management must not create a duplicate AdminCP category');
+arcade_position_assert(substr_count($admin_games, "\$module['Arcade']") === 6, 'all Arcade game-management entries must share the Spielhalle category');
 arcade_position_assert(!is_file($root . '/phpBB2/templates/fisubsilversh/admin/arcade_moderators_body.tpl'), 'the unused Arcade moderator template must remain removed');
 arcade_position_assert(strpos($admin_config, '$db->sql_escape($new[$config_name])') !== false, 'Arcade configuration values must use driver escaping');
 arcade_position_assert(strpos($admin_config, 'Invalid Arcade asset directory.') !== false, 'Arcade asset directories must reject unsafe paths');

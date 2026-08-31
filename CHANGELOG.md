@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Consolidated the legacy Arcade configuration and game-management entries
+  into one AdminCP category. Building the navigation no longer queries Arcade
+  configuration tables, avoiding menu-time database warnings and keeping all
+  Spielhalle controls together.
+- Clarified that the Banner MOD's positions 16 through 19 populate the portal's
+  left-hand link box, including rotation when a position contains several
+  active entries. German and English AdminCP labels now make those portal
+  links discoverable, and malformed URL validation in the separate Links MOD
+  no longer emits a regular-expression warning.
 - Made apex-domain and `www` access coexist without weakening host checks.
   Origin, CrackerTracker, Arcade and media/download Referer validation now
   recognize only those exact counterparts, while the old Album substring
