@@ -17,7 +17,7 @@
 					<td style="text-align:center">{ranks.RANK}</td>
 					<td style="text-align:center">{ranks.RANK_MIN}</td>
 					<td style="text-align:center">{ranks.SPECIAL_RANK}</td>
-					<td style="text-align:center"><a href="{ranks.U_RANK_EDIT}" title="{L_EDIT}"><img src="../templates/prosilver/admin/images/icon_edit.gif" alt="" /></a> <a href="{ranks.U_RANK_DELETE}" title="{L_DELETE}"><img src="../templates/prosilver/admin/images/icon_delete.gif" alt="" /></a></td>
+					<td style="text-align:center"><a href="{ranks.U_RANK_EDIT}" title="{L_EDIT}"><img src="../templates/BS_subIce/admin/images/icon_edit.gif" alt="" /></a> <a href="{ranks.U_RANK_DELETE}" title="{L_DELETE}"><img src="../templates/BS_subIce/admin/images/icon_delete.gif" alt="" /></a></td>
 				</tr>
 				<!-- END ranks -->
 				</tbody>

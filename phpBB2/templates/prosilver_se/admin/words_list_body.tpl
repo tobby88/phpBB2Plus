@@ -19,7 +19,7 @@
 				<tr class="{words.ROW_CLASS}">
 					<td style="text-align:center">{words.WORD}</td>
 					<td style="text-align:center">{words.REPLACEMENT}</td>
-					<td style="text-align:center"><a href="{words.U_WORD_EDIT}" title="{L_EDIT}"><img src="../templates/prosilver/admin/images/icon_edit.gif" alt="" /></a> <a href="{words.U_WORD_DELETE}" title="{L_DELETE}"><img src="../templates/prosilver/admin/images/icon_delete.gif" alt="" /></a></td>
+					<td style="text-align:center"><a href="{words.U_WORD_EDIT}" title="{L_EDIT}"><img src="../templates/prosilver_se/admin/images/icon_edit.gif" alt="" /></a> <a href="{words.U_WORD_DELETE}" title="{L_DELETE}"><img src="../templates/prosilver_se/admin/images/icon_delete.gif" alt="" /></a></td>
 				</tr>
 				<!-- END words -->
 				</tbody>

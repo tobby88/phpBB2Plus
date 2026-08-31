@@ -12,7 +12,7 @@
 		</table></td>
 	</tr>
 	<tr> 
-		<td class="spacerow" height="1"><img src="templates/fisubsilversh/images/spacer.gif" width="1" height="1" /></td>
+		<td class="spacerow" height="1"><img src="templates/subSilver/images/spacer.gif" width="1" height="1" /></td>
 	</tr>
 </table>
 

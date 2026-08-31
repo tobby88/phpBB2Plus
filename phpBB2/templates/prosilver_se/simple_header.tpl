@@ -7,7 +7,7 @@
 {META}
 <title>{SITENAME} &bull; {PAGE_TITLE}</title>
 </script>
-<link href="templates/prosilver/{T_HEAD_STYLESHEET}" rel="stylesheet" type="text/css" media="screen, projection" />
+<link href="templates/prosilver_se/{T_HEAD_STYLESHEET}" rel="stylesheet" type="text/css" media="screen, projection" />
 </head>
 <body id="phpbb" class="{S_CONTENT_DIRECTION}">
 <div id="simple-wrap">

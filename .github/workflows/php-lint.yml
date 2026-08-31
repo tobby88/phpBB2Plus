@@ -190,6 +190,9 @@ jobs:
       - name: Test responsive style selection
         run: php .github/scripts/check-responsive-style-safety.php
 
+      - name: Test template asset boundaries
+        run: php .github/scripts/check-template-asset-boundaries.php
+
       - name: Test ColorGroups administration safety
         run: php .github/scripts/check-color-groups-admin-safety.php
 

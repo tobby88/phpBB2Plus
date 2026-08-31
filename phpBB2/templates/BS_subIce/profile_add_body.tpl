@@ -85,7 +85,7 @@
 
  	  <!--
       <div class="row gen">
-        <div class="col-4 row1 py-1"><img src="templates/BS_subSilver/images/icq_add.png">&nbsp;{L_ICQ_NUMBER}:</div>
+        <div class="col-4 row1 py-1"><img src="templates/BS_subIce/images/icq_add.png">&nbsp;{L_ICQ_NUMBER}:</div>
         <div class="col-8 row2 py-1"><input type="text" name="icq" class="post" style="width: 200px"  size="10" maxlength="255" value="{ICQ}" placeholder="&nbsp;{L_USER_ID_EXPLAIN}" /></div>
       </div>
       -->

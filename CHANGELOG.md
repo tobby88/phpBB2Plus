@@ -15,6 +15,11 @@ changes consolidated after that baseline without implying active maintenance.
   and the idempotent updater now provide the `theme_public` column expected by
   eXtreme Styles; the long-broken positional default-theme seed was replaced
   by an explicit, schema-stable column list.
+- Removed 91 unnecessary cross-style asset dependencies from public and ACP
+  templates. Styles now use their own available icons, spacer images, editor
+  scripts and stylesheets; only assets genuinely absent from the current style
+  retain the established shared fallback. This also fixes the broken historic
+  `fisubsilver` path typo.
 - Repaired legacy helper pages around the Smilie creator, Quick Reply, credits
   and recent topics. Smilie assets are enumerated by their real file names,
   missing GD/assets fail deliberately instead of producing PHP 8 fatals,

@@ -17,7 +17,7 @@
 					<td style="text-align:center"><img src="{smiles.SMILEY_IMG}" alt="{smiles.CODE}" title="{smiles.CODE}" /></td>
 					<td style="text-align:center">{smiles.CODE}</td>
 					<td style="text-align:center">{smiles.EMOT}</td>
-					<td style="text-align:center;white-space:nowrap"><a href="{smiles.U_SMILEY_EDIT}" title="{L_EDIT}"><img src="../templates/prosilver/admin/images/icon_edit.gif" alt="" /></a> <a href="{smiles.U_SMILEY_DELETE}" title="{L_DELETE}"><img src="../templates/prosilver/admin/images/icon_delete.gif" alt="" /></a></td>
+					<td style="text-align:center;white-space:nowrap"><a href="{smiles.U_SMILEY_EDIT}" title="{L_EDIT}"><img src="../templates/BS/admin/images/icon_edit.gif" alt="" /></a> <a href="{smiles.U_SMILEY_DELETE}" title="{L_DELETE}"><img src="../templates/BS/admin/images/icon_delete.gif" alt="" /></a></td>
 				</tr>
 				<!-- END smiles -->
 				</tbody>

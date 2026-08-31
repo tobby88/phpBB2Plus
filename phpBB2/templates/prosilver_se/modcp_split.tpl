@@ -43,7 +43,7 @@
 							<div class="postbody">
 								<div class="right-box">{postrow.S_SPLIT_CHECKBOX}</div>
 								<h3>{postrow.POST_SUBJECT}</h3>
-								<p class="author"><img src="templates/prosilver/images/icon_post_target.gif" alt="" /> <strong>{postrow.POSTER_NAME}</strong> &raquo; {postrow.POST_DATE}</p>
+								<p class="author"><img src="templates/prosilver_se/images/icon_post_target.gif" alt="" /> <strong>{postrow.POSTER_NAME}</strong> &raquo; {postrow.POST_DATE}</p>
 								<div class="content">{postrow.MESSAGE}</div>
 							</div>
 							<span class="corners-bottom"><span></span></span></div>

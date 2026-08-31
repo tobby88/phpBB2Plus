@@ -58,7 +58,7 @@
 					var imageTag = false;
 				// ]]>
 				</script>
-				<script type="text/javascript" src="templates/prosilver/editor.js"></script>
+				<script type="text/javascript" src="templates/prosilver_se/editor.js"></script>
 				<div id="colour_palette" style="display: none;">
 					<dl style="clear: left;">
 						<dt><label>{L_FONT_COLOR}:</label></dt>

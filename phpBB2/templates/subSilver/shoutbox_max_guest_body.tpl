@@ -60,7 +60,7 @@
 		</td>
 	</tr>
 	<tr> 
-		<td class="spacerow" colspan="2" height="1"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
+		<td class="spacerow" colspan="2" height="1"><img src="templates/subSilver/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 	<!-- END shoutrow -->
 

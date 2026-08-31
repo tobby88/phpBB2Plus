@@ -62,7 +62,7 @@
 		<td class="row2"><input type="radio" name="image" value="1" {S_ALLOW_IMAGE_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="image" value="0" {S_ALLOW_IMAGE_NO} /> {L_NO}</td>
 	</tr>
 	<tr>
-		<td class="spacerow" colspan="2" height="1"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
+		<td class="spacerow" colspan="2" height="1"><img src="templates/subSilver/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 	<tr>
 		<td class="row1"><b>{L_FOREGROUND_LATTICE}</b>&nbsp;<span class="gensmall">{L_FOREGROUND_LATTICE_EXPLAIN}</span></td>

@@ -41,7 +41,7 @@
   
   <!-- BEGIN search_results -->
   <tr>
-	<td class="row1" align="center" valign="middle"><img src="templates/fisubsilversh/images/folder.gif" /></td>
+	<td class="row1" align="center" valign="middle"><img src="templates/subSilver/images/folder.gif" /></td>
 	<td class="row1"><span class="gensmall"><a href="{switch_search_results.search_results.U_CAT}">{switch_search_results.search_results.L_CAT}</a></span></td>
 	<td class="row1"><span class="gensmall"><a href="{switch_search_results.search_results.U_PIC}">{switch_search_results.search_results.L_PIC}</a></span></td>
 	<td class="row1"><span class="gensmall"><a href="{switch_search_results.search_results.U_PROFILE}"><center>{switch_search_results.search_results.L_USERNAME}</center></a></span></td>

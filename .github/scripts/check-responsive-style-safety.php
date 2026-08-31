@@ -25,7 +25,7 @@ responsive_style_assert(strpos($switcher, "phpbb_setcookie(\$board_config['cooki
 responsive_style_assert(strpos($tail, "'STYLE_SWITCHER' => \$style_switcher") !== false, 'footer switcher is not assigned');
 
 responsive_style_assert((bool) preg_match('/theme_public\s+tinyint\(1\).*default\s+\'1\'/i', $schema), 'fresh schema does not expose public styles');
-responsive_style_assert((bool) preg_match('/INSERT INTO\s+phpbb_themes\s*\(([^;]+)\)\s*VALUES\s*\(([^;]+)\);/i', $basic, $theme_insert), 'fresh theme seed must use an explicit column list');
+responsive_style_assert((bool) preg_match('/^INSERT INTO\s+phpbb_themes\s*\(([^;]+)\)\s*VALUES\s*\(([^;]+)\);/im', $basic, $theme_insert), 'fresh theme seed must use an explicit column list');
 $theme_columns = array_map('trim', explode(',', $theme_insert[1]));
 $theme_values = str_getcsv($theme_insert[2], ',', "'", '\\');
 responsive_style_assert(count($theme_columns) === count($theme_values), 'fresh theme seed column/value counts differ');

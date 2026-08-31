@@ -4,7 +4,7 @@
 		var text_name = 'message';
 	// ]]>
 	</script>
-	<script type="text/javascript" src="templates/prosilver/editor.js"></script>
+	<script type="text/javascript" src="templates/prosilver_se/editor.js"></script>
 	<h2>{L_EMOTICONS}</h2>
 	<div class="panel">
 		<div class="inner"><span class="corners-top"><span></span></span>

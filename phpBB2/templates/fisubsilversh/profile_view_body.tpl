@@ -86,7 +86,7 @@
 <td colspan="3" width="100%" class="row2">
 <table cellspacing="0" cellpadding="1" border="0">
 <tr> 
-<td bgcolor="{T_TD_COLOR2}"><img src="templates/fisubsilver/images/spacer.gif" width="{UPLOAD_LIMIT_IMG_WIDTH}" height="8" alt="{UPLOAD_LIMIT_PERCENT}" /></td>
+<td bgcolor="{T_TD_COLOR2}"><img src="templates/fisubsilversh/images/spacer.gif" width="{UPLOAD_LIMIT_IMG_WIDTH}" height="8" alt="{UPLOAD_LIMIT_PERCENT}" /></td>
 </tr>
 </table>
 </td>

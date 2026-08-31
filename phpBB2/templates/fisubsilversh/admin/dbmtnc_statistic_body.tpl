@@ -40,7 +40,7 @@
 		<td class="row2">{NAMES_OF_ADMINISTRATORS}</td>
 	</tr>
 	<tr>
-		<td class="spaceRow" height="1" colspan="3"><img src="templates/subSilver/images/spacer.gif" alt="" width="1" height="1" /></td>
+		<td class="spaceRow" height="1" colspan="3"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 </table>
 <br />
@@ -92,7 +92,7 @@
 		<td class="row2">{SIZE_OF_ADVANCED_DB}</td>
 	</tr>
 	<tr>
-		<td class="spaceRow" height="1" colspan="3"><img src="templates/subSilver/images/spacer.gif" alt="" width="1" height="1" /></td>
+		<td class="spaceRow" height="1" colspan="3"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 </table>
 <br />
@@ -118,6 +118,6 @@
 		<td class="row2"><b>{MYSQL_VERSION}</b></td>
 	</tr>
 	<tr>
-		<td class="spaceRow" height="1" colspan="3"><img src="templates/subSilver/images/spacer.gif" alt="" width="1" height="1" /></td>
+		<td class="spaceRow" height="1" colspan="3"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 </table>

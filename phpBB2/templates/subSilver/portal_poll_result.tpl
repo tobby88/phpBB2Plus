@@ -13,7 +13,7 @@
 			  <td class="row1"><span class="gensmall">{poll_option.POLL_OPTION_CAPTION}</span></td>
 			  <td class="row1"><span class="gensmall">[ {poll_option.POLL_OPTION_RESULT} ]</span></td>
 			<tr> 
-			  <td class="row1"><img src="templates/fisubsilversh/images/vote_lcap.gif" width="4" alt="" height="12" /><img src="{poll_option.POLL_OPTION_IMG}" width="{poll_option.POLL_OPTION_IMG_WIDTH}" height="12" alt="{poll_option.POLL_OPTION_PERCENT}" /><img src="templates/fisubsilversh/images/vote_rcap.gif" width="4" alt="" height="12" /></td>
+			  <td class="row1"><img src="templates/subSilver/images/vote_lcap.gif" width="4" alt="" height="12" /><img src="{poll_option.POLL_OPTION_IMG}" width="{poll_option.POLL_OPTION_IMG_WIDTH}" height="12" alt="{poll_option.POLL_OPTION_PERCENT}" /><img src="templates/subSilver/images/vote_rcap.gif" width="4" alt="" height="12" /></td>
 			  <td class="row1"><b><span class="gensmall">&nbsp;{poll_option.POLL_OPTION_PERCENT}&nbsp;</span></b>&nbsp;</td>
 			</tr>
 			<!-- END poll_option -->

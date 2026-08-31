@@ -15,7 +15,7 @@
 	</tr>
 	<!-- BEGIN spaceRow -->
 	<tr>
-		<td class="spaceRow" height="1" colspan="2"><img src="templates/subSilver/images/spacer.gif" alt="" width="1" height="1" /></td>
+		<td class="spaceRow" height="1" colspan="2"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 	<!-- END spaceRow -->
 	<!-- END function -->

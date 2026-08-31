@@ -14,7 +14,7 @@
 				<tr>
 					<td><strong>{styles.STYLE_NAME}</strong></td>
 					<td style="text-align:center">{styles.TEMPLATE_NAME}</td>
-					<td style="text-align:center"><a href="{styles.U_STYLES_EDIT}" title="{L_EDIT}"><img src="../templates/prosilver/admin/images/icon_edit.gif" alt="" /></a> <a href="{styles.U_STYLES_DELETE}" title="{L_DELETE}"><img src="../templates/prosilver/admin/images/icon_delete.gif" alt="" /></a></td>
+					<td style="text-align:center"><a href="{styles.U_STYLES_EDIT}" title="{L_EDIT}"><img src="../templates/prosilver_se/admin/images/icon_edit.gif" alt="" /></a> <a href="{styles.U_STYLES_DELETE}" title="{L_DELETE}"><img src="../templates/prosilver_se/admin/images/icon_delete.gif" alt="" /></a></td>
 				</tr>
 				<!-- END styles -->
 				</tbody>
