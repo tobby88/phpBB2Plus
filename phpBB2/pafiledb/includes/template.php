@@ -51,6 +51,8 @@ class pafiledb_Template
 	var $root = '';
 	var $cache_root = 'pafiledb/cache/templates/';
 	var $files = array();
+	var $filename = array();
+	var $cachedir = '';
 
 	// this will hash handle names to the compiled/uncompiled code for that handle.
 	var $compiled_code = array();
@@ -68,16 +70,26 @@ class pafiledb_Template
 	{
 		global $phpbb_root_path;
 
+		$template = trim((string) $template);
+		if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $template) ||
+			!is_dir($phpbb_root_path . 'templates/' . $template))
+		{
+			$template = 'fisubsilversh';
+		}
+
 		$this->root = $phpbb_root_path . 'templates/' . $template;
-        $this->cachedir = $phpbb_root_path . $this->cache_root . $template . '/';
+		$this->cachedir = $phpbb_root_path . $this->cache_root . $template . '/';
 
 		$this->static_lang = $static_lang;
 		$this->force_recompile = $force_recompile;
 
-		if (!file_exists($this->cachedir))
+		if (!is_dir($this->cachedir))
 		{
-			@umask(0);
-			mkdir($this->cachedir, 0777);
+			@mkdir($this->cachedir, 0755, true);
+		}
+		if (!is_dir($this->cachedir) || is_link($this->cachedir))
+		{
+			message_die(GENERAL_ERROR, 'paFileDB template cache directory is unavailable');
 		}
 
 		return true;
@@ -100,8 +112,13 @@ class pafiledb_Template
 				message_die(GENERAL_ERROR, "Template error - Empty filename specified for $handle");
 			}
 
-			$this->filename[$handle] = $filename;
-			$this->files[$handle] = $this->make_filename($filename);
+			$resolved = $this->make_filename($filename);
+			if ($resolved === false)
+			{
+				message_die(GENERAL_ERROR, "Template error - Invalid filename specified for $handle");
+			}
+			$this->filename[$handle] = str_replace('\\', '/', (string) $filename);
+			$this->files[$handle] = $resolved;
 		}
 
 		return true;
@@ -112,8 +129,28 @@ class pafiledb_Template
 	// object.
 	function make_filename($filename)
 	{
-		// Check if it's an absolute or relative path.
-		return (substr($filename, 0, 1) != '/') ? $this->root . '/' . $filename : $filename;
+		$filename = str_replace('\\', '/', trim((string) $filename));
+		if (!preg_match('#^(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_.-]+\.tpl$#D', $filename) ||
+			strpos('/' . $filename . '/', '/../') !== false)
+		{
+			return false;
+		}
+
+		return $this->root . '/' . $filename;
+	}
+
+	function cache_filename($handle)
+	{
+		global $phpEx, $userdata;
+
+		$language = '';
+		if ($this->static_lang && isset($userdata['user_lang']) &&
+			preg_match('/^[a-z0-9_-]{1,30}$/iD', (string) $userdata['user_lang']))
+		{
+			$language = strtolower((string) $userdata['user_lang']) . '.';
+		}
+
+		return $this->cachedir . 'safe2_' . str_replace('/', '_', $this->filename[$handle]) . '.' . $language . $phpEx;
 	}
 
 	// Destroy template data set
@@ -143,9 +180,7 @@ class pafiledb_Template
 	// Load a compiled template if possible, if not, recompile it
 	function _tpl_load(&$handle)
 	{
-		global $phpEx, $userdata;
-
-		$filename = $this->cachedir . 'safe2_' . $this->filename[$handle] . '.' . (($this->static_lang) ? $userdata['user_lang'] . '.' : '') . $phpEx;
+		$filename = $this->cache_filename($handle);
 		// Recompile page if the original template is newer, otherwise load the compiled version
 
 		if (file_exists($filename) && !$this->force_recompile && @filemtime($filename) == @filemtime($this->files[$handle]))
@@ -727,20 +762,20 @@ class pafiledb_Template
 
 	function compile_write(&$handle, $data)
 	{
-		global $phpEx, $user;
-
-		$filename = $this->cachedir . 'safe2_' . $this->filename[$handle] . '.' . (($this->static_lang) ? $userdata['user_lang'] . '.' : '') . $phpEx;
-
-		if ($fp = @fopen($filename, 'w+'))
+		$filename = $this->cache_filename($handle);
+		$temp = @tempnam($this->cachedir, '.pa-tpl-');
+		if ($temp !== false && @file_put_contents($temp, $data, LOCK_EX) === strlen($data))
 		{
-			@flock($fp, LOCK_EX);
-			@fwrite ($fp, $data);
-			@flock($fp, LOCK_UN);
-			@fclose($fp);
-
-			@umask(0);
-			@touch($filename, filemtime($this->files[$handle]));
-			@chmod($filename, 0644);
+			@chmod($temp, 0644);
+			@touch($temp, filemtime($this->files[$handle]));
+			if (!@rename($temp, $filename))
+			{
+				@unlink($temp);
+			}
+		}
+		elseif ($temp !== false)
+		{
+			@unlink($temp);
 		}
 
 		return;
@@ -754,7 +789,11 @@ class pafiledb_Template
 
 		if (!$template)
 		{
-			$dp = opendir($phpbb_root_path . $this->cache_root);
+			$dp = @opendir($phpbb_root_path . $this->cache_root);
+			if ($dp === false)
+			{
+				return;
+			}
 			while ($dir = readdir($dp)) 
 			{
 				$template_dir = $phpbb_root_path . $this->cache_root . $dir;
@@ -767,15 +806,25 @@ class pafiledb_Template
 		}
 		else
 		{
-			array_push($template_list, $template);
+			if (preg_match('/^[A-Za-z0-9_-]{1,64}$/D', (string) $template))
+			{
+				array_push($template_list, (string) $template);
+			}
 		}
 
 		foreach ($template_list as $template)
 		{
-			$dp = opendir($phpbb_root_path . $this->cache_root . $template);
+			$cache_path = $phpbb_root_path . $this->cache_root . $template;
+			if (!is_dir($cache_path) || is_link($cache_path) || ($dp = @opendir($cache_path)) === false)
+			{
+				continue;
+			}
 			while ($file = readdir($dp))
 			{
-				@unlink($phpbb_root_path . $this->cache_root . $template . '/' . $file);
+				if ($file !== '.' && $file !== '..')
+				{
+					@unlink($cache_path . '/' . $file);
+				}
 			}
 			closedir($dp);
 		}

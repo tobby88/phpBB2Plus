@@ -190,6 +190,9 @@ jobs:
       - name: Test paFileDB administration safety
         run: php .github/scripts/check-pafiledb-admin-safety.php
 
+      - name: Test paFileDB template safety
+        run: php .github/scripts/check-pafiledb-template-safety.php
+
       - name: Test Arcade position safety
         run: php .github/scripts/check-arcade-position-safety.php
 

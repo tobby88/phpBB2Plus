@@ -13,6 +13,12 @@ changes consolidated after that baseline without implying active maintenance.
   paths. Empty legacy account values now fall back deterministically, and a
   repaired preference updates only that account instead of interpolating the
   corrupt old value into a broad SQL update.
+- Confined paFileDB's separate legacy template engine to installed style
+  directories and relative `.tpl` files. Its executable template directives
+  remain disabled, cache keys can no longer create selected paths, cache
+  directories are not created world-writable, and compiled templates are
+  published with a complete atomic write instead of being included while a
+  concurrent request may still be writing them.
 - Removed CrackerTracker's obsolete factory blocklist of 32 spoofable
   User-Agent strings, which included legitimate archival and scripting
   clients. Fresh installations now start with an empty administrator-managed
