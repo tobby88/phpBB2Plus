@@ -24,7 +24,7 @@ foreach ($files as $name => $contents)
 $phpbb_root_path = $test_root;
 $HTTP_SERVER_VARS = array(
 	'PHP_SELF' => '/index.php',
-	'QUERY_STRING' => 'safe=1&password=SuperSecret&sid=SessionSecret',
+	'QUERY_STRING' => 'safe=1&password=SuperSecret&sid=SessionSecret&act_key=ActivationSecret&form%5Btoken%5D=NestedSecret',
 	'REMOTE_ADDR' => '192.0.2.1',
 	'HTTP_USER_AGENT' => "Test\r\nInjected: no",
 	'HTTP_REFERER' => 'https://forum.example/profile.php?token=RefererSecret&mode=editprofile'
@@ -52,7 +52,9 @@ if (strpos($stored_log, "\r") !== false || substr_count($stored_log, "\n") !== 2
 {
 	$errors[] = 'Header newline sanitization failed.';
 }
-if (strpos($stored_log, 'SuperSecret') !== false || strpos($stored_log, 'SessionSecret') !== false || strpos($stored_log, 'RefererSecret') !== false || strpos($stored_log, 'REDACTED') === false)
+if (strpos($stored_log, 'SuperSecret') !== false || strpos($stored_log, 'SessionSecret') !== false ||
+	strpos($stored_log, 'ActivationSecret') !== false || strpos($stored_log, 'NestedSecret') !== false ||
+	strpos($stored_log, 'RefererSecret') !== false || substr_count($stored_log, 'REDACTED') < 5)
 {
 	$errors[] = 'Sensitive query-value redaction failed.';
 }

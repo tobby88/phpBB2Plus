@@ -96,7 +96,10 @@ class log_manager
 	function sensitive_query_key($key)
 	{
 		$key = strtolower(rawurldecode(str_replace('+', ' ', (string) $key)));
-		return preg_match('/(?:^|_)(?:password|passwd|pass|sid|session(?:id)?|token|csrf|confirm_code|autologinid|credential|secret|user_actkey)(?:$|_)/', $key) === 1;
+		// Treat brackets, dots, dashes and other form-name separators alike so
+		// nested names such as account[token] cannot bypass redaction.
+		$key = trim(preg_replace('/[^a-z0-9]+/', '_', $key), '_');
+		return preg_match('/(?:^|_)(?:password|passwd|pass|sid|session(?:id)?|token|csrf|confirm(?:ation)?_?code|act(?:ivation)?_?key|reset_?key|api_?key|access_?key|autologinid|credential|secret|user_actkey)(?:$|_)/', $key) === 1;
 	}
 
 	function redact_query_string($query_string)
