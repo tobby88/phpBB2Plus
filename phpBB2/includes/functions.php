@@ -400,7 +400,7 @@ function phpbb_sync_username_references($user_id, $old_username, $new_username)
 		"UPDATE " . SHOUTBOX_TABLE . " SET shout_username = '$new_username_sql' WHERE shout_user_id = $user_id",
 		// Monthly highscores predate stable user IDs, so the former unique
 		// username is the only reliable key available during the rename.
-		"UPDATE " . iNA_HIGHSCORES . " SET highscore_player = '$new_username_sql' WHERE highscore_player = '$old_username_sql'"
+		"UPDATE " . iNA_HIGHSCORES . " SET highscore_user_id = $user_id, highscore_player = '$new_username_sql' WHERE highscore_user_id = $user_id OR (highscore_user_id = 0 AND highscore_player = '$old_username_sql')"
 	);
 
 	foreach ($updates as $sql)

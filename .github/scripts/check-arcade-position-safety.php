@@ -44,6 +44,8 @@ arcade_position_assert(strpos($activity, 'au.user_allow_viewonline AS at_user_al
 arcade_position_assert(strpos($activity, "\$game_rows[\$i]['at_username'] !== null") !== false, 'deleted accounts need a safe historical-name fallback');
 arcade_position_assert(strpos($newscore, "player_name = '\$user_name_sql'") !== false, 'new all-time score updates must refresh their name snapshot');
 arcade_position_assert(strpos($updater, 'SET s.player_name = u.username') !== false, 'the upgrade path must reconcile historical Arcade name snapshots');
+arcade_position_assert(strpos($updater, "'highscore_user_id', 'MEDIUMINT(8) NOT NULL DEFAULT 0'") !== false, 'the upgrade path must add stable monthly-highscore owners');
+arcade_position_assert(strpos($updater, 'HAVING COUNT(DISTINCT player_id) = 1') !== false, 'monthly-highscore owners must only be inferred from unambiguous history');
 arcade_position_assert(strpos($admin_config, 'phpbb_admin_require_post_session();') !== false, 'Arcade configuration writes must verify the AdminCP token');
 arcade_position_assert(strpos($admin_config, "in_array(\$mode, array('', 'switches', 'moderators', 'messages'), true)") !== false, 'Arcade configuration modes must use an allowlist');
 arcade_position_assert(strpos($admin_config, '$db->sql_escape($new[$config_name])') !== false, 'Arcade configuration values must use driver escaping');

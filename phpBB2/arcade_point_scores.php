@@ -53,18 +53,21 @@ foreach ($monthly_ranges as $range)
 	$month_conditions[] = '(highscore_year = ' . $range[0] . ' AND highscore_mon = ' . $range[1] . ')';
 }
 
-$sql = "SELECT highscore_player, COUNT(*) AS score_count
-	FROM " . iNA_HIGHSCORES . "
+$sql = "SELECT h.highscore_user_id, COALESCE(u.username, h.highscore_player) AS player,
+		COUNT(*) AS score_count
+	FROM " . iNA_HIGHSCORES . " h
+	LEFT JOIN " . USERS_TABLE . " u ON u.user_id = h.highscore_user_id
 	WHERE " . implode(' OR ', $month_conditions) . "
-	GROUP BY highscore_player";
+	GROUP BY h.highscore_user_id, COALESCE(u.username, h.highscore_player)";
 if (!($result = $db->sql_query($sql)))
 {
 	message_die(GENERAL_ERROR, 'Error retrieving monthly high scores', '', __LINE__, __FILE__, $sql);
 }
 while ($row = $db->sql_fetchrow($result))
 {
-	$player = (string) $row['highscore_player'];
-	$totals[$player] = array(
+	$player = (string) $row['player'];
+	$player_key = ((int) $row['highscore_user_id'] > 0) ? 'u:' . (int) $row['highscore_user_id'] : 'n:' . $player;
+	$totals[$player_key] = array(
 		'player' => $player,
 		'monthly' => (int) $row['score_count'],
 		'all_time' => 0,
@@ -76,7 +79,7 @@ while ($row = $db->sql_fetchrow($result))
 // applying each game's direction is its current all-time winner.
 foreach (array(0 => 'DESC', 1 => 'ASC') as $reverse_list => $sort_order)
 {
-	$sql = "SELECT s.game_name, u.username AS player
+	$sql = "SELECT s.game_name, s.player_id, u.username AS player
 		FROM " . iNA_AT_SCORES . " s
 		INNER JOIN " . iNA_GAMES . " g ON g.game_name = s.game_name
 		INNER JOIN " . USERS_TABLE . " u ON u.user_id = s.player_id
@@ -98,16 +101,17 @@ foreach (array(0 => 'DESC', 1 => 'ASC') as $reverse_list => $sort_order)
 		}
 		$last_game = $row['game_name'];
 		$player = (string) $row['player'];
-		if (!isset($totals[$player]))
+		$player_key = 'u:' . (int) $row['player_id'];
+		if (!isset($totals[$player_key]))
 		{
-			$totals[$player] = array(
+			$totals[$player_key] = array(
 				'player' => $player,
 				'monthly' => 0,
 				'all_time' => 0,
 				'total' => 0
 			);
 		}
-		$totals[$player]['all_time']++;
+		$totals[$player_key]['all_time']++;
 	}
 }
 

@@ -701,8 +701,8 @@ class arcade
 		if (!$highscore || $highscore['highscore_score'] === '')
   		{
 // Add to Highscores list
-  			$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_player, highscore_score, highscore_date)
-				VALUES ('".date('Y')."', '".date('m')."', '$game_name_sql', '$player_name_sql', ". $this->score .", " . time() . ")";
+			$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_user_id, highscore_player, highscore_score, highscore_date)
+				VALUES ('".date('Y')."', '".date('m')."', '$game_name_sql', " . (int) $this->user_id . ", '$player_name_sql', ". $this->score .", " . time() . ")";
   			if( !$result = $db->sql_query($sql) )
   			{
   				$this->message .= $lang['no_score_insert'] . $newline;
@@ -714,7 +714,7 @@ class arcade
     		if (( ($this->score > $highscore['highscore_score']) && $this->sort == 'DESC' ) || ( ($this->score < $top_score || $highscore['highscore_score'] == 0) && $this->sort == 'ASC' ))
   			{
 				$sql = "UPDATE " . iNA_HIGHSCORES . "
-					SET highscore_player = '$player_name_sql', highscore_score = ".$this->score.", highscore_date = " . time() . "
+					SET highscore_user_id = " . (int) $this->user_id . ", highscore_player = '$player_name_sql', highscore_score = ".$this->score.", highscore_date = " . time() . "
 					WHERE highscore_id = ".(int) $highscore['highscore_id'];
   				if( !$result = $db->sql_query($sql) )
   				{

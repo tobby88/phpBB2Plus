@@ -497,10 +497,34 @@ foreach ($seed_statements as $seed_sql)
 	$operations[] = preg_replace('/\bphpbb_/', $table_prefix, $seed_sql);
 }
 
+// The original monthly-highscore MOD stored only a username snapshot. Add a
+// stable account reference, recover it from the all-time score history before
+// that history's names are normalized, and then display the current username.
+$arcade_monthly_table = $table_prefix . 'ina_highscore';
+$arcade_all_time_table = $table_prefix . 'ina_at_scores';
+if (update_table_exists($connection, $dbname, $arcade_monthly_table))
+{
+	update_queue_column($operations, $connection, $dbname, $arcade_monthly_table, 'highscore_user_id', 'MEDIUMINT(8) NOT NULL DEFAULT 0');
+	if (!update_index_exists($connection, $dbname, $arcade_monthly_table, 'highscore_user_id'))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($arcade_monthly_table) .
+			' ADD INDEX `highscore_user_id` (`highscore_user_id`)';
+	}
+	if (update_table_exists($connection, $dbname, $arcade_all_time_table))
+	{
+		$operations[] = 'UPDATE ' . update_quote_identifier($arcade_monthly_table) . ' h INNER JOIN (' .
+			'SELECT player_name, MIN(player_id) AS player_id FROM ' . update_quote_identifier($arcade_all_time_table) .
+			' WHERE player_id > 0 GROUP BY player_name HAVING COUNT(DISTINCT player_id) = 1' .
+			') s ON s.player_name = h.highscore_player SET h.highscore_user_id = s.player_id WHERE h.highscore_user_id = 0';
+	}
+	$operations[] = 'UPDATE ' . update_quote_identifier($arcade_monthly_table) . ' h INNER JOIN ' .
+		update_quote_identifier($users_table) . ' u ON u.user_id = h.highscore_user_id ' .
+		'SET h.highscore_player = u.username WHERE h.highscore_user_id > 0 AND h.highscore_player <> u.username';
+}
+
 // All-time Arcade scores historically kept a display-name snapshot in
 // addition to the authoritative user ID. Keep existing rows consistent after
 // account renames; runtime views also join the users table directly.
-$arcade_all_time_table = $table_prefix . 'ina_at_scores';
 if (update_table_exists($connection, $dbname, $arcade_all_time_table) &&
 	update_column_exists($connection, $dbname, $arcade_all_time_table, 'player_name'))
 {

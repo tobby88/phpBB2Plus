@@ -13,6 +13,10 @@ changes consolidated after that baseline without implying active maintenance.
   path, identify personal groups by membership instead of a colliding name,
   clear affected caches, and the post-1.53a updater reconciles existing rows
   wherever a stable user ID is available.
+- Added the missing stable user ID to monthly Arcade highscores. Fresh score
+  writes retain it, score and point views prefer the authoritative account
+  name, and the updater backfills unambiguous historical owners before
+  normalizing their old name snapshots.
 - Centralized custom profile-field parsing for registration and administrator
   user management. Dynamic columns now have a strict identifier boundary,
   values obey their configured type, choices and length, and database writes

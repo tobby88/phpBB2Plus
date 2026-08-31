@@ -84,7 +84,7 @@ foreach (array(
 	"WHERE comment_user_id = \$user_id",
 	"WHERE player_id = \$user_id",
 	"WHERE shout_user_id = \$user_id",
-	"WHERE highscore_player = '\$old_username_sql'",
+	"highscore_player = '\$old_username_sql'",
 	'AND g.group_single_user = 1'
 ) as $marker)
 {

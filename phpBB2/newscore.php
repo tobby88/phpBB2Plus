@@ -594,8 +594,8 @@ if(!empty($game_name))
 //
 //  Add to the Monthly Highscores list
 //
-				$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_player, highscore_score, highscore_date)
-					VALUES ('".date('Y')."', '".date('m')."', '$session_game_name_sql', '$user_name_sql', $score_sql, " . time() . ")";
+				$sql = "INSERT INTO " . iNA_HIGHSCORES . " (highscore_year, highscore_mon, highscore_game, highscore_user_id, highscore_player, highscore_score, highscore_date)
+					VALUES ('".date('Y')."', '".date('m')."', '$session_game_name_sql', " . (int) $arcade->user_id . ", '$user_name_sql', $score_sql, " . time() . ")";
    				if( !$result = $db->sql_query($sql) )
    				{
    					$arcade->message_die(GENERAL_ERROR, $lang['no_score_insert'], "", __LINE__, __FILE__, $sql);
@@ -611,7 +611,7 @@ if(!empty($game_name))
    				if ((($arcade->score > $highscore['highscore_score']) && (!$game_info['reverse_list'])) || (($arcade->score < $highscore['highscore_score']) && ($game_info['reverse_list'])))
    				{
 					$sql = "UPDATE " . iNA_HIGHSCORES . "
-						SET highscore_player = '$user_name_sql', highscore_score = ". $score_sql . ", highscore_date = " . time() . "
+						SET highscore_user_id = " . (int) $arcade->user_id . ", highscore_player = '$user_name_sql', highscore_score = ". $score_sql . ", highscore_date = " . time() . "
 						WHERE highscore_id = ". (int) $highscore['highscore_id'];
    					if( !$result = $db->sql_query($sql) )
    					{

@@ -1528,11 +1528,13 @@ CREATE TABLE phpbb_ina_highscore (
   highscore_year year(4) NOT NULL DEFAULT 0000,
   highscore_mon tinyint(2) unsigned NOT NULL DEFAULT 0,
   highscore_game varchar(50) NOT NULL DEFAULT '',
+  highscore_user_id mediumint(8) NOT NULL DEFAULT 0,
   highscore_player varchar(40) NOT NULL DEFAULT '',
   highscore_score double(12,4) unsigned NOT NULL DEFAULT 0.0000,
   highscore_date int(11) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (highscore_id),
-  KEY highscore_game (highscore_game)
+  KEY highscore_game (highscore_game),
+  KEY highscore_user_id (highscore_user_id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE phpbb_ina_log (

@@ -119,14 +119,19 @@ $rank_required = isset($userdata['user_rank']) ? $userdata['user_rank'] : 0;
 //
 // Main query
 //
-$sql = "SELECT highscore_game, highscore_player, highscore_score, game_path, game_desc, game_id, image_path, win_width, win_height, allow_guest, level_required, rank_required, group_required
-		FROM ".iNA_HIGHSCORES .", ". iNA_GAMES ."
-		WHERE highscore_year = ". (int) $highscore_date_y ."
-		AND highscore_mon = ". (int) $highscore_date_m ."
-		AND highscore_game != ''
-		AND game_name = highscore_game
-		AND game_avail = 1
-		ORDER BY highscore_score DESC LIMIT 0,60";
+$sql = "SELECT h.highscore_game, h.highscore_user_id,
+		COALESCE(u.username, h.highscore_player) AS highscore_player,
+		h.highscore_score, g.game_path, g.game_desc, g.game_id, g.image_path,
+		g.win_width, g.win_height, g.allow_guest, g.level_required,
+		g.rank_required, g.group_required
+	FROM " . iNA_HIGHSCORES . " h
+	INNER JOIN " . iNA_GAMES . " g ON g.game_name = h.highscore_game
+	LEFT JOIN " . USERS_TABLE . " u ON u.user_id = h.highscore_user_id
+	WHERE h.highscore_year = " . (int) $highscore_date_y . "
+		AND h.highscore_mon = " . (int) $highscore_date_m . "
+		AND h.highscore_game != ''
+		AND g.game_avail = 1
+	ORDER BY h.highscore_score DESC LIMIT 0,60";
 if( !$result = $db->sql_query($sql) )
 {
 	message_die(GENERAL_ERROR, $lang['highscore_table_error'], "", __LINE__, __FILE__, $sql);
