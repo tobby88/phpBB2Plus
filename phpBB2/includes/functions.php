@@ -1013,6 +1013,32 @@ function phpbb_template_config_is_safe($filename, $templates_root)
 	return $defined;
 }
 
+/**
+ * Read the image map from a validated template configuration in isolation.
+ *
+ * phpBB2 Plus extensions expect a much larger image map than several of the
+ * later bundled styles provide.  Loading the complete preservation style as a
+ * fallback keeps those extensions functional without forcing every style to
+ * duplicate hundreds of legacy image declarations.
+ */
+function phpbb_template_image_map($filename, $templates_root, $template_path)
+{
+	if (!phpbb_template_config_is_safe($filename, $templates_root))
+	{
+		return array();
+	}
+
+	$images = array();
+	$current_template_path = $template_path;
+	$board_config = array();
+
+	// TEMPLATE_CONFIG may already have been defined by the active style.  The
+	// validated file contains assignments only; suppress the duplicate define.
+	@include($filename);
+
+	return is_array($images) ? $images : array();
+}
+
 function phpbb_serialized_data_read($filename, $allowed_root)
 {
 	$data_root = @realpath($allowed_root);
@@ -1191,6 +1217,18 @@ function setup_style($style)
 		if ( !defined('TEMPLATE_CONFIG') )
 		{
 			message_die(CRITICAL_ERROR, "Could not open $template_name template config file", '', __LINE__, __FILE__);
+		}
+
+		if ($template_name !== 'fisubsilversh')
+		{
+			$fallback_template_path = $template_path . 'fisubsilversh';
+			$fallback_config = $phpbb_root_path . $fallback_template_path . '/fisubsilversh.cfg';
+			$fallback_images = phpbb_template_image_map(
+				$fallback_config,
+				$phpbb_root_path . $template_path,
+				$fallback_template_path
+			);
+			$images = array_merge($fallback_images, $images);
 		}
 
 		$img_lang = ( file_exists(@phpbb_realpath($phpbb_root_path . $current_template_path . '/images/lang_' . $board_config['default_lang'])) ) ? $board_config['default_lang'] : 'english';

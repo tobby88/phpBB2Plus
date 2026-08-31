@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Completed the image map of partial bundled styles at runtime from the
+  validated preservation style. Calendar, birthday, profile, rank, Album and
+  CrackerTracker icons therefore remain available on responsive styles without
+  PHP 8 undefined-key warnings. paFileDB search caching also uses an explicit
+  PHP 8-compatible field map and its optional comment label has a translation
+  fallback.
 - Reworked the legacy AJAX controller around one typed request boundary and an
   explicit operation allowlist. Inline edits now enforce forum edit rights,
   private poll/topic/forum data cannot leak through alternate AJAX views,

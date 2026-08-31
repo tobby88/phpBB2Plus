@@ -21,6 +21,8 @@ responsive_style_assert(strpos($functions, "array('BS_subSilver', 'BS_subIce', '
 responsive_style_assert(strpos($functions, "array('auto', 'mobile', 'desktop')") !== false, 'style preference modes are incomplete');
 responsive_style_assert(strpos($functions, "isset(\$row['theme_public']) && !\$row['theme_public']") !== false, 'non-public responsive styles must not be auto-selected');
 responsive_style_assert(strpos($functions, "\$style_mode = phpbb_style_mode();") < strpos($functions, "if ( !\$board_config['override_user_style'] )"), 'mobile selection must remain available when the board forces its desktop style');
+responsive_style_assert(strpos($functions, 'function phpbb_template_image_map(') !== false, 'partial styles need a validated legacy image-map fallback');
+responsive_style_assert(strpos($functions, '$images = array_merge($fallback_images, $images);') !== false, 'active style images must override the legacy fallback map');
 responsive_style_assert(strpos($switcher, "\$_SERVER['REQUEST_METHOD']") !== false && strpos($switcher, "hash_equals((string) \$userdata['session_id'], \$sid)") !== false, 'style preference mutation must require POST and the active session');
 responsive_style_assert(strpos($switcher, "phpbb_setcookie(\$board_config['cookie_name'] . '_style_mode'") !== false, 'style mode cookie is missing');
 responsive_style_assert(strpos($tail, "'STYLE_SWITCHER' => \$style_switcher") !== false, 'footer switcher is not assigned');

@@ -76,8 +76,6 @@ class pafiledb_search extends pafiledb_public
 
 		if ( isset($_POST['submit']) ||  $search_author != '' || $search_keywords != '' || $search_id )
 		{
-			$store_vars = array('search_results', 'total_match_count', 'split_search', 'sort_method', 'sort_order');
-			
 			if($search_author != '' || $search_keywords != '')
 			{
 				if ( $search_author != '' && $search_keywords == '' )
@@ -338,13 +336,14 @@ class pafiledb_search extends pafiledb_public
 				//
 				$search_results = implode(', ', $search_ids);
 	
-				$store_search_data = array();
-				$store_search_data['pafiledb'] = 1;
-			
-				for($i = 0; $i < count($store_vars); $i++)
-				{
-					$store_search_data[$store_vars[$i]] = ${$store_vars[$i]};
-				}
+				$store_search_data = array(
+					'pafiledb' => 1,
+					'search_results' => $search_results,
+					'total_match_count' => $total_match_count,
+					'split_search' => $split_search,
+					'sort_method' => $sort_method,
+					'sort_order' => $sort_order,
+				);
 
 				$result_array_sql = $db->sql_escape(serialize($store_search_data));
 				unset($store_search_data);

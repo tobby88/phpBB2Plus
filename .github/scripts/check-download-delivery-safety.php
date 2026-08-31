@@ -4,6 +4,8 @@ $root = dirname(dirname(__DIR__));
 $attachment = (string) file_get_contents($root . '/phpBB2/download.php');
 $router = (string) file_get_contents($root . '/phpBB2/dload.php');
 $pafile = (string) file_get_contents($root . '/phpBB2/pafiledb/modules/pa_download.php');
+$search = (string) file_get_contents($root . '/phpBB2/pafiledb/modules/pa_search.php');
+$comments = (string) file_get_contents($root . '/phpBB2/pafiledb/includes/functions_comment.php');
 $rules = (string) file_get_contents($root . '/phpBB2/attach_rules.php');
 $errors = array();
 
@@ -31,6 +33,15 @@ foreach (array("isset(\$_POST['action']) && is_scalar", "isset(\$_GET['action'])
 if (strpos($router, "\$_REQUEST['action']") !== false)
 {
 	$errors[] = 'paFileDB routing still accepts cookie-merged action data.';
+}
+
+if (strpos($search, '${$store_vars[$i]}') !== false || strpos($search, "'search_results' => \$search_results") === false)
+{
+	$errors[] = 'paFileDB search state must use an explicit PHP 8 compatible field map.';
+}
+if (strpos($comments, "isset(\$lang['Comment_do']) ? \$lang['Comment_do'] : \$lang['Comment_add']") === false)
+{
+	$errors[] = 'paFileDB comment action label lacks a language fallback.';
 }
 
 foreach (array(

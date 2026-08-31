@@ -188,7 +188,7 @@ function display_comments(&$file_data)
 	$pafiledb_template->assign_vars(array(
 		'REPLY_IMG' => ( $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment'] ) ? $images['pa_comment_post'] : '',
 		'AUTH_POST' => ( $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment'] ) ? TRUE : FALSE,
-		'L_COMMENT_DO' => ( $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment'] ) ? $lang['Comment_do'] : '',
+		'L_COMMENT_DO' => ( $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment'] ) ? (isset($lang['Comment_do']) ? $lang['Comment_do'] : $lang['Comment_add']) : '',
 		'L_COMMENTS' => $lang['Comments'],
 		'L_AUTHOR' => $lang['Author'],
 		'L_POSTED' => $lang['Posted'],
