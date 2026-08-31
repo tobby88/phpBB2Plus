@@ -550,17 +550,10 @@ function bbencode_second_pass($text, $uid)
 
 } // bbencode_second_pass()
 
-// Need to initialize the random numbers only ONCE
-mt_srand( (float) microtime() * 1000000);
-
 function make_bbcode_uid()
 {
 	// Unique ID for this message..
-
-	$uid = dss_rand();
-	$uid = substr($uid, 0, BBCODE_UID_LEN);
-
-	return $uid;
+	return phpbb_random_string(BBCODE_UID_LEN, '0123456789abcdef');
 }
 
 function bbencode_first_pass($text, $uid)

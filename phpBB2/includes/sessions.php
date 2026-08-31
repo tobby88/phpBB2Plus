@@ -241,7 +241,9 @@ if ($files)
 		//
 		if ($enable_autologin)
 		{
-			$auto_login_key = dss_rand() . dss_rand();
+			// Keep the historical 32-character cookie shape while sourcing all
+			// 128 bits directly from the operating-system CSPRNG.
+			$auto_login_key = bin2hex(phpbb_random_bytes(16));
 			
 			if (isset($sessiondata['autologinid']) && (string) $sessiondata['autologinid'] != '')
 			{
@@ -600,7 +602,7 @@ function session_reset_keys($user_id, $user_ip)
 
 	if ( !empty($key_sql) )
 	{
-		$auto_login_key = dss_rand() . dss_rand();
+		$auto_login_key = bin2hex(phpbb_random_bytes(16));
 
 		$current_time = time();
 		

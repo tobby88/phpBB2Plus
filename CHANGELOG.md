@@ -11,7 +11,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Replaced legacy `dss_rand()`/MD5 generation for visual-confirmation IDs,
   CAPTCHA text, Arcade play capabilities and private upload filenames with
   128-bit cryptographic identifiers and unbiased random strings. Existing
-  database and URL field lengths remain unchanged.
+  database and URL field lengths remain unchanged. Auto-login rotations and
+  BBCode identifiers now also use the shared operating-system CSPRNG directly;
+  BBCode creation no longer reseeds PHP's process-wide legacy PRNG.
 - Removed legacy `phpinfo()` scraping from public GD detection and replaced
   the AdminCP's full configuration/request dump with a concise escaped runtime
   summary. Useful version, limit and extension diagnostics remain available
