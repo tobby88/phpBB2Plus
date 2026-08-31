@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Centralized validation of To, Cc, Bcc, From and Reply-To mailboxes for both
+  PHP `mail()` and SMTP delivery. Invalid or control-character-bearing values
+  are discarded before header construction, duplicate carbon-copy recipients
+  are collapsed before sending, non-scalar template substitutions are
+  rejected, and Message-IDs use the shared cryptographic random source.
 - Rebuilt the Arcade category-moderator screen around its working score
   controls. It no longer sends player IP addresses to an obsolete third-party
   lookup site, advertises unimplemented score/game editing actions, or trusts

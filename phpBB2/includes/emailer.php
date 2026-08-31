@@ -29,6 +29,7 @@ class emailer
 	var $msg, $subject, $extra_headers;
 	var $addresses, $reply_to, $from;
 	var $use_smtp;
+	var $vars, $encoding;
 
 	var $tpl_msg = array();
 
@@ -51,30 +52,49 @@ class emailer
 		$this->vars = $this->msg = $this->subject = $this->extra_headers = '';
 	}
 
+	function normalize_address($address)
+	{
+		if (!is_scalar($address))
+		{
+			return '';
+		}
+
+		$address = trim(preg_replace('#[\x00-\x20\x7f]+#', '', (string) $address));
+		return (strlen($address) <= 254 && filter_var($address, FILTER_VALIDATE_EMAIL)) ? $address : '';
+	}
+
 	// Sets an email address to send to
 	function email_address($address)
 	{
-		$this->addresses['to'] = trim(preg_replace('#[\r\n]+#', '', $address));
+		$this->addresses['to'] = $this->normalize_address($address);
 	}
 
 	function cc($address)
 	{
-		$this->addresses['cc'][] = trim(preg_replace('#[\r\n]+#', '', $address));
+		$address = $this->normalize_address($address);
+		if ($address !== '')
+		{
+			$this->addresses['cc'][] = $address;
+		}
 	}
 
 	function bcc($address)
 	{
-		$this->addresses['bcc'][] = trim(preg_replace('#[\r\n]+#', '', $address));
+		$address = $this->normalize_address($address);
+		if ($address !== '')
+		{
+			$this->addresses['bcc'][] = $address;
+		}
 	}
 
 	function replyto($address)
 	{
-		$this->reply_to = trim(preg_replace('#[\r\n]+#', '', $address));
+		$this->reply_to = $this->normalize_address($address);
 	}
 
 	function from($address)
 	{
-		$this->from = trim(preg_replace('#[\r\n]+#', '', $address));
+		$this->from = $this->normalize_address($address);
 	}
 
 	// set up subject for mail
@@ -163,13 +183,30 @@ class emailer
 		global $board_config, $lang, $phpEx, $phpbb_root_path, $db;
 
 		$vars = $this->vars;
-		$board_email = trim(preg_replace('#[\r\n]+#', '', (string) $board_config['board_email']));
+		$board_email = $this->normalize_address(isset($board_config['board_email']) ? $board_config['board_email'] : '');
+		$this->from = $this->normalize_address($this->from);
+		$this->reply_to = $this->normalize_address($this->reply_to);
+		$this->addresses['to'] = $this->normalize_address($this->addresses['to']);
+		$this->addresses['cc'] = array_values(array_unique(array_filter(array_map(array($this, 'normalize_address'), $this->addresses['cc']))));
+		$this->addresses['bcc'] = array_values(array_unique(array_filter(array_map(array($this, 'normalize_address'), $this->addresses['bcc']))));
+		if ($board_email === '')
+		{
+			$board_email = $this->from;
+		}
+		if ($board_email === '' || ($this->addresses['to'] === '' && !$this->addresses['cc'] && !$this->addresses['bcc']))
+		{
+			return false;
+		}
 		$server_name = trim(preg_replace('#[^a-z0-9.-]+#i', '', (string) $board_config['server_name']));
+		if ($server_name === '')
+		{
+			$server_name = 'localhost';
+		}
 		$this->msg = preg_replace_callback(
 			'#\{([a-z0-9\-_]*?)\}#is',
 			function ($match) use ($vars)
 			{
-				return isset($vars[$match[1]]) ? $vars[$match[1]] : '';
+				return isset($vars[$match[1]]) && is_scalar($vars[$match[1]]) ? (string) $vars[$match[1]] : '';
 			},
 			$this->msg
 		);
@@ -224,7 +261,7 @@ class emailer
 		$bcc = (count($this->addresses['bcc'])) ? implode(', ', $this->addresses['bcc']) : '';
 
 		// Build header
-		$this->extra_headers = (($this->reply_to != '') ? "Reply-to: $this->reply_to\n" : '') . (($this->from != '') ? "From: $this->from\n" : "From: " . $board_email . "\n") . "Return-Path: " . $board_email . "\nMessage-ID: <" . md5(uniqid(time())) . "@" . $server_name . ">\nMIME-Version: 1.0\nContent-type: text/plain; charset=" . $this->encoding . "\nContent-transfer-encoding: 8bit\nDate: " . date('r', time()) . "\nX-Priority: 3\nX-MSMail-Priority: Normal\nX-Mailer: PHP\nX-MimeOLE: Produced By phpBB2\n" . $this->extra_headers . (($cc != '') ? "Cc: $cc\n" : '')  . (($bcc != '') ? "Bcc: $bcc\n" : '');
+		$this->extra_headers = (($this->reply_to != '') ? "Reply-to: $this->reply_to\n" : '') . (($this->from != '') ? "From: $this->from\n" : "From: " . $board_email . "\n") . "Return-Path: " . $board_email . "\nMessage-ID: <" . bin2hex(phpbb_random_bytes(16)) . "@" . $server_name . ">\nMIME-Version: 1.0\nContent-type: text/plain; charset=" . $this->encoding . "\nContent-transfer-encoding: 8bit\nDate: " . date('r', time()) . "\nX-Priority: 3\nX-MSMail-Priority: Normal\nX-Mailer: PHP\nX-MimeOLE: Produced By phpBB2\n" . $this->extra_headers . (($cc != '') ? "Cc: $cc\n" : '')  . (($bcc != '') ? "Bcc: $bcc\n" : '');
 
 		// Send message ... removed $this->encode() from subject for time being
 		if ( $this->use_smtp )
