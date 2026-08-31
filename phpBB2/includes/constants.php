@@ -30,7 +30,9 @@ include($phpbb_root_path . 'album_mod/album_constants.' . $phpEx);
 // Debug Level
 if (!defined('DEBUG'))
 {
-	define('DEBUG', 1); // Debugging on
+	// Production-safe default. A local config.php may deliberately define this
+	// as true before constants.php is loaded.
+	define('DEBUG', false);
 }
 
 // advanced Captcha (GD2 with FreeType Support required)

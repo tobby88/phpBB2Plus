@@ -19,7 +19,10 @@
  *
  ***************************************************************************/
 
-define('DEBUG_RUN_STATS', true);
+if (defined('DEBUG') && DEBUG && !defined('DEBUG_RUN_STATS'))
+{
+	define('DEBUG_RUN_STATS', true);
+}
 //define('DEBUG_SQL', true);
 //define('DEBUG_SQL_ADMIN', true);
 

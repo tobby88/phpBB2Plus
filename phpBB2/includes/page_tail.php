@@ -155,7 +155,7 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 
 //-- mod : run stats -----------------------------------------------------------
 //-- add
-if ( empty($gen_simple_header) && defined('DEBUG') && $plus_config['enable_gentime'] && !defined('AJAX_HEADERS'))
+if ( empty($gen_simple_header) && function_exists('phpbb_debug_details_allowed') && phpbb_debug_details_allowed() && $plus_config['enable_gentime'] && !defined('AJAX_HEADERS'))
 {
 	// send run stat (page generation, sql time, requests dump...)
 	$stat_run = new stat_run_class(microtime());

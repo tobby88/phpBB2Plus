@@ -1558,6 +1558,14 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 // CRITICAL_ERROR : Used when config data cannot be obtained, eg
 // no database connection. Should _not_ be used in 99.5% of cases
 //
+function phpbb_debug_details_allowed()
+{
+	global $userdata;
+	return defined('DEBUG') && DEBUG && defined('IN_ADMIN') && is_array($userdata)
+		&& !empty($userdata['session_logged_in']) && isset($userdata['user_level'])
+		&& intval($userdata['user_level']) === ADMIN;
+}
+
 function message_die($msg_code, $msg_text = '', $msg_title = '', $err_line = '', $err_file = '', $sql = '')
 {
 	global $db, $template, $board_config, $theme, $lang, $phpEx, $phpbb_root_path, $nav_links, $gen_simple_header, $images;
@@ -1596,30 +1604,34 @@ function message_die($msg_code, $msg_text = '', $msg_title = '', $err_line = '',
 		$custom_error_message = 'Please, contact the %swebmaster%s. Thank you.';
 		if ( !empty($board_config) && !empty($board_config['board_email']) )
 		{
-			$custom_error_message = sprintf($custom_error_message, '<a href="mailto:' . $board_config['board_email'] . '">', '</a>');
+			$safe_board_email = htmlspecialchars((string) $board_config['board_email'], ENT_QUOTES, 'UTF-8');
+			$custom_error_message = sprintf($custom_error_message, '<a href="mailto:' . $safe_board_email . '">', '</a>');
 		}
 		else
 		{
 			$custom_error_message = sprintf($custom_error_message, '', '');
 		}
 		echo "<html>\n<body>\n<b>Critical Error!</b><br />\nmessage_die() was called multiple times.<br />&nbsp;<hr />";
-		for( $i = 0; $i < count($msg_history); $i++ )
+		if (phpbb_debug_details_allowed())
 		{
-			echo '<b>Error #' . ($i+1) . "</b>\n<br />\n";
-			if( !empty($msg_history[$i]['msg_title']) )
+			for( $i = 0; $i < count($msg_history); $i++ )
 			{
-				echo '<b>' . $msg_history[$i]['msg_title'] . "</b>\n<br />\n";
+				echo '<b>Error #' . ($i+1) . "</b>\n<br />\n";
+				if( !empty($msg_history[$i]['msg_title']) )
+				{
+					echo '<b>' . $msg_history[$i]['msg_title'] . "</b>\n<br />\n";
+				}
+				echo $msg_history[$i]['msg_text'] . "\n<br /><br />\n";
+				if( !empty($msg_history[$i]['err_line']) )
+				{
+					echo '<b>Line :</b> ' . intval($msg_history[$i]['err_line']) . '<br /><b>File :</b> ' . htmlspecialchars(basename($msg_history[$i]['err_file']), ENT_QUOTES, 'UTF-8') . "</b>\n<br />\n";
+				}
+				if( !empty($msg_history[$i]['sql']) )
+				{
+					echo '<b>SQL :</b> ' . htmlspecialchars($msg_history[$i]['sql'], ENT_QUOTES, 'UTF-8') . "\n<br />\n";
+				}
+				echo "&nbsp;<hr />\n";
 			}
-			echo $msg_history[$i]['msg_text'] . "\n<br /><br />\n";
-			if( !empty($msg_history[$i]['err_line']) )
-			{
-				echo '<b>Line :</b> ' . $msg_history[$i]['err_line'] . '<br /><b>File :</b> ' . $msg_history[$i]['err_file'] . "</b>\n<br />\n";
-			}
-			if( !empty($msg_history[$i]['sql']) )
-			{
-				echo '<b>SQL :</b> ' . $msg_history[$i]['sql'] . "\n<br />\n";
-			}
-			echo "&nbsp;<hr />\n";
 		}
 		echo $custom_error_message . '<hr /><br clear="all">';
 		die("</body>\n</html>");
@@ -1631,16 +1643,15 @@ function message_die($msg_code, $msg_text = '', $msg_title = '', $err_line = '',
 
 
 	$sql_store = $sql;
+	$debug_text = '';
 
 	//
 	// Get SQL error if we are debugging. Do this as soon as possible to prevent
 	// subsequent queries from overwriting the status of sql_error()
 	//
-	if ( DEBUG && ( $msg_code == GENERAL_ERROR || $msg_code == CRITICAL_ERROR ) )
+	if ( phpbb_debug_details_allowed() && ( $msg_code == GENERAL_ERROR || $msg_code == CRITICAL_ERROR ) )
 	{
 		$sql_error = $db->sql_error();
-
-		$debug_text = '';
 
 		if ( $sql_error['message'] != '' )
 		{
@@ -1756,7 +1767,7 @@ function message_die($msg_code, $msg_text = '', $msg_title = '', $err_line = '',
 	// prevents debug info being output for general messages should DEBUG be
 	// set TRUE by accident (preventing confusion for the end user!)
 	//
-	if ( DEBUG && ( $msg_code == GENERAL_ERROR || $msg_code == CRITICAL_ERROR ) )
+	if ( phpbb_debug_details_allowed() && ( $msg_code == GENERAL_ERROR || $msg_code == CRITICAL_ERROR ) )
 	{
 		if ( $debug_text != '' )
 		{

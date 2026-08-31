@@ -1227,7 +1227,7 @@ class arcade
  
       $arcade_text = $text . ' #' . $sql_error['code'] . '->' . $sql_error['message'] . '=>' .$sql;
  
-    	if ( DEBUG )
+		if ( function_exists('phpbb_debug_details_allowed') && phpbb_debug_details_allowed() )
     	{
         $text .= '<br><br>' . $sql_error['message'];
       }

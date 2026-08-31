@@ -28,14 +28,6 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 {
 	global $db, $board_config,$plus_config,$phpbb_root_path;
 	global $HTTP_COOKIE_VARS, $_GET, $SID;
-	$files = glob($phpbb_root_path."cache/last*.dat"); 
-if ($files)
-      {
-           foreach ( $files as $filename)
-           {
-                unlink ($filename);
-           }
-      }
 	$cookiename = $board_config['cookie_name'];
 	$cookiepath = $board_config['cookie_path'];
 	$cookiedomain = $board_config['cookie_domain'];

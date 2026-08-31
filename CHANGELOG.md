@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Changed the distributed runtime from always-on debug mode to a secure
+  production default. SQL text, database diagnostics and source locations are
+  now visible only to an authenticated administrator who deliberately enables
+  local debugging; query profiling is disabled with debug mode, recursive
+  error handling no longer bypasses the restriction, and session creation no
+  longer scans and deletes obsolete `last*.dat` cache files on every request.
 - Replaced password-reset e-mails containing temporary plaintext passwords
   with expiring, one-use links on which users choose their own password. The
   reset is consumed atomically, enforces the configured CrackerTracker expiry,
