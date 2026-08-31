@@ -24,6 +24,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Removed the empty Arcade ACP "Moderators" page and its unused templates. The
   working moderator-mode and moderator-action switches remain available on
   the existing Arcade switches page.
+- Hardened and localized Arcade bulk settings. Values must now be explicit
+  non-negative integers within the destination column's supported range, and
+  success, failure, buttons and formerly hardcoded field labels use the active
+  ACP language instead of emitting ad-hoc English HTML.
 - Centralized custom profile-field parsing for registration and administrator
   user management. Dynamic columns now have a strict identifier boundary,
   values obey their configured type, choices and length, and database writes

@@ -82,6 +82,10 @@ if (!$is_update)
 		'SET_CHARGE' => $lang['admin_set_charge'],
 		'SET_HIGHSCORE' => $lang['admin_set_highscore'],
 		'SET_AT_HIGHSCORE' => $lang['admin_set_at_highscore'],
+		'SET_REWARD' => $lang['admin_set_reward'],
+		'SET_HIGHSCORE_LIMIT' => $lang['admin_set_highscore_limit'],
+		'SET_AT_HIGHSCORE_LIMIT' => $lang['admin_set_at_highscore_limit'],
+		'L_SET' => $lang['admin_set_submit'],
 		
     'VERSION' => $arcade->version,
 		
@@ -102,25 +106,32 @@ if (!$is_update)
 //
 else //if( $mode == "set_charge")
 {
-  echo '<table width="100%" cellspacing="1" cellpadding="2" border="0" class="forumline">';
-  echo '<tr><th>Updating the database</th></tr><tr><td><span class="genmed"><ul type="circle">';
+	$value_input = trim((string) $_POST[$mode]);
+	$field_maximums = array(
+		'game_charge' => 4294967295,
+		'game_reward' => 4294967295,
+		'game_bonus' => 65535,
+		'at_game_bonus' => 65535,
+		'highscore_limit' => 2147483647,
+		'at_highscore_limit' => 65535
+	);
+	if (!preg_match('/^\d+$/D', $value_input) || (float) $value_input > $field_maximums[$mode])
+	{
+		$message = $lang['admin_set_invalid'] . '<br /><br />' .
+			sprintf($lang['admin_return_arcade'], '<a href="' . append_sid($file) . '">', '</a>');
+		message_die(GENERAL_MESSAGE, $message);
+	}
 
+	$setting = (int) $value_input;
+	$sql = "UPDATE " . iNA_GAMES . " SET $mode = $setting";
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, $lang['admin_set_failed'], '', __LINE__, __FILE__, $sql);
+	}
 
-  $setcharge = intval($_POST[$mode]);
-  
-  $sql = "UPDATE `" . $table_prefix . "ina_games` SET $mode = $setcharge";
-
- 	if( !$result = $db->sql_query ($sql) )
- 	{
- 		$error = $db->sql_error();
-
-	  echo '<li><font color="#FF0000"><b>Error:</b></font> ' . phpbb_profile_text($error['message']) . '</li><br />';
- 	}
- 	else
- 	{
-	  echo '<li><font color="#00AA00"><b>Successful</b></font></li><br />';
- 	}
-  echo '<tr><td class="catBottom" height="28" align="center"><span class="genmed">Done<br /><br /><br /><form method="POST" action="'. append_sid('admin_arcade_set.php').'"><input type="Submit" name="Back" value="Back" /></form></span></td></table>';
+	$message = sprintf($lang['admin_set_updated'], $setting) . '<br /><br />' .
+		sprintf($lang['admin_return_arcade'], '<a href="' . append_sid($file) . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 //
 // Generate footer

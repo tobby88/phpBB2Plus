@@ -367,14 +367,21 @@ $lang['arcade_log_records'] = 'Es gibt aktuell %s Einträge in der Logdatei.';
 /******************************************************************************
 // Admin SET Feature
 ******************************************************************************/
-$lang['admin_set'] = 'Damit stellst Du die Arcade Kosten, Highscore Bonus, All Time Highscore Bonus, etc für alle Deine Spiele ein.<br>Bevor Du hier Änderungen durchführst, solltest Du ein Backup Deiner Datenbank durchführen.';
-$lang['admin_set_header'] = 'Erstellen von Arcade MOD Masseneinstellungen';
-$lang['admin_set_info'] = 'Dieses Control Panel erlaubt Dir ALLE Spiele Optionen mit dem u.s. Wert zu befüllen..<br><br><center><b>WARNUNG: Wenn Du dieses Feature erst einmal benutzt, gibt\'s KEIN ZURÜCK ..!</b></center><br />Falls Du mit unserem MOD Probleme haben solltest, dann kontaktiere uns unter <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a>, damit wir die Probleme lösen können.<br />';
-$lang['admin_set_warning'] = '<b>WARNUNG: Wenn Du dieses Feature verwendest, gibt es KEIN ZURÜCK ..!</b>';
+$lang['admin_set'] = 'Jedes Formular ersetzt eine Einstellung bei allen installierten Spielen. Bitte den Wert vor dem Anwenden sorgfältig prüfen.';
+$lang['admin_set_header'] = 'Arcade-Masseneinstellungen';
+$lang['admin_set_info'] = 'Hier lassen sich Kosten, Boni, Belohnungen oder Bestenlisten-Limits einheitlich auf alle installierten Spiele anwenden.';
+$lang['admin_set_warning'] = '<b>Änderungen gelten sofort für alle Spiele. Bitte ein aktuelles Datenbank-Backup bereithalten.</b>';
 $lang['admin_set_arcade'] = 'Setze Arcade Standards';
 $lang['admin_set_charge'] = 'Setze Spielekosten';
 $lang['admin_set_highscore'] = 'Setze Highscore Bonus';
 $lang['admin_set_at_highscore'] = 'Setze All Time Highscore Bonus';
+$lang['admin_set_reward'] = 'Spielebelohnung festlegen';
+$lang['admin_set_highscore_limit'] = 'Bestenlisten-Limit festlegen';
+$lang['admin_set_at_highscore_limit'] = 'Allzeit-Bestenlisten-Limit festlegen';
+$lang['admin_set_submit'] = 'Auf alle Spiele anwenden';
+$lang['admin_set_invalid'] = 'Bitte eine nicht negative ganze Zahl im unterstützten Wertebereich eingeben.';
+$lang['admin_set_failed'] = 'Die Arcade-Masseneinstellung konnte nicht gespeichert werden.';
+$lang['admin_set_updated'] = 'Der Wert %d wurde auf alle Spiele angewendet.';
 
 /******************************************************************************
 // PM Message System

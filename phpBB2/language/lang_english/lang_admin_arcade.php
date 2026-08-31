@@ -362,14 +362,21 @@ $lang['arcade_log_records'] = 'There are %s records in the log.';
 /******************************************************************************
 // Admin SET Feature
 ******************************************************************************/
-$lang['admin_set'] = 'This will set the Arcade Charge, Highscore Bonus and All Time Highscore Bonus, etc For ALL Activity\'s<br>Before Seting the arcade Charge always backup your database first.';
-$lang['admin_set_header'] = 'Arcade Mod BULK Setting Creator';
-$lang['admin_set_info'] = 'This control panel will help you set ALL the GAMES values to that entered below.<br><br><center><b>WARNING: Once this feature is used, theres NO GOING BACK..!</b></center><br />If you are currently having a problem with our MOD, then please contact us at <a href="http://www.phpbb-arcade.com" target=_blank class="copyright">www.phpbb-arcade.com</a> so we may help fix the problem.<br />';
-$lang['admin_set_warning'] = '<b>WARNING: Once this feature is used, theres NO GOING BACK..!</b>';
+$lang['admin_set'] = 'Each form replaces one setting on every installed game. Review the value carefully before applying it.';
+$lang['admin_set_header'] = 'Arcade bulk settings';
+$lang['admin_set_info'] = 'Use this page to apply one charge, bonus, reward or score-list limit to all installed games.';
+$lang['admin_set_warning'] = '<b>Changes take effect immediately for every game. Keep a current database backup.</b>';
 $lang['admin_set_arcade'] = 'Set Arcade Defaults';
 $lang['admin_set_charge'] = 'Set Game Charge';
 $lang['admin_set_highscore'] = 'Set Highscore Bonus';
 $lang['admin_set_at_highscore'] = 'Set All Time Highscore Bonus';
+$lang['admin_set_reward'] = 'Set game reward';
+$lang['admin_set_highscore_limit'] = 'Set highscore limit';
+$lang['admin_set_at_highscore_limit'] = 'Set all-time highscore limit';
+$lang['admin_set_submit'] = 'Apply to all games';
+$lang['admin_set_invalid'] = 'Enter a non-negative whole number within the supported range.';
+$lang['admin_set_failed'] = 'The Arcade bulk setting could not be saved.';
+$lang['admin_set_updated'] = 'The value %d was applied to all games.';
 
 /******************************************************************************
 // PM Message System
