@@ -362,6 +362,7 @@ if( $mode != '' )
 		$arcade->message_die(GENERAL_MESSAGE, $lang['no_game_data']);
 	}
     $game_name = $game_info['game_name'];
+	$game_info_name_sql = $db->sql_escape((string) $game_info['game_name']);
   }
 //
 //	OK, you wanna play :)
@@ -464,22 +465,30 @@ if( $mode != '' )
 
 		$sql = "SELECT game_name, player_id, score, username FROM " . iNA_SCORES . " s, " . USERS_TABLE . " u
 			WHERE s.player_id = u.user_id
-			AND game_name = '" . $game_info['game_name'] . "'
+			AND game_name = '" . $game_info_name_sql . "'
 			ORDER BY score " . $arcade->sort;
 		if(!$result = $db->sql_query($sql))
 		{
 			$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
 		}
 		$score_info = $db->sql_fetchrow($result);
+		if (!$score_info)
+		{
+			$score_info = array('username' => '', 'score' => 0);
+		}
 		$sql = "SELECT game_name, player_id, score, username FROM " . iNA_AT_SCORES . " s, " . USERS_TABLE . " u
 			WHERE s.player_id = u.user_id
-			AND game_name = '" . $game_info['game_name'] . "'
+			AND game_name = '" . $game_info_name_sql . "'
 			ORDER BY score " . $arcade->sort;
 		if(!$result = $db->sql_query($sql))
 		{
 			$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql);
 		}
 		$score_at_info = $db->sql_fetchrow($result);
+		if (!$score_at_info)
+		{
+			$score_at_info = array('username' => '', 'score' => 0);
+		}
 		if($game_info['game_charge'])
 		{
 			$cost = $game_info['game_charge'] . " "; 
@@ -1100,9 +1109,14 @@ if( $mode != '' )
 		for($i = 0; $i < $game_count; $i++) 
 		{
 		  $best_player = $best_at_player = '';
+		  $best_score = $best_at_score = '';
+		  $highscore_link = $at_highscore_link = '';
+		  $bonus_info = $add_fav = $played = $game_rate = $dash = '';
+		  $game_charge = '';
 		  
 			$game_id = $game_rows[$i]['game_id'];
 			$game_name = $game_rows[$i]['game_name'];
+			$game_name_sql = $db->sql_escape((string) $game_name);
 			$game_path = $game_rows[$i]['game_path'];
 
       $image_path = ina_find_image($game_path, $game_name, $game_rows[$i]['image_path']);
@@ -1138,9 +1152,17 @@ if( $mode != '' )
 			}
 			if ( ($game_rows[$i]['game_flash'] || $extension == 'swf' || $extension == 'gif' || $extension == 'jpg' || $extension == 'png' ) && $arcade->arcade_config['games_auto_size'] && !$game_rows[$i]['game_autosize'])
 			{
-				$game_size = getimagesize($check_name); 
-				$win_width = $game_size[0] + 20; 
-				$win_height = $game_size[1] + 25; 
+				$game_size = @getimagesize($check_name);
+				if (is_array($game_size) && isset($game_size[0], $game_size[1]))
+				{
+					$win_width = (int) $game_size[0] + 20;
+					$win_height = (int) $game_size[1] + 25;
+				}
+				else
+				{
+					$win_width = max(100, (int) $game_rows[$i]['win_width']) + 20;
+					$win_height = max(100, (int) $game_rows[$i]['win_height']) + 25;
+				}
 			}
 			else
 			{
@@ -1279,17 +1301,17 @@ if( $mode != '' )
 
 			if ($arcade->arcade_config['games_rate'] && ($userdata['user_id'] != ANONYMOUS))
 			{
-				$game_rate = ' &nbsp; <a href="arcade_rate.' . $phpEx . '?game_id=' . $game_id . '")"><img src="images/rate.gif" border="0"></a> &nbsp; ';
+				$game_rate = ' &nbsp; <a href="arcade_rate.' . $phpEx . '?game_id=' . (int) $game_id . '"><img src="images/rate.gif" border="0" alt="" /></a> &nbsp; ';
 				if(!empty($arcade->arcade_config['games_rate_extra']))
         {
 
   			  $sql ="SELECT * FROM ". iNA_GAMES_RATE ."	
-            WHERE rate_game_name = '$game_name'	
+            WHERE rate_game_name = '$game_name_sql'
               AND rate_user_id = '". $userdata['user_id'] ."'
               LIMIT 1";
           if( !$result = $db->sql_query($sql) )
           {
-  	         $arcade->message_die(GENERAL_ERROR, $land['no_rate_data'], '', __LINE__, __FILE__, $sql);
+	         $arcade->message_die(GENERAL_ERROR, $lang['no_rate_data'], '', __LINE__, __FILE__, $sql);
           }
           if ($db->sql_numrows($result) != 0)
           {
@@ -1388,8 +1410,8 @@ if( $mode != '' )
 		}
 		else
 		{
-			$total_all_games = $game_rows[0]['total_games'];
-			$total_games_played = $game_rows[0]['total_played'];
+			$total_all_games = isset($game_rows[0]['total_games']) ? $game_rows[0]['total_games'] : (isset($cat_info['total_games']) ? $cat_info['total_games'] : 0);
+			$total_games_played = isset($game_rows[0]['total_played']) ? $game_rows[0]['total_played'] : (isset($cat_info['total_played']) ? $cat_info['total_played'] : 0);
 		}
 		
 		if ($arcade->arcade_config['games_show_stats'] == 1)
@@ -1427,7 +1449,7 @@ if( $mode != '' )
 			if ($mode == 'search')
 			{
 				$sql = "SELECT count(*) as total from " . iNA_GAMES . "
-					WHERE game_desc LIKE '%$search_word%'
+					WHERE game_desc LIKE '%$search_sql%'
 						AND game_id <> 0";
 			}
 			else if ($mode == 'fav')
@@ -1696,7 +1718,7 @@ else
     $last_game_desc = $catrows[0]['game_desc'];
    	if(strlen($catrows[0]['game_desc']) > 25)
    	{
-   		$last_game_desc =	trim(substr_replace ( $catrows[0]['game_desc'], ' ', 23, strlen($cat_rows[0]['game_desc']) )) . '..';
+		$last_game_desc = trim(substr_replace($catrows[0]['game_desc'], ' ', 23, strlen($catrows[0]['game_desc']))) . '..';
    	}
 //
 //  Build the Last Played Info

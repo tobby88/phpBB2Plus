@@ -35,6 +35,19 @@ foreach (new_window_link_files($root) as $filename)
 			$errors[] = str_replace('\\', '/', substr($filename, strlen($root) + 1)) . ':' . $line;
 		}
 	}
+
+	if (preg_match_all('/<form\b[^>]*\btarget\s*=\s*["\']_blank["\'][^>]*>/i', $contents, $form_matches, PREG_OFFSET_CAPTURE))
+	{
+		foreach ($form_matches[0] as $match)
+		{
+			$tag = $match[0];
+			if (!preg_match('/\brel\s*=\s*["\'][^"\']*\bnoopener\b[^"\']*\bnoreferrer\b[^"\']*["\']/i', $tag))
+			{
+				$line = substr_count(substr($contents, 0, $match[1]), "\n") + 1;
+				$errors[] = str_replace('\\', '/', substr($filename, strlen($root) + 1)) . ':' . $line . ' (form)';
+			}
+		}
+	}
 }
 
 // These fragments are injected into opening anchor tags by legacy Album and
@@ -46,6 +59,18 @@ foreach (array('album_cat.php', 'album_personal.php', 'album_showpage.php', 'alb
 	{
 		$errors[] = $relative . ': unsafe generated target fragment';
 	}
+}
+
+$bbcode = (string) file_get_contents($root . '/includes/bbcode.php');
+if (substr_count($bbcode, 'target=\\"_blank\\" rel=\\"noopener noreferrer\\"') < 2)
+{
+	$errors[] = 'includes/bbcode.php: unsafe generated automatic links';
+}
+
+$album_hierarchy = (string) file_get_contents($root . '/album_mod/album_hierarchy_functions.php');
+if (strpos($album_hierarchy, 'target="%s" rel="noopener noreferrer"') === false)
+{
+	$errors[] = 'album_mod/album_hierarchy_functions.php: unsafe generated thumbnail link';
 }
 
 if ($errors)

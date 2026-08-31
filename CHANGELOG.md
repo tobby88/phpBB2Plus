@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Extended opener isolation to PHP-generated automatic BBCode links, Album
+  index thumbnails and external forms, and taught the regression audit to cover
+  escaped PHP fragments and form targets in addition to literal anchors.
+- Bounded the shared Arcade request/log boundary, rejected non-finite numeric
+  protocol values, supplied stable empty-score defaults, made media dimension
+  probing fall back to configured sizes and corrected the escaped search term
+  used by result counts.
 - Completed the image map of partial bundled styles at runtime from the
   validated preservation style. Calendar, birthday, profile, rank, Album and
   CrackerTracker icons therefore remain available on responsive styles without

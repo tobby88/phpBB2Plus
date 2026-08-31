@@ -458,7 +458,7 @@ function album_build_index($user_id, &$keys, $cur_cat_id = ALBUM_ROOT_CATEGORY, 
 			$show_pic_url = ($album_config['fullpic_popup']==0) ? $album_show_pic_url : 'album_pic.' . $phpEx;
 			$show_pic_target = ($album_config['fullpic_popup']==0) ? '_self' : '_blank';
 			
-			$pic_url = sprintf('<a href="%s?pic_id=%d" target="%s"><img src="album_thumbnail.%s?pic_id=%d" border="0" alt="" title=""></a>', $show_pic_url, $last_pic_id, $show_pic_target, $phpEx, $last_pic_id );
+			$pic_url = sprintf('<a href="%s?pic_id=%d" target="%s" rel="noopener noreferrer"><img src="album_thumbnail.%s?pic_id=%d" border="0" alt="" title=""></a>', $show_pic_url, $last_pic_id, $show_pic_target, $phpEx, $last_pic_id );
 
 			$template->assign_block_vars('catmain.catrow.thumb', array(
 				'LAST_PIC_URL' => $pic_url

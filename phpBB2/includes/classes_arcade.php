@@ -809,12 +809,21 @@ class arcade
     global $db, $lang;
 
     $sql = "SELECT * FROM " . iNA_USER_DATA . "
-      WHERE user_id = $player_id";
+      WHERE user_id = " . (int) $player_id;
    	if ( !($best_result = $db->sql_query($sql)) )
    	{
    		message_die(GENERAL_ERROR, $lang['no_game_total'], '', __LINE__, __FILE__, $sql);
    	}
-   	$row = $db->sql_fetchrow($best_result);
+	$row = $db->sql_fetchrow($best_result);
+	if (!$row)
+	{
+		$row = array(
+			'first_places' => 0, 'second_places' => 0, 'third_places' => 0,
+			'first_list' => '', 'second_list' => '', 'third_list' => '',
+			'at_first_places' => 0, 'at_second_places' => 0, 'at_third_places' => 0,
+			'at_first_list' => '', 'at_second_list' => '', 'at_third_list' => ''
+		);
+	}
 
     $player[0] = $player_id;
   
@@ -870,7 +879,7 @@ class arcade
       $passed_var = $HTTP_POST_VARS[$var];
       if(!is_array($passed_var) && $quiet == false && ($this->arcade_config['games_use_log'] == 1))
       {
-		$log_value = $db->sql_escape($var . '=>' . $passed_var);
+		$log_value = $db->sql_escape(substr($var . '=>' . (string) $passed_var, 0, 1024));
         $post_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
           VALUES (" . (int) $userdata['user_id'] . ", 'POST', '$log_value', " . time() . ")";
         $db->sql_query($post_sql);
@@ -894,10 +903,14 @@ class arcade
     else if(is_int($type))
     {
       $passed_var = empty($passed_var) ? 0 : doubleval($passed_var);
+	  if (!is_finite($passed_var))
+	  {
+		$passed_var = 0;
+	  }
     }
     else
     {
-      $passed_var = trim(htmlspecialchars($passed_var));
+      $passed_var = substr(trim(htmlspecialchars((string) $passed_var)), 0, 4096);
     }
     return $passed_var;
   }

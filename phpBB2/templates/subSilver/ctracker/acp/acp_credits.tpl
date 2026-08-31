@@ -24,7 +24,7 @@
 					<br /><br /><br />
 					
 					<div align="center">
-						<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+						<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" rel="noopener noreferrer">
 					  		<input type="hidden" name="cmd" value="_s-xclick">
 					  		<input type="image" src="https://www.paypal.com/de_DE/i/btn/x-click-but04.gif" border="0" name="submit" alt="Zahlen Sie mit PayPal - schnell, kostenlos und sicher!">
 					  		<img alt="" border="0" src="https://www.paypal.com/de_DE/i/scr/pixel.gif" width="1" height="1">
