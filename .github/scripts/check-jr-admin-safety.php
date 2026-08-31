@@ -8,7 +8,7 @@ require_once $root . '/phpBB2/includes/functions_jr_admin.php';
 $lang = array(
 	'General' => 'General', 'Styles' => 'Styles', 'Attachments' => 'Attachments',
 	'Users' => 'Users', 'Arcade' => 'Arcade', 'Future' => 'Future', 'Banner' => 'Banner',
-	'Styles_Management' => 'Style management', 'Manage' => 'Manage',
+	'Styles_Management' => 'Style management', 'Manage' => 'Manage', 'Configuration' => 'Configuration',
 	'Extension_control' => 'Extension control', 'Profile_fields_add' => 'Add profile field',
 	'General_Plusconfig' => 'phpBB2 Plus Configuration'
 );
@@ -16,7 +16,10 @@ $navigation_fixture = array(
 	'Arcade' => array('Manage' => array('file_hash' => 'arcade')),
 	'Plus' => array('Configuration' => array('file_hash' => 'plus-config')),
 	'Extreme_Styles' => array('Styles_Management' => array('file_hash' => 'xs')),
-	'General' => array('Manage' => array('file_hash' => 'general')),
+	'General' => array(
+		'Configuration' => array('file_hash' => 'core-config'),
+		'Manage' => array('file_hash' => 'general')
+	),
 	'Systeminfo' => array('PHPInfo' => array('file_hash' => 'phpinfo')),
 	'Users' => array('Add_new' => array('file_hash' => 'add-user')),
 	'Custom_Profile' => array('Add_new' => array('file_hash' => 'profile-field')),
