@@ -1042,28 +1042,28 @@ if( !empty($_POST['unblock_account']) )
 			$s_hidden_fields .= '<input type="hidden" name="id" value="' . $user_id . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
 			
-			$s_hidden_fields .= '<input type="hidden" name="username" value="' . str_replace("\"", "&quot;", $username) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="email" value="' . str_replace("\"", "&quot;", $email) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="icq" value="' . str_replace("\"", "&quot;", $icq) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="aim" value="' . str_replace("\"", "&quot;", $aim) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="msn" value="' . str_replace("\"", "&quot;", $msn) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="yim" value="' . str_replace("\"", "&quot;", $yim) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="fb" value="' . str_replace("\"", "&quot;", $fb) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="ig" value="' . str_replace("\"", "&quot;", $ig) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="pt" value="' . str_replace("\"", "&quot;", $pt) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="twr" value="' . str_replace("\"", "&quot;", $twr) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="skp" value="' . str_replace("\"", "&quot;", $skp) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="tg" value="' . str_replace("\"", "&quot;", $tg) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="li" value="' . str_replace("\"", "&quot;", $li) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="tt" value="' . str_replace("\"", "&quot;", $tt) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="dc" value="' . str_replace("\"", "&quot;", $dc) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="website" value="' . str_replace("\"", "&quot;", $website) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="location" value="' . str_replace("\"", "&quot;", $location) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="username" value="' . phpbb_profile_display_text($username) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="email" value="' . phpbb_profile_display_text($email) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="icq" value="' . phpbb_profile_display_text($icq) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="aim" value="' . phpbb_profile_display_text($aim) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="msn" value="' . phpbb_profile_display_text($msn) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="yim" value="' . phpbb_profile_display_text($yim) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="fb" value="' . phpbb_profile_display_text($fb) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="ig" value="' . phpbb_profile_display_text($ig) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="pt" value="' . phpbb_profile_display_text($pt) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="twr" value="' . phpbb_profile_display_text($twr) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="skp" value="' . phpbb_profile_display_text($skp) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="tg" value="' . phpbb_profile_display_text($tg) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="li" value="' . phpbb_profile_display_text($li) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="tt" value="' . phpbb_profile_display_text($tt) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="dc" value="' . phpbb_profile_display_text($dc) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="website" value="' . phpbb_profile_display_text($website) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="location" value="' . phpbb_profile_display_text($location) . '" />';
 			// FLAGHACK-start
 			$s_hidden_fields .= '<input type="hidden" name="user_flag" value="' . $user_flag . '" />';
 			// FLAGHACK-end
-			$s_hidden_fields .= '<input type="hidden" name="occupation" value="' . str_replace("\"", "&quot;", $occupation) . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="interests" value="' . str_replace("\"", "&quot;", $interests) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="occupation" value="' . phpbb_profile_display_text($occupation) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="interests" value="' . phpbb_profile_display_text($interests) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_absence_mode" value="' . $user_absence_mode . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_absence" value="' . $user_absence . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_absence_text" value="' . $user_absence_text . '" />';
@@ -1071,7 +1071,7 @@ if( !empty($_POST['unblock_account']) )
 			$s_hidden_fields .= '<input type="hidden" name="birthday" value="'.$birthday.'" />';
 			$s_hidden_fields .= '<input type="hidden" name="next_birthday_greeting" value="'.$next_birthday_greeting.'" />';
 			// End add - Birthday MOD
-			$s_hidden_fields .= '<input type="hidden" name="signature" value="' . str_replace("\"", "&quot;", $signature) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="signature" value="' . phpbb_profile_display_text($signature) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="viewemail" value="' . $viewemail . '" />';
 			// Start add - Gender MOD
 			$s_hidden_fields .= '<input type="hidden" name="gender" value="' . $gender . '" />';
@@ -1090,7 +1090,7 @@ if( !empty($_POST['unblock_account']) )
 			$s_hidden_fields .= '<input type="hidden" name="style" value="' . $user_style . '" />'; 
 			$s_hidden_fields .= '<input type="hidden" name="language" value="' . $user_lang . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="timezone" value="' . $user_timezone . '" />';
-			$s_hidden_fields .= '<input type="hidden" name="dateformat" value="' . str_replace("\"", "&quot;", $user_dateformat) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="dateformat" value="' . phpbb_profile_display_text($user_dateformat) . '" />';
 
 			$s_hidden_fields .= '<input type="hidden" name="user_status" value="' . $user_status . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_ycard" value="' . $user_ycard . '" />';
@@ -1429,30 +1429,30 @@ if ($this_userdata['user_passwd_change']>0)
 	$flag_select .= '</select>';
 		// FLAGHACK-end
 		$template->assign_vars(array(
-			'USERNAME' => $username,
-			'EMAIL' => $email,
-			'YIM' => $yim,
-			'ICQ' => $icq,
-			'MSN' => $msn,
-			'AIM' => $aim,
-			'FB' => $fb,
-			'IG' => $ig,
-			'PT' => $pt,
-			'TWR' => $twr,
-			'SKP' => $skp,
-			'TG' => $tg,
-			'LI' => $li,
-			'TT' => $tt,
-			'DC' => $dc,
-			'OCCUPATION' => $occupation,
-			'INTERESTS' => $interests,
+			'USERNAME' => phpbb_profile_display_text($username),
+			'EMAIL' => phpbb_profile_display_text($email),
+			'YIM' => phpbb_profile_display_text($yim),
+			'ICQ' => phpbb_profile_display_text($icq),
+			'MSN' => phpbb_profile_display_text($msn),
+			'AIM' => phpbb_profile_display_text($aim),
+			'FB' => phpbb_profile_display_text($fb),
+			'IG' => phpbb_profile_display_text($ig),
+			'PT' => phpbb_profile_display_text($pt),
+			'TWR' => phpbb_profile_display_text($twr),
+			'SKP' => phpbb_profile_display_text($skp),
+			'TG' => phpbb_profile_display_text($tg),
+			'LI' => phpbb_profile_display_text($li),
+			'TT' => phpbb_profile_display_text($tt),
+			'DC' => phpbb_profile_display_text($dc),
+			'OCCUPATION' => phpbb_profile_display_text($occupation),
+			'INTERESTS' => phpbb_profile_display_text($interests),
 			'L_USER_ABSENCE' => $lang['User_absence'],
 			'L_USER_ABSENCE_MODE' => $lang['User_absence_mode'],
 			'L_USER_ABSENCE_TEXT' => $lang['User_absence_text'],
 			'USER_ABSENCE_YES' => ($user_absence) ? 'checked="checked"' : '',
 			'USER_ABSENCE_NO' => (!$user_absence) ? 'checked="checked"' : '',
 			'S_USER_ABSENCE_MODE' => $s_user_absence_mode,
-			'S_USER_ABSENCE_TEXT' => $user_absence_text,
+			'S_USER_ABSENCE_TEXT' => phpbb_profile_display_text($user_absence_text),
 			// Start add - Gender MOD
 			'GENDER' => $gender, 
 			'GENDER_NO_SPECIFY_CHECKED' => $gender_no_specify_checked, 
@@ -1463,14 +1463,14 @@ if ($this_userdata['user_passwd_change']>0)
 			'NEXT_BIRTHDAY_GREETING' => $next_birthday_greeting,
 			'S_BIRTHDAY' => $s_birthday,
 			// End add - Birthday MOD
-			'LOCATION' => $location,
+			'LOCATION' => phpbb_profile_display_text($location),
 			// FLAGHACK-start
 			'L_FLAG' => $lang['Country_Flag'],
 			'FLAG_SELECT' => $flag_select,
 			'FLAG_START' => $flag_start_image,
 			// FLAGHACK-end
-			'WEBSITE' => $website,
-			'SIGNATURE' => str_replace('<br />', "\n", $signature),
+			'WEBSITE' => phpbb_profile_display_text($website),
+			'SIGNATURE' => phpbb_profile_display_text(str_replace('<br />', "\n", $signature)),
 			'VIEW_EMAIL_YES' => ($viewemail) ? 'checked="checked"' : '',
 			'VIEW_EMAIL_NO' => (!$viewemail) ? 'checked="checked"' : '',
 			'HIDE_USER_YES' => (!$allowviewonline) ? 'checked="checked"' : '',

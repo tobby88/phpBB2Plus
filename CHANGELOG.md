@@ -19,6 +19,11 @@ changes consolidated after that baseline without implying active maintenance.
   account creation and profile updates with the active database driver's
   escaping API. Apostrophes in legitimate profile data therefore work on
   modern PHP without weakening the query boundary.
+- Normalized legacy entity-encoded and raw profile values before redisplaying
+  public or administrator account forms, including the avatar-gallery hidden
+  state. Stored text can no longer escape an input attribute or textarea when
+  an old account is edited, and password fields are no longer reflected after
+  a validation error.
 - Extended the central CrackerTracker request boundary to reject unsupported
   HTTP methods and structurally abusive cookie or upload metadata. Normal GET,
   POST, HEAD and legacy upload/cookie shapes remain accepted; uploaded file

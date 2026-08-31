@@ -94,6 +94,8 @@ foreach (array(
 	'function admin_user_sql_value',
 	'admin_user_sql_value($email)',
 	'admin_user_sql_value($signature)',
+	"'USERNAME' => phpbb_profile_display_text(\$username)",
+	"'SIGNATURE' => phpbb_profile_display_text(str_replace('<br />'",
 	"phpbb_profile_text(\$field['field_description'])",
 	'implode(\', \', $profile_assignments)',
 	'WHERE user_id = " . (int) $user_id'
@@ -109,6 +111,8 @@ foreach (array(
 	'usercp_sql_value($email)',
 	'usercp_sql_value($signature)',
 	'usercp_sql_value(substr($registration_ip',
+	"'USERNAME' => phpbb_profile_display_text(isset(\$username)",
+	"'SIGNATURE' => phpbb_profile_display_text(str_replace('<br />'",
 	'phpbb_profile_field_input($fields, $HTTP_POST_VARS)',
 	'phpbb_profile_field_assignments($profile_data, $HTTP_POST_VARS, $profile_names)'
 ) as $marker)
