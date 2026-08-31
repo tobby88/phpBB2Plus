@@ -60,7 +60,7 @@ foreach (array(
 	"substr(trim((string) \$_POST['subject']), 0, 200)",
 	"substr(trim((string) \$_POST['message']), 0, 10000)",
 	"\$emailer->from(\$board_config['board_email'])",
-	'\$emailer->replyto($sender_email)'
+	'$emailer->replyto($sender_email)'
 ) as $marker)
 {
 	if (strpos($pafiledb_email, $marker) === false)
