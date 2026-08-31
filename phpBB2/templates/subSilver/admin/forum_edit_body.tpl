@@ -16,6 +16,10 @@
 	  <td class="row1">{L_FORUM_DESCRIPTION}</td>
 	  <td class="row2"><textarea rows="5" cols="45" wrap="virtual" name="forumdesc" class="post">{DESCRIPTION}</textarea></td>
 	</tr>
+	<tr>
+	  <td class="row1">{L_ICON}<br /><span class="gensmall">{L_ICON_EXPLAIN}</span></td>
+	  <td class="row2"><input name="icon" value="{ICON}" type="text" class="post" size="60" />{ICON_IMG}</td>
+	</tr>
 	<tr> 
 	  <td class="row1">{L_CATEGORY}</td>
 	  <td class="row2"><select name="c">{S_CAT_LIST}</select></td>
@@ -23,6 +27,10 @@
 	<tr> 
 	  <td class="row1">{L_FORUM_STATUS}</td>
 	  <td class="row2"><select name="forumstatus">{S_STATUS_LIST}</select></td>
+	</tr>
+	<tr>
+	  <td class="row1">{L_COUNT_POSTS}</td>
+	  <td class="row2"><input type="radio" name="count_posts" value="1" {COUNT_POSTS_YES} /> {L_YES}&nbsp;<input type="radio" name="count_posts" value="0" {COUNT_POSTS_NO} /> {L_NO}</td>
 	</tr>
 	<tr> 
 	  <td class="row1">{L_AUTO_PRUNE}</td>
@@ -40,6 +48,14 @@
 			<td align="left" valign="middle">&nbsp;<input type="text" name="prune_freq" value="{PRUNE_FREQ}" size="5" class="post" />&nbsp;{L_DAYS}</td>
 		  </tr>
 	  </table></td>
+	</tr>
+	<tr>
+	  <td class="row1">{L_LINK}</td>
+	  <td class="row2">
+		{L_FORUM_LINK}: <input type="text" name="forum_link" value="{FORUM_LINK}" size="60" class="post" /><br /><span class="gensmall">{L_FORUM_LINK_EXPLAIN}</span><br />
+		{L_FORUM_LINK_INTERNAL}: <input type="radio" name="forum_link_internal" value="1" {FORUM_LINK_INTERNAL_YES} /> {L_YES}&nbsp;<input type="radio" name="forum_link_internal" value="0" {FORUM_LINK_INTERNAL_NO} /> {L_NO}<br /><span class="gensmall">{L_FORUM_LINK_INTERNAL_EXPLAIN}</span><br />
+		{L_FORUM_LINK_HIT_COUNT}: <input type="radio" name="forum_link_hit_count" value="1" {FORUM_LINK_HIT_COUNT_YES} /> {L_YES}&nbsp;<input type="radio" name="forum_link_hit_count" value="0" {FORUM_LINK_HIT_COUNT_NO} /> {L_NO}<br /><span class="gensmall">{L_FORUM_LINK_HIT_COUNT_EXPLAIN}</span>
+	  </td>
 	</tr>
 	<tr> 
 	  <td class="catBottom" colspan="2" align="center">{S_HIDDEN_FIELDS}<input type="submit" name="submit" value="{S_SUBMIT_VALUE}" class="mainoption" /></td>

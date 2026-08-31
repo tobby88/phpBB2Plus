@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Completed the forum/category editor in all seven bundled styles. Every ACP
+  style now exposes icons, link-forum controls, post counting and hierarchy
+  fields; submitted text uses typed scalar boundaries and driver escaping,
+  stored values are HTML-escaped, and unsafe resource URL schemes are rejected.
 - Removed the final PHP-8-incompatible `each()` and legacy MySQL escape calls
   from historical update paths. The advanced CAPTCHA now remains usable with
   GD but no TrueType fonts, and custom or damaged time-zone offsets render a
