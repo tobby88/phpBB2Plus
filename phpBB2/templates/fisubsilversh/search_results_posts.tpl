@@ -1,4 +1,4 @@
-<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js?v=20260831"></script>
+<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js?v=20260831-2"></script>
 
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
 <tr>

@@ -1,4 +1,4 @@
-<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js?v=20260831"></script>
+<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js?v=20260831-2"></script>
 <script type="text/javascript">
 <!--
 is_viewtopic = 1;

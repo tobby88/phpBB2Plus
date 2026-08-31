@@ -78,6 +78,10 @@ function loadXMLDoc(url, params, submitmethod, changehandler)
 	{
 		submitmethod = 'GET';
 	}
+
+	// Let the server distinguish this UTF-8 transport from cached pre-upgrade
+	// clients, which submitted escape()-encoded Latin-1 values.
+	params = 'ajax_utf8=1' + ((params != '') ? '&' + params : '');
 	
 	//Use the native object available in all browsers (IE >= 7)
 	if (window.XMLHttpRequest)

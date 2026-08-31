@@ -21,7 +21,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Replaced the AJAX editor's obsolete Latin-1 `escape()` transport with
   single-pass UTF-8 form encoding, reject invalid UTF-8 before storage, keep
   malformed response bytes from blanking the AJAX result, and carry unsaved
-  quick-edit text into the full editor.
+  quick-edit text into the full editor. A transport marker and legacy decoder
+  also protect edits submitted from browser tabs that were already open during
+  an upgrade.
 - Removed the six incomplete alternative style packages and the experimental
   automatic mobile-style selection. FI Subsilver Shadow is now the only
   bundled style; fresh installs seed only it, while the idempotent updater

@@ -2194,16 +2194,97 @@ function unhtmlspecialchars($text)
 	return $text;
 }
 
+function phpbb_ajax_codepoint_to_utf8($codepoint)
+{
+	$codepoint = intval($codepoint);
+	if ($codepoint < 0 || $codepoint > 0x10FFFF || ($codepoint >= 0xD800 && $codepoint <= 0xDFFF))
+	{
+		return "\xEF\xBF\xBD";
+	}
+	if ($codepoint <= 0x7F)
+	{
+		return chr($codepoint);
+	}
+	if ($codepoint <= 0x7FF)
+	{
+		return chr(0xC0 | ($codepoint >> 6)) . chr(0x80 | ($codepoint & 0x3F));
+	}
+	if ($codepoint <= 0xFFFF)
+	{
+		return chr(0xE0 | ($codepoint >> 12)) . chr(0x80 | (($codepoint >> 6) & 0x3F)) . chr(0x80 | ($codepoint & 0x3F));
+	}
+	return chr(0xF0 | ($codepoint >> 18)) . chr(0x80 | (($codepoint >> 12) & 0x3F)) . chr(0x80 | (($codepoint >> 6) & 0x3F)) . chr(0x80 | ($codepoint & 0x3F));
+}
+
+function phpbb_ajax_decode_legacy_escape($source)
+{
+	$decoded = '';
+	$length = strlen($source);
+	for ($position = 0; $position < $length; )
+	{
+		if ($source[$position] !== '%')
+		{
+			$decoded .= $source[$position++];
+			continue;
+		}
+
+		if ($position + 5 < $length && $source[$position + 1] === 'u')
+		{
+			$hex = substr($source, $position + 2, 4);
+			if (preg_match('/^[0-9a-f]{4}$/iD', $hex))
+			{
+				$codepoint = hexdec($hex);
+				$position += 6;
+				if ($codepoint >= 0xD800 && $codepoint <= 0xDBFF && $position + 5 < $length && substr($source, $position, 2) === '%u')
+				{
+					$low_hex = substr($source, $position + 2, 4);
+					if (preg_match('/^[0-9a-f]{4}$/iD', $low_hex))
+					{
+						$low = hexdec($low_hex);
+						if ($low >= 0xDC00 && $low <= 0xDFFF)
+						{
+							$codepoint = 0x10000 + (($codepoint - 0xD800) << 10) + ($low - 0xDC00);
+							$position += 6;
+						}
+					}
+				}
+				$decoded .= phpbb_ajax_codepoint_to_utf8($codepoint);
+				continue;
+			}
+		}
+
+		if ($position + 2 < $length)
+		{
+			$hex = substr($source, $position + 1, 2);
+			if (preg_match('/^[0-9a-f]{2}$/iD', $hex))
+			{
+				$decoded .= phpbb_ajax_codepoint_to_utf8(hexdec($hex));
+				$position += 3;
+				continue;
+			}
+		}
+
+		$decoded .= '%';
+		$position++;
+	}
+	return $decoded;
+}
+
 /**
 * Normalize an AJAX form value while retaining phpBB2's historic slashed-input
-* convention. URL decoding has already been performed by PHP before this code
-* runs; decoding percent sequences a second time would corrupt literal values
-* such as "%C3%A4" and was the reason the old escape()-based client corrupted
-* UTF-8 text.
+* convention. Current clients mark their standard UTF-8 form transport; cached
+* pre-upgrade clients are decoded from JavaScript escape() notation so an open
+* editor cannot corrupt a post during deployment.
 */
 function utf8_rawurldecode($source)
 {
-	return addslashes(stripslashes((string) $source));
+	global $HTTP_POST_VARS, $HTTP_GET_VARS;
+
+	$source = stripslashes((string) $source);
+	$is_utf8_transport = (isset($HTTP_POST_VARS['ajax_utf8']) && is_scalar($HTTP_POST_VARS['ajax_utf8']) && (string) $HTTP_POST_VARS['ajax_utf8'] === '1')
+		|| (isset($HTTP_GET_VARS['ajax_utf8']) && is_scalar($HTTP_GET_VARS['ajax_utf8']) && (string) $HTTP_GET_VARS['ajax_utf8'] === '1');
+
+	return addslashes($is_utf8_transport ? $source : phpbb_ajax_decode_legacy_escape($source));
 }
 
 // Used to escape AJAX data correctly.
