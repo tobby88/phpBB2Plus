@@ -12,3 +12,19 @@
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# Potentially active browser documents are available only through download.php,
+# which applies authorization and an attachment disposition.  Never render a
+# raw upload in the forum's origin merely because its randomized name leaked.
+<FilesMatch "(?i)\.(?:html?|xhtml|svg|xml|xsl|xslt|m?js|css|swf|pdf)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>

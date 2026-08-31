@@ -115,6 +115,9 @@ jobs:
       - name: Test web source exposure rules
         run: php .github/scripts/check-web-source-exposure.php
 
+      - name: Test raw upload storage rules
+        run: php .github/scripts/check-upload-storage-safety.php
+
       - name: Test StopForumSpam integration safety
         run: php .github/scripts/check-stopforumspam-safety.php
 

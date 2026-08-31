@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Prevented raw attachment, Album, avatar and paFileDB storage URLs from
+  rendering active HTML, SVG, JavaScript, CSS, Flash or PDF documents inside
+  the forum origin. Authorized PHP download paths remain available, while
+  directly served bitmap assets now explicitly disable MIME sniffing.
 - Denied direct web delivery of database configuration, PHP include sources,
   raw templates, style configuration, SQL, logs, caches and common backup
   suffixes using Apache 2.2/2.4-compatible root rules, and disabled directory
