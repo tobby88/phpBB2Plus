@@ -130,7 +130,11 @@ function ct_security_cross_site_write($server)
 function ct_security_disallowed_method($server)
 {
 	$method = isset($server['REQUEST_METHOD']) && is_scalar($server['REQUEST_METHOD']) ? strtoupper(trim((string) $server['REQUEST_METHOD'])) : '';
-	return in_array($method, array('TRACE', 'TRACK', 'CONNECT'), true);
+	if ($method === '')
+	{
+		return false;
+	}
+	return !in_array($method, array('GET', 'POST', 'HEAD', 'OPTIONS'), true);
 }
 
 function ct_security_key_is_safe($key)
@@ -263,6 +267,32 @@ function ct_security_request_is_attack($get, $post, $server, $options)
 		ct_security_array_is_attack($post, $post_ignored, $post_free_text, $custom_rules, $scan_post);
 }
 
+function ct_security_auxiliary_input_is_attack($cookies, $files, $server)
+{
+	$cookies = is_array($cookies) ? $cookies : array();
+	$files = is_array($files) ? $files : array();
+	$server = is_array($server) ? $server : array();
+	$cookie_header = isset($server['HTTP_COOKIE']) && is_scalar($server['HTTP_COOKIE']) ? (string) $server['HTTP_COOKIE'] : '';
+	if (strlen($cookie_header) > 32768)
+	{
+		return true;
+	}
+
+	$nodes = 0;
+	if (!ct_request_shape_is_safe($cookies, 0, $nodes))
+	{
+		return true;
+	}
+	$nodes = 0;
+	if (!ct_request_shape_is_safe($files, 0, $nodes))
+	{
+		return true;
+	}
+
+	return ct_security_array_is_attack($cookies, array(), array(), array(), false) ||
+		ct_security_array_is_attack($files, array(), array(), array(), false);
+}
+
 function ct_security_block_request($phpbb_root_path, $phpEx)
 {
 	if (CT_DEBUG_MODE !== true)
@@ -328,8 +358,11 @@ if (!defined('CTRACKER_SECURITY_NO_AUTO_RUN'))
 		'scan_post' => $scan_post
 	);
 
+	$security_cookies = isset($HTTP_COOKIE_VARS) && is_array($HTTP_COOKIE_VARS) ? $HTTP_COOKIE_VARS : (isset($_COOKIE) ? $_COOKIE : array());
+	$security_files = isset($HTTP_POST_FILES) && is_array($HTTP_POST_FILES) ? $HTTP_POST_FILES : (isset($_FILES) ? $_FILES : array());
 	if (ct_security_disallowed_method($HTTP_SERVER_VARS) ||
 		ct_security_cross_site_write($HTTP_SERVER_VARS) ||
+		ct_security_auxiliary_input_is_attack($security_cookies, $security_files, $HTTP_SERVER_VARS) ||
 		ct_security_request_is_attack($HTTP_GET_VARS, $HTTP_POST_VARS, $HTTP_SERVER_VARS, $options))
 	{
 		ct_security_block_request($phpbb_root_path, $phpEx);

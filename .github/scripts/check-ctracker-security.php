@@ -51,9 +51,29 @@ if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' =
 {
 	$errors[] = 'Headerless legacy POST was incorrectly blocked.';
 }
-if (!ct_security_disallowed_method(array('REQUEST_METHOD' => 'TRACE')) || ct_security_disallowed_method(array('REQUEST_METHOD' => 'GET')))
+if (!ct_security_disallowed_method(array('REQUEST_METHOD' => 'TRACE')) ||
+	!ct_security_disallowed_method(array('REQUEST_METHOD' => 'PUT')) ||
+	ct_security_disallowed_method(array('REQUEST_METHOD' => 'GET')) ||
+	ct_security_disallowed_method(array('REQUEST_METHOD' => 'POST')) ||
+	ct_security_disallowed_method(array('REQUEST_METHOD' => 'HEAD')))
 {
 	$errors[] = 'Unsafe HTTP method classification failed.';
+}
+if (ct_security_auxiliary_input_is_attack(array('phpbb2mysql_data' => 'a:0:{}'), array(), array('HTTP_COOKIE' => 'phpbb2mysql_data=a%3A0%3A%7B%7D')) !== false)
+{
+	$errors[] = 'Ordinary legacy cookies were incorrectly blocked.';
+}
+if (ct_security_auxiliary_input_is_attack(array(), array(), array('HTTP_COOKIE' => str_repeat('a', 32769))) !== true)
+{
+	$errors[] = 'Oversized cookie metadata was not blocked.';
+}
+if (ct_security_auxiliary_input_is_attack(array(), array('upload' => array('name' => array('file.jpg'), 'tmp_name' => array('/tmp/php123'), 'error' => array(0), 'size' => array(12))), array()) !== false)
+{
+	$errors[] = 'Ordinary multi-file upload metadata was incorrectly blocked.';
+}
+if (ct_security_auxiliary_input_is_attack(array(), array('GLOBALS' => array('name' => 'file.jpg')), array()) !== true)
+{
+	$errors[] = 'Dangerous upload metadata keys were not blocked.';
 }
 
 $custom_options = $options;

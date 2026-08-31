@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Extended the central CrackerTracker request boundary to reject unsupported
+  HTTP methods and structurally abusive cookie or upload metadata. Normal GET,
+  POST, HEAD and legacy upload/cookie shapes remain accepted; uploaded file
+  contents and ordinary free text are not subjected to brittle word matching.
 - Escaped administrator-supplied Arcade game, category and tournament metadata
   across score, category, statistics and jump-list views. Stored game names can
   no longer alter score-list SQL, sort order is explicitly allowlisted, and
