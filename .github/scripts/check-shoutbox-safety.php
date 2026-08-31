@@ -33,6 +33,7 @@ $full_checks = array(
     'missing IP-view records are rejected' => strpos($full, 'if (!$shout_identifyer)') !== false,
     'reverse-DNS targets are allowlisted' => strpos($full, "preg_match('/^[a-f0-9]{8}$/i', \$rdns_ip_num)") !== false,
     'reverse-DNS links retain encoded IPs' => strpos($full, 'rawurlencode($shout_identifyer[\'shout_ip\'])') !== false,
+	'reverse-DNS output is HTML escaped' => substr_count($full, "htmlspecialchars((string) \$ip") >= 2,
     'undefined post-row IP is gone' => strpos($full, "\$post_row['shout_ip']") === false,
     'page size cannot be zero' => strpos($full, '$shouts_per_page = max(1,') !== false,
 );

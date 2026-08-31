@@ -352,6 +352,7 @@ if ($mode=='ip')
 
 	$ip_this_post = decode_ip($shout_identifyer['shout_ip']);
 	$ip_this_post = ( $rdns_ip_num === $shout_identifyer['shout_ip'] ) ? gethostbyaddr($ip_this_post) : $ip_this_post;
+	$ip_this_post = htmlspecialchars((string) $ip_this_post, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	require_once($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 	//
@@ -399,6 +400,7 @@ if ($mode=='ip')
 
 				$ip = decode_ip($row['shout_ip']);
 				$ip = ( $rdns_ip_num == $row['shout_ip'] || $rdns_ip_num == 'all') ? gethostbyaddr($ip) : $ip;
+				$ip = htmlspecialchars((string) $ip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
 				$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 				$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];

@@ -24,6 +24,9 @@ changes consolidated after that baseline without implying active maintenance.
   deterministic even when several logins share one timestamp, so the ACP
   history limit remains an actual bound instead of allowing same-second rows
   to accumulate indefinitely; existing installations are migrated in place.
+- Escaped reverse-DNS results before rendering the Shoutbox moderator IP
+  view. A hostname supplied by external DNS can no longer become trusted HTML
+  merely because a moderator requested the lookup.
 - Removed CrackerTracker's two obsolete per-user search counters. Search
   protection already uses the shared atomic rate-limit table for guests and
   members, so fresh schemas no longer create parallel state and the updater
