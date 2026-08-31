@@ -166,27 +166,14 @@
 <!-- BEGIN poet_open --><div style="display:none"><!-- END poet_open -->
 <!-- BEGIN poet_close --></div><script>doPoetry()</script><!-- END poet_close -->
 
-<!-- BEGIN ram --><div align="center"><embed src="{URL}" align="center" 
-width="275" height="40" type="audio/x-pn-realaudio-plugin" console="cons" 
-controls="ControlPanel" autostart="false"></embed></div><!-- END ram -->
+<!-- BEGIN ram --><div style="text-align:center"><audio controls="controls" preload="metadata" src="{URL}"><a href="{URL}" rel="noopener noreferrer">{L_MEDIA_OPEN}</a></audio></div><!-- END ram -->
 
-<!-- BEGIN flash --><object type="application/x-shockwave-flash" data="{URL}" width="{WIDTH}" height="{HEIGHT}"><param name="movie" value="{URL}" /><param name="allowScriptAccess" value="never" /><a href="{URL}" rel="noopener noreferrer">Flash-Datei öffnen</a></object><!-- END flash -->
+<!-- BEGIN flash --><object type="application/x-shockwave-flash" data="{URL}" width="{WIDTH}" height="{HEIGHT}"><param name="movie" value="{URL}" /><param name="allowScriptAccess" value="never" /><a href="{URL}" rel="noopener noreferrer">{L_FLASH_OPEN}</a></object><!-- END flash -->
 
-<!-- BEGIN stream --><object id="wmp" width={WIDTH} height={HEIGHT} classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95" 
-codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,0,0" 
-standby="Loading Microsoft Windows Media Player components..." type="application/x-oleobject"> 
-<param name="FileName" value="{URL}"> 
-<param name="ShowControls" value="1"> 
-<param name="ShowDisplay" value="0"> 
-<param name="ShowStatusBar" value="1"> 
-<param name="AutoSize" value="1"> 
-        <embed type="application/x-mplayer2" 
-pluginspage="http://www.microsoft.com/windows95/downloads/contents/wurecommended/s_wufeatured/mediaplayer/default.asp" 
-src="{URL}" name=MediaPlayer2 showcontrols=1 showdisplay=0 showstatusbar=1 autosize=1 visible=1 animationatstart=0 transparentatstart=1 loop=0 height=70 width=300> 
-</embed></object><!-- END stream -->
+<!-- BEGIN stream --><div style="text-align:center"><audio controls="controls" preload="metadata" src="{URL}"><a href="{URL}" rel="noopener noreferrer">{L_MEDIA_OPEN}</a></audio></div><!-- END stream -->
 
 <!-- BEGIN video -->
-<div align="center"><embed src="{URL}" width={WIDTH} height={HEIGHT}></embed></div>
+<div style="text-align:center"><video controls="controls" preload="metadata" src="{URL}" width="{WIDTH}" height="{HEIGHT}"><a href="{URL}" rel="noopener noreferrer">{L_MEDIA_OPEN}</a></video></div>
 <!-- END video -->
 
 <!-- BEGIN hr --><hr noshade color='#000000' size='1'><!-- END hr -->

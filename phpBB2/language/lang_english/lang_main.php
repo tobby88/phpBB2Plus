@@ -1612,4 +1612,7 @@ $lang['sfs_missing_extension'] = 'The server cannot perform the configured regis
 // Arcade Mod Plus
 $lang['Activity'] = 'Games';
 
+$lang['BBCode_media_open'] = 'Open media file';
+$lang['BBCode_flash_open'] = 'Open Flash file';
+
 ?>

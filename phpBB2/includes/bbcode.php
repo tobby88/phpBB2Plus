@@ -190,15 +190,21 @@ function prepare_bbcode_template($bbcode_tpl)
 	$bbcode_tpl['align_open'] = str_replace('{ALIGN}', '\\1', $bbcode_tpl['align_open']);
 	$bbcode_tpl['stream'] = str_replace('{URL}', '\\1', $bbcode_tpl['stream']);
 	$bbcode_tpl['ram'] = str_replace('{URL}', '\\1', $bbcode_tpl['ram']);
+	$media_open = isset($lang['BBCode_media_open']) ? $lang['BBCode_media_open'] : 'Open media file';
+	$flash_open = isset($lang['BBCode_flash_open']) ? $lang['BBCode_flash_open'] : 'Open Flash file';
+	$bbcode_tpl['stream'] = str_replace('{L_MEDIA_OPEN}', $media_open, $bbcode_tpl['stream']);
+	$bbcode_tpl['ram'] = str_replace('{L_MEDIA_OPEN}', $media_open, $bbcode_tpl['ram']);
 	$bbcode_tpl['marq_open'] = str_replace('{MARQ}', '\\1', $bbcode_tpl['marq_open']);
 	$bbcode_tpl['table_open'] = str_replace('{TABLE}', '\\1', $bbcode_tpl['table_open']);
 	$bbcode_tpl['cell_open'] = str_replace('{CELL}', '\\1', $bbcode_tpl['cell_open']);
 	$bbcode_tpl['flash'] = str_replace('{WIDTH}', '\\1', $bbcode_tpl['flash']);
 	$bbcode_tpl['flash'] = str_replace('{HEIGHT}', '\\2', $bbcode_tpl['flash']);
 	$bbcode_tpl['flash'] = str_replace('{URL}', '\\3', $bbcode_tpl['flash']);
+	$bbcode_tpl['flash'] = str_replace('{L_FLASH_OPEN}', $flash_open, $bbcode_tpl['flash']);
 	$bbcode_tpl['video'] = str_replace('{URL}', '\\3', $bbcode_tpl['video']);
 	$bbcode_tpl['video'] = str_replace('{WIDTH}', '\\1', $bbcode_tpl['video']);
 	$bbcode_tpl['video'] = str_replace('{HEIGHT}', '\\2', $bbcode_tpl['video']);
+	$bbcode_tpl['video'] = str_replace('{L_MEDIA_OPEN}', $media_open, $bbcode_tpl['video']);
 	$bbcode_tpl['font_open'] = str_replace('{FONT}', '\\1', $bbcode_tpl['font_open']);
 	$bbcode_tpl['poet_open'] = str_replace('{POET}', '\\1', $bbcode_tpl['poet_open']);
 	$bbcode_tpl['glow_open'] = str_replace('{GLOWCOLOR}', '\\1', $bbcode_tpl['glow_open']);
@@ -466,16 +472,16 @@ function bbencode_second_pass($text, $uid)
 	$text = str_replace("[fade:$uid]", $bbcode_tpl['fade_open'], $text);
 	$text = str_replace("[/fade:$uid]", $bbcode_tpl['fade_close'], $text);
 	// real
-	$patterns[] = "#\[ram:$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/ram:$uid\]#si";
+	$patterns[] = "#\[ram:$uid\](https?://[^\\s\"'<>\[\]]+)\[/ram:$uid\]#si";
 	$replacements[] = $bbcode_tpl['ram'];
 	// sound
-	$patterns[] = "#\[stream:$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/stream:$uid\]#si";
+	$patterns[] = "#\[stream:$uid\](https?://[^\\s\"'<>\[\]]+)\[/stream:$uid\]#si";
 	$replacements[] = $bbcode_tpl['stream'];
 	// [flash width= height= loop= ] and [/flash] code..
-	$patterns[] = "#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/flash:$uid\]#si";
+	$patterns[] = "#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\](https?://[^\\s\"'<>\[\]]+)\[/flash:$uid\]#si";
 	$replacements[] = $bbcode_tpl['flash'];
 	// [flash width= height= loop= ] and [/flash] code..
-	$patterns[] = "#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/video:$uid\]#si";
+	$patterns[] = "#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9]):$uid\](https?://[^\\s\"'<>\[\]]+)\[/video:$uid\]#si";
 	$replacements[] = $bbcode_tpl['video'];
 	$text = preg_replace($patterns, $replacements, $text);
 	// align
@@ -645,13 +651,13 @@ function bbencode_first_pass($text, $uid)
 	// [center] and [/center]
 	$text = preg_replace("#\[center\](.*?)\[/center\]#si", "[center:$uid]\\1[/center:$uid]", $text);
 	// [real]and[/real]
-	$text = preg_replace("#\[ram\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/ram\]#si", "[ram:$uid]\\1[/ram:$uid]", $text);
+	$text = preg_replace("#\[ram\](https?://[^\\s\"'<>\[\]]+)\[/ram\]#si", "[ram:$uid]\\1[/ram:$uid]", $text);
 	// [stream]and[/stream]
-	$text = preg_replace("#\[stream\]((?:https?|ftps?)://[^\\s\"'<>\[\]]+)\[/stream\]#si", "[stream:$uid]\\1[/stream:$uid]", $text);
+	$text = preg_replace("#\[stream\](https?://[^\\s\"'<>\[\]]+)\[/stream\]#si", "[stream:$uid]\\1[/stream:$uid]", $text);
 	//[flash width= heigth= loop=] and [/flash]
-	$text = preg_replace("#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\]((?:https?|ftps?)://([^, \n\r]+))\[\/flash\]#si","[flash width=\\1 height=\\2:$uid]\\3[/flash:$uid]", $text);
+	$text = preg_replace("#\[flash width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\](https?://[^\\s\"'<>\[\]]+)\[\/flash\]#si", "[flash width=\\1 height=\\2:$uid]\\3[/flash:$uid]", $text);
 	//[video width= heigth=] and [/video]
-	$text = preg_replace("#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\]((?:https?|ftps?)://([^, \n\r]+))\[\/video\]#si","[video width=\\1 height=\\2:$uid]\\3[/video:$uid]", $text);
+	$text = preg_replace("#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\](https?://[^\\s\"'<>\[\]]+)\[\/video\]#si", "[video width=\\1 height=\\2:$uid]\\3[/video:$uid]", $text);
 	// [hr]
 	$text = preg_replace("#\[hr\]#si", "[hr:$uid]", $text);
 	//[glow=red]and[/glow]for glowing text.

@@ -1607,4 +1607,7 @@ $lang['sfs_missing_extension'] = 'Der Server kann die konfigurierte Spam-Prüfun
 // Arcade Mod Plus
 $lang['Activity'] = 'Spiele';
 
+$lang['BBCode_media_open'] = 'Mediendatei öffnen';
+$lang['BBCode_flash_open'] = 'Flash-Datei öffnen';
+
 ?>

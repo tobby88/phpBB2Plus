@@ -16,6 +16,8 @@ $config = file_get_contents($root . '/phpBB2/assets/ruffle/phpbb-config.js');
 
 legacy_media_assert(strpos($bbcode, 'load_bbcode_template_blocks') !== false, 'partial styles need the complete Plus BBCode fallback');
 legacy_media_assert(strpos($full_template, 'type="application/x-shockwave-flash"') !== false, 'Flash BBCode must use a Ruffle-compatible object');
+legacy_media_assert(strpos($full_template, '<audio controls="controls"') !== false, 'audio BBCode must use native HTML5 controls');
+legacy_media_assert(strpos($full_template, '<video controls="controls"') !== false, 'video BBCode must use native HTML5 controls');
 legacy_media_assert(strpos($config, 'allowScriptAccess: false') !== false, 'generic Flash embeds must not call page JavaScript');
 legacy_media_assert(strpos($config, "openUrlMode: 'confirm'") !== false, 'generic Flash navigation must require confirmation');
 
@@ -29,7 +31,14 @@ foreach (glob($root . '/phpBB2/templates/*/overall_header.tpl') as $header_file)
 }
 legacy_media_assert($header_count >= 7, 'all bundled styles must be covered');
 
-$legacy_patterns = array('clsid:D27CDB6E', 'download.macromedia.com', 'PLUGINSPAGE="http://www.macromedia.com');
+$legacy_patterns = array(
+	'clsid:D27CDB6E',
+	'download.macromedia.com',
+	'PLUGINSPAGE="http://www.macromedia.com',
+	'activex.microsoft.com',
+	'application/x-mplayer2',
+	'audio/x-pn-realaudio-plugin'
+);
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/phpBB2', FilesystemIterator::SKIP_DOTS));
 foreach ($iterator as $file)
 {
