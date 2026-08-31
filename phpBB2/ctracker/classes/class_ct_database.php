@@ -189,10 +189,10 @@ class ct_database
 			message_die(GENERAL_ERROR, $lang['ctracker_error_insert_blocklist']);
 		}
 
-		// Allocate the legacy numeric key in the same statement as the insert.
-		$sql = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`)
-			SELECT COALESCE(MAX(id), 0) + 1, '" . $db->sql_escape($blocklist_value) . "'
-			FROM " . CTRACKER_IPBLOCKER;
+		// The primary key is AUTO_INCREMENT. Let the database allocate it so
+		// concurrent administrators cannot race on MAX(id) + 1.
+		$sql = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`ct_blocker_value`)
+			VALUES ('" . $db->sql_escape($blocklist_value) . "')";
 
 		// And lets write it into the database
 		if ( !$result = $db->sql_query($sql) )

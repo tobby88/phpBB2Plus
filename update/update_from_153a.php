@@ -88,6 +88,8 @@ if (in_array('--self-test', $argv, true))
 		&& (bool) preg_match('/ct_last_ip\s+varchar\(\s*45\s*\)/i', $schema_source)
 		&& (bool) preg_match('/ct_login_ip`?\s+varchar\(45\)/i', $schema_source);
 	$schema_has_checksum_capacity = (bool) preg_match('/`hash`\s+varchar\(64\)/i', $schema_source);
+	$schema_has_atomic_blocklist_ids = (bool) preg_match('/CREATE TABLE\s+`phpbb_ctracker_ipblocker`.*?`id`\s+mediumint\(8\)\s+unsigned\s+NOT NULL\s+AUTO_INCREMENT/is', $schema_source);
+	$basic_has_legacy_blocklist = (bool) preg_match('/INSERT INTO\s+`?phpbb_ctracker_ipblocker/i', $basic_source);
 	$schema_has_current_contacts = (bool) preg_match('/user_signal\s+varchar\(255\)/i', $schema_source)
 		&& (bool) preg_match('/user_threema\s+varchar\(255\)/i', $schema_source);
 	$schema_has_split_password_timestamps = (bool) preg_match('/ct_last_pw_reset\s+INT\(\s*11\s*\)\s+DEFAULT\s+0/i', $schema_source)
@@ -98,9 +100,9 @@ if (in_array('--self-test', $argv, true))
 	$theme_seed_count = preg_match_all('/^INSERT INTO\s+phpbb_themes\s*\(/im', $basic_source, $unused_theme_matches);
 	$standard_style_config_count = count(update_read_theme_info($forum_root, 'fisubsilversh'));
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_current_contacts || !$schema_has_split_password_timestamps || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
+	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 46 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_atomic_blocklist_ids || $basic_has_legacy_blocklist || !$schema_has_current_contacts || !$schema_has_split_password_timestamps || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", split password timestamps " . ($schema_has_split_password_timestamps ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", split password timestamps " . ($schema_has_split_password_timestamps ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", blocklist IDs " . ($schema_has_atomic_blocklist_ids ? 'atomic' : 'legacy') . ", legacy blocklist seeds " . ($basic_has_legacy_blocklist ? 'present' : 'none') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
 	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password, IPv6 and SHA-256 checksum columns ready.\n";
@@ -219,6 +221,16 @@ function update_column_max_length($connection, $database, $table, $column)
 		mysqli_real_escape_string($connection, $column) . "'";
 	$value = update_scalar($connection, $sql);
 	return $value === null ? 0 : (int) $value;
+}
+
+function update_column_extra($connection, $database, $table, $column)
+{
+	$sql = "SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" .
+		mysqli_real_escape_string($connection, $database) . "' AND TABLE_NAME = '" .
+		mysqli_real_escape_string($connection, $table) . "' AND COLUMN_NAME = '" .
+		mysqli_real_escape_string($connection, $column) . "'";
+	$value = update_scalar($connection, $sql);
+	return $value === null ? '' : strtolower((string) $value);
 }
 
 function update_index_exists($connection, $database, $table, $index)
@@ -471,6 +483,33 @@ if (update_table_exists($connection, $dbname, $filechk_table) &&
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($filechk_table) .
 		' MODIFY `hash` VARCHAR(64) DEFAULT NULL';
 }
+$ipblocker_table = $table_prefix . 'ctracker_ipblocker';
+if (update_table_exists($connection, $dbname, $ipblocker_table) &&
+	strpos(update_column_extra($connection, $dbname, $ipblocker_table, 'id'), 'auto_increment') === false)
+{
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($ipblocker_table) .
+		' MODIFY `id` MEDIUMINT(8) UNSIGNED NOT NULL AUTO_INCREMENT';
+}
+
+// The original package seeded spoofable User-Agent strings from 2006. Remove
+// only those exact factory rows; administrator-created block rules survive.
+$legacy_blocklist_values = array(
+	'*WebStripper*', '*NetMechanic*', '*CherryPicker*', '*EmailCollector*',
+	'*EmailSiphon*', '*WebBandit*', '*EmailWolf*', '*ExtractorPro*',
+	'*SiteSnagger*', '*CheeseBot*', '*ia_archiver*', '*Website Quester*',
+	'*WebZip*', '*moget*', '*WebSauger*', '*WebCopier*', '*WWW-Collector*',
+	'*InfoNaviRobot*', '*Harvest*', '*Bullseye*', '*LinkWalker*',
+	'*LinkextractorPro*', '*WebProxy*', '*BlowFish*', '*WebEnhancer*',
+	'*TightTwatBot*', '*LinkScan*', '*WebDownloader*', 'lwp',
+	'*BruteForce*', 'lwp-*', '*anonym*'
+);
+$quoted_legacy_blocklist = array();
+foreach ($legacy_blocklist_values as $legacy_blocklist_value)
+{
+	$quoted_legacy_blocklist[] = "'" . mysqli_real_escape_string($connection, $legacy_blocklist_value) . "'";
+}
+$operations[] = 'DELETE FROM ' . update_quote_identifier($ipblocker_table) .
+	' WHERE `ct_blocker_value` IN (' . implode(', ', $quoted_legacy_blocklist) . ')';
 if (!update_index_exists($connection, $dbname, $table_prefix . 'users', 'user_reg_ip'))
 {
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table_prefix . 'users') .

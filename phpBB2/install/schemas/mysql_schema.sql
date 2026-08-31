@@ -1351,7 +1351,7 @@ CREATE TABLE `phpbb_ctracker_filescanner` (
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `phpbb_ctracker_ipblocker` (
-			`id` mediumint(8) unsigned NOT NULL,
+			`id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
 			`ct_blocker_value` varchar(250) default NULL,
 			PRIMARY KEY  (`id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

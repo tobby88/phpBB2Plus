@@ -55,6 +55,11 @@ class ct_adminfunctions
 	{
 		global $lang;
 
+		$current = intval($current);
+		if ($current < 0 || $current > 2)
+		{
+			$current = 0;
+		}
 		$switch = '';
 		$ch_sel = array_fill(0, 3, '');
 		$ch_sel[$current] = ' selected="selected"';
@@ -78,6 +83,11 @@ class ct_adminfunctions
 	{
 		global $lang;
 
+		$current = intval($current);
+		if ($current < 1 || $current > 9)
+		{
+			$current = 1;
+		}
 		$switch = '';
 		$ch_sel = array_fill(0, 10, '');
 		$ch_sel[$current] = ' selected="selected"';

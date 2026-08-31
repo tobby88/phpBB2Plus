@@ -104,58 +104,31 @@ if ( $mode == '1' )
 }
 else if ( $mode == '2' )
 {
-	// Delete all entrys in the CrackerTracker IP Blocker and insert the default values
+	// Remove only the obsolete User-Agent rules shipped in 2006. They are
+	// trivial to spoof and include legitimate clients; custom administrator
+	// rules must survive this cleanup.
 	$mode_selected = true;
-	$sql = 'TRUNCATE ' . CTRACKER_IPBLOCKER;
-	if ( !($result = $db->sql_query($sql)) )
+	$legacy_values = array(
+		'*WebStripper*', '*NetMechanic*', '*CherryPicker*', '*EmailCollector*',
+		'*EmailSiphon*', '*WebBandit*', '*EmailWolf*', '*ExtractorPro*',
+		'*SiteSnagger*', '*CheeseBot*', '*ia_archiver*', '*Website Quester*',
+		'*WebZip*', '*moget*', '*WebSauger*', '*WebCopier*', '*WWW-Collector*',
+		'*InfoNaviRobot*', '*Harvest*', '*Bullseye*', '*LinkWalker*',
+		'*LinkextractorPro*', '*WebProxy*', '*BlowFish*', '*WebEnhancer*',
+		'*TightTwatBot*', '*LinkScan*', '*WebDownloader*', 'lwp',
+		'*BruteForce*', 'lwp-*', '*anonym*'
+	);
+	$quoted_values = array();
+	foreach ($legacy_values as $legacy_value)
 	{
-		 $operation_err = true;
-		 $error_message = __LINE__ . '<br />' . __FILE__ . '<br /><br />' . $sql;
+		$quoted_values[] = "'" . $db->sql_escape($legacy_value) . "'";
 	}
-
-	$sql = array();
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (1, '*WebStripper*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (2, '*NetMechanic*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (3, '*CherryPicker*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (4, '*EmailCollector*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (5, '*EmailSiphon*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (6, '*WebBandit*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (7, '*EmailWolf*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (8, '*ExtractorPro*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (9, '*SiteSnagger*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (10, '*CheeseBot*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (11, '*ia_archiver*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (12, '*Website Quester*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (13, '*WebZip*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (14, '*moget*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (15, '*WebSauger*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (16, '*WebCopier*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (17, '*WWW-Collector*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (18, '*InfoNaviRobot*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (19, '*Harvest*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (20, '*Bullseye*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (21, '*LinkWalker*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (22, '*LinkextractorPro*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (23, '*WebProxy*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (24, '*BlowFish*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (25, '*WebEnhancer*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (26, '*TightTwatBot*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (27, '*LinkScan*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (28, '*WebDownloader*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (29, 'lwp');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (30, '*BruteForce*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (31, 'lwp-*');";
-	$sql[] = "INSERT INTO " . CTRACKER_IPBLOCKER . " (`id`, `ct_blocker_value`) VALUES (32, '*anonym*');";
-
-	for ( $i = 0; $i < count($sql); $i++ )
+	$sql = 'DELETE FROM ' . CTRACKER_IPBLOCKER . ' WHERE ct_blocker_value IN (' . implode(', ', $quoted_values) . ')';
+	if (!$db->sql_query($sql))
 	{
-		if ( !$operation_err && !($result = $db->sql_query($sql[$i])) )
-		{
-		 	$operation_err = true;
-		 	$error_message = __LINE__ . '<br />' . __FILE__ . '<br /><br />' . $sql[$i];
-		}
+		$operation_err = true;
+		$error_message = __LINE__ . '<br />' . __FILE__;
 	}
-
 }
 else if ( $mode == '3' )
 {

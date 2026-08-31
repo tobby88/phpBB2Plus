@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed CrackerTracker's obsolete factory blocklist of 32 spoofable
+  User-Agent strings, which included legitimate archival and scripting
+  clients. Fresh installations now start with an empty administrator-managed
+  blocklist; the updater and ACP cleanup preserve every custom IP, CIDR,
+  hostname and User-Agent rule. Blocklist IDs are allocated atomically by the
+  database, and invalid legacy selector values no longer trigger PHP warnings.
 - Removed CrackerTracker's two obsolete per-user search counters. Search
   protection already uses the shared atomic rate-limit table for guests and
   members, so fresh schemas no longer create parallel state and the updater
