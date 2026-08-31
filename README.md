@@ -101,8 +101,10 @@ The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
 is disabled by default because it can make extensive database changes. To use
 it, temporarily add `define('DBMTNC_ENABLE_ERC', true);` and a random secret of
 at least 32 characters as `define('DBMTNC_ERC_TOKEN', '...');` to `config.php`.
-Open `admin/erc.php?token=...` only for the required recovery operation, then
-remove both settings immediately afterwards.
+Open `admin/erc.php?token=...` over HTTPS only. The console immediately moves
+the token into a secure, host-only session cookie and redirects to a clean URL.
+Use it only for the required recovery operation, close the browser session,
+then remove both settings immediately afterwards.
 
 CrackerTracker's separate `ctracker/emergency.php` console cannot be enabled:
 its original edit-to-unlock design had no authentication. Use the guarded DB

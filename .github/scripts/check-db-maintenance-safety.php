@@ -11,6 +11,7 @@ function dbmtnc_safety_assert($condition, $message)
 
 $root = dirname(dirname(__DIR__));
 $admin = file_get_contents($root . '/phpBB2/admin/admin_db_maintenance.php');
+$erc = file_get_contents($root . '/phpBB2/admin/erc.php');
 $english = file_get_contents($root . '/phpBB2/language/lang_english/lang_dbmtnc.php');
 $german = file_get_contents($root . '/phpBB2/language/lang_german/lang_dbmtnc.php');
 $templates = array(
@@ -34,5 +35,18 @@ foreach ($templates as $template)
 {
 	dbmtnc_safety_assert(strpos($template, '{S_HIDDEN_FIELDS}') !== false, 'maintenance forms must render their session fields');
 }
+
+foreach (array(
+	"isset(\$_GET['token']) && is_scalar(\$_GET['token'])",
+	"isset(\$_COOKIE['phpbb_erc_token']) && is_scalar(\$_COOKIE['phpbb_erc_token'])",
+	"setcookie('phpbb_erc_token', \$erc_token, 0, '/; SameSite=Strict', '', true, true)",
+	"header('Location: erc.php', true, 303)",
+	"header('Referrer-Policy: no-referrer')",
+	"header('Cache-Control: no-store, private, max-age=0')"
+) as $marker)
+{
+	dbmtnc_safety_assert(strpos($erc, $marker) !== false, 'Emergency console hardening is missing: ' . $marker);
+}
+dbmtnc_safety_assert(strpos($erc, "\$_REQUEST['token']") === false, 'Emergency capability tokens must not be cookie-merged through REQUEST.');
 
 echo "Database-maintenance safety tests passed.\n";
