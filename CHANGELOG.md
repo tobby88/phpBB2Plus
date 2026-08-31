@@ -24,6 +24,12 @@ changes consolidated after that baseline without implying active maintenance.
   dot-stuffed as one payload, preventing a user-authored line containing only
   a period from ending the message early and turning following text into SMTP
   protocol commands.
+- Deferred StopForumSpam lookups until a registration has passed every local
+  check, disabled redirects from its fixed HTTPS API endpoint, bounded and
+  validated query values and responses, and made third-party outages fail
+  open by default instead of disabling registration. Administrators who
+  prefer strict availability coupling can explicitly select fail-closed mode;
+  the new option is included in fresh schemas and idempotent upgrades.
 - Removed CrackerTracker's obsolete factory blocklist of 32 spoofable
   User-Agent strings, which included legitimate archival and scripting
   clients. Fresh installations now start with an empty administrator-managed

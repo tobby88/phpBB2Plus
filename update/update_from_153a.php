@@ -549,6 +549,7 @@ $config_defaults = array(
 	'xs_def_template' => 'fisubsilversh',
 	'cookie_consent_enable' => '1',
 	'sfs_enable' => '0',
+	'sfs_fail_closed' => '0',
 	'password_hashing' => '1',
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',

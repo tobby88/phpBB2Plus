@@ -425,6 +425,8 @@ $lang['Session_length'] = 'Sessionlänge [ Sekunden ]';
 $lang['cookie_consent_enable'] = 'Cookie-Hinweis anzeigen?';
 $lang['sfs_enable'] = 'StopForumSpam-Prüfung bei Registrierung aktivieren';
 $lang['sfs_enable_explain'] = 'Prüft Benutzernamen, E-Mail-Adresse und IP-Adresse bei der Registrierung über den externen Dienst stopforumspam.com.';
+$lang['sfs_fail_closed'] = 'Registrierung bei StopForumSpam-Ausfall sperren';
+$lang['sfs_fail_closed_explain'] = 'Nein (empfohlen) hält die Registrierung bei einem API-Ausfall verfügbar und protokolliert den Fehler. Ja lehnt Registrierungen ab, bis wieder eine gültige API-Antwort vorliegt.';
 
 // Visual Confirmation
 $lang['Visual_confirm'] = 'Aktiviere visuelle Bestätigung';

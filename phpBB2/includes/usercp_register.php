@@ -609,22 +609,9 @@ if ( isset($_POST['submit']) )
 		$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];
 	}
 
-	//
-	// Do a ban check on this email address
-	//
-	if ($mode == 'register' && !empty($board_config['sfs_enable']))
-	{
-		$remote_address = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
-		$address_result = validate_stopforumspam_address($remote_address);
-		if ($address_result['error'])
-		{
-			$error = TRUE;
-			$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $address_result['error_msg'];
-		}
-	}
 	if ( $email != $userdata['user_email'] || $mode == 'register' )
 	{
-		$result = validate_email($email, $mode == 'register');
+		$result = validate_email($email, false);
 		if ( $result['error'] )
 		{
 			$email = $userdata['user_email'];
@@ -662,7 +649,7 @@ if ( isset($_POST['submit']) )
 			}
 			if (strtolower($username) != strtolower($userdata['username']) || $mode == 'register')
 			{
-				$result = validate_username($username, $mode == 'register');
+				$result = validate_username($username, false);
 				if ( $result['error'] )
 				{
 					$error = TRUE;
@@ -673,6 +660,35 @@ if ( isset($_POST['submit']) )
 			if (!$error)
 			{
 				$username_sql = "username = '" . usercp_sql_value($username) . "', ";
+			}
+		}
+	}
+
+	// External reputation checks run only after all local validation succeeds.
+	// This prevents malformed registration floods from tying up PHP workers on
+	// three remote requests each.
+	if ($mode == 'register' && !$error && !empty($board_config['sfs_enable']))
+	{
+		$remote_address = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+		$sfs_values = array(
+			'ip' => array($remote_address, $lang['You_been_banned']),
+			'email' => array($email, $lang['Email_banned']),
+			'username' => array($username, $lang['Username_disallowed'])
+		);
+		foreach ($sfs_values as $sfs_type => $sfs_data)
+		{
+			$sfs_result = stopforumspam($sfs_data[0], $sfs_type);
+			if ($sfs_result === true)
+			{
+				$error = TRUE;
+				$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $sfs_data[1];
+				break;
+			}
+			if (is_array($sfs_result) && !empty($sfs_result['error']))
+			{
+				$error = TRUE;
+				$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $sfs_result['error_msg'];
+				break;
 			}
 		}
 	}

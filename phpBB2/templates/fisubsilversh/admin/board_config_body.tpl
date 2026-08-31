@@ -72,6 +72,10 @@
 <td class="row2"><input type="radio" name="sfs_enable" value="1" {SFS_ENABLE_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="sfs_enable" value="0" {SFS_ENABLE_NO} /> {L_NO}</td>
 </tr>
 <tr>
+<td class="row1">{L_SFS_FAIL_CLOSED}<br /><span class="gensmall">{L_SFS_FAIL_CLOSED_EXPLAIN}</span></td>
+<td class="row2"><input type="radio" name="sfs_fail_closed" value="1" {SFS_FAIL_CLOSED_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="sfs_fail_closed" value="0" {SFS_FAIL_CLOSED_NO} /> {L_NO}</td>
+</tr>
+<tr>
 <td class="row1">{L_ALLOW_AUTOLOGIN}<br />
 <span class="gensmall">{L_ALLOW_AUTOLOGIN_EXPLAIN}</span></td>
 <td class="row2">

@@ -425,6 +425,8 @@ $lang['Session_length'] = 'Session length [ seconds ]';
 $lang['cookie_consent_enable'] = 'Enable cookie consent notice?';
 $lang['sfs_enable'] = 'Enable StopForumSpam registration check';
 $lang['sfs_enable_explain'] = 'Checks registration usernames, email addresses and IP addresses against the external stopforumspam.com service.';
+$lang['sfs_fail_closed'] = 'Block registration when StopForumSpam is unavailable';
+$lang['sfs_fail_closed_explain'] = 'No (recommended) keeps registration available during an API outage and logs the failure. Yes rejects registration until a valid API response is received.';
 
 // Visual Confirmation
 $lang['Visual_confirm'] = 'Enable Visual Confirmation';

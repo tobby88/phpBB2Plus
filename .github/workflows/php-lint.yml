@@ -109,6 +109,9 @@ jobs:
       - name: Test SMTP transport safety
         run: php .github/scripts/check-smtp-transport-safety.php
 
+      - name: Test StopForumSpam integration safety
+        run: php .github/scripts/check-stopforumspam-safety.php
+
       - name: Test CrackerTracker log rotation
         run: php .github/scripts/check-ctracker-log-manager.php
 

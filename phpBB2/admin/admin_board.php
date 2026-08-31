@@ -167,6 +167,8 @@ $confirm_yes = ($new['enable_confirm']) ? 'checked="checked"' : '';
 $confirm_no = (!$new['enable_confirm']) ? 'checked="checked"' : '';
 $sfs_enable_yes = ( !empty($new['sfs_enable']) ) ? 'checked="checked"' : '';
 $sfs_enable_no = ( empty($new['sfs_enable']) ) ? 'checked="checked"' : '';
+$sfs_fail_closed_yes = ( !empty($new['sfs_fail_closed']) ) ? 'checked="checked"' : '';
+$sfs_fail_closed_no = ( empty($new['sfs_fail_closed']) ) ? 'checked="checked"' : '';
 
 $allow_autologin_yes = ($new['allow_autologin']) ? 'checked="checked"' : '';
 $allow_autologin_no = (!$new['allow_autologin']) ? 'checked="checked"' : '';
@@ -450,6 +452,10 @@ $template->assign_vars(array(
 	"SFS_ENABLE_NO" => $sfs_enable_no,
 	"L_SFS_ENABLE" => $lang['sfs_enable'],
 	"L_SFS_ENABLE_EXPLAIN" => $lang['sfs_enable_explain'],
+	"SFS_FAIL_CLOSED_YES" => $sfs_fail_closed_yes,
+	"SFS_FAIL_CLOSED_NO" => $sfs_fail_closed_no,
+	"L_SFS_FAIL_CLOSED" => $lang['sfs_fail_closed'],
+	"L_SFS_FAIL_CLOSED_EXPLAIN" => $lang['sfs_fail_closed_explain'],
 	"ACTIVATION_NONE_CHECKED" => $activation_none,
 	'ALLOW_AUTOLOGIN_YES' => $allow_autologin_yes,
 	'ALLOW_AUTOLOGIN_NO' => $allow_autologin_no,

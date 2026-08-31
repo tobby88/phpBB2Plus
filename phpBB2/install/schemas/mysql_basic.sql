@@ -26,6 +26,7 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_remot
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_avatar_upload','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('enable_confirm', '1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('sfs_enable', '0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('sfs_fail_closed', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('allow_autologin','1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('max_autologin_time','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('override_user_style','0');

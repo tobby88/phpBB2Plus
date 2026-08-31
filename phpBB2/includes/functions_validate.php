@@ -251,9 +251,31 @@ function validate_stopforumspam_address($address)
 	return array('error' => false, 'error_msg' => '');
 }
 
+function stopforumspam_service_error($language_key)
+{
+	global $lang, $board_config, $stopforumspam_request_unavailable;
+	static $logged = false;
+
+	$stopforumspam_request_unavailable = true;
+	if (!$logged)
+	{
+		error_log('StopForumSpam registration check unavailable: ' . preg_replace('/[^a-z_]/i', '', (string) $language_key));
+		$logged = true;
+	}
+	if (!empty($board_config['sfs_fail_closed']))
+	{
+		return array(
+			'error' => true,
+			'error_msg' => isset($lang[$language_key]) ? $lang[$language_key] : 'Registration spam check unavailable.'
+		);
+	}
+
+	return false;
+}
+
 function stopforumspam($value, $type)
 {
-	global $lang;
+	global $lang, $stopforumspam_request_unavailable;
 
 	if (!in_array($type, array('username', 'email', 'ip'), true))
 	{
@@ -261,22 +283,37 @@ function stopforumspam($value, $type)
 	}
 	if (!function_exists('file_get_contents') || !class_exists('DOMDocument'))
 	{
-		return array('error' => true, 'error_msg' => $lang['sfs_missing_extension']);
+		return stopforumspam_service_error('sfs_missing_extension');
+	}
+
+	$value = trim((string) $value);
+	if (($type === 'ip' && filter_var($value, FILTER_VALIDATE_IP) === false) ||
+		($type === 'email' && (strlen($value) > 254 || filter_var($value, FILTER_VALIDATE_EMAIL) === false)) ||
+		($type === 'username' && ($value === '' || strlen($value) > 100)))
+	{
+		return false;
+	}
+	if (!empty($stopforumspam_request_unavailable))
+	{
+		return stopforumspam_service_error('sfs_service_unavailable');
 	}
 
 	$context = stream_context_create(array(
 		'http' => array(
 			'timeout' => 4,
-			'max_redirects' => 2,
+			'follow_location' => 0,
+			'max_redirects' => 0,
+			'ignore_errors' => true,
 			'user_agent' => 'phpBB2 Plus StopForumSpam integration'),
 		'ssl' => array(
 			'verify_peer' => true,
 			'verify_peer_name' => true)));
-	$url = 'https://api.stopforumspam.org/api?' . $type . '=' . urlencode($value) . '&xml';
+	$url = 'https://api.stopforumspam.org/api?' . $type . '=' . rawurlencode($value) . '&xml';
 	$xml = @file_get_contents($url, false, $context, 0, 262144);
-	if ($xml === false)
+	$status_ok = isset($http_response_header[0]) && preg_match('#^HTTP/\S+\s+200(?:\s|$)#i', (string) $http_response_header[0]);
+	if ($xml === false || !$status_ok)
 	{
-		return array('error' => true, 'error_msg' => $lang['sfs_service_unavailable']);
+		return stopforumspam_service_error('sfs_service_unavailable');
 	}
 
 	$dom = new DOMDocument();
@@ -286,10 +323,14 @@ function stopforumspam($value, $type)
 	libxml_use_internal_errors($previous_errors);
 	if (!$loaded)
 	{
-		return array('error' => true, 'error_msg' => $lang['sfs_invalid_response']);
+		return stopforumspam_service_error('sfs_invalid_response');
 	}
 
 	$tags = $dom->getElementsByTagName('appears');
+	if ($tags->length < 1)
+	{
+		return stopforumspam_service_error('sfs_invalid_response');
+	}
 	foreach ($tags as $node)
 	{
 		if (strtolower(trim($node->nodeValue)) === 'yes')
