@@ -200,8 +200,7 @@ function update_ina_session($user_id, $user_ip, $page, $game, $old_hash = FALSE,
 	$game = $db->sql_escape($game);
 	$win = preg_match('/^[A-Za-z0-9_-]{1,20}$/D', (string) $win) ? (string) $win : 'NORM';
 	$start_time		= time();
-	$string			= sprintf("ARCADE_MOD %s %s %s %d %d %d", $game, $board_config['sitename'], $user_ip, $page, $user_id, $userdata['session_ip']);
-	$arcade_hash	= md5(dss_rand() . dss_rand() . $string);
+	$arcade_hash	= bin2hex(phpbb_random_bytes(16));
 	//
 	$ip_num = $db->sql_escape(decode_ip($userdata['session_ip']));
 	$ip_nam = '';

@@ -194,7 +194,7 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 
 	if ( phpbb_image_dimensions_safe($width, $height) && $width <= $board_config['avatar_max_width'] && $height <= $board_config['avatar_max_height'] )
 	{
-		$new_filename = md5(dss_rand() . dss_rand()) . $imgtype;
+		$new_filename = bin2hex(phpbb_random_bytes(16)) . $imgtype;
 
 		$destination = $avatar_dir . DIRECTORY_SEPARATOR . $new_filename;
 		if (!@move_uploaded_file($avatar_filename, $destination))

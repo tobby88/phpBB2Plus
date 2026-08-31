@@ -121,6 +121,9 @@ jobs:
       - name: Test runtime diagnostics safety
         run: php .github/scripts/check-runtime-diagnostics-safety.php
 
+      - name: Test security-sensitive random values
+        run: php .github/scripts/check-security-entropy.php
+
       - name: Test StopForumSpam integration safety
         run: php .github/scripts/check-stopforumspam-safety.php
 

@@ -258,6 +258,39 @@ if (!function_exists('phpbb_random_bytes'))
 }
 
 /**
+ * Return a cryptographically random string without modulo bias.
+ */
+if (!function_exists('phpbb_random_string'))
+{
+	function phpbb_random_string($length, $alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
+	{
+		$length = max(1, (int) $length);
+		$alphabet = (string) $alphabet;
+		$alphabet_length = strlen($alphabet);
+		if ($alphabet_length < 2 || $alphabet_length > 256)
+		{
+			throw new InvalidArgumentException('Random-string alphabet must contain 2 to 256 characters.');
+		}
+
+		$limit = 256 - (256 % $alphabet_length);
+		$result = '';
+		while (strlen($result) < $length)
+		{
+			$bytes = phpbb_random_bytes(max(16, $length - strlen($result)));
+			for ($i = 0, $count = strlen($bytes); $i < $count && strlen($result) < $length; $i++)
+			{
+				$value = ord($bytes[$i]);
+				if ($value < $limit)
+				{
+					$result .= $alphabet[$value % $alphabet_length];
+				}
+			}
+		}
+		return $result;
+	}
+}
+
+/**
  * Build an absolute URL from the configured board origin, never HTTP_HOST.
  */
 if (!function_exists('phpbb_board_url'))

@@ -1670,10 +1670,8 @@ if( !$userdata['session_logged_in'] && $ctracker_config->settings['vconfirm_gues
 	
 	// Generate the required confirmation code
 	// NB 0 (zero) could get confused with O (the letter) so we make change it
-	$code = dss_rand();
-	$code = strtoupper(str_replace('0', 'o', substr($code, 6)));
-	
-	$confirm_id = md5(dss_rand() . dss_rand());
+	$code = phpbb_random_string(6, '23456789ABCDEFGHJKLMNPQRSTUVWXYZ');
+	$confirm_id = bin2hex(phpbb_random_bytes(16));
 	
 	$sql = 'INSERT INTO ' . CONFIRM_TABLE . " (confirm_id, session_id, code) 
 		VALUES ('$confirm_id', '". $userdata['session_id'] . "', '$code')";

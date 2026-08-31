@@ -139,7 +139,7 @@ class pafiledb_functions
 	
 		do
 		{
-			$filename = md5(dss_rand() . dss_rand()) . $file_type;
+			$filename = bin2hex(phpbb_random_bytes(16)) . $file_type;
 		}
 		while( file_exists($pafiledb_config['upload_dir'] . '/' . $filename) );
 	

@@ -640,7 +640,7 @@ else
 
 	do
 	{
-		$pic_filename = md5(dss_rand() . dss_rand()) . $pic_filetype;
+		$pic_filename = bin2hex(phpbb_random_bytes(16)) . $pic_filetype;
 	}
 	while( file_exists(ALBUM_UPLOAD_PATH . $pic_filename) );
 
