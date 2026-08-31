@@ -35,7 +35,7 @@ if( isset($HTTP_POST_VARS['submit']) )
 		'login_ip_check' => array(0, 1), 'spammer_blockmode' => array(0, 2),
 		'spammer_postcount' => array(1, 12), 'spammer_time' => array(1, 90),
 		'logsize_spammer' => array(1, 400), 'reg_protection' => array(0, 1),
-		'reg_blocktime' => array(1, 200), 'reg_ip_scan' => array(0, 1),
+		'reg_blocktime' => array(1, 200),
 		'pw_control' => array(0, 1), 'pw_validity' => array(6, 365),
 		'pw_complex' => array(0, 1), 'pw_complex_mode' => array(1, 9),
 		'pw_complex_min' => array(1, 20), 'pw_reset_feature' => array(0, 1),
@@ -87,7 +87,6 @@ $configuration['spammer_time']       	  = $adminclass->ct_generate_number_field(
 $configuration['logsize_spammer']		  = $adminclass->ct_generate_number_field(1, 400, $ctracker_config->settings['logsize_spammer']);
 $configuration['reg_protection'] 		  = $adminclass->ct_generate_on_off($ctracker_config->settings['reg_protection']);
 $configuration['reg_blocktime']       	  = $adminclass->ct_generate_number_field(1, 200, $ctracker_config->settings['reg_blocktime']);
-$configuration['reg_ip_scan'] 			  = $adminclass->ct_generate_on_off($ctracker_config->settings['reg_ip_scan']);
 $configuration['pw_control'] 			  = $adminclass->ct_generate_on_off($ctracker_config->settings['pw_control']);
 $configuration['pw_validity']			  = $adminclass->ct_generate_number_field(6, 365, $ctracker_config->settings['pw_validity']);
 $configuration['pw_complex'] 			  = $adminclass->ct_generate_on_off($ctracker_config->settings['pw_complex']);
@@ -177,8 +176,6 @@ $template->assign_vars(array(
 		'L_EXP_18'	   => $lang['ctracker_settings_e18'],
 		'L_MOD_19'     => $lang['ctracker_settings_m19'],
 		'L_EXP_19'	   => $lang['ctracker_settings_e19'],
-		'L_MOD_21'     => $lang['ctracker_settings_m21'],
-		'L_EXP_21'	   => $lang['ctracker_settings_e21'],
 		'L_MOD_22'     => $lang['ctracker_settings_m22'],
 		'L_EXP_22'	   => $lang['ctracker_settings_e22'],
 		'L_MOD_23'     => $lang['ctracker_settings_m23'],
@@ -250,7 +247,6 @@ $template->assign_vars(array(
 		'S_OUTPUT_17'  => $configuration['logsize_spammer'],
 		'S_OUTPUT_18'  => $configuration['reg_protection'],
 		'S_OUTPUT_19'  => $configuration['reg_blocktime'],
-		'S_OUTPUT_21'  => $configuration['reg_ip_scan'],
 		'S_OUTPUT_22'  => $configuration['pw_control'],
 		'S_OUTPUT_23'  => $configuration['pw_validity'],
 		'S_OUTPUT_24'  => $configuration['pw_complex'],

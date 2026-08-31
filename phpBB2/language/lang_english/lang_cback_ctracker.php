@@ -85,12 +85,10 @@ $lang['ctracker_settings_e16']			  = 'Allowed number of posts in the set period 
 $lang['ctracker_settings_m17']			  = 'Spammer Logsize';
 $lang['ctracker_settings_e17']			  = 'Logsize in which as Spammer identified users will be saved.';
 $lang['ctracker_settings_m18']			  = 'Register Protection';
-$lang['ctracker_settings_e18']			  = 'Here you can activate or deactivate the Register Protection.';
+$lang['ctracker_settings_e18']			  = 'Limits repeated successful registrations from the same verified IP address without blocking other visitors. Invalid form submissions do not start this cooldown.';
 $lang['ctracker_settings_m19']			  = 'Block Time for Registration';
-$lang['ctracker_settings_e19']			  = 'Here you can set the time between two registrations. (in seconds)';
+$lang['ctracker_settings_e19']			  = 'Delay between two successful registrations from the same IP address (in seconds). The central hourly registration-request limit also applies.';
 
-$lang['ctracker_settings_m21']			  = 'IP Watcher';
-$lang['ctracker_settings_e21']			  = 'If this feature has been activated a user with an identical IP Address can just register once until someone has registered with another IP Address.';
 $lang['ctracker_settings_m22']			  = 'Password Validity';
 $lang['ctracker_settings_e22']			  = 'Activates Checking of Validity of Password for all users.';
 $lang['ctracker_settings_m23']			  = 'Validity of Password in days';
@@ -394,8 +392,7 @@ $lang['ctracker_error_del_login_history'] = 'The CBACK CrackerTracker Login Hist
  * Language Strings used in class_ct_userfunctions.php
  */
 $lang['ctracker_info_search_time']        = 'For safety reasons, up to %s searches are allowed within %s seconds. Please wait %s seconds before searching again.';
-$lang['ctracker_info_regist_time']        = "For safety reasons a registration is only possible every %s seconds. If this number was exceeded, you must wait now <span id=\"waittime\">%s</span> seconds, until you can implement the next search registrations. <script type=\"text/javascript\"><!-- \n var wait = %s; var waitt = wait * 1000; for(i=1; i <= wait; i++) { window.setTimeout(\"newoutput(\" + i + \")\", i * 1000); } function newoutput(waitcounter) { if ( (waitt/1000) == waitcounter ) { document.getElementById(\"waittime\").innerHTML = \"0\"; } else { document.getElementById(\"waittime\").innerHTML = (waitt/1000) - waitcounter; } } //--></script>";
-$lang['ctracker_info_regip_double']		  = 'There has already been a registration from this IP-Address. From safety reasons you only one registration from the same IP address is possible.';
+$lang['ctracker_info_regist_time']        = 'An account has just been registered from this connection. The protection delay is %s seconds; please wait another %s seconds.';
 $lang['ctracker_info_profile_spammer']	  = 'This registration was identified as a spam account! If you think, that this was incorrect, please contact the administrator of this forum so that he can check your account.';
 $lang['ctracker_info_profile_content']   = 'The submitted profile content matched the spam filter and was not saved. Please revise it or contact an administrator if this was a false positive.';
 $lang['ctracker_info_post_spammer']      = 'The submitted post matched the spam filter and was not saved. Please reduce suspicious links or wording and try again.';

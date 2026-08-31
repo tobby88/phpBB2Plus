@@ -84,11 +84,9 @@ $lang['ctracker_settings_e16']			  = 'Erlaubte Anzahl an Posts in der obigen Zei
 $lang['ctracker_settings_m17']			  = 'Spammer Loggröße';
 $lang['ctracker_settings_e17']			  = 'Loggröße in der als Spammer identifizierte Benutzer gespeichert werden.';
 $lang['ctracker_settings_m18']			  = 'Registrierschutz';
-$lang['ctracker_settings_e18']			  = 'Hier kannst Du den Registrierschutz aktivieren oder deaktivieren.';
+$lang['ctracker_settings_e18']			  = 'Begrenzt wiederholte erfolgreiche Registrierungen derselben verifizierten IP-Adresse, ohne andere Besucher zu sperren. Fehlgeschlagene Formularversuche lösen diese Sperre nicht aus.';
 $lang['ctracker_settings_m19']			  = 'Blockzeit für Registrierung';
-$lang['ctracker_settings_e19']			  = 'Hier kann die Zeitspanne eingestellt werden, die zwischen zwei Registrierungen vergehen muss, ehe ein neuer Benutzer sich wieder registrieren kann. (in Sekunden)';
-$lang['ctracker_settings_m21']			  = 'IP Watcher';
-$lang['ctracker_settings_e21']			  = 'Wenn diese Funktion aktiviert wurde, kann sich ein Benutzer mit einer identischen IP Adresse nur einmal registrieren, bis sich jemand mit anderer IP Adresse wieder registriert hat.';
+$lang['ctracker_settings_e19']			  = 'Zeitspanne zwischen zwei erfolgreichen Registrierungen derselben IP-Adresse (in Sekunden). Zusätzlich gilt der zentrale Stunden-Grenzwert für Registrierungsanfragen.';
 $lang['ctracker_settings_m22']			  = 'Passwortgültigkeit';
 $lang['ctracker_settings_e22']			  = 'Aktiviert die Überprüfung der Passwortgültigkeit für alle Benutzer.';
 $lang['ctracker_settings_m23']			  = 'Passwortgültigkeit in Tagen';
@@ -393,8 +391,7 @@ $lang['ctracker_error_del_login_history'] = 'Die CBACK CrackerTracker Login Hist
  * Language Strings used in class_ct_userfunctions.php
  */
 $lang['ctracker_info_search_time']        = 'Aus Sicherheitsgründen sind höchstens %s Suchvorgänge innerhalb von %s Sekunden möglich. Bitte warte %s Sekunden, bevor Du erneut suchst.';
-$lang['ctracker_info_regist_time']        = "Aus Sicherheitsgründen ist eine Registrierung nur alle %s Sekunden möglich. Diese Anzahl wurde überschritten. Daher musst Du nun <span id=\"waittime\">%s</span> Sekunden warten, bis Du eine weitere Registrierung vornehmen kannst. <script type=\"text/javascript\"><!-- \n var wait = %s; var waitt = wait * 1000; for(i=1; i <= wait; i++) { window.setTimeout(\"newoutput(\" + i + \")\", i * 1000); } function newoutput(waitcounter) { if ( (waitt/1000) == waitcounter ) { document.getElementById(\"waittime\").innerHTML = \"0\"; } else { document.getElementById(\"waittime\").innerHTML = (waitt/1000) - waitcounter; } } //--></script>";
-$lang['ctracker_info_regip_double']		  = 'Es fand bereits eine Registrierung von dieser IP Adresse statt. Aus Sicherheitsgründen darf man sich nacheinander lediglich einmal von der gleichen IP Adresse registrieren!';
+$lang['ctracker_info_regist_time']        = 'Von dieser Verbindung wurde gerade ein Konto registriert. Der Schutzabstand beträgt %s Sekunden; bitte warte noch %s Sekunden.';
 $lang['ctracker_info_profile_spammer']	  = 'Dieser Registrierversuch wurde als Spammer-Account identifiziert! Wenn Du denkst, dass das ist eine fehlerhafte Erkennung ist, dann wende Dich bitte an den Administrator dieses Forums, damit dieser Dir einen Account erstellen kann!';
 $lang['ctracker_info_profile_content']   = 'Der eingereichte Profilinhalt wurde vom Spamfilter abgelehnt und nicht gespeichert. Bitte überarbeite ihn oder wende Dich bei einer Fehlerkennung an einen Administrator.';
 $lang['ctracker_info_post_spammer']      = 'Der eingereichte Beitrag wurde vom Spamfilter abgelehnt und nicht gespeichert. Bitte reduziere verdächtige Links oder Formulierungen und versuche es erneut.';

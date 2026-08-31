@@ -964,7 +964,6 @@ if ( isset($_POST['submit']) )
 
 			// BEGIN CrackerTracker v5.x
 			($mode == 'register')? $profile_security->pw_create_date($user_id) : null;
-			($mode == 'register')? $profile_security->reg_done() : null;
 			// END CrackerTracker v5.x
 
 			$sql = "INSERT INTO " . GROUPS_TABLE . " (group_name, group_description, group_single_user, group_moderator)
@@ -1103,6 +1102,10 @@ if ( isset($_POST['submit']) )
 				}
 				$db->sql_freeresult($result);
 			}
+
+			// Start the per-IP registration cooldown only after the account,
+			// personal group, profile fields and notification mail were handled.
+			$profile_security->reg_done();
 
 			$message = $message . '<br /><br />' . sprintf($lang['Click_return_index'],  '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
 

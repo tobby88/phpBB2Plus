@@ -105,6 +105,65 @@ function ctracker_rate_limit_increment($bucket, $identity, $window_seconds, $lim
 		: 0;
 }
 
+/**
+ * Return the remaining rolling cooldown since the last successful action.
+ *
+ * This is intentionally separate from the fixed-window request counter: a
+ * registration form with validation errors must not consume the cooldown.
+ * Missing or temporarily unavailable storage fails open, like the main
+ * limiter, so a database update cannot make the board unavailable.
+ */
+function ctracker_rate_limit_cooldown_remaining($bucket, $identity, $cooldown_seconds)
+{
+	global $db;
+
+	$bucket = is_scalar($bucket) ? (string) $bucket : '';
+	$identity = is_scalar($identity) ? (string) $identity : '';
+	$cooldown_seconds = max(1, min(86400, intval($cooldown_seconds)));
+	if ($bucket === '' || $identity === '')
+	{
+		return false;
+	}
+
+	$bucket_hash = hash('sha256', $bucket . "\0" . $identity);
+	$sql = 'SELECT updated_at FROM ' . CTRACKER_RATE_LIMITS . "
+		WHERE bucket_hash = '" . $db->sql_escape($bucket_hash) . "'";
+	if (!($result = $db->sql_query($sql)))
+	{
+		return false;
+	}
+	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$row || empty($row['updated_at']))
+	{
+		return 0;
+	}
+
+	return max(0, (intval($row['updated_at']) + $cooldown_seconds) - time());
+}
+
+/** Record a successful action for a later rolling-cooldown check. */
+function ctracker_rate_limit_mark_success($bucket, $identity)
+{
+	global $db;
+
+	$bucket = is_scalar($bucket) ? (string) $bucket : '';
+	$identity = is_scalar($identity) ? (string) $identity : '';
+	if ($bucket === '' || $identity === '')
+	{
+		return false;
+	}
+
+	$now = time();
+	$bucket_hash = hash('sha256', $bucket . "\0" . $identity);
+	$sql = 'INSERT INTO ' . CTRACKER_RATE_LIMITS . "
+		(bucket_hash, window_start, request_count, updated_at)
+		VALUES ('" . $db->sql_escape($bucket_hash) . "', $now, 1, $now)
+		ON DUPLICATE KEY UPDATE window_start = VALUES(window_start),
+			request_count = request_count + 1, updated_at = VALUES(updated_at)";
+	return (bool) $db->sql_query($sql);
+}
+
 function ctracker_enforce_request_limit()
 {
 	global $db, $ctracker_config, $HTTP_SERVER_VARS, $HTTP_POST_VARS, $HTTP_GET_VARS;

@@ -34,14 +34,19 @@ limiter_assert_profile('write', 'search.php', array('search_keywords' => 'exampl
 class limiter_test_db
 {
 	var $count = 0;
+	var $last_updated_at = 0;
 
 	function sql_escape($value) { return addslashes((string) $value); }
 	function sql_query($sql)
 	{
-		if (strpos($sql, 'INSERT INTO') === 0) { $this->count++; }
+		if (strpos($sql, 'INSERT INTO') === 0)
+		{
+			$this->count++;
+			$this->last_updated_at = time();
+		}
 		return true;
 	}
-	function sql_fetchrow($result) { return array('request_count' => $this->count); }
+	function sql_fetchrow($result) { return array('request_count' => $this->count, 'updated_at' => $this->last_updated_at); }
 	function sql_freeresult($result) { return true; }
 }
 
@@ -60,6 +65,29 @@ ctracker_enforce_login_identity_limit('Example User');
 if ($db->count !== $before_identity_count + 1)
 {
 	$errors[] = 'Per-IP/account login limiter did not use the atomic store.';
+}
+
+$db->last_updated_at = 0;
+if (ctracker_rate_limit_cooldown_remaining('registration-success', '192.0.2.10', 30) !== 0 ||
+	!ctracker_rate_limit_mark_success('registration-success', '192.0.2.10') ||
+	ctracker_rate_limit_cooldown_remaining('registration-success', '192.0.2.10', 30) <= 0)
+{
+	$errors[] = 'Successful-registration cooldown did not remain per identity.';
+}
+
+$userfunctions_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_userfunctions.php');
+$settings_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/admin/acp_module_settings.php');
+$settings_template = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/templates/fisubsilversh/ctracker/acp/acp_settings.tpl');
+$basic_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/install/schemas/mysql_basic.sql');
+$updater_source = file_get_contents(dirname(dirname(__DIR__)) . '/update/update_from_153a.php');
+if (strpos($userfunctions_source, "change_configuration('reg_last_reg'") !== false ||
+	strpos($userfunctions_source, "change_configuration('reg_lastip'") !== false ||
+	strpos($settings_source, "'reg_ip_scan' =>") !== false ||
+	strpos($settings_template, 'name="reg_ip_scan"') !== false ||
+	preg_match("/\\('(?:reg_last_reg|reg_lastip|reg_ip_scan)',/", $basic_source) ||
+	strpos($updater_source, "'reg_last_reg', 'reg_lastip', 'reg_ip_scan'") === false)
+{
+	$errors[] = 'The global legacy registration lock was not fully retired.';
 }
 
 if ($errors)

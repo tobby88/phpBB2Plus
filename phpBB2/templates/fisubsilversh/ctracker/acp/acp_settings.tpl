@@ -123,17 +123,13 @@
 		<th colspan="3">{L_CATNAME_5}</th>
 	</tr>
 	<tr> 
-		<td class="row3" width="20%" align="center" rowspan="3"><img src="{CAT_ICON_5}" border="0"></td>
+		<td class="row3" width="20%" align="center" rowspan="2"><img src="{CAT_ICON_5}" border="0"></td>
 		<td class="row1" width="50%"><b>{L_MOD_18}</b><br />{L_EXP_18}</td>
 		<td class="row1" width="30%"><select name="reg_protection">{S_OUTPUT_18}</select></td>
 	</tr>
 	<tr> 
 		<td class="row2" width="50%"><b>{L_MOD_19}</b><br />{L_EXP_19}</td>
 		<td class="row2" width="30%"><select name="reg_blocktime">{S_OUTPUT_19}</select></td>
-	</tr>
-	<tr> 
-		<td class="row1" width="50%"><b>{L_MOD_21}</b><br />{L_EXP_21}</td>
-		<td class="row1" width="30%"><select name="reg_ip_scan">{S_OUTPUT_21}</select></td>
 	</tr>
 </table>
 

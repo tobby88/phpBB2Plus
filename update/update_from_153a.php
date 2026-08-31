@@ -426,6 +426,12 @@ foreach ($user_columns as $column => $definition)
 }
 $users_table = $table_prefix . 'users';
 $ctracker_config_table = $table_prefix . 'ctracker_config';
+// Retire the original board-global registration locks. One completed signup
+// used to block every visitor for reg_blocktime seconds, while reg_lastip
+// could block a shared IP indefinitely. Runtime protection is now stored per
+// verified IP in ctracker_rate_limits.
+$operations[] = 'DELETE FROM ' . update_quote_identifier($ctracker_config_table) .
+	" WHERE ct_config_name IN ('reg_last_reg', 'reg_lastip', 'reg_ip_scan')";
 // CrackerTracker 5 historically overloaded ct_last_pw_reset with both a
 // minutes-long reset-request cooldown and a days-long password-age deadline.
 // Migrate once to the otherwise unused ct_last_pw_change timestamp and clear

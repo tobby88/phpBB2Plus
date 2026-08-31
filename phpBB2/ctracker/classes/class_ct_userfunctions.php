@@ -348,22 +348,24 @@ class ct_userfunctions
 			$this->post_value('signature', 65535)
 		);
 
-		// Register Protection (TIME)
-		if ( intval($ctracker_config->settings['reg_protection']) == 1 && $mode == 'register')
+		// Apply a rolling cooldown per verified client IP, and only to a real
+		// submission. The original implementation stored one global timestamp,
+		// allowing any successful registration to block every other visitor.
+		if (isset($HTTP_POST_VARS['submit']) && intval($ctracker_config->settings['reg_protection']) == 1 && $mode == 'register')
 		{
-			if ( time() <= intval($ctracker_config->settings['reg_last_reg']) )
+			$cooldown = max(1, min(200, intval($ctracker_config->settings['reg_blocktime'])));
+			$remaining = function_exists('ctracker_rate_limit_cooldown_remaining')
+				? ctracker_rate_limit_cooldown_remaining('registration-success', (string) $ctracker_config->user_ip_value, $cooldown)
+				: false;
+			if ($remaining !== false && $remaining > 0)
 			{
-				$waittime_new = intval($ctracker_config->settings['reg_last_reg']) - time();
-				message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_info_regist_time'], $ctracker_config->settings['reg_blocktime'], $waittime_new, $waittime_new));
-			}
-		}
-
-		// Register IP Feature
-		if ( intval($ctracker_config->settings['reg_ip_scan']) == 1 && $mode == 'register' )
-		{
-			if ( $ctracker_config->user_ip_value == $ctracker_config->settings['reg_lastip'] )
-			{
-				message_die(GENERAL_MESSAGE, $lang['ctracker_info_regip_double']);
+				if (!headers_sent())
+				{
+					http_response_code(429);
+					header('Retry-After: ' . intval($remaining));
+					header('Cache-Control: no-store');
+				}
+				message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_info_regist_time'], $cooldown, intval($remaining)));
 			}
 		}
 
@@ -420,12 +422,10 @@ class ct_userfunctions
 	{
 		global $ctracker_config;
 
-		// Regtime
-		$waittime_new = time() + intval($ctracker_config->settings['reg_blocktime']);
-		$ctracker_config->change_configuration('reg_last_reg', $waittime_new);
-
-		// Reg IP
-		$ctracker_config->change_configuration('reg_lastip', $ctracker_config->user_ip_value);
+		if (intval($ctracker_config->settings['reg_protection']) == 1 && function_exists('ctracker_rate_limit_mark_success'))
+		{
+			ctracker_rate_limit_mark_success('registration-success', (string) $ctracker_config->user_ip_value);
+		}
 	}
 
 	/**

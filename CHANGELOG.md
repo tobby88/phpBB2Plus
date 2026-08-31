@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced CrackerTracker's board-global registration locks with a rolling
+  cooldown keyed only by the web server's verified client IP. The old design
+  allowed one completed signup to block every visitor temporarily and could
+  leave a shared IP blocked until a different address registered. Only a
+  fully completed signup now starts the cooldown; invalid form submissions do
+  not. The obsolete IP Watcher setting and its global database state are
+  removed by the idempotent updater, while the separate central hourly
+  request limit continues to contain automated registration bursts.
 - Separated CrackerTracker's password-age timestamp from its password-reset
   request cooldown. The original shared field could block reset requests for
   days and then mark a newly reset password as expired after only minutes.
