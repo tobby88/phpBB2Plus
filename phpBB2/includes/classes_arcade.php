@@ -103,7 +103,7 @@ class arcade
     
     if($this->arcade_config['games_show_all'])
     {
-      $cat_jump .= '<option value="0">|__' . $this->arcade_config['games_cat_zero'] . '</option>';
+      $cat_jump .= '<option value="0">|__' . htmlspecialchars($this->arcade_config['games_cat_zero'], ENT_QUOTES, 'UTF-8') . '</option>';
       $pad = '&nbsp;&nbsp;&nbsp;&nbsp;';
     }
 
@@ -116,11 +116,11 @@ class arcade
       }
       if($this->categories[$i]['cat_type'] == 's')
       {
-        $cat_jump .= '<option value="'.$this->categories[$i]['cat_id'].'">'.$pad.'&nbsp;&nbsp;&nbsp;&nbsp;|__'.$this->categories[$i]['cat_name'].'</option>';
+        $cat_jump .= '<option value="'.(int) $this->categories[$i]['cat_id'].'">'.$pad.'&nbsp;&nbsp;&nbsp;&nbsp;|__'.htmlspecialchars($this->categories[$i]['cat_name'], ENT_QUOTES, 'UTF-8').'</option>';
       }
       else
       {
-        $cat_jump .= '<option value="'.$this->categories[$i]['cat_id'].'">'.$pad.'|__'.$this->categories[$i]['cat_name'].'</option>';
+        $cat_jump .= '<option value="'.(int) $this->categories[$i]['cat_id'].'">'.$pad.'|__'.htmlspecialchars($this->categories[$i]['cat_name'], ENT_QUOTES, 'UTF-8').'</option>';
       }
     }
   	$cat_jump .= '<input type="hidden" name="mode" value="cat"></select></form>';

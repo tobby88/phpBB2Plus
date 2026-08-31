@@ -4,14 +4,7 @@
   <tr> 
 	<td class="cat" colspan="3" height="20"><span class="cattitle">
 <!-- BEGIN switch_user_logged_in -->
-	{L_WELCOME}<a href="{U_PROFILE}"><script type="text/javascript">
-<!--
-      inoutstr = "{L_LOGIN_LOGOUT}"; 
-      endOfUsername = inoutstr.lastIndexOf("]"); 
-      startOfUsername = inoutstr.indexOf("[") +1 ; 
-      document.write(inoutstr.substring(startOfUsername,endOfUsername)); 
-//-->
-    </script></a>
+	{L_WELCOME}<a href="{U_PROFILE}">{ARCADE_USERNAME}</a>
 	<!-- END switch_user_logged_in -->
 	<!-- BEGIN switch_user_logged_out -->
 	{L_WELCOME_GUEST}<a href="{U_REGISTER}">{L_REGISTER}</a> or <a href="{U_LOGIN_LOGOUT}">Login</a></span>

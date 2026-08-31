@@ -154,7 +154,7 @@ function last_played_score()
     return '<br />ERROR<br />' . $sql;
   }
 	$last_info = $db->sql_fetchrow($result);
-	return $last_info ? sprintf($lang['games_last_score_gained'], $last_info['username'], $arcade->convert_score($last_info['score']), $last_info['game_desc']) : '';
+	return $last_info ? sprintf($lang['games_last_score_gained'], phpbb_profile_text($last_info['username']), $arcade->convert_score($last_info['score']), phpbb_profile_text($last_info['game_desc'])) : '';
 }
 
 function games_position($games_place)
@@ -439,6 +439,8 @@ function total_highscores($player_id, $table = iNA_SCORES)
 {	
   global $db, $lang, $arcade;
 
+	$player_id = max(0, (int) $player_id);
+	$table = ($table === iNA_AT_SCORES) ? iNA_AT_SCORES : iNA_SCORES;
 	$player[0] = $player_id;
 	$player[1] = $player[2] = $player[3] = 0;
 	$player[4] = $player[5] = $player[6] = '';
@@ -454,8 +456,9 @@ function total_highscores($player_id, $table = iNA_SCORES)
     $place = 1;
     $sort = $rows[$i]['reverse_list'] ? 'ASC' : 'DESC';
 
+	$game_name_sql = $db->sql_escape($rows[$i]['game_name']);
     $sql = "SELECT player_id, score FROM " . $table . "
-      WHERE game_name = '".$rows[$i]['game_name']."'
+      WHERE game_name = '" . $game_name_sql . "'
         ORDER BY score " . $sort . "
         LIMIT 0,3";
     $best_score = $db->sql_query($sql);
@@ -471,18 +474,21 @@ function total_highscores($player_id, $table = iNA_SCORES)
 	}
   unset($rows);
 
-  if($table == iNA_SCORES)
-  {
+	$first_list_sql = $db->sql_escape($player[4]);
+	$second_list_sql = $db->sql_escape($player[5]);
+	$third_list_sql = $db->sql_escape($player[6]);
+	if($table == iNA_SCORES)
+	{
     $sql = "UPDATE " . iNA_USER_DATA . "
        SET first_places = $player[1], second_places = $player[2], third_places = $player[3],
-         first_list = '$player[4]', second_list = '$player[5]', third_list = '$player[6]'
+         first_list = '$first_list_sql', second_list = '$second_list_sql', third_list = '$third_list_sql'
       WHERE user_id = $player_id";
 	}
 	else
 	{
     $sql = "UPDATE " . iNA_USER_DATA . " 
       SET at_first_places = $player[1], at_second_places = $player[2], at_third_places = $player[3],
-         at_first_list = '$player[4]', at_second_list = '$player[5]', at_third_list = '$player[6]'
+         at_first_list = '$first_list_sql', at_second_list = '$second_list_sql', at_third_list = '$third_list_sql'
       WHERE user_id = $player_id";
   
   }
@@ -632,7 +638,7 @@ function game_list_tour()
 	$rows = $db->sql_fetchrowset($result);
 	for($i = 0; $i < (count($rows)); $i++)
 	{
-  	$tour_list .= "&nbsp;&nbsp;&nbsp;[<a href=\"arcade_tournament.".$phpEx."?mode=tour&amp;id=" . $rows[$i]['tour_id'] . "$SID\" class=\"gensmall\">" . $rows[$i]['tour_name'] . "</a>]&nbsp;-&nbsp;<i>".$rows[$i]['tour_desc']."</i><br />";
+		$tour_list .= "&nbsp;&nbsp;&nbsp;[<a href=\"arcade_tournament.".$phpEx."?mode=tour&amp;id=" . (int) $rows[$i]['tour_id'] . "$SID\" class=\"gensmall\">" . phpbb_profile_text($rows[$i]['tour_name']) . "</a>]&nbsp;-&nbsp;<i>".phpbb_profile_text($rows[$i]['tour_desc'])."</i><br />";
   }
 
 	return $tour_list;

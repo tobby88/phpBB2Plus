@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Escaped administrator-supplied Arcade game, category and tournament metadata
+  across score, category, statistics and jump-list views. Stored game names can
+  no longer alter score-list SQL, sort order is explicitly allowlisted, and
+  external link categories are revalidated when followed.
+- Made player-statistics views read-only by removing the surprising automatic
+  private message sent merely by opening another member's scores. The Arcade
+  welcome now receives an escaped username from PHP instead of parsing a
+  translated login label through inline JavaScript.
 - Extended opener isolation to PHP-generated automatic BBCode links, Album
   index thumbnails and external forms, and taught the regression audit to cover
   escaped PHP fragments and form targets in addition to literal anchors.

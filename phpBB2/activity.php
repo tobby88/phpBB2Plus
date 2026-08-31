@@ -65,6 +65,28 @@ function arcade_favorite_form($filename, $mode, $cat_id, $game_id, $session_id, 
 		. '<input type="image" src="' . htmlspecialchars($image, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" title="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" />'
 		. '</form>';
 }
+
+function arcade_output_html($value)
+{
+	return htmlspecialchars(is_scalar($value) ? (string) $value : '', ENT_QUOTES, 'UTF-8');
+}
+
+function arcade_output_smilies($value)
+{
+	return smilies_pass(arcade_output_html($value));
+}
+
+function arcade_external_url($value)
+{
+	$value = is_scalar($value) ? trim((string) $value) : '';
+	$parts = @parse_url($value);
+	if (!$parts || empty($parts['host']) || empty($parts['scheme']) || isset($parts['user']) || isset($parts['pass']) ||
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) || preg_match('/[\x00-\x20\x7f]/', $value))
+	{
+		return false;
+	}
+	return $value;
+}
 //
 // Check the mod has been installed correctly.
 //
@@ -203,6 +225,7 @@ if (($arcade->sort_order = $arcade->pass_var('order', '')) == FALSE)
     $arcade->sort_mode = 'alphabetical';
   }
 }
+$arcade->sort_order = (strtoupper((string) $arcade->sort_order) === 'ASC') ? 'ASC' : 'DESC';
 //
 //  Now we have a Guest, Set-Up Guest Access
 //
@@ -296,8 +319,13 @@ if($arcade->cat_id > 0)
   	{
   		$arcade->message_die(GENERAL_ERROR, $lang['no_cat_update'], '', __LINE__, __FILE__, $sql);
   	}
-  	$header_location = ( @preg_match("/Microsoft|WebSTAR|Xitami/", getenv("SERVER_SOFTWARE")) ) ? "Refresh: 0; URL=" : "Location: ";
-    header($header_location . $cat_info['cat_desc'], true);
+	$category_url = arcade_external_url($cat_info['cat_desc']);
+	if ($category_url === false)
+	{
+		$arcade->message_die(GENERAL_MESSAGE, $lang['game_link_error']);
+	}
+	$header_location = ( @preg_match("/Microsoft|WebSTAR|Xitami/", getenv("SERVER_SOFTWARE")) ) ? "Refresh: 0; URL=" : "Location: ";
+    header($header_location . $category_url, true);
     exit;
   }
 	$num_rows = $db->sql_numrows($result);
@@ -321,16 +349,16 @@ if($arcade->cat_id > 0)
   	}
   	$cat_parent = $db->sql_fetchrow($result);
 
-    $url = '&nbsp;&raquo;&nbsp;<a href="'. append_sid($filename) . '" class="nav">' . $lang['games_catagories'] . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . $cat_parent['cat_id'] . '" class="nav">' . $cat_parent['cat_name'] . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . $arcade->cat_id . '&amp;start=' . $start . '&amp;sort_mode=' . $arcade->sort_mode . '&amp;order=' . $arcade->sort_order . $SID .'" class="nav">' . $catagory_name . '</a>';
+    $url = '&nbsp;&raquo;&nbsp;<a href="'. append_sid($filename) . '" class="nav">' . $lang['games_catagories'] . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $cat_parent['cat_id'] . '" class="nav">' . arcade_output_html($cat_parent['cat_name']) . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $arcade->cat_id . '&amp;start=' . (int) $start . '&amp;sort_mode=' . rawurlencode($arcade->sort_mode) . '&amp;order=' . $arcade->sort_order . $SID .'" class="nav">' . arcade_output_html($catagory_name) . '</a>';
   }
   else
   {
-    $url = '&nbsp;&raquo;&nbsp;<a href="'. append_sid($filename) . '" class="nav">' . $lang['games_catagories'] . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . $arcade->cat_id . '&amp;start=' . $start . '&amp;sort_mode=' . $arcade->sort_mode . '&amp;order=' . $arcade->sort_order . '" class="nav">' . $catagory_name . '</a>';
+    $url = '&nbsp;&raquo;&nbsp;<a href="'. append_sid($filename) . '" class="nav">' . $lang['games_catagories'] . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $arcade->cat_id . '&amp;start=' . (int) $start . '&amp;sort_mode=' . rawurlencode($arcade->sort_mode) . '&amp;order=' . $arcade->sort_order . '" class="nav">' . arcade_output_html($catagory_name) . '</a>';
   }
 }
 else
 {
-  $url = '&nbsp;&raquo;&nbsp;<a href="'. append_sid($filename) . '" class="nav">' . $lang['games_catagories'] . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . $arcade->cat_id . '&amp;start=' . $start . '&amp;sort_mode=' . $arcade->sort_mode . '&amp;order=' . $arcade->sort_order . '" class="nav">' . $arcade->arcade_config['games_cat_zero'] . '</a>';
+  $url = '&nbsp;&raquo;&nbsp;<a href="'. append_sid($filename) . '" class="nav">' . $lang['games_catagories'] . '</a> &raquo; <a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $arcade->cat_id . '&amp;start=' . (int) $start . '&amp;sort_mode=' . rawurlencode($arcade->sort_mode) . '&amp;order=' . $arcade->sort_order . '" class="nav">' . arcade_output_html($arcade->arcade_config['games_cat_zero']) . '</a>';
 }
 //
 //	Mode will tell me what the user wants me to do.
@@ -455,7 +483,7 @@ if( $mode != '' )
 //
 	else if ($mode == 'stats')
 	{
-		$page_title = $game_info['game_desc'] . ' - ' . $board_config['sitename']; 
+		$page_title = arcade_output_html($game_info['game_desc'] . ' - ' . $board_config['sitename']);
 		$page_meta_desc = $page_title;
 		$page_meta_key = trim(htmlspecialchars(str_replace(",-,",",",str_replace(" ", ",", $game_info['game_desc'] . ',' . $board_config['sitename']))));
 
@@ -578,17 +606,17 @@ if( $mode != '' )
       'CONTROL' => $game_control,
       'CATEGORY' => $lang['None'],
       'TIMES' => $lang['times'],
-			'DESC' => $game_info['game_desc'],
+			'DESC' => arcade_output_smilies($game_info['game_desc']),
 			'PLAYED' => $game_info['played'],
 			'COST' => $cost,
 			'BONUS' => $game_info['game_bonus'],
 			'AT_BONUS' => $game_info['at_game_bonus'],
 			'REWARD' => $reward,
-			'BEST_PLAYER' => $best_player,
+			'BEST_PLAYER' => arcade_output_html($best_player),
 			'BEST_SCORE' => $display_score,
-			'BEST_AT_PLAYER' => $score_at_info['username'],
+			'BEST_AT_PLAYER' => arcade_output_html($score_at_info['username']),
 			'BEST_AT_SCORE' => $display_at_score,
-			'INSTRUCTIONS' => $instructions,
+			'INSTRUCTIONS' => arcade_output_smilies($instructions),
 			'ARCADE_MOD' => sprintf($lang['activitiy_mod_info'], $arcade->version),
 			
 			"L_INSTRUCTIONS" => $lang['game_instructions'],
@@ -613,8 +641,9 @@ if( $mode != '' )
 //
 	else if ($mode == "highscore" || $mode == 'at_highscore')
 	{ 
-		$page_title			= $game_info['game_desc'] . ' - ' . $cat_info['cat_name'] . ' - ' . $board_config['sitename'] ; 
+		$page_title			= arcade_output_html($game_info['game_desc']) . ' - ' . arcade_output_html($cat_info['cat_name']) . ' - ' . arcade_output_html($board_config['sitename']);
 		$game_name			= $game_info['game_name'];
+		$game_name_sql		= $db->sql_escape($game_name);
 
 		$highscore_limit	= $game_info['highscore_limit']; 
 		$high_score_text	= $lang['game_current_highscores'];
@@ -627,11 +656,11 @@ if( $mode != '' )
 			$highscore_limit = $game_info['at_highscore_limit'];
 		}
 
-		$url .= "&nbsp;&raquo;&nbsp;" . $game_info['game_desc'];
+		$url .= "&nbsp;&raquo;&nbsp;" . arcade_output_html($game_info['game_desc']);
 
 		$template->set_filenames(array('body' => 'arcade_scores.tpl') ); 
 		$template->assign_vars(array(
-			'TITLE' => $game_info['game_desc'], 
+			'TITLE' => arcade_output_html($game_info['game_desc']),
 			
 			'L_HIGHSCORE' => $high_score_text, 
 			'L_SCORE' => $lang['game_score'], 
@@ -649,7 +678,7 @@ if( $mode != '' )
 
 		$sql = "SELECT game_name, player_id, score, date, time_taken, username, user_allow_viewonline FROM " . $high_score_table . " s, " . USERS_TABLE . " u
 			WHERE s.player_id = u.user_id
-			AND game_name = '" . $game_name . "'
+			AND game_name = '" . $game_name_sql . "'
 			ORDER BY score " . $arcade->sort . ", date ASC";
 
 		if(!$result = $db->sql_query($sql)) 
@@ -708,7 +737,7 @@ if( $mode != '' )
 	        $template->assign_block_vars("scores", array(
 				    'ROW_CLASS' => ( !($i % 2) ) ? 'row1' : 'row2', 
          		'POS' => $pos, 
-	         	'NAME' => $user_name, 
+				'NAME' => arcade_output_html($user_name),
 	         	'SCORE' => $display_score,                                  
 		       	'DATE' => create_date($board_config['default_dateformat'], $row['date'], $board_config['board_timezone']),
 		       	'TIME_TAKEN' => $time_taken,
@@ -731,23 +760,7 @@ if( $mode != '' )
 		if (isset($HTTP_GET_VARS['user_id']) || isset($HTTP_POST_VARS['user_id']))
 		{
 			$user_id = (isset($HTTP_GET_VARS['user_id'])) ? $HTTP_GET_VARS['user_id'] : $HTTP_POST_VARS['user_id'];
-			$user_id	= intval(htmlspecialchars($user_id));
-//
-//	Send PM to user, to tell them thier highscores are under attack :)
-//
-			$sql = "SELECT username FROM " . USERS_TABLE . "
-				WHERE user_id = '" . $userdata['user_id'] . "'";
-			if(!$result = $db->sql_query($sql)) 
-			{
-				$arcade->message_die(GENERAL_ERROR, $lang['no_score_data'], "", __LINE__, __FILE__, $sql); 
-			}
-			$user_row = $db->sql_fetchrow($result); 
-				
-			if ((ina_check_last_pm($user_id, $userdata['user_id']) == FALSE))
-			{
-				$message = sprintf($lang['games_pm_info'], $user_row['username']);
-				ina_send_user_pm($user_id, $lang['games_important_info'], $message, $userdata['user_id']);
-			}
+			$user_id = max(0, intval($user_id));
 		}
 
 		$stats_id	= intval(htmlspecialchars($game_id));
@@ -775,11 +788,20 @@ if( $mode != '' )
 			'U_CAT' => $url,
 			'ARCADE_MOD' => sprintf($lang['activitiy_mod_info'], $arcade->version)));
 
-    $list = str_replace("|", "', '", $scores[$stats_id]);
+		$score_names = explode('|', isset($scores[$stats_id]) ? (string) $scores[$stats_id] : '');
+		$score_names_sql = array();
+		foreach ($score_names as $score_name)
+		{
+			if ($score_name !== '')
+			{
+				$score_names_sql[] = "'" . $db->sql_escape($score_name) . "'";
+			}
+		}
+		$list = $score_names_sql ? implode(', ', $score_names_sql) : "''";
 
 		$sql = "SELECT g.game_id, g.win_width, g.win_height, g.game_desc, g.level_required, g.rank_required, g.allow_guest, s.score, s.date, s.time_taken 
         FROM ". iNA_GAMES . " g, " . $table . " s
-				WHERE g.game_name IN ('" . $list . "')
+				WHERE g.game_name IN (" . $list . ")
 					AND g.game_name = s.game_name
 					AND player_id = " . $user_id;
 					
@@ -794,11 +816,11 @@ if( $mode != '' )
     {
 			if(($userdata['user_id'] != ANONYMOUS && ($rows[$i]['level_required'] < $userdata['user_level']) && ($rows[$i]['rank_required'] < $userdata['user_rank'])) || ($userdata['user_id'] == ANONYMOUS && $rows[$i]['allow_guest']))
 			{
-				$game_link = "<a href=\"javascript:Gk_PopTart('$filename?mode=game&amp;id=" . $rows[$i]['game_id'] . "&amp;ex_user=" . $user_id . "$SID', 'Game_Window', '" . $rows[$i]['win_width'] . "', '" . $rows[$i]['win_height'] . "', 'no')\" onClick=\"blur()\">" . $rows[$i]['game_desc'] . "</a>";
+					$game_link = "<a href=\"javascript:Gk_PopTart('$filename?mode=game&amp;id=" . (int) $rows[$i]['game_id'] . "&amp;ex_user=" . (int) $user_id . "$SID', 'Game_Window', '" . (int) $rows[$i]['win_width'] . "', '" . (int) $rows[$i]['win_height'] . "', 'no')\" onClick=\"blur()\">" . arcade_output_html($rows[$i]['game_desc']) . "</a>";
 			}
 			else
 			{
-				$game_link = $rows[$i]['game_desc'];
+					$game_link = arcade_output_html($rows[$i]['game_desc']);
 			}
       $display_score = $arcade->convert_score($rows[$i]['score']) ? $arcade->score : '';
       $time_taken = $arcade->convert_time($rows[$i]['time_taken']);
@@ -1008,7 +1030,7 @@ if( $mode != '' )
     		  {
       			$moderator = '<br /><b>'.$lang['Moderator'].':</b>';
       			$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['mod_id'] . "");
-      			$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . $arcade->get_username($catrows[$i]['mod_id']) . '</span></a>';
+					$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . arcade_output_html($arcade->get_username($catrows[$i]['mod_id'])) . '</span></a>';
       			$moderator .= $profile;
       		}
 //
@@ -1022,7 +1044,7 @@ if( $mode != '' )
        				$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['last_player'] . "");
        				if($catrows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
        				{
-       					$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . $catrows[$i]['username'] . '</span></a>';
+						$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . arcade_output_html($catrows[$i]['username']) . '</span></a>';
        				}
        				else
        				{
@@ -1044,14 +1066,14 @@ if( $mode != '' )
 //
 //  Build the Last Played Info
 //
-      			$last_played = '<a href="' . $filename . '?mode=cat&amp;cat_id=' . $catrows[$i]['cat_id'] . '#'.$catrows[$i]['game_id'].'" class="gensmall">' . $last_game_desc;
+			$last_played = '<a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $catrows[$i]['cat_id'] . '#'. (int) $catrows[$i]['game_id'].'" class="gensmall">' . arcade_output_html($last_game_desc);
        			$last_played .= '</a><br />' . create_date($board_config['default_dateformat'], $catrows[$i]['last_time'], $board_config['board_timezone']);
        			$last_played .= '<br />' . $profile;
       		}
 
        		$template->assign_block_vars("cats", array(
       			'ROW_CLASS' => ( !($i % 2) ) ? 'row2' : 'row1', 
-   		      'CAT_ID' => $catrows[$i]['cat_id'], 
+		    'CAT_ID' => (int) $catrows[$i]['cat_id'],
 
       			'TOTAL_GAMES' => ($catrows[$i]['cat_type'] == 'l' ) ? '' : $arcade->convert_score($catrows[$i]['total_games']),
       			'TOTAL_PLAYED' => ($catrows[$i]['cat_type'] == 'l' ) ? '' : $arcade->convert_score($catrows[$i]['total_played']),
@@ -1059,9 +1081,9 @@ if( $mode != '' )
             'MODERATOR' => $moderator,
  
             'ICON' => $icon, 
-            'LINK' => append_sid("$filename?mode=cat&amp;cat_id=".$catrows[$i]['cat_id']),
-      	    'NAME' => $catrows[$i]['cat_name'],                                  
-      		  'DESC' => ( $catrows[$i]['cat_type'] == 'l' ) ? '' : smilies_pass($catrows[$i]['cat_desc'])
+			'LINK' => append_sid("$filename?mode=cat&amp;cat_id=" . (int) $catrows[$i]['cat_id']),
+			'NAME' => arcade_output_html($catrows[$i]['cat_name']),
+			'DESC' => ( $catrows[$i]['cat_type'] == 'l' ) ? '' : arcade_output_smilies($catrows[$i]['cat_desc'])
            )); 
         }
       }
@@ -1193,7 +1215,7 @@ if( $mode != '' )
 						if($game_rows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
 						{
 							$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$best_player_id");
-							$profile = '<a href="' . $temp_url . '"><span class="gentbl">' . $best_player . '</span></a>';
+							$profile = '<a href="' . $temp_url . '"><span class="gentbl">' . arcade_output_html($best_player) . '</span></a>';
 							$best_player = $profile;
 						}
 						else
@@ -1342,7 +1364,7 @@ if( $mode != '' )
 //			
       if($arcade->cat_id == 0 && $game_rows[$i]['cat_name'])
       {
-        $filesize .= '&nbsp; &nbsp;<font color="red"><span class="gensmall"><i>'. $lang['category'] .': </span></font><a href="' . $filename . '?mode=cat&amp;cat_id='. $game_rows[$i]['cat_id'] . '">' . $game_rows[$i]['cat_name']. '</i></a>';
+		$filesize .= '&nbsp; &nbsp;<font color="red"><span class="gensmall"><i>'. $lang['category'] .': </span></font><a href="' . $filename . '?mode=cat&amp;cat_id='. (int) $game_rows[$i]['cat_id'] . '">' . arcade_output_html($game_rows[$i]['cat_name']). '</i></a>';
       }
 			if ( $user_id == ANONYMOUS && ($game_rows[$i]['allow_guest'] != 1))
 			{
@@ -1352,7 +1374,7 @@ if( $mode != '' )
 			else
 			{
 				$image_info = '<a href="'. append_sid("$filename?mode=game&amp;id=$game_id") .'" onClick="Gk_PopTart(\''. append_sid("$filename?mode=game&amp;id=$game_id") .'\', \'Activity_Window\', \''.$win_width.'\', \''.$win_height.'\', \'no\'); return false; blur();"><img src ="'. $image_path .'" border="0" align="middle" width="'.$arcade->arcade_config['games_image_width'].'" height="'.$arcade->arcade_config['games_image_height'].'" alt="Popup" /></a>';
-				$desc_info = '<a href="'. append_sid("$filename?mode=game&amp;id=$game_id") .'" class="forumlink" onClick="Gk_PopTart(\''. append_sid("$filename?mode=game&amp;id=$game_id") .'\', \'Activity_Window\', \''.$win_width.'\', \''.$win_height.'\', \'no\'); return false; blur();">&nbsp;&laquo;&nbsp;' . smilies_pass($game_desc) . '&nbsp;&raquo;&nbsp;</a>';
+				$desc_info = '<a href="'. append_sid("$filename?mode=game&amp;id=$game_id") .'" class="forumlink" onClick="Gk_PopTart(\''. append_sid("$filename?mode=game&amp;id=$game_id") .'\', \'Activity_Window\', \''.$win_width.'\', \''.$win_height.'\', \'no\'); return false; blur();">&nbsp;&laquo;&nbsp;' . arcade_output_smilies($game_desc) . '&nbsp;&raquo;&nbsp;</a>';
       }
       if($game_rows[$i]['game_control'] == 1)
       {
@@ -1387,7 +1409,7 @@ if( $mode != '' )
 				'CONTROL' => $game_control,
 				'CHARGE' => $game_charge,
 				'DESC' => $desc_info,
-				'INST' => $game_rows[$i]['instructions'],
+				'INST' => arcade_output_smilies($game_rows[$i]['instructions']),
 				'COMMENT' => (($arcade->arcade_config['games_comments'] == 1) && ($userdata['user_id'] != ANONYMOUS) && ($game_rows[$i]['comment_count'] > 0)) ? ' &nbsp; <a href="arcade_comment.' . $phpEx . '?game_id=' . $game_id . '"><img src="images/comment.gif" border="0"></a>' : '',
 				'ADD_FAV' => $add_fav,
 				'RATE' => ($arcade->arcade_config['games_rate'] == 1) ? $game_rate : '',
@@ -1508,6 +1530,7 @@ if( $mode != '' )
 		$monthly_highscore = ($arcade->arcade_config['games_show_mhm']) ? highscore_jump_box() : '';
 
 		$template->assign_vars(array(
+			"ARCADE_USERNAME" => arcade_output_html($userdata['username']),
 			"GAMELIB_LINK" => $gamelib_link,
 			"PAGINATION" => $pagination,
 			"PAGE_NUMBER" => $page_number, 
@@ -1602,7 +1625,7 @@ else
 		{
 			$moderator = '<br /><b>'.$lang['Moderator'].':</b>';
 			$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['mod_id'] . "");
-			$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . $arcade->get_username($catrows[$i]['mod_id']) . '</span></a>';
+			$profile = ' <a href="' . $temp_url . '"><span class="gentbl">' . arcade_output_html($arcade->get_username($catrows[$i]['mod_id'])) . '</span></a>';
 			$moderator .= $profile;
 		}
 //
@@ -1616,7 +1639,7 @@ else
  				$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[$i]['last_player'] . "");
  				if($catrows[$i]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
  				{
- 					$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . $catrows[$i]['username'] . '</span></a>';
+					$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . arcade_output_html($catrows[$i]['username']) . '</span></a>';
  				}
  				else
  				{
@@ -1638,7 +1661,7 @@ else
 //
 //  Build the Last Played Info
 //
-			$last_played = '<a href="' . $filename . '?mode=cat&amp;cat_id=' . $catrows[$i]['cat_id'] . '#'.$catrows[$i]['game_id'].'" class="gensmall">' . $last_game_desc;
+			$last_played = '<a href="' . $filename . '?mode=cat&amp;cat_id=' . (int) $catrows[$i]['cat_id'] . '#'. (int) $catrows[$i]['game_id'].'" class="gensmall">' . arcade_output_html($last_game_desc);
  			$last_played .= '</a><br />' . create_date($board_config['default_dateformat'], $catrows[$i]['last_time'], $board_config['board_timezone']);
  			$last_played .= '<br />' . $profile;
 		}
@@ -1647,7 +1670,7 @@ else
 //
 		$template->assign_block_vars("cats", array(
 			'ROW_CLASS' => ( !($i % 2) ) ? 'row2' : 'row1', 
-   		'CAT_ID' => $catrows[$i]['cat_id'], 
+		'CAT_ID' => (int) $catrows[$i]['cat_id'],
 
 			'TOTAL_GAMES' => ($catrows[$i]['cat_type'] == 'l' ) ? '' : $arcade->convert_score($catrows[$i]['total_games']),
 			'TOTAL_PLAYED' => ($catrows[$i]['cat_type'] == 'l' ) ? '' :$arcade->convert_score($catrows[$i]['total_played']),
@@ -1656,9 +1679,9 @@ else
 	 		'MODERATOR' => $moderator,
  
       'ICON' => $icon, 
-      'LINK' => append_sid("$filename?mode=cat&amp;cat_id=".$catrows[$i]['cat_id']),
-	    'NAME' => $catrows[$i]['cat_name'],                                  
-		  'DESC' => ( $catrows[$i]['cat_type'] == 'l' ) ? '' : smilies_pass($catrows[$i]['cat_desc'])) ); 
+		'LINK' => append_sid("$filename?mode=cat&amp;cat_id=" . (int) $catrows[$i]['cat_id']),
+	    'NAME' => arcade_output_html($catrows[$i]['cat_name']),
+		  'DESC' => ( $catrows[$i]['cat_type'] == 'l' ) ? '' : arcade_output_smilies($catrows[$i]['cat_desc'])) );
 	} 
 //
 //  Tournaments Output
@@ -1681,7 +1704,7 @@ else
     {
       $last_tour_user_id  = $last_tour['user_id'];
       $last_tour_date     = create_date($board_config['default_dateformat'], $last_tour['last_played_time'], $board_config['board_timezone']);
-      $display_last_tour = '<a href="arcade_tournament.'.$phpEx.'?mode=tour&amp;id='.$last_tour['tour_id'].'" class="gensmall">'.$last_tour['tour_name'].'</a><br>'.$last_tour_date.'<br><a href="'.append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$last_tour_user_id").'" class="gensmall">'. $arcade->get_username($last_tour_user_id) .'</a>';
+		$display_last_tour = '<a href="arcade_tournament.'.$phpEx.'?mode=tour&amp;id='.(int) $last_tour['tour_id'].'" class="gensmall">'.arcade_output_html($last_tour['tour_name']).'</a><br>'.$last_tour_date.'<br><a href="'.append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . (int) $last_tour_user_id).'" class="gensmall">'. arcade_output_html($arcade->get_username($last_tour_user_id)) .'</a>';
     }
 //
 //  Turn Tournament Info ON
@@ -1704,7 +1727,7 @@ else
  			$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=". $catrows[0]['last_player'] . "");
  			if($catrows[0]['user_allow_viewonline'] || $userdata['user_level'] == ADMIN || $userdata['user_level'] == MOD)
  			{
- 				$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . $catrows[0]['username'] . '</span></a>';
+				$profile = '<a href="' . $temp_url . '" class="gensmall"><span class="gentbl">' . arcade_output_html($catrows[0]['username']) . '</span></a>';
  			}
  			else
  			{
@@ -1723,7 +1746,7 @@ else
 //
 //  Build the Last Played Info
 //
-   	$last_played_all = '<a href="' . $filename . '?mode=cat&amp;cat_id=0#'.$catrows[0]['game_id'].'" class="gensmall">' . $last_game_desc;
+	$last_played_all = '<a href="' . $filename . '?mode=cat&amp;cat_id=0#'.(int) $catrows[0]['game_id'].'" class="gensmall">' . arcade_output_html($last_game_desc);
     $last_played_all .= '</a><br />' . create_date($board_config['default_dateformat'], $catrows[0]['last_time'], $board_config['board_timezone']);
     $last_played_all .= '<br />' . $profile;
 //
@@ -1731,7 +1754,7 @@ else
 //
   	$template->assign_block_vars("all_games", array(
    		'LINK' => append_sid("$filename?mode=cat&amp;cat_id=0"),
-  		'DESC' => $arcade->arcade_config['games_cat_zero'],
+		'DESC' => arcade_output_html($arcade->arcade_config['games_cat_zero']),
   		'TOTAL_GAMES' => $arcade->convert_score($catrows[0]['total_games']),
   		'TOTAL_PLAYED' => $arcade->convert_score($catrows[0]['total_played']),
   		'LAST_ALL' => ($catrows[0]['last_player']) ? $last_played_all : '',
@@ -1758,10 +1781,11 @@ else
 		
 		$total_scores = $arcade->total_highscores($user_id);
 		$score_text = sprintf($lang['games_highscore'] . "<img src=\"images/trophy.gif\">" . $lang['highscore_you_have'] . "<b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=4\">". $lang['1st'] . $lang['places'] . "</a><br /><b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=5\">" . $lang['2nd'] . $lang['places'] . "</a><br /><b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=6\">" . $lang['3rd'] . $lang['places'] . "</a><br />", $total_scores[1] ,$total_scores[2] ,$total_scores[3] );
+		$at_score_text = '';
 		if($userdata['user_id'] != ANONYMOUS)
 		{
 			$at_scores = $arcade->total_highscores($user_id, iNA_AT_SCORES);
-			$at_score_text = sprintf($lang['games_athighscore'] . "<img src=\"images/trophy.gif\">" . $lang['highscore_you_have'] . "<b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=1\">" . $lang['1st'] . $lang['places'] . "</a><br /><b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=2\">" . $lang['2nd'] . $lang['places'] . "</a><br /><b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=3\">" . $lang['3rd'] . $lang['places'] . "</a><br />", $at_scores[1] ,$at_scores[2] ,$at_scores[3] );
+		$at_score_text = sprintf($lang['games_athighscore'] . "<img src=\"images/trophy.gif\">" . $lang['highscore_you_have'] . "<b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=1\">" . $lang['1st'] . $lang['places'] . "</a><br /><b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=2\">" . $lang['2nd'] . $lang['places'] . "</a><br /><b>%d</b> <a href=\"$filename?mode=game_stats&amp;id=3\">" . $lang['3rd'] . $lang['places'] . "</a><br />", $at_scores[1] ,$at_scores[2] ,$at_scores[3] );
 		}
 //
 //  Turn Stats Info ON
@@ -1784,6 +1808,7 @@ else
 //  Basics for Page
 //
 	$template->assign_vars(array(
+		'ARCADE_USERNAME' => arcade_output_html($userdata['username']),
 		'L_WELCOME' => sprintf($lang['game_welcome'], $board_config['sitename']),
 		'L_WELCOME_GUEST' => sprintf($lang['game_guest_welcome'], $board_config['sitename']),
 		'L_SEARCH' => $lang['Search'],
