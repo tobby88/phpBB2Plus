@@ -276,6 +276,10 @@ else if ($mode == 'edit_post_text')
 	{
 		AJAX_message_die(array('result' => AJAX_ERROR, 'postid' => $post_id, 'error_msg' => 'Message is too large'));
 	}
+	if (preg_match('//u', stripslashes($message)) !== 1)
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'postid' => $post_id, 'error_msg' => 'Message is not valid UTF-8'));
+	}
 	
 	// This is only needed on the search page
 	$return_chars = ajax_request_int('return_chars', -1);

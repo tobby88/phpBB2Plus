@@ -2165,7 +2165,7 @@ function AJAX_message_die($data_ar)
 	{
 		if ($value !== '')
 		{
-			$value = htmlspecialchars($value, ENT_COMPAT, 'UTF-8');
+			$value = htmlspecialchars($value, ENT_COMPAT | ENT_SUBSTITUTE, 'UTF-8');
 			// Get special characters in posts back ;)
 			$value = preg_replace('#&amp;\#(\d{1,4});#i', '&#\1;', $value);
 
@@ -2195,56 +2195,15 @@ function unhtmlspecialchars($text)
 }
 
 /**
-* RFC1738 compliant replacement to PHP's rawurldecode - which actually works with unicode (using utf-8 encoding)
-* @author Ronen Botzer
-* @param $source [STRING]
-* @return unicode safe rawurldecoded string [STRING]
-* @access public
+* Normalize an AJAX form value while retaining phpBB2's historic slashed-input
+* convention. URL decoding has already been performed by PHP before this code
+* runs; decoding percent sequences a second time would corrupt literal values
+* such as "%C3%A4" and was the reason the old escape()-based client corrupted
+* UTF-8 text.
 */
 function utf8_rawurldecode($source)
 {
-	// Strip slashes
-	$source = stripslashes($source);
-
-	$decodedStr = '';
-	$pos = 0;
-	$len = strlen ($source);
-
-	while ($pos < $len)
-	{
-		$charAt = substr($source, $pos, 1);
-		if ($charAt == '%')
-		{
-			$pos++;
-			$charAt = substr($source, $pos, 1);
-			if ($charAt == 'u')
-			{
-				// we got a unicode character
-				$pos++;
-				$unicodeHexVal = substr($source, $pos, 4);
-				$unicode = hexdec($unicodeHexVal);
-				$entity = "&#". $unicode .';';
-				$decodedStr .= $entity;
-				$pos += 4;
-			}
-			else
-			{
-				// we have an escaped ascii character
-				$hexVal = substr ($source, $pos, 2);
-				$decodedStr .= chr (hexdec ($hexVal));
-				$pos += 2;
-			}
-		}
-		else
-		{
-			$decodedStr .= $charAt;
-			$pos++;
-		}
-	}
-
-	// Add slashes before sending it back to the browser;
-	// this keeps people from trying to inject SQL with some malformed string like %2527
-	return addslashes($decodedStr);
+	return addslashes(stripslashes((string) $source));
 }
 
 // Used to escape AJAX data correctly.

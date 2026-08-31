@@ -293,11 +293,12 @@ function setInnerText(obj, newtext)
 	}
 }
 
-// Separate escaping function to fix bug with + and % signs in QuickEdit and QuickPreview
+// Encode AJAX form values as UTF-8. PHP already performs the URL-decoding for
+// application/x-www-form-urlencoded request bodies, so values must be encoded
+// exactly once here.
 function ajax_escape(text)
 {
-	text = escape(text).replace(/(\%)/g, "%25");
-	return text.replace(/(\+)/g, "%2b");
+	return encodeURIComponent(String(text));
 }
 
 // This function is a workaround for long posts being truncated in PITA browsers

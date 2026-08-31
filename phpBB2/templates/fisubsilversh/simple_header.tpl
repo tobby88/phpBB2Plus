@@ -19,7 +19,7 @@ var phpbb_root_path = '{PHPBB_ROOT_PATH}';
 //-->
 </script>
 
-<script type="text/javascript" src="includes/javascript/ajax_core.js"></script>
+<script type="text/javascript" src="includes/javascript/ajax_core.js?v=20260831"></script>
 
 </head>
 <body {CLOSE_POPUP}> 

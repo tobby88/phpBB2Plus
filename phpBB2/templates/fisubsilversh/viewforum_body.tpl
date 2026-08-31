@@ -20,7 +20,7 @@
 </tr>
 </table>
 </form>
-<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js"></script>
+<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js?v=20260831"></script>
 <form method="post" action="{S_POST_DAYS_ACTION}">
 {BOARD_INDEX}
 {TOPICS_LIST_BOX}

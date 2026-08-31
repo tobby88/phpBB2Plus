@@ -15,7 +15,7 @@ var ajax_page_charset = '{S_CONTENT_ENCODING}';
 //-->
 </script>
 
-<script type="text/javascript" src="../includes/javascript/ajax_core.js"></script>
+<script type="text/javascript" src="../includes/javascript/ajax_core.js?v=20260831"></script>
 </head>
 <body>
 <a name="top" id="top"></a>

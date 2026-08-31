@@ -344,6 +344,50 @@ function AJAXCancelPostEdit(post_id)
 	AJAXFinishPostEdit(AJAX_ERROR, post_id, '', '', '');
 }
 
+function AJAXFullPostEdit(post_id, edit_url)
+{
+	if (!ajax_core_defined)
+	{
+		return true;
+	}
+
+	var posttext = getElementById('posttext_'+post_id);
+	if ((posttext == null) || !edit_url)
+	{
+		return true;
+	}
+
+	// Submit the current textarea value without a save action. posting.php
+	// verifies the session and uses it only to prefill the full editor.
+	var editform = document.createElement('form');
+	editform.method = 'post';
+	editform.action = edit_url;
+	editform.acceptCharset = 'UTF-8';
+	editform.style.display = 'none';
+
+	var draftflag = document.createElement('input');
+	draftflag.type = 'hidden';
+	draftflag.name = 'ajax_draft';
+	draftflag.value = '1';
+	editform.appendChild(draftflag);
+
+	var sidfield = document.createElement('input');
+	sidfield.type = 'hidden';
+	sidfield.name = 'sid';
+	sidfield.value = S_SID;
+	editform.appendChild(sidfield);
+
+	var draft = document.createElement('textarea');
+	draft.name = 'message';
+	draft.value = posttext.value;
+	draft.style.display = 'none';
+	editform.appendChild(draft);
+
+	document.body.appendChild(editform);
+	editform.submit();
+	return false;
+}
+
 function AJAXEnlargePostArea(post_id)
 {
 	if (!ajax_core_defined)

@@ -1,4 +1,4 @@
-<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js"></script>
+<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js?v=20260831"></script>
 <script type="text/javascript">
 <!--
 is_viewtopic = 1;
@@ -82,7 +82,7 @@ highlight = '{HIGHLIGHT}';
 <!-- BEGIN can_edit -->
 <div class="gen" id="post_{postrow.U_POST_ID}" style="display:none; text-align:right;">
 <textarea id="posttext_{postrow.U_POST_ID}" rows="15" cols="35" wrap="virtual" class="post" style="width:100%;" onkeyup="AJAXPostEditkeyUp(event, {postrow.U_POST_ID})">{postrow.RAW_MESSAGE}</textarea><textarea id="orig_posttext_{postrow.U_POST_ID}" rows="1" cols="1" style="display:none;">{postrow.RAW_MESSAGE}</textarea><br />
-<input type="button" value=" + " onclick="AJAXEnlargePostArea({postrow.U_POST_ID});return false;" class="liteoption" />&nbsp;<input type="button" value=" - " onclick="AJAXShortenPostArea({postrow.U_POST_ID});return false;" class="liteoption" />&nbsp;&nbsp;&nbsp;<input type="button" onclick="AJAXEndPostEdit({postrow.U_POST_ID}, -1);return false;" value="{L_SAVE_CHANGES}" class="liteoption" />&nbsp;<input type="button" onclick="AJAXCancelPostEdit({postrow.U_POST_ID});return false;" value="{L_CANCEL}" class="liteoption" />&nbsp;<a href="{postrow.U_EDIT_POST}" class="gen">{L_FULL_EDIT}</a>
+<input type="button" value=" + " onclick="AJAXEnlargePostArea({postrow.U_POST_ID});return false;" class="liteoption" />&nbsp;<input type="button" value=" - " onclick="AJAXShortenPostArea({postrow.U_POST_ID});return false;" class="liteoption" />&nbsp;&nbsp;&nbsp;<input type="button" onclick="AJAXEndPostEdit({postrow.U_POST_ID}, -1);return false;" value="{L_SAVE_CHANGES}" class="liteoption" />&nbsp;<input type="button" onclick="AJAXCancelPostEdit({postrow.U_POST_ID});return false;" value="{L_CANCEL}" class="liteoption" />&nbsp;<a href="{postrow.U_EDIT_POST}" onclick="return AJAXFullPostEdit({postrow.U_POST_ID}, this.href);" class="gen">{L_FULL_EDIT}</a>
 </div>
 <!-- END can_edit -->
 </td>

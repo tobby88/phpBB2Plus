@@ -14,6 +14,14 @@ changes consolidated after that baseline without implying active maintenance.
   comparison was replaced with parsed host matching. Deployment guidance now
   documents shared parent-domain cookies and the one-time cookie-name change
   needed to retire conflicting browser state without manual cache clearing.
+- Initialized poll form state on every posting path and retained Calendar,
+  announcement, news and post-icon fields in edit-submit lookups. Editing a
+  poll-less post no longer reads absent rows or an obsolete `edit_vote` flag
+  under PHP 8.
+- Replaced the AJAX editor's obsolete Latin-1 `escape()` transport with
+  single-pass UTF-8 form encoding, reject invalid UTF-8 before storage, keep
+  malformed response bytes from blanking the AJAX result, and carry unsaved
+  quick-edit text into the full editor.
 - Removed the six incomplete alternative style packages and the experimental
   automatic mobile-style selection. FI Subsilver Shadow is now the only
   bundled style; fresh installs seed only it, while the idempotent updater

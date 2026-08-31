@@ -314,6 +314,7 @@ $lang['You_are_watching'] = 'You are now watching this topic';
 $lang['Total_votes'] = 'Total Votes';
 
 $lang['Full_edit'] = 'Switch to full edit form';
+$lang['Ajax_draft_invalid'] = 'The draft cannot be transferred to the full editor because it is too large or contains invalid characters.';
 $lang['Save_changes'] = 'Save';
 $lang['No_subject'] = '(No subject)';
 

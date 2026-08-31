@@ -316,6 +316,7 @@ $lang['You_are_watching'] = 'Du beobachtest nun das Thema.';
 $lang['Total_votes'] = 'Stimmen insgesamt';
 
 $lang['Full_edit'] = 'Zum vollen Editor wechseln';
+$lang['Ajax_draft_invalid'] = 'Der Entwurf kann nicht in den vollständigen Editor übernommen werden, weil er zu groß ist oder ungültige Zeichen enthält.';
 $lang['Save_changes'] = 'Speichern';
 $lang['No_subject'] = '(Kein Titel)';
 

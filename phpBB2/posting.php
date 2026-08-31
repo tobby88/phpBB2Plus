@@ -309,6 +309,9 @@ switch( $mode )
 //
 $error_msg = '';
 $post_data = array();
+$poll_title = '';
+$poll_length = 0;
+$poll_options = array();
 switch ( $mode )
 {
 	case 'newtopic':
@@ -357,7 +360,8 @@ switch ( $mode )
 //	, t.topic_calendar_time, t.topic_calendar_duration
 //-- modify
 
-		$select_sql = (!$submit) ? ', t.topic_title, t.topic_desc, t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, p.post_username, pt.post_subject, p.post_icon, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
+		$select_sql = ', t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.post_icon';
+		$select_sql .= (!$submit) ? ', t.topic_title, t.topic_desc, p.enable_bbcode, p.enable_html, p.enable_smilies, p.enable_sig, p.post_username, pt.post_subject, pt.post_text, pt.bbcode_uid, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid' : '';
 		$from_sql = ( !$submit ) ? ", " . POSTS_TEXT_TABLE . " pt, " . USERS_TABLE . " u" : '';
 		$where_sql = ( !$submit ) ? "AND pt.post_id = p.post_id AND u.user_id = p.poster_id" : '';
 
@@ -1319,6 +1323,25 @@ $poll_length = '';
 			$username = ( $post_info['user_id'] == ANONYMOUS && !empty($post_info['post_username']) ) ? $post_info['post_username'] : '';
 		}
 	}
+}
+
+// The AJAX quick editor can hand its current, unsaved textarea contents to
+// the full editor. This is a render-only POST: it never sets the normal submit
+// action and therefore cannot save the post here.
+$ajax_draft_requested = ($mode == 'editpost' && $request_scalar($_POST, 'ajax_draft') === '1');
+if ($ajax_draft_requested)
+{
+	if (!posting_post_session_is_valid($sid, $userdata['session_id']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Session_invalid']);
+	}
+
+	$draft_message = stripslashes($request_scalar($_POST, 'message'));
+	if (strlen($draft_message) > 1048576 || preg_match('//u', $draft_message) !== 1)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Ajax_draft_invalid']);
+	}
+	$message = htmlspecialchars($draft_message, ENT_COMPAT | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 //

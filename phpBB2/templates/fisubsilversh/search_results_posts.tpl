@@ -1,4 +1,4 @@
-<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js"></script>
+<script type="text/javascript" src="includes/javascript/ajax_topicfunctions.js?v=20260831"></script>
 
 <table width="100%" cellspacing="2" cellpadding="2" border="0">
 <tr>
@@ -38,7 +38,7 @@
 <!-- BEGIN can_edit -->
 <div class="gen" id="post_{searchresults.U_POST_ID}" style="display:none; text-align:right;">
 <textarea id="posttext_{searchresults.U_POST_ID}" rows="15" cols="35" wrap="virtual" class="post" style="width:100%;" onkeyup="AJAXPostEditkeyUp(event, {searchresults.U_POST_ID})">{searchresults.RAW_MESSAGE}</textarea><textarea id="orig_posttext_{searchresults.U_POST_ID}" rows="1" cols="1" style="display:none;">{searchresults.RAW_MESSAGE}</textarea><br />
-<input type="button" value=" + " onclick="AJAXEnlargePostArea({searchresults.U_POST_ID});return false;" class="liteoption" />&nbsp;<input type="button" value=" - " onclick="AJAXShortenPostArea({searchresults.U_POST_ID});return false;" class="liteoption" />&nbsp;&nbsp;&nbsp;<input type="button" onclick="AJAXEndPostEdit({searchresults.U_POST_ID}, {RETURN_CHARS});return false;" value="{L_SAVE_CHANGES}" class="liteoption" />&nbsp;<input type="button" onclick="AJAXCancelPostEdit({searchresults.U_POST_ID});return false;" value="{L_CANCEL}" class="liteoption" />&nbsp;<a href="{searchresults.U_EDIT_POST}" class="gen">{L_FULL_EDIT}</a>
+<input type="button" value=" + " onclick="AJAXEnlargePostArea({searchresults.U_POST_ID});return false;" class="liteoption" />&nbsp;<input type="button" value=" - " onclick="AJAXShortenPostArea({searchresults.U_POST_ID});return false;" class="liteoption" />&nbsp;&nbsp;&nbsp;<input type="button" onclick="AJAXEndPostEdit({searchresults.U_POST_ID}, {RETURN_CHARS});return false;" value="{L_SAVE_CHANGES}" class="liteoption" />&nbsp;<input type="button" onclick="AJAXCancelPostEdit({searchresults.U_POST_ID});return false;" value="{L_CANCEL}" class="liteoption" />&nbsp;<a href="{searchresults.U_EDIT_POST}" onclick="return AJAXFullPostEdit({searchresults.U_POST_ID}, this.href);" class="gen">{L_FULL_EDIT}</a>
 </div>
 <!-- END can_edit -->
 </td>
