@@ -49,6 +49,9 @@ changes consolidated after that baseline without implying active maintenance.
   state. Stored text can no longer escape an input attribute or textarea when
   an old account is edited, and password fields are no longer reflected after
   a validation error.
+- Initialized profile zodiac output for accounts without a birthday or without
+  a matching localized image. Profile views now render an empty optional field
+  instead of emitting PHP 8 undefined-variable or missing-image warnings.
 - Brought the separate ACP quick-add user assistant under the same runtime
   boundaries: only installed languages and styles are accepted, timezone and
   date-format input is bounded, and rejected form values are safely reflected.

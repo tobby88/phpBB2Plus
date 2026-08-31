@@ -10,6 +10,7 @@ $selects = (string) file_get_contents($root . '/phpBB2/includes/functions_select
 $functions = (string) file_get_contents($root . '/phpBB2/includes/functions.php');
 $admin_users = (string) file_get_contents($root . '/phpBB2/admin/admin_users.php');
 $updater = (string) file_get_contents($root . '/update/update_from_153a.php');
+$view_profile = (string) file_get_contents($root . '/phpBB2/includes/usercp_viewprofile.php');
 $errors = array();
 
 foreach (array(
@@ -103,6 +104,13 @@ foreach (array("'album'", "'album_comment'", "'ina_comment'", "'shout'") as $tab
 	if (strpos($updater, '$table_prefix . ' . $table_marker) === false)
 	{
 		$errors[] = 'Updater does not reconcile username snapshots in ' . $table_marker . '.';
+	}
+}
+foreach (array("\$zodiac = '';", "\$u_zodiac = '';", "\$zodiac_img = '';", 'isset($lang[$zodiac_key])', 'isset($images[$zodiac_key])') as $marker)
+{
+	if (strpos($view_profile, $marker) === false)
+	{
+		$errors[] = 'Profile birthday output lacks a safe zodiac fallback: ' . $marker;
 	}
 }
 

@@ -226,6 +226,9 @@ $chinese = '';
 $chinese_label = '';
 $u_chinese = '';
 $chinese_img = '';
+$zodiac = '';
+$u_zodiac = '';
+$zodiac_img = '';
 if ($profiledata['user_birthday']!=999999)
 {
 	include($phpbb_root_path . 'includes/chinese.'.$phpEx);
@@ -239,9 +242,10 @@ if ($profiledata['user_birthday']!=999999)
 	{
 		if ($user_birthdate>=$zodiacdates[$i] && $user_birthdate<=$zodiacdates[$i+1])
 		{
-			$zodiac = $lang[$zodiacs[($i/2)]];
-			$u_zodiac = $images[$zodiacs[($i/2)]];
-			$zodiac_img = '<img src="' . $u_zodiac . '" alt="' . $zodiac . '" title="' . $zodiac . '" align="top" border="0" />';
+			$zodiac_key = $zodiacs[($i/2)];
+			$zodiac = isset($lang[$zodiac_key]) ? $lang[$zodiac_key] : '';
+			$u_zodiac = isset($images[$zodiac_key]) ? $images[$zodiac_key] : '';
+			$zodiac_img = ($zodiac === '' || $u_zodiac === '') ? '' : '<img src="' . $u_zodiac . '" alt="' . $zodiac . '" title="' . $zodiac . '" align="top" border="0" />';
 			$i=26;
 		} else
 		{
