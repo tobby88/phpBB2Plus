@@ -54,6 +54,7 @@ if ( $board_config['gzip_compress'] )
 				ob_start();
 				ob_implicit_flush(0);
 
+				header('Vary: Accept-Encoding', false);
 				header('Content-Encoding: gzip');
 			}
 		}

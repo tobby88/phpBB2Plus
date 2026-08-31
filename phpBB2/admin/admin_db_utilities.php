@@ -68,22 +68,6 @@ define("VERBOSE", 0);
 //
 @set_time_limit(1200);
 
-// -----------------------
-// The following functions are adapted from phpMyAdmin and upgrade_20.php
-//
-function gzip_PrintFourChars($Val)
-{
-	$return = '';
-	for ($i = 0; $i < 4; $i ++)
-	{
-		$return .= chr($Val % 256);
-		$Val = floor($Val / 256);
-	}
-	return $return;
-} 
-
-
-
 //
 // This function is used for grabbing the sequences for postgres...
 //
@@ -705,11 +689,9 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 			
 			if($do_gzip_compress)
 			{
-				$Size = ob_get_length();
-				$Crc = crc32(ob_get_contents());
-				$contents = gzcompress(ob_get_contents());
+				$contents = gzencode(ob_get_contents(), 9);
 				ob_end_clean();
-				echo "\x1f\x8b\x08\x00\x00\x00\x00\x00".substr($contents, 0, strlen($contents) - 4).gzip_PrintFourChars($Crc).gzip_PrintFourChars($Size);
+				echo $contents;
 			}
 			exit;
 

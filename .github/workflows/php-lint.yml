@@ -109,6 +109,9 @@ jobs:
       - name: Test SMTP transport safety
         run: php .github/scripts/check-smtp-transport-safety.php
 
+      - name: Test gzip output safety
+        run: php .github/scripts/check-gzip-output-safety.php
+
       - name: Test StopForumSpam integration safety
         run: php .github/scripts/check-stopforumspam-safety.php
 

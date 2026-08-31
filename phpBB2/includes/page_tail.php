@@ -200,16 +200,11 @@ if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
 }
 	ob_end_clean();
 
-	$gzip_size = strlen($gzip_contents);
-	$gzip_crc = crc32($gzip_contents);
-
-	$gzip_contents = gzcompress($gzip_contents, 9);
-	$gzip_contents = substr($gzip_contents, 0, strlen($gzip_contents) - 4);
-
-	echo "\x1f\x8b\x08\x00\x00\x00\x00\x00";
-	echo $gzip_contents;
-	echo pack('V', $gzip_crc);
-	echo pack('V', $gzip_size);
+	// gzcompress() produces a zlib stream, not a gzip stream.  Prefixing the
+	// former with a gzip header created an invalid response for clients that
+	// did not take the ob_gzhandler branch.  gzencode() emits the complete,
+	// standards-compliant representation advertised by Content-Encoding.
+	echo gzencode($gzip_contents, 9);
 }
 
 exit;

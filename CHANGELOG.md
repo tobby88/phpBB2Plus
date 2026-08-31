@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced four hand-built HTTP gzip responses and the database-backup
+  compressor with `gzencode()`. The old code advertised gzip while embedding
+  a zlib stream, which made standards-compliant clients reject affected
+  responses; compressed responses now also vary explicitly by
+  `Accept-Encoding`.
 - Normalized every configured account and board language through one strict
   installed-pack allowlist before extensions can construct language-file
   paths. Empty legacy account values now fall back deterministically, and a

@@ -81,6 +81,7 @@ if ( $board_config['gzip_compress'] && !defined('AJAX_HEADERS') )
 				ob_start();
 				ob_implicit_flush(0);
 
+				header('Vary: Accept-Encoding', false);
 				header('Content-Encoding: gzip');
 			}
 		}
