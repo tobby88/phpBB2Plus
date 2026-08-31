@@ -237,3 +237,6 @@ jobs:
 
       - name: Test serialized state safety
         run: php .github/scripts/check-serialized-state-safety.php
+
+      - name: Test removed PHP runtime compatibility
+        run: php .github/scripts/check-removed-runtime-safety.php

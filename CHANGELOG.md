@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed the final PHP-8-incompatible `each()` and legacy MySQL escape calls
+  from historical update paths. The advanced CAPTCHA now remains usable with
+  GD but no TrueType fonts, and custom or damaged time-zone offsets render a
+  stable GMT label instead of triggering missing-language-key warnings.
 - Restored coherent responsive-style handling. Installed public Bootstrap
   styles are selected automatically for mobile clients, footer controls let
   visitors retain automatic, mobile or desktop display without changing their

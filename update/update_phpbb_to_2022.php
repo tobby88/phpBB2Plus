@@ -853,14 +853,15 @@ switch ($row['config_value'])
 		}
 		$db->sql_freeresult($result);
 
-		while (list($topic_id, $topic_moved_id) = each($topic_ary))
+		foreach ($topic_ary as $topic_id => $topic_moved_id)
 		{
 			$sql = "SELECT MAX(post_id) AS last_post, MIN(post_id) AS first_post, COUNT(post_id) AS total_posts
 				FROM " . POSTS_TABLE . "
 				WHERE topic_id = $topic_moved_id";
 			$result = _sql($sql, $errored, $error_ary);
 
-			$sql = ($row = $db->sql_fetchrow($result)) ? "UPDATE " . TOPICS_TABLE . "	SET topic_replies = " . ($row['total_posts'] - 1) . ", topic_first_post_id = " . $row['first_post'] . ", topic_last_post_id = " . $row['last_post'] . " WHERE topic_id = $topic_id" : "DELETE FROM " . TOPICS_TABLE . " WHERE topic_id = " . $row['topic_id'];
+			$sql = ($row = $db->sql_fetchrow($result)) ? "UPDATE " . TOPICS_TABLE . "	SET topic_replies = " . ($row['total_posts'] - 1) . ", topic_first_post_id = " . $row['first_post'] . ", topic_last_post_id = " . $row['last_post'] . " WHERE topic_id = $topic_id" : "DELETE FROM " . TOPICS_TABLE . " WHERE topic_id = $topic_id";
+			$db->sql_freeresult($result);
 			_sql($sql, $errored, $error_ary);
 		}
 
@@ -961,7 +962,7 @@ switch ($row['config_value'])
 			}
 			while ($row = $db->sql_fetchrow($result));
 
-			while (list($num, $user_ary) = each($update_users))
+			foreach ($update_users as $num => $user_ary)
 			{
 				$user_ids = implode(', ', $user_ary);
 
@@ -989,7 +990,7 @@ switch ($row['config_value'])
 			}
 			while ($row = $db->sql_fetchrow($result));
 
-			while (list($num, $user_ary) = each($update_users))
+			foreach ($update_users as $num => $user_ary)
 			{
 				$user_ids = implode(', ', $user_ary);
 

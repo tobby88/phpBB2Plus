@@ -78,25 +78,14 @@ if (!function_exists('attach_mod_sql_escape'))
 	*/
 	function attach_mod_sql_escape($text)
 	{
-		switch (SQL_LAYER)
-		{
-			case 'mysql':
-			case 'mysql4':
-			case 'mysqli':
-				if (function_exists('mysql_escape_string'))
-				{
-					return mysql_escape_string($text);
-				}
-				else
-				{
-					return str_replace("'", "''", str_replace('\\', '\\\\', $text));
-				}
-			break;
+		global $db;
 
-			default:
-				return str_replace("'", "''", str_replace('\\', '\\\\', $text));
-			break;
+		if (is_object($db) && method_exists($db, 'sql_escape'))
+		{
+			return $db->sql_escape($text);
 		}
+
+		return str_replace("'", "''", str_replace('\\', '\\\\', $text));
 	}
 }
 

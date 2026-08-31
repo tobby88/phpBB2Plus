@@ -1235,6 +1235,26 @@ function decode_ip($int_ip)
 	return hexdec($hexipbang[0]). '.' . hexdec($hexipbang[1]) . '.' . hexdec($hexipbang[2]) . '.' . hexdec($hexipbang[3]);
 }
 
+// Return a translated legacy GMT label without assuming every stored offset
+// still has a matching language-array key.
+function phpbb_timezone_label($offset)
+{
+	global $lang;
+
+	$offset = is_numeric($offset) ? (float) $offset : 0.0;
+	$key = rtrim(rtrim(sprintf('%.2f', $offset), '0'), '.');
+	if ($key === '-0')
+	{
+		$key = '0';
+	}
+	if (isset($lang[$key]) && is_scalar($lang[$key]))
+	{
+		return (string) $lang[$key];
+	}
+
+	return ($offset == 0.0) ? 'GMT' : 'GMT ' . (($offset > 0) ? '+ ' : '- ') . rtrim(rtrim(sprintf('%.2f', abs($offset)), '0'), '.') . ' hours';
+}
+
 //
 // Create date/time from format and timezone
 //

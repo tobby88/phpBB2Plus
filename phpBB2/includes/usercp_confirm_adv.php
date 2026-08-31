@@ -152,7 +152,8 @@ if ($fonts_dir = opendir($phpbb_root_path.'captcha/fonts/'))
 	}
 	closedir($fonts_dir);
 }
-$font = rand(0, (count($fonts)-1));
+$use_ttf = count($fonts) > 0 && function_exists('imagettfbbox') && function_exists('imagettftext');
+$font = $use_ttf ? rand(0, (count($fonts)-1)) : 5;
 
 // Generate
 $image = (gdVersion() >= 2) ? imagecreatetruecolor($total_width, $total_height) : imagecreate($total_width, $total_height);
@@ -226,8 +227,24 @@ for ($i = 0; $i < strlen($code); $i++)
 	$char = $code[$i];
 #	$size = mt_rand(18, ceil($total_height / 2.8));
 	$size = mt_rand(floor($total_height / 3.5), ceil($total_height / 2.8));
-	$font = ($rnd_font) ? rand(0, (count($fonts)-1)) : $font;
+	$font = ($use_ttf && $rnd_font) ? rand(0, (count($fonts)-1)) : $font;
 	$angle = mt_rand(-30, 30);
+	$text_color = $text_color_array[mt_rand(0,count($text_color_array)-1)];
+	$text_color = explode(",", $text_color);
+	$textcolor = imagecolorallocate($image, $text_color[0], $text_color[1], $text_color[2]);
+
+	if (!$use_ttf)
+	{
+		$builtin_font = 5;
+		$letter_width = imagefontwidth($builtin_font);
+		$letter_height = imagefontheight($builtin_font);
+		$x_pos = max(2, (int) (($i + 0.5) * ($total_width / strlen($code)) - ($letter_width / 2)));
+		$y_pos = max(2, (int) (($total_height - $letter_height) / 2) + mt_rand(-3, 3));
+		imagestring($image, $builtin_font, $x_pos + 2, $y_pos + 2, $char, $white);
+		imagestring($image, $builtin_font, $x_pos + 1, $y_pos + 1, $char, $black);
+		imagestring($image, $builtin_font, $x_pos, $y_pos, $char, $textcolor);
+		continue;
+	}
 
 	$char_pos = array();
 	$char_pos = imagettfbbox($size, $angle, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
@@ -256,10 +273,6 @@ for ($i = 0; $i < strlen($code); $i++)
 	}
 
 //	Final letters
-	$text_color = $text_color_array[mt_rand(0,count($text_color_array)-1)];
-	$text_color = explode(",", $text_color);
-	$textcolor = imagecolorallocate($image, $text_color[0], $text_color[1], $text_color[2]);
-
 	imagettftext($image, $size, $angle, $x_pos, $y_pos-2, $white, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
 	imagettftext($image, $size, $angle, $x_pos+2, $y_pos, $black, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
 	imagettftext($image, $size, $angle, $x_pos+1, $y_pos-1, $textcolor, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
@@ -289,7 +302,7 @@ if ($foreground_lattice_x)
 }
 
 // Font debug
-if ($font_debug && !$rnd_font)
+if ($font_debug && !$rnd_font && $use_ttf)
 {
 	imagestring($image, 5, 2, 0, $fonts[$font], $white);
 	imagestring($image, 5, 5, 0, $fonts[$font], $white);
