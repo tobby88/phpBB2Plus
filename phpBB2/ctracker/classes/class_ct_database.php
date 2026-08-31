@@ -349,6 +349,7 @@ class ct_database
 		$login_ip   = '';
 		$login_time = 0;
 		$temp_time  = 0;
+		$temp_id    = 0;
 
 		// Set values
 		$login_ip   = $db->sql_escape((string) $this->user_ip_value);
@@ -368,7 +369,9 @@ class ct_database
 
 		// Delete old values from the Database
 		$history_offset = max(0, intval($this->settings['login_history_count']) - 1);
-		$sql = 'SELECT * FROM ' . CTRACKER_LOGINHISTORY . ' WHERE ct_user_id = ' . $user_id . ' ORDER BY ct_login_time DESC LIMIT ' . $history_offset . ',1';
+		$sql = 'SELECT ct_login_id, ct_login_time FROM ' . CTRACKER_LOGINHISTORY .
+			' WHERE ct_user_id = ' . $user_id .
+			' ORDER BY ct_login_time DESC, ct_login_id DESC LIMIT ' . $history_offset . ',1';
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -376,9 +379,12 @@ class ct_database
 		}
 
 		$row       = $db->sql_fetchrow($result);
- 		$temp_time = !empty($row['ct_login_time'])? $row['ct_login_time'] : 0;
+		$temp_time = !empty($row['ct_login_time']) ? intval($row['ct_login_time']) : 0;
+		$temp_id   = !empty($row['ct_login_id']) ? intval($row['ct_login_id']) : 0;
 
-		$sql = 'DELETE FROM ' . CTRACKER_LOGINHISTORY . ' WHERE ct_user_id = ' . $user_id . ' AND ct_login_time < ' . $temp_time;
+		$sql = 'DELETE FROM ' . CTRACKER_LOGINHISTORY . ' WHERE ct_user_id = ' . $user_id .
+			' AND (ct_login_time < ' . $temp_time .
+			' OR (ct_login_time = ' . $temp_time . ' AND ct_login_id < ' . $temp_id . '))';
 
 		if ( !($result = $db->sql_query($sql)) )
 		{

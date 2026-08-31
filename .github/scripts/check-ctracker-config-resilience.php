@@ -1,6 +1,7 @@
 <?php
 
 define('CTRACKER_CONFIG', 'phpbb_ctracker_config');
+define('CTRACKER_LOGINHISTORY', 'phpbb_ctracker_loginhistory');
 define('GENERAL_ERROR', 0);
 
 function message_die()
@@ -17,11 +18,17 @@ class config_resilience_db
 	function sql_query($sql)
 	{
 		$this->queries[] = $sql;
-		return stripos($sql, 'SELECT * FROM ') === 0 ? 'settings' : true;
+		if (stripos($sql, 'SELECT * FROM ') === 0) { return 'settings'; }
+		if (stripos($sql, 'SELECT ct_login_id, ct_login_time FROM ') === 0) { return 'history-boundary'; }
+		return true;
 	}
 
 	function sql_fetchrow($result)
 	{
+		if ($result === 'history-boundary')
+		{
+			return array('ct_login_id' => 17, 'ct_login_time' => 1700000000);
+		}
 		return ($result === 'settings' && $this->rows) ? array_shift($this->rows) : false;
 	}
 
@@ -72,6 +79,17 @@ catch (Exception $exception)
 if (!$unknown_rejected)
 {
 	fwrite(STDERR, "CrackerTracker accepted an unknown configuration key.\n");
+	exit(1);
+}
+
+$db->queries = array();
+$config->settings['login_history_count'] = '10';
+$config->update_login_history(23);
+$history_sql = implode("\n", $db->queries);
+if (strpos($history_sql, 'ORDER BY ct_login_time DESC, ct_login_id DESC LIMIT 9,1') === false ||
+	strpos($history_sql, 'ct_login_time = 1700000000 AND ct_login_id < 17') === false)
+{
+	fwrite(STDERR, "Login-history retention is not deterministic for equal timestamps.\n");
 	exit(1);
 }
 

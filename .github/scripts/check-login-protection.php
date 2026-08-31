@@ -20,6 +20,14 @@ foreach ($required as $marker)
 $database_class = (string) file_get_contents($root . '/phpBB2/ctracker/classes/class_ct_database.php');
 $schema = (string) file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
 $updater = (string) file_get_contents($root . '/update/update_from_153a.php');
+if (!preg_match('/CREATE TABLE\s+`phpbb_ctracker_loginhistory`.*?`ct_login_id`\s+bigint\(20\)\s+unsigned\s+NOT NULL\s+AUTO_INCREMENT.*?KEY\s+`ct_user_time`/is', $schema) ||
+	strpos($database_class, 'ORDER BY ct_login_time DESC, ct_login_id DESC') === false ||
+	strpos($database_class, 'ct_login_id < ') === false ||
+	strpos($updater, "ADD `ct_login_id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST") === false ||
+	strpos($updater, 'ADD INDEX `ct_user_time` (`ct_user_id`, `ct_login_time`, `ct_login_id`)') === false)
+{
+	$errors[] = 'Login-history retention lacks a stable event ID or migration.';
+}
 if (is_file($root . '/phpBB2/ctracker_login.php') ||
 	is_file($root . '/phpBB2/templates/fisubsilversh/ctracker/ctracker_login.tpl'))
 {

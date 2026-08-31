@@ -89,6 +89,7 @@ if (in_array('--self-test', $argv, true))
 		&& (bool) preg_match('/ct_login_ip`?\s+varchar\(45\)/i', $schema_source);
 	$schema_has_checksum_capacity = (bool) preg_match('/`hash`\s+varchar\(64\)/i', $schema_source);
 	$schema_has_atomic_blocklist_ids = (bool) preg_match('/CREATE TABLE\s+`phpbb_ctracker_ipblocker`.*?`id`\s+mediumint\(8\)\s+unsigned\s+NOT NULL\s+AUTO_INCREMENT/is', $schema_source);
+	$schema_has_stable_login_history = (bool) preg_match('/CREATE TABLE\s+`phpbb_ctracker_loginhistory`.*?`ct_login_id`\s+bigint\(20\)\s+unsigned\s+NOT NULL\s+AUTO_INCREMENT.*?KEY\s+`ct_user_time`/is', $schema_source);
 	$basic_has_legacy_blocklist = (bool) preg_match('/INSERT INTO\s+`?phpbb_ctracker_ipblocker/i', $basic_source);
 	$schema_has_current_contacts = (bool) preg_match('/user_signal\s+varchar\(255\)/i', $schema_source)
 		&& (bool) preg_match('/user_threema\s+varchar\(255\)/i', $schema_source);
@@ -100,9 +101,9 @@ if (in_array('--self-test', $argv, true))
 	$theme_seed_count = preg_match_all('/^INSERT INTO\s+phpbb_themes\s*\(/im', $basic_source, $unused_theme_matches);
 	$standard_style_config_count = count(update_read_theme_info($forum_root, 'fisubsilversh'));
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 46 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_atomic_blocklist_ids || $basic_has_legacy_blocklist || !$schema_has_current_contacts || !$schema_has_split_password_timestamps || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
+	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 46 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_atomic_blocklist_ids || !$schema_has_stable_login_history || $basic_has_legacy_blocklist || !$schema_has_current_contacts || !$schema_has_split_password_timestamps || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", split password timestamps " . ($schema_has_split_password_timestamps ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", blocklist IDs " . ($schema_has_atomic_blocklist_ids ? 'atomic' : 'legacy') . ", legacy blocklist seeds " . ($basic_has_legacy_blocklist ? 'present' : 'none') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", split password timestamps " . ($schema_has_split_password_timestamps ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", blocklist IDs " . ($schema_has_atomic_blocklist_ids ? 'atomic' : 'legacy') . ", login history " . ($schema_has_stable_login_history ? 'stable' : 'legacy') . ", legacy blocklist seeds " . ($basic_has_legacy_blocklist ? 'present' : 'none') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
 	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password, IPv6 and SHA-256 checksum columns ready.\n";
@@ -470,6 +471,18 @@ foreach (array('ct_last_used_ip', 'ct_last_ip') as $ip_column)
 	}
 }
 $login_history_table = $table_prefix . 'ctracker_loginhistory';
+if (update_table_exists($connection, $dbname, $login_history_table) &&
+	!update_column_exists($connection, $dbname, $login_history_table, 'ct_login_id'))
+{
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($login_history_table) .
+		' ADD `ct_login_id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST';
+}
+if (update_table_exists($connection, $dbname, $login_history_table) &&
+	!update_index_exists($connection, $dbname, $login_history_table, 'ct_user_time'))
+{
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($login_history_table) .
+		' ADD INDEX `ct_user_time` (`ct_user_id`, `ct_login_time`, `ct_login_id`)';
+}
 if (update_table_exists($connection, $dbname, $login_history_table) &&
 	update_column_max_length($connection, $dbname, $login_history_table, 'ct_login_ip') < 45)
 {

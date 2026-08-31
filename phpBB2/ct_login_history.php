@@ -54,7 +54,7 @@ $template->set_filenames(array(
 // Output Login History
 if ( $ctracker_config->settings['login_history'] )
 {
-	$sql = 'SELECT * FROM ' . CTRACKER_LOGINHISTORY . ' WHERE ct_user_id=' . $userdata['user_id'] . ' ORDER BY ct_login_time DESC';
+	$sql = 'SELECT * FROM ' . CTRACKER_LOGINHISTORY . ' WHERE ct_user_id=' . $userdata['user_id'] . ' ORDER BY ct_login_time DESC, ct_login_id DESC';
 		
 	if ( !($result = $db->sql_query($sql)) )
 	{

@@ -19,6 +19,11 @@ changes consolidated after that baseline without implying active maintenance.
   silently disables protection, and saving the ACP form repairs absent rows
   through a whitelisted upsert. Fresh installs no longer start with a
   decades-old scan timestamp or the sample global message “Hello world!”.
+- Gave CrackerTracker login-history events a stable auto-incrementing identity
+  and a matching per-user time index. Retention and display order are now
+  deterministic even when several logins share one timestamp, so the ACP
+  history limit remains an actual bound instead of allowing same-second rows
+  to accumulate indefinitely; existing installations are migrated in place.
 - Removed CrackerTracker's two obsolete per-user search counters. Search
   protection already uses the shared atomic rate-limit table for guests and
   members, so fresh schemas no longer create parallel state and the updater

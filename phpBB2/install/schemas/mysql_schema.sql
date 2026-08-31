@@ -1357,9 +1357,12 @@ CREATE TABLE `phpbb_ctracker_ipblocker` (
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `phpbb_ctracker_loginhistory` (
+			`ct_login_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			`ct_user_id` int(10) default NULL,
 			`ct_login_ip` varchar(45) default NULL,
-			`ct_login_time` int(11) NOT NULL default '0'
+			`ct_login_time` int(11) NOT NULL default '0',
+			PRIMARY KEY (`ct_login_id`),
+			KEY `ct_user_time` (`ct_user_id`, `ct_login_time`, `ct_login_id`)
 			) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `phpbb_ctracker_rate_limits` (
