@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Moved CrackerTracker's internal-mail cooldown from a user-table deadline to
+  the shared per-account rate-limit store. Merely opening a mail form or
+  submitting invalid data no longer blocks it, and the cooldown starts only
+  after the primary message was sent successfully. Profile mail and
+  tell-a-friend continue to share the same bounded window, retain phpBB's
+  short flood check, and report the precise remaining wait; the updater drops
+  the obsolete `ct_last_mail` column.
 - Replaced CrackerTracker's destructive posting-burst response with a bounded
   per-account rate limit. Rapid legitimate posting is no longer treated as
   proof of abuse and can never automatically ban or deactivate an account;

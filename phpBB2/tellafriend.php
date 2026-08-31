@@ -76,10 +76,6 @@ if (isset($_POST['submit']))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Flood_email_limit']);
 	}
-	if (isset($ctracker_config) && is_object($ctracker_config) && !empty($ctracker_config->settings['massmail_protection']) && (int) $userdata['ct_last_mail'] >= time())
-	{
-		message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_sendmail_info'], (int) $ctracker_config->settings['massmail_time']));
-	}
 	$sid = isset($_POST['sid']) && is_string($_POST['sid']) ? $_POST['sid'] : '';
 	$friendemail = isset($_POST['friendemail']) && is_string($_POST['friendemail']) ? trim(stripslashes($_POST['friendemail'])) : '';
 	$friendname = isset($_POST['friendname']) && is_string($_POST['friendname']) ? trim(stripslashes($_POST['friendname'])) : '';
@@ -100,11 +96,14 @@ if (isset($_POST['submit']))
 
 	if (!$error)
 	{
-		$new_mailtime = isset($ctracker_config) && is_object($ctracker_config) ? time() + ((int) $ctracker_config->settings['massmail_time'] * 60) : time();
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET user_emailtime = ' . time() . ', ct_last_mail = ' . $new_mailtime . ' WHERE user_id = ' . (int) $userdata['user_id'];
-		if (!$db->sql_query($sql))
+		if (isset($ctracker_config) && is_object($ctracker_config) && !empty($ctracker_config->settings['massmail_protection']) && function_exists('ctracker_rate_limit_cooldown_remaining'))
 		{
-			message_die(GENERAL_ERROR, 'Unable to update email rate limit.', '', __LINE__, __FILE__, $sql);
+			$mail_minutes = max(1, min(180, intval($ctracker_config->settings['massmail_time'])));
+			$mail_remaining = ctracker_rate_limit_cooldown_remaining('mail-user', 'user:' . intval($userdata['user_id']), $mail_minutes * 60);
+			if ($mail_remaining !== false && $mail_remaining > 0)
+			{
+				message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_sendmail_info'], $mail_minutes, intval($mail_remaining)));
+			}
 		}
 		include($phpbb_root_path . 'includes/emailer.' . $phpEx);
 		$emailer = new emailer($board_config['smtp_delivery']);
@@ -123,6 +122,15 @@ if (isset($_POST['submit']))
 		));
 		$emailer->send();
 		$emailer->reset();
+		if (isset($ctracker_config) && is_object($ctracker_config) && !empty($ctracker_config->settings['massmail_protection']) && function_exists('ctracker_rate_limit_mark_success'))
+		{
+			ctracker_rate_limit_mark_success('mail-user', 'user:' . intval($userdata['user_id']));
+		}
+		$sql = 'UPDATE ' . USERS_TABLE . ' SET user_emailtime = ' . time() . ' WHERE user_id = ' . intval($userdata['user_id']);
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Unable to update email rate limit.', '', __LINE__, __FILE__, $sql);
+		}
 		message_die(GENERAL_MESSAGE, $lang['Email_sent'] . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>'));
 	}
 

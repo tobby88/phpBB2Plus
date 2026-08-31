@@ -86,15 +86,6 @@ if ( $result = $db->sql_query($sql) )
 
 	if ( $row['user_viewemail'] || $userdata['user_level'] == ADMIN )
 	{
-		if ( $userdata['ct_last_mail'] >= time() && $ctracker_config->settings['massmail_protection'] == 1 )
-		{
-			message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_sendmail_info'], $ctracker_config->settings['massmail_time']));
-		}
-		if ( time() - $userdata['user_emailtime'] < $board_config['flood_interval'] )
-		{
-			message_die(GENERAL_MESSAGE, $lang['Flood_email_limit']);
-		}
-
 		if ( isset($_POST['submit']) )
 		{
 			$error = FALSE;
@@ -102,6 +93,19 @@ if ( $result = $db->sql_query($sql) )
 			if ($submitted_sid === '' || !hash_equals((string) $userdata['session_id'], $submitted_sid))
 			{
 				message_die(GENERAL_ERROR, $lang['Session_invalid']);
+			}
+			if ( time() - (int) $userdata['user_emailtime'] < (int) $board_config['flood_interval'] )
+			{
+				message_die(GENERAL_MESSAGE, $lang['Flood_email_limit']);
+			}
+			if (intval($ctracker_config->settings['massmail_protection']) == 1 && function_exists('ctracker_rate_limit_cooldown_remaining'))
+			{
+				$mail_minutes = max(1, min(180, intval($ctracker_config->settings['massmail_time'])));
+				$mail_remaining = ctracker_rate_limit_cooldown_remaining('mail-user', 'user:' . intval($userdata['user_id']), $mail_minutes * 60);
+				if ($mail_remaining !== false && $mail_remaining > 0)
+				{
+					message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_sendmail_info'], $mail_minutes, intval($mail_remaining)));
+				}
 			}
 
 			$submitted_subject = (isset($_POST['email_subject']) && is_scalar($_POST['email_subject'])) ? (string) $_POST['email_subject'] : '';
@@ -128,12 +132,7 @@ if ( $result = $db->sql_query($sql) )
 
 			if ( !$error )
 			{
-				$new_mailtime = time() + $ctracker_config->settings['massmail_time'] * 60;
-				$sql = 'UPDATE ' . USERS_TABLE . '
-					SET user_emailtime = ' . time() . ', ct_last_mail = ' . $new_mailtime . ' WHERE user_id = ' . $userdata['user_id'];
-				if ( $result = $db->sql_query($sql) )
-				{
-					include($phpbb_root_path . 'includes/emailer.'.$phpEx);
+				include($phpbb_root_path . 'includes/emailer.'.$phpEx);
 					$emailer = new emailer($board_config['smtp_delivery']);
 
 					$emailer->from($board_config['board_email']);
@@ -158,11 +157,19 @@ if ( $result = $db->sql_query($sql) )
 					);
 					$emailer->send();
 					$emailer->reset();
+					if (intval($ctracker_config->settings['massmail_protection']) == 1 && function_exists('ctracker_rate_limit_mark_success'))
+					{
+						ctracker_rate_limit_mark_success('mail-user', 'user:' . intval($userdata['user_id']));
+					}
+					$sql = 'UPDATE ' . USERS_TABLE . ' SET user_emailtime = ' . time() . ' WHERE user_id = ' . intval($userdata['user_id']);
+					if (!$db->sql_query($sql))
+					{
+						message_die(GENERAL_ERROR, 'Could not update last email time', '', __LINE__, __FILE__, $sql);
+					}
 
 					if ( isset($_POST['cc_email']) && is_scalar($_POST['cc_email']) && $_POST['cc_email'] )
 					{
 						$emailer->from($board_config['board_email']);
-						$emailer->replyto($userdata['user_email']);
 						$emailer->replyto($userdata['user_email']);
 						$emailer->use_template('profile_send_email');
 						$emailer->email_address($userdata['user_email']);
@@ -185,12 +192,7 @@ if ( $result = $db->sql_query($sql) )
 
 					$message = $lang['Email_sent'] . '<br /><br />' . sprintf($lang['Click_return_index'],  '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
 
-					message_die(GENERAL_MESSAGE, $message);
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, 'Could not update last email time', '', __LINE__, __FILE__, $sql);
-				}
+				message_die(GENERAL_MESSAGE, $message);
 			}
 		}
 

@@ -24,6 +24,8 @@ foreach (array(
 foreach (array(
 	'strlen($submitted_subject) <= 200',
 	'strlen($submitted_message) <= 10000',
+	"ctracker_rate_limit_cooldown_remaining('mail-user'",
+	"ctracker_rate_limit_mark_success('mail-user'",
 	"\$emailer->from(\$board_config['board_email'])",
 	"htmlspecialchars(\$row['user_absence_text'], ENT_QUOTES, 'UTF-8')",
 	"\$board_config['server_name']"
@@ -37,6 +39,8 @@ foreach (array(
 
 foreach (array(
 	'$link_port !== $board_port',
+	"ctracker_rate_limit_cooldown_remaining('mail-user'",
+	"ctracker_rate_limit_mark_success('mail-user'",
 	"\$emailer->from(\$board_config['board_email'])",
 	'$emailer->email_address($friendemail)'
 ) as $marker)
@@ -45,6 +49,29 @@ foreach (array(
 	{
 		$errors[] = 'Missing tell-a-friend marker: ' . $marker;
 	}
+}
+if (strpos($profile_email, 'ct_last_mail') !== false || strpos($friend, 'ct_last_mail') !== false)
+{
+	$errors[] = 'Mail workflows still use the pre-send user timestamp.';
+}
+$profile_submit = strpos($profile_email, "if ( isset(\$_POST['submit']) )");
+$profile_cooldown = strpos($profile_email, "ctracker_rate_limit_cooldown_remaining('mail-user'");
+$profile_send = strpos($profile_email, '$emailer->send()');
+$profile_mark = strpos($profile_email, "ctracker_rate_limit_mark_success('mail-user'");
+$friend_send = strpos($friend, '$emailer->send()');
+$friend_mark = strpos($friend, "ctracker_rate_limit_mark_success('mail-user'");
+if ($profile_submit === false || $profile_cooldown < $profile_submit ||
+	$profile_send === false || $profile_mark < $profile_send ||
+	$friend_send === false || $friend_mark < $friend_send)
+{
+	$errors[] = 'Mail cooldown is not scoped to submission and successful primary delivery.';
+}
+
+$schema = (string) file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql');
+$updater = (string) file_get_contents($root . '/update/update_from_153a.php');
+if (strpos($schema, 'ct_last_mail') !== false || strpos($updater, "'ct_last_mail'") === false)
+{
+	$errors[] = 'Obsolete mail-cooldown column is not removed by the schema migration.';
 }
 if (strpos($friend, '$friendname . \' <\' . $friendemail') !== false)
 {
