@@ -14,6 +14,9 @@ changes consolidated after that baseline without implying active maintenance.
   PHP 8 undefined-key warnings. paFileDB search caching also uses an explicit
   PHP 8-compatible field map and its optional comment label has a translation
   fallback.
+- Routed paFileDB recommendation mail through the configured board sender with
+  a validated Reply-To address, bounded its user-controlled fields and placed
+  the endpoint under CrackerTracker's tighter hourly mail/account throttle.
 - Reworked the legacy AJAX controller around one typed request boundary and an
   explicit operation allowlist. Inline edits now enforce forum edit rights,
   private poll/topic/forum data cannot leak through alternate AJAX views,

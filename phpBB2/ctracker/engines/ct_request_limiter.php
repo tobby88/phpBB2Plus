@@ -41,6 +41,15 @@ function ctracker_request_limit_profile($script, $post, $get)
 	{
 		return array('account', 3600, 'request_limit_account', 20);
 	}
+	if ($script === 'dload.php')
+	{
+		$action_value = isset($post['action']) ? $post['action'] : (isset($get['action']) ? $get['action'] : '');
+		$action = is_scalar($action_value) ? strtolower((string) $action_value) : '';
+		if ($action === 'email')
+		{
+			return array('account', 3600, 'request_limit_account', 20);
+		}
+	}
 
 	// Every remaining POST is bounded by a deliberately generous fallback.
 	// This automatically covers integrated MODs and future entry points without

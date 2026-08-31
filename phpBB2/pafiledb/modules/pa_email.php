@@ -63,12 +63,12 @@ class pafiledb_email extends pafiledb_public
 
 			$error = FALSE;
 			$error_msg = '';
-			$femail = (isset($_POST['femail']) && is_scalar($_POST['femail'])) ? trim((string) $_POST['femail']) : '';
-			$fname = (isset($_POST['fname']) && is_scalar($_POST['fname'])) ? trim((string) $_POST['fname']) : '';
-			$sname = (isset($_POST['sname']) && is_scalar($_POST['sname'])) ? trim((string) $_POST['sname']) : '';
-			$semail = (isset($_POST['semail']) && is_scalar($_POST['semail'])) ? trim((string) $_POST['semail']) : '';
-			$posted_subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? trim((string) $_POST['subject']) : '';
-			$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
+			$femail = (isset($_POST['femail']) && is_scalar($_POST['femail'])) ? substr(trim((string) $_POST['femail']), 0, 254) : '';
+			$fname = (isset($_POST['fname']) && is_scalar($_POST['fname'])) ? substr(trim((string) $_POST['fname']), 0, 100) : '';
+			$sname = (isset($_POST['sname']) && is_scalar($_POST['sname'])) ? substr(trim((string) $_POST['sname']), 0, 100) : '';
+			$semail = (isset($_POST['semail']) && is_scalar($_POST['semail'])) ? substr(trim((string) $_POST['semail']), 0, 254) : '';
+			$posted_subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? substr(trim((string) $_POST['subject']), 0, 200) : '';
+			$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? substr(trim((string) $_POST['message']), 0, 10000) : '';
 
 			if ($femail !== '' && filter_var($femail, FILTER_VALIDATE_EMAIL))
 			{
@@ -148,15 +148,15 @@ class pafiledb_email extends pafiledb_public
 
 				$emailer = new emailer($board_config['smtp_delivery']);
 
-				$email_headers = 'Return-Path: ' . $sender_email . "\nFrom: " . $sender_email . "\n";
-
-				$email_headers .= 'X-AntiAbuse: Board servername - ' . str_replace(array("\r", "\n"), '', $board_config['server_name']) . "\n";
+				$email_headers = 'X-AntiAbuse: Board servername - ' . str_replace(array("\r", "\n"), '', $board_config['server_name']) . "\n";
 
 				$email_headers .= 'X-AntiAbuse: Username - ' . $sender_name . "\n";
 
 				$emailer->use_template('profile_send_email', $board_config['default_lang']);
 
 				$emailer->email_address($user_email);
+				$emailer->from($board_config['board_email']);
+				$emailer->replyto($sender_email);
 
 				$emailer->set_subject($subject);
 

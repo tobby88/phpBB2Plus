@@ -22,6 +22,7 @@ limiter_assert_profile('register', 'profile.php', array('submit' => '1'), array(
 limiter_assert_profile('register', 'profile.php', array('submit' => '1', 'mode' => 'REGISTER'), array(), $errors);
 limiter_assert_profile('account', 'profile.php', array(), array('mode' => 'sendpassword'), $errors);
 limiter_assert_profile('account', 'tellafriend.php', array(), array(), $errors);
+limiter_assert_profile('account', 'dload.php', array('action' => 'email', 'submit' => '1'), array(), $errors);
 limiter_assert_profile('write', 'profile.php', array('submit' => '1'), array('mode' => 'editprofile'), $errors);
 limiter_assert_profile('upload', 'album_upload.php', array(), array(), $errors);
 limiter_assert_profile('upload', 'album_nuffload.php', array(), array(), $errors);
