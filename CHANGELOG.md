@@ -20,7 +20,9 @@ changes consolidated after that baseline without implying active maintenance.
   responses; compressed responses now also vary explicitly by
   `Accept-Encoding`. Compression negotiation is now independent of the user
   agent, and speaking-URL rewriting can no longer consume and emit the output
-  buffer before its advertised gzip encoding is applied.
+  buffer before its advertised gzip encoding is applied. Header and footer
+  also share compression state when phpBB renders them from `message_die()`,
+  so disabled/error flows no longer advertise gzip around plain HTML.
 - Normalized every configured account and board language through one strict
   installed-pack allowlist before extensions can construct language-file
   paths. Empty legacy account values now fall back deterministically, and a

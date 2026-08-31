@@ -38,6 +38,12 @@ foreach ($header_files as $relative)
 	gzip_output_assert(strpos($source, "preg_match('/(?:^|,)\\s*gzip") !== false, $relative . ' must negotiate the gzip encoding as a token');
 }
 
+foreach (array('phpBB2/includes/page_header.php', 'phpBB2/admin/page_header_admin.php') as $relative)
+{
+	$source = file_get_contents($root . '/' . $relative);
+	gzip_output_assert(strpos($source, 'global $do_gzip_compress;') !== false, $relative . ' must share compression state with message_die() footers');
+}
+
 $page_tail = file_get_contents($root . '/phpBB2/includes/page_tail.php');
 gzip_output_assert(strpos($page_tail, "!defined('AJAX_HEADERS') && !\$do_gzip_compress") !== false, 'short URL output must not consume the buffer before gzip encoding');
 
