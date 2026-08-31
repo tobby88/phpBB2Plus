@@ -1,18 +1,14 @@
-Subject: New password activation
+Subject: Reset your password
 Charset: UTF-8
 
 Hello {USERNAME}
 
-You are receiving this email because you have (or someone pretending to be you has) requested a new password be sent for your account on {SITENAME}. If you did not request this email then please ignore it, if you keep receiving it please contact the board administrator.
+You are receiving this email because you (or someone pretending to be you) requested a password reset for your account on {SITENAME}. If you did not request this email, you can ignore it; your current password remains unchanged.
 
-To use the new password you need to activate it. To do this click the link provided below.
+Open the following one-time link before it expires, then choose a new password:
 
 {U_ACTIVATE}
 
-If successful you will be able to login using the following password:
-
-Password: {PASSWORD}
-
-You can of course change this password yourself via the profile page. If you have any difficulties please contact the board administrator.
+The forum never sends a password by email. If you have any difficulties, please contact the board administrator.
 
 {EMAIL_SIG}

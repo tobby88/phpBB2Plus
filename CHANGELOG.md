@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced password-reset e-mails containing temporary plaintext passwords
+  with expiring, one-use links on which users choose their own password. The
+  reset is consumed atomically, enforces the configured CrackerTracker expiry,
+  revokes existing sessions and auto-login keys, and keeps the public request
+  response account-enumeration resistant. Already-issued legacy activation
+  links retain their historical compatibility path.
 - Replaced legacy `dss_rand()`/MD5 generation for visual-confirmation IDs,
   CAPTCHA text, Arcade play capabilities and private upload filenames with
   128-bit cryptographic identifiers and unbiased random strings. Existing

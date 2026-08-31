@@ -347,6 +347,10 @@ function validate_complex_password ($username, $password)
 	global $board_config, $lang;
 	$ret = FALSE;
 	$msg_explain = '';
+	if (!is_string($password) || strpos($password, "\0") !== false)
+	{
+		return array('error' => TRUE, 'error_msg' => $lang['Password_invalid']);
+	}
 	//verify minimum length
 	if ( strlen($password) < $board_config['min_password_len'] )
 	{

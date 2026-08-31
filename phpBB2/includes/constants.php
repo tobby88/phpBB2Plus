@@ -49,6 +49,9 @@ define('MOD', 2);
 define('USER_ACTIVATION_NONE', 0);
 define('USER_ACTIVATION_SELF', 1);
 define('USER_ACTIVATION_ADMIN', 2);
+// Distinguishes a modern choose-your-own-password reset from legacy pending
+// password hashes stored in the same phpBB2 compatibility column.
+define('PHPBB_PASSWORD_RESET_PENDING', '!phpbb-password-reset!');
 
 define('USER_AVATAR_NONE', 0);
 define('USER_AVATAR_UPLOAD', 1);

@@ -27,6 +27,32 @@ if ( !defined('IN_PHPBB') )
 	exit;
 }
 
+function usercp_render_password_reset($row, $activation_key, $error_message = '')
+{
+	global $phpbb_root_path, $phpEx, $template, $lang, $userdata;
+
+	include($phpbb_root_path . 'includes/page_header.' . $phpEx);
+	$template->set_filenames(array('body' => 'profile_reset_pass.tpl'));
+	$template->assign_vars(array(
+		'L_RESET_TITLE' => $lang['Password_reset_title'],
+		'L_RESET_EXPLAIN' => $lang['Password_reset_explain'],
+		'L_NEW_PASSWORD' => $lang['New_password'],
+		'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],
+		'L_SUBMIT' => $lang['Submit'],
+		'S_RESET_ACTION' => append_sid('profile.' . $phpEx . '?mode=activate&amp;' . POST_USERS_URL . '=' . (int) $row['user_id'] . '&amp;act_key=' . rawurlencode($activation_key)),
+		'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" /><input type="hidden" name="reset_password" value="1" />'
+	));
+	if ($error_message !== '')
+	{
+		$template->assign_block_vars('switch_error', array(
+			'ERROR_MESSAGE' => $error_message
+		));
+	}
+	$template->pparse('body');
+	include($phpbb_root_path . 'includes/page_tail.' . $phpEx);
+	exit;
+}
+
 $activation_user_id = (isset($_GET[POST_USERS_URL]) && is_scalar($_GET[POST_USERS_URL])) ? intval($_GET[POST_USERS_URL]) : 0;
 $activation_key = (isset($_GET['act_key']) && is_scalar($_GET['act_key'])) ? trim((string) $_GET['act_key']) : '';
 if ($activation_user_id <= 0 || !preg_match('/^[a-f0-9]{6,32}$/iD', $activation_key))
@@ -34,7 +60,7 @@ if ($activation_user_id <= 0 || !preg_match('/^[a-f0-9]{6,32}$/iD', $activation_
 	message_die(GENERAL_MESSAGE, $lang['Wrong_activation']);
 }
 
-$sql = "SELECT user_active, user_id, username, user_email, user_password, user_newpasswd, user_lang, user_actkey
+$sql = "SELECT user_active, user_id, username, user_email, user_password, user_newpasswd, user_lang, user_actkey, ct_last_pw_reset
 	FROM " . USERS_TABLE . "
 	WHERE user_id = " . $activation_user_id;
 if ( !($result = $db->sql_query($sql)) )
@@ -54,6 +80,66 @@ if ( $row = $db->sql_fetchrow($result) )
 	}
 	else if (trim($row['user_actkey']) !== '' && hash_equals(trim($row['user_actkey']), $activation_key))
 	{
+		if ($row['user_newpasswd'] === PHPBB_PASSWORD_RESET_PENDING)
+		{
+			$now = time();
+			if (intval($row['ct_last_pw_reset']) < $now)
+			{
+				message_die(GENERAL_MESSAGE, $lang['Password_reset_expired']);
+			}
+
+			if (empty($_POST['reset_password']))
+			{
+				usercp_render_password_reset($row, $activation_key);
+			}
+
+			$submitted_sid = (isset($_POST['sid']) && is_scalar($_POST['sid'])) ? (string) $_POST['sid'] : '';
+			if ($submitted_sid === '' || !hash_equals((string) $userdata['session_id'], $submitted_sid))
+			{
+				message_die(GENERAL_ERROR, $lang['Session_invalid']);
+			}
+
+			$new_password = (isset($_POST['new_password']) && is_scalar($_POST['new_password'])) ? (string) $_POST['new_password'] : '';
+			$password_confirm = (isset($_POST['password_confirm']) && is_scalar($_POST['password_confirm'])) ? (string) $_POST['password_confirm'] : '';
+			$error_messages = array();
+			if ($new_password === '' || $password_confirm === '')
+			{
+				$error_messages[] = $lang['Fields_empty'];
+			}
+			if (!hash_equals($new_password, $password_confirm))
+			{
+				$error_messages[] = $lang['Password_mismatch'];
+			}
+			include_once($phpbb_root_path . 'includes/functions_validate.' . $phpEx);
+			$password_result = validate_complex_password($row['username'], $new_password);
+			if (!empty($password_result['error']))
+			{
+				$error_messages[] = $password_result['error_msg'];
+			}
+			if (!empty($error_messages))
+			{
+				usercp_render_password_reset($row, $activation_key, implode('<br />', array_unique($error_messages)));
+			}
+
+			$new_hash = phpbb_password_hash($new_password);
+			$new_hash_sql = $db->sql_escape($new_hash);
+			$activation_key_sql = $db->sql_escape($activation_key);
+			$reset_marker_sql = $db->sql_escape(PHPBB_PASSWORD_RESET_PENDING);
+			$sql = "UPDATE " . USERS_TABLE . "
+				SET user_password = '$new_hash_sql', user_newpasswd = '', user_actkey = '',
+					user_passwd_change = $now, ct_last_pw_change = $now
+				WHERE user_id = " . (int) $row['user_id'] . "
+					AND user_actkey = '$activation_key_sql'
+					AND user_newpasswd = '$reset_marker_sql'
+					AND ct_last_pw_reset >= $now";
+			if (!$db->sql_query($sql) || $db->sql_affectedrows() < 1)
+			{
+				message_die(GENERAL_MESSAGE, $lang['Password_reset_expired']);
+			}
+			session_reset_keys((int) $row['user_id'], $user_ip);
+			message_die(GENERAL_MESSAGE, $lang['Password_reset_complete'] . '<br /><br />' . sprintf($lang['Click_return_login'], '<a href="' . append_sid('login.' . $phpEx) . '">', '</a>'));
+		}
+
 		if (intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $row['user_newpasswd'] == '')
 		{
 			if (!$userdata['session_logged_in'])

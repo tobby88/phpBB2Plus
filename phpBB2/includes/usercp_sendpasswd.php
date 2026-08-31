@@ -66,13 +66,11 @@ if ( isset($_POST['submit']) )
 		$user_id = (int) $row['user_id'];
 
 		$user_actkey = gen_rand_string(true);
-		$user_password = gen_rand_string(false);
 		$new_time = time() + ($pwreset_minutes * 60);
-		$new_password_hash = phpbb_password_hash($user_password);
-		$new_password_hash_sql = $db->sql_escape($new_password_hash);
+		$reset_marker_sql = $db->sql_escape(PHPBB_PASSWORD_RESET_PENDING);
 		$user_actkey_sql = $db->sql_escape($user_actkey);
 		$sql = "UPDATE " . USERS_TABLE . "
-			SET user_newpasswd = '$new_password_hash_sql', user_actkey = '$user_actkey_sql', ct_last_pw_reset = $new_time WHERE user_id = $user_id";
+			SET user_newpasswd = '$reset_marker_sql', user_actkey = '$user_actkey_sql', ct_last_pw_reset = $new_time WHERE user_id = $user_id";
 		if ( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);
@@ -91,7 +89,6 @@ if ( isset($_POST['submit']) )
 		$emailer->assign_vars(array(
 			'SITENAME' => $board_config['sitename'],
 			'USERNAME' => $username,
-			'PASSWORD' => $user_password,
 			'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
 
 			'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)

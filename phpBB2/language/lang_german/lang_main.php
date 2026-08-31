@@ -647,6 +647,7 @@ $lang['Profile_updated_inactive'] = 'Dein Profil wurde aktualisiert. Du hast jed
 $lang['Password_mismatch'] = 'Du musst zweimal das gleiche Passwort eingeben.';
 $lang['Current_password_mismatch'] = 'Das aktuelle Passwort stimmt nicht mit dem in der Datenbank überein.';
 $lang['Password_long'] = 'Dein Passwort kann nicht länger als 128 Zeichen sein.';
+$lang['Password_invalid'] = 'Das Passwort enthält ein ungültiges Zeichen.';
 $lang['Too_many_registers'] = 'Du hast zu oft versucht, dich zu registrieren. Bitte versuche es später erneut.';
 $lang['Username_taken'] = 'Der gewünschte Benutzername ist leider bereits belegt.';
 $lang['Username_invalid'] = 'Der gewünschte Benutzername enthält ein ungültiges Sonderzeichen (z.B. \').';
@@ -682,11 +683,15 @@ $lang['Agree_over_13'] = 'Ich bin mit den Konditionen dieses Forums einverstande
 $lang['Agree_not'] = 'Ich bin mit den Konditionen nicht einverstanden.';
 
 $lang['Wrong_activation'] = 'Der Aktivierungsschlüssel aus dem Link stimmt nicht mit dem in der Datenbank überein. Bitte überprüfe die URL, und versuche es erneut.';
-$lang['Send_password'] = 'Schickt mir ein neues Passwort.';
+$lang['Send_password'] = 'Passwort zurücksetzen';
 $lang['Password_updated'] = 'Ein neues Passwort wurde erstellt, es wurde eine E-Mail mit weiteren Anweisungen verschickt.';
 $lang['Password_reset_requested'] = 'Wenn Benutzername und E-Mail-Adresse zu einem aktiven Konto gehören und derzeit keine Sperrfrist läuft, wurde eine E-Mail mit weiteren Anweisungen versandt.';
+$lang['Password_reset_title'] = 'Neues Passwort wählen';
+$lang['Password_reset_explain'] = 'Gib ein neues Passwort für dein Konto ein. Dieser einmalig nutzbare Link läuft automatisch ab und wird nach der Verwendung ungültig.';
+$lang['Password_reset_expired'] = 'Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen. Bitte fordere einen neuen an.';
+$lang['Password_reset_complete'] = 'Dein Passwort wurde geändert. Du kannst dich jetzt mit dem neuen Passwort anmelden.';
 $lang['No_email_match'] = 'Die angegebene E-Mail-Adresse stimmt nicht mit dem Benutzernamen überein.';
-$lang['New_password_activation'] = 'Aktivierung des neuen Passwortes';
+$lang['New_password_activation'] = 'Passwort zurücksetzen';
 $lang['Password_activated'] = 'Dein Account wurde wieder aktiviert. Um dich einzuloggen, benutze das Passwort, welches du per E-Mail erhalten hast.';
 
 $lang['Send_email_msg'] = 'E-Mail senden';

@@ -103,6 +103,9 @@ jobs:
       - name: Test account lifecycle safety
         run: php .github/scripts/check-account-lifecycle-safety.php
 
+      - name: Test password reset safety
+        run: php .github/scripts/check-password-reset-safety.php
+
       - name: Test mail workflow safety
         run: php .github/scripts/check-mail-workflow-safety.php
 

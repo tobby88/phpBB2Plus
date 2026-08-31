@@ -645,6 +645,7 @@ $lang['Profile_updated_inactive'] = 'Your profile has been updated. However, you
 $lang['Password_mismatch'] = 'The passwords you entered did not match.';
 $lang['Current_password_mismatch'] = 'The current password you supplied does not match that stored in the database.';
 $lang['Password_long'] = 'Your password must be no more than 128 characters.';
+$lang['Password_invalid'] = 'The password contains an invalid character.';
 $lang['Too_many_registers'] = 'You have made too many registration attempts. Please try again later.';
 $lang['Username_taken'] = 'Sorry, but this username has already been taken.';
 $lang['Username_invalid'] = 'Sorry, but this username contains an invalid character such as \'.';
@@ -680,11 +681,15 @@ $lang['Agree_over_13'] = 'I Agree to these terms and am <b>over</b> or <b>exactl
 $lang['Agree_not'] = 'I do not agree to these terms';
 
 $lang['Wrong_activation'] = 'The activation key you supplied does not match any in the database.';
-$lang['Send_password'] = 'Send me a new password';
+$lang['Send_password'] = 'Reset my password';
 $lang['Password_updated'] = 'A new password has been created; please check your e-mail for details on how to activate it.';
 $lang['Password_reset_requested'] = 'If the username and e-mail address belong to an active account and no cooldown is in effect, an e-mail with further instructions has been sent.';
+$lang['Password_reset_title'] = 'Choose a new password';
+$lang['Password_reset_explain'] = 'Enter a new password for your account. This one-time link expires automatically and is invalidated after use.';
+$lang['Password_reset_expired'] = 'This password-reset link is invalid or has expired. Please request a new one.';
+$lang['Password_reset_complete'] = 'Your password has been changed. You can now log in with the new password.';
 $lang['No_email_match'] = 'The e-mail address you supplied does not match the one listed for that username.';
-$lang['New_password_activation'] = 'New password activation';
+$lang['New_password_activation'] = 'Reset your password';
 $lang['Password_activated'] = 'Your account has been re-activated. To log in, please use the password supplied in the e-mail you received.';
 
 $lang['Send_email_msg'] = 'Send an e-mail message';
