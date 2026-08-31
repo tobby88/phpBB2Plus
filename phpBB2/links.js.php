@@ -30,32 +30,14 @@ include($phpbb_root_path . "common.$phpEx");
 // gzip_compression
 //
 $do_gzip_compress = FALSE;
-if($board_config['gzip_compress'])
+$accept_encoding = isset($_SERVER['HTTP_ACCEPT_ENCODING']) && is_scalar($_SERVER['HTTP_ACCEPT_ENCODING']) ? (string) $_SERVER['HTTP_ACCEPT_ENCODING'] : '';
+if (!empty($board_config['gzip_compress']) && extension_loaded('zlib') && preg_match('/(?:^|,)\s*gzip\s*(?:;|,|$)/i', $accept_encoding))
 {
-	$phpver = phpversion();
-
-	if($phpver >= "4.0.4pl1")
-	{
-		if(extension_loaded("zlib"))
-		{
-			ob_start("ob_gzhandler");
-		}
-	}
-	else if($phpver > "4.0")
-	{
-		if(strstr($HTTP_SERVER_VARS['HTTP_ACCEPT_ENCODING'], 'gzip'))
-		{
-			if(extension_loaded("zlib"))
-			{
-				$do_gzip_compress = TRUE;
-				ob_start();
-				ob_implicit_flush(0);
-
-				header("Vary: Accept-Encoding", false);
-				header("Content-Encoding: gzip");
-			}
-		}
-	}
+	$do_gzip_compress = TRUE;
+	ob_start();
+	ob_implicit_flush(0);
+	header('Vary: Accept-Encoding', false);
+	header('Content-Encoding: gzip');
 }
 
 header ("Cache-Control: no-store, no-cache, must-revalidate");

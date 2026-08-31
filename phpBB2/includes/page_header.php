@@ -58,34 +58,14 @@ if (empty($_COOKIE['cookie_consent']) && !empty($board_config['cookie_consent_en
 // gzip_compression
 //
 $do_gzip_compress = FALSE;
-$useragent = (isset($HTTP_SERVER_VARS) && isset($HTTP_SERVER_VARS['HTTP_USER_AGENT'])) ? $HTTP_SERVER_VARS['HTTP_USER_AGENT'] : ((isset($_SERVER['HTTP_USER_AGENT'])) ? $_SERVER['HTTP_USER_AGENT'] : getenv('HTTP_USER_AGENT'));
-if ( $board_config['gzip_compress'] && !defined('AJAX_HEADERS') )
+$accept_encoding = isset($_SERVER['HTTP_ACCEPT_ENCODING']) && is_scalar($_SERVER['HTTP_ACCEPT_ENCODING']) ? (string) $_SERVER['HTTP_ACCEPT_ENCODING'] : '';
+if ( !empty($board_config['gzip_compress']) && !defined('AJAX_HEADERS') && extension_loaded('zlib') && preg_match('/(?:^|,)\s*gzip\s*(?:;|,|$)/i', $accept_encoding) )
 {
-	$phpver = phpversion();
-
-	if ( $phpver >= '4.0.4pl1' && ( strstr($useragent,'compatible') || strstr($useragent,'Gecko') ) )
-	{
-		if ( extension_loaded('zlib') )
-		{
-			ob_start('ob_gzhandler');
-		}
-	}
-	else if ( $phpver > '4.0' )
-	{
-		$accept_encoding = (isset($HTTP_SERVER_VARS) && isset($HTTP_SERVER_VARS['HTTP_ACCEPT_ENCODING'])) ? $HTTP_SERVER_VARS['HTTP_ACCEPT_ENCODING'] : ((isset($_SERVER['HTTP_ACCEPT_ENCODING'])) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : '');
-		if ( strstr($accept_encoding, 'gzip') )
-		{
-			if ( extension_loaded('zlib') )
-			{
-				$do_gzip_compress = TRUE;
-				ob_start();
-				ob_implicit_flush(0);
-
-				header('Vary: Accept-Encoding', false);
-				header('Content-Encoding: gzip');
-			}
-		}
-	}
+	$do_gzip_compress = TRUE;
+	ob_start();
+	ob_implicit_flush(0);
+	header('Vary: Accept-Encoding', false);
+	header('Content-Encoding: gzip');
 }
 if( $userdata['session_logged_in'] ) 
 { 

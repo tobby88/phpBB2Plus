@@ -18,7 +18,9 @@ changes consolidated after that baseline without implying active maintenance.
   compressor with `gzencode()`. The old code advertised gzip while embedding
   a zlib stream, which made standards-compliant clients reject affected
   responses; compressed responses now also vary explicitly by
-  `Accept-Encoding`.
+  `Accept-Encoding`. Compression negotiation is now independent of the user
+  agent, and speaking-URL rewriting can no longer consume and emit the output
+  buffer before its advertised gzip encoding is applied.
 - Normalized every configured account and board language through one strict
   installed-pack allowlist before extensions can construct language-file
   paths. Empty legacy account values now fall back deterministically, and a

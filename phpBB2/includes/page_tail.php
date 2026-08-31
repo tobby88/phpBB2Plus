@@ -171,7 +171,7 @@ $template->pparse('overall_footer');
 $db->sql_close();
 
 
-if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS'))
+if ($plus_config['enable_shorturls'] == 1 && !defined('AJAX_HEADERS') && !$do_gzip_compress)
 {
 //
 // Short URL implementation
