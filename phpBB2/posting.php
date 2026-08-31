@@ -1021,8 +1021,8 @@ if ($lock_subject)
 }
 		if ( $mode == 'newtopic' || $mode == 'reply' )
 		{
-			$tracking_topics = ( !empty($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
-			$tracking_forums = ( !empty($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) : array();
+			$tracking_topics = ( !empty($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
+			$tracking_forums = ( !empty($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) : array();
 
 			if ( count($tracking_topics) + count($tracking_forums) == 100 && empty($tracking_topics[$topic_id]) )
 			{

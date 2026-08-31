@@ -108,7 +108,7 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 	}
 	$template->set_filenames(array('body' => XS_TPL_PATH . 'export2.tpl'));
 	$xs_send_method = isset($board_config['xs_export_data']) ? $board_config['xs_export_data'] : '';
-	$xs_send = phpbb_safe_unserialize($xs_send_method);
+	$xs_send = phpbb_safe_unserialize_array($xs_send_method);
 	$xs_send = is_array($xs_send) ? $xs_send : array();
 	$stored_method = isset($xs_send['method']) && is_scalar($xs_send['method']) ? (string) $xs_send['method'] : '';
 	$xs_send_method = $stored_method === 'ftp' ? 'ftp' : ($stored_method === 'file' ? 'file' : 'save');

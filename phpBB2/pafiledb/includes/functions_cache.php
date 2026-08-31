@@ -54,7 +54,7 @@ class acm
 		{
 			return;
 		}
-		$payload = phpbb_safe_unserialize(@file_get_contents($cache_file));
+		$payload = phpbb_safe_unserialize_array(@file_get_contents($cache_file));
 		if (is_array($payload) && isset($payload['vars'], $payload['timestamps']) &&
 			is_array($payload['vars']) && is_array($payload['timestamps']))
 		{

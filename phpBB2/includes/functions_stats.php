@@ -122,7 +122,7 @@ function generate_module_info($module_data, $install = FALSE)
 	$cache_valid = $module_data['module_info_time'] == filemtime($info_file);
 	if ($cache_valid)
 	{
-		$cached_info = phpbb_safe_unserialize(stripslashes($module_data['module_info_cache']));
+		$cached_info = phpbb_safe_unserialize_array(stripslashes($module_data['module_info_cache']));
 		if (is_array($cached_info))
 		{
 			$ret_array = $cached_info;

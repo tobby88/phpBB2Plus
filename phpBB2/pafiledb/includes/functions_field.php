@@ -118,7 +118,7 @@ class custom_field
 								break;
 							case SELECT_MULTIPLE:
 							case CHECKBOX:
-								$field_data = @implode(', ', phpbb_safe_unserialize($data['data']));
+								$field_data = implode(', ', phpbb_safe_unserialize_scalar_array($data['data']));
 								break;
 						}
 					
@@ -224,7 +224,7 @@ class custom_field
 		);
 		
 		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? $this->field_data_rowset[$file_id][$field_id]['data'] : array();
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize(stripslashes($field_data['data'])) : array();
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
 
 		if(!empty($field_datas))
 		{
@@ -248,7 +248,7 @@ class custom_field
 		);
 		
 		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? $this->field_data_rowset[$file_id][$field_id]['data'] : '';
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize(stripslashes($field_data['data'])) : array();
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
 
 		if(!empty($field_datas))
 		{
@@ -271,8 +271,8 @@ class custom_field
 			'FIELD_DESCRIPTION' => $field_data['custom_description'])
 		);
 		
-		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? phpbb_safe_unserialize($this->field_data_rowset[$file_id][$field_id]['data']) : array();
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize(stripslashes($field_data['data'])) : array();
+		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? phpbb_safe_unserialize_scalar_array($this->field_data_rowset[$file_id][$field_id]['data']) : array();
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
 		
 		if(!empty($field_datas))
 		{
@@ -304,8 +304,8 @@ class custom_field
 			'FIELD_DESCRIPTION' => $field_data['custom_description'])
 		);
 		
-		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? phpbb_safe_unserialize($this->field_data_rowset[$file_id][$field_id]['data']) : array();
-		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize(stripslashes($field_data['data'])) : array();
+		$data = (!empty($this->field_data_rowset[$file_id][$field_id]['data'])) ? phpbb_safe_unserialize_scalar_array($this->field_data_rowset[$file_id][$field_id]['data']) : array();
+		$field_datas = (!empty($field_data['data'])) ? phpbb_safe_unserialize_scalar_array(stripslashes($field_data['data'])) : array();
 
 		if(!empty($field_datas))
 		{
@@ -427,7 +427,7 @@ class custom_field
 	function get_field_data($field_id)
 	{
 		$return_array = $this->field_rowset[$field_id];
-		$return_array['data'] = implode("\n", phpbb_safe_unserialize(stripslashes($return_array['data'])));
+		$return_array['data'] = implode("\n", phpbb_safe_unserialize_scalar_array(stripslashes($return_array['data'])));
 		return $return_array;
 	}
 	

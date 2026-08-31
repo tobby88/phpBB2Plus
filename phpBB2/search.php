@@ -918,7 +918,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 			if ( $row = $db->sql_fetchrow($result) )
 			{
-				$search_data = phpbb_safe_unserialize($row['search_array']);
+				$search_data = phpbb_safe_unserialize_array($row['search_array']);
 				if (!is_array($search_data))
 				{
 					message_die(GENERAL_MESSAGE, $lang['No_search_match']);
@@ -1116,8 +1116,8 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 		$highlight_active = urlencode(trim($highlight_active));
 
-		$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
-		$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) : array();
+		$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
+		$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) : array();
 
 		if ($show_results == 'posts')
 		{

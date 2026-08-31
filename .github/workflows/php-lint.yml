@@ -234,3 +234,6 @@ jobs:
 
       - name: Test legacy helper safety
         run: php .github/scripts/check-legacy-helper-safety.php
+
+      - name: Test serialized state safety
+        run: php .github/scripts/check-serialized-state-safety.php

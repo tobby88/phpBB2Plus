@@ -20,6 +20,12 @@ changes consolidated after that baseline without implying active maintenance.
   scripts and stylesheets; only assets genuinely absent from the current style
   retain the established shared fallback. This also fixes the broken historic
   `fisubsilver` path typo.
+- Centralized typed decoding for all remaining serialized legacy state. Session
+  and cache payloads now always return arrays, topic/forum tracking cookies are
+  restricted to 150 numeric identifiers and sane timestamps, and paFileDB
+  option lists accept scalar values only. Damaged Arcade tournament rows are
+  skipped field by field rather than reaching PHP 8 `count()`, offset or
+  arithmetic errors.
 - Repaired legacy helper pages around the Smilie creator, Quick Reply, credits
   and recent topics. Smilie assets are enumerated by their real file names,
   missing GD/assets fail deliberately instead of producing PHP 8 fatals,

@@ -39,6 +39,70 @@ if (!function_exists('phpbb_safe_unserialize'))
 }
 
 /**
+ * Decode the array-shaped cookies and caches used throughout phpBB2.
+ *
+ * Keeping the type guarantee here prevents every caller from having to defend
+ * count(), sorting, foreach and array-offset operations against false/scalars.
+ */
+if (!function_exists('phpbb_safe_unserialize_array'))
+{
+	function phpbb_safe_unserialize_array($serialized)
+	{
+		$value = phpbb_safe_unserialize($serialized);
+		return is_array($value) ? $value : array();
+	}
+}
+
+if (!function_exists('phpbb_safe_unserialize_scalar_array'))
+{
+	function phpbb_safe_unserialize_scalar_array($serialized, $limit = 1000)
+	{
+		$values = phpbb_safe_unserialize_array($serialized);
+		$clean = array();
+		foreach ($values as $key => $value)
+		{
+			if (count($clean) >= $limit)
+			{
+				break;
+			}
+			if ((is_int($key) || is_string($key)) && is_scalar($value))
+			{
+				$clean[$key] = $value;
+			}
+		}
+		return $clean;
+	}
+}
+
+if (!function_exists('phpbb_tracking_cookie_array'))
+{
+	function phpbb_tracking_cookie_array($serialized)
+	{
+		$values = phpbb_safe_unserialize_array($serialized);
+		$clean = array();
+		$now = time();
+		foreach ($values as $id => $timestamp)
+		{
+			if (!is_scalar($id) || !preg_match('/^[1-9][0-9]*$/D', (string) $id) || !is_scalar($timestamp))
+			{
+				continue;
+			}
+			$timestamp = intval($timestamp);
+			if ($timestamp > 0)
+			{
+				$clean[intval($id)] = min($timestamp, $now);
+			}
+		}
+		if (count($clean) > 150)
+		{
+			arsort($clean, SORT_NUMERIC);
+			$clean = array_slice($clean, 0, 150, true);
+		}
+		return $clean;
+	}
+}
+
+/**
  * Set application cookies with modern browser protections on every PHP level.
  */
 if (!function_exists('phpbb_setcookie'))

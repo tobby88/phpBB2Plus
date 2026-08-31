@@ -154,8 +154,8 @@ $orig_word = array();
 $replacement_word = array();
 obtain_word_list($orig_word, $replacement_word);
 
-$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) : array();
-$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
+$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) : array();
+$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
 $tracking_topics = is_array($tracking_topics) ? $tracking_topics : array();
 $tracking_forums = is_array($tracking_forums) ? $tracking_forums : array();
 $posts_per_page = max(1, intval($board_config['posts_per_page']));

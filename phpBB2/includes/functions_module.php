@@ -233,7 +233,7 @@ class StatisticsDB
 	
 		if ($cache_enabled)
 		{
-			$data = phpbb_safe_unserialize(stripslashes($cached_data));
+			$data = phpbb_safe_unserialize_array(stripslashes($cached_data));
 			if (is_array($data) && isset($data['n'], $data['fs'], $data['f'])
 				&& is_array($data['n']) && is_array($data['fs']) && is_array($data['f']))
 			{
@@ -417,7 +417,7 @@ class Results
 
 		if ($cache_enabled)
 		{
-			$data = phpbb_safe_unserialize(stripslashes($cached_data));
+			$data = phpbb_safe_unserialize_array(stripslashes($cached_data));
 			if (is_array($data) && isset($data['var_data']) && is_array($data['var_data']))
 			{
 				$this->use_cache = TRUE;

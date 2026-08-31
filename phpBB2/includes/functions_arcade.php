@@ -684,10 +684,13 @@ function game_tour_played()
 
   for($i = 0; $i < $total_players; $i++)
   {
-    $GameData = phpbb_safe_unserialize(stripslashes($tour_gamedata[$i]['gamedata']));
+    $GameData = phpbb_safe_unserialize_array(stripslashes($tour_gamedata[$i]['gamedata']));
     for($count = 0; $count < count($GameData); $count++)
     {
-      $played_games = ($played_games+$GameData[$count]['played']);
+		if (isset($GameData[$count]) && is_array($GameData[$count]) && isset($GameData[$count]['played']) && is_scalar($GameData[$count]['played']))
+		{
+			$played_games += max(0, intval($GameData[$count]['played']));
+		}
     }
   }
   return $played_games;

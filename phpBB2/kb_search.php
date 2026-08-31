@@ -223,7 +223,7 @@ switch($mode)
 			}
 			if ($row = $db->sql_fetchrow($result))
 			{
-				$search_data = phpbb_safe_unserialize($row['search_array']);
+				$search_data = phpbb_safe_unserialize_array($row['search_array']);
 				if (!is_array($search_data))
 				{
 					message_die(GENERAL_MESSAGE, $lang['No_search_match']);

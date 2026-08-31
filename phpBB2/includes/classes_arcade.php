@@ -1077,7 +1077,7 @@ class arcade
 	{
 		return false;
 	}
-    $old_GameData = phpbb_safe_unserialize(stripslashes((string) $user_GameData['gamedata']));
+    $old_GameData = phpbb_safe_unserialize_array(stripslashes((string) $user_GameData['gamedata']));
 	if (!is_array($old_GameData))
 	{
 		$old_GameData = array();
@@ -1088,9 +1088,13 @@ class arcade
     {
       for($i = 0; $i < $games_count; $i++)
       {
-        if($old_GameData[$i]['game_name'] == $game_info['game_name'])
+		if (!isset($old_GameData[$i]) || !is_array($old_GameData[$i]) || !isset($old_GameData[$i]['game_name']) || !is_scalar($old_GameData[$i]['game_name']))
+		{
+			continue;
+		}
+        if((string) $old_GameData[$i]['game_name'] === (string) $game_info['game_name'])
         {
-          $old_score = doubleval($old_GameData[$i]['score']);
+		  $old_score = isset($old_GameData[$i]['score']) && is_scalar($old_GameData[$i]['score']) ? doubleval($old_GameData[$i]['score']) : 0.0;
           if(($old_score < $this->score && !$game_info['reverse_list']) || ($old_score > $this->score && $game_info['reverse_list']))
           {
             $old_GameData[$i]['score'] = $this->score;

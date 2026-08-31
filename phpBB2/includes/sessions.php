@@ -44,7 +44,7 @@ if ($files)
 	if ( isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) || isset($HTTP_COOKIE_VARS[$cookiename . '_data']) )
 	{
 		$session_id = (isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) && is_scalar($HTTP_COOKIE_VARS[$cookiename . '_sid'])) ? (string) $HTTP_COOKIE_VARS[$cookiename . '_sid'] : '';
-		$sessiondata = isset($HTTP_COOKIE_VARS[$cookiename . '_data']) ? phpbb_safe_unserialize(stripslashes($HTTP_COOKIE_VARS[$cookiename . '_data'])) : array();
+		$sessiondata = isset($HTTP_COOKIE_VARS[$cookiename . '_data']) ? phpbb_safe_unserialize_array(stripslashes($HTTP_COOKIE_VARS[$cookiename . '_data'])) : array();
 		$sessionmethod = SESSION_METHOD_COOKIE;
 	}
 	else
@@ -301,7 +301,7 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 
 	if ( isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) || isset($HTTP_COOKIE_VARS[$cookiename . '_data']) )
 	{
-		$sessiondata = isset( $HTTP_COOKIE_VARS[$cookiename . '_data'] ) ? phpbb_safe_unserialize(stripslashes($HTTP_COOKIE_VARS[$cookiename . '_data'])) : array();
+		$sessiondata = isset( $HTTP_COOKIE_VARS[$cookiename . '_data'] ) ? phpbb_safe_unserialize_array(stripslashes($HTTP_COOKIE_VARS[$cookiename . '_data'])) : array();
 		$session_id = (isset($HTTP_COOKIE_VARS[$cookiename . '_sid']) && is_scalar($HTTP_COOKIE_VARS[$cookiename . '_sid'])) ? (string) $HTTP_COOKIE_VARS[$cookiename . '_sid'] : '';
 		$sessionmethod = SESSION_METHOD_COOKIE;
 	}
