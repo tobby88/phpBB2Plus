@@ -4,6 +4,52 @@ $root = dirname(dirname(__DIR__));
 $admin = (string) file_get_contents($root . '/phpBB2/admin/admin_jr_admin.php');
 $errors = array();
 
+require_once $root . '/phpBB2/includes/functions_jr_admin.php';
+$lang = array(
+	'General' => 'General', 'Styles' => 'Styles', 'Attachments' => 'Attachments',
+	'Users' => 'Users', 'Arcade' => 'Arcade', 'Future' => 'Future', 'Banner' => 'Banner',
+	'Styles_Management' => 'Style management', 'Manage' => 'Manage',
+	'Extension_control' => 'Extension control', 'Profile_fields_add' => 'Add profile field'
+);
+$navigation_fixture = array(
+	'Arcade' => array('Manage' => array('file_hash' => 'arcade')),
+	'Extreme_Styles' => array('Styles_Management' => array('file_hash' => 'xs')),
+	'General' => array('Manage' => array('file_hash' => 'general')),
+	'Systeminfo' => array('PHPInfo' => array('file_hash' => 'phpinfo')),
+	'Users' => array('Add_new' => array('file_hash' => 'add-user')),
+	'Custom_Profile' => array('Add_new' => array('file_hash' => 'profile-field')),
+	'Styles' => array('Banner' => array('file_hash' => 'banner')),
+	'Extensions' => array('Extension_control' => array('file_hash' => 'extensions')),
+	'Attachments' => array('Manage' => array('file_hash' => 'attachments')),
+	'Future' => array('Manage' => array('file_hash' => 'future'))
+);
+$prepared_navigation = jr_admin_prepare_navigation_modules($navigation_fixture);
+$expected_categories = array('General', 'Users', 'Styles', 'Attachments', 'Arcade', 'Future');
+if (array_keys($prepared_navigation) !== $expected_categories)
+{
+	$errors[] = 'AdminCP categories are not grouped in the expected task-oriented order.';
+}
+if (isset($prepared_navigation['Extreme_Styles']) || isset($prepared_navigation['Extensions']) ||
+	isset($prepared_navigation['Custom_Profile']) || isset($prepared_navigation['Systeminfo']))
+{
+	$errors[] = 'Related style or attachment categories remain split in the AdminCP navigation.';
+}
+if (!isset($prepared_navigation['Users']['Custom_Profile__Add_new']['file_hash']) ||
+	$prepared_navigation['Users']['Custom_Profile__Add_new']['file_hash'] !== 'profile-field' ||
+	$prepared_navigation['Users']['Custom_Profile__Add_new']['navigation_name'] !== 'Profile_fields_add')
+{
+	$errors[] = 'Profile-field navigation was not merged into Users with an unambiguous label.';
+}
+if (!isset($prepared_navigation['Styles']['Styles_Management']['file_hash']) || $prepared_navigation['Styles']['Styles_Management']['file_hash'] !== 'xs' ||
+	!isset($prepared_navigation['Attachments']['Extension_control']['file_hash']) || $prepared_navigation['Attachments']['Extension_control']['file_hash'] !== 'extensions')
+{
+	$errors[] = 'AdminCP category grouping changed an original module identity.';
+}
+if (array_keys($prepared_navigation['Styles']) !== array('Banner', 'Styles_Management'))
+{
+	$errors[] = 'AdminCP modules are not sorted by their visible navigation label.';
+}
+
 foreach (array(
 	'phpbb_admin_require_post_session();',
 	'phpbb_admin_session_field()',

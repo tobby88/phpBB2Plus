@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Reorganized the AdminCP navigation into a stable task-oriented order with
+  core board administration first and integrated feature areas afterwards.
+  The historically separate eXtreme Styles, attachment-extension, custom
+  profile-field and PHP-information menus are now presented inside their
+  corresponding Styles, Attachments, Users and General sections; original
+  module hashes remain intact for existing Junior Admin permissions.
 - Consolidated the legacy Arcade configuration and game-management entries
   into one AdminCP category. Building the navigation no longer queries Arcade
   configuration tables, avoiding menu-time database warnings and keeping all

@@ -54,6 +54,8 @@ $lang['Word_Censor'] = 'Wortzensur';
 $lang['Export'] = 'Exportieren';
 $lang['Create_new'] = 'Erstellen';
 $lang['Add_new'] = 'Hinzufügen';
+$lang['Profile_fields_add'] = 'Profilfeld hinzufügen';
+$lang['Profile_fields_edit'] = 'Profilfelder bearbeiten';
 $lang['Backup_DB'] = 'Datenbank-Backup';
 $lang['Restore_DB'] = 'Datenbank wiederherstellen';
 

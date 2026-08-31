@@ -278,11 +278,12 @@ if (!empty($user_id) && !isset($_POST['update_user']))
 		));
 		foreach($info_array as $module_name => $file_array)
 		{
+			$navigation_name = isset($file_array['navigation_name']) ? $file_array['navigation_name'] : $module_name;
 			$file_hash = $file_array['file_hash'];
 			$checked = (in_array($file_hash, $user_module_list)) ? 'checked="checked"' : '';
 			$template->assign_block_vars('catrow.modulerow', array(
 			'ROW' => ($i % 2) ? 'row1' : 'row2',
-			'NAME' => phpbb_admin_html((isset($lang[$module_name])) ? $lang[$module_name] : preg_replace("/_/", ' ', $module_name)),
+			'NAME' => phpbb_admin_html(jr_admin_navigation_label($navigation_name)),
 			'FILENAME' => phpbb_admin_html($file_array['filename']),
 			'FILE_HASH' => phpbb_admin_html($file_hash),
 			'CHECKED' => $checked

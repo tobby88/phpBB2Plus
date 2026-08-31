@@ -229,7 +229,135 @@ function jr_admin_get_module_list($user_module_list = false)
 		}
 	}
 	
-	return $module_list;
+	jr_admin_include_all_lang_files();
+	return jr_admin_prepare_navigation_modules($module_list);
+}
+
+function jr_admin_navigation_label($name)
+{
+	global $lang;
+	return isset($lang[$name]) && is_scalar($lang[$name])
+		? (string) $lang[$name]
+		: preg_replace('/_/', ' ', (string) $name);
+}
+
+function jr_admin_navigation_name_compare($left, $right)
+{
+	$comparison = strnatcasecmp(jr_admin_navigation_label($left), jr_admin_navigation_label($right));
+	return ($comparison !== 0) ? $comparison : strcmp((string) $left, (string) $right);
+}
+
+function jr_admin_navigation_module_compare($left, $right)
+{
+	$left_name = isset($left['navigation_name']) ? $left['navigation_name'] : '';
+	$right_name = isset($right['navigation_name']) ? $right['navigation_name'] : '';
+	$comparison = jr_admin_navigation_name_compare($left_name, $right_name);
+	if ($comparison !== 0)
+	{
+		return $comparison;
+	}
+	$left_file = isset($left['filename']) ? $left['filename'] : '';
+	$right_file = isset($right['filename']) ? $right['filename'] : '';
+	return strcmp((string) $left_file, (string) $right_file);
+}
+
+function jr_admin_prepare_navigation_modules($module_list)
+{
+	if (!is_array($module_list))
+	{
+		return array();
+	}
+	foreach ($module_list as $category => $modules)
+	{
+		if (!is_array($modules))
+		{
+			continue;
+		}
+		foreach ($modules as $module_name => $module_data)
+		{
+			if (!isset($module_data['navigation_name']))
+			{
+				$module_data['navigation_name'] = $module_name;
+			}
+			$module_list[$category][$module_name] = $module_data;
+		}
+	}
+
+	// These are separate categories only because the original MOD packages
+	// registered them independently. Present related controls together while
+	// keeping every original module hash intact for Junior Admin permissions.
+	$category_aliases = array(
+		'Extreme_Styles' => 'Styles',
+		'Extensions' => 'Attachments',
+		'Custom_Profile' => 'Users',
+		'Systeminfo' => 'General'
+	);
+	$module_name_aliases = array(
+		'Custom_Profile' => array(
+			'Add_new' => 'Profile_fields_add',
+			'Edit' => 'Profile_fields_edit'
+		)
+	);
+	foreach ($category_aliases as $source => $destination)
+	{
+		if (!isset($module_list[$source]) || !is_array($module_list[$source]))
+		{
+			continue;
+		}
+		if (!isset($module_list[$destination]) || !is_array($module_list[$destination]))
+		{
+			$module_list[$destination] = array();
+		}
+		foreach ($module_list[$source] as $module_name => $module_data)
+		{
+			if (isset($module_name_aliases[$source][$module_name]))
+			{
+				$module_data['navigation_name'] = $module_name_aliases[$source][$module_name];
+			}
+			$navigation_key = $module_name;
+			if (isset($module_list[$destination][$navigation_key]))
+			{
+				$navigation_key = $source . '__' . $module_name;
+			}
+			$module_list[$destination][$navigation_key] = $module_data;
+		}
+		unset($module_list[$source]);
+	}
+
+	foreach ($module_list as $category => $modules)
+	{
+		if (is_array($modules))
+		{
+			uasort($modules, 'jr_admin_navigation_module_compare');
+			$module_list[$category] = $modules;
+		}
+	}
+
+	// Core board administration comes first. Integrated feature areas follow
+	// in a stable, task-oriented order; any future category is appended by its
+	// translated display name instead of unexpectedly appearing at the top.
+	$category_order = array(
+		'General', 'Forums', 'Users', 'Groups', 'Styles', 'Attachments',
+		'Logs', 'Plus', 'Portal', 'Photo_Album', 'Arcade',
+		'Download', 'Links', 'News Admin', 'KB_title', 'Statistics',
+		'ctracker_module_category'
+	);
+	$ordered = array();
+	foreach ($category_order as $category)
+	{
+		if (isset($module_list[$category]))
+		{
+			$ordered[$category] = $module_list[$category];
+			unset($module_list[$category]);
+		}
+	}
+	uksort($module_list, 'jr_admin_navigation_name_compare');
+	foreach ($module_list as $category => $modules)
+	{
+		$ordered[$category] = $modules;
+	}
+
+	return $ordered;
 }
 
 function jr_admin_secure($file)
@@ -338,7 +466,6 @@ function jr_admin_make_left_pane()
 	
 	jr_admin_include_all_lang_files();
 	
-	@ksort($module);
 	//Loop through and set up all the nice form names, etc
 		//+MOD: DHTML Menu for ACP 
    $menu_cat_id = 0; 
@@ -356,6 +483,7 @@ function jr_admin_make_left_pane()
 		$i = 0;
 		foreach ($module_array as $module_name => $data_array)
 		{
+			$navigation_name = isset($data_array['navigation_name']) ? $data_array['navigation_name'] : $module_name;
 			//Compile our module url with lots of options
 			$module_url = $data_array['filename'];
 			$module_url .= (preg_match("/^.*\.$phpEx\?/", $module_url)) ? '&amp;' : '?';
@@ -366,7 +494,7 @@ function jr_admin_make_left_pane()
 			//+MOD: DHTML Menu for ACP 
             'ROW_COUNT' => $i, 
 //-MOD: DHTML Menu for ACP
-			'ADMIN_MODULE' => (isset($lang[$module_name])) ? $lang[$module_name] : preg_replace("/_/", ' ', $module_name),
+			'ADMIN_MODULE' => jr_admin_navigation_label($navigation_name),
 			'U_ADMIN_MODULE' => $module_url
 			));
 		}
