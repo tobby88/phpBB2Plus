@@ -20,6 +20,7 @@ $updater = file_get_contents($root . '/update/update_from_153a.php');
 responsive_style_assert(strpos($functions, "array('BS_subSilver', 'BS_subIce', 'BS')") !== false, 'responsive styles must be discovered by template name, not a database ID');
 responsive_style_assert(strpos($functions, "array('auto', 'mobile', 'desktop')") !== false, 'style preference modes are incomplete');
 responsive_style_assert(strpos($functions, "isset(\$row['theme_public']) && !\$row['theme_public']") !== false, 'non-public responsive styles must not be auto-selected');
+responsive_style_assert(strpos($functions, "\$style_mode = phpbb_style_mode();") < strpos($functions, "if ( !\$board_config['override_user_style'] )"), 'mobile selection must remain available when the board forces its desktop style');
 responsive_style_assert(strpos($switcher, "\$_SERVER['REQUEST_METHOD']") !== false && strpos($switcher, "hash_equals((string) \$userdata['session_id'], \$sid)") !== false, 'style preference mutation must require POST and the active session');
 responsive_style_assert(strpos($switcher, "phpbb_setcookie(\$board_config['cookie_name'] . '_style_mode'") !== false, 'style mode cookie is missing');
 responsive_style_assert(strpos($tail, "'STYLE_SWITCHER' => \$style_switcher") !== false, 'footer switcher is not assigned');
@@ -31,6 +32,8 @@ $theme_values = str_getcsv($theme_insert[2], ',', "'", '\\');
 responsive_style_assert(count($theme_columns) === count($theme_values), 'fresh theme seed column/value counts differ');
 responsive_style_assert(in_array('theme_public', $theme_columns, true), 'fresh theme seed omits theme_public');
 responsive_style_assert(strpos($updater, "'theme_public', \"TINYINT(1) UNSIGNED NOT NULL DEFAULT '1'\"") !== false, 'post-1.53a migration omits public-style schema');
+responsive_style_assert(strpos($updater, 'update_queue_bundled_styles') !== false, 'post-1.53a migration must install bundled styles');
+responsive_style_assert(substr_count($basic, 'INSERT INTO phpbb_themes') >= 7, 'fresh installs must register every bundled style');
 
 foreach (array('BS', 'BS_subIce', 'BS_subSilver', 'fisubsilversh', 'prosilver', 'prosilver_se', 'subSilver') as $style)
 {

@@ -906,18 +906,18 @@ function init_userprefs($userdata)
 	//
 	// Set up style
 	//
+	$style_mode = phpbb_style_mode();
+	if ($style_mode === 'mobile' || ($style_mode === 'auto' && phpbb_mobile_user_agent()))
+	{
+		$mobile_style = phpbb_mobile_style_id();
+		if ($mobile_style > 0 && ($theme = setup_style($mobile_style)))
+		{
+			return;
+		}
+	}
+
 	if ( !$board_config['override_user_style'] )
 	{
-		$style_mode = phpbb_style_mode();
-		if ($style_mode === 'mobile' || ($style_mode === 'auto' && phpbb_mobile_user_agent()))
-		{
-			$mobile_style = phpbb_mobile_style_id();
-			if ($mobile_style > 0 && ($theme = setup_style($mobile_style)))
-			{
-				return;
-			}
-		}
-
 		if ( $userdata['user_id'] != ANONYMOUS && $userdata['user_style'] > 0 )
 		{
 			if ( $theme = setup_style($userdata['user_style']) )

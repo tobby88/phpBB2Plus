@@ -90,10 +90,16 @@ if (in_array('--self-test', $argv, true))
 	$schema_has_checksum_capacity = (bool) preg_match('/`hash`\s+varchar\(64\)/i', $schema_source);
 	$schema_has_public_styles = (bool) preg_match('/theme_public\s+tinyint\(1\)/i', $schema_source);
 	$basic_has_named_theme_insert = (bool) preg_match('/INSERT INTO\s+phpbb_themes\s*\([^;]*theme_public[^;]*\)\s*VALUES/i', $basic_source);
-	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 18 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_public_styles || !$basic_has_named_theme_insert || $has_patch_markers)
+	$bundled_style_seed_count = preg_match_all('/^INSERT INTO\s+phpbb_themes\s*\(/im', $basic_source, $unused_theme_matches);
+	$bundled_style_config_count = 0;
+	foreach (array('BS', 'BS_subIce', 'BS_subSilver', 'prosilver', 'prosilver_se', 'subSilver') as $template_name)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
+		$bundled_style_config_count += count(update_read_theme_info($forum_root, $template_name));
+	}
+	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
+	if ($arcade_tables !== 18 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_public_styles || !$basic_has_named_theme_insert || $bundled_style_seed_count !== 7 || $bundled_style_config_count !== 6 || $has_patch_markers)
+	{
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", bundled styles $bundled_style_seed_count seeds/$bundled_style_config_count configs, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
 	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password, IPv6 and SHA-256 checksum columns ready.\n";
@@ -258,6 +264,95 @@ function update_queue_drop_column(&$operations, $connection, $database, $table, 
 	}
 }
 
+function update_read_theme_info($forum_root, $template_name)
+{
+	if (!preg_match('/^[A-Za-z0-9_.-]+$/D', $template_name))
+	{
+		return array();
+	}
+	$filename = $forum_root . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . $template_name . DIRECTORY_SEPARATOR . 'theme_info.cfg';
+	$contents = @file_get_contents($filename);
+	if ($contents === false || strlen($contents) < 1 || strlen($contents) > 1048576)
+	{
+		return array();
+	}
+
+	$allowed_keys = array(
+		'template_name', 'style_name', 'head_stylesheet', 'body_background',
+		'body_bgcolor', 'body_text', 'body_link', 'body_vlink', 'body_alink',
+		'body_hlink', 'tr_color1', 'tr_color2', 'tr_color3', 'tr_class1',
+		'tr_class2', 'tr_class3', 'th_color1', 'th_color2', 'th_color3',
+		'th_class1', 'th_class2', 'th_class3', 'td_color1', 'td_color2',
+		'td_color3', 'td_class1', 'td_class2', 'td_class3', 'fontface1',
+		'fontface2', 'fontface3', 'fontsize1', 'fontsize2', 'fontsize3',
+		'fontcolor1', 'fontcolor2', 'fontcolor3', 'span_class1', 'span_class2',
+		'span_class3', 'div_class1', 'div_class2', 'div_class3', 'row_class1',
+		'row_class2', 'row_class3', 'col_class1', 'col_class2', 'col_class3',
+		'img_size_poll', 'img_size_privmsg'
+	);
+	$rows = array();
+	$pattern = '/^\s*\$([A-Za-z0-9_.-]+)\s*\[\s*([0-9]+)\s*\]\s*\[\s*[\'\"]([A-Za-z0-9_]+)[\'\"]\s*\]\s*=\s*\"(.*)\";\s*$/D';
+	foreach (preg_split('/\r\n|\r|\n/', preg_replace('/^\xEF\xBB\xBF/', '', $contents)) as $line)
+	{
+		$trimmed = trim($line);
+		if ($trimmed === '' || $trimmed === '<?php' || $trimmed === '?>' ||
+			substr($trimmed, 0, 2) === '//' || substr($trimmed, 0, 1) === '#')
+		{
+			continue;
+		}
+		if (strlen($line) > 8192 || !preg_match($pattern, $line, $match))
+		{
+			return array();
+		}
+		$index = (int) $match[2];
+		$key = $match[3];
+		if ($match[1] !== $template_name || $index > 20 || !in_array($key, $allowed_keys, true) || strlen($match[4]) > 4096)
+		{
+			return array();
+		}
+		$value = stripcslashes($match[4]);
+		if (preg_match('/[\x00-\x1f\x7f]/', $value))
+		{
+			return array();
+		}
+		$rows[$index][$key] = $value;
+	}
+
+	ksort($rows);
+	$rows = array_values($rows);
+	foreach ($rows as $row)
+	{
+		if (empty($row['style_name']) || !isset($row['template_name']) || $row['template_name'] !== $template_name)
+		{
+			return array();
+		}
+	}
+	return $rows;
+}
+
+function update_queue_bundled_styles(&$operations, $connection, $forum_root, $themes_table)
+{
+	foreach (array('BS', 'BS_subIce', 'BS_subSilver', 'prosilver', 'prosilver_se', 'subSilver') as $template_name)
+	{
+		foreach (update_read_theme_info($forum_root, $template_name) as $style)
+		{
+			$style['theme_public'] = '1';
+			$columns = array();
+			$values = array();
+			foreach ($style as $column => $value)
+			{
+				$columns[] = update_quote_identifier($column);
+				$values[] = "'" . mysqli_real_escape_string($connection, $value) . "'";
+			}
+			$template_sql = mysqli_real_escape_string($connection, $style['template_name']);
+			$style_sql = mysqli_real_escape_string($connection, $style['style_name']);
+			$operations[] = 'INSERT INTO ' . update_quote_identifier($themes_table) . ' (' . implode(', ', $columns) . ') SELECT ' .
+				implode(', ', $values) . ' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ' . update_quote_identifier($themes_table) .
+				" WHERE template_name = '$template_sql' AND style_name = '$style_sql')";
+		}
+	}
+}
+
 $operations = array();
 
 // Reuse the fresh-install schema as the canonical definition for restored
@@ -350,6 +445,7 @@ foreach (array('div_class1', 'div_class2', 'div_class3', 'row_class1', 'row_clas
 	update_queue_column($operations, $connection, $dbname, $table_prefix . 'themes_name', $column . '_name', 'VARCHAR(50) DEFAULT NULL');
 }
 update_queue_column($operations, $connection, $dbname, $table_prefix . 'themes', 'theme_public', "TINYINT(1) UNSIGNED NOT NULL DEFAULT '1'");
+update_queue_bundled_styles($operations, $connection, $forum_root, $table_prefix . 'themes');
 
 $config_defaults = array(
 	'cookie_consent_enable' => '1',

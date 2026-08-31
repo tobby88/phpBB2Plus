@@ -59,7 +59,7 @@ if ($userdata['session_logged_in'])
 }
 
 $style_switcher = '';
-if (empty($board_config['override_user_style']) && phpbb_mobile_style_id() > 0)
+if (phpbb_mobile_style_id() > 0)
 {
 	$current_script = isset($_SERVER['PHP_SELF']) && is_scalar($_SERVER['PHP_SELF']) ? basename((string) $_SERVER['PHP_SELF']) : 'portal.' . $phpEx;
 	if (!preg_match('/^[A-Za-z0-9_.-]+\.php$/D', $current_script))
