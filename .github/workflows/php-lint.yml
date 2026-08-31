@@ -112,6 +112,9 @@ jobs:
       - name: Test gzip output safety
         run: php .github/scripts/check-gzip-output-safety.php
 
+      - name: Test web source exposure rules
+        run: php .github/scripts/check-web-source-exposure.php
+
       - name: Test StopForumSpam integration safety
         run: php .github/scripts/check-stopforumspam-safety.php
 

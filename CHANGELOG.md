@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Denied direct web delivery of database configuration, PHP include sources,
+  raw templates, style configuration, SQL, logs, caches and common backup
+  suffixes using Apache 2.2/2.4-compatible root rules, and disabled directory
+  listings. Runtime includes and browser assets remain unaffected.
 - Added a shared decoded-image pixel and dimension budget before GD opens
   avatars, attachments, Album uploads, Nuffload resizes or generated Album
   thumbnails. Small compressed raster files can no longer force unbounded

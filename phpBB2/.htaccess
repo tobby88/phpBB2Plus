@@ -1,4 +1,17 @@
 DirectoryIndex index.html index.htm portal.php index.php
+Options -Indexes
+
+# These files are application source/state, never browser assets.  Keep both
+# Apache 2.4 and legacy 2.2 authorization forms for preserved installations.
+<FilesMatch "(?i)(?:^\.|~$|^config\.php$|\.(?:inc|tpl|cfg|sql|log|cache|bak|old|orig|save|swp|dist)$)">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
 
 <IfModule mod_mime.c>
   AddType application/wasm .wasm
