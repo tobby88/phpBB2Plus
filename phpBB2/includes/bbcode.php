@@ -238,6 +238,78 @@ function prepare_bbcode_template($bbcode_tpl)
 	return $bbcode_tpl;
 }
 
+function phpbb_bbcode_safe_attribute($value, $max_length = 100)
+{
+	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
+	$value = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', $value));
+	if (strlen($value) > $max_length)
+	{
+		$value = substr($value, 0, $max_length);
+	}
+	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function phpbb_bbcode_safe_font($value)
+{
+	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
+	$value = trim($value);
+	if ($value === '' || strlen($value) > 80 || !preg_match('/^[\pL\pN _,-]+$/u', $value))
+	{
+		return 'sans-serif';
+	}
+	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function phpbb_bbcode_safe_style($value)
+{
+	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
+	$value = str_replace(array("\r", "\n", "\0"), '', $value);
+	$allowed = array();
+	foreach (explode(';', $value) as $declaration)
+	{
+		$parts = explode(':', $declaration, 2);
+		if (count($parts) !== 2)
+		{
+			continue;
+		}
+		$property = strtolower(trim($parts[0]));
+		$property_value = trim($parts[1]);
+		$is_safe = false;
+
+		if (in_array($property, array('width', 'height', 'min-width', 'max-width'), true))
+		{
+			$is_safe = (bool) preg_match('/^(?:auto|[0-9]{1,4}(?:\.[0-9]{1,2})?(?:px|%|em|rem)?)$/i', $property_value);
+		}
+		else if (in_array($property, array('text-align', 'vertical-align'), true))
+		{
+			$is_safe = (bool) preg_match('/^(?:left|right|center|justify|top|middle|bottom)$/i', $property_value);
+		}
+		else if (in_array($property, array('color', 'background-color'), true))
+		{
+			$is_safe = (bool) preg_match('/^(?:#[0-9a-f]{3}(?:[0-9a-f]{3})?|[a-z]{1,20})$/i', $property_value);
+		}
+		else if (in_array($property, array('padding', 'margin', 'border-spacing'), true))
+		{
+			$is_safe = (bool) preg_match('/^[0-9]{1,3}(?:px|em|rem|%)(?:\s+[0-9]{1,3}(?:px|em|rem|%)){0,3}$/i', $property_value);
+		}
+		else if ($property === 'border-collapse')
+		{
+			$is_safe = in_array(strtolower($property_value), array('collapse', 'separate'), true);
+		}
+		else if ($property === 'border')
+		{
+			$is_safe = (bool) preg_match('/^[0-9]{1,2}px\s+(?:none|solid|dashed|dotted|double)\s+(?:#[0-9a-f]{3}(?:[0-9a-f]{3})?|[a-z]{1,20})$/i', $property_value);
+		}
+
+		if ($is_safe)
+		{
+			$allowed[] = $property . ': ' . strtolower($property_value);
+		}
+	}
+
+	return htmlspecialchars(implode('; ', $allowed), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 
 /**
  * Does second-pass bbencoding. This should be used before displaying the message in
@@ -288,7 +360,10 @@ function bbencode_second_pass($text, $uid)
 	/* BEGIN CMX ACRONYM MOD */
 
 	// acronym
-	$text = preg_replace("/\[acronym:$uid=\"(.*?)\"\]/si", $bbcode_tpl['acronym_open'], $text);
+	$text = preg_replace_callback("/\[acronym:$uid=\"(.*?)\"\]/si", function ($matches) use ($bbcode_tpl)
+	{
+		return str_replace('\\1', phpbb_bbcode_safe_attribute($matches[1], 255), $bbcode_tpl['acronym_open']);
+	}, $text);
 	$text = str_replace("[/acronym:$uid]", $bbcode_tpl['acronym_close'], $text);
 	/* END CMX ACRONYM MOD */ 
 	
@@ -410,17 +485,26 @@ function bbencode_second_pass($text, $uid)
 	$text = preg_replace("/\[marq=(left|right|up|down):$uid\]/si", $bbcode_tpl['marq_open'], $text);
 	$text = str_replace("[/marq:$uid]", $bbcode_tpl['marq_close'], $text);
 	// table
-	$text = preg_replace("/\[table=(.*?):$uid\]/si", $bbcode_tpl['table_open'], $text);
+	$text = preg_replace_callback("/\[table=(.*?):$uid\]/si", function ($matches) use ($bbcode_tpl)
+	{
+		return str_replace('\\1', phpbb_bbcode_safe_style($matches[1]), $bbcode_tpl['table_open']);
+	}, $text);
 	$text = str_replace("[/table:$uid]", $bbcode_tpl['table_close'], $text);
 	// cell
-	$text = preg_replace("/\[cell=(.*?):$uid\]/si", $bbcode_tpl['cell_open'], $text);
+	$text = preg_replace_callback("/\[cell=(.*?):$uid\]/si", function ($matches) use ($bbcode_tpl)
+	{
+		return str_replace('\\1', phpbb_bbcode_safe_style($matches[1]), $bbcode_tpl['cell_open']);
+	}, $text);
 	$text = str_replace("[/cell:$uid]", $bbcode_tpl['cell_close'], $text);
 	// center
 	$center_open = str_replace('\\1', 'center', $bbcode_tpl['align_open']);
 	$text = str_replace("[center:$uid]", $center_open, $text);
 	$text = str_replace("[/center:$uid]", $bbcode_tpl['align_close'], $text);
 	// font
-	$text = preg_replace("/\[font=(.*?):$uid\]/si", $bbcode_tpl['font_open'], $text);
+	$text = preg_replace_callback("/\[font=(.*?):$uid\]/si", function ($matches) use ($bbcode_tpl)
+	{
+		return str_replace('\\1', phpbb_bbcode_safe_font($matches[1]), $bbcode_tpl['font_open']);
+	}, $text);
 	$text = str_replace("[/font:$uid]", $bbcode_tpl['font_close'], $text);
 	// poet
 	$text = preg_replace("/\[poet(.*?):$uid\]/si", $bbcode_tpl['poet_open'], $text);

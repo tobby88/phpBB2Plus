@@ -246,3 +246,6 @@ jobs:
 
       - name: Test legacy media safety
         run: php .github/scripts/check-legacy-media-safety.php
+
+      - name: Test BBCode safety
+        run: php .github/scripts/check-bbcode-safety.php
