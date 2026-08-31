@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Centralized custom profile-field parsing for registration and administrator
+  user management. Dynamic columns now have a strict identifier boundary,
+  values obey their configured type, choices and length, and database writes
+  use the driver escape API; ACP field labels, choices, descriptions and saved
+  values are escaped before form rendering.
 - Extended the central CrackerTracker request boundary to reject unsupported
   HTTP methods and structurally abusive cookie or upload metadata. Normal GET,
   POST, HEAD and legacy upload/cookie shapes remain accepted; uploaded file

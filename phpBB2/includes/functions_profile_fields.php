@@ -40,6 +40,93 @@ function text_to_column($text)
   return strtolower(preg_replace($pattern, '_', $text));
 }
 
+function phpbb_profile_field_column($field)
+{
+  if (!is_array($field) || !isset($field['field_name']) || !is_scalar($field['field_name']))
+  {
+    return '';
+  }
+
+  $column = text_to_column((string) $field['field_name']);
+  return preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $column) ? $column : '';
+}
+
+function phpbb_profile_field_substr($value, $length)
+{
+  $length = max(0, (int) $length);
+  return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
+}
+
+function phpbb_profile_field_input($field, $source)
+{
+  $column = phpbb_profile_field_column($field);
+  if ($column === '' || !is_array($source) || !isset($source[$column]))
+  {
+    return '';
+  }
+
+  $type = isset($field['field_type']) ? (int) $field['field_type'] : -1;
+  if ($type === CHECKBOX)
+  {
+    if (!is_array($source[$column]))
+    {
+      return '';
+    }
+
+    $allowed = isset($field['checkbox_values']) ? explode(',', (string) $field['checkbox_values']) : array();
+    $values = array();
+    foreach (array_slice($source[$column], 0, 100) as $item)
+    {
+      if (!is_scalar($item))
+      {
+        continue;
+      }
+      $item = htmlspecialchars((string) $item, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+      if (in_array($item, $allowed, true) && !in_array($item, $values, true))
+      {
+        $values[] = $item;
+      }
+    }
+    return phpbb_profile_field_substr(implode(',', $values), 60000);
+  }
+
+  if (!is_scalar($source[$column]))
+  {
+    return '';
+  }
+
+  $value = htmlspecialchars((string) $source[$column], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  if ($type === RADIO)
+  {
+    $allowed = isset($field['radio_button_values']) ? explode(',', (string) $field['radio_button_values']) : array();
+    return in_array($value, $allowed, true) ? $value : '';
+  }
+
+  $maximum = ($type === TEXTAREA)
+    ? (isset($field['text_area_maxlen']) ? min(60000, max(0, (int) $field['text_area_maxlen'])) : TEXTAREA_MAXLENGTH)
+    : (isset($field['text_field_maxlen']) ? min(TEXT_FIELD_MAXLENGTH, max(0, (int) $field['text_field_maxlen'])) : TEXT_FIELD_MAXLENGTH);
+  return phpbb_profile_field_substr($value, $maximum);
+}
+
+function phpbb_profile_field_assignments($profile_data, $source, &$profile_names)
+{
+  global $db;
+
+  $profile_names = array();
+  $assignments = array();
+  foreach ((array) $profile_data as $field)
+  {
+    $column = phpbb_profile_field_column($field);
+    if ($column === '')
+    {
+      continue;
+    }
+    $profile_names[$column] = phpbb_profile_field_input($field, $source);
+    $assignments[] = $column . " = '" . $db->sql_escape($profile_names[$column]) . "'";
+  }
+  return $assignments;
+}
+
 function displayable_field_data($data, $type)
 {
 	global $lang;

@@ -538,28 +538,16 @@ if( !empty($_POST['unblock_account']) )
 		//
 		$profile_data = get_fields();
 		$profile_names = array();
-		
+		$profile_assignments = phpbb_profile_field_assignments($profile_data, $_POST, $profile_names);
+
 		foreach($profile_data as $fields)
 		{
-		  $name = text_to_column($fields['field_name']);
-		  $type = $fields['field_type'];
-		  $required = $fields['is_required'] == REQUIRED ? true : false;
-		  
-		  $temp = $_POST[$name];
-		  if($type == CHECKBOX)
+		  $name = phpbb_profile_field_column($fields);
+		  if ($name === '')
 		  {
-			$temp2 = '';
-			if ($temp)
-				foreach($temp as $temp3)
-				  $temp2 .= htmlspecialchars($temp3) . ',';
-
-			$temp2 = substr($temp2,0,strlen($temp2)-1);
-			
-			$temp = $temp2;
+			continue;
 		  }
-		  else
-			$temp = is_numeric($temp) ? intval($temp) : htmlspecialchars($temp);
-		  $profile_names[$name] = $temp;
+		  $required = $fields['is_required'] == REQUIRED ? true : false;
 		  
 		  if($required && empty($profile_names[$name]))
 		  {
@@ -767,39 +755,11 @@ if( !empty($_POST['unblock_account']) )
 				//
 				// Custom Profile Fields MOD
 				//
-				$profile_data = get_fields();
-				$profile_names = array();
-				
-			    $sql2_tmp = '';
-				foreach($profile_data as $fields)
-				{
-					$name = text_to_column($fields['field_name']);
-					$type = $fields['field_type'];
-					$required = $fields['is_required'] == REQUIRED ? true : false;
-					
-					$temp = $_POST[$name];
-					if($type == CHECKBOX)
-					{
-						$temp2 = '';
-						if ($temp)
-							foreach($temp as $temp3)
-								$temp2 .= htmlspecialchars($temp3) . ',';
-
-						$temp2 = substr($temp2,0,strlen($temp2)-1);
-						$temp = $temp2;
-					}
-					else
-						$temp = is_numeric($temp) ? intval($temp) : htmlspecialchars($temp);
-
-					$profile_names[$name] = $temp;
-					$sql2_tmp .= $name . " = '".str_replace("\'","''",$profile_names[$name])."', ";
-				}
-				 if ( !empty($sql2_tmp) )
+				 if ( !empty($profile_assignments) )
 				 {
-				  $sql2_tmp = substr($sql2_tmp,0,strlen($sql2_tmp)-2);
 				  $sql2 = "UPDATE " . USERS_TABLE . "
-					  SET ".$sql2_tmp."
-					WHERE user_id = ".$user_id;
+					  SET " . implode(', ', $profile_assignments) . "
+					WHERE user_id = " . (int) $user_id;
 				  
 				  if(!$db->sql_query($sql2))
 						message_die(GENERAL_ERROR,'Could not update custom profile fields','',__LINE__,__FILE__,$sql2);
@@ -1216,9 +1176,13 @@ if( !empty($_POST['unblock_account']) )
 		
 		foreach($profile_data as $field)
 		{
-		  $description = isset($field['field_description']) ? $field['field_description'] : '';
-		  $field_name = $field['field_name'];
-		  $name = text_to_column($field_name);
+		  $description = isset($field['field_description']) ? phpbb_profile_text($field['field_description']) : '';
+		  $field_name = isset($field['field_name']) ? phpbb_profile_text($field['field_name']) : '';
+		  $name = phpbb_profile_field_column($field);
+		  if ($name === '')
+		  {
+			continue;
+		  }
 		  
 		  if($field['is_required'] == REQUIRED)
 			$required = true;
@@ -1233,24 +1197,25 @@ if( !empty($_POST['unblock_account']) )
 		  switch($field['field_type'])
 		  {
 			case TEXT_FIELD:
-			  $value = $this_userdata[$name];
-			  $length = $field['text_field_maxlen'];
+			  $value = phpbb_profile_text(isset($this_userdata[$name]) ? $this_userdata[$name] : '');
+			  $length = max(1, min(TEXT_FIELD_MAXLENGTH, (int) $field['text_field_maxlen']));
 			  $field_html_code = "<input type=\"text\" class=\"post\" style=\"width: 200px\"  name=\"$name\" size=\"35\" maxlength=\"$length\" value=\"$value\" />";
 			  break;
 			case TEXTAREA:
-			  $value = $this_userdata[$name];
+			  $value = phpbb_profile_text(isset($this_userdata[$name]) ? $this_userdata[$name] : '');
 			  $field_html_code = "<textarea name=\"$name\" style=\"width: 300px\" rows=\"6\" cols=\"30\" class=\"post\">$value</textarea>";
 			  break;
 			case RADIO:
-			  $value = $this_userdata[$name];
+			  $value = isset($this_userdata[$name]) ? (string) $this_userdata[$name] : '';
 			  $radio_list = explode(',',$field['radio_button_values']);
 			  $html_list = array();
 			  foreach($radio_list as $num => $radio_name)
 			  {
-				$temp = "<input type=\"radio\" name=\"$name\" value=\"$radio_name\"";
+				$safe_radio_name = phpbb_profile_text($radio_name);
+				$temp = "<input type=\"radio\" name=\"$name\" value=\"$safe_radio_name\"";
 				if($radio_name == $value)
 				  $temp .= ' checked="checked"';
-				$temp .= " /> <span class=\"gen\">$radio_name</span>";
+				$temp .= " /> <span class=\"gen\">$safe_radio_name</span>";
 				if($num < count($radio_list))
 				  $temp .= '<br />';
 				$html_list[] = $temp;
@@ -1260,19 +1225,20 @@ if( !empty($_POST['unblock_account']) )
 				$field_html_code .= $line . "\n";
 			  break;
 			case CHECKBOX:
-			  $value_array = explode(',',$this_userdata[$name]);
+			  $value_array = explode(',', isset($this_userdata[$name]) ? (string) $this_userdata[$name] : '');
 			  $check_list = explode(',',$field['checkbox_values']);
 			  $html_list = array();
 			  foreach($check_list as $num => $check_name)
 			  {
-				$temp = "<input type=\"checkbox\" name=\"{$name}[]\" value=\"$check_name\"";
+				$safe_check_name = phpbb_profile_text($check_name);
+				$temp = "<input type=\"checkbox\" name=\"{$name}[]\" value=\"$safe_check_name\"";
 				foreach($value_array as $val)
 				  if($val == $check_name)
 				  {
 					$temp .= ' checked="checked"';
 					break;
 				  }
-				$temp .= " /> <span class=\"gen\">$check_name</span>";
+				$temp .= " /> <span class=\"gen\">$safe_check_name</span>";
 				if($num < count($check_list))
 				  $temp .= '<br />';
 				$html_list[] = $temp;
@@ -1293,7 +1259,7 @@ if( !empty($_POST['unblock_account']) )
 		  
 		  if($field['field_description'] != NULL && !empty($field['field_description']))
 			$template->assign_block_vars('custom_fields.switch_description',array(
-			  'DESCRIPTION' => $field['field_description']));
+			  'DESCRIPTION' => $description));
 		}
 		//
 		// END Custom Profile Fields MOD

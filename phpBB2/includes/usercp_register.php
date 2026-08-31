@@ -46,35 +46,6 @@ function usercp_post_scalar($name, $default = '')
 	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
 }
 
-function usercp_custom_field_value($value, $type)
-{
-	if ($type == CHECKBOX)
-	{
-		if (!is_array($value))
-		{
-			return '';
-		}
-
-		$values = array();
-		foreach ($value as $item)
-		{
-			if (is_scalar($item))
-			{
-				$values[] = htmlspecialchars((string) $item);
-			}
-		}
-
-		return implode(',', $values);
-	}
-
-	if (!is_scalar($value))
-	{
-		return '';
-	}
-
-	return is_numeric($value) ? intval($value) : htmlspecialchars((string) $value);
-}
-
 function usercp_avatar_file_scalar($name, $default = '')
 {
 	global $HTTP_POST_FILES;
@@ -551,11 +522,15 @@ if ( isset($_POST['submit']) )
 	  
 	  foreach($profile_data as $fields)
 	  {
-		$name = text_to_column($fields['field_name']);
+		$name = phpbb_profile_field_column($fields);
+		if ($name === '')
+		{
+			continue;
+		}
 		$type = $fields['field_type'];
 		$required = ($fields['is_required'] == REQUIRED) ? true : false;
 		
-		$temp = isset($HTTP_POST_VARS[$name]) ? usercp_custom_field_value($HTTP_POST_VARS[$name], $type) : '';
+		$temp = phpbb_profile_field_input($fields, $HTTP_POST_VARS);
 		$profile_names[$name] = $temp;
 		
 		if($required && empty($profile_names[$name]))
@@ -829,35 +804,12 @@ if ( isset($_POST['submit']) )
 			  if (empty($profile_data))
 			  	$profile_data = get_fields('WHERE users_can_view = '.ALLOW_VIEW);
 			  $profile_names = array();
-			  
-			  $sql2_tmp = '';
-			  foreach($profile_data as $fields)
-			  {
-				$name = text_to_column($fields['field_name']);
-				$type = $fields['field_type'];
-				$required = ($fields['is_required'] == REQUIRED) ? true : false;
-				
-				$temp = '';
-				if(isset($HTTP_POST_VARS[$name]))
-				{
-				  $temp = usercp_custom_field_value($HTTP_POST_VARS[$name], $type);
-				  $profile_names[$name] = $temp;
-				  
-				  $sql2_tmp .= $name . " = '".str_replace("\'","''",$profile_names[$name])."', ";
-				
-					if($required && empty($profile_names[$name]))
-					{
-					  $error = TRUE;
-							$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Fields_empty'];
-					}
-				}
-			  }
-			 if ( !empty($sql2_tmp) )
+			  $profile_assignments = phpbb_profile_field_assignments($profile_data, $HTTP_POST_VARS, $profile_names);
+			 if ( !empty($profile_assignments) )
 			 {
-			  $sql2_tmp = substr($sql2_tmp,0,strlen($sql2_tmp)-2);
 			  $sql2 = "UPDATE " . USERS_TABLE . "
-				  SET ".$sql2_tmp."
-				WHERE user_id = ".$userdata['user_id'];
+				  SET " . implode(', ', $profile_assignments) . "
+				WHERE user_id = " . (int) $userdata['user_id'];
 			  
 			  if(!$db->sql_query($sql2))
 					message_die(GENERAL_ERROR,'Could not update custom profile fields','',__LINE__,__FILE__,$sql2);
@@ -1017,35 +969,12 @@ if ( isset($_POST['submit']) )
 			  if (empty($profile_data))
 			  	$profile_data = get_fields('WHERE users_can_view = '.ALLOW_VIEW);
 			  $profile_names = array();
-			  
-			  $sql2_tmp = '';
-			  foreach($profile_data as $fields)
-			  {
-				$name = text_to_column($fields['field_name']);
-				$type = $fields['field_type'];
-				$required = ($fields['is_required'] == REQUIRED) ? true : false;
-				
-				$temp = '';
-				if(isset($HTTP_POST_VARS[$name]))
-				{
-				  $temp = usercp_custom_field_value($HTTP_POST_VARS[$name], $type);
-				  $profile_names[$name] = $temp;
-				  
-				  $sql2_tmp .= $name . " = '".str_replace("\'","''",$profile_names[$name])."', ";
-				
-					if($required && empty($profile_names[$name]))
-					{
-					  $error = TRUE;
-							$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Fields_empty'];
-					}
-				}
-			  }
-			 if ( !empty($sql2_tmp) )
+			  $profile_assignments = phpbb_profile_field_assignments($profile_data, $HTTP_POST_VARS, $profile_names);
+			 if ( !empty($profile_assignments) )
 			 {
-			  $sql2_tmp = substr($sql2_tmp,0,strlen($sql2_tmp)-2);
 			  $sql2 = "UPDATE " . USERS_TABLE . "
-				  SET ".$sql2_tmp."
-				WHERE user_id = ".$user_id;
+				  SET " . implode(', ', $profile_assignments) . "
+				WHERE user_id = " . (int) $user_id;
 			  
 			  if(!$db->sql_query($sql2))
 					message_die(GENERAL_ERROR,'Could not insert(update) custom profile fields','',__LINE__,__FILE__,$sql2);
@@ -1455,7 +1384,11 @@ else
 	  foreach($profile_data as $field)
 	  {
 		$field_name = $field['field_name'];
-		$name = text_to_column($field_name);
+		$name = phpbb_profile_field_column($field);
+		if ($name === '')
+		{
+			continue;
+		}
 		$safe_field_name = phpbb_profile_text($field_name);
 		$safe_name = phpbb_profile_text($name);
 		
@@ -1497,7 +1430,7 @@ else
 			  $field_html_code .= $line . "\n";
 			break;
 		  case CHECKBOX:
-			$posted_values = isset($HTTP_POST_VARS[$name]) ? usercp_custom_field_value($HTTP_POST_VARS[$name], CHECKBOX) : '';
+			$posted_values = phpbb_profile_field_input($field, $HTTP_POST_VARS);
 			$value_array = ($posted_values === '') ? explode(',', $userdata[$name]) : explode(',', $posted_values);
 			$check_list = explode(',',$field['checkbox_values']);
 			$html_list = array();
