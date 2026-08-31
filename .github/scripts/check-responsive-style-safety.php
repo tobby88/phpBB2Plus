@@ -35,6 +35,8 @@ responsive_style_assert(count($theme_columns) === count($theme_values), 'fresh t
 responsive_style_assert(in_array('theme_public', $theme_columns, true), 'fresh theme seed omits theme_public');
 responsive_style_assert(strpos($updater, "'theme_public', \"TINYINT(1) UNSIGNED NOT NULL DEFAULT '1'\"") !== false, 'post-1.53a migration omits public-style schema');
 responsive_style_assert(strpos($updater, 'update_queue_bundled_styles') !== false, 'post-1.53a migration must install bundled styles');
+responsive_style_assert(strpos($updater, 'if ((int) update_scalar($connection, $exists_sql) > 0)') !== false, 'post-1.53a defaults and styles must skip existing rows');
+responsive_style_assert(strpos($updater, '$arcade_mismatch_sql') !== false, 'Arcade name reconciliation must only queue when mismatches exist');
 responsive_style_assert(substr_count($basic, 'INSERT INTO phpbb_themes') >= 7, 'fresh installs must register every bundled style');
 
 foreach (array('BS', 'BS_subIce', 'BS_subSilver', 'fisubsilversh', 'prosilver', 'prosilver_se', 'subSilver') as $style)

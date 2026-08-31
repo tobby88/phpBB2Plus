@@ -20,6 +20,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Escaped stored paFileDB descriptions and URLs when redisplaying edit forms,
   made stale download/category references fail before permission lookups, and
   normalized and bounded moderator batch and sorting inputs.
+- Made the post-1.53a updater's dry run reflect existing defaults, bundled
+  styles and Arcade name snapshots before queuing work, while retaining
+  existing administrator settings and cleaning seed-statement output.
 - Reworked the legacy AJAX controller around one typed request boundary and an
   explicit operation allowlist. Inline edits now enforce forum edit rights,
   private poll/topic/forum data cannot leak through alternate AJAX views,

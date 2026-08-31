@@ -50,7 +50,7 @@ function update_extract_seed_statements($basic)
 	$statements = array();
 	foreach ($matches as $match)
 	{
-		$sql = preg_replace('/^INSERT INTO/i', 'INSERT IGNORE INTO', trim($match[0]));
+		$sql = rtrim(preg_replace('/^INSERT INTO/i', 'INSERT IGNORE INTO', trim($match[0])), "; \t\r\n");
 		$statements[] = $sql;
 	}
 	return $statements;
@@ -240,6 +240,12 @@ function update_queue_column(&$operations, $connection, $database, $table, $colu
 
 function update_queue_default(&$operations, $connection, $table, $key_column, $value_column, $key, $value)
 {
+	$exists_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($table) . ' WHERE ' .
+		update_quote_identifier($key_column) . " = '" . mysqli_real_escape_string($connection, $key) . "'";
+	if ((int) update_scalar($connection, $exists_sql) > 0)
+	{
+		return;
+	}
 	$sql = 'INSERT IGNORE INTO ' . update_quote_identifier($table) . ' (' .
 		update_quote_identifier($key_column) . ', ' . update_quote_identifier($value_column) . ') VALUES (\'' .
 		mysqli_real_escape_string($connection, $key) . '\', \'' .
@@ -336,6 +342,14 @@ function update_queue_bundled_styles(&$operations, $connection, $forum_root, $th
 	{
 		foreach (update_read_theme_info($forum_root, $template_name) as $style)
 		{
+			$template_sql = mysqli_real_escape_string($connection, $style['template_name']);
+			$style_sql = mysqli_real_escape_string($connection, $style['style_name']);
+			$exists_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($themes_table) .
+				" WHERE template_name = '$template_sql' AND style_name = '$style_sql'";
+			if ((int) update_scalar($connection, $exists_sql) > 0)
+			{
+				continue;
+			}
 			$style['theme_public'] = '1';
 			$columns = array();
 			$values = array();
@@ -344,8 +358,6 @@ function update_queue_bundled_styles(&$operations, $connection, $forum_root, $th
 				$columns[] = update_quote_identifier($column);
 				$values[] = "'" . mysqli_real_escape_string($connection, $value) . "'";
 			}
-			$template_sql = mysqli_real_escape_string($connection, $style['template_name']);
-			$style_sql = mysqli_real_escape_string($connection, $style['style_name']);
 			$operations[] = 'INSERT INTO ' . update_quote_identifier($themes_table) . ' (' . implode(', ', $columns) . ') SELECT ' .
 				implode(', ', $values) . ' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ' . update_quote_identifier($themes_table) .
 				" WHERE template_name = '$template_sql' AND style_name = '$style_sql')";
@@ -492,9 +504,15 @@ $arcade_all_time_table = $table_prefix . 'ina_at_scores';
 if (update_table_exists($connection, $dbname, $arcade_all_time_table) &&
 	update_column_exists($connection, $dbname, $arcade_all_time_table, 'player_name'))
 {
-	$operations[] = 'UPDATE ' . update_quote_identifier($arcade_all_time_table) . ' s INNER JOIN ' .
-		update_quote_identifier($users_table) . ' u ON u.user_id = s.player_id SET s.player_name = u.username ' .
-		"WHERE s.player_id > 0 AND (s.player_name IS NULL OR s.player_name <> u.username)";
+	$arcade_mismatch_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($arcade_all_time_table) . ' s INNER JOIN ' .
+		update_quote_identifier($users_table) . ' u ON u.user_id = s.player_id ' .
+		'WHERE s.player_id > 0 AND (s.player_name IS NULL OR s.player_name <> u.username)';
+	if ((int) update_scalar($connection, $arcade_mismatch_sql) > 0)
+	{
+		$operations[] = 'UPDATE ' . update_quote_identifier($arcade_all_time_table) . ' s INNER JOIN ' .
+			update_quote_identifier($users_table) . ' u ON u.user_id = s.player_id SET s.player_name = u.username ' .
+			"WHERE s.player_id > 0 AND (s.player_name IS NULL OR s.player_name <> u.username)";
+	}
 }
 
 // Keep the public components/credits list useful on upgraded installations.
