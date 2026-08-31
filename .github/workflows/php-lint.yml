@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "phpBB2/**/*.php"
+      - "phpBB2/**/*.tpl"
+      - "phpBB2/**/*.js"
+      - "phpBB2/**/*.css"
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
@@ -13,6 +16,9 @@ on:
   pull_request:
     paths:
       - "phpBB2/**/*.php"
+      - "phpBB2/**/*.tpl"
+      - "phpBB2/**/*.js"
+      - "phpBB2/**/*.css"
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
