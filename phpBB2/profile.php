@@ -60,7 +60,9 @@ function gen_rand_string($hash)
 {
 	$rand_str = dss_rand();
 
-	return ( $hash ) ? md5($rand_str) : substr($rand_str, 0, 8);
+	// dss_rand() is backed by phpbb_random_bytes(). Keep the full 128-bit
+	// activation token and use all 64 random bits for temporary passwords.
+	return ( $hash ) ? md5($rand_str) : substr($rand_str, 0, 16);
 }
 //
 // End page specific functions

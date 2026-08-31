@@ -9,6 +9,8 @@ $activate = (string) file_get_contents($root . '/phpBB2/includes/usercp_activate
 $page_header = (string) file_get_contents($root . '/phpBB2/includes/page_header.php');
 $send_password = (string) file_get_contents($root . '/phpBB2/includes/usercp_sendpasswd.php');
 $admin_add_user = (string) file_get_contents($root . '/phpBB2/admin/admin_user_register.php');
+$lang_english = (string) file_get_contents($root . '/phpBB2/language/lang_english/lang_main.php');
+$lang_german = (string) file_get_contents($root . '/phpBB2/language/lang_german/lang_main.php');
 $selects = (string) file_get_contents($root . '/phpBB2/includes/functions_selects.php');
 $functions = (string) file_get_contents($root . '/phpBB2/includes/functions.php');
 $admin_users = (string) file_get_contents($root . '/phpBB2/admin/admin_users.php');
@@ -49,6 +51,11 @@ if (strpos($password, "defined('EXTRA_SECURE')") !== false)
 if (strpos($profile, "phpbb_board_url('profile.' . \$phpEx)") === false)
 {
 	$errors[] = 'Profile email links are not built from the validated board origin.';
+}
+if (strpos($profile, 'substr($rand_str, 0, 16)') === false ||
+	strpos($register, '$key_len = 54 -') !== false || strpos($send_password, '$key_len = 54 -') !== false)
+{
+	$errors[] = 'New activation tokens or temporary passwords still use truncated legacy entropy.';
 }
 
 foreach (array(
@@ -97,6 +104,20 @@ foreach (array("\$db->sql_escape(\$username)", "\$db->sql_escape(\$email)", 'min
 	{
 		$errors[] = 'Password-reset input or cooldown hardening is missing: ' . $marker;
 	}
+}
+foreach (array('$reset_allowed', 'No_send_account_inactive', 'ctracker_pwreset_info', 'No_email_match') as $marker)
+{
+	$present = strpos($send_password, $marker) !== false;
+	if (($marker === '$reset_allowed' && !$present) || ($marker !== '$reset_allowed' && $present))
+	{
+		$errors[] = 'Password-reset responses expose account or activation state: ' . $marker;
+	}
+}
+if (strpos($send_password, "\$lang['Password_reset_requested']") === false ||
+	strpos($lang_english, "\$lang['Password_reset_requested']") === false ||
+	strpos($lang_german, "\$lang['Password_reset_requested']") === false)
+{
+	$errors[] = 'The non-enumerating password-reset response is not available in both supported languages.';
 }
 if (substr_count($admin_users, 'ct_last_pw_change = $password_changed_at') < 2 ||
 	substr_count($admin_users, 'user_passwd_change = $password_changed_at') < 2 ||

@@ -682,6 +682,7 @@ $lang['Agree_not'] = 'I do not agree to these terms';
 $lang['Wrong_activation'] = 'The activation key you supplied does not match any in the database.';
 $lang['Send_password'] = 'Send me a new password';
 $lang['Password_updated'] = 'A new password has been created; please check your e-mail for details on how to activate it.';
+$lang['Password_reset_requested'] = 'If the username and e-mail address belong to an active account and no cooldown is in effect, an e-mail with further instructions has been sent.';
 $lang['No_email_match'] = 'The e-mail address you supplied does not match the one listed for that username.';
 $lang['New_password_activation'] = 'New password activation';
 $lang['Password_activated'] = 'Your account has been re-activated. To log in, please use the password supplied in the e-mail you received.';

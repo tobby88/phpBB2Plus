@@ -46,82 +46,67 @@ if ( isset($_POST['submit']) )
 		FROM " . USERS_TABLE . " 
 		WHERE user_email = '$email_sql'
 			AND username = '$username_sql'";
-	if ( $result = $db->sql_query($sql) )
-	{
-		if ( $row = $db->sql_fetchrow($result) )
-		{
-			if ( !$row['user_active'] )
-			{
-				message_die(GENERAL_MESSAGE, $lang['No_send_account_inactive']);
-			}
-
-			$username = $row['username'];
-			$user_id = $row['user_id'];
-
-			$pwreset_minutes = isset($ctracker_config->settings['pwreset_time']) ? intval($ctracker_config->settings['pwreset_time']) : 20;
-			$pwreset_minutes = ($pwreset_minutes > 0) ? min(180, $pwreset_minutes) : 20;
-			if ( isset($ctracker_config->settings['pw_reset_feature']) && $ctracker_config->settings['pw_reset_feature'] == 1 )
-			{
-				if ( $row['ct_last_pw_reset'] >= time() )
-				{
-					message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_pwreset_info'], $pwreset_minutes));
-				}
-			}
-			$user_actkey = gen_rand_string(true);
-			$key_len = 54 - strlen($server_url);
-			$key_len = ($key_len > 6) ? $key_len : 6;
-			$user_actkey = substr($user_actkey, 0, $key_len);
-			$user_password = gen_rand_string(false);
-			$new_time = time() + ($pwreset_minutes * 60);
-			$new_password_hash = phpbb_password_hash($user_password);
-			$new_password_hash_sql = $db->sql_escape($new_password_hash);
-			$user_actkey_sql = $db->sql_escape($user_actkey);
-			$user_id = (int) $row['user_id'];
-			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_newpasswd = '$new_password_hash_sql', user_actkey = '$user_actkey_sql', ct_last_pw_reset = $new_time WHERE user_id = $user_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);
-			}
-
-			include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-			$emailer = new emailer($board_config['smtp_delivery']);
-
-			$emailer->from($board_config['board_email']);
-			$emailer->replyto($board_config['board_email']);
-
-			$emailer->use_template('user_activate_passwd', $row['user_lang']);
-			$emailer->email_address($row['user_email']);
-			$emailer->set_subject($lang['New_password_activation']);
-
-			$emailer->assign_vars(array(
-				'SITENAME' => $board_config['sitename'], 
-				'USERNAME' => $username,
-				'PASSWORD' => $user_password,
-				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '', 
-
-				'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
-			);
-			$emailer->send();
-			$emailer->reset();
-
-			$template->assign_vars(array(
-				'META' => '<meta http-equiv="refresh" content="15;url=' . append_sid("index.$phpEx") . '">')
-			);
-
-			$message = $lang['Password_updated'] . '<br /><br />' . sprintf($lang['Click_return_index'],  '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
-			message_die(GENERAL_MESSAGE, $message);
-		}
-		else
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_email_match']);
-		}
-	}
-	else
+	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not obtain user information for sendpassword', '', __LINE__, __FILE__, $sql);
 	}
+	$row = $db->sql_fetchrow($result);
+	$pwreset_minutes = isset($ctracker_config->settings['pwreset_time']) ? intval($ctracker_config->settings['pwreset_time']) : 20;
+	$pwreset_minutes = ($pwreset_minutes > 0) ? min(180, $pwreset_minutes) : 20;
+	$reset_throttling = isset($ctracker_config->settings['pw_reset_feature']) && $ctracker_config->settings['pw_reset_feature'] == 1;
+	$reset_allowed = $row && !empty($row['user_active']) && (!$reset_throttling || intval($row['ct_last_pw_reset']) < time());
+
+	// Use the same public response for unknown, inactive and temporarily
+	// throttled accounts. This prevents the form from becoming an account and
+	// activation-status oracle while a legitimate matching account still gets
+	// the normal activation email.
+	if ($reset_allowed)
+	{
+		$username = $row['username'];
+		$user_id = (int) $row['user_id'];
+
+		$user_actkey = gen_rand_string(true);
+		$user_password = gen_rand_string(false);
+		$new_time = time() + ($pwreset_minutes * 60);
+		$new_password_hash = phpbb_password_hash($user_password);
+		$new_password_hash_sql = $db->sql_escape($new_password_hash);
+		$user_actkey_sql = $db->sql_escape($user_actkey);
+		$sql = "UPDATE " . USERS_TABLE . "
+			SET user_newpasswd = '$new_password_hash_sql', user_actkey = '$user_actkey_sql', ct_last_pw_reset = $new_time WHERE user_id = $user_id";
+		if ( !$db->sql_query($sql) )
+		{
+			message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);
+		}
+
+		include($phpbb_root_path . 'includes/emailer.'.$phpEx);
+		$emailer = new emailer($board_config['smtp_delivery']);
+
+		$emailer->from($board_config['board_email']);
+		$emailer->replyto($board_config['board_email']);
+
+		$emailer->use_template('user_activate_passwd', $row['user_lang']);
+		$emailer->email_address($row['user_email']);
+		$emailer->set_subject($lang['New_password_activation']);
+
+		$emailer->assign_vars(array(
+			'SITENAME' => $board_config['sitename'],
+			'USERNAME' => $username,
+			'PASSWORD' => $user_password,
+			'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
+
+			'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
+		);
+		$emailer->send();
+		$emailer->reset();
+	}
+
+	$template->assign_vars(array(
+		'META' => '<meta http-equiv="refresh" content="15;url=' . append_sid("index.$phpEx") . '">')
+	);
+
+	$reset_response = isset($lang['Password_reset_requested']) ? $lang['Password_reset_requested'] : $lang['Password_updated'];
+	$message = $reset_response . '<br /><br />' . sprintf($lang['Click_return_index'],  '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 else
 {

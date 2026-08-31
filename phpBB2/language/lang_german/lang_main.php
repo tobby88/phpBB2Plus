@@ -684,6 +684,7 @@ $lang['Agree_not'] = 'Ich bin mit den Konditionen nicht einverstanden.';
 $lang['Wrong_activation'] = 'Der Aktivierungsschlüssel aus dem Link stimmt nicht mit dem in der Datenbank überein. Bitte überprüfe die URL, und versuche es erneut.';
 $lang['Send_password'] = 'Schickt mir ein neues Passwort.';
 $lang['Password_updated'] = 'Ein neues Passwort wurde erstellt, es wurde eine E-Mail mit weiteren Anweisungen verschickt.';
+$lang['Password_reset_requested'] = 'Wenn Benutzername und E-Mail-Adresse zu einem aktiven Konto gehören und derzeit keine Sperrfrist läuft, wurde eine E-Mail mit weiteren Anweisungen versandt.';
 $lang['No_email_match'] = 'Die angegebene E-Mail-Adresse stimmt nicht mit dem Benutzernamen überein.';
 $lang['New_password_activation'] = 'Aktivierung des neuen Passwortes';
 $lang['Password_activated'] = 'Dein Account wurde wieder aktiviert. Um dich einzuloggen, benutze das Passwort, welches du per E-Mail erhalten hast.';

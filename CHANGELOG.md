@@ -14,7 +14,11 @@ changes consolidated after that baseline without implying active maintenance.
   All public and administrator password-write paths now maintain the proper
   change timestamp, and the idempotent updater repairs legacy rows once. The
   public reset route now also uses the database driver's escaping and bounded
-  cooldown values instead of its ineffective legacy quote replacement.
+  cooldown values instead of its ineffective legacy quote replacement. Reset
+  responses no longer disclose whether an account exists, is inactive or is
+  currently throttled. Newly issued activation keys retain their full 128-bit
+  entropy regardless of the board URL length, and temporary passwords use all
+  64 random bits while previously issued shorter keys remain accepted.
 - Modernized public contact profiles. Retired ICQ, AIM, MSN, Yahoo Messenger
   and Skype links plus the non-contact Pinterest field are no longer offered
   or rendered, while their historic database values remain preserved. Signal
