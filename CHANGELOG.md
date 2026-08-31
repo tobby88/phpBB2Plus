@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repaired and hardened attachment and paFileDB delivery. Attachment thumbnails
+  retain their protected thumbnail subdirectory, post attachments require view,
+  read and download permission together, stale post references are ignored, and
+  binary responses disable MIME sniffing and private caching. paFileDB routing
+  no longer accepts cookie-merged actions, and its mirror chooser now terminates
+  after rendering instead of falling through into an undefined download. Rule
+  labels are escaped at their final HTML boundary.
 - Consolidated the user-facing mail boundary. Email template names and language
   directories are centrally allowlisted, board mail now uses the configured
   board sender with the member address only as Reply-To for better DMARC

@@ -93,7 +93,7 @@ for ($i = 0; $i < $num_rows; $i++)
 		$max_filesize = ($det_filesize == 0) ? $lang['Unlimited'] : $det_filesize . ' ' . $size_lang;
 
 		$template->assign_block_vars('group_row', array(
-			'GROUP_RULE_HEADER' => sprintf($lang['Group_rule_header'], $group_name, $max_filesize))
+			'GROUP_RULE_HEADER' => sprintf($lang['Group_rule_header'], htmlspecialchars($group_name, ENT_QUOTES, 'UTF-8'), $max_filesize))
 		);
 		
 		$sql = 'SELECT extension
@@ -113,7 +113,7 @@ for ($i = 0; $i < $num_rows; $i++)
 		for ($j = 0; $j < $e_num_rows; $j++)
 		{
 			$template->assign_block_vars('group_row.extension_row', array(
-				'EXTENSION' => $e_rows[$j]['extension'])
+				'EXTENSION' => htmlspecialchars($e_rows[$j]['extension'], ENT_QUOTES, 'UTF-8'))
 			);
 		}
 	}

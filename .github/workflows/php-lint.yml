@@ -222,3 +222,6 @@ jobs:
 
       - name: Test attachment administration safety
         run: php .github/scripts/check-attachment-admin-safety.php
+
+      - name: Test download delivery safety
+        run: php .github/scripts/check-download-delivery-safety.php

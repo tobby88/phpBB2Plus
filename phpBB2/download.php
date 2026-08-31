@@ -98,7 +98,11 @@ function send_file_to_browser($attachment, $upload_dir)
 {
 	global $HTTP_USER_AGENT, $HTTP_SERVER_VARS, $lang, $db, $attach_config;
 
-	$physical_filename = basename((string) $attachment['physical_filename']);
+	$requested_filename = str_replace('\\', '/', (string) $attachment['physical_filename']);
+	$thumbnail_prefix = trim(str_replace('\\', '/', THUMB_DIR), '/') . '/';
+	$physical_filename = (strpos($requested_filename, $thumbnail_prefix) === 0)
+		? $thumbnail_prefix . basename(substr($requested_filename, strlen($thumbnail_prefix)))
+		: basename($requested_filename);
 	$filename = ($upload_dir == '') ? $physical_filename : rtrim($upload_dir, '/\\') . '/' . $physical_filename;
 
 	$gotit = false;
@@ -194,6 +198,8 @@ function send_file_to_browser($attachment, $upload_dir)
 	// Send out the Headers
 	header('Content-Type: ' . $mimetype);
 	header('Content-Disposition: ' . $disposition . '; filename="' . $real_filename . '"');
+	header('X-Content-Type-Options: nosniff');
+	header('Cache-Control: private, no-store, max-age=0');
 
 	unset($real_filename);
 
@@ -319,13 +325,17 @@ for ($i = 0; $i < $num_auth_pages && $authorised == false; $i++)
 		}
 
 		$row = $db->sql_fetchrow($result);
+		if (!$row)
+		{
+			continue;
+		}
 
 		$forum_id = $row['forum_id'];
 
 		$is_auth = array();
 		$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
 
-		if ($is_auth['auth_download'])
+		if ($is_auth['auth_view'] && $is_auth['auth_read'] && $is_auth['auth_download'])
 		{
 			$authorised = TRUE;
 		}

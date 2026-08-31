@@ -176,9 +176,10 @@ class pafiledb_download extends pafiledb_public
 				);
 			}
 
-			include_once($phpbb_root_path . 'includes/page_header.'.$phpEx);
-			$this->display($lang['Download'], 'pa_mirrors_body.tpl');
-			include_once($phpbb_root_path . 'includes/page_tail.'.$phpEx);
+				include_once($phpbb_root_path . 'includes/page_header.'.$phpEx);
+				$this->display($lang['Download'], 'pa_mirrors_body.tpl');
+				include_once($phpbb_root_path . 'includes/page_tail.'.$phpEx);
+				return;
 		}
 		elseif((!empty($mirrors_data) && $mirror_id == -1) || (empty($mirrors_data)))
 		{
@@ -334,6 +335,8 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 	//
 	header('Content-Type: ' . $mimetype);
 	header('Content-Disposition: attachment; filename="' . $real_filename . '"');
+	header('X-Content-Type-Options: nosniff');
+	header('Cache-Control: private, no-store, max-age=0');
 
 	//
 	// Now send the File Contents to the Browser
