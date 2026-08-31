@@ -46,39 +46,15 @@
 <tr> 
 <td class="row2" colspan="2"><span class="gensmall">{L_PROFILE_INFO_NOTICE}</span></td>
 </tr>
-<tr> 
-<td class="row1">{L_ICQ_NUMBER}</td>
-<td class="row2"> 
-<input type="text" name="icq" size="10" maxlength="15" value="{ICQ}" class="post" />
-</td>
-</tr>
-<tr> 
-<td class="row1">{L_AIM}</td>
-<td class="row2"> 
-<input type="text" name="aim" size="20" maxlength="255" value="{AIM}" class="post" />
-</td>
-</tr>
-<tr> 
-<td class="row1">{L_MESSENGER}</td>
-<td class="row2"> 
-<input type="text" name="msn" size="20" maxlength="255" value="{MSN}" class="post" />
-</td>
-</tr>
-<tr> 
-<td class="row1">{L_YAHOO}</td>
-<td class="row2"> 
-<input type="text" name="yim" size="20" maxlength="255" value="{YIM}" class="post" />
-</td>
-</tr>
-<tr><td class="row1">{L_DISCORD}<br /><span class="gensmall">{L_USER_ID_EXPLAIN}</span></td><td class="row2"><input type="text" name="dc" size="20" maxlength="255" value="{DC}" class="post" /></td></tr>
-<tr><td class="row1">{L_FACEBOOK}</td><td class="row2"><input type="text" name="fb" size="20" maxlength="255" value="{FB}" class="post" /></td></tr>
-<tr><td class="row1">{L_INSTAGRAM}</td><td class="row2"><input type="text" name="ig" size="20" maxlength="255" value="{IG}" class="post" /></td></tr>
-<tr><td class="row1">{L_LINKEDIN}</td><td class="row2"><input type="text" name="li" size="20" maxlength="255" value="{LI}" class="post" /></td></tr>
-<tr><td class="row1">{L_PINTEREST}</td><td class="row2"><input type="text" name="pt" size="20" maxlength="255" value="{PT}" class="post" /></td></tr>
-<tr><td class="row1">{L_SKYPE}</td><td class="row2"><input type="text" name="skp" size="20" maxlength="255" value="{SKP}" class="post" /></td></tr>
-<tr><td class="row1">{L_TELEGRAM}</td><td class="row2"><input type="text" name="tg" size="20" maxlength="255" value="{TG}" class="post" /></td></tr>
-<tr><td class="row1">{L_TIKTOK}</td><td class="row2"><input type="text" name="tt" size="20" maxlength="255" value="{TT}" class="post" /></td></tr>
-<tr><td class="row1">{L_TWITTER}</td><td class="row2"><input type="text" name="twr" size="20" maxlength="255" value="{TWR}" class="post" /></td></tr>
+<tr><td class="row1">{L_SIGNAL}<br /><span class="gensmall">{L_SIGNAL_EXPLAIN}</span></td><td class="row2"><input type="text" name="signal" size="35" maxlength="255" value="{SIGNAL}" class="post" /></td></tr>
+<tr><td class="row1">{L_THREEMA}<br /><span class="gensmall">{L_THREEMA_EXPLAIN}</span></td><td class="row2"><input type="text" name="threema" size="35" maxlength="255" value="{THREEMA}" class="post" /></td></tr>
+<tr><td class="row1">{L_TELEGRAM}<br /><span class="gensmall">{L_TELEGRAM_EXPLAIN}</span></td><td class="row2"><input type="text" name="tg" size="35" maxlength="255" value="{TG}" class="post" /></td></tr>
+<tr><td class="row1">{L_DISCORD}<br /><span class="gensmall">{L_DISCORD_EXPLAIN}</span></td><td class="row2"><input type="text" name="dc" size="35" maxlength="255" value="{DC}" class="post" /></td></tr>
+<tr><td class="row1">{L_FACEBOOK}<br /><span class="gensmall">{L_FACEBOOK_EXPLAIN}</span></td><td class="row2"><input type="text" name="fb" size="35" maxlength="255" value="{FB}" class="post" /></td></tr>
+<tr><td class="row1">{L_INSTAGRAM}<br /><span class="gensmall">{L_INSTAGRAM_EXPLAIN}</span></td><td class="row2"><input type="text" name="ig" size="35" maxlength="255" value="{IG}" class="post" /></td></tr>
+<tr><td class="row1">{L_LINKEDIN}<br /><span class="gensmall">{L_LINKEDIN_EXPLAIN}</span></td><td class="row2"><input type="text" name="li" size="35" maxlength="255" value="{LI}" class="post" /></td></tr>
+<tr><td class="row1">{L_TIKTOK}<br /><span class="gensmall">{L_TIKTOK_EXPLAIN}</span></td><td class="row2"><input type="text" name="tt" size="35" maxlength="255" value="{TT}" class="post" /></td></tr>
+<tr><td class="row1">{L_TWITTER}<br /><span class="gensmall">{L_TWITTER_EXPLAIN}</span></td><td class="row2"><input type="text" name="twr" size="35" maxlength="255" value="{TWR}" class="post" /></td></tr>
 <tr>
 <td class="row1">{L_WEBSITE}</td>
 <td class="row2"> 

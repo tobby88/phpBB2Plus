@@ -112,7 +112,17 @@ $lang['TG'] = 'Telegram';
 $lang['LI'] = 'LinkedIn';
 $lang['TT'] = 'TikTok';
 $lang['DC'] = 'Discord';
-$lang['Social_user_id_explain'] = 'Enter the account name or user ID, not a complete URL.';
+$lang['SIGNAL'] = 'Signal';
+$lang['THREEMA'] = 'Threema';
+$lang['Social_facebook_explain'] = 'Profile name or complete profile URL.';
+$lang['Social_instagram_explain'] = 'Username or complete profile URL.';
+$lang['Social_linkedin_explain'] = 'Public profile name (after /in/) or complete profile URL.';
+$lang['Social_twitter_explain'] = 'Username or complete X/Twitter profile URL.';
+$lang['Social_telegram_explain'] = 'Username or complete t.me link.';
+$lang['Social_tiktok_explain'] = 'Username or complete profile URL.';
+$lang['Social_discord_explain'] = 'Discord username or numeric user ID; only the ID produces a clickable profile link.';
+$lang['Social_signal_explain'] = 'Enter the exact Signal username including its digits or the share link copied from Signal; only the share link is clickable.';
+$lang['Social_threema_explain'] = 'Eight-character Threema ID or complete threema.id link.';
 
 $lang['Forum_Index'] = '%s Forum Index';  // eg. sitename Forum Index, %s can be removed if you prefer
 

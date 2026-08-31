@@ -2216,27 +2216,110 @@ function ajax_htmlspecialchars($text)
 }
 
 /**
- * Build links for the modern social-profile fields imported from IntegraMOD.
- *
- * The old AIM/YIM/MSN fields remain available for backwards compatibility.
- * Values in the new fields are account names/IDs, not complete URLs.
+ * Accept a complete profile/share URL only when it belongs to the service in
+ * question. This keeps user-supplied profile data from becoming a javascript:
+ * link or an apparently trusted link to an unrelated host.
+ */
+function phpbb_social_profile_allowed_url($value, $allowed_hosts)
+{
+	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
+	if (!preg_match('~^https?://~i', $value) && preg_match('~^(?:www\.)?[a-z0-9.-]+/~i', $value))
+	{
+		$value = 'https://' . $value;
+	}
+	if (!preg_match('~^https?://~i', $value))
+	{
+		return '';
+	}
+
+	$parts = @parse_url($value);
+	if (!is_array($parts) || empty($parts['host']) || !empty($parts['user']) || !empty($parts['pass']))
+	{
+		return '';
+	}
+	$host = strtolower(rtrim($parts['host'], '.'));
+	foreach ($allowed_hosts as $allowed_host)
+	{
+		$allowed_host = strtolower($allowed_host);
+		if ($host === $allowed_host || substr($host, -strlen('.' . $allowed_host)) === '.' . $allowed_host)
+		{
+			return preg_replace('~^http://~i', 'https://', $value);
+		}
+	}
+
+	return '';
+}
+
+/**
+ * Build a safe contact URL from a service-specific account name, ID or share
+ * URL. Signal usernames intentionally have no derivable public URL; Signal's
+ * opaque share link must be copied from the app if a clickable link is wanted.
+ */
+function phpbb_social_profile_url($service, $value, $allowed_hosts)
+{
+	$complete_url = phpbb_social_profile_allowed_url($value, $allowed_hosts);
+	if ($complete_url !== '')
+	{
+		return $complete_url;
+	}
+
+	$value = trim(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8'));
+	$value = ltrim($value, '@');
+	if ($value === '')
+	{
+		return '';
+	}
+
+	switch ($service)
+	{
+		case 'FB':
+			return 'https://www.facebook.com/' . rawurlencode($value);
+		case 'IG':
+			return 'https://www.instagram.com/' . rawurlencode($value);
+		case 'TWR':
+			return 'https://x.com/' . rawurlencode($value);
+		case 'TG':
+			return 'https://t.me/' . rawurlencode($value);
+		case 'LI':
+			$value = preg_replace('~^in/~i', '', $value);
+			return 'https://www.linkedin.com/in/' . rawurlencode($value);
+		case 'TT':
+			return 'https://www.tiktok.com/@' . rawurlencode($value);
+		case 'DC':
+			return preg_match('/^[0-9]{5,30}$/', $value) ? 'https://discord.com/users/' . $value : '';
+		case 'THREEMA':
+			$value = strtoupper($value);
+			return preg_match('/^[A-Z0-9]{8}$/', $value) ? 'https://threema.id/' . $value : '';
+		case 'SIGNAL':
+		default:
+			return '';
+	}
+}
+
+/**
+ * Build the current contact/profile links. Retired messenger columns remain in
+ * the database so historic user data is not destroyed, but are deliberately
+ * no longer rendered here.
  */
 function phpbb_social_profile_links($row)
 {
-	global $images, $lang;
+	global $lang;
 
 	$definitions = array(
-		'FB'  => array('user_fb',  'https://www.facebook.com/',       ''),
-		'IG'  => array('user_ig',  'https://www.instagram.com/',      ''),
-		'PT'  => array('user_pt',  'https://www.pinterest.com/',      ''),
-		'TWR' => array('user_twr', 'https://twitter.com/',            ''),
-		'SKP' => array('user_skp', 'skype:',                          '?call'),
-		'TG'  => array('user_tg',  'https://t.me/',                   ''),
-		'LI'  => array('user_li',  'https://www.linkedin.com/in/',    ''),
-		'TT'  => array('user_tt',  'https://www.tiktok.com/@',        ''),
-		'DC'  => array('user_dc',  'https://discord.com/users/',      '')
+		'FB'      => array('user_fb',      array('facebook.com')),
+		'IG'      => array('user_ig',      array('instagram.com')),
+		'TWR'     => array('user_twr',     array('x.com', 'twitter.com')),
+		'TG'      => array('user_tg',      array('t.me', 'telegram.me')),
+		'LI'      => array('user_li',      array('linkedin.com')),
+		'TT'      => array('user_tt',      array('tiktok.com')),
+		'DC'      => array('user_dc',      array('discord.com', 'discordapp.com')),
+		'SIGNAL'  => array('user_signal',  array('signal.me', 'signal.link')),
+		'THREEMA' => array('user_threema', array('threema.id'))
 	);
-	$links = array();
+	$links = array(
+		'PT' => '', 'PT_IMG' => '', 'SKP' => '', 'SKP_IMG' => '', 'PROFILE_ROWS' => ''
+	);
+	$rows = array();
 
 	foreach ($definitions as $name => $definition)
 	{
@@ -2251,19 +2334,28 @@ function phpbb_social_profile_links($row)
 			continue;
 		}
 
-		$value = ltrim($value, '@');
-		$url = $definition[1] . rawurlencode($value) . $definition[2];
-		$url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+		$plain_value = html_entity_decode($value, ENT_QUOTES, 'UTF-8');
+		$escaped_value = htmlspecialchars($plain_value, ENT_QUOTES, 'UTF-8');
 		$escaped_label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
-		$links[$name] = '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $escaped_label . '</a>';
-
-		$image_key = 'icon_' . strtolower($name);
-		if (!empty($images[$image_key]))
+		$provided_url = phpbb_social_profile_allowed_url($plain_value, $definition[1]);
+		$url = phpbb_social_profile_url($name, $plain_value, $definition[1]);
+		if ($url !== '')
 		{
-			$links[$name . '_IMG'] = '<a href="' . $url . '" target="_blank" rel="noopener noreferrer" title="' . $escaped_label . '"><img src="' . $images[$image_key] . '" alt="' . $escaped_label . '" border="0" /></a>';
+			$escaped_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+			$links[$name] = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer">' . $escaped_label . '</a>';
+			$links[$name . '_IMG'] = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer" title="' . $escaped_label . '"><span class="gensmall">' . $escaped_label . '</span></a>&nbsp;';
+			$display_text = ($provided_url !== '') ? $escaped_label : $escaped_value;
+			$display = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer">' . $display_text . '</a>';
 		}
+		else
+		{
+			$links[$name] = $escaped_value;
+			$display = $escaped_value;
+		}
+		$rows[] = '<tr><td align="right" nowrap="nowrap" class="explaintitle">' . $escaped_label . ':</td><td class="genmed">' . $display . '</td></tr>';
 	}
 
+	$links['PROFILE_ROWS'] = implode("\n", $rows);
 	return $links;
 }
 

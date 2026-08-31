@@ -594,6 +594,8 @@ CREATE TABLE phpbb_users (
    user_li varchar(255),
    user_tt varchar(255),
    user_dc varchar(255),
+   user_signal varchar(255),
+   user_threema varchar(255),
    user_occ varchar(100),
    user_interests varchar(255),
    user_actkey varchar(32),

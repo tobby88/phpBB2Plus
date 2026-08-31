@@ -113,42 +113,15 @@
 <tr>
 <td height="22" colspan="2" class="row2"><span class="gensmall">{L_PROFILE_INFO_NOTICE}</span></td>
 </tr>
-<tr>
-<td class="row1" width="38%"><span class="explaintitle">{L_ICQ_NUMBER}:</span></td>
-<td class="row2" width="62%">
-<input type="text" name="icq" class="post" style="width: 100px"  size="10" maxlength="15" value="{ICQ}" />
-</td>
-</tr>
-<tr>
-<td class="row1"><span class="explaintitle">{L_AIM}:</span></td>
-<td class="row2">
-<input type="text" class="post" style="width: 150px"  name="aim" size="20" maxlength="255" value="{AIM}" />
-</td>
-</tr>
-<tr>
-<td class="row1"><span class="explaintitle">{L_MESSENGER}:</span></td>
-<td class="row2">
-<input type="text" class="post" style="width: 150px"  name="msn" size="20" maxlength="255" value="{MSN}" />
-</td>
-</tr>
-<tr>
-<td class="row1"><span class="explaintitle">{L_YAHOO}:</span></td>
-<td class="row2">
-<input type="text" class="post" style="width: 150px"  name="yim" size="20" maxlength="255" value="{YIM}" />
-</td>
-</tr>
-<tr>
-<td class="row1"><span class="explaintitle">{L_DISCORD}:</span><br /><span class="gensmall">{L_USER_ID_EXPLAIN}</span></td>
-<td class="row2"><input type="text" class="post" style="width: 150px" name="dc" size="20" maxlength="255" value="{DC}" /></td>
-</tr>
-<tr><td class="row1"><span class="explaintitle">{L_FACEBOOK}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="fb" size="20" maxlength="255" value="{FB}" /></td></tr>
-<tr><td class="row1"><span class="explaintitle">{L_INSTAGRAM}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="ig" size="20" maxlength="255" value="{IG}" /></td></tr>
-<tr><td class="row1"><span class="explaintitle">{L_LINKEDIN}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="li" size="20" maxlength="255" value="{LI}" /></td></tr>
-<tr><td class="row1"><span class="explaintitle">{L_PINTEREST}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="pt" size="20" maxlength="255" value="{PT}" /></td></tr>
-<tr><td class="row1"><span class="explaintitle">{L_SKYPE}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="skp" size="20" maxlength="255" value="{SKP}" /></td></tr>
-<tr><td class="row1"><span class="explaintitle">{L_TELEGRAM}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="tg" size="20" maxlength="255" value="{TG}" /></td></tr>
-<tr><td class="row1"><span class="explaintitle">{L_TIKTOK}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="tt" size="20" maxlength="255" value="{TT}" /></td></tr>
-<tr><td class="row1"><span class="explaintitle">{L_TWITTER}:</span></td><td class="row2"><input type="text" class="post" style="width: 150px" name="twr" size="20" maxlength="255" value="{TWR}" /></td></tr>
+<tr><td class="row1" width="38%"><span class="explaintitle">{L_SIGNAL}:</span><br /><span class="gensmall">{L_SIGNAL_EXPLAIN}</span></td><td class="row2" width="62%"><input type="text" class="post" style="width: 260px" name="signal" size="35" maxlength="255" value="{SIGNAL}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_THREEMA}:</span><br /><span class="gensmall">{L_THREEMA_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="threema" size="35" maxlength="255" value="{THREEMA}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_TELEGRAM}:</span><br /><span class="gensmall">{L_TELEGRAM_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="tg" size="35" maxlength="255" value="{TG}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_DISCORD}:</span><br /><span class="gensmall">{L_DISCORD_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="dc" size="35" maxlength="255" value="{DC}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_FACEBOOK}:</span><br /><span class="gensmall">{L_FACEBOOK_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="fb" size="35" maxlength="255" value="{FB}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_INSTAGRAM}:</span><br /><span class="gensmall">{L_INSTAGRAM_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="ig" size="35" maxlength="255" value="{IG}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_LINKEDIN}:</span><br /><span class="gensmall">{L_LINKEDIN_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="li" size="35" maxlength="255" value="{LI}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_TIKTOK}:</span><br /><span class="gensmall">{L_TIKTOK_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="tt" size="35" maxlength="255" value="{TT}" /></td></tr>
+<tr><td class="row1"><span class="explaintitle">{L_TWITTER}:</span><br /><span class="gensmall">{L_TWITTER_EXPLAIN}</span></td><td class="row2"><input type="text" class="post" style="width: 260px" name="twr" size="35" maxlength="255" value="{TWR}" /></td></tr>
 <tr>
 <td class="row1"><span class="explaintitle">{L_WEBSITE}:</span></td>
 <td class="row2">

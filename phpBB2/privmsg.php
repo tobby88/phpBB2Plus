@@ -254,7 +254,7 @@ else if ( $mode == 'read' )
 	//
 	// Major query obtains the message ...
 	//
-	$sql = "SELECT u.username AS username_1, u.user_id AS user_id_1, u.user_absence, u.user_absence_mode, u2.username AS username_2, u2.user_id AS user_id_2, u.user_sig_bbcode_uid, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, u.user_viewemail, u.user_rank, u.user_sig, u.user_avatar, pm.*, pmt.privmsgs_bbcode_uid, pmt.privmsgs_text
+	$sql = "SELECT u.username AS username_1, u.user_id AS user_id_1, u.user_absence, u.user_absence_mode, u2.username AS username_2, u2.user_id AS user_id_2, u.user_sig_bbcode_uid, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, u.user_signal, u.user_threema, u.user_viewemail, u.user_rank, u.user_sig, u.user_avatar, pm.*, pmt.privmsgs_bbcode_uid, pmt.privmsgs_text
 		FROM " . PRIVMSGS_TABLE . " pm, " . PRIVMSGS_TEXT_TABLE . " pmt, " . USERS_TABLE . " u, " . USERS_TABLE . " u2 
 		WHERE pm.privmsgs_id = $privmsgs_id
 			AND pmt.privmsgs_text_id = pm.privmsgs_id 
@@ -699,7 +699,11 @@ else if ( $mode == 'read' )
 		'TT_IMG' => $social['TT_IMG'],
 		'TT' => $social['TT'],
 		'DC_IMG' => $social['DC_IMG'],
-		'DC' => $social['DC'])
+		'DC' => $social['DC'],
+		'SIGNAL_IMG' => $social['SIGNAL_IMG'],
+		'SIGNAL' => $social['SIGNAL'],
+		'THREEMA_IMG' => $social['THREEMA_IMG'],
+		'THREEMA' => $social['THREEMA'])
 	);
 
 	$template->pparse('body');

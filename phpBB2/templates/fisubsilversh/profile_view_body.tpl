@@ -139,31 +139,7 @@
 <td align="right" nowrap="nowrap" class="explaintitle">&nbsp;{L_PM}</td>
 <td>{PM_IMG}</td>
 </tr>
-<tr>
-<td align="right" nowrap="nowrap" class="explaintitle">{L_MESSENGER}:</td>
-<td>{MSN}</td>
-</tr>
-<tr>
-<td align="right" nowrap="nowrap" class="explaintitle">{L_YAHOO}:</td>
-<td>{YIM_IMG}</td>
-</tr>
-<tr>
-<td align="right" nowrap="nowrap" class="explaintitle">{L_AIM}:</td>
-<td>{AIM_IMG}</td>
-</tr>
-<tr>
-<td align="right" nowrap="nowrap" class="explaintitle">{L_ICQ_NUMBER}:</td>
-<td>{ICQ_IMG}</td>
-</tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_FACEBOOK}:</td><td>{FB_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_INSTAGRAM}:</td><td>{IG_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_PINTEREST}:</td><td>{PT_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_TWITTER}:</td><td>{TWR_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_SKYPE}:</td><td>{SKP_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_TELEGRAM}:</td><td>{TG_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_LINKEDIN}:</td><td>{LI_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_TIKTOK}:</td><td>{TT_IMG}</td></tr>
-<tr><td align="right" nowrap="nowrap" class="explaintitle">{L_DISCORD}:</td><td>{DC_IMG}</td></tr>
+{SOCIAL_CONTACT_ROWS}
 <!-- Custom Profile Fields MOD start + -->
 <!-- BEGIN custom_contact -->
 <tr>

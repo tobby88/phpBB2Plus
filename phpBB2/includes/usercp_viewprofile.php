@@ -349,6 +349,11 @@ $template->assign_vars(array(
 	'TT' => $social['TT'],
 	'DC_IMG' => $social['DC_IMG'],
 	'DC' => $social['DC'],
+	'SIGNAL_IMG' => $social['SIGNAL_IMG'],
+	'SIGNAL' => $social['SIGNAL'],
+	'THREEMA_IMG' => $social['THREEMA_IMG'],
+	'THREEMA' => $social['THREEMA'],
+	'SOCIAL_CONTACT_ROWS' => $social['PROFILE_ROWS'],
 
 	// FLAGHACK-start
 	'LOCATION' => $location,

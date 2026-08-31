@@ -520,7 +520,7 @@ $profile_data_sql = get_udata_txt($profile_data, 'u.');
 //
 // Go ahead and pull all data for this topic
 //
-$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_posts, u.user_from, u.user_from_flag, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, u.ct_miserable_user, u.user_warnings, u.user_level, u.user_allow_viewonline, u.user_session_time, u.user_birthday, u.user_next_birthday_greeting, u.user_gender".$profile_data_sql.", p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
+$sql = "SELECT u.username, u.user_absence, u.user_absence_mode, u.user_id, u.user_posts, u.user_from, u.user_from_flag, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, u.user_signal, u.user_threema, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, u.ct_miserable_user, u.user_warnings, u.user_level, u.user_allow_viewonline, u.user_session_time, u.user_birthday, u.user_next_birthday_greeting, u.user_gender".$profile_data_sql.", p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
 	FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt
 	WHERE p.topic_id = $topic_id
 		$limit_posts_time
@@ -1676,6 +1676,10 @@ for($i = 0; $i < $total_posts; $i++)
 		'TT' => $social['TT'],
 		'DC_IMG' => $social['DC_IMG'],
 		'DC' => $social['DC'],
+		'SIGNAL_IMG' => $social['SIGNAL_IMG'],
+		'SIGNAL' => $social['SIGNAL'],
+		'THREEMA_IMG' => $social['THREEMA_IMG'],
+		'THREEMA' => $social['THREEMA'],
 		'EDIT_IMG' => $edit_img,
 		'EDIT' => $edit,
 		'QUOTE_IMG' => $quote_img,

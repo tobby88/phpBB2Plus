@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Modernized public contact profiles. Retired ICQ, AIM, MSN, Yahoo Messenger
+  and Skype links plus the non-contact Pinterest field are no longer offered
+  or rendered, while their historic database values remain preserved. Signal
+  usernames/share links and Threema IDs now have first-class schema and update
+  support; every retained service has format-specific guidance and accepts
+  only links to its own trusted hosts. Missing IntegraMOD icon files were
+  replaced with accessible text links, and empty services no longer leave
+  blank rows in profile views.
 - Reorganized the AdminCP navigation into a stable task-oriented order with
   core board administration first and integrated feature areas afterwards.
   The historically separate eXtreme Styles, attachment-extension, custom

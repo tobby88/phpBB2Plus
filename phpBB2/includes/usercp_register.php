@@ -216,7 +216,7 @@ if (
 		$current_email = (isset($_POST['current_email']) && is_scalar($_POST['current_email'])) ? trim(htmlspecialchars((string) $_POST['current_email'])) : '';
 	}
 
-	$strip_var_list = array('email' => 'email', 'icq' => 'icq', 'aim' => 'aim', 'msn' => 'msn', 'yim' => 'yim', 'fb' => 'fb', 'ig' => 'ig', 'pt' => 'pt', 'twr' => 'twr', 'skp' => 'skp', 'tg' => 'tg', 'li' => 'li', 'tt' => 'tt', 'dc' => 'dc', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests', 'confirm_code' => 'confirm_code');
+	$strip_var_list = array('email' => 'email', 'fb' => 'fb', 'ig' => 'ig', 'twr' => 'twr', 'tg' => 'tg', 'li' => 'li', 'tt' => 'tt', 'dc' => 'dc', 'signal' => 'signal', 'threema' => 'threema', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests', 'confirm_code' => 'confirm_code');
 
 	// Strip all tags from data ... may p**s some people off, bah, strip_tags is
 	// doing the job but can still break HTML output ... have no choice, have
@@ -225,12 +225,27 @@ if (
 	{
 		$$var = (!empty($_POST[$param]) && is_scalar($_POST[$param])) ? trim(htmlspecialchars((string) $_POST[$param])) : '';
 	}
-	foreach (array('fb', 'ig', 'pt', 'twr', 'skp', 'tg', 'li', 'tt', 'dc') as $social_field)
+	foreach (array('fb', 'ig', 'twr', 'tg', 'li', 'tt', 'dc', 'signal', 'threema') as $social_field)
 	{
 		if (!isset($$social_field))
 		{
 			$$social_field = '';
 		}
+	}
+	// Retain retired messenger data when a profile is edited. The fields are no
+	// longer shown, but silently blanking historic values would be data loss.
+	if ($mode == 'editprofile')
+	{
+		$icq = isset($userdata['user_icq']) ? $userdata['user_icq'] : '';
+		$aim = isset($userdata['user_aim']) ? str_replace('+', ' ', $userdata['user_aim']) : '';
+		$msn = isset($userdata['user_msnm']) ? $userdata['user_msnm'] : '';
+		$yim = isset($userdata['user_yim']) ? $userdata['user_yim'] : '';
+		$pt = isset($userdata['user_pt']) ? $userdata['user_pt'] : '';
+		$skp = isset($userdata['user_skp']) ? $userdata['user_skp'] : '';
+	}
+	else
+	{
+		$icq = $aim = $msn = $yim = $pt = $skp = '';
 	}
 
 	$username = ( !empty($HTTP_POST_VARS['username']) && is_scalar($HTTP_POST_VARS['username']) ) ? phpbb_clean_username((string) $HTTP_POST_VARS['username']) : '';
@@ -378,6 +393,8 @@ if (
 		$twr = stripslashes($twr);
 		$skp = stripslashes($skp);
 		$tg = stripslashes($tg);
+		$signal = stripslashes($signal);
+		$threema = stripslashes($threema);
 		$li = stripslashes($li);
 		$tt = stripslashes($tt);
 		$dc = stripslashes($dc);
@@ -786,7 +803,7 @@ if ( isset($_POST['submit']) )
 			}
 
 			$sql = "UPDATE " . USERS_TABLE . "
-				SET " . $username_sql . $passwd_sql . "user_email = '" . usercp_sql_value($email) ."', user_icq = '" . usercp_sql_value($icq) . "', user_website = '" . usercp_sql_value($website) . "', user_occ = '" . usercp_sql_value($occupation) . "', user_from = '" . usercp_sql_value($location) . "', user_from_flag = '" . usercp_sql_value($user_flag) . "', user_interests = '" . usercp_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . usercp_sql_value($user_absence_text) . "', user_birthday = '$birthday', user_next_birthday_greeting = '$next_birthday_greeting', user_viewemail = $viewemail, user_aim = '" . usercp_sql_value(str_replace(' ', '+', $aim)) . "', user_yim = '" . usercp_sql_value($yim) . "', user_msnm = '" . usercp_sql_value($msn) . "', user_fb = '" . usercp_sql_value($fb) . "', user_ig = '" . usercp_sql_value($ig) . "', user_pt = '" . usercp_sql_value($pt) . "', user_twr = '" . usercp_sql_value($twr) . "', user_skp = '" . usercp_sql_value($skp) . "', user_tg = '" . usercp_sql_value($tg) . "', user_li = '" . usercp_sql_value($li) . "', user_tt = '" . usercp_sql_value($tt) . "', user_dc = '" . usercp_sql_value($dc) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popup_pm, user_timezone = $user_timezone, user_dateformat = '" . usercp_sql_value($user_dateformat) . "', user_lang = '" . usercp_sql_value($user_lang) . "', user_style = $user_style, user_active = $user_active, user_actkey = '" . usercp_sql_value($user_actkey) . "'" . $avatar_sql . ", user_gender = '" . usercp_sql_value($gender) . "'
+				SET " . $username_sql . $passwd_sql . "user_email = '" . usercp_sql_value($email) ."', user_icq = '" . usercp_sql_value($icq) . "', user_website = '" . usercp_sql_value($website) . "', user_occ = '" . usercp_sql_value($occupation) . "', user_from = '" . usercp_sql_value($location) . "', user_from_flag = '" . usercp_sql_value($user_flag) . "', user_interests = '" . usercp_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . usercp_sql_value($user_absence_text) . "', user_birthday = '$birthday', user_next_birthday_greeting = '$next_birthday_greeting', user_viewemail = $viewemail, user_aim = '" . usercp_sql_value(str_replace(' ', '+', $aim)) . "', user_yim = '" . usercp_sql_value($yim) . "', user_msnm = '" . usercp_sql_value($msn) . "', user_fb = '" . usercp_sql_value($fb) . "', user_ig = '" . usercp_sql_value($ig) . "', user_pt = '" . usercp_sql_value($pt) . "', user_twr = '" . usercp_sql_value($twr) . "', user_skp = '" . usercp_sql_value($skp) . "', user_tg = '" . usercp_sql_value($tg) . "', user_li = '" . usercp_sql_value($li) . "', user_tt = '" . usercp_sql_value($tt) . "', user_dc = '" . usercp_sql_value($dc) . "', user_signal = '" . usercp_sql_value($signal) . "', user_threema = '" . usercp_sql_value($threema) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popup_pm, user_timezone = $user_timezone, user_dateformat = '" . usercp_sql_value($user_dateformat) . "', user_lang = '" . usercp_sql_value($user_lang) . "', user_style = $user_style, user_active = $user_active, user_actkey = '" . usercp_sql_value($user_actkey) . "'" . $avatar_sql . ", user_gender = '" . usercp_sql_value($gender) . "'
 				WHERE user_id = $user_id";
 			if ( !($result = $db->sql_query($sql)) )
 			{
@@ -913,8 +930,8 @@ if ( isset($_POST['submit']) )
 			//
 			// Get current date
 			//
-			$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_from_flag, user_interests, user_absence_mode, user_absence, user_absence_text, user_sig, user_sig_bbcode_uid, user_avatar, user_avatar_type, user_viewemail, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_attachsig, user_setbm, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_viewonline, user_notify, user_notify_pm, games_block_pm, user_popup_pm, user_timezone, user_dateformat, user_lang, user_style, user_gender, user_level, user_allow_pm, user_birthday, user_next_birthday_greeting, user_passwd_change, user_active, user_actkey)
-				VALUES ($user_id, '" . usercp_sql_value($username) . "', " . time() . ", '" . usercp_sql_value($new_password) . "', '" . usercp_sql_value($email) . "', '" . usercp_sql_value($icq) . "', '" . usercp_sql_value($website) . "', '" . usercp_sql_value($occupation) . "', '" . usercp_sql_value($location) . "', '" . usercp_sql_value($user_flag) . "', '" . usercp_sql_value($interests) . "', $user_absence_mode, $user_absence, '" . usercp_sql_value($user_absence_text) . "', '" . usercp_sql_value($signature) . "', '" . usercp_sql_value($signature_bbcode_uid) . "', $avatar_sql, $viewemail, '" . usercp_sql_value(str_replace(' ', '+', $aim)) . "', '" . usercp_sql_value($yim) . "', '" . usercp_sql_value($msn) . "', '" . usercp_sql_value($fb) . "', '" . usercp_sql_value($ig) . "', '" . usercp_sql_value($pt) . "', '" . usercp_sql_value($twr) . "', '" . usercp_sql_value($skp) . "', '" . usercp_sql_value($tg) . "', '" . usercp_sql_value($li) . "', '" . usercp_sql_value($tt) . "', '" . usercp_sql_value($dc) . "', $attachsig, $setbm, $allowsmilies, $allowhtml, $allowbbcode, $allowviewonline, $notifyreply, $notifypm, $games_block_pm, $popup_pm, $user_timezone, '" . usercp_sql_value($user_dateformat) . "', '" . usercp_sql_value($user_lang) . "', $user_style, '" . usercp_sql_value($gender) . "', 0, 1, '$birthday', '$next_birthday_greeting', ".time().",";
+			$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_from_flag, user_interests, user_absence_mode, user_absence, user_absence_text, user_sig, user_sig_bbcode_uid, user_avatar, user_avatar_type, user_viewemail, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_signal, user_threema, user_attachsig, user_setbm, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_viewonline, user_notify, user_notify_pm, games_block_pm, user_popup_pm, user_timezone, user_dateformat, user_lang, user_style, user_gender, user_level, user_allow_pm, user_birthday, user_next_birthday_greeting, user_passwd_change, user_active, user_actkey)
+				VALUES ($user_id, '" . usercp_sql_value($username) . "', " . time() . ", '" . usercp_sql_value($new_password) . "', '" . usercp_sql_value($email) . "', '" . usercp_sql_value($icq) . "', '" . usercp_sql_value($website) . "', '" . usercp_sql_value($occupation) . "', '" . usercp_sql_value($location) . "', '" . usercp_sql_value($user_flag) . "', '" . usercp_sql_value($interests) . "', $user_absence_mode, $user_absence, '" . usercp_sql_value($user_absence_text) . "', '" . usercp_sql_value($signature) . "', '" . usercp_sql_value($signature_bbcode_uid) . "', $avatar_sql, $viewemail, '" . usercp_sql_value(str_replace(' ', '+', $aim)) . "', '" . usercp_sql_value($yim) . "', '" . usercp_sql_value($msn) . "', '" . usercp_sql_value($fb) . "', '" . usercp_sql_value($ig) . "', '" . usercp_sql_value($pt) . "', '" . usercp_sql_value($twr) . "', '" . usercp_sql_value($skp) . "', '" . usercp_sql_value($tg) . "', '" . usercp_sql_value($li) . "', '" . usercp_sql_value($tt) . "', '" . usercp_sql_value($dc) . "', '" . usercp_sql_value($signal) . "', '" . usercp_sql_value($threema) . "', $attachsig, $setbm, $allowsmilies, $allowhtml, $allowbbcode, $allowviewonline, $notifyreply, $notifypm, $games_block_pm, $popup_pm, $user_timezone, '" . usercp_sql_value($user_dateformat) . "', '" . usercp_sql_value($user_lang) . "', $user_style, '" . usercp_sql_value($gender) . "', 0, 1, '$birthday', '$next_birthday_greeting', ".time().",";
 			if ( $board_config['require_activation'] == USER_ACTIVATION_SELF || $board_config['require_activation'] == USER_ACTIVATION_ADMIN || $coppa )
 			{
 				$user_actkey = gen_rand_string(true);
@@ -1157,6 +1174,8 @@ else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_
 	$li = isset($userdata['user_li']) ? $userdata['user_li'] : '';
 	$tt = isset($userdata['user_tt']) ? $userdata['user_tt'] : '';
 	$dc = isset($userdata['user_dc']) ? $userdata['user_dc'] : '';
+	$signal = isset($userdata['user_signal']) ? $userdata['user_signal'] : '';
+	$threema = isset($userdata['user_threema']) ? $userdata['user_threema'] : '';
 
 	$website = $userdata['user_website'];
 	$location = $userdata['user_from'];
@@ -1726,6 +1745,8 @@ else
 		'LI' => phpbb_profile_display_text($li),
 		'TT' => phpbb_profile_display_text($tt),
 		'DC' => phpbb_profile_display_text($dc),
+		'SIGNAL' => phpbb_profile_display_text($signal),
+		'THREEMA' => phpbb_profile_display_text($threema),
 		'OCCUPATION' => phpbb_profile_display_text($occupation),
 		'INTERESTS' => phpbb_profile_display_text($interests),
 		'L_USER_ABSENCE' => $lang['User_absence'],
@@ -1809,7 +1830,17 @@ else
 		'L_LINKEDIN' => $lang['LI'],
 		'L_TIKTOK' => $lang['TT'],
 		'L_DISCORD' => $lang['DC'],
-		'L_USER_ID_EXPLAIN' => $lang['Social_user_id_explain'],
+		'L_SIGNAL' => $lang['SIGNAL'],
+		'L_THREEMA' => $lang['THREEMA'],
+		'L_FACEBOOK_EXPLAIN' => $lang['Social_facebook_explain'],
+		'L_INSTAGRAM_EXPLAIN' => $lang['Social_instagram_explain'],
+		'L_LINKEDIN_EXPLAIN' => $lang['Social_linkedin_explain'],
+		'L_TWITTER_EXPLAIN' => $lang['Social_twitter_explain'],
+		'L_TELEGRAM_EXPLAIN' => $lang['Social_telegram_explain'],
+		'L_TIKTOK_EXPLAIN' => $lang['Social_tiktok_explain'],
+		'L_DISCORD_EXPLAIN' => $lang['Social_discord_explain'],
+		'L_SIGNAL_EXPLAIN' => $lang['Social_signal_explain'],
+		'L_THREEMA_EXPLAIN' => $lang['Social_threema_explain'],
 		'L_LOCATION' => $lang['Location'],
 		'L_OCCUPATION' => $lang['Occupation'],
 		'L_BOARD_LANGUAGE' => $lang['Board_lang'],

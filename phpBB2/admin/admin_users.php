@@ -379,6 +379,17 @@ if( !empty($_POST['unblock_account']) )
 		$li = trim(strip_tags(admin_user_post_string('li')));
 		$tt = trim(strip_tags(admin_user_post_string('tt')));
 		$dc = trim(strip_tags(admin_user_post_string('dc')));
+		$signal = trim(strip_tags(admin_user_post_string('signal')));
+		$threema = trim(strip_tags(admin_user_post_string('threema')));
+
+		// These retired fields are intentionally absent from the form. Preserve
+		// their historic values instead of erasing them on the next admin edit.
+		$icq = isset($this_userdata['user_icq']) ? $this_userdata['user_icq'] : '';
+		$aim = isset($this_userdata['user_aim']) ? $this_userdata['user_aim'] : '';
+		$msn = isset($this_userdata['user_msnm']) ? $this_userdata['user_msnm'] : '';
+		$yim = isset($this_userdata['user_yim']) ? $this_userdata['user_yim'] : '';
+		$pt = isset($this_userdata['user_pt']) ? $this_userdata['user_pt'] : '';
+		$skp = isset($this_userdata['user_skp']) ? $this_userdata['user_skp'] : '';
 
 		$website = trim(strip_tags(admin_user_post_string('website')));
 		$location = trim(strip_tags(admin_user_post_string('location')));
@@ -488,6 +499,8 @@ if( !empty($_POST['unblock_account']) )
 			$li = htmlspecialchars(stripslashes($li));
 			$tt = htmlspecialchars(stripslashes($tt));
 			$dc = htmlspecialchars(stripslashes($dc));
+			$signal = htmlspecialchars(stripslashes($signal));
+			$threema = htmlspecialchars(stripslashes($threema));
 
 			$website = htmlspecialchars(stripslashes($website));
 			$location = htmlspecialchars(stripslashes($location));
@@ -726,7 +739,7 @@ if( !empty($_POST['unblock_account']) )
    else $no_error_ban=true; 
 }
 			$sql = "UPDATE " . USERS_TABLE . "
-				SET " . $username_sql . $passwd_sql . "user_email = '" . admin_user_sql_value($email) . "', user_icq = '" . admin_user_sql_value($icq) . "', user_website = '" . admin_user_sql_value($website) . "', user_occ = '" . admin_user_sql_value($occupation) . "', user_from = '" . admin_user_sql_value($location) . "', user_from_flag = '" . admin_user_sql_value($user_flag) . "', user_interests = '" . admin_user_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . admin_user_sql_value($user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . admin_user_sql_value($signature) . "', user_viewemail = $viewemail, user_aim = '" . admin_user_sql_value($aim) . "', user_yim = '" . admin_user_sql_value($yim) . "', user_msnm = '" . admin_user_sql_value($msn) . "', user_fb = '" . admin_user_sql_value($fb) . "', user_ig = '" . admin_user_sql_value($ig) . "', user_pt = '" . admin_user_sql_value($pt) . "', user_twr = '" . admin_user_sql_value($twr) . "', user_skp = '" . admin_user_sql_value($skp) . "', user_tg = '" . admin_user_sql_value($tg) . "', user_li = '" . admin_user_sql_value($li) . "', user_tt = '" . admin_user_sql_value($tt) . "', user_dc = '" . admin_user_sql_value($dc) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '" . admin_user_sql_value($signature_bbcode_uid) . "', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . admin_user_sql_value($user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . admin_user_sql_value($user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '" . admin_user_sql_value($gender) . "'" . $avatar_sql . $force_new_passwd_sql . "
+				SET " . $username_sql . $passwd_sql . "user_email = '" . admin_user_sql_value($email) . "', user_icq = '" . admin_user_sql_value($icq) . "', user_website = '" . admin_user_sql_value($website) . "', user_occ = '" . admin_user_sql_value($occupation) . "', user_from = '" . admin_user_sql_value($location) . "', user_from_flag = '" . admin_user_sql_value($user_flag) . "', user_interests = '" . admin_user_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . admin_user_sql_value($user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . admin_user_sql_value($signature) . "', user_viewemail = $viewemail, user_aim = '" . admin_user_sql_value($aim) . "', user_yim = '" . admin_user_sql_value($yim) . "', user_msnm = '" . admin_user_sql_value($msn) . "', user_fb = '" . admin_user_sql_value($fb) . "', user_ig = '" . admin_user_sql_value($ig) . "', user_pt = '" . admin_user_sql_value($pt) . "', user_twr = '" . admin_user_sql_value($twr) . "', user_skp = '" . admin_user_sql_value($skp) . "', user_tg = '" . admin_user_sql_value($tg) . "', user_li = '" . admin_user_sql_value($li) . "', user_tt = '" . admin_user_sql_value($tt) . "', user_dc = '" . admin_user_sql_value($dc) . "', user_signal = '" . admin_user_sql_value($signal) . "', user_threema = '" . admin_user_sql_value($threema) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '" . admin_user_sql_value($signature_bbcode_uid) . "', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . admin_user_sql_value($user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . admin_user_sql_value($user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '" . admin_user_sql_value($gender) . "'" . $avatar_sql . $force_new_passwd_sql . "
 				WHERE user_id = $user_id";
 
 			if( $result = $db->sql_query($sql) )
@@ -867,6 +880,8 @@ if( !empty($_POST['unblock_account']) )
 		$li = htmlspecialchars(isset($this_userdata['user_li']) ? $this_userdata['user_li'] : '');
 		$tt = htmlspecialchars(isset($this_userdata['user_tt']) ? $this_userdata['user_tt'] : '');
 		$dc = htmlspecialchars(isset($this_userdata['user_dc']) ? $this_userdata['user_dc'] : '');
+		$signal = htmlspecialchars(isset($this_userdata['user_signal']) ? $this_userdata['user_signal'] : '');
+		$threema = htmlspecialchars(isset($this_userdata['user_threema']) ? $this_userdata['user_threema'] : '');
 
 		$website = htmlspecialchars($this_userdata['user_website']);
 		$location = htmlspecialchars($this_userdata['user_from']);
@@ -1434,6 +1449,8 @@ if ($this_userdata['user_passwd_change']>0)
 			'LI' => phpbb_profile_display_text($li),
 			'TT' => phpbb_profile_display_text($tt),
 			'DC' => phpbb_profile_display_text($dc),
+			'SIGNAL' => phpbb_profile_display_text($signal),
+			'THREEMA' => phpbb_profile_display_text($threema),
 			'OCCUPATION' => phpbb_profile_display_text($occupation),
 			'INTERESTS' => phpbb_profile_display_text($interests),
 			'L_USER_ABSENCE' => $lang['User_absence'],
@@ -1524,7 +1541,17 @@ if ($this_userdata['user_passwd_change']>0)
 			'L_LINKEDIN' => $lang['LI'],
 			'L_TIKTOK' => $lang['TT'],
 			'L_DISCORD' => $lang['DC'],
-			'L_USER_ID_EXPLAIN' => $lang['Social_user_id_explain'],
+			'L_SIGNAL' => $lang['SIGNAL'],
+			'L_THREEMA' => $lang['THREEMA'],
+			'L_FACEBOOK_EXPLAIN' => $lang['Social_facebook_explain'],
+			'L_INSTAGRAM_EXPLAIN' => $lang['Social_instagram_explain'],
+			'L_LINKEDIN_EXPLAIN' => $lang['Social_linkedin_explain'],
+			'L_TWITTER_EXPLAIN' => $lang['Social_twitter_explain'],
+			'L_TELEGRAM_EXPLAIN' => $lang['Social_telegram_explain'],
+			'L_TIKTOK_EXPLAIN' => $lang['Social_tiktok_explain'],
+			'L_DISCORD_EXPLAIN' => $lang['Social_discord_explain'],
+			'L_SIGNAL_EXPLAIN' => $lang['Social_signal_explain'],
+			'L_THREEMA_EXPLAIN' => $lang['Social_threema_explain'],
 			'L_LOCATION' => $lang['Location'],
 			'L_OCCUPATION' => $lang['Occupation'],
 			'L_BOARD_LANGUAGE' => $lang['Board_lang'],

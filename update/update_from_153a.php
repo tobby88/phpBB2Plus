@@ -88,14 +88,16 @@ if (in_array('--self-test', $argv, true))
 		&& (bool) preg_match('/ct_last_ip\s+varchar\(\s*45\s*\)/i', $schema_source)
 		&& (bool) preg_match('/ct_login_ip`?\s+varchar\(45\)/i', $schema_source);
 	$schema_has_checksum_capacity = (bool) preg_match('/`hash`\s+varchar\(64\)/i', $schema_source);
+	$schema_has_current_contacts = (bool) preg_match('/user_signal\s+varchar\(255\)/i', $schema_source)
+		&& (bool) preg_match('/user_threema\s+varchar\(255\)/i', $schema_source);
 	$schema_has_public_styles = (bool) preg_match('/theme_public\s+tinyint\(1\)/i', $schema_source);
 	$basic_has_named_theme_insert = (bool) preg_match('/INSERT INTO\s+phpbb_themes\s*\([^;]*theme_public[^;]*\)\s*VALUES/i', $basic_source);
 	$theme_seed_count = preg_match_all('/^INSERT INTO\s+phpbb_themes\s*\(/im', $basic_source, $unused_theme_matches);
 	$standard_style_config_count = count(update_read_theme_info($forum_root, 'fisubsilversh'));
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
+	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_current_contacts || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
 	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password, IPv6 and SHA-256 checksum columns ready.\n";
@@ -410,6 +412,8 @@ $user_columns = array(
 	'user_li' => 'VARCHAR(255) DEFAULT NULL',
 	'user_tt' => 'VARCHAR(255) DEFAULT NULL',
 	'user_dc' => 'VARCHAR(255) DEFAULT NULL',
+	'user_signal' => 'VARCHAR(255) DEFAULT NULL',
+	'user_threema' => 'VARCHAR(255) DEFAULT NULL',
 	'user_reg_ip' => 'VARCHAR(45) DEFAULT NULL',
 	'user_reg_host' => 'VARCHAR(255) DEFAULT NULL'
 );

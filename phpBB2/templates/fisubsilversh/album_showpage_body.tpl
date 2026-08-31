@@ -83,7 +83,7 @@
 	<td class="row1" width="150" align="left" valign="middle"><span class="nav"><a href="#top" class="nav">Back to top</a></span></td>
 	<td class="row1" width="100%" height="28" valign="bottom" nowrap="nowrap"><table cellspacing="0" cellpadding="0" border="0" height="18" width="18">
 		<tr> 
-			<td valign="middle" nowrap="nowrap">{commentrow.PROFILE_IMG} {commentrow.PM_IMG} {commentrow.EMAIL_IMG} {commentrow.WWW_IMG} {commentrow.AIM_IMG} {commentrow.YIM_IMG} {commentrow.MSNM_IMG} {commentrow.ICQ_IMG}</td>
+			<td valign="middle" nowrap="nowrap">{commentrow.PROFILE_IMG} {commentrow.PM_IMG} {commentrow.EMAIL_IMG} {commentrow.WWW_IMG}</td>
 		</tr>
 	</table></td>
 </tr>

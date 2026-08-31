@@ -108,7 +108,7 @@ highlight = '{HIGHLIGHT}';
 </tr>
 <tr>
 <td class="{postrow.ROW_CLASS}" align="center">{postrow.ZODIAC_IMG}&nbsp;{postrow.POSTER_GENDER}&nbsp;{postrow.CHINESE_IMG}</td>
-<td valign="bottom" nowrap="nowrap" class="{postrow.ROW_CLASS}">{postrow.POSTER_ONLINE}{postrow.GALLERY_IMG}{postrow.PROFILE_IMG}{postrow.PM_IMG}{postrow.EMAIL_IMG}{postrow.WWW_IMG}{postrow.AIM_IMG}{postrow.YIM_IMG}{postrow.MSN_IMG}{postrow.ICQ_IMG}{postrow.FB_IMG}{postrow.IG_IMG}{postrow.PT_IMG}{postrow.TWR_IMG}{postrow.SKP_IMG}{postrow.TG_IMG}{postrow.LI_IMG}{postrow.TT_IMG}{postrow.DC_IMG}</td>
+<td valign="bottom" nowrap="nowrap" class="{postrow.ROW_CLASS}">{postrow.POSTER_ONLINE}{postrow.GALLERY_IMG}{postrow.PROFILE_IMG}{postrow.PM_IMG}{postrow.EMAIL_IMG}{postrow.WWW_IMG}{postrow.SIGNAL_IMG}{postrow.THREEMA_IMG}{postrow.TG_IMG}{postrow.DC_IMG}{postrow.FB_IMG}{postrow.IG_IMG}{postrow.LI_IMG}{postrow.TT_IMG}{postrow.TWR_IMG}</td>
 </tr>
 <tr>
 <td class="spacerow" colspan="2" height="1"><img src="images/spacer.gif" alt="" width="1" height="1" /></td>

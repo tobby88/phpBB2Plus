@@ -11,12 +11,11 @@
         <th class="thTop">{L_FORUMS}</th>
         <th class="thTop">{L_LOCATION}</th>
         <th class="thTop">{L_CONTACT}</th>
-        <th class="thTop">{L_MESSENGER}</th>
         <th class="thCornerR">{L_WWW}</th>
   </tr>
   <!-- BEGIN user_level -->
   <tr>
-        <td class="row3" colspan="6" align="left"><span class="nav"><b>{switch_list_staff.user_level.USER_LEVEL}</b></span></td>
+        <td class="row3" colspan="5" align="left"><span class="nav"><b>{switch_list_staff.user_level.USER_LEVEL}</b></span></td>
   </tr>
   <!-- BEGIN staff -->
   <tr>
@@ -27,13 +26,12 @@
         <td align="left" class="{switch_list_staff.user_level.staff.ROW_CLASS}" width="30%" valign="top"><span class="gen">{switch_list_staff.user_level.staff.FORUMS}</span></td>
         <td class="{switch_list_staff.user_level.staff.ROW_CLASS}" valign="top" align="center"><span class="genmed">{switch_list_staff.user_level.staff.LOCATION}</span></td>
         <td class="{switch_list_staff.user_level.staff.ROW_CLASS}" width="11%" valign="top" align="center">{switch_list_staff.user_level.staff.EMAIL} {switch_list_staff.user_level.staff.PM}</td>
-        <td class="{switch_list_staff.user_level.staff.ROW_CLASS}" width="11%" valign="top" align="center">{switch_list_staff.user_level.staff.MSN} {switch_list_staff.user_level.staff.YIM} {switch_list_staff.user_level.staff.AIM} {switch_list_staff.user_level.staff.ICQ}</td>
         <td class="{switch_list_staff.user_level.staff.ROW_CLASS}" width="11%" valign="top" align="center">{switch_list_staff.user_level.staff.WWW}</td>
   </tr>
   <!-- END staff -->
   <!-- END user_level -->
   <tr>
-        <td class="cat" colspan="6">&nbsp;</td>
+        <td class="cat" colspan="5">&nbsp;</td>
   </tr>
 </table>
 <!-- END switch_list_staff -->

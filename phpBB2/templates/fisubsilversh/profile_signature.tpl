@@ -18,7 +18,7 @@
 	</tr>
 	<tr>
 		<td class="row1" width="140" height="20"><span class="gen"></span></td>
-		<td class="row2" width="520" valign="middle" nowrap="nowrap">{PROFIL_IMG} {EMAIL_IMG} {PM_IMG} {WWW_IMG} {AIM_IMG} {YIM_IMG} {MSN_IMG} {ICQ_IMG}</td>
+		<td class="row2" width="520" valign="middle" nowrap="nowrap">{PROFIL_IMG} {EMAIL_IMG} {PM_IMG} {WWW_IMG}</td>
 	</tr>
 </table>
 
@@ -71,7 +71,7 @@
 	</tr>
 	<tr>
 		<td class="row1" width="140" height="20"><span class="gen"></span></td>
-		<td class="row2" width="520" valign="middle" nowrap="nowrap">{PROFIL_IMG} {EMAIL_IMG} {PM_IMG} {WWW_IMG} {AIM_IMG} {YIM_IMG} {MSN_IMG} {ICQ_IMG}</td>
+		<td class="row2" width="520" valign="middle" nowrap="nowrap">{PROFIL_IMG} {EMAIL_IMG} {PM_IMG} {WWW_IMG}</td>
 	</tr>
 </table>
 
