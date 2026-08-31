@@ -52,7 +52,9 @@ if (strpos($profile, "phpbb_board_url('profile.' . \$phpEx)") === false)
 {
 	$errors[] = 'Profile email links are not built from the validated board origin.';
 }
-if (strpos($profile, 'substr($rand_str, 0, 16)') === false ||
+if (strpos($profile, '? bin2hex(phpbb_random_bytes(16))') === false ||
+	strpos($profile, ': bin2hex(phpbb_random_bytes(8))') === false ||
+	strpos($profile, 'md5($rand_str)') !== false ||
 	strpos($register, '$key_len = 54 -') !== false || strpos($send_password, '$key_len = 54 -') !== false)
 {
 	$errors[] = 'New activation tokens or temporary passwords still use truncated legacy entropy.';

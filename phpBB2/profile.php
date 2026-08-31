@@ -58,11 +58,13 @@ $server_url = phpbb_board_url('profile.' . $phpEx);
 //
 function gen_rand_string($hash)
 {
-	$rand_str = dss_rand();
-
-	// dss_rand() is backed by phpbb_random_bytes(). Keep the full 128-bit
-	// activation token and use all 64 random bits for temporary passwords.
-	return ( $hash ) ? md5($rand_str) : substr($rand_str, 0, 16);
+	// Activation links and password-reset confirmations are bearer tokens, so
+	// generate the full 128 bits represented by their historical 32-character
+	// hexadecimal database field. Temporary emailed passwords keep their
+	// compatible 16-character shape with 64 independent random bits.
+	return $hash
+		? bin2hex(phpbb_random_bytes(16))
+		: bin2hex(phpbb_random_bytes(8));
 }
 //
 // End page specific functions
