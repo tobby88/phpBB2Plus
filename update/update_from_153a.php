@@ -392,8 +392,6 @@ foreach ($create_statements as $generic_table => $generic_sql)
 $user_columns = array(
 	'games_block_pm' => 'TINYINT(1) NOT NULL DEFAULT 1',
 	'arcade_banned' => 'INT(11) NOT NULL DEFAULT 0',
-	'ct_search_time' => 'INT(11) DEFAULT 1',
-	'ct_search_count' => 'MEDIUMINT(8) DEFAULT 1',
 	'ct_last_pw_reset' => 'INT(11) DEFAULT 0',
 	'ct_enable_ip_warn' => 'TINYINT(1) DEFAULT 1',
 	'ct_last_used_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
@@ -684,6 +682,17 @@ update_queue_drop_column(
 	$table_prefix . 'users',
 	'ct_last_mail'
 );
+
+foreach (array('ct_search_time', 'ct_search_count') as $obsolete_search_column)
+{
+	update_queue_drop_column(
+		$operations,
+		$connection,
+		$dbname,
+		$table_prefix . 'users',
+		$obsolete_search_column
+	);
+}
 
 // CrackerTracker 5 is a complete redevelopment. Its official 4.x-to-5.x
 // instructions explicitly remove these incompatible 4.x objects after the

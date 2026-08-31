@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Removed CrackerTracker's two obsolete per-user search counters. Search
+  protection already uses the shared atomic rate-limit table for guests and
+  members, so fresh schemas no longer create parallel state and the updater
+  drops the unused legacy columns.
 - Added a shared, spoof-resistant HTTPS detector for secure cookies, absolute
   board URLs and response policy. Direct TLS responses now advertise a
   one-year HSTS policy without claiming unrelated subdomains or preload

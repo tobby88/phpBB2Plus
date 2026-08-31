@@ -122,8 +122,16 @@ foreach (array('ct_last_post', 'ct_post_counter') as $marker)
 		throw new Exception('Fresh schema retains obsolete posting state: ' . $marker);
 	}
 }
+foreach (array('ct_search_time', 'ct_search_count') as $marker)
+{
+	if (strpos($schema_source, $marker) !== false)
+	{
+		throw new Exception('Fresh schema retains obsolete search state: ' . $marker);
+	}
+}
 if (strpos($updater_source, "array('ct_last_post', 'ct_post_counter')") === false ||
-	strpos($updater_source, "ct_config_name = 'logsize_spammer'") === false)
+	strpos($updater_source, "ct_config_name = 'logsize_spammer'") === false ||
+	strpos($updater_source, "array('ct_search_time', 'ct_search_count')") === false)
 {
 	throw new Exception('Updater does not remove obsolete posting-protection state.');
 }
