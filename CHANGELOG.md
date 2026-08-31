@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Reworked the legacy AJAX controller around one typed request boundary and an
+  explicit operation allowlist. Inline edits now enforce forum edit rights,
+  private poll/topic/forum data cannot leak through alternate AJAX views,
+  mutations and previews require body-bound session tokens, member suggestions
+  are escaped and bounded, and previously undefined poll/PM-preview variables
+  no longer cause PHP 8 failures.
 - Completed the forum/category editor in all seven bundled styles. Every ACP
   style now exposes icons, link-forum controls, post counting and hierarchy
   fields; submitted text uses typed scalar boundaries and driver escaping,

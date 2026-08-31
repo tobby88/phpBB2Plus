@@ -22,6 +22,6 @@ moderator_test_assert(strpos($modcp, "\$_SERVER['REQUEST_METHOD'] !== 'POST'") !
 moderator_test_assert(strpos($modcp, "phpbb_session_action_token('moderate-topic', \$mode, \$topic_id") !== false, 'the submitted capability must match the requested action and topic');
 moderator_test_assert(substr_count($viewtopic, "phpbb_session_action_token('moderate-topic'") >= 4, 'all topic-toolbar mutation links must carry capabilities');
 moderator_test_assert(substr_count($ajax, "phpbb_session_action_token('moderate-topic'") >= 2, 'AJAX lock responses must preserve protected fallback links');
-moderator_test_assert(strpos($ajax, "in_array(\$mode, \$write_modes, true) && \$_SERVER['REQUEST_METHOD'] !== 'POST'") !== false, 'AJAX topic mutations must remain POST-only');
+moderator_test_assert(strpos($ajax, "in_array(\$mode, \$post_modes, true) && (\$request_method !== 'POST'") !== false, 'AJAX topic mutations must remain POST-only');
 
 echo "Moderator action safety tests passed.\n";

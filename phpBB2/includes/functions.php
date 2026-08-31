@@ -2114,6 +2114,8 @@ function AJAX_headers()
 {
 	//No caching whatsoever
 	header('Content-Type: application/xml; charset=UTF-8');
+	header('X-Content-Type-Options: nosniff');
+	header('X-Frame-Options: SAMEORIGIN');
 	header('Expires: Thu, 15 Aug 1984 13:30:00 GMT');
 	header('Last-Modified: '. gmdate('D, d M Y H:i:s') .' GMT');
 	header('Cache-Control: no-cache, must-revalidate');  // HTTP/1.1

@@ -39,19 +39,28 @@ init_userprefs($userdata);
 
 function ajax_scalar_value($source, $key, $default = '')
 {
-	return (isset($source[$key]) && !is_array($source[$key])) ? $source[$key] : $default;
+	return (isset($source[$key]) && is_scalar($source[$key])) ? (string) $source[$key] : $default;
+}
+
+function ajax_request_value($key, $default = '')
+{
+	global $HTTP_POST_VARS, $HTTP_GET_VARS;
+	if (isset($HTTP_POST_VARS[$key]))
+	{
+		return ajax_scalar_value($HTTP_POST_VARS, $key, $default);
+	}
+	return ajax_scalar_value($HTTP_GET_VARS, $key, $default);
+}
+
+function ajax_request_int($key, $default = 0)
+{
+	$value = ajax_request_value($key, '');
+	return ($value === '') ? (int) $default : (int) $value;
 }
 
 // Get SID and check it
-if (isset($HTTP_POST_VARS['sid']) || isset($HTTP_GET_VARS['sid']))
-{
-	$sid = (isset($HTTP_POST_VARS['sid'])) ? $HTTP_POST_VARS['sid'] : $HTTP_GET_VARS['sid'];
-}
-else
-{
-	$sid = '';
-}
-if (!is_string($sid) || !hash_equals((string) $userdata['session_id'], $sid))
+$sid = ajax_request_value('sid');
+if (!hash_equals((string) $userdata['session_id'], $sid))
 {
 	$result_ar = array(
 		'result' => AJAX_ERROR,
@@ -61,21 +70,17 @@ if (!is_string($sid) || !hash_equals((string) $userdata['session_id'], $sid))
 }
 
 // Get mode
-if (isset($HTTP_POST_VARS['mode']) || isset($HTTP_GET_VARS['mode']))
-{
-	$mode = (isset($HTTP_POST_VARS['mode'])) ? $HTTP_POST_VARS['mode'] : $HTTP_GET_VARS['mode'];
-}
-else
-{
-	$mode = '';
-}
-if (!is_string($mode))
-{
-	$mode = '';
-}
+$mode = ajax_request_value('mode');
 
 $write_modes = array('edit_post_subject', 'edit_post_text', 'vote_poll', 'watch_topic', 'lock_topic', 'mark_topic', 'mark_forum');
-if (in_array($mode, $write_modes, true) && $_SERVER['REQUEST_METHOD'] !== 'POST')
+$allowed_modes = array_merge($write_modes, array('view_poll', 'view_ballot', 'checkusername_post', 'checkusername_pm', 'search_user', 'checkemail', 'post_preview', 'pm_preview'));
+if (!in_array($mode, $allowed_modes, true))
+{
+	AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'Invalid mode'));
+}
+$request_method = isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+$post_modes = array_merge($write_modes, array('post_preview', 'pm_preview'));
+if (in_array($mode, $post_modes, true) && ($request_method !== 'POST' || !isset($HTTP_POST_VARS['sid']) || !is_scalar($HTTP_POST_VARS['sid'])))
 {
 	AJAX_message_die(array(
 		'result' => AJAX_ERROR,
@@ -101,15 +106,9 @@ if ($mode == 'edit_post_subject')
 	include($phpbb_root_path .'includes/functions_search.'. $phpEx);
 	
 	// Determine post_id and new subject
-	if (isset($HTTP_POST_VARS[POST_POST_URL]) || isset($HTTP_GET_VARS[POST_POST_URL]))
-	{
-		$post_id = (isset($HTTP_POST_VARS[POST_POST_URL])) ? intval($HTTP_POST_VARS[POST_POST_URL]) : intval($HTTP_GET_VARS[POST_POST_URL]);
-	}
-	else
-	{
-		$post_id = 0;
-	}
+	$post_id = ajax_request_int(POST_POST_URL);
 	$subject = ajax_htmlspecialchars(trim(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject'))));
+	$subject = substr($subject, 0, 60);
 	
 	// Check if data was submitted
 	if (empty($post_id))
@@ -163,7 +162,7 @@ if ($mode == 'edit_post_subject')
 	//Check auth settings
 	$is_auth = array();
 	$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
-	if ((($row['poster_id'] != $userdata['user_id']) || ($row['topic_status'] == TOPIC_LOCKED)) && !$is_auth['auth_mod'])
+	if (!$is_auth['auth_mod'] && (!$userdata['session_logged_in'] || empty($is_auth['auth_edit']) || $row['poster_id'] != $userdata['user_id'] || $row['topic_status'] == TOPIC_LOCKED))
 	{
 		$result_ar = array(
 			'result' => AJAX_ERROR,
@@ -240,9 +239,6 @@ if ($mode == 'edit_post_subject')
 		$editmessage = '';
 	}
 	
-	// Truncate the topic title...just like it will be in the database
-	$subject = substr($subject, 0, 60);
-	
 	// Refresh search index for this post (subject only)
 	remove_search_post($post_id, True, False);
 	add_search_words('single', $post_id, '', $subject);
@@ -274,25 +270,16 @@ else if ($mode == 'edit_post_text')
 	include($phpbb_root_path .'includes/bbcode.'. $phpEx);
 	
 	// Determine post_id and message
-	if (isset($HTTP_POST_VARS[POST_POST_URL]) || isset($HTTP_GET_VARS[POST_POST_URL]))
-	{
-		$post_id = (isset($HTTP_POST_VARS[POST_POST_URL])) ? intval($HTTP_POST_VARS[POST_POST_URL]) : intval($HTTP_GET_VARS[POST_POST_URL]);
-	}
-	else
-	{
-		$post_id = 0;
-	}
+	$post_id = ajax_request_int(POST_POST_URL);
 	$message = utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'message'));
+	if (strlen($message) > 1048576)
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'postid' => $post_id, 'error_msg' => 'Message is too large'));
+	}
 	
 	// This is only needed on the search page
-	if (isset($HTTP_POST_VARS['return_chars']) || isset($HTTP_GET_VARS['return_chars']))
-	{
-		$return_chars = (isset($HTTP_POST_VARS['return_chars'])) ? intval($HTTP_POST_VARS['return_chars']) : intval($HTTP_GET_VARS['return_chars']);
-	}
-	else
-	{
-		$return_chars = -1;
-	}
+	$return_chars = ajax_request_int('return_chars', -1);
+	$return_chars = ($return_chars < 0) ? -1 : min(10000, $return_chars);
 	$highlight_match = $highlight = '';
 	if (isset($HTTP_GET_VARS['highlight']) || isset($HTTP_POST_VARS['highlight']))
 	{
@@ -309,7 +296,7 @@ else if ($mode == 'edit_post_text')
 		}
 		unset($words);
 	
-		$highlight = urlencode($HTTP_GET_VARS['highlight']);
+		$highlight = urlencode($highlight_string);
 		$highlight_match = phpbb_rtrim($highlight_match, "\\");
 	}
 	
@@ -355,7 +342,7 @@ else if ($mode == 'edit_post_text')
 	//Check auth settings
 	$is_auth = array();
 	$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
-	if ((($row['poster_id'] != $userdata['user_id']) || ($row['topic_status'] == TOPIC_LOCKED)) && !$is_auth['auth_mod'])
+	if (!$is_auth['auth_mod'] && (!$userdata['session_logged_in'] || empty($is_auth['auth_edit']) || $row['poster_id'] != $userdata['user_id'] || $row['topic_status'] == TOPIC_LOCKED))
 	{
 		$result_ar = array(
 			'result' => AJAX_ERROR,
@@ -492,14 +479,11 @@ else if ($mode == 'edit_post_text')
 else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_ballot'))
 {
 	// Get topic_id
-	if (isset($HTTP_POST_VARS[POST_TOPIC_URL]) || isset($HTTP_GET_VARS[POST_TOPIC_URL]))
-	{
-		$topic_id = (isset($HTTP_POST_VARS[POST_TOPIC_URL])) ? intval($HTTP_POST_VARS[POST_TOPIC_URL]) : intval($HTTP_GET_VARS[POST_TOPIC_URL]);
-	}
-	else
-	{
-		$topic_id = 0;
-	}
+	$topic_id = ajax_request_int(POST_TOPIC_URL);
+	$vote_info = false;
+	$can_vote = false;
+	$post_days = max(0, ajax_request_int('postdays'));
+	$post_order = strtoupper(ajax_request_value('postorder', 'ASC')) === 'DESC' ? 'desc' : 'asc';
 	
 	if (empty($topic_id))
 	{
@@ -513,14 +497,7 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 	// Get vote_option_id and vote_id
 	if ($mode == 'vote_poll')
 	{
-		if (isset($HTTP_POST_VARS['vote_option_id']) || isset($HTTP_GET_VARS['vote_option_id']))
-		{
-			$vote_option_id = (isset($HTTP_POST_VARS['vote_option_id'])) ? intval($HTTP_POST_VARS['vote_option_id']) : intval($HTTP_GET_VARS['vote_option_id']);
-		}
-		else
-		{
-			$vote_option_id = 0;
-		}
+		$vote_option_id = ajax_request_int('vote_option_id');
 		
 		if (!empty($vote_option_id))
 		{
@@ -570,6 +547,10 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 	{
 		// Check if the user is allowed to vote
 		$is_auth = auth(AUTH_ALL, $vote_info['forum_id'], $userdata);
+		if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
+		{
+			AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'This topic does not exist'));
+		}
 		$poll_expired = ($vote_info['vote_length']) ? (($vote_info['vote_start'] + $vote_info['vote_length'] < time()) ? True : False) : False;
 		$can_vote = $is_auth['auth_vote'] && (($vote_info['topic_status'] != TOPIC_LOCKED) || ($is_auth['auth_mod'])) && !$poll_expired;
 		if ($can_vote)
@@ -637,6 +618,14 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 				$mode = 'view_poll';
 			}
 		}
+		if ($mode == 'view_ballot' && !$can_vote)
+		{
+			$mode = 'view_poll';
+		}
+	}
+	else
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'Could not get vote information'));
 	}
 	
 	// Display vote information
@@ -670,6 +659,9 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 
 	$vote_id = $vote_info[0]['vote_id'];
 	$vote_title = $vote_info[0]['vote_text'];
+	$orig_word = array();
+	$replacement_word = array();
+	obtain_word_list($orig_word, $replacement_word);
 
 	if (count($orig_word))
 	{
@@ -785,14 +777,7 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 else if ($mode == 'watch_topic')
 {
 	// Get topic_id
-	if (isset($HTTP_POST_VARS[POST_TOPIC_URL]) || isset($HTTP_GET_VARS[POST_TOPIC_URL]))
-	{
-		$topic_id = (isset($HTTP_POST_VARS[POST_TOPIC_URL])) ? intval($HTTP_POST_VARS[POST_TOPIC_URL]) : intval($HTTP_GET_VARS[POST_TOPIC_URL]);
-	}
-	else
-	{
-		$topic_id = 0;
-	}
+	$topic_id = ajax_request_int(POST_TOPIC_URL);
 	
 	if (empty($topic_id))
 	{
@@ -804,24 +789,10 @@ else if ($mode == 'watch_topic')
 	}
 	
 	// Get watch_status
-	if (isset($HTTP_POST_VARS['watch_status']) || isset($HTTP_GET_VARS['watch_status']))
-	{
-		$watch_status = (isset($HTTP_POST_VARS['watch_status'])) ? intval($HTTP_POST_VARS['watch_status']) : intval($HTTP_GET_VARS['watch_status']);
-	}
-	else
-	{
-		$watch_status = 0;
-	}
+	$watch_status = ajax_request_int('watch_status') === 1 ? 1 : 0;
 	
 	// Get start
-	if (isset($HTTP_POST_VARS['start']) || isset($HTTP_GET_VARS['start']))
-	{
-		$start = (isset($HTTP_POST_VARS['start'])) ? intval($HTTP_POST_VARS['start']) : intval($HTTP_GET_VARS['start']);
-	}
-	else
-	{
-		$start = 0;
-	}
+	$start = max(0, ajax_request_int('start'));
 	
 	// Not logged in? Bye bye
 	if (!$userdata['session_logged_in'])
@@ -858,8 +829,8 @@ else if ($mode == 'watch_topic')
 	
 	// Check the permissions, don't want people to watch topics they're not supposed to read.
 	// If the person is not authed, we'll just pretend that the topic doesn't exist, just like phpBB does...
-	$is_auth = auth(AUTH_READ, $topic_row['forum_id'], $userdata);
-	if (!$is_auth['auth_read'])
+	$is_auth = auth(AUTH_ALL, $topic_row['forum_id'], $userdata);
+	if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
 	{
 		$result_ar = array(
 			'result' => AJAX_ERROR,
@@ -959,14 +930,7 @@ else if ($mode == 'watch_topic')
 else if ($mode == 'lock_topic')
 {
 	// Get topic_id
-	if (isset($HTTP_POST_VARS[POST_TOPIC_URL]) || isset($HTTP_GET_VARS[POST_TOPIC_URL]))
-	{
-		$topic_id = (isset($HTTP_POST_VARS[POST_TOPIC_URL])) ? intval($HTTP_POST_VARS[POST_TOPIC_URL]) : intval($HTTP_GET_VARS[POST_TOPIC_URL]);
-	}
-	else
-	{
-		$topic_id = 0;
-	}
+	$topic_id = ajax_request_int(POST_TOPIC_URL);
 	
 	if (empty($topic_id))
 	{
@@ -978,14 +942,7 @@ else if ($mode == 'lock_topic')
 	}
 	
 	// Get watch_status
-	if (isset($HTTP_POST_VARS['lock_status']) || isset($HTTP_GET_VARS['lock_status']))
-	{
-		$lock_status = (isset($HTTP_POST_VARS['lock_status'])) ? intval($HTTP_POST_VARS['lock_status']) : intval($HTTP_GET_VARS['lock_status']);
-	}
-	else
-	{
-		$lock_status = 0;
-	}
+	$lock_status = ajax_request_int('lock_status') === 1 ? 1 : 0;
 	
 	$sql = 'SELECT forum_id, topic_status FROM '. TOPICS_TABLE ." 
 	        WHERE topic_id = $topic_id";
@@ -1106,14 +1063,7 @@ else if ($mode == 'mark_topic')
 	}
 	
 	// Get topic_id
-	if (isset($HTTP_POST_VARS[POST_TOPIC_URL]) || isset($HTTP_GET_VARS[POST_TOPIC_URL]))
-	{
-		$topic_id = (isset($HTTP_POST_VARS[POST_TOPIC_URL])) ? intval($HTTP_POST_VARS[POST_TOPIC_URL]) : intval($HTTP_GET_VARS[POST_TOPIC_URL]);
-	}
-	else
-	{
-		$topic_id = 0;
-	}
+	$topic_id = ajax_request_int(POST_TOPIC_URL);
 	
 	if (empty($topic_id))
 	{
@@ -1124,7 +1074,7 @@ else if ($mode == 'mark_topic')
 		AJAX_message_die($result_ar);
 	}
 	
-	$sql = 'SELECT topic_type, topic_status, topic_replies FROM '. TOPICS_TABLE ." 
+	$sql = 'SELECT forum_id, topic_type, topic_status, topic_replies FROM '. TOPICS_TABLE ."
 	        WHERE topic_id = $topic_id";
 	if (!($result = $db->sql_query($sql)))
 	{
@@ -1144,6 +1094,11 @@ else if ($mode == 'mark_topic')
 			'error_msg' => 'This topic does not exist'
 		);
 		AJAX_message_die($result_ar);
+	}
+	$is_auth = auth(AUTH_ALL, $topic_row['forum_id'], $userdata);
+	if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'This topic does not exist'));
 	}
 	
 	if ($topic_row['topic_status'] == TOPIC_MOVED)
@@ -1209,14 +1164,7 @@ else if ($mode == 'mark_forum')
 	}
 	
 	// Get forum_id
-	if (isset($HTTP_POST_VARS[POST_FORUM_URL]) || isset($HTTP_GET_VARS[POST_FORUM_URL]))
-	{
-		$forum_id = (isset($HTTP_POST_VARS[POST_FORUM_URL])) ? intval($HTTP_POST_VARS[POST_FORUM_URL]) : intval($HTTP_GET_VARS[POST_FORUM_URL]);
-	}
-	else
-	{
-		$forum_id = 0;
-	}
+	$forum_id = ajax_request_int(POST_FORUM_URL);
 	
 	if (empty($forum_id))
 	{
@@ -1247,6 +1195,11 @@ else if ($mode == 'mark_forum')
 			'error_msg' => 'This forum does not exist'
 		);
 		AJAX_message_die($result_ar);
+	}
+	$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
+	if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'This forum does not exist'));
 	}
 	
 	$tracking_forums = (isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f'])) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
@@ -1285,14 +1238,7 @@ else if ($mode == 'checkusername_post')
 {
 	include($phpbb_root_path .'includes/functions_validate.'. $phpEx);
 	
-	if (isset($HTTP_GET_VARS['username']) || isset($HTTP_POST_VARS['username']))
-	{
-		$username = isset($HTTP_POST_VARS['username']) ? utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username')) : utf8_rawurldecode(ajax_scalar_value($HTTP_GET_VARS, 'username'));
-	}
-	else
-	{
-		$username = '';
-	}
+	$username = utf8_rawurldecode(ajax_request_value('username'));
 	
 	$result_code = AJAX_OP_COMPLETED;
 	$error_msg = '';
@@ -1325,22 +1271,8 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 	include($phpbb_root_path .'includes/functions_validate.'. $phpEx);
 	
 	// Get username
-	if (isset($HTTP_GET_VARS['username']) || isset($HTTP_POST_VARS['username']))
-	{
-		$username = isset($HTTP_POST_VARS['username']) ? utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username')) : utf8_rawurldecode(ajax_scalar_value($HTTP_GET_VARS, 'username'));
-	}
-	else
-	{
-		$username = '';
-	}
-	if (isset($HTTP_GET_VARS['search']) || isset($HTTP_POST_VARS['search']))
-	{
-		$search = (isset($HTTP_POST_VARS['search'])) ? intval($HTTP_POST_VARS['search']) : intval($HTTP_GET_VARS['search']);
-	}
-	else
-	{
-		$search = 0;
-	}
+	$username = utf8_rawurldecode(ajax_request_value('username'));
+	$search = ajax_request_int('search') === 1 ? 1 : 0;
 	
 	if (empty($username))
 	{
@@ -1369,13 +1301,14 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 		$has_wildcards = (strpos($username, '*') !== False) ? True : False;
 		$username = preg_replace('#\*#', '%', phpbb_clean_username($username));
 	}
+	$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
 	
 	$username_row = False;
 	if (($mode == 'checkusername_pm') || (($mode == 'search_user') && !$has_wildcards))
 	{
 		$sql = 'SELECT user_id 
 		        FROM '. USERS_TABLE ."
-		        WHERE username='$username' 
+		        WHERE username='$username_sql'
 		        AND user_id <> ". ANONYMOUS;
 		if (!($result = $db->sql_query($sql)))
 		{
@@ -1401,11 +1334,12 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 		{
 			$username .= '%';
 		}
+		$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
 		$sql = 'SELECT username 
 		        FROM '. USERS_TABLE ."
-		        WHERE username LIKE '{$username}' 
+		        WHERE username LIKE '{$username_sql}'
 		        AND user_id <> ". ANONYMOUS .' 
-		        ORDER BY username';
+		        ORDER BY username LIMIT 50';
 		if (!($result = $db->sql_query($sql)))
 		{
 			$result_ar = array(
@@ -1444,7 +1378,8 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 			$username_select .= '<option value="-1"> --- </option>';
 			for ($i = 0; $i < $username_count; $i++)
 			{
-				$username_select .= '<option value="'. $username_rows[$i]['username'] .'">'. $username_rows[$i]['username'] .'</option>';
+				$safe_username = htmlspecialchars($username_rows[$i]['username'], ENT_QUOTES, 'UTF-8');
+				$username_select .= '<option value="'. $safe_username .'">'. $safe_username .'</option>';
 			}
 			$username_select .= '</select>';
 			
@@ -1465,14 +1400,7 @@ else if ($mode == 'checkemail')
 {
 	include($phpbb_root_path .'includes/functions_validate.'. $phpEx);
 	
-	if (isset($HTTP_GET_VARS['email']) || isset($HTTP_POST_VARS['email']))
-	{
-		$email = isset($HTTP_POST_VARS['email']) ? stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'email'))) : stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_GET_VARS, 'email')));
-	}
-	else
-	{
-		$email = '';
-	}
+	$email = substr(stripslashes(utf8_rawurldecode(ajax_request_value('email'))), 0, 255);
 	
 	$result_code = AJAX_OP_COMPLETED;
 	$error_msg = '';
@@ -1500,14 +1428,7 @@ else if ($mode == 'post_preview')
 	include($phpbb_root_path .'includes/bbcode.'. $phpEx);
 	
 	// Get post_id
-	if (isset($HTTP_POST_VARS[POST_POST_URL]) || isset($HTTP_GET_VARS[POST_POST_URL]))
-	{
-		$post_id = (isset($HTTP_POST_VARS[POST_POST_URL])) ? intval($HTTP_POST_VARS[POST_POST_URL]) : intval($HTTP_GET_VARS[POST_POST_URL]);
-	}
-	else
-	{
-		$post_id = 0;
-	}
+	$post_id = ajax_request_int(POST_POST_URL);
 	if (!empty($post_id))
 	{
 		$sql = 'SELECT p.poster_id, p.post_username, u.username, u.user_sig, u.user_sig_bbcode_uid, u.user_allowhtml, u.user_allowbbcode, u.user_allowsmile 
@@ -1554,6 +1475,10 @@ else if ($mode == 'post_preview')
 	$username = isset($HTTP_POST_VARS['username']) ? ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username'))))) : $username;
 	$subject = ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject')))));
 	$message = ajax_htmlspecialchars(trim(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'message')))));
+	if (strlen($message) > 1048576)
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'Message is too large'));
+	}
 
 	if (!$board_config['allow_html'])
 	{
@@ -1672,12 +1597,20 @@ else if ($mode == 'post_preview')
 else if ($mode == 'pm_preview')
 {
 	include($phpbb_root_path .'includes/bbcode.'. $phpEx);
+	if (!$userdata['session_logged_in'])
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'Not logged in'));
+	}
 	
 	$user_sig = $userdata['user_sig'];
 	
 	$to_username = trim(ajax_htmlspecialchars(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'username')))));
 	$subject = trim(ajax_htmlspecialchars(stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject')))));
 	$message = trim(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'message')));
+	if (strlen($message) > 1048576)
+	{
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'Message is too large'));
+	}
 
 	if (!$board_config['allow_html'])
 	{
@@ -1734,6 +1667,9 @@ else if ($mode == 'pm_preview')
 		$message = $message .'<br /><br />_________________<br />'. $user_sig;
 	}
 	
+	$orig_word = array();
+	$replacement_word = array();
+	obtain_word_list($orig_word, $replacement_word);
 	if (count($orig_word))
 	{
 		$subject = preg_replace($orig_word, $replacement_word, $subject);
@@ -1760,7 +1696,7 @@ else if ($mode == 'pm_preview')
 		'POST_DATE' => create_date($board_config['default_dateformat'], time(), $board_config['board_timezone']),
 		'MESSAGE' => $message,
 
-		'S_HIDDEN_FIELDS' => $s_hidden_fields,
+		'S_HIDDEN_FIELDS' => '',
 
 		'L_SUBJECT' => $lang['Subject'],
 		'L_DATE' => $lang['Date'],

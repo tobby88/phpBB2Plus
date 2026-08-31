@@ -240,3 +240,6 @@ jobs:
 
       - name: Test removed PHP runtime compatibility
         run: php .github/scripts/check-removed-runtime-safety.php
+
+      - name: Test AJAX endpoint safety
+        run: php .github/scripts/check-ajax-endpoint-safety.php
