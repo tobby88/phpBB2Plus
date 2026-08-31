@@ -2303,7 +2303,7 @@ function phpbb_social_profile_url($service, $value, $allowed_hosts)
  */
 function phpbb_social_profile_links($row)
 {
-	global $lang;
+	global $images, $lang;
 
 	$definitions = array(
 		'FB'      => array('user_fb',      array('facebook.com')),
@@ -2339,11 +2339,23 @@ function phpbb_social_profile_links($row)
 		$escaped_label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
 		$provided_url = phpbb_social_profile_allowed_url($plain_value, $definition[1]);
 		$url = phpbb_social_profile_url($name, $plain_value, $definition[1]);
+		$button = '';
+		$image_key = 'icon_' . strtolower($name);
 		if ($url !== '')
 		{
 			$escaped_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
 			$links[$name] = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer">' . $escaped_label . '</a>';
-			$links[$name . '_IMG'] = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer" title="' . $escaped_label . '"><span class="gensmall">' . $escaped_label . '</span></a>&nbsp;';
+			if (!empty($images[$image_key]))
+			{
+				$title = $escaped_label . ': ' . $escaped_value;
+				$image = '<img src="' . $images[$image_key] . '" alt="' . $escaped_label . '" title="' . $title . '" border="0" />';
+				$button = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer">' . $image . '</a>';
+				$links[$name . '_IMG'] = $button . '&nbsp;';
+			}
+			else
+			{
+				$links[$name . '_IMG'] = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer" title="' . $escaped_label . '"><span class="gensmall">' . $escaped_label . '</span></a>&nbsp;';
+			}
 			$display_text = ($provided_url !== '') ? $escaped_label : $escaped_value;
 			$display = '<a href="' . $escaped_url . '" target="_blank" rel="noopener noreferrer">' . $display_text . '</a>';
 		}
@@ -2351,6 +2363,17 @@ function phpbb_social_profile_links($row)
 		{
 			$links[$name] = $escaped_value;
 			$display = $escaped_value;
+			if (!empty($images[$image_key]))
+			{
+				$title = $escaped_label . ': ' . $escaped_value;
+				$image = '<img src="' . $images[$image_key] . '" alt="' . $escaped_label . '" title="' . $title . '" border="0" />';
+				$button = '<span title="' . $title . '">' . $image . '</span>';
+				$links[$name . '_IMG'] = $button . '&nbsp;';
+			}
+		}
+		if ($button !== '')
+		{
+			$display = $button . (($url === '') ? '&nbsp;' . $escaped_value : '');
 		}
 		$rows[] = '<tr><td align="right" nowrap="nowrap" class="explaintitle">' . $escaped_label . ':</td><td class="genmed">' . $display . '</td></tr>';
 	}
