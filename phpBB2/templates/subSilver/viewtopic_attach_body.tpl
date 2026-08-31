@@ -76,14 +76,10 @@
 	</tr>
 	<tr>
 		<td colspan="2" align="center"><br />
-		<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=5,0,0,0" width="{postrow.attach.cat_swf.WIDTH}" height="{postrow.attach.cat_swf.HEIGHT}"> 
-		<param name=movie value="{postrow.attach.cat_swf.U_DOWNLOAD_LINK}"> 
-		<param name=loop value=1> 
-		<param name=quality value=high> 
-		<param name=scale value=noborder> 
-		<param name=wmode value=transparent> 
-		<param name=bgcolor value=#000000> 
-		<embed src="{postrow.attach.cat_swf.U_DOWNLOAD_LINK}" loop=1 quality=high scale=noborder wmode=transparent bgcolor=#000000  width="{postrow.attach.cat_swf.WIDTH}" height="{postrow.attach.cat_swf.HEIGHT}" type="application/x-shockwave-flash" pluginspace="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"></embed> 
+		<object type="application/x-shockwave-flash" data="{postrow.attach.cat_swf.U_DOWNLOAD_LINK}" width="{postrow.attach.cat_swf.WIDTH}" height="{postrow.attach.cat_swf.HEIGHT}">
+			<param name="movie" value="{postrow.attach.cat_swf.U_DOWNLOAD_LINK}" />
+			<param name="allowScriptAccess" value="never" />
+			<a href="{postrow.attach.cat_swf.U_DOWNLOAD_LINK}">{postrow.attach.cat_swf.DOWNLOAD_NAME}</a>
 		</object><br /><br />
 		</td>
 	</tr>

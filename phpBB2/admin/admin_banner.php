@@ -398,8 +398,7 @@ if( $mode!= "")
 		{
 			case 6 :
 				// swf
-				$banner_example = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" id="macromedia" '.$banner_size.'><param name="movie" value="'.$safe_banner_name.'" /><embed src="'.$safe_banner_name.'" type="application/x-shockwave-flash" />
-				<noembed><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank">'.$safe_banner_description.'</a></noembed></object>';
+				$banner_example = '<script type="text/javascript" src="../assets/ruffle/phpbb-config.js"></script><script type="text/javascript" src="../assets/ruffle/ruffle.js"></script><object type="application/x-shockwave-flash" data="'.$safe_banner_name.'" '.$banner_size.'><param name="movie" value="'.$safe_banner_name.'" /><param name="allowScriptAccess" value="never" /><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank" rel="noopener noreferrer">'.$safe_banner_description.'</a></object>';
 				break;
 			case 4 :
 				// custom

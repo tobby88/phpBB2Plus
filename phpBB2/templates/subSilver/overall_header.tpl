@@ -273,6 +273,8 @@ input.liteoption {
 //-->
 </script>
 <!-- END switch_enable_pm_popup -->
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/phpbb-config.js"></script>
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/ruffle.js"></script>
 </head>
 <body bgcolor="{T_BODY_BGCOLOR}" text="{T_BODY_TEXT}" link="{T_BODY_LINK}" vlink="{T_BODY_VLINK}">
 

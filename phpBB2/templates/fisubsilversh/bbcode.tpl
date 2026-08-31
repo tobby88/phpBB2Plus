@@ -170,13 +170,7 @@
 width="275" height="40" type="audio/x-pn-realaudio-plugin" console="cons" 
 controls="ControlPanel" autostart="false"></embed></div><!-- END ram -->
 
-<!-- BEGIN flash --><!-- URL's used in the movie--> 
-<!-- text used in the movie--> 
-<!-- --> 
-<OBJECT classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=5,0,0,0" WIDTH={WIDTH} HEIGHT={HEIGHT}> 
-<PARAM NAME=movie VALUE="{URL}"><PARAM NAME=quality VALUE=high> <PARAM NAME=scale VALUE=noborder> <PARAM NAME=wmode VALUE=transparent> <PARAM NAME=bgcolor VALUE=#000000> 
-  <EMBED src="{URL}" quality=high scale=noborder wmode=transparent bgcolor=#000000 WIDTH={WIDTH} HEIGHT={HEIGHT} TYPE="application/x-shockwave-flash" PLUGINSPAGE="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash">
-</EMBED></OBJECT><!-- END flash --> 
+<!-- BEGIN flash --><object type="application/x-shockwave-flash" data="{URL}" width="{WIDTH}" height="{HEIGHT}"><param name="movie" value="{URL}" /><param name="allowScriptAccess" value="never" /><a href="{URL}" rel="noopener noreferrer">Flash-Datei öffnen</a></object><!-- END flash -->
 
 <!-- BEGIN stream --><object id="wmp" width={WIDTH} height={HEIGHT} classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95" 
 codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,0,0" 

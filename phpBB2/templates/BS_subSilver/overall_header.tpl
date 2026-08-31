@@ -22,6 +22,8 @@
 </script>
 <!-- END switch_enable_pm_popup -->
 
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/phpbb-config.js"></script>
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/ruffle.js"></script>
 </head>
 <body>
 <a id="top"></a>

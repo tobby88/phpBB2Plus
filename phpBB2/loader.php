@@ -211,7 +211,6 @@ $ruffle_url = phpbb_profile_text($asset_path . $arcade_hash);
 $ruffle_title = $game_desc_html;
 $ruffle_error = htmlspecialchars($lang['arcade_ruffle_error'], ENT_QUOTES, 'UTF-8');
 $object = '<div class="arcade-ruffle-player" data-swf="' . $ruffle_url . '" data-width="' . intval($game_width) . '" data-height="' . intval($game_height) . '" data-title="' . $ruffle_title . '" data-error-message="' . $ruffle_error . '"><p>' . $lang['arcade_ruffle_loading'] . '</p></div>
-<script type="text/javascript" src="assets/ruffle/ruffle.js"></script>
 <script type="text/javascript" src="assets/ruffle/arcade-player.js"></script>';
 		break;
 	default:

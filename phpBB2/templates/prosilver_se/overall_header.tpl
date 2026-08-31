@@ -25,6 +25,8 @@
 <link href="templates/prosilver_se/theme/normal.css" rel="stylesheet" type="text/css" title="A" />
 <link href="templates/prosilver_se/theme/medium.css" rel="alternate stylesheet" type="text/css" title="A+" />
 <link href="templates/prosilver_se/theme/large.css" rel="alternate stylesheet" type="text/css" title="A++" />
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/phpbb-config.js"></script>
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/ruffle.js"></script>
 </head>
 <body id="phpbb" class="section-index">
 

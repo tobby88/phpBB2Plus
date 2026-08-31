@@ -93,13 +93,38 @@ function phpbb_schild($smilie, $parameter, $text)
  */
 function load_bbcode_template()
 {
-	global $template;
-	$tpl_filename = $template->make_filename('bbcode.tpl');
-	$tpl = fread(fopen($tpl_filename, 'r'), filesize($tpl_filename));
+	global $template, $phpbb_root_path;
 
-	// strip newlines.
-	$tpl  = str_replace("\n", '', $tpl);
+	$bbcode_tpls = load_bbcode_template_blocks($phpbb_root_path . 'templates/fisubsilversh/bbcode.tpl');
+	$style_tpls = load_bbcode_template_blocks($template->make_filename('bbcode.tpl'));
+	foreach ($style_tpls as $name => $markup)
+	{
+		$bbcode_tpls[$name] = $markup;
+	}
 
+	return $bbcode_tpls;
+}
+
+/**
+ * Reads one BBCode template into named blocks. Most imported styles only
+ * override phpBB's original blocks, so load_bbcode_template() overlays them
+ * on the complete Plus template instead of leaving newer tags undefined.
+ */
+function load_bbcode_template_blocks($tpl_filename)
+{
+	if (!is_string($tpl_filename) || !is_file($tpl_filename) || !is_readable($tpl_filename))
+	{
+		return array();
+	}
+
+	$tpl = file_get_contents($tpl_filename);
+	if ($tpl === false)
+	{
+		return array();
+	}
+
+	// Strip newlines while preserving the historic block parser semantics.
+	$tpl = str_replace("\n", '', $tpl);
 	$bbcode_tpls = array();
 	$matches = array();
 	if (preg_match_all('#<!-- BEGIN (.*?) -->(.*?)<!-- END \\1 -->#', $tpl, $matches, PREG_SET_ORDER))

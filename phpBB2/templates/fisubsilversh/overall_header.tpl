@@ -87,6 +87,8 @@ function Gk_PopTart(mypage, myname, w, h, scroll)
 }
 //-->
 </script>
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/phpbb-config.js"></script>
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/ruffle.js"></script>
 </head>
 <body>
 <!-- Start add - Complete banner MOD -->

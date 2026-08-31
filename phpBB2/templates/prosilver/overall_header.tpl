@@ -24,6 +24,8 @@
 </script>
 <!-- END switch_enable_pm_popup -->
 
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/phpbb-config.js"></script>
+<script type="text/javascript" src="{PHPBB_ROOT_PATH}assets/ruffle/ruffle.js"></script>
 </head>
 <body id="phpbb" class="section-index {S_CONTENT_DIRECTION}">
 <div id="wrap">

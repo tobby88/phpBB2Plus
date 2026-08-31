@@ -243,3 +243,6 @@ jobs:
 
       - name: Test AJAX endpoint safety
         run: php .github/scripts/check-ajax-endpoint-safety.php
+
+      - name: Test legacy media safety
+        run: php .github/scripts/check-legacy-media-safety.php

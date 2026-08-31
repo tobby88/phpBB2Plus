@@ -705,7 +705,7 @@ if ($plus_config['enable_banners'])
 				{
 					case 6 :
 						// swf file
-						$template->assign_vars(array('BANNER_'.$banner_spot.'_IMG' => '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" '.$banner_size.'><param name="movie" value="'.$safe_banner_name.'"><embed src="'.$safe_banner_name.'" type="application/x-shockwave-flash" /><noembed><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank">'.$safe_banner_description.'</a></noembed></object>'));
+						$template->assign_vars(array('BANNER_'.$banner_spot.'_IMG' => '<object type="application/x-shockwave-flash" data="'.$safe_banner_name.'" '.$banner_size.'><param name="movie" value="'.$safe_banner_name.'" /><param name="allowScriptAccess" value="never" /><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank" rel="noopener noreferrer">'.$safe_banner_description.'</a></object>'));
 						break;
 					case 4 :
 						// custom code
