@@ -38,6 +38,34 @@ $user_style = $board_config['default_style'];
 $user_timezone = $board_config['board_timezone'];
 $user_dateformat = $board_config['default_dateformat'];
 
+function admin_add_user_form_text($value)
+{
+	$value = is_scalar($value) ? (string) $value : '';
+	return htmlspecialchars(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function admin_add_user_language($language, $fallback)
+{
+	global $phpbb_root_path;
+	$language = strtolower(trim((string) $language));
+	return preg_match('/^[a-z_]{1,30}$/D', $language) && is_file($phpbb_root_path . 'language/lang_' . $language . '/lang_main.php')
+		? $language : $fallback;
+}
+
+function admin_add_user_style($style, $fallback)
+{
+	global $db;
+	$style = (int) $style;
+	$sql = 'SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id = ' . $style;
+	$result = $style > 0 ? $db->sql_query($sql) : false;
+	$row = $result ? $db->sql_fetchrow($result) : false;
+	if ($result)
+	{
+		$db->sql_freeresult($result);
+	}
+	return $row ? $style : (int) $fallback;
+}
+
 $coppa = ( empty($_POST['coppa']) && empty($_GET['coppa']) ) ? 0 : TRUE;
 
 //
@@ -67,15 +95,12 @@ if (
 		}
 	}
 
-	$user_style = ( isset($_POST['style']) && is_scalar($_POST['style']) ) ? intval($_POST['style']) : $board_config['default_style'];
+	$user_style = admin_add_user_style((isset($_POST['style']) && is_scalar($_POST['style'])) ? $_POST['style'] : 0, $board_config['default_style']);
 
 	if ( isset($_POST['language']) && is_scalar($_POST['language']) && $_POST['language'] !== '' )
 	{
-		if ( preg_match('/^[a-z_]+$/i', $_POST['language']) )
-		{
-			$user_lang = htmlspecialchars($_POST['language']);
-		}
-		else
+		$user_lang = admin_add_user_language($_POST['language'], '');
+		if ($user_lang === '')
 		{
 			$error = true;
 			$error_msg = $lang['Fields_empty'];
@@ -87,6 +112,10 @@ if (
 	}
 
 	$user_timezone = ( isset($_POST['timezone']) && is_scalar($_POST['timezone']) ) ? doubleval($_POST['timezone']) : $board_config['board_timezone'];
+	if (!is_finite($user_timezone) || $user_timezone < -12 || $user_timezone > 14 || abs(($user_timezone * 4) - round($user_timezone * 4)) > 0.00001)
+	{
+		$user_timezone = (double) $board_config['board_timezone'];
+	}
 	$sql = "SELECT config_value
 		FROM " . CONFIG_TABLE . "
 		WHERE config_name = 'default_dateformat'";
@@ -96,7 +125,8 @@ if (
 	}
 	$row = $db->sql_fetchrow($result);
 	$board_config['default_dateformat'] = $row['config_value'];
-	$user_dateformat = ( isset($_POST['dateformat']) && is_scalar($_POST['dateformat']) && $_POST['dateformat'] !== '' ) ? trim(htmlspecialchars((string) $_POST['dateformat'])) : $board_config['default_dateformat'];
+	$user_dateformat = ( isset($_POST['dateformat']) && is_scalar($_POST['dateformat']) && $_POST['dateformat'] !== '' ) ? trim((string) $_POST['dateformat']) : $board_config['default_dateformat'];
+	$user_dateformat = substr($user_dateformat, 0, 100);
 
 	if ( !isset($_POST['submit']) )
 	{
@@ -276,11 +306,11 @@ $user_topics_per_page = $board_config['topics_per_page'];
 $user_hot_threshold = $board_config['hot_threshold'];
 
 $template->assign_vars(array(
-	'USERNAME' => $username,
+	'USERNAME' => admin_add_user_form_text($username),
 	'CUR_PASSWORD' => $cur_password,
 	'NEW_PASSWORD' => $new_password,
 	'PASSWORD_CONFIRM' => $password_confirm,
-	'EMAIL' => $email,
+	'EMAIL' => admin_add_user_form_text($email),
 	'LANGUAGE_SELECT' => language_select($user_lang, 'language'),
 	'STYLE_SELECT' => style_select($user_style, 'style'),
 	'TIMEZONE_SELECT' => tz_select($user_timezone, 'timezone'),

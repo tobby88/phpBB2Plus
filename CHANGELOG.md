@@ -24,6 +24,9 @@ changes consolidated after that baseline without implying active maintenance.
   state. Stored text can no longer escape an input attribute or textarea when
   an old account is edited, and password fields are no longer reflected after
   a validation error.
+- Brought the separate ACP quick-add user assistant under the same runtime
+  boundaries: only installed languages and styles are accepted, timezone and
+  date-format input is bounded, and rejected form values are safely reflected.
 - Extended the central CrackerTracker request boundary to reject unsupported
   HTTP methods and structurally abusive cookie or upload metadata. Normal GET,
   POST, HEAD and legacy upload/cookie shapes remain accepted; uploaded file

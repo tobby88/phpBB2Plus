@@ -8,6 +8,7 @@ $admin_users = (string) file_get_contents($root . '/phpBB2/admin/admin_users.php
 $profile_functions = (string) file_get_contents($root . '/phpBB2/includes/functions_profile_fields.php');
 $profile = (string) file_get_contents($root . '/phpBB2/includes/usercp_register.php');
 $profile_admin = (string) file_get_contents($root . '/phpBB2/admin/admin_profile_fields.php');
+$add_user = (string) file_get_contents($root . '/phpBB2/admin/admin_user_register.php');
 $profile_view = (string) file_get_contents($root . '/phpBB2/includes/usercp_viewprofile.php');
 $memberlist = (string) file_get_contents($root . '/phpBB2/memberlist.php');
 $templates = array(
@@ -134,6 +135,21 @@ foreach (array($profile_admin, $profile_view, $memberlist) as $index => $output_
 	if (strpos($output_path, 'phpbb_profile_display_text(') === false)
 	{
 		$errors[] = 'Profile output path ' . $index . ' lacks entity normalization.';
+	}
+}
+foreach (array(
+	'phpbb_admin_require_post_session();',
+	'function admin_add_user_form_text',
+	'function admin_add_user_language',
+	'function admin_add_user_style',
+	'is_finite($user_timezone)',
+	'$db->sql_escape($username)',
+	"'USERNAME' => admin_add_user_form_text(\$username)"
+) as $marker)
+{
+	if (strpos($add_user, $marker) === false)
+	{
+		$errors[] = 'Missing quick-add user boundary: ' . $marker;
 	}
 }
 
