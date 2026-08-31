@@ -67,7 +67,9 @@ if ( $result = $db->sql_query($sql) )
 	{
 		$send_to_user = $row['username'];
 		$absence_mode = create_absence_mode($row['user_absence_mode'], $pm_img, $pm, $email_img, $email, $row['username']);
-		$error_msg = sprintf($lang['User_absent'], $send_to_user, $absence_mode, $row['user_absence_text'], $send_to_user);
+		$safe_send_to_user = htmlspecialchars($send_to_user, ENT_QUOTES, 'UTF-8');
+		$safe_absence_text = htmlspecialchars($row['user_absence_text'], ENT_QUOTES, 'UTF-8');
+		$error_msg = sprintf($lang['User_absent'], $safe_send_to_user, $absence_mode, $safe_absence_text, $safe_send_to_user);
 
 		include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 		$template->set_filenames(array(
@@ -103,9 +105,9 @@ if ( $result = $db->sql_query($sql) )
 			}
 
 			$submitted_subject = (isset($_POST['email_subject']) && is_scalar($_POST['email_subject'])) ? (string) $_POST['email_subject'] : '';
-			if ( $submitted_subject !== '' )
+			if ( $submitted_subject !== '' && strlen($submitted_subject) <= 200 )
 			{
-				$subject = trim(stripslashes($submitted_subject));
+				$subject = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', stripslashes($submitted_subject)));
 			}
 			else
 			{
@@ -114,7 +116,7 @@ if ( $result = $db->sql_query($sql) )
 			}
 
 			$submitted_message = (isset($_POST['email_message']) && is_scalar($_POST['email_message'])) ? (string) $_POST['email_message'] : '';
-			if ( $submitted_message !== '' )
+			if ( $submitted_message !== '' && strlen($submitted_message) <= 10000 )
 			{
 				$message = trim(stripslashes($submitted_message));
 			}
@@ -134,10 +136,10 @@ if ( $result = $db->sql_query($sql) )
 					include($phpbb_root_path . 'includes/emailer.'.$phpEx);
 					$emailer = new emailer($board_config['smtp_delivery']);
 
-					$emailer->from($userdata['user_email']);
+					$emailer->from($board_config['board_email']);
 					$emailer->replyto($userdata['user_email']);
 
-					$email_headers = 'X-AntiAbuse: Board servername - ' . $server_name . "\n";
+					$email_headers = 'X-AntiAbuse: Board servername - ' . $board_config['server_name'] . "\n";
 					$email_headers .= 'X-AntiAbuse: User_id - ' . $userdata['user_id'] . "\n";
 					$email_headers .= 'X-AntiAbuse: Username - ' . $userdata['username'] . "\n";
 					$email_headers .= 'X-AntiAbuse: User IP - ' . decode_ip($user_ip) . "\n";
@@ -159,7 +161,8 @@ if ( $result = $db->sql_query($sql) )
 
 					if ( isset($_POST['cc_email']) && is_scalar($_POST['cc_email']) && $_POST['cc_email'] )
 					{
-						$emailer->from($userdata['user_email']);
+						$emailer->from($board_config['board_email']);
+						$emailer->replyto($userdata['user_email']);
 						$emailer->replyto($userdata['user_email']);
 						$emailer->use_template('profile_send_email');
 						$emailer->email_address($userdata['user_email']);
@@ -210,7 +213,7 @@ if ( $result = $db->sql_query($sql) )
 		}
 
 		$template->assign_vars(array(
-			'USERNAME' => $username,
+			'USERNAME' => htmlspecialchars($username, ENT_QUOTES, 'UTF-8'),
 
 			'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />',
 			'S_POST_ACTION' => append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . "=$user_id"), 

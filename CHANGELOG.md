@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Consolidated the user-facing mail boundary. Email template names and language
+  directories are centrally allowlisted, board mail now uses the configured
+  board sender with the member address only as Reply-To for better DMARC
+  compatibility, subjects/messages are bounded, absence text is escaped and
+  tell-a-friend cannot smuggle extra recipients through a display name or link
+  to an unexpected port. Contact-field filtering also remains safe for invalid
+  byte sequences instead of relying on successful UTF-8 regular expressions.
 - Hardened the complete account lifecycle across sessions, activation, profile
   updates and password changes. Invalid serialized cookies and nested session
   identifiers can no longer reach PHP 8 string/hash operations, new sessions

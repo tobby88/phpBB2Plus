@@ -35,6 +35,15 @@ if (strlen($link_plain) > 2048 || !$link_parts || !$board_parts || empty($link_p
 {
 	$link_plain = $board_url;
 }
+else
+{
+	$link_port = isset($link_parts['port']) ? (int) $link_parts['port'] : (strtolower($link_parts['scheme']) === 'https' ? 443 : 80);
+	$board_port = isset($board_parts['port']) ? (int) $board_parts['port'] : (strtolower($board_parts['scheme']) === 'https' ? 443 : 80);
+	if ($link_port !== $board_port || isset($link_parts['user']) || isset($link_parts['pass']))
+	{
+		$link_plain = $board_url;
+	}
+}
 
 $mail_body = str_replace(array('{TOPIC}', '{LINK}', '{SITENAME}'), array($topic_plain, $link_plain, $board_config['sitename']), $lang['Tell_Friend_Body']);
 
@@ -77,7 +86,7 @@ if (isset($_POST['submit']))
 	$user_message = isset($_POST['message']) && is_string($_POST['message']) ? trim(stripslashes($_POST['message'])) : '';
 
 	$friendemail = preg_replace('/[\r\n\x00]+/', '', $friendemail);
-	$friendname = trim(preg_replace('/[<>"\x00-\x1f\x7f]+/u', ' ', $friendname));
+	$friendname = trim(preg_replace('/[<>"\x00-\x1f\x7f]+/', ' ', $friendname));
 	if ($friendname === '' && filter_var($friendemail, FILTER_VALIDATE_EMAIL))
 	{
 		$friendname = substr($friendemail, 0, strpos($friendemail, '@'));
@@ -99,10 +108,10 @@ if (isset($_POST['submit']))
 		}
 		include($phpbb_root_path . 'includes/emailer.' . $phpEx);
 		$emailer = new emailer($board_config['smtp_delivery']);
-		$emailer->from($userdata['user_email']);
+		$emailer->from($board_config['board_email']);
 		$emailer->replyto($userdata['user_email']);
 		$emailer->use_template('tellafriend_email', $userdata['user_lang']);
-		$emailer->email_address($friendname . ' <' . $friendemail . '>');
+		$emailer->email_address($friendemail);
 		$emailer->set_subject($topic_plain);
 		$emailer->extra_headers('X-AntiAbuse: User_id - ' . (int) $userdata['user_id'] . "\nX-AntiAbuse: User IP - " . decode_ip($user_ip));
 		$emailer->assign_vars(array(

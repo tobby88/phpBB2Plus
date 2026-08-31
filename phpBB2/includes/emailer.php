@@ -101,28 +101,40 @@ class emailer
 	{
 		global $board_config, $phpbb_root_path;
 
-		if (trim($template_file) == '')
+		$template_file = trim((string) $template_file);
+		if (!preg_match('/^[a-z0-9_-]{1,80}$/iD', $template_file))
 		{
 			message_die(GENERAL_ERROR, 'No template file set', '', __LINE__, __FILE__);
 		}
 
-		if (trim($template_lang) == '')
+		$template_lang = strtolower(trim((string) $template_lang));
+		if (!preg_match('/^[a-z_]{1,30}$/D', $template_lang))
 		{
-			$template_lang = $board_config['default_lang'];
+			$template_lang = strtolower(trim((string) $board_config['default_lang']));
+		}
+		if (!preg_match('/^[a-z_]{1,30}$/D', $template_lang))
+		{
+			$template_lang = 'english';
 		}
 
 		if (empty($this->tpl_msg[$template_lang . $template_file]))
 		{
 			$tpl_file = $phpbb_root_path . 'language/lang_' . $template_lang . '/email/' . $template_file . '.tpl';
 
-			if (!@file_exists(@phpbb_realpath($tpl_file)))
+			if (!@is_file($tpl_file) || @is_link($tpl_file))
 			{
-				$tpl_file = $phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/email/' . $template_file . '.tpl';
+				$fallback_lang = strtolower(trim((string) $board_config['default_lang']));
+				if (!preg_match('/^[a-z_]{1,30}$/D', $fallback_lang))
+				{
+					$fallback_lang = 'english';
+				}
+				$tpl_file = $phpbb_root_path . 'language/lang_' . $fallback_lang . '/email/' . $template_file . '.tpl';
 
-				if (!@file_exists(@phpbb_realpath($tpl_file)))
+				if (!@is_file($tpl_file) || @is_link($tpl_file))
 				{
 					message_die(GENERAL_ERROR, 'Could not find email template file :: ' . $template_file, '', __LINE__, __FILE__);
 				}
+				$template_lang = $fallback_lang;
 			}
 
 			if (!($fd = @fopen($tpl_file, 'r')))

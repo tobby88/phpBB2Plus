@@ -69,8 +69,8 @@ $mail = isset($_POST['mail']) && is_string($_POST['mail']) ? trim(stripslashes($
 $subject = isset($_POST['betreff']) && is_string($_POST['betreff']) ? trim(stripslashes($_POST['betreff'])) : '';
 $body = isset($_POST['textfeld']) && is_string($_POST['textfeld']) ? trim(stripslashes($_POST['textfeld'])) : '';
 
-$name = trim(preg_replace('/[\x00-\x1f\x7f]+/u', ' ', $name));
-$subject = trim(preg_replace('/[\x00-\x1f\x7f]+/u', ' ', $subject));
+$name = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', $name));
+$subject = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', $subject));
 $mail = preg_replace('/[\r\n\x00]+/', '', $mail);
 
 $email_to = isset($plus_config['contact_email']) ? trim((string) $plus_config['contact_email']) : '';
