@@ -9,13 +9,24 @@ foreach (array(
 	"DELETE FROM " . '" . SESSIONS_TABLE',
 	"AND session_ip = '",
 	"\$session_id = '';",
-	'bin2hex(phpbb_random_bytes(16))'
+	'bin2hex(phpbb_random_bytes(16))',
+	'else if ($sessionmethod == SESSION_METHOD_COOKIE)',
+	"AND user_id = " . '" . (int) $user_id'
 ) as $marker)
 {
 	if (strpos($sessions, $marker) === false)
 	{
 		$errors[] = 'Missing authenticated-session rotation marker: ' . $marker;
 	}
+}
+
+if (strpos($sessions, "if ( \$userdata['session_user_id'] != ANONYMOUS )") !== false)
+{
+	$errors[] = 'The inverted Plus SID branch still exposes authenticated sessions in URLs.';
+}
+if (substr_count($sessions, 'AND user_id = " . (int) $user_id') < 2)
+{
+	$errors[] = 'Auto-login key rotations are not consistently bound to their user.';
 }
 
 $rotation = strpos($sessions, 'if (!empty($login) && $session_id !== \'\')');

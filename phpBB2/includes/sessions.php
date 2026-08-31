@@ -247,7 +247,8 @@ if ($files)
 			{
 				$sql = 'UPDATE ' . SESSIONS_KEYS_TABLE . "
 					SET last_ip = '$user_ip', key_id = '" . md5($auto_login_key) . "', last_login = $current_time
-					WHERE key_id = '" . md5($sessiondata['autologinid']) . "'";
+					WHERE key_id = '" . md5($sessiondata['autologinid']) . "'
+						AND user_id = " . (int) $user_id;
 			}
 			else
 			{
@@ -285,18 +286,27 @@ if ($files)
 	phpbb_setcookie($cookiename . '_data', serialize($sessiondata), $current_time + 31536000, $cookiepath, $cookiedomain, $cookiesecure);
 	phpbb_setcookie($cookiename . '_sid', $session_id, 0, $cookiepath, $cookiedomain, $cookiesecure);
 	
-	if ($plus_config['disable_sid'] == 1)
+	// Cookie-backed sessions must not be copied into ordinary URLs. The old
+	// Plus branch inverted this rule for registered users, leaking the freshly
+	// authenticated sid in the first redirect after login. ACP reauthentication
+	// still needs its explicit sid, while clients without cookies retain the
+	// historical URL fallback (unless guest SIDs were disabled in Plus config).
+	if ($admin)
 	{
-	if ( $userdata['session_user_id'] != ANONYMOUS ){
-   		$SID = 'sid=' . $session_id;
-	} else {
-   		$SID = '';
+		$SID = 'sid=' . $session_id;
 	}
-}
-else
-{
-	$SID = 'sid=' . $session_id;
-}
+	else if ($sessionmethod == SESSION_METHOD_COOKIE)
+	{
+		$SID = '';
+	}
+	else if (!empty($plus_config['disable_sid']) && $userdata['session_user_id'] == ANONYMOUS)
+	{
+		$SID = '';
+	}
+	else
+	{
+		$SID = 'sid=' . $session_id;
+	}
 	return $userdata;
 }
 
@@ -596,7 +606,8 @@ function session_reset_keys($user_id, $user_ip)
 		
 		$sql = 'UPDATE ' . SESSIONS_KEYS_TABLE . "
 			SET last_ip = '$user_ip', key_id = '" . md5($auto_login_key) . "', last_login = $current_time
-			WHERE key_id = '" . md5($userdata['session_key']) . "'";
+			WHERE key_id = '" . md5($userdata['session_key']) . "'
+				AND user_id = " . (int) $user_id;
 		
 		if ( !$db->sql_query($sql) )
 		{
