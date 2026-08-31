@@ -592,7 +592,9 @@ if( !empty($_POST['unblock_account']) )
 			else
 			{
 				$password = phpbb_password_hash($password);
-				$passwd_sql = "user_password = '$password', ";
+				$password_changed_at = time();
+				$passwd_sql = "user_password = '$password', ct_last_pw_change = $password_changed_at, ";
+				$passwd_sql .= ($force_new_passwd) ? '' : "user_passwd_change = $password_changed_at, ";
 			}
 		}
 		else if( $password && !$password_confirm )
@@ -610,7 +612,9 @@ if( !empty($_POST['unblock_account']) )
 		{
 			//no password given for this new user, create default password
 			$password = phpbb_password_hash(DEFAULT_PASSWD);
-			$passwd_sql = "user_password = '$password', ";
+			$password_changed_at = time();
+			$passwd_sql = "user_password = '$password', ct_last_pw_change = $password_changed_at, ";
+			$passwd_sql .= ($force_new_passwd) ? '' : "user_passwd_change = $password_changed_at, ";
 			//send out email notification goes here
 		}
 		// End add - Admin add user MOD

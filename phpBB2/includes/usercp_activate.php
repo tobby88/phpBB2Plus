@@ -65,7 +65,8 @@ if ( $row = $db->sql_fetchrow($result) )
 				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 			}
 		}
-		$sql_update_pass = ( $row['user_newpasswd'] != '' ) ? ", user_password = '" . str_replace("\'", "''", $row['user_newpasswd']) . "', user_newpasswd = '', user_passwd_change='".(($row['user_newpasswd']==$row['user_password']) ? time() : '0')."'" : '';
+		$password_activation_time = time();
+		$sql_update_pass = ( $row['user_newpasswd'] != '' ) ? ", user_password = '" . str_replace("\'", "''", $row['user_newpasswd']) . "', user_newpasswd = '', user_passwd_change='".(($row['user_newpasswd']==$row['user_password']) ? $password_activation_time : '0')."', ct_last_pw_change='" . $password_activation_time . "'" : '';
 
 		$sql = "UPDATE " . USERS_TABLE . "
 			SET user_active = 1, user_actkey = ''" . $sql_update_pass . " 

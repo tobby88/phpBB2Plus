@@ -39,11 +39,13 @@ if ( isset($_POST['submit']) )
 	$email_value = (isset($_POST['email']) && is_scalar($_POST['email'])) ? (string) $_POST['email'] : '';
 	$username = ( $username_value !== '' ) ? phpbb_clean_username($username_value) : '';
 	$email = ( $email_value !== '' ) ? trim(strip_tags(htmlspecialchars($email_value))) : '';
+	$username_sql = $db->sql_escape($username);
+	$email_sql = $db->sql_escape($email);
 
 	$sql = "SELECT user_id, username, user_email, user_active, user_lang, ct_last_pw_reset
 		FROM " . USERS_TABLE . " 
-		WHERE user_email = '" . str_replace("\'", "''", $email) . "' 
-			AND username = '" . str_replace("\'", "''", $username) . "'";
+		WHERE user_email = '$email_sql'
+			AND username = '$username_sql'";
 	if ( $result = $db->sql_query($sql) )
 	{
 		if ( $row = $db->sql_fetchrow($result) )
@@ -56,11 +58,13 @@ if ( isset($_POST['submit']) )
 			$username = $row['username'];
 			$user_id = $row['user_id'];
 
-			if ( $ctracker_config->settings['pw_reset_feature'] == 1 )
+			$pwreset_minutes = isset($ctracker_config->settings['pwreset_time']) ? intval($ctracker_config->settings['pwreset_time']) : 20;
+			$pwreset_minutes = ($pwreset_minutes > 0) ? min(180, $pwreset_minutes) : 20;
+			if ( isset($ctracker_config->settings['pw_reset_feature']) && $ctracker_config->settings['pw_reset_feature'] == 1 )
 			{
 				if ( $row['ct_last_pw_reset'] >= time() )
 				{
-					message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_pwreset_info'], $ctracker_config->settings['pwreset_time']));
+					message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_pwreset_info'], $pwreset_minutes));
 				}
 			}
 			$user_actkey = gen_rand_string(true);
@@ -68,12 +72,13 @@ if ( isset($_POST['submit']) )
 			$key_len = ($key_len > 6) ? $key_len : 6;
 			$user_actkey = substr($user_actkey, 0, $key_len);
 			$user_password = gen_rand_string(false);
-			$new_time = time() + $ctracker_config->settings['pwreset_time'] * 60;
-			// Compatibility trick
-			(empty($ctracker_config->settings['pwreset_time']))? $new_time = time() + 20 * 60 : null;
+			$new_time = time() + ($pwreset_minutes * 60);
 			$new_password_hash = phpbb_password_hash($user_password);
+			$new_password_hash_sql = $db->sql_escape($new_password_hash);
+			$user_actkey_sql = $db->sql_escape($user_actkey);
+			$user_id = (int) $row['user_id'];
 			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_newpasswd = '" . str_replace("'", "''", $new_password_hash) . "', user_actkey = '$user_actkey', ct_last_pw_reset = '$new_time' WHERE user_id = " . $row['user_id'];
+				SET user_newpasswd = '$new_password_hash_sql', user_actkey = '$user_actkey_sql', ct_last_pw_reset = $new_time WHERE user_id = $user_id";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);

@@ -6,6 +6,9 @@ $password = (string) file_get_contents($root . '/phpBB2/change_password.php');
 $profile = (string) file_get_contents($root . '/phpBB2/profile.php');
 $register = (string) file_get_contents($root . '/phpBB2/includes/usercp_register.php');
 $activate = (string) file_get_contents($root . '/phpBB2/includes/usercp_activate.php');
+$page_header = (string) file_get_contents($root . '/phpBB2/includes/page_header.php');
+$send_password = (string) file_get_contents($root . '/phpBB2/includes/usercp_sendpasswd.php');
+$admin_add_user = (string) file_get_contents($root . '/phpBB2/admin/admin_user_register.php');
 $selects = (string) file_get_contents($root . '/phpBB2/includes/functions_selects.php');
 $functions = (string) file_get_contents($root . '/phpBB2/includes/functions.php');
 $admin_users = (string) file_get_contents($root . '/phpBB2/admin/admin_users.php');
@@ -65,12 +68,47 @@ foreach (array(
 
 foreach (array(
 	"preg_match('/^[a-f0-9]{6,32}$/iD', \$activation_key)",
-	'hash_equals(trim($row[\'user_actkey\']), $activation_key)'
+	'hash_equals(trim($row[\'user_actkey\']), $activation_key)',
+	"ct_last_pw_change='"
 ) as $marker)
 {
 	if (strpos($activate, $marker) === false)
 	{
 		$errors[] = 'Missing activation marker: ' . $marker;
+	}
+}
+
+if (strpos($password, 'ct_last_pw_change=') === false)
+{
+	$errors[] = 'Forced password changes do not update the CrackerTracker password-age timestamp.';
+}
+if (strpos($page_header, "\$userdata['ct_last_pw_change']") === false ||
+	strpos($page_header, "\$userdata['ct_last_pw_reset']") !== false)
+{
+	$errors[] = 'Password-age notices still use the reset-request cooldown timestamp.';
+}
+if (strpos($send_password, 'ct_last_pw_reset') === false || strpos($send_password, 'ct_last_pw_change') !== false)
+{
+	$errors[] = 'Password-reset throttling is not isolated from password-age tracking.';
+}
+foreach (array("\$db->sql_escape(\$username)", "\$db->sql_escape(\$email)", 'min(180, $pwreset_minutes)') as $marker)
+{
+	if (strpos($send_password, $marker) === false)
+	{
+		$errors[] = 'Password-reset input or cooldown hardening is missing: ' . $marker;
+	}
+}
+if (substr_count($admin_users, 'ct_last_pw_change = $password_changed_at') < 2 ||
+	substr_count($admin_users, 'user_passwd_change = $password_changed_at') < 2 ||
+	strpos($admin_add_user, 'user_passwd_change, ct_last_pw_change') === false)
+{
+	$errors[] = 'Administrator password writes do not update both password-age timestamps.';
+}
+foreach (array('password_timestamps_split', 'ct_last_pw_change = CASE WHEN user_passwd_change > 0', 'ct_last_pw_reset = 0') as $marker)
+{
+	if (strpos($updater, $marker) === false)
+	{
+		$errors[] = 'Updater lacks the split-password-timestamp migration marker: ' . $marker;
 	}
 }
 

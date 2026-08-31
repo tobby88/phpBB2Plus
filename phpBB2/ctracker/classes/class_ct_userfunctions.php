@@ -512,15 +512,18 @@ class ct_userfunctions
 	 */
 	function pw_create_date($user_id)
 	{
-		global $db, $lang, $ctracker_config;
+		global $db, $lang;
 
-		// Build expire date without relying on an undefined constant name.
-		$exp_time_stamp = time() + intval($ctracker_config->settings['pwreset_time']) * 86400;
+		// Keep the password-change timestamp separate from the password-reset
+		// request cooldown. The original MOD reused ct_last_pw_reset for both,
+		// which could block reset requests for days and then report a freshly
+		// reset password as expired after only a few minutes.
+		$change_time = time();
 
 		// Ensure $user_id is integer
 		$user_id = intval($user_id);
 
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_pw_reset = ' . $exp_time_stamp . ' WHERE user_id = ' . $user_id;
+		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_pw_change = ' . $change_time . ' WHERE user_id = ' . $user_id;
 		if ( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);

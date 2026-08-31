@@ -80,7 +80,8 @@ if ($submit)
 		$new_password_hash = phpbb_password_hash($new_password);
 		$new_password_hash_sql = $db->sql_escape($new_password_hash);
 		$user_id = (int) $userdata['user_id'];
-		$sql = "UPDATE " . USERS_TABLE . " SET user_password='" . $new_password_hash_sql . "', user_passwd_change=".time()."
+		$password_change_time = time();
+		$sql = "UPDATE " . USERS_TABLE . " SET user_password='" . $new_password_hash_sql . "', user_passwd_change=" . $password_change_time . ", ct_last_pw_change=" . $password_change_time . "
 		WHERE user_active = 1 AND user_id=". $user_id;
 		if ( !($result = $db->sql_query($sql)) )
 		{

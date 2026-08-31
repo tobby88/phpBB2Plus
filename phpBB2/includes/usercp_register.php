@@ -598,7 +598,6 @@ if ( isset($_POST['submit']) )
 
 			if ( !$error )
 			{
-				$profile_security->pw_create_date($user_id);
 				$new_password = phpbb_password_hash($new_password);
 				$passwd_sql = "user_password = '$new_password', ";
 			}
@@ -808,6 +807,10 @@ if ( isset($_POST['submit']) )
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
+			}
+			if ( !empty($passwd_sql) )
+			{
+				$profile_security->pw_create_date($user_id);
 			}
 			if ($username_sql !== '')
 			{

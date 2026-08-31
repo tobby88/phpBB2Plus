@@ -647,12 +647,17 @@ if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $
 
 (($ctracker_settings['login_history'] == 1 || $ctracker_settings['login_ip_check'] == 1) && $userdata['session_logged_in']) ? $template->assign_block_vars('login_sec_link', array()) : null;
 
-/* CrackerTracker Password Expirement Check */
-if ( $userdata['session_logged_in'] && $ctracker_settings['pw_control'] == 1 && time() > $userdata['ct_last_pw_reset'] )
+/* CrackerTracker password-age check. Reset-request throttling is stored
+ * separately in ct_last_pw_reset and must not influence this notice. */
+$ct_password_changed_at = isset($userdata['ct_last_pw_change']) ? max(0, intval($userdata['ct_last_pw_change'])) : 0;
+$ct_password_validity_days = isset($ctracker_settings['pw_validity']) ? intval($ctracker_settings['pw_validity']) : 30;
+$ct_password_validity_days = ($ct_password_validity_days > 0) ? min(365, $ct_password_validity_days) : 30;
+if ( $userdata['session_logged_in'] && $ctracker_settings['pw_control'] == 1 &&
+	$ct_password_changed_at > 0 && time() > ($ct_password_changed_at + ($ct_password_validity_days * 86400)) )
 {
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
-		'L_MESSAGE_TEXT' => sprintf($lang['ctracker_info_pw_expired'], $ctracker_settings['pw_validity']),
+		'L_MESSAGE_TEXT' => sprintf($lang['ctracker_info_pw_expired'], $ct_password_validity_days),
 		'L_MARK_MESSAGE' => '', 'U_MARK_MESSAGE' => ''));
 }
 

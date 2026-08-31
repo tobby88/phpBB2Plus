@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Separated CrackerTracker's password-age timestamp from its password-reset
+  request cooldown. The original shared field could block reset requests for
+  days and then mark a newly reset password as expired after only minutes.
+  All public and administrator password-write paths now maintain the proper
+  change timestamp, and the idempotent updater repairs legacy rows once. The
+  public reset route now also uses the database driver's escaping and bounded
+  cooldown values instead of its ineffective legacy quote replacement.
 - Modernized public contact profiles. Retired ICQ, AIM, MSN, Yahoo Messenger
   and Skype links plus the non-contact Pinterest field are no longer offered
   or rendered, while their historic database values remain preserved. Signal

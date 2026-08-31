@@ -90,14 +90,17 @@ if (in_array('--self-test', $argv, true))
 	$schema_has_checksum_capacity = (bool) preg_match('/`hash`\s+varchar\(64\)/i', $schema_source);
 	$schema_has_current_contacts = (bool) preg_match('/user_signal\s+varchar\(255\)/i', $schema_source)
 		&& (bool) preg_match('/user_threema\s+varchar\(255\)/i', $schema_source);
+	$schema_has_split_password_timestamps = (bool) preg_match('/ct_last_pw_reset\s+INT\(\s*11\s*\)\s+DEFAULT\s+0/i', $schema_source)
+		&& (bool) preg_match('/ct_last_pw_change\s+INT\(\s*11\s*\)\s+DEFAULT\s+0/i', $schema_source)
+		&& (bool) preg_match("/\('password_timestamps_split',\s*'1'\)/i", $basic_source);
 	$schema_has_public_styles = (bool) preg_match('/theme_public\s+tinyint\(1\)/i', $schema_source);
 	$basic_has_named_theme_insert = (bool) preg_match('/INSERT INTO\s+phpbb_themes\s*\([^;]*theme_public[^;]*\)\s*VALUES/i', $basic_source);
 	$theme_seed_count = preg_match_all('/^INSERT INTO\s+phpbb_themes\s*\(/im', $basic_source, $unused_theme_matches);
 	$standard_style_config_count = count(update_read_theme_info($forum_root, 'fisubsilversh'));
 	$has_patch_markers = (bool) preg_match('/^\+/m', $schema_source . "\n" . $basic_source);
-	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_current_contacts || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
+	if ($arcade_tables !== 17 || $ctracker_tables !== 6 || !isset($create_statements['phpbb_logs']) || count($seed_statements) < 71 || !$schema_has_password_capacity || !$schema_has_ip_capacity || !$schema_has_checksum_capacity || !$schema_has_current_contacts || !$schema_has_split_password_timestamps || !$schema_has_public_styles || !$basic_has_named_theme_insert || $theme_seed_count !== 1 || $standard_style_config_count !== 1 || $has_patch_markers)
 	{
-		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
+		fwrite(STDERR, "Schema self-test failed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, password capacity " . ($schema_has_password_capacity ? 'ok' : 'invalid') . ", split password timestamps " . ($schema_has_split_password_timestamps ? 'ok' : 'invalid') . ", IP capacity " . ($schema_has_ip_capacity ? 'ok' : 'invalid') . ", checksum capacity " . ($schema_has_checksum_capacity ? 'ok' : 'invalid') . ", current contacts " . ($schema_has_current_contacts ? 'ok' : 'invalid') . ", public styles " . ($schema_has_public_styles && $basic_has_named_theme_insert ? 'ok' : 'invalid') . ", standard style $theme_seed_count seed/$standard_style_config_count config, patch markers " . ($has_patch_markers ? 'present' : 'none') . ".\n");
 		exit(3);
 	}
 	echo "Schema self-test passed: $arcade_tables Arcade tables, $ctracker_tables CrackerTracker tables, " . count($seed_statements) . " seed statements, adaptive-password, IPv6 and SHA-256 checksum columns ready.\n";
@@ -394,13 +397,13 @@ $user_columns = array(
 	'ct_last_mail' => 'INT(11) DEFAULT 1',
 	'ct_last_post' => 'INT(11) DEFAULT 1',
 	'ct_post_counter' => 'MEDIUMINT(8) DEFAULT 1',
-	'ct_last_pw_reset' => 'INT(11) DEFAULT 1',
+	'ct_last_pw_reset' => 'INT(11) DEFAULT 0',
 	'ct_enable_ip_warn' => 'TINYINT(1) DEFAULT 1',
 	'ct_last_used_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
 	'ct_last_ip' => "VARCHAR(45) DEFAULT '0.0.0.0'",
 	'ct_login_count' => 'MEDIUMINT(8) DEFAULT 1',
 	'ct_login_vconfirm' => 'TINYINT(1) DEFAULT 0',
-	'ct_last_pw_change' => 'INT(11) DEFAULT 1',
+	'ct_last_pw_change' => 'INT(11) DEFAULT 0',
 	'ct_global_msg_read' => 'TINYINT(1) DEFAULT 0',
 	'ct_miserable_user' => 'TINYINT(1) DEFAULT 0',
 	'user_fb' => 'VARCHAR(255) DEFAULT NULL',
@@ -422,6 +425,16 @@ foreach ($user_columns as $column => $definition)
 	update_queue_column($operations, $connection, $dbname, $table_prefix . 'users', $column, $definition);
 }
 $users_table = $table_prefix . 'users';
+$ctracker_config_table = $table_prefix . 'ctracker_config';
+// CrackerTracker 5 historically overloaded ct_last_pw_reset with both a
+// minutes-long reset-request cooldown and a days-long password-age deadline.
+// Migrate once to the otherwise unused ct_last_pw_change timestamp and clear
+// the ambiguous legacy cooldown. Fresh installs carry the marker already.
+$operations[] = 'UPDATE ' . update_quote_identifier($users_table) . ' SET ' .
+	'ct_last_pw_change = CASE WHEN user_passwd_change > 0 THEN user_passwd_change ' .
+	'WHEN user_regdate > 0 THEN user_regdate ELSE UNIX_TIMESTAMP() END, ct_last_pw_reset = 0 ' .
+	'WHERE NOT EXISTS (SELECT 1 FROM ' . update_quote_identifier($ctracker_config_table) .
+	" WHERE ct_config_name = 'password_timestamps_split')";
 if (update_column_max_length($connection, $dbname, $users_table, 'user_password') < 255)
 {
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($users_table) .

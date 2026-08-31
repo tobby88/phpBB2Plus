@@ -28,6 +28,7 @@ $ctracker_config->settings = array(
 	'pw_complex_min' => 3,
 	'pw_complex_mode' => 7,
 	'pwreset_time' => 20,
+	'pw_validity' => 30,
 	'spammer_blockmode' => 0
 );
 $lang = array(
@@ -66,9 +67,10 @@ if (count($db->queries) !== 0)
 }
 
 $functions->pw_create_date(2);
-if (count($db->queries) !== 1 || strpos($db->queries[0], 'ct_last_pw_reset = ') === false)
+if (count($db->queries) !== 1 || strpos($db->queries[0], 'ct_last_pw_change = ') === false ||
+	strpos($db->queries[0], 'ct_last_pw_reset') !== false)
 {
-	throw new Exception('Password expiry timestamp update failed.');
+	throw new Exception('Password-change and reset-cooldown timestamps were not kept separate.');
 }
 
 echo "CrackerTracker user-function checks passed.\n";
