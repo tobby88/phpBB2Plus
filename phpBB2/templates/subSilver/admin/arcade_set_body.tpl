@@ -42,7 +42,7 @@
   </table>
   <table width="100%"  border="0" cellspacing="0" cellpadding="0">
   <tr>
-    <td><div align="center"><span class=gensmall>Original version By <a href="http://www.realdealstubblefield.com" target="_blank">ScottDaMan</a> | Made in ACP panel By Mark | Based around Minesh's ACP panel </SPAN></div></td>
+    <td><div align="center"><span class=gensmall>Original version By <a href="http://www.realdealstubblefield.com" target="_blank" rel="noopener noreferrer">ScottDaMan</a> | Made in ACP panel By Mark | Based around Minesh's ACP panel </SPAN></div></td>
   </tr>
 </table>
 <br />

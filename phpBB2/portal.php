@@ -872,7 +872,7 @@ $template->assign_vars(array(
 	// Start add - Photo Album Block
 	'S_COLS1' => $album_config['cols_per_page'],
 	'S_COL_WIDTH1' => $alb_col . '%',
-	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
+	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 	'L_NEWEST_PICS' => $lang['Newest_pics'],
 	'L_NO_PICS' => $lang['No_Pics'],
 	'L_PIC_TITLE' => $lang['Pic_Title'],

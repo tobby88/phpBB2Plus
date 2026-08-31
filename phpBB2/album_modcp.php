@@ -423,7 +423,7 @@ if ($mode == '')
 
 			$template->assign_block_vars('picrow', array(
 				'PIC_ID' => $picrow[$i]['pic_id'],
-				'PIC_TITLE' => '<a href="'. append_sid("album_pic.$phpEx?pic_id=". (int) $picrow[$i]['pic_id']) .'" target="_blank">'. htmlspecialchars($picrow[$i]['pic_title'], ENT_QUOTES, 'UTF-8') .'</a>',
+				'PIC_TITLE' => '<a href="'. append_sid("album_pic.$phpEx?pic_id=". (int) $picrow[$i]['pic_id']) .'" target="_blank" rel="noopener noreferrer">'. htmlspecialchars($picrow[$i]['pic_title'], ENT_QUOTES, 'UTF-8') .'</a>',
 				'POSTER' => $pic_poster,
 				'TIME' => create_date($board_config['default_dateformat'], $picrow[$i]['pic_time'], $board_config['board_timezone']),
 				'RATING' => ($picrow[$i]['rating'] == 0) ? $lang['Not_rated'] : round($picrow[$i]['rating'], 2),

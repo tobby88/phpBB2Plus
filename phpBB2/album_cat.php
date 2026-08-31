@@ -750,7 +750,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 
 		'S_ALBUM_ACTION' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
 
-		'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
+		'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 
 		'L_SELECT_SORT_METHOD' => $lang['Select_sort_method'],
 		'L_ORDER' => $lang['Order'],

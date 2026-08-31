@@ -6,7 +6,7 @@
 	<!-- BEGIN attach_row -->
 		<tr> 
 			<td class="row1"><span class="gen"><b>{L_FILE_NAME}</b></span></td>
-			<td class="row2"><span class="gen"> <a class="gen" href="{attach_row.U_VIEW_ATTACHMENT}" target="_blank">{attach_row.FILE_NAME}</a></span></td> 
+			<td class="row2"><span class="gen"> <a class="gen" href="{attach_row.U_VIEW_ATTACHMENT}" target="_blank" rel="noopener noreferrer">{attach_row.FILE_NAME}</a></span></td>
 		</tr>
 		<tr> 
 			<td class="row1"><span class="gen"><b>{L_FILE_COMMENT}</b></span></td> 

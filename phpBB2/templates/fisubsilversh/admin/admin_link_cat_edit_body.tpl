@@ -15,4 +15,4 @@
    </tr>
 </table>
 {S_HIDDEN_FIELDS}</form> 
-<div align="center"><span class="copyright">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank">phpBB2.de</a> and OOHOO</span></div>
+<div align="center"><span class="copyright">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank" rel="noopener noreferrer">phpBB2.de</a> and OOHOO</span></div>

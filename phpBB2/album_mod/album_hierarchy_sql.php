@@ -789,7 +789,7 @@ function album_get_last_pic_info($cats, &$last_pic_id)
     }
 
     $info .= '<br />' . $lang['Pic_Title'] . ': <a href="';
-    $info .= ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=" . $row['pic_id']) . '" target="_blank">' : append_sid($album_pic_url . '?pic_id=' . $row['pic_id']) . '">' ;
+    $info .= ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=" . $row['pic_id']) . '" target="_blank" rel="noopener noreferrer">' : append_sid($album_pic_url . '?pic_id=' . $row['pic_id']) . '">' ;
     $info .= $row['pic_title'] . '</a>';
 
 	$last_pic_id = $row['pic_id'];

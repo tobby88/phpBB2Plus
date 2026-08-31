@@ -111,7 +111,7 @@
 <!-- BEGIN size_open --><span style="font-size:{SIZE}px; line-height:normal"><!-- END size_open -->
 <!-- BEGIN size_close --></span><!-- END size_close -->
 <!-- BEGIN img --><img src="{URL}" alt="Image" title="Image" border="0" /><!-- END img -->
-<!-- BEGIN url --><a href="{URL}" target="_blank" class="postlink">{DESCRIPTION}</a><!-- END url -->
+<!-- BEGIN url --><a href="{URL}" target="_blank" class="postlink" rel="noopener noreferrer">{DESCRIPTION}</a><!-- END url -->
 <!-- BEGIN email --><a href="mailto:{EMAIL}">{EMAIL}</a><!-- END email -->
 <!-- BEGIN schild --><img src="{URL}" border="0"><!-- END schild -->
 <!-- BEGIN php_open -->
@@ -192,7 +192,7 @@
 <!-- BEGIN highlight_close --></span><!-- END highlight_close -->
 <!-- BEGIN s_open --><s><!-- END s_open -->
 <!-- BEGIN s_close --></s><!-- END s_close -->
-<!-- BEGIN google --><a href="http://www.google.com/search?q={QUERY}" target="_blank">{STRING}</a><!-- END google -->
+<!-- BEGIN google --><a href="http://www.google.com/search?q={QUERY}" target="_blank" rel="noopener noreferrer">{STRING}</a><!-- END google -->
 <!-- BEGIN left --><img src="{URL}" border="0" align="left" /><!-- END left -->
 <!-- BEGIN right --><img src="{URL}" border="0" align="right" /><!-- END right -->
 <!-- BEGIN scrollleft_open --><span><marquee direction="left"><!-- END scrollleft_open -->

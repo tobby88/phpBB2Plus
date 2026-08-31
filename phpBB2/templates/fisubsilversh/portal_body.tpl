@@ -186,7 +186,7 @@ return true;
 <tr>
 <td class="row1" align="center">{BANNER_16_IMG}<br /><img src="images/spacer.gif" alt="" width="8" height="4" /><br />{BANNER_17_IMG}<br /><img src="images/spacer.gif" alt="" width="8" height="4" /><br />{BANNER_18_IMG}<br /><img src="images/spacer.gif" alt="" width="8" height="4" /><br />{BANNER_19_IMG}<br /><img src="images/spacer.gif" alt="" width="8" height="4" /></td>
 <tr>
-<td align="center" class="row2"><span class="gensmall">ezPortal by <a href="http://smartor.is-root.com/" target="_blank">Smartor</a><br /><a href="http://www.phpbb3.de" target="_blank">phpBB3 Support</a></span></td>
+<td align="center" class="row2"><span class="gensmall">ezPortal by <a href="http://smartor.is-root.com/" target="_blank" rel="noopener noreferrer">Smartor</a><br /><a href="http://www.phpbb3.de" target="_blank" rel="noopener noreferrer">phpBB3 Support</a></span></td>
 </tr>
 </table>
 <table border="0" cellpadding="0" cellspacing="0" class="tbl"><tr><td class="tbll"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblbot"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblr"><img src="images/spacer.gif" alt="" width="8" height="4" /></td></tr></table>
@@ -314,7 +314,7 @@ return true;
      <td align="left" class="topictitle">{articles.L_TITLE_ICON}&nbsp;<a href="{INDEX_FILE}?topic_id={articles.ID}">{articles.L_TITLE}</a></td>
      <td align="right">
      <a href="posting.php?mode=reply&t={articles.ID}"><img src="{NEWS_REPLY_IMG}" alt="{L_REPLY_NEWS}" title="{L_REPLY_NEWS}" /></a>
-     <a href="printview.php?t={articles.ID}&start=0" target="_blank"><img src="{NEWS_PRINT_IMG}" alt="{L_PRINT_NEWS}" title="{L_PRINT_NEWS}" /></a>
+     <a href="printview.php?t={articles.ID}&start=0" target="_blank" rel="noopener noreferrer"><img src="{NEWS_PRINT_IMG}" alt="{L_PRINT_NEWS}" title="{L_PRINT_NEWS}" /></a>
      <a href="tellafriend.php?topic={articles.L_TITLE}&link={TELL_LINK}{articles.ID}"><img src="{NEWS_EMAIL_IMG}" alt="{L_EMAIL_NEWS}" title="{L_EMAIL_NEWS}" /></a>
      </td>
      </tr>

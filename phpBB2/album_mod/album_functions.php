@@ -700,7 +700,7 @@ function album_end()
 {
 	global $album_config;
 
-	echo '<div align="center" style="font-family: Verdana; font-size: 10px; letter-spacing: -1px">Powered by Photo Album Addon 2' . $album_config['album_version'] . ' &copy; 2002, 2003 <a href="http://smartor.is-root.com" target="_blank">Smartor</a></div>';
+	echo '<div align="center" style="font-family: Verdana; font-size: 10px; letter-spacing: -1px">Powered by Photo Album Addon 2' . $album_config['album_version'] . ' &copy; 2002, 2003 <a href="http://smartor.is-root.com" target="_blank" rel="noopener noreferrer">Smartor</a></div>';
 }
 //
 // OR you can pay me for the copyright notice removal. Contact me!

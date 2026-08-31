@@ -255,3 +255,6 @@ jobs:
 
       - name: Test BBCode safety
         run: php .github/scripts/check-bbcode-safety.php
+
+      - name: Test new-window link safety
+        run: php .github/scripts/check-new-window-link-safety.php

@@ -193,7 +193,7 @@ function display_assign_link($post_id)
 	}
 
 	$temp_url = append_sid("assign_file.$phpEx?p=" . $post_id);
-	$link = '<a href="' . $temp_url . '" target="_blank"><img src="' . $image . '" alt="Add File" title="Add File" border="0" /></a>';
+	$link = '<a href="' . $temp_url . '" target="_blank" rel="noopener noreferrer"><img src="' . $image . '" alt="Add File" title="Add File" border="0" /></a>';
 	
 	return ($link);
 }
@@ -619,7 +619,7 @@ function display_attachments_preview($attachment_list, $attachment_filesize_list
 						$upload_image = '<img src="' . $upload_icons[$extension] . '" alt="" border="0" />';
 					}
 
-					$target_blank = 'target="_blank"';
+					$target_blank = 'target="_blank" rel="noopener noreferrer"';
 					
 					// display attachment
 					$template->assign_block_vars('postrow.attach.attachrow', array(
@@ -925,7 +925,7 @@ function display_attachments($post_id)
 
 			if ($link)
 			{
-				$target_blank = 'target="_blank"'; //( (intval($display_categories[$attachments['_' . $post_id][$i]['extension']]) == IMAGE_CAT) ) ? 'target="_blank"' : '';
+				$target_blank = 'target="_blank" rel="noopener noreferrer"'; //( (intval($display_categories[$attachments['_' . $post_id][$i]['extension']]) == IMAGE_CAT) ) ? 'target="_blank"' : '';
 
 				// display attachment
 				$template->assign_block_vars('postrow.attach.attachrow', array(
@@ -1224,7 +1224,7 @@ function display_portal_news_attachments($post_id)
 
 			if ($link)
 			{
-				$target_blank = 'target="_blank"'; //( (intval($display_categories[$attachments['_' . $post_id][$i]['extension']]) == IMAGE_CAT) ) ? 'target="_blank"' : '';
+				$target_blank = 'target="_blank" rel="noopener noreferrer"'; //( (intval($display_categories[$attachments['_' . $post_id][$i]['extension']]) == IMAGE_CAT) ) ? 'target="_blank"' : '';
 
 				// display attachment
 				$template->assign_block_vars('articles.attach.attachrow', array(

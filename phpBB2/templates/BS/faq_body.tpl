@@ -37,7 +37,7 @@
   <!-- END faq_block -->
   <div class="container mt-1">
 	<div class="row">
-	  <div class="col text-start"><span class="copyright">DHTML Collapsible FAQ &copy; 2004 by <a href="#" target="_blank" class="copyright">phpMiX</a></span></div>
+	  <div class="col text-start"><span class="copyright">DHTML Collapsible FAQ &copy; 2004 by <a href="#" target="_blank" class="copyright" rel="noopener noreferrer">phpMiX</a></span></div>
 	  <div class="col text-end"><span class="gensmall">{S_TIMEZONE}</span></div>
 	</div>
 	<div class="row">

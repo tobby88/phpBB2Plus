@@ -43,7 +43,7 @@
 <tr> 
 	<td class="row2" valign="middle" width="20%"><span class="genmed">{L_SCREENSHOT}:</span></td>
 	<!-- IF SS_AS_LINK -->
-	<td class="row1" valign="middle" width="80%" colspan="2"><span class="genmed"><a href="{FILE_SCREENSHOT}" target="_blank">{L_CLICK_HERE}</a></span></td>
+	<td class="row1" valign="middle" width="80%" colspan="2"><span class="genmed"><a href="{FILE_SCREENSHOT}" target="_blank" rel="noopener noreferrer">{L_CLICK_HERE}</a></span></td>
 	<!-- ELSE -->
 	<td class="row1" valign="middle" width="80%" colspan="2"><span class="genmed"><a href="javascript:mpFoto('{FILE_SCREENSHOT}')"><img src="{FILE_SCREENSHOT}" border="0" width="100" hight="100"></a></span></td>
 	<!-- ENDIF -->
@@ -52,7 +52,7 @@
 <!-- IF SHOW_WEBSITE -->
   <tr> 
 	<td class="row2" valign="middle" width="20%"><span class="genmed">{L_WEBSITE}:</span></td>
-	<td class="row1" valign="middle" width="80%" colspan="2"><span class="genmed"><a href="{FILE_WEBSITE}" target="_blank">{L_CLICK_HERE}</a></span></td>
+	<td class="row1" valign="middle" width="80%" colspan="2"><span class="genmed"><a href="{FILE_WEBSITE}" target="_blank" rel="noopener noreferrer">{L_CLICK_HERE}</a></span></td>
   </tr>
 <!-- ENDIF --> 
 <tr> 

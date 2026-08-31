@@ -713,11 +713,11 @@ if ($plus_config['enable_banners'])
 						break;
 					case 2 :
 						// Text link
-						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank" title="'.$safe_banner_description.'">'.$safe_banner_name.'</a>');
+						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank" title="'.$safe_banner_description.'" rel="noopener noreferrer">'.$safe_banner_name.'</a>');
 						break;
 					case 0 :
 					default: 
-						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank"><img src="'.$safe_banner_name.'" '.$banner_size.' border="0" alt="'.$safe_banner_description.'" title="'.$safe_banner_description.'" /></a>');
+						$template->assign_var('BANNER_'.$banner_spot.'_IMG', '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.$banner_id).'" target="_blank" rel="noopener noreferrer"><img src="'.$safe_banner_name.'" '.$banner_size.' border="0" alt="'.$safe_banner_description.'" title="'.$safe_banner_description.'" /></a>');
 				}
 				$banner_show_list.= ', '.$banners[$i]['banner_id'];
 			}

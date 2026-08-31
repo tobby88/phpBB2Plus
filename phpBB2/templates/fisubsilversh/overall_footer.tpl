@@ -24,7 +24,7 @@ www.phpbb2.de
 <a name="bot" id="bot"></a></td></tr></table>
 <table width="100%" border="0" cellspacing="0" cellpadding="2">
 <tr> 
-<td align="center" class="topnav">Powered by <a href="http://www.phpbb2.de/" target="_phpbb">phpBB2</a> <a href="http://www.phpbb2plus.de">Plus</a> and <a href="http://www.webkatalog24.org" target="_blank">Webkatalog</a> based on <a href="http://www.phpbb.com/" target="_phpbb">phpBB</a>  
+<td align="center" class="topnav">Powered by <a href="http://www.phpbb2.de/" target="_phpbb">phpBB2</a> <a href="http://www.phpbb2plus.de">Plus</a> and <a href="http://www.webkatalog24.org" target="_blank" rel="noopener noreferrer">Webkatalog</a> based on <a href="http://www.phpbb.com/" target="_phpbb">phpBB</a>
 &copy; 2001/6 phpBB Group :: FI Theme :: <a href="{U_CREDITS}">{L_CREDITS}</a></td>
 </tr>
 </table>

@@ -166,9 +166,9 @@ $lang['ctracker_credits_credits_4']		  = 'Official Downloadsite';
 $lang['ctracker_credits_moddownload']	  = 'CrackerTracker MOD Download';
 $lang['ctracker_credits_thanks']		  = 'Thanks to...';
 $lang['ctracker_credits_thanks_text']	  = 'I would like to say thank you to the following persons:';
-$lang['ctracker_credits_thanks_to']		  = '<b>Ideas, Safety tests and Proofreading</b><br />Tekin Birdüzen<br /><i>(<a href="http://www.cybercosmonaut.de" target="_blank">cYbercOsmOnauT</a>)</i><br /><br /><br /><br /><b>Ideas:</b><br />Bernhard Jaud<br /><i>(GenuineParts)</i><br /><br /><br /><br /><b>Translator (English)</b><br />Marc Renninger<br /><i>(mc-dragon)</i><br /><br /><br /><br /><b>Corrector (English)</b><br />George <br />Sommerset<br /><i>(<a href="http://www.englisch-hilfen.de" target="_blank">www.englisch-hilfen.de</a>)</i><br /><br /><br /><br /><b>Beta Tester</b><br />Thanks to all participants of Beta-Tests<br />to the CBACK Premium users and of course to<br />our colleagues of the "Mod-Scene" who helped with Beta Tests and Proofreading, too.</i>';
+$lang['ctracker_credits_thanks_to']		  = '<b>Ideas, Safety tests and Proofreading</b><br />Tekin Birdüzen<br /><i>(<a href="http://www.cybercosmonaut.de" target="_blank" rel="noopener noreferrer">cYbercOsmOnauT</a>)</i><br /><br /><br /><br /><b>Ideas:</b><br />Bernhard Jaud<br /><i>(GenuineParts)</i><br /><br /><br /><br /><b>Translator (English)</b><br />Marc Renninger<br /><i>(mc-dragon)</i><br /><br /><br /><br /><b>Corrector (English)</b><br />George <br />Sommerset<br /><i>(<a href="http://www.englisch-hilfen.de" target="_blank" rel="noopener noreferrer">www.englisch-hilfen.de</a>)</i><br /><br /><br /><br /><b>Beta Tester</b><br />Thanks to all participants of Beta-Tests<br />to the CBACK Premium users and of course to<br />our colleagues of the "Mod-Scene" who helped with Beta Tests and Proofreading, too.</i>';
 $lang['ctracker_credits_info']			  = 'More Safety?';
-$lang['ctracker_credits_info_text']		  = 'The perfect add-on for phpBB and the CrackerTracker: For an optimal safety we recommend the Mod <b>Advanced Visual Confirmation</b> by AmigaLink. This MOD expands the CAPTCHA feature of phpBB and  CrackerTracker Professional with a more complex system which cannot be read out by Bots. This MOD you can download on <a href="http://www.amigalink.de" target="_blank">www.AmigaLink.de</a>.<br /><br /><br /><br />We suggest that you also integrate this MOD in your Board for an excellent safety.';
+$lang['ctracker_credits_info_text']		  = 'The perfect add-on for phpBB and the CrackerTracker: For an optimal safety we recommend the Mod <b>Advanced Visual Confirmation</b> by AmigaLink. This MOD expands the CAPTCHA feature of phpBB and  CrackerTracker Professional with a more complex system which cannot be read out by Bots. This MOD you can download on <a href="http://www.amigalink.de" target="_blank" rel="noopener noreferrer">www.AmigaLink.de</a>.<br /><br /><br /><br />We suggest that you also integrate this MOD in your Board for an excellent safety.';
 
 
 /*
@@ -373,8 +373,8 @@ $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
  * Language Strings used for the footer itself
  */
 $lang['ctracker_fdisplay_imgdesc']		  = 'Board Security';
-$lang['ctracker_fdisplay_n'] 			  = '<a href="http://www.cback.de" target="_blank">Security</a> with <a href="http://www.cback.de" target="_blank">CBACK CrackerTracker</a>.';
-$lang['ctracker_fdisplay_c'] 			  = 'Protected by <a href="http://www.cback.de" target="_blank">CBACK CrackerTracker</a><br /><b>%s</b> Attacks blocked.';
+$lang['ctracker_fdisplay_n'] 			  = '<a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">Security</a> with <a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">CBACK CrackerTracker</a>.';
+$lang['ctracker_fdisplay_c'] 			  = 'Protected by <a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">CBACK CrackerTracker</a><br /><b>%s</b> Attacks blocked.';
 $lang['ctracker_fdisplay_g'] 			  = '<b>%s</b> Attacks blocked';
 
 

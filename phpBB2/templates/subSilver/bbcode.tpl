@@ -57,6 +57,6 @@
 
 <!-- BEGIN p_img -->{L_PRIV_IMG}:{URL}<!-- END p_img -->
 
-<!-- BEGIN url --><a href="{URL}" target="_blank" class="postlink">{DESCRIPTION}</a><!-- END url -->
+<!-- BEGIN url --><a href="{URL}" target="_blank" class="postlink" rel="noopener noreferrer">{DESCRIPTION}</a><!-- END url -->
 
 <!-- BEGIN email --><a href="mailto:{EMAIL}">{EMAIL}</a><!-- END email -->

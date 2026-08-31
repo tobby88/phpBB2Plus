@@ -53,8 +53,8 @@ function create_footer_layout($ct_gfn)
 		unset($footer_mgr);
 	}
 	
-	$footer_mini = '<a href="http://www.cback.de" target="_blank"><img src="' . $phpbb_root_path . $images['ctracker_footer_s'] . '" title="' . $lang['ctracker_fdisplay_imgdesc'] . '" alt="' . $lang['ctracker_fdisplay_imgdesc'] . '" border="0"></a>';
-	$footer_big  = '<a href="http://www.cback.de" target="_blank"><img src="' . $phpbb_root_path . $images['ctracker_footer_b'] . '" title="' . $lang['ctracker_fdisplay_imgdesc'] . '" alt="' . $lang['ctracker_fdisplay_imgdesc'] . '" border="0"></a>';
+	$footer_mini = '<a href="http://www.cback.de" target="_blank" rel="noopener noreferrer"><img src="' . $phpbb_root_path . $images['ctracker_footer_s'] . '" title="' . $lang['ctracker_fdisplay_imgdesc'] . '" alt="' . $lang['ctracker_fdisplay_imgdesc'] . '" border="0"></a>';
+	$footer_big  = '<a href="http://www.cback.de" target="_blank" rel="noopener noreferrer"><img src="' . $phpbb_root_path . $images['ctracker_footer_b'] . '" title="' . $lang['ctracker_fdisplay_imgdesc'] . '" alt="' . $lang['ctracker_fdisplay_imgdesc'] . '" border="0"></a>';
 	
 	switch( $ct_gfn )
 	{
@@ -76,13 +76,13 @@ function create_footer_layout($ct_gfn)
 		case 6:		$ctracker_footer_template = sprintf($lang['ctracker_fdisplay_c'], $counter_value_now);
 					break;
 					
-		case 7:		$ctracker_footer_template = 'CrackerTracker &copy; 2004 - ' . date('Y') . ' <a href="http://www.cback.de" target="_blank">CBACK.de</a>';
+		case 7:		$ctracker_footer_template = 'CrackerTracker &copy; 2004 - ' . date('Y') . ' <a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">CBACK.de</a>';
 					break;
 					
-		case 8:		$ctracker_footer_template = '<a href="http://www.cback.de" target="_blank">' . sprintf($lang['ctracker_fdisplay_g'], $counter_value_now) . '</a>';
+		case 8:		$ctracker_footer_template = '<a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">' . sprintf($lang['ctracker_fdisplay_g'], $counter_value_now) . '</a>';
 					break;
 					
-		default:	$ctracker_footer_template = $footer_mini . '<br />CrackerTracker &copy; 2004 - ' . date('Y') . ' <a href="http://www.cback.de" target="_blank">CBACK.de</a>';
+		default:	$ctracker_footer_template = $footer_mini . '<br />CrackerTracker &copy; 2004 - ' . date('Y') . ' <a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">CBACK.de</a>';
 					break;
 	}
 	

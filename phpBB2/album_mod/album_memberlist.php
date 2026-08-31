@@ -346,7 +346,7 @@ if (defined('ALBUM_SP_CONFIG_TABLE'))
 }
 
 $template->assign_vars(array(
-	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
+	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 
 	'S_COLS' => $album_config['cols_per_page'],
 	'S_COL_WIDTH' => (100/$album_config['cols_per_page']) . '%',

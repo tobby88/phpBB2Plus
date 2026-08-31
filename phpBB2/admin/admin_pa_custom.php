@@ -158,7 +158,7 @@ if($mode == 'addfield')
 		'L_FIELD_DATA' => $lang['Field_data'],
 		'L_FIELD_DATA_INFO' => $lang['Field_data_info'],
 		'L_FIELD_REGEX' => $lang['Field_regex'],
-		'L_FIELD_REGEX_INFO' => sprintf($lang['Field_regex_info'], '<a href="http://www.php.net/manual/en/function.preg-match.php" target="_blank">', '</a>'),
+		'L_FIELD_REGEX_INFO' => sprintf($lang['Field_regex_info'], '<a href="http://www.php.net/manual/en/function.preg-match.php" target="_blank" rel="noopener noreferrer">', '</a>'),
 		'L_FIELD_ORDER' => $lang['Field_order'],
 
 		'DATA' => ($field_type != INPUT && $field_type != TEXTAREA) ? TRUE : FALSE,

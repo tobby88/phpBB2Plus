@@ -122,11 +122,11 @@ for ($i = 0; $i < $num_attachments; $i++)
 	$view_topic = append_sid('viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $attachments[$i]['post_id'] . '#' . $attachments[$i]['post_id']);
 	if ($post_title_2 != '')
 	{
-		$post_title = '<a href="' . $view_topic . '" class="gen" title="' . $post_title . '" target="_blank">' . $post_title_2 . '</a>';
+		$post_title = '<a href="' . $view_topic . '" class="gen" title="' . $post_title . '" target="_blank" rel="noopener noreferrer">' . $post_title_2 . '</a>';
 	}
 	else
 	{
-		$post_title = '<a href="' . $view_topic . '" class="gen" target="_blank">' . $post_title . '</a>';
+		$post_title = '<a href="' . $view_topic . '" class="gen" target="_blank" rel="noopener noreferrer">' . $post_title . '</a>';
 	}
 
 	$comment = $attachments[$i]['comment'];
@@ -157,11 +157,11 @@ for ($i = 0; $i < $num_attachments; $i++)
 	$view_attachment = append_sid('download.' . $phpEx . '?id=' . $attachments[$i]['attach_id']);
 	if ($filename_2 != '')
 	{
-		$filename_link = '<a href="' . $view_attachment . '" class="gen" title="' . $filename . '" target="_blank">' . $filename_2 . '</a>';
+		$filename_link = '<a href="' . $view_attachment . '" class="gen" title="' . $filename . '" target="_blank" rel="noopener noreferrer">' . $filename_2 . '</a>';
 	}
 	else
 	{
-		$filename_link = '<a href="' . $view_attachment . '" class="gen" target="_blank">' . $filename . '</a>';
+		$filename_link = '<a href="' . $view_attachment . '" class="gen" target="_blank" rel="noopener noreferrer">' . $filename . '</a>';
 	}
 
 	$start = isset($_GET['start']) ? intval($_GET['start']) : 0;

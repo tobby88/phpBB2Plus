@@ -56,8 +56,8 @@
         <td colspan="2" align="left" class="row3">
                 <table border="0" cellspacing="0" cellpadding="0" align="center" width="93%">
                   <tr>
-                        <td align="left" width="30%"><span class="genmed"><a href="{switch_view_profile.last_posts.FORUM_URL}" target="_blank" onclick="opener.location.href='{switch_view_profile.last_posts.FORUM_URL}'; return false;" class="genmed"><b>{switch_view_profile.last_posts.FORUM_NAME}</b></a></span></td>
-                        <td align="left" width="40%"><span class="genmed"><a href="{switch_view_profile.last_posts.LAST_POST_URL}" target="_blank" onclick="opener.location.href='{switch_view_profile.last_posts.LAST_POST_URL}'; return false;" class="genmed">{switch_view_profile.last_posts.LAST_POST_TITLE}</a></span></td>
+                        <td align="left" width="30%"><span class="genmed"><a href="{switch_view_profile.last_posts.FORUM_URL}" target="_blank" onclick="opener.location.href='{switch_view_profile.last_posts.FORUM_URL}'; return false;" class="genmed" rel="noopener noreferrer"><b>{switch_view_profile.last_posts.FORUM_NAME}</b></a></span></td>
+                        <td align="left" width="40%"><span class="genmed"><a href="{switch_view_profile.last_posts.LAST_POST_URL}" target="_blank" onclick="opener.location.href='{switch_view_profile.last_posts.LAST_POST_URL}'; return false;" class="genmed" rel="noopener noreferrer">{switch_view_profile.last_posts.LAST_POST_TITLE}</a></span></td>
                         <td align="right"><span class="gensmall">{switch_view_profile.last_posts.LAST_POST_TIME}<br />{switch_view_profile.last_posts.LAST_POST_PERIOD}</span></td>
                   </tr>
                 </table></td>

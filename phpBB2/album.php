@@ -336,7 +336,7 @@ for ($i = 0; $i < count($catrows); $i++)
 
 		$last_pic_info .= '<br />'. $lang['Pic_Title'] .': <a href="';
 
-		$last_pic_info .= ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $lastrow['pic_id']) .'" target="_blank">' : append_sid("album_showpage.$phpEx?pic_id=". $lastrow['pic_id']) .'">' ;
+		$last_pic_info .= ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $lastrow['pic_id']) .'" target="_blank" rel="noopener noreferrer">' : append_sid("album_showpage.$phpEx?pic_id=". $lastrow['pic_id']) .'">' ;
 
 		$last_pic_info .= $lastrow['pic_title'] .'</a>';
 
@@ -728,7 +728,7 @@ $template->assign_vars(array(
 
 	'S_COLS' => $album_sp_config['img_cols'],
 	'S_COL_WIDTH' => (100/$album_sp_config['img_cols']) . '%',
-	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
+	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 	'L_RECENT_PUBLIC_PICS' => $lang['Recent_Public_Pics'],
 	'L_NO_PICS' => $lang['No_Pics'],
 	'L_PIC_TITLE' => $lang['Pic_Title'],
@@ -947,7 +947,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 	$template->assign_vars(array(
 		'S_COLS' => $cols,
 		'S_COL_WIDTH' => $cols_width,
-		'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
+		'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 		'L_RECENT_PUBLIC_PICS' => $lang['Recent_Public_Pics'],
 		'L_NO_PICS' => $lang['No_Pics'],
 		'L_PIC_TITLE' => $lang['Pic_Title'],

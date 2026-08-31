@@ -21,7 +21,7 @@
 	</tr>
 	<!-- BEGIN linkrow -->
 	<tr>
-		<td class="{linkrow.ROW_CLASS}" nowrap="nowrap"><a href="{linkrow.LINK_URL}" target="_blank">{linkrow.LINK_TITLE}</a></td>
+		<td class="{linkrow.ROW_CLASS}" nowrap="nowrap"><a href="{linkrow.LINK_URL}" target="_blank" rel="noopener noreferrer">{linkrow.LINK_TITLE}</a></td>
 		<td class="{linkrow.ROW_CLASS}" align="center" nowrap="nowrap">{linkrow.LINK_CATEGORY}</td>
 		<td class="{linkrow.ROW_CLASS}" align="center" nowrap="nowrap">{linkrow.U_LINK_USER}</td>
 		<td class="{linkrow.ROW_CLASS}" nowrap="nowrap">{linkrow.LINK_JOINED}</td>
@@ -42,5 +42,5 @@
 	</tr>
 </table>
 <br clear="all" />
-<div align="center"><span class="copyright">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank">phpBB2.de</a> and OOHOO and CRLin</span></div>
+<div align="center"><span class="copyright">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank" rel="noopener noreferrer">phpBB2.de</a> and OOHOO and CRLin</span></div>
 <br clear="all" />

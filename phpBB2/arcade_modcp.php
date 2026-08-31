@@ -271,7 +271,7 @@ if ($mode == 'mod')
         'TIME' => $score_info['time_taken'] ? $arcade->convert_time($score_info['time_taken']) : '',
  				'EDIT_IMG' => '<a href="'. append_sid("arcade_modcp.$phpEx?mode=mod&amp;cat_id=$cat_id&amp;action=edit_score&amp;id=". $score_info['player_id']) .'"><img src="' . $images['icon_edit'] . '" alt="' . $lang['Edit_delete_post'] . '" title="' . $lang['Edit_delete_post'] . '" border="0" /></a></a>',
 				'DELETE_IMG' => '<a href="'. append_sid("arcade_modcp.$phpEx?mode=mod&amp;cat_id=$cat_id&amp;action=delete_score&amp;game_id=$game_id&amp;player_id=". (int) $score_info['player_id']) . '&amp;score=' . rawurlencode($score_info['score']) . '"><img src="' . $images['icon_delpost'] . '" alt="' . $lang['Delete_post'] . '" title="' . $lang['Delete_post'] . '" /></a>',
-        'IP_IMG' => '<a href="http://network-tools.com/default.asp?host='.$score_info['player_ip'].'" target="_blank"><img src="' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
+        'IP_IMG' => '<a href="http://network-tools.com/default.asp?host='.$score_info['player_ip'].'" target="_blank" rel="noopener noreferrer"><img src="' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
      ));     
      }
      $hidden_options = '<input type="hidden" name="mode" value="mod"><input type="hidden" name="cat_id" value="'.$cat_id.'"><input type="hidden" name="game_id" value="'.$game_id.'">';
@@ -310,7 +310,7 @@ if ($mode == 'mod')
         'TIME' => $score_info['time_taken'] ? $arcade->convert_time($score_info['time_taken']) : '',
  				'EDIT_IMG' => '<a href="'. append_sid("arcade_modcp.$phpEx?mode=mod&amp;cat_id=$cat_id&amp;action=edit_at_score&amp;id=". $score_info['player_id']) .'"><img src="' . $images['icon_edit'] . '" alt="' . $lang['Edit_delete_post'] . '" title="' . $lang['Edit_delete_post'] . '" border="0" /></a></a>',
 				'DELETE_IMG' => '<a href="'. append_sid("arcade_modcp.$phpEx?mode=mod&amp;cat_id=$cat_id&amp;action=delete_at_score&amp;game_id=$game_id&amp;player_id=". (int) $score_info['player_id']) . '&amp;score=' . rawurlencode($score_info['score']) . '"><img src="' . $images['icon_delpost'] . '" alt="' . $lang['Delete_post'] . '" title="' . $lang['Delete_post'] . '" /></a>',
-        'IP_IMG' => '<a href="http://network-tools.com/default.asp?host='.$score_info['player_ip'].'" target="_blank"><img src="' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
+        'IP_IMG' => '<a href="http://network-tools.com/default.asp?host='.$score_info['player_ip'].'" target="_blank" rel="noopener noreferrer"><img src="' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
      ));     
      }
      $hidden_options = '<input type="hidden" name="mode" value="mod"><input type="hidden" name="cat_id" value="'.$cat_id.'"><input type="hidden" name="game_id" value="'.$game_id.'">';

@@ -150,7 +150,7 @@ function checkForm() {
 		</table>
 		</td></tr>
 		</table><br />
-		<div align="center" style="font-family: Verdana; font-size: 10px; letter-spacing: -1px">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank">phpBB2.de</a> and OOHOO and <a href="http://mail.dhjh.tcc.edu.tw/~gzqbyr/" target="_gzqbyr">CRLin</a>.</div>
+		<div align="center" style="font-family: Verdana; font-size: 10px; letter-spacing: -1px">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank" rel="noopener noreferrer">phpBB2.de</a> and OOHOO and <a href="http://mail.dhjh.tcc.edu.tw/~gzqbyr/" target="_gzqbyr">CRLin</a>.</div>
 	  </td>
 	</tr> 
 </table>

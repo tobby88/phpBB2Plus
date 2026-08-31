@@ -63,5 +63,5 @@
 	  <td class="cat" colspan="2" align="center">{S_HIDDEN_FIELDS}<input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" />&nbsp;&nbsp;<input type="reset" value="{L_RESET}" class="liteoption" /></td>
 	</tr>
 </table></form>
-<div align="center"><span class="copyright">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank">phpBB2.de</a> and OOHOO and CRLin</span></div>
+<div align="center"><span class="copyright">Links MOD v1.2.2b by <a href="http://www.phpbb2.de" target="_blank" rel="noopener noreferrer">phpBB2.de</a> and OOHOO and CRLin</span></div>
 <br clear="all" />

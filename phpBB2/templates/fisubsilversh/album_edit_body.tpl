@@ -56,4 +56,4 @@ function checkAlbumForm() {
 <!--
 You must keep my copyright notice visible with its original content
 -->
-<div align="center" class="copyright">Powered by Photo Album {ALBUM_VERSION} &copy; 2002-2003 <a href="http://smartor.is-root.com" target="_blank">Smartor</a></div>
+<div align="center" class="copyright">Powered by Photo Album {ALBUM_VERSION} &copy; 2002-2003 <a href="http://smartor.is-root.com" target="_blank" rel="noopener noreferrer">Smartor</a></div>

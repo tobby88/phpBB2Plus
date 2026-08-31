@@ -64,6 +64,6 @@ hr.sep	{ height: 0px; border: solid #D1D7DC 0px; border-top-width: 1px;}
 	The phpBB Group : 2001
 
 // -->
-  Powered by <a href="http://www.phpbb2.de">phpBB2 Plus </a> and <a href="http://www.kostenloses-forum.tk" target="_blank">Kostenloses Forum</a> based on <a href="http://www.phpbb.com/" target="_phpbb">phpBB</a></div>
+  Powered by <a href="http://www.phpbb2.de">phpBB2 Plus </a> and <a href="http://www.kostenloses-forum.tk" target="_blank" rel="noopener noreferrer">Kostenloses Forum</a> based on <a href="http://www.phpbb.com/" target="_phpbb">phpBB</a></div>
 </body>
 </html>

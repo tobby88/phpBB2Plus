@@ -126,7 +126,7 @@ function checkForm() {
 		<tr>
 		<td rowspan="2" valign="top" align="right" class="{linkrow.ROW_CLASS}">&nbsp;{linkrow.LINK_LOGO}&nbsp;</td>
 		<td width="100%" class="{linkrow.ROW_CLASS}">
-		<a href="{linkrow.LINK_URL}" target="_blank" class="genmed">{linkrow.LINK_TITLE}</a><br /><span class="genmed">{linkrow.LINK_DESC}</span>
+		<a href="{linkrow.LINK_URL}" target="_blank" class="genmed" rel="noopener noreferrer">{linkrow.LINK_TITLE}</a><br /><span class="genmed">{linkrow.LINK_DESC}</span>
 		</td>
 		</tr>
 		<tr>

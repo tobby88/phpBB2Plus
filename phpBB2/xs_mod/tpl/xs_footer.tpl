@@ -30,7 +30,7 @@ cannot remove anything from copyright.
 
 ?>
 <tr>
-	<td valign="bottom" align="center" style="padding: 5px;"><span class="copyright"><br />Powered by <a href="http://www.phpbb.com/" target="_blank">phpBB</a> &copy; phpBB Group and by <a href="http://www.phpbbstyles.com" target="_blank">eXtreme Styles mod</a> &copy; Vjacheslav Trushkin.</span></td>
+	<td valign="bottom" align="center" style="padding: 5px;"><span class="copyright"><br />Powered by <a href="http://www.phpbb.com/" target="_blank" rel="noopener noreferrer">phpBB</a> &copy; phpBB Group and by <a href="http://www.phpbbstyles.com" target="_blank" rel="noopener noreferrer">eXtreme Styles mod</a> &copy; Vjacheslav Trushkin.</span></td>
 </tr>
 </table>
 </body></html>

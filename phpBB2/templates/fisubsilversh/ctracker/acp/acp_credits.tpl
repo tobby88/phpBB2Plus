@@ -79,19 +79,19 @@
 					<br /><br /><br /><br />
 					
 					<b>{L_CREDITS_P2}</b><br />
-					<a href="http://www.cback.de" target="_blank">www.cback.de</a><br />
-					<a href="http://www.community.cback.de" target="_blank">CBACK Community</a>
+					<a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">www.cback.de</a><br />
+					<a href="http://www.community.cback.de" target="_blank" rel="noopener noreferrer">CBACK Community</a>
 					
 					<br /><br /><br /><br />
 					
 					<b>{L_CREDITS_P3}</b><br />
 					Crystal Vista XT<br />
-					<a href="http://www.paolomod.altervista.org" target="_blank">PaoloMOD</a>
+					<a href="http://www.paolomod.altervista.org" target="_blank" rel="noopener noreferrer">PaoloMOD</a>
 					
 					<br /><br /><br /><br />
 					
 					<b>{L_CREDITS_P4}</b><br />
-					<a href="http://www.cback.de" target="_blank">{L_MOD_DOWNLOAD}</a><br />
+					<a href="http://www.cback.de" target="_blank" rel="noopener noreferrer">{L_MOD_DOWNLOAD}</a><br />
 					<br /><br />
 					
 					</td>

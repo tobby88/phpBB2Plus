@@ -69,6 +69,6 @@
 	<br /><br />
 	</form>
 
-	<font face="Verdana" size="1" color="#FFFFFF">CrackerTracker Professional © 2004 - {YEAR} <a href="http://www.cback.de" target="_blank" style="color:#FDFF00">CBACK.de</a></font>
+	<font face="Verdana" size="1" color="#FFFFFF">CrackerTracker Professional © 2004 - {YEAR} <a href="http://www.cback.de" target="_blank" style="color:#FDFF00" rel="noopener noreferrer">CBACK.de</a></font>
 </body>
 </html>

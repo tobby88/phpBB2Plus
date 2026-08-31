@@ -64,7 +64,7 @@ var L_MORE_MATCHES = '{L_MORE_MATCHES}';
 <tr id="searchresults_tbl" style="display:none;">
 <td class="row1">&nbsp;</td>
 <td class="row2"><span class="gen">
-<a href="#" target="_blank" class="gen" id="searchresults_lnk">No results found.</a>
+<a href="#" target="_blank" class="gen" id="searchresults_lnk" rel="noopener noreferrer">No results found.</a>
 </span></td>
 </tr>
 <!-- BEGIN topic_description -->

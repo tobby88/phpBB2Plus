@@ -21,7 +21,7 @@ var menuVersion = "Slide Menu v1.0.0";
  *	Enjoy! ;-)
  *************************************************************/
 
-menuVersion += ' &copy; 2004<br />by <a href="http://www.phpmix.com/" target="_blank" class="copyright">phpMiX</a>';
+menuVersion += ' &copy; 2004<br />by <a href="http://www.phpmix.com/" target="_blank" class="copyright" rel="noopener noreferrer">phpMiX</a>';
 
 function getCookie(name)
 {

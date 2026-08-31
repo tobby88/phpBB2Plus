@@ -336,7 +336,7 @@ if (sizeof($attachments) > 0)
 
 				$view_topic = append_sid($phpbb_root_path . 'viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $ids[$j]['post_id'] . '#' . $ids[$j]['post_id']);
 
-				$post_titles[] = '<a href="' . $view_topic . '" class="gen" target="_blank">' . $post_title . '</a>';
+				$post_titles[] = '<a href="' . $view_topic . '" class="gen" target="_blank" rel="noopener noreferrer">' . $post_title . '</a>';
 			}
 			else
 			{

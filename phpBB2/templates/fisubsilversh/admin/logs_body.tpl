@@ -13,7 +13,7 @@
 <tr>
   <td class="{logrow.ROW_CLASS}" align="center"><input type="checkbox" name="log_id[]" value="{logrow.ID}" /></td>
   <td class="{logrow.ROW_CLASS}">{logrow.ACTION}</td>
-  <td class="{logrow.ROW_CLASS}" align="center"><a href="{logrow.U_TOPIC}" target="_blank">{logrow.TOPIC}</a></td>
+  <td class="{logrow.ROW_CLASS}" align="center"><a href="{logrow.U_TOPIC}" target="_blank" rel="noopener noreferrer">{logrow.TOPIC}</a></td>
   <td class="{logrow.ROW_CLASS}"><a href="{logrow.U_USER}">{logrow.USERNAME}</a></td>
   <td class="{logrow.ROW_CLASS}">{logrow.IP}</td><td class="{logrow.ROW_CLASS}">{logrow.DATE}</td>
 </tr>

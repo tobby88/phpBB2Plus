@@ -153,6 +153,6 @@ $template->assign_vars(array(
 
 $template->pparse("body");
 
-echo '<div align="center"><span class="copyright">Advanced Visual Confirmation &copy; 2006 <a href="http://www.amigalink.de" target="_blank">AmigaLink</a></span></div>';
+echo '<div align="center"><span class="copyright">Advanced Visual Confirmation &copy; 2006 <a href="http://www.amigalink.de" target="_blank" rel="noopener noreferrer">AmigaLink</a></span></div>';
 include('./page_footer_admin.'.$phpEx);
 ?>

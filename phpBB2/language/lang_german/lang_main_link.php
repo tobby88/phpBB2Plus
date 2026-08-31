@@ -37,7 +37,7 @@ $lang['link_hits'] = "Hits";
 $lang['link_submiter'] = "Gesendet von";
 $lang['Link_us'] = "Link zu ";
 $lang['Link_us_explain'] = "Es wäre nett, wenn Du zu <b>%s</b> linken würdest. Benutze diesen HTML Code:";
-$lang['Link_us_syntax'] = '<a href="%s" target="_blank"><img src="%s" width="%d" height="%d" border="0" alt="%s" /></a>';
+$lang['Link_us_syntax'] = '<a href="%s" target="_blank" rel="noopener noreferrer"><img src="%s" width="%d" height="%d" border="0" alt="%s" /></a>';
 $lang['Link_register'] = "Deine Seite übermitteln";
 $lang['Link_register_guest_rule'] = "Melde Dich an, dann kannst Du eine Seite eintragen.";
 $lang['Link_register_rule'] = "Bitte fülle das Formular aus, deine Seite wird nach einer Überprüfung zu den Links hinzugefügt.";

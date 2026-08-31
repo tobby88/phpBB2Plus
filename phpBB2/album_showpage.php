@@ -733,7 +733,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 		'PIC_VIEW' => $thispic['pic_view_count'],
 		'PIC_COMMENTS' => $total_comments,
 
-		'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
+		'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 
 		'L_PIC_TITLE' => $lang['Pic_Title'],
 		'L_PIC_DESC' => $lang['Pic_Desc'],

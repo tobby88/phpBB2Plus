@@ -23,6 +23,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Made the post-1.53a updater's dry run reflect existing defaults, bundled
   styles and Arcade name snapshots before queuing work, while retaining
   existing administrator settings and cleaning seed-statement output.
+- Isolated all links which open a new browser window, including generated
+  Album and attachment fragments, from the originating page to prevent legacy
+  reverse-tabnabbing through linked external content.
 - Reworked the legacy AJAX controller around one typed request boundary and an
   explicit operation allowlist. Inline edits now enforce forum edit rights,
   private poll/topic/forum data cannot leak through alternate AJAX views,

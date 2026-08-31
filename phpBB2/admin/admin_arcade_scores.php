@@ -233,7 +233,7 @@ if($mode != '' && $game_id > 0)
         'TIME' => ($score_info[$i]['time_taken']) ? ($arcade->convert_time($score_info[$i]['time_taken'])) : '',
 				'EDIT_IMG' => '<a href="'. append_sid("$file?mode=$mode&amp;edit=".(int) $score_info[$i]['player_id']."&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id']) .'"><img src="./../' . $images['icon_edit'] . '" alt="' . $lang['Edit'] . '" title="' . $lang['Edit'] . '" border="0" /></a>',
 				'DELETE_IMG' => '<a href="'. append_sid("$file?mode=$action&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id'] . "&amp;score=".rawurlencode((string) $score_info[$i]['score'])) .'"><img src="./../' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . '" title="' . $lang['Delete'] . '" border="0" /></a>',
-				'IP_IMG' => '<a href="https://network-tools.com/default.asp?host='.rawurlencode($score_info[$i]['player_ip']).'" target="_blank"><img src="./../' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
+				'IP_IMG' => '<a href="https://network-tools.com/default.asp?host='.rawurlencode($score_info[$i]['player_ip']).'" target="_blank" rel="noopener noreferrer"><img src="./../' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
        ));     
   }
 }

@@ -59,7 +59,7 @@
 	<td class="row2" align="center" valign="middle">
 	<!-- IF file_rows.HAS_SCREENSHOTS -->
 		<!-- IF file_rows.SS_AS_LINK -->
-	<a href="{file_rows.FILE_SCREENSHOT}" class="topictitle" target="_blank"><img src="{file_rows.FILE_SCREENSHOT_URL}" border="0" alt="{L_SCREENSHOTS}"></a>
+	<a href="{file_rows.FILE_SCREENSHOT}" class="topictitle" target="_blank" rel="noopener noreferrer"><img src="{file_rows.FILE_SCREENSHOT_URL}" border="0" alt="{L_SCREENSHOTS}"></a>
 		<!-- ELSE -->
 	<a href="javascript:mpFoto('{file_rows.FILE_SCREENSHOT}')" class="topictitle"><img src="{file_rows.FILE_SCREENSHOT_URL}" border="0" alt="{L_SCREENSHOTS}"></a>
 		<!-- ENDIF -->

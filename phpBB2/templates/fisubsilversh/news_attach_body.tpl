@@ -126,7 +126,7 @@
 		<td width="75%" class="row3"><span class="genmed">&nbsp;{articles.attach.cat_thumb_images.L_DOWNLOAD_COUNT}</span></td>
 	</tr>
 	<tr>
-		<td colspan="2" align="center"><br /><a href="{articles.attach.cat_thumb_images.IMG_SRC}" target="_blank"><img src="{articles.attach.cat_thumb_images.IMG_THUMB_SRC}" alt="{articles.attach.cat_thumb_images.DOWNLOAD_NAME}" border="0" /></a><br /><br /></td>
+		<td colspan="2" align="center"><br /><a href="{articles.attach.cat_thumb_images.IMG_SRC}" target="_blank" rel="noopener noreferrer"><img src="{articles.attach.cat_thumb_images.IMG_THUMB_SRC}" alt="{articles.attach.cat_thumb_images.DOWNLOAD_NAME}" border="0" /></a><br /><br /></td>
 	</tr>
 	</table>
 	<!-- END cat_thumb_images -->

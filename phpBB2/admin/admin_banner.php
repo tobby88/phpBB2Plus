@@ -405,11 +405,11 @@ if( $mode!= "")
 				$banner_example = $banner_info['banner_name'];
 				break;
 			case 2 :
-				$banner_example = '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank">'.$safe_banner_name.'</a>';
+				$banner_example = '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank" rel="noopener noreferrer">'.$safe_banner_name.'</a>';
 				break;
 			case 0 :
 			default:
-				$banner_example = '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank"><img src="'.$safe_banner_name.'" '.$banner_size.' border="0" alt="'.$safe_banner_description.'" title="'.$safe_banner_description.'" /></a>';
+				$banner_example = '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank" rel="noopener noreferrer"><img src="'.$safe_banner_name.'" '.$banner_size.' border="0" alt="'.$safe_banner_description.'" title="'.$safe_banner_description.'" /></a>';
 		}
 
 

@@ -45,7 +45,7 @@
 	<!-- BEGIN attachrow -->
 	<tr> 
 	  <td class="{attachrow.ROW_CLASS}" align="center"><span class="gen">&nbsp;{attachrow.ROW_NUMBER}&nbsp;</span></td>
-	  <td class="{attachrow.ROW_CLASS}" align="center"><span class="gen"><a href="{attachrow.U_VIEW_ATTACHMENT}" class="gen" target="_blank">{attachrow.FILENAME}</a></span></td>
+	  <td class="{attachrow.ROW_CLASS}" align="center"><span class="gen"><a href="{attachrow.U_VIEW_ATTACHMENT}" class="gen" target="_blank" rel="noopener noreferrer">{attachrow.FILENAME}</a></span></td>
 	  <td class="{attachrow.ROW_CLASS}" align="center"><span class="gen"><input type="text" size="40" maxlength="200" name="attach_comment_list[]" value="{attachrow.COMMENT}" class="post" /></span></td>
 	  <td class="{attachrow.ROW_CLASS}" align="center"><span class="gen">{attachrow.EXTENSION}</span></td>
 	  <td class="{attachrow.ROW_CLASS}" align="center" valign="middle"><span class="gen"><b>{attachrow.SIZE}</b></span></td>

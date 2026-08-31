@@ -805,7 +805,7 @@ if ($view == 'attachments')
 
 					$view_topic = append_sid($phpbb_root_path . 'viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $ids[$j]['post_id'] . '#' . $ids[$j]['post_id']);
 
-					$post_titles[] = '<a href="' . phpbb_admin_html($view_topic) . '" class="gen" target="_blank">' . phpbb_admin_html($post_title) . '</a>';
+					$post_titles[] = '<a href="' . phpbb_admin_html($view_topic) . '" class="gen" target="_blank" rel="noopener noreferrer">' . phpbb_admin_html($post_title) . '</a>';
 				}
 				else
 				{

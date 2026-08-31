@@ -35,7 +35,7 @@
 	</tr>
   <!-- BEGIN file_shadow_row -->
     <tr> 
-	  <td class="row2" align="center" valign="middle"><span class="postdetails"><a class="postdetails" href="{file_shadow_row.U_ATTACHMENT}" target="_blank">{file_shadow_row.ATTACH_FILENAME}</a></span></td>
+	  <td class="row2" align="center" valign="middle"><span class="postdetails"><a class="postdetails" href="{file_shadow_row.U_ATTACHMENT}" target="_blank" rel="noopener noreferrer">{file_shadow_row.ATTACH_FILENAME}</a></span></td>
 	  <td class="row1" align="center" valign="middle"><span class="postdetails">{file_shadow_row.ATTACH_COMMENT}</span></td>
 	  <td class="row2" align="center" valign="middle"><input type="checkbox" name="attach_file_list[]" value="{file_shadow_row.ATTACH_ID}" /></td>
 	</tr>

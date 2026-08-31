@@ -132,7 +132,7 @@ function attach_build_auth_levels($is_auth, &$s_auth_can)
 	}
 
 	// If you want to have the rules window link within the forum view too, comment out the two lines, and comment the third line
-//	$rules_link = '(<a href="' . $phpbb_root_path . 'attach_rules.' . $phpEx . '?f=' . $forum_id . '" target="_blank">Rules</a>)';
+//	$rules_link = '(<a href="' . $phpbb_root_path . 'attach_rules.' . $phpEx . '?f=' . $forum_id . '" target="_blank" rel="noopener noreferrer">Rules</a>)';
 //	$s_auth_can .= ( ( $is_auth['auth_attachments'] ) ? $rules_link . ' ' . $lang['Rules_attach_can'] : $lang['Rules_attach_cannot'] ) . '<br />';
 	$s_auth_can .= (($is_auth['auth_attachments']) ? $lang['Rules_attach_can'] : $lang['Rules_attach_cannot'] ) . '<br />';
 

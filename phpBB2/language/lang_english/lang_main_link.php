@@ -37,7 +37,7 @@ $lang['link_hits'] = "Hits";
 $lang['link_submiter'] = "Submited by";
 $lang['Link_us'] = "Link to ";
 $lang['Link_us_explain'] = "Please feel free to link to <b>%s</b>. Use the following HTML:";
-$lang['Link_us_syntax'] = '<a href="%s" target="_blank"><img src="%s" width="%d" height="%d" border="0" alt="%s" /></a>';
+$lang['Link_us_syntax'] = '<a href="%s" target="_blank" rel="noopener noreferrer"><img src="%s" width="%d" height="%d" border="0" alt="%s" /></a>';
 $lang['Link_register'] = "Submit your site";
 $lang['Link_register_guest_rule'] = "Log in registered user, you can submit site.";
 $lang['Link_register_rule'] = "Please fill in the form below, and your site will be put into our database after validation.";

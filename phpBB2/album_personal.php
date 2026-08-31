@@ -414,7 +414,7 @@ $template->assign_vars(array(
 
 	'L_PERSONAL_GALLERY_NOT_CREATED' => sprintf($lang['Personal_gallery_not_created'], $username),
 
-	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank"' : '',
+	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 
 	'S_COLS' => $album_config['cols_per_page'],
 	'S_COL_WIDTH' => (100/$album_config['cols_per_page']) . '%',
