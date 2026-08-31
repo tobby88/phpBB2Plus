@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Normalized every configured account and board language through one strict
+  installed-pack allowlist before extensions can construct language-file
+  paths. Empty legacy account values now fall back deterministically, and a
+  repaired preference updates only that account instead of interpolating the
+  corrupt old value into a broad SQL update.
 - Removed CrackerTracker's obsolete factory blocklist of 32 spoofable
   User-Agent strings, which included legitimate archival and scripting
   clients. Fresh installations now start with an empty administrator-managed

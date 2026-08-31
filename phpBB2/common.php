@@ -266,6 +266,9 @@ else {
 */
 // cache configs -----------------
 
+$phpbb_original_default_lang = isset($board_config['default_lang']) ? (string) $board_config['default_lang'] : '';
+$board_config['default_lang'] = phpbb_normalize_language($phpbb_original_default_lang, 'english');
+
 if (!phpbb_request_origin_is_valid())
 {
 	http_response_code(403);

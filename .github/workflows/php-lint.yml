@@ -163,6 +163,9 @@ jobs:
       - name: Test directory runtime safety
         run: php .github/scripts/check-directory-runtime-safety.php
 
+      - name: Test language path safety
+        run: php .github/scripts/check-language-path-safety.php
+
       - name: Test mutation token safety
         run: php .github/scripts/check-mutation-token-safety.php
 

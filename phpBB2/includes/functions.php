@@ -674,11 +674,36 @@ function make_jumpbox($action, $match_forum_id = 0)
 
 //
 // Initialise user settings on page load
+function phpbb_normalize_language($language, $fallback = 'english')
+{
+	global $phpbb_root_path, $phpEx;
+
+	$language = strtolower(trim((string) $language));
+	$fallback = strtolower(trim((string) $fallback));
+	if (!preg_match('/^[a-z0-9_-]{1,30}$/D', $fallback))
+	{
+		$fallback = 'english';
+	}
+
+	$candidates = array($language, $fallback, 'english');
+	foreach ($candidates as $candidate)
+	{
+		if (preg_match('/^[a-z0-9_-]{1,30}$/D', $candidate) &&
+			is_file($phpbb_root_path . 'language/lang_' . $candidate . '/lang_main.' . $phpEx))
+		{
+			return $candidate;
+		}
+	}
+
+	message_die(CRITICAL_ERROR, 'Could not locate valid language pack');
+}
+
 function init_userprefs($userdata)
 {
 	global $board_config, $theme, $images;
 	global $template, $lang, $phpEx, $phpbb_root_path, $db;
 	global $nav_links;
+	global $phpbb_original_default_lang;
 	//-- mod : mods settings ---------------------------------------------------------------------------
 //-- add
 	global $mods, $list_yes_no, $userdata;
@@ -698,11 +723,16 @@ function init_userprefs($userdata)
 	}
 //-- fin mod : mods settings -----------------------------------------------------------------------
 
+	$default_lang = phpbb_normalize_language(
+		isset($board_config['default_lang']) ? $board_config['default_lang'] : '',
+		'english'
+	);
+
 	if ( $userdata['user_id'] != ANONYMOUS )
 	{
 		if ( !empty($userdata['user_lang']))
 		{
-			$default_lang = phpbb_ltrim(basename(phpbb_rtrim($userdata['user_lang'])), "'");
+			$default_lang = phpbb_normalize_language($userdata['user_lang'], $default_lang);
 		}
 
 		if ( !empty($userdata['user_dateformat']) )
@@ -715,39 +745,13 @@ function init_userprefs($userdata)
 			$board_config['board_timezone'] = $userdata['user_timezone'];
 		}
 	}
-	else
-	{
-		$default_lang = phpbb_ltrim(basename(phpbb_rtrim($board_config['default_lang'])), "'");
-	}
-
-	if ( !file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $default_lang . '/lang_main.'.$phpEx)) )
-	{
-		if ( $userdata['user_id'] != ANONYMOUS )
-		{
-			// For logged in users, try the board default language next
-			$default_lang = phpbb_ltrim(basename(phpbb_rtrim($board_config['default_lang'])), "'");
-		}
-		else
-		{
-			// For guests it means the default language is not present, try english
-			// This is a long shot since it means serious errors in the setup to reach here,
-			// but english is part of a new install so it's worth us trying
-			$default_lang = 'english';
-		}
-
-		if ( !file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $default_lang . '/lang_main.'.$phpEx)) )
-		{
-			message_die(CRITICAL_ERROR, 'Could not locate valid language pack');
-		}
-	}
-
 	// If we've had to change the value in any way then let's write it back to the database
 	// before we go any further since it means there is something wrong with it
-	if ( $userdata['user_id'] != ANONYMOUS && $userdata['user_lang'] !== $default_lang )
+	if ( $userdata['user_id'] != ANONYMOUS && (!isset($userdata['user_lang']) || $userdata['user_lang'] !== $default_lang) )
 	{
 		$sql = 'UPDATE ' . USERS_TABLE . "
 			SET user_lang = '" . $default_lang . "'
-			WHERE user_lang = '" . $userdata['user_lang'] . "'";
+			WHERE user_id = " . intval($userdata['user_id']);
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -756,7 +760,7 @@ function init_userprefs($userdata)
 
 		$userdata['user_lang'] = $default_lang;
 	}
-	elseif ( $userdata['user_id'] === ANONYMOUS && $board_config['default_lang'] !== $default_lang )
+	elseif ( $userdata['user_id'] === ANONYMOUS && isset($phpbb_original_default_lang) && $phpbb_original_default_lang !== $default_lang )
 	{
 		$sql = 'UPDATE ' . CONFIG_TABLE . "
 			SET config_value = '" . $default_lang . "'
@@ -766,6 +770,7 @@ function init_userprefs($userdata)
 		{
 			message_die(CRITICAL_ERROR, 'Could not update user language info');
 		}
+		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 
 	$board_config['default_lang'] = $default_lang;
