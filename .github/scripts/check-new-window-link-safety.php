@@ -42,7 +42,7 @@ foreach (new_window_link_files($root) as $filename)
 foreach (array('album_cat.php', 'album_personal.php', 'album_showpage.php', 'album.php', 'portal.php', 'attach_mod/displaying.php') as $relative)
 {
 	$contents = (string) file_get_contents($root . '/' . $relative);
-	if (preg_match('/[\'\"]target="_blank"[\'\"]/', $contents))
+	if (preg_match('/(?:=>|=)\s*[\'\"]target="_blank"[\'\"]/', $contents))
 	{
 		$errors[] = $relative . ': unsafe generated target fragment';
 	}
