@@ -374,6 +374,74 @@ function phpbb_clean_username($username)
 }
 
 /**
+ * Keep legacy MOD tables which duplicate a display name in sync after an
+ * account rename. The users table remains authoritative; the snapshots are
+ * retained for guest/deleted-user history and old reports which lack a join.
+ */
+function phpbb_sync_username_references($user_id, $old_username, $new_username)
+{
+	global $db, $phpbb_root_path, $table_prefix;
+
+	$user_id = (int) $user_id;
+	$old_username = (string) $old_username;
+	$new_username = (string) $new_username;
+	if ($user_id <= 0 || $old_username === $new_username || $new_username === '')
+	{
+		return;
+	}
+
+	$new_username_sql = $db->sql_escape($new_username);
+	$old_username_sql = $db->sql_escape($old_username);
+	$updates = array(
+		"UPDATE " . $table_prefix . "album SET pic_username = '$new_username_sql' WHERE pic_user_id = $user_id",
+		"UPDATE " . $table_prefix . "album_comment SET comment_username = '$new_username_sql' WHERE comment_user_id = $user_id",
+		"UPDATE " . iNA_GAMES_COMMENT . " SET comment_username = '$new_username_sql' WHERE comment_user_id = $user_id",
+		"UPDATE " . iNA_AT_SCORES . " SET player_name = '$new_username_sql' WHERE player_id = $user_id",
+		"UPDATE " . SHOUTBOX_TABLE . " SET shout_username = '$new_username_sql' WHERE shout_user_id = $user_id",
+		// Monthly highscores predate stable user IDs, so the former unique
+		// username is the only reliable key available during the rename.
+		"UPDATE " . iNA_HIGHSCORES . " SET highscore_player = '$new_username_sql' WHERE highscore_player = '$old_username_sql'"
+	);
+
+	foreach ($updates as $sql)
+	{
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not synchronize renamed user references', '', __LINE__, __FILE__, $sql);
+		}
+	}
+
+	// A personal group is identified by its membership and flag, never by a
+	// possibly colliding group name.
+	$sql = "SELECT g.group_id
+		FROM " . GROUPS_TABLE . " g, " . USER_GROUP_TABLE . " ug
+		WHERE ug.user_id = $user_id
+			AND ug.group_id = g.group_id
+			AND g.group_single_user = 1";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not find users group', '', __LINE__, __FILE__, $sql);
+	}
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$group_id = (int) $row['group_id'];
+		$sql = "UPDATE " . GROUPS_TABLE . "
+			SET group_name = '$new_username_sql'
+			WHERE group_id = $group_id";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not rename users group', '', __LINE__, __FILE__, $sql);
+		}
+	}
+	$db->sql_freeresult($result);
+
+	foreach (array('cg_users.cache', 'arcade_best_player.cache', 'arcade_best_at_player.cache') as $cache_file)
+	{
+		@unlink($phpbb_root_path . 'cache/' . $cache_file);
+	}
+}
+
+/**
 * This function is a wrapper for ltrim, as charlist is only supported in php >= 4.1.0
 * Added in phpBB 2.0.18
 */

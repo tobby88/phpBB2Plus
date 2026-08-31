@@ -794,7 +794,7 @@ if ( isset($_POST['submit']) )
 			}
 			if ($username_sql !== '')
 			{
-				@unlink($phpbb_root_path . 'cache/cg_users.cache');
+				phpbb_sync_username_references($user_id, $userdata['username'], $username);
 			}
 
 			// We remove all stored login keys since the password has been updated

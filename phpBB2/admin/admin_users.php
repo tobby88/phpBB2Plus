@@ -733,17 +733,7 @@ if( !empty($_POST['unblock_account']) )
 			{
 				if (isset($rename_user))
 				{
-					@unlink($phpbb_root_path . 'cache/cg_users.cache');
-				}
-				if( isset($rename_user) )
-				{
-					$sql = "UPDATE " . GROUPS_TABLE . "
-						SET group_name = '" . admin_user_sql_value($rename_user) . "'
-						WHERE group_name = '" . admin_user_sql_value($this_userdata['username']) . "'";
-					if( !$result = $db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not rename users group', '', __LINE__, __FILE__, $sql);
-					}
+					phpbb_sync_username_references($user_id, $this_userdata['username'], $rename_user);
 				}
 				
 				// Delete user session, to prevent the user navigating the forum (if logged in) when disabled

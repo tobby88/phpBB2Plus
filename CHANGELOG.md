@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Synchronized legacy Album, Arcade, shoutbox and personal-group display-name
+  snapshots whenever an account is renamed. Public and ACP renames now use one
+  path, identify personal groups by membership instead of a colliding name,
+  clear affected caches, and the post-1.53a updater reconciles existing rows
+  wherever a stable user ID is available.
 - Centralized custom profile-field parsing for registration and administrator
   user management. Dynamic columns now have a strict identifier boundary,
   values obey their configured type, choices and length, and database writes

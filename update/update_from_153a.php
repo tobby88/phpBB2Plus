@@ -515,6 +515,40 @@ if (update_table_exists($connection, $dbname, $arcade_all_time_table) &&
 	}
 }
 
+// Reconcile the remaining MOD display-name snapshots which have stable user
+// IDs. The monthly highscore archive has no user ID and is therefore updated
+// at rename time, where both the old and new unique username are known.
+$username_snapshot_tables = array(
+	array($table_prefix . 'album', 'pic_user_id', 'pic_username'),
+	array($table_prefix . 'album_comment', 'comment_user_id', 'comment_username'),
+	array($table_prefix . 'ina_comment', 'comment_user_id', 'comment_username'),
+	array($table_prefix . 'shout', 'shout_user_id', 'shout_username')
+);
+foreach ($username_snapshot_tables as $snapshot)
+{
+	list($snapshot_table, $snapshot_user_column, $snapshot_name_column) = $snapshot;
+	if (!update_table_exists($connection, $dbname, $snapshot_table) ||
+		!update_column_exists($connection, $dbname, $snapshot_table, $snapshot_user_column) ||
+		!update_column_exists($connection, $dbname, $snapshot_table, $snapshot_name_column))
+	{
+		continue;
+	}
+
+	$snapshot_table_sql = update_quote_identifier($snapshot_table);
+	$snapshot_user_sql = update_quote_identifier($snapshot_user_column);
+	$snapshot_name_sql = update_quote_identifier($snapshot_name_column);
+	$mismatch_sql = 'SELECT COUNT(*) FROM ' . $snapshot_table_sql . ' s INNER JOIN ' .
+		update_quote_identifier($users_table) . ' u ON u.user_id = s.' . $snapshot_user_sql . ' ' .
+		'WHERE s.' . $snapshot_user_sql . ' > 0 AND (s.' . $snapshot_name_sql . ' IS NULL OR s.' . $snapshot_name_sql . ' <> u.username)';
+	if ((int) update_scalar($connection, $mismatch_sql) > 0)
+	{
+		$operations[] = 'UPDATE ' . $snapshot_table_sql . ' s INNER JOIN ' .
+			update_quote_identifier($users_table) . ' u ON u.user_id = s.' . $snapshot_user_sql .
+			' SET s.' . $snapshot_name_sql . ' = u.username WHERE s.' . $snapshot_user_sql .
+			' > 0 AND (s.' . $snapshot_name_sql . ' IS NULL OR s.' . $snapshot_name_sql . ' <> u.username)';
+	}
+}
+
 // Keep the public components/credits list useful on upgraded installations.
 // The original sample .hl file used to insert a bogus placeholder row whenever
 // the public page was opened. It is no longer distributed or scanned there.

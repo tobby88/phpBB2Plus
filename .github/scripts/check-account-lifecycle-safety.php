@@ -7,6 +7,9 @@ $profile = (string) file_get_contents($root . '/phpBB2/profile.php');
 $register = (string) file_get_contents($root . '/phpBB2/includes/usercp_register.php');
 $activate = (string) file_get_contents($root . '/phpBB2/includes/usercp_activate.php');
 $selects = (string) file_get_contents($root . '/phpBB2/includes/functions_selects.php');
+$functions = (string) file_get_contents($root . '/phpBB2/includes/functions.php');
+$admin_users = (string) file_get_contents($root . '/phpBB2/admin/admin_users.php');
+$updater = (string) file_get_contents($root . '/update/update_from_153a.php');
 $errors = array();
 
 foreach (array(
@@ -73,6 +76,34 @@ foreach (array(
 if (strpos($selects, '$timezone = $board_config[\'board_timezone\'];') === false)
 {
 	$errors[] = 'Timezone fallback still fails to assign the board default.';
+}
+
+foreach (array(
+	'function phpbb_sync_username_references',
+	"WHERE pic_user_id = \$user_id",
+	"WHERE comment_user_id = \$user_id",
+	"WHERE player_id = \$user_id",
+	"WHERE shout_user_id = \$user_id",
+	"WHERE highscore_player = '\$old_username_sql'",
+	'AND g.group_single_user = 1'
+) as $marker)
+{
+	if (strpos($functions, $marker) === false)
+	{
+		$errors[] = 'Missing username-reference synchronization marker: ' . $marker;
+	}
+}
+if (strpos($register, "phpbb_sync_username_references(\$user_id, \$userdata['username'], \$username)") === false ||
+	strpos($admin_users, "phpbb_sync_username_references(\$user_id, \$this_userdata['username'], \$rename_user)") === false)
+{
+	$errors[] = 'Public and ACP account renames do not share the reference synchronizer.';
+}
+foreach (array("'album'", "'album_comment'", "'ina_comment'", "'shout'") as $table_marker)
+{
+	if (strpos($updater, '$table_prefix . ' . $table_marker) === false)
+	{
+		$errors[] = 'Updater does not reconcile username snapshots in ' . $table_marker . '.';
+	}
 }
 
 if ($errors)
