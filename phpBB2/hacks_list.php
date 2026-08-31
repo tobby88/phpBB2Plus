@@ -33,11 +33,12 @@ init_userprefs($userdata);
 // End session management
 //
 include($phpbb_root_path.'includes/functions_hacks_list.'.$phpEx);
-$credits_lang = !empty($userdata['user_lang']) ? $userdata['user_lang'] : $board_config['default_lang'];
+$credits_lang = !empty($userdata['user_lang']) && preg_match('/^[a-z0-9_-]+$/i', $userdata['user_lang']) ? $userdata['user_lang'] : $board_config['default_lang'];
 $credits_lang_file = $phpbb_root_path.'language/lang_'.$credits_lang.'/lang_admin_hacks_list.'.$phpEx;
 if (!file_exists($credits_lang_file))
 {
-	$credits_lang_file = $phpbb_root_path.'language/lang_'.$board_config['default_lang'].'/lang_admin_hacks_list.'.$phpEx;
+	$default_credits_lang = preg_match('/^[a-z0-9_-]+$/i', $board_config['default_lang']) ? $board_config['default_lang'] : 'english';
+	$credits_lang_file = $phpbb_root_path.'language/lang_'.$default_credits_lang.'/lang_admin_hacks_list.'.$phpEx;
 }
 include($credits_lang_file);
 
@@ -56,7 +57,8 @@ foreach($params as $var => $default)
 	$$var = $default;
 	if( isset($_POST[$var]) || isset($_GET[$var]) )
 	{
-		$$var = ( isset($_POST[$var]) ) ? $_POST[$var] : $_GET[$var];
+		$value = ( isset($_POST[$var]) ) ? $_POST[$var] : $_GET[$var];
+		$$var = is_scalar($value) ? substr((string) $value, 0, 32) : $default;
 	}
 }
 /*******************************************************************************************

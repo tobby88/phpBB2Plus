@@ -13,7 +13,6 @@ $shadowcolor = isset($_GET['shadowcolor']) && is_string($_GET['shadowcolor']) &&
 $schriftfarbe = $raute . $fontcolor;
 $schriftdatei = 'arial';
 $std_smilie = 1;
-$phpversion_nr = (float) PHP_VERSION;
 $schriftwidth = 0;
 $schriftheight = 0;
 $zeichenzahl = 0;
@@ -46,18 +45,32 @@ else
 
 $schildschatten = ( isset($_GET['shieldshadow']) && $_GET['shieldshadow'] == '1' ) ? true : false;
 
-$anz_smilie = -1;
-$hdl = opendir($phpbb_root_path. 'smilie_creator/images/smilies/schild/');
-while($res = readdir($hdl)){
-	if(strtolower(substr($res, (strlen($res) - 3), 3)) == 'png') $anz_smilie++;
+$smilie_dir = $phpbb_root_path . 'smilie_creator/images/smilies/schild';
+$smilie_ids = array();
+if ($hdl = @opendir($smilie_dir))
+{
+	while (($res = readdir($hdl)) !== false)
+	{
+		if (preg_match('/^smilie([1-9][0-9]*)\.png$/i', $res, $match))
+		{
+			$smilie_ids[] = intval($match[1]);
+		}
+	}
+	closedir($hdl);
 }
-closedir($hdl);
+sort($smilie_ids, SORT_NUMERIC);
 
-
-if($phpversion_nr >= 4.30) $gd_info = gd_info();
-else{
-	$gd_info['FreeType Support'] = 1;
+if (empty($smilie_ids) || !function_exists('gd_info') || !function_exists('imagecreatefrompng') || !function_exists('imagecreate'))
+{
+	header('Content-Type: text/plain; charset=UTF-8');
+	header('X-Content-Type-Options: nosniff');
+	header('Cache-Control: no-store, private');
+	http_response_code(503);
+	echo 'Smilie image generation is unavailable.';
+	exit;
 }
+
+$gd_info = gd_info();
 
 if((!$gd_info['FreeType Support']) || (!file_exists($schriftdatei))){
 	$schriftwidth = 6;
@@ -113,21 +126,33 @@ $width = ($zeichenzahl * $schriftwidth) + 6;
 $height = (count($output) * $schriftheight) + 34;
 if($width < 60) $width = 60;
 
-mt_srand((float)microtime()*3216549);
-if($smilie == 'random') $smilie = mt_rand(1,$anz_smilie);
+if($smilie == 'random') $smilie = $smilie_ids[mt_rand(0, count($smilie_ids) - 1)];
 if(!$smilie){
-	if($std_smilie) $smilie = $std_smilie;
-	else $smilie = mt_rand(1,$anz_smilie);
+	if(in_array($std_smilie, $smilie_ids, true)) $smilie = $std_smilie;
+	else $smilie = $smilie_ids[0];
 }
-if ($smilie < 1 || $smilie > $anz_smilie || !is_file($phpbb_root_path . 'smilie_creator/images/smilies/schild/smilie' . $smilie . '.png'))
+if (!in_array(intval($smilie), $smilie_ids, true))
 {
-	$smilie = $std_smilie;
+	$smilie = in_array($std_smilie, $smilie_ids, true) ? $std_smilie : $smilie_ids[0];
 }
 
 
-$smilie = imagecreatefrompng($phpbb_root_path . 'smilie_creator/images/smilies/schild/smilie'.$smilie.'.png');
-$schild = imagecreatefrompng($phpbb_root_path . 'smilie_creator/images/smilies/schild/schild.png');
+$smilie = @imagecreatefrompng($smilie_dir . '/smilie' . intval($smilie) . '.png');
+$schild = @imagecreatefrompng($smilie_dir . '/schild.png');
 $img = imagecreate($width,$height);
+
+if (!$smilie || !$schild || !$img)
+{
+	if ($smilie) imagedestroy($smilie);
+	if ($schild) imagedestroy($schild);
+	if ($img) imagedestroy($img);
+	header('Content-Type: text/plain; charset=UTF-8');
+	header('X-Content-Type-Options: nosniff');
+	header('Cache-Control: no-store, private');
+	http_response_code(500);
+	echo 'Smilie image assets could not be loaded.';
+	exit;
+}
 
 $bgcolor = imagecolorallocate ($img, 111, 252, 134);
 $txtcolor = imagecolorallocate ($img, hexdec(substr(str_replace('#',"",$schriftfarbe),0,2)), hexdec(substr(str_replace('#',"",$schriftfarbe),2,2)), hexdec(substr(str_replace('#',"",$schriftfarbe),4,2)));
@@ -139,16 +164,16 @@ $schatten2color = imagecolorallocate ($img, 219, 219, 219);
 
 $smiliefarbe = imagecolorsforindex($smilie, imagecolorat($smilie, 5, 14));
 
-imagesetpixel($schild, 1, 14, imagecolorallocate($schild, ($smiliefarbe['red'] + 52), ($smiliefarbe['green'] + 59), ($smiliefarbe['blue'] + 11)));
-imagesetpixel($schild, 2, 14, imagecolorallocate($schild, ($smiliefarbe['red'] + 50), ($smiliefarbe['green'] + 52), ($smiliefarbe['blue'] + 50)));
-imagesetpixel($schild, 1, 15, imagecolorallocate($schild, ($smiliefarbe['red'] + 50), ($smiliefarbe['green'] + 52), ($smiliefarbe['blue'] + 50)));
-imagesetpixel($schild, 2, 15, imagecolorallocate($schild, ($smiliefarbe['red'] + 22), ($smiliefarbe['green'] + 21), ($smiliefarbe['blue'] + 35)));
+imagesetpixel($schild, 1, 14, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 52), min(255, $smiliefarbe['green'] + 59), min(255, $smiliefarbe['blue'] + 11)));
+imagesetpixel($schild, 2, 14, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 50), min(255, $smiliefarbe['green'] + 52), min(255, $smiliefarbe['blue'] + 50)));
+imagesetpixel($schild, 1, 15, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 50), min(255, $smiliefarbe['green'] + 52), min(255, $smiliefarbe['blue'] + 50)));
+imagesetpixel($schild, 2, 15, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 22), min(255, $smiliefarbe['green'] + 21), min(255, $smiliefarbe['blue'] + 35)));
 imagesetpixel($schild, 1, 16, imagecolorat($smilie, 5, 14));
 imagesetpixel($schild, 2, 16, imagecolorat($smilie, 5, 14));
-imagesetpixel($schild, 5, 16, imagecolorallocate($schild, ($smiliefarbe['red'] + 22), ($smiliefarbe['green'] + 21), ($smiliefarbe['blue'] + 35)));
+imagesetpixel($schild, 5, 16, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 22), min(255, $smiliefarbe['green'] + 21), min(255, $smiliefarbe['blue'] + 35)));
 imagesetpixel($schild, 6, 16, imagecolorat($smilie, 5, 14));
-imagesetpixel($schild, 5, 15, imagecolorallocate($schild, ($smiliefarbe['red'] + 52), ($smiliefarbe['green'] + 59), ($smiliefarbe['blue'] + 11)));
-imagesetpixel($schild, 6, 15, imagecolorallocate($schild, ($smiliefarbe['red'] + 50), ($smiliefarbe['green'] + 52), ($smiliefarbe['blue'] + 50)));
+imagesetpixel($schild, 5, 15, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 52), min(255, $smiliefarbe['green'] + 59), min(255, $smiliefarbe['blue'] + 11)));
+imagesetpixel($schild, 6, 15, imagecolorallocate($schild, min(255, $smiliefarbe['red'] + 50), min(255, $smiliefarbe['green'] + 52), min(255, $smiliefarbe['blue'] + 50)));
 
 
 imagecopy ($img, $schild, ($width / 2 - 3), 0, 0, 0, 6, 4); // Bildteil kopieren
@@ -189,7 +214,9 @@ while($i < count($output)){
 imagecolortransparent($img, $bgcolor);  // Dummybg als transparenz setzen
 imageinterlace($img, 1);
 
-header("Content-Type: image/png");
+header('Content-Type: image/png');
+header('X-Content-Type-Options: nosniff');
+header('Cache-Control: no-store, private');
 //imagepng($img,'',100);   // 100 = komprimierung
 imagepng($img); 
 imagedestroy($img);

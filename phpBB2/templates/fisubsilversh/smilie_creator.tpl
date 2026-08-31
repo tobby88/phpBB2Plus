@@ -96,7 +96,7 @@ function makeschild(){
 		</table></td>
 	</tr>
 <tr>
-  <td class="spacerow" colspan="6" height="1"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
+  <td class="spacerow" colspan="6" height="1"></td>
   </tr>
   <tr>
     <td class="cat" align="center" colspan="5" valign="middle">

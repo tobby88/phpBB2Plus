@@ -26,7 +26,8 @@
 
 $phpbb_root_path = "./";
 
-$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : ( ( isset($_GET['mode']) ) ? $_GET['mode']:'');
+$mode_value = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
+$mode = is_scalar($mode_value) ? substr((string) $mode_value, 0, 32) : '';
 
 if ( $mode == 'smilies' )
 {
@@ -48,7 +49,7 @@ $template->set_filenames(array(
 );
 	
 
-if ( !(((!$is_auth['auth_reply']) or 
+if ( $total_posts > 0 && isset($postrow[$total_posts - 1]) && !(((!$is_auth['auth_reply']) or
 ($forum_topic_data['forum_status'] == FORUM_LOCKED) or 
 ($forum_topic_data['topic_status'] == TOPIC_LOCKED)) and ($userdata['user_level'] != ADMIN)))
 {
@@ -57,8 +58,8 @@ if ( !(((!$is_auth['auth_reply']) or
 	$last_msg = $postrow[$total_posts - 1]['post_text'];
 	$last_msg = str_replace(":1:$bbcode_uid", '', $last_msg);
 	$last_msg = str_replace(":$bbcode_uid", '', $last_msg);	
-	$last_msg = str_replace("'", '&#39;', $last_msg);
 	$last_msg = "[quote=\"$last_poster\"]" . $last_msg . '[/quote]';
+	$last_msg = htmlspecialchars($last_msg, ENT_QUOTES, 'UTF-8');
 	$attach_sig = ($userdata['session_logged_in'] && $userdata['user_attachsig']) ? "checked='checked'" : '';
 	if ($userdata['session_logged_in'])
 	{

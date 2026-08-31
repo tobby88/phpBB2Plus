@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repaired legacy helper pages around the Smilie creator, Quick Reply, credits
+  and recent topics. Smilie assets are enumerated by their real file names,
+  missing GD/assets fail deliberately instead of producing PHP 8 fatals,
+  generated images disable sniffing and caching, Quick Reply safely embeds the
+  quoted post, and malformed tracking cookies or paging configuration no longer
+  cause warnings or division-by-zero failures.
 - Repaired and hardened attachment and paFileDB delivery. Attachment thumbnails
   retain their protected thumbnail subdirectory, post attachments require view,
   read and download permission together, stale post references are ignored, and

@@ -5,36 +5,45 @@ $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 
-$userdata = session_pagestart($user_ip, PAGE_INDEX, $session_length);
+$userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
 
 $gen_simple_header = 1;
 $page_title = $lang['Smilie_creator'];
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
-if($_GET['mode'] == "text2schild"){ 
-	$anz_smilie = -1;
-	$hdl = opendir("./smilie_creator/images/smilies/schild/");
-	while($res = readdir($hdl)){
-		if(strtolower(substr($res, (strlen($res) - 3), 3)) == "png") $anz_smilie++;
-	}
-	closedir($hdl);
+$mode = (isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '';
+$smilies_wahl = '';
+$smilies_js = "\tvar smilie = 'standard';\n\tvar smilieOptions = document.schilderstellung.elements['smilie'];\n\tfor (var optionIndex = 0; optionIndex < smilieOptions.length; optionIndex++) {\n\t\tif (smilieOptions[optionIndex].checked) { smilie = smilieOptions[optionIndex].value; break; }\n\t}\n";
 
-	$i = 1;
-	$ii = 1;
-	while($i <= $anz_smilie){
-		$smilies_wahl .= "<td><input type=\"radio\" name=\"smilie\" value=\"".$i."\"><img src=\"smilie_creator/images/smilies/schild/smilie".$i.".png\"></td>";
-		$smilies_js .= "	if(document.schilderstellung.smilie[".($i-1)."].checked) var smilie = document.schilderstellung.smilie[".($i-1)."].value;\n";
-		if($ii >= 5){
-			$smilies_wahl .= "</tr><tr>";
-			$ii = 0;
+if ($mode === 'text2schild')
+{
+	$smilie_ids = array();
+	$smilie_dir = $phpbb_root_path . 'smilie_creator/images/smilies/schild';
+	if ($hdl = @opendir($smilie_dir))
+	{
+		while (($res = readdir($hdl)) !== false)
+		{
+			if (preg_match('/^smilie([1-9][0-9]*)\.png$/i', $res, $match))
+			{
+				$smilie_ids[] = intval($match[1]);
+			}
 		}
-		$i++;
-		$ii++;
+		closedir($hdl);
 	}
+	sort($smilie_ids, SORT_NUMERIC);
 
-	$smilies_js .= "	if(document.schilderstellung.smilie[".($i-1)."].checked) var smilie = document.schilderstellung.smilie[".($i-1)."].value;\n";
-	$smilies_js .= "	if(document.schilderstellung.smilie[".$i."].checked) var smilie = document.schilderstellung.smilie[".$i."].value;\n";
+	$column = 1;
+	foreach ($smilie_ids as $smilie_id)
+	{
+		$smilies_wahl .= '<td><input type="radio" name="smilie" value="' . $smilie_id . '" /><img src="smilie_creator/images/smilies/schild/smilie' . $smilie_id . '.png" alt="" /></td>';
+		if ($column >= 5)
+		{
+			$smilies_wahl .= '</tr><tr>';
+			$column = 0;
+		}
+		$column++;
+	}
 }
 
 $template->set_filenames(array(
@@ -42,7 +51,7 @@ $template->set_filenames(array(
    'jumpbox' => 'jumpbox.tpl')
 );
 
-$jumpbox = make_jumpbox($forum_id);
+$jumpbox = make_jumpbox('viewforum.' . $phpEx);
 $template->assign_vars(array(
    'L_GO' => $lang['Go'],
    'SMILIES_WAHL' => $smilies_wahl,
@@ -80,7 +89,7 @@ $template->assign_vars(array(
    'L_NOTEXT_ERROR' => $lang['SC_notext_error'],
 
    'S_JUMPBOX_LIST' => $jumpbox,
-   'S_JUMPBOX_ACTION' => append_sid('viewforum.$phpEx'))
+   'S_JUMPBOX_ACTION' => append_sid('viewforum.' . $phpEx))
 );
 $template->assign_var_from_handle('JUMPBOX', 'jumpbox');
 

@@ -225,3 +225,6 @@ jobs:
 
       - name: Test download delivery safety
         run: php .github/scripts/check-download-delivery-safety.php
+
+      - name: Test legacy helper safety
+        run: php .github/scripts/check-legacy-helper-safety.php

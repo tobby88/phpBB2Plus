@@ -17,7 +17,7 @@ include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 $userdata = session_pagestart($user_ip, PAGE_RECENT);
 init_userprefs($userdata);
 
-$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, min(1000000, intval($_GET['start']))) : 0;
 
 $mode = $set_mode;
 if (isset($_GET['mode']) && is_scalar($_GET['mode']))
@@ -156,6 +156,9 @@ obtain_word_list($orig_word, $replacement_word);
 
 $tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_t']) : array();
 $tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) ) ? phpbb_safe_unserialize($HTTP_COOKIE_VARS[$board_config['cookie_name'] .'_f']) : array();
+$tracking_topics = is_array($tracking_topics) ? $tracking_topics : array();
+$tracking_forums = is_array($tracking_forums) ? $tracking_forums : array();
+$posts_per_page = max(1, intval($board_config['posts_per_page']));
 for( $i = 0; $i < count($line); $i++ )
 {
 	$forum_id = $line[$i]['forum_id'];
@@ -173,19 +176,19 @@ for( $i = 0; $i < count($line); $i++ )
 
 	$views = $line[$i]['topic_views'];
 	$replies = $line[$i]['topic_replies'];
-	if( ( $replies + 1 ) > $board_config['posts_per_page'] )
+	if( ( $replies + 1 ) > $posts_per_page )
 	{
-		$total_pages = ceil( ( $replies + 1 ) / $board_config['posts_per_page'] );
+		$total_pages = ceil( ( $replies + 1 ) / $posts_per_page );
 		$goto_page = ' [ ';
 		$times = '1';
-		for( $j = 0; $j < $replies + 1; $j += $board_config['posts_per_page'] )
+		for( $j = 0; $j < $replies + 1; $j += $posts_per_page )
 		{
 			$goto_page .= '<a href="'. append_sid("viewtopic.$phpEx?". POST_TOPIC_URL ."=". $topic_id ."&amp;start=$j") .'">'. $times .'</a>';
 			if( $times == '1' && $total_pages > '4' )
 			{
 				$goto_page .= ' ... ';
 				$times = $total_pages - 3;
-				$j += ( $total_pages - 4 ) * $board_config['posts_per_page'];
+				$j += ( $total_pages - 4 ) * $posts_per_page;
 			}
 			else if( $times < $total_pages )
 			{
@@ -300,17 +303,17 @@ for( $i = 0; $i < count($line); $i++ )
 			
 	$first_time = create_date($board_config['default_dateformat'], $line[$i]['topic_time'], $board_config['board_timezone']);
     $first_style_color = color_group_colorize_name($line[$i]['first_poster_id'], true);
-	$first_author = ( $line[$i]['first_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['first_poster_id']) .'" class="gensmall">' . $first_style_color . ' </a>' : ( ($line[$i]['first_poster_name'] != '' ) ? $line[$i]['first_poster_name'] : $lang['Guest'] );
+	$first_author = ( $line[$i]['first_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['first_poster_id']) .'" class="gensmall">' . $first_style_color . ' </a>' : ( ($line[$i]['first_poster_name'] != '' ) ? htmlspecialchars($line[$i]['first_poster_name'], ENT_QUOTES, 'UTF-8') : $lang['Guest'] );
 	$last_time = create_date($board_config['default_dateformat'], $line[$i]['post_time'], $board_config['board_timezone']);
     $last_style_color = color_group_colorize_name($line[$i]['last_poster_id'], true);
-	$last_author = ( $line[$i]['last_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['last_poster_id']) .'" class="gensmall">' . $last_style_color . ' </a>' : ( ($line[$i]['last_poster_name'] != '' ) ? $line[$i]['last_poster_name'] : $lang['Guest'] );
+	$last_author = ( $line[$i]['last_poster_id'] != ANONYMOUS ) ? '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $line[$i]['last_poster_id']) .'" class="gensmall">' . $last_style_color . ' </a>' : ( ($line[$i]['last_poster_name'] != '' ) ? htmlspecialchars($line[$i]['last_poster_name'], ENT_QUOTES, 'UTF-8') : $lang['Guest'] );
 	$last_url = '<a href="'. append_sid("viewtopic.$phpEx?". POST_POST_URL .'='. $line[$i]['topic_last_post_id']) .'#'. $line[$i]['topic_last_post_id'] .'"><img src="'. $images['icon_latest_reply'] .'" alt="'. $lang['View_latest_post'] .'" title="'. $lang['View_latest_post'] .'" border="0" /></a>';
-	$forum_name = $line[$i]['forum_name'];
+	$forum_name = htmlspecialchars($line[$i]['forum_name'], ENT_QUOTES, 'UTF-8');
 	if ( strlen($forum_name) > (intval($board_config['last_topic_title_length'])-3) ) $forum_name = substr($forum_name, 0, intval($board_config['last_topic_title_length'])) . '...';
 
 	$template->assign_block_vars('recent', array(
 		'ROW_CLASS' => ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'],
-		'TOPIC_TITLE' => $topic_title,
+		'TOPIC_TITLE' => htmlspecialchars($topic_title, ENT_QUOTES, 'UTF-8'),
 		'TOPIC_TYPE' => $topic_type,
 		'GOTO_PAGE' => $goto_page,
 		'L_VIEWS' => $lang['Views'],
