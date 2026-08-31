@@ -276,6 +276,78 @@ if (!function_exists('phpbb_board_url'))
 }
 
 /**
+ * Compare the configured board host with its conventional www/apex alias.
+ * No other sibling or child subdomain is trusted by this helper.
+ */
+if (!function_exists('phpbb_board_hosts_match'))
+{
+	function phpbb_board_hosts_match($first, $second)
+	{
+		$first = strtolower(rtrim(trim((string) $first), '.'));
+		$second = strtolower(rtrim(trim((string) $second), '.'));
+		if ($first === '' || $second === '' ||
+			!preg_match('/^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[a-f0-9:]+\])$/i', $first) ||
+			!preg_match('/^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[a-f0-9:]+\])$/i', $second))
+		{
+			return false;
+		}
+
+		if ($first === $second)
+		{
+			return true;
+		}
+
+		$first_without_www = (strpos($first, 'www.') === 0) ? substr($first, 4) : $first;
+		$second_without_www = (strpos($second, 'www.') === 0) ? substr($second, 4) : $second;
+		return $first_without_www !== '' && $first_without_www === $second_without_www;
+	}
+}
+
+/**
+ * Validate a Referer against the board host and an optional administrator
+ * allowlist. This replaces the legacy substring check, which accepted hosts
+ * such as "trusted.example.attacker.test".
+ */
+if (!function_exists('phpbb_referer_is_allowed'))
+{
+	function phpbb_referer_is_allowed($referer, $board_host, $additional_hosts = '')
+	{
+		$referer = is_scalar($referer) ? trim((string) $referer) : '';
+		$referer_host = $referer === '' ? '' : @parse_url($referer, PHP_URL_HOST);
+		if (!is_string($referer_host) || $referer_host === '')
+		{
+			return false;
+		}
+
+		if (phpbb_board_hosts_match($referer_host, $board_host))
+		{
+			return true;
+		}
+
+		foreach (explode(',', (string) $additional_hosts) as $allowed)
+		{
+			$allowed = trim($allowed);
+			if ($allowed === '')
+			{
+				continue;
+			}
+			$allowed_host = strpos($allowed, '://') !== false
+				? @parse_url($allowed, PHP_URL_HOST)
+				: @parse_url('http://' . ltrim($allowed, '.'), PHP_URL_HOST);
+			$allowed_host = is_string($allowed_host) ? strtolower(rtrim($allowed_host, '.')) : '';
+			$referer_host_normalized = strtolower(rtrim($referer_host, '.'));
+			if ($allowed_host !== '' && ($referer_host_normalized === $allowed_host ||
+				substr($referer_host_normalized, -strlen('.' . $allowed_host)) === '.' . $allowed_host))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+}
+
+/**
  * Reject browser-declared cross-site state-changing requests. SameSite cookies
  * remain the primary compatibility-safe CSRF defence; this covers clients
  * which also provide Origin or Fetch Metadata without breaking older agents.
@@ -311,7 +383,7 @@ if (!function_exists('phpbb_request_origin_is_valid'))
 		$expected_port = isset($expected['port']) ? (int) $expected['port'] : (strtolower($expected['scheme']) === 'https' ? 443 : 80);
 
 		return strtolower($actual['scheme']) === strtolower($expected['scheme'])
-			&& strtolower($actual['host']) === strtolower($expected['host'])
+			&& phpbb_board_hosts_match($actual['host'], $expected['host'])
 			&& $actual_port === $expected_port;
 	}
 }
@@ -327,7 +399,7 @@ if (!function_exists('phpbb_request_source_is_same_origin'))
 		$fetch_site = isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_scalar($_SERVER['HTTP_SEC_FETCH_SITE'])
 			? strtolower(trim((string) $_SERVER['HTTP_SEC_FETCH_SITE']))
 			: '';
-		if ($fetch_site === 'cross-site' || $fetch_site === 'same-site')
+		if ($fetch_site === 'cross-site')
 		{
 			return false;
 		}
@@ -356,7 +428,7 @@ if (!function_exists('phpbb_request_source_is_same_origin'))
 		$expected_port = isset($expected['port']) ? (int) $expected['port'] : (strtolower($expected['scheme']) === 'https' ? 443 : 80);
 
 		return strtolower($actual['scheme']) === strtolower($expected['scheme'])
-			&& strtolower($actual['host']) === strtolower($expected['host'])
+			&& phpbb_board_hosts_match($actual['host'], $expected['host'])
 			&& $actual_port === $expected_port;
 	}
 }

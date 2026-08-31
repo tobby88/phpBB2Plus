@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Made apex-domain and `www` access coexist without weakening host checks.
+  Origin, CrackerTracker, Arcade and media/download Referer validation now
+  recognize only those exact counterparts, while the old Album substring
+  comparison was replaced with parsed host matching. Deployment guidance now
+  documents shared parent-domain cookies and the one-time cookie-name change
+  needed to retire conflicting browser state without manual cache clearing.
 - Removed the six incomplete alternative style packages and the experimental
   automatic mobile-style selection. FI Subsilver Shadow is now the only
   bundled style; fresh installs seed only it, while the idempotent updater

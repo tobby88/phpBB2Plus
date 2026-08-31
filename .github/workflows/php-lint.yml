@@ -85,6 +85,9 @@ jobs:
       - name: Test CrackerTracker request security
         run: php .github/scripts/check-ctracker-security.php
 
+      - name: Test apex and www host aliases
+        run: php .github/scripts/check-host-alias-safety.php
+
       - name: Test CrackerTracker blocklist matching
         run: php .github/scripts/check-ctracker-ipblocker.php
 

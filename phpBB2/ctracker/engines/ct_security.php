@@ -80,6 +80,19 @@ function ct_security_url_host($value, $is_authority)
 	return strtolower(rtrim($parts['host'], '.'));
 }
 
+function ct_security_hosts_match($first, $second)
+{
+	$first = strtolower(rtrim((string) $first, '.'));
+	$second = strtolower(rtrim((string) $second, '.'));
+	if ($first === $second)
+	{
+		return true;
+	}
+	$first = strpos($first, 'www.') === 0 ? substr($first, 4) : $first;
+	$second = strpos($second, 'www.') === 0 ? substr($second, 4) : $second;
+	return $first !== '' && $first === $second;
+}
+
 /**
  * Reject browser-confirmed cross-site writes without breaking old clients
  * which legitimately omit Origin, Referer and Fetch Metadata headers.
@@ -124,7 +137,7 @@ function ct_security_cross_site_write($server)
 		return false;
 	}
 	$source_host = ct_security_url_host($source, false);
-	return $source_host === false || !hash_equals($request_host, $source_host);
+	return $source_host === false || !ct_security_hosts_match($request_host, $source_host);
 }
 
 function ct_security_disallowed_method($server)

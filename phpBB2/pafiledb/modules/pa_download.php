@@ -90,35 +90,7 @@ class pafiledb_download extends pafiledb_public
 
 		if( ($pafiledb_config['hotlink_prevent']) and (!empty($url_referer)) )
 		{
-			$referer_host = strtolower((string) parse_url($url_referer, PHP_URL_HOST));
-
-			$good_referers = array();
-
-			if ($pafiledb_config['hotlink_allowed'] != '')
-			{
-				$good_referers = explode(',', $pafiledb_config['hotlink_allowed']);
-			}
-
-			$good_referers[] = $board_config['server_name'];
-
-			$errored = TRUE;
-
-			for ($i = 0; $i < count($good_referers); $i++)
-			{
-				$allowed_host = strtolower(trim((string) $good_referers[$i]));
-				if (strpos($allowed_host, '://') !== false)
-				{
-					$allowed_host = strtolower((string) parse_url($allowed_host, PHP_URL_HOST));
-				}
-				$allowed_host = preg_replace('/:\\d+$/', '', $allowed_host);
-
-				if ($allowed_host !== '' && ($referer_host === $allowed_host || substr($referer_host, -strlen('.' . $allowed_host)) === '.' . $allowed_host))
-				{
-					$errored = FALSE;
-				}
-			}
-
-			if ($errored)
+			if (!phpbb_referer_is_allowed($url_referer, $board_config['server_name'], $pafiledb_config['hotlink_allowed']))
 			{
 				message_die(GENERAL_MESSAGE, $lang['Directly_linked']);
 			}

@@ -86,6 +86,17 @@ default and every stored member preference to it before removing obsolete
 theme records. The experimental automatic mobile-style selection and its
 footer switcher are no longer part of the application.
 
+### Multiple host names
+
+If the same forum must remain usable through both an apex domain and its
+`www` alias, set the ACP cookie domain to their shared parent (for example
+`.example.com`) and enable secure cookies on HTTPS. When changing an existing
+host-scoped installation, change the cookie name once as well: this prevents
+old host-only cookies from shadowing the new shared cookies and avoids asking
+members to clear browser data manually. The request, Arcade and hotlink checks
+accept only the configured host and its exact `www`/non-`www` counterpart;
+unrelated subdomains remain untrusted.
+
 The standalone DB Maintenance Emergency Recovery Console at `admin/erc.php`
 is disabled by default because it can make extensive database changes. To use
 it, temporarily add `define('DBMTNC_ENABLE_ERC', true);` and a random secret of

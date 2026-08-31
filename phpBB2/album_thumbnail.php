@@ -133,36 +133,10 @@ if ($userdata['user_level'] != ADMIN)
 // Check hotlink
 // ------------------------------------
 
-if( ($album_config['hotlink_prevent'] == 1) and (isset($HTTP_SERVER_VARS['HTTP_REFERER'])) )
+if (($album_config['hotlink_prevent'] == 1) && isset($HTTP_SERVER_VARS['HTTP_REFERER']) &&
+	!phpbb_referer_is_allowed($HTTP_SERVER_VARS['HTTP_REFERER'], $board_config['server_name'], $album_config['hotlink_allowed']))
 {
-	$check_referer = explode('?', $HTTP_SERVER_VARS['HTTP_REFERER']);
-	$check_referer = trim($check_referer[0]);
-
-	$good_referers = array();
-
-	if ($album_config['hotlink_allowed'] != '')
-	{
-		$good_referers = explode(',', $album_config['hotlink_allowed']);
-	}
-
-	$good_referers[] = $board_config['server_name'] . $board_config['script_path'];
-
-	$errored = TRUE;
-
-	for ($i = 0; $i < count($good_referers); $i++)
-	{
-		$good_referers[$i] = trim($good_referers[$i]);
-
-		if( (strstr($check_referer, $good_referers[$i])) and ($good_referers[$i] != '') )
-		{
-			$errored = FALSE;
-		}
-	}
-
-	if ($errored)
-	{
-		die($lang['Not_Authorised']);
-	}
+	die($lang['Not_Authorised']);
 }
 
 
