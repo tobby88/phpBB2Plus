@@ -9,10 +9,12 @@ $lang = array(
 	'General' => 'General', 'Styles' => 'Styles', 'Attachments' => 'Attachments',
 	'Users' => 'Users', 'Arcade' => 'Arcade', 'Future' => 'Future', 'Banner' => 'Banner',
 	'Styles_Management' => 'Style management', 'Manage' => 'Manage',
-	'Extension_control' => 'Extension control', 'Profile_fields_add' => 'Add profile field'
+	'Extension_control' => 'Extension control', 'Profile_fields_add' => 'Add profile field',
+	'General_Plusconfig' => 'phpBB2 Plus Configuration'
 );
 $navigation_fixture = array(
 	'Arcade' => array('Manage' => array('file_hash' => 'arcade')),
+	'Plus' => array('Configuration' => array('file_hash' => 'plus-config')),
 	'Extreme_Styles' => array('Styles_Management' => array('file_hash' => 'xs')),
 	'General' => array('Manage' => array('file_hash' => 'general')),
 	'Systeminfo' => array('PHPInfo' => array('file_hash' => 'phpinfo')),
@@ -30,15 +32,22 @@ if (array_keys($prepared_navigation) !== $expected_categories)
 	$errors[] = 'AdminCP categories are not grouped in the expected task-oriented order.';
 }
 if (isset($prepared_navigation['Extreme_Styles']) || isset($prepared_navigation['Extensions']) ||
-	isset($prepared_navigation['Custom_Profile']) || isset($prepared_navigation['Systeminfo']))
+	isset($prepared_navigation['Custom_Profile']) || isset($prepared_navigation['Systeminfo']) ||
+	isset($prepared_navigation['Plus']))
 {
-	$errors[] = 'Related style or attachment categories remain split in the AdminCP navigation.';
+	$errors[] = 'Related AdminCP categories remain unnecessarily split.';
 }
 if (!isset($prepared_navigation['Users']['Custom_Profile__Add_new']['file_hash']) ||
 	$prepared_navigation['Users']['Custom_Profile__Add_new']['file_hash'] !== 'profile-field' ||
 	$prepared_navigation['Users']['Custom_Profile__Add_new']['navigation_name'] !== 'Profile_fields_add')
 {
 	$errors[] = 'Profile-field navigation was not merged into Users with an unambiguous label.';
+}
+if (!isset($prepared_navigation['General']['Plus__Configuration']['file_hash']) ||
+	$prepared_navigation['General']['Plus__Configuration']['file_hash'] !== 'plus-config' ||
+	$prepared_navigation['General']['Plus__Configuration']['navigation_name'] !== 'General_Plusconfig')
+{
+	$errors[] = 'Plus configuration was not merged into General with an unambiguous label.';
 }
 if (!isset($prepared_navigation['Styles']['Styles_Management']['file_hash']) || $prepared_navigation['Styles']['Styles_Management']['file_hash'] !== 'xs' ||
 	!isset($prepared_navigation['Attachments']['Extension_control']['file_hash']) || $prepared_navigation['Attachments']['Extension_control']['file_hash'] !== 'extensions')

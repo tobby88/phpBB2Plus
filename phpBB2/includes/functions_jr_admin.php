@@ -290,12 +290,16 @@ function jr_admin_prepare_navigation_modules($module_list)
 		'Extreme_Styles' => 'Styles',
 		'Extensions' => 'Attachments',
 		'Custom_Profile' => 'Users',
-		'Systeminfo' => 'General'
+		'Systeminfo' => 'General',
+		'Plus' => 'General'
 	);
 	$module_name_aliases = array(
 		'Custom_Profile' => array(
 			'Add_new' => 'Profile_fields_add',
 			'Edit' => 'Profile_fields_edit'
+		),
+		'Plus' => array(
+			'Configuration' => 'General_Plusconfig'
 		)
 	);
 	foreach ($category_aliases as $source => $destination)
