@@ -106,6 +106,18 @@ function phpbb_profile_http_url($value)
 	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
 }
 
+function phpbb_avatar_remote_url($value)
+{
+	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
+	$parts = @parse_url($value);
+	if (!$parts || empty($parts['path']) || !preg_match('/\.(?:gif|jpe?g|png)$/iD', $parts['path']))
+	{
+		return '';
+	}
+
+	return phpbb_profile_http_url($value);
+}
+
 function phpbb_profile_email_uri($email, $form_url = '')
 {
 	$form_url = (string) $form_url;
@@ -224,7 +236,7 @@ function phpbb_avatar_asset_url($avatar, $avatar_type, $path_prefix = '')
 
 	if ($avatar_type === USER_AVATAR_REMOTE)
 	{
-		return !empty($board_config['allow_avatar_remote']) ? phpbb_profile_http_url($avatar) : '';
+		return !empty($board_config['allow_avatar_remote']) ? phpbb_avatar_remote_url($avatar) : '';
 	}
 
 	if ($avatar_type === USER_AVATAR_UPLOAD)

@@ -120,27 +120,27 @@ function user_avatar_gallery($mode, &$error, &$error_msg, $avatar_filename, $ava
 
 function user_avatar_url($mode, &$error, &$error_msg, $avatar_filename)
 {
-	global $lang;
+	global $lang, $db;
 	$avatar_filename = html_entity_decode(trim($avatar_filename), ENT_QUOTES, 'UTF-8');
 	if ( !preg_match('#^https?://#i', $avatar_filename) )
 	{
 		$avatar_filename = 'https://' . $avatar_filename;
 	}
 
-	$avatar_filename = substr($avatar_filename, 0, 100);
 	$url_parts = @parse_url($avatar_filename);
 
-	if ( !$url_parts || empty($url_parts['host']) || empty($url_parts['path']) ||
+	if ( strlen($avatar_filename) > 100 || !$url_parts || empty($url_parts['host']) || empty($url_parts['path']) ||
 		!in_array(strtolower($url_parts['scheme']), array('http', 'https'), true) ||
+		isset($url_parts['user']) || isset($url_parts['pass']) || strpos($avatar_filename, '\\') !== false ||
 		!preg_match('/\.(jpg|jpeg|gif|png)$/i', $url_parts['path']) ||
-		preg_match('/[\x00-\x20\x7f]/', $avatar_filename) )
+		preg_match('/[\x00-\x20\x7f<>"\'`]/', $avatar_filename) )
 	{
 		$error = true;
 		$error_msg = ( !empty($error_msg) ) ? $error_msg . '<br />' . $lang['Wrong_remote_avatar_format'] : $lang['Wrong_remote_avatar_format'];
 		return;
 	}
 
-	return ( $mode == 'editprofile' ) ? ", user_avatar = '" . str_replace("'", "''", stripslashes($avatar_filename)) . "', user_avatar_type = " . USER_AVATAR_REMOTE : '';
+	return ( $mode == 'editprofile' ) ? ", user_avatar = '" . $db->sql_escape($avatar_filename) . "', user_avatar_type = " . USER_AVATAR_REMOTE : '';
 
 }
 
