@@ -24,6 +24,9 @@ image_processing_assert(swf_decompress($oversized_swf) === false, 'oversized com
 $invalid_swf = tempnam(sys_get_temp_dir(), 'phpbb-swf-');
 file_put_contents($invalid_swf, 'not a flash file');
 image_processing_assert(swf_getdimension($invalid_swf) === array(0, 0), 'invalid SWF files must produce a safe empty dimension result');
+image_processing_assert(image_getdimension($invalid_swf) === array(0, 0), 'invalid attachment images must produce a safe empty dimension result');
+file_put_contents($invalid_swf, 'BM');
+image_processing_assert(image_getdimension($invalid_swf) === array(0, 0), 'truncated attachment headers must not cause out-of-range reads');
 @unlink($invalid_swf);
 
 $root = dirname(dirname(__DIR__));

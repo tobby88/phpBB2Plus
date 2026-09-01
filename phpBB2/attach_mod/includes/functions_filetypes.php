@@ -18,6 +18,10 @@
 function read_longint($fp)
 {
 	$data = fread($fp, 4);
+	if (!is_string($data) || strlen($data) !== 4)
+	{
+		return 0;
+	}
 
 	$value = ord($data[0]) + (ord($data[1])<<8)+(ord($data[2])<<16)+(ord($data[3])<<24);
 	if ($value >= 4294967294)
@@ -34,6 +38,10 @@ function read_longint($fp)
 function read_word($fp)
 {
 	$data = fread($fp, 2);
+	if (!is_string($data) || strlen($data) !== 2)
+	{
+		return 0;
+	}
 
 	$value = ord($data[1]) * 256 + ord($data[0]);
 	
@@ -46,6 +54,10 @@ function read_word($fp)
 function read_byte($fp)
 {
 	$data = fread($fp, 1);
+	if (!is_string($data) || strlen($data) !== 1)
+	{
+		return 0;
+	}
 
 	$value = ord($data);
 	
@@ -59,10 +71,11 @@ function image_getdimension($file)
 {
 	$size = @getimagesize($file);
 
-	if ($size[0] != 0 || $size[1] != 0)
+	if (is_array($size) && isset($size[0], $size[1]) && ($size[0] != 0 || $size[1] != 0))
 	{
 		return $size;
 	}
+	$size = array(0, 0);
 
 	// Try to get the Dimension manually, depending on the mimetype
 	$fp = @fopen($file, 'rb');
@@ -110,7 +123,7 @@ function image_getdimension($file)
 			$width = read_longint($fp); 
 			$height = read_longint($fp);
 
-			if ($width > 3000 || $height > 3000)
+			if ($width < 1 || $height < 1 || $width > 3000 || $height > 3000)
 			{
 				$error = true;
 			}
@@ -137,6 +150,10 @@ function image_getdimension($file)
 	// GIF - IMAGE
 
 	$fp = @fopen($file, 'rb');
+	if (!$fp)
+	{
+		return $size;
+	}
 
 	$tmp_str = fread($fp, 3);
 	
@@ -146,8 +163,11 @@ function image_getdimension($file)
 		$width = read_word($fp);
 		$height = read_word($fp);
 
-		$info_byte = fread($fp, 1);
-		$info_byte = ord($info_byte);
+		$info_byte = read_byte($fp);
+		if ($width < 1 || $height < 1)
+		{
+			$error = true;
+		}
 		if (($info_byte & 0x80) != 0x80 && ($info_byte & 0x80) != 0)
 		{
 			$error = true;
@@ -182,11 +202,15 @@ function image_getdimension($file)
 
 	// JPG - IMAGE
 	$fp = @fopen($file, 'rb');
+	if (!$fp)
+	{
+		return $size;
+	}
 
 	$tmp_str = fread($fp, 4);
 	$w1 = read_word($fp);
 
-	if (intval($w1) < 16)
+	if (!is_string($tmp_str) || strlen($tmp_str) !== 4 || substr($tmp_str, 0, 2) !== "\xFF\xD8" || intval($w1) < 16)
 	{
 		$error = true;
 	}
@@ -196,8 +220,8 @@ function image_getdimension($file)
 		$tmp_str = fread($fp, 4);
 		if ($tmp_str == 'JFIF')
 		{
-			$o_byte = fread($fp, 1);
-			if (intval($o_byte) != 0)
+			$o_byte = read_byte($fp);
+			if ($o_byte != 0)
 			{
 				$error = true;
 			}
@@ -224,6 +248,10 @@ function image_getdimension($file)
 				}
 			}
 		}
+		else
+		{
+			$error = true;
+		}
 	}
 	else
 	{
@@ -246,14 +274,18 @@ function image_getdimension($file)
 	// PCX - IMAGE
 
 	$fp = @fopen($file, 'rb');
+	if (!$fp)
+	{
+		return $size;
+	}
 
 	$tmp_str = fread($fp, 3);
 	
-	if ((ord($tmp_str[0]) == 10) && (ord($tmp_str[1]) == 0 || ord($tmp_str[1]) == 2 || ord($tmp_str[1]) == 3 || ord($tmp_str[1]) == 4 || ord($tmp_str[1]) == 5) && (ord($tmp_str[2]) == 1))
+	if (is_string($tmp_str) && strlen($tmp_str) === 3 && (ord($tmp_str[0]) == 10) && (ord($tmp_str[1]) == 0 || ord($tmp_str[1]) == 2 || ord($tmp_str[1]) == 3 || ord($tmp_str[1]) == 4 || ord($tmp_str[1]) == 5) && (ord($tmp_str[2]) == 1))
 	{
-		$b = fread($fp, 1);
+		$b = read_byte($fp);
 
-		if (ord($b) != 1 && ord($b) != 2 && ord($b) != 4 && ord($b) != 8 && ord($b) != 24)
+		if ($b != 1 && $b != 2 && $b != 4 && $b != 8 && $b != 24)
 		{
 			$error = true;
 		}
@@ -266,7 +298,7 @@ function image_getdimension($file)
 			$ymax = read_word($fp);
 			$tmp_str = fread($fp, 52);
 	  
-			$b = fread($fp, 1);
+			$b = read_byte($fp);
 			if ($b != 0)
 			{
 				$error = true;
@@ -277,6 +309,10 @@ function image_getdimension($file)
 		{
 			$width = $xmax - $xmin + 1;
 			$height = $ymax - $ymin + 1;
+			if ($width < 1 || $height < 1 || $width > 3000 || $height > 3000)
+			{
+				$error = true;
+			}
 		}
 	}
 	else
