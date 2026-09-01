@@ -18,6 +18,10 @@ changes consolidated after that baseline without implying active maintenance.
   colors, CSS classes, font families and numeric presentation values now pass
   strict allowlists and bounds, preventing a corrupt legacy theme record from
   becoming path traversal, markup or inline-script content.
+- Made the document-language metadata follow the language pack actually
+  selected by preference initialization. Anonymous German pages no longer
+  incorrectly declare themselves as English because of a stale Anonymous-user
+  profile field.
 - Escaped stored forum, topic, bookmark and site labels in the browser
   navigation metadata emitted in every page header. Navigation URLs and
   relation attributes are now encoded at their attribute boundary, and the

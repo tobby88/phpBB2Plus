@@ -41,7 +41,7 @@ standard_style_assert(strpos($updater, "WHERE template_name <> 'fisubsilversh'")
 standard_style_assert(strpos($updater, "config_name = 'xs_def_template'") !== false, 'the updater must normalize the eXtreme Styles fallback');
 standard_style_assert(strpos($updater, "'xs_def_template' => 'fisubsilversh'") !== false, 'the updater must create a missing fallback setting');
 standard_style_assert(strpos($template_engine, "var \$tpldef = 'fisubsilversh';") !== false, 'the template fallback must use FI Subsilver Shadow');
-standard_style_assert(strpos($page_header, "'S_CONTENT_LANGUAGE' =>") !== false, 'the page header must expose the active document language');
+standard_style_assert(strpos($page_header, "strtolower((string) \$board_config['default_lang']) === 'german'") !== false, 'the page header must expose the language pack selected by user preference initialization');
 standard_style_assert(strpos($header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'the public document must declare its language');
 standard_style_assert(strpos($simple_header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'simple public documents must declare their language');
 
