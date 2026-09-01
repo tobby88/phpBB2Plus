@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the Top Smilies statistics module against malformed stored smile
+  codes and asset names, escaped its HTML output, constrained its selected
+  style path and removed negative-offset warnings for empty/single-item data.
+  Its per-post counting mode now lets the database return a count instead of
+  transferring every matching post body to PHP.
 - Rebuilt the public Album search around a fixed mode-to-column allowlist and
   database-driver escaping. Queries are bounded, inaccessible personal or
   restricted categories are filtered through the normal Album permissions,

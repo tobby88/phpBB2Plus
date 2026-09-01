@@ -92,6 +92,11 @@ function smilies_do_math($firstval, $value, $total)
 //
 function smilies_sort_multi_array_attachment ($sort_array, $key, $sort_order) 
 {
+	if (!is_array($sort_array) || count($sort_array) < 2)
+	{
+		return is_array($sort_array) ? $sort_array : array();
+	}
+
 	$last_element = count($sort_array) - 1;
 
 	$string_sort = ( is_string($sort_array[$last_element-1][$key]) ) ? TRUE : FALSE;
@@ -175,6 +180,7 @@ else
 	$style =  $board_config['default_style'];
 }
 
+$style = max(0, intval($style));
 $sql = 'SELECT * 
 FROM ' . THEMES_TABLE . ' 
 WHERE themes_id = ' . $style;
@@ -189,7 +195,10 @@ if( !$row = $db->sql_fetchrow($result) )
 	message_die(CRITICAL_ERROR, 'Couldn\'t get theme data for themes_id=' . $style . '.');
 }
 
-$current_template_path = 'templates/' . $row['template_name'] . '/';
+$template_name = isset($row['template_name']) && preg_match('/^[a-z0-9_-]+$/iD', (string) $row['template_name'])
+	? (string) $row['template_name']
+	: 'fisubsilversh';
+$current_template_path = 'templates/' . $template_name . '/';
 
 $template->assign_vars(array(
 	'LEFT_GRAPH_IMAGE' => $current_template_path . $vote_left,
@@ -218,9 +227,15 @@ if ($db->sql_numrows($result) > 0)
 
 	for ($i = 0; $i < count($smilies); $i++)
 	{
+		$smile_url = phpbb_profile_image_name($smilies[$i]['smile_url']);
+		if ($smile_url === '')
+		{
+			continue;
+		}
+		$smile_url_sql = $db->sql_escape($smile_url);
 		$sql = "SELECT *
 		FROM " . SMILIES_TABLE . "
-		WHERE smile_url = '" . $smilies[$i]['smile_url'] . "'";
+		WHERE smile_url = '" . $smile_url_sql . "'";
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -228,15 +243,28 @@ if ($db->sql_numrows($result) > 0)
 		}
 
 		$smile_codes = $db->sql_fetchrowset($result);
+		$db->sql_freeresult($result);
 
 		$count = 0;
+		$display_code = '';
 
 		for ($j = 0; $j < count($smile_codes); $j++)
 		{
-			$smile_codes[$j]['code'] = str_replace("'", "\'", $smile_codes[$j]['code']);
-			$sql = "SELECT post_id, post_text
-			FROM " . POSTS_TEXT_TABLE . "
-			WHERE post_text LIKE '%" . $smile_codes[$j]['code'] . "%'";
+			$smile_code = isset($smile_codes[$j]['code']) && is_scalar($smile_codes[$j]['code'])
+				? (string) $smile_codes[$j]['code']
+				: '';
+			if ($smile_code === '' || strlen($smile_code) > 50)
+			{
+				continue;
+			}
+			if ($display_code === '')
+			{
+				$display_code = $smile_code;
+			}
+			$smile_code_sql = $db->sql_escape($smile_code);
+			$sql = ($smile_pref == 0)
+				? "SELECT COUNT(*) AS matching_posts FROM " . POSTS_TEXT_TABLE . " WHERE post_text LIKE '%" . $smile_code_sql . "%'"
+				: "SELECT post_text FROM " . POSTS_TEXT_TABLE . " WHERE post_text LIKE '%" . $smile_code_sql . "%'";
 
 			if ( !($result = $db->sql_query($sql)) )
 			{
@@ -245,20 +273,28 @@ if ($db->sql_numrows($result) > 0)
 
 			if ($smile_pref == 0)
 			{
-				$count = $count + $db->sql_numrows($result);
+				$matching = $db->sql_fetchrow($result);
+				$count += isset($matching['matching_posts']) ? intval($matching['matching_posts']) : 0;
 			}
 			else
 			{
 				while ($post = $db->sql_fetchrow($result))
 				{
-					$count = $count + substr_count($post['post_text'], $smile_codes[$j]['code']);
+					$count += substr_count((string) $post['post_text'], $smile_code);
 				}
 			}
+			$db->sql_freeresult($result);
 		}
 
-		$all_smilies[$i]['count'] = $count;
-		$all_smilies[$i]['code'] = $smile_codes[0]['code'];
-	    $all_smilies[$i]['smile_url'] = $smile_codes[0]['smile_url'];
+		if ($display_code === '')
+		{
+			continue;
+		}
+		$all_smilies[] = array(
+			'count' => $count,
+			'code' => $display_code,
+			'smile_url' => $smile_url,
+		);
 	    $total_smilies = $total_smilies + $count;
 	}
 }
@@ -279,11 +315,11 @@ for ($i = 0; $i < $limit; $i++)
 		$template->assign_block_vars('topsmilies', array(
 			'RANK' => $i+1,
 			'CLASS' => $class,
-			'CODE' => $all_smilies[$i]['code'],
+			'CODE' => htmlspecialchars((string) $all_smilies[$i]['code'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 			'USES' => $all_smilies[$i]['count'],
 			'PERCENTAGE' => $percentage,
 			'BAR' => $bar_percent,
-			'URL' => '<img src="'. $board_config['smilies_path'] . '/' . $all_smilies[$i]['smile_url'] . '" alt="' . $all_smilies[$i]['smile_url'] . '" border="0">')
+			'URL' => '<img src="' . htmlspecialchars(rtrim((string) $board_config['smilies_path'], '/\\') . '/' . rawurlencode($all_smilies[$i]['smile_url']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="' . htmlspecialchars($all_smilies[$i]['smile_url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" border="0" />')
 		);
 	}
 }
