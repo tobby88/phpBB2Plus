@@ -14,6 +14,7 @@ $functions = file_get_contents($root . '/phpBB2/includes/functions_kb.php');
 $admin = file_get_contents($root . '/phpBB2/admin/admin_kb_art.php');
 $moderator = file_get_contents($root . '/phpBB2/includes/kb_moderator.php');
 $search = file_get_contents($root . '/phpBB2/kb_search.php');
+$category = file_get_contents($root . '/phpBB2/includes/kb_cat.php');
 
 kb_runtime_assert(strpos($functions, "\$article_link = '<a") !== false, 'article link must not overwrite the database row');
 kb_runtime_assert(strpos($functions, "\$postrow[\$i]['link_rating']") === false, 'KB ratings must not read an unrelated post row');
@@ -44,6 +45,20 @@ kb_runtime_assert(strpos($search, 'mode=results&amp;search_id=') !== false, 'Kno
 kb_runtime_assert(strpos($search, "\$multibyte_charset = 'utf-8, big5, shift_jis, euc-kr, gb2312';") !== false, 'Knowledge Base search must initialize its charset strategy locally');
 kb_runtime_assert(strpos($search, 'str_replace("\\\'", "\'\'", $result_array)') === false, 'legacy manual search cache escaping must be removed');
 kb_runtime_assert(strpos($functions, '$articles_in_cat = max(0, min(1000, (int) $articles_in_cat));') !== false, 'article list sizes must be bounded');
+kb_runtime_assert(strpos($functions, 'function get_kb_nav($parent, $visited = array())') !== false, 'category navigation must detect cyclic parent relationships');
+kb_runtime_assert(strpos($functions, 'foreach (array_reverse($path_kb_array) as $path_part)') !== false, 'category navigation must not read beyond its path');
+kb_runtime_assert(strpos($functions, '$allowed_sort_methods = array(') !== false, 'article list SQL sorting must be allowlisted');
+kb_runtime_assert(strpos($functions, 'function update_kb_number($id, $change, $visited = array())') !== false, 'category counters must detect cyclic parent relationships');
+kb_runtime_assert(strpos($functions, "\$new_number = max(0, (int) \$kb_cat['number_articles'] + \$change);") !== false, 'category article counters must use numeric addition');
+kb_runtime_assert(substr_count($functions, "phpbb_profile_text(stripslashes(\$article['article_description']))") >= 2, 'all article list descriptions must be escaped');
+kb_runtime_assert(substr_count($functions, "phpbb_profile_text(stripslashes(\$article['article_title']))") >= 2, 'all article list titles must be escaped');
+kb_runtime_assert(strpos($functions, "phpbb_profile_text(stripslashes(\$category['category_details']))") !== false, 'category descriptions must be escaped');
+kb_runtime_assert(strpos($search, '$article_title = phpbb_profile_text(stripslashes($article_title));') !== false, 'search result titles must be escaped');
+kb_runtime_assert(strpos($search, "'ARTICLE_DESCRIPTION' => phpbb_profile_text(stripslashes(\$article['article_description']))") !== false, 'search result descriptions must be escaped');
+kb_runtime_assert(strpos($search, "phpbb_profile_text(stripslashes(\$article['username']))") !== false, 'search result authors must be escaped');
+kb_runtime_assert(strpos($category, '$category_name_plain =') !== false, 'category existence checks must use an unformatted value');
+kb_runtime_assert(strpos($category, "strtoupper((string) \$kb_config['news_sort_par']) === 'ASC'") !== false, 'category sort direction must be normalized');
+kb_runtime_assert(substr_count($category, "min(1000, (int) \$kb_config['art_pagination'])") === 2, 'category page sizes must be bounded');
 
 $article = file_get_contents($root . '/phpBB2/includes/kb_article.php');
 kb_runtime_assert(strpos($article, '$author_name_plain =') !== false && strpos($article, '$username !=') === false, 'guest articles must not read an undefined username');

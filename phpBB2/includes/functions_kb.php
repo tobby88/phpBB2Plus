@@ -48,8 +48,8 @@ function get_quick_stats()
    while( $type = $db->sql_fetchrow($result) ) 
    { 
 	$ii++;
-   	$type_id = $type['id']; 
-      $type_name = $type['type']; 
+	$type_id = (int) $type['id'];
+      $type_name = phpbb_profile_text(stripslashes($type['type']));
     
       $sql = "SELECT article_id FROM " . KB_ARTICLES_TABLE . " WHERE article_type = $type_id"; 
     
@@ -150,12 +150,19 @@ function get_kb_cat($id)
 // get_kb_nav($cat_id)
 // gets parents for category
 //
-function get_kb_nav($parent)
+function get_kb_nav($parent, $visited = array())
 {
-    global $db, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $phpEx;
+	global $db;
 	global $path_kb, $path_kb_array, $is_block, $page_id;
+
+	$parent = (int) $parent;
+	if ($parent <= 0 || isset($visited[$parent]) || count($visited) >= 100)
+	{
+		return;
+	}
+	$visited[$parent] = true;
 	
-	$sql = "SELECT * FROM " . KB_CATEGORIES_TABLE . " 
+	$sql = "SELECT category_id, category_name, parent FROM " . KB_CATEGORIES_TABLE . "
 		       WHERE category_id = $parent";
 	
 	if ( !($result = $db->sql_query($sql)) )
@@ -164,23 +171,25 @@ function get_kb_nav($parent)
 	 }
 	 
 	 $row = $db->sql_fetchrow($result);
-	
-	 $temp_url = append_sid(this_kb_mxurl('mode=cat&amp;cat='. $row['category_id']));		   
-	 $path_kb_array[] .= '-> <a href="' . $temp_url . '" class="nav">' . $row['category_name'] . '</a> ';
-	 
-	 if ( $row['parent'] != '0' )
+	 if (!is_array($row))
 	 {
-	     get_kb_nav($row['parent']);
+		 return;
+	 }
+	
+	 $category_id = (int) $row['category_id'];
+	 $category_name = phpbb_profile_text(stripslashes($row['category_name']));
+	 $temp_url = htmlspecialchars(append_sid(this_kb_mxurl('mode=cat&amp;cat=' . $category_id)), ENT_QUOTES, 'UTF-8');
+	 $path_kb_array[] = '-> <a href="' . $temp_url . '" class="nav">' . $category_name . '</a> ';
+	 
+	 if ((int) $row['parent'] > 0)
+	 {
+	     get_kb_nav((int) $row['parent'], $visited);
 		 return;
 	 }
 	 
-	 $path_kb_array2 = array_reverse($path_kb_array);
-	 
-	 $i = 0;
-	 while($i <= count($path_kb_array2))
+	 foreach (array_reverse($path_kb_array) as $path_part)
 	 {
-		 $path_kb .= $path_kb_array2[$i];
-		 $i++;
+		 $path_kb .= $path_part;
 	 }
 	 
 	 return;
@@ -211,6 +220,13 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	$approve = (int) $approve;
 	$start = max(-1, min(1000000, (int) $start));
 	$articles_in_cat = max(0, min(1000, (int) $articles_in_cat));
+	$allowed_sort_methods = array('t.article_id', 't.article_date', 'tt.topic_last_post_id', 'u.user_rank', 't.article_title');
+	$requested_sort_method = isset($kb_news_sort_method) ? $kb_news_sort_method : '';
+	$kb_news_sort_method = in_array($requested_sort_method, $allowed_sort_methods, true) ? $requested_sort_method : 't.article_date';
+	$kb_news_sort_method_lj = ($kb_news_sort_method === 'tt.topic_last_post_id');
+	$kb_news_sort_method_extra = '';
+	$requested_sort_direction = isset($kb_news_sort_par) ? $kb_news_sort_par : '';
+	$kb_news_sort_par = (strtoupper((string) $requested_sort_direction) === 'ASC') ? 'ASC' : 'DESC';
 
 	$sql = "SELECT t.*, u.username, u.user_id, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_allowsmile
 			FROM " . KB_ARTICLES_TABLE  . " t, " . USERS_TABLE . " u".(($kb_news_sort_method_lj) ?  ",". TOPICS_TABLE  . " tt" : '')."
@@ -256,18 +272,18 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	while($article = $db->sql_fetchrow($article_result))
 	{	
 		$i++;
-		$article_description = stripslashes($article['article_description']);
-		$article_cat = $article['article_category_id'];
-		$article_approved = $article['approved'];
+		$article_description = phpbb_profile_text(stripslashes($article['article_description']));
+		$article_cat = (int) $article['article_category_id'];
+		$article_approved = (int) $article['approved'];
 		
 	   //type
-	   $type_id = $article['article_type'];	   
-	   $article_type = get_kb_type($type_id);		
+	   $type_id = (int) $article['article_type'];
+	   $article_type = phpbb_profile_text(stripslashes(get_kb_type($type_id)));
 		
 	   $article_date = create_date($board_config['default_dateformat'], $article['article_date'], $board_config['board_timezone']);
 		
 	   // author information
-	   $author_id = $article['article_author_id'];
+	   $author_id = (int) $article['article_author_id'];
 	   if ( $author_id == 0 )
 	   {
 	       $guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
@@ -275,19 +291,19 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   }
 	   else
 	   {
-	       $author_name = get_kb_author($author_id);
+	       $author_name = phpbb_profile_text(stripslashes(get_kb_author($author_id)));
 	   
-	       $temp_url = append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id");
+	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8');
 	       $author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';
 	   }
 		
-	   $article_id = $article['article_id'];
-	   $views = $article['views'];
+	   $article_id = (int) $article['article_id'];
+	   $views = (int) $article['views'];
 	   $article_rating = (float) $article['article_rating'];
 	   $article_totalvotes = (int) $article['article_totalvotes'];
 		
-	   $article_title = stripslashes($article['article_title']);
-	   $temp_url = append_sid(this_kb_mxurl("mode=article&amp;k=$article_id"));
+	   $article_title = phpbb_profile_text(stripslashes($article['article_title']));
+	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
 	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
 	   $approve = '';
@@ -297,7 +313,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   if ( defined('IN_ADMIN') )
 	   {
 	       $category = get_kb_cat($article_cat);
-		   $category_name = $category['category_name'];
+		   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
 
 		if ($article_approved == 2 || $article_approved == 0)
 		{
@@ -317,7 +333,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   else if ( $is_admin )
 	   {
 	       $category = get_kb_cat($article_cat);
-		   $category_name = $category['category_name'];
+		   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
 
 		   if ( $article_approved == 2 || $article_approved == 0)
 		   {
@@ -379,32 +395,41 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 //
 // update number of articles in a category
 //
-function update_kb_number($id, $change)
+function update_kb_number($id, $change, $visited = array())
 {
     global $db;
+	$id = (int) $id;
+	$change = (int) $change;
+	if ($id <= 0 || $change === 0 || isset($visited[$id]) || count($visited) >= 100)
+	{
+		return;
+	}
+	$visited[$id] = true;
 	
 	//update number of articles in category if article has been approve
-	$sql = "SELECT * FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = '" . $id . "'";
+	$sql = "SELECT parent, number_articles FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = " . $id;
 	if ( !($results = $db->sql_query($sql)) )
 	{
    	  	message_die(GENERAL_ERROR, "Could not obtain article data", '', __LINE__, __FILE__, $sql);
 	}
-	if ( $kb_cat = $db->sql_fetchrow($results) )
-	{ 
-	    $new_number = $kb_cat['number_articles'] . $change;
-	}	
+	$kb_cat = $db->sql_fetchrow($results);
+	if (!is_array($kb_cat))
+	{
+		return;
+	}
+	$new_number = max(0, (int) $kb_cat['number_articles'] + $change);
 	$sql = "UPDATE " . KB_CATEGORIES_TABLE .
 		  " SET number_articles = " . $new_number .
-		  " WHERE category_id = '" . $id . "'";
+		  " WHERE category_id = " . $id;
 		 
 	if ( !($result = $db->sql_query($sql)) )
 	{
    	    message_die(GENERAL_ERROR, "Could not update category data", '', __LINE__, __FILE__, $sql);
 	}
 	
-	if ($kb_cat['parent'] != '0')
+	if ((int) $kb_cat['parent'] > 0)
 	{
-	    update_kb_number($kb_cat['parent'], $change);
+	    update_kb_number((int) $kb_cat['parent'], $change, $visited);
 	}
 	  
 	return;
@@ -517,6 +542,7 @@ function get_kb_cat_index($parent = 0)
 {
     global $db, $template, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $phpEx, $is_block, $page_id;
 	
+	$parent = (int) $parent;
 	$sql = "SELECT *  
        		FROM " . KB_CATEGORIES_TABLE . " 
 			WHERE parent = " . $parent . " 
@@ -529,12 +555,12 @@ function get_kb_cat_index($parent = 0)
 	 
 	 while ( $category = $db->sql_fetchrow($result) )
 	 {		
-		$category_details = $category['category_details'];
-		$category_articles = $category['number_articles'];
+		$category_details = phpbb_profile_text(stripslashes($category['category_details']));
+		$category_articles = (int) $category['number_articles'];
 		
-		$category_id = $category['category_id'];
-		$category_name = $category['category_name'];
-		$temp_url = append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id"));
+		$category_id = (int) $category['category_id'];
+		$category_name = phpbb_profile_text(stripslashes($category['category_name']));
+		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
 	   	$category = '<a href="' . $temp_url . '" class="forumlink">' . $category_name . '</a>';
 		
 		$template->assign_block_vars('catrow', array(
@@ -553,6 +579,7 @@ function get_kb_cat_subs($parent)
 {
     global $db, $template, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $phpEx, $is_block, $page_id;
 	
+	$parent = (int) $parent;
 	$sql = "SELECT *  
        		FROM " . KB_CATEGORIES_TABLE . " 
 			WHERE parent = " . $parent . " 
@@ -577,12 +604,12 @@ function get_kb_cat_subs($parent)
 	 }
 	 while ( $category = $db->sql_fetchrow($result) )
 	 {		
-		$category_details = $category['category_details'];
-		$category_articles = $category['number_articles'];
+		$category_details = phpbb_profile_text(stripslashes($category['category_details']));
+		$category_articles = (int) $category['number_articles'];
 		
-		$category_id = $category['category_id'];
-		$category_name = $category['category_name'];
-		$temp_url = append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id"));
+		$category_id = (int) $category['category_id'];
+		$category_name = phpbb_profile_text(stripslashes($category['category_name']));
+		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
 	   	$category = '<a href="' . $temp_url . '" class="forumlink">' . $category_name . '</a>';
 		
 		$template->assign_block_vars('switch_sub_cats.catrow', array(
@@ -609,11 +636,12 @@ function get_kb_cat_list($sel_id)
 	     message_die(GENERAL_ERROR, "Could not obtain category information", '', __LINE__, __FILE__, $sql);
 	 }
 
+	$sel_id = (int) $sel_id;
 	$categoryy = '';
 	 while ( $category = $db->sql_fetchrow($cat_result) )
 	 {	
-		 $category_name = $category['category_name'];
-		 $category_id = $category['category_id'];
+		 $category_name = phpbb_profile_text(stripslashes($category['category_name']));
+		 $category_id = (int) $category['category_id'];
 		   
 		 if ( $sel_id == $category_id )
 		 {
@@ -652,10 +680,11 @@ function get_kb_type_list($sel_id)
 	   message_die(GENERAL_ERROR, "Could not obtain category information", '', __LINE__, __FILE__, $sql);
 	}
 	
+	$sel_id = (int) $sel_id;
 	while ( $type = $db->sql_fetchrow($type_result) )
 	{	
-		$type_name = $type['type'];
-		$type_id = $type['id'];
+		$type_name = phpbb_profile_text(stripslashes($type['type']));
+		$type_id = (int) $type['id'];
 		   
 		if ( $sel_id == $type_id )
 		{
@@ -1233,6 +1262,7 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 {
     global $db, $template, $images, $phpEx, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id, $is_admin, $userdata;
 	
+	$approve = (int) $approve;
 	$sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE";
 	
 	$sql .= " approved = " . $approve;
@@ -1265,18 +1295,18 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	while($article = $db->sql_fetchrow($article_result))
 	{	
 		$i++;
-		$article_description = $article['article_description'];
-		$article_cat = $article['article_category_id'];
-		$article_approved = $article['approved'];
+		$article_description = phpbb_profile_text(stripslashes($article['article_description']));
+		$article_cat = (int) $article['article_category_id'];
+		$article_approved = (int) $article['approved'];
 		
 	   //type
-	   $type_id = $article['article_type'];	   
-	   $article_type = get_kb_type($type_id);		
+	   $type_id = (int) $article['article_type'];
+	   $article_type = phpbb_profile_text(stripslashes(get_kb_type($type_id)));
 		
 	   $article_date = create_date($board_config['default_dateformat'], $article['article_date'], $board_config['board_timezone']);
 		
 	   // author information
-	   $author_id = $article['article_author_id'];
+	   $author_id = (int) $article['article_author_id'];
 	   if ( $author_id == 0 )
 	   {
 	       $guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
@@ -1284,19 +1314,19 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	   }
 	   else
 	   {
-	       $author_name = get_kb_author($author_id);
+	       $author_name = phpbb_profile_text(stripslashes(get_kb_author($author_id)));
 	   
-	       $temp_url = append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id");
+	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8');
 	       $author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';
 	   }
 		
-	   $article_id = $article['article_id'];
-	   $views = $article['views'];
+	   $article_id = (int) $article['article_id'];
+	   $views = (int) $article['views'];
 	   $article_rating = (float) $article['article_rating'];
 	   $article_totalvotes = (int) $article['article_totalvotes'];
 		
-	   $article_title = $article['article_title'];
-	   $temp_url = append_sid(this_kb_mxurl("mode=article&amp;k=$article_id"));
+	   $article_title = phpbb_profile_text(stripslashes($article['article_title']));
+	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
 	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
 	   $approve = '';
@@ -1304,15 +1334,15 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	   $category_name = '';   
 
        $category = get_kb_cat($article_cat);
-	   $category_id = $category['category_id'];
-	   $category_name = $category['category_name'];
-	   $category_temp = append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id"));
+	   $category_id = isset($category['category_id']) ? (int) $category['category_id'] : 0;
+	   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
+	   $category_temp = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
 	   $category_url = '<a href="' . $category_temp . '" class="genmed">' . $category_name . '</a>';
 	   
 	   if ( defined('IN_ADMIN') || $userdata['user_level'] == ADMIN )
 	   {
 	       $category = get_kb_cat($article_cat);
-		   $category_name = $category['category_name'];
+		   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
 
 		   if ( $article_approved == 2 || $article_approved == 0)
 		   {

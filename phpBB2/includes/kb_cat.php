@@ -27,8 +27,9 @@ if ( !defined('IN_PHPBB') )
 	$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
 	$category_id = max(0, intval(phpbb_request_scalar($HTTP_GET_VARS, 'cat', phpbb_request_scalar($HTTP_POST_VARS, 'cat', 0))));
-	$category = get_kb_cat($category_id);		
-	$category_name = $category['category_name'];
+	$category = get_kb_cat($category_id);
+	$category_name_plain = isset($category['category_name']) ? stripslashes((string) $category['category_name']) : '';
+	$category_name = phpbb_profile_text($category_name_plain);
 	
 	$page_title = $category_name;
 	    if ( !$is_block )
@@ -37,7 +38,8 @@ if ( !defined('IN_PHPBB') )
 		 }	
 	make_jumpbox($phpbb_root_path .'viewforum.'.$phpEx, $category_id);
 
-	$kb_news_sort_par = $kb_config['news_sort_par'];
+	$kb_news_sort_par = (isset($kb_config['news_sort_par']) && strtoupper((string) $kb_config['news_sort_par']) === 'ASC') ? 'ASC' : 'DESC';
+	$kb_news_sort_method_extra = '';
 	$kb_news_sort_method_lj = false; 
 	$kb_news_sort_method = 't.article_date';
 	
@@ -73,7 +75,7 @@ if ( !defined('IN_PHPBB') )
 		'body' => 'kb_cat_body.tpl')
 	);
 
-  if ( !$category_name )
+  if ( $category_name_plain === '' )
 	{
 	    $message = $lang['Category_not_exsist'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
 
@@ -102,11 +104,11 @@ if ( !defined('IN_PHPBB') )
 	if ( $total = $db->sql_fetchrow($result) )
 	{
 		$total_articles = (int) $total['total'];
-		$articles_per_page = max(1, (int) $kb_config['art_pagination']);
+		$articles_per_page = max(1, min(1000, (int) $kb_config['art_pagination']));
 		$pagination = generate_pagination("kb.$phpEx?mode=cat&cat=$category_id", $total_articles, $articles_per_page, $start). '&nbsp;';
 	}
 
-	$articles_per_page = isset($articles_per_page) ? $articles_per_page : max(1, (int) $kb_config['art_pagination']);
+	$articles_per_page = isset($articles_per_page) ? $articles_per_page : max(1, min(1000, (int) $kb_config['art_pagination']));
 	$total_articles = isset($total_articles) ? $total_articles : 0;
 	$total_cat_pages = ceil($total_articles / $articles_per_page);
 
