@@ -350,6 +350,38 @@ if (!function_exists('phpbb_board_hosts_match'))
 }
 
 /**
+ * Parse the serialized origin form used by browsers. An Origin consists only
+ * of scheme, host and optional port; credentials, paths, queries and fragments
+ * are never valid here even if parse_url() can technically parse them.
+ */
+if (!function_exists('phpbb_parse_request_origin'))
+{
+	function phpbb_parse_request_origin($origin)
+	{
+		if (!is_scalar($origin))
+		{
+			return false;
+		}
+		$origin = trim((string) $origin);
+		if ($origin === '' || strlen($origin) > 2048 || preg_match('/[\x00-\x20\x7f]/', $origin))
+		{
+			return false;
+		}
+
+		$parts = @parse_url($origin);
+		if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host']) ||
+			!in_array(strtolower((string) $parts['scheme']), array('http', 'https'), true) ||
+			isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) ||
+			(isset($parts['path']) && $parts['path'] !== ''))
+		{
+			return false;
+		}
+
+		return $parts;
+	}
+}
+
+/**
  * Validate a Referer against the board host and an optional administrator
  * allowlist. This replaces the legacy substring check, which accepted hosts
  * such as "trusted.example.attacker.test".
@@ -402,24 +434,41 @@ if (!function_exists('phpbb_request_origin_is_valid'))
 {
 	function phpbb_request_origin_is_valid()
 	{
+		if (isset($_SERVER['REQUEST_METHOD']) && !is_scalar($_SERVER['REQUEST_METHOD']))
+		{
+			return false;
+		}
 		$method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
 		if (!in_array($method, array('POST', 'PUT', 'PATCH', 'DELETE'), true))
 		{
 			return true;
 		}
 
+		if (isset($_SERVER['HTTP_SEC_FETCH_SITE']) && !is_scalar($_SERVER['HTTP_SEC_FETCH_SITE']))
+		{
+			return false;
+		}
+		$fetch_site = isset($_SERVER['HTTP_SEC_FETCH_SITE']) ? strtolower(trim((string) $_SERVER['HTTP_SEC_FETCH_SITE'])) : '';
+		if ($fetch_site === 'cross-site')
+		{
+			return false;
+		}
+
+		if (isset($_SERVER['HTTP_ORIGIN']) && !is_scalar($_SERVER['HTTP_ORIGIN']))
+		{
+			return false;
+		}
 		$origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
 		if ($origin === '')
 		{
-			$fetch_site = isset($_SERVER['HTTP_SEC_FETCH_SITE']) ? strtolower((string) $_SERVER['HTTP_SEC_FETCH_SITE']) : '';
-			return $fetch_site !== 'cross-site';
+			return true;
 		}
 		if (strtolower($origin) === 'null')
 		{
 			return false;
 		}
 
-		$actual = @parse_url($origin);
+		$actual = phpbb_parse_request_origin($origin);
 		$expected = @parse_url(phpbb_board_url());
 		if (!$actual || !$expected || empty($actual['scheme']) || empty($actual['host']))
 		{
@@ -442,6 +491,11 @@ if (!function_exists('phpbb_request_source_is_same_origin'))
 {
 	function phpbb_request_source_is_same_origin()
 	{
+		if ((isset($_SERVER['HTTP_SEC_FETCH_SITE']) && !is_scalar($_SERVER['HTTP_SEC_FETCH_SITE'])) ||
+			(isset($_SERVER['HTTP_ORIGIN']) && !is_scalar($_SERVER['HTTP_ORIGIN'])))
+		{
+			return false;
+		}
 		$fetch_site = isset($_SERVER['HTTP_SEC_FETCH_SITE']) && is_scalar($_SERVER['HTTP_SEC_FETCH_SITE'])
 			? strtolower(trim((string) $_SERVER['HTTP_SEC_FETCH_SITE']))
 			: '';
@@ -463,7 +517,7 @@ if (!function_exists('phpbb_request_source_is_same_origin'))
 			return false;
 		}
 
-		$actual = @parse_url($origin);
+		$actual = phpbb_parse_request_origin($origin);
 		$expected = @parse_url(phpbb_board_url());
 		if (!$actual || !$expected || empty($actual['scheme']) || empty($actual['host']) ||
 			!in_array(strtolower($actual['scheme']), array('http', 'https'), true))

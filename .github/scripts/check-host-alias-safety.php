@@ -41,11 +41,34 @@ $_SERVER = array('REQUEST_METHOD' => 'POST', 'HTTP_ORIGIN' => 'https://example.c
 host_alias_assert(phpbb_request_origin_is_valid(), 'apex POST Origin rejected');
 $_SERVER['HTTP_ORIGIN'] = 'https://attacker.test';
 host_alias_assert(!phpbb_request_origin_is_valid(), 'cross-site POST Origin accepted');
+$_SERVER['HTTP_ORIGIN'] = 'http://example.com';
+host_alias_assert(!phpbb_request_origin_is_valid(), 'cross-scheme POST Origin accepted');
+$_SERVER['HTTP_ORIGIN'] = 'https://example.com:8443';
+host_alias_assert(!phpbb_request_origin_is_valid(), 'cross-port POST Origin accepted');
+foreach (array(
+	'https://example.com/path',
+	'https://example.com?query=1',
+	'https://example.com#fragment',
+	'https://user@example.com',
+	'https://example.com/'
+) as $malformed_origin)
+{
+	$_SERVER['HTTP_ORIGIN'] = $malformed_origin;
+	host_alias_assert(!phpbb_request_origin_is_valid(), 'malformed POST Origin accepted: ' . $malformed_origin);
+}
+$_SERVER['HTTP_ORIGIN'] = array('https://example.com');
+host_alias_assert(!phpbb_request_origin_is_valid(), 'non-scalar Origin was accepted');
+$_SERVER = array('REQUEST_METHOD' => 'POST', 'HTTP_ORIGIN' => 'https://example.com', 'HTTP_SEC_FETCH_SITE' => 'cross-site');
+host_alias_assert(!phpbb_request_origin_is_valid(), 'contradictory cross-site Fetch Metadata was ignored');
+$_SERVER = array('REQUEST_METHOD' => 'POST', 'HTTP_SEC_FETCH_SITE' => array('same-origin'));
+host_alias_assert(!phpbb_request_origin_is_valid(), 'non-scalar Fetch Metadata was accepted');
 
 $_SERVER = array('HTTP_SEC_FETCH_SITE' => 'same-site', 'HTTP_ORIGIN' => 'https://example.com');
 host_alias_assert(phpbb_request_source_is_same_origin(), 'same-site www/apex Arcade source rejected');
 $_SERVER['HTTP_ORIGIN'] = 'https://forum.example.com';
 host_alias_assert(!phpbb_request_source_is_same_origin(), 'unrelated same-site Arcade source accepted');
+$_SERVER['HTTP_ORIGIN'] = 'https://example.com/path';
+host_alias_assert(!phpbb_request_source_is_same_origin(), 'malformed Arcade Origin accepted');
 
 define('IN_PHPBB', true);
 define('CTRACKER_SECURITY_NO_AUTO_RUN', true);
