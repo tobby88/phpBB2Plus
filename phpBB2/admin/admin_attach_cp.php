@@ -52,7 +52,7 @@ if (!isset($lang['Test_settings_successful']))
 }
 
 // Init Variables
-$start = get_var('start', 0);
+$start = max(0, min(1000000, get_var('start', 0)));
 $sort_order = get_var('order', 'ASC');
 $sort_order = ($sort_order == 'ASC') ? 'ASC' : 'DESC';
 $mode = get_var('mode', '');

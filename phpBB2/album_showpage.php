@@ -339,11 +339,11 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 	{
 		if( isset($_GET['start']) )
 		{
-			$start = intval($_GET['start']);
+			$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 		}
 		else if( isset($_POST['start']) )
 		{
-			$start = intval($_POST['start']);
+			$start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', 0))));
 		}
 		else
 		{

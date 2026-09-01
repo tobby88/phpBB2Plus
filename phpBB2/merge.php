@@ -125,7 +125,7 @@ $topic_title = '';
 if (isset($_POST['topic_title'])) $topic_title = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'topic_title'))));
 
 // start
-$start = intval(phpbb_request_scalar($_POST, 'start', 0));
+$start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', 0))));
 
 // buttons
 $submit = isset($_POST['submit']);

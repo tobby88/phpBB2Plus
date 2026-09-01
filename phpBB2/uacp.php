@@ -55,7 +55,7 @@ if (!file_exists($phpbb_root_path . 'language/lang_' . $language . '/lang_admin_
 
 include($phpbb_root_path . 'language/lang_' . $language . '/lang_admin_attach.' . $phpEx);
 
-$start = get_var('start', 0);
+$start = max(0, min(1000000, get_var('start', 0)));
 $sort_order = get_var('order', 'ASC');
 $sort_order = ($sort_order == 'ASC') ? 'ASC' : 'DESC';
 $mode = get_var('mode', '');

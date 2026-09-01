@@ -210,7 +210,7 @@ else if (($mode = $arcade->pass_var('mode', '')) == FALSE)
 //  Set Operation Mode and check to see what page we are on, and the listing type etc.
 //
 $arcade->sort_mode  = $arcade->pass_var('sort_mode', '');
-$start              = $arcade->pass_var('start', 0);
+$start              = max(0, min(1000000, (int) $arcade->pass_var('start', 0)));
 $arcade->start      = $start;
 
 if (($arcade->sort_order = $arcade->pass_var('order', '')) == FALSE)

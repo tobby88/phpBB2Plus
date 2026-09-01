@@ -268,11 +268,11 @@ if ($mode == '')
 	// Set Variables
 	if( isset($_GET['start']) )
 	{
-		$start = intval(phpbb_request_scalar($_GET, 'start', 0));
+		$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 	}
 	else if( isset($_POST['start']) )
 	{
-		$start = intval(phpbb_request_scalar($_POST, 'start', 0));
+		$start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', 0))));
 	}
 	else
 	{
