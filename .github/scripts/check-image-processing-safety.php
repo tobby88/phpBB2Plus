@@ -74,6 +74,10 @@ image_processing_assert(strpos($thumbnail, 'if (!@$resize_function(') !== false,
 image_processing_assert(strpos($thumbnail, '$thumbnail_written = false;') !== false, 'thumbnail regeneration must handle failed cache writes');
 image_processing_assert(substr_count($thumbnail, '@imagedestroy($src)') >= 2, 'thumbnail regeneration must release source images on success and failure');
 
+$medium_thumbnail = file_get_contents($root . '/phpBB2/album_picm.php');
+image_processing_assert(strpos($medium_thumbnail, '$thumbnail_written = false;') !== false, 'medium thumbnail regeneration must handle failed cache writes');
+image_processing_assert(strpos($medium_thumbnail, '@unlink(ALBUM_MED_CACHE_PATH . $pic_thumbnail);') !== false, 'medium thumbnail regeneration must remove incomplete cache files');
+
 $attachment_thumbnail = file_get_contents($root . '/phpBB2/attach_mod/includes/functions_thumbs.php');
 image_processing_assert(strpos($attachment_thumbnail, '$image_info === false') !== false, 'attachment thumbnails must handle corrupt image metadata');
 image_processing_assert(strpos($attachment_thumbnail, 'if (!$image)') !== false, 'attachment thumbnails must handle failed image decoders');

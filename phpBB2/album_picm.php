@@ -279,17 +279,27 @@ else
 
 			$pic_thumbnail = $pic_filename;
 
+			$thumbnail_written = false;
 			switch ($pic_filetype)
 			{
 				case '.jpg':
-					@imagejpeg($thumbnail, ALBUM_MED_CACHE_PATH . $pic_thumbnail, $album_config['thumbnail_quality']);
+					$thumbnail_quality = max(0, min(100, intval($album_config['thumbnail_quality'])));
+					$thumbnail_written = @imagejpeg($thumbnail, ALBUM_MED_CACHE_PATH . $pic_thumbnail, $thumbnail_quality);
 					break;
 				case '.png':
-					@imagepng($thumbnail, ALBUM_MED_CACHE_PATH . $pic_thumbnail);
+					$thumbnail_written = @imagepng($thumbnail, ALBUM_MED_CACHE_PATH . $pic_thumbnail);
 					break;
 			}
 
-			@chmod(ALBUM_MED_CACHE_PATH . $pic_thumbnail, 0664);
+			if ($thumbnail_written)
+			{
+				@chmod(ALBUM_MED_CACHE_PATH . $pic_thumbnail, 0664);
+			}
+			else
+			{
+				@unlink(ALBUM_MED_CACHE_PATH . $pic_thumbnail);
+				$pic_thumbnail = '';
+			}
 		}
 
 
@@ -301,7 +311,7 @@ else
 		{
 			case '.jpg':
 				header('Content-type: image/jpeg');
-				@imagejpeg($thumbnail, null, $album_config['thumbnail_quality']);
+				@imagejpeg($thumbnail, null, max(0, min(100, intval($album_config['thumbnail_quality']))));
 				break;
 			case '.png':
 				header('Content-type: image/png');
