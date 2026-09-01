@@ -20,6 +20,10 @@ $checks = array(
 	'phpBB2/recent.php' => array(
 		'is_array($tracking_topics)',
 		"max(1, intval(\$board_config['posts_per_page']))",
+		'$topic_length = max(1, min(200, intval($topic_length)))',
+		'$topic_limit = max(1, min(100, intval($topic_limit)))',
+		'$except_forums_sql = phpbb_sql_id_list($except_forums)',
+		"phpbb_sql_id_list(\$forum_ids)",
 		"htmlspecialchars(\$line[\$i]['forum_name'], ENT_QUOTES, 'UTF-8')",
 	),
 	'phpBB2/hacks_list.php' => array(

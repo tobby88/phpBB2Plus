@@ -1,8 +1,8 @@
 <?php
 // ############         Edit below         ########################################
-$topic_length = '40';	// length of topic title
-$topic_limit = '10';	// limit of displayed topics per page
-$special_forums = '0';	// specify forums ('0' = no; '1' = yes)
+$topic_length = 40;	// length of topic title
+$topic_limit = 10;	// limit of displayed topics per page
+$special_forums = 0;	// specify forums ('0' = no; '1' = yes)
 $forum_ids = '';		// IDs of forums; separate them with a comma
 $set_mode = 'today';	// set default mode ('today', 'yesterday', 'last24', 'lastweek', 'lastXdays')
 $set_days = '3';		// set default days (used for lastXdays mode)
@@ -45,7 +45,9 @@ else if (isset($_POST['amount_days']) && is_scalar($_POST['amount_days']))
 	$amount_days = intval($_POST['amount_days']);
 }
 $amount_days = max(1, min(365, $amount_days));
-$topic_limit = max(1, intval($topic_limit));
+$topic_length = max(1, min(200, intval($topic_length)));
+$topic_limit = max(1, min(100, intval($topic_limit)));
+$special_forums = ((int) $special_forums === 1);
 
 $page_title = $lang['Recent_topics'];
 include($phpbb_root_path .'includes/page_header.'.$phpEx);
@@ -75,16 +77,11 @@ for( $f = 0; $f < count($forums); $f++ )
 	}
 }
 
-$except_forums_sql = count($except_forums) ? implode(',', array_unique($except_forums)) : '0';
+$except_forums_sql = phpbb_sql_id_list($except_forums);
 $where_forums = 't.forum_id NOT IN (' . $except_forums_sql . ')';
-if ($special_forums != '0')
+if ($special_forums)
 {
-	$selected_forums = array();
-	foreach (preg_split('/[^0-9]+/', (string) $forum_ids, -1, PREG_SPLIT_NO_EMPTY) as $selected_forum_id)
-	{
-		$selected_forums[] = intval($selected_forum_id);
-	}
-	$where_forums .= count($selected_forums) ? ' AND t.forum_id IN (' . implode(',', array_unique($selected_forums)) . ')' : ' AND 1 = 0';
+	$where_forums .= ' AND t.forum_id IN (' . phpbb_sql_id_list($forum_ids) . ')';
 }
 $sql_start = "SELECT t.*, p.poster_id, p.post_username AS last_poster_name, p.post_id, p.post_time, f.forum_name, f.forum_id, u.username AS last_poster, u.user_id AS last_poster_id, u2.username AS first_poster, u2.user_id AS first_poster_id, p2.post_username AS first_poster_name
 	        FROM (". TOPICS_TABLE ." t, ". POSTS_TABLE ." p)
@@ -161,9 +158,9 @@ $tracking_forums = is_array($tracking_forums) ? $tracking_forums : array();
 $posts_per_page = max(1, intval($board_config['posts_per_page']));
 for( $i = 0; $i < count($line); $i++ )
 {
-	$forum_id = $line[$i]['forum_id'];
+	$forum_id = (int) $line[$i]['forum_id'];
 	$forum_url = append_sid("viewforum.$phpEx?". POST_FORUM_URL ."=$forum_id");
-	$topic_id = $line[$i]['topic_id'];
+	$topic_id = (int) $line[$i]['topic_id'];
 	$topic_url = append_sid("viewtopic.$phpEx?". POST_TOPIC_URL ."=$topic_id");
 
 	$word_censor = ( count($orig_word) ) ? preg_replace($orig_word, $replacement_word, $line[$i]['topic_title']) : $line[$i]['topic_title'];

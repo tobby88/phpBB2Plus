@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Normalized the recent-topic page's configured forum selection and
+  permission exclusions with the shared positive-ID-list helper. Its title
+  length and result count are capped, malformed configured IDs now fail
+  closed, and generated forum/topic links use integer identifiers.
 - Hardened the staff directory and its profile popup: manually configured
   excluded users and permission-derived forum exclusions are normalized as
   positive integer lists, result sizes are bounded, unknown modes fall back to
