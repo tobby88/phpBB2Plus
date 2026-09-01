@@ -46,6 +46,8 @@ album_output_test_true(strpos($common, 'return phpbb_sql_id_list($value, $maximu
 album_output_test_true(substr_count($album_functions, 'album_sql_id_list(') >= 3, 'Album access checks must normalize stored group lists.');
 album_output_test_true(strpos($hierarchy, "album_sql_id_list(\$cat['cat_moderator_groups'])") !== false, 'Hierarchy moderator lookups must normalize stored group lists.');
 album_output_test_true(strpos($album_cat, "album_sql_id_list(\$thiscat['cat_moderator_groups'])") !== false, 'Category moderator lookups must normalize stored group lists.');
+album_output_test_true(strpos($album_cat, '$has_sub_cats = count($subcats) > 0;') !== false, 'Category pages must initialize their visible-subcategory state.');
+album_output_test_true(substr_count($album_cat, 'album_build_recent_pics($allowed_cat);') === 2 && strpos($album_cat, 'album_build_recent_pics(allowed_cat);') === false, 'Empty categories must pass the authorized category list to their recent-picture fallback.');
 album_output_test_true(strpos($hierarchy, "album_html_text(\$grouprows[\$j]['group_name'])") !== false && strpos($album_cat, "album_html_text(\$grouprows[\$j]['group_name'])") !== false, 'Album moderator group names must be escaped.');
 album_output_test_true(substr_count($hierarchy, 'album_html_text(') >= 18, 'Picture grids and recent/highest/random listings must normalize stored labels.');
 album_output_test_true(strpos($memberlist, '$album_view_type = ALBUM_LISTTYPE_PICTURES;') !== false, 'Member picture lists must initialize their view mode.');

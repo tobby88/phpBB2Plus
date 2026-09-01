@@ -248,6 +248,7 @@ if( !$auth_data['view'] )
 $subcats = array();
 $allowed_cat = $cat_id;
 album_get_sub_cat_ids($cat_id, $subcats);
+$has_sub_cats = count($subcats) > 0;
 for ($i = 0; $i < count($subcats); $i++)
 {
 	$allowed_cat .= ',' . $subcats[$i];
@@ -702,7 +703,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 		// ------------------------------------
 		if ($has_sub_cats && $album_config['show_recent_instead_of_nopics'] == 1)
 		{
-			album_build_recent_pics(allowed_cat);
+			album_build_recent_pics($allowed_cat);
 		}
 		else
        	{

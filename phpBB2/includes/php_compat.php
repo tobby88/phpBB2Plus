@@ -291,6 +291,75 @@ if (!function_exists('phpbb_random_string'))
 }
 
 /**
+ * Rotate a local diagnostic logfile without following links or making normal
+ * requests wait for another rotation. Backups remain beside the protected
+ * source file as .1, .2, and so on.
+ */
+if (!function_exists('phpbb_rotate_local_log'))
+{
+	function phpbb_rotate_local_log($path, $max_bytes = 8388608, $backup_count = 2)
+	{
+		$path = is_string($path) ? $path : '';
+		$max_bytes = max(1024, min(104857600, intval($max_bytes)));
+		$backup_count = max(1, min(5, intval($backup_count)));
+		if ($path === '' || @is_link($path) || !is_file($path) || !is_readable($path) || @filesize($path) <= $max_bytes)
+		{
+			return false;
+		}
+
+		$lock_path = $path . '.rotate.lock';
+		if (@is_link($lock_path))
+		{
+			return false;
+		}
+		$lock = @fopen($lock_path, 'c+b');
+		if ($lock === false || !@flock($lock, LOCK_EX | LOCK_NB))
+		{
+			if (is_resource($lock))
+			{
+				@fclose($lock);
+			}
+			return false;
+		}
+
+		clearstatcache(true, $path);
+		$rotated = false;
+		if (!@is_link($path) && is_file($path) && @filesize($path) > $max_bytes)
+		{
+			$safe_backups = true;
+			for ($i = 1; $i <= $backup_count; $i++)
+			{
+				if (@is_link($path . '.' . $i))
+				{
+					$safe_backups = false;
+					break;
+				}
+			}
+			if ($safe_backups)
+			{
+				$oldest = $path . '.' . $backup_count;
+				if (is_file($oldest))
+				{
+					@unlink($oldest);
+				}
+				for ($i = $backup_count - 1; $i >= 1; $i--)
+				{
+					if (is_file($path . '.' . $i))
+					{
+						@rename($path . '.' . $i, $path . '.' . ($i + 1));
+					}
+				}
+				$rotated = @rename($path, $path . '.1');
+			}
+		}
+
+		@flock($lock, LOCK_UN);
+		@fclose($lock);
+		return $rotated;
+	}
+}
+
+/**
  * Build an absolute URL from the configured board origin, never HTTP_HOST.
  */
 if (!function_exists('phpbb_board_url'))

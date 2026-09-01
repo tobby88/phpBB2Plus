@@ -28,9 +28,12 @@ if ( !defined('IN_PHPBB') )
 // Keep runtime diagnostics out of HTML responses while retaining a local log.
 @ini_set('display_errors', '0');
 @ini_set('log_errors', '1');
-@ini_set('error_log', dirname(__FILE__) . '/logs/php_errors.log');
+$phpbb_error_log = dirname(__FILE__) . '/logs/php_errors.log';
+@ini_set('error_log', $phpbb_error_log);
 
 include_once($phpbb_root_path . 'includes/php_compat.' . $phpEx);
+phpbb_rotate_local_log($phpbb_error_log, 8388608, 2);
+unset($phpbb_error_log);
 
 if (!headers_sent())
 {
