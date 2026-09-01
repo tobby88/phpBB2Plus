@@ -1335,18 +1335,7 @@ else
 	$avatar_img = '';
 	if ( $user_avatar_type )
 	{
-		switch( $user_avatar_type )
-		{
-			case USER_AVATAR_UPLOAD:
-				$avatar_img = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $user_avatar . '" alt="" />' : '';
-				break;
-			case USER_AVATAR_REMOTE:
-				$avatar_img = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($user_avatar, ENT_QUOTES, 'UTF-8') . '" alt="" />' : '';
-				break;
-			case USER_AVATAR_GALLERY:
-				$avatar_img = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $user_avatar . '" alt="" />' : '';
-				break;
-		}
+		$avatar_img = phpbb_avatar_image($user_avatar, $user_avatar_type, $board_config['avatar_max_width']);
 	}
 
 	$s_hidden_fields = '<input type="hidden" name="mode" value="' . $mode . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="coppa" value="' . $coppa . '" />';

@@ -772,18 +772,7 @@ function get_event_PCP_birthday(&$events, &$number, $start_date, $end_date, $lim
 					$avatar = '';
 					if ( $avatar_display && $row['user_avatar_type'] )
 					{
-						switch( $row['user_avatar_type'] )
-						{
-							case USER_AVATAR_UPLOAD:
-								$avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $row['user_avatar'] . '" alt="" border="0" />' : '';
-								break;
-							case USER_AVATAR_REMOTE:
-								$avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($row['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
-								break;
-							case USER_AVATAR_GALLERY:
-								$avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $row['user_avatar'] . '" alt="" border="0" />' : '';
-								break;
-						}
+						$avatar = phpbb_avatar_image($row['user_avatar'], $row['user_avatar_type']);
 					}
 
 					$template->assign_vars(array(

@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Centralized avatar rendering for topics, profiles, member and staff lists,
+  Album/file comments, the portal, calendar, Shoutbox and user administration.
+  Uploaded and gallery paths now accept only validated path components,
+  external avatars require credential-free HTTP(S) URLs, all URL attributes
+  are escaped consistently, and size limits no longer trigger image probes.
 - Hardened the Top Smilies statistics module against malformed stored smile
   codes and asset names, escaped its HTML output, constrained its selected
   style path and removed negative-offset warnings for empty/single-item data.

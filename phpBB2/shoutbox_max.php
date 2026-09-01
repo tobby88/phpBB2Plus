@@ -613,20 +613,7 @@ obtain_word_list($orig_word, $replacement_word);
 			$user_avatar = '';
 			if ( $shout_row['user_avatar_type'] && $user_id != ANONYMOUS && $shout_row['user_allowavatar'] )
 			{
-				$avatar_name = phpbb_profile_image_name($shout_row['user_avatar']);
-				switch( $shout_row['user_avatar_type'] )
-				{
-					case USER_AVATAR_UPLOAD:
-						$user_avatar = ( $board_config['allow_avatar_upload'] && $avatar_name !== '' ) ? '<img src="' . $board_config['avatar_path'] . '/' . rawurlencode($avatar_name) . '" alt="" border="0" />' : '';
-						break;
-					case USER_AVATAR_REMOTE:
-						$user_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($shout_row['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
-						break;
-					case USER_AVATAR_GALLERY:
-						$gallery_parts = explode('/', str_replace('\\', '/', (string) $shout_row['user_avatar']));
-						$user_avatar = ( $board_config['allow_avatar_local'] && count($gallery_parts) === 2 && phpbb_profile_image_name($gallery_parts[0]) !== '' && phpbb_profile_image_name($gallery_parts[1]) !== '' ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . rawurlencode($gallery_parts[0]) . '/' . rawurlencode($gallery_parts[1]) . '" alt="" border="0" />' : '';
-						break;
-				}
+				$user_avatar = phpbb_avatar_image($shout_row['user_avatar'], $shout_row['user_avatar_type']);
 				$user_avatar_url = isset($shout_row['user_avatar_url']) ? $shout_row['user_avatar_url'] : '';
 				$user_avatar_url = phpbb_profile_http_url($user_avatar_url);
 				$user_avatar = ($user_avatar_url != '') ? '<a href="' . $user_avatar_url . '">' . $user_avatar . '</a>' : $user_avatar;

@@ -113,18 +113,7 @@ function display_comments(&$file_data)
 		$poster_avatar = '';
 		if ( $comments_row['user_avatar_type'] && $comments_row['user_id'] != ANONYMOUS && $comments_row['user_allowavatar'] )
 		{
-			switch( $comments_row['user_avatar_type'] )
-			{
-				case USER_AVATAR_UPLOAD:
-					$poster_avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $comments_row['user_avatar'] . '" alt="" border="0" />' : '';
-					break;
-				case USER_AVATAR_REMOTE:
-					$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($comments_row['user_avatar'], ENT_QUOTES, 'UTF-8') . '" alt="" border="0" />' : '';
-					break;
-				case USER_AVATAR_GALLERY:
-					$poster_avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $comments_row['user_avatar'] . '" alt="" border="0" />' : '';
-					break;
-			}
+			$poster_avatar = phpbb_avatar_image($comments_row['user_avatar'], $comments_row['user_avatar_type']);
 		}
  
 		//

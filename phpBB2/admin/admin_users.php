@@ -1137,25 +1137,7 @@ if( !empty($_POST['unblock_account']) )
 			$s_hidden_fields .= '<input type="hidden" name="avatarlocal" value="' . phpbb_admin_html($user_avatar_local) . '" /><input type="hidden" name="avatarcatname" value="' . phpbb_admin_html($user_avatar_category) . '" />';
 		}
 
-		if( $user_avatar_type )
-		{
-			switch( $user_avatar_type )
-			{
-				case USER_AVATAR_UPLOAD:
-					$avatar = '<img src="../' . $board_config['avatar_path'] . '/' . $user_avatar . '" alt="" />';
-					break;
-				case USER_AVATAR_REMOTE:
-					$avatar = '<img src="' . htmlspecialchars($user_avatar, ENT_QUOTES, 'UTF-8') . '" alt="" />';
-					break;
-				case USER_AVATAR_GALLERY:
-					$avatar = '<img src="../' . $board_config['avatar_gallery_path'] . '/' . $user_avatar . '" alt="" />';
-					break;
-			}
-		}
-		else
-		{
-			$avatar = "";
-		}
+		$avatar = ($user_avatar_type) ? phpbb_avatar_image($user_avatar, $user_avatar_type, $board_config['avatar_max_width'], '../') : '';
 
 		$sql = "SELECT * FROM " . RANKS_TABLE . "
 			WHERE rank_special = 1

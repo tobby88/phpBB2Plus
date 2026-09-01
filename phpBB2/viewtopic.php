@@ -1114,21 +1114,7 @@ for($i = 0; $i < $total_posts; $i++)
 
 	if ( $postrow[$i]['user_avatar_type'] && $poster_id != ANONYMOUS && $postrow[$i]['user_allowavatar'] )
 	{
-		switch( $postrow[$i]['user_avatar_type'] )
-		{
-			case USER_AVATAR_UPLOAD:
-				$size = check_avatar_size($board_config['avatar_path'] . '/' . $postrow[$i]['user_avatar'], $board_config['avatar_max_width']);
-				$poster_avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="' . $board_config['avatar_path'] . '/' . $postrow[$i]['user_avatar'] . '" '.$size.' alt="" border="0" />' : '';
-				break;
-			case USER_AVATAR_REMOTE:
-				$size = check_avatar_size($postrow[$i]['user_avatar'], $board_config['avatar_max_width'], true);
-				$poster_avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="' . htmlspecialchars($postrow[$i]['user_avatar'], ENT_QUOTES, 'UTF-8') . '" '.$size.' alt="" border="0" />' : '';
-				break;
-			case USER_AVATAR_GALLERY:
-				$size = check_avatar_size($board_config['avatar_gallery_path'] . '/' . $postrow[$i]['user_avatar'], $board_config['avatar_max_width']);
-				$poster_avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="' . $board_config['avatar_gallery_path'] . '/' . $postrow[$i]['user_avatar'] . '" '.$size.' alt="" border="0" />' : '';
-				break;
-		}
+		$poster_avatar = phpbb_avatar_image($postrow[$i]['user_avatar'], $postrow[$i]['user_avatar_type'], $board_config['avatar_max_width']);
 	}
 	else { 
 		if ( $plus_config['default_avatar'] == 1)

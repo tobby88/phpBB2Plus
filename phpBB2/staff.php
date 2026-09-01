@@ -139,18 +139,7 @@ if( $mode != 'view_profile' )
 				$avatar = '';
 				if( $staff['user_avatar'] )
 				{
-					switch( $staff['user_avatar_type'] )
-					{
-						case USER_AVATAR_UPLOAD:
-							$avatar = ( $board_config['allow_avatar_upload'] ) ? '<img src="'. $board_config['avatar_path'] .'/'. $staff['user_avatar'] .'" border="0" />' : '';
-							break;
-						case USER_AVATAR_REMOTE:
-							$avatar = ( $board_config['allow_avatar_remote'] ) ? '<img src="'. htmlspecialchars($staff['user_avatar'], ENT_QUOTES, 'UTF-8') .'" border="0" />' : '';
-							break;
-						case USER_AVATAR_GALLERY:
-							$avatar = ( $board_config['allow_avatar_local'] ) ? '<img src="'. $board_config['avatar_gallery_path'] .'/'. $staff['user_avatar'] .'" border="0" />' : '';
-							break;
-					}
+					$avatar = phpbb_avatar_image($staff['user_avatar'], $staff['user_avatar_type']);
 				}
 
 				$forums = '';

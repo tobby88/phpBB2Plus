@@ -268,6 +268,9 @@ jobs:
       - name: Test contact profile safety
         run: php .github/scripts/check-contact-profile-safety.php
 
+      - name: Test avatar rendering safety
+        run: php .github/scripts/check-avatar-rendering-safety.php
+
       - name: Test user administration safety
         run: php .github/scripts/check-user-admin-safety.php
 

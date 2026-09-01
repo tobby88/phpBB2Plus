@@ -58,6 +58,78 @@ function phpbb_profile_image_name($value)
 	return preg_match('/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/D', $value) ? $value : '';
 }
 
+function phpbb_profile_asset_path($value)
+{
+	$value = trim(str_replace('\\', '/', (string) $value), '/');
+	if ($value === '')
+	{
+		return '';
+	}
+
+	$parts = explode('/', $value);
+	foreach ($parts as $part)
+	{
+		if (phpbb_profile_image_name($part) === '')
+		{
+			return '';
+		}
+	}
+
+	return implode('/', array_map('rawurlencode', $parts));
+}
+
+function phpbb_avatar_asset_url($avatar, $avatar_type, $path_prefix = '')
+{
+	global $board_config;
+
+	$avatar_type = (int) $avatar_type;
+	$path_prefix = (string) $path_prefix;
+	if (!preg_match('#^(?:\.\./)*$#D', $path_prefix))
+	{
+		$path_prefix = '';
+	}
+
+	if ($avatar_type === USER_AVATAR_REMOTE)
+	{
+		return !empty($board_config['allow_avatar_remote']) ? phpbb_profile_http_url($avatar) : '';
+	}
+
+	if ($avatar_type === USER_AVATAR_UPLOAD)
+	{
+		$path = phpbb_profile_asset_path(isset($board_config['avatar_path']) ? $board_config['avatar_path'] : '');
+		$name = phpbb_profile_image_name($avatar);
+		return (!empty($board_config['allow_avatar_upload']) && $path !== '' && $name !== '') ? $path_prefix . $path . '/' . rawurlencode($name) : '';
+	}
+
+	if ($avatar_type === USER_AVATAR_GALLERY)
+	{
+		$path = phpbb_profile_asset_path(isset($board_config['avatar_gallery_path']) ? $board_config['avatar_gallery_path'] : '');
+		$avatar = str_replace('\\', '/', trim((string) $avatar, '/'));
+		$parts = explode('/', $avatar);
+		if (empty($board_config['allow_avatar_local']) || $path === '' || count($parts) !== 2 ||
+			phpbb_profile_image_name($parts[0]) === '' || phpbb_profile_image_name($parts[1]) === '')
+		{
+			return '';
+		}
+		return $path_prefix . $path . '/' . rawurlencode($parts[0]) . '/' . rawurlencode($parts[1]);
+	}
+
+	return '';
+}
+
+function phpbb_avatar_image($avatar, $avatar_type, $max_size = 0, $path_prefix = '')
+{
+	$url = phpbb_avatar_asset_url($avatar, $avatar_type, $path_prefix);
+	if ($url === '')
+	{
+		return '';
+	}
+
+	$max_size = (int) $max_size;
+	$size = ($max_size > 0) ? ' style="max-width: ' . $max_size . 'px; max-height: ' . $max_size . 'px;"' : '';
+	return '<img src="' . $url . '"' . $size . ' alt="" border="0" />';
+}
+
 function phpbb_preg_replace_outside_tags($text, $patterns, $replacements)
 {
 	$segments = preg_split('#(<[^>]*>)#s', (string) $text, -1, PREG_SPLIT_DELIM_CAPTURE);
