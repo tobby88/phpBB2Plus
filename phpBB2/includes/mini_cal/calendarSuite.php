@@ -150,9 +150,17 @@ function calendarSuite(){
 		$this->language = "en_EN";
 
 	}
-	setlocale (LC_TIME, $this->language); // set language
-
 // end of function calendarSuite
+}
+
+function dayOfYear($stamp) {
+	return str_pad((string) ((int) date('z', $stamp) + 1), 3, '0', STR_PAD_LEFT);
+}
+
+function sundayWeek($stamp) {
+	$dayOfYear = (int) date('z', $stamp);
+	$dayOfWeek = (int) date('w', $stamp);
+	return str_pad((string) floor(($dayOfYear + 7 - $dayOfWeek) / 7), 2, '0', STR_PAD_LEFT);
 }
 
 
@@ -215,15 +223,15 @@ function getMonth($callDate) {
 		$this->makeTimestamp("$i $this->ext_dateMM $this->dateYYYY");
 		$this->day[] = array(
 												 "0" => "$i",
-												 "1" => (strftime('%a', $this->stamp)),
-												 "2" => (strftime('%A', $this->stamp)),
-												 "3" => (strftime("%B", $this->stamp)),
+											 "1" => date('D', $this->stamp),
+											 "2" => date('l', $this->stamp),
+											 "3" => date('F', $this->stamp),
 												 "4" => $this->dateMM,
 				 								 "5" => $this->dateYYYY,
 												 "6" => $this->stamp,
 												 "7" => (date('w', $this->stamp)),
-												 "8" => (strftime('%j', $this->stamp)),
-												 "9" => (strftime('%U', $this->stamp)),
+											 "8" => $this->dayOfYear($this->stamp),
+											 "9" => $this->sundayWeek($this->stamp),
 												 "10" => $this->dateLinker($this->stamp),
 												 "11" => $this->formatDate($this->stamp, 99)
 												);
@@ -247,15 +255,15 @@ function getDayDetail($stamp) {
 
 		$this->day = array(
 												 "0" => (date("j",$stamp)),
-												 "1" => (strftime('%a', $stamp)),
-												 "2" => (strftime('%A', $stamp)),
+											 "1" => date('D', $stamp),
+											 "2" => date('l', $stamp),
 												 "3" => $this->ext_dateMM,
 												 "4" => $this->dateMM,
 				 								 "5" => $this->dateYYYY,
 												 "6" => $stamp,
 												 "7" => (date('w', $stamp)),
-												 "8" => strftime('%j', $stamp),
-												 "9" => strftime('%U', $stamp)
+											 "8" => $this->dayOfYear($stamp),
+											 "9" => $this->sundayWeek($stamp)
 												);
 
 // end of function getDay

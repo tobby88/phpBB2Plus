@@ -16,6 +16,7 @@ $scheduler = file_get_contents($root . '/phpBB2/calendar_scheduler.php');
 $birthday = file_get_contents($root . '/phpBB2/birthday_popup.php');
 $mini_cal_english = file_get_contents($root . '/phpBB2/language/lang_english/lang_main_mini_cal.php');
 $mini_cal_german = file_get_contents($root . '/phpBB2/language/lang_german/lang_main_mini_cal.php');
+$mini_cal_suite = file_get_contents($root . '/phpBB2/includes/mini_cal/calendarSuite.php');
 
 calendar_runtime_assert(strpos($functions, 'function calendar_normalize_forum_filter') !== false, 'forum filters need one strict normalizer');
 calendar_runtime_assert(strpos($functions, "preg_match('/^([") !== false, 'forum filters must enforce a type-and-ID grammar');
@@ -28,5 +29,26 @@ calendar_runtime_assert(strpos($scheduler, 'min(1000000, intval($start_value))')
 calendar_runtime_assert(strpos($birthday, "!\$userdata['session_logged_in']") !== false, 'birthday popup must require a signed-in user');
 calendar_runtime_assert(strpos($birthday, 'checkdate((int) $birthday_match[2]') !== false, 'birthday popup must reject impossible stored dates');
 calendar_runtime_assert(strpos($mini_cal_english, '?>') === false && strpos($mini_cal_german, '?>') === false, 'mini-calendar language includes must not emit trailing output before headers');
+calendar_runtime_assert(strpos($mini_cal_suite, 'strftime(') === false, 'Mini Calendar must not use the PHP 8.1-deprecated strftime function');
+calendar_runtime_assert(strpos($mini_cal_suite, 'setlocale(') === false, 'Mini Calendar rendering must not mutate the process-wide locale');
+
+define('IN_MINI_CAL', true);
+require_once $root . '/phpBB2/includes/mini_cal/calendarSuite.php';
+date_default_timezone_set('UTC');
+$mini_cal = new calendarSuite();
+calendar_runtime_assert($mini_cal->dayOfYear(mktime(12, 0, 0, 1, 1, 2024)) === '001', 'day-of-year formatting must retain the legacy three-digit format');
+calendar_runtime_assert($mini_cal->sundayWeek(mktime(12, 0, 0, 1, 1, 2023)) === '01', 'a year beginning on Sunday must start in week 01');
+calendar_runtime_assert($mini_cal->sundayWeek(mktime(12, 0, 0, 1, 1, 2024)) === '00', 'days before the first Sunday must remain in week 00');
+calendar_runtime_assert($mini_cal->sundayWeek(mktime(12, 0, 0, 1, 7, 2024)) === '01', 'the first Sunday must begin week 01');
+if (PHP_VERSION_ID < 80100)
+{
+	$comparison_start = gmmktime(12, 0, 0, 1, 1, 2023);
+	for ($day = 0; $day < 731; $day++)
+	{
+		$timestamp = $comparison_start + ($day * 86400);
+		calendar_runtime_assert($mini_cal->dayOfYear($timestamp) === strftime('%j', $timestamp), 'day-of-year compatibility differs from the legacy formatter');
+		calendar_runtime_assert($mini_cal->sundayWeek($timestamp) === strftime('%U', $timestamp), 'Sunday-week compatibility differs from the legacy formatter');
+	}
+}
 
 echo "Calendar runtime safety tests passed.\n";
