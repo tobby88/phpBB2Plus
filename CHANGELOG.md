@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the public link directory's configuration, search and redirects.
+  Missing legacy settings now receive safe defaults, page/image dimensions are
+  capped, local logo paths and external HTTP(S) URLs are validated, credential
+  URLs are rejected, hit-counter IPs use driver escaping and searches escape
+  literal wildcard characters. Search rows and totals now share the same
+  predicate instead of disagreeing about spaces around the search term.
 - Normalized the recent-topic page's configured forum selection and
   permission exclusions with the shared positive-ID-list helper. Its title
   length and result count are capped, malformed configured IDs now fail

@@ -36,9 +36,10 @@ function links_html($value)
 
 function links_http_url($value)
 {
-	$value = trim((string) $value);
+	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
 	$parts = @parse_url($value);
 	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
+		isset($parts['user']) || isset($parts['pass']) || strpos($value, '\\') !== false ||
 		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
 		preg_match('/[\x00-\x20\x7f]/', $value))
 	{
@@ -47,18 +48,39 @@ function links_http_url($value)
 	return $value;
 }
 
+function links_image_url($value)
+{
+	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
+	$external_url = links_http_url($value);
+	if ($external_url !== '')
+	{
+		return $external_url;
+	}
+
+	$local_path = phpbb_profile_asset_path($value);
+	return ($local_path !== '' && preg_match('/\.(?:gif|jpe?g|png|webp)$/iD', $local_path)) ? $local_path : '';
+}
+
+function links_like_sql($value)
+{
+	global $db;
+
+	$value = str_replace(array('\\', '%', '_'), array('\\\\', '\\%', '\\_'), (string) $value);
+	return $db->sql_escape($value);
+}
+
 function links_logo_html($row, $link_config, $phpEx)
 {
 	$url = append_sid("links.$phpEx?action=go&amp;link_id=" . intval($row['link_id']));
-	$logo = links_http_url($row['link_logo_src']);
+	$logo = links_image_url($row['link_logo_src']);
 	if ($logo === '')
 	{
 		$logo = 'images/links/weblink_88x31.png';
 	}
 	return '<a href="' . links_html($url) . '" target="_blank" rel="noopener noreferrer">'
 		. '<img src="' . links_html($logo) . '" alt="' . links_html($row['link_title'])
-		. '" width="' . max(1, intval($link_config['width'])) . '" height="'
-		. max(1, intval($link_config['height'])) . '" border="0" /></a>';
+		. '" width="' . max(1, min(1000, intval($link_config['width']))) . '" height="'
+		. max(1, min(1000, intval($link_config['height']))) . '" border="0" /></a>';
 }
 
 //
@@ -73,26 +95,27 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 //
 if(!empty($_GET['action']) && is_scalar($_GET['action']) && $_GET['action'] == "go" && !empty($_GET['link_id']) && is_scalar($_GET['link_id']))
 {
-	$link_id = intval($_GET['link_id']);
+	$link_id = max(0, intval($_GET['link_id']));
 	// Secure check
-	if(is_numeric($link_id))
+	if($link_id > 0)
 	{
 		$sql = "SELECT link_id, link_url, last_user_ip
 			FROM " . LINKS_TABLE . "
-			WHERE link_id = '$link_id'
+			WHERE link_id = $link_id
 			AND link_active = 1";
 
 		if($result = $db->sql_query($sql))
 		{
 			$row = $db->sql_fetchrow($result);
-			if($link_url = links_http_url($row['link_url']))
+			if($row && ($link_url = links_http_url($row['link_url'])))
 			{
 				if($user_ip != $row['last_user_ip'])
 				{
+					$user_ip_sql = $db->sql_escape($user_ip);
 					// Update
 					$sql = "UPDATE " . LINKS_TABLE . "
-						SET link_hits = link_hits + 1, last_user_ip = '$user_ip'
-						WHERE link_id = '$link_id'";
+						SET link_hits = link_hits + 1, last_user_ip = '$user_ip_sql'
+						WHERE link_id = $link_id";
 					$result = $db->sql_query($sql);
 				}
 
@@ -110,7 +133,7 @@ include('includes/page_header.'.$phpEx);
 //
 // Define initial vars
 //
-$start = (isset($HTTP_GET_VARS['start']) && is_scalar($HTTP_GET_VARS['start'])) ? max(0, intval($HTTP_GET_VARS['start'])) : 0;
+$start = (isset($HTTP_GET_VARS['start']) && is_scalar($HTTP_GET_VARS['start'])) ? max(0, min(1000000, intval($HTTP_GET_VARS['start']))) : 0;
 
 if ( (isset($_POST['t']) && is_scalar($_POST['t'])) || (isset($_GET['t']) && is_scalar($_GET['t'])) )
 {
@@ -160,14 +183,29 @@ if(!$result = $db->sql_query($sql))
 {
 	message_die(GENERAL_ERROR, "Could not query Link config information", "", __LINE__, __FILE__, $sql);
 }
-$link_config = array();
+$link_config = array(
+	'width' => 88,
+	'height' => 31,
+	'linkspp' => 10,
+	'display_links_logo' => 1,
+	'lock_submit_site' => 0,
+	'allow_no_logo' => 0,
+	'site_logo' => '',
+	'site_url' => '',
+);
 while( $row = $db->sql_fetchrow($result) )
 {
 	$link_config_name = $row['config_name'];
 	$link_config_value = $row['config_value'];
 	$link_config[$link_config_name] = $link_config_value;
 }
-$linkspp = isset($link_config['linkspp']) ? max(1, intval($link_config['linkspp'])) : 10;
+$link_config['width'] = max(1, min(1000, intval($link_config['width'])));
+$link_config['height'] = max(1, min(1000, intval($link_config['height'])));
+$linkspp = max(1, min(100, intval($link_config['linkspp'])));
+$site_logo = links_image_url($link_config['site_logo']);
+$site_logo = ($site_logo !== '') ? $site_logo : 'images/links/web_logo88a.gif';
+$site_url = links_http_url($link_config['site_url']);
+$link_us_syntax = sprintf($lang['Link_us_syntax'], $site_url, $site_logo, $link_config['width'], $link_config['height'], $board_config['sitename']);
 $link_cat_option = '';
 $pagination = '&nbsp;';
 $total_links = 0;
@@ -211,15 +249,15 @@ $template->assign_vars(array(
 	'L_PLEASE_ENTER_YOUR' => $lang['Please_enter_your'],
 	'L_LINK_REGISTER' => $lang['Link_register'],
 	'L_SITE_LINKS' => $lang['Site_links'],
-	'L_LINK_US' => $lang['Link_us'] . $board_config['sitename'],
-	'L_LINK_US_EXPLAIN' => sprintf($lang['Link_us_explain'], $board_config['sitename']),'L_SUBMIT' => $lang['Submit'],
+	'L_LINK_US' => links_html($lang['Link_us'] . $board_config['sitename']),
+	'L_LINK_US_EXPLAIN' => sprintf($lang['Link_us_explain'], links_html($board_config['sitename'])), 'L_SUBMIT' => $lang['Submit'],
 	'U_SITE_LINKS' => append_sid("links.$phpEx"),
 	'L_LINK_CATEGORY' => $lang['Link_category'],
 	'U_SITE_SEARCH' => append_sid("links.$phpEx?t=search"),
 	'U_SITE_TOP' => append_sid("links.$phpEx?t=pop"),
 	'U_SITE_NEW' => append_sid("links.$phpEx?t=new"),
-	'U_SITE_LOGO' => $link_config['site_logo'],
-	'LINK_US_SYNTAX' => str_replace(" ", "&nbsp;", sprintf(htmlentities($lang['Link_us_syntax'], ENT_QUOTES), $link_config['site_url'], $link_config['site_logo'], $link_config['width'],$link_config['height'], $board_config['sitename'])), 
+	'U_SITE_LOGO' => links_html($site_logo),
+	'LINK_US_SYNTAX' => links_html($link_us_syntax),
 	'LINKS_HOME' => $lang['Links_home'],
 	'L_SEARCH_SITE' => $lang['Search_site'],
 	'L_DESCEND_BY_HITS' => $lang['Descend_by_hits'],
@@ -302,14 +340,14 @@ if ($t=='pop' || $t=='new')
 
 			$template->assign_block_vars("linkrow", array(
 				'ROW_CLASS' => $row_class,
-				'LINK_URL' => append_sid("links.$phpEx?action=go&link_id=" . $row['link_id']),
+				'LINK_URL' => append_sid("links.$phpEx?action=go&amp;link_id=" . (int) $row['link_id']),
 				'LINK_TITLE' => links_html($row['link_title']),
 				'LINK_DESC' => links_html($row['link_desc']),
-				'LINK_LOGO_SRC' => links_html(links_http_url($row['link_logo_src'])),
+				'LINK_LOGO_SRC' => links_html(links_image_url($row['link_logo_src'])),
 				'LINK_LOGO' => $tmp,
-				'LINK_CATEGORY' => links_html($link_categories[$row['link_category']]),
-				'LINK_JOINED' => create_date($lang['DATE_FORMAT'], $row['link_joined'], $board_config['board_timezone']),
-				'LINK_HITS' => $row['link_hits'],
+				'LINK_CATEGORY' => links_html(isset($link_categories[$row['link_category']]) ? $link_categories[$row['link_category']] : ''),
+				'LINK_JOINED' => create_date($lang['DATE_FORMAT'], (int) $row['link_joined'], $board_config['board_timezone']),
+				'LINK_HITS' => (int) $row['link_hits'],
 				'U_LINK_USER' => ($user_id != ANONYMOUS ? ("<a href=\"profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($user_id) . "\" target=\"_blank\">" . links_html($username) . "</a>") : links_html($username))
 			));
 			$i++;
@@ -484,14 +522,14 @@ if ($t=='sub_pages')
 
 			$template->assign_block_vars("linkrow", array(
 				'ROW_CLASS' => $row_class,
-				'LINK_URL' => append_sid("links.$phpEx?action=go&link_id=" . $row['link_id']),
+				'LINK_URL' => append_sid("links.$phpEx?action=go&amp;link_id=" . (int) $row['link_id']),
 				'LINK_TITLE' => links_html($row['link_title']),
 				'LINK_DESC' => links_html($row['link_desc']),
-				'LINK_LOGO_SRC' => links_html(links_http_url($row['link_logo_src'])),
+				'LINK_LOGO_SRC' => links_html(links_image_url($row['link_logo_src'])),
 				'LINK_LOGO' => $tmp,
-				'LINK_CATEGORY' => links_html($link_categories[$row['link_category']]),
-				'LINK_JOINED' => create_date($lang['DATE_FORMAT'], $row['link_joined'], $board_config['board_timezone']),
-				'LINK_HITS' => $row['link_hits'],
+				'LINK_CATEGORY' => links_html(isset($link_categories[$row['link_category']]) ? $link_categories[$row['link_category']] : ''),
+				'LINK_JOINED' => create_date($lang['DATE_FORMAT'], (int) $row['link_joined'], $board_config['board_timezone']),
+				'LINK_HITS' => (int) $row['link_hits'],
 				'U_LINK_USER' => ($user_id != ANONYMOUS ? ("<a href=\"profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($user_id) . "\" target=\"_blank\">" . links_html($username) . "</a>") : links_html($username))
 			));
 			$i++;
@@ -549,7 +587,7 @@ if ($t=='search')
 	if ( $search_keywords )
 	{
 		$search_keywords = substr(trim(stripslashes($search_keywords)), 0, 100);
-		$search_keywords_sql = str_replace("'", "''", $search_keywords);
+		$search_keywords_sql = links_like_sql($search_keywords);
 		$link_title =  $lang['Search_site'] . " &raquo; " . links_html($search_keywords);
 		$template->assign_vars(array(
 			'L_LINK_TITLE1' => $link_title,
@@ -589,7 +627,7 @@ if ($t=='search')
 		$sql = "SELECT l.*, u.username
 			FROM " . LINKS_TABLE . " l, " . USERS_TABLE . " u
 			WHERE link_active = 1 AND l.user_id = u.user_id";
-		$sql = $sql . " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '% $search_keywords_sql%') LIMIT $start, $linkspp";
+		$sql = $sql . " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '%$search_keywords_sql%') LIMIT $start, $linkspp";
 		
 		if(!$result = $db->sql_query($sql))
 		{
@@ -617,14 +655,14 @@ if ($t=='search')
 
 				$template->assign_block_vars("linkrow", array(
 					'ROW_CLASS' => $row_class,
-					'LINK_URL' => append_sid("links.$phpEx?action=go&link_id=" . $row['link_id']),
+					'LINK_URL' => append_sid("links.$phpEx?action=go&amp;link_id=" . (int) $row['link_id']),
 					'LINK_TITLE' => links_html($row['link_title']),
 					'LINK_DESC' => links_html($row['link_desc']),
-					'LINK_LOGO_SRC' => links_html(links_http_url($row['link_logo_src'])),
+					'LINK_LOGO_SRC' => links_html(links_image_url($row['link_logo_src'])),
 					'LINK_LOGO' => $tmp,
-					'LINK_CATEGORY' => links_html($link_categories[$row['link_category']]),
-					'LINK_JOINED' => create_date($lang['DATE_FORMAT'], $row['link_joined'], $board_config['board_timezone']),
-					'LINK_HITS' => $row['link_hits'],
+					'LINK_CATEGORY' => links_html(isset($link_categories[$row['link_category']]) ? $link_categories[$row['link_category']] : ''),
+					'LINK_JOINED' => create_date($lang['DATE_FORMAT'], (int) $row['link_joined'], $board_config['board_timezone']),
+					'LINK_HITS' => (int) $row['link_hits'],
 					'U_LINK_USER' => ($user_id != ANONYMOUS ? ("<a href=\"profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . intval($user_id) . "\" target=\"_blank\">" . links_html($username) . "</a>") : links_html($username))
 				));
 				$i++;
@@ -638,7 +676,7 @@ if ($t=='search')
 		$sql = "SELECT count(*) AS total
 			FROM " . LINKS_TABLE . "
 			WHERE link_active = 1";
-		$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '%$search_keywords_sql %')";
+		$sql .= " AND (link_title LIKE '%$search_keywords_sql%' OR link_desc LIKE '%$search_keywords_sql%')";
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
