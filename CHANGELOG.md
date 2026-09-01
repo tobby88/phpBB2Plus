@@ -14,6 +14,8 @@ changes consolidated after that baseline without implying active maintenance.
   types, scores are finite and bounded, and the handoff form uses the
   session-bound game name with attribute-escaped values instead of historical
   addslashes-based markup construction.
+- Missing or invalid local Arcade game assets are now rejected before any
+  game, category or user play counters are changed.
 - Added central runtime bounds for board pagination, polling, private-message
   boxes, flood controls, bookmarks, sessions and auto-login lifetimes. Both
   cached and freshly loaded legacy settings are normalized before any module

@@ -15,6 +15,7 @@ $comment = file_get_contents($root . '/phpBB2/arcade_comment.php');
 $tournament = file_get_contents($root . '/phpBB2/arcade_tournament.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
 $modcp = file_get_contents($root . '/phpBB2/arcade_modcp.php');
+$loader = file_get_contents($root . '/phpBB2/loader.php');
 $classes = file_get_contents($root . '/phpBB2/includes/classes_arcade.php');
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
 $constants = file_get_contents($root . '/phpBB2/includes/constants_arcade.php');
@@ -33,6 +34,7 @@ arcade_secondary_assert(strpos($classes, "substr(\$var . '=>' . (string) \$passe
 arcade_secondary_assert(strpos($classes, "'at_first_list' => '', 'at_second_list' => '', 'at_third_list' => ''") !== false, 'missing Arcade user summaries need a complete fallback');
 arcade_secondary_assert(strpos($activity, '$best_score = $best_at_score = \'\';') !== false, 'per-game display state must be initialized');
 arcade_secondary_assert(strpos($activity, 'if (is_array($game_size) && isset($game_size[0], $game_size[1]))') !== false, 'failed legacy media probing needs configured dimension fallbacks');
+arcade_secondary_assert(strpos($loader, '$asset_path = phpbb_arcade_local_asset(') < strpos($loader, 'SET played = played + 1'), 'missing Arcade assets must be rejected before play statistics change');
 arcade_secondary_assert(strpos($activity, "WHERE game_desc LIKE '%\$search_sql%'") !== false, 'Arcade search totals must use the SQL-escaped term');
 arcade_secondary_assert(strpos($activity, "WHERE rate_game_name = '\$game_name_sql'") !== false, 'Arcade rating lookups must escape stored game names');
 arcade_secondary_assert(substr_count($activity, "AND game_name = '\" . \$game_info_name_sql . \"'") === 2, 'Arcade summary score lookups must escape stored game names');

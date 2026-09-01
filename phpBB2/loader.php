@@ -80,6 +80,23 @@ $arcade_hash	= '';
 $license      = !empty($game_info['license']) ? $game_info['license'] : 'None';
 $cat_id		    = (intval($game_info['cat_id']) > 0) ? intval($game_info['cat_id']) : -1;
 //
+// Resolve and verify the local game asset before recording a play. Invalid or
+// stale catalogue entries must not change game, category or user statistics.
+//
+$game_file = $game_name;
+if ($game_flash && get_ina_extension($game_file) === '')
+{
+	$game_file .= '.swf';
+}
+$extension = get_ina_extension($game_file);
+$asset_path = phpbb_arcade_local_asset(rtrim($game_path, '/') . '/' . ltrim($game_file, '/'));
+if ($asset_path === '' || !is_file($phpbb_root_path . $asset_path))
+{
+	$missing_asset = ($asset_path !== '') ? $asset_path : $game_path . $game_file;
+	message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'], phpbb_profile_text($missing_asset)));
+}
+$asset_url = phpbb_profile_text($asset_path);
+//
 //	Update Game Played amount.
 //
 // Keep counters atomic so simultaneous game starts cannot overwrite each other.
@@ -154,19 +171,6 @@ if ( $affected_rows < 1 )
 //
 // Check the extension of the game to see what we should do with it.
 //
-$game_file = $game_name;
-if ($game_flash && get_ina_extension($game_file) === '')
-{
-	$game_file .= '.swf';
-}
-$extension = get_ina_extension($game_file);
-$asset_path = phpbb_arcade_local_asset(rtrim($game_path, '/') . '/' . ltrim($game_file, '/'));
-if ($asset_path === '' || !is_file($phpbb_root_path . $asset_path))
-{
-	$missing_asset = ($asset_path !== '') ? $asset_path : $game_path . $game_file;
-	message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'], phpbb_profile_text($missing_asset)));
-}
-$asset_url = phpbb_profile_text($asset_path);
 $base_ref = '';
 switch ($extension)
 {
