@@ -1,5 +1,5 @@
 <!-- BEGIN switch_search -->
-<form action="album_search.php">
+<form action="album_search.php" method="get">
 <span class="gensmall">
 
 	{L_SEARCH_FOR}: &nbsp;&nbsp;
@@ -9,11 +9,11 @@
 				<option value="desc">{L_DESCRIPTION}</option>
 	</select>
 
-	&nbsp;&nbsp;{L_THAT_CONTAINS}:&nbsp;&nbsp; <input type="text" name="search" maxlength="20">
+	&nbsp;&nbsp;{L_THAT_CONTAINS}:&nbsp;&nbsp; <input type="text" name="search" maxlength="100" />
 	<br><br>
 
-	<input type="submit" value="Submit">
-	<input type="reset" value="Reset">
+	<input type="submit" value="{L_SUBMIT}" />
+	<input type="reset" value="{L_RESET}" />
 
 </span>
 </form>
@@ -23,7 +23,7 @@
 <!-- BEGIN switch_search_results -->
 <table width="100%" cellspacing="2" cellpadding="2" border="0" align="center">
   <tr> 
-	<td><span class="maintitle">Search found {L_NRESULTS} matches</span><br /></td>
+	<td><span class="maintitle">{L_SEARCH_RESULTS}</span><br /></td>
   </tr>
   <tr> 
 	<td><span class="nav"><a href="{U_INDEX}" class="nav">{L_INDEX}</a></span></td>
@@ -41,11 +41,11 @@
   
   <!-- BEGIN search_results -->
   <tr>
-	<td class="row1" align="center" valign="middle"><img src="templates/fisubsilversh/images/folder.gif" /></td>
+	<td class="row1" align="center" valign="middle"><img src="templates/fisubsilversh/images/folder.gif" alt="" /></td>
 	<td class="row1"><span class="gensmall"><a href="{switch_search_results.search_results.U_CAT}">{switch_search_results.search_results.L_CAT}</a></span></td>
 	<td class="row1"><span class="gensmall"><a href="{switch_search_results.search_results.U_PIC}">{switch_search_results.search_results.L_PIC}</a></span></td>
-	<td class="row1"><span class="gensmall"><a href="{switch_search_results.search_results.U_PROFILE}"><center>{switch_search_results.search_results.L_USERNAME}</center></a></span></td>
-	<td class="row1"><span class="gensmall"><center>{switch_search_results.search_results.L_TIME}</center></span></td>
+	<td class="row1" style="text-align:center"><span class="gensmall"><a href="{switch_search_results.search_results.U_PROFILE}">{switch_search_results.search_results.L_USERNAME}</a></span></td>
+	<td class="row1" style="text-align:center"><span class="gensmall">{switch_search_results.search_results.L_TIME}</span></td>
   </tr>
   <!-- END search_results -->
   

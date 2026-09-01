@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Rebuilt the public Album search around a fixed mode-to-column allowlist and
+  database-driver escaping. Queries are bounded, inaccessible personal or
+  restricted categories are filtered through the normal Album permissions,
+  orphaned rows are hidden, result text is escaped, and the previously
+  hard-coded English/invalid form output now follows the selected language.
 - Escaped stored quote names and Google-search labels again at BBCode render
   time, so malformed legacy rows cannot turn decoded entities into markup.
   The Smilie Creator's generated image URL now validates its color and shadow

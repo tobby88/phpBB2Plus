@@ -15,6 +15,7 @@ $edit = file_get_contents($root . '/phpBB2/album_edit.php');
 $comment_edit = file_get_contents($root . '/phpBB2/album_comment_edit.php');
 $showpage = file_get_contents($root . '/phpBB2/album_showpage.php');
 $upload = file_get_contents($root . '/phpBB2/album_upload.php');
+$search = file_get_contents($root . '/phpBB2/album_search.php');
 $functions = file_get_contents($root . '/phpBB2/album_mod/album_functions.php');
 
 foreach (array('delete' => $delete, 'edit' => $edit, 'comment edit' => $comment_edit) as $name => $source)
@@ -43,5 +44,9 @@ album_public_test_assert(strpos($upload, '$filesize = @filesize($filetmp)') !== 
 album_public_test_assert(strpos($upload, '$pic_size = @getimagesize($filetmp)') !== false && strpos($upload, 'switch ($pic_image_type)') !== false, 'stored extensions must use the server-detected image type');
 album_public_test_assert(strpos($upload, '$pic_title_sql = $db->sql_escape($pic_title)') !== false && strpos($upload, '$pic_user_ip_sql = $db->sql_escape($pic_user_ip)') !== false, 'uploaded picture metadata must use database-driver escaping');
 album_public_test_assert(strpos($upload, "if( !\$result = \$db->sql_query(\$sql) )\n\t{\n\t\t@unlink(ALBUM_UPLOAD_PATH . \$pic_filename);") !== false, 'failed picture inserts must remove the stored upload');
+album_public_test_assert(strpos($search, '$search_columns = array(') !== false && strpos($search, '$db->sql_escape($search)') !== false, 'Album search modes and SQL values must be constrained');
+album_public_test_assert(strpos($search, 'LEFT JOIN " . ALBUM_CAT_TABLE') !== false && strpos($search, 'album_check_permission($album_user_access, ALBUM_AUTH_VIEW)') !== false, 'Album search must hide inaccessible and orphaned categories');
+album_public_test_assert(strpos($search, "htmlspecialchars((string) \$row['pic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')") !== false, 'Album search result text must be escaped');
+album_public_test_assert(strpos($search, 'LIMIT 500') !== false, 'Album search work must be bounded');
 
 echo "Public Album action safety tests passed.\n";

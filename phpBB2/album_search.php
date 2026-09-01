@@ -63,7 +63,7 @@ include($phpbb_root_path . 'common.'.$phpEx);
 
 	include($album_root_path . 'album_common.'.$phpEx);
 
-	$page_title = "Album Search";
+	$page_title = $lang['Album_Search'];
 	include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 	$template->set_filenames(array(
@@ -71,39 +71,49 @@ include($phpbb_root_path . 'common.'.$phpEx);
 	);
 	//+-+-------------------------------------------------------+-+-+-+-+-+-+-+-+
 
-	if (( isset($_POST['search']) || isset($_GET['search']) ) && ( $_POST['search'] != '' || $_GET['search'] != '' ))
+	$search_value = isset($_POST['search']) ? $_POST['search'] : (isset($_GET['search']) ? $_GET['search'] : '');
+	$mode_value = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
+	$search = is_scalar($search_value) ? trim((string) $search_value) : '';
+	$mode = is_scalar($mode_value) ? strtolower((string) $mode_value) : '';
+	$search_columns = array(
+		'user' => 'p.pic_username',
+		'name' => 'p.pic_title',
+		'desc' => 'p.pic_desc',
+	);
+
+	$template->assign_vars(array(
+		'L_SEARCH_FOR' => $lang['Search_for'],
+		'L_USERNAME' => $lang['Username'],
+		'L_NAME' => $lang['Name'],
+		'L_DESCRIPTION' => $lang['Description'],
+		'L_THAT_CONTAINS' => $lang['That_contains'],
+		'L_SUBMIT' => $lang['Submit'],
+		'L_RESET' => $lang['Reset'],
+	));
+
+	if ($search !== '')
 	{
 		$template->assign_block_vars('switch_search_results', array());
 
-		if ( isset($_POST['mode']) )
-			$m = $_POST['mode'];
-		else if ( isset($_GET['mode']) )
-			$m = $_GET['mode'];
-		else
-			message_die(GENERAL_ERROR, 'Bad request');
+		if (!isset($search_columns[$mode]) || strlen($search) > 100 || strpos($search, "\0") !== false)
+		{
+			message_die(GENERAL_ERROR, $lang['Album_Search_Invalid']);
+		}
+		$where = $search_columns[$mode];
+		$search_sql = $db->sql_escape($search);
 
-		if ( isset($_POST['search']) )
-			$s = $_POST['search'];
-		else if ( isset($_GET['search']) )
-			$s = $_GET['search'];
-
-		if ($m == 'user')
-			$where = 'p.pic_username';
-		else if ($m == 'name')
-			$where = 'p.pic_title';
-		else if ($m == 'desc')
-			$where = 'p.pic_desc';
-
-
-		$sql = "SELECT p.pic_id, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_approval, c.cat_id, c.cat_title, c.cat_user_id
-				FROM " . ALBUM_TABLE . ' AS p,' . ALBUM_CAT_TABLE . " AS c
-				WHERE p.pic_approval = 1 AND " . $where .  " LIKE '%" . $s . "%' AND p.pic_cat_id = c.cat_id OR p.pic_cat_id = 0 AND p.pic_approval = 1 AND " . $where .  " LIKE '%" . $s . "%'
-				ORDER BY p.pic_time DESC";
+		$sql = "SELECT p.*, c.*
+				FROM " . ALBUM_TABLE . " AS p
+				LEFT JOIN " . ALBUM_CAT_TABLE . " AS c ON c.cat_id = p.pic_cat_id
+				WHERE p.pic_approval = 1
+					AND " . $where . " LIKE '%" . $search_sql . "%'
+				ORDER BY p.pic_time DESC
+				LIMIT 500";
 
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
-			message_die(GENERAL_ERROR, "Couldn't obtain a list of matching information (searching for: $search)", "", __LINE__, __FILE__, $sql);
+			message_die(GENERAL_ERROR, "Couldn't obtain Album search results", "", __LINE__, __FILE__, $sql);
 		}
 
 		$numres = 0;
@@ -113,25 +123,43 @@ include($phpbb_root_path . 'common.'.$phpEx);
 			$in = array();
 			do
 			{
-				if ( ! in_array($row['pic_id'], $in) )
+				$pic_id = intval($row['pic_id']);
+				$cat_id = intval($row['pic_cat_id']);
+				$album_user_id = ($cat_id === PERSONAL_GALLERY) ? intval($row['pic_user_id']) : intval($row['cat_user_id']);
+				if ($cat_id !== PERSONAL_GALLERY && (empty($row['cat_id']) || $album_user_id < ALBUM_PUBLIC_GALLERY))
 				{
-					$album_user_id = $row['cat_user_id'];
-				 	$user_cat_root_id =  album_get_personal_root_id($album_user_id);
+					continue;
+				}
+
+				$album_user_access = ($cat_id === PERSONAL_GALLERY)
+					? album_permissions($album_user_id, PERSONAL_GALLERY, ALBUM_AUTH_VIEW)
+					: album_permissions($album_user_id, $cat_id, ALBUM_AUTH_VIEW, $row);
+				if (!album_check_permission($album_user_access, ALBUM_AUTH_VIEW) || in_array($pic_id, $in, true))
+				{
+					continue;
+				}
+
+				if ( !in_array($pic_id, $in, true) )
+				{
+					$user_cat_root_id = album_get_personal_root_id($album_user_id);
+					$is_personal = ($cat_id === PERSONAL_GALLERY || $album_user_id !== ALBUM_PUBLIC_GALLERY);
 
 					$template->assign_block_vars('switch_search_results.search_results', array(
-						'L_USERNAME' => $row['pic_username'],
-						'U_PROFILE' => append_sid('profile.php?mode=viewprofile&u=' . $row['pic_user_id']),
+						'L_USERNAME' => htmlspecialchars((string) $row['pic_username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+						'U_PROFILE' => append_sid('profile.php?mode=viewprofile&u=' . intval($row['pic_user_id'])),
 
-						'L_CAT' => ($row['cat_user_id'] != ALBUM_PUBLIC_GALLERY ) ? 'User personal' : $row['cat_title'],
-						'U_CAT' => ($row['cat_id'] == $user_cat_root_id) ? append_sid(album_append_uid('album.php')) : append_sid(album_append_uid('album_cat.php?cat_id=' . $row['cat_id'])),
+						'L_CAT' => $is_personal ? $lang['Users_Personal_Galleries'] : htmlspecialchars((string) $row['cat_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+						'U_CAT' => ($cat_id === PERSONAL_GALLERY || $cat_id == $user_cat_root_id)
+							? append_sid(album_append_uid($album_user_id, 'album.php'))
+							: append_sid(album_append_uid($album_user_id, 'album_cat.php?cat_id=' . $cat_id)),
 
-						'L_PIC' => $row['pic_title'],
-						'U_PIC' => append_sid('album_showpage.php?pic_id=' . $row['pic_id']),
+						'L_PIC' => htmlspecialchars((string) $row['pic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+						'U_PIC' => append_sid('album_showpage.php?pic_id=' . $pic_id),
 
 						'L_TIME' => create_date($board_config['default_dateformat'], $row['pic_time'], $board_config['board_timezone'])
 					));
 
-					$in[$numres] = $row['pic_id'];
+					$in[$numres] = $pic_id;
 					$numres++;
 				}
 			}
@@ -139,10 +167,11 @@ include($phpbb_root_path . 'common.'.$phpEx);
 
 			$template->assign_vars(array(
 				'L_NRESULTS' => $numres,
-				'L_TCATEGORY' => 'Category',
-				'L_TTITLE' => 'Title',
-				'L_TSUBMITER' => 'Submiter',
-				'L_TSUBMITED' => 'Submited on'
+				'L_SEARCH_RESULTS' => sprintf($numres == 1 ? $lang['Found_search_match'] : $lang['Found_search_matches'], $numres),
+				'L_TCATEGORY' => $lang['Category'],
+				'L_TTITLE' => $lang['Name'],
+				'L_TSUBMITER' => $lang['Author'],
+				'L_TSUBMITED' => $lang['Posted']
 			));
 		}
 		else
