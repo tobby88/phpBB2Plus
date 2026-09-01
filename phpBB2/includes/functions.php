@@ -1050,10 +1050,13 @@ function init_userprefs($userdata)
 		'url' => append_sid($phpbb_root_path . 'faq.' . $phpEx),
 		'title' => $lang['FAQ']
 	);
-	$nav_links['author'] = array (
-		'url' => append_sid($phpbb_root_path . 'memberlist.' . $phpEx),
-		'title' => $lang['Memberlist']
-	);
+	if ($userdata['session_logged_in'])
+	{
+		$nav_links['author'] = array (
+			'url' => append_sid($phpbb_root_path . 'memberlist.' . $phpEx),
+			'title' => $lang['Memberlist']
+		);
+	}
 	//
 	// Add bookmarks to Navigation bar
 	//

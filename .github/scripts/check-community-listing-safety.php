@@ -20,6 +20,7 @@ $groupcp = file_get_contents($root . '/phpBB2/groupcp.php');
 $profile = file_get_contents($root . '/phpBB2/includes/usercp_viewprofile.php');
 $profile_fields = file_get_contents($root . '/phpBB2/includes/functions_profile_fields.php');
 $viewtopic = file_get_contents($root . '/phpBB2/viewtopic.php');
+$functions = file_get_contents($root . '/phpBB2/includes/functions.php');
 $profile_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/profile_view_body.tpl');
 
 community_listing_assert(strpos($compact, 'phpbb_request_scalar($_POST, \'start\'') !== false, 'compact Shoutbox offsets must be scalar');
@@ -34,6 +35,7 @@ community_listing_assert(strpos($groupcp, 'redirect=groupcp.$phpEx') !== false &
 community_listing_assert(strpos($profile, "if ( !\$userdata['session_logged_in'] )") !== false, 'custom profile fields must be hidden from guests');
 community_listing_assert(strpos($profile_fields, "empty(\$userdata['session_logged_in'])") !== false, 'custom topic profile fields must be hidden from guests');
 community_listing_assert(strpos($viewtopic, "\$userdata['session_logged_in'] && \$postrow[\$i]['user_birthday'] != 999999") !== false, 'age and zodiac details beside posts must require login');
+community_listing_assert(strpos($functions, "if (\$userdata['session_logged_in'])\n\t{\n\t\t\$nav_links['author']") !== false, 'guest metadata must not advertise the protected member list');
 community_listing_assert(strpos($profile_template, 'BEGIN switch_registered_profile_details') !== false, 'birthday and zodiac profile rows must require login');
 
 echo "Community listing safety tests passed.\n";
