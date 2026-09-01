@@ -15,7 +15,10 @@ if( !empty($setmodules) )
 {
 	$file = basename(__FILE__);
 // MX Addon
-    $module['Download'][$lang['Mfieldtitle']] = $file;
+    // Module discovery runs before the paFileDB language pack is loaded.
+    // Store the language key; Junior Admin resolves it after loading all
+    // AdminCP language files.
+    $module['Download']['Mfieldtitle'] = $file;
 //    $module['Download'][$lang['Afield']] = $file."?mode=add";
 //    $module['Download'][$lang['Efield']] = $file."?mode=edit";
 //    $module['Download'][$lang['Dfield']] = $file."?mode=delete";

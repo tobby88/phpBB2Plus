@@ -61,5 +61,3 @@ $lang['mini_cal']['long_month'][9] = 'September';
 $lang['mini_cal']['long_month'][10] = 'Oktober';
 $lang['mini_cal']['long_month'][11] = 'November';
 $lang['mini_cal']['long_month'][12] = 'Dezember';
-?>
-

@@ -184,6 +184,10 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 {
 	$store_vars = array('search_results', 'total_match_count', 'split_search', 'sort_by', 'sort_dir', 'show_results', 'return_chars');
 	$search_results = '';
+	// Searches such as "new posts", author-only searches and bookmarks do not
+	// pass through the keyword tokenizer.  Keep the cached/highlight state
+	// array-shaped for all search modes (PHP 8 rejects count(null)).
+	$split_search = array();
 
 	//
 	// Search ID Limiter, decrease this value if you experience further timeout problems with searching forums
@@ -1030,8 +1034,11 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 		if ($is_ajax)
 		{
+			$single_topic_id = ($total_match_count == 1 && !empty($searchset) && isset($searchset[0]['topic_id']))
+				? (int) $searchset[0]['topic_id']
+				: (int) $search_id;
 			$result_ar = array(
-				'search_id' => ($total_match_count == 1) ? $searchset[0]['topic_id'] : $search_id,
+				'search_id' => $single_topic_id,
 				'results' => $total_match_count,
 				'keywords' => $search_keywords
 			);

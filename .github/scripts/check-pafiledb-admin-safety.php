@@ -34,6 +34,7 @@ pafiledb_admin_assert(strpos($admin_category, '?mode=cat_order') === false, 'cat
 pafiledb_admin_assert(strpos($admin_category, '?mode=sync') === false, 'category synchronization must not use a GET mutation');
 pafiledb_admin_assert(strpos($admin_custom, 'phpbb_admin_require_post_session();') !== false, 'custom-field mutations must require a POST token');
 pafiledb_admin_assert(strpos($admin_custom, "isset(\$_POST['field_ids']) && is_array") !== false, 'custom-field deletion IDs must be a POST array');
+pafiledb_admin_assert(strpos($admin_custom, "\$module['Download']['Mfieldtitle']") !== false, 'custom-field module discovery must not read an unloaded language entry');
 
 pafiledb_admin_assert(strpos($field_functions, '$field_id = (int) $field_id;') !== false, 'custom-field IDs must be integers');
 pafiledb_admin_assert(strpos($field_functions, '$db->sql_escape(serialize($data))') !== false, 'serialized custom-field data must be escaped at the SQL boundary');

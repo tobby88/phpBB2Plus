@@ -29,6 +29,11 @@ $navigation_fixture = array(
 	'Future' => array('Manage' => array('file_hash' => 'future'))
 );
 $prepared_navigation = jr_admin_prepare_navigation_modules($navigation_fixture);
+$resolved_module_directory = jr_admin_module_directory();
+if ($resolved_module_directory === false || basename(rtrim($resolved_module_directory, '/\\')) !== 'admin')
+{
+	$errors[] = 'AdminCP module discovery is not anchored to the installation root.';
+}
 $expected_categories = array('General', 'Users', 'Styles', 'Attachments', 'Arcade', 'Future');
 if (array_keys($prepared_navigation) !== $expected_categories)
 {

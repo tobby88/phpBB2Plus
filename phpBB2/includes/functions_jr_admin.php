@@ -10,6 +10,28 @@ if (!defined('COPYRIGHT_NIVISEC_FORMAT')) define('COPYRIGHT_NIVISEC_FORMAT',
 	</center></span>'
 );
 
+/**
+ * Resolve AdminCP modules from the installation root, independent of the
+ * current working directory of the requesting script.
+ */
+function jr_admin_module_directory()
+{
+	$root = realpath(dirname(__DIR__));
+	$relative = trim(str_replace('\\', '/', JR_ADMIN_DIR), '/');
+	if ($root === false || !preg_match('/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)*$/iD', $relative))
+	{
+		return false;
+	}
+
+	$directory = realpath($root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative));
+	if ($directory === false || !is_dir($directory))
+	{
+		return false;
+	}
+
+	return rtrim($directory, '/\\') . DIRECTORY_SEPARATOR;
+}
+
 
 if (!function_exists('copyright_nivisec'))
 {
@@ -122,9 +144,14 @@ if (!function_exists('sql_query_nivisec'))
 
 function jr_admin_check_file_hashes($file)
 {
-	global $phpbb_root_path, $phpEx, $userdata;
+	global $phpEx, $userdata;
 	$file = is_scalar($file) ? basename((string) $file) : '';
 	if (!preg_match('/^admin_[a-z0-9_]+\.' . preg_quote($phpEx, '/') . '$/iD', $file))
+	{
+		return false;
+	}
+	$module_directory = jr_admin_module_directory();
+	if ($module_directory === false || !is_file($module_directory . $file))
 	{
 		return false;
 	}
@@ -132,7 +159,7 @@ function jr_admin_check_file_hashes($file)
 	
 	//Include the file to get the module list
 	$setmodules = 1;
-	include($phpbb_root_path.JR_ADMIN_DIR.$file);
+	include($module_directory . $file);
 	unset($setmodules);
 	
 	$jr_admin_userdata = jr_admin_get_user_info($userdata['user_id']);
@@ -144,7 +171,7 @@ function jr_admin_check_file_hashes($file)
 		foreach($module_data as $module_name => $module_file)
 		{
 			//Remove sid if we find one
-			$module_file = preg_replace("/(\?|&|&amp;)sid=[A-Z,a-z,0-9]{32}/", '', $module_file);
+			$module_file = preg_replace("/(\?|&|&amp;)sid=[a-f0-9]{32}/i", '', $module_file);
 			//Make our unique ID
 			$file_hash = md5($cat.$module_name.$module_file);
 			//See if it is in the array
@@ -161,7 +188,7 @@ function jr_admin_check_file_hashes($file)
 
 function jr_admin_get_module_list($user_module_list = false)
 {
-	global $db, $phpbb_root_path, $lang, $phpEx, $board_config, $userdata;
+	global $db, $lang, $phpEx, $board_config, $userdata;
 	$module = array();
 	$module_list = array();
 	
@@ -173,18 +200,19 @@ function jr_admin_get_module_list($user_module_list = false)
 	
 	//Read all the modules
 	$setmodules = 1;
-	$dir = @opendir($phpbb_root_path.JR_ADMIN_DIR);
+	$module_directory = jr_admin_module_directory();
+	$dir = ($module_directory !== false) ? @opendir($module_directory) : false;
 	if ($dir === false)
 	{
 		return $module_list;
 	}
-	$pattern = "/^admin_.+\.$phpEx$/";
+	$pattern = '/^admin_[a-z0-9_]+\.' . preg_quote($phpEx, '/') . '$/iD';
 	while (($file = @readdir($dir)) !== false)
 	{
 		if (preg_match($pattern, $file))
 		{
 			//include($phpbb_root_path.JR_ADMIN_DIR.$file);
-			include_once($phpbb_root_path.JR_ADMIN_DIR.$file);
+			include_once($module_directory . $file);
 		}
 	}
 	@closedir($dir);
@@ -204,7 +232,7 @@ function jr_admin_get_module_list($user_module_list = false)
 		foreach ($item_array as $module_name => $filename)
 		{
 			//Remove sid in case some retarted person appended it early *(cough admin_disallow.php cough)*
-			$filename = preg_replace("/(\?|&|&amp;)sid=[A-Z,a-z,0-9]{32}/", '', $filename);
+			$filename = preg_replace("/(\?|&|&amp;)sid=[a-f0-9]{32}/i", '', $filename);
 			if ($debug && $verbose) print "<span class=\"gensmall\"><font color=\"red\">DEBUG - filename = $filename</font></span><br>";
 			//Note the md5 function compilation here to make a unique id
 			$file_hash = md5($cat.$module_name.$filename);
