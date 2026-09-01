@@ -95,7 +95,7 @@
 <!-- END disable_viewonline -->
 <tr>
 <td align="left" class="row1"><img src="templates/fisubsilversh/images/plus_images/icon_hits.gif" alt="" width="15" height="15" />&nbsp;<strong><span class="gensmall">&nbsp;{L_STATS}:</span></strong><br />
-<span class="gensmall">{L_USER_RECORD}:&nbsp;<strong>{RECORD_USERS_P}</strong><br />{L_TOTAL_POSTS}:&nbsp;<strong>{TOTAL_POSTS}</strong><br />{GOOGLE_VISIT_COUNTER}</span>
+<span class="gensmall">{L_USER_RECORD}:&nbsp;<strong>{RECORD_USERS_P}</strong><br />{L_TOTAL_POSTS}:&nbsp;<strong>{TOTAL_POSTS}</strong></span>
 <!-- BEGIN disable_viewonline -->
 </td>
 </tr>

@@ -76,7 +76,7 @@
 <!-- END switch_show_lastvisit -->
 <!-- BEGIN disable_viewonline -->
 <tr>
-<td height="20" class="row1"><span class="gensmall">{GOOGLE_VISIT_COUNTER}<br />{L_ONLINE_EXPLAIN}</span></td>
+<td height="20" class="row1"><span class="gensmall">{L_ONLINE_EXPLAIN}</span></td>
 </tr>
 </table>
 <table border="0" cellpadding="0" cellspacing="0" class="tbl"><tr><td class="tbll"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblbot"><img src="images/spacer.gif" alt="" width="8" height="4" /></td><td class="tblr"><img src="images/spacer.gif" alt="" width="8" height="4" /></td></tr></table>

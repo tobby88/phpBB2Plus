@@ -18,6 +18,11 @@ changes consolidated after that baseline without implying active maintenance.
   banner redirects, two GET workflows that update database state. Detailed
   banner rows now use the same per-banner cookie filter as the visible click
   counter instead of growing on every refresh.
+- Retired the obsolete Google Visit Counter. It trusted a caller-controlled
+  `Googlebot` User-Agent and consequently allowed arbitrary visitors to forge
+  its number while forcing a database write and configuration-cache deletion
+  on every page. Fresh installs omit it and upgrades remove its inert setting
+  and credits entry.
 - Denied direct HTTP execution of PHP implementation files below the internal
   include, database-driver, Attachment, Album, paFileDB, CrackerTracker and
   statistics-module trees while retaining access to their static assets.

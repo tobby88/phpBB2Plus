@@ -567,6 +567,8 @@ foreach ($config_defaults as $key => $value)
 {
 	update_queue_default($operations, $connection, $table_prefix . 'config', 'config_name', 'config_value', $key, $value);
 }
+$operations[] = 'DELETE FROM ' . update_quote_identifier($table_prefix . 'config') .
+	" WHERE config_name = 'google_visit_counter'";
 
 $album_defaults = array(
 	'path_to_bin' => 'cgi-bin/', 'perl_uploader' => '0', 'show_progress_bar' => '0',
@@ -674,7 +676,7 @@ foreach ($username_snapshot_tables as $snapshot)
 // the public page was opened. It is no longer distributed or scanned there.
 $hacks_table = update_quote_identifier($table_prefix . 'hacks_list');
 $operations[] = "DELETE FROM $hacks_table WHERE hack_name = 'Hack Name' OR hack_file LIKE '%nivisec_hack_list_auto_insert.hl'";
-$operations[] = "DELETE FROM $hacks_table WHERE hack_name IN ('Cracker Tracker Professional 2nd Ed.', 'CrackerTracker Professional 2nd Ed.', 'CrackerTracker Professional G5', 'IntegraMOD Responsive Styles')";
+$operations[] = "DELETE FROM $hacks_table WHERE hack_name IN ('Cracker Tracker Professional 2nd Ed.', 'CrackerTracker Professional 2nd Ed.', 'CrackerTracker Professional G5', 'IntegraMOD Responsive Styles', 'Google Visit Counter')";
 $credit_rows = array(
 	array('Birthday Mod', 'Adds birthday and age information to user profiles and posts.', 'Niels', 'http://mods.db9.dk', '1.5.7'),
 	array('Photo Album Addon v2 for phpBB2', 'Integrated phpBB-based photo album and gallery management system.', 'Smartor', 'http://smartor.is-root.com', '2.0.53'),

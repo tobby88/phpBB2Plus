@@ -106,29 +106,6 @@ $board_config['time_yesterday'] = $board_config['time_today'] - 86400;
 unset($today_ary); 
 //-- end mod : today at   yesterday at ------------------------------------------------------------------------ 
 //
-// Dr DLP's Google Visit Counter MOD
-//
-$google_visit_counter = $board_config['google_visit_counter'];
-
-$tmp_list = explode(".", isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
-
-if ( strstr(isset($useragent) ? $useragent : '', 'Googlebot') )
-{ 
-   $sql = "UPDATE " . CONFIG_TABLE . " 
-         SET config_value = config_value+1 
-         WHERE config_name = 'google_visit_counter'"; 
-   if( !($result = $db->sql_query($sql)) ) 
-   { 
-      message_die(GENERAL_ERROR, 'Could not update google counter information', '', __LINE__, __FILE__, $sql); 
-   } 
-
-   $google_visit_counter++; 
-	@unlink($phpbb_root_path . 'cache/config_data.cache');
-}
-// ------------------------------------
-//
-
-//
 // Parse and show the overall header.
 //
 $template->set_filenames(array(
@@ -895,7 +872,6 @@ $template->assign_vars(array(
 	'T_COL_CLASS1' => isset($theme['col_class1']) ? $theme['col_class1'] : '',
 	'T_COL_CLASS2' => isset($theme['col_class2']) ? $theme['col_class2'] : '',
 	'T_COL_CLASS3' => isset($theme['col_class3']) ? $theme['col_class3'] : '',
-	'GOOGLE_VISIT_COUNTER' => sprintf($lang['Google_Visit_counter'], $google_visit_counter),
 	'NAV_LINKS' => $nav_links_html)
 );
 

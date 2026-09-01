@@ -112,7 +112,6 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('split_news', '1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('users_allow_absence', 0);
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('mod_able_sent_absent', 0);
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('absent_button', 1);
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('google_visit_counter', '1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('registration_status', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('registration_closed', '');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('use_ajax_preview', '1');
@@ -846,7 +845,6 @@ INSERT INTO phpbb_hacks_list (hack_id, hack_add_date, hack_name, hack_desc, hack
 (166, 0, 'Simply Merge Threads', 'This mod allows to merge two topics', 'Ptirhiik', 'admin@rpgnet-fr.com', 'http://www.rpgnet-fr.com', '1.0.1', 'No', '', '', 0),
 (167, 0, 'Dates for Humans Mod', 'Allows users to select their date format from a pre-defined selection of examples', 'Lars Janssen', 'lars.dfh@ukmix.net', 'http://www.ukmix.org/', '1.0.1', 'No', '', '', 0),
 (168, 0, 'eXtreme Styles mod 2', 'This mod is heavily optimized version of phpBB templates system ', 'CyberAlien', '', 'http://www.phpbbstyles.com/', '2.3.1', 'No', '', '', 0),
-(169, 0, 'Google Visit Counter', 'Adds a google bot visit counter on index ', 'Dr DLP', '', 'http://www.web-lapin.levillage.org/forum/', '1.0.0', 'No', '', '', 0),
 (170, 0, 'Fix message_die for multiple errors MOD', 'This MOD replaces the message_die was called multiple times message with something more useful', 'markus_petrux', '', 'http://www.phpmix.com', '1.0.3', 'No', '', '', 0),
 (171, 0, 'Search Engine ShortURLs Mod', 'This MOD replaces the Forum Links from .php to static .html Links', 'larsneo', '', '', '1.0.0', 'No', '', '', 0),
 (172, 0, 'CrackerTracker Professional G5', 'Integrated security system for detecting and blocking known attacks and abusive requests.', 'cback', '', 'http://www.cback.de', '5.0.6', 'No', 'http://www.cback.de', '', 0),

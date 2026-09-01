@@ -1532,9 +1532,6 @@ $lang['Birthdays_P'] = 'Geburtstage';
 $lang['Online_Members_P'] = 'Eingeloggt';
 $lang['Last_Visit'] = 'Online Statistik';
 
-// Google Visit Counter Mod
-$lang['Google_Visit_counter'] = 'Google Besuche: <b>%d</b>';
-
 //+MOD: Select Expand BBcodes MOD
 $lang['Select'] = "markieren";
 $lang['Expand'] = "aufklappen";
