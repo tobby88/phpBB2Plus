@@ -29,6 +29,28 @@ file_put_contents($invalid_swf, 'BM');
 image_processing_assert(image_getdimension($invalid_swf) === array(0, 0), 'truncated attachment headers must not cause out-of-range reads');
 @unlink($invalid_swf);
 
+if (!function_exists('amod_realpath'))
+{
+	function amod_realpath($path)
+	{
+		return @realpath($path);
+	}
+}
+require dirname(dirname(__DIR__)) . '/phpBB2/attach_mod/includes/functions_thumbs.php';
+$attach_config = array(
+	'img_min_thumb_filesize' => 0,
+	'allow_ftp_upload' => 0,
+	'img_imagick' => '',
+	'use_gd2' => 1,
+);
+$corrupt_gif = tempnam(sys_get_temp_dir(), 'phpbb-gif-');
+$corrupt_thumbnail = tempnam(sys_get_temp_dir(), 'phpbb-thumb-');
+@unlink($corrupt_thumbnail);
+file_put_contents($corrupt_gif, "GIF89a" . pack('vv', 10, 10) . "\x00\x00\x00");
+image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'image/gif') === false, 'a corrupt attachment image must fail without a GD type error');
+@unlink($corrupt_gif);
+@unlink($corrupt_thumbnail);
+
 $root = dirname(dirname(__DIR__));
 $sources = array(
 	'phpBB2/album_upload.php',
@@ -47,6 +69,12 @@ foreach ($sources as $relative)
 
 $thumbnail = file_get_contents($root . '/phpBB2/album_thumbnail.php');
 image_processing_assert(strpos($thumbnail, '$pic_size === false') !== false, 'thumbnail regeneration must handle corrupt image metadata');
+
+$attachment_thumbnail = file_get_contents($root . '/phpBB2/attach_mod/includes/functions_thumbs.php');
+image_processing_assert(strpos($attachment_thumbnail, '$image_info === false') !== false, 'attachment thumbnails must handle corrupt image metadata');
+image_processing_assert(strpos($attachment_thumbnail, 'if (!$image)') !== false, 'attachment thumbnails must handle failed image decoders');
+image_processing_assert(strpos($attachment_thumbnail, 'if (!$copied)') !== false, 'attachment thumbnails must handle failed GD allocations and copies');
+image_processing_assert(strpos($attachment_thumbnail, 'if (!$written)') !== false, 'attachment thumbnails must handle failed image writes');
 
 $album_admin = file_get_contents($root . '/phpBB2/admin/admin_album_config_extended.php');
 image_processing_assert(strpos($album_admin, "usort(\$album_config_tabs[\$outer]['sub_config'], 'sort_cmp');") !== false, 'Album subtab sorting must pass a quoted callback on PHP 8');

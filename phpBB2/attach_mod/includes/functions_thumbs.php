@@ -121,7 +121,14 @@ function create_thumbnail($source, $new_file, $mimetype)
 		return false;
 	}
 
-	list($width, $height, $type, ) = getimagesize($source);
+	$image_info = @getimagesize($source);
+	if ($image_info === false || !isset($image_info[0], $image_info[1], $image_info[2]))
+	{
+		return false;
+	}
+	$width = (int) $image_info[0];
+	$height = (int) $image_info[1];
+	$type = (int) $image_info[2];
 
 	if (!$width || !$height || !phpbb_image_dimensions_safe($width, $height))
 	{
@@ -182,50 +189,71 @@ function create_thumbnail($source, $new_file, $mimetype)
 		
 		if ($type['gd'])
 		{
+			$image = false;
 			switch ($type['format']) 
 			{
 				case IMG_GIF:
-					$image = imagecreatefromgif($source);
+					$image = @imagecreatefromgif($source);
 					break;
 				case IMG_JPG:
-					$image = imagecreatefromjpeg($source);
+					$image = @imagecreatefromjpeg($source);
 					break;
 				case IMG_PNG:
-					$image = imagecreatefrompng($source);
+					$image = @imagecreatefrompng($source);
 					break;
 				case IMG_WBMP:
-					$image = imagecreatefromwbmp($source);
+					$image = @imagecreatefromwbmp($source);
 					break;
+			}
+			if (!$image)
+			{
+				return false;
 			}
 
 			if ($type['version'] == 1 || !$attach_config['use_gd2'])
 			{
-				$new_image = imagecreate($new_width, $new_height);
-				imagecopyresized($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+				$new_image = @imagecreate($new_width, $new_height);
+				$copied = $new_image ? @imagecopyresized($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height) : false;
 			}
 			else
 			{
-				$new_image = imagecreatetruecolor($new_width, $new_height);
-				imagecopyresampled($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+				$new_image = @imagecreatetruecolor($new_width, $new_height);
+				$copied = $new_image ? @imagecopyresampled($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height) : false;
+			}
+			if (!$copied)
+			{
+				if ($new_image)
+				{
+					@imagedestroy($new_image);
+				}
+				@imagedestroy($image);
+				return false;
 			}
 			
+			$written = false;
 			switch ($type['format'])
 			{
 				case IMG_GIF:
-					imagegif($new_image, $new_file);
+					$written = @imagegif($new_image, $new_file);
 					break;
 				case IMG_JPG:
-					imagejpeg($new_image, $new_file, 90);
+					$written = @imagejpeg($new_image, $new_file, 90);
 					break;
 				case IMG_PNG:
-					imagepng($new_image, $new_file);
+					$written = @imagepng($new_image, $new_file);
 					break;
 				case IMG_WBMP:
-					imagewbmp($new_image, $new_file);
+					$written = @imagewbmp($new_image, $new_file);
 					break;
 			}
 
-			imagedestroy($new_image);
+			@imagedestroy($new_image);
+			@imagedestroy($image);
+			if (!$written)
+			{
+				@unlink($new_file);
+				return false;
+			}
 		}
 	}
 
