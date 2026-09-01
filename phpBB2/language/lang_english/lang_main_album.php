@@ -108,6 +108,7 @@ $lang['Bad_upload_file_size'] = 'Your uploaded file is too large or corrupted';
 $lang['Not_allowed_file_type'] = 'Your file type is not allowed';
 $lang['Upload_image_size_too_big'] = 'Your image dimension size is too large';
 $lang['Upload_thumbnail_size_too_big'] = 'Your thumbnail dimension size is too large';
+$lang['Upload_resize_failed'] = 'The uploaded image could not be resized safely. The original upload was not changed.';
 
 $lang['Missed_pic_title'] = 'You must enter your pic title';
 

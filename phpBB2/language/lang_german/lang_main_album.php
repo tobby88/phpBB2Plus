@@ -106,6 +106,7 @@ $lang['Bad_upload_file_size'] = 'Dein hochzuladenes Bild ist zu groß oder die D
 $lang['Not_allowed_file_type'] = 'Deine Dateiendung ist hier nicht erlaubt';
 $lang['Upload_image_size_too_big'] = 'Die Abmessungen Deines Bildes sind zu groß!';
 $lang['Upload_thumbnail_size_too_big'] = 'Die Abmessungen des Vorschau-Bildes sind zu groß!';
+$lang['Upload_resize_failed'] = 'Das hochgeladene Bild konnte nicht sicher skaliert werden. Die Originaldatei wurde nicht verändert.';
 
 $lang['Missed_pic_title'] = 'Du mußt Deinen Bildtitel eintragen';
 

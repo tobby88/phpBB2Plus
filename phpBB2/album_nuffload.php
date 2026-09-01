@@ -482,8 +482,14 @@ if (isset($_REQUEST['psid']))
 	// Resize image if option selected
 	if ($resize_pic && ($pic_width > $album_config['max_width'] or $pic_height > $album_config['max_height']))
 	{
-		$HTTP_POST_FILES['pic_file']['type'] = resize_image($HTTP_POST_FILES['pic_file']['tmp_name'], $resize_width, $resize_height, $resize_quality);
-		$HTTP_POST_FILES['pic_file']['size'] = filesize($HTTP_POST_FILES['pic_file']['tmp_name']);
+		$resized_type = resize_image($HTTP_POST_FILES['pic_file']['tmp_name'], $resize_width, $resize_height, $resize_quality);
+		$resized_size = @filesize($HTTP_POST_FILES['pic_file']['tmp_name']);
+		if ($resized_type === false || $resized_size === false || $resized_size < 1)
+		{
+			message_die(GENERAL_MESSAGE, multi_loop($lang['Upload_resize_failed']));
+		}
+		$HTTP_POST_FILES['pic_file']['type'] = $resized_type;
+		$HTTP_POST_FILES['pic_file']['size'] = $resized_size;
 	}
 
 	// Handle large pic file error.
@@ -663,6 +669,9 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 	}
 	$pic_width = intval($image_data[0]);
 	$pic_height = intval($image_data[1]);
+	$resize_width = max(1, min(10000, intval($resize_width)));
+	$resize_height = max(1, min(10000, intval($resize_height)));
+	$resize_quality = max(0, min(100, intval($resize_quality)));
 	switch ($image_data[2])
 	{
 		case '1':
@@ -689,46 +698,98 @@ function resize_image($image_file_name, $resize_width, $resize_height, $resize_q
 	}
 	if (($pic_width / $pic_height) > ($resize_width / $resize_height))
 	{
-		$resize_height = $resize_width * ($pic_height/$pic_width);
+		$resize_height = max(1, (int) round($resize_width * ($pic_height / $pic_width)));
 	}
 	else
 	{
-		$resize_width = $resize_height * ($pic_width/$pic_height);
+		$resize_width = max(1, (int) round($resize_height * ($pic_width / $pic_height)));
 	}
-	$resize = (gdVersion() == 1) ? @imagecreate($resize_width, $resize_height) : @imagecreatetruecolor($resize_width, $resize_height);
-	$resize_function = (gdVersion() == 1) ? 'imagecopyresized' : 'imagecopyresampled';
-	@$resize_function($resize, $src, 0, 0, 0, 0, $resize_width, $resize_height, $pic_width, $pic_height);
+	$use_gd1 = (gdVersion() == 1 || !function_exists('imagecreatetruecolor'));
+	$resize = $use_gd1 ? @imagecreate($resize_width, $resize_height) : @imagecreatetruecolor($resize_width, $resize_height);
+	$resize_function = $use_gd1 ? 'imagecopyresized' : 'imagecopyresampled';
+	if (!$resize || !@$resize_function($resize, $src, 0, 0, 0, 0, $resize_width, $resize_height, $pic_width, $pic_height))
+	{
+		if ($resize)
+		{
+			@imagedestroy($resize);
+		}
+		@imagedestroy($src);
+		return false;
+	}
 
-	// Write file to disk
+	// Render beside the original first. The upload must remain intact when GD,
+	// the filesystem or the final replacement fails.
+	$temporary_file = @tempnam(dirname($image_file_name), 'phpbb-resize-');
+	if ($temporary_file === false)
+	{
+		@imagedestroy($src);
+		@imagedestroy($resize);
+		return false;
+	}
+	$written = false;
 	switch ($image_data[2]){
 		case '1':
-			@unlink($image_file_name);
 			// Check gif support and use convert to jpeg if not possible
 			if (imagetypes() & IMG_GIF)
 			{
-				@imagegif($resize, $image_file_name);
+				$written = @imagegif($resize, $temporary_file);
 				$type = 'image/gif';
 			}
 			else
 			{
-				@imagejpeg($resize, $image_file_name, $resize_quality);
+				$written = @imagejpeg($resize, $temporary_file, $resize_quality);
 				$type = 'image/jpeg';
 			}
 			break;
 		case '2':
-			@unlink($image_file_name);
-			@imagejpeg($resize, $image_file_name, $resize_quality);
+			$written = @imagejpeg($resize, $temporary_file, $resize_quality);
 			$type = 'image/jpeg';
 			break;
 		case '3':
-			@unlink($image_file_name);
-			@imagepng($resize, $image_file_name);
+			$written = @imagepng($resize, $temporary_file);
 			$type = 'image/png';
 			break;
 	}
+	@imagedestroy($src);
+	@imagedestroy($resize);
+
+	$rendered = $written ? @getimagesize($temporary_file) : false;
+	$expected_rendered_type = ($type === 'image/gif') ? IMAGETYPE_GIF : (($type === 'image/jpeg') ? IMAGETYPE_JPEG : IMAGETYPE_PNG);
+	if (!$written || $rendered === false || !isset($rendered[0], $rendered[1], $rendered[2]) ||
+		intval($rendered[2]) !== $expected_rendered_type || !phpbb_image_dimensions_safe($rendered[0], $rendered[1]))
+	{
+		@unlink($temporary_file);
+		return false;
+	}
+
+	$replaced = @rename($temporary_file, $image_file_name);
+	if (!$replaced && DIRECTORY_SEPARATOR === '\\')
+	{
+		$backup_file = @tempnam(dirname($image_file_name), 'phpbb-original-');
+		if ($backup_file !== false)
+		{
+			@unlink($backup_file);
+			if (@rename($image_file_name, $backup_file))
+			{
+				$replaced = @rename($temporary_file, $image_file_name);
+				if ($replaced)
+				{
+					@unlink($backup_file);
+				}
+				else
+				{
+					@rename($backup_file, $image_file_name);
+				}
+			}
+		}
+	}
+	if (!$replaced)
+	{
+		@unlink($temporary_file);
+		return false;
+	}
+
 	@chmod($image_file_name, 0664);
-	imagedestroy($src);
-	imagedestroy($resize);
 	return $type;
 }
 

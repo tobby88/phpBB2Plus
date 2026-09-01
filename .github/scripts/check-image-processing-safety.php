@@ -80,6 +80,12 @@ image_processing_assert(strpos($attachment_thumbnail, 'if (!$image)') !== false,
 image_processing_assert(strpos($attachment_thumbnail, 'if (!$copied)') !== false, 'attachment thumbnails must handle failed GD allocations and copies');
 image_processing_assert(strpos($attachment_thumbnail, 'if (!$written)') !== false, 'attachment thumbnails must handle failed image writes');
 
+$nuffload = file_get_contents($root . '/phpBB2/album_nuffload.php');
+image_processing_assert(strpos($nuffload, "tempnam(dirname(\$image_file_name), 'phpbb-resize-')") !== false, 'Nuffload resizing must render beside the original upload');
+image_processing_assert(strpos($nuffload, '$replaced = @rename($temporary_file, $image_file_name);') !== false, 'Nuffload resizing must replace the original only after a successful render');
+image_processing_assert(strpos($nuffload, '@unlink($image_file_name);') === false, 'Nuffload resizing must not delete the original upload before replacement');
+image_processing_assert(strpos($nuffload, "\$lang['Upload_resize_failed']") !== false, 'Nuffload must stop cleanly when safe resizing fails');
+
 $album_admin = file_get_contents($root . '/phpBB2/admin/admin_album_config_extended.php');
 image_processing_assert(strpos($album_admin, "usort(\$album_config_tabs[\$outer]['sub_config'], 'sort_cmp');") !== false, 'Album subtab sorting must pass a quoted callback on PHP 8');
 
