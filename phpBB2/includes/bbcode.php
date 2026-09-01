@@ -32,54 +32,49 @@ define("BBCODE_UID_LEN", 10);
 $bbcode_tpl = null;
 function phpbb_schild($smilie, $parameter, $text)
 {
-	$text = trim(urlencode($text));
+	$smilie = preg_match('/^[a-z0-9]+$/i', (string) $smilie) ? strtolower((string) $smilie) : '1';
+	$text = rawurlencode(trim(html_entity_decode((string) $text, ENT_QUOTES, 'UTF-8')));
 	$fontcolor = '000000';
-	$shadowcolor = "";
+	$shadowcolor = '';
 	$shieldshadow = '1';
-	
-	$parameter = trim($parameter);
-	if ( !empty($parameter) )
+
+	$values = array();
+	if (preg_match_all('/(?:^|\s)(fontcolor|shadowcolor|shieldshadow)=([^\s]+)/i', trim((string) $parameter), $matches, PREG_SET_ORDER))
 	{
-		$parameter = explode(' ', $parameter);
-		$parameter2 = array();
-		
-		if ( !empty($parameter) )
+		foreach ($matches as $match)
 		{
-			foreach ($parameter as $line)
+			$values[strtolower($match[1])] = html_entity_decode($match[2], ENT_QUOTES, 'UTF-8');
+		}
+	}
+
+	foreach (array('fontcolor', 'shadowcolor') as $color_name)
+	{
+		if (isset($values[$color_name]))
+		{
+			$color = ltrim($values[$color_name], '#');
+			if (preg_match('/^[0-9a-f]{6}$/i', $color))
 			{
-				if ( ( $pos = strpos(' ' . $line, '=') ) )
+				if ($color_name === 'fontcolor')
 				{
-					$name = substr($line, 0, $pos - 1);
-					$value = substr($line, $pos);
-					$parameter2[$name] = $value;
+					$fontcolor = strtolower($color);
 				}
-			}
-			
-			if ( !empty($parameter2['fontcolor']) )
-			{
-				$fontcolor = $parameter2['fontcolor'];
-			}
-			
-			if ( !empty($parameter2['shadowcolor']) )
-			{
-				$shadowcolor = $parameter2['shadowcolor'];
-			}
-			
-			
-			if ( $parameter2['shieldshadow'] == '0' )
-			{
-				$shieldshadow = '0';
-			}
-			else
-			{
-				if ( !empty($parameter2['shieldshadow']) )
+				else
 				{
-					$shieldshadow = $shieldshadow;
+					$shadowcolor = strtolower($color);
 				}
 			}
 		}
 	}
-	return "text2schild.php?smilie=$smilie&fontcolor=$fontcolor&shadowcolor=$shadowcolor&shieldshadow=$shieldshadow&text=$text";
+	if (isset($values['shieldshadow']) && $values['shieldshadow'] === '0')
+	{
+		$shieldshadow = '0';
+	}
+
+	return 'text2schild.php?smilie=' . rawurlencode($smilie)
+		. '&amp;fontcolor=' . rawurlencode($fontcolor)
+		. '&amp;shadowcolor=' . rawurlencode($shadowcolor)
+		. '&amp;shieldshadow=' . $shieldshadow
+		. '&amp;text=' . $text;
 }
 
 /**
@@ -255,6 +250,17 @@ function phpbb_bbcode_safe_attribute($value, $max_length = 100)
 	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+function phpbb_bbcode_safe_text($value, $max_length = 0)
+{
+	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
+	$value = preg_replace('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]+/', '', $value);
+	if ($max_length > 0 && strlen($value) > $max_length)
+	{
+		$value = substr($value, 0, $max_length);
+	}
+	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 function phpbb_bbcode_safe_font($value)
 {
 	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
@@ -362,7 +368,10 @@ function bbencode_second_pass($text, $uid)
 
 	// New one liner to deal with opening quotes with usernames...
 	// replaces the two line version that I had here before..
-	$text = preg_replace("/\[quote:$uid=\"(.*?)\"\]/si", $bbcode_tpl['quote_username_open'], $text);
+	$text = preg_replace_callback("/\[quote:$uid=\"(.*?)\"\]/si", function ($matches) use ($bbcode_tpl)
+	{
+		return str_replace('\\1', phpbb_bbcode_safe_text($matches[1], 255), $bbcode_tpl['quote_username_open']);
+	}, $text);
 	/* BEGIN CMX ACRONYM MOD */
 
 	// acronym
@@ -522,9 +531,10 @@ function bbencode_second_pass($text, $uid)
 		function($matches) use ($bbcode_tpl)
 		{
 			$string = str_replace('\\"', '"', $matches[1]);
+			$query = html_entity_decode($string, ENT_QUOTES, 'UTF-8');
 			return str_replace(
 				array('{STRING}', '{QUERY}'),
-				array($string, urlencode($string)),
+				array(phpbb_bbcode_safe_text($string), rawurlencode($query)),
 				$bbcode_tpl['google']
 			);
 		},

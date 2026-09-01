@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Escaped stored quote names and Google-search labels again at BBCode render
+  time, so malformed legacy rows cannot turn decoded entities into markup.
+  The Smilie Creator's generated image URL now validates its color and shadow
+  parameters, encodes its UTF-8 query safely and no longer reads an undefined
+  option when a post uses the default settings.
 - Changed the distributed runtime from always-on debug mode to a secure
   production default. SQL text, database diagnostics and source locations are
   now visible only to an authenticated administrator who deliberately enables
