@@ -93,11 +93,8 @@ if( $result = $db->sql_query($sql) )
 {
 	while($row = $db->sql_fetchrow($result))
 	{
-		$logo = trim((string) $row['link_logo_src']);
-		$parts = @parse_url($logo);
-		if ($parts && !empty($parts['host']) && !empty($parts['scheme']) &&
-			in_array(strtolower($parts['scheme']), array('http', 'https'), true) &&
-			!preg_match('/[\x00-\x20\x7f]/', $logo))
+		$logo = phpbb_normalize_external_url($row['link_logo_src'], array('gif', 'jpg', 'jpeg', 'png', 'webp'));
+		if ($logo !== false)
 		{
 			$links_logo[] = '<a href="' . htmlspecialchars(append_sid("links.$phpEx?action=go&amp;link_id=" . intval($row['link_id'])), ENT_QUOTES, 'UTF-8', false)
 				. '" target="_blank" rel="noopener noreferrer"><img src="' . htmlspecialchars($logo, ENT_QUOTES, 'UTF-8')

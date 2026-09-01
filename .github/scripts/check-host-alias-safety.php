@@ -37,6 +37,13 @@ host_alias_assert(phpbb_normalize_port('80x', 443) === 443, 'non-numeric configu
 host_alias_assert(phpbb_normalize_script_path('/forum/admin/../', '/') === '/', 'path traversal was accepted');
 host_alias_assert(phpbb_normalize_script_path('/forum/', '/') === '/forum/', 'valid script path was not canonicalized');
 host_alias_assert(phpbb_normalize_script_path('/forum%2fadmin/', '/safe/') === '/safe/', 'encoded script path data was accepted');
+host_alias_assert(phpbb_normalize_external_url('https://example.com/file.zip?a=1&amp;b=2') === 'https://example.com/file.zip?a=1&b=2', 'valid HTML-encoded external URL was not normalized');
+host_alias_assert(phpbb_normalize_external_url('https://example.com/image.jpg?size=large', array('jpg', 'png')) !== false, 'valid external image URL was rejected');
+foreach (array('javascript:alert(1)', 'https://user@example.com/file', "https://example.com/bad\\path", "https://example.com/line\nbreak", 'https://example.com:70000/file', str_repeat('a', 2049)) as $invalid_url)
+{
+	host_alias_assert(phpbb_normalize_external_url($invalid_url) === false, 'unsafe external URL was accepted');
+}
+host_alias_assert(phpbb_normalize_external_url('https://example.com/image.svg', array('jpg', 'png')) === false, 'disallowed external image suffix was accepted');
 
 host_alias_assert(phpbb_referer_is_allowed('https://example.com/album.php', 'www.example.com'), 'apex Referer rejected');
 host_alias_assert(phpbb_referer_is_allowed('https://www.example.com/album.php', 'example.com'), 'www Referer rejected');

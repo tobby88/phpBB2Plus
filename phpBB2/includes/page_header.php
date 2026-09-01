@@ -535,8 +535,9 @@ foreach ($nav_links as $nav_item => $nav_array)
 $l_timezone = phpbb_timezone_label($board_config['board_timezone']);
 
 /* CrackerTracker IP Range Scanner */
-$marknow = (isset($HTTP_GET_VARS['marknow']) && is_scalar($HTTP_GET_VARS['marknow'])) ? (string) $HTTP_GET_VARS['marknow'] : '';
-$mark_sid = (isset($HTTP_GET_VARS['sid']) && is_scalar($HTTP_GET_VARS['sid'])) ? (string) $HTTP_GET_VARS['sid'] : '';
+$marknow = (isset($_POST['marknow']) && is_scalar($_POST['marknow'])) ? (string) $_POST['marknow'] : '';
+$mark_token = (isset($_POST['ct_token']) && is_scalar($_POST['ct_token'])) ? (string) $_POST['ct_token'] : '';
+$mark_request_method = isset($HTTP_SERVER_VARS['REQUEST_METHOD']) ? strtoupper((string) $HTTP_SERVER_VARS['REQUEST_METHOD']) : '';
 $ctracker_settings = (isset($ctracker_config) && is_object($ctracker_config) && isset($ctracker_config->settings) && is_array($ctracker_config->settings)) ? $ctracker_config->settings : array();
 $ctracker_settings += array(
 	'login_ip_check' => 0,
@@ -548,7 +549,8 @@ $ctracker_settings += array(
 );
 if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 {
-	if ($mark_sid === '' || !hash_equals((string) $userdata['session_id'], $mark_sid))
+	$expected_mark_token = phpbb_session_action_token('ctracker-message', 'ipfeature', intval($userdata['user_id']), $userdata['session_id']);
+	if ($mark_request_method !== 'POST' || $mark_token === '' || !hash_equals($expected_mark_token, $mark_token))
 	{
 		message_die(GENERAL_ERROR, $lang['Session_invalid']);
 	}
@@ -574,15 +576,20 @@ if ( $ctracker_settings['login_ip_check'] == 1 && $userdata['ct_enable_ip_warn']
 	{
 		$template->assign_block_vars('ctracker_message', array(
 			'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
-			'L_MESSAGE_TEXT' => $check_ip_range, 'L_MARK_MESSAGE' => $lang['ctracker_gmb_markip'],
-			'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=ipfeature&sid=' . urlencode($userdata['session_id']))));
+			'L_MESSAGE_TEXT' => $check_ip_range));
+		$template->assign_block_vars('ctracker_message.switch_mark_action', array(
+			'S_MARK_ACTION' => 'index.' . $phpEx,
+			'S_MARK_VALUE' => 'ipfeature',
+			'S_MARK_TOKEN' => phpbb_session_action_token('ctracker-message', 'ipfeature', intval($userdata['user_id']), $userdata['session_id']),
+			'L_MARK_MESSAGE' => htmlspecialchars($lang['ctracker_gmb_markip'], ENT_QUOTES, 'UTF-8')));
 	}
 }
 
 /* CrackerTracker Global Message Function */
 if ( $marknow == 'globmsg' && $userdata['session_logged_in'] )
 {
-	if ($mark_sid === '' || !hash_equals((string) $userdata['session_id'], $mark_sid))
+	$expected_mark_token = phpbb_session_action_token('ctracker-message', 'globmsg', intval($userdata['user_id']), $userdata['session_id']);
+	if ($mark_request_method !== 'POST' || $mark_token === '' || !hash_equals($expected_mark_token, $mark_token))
 	{
 		message_die(GENERAL_ERROR, $lang['Session_invalid']);
 	}
@@ -608,8 +615,12 @@ if ( $userdata['ct_global_msg_read'] == 1 && $userdata['session_logged_in'] && $
 		: sprintf($lang['ctracker_gmb_link'], $global_message_url, $global_message_text);
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'E1FFDF', 'ICON_GLOB' => $images['ctracker_note'],
-		'L_MESSAGE_TEXT' => $global_message_output, 'L_MARK_MESSAGE' => $lang['ctracker_gmb_mark'],
-		'U_MARK_MESSAGE' => append_sid('index.' . $phpEx . '?marknow=globmsg&sid=' . urlencode($userdata['session_id']))));
+		'L_MESSAGE_TEXT' => $global_message_output));
+	$template->assign_block_vars('ctracker_message.switch_mark_action', array(
+		'S_MARK_ACTION' => 'index.' . $phpEx,
+		'S_MARK_VALUE' => 'globmsg',
+		'S_MARK_TOKEN' => phpbb_session_action_token('ctracker-message', 'globmsg', intval($userdata['user_id']), $userdata['session_id']),
+		'L_MARK_MESSAGE' => htmlspecialchars($lang['ctracker_gmb_mark'], ENT_QUOTES, 'UTF-8')));
 }
 
 (($ctracker_settings['login_history'] == 1 || $ctracker_settings['login_ip_check'] == 1) && $userdata['session_logged_in']) ? $template->assign_block_vars('login_sec_link', array()) : null;
@@ -625,7 +636,7 @@ if ( $userdata['session_logged_in'] && $ctracker_settings['pw_control'] == 1 &&
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
 		'L_MESSAGE_TEXT' => sprintf($lang['ctracker_info_pw_expired'], $ct_password_validity_days),
-		'L_MARK_MESSAGE' => '', 'U_MARK_MESSAGE' => ''));
+		'L_MARK_MESSAGE' => ''));
 }
 
 /* CrackerTracker Debug Mode Check */
@@ -633,7 +644,7 @@ if ( CT_DEBUG_MODE === true && $userdata['user_level'] == ADMIN )
 {
 	$template->assign_block_vars('ctracker_message', array(
 		'ROW_COLOR' => 'FFDFDF', 'ICON_GLOB' => $images['ctracker_note'],
-		'L_MESSAGE_TEXT' => $lang['ctracker_dbg_mode'], 'L_MARK_MESSAGE' => '', 'U_MARK_MESSAGE' => ''));
+		'L_MESSAGE_TEXT' => $lang['ctracker_dbg_mode'], 'L_MARK_MESSAGE' => ''));
 }
 // Start add - Complete banner MOD
 if ($plus_config['enable_banners'])

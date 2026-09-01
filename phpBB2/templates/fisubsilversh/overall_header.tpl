@@ -172,7 +172,9 @@ function Gk_PopTart(mypage, myname, w, h, scroll)
 <br />
 <div align="center"><table width="80%" cellspacing="1" cellpadding="3" border="0" class="forumline">
 <tr><td align="center" style="background-color:#{ctracker_message.ROW_COLOR};"><img src="{ctracker_message.ICON_GLOB}" alt="" title="" border="0" /></td><td align="center" style="background-color:#{ctracker_message.ROW_COLOR};"><span class="gensmall">{ctracker_message.L_MESSAGE_TEXT}</span></td></tr>
-<tr><td align="center" class="row2" colspan="2"><span class="gensmall"><b><a href="{ctracker_message.U_MARK_MESSAGE}">{ctracker_message.L_MARK_MESSAGE}</a></b></span></td></tr>
+<!-- BEGIN switch_mark_action -->
+<tr><td align="center" class="row2" colspan="2"><form method="post" action="{ctracker_message.switch_mark_action.S_MARK_ACTION}" style="display:inline"><input type="hidden" name="marknow" value="{ctracker_message.switch_mark_action.S_MARK_VALUE}" /><input type="hidden" name="ct_token" value="{ctracker_message.switch_mark_action.S_MARK_TOKEN}" /><input class="liteoption" type="submit" value="{ctracker_message.switch_mark_action.L_MARK_MESSAGE}" /></form></td></tr>
+<!-- END switch_mark_action -->
 </table></div><br />
 <!-- END ctracker_message -->
 {CALENDAR_BOX}

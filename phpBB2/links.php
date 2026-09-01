@@ -36,16 +36,8 @@ function links_html($value)
 
 function links_http_url($value)
 {
-	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
-	$parts = @parse_url($value);
-	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
-		isset($parts['user']) || isset($parts['pass']) || strpos($value, '\\') !== false ||
-		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
-		preg_match('/[\x00-\x20\x7f]/', $value))
-	{
-		return '';
-	}
-	return $value;
+	$url = phpbb_normalize_external_url($value);
+	return ($url === false) ? '' : $url;
 }
 
 function links_image_url($value)

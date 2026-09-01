@@ -417,8 +417,8 @@ if ($download_mode == PHYSICAL_LINK && in_array(strtolower((string) $attachment[
 		}
 
 		$redirect_path = rtrim(trim($attach_config['download_path']), '/') . '/' . rawurlencode($attachment['physical_filename']);
-		$redirect_parts = @parse_url($redirect_path);
-		if (!$redirect_parts || !isset($redirect_parts['scheme']) || !isset($redirect_parts['host']) || !in_array(strtolower($redirect_parts['scheme']), array('http', 'https'), true) || preg_match('/[\r\n\x00]/', $redirect_path))
+		$redirect_path = phpbb_normalize_external_url($redirect_path);
+		if ($redirect_path === false)
 		{
 			message_die(GENERAL_ERROR, 'Physical download URL is invalid.');
 		}

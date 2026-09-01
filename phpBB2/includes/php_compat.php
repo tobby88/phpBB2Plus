@@ -577,6 +577,50 @@ if (!function_exists('phpbb_normalize_script_path'))
 }
 
 /**
+ * Validate a browser-facing external HTTP(S) URL before it enters markup or
+ * a response header. This is deliberately shared by legacy modules so their
+ * scheme, authority and control-character rules cannot drift apart again.
+ */
+if (!function_exists('phpbb_normalize_external_url'))
+{
+	function phpbb_normalize_external_url($value, $allowed_path_extensions = array())
+	{
+		if (!is_scalar($value) || !is_array($allowed_path_extensions))
+		{
+			return false;
+		}
+
+		$url = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
+		if ($url === '' || strlen($url) > 2048 || preg_match('/[\x00-\x20\x7f<>"\'`\\\\]/', $url))
+		{
+			return false;
+		}
+		$parts = @parse_url($url);
+		if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host']) ||
+			!in_array(strtolower((string) $parts['scheme']), array('http', 'https'), true) ||
+			isset($parts['user']) || isset($parts['pass']) ||
+			phpbb_normalize_host($parts['host'], '') === '' ||
+			(isset($parts['port']) && (intval($parts['port']) < 1 || intval($parts['port']) > 65535)))
+		{
+			return false;
+		}
+
+		if ($allowed_path_extensions)
+		{
+			$path = isset($parts['path']) ? (string) $parts['path'] : '';
+			$extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+			$allowed = array_map('strtolower', array_map('strval', $allowed_path_extensions));
+			if ($extension === '' || !in_array($extension, $allowed, true))
+			{
+				return false;
+			}
+		}
+
+		return $url;
+	}
+}
+
+/**
  * Reject executable upload suffixes independently of a finite PHP version
  * list. This also covers future/multi-digit handler names such as .php10.
  */

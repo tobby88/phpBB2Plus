@@ -173,11 +173,8 @@ if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
 
 	// External forum links are administrator-provided, but still validate them
 	// before they reach an HTTP header or the fallback HTML document.
-	$url_parts = @parse_url($url);
-	if (!$url_parts || empty($url_parts['scheme']) || empty($url_parts['host']) ||
-		!in_array(strtolower($url_parts['scheme']), array('http', 'https'), true) ||
-		isset($url_parts['user']) || isset($url_parts['pass']) ||
-		strpos($url, '\\') !== false || preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
+	$url = phpbb_normalize_external_url($url);
+	if ($url === false)
 	{
 		message_die(GENERAL_ERROR, 'Invalid external forum URL.');
 	}

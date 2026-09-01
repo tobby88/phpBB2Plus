@@ -406,16 +406,14 @@ if( isset($HTTP_POST_VARS['save_cat']) )
   }
   else if($type == 'l')
   {
-	$link_parts = @parse_url($desc);
-    if (!$link_parts || empty($link_parts['scheme']) || empty($link_parts['host']) ||
-		isset($link_parts['user']) || isset($link_parts['pass']) ||
-		!in_array(strtolower($link_parts['scheme']), array('http', 'https'), true) || strpos($desc, '\\') !== false ||
-		preg_match('/[\x00-\x20\x7f<>"\'`]/', $desc))
+	$normalized_link = phpbb_normalize_external_url($desc);
+    if ($normalized_link === false)
     {
       $message = $lang['game_link_error'];
     	$message .= sprintf($lang['admin_return_cats'], "<a href=\"" . append_sid("$file?mode=categories") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
       message_die(GENERAL_ERROR, $message);
     }
+	$desc = $normalized_link;
   }
 	if ($type !== 's')
 	{

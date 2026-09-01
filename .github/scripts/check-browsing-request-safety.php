@@ -20,7 +20,7 @@ browsing_request_assert(strpos($topic, "\$view_mode = phpbb_request_scalar(\$_GE
 browsing_request_assert(strpos($topic, 'in_array($post_days, $previous_days, true)') !== false, 'topic day filters must use the supported allowlist');
 browsing_request_assert(strpos($forum, 'in_array($topic_days, $previous_days, true)') !== false, 'forum day filters must use the supported allowlist');
 browsing_request_assert(strpos($forum, "phpbb_request_scalar(\$_POST, 'selected_id'") !== false, 'hierarchy selection must be scalar');
-browsing_request_assert(strpos($forum, "strpos(\$url, '\\\\') !== false") !== false, 'external forum links must reject ambiguous backslashes');
+browsing_request_assert(strpos($forum, '$url = phpbb_normalize_external_url($url);') !== false, 'external forum links must share the external URL boundary');
 browsing_request_assert(strpos($header, "preg_match('/^(Root|[") !== false, 'navigation keys must follow the hierarchy grammar');
 browsing_request_assert(strpos($portal, "substr(phpbb_request_scalar(\$_GET, 'key'), 0, 100)") !== false, 'archive keys must be scalar and bounded');
 browsing_request_assert(substr_count($news, "min(1000000, intval(phpbb_request_scalar(\$_GET, 'start'") >= 2, 'news offsets must be bounded at every render path');

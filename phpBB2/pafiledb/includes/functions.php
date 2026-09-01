@@ -615,25 +615,7 @@ function get_formated_url()
 
 function pafiledb_normalize_remote_url($url, $image_only = false)
 {
-	$url = trim((string) $url);
-	if ($url === '' || strpos($url, '\\') !== false || preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
-	{
-		return false;
-	}
-
-	$parts = @parse_url($url);
-	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
-		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) ||
-		isset($parts['user']) || isset($parts['pass']))
-	{
-		return false;
-	}
-	if ($image_only && (empty($parts['path']) || !preg_match('/\.(?:gif|jpe?g|png)$/i', $parts['path'])))
-	{
-		return false;
-	}
-
-	return $url;
+	return phpbb_normalize_external_url($url, $image_only ? array('gif', 'jpg', 'jpeg', 'png') : array());
 }
 
 function pafiledb_resolve_local_download($physical_filename, $upload_dir, $root_path)

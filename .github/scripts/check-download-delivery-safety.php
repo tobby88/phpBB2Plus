@@ -81,6 +81,7 @@ if (!defined('IN_PHPBB'))
 {
 	define('IN_PHPBB', true);
 }
+require_once $root . '/phpBB2/includes/php_compat.php';
 require_once $root . '/phpBB2/pafiledb/includes/functions.php';
 
 $testBase = rtrim(sys_get_temp_dir(), '/\\') . '/phpbb-pafiledb-download-' . uniqid('', true);

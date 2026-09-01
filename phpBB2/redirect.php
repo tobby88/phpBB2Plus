@@ -57,12 +57,8 @@ if (!$banner_data)
 {
 	message_die(GENERAL_ERROR, 'Unknown banner', '', __LINE__, __FILE__);
 }
-$redirect_url = trim((string) $banner_data['banner_url']);
-$redirect_parts = @parse_url($redirect_url);
-if (!$redirect_parts || empty($redirect_parts['host']) || empty($redirect_parts['scheme']) ||
-	!in_array(strtolower($redirect_parts['scheme']), array('http', 'https'), true) ||
-	isset($redirect_parts['user']) || isset($redirect_parts['pass']) ||
-	preg_match('/[\x00-\x20\x7F\\\\]/', $redirect_url))
+$redirect_url = phpbb_normalize_external_url($banner_data['banner_url']);
+if ($redirect_url === false)
 {
 	message_die(GENERAL_ERROR, 'Invalid banner URL', '', __LINE__, __FILE__);
 }

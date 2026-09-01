@@ -56,7 +56,7 @@ foreach (array('$safe_banner_name = htmlspecialchars', '$safe_banner_description
 	}
 }
 
-foreach (array('is_scalar($banner_id_value)', "isset(\$redirect_parts['user'])", "isset(\$redirect_parts['pass'])") as $marker)
+foreach (array('is_scalar($banner_id_value)', 'phpbb_normalize_external_url($banner_data[\'banner_url\'])') as $marker)
 {
 	if (strpos($redirect, $marker) === false)
 	{
@@ -81,15 +81,6 @@ if ($cookie_guard === false || $stats_insert === false || $stats_insert < $cooki
 {
 	$errors[] = 'Detailed banner statistics must share the public click-cookie filter';
 }
-if (strpos($redirect, "preg_match('/[\\x00-\\x20\\x7F\\\\\\\\]/', \$redirect_url)") === false)
-{
-	$errors[] = 'Banner redirect must reject control characters and backslashes with a valid PCRE pattern';
-}
-if (preg_match('/[\x00-\x20\x7F\\\\]/', 'https://example.com/path') !== 0 || preg_match('/[\x00-\x20\x7F\\\\]/', "https://example.com/bad\\path") !== 1)
-{
-	$errors[] = 'Banner redirect control-character pattern is invalid';
-}
-
 if ($errors)
 {
 	fwrite(STDERR, implode("\n", $errors) . "\n");

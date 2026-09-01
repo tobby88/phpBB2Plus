@@ -85,7 +85,7 @@ arcade_position_assert(substr_count($admin_scores, '$arcade->update_high($game_i
 arcade_position_assert(strpos($admin_categories, '$target_scope') !== false && strpos($admin_categories, 'WHERE cat_id = " . (int) $target_cat') !== false, 'category ordering must swap one adjacent category in the same hierarchy level');
 arcade_position_assert(substr_count($admin_categories, "SET cat_type = 'p', cat_parent = 0") >= 2, 'category removal or demotion must promote child categories');
 arcade_position_assert(strpos($admin_categories, '`group_required`') !== false, 'new categories must persist their group restriction');
-arcade_position_assert(strpos($admin_categories, '@parse_url($desc)') !== false, 'link categories must validate their destination URL');
+arcade_position_assert(strpos($admin_categories, '$normalized_link = phpbb_normalize_external_url($desc);') !== false, 'link categories must validate their destination URL');
 arcade_position_assert(strpos($admin_categories, 'phpbb_arcade_local_asset($icon_input)') !== false, 'category icons must stay on a relative local asset path');
 arcade_position_assert(strpos($category_template, 'colspan="3"') !== false, 'category action header markup must be valid');
 arcade_position_assert(strpos($admin_tournaments, "array('', 'add_tour', 'edit', 'add_games')") !== false, 'tournament views must use an allowlisted mode');
