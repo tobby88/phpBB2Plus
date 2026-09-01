@@ -49,6 +49,7 @@ class NewsModule
   var $name;
   var $item_count;
   var $syndication;
+  var $index_file;
 
   /**
   * Class constructor.
@@ -76,18 +77,42 @@ class NewsModule
     $this->item_count = 1;
 	$this->syndication = false;
     
-    $index_file = $this->config['news_index_file'];
-    if( $this->config['news_base_url'] != '' ) {
-      $index_file = $this->config['news_base_url'] . $index_file;
-    }
+	$index_name = phpbb_profile_image_name(isset($this->config['news_index_file']) ? $this->config['news_index_file'] : '');
+	if ($index_name === '')
+	{
+	  $index_name = 'news_index.php';
+	}
+	$base_url = isset($this->config['news_base_url']) ? phpbb_profile_http_url($this->config['news_base_url']) : '';
+	$this->index_file = $base_url . rawurlencode($index_name);
     
     $this->setVariables( array(
-        'INDEX_FILE' => $index_file,
+        'INDEX_FILE' => $this->index_file,
         'ROOT_PATH' => $this->root_path
         ));
 
     $this->data = new NewsDataAccess( $root_path );
   }
+
+  function htmlText( $value )
+  {
+    return htmlspecialchars(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  }
+
+  function imageUrl( $filename )
+  {
+    global $theme;
+
+    $template_name = phpbb_profile_asset_path(isset($theme['template_name']) ? $theme['template_name'] : '');
+    $news_path = phpbb_profile_asset_path(isset($this->config['news_path']) ? $this->config['news_path'] : '');
+    $filename = phpbb_profile_image_name($filename);
+    if ($template_name === '' || $news_path === '' || $filename === '' || !preg_match('/\.(?:gif|jpe?g|png)$/iD', $filename))
+    {
+      return $this->root_path . 'images/spacer.gif';
+    }
+
+    return $this->root_path . 'templates/' . $template_name . '/' . $news_path . '/' . rawurlencode($filename);
+  }
+
   function assignToBlock( $block ) 
   { 
     $this->template->assign_var_from_handle( $block, $this->name );    
@@ -110,6 +135,7 @@ class NewsModule
       foreach( $articles as $article )
       {
         $trimmed = false;
+		$topic_id = (int) $article['topic_id'];
 
         // Trim the post body if needed.
         if( $show_abstract && $this->config['news_item_trim'] > 0 )
@@ -126,13 +152,13 @@ class NewsModule
 
 	$dateformat = ($userdata['user_id'] == ANONYMOUS) ? $board_config['default_dateformat'] : $userdata['user_dateformat'];
 	$timezone = ($userdata['user_id'] == ANONYMOUS) ? $board_config['board_timezone'] : $userdata['user_timezone'];
-	$recent_title_long = $this->root_path . 'viewtopic.' . $this->phpEx . '?t=' . $article['topic_id'];
-	$recent_title_short = $this->root_path . 'ftopic' . $article['topic_id'] . '.html';
+	$recent_title_long = $this->root_path . 'viewtopic.' . $this->phpEx . '?t=' . $topic_id;
+	$recent_title_short = $this->root_path . 'ftopic' . $topic_id . '.html';
 	
 	$recent_title = ($plus_config['enable_shorturls']) ? $recent_title_short : $recent_title_long;
 	
-		$article_title = $this->syndication ? $this->xmlText($article['topic_title']) : $article['topic_title'];
-		$article_category = $this->syndication ? $this->xmlText($article['news_category']) : $article['news_category'];
+		$article_title = $this->syndication ? $this->xmlText($article['topic_title']) : $this->htmlText($article['topic_title']);
+		$article_category = $this->syndication ? $this->xmlText($article['news_category']) : $this->htmlText($article['news_category']);
 		$article_body = ($show_abstract && $trimmed) ? $article['post_abstract'] : $article['post_text'];
 		if ($this->syndication)
 		{
@@ -141,30 +167,30 @@ class NewsModule
 
         $this->setBlockVariables( 'articles', array(
                     'L_TITLE' => $article_title,
-                    'L_TITLE_ICON' => get_icon_title($article['topic_icon'], 0, $article['topic_type']).'&nbsp;',
-                    'ID' => $article['topic_id'],
-					'KEY' => isset($article['article_key']) ? $article['article_key'] : '',
+                    'L_TITLE_ICON' => get_icon_title((int) $article['topic_icon'], 0, (int) $article['topic_type']).'&nbsp;',
+					'ID' => $topic_id,
+					'KEY' => isset($article['article_key']) ? $this->htmlText($article['article_key']) : '',
                     'DAY' => $this->getDay( $article['topic_time'] ),
                     'MONTH' => $this->getMonth( $article['topic_time'] ),
                     'YEAR' => $this->getYear( $article['topic_time'] ),
 					'CATEGORY' => $article_category,
 					'FORUM_NAME' => $article_category,
-                    'CAT_ID' => $article['news_id'],
-                    'COUNT_VIEWS' => $article['topic_views'],
-                    'CAT_IMG' => $this->root_path . 'templates/'.$theme['template_name'].'/images/news/' . $article['news_image'],
+                    'CAT_ID' => (int) $article['news_id'],
+                    'COUNT_VIEWS' => (int) $article['topic_views'],
+                    'CAT_IMG' => $this->imageUrl($article['news_image']),
                     'POST_DATE' => create_date( $dateformat, $article['post_time'], $timezone),
                     'RFC_POST_DATE' => create_date( 'r', $article['post_time'], $timezone),
                     'L_POSTER' => color_group_colorize_name($article['user_id']),
-                    'L_COMMENTS' => 'Comments (' . $article['topic_replies'] . ')',
-                    'U_COMMENTS' => $this->root_path . 'viewtopic.' . $this->phpEx . '?topic=' . $article['topic_id'],
+                    'L_COMMENTS' => 'Comments (' . (int) $article['topic_replies'] . ')',
+                    'U_COMMENTS' => $this->root_path . 'viewtopic.' . $this->phpEx . '?topic=' . $topic_id,
                     'U_COMMENT' => $recent_title,
-                    'U_VIEWS' => $this->root_path . 'topic_view_users.' . $this->phpEx . '?t=' . $article['topic_id'],
-                    'U_POST_COMMENT' => append_sid('posting.' . $this->phpEx . '?mode=reply&amp;t=' . $article['topic_id']),
-                    'COUNT_COMMENTS' => $article['topic_replies'],
+					'U_VIEWS' => $this->root_path . 'topic_view_users.' . $this->phpEx . '?t=' . $topic_id,
+					'U_POST_COMMENT' => append_sid('posting.' . $this->phpEx . '?mode=reply&amp;t=' . $topic_id),
+					'COUNT_COMMENTS' => (int) $article['topic_replies'],
 					'BODY' => $article_body,
-                    'READ_MORE_LINK' => ($show_abstract && $trimmed) ? '<a href="' . $this->config['news_base_url'] . $this->config['news_index_file'] . '?topic_id=' . $article['topic_id'] . '" alt="' . $lang['Read_More'] . '">' . $lang['Read_More'] . '</a>' : ''
+					'READ_MORE_LINK' => ($show_abstract && $trimmed) ? '<a href="' . $this->index_file . '?topic_id=' . $topic_id . '" title="' . htmlspecialchars($lang['Read_More'], ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($lang['Read_More'], ENT_QUOTES, 'UTF-8') . '</a>' : ''
                     ) );
-	display_portal_news_attachments($article['post_id']);
+	display_portal_news_attachments((int) $article['post_id']);
 
       }
     }
@@ -188,6 +214,8 @@ class NewsModule
   function renderArticles( $article_id = 0, $num_items = 0 )
   {
     $this->item_count = 1;
+	$article_id = max(0, (int) $article_id);
+	$num_items = max(0, min(100, (int) $num_items));
 
 	  $catid = max(0, intval(phpbb_request_scalar($_GET, 'cat_id', 0)));
 	  $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
@@ -242,9 +270,9 @@ if( $article_id <= 0 )
 	$timezone = ($userdata['user_id'] == ANONYMOUS) ? $board_config['board_timezone'] : $userdata['user_timezone'];
 
         $this->setBlockVariables( 'comments', array(
-                    'L_TITLE' => $comment['post_subject'],
+                    'L_TITLE' => $this->htmlText($comment['post_subject']),
                     'POST_DATE' => create_date( $dateformat, $comment['post_time'], $timezone),
-                    'L_POSTER' => ($comment['username'] == '') ? $comment['post_username'] : $comment['username'],
+                    'L_POSTER' => $this->htmlText(($comment['username'] == '') ? $comment['post_username'] : $comment['username']),
                     'BODY' => $comment['post_text']
                     ) );
       }
@@ -260,9 +288,9 @@ if( $article_id <= 0 )
       foreach( $categories as $category )
       {
         $this->setBlockVariables( 'categories', array(
-                    'ID' => $category['news_id'],
-                    'TITLE' => $category['news_category'],
-                    'IMAGE' => $this->root_path . 'templates/'.$theme['template_name'].'images/news/' . $category['news_image'],
+                    'ID' => (int) $category['news_id'],
+                    'TITLE' => $this->htmlText($category['news_category']),
+                    'IMAGE' => $this->imageUrl($category['news_image']),
                     ) );
       }
     }
@@ -355,6 +383,10 @@ if( $article_id <= 0 )
   function renderArchives( $year = 0, $month = 0, $day = 0, $key = '' )
   {
 	global $lang;
+	$year = max(0, min(2069, (int) $year));
+	$month = max(0, min(12, (int) $month));
+	$day = max(0, min(31, (int) $day));
+	$key = substr((string) $key, 0, 100);
 
     $this->setBlockVariables( 'arch', array( 'TITLE' => $lang['Archives'] ) );
 
@@ -441,7 +473,7 @@ if( $article_id <= 0 )
         ) );
 
     $news_mode = phpbb_request_scalar($_GET, 'news');
-    if ($news_mode == 'topics')
+    if ($news_mode == 'categories')
     {
       $this->setVariables( array( 'TITLE' => $lang['News'] . ' ' . $lang['Categories'] ) );
       $this->renderTopics( );

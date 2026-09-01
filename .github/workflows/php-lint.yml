@@ -199,6 +199,9 @@ jobs:
       - name: Test browsing request safety
         run: php .github/scripts/check-browsing-request-safety.php
 
+      - name: Test News rendering safety
+        run: php .github/scripts/check-news-rendering-safety.php
+
       - name: Test alternate output safety
         run: php .github/scripts/check-alternate-output-safety.php
 

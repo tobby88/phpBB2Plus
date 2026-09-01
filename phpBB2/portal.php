@@ -1203,14 +1203,14 @@ if( (isset( $_GET['news']  ) && $_GET['news'] == 'categories'))
 				break;
 			}
 			$template->assign_block_vars('newsrow.newscol', array(
-				'THUMBNAIL' => $phpbb_root_path . 'templates/'.$theme['template_name'].'/images/news/' . $news_cats[$j]['news_image'],
-				'ID' => $news_cats[$j]['news_id'],
-				'DESC' => $news_cats[$j]['news_category'],
+				'THUMBNAIL' => $content->imageUrl($news_cats[$j]['news_image']),
+				'ID' => (int) $news_cats[$j]['news_id'],
+				'DESC' => $content->htmlText($news_cats[$j]['news_category']),
 				)
-			);	
+			);
 			$template->assign_block_vars('newsrow.news_detail', array(
-				'NEWSCAT' => $news_cats[$j]['news_category'],
-				'CATEGORY' => $news_cats[$j]['news_category']
+				'NEWSCAT' => $content->htmlText($news_cats[$j]['news_category']),
+				'CATEGORY' => $content->htmlText($news_cats[$j]['news_category'])
 				)
 			);
 		}

@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Rejoined the standalone News page with its normalized shared dispatcher,
+  fixed its category-mode mismatch and broken category-image path, escaped
+  stored headlines, category names and comment labels in News and Portal
+  output, restricted category images to safe raster filenames, and capped
+  configured fetch batches at 100 items.
 - Centralized avatar rendering for topics, profiles, member and staff lists,
   Album/file comments, the portal, calendar, Shoutbox and user administration.
   Uploaded and gallery paths now accept only validated path components,

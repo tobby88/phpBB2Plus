@@ -145,7 +145,7 @@ class NewsDataAccess
 
     if( $num_items > 0 )
     {
-      $this->num_items = $num_items;
+      $this->num_items = min(100, $num_items);
     }
   }
 

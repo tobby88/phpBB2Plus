@@ -15,7 +15,7 @@
 
 <!-- BEGIN categories -->
     <div style="border: #ddd solid 1px; float: left; padding: 10px; margin: 10px;">
-    <a href="{INDEX_FILE}?cat_id={categories.ID}"><img style="border: 0" src="{categories.IMAGE}" alt="{articles.TITLE}" /></a>
+    <a href="{INDEX_FILE}?cat_id={categories.ID}"><img style="border: 0" src="{categories.IMAGE}" alt="{categories.TITLE}" /></a>
     </div>
 <!-- END categories -->
 <!-- BEGIN arch -->
