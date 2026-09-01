@@ -437,9 +437,7 @@ $menu_cat_id = 0;
 					"STARTED" => create_date($board_config['default_dateformat'], $onlinerow_reg[$i]['session_start'], $board_config['board_timezone']), 
 					"LASTUPDATE" => create_date($board_config['default_dateformat'], $onlinerow_reg[$i]['user_session_time'], $board_config['board_timezone']),
 					"FORUM_LOCATION" => $location,
-					"IP_ADDRESS" => $reg_ip, 
-
-					"U_WHOIS_IP" => "http://network-tools.com/default.asp?host=$reg_ip", 
+					"IP_ADDRESS" => phpbb_admin_html($reg_ip),
 					"U_USER_PROFILE" => append_sid("admin_users.$phpEx?mode=edit&amp;" . POST_USERS_URL . "=" . $onlinerow_reg[$i]['user_id']),
 					"U_FORUM_LOCATION" => append_sid($location_url))
 				);
@@ -549,9 +547,7 @@ $menu_cat_id = 0;
 				"STARTED" => create_date($board_config['default_dateformat'], $onlinerow_guest[$i]['session_start'], $board_config['board_timezone']), 
 				"LASTUPDATE" => create_date($board_config['default_dateformat'], $onlinerow_guest[$i]['session_time'], $board_config['board_timezone']),
 				"FORUM_LOCATION" => $location,
-				"IP_ADDRESS" => $guest_ip, 
-
-				"U_WHOIS_IP" => "http://network-tools.com/default.asp?host=$guest_ip", 
+				"IP_ADDRESS" => phpbb_admin_html($guest_ip),
 				"U_FORUM_LOCATION" => append_sid($location_url))
 			);
 		}

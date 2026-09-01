@@ -27,6 +27,10 @@ changes consolidated after that baseline without implying active maintenance.
   stored value without filtering on public pages and in the AdminCP preview.
   New saves accept only image, text and Ruffle-backed SWF banners; upgrades
   convert legacy HTML entries into safely escaped text banners.
+- Removed third-party Whois links from the AdminCP online overview and Arcade
+  score management. Administrators still see validated IP addresses locally,
+  but merely inspecting them can no longer disclose visitor data to an
+  unrelated external service.
 - Denied direct HTTP execution of PHP implementation files below the internal
   include, database-driver, Attachment, Album, paFileDB, CrackerTracker and
   statistics-module trees while retaining access to their static assets.

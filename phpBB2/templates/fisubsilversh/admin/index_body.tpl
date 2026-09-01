@@ -64,7 +64,7 @@
 <td width="20%" align="center" nowrap="nowrap" class="{reg_user_row.ROW_CLASS}">&nbsp;<span class="genmed">{reg_user_row.STARTED}</span>&nbsp;</td>
 <td width="20%" align="center" nowrap="nowrap" class="{reg_user_row.ROW_CLASS}">&nbsp;<span class="genmed">{reg_user_row.LASTUPDATE}</span>&nbsp;</td>
 <td width="20%" class="{reg_user_row.ROW_CLASS}">&nbsp;<a href="{reg_user_row.U_FORUM_LOCATION}">{reg_user_row.FORUM_LOCATION}</a>&nbsp;</td>
-<td width="20%" class="{reg_user_row.ROW_CLASS}">&nbsp;<a href="{reg_user_row.U_WHOIS_IP}" target="_phpbbwhois">{reg_user_row.IP_ADDRESS}</a>&nbsp;</td>
+<td width="20%" class="{reg_user_row.ROW_CLASS}">&nbsp;{reg_user_row.IP_ADDRESS}&nbsp;</td>
 </tr>
 <!-- END reg_user_row -->
 <tr> 
@@ -76,7 +76,7 @@
 <td width="20%" align="center" class="{guest_user_row.ROW_CLASS}">&nbsp;<span class="genmed">{guest_user_row.STARTED}</span>&nbsp;</td>
 <td width="20%" align="center" nowrap="nowrap" class="{guest_user_row.ROW_CLASS}">&nbsp;<span class="genmed">{guest_user_row.LASTUPDATE}</span>&nbsp;</td>
 <td width="20%" class="{guest_user_row.ROW_CLASS}">&nbsp;<a href="{guest_user_row.U_FORUM_LOCATION}">{guest_user_row.FORUM_LOCATION}</a>&nbsp;</td>
-<td width="20%" class="{guest_user_row.ROW_CLASS}">&nbsp;<a href="{guest_user_row.U_WHOIS_IP}" target="_phpbbwhois">{guest_user_row.IP_ADDRESS}</a>&nbsp;</td>
+<td width="20%" class="{guest_user_row.ROW_CLASS}">&nbsp;{guest_user_row.IP_ADDRESS}&nbsp;</td>
 </tr>
 <!-- END guest_user_row -->
 </table>

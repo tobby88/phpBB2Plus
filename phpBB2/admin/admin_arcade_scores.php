@@ -225,6 +225,8 @@ if($mode != '' && $game_id > 0)
     {
       $score = $arcade->convert_score($score_info[$i]['score']);
     }
+	$score_ip = isset($score_info[$i]['player_ip']) && filter_var($score_info[$i]['player_ip'], FILTER_VALIDATE_IP) !== false
+		? phpbb_admin_html($score_info[$i]['player_ip']) : $lang['Not_available'];
     
 		$template->assign_block_vars("highscores", array(
 		'PLAYER' => phpbb_admin_html(isset($score_info[$i]['username']) ? $score_info[$i]['username'] : ''),
@@ -233,7 +235,7 @@ if($mode != '' && $game_id > 0)
         'TIME' => ($score_info[$i]['time_taken']) ? ($arcade->convert_time($score_info[$i]['time_taken'])) : '',
 				'EDIT_IMG' => '<a href="'. append_sid("$file?mode=$mode&amp;edit=".(int) $score_info[$i]['player_id']."&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id']) .'"><img src="./../' . $images['icon_edit'] . '" alt="' . $lang['Edit'] . '" title="' . $lang['Edit'] . '" border="0" /></a>',
 				'DELETE_IMG' => '<a href="'. append_sid("$file?mode=$action&amp;game_id=$game_id&amp;player_id=".(int) $score_info[$i]['player_id'] . "&amp;score=".rawurlencode((string) $score_info[$i]['score'])) .'"><img src="./../' . $images['icon_delpost'] . '" alt="' . $lang['Delete'] . '" title="' . $lang['Delete'] . '" border="0" /></a>',
-				'IP_IMG' => '<a href="https://network-tools.com/default.asp?host='.rawurlencode($score_info[$i]['player_ip']).'" target="_blank" rel="noopener noreferrer"><img src="./../' . $images['icon_ip'] . '" alt="' . $lang['View_IP'] . '" title="' . $lang['View_IP'] . '" border="0" /></a>'
+				'IP_IMG' => '<span class="gensmall">' . $score_ip . '</span>'
        ));     
   }
 }
