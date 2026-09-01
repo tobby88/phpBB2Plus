@@ -1126,17 +1126,6 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		$tracking_topics = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_t']) : array();
 		$tracking_forums = ( isset($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) ) ? phpbb_tracking_cookie_array($HTTP_COOKIE_VARS[$board_config['cookie_name'] . '_f']) : array();
 
-		if ($show_results == 'posts')
-		{
-			if ($search_where == -1)
-			{
-				$is_auth_ary = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata);
-			}
-			else
-			{
-				$is_auth = auth(AUTH_ALL, $search_where, $userdata);
-			}
-		}
 		for($i = 0; $i < count($searchset); $i++)
 		{
 			// CrackerTracker v5.x
@@ -1164,11 +1153,6 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 			if ( $show_results == 'posts' )
 			{
-				if ($search_where == -1)
-				{
-					$is_auth = $is_auth_ary[$forum_id];
-				}
-
 				if ( isset($return_chars) )
 				{
 					$bbcode_uid = $searchset[$i]['bbcode_uid'];

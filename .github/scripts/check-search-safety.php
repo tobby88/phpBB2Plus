@@ -25,5 +25,6 @@ search_safety_assert(strpos($search, "preg_quote((string) \$split_word, '#')") !
 search_safety_assert(strpos($search, "is_dir(\$phpbb_root_path . 'language/lang_' . \$board_config['default_lang'])") !== false, 'search dictionaries must stay inside an installed language directory');
 search_safety_assert((bool) preg_match('/\$search_results\s*=\s*\'\';.{0,400}\$split_search\s*=\s*array\(\);/s', $search), 'all search modes must initialize keyword highlight state');
 search_safety_assert(strpos($search, "!empty(\$searchset) && isset(\$searchset[0]['topic_id'])") !== false, 'AJAX single-result redirects must tolerate stale result IDs');
+search_safety_assert(strpos($search, 'auth(AUTH_ALL, $search_where, $userdata)') === false, 'hierarchy selectors such as Root must never be passed to auth() as numeric forum IDs');
 
 echo "Search safety tests passed.\n";
