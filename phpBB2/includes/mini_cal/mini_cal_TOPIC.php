@@ -32,24 +32,24 @@
     	$mini_cal_auth_ary = array();
     	$mini_cal_auth_ary = auth(AUTH_VIEW, AUTH_LIST_ALL, $userdata);
     
-        $mini_cal_auth = array();
-        $mini_cal_auth['view'] = '';
-        $mini_cal_auth['post'] = '';
+		$view_forums = array();
+		$post_forums = array();
         
         foreach ($mini_cal_auth_ary as $mini_cal_forum_id => $mini_cal_auth_level)
         {
-            if ( $mini_cal_auth_level[MINI_CAL_EVENT_AUTH_LEVEL] )
-            {
-               $mini_cal_auth['view'] .= ($mini_cal_auth['view'] == '') ? $mini_cal_forum_id : ', ' . $mini_cal_forum_id;
-            }
-    
-            if ( !empty($mini_cal_auth_level['auth_post']) && !empty($mini_cal_auth_level['auth_cal']) )
-            {
-               $mini_cal_auth['post'] .= ($mini_cal_auth['post'] == '') ? $mini_cal_forum_id : ', ' . $mini_cal_forum_id;
-            }
-        }
-        
-        return $mini_cal_auth;
+			$mini_cal_forum_id = intval($mini_cal_forum_id);
+			if ($mini_cal_forum_id > 0 && !empty($mini_cal_auth_level[MINI_CAL_EVENT_AUTH_LEVEL]))
+			{
+				$view_forums[$mini_cal_forum_id] = $mini_cal_forum_id;
+			}
+
+			if ($mini_cal_forum_id > 0 && !empty($mini_cal_auth_level['auth_post']) && !empty($mini_cal_auth_level['auth_cal']))
+			{
+				$post_forums[$mini_cal_forum_id] = $mini_cal_forum_id;
+			}
+		}
+
+		return array('view' => implode(',', $view_forums), 'post' => implode(',', $post_forums));
     }
     
 
@@ -60,11 +60,12 @@
         parameters:     $auth_view_forums - a comma seperated list of forums which the user has VIEW permissions for
         returns:        an array containing a list of day containing event the user has permission to view
      ***************************************************************************/
-    function getMiniCalEventDays($auth_view_forums)
-    {
-        global $db, $mini_cal_this_year, $mini_cal_this_month;
-    
-        $mini_cal_event_days = array();
+	function getMiniCalEventDays($auth_view_forums)
+	{
+		global $db, $mini_cal_this_year, $mini_cal_this_month;
+
+		$mini_cal_event_days = array();
+		$auth_view_forums = miniCalForumIds($auth_view_forums);
         
         if ($auth_view_forums != '')
         {
@@ -120,12 +121,20 @@
         
         returns:        nothing - it assigns variable to the template
      ***************************************************************************/
-    function getMiniCalEvents($mini_cal_auth)
+	function getMiniCalEvents($mini_cal_auth)
     {
         global $template, $db, $phpEx, $lang, $mini_cal_today, 
                $mini_cal_this_month, $mini_cal_this_year, $mini_cal_this_day;
     
-        // start and end date
+		$auth_view_forums = miniCalForumIds(isset($mini_cal_auth['view']) ? $mini_cal_auth['view'] : '');
+		if ($auth_view_forums === '')
+		{
+			$template->assign_block_vars('switch_mini_cal_events', array());
+			$template->assign_block_vars('mini_cal_no_events', array());
+			return;
+		}
+
+		// start and end date
         $start_date = mktime(0,0,0, intval(substr($mini_cal_today, 4, 2)), $mini_cal_this_day, $mini_cal_this_year);
 		
         $w_month = $mini_cal_this_month;
@@ -143,7 +152,7 @@
         }
                 
         // initialise some sql bits
-        $mini_cal_auth_sql = ($mini_cal_auth['view'] != '') ? ' AND t.forum_id in (' . $mini_cal_auth['view'] . ') ' : '';
+		$mini_cal_auth_sql = ' AND t.forum_id IN (' . $auth_view_forums . ') ';
         
         // get events
         $sql = "SELECT t.topic_id, t.topic_calendar_time, t.topic_title, t.forum_id, t.topic_calendar_duration  
@@ -200,7 +209,7 @@
   
         			$template->assign_block_vars('mini_cal_events', array(
         					'MINI_CAL_EVENT_DATE' => $cal_date,
-                            'S_MINI_CAL_EVENT' => $row['topic_title'], 
+							'S_MINI_CAL_EVENT' => phpbb_stored_text($row['topic_title']),
         					'U_MINI_CAL_EVENT' => append_sid( $phpbb_root_path . "viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $row['topic_id'] )
                             )
         			); 

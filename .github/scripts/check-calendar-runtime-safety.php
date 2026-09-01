@@ -19,6 +19,7 @@ $mini_cal_german = file_get_contents($root . '/phpBB2/language/lang_german/lang_
 $mini_cal_suite = file_get_contents($root . '/phpBB2/includes/mini_cal/calendarSuite.php');
 $mini_cal_runtime = file_get_contents($root . '/phpBB2/includes/mini_cal/mini_cal.php');
 $mini_cal_common = file_get_contents($root . '/phpBB2/includes/mini_cal/mini_cal_common.php');
+$mini_cal_topic = file_get_contents($root . '/phpBB2/includes/mini_cal/mini_cal_TOPIC.php');
 
 calendar_runtime_assert(strpos($functions, 'function calendar_normalize_forum_filter') !== false, 'forum filters need one strict normalizer');
 calendar_runtime_assert(strpos($functions, "preg_match('/^([") !== false, 'forum filters must enforce a type-and-ID grammar');
@@ -38,6 +39,9 @@ calendar_runtime_assert(strpos($mini_cal_runtime, "is_scalar(\$_SERVER['SCRIPT_N
 calendar_runtime_assert(strpos($mini_cal_runtime, "['PHP_SELF']") === false, 'Mini Calendar links must not reflect attacker-controlled PHP_SELF values');
 calendar_runtime_assert(strpos($mini_cal_common, "http_build_query(\$params") !== false, 'Mini Calendar navigation must rebuild an allowlisted query string');
 calendar_runtime_assert(strpos($mini_cal_common, "htmlspecialchars(substr((string) \$row['forum_name']") !== false, 'Mini Calendar forum options must escape stored names');
+calendar_runtime_assert(strpos($mini_cal_topic, "if (\$auth_view_forums === '')") !== false, 'Mini Calendar must render no events when no forums are visible');
+calendar_runtime_assert(strpos($mini_cal_topic, "' AND t.forum_id IN (' . \$auth_view_forums") !== false, 'Mini Calendar event queries must always carry a forum authorization filter');
+calendar_runtime_assert(strpos($mini_cal_topic, "phpbb_stored_text(\$row['topic_title'])") !== false, 'Mini Calendar must escape stored event titles');
 
 if (!defined('POST_USERS_URL'))
 {
@@ -49,6 +53,8 @@ $_GET = array('mode' => 'personal', 'u' => '7', 'month' => '1', 'unsafe' => '\">
 calendar_runtime_assert(setQueryStringVal('month', 2) === '?mode=personal&amp;u=7&amp;month=2', 'Mini Calendar query rebuilding must preserve only its allowlisted context');
 $_GET = array('mode' => array('personal'), 'u' => array('7'));
 calendar_runtime_assert(setQueryStringVal('month', -1) === '?month=-1', 'Mini Calendar query rebuilding must reject array-valued context');
+calendar_runtime_assert(miniCalForumIds('3, 2,3, 0') === '3,2', 'Mini Calendar forum lists must contain unique positive IDs');
+calendar_runtime_assert(miniCalForumIds('1,2 OR 1=1') === '', 'Mini Calendar forum lists must reject SQL fragments');
 
 define('IN_MINI_CAL', true);
 require_once $root . '/phpBB2/includes/mini_cal/calendarSuite.php';

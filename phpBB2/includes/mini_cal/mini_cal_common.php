@@ -93,6 +93,30 @@
 		$params[$var] = substr((string) $value, 0, 32);
 		return '?' . str_replace('&', '&amp;', http_build_query($params, '', '&', PHP_QUERY_RFC3986));
 	}
+
+	function miniCalForumIds($forum_ids)
+	{
+		if (!is_scalar($forum_ids))
+		{
+			return '';
+		}
+		$forum_ids = trim((string) $forum_ids);
+		if ($forum_ids === '' || !preg_match('/^[0-9]+(?:\s*,\s*[0-9]+)*$/D', $forum_ids))
+		{
+			return '';
+		}
+
+		$normalized = array();
+		foreach (explode(',', $forum_ids) as $forum_id)
+		{
+			$forum_id = intval(trim($forum_id));
+			if ($forum_id > 0)
+			{
+				$normalized[$forum_id] = $forum_id;
+			}
+		}
+		return implode(',', $normalized);
+	}
 	
 	
     /***************************************************************************
@@ -105,7 +129,8 @@
     ***************************************************************************/
 	function getPostForumsList($mini_cal_post_auth, $and_post_auth_sql = '')
 	{
-		if ($mini_cal_post_auth != '' && preg_match('/^[0-9]+(?:,[0-9]+)*$/D', (string) $mini_cal_post_auth))
+		$mini_cal_post_auth = miniCalForumIds($mini_cal_post_auth);
+		if ($mini_cal_post_auth !== '')
 	   	{
 			global $db, $template, $lang;
 			$selected_forum = isset($_POST[POST_FORUM_URL]) && is_scalar($_POST[POST_FORUM_URL]) ? intval($_POST[POST_FORUM_URL]) :
