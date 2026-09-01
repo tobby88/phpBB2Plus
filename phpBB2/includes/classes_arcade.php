@@ -879,7 +879,11 @@ class arcade
       $passed_var = $HTTP_POST_VARS[$var];
       if(!is_array($passed_var) && $quiet == false && ($this->arcade_config['games_use_log'] == 1))
       {
-		$log_value = $db->sql_escape(substr($var . '=>' . (string) $passed_var, 0, 1024));
+		// Arcade capabilities and session credentials must never be persisted in
+		// the diagnostic table. They can remain valid while a game is running.
+		$sensitive = preg_match('/(?:^|_)(?:arcade_?hash|sid|session|token|cookie|pass(?:word)?)(?:$|_)/i', (string) $var);
+		$clean_value = $sensitive ? '[redacted]' : substr(str_replace(array("\r", "\n", "\0"), '', (string) $passed_var), 0, 512);
+		$log_value = $db->sql_escape(substr((string) $var, 0, 64) . '=>' . $clean_value);
         $post_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
           VALUES (" . (int) $userdata['user_id'] . ", 'POST', '$log_value', " . time() . ")";
         $db->sql_query($post_sql);
@@ -1184,10 +1188,9 @@ class arcade
     $this->arcade_session = $db->sql_fetchrow($result);
     if (!$this->arcade_session)
     {
-	  $error_text_sql = $db->sql_escape($lang['no_session_data']);
-      $err_sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-		  VALUES (".(int) $userdata['user_id'].", 'ERROR', '".$error_text_sql."', ".time().")";
-      $db->sql_query($err_sql);
+      // An expired, replayed or malformed game capability is expected client
+      // state, not a server fault. Do not let unauthenticated probes grow the
+      // diagnostic table; actual database errors are still logged below.
       message_die(GENERAL_ERROR, $lang['no_session_data'] . $lang['newscore_close']);
     }
 

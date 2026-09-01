@@ -33,6 +33,7 @@ if (!phpbb_request_source_is_same_origin())
 	print "&opSuccess=Missing info&endvar=1";
 	exit;
 }
+phpbb_arcade_enforce_protocol_limit();
 $arcade_version = $arcade->arcade_config('version');
 //
 // End session management
@@ -48,6 +49,7 @@ $arcade->user_id        = $userdata['user_id'];
 $arcade->arcade_hash    = $arcade->pass_var('arcade_hash', '');
 $arcade_cookie_name     = $board_config['cookie_name'] . '_arcade';
 $arcade->arcade_cookie  = isset($_COOKIE[$arcade_cookie_name]) ? $_COOKIE[$arcade_cookie_name] : '';
+$accepted_request       = false;
 //
 //  Process the pnFlashGame command
 //
@@ -64,6 +66,7 @@ switch($mode)
 
     if(!empty($session_info))
     {
+	  $accepted_request = true;
       $arcade->tour_id    = $session_info['tour_id'];
       $arcade->game_name  = $session_info['game_name'];
       $arcade->time_taken = time() - $session_info['start_time'];
@@ -98,11 +101,12 @@ switch($mode)
     if(($userdata['user_id'] != ANONYMOUS))
     {
 	  $session_info = $arcade->get_session();
-      if(!$session_info)
+	  if(!$session_info)
       {
         print "&opSuccess=Missing info&endvar=1";
-        break;
+		break;
       }
+	  $accepted_request = true;
 
 	  $session_game_name_sql = $db->sql_escape($session_info['game_name']);
       $sql = "SELECT gameData FROM " . iNA_SCORES . "
@@ -130,11 +134,12 @@ switch($mode)
     if(($userdata['user_id'] != ANONYMOUS) && ($gameData))
     {
 	  $session_info = $arcade->get_session();
-      if(!$session_info)
+	  if(!$session_info)
       {
         print "&opSuccess=Missing info&endvar=1";
-        break;
+		break;
       }
+	  $accepted_request = true;
 
 	  $game_data_value = substr(html_entity_decode($gameData, ENT_QUOTES, 'UTF-8'), 0, 65535);
 	  $game_data_sql = $db->sql_escape($game_data_value);
@@ -165,17 +170,12 @@ switch($mode)
 //
 //  Arcade LOG
 //
-$log = 'pnFlashGames ';
-foreach($HTTP_POST_VARS as $key => $value)
+if ($accepted_request && $arcade->arcade_config['games_use_log'] == 1)
 {
-	if(is_scalar($value))
-  {
-		$log .= (string) $key . '=>' . (string) $value . ' ';
-  }
+	$log = $db->sql_escape('pnFlashGames action=' . substr((string) $mode, 0, 32));
+	$sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)
+		VALUES (".(int) $userdata['user_id'].", 'GAME', '$log', ".time().")";
+	$db->sql_query($sql);
 }
-$log = $db->sql_escape(substr($log, 0, 4000));
-$sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)
-  VALUES (".(int) $userdata['user_id'].", 'GAME', '$log', ".time().")";
-$db->sql_query($sql);
 
 ?>

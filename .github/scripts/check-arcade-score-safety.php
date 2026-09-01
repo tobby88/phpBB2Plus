@@ -41,6 +41,14 @@ arcade_score_assert(strpos($vbprotocol, 'addslashes(stripslashes(') === false, '
 arcade_score_assert(strpos($ibpro, 'mysqli_real_escape_string') === false, 'IBProArcade must not bypass the active database driver');
 arcade_score_assert(strpos($ibpro, '$log = $db->sql_escape(') !== false, 'IBProArcade logs must use database-driver escaping');
 arcade_score_assert(strpos($ibpro, 'phpbb_random_bytes(2)') !== false, 'IBPro score challenges must use the compatibility-safe random source');
+foreach (array('newscore' => $newscore, 'IBProArcade' => $ibpro, 'pnFlashGames' => $pnflash) as $name => $source)
+{
+	arcade_score_assert(strpos($source, 'phpbb_arcade_enforce_protocol_limit();') !== false, $name . ' must limit legacy GET-capable score calls');
+}
+arcade_score_assert(strpos($classes, "'[redacted]'") !== false, 'Arcade diagnostic logs must redact capabilities and session credentials');
+arcade_score_assert(strpos($classes, '$error_text_sql') === false, 'missing or expired game sessions must not amplify the diagnostic table');
+arcade_score_assert(strpos($ibpro, 'foreach($HTTP_POST_VARS') === false && strpos($pnflash, 'foreach($HTTP_POST_VARS') === false, 'score bridges must not duplicate raw request values into bulk logs');
+arcade_score_assert(strpos($pnflash, 'if ($accepted_request &&') !== false, 'pnFlashGames must not log rejected protocol calls as games');
 arcade_score_assert(strpos($functions, '$privmsg_subject_sql = $db->sql_escape($privmsg_subject)') !== false, 'Arcade PM notifications must use database-driver escaping');
 arcade_score_assert(strpos($functions, "'USERNAME' => \$to_userdata['username']") !== false, 'Arcade PM emails must use the loaded recipient name');
 arcade_score_assert(strpos($functions, "is_dir(\$phpbb_root_path . 'language/lang_' . \$to_userdata['user_lang'])") !== false, 'Arcade PM language templates must stay inside an installed language directory');

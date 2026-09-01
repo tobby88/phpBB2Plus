@@ -70,6 +70,28 @@ function phpbb_arcade_local_asset($path)
 	return $path;
 }
 
+/**
+ * Bound legacy GET-capable score protocols without counting a request twice.
+ * POST submissions are already classified by the central CrackerTracker
+ * limiter; old Flash games which still submit through GET need the same safety
+ * net while retaining their protocol compatibility.
+ */
+function phpbb_arcade_enforce_protocol_limit()
+{
+	static $enforced = false;
+	if ($enforced)
+	{
+		return;
+	}
+	$enforced = true;
+	$method = isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD'])
+		? strtoupper((string) $_SERVER['REQUEST_METHOD']) : '';
+	if ($method !== 'POST' && function_exists('ctracker_enforce_request_limit_profile'))
+	{
+		ctracker_enforce_request_limit_profile(array('arcade-protocol', 60, 'request_limit_write', 120));
+	}
+}
+
 function best_player($type = 'first_places')
 {
 	global $db, $lang, $arcade, $phpEx;

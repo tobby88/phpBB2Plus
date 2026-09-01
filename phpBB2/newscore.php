@@ -71,6 +71,7 @@ if (!phpbb_request_source_is_same_origin())
 {
 	message_die(GENERAL_ERROR, 'Cross-site score submissions are not accepted.');
 }
+phpbb_arcade_enforce_protocol_limit();
 //
 //  Check Arcade Config and Include extra files.
 //

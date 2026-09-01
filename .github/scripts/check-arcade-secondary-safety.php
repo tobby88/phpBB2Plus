@@ -31,7 +31,8 @@ arcade_secondary_assert(strpos($tournament, 'count($normalized_join_tours) >= 10
 arcade_secondary_assert(strpos($tournament, "is_scalar(\$HTTP_POST_VARS['tour_name'])") !== false, 'tournament text fields must be scalar');
 arcade_secondary_assert(strpos($tournament, "is_scalar(\$HTTP_GET_VARS['tour_token'])") !== false, 'tournament play tokens must be scalar');
 arcade_secondary_assert(strpos($classes, 'if (!is_finite($passed_var))') !== false, 'numeric Arcade inputs must reject non-finite values');
-arcade_secondary_assert(strpos($classes, "substr(\$var . '=>' . (string) \$passed_var, 0, 1024)") !== false, 'Arcade request logging must be bounded');
+arcade_secondary_assert(strpos($classes, 'substr(str_replace(array("\\r", "\\n", "\\0"), \'\', (string) $passed_var), 0, 512)') !== false &&
+	strpos($classes, 'substr((string) $var, 0, 64)') !== false, 'Arcade request logging must be bounded and single-line');
 arcade_secondary_assert(strpos($classes, "'at_first_list' => '', 'at_second_list' => '', 'at_third_list' => ''") !== false, 'missing Arcade user summaries need a complete fallback');
 arcade_secondary_assert(strpos($activity, '$best_score = $best_at_score = \'\';') !== false, 'per-game display state must be initialized');
 arcade_secondary_assert(strpos($activity, 'if (is_array($game_size) && isset($game_size[0], $game_size[1]))') !== false, 'failed legacy media probing needs configured dimension fallbacks');

@@ -29,6 +29,7 @@ limiter_assert_profile('upload', 'album_nuffload.php', array(), array(), $errors
 limiter_assert_profile('content', 'posting.php', array(), array(), $errors);
 limiter_assert_profile('content', 'privmsg.php', array(), array(), $errors);
 limiter_assert_profile('content', 'ibproarcade.php', array(), array(), $errors);
+limiter_assert_profile('content', 'pnflashgames.php', array(), array(), $errors);
 limiter_assert_profile('content', 'ajax.php', array('mode' => 'edit_post_text'), array(), $errors);
 limiter_assert_profile('write', 'ajax.php', array('mode' => 'post_preview'), array(), $errors);
 limiter_assert_profile('upload', 'dload.php', array('action' => 'user_upload'), array(), $errors);

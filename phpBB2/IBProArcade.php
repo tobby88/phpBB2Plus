@@ -34,6 +34,7 @@ if (!phpbb_request_source_is_same_origin())
 {
 	message_die(GENERAL_ERROR, 'Cross-site score submissions are not accepted.');
 }
+phpbb_arcade_enforce_protocol_limit();
 $arcade_version = $arcade->arcade_config('version');
 //
 // End session management 
@@ -41,23 +42,22 @@ $arcade_version = $arcade->arcade_config('version');
 $enscore      = 0;
 $decodescore  = 0;
 $do           = $arcade->pass_var('do', '');
+if (!in_array($do, array('verifyscore', 'savescore', 'newscore'), true))
+{
+	$gen_simple_header = TRUE;
+	message_die(GENERAL_MESSAGE, $lang['newscore_close']);
+}
 $session_info = $arcade->get_session();
 //
 //  Arcade LOG
 //
-$log = 'IBProArcade ';
-foreach($HTTP_POST_VARS as $key => $value)
+if ($arcade->arcade_config['games_use_log'] == 1)
 {
-  if(!is_array($value))
-  {
-	$log .= substr(str_replace(array("\r", "\n", "\0"), '', (string) $key), 0, 64) . '=>'
-		. substr(str_replace(array("\r", "\n", "\0"), '', (string) $value), 0, 512) . ' ';
-  }
+	$log = $db->sql_escape('IBProArcade action=' . substr((string) $do, 0, 32));
+	$sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date)
+		VALUES (".(int) $userdata['user_id'].", 'GAME', '$log', ".time().")";
+	$db->sql_query($sql);
 }
-$log = $db->sql_escape(substr($log, 0, 4000));
-$sql = "INSERT INTO " . iNA_LOG . " (user_id, name, value, date) 
-  VALUES (".(int) $userdata['user_id'].", 'GAME', '$log', ".time().")";
-$db->sql_query($sql);
 //
 //  Now Process the IBProArcade v3.x Commands
 //

@@ -69,7 +69,7 @@ function ctracker_request_limit_profile($script, $post, $get)
 	}
 	$content_scripts = array(
 		'posting.php', 'privmsg.php', 'shoutbox.php', 'shoutbox_max.php',
-		'arcade.php', 'ibproarcade.php', 'newscore.php', 'arcade_comment.php',
+		'arcade.php', 'ibproarcade.php', 'pnflashgames.php', 'newscore.php', 'arcade_comment.php',
 		'arcade_rate.php', 'arcade_tournament.php', 'album_showpage.php',
 		'album_comment_edit.php', 'album_comment_delete.php', 'album_edit.php',
 		'album_delete.php', 'album_hotornot.php', 'link_register.php'
