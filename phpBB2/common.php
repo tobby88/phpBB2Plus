@@ -266,6 +266,7 @@ else {
 */
 // cache configs -----------------
 
+$board_config = phpbb_normalize_board_config($board_config);
 $phpbb_original_default_lang = isset($board_config['default_lang']) ? (string) $board_config['default_lang'] : '';
 $board_config['default_lang'] = phpbb_normalize_language($phpbb_original_default_lang, 'english');
 

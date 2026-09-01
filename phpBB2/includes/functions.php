@@ -65,6 +65,33 @@ function phpbb_sql_id_list($value, $maximum_ids = 500)
 	return !empty($ids) ? implode(',', $ids) : '0';
 }
 
+function phpbb_normalize_board_config($config)
+{
+	$config = is_array($config) ? $config : array();
+	$integer_settings = array(
+		'posts_per_page' => array(15, 1, 200),
+		'topics_per_page' => array(50, 1, 200),
+		'hot_threshold' => array(25, 0, 1000000),
+		'max_poll_options' => array(10, 1, 100),
+		'max_inbox_privmsgs' => array(50, 1, 10000),
+		'max_sentbox_privmsgs' => array(25, 1, 10000),
+		'max_savebox_privmsgs' => array(50, 1, 10000),
+		'flood_interval' => array(15, 0, 86400),
+		'search_flood_interval' => array(15, 0, 86400),
+		'max_link_bookmarks' => array(0, 0, 100),
+		'session_length' => array(3600, 100, 31536000),
+		'max_autologin_time' => array(0, 0, 365),
+	);
+
+	foreach ($integer_settings as $name => $bounds)
+	{
+		$value = isset($config[$name]) && is_scalar($config[$name]) ? (int) $config[$name] : $bounds[0];
+		$config[$name] = max($bounds[1], min($bounds[2], $value));
+	}
+
+	return $config;
+}
+
 function phpbb_profile_http_url($value)
 {
 	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');

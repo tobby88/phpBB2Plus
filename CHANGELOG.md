@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Added central runtime bounds for board pagination, polling, private-message
+  boxes, flood controls, bookmarks, sessions and auto-login lifetimes. Both
+  cached and freshly loaded legacy settings are normalized before any module
+  builds SQL limits or performs pagination, preventing zero divisions,
+  malformed queries and unbounded result sets without rewriting stored data.
 - Constrained runtime theme rows to the sole preserved FI Subsilver Shadow
   package before any filesystem or template use. Stylesheet/background paths,
   colors, CSS classes, font families and numeric presentation values now pass
