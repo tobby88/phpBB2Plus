@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Denied direct HTTP execution of PHP implementation files below the internal
+  include, database-driver, Attachment, Album, paFileDB, CrackerTracker and
+  statistics-module trees while retaining access to their static assets.
 - Hardened the legacy Nuffload CGI bridge so it accepts only bounded multipart
   POST uploads, rejects truncated bodies and unexpected upload fields, and caps
   staged files and hand-off metadata before PHP processes the upload.
