@@ -442,10 +442,11 @@ function album_user_access($cat_id, $passed_auth = 0, $view_check = false, $uplo
 	// So avoiding PRIVATE will speed up your album. However, these queries are very fast
 	for ($i = 0; $i < count($groups_access); $i++)
 	{
+		$access_group_ids = album_sql_id_list($thiscat['cat_'. $groups_access[$i] .'_groups']);
 		$sql = "SELECT group_id, user_id
 				FROM ". USER_GROUP_TABLE ."
-				WHERE user_id = '". $userdata['user_id'] ."' AND user_pending = 0
-					AND group_id IN (". $thiscat['cat_'. $groups_access[$i] .'_groups'] .")";
+				WHERE user_id = ". (int) $userdata['user_id'] ." AND user_pending = 0
+					AND group_id IN ($access_group_ids)";
 		if( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not query User-Group information' ,'' , __LINE__, __FILE__, $sql);
@@ -525,10 +526,11 @@ function personal_gallery_access($check_view, $check_upload)
 				}
 				else if(!empty($album_config['personal_gallery_private']) and $userdata['session_logged_in'])
 				{
+					$private_group_ids = album_sql_id_list($album_config['personal_gallery_private']);
 					$sql = "SELECT group_id, user_id
 							FROM ". USER_GROUP_TABLE ."
-							WHERE user_id = '". $userdata['user_id'] ."' AND user_pending = 0
-								AND group_id IN (". $album_config['personal_gallery_private'] .")";
+							WHERE user_id = ". (int) $userdata['user_id'] ." AND user_pending = 0
+								AND group_id IN ($private_group_ids)";
 					if( !$result = $db->sql_query($sql) )
 					{
 						message_die(GENERAL_ERROR, 'Could not query User-Group information' ,'' , __LINE__, __FILE__, $sql);
@@ -575,10 +577,11 @@ function personal_gallery_access($check_view, $check_upload)
 				}
 				else if(!empty($album_config['personal_gallery_private']) and $userdata['session_logged_in'])
 				{
+					$private_group_ids = album_sql_id_list($album_config['personal_gallery_private']);
 					$sql = "SELECT group_id, user_id
 							FROM ". USER_GROUP_TABLE ."
-							WHERE user_id = '". $userdata['user_id'] ."' AND user_pending = 0
-								AND group_id IN (". $album_config['personal_gallery_private'] .")";
+							WHERE user_id = ". (int) $userdata['user_id'] ." AND user_pending = 0
+								AND group_id IN ($private_group_ids)";
 					if( !$result = $db->sql_query($sql) )
 					{
 						message_die(GENERAL_ERROR, 'Could not query User-Group information' ,'' , __LINE__, __FILE__, $sql);

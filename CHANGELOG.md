@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Normalized and bounded stored Album group-ID lists before every category,
+  moderator and personal-gallery access query. Corrupt or injected list
+  fragments now become a safe never-match value instead of SQL syntax, and
+  moderator group labels are escaped before rendering.
 - Repaired the maximized Shoutbox's previously empty mini-post images and
   links by assigning their missing variables and stable row anchors, and
   restored its localized browser title. Public full and simple pages now also

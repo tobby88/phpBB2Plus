@@ -38,6 +38,11 @@ function album_html_text($value)
 	return phpbb_stored_text($value);
 }
 
+function album_sql_id_list($value, $maximum_ids = 500)
+{
+	return phpbb_sql_id_list($value, $maximum_ids);
+}
+
 
 //
 // Include Language

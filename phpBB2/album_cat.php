@@ -311,11 +311,12 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY && $thiscat['cat_moderator_groups'] !
 //--- Album Category Hierarchy : end
 {
 	// Get the namelist of moderator usergroups
+	$moderator_group_ids = album_sql_id_list($thiscat['cat_moderator_groups']);
 	$sql = "SELECT group_id, group_name, group_type, group_single_user
 			FROM " . GROUPS_TABLE . "
 			WHERE group_single_user <> 1
 				AND group_type <> ". GROUP_HIDDEN ."
-				AND group_id IN (". $thiscat['cat_moderator_groups'] .")
+				AND group_id IN ($moderator_group_ids)
 			ORDER BY group_name ASC";
 	if ( !$result = $db->sql_query($sql) )
 	{
@@ -331,7 +332,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY && $thiscat['cat_moderator_groups'] !
 	{
 		for ($j = 0; $j < count($grouprows); $j++)
 		{
-			$group_link = '<a href="'. append_sid("groupcp.$phpEx?". POST_GROUPS_URL .'='. $grouprows[$j]['group_id']) .'">'. $grouprows[$j]['group_name'] .'</a>';
+			$group_link = '<a href="'. append_sid("groupcp.$phpEx?". POST_GROUPS_URL .'='. (int) $grouprows[$j]['group_id']) .'">'. album_html_text($grouprows[$j]['group_name']) .'</a>';
 
 			$moderators_list .= ($moderators_list == '') ? $group_link : ', ' . $group_link;
 		}

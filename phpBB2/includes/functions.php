@@ -38,6 +38,33 @@ function phpbb_stored_text($value)
 	return htmlspecialchars(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
 }
 
+function phpbb_sql_id_list($value, $maximum_ids = 500)
+{
+	$maximum_ids = max(1, min(1000, (int) $maximum_ids));
+	$parts = is_array($value) ? $value : preg_split('/[\s,]+/', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
+	$ids = array();
+
+	foreach ($parts as $part)
+	{
+		if (!is_scalar($part) || !preg_match('/^[0-9]+$/D', (string) $part))
+		{
+			continue;
+		}
+
+		$id = (int) $part;
+		if ($id > 0)
+		{
+			$ids[$id] = $id;
+			if (count($ids) >= $maximum_ids)
+			{
+				break;
+			}
+		}
+	}
+
+	return !empty($ids) ? implode(',', $ids) : '0';
+}
+
 function phpbb_profile_http_url($value)
 {
 	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');
