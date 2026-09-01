@@ -6,6 +6,7 @@ $router = (string) file_get_contents($root . '/phpBB2/dload.php');
 $pafile = (string) file_get_contents($root . '/phpBB2/pafiledb/modules/pa_download.php');
 $search = (string) file_get_contents($root . '/phpBB2/pafiledb/modules/pa_search.php');
 $comments = (string) file_get_contents($root . '/phpBB2/pafiledb/includes/functions_comment.php');
+$pafiledbFunctions = (string) file_get_contents($root . '/phpBB2/pafiledb/includes/functions.php');
 $rules = (string) file_get_contents($root . '/phpBB2/attach_rules.php');
 $errors = array();
 
@@ -47,7 +48,9 @@ if (strpos($comments, "isset(\$lang['Comment_do']) ? \$lang['Comment_do'] : \$la
 foreach (array(
 	"include_once(\$phpbb_root_path . 'includes/page_tail.'.\$phpEx);\n\t\t\t\treturn;",
 	"header('X-Content-Type-Options: nosniff')",
-	"header('Cache-Control: private, no-store, max-age=0')"
+	"header('Cache-Control: private, no-store, max-age=0')",
+	'pafiledb_resolve_local_download($physical_filename, $upload_dir, $phpbb_root_path)',
+	'$file_url = pafiledb_normalize_remote_url($file_url);'
 ) as $marker)
 {
 	if (strpos(str_replace("\r\n", "\n", $pafile), $marker) === false)
@@ -56,10 +59,59 @@ foreach (array(
 	}
 }
 
+foreach (array(
+	'function pafiledb_resolve_local_download(',
+	"strpos(\$upload_normalized, \$root_normalized) !== 0",
+	"strpos(\$file_normalized, \$upload_normalized) !== 0",
+	'!@is_readable($file_real)'
+) as $marker)
+{
+	if (strpos($pafiledbFunctions, $marker) === false)
+	{
+		$errors[] = 'Missing paFileDB local-path confinement marker: ' . $marker;
+	}
+}
+
 if (substr_count($rules, 'htmlspecialchars(') < 2)
 {
 	$errors[] = 'Attachment rule labels are not consistently escaped.';
 }
+
+if (!defined('IN_PHPBB'))
+{
+	define('IN_PHPBB', true);
+}
+require_once $root . '/phpBB2/pafiledb/includes/functions.php';
+
+$testBase = rtrim(sys_get_temp_dir(), '/\\') . '/phpbb-pafiledb-download-' . uniqid('', true);
+$testRoot = $testBase . '/board';
+$testUpload = $testRoot . '/files';
+$testOutside = $testBase . '/outside';
+@mkdir($testUpload, 0700, true);
+@mkdir($testOutside, 0700, true);
+file_put_contents($testUpload . '/allowed.zip', 'allowed');
+file_put_contents($testOutside . '/secret.txt', 'secret');
+
+$resolvedAllowed = pafiledb_resolve_local_download('allowed.zip', $testUpload, $testRoot);
+if ($resolvedAllowed === false || @realpath($resolvedAllowed) !== @realpath($testUpload . '/allowed.zip'))
+{
+	$errors[] = 'paFileDB rejected a valid local download inside its board directory.';
+}
+if (pafiledb_resolve_local_download('secret.txt', $testOutside, $testRoot) !== false)
+{
+	$errors[] = 'paFileDB accepted a download directory outside its board directory.';
+}
+if (pafiledb_resolve_local_download("missing\r\nname.zip", $testUpload, $testRoot) !== false)
+{
+	$errors[] = 'paFileDB accepted a nonexistent hostile local filename.';
+}
+
+@unlink($testUpload . '/allowed.zip');
+@unlink($testOutside . '/secret.txt');
+@rmdir($testUpload);
+@rmdir($testRoot);
+@rmdir($testOutside);
+@rmdir($testBase);
 
 if ($errors)
 {

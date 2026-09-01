@@ -219,22 +219,14 @@ class pafiledb_download extends pafiledb_public
 
 function send_file_to_browser($real_filename, $mimetype, $physical_filename, $upload_dir)
 {
-	global $_SERVER, $HTTP_USER_AGENT, $HTTP_SERVER_VARS, $lang, $db, $pafiledb_functions;
+	global $_SERVER, $HTTP_USER_AGENT, $HTTP_SERVER_VARS, $lang, $phpbb_root_path;
 
-	$physical_filename = basename((string) $physical_filename);
-	if ($upload_dir == '')
-	{
-		$filename = $physical_filename;
-	}
-	else
-	{
-		$filename = rtrim($upload_dir, '/\\') . '/' . $physical_filename;
-	}
+	$filename = pafiledb_resolve_local_download($physical_filename, $upload_dir, $phpbb_root_path);
 
 	$gotit = FALSE;
 
 
-	if (@!file_exists(@$pafiledb_functions->pafiledb_realpath($filename)))
+	if ($filename === false)
 	{
 		message_die(GENERAL_ERROR, $lang['Error_no_download']);
 	}
@@ -340,8 +332,8 @@ function send_file_to_browser($real_filename, $mimetype, $physical_filename, $up
 function pa_redirect($file_url)
 {
 	global $cache, $db;
-	$file_url = trim((string) $file_url);
-	if ($file_url === '' || preg_match('/[\r\n\x00]/', $file_url))
+	$file_url = pafiledb_normalize_remote_url($file_url);
+	if ($file_url === false)
 	{
 		message_die(GENERAL_MESSAGE, 'The download URL is invalid.');
 	}

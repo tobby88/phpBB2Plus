@@ -636,6 +636,52 @@ function pafiledb_normalize_remote_url($url, $image_only = false)
 	return $url;
 }
 
+function pafiledb_resolve_local_download($physical_filename, $upload_dir, $root_path)
+{
+	$physical_filename = basename(str_replace('\\', '/', (string) $physical_filename));
+	if ($physical_filename === '' || $physical_filename === '.' || $physical_filename === '..')
+	{
+		return false;
+	}
+
+	$root_real = @realpath($root_path);
+	$upload_real = @realpath($upload_dir);
+	if ($root_real === false || $upload_real === false || !@is_dir($upload_real))
+	{
+		return false;
+	}
+
+	$root_normalized = rtrim(str_replace('\\', '/', $root_real), '/') . '/';
+	$upload_normalized = rtrim(str_replace('\\', '/', $upload_real), '/') . '/';
+	if (DIRECTORY_SEPARATOR === '\\')
+	{
+		$root_normalized = strtolower($root_normalized);
+		$upload_normalized = strtolower($upload_normalized);
+	}
+	if (strpos($upload_normalized, $root_normalized) !== 0)
+	{
+		return false;
+	}
+
+	$file_real = @realpath($upload_real . DIRECTORY_SEPARATOR . $physical_filename);
+	if ($file_real === false || !@is_file($file_real) || !@is_readable($file_real))
+	{
+		return false;
+	}
+
+	$file_normalized = str_replace('\\', '/', $file_real);
+	if (DIRECTORY_SEPARATOR === '\\')
+	{
+		$file_normalized = strtolower($file_normalized);
+	}
+	if (strpos($file_normalized, $upload_normalized) !== 0)
+	{
+		return false;
+	}
+
+	return $file_real;
+}
+
 function pafiledb_html($value)
 {
 	return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8', false);
