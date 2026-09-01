@@ -96,6 +96,13 @@ if ($asset_path === '' || !is_file($phpbb_root_path . $asset_path))
 	message_die(GENERAL_ERROR, sprintf($lang['arcade_file_not_found'], phpbb_profile_text($missing_asset)));
 }
 $asset_url = phpbb_profile_text($asset_path);
+// Launches arrive through a GET but create a score capability and update play
+// statistics. Give them a separate bounded bucket without consuming the
+// player's allowance for posts, comments or score submissions.
+if (function_exists('ctracker_enforce_request_limit_profile'))
+{
+	ctracker_enforce_request_limit_profile(array('arcade-launch', 300, 'request_limit_content', 60));
+}
 //
 //	Update Game Played amount.
 //

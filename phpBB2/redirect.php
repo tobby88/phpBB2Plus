@@ -66,6 +66,13 @@ if (!$redirect_parts || empty($redirect_parts['host']) || empty($redirect_parts[
 {
 	message_die(GENERAL_ERROR, 'Invalid banner URL', '', __LINE__, __FILE__);
 }
+// This read-like endpoint writes click statistics. Keep its own bucket so a
+// crawler or forged refresh loop cannot grow the statistics table without
+// bound and does not consume the user's post/comment allowance.
+if (function_exists('ctracker_enforce_request_limit_profile'))
+{
+	ctracker_enforce_request_limit_profile(array('tracked-redirect', 300, 'request_limit_content', 60));
+}
 $cookie_name = $board_config['cookie_name'] . '_b_' . $banner_id;
 if (!isset($HTTP_COOKIE_VARS[$cookie_name]))
 {
@@ -77,15 +84,18 @@ if (!isset($HTTP_COOKIE_VARS[$cookie_name]))
 	{
 		message_die(GENERAL_ERROR, "Couldn't update banner data", "", __LINE__, __FILE__, $sql);
 	}
-}
-$click_ip_sql = $db->sql_escape($userdata['session_ip']);
-$click_user_id = intval($userdata['user_id']);
-$user_duration = max(0, intval($userdata['session_time']) - intval($userdata['session_start']) + intval($board_config['session_length']));
-$sql = "INSERT INTO " . BANNER_STATS_TABLE . " (banner_id, click_date, click_ip, click_user, user_duration)
-	VALUES (" . intval($banner_id) . ", " . time() . ", '$click_ip_sql', $click_user_id, $user_duration)";
-if ( !($result = $db->sql_query($sql)) )
-{
-	message_die(GENERAL_ERROR, "Couldn't insert banner stats", "", __LINE__, __FILE__, $sql);
+	// Keep detailed statistics consistent with the same filter as the public
+	// click counter. Previously every refresh inserted another row even though
+	// the visible counter intentionally ignored it.
+	$click_ip_sql = $db->sql_escape($userdata['session_ip']);
+	$click_user_id = intval($userdata['user_id']);
+	$user_duration = max(0, intval($userdata['session_time']) - intval($userdata['session_start']) + intval($board_config['session_length']));
+	$sql = "INSERT INTO " . BANNER_STATS_TABLE . " (banner_id, click_date, click_ip, click_user, user_duration)
+		VALUES (" . intval($banner_id) . ", " . time() . ", '$click_ip_sql', $click_user_id, $user_duration)";
+	if ( !($result = $db->sql_query($sql)) )
+	{
+		message_die(GENERAL_ERROR, "Couldn't insert banner stats", "", __LINE__, __FILE__, $sql);
+	}
 }
 
 $db->sql_close();

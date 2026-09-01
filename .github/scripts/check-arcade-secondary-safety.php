@@ -35,6 +35,7 @@ arcade_secondary_assert(strpos($classes, "'at_first_list' => '', 'at_second_list
 arcade_secondary_assert(strpos($activity, '$best_score = $best_at_score = \'\';') !== false, 'per-game display state must be initialized');
 arcade_secondary_assert(strpos($activity, 'if (is_array($game_size) && isset($game_size[0], $game_size[1]))') !== false, 'failed legacy media probing needs configured dimension fallbacks');
 arcade_secondary_assert(strpos($loader, '$asset_path = phpbb_arcade_local_asset(') < strpos($loader, 'SET played = played + 1'), 'missing Arcade assets must be rejected before play statistics change');
+arcade_secondary_assert(strpos($loader, "ctracker_enforce_request_limit_profile(array('arcade-launch', 300, 'request_limit_content', 60))") !== false, 'GET game launches that mutate statistics need a dedicated request bucket');
 arcade_secondary_assert(strpos($activity, "WHERE game_desc LIKE '%\$search_sql%'") !== false, 'Arcade search totals must use the SQL-escaped term');
 arcade_secondary_assert(strpos($activity, "WHERE rate_game_name = '\$game_name_sql'") !== false, 'Arcade rating lookups must escape stored game names');
 arcade_secondary_assert(substr_count($activity, "AND game_name = '\" . \$game_info_name_sql . \"'") === 2, 'Arcade summary score lookups must escape stored game names');

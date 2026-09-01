@@ -54,6 +54,16 @@ foreach (array('$db->sql_escape($userdata[\'session_ip\'])', '$user_duration = m
 		$errors[] = 'Banner redirect hardening is missing: ' . $marker;
 	}
 }
+if (strpos($redirect, "ctracker_enforce_request_limit_profile(array('tracked-redirect', 300, 'request_limit_content', 60))") === false)
+{
+	$errors[] = 'Tracked banner redirects must have a dedicated bounded request bucket';
+}
+$cookie_guard = strpos($redirect, 'if (!isset($HTTP_COOKIE_VARS[$cookie_name]))');
+$stats_insert = strpos($redirect, 'INSERT INTO " . BANNER_STATS_TABLE');
+if ($cookie_guard === false || $stats_insert === false || $stats_insert < $cookie_guard)
+{
+	$errors[] = 'Detailed banner statistics must share the public click-cookie filter';
+}
 if (strpos($redirect, "preg_match('/[\\x00-\\x20\\x7F\\\\\\\\]/', \$redirect_url)") === false)
 {
 	$errors[] = 'Banner redirect must reject control characters and backslashes with a valid PCRE pattern';

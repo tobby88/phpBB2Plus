@@ -14,6 +14,10 @@ changes consolidated after that baseline without implying active maintenance.
 - Counted the authenticated GET hand-offs used by the legacy Nuffload CGI and
   multi-image processor in the hourly upload limit, closing a gap where only
   the initial browser POST was previously visible to the central limiter.
+- Added independent CrackerTracker buckets for Arcade launches and tracked
+  banner redirects, two GET workflows that update database state. Detailed
+  banner rows now use the same per-banner cookie filter as the visible click
+  counter instead of growing on every refresh.
 - Denied direct HTTP execution of PHP implementation files below the internal
   include, database-driver, Attachment, Album, paFileDB, CrackerTracker and
   statistics-module trees while retaining access to their static assets.
