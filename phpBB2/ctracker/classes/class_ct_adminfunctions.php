@@ -220,6 +220,40 @@ class ct_adminfunctions
 
 
 	/**
+	 * Resolve a readable regular file and prove that it belongs to the forum
+	 * tree. Scanner paths are persisted in the database and therefore must not
+	 * be trusted when a later request reads them again.
+	 */
+	function resolve_file_within_root($path, $required_root)
+	{
+		if (!is_string($path) || $path === '' || !is_string($required_root) || $required_root === '')
+		{
+			return false;
+		}
+		if (@is_link($path))
+		{
+			return false;
+		}
+
+		$resolved_root = @realpath($required_root);
+		$resolved_path = @realpath($path);
+		if ($resolved_root === false || $resolved_path === false || !is_file($resolved_path) || !is_readable($resolved_path))
+		{
+			return false;
+		}
+
+		$resolved_root = str_replace('\\', '/', rtrim($resolved_root, '/\\'));
+		$resolved_path = str_replace('\\', '/', $resolved_path);
+		if ($resolved_path !== $resolved_root && strpos($resolved_path, $resolved_root . '/') !== 0)
+		{
+			return false;
+		}
+
+		return $resolved_path;
+	}
+
+
+	/**
 	 * Return a content checksum suitable for detecting same-size changes.
 	 */
 	function file_checksum($path, $required_root = '')
@@ -230,23 +264,11 @@ class ct_adminfunctions
 		}
 		if ($required_root !== '')
 		{
-			if (@is_link($path))
+			$path = $this->resolve_file_within_root($path, $required_root);
+			if ($path === false)
 			{
 				return false;
 			}
-			$resolved_root = @realpath($required_root);
-			$resolved_path = @realpath($path);
-			if ($resolved_root === false || $resolved_path === false)
-			{
-				return false;
-			}
-			$resolved_root = str_replace('\\', '/', rtrim($resolved_root, '/\\'));
-			$resolved_path = str_replace('\\', '/', $resolved_path);
-			if ($resolved_path !== $resolved_root && strpos($resolved_path, $resolved_root . '/') !== 0)
-			{
-				return false;
-			}
-			$path = $resolved_path;
 		}
 
 		$checksum = @hash_file('sha256', $path);
@@ -361,6 +383,15 @@ class ct_adminfunctions
 		{
 			$source_table = CTRACKER_FILESCANNER;
 		}
+		if ($this->filescan_root === '')
+		{
+			$scan_root = @realpath($phpbb_root_path);
+			if ($scan_root === false || !is_dir($scan_root) || !is_readable($scan_root))
+			{
+				message_die(CRITICAL_ERROR, $lang['ctracker_error_fileop']);
+			}
+			$this->filescan_root = str_replace('\\', '/', rtrim($scan_root, '/\\'));
+		}
 
 		$sql = 'SELECT id, filepath FROM ' . $source_table;
 
@@ -389,8 +420,9 @@ class ct_adminfunctions
 			$scanline        = '';
 			$acp_flag        = false;
 
-			$filename        = @file($row['filepath']);
 			$file_db_id      = intval($row['id']);
+			$resolved_file   = $this->resolve_file_within_root($row['filepath'], $this->filescan_root);
+			$filename        = ($resolved_file !== false) ? @file($resolved_file) : false;
 			if (!is_array($filename))
 			{
 				$write_back = 'UPDATE ' . $source_table . ' SET safety = 10 WHERE id = ' . $file_db_id;

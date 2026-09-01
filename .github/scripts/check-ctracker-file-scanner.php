@@ -17,8 +17,17 @@ function filescan_test_assert($condition, $message)
 class filescan_test_db
 {
 	var $queries = array();
+	var $rows = array();
 	function sql_escape($value) { return addslashes((string) $value); }
-	function sql_query($sql) { $this->queries[] = $sql; return true; }
+	function sql_query($sql)
+	{
+		$this->queries[] = $sql;
+		return (strpos($sql, 'SELECT id, filepath FROM') === 0) ? 'scan-result' : true;
+	}
+	function sql_fetchrow($result)
+	{
+		return ($result === 'scan-result' && $this->rows) ? array_shift($this->rows) : false;
+	}
 }
 
 $scan_root = sys_get_temp_dir() . '/ctracker-scan-test-' . getmypid();
@@ -45,7 +54,6 @@ filescan_test_assert(strpos($sql, 'cached.php') === false, 'cache files must be 
 if ($link_created)
 {
 	filescan_test_assert(strpos($sql, 'outside.php') === false, 'symbolic links must be excluded');
-	@unlink($link_path);
 }
 
 $source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
@@ -53,8 +61,30 @@ filescan_test_assert(strpos($source, 'CTracker_Ignore') === false && strpos(strt
 filescan_test_assert(strpos($source, 'RENAME TABLE') !== false, 'completed results must be swapped atomically');
 filescan_test_assert(strpos($source, 'SELECT MAX(id) AS total') === false, 'file indexing must not perform one MAX query per file');
 
+$db->queries = array();
+$db->rows = array(
+	array('id' => 1, 'filepath' => $scan_root . "/quote's.php"),
+	array('id' => 2, 'filepath' => $outside_file)
+);
+if ($link_created)
+{
+	$db->rows[] = array('id' => 3, 'filepath' => $link_path);
+}
+$admin->ScanFile('temporary_scanner_table');
+$scan_sql = implode("\n", $db->queries);
+filescan_test_assert(strpos($scan_sql, 'SET safety = 6 WHERE id = 1') !== false, 'an ordinary in-tree PHP file must be analyzed rather than left unchecked');
+filescan_test_assert(strpos($scan_sql, 'SET safety = 10 WHERE id = 2') !== false, 'a persisted path outside the forum tree must not be read');
+if ($link_created)
+{
+	filescan_test_assert(strpos($scan_sql, 'SET safety = 10 WHERE id = 3') !== false, 'a persisted symbolic link must not be read');
+}
+
 @unlink($scan_root . "/quote's.php");
 @unlink($cache_root . '/cached.php');
+if ($link_created)
+{
+	@unlink($link_path);
+}
 @rmdir($cache_root);
 @rmdir($scan_root);
 @unlink($outside_file);

@@ -88,6 +88,8 @@ if ( $module_number == 99 )
 	header('Content-Type: text/plain; charset=UTF-8');
     header('Content-Disposition: attachment; filename="logfile_debug_mode.txt"');
     header('Content-Length: ' . $size);
+	header('Cache-Control: no-store, private, max-age=0');
+	header('X-Content-Type-Options: nosniff');
     header("Pragma: no-cache");
     header("Expires: 0");
     readfile($log_filepath);
