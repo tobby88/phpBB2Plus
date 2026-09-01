@@ -69,6 +69,10 @@ foreach ($sources as $relative)
 
 $thumbnail = file_get_contents($root . '/phpBB2/album_thumbnail.php');
 image_processing_assert(strpos($thumbnail, '$pic_size === false') !== false, 'thumbnail regeneration must handle corrupt image metadata');
+image_processing_assert(strpos($thumbnail, 'if (!$thumbnail)') !== false, 'thumbnail regeneration must handle failed GD allocations');
+image_processing_assert(strpos($thumbnail, 'if (!@$resize_function(') !== false, 'thumbnail regeneration must handle failed GD copies');
+image_processing_assert(strpos($thumbnail, '$thumbnail_written = false;') !== false, 'thumbnail regeneration must handle failed cache writes');
+image_processing_assert(substr_count($thumbnail, '@imagedestroy($src)') >= 2, 'thumbnail regeneration must release source images on success and failure');
 
 $attachment_thumbnail = file_get_contents($root . '/phpBB2/attach_mod/includes/functions_thumbs.php');
 image_processing_assert(strpos($attachment_thumbnail, '$image_info === false') !== false, 'attachment thumbnails must handle corrupt image metadata');

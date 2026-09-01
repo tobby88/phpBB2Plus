@@ -226,20 +226,31 @@ else
 
 		if ($pic_width > $pic_height)
 		{
-			$thumbnail_width = $album_config['thumbnail_size'];
-			$thumbnail_height = $album_config['thumbnail_size'] * ($pic_height/$pic_width);
+			$thumbnail_width = max(1, intval($album_config['thumbnail_size']));
+			$thumbnail_height = max(1, (int) round($thumbnail_width * ($pic_height / $pic_width)));
 		}
 		else
 		{
-			$thumbnail_height = $album_config['thumbnail_size'];
-			$thumbnail_width = $album_config['thumbnail_size'] * ($pic_width/$pic_height);
+			$thumbnail_height = max(1, intval($album_config['thumbnail_size']));
+			$thumbnail_width = max(1, (int) round($thumbnail_height * ($pic_width / $pic_height)));
 		}
 
-		$thumbnail = ($album_config['gd_version'] == 1) ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
-
-		$resize_function = ($album_config['gd_version'] == 1) ? 'imagecopyresized' : 'imagecopyresampled';
-
-		@$resize_function($thumbnail, $src, 0, 0, 0, 0, $thumbnail_width, $thumbnail_height, $pic_width, $pic_height);
+		$use_gd1 = (intval($album_config['gd_version']) == 1 || !function_exists('imagecreatetruecolor'));
+		$thumbnail = $use_gd1 ? @imagecreate($thumbnail_width, $thumbnail_height) : @imagecreatetruecolor($thumbnail_width, $thumbnail_height);
+		if (!$thumbnail)
+		{
+			$gd_errored = TRUE;
+			$pic_thumbnail = '';
+		}
+		else
+		{
+			$resize_function = $use_gd1 ? 'imagecopyresized' : 'imagecopyresampled';
+			if (!@$resize_function($thumbnail, $src, 0, 0, 0, 0, $thumbnail_width, $thumbnail_height, $pic_width, $pic_height))
+			{
+				$gd_errored = TRUE;
+				$pic_thumbnail = '';
+			}
+		}
 	}
 	else
 	{
@@ -256,17 +267,27 @@ else
 
 			$pic_thumbnail = $pic_filename;
 
+			$thumbnail_written = false;
 			switch ($pic_filetype)
 			{
 				case '.jpg':
-					@imagejpeg($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail, $album_config['thumbnail_quality']);
+					$thumbnail_quality = max(0, min(100, intval($album_config['thumbnail_quality'])));
+					$thumbnail_written = @imagejpeg($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail, $thumbnail_quality);
 					break;
 				case '.png':
-					@imagepng($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail);
+					$thumbnail_written = @imagepng($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail);
 					break;
 			}
 
-			@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
+			if ($thumbnail_written)
+			{
+				@chmod(ALBUM_CACHE_PATH . $pic_thumbnail, 0664);
+			}
+			else
+			{
+				@unlink(ALBUM_CACHE_PATH . $pic_thumbnail);
+				$pic_thumbnail = '';
+			}
 		}
 
 
@@ -278,12 +299,20 @@ else
 		{
 			case '.jpg':
 				header('Content-type: image/jpeg');
-				@imagejpeg($thumbnail, null, $album_config['thumbnail_quality']);
+				@imagejpeg($thumbnail, null, max(0, min(100, intval($album_config['thumbnail_quality']))));
 				break;
 			case '.png':
 				header('Content-type: image/png');
 				@imagepng($thumbnail);
 				break;
+		}
+		if ($thumbnail !== $src && function_exists('imagedestroy'))
+		{
+			@imagedestroy($thumbnail);
+		}
+		if (function_exists('imagedestroy'))
+		{
+			@imagedestroy($src);
 		}
 
 		exit;
@@ -293,6 +322,15 @@ else
 		// ----------------------------
 		// It seems you have not GD installed :(
 		// ----------------------------
+
+		if (isset($thumbnail) && $thumbnail !== $src && function_exists('imagedestroy'))
+		{
+			@imagedestroy($thumbnail);
+		}
+		if ($src && function_exists('imagedestroy'))
+		{
+			@imagedestroy($src);
+		}
 
 		header('Content-type: image/jpeg');
 		readfile('images/nothumbnail.jpg');
