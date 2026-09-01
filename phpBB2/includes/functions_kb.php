@@ -49,7 +49,7 @@ function get_quick_stats()
    { 
 	$ii++;
 	$type_id = (int) $type['id'];
-      $type_name = phpbb_profile_text(stripslashes($type['type']));
+      $type_name = phpbb_stored_text(stripslashes($type['type']));
     
       $sql = "SELECT article_id FROM " . KB_ARTICLES_TABLE . " WHERE article_type = $type_id"; 
     
@@ -146,6 +146,32 @@ function get_kb_cat($id)
 	 return is_array($row) ? $row : array();
 }
 
+function kb_record_exists($table, $column, $id)
+{
+	global $db;
+	$id = (int) $id;
+	if ($id <= 0)
+	{
+		return false;
+	}
+
+	$sql = "SELECT $column FROM $table WHERE $column = $id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not validate Knowledge Base data', '', __LINE__, __FILE__, $sql);
+	}
+	$exists = (bool) $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	return $exists;
+}
+
+function kb_limit_text($value, $length)
+{
+	$value = trim((string) $value);
+	$length = max(1, (int) $length);
+	return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
+}
+
 //
 // get_kb_nav($cat_id)
 // gets parents for category
@@ -177,7 +203,7 @@ function get_kb_nav($parent, $visited = array())
 	 }
 	
 	 $category_id = (int) $row['category_id'];
-	 $category_name = phpbb_profile_text(stripslashes($row['category_name']));
+	 $category_name = phpbb_stored_text(stripslashes($row['category_name']));
 	 $temp_url = htmlspecialchars(append_sid(this_kb_mxurl('mode=cat&amp;cat=' . $category_id)), ENT_QUOTES, 'UTF-8');
 	 $path_kb_array[] = '-> <a href="' . $temp_url . '" class="nav">' . $category_name . '</a> ';
 	 
@@ -228,20 +254,16 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	$requested_sort_direction = isset($kb_news_sort_par) ? $kb_news_sort_par : '';
 	$kb_news_sort_par = (strtoupper((string) $requested_sort_direction) === 'ASC') ? 'ASC' : 'DESC';
 
-	$sql = "SELECT t.*, u.username, u.user_id, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_allowsmile
-			FROM " . KB_ARTICLES_TABLE  . " t, " . USERS_TABLE . " u".(($kb_news_sort_method_lj) ?  ",". TOPICS_TABLE  . " tt" : '')."
-			WHERE ";	
+	$sql = "SELECT t.*, u.username AS registered_username, u.user_id, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_allowsmile
+			FROM " . KB_ARTICLES_TABLE . " t
+			LEFT JOIN " . USERS_TABLE . " u ON u.user_id = t.article_author_id" .
+			(($kb_news_sort_method_lj) ? " LEFT JOIN " . TOPICS_TABLE . " tt ON tt.topic_id = t.topic_id" : '') . "
+			WHERE 1 = 1";
 
 	if ( $id )
 	{
-	    $sql .= " t.article_category_id = " . $id . " AND";
+	    $sql .= " AND t.article_category_id = " . $id;
 	}
-	
-	if($kb_news_sort_method_lj)
-	{
-		$sql .= " tt.topic_id = t.topic_id AND";
-	}
-	$sql .= " u.user_id = t.article_author_id";
 
 	if ( !$is_admin )
 	{
@@ -272,26 +294,26 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	while($article = $db->sql_fetchrow($article_result))
 	{	
 		$i++;
-		$article_description = phpbb_profile_text(stripslashes($article['article_description']));
+		$article_description = phpbb_stored_text(stripslashes($article['article_description']));
 		$article_cat = (int) $article['article_category_id'];
 		$article_approved = (int) $article['approved'];
 		
 	   //type
 	   $type_id = (int) $article['article_type'];
-	   $article_type = phpbb_profile_text(stripslashes(get_kb_type($type_id)));
+	   $article_type = phpbb_stored_text(stripslashes(get_kb_type($type_id)));
 		
 	   $article_date = create_date($board_config['default_dateformat'], $article['article_date'], $board_config['board_timezone']);
 		
 	   // author information
 	   $author_id = (int) $article['article_author_id'];
-	   if ( $author_id == 0 )
+	   if ($author_id <= 0 || empty($article['registered_username']))
 	   {
 	       $guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
 	       $author = ($guest_username !== '') ? htmlspecialchars(stripslashes($guest_username), ENT_QUOTES, 'UTF-8') : $lang['Guest'];
 	   }
 	   else
 	   {
-	       $author_name = phpbb_profile_text(stripslashes(get_kb_author($author_id)));
+	       $author_name = phpbb_profile_text(stripslashes($article['registered_username']));
 	   
 	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8');
 	       $author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';
@@ -302,7 +324,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   $article_rating = (float) $article['article_rating'];
 	   $article_totalvotes = (int) $article['article_totalvotes'];
 		
-	   $article_title = phpbb_profile_text(stripslashes($article['article_title']));
+	   $article_title = phpbb_stored_text(stripslashes($article['article_title']));
 	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
 	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
@@ -313,7 +335,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   if ( defined('IN_ADMIN') )
 	   {
 	       $category = get_kb_cat($article_cat);
-		   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
+		   $category_name = isset($category['category_name']) ? phpbb_stored_text(stripslashes($category['category_name'])) : '';
 
 		if ($article_approved == 2 || $article_approved == 0)
 		{
@@ -333,7 +355,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	   else if ( $is_admin )
 	   {
 	       $category = get_kb_cat($article_cat);
-		   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
+		   $category_name = isset($category['category_name']) ? phpbb_stored_text(stripslashes($category['category_name'])) : '';
 
 		   if ( $article_approved == 2 || $article_approved == 0)
 		   {
@@ -555,11 +577,11 @@ function get_kb_cat_index($parent = 0)
 	 
 	 while ( $category = $db->sql_fetchrow($result) )
 	 {		
-		$category_details = phpbb_profile_text(stripslashes($category['category_details']));
+		$category_details = phpbb_stored_text(stripslashes($category['category_details']));
 		$category_articles = (int) $category['number_articles'];
 		
 		$category_id = (int) $category['category_id'];
-		$category_name = phpbb_profile_text(stripslashes($category['category_name']));
+		$category_name = phpbb_stored_text(stripslashes($category['category_name']));
 		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
 	   	$category = '<a href="' . $temp_url . '" class="forumlink">' . $category_name . '</a>';
 		
@@ -604,11 +626,11 @@ function get_kb_cat_subs($parent)
 	 }
 	 while ( $category = $db->sql_fetchrow($result) )
 	 {		
-		$category_details = phpbb_profile_text(stripslashes($category['category_details']));
+		$category_details = phpbb_stored_text(stripslashes($category['category_details']));
 		$category_articles = (int) $category['number_articles'];
 		
 		$category_id = (int) $category['category_id'];
-		$category_name = phpbb_profile_text(stripslashes($category['category_name']));
+		$category_name = phpbb_stored_text(stripslashes($category['category_name']));
 		$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
 	   	$category = '<a href="' . $temp_url . '" class="forumlink">' . $category_name . '</a>';
 		
@@ -640,7 +662,7 @@ function get_kb_cat_list($sel_id)
 	$categoryy = '';
 	 while ( $category = $db->sql_fetchrow($cat_result) )
 	 {	
-		 $category_name = phpbb_profile_text(stripslashes($category['category_name']));
+		 $category_name = phpbb_stored_text(stripslashes($category['category_name']));
 		 $category_id = (int) $category['category_id'];
 		   
 		 if ( $sel_id == $category_id )
@@ -683,7 +705,7 @@ function get_kb_type_list($sel_id)
 	$sel_id = (int) $sel_id;
 	while ( $type = $db->sql_fetchrow($type_result) )
 	{	
-		$type_name = phpbb_profile_text(stripslashes($type['type']));
+		$type_name = phpbb_stored_text(stripslashes($type['type']));
 		$type_id = (int) $type['id'];
 		   
 		if ( $sel_id == $type_id )
@@ -728,6 +750,23 @@ function insert_post(
     $smilies_on = 1 )
 {
     global $db, $board_config, $user_ip;
+	$forum_id = (int) $forum_id;
+	$user_id = (int) $user_id;
+	$user_attach_sig = $user_attach_sig ? 1 : 0;
+	$topic_id = is_null($topic_id) ? null : (int) $topic_id;
+	if (!is_null($topic_id) && $topic_id <= 0)
+	{
+		$topic_id = null;
+	}
+	$topic_type = (int) $topic_type;
+	$html_on = $html_on ? 1 : 0;
+	$bbcode_on = $bbcode_on ? 1 : 0;
+	$smilies_on = $smilies_on ? 1 : 0;
+	$bump_post = $bump_post ? 1 : 0;
+	if ($forum_id <= 0)
+	{
+		message_die(GENERAL_ERROR, 'Invalid Knowledge Base discussion target');
+	}
 
     // initialise some variables
     $topic_vote = 0; 
@@ -735,6 +774,8 @@ function insert_post(
     $poll_options = '';
     $poll_length = '';
     
+	$mode = is_null($topic_id) ? 'newtopic' : 'reply';
+	$post_id = 0;
 	if ( $bump_post == 0)
 	{
 		$mode = 'update_only';
@@ -742,19 +783,25 @@ function insert_post(
 
     $bbcode_uid = ($bbcode_on) ? make_bbcode_uid() : ''; 
     $error_die_function = ($error_die_function == '') ? "message_die" : $error_die_function;
-    $current_time = ($current_time == 0) ? time() : $current_time;
+	$current_time = ($current_time == 0) ? time() : max(0, (int) $current_time);
     
     // parse the message and the subject 
-    $message_update_text = str_replace("\'", "''", prepare_message(trim($message_update_text . $message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid)); 
-    $message = str_replace("\'", "''", prepare_message(trim($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid)); 
-    $subject = str_replace("\'", "''", trim($subject)); 
-    $username = str_replace("\'", "''", trim(strip_tags($user_name))); 
+	$prepared_update_text = prepare_message(addslashes(trim($message_update_text . $message)), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+	$prepared_message = prepare_message(addslashes(trim($message)), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+	$message_update_text = stripslashes($prepared_update_text);
+	$message = stripslashes($prepared_message);
+	$subject = phpbb_stored_text(kb_limit_text($subject, 255));
+	$username = kb_limit_text(strip_tags($user_name), 255);
+	$message_update_text_sql = $db->sql_escape($message_update_text);
+	$message_sql = $db->sql_escape($message);
+	$subject_sql = $db->sql_escape($subject);
+	$username_sql = $db->sql_escape($username);
+	$user_ip_sql = $db->sql_escape((string) $user_ip);
     
     // if this is a new topic then insert the topic details
     if ( is_null($topic_id) )
     {
-        $mode = 'newtopic'; 
-        $sql = "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_poster, topic_time, forum_id, topic_status, topic_type, topic_vote) VALUES ('$subject', " . $user_id . ", $current_time, $forum_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_vote)";
+		$sql = "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_poster, topic_time, forum_id, topic_status, topic_type, topic_vote) VALUES ('$subject_sql', " . $user_id . ", $current_time, $forum_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_vote)";
         if ( !$db->sql_query($sql, BEGIN_TRANSACTION) )
         {
             $error_die_function(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -765,7 +812,7 @@ function insert_post(
     // insert the post details using the topic id
 	if ( $mode != 'update_only' )
     {	
-    	$sql = "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig) VALUES ($topic_id, $forum_id, " . $user_id . ", '$username', $current_time, '$user_ip', $bbcode_on, $html_on, $smilies_on, $user_attach_sig)";
+		$sql = "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig) VALUES ($topic_id, $forum_id, " . $user_id . ", '$username_sql', $current_time, '$user_ip_sql', $bbcode_on, $html_on, $smilies_on, $user_attach_sig)";
     	if ( !$db->sql_query($sql, BEGIN_TRANSACTION) )
     	{
        	 $error_die_function(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -774,7 +821,7 @@ function insert_post(
     
 
     	// insert the actual post text for our new post
-    	$sql = "INSERT INTO " . POSTS_TEXT_TABLE . " (post_id, post_subject, bbcode_uid, post_text) VALUES ($post_id, '$subject', '$bbcode_uid', '$message_update_text')";
+		$sql = "INSERT INTO " . POSTS_TEXT_TABLE . " (post_id, post_subject, bbcode_uid, post_text) VALUES ($post_id, '$subject_sql', '" . $db->sql_escape($bbcode_uid) . "', '$message_update_text_sql')";
    	 	if ( !$db->sql_query($sql, BEGIN_TRANSACTION) )
    		 {
    		     $error_die_function(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
@@ -838,27 +885,34 @@ function insert_post(
 	
 	// Update original post
 	// Added by Haplo
-	   $sql = "SELECT topic_first_post_id  
+	   $sql = "SELECT topic_first_post_id
        		FROM " . TOPICS_TABLE . " 
-      		WHERE topic_id = '$topic_id'";
+			WHERE topic_id = $topic_id";
 	 
 	  if ( !($result = $db->sql_query($sql)) )
 	  {
 		  message_die(GENERAL_ERROR, "Could not obtain orig_post_id data", '', __LINE__, __FILE__, $sql);
 	  }
 	  	$row = $db->sql_fetchrow($result);
-		
-		$orig_post_id = $row[0];
+		if (!is_array($row))
+		{
+			message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base discussion topic');
+		}
+		$orig_post_id = (int) $row['topic_first_post_id'];
+		if ($post_id <= 0)
+		{
+			$post_id = $orig_post_id;
+		}
 		
 	    $sql = "UPDATE " . POSTS_TEXT_TABLE . " SET 
-                post_subject = '$subject', 
-				bbcode_uid = '$bbcode_uid', 
-				post_text = '$message' 
-				WHERE post_id = '$orig_post_id'";
+				post_subject = '$subject_sql',
+				bbcode_uid = '" . $db->sql_escape($bbcode_uid) . "',
+				post_text = '$message_sql'
+				WHERE post_id = $orig_post_id";
 
 	if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
     {
-        $message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
+		$error_die_function(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
     }
    
     // if all is well then return the id of our new post
@@ -1295,13 +1349,13 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	while($article = $db->sql_fetchrow($article_result))
 	{	
 		$i++;
-		$article_description = phpbb_profile_text(stripslashes($article['article_description']));
+		$article_description = phpbb_stored_text(stripslashes($article['article_description']));
 		$article_cat = (int) $article['article_category_id'];
 		$article_approved = (int) $article['approved'];
 		
 	   //type
 	   $type_id = (int) $article['article_type'];
-	   $article_type = phpbb_profile_text(stripslashes(get_kb_type($type_id)));
+	   $article_type = phpbb_stored_text(stripslashes(get_kb_type($type_id)));
 		
 	   $article_date = create_date($board_config['default_dateformat'], $article['article_date'], $board_config['board_timezone']);
 		
@@ -1325,7 +1379,7 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	   $article_rating = (float) $article['article_rating'];
 	   $article_totalvotes = (int) $article['article_totalvotes'];
 		
-	   $article_title = phpbb_profile_text(stripslashes($article['article_title']));
+	   $article_title = phpbb_stored_text(stripslashes($article['article_title']));
 	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
 	   $article_link = '<a href="' . $temp_url . '" class="gen">' . $article_title . '</a>';
 	   
@@ -1335,14 +1389,14 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 
        $category = get_kb_cat($article_cat);
 	   $category_id = isset($category['category_id']) ? (int) $category['category_id'] : 0;
-	   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
+	   $category_name = isset($category['category_name']) ? phpbb_stored_text(stripslashes($category['category_name'])) : '';
 	   $category_temp = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
 	   $category_url = '<a href="' . $category_temp . '" class="genmed">' . $category_name . '</a>';
 	   
 	   if ( defined('IN_ADMIN') || $userdata['user_level'] == ADMIN )
 	   {
 	       $category = get_kb_cat($article_cat);
-		   $category_name = isset($category['category_name']) ? phpbb_profile_text(stripslashes($category['category_name'])) : '';
+		   $category_name = isset($category['category_name']) ? phpbb_stored_text(stripslashes($category['category_name'])) : '';
 
 		   if ( $article_approved == 2 || $article_approved == 0)
 		   {

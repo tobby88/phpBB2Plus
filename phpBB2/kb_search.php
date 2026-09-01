@@ -266,11 +266,11 @@ switch($mode)
 		$replacement_word = array();
 		if ($search_results !== '')
 		{
-			$sql = "SELECT t.*, u.username, u.user_id
-				FROM " . KB_ARTICLES_TABLE . " t, " . USERS_TABLE . " u
+			$sql = "SELECT t.*, u.username AS registered_username, u.user_id
+				FROM " . KB_ARTICLES_TABLE . " t
+				LEFT JOIN " . USERS_TABLE . " u ON u.user_id = t.article_author_id
 				WHERE t.article_id IN ($search_results)
 					AND t.approved = 1
-					AND t.article_author_id = u.user_id
 				ORDER BY t.article_title $sort_dir
 				LIMIT $start, $per_page";
 			if (!($result = $db->sql_query($sql)))
@@ -333,21 +333,30 @@ switch($mode)
 			{
 				$article_title = preg_replace($orig_word, $replacement_word, $article_title);
 			}
-			$article_title = phpbb_profile_text(stripslashes($article_title));
+			$article_title = phpbb_stored_text(stripslashes($article_title));
 			$category_id = intval($article['article_category_id']);
 			$kb_cat = get_kb_cat($category_id);
 			$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
-			$category_name = isset($kb_cat['category_name']) ? phpbb_profile_text(stripslashes($kb_cat['category_name'])) : '';
+			$category_name = isset($kb_cat['category_name']) ? phpbb_stored_text(stripslashes($kb_cat['category_name'])) : '';
 			$category = '<a href="' . $temp_url . '" class="name">' . $category_name . '</a>';
-			$type = phpbb_profile_text(stripslashes(get_kb_type((int) $article['article_type'])));
-			$author_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . intval($article['user_id'])), ENT_QUOTES, 'UTF-8');
-			$article_author = '<a href="' . $author_url . '" class="name">' . phpbb_profile_text(stripslashes($article['username'])) . '</a>';
+			$type = phpbb_stored_text(stripslashes(get_kb_type((int) $article['article_type'])));
+			$author_id = (int) $article['article_author_id'];
+			if ($author_id > 0 && !empty($article['registered_username']))
+			{
+				$author_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $author_id), ENT_QUOTES, 'UTF-8');
+				$article_author = '<a href="' . $author_url . '" class="name">' . phpbb_profile_text(stripslashes($article['registered_username'])) . '</a>';
+			}
+			else
+			{
+				$guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
+				$article_author = ($guest_username !== '') ? phpbb_profile_text(stripslashes($guest_username)) : $lang['Guest'];
+			}
 
 			$template->assign_block_vars('searchresults', array(
 				'ARTICLE_ID' => $article_id,
 				'ARTICLE_AUTHOR' => $article_author,
 				'ARTICLE_TITLE' => $article_title,
-				'ARTICLE_DESCRIPTION' => phpbb_profile_text(stripslashes($article['article_description'])),
+				'ARTICLE_DESCRIPTION' => phpbb_stored_text(stripslashes($article['article_description'])),
 				'ARTICLE_CATEGORY' => $category,
 				'ARTICLE_TYPE' => $type,
 				'U_VIEW_ARTICLE' => $article_url

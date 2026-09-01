@@ -51,7 +51,7 @@ if ( !defined('IN_PHPBB') )
 	   $article_category_name = isset($category['category_name']) && is_scalar($category['category_name']) ? (string) $category['category_name'] : '';
 
 	   $temp_url = append_sid(this_kb_mxurl("mode=cat&amp;cat=$article_category_id"));
-	   $category = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_profile_text($article_category_name) . '</a>';
+	   $category = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_stored_text($article_category_name) . '</a>';
 	
 	   $date = create_date($board_config['default_dateformat'], $row['article_date'], $board_config['board_timezone']);
 	
@@ -75,11 +75,11 @@ if ( !defined('IN_PHPBB') )
 	   $page_num = min($page_num, max(0, count($art_pages) - 1));
 	   $article = trim($art_pages[$page_num]);
 	   $article = str_replace('[toc]', '', $article);
-	   $kb_art_description  = phpbb_profile_text(stripslashes($row['article_description']));
+	   $kb_art_description  = phpbb_stored_text(stripslashes($row['article_description']));
 	   
 	   $type_id = (int) $row['article_type'];
 	   $type_plain = get_kb_type($type_id);
-	   $type = phpbb_profile_text($type_plain);
+	   $type = phpbb_stored_text($type_plain);
 	   $topic_id = (int) $row['topic_id'];
 	   
 	   $new_views = $row['views'] + 1;
@@ -206,7 +206,7 @@ if ( !defined('IN_PHPBB') )
 		$article = phpbb_preg_replace_outside_tags($article, '#\\b(' . $highlight_match . ')\\b#i', '<span style="color:#' . $theme['fontcolor3'] . '"><b>\\1</b></span>');
 	}
 	
-	$article_title = phpbb_profile_text($article_title);
+	$article_title = phpbb_stored_text($article_title);
 	$page_title = $article_title;
 	    if ( !$is_block && !$print_version )
 		 {
@@ -292,9 +292,6 @@ if ( !defined('IN_PHPBB') )
 		  	$message .= "[b][url=" . $temp_url . "]" . $lang['Read_full_article'] . "[/url][/b]";
 
 		  	$subject = '[ KB ] ' . $row['article_title'];
-
-		  	$subject = str_replace("'", "\'" , $subject);
-		  	$message = str_replace("'", "\'" , $message);
 
 		  	$forum_id = $kb_config['forum_id'];
 	

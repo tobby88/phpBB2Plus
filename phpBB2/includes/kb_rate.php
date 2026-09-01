@@ -38,7 +38,7 @@ else
 $rate = (isset($_POST['rate']) && is_scalar($_POST['rate'])) ? (string) $_POST['rate'] : '';
 $rating = (isset($_POST['rating']) && is_scalar($_POST['rating'])) ? intval($_POST['rating']) : 0;
 
-$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
+$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, min(1000000, intval($_GET['start']))) : 0;
 //
 // End initial var setup
 //
@@ -72,7 +72,13 @@ if (empty($article['approved']) && !$can_rate_unapproved)
 	message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
 }
 
-$sql = "SELECT * FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = '" . $article['article_category_id'] . "'";
+if (empty($kb_config['allow_rating']) || (!$userdata['session_logged_in'] && empty($kb_config['allow_anonymos_rating'])))
+{
+	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+}
+
+$category_id = (int) $article['article_category_id'];
+$sql = "SELECT * FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = " . $category_id;
 if ( !($result = $db->sql_query($sql)) )
 {
 	message_die(GENERAL_ERROR, 'Couldnt Query category info for this article', '', __LINE__, __FILE__, $sql);
@@ -92,7 +98,7 @@ if ($rate == 'dorate')
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
 
-	$conf = str_replace("{filename}", $article['article_title'], $lang['Rconf']);
+	$conf = str_replace("{filename}", phpbb_stored_text($article['article_title']), $lang['Rconf']);
 	$conf = str_replace("{rate}", $rating, $conf);
 
 	if ($article['article_totalvotes'] == 1)
@@ -157,7 +163,7 @@ if ($rate == 'dorate')
 	$conf = str_replace("{newrating}", $nrating, $conf);
 
 	$template->assign_vars(array(
-		"META" => '<meta http-equiv="refresh" content="3;url='  .append_sid($phpbb_root_path . "kb.$phpEx?action=url&amp;k=" . $article_id) . '">')
+		"META" => '<meta http-equiv="refresh" content="3;url=' . htmlspecialchars(append_sid($phpbb_root_path . "kb.$phpEx?action=url&amp;k=" . $article_id), ENT_QUOTES, 'UTF-8') . '">')
 	);
 	$message = $conf . "<br /><br />" . sprintf($lang['Click_return_rate'], "<a href=\"" . append_sid($phpbb_root_path . "kb.$phpEx?mode=article&amp;k=$article_id") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_forum'], "<a href=\"" . append_sid("kb.$phpEx?action=cat&amp;cat=$category_id") . "\">", "</a>");
 	message_die(GENERAL_MESSAGE, $message);  
@@ -165,7 +171,7 @@ if ($rate == 'dorate')
 }
 else
 {
-	$rateinfo = str_replace("{filename}", $article['article_title'], $lang['Rateinfo']);
+	$rateinfo = str_replace("{filename}", phpbb_stored_text($article['article_title']), $lang['Rateinfo']);
 
 	$template->assign_block_vars("rate", array());
 

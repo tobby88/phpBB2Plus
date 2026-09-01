@@ -177,8 +177,8 @@ if ( !defined('IN_PHPBB') )
 	if ( $kb_config['show_pretext'] ) 
 	{
 		// Pull Header/Body info.		
-       	$pt_header = $kb_config['pt_header'];		
-		$pt_body = $kb_config['pt_body'];		
+		$pt_header = phpbb_stored_text($kb_config['pt_header']);
+		$pt_body = phpbb_stored_text($kb_config['pt_body']);
 		$template->set_filenames(array('pretext' => 'kb_add_pretext.tpl'));
 		$template->assign_vars(array(
 			'PRETEXT_HEADER' => $pt_header,
@@ -221,10 +221,10 @@ if ( !defined('IN_PHPBB') )
 		);
 
 		$template->assign_vars(array(
-			'ARTICLE_TITLE' => htmlspecialchars($preview_title),
-			'ARTICLE_DESC' => htmlspecialchars($preview_desc),
-			'ARTICLE_BODY' => htmlspecialchars($message),
-			'USERNAME' => htmlspecialchars($preview_username),
+			'ARTICLE_TITLE' => phpbb_profile_text($preview_title),
+			'ARTICLE_DESC' => phpbb_profile_text($preview_desc),
+			'ARTICLE_BODY' => phpbb_profile_text($message),
+			'USERNAME' => phpbb_profile_text($preview_username),
 			
 			'PREVIEW_MESSAGE' => $preview_message)
 		);
@@ -247,22 +247,22 @@ if ($article_submit)
 	//load header
 	include ($phpbb_root_path ."includes/kb_header.".$phpEx);
 	   
-	$posted_name = (isset($_POST['article_name']) && is_scalar($_POST['article_name'])) ? trim((string) $_POST['article_name']) : '';
-	$posted_desc = (isset($_POST['article_desc']) && is_scalar($_POST['article_desc'])) ? trim((string) $_POST['article_desc']) : '';
+	$posted_name = (isset($_POST['article_name']) && is_scalar($_POST['article_name'])) ? kb_limit_text($_POST['article_name'], 255) : '';
+	$posted_desc = (isset($_POST['article_desc']) && is_scalar($_POST['article_desc'])) ? kb_limit_text($_POST['article_desc'], 255) : '';
 	$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
 	$type = (isset($_POST['type_id']) && is_scalar($_POST['type_id'])) ? intval($_POST['type_id']) : 0;
-	$posted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? trim((string) $_POST['username']) : '';
-	if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || $category_id <= 0 || $type <= 0)
+	$posted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? kb_limit_text($_POST['username'], 255) : '';
+	if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || !kb_record_exists(KB_CATEGORIES_TABLE, 'category_id', $category_id) || !kb_record_exists(KB_TYPES_TABLE, 'id', $type))
 	{
 	  	echo "<br /><br /><center>Please fill out all parts of the form.  <a href=".this_kb_mxurl('mode=add').">Click Here</a> to go back to the form.</center>";
 		exit;
 	}
 
 	$article_text = $posted_message;
-	$title = htmlspecialchars($posted_name);
-	$description = htmlspecialchars($posted_desc);
+	$title = $posted_name;
+	$description = $posted_desc;
 	$date = time();
-	$author_id = $userdata['user_id'];	   
+	$author_id = $userdata['session_logged_in'] ? (int) $userdata['user_id'] : 0;
 	$username = $userdata['session_logged_in'] ? $userdata['username'] : $posted_username;
    	$category = $category_id;
 	   
@@ -351,9 +351,6 @@ if ($article_submit)
 	
 		  $subject = '[ KB ] ' . $row['article_title'];
 
-		  $subject = str_replace("'", "\'" , $subject);
-		  $message = str_replace("'", "\'" , $message);
-		  
 		  $forum_id = $kb_config['forum_id'];
 	
 		  $topic_data = insert_post($message, $subject, $forum_id, $user['user_id'], $user['username'], $user['user_attachsig']);

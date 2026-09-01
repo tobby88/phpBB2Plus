@@ -154,9 +154,9 @@ if ( !defined('IN_PHPBB') )
 		  'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid($phpbb_root_path . "faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
 		  'SMILIES_STATUS' => $smilies_status,
 		  
-		  'ARTICLE_TITLE' => htmlspecialchars(unprepare_message($article_name)),
-		  'ARTICLE_DESC' => htmlspecialchars(unprepare_message($article_desc)),
-		  'ARTICLE_BODY' => htmlspecialchars(unprepare_message($article_body)),
+		  'ARTICLE_TITLE' => phpbb_stored_text(unprepare_message($article_name)),
+		  'ARTICLE_DESC' => phpbb_stored_text(unprepare_message($article_desc)),
+		  'ARTICLE_BODY' => phpbb_profile_text(unprepare_message($article_body)),
 		  'TOPIC' => $topic,
 		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="k" value="' . $article_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		
@@ -233,8 +233,8 @@ if ( !defined('IN_PHPBB') )
 		$replacement_word = array();
 		obtain_word_list($orig_word, $replacement_word);
 
-		$message_name = htmlspecialchars(stripslashes(phpbb_request_scalar($_POST, 'article_name')));
-		$message_desc = htmlspecialchars(stripslashes(phpbb_request_scalar($_POST, 'article_desc')));
+		$message_name = phpbb_profile_text(stripslashes(phpbb_request_scalar($_POST, 'article_name')));
+		$message_desc = phpbb_profile_text(stripslashes(phpbb_request_scalar($_POST, 'article_desc')));
 
 		$message = stripslashes(phpbb_request_scalar($_POST, 'message'));
 		
@@ -265,7 +265,7 @@ if ( !defined('IN_PHPBB') )
 		$template->assign_vars(array(
 			'ARTICLE_TITLE' => $message_name,
 			'ARTICLE_DESC' => $message_desc,
-			'ARTICLE_BODY' => htmlspecialchars($message),
+			'ARTICLE_BODY' => phpbb_profile_text($message),
 			
 			'PREVIEW_MESSAGE' => $preview_message)
 		);
@@ -287,21 +287,21 @@ if ( !defined('IN_PHPBB') )
 	   	//load header
 	   	include ($phpbb_root_path ."includes/kb_header.".$phpEx);
 	   
-		$posted_name = (isset($_POST['article_name']) && is_scalar($_POST['article_name'])) ? trim((string) $_POST['article_name']) : '';
-		$posted_desc = (isset($_POST['article_desc']) && is_scalar($_POST['article_desc'])) ? trim((string) $_POST['article_desc']) : '';
+		$posted_name = (isset($_POST['article_name']) && is_scalar($_POST['article_name'])) ? kb_limit_text($_POST['article_name'], 255) : '';
+		$posted_desc = (isset($_POST['article_desc']) && is_scalar($_POST['article_desc'])) ? kb_limit_text($_POST['article_desc'], 255) : '';
 		$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
 		$category = (isset($_POST['category_id']) && is_scalar($_POST['category_id'])) ? intval($_POST['category_id']) : 0;
 		$type_id = (isset($_POST['type_id']) && is_scalar($_POST['type_id'])) ? intval($_POST['type_id']) : 0;
 		$topic = (isset($_POST['topic']) && is_scalar($_POST['topic'])) ? intval($_POST['topic']) : 0;
-		if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || $category <= 0 || $type_id <= 0)
+		if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || !kb_record_exists(KB_CATEGORIES_TABLE, 'category_id', $category) || !kb_record_exists(KB_TYPES_TABLE, 'id', $type_id))
 	   	{
 	   		$message = "Please fill out all parts of the form.<br /><br />Click <a href=" . this_kb_mxurl('mode=add').">Here</a> to return to the form";
     		message_die(GENERAL_MESSAGE, $message);
 	   	}
    		
 		$article_text = $posted_message;
-		$title = htmlspecialchars($posted_name);
-		$description = htmlspecialchars($posted_desc);
+		$title = $posted_name;
+		$description = $posted_desc;
 		$date = time();
 		$author_id = intval($permission_row['article_author_id']);
 		$bbcode_uid = (string) $permission_row['bbcode_uid'];
@@ -423,12 +423,7 @@ if ( !defined('IN_PHPBB') )
 		  
   		  	$message_update_text = "[ [i]" . $lang['Edited_Article_info']. $user['username'] . "[/i] ]" . "\n\n";
 
-		  	$message_update_text = addslashes($message_update_text);
-	
 		  	$subject = '[ KB ] ' . $row['article_title'];
-
-		  	$subject = str_replace("'", "\'" , $subject);
-		  	$message = str_replace("'", "\'" , $message);
 
 		  	$forum_id = $kb_config['forum_id'];
 	

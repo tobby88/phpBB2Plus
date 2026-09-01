@@ -151,9 +151,6 @@ switch( $mode )
 
 		  	$subject = '[ KB ] ' . $row['article_title'];
 
-		  	$subject = str_replace("'", "\'" , $subject);
-		  	$message = str_replace("'", "\'" , $message);
-
 			$forum_id = $kb_config['forum_id'];
 	
 			$topic_data = insert_post($message, $subject, $forum_id, $user['user_id'], $user['username'], $user['user_attachsig']);
