@@ -310,6 +310,12 @@ jobs:
       - name: Test removed PHP runtime compatibility
         run: php .github/scripts/check-removed-runtime-safety.php
 
+      - name: Test PHP 8 bareword compatibility
+        run: php .github/scripts/check-php8-bareword-safety.php
+
+      - name: Test dynamic property declarations
+        run: php .github/scripts/check-dynamic-property-safety.php
+
       - name: Test AJAX endpoint safety
         run: php .github/scripts/check-ajax-endpoint-safety.php
 
@@ -321,3 +327,21 @@ jobs:
 
       - name: Test new-window link safety
         run: php .github/scripts/check-new-window-link-safety.php
+
+      - name: Test AdminCP core action safety
+        run: php .github/scripts/check-admin-core-action-safety.php
+
+      - name: Test AdminCP IP privacy
+        run: php .github/scripts/check-admin-ip-privacy.php
+
+      - name: Test Nuffload CGI safety
+        run: php .github/scripts/check-nuffload-cgi-safety.php
+
+      - name: Test pagination boundaries
+        run: php .github/scripts/check-pagination-boundaries.php
+
+      - name: Test retired Google counter removal
+        run: php .github/scripts/check-retired-google-counter.php
+
+      - name: Verify complete CI test inventory
+        run: php .github/scripts/check-ci-test-inventory.php
