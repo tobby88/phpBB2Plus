@@ -26,10 +26,20 @@ limiter_assert_profile('account', 'dload.php', array('action' => 'email', 'submi
 limiter_assert_profile('write', 'profile.php', array('submit' => '1'), array('mode' => 'editprofile'), $errors);
 limiter_assert_profile('upload', 'album_upload.php', array(), array(), $errors);
 limiter_assert_profile('upload', 'album_nuffload.php', array(), array(), $errors);
-limiter_assert_profile('write', 'posting.php', array(), array(), $errors);
-limiter_assert_profile('write', 'ibproarcade.php', array(), array(), $errors);
+limiter_assert_profile('content', 'posting.php', array(), array(), $errors);
+limiter_assert_profile('content', 'privmsg.php', array(), array(), $errors);
+limiter_assert_profile('content', 'ibproarcade.php', array(), array(), $errors);
+limiter_assert_profile('content', 'ajax.php', array('mode' => 'edit_post_text'), array(), $errors);
+limiter_assert_profile('write', 'ajax.php', array('mode' => 'post_preview'), array(), $errors);
+limiter_assert_profile('upload', 'dload.php', array('action' => 'user_upload'), array(), $errors);
+limiter_assert_profile('content', 'dload.php', array('action' => 'post_comment'), array(), $errors);
 limiter_assert_profile('write', 'future_plugin.php', array('submit' => '1'), array(), $errors);
 limiter_assert_profile('write', 'search.php', array('search_keywords' => 'example'), array(), $errors);
+$content_profile = ctracker_request_limit_profile('posting.php', array('message' => 'example'), array());
+if ($content_profile !== array('content', 300, 'request_limit_content', 60))
+{
+	$errors[] = 'Content actions must use the dedicated five-minute configurable profile.';
+}
 
 class limiter_test_db
 {
@@ -80,6 +90,11 @@ $settings_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctrack
 $settings_template = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/templates/fisubsilversh/ctracker/acp/acp_settings.tpl');
 $basic_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/install/schemas/mysql_basic.sql');
 $updater_source = file_get_contents(dirname(dirname(__DIR__)) . '/update/update_from_153a.php');
+if (strpos($basic_source, "('request_limit_content', '60')") === false ||
+	strpos($updater_source, 'foreach ($seed_statements as $seed_sql)') === false)
+{
+	$errors[] = 'The dedicated content limit is missing from the fresh-install or 1.53a migration path.';
+}
 if (strpos($userfunctions_source, "change_configuration('reg_last_reg'") !== false ||
 	strpos($userfunctions_source, "change_configuration('reg_lastip'") !== false ||
 	strpos($settings_source, "'reg_ip_scan' =>") !== false ||

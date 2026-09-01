@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Added a separately configurable five-minute CrackerTracker limit for posts,
+  private messages, shoutbox entries, comments, ratings and Arcade scores,
+  distinct from the broad per-minute write and hourly upload limits.
 - Denied direct HTTP execution of PHP implementation files below the internal
   include, database-driver, Attachment, Album, paFileDB, CrackerTracker and
   statistics-module trees while retaining access to their static assets.

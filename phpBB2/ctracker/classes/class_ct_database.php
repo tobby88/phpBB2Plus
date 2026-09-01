@@ -139,7 +139,8 @@ class ct_database
 			'request_limit_register' => '10',
 			'request_limit_account' => '20',
 			'request_limit_write' => '120',
-			'request_limit_upload' => '30'
+			'request_limit_upload' => '30',
+			'request_limit_content' => '60'
 		);
 	}
 

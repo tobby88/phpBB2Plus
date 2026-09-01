@@ -127,6 +127,8 @@ $lang['ctracker_settings_m41']             = 'Album-Uploads pro Stunde';
 $lang['ctracker_settings_e41']             = 'Begrenzt aufwändige Album-Uploads unabhängig von normalen Schreibaktionen.';
 $lang['ctracker_settings_m42']             = 'Konto- und E-Mail-Aktionen pro Stunde';
 $lang['ctracker_settings_e42']             = 'Begrenzt Passwort-Resets, Kontakt- und Benutzer-E-Mails separat, damit ein Angreifer keine Nachrichtenwellen auslösen kann.';
+$lang['ctracker_settings_m43']             = 'Inhaltsaktionen pro 5 Minuten';
+$lang['ctracker_settings_e43']             = 'Begrenzt Beiträge, private Nachrichten, Shoutbox-Einträge, Kommentare, Bewertungen und Spielstände getrennt von technischen Schreibzugriffen.';
 
 
 $lang['ctracker_settings_on']			  = 'Aktivieren';

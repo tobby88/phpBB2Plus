@@ -49,6 +49,34 @@ function ctracker_request_limit_profile($script, $post, $get)
 		{
 			return array('account', 3600, 'request_limit_account', 20);
 		}
+		if ($action === 'user_upload')
+		{
+			return array('upload', 3600, 'request_limit_upload', 30);
+		}
+		if (in_array($action, array('post_comment', 'rate'), true))
+		{
+			return array('content', 300, 'request_limit_content', 60);
+		}
+	}
+	if ($script === 'ajax.php')
+	{
+		$mode_value = isset($post['mode']) ? $post['mode'] : (isset($get['mode']) ? $get['mode'] : '');
+		$mode = is_scalar($mode_value) ? strtolower((string) $mode_value) : '';
+		if (in_array($mode, array('edit_post_subject', 'edit_post_text', 'vote_poll', 'watch_topic', 'lock_topic', 'mark_topic', 'mark_forum'), true))
+		{
+			return array('content', 300, 'request_limit_content', 60);
+		}
+	}
+	$content_scripts = array(
+		'posting.php', 'privmsg.php', 'shoutbox.php', 'shoutbox_max.php',
+		'arcade.php', 'ibproarcade.php', 'newscore.php', 'arcade_comment.php',
+		'arcade_rate.php', 'arcade_tournament.php', 'album_showpage.php',
+		'album_comment_edit.php', 'album_comment_delete.php', 'album_edit.php',
+		'album_delete.php', 'album_hotornot.php', 'link_register.php'
+	);
+	if (in_array($script, $content_scripts, true))
+	{
+		return array('content', 300, 'request_limit_content', 60);
 	}
 
 	// Every remaining POST is bounded by a deliberately generous fallback.

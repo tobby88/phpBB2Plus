@@ -129,6 +129,8 @@ $lang['ctracker_settings_m41']             = 'Album uploads per hour';
 $lang['ctracker_settings_e41']             = 'Limits expensive album upload submissions independently from normal write actions.';
 $lang['ctracker_settings_m42']             = 'Account and email actions per hour';
 $lang['ctracker_settings_e42']             = 'Separately limits password resets, contact forms and user email so an attacker cannot trigger message floods.';
+$lang['ctracker_settings_m43']             = 'Content actions per 5 minutes';
+$lang['ctracker_settings_e43']             = 'Separately limits posts, private messages, shoutbox entries, comments, ratings and game scores without consuming the technical write limit.';
 
 
 $lang['ctracker_settings_on']			  = 'Activate';

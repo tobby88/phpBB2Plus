@@ -165,7 +165,7 @@ foreach (glob($phpbb_root . '/templates/*', GLOB_ONLYDIR) as $style_dir)
 	$ctracker_settings = $style_dir . '/ctracker/acp/acp_settings.tpl';
 	if (is_file($ctracker_settings))
 	{
-		acp_audit_require_text($ctracker_settings, array('request_limit_enabled', 'request_limit_login', 'request_limit_register', 'request_limit_write', 'request_limit_upload'), $errors);
+		acp_audit_require_text($ctracker_settings, array('request_limit_enabled', 'request_limit_login', 'request_limit_register', 'request_limit_write', 'request_limit_upload', 'request_limit_content'), $errors);
 	}
 }
 

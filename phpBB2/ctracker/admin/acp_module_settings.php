@@ -46,7 +46,7 @@ if( isset($HTTP_POST_VARS['submit']) )
 		'spam_keyword_det' => array(0, 2), 'request_limit_enabled' => array(0, 1),
 		'request_limit_login' => array(5, 100), 'request_limit_register' => array(1, 50),
 		'request_limit_account' => array(1, 100), 'request_limit_write' => array(20, 500),
-		'request_limit_upload' => array(1, 100)
+		'request_limit_upload' => array(1, 100), 'request_limit_content' => array(10, 200)
 	);
 	foreach ($setting_ranges as $setting_name => $range)
 	{
@@ -107,6 +107,7 @@ $configuration['request_limit_register'] = $adminclass->ct_generate_number_field
 $configuration['request_limit_account']  = $adminclass->ct_generate_number_field(1, 100, $ctracker_config->settings['request_limit_account']);
 $configuration['request_limit_write']    = $adminclass->ct_generate_number_field(20, 500, $ctracker_config->settings['request_limit_write']);
 $configuration['request_limit_upload']   = $adminclass->ct_generate_number_field(1, 100, $ctracker_config->settings['request_limit_upload']);
+$configuration['request_limit_content']  = $adminclass->ct_generate_number_field(10, 200, $ctracker_config->settings['request_limit_content']);
 
 /*
  * Kick Objects we don't use anymore now
@@ -215,6 +216,8 @@ $template->assign_vars(array(
 		'L_EXP_41'	   => $lang['ctracker_settings_e41'],
 		'L_MOD_42'     => $lang['ctracker_settings_m42'],
 		'L_EXP_42'	   => $lang['ctracker_settings_e42'],
+		'L_MOD_43'     => $lang['ctracker_settings_m43'],
+		'L_EXP_43'	   => $lang['ctracker_settings_e43'],
 		
 		'CAT_ICON_1'   => $phpbb_root_path . $images['ctracker_icon_set_1'],
 		'CAT_ICON_2'   => $phpbb_root_path . $images['ctracker_icon_set_2'],
@@ -264,6 +267,7 @@ $template->assign_vars(array(
 		'S_OUTPUT_40'  => $configuration['request_limit_write'],
 		'S_OUTPUT_41'  => $configuration['request_limit_upload'],
 		'S_OUTPUT_42'  => $configuration['request_limit_account'],
+		'S_OUTPUT_43'  => $configuration['request_limit_content'],
 		
 		'S_FORM_TOKEN' => phpbb_admin_session_field(),
 		'S_FORM_ACTION' => append_sid('admin_cracker_tracker.' . $phpEx . '?modu=9'))

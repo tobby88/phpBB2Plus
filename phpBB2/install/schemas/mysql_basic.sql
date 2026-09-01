@@ -914,6 +914,7 @@ INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES
 INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('request_limit_account', '20');
 INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('request_limit_write', '120');
 INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('request_limit_upload', '30');
+INSERT INTO `phpbb_ctracker_config` (`ct_config_name`, `ct_config_value`) VALUES ('request_limit_content', '60');
 
 INSERT INTO `phpbb_captcha_config` VALUES ('width', '320');
 INSERT INTO `phpbb_captcha_config` VALUES ('height', '60');

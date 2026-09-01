@@ -49,7 +49,7 @@ $HTTP_ENV_VARS = array();
 require dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_database.php';
 
 $config = new ct_database();
-if (count($config->settings) !== 45 || $config->settings['request_limit_login'] !== '41' ||
+if (count($config->settings) !== 46 || $config->settings['request_limit_login'] !== '41' ||
 	$config->settings['request_limit_enabled'] !== '1' || $config->settings['global_message'] !== '' ||
 	$config->user_ip_value !== '2001:db8::42')
 {
