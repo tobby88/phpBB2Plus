@@ -78,6 +78,14 @@ $medium_thumbnail = file_get_contents($root . '/phpBB2/album_picm.php');
 image_processing_assert(strpos($medium_thumbnail, '$thumbnail_written = false;') !== false, 'medium thumbnail regeneration must handle failed cache writes');
 image_processing_assert(strpos($medium_thumbnail, '@unlink(ALBUM_MED_CACHE_PATH . $pic_thumbnail);') !== false, 'medium thumbnail regeneration must remove incomplete cache files');
 
+$advanced_captcha = file_get_contents($root . '/phpBB2/includes/usercp_confirm_adv.php');
+image_processing_assert(strpos($advanced_captcha, 'max(120, min(1000, intval(') !== false, 'advanced CAPTCHA widths must be bounded');
+image_processing_assert(strpos($advanced_captcha, 'max(40, min(400, intval(') !== false, 'advanced CAPTCHA heights must be bounded');
+image_processing_assert(strpos($advanced_captcha, "include(\$phpbb_root_path . 'includes/usercp_confirm.' . \$phpEx);") !== false, 'advanced CAPTCHA must retain a GD-free fallback');
+image_processing_assert(strpos($advanced_captcha, 'if (!$image)') !== false, 'advanced CAPTCHA must handle failed GD allocation');
+image_processing_assert(strpos($advanced_captcha, 'captcha/pics') === false, 'unused CAPTCHA background-image discovery must not return');
+image_processing_assert(strpos($advanced_captcha, 'mt_srand(') === false && strpos($advanced_captcha, 'srand(') === false, 'CAPTCHA rendering must rely on the runtime RNG instead of repeated manual seeding');
+
 $attachment_thumbnail = file_get_contents($root . '/phpBB2/attach_mod/includes/functions_thumbs.php');
 image_processing_assert(strpos($attachment_thumbnail, '$image_info === false') !== false, 'attachment thumbnails must handle corrupt image metadata');
 image_processing_assert(strpos($attachment_thumbnail, 'if (!$image)') !== false, 'attachment thumbnails must handle failed image decoders');

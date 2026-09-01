@@ -25,6 +25,8 @@ if ( !defined('IN_PHPBB') )
 	exit;
 }
 
+$font_debug = false;
+
 // Do we have an id? No, then just exit
 if (!isset($HTTP_GET_VARS['id']) || !is_scalar($HTTP_GET_VARS['id']) || $HTTP_GET_VARS['id'] === '')
 {
@@ -73,10 +75,23 @@ else
 	}
 }
 
-srand((float)microtime()*1000000);
+if (!is_string($code) || !preg_match('/^[A-Z0-9]{1,12}$/iD', $code))
+{
+	exit;
+}
+
+// The bundled filtered-PNG implementation does not depend on GD and keeps
+// registration usable on minimal PHP installations.
+if (!function_exists('imagecreate') || !function_exists('imagecolorallocate'))
+{
+	include($phpbb_root_path . 'includes/usercp_confirm.' . $phpEx);
+	exit;
+}
+
 #include($phpbb_root_path.'includes/functions_captcha.'.$phpEx);
 
 // Read the config table
+$captcha_config = array();
 $sql = "SELECT *
 	FROM " . CAPTCHA_CONFIG_TABLE;
 if( !($result = $db->sql_query($sql)) )
@@ -93,57 +108,40 @@ $db->sql_freeresult($result);
 $phpbb_root_path = str_replace('index.'.$phpEx, '', realpath($phpbb_root_path.'index.'.$phpEx));
 
 // Prefs
-$total_width = $captcha_config['width'];
-$total_height = $captcha_config['height'];
+$total_width = max(120, min(1000, intval(isset($captcha_config['width']) ? $captcha_config['width'] : 320)));
+$total_height = max(40, min(400, intval(isset($captcha_config['height']) ? $captcha_config['height'] : 80)));
 
-$hex_bg_color = get_rgb($captcha_config['background_color']);
+$hex_bg_color = get_rgb(isset($captcha_config['background_color']) ? $captcha_config['background_color'] : 'FFFFFF');
+$hex_bg_color = ($hex_bg_color === null) ? '255,255,255' : $hex_bg_color;
 $bg_color = array();
 $bg_color = explode(",", $hex_bg_color);
 
-$jpeg = $captcha_config['jpeg'];
-$img_quality = $captcha_config['jpeg_quality'];
+$jpeg = !empty($captcha_config['jpeg']);
+$img_quality = max(0, min(95, intval(isset($captcha_config['jpeg_quality']) ? $captcha_config['jpeg_quality'] : 85)));
 // Max quality is 95
 
-$pre_letters = $captcha_config['pre_letters'];
-$pre_letter_great = $captcha_config['pre_letters_great'];
-$rnd_font = $captcha_config['font'];
-$chess = $captcha_config['chess'];
-$ellipses = $captcha_config['ellipses'];
-$arcs = $captcha_config['arcs'];
-$lines = $captcha_config['lines'];
-$image = $captcha_config['image'];
+$pre_letters = max(0, min(5, intval(isset($captcha_config['pre_letters']) ? $captcha_config['pre_letters'] : 0)));
+$pre_letter_great = !empty($captcha_config['pre_letters_great']);
+$rnd_font = !empty($captcha_config['font']);
+$chess = isset($captcha_config['chess']) && in_array((string) $captcha_config['chess'], array('0', '1', '2'), true) ? (string) $captcha_config['chess'] : '0';
+$ellipses = isset($captcha_config['ellipses']) && in_array((string) $captcha_config['ellipses'], array('0', '1', '2'), true) ? (string) $captcha_config['ellipses'] : '0';
+$arcs = isset($captcha_config['arcs']) && in_array((string) $captcha_config['arcs'], array('0', '1', '2'), true) ? (string) $captcha_config['arcs'] : '0';
+$lines = isset($captcha_config['lines']) && in_array((string) $captcha_config['lines'], array('0', '1', '2'), true) ? (string) $captcha_config['lines'] : '0';
+$gammacorrect = isset($captcha_config['gammacorrect']) ? (float) $captcha_config['gammacorrect'] : 0.0;
+$gammacorrect = ($gammacorrect > 0.0 && $gammacorrect <= 10.0) ? $gammacorrect : 0.0;
 
-$gammacorrect = $captcha_config['gammacorrect'];
-
-$foreground_lattice_y = $captcha_config['foreground_lattice_y'];
-$foreground_lattice_x = $captcha_config['foreground_lattice_x'];
-$hex_lattice_color = get_rgb($captcha_config['lattice_color']);
+$foreground_lattice_y = max(0, min(100, intval(isset($captcha_config['foreground_lattice_y']) ? $captcha_config['foreground_lattice_y'] : 0)));
+$foreground_lattice_x = max(0, min(100, intval(isset($captcha_config['foreground_lattice_x']) ? $captcha_config['foreground_lattice_x'] : 0)));
+$hex_lattice_color = get_rgb(isset($captcha_config['lattice_color']) ? $captcha_config['lattice_color'] : 'FFFFFF');
+$hex_lattice_color = ($hex_lattice_color === null) ? '255,255,255' : $hex_lattice_color;
 $rgb_lattice_color = array();
 $rgb_lattice_color = explode(",", $hex_lattice_color);
 
-// Fonts and images init
-if ($image)
-{
-	$bg_imgs = array();
-	if ($img_dir = opendir($phpbb_root_path.'captcha/pics/'))
-	{
-		while (true == ($file = @readdir($img_dir))) 
-		{ 
-			if ((substr(strtolower($file), -3) == 'jpg') || (substr(strtolower($file), -3) == 'gif'))    
-			{         
-				$bg_imgs[] = $file; 
-			}     
-		}
-		closedir($img_dir);
-	}
-	// Grab a random Background Image or set FALSE if none was found
-	$bg_img = ( count($bg_imgs) ) ? rand(0, (count($bg_imgs)-1)) : false;
-}
-
+// Fonts init
 $fonts = array();
-if ($fonts_dir = opendir($phpbb_root_path.'captcha/fonts/'))
+if ($fonts_dir = @opendir($phpbb_root_path.'captcha/fonts/'))
 {
-	while (true == ($file = @readdir($fonts_dir))) 
+	while (($file = @readdir($fonts_dir)) !== false)
 	{ 
 		if ((substr(strtolower($file), -3) == 'ttf'))
 		{         
@@ -156,7 +154,14 @@ $use_ttf = count($fonts) > 0 && function_exists('imagettfbbox') && function_exis
 $font = $use_ttf ? rand(0, (count($fonts)-1)) : 5;
 
 // Generate
-$image = (gdVersion() >= 2) ? imagecreatetruecolor($total_width, $total_height) : imagecreate($total_width, $total_height);
+$image = (gdVersion() >= 2 && function_exists('imagecreatetruecolor')) ? @imagecreatetruecolor($total_width, $total_height) : @imagecreate($total_width, $total_height);
+if (!$image)
+{
+	header('Content-Type: text/plain; charset=UTF-8');
+	header('Cache-Control: no-store, no-cache, max-age=0');
+	http_response_code(503);
+	exit('Visual confirmation is temporarily unavailable.');
+}
 $background_color = imagecolorallocate($image, $bg_color[0], $bg_color[1], $bg_color[2]);
 imagefill($image, 0, 0, $background_color);
 #imagecolortransparent($image, $background_color);
@@ -179,7 +184,7 @@ if ($ellipses == '1' || $ellipses == '2' && rand(0,1))
 	for ($i = 1; $i <= 60; $i++)
 	{
 		$ellipsecolor = imagecolorallocate($image, rand(100,250),rand(100,250),rand(100,250));
-		imagefilledellipse($image, round(rand(0, $total_width)), round(rand(0, $total_height)), round(rand(0, $total_width/8)), round(rand(0, $total_height/4)), $ellipsecolor);	
+		imagefilledellipse($image, rand(0, $total_width), rand(0, $total_height), rand(1, max(1, (int) floor($total_width / 8))), rand(1, max(1, (int) floor($total_height / 4))), $ellipsecolor);
 	}
 }
 if ($arcs == '1' || $arcs == '2' && rand(0,1))
@@ -190,7 +195,7 @@ if ($arcs == '1' || $arcs == '2' && rand(0,1))
 		$linecolor = imagecolorallocate($image, rand(120,255),rand(120,255),rand(120,255));
 		$cx = round(rand(1, $total_width));
 		$cy = round(rand(1, $total_height));
-		$int_w = round(rand(1, $total_width/2));
+		$int_w = rand(1, max(1, (int) floor($total_width / 2)));
 		$int_h = round(rand(1, $total_height));
 		imagearc($image, $cx, $cy, $int_w, $int_h, round(rand(0, 190)), round(rand(191, 360)), $linecolor);
 		imagearc($image, $cx-1, $cy-1, $int_w, $int_h, round(rand(0, 190)), round(rand(191, 360)), $linecolor);
@@ -202,7 +207,7 @@ if ($lines == '1' || $lines == '2' && rand(0,1))
 	for ($i = 0; $i <= 50; $i++)
 	{
 		$linecolor = imagecolorallocate($image, rand(120,255),rand(120,255),rand(120,255));
-		imageline($image, round(rand(1, $total_width*3)), round(rand(1, $total_height*5)), round(rand(1, $total_width/2)), round(rand(1, $total_height*2)), $linecolor);
+		imageline($image, rand(1, $total_width * 3), rand(1, $total_height * 5), rand(1, max(1, (int) floor($total_width / 2))), rand(1, $total_height * 2), $linecolor);
 	}
 }
 //
@@ -222,11 +227,9 @@ $x_char_position = (round(($total_width - 12) / strlen($code)) + mt_rand(-3, 5))
 
 for ($i = 0; $i < strlen($code); $i++)
 {
-	mt_srand((float)microtime()*1000000);
-
 	$char = $code[$i];
 #	$size = mt_rand(18, ceil($total_height / 2.8));
-	$size = mt_rand(floor($total_height / 3.5), ceil($total_height / 2.8));
+	$size = mt_rand(max(1, (int) floor($total_height / 3.5)), max(1, (int) ceil($total_height / 2.8)));
 	$font = ($use_ttf && $rnd_font) ? rand(0, (count($fonts)-1)) : $font;
 	$angle = mt_rand(-30, 30);
 	$text_color = $text_color_array[mt_rand(0,count($text_color_array)-1)];
@@ -253,7 +256,9 @@ for ($i = 0; $i < strlen($code); $i++)
 
 	$x_pos = ($x_char_position / 4) + ($i * $x_char_position);
 	($i == strlen($code)-1 && $x_pos >= ($total_width - ($letter_width + 5))) ? $x_pos = ($total_width - ($letter_width + 5)) : '';
-	$y_pos = mt_rand(($size * 1.4 ), $total_height - ($size * 0.4));
+	$y_min = max(1, (int) ceil($size * 1.4));
+	$y_max = max($y_min, (int) floor($total_height - ($size * 0.4)));
+	$y_pos = mt_rand($y_min, $y_max);
 
 //	Pre letters
 	$size = ($pre_letter_great) ? $size + (2 * $pre_letters) : $size - (2 * $pre_letters);
