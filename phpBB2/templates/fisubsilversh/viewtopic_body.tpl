@@ -9,11 +9,10 @@ highlight = '{HIGHLIGHT}';
 <table width="100%" border="0" cellspacing="0" cellpadding="2">
 <tr>
 <td height="34" valign="top" class="nav">{BANNER_14_IMG}<br/><a href="{U_VIEW_TOPIC}" id="topiclink_top" class="maintitle">{TOPIC_TITLE}</a><br />
-{PAGINATION}</span>
+{PAGINATION}
 <!-- Start add - Topic in Who is online MOD -->
-<span class="gensmall"><br/>{TOTAL_USERS_ONLINE}<br/>{LOGGED_IN_USER_LIST}</b></span></td>
+<span class="gensmall"><br/>{TOTAL_USERS_ONLINE}<br/>{LOGGED_IN_USER_LIST}</span></td>
 <!-- End add - Topic in Who is online MOD -->
-</td>
 <td class="gensmall" align="right" valign="bottom"><a href="{U_VIEW_NEWER_TOPIC}">{L_VIEW_NEXT_TOPIC}</a><br />
 <a href="{U_VIEW_OLDER_TOPIC}">{L_VIEW_PREVIOUS_TOPIC}</a><br />
 <strong>{S_WATCH_TOPIC}</strong><br />
@@ -78,7 +77,7 @@ highlight = '{HIGHLIGHT}';
 <td><hr /></td>
 </tr>
 <tr>
-<td valign="top" class="postbody"><span id="postmessage_{postrow.U_POST_ID}">{postrow.MESSAGE}</span>
+<td valign="top" class="postbody"><div id="postmessage_{postrow.U_POST_ID}">{postrow.MESSAGE}</div>
 <!-- BEGIN can_edit -->
 <div class="gen" id="post_{postrow.U_POST_ID}" style="display:none; text-align:right;">
 <textarea id="posttext_{postrow.U_POST_ID}" rows="15" cols="35" wrap="virtual" class="post" style="width:100%;" onkeyup="AJAXPostEditkeyUp(event, {postrow.U_POST_ID})">{postrow.RAW_MESSAGE}</textarea><textarea id="orig_posttext_{postrow.U_POST_ID}" rows="1" cols="1" style="display:none;">{postrow.RAW_MESSAGE}</textarea><br />
@@ -88,7 +87,7 @@ highlight = '{HIGHLIGHT}';
 </td>
 </tr>
 <tr>
-<td valign="bottom" class="genmed">{postrow.ATTACHMENTS}<td>
+<td valign="bottom" class="genmed">{postrow.ATTACHMENTS}</td>
 </tr>
 </table>
 

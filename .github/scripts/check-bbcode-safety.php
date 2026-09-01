@@ -20,6 +20,13 @@ $text = phpbb_bbcode_safe_text('&lt;img src=x onerror=alert(1)&gt;');
 bbcode_safety_assert(strpos($text, '<img') === false, 'stored entities must not become active markup');
 bbcode_safety_assert(strpos($text, '&lt;img') !== false, 'safe visible text must be preserved');
 
+$balanced_quote = phpbb_bbcode_balance_quotes('before[quote:abc]inside', 'abc');
+bbcode_safety_assert($balanced_quote === 'before[quote:abc]inside[/quote:abc]', 'an incomplete legacy quote must receive its missing closing tag');
+$balanced_nested_quotes = phpbb_bbcode_balance_quotes('[quote:abc="User"][quote:abc]inside[/quote:abc]', 'abc');
+bbcode_safety_assert(substr_count($balanced_nested_quotes, '[/quote:abc]') === 2, 'nested legacy quotes must be balanced independently');
+$complete_quote = '[quote:abc]inside[/quote:abc]';
+bbcode_safety_assert(phpbb_bbcode_balance_quotes($complete_quote, 'abc') === $complete_quote, 'complete quotes must remain unchanged');
+
 $shield = phpbb_schild('1', 'fontcolor=ff0000 shadowcolor=00ff00 shieldshadow=0', 'Gr&uuml;&szlig;e & mehr');
 bbcode_safety_assert(strpos($shield, 'fontcolor=ff0000') !== false, 'valid shield colors must remain supported');
 bbcode_safety_assert(strpos($shield, 'shadowcolor=00ff00') !== false, 'valid shield shadow colors must remain supported');

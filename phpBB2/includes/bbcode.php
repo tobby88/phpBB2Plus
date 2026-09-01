@@ -261,6 +261,34 @@ function phpbb_bbcode_safe_text($value, $max_length = 0)
 	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/**
+ * Close legacy quotes that were stored with a missing [/quote] tag.
+ *
+ * Old first-pass data can contain an encoded opening quote without its closing
+ * partner. Turning that opening tag into the table-based quote template would
+ * otherwise leave the surrounding topic layout inside the quote table.
+ */
+function phpbb_bbcode_balance_quotes($text, $uid)
+{
+	$text = (string) $text;
+	$uid = (string) $uid;
+	if ($text === '' || $uid === '')
+	{
+		return $text;
+	}
+
+	$uid_pattern = preg_quote($uid, '#');
+	$opening_count = preg_match_all('#\[quote:' . $uid_pattern . '(?:="[^"]*")?\]#i', $text, $opening_matches);
+	$closing_count = preg_match_all('#\[/quote:' . $uid_pattern . '\]#i', $text, $closing_matches);
+	$missing_count = max(0, intval($opening_count) - intval($closing_count));
+	if ($missing_count > 0)
+	{
+		$text .= str_repeat('[/quote:' . $uid . ']', $missing_count);
+	}
+
+	return $text;
+}
+
 function phpbb_bbcode_safe_font($value)
 {
 	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
@@ -361,6 +389,10 @@ function bbencode_second_pass($text, $uid)
 	// PHP MOD
 	// [PHP] and [/PHP] for posting PHP code in your posts.
 	$text = bbencode_second_pass_php($text, $uid, $bbcode_tpl);
+
+	// Preserve old posts with incomplete quote markup without allowing their
+	// table-based quote layout to consume the rest of the topic page.
+	$text = phpbb_bbcode_balance_quotes($text, $uid);
 	
 	// [QUOTE] and [/QUOTE] for posting replies with quote, or just for quoting stuff.
 	$text = str_replace("[quote:$uid]", $bbcode_tpl['quote_open'], $text);

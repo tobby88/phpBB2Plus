@@ -23,6 +23,7 @@ $footer = file_get_contents($templates_root . '/fisubsilversh/overall_footer.tpl
 $header = file_get_contents($templates_root . '/fisubsilversh/overall_header.tpl');
 $simple_header = file_get_contents($templates_root . '/fisubsilversh/simple_header.tpl');
 $page_header = file_get_contents($root . '/phpBB2/includes/page_header.php');
+$viewtopic = file_get_contents($templates_root . '/fisubsilversh/viewtopic_body.tpl');
 
 $style_directories = array();
 foreach (glob($templates_root . '/*', GLOB_ONLYDIR) as $directory)
@@ -44,6 +45,9 @@ standard_style_assert(strpos($template_engine, "var \$tpldef = 'fisubsilversh';"
 standard_style_assert(strpos($page_header, "strtolower((string) \$board_config['default_lang']) === 'german'") !== false, 'the page header must expose the language pack selected by user preference initialization');
 standard_style_assert(strpos($header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'the public document must declare its language');
 standard_style_assert(strpos($simple_header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'simple public documents must declare their language');
+standard_style_assert(strpos($viewtopic, '<div id="postmessage_{postrow.U_POST_ID}">{postrow.MESSAGE}</div>') !== false, 'post messages containing block-level BBCode must use a block-level wrapper');
+standard_style_assert(strpos($viewtopic, '{postrow.ATTACHMENTS}<td>') === false, 'the attachment row must close its table cell');
+standard_style_assert(strpos($viewtopic, '{PAGINATION}</span>') === false, 'the topic header must not emit an unmatched span end tag');
 
 $safe_theme = phpbb_standard_theme_row(array(
 	'themes_id' => '2',
