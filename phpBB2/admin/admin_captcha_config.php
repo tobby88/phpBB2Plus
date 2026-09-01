@@ -102,8 +102,6 @@ $template->assign_vars(array(
 	'L_ALLOW_ELLIPSES' => $lang['back_ellipses'],
 	'L_ALLOW_ARCS' => $lang['back_arcs'],
 	'L_ALLOW_LINES' => $lang['back_lines'],
-	'L_ALLOW_IMAGE' => $lang['back_image'],
-	'L_ALLOW_IMAGE_EXPLAIN' => $lang['back_image_explain'],
 	'L_FOREGROUND_LATTICE' => $lang['foreground_lattice'],
 	'L_FOREGROUND_LATTICE_EXPLAIN' => $lang['foreground_lattice_explain'],
 	'L_FOREGROUND_LATTICE_COLOR' => $lang['foreground_lattice_color'],
@@ -142,8 +140,6 @@ $template->assign_vars(array(
 	'S_ALLOW_LINES_YES' => ($new['lines'] == 1) ? 'checked="checked"' : '',
 	'S_ALLOW_LINES_NO' => ($new['lines'] == 0) ? 'checked="checked"' : '',
 	'S_ALLOW_LINES_RND' => ($new['lines'] == 2) ? 'checked="checked"' : '',
-	'S_ALLOW_IMAGE_YES' => ($new['image'] == 1) ? 'checked="checked"' : '',
-	'S_ALLOW_IMAGE_NO' => ($new['image'] == 0) ? 'checked="checked"' : '',
 	'S_JPEG_IMAGE_YES' => ($new['jpeg'] == 1) ? 'checked="checked"' : '',
 	'S_JPEG_IMAGE_NO' => ($new['jpeg'] == 0) ? 'checked="checked"' : '',
 

@@ -58,10 +58,6 @@
 		<td class="row2"><input type="radio" name="lines" value="1" {S_ALLOW_LINES_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="lines" value="0" {S_ALLOW_LINES_NO} /> {L_NO}&nbsp;&nbsp;<input type="radio" name="lines" value="2" {S_ALLOW_LINES_RND} /> {L_RANDOM}</td>
 	</tr>
 	<tr>
-		<td class="row1"><b>{L_ALLOW_IMAGE}</b><br /><span class="gensmall">{L_ALLOW_IMAGE_EXPLAIN}</span></td>
-		<td class="row2"><input type="radio" name="image" value="1" {S_ALLOW_IMAGE_YES} /> {L_YES}&nbsp;&nbsp;<input type="radio" name="image" value="0" {S_ALLOW_IMAGE_NO} /> {L_NO}</td>
-	</tr>
-	<tr>
 		<td class="spacerow" colspan="2" height="1"><img src="templates/fisubsilversh/images/spacer.gif" alt="" width="1" height="1" /></td>
 	</tr>
 	<tr>

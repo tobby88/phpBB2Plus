@@ -32,8 +32,6 @@ $lang['back_chess_explain'] = 'Füllt den kompletten Hintergrund mit 16 Vierecke
 $lang['back_ellipses'] = 'Ovale und Kreise';
 $lang['back_arcs'] = 'Gebogene Linien';
 $lang['back_lines'] = 'Linien';
-$lang['back_image'] = 'Hintergrundbild';
-$lang['back_image_explain'] = '(Diese Funktion ist derzeitig noch nicht integriert)';
 
 $lang['foreground_lattice'] = 'Vordergrundgitter';
 $lang['foreground_lattice_explain'] = '(breite x höhe)<br />Generiert ein Gitter über dem CAPTCHA';

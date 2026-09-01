@@ -93,6 +93,10 @@ image_processing_assert(strpos($legacy_captcha, "!is_scalar(\$_GET['id'])") !== 
 image_processing_assert(strpos($legacy_captcha, "preg_match('/^[a-z]{5}\$/D'") !== false, 'legacy CAPTCHA keys must match the generated format');
 image_processing_assert(strpos($legacy_captcha, 'readfile($image_file);') !== false, 'legacy CAPTCHA images must use the resolved confined path');
 
+$captcha_admin = file_get_contents($root . '/phpBB2/admin/admin_captcha_config.php');
+$captcha_admin_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/admin_captcha_config.tpl');
+image_processing_assert(strpos($captcha_admin, 'S_ALLOW_IMAGE_') === false && strpos($captcha_admin_template, 'S_ALLOW_IMAGE_') === false, 'the never-implemented CAPTCHA background-image setting must not be exposed');
+
 $attachment_thumbnail = file_get_contents($root . '/phpBB2/attach_mod/includes/functions_thumbs.php');
 image_processing_assert(strpos($attachment_thumbnail, '$image_info === false') !== false, 'attachment thumbnails must handle corrupt image metadata');
 image_processing_assert(strpos($attachment_thumbnail, 'if (!$image)') !== false, 'attachment thumbnails must handle failed image decoders');

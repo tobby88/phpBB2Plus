@@ -31,8 +31,6 @@ $lang['back_chess_explain'] = 'Fill the complete background with 16 rectangles.'
 $lang['back_ellipses'] = 'Ellipses';
 $lang['back_arcs'] = 'Curved lines';
 $lang['back_lines'] = 'Lines';
-$lang['back_image'] = 'Background image';
-$lang['back_image_explain'] = '(This function is not integrated yet)';
 
 $lang['foreground_lattice'] = 'Foreground lattice';
 $lang['foreground_lattice_explain'] = '(width x height)<br />Generate a white lattice over the CAPTCHA';
