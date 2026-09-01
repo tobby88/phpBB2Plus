@@ -760,7 +760,7 @@ function make_jumpbox($action, $match_forum_id = 0)
 //					if ( $forum_rows[$j]['cat_id'] == $category_rows[$i]['cat_id'] && $is_auth[$forum_rows[$j]['forum_id']]['auth_view'] )
 //					{
 						$selected = ( $forum_rows[$j]['forum_id'] == $match_forum_id ) ? 'selected="selected"' : '';
-						$boxstring_forums .=  '<option value="' . $forum_rows[$j]['forum_id'] . '"' . $selected . '>' . $forum_rows[$j]['forum_name'] . '</option>';
+						$boxstring_forums .=  '<option value="' . (int) $forum_rows[$j]['forum_id'] . '"' . $selected . '>' . phpbb_stored_text($forum_rows[$j]['forum_name']) . '</option>';
 
 						//
 						// Add an array to $nav_links for the Mozilla navigation bar.
@@ -777,7 +777,7 @@ function make_jumpbox($action, $match_forum_id = 0)
 				if ( $boxstring_forums != '' )
 				{
 					$boxstring .= '<option value="-1">&nbsp;</option>';
-					$boxstring .= '<option value="-1">' . $category_rows[$i]['cat_title'] . '</option>';
+					$boxstring .= '<option value="-1">' . phpbb_stored_text($category_rows[$i]['cat_title']) . '</option>';
 					$boxstring .= '<option value="-1">----------------</option>';
 					$boxstring .= $boxstring_forums;
 				}

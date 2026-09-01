@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Escaped stored forum, topic, bookmark and site labels in the browser
+  navigation metadata emitted in every page header. Navigation URLs and
+  relation attributes are now encoded at their attribute boundary, and the
+  shared forum jump box no longer injects stored forum/category names as raw
+  option markup.
 - Extended CrackerTracker's login-network warning to IPv6 using a
   privacy-preserving /48 comparison while retaining its historical IPv4 /16
   behavior. Global security notices now escape text, accept only validated

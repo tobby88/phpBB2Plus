@@ -533,7 +533,10 @@ foreach ($nav_links as $nav_item => $nav_array)
 	}
 	if ( !empty($nav_array['url']) )
 	{
-		$nav_links_html .= sprintf($nav_link_proto, $nav_item, append_sid($nav_array['url']), $nav_array['title']);
+		$nav_rel = htmlspecialchars((string) $nav_item, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+		$nav_url = htmlspecialchars(append_sid($nav_array['url']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+		$nav_title = phpbb_stored_text(isset($nav_array['title']) ? $nav_array['title'] : '');
+		$nav_links_html .= sprintf($nav_link_proto, $nav_rel, $nav_url, $nav_title);
 	}
 	else
 	{
@@ -542,7 +545,10 @@ foreach ($nav_links as $nav_item => $nav_array)
 		{
 			if (is_array($nested_array) && !empty($nested_array['url']))
 			{
-				$nav_links_html .= sprintf($nav_link_proto, $nav_item, $nested_array['url'], isset($nested_array['title']) ? $nested_array['title'] : '');
+				$nav_rel = htmlspecialchars((string) $nav_item, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+				$nav_url = htmlspecialchars((string) $nested_array['url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+				$nav_title = phpbb_stored_text(isset($nested_array['title']) ? $nested_array['title'] : '');
+				$nav_links_html .= sprintf($nav_link_proto, $nav_rel, $nav_url, $nav_title);
 			}
 		}
 	}
