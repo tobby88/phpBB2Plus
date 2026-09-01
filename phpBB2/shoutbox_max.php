@@ -479,6 +479,7 @@ if (((isset($_POST['start']) && is_scalar($_POST['start'])) || (isset($_GET['sta
 } else $start=0;
 
 	require_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
+	$page_title = $lang['Shoutbox'];
 	require_once($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 // 
@@ -737,7 +738,10 @@ obtain_word_list($orig_word, $replacement_word);
 			'USER_POSTS' => $user_posts,
 			'USER_FROM' => $user_from,
 			'USER_AVATAR' => $user_avatar,
-			'U_SHOUT_ID' => $shout_row['shout_id']
+			'U_SHOUT_ID' => intval($shout_row['shout_id']),
+			'U_MINI_POST' => append_sid("shoutbox_max.$phpEx?start=$start") . '#shout-' . intval($shout_row['shout_id']),
+			'MINI_POST_IMG' => $images['icon_minipost'],
+			'L_MINI_POST_ALT' => $lang['Post']
 			));
 	}
 

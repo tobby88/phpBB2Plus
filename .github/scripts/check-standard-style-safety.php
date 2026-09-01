@@ -17,6 +17,9 @@ $template_engine = file_get_contents($root . '/phpBB2/includes/template.php');
 $basic = file_get_contents($root . '/phpBB2/install/schemas/mysql_basic.sql');
 $updater = file_get_contents($root . '/update/update_from_153a.php');
 $footer = file_get_contents($templates_root . '/fisubsilversh/overall_footer.tpl');
+$header = file_get_contents($templates_root . '/fisubsilversh/overall_header.tpl');
+$simple_header = file_get_contents($templates_root . '/fisubsilversh/simple_header.tpl');
+$page_header = file_get_contents($root . '/phpBB2/includes/page_header.php');
 
 $style_directories = array();
 foreach (glob($templates_root . '/*', GLOB_ONLYDIR) as $directory)
@@ -35,6 +38,9 @@ standard_style_assert(strpos($updater, "WHERE template_name <> 'fisubsilversh'")
 standard_style_assert(strpos($updater, "config_name = 'xs_def_template'") !== false, 'the updater must normalize the eXtreme Styles fallback');
 standard_style_assert(strpos($updater, "'xs_def_template' => 'fisubsilversh'") !== false, 'the updater must create a missing fallback setting');
 standard_style_assert(strpos($template_engine, "var \$tpldef = 'fisubsilversh';") !== false, 'the template fallback must use FI Subsilver Shadow');
+standard_style_assert(strpos($page_header, "'S_CONTENT_LANGUAGE' =>") !== false, 'the page header must expose the active document language');
+standard_style_assert(strpos($header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'the public document must declare its language');
+standard_style_assert(strpos($simple_header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'simple public documents must declare their language');
 
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($templates_root . '/fisubsilversh', FilesystemIterator::SKIP_DOTS));
 foreach ($iterator as $file)

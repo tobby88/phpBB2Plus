@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repaired the maximized Shoutbox's previously empty mini-post images and
+  links by assigning their missing variables and stable row anchors, and
+  restored its localized browser title. Public full and simple pages now also
+  declare the selected German or English document language.
 - Centralized public and AdminCP profile e-mail links behind strict mailbox
   validation, so malformed legacy values cannot enter `mailto:` attributes.
   Internal board-mail links remain available without exposing addresses.

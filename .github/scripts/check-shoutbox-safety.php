@@ -36,6 +36,9 @@ $full_checks = array(
 	'reverse-DNS output is HTML escaped' => substr_count($full, "htmlspecialchars((string) \$ip") >= 2,
     'undefined post-row IP is gone' => strpos($full, "\$post_row['shout_ip']") === false,
     'page size cannot be zero' => strpos($full, '$shouts_per_page = max(1,') !== false,
+	'page has a localized title' => strpos($full, '$page_title = $lang[\'Shoutbox\'];') !== false,
+	'mini-post links have an image' => strpos($full, "'MINI_POST_IMG' => \$images['icon_minipost']") !== false,
+	'mini-post links target their row' => strpos($full, "'#shout-' . intval(\$shout_row['shout_id'])") !== false,
 );
 
 foreach ($full_checks as $label => $passed) {
@@ -43,6 +46,16 @@ foreach ($full_checks as $label => $passed) {
         fwrite(STDERR, "Full shoutbox safety check failed: $label\n");
         exit(1);
     }
+}
+
+foreach (array('shoutbox_max_body.tpl', 'shoutbox_max_guest_body.tpl') as $template_name)
+{
+	$template_source = file_get_contents($root . '/phpBB2/templates/fisubsilversh/' . $template_name);
+	if ($template_source === false || strpos($template_source, '<tr id="shout-{shoutrow.U_SHOUT_ID}">') === false)
+	{
+		fwrite(STDERR, "Full shoutbox template check failed: $template_name has no stable row target\n");
+		exit(1);
+	}
 }
 
 echo "Shoutbox safety checks passed.\n";

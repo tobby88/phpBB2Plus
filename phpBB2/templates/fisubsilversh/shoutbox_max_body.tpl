@@ -195,7 +195,7 @@ f_help = "{L_BBCODE_F_HELP}";
 	</tr>
 
 	<!-- BEGIN shoutrow -->
-	<tr> 
+	<tr id="shout-{shoutrow.U_SHOUT_ID}">
 		<td width="160" align="left" valign="top" class="{shoutrow.ROW_CLASS}">
 			<span class="name"><b>{shoutrow.SHOUT_USERNAME}</b></span><br />
 			<span class="postdetails">{shoutrow.USER_RANK}<br />

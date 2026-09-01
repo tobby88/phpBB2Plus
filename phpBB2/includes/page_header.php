@@ -827,6 +827,7 @@ $template->assign_vars(array(
 	'L_KB' => $lang['KB_title'],
 	'U_KB' => append_sid('kb.'.$phpEx),
 	'S_CONTENT_DIRECTION' => $lang['DIRECTION'],
+	'S_CONTENT_LANGUAGE' => (isset($userdata['user_lang']) && strtolower((string) $userdata['user_lang']) === 'german') ? 'de' : 'en',
 	'S_CONTENT_ENCODING' => $lang['ENCODING'],
 	'S_CONTENT_DIR_LEFT' => $lang['LEFT'],
 	'S_CONTENT_DIR_RIGHT' => $lang['RIGHT'],
