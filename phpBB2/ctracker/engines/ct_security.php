@@ -93,6 +93,34 @@ function ct_security_hosts_match($first, $second)
 	return $first !== '' && $first === $second;
 }
 
+function ct_security_request_scheme($server)
+{
+	$server = is_array($server) ? $server : array();
+	$https = isset($server['HTTPS']) && is_scalar($server['HTTPS']) ? strtolower(trim((string) $server['HTTPS'])) : '';
+	if ($https !== '' && $https !== 'off' && $https !== '0')
+	{
+		return 'https';
+	}
+	if (isset($server['SERVER_PORT']) && is_scalar($server['SERVER_PORT']))
+	{
+		$port = intval($server['SERVER_PORT']);
+		if ($port === 443)
+		{
+			return 'https';
+		}
+		if ($port === 80)
+		{
+			return 'http';
+		}
+	}
+	return '';
+}
+
+function ct_security_default_port($scheme)
+{
+	return strtolower((string) $scheme) === 'https' ? 443 : 80;
+}
+
 /**
  * Reject browser-confirmed cross-site writes without breaking old clients
  * which legitimately omit Origin, Referer and Fetch Metadata headers.
@@ -119,9 +147,11 @@ function ct_security_cross_site_write($server)
 	}
 
 	$source = '';
+	$source_is_origin = false;
 	if (isset($server['HTTP_ORIGIN']) && is_scalar($server['HTTP_ORIGIN']))
 	{
 		$source = trim((string) $server['HTTP_ORIGIN']);
+		$source_is_origin = true;
 		if (strtolower($source) === 'null')
 		{
 			return true;
@@ -137,7 +167,39 @@ function ct_security_cross_site_write($server)
 		return false;
 	}
 	$source_host = ct_security_url_host($source, false);
-	return $source_host === false || !ct_security_hosts_match($request_host, $source_host);
+	if ($source_host === false || !ct_security_hosts_match($request_host, $source_host))
+	{
+		return true;
+	}
+
+	$source_parts = @parse_url($source);
+	$request_parts = @parse_url('http://' . (string) $server['HTTP_HOST']);
+	if (!is_array($source_parts) || !is_array($request_parts))
+	{
+		return true;
+	}
+	if ($source_is_origin && ((isset($source_parts['path']) && $source_parts['path'] !== '') || isset($source_parts['query']) || isset($source_parts['fragment'])))
+	{
+		return true;
+	}
+
+	$request_scheme = ct_security_request_scheme($server);
+	$source_scheme = isset($source_parts['scheme']) ? strtolower((string) $source_parts['scheme']) : '';
+	if ($request_scheme !== '' && $source_scheme !== $request_scheme)
+	{
+		return true;
+	}
+	if ($request_scheme !== '')
+	{
+		$request_port = isset($request_parts['port']) ? intval($request_parts['port']) : ct_security_default_port($request_scheme);
+		$source_port = isset($source_parts['port']) ? intval($source_parts['port']) : ct_security_default_port($source_scheme);
+		if ($request_port !== $source_port)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 function ct_security_disallowed_method($server)
@@ -343,7 +405,8 @@ if (!defined('CTRACKER_SECURITY_NO_AUTO_RUN'))
 		'website', 'location', 'search', 'sitename', 'word', 'replacement', 'help',
 		'last_msg', 'quote', 'content', 'site_desc', 'disable_reg_msg', 'disable_msg',
 		'pic_desc', 'pic_title', 'filecomment', 'comment', 'search_author',
-		'add_poll_option_text', 'global_message'
+		'add_poll_option_text', 'global_message', 'article_name', 'article_desc',
+		'title', 'description'
 	);
 	$free_get_fields = array('search_author', 'search_keywords', 'highlight', 'topic', 'q');
 	$ignored_get = array('submit');

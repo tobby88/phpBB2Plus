@@ -47,6 +47,22 @@ if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' =
 {
 	$errors[] = 'Same-origin POST was incorrectly blocked.';
 }
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example', 'HTTPS' => 'on', 'SERVER_PORT' => '443', 'HTTP_ORIGIN' => 'http://forum.example')) !== true)
+{
+	$errors[] = 'Cross-scheme Origin POST was not blocked.';
+}
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example', 'HTTPS' => 'on', 'SERVER_PORT' => '443', 'HTTP_ORIGIN' => 'https://forum.example:444')) !== true)
+{
+	$errors[] = 'Cross-port Origin POST was not blocked.';
+}
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example', 'HTTPS' => 'on', 'SERVER_PORT' => '443', 'HTTP_ORIGIN' => 'https://forum.example/path')) !== true)
+{
+	$errors[] = 'Malformed Origin with a path was not blocked.';
+}
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example', 'HTTPS' => 'on', 'SERVER_PORT' => '443', 'HTTP_ORIGIN' => 'https://forum.example')) !== false)
+{
+	$errors[] = 'Exact HTTPS Origin POST was incorrectly blocked.';
+}
 if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => 'forum.example')) !== false)
 {
 	$errors[] = 'Headerless legacy POST was incorrectly blocked.';
