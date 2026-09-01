@@ -86,6 +86,11 @@ image_processing_assert(strpos($advanced_captcha, 'if (!$image)') !== false, 'ad
 image_processing_assert(strpos($advanced_captcha, 'captcha/pics') === false, 'unused CAPTCHA background-image discovery must not return');
 image_processing_assert(strpos($advanced_captcha, 'mt_srand(') === false && strpos($advanced_captcha, 'srand(') === false, 'CAPTCHA rendering must rely on the runtime RNG instead of repeated manual seeding');
 
+$legacy_captcha = file_get_contents($root . '/phpBB2/antirobot_pic.php');
+image_processing_assert(strpos($legacy_captcha, "!is_scalar(\$_GET['id'])") !== false, 'legacy CAPTCHA identifiers must be scalar');
+image_processing_assert(strpos($legacy_captcha, "preg_match('/^[a-z]{5}\$/D'") !== false, 'legacy CAPTCHA keys must match the generated format');
+image_processing_assert(strpos($legacy_captcha, 'readfile($image_file);') !== false, 'legacy CAPTCHA images must use the resolved confined path');
+
 $attachment_thumbnail = file_get_contents($root . '/phpBB2/attach_mod/includes/functions_thumbs.php');
 image_processing_assert(strpos($attachment_thumbnail, '$image_info === false') !== false, 'attachment thumbnails must handle corrupt image metadata');
 image_processing_assert(strpos($attachment_thumbnail, 'if (!$image)') !== false, 'attachment thumbnails must handle failed image decoders');

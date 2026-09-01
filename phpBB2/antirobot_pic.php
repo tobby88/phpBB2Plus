@@ -48,7 +48,7 @@ init_userprefs($userdata);
 // End session management
 //
 
-if( !isset($_GET['id']) )
+if( !isset($_GET['id']) || !is_scalar($_GET['id']) )
 {
 	die('Lack of information');
 }
@@ -91,7 +91,20 @@ if( $db->sql_numrows($result) == 0 )
 
 $reg_row = $db->sql_fetchrow($result);
 
+if (!$reg_row || !isset($reg_row['reg_key']) || !preg_match('/^[a-z]{5}$/D', (string) $reg_row['reg_key']))
+{
+	die('Invalid registration key');
+}
+
 $char = $reg_row['reg_key'][$id - 1];
+$image_directory = @realpath($phpbb_root_path . 'images/anti_robotic_reg');
+$image_file = ($image_directory !== false) ? @realpath($image_directory . DIRECTORY_SEPARATOR . 'anti_robotic_reg_' . $char . '.gif') : false;
+$image_directory_prefix = ($image_directory !== false) ? rtrim(str_replace('\\', '/', $image_directory), '/') . '/' : '';
+$image_file_normalized = ($image_file !== false) ? str_replace('\\', '/', $image_file) : '';
+if ($image_file === false || !@is_file($image_file) || strpos($image_file_normalized, $image_directory_prefix) !== 0)
+{
+	die('Registration image is unavailable');
+}
 
 // No Cache
 header ("Expires: Sat, 10 Dec 1983 07:00:00 GMT");
@@ -102,6 +115,7 @@ header ("Pragma: no-cache");                          // HTTP/1.0
 // Send Image
 header('Content-Disposition: inline; filename=smartor.gif');
 header('Content-type: image/gif');
-readfile('images/anti_robotic_reg/anti_robotic_reg_' . $char . '.gif');
+header('X-Content-Type-Options: nosniff');
+readfile($image_file);
 
 ?>
