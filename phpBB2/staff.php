@@ -1,12 +1,10 @@
 <?php
 // ############         Edit below         ########################################################################
-$last_post_length = '30';		// post title length
-$last_post_limit = '5';		// post limit
+$last_post_length = 30;		// post title length
+$last_post_limit = 5;		// post limit
 
 // optional part
 $exclude_users = '';		// enter user´s ID to exclude any user (separate them with a comma)
-$special_users = '';		// enter user´s ID if you want to a further area (separate them with a comma)
-$exclude_special_users = '';	// enter user´s ID if you added a further area and want to exlude user from a certain area (separate them with a comma)
 // ############         Edit above         ########################################################################
 
 define('IN_PHPBB', true);
@@ -15,10 +13,15 @@ include($phpbb_root_path .'extension.inc');
 include($phpbb_root_path .'common.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
+$last_post_length = max(1, min(200, (int) $last_post_length));
+$last_post_limit = max(1, min(100, (int) $last_post_limit));
+$excluded_user_ids = phpbb_sql_id_list($exclude_users);
+
 $userdata = session_pagestart($user_ip, PAGE_STAFF);
 init_userprefs($userdata);
 
-$mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode')));
+$mode = phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode'));
+$mode = ($mode === 'view_profile') ? $mode : '';
 $staff2 = array();
 
 $page_title = $lang['Staff'];
@@ -52,11 +55,12 @@ if( $mode != 'view_profile' )
 	}
 	while( $row = $db->sql_fetchrow($result_forums) )
 	{
-		$display_forums = !empty($is_auth_ary[$row['forum_id']]['auth_view']);
+		$forum_id = (int) $row['forum_id'];
+		$user_id = (int) $row['user_id'];
+		$display_forums = !empty($is_auth_ary[$forum_id]['auth_view']);
 		if( $display_forums )
 		{
-			$forum_id = $row['forum_id'];
-			$staff2[$row['user_id']][$row['forum_id']] = '&nbsp;<a href="'. append_sid("viewforum.$phpEx?f=$forum_id") .'" class="gen">'. phpbb_profile_text($row['forum_name']) .'</a>';
+			$staff2[$user_id][$forum_id] = '&nbsp;<a href="'. append_sid("viewforum.$phpEx?f=$forum_id") .'" class="gen">'. phpbb_profile_text($row['forum_name']) .'</a>';
 		}
 	}
 	$db->sql_freeresult($result_forums);
@@ -74,24 +78,14 @@ if( $mode != 'view_profile' )
 	$db->sql_freeresult($results_ranks);
 
 	$level_cat = $lang['Staff_level'];
-	for( $i = 0; $i < count($level_cat); $i++ )
+	for( $i = 0; $i < min(2, count($level_cat)); $i++ )
 	{
 		$user_level = $level_cat[$i];
 
 		$template->assign_block_vars('switch_list_staff.user_level', array('USER_LEVEL' => $user_level));
 
-		if( $level_cat['0'] )
-		{
-			$where = 'user_level = '. ADMIN;
-		}
-		else if( $level_cat['1'] )
-		{
-			$where = 'user_level = '. MOD;
-		}
-		$level_cat[$i] = '';
-
-		$sql_exclude_users = ( !empty($exclude_users) ) ? ' AND user_id NOT IN ('. $exclude_users .')' : '';
-		$sql_user = "SELECT * FROM ". USERS_TABLE ." WHERE $where $sql_exclude_users ORDER BY user_regdate";
+		$staff_level = ($i === 0) ? ADMIN : MOD;
+		$sql_user = "SELECT * FROM ". USERS_TABLE ." WHERE user_level = $staff_level AND user_id NOT IN ($excluded_user_ids) ORDER BY user_regdate";
 		if( !($result_user = $db->sql_query($sql_user)) )
 		{
 			message_die(GENERAL_ERROR, 'could not obtain user information.', '', __LINE__, __FILE__, $sql_user);
@@ -101,11 +95,7 @@ if( $mode != 'view_profile' )
 			$k = 0;
 			do
 			{
-				$user_id = $staff['user_id'];
-				$staff['user_icq'] = phpbb_profile_contact($staff['user_icq']);
-				$staff['user_aim'] = phpbb_profile_contact($staff['user_aim']);
-				$staff['user_yim'] = phpbb_profile_contact($staff['user_yim']);
-				$staff['user_msnm'] = phpbb_profile_contact($staff['user_msnm']);
+				$user_id = (int) $staff['user_id'];
 				$staff_website_url = phpbb_profile_http_url($staff['user_website']);
 				$user_status = ( $staff['user_session_time'] >= (time() - 60) ) ? (( $staff['user_allow_viewonline'] ) ? $lang['Staff_online'] : (( $userdata['user_level'] == ADMIN || $userdata['user_id'] == $user_id ) ? '<i>'. $lang['Staff_online'] .'</i>' : '')) : '';
 
@@ -260,25 +250,21 @@ else
 		$is_auth_ary = array();
 		$is_auth_ary = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata, $forums);
 
-		$except_forums = '\'start\'';
+		$except_forum_ids = array();
 		for( $f = 0; $f < count($forums); $f++ )
 		{
-			if( (!$is_auth_ary[$forums[$f]['forum_id']]['auth_read']) || (!$is_auth_ary[$forums[$f]['forum_id']]['auth_view']) )
+			$forum_id = (int) $forums[$f]['forum_id'];
+			if( empty($is_auth_ary[$forum_id]['auth_read']) || empty($is_auth_ary[$forum_id]['auth_view']) )
 			{
-				if( $except_forums == '\'start\'' )
-				{
-					$except_forums = $forums[$f]['forum_id'];
-				}
-				else
-				{
-					$except_forums .= ',' . $forums[$f]['forum_id'];
-				}
+				$except_forum_ids[] = $forum_id;
 			}
 		}
+		$except_forums = phpbb_sql_id_list($except_forum_ids);
+		$profile_user_id = (int) $view_profile['user_id'];
 
 		$sql_last_posts = "SELECT p.post_time, p.post_id, p.poster_id, pt.post_id, pt.post_subject, t.forum_id, t.topic_id, t.topic_title, f.forum_name
 				   FROM ". POSTS_TABLE ." p, ". POSTS_TEXT_TABLE ." pt, ". TOPICS_TABLE ." t, ". FORUMS_TABLE ." f
-				   WHERE p.poster_id = '". $view_profile['user_id'] ."' AND p.post_id = pt.post_id AND p.topic_id = t.topic_id
+				   WHERE p.poster_id = $profile_user_id AND p.post_id = pt.post_id AND p.topic_id = t.topic_id
 					   AND t.forum_id = f.forum_id AND t.forum_id NOT IN ($except_forums) AND t.topic_status <> '2'
 				   ORDER BY p.post_time DESC LIMIT $last_post_limit";
 		if( !($results_last_posts = $db->sql_query($sql_last_posts)) )
@@ -293,11 +279,11 @@ else
 
 			$template->assign_block_vars('switch_view_profile.last_posts', array(
 				'LAST_POST_TITLE' => phpbb_profile_text($last_post_title),
-				'LAST_POST_URL' => append_sid("viewtopic.$phpEx?". POST_POST_URL ."=$last_posts[post_id]#$last_posts[post_id]"),
+				'LAST_POST_URL' => append_sid("viewtopic.$phpEx?". POST_POST_URL .'='. (int) $last_posts['post_id'] .'#'. (int) $last_posts['post_id']),
 				'LAST_POST_TIME' => create_date($board_config['default_dateformat'], $last_posts['post_time'], $board_config['board_timezone']),
 				'LAST_POST_PERIOD' => sprintf($lang['Staff_ago'], period(time() - $last_posts['post_time'])),
 				'FORUM_NAME' => phpbb_profile_text($last_posts['forum_name']),
-				'FORUM_URL' => append_sid("viewforum.$phpEx?". POST_FORUM_URL ."=$last_posts[forum_id]"),
+				'FORUM_URL' => append_sid("viewforum.$phpEx?". POST_FORUM_URL .'='. (int) $last_posts['forum_id']),
 			));
 		}
 		$db->sql_freeresult($results_last_posts);
@@ -306,7 +292,8 @@ else
 		$total_topics = get_db_stat('topiccount');
 	}
 
-	$sql_topics = "SELECT count(topic_id) AS user_topics FROM ". TOPICS_TABLE ." WHERE topic_poster = '". $view_profile['user_id'] ."'";
+	$profile_user_id = (int) $view_profile['user_id'];
+	$sql_topics = "SELECT count(topic_id) AS user_topics FROM ". TOPICS_TABLE ." WHERE topic_poster = $profile_user_id";
 	if( !($results_topics = $db->sql_query($sql_topics)) )
 	{
 		message_die(GENERAL_ERROR, 'error getting users post information.', '', __LINE__, __FILE__, $sql_topics);
@@ -329,7 +316,7 @@ else
 		$template->assign_block_vars('switch_view_profile.view_signature', array());
 		$user_sig = ( $view_profile['user_allowsmile'] && $board_config['allow_smilies'] ) ? smilies_pass($user_sig) : $user_sig;
 		$user_sig = ( $board_config['allow_bbcode'] && $user_sig_bbcode_uid != '' ) ? bbencode_second_pass($user_sig, $user_sig_bbcode_uid) : preg_replace('/\:[0-9a-z\:]+\]/si', ']', $user_sig);
-		$user_sig = ( !$board_config['allow_html'] && $userdata['user_allowhtml'] ) ? preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig) : $user_sig;
+		$user_sig = ( !$board_config['allow_html'] || empty($view_profile['user_allowhtml']) ) ? preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig) : $user_sig;
 		$user_sig = str_replace("\n", "\n<br />\n", $user_sig);
 		$user_sig = make_clickable($user_sig);
 		$user_sig = ( count($orig_word) ) ? phpbb_preg_replace_outside_tags($user_sig, $orig_word, $replacement_word) : $user_sig;

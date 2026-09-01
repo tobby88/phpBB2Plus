@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the staff directory and its profile popup: manually configured
+  excluded users and permission-derived forum exclusions are normalized as
+  positive integer lists, result sizes are bounded, unknown modes fall back to
+  the directory, and generated profile/post links use integer identifiers.
+  Signature HTML now follows the profile owner's setting instead of the
+  viewing account's preference, while two non-functional legacy configuration
+  switches have been removed.
 - Bounded every Portal database-configured result batch and thumbnail size,
   normalized excluded forum, Album category and poll forum lists before SQL,
   and removed the old string sentinel from numeric `NOT IN` clauses. Invalid
