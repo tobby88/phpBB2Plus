@@ -192,34 +192,24 @@ function ctracker_rate_limit_mark_success($bucket, $identity)
 	return (bool) $db->sql_query($sql);
 }
 
-function ctracker_enforce_request_limit()
+function ctracker_enforce_request_limit_profile($profile)
 {
-	global $db, $ctracker_config, $HTTP_SERVER_VARS, $HTTP_POST_VARS, $HTTP_GET_VARS;
+	global $ctracker_config;
 
-	if (empty($ctracker_config->settings['request_limit_enabled']))
-	{
-		return;
-	}
-
-	$method = isset($HTTP_SERVER_VARS['REQUEST_METHOD']) && is_scalar($HTTP_SERVER_VARS['REQUEST_METHOD']) ? strtoupper((string) $HTTP_SERVER_VARS['REQUEST_METHOD']) : '';
-	if ($method !== 'POST')
-	{
-		return;
-	}
-
-	$script_value = isset($HTTP_SERVER_VARS['SCRIPT_NAME']) && is_scalar($HTTP_SERVER_VARS['SCRIPT_NAME']) ? (string) $HTTP_SERVER_VARS['SCRIPT_NAME'] : '';
-	$script = strtolower(basename(str_replace('\\', '/', $script_value)));
-	$profile = ctracker_request_limit_profile(
-		$script,
-		is_array($HTTP_POST_VARS) ? $HTTP_POST_VARS : array(),
-		is_array($HTTP_GET_VARS) ? $HTTP_GET_VARS : array()
-	);
-	if ($profile === false)
+	if (empty($ctracker_config->settings['request_limit_enabled']) || !is_array($profile) || count($profile) !== 4)
 	{
 		return;
 	}
 
 	list($bucket, $window_seconds, $setting_name, $default_limit) = $profile;
+	if (!is_scalar($bucket) || !is_scalar($setting_name))
+	{
+		return;
+	}
+	$bucket = (string) $bucket;
+	$setting_name = (string) $setting_name;
+	$window_seconds = max(1, min(86400, intval($window_seconds)));
+	$default_limit = max(1, min(10000, intval($default_limit)));
 	$configured_limit = isset($ctracker_config->settings[$setting_name]) ? intval($ctracker_config->settings[$setting_name]) : $default_limit;
 	$limit = max(1, min(10000, $configured_limit));
 	$remote_ip = isset($ctracker_config->user_ip_value) ? (string) $ctracker_config->user_ip_value : '0.0.0.0';
@@ -240,6 +230,30 @@ function ctracker_enforce_request_limit()
 			'</body></html>';
 		exit;
 	}
+}
+
+function ctracker_enforce_request_limit()
+{
+	global $HTTP_SERVER_VARS, $HTTP_POST_VARS, $HTTP_GET_VARS;
+
+	$method = isset($HTTP_SERVER_VARS['REQUEST_METHOD']) && is_scalar($HTTP_SERVER_VARS['REQUEST_METHOD']) ? strtoupper((string) $HTTP_SERVER_VARS['REQUEST_METHOD']) : '';
+	if ($method !== 'POST')
+	{
+		return;
+	}
+
+	$script_value = isset($HTTP_SERVER_VARS['SCRIPT_NAME']) && is_scalar($HTTP_SERVER_VARS['SCRIPT_NAME']) ? (string) $HTTP_SERVER_VARS['SCRIPT_NAME'] : '';
+	$script = strtolower(basename(str_replace('\\', '/', $script_value)));
+	$profile = ctracker_request_limit_profile(
+		$script,
+		is_array($HTTP_POST_VARS) ? $HTTP_POST_VARS : array(),
+		is_array($HTTP_GET_VARS) ? $HTTP_GET_VARS : array()
+	);
+	if ($profile === false)
+	{
+		return;
+	}
+	ctracker_enforce_request_limit_profile($profile);
 }
 
 /**

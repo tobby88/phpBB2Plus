@@ -66,6 +66,15 @@ if (isset($_REQUEST['psid']))
 	{
 		message_die(GENERAL_ERROR, 'Invalid upload session');
 	}
+	// The Perl bridge and every subsequent item in a multi-image batch return
+	// through a session-bound GET. Count those actual processing hand-offs in
+	// the upload bucket; the ordinary PHP uploader's initial POST is already
+	// covered centrally and must not be counted twice.
+	$request_method = isset($_SERVER['REQUEST_METHOD']) && is_scalar($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : '';
+	if ($request_method !== 'POST' && function_exists('ctracker_enforce_request_limit_profile'))
+	{
+		ctracker_enforce_request_limit_profile(array('upload', 3600, 'request_limit_upload', 30));
+	}
 
 	// Session id for this upload.
 	// Check if this a multi upload so we transfer the correct upload file

@@ -68,13 +68,22 @@ if (ctracker_rate_limit_increment('test', 'identity', 60, 1) !== 0 ||
 }
 
 $ctracker_config = new stdClass();
-$ctracker_config->settings = array('loginfeature' => '1', 'logincount' => '20');
+$ctracker_config->settings = array(
+	'loginfeature' => '1', 'logincount' => '20',
+	'request_limit_enabled' => '1', 'request_limit_upload' => '30'
+);
 $ctracker_config->user_ip_value = '192.0.2.10';
 $before_identity_count = $db->count;
 ctracker_enforce_login_identity_limit('Example User');
 if ($db->count !== $before_identity_count + 1)
 {
 	$errors[] = 'Per-IP/account login limiter did not use the atomic store.';
+}
+$before_upload_count = $db->count;
+ctracker_enforce_request_limit_profile(array('upload', 3600, 'request_limit_upload', 30));
+if ($db->count !== $before_upload_count + 1)
+{
+	$errors[] = 'Explicit upload hand-off limiter did not use the atomic store.';
 }
 
 $db->last_updated_at = 0;
@@ -90,10 +99,15 @@ $settings_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctrack
 $settings_template = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/templates/fisubsilversh/ctracker/acp/acp_settings.tpl');
 $basic_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/install/schemas/mysql_basic.sql');
 $updater_source = file_get_contents(dirname(dirname(__DIR__)) . '/update/update_from_153a.php');
+$nuffload_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/album_nuffload.php');
 if (strpos($basic_source, "('request_limit_content', '60')") === false ||
 	strpos($updater_source, 'foreach ($seed_statements as $seed_sql)') === false)
 {
 	$errors[] = 'The dedicated content limit is missing from the fresh-install or 1.53a migration path.';
+}
+if (strpos($nuffload_source, "ctracker_enforce_request_limit_profile(array('upload', 3600, 'request_limit_upload', 30))") === false)
+{
+	$errors[] = 'The session-bound Nuffload GET hand-off is not covered by the upload limiter.';
 }
 if (strpos($userfunctions_source, "change_configuration('reg_last_reg'") !== false ||
 	strpos($userfunctions_source, "change_configuration('reg_lastip'") !== false ||

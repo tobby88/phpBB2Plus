@@ -11,6 +11,9 @@ changes consolidated after that baseline without implying active maintenance.
 - Added a separately configurable five-minute CrackerTracker limit for posts,
   private messages, shoutbox entries, comments, ratings and Arcade scores,
   distinct from the broad per-minute write and hourly upload limits.
+- Counted the authenticated GET hand-offs used by the legacy Nuffload CGI and
+  multi-image processor in the hourly upload limit, closing a gap where only
+  the initial browser POST was previously visible to the central limiter.
 - Denied direct HTTP execution of PHP implementation files below the internal
   include, database-driver, Attachment, Album, paFileDB, CrackerTracker and
   statistics-module trees while retaining access to their static assets.
