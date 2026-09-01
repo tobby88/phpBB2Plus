@@ -770,11 +770,11 @@ function album_get_last_pic_info($cats, &$last_pic_id)
     // Write username of last poster
     if (($row['user_id'] == ALBUM_GUEST) or ($row['username'] == ''))
 	{
-        $info .= ($row['pic_username'] == '') ? $lang['Guest'] : $row['pic_username'];
+        $info .= ($row['pic_username'] == '') ? $lang['Guest'] : album_html_text($row['pic_username']);
     }
 	else
 	{
-        $info .= $lang['Poster'] . ': <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $row['user_id']) . '">' . $row['username'] . '</a>';
+        $info .= $lang['Poster'] . ': <a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . (int) $row['user_id']) . '">' . album_html_text($row['username']) . '</a>';
     }
 
     // Write the last pic's title. Truncate it if it's too long
@@ -783,14 +783,16 @@ function album_get_last_pic_info($cats, &$last_pic_id)
 		$album_config['last_pic_title_length'] = 25;
     }
 
-	if (strlen($row['pic_title']) > $album_config['last_pic_title_length'])
+	$last_pic_title = html_entity_decode((string) $row['pic_title'], ENT_QUOTES, 'UTF-8');
+	$last_pic_title_length = max(1, min(200, (int) $album_config['last_pic_title_length']));
+	if (strlen($last_pic_title) > $last_pic_title_length)
     {
-		$row['pic_title'] = substr($row['pic_title'], 0, $album_config['last_pic_title_length']) . '...';
+		$last_pic_title = substr($last_pic_title, 0, $last_pic_title_length) . '...';
     }
 
     $info .= '<br />' . $lang['Pic_Title'] . ': <a href="';
     $info .= ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=" . $row['pic_id']) . '" target="_blank" rel="noopener noreferrer">' : append_sid($album_pic_url . '?pic_id=' . $row['pic_id']) . '">' ;
-    $info .= $row['pic_title'] . '</a>';
+    $info .= album_html_text($last_pic_title) . '</a>';
 
 	$last_pic_id = $row['pic_id'];
 
@@ -851,14 +853,14 @@ function album_get_last_comment_info($cats)
 
 	if (($row['user_id'] == ALBUM_GUEST) or ($row['comment_username'] == ''))
     {
-		$info .= ($row['comment_username'] == '') ? $lang['Guest'] : $row['comment_username'];
+		$info .= ($row['comment_username'] == '') ? $lang['Guest'] : album_html_text($row['comment_username']);
     }
 	else
     {
-		$info .= '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $row['user_id']) . '">' . $row['username'] . '</a>';
+		$info .= '<a href="' . append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . (int) $row['user_id']) . '">' . album_html_text($row['username']) . '</a>';
     }
 
-	$info .= '<br />' . $lang['Pic_Title'] . ': <a href="' . append_sid($album_pic_url . '?pic_id=' . $row['pic_id']) . '">' . $row['pic_title'] . '</a>';
+	$info .= '<br />' . $lang['Pic_Title'] . ': <a href="' . append_sid($album_pic_url . '?pic_id=' . (int) $row['pic_id']) . '">' . album_html_text($row['pic_title']) . '</a>';
 
 	return $info;
 }
@@ -1084,20 +1086,20 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 			}
 
 			$template->assign_block_vars('index_pics_block.picrow.piccol', array(
-				'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $picrow[$j]['pic_id']) : append_sid($album_show_pic_url . '?pic_id='. $picrow[$j]['pic_id']),
-				'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $picrow[$j]['pic_id']),
-				'DESC' => $picrow[$j]['pic_desc'],
+				'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". (int) $picrow[$j]['pic_id']) : append_sid($album_show_pic_url . '?pic_id='. (int) $picrow[$j]['pic_id']),
+				'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". (int) $picrow[$j]['pic_id']),
+				'DESC' => album_html_text($picrow[$j]['pic_desc']),
 				'APPROVAL' => $approval_link,
 				)
 			);
 
 			if( ($picrow[$j]['user_id'] == ALBUM_GUEST) or ($picrow[$j]['username'] == '') )
 			{
-				$pic_poster = ($picrow[$j]['pic_username'] == '') ? $lang['Guest'] : $picrow[$j]['pic_username'];
+				$pic_poster = ($picrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($picrow[$j]['pic_username']);
 			}
 			else
 			{
-				$pic_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $picrow[$j]['user_id']) .'">'. $picrow[$j]['username'] .'</a>';
+				$pic_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $picrow[$j]['user_id']) .'">'. album_html_text($picrow[$j]['username']) .'</a>';
 			}
 
 			if 	(defined('ALBUM_SP_CONFIG_TABLE'))
@@ -1122,7 +1124,7 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 							 ($userdata['user_level'] == ADMIN) ) ? true : false;
 
 			$template->assign_block_vars('index_pics_block.picrow.pic_detail', array(
-				'TITLE' => '<a href = "' . $album_show_pic_url . '?pic_id=' . $picrow[$j]['pic_id'] . '">' . $picrow[$j]['pic_title'] . '</a>',
+				'TITLE' => '<a href="' . $album_show_pic_url . '?pic_id=' . (int) $picrow[$j]['pic_id'] . '">' . album_html_text($picrow[$j]['pic_title']) . '</a>',
 				'POSTER' => $pic_poster,
 				'TIME' => create_date($board_config['default_dateformat'], $picrow[$j]['pic_time'], $board_config['board_timezone']),
 
@@ -1160,7 +1162,7 @@ function album_build_picture_table($user_id, $cat_ids, $thiscat, $auth_data, $st
 				$image_cat_url = append_sid("$album_page_url?cat_id=". $picrow[$j]['cat_id'] . '&user_id=' . $picrow[$j]['cat_user_id']);
 
 				$template->assign_block_vars('index_pics_block.picrow.pic_detail.cats', array(
-	            	'CATEGORY' => $picrow[$j]['cat_title'],
+				'CATEGORY' => album_html_text($picrow[$j]['cat_title']),
 					'U_PIC_CAT' => $image_cat_url
 					)
 				);
@@ -1244,19 +1246,19 @@ function album_build_recent_pics($cats)
 					}
 
 					$template->assign_block_vars('recent_pics_block.recent_pics.recent_col', array(
-						'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $recentrow[$j]['pic_id']) : append_sid($album_show_pic_url. '?pic_id='. $recentrow[$j]['pic_id']),
-						'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $recentrow[$j]['pic_id']),
-						'DESC' => $recentrow[$j]['pic_desc']
+						'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". (int) $recentrow[$j]['pic_id']) : append_sid($album_show_pic_url. '?pic_id='. (int) $recentrow[$j]['pic_id']),
+						'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". (int) $recentrow[$j]['pic_id']),
+						'DESC' => album_html_text($recentrow[$j]['pic_desc'])
 						)
 					);
 
 					if( ($recentrow[$j]['user_id'] == ALBUM_GUEST) or ($recentrow[$j]['username'] == '') )
 					{
-						$recent_poster = ($recentrow[$j]['pic_username'] == '') ? $lang['Guest'] : $recentrow[$j]['pic_username'];
+						$recent_poster = ($recentrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($recentrow[$j]['pic_username']);
 					}
 					else
 					{
-						$recent_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $recentrow[$j]['user_id']) .'">'. $recentrow[$j]['username'] .'</a>';
+						$recent_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $recentrow[$j]['user_id']) .'">'. album_html_text($recentrow[$j]['username']) .'</a>';
 					}
 
 					if 	(defined('ALBUM_SP_CONFIG_TABLE'))
@@ -1271,7 +1273,7 @@ function album_build_recent_pics($cats)
 					}
 
 					$template->assign_block_vars('recent_pics_block.recent_pics.recent_detail', array(
-						'TITLE' => '<a href = "'.$album_show_pic_url . '?pic_id=' . $recentrow[$j]['pic_id'] . '">' . $recentrow[$j]['pic_title'] . '</a>',
+						'TITLE' => '<a href="'.$album_show_pic_url . '?pic_id=' . (int) $recentrow[$j]['pic_id'] . '">' . album_html_text($recentrow[$j]['pic_title']) . '</a>',
 						'POSTER' => $recent_poster,
 						'TIME' => create_date($board_config['default_dateformat'], $recentrow[$j]['pic_time'], $board_config['board_timezone']),
 
@@ -1372,19 +1374,19 @@ function album_build_highest_rated_pics($cats)
 					}
 
 					$template->assign_block_vars('highest_pics_block.highest_pics.highest_col', array(
-					   'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $highestrow[$j]['pic_id']) : append_sid($album_show_pic_url.'?pic_id='. $highestrow[$j]['pic_id']),
-					   'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $highestrow[$j]['pic_id']),
-					   'DESC' => $highestrow[$j]['pic_desc']
+					   'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". (int) $highestrow[$j]['pic_id']) : append_sid($album_show_pic_url.'?pic_id='. (int) $highestrow[$j]['pic_id']),
+					   'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". (int) $highestrow[$j]['pic_id']),
+					   'DESC' => album_html_text($highestrow[$j]['pic_desc'])
 					   )
 					);
 
 					if( ($highestrow[$j]['user_id'] == ALBUM_GUEST) or ($highestrow[$j]['username'] == '') )
 					{
-						$highest_poster = ($highestrow[$j]['pic_username'] == '') ? $lang['Guest'] : $highestrow[$j]['pic_username'];
+						$highest_poster = ($highestrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($highestrow[$j]['pic_username']);
 					}
 					else
 					{
-						$highest_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&". POST_USERS_URL .'='. $highestrow[$j]['user_id']) .'">'. $highestrow[$j]['username'] .'</a>';
+						$highest_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $highestrow[$j]['user_id']) .'">'. album_html_text($highestrow[$j]['username']) .'</a>';
 					}
 
 					if 	(defined('ALBUM_SP_CONFIG_TABLE'))
@@ -1399,7 +1401,7 @@ function album_build_highest_rated_pics($cats)
 					}
 
 					$template->assign_block_vars('highest_pics_block.highest_pics.highest_detail', array(
-					   'H_TITLE' => '<a href = "'.$album_show_pic_url . '?pic_id=' . $highestrow[$j]['pic_id'] . '">' . $highestrow[$j]['pic_title'] . '</a>',
+					   'H_TITLE' => '<a href="'.$album_show_pic_url . '?pic_id=' . (int) $highestrow[$j]['pic_id'] . '">' . album_html_text($highestrow[$j]['pic_title']) . '</a>',
 					   'H_POSTER' => $highest_poster,
 					   'H_TIME' => create_date($board_config['default_dateformat'], $highestrow[$j]['pic_time'], $board_config['board_timezone']),
 
@@ -1500,19 +1502,19 @@ function album_build_random_pics($cats)
 					}
 
 					$template->assign_block_vars('random_pics_block.rand_pics.rand_col', array(
-						'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $randrow[$j]['pic_id']) : append_sid($album_show_pic_url . '?pic_id='. $randrow[$j]['pic_id']),
-						'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $randrow[$j]['pic_id']),
-						'DESC' => $randrow[$j]['pic_desc']
+						'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". (int) $randrow[$j]['pic_id']) : append_sid($album_show_pic_url . '?pic_id='. (int) $randrow[$j]['pic_id']),
+						'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". (int) $randrow[$j]['pic_id']),
+						'DESC' => album_html_text($randrow[$j]['pic_desc'])
 						)
 					);
 
 					if( ($randrow[$j]['user_id'] == ALBUM_GUEST) or ($randrow[$j]['username'] == '') )
 					{
-						$rand_poster = ($randrow[$j]['pic_username'] == '') ? $lang['Guest'] : $randrow[$j]['pic_username'];
+						$rand_poster = ($randrow[$j]['pic_username'] == '') ? $lang['Guest'] : album_html_text($randrow[$j]['pic_username']);
 					}
 					else
 					{
-						$rand_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $randrow[$j]['user_id']) .'">'. $randrow[$j]['username'] .'</a>';
+						$rand_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $randrow[$j]['user_id']) .'">'. album_html_text($randrow[$j]['username']) .'</a>';
 					}
 
 					if 	(defined('ALBUM_SP_CONFIG_TABLE'))
@@ -1527,7 +1529,7 @@ function album_build_random_pics($cats)
 					}
 
 					$template->assign_block_vars('random_pics_block.rand_pics.rand_detail', array(
-						'TITLE' => '<a href = "'.$album_show_pic_url . '?pic_id=' . $randrow[$j]['pic_id'] . '">' . $randrow[$j]['pic_title'] . '</a>',
+						'TITLE' => '<a href="'.$album_show_pic_url . '?pic_id=' . (int) $randrow[$j]['pic_id'] . '">' . album_html_text($randrow[$j]['pic_title']) . '</a>',
 						'POSTER' => $rand_poster,
 						'TIME' => create_date($board_config['default_dateformat'], $randrow[$j]['pic_time'], $board_config['board_timezone']),
 

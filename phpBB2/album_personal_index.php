@@ -41,11 +41,11 @@ init_userprefs($userdata);
 include($album_root_path . 'album_common.'.$phpEx);
 
 
-$start = ( isset($_GET['start']) ) ? intval($_GET['start']) : 0;
+$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
 if ( isset($_GET['mode']) || isset($_POST['mode']) )
 {
-	$mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
+	$mode = ( isset($_POST['mode']) ) ? phpbb_request_scalar($_POST, 'mode') : phpbb_request_scalar($_GET, 'mode');
 }
 else
 {
@@ -54,11 +54,11 @@ else
 
 if(isset($_POST['order']))
 {
-	$sort_order = ($_POST['order'] == 'ASC') ? 'ASC' : 'DESC';
+	$sort_order = (phpbb_request_scalar($_POST, 'order') == 'ASC') ? 'ASC' : 'DESC';
 }
 else if(isset($_GET['order']))
 {
-	$sort_order = ($_GET['order'] == 'ASC') ? 'ASC' : 'DESC';
+	$sort_order = (phpbb_request_scalar($_GET, 'order') == 'ASC') ? 'ASC' : 'DESC';
 }
 else
 {
@@ -118,22 +118,24 @@ $template->assign_vars(array(
 );
 
 
+$items_per_page = max(1, min(100, intval($board_config['topics_per_page'])));
 switch( $mode )
 {
 	case 'joined':
-		$order_by = "user_regdate ASC LIMIT $start, " . $board_config['topics_per_page'];
+		$order_by = "user_regdate ASC LIMIT $start, $items_per_page";
 		break;
 	case 'username':
-		$order_by = "username $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+		$order_by = "username $sort_order LIMIT $start, $items_per_page";
 		break;
 	case 'pics':
-		$order_by = "pics $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+		$order_by = "pics $sort_order LIMIT $start, $items_per_page";
 		break;
 	case 'last_pic':
-		$order_by = "last_pic $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+		$order_by = "last_pic $sort_order LIMIT $start, $items_per_page";
 		break;
 	default:
-		$order_by = "user_regdate $sort_order LIMIT $start, " . $board_config['topics_per_page'];
+		$mode = 'joined';
+		$order_by = "user_regdate $sort_order LIMIT $start, $items_per_page";
 		break;
 }
 
@@ -164,10 +166,10 @@ for ($i = 0; $i < count($memberrow); $i++)
 {
 	$template->assign_block_vars('memberrow', array(
 		'ROW_CLASS' => ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'],
-		'USERNAME' => $memberrow[$i]['username'],
-		'U_VIEWGALLERY' => append_sid("album.$phpEx?user_id=". $memberrow[$i]['user_id']),
+		'USERNAME' => album_html_text($memberrow[$i]['username']),
+		'U_VIEWGALLERY' => append_sid("album.$phpEx?user_id=". (int) $memberrow[$i]['user_id']),
 		'JOINED' => create_date($lang['DATE_FORMAT'], $memberrow[$i]['user_regdate'], $board_config['board_timezone']),
-		'PICS' => $memberrow[$i]['pics'])
+		'PICS' => (int) $memberrow[$i]['pics'])
 	);
 }
 
@@ -185,16 +187,18 @@ if ( !($result = $db->sql_query($sql)) )
 	message_die(GENERAL_ERROR, 'Error getting total galleries', '', __LINE__, __FILE__, $sql);
 }
 
+$total_galleries = 0;
+$pagination = '';
 if ( $total = $db->sql_fetchrow($result) )
 {
-	$total_galleries = $total['total'];
+	$total_galleries = (int) $total['total'];
 
-	$pagination = generate_pagination("album_personal_index.$phpEx?mode=$mode&amp;order=$sort_order", $total_galleries, $board_config['topics_per_page'], $start). '&nbsp;';
+	$pagination = generate_pagination("album_personal_index.$phpEx?mode=$mode&amp;order=$sort_order", $total_galleries, $items_per_page, $start). '&nbsp;';
 }
 
 $template->assign_vars(array(
 	'PAGINATION' => $pagination,
-	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $board_config['topics_per_page'] ) + 1 ), ceil( $total_galleries / $board_config['topics_per_page'] ))
+	'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $items_per_page ) + 1 ), max(1, ceil( $total_galleries / $items_per_page )))
 	)
 );
 

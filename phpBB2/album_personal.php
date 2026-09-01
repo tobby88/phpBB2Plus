@@ -107,6 +107,7 @@ if( empty($username) )
 {
 	message_die(GENERAL_ERROR, 'Sorry, this user does not exist');
 }
+$username_html = album_html_text($username);
 
 
 // ------------------------------------
@@ -317,14 +318,14 @@ if ($total_pics > 0)
 			$template->assign_block_vars('picrow.piccol', array(
 				'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $picrow[$j]['pic_id']) : append_sid("album_showpage.$phpEx?pic_id=". $picrow[$j]['pic_id']),
 				'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $picrow[$j]['pic_id']),
-				'DESC' => $picrow[$j]['pic_desc']
+				'DESC' => album_html_text($picrow[$j]['pic_desc'])
 				)
 			);
 
 			$image_rating = ImageRating($picrow[$j]['rating']);
 
 			$template->assign_block_vars('picrow.pic_detail', array(
-				'TITLE' => $picrow[$j]['pic_title'],
+				'TITLE' => album_html_text($picrow[$j]['pic_title']),
 				'TIME' => create_date($board_config['default_dateformat'], $picrow[$j]['pic_time'], $board_config['board_timezone']),
 
 				'VIEW' => $picrow[$j]['pic_view_count'],
@@ -412,7 +413,7 @@ $template->assign_vars(array(
 	'UPLOAD_PIC_IMG' => $images['upload_pic'],
 	'L_UPLOAD_PIC' => $lang['Upload_Pic'],
 
-	'L_PERSONAL_GALLERY_NOT_CREATED' => sprintf($lang['Personal_gallery_not_created'], $username),
+	'L_PERSONAL_GALLERY_NOT_CREATED' => sprintf($lang['Personal_gallery_not_created'], $username_html),
 
 	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 
@@ -426,7 +427,7 @@ $template->assign_vars(array(
 	'L_YOUR_PERSONAL_GALLERY' => $lang['Your_Personal_Gallery'],
 	'L_PERSONAL_GALLERY_EXPLAIN' => $lang['Personal_Gallery_Explain'],
 
-	'L_PERSONAL_GALLERY_OF_USER' => sprintf($lang['Personal_Gallery_Of_User'], $username),
+	'L_PERSONAL_GALLERY_OF_USER' => sprintf($lang['Personal_Gallery_Of_User'], $username_html),
 
 	'L_SELECT_SORT_METHOD' => $lang['Select_sort_method'],
 	'L_ORDER' => $lang['Order'],

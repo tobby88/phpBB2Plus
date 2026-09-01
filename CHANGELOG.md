@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Normalized legacy entity-encoded Album titles, descriptions, category
+  labels, usernames and comments before rendering them across picture grids,
+  detail/edit/rating pages and recent/highest/random listings. Member and
+  personal-gallery modes now reject array-shaped controls, initialize empty
+  results and cap stored pagination settings to avoid warnings and oversized
+  result batches. Album comment smileys now validate their image paths, keep
+  stored codes out of JavaScript source and actually wrap after every fifth
+  item instead of relying on an always-false integer-division check.
 - Rejoined the standalone News page with its normalized shared dispatcher,
   fixed its category-mode mismatch and broken category-image path, escaped
   stored headlines, category names and comment labels in News and Portal

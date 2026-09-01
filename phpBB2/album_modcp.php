@@ -414,16 +414,16 @@ if ($mode == '')
 		{
 			if( ($picrow[$i]['user_id'] == ALBUM_GUEST) or ($picrow[$i]['username'] == '') )
 			{
-				$pic_poster = ($picrow[$i]['pic_username'] == '') ? $lang['Guest'] : htmlspecialchars($picrow[$i]['pic_username'], ENT_QUOTES, 'UTF-8');
+				$pic_poster = ($picrow[$i]['pic_username'] == '') ? $lang['Guest'] : album_html_text($picrow[$i]['pic_username']);
 			}
 			else
 			{
-				$pic_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $picrow[$i]['user_id']) .'">'. htmlspecialchars($picrow[$i]['username'], ENT_QUOTES, 'UTF-8') .'</a>';
+				$pic_poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $picrow[$i]['user_id']) .'">'. album_html_text($picrow[$i]['username']) .'</a>';
 			}
 
 			$template->assign_block_vars('picrow', array(
 				'PIC_ID' => $picrow[$i]['pic_id'],
-				'PIC_TITLE' => '<a href="'. append_sid("album_pic.$phpEx?pic_id=". (int) $picrow[$i]['pic_id']) .'" target="_blank" rel="noopener noreferrer">'. htmlspecialchars($picrow[$i]['pic_title'], ENT_QUOTES, 'UTF-8') .'</a>',
+				'PIC_TITLE' => '<a href="'. append_sid("album_pic.$phpEx?pic_id=". (int) $picrow[$i]['pic_id']) .'" target="_blank" rel="noopener noreferrer">'. album_html_text($picrow[$i]['pic_title']) .'</a>',
 				'POSTER' => $pic_poster,
 				'TIME' => create_date($board_config['default_dateformat'], $picrow[$i]['pic_time'], $board_config['board_timezone']),
 				'RATING' => ($picrow[$i]['rating'] == 0) ? $lang['Not_rated'] : round($picrow[$i]['rating'], 2),

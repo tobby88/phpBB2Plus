@@ -341,7 +341,7 @@ if( !$upload_submitted ) // is it not submitted?
 			if (album_check_permission($album_user_access, ALBUM_AUTH_CREATE_PERSONAL) == TRUE)
 			{
 				$selected = (($userdata['user_id'] ==  $userinfo[$idx]['user_id'])) ? ' selected="selected"' : '';
-			 	$personal_gallery_list .= '<option value="-'.$userinfo[$idx]['user_id'].'" ' . $selected . '>' . sprintf($lang['Personal_Gallery_Of_User'], $userinfo[$idx]['username']) . '</option>';
+			$personal_gallery_list .= '<option value="-'.(int) $userinfo[$idx]['user_id'].'" ' . $selected . '>' . sprintf($lang['Personal_Gallery_Of_User'], album_html_text($userinfo[$idx]['username'])) . '</option>';
 			}
 		}
 
@@ -368,7 +368,7 @@ if( !$upload_submitted ) // is it not submitted?
 
 	$template->assign_vars(array(
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
-		'CAT_TITLE' => $thiscat['cat_title'],
+		'CAT_TITLE' => album_html_text($thiscat['cat_title']),
 
 		'L_UPLOAD_PIC' => $lang['Upload_Pic'],
 

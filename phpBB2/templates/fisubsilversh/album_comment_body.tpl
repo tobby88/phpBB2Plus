@@ -189,7 +189,7 @@ function openAllSmiles()
 	   <table border="0" cellspacing="0" cellpadding="5">
 	      <tr>
 	     	<!-- BEGIN smilies -->
-	            <td><img src="{switch_comment_post.smilies.URL}" border="0" onmouseover="this.style.cursor='hand';" onclick="emotions(' {switch_comment_post.smilies.CODE} ');" alt="{switch_comment_post.smilies.DESC}" /></td>
+	            <td><img src="{switch_comment_post.smilies.URL}" border="0" style="cursor: pointer;" data-code=" {switch_comment_post.smilies.CODE} " onclick="emotions(this.getAttribute('data-code'));" alt="{switch_comment_post.smilies.DESC}" /></td>
 	                        			
 		        <!-- BEGIN new_col -->
 		        </tr><tr>

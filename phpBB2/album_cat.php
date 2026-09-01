@@ -722,7 +722,7 @@ if ($album_user_id == ALBUM_PUBLIC_GALLERY)
 		'L_ALBUM' => $lang['Album'],
 
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
-		'CAT_TITLE' => $thiscat['cat_title'],
+		'CAT_TITLE' => album_html_text($thiscat['cat_title']),
 
 		'ALBUM_NAVIGATION_ARROW' => ALBUM_NAV_ARROW,
 		'NAV_CAT_DESC' => $album_nav_cat_desc,

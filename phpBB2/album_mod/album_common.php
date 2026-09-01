@@ -33,6 +33,11 @@ if ( !defined('IN_PHPBB') )
 	die('Hacking attempt');
 }
 
+function album_html_text($value)
+{
+	return phpbb_stored_text($value);
+}
+
 
 //
 // Include Language

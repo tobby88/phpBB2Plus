@@ -36,41 +36,51 @@ if (empty($username))
 {
 	message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
 }
+$username_html = album_html_text($username);
 
 // ------------------------------------
 // Build the thumbnail page
 // ------------------------------------
 
+$album_view_type = ALBUM_LISTTYPE_PICTURES;
 if (isset ($_POST['type']))
 {
-	$album_view_type = $_POST['type'];
+	$album_view_type = strtolower(phpbb_request_scalar($_POST, 'type'));
 }
 elseif (isset ($_GET['type']))
 {
-	$album_view_type = $_GET['type'];
+	$album_view_type = strtolower(phpbb_request_scalar($_GET, 'type'));
 }
 
 if( isset($_GET['start']) )
 {
-	$start = intval($_GET['start']);
+	$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 }
 else if( isset($_POST['start']) )
 {
-	$start = intval($_POST['start']);
+	$start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', 0))));
 }
 else
 {
 	$start = 0;
 }
 
-$pics_per_page = $album_config['rows_per_page'] * $album_config['cols_per_page'];
+$cols_per_page = max(1, min(20, intval($album_config['cols_per_page'])));
+$rows_per_page = max(1, min(50, intval($album_config['rows_per_page'])));
+$pics_per_page = min(100, $rows_per_page * $cols_per_page);
 $limit_sql = ($start == 0) ? $pics_per_page : $start .','. $pics_per_page;
 
 // set some initial values...
 // $allowed_cat is set in album.php !!!
 $list_sql = '';
 $count_sql = '';
-//$album_view_type = ALBUM_LISTTYPE_PICTURES;
+$total_pics = 0;
+$allowed_sort_methods = array('pic_time', 'pic_title', 'username', 'pic_view_count', 'rating', 'comments', 'new_comment');
+if (!in_array($sort_method, $allowed_sort_methods, true))
+{
+	$sort_method = 'pic_time';
+}
+$sort_order = ($sort_order === 'ASC') ? 'ASC' : 'DESC';
 switch (strtolower($album_view_type))
 {
  	case ALBUM_LISTTYPE_RATINGS:
@@ -201,11 +211,11 @@ if ($total_pics > 0 && !empty($allowed_cat))
 		$album_comment_pic_url = 'album_comment.'.$phpEx;
 	}
 
-	for ($i = 0; $i < count($picrow); $i += $album_config['cols_per_page'])
+	for ($i = 0; $i < count($picrow); $i += $cols_per_page)
 	{
 		$template->assign_block_vars('picrow', array());
 
-		for ($j = $i; $j < ($i + $album_config['cols_per_page']); $j++)
+		for ($j = $i; $j < ($i + $cols_per_page); $j++)
 		{
 			if( $j >= count($picrow) )
 			{
@@ -215,7 +225,7 @@ if ($total_pics > 0 && !empty($allowed_cat))
 			$template->assign_block_vars('picrow.piccol', array(
 				'U_PIC' => ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=". $picrow[$j]['pic_id']) : append_sid("$album_show_pic_url?pic_id=". $picrow[$j]['pic_id']),
 				'THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=". $picrow[$j]['pic_id']),
-				'DESC' => $picrow[$j]['pic_desc']
+				'DESC' => album_html_text($picrow[$j]['pic_desc'])
 				)
 			);
 
@@ -246,9 +256,9 @@ if ($total_pics > 0 && !empty($allowed_cat))
 			$image_cat_url = append_sid("$album_page_url?cat_id=". $picrow[$j]['cat_id'] . '&user_id=' . $picrow[$j]['cat_user_id']);
 
 			$template->assign_block_vars('picrow.pic_detail', array(
-				'TITLE' => $picrow[$j]['pic_title'],
+				'TITLE' => album_html_text($picrow[$j]['pic_title']),
 
-				'CATEGORY' => $picrow[$j]['cat_title'],
+				'CATEGORY' => album_html_text($picrow[$j]['cat_title']),
 				'U_PIC_CAT' => $image_cat_url,
 
 				'TIME' => create_date($board_config['default_dateformat'], $picrow[$j]['pic_time'], $board_config['board_timezone']),
@@ -327,17 +337,17 @@ switch (strtolower($album_view_type))
 	case 'comment':
 		$template->assign_block_vars('switch_show_all_pics', array());
 		$template->assign_block_vars('switch_show_all_ratings', array());
-		$list_title = sprintf($lang['Comment_List_Of_User'], $username);
+		$list_title = sprintf($lang['Comment_List_Of_User'], $username_html);
 		break;
 	case 'rating':
 		$template->assign_block_vars('switch_show_all_pics', array());
 		$template->assign_block_vars('switch_show_all_comments', array());
-		$list_title = sprintf($lang['Rating_List_Of_User'], $username);
+		$list_title = sprintf($lang['Rating_List_Of_User'], $username_html);
 		break;
 	default:
 		$template->assign_block_vars('switch_show_all_ratings', array());
 		$template->assign_block_vars('switch_show_all_comments', array());
-		$list_title = sprintf($lang['Picture_List_Of_User'], $username);
+		$list_title = sprintf($lang['Picture_List_Of_User'], $username_html);
 }
 
 if (defined('ALBUM_SP_CONFIG_TABLE'))
@@ -348,23 +358,23 @@ if (defined('ALBUM_SP_CONFIG_TABLE'))
 $template->assign_vars(array(
 	'TARGET_BLANK' => ($album_config['fullpic_popup']) ? 'target="_blank" rel="noopener noreferrer"' : '',
 
-	'S_COLS' => $album_config['cols_per_page'],
-	'S_COL_WIDTH' => (100/$album_config['cols_per_page']) . '%',
+	'S_COLS' => $cols_per_page,
+	'S_COL_WIDTH' => (100/$cols_per_page) . '%',
 
 	'L_NO_PICTURES_BY_USER' => $lang['No_Pics'],
 	'U_MEMBERLIST_GALLERY' => append_sid("album.$phpEx?user_id=$album_user_id&mode=$album_view_mode&type=$album_view_type"),
 	'L_MEMBERLIST_GALLERY_EXPLAIN' => $lang['Member_Picture_List_Explain'],
 
 	'U_SHOW_ALL_PICS' => append_sid("album.$phpEx?user_id=$album_user_id$album_view_mode_param&type=pic"),
-	'L_SHOW_ALL_PICS' => sprintf($lang['Show_All_Pictures_Of_user'], $username),
+	'L_SHOW_ALL_PICS' => sprintf($lang['Show_All_Pictures_Of_user'], $username_html),
 	'SHOW_ALL_PICS_IMG' => $images['show_all_pics'],
 
 	'U_SHOW_ALL_RATINGS' => append_sid("album.$phpEx?user_id=$album_user_id$album_view_mode_param&type=rating"),
-	'L_SHOW_ALL_RATINGS' => sprintf($lang['Show_All_Ratings_Of_user'], $username),
+	'L_SHOW_ALL_RATINGS' => sprintf($lang['Show_All_Ratings_Of_user'], $username_html),
 	'SHOW_ALL_RATINGS_IMG' => $images['show_all_ratings'],
 
 	'U_SHOW_ALL_COMMENTS' => append_sid("album.$phpEx?user_id=$album_user_id$album_view_mode_param&type=comment"),
-	'L_SHOW_ALL_COMMENTS' => sprintf($lang['Show_All_Comments_Of_user'], $username),
+	'L_SHOW_ALL_COMMENTS' => sprintf($lang['Show_All_Comments_Of_user'], $username_html),
 	'SHOW_ALL_COMMENTS_IMG' => $images['show_all_comments'],
 
 	'L_PICTURES_OF_USER' => $list_title,

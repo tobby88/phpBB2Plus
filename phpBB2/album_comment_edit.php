@@ -189,11 +189,11 @@ if( !isset($_POST['comment']) )
 
 	if( ($thispic['pic_user_id'] == ALBUM_GUEST) or ($thispic['username'] == '') )
 	{
-		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : $thispic['pic_username'];
+		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : album_html_text($thispic['pic_username']);
 	}
 	else
 	{
-		$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $thispic['user_id']) .'">'. $thispic['username'] .'</a>';
+		$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $thispic['user_id']) .'">'. album_html_text($thispic['username']) .'</a>';
 	}
 
 	//
@@ -231,34 +231,42 @@ if( !isset($_POST['comment']) )
 
 	for ($i = 1; $i < $smilies_count+1; $i++)
 	{
-	    $template->assign_block_vars('switch_comment_post.smilies', array(
-	        'CODE' => $smilies_data[$i - 1]['code'],
-	        'URL' => $board_config['smilies_path'] . '/' . $smilies_data[$i - 1]['smile_url'],
-	     	'DESC' => $smilies_data[$i - 1]['emoticon']
-	    ));
+		$smiley_name = phpbb_profile_image_name($smilies_data[$i - 1]['smile_url']);
+		$smiley_path = phpbb_profile_asset_path($board_config['smilies_path']);
+		if ($smiley_name === '' || $smiley_path === '')
+		{
+			continue;
+		}
+		$template->assign_block_vars('switch_comment_post.smilies', array(
+			'CODE' => album_html_text($smilies_data[$i - 1]['code']),
+			'URL' => $smiley_path . '/' . rawurlencode($smiley_name),
+			'DESC' => album_html_text($smilies_data[$i - 1]['emoticon'])
+		));
 
-		if ( is_integer($i / 5) )
-	    	$template->assign_block_vars('switch_comment_post.smilies.new_col', array());
+		if ( ($i % 5) === 0 )
+		{
+			$template->assign_block_vars('switch_comment_post.smilies.new_col', array());
+		}
 
-    }
+	}
 	}
 
 	//--- changed $thiscat to $thispic
 	$template->assign_vars(array(
-		'CAT_TITLE' => $thispic['cat_title'],
+		'CAT_TITLE' => album_html_text($thispic['cat_title']),
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
 	//--- Album Category Hierarchy : end
 
 		'U_THUMBNAIL' => append_sid("album_thumbnail.$phpEx?pic_id=$pic_id"),
 		'U_PIC' => append_sid("album_pic.$phpEx?pic_id=$pic_id"),
 
-		'PIC_TITLE' => $thispic['pic_title'],
-		'PIC_DESC' => nl2br($thispic['pic_desc']),
+		'PIC_TITLE' => album_html_text($thispic['pic_title']),
+		'PIC_DESC' => nl2br(album_html_text($thispic['pic_desc'])),
 		'POSTER' => $poster,
 		'PIC_TIME' => create_date($board_config['default_dateformat'], $thispic['pic_time'], $board_config['board_timezone']),
 		'PIC_VIEW' => $thispic['pic_view_count'],
 		'PIC_COMMENTS' => $total_comments,
-		'S_MESSAGE' => $thiscomment['comment_text'],
+		'S_MESSAGE' => album_html_text($thiscomment['comment_text']),
 
 		'L_PIC_TITLE' => $lang['Pic_Title'],
 		'L_PIC_DESC' => $lang['Pic_Desc'],

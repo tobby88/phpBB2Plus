@@ -33,6 +33,11 @@ function phpbb_profile_text($value)
 	return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
 }
 
+function phpbb_stored_text($value)
+{
+	return htmlspecialchars(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
+}
+
 function phpbb_profile_http_url($value)
 {
 	$value = html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8');

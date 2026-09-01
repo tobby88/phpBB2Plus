@@ -130,7 +130,7 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 		$class_catRight = "cat";
 
 		// get category title
-		$cat_title = ($is_root) ? sprintf($lang['Personal_Gallery_Of_User'], htmlspecialchars($username, ENT_QUOTES, 'UTF-8')) : htmlspecialchars($cat['cat_title'], ENT_QUOTES, 'UTF-8');
+		$cat_title = ($is_root) ? sprintf($lang['Personal_Gallery_Of_User'], album_html_text($username)) : album_html_text($cat['cat_title']);
 		$move_up_token = hash_hmac('sha256', 'album-category-order:' . (int) $cat_id . ':-15', (string) $userdata['session_id']);
 		$move_down_token = hash_hmac('sha256', 'album-category-order:' . (int) $cat_id . ':15', (string) $userdata['session_id']);
 		
@@ -174,7 +174,7 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 		// send the category description to template... if its specified
 		if (!empty($cat['cat_desc']))
 		{
-			$cat_desc = nl2br(htmlspecialchars($cat['cat_desc'], ENT_QUOTES, 'UTF-8'));
+			$cat_desc = nl2br(album_html_text($cat['cat_desc']));
 			
 			$template->assign_block_vars('catrow', array());
 			$template->assign_block_vars('catrow.cattitle', array(
@@ -708,8 +708,8 @@ function album_get_object_lang($cur_cat_id, $field)
 						
     		// check wheter we are working on a personal category or not and if it is the root    		
 			if (album_is_personal_gallery($cur_cat_id) == true && album_get_personal_root_id($album_user_id) == $cur_cat_id )
-    		{
-    			return sprintf($lang['Personal_Gallery_Of_User'], $album_data['data'][$AC_this]['username']);
+			{
+				return album_html_text(sprintf($lang['Personal_Gallery_Of_User'], $album_data['data'][$AC_this]['username']));
     		}
 		
     		if ($cur_cat_id == ALBUM_ROOT_CATEGORY)
@@ -726,7 +726,7 @@ function album_get_object_lang($cur_cat_id, $field)
 
 	$res = $album_data['data'][$AC_this][$field];
 	if (isset($lang[$res])) $res = $lang[$res];
-    return $res;
+    return album_html_text($res);
 }
 
 //-----------------------------------------------

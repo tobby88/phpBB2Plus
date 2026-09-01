@@ -139,12 +139,12 @@ if( !isset($_POST['pic_title']) )
 	$template->assign_vars(array(
 		'L_EDIT_PIC_INFO' => $lang['Edit_Pic_Info'],
 
-		'CAT_TITLE' => $thispic['cat_title'],
+		'CAT_TITLE' => album_html_text($thispic['cat_title']),
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
 
 		'L_PIC_TITLE' => $lang['Pic_Title'],
-		'PIC_TITLE' => $thispic['pic_title'],
-		'PIC_DESC' => $thispic['pic_desc'],
+		'PIC_TITLE' => album_html_text($thispic['pic_title']),
+		'PIC_DESC' => album_html_text($thispic['pic_desc']),
 
 		'L_PIC_DESC' => $lang['Pic_Desc'],
 		'L_PLAIN_TEXT_ONLY' => $lang['Plain_text_only'],

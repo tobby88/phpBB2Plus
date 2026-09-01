@@ -165,11 +165,11 @@ if (!$rating_submitted)
 
 	if( ($thispic['pic_user_id'] == ALBUM_GUEST) or ($thispic['username'] == '') )
 	{
-		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : $thispic['pic_username'];
+		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : album_html_text($thispic['pic_username']);
 	}
 	else
 	{
-		$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $thispic['user_id']) .'">'. $thispic['username'] .'</a>';
+		$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $thispic['user_id']) .'">'. album_html_text($thispic['username']) .'</a>';
 	}
 
 	//deside how user wants to show their rating
@@ -193,13 +193,13 @@ if (!$rating_submitted)
 	}
 
 	$template->assign_vars(array(
-		'CAT_TITLE' => $thispic['cat_title'],
+		'CAT_TITLE' => album_html_text($thispic['cat_title']),
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
 
 		'U_PIC' => append_sid("album_pic.$phpEx?pic_id=$pic_id"),
 
-		'PIC_TITLE' => $thispic['pic_title'],
-		'PIC_DESC' => nl2br($thispic['pic_desc']),
+		'PIC_TITLE' => album_html_text($thispic['pic_title']),
+		'PIC_DESC' => nl2br(album_html_text($thispic['pic_desc'])),
 
 		'POSTER' => $poster,
 

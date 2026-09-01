@@ -435,11 +435,11 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			$comment_website_url = phpbb_profile_http_url($commentrow[$i]['user_website']);
 			if( ($commentrow[$i]['user_id'] == ALBUM_GUEST) or ($commentrow[$i]['username'] == '') )
 			{
-				$poster = ($commentrow[$i]['comment_username'] == '') ? $lang['Guest'] : $commentrow[$i]['comment_username'];
+				$poster = ($commentrow[$i]['comment_username'] == '') ? $lang['Guest'] : album_html_text($commentrow[$i]['comment_username']);
 			}
 			else
 			{
-				$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $commentrow[$i]['user_id']) .'">'. $commentrow[$i]['username'] .'</a>';
+				$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $commentrow[$i]['user_id']) .'">'. album_html_text($commentrow[$i]['username']) .'</a>';
 			}
 
 			if ($commentrow[$i]['comment_edit_count'] > 0)
@@ -459,7 +459,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 				$edit_info = ($commentrow[$i]['comment_edit_count'] == 1) ? $lang['Edited_time_total'] : $lang['Edited_times_total'];
 
-				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, $lastedit_row['username'], create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), $commentrow[$i]['comment_edit_count']) .'<br />';
+				$edit_info = '<br /><br />&raquo;&nbsp;'. sprintf($edit_info, album_html_text($lastedit_row['username']), create_date($board_config['default_dateformat'], $commentrow[$i]['comment_edit_time'], $board_config['board_timezone']), (int) $commentrow[$i]['comment_edit_count']) .'<br />';
 			}
 			else
 			{
@@ -467,7 +467,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			}
 
 			// Smilies
-			$commentrow[$i]['comment_text'] = smilies_pass($commentrow[$i]['comment_text']);
+			$commentrow[$i]['comment_text'] = smilies_pass(album_html_text($commentrow[$i]['comment_text']));
 			$commentrow[$i]['comment_text'] = make_clickable($commentrow[$i]['comment_text']);
 			$commentrow[$i]['comment_text'] = nl2br($commentrow[$i]['comment_text']);
 
@@ -535,7 +535,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			//
 			if ( $commentrow[$i]['user_id'] == ANONYMOUS && $commentrow[$i]['comment_username'] != '' )
 			{
-				$poster = $commentrow[$i]['comment_username'];
+				$poster = album_html_text($commentrow[$i]['comment_username']);
 				$poster_rank = $lang['Guest'];
 			}
 
@@ -601,11 +601,11 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 	if( ($thispic['pic_user_id'] == ALBUM_GUEST) or ($thispic['username'] == '') )
 	{
-		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : $thispic['pic_username'];
+		$poster = ($thispic['pic_username'] == '') ? $lang['Guest'] : album_html_text($thispic['pic_username']);
 	}
 	else
 	{
-		$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. $thispic['user_id']) .'">'. $thispic['username'] .'</a>';
+		$poster = '<a href="'. append_sid("profile.$phpEx?mode=viewprofile&amp;". POST_USERS_URL .'='. (int) $thispic['user_id']) .'">'. album_html_text($thispic['username']) .'</a>';
 	}
 
 	//---------------------------------
@@ -638,18 +638,25 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
         $smilies_count = $db->sql_numrows($result);
         $smilies_data = $db->sql_fetchrowset($result);
 
-        for ($i = 1; $i < $smilies_count+1; $i++)
-	        {
-	        	$template->assign_block_vars('switch_comment_post.smilies', array(
-	            	'CODE' => $smilies_data[$i - 1]['code'],
-	            	'URL' => $board_config['smilies_path'] . '/' . $smilies_data[$i - 1]['smile_url'],
-	            	'DESC' => $smilies_data[$i - 1]['emoticon']
-	            ));
+		for ($i = 1; $i < $smilies_count+1; $i++)
+		{
+			$smiley_name = phpbb_profile_image_name($smilies_data[$i - 1]['smile_url']);
+			$smiley_path = phpbb_profile_asset_path($board_config['smilies_path']);
+			if ($smiley_name === '' || $smiley_path === '')
+			{
+				continue;
+			}
+			$template->assign_block_vars('switch_comment_post.smilies', array(
+				'CODE' => album_html_text($smilies_data[$i - 1]['code']),
+				'URL' => $smiley_path . '/' . rawurlencode($smiley_name),
+				'DESC' => album_html_text($smilies_data[$i - 1]['emoticon'])
+			));
 
-	            if ( is_integer($i / 5) )
-	            	$template->assign_block_vars('switch_comment_post.smilies.new_col', array());
-
-	        }
+			if ( ($i % 5) === 0 )
+			{
+				$template->assign_block_vars('switch_comment_post.smilies.new_col', array());
+			}
+		}
         }
 
     // --------------------------------
@@ -694,7 +701,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
   }
 
 	$template->assign_vars(array(
-		'CAT_TITLE' => $thispic['cat_title'],
+		'CAT_TITLE' => album_html_text($thispic['cat_title']),
 //--- Album Category Hierarchy : begin
 //--- version : 1.1.0
 		'U_VIEW_CAT' => append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")),
@@ -713,8 +720,8 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 
 		'PIC_RATING' => $image_rating,
 
-		'PIC_TITLE' => $thispic['pic_title'],
-		'PIC_DESC' => nl2br($thispic['pic_desc']),
+		'PIC_TITLE' => album_html_text($thispic['pic_title']),
+		'PIC_DESC' => nl2br(album_html_text($thispic['pic_desc'])),
 
 		'POSTER' => $poster,
 

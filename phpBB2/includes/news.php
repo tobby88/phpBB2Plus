@@ -95,7 +95,7 @@ class NewsModule
 
   function htmlText( $value )
   {
-    return htmlspecialchars(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return phpbb_stored_text($value);
   }
 
   function imageUrl( $filename )
