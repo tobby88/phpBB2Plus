@@ -276,7 +276,7 @@ for ($outer = 0; $outer < count($album_config_tabs); $outer++)
 			//------------------------------------------------------------------------
 			// sort the sub tabs according to the order key in the array
 			//------------------------------------------------------------------------
-			usort($album_config_tabs[$outer]['sub_config'],sort_cmp);
+			usort($album_config_tabs[$outer]['sub_config'], 'sort_cmp');
 			
 			//------------------------------------------------------------------------
 			// did we find the selected sub tab ?

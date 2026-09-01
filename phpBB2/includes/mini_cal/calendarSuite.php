@@ -62,7 +62,7 @@ if ( !defined('IN_MINI_CAL') )
 * @const language
 * default 0 / english
 **/
-define("language", "0");
+define('MINI_CAL_LANGUAGE', 0);
 
 
 /**
@@ -70,7 +70,7 @@ define("language", "0");
 * @const dateFormat
 * default 
 **/
-define("dateFormat" , "0");
+define('MINI_CAL_DATE_FORMAT', 0);
 
 
 class calendarSuite {
@@ -85,6 +85,7 @@ var $nextMonth;						// contains next month
 var $lastMonth;						// contains last month
 var $stamp;								// timestamp
 var $day;									// return array s.a.
+var $language;							// locale used for formatted names
 
 
 /**
@@ -97,7 +98,7 @@ function __construct(){
 }
 
 function calendarSuite(){
-	switch (language) {
+	switch (MINI_CAL_LANGUAGE) {
 
 		case 0:
 		$this->language = "en_EN";
@@ -273,7 +274,7 @@ function dateLinker($stamp) {
 /**
 * format date in different forms
 **/
-function formatDate($stamp, $option = dateFormat) {
+function formatDate($stamp, $option = MINI_CAL_DATE_FORMAT) {
 
 	switch ($option) {
 

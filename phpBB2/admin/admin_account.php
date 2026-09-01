@@ -207,12 +207,12 @@ if ( $row = $db->sql_fetchrow($result) )
 				'ROW_NUMBER' => $i + $start + 1,
 		'ROW_CLASS' => $row_class,
 		'USERNAME' => htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8'),
-                        'U_PROFILE' => append_sid("../profile.$phpEx?mode=viewprofile&u=$row[user_id]"),
+		'U_PROFILE' => append_sid("../profile.$phpEx?mode=viewprofile&amp;u=" . (int) $row['user_id']),
                         'EMAIL' => $email,
                         'REG_DATE' => create_date($board_config['default_dateformat'], $row['user_regdate'], $board_config['board_timezone']),
                         'WAITING' => sprintf($l_waiting, $waiting),
                         'DELETE_ID' => (int) $row['user_id'],
-                        'U_ACTKEY' => append_sid("../profile.$phpEx?mode=activate&u=$row[user_id]&act_key=$row[user_actkey]"),
+		'U_ACTKEY' => append_sid("../profile.$phpEx?mode=activate&amp;u=" . (int) $row['user_id'] . '&amp;act_key=' . rawurlencode((string) $row['user_actkey'])),
                 ));
                 $i++;
         }

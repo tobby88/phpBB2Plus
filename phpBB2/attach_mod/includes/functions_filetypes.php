@@ -306,8 +306,9 @@ function image_getdimension($file)
 
 /**
 */
-define('swf_tag_compressed', chr(0x43).chr(0x57).chr(0x53));
-define('swf_tag_identify', chr(0x46).chr(0x57).chr(0x53));
+define('SWF_TAG_COMPRESSED', chr(0x43).chr(0x57).chr(0x53));
+define('SWF_TAG_IDENTIFY', chr(0x46).chr(0x57).chr(0x53));
+define('SWF_DIMENSION_MAX_BYTES', 16777216);
 
 /**
 * Get flash bits
@@ -315,6 +316,11 @@ define('swf_tag_identify', chr(0x46).chr(0x57).chr(0x53));
 function swf_bits($buffer, $pos, $count)
 {
 	$result = 0;
+	$required_bytes = (int) ceil(($pos + $count) / 8);
+	if (!is_string($buffer) || $pos < 0 || $count < 1 || $count > 31 || strlen($buffer) < $required_bytes)
+	{
+		return false;
+	}
 	
 	for ($loop = $pos; $loop < $pos + $count; $loop++)
 	{
@@ -329,19 +335,25 @@ function swf_bits($buffer, $pos, $count)
 */
 function swf_decompress($buffer)
 {
-	if ((function_exists('gzuncompress')) && (substr($buffer, 0, 3) == swf_tag_compressed) && (ord(substr($buffer, 3, 1)) >= 6) )
-	{
-		// Only decompress relevant Informations
-		$output  = 'F';
-		$output .= substr ($buffer, 1, 7);
-		$output .= gzuncompress (substr ($buffer, 8));
-		
-		return $output;
-	}
-	else
+	if (!is_string($buffer) || strlen($buffer) < 8 || substr($buffer, 0, 3) !== SWF_TAG_COMPRESSED || ord($buffer[3]) < 6 || !function_exists('gzuncompress'))
 	{
 		return $buffer;
 	}
+
+	$length_data = unpack('Vlength', substr($buffer, 4, 4));
+	$expected_length = isset($length_data['length']) ? (int) $length_data['length'] : 0;
+	if ($expected_length < 8 || $expected_length > SWF_DIMENSION_MAX_BYTES)
+	{
+		return false;
+	}
+
+	$decompressed = @gzuncompress(substr($buffer, 8), $expected_length - 8);
+	if (!is_string($decompressed) || strlen($decompressed) + 8 !== $expected_length)
+	{
+		return false;
+	}
+
+	return 'F' . substr($buffer, 1, 7) . $decompressed;
 }
 
 /**
@@ -351,10 +363,11 @@ function swf_getdimension($file)
 {
 	$size = @getimagesize($file);
 
-	if ($size[0] != 0 || $size[1] != 0)
+	if (is_array($size) && isset($size[0], $size[1]) && ($size[0] != 0 || $size[1] != 0))
 	{
 		return $size;
 	}
+	$size = array(0, 0);
 
 	// Try to get the Dimension manually
 	$fp = @fopen($file, 'rb');
@@ -363,49 +376,73 @@ function swf_getdimension($file)
 		return $size;
 	}
 	
-	$error = false;
-
-	// SWF - FLASH FILE
-	$fp = @fopen($file, 'rb');
-
 	// Decompress if file is a Flash MX compressed file
 	$buffer = fread($fp, 1024);
-	
-	if (substr($buffer, 0, 3) == swf_tag_identify || substr($buffer, 0, 3) == swf_tag_compressed)
+	if (!is_string($buffer) || strlen($buffer) < 9)
 	{
-		if (substr($buffer, 0, 3) == swf_tag_compressed)
+		fclose($fp);
+		return $size;
+	}
+	
+	if (substr($buffer, 0, 3) === SWF_TAG_IDENTIFY || substr($buffer, 0, 3) === SWF_TAG_COMPRESSED)
+	{
+		if (substr($buffer, 0, 3) === SWF_TAG_COMPRESSED)
 		{
+			$file_size = @filesize($file);
+			if (!is_int($file_size) || $file_size < 9 || $file_size > SWF_DIMENSION_MAX_BYTES)
+			{
+				fclose($fp);
+				return $size;
+			}
 			fclose($fp);
 			$fp = @fopen($file, 'rb');
-			$buffer = fread($fp, filesize($file));
+			if (!$fp)
+			{
+				return $size;
+			}
+			$buffer = fread($fp, $file_size);
 			$buffer = swf_decompress($buffer);
+			if (!is_string($buffer) || strlen($buffer) < 9)
+			{
+				fclose($fp);
+				return $size;
+			}
 		}
 	
 		// Get size of rect structure
 		$bits = swf_bits ($buffer, 64, 5);
+		if ($bits === false || $bits < 1 || $bits > 31)
+		{
+			fclose($fp);
+			return $size;
+		}
 
 		// Get rect
-		$width  = (int)(swf_bits ($buffer, 69 + $bits, $bits) - swf_bits ($buffer, 69, $bits)) / 20;
-		$height = (int)(swf_bits ($buffer, 69 + (3 * $bits), $bits) - swf_bits ($buffer, 69 + (2 * $bits), $bits)) / 20;
+		$x_min = swf_bits($buffer, 69, $bits);
+		$x_max = swf_bits($buffer, 69 + $bits, $bits);
+		$y_min = swf_bits($buffer, 69 + (2 * $bits), $bits);
+		$y_max = swf_bits($buffer, 69 + (3 * $bits), $bits);
+		if ($x_min === false || $x_max === false || $y_min === false || $y_max === false)
+		{
+			fclose($fp);
+			return $size;
+		}
+		$width = (int) (($x_max - $x_min) / 20);
+		$height = (int) (($y_max - $y_min) / 20);
+		if ($width < 1 || $height < 1)
+		{
+			fclose($fp);
+			return $size;
+		}
 	}
 	else
 	{
-		$error = true;
-	}
-
-	if (!$error)
-	{
 		fclose($fp);
-		return array(
-			$width,
-			$height,
-			2
-		);
+		return $size;
 	}
-	
-	fclose($fp);
 
-	return $size;
+	fclose($fp);
+	return array($width, $height, 2);
 }
 
 ?>
