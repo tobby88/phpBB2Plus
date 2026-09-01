@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Bound ACP mass-mail delivery and destructive forum pruning to an explicit
+  administrator session form token. Both legacy handlers now reject nested
+  input, constrain payloads and safely redisplay stored form values.
 - Hardened the vBulletin Arcade compatibility bridge used by legacy SWF
   games. Every protocol action now requires the exact launched-game
   capability and same-origin browser metadata, responses have explicit media

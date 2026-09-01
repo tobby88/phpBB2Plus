@@ -60,7 +60,12 @@ if( isset($_GET[POST_FORUM_URL]) || isset($_POST[POST_FORUM_URL]) )
 //		$forum_sql = "AND forum_id = $forum_id";
 //	}
 //-- add
-	$fid = ( isset($_POST[POST_FORUM_URL]) ) ? $_POST[POST_FORUM_URL] : $_GET[POST_FORUM_URL];
+	$fid_value = isset($_POST[POST_FORUM_URL]) ? $_POST[POST_FORUM_URL] : $_GET[POST_FORUM_URL];
+	$fid = is_scalar($fid_value) ? (string) $fid_value : '';
+	if (!preg_match('/^(?:Root|[cf][0-9]+)$/D', $fid))
+	{
+		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+	}
 	$type = substr($fid, 0, 1);
 	$id = intval(substr($fid, 1));
 	$cat_id = -1;
@@ -132,7 +137,9 @@ else
 //
 if( isset($_POST['doprune']) )
 {
+	phpbb_admin_require_post_session();
 	$prunedays = ( isset($_POST['prunedays']) ) ? intval($_POST['prunedays']) : 0;
+	$prunedays = max(1, min(36500, $prunedays));
 
 	// Convert days to seconds for timestamp functions...
 	$prunedate = time() - ( $prunedays * 86400 );
@@ -211,6 +218,7 @@ else
 			'L_LOOK_UP' => $lang['Look_up_Forum'],
 
 			'S_FORUMPRUNE_ACTION' => append_sid("admin_forum_prune.$phpEx"),
+			'S_FORM_TOKEN' => phpbb_admin_session_field(),
 			'S_FORUMS_SELECT' => $select_list)
 		);
 	}
@@ -267,6 +275,7 @@ else
 
 			'S_FORUMPRUNE_ACTION' => append_sid("admin_forum_prune.$phpEx"),
 			'S_PRUNE_DATA' => $prune_data,
+			'S_FORM_TOKEN' => phpbb_admin_session_field(),
 			'S_HIDDEN_VARS' => $hidden_input)
 		);
 	}

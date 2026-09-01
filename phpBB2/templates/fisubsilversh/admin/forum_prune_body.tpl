@@ -4,6 +4,7 @@
 <div class="subtitle">{L_FORUM}: {FORUM_NAME}</div>
 <br />
 <form action="{S_FORUMPRUNE_ACTION}" method="post">
+{S_FORM_TOKEN}
 <table cellspacing="1" cellpadding="3" border="0" align="center" class="forumline">
 <tr> 
 <th>{L_FORUM_PRUNE}</th>

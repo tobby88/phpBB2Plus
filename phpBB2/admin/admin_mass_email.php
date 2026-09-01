@@ -57,8 +57,11 @@ $subject = '';
 //
 if ( isset($_POST['submit']) )
 {
-	$subject = stripslashes(trim($_POST['subject']));
-	$message = stripslashes(trim($_POST['message']));
+	phpbb_admin_require_post_session();
+	$subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? stripslashes(trim((string) $_POST['subject'])) : '';
+	$message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? stripslashes(trim((string) $_POST['message'])) : '';
+	$subject = substr(str_replace(array("\r", "\n"), ' ', $subject), 0, 255);
+	$message = substr($message, 0, 1048576);
 	
 	$error = FALSE;
 	$error_msg = '';
@@ -187,7 +190,7 @@ if ( $row = $db->sql_fetchrow($result) )
 {
 	do
 	{
-		$select_list .= '<option value = "' . $row['group_id'] . '">' . $row['group_name'] . '</option>';
+		$select_list .= '<option value = "' . (int) $row['group_id'] . '">' . phpbb_admin_html($row['group_name']) . '</option>';
 	}
 	while ( $row = $db->sql_fetchrow($result) );
 }
@@ -203,8 +206,8 @@ $template->set_filenames(array(
 );
 
 $template->assign_vars(array(
-	'MESSAGE' => $message,
-	'SUBJECT' => $subject, 
+	'MESSAGE' => phpbb_admin_html($message),
+	'SUBJECT' => phpbb_admin_html($subject),
 
 	'L_EMAIL_TITLE' => $lang['Email'],
 	'L_EMAIL_EXPLAIN' => $lang['Mass_email_explain'],
@@ -216,6 +219,7 @@ $template->assign_vars(array(
 	'L_NOTICE' => $notice,
 
 	'S_USER_ACTION' => append_sid('admin_mass_email.'.$phpEx),
+	'S_FORM_TOKEN' => phpbb_admin_session_field(),
 	'S_GROUP_SELECT' => $select_list)
 );
 

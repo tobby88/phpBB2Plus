@@ -4,6 +4,8 @@
 <br />
 <form method="post" action="{S_USER_ACTION}">
 
+{S_FORM_TOKEN}
+
 {ERROR_BOX}
 
 <table cellspacing="1" cellpadding="3" border="0" class="forumline" width="100%">
