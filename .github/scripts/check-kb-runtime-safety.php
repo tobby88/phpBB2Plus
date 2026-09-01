@@ -19,6 +19,9 @@ kb_runtime_assert(strpos($functions, "\$article_link = '<a") !== false, 'article
 kb_runtime_assert(strpos($functions, "\$postrow[\$i]['link_rating']") === false, 'KB ratings must not read an unrelated post row');
 kb_runtime_assert(substr_count($functions, '$article_rating / $article_totalvotes') === 2, 'both KB list variants must use article rating fields');
 kb_runtime_assert(strpos($functions, "\$author = ( \$username != '' )") === false, 'guest authors must not depend on an undefined username variable');
+kb_runtime_assert(strpos($functions, "\$post_time_order = 'ASC';") !== false, 'embedded comments must use a defined SQL sort direction');
+kb_runtime_assert(strpos($functions, "\$topic_id = (int) \$topic_id;") !== false, 'embedded comment topic IDs must be normalized');
+kb_runtime_assert(strpos($functions, "phpbb_profile_text(\$postrow[\$i]['post_subject'])") !== false, 'embedded comment subjects must be escaped');
 kb_runtime_assert(strpos($functions, "phpbb_board_url('admin/admin_kb_art.'") !== false, 'notification PM must link to a fresh AdminCP session');
 kb_runtime_assert(strpos($functions, '$approve_pm_view') === false, 'notification PM must not persist privileged action links');
 kb_runtime_assert(strpos($functions, 'function kb_admin_article_action_form') !== false, 'AdminCP article actions must use POST forms');
@@ -40,5 +43,13 @@ kb_runtime_assert(strpos($search, 'AND t.approved = 1') !== false, 'Knowledge Ba
 kb_runtime_assert(strpos($search, 'mode=results&amp;search_id=') !== false, 'Knowledge Base pagination must retain results mode');
 kb_runtime_assert(strpos($search, "\$multibyte_charset = 'utf-8, big5, shift_jis, euc-kr, gb2312';") !== false, 'Knowledge Base search must initialize its charset strategy locally');
 kb_runtime_assert(strpos($search, 'str_replace("\\\'", "\'\'", $result_array)') === false, 'legacy manual search cache escaping must be removed');
+kb_runtime_assert(strpos($functions, '$articles_in_cat = max(0, min(1000, (int) $articles_in_cat));') !== false, 'article list sizes must be bounded');
+
+$article = file_get_contents($root . '/phpBB2/includes/kb_article.php');
+kb_runtime_assert(strpos($article, '$author_name_plain =') !== false && strpos($article, '$username !=') === false, 'guest articles must not read an undefined username');
+kb_runtime_assert(strpos($article, '$article_title = phpbb_profile_text($article_title);') !== false, 'article titles must be escaped before template output');
+kb_runtime_assert(strpos($article, '$kb_art_description  = phpbb_profile_text') !== false, 'article descriptions must be escaped before template output');
+kb_runtime_assert(strpos($article, "\$topic = array('topic_id' => 0, 'topic_replies' => 0);") !== false, 'articles without comment topics need defined pagination state');
+kb_runtime_assert(strpos($article, "\$pagination = '';") !== false, 'articles without displayed comments need an initialized pagination value');
 
 echo "Knowledge Base runtime safety tests passed.\n";

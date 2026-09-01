@@ -27,7 +27,10 @@ if ( !defined('IN_PHPBB') )
 
 
 	$article_id = (isset($_GET['k']) && is_scalar($_GET['k'])) ? intval($_GET['k']) : 0;
-	$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;
+	$start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, min(1000000, intval($_GET['start']))) : 0;
+	$topic = array('topic_id' => 0, 'topic_replies' => 0);
+	$show_num_comments = max(1, min(1000, isset($kb_config['comments_pagination']) ? (int) $kb_config['comments_pagination'] : 10));
+	$pagination = '';
 	
 	$sql = "SELECT *
 		FROM " . KB_ARTICLES_TABLE . "
@@ -43,39 +46,41 @@ if ( !defined('IN_PHPBB') )
 	   $article_title = stripslashes($row['article_title']);
 	   $approved = $row['approved'];
 
-	   $article_category_id = $row['article_category_id'];	
+	   $article_category_id = (int) $row['article_category_id'];
 	   $category = get_kb_cat($article_category_id);
-	   $article_category_name = $category['category_name'];
+	   $article_category_name = isset($category['category_name']) && is_scalar($category['category_name']) ? (string) $category['category_name'] : '';
 
 	   $temp_url = append_sid(this_kb_mxurl("mode=cat&amp;cat=$article_category_id"));
-	   $category = '<a href="' . $temp_url . '" class="gen">' . $article_category_name . '</a>';
+	   $category = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_profile_text($article_category_name) . '</a>';
 	
 	   $date = create_date($board_config['default_dateformat'], $row['article_date'], $board_config['board_timezone']);
 	
 	   // author information
-	   $author_id = $row['article_author_id'];	
+	   $author_id = (int) $row['article_author_id'];
 
 	   if ( $author_id == 0 )
 	   {
-	       $author_kb_art = ( $username != '' ) ? $lang['Guest'] : $row['username'];
+	       $author_name_plain = (isset($row['username']) && is_scalar($row['username']) && $row['username'] !== '') ? (string) $row['username'] : $lang['Guest'];
+	       $author_kb_art = phpbb_profile_text($author_name_plain);
 	   }
 	   else
 	   {
-	       $author_name = get_kb_author($author_id);
+	       $author_name_plain = get_kb_author($author_id);
 	   
 	       $temp_url = append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id");
-	       $author_kb_art  = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';
+	       $author_kb_art  = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_profile_text($author_name_plain) . '</a>';
 	   }
 	
 	   $art_pages = explode('[page]', stripslashes($row['article_body']));
 	   $page_num = min($page_num, max(0, count($art_pages) - 1));
 	   $article = trim($art_pages[$page_num]);
 	   $article = str_replace('[toc]', '', $article);
-	   $kb_art_description  = stripslashes($row['article_description']);
+	   $kb_art_description  = phpbb_profile_text(stripslashes($row['article_description']));
 	   
-	   $type_id = $row['article_type'];
-	   $type = get_kb_type($type_id);
-	   $topic_id = $row['topic_id'];
+	   $type_id = (int) $row['article_type'];
+	   $type_plain = get_kb_type($type_id);
+	   $type = phpbb_profile_text($type_plain);
+	   $topic_id = (int) $row['topic_id'];
 	   
 	   $new_views = $row['views'] + 1;
 	   $views = '<b>' . $lang['Views'] . '</b> ' . $new_views;
@@ -201,6 +206,7 @@ if ( !defined('IN_PHPBB') )
 		$article = phpbb_preg_replace_outside_tags($article, '#\\b(' . $highlight_match . ')\\b#i', '<span style="color:#' . $theme['fontcolor3'] . '"><b>\\1</b></span>');
 	}
 	
+	$article_title = phpbb_profile_text($article_title);
 	$page_title = $article_title;
 	    if ( !$is_block && !$print_version )
 		 {
@@ -279,9 +285,9 @@ if ( !defined('IN_PHPBB') )
 				 );
 			$temp_url = phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . $article_id);
 		  	$message = "[b]" . $lang['Category'] . ":[/b] " . $article_category_name . "\n";
-		  	$message .= "[b]" . $lang['Article_type'] . ":[/b] " . $type . "\n\n";
+			$message .= "[b]" . $lang['Article_type'] . ":[/b] " . $type_plain . "\n\n";
 		  	$message .= "[b]" . $lang['Article_title'] . ":[/b] " . preg_replace($search, $replace, $row['article_title']) . "\n";
-		  	$message .= "[b]" . $lang['Author'] . ":[/b] " . $author_kb_art  . "\n";
+			$message .= "[b]" . $lang['Author'] . ":[/b] " . $author_name_plain  . "\n";
 		  	$message .= "[b]" . $lang['Article_description'] . ":[/b] " . preg_replace($search, $replace, $row['article_description']) . "\n\n";
 		  	$message .= "[b][url=" . $temp_url . "]" . $lang['Read_full_article'] . "[/url][/b]";
 
@@ -339,8 +345,8 @@ if ( !defined('IN_PHPBB') )
     			$page_numm = '';
 			}
 
-			$show_num_comments = $kb_config['comments_pagination'];
-			$pagination = generate_pagination(this_kb_mxurl("mode=article&k=$article_id" . $page_numm), $topic['topic_replies'], $kb_config['comments_pagination'], $start). '&nbsp;';
+			$show_num_comments = max(1, min(1000, (int) $kb_config['comments_pagination']));
+			$pagination = generate_pagination(this_kb_mxurl("mode=article&k=$article_id" . $page_numm), $topic['topic_replies'], $show_num_comments, $start). '&nbsp;';
 			get_kb_comments($topic_id, $start, $show_num_comments);   
 		}
 	
@@ -366,7 +372,7 @@ if ( !defined('IN_PHPBB') )
 
 		$template->assign_vars(array(
 			'PAGINATION' => $pagination,
-			'PAGE_NUMBER' => ( count($art_pages) > 1 ) ? sprintf($lang['Page_of'], ( floor( $start / $kb_config['comments_pagination'] ) + 1 ), ceil( $topic['topic_replies'] / $kb_config['comments_pagination'] )) : '',
+			'PAGE_NUMBER' => ( $topic['topic_replies'] > $show_num_comments ) ? sprintf($lang['Page_of'], ( floor( $start / $show_num_comments ) + 1 ), ceil( $topic['topic_replies'] / $show_num_comments )) : '',
 			'L_GOTO_PAGE' => $lang['Goto_page'],
 
 			'L_ARTICLE_DESCRIPTION' => $lang['Article_description'],

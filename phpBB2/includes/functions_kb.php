@@ -76,6 +76,7 @@ function get_quick_stats()
 function get_kb_author($id)
 {
      global $db;
+	 $id = (int) $id;
  
      $sql = "SELECT username  
        		FROM " . USERS_TABLE . " 
@@ -104,6 +105,8 @@ function get_kb_author($id)
 function get_kb_type($id)
 {
     global $db;
+	$id = (int) $id;
+	$type = '';
 	
     $sql = "SELECT type  
        		FROM " . KB_TYPES_TABLE . " 
@@ -128,7 +131,7 @@ function get_kb_type($id)
 function get_kb_cat($id)
 {
     global $db;
-
+	$id = (int) $id;
 	$sql = "SELECT *  
        		FROM " . KB_CATEGORIES_TABLE . " 
 			WHERE category_id = $id";
@@ -140,7 +143,7 @@ function get_kb_cat($id)
 	 
 	 $row = $db->sql_fetchrow($result);
 	 
-	 return $row;
+	 return is_array($row) ? $row : array();
 }
 
 //
@@ -206,8 +209,8 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	
 	$id = (int) $id;
 	$approve = (int) $approve;
-	$start = (int) $start;
-	$articles_in_cat = (int) $articles_in_cat;
+	$start = max(-1, min(1000000, (int) $start));
+	$articles_in_cat = max(0, min(1000, (int) $articles_in_cat));
 
 	$sql = "SELECT t.*, u.username, u.user_id, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_allowsmile
 			FROM " . KB_ARTICLES_TABLE  . " t, " . USERS_TABLE . " u".(($kb_news_sort_method_lj) ?  ",". TOPICS_TABLE  . " tt" : '')."
@@ -1051,15 +1054,19 @@ function is_group_member($group_id = '', $user_id = '')
 //
 function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 {
-    global $db, $board_config, $template, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $phpEx, $is_block, $page_id;
+    global $db, $board_config, $template, $phpbb_root_path, $phpEx, $is_block, $page_id, $lang, $userdata;
 
-	if ($topic_id == '')
+	$topic_id = (int) $topic_id;
+	$start = max(-1, min(1000000, (int) $start));
+	$show_num_comments = max(0, min(1000, (int) $show_num_comments));
+	if ($topic_id <= 0)
 	{
 		message_die(GENERAL_MESSAGE, 'no topic id');
 	}
 
 	$show_num_comments = $start == 0 ? $show_num_comments = $show_num_comments + 1 : $show_num_comments ;
 	$start = $start > 0 ? $start = $start + 1: $start;
+	$post_time_order = 'ASC';
 	
 	//
 	// Go ahead and pull all data for this topic
@@ -1108,7 +1115,9 @@ $start == 0 ? $i_init = 1: $i_init = 0;
 for($i = $i_init; $i < $total_posts; $i++)
 {
 	$poster_id = $postrow[$i]['user_id'];
-	$poster = ( $poster_id == ANONYMOUS ) ? $lang['Guest'] : $postrow[$i]['username'];
+	$poster = ( $poster_id == ANONYMOUS ) ? $lang['Guest'] : phpbb_profile_text($postrow[$i]['username']);
+	$user_sig = '';
+	$user_sig_bbcode_uid = '';
 
 	$post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);
 
@@ -1122,10 +1131,10 @@ for($i = $i_init; $i < $total_posts; $i++)
 	//
 	if ( $poster_id == ANONYMOUS && $postrow[$i]['post_username'] != '' )
 	{
-		$poster = $postrow[$i]['post_username'];
+		$poster = phpbb_profile_text($postrow[$i]['post_username']);
 		$poster_rank = $lang['Guest'];
 	}
-	$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? $postrow[$i]['post_subject'] : '';
+	$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? phpbb_profile_text($postrow[$i]['post_subject']) : '';
 
 	$message = $postrow[$i]['post_text'];
 	$bbcode_uid = $postrow[$i]['bbcode_uid'];
