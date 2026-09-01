@@ -919,10 +919,160 @@ function insert_post(
     return array('post_id'=>$post_id, 'topic_id'=>$topic_id);
 }
 
+function kb_delete_discussion_topic($topic_id)
+{
+	global $db, $phpbb_root_path, $phpEx;
+	$topic_id = (int) $topic_id;
+	if ($topic_id <= 0)
+	{
+		return;
+	}
+	if (!function_exists('remove_search_post'))
+	{
+		include_once($phpbb_root_path . 'includes/functions_search.' . $phpEx);
+	}
+
+	$sql = "SELECT forum_id FROM " . TOPICS_TABLE . " WHERE topic_id = $topic_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base discussion forum', '', __LINE__, __FILE__, $sql);
+	}
+	$topic = $db->sql_fetchrow($result);
+	$forum_id = is_array($topic) ? (int) $topic['forum_id'] : 0;
+
+	$sql = "SELECT poster_id, COUNT(post_id) AS posts FROM " . POSTS_TABLE . " WHERE topic_id = $topic_id GROUP BY poster_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not count Knowledge Base discussion posts', '', __LINE__, __FILE__, $sql);
+	}
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$poster_id = (int) $row['poster_id'];
+		$post_count = max(0, (int) $row['posts']);
+		if ($poster_id > 0 && $post_count > 0)
+		{
+			$sql = "UPDATE " . USERS_TABLE . " SET user_posts = GREATEST(user_posts - $post_count, 0) WHERE user_id = $poster_id";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Could not update user post count information', '', __LINE__, __FILE__, $sql);
+			}
+		}
+	}
+
+	$post_ids = array();
+	$sql = "SELECT post_id FROM " . POSTS_TABLE . " WHERE topic_id = $topic_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base discussion posts', '', __LINE__, __FILE__, $sql);
+	}
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$post_id = (int) $row['post_id'];
+		if ($post_id > 0)
+		{
+			$post_ids[$post_id] = $post_id;
+		}
+	}
+	$post_id_sql = implode(', ', $post_ids);
+
+	$vote_ids = array();
+	$sql = "SELECT vote_id FROM " . VOTE_DESC_TABLE . " WHERE topic_id = $topic_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base discussion polls', '', __LINE__, __FILE__, $sql);
+	}
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$vote_id = (int) $row['vote_id'];
+		if ($vote_id > 0)
+		{
+			$vote_ids[$vote_id] = $vote_id;
+		}
+	}
+	$vote_id_sql = implode(', ', $vote_ids);
+
+	$sql = "DELETE FROM " . TOPICS_TABLE . " WHERE topic_id = $topic_id OR topic_moved_id = $topic_id";
+	if (!$db->sql_query($sql, BEGIN_TRANSACTION))
+	{
+		message_die(GENERAL_ERROR, 'Could not delete Knowledge Base discussion topic', '', __LINE__, __FILE__, $sql);
+	}
+	foreach (array(BOOKMARK_TABLE, TOPICS_WATCH_TABLE, TOPIC_VIEW_TABLE) as $topic_table)
+	{
+		$sql = "DELETE FROM $topic_table WHERE topic_id = $topic_id";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not delete Knowledge Base discussion references', '', __LINE__, __FILE__, $sql);
+		}
+	}
+
+	if ($post_id_sql !== '')
+	{
+		$sql = "DELETE FROM " . POSTS_TABLE . " WHERE post_id IN ($post_id_sql)";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not delete Knowledge Base discussion posts', '', __LINE__, __FILE__, $sql);
+		}
+		$sql = "DELETE FROM " . POSTS_TEXT_TABLE . " WHERE post_id IN ($post_id_sql)";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not delete Knowledge Base discussion text', '', __LINE__, __FILE__, $sql);
+		}
+		remove_search_post($post_id_sql);
+		if (function_exists('delete_attachment'))
+		{
+			delete_attachment(array_values($post_ids));
+		}
+	}
+
+	if ($vote_id_sql !== '')
+	{
+		foreach (array(VOTE_DESC_TABLE, VOTE_RESULTS_TABLE, VOTE_USERS_TABLE) as $vote_table)
+		{
+			$sql = "DELETE FROM $vote_table WHERE vote_id IN ($vote_id_sql)";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Could not delete Knowledge Base discussion poll', '', __LINE__, __FILE__, $sql);
+			}
+		}
+	}
+
+	if ($forum_id > 0)
+	{
+		sync('forum', $forum_id);
+	}
+}
+
+function kb_clear_search_cache()
+{
+	global $db;
+	$sql = 'DELETE FROM ' . KB_SEARCH_TABLE;
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, 'Could not clear Knowledge Base search cache', '', __LINE__, __FILE__, $sql);
+	}
+}
+
+function kb_remove_article_words($article_id)
+{
+	global $db;
+	$article_id = (int) $article_id;
+	if ($article_id <= 0)
+	{
+		return;
+	}
+	$sql = 'DELETE FROM ' . KB_MATCH_TABLE . ' WHERE article_id = ' . $article_id;
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, 'Could not delete Knowledge Base word matches', '', __LINE__, __FILE__, $sql);
+	}
+	kb_clear_search_cache();
+}
+
 function add_kb_words($post_id, $post_text, $post_title = '')
 {
-	global $db, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id;
+	global $db, $phpbb_root_path, $board_config;
 	$post_id = intval($post_id);
+	kb_remove_article_words($post_id);
 
 	$stopword_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_stopwords.txt"); 
 	$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_synonyms.txt"); 
@@ -1066,11 +1216,6 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 				message_die(GENERAL_ERROR, 'Could not insert new word matches', '', __LINE__, __FILE__, $sql);
 			}
 		}
-	}
-
-	if ($mode == 'single')
-	{
-		remove_common('single', 4/10, $word);
 	}
 
 	return;

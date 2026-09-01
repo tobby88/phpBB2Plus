@@ -104,13 +104,7 @@ switch( $action )
 	$topic_sql = '';
 	if ( $kb_config['comments'] )
 	{
-	    $sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE article_id = " . $article_id;	
-		if ( !($results = $db->sql_query($sql)) )
-		{
-	        message_die(GENERAL_ERROR, "Could not obtain article data", '', __LINE__, __FILE__, $sql);
-		}
-
-		$row = $db->sql_fetchrow($results);
+		$row = $moderated_article;
 	
 		if ( !$row['topic_id'] )
 		{		
@@ -169,25 +163,11 @@ switch( $action )
    	   message_die(GENERAL_ERROR, "Could not update article data", '', __LINE__, __FILE__, $sql);
 	}
 	
-	$sql = "SELECT article_category_id, article_body 
-	 FROM " . KB_ARTICLES_TABLE . "
-	 WHERE article_id = " . $article_id;
-
-	 if ( !($result = $db->sql_query($sql)) )
-	 {
-   	  	message_die(GENERAL_ERROR, "Could not obtain article category", '', __LINE__, __FILE__, $sql);
-	 }
-
-	 if ( $article = $db->sql_fetchrow($result) )
-	 {
-	  	$article_category_id = $article['article_category_id'];
-		$body = $article['article_body'];
-	 }
-	 
-	 if (empty($moderated_article['approved']))
+	$article_category_id = (int) $moderated_article['article_category_id'];
+	if ((int) $moderated_article['approved'] !== 1)
 	 {
 		update_kb_number($article_category_id, '+ 1');
-		add_kb_words($article_id, $body);
+		add_kb_words($article_id, $moderated_article['article_body']);
 	 }
 	
 	$message = $lang['Article_approved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
@@ -206,24 +186,12 @@ switch( $action )
    	   message_die(GENERAL_ERROR, "Could not update article data", '', __LINE__, __FILE__, $sql);
 	}
 	
-	$sql = "SELECT article_category_id 
-	 FROM " . KB_ARTICLES_TABLE . "
-	 WHERE article_id = " . $article_id;
-
-	 if ( !($result = $db->sql_query($sql)) )
-	 {
-   	  	message_die(GENERAL_ERROR, "Could not obtain article category", '', __LINE__, __FILE__, $sql);
-	 }
-
-	 if ( $article = $db->sql_fetchrow($result) )
-	 {
-	  	$article_category_id = $article['article_category_id'];
-	 }
-	 
-	 if (!empty($moderated_article['approved']))
+	$article_category_id = (int) $moderated_article['article_category_id'];
+	if ((int) $moderated_article['approved'] === 1)
 	 {
 		update_kb_number($article_category_id, '- 1');
 	 }
+	kb_remove_article_words($article_id);
 	
 	$message = $lang['Article_unapproved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 
@@ -234,141 +202,17 @@ switch( $action )
 	
 	if ($confirmed)
 	{	
-	$sql = "SELECT article_category_id, approved, topic_id  
-	 FROM " . KB_ARTICLES_TABLE . "
-	 WHERE article_id = " . $article_id;
-
-	 if ( !($result = $db->sql_query($sql)) )
-	 {
-   	  	message_die(GENERAL_ERROR, "Could not obtain article category", '', __LINE__, __FILE__, $sql);
-	 }
-
-	 if ( $article = $db->sql_fetchrow($result) )
-	 {
-	  	$article_category_id = $article['article_category_id'];
-	 }
+	$article = $moderated_article;
+	$article_category_id = (int) $article['article_category_id'];
 	
 	if ($article['approved'] == 1)
 	{
 	 	update_kb_number($article_category_id, '- 1');
 	}
 	
-	if ( $kb_config['del_topic'] && $article['topic_id'] )
+	if (!empty($kb_config['del_topic']) && !empty($article['topic_id']))
 	{
-			$topic = $article['topic_id'];
-
-			$sql = "SELECT poster_id, COUNT(post_id) AS posts 
-				FROM " . POSTS_TABLE . " 
-				WHERE topic_id = " . $topic . "  
-				GROUP BY poster_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not get poster id information', '', __LINE__, __FILE__, $sql);
-			}
-
-			$count_sql = array();
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$count_sql[] = "UPDATE " . USERS_TABLE . " 
-					SET user_posts = user_posts - " . $row['posts'] . " 
-					WHERE user_id = " . $row['poster_id'];
-			}
-			$db->sql_freeresult($result);
-
-			if ( sizeof($count_sql) )
-			{
-				for($i = 0; $i < sizeof($count_sql); $i++)
-				{
-					if ( !$db->sql_query($count_sql[$i]) )
-					{
-						message_die(GENERAL_ERROR, 'Could not update user post count information', '', __LINE__, __FILE__, $sql);
-					}
-				}
-			}
-			
-			$sql = "SELECT forum_id 
-			    FROM " . TOPICS_TABLE . "
-				WHERE topic_id = $topic";
-				
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not get forum id information', '', __LINE__, __FILE__, $sql);
-			}
-
-			$forum_id = array();
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$forum_id = $row['forum_id'];
-			}
-			$db->sql_freeresult($result);
-			
-			$sql = "SELECT post_id 
-				FROM " . POSTS_TABLE . " 
-				WHERE topic_id = $topic";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not get post id information', '', __LINE__, __FILE__, $sql);
-			}
-
-			$post_array = array();
-			$ii = 0;
-			$post_id_sql = '';
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$post_array[$ii] = $row['post_id'];
-				$post_id_sql .= ( ( $post_id_sql != '' ) ? ', ' : '' ) . $row['post_id'];
-				$ii++;
-			}
-			$db->sql_freeresult($result);
-
-			//
-			// Got all required info so go ahead and start deleting everything
-			//
-			$sql = "DELETE 
-				FROM " . TOPICS_TABLE . " 
-				WHERE topic_id = $topic 
-					OR topic_moved_id = $topic";
-			if ( !$db->sql_query($sql, BEGIN_TRANSACTION) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete topics', '', __LINE__, __FILE__, $sql);
-			}
-
-			if ( $post_id_sql != '' )
-			{
-				$sql = "DELETE 
-					FROM " . POSTS_TABLE . " 
-					WHERE topic_id = $topic";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete posts', '', __LINE__, __FILE__, $sql);
-				}
-
-				for ($i = 0; $i < count($post_array); $i++)
-				{
-					$sql = "DELETE 
-						FROM " . POSTS_TEXT_TABLE . " 
-						WHERE post_id = $post_array[$i]";
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not delete posts text', '', __LINE__, __FILE__, $sql);
-					}
-				}
-
-				remove_search_post($post_id_sql);
-			}
-
-			$sql = "DELETE 
-				FROM " . TOPICS_WATCH_TABLE . " 
-				WHERE topic_id = $topic";
-			if ( !$db->sql_query($sql, END_TRANSACTION) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete watched post list', '', __LINE__, __FILE__, $sql);
-			}
-			if ( !empty($forum_id) )
-			{
-				sync('forum', $forum_id);
-			}
-
+		kb_delete_discussion_topic((int) $article['topic_id']);
 	}
 	
 	$sql = "DELETE FROM  " . KB_ARTICLES_TABLE .
@@ -379,13 +223,7 @@ switch( $action )
    	   message_die(GENERAL_ERROR, "Could not delete article data", '', __LINE__, __FILE__, $sql);
 	}	
 
-	$sql = "DELETE FROM  " . KB_MATCH_TABLE .
-		 " WHERE article_id = " . $article_id;
-		 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-   	   message_die(GENERAL_ERROR, "Could not delete article wordmatch data", '', __LINE__, __FILE__, $sql);
-	}	
+	kb_remove_article_words($article_id);
 
 	$sql = "DELETE FROM " . KB_VOTES_TABLE . "
 		WHERE votes_file = " . $article_id;

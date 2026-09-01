@@ -179,6 +179,18 @@ function kb_admin_rebuild_category_counts()
 	}
 }
 
+function kb_admin_delete_discussions_enabled()
+{
+	global $db;
+	$sql = "SELECT config_value FROM " . KB_CONFIG_TABLE . " WHERE config_name = 'del_topic'";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base deletion settings', '', __LINE__, __FILE__, $sql);
+	}
+	$row = $db->sql_fetchrow($result);
+	return is_array($row) && !empty($row['config_value']);
+}
+
 function kb_admin_move_category($category_id, $direction)
 {
 	global $db;
@@ -319,6 +331,7 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'includes/kb_constants.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_kb.' . $phpEx);
 
 $mode_value = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : '');
 $mode = is_scalar($mode_value) ? (string) $mode_value : '';
@@ -606,6 +619,19 @@ switch( $mode )
 	   }
 	   else
 	   {
+		   if (kb_admin_delete_discussions_enabled())
+		   {
+			   $sql = "SELECT topic_id FROM " . KB_ARTICLES_TABLE . " WHERE article_category_id = $old_category AND topic_id > 0";
+			   if (!($topic_result = $db->sql_query($sql)))
+			   {
+				   message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base discussion topics', '', __LINE__, __FILE__, $sql);
+			   }
+			   while ($topic_row = $db->sql_fetchrow($topic_result))
+			   {
+				   kb_delete_discussion_topic((int) $topic_row['topic_id']);
+			   }
+		   }
+
 	       $sql = "DELETE FROM " . KB_MATCH_TABLE . "
 			      WHERE article_id IN (SELECT article_id FROM " . KB_ARTICLES_TABLE . " WHERE article_category_id = $old_category)";
 		   if (!$db->sql_query($sql))
@@ -641,6 +667,11 @@ switch( $mode )
 	   if ( !($delete_result = $db->sql_query($sql)) )
 	   {
 	   	  message_die(GENERAL_ERROR, "Could not delete category", '', __LINE__, __FILE__, $sql);
+	   }
+	   $sql = "DELETE FROM " . KB_SEARCH_TABLE;
+	   if (!$db->sql_query($sql))
+	   {
+		  message_die(GENERAL_ERROR, 'Could not invalidate Knowledge Base search results', '', __LINE__, __FILE__, $sql);
 	   }
 	   kb_admin_rebuild_category_counts();
 	   	

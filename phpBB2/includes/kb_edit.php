@@ -442,6 +442,7 @@ if ( !defined('IN_PHPBB') )
 	   	}
 	   	else
 	   	{
+			kb_remove_article_words($article_id);
 		   $message = $lang['Article_Edited_Approve'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
 	   	}
 
