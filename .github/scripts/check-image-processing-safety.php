@@ -85,6 +85,8 @@ image_processing_assert(strpos($advanced_captcha, "include(\$phpbb_root_path . '
 image_processing_assert(strpos($advanced_captcha, 'if (!$image)') !== false, 'advanced CAPTCHA must handle failed GD allocation');
 image_processing_assert(strpos($advanced_captcha, 'captcha/pics') === false, 'unused CAPTCHA background-image discovery must not return');
 image_processing_assert(strpos($advanced_captcha, 'mt_srand(') === false && strpos($advanced_captcha, 'srand(') === false, 'CAPTCHA rendering must rely on the runtime RNG instead of repeated manual seeding');
+image_processing_assert(strpos($advanced_captcha, "@imagettfbbox(12, 0, \$font_path, 'A')") !== false, 'CAPTCHA font discovery must reject unreadable TTF data');
+image_processing_assert(strpos($advanced_captcha, 'if (!is_array($char_pos) || count($char_pos) < 8)') !== false, 'CAPTCHA rendering must fall back when a selected TTF cannot render a character');
 
 $legacy_captcha = file_get_contents($root . '/phpBB2/antirobot_pic.php');
 image_processing_assert(strpos($legacy_captcha, "!is_scalar(\$_GET['id'])") !== false, 'legacy CAPTCHA identifiers must be scalar');

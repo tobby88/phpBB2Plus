@@ -143,7 +143,9 @@ if ($fonts_dir = @opendir($phpbb_root_path.'captcha/fonts/'))
 {
 	while (($file = @readdir($fonts_dir)) !== false)
 	{ 
-		if ((substr(strtolower($file), -3) == 'ttf'))
+		$font_path = $phpbb_root_path . 'captcha/fonts/' . $file;
+		if (substr(strtolower($file), -4) === '.ttf' && @is_file($font_path) && @is_readable($font_path) &&
+			(!function_exists('imagettfbbox') || @imagettfbbox(12, 0, $font_path, 'A') !== false))
 		{         
 			$fonts[] = $file; 
 		}     
@@ -250,7 +252,20 @@ for ($i = 0; $i < strlen($code); $i++)
 	}
 
 	$char_pos = array();
-	$char_pos = imagettfbbox($size, $angle, $phpbb_root_path.'captcha/fonts/'.$fonts[$font], $char);
+	$font_path = $phpbb_root_path . 'captcha/fonts/' . $fonts[$font];
+	$char_pos = @imagettfbbox($size, $angle, $font_path, $char);
+	if (!is_array($char_pos) || count($char_pos) < 8)
+	{
+		$builtin_font = 5;
+		$letter_width = imagefontwidth($builtin_font);
+		$letter_height = imagefontheight($builtin_font);
+		$x_pos = max(2, (int) (($i + 0.5) * ($total_width / strlen($code)) - ($letter_width / 2)));
+		$y_pos = max(2, (int) (($total_height - $letter_height) / 2) + mt_rand(-3, 3));
+		imagestring($image, $builtin_font, $x_pos + 2, $y_pos + 2, $char, $white);
+		imagestring($image, $builtin_font, $x_pos + 1, $y_pos + 1, $char, $black);
+		imagestring($image, $builtin_font, $x_pos, $y_pos, $char, $textcolor);
+		continue;
+	}
 	$letter_width = abs($char_pos[0]) + abs($char_pos[4]);
 	$letter_height = abs($char_pos[1]) + abs($char_pos[5]);
 
