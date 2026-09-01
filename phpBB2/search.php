@@ -330,14 +330,16 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 					}
 					while( $row = $db->sql_fetchrow($result) );
 				}
-				else
+
+				$author_where_sql = "(poster_id = " . ANONYMOUS . " AND post_username LIKE '$search_author_sql')";
+				if ($matching_userids != '')
 				{
-					message_die(GENERAL_MESSAGE, $lang['No_search_match']);
+					$author_where_sql = "(poster_id IN ($matching_userids) OR $author_where_sql)";
 				}
 
-				$sql = "SELECT post_id 
-					FROM " . POSTS_TABLE . " 
-					WHERE poster_id IN ($matching_userids)";
+				$sql = "SELECT post_id
+					FROM " . POSTS_TABLE . "
+					WHERE $author_where_sql";
 					$sql .= ($only_bluecards) ? " AND post_bluecard>0 " : "";
 				if ($search_time)
 				{
@@ -627,7 +629,9 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 						if ( $search_author != '' )
 						{
 							$from_sql .= ", " . USERS_TABLE . " u";
-							$where_sql .= " AND u.user_id = p.poster_id AND u.username LIKE '$search_author_sql' ";
+							$where_sql .= " AND u.user_id = p.poster_id
+								AND (u.username LIKE '$search_author_sql'
+									OR (p.poster_id = " . ANONYMOUS . " AND p.post_username LIKE '$search_author_sql')) ";
 						}
 
 						if ( $auth_sql != '' )
@@ -705,7 +709,9 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 					if ( $search_author != '' )
 					{
 						$from_sql .= ", " . USERS_TABLE . " u";
-						$where_sql .= " AND u.user_id = p.poster_id AND u.username LIKE '$search_author_sql'";
+						$where_sql .= " AND u.user_id = p.poster_id
+							AND (u.username LIKE '$search_author_sql'
+								OR (p.poster_id = " . ANONYMOUS . " AND p.post_username LIKE '$search_author_sql'))";
 					}
 
 					$sql = "SELECT " . $select_sql . " 
