@@ -738,23 +738,26 @@ if ($plus_config['index_layout'] == 'index_body_plus.tpl')
 	));
 }	
 	
-$site_description = $board_config['site_desc'];
+$site_description = isset($board_config['site_desc']) ? (string) $board_config['site_desc'] : '';
 if(strlen($site_description) > 75)
 {
-	$site_description = substr($board_config['site_desc'],0,75);
+	$site_description = substr($site_description,0,75);
 	$site_description .= "...";
 }
 		
 $page_title = isset($page_title) ? $page_title : '';
+$sitename_html = phpbb_stored_text(isset($board_config['sitename']) ? $board_config['sitename'] : '');
+$site_description_html = phpbb_stored_text($site_description);
+$page_title_html = phpbb_stored_text($page_title);
 $template->assign_vars(array(
-	'SITENAME' => $board_config['sitename'],
-	'SITE_DESCRIPTION' => $site_description,
+	'SITENAME' => $sitename_html,
+	'SITE_DESCRIPTION' => $site_description_html,
 	'PHPBB_ROOT_PATH' => $phpbb_root_path,
 	'PHPEX' => $phpEx,
 	'POST_FORUM_URL' => POST_FORUM_URL,
 	'POST_TOPIC_URL' => POST_TOPIC_URL,
 	'POST_POST_URL' => POST_POST_URL,
-	'PAGE_TITLE' => $page_title,
+	'PAGE_TITLE' => $page_title_html,
 	'LAST_VISIT_DATE' => sprintf($lang['You_last_visit'], $s_last_visit),
 	'CURRENT_TIME' => sprintf($lang['Current_time'], create_date($board_config['default_dateformat'], time(), $board_config['board_timezone'])),
 	'TOTAL_USERS_ONLINE' => $l_online_users,
@@ -776,7 +779,7 @@ $template->assign_vars(array(
 	'L_LOGIN' => $lang['Login'],
 	'L_LOG_ME_IN' => $lang['Log_me_in'],
 	'L_AUTO_LOGIN' => $lang['Log_me_in'],
-	'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
+	'L_INDEX' => sprintf($lang['Forum_Index'], $sitename_html),
 	'L_REGISTER' => $lang['Register'],
 	'L_PROFILE' => $lang['Profile'],
 	'L_SEARCH' => $lang['Search'],

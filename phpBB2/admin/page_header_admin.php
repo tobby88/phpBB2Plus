@@ -55,13 +55,13 @@ $l_timezone = phpbb_timezone_label($board_config['board_timezone']);
 // should all S_x_ACTIONS for forms.
 //
 $template->assign_vars(array(
-	'SITENAME' => $board_config['sitename'],
-	'PAGE_TITLE' => isset($page_title) ? $page_title : '',
+	'SITENAME' => phpbb_stored_text(isset($board_config['sitename']) ? $board_config['sitename'] : ''),
+	'PAGE_TITLE' => phpbb_stored_text(isset($page_title) ? $page_title : ''),
 	'PHPBB_ROOT_PATH' => $phpbb_root_path,
 	'PHPEX' => $phpEx,
 
 	'L_ADMIN' => $lang['Admin'], 
-	'L_INDEX' => sprintf($lang['Forum_Index'], $board_config['sitename']),
+	'L_INDEX' => sprintf($lang['Forum_Index'], phpbb_stored_text(isset($board_config['sitename']) ? $board_config['sitename'] : '')),
 	'L_FAQ' => $lang['FAQ'],
 
 	'U_INDEX' => append_sid('../index.'.$phpEx),

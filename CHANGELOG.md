@@ -12,7 +12,9 @@ changes consolidated after that baseline without implying active maintenance.
   navigation metadata emitted in every page header. Navigation URLs and
   relation attributes are now encoded at their attribute boundary, and the
   shared forum jump box no longer injects stored forum/category names as raw
-  option markup.
+  option markup. Public and administration headers also normalize and escape
+  the configured site name, description and current page title before using
+  them in document titles, attributes or page content.
 - Extended CrackerTracker's login-network warning to IPv6 using a
   privacy-preserving /48 comparison while retaining its historical IPv4 /16
   behavior. Global security notices now escape text, accept only validated
