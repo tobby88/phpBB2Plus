@@ -1058,7 +1058,7 @@ for($i = 0; $i < $total_posts; $i++)
 	$poster = ( $poster_id == ANONYMOUS ) ? $lang['Guest'] : color_group_colorize_name($postrow[$i]['user_id']);
 	
 	// Start add - Birthday MOD
-	if ( $postrow[$i]['user_birthday'] != 999999 ) 
+	if ( $userdata['session_logged_in'] && $postrow[$i]['user_birthday'] != 999999 )
 	{
 		$poster_birthdate=realdate('md', $postrow[$i]['user_birthday']);
 		$n=0;

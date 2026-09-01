@@ -109,6 +109,7 @@
 </tr>
 <!-- End add - Gender MOD -->
 <!-- Start add - Birthday MOD -->
+<!-- BEGIN switch_registered_profile_details -->
 <tr>
 <td align="right" valign="top" nowrap="nowrap" class="explaintitle">{L_BIRTHDAY}:</td>
 <td>{BIRTHDAY}</td>
@@ -121,6 +122,7 @@
 <td align="right" valign="top" nowrap="nowrap" class="explaintitle">{L_CHINESE}:</td>
 <td>{CHINESE}&nbsp;{CHINESE_IMG}</td>
 </tr>
+<!-- END switch_registered_profile_details -->
 <!-- End add - Birthday MOD -->
 </table>
 </td>

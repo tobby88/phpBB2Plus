@@ -337,15 +337,15 @@ $template->assign_vars(array(
 	'GENDER' => $gender, 
 	// End add - Gender MOD
 	// Start add - Birthday MOD
-	'BIRTHDAY' => $user_birthday,
-	'CHINESE' => $chinese_label,
-	'CHINESE_IMG' => $chinese_img,
-	'U_CHINESE' => $u_chinese,
+	'BIRTHDAY' => $userdata['session_logged_in'] ? $user_birthday : '',
+	'CHINESE' => $userdata['session_logged_in'] ? $chinese_label : '',
+	'CHINESE_IMG' => $userdata['session_logged_in'] ? $chinese_img : '',
+	'U_CHINESE' => $userdata['session_logged_in'] ? $u_chinese : '',
 	'L_CHINESE' => $lang['Chinese_zodiac'],
-	'ZODIAC' => $zodiac,
-	'ZODIAC_IMG' => $zodiac_img,
+	'ZODIAC' => $userdata['session_logged_in'] ? $zodiac : '',
+	'ZODIAC_IMG' => $userdata['session_logged_in'] ? $zodiac_img : '',
 	'L_ZODIAC' => $lang['Zodiac'],
-	'U_ZODIAC' => $u_zodiac,
+	'U_ZODIAC' => $userdata['session_logged_in'] ? $u_zodiac : '',
 
 	// End add - Birthday MOD
 	'AVATAR_IMG' => $avatar_img,
@@ -414,6 +414,11 @@ $abouts = array();
 $contacts = array();
 foreach($profile_data as $field)
 {
+	if ( !$userdata['session_logged_in'] )
+	{
+		continue;
+	}
+
   $name = phpbb_profile_display_text($field['field_name']);
   $col_name = phpbb_profile_field_column($field);
   if ($col_name === '')
@@ -440,6 +445,9 @@ foreach($abouts as $about_field)
 
 foreach($contacts as $contact_field)
   $template->assign_block_vars('custom_contact',array('CONTACT_N' => $contact_field['name'],'CONTACT_D' => $contact_field['data']));
+
+if ( $userdata['session_logged_in'] )
+  $template->assign_block_vars('switch_registered_profile_details', array());
 //
 // END Custom Profile Fields MOD
 //

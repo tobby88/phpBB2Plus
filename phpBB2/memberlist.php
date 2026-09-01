@@ -38,6 +38,11 @@ init_userprefs($userdata);
 // End session management
 //
 
+if ( !$userdata['session_logged_in'] )
+{
+	redirect(append_sid("login.$phpEx?redirect=memberlist.$phpEx", true));
+}
+
 $start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
 
 $mode = htmlspecialchars(phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode', 'joined')));

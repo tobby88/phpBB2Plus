@@ -169,6 +169,7 @@ function displayable_field_data($data, $type)
 function get_topic_udata($postrow_data, $profile_data)
 {
 	static $cp_udata_cache = array();
+	global $userdata;
 
 	$id = (is_array($postrow_data) && isset($postrow_data['user_id'])) ? intval($postrow_data['user_id']) : 0;
 
@@ -180,6 +181,11 @@ function get_topic_udata($postrow_data, $profile_data)
 		$cp_udata_cache[$id]['author'] = array();
 		foreach((array) $profile_data as $field)
 		{
+			if (empty($userdata['session_logged_in']))
+			{
+				continue;
+			}
+
 			if (!is_array($field) || !isset($field['field_name'], $field['field_type'], $field['topic_location']))
 			{
 				continue;

@@ -2554,7 +2554,7 @@ function phpbb_social_profile_url($service, $value, $allowed_hosts)
  */
 function phpbb_social_profile_links($row)
 {
-	global $images, $lang;
+	global $images, $lang, $userdata;
 
 	$definitions = array(
 		'FB'      => array('user_fb',      array('facebook.com')),
@@ -2588,6 +2588,19 @@ function phpbb_social_profile_links($row)
 		$plain_value = html_entity_decode($value, ENT_QUOTES, 'UTF-8');
 		$escaped_value = htmlspecialchars($plain_value, ENT_QUOTES, 'UTF-8');
 		$escaped_label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+		$private_contact = ($name === 'SIGNAL' || $name === 'THREEMA') && empty($userdata['session_logged_in']);
+		if ($private_contact)
+		{
+			$image_key = 'icon_' . strtolower($name);
+			$button = !empty($images[$image_key])
+				? '<span title="' . $escaped_label . '"><img src="' . $images[$image_key] . '" alt="' . $escaped_label . '" title="' . $escaped_label . '" border="0" /></span>'
+				: '<span class="gensmall">' . $escaped_label . '</span>';
+			$links[$name] = $escaped_label;
+			$links[$name . '_IMG'] = $button . '&nbsp;';
+			$rows[] = '<tr><td align="right" nowrap="nowrap" class="explaintitle">' . $escaped_label . ':</td><td class="genmed">' . $button . '</td></tr>';
+			continue;
+		}
+
 		$provided_url = phpbb_social_profile_allowed_url($plain_value, $definition[1]);
 		$url = phpbb_social_profile_url($name, $plain_value, $definition[1]);
 		$button = '';

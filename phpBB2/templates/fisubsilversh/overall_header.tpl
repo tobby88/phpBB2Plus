@@ -139,9 +139,9 @@ function Gk_PopTart(mypage, myname, w, h, scroll)
 <a href="{U_BOOKMARKS}">{L_BOOKMARKS}</a>
 &nbsp; &#8226;&nbsp;
 <a href="{U_SEARCH_NEW}">{L_SEARCH_NEW2}</a>
-<!-- END switch_user_logged_in -->
 &nbsp;&#8226;&nbsp;
 <a href="{U_GROUP_CP}">{L_USERGROUPS}</a>
+<!-- END switch_user_logged_in -->
 <!-- BEGIN switch_user_logged_out -->
 &nbsp;&#8226;&nbsp;
 <a href="{U_REGISTER}">{L_REGISTER}</a>

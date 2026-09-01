@@ -34,8 +34,10 @@
 &nbsp;<a href="#"><b>{L_ABOUT_US}</b></a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_FAQ}" width="14" height="9" />&nbsp;<a href="{U_FAQ}">{L_FAQ}</a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_STAFF}" width="14" height="9" />&nbsp;<a href="{U_STAFF}">{L_STAFF}</a><br />
+<!-- BEGIN switch_user_logged_in -->
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_MEMBERLIST}" width="14" height="9" />&nbsp;<a href="{U_MEMBERLIST}">{L_MEMBERLIST}</a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_USERGROUPS}" width="14" height="9" />&nbsp;<a href="{U_GROUP_CP}">{L_USERGROUPS}</a><br />
+<!-- END switch_user_logged_in -->
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_STATISTICS}" width="14" height="9" />&nbsp;<a href="{U_STATISTICS}">{L_STATISTICS}</a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_RANKS}" width="14" height="9" />&nbsp;<a href="{U_RANKS}">{L_RANKS}</a><br />
 <img src="templates/fisubsilversh/images/arrow.gif" alt="{L_CONTACT}" width="14" height="9" />&nbsp;<a href="{U_CONTACT}">{L_CONTACT}</a>
@@ -476,7 +478,6 @@ return true;
 </td>
 </tr>
 </table>
-
 
 
 

@@ -109,6 +109,11 @@ init_userprefs($userdata);
 // End session management
 //
 
+if ( !$userdata['session_logged_in'] )
+{
+	redirect(append_sid("login.$phpEx?redirect=groupcp.$phpEx", true));
+}
+
 $server_url = phpbb_board_url('groupcp.' . $phpEx);
 
 if ( isset($_GET[POST_GROUPS_URL]) || isset($_POST[POST_GROUPS_URL]) )

@@ -76,6 +76,7 @@ contact_test_same(
 	'The internal board email form must remain available without exposing the address.'
 );
 
+$userdata = array('session_logged_in' => true);
 $links = phpbb_social_profile_links(array(
 	'user_fb' => 'javascript:alert(1)',
 	'user_signal' => 'example.42',
@@ -91,6 +92,18 @@ contact_test_true(strpos($links['PROFILE_ROWS'], 'example.42') !== false, 'Text-
 contact_test_true(strpos($links['PROFILE_ROWS'], 'ICQ') === false, 'Retired messenger data must not be rendered.');
 contact_test_true(strpos($links['PROFILE_ROWS'], 'Pinterest') === false, 'Pinterest must not be rendered as a contact method.');
 contact_test_true(strpos($links['PROFILE_ROWS'], '<img') === false, 'Contact output must not depend on missing legacy icon files.');
+
+$userdata['session_logged_in'] = false;
+$images = array('icon_signal' => 'signal.gif', 'icon_threema' => 'threema.gif');
+$guest_links = phpbb_social_profile_links(array(
+	'user_signal' => $signal_link,
+	'user_threema' => 'ABCD1234'
+));
+$guest_output = implode(' ', $guest_links);
+contact_test_true(strpos($guest_output, 'example-token') === false, 'Signal contact details must not be present in guest HTML.');
+contact_test_true(strpos($guest_output, 'ABCD1234') === false, 'Threema contact details must not be present in guest HTML.');
+contact_test_true(strpos($guest_output, 'href=') === false, 'Guest messenger indicators must not be contact links.');
+contact_test_true(strpos($guest_output, '<img') !== false, 'Guests should still see that Signal or Threema is configured.');
 
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 $contact_views = array(
