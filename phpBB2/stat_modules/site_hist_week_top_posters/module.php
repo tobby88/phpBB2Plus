@@ -57,11 +57,11 @@ for ($i = 0; $i < $user_count; $i++)
 	$template->assign_block_vars('top_posters_week', array(
 		'RANK' => $i+1,
 		'CLASS' => $class,
-		'USERNAME' => $user_data[$i]['username'],
+		'USERNAME' => htmlspecialchars((string) $user_data[$i]['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 		'PERCENTAGE' => $statistics->percentage,
 		'BAR' => $statistics->bar_percent,
-		'URL' => append_sid($phpbb_root_path . 'profile.php?mode=viewprofile&u=' . $user_data[$i]['user_id']),
-		'POSTS' => $user_data[$i]['user_posts'])
+		'URL' => append_sid($phpbb_root_path . 'profile.php?mode=viewprofile&u=' . intval($user_data[$i]['user_id'])),
+		'POSTS' => max(0, intval($user_data[$i]['user_posts'])))
 	);
 }
 

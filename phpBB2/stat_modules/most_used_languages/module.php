@@ -43,8 +43,8 @@ for ($i = 0; $i < $lang_count; $i++)
 	$template->assign_block_vars('lang', array(
 		'RANK' => $i+1,
 		'CLASS' => $class,
-		'LANGUAGE' => $lang_data[$i]['user_lang'],
-		'HOWMANY' => $lang_data[$i]['number'])
+		'LANGUAGE' => htmlspecialchars((string) $lang_data[$i]['user_lang'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+		'HOWMANY' => intval($lang_data[$i]['number']))
 	);
 }
 

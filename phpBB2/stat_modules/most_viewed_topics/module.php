@@ -52,9 +52,9 @@ for ($i = 0; $i < $topic_count; $i++)
 	$template->assign_block_vars('topicviews', array(
 		'RANK' => $i+1,
 		'CLASS' => $class,
-		'TITLE' => $topic_data[$i]['topic_title'],
-		'VIEWS' => $topic_data[$i]['topic_views'],
-		'URL' => append_sid($phpbb_root_path . 'viewtopic.php?t=' . $topic_data[$i]['topic_id']))
+		'TITLE' => htmlspecialchars((string) $topic_data[$i]['topic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+		'VIEWS' => max(0, intval($topic_data[$i]['topic_views'])),
+		'URL' => append_sid($phpbb_root_path . 'viewtopic.php?t=' . intval($topic_data[$i]['topic_id'])))
 	);
 }
 

@@ -111,7 +111,7 @@ for ($i = 0; $i < $num_attachments; $i++)
 { 
 	$class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
-	$post_title = $attachments[$i]['topic_title'];
+	$post_title = (string) $attachments[$i]['topic_title'];
 	$post_title_2 = '';
 	
 	if (strlen($post_title) > 32)
@@ -119,17 +119,20 @@ for ($i = 0; $i < $num_attachments; $i++)
 		$post_title_2 = substr($post_title, 0, 30) . '...';
 	}
 
-	$view_topic = append_sid('viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $attachments[$i]['post_id'] . '#' . $attachments[$i]['post_id']);
+	$post_id = intval($attachments[$i]['post_id']);
+	$view_topic = htmlspecialchars(append_sid('viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $post_id . '#' . $post_id), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	$post_title_html = htmlspecialchars($post_title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	$post_title_2_html = htmlspecialchars($post_title_2, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	if ($post_title_2 != '')
 	{
-		$post_title = '<a href="' . $view_topic . '" class="gen" title="' . $post_title . '" target="_blank" rel="noopener noreferrer">' . $post_title_2 . '</a>';
+		$post_title = '<a href="' . $view_topic . '" class="gen" title="' . $post_title_html . '" target="_blank" rel="noopener noreferrer">' . $post_title_2_html . '</a>';
 	}
 	else
 	{
-		$post_title = '<a href="' . $view_topic . '" class="gen" target="_blank" rel="noopener noreferrer">' . $post_title . '</a>';
+		$post_title = '<a href="' . $view_topic . '" class="gen" target="_blank" rel="noopener noreferrer">' . $post_title_html . '</a>';
 	}
 
-	$comment = $attachments[$i]['comment'];
+	$comment = (string) $attachments[$i]['comment'];
 	$comment_2 = '';
 
 	if (strlen($comment) > 32)
@@ -139,14 +142,14 @@ for ($i = 0; $i < $num_attachments; $i++)
 
 	if ($comment_2 != '')
 	{
-		$comment_field = '<span title="' . $comment . '">' . $comment_2 . '</span>';
+		$comment_field = '<span title="' . htmlspecialchars($comment, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">' . htmlspecialchars($comment_2, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
 	}
 	else
 	{
-		$comment_field = $comment;
+		$comment_field = htmlspecialchars($comment, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	}
 
-	$filename = $attachments[$i][$real_filename];
+	$filename = (string) $attachments[$i][$real_filename];
 	$filename_2 = '';
 	
 	if (strlen($filename) > 32)
@@ -154,14 +157,16 @@ for ($i = 0; $i < $num_attachments; $i++)
 		$filename_2 = substr($filename, 0, 30) . '...';
 	}
 
-	$view_attachment = append_sid('download.' . $phpEx . '?id=' . $attachments[$i]['attach_id']);
+	$view_attachment = htmlspecialchars(append_sid('download.' . $phpEx . '?id=' . intval($attachments[$i]['attach_id'])), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	$filename_html = htmlspecialchars($filename, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	$filename_2_html = htmlspecialchars($filename_2, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	if ($filename_2 != '')
 	{
-		$filename_link = '<a href="' . $view_attachment . '" class="gen" title="' . $filename . '" target="_blank" rel="noopener noreferrer">' . $filename_2 . '</a>';
+		$filename_link = '<a href="' . $view_attachment . '" class="gen" title="' . $filename_html . '" target="_blank" rel="noopener noreferrer">' . $filename_2_html . '</a>';
 	}
 	else
 	{
-		$filename_link = '<a href="' . $view_attachment . '" class="gen" target="_blank" rel="noopener noreferrer">' . $filename . '</a>';
+		$filename_link = '<a href="' . $view_attachment . '" class="gen" target="_blank" rel="noopener noreferrer">' . $filename_html . '</a>';
 	}
 
 	$start = isset($_GET['start']) ? intval($_GET['start']) : 0;
@@ -169,10 +174,10 @@ for ($i = 0; $i < $num_attachments; $i++)
 		'ROW_NUMBER' => $i + $start + 1,
 		'ROW_CLASS' => $class,
 
-		'FILENAME' => $filename,
+		'FILENAME' => $filename_html,
 		'COMMENT' => $comment_field,
 		'SIZE' => round(($attachments[$i]['filesize'] / 1024), 2),
-		'DOWNLOAD_COUNT' => $attachments[$i]['download_count'],
+		'DOWNLOAD_COUNT' => max(0, intval($attachments[$i]['download_count'])),
 		'POST_TIME' => create_date($board_config['default_dateformat'], $attachments[$i]['filetime'], $board_config['board_timezone']),
 		'POST_TITLE' => $post_title,
 

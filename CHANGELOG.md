@@ -12,7 +12,9 @@ changes consolidated after that baseline without implying active maintenance.
   codes and asset names, escaped its HTML output, constrained its selected
   style path and removed negative-offset warnings for empty/single-item data.
   Its per-post counting mode now lets the database return a count instead of
-  transferring every matching post body to PHP.
+  transferring every matching post body to PHP. All remaining statistics
+  modules now escape stored usernames, topic titles, languages, attachment
+  names and comments, and public/ACP result limits are capped at 100 rows.
 - Rebuilt the public Album search around a fixed mode-to-column allowlist and
   database-driver escaping. Queries are bounded, inaccessible personal or
   restricted categories are filtered through the normal Album permissions,

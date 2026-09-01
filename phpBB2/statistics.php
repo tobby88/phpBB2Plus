@@ -71,7 +71,7 @@ $template->set_filenames(array(
 
 $__module_rows = get_module_list_from_db();
 $__stat_module_data = get_module_data_from_db();
-$return_limit = $__stats_config['return_limit'];
+$return_limit = max(1, min(100, intval($__stats_config['return_limit'])));
 
 $__stat_module_rows = array();
 $__count = 0;
