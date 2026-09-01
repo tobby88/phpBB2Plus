@@ -23,6 +23,7 @@ $checks = array(
     'link values use database-driver escaping' => substr_count($submission, '$db->sql_escape($link_') >= 4,
     'submitter IP uses database-driver escaping' => strpos($submission, '$user_ip_sql = $db->sql_escape($user_ip);') !== false,
     'URLs reject embedded credentials' => strpos($submission, "isset(\$parts['user']) || isset(\$parts['pass'])") !== false,
+	'URLs reject ambiguous backslashes' => strpos($submission, "strpos(\$value, '\\\\') !== false") !== false,
     'overlong URLs are rejected rather than truncated' => strpos($submission, "strlen(\$link_url) <= 100") !== false,
     'only active administrators are notified' => strpos($submission, 'user_level = " . ADMIN . " AND user_active = 1') !== false,
     'mail languages are path-allowlisted' => strpos($submission, "preg_match('/^[a-z0-9_-]+$/i', (string) \$to_userdata['user_lang'])") !== false,

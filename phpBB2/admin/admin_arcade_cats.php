@@ -409,8 +409,8 @@ if( isset($HTTP_POST_VARS['save_cat']) )
 	$link_parts = @parse_url($desc);
     if (!$link_parts || empty($link_parts['scheme']) || empty($link_parts['host']) ||
 		isset($link_parts['user']) || isset($link_parts['pass']) ||
-		!in_array(strtolower($link_parts['scheme']), array('http', 'https'), true) ||
-		preg_match('/[\x00-\x20\x7f]/', $desc))
+		!in_array(strtolower($link_parts['scheme']), array('http', 'https'), true) || strpos($desc, '\\') !== false ||
+		preg_match('/[\x00-\x20\x7f<>"\'`]/', $desc))
     {
       $message = $lang['game_link_error'];
     	$message .= sprintf($lang['admin_return_cats'], "<a href=\"" . append_sid("$file?mode=categories") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");

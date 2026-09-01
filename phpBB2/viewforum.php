@@ -177,7 +177,7 @@ if ( ($CH_this > -1) && !empty($tree['data'][$CH_this]['forum_link']))
 	if (!$url_parts || empty($url_parts['scheme']) || empty($url_parts['host']) ||
 		!in_array(strtolower($url_parts['scheme']), array('http', 'https'), true) ||
 		isset($url_parts['user']) || isset($url_parts['pass']) ||
-		preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
+		strpos($url, '\\') !== false || preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
 	{
 		message_die(GENERAL_ERROR, 'Invalid external forum URL.');
 	}

@@ -105,6 +105,10 @@ if (pafiledb_resolve_local_download("missing\r\nname.zip", $testUpload, $testRoo
 {
 	$errors[] = 'paFileDB accepted a nonexistent hostile local filename.';
 }
+if (pafiledb_normalize_remote_url('https://downloads.example/path\\@attacker.example/file.zip') !== false)
+{
+	$errors[] = 'paFileDB accepted an ambiguous backslash in a remote URL.';
+}
 
 @unlink($testUpload . '/allowed.zip');
 @unlink($testOutside . '/secret.txt');

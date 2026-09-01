@@ -62,11 +62,11 @@ if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper($_SERVER['REQUEST_METHOD'])
 
 function link_register_http_url($value)
 {
-	$value = trim(stripslashes((string) $value));
+	$value = trim((string) $value);
 	$parts = @parse_url($value);
 	if (!$parts || empty($parts['scheme']) || empty($parts['host']) ||
 		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) || isset($parts['user']) || isset($parts['pass']) ||
-		preg_match('/[\x00-\x20\x7f]/', $value))
+		strpos($value, '\\') !== false || preg_match('/[\x00-\x20\x7f<>"\'`]/', $value))
 	{
 		return '';
 	}

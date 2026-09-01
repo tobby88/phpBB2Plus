@@ -81,7 +81,8 @@ function arcade_external_url($value)
 	$value = is_scalar($value) ? trim((string) $value) : '';
 	$parts = @parse_url($value);
 	if (!$parts || empty($parts['host']) || empty($parts['scheme']) || isset($parts['user']) || isset($parts['pass']) ||
-		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) || preg_match('/[\x00-\x20\x7f]/', $value))
+		!in_array(strtolower($parts['scheme']), array('http', 'https'), true) || strpos($value, '\\') !== false ||
+		preg_match('/[\x00-\x20\x7f<>"\'`]/', $value))
 	{
 		return false;
 	}

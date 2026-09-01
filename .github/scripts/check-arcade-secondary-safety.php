@@ -14,6 +14,7 @@ $rate = file_get_contents($root . '/phpBB2/arcade_rate.php');
 $comment = file_get_contents($root . '/phpBB2/arcade_comment.php');
 $tournament = file_get_contents($root . '/phpBB2/arcade_tournament.php');
 $activity = file_get_contents($root . '/phpBB2/activity.php');
+$adminCategories = file_get_contents($root . '/phpBB2/admin/admin_arcade_cats.php');
 $modcp = file_get_contents($root . '/phpBB2/arcade_modcp.php');
 $loader = file_get_contents($root . '/phpBB2/loader.php');
 $classes = file_get_contents($root . '/phpBB2/includes/classes_arcade.php');
@@ -43,6 +44,8 @@ arcade_secondary_assert(strpos($activity, "isset(\$game_rows[0]['total_games'])"
 arcade_secondary_assert(strpos($activity, "strlen(\$cat_rows[0]['game_desc'])") === false, 'the broken all-games description variable must not return');
 arcade_secondary_assert(strpos($activity, "strtoupper((string) \$arcade->sort_order) === 'ASC'") !== false, 'Arcade SQL ordering must be allowlisted');
 arcade_secondary_assert(strpos($activity, 'function arcade_external_url($value)') !== false, 'link categories need runtime URL validation');
+arcade_secondary_assert(strpos($activity, "strpos(\$value, '\\\\') !== false") !== false, 'runtime link categories must reject ambiguous backslashes');
+arcade_secondary_assert(strpos($adminCategories, "strpos(\$desc, '\\\\') !== false") !== false, 'admin link categories must reject ambiguous backslashes');
 arcade_secondary_assert(substr_count($activity, 'arcade_output_html(') >= 20, 'stored Arcade metadata must be escaped at output boundaries');
 arcade_secondary_assert(substr_count($activity, "'ARCADE_USERNAME' => arcade_output_html(\$userdata['username'])") === 1, 'the default Arcade page needs an escaped server-side username');
 arcade_secondary_assert(substr_count($activity, '"ARCADE_USERNAME" => arcade_output_html($userdata[\'username\'])') === 1, 'Arcade category pages need an escaped server-side username');

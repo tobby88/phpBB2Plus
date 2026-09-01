@@ -615,8 +615,8 @@ function get_formated_url()
 
 function pafiledb_normalize_remote_url($url, $image_only = false)
 {
-	$url = trim(stripslashes((string) $url));
-	if ($url === '' || preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
+	$url = trim((string) $url);
+	if ($url === '' || strpos($url, '\\') !== false || preg_match('/[\x00-\x20\x7f<>"\'`]/', $url))
 	{
 		return false;
 	}
