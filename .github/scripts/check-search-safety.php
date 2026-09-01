@@ -26,5 +26,7 @@ search_safety_assert(strpos($search, "is_dir(\$phpbb_root_path . 'language/lang_
 search_safety_assert((bool) preg_match('/\$search_results\s*=\s*\'\';.{0,400}\$split_search\s*=\s*array\(\);/s', $search), 'all search modes must initialize keyword highlight state');
 search_safety_assert(strpos($search, "!empty(\$searchset) && isset(\$searchset[0]['topic_id'])") !== false, 'AJAX single-result redirects must tolerate stale result IDs');
 search_safety_assert(strpos($search, 'auth(AUTH_ALL, $search_where, $userdata)') === false, 'hierarchy selectors such as Root must never be passed to auth() as numeric forum IDs');
+search_safety_assert(strpos($search, '$ct_rules') === false, 'search rendering must not depend on an undefined legacy CrackerTracker rule array');
+search_safety_assert(strpos($search, "\$raw_message = '';" ) !== false, 'non-editable search results must initialize the AJAX editor payload');
 
 echo "Search safety tests passed.\n";

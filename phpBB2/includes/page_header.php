@@ -560,7 +560,7 @@ if ( $marknow == 'ipfeature' && $userdata['session_logged_in'] )
 	{
 		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
 	}
-	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('#/([^/?#]+)(?:[?#].*)?$#', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
+	if ( !empty($HTTP_SERVER_VARS['HTTP_REFERER']) && preg_match('~/([^/?#]+)(?:[?#].*)?$~', $HTTP_SERVER_VARS['HTTP_REFERER'], $backlink) )
 	{
 		redirect($backlink[1]);
 	}
@@ -830,6 +830,7 @@ $template->assign_vars(array(
 	'S_TIMEZONE' => sprintf($lang['All_times'], $l_timezone),
 	// End replacement - Advanced time management MOD
 	'S_LOGIN_ACTION' => append_sid('login.'.$phpEx),
+	'S_LOGIN_FIELDS' => '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />',
 	'S_SID' => $userdata['session_id'],
 
 	'T_HEAD_STYLESHEET' => $theme['head_stylesheet'],

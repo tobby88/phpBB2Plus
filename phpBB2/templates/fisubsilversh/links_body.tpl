@@ -42,6 +42,7 @@ function checkForm() {
 		  </tr>
 		<tr><td class="row1">
 		<form method="post" action="{S_LOGIN_ACTION}">
+		{S_LOGIN_FIELDS}
 		<table border="0" cellpadding="2" cellspacing="0" width="100%">
 		<tr>
 			<td class="row1">

@@ -1128,13 +1128,6 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 		for($i = 0; $i < count($searchset); $i++)
 		{
-			// CrackerTracker v5.x
-			$sucheck = strtolower($highlight_active);
-			$sucheck = str_replace($ct_rules, '*', $sucheck);
-			if($sucheck != $highlight_active)
-			{
-				$highlight_active = '';
-			}
 			$forum_url = append_sid("viewforum.$phpEx?" . POST_FORUM_URL . '=' . $searchset[$i]['forum_id']);
 			$topic_url = append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $searchset[$i]['topic_id'] . "&amp;highlight=$highlight_active");
 			$post_id = isset($searchset[$i]['post_id']) ? intval($searchset[$i]['post_id']) : 0;
@@ -1287,6 +1280,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 				$is_firstpost = ($searchset[$i]['post_id'] == $searchset[$i]['topic_first_post_id']) ? 1 : 0;
 				$edit_url = '';
 				$edit_img = '';
+				$raw_message = '';
 				$this_auth2 = $this_auth[$searchset[$i]['forum_id']];
 				if ($can_edit = ($this_auth2['auth_mod'] || (($searchset[$i]['user_id'] == $userdata['user_id'] && ($searchset[$i]['topic_status'] != TOPIC_LOCKED)) && $this_auth2['auth_edit'])))
 				{

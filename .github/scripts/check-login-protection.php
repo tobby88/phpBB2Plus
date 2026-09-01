@@ -2,6 +2,7 @@
 
 $root = dirname(dirname(__DIR__));
 $login = (string) file_get_contents($root . '/phpBB2/login.php');
+$page_header = (string) file_get_contents($root . '/phpBB2/includes/page_header.php');
 $errors = array();
 
 $required = array(
@@ -15,6 +16,21 @@ foreach ($required as $marker)
 	if (strpos($login, $marker) === false)
 	{
 		$errors[] = 'Missing login protection marker: ' . $marker;
+	}
+}
+
+if (strpos($page_header, "'S_LOGIN_FIELDS' => '<input type=\"hidden\" name=\"sid\"") === false)
+{
+	$errors[] = 'Inline login forms do not receive the current session token.';
+}
+$template_files = glob($root . '/phpBB2/templates/fisubsilversh/*.tpl');
+foreach ($template_files as $template_file)
+{
+	$template = (string) file_get_contents($template_file);
+	$inline_forms = substr_count($template, '<form method="post" action="{S_LOGIN_ACTION}">');
+	if ($inline_forms > 0 && substr_count($template, '{S_LOGIN_FIELDS}') < $inline_forms)
+	{
+		$errors[] = 'Inline login form lacks a session token: ' . basename($template_file);
 	}
 }
 

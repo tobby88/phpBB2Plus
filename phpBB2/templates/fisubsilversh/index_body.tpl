@@ -84,6 +84,7 @@
 <!-- BEGIN switch_user_logged_out -->
 <br />
 <form method="post" action="{S_LOGIN_ACTION}">
+{S_LOGIN_FIELDS}
 <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
 <tr>
 <td class="cat">{L_LOGIN_LOGOUT}</td>
