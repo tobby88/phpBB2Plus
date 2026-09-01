@@ -64,7 +64,7 @@ function get_list_kb($id, $select, $selected = false)
 		    $status = '';
 		}
 		$category_id = (int) $row[$idfield];
-		$catlist .= '<option value="' . $category_id . '" ' . $status . '>' . phpbb_admin_html($row[$namefield]) . "</option>\n";
+		$catlist .= '<option value="' . $category_id . '" ' . $status . '>' . phpbb_stored_text($row[$namefield]) . "</option>\n";
 	}
 
 	return($catlist);
@@ -81,12 +81,30 @@ function kb_admin_category_order_form($category_id, $mode, $label)
 		'<button type="submit" class="gen" style="border:0;background:transparent;padding:0;text-decoration:underline;cursor:pointer">' . $label . '</button></form>';
 }
 
+function kb_admin_category_text($value)
+{
+	$value = trim((string) $value);
+	return function_exists('mb_substr') ? mb_substr($value, 0, 255, 'UTF-8') : substr($value, 0, 255);
+}
+
 function kb_admin_category_parent_valid($category_id, $parent_id)
 {
 	global $db;
 	$category_id = (int) $category_id;
 	$parent_id = (int) $parent_id;
 	$visited = array();
+	if ($category_id > 0)
+	{
+		$sql = "SELECT category_id FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = $category_id";
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Could not validate category', '', __LINE__, __FILE__, $sql);
+		}
+		if (!$db->sql_fetchrow($result))
+		{
+			return false;
+		}
+	}
 
 	while ($parent_id)
 	{
@@ -109,6 +127,103 @@ function kb_admin_category_parent_valid($category_id, $parent_id)
 	}
 
 	return true;
+}
+
+function kb_admin_rebuild_category_counts()
+{
+	global $db;
+	$parents = array();
+	$counts = array();
+	$sql = "SELECT category_id, parent FROM " . KB_CATEGORIES_TABLE;
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base categories', '', __LINE__, __FILE__, $sql);
+	}
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$category_id = (int) $row['category_id'];
+		$parents[$category_id] = (int) $row['parent'];
+		$counts[$category_id] = 0;
+	}
+	$db->sql_freeresult($result);
+
+	$sql = "SELECT article_category_id, COUNT(article_id) AS total
+		FROM " . KB_ARTICLES_TABLE . "
+		WHERE approved = 1
+		GROUP BY article_category_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not count Knowledge Base articles', '', __LINE__, __FILE__, $sql);
+	}
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$current_id = (int) $row['article_category_id'];
+		$article_count = max(0, (int) $row['total']);
+		$visited = array();
+		while ($current_id > 0 && isset($counts[$current_id]) && !isset($visited[$current_id]) && count($visited) < 100)
+		{
+			$visited[$current_id] = true;
+			$counts[$current_id] += $article_count;
+			$current_id = isset($parents[$current_id]) ? $parents[$current_id] : 0;
+		}
+	}
+	$db->sql_freeresult($result);
+
+	foreach ($counts as $category_id => $article_count)
+	{
+		$sql = "UPDATE " . KB_CATEGORIES_TABLE . " SET number_articles = " . (int) $article_count . " WHERE category_id = " . (int) $category_id;
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not rebuild Knowledge Base category counters', '', __LINE__, __FILE__, $sql);
+		}
+	}
+}
+
+function kb_admin_move_category($category_id, $direction)
+{
+	global $db;
+	$category_id = (int) $category_id;
+	$direction = ($direction === 'down') ? 'down' : 'up';
+	$sql = "SELECT parent FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = $category_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain category order', '', __LINE__, __FILE__, $sql);
+	}
+	$row = $db->sql_fetchrow($result);
+	if (!is_array($row))
+	{
+		message_die(GENERAL_MESSAGE, 'Category does not exist');
+	}
+	$parent_id = (int) $row['parent'];
+
+	$sql = "SELECT category_id FROM " . KB_CATEGORIES_TABLE . " WHERE parent = $parent_id ORDER BY cat_order ASC, category_id ASC";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain category order', '', __LINE__, __FILE__, $sql);
+	}
+	$category_ids = array();
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$category_ids[] = (int) $row['category_id'];
+	}
+	$current_index = array_search($category_id, $category_ids, true);
+	$target_index = ($direction === 'down') ? $current_index + 1 : $current_index - 1;
+	if ($current_index !== false && isset($category_ids[$target_index]))
+	{
+		$temp_id = $category_ids[$target_index];
+		$category_ids[$target_index] = $category_ids[$current_index];
+		$category_ids[$current_index] = $temp_id;
+	}
+
+	foreach ($category_ids as $index => $ordered_category_id)
+	{
+		$order = ($index + 1) * 10;
+		$sql = "UPDATE " . KB_CATEGORIES_TABLE . " SET cat_order = $order WHERE category_id = " . (int) $ordered_category_id;
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Could not update category order', '', __LINE__, __FILE__, $sql);
+		}
+	}
 }
 
 //
@@ -140,11 +255,11 @@ function get_kb_cat_subs($parent, $indent)
 
 	 while ( $category2 = $db->sql_fetchrow($result) )
 	 {		
-		$category_details2 = phpbb_admin_html($category2['category_details']);
+		$category_details2 = phpbb_stored_text($category2['category_details']);
 		$category_articles2 = (int) $category2['number_articles'];
 		
 		$category_id2 = (int) $category2['category_id'];
-		$category_name2 = phpbb_admin_html($category2['category_name']);
+		$category_name2 = phpbb_stored_text($category2['category_name']);
 		$temp_url = append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&amp;cat=$category_id2");
 	   	$category2 = '<a href="' . $temp_url . '" class="gen">' . $category_name2 . '</a>';
 		
@@ -257,14 +372,14 @@ switch( $mode )
   }
   else
   {	   
-	   $cat_name = trim(phpbb_admin_post_string('catname'));
+	   $cat_name = kb_admin_category_text(phpbb_admin_post_string('catname'));
 	   
 	   if ( !$cat_name )
 	   {
 		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
 	   }
 	   
-	   $cat_desc = phpbb_admin_post_string('catdesc');
+	   $cat_desc = kb_admin_category_text(phpbb_admin_post_string('catdesc'));
 	   $parent = (isset($_POST['parent']) && is_scalar($_POST['parent'])) ? (int) $_POST['parent'] : 0;
 	   if (!kb_admin_category_parent_valid(0, $parent))
 	   {
@@ -293,6 +408,7 @@ switch( $mode )
 	   {
 	       message_die(GENERAL_ERROR, "Could not create category", '', __LINE__, __FILE__, $sql);
 	   }
+	   kb_admin_rebuild_category_counts();
 
 	   $message = $lang['Cat_created'] . '<br /><br />' . sprintf($lang['Click_return_cat_manager'], '<a href="' . append_sid("admin_kb_cat.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
 
@@ -353,8 +469,8 @@ switch( $mode )
 			'PARENT_LIST' => get_list_kb($cat_id, 0, $parent),
 			
 			'S_ACTION' => append_sid($phpbb_root_path . "admin/admin_kb_cat.$phpEx?mode=edit"),
-			'CAT_NAME' => phpbb_admin_html($cat_name),
-			'CAT_DESCRIPTION' => phpbb_admin_html($cat_desc),
+			'CAT_NAME' => phpbb_stored_text($cat_name),
+			'CAT_DESCRIPTION' => phpbb_stored_text($cat_desc),
 			'NUMBER_ARTICLES' => (int) $number_articles,
 			
 			'S_HIDDEN' => '<input type="hidden" name="catid" value="' . $cat_id . '">' . phpbb_admin_session_field())
@@ -363,9 +479,8 @@ switch( $mode )
   else
   {
 		$cat_id = (isset($_POST['catid']) && is_scalar($_POST['catid'])) ? (int) $_POST['catid'] : 0;
-	   $cat_name = trim(phpbb_admin_post_string('catname'));
-	   $cat_desc = phpbb_admin_post_string('catdesc');
-	   $number_articles = (isset($_POST['number_articles']) && is_scalar($_POST['number_articles'])) ? max(0, (int) $_POST['number_articles']) : 0;
+	   $cat_name = kb_admin_category_text(phpbb_admin_post_string('catname'));
+	   $cat_desc = kb_admin_category_text(phpbb_admin_post_string('catdesc'));
 	   $parent = (isset($_POST['parent']) && is_scalar($_POST['parent'])) ? (int) $_POST['parent'] : 0;
 	   
 	   if ( !$cat_id || !$cat_name || !kb_admin_category_parent_valid($cat_id, $parent) )
@@ -378,14 +493,14 @@ switch( $mode )
 	   $sql = "UPDATE " . KB_CATEGORIES_TABLE .
 		" SET category_name = '" . $cat_name_sql .
 			"', category_details = '" . $cat_desc_sql .
-			"', number_articles = " . $number_articles .
-			", parent = " . $parent .
+			"', parent = " . $parent .
 			" WHERE category_id = " . $cat_id;
 		   
 	   if ( !($results = $db->sql_query($sql)) )
 	   {
 	       message_die(GENERAL_ERROR, "Could not update category", '', __LINE__, __FILE__, $sql);
 	   }
+	   kb_admin_rebuild_category_counts();
 
 	   $message = $lang['Cat_edited'] . '<br /><br />' . sprintf($lang['Click_return_cat_manager'], '<a href="' . append_sid("admin_kb_cat.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
 
@@ -442,7 +557,7 @@ switch( $mode )
 		   'S_SELECT_TO' => get_list_kb($cat_id, 0),
 		   'S_ACTION' => append_sid($phpbb_root_path . "admin/admin_kb_cat.$phpEx?mode=delete"),
 		   
-		   'CAT_NAME' => phpbb_admin_html($cat_name))
+		   'CAT_NAME' => phpbb_stored_text($cat_name))
 	);  
   }
   else
@@ -454,7 +569,7 @@ switch( $mode )
 		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
 	   }
 
-	   $sql = "SELECT parent, number_articles FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = $old_category";
+	   $sql = "SELECT parent FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = $old_category";
 	   if (!($oldcat_result = $db->sql_query($sql)))
 	   {
 		  message_die(GENERAL_ERROR, "Could not get category data", '', __LINE__, __FILE__, $sql);
@@ -465,11 +580,10 @@ switch( $mode )
 		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
 	   }
 	   $old_parent = (int) $old_cat['parent'];
-	   $old_articles = (int) $old_cat['number_articles'];
   
 	   if ( $new_category != 0 )
 	   {  
-		  $sql = "SELECT number_articles FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = $new_category";
+		  $sql = "SELECT category_id FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = $new_category";
 		  if ( !($cat_result = $db->sql_query($sql)) )
 		  {
 			 message_die(GENERAL_ERROR, "Could not get category data", '', __LINE__, __FILE__, $sql);
@@ -489,16 +603,6 @@ switch( $mode )
 	   	     message_die(GENERAL_ERROR, "Could not move articles", '', __LINE__, __FILE__, $sql);
 	      }
 	   
-	      $number_articles = (int) $new_cat['number_articles'] + $old_articles;
-	   
-	   	  $sql = "UPDATE " . KB_CATEGORIES_TABLE .
-	   		  " SET number_articles = '" . $number_articles .
-			  "' WHERE category_id = " . $new_category;
-	   
-	   	  if ( !($number_result = $db->sql_query($sql)) )
-	   	  {
-	   	   	 message_die(GENERAL_ERROR, "Could not update articles number", '', __LINE__, __FILE__, $sql);
-	   	  }
 	   }
 	   else
 	   {
@@ -538,6 +642,7 @@ switch( $mode )
 	   {
 	   	  message_die(GENERAL_ERROR, "Could not delete category", '', __LINE__, __FILE__, $sql);
 	   }
+	   kb_admin_rebuild_category_counts();
 	   	
 	   $message = $lang['Cat_deleted'] . '<br /><br />' . sprintf($lang['Click_return_cat_manager'], '<a href="' . append_sid("admin_kb_cat.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
 
@@ -554,44 +659,7 @@ switch( $mode )
 	  {
 		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
 	  }
-	  
-	  $sql = "SELECT *  
-	  	   FROM " . KB_CATEGORIES_TABLE . " 
-		   WHERE category_id = $cat_id";
-		   
-	  if ( !($result = $db->sql_query($sql)) )
-	  {
-	      message_die(GENERAL_ERROR, "Could not get category data", '', __LINE__, __FILE__, $sql);
-	  }
-	   
-	  if( $category = $db->sql_fetchrow($result) )
-	  {
-		  $parent = (int) $category['parent'];
-		  $old_pos = (int) $category['cat_order'];
-		  $new_pos = $old_pos-10;
-	  }
-	  else
-	  {
-		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
-	  }
-	  
-	  $sql = "UPDATE " . KB_CATEGORIES_TABLE . " SET
-	  	   cat_order = '" . $old_pos . "' 
-		   WHERE parent = " . $parent . " AND cat_order = " . $new_pos;
-		   
-	  if ( !($result = $db->sql_query($sql)) )
-	  {
-	      message_die(GENERAL_ERROR, "Could not update order", '', __LINE__, __FILE__, $sql);
-	  }
-	  
-	  $sql = "UPDATE " . KB_CATEGORIES_TABLE . " SET
-	  	   cat_order = '" . $new_pos . "' 
-		   WHERE category_id = " . $cat_id;
-		   
-	  if ( !($result = $db->sql_query($sql)) )
-	  {
-	      message_die(GENERAL_ERROR, "Could not update order", '', __LINE__, __FILE__, $sql);
-	  }
+	  kb_admin_move_category($cat_id, 'up');
   }
   
   if ( $mode == "down" )
@@ -601,44 +669,7 @@ switch( $mode )
 	  {
 		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
 	  }
-	  
-	  $sql = "SELECT *  
-	  	   FROM " . KB_CATEGORIES_TABLE . " 
-		   WHERE category_id = $cat_id";
-		   
-	  if ( !($result = $db->sql_query($sql)) )
-	  {
-	      message_die(GENERAL_ERROR, "Could not get category data", '', __LINE__, __FILE__, $sql);
-	  }
-	   
-	  if( $category = $db->sql_fetchrow($result) )
-	  {
-		  $parent = (int) $category['parent'];
-		  $old_pos = (int) $category['cat_order'];
-		  $new_pos = $old_pos+10;
-	  }
-	  else
-	  {
-		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
-	  }
-	  
-	  $sql = "UPDATE " . KB_CATEGORIES_TABLE . " SET
-	  	   cat_order = '" . $old_pos . "' 
-		   WHERE parent = " . $parent . " AND cat_order = " . $new_pos;
-		   
-	  if ( !($result = $db->sql_query($sql)) )
-	  {
-	      message_die(GENERAL_ERROR, "Could not update order", '', __LINE__, __FILE__, $sql);
-	  }
-	  
-	  $sql = "UPDATE " . KB_CATEGORIES_TABLE . " SET
-	  	   cat_order = '" . $new_pos . "' 
-		   WHERE category_id = " . $cat_id;
-		   
-	  if ( !($result = $db->sql_query($sql)) )
-	  {
-	      message_die(GENERAL_ERROR, "Could not update order", '', __LINE__, __FILE__, $sql);
-	  }
+	  kb_admin_move_category($cat_id, 'down');
   }
  
   //
@@ -677,11 +708,11 @@ switch( $mode )
 	while ( $category = $db->sql_fetchrow($cat_result) )
 	{	
 		
-		$category_details = phpbb_admin_html($category['category_details']);
+		$category_details = phpbb_stored_text($category['category_details']);
 		$category_articles = (int) $category['number_articles'];
 		
 		$category_id = (int) $category['category_id'];
-		$category_name = phpbb_admin_html($category['category_name']);
+		$category_name = phpbb_stored_text($category['category_name']);
 		$temp_url = append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&amp;cat=$category_id");
 	   	$category_link = '<a href="' . $temp_url . '" class="gen">' . $category_name . '</a>';
 		

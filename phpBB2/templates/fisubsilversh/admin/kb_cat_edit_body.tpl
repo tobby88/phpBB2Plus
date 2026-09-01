@@ -10,7 +10,7 @@
 	</tr>
 	<tr> 
 	  <td class="row1">{L_CATEGORY}</td>
-	  <td class="row2"><input class="post" type="text" size="25" name="catname" value="{CAT_NAME}" class="post" /></td>
+	  <td class="row2"><input class="post" type="text" size="25" name="catname" value="{CAT_NAME}" /></td>
 	</tr>
 	<!-- BEGIN switch_cat -->
 	<tr> 
@@ -21,14 +21,14 @@
 	  <td class="row1">{L_PARENT}</td>
 	  <td class="row2">
 	    <select name="parent">
-	    <option value="0">{L_NONE}</otpion>
+	    <option value="0">{L_NONE}</option>
 		{PARENT_LIST}
 		</select>
 	</tr>
 	<!-- BEGIN switch_edit_category -->
 	<tr> 
 	  <td class="row1">{L_NUMBER_ARTICLES}</td>
-	  <td class="row2"><input class="post" type="text" size="4" maxlength="3" name="number_articles" value="{NUMBER_ARTICLES}" class="post" /></td>
+	  <td class="row2"><strong>{NUMBER_ARTICLES}</strong></td>
 	</tr>
 	<!-- END switch_edit_category -->
 	<!-- END switch_cat -->

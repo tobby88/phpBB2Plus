@@ -60,6 +60,12 @@ function getlistkb($id, $select)
 	return($typelist);
 }
 
+function kb_admin_type_text($value)
+{
+	$value = trim((string) $value);
+	return function_exists('mb_substr') ? mb_substr($value, 0, 255, 'UTF-8') : substr($value, 0, 255);
+}
+
 //
 // Load default header
 //
@@ -82,7 +88,7 @@ switch( $mode )
 
   case ('create'):
 	   phpbb_admin_require_post_session();
-	   $type_name = trim(phpbb_admin_post_string('new_type_name'));
+	   $type_name = kb_admin_type_text(phpbb_admin_post_string('new_type_name'));
 	   
 	   if ( !$type_name )
 	   {
@@ -150,7 +156,7 @@ switch( $mode )
   {
 	   phpbb_admin_require_post_session();
 		$type_id = (isset($_POST['typeid']) && is_scalar($_POST['typeid'])) ? (int) $_POST['typeid'] : 0;
-	   $type_name = trim(phpbb_admin_post_string('catname'));
+	   $type_name = kb_admin_type_text(phpbb_admin_post_string('catname'));
 	   
 	   if ( !$type_id || !$type_name )
 	   {
