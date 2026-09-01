@@ -20,6 +20,8 @@ stopforumspam_assert(strpos($source, "'follow_location' => 0") !== false, 'the f
 stopforumspam_assert(strpos($source, "'max_redirects' => 0") !== false, 'redirects must remain disabled explicitly');
 stopforumspam_assert(strpos($source, "'timeout' => 4") !== false, 'remote checks need a short timeout');
 stopforumspam_assert(strpos($source, '0, 262144') !== false, 'remote responses need a size bound');
+stopforumspam_assert(strpos($source, "function_exists('http_get_last_response_headers')") !== false, 'PHP 8.5 response headers must use the supported API');
+stopforumspam_assert(strpos($source, '$http_response_header') === false, 'the deprecated implicit response-header variable must not be referenced directly');
 stopforumspam_assert(strpos($source, 'LIBXML_NONET') !== false, 'XML parsing must prohibit secondary network access');
 stopforumspam_assert(strpos($source, "!empty(\$board_config['sfs_fail_closed'])") !== false, 'API failure policy must be explicit');
 stopforumspam_assert(strpos($source, '$stopforumspam_request_unavailable = true') !== false, 'one API outage must suppress repeated remote calls in the same request');

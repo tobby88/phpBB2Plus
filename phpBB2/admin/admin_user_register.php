@@ -114,7 +114,7 @@ if (
 	$user_timezone = ( isset($_POST['timezone']) && is_scalar($_POST['timezone']) ) ? doubleval($_POST['timezone']) : $board_config['board_timezone'];
 	if (!is_finite($user_timezone) || $user_timezone < -12 || $user_timezone > 14 || abs(($user_timezone * 4) - round($user_timezone * 4)) > 0.00001)
 	{
-		$user_timezone = (double) $board_config['board_timezone'];
+		$user_timezone = (float) $board_config['board_timezone'];
 	}
 	$sql = "SELECT config_value
 		FROM " . CONFIG_TABLE . "

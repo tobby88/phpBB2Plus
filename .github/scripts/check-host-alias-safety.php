@@ -31,6 +31,12 @@ host_alias_assert(phpbb_normalize_host('[2001:db8::1]:8443') === '[2001:db8::1]'
 host_alias_assert(phpbb_normalize_host("example.com\r\nInjected: value", 'safe.example') === 'safe.example', 'header-control data was accepted as a host');
 host_alias_assert(phpbb_normalize_host('example.com/path', 'safe.example') === 'safe.example', 'host path data was accepted');
 host_alias_assert(phpbb_normalize_host('user@example.com', 'safe.example') === 'safe.example', 'host credentials were accepted');
+host_alias_assert(phpbb_normalize_port('443', 80) === 443, 'valid configured port was rejected');
+host_alias_assert(phpbb_normalize_port('65536', 443) === 443, 'out-of-range configured port was accepted');
+host_alias_assert(phpbb_normalize_port('80x', 443) === 443, 'non-numeric configured port was accepted');
+host_alias_assert(phpbb_normalize_script_path('/forum/admin/../', '/') === '/', 'path traversal was accepted');
+host_alias_assert(phpbb_normalize_script_path('/forum/', '/') === '/forum/', 'valid script path was not canonicalized');
+host_alias_assert(phpbb_normalize_script_path('/forum%2fadmin/', '/safe/') === '/safe/', 'encoded script path data was accepted');
 
 host_alias_assert(phpbb_referer_is_allowed('https://example.com/album.php', 'www.example.com'), 'apex Referer rejected');
 host_alias_assert(phpbb_referer_is_allowed('https://www.example.com/album.php', 'example.com'), 'www Referer rejected');

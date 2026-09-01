@@ -25,7 +25,7 @@ $internal_dirs = array('includes', 'db', 'attach_mod', 'album_mod', 'pafiledb', 
 foreach ($internal_dirs as $internal_dir)
 {
 	$internal_rules = file_get_contents($root . '/phpBB2/' . $internal_dir . '/.htaccess');
-	web_source_assert(strpos($internal_rules, 'php[0-9]?') !== false, $internal_dir . ' must deny direct PHP execution');
+	web_source_assert(strpos($internal_rules, 'php[0-9]*') !== false, $internal_dir . ' must deny all numeric PHP handler suffixes');
 	web_source_assert(strpos($internal_rules, 'Require all denied') !== false, $internal_dir . ' must contain Apache 2.4 denial');
 	web_source_assert(strpos($internal_rules, 'Deny from all') !== false, $internal_dir . ' must contain Apache 2.2 denial');
 }

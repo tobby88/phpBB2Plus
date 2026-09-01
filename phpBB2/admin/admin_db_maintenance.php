@@ -2905,9 +2905,12 @@ switch($mode_id)
 					isset($board_config['server_name']) ? $board_config['server_name'] : $default_config['server_name']);
 				if (!empty($HTTP_SERVER_VARS['SERVER_PORT']) || !empty($HTTP_ENV_VARS['SERVER_PORT']))
 				{
-					$default_config['server_port'] = (!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'];
+					$default_config['server_port'] = phpbb_normalize_port((!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'], $default_config['server_port']);
 				}
-				$default_config['script_path'] = str_replace('admin', '', dirname($HTTP_SERVER_VARS['PHP_SELF']));
+				$script_name = !empty($HTTP_SERVER_VARS['SCRIPT_NAME']) ? $HTTP_SERVER_VARS['SCRIPT_NAME'] : (isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '');
+				$admin_path = dirname((string) $script_name);
+				$script_path_candidate = (strtolower(basename(str_replace('\\', '/', $admin_path))) === 'admin') ? dirname($admin_path) : $admin_path;
+				$default_config['script_path'] = phpbb_normalize_script_path($script_path_candidate, isset($board_config['script_path']) ? $board_config['script_path'] : $default_config['script_path']);
 				$sql = "SELECT Min(topic_time) as startdate FROM " . TOPICS_TABLE;
 				if ( $result = $db->sql_query($sql) )
 				{

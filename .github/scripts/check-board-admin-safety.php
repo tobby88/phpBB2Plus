@@ -11,6 +11,9 @@ foreach (array(
 	'phpbb_admin_post_string($config_name)',
 	'$db->sql_escape($new[$config_name])',
 	'$db->sql_escape($config_name)',
+	'phpbb_normalize_host($server_name_candidate',
+	'phpbb_normalize_port($new[\'server_port\']',
+	'phpbb_normalize_script_path($new[\'script_path\']',
 	"preg_match('#(?:^|/)\\.\\.(?:/|$)#'",
 	'phpbb_admin_html($report_forum_rows[$i][\'forum_name\'])',
 	'foreach ($new as $config_name => $config_value)'

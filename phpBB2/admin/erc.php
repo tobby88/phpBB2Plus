@@ -451,7 +451,10 @@ switch($mode)
 					$port_rec = '80';
 				}
 				$path_cur = get_config_data('script_path');
-				$path_rec = str_replace('admin', '', dirname($HTTP_SERVER_VARS['PHP_SELF']));
+				$script_name = !empty($HTTP_SERVER_VARS['SCRIPT_NAME']) ? $HTTP_SERVER_VARS['SCRIPT_NAME'] : (isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '');
+				$admin_path = dirname((string) $script_name);
+				$path_candidate = (strtolower(basename(str_replace('\\', '/', $admin_path))) === 'admin') ? dirname($admin_path) : $admin_path;
+				$path_rec = phpbb_normalize_script_path($path_candidate, $path_cur);
 ?>
 	<tr>
 		<td>
@@ -801,9 +804,12 @@ switch($mode)
 				$default_config['server_name'] = phpbb_normalize_host($server_name_candidate, $default_config['server_name']);
 				if (!empty($HTTP_SERVER_VARS['SERVER_PORT']) || !empty($HTTP_ENV_VARS['SERVER_PORT']))
 				{
-					$default_config['server_port'] = (!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'];
+					$default_config['server_port'] = phpbb_normalize_port((!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'], $default_config['server_port']);
 				}
-				$default_config['script_path'] = str_replace('admin', '', dirname($HTTP_SERVER_VARS['PHP_SELF']));
+				$script_name = !empty($HTTP_SERVER_VARS['SCRIPT_NAME']) ? $HTTP_SERVER_VARS['SCRIPT_NAME'] : (isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '');
+				$admin_path = dirname((string) $script_name);
+				$script_path_candidate = (strtolower(basename(str_replace('\\', '/', $admin_path))) === 'admin') ? dirname($admin_path) : $admin_path;
+				$default_config['script_path'] = phpbb_normalize_script_path($script_path_candidate, $default_config['script_path']);
 				$sql = "SELECT Min(topic_time) as startdate FROM " . TOPICS_TABLE;
 				if ( $result = $db->sql_query($sql) )
 				{
@@ -854,9 +860,9 @@ switch($mode)
 				$port_select = ( isset($HTTP_POST_VARS['port_select']) ) ? intval($HTTP_POST_VARS['port_select']) : 1;
 				$path_select = ( isset($HTTP_POST_VARS['path_select']) ) ? intval($HTTP_POST_VARS['path_select']) : 1;
 				$secure = ( isset($HTTP_POST_VARS['secure']) ) ? intval($HTTP_POST_VARS['secure']) : 0;
-				$domain = ( isset($HTTP_POST_VARS['domain']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['domain']) : '';
-				$port = ( isset($HTTP_POST_VARS['port']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['port']) : '';
-				$path = ( isset($HTTP_POST_VARS['path']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['path']) : '';
+				$domain = phpbb_normalize_host(isset($HTTP_POST_VARS['domain']) ? $HTTP_POST_VARS['domain'] : '', get_config_data('server_name'));
+				$port = phpbb_normalize_port(isset($HTTP_POST_VARS['port']) ? $HTTP_POST_VARS['port'] : '', get_config_data('server_port'));
+				$path = phpbb_normalize_script_path(isset($HTTP_POST_VARS['path']) ? $HTTP_POST_VARS['path'] : '', get_config_data('script_path'));
 				
 				if ($secure_select == 1)
 				{

@@ -1120,8 +1120,7 @@ class attach_parent
 
 			$this->filesize = @filesize($file);
 			$this->filesize = intval($this->filesize);
-			$executable_extensions = array('php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'php9', 'phtml', 'phar', 'cgi', 'pl', 'py', 'sh', 'shtml', 'shtm', 'asp', 'aspx', 'jsp');
-			if ($this->filesize < 1 || !preg_match('/^[a-z0-9]{1,16}$/D', $this->extension) || in_array($this->extension, $executable_extensions, true))
+			if ($this->filesize < 1 || phpbb_forbidden_upload_extension($this->extension))
 			{
 				$error = TRUE;
 				$error_msg .= (!empty($error_msg) ? '<br />' : '') . sprintf($lang['Disallowed_extension'], htmlspecialchars($this->extension));

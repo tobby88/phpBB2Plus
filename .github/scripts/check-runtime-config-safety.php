@@ -37,5 +37,14 @@ runtime_config_assert($normalized['custom_setting'] === 'preserved', 'unrelated 
 $common = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/common.php');
 runtime_config_assert(strpos($common, '$board_config = phpbb_normalize_board_config($board_config);') !== false, 'common bootstrap must normalize cached and database configuration');
 
-echo "Runtime configuration safety checks passed.\n";
+$installer = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/install/install.php');
+runtime_config_assert(strpos($installer, 'isset($available_dbms[stripslashes((string) $_POST[\'dbms\'])])') !== false, 'installer database drivers must use an explicit allowlist');
+runtime_config_assert(strpos($installer, 'phpbb_normalize_host(') !== false, 'installer server names must use the shared host validator');
+runtime_config_assert(strpos($installer, 'phpbb_normalize_port(') !== false, 'installer server ports must use the shared port validator');
+runtime_config_assert(strpos($installer, 'phpbb_normalize_script_path(') !== false, 'installer script paths must use the shared path validator');
+runtime_config_assert(strpos($installer, "str_replace('install', '', dirname") === false, 'installer paths must not use substring removal on PHP_SELF');
+runtime_config_assert(strpos($installer, '$dmbs') === false, 'installer upgrade handoff must retain the selected database driver');
+runtime_config_assert(substr_count($installer, 'install_html(') >= 34, 'installer form values must be escaped before entering HTML attributes');
+runtime_config_assert(strpos($installer, 'install_html_raw($config_data)') !== false, 'generated configuration data must be escaped without changing its contents');
 
+echo "Runtime configuration safety checks passed.\n";

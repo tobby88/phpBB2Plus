@@ -1,6 +1,6 @@
 # Internal PHP libraries are included from the filesystem and are not web endpoints.
 # Keep static assets in this tree available while denying direct script execution.
-<FilesMatch "(?i)\.(?:php[0-9]?|phtml|phar)$">
+<FilesMatch "(?i)\.(?:php[0-9]*|phtml|phar)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

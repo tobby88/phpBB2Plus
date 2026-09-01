@@ -29,6 +29,9 @@ dbmtnc_safety_assert(strpos($admin, '$HTTP_POST_VARS') === false, 'configuration
 dbmtnc_safety_assert(strpos($admin, 'dbmtnc_post_int') !== false, 'numeric configuration values must pass through one scalar validator');
 dbmtnc_safety_assert(strpos($admin, "phpbb_admin_html(\$function)") !== false, 'confirmed function names must be escaped in hidden fields');
 dbmtnc_safety_assert(strpos($admin, 'phpbb_normalize_host($server_name_candidate') !== false, 'restored server names must use the shared host validator');
+dbmtnc_safety_assert(strpos($admin, 'phpbb_normalize_port(') !== false, 'restored server ports must use the shared port validator');
+dbmtnc_safety_assert(strpos($admin, 'phpbb_normalize_script_path(') !== false, 'restored script paths must use the shared path validator');
+dbmtnc_safety_assert(strpos($admin, "str_replace('admin', '', dirname") === false, 'restored paths must not use substring removal on PHP_SELF');
 dbmtnc_safety_assert(strpos($admin, '$value_sql = $db->sql_escape($value);') !== false, 'restored configuration values must be SQL-escaped');
 dbmtnc_safety_assert(strpos($english, "\$lang['Confirm_dbmtnc_action']") !== false, 'English generic write confirmation is missing');
 dbmtnc_safety_assert(strpos($german, "\$lang['Confirm_dbmtnc_action']") !== false, 'German generic write confirmation is missing');
@@ -51,6 +54,9 @@ foreach (array(
 }
 dbmtnc_safety_assert(strpos($erc, "\$_REQUEST['token']") === false, 'Emergency capability tokens must not be cookie-merged through REQUEST.');
 dbmtnc_safety_assert(strpos($erc, 'phpbb_normalize_host($server_name_candidate') !== false, 'ERC-restored server names must use the shared host validator');
+dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_port(') >= 2, 'ERC server ports must be normalized in recovery and manual repair');
+dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_script_path(') >= 3, 'ERC script paths must be normalized in preview, recovery and manual repair');
+dbmtnc_safety_assert(strpos($erc, "str_replace('admin', '', dirname") === false, 'ERC paths must not use substring removal on PHP_SELF');
 dbmtnc_safety_assert(strpos($erc, '$value_sql = $db->sql_escape($value);') !== false, 'ERC-restored configuration values must be SQL-escaped');
 
 echo "Database-maintenance safety tests passed.\n";

@@ -99,7 +99,16 @@ else
 		// http:// is the protocol and not part of the server name
 		if ($config_name == 'server_name')
 		{
-			$new['server_name'] = preg_replace('#^https?://#i', '', trim($new['server_name']));
+			$server_name_candidate = preg_replace('#^https?://#i', '', trim($new['server_name']));
+			$new['server_name'] = phpbb_normalize_host($server_name_candidate, $default_config['server_name']);
+		}
+		if ($config_name == 'server_port')
+		{
+			$new['server_port'] = phpbb_normalize_port($new['server_port'], $default_config['server_port']);
+		}
+		if ($config_name == 'script_path')
+		{
+			$new['script_path'] = phpbb_normalize_script_path($new['script_path'], $default_config['script_path']);
 		}
 		// Attempt to prevent a mistake with this value.
 		if ($config_name == 'avatar_path')

@@ -126,6 +126,16 @@ function page_error($error_title, $error)
 
 }
 
+function install_html($value)
+{
+	return htmlspecialchars(stripslashes(is_scalar($value) ? (string) $value : ''), ENT_QUOTES, 'UTF-8');
+}
+
+function install_html_raw($value)
+{
+	return htmlspecialchars(is_scalar($value) ? (string) $value : '', ENT_QUOTES, 'UTF-8');
+}
+
 // Guess an initial language ... borrowed from phpBB 2.2 it's not perfect, 
 // really it should do a straight match first pass and then try a "fuzzy"
 // match on a second pass instead of a straight "fuzzy" match.
@@ -291,7 +301,9 @@ else
 $upgrade = (!empty($_POST['upgrade'])) ? $_POST['upgrade']: '';
 $upgrade_now = (!empty($_POST['upgrade_now'])) ? $_POST['upgrade_now']:'';
 
-$dbms = isset($_POST['dbms']) ? $_POST['dbms'] : '';
+$dbms = (isset($_POST['dbms']) && is_scalar($_POST['dbms']) && isset($available_dbms[stripslashes((string) $_POST['dbms'])]))
+	? stripslashes((string) $_POST['dbms'])
+	: 'mysqli';
 
 $dbhost = (!empty($_POST['dbhost'])) ? $_POST['dbhost'] : 'localhost';
 $dbuser = (!empty($_POST['dbuser'])) ? $_POST['dbuser'] : '';
@@ -318,11 +330,14 @@ else
 }
 
 $board_email = (!empty($_POST['board_email'])) ? $_POST['board_email'] : '';
-$script_path = (!empty($_POST['script_path'])) ? $_POST['script_path'] : str_replace('install', '', dirname($HTTP_SERVER_VARS['PHP_SELF']));
+$script_name = !empty($HTTP_SERVER_VARS['SCRIPT_NAME']) ? $HTTP_SERVER_VARS['SCRIPT_NAME'] : (isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '');
+$install_path = dirname((string) $script_name);
+$script_path_guess = (strtolower(basename(str_replace('\\', '/', $install_path))) === 'install') ? dirname($install_path) : $install_path;
+$script_path = phpbb_normalize_script_path(!empty($_POST['script_path']) ? stripslashes((string) $_POST['script_path']) : $script_path_guess, '/');
 
 if (!empty($_POST['server_name']))
 {
-	$server_name = $_POST['server_name'];
+	$server_name = stripslashes((string) $_POST['server_name']);
 }
 else
 {
@@ -340,10 +355,11 @@ else
 		$server_name = '';
 	}
 }
+$server_name = phpbb_normalize_host(preg_replace('#^https?://#i', '', $server_name), 'localhost');
 
 if (!empty($_POST['server_port']))
 {
-	$server_port = $_POST['server_port'];
+	$server_port = stripslashes((string) $_POST['server_port']);
 }
 else
 {
@@ -356,6 +372,7 @@ else
 		$server_port = '80';
 	}
 }
+$server_port = phpbb_normalize_port($server_port, phpbb_request_is_https() ? 443 : 80);
 
 // Open config.php ... if it exists
 if (@file_exists(@phpbb_realpath('config.'.$phpEx)))
@@ -397,7 +414,7 @@ if (!empty($_POST['send_file']) && $_POST['send_file'] == 1 && empty($_POST['upg
 }
 else if (!empty($_POST['send_file']) && $_POST['send_file'] == 2)
 {
-	$s_hidden_fields = '<input type="hidden" name="config_data" value="' . htmlspecialchars(stripslashes($_POST['config_data'])) . '" />';
+	$s_hidden_fields = '<input type="hidden" name="config_data" value="' . install_html($_POST['config_data']) . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="ftp_file" value="1" />';
 
 	if ($upgrade == 1)
@@ -441,26 +458,26 @@ else if (!empty($_POST['ftp_file']))
 		page_header($lang['NoFTP_config']);
 
 		// Error couldn't get connected... Go back to option to send file...
-		$s_hidden_fields = '<input type="hidden" name="config_data" value="' . htmlspecialchars(stripslashes($_POST['config_data'])) . '" />';
+		$s_hidden_fields = '<input type="hidden" name="config_data" value="' . install_html($_POST['config_data']) . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="send_file" value="1" />';
 
 		// If we're upgrading ...
 		if ($upgrade == 1)
 		{
 			$s_hidden_fields .= '<input type="hidden" name="upgrade" value="1" />';
-			$s_hidden_fields .= '<input type="hidden" name="dbms" value="'.$dmbs.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="prefix" value="'.$table_prefix.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="dbhost" value="'.$dbhost.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="dbname" value="'.$dbname.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="dbuser" value="'.$dbuser.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="dbpasswd" value="'.$dbpasswd.'" />';
+			$s_hidden_fields .= '<input type="hidden" name="dbms" value="' . install_html($dbms) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="prefix" value="' . install_html($table_prefix) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="dbhost" value="' . install_html($dbhost) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="dbname" value="' . install_html($dbname) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="dbuser" value="' . install_html($dbuser) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="dbpasswd" value="' . install_html($dbpasswd) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="install_step" value="1" />';
 			$s_hidden_fields .= '<input type="hidden" name="admin_pass1" value="1" />';
 			$s_hidden_fields .= '<input type="hidden" name="admin_pass2" value="1" />';
-			$s_hidden_fields .= '<input type="hidden" name="server_port" value="'.$server_port.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="server_name" value="'.$server_name.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="script_path" value="'.$script_path.'" />';
-			$s_hidden_fields .= '<input type="hidden" name="board_email" value="'.$board_email.'" />';
+			$s_hidden_fields .= '<input type="hidden" name="server_port" value="' . install_html($server_port) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="server_name" value="' . install_html($server_name) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="script_path" value="' . install_html($script_path) . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="board_email" value="' . install_html($board_email) . '" />';
 
 			page_upgrade_form();
 		}
@@ -505,10 +522,10 @@ else if (!empty($_POST['ftp_file']))
 		// and let the user configure their board now. We are going to do 
 		// this by calling the admin_board.php from the normal board admin
 		// section.
-		$s_hidden_fields = '<input type="hidden" name="username" value="' . $admin_name . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="password" value="' . $admin_pass1 . '" />';
+		$s_hidden_fields = '<input type="hidden" name="username" value="' . install_html($admin_name) . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="password" value="' . install_html($admin_pass1) . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="redirect" value="../admin/index.'.$phpEx.'" />';
-		$s_hidden_fields .= '<input type="hidden" name="submit" value="' . $lang['Login'] . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="submit" value="' . install_html_raw($lang['Login']) . '" />';
 
 		page_header($lang['Inst_Step_2']);
 		page_common_form($s_hidden_fields, $lang['Finish_Install']);
@@ -576,7 +593,7 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 	$upgrade_option .= '<option value="0">' . $lang['Install'] . '</option>';
 	$upgrade_option .= '<option value="1">' . $lang['Upgrade'] . ' from phpBB 1</option></select>';
 	
-	$s_hidden_fields = '<input type="hidden" name="install_step" value="1" /><input type="hidden" name="cur_lang" value="' . $language . '" />';
+	$s_hidden_fields = '<input type="hidden" name="install_step" value="1" /><input type="hidden" name="cur_lang" value="' . install_html_raw($language) . '" />';
 
 	page_header($instruction_text);
 
@@ -601,23 +618,23 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['DB_Host']; ?>: </span></td>
-						<td class="row2"><input type="text" name="dbhost" value="<?php echo ($dbhost != '') ? $dbhost : ''; ?>" /></td>
+						<td class="row2"><input type="text" name="dbhost" value="<?php echo install_html($dbhost); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['DB_Name']; ?>: </span></td>
-						<td class="row2"><input type="text" name="dbname" value="<?php echo ($dbname != '') ? $dbname : ''; ?>" /></td>
+						<td class="row2"><input type="text" name="dbname" value="<?php echo install_html($dbname); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['DB_Username']; ?>: </span></td>
-						<td class="row2"><input type="text" name="dbuser" value="<?php echo ($dbuser != '') ? $dbuser : ''; ?>" /></td>
+						<td class="row2"><input type="text" name="dbuser" value="<?php echo install_html($dbuser); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['DB_Password']; ?>: </span></td>
-						<td class="row2"><input type="password" name="dbpasswd" value="<?php echo ($dbpasswd != '') ? $dbpasswd : ''; ?>" /></td>
+						<td class="row2"><input type="password" name="dbpasswd" value="<?php echo install_html($dbpasswd); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Table_Prefix']; ?>: </span></td>
-						<td class="row2"><input type="text" name="prefix" value="<?php echo (!empty($table_prefix)) ? $table_prefix : "phpbb_"; ?>" /></td>
+						<td class="row2"><input type="text" name="prefix" value="<?php echo install_html(!empty($table_prefix) ? $table_prefix : 'phpbb_'); ?>" /></td>
 					</tr>
 					<tr>
 						<th colspan="2"><?php echo $lang['Admin_config']; ?></th>
@@ -636,31 +653,31 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 ?>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Admin_email']; ?>: </span></td>
-						<td class="row2"><input type="text" name="board_email" value="<?php echo ($board_email != '') ? $board_email : ''; ?>" /></td>
+						<td class="row2"><input type="text" name="board_email" value="<?php echo install_html($board_email); ?>" /></td>
 					</tr> 
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Server_name']; ?>: </span></td>
-						<td class="row2"><input type="text" name="server_name" value="<?php echo $server_name; ?>" /></td>
+						<td class="row2"><input type="text" name="server_name" value="<?php echo install_html($server_name); ?>" /></td>
 					</tr> 
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Server_port']; ?>: </span></td>
-						<td class="row2"><input type="text" name="server_port" value="<?php echo $server_port; ?>" /></td>
+						<td class="row2"><input type="text" name="server_port" value="<?php echo install_html($server_port); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Script_path']; ?>: </span></td>
-						<td class="row2"><input type="text" name="script_path" value="<?php echo $script_path; ?>" /></td>
+						<td class="row2"><input type="text" name="script_path" value="<?php echo install_html($script_path); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Admin_Username']; ?>: </span></td>
-						<td class="row2"><input type="text" name="admin_name" value="<?php echo ($admin_name != '') ? $admin_name : ''; ?>" /></td>
+						<td class="row2"><input type="text" name="admin_name" value="<?php echo install_html($admin_name); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Admin_Password']; ?>: </span></td>
-						<td class="row2"><input type="password" name="admin_pass1" value="<?php echo ($admin_pass1 != '') ? $admin_pass1 : ''; ?>" /></td>
+						<td class="row2"><input type="password" name="admin_pass1" value="<?php echo install_html($admin_pass1); ?>" /></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Admin_Password_confirm']; ?>: </span></td>
-						<td class="row2"><input type="password" name="admin_pass2" value="<?php echo ($admin_pass2 != '') ? $admin_pass2 : ''; ?>" /></td>
+						<td class="row2"><input type="password" name="admin_pass2" value="<?php echo install_html($admin_pass2); ?>" /></td>
 					</tr>
 <?php
 
@@ -874,7 +891,7 @@ else
 			// to get around that...
 			if (!($fp = @fopen($phpbb_root_path . 'config.'.$phpEx, 'w')))
 			{
-				$s_hidden_fields = '<input type="hidden" name="config_data" value="' . htmlspecialchars($config_data) . '" />';
+				$s_hidden_fields = '<input type="hidden" name="config_data" value="' . install_html_raw($config_data) . '" />';
 
 				if (@extension_loaded('ftp') && !defined('NO_FTP'))
 				{
@@ -904,19 +921,19 @@ else
 				if ($upgrade == 1)
 				{
 					$s_hidden_fields .= '<input type="hidden" name="upgrade" value="1" />';
-					$s_hidden_fields .= '<input type="hidden" name="dbms" value="'.$dbms.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="prefix" value="'.$table_prefix.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="dbhost" value="'.$dbhost.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="dbname" value="'.$dbname.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="dbuser" value="'.$dbuser.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="dbpasswd" value="'.$dbpasswd.'" />';
+					$s_hidden_fields .= '<input type="hidden" name="dbms" value="' . install_html($dbms) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="prefix" value="' . install_html($table_prefix) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="dbhost" value="' . install_html($dbhost) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="dbname" value="' . install_html($dbname) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="dbuser" value="' . install_html($dbuser) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="dbpasswd" value="' . install_html($dbpasswd) . '" />';
 					$s_hidden_fields .= '<input type="hidden" name="install_step" value="1" />';
 					$s_hidden_fields .= '<input type="hidden" name="admin_pass1" value="1" />';
 					$s_hidden_fields .= '<input type="hidden" name="admin_pass2" value="1" />';
-					$s_hidden_fields .= '<input type="hidden" name="server_port" value="'.$server_port.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="server_name" value="'.$server_name.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="script_path" value="'.$script_path.'" />';
-					$s_hidden_fields .= '<input type="hidden" name="board_email" value="'.$board_email.'" />';
+					$s_hidden_fields .= '<input type="hidden" name="server_port" value="' . install_html($server_port) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="server_name" value="' . install_html($server_name) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="script_path" value="' . install_html($script_path) . '" />';
+					$s_hidden_fields .= '<input type="hidden" name="board_email" value="' . install_html($board_email) . '" />';
 
 					page_upgrade_form();
 
@@ -948,8 +965,8 @@ else
 		// and let the user configure their board now. We are going to do
 		// this by calling the admin_board.php from the normal board admin
 		// section.
-		$s_hidden_fields = '<input type="hidden" name="username" value="' . $admin_name . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="password" value="' . $admin_pass1 . '" />';
+		$s_hidden_fields = '<input type="hidden" name="username" value="' . install_html($admin_name) . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="password" value="' . install_html($admin_pass1) . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="redirect" value="admin/index.'.$phpEx.'" />';
 		$s_hidden_fields .= '<input type="hidden" name="login" value="true" />';
 

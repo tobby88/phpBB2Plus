@@ -1671,11 +1671,10 @@ class pafiledb
 		// END Extension-Screenshots
 		//
 		$forbidden_extensions = array_map('strtolower', array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions'])));
-		$forbidden_extensions = array_unique(array_merge($forbidden_extensions, array('php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'php9', 'phtml', 'phar', 'cgi', 'pl', 'py', 'sh', 'shtml', 'shtm', 'asp', 'aspx', 'jsp')));
 
 		$file_extension = $pafiledb_functions->get_extension($file_realname);
 			
-		if($file_upload && (!preg_match('/^[a-z0-9]{1,16}$/D', $file_extension) || in_array($file_extension, $forbidden_extensions, true)))
+		if($file_upload && (phpbb_forbidden_upload_extension($file_extension) || in_array($file_extension, $forbidden_extensions, true)))
 		{
 			$this->error[] = 'You are not allowed to upload this type of files';
 		}
@@ -1916,12 +1915,11 @@ class pafiledb
 		}
 			
 		$forbidden_extensions = array_map('strtolower', array_map('trim', @explode(',', $pafiledb_config['forbidden_extensions'])));
-		$forbidden_extensions = array_unique(array_merge($forbidden_extensions, array('php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'php9', 'phtml', 'phar', 'cgi', 'pl', 'py', 'sh', 'shtml', 'shtm', 'asp', 'aspx', 'jsp')));
 
 		$file_extension = $pafiledb_functions->get_extension($file_realname);
 
 			
-		if($file_upload && (!preg_match('/^[a-z0-9]{1,16}$/D', $file_extension) || in_array($file_extension, $forbidden_extensions, true)))
+		if($file_upload && (phpbb_forbidden_upload_extension($file_extension) || in_array($file_extension, $forbidden_extensions, true)))
 		{
 			$this->error[] = 'You are not allowed to upload this type of files';
 		}

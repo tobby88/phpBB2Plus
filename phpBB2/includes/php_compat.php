@@ -501,6 +501,97 @@ if (!function_exists('phpbb_normalize_host'))
 }
 
 /**
+ * Normalize a configured web port. Invalid or out-of-range values fall back
+ * to a known-good port instead of later producing malformed redirects.
+ */
+if (!function_exists('phpbb_normalize_port'))
+{
+	function phpbb_normalize_port($value, $fallback = 80)
+	{
+		$fallback = (is_scalar($fallback) && preg_match('/^[0-9]{1,5}$/D', (string) $fallback))
+			? (int) $fallback
+			: 80;
+		if ($fallback < 1 || $fallback > 65535)
+		{
+			$fallback = 80;
+		}
+
+		if (!is_scalar($value) || !preg_match('/^[0-9]{1,5}$/D', trim((string) $value)))
+		{
+			return $fallback;
+		}
+		$port = (int) trim((string) $value);
+		return ($port >= 1 && $port <= 65535) ? $port : $fallback;
+	}
+}
+
+/**
+ * Normalize a board or cookie URL path. Only literal, relative URL segments
+ * are accepted; encoded traversal, authorities and control data are rejected.
+ */
+if (!function_exists('phpbb_normalize_script_path'))
+{
+	function phpbb_normalize_script_path($value, $fallback = '/')
+	{
+		$normalize = function ($candidate)
+		{
+			if (!is_scalar($candidate))
+			{
+				return false;
+			}
+			$candidate = trim(str_replace('\\', '/', (string) $candidate));
+			if ($candidate === '')
+			{
+				return '/';
+			}
+			if (strlen($candidate) > 255 || preg_match('/[\x00-\x20\x7f%?#]/', $candidate) || strpos($candidate, '://') !== false)
+			{
+				return false;
+			}
+
+			$segments = explode('/', trim($candidate, '/'));
+			$clean = array();
+			foreach ($segments as $segment)
+			{
+				if ($segment === '')
+				{
+					continue;
+				}
+				if ($segment === '.' || $segment === '..' || !preg_match('/^[A-Za-z0-9._~-]+$/D', $segment))
+				{
+					return false;
+				}
+				$clean[] = $segment;
+			}
+			return $clean ? '/' . implode('/', $clean) . '/' : '/';
+		};
+
+		$path = $normalize($value);
+		if ($path !== false)
+		{
+			return $path;
+		}
+		$fallback_path = $normalize($fallback);
+		return ($fallback_path !== false) ? $fallback_path : '/';
+	}
+}
+
+/**
+ * Reject executable upload suffixes independently of a finite PHP version
+ * list. This also covers future/multi-digit handler names such as .php10.
+ */
+if (!function_exists('phpbb_forbidden_upload_extension'))
+{
+	function phpbb_forbidden_upload_extension($extension)
+	{
+		$extension = is_scalar($extension) ? strtolower(trim((string) $extension, ". \t\r\n")) : '';
+		return $extension === '' || !preg_match('/^[a-z0-9]{1,16}$/D', $extension) ||
+			preg_match('/^php[0-9]*$/D', $extension) ||
+			in_array($extension, array('phtml', 'phar', 'cgi', 'pl', 'py', 'sh', 'shtml', 'shtm', 'asp', 'aspx', 'jsp'), true);
+	}
+}
+
+/**
  * Compare the configured board host with its conventional www/apex alias.
  * No other sibling or child subdomain is trusted by this helper.
  */

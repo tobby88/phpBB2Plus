@@ -310,7 +310,17 @@ function stopforumspam($value, $type)
 			'verify_peer_name' => true)));
 	$url = 'https://api.stopforumspam.org/api?' . $type . '=' . rawurlencode($value) . '&xml';
 	$xml = @file_get_contents($url, false, $context, 0, 262144);
-	$status_ok = isset($http_response_header[0]) && preg_match('#^HTTP/\S+\s+200(?:\s|$)#i', (string) $http_response_header[0]);
+	if (function_exists('http_get_last_response_headers'))
+	{
+		$response_headers = http_get_last_response_headers();
+	}
+	else
+	{
+		// PHP 8.5 deprecates naming the implicit local variable directly.
+		$local_variables = get_defined_vars();
+		$response_headers = isset($local_variables['http_response_header']) ? $local_variables['http_response_header'] : array();
+	}
+	$status_ok = is_array($response_headers) && isset($response_headers[0]) && preg_match('#^HTTP/\S+\s+200(?:\s|$)#i', (string) $response_headers[0]);
 	if ($xml === false || !$status_ok)
 	{
 		return stopforumspam_service_error('sfs_service_unavailable');
