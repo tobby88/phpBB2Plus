@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the vBulletin Arcade compatibility bridge used by legacy SWF
+  games. Every protocol action now requires the exact launched-game
+  capability and same-origin browser metadata, responses have explicit media
+  types, scores are finite and bounded, and the handoff form uses the
+  session-bound game name with attribute-escaped values instead of historical
+  addslashes-based markup construction.
 - Added central runtime bounds for board pagination, polling, private-message
   boxes, flood controls, bookmarks, sessions and auto-login lifetimes. Both
   cached and freshly loaded legacy settings are normalized before any module

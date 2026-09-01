@@ -12,6 +12,7 @@ function arcade_score_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $compat = file_get_contents($root . '/phpBB2/includes/php_compat.php');
 $newscore = file_get_contents($root . '/phpBB2/newscore.php');
+$vbprotocol = file_get_contents($root . '/phpBB2/arcade.php');
 $ibpro = file_get_contents($root . '/phpBB2/IBProArcade.php');
 $pnflash = file_get_contents($root . '/phpBB2/pnFlashGames.php');
 $functions = file_get_contents($root . '/phpBB2/includes/functions_arcade.php');
@@ -32,6 +33,11 @@ foreach (array('newscore' => $newscore, 'IBProArcade' => $ibpro, 'pnFlashGames' 
 {
 	arcade_score_assert(strpos($source, 'phpbb_request_source_is_same_origin()') !== false, $name . ' must reject browser-declared cross-site requests');
 }
+arcade_score_assert(strpos($vbprotocol, 'phpbb_request_source_is_same_origin()') !== false, 'the vBulletin Arcade bridge must reject browser-declared cross-site requests');
+arcade_score_assert(strpos($vbprotocol, "hash_equals((string) \$session_info['arcade_hash'], (string) \$arcade->arcade_hash)") !== false, 'the vBulletin Arcade bridge must require the launched-game capability');
+arcade_score_assert(strpos($vbprotocol, "\$arcade->game_name   = (string) \$session_info['game_name'];") !== false, 'the vBulletin Arcade bridge must use the session-bound game name');
+arcade_score_assert(strpos($vbprotocol, '$game_name_html = htmlspecialchars(') !== false && strpos($vbprotocol, '$arcade_hash_html = htmlspecialchars(') !== false, 'the vBulletin Arcade handoff form must attribute-escape protocol values');
+arcade_score_assert(strpos($vbprotocol, 'addslashes(stripslashes(') === false, 'the vBulletin Arcade bridge must not emulate escaping in rendered HTML');
 arcade_score_assert(strpos($ibpro, 'mysqli_real_escape_string') === false, 'IBProArcade must not bypass the active database driver');
 arcade_score_assert(strpos($ibpro, '$log = $db->sql_escape(') !== false, 'IBProArcade logs must use database-driver escaping');
 arcade_score_assert(strpos($ibpro, 'phpbb_random_bytes(2)') !== false, 'IBPro score challenges must use the compatibility-safe random source');
