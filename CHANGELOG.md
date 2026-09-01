@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hardened the legacy Nuffload CGI bridge so it accepts only bounded multipart
+  POST uploads, rejects truncated bodies and unexpected upload fields, and caps
+  staged files and hand-off metadata before PHP processes the upload.
 - Bound ACP mass-mail delivery and destructive forum pruning to an explicit
   administrator session form token. Both legacy handlers now reject nested
   input, constrain payloads and safely redisplay stored form values.

@@ -17,8 +17,24 @@ use CGI;
 my $qstring = "";
 my %query = ();
 
-if (length ($ENV{'QUERY_STRING'}) > 0){
-	my $buffer = $ENV{'QUERY_STRING'};
+if (!defined $ENV{'REQUEST_METHOD'} || uc($ENV{'REQUEST_METHOD'}) ne 'POST') {
+  print "Status: 405 Method Not Allowed\nAllow: POST\nContent-type: text/plain\n\nUpload requires POST\n";
+  exit;
+}
+
+if (!defined $ENV{'CONTENT_TYPE'} || $ENV{'CONTENT_TYPE'} !~ m{^multipart/form-data(?:\s*;|$)}i) {
+  print "Status: 415 Unsupported Media Type\nContent-type: text/plain\n\nUpload requires multipart form data\n";
+  exit;
+}
+
+my $raw_query = defined $ENV{'QUERY_STRING'} ? $ENV{'QUERY_STRING'} : '';
+if (length($raw_query) > 2048) {
+  print "Status: 414 URI Too Long\nContent-type: text/plain\n\nUpload query is too long\n";
+  exit;
+}
+
+if (length ($raw_query) > 0){
+	my $buffer = $raw_query;
 	my @pairs = split(/&/, $buffer);
 	foreach my $pair (@pairs){
 	   my ($name, $value) = split(/=/, $pair, 2);
@@ -57,6 +73,7 @@ if (!-f $owner_file) {
 my $len = defined $ENV{'CONTENT_LENGTH'} && $ENV{'CONTENT_LENGTH'} =~ /^\d+$/ ? int($ENV{'CONTENT_LENGTH'}) : 0;
 my $bRead=0;
 $|=1;
+binmode(STDIN);
 
 unlink("$received_file") if -e "$received_file";
 unlink("$complete_file") if -e "$complete_file";
@@ -85,16 +102,28 @@ if (-e "$post_data_file") {
   unlink("$post_data_file");
 }
 open(my $post_handle, '>', $post_data_file) or &bye_bye();
+binmode($post_handle);
 my $i=0;
 my $ofh = select($post_handle); $| = 1; select ($ofh);
 my $line = '';
-while (read (STDIN, $line, 4096) && $bRead < $len )
+while ($bRead < $len)
 {
-  $bRead += length $line;
+  my $remaining = $len - $bRead;
+  my $chunk_size = $remaining < 4096 ? $remaining : 4096;
+  my $read_size = read(STDIN, $line, $chunk_size);
+  last if !defined $read_size || $read_size == 0;
+  $bRead += $read_size;
   $i++;
   print {$post_handle} $line;
 }
 close ($post_handle);
+
+if ($bRead != $len) {
+  unlink($post_data_file);
+  unlink($monitor_file);
+  print "Status: 400 Bad Request\nContent-type: text/plain\n\nIncomplete upload body\n";
+  exit;
+}
 
 #
 # We don't want to decode the post data ourselves. That's like
@@ -109,6 +138,7 @@ close ($post_handle);
 #
 
 open(STDIN, '<', $post_data_file) or &bye_bye();
+binmode(STDIN);
 my $cg = CGI->new();
 my %vars = $cg->Vars;
 my $j = 0;
@@ -123,11 +153,19 @@ while(my ($key, $value) = each %vars)
     my $fh = $cg->upload($key);
     if(defined $fh)
     {
+	  if ($key !~ /^(?:pic_file|pic_thumbnail)(?:-[0-9]{1,2})?$/ || $j >= 50) {
+	    unlink($post_data_file);
+	    unlink($monitor_file);
+	    print "Status: 400 Bad Request\nContent-type: text/plain\n\nInvalid upload field\n";
+	    exit;
+	  }
 	  my $tmp_filename = "tmp/$psid"."_actualdata"."$j";
 	  open(my $upload_handle, '>', $tmp_filename) or &bye_bye();
 	  binmode($upload_handle);
-      while(<$fh>) {
-		print {$upload_handle} $_;
+      binmode($fh);
+      my $upload_chunk = '';
+      while (read($fh, $upload_chunk, 8192)) {
+		print {$upload_handle} $upload_chunk;
       }
 	  close($upload_handle);
 	  my $fsize =(-s $tmp_filename);
@@ -145,6 +183,13 @@ while(my ($key, $value) = each %vars)
 	  my $safe_value = &url_encode($value);
 	  $qstring .= "$safe_key=$safe_value&" ;
     }
+  }
+
+  if (length($qstring) > 262144) {
+    unlink($post_data_file);
+    unlink($monitor_file);
+    print "Status: 413 Content Too Large\nContent-type: text/plain\n\nUpload metadata is too large\n";
+    exit;
   }
 }
 
