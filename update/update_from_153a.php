@@ -569,6 +569,8 @@ foreach ($config_defaults as $key => $value)
 }
 $operations[] = 'DELETE FROM ' . update_quote_identifier($table_prefix . 'config') .
 	" WHERE config_name = 'google_visit_counter'";
+$operations[] = 'UPDATE ' . update_quote_identifier($table_prefix . 'banner') .
+	' SET banner_type = 2 WHERE banner_type = 4';
 
 $album_defaults = array(
 	'path_to_bin' => 'cgi-bin/', 'perl_uploader' => '0', 'show_progress_bar' => '0',

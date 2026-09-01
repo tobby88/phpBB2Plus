@@ -50,7 +50,6 @@ $lang['Banner_type_explain'] = "Wähle den Banner-Typ";
 //pre-defined types
 $lang['Banner_type'][0] = "Bild-Link";
 $lang['Banner_type'][2] = "Text-Link";
-$lang['Banner_type'][4] = "Benutzerdefinierter HTML-Code";
 $lang['Banner_type'][6] = "Flash-Datei";
 
 $lang['Banner_name'] = "Bild-Pfad/Text/Code";

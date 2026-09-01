@@ -23,6 +23,10 @@ changes consolidated after that baseline without implying active maintenance.
   its number while forcing a database write and configuration-cache deletion
   on every page. Fresh installs omit it and upgrades remove its inert setting
   and credits entry.
+- Retired the banner system's arbitrary custom-HTML type, which rendered its
+  stored value without filtering on public pages and in the AdminCP preview.
+  New saves accept only image, text and Ruffle-backed SWF banners; upgrades
+  convert legacy HTML entries into safely escaped text banners.
 - Denied direct HTTP execution of PHP implementation files below the internal
   include, database-driver, Attachment, Album, paFileDB, CrackerTracker and
   statistics-module trees while retaining access to their static assets.

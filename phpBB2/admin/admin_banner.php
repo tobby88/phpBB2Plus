@@ -400,10 +400,6 @@ if( $mode!= "")
 				// swf
 				$banner_example = '<script type="text/javascript" src="../assets/ruffle/phpbb-config.js"></script><script type="text/javascript" src="../assets/ruffle/ruffle.js"></script><object type="application/x-shockwave-flash" data="'.$safe_banner_name.'" '.$banner_size.'><param name="movie" value="'.$safe_banner_name.'" /><param name="allowScriptAccess" value="never" /><a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank" rel="noopener noreferrer">'.$safe_banner_description.'</a></object>';
 				break;
-			case 4 :
-				// custom
-				$banner_example = $banner_info['banner_name'];
-				break;
 			case 2 :
 				$banner_example = '<a href="'.append_sid('redirect.'.$phpEx.'?banner_id='.(int) $banner_info['banner_id']).'" target="_blank" rel="noopener noreferrer">'.$safe_banner_name.'</a>';
 				break;
@@ -533,6 +529,10 @@ if( $mode!= "")
 		$banner_filter_time = max(0, (int) admin_banner_post_scalar('banner_filter_time', '0'));
 
 		$banner_type = (int) admin_banner_post_scalar('banner_type', '0');
+		if (!in_array($banner_type, array(0, 2, 6), true))
+		{
+			$banner_type = 0;
+		}
 		$banner_name = substr(trim(admin_banner_post_scalar('banner_name', '')), 0, 255);
 		$banner_description = substr(trim(admin_banner_post_scalar('banner_description', '')), 0, 255);
 		$banner_width = max(0, (int) admin_banner_post_scalar('banner_width', '0'));

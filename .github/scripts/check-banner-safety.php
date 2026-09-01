@@ -11,6 +11,7 @@ $admin_required = array(
 	'function admin_banner_post_scalar',
 	'phpbb_admin_require_post_session();',
 	'phpbb_admin_session_field()',
+	'in_array($banner_type, array(0, 2, 6), true)',
 	"in_array(\$time_type, array(0, 2, 4, 6), true)",
 	'$db->sql_escape($banner_name)',
 	"foreach (\$options as \$offset => \$type)"
@@ -29,6 +30,22 @@ foreach (array('@each(', 'ereg(', "\$_GET['date_begin_week']", "\$_GET['time_beg
 	{
 		$errors[] = 'Legacy banner administration path remains: ' . $marker;
 	}
+}
+if (strpos($admin, "\$banner_example = \$banner_info['banner_name']") !== false ||
+	strpos($header, "\$banners[\$i]['banner_name'] );") !== false)
+{
+	$errors[] = 'The raw custom-HTML banner renderer must remain retired';
+}
+$english_banner_language = (string) file_get_contents($root . '/phpBB2/language/lang_english/lang_banner.php');
+$german_banner_language = (string) file_get_contents($root . '/phpBB2/language/lang_german/lang_banner.php');
+if (strpos($english_banner_language, "Banner_type'][4]") !== false || strpos($german_banner_language, "Banner_type'][4]") !== false)
+{
+	$errors[] = 'The AdminCP must not offer arbitrary stored HTML banners';
+}
+$updater = (string) file_get_contents($root . '/update/update_from_153a.php');
+if (strpos($updater, 'SET banner_type = 2 WHERE banner_type = 4') === false)
+{
+	$errors[] = 'The upgrade path must convert legacy custom-HTML banners to escaped text banners';
 }
 
 foreach (array('$safe_banner_name = htmlspecialchars', '$safe_banner_description = htmlspecialchars', '(int) $banner_spot') as $marker)
