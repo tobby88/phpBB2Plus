@@ -214,6 +214,9 @@ jobs:
       - name: Test Shoutbox and Knowledge Base listings
         run: php .github/scripts/check-community-listing-safety.php
 
+      - name: Test Portal runtime safety
+        run: php .github/scripts/check-portal-runtime-safety.php
+
       - name: Test statistics runtime safety
         run: php .github/scripts/check-statistics-runtime-safety.php
 

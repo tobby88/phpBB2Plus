@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Bounded every Portal database-configured result batch and thumbnail size,
+  normalized excluded forum, Album category and poll forum lists before SQL,
+  and removed the old string sentinel from numeric `NOT IN` clauses. Invalid
+  legacy configuration now degrades to empty results instead of malformed or
+  attacker-controlled query fragments.
 - Normalized and bounded stored Album group-ID lists before every category,
   moderator and personal-gallery access query. Corrupt or injected list
   fragments now become a safe never-match value instead of SQL syntax, and

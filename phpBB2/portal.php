@@ -132,6 +132,21 @@ while ( $row = $db->sql_fetchrow($result) )
 }
 $db->sql_freeresult($result);
 
+$portal_numeric_limits = array(
+	'last_seen' => 100,
+	'number_recent_topics' => 100,
+	'number_recent_files' => 100,
+	'pics_number' => 100,
+	'number_top_posters' => 100
+);
+foreach ($portal_numeric_limits as $portal_setting => $portal_maximum)
+{
+	$CFG[$portal_setting] = max(0, min($portal_maximum, isset($CFG[$portal_setting]) ? (int) $CFG[$portal_setting] : 0));
+}
+$CFG['pics_thumbsize'] = max(1, min(1024, isset($CFG['pics_thumbsize']) ? (int) $CFG['pics_thumbsize'] : 100));
+$CFG['pics_all'] = !empty($CFG['pics_all']) ? '1' : '0';
+$CFG['pics_sort'] = (isset($CFG['pics_sort']) && (string) $CFG['pics_sort'] === '1') ? '1' : '0';
+
 // last seen hack
 if ($CFG['last_seen']>0) 
 {
@@ -184,29 +199,16 @@ if ( $CFG['number_recent_topics'] > 0 )
 	$is_auth_ary = array();
 	$is_auth_ary = auth(AUTH_ALL, AUTH_LIST_ALL, $userdata, $forum_data);
 	
-	if( $CFG['exceptional_forums'] == '' )
-	{
-		$except_forum_id = '\'start\'';
-	}
-	else
-	{
-		$except_forum_id = $CFG['exceptional_forums'];
-	}
+	$except_forum_ids = explode(',', phpbb_sql_id_list(isset($CFG['exceptional_forums']) ? $CFG['exceptional_forums'] : ''));
 	
 	for ($i = 0; $i < count($forum_data); $i++)
 	{
 		if ((!$is_auth_ary[$forum_data[$i]['forum_id']]['auth_read']) or (!$is_auth_ary[$forum_data[$i]['forum_id']]['auth_view']))
 		{
-			if ($except_forum_id == '\'start\'')
-			{
-				$except_forum_id = $forum_data[$i]['forum_id'];
-			}
-			else
-			{
-				$except_forum_id .= ',' . $forum_data[$i]['forum_id'];
-			}
+			$except_forum_ids[] = (int) $forum_data[$i]['forum_id'];
 		}
 	}
+	$except_forum_id = phpbb_sql_id_list($except_forum_ids);
 	$sql = "SELECT t.topic_id, t.topic_title, t.topic_last_post_id, t.forum_id, t.topic_icon, t.topic_type, p.post_id, p.poster_id, p.post_time, u.user_id, u.username
 			FROM " . TOPICS_TABLE . " AS t, " . POSTS_TABLE . " AS p, " . USERS_TABLE . " AS u
 			WHERE t.forum_id NOT IN (" . $except_forum_id . ")
@@ -638,11 +640,12 @@ if ( $CFG['pics_number'] > 0 )
 	
 	if ( $allowed_cat != $pics_allowed )
 	{
-		$CategoryID = $CFG['cat_id'];
+		$CategoryID = phpbb_sql_id_list(isset($CFG['cat_id']) ? $CFG['cat_id'] : '');
+		$allowed_cat_sql = phpbb_sql_id_list($allowed_cat);
 	
 		if ( $CFG['pics_sort'] == '1' )
 		{
-			if ( $CategoryID != 0 )
+			if ( $CategoryID !== '0' )
 			{
 				$sql = "SELECT p.pic_id, p.pic_title, p.pic_thumbnail, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments
 					FROM ". ALBUM_TABLE ." AS p
@@ -650,7 +653,7 @@ if ( $CFG['pics_number'] > 0 )
 						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
 						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
 						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 ) AND pic_cat_id IN ($CategoryID)
+					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 ) AND pic_cat_id IN ($CategoryID)
 					GROUP BY p.pic_id
 					ORDER BY RAND()
 					LIMIT ". $CFG['pics_number'];
@@ -663,7 +666,7 @@ if ( $CFG['pics_number'] > 0 )
 						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
 						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
 						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 )
+					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 )
 					GROUP BY p.pic_id
 					ORDER BY RAND()
 					LIMIT ". $CFG['pics_number'];
@@ -671,7 +674,7 @@ if ( $CFG['pics_number'] > 0 )
 		}
 		else if ( $CFG['pics_sort'] == '0' )
 		{
-			if ( $CategoryID != 0 )
+			if ( $CategoryID !== '0' )
 			{
 				$sql = "SELECT p.pic_id, p.pic_title, p.pic_thumbnail, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_username, p.pic_time, p.pic_cat_id, p.pic_view_count, u.user_id, u.username, r.rate_pic_id, AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments
 					FROM ". ALBUM_TABLE ." AS p
@@ -679,7 +682,7 @@ if ( $CFG['pics_number'] > 0 )
 						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
 						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
 						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 ) AND pic_cat_id IN ($CategoryID)
+					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 ) AND pic_cat_id IN ($CategoryID)
 					GROUP BY p.pic_id
 					ORDER BY pic_time DESC
 					LIMIT ". $CFG['pics_number'];
@@ -692,7 +695,7 @@ if ( $CFG['pics_number'] > 0 )
 						LEFT JOIN ". ALBUM_CAT_TABLE ." AS ct ON p.pic_cat_id = ct.cat_id
 						LEFT JOIN ". ALBUM_RATE_TABLE ." AS r ON p.pic_id = r.rate_pic_id
 						LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
-					WHERE p.pic_cat_id IN ($allowed_cat) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 )
+					WHERE p.pic_cat_id IN ($allowed_cat_sql) AND ( p.pic_approval = 1 OR ct.cat_approval = 0 )
 					GROUP BY p.pic_id
 					ORDER BY pic_time DESC
 					LIMIT ". $CFG['pics_number'];
@@ -954,7 +957,7 @@ $length = 65;
 // Get the configured poll forums and retain only forums the current visitor
 // may both see and read.
 $poll_forums = array();
-foreach (preg_split('/[^0-9]+/', isset($CFG['poll_forum']) ? (string) $CFG['poll_forum'] : '', -1, PREG_SPLIT_NO_EMPTY) as $configured_poll_forum)
+foreach (explode(',', phpbb_sql_id_list(isset($CFG['poll_forum']) ? $CFG['poll_forum'] : '')) as $configured_poll_forum)
 {
 	$configured_poll_forum = intval($configured_poll_forum);
 	if ($configured_poll_forum > 0)
