@@ -67,13 +67,56 @@ function ctracker_blocklist_pattern_matches($pattern, $target)
 {
 	$pattern = is_scalar($pattern) ? trim((string) $pattern) : '';
 	$target = is_scalar($target) ? (string) $target : '';
-	if ($pattern === '' || $target === '' || strlen($pattern) > 200 || substr_count($pattern, '*') > 8 || preg_match('/[\x00-\x1f\x7f]/', $pattern))
+	if ($pattern === '' || $target === '' || strlen($pattern) > 200 || strlen($target) > 4096 ||
+		substr_count($pattern, '*') > 8 || preg_match('/[\x00-\x1f\x7f]/', $pattern))
 	{
 		return false;
 	}
 
-	$expression = str_replace('\\*', '.*', preg_quote($pattern, '~'));
-	return preg_match('~\A' . $expression . '\z~is', $target) === 1;
+	// Match the one supported wildcard directly. The old conversion to a
+	// regular expression allowed an administrator-supplied pattern containing
+	// several stars to trigger excessive PCRE backtracking for a crafted User
+	// Agent. This greedy matcher has bounded work and keeps the historical,
+	// case-insensitive full-string semantics.
+	$pattern = strtolower($pattern);
+	$target = strtolower($target);
+	$pattern_length = strlen($pattern);
+	$target_length = strlen($target);
+	$pattern_pos = 0;
+	$target_pos = 0;
+	$star_pos = -1;
+	$star_target_pos = 0;
+
+	while ($target_pos < $target_length)
+	{
+		if ($pattern_pos < $pattern_length && $pattern[$pattern_pos] !== '*' &&
+			$pattern[$pattern_pos] === $target[$target_pos])
+		{
+			$pattern_pos++;
+			$target_pos++;
+			continue;
+		}
+		if ($pattern_pos < $pattern_length && $pattern[$pattern_pos] === '*')
+		{
+			$star_pos = $pattern_pos++;
+			$star_target_pos = $target_pos;
+			continue;
+		}
+		if ($star_pos >= 0)
+		{
+			$pattern_pos = $star_pos + 1;
+			$target_pos = ++$star_target_pos;
+			continue;
+		}
+		return false;
+	}
+
+	while ($pattern_pos < $pattern_length && $pattern[$pattern_pos] === '*')
+	{
+		$pattern_pos++;
+	}
+
+	return $pattern_pos === $pattern_length;
 }
 
 function ctracker_blocklist_matches($pattern, $ip, $user_agent, $remote_host)

@@ -70,6 +70,9 @@ jobs:
           done
           exit "$missing"
 
+      - name: Audit public security bootstrap boundaries
+        run: php .github/scripts/check-public-security-bootstrap.php
+
       - name: Audit ACP integrations
         run: php .github/scripts/check-acp-integration.php
 

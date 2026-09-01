@@ -11,8 +11,11 @@ $cases = array(
 	array(false, '2001:db9::42', '2001:db8::/32', 'IPv6 CIDR outsider'),
 	array(true, 'BadBrowser v5.1', '*badbrowser v*', 'case-insensitive wildcard'),
 	array(true, 'Mozilla/5.0 (compatible)', 'Mozilla/5.0*', 'slash-safe User-Agent'),
+	array(true, 'abXXcdYYef', 'a*b*c*d*e*f', 'multiple bounded wildcards'),
+	array(true, 'literal\\path', 'literal\\path', 'literal backslash'),
 	array(false, 'Mozilla/5.0', 'Mozilla/6.0*', 'non-matching wildcard'),
-	array(false, 'anything', '*********', 'excessive wildcard count')
+	array(false, 'anything', '*********', 'excessive wildcard count'),
+	array(false, str_repeat('x', 4097), '*', 'oversized target')
 );
 $errors = array();
 foreach ($cases as $case)

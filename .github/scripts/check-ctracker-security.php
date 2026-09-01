@@ -67,6 +67,11 @@ if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' =
 {
 	$errors[] = 'Headerless legacy POST was incorrectly blocked.';
 }
+if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => "bad host", 'HTTP_ORIGIN' => 'https://forum.example')) !== true ||
+	ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_ORIGIN' => 'https://forum.example')) !== true)
+{
+	$errors[] = 'A source-bearing POST with no valid request host was not blocked.';
+}
 if (!ct_security_disallowed_method(array('REQUEST_METHOD' => 'TRACE')) ||
 	!ct_security_disallowed_method(array('REQUEST_METHOD' => 'PUT')) ||
 	ct_security_disallowed_method(array('REQUEST_METHOD' => 'GET')) ||

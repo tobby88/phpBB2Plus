@@ -143,7 +143,10 @@ function ct_security_cross_site_write($server)
 	$request_host = isset($server['HTTP_HOST']) ? ct_security_url_host($server['HTTP_HOST'], true) : false;
 	if ($request_host === false)
 	{
-		return false;
+		// A browser-supplied source cannot be compared safely without a valid
+		// request authority. Fail closed instead of letting a malformed Host
+		// header turn the same-origin check off.
+		return isset($server['HTTP_ORIGIN']) || isset($server['HTTP_REFERER']) || $fetch_site !== '';
 	}
 
 	$source = '';
