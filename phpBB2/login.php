@@ -247,6 +247,9 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 		}
 		else
 		{
+			// Keep unknown account names on the same adaptive-hash timing path as
+			// real accounts before returning the common login error.
+			phpbb_password_verify($password, '');
 			$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
 			$redirect = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : "";
 			$redirect = str_replace("?", "&", $redirect);

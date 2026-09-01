@@ -519,17 +519,32 @@ if (!function_exists('phpbb_password_verify'))
 {
 	function phpbb_password_verify($password, $stored_hash)
 	{
+		// A fixed, valid bcrypt hash gives unknown or malformed accounts the
+		// same deliberately expensive verification path as modern accounts.
+		$dummy_hash = '$2y$10$a69Y35T0bxEO.FwchNKEX.BmLguLKRHzzCbtMMUgMgrTcATJka/sm';
+		$password_is_scalar = is_scalar($password);
+		$password = $password_is_scalar ? (string) $password : '';
+		if (!$password_is_scalar)
+		{
+			password_verify($password, $dummy_hash);
+			return false;
+		}
 		if (!is_string($stored_hash) || $stored_hash === '')
 		{
+			password_verify((string) $password, $dummy_hash);
 			return false;
 		}
 
 		if (preg_match('/^[a-f0-9]{32}$/i', $stored_hash))
 		{
 			$legacy_hash = md5($password);
-			return function_exists('hash_equals')
+			$valid = function_exists('hash_equals')
 				? hash_equals(strtolower($stored_hash), strtolower($legacy_hash))
 				: strtolower($stored_hash) === strtolower($legacy_hash);
+			// Legacy MD5 comparison is otherwise observably faster than adaptive
+			// hashes, which would reveal which accounts still need migration.
+			password_verify((string) $password, $dummy_hash);
+			return $valid;
 		}
 
 		return password_verify($password, $stored_hash);

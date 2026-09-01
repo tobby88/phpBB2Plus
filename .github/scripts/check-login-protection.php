@@ -7,7 +7,8 @@ $errors = array();
 $required = array(
 	'hash_equals((string) $userdata[\'session_id\']',
 	'ctracker_enforce_login_identity_limit($submitted_username)',
-	'user_badlogin = user_badlogin + 1'
+	'user_badlogin = user_badlogin + 1',
+	"phpbb_password_verify(\$password, '')"
 );
 foreach ($required as $marker)
 {
@@ -15,6 +16,13 @@ foreach ($required as $marker)
 	{
 		$errors[] = 'Missing login protection marker: ' . $marker;
 	}
+}
+
+$compat = (string) file_get_contents($root . '/phpBB2/includes/php_compat.php');
+if (substr_count($compat, 'password_verify((string) $password, $dummy_hash);') < 2 ||
+	strpos($compat, 'Legacy MD5 comparison is otherwise observably faster') === false)
+{
+	$errors[] = 'Unknown, malformed and legacy password records do not share an adaptive timing path.';
 }
 
 $database_class = (string) file_get_contents($root . '/phpBB2/ctracker/classes/class_ct_database.php');
