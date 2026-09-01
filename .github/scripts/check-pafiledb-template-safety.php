@@ -22,4 +22,12 @@ pafiledb_template_assert(strpos($source, 'rename($temp, $filename)') !== false, 
 pafiledb_template_assert(strpos($source, 'mkdir($this->cachedir, 0777') === false, 'cache directories must not be created world-writable');
 pafiledb_template_assert(strpos($source, "preg_replace('#<!--\\\\s*PHP") !== false, 'legacy template PHP blocks must remain disabled');
 
+require_once $root . '/phpBB2/pafiledb/includes/template.php';
+$compiler = new pafiledb_Template();
+$outer_loop = $compiler->compile_tag_block('row');
+$inner_loop = $compiler->compile_tag_block('child');
+pafiledb_template_assert(strpos($outer_loop, 'for ($_row_i = ') !== false, 'compiled outer blocks must use a local loop counter');
+pafiledb_template_assert(strpos($inner_loop, "['row'][\$_row_i]['child']") !== false, 'compiled nested blocks must reference the local parent counter');
+pafiledb_template_assert(strpos($outer_loop . $inner_loop, '$this->_row_i') === false, 'compiled blocks must not create dynamic counter properties');
+
 echo "paFileDB template safety tests passed.\n";

@@ -33,6 +33,15 @@ class attach_parent
 	var $filetime = 0;
 	var $thumbnail = 0;
 	var $page = 0; // On which page we are on ? This should be filled by child classes.
+	var $attachment_id_list = array();
+	var $attachment_comment_list = array();
+	var $attachment_filesize_list = array();
+	var $attachment_filetime_list = array();
+	var $attachment_filename_list = array();
+	var $attachment_extension_list = array();
+	var $attachment_mimetype_list = array();
+	var $attachment_list = array();
+	var $attachment_thumbnail_list = array();
 
 	// Switches
 	var $add_attachment_body = 0;

@@ -53,4 +53,22 @@ removed_runtime_assert(strpos($functions, 'function phpbb_timezone_label(') !== 
 removed_runtime_assert(strpos($page_header, 'phpbb_timezone_label(') !== false, 'public header must use safe timezone labels');
 removed_runtime_assert(strpos($admin_header, 'phpbb_timezone_label(') !== false, 'admin header must use safe timezone labels');
 
+define('IN_PHPBB', true);
+require_once $root . '/phpBB2/attach_mod/posting_attachments.php';
+foreach (array('attachment_id_list', 'attachment_comment_list', 'attachment_filesize_list', 'attachment_filetime_list', 'attachment_filename_list', 'attachment_extension_list', 'attachment_mimetype_list', 'attachment_list', 'attachment_thumbnail_list') as $property)
+{
+	removed_runtime_assert(property_exists('attach_parent', $property), 'attachment request state must use declared properties: ' . $property);
+}
+
+define('IN_MINI_CAL', true);
+require_once $root . '/phpBB2/includes/mini_cal/calendarSuite.php';
+foreach (array('dateYYYY', 'monthStart', 'formatted', 'language') as $property)
+{
+	removed_runtime_assert(property_exists('calendarSuite', $property), 'Mini Calendar runtime state must use declared properties: ' . $property);
+}
+
+$pafiledb_template = file_get_contents($root . '/phpBB2/pafiledb/includes/template.php');
+removed_runtime_assert(strpos($pafiledb_template, "'for (\$this->_'") === false, 'paFileDB compiled loops must not create PHP 8 dynamic counter properties');
+removed_runtime_assert(strpos($pafiledb_template, "'for (\$_' . \$tag_args") !== false, 'paFileDB compiled loops must use local counters');
+
 echo "Removed-runtime safety checks passed.\n";

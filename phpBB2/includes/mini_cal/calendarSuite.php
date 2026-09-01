@@ -75,7 +75,7 @@ define('MINI_CAL_DATE_FORMAT', 0);
 
 class calendarSuite {
 
-var $dateYYY;							// year in numeric format (YYYY)
+var $dateYYYY;							// year in numeric format (YYYY)
 var $dateMM;							// month in numeric format (MM)
 var $dateDD;							// day in numeric format (DD)
 var $ext_dateMM;					// extended month (e.g. February)
@@ -86,6 +86,8 @@ var $lastMonth;						// contains last month
 var $stamp;								// timestamp
 var $day;									// return array s.a.
 var $language;							// locale used for formatted names
+var $monthStart;						// weekday index of the first day
+var $formatted;						// most recently formatted date
 
 
 /**

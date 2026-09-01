@@ -501,7 +501,7 @@ class pafiledb_Template
 		}
 
 		$tag_template_php .= 'if ($_' . $tag_args . '_count) {';
-		$tag_template_php .= 'for ($this->_' . $tag_args . '_i = ' . $loop_start . '; $this->_' . $tag_args . '_i < ' . $loop_end . '; $this->_' . $tag_args . '_i++){';
+		$tag_template_php .= 'for ($_' . $tag_args . '_i = ' . $loop_start . '; $_' . $tag_args . '_i < ' . $loop_end . '; $_' . $tag_args . '_i++){';
 
 		return $tag_template_php;
 	}
@@ -745,7 +745,7 @@ class pafiledb_Template
 		// Build up the string with everything but the last child.
 		for ($i = 0; $i < $blockcount; $i++)
 		{
-			$varref .= "['" . $blocks[$i] . "'][\$this->_" . $blocks[$i] . '_i]';
+			$varref .= "['" . $blocks[$i] . "'][\$_" . $blocks[$i] . '_i]';
 		}
 
 		// Add the block reference for the last child.
@@ -754,7 +754,7 @@ class pafiledb_Template
 		// Add the iterator for the last child if requried.
 		if ($include_last_iterator)
 		{
-			$varref .= '[$this->_' . $blocks[$blockcount] . '_i]';
+			$varref .= '[$_' . $blocks[$blockcount] . '_i]';
 		}
 
 		return $varref;
