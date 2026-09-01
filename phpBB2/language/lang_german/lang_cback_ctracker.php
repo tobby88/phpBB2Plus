@@ -362,6 +362,7 @@ $lang['ctracker_rec_pab']				  = 'Wiederherstellung erst nach einem erfolgreiche
 $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker konnte die Datenbankoperationen in der Benutzertabelle nicht ausführen.';
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker konnte die Datenbankoperation nicht korrekt durchführen.';
 $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker konnte das Forum-Verzeichnis nicht vollständig für die Dateiprüfung lesen.';
+$lang['ctracker_error_logfileop']         = 'CBACK CrackerTracker konnte die lokale Protokolldatei nicht sicher aktualisieren.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 
 

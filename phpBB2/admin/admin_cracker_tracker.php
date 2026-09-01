@@ -80,7 +80,7 @@ include_once($phpbb_root_path . 'ctracker/classes/class_log_manager.' . $phpEx);
 if ( $module_number == 99 )
 {
 	$log_filepath = $phpbb_root_path . 'ctracker/logfiles/logfile_debug_mode.txt';
-	if (!is_file($log_filepath) || !is_readable($log_filepath))
+	if (@is_link($log_filepath) || !is_file($log_filepath) || !is_readable($log_filepath))
 	{
 		message_die(GENERAL_ERROR, 'CrackerTracker debug log is not available.');
 	}

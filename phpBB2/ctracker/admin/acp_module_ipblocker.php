@@ -50,7 +50,7 @@ else if ( $mode == 'add' )
 /*
  * Load CrackerTracker Blocklist from the Database
  */
-$ctracker_config->verbose = true;
+$ctracker_config->set_blocklist_verbose();
 $ctracker_config->load_blocklist();
 $row_class = false;
 

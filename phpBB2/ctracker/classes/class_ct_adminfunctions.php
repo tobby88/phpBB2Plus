@@ -871,9 +871,25 @@ class ct_adminfunctions
 	{
 		global $db, $lang;
 
+		// The timestamp is written last into the staging snapshot. Its presence
+		// proves that enumeration completed before the tables were swapped.
+		$marker_sql = 'SELECT config_value FROM ' . CTRACKER_BACKUP .
+			" WHERE config_name = 'ct_last_backup' LIMIT 1";
+		if (!($marker_result = $db->sql_query($marker_sql)))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_loading_config'], '', __LINE__, __FILE__, $marker_sql);
+		}
+		$marker_row = $db->sql_fetchrow($marker_result);
+		$db->sql_freeresult($marker_result);
+		if (!$marker_row || intval($marker_row['config_value']) < 1)
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_rec_never_saved']);
+		}
+
 		// Restore values in place. Dropping and recreating the live configuration
 		// table could lose its charset, indexes or newer settings on interruption.
-		$sql = 'SELECT * FROM ' . CTRACKER_BACKUP;
+		$sql = 'SELECT config_name, config_value FROM ' . CTRACKER_BACKUP .
+			" WHERE config_name <> 'ct_last_backup'";
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -883,10 +899,6 @@ class ct_adminfunctions
 		$restored_values = 0;
 		while ( $row = $db->sql_fetchrow($result) )
 		{
-			if ($row['config_name'] === 'ct_last_backup')
-			{
-				continue;
-			}
 			$config_name = $db->sql_escape((string) $row['config_name']);
 			$config_value = $db->sql_escape((string) $row['config_value']);
 			$sql2 = "INSERT INTO " . CONFIG_TABLE . " (`config_name`, `config_value`)

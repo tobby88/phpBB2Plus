@@ -24,6 +24,12 @@ if (preg_match('/SELECT\s+COALESCE\s*\(\s*MAX\s*\(\s*id\s*\)/i', $database) ||
 	fwrite(STDERR, "Runtime blocklist inserts still allocate IDs manually.\n");
 	exit(1);
 }
+if (strpos($database, 'stripslashes($row[\'ct_blocker_value\'])') !== false ||
+	strpos($database, '$blocklist_id < 1') === false)
+{
+	fwrite(STDERR, "Blocklist loading corrupts stored patterns or accepts an invalid delete ID.\n");
+	exit(1);
+}
 $mode_two_start = strpos($maintenance, 'else if ( $mode == \'2\' )');
 $mode_three_start = strpos($maintenance, 'else if ( $mode == \'3\' )');
 if ($mode_two_start === false || $mode_three_start === false || $mode_three_start <= $mode_two_start)
@@ -48,6 +54,39 @@ if (strpos($admin_functions, '$current < 0 || $current > 2') === false ||
 	strpos($admin_functions, '$current < 1 || $current > 9') === false)
 {
 	fwrite(STDERR, "CrackerTracker select helpers do not tolerate invalid legacy settings.\n");
+	exit(1);
+}
+
+define('CTRACKER_CONFIG', 'phpbb_ctracker_config');
+define('CTRACKER_IPBLOCKER', 'phpbb_ctracker_ipblocker');
+class blocklist_storage_test_db
+{
+	var $blocklist_returned = false;
+	function sql_query($sql)
+	{
+		return (strpos($sql, 'phpbb_ctracker_ipblocker') !== false) ? 'blocklist-result' : 'config-result';
+	}
+	function sql_fetchrow($result)
+	{
+		if ($result === 'blocklist-result' && !$this->blocklist_returned)
+		{
+			$this->blocklist_returned = true;
+			return array('id' => 7, 'ct_blocker_value' => 'Agent\\Pattern*');
+		}
+		return false;
+	}
+}
+$db = new blocklist_storage_test_db();
+$lang = array();
+$HTTP_SERVER_VARS = array('REMOTE_ADDR' => '192.0.2.10');
+$HTTP_ENV_VARS = array();
+require $root . '/phpBB2/ctracker/classes/class_ct_database.php';
+$blocklist_database = new ct_database();
+$blocklist_database->set_blocklist_verbose();
+$blocklist_database->load_blocklist();
+if ($blocklist_database->blocklist !== array('Agent\\Pattern*') || $blocklist_database->blocklist_id !== array(7))
+{
+	fwrite(STDERR, "Blocklist values or identifiers changed while loading from the database.\n");
 	exit(1);
 }
 

@@ -34,6 +34,34 @@ class recovery_test_db
 	}
 }
 
+class recovery_restore_test_db
+{
+	var $queries = array();
+	var $restore_rows = array(
+		array('config_name' => 'server_name', 'config_value' => 'restored.example'),
+		array('config_name' => 'site_desc', 'config_value' => "Restored board's description")
+	);
+	var $marker_returned = false;
+	function sql_escape($value) { return addslashes((string) $value); }
+	function sql_query($sql)
+	{
+		$this->queries[] = $sql;
+		if (strpos($sql, "config_name = 'ct_last_backup'") !== false) return 'marker-result';
+		if (strpos($sql, "config_name <> 'ct_last_backup'") !== false) return 'restore-result';
+		return true;
+	}
+	function sql_fetchrow($result)
+	{
+		if ($result === 'marker-result' && !$this->marker_returned)
+		{
+			$this->marker_returned = true;
+			return array('config_value' => '123456');
+		}
+		return ($result === 'restore-result' && $this->restore_rows) ? array_shift($this->restore_rows) : false;
+	}
+	function sql_freeresult($result) { return true; }
+}
+
 $db = new recovery_test_db();
 $lang = array('ctracker_error_database_op' => 'database error', 'ctracker_error_loading_config' => 'config error');
 $admin = new ct_adminfunctions();
@@ -49,5 +77,19 @@ recovery_test_assert(strpos($sql, "board\\'s description") !== false, 'snapshot 
 $source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
 recovery_test_assert(strpos($source, "@unlink(\$phpbb_root_path . 'cache/config_data.cache')") !== false, 'restore must invalidate the configuration cache');
 recovery_test_assert(strpos($source, '$restored_values < 1') !== false, 'an empty snapshot must not report a successful restore');
+
+$restore_root = sys_get_temp_dir() . '/ctracker-recovery-test-' . getmypid() . '/';
+mkdir($restore_root . 'cache', 0700, true);
+file_put_contents($restore_root . 'cache/config_data.cache', 'stale');
+$phpbb_root_path = $restore_root;
+$db = new recovery_restore_test_db();
+$admin->restore_configuration();
+$restore_sql = implode("\n", $db->queries);
+recovery_test_assert(strpos($restore_sql, "SELECT config_value FROM phpbb_ctracker_backup WHERE config_name = 'ct_last_backup' LIMIT 1") !== false, 'restore must require a completed snapshot marker');
+recovery_test_assert(strpos($restore_sql, "WHERE config_name <> 'ct_last_backup'") !== false, 'restore must exclude its metadata row at the query boundary');
+recovery_test_assert(strpos($restore_sql, "Restored board\\'s description") !== false, 'restored configuration values must be SQL escaped');
+recovery_test_assert(!file_exists($restore_root . 'cache/config_data.cache'), 'restore must remove the stale configuration cache');
+@rmdir($restore_root . 'cache');
+@rmdir($restore_root);
 
 echo "CrackerTracker configuration-recovery tests passed.\n";

@@ -215,7 +215,9 @@ class ct_database
 
 		while ( $row = $db->sql_fetchrow($result) )
 		{
-			$this->blocklist[] = stripslashes($row['ct_blocker_value']);
+			// Database result values are already raw. stripslashes() corrupted
+			// legitimate backslashes in stored User-Agent or host patterns.
+			$this->blocklist[] = (string) $row['ct_blocker_value'];
 
 			/*
 		 	* Verbose  Mode active? This also saves ID Values from Database in a
@@ -274,6 +276,10 @@ class ct_database
 
 		// Clean up the input
 		$blocklist_id = intval($blocklist_id);
+		if ($blocklist_id < 1)
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_delete_blocklist']);
+		}
 
 		// Build an SQL Query
 		$sql = 'DELETE FROM ' . CTRACKER_IPBLOCKER . ' WHERE id = ' . $blocklist_id;

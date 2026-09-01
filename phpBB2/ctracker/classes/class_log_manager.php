@@ -61,6 +61,7 @@ class log_manager
 	var $ct_remote_addr   = '';
 	var $ct_remote_host   = '';
 	var $ct_counter_value = 0;
+	var $last_deleted_entries = 0;
 
 
 	/**
@@ -185,6 +186,7 @@ class log_manager
 		global $phpbb_root_path;
 
 		$ct_filepath = '';
+		$file_id = intval($file_id);
 
 		switch($file_id)
 		{
@@ -210,6 +212,30 @@ class log_manager
 		return $ct_filepath;
 	}
 
+	/**
+	 * Validate the fixed log destination without following a planted symlink.
+	 * The file may not exist yet, therefore its real parent is checked too.
+	 */
+	function safe_log_path($file_id)
+	{
+		global $phpbb_root_path;
+
+		$path = $this->create_ct_path($file_id);
+		if ($path === '' || @is_link($path))
+		{
+			return false;
+		}
+		$expected_parent = @realpath($phpbb_root_path . 'ctracker/logfiles');
+		$actual_parent = @realpath(dirname($path));
+		if ($expected_parent === false || $actual_parent === false ||
+			str_replace('\\', '/', $expected_parent) !== str_replace('\\', '/', $actual_parent))
+		{
+			return false;
+		}
+
+		return $path;
+	}
+
 	function invalidate_counter_cache()
 	{
 		global $phpbb_root_path;
@@ -230,7 +256,12 @@ class log_manager
 	function delete_logfile($file_id)
 	{
 		// Set Vars
-		$path        = $this->create_ct_path($file_id);
+		$this->last_deleted_entries = 0;
+		$path        = $this->safe_log_path($file_id);
+		if ($path === false)
+		{
+			return $this->ct_file_error();
+		}
 		$resetstring = ($file_id != 6) ? '1|||' . time() . "|||null|||null|||null|||null|||null\n" : '';
 
 		// Delete now
@@ -239,15 +270,33 @@ class log_manager
 		{
 			return $this->ct_file_error();
 		}
-		if (@flock($logentry, LOCK_EX))
+		if (!@flock($logentry, LOCK_EX))
 		{
-			@ftruncate($logentry, 0);
-			@rewind($logentry);
-			@fwrite($logentry, $resetstring);
-			@fflush($logentry);
-			@flock($logentry, LOCK_UN);
+			@fclose($logentry);
+			return $this->ct_file_error();
 		}
+		// Count while holding the same lock that protects truncation. Otherwise a
+		// concurrent security event could be deleted without being transferred to
+		// the persistent counter.
+		if (intval($file_id) !== 6)
+		{
+			@rewind($logentry);
+			if (@fgets($logentry, 16385) !== false)
+			{
+				while (@fgets($logentry, 16385) !== false)
+				{
+					$this->last_deleted_entries++;
+				}
+			}
+		}
+		$success = @ftruncate($logentry, 0) && @rewind($logentry) &&
+			@fwrite($logentry, $resetstring) === strlen($resetstring) && @fflush($logentry);
+		@flock($logentry, LOCK_UN);
 		@fclose($logentry);
+		if (!$success)
+		{
+			return $this->ct_file_error();
+		}
 		$this->invalidate_counter_cache();
 		return true;
 	}
@@ -262,7 +311,12 @@ class log_manager
 	function write_to_log($file_id, $str_log)
 	{
 		// Set Vars
-		$path = $this->create_ct_path($file_id);
+		$path = $this->safe_log_path($file_id);
+		if ($path === false)
+		{
+			return $this->ct_file_error();
+		}
+		$str_log = is_scalar($str_log) ? substr(str_replace(array("\r", "\n", "\0"), '', (string) $str_log), 0, 8192) : '';
 
 		// Write down new log entry
 		$logentry = @fopen($path, 'ab');
@@ -270,13 +324,19 @@ class log_manager
 		{
 			return $this->ct_file_error();
 		}
-		if (@flock($logentry, LOCK_EX))
+		if (!@flock($logentry, LOCK_EX))
 		{
-			@fwrite($logentry, $str_log . "\n");
-			@fflush($logentry);
-			@flock($logentry, LOCK_UN);
+			@fclose($logentry);
+			return $this->ct_file_error();
 		}
+		$line = $str_log . "\n";
+		$success = @fwrite($logentry, $line) === strlen($line) && @fflush($logentry);
+		@flock($logentry, LOCK_UN);
 		@fclose($logentry);
+		if (!$success)
+		{
+			return $this->ct_file_error();
+		}
 		$this->invalidate_counter_cache();
 		return true;
 	}
@@ -294,23 +354,32 @@ class log_manager
 		$this->ct_counter_value = 0;
 
 		// Create Path to Counter file and load the current Status
-		$path                   = $this->create_ct_path(1);
+		$path                   = $this->safe_log_path(1);
+		if ($path === false)
+		{
+			return $this->ct_file_error();
+		}
 		$counterfile = @fopen($path, 'c+b');
 		if ($counterfile === false)
 		{
 			return $this->ct_file_error();
 		}
-		if (@flock($counterfile, LOCK_EX))
+		if (!@flock($counterfile, LOCK_EX))
 		{
-			@rewind($counterfile);
-			$this->ct_counter_value = max(0, intval(stream_get_contents($counterfile))) + max(0, intval($value));
-			@ftruncate($counterfile, 0);
-			@rewind($counterfile);
-			@fwrite($counterfile, (string) $this->ct_counter_value);
-			@fflush($counterfile);
-			@flock($counterfile, LOCK_UN);
+			@fclose($counterfile);
+			return $this->ct_file_error();
 		}
+		@rewind($counterfile);
+		$this->ct_counter_value = max(0, intval(@fgets($counterfile, 64))) + max(0, intval($value));
+		$counter_value = (string) $this->ct_counter_value;
+		$success = @ftruncate($counterfile, 0) && @rewind($counterfile) &&
+			@fwrite($counterfile, $counter_value) === strlen($counter_value) && @fflush($counterfile);
+		@flock($counterfile, LOCK_UN);
 		@fclose($counterfile);
+		if (!$success)
+		{
+			return $this->ct_file_error();
+		}
 		$this->invalidate_counter_cache();
 		return true;
 
@@ -328,7 +397,11 @@ class log_manager
 		$logsize  = 0;
 		$path     = '';
 
-		$path     = $this->create_ct_path($file_id);
+		$path     = $this->safe_log_path($file_id);
+		if ($path === false)
+		{
+			return 0;
+		}
 		$handle = @fopen($path, 'rb');
 		if ($handle === false)
 		{
@@ -359,6 +432,38 @@ class log_manager
 		@fclose($handle);
 
 		return $logsize;
+	}
+
+	/**
+	 * Read a bounded tail of a logfile for the ACP. This avoids loading a
+	 * corrupted or manually enlarged file completely into PHP memory.
+	 */
+	function read_log_lines($file_id, $max_lines = 1000)
+	{
+		$path = $this->safe_log_path($file_id);
+		$max_lines = max(1, min(5000, intval($max_lines)));
+		if ($path === false || !is_file($path) || !is_readable($path))
+		{
+			return array();
+		}
+
+		$handle = @fopen($path, 'rb');
+		if ($handle === false)
+		{
+			return array();
+		}
+		$lines = array();
+		while (($line = @fgets($handle, 16385)) !== false)
+		{
+			$lines[] = $line;
+			if (count($lines) > $max_lines)
+			{
+				array_shift($lines);
+			}
+		}
+		@fclose($handle);
+
+		return $lines;
 	}
 
 
@@ -393,8 +498,10 @@ class log_manager
 		$current_size = $this->check_log_size(2);
 		if ($current_size >= $max_log_size)
 		{
-			$this->delete_logfile(2);
-			$this->increment_counter($current_size);
+			if ($this->delete_logfile(2))
+			{
+				$this->increment_counter($this->last_deleted_entries);
+			}
 		}
 
 		$this->write_to_log(2, $this->to_string());
@@ -412,8 +519,10 @@ class log_manager
 		$current_size = $this->check_log_size($file_id);
 		if ($current_size >= $logsize)
 		{
-			$this->delete_logfile($file_id);
-			$this->increment_counter($current_size);
+			if ($this->delete_logfile($file_id))
+			{
+				$this->increment_counter($this->last_deleted_entries);
+			}
 		}
 
 		$this->write_to_log($file_id, $this->to_string());
@@ -463,8 +572,12 @@ class log_manager
 		}
 
 		// Create Path to Counter file and load the current value
-		$path                   = $this->create_ct_path(1);
-		$this->ct_counter_value = max(0, intval(@file_get_contents($path)));
+		$path                   = $this->safe_log_path(1);
+		if ($path !== false && ($counter_handle = @fopen($path, 'rb')) !== false)
+		{
+			$this->ct_counter_value = max(0, intval(@fgets($counter_handle, 64)));
+			@fclose($counter_handle);
+		}
 
 		// Current entries in the logfiles have to be added
 		for($i = 2; $i <= 5; $i++)

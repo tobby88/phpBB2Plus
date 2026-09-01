@@ -363,6 +363,7 @@ $lang['ctracker_rec_pab']				  = 'Recovery is not available before you have made
 $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker couldn\'t run the database operation in the Usertable.';
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker couldn\'t run the database operation correctly.';
 $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker could not completely read the board directory for its integrity check.';
+$lang['ctracker_error_logfileop']         = 'CBACK CrackerTracker could not safely update the local log file.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 
 

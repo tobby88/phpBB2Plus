@@ -1,5 +1,7 @@
 <?php
 
+date_default_timezone_set('UTC');
+
 $test_root = sys_get_temp_dir() . '/ctracker-log-test-' . getmypid() . '/';
 $log_root = $test_root . 'ctracker/logfiles/';
 if (!mkdir($log_root, 0700, true))
@@ -8,6 +10,8 @@ if (!mkdir($log_root, 0700, true))
 	exit(1);
 }
 mkdir($test_root . 'cache', 0700, true);
+$test_error_log = $test_root . 'php-errors.log';
+ini_set('error_log', $test_error_log);
 
 function phpbb_data_cache_read($filename)
 {
@@ -90,6 +94,54 @@ if (strpos($stored_log, 'SuperSecret') !== false || strpos($stored_log, 'Session
 	$errors[] = 'Sensitive query-value redaction failed.';
 }
 
+if (!$manager->write_to_log(6, "debug\r\ninjected\0value"))
+{
+	$errors[] = 'A valid debug-log write was rejected.';
+}
+$debug_contents = file_get_contents($log_root . 'logfile_debug_mode.txt');
+if ($debug_contents !== "debuginjectedvalue\n")
+{
+	$errors[] = 'The low-level log writer allowed multiline or NUL injection.';
+}
+if ($manager->write_to_log(99, 'invalid') !== false)
+{
+	$errors[] = 'An invalid logfile identifier was accepted.';
+}
+
+$manager->write_to_log(5, '0|||1|||first|||referrer|||agent|||ip|||host');
+$manager->write_to_log(5, '0|||2|||second|||referrer|||agent|||ip|||host');
+if (!$manager->delete_logfile(5) || $manager->last_deleted_entries !== 2 || $manager->check_log_size(5) !== 0)
+{
+	$errors[] = 'Log reset did not count and truncate entries under one lock.';
+}
+
+$large_debug = '';
+for ($i = 0; $i < 1100; $i++)
+{
+	$large_debug .= 'line-' . $i . "\n";
+}
+file_put_contents($log_root . 'logfile_debug_mode.txt', $large_debug);
+$bounded_lines = $manager->read_log_lines(6, 1000);
+if (count($bounded_lines) !== 1000 || trim($bounded_lines[0]) !== 'line-100' || trim($bounded_lines[999]) !== 'line-1099')
+{
+	$errors[] = 'ACP logfile reads are not bounded to the newest requested lines.';
+}
+
+$outside_log = tempnam(sys_get_temp_dir(), 'ctracker-log-outside-');
+$debug_path = $log_root . 'logfile_debug_mode.txt';
+unlink($debug_path);
+$log_link_created = function_exists('symlink') ? @symlink($outside_log, $debug_path) : false;
+if ($log_link_created)
+{
+	if ($manager->write_to_log(6, 'must-not-follow') !== false || $manager->read_log_lines(6, 10) !== array())
+	{
+		$errors[] = 'A symbolic-link logfile target was followed.';
+	}
+	unlink($debug_path);
+}
+file_put_contents($debug_path, '');
+unlink($outside_log);
+
 foreach (array_keys($files) as $name)
 {
 	unlink($log_root . $name);
@@ -101,6 +153,10 @@ if (is_file($counter_cache))
 rmdir($log_root);
 rmdir($test_root . 'cache');
 rmdir($test_root . 'ctracker');
+if (is_file($test_error_log))
+{
+	unlink($test_error_log);
+}
 rmdir($test_root);
 
 if ($errors)
@@ -113,6 +169,19 @@ $htaccess = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/logf
 if (strpos($htaccess, 'Require all denied') === false || strpos($htaccess, 'Allow from localhost') !== false)
 {
 	fwrite(STDERR, "CrackerTracker log files are not fully denied over HTTP.\n");
+	exit(1);
+}
+
+$logmanager_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/admin/acp_module_logmanager.php');
+$download_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/admin/admin_cracker_tracker.php');
+if (strpos($logmanager_source, 'read_log_lines(') === false || strpos($logmanager_source, '@file(') !== false)
+{
+	fwrite(STDERR, "The ACP still performs an unbounded direct logfile read.\n");
+	exit(1);
+}
+if (strpos($download_source, '@is_link($log_filepath)') === false)
+{
+	fwrite(STDERR, "The debug-log download can follow a symbolic link.\n");
 	exit(1);
 }
 

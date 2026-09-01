@@ -41,12 +41,11 @@ if ( $mode == 'delete' )
 	{
 		message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
 	}
-	if ($logid != 6)
-  {
-	  // Do not increment the counter for debug entrys
-    $logmanager->increment_counter($logmanager->check_log_size($logid));
+	if (!$logmanager->delete_logfile($logid) ||
+		($logid != 6 && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
+	{
+		message_die(GENERAL_ERROR, $lang['ctracker_error_logfileop']);
 	}
-	$logmanager->delete_logfile($logid);
 
 	$template->assign_block_vars('infobox', array(
 			'L_MESSAGE_TEXT'	=> $lang['ctracker_log_manager_deleted'])
@@ -57,12 +56,11 @@ else if ( $mode == 'delete_all' )
 	phpbb_admin_require_post_session();
 	for($i = 2; $i <= 6; $i++)
 	{
-		if ($i != 6)
-    {
-		  // Do not increment the counter for debug entrys
-      $logmanager->increment_counter($logmanager->check_log_size($i));
+		if (!$logmanager->delete_logfile($i) ||
+			($i != 6 && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_logfileop']);
 		}
-		$logmanager->delete_logfile($i);
 	}
 
 	$template->assign_block_vars('infobox', array(
@@ -92,11 +90,7 @@ else if ( $mode == 'view' || $mode == 'downloaddebug' )
 	);
 
 	// Template Loop for Logfile output and naturally logfile output itself
-	$filename  = @file($logmanager->create_ct_path($logid));
-	if (!is_array($filename))
-	{
-		$filename = array();
-	}
+	$filename  = $logmanager->read_log_lines($logid, 1000);
 	$a		   = 0;
 	$lastclean = 0;
 	$split_token = '|||';
