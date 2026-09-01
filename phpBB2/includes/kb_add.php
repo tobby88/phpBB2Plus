@@ -366,7 +366,7 @@ if ($article_submit)
 	}
 	if ($approve == 1)
 	{
-	       add_kb_words($article_id, $article_text);
+	       add_kb_words($article_id, $article_text, $title);
 		   $message = $lang['Article_submitted'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
 	}
   	else

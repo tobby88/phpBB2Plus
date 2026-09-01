@@ -168,11 +168,6 @@
 	   </td>
   </tr>
   <!-- BEGIN switch_edit -->
-  <tr> 
-  	   <td class="row1"><span class="gen"><b><nobr>{L_TOPIC}</nobr></b></span></td>
-	   <td class="row2"> <span class="gen"> 
-	     <input type="text" name="topic" size="45" maxlength="100" style="width:450px" class="post" value="{TOPIC}" /></span></td>
-  </tr>
   <tr>
     <td class="row1"><span class="gen"><b>{L_ARTICLE_CATEGORY}</b></span></td>
     <td class="row2"><select name="category_id">

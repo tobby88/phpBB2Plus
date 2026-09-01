@@ -180,7 +180,7 @@ switch( $mode )
 	if ((int) $managed_article['approved'] !== 1)
 	{
 		update_kb_number($article_category_id, '+ 1');
-		add_kb_words($article_id, $managed_article['article_body']);
+		add_kb_words($article_id, $managed_article['article_body'], $managed_article['article_title']);
 	}
 	
 	$message = $lang['Article_approved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');

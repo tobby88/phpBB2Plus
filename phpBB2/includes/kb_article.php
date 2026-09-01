@@ -105,7 +105,8 @@ if ( !defined('IN_PHPBB') )
 	}
 	$db->sql_freeresult($result);
 
-	if (!$approved && !$is_admin)
+	$can_view_unapproved = $is_admin || ($userdata['session_logged_in'] && (int) $author_id === (int) $userdata['user_id']);
+	if ((int) $approved !== 1 && !$can_view_unapproved)
 	{
 		message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
 	}
@@ -256,59 +257,7 @@ if ( !defined('IN_PHPBB') )
   	}
   	else
   	{
-       	// fix for 0.76
-		// if topic id is missing, inset post	
-	   	if ( $kb_config['comments'] && !$topic_id && $approved )
-	   	{		  
-		  	// choose a user
-		  	$user_id = $userdata['user_id'];
-
-		  	// initialise the userdata
-		  	$sql = "SELECT * FROM " . USERS_TABLE . " WHERE user_id = $user_id";
-		  	if ( !($result = $db->sql_query($sql)) )
-		  	{
-	  	      	message_die(CRITICAL_ERROR, 'Could not obtain lastvisit data from user table', '', __LINE__, __FILE__, $sql);
-		  	}
-		  	$user = $db->sql_fetchrow($result);
-		  	
-		  	$search = array (
-                 "'&(quot|#34);'i",                	// Replace HTML entities
-                 "'&(amp|#38);'i",
-                 "'&(lt|#60);'i",
-                 "'&(gt|#62);'i"
-				 );                    
-		  	$replace = array (
-                 "\"",
-                 "&",
-                 "<",
-                 ">"
-				 );
-			$temp_url = phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . $article_id);
-		  	$message = "[b]" . $lang['Category'] . ":[/b] " . $article_category_name . "\n";
-			$message .= "[b]" . $lang['Article_type'] . ":[/b] " . $type_plain . "\n\n";
-		  	$message .= "[b]" . $lang['Article_title'] . ":[/b] " . preg_replace($search, $replace, $row['article_title']) . "\n";
-			$message .= "[b]" . $lang['Author'] . ":[/b] " . $author_name_plain  . "\n";
-		  	$message .= "[b]" . $lang['Article_description'] . ":[/b] " . preg_replace($search, $replace, $row['article_description']) . "\n\n";
-		  	$message .= "[b][url=" . $temp_url . "]" . $lang['Read_full_article'] . "[/url][/b]";
-
-		  	$subject = '[ KB ] ' . $row['article_title'];
-
-		  	$forum_id = $kb_config['forum_id'];
-	
-		  	$topic_data = insert_post($message, $subject, $forum_id, $user['user_id'], $user['username'], $user['user_attachsig']);
-		  
-		  	$sql = "UPDATE " . KB_ARTICLES_TABLE .
-		     " SET topic_id = " . $topic_data['topic_id'] . " 
-		 	 WHERE article_id = " . $article_id;
-		 
-		  	if ( !($result876 = $db->sql_query($sql)) )
-		  	{
-   	   	  	  	message_die(GENERAL_ERROR, "Could not update article data", '', __LINE__, __FILE__, $sql);
-	      	}
-		  	$topic_id = $topic_data['topic_id'];
-	  	}
-	
-		if ( $kb_config['comments'] )
+		if ($kb_config['comments'] && $topic_id > 0)
 		{       
 	    	$sql = "SELECT topic_id, topic_replies FROM " . TOPICS_TABLE . " WHERE topic_id = " . $topic_id;
 		
@@ -316,12 +265,22 @@ if ( !defined('IN_PHPBB') )
 			{
 		    	message_die(GENERAL_ERROR, 'Error getting comments', '', __LINE__, __FILE__, $sql);
 			}	
-			$topic = $db->sql_fetchrow($result4);	  
+			$topic_row = $db->sql_fetchrow($result4);
+			if (is_array($topic_row))
+			{
+				$topic = $topic_row;
+			}
 	   
-	    	$temp_url = append_sid($phpbb_root_path . "viewtopic.php?t=" . $topic['topic_id']);
-	    	$comments = '<b>' . $lang['Comments'] . '</b><a href="' . $temp_url . '" class="gen"> [' . $topic['topic_replies'] . ' - ' . $lang['Post_comments'] . ']</a>';
-	
-	    	$template->assign_block_vars('switch_comments', array());
+			if (!empty($topic['topic_id']))
+			{
+				$temp_url = append_sid($phpbb_root_path . "viewtopic.php?t=" . (int) $topic['topic_id']);
+				$comments = '<b>' . $lang['Comments'] . '</b><a href="' . $temp_url . '" class="gen"> [' . (int) $topic['topic_replies'] . ' - ' . $lang['Post_comments'] . ']</a>';
+				$template->assign_block_vars('switch_comments', array());
+			}
+			else
+			{
+				$comments = '';
+			}
 		}
 		else
 		{

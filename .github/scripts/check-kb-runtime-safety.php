@@ -72,6 +72,11 @@ kb_runtime_assert(strpos($functions, 'function kb_remove_article_words($article_
 kb_runtime_assert(strpos($functions, 'function kb_clear_search_cache()') !== false, 'article changes must invalidate cached searches');
 kb_runtime_assert(strpos($functions, 'kb_remove_article_words($post_id);') !== false, 'article reindexing must replace stale word matches');
 kb_runtime_assert(strpos($edit, 'kb_remove_article_words($article_id);') !== false, 'unapproved edits must leave no searchable word matches');
+kb_runtime_assert(strpos($edit, "\$_POST['topic']") === false, 'article editors must not be able to relink cleanup to an arbitrary forum topic');
+kb_runtime_assert(strpos($edit, 'topic_id = $comment_topic_id') !== false, 'article edits must retain the trusted discussion relation');
+kb_runtime_assert(strpos($edit, "\$old_approve === 1 && (\$approve !== 1 || \$old_category !== \$category)") !== false, 'article edits must decrement the old category only when an approved article leaves it');
+kb_runtime_assert(strpos($edit, "\$approve === 1 && (\$old_approve !== 1 || \$old_category !== \$category)") !== false, 'article edits must increment the new category exactly once on an approved transition');
+kb_runtime_assert(strpos($add, 'add_kb_words($article_id, $article_text, $title);') !== false && strpos($edit, 'add_kb_words($article_id, $article_text, $title);') !== false, 'article titles must be included in the search index');
 kb_runtime_assert(strpos($admin, "(int) \$managed_article['approved'] !== 1") !== false, 'AdminCP approval must only increment counters on a state transition');
 kb_runtime_assert(strpos($moderator, "(int) \$moderated_article['approved'] === 1") !== false, 'moderator unapproval must only decrement counters for approved articles');
 kb_runtime_assert(substr_count($functions, "phpbb_stored_text(stripslashes(\$article['article_description']))") >= 2, 'all article list descriptions must normalize and escape legacy stored text');
@@ -87,12 +92,16 @@ kb_runtime_assert(substr_count($category, "min(1000, (int) \$kb_config['art_pagi
 
 $article = file_get_contents($root . '/phpBB2/includes/kb_article.php');
 kb_runtime_assert(strpos($article, '$author_name_plain =') !== false && strpos($article, '$username !=') === false, 'guest articles must not read an undefined username');
+kb_runtime_assert(strpos($article, '(int) $approved !== 1 && !$can_view_unapproved') !== false, 'direct article views must hide pending edits from unrelated visitors');
+kb_runtime_assert(strpos($article, "\$kb_config['comments'] && \$topic_id > 0") !== false, 'comment rendering must require an existing discussion relation');
+kb_runtime_assert(strpos($article, 'insert_post(') === false, 'read-only article views must not create forum discussions');
 kb_runtime_assert(strpos($article, '$article_title = phpbb_stored_text($article_title);') !== false, 'article titles must normalize and escape legacy stored text');
 kb_runtime_assert(strpos($article, '$kb_art_description  = phpbb_stored_text') !== false, 'article descriptions must normalize and escape legacy stored text');
 kb_runtime_assert(strpos($article, "\$topic = array('topic_id' => 0, 'topic_replies' => 0);") !== false, 'articles without comment topics need defined pagination state');
 kb_runtime_assert(strpos($article, "\$pagination = '';") !== false, 'articles without displayed comments need an initialized pagination value');
 kb_runtime_assert(strpos($rate, "empty(\$kb_config['allow_rating'])") !== false, 'direct rating requests must respect the global rating switch');
 kb_runtime_assert(strpos($rate, "empty(\$kb_config['allow_anonymos_rating'])") !== false, 'direct guest ratings must respect the anonymous rating switch');
+kb_runtime_assert(strpos($rate, "(int) \$article['approved'] !== 1 && !\$can_rate_unapproved") !== false, 'rating pages must hide pending edits from unrelated visitors');
 kb_runtime_assert(substr_count($rate, "phpbb_stored_text(\$article['article_title'])") === 2, 'rating messages must normalize and escape stored article titles');
 kb_runtime_assert(strpos($add, "\$author_id = \$userdata['session_logged_in'] ? (int) \$userdata['user_id'] : 0;") !== false, 'anonymous articles must use the supported guest author ID');
 kb_runtime_assert(substr_count($add, 'kb_record_exists(') >= 2, 'new articles must reference existing categories and types');

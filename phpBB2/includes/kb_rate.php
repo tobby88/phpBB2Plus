@@ -67,7 +67,7 @@ if (!$article)
 }
 
 $can_rate_unapproved = $is_admin || ($userdata['session_logged_in'] && intval($article['article_author_id']) === intval($userdata['user_id']));
-if (empty($article['approved']) && !$can_rate_unapproved)
+if ((int) $article['approved'] !== 1 && !$can_rate_unapproved)
 {
 	message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
 }
@@ -101,15 +101,6 @@ if ($rate == 'dorate')
 	$conf = str_replace("{filename}", phpbb_stored_text($article['article_title']), $lang['Rconf']);
 	$conf = str_replace("{rate}", $rating, $conf);
 
-	if ($article['article_totalvotes'] == 1)
-    {
-		$add = 0;
-	}
-	else
-	{
-		$add = 1;
-	}
- 
 	$ipaddy = $db->sql_escape((string) getenv('REMOTE_ADDR'));
 	$user_id = intval($userdata['user_id']);
 	$duplicate_conditions = array();

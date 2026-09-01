@@ -140,7 +140,6 @@ if ( !defined('IN_PHPBB') )
 		  'L_ARTICLE_TEXT' => $lang['Article_text'],
 		  'L_ARTICLE_TYPE' => $lang['Article_type'],
 		  'L_ARTICLE_CATEGORY' => $lang['Category'],
-		  'L_TOPIC' => $lang['Topic'],
 		  'L_SUBMIT' => $lang['Edit'],
 		  'L_PREVIEW' => $lang['Preview'],
 		  
@@ -157,7 +156,6 @@ if ( !defined('IN_PHPBB') )
 		  'ARTICLE_TITLE' => phpbb_stored_text(unprepare_message($article_name)),
 		  'ARTICLE_DESC' => phpbb_stored_text(unprepare_message($article_desc)),
 		  'ARTICLE_BODY' => phpbb_profile_text(unprepare_message($article_body)),
-		  'TOPIC' => $topic,
 		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="k" value="' . $article_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		
       	  'L_BBCODE_B_HELP' => $lang['bbcode_b_help'], 
@@ -292,7 +290,6 @@ if ( !defined('IN_PHPBB') )
 		$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
 		$category = (isset($_POST['category_id']) && is_scalar($_POST['category_id'])) ? intval($_POST['category_id']) : 0;
 		$type_id = (isset($_POST['type_id']) && is_scalar($_POST['type_id'])) ? intval($_POST['type_id']) : 0;
-		$topic = (isset($_POST['topic']) && is_scalar($_POST['topic'])) ? intval($_POST['topic']) : 0;
 		if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || !kb_record_exists(KB_CATEGORIES_TABLE, 'category_id', $category) || !kb_record_exists(KB_TYPES_TABLE, 'id', $type_id))
 	   	{
 	   		$message = "Please fill out all parts of the form.<br /><br />Click <a href=" . this_kb_mxurl('mode=add').">Here</a> to return to the form";
@@ -322,39 +319,30 @@ if ( !defined('IN_PHPBB') )
 	
 	   	$row = $db->sql_fetchrow($result);
 	   
-	   	$old_approve = $row['approved'];
-	   	$comment_topic_id = $row['topic_id'];
-	   	$old_category = $row['article_category_id'];
+		$old_approve = (int) $row['approved'];
+		$comment_topic_id = (int) $row['topic_id'];
+		$old_category = (int) $row['article_category_id'];
 	   
     	$error_msg = '';	      
 		$article_text = prepare_message(trim($article_text), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
 	   
-     	if ( $old_category != $category )
-	   	{
-	       	update_kb_number($old_category, '- 1');
-	       	if ( $is_admin || ( !$kb_config['approve_edit'] && $userdata['user_id'] == $author_id ) )
-	       	{
-	           	update_kb_number($category, '+ 1');
-         	}
-     	}
-	   
 	   	if ( $is_admin || ( !$kb_config['approve_edit'] && $userdata['user_id'] == $author_id ) )
 	   	{
 	   	  	$approve = 1;		  
-		  	if ( $old_approve != 1 )
-		  	{
-		      	update_kb_number($category, '+ 1');
-		  	}
 	   	}
 	   	else
 	   	{
-	   	   	$approve = 2;
-		   
-		   	if ( $old_approve == 1 && $old_category == $category )
-		   	{		   
-		       	update_kb_number($category, '- 1');
-		   	}
+			$approve = 2;
 	   	}
+
+		if ($old_approve === 1 && ($approve !== 1 || $old_category !== $category))
+		{
+			update_kb_number($old_category, '- 1');
+		}
+		if ($approve === 1 && ($old_approve !== 1 || $old_category !== $category))
+		{
+			update_kb_number($category, '+ 1');
+		}
 
 	  	$sql = "UPDATE " . KB_ARTICLES_TABLE . "
 			SET article_category_id = $category,
@@ -365,7 +353,7 @@ if ( !defined('IN_PHPBB') )
 			article_body = '" . $db->sql_escape($article_text) . "',
 			article_type = $type_id,
 			approved = $approve,
-			topic_id = $topic,
+			topic_id = $comment_topic_id,
 			bbcode_uid = '" . $db->sql_escape($bbcode_uid) . "'
 			WHERE article_id = $article_id";
 			  
@@ -437,7 +425,7 @@ if ( !defined('IN_PHPBB') )
 	   
 	   	if ($approve == 1)
 	   	{
-	       	add_kb_words($article_id, $article_text);
+			add_kb_words($article_id, $article_text, $title);
 		   	$message = $lang['Article_Edited'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
 	   	}
 	   	else
