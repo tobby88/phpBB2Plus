@@ -154,8 +154,9 @@ if( $mode != 'view_profile' )
 
 				if( !empty($staff['user_viewemail']) || $userdata['user_level'] == ADMIN )
 				{
-					$mailto = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;". POST_USERS_URL ."=$user_id") : 'mailto:'. $staff['user_email'];
-					$mail = ( $staff['user_email'] ) ? '<a href="'. $mailto .'"><img src="'. $images['icon_email'] .'" alt="'. $lang['Send_email'] .'" title="'. $lang['Send_email'] .'" border="0" /></a>' : '';
+					$email_form_url = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . '=' . (int) $user_id) : '';
+					$mailto = phpbb_profile_email_uri($staff['user_email'], $email_form_url);
+					$mail = ( $mailto !== '' ) ? '<a href="'. $mailto .'"><img src="'. $images['icon_email'] .'" alt="'. $lang['Send_email'] .'" title="'. $lang['Send_email'] .'" border="0" /></a>' : '';
 				}
 				else
 				{
@@ -163,10 +164,10 @@ if( $mode != 'view_profile' )
 					$mail = '';
 				}
 
-				$msn = ( $staff['user_msnm'] ) ? '<a href="mailto:'. $staff['user_msnm'] .'"><img src="'. $images['icon_msnm'] .'" alt="'. $lang['MSNM'] .'" title="'. $lang['MSNM'] .'" border="0" /></a>' : '';
-				$yim = ( $staff['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target='. $staff['user_yim'] .'&amp;.src=pg" rel="noopener noreferrer"><img src="'. $images['icon_yim'] .'" alt="'. $lang['YIM'] .'" title="'. $lang['YIM'] .'" border="0" /></a>' : '';
-				$aim = ( $staff['user_aim'] ) ? '<a href="aim:goim?screenname='. $staff['user_aim'] .'&amp;message=Hello+Are+you+there?"><img src="'. $images['icon_aim'] .'" alt="'. $lang['AIM'] .'" title="'. $lang['AIM'] .'" border="0" /></a>' : '';
-				$icq = ( $staff['user_icq'] ) ? '<a href="https://www.icq.com/people/'. $staff['user_icq'] .'" rel="noopener noreferrer"><img src="'. $images['icon_icq'] .'" alt="'. $lang['ICQ'] .'" title="'. $lang['ICQ'] .'" border="0" /></a>' : '';
+				$msn = '';
+				$yim = '';
+				$aim = '';
+				$icq = '';
 				$www = ( $staff_website_url ) ? '<a href="'. $staff_website_url .'" target="_userwww" rel="noopener noreferrer"><img src="'. $images['icon_www'] .'" alt="'. $lang['Visit_website'] .'" title="'. $lang['Visit_website'] .'" border="0" /></a>' : '';
 
 				$template->assign_block_vars('switch_list_staff.user_level.staff', array(

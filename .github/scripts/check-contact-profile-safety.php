@@ -55,6 +55,27 @@ contact_test_same(
 	'Lookalike hosts must not pass the service host boundary.'
 );
 
+contact_test_same(
+	'mailto:user+board@example.test',
+	phpbb_profile_email_uri('user+board@example.test'),
+	'Valid profile email addresses must produce a mailto URI.'
+);
+contact_test_same(
+	'',
+	phpbb_profile_email_uri("user@example.test\r\n\" onmouseover=\"alert(1)"),
+	'Profile email links must reject controls and attribute injection.'
+);
+contact_test_same(
+	'',
+	phpbb_profile_email_uri('not an email address'),
+	'Malformed stored email addresses must not produce links.'
+);
+contact_test_same(
+	'profile.php?mode=email&amp;u=42',
+	phpbb_profile_email_uri('', 'profile.php?mode=email&amp;u=42'),
+	'The internal board email form must remain available without exposing the address.'
+);
+
 $links = phpbb_social_profile_links(array(
 	'user_fb' => 'javascript:alert(1)',
 	'user_signal' => 'example.42',
@@ -71,5 +92,25 @@ contact_test_true(strpos($links['PROFILE_ROWS'], 'ICQ') === false, 'Retired mess
 contact_test_true(strpos($links['PROFILE_ROWS'], 'Pinterest') === false, 'Pinterest must not be rendered as a contact method.');
 contact_test_true(strpos($links['PROFILE_ROWS'], '<img') === false, 'Contact output must not depend on missing legacy icon files.');
 
-echo "Contact profile safety checks passed.\n";
+$root = dirname(dirname(__DIR__)) . '/phpBB2/';
+$contact_views = array(
+	'viewtopic.php',
+	'topic_view_users.php',
+	'groupcp.php',
+	'memberlist.php',
+	'privmsg.php',
+	'staff.php',
+	'album_showpage.php',
+	'includes/usercp_viewprofile.php',
+	'admin/admin_account.php'
+);
+foreach ($contact_views as $contact_view)
+{
+	$source = file_get_contents($root . $contact_view);
+	contact_test_true(strpos($source, "'mailto:' .") === false && strpos($source, "'mailto:'.") === false, $contact_view . ' must use the shared email URI validator.');
+	contact_test_true(strpos($source, 'aim:goim') === false, $contact_view . ' must not render retired AIM links.');
+	contact_test_true(strpos($source, 'edit.yahoo.com/config/send_webmesg') === false, $contact_view . ' must not render retired Yahoo Messenger links.');
+	contact_test_true(strpos($source, 'icq.com/people') === false, $contact_view . ' must not render retired ICQ links.');
+}
 
+echo "Contact profile safety checks passed.\n";

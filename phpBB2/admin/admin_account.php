@@ -195,9 +195,10 @@ if ( $row = $db->sql_fetchrow($result) )
         {
                 $row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
-                $safe_email = htmlspecialchars($row['user_email'], ENT_QUOTES, 'UTF-8');
-                $email_uri = ( $board_config['board_email_form'] ) ? append_sid("../profile.$phpEx?mode=email&u=$row[user_id]") : 'mailto:' . rawurlencode($row['user_email']);
-                $email = '<a href="' . htmlspecialchars($email_uri, ENT_QUOTES, 'UTF-8') . '" class="gensmall">' . $safe_email . '</a>';
+                $safe_email = phpbb_stored_text($row['user_email']);
+                $email_form_url = ( $board_config['board_email_form'] ) ? append_sid("../profile.$phpEx?mode=email&amp;u=" . (int) $row['user_id']) : '';
+                $email_uri = phpbb_profile_email_uri($row['user_email'], $email_form_url);
+                $email = ($email_uri !== '') ? '<a href="' . $email_uri . '" class="gensmall">' . $safe_email . '</a>' : $safe_email;
 
                 $waiting = max(1, round( ( time() - $row['user_regdate'] ) / 86400 ));
                 $l_waiting = ( $waiting == 1 ) ? $lang['Waiting_1'] : $lang['Waiting_2'];

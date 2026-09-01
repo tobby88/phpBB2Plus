@@ -534,10 +534,11 @@ else if ( $mode == 'read' )
 
 	if ( !empty($privmsg['user_viewemail']) || $userdata['user_level'] == ADMIN )
 	{
-		$email_uri = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL .'=' . $user_id_from) : 'mailto:' . $privmsg['user_email'];
+		$email_form_url = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . '=' . (int) $user_id_from) : '';
+		$email_uri = phpbb_profile_email_uri($privmsg['user_email'], $email_form_url);
 
-		$email_img = '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>';
-		$email = '<a href="' . $email_uri . '">' . $lang['Send_email'] . '</a>';
+		$email_img = ($email_uri !== '') ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '';
+		$email = ($email_uri !== '') ? '<a href="' . $email_uri . '">' . $lang['Send_email'] . '</a>' : '';
 	}
 	else
 	{
@@ -549,28 +550,15 @@ else if ( $mode == 'read' )
 	$www_img = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '';
 	$www = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer">' . $lang['Visit_website'] . '</a>' : '';
 
-	if ( !empty($privmsg['user_icq']) )
-	{
-		$icq_status_img = '';
-		$icq_img = '<a href="https://www.icq.com/people/' . $privmsg['user_icq'] . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>';
-		$icq =  '<a href="https://www.icq.com/people/' . $privmsg['user_icq'] . '" rel="noopener noreferrer">' . $lang['ICQ'] . '</a>';
-	}
-	else
-	{
-		$icq_status_img = '';
-		$icq_img = '';
-		$icq = '';
-	}
-
-	$aim_img = ( $privmsg['user_aim'] ) ? '<a href="aim:goim?screenname=' . $privmsg['user_aim'] . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '';
-	$aim = ( $privmsg['user_aim'] ) ? '<a href="aim:goim?screenname=' . $privmsg['user_aim'] . '&amp;message=Hello+Are+you+there?">' . $lang['AIM'] . '</a>' : '';
-
-	$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id_from");
-	$msn_img = ( $privmsg['user_msnm'] ) ? '<a href="' . $temp_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '';
-	$msn = ( $privmsg['user_msnm'] ) ? '<a href="' . $temp_url . '">' . $lang['MSNM'] . '</a>' : '';
-
-	$yim_img = ( $privmsg['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
-	$yim = ( $privmsg['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $privmsg['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer">' . $lang['YIM'] . '</a>' : '';
+	$icq_status_img = '';
+	$icq_img = '';
+	$icq = '';
+	$aim_img = '';
+	$aim = '';
+	$msn_img = '';
+	$msn = '';
+	$yim_img = '';
+	$yim = '';
 	$social = phpbb_social_profile_links($privmsg);
 
 	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username_from) . "&amp;showresults=posts");

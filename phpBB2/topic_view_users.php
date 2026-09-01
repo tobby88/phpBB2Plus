@@ -242,10 +242,11 @@ if ( $row = $db->sql_fetchrow($result) )
 
 		if ( !empty($row['user_viewemail']) || $userdata['user_level'] == ADMIN )
 		{
-			$email_uri = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL .'=' . $user_id) : 'mailto:' . $row['user_email'];
+			$email_form_url = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . '=' . (int) $user_id) : '';
+			$email_uri = phpbb_profile_email_uri($row['user_email'], $email_form_url);
 
-			$email_img = '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>';
-			$email = '<a href="' . $email_uri . '">' . $lang['Send_email'] . '</a>';
+			$email_img = ($email_uri !== '') ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '&nbsp;';
+			$email = ($email_uri !== '') ? '<a href="' . $email_uri . '">' . $lang['Send_email'] . '</a>' : '&nbsp;';
 		}
 		else
 		{
@@ -265,34 +266,22 @@ if ( $row = $db->sql_fetchrow($result) )
 		$www_img = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '';
 		$www = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer">' . $lang['Visit_website'] . '</a>' : '';
 
-		if ( !empty($row['user_icq']) )
-		{
-			$icq_status_img = '';
-			$icq_img = '<a href="https://www.icq.com/people/' . $row['user_icq'] . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>';
-			$icq =  '<a href="https://www.icq.com/people/' . $row['user_icq'] . '" rel="noopener noreferrer">' . $lang['ICQ'] . '</a>';
-		}
-		else
-		{
-			$icq_status_img = '';
-			$icq_img = '';
-			$icq = '';
-		}
-
-		$aim_img = ( $row['user_aim'] ) ? '<a href="aim:goim?screenname=' . $row['user_aim'] . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '';
-		$aim = ( $row['user_aim'] ) ? '<a href="aim:goim?screenname=' . $row['user_aim'] . '&amp;message=Hello+Are+you+there?">' . $lang['AIM'] . '</a>' : '';
-
-		$temp_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id");
-		$msn_img = ( $row['user_msnm'] ) ? '<a href="' . $temp_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '';
-		$msn = ( $row['user_msnm'] ) ? '<a href="' . $temp_url . '">' . $lang['MSNM'] . '</a>' : '';
-
-		$yim_img = ( $row['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $row['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
-		$yim = ( $row['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $row['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer">' . $lang['YIM'] . '</a>' : '';
+		$icq_status_img = '';
+		$icq_img = '';
+		$icq = '';
+		$aim_img = '';
+		$aim = '';
+		$msn_img = '';
+		$msn = '';
+		$yim_img = '';
+		$yim = '';
 
 		$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username) . "&amp;showresults=posts");
 		$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . $lang['Search_user_posts'] . '" title="' . $lang['Search_user_posts'] . '" border="0" /></a>';
 		$search = '<a href="' . $temp_url . '">' . $lang['Search_user_posts'] . '</a>';
 		$temp_url = append_sid("album.$phpEx?user_id=$user_id");
-		$gallery_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_gallery'] . '" alt="' . sprintf($lang['Personal_Gallery_Of_User'], $row['username']) . '" title="' . sprintf($lang['Personal_Gallery_Of_User'], $row['username']) . '" border="0" /></a>';
+		$gallery_label = sprintf($lang['Personal_Gallery_Of_User'], phpbb_stored_text($row['username']));
+		$gallery_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_gallery'] . '" alt="' . $gallery_label . '" title="' . $gallery_label . '" border="0" /></a>';
 		$gallery = '<a href="' . $temp_url . '">' . $lang['Album'] . '</a>';
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];

@@ -158,10 +158,11 @@ $pm = '<a href="' . $temp_url . '">' . $lang['Send_private_message'] . '</a>';
 
 if ( !empty($profiledata['user_viewemail']) || $userdata['user_level'] == ADMIN )
 {
-	$email_uri = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL .'=' . $profiledata['user_id']) : 'mailto:' . $profiledata['user_email'];
+	$email_form_url = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . '=' . (int) $profiledata['user_id']) : '';
+	$email_uri = phpbb_profile_email_uri($profiledata['user_email'], $email_form_url);
 
-	$email_img = '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>';
-	$email = '<a href="' . $email_uri . '">' . $lang['Send_email'] . '</a>';
+	$email_img = ($email_uri !== '') ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '&nbsp;';
+	$email = ($email_uri !== '') ? '<a href="' . $email_uri . '">' . $lang['Send_email'] . '</a>' : '&nbsp;';
 }
 else
 {
@@ -173,30 +174,15 @@ $website_url = phpbb_profile_http_url($profiledata['user_website']);
 $www_img = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '&nbsp;';
 $www = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer">' . $website_url . '</a>' : '&nbsp;';
 
-if ( !empty($profiledata['user_icq']) )
-{
-	$icq_value = phpbb_profile_contact($profiledata['user_icq']);
-	$icq_status_img = '';
-	$icq_img = '<a href="https://www.icq.com/people/' . $icq_value . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>';
-	$icq =  '<a href="https://www.icq.com/people/' . $icq_value . '" rel="noopener noreferrer">' . $lang['ICQ'] . '</a>';
-}
-else
-{
-	$icq_status_img = '&nbsp;';
-	$icq_img = '&nbsp;';
-	$icq = '&nbsp;';
-}
-
-$aim_value = phpbb_profile_contact($profiledata['user_aim']);
-$aim_img = ( $aim_value ) ? '<a href="aim:goim?screenname=' . $aim_value . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '&nbsp;';
-$aim = ( $aim_value ) ? '<a href="aim:goim?screenname=' . $aim_value . '&amp;message=Hello+Are+you+there?">' . $lang['AIM'] . '</a>' : '&nbsp;';
-
-$msn_img = ( $profiledata['user_msnm'] ) ? '<a href="' . $temp_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '';
-$msn = $msn_img;
-
-$yim_value = phpbb_profile_contact($profiledata['user_yim']);
-$yim_img = ( $yim_value ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $yim_value . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '';
-$yim = ( $yim_value ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $yim_value . '&amp;.src=pg" rel="noopener noreferrer">' . $lang['YIM'] . '</a>' : '';
+$icq_status_img = '&nbsp;';
+$icq_img = '&nbsp;';
+$icq = '&nbsp;';
+$aim_img = '&nbsp;';
+$aim = '&nbsp;';
+$msn_img = '';
+$msn = '';
+$yim_img = '';
+$yim = '';
 $social = phpbb_social_profile_links($profiledata);
 
 $temp_url = append_sid("search.$phpEx?search_author=" . urlencode($profiledata['username']) . "&amp;showresults=posts");
@@ -204,8 +190,9 @@ $search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] 
 $search = '<a href="' . $temp_url . '">' . sprintf($lang['Search_user_posts'], $profiledata['username']) . '</a>';
 // Photo Album Link MOD - Daz - ForumImages.com - START
 $temp_url = append_sid("album.$phpEx?user_id=" . $profiledata['user_id']);
-$gallery_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_gallery'] . '" alt="' . sprintf($lang['Personal_Gallery_Of_User'], $profiledata['username']) . '" title="' . sprintf($lang['Personal_Gallery_Of_User'], $profiledata['username']) . '" border="0" /></a>';
-$gallery = '<a href="' . $temp_url . '">' . sprintf($lang['Personal_Gallery_Of_User'], $profiledata['username']) . '</a>';
+$gallery_label = sprintf($lang['Personal_Gallery_Of_User'], phpbb_stored_text($profiledata['username']));
+$gallery_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_gallery'] . '" alt="' . $gallery_label . '" title="' . $gallery_label . '" border="0" /></a>';
+$gallery = '<a href="' . $temp_url . '">' . $gallery_label . '</a>';
 // Photo Album Link MOD - Daz - ForumImages.com - END 
 // Start add - Birthday MOD
 $chinese = '';

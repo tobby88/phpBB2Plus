@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Centralized public and AdminCP profile e-mail links behind strict mailbox
+  validation, so malformed legacy values cannot enter `mailto:` attributes.
+  Internal board-mail links remain available without exposing addresses.
+  Topic, member, group, private-message, staff and Album-comment views no
+  longer revive retired AIM, ICQ, MSN or Yahoo Messenger links, while current
+  contact methods continue through the shared social-profile renderer.
 - Normalized legacy entity-encoded Album titles, descriptions, category
   labels, usernames and comments before rendering them across picture grids,
   detail/edit/rating pages and recent/highest/random listings. Member and

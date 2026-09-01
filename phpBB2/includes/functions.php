@@ -52,6 +52,25 @@ function phpbb_profile_http_url($value)
 	return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
 }
 
+function phpbb_profile_email_uri($email, $form_url = '')
+{
+	$form_url = (string) $form_url;
+	if ($form_url !== '')
+	{
+		return $form_url;
+	}
+
+	$email = html_entity_decode(trim((string) $email), ENT_QUOTES, 'UTF-8');
+	if ($email === '' || strlen($email) > 254 ||
+		preg_match('/[\x00-\x20\x7f]/', $email) ||
+		filter_var($email, FILTER_VALIDATE_EMAIL) === false)
+	{
+		return '';
+	}
+
+	return 'mailto:' . htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true);
+}
+
 function phpbb_profile_contact($value)
 {
 	return rawurlencode(html_entity_decode(trim((string) $value), ENT_QUOTES, 'UTF-8'));

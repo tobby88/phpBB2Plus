@@ -472,9 +472,11 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 			$commentrow[$i]['comment_text'] = nl2br($commentrow[$i]['comment_text']);
 
 			//email, profile, pm links
-			$email_uri = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL .'=' . $commentrow[$i]['user_id']) : 'mailto:' . $commentrow[$i]['user_email'];
-			$profile_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $commentrow[$i]['user_id'] );
-			$pm_url = append_sid("privmsg.$phpEx?mode=post&amp;" . POST_USERS_URL . "=" . $commentrow[$i]['user_id']);
+			$comment_user_id = (int) $commentrow[$i]['user_id'];
+			$email_form_url = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . '=' . $comment_user_id) : '';
+			$email_uri = phpbb_profile_email_uri($commentrow[$i]['user_email'], $email_form_url);
+			$profile_url = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=" . $comment_user_id);
+			$pm_url = append_sid("privmsg.$phpEx?mode=post&amp;" . POST_USERS_URL . "=" . $comment_user_id);
 
 			//avatar
 			$poster_avatar = '';
@@ -554,11 +556,11 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				//users mesangers, website, email
 				'PROFILE_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_profile'] . '" alt="' . $lang['Read_profile'] . '" title="' . $lang['Read_profile'] . '" border="0" /></a>' : '',
 				'PM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $pm_url . '"><img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" /></a>' : '',
-				'AIM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_aim'] ) ? '<a href="aim:goim?screenname=' . $commentrow[$i]['user_aim'] . '&amp;message=Hello+Are+you+there?"><img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" /></a>' : '' : '',
-				'YIM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_yim'] ) ? '<a href="https://edit.yahoo.com/config/send_webmesg?.target=' . $commentrow[$i]['user_yim'] . '&amp;.src=pg" rel="noopener noreferrer"><img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" /></a>' : '' : '',
-				'MSNM_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS && $commentrow[$i]['user_msnm'] ) ? '<a href="' . $profile_url . '"><img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" /></a>' : '',
-				'ICQ_IMG' =>  ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? ( $commentrow[$i]['user_icq'] ) ? '<a href="https://www.icq.com/people/' . $commentrow[$i]['user_icq'] . '" rel="noopener noreferrer"><img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" /></a>' : '' : '',
-				'EMAIL_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '',
+				'AIM_IMG' => '',
+				'YIM_IMG' => '',
+				'MSNM_IMG' => '',
+				'ICQ_IMG' => '',
+				'EMAIL_IMG' => ( $comment_user_id != ANONYMOUS && $email_uri !== '' ) ? '<a href="' . $email_uri . '"><img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" /></a>' : '',
 				'WWW_IMG' => ( $commentrow[$i]['user_id'] != ANONYMOUS && $comment_website_url ) ? '<a href="' . $comment_website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '',
 
 				'POSTER_AVATAR' => $poster_avatar,
