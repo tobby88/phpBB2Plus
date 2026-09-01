@@ -36,6 +36,10 @@ if ( isset($HTTP_POST_VARS['submit']) )
 	$adminfunctions = new ct_adminfunctions();
 	$message_type = intval(phpbb_admin_post_string('global_message_type', '0')) === 1 ? '1' : '0';
 	$global_message = substr(phpbb_admin_post_string('global_message'), 0, 255);
+	if ($message_type === '0' && phpbb_profile_http_url($global_message) === '')
+	{
+		message_die(GENERAL_MESSAGE, $lang['ctracker_glob_msg_invalid_url']);
+	}
 
 	$ctracker_config->change_configuration('global_message_type', $message_type);
 	$ctracker_config->settings['global_message_type'] = $message_type;

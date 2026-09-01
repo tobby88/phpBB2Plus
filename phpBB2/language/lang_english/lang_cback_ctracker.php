@@ -216,6 +216,7 @@ $lang['ctracker_glob_type_1']			  = 'Text';
 $lang['ctracker_glob_type_2']			  = 'Link';
 $lang['ctracker_glob_msg_txt']			  = 'Text of the global message';
 $lang['ctracker_glob_msg_link']			  = 'Link Destination in the message';
+$lang['ctracker_glob_msg_invalid_url']	  = 'Please enter a complete HTTP or HTTPS link without embedded credentials.';
 $lang['ctracker_glob_msg_reset']		  = 'Cancel current message';
 $lang['ctracker_glob_res_txt']			  = 'When you click on "Cancel current message" a recorded message will be canceled.';
 $lang['ctracker_glob_msg_saved']		  = 'The global message was successfully saved.<br /><br />Click <a href="%s">HERE</a> to go back to CrackerTracker Management.';

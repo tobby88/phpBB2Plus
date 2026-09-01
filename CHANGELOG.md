@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Extended CrackerTracker's login-network warning to IPv6 using a
+  privacy-preserving /48 comparison while retaining its historical IPv4 /16
+  behavior. Global security notices now escape text, accept only validated
+  credential-free HTTP(S) destinations in link mode, and reject invalid link
+  settings in the AdminCP instead of exposing stored markup to every user.
 - Hardened the public link directory's configuration, search and redirects.
   Missing legacy settings now receive safe defaults, page/image dimensions are
   capped, local logo paths and external HTTP(S) URLs are validated, credential

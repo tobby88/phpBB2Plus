@@ -52,10 +52,11 @@ $lang = array(
 	'ctracker_info_password_cmplx_2' => 'lowercase',
 	'ctracker_info_password_cmplx_3' => 'uppercase',
 	'ctracker_info_password_cmplx_4' => 'special',
-	'ctracker_binf_spammer' => 'limit %s in %s; retry %s'
+	'ctracker_binf_spammer' => 'limit %s in %s; retry %s',
+	'ctracker_ipwarn_chng' => '%s -> %s'
 );
 $db = new ctracker_test_db();
-$userdata = array('user_id' => 2, 'user_level' => 0, 'user_posts' => 10, 'ct_last_ip' => '2001:db8::1', 'ct_last_used_ip' => '127.0.0.1');
+$userdata = array('user_id' => 2, 'user_level' => 0, 'user_posts' => 10, 'ct_last_ip' => '2001:db8:1::1', 'ct_last_used_ip' => '2001:db8:1::2');
 
 $functions = new ct_userfunctions();
 if ($functions->post_value('new_password', 2) !== 'A1')
@@ -72,7 +73,23 @@ $functions->password_functions();
 
 if ($functions->check_ip_range() !== 'allclear')
 {
-	throw new Exception('Invalid or IPv6 history was not handled safely.');
+	throw new Exception('Equivalent IPv6 /48 ranges were not recognized.');
+}
+$userdata['ct_last_used_ip'] = '2001:db8:2::1';
+if ($functions->check_ip_range() !== '2001:db8:2::/48 -> 2001:db8:1::/48')
+{
+	throw new Exception('Changed IPv6 /48 ranges did not produce a privacy-preserving warning.');
+}
+$userdata['ct_last_ip'] = '192.0.2.4';
+$userdata['ct_last_used_ip'] = '198.51.100.9';
+if ($functions->check_ip_range() !== '198.51.x.x -> 192.0.x.x')
+{
+	throw new Exception('Changed IPv4 /16 ranges did not retain their historical warning.');
+}
+$userdata['ct_last_used_ip'] = 'invalid';
+if ($functions->check_ip_range() !== 'allclear')
+{
+	throw new Exception('Invalid login history was not handled safely.');
 }
 
 $functions->handle_postings();
@@ -108,6 +125,8 @@ if (count($db->queries) !== 1 || strpos($db->queries[0], 'ct_last_pw_change = ')
 $userfunctions_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_userfunctions.php');
 $schema_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/install/schemas/mysql_schema.sql');
 $updater_source = file_get_contents(dirname(dirname(__DIR__)) . '/update/update_from_153a.php');
+$page_header_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/includes/page_header.php');
+$global_message_admin_source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/admin/acp_module_globalmessage.php');
 foreach (array('block_handler', 'ban_userid', 'SET user_active = 0', 'ct_last_post', 'ct_post_counter') as $marker)
 {
 	if (strpos($userfunctions_source, $marker) !== false)
@@ -134,6 +153,15 @@ if (strpos($updater_source, "array('ct_last_post', 'ct_post_counter')") === fals
 	strpos($updater_source, "array('ct_search_time', 'ct_search_count')") === false)
 {
 	throw new Exception('Updater does not remove obsolete posting-protection state.');
+}
+if (strpos($page_header_source, '$global_message_text = phpbb_stored_text(') === false ||
+	strpos($page_header_source, '$global_message_url = phpbb_profile_http_url(') === false)
+{
+	throw new Exception('Global CrackerTracker messages are not escaped and URL-validated at output.');
+}
+if (strpos($global_message_admin_source, "\$message_type === '0' && phpbb_profile_http_url(\$global_message) === ''") === false)
+{
+	throw new Exception('The CrackerTracker ACP accepts invalid global-message links.');
 }
 
 echo "CrackerTracker user-function checks passed.\n";

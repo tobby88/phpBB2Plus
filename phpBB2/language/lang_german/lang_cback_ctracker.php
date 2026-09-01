@@ -215,6 +215,7 @@ $lang['ctracker_glob_type_1']			  = 'Text';
 $lang['ctracker_glob_type_2']			  = 'Link';
 $lang['ctracker_glob_msg_txt']			  = 'Text der globalen Nachricht';
 $lang['ctracker_glob_msg_link']			  = 'Linkziel in der Nachricht';
+$lang['ctracker_glob_msg_invalid_url']	  = 'Bitte gib als Linkziel eine vollständige HTTP- oder HTTPS-Adresse ohne Zugangsdaten ein.';
 $lang['ctracker_glob_msg_reset']		  = 'Aktuelle Nachricht zurückziehen';
 $lang['ctracker_glob_res_txt']			  = 'Eine vorher eingetragene Nachricht kann mit einem Klick auf den Button "Aktuelle Nachricht zurückziehen" abgeschaltet werden. Die Benutzer erhalten dann die letzte Globale Nachricht nicht mehr weiter.';
 $lang['ctracker_glob_msg_saved']		  = 'Die globale Nachricht wurde erfolgreich gespeichert.<br /><br />Klicke <a href="%s">HIER</a> um zurück zur CrackerTracker Verwaltung zu gelangen.';

@@ -20,6 +20,38 @@
 class ct_userfunctions
 {
 	/**
+	 * Return a privacy-preserving network key and label for login comparison.
+	 * IPv4 keeps the historical /16 behavior; IPv6 uses a stable /48 prefix.
+	 */
+	function ip_range($ip)
+	{
+		$ip = is_scalar($ip) ? trim((string) $ip) : '';
+		if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false)
+		{
+			$parts = explode('.', $ip);
+			return array(
+				'key' => '4:' . $parts[0] . '.' . $parts[1],
+				'label' => $parts[0] . '.' . $parts[1] . '.x.x',
+			);
+		}
+
+		if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false)
+		{
+			$packed = @inet_pton($ip);
+			if (is_string($packed) && strlen($packed) === 16)
+			{
+				$prefix = unpack('nfirst/nsecond/nthird', substr($packed, 0, 6));
+				return array(
+					'key' => '6:' . bin2hex(substr($packed, 0, 6)),
+					'label' => sprintf('%x:%x:%x::/48', $prefix['first'], $prefix['second'], $prefix['third']),
+				);
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Return a bounded scalar POST value without triggering PHP 8 type errors.
 	 */
 	function post_value($name, $max_length = 65535)
@@ -102,26 +134,19 @@ class ct_userfunctions
 
 		$last_ip = isset($userdata['ct_last_ip']) && is_scalar($userdata['ct_last_ip']) ? (string) $userdata['ct_last_ip'] : '';
 		$last_used_ip = isset($userdata['ct_last_used_ip']) && is_scalar($userdata['ct_last_used_ip']) ? (string) $userdata['ct_last_used_ip'] : '';
-		if ($last_ip === '0.0.0.0' || $last_used_ip === '0.0.0.0' ||
-			filter_var($last_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false ||
-			filter_var($last_used_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false)
-		{
-			return 'allclear'; // not initialized or not representable by this legacy IPv4 range check
-		}
-
-		$first_ip_range  = array();
-		$second_ip_range = array();
-
-		$first_ip_range  = explode('.', $last_used_ip);
-		$second_ip_range = explode('.', $last_ip);
-
-
-		if ( $first_ip_range[0] == $second_ip_range[0] && $first_ip_range[1] == $second_ip_range[1])
+		if ($last_ip === '0.0.0.0' || $last_used_ip === '0.0.0.0')
 		{
 			return 'allclear';
 		}
 
-		return sprintf($lang['ctracker_ipwarn_chng'], $first_ip_range[0] . '.' . $first_ip_range[1] . '.x.x', $second_ip_range[0] . '.' . $second_ip_range[1] . '.x.x');
+		$current_range = $this->ip_range($last_used_ip);
+		$previous_range = $this->ip_range($last_ip);
+		if ($current_range === false || $previous_range === false || $current_range['key'] === $previous_range['key'])
+		{
+			return 'allclear';
+		}
+
+		return sprintf($lang['ctracker_ipwarn_chng'], $current_range['label'], $previous_range['label']);
 	}
 
 
