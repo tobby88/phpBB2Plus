@@ -395,6 +395,7 @@ if ( ($result = $db->sql_query($sql)) && ($post_info = $db->sql_fetchrow($result
 		$post_info['topic_calendar_duration']++;
 	}
 //-- fin mod : calendar ----------------------------------------------------------------------------
+	$post_data['topic_type'] = isset($post_info['topic_type']) ? intval($post_info['topic_type']) : POST_NORMAL;
 
 	$is_auth = auth(AUTH_ALL, $forum_id, $userdata, $post_info);
 

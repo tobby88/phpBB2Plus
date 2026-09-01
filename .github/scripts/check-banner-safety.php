@@ -42,6 +42,13 @@ if (strpos($english_banner_language, "Banner_type'][4]") !== false || strpos($ge
 {
 	$errors[] = 'The AdminCP must not offer arbitrary stored HTML banners';
 }
+foreach (array('Banner_comment_explain', 'Time_select') as $language_key)
+{
+	if (strpos($english_banner_language, "\$lang['" . $language_key . "']") === false || strpos($german_banner_language, "\$lang['" . $language_key . "']") === false)
+	{
+		$errors[] = 'Banner administration language is missing: ' . $language_key;
+	}
+}
 $updater = (string) file_get_contents($root . '/update/update_from_153a.php');
 if (strpos($updater, 'SET banner_type = 2 WHERE banner_type = 4') === false)
 {

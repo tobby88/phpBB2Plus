@@ -18,6 +18,7 @@ $checks = array(
     'unauthorized poll voting has a defined login redirect' => strpos($posting, "case 'vote':\n\t\t\t\$redirect = POST_TOPIC_URL") !== false,
     'announcement duration is assigned rather than compared' => strpos($posting, 'if ($topic_announce_duration < -1) $topic_announce_duration = 0;') !== false,
 	'poll form defaults are initialized for edit paths' => strpos($posting, "\$poll_title = '';\n\$poll_length = 0;\n\$poll_options = array();") !== false,
+	'topic types are initialized for replies and new topics' => strpos($posting, "\$post_data['topic_type'] = isset(\$post_info['topic_type']) ? intval(\$post_info['topic_type']) : POST_NORMAL;") !== false,
 	'edit submit query retains integrated MOD fields' => strpos($posting, "\$select_sql = ', t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.post_icon';") !== false,
 	'poll update uses the defined edit flag' => strpos($functions, "!empty(\$post_data['edit_poll'])") !== false && strpos($functions, "\$post_data['edit_vote']") === false,
 	'AJAX drafts require an edit mode and explicit marker' => strpos($posting, "\$ajax_draft_requested = (\$mode == 'editpost' && \$request_scalar(\$_POST, 'ajax_draft') === '1');") !== false,

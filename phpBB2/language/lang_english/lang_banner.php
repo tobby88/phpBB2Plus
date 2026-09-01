@@ -62,6 +62,7 @@ $lang['Banner_height'] = "Height";
 $lang['Banner_activated'] = "Activated";
 $lang['Banner_activate'] = "Activate banner";
 $lang['Banner_comment'] = "Comment";
+$lang['Banner_comment_explain'] = "Internal note for administrators; it is not shown with the banner.";
 $lang['Banner_description'] = "Image description";
 $lang['Banner_description_explain'] = "This text is shown on mouse over Image";
 $lang['Banner_url'] = "Redirect url";
@@ -88,6 +89,7 @@ $lang['Banner_level_type']['3'] = 'not';
 
 $lang['Time_interval'] = "Time interval";
 $lang['Time_interval_explain'] = "Only apply either a date, a day of week and/or a time";
+$lang['Time_select'] = "Time selection";
 $lang['Start'] = "Start";
 $lang['End'] = "End";
 $lang['Year'] = "Year";
