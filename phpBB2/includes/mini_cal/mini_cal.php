@@ -22,24 +22,37 @@ define ('IN_MINI_CAL', 1);
     
 	// get the mode (if any)
 	$mini_cal_mode = 'default';
-	if( isset($_GET['mode']) || isset($_POST['mode']) )
+	if (isset($_POST['mode']) && is_scalar($_POST['mode']))
     {
-    	$mini_cal_mode = ( isset($_POST['mode']) ) ? $_POST['mode'] : $_GET['mode'];
+		$mini_cal_mode = (string) $_POST['mode'];
     }
+	elseif (isset($_GET['mode']) && is_scalar($_GET['mode']))
+	{
+		$mini_cal_mode = (string) $_GET['mode'];
+	}
     $mini_cal_mode = ($mini_cal_mode == 'personal') ? $mini_cal_mode : 'default';
     
     // get the user (for personal calendar)
-    if( isset($_GET[POST_USERS_URL]) || isset($_POST[POST_USERS_URL]) )
+	$mini_cal_user = 0;
+	if (isset($_POST[POST_USERS_URL]) && is_scalar($_POST[POST_USERS_URL]))
     {
-    	$mini_cal_user = ( isset($_POST[POST_USERS_URL]) ) ? intval($_POST[POST_USERS_URL]) : intval($_GET[POST_USERS_URL]);
+		$mini_cal_user = max(0, intval($_POST[POST_USERS_URL]));
     }
+	elseif (isset($_GET[POST_USERS_URL]) && is_scalar($_GET[POST_USERS_URL]))
+	{
+		$mini_cal_user = max(0, intval($_GET[POST_USERS_URL]));
+	}
     
     // get the calendar month
     $mini_cal_month = 0;
-    if( isset($_GET['month']) || isset($_POST['month']) )
+	if (isset($_POST['month']) && is_scalar($_POST['month']))
     {
-    	$mini_cal_month = ( isset($_POST['month']) ) ? intval($_POST['month']) : intval($_GET['month']);
+		$mini_cal_month = max(-1200, min(1200, intval($_POST['month'])));
     }
+	elseif (isset($_GET['month']) && is_scalar($_GET['month']))
+	{
+		$mini_cal_month = max(-1200, min(1200, intval($_GET['month'])));
+	}
     
     // initialise our calendarsuite class
 	$mini_cal = new calendarSuite();
@@ -140,7 +153,12 @@ define ('IN_MINI_CAL', 1);
     // output our general calendar bits
     $prev_qs = setQueryStringVal('month', $mini_cal_month -1);
     $next_qs = setQueryStringVal('month', $mini_cal_month +1);
-	$mini_cal_self = isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '';
+	$mini_cal_script = isset($_SERVER['SCRIPT_NAME']) && is_scalar($_SERVER['SCRIPT_NAME']) ? (string) $_SERVER['SCRIPT_NAME'] : '';
+	$mini_cal_self = basename(str_replace('\\', '/', $mini_cal_script));
+	if (!preg_match('/^[a-z0-9_-]+\\.' . preg_quote($phpEx, '/') . '$/iD', $mini_cal_self))
+	{
+		$mini_cal_self = 'index.' . $phpEx;
+	}
 	$prev_month = '<a href="' . append_sid($mini_cal_self . $prev_qs) . '" class="gen"><img src="' . $images['mini_cal_icon_left_arrow'] . '" title="' . $lang['View_previous_month'] . '" border="0" alt="&lt;&lt;"></a>';
 	$next_month = '<a href="' . append_sid($mini_cal_self . $next_qs) . '" class="gen"><img src="' . $images['mini_cal_icon_right_arrow'] . '" title="' . $lang['View_next_month'] . '" border="0" alt="&gt;&gt;"></a>';
 	$template->assign_vars(array(

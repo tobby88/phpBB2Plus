@@ -68,20 +68,31 @@
      ***************************************************************************/
 	function setQueryStringVal($var, $value)
 	{
-		global $HTTP_SERVER_VARS;
-		$querystring = isset($HTTP_SERVER_VARS['QUERY_STRING']) ? $HTTP_SERVER_VARS['QUERY_STRING'] : '';
-    
-        if (!stristr($querystring, $var))
-        { 
-            $querystring .= ($querystring != '') ? '&' : '';
-            $querystring .= "$var=$value";
-        } 
-        else 
-        { 
-            $querystring = preg_replace('/(' . preg_quote($var, '/') . '=[0-9]{1,3})/', $var . '=' . $value, $querystring);
-        } 
-        return '?' . $querystring;
-    }    
+		if (!is_string($var) || !preg_match('/^[a-z0-9_]{1,32}$/iD', $var) || !is_scalar($value))
+		{
+			return '';
+		}
+
+		$params = array();
+		$mode = isset($_POST['mode']) && is_scalar($_POST['mode']) ? (string) $_POST['mode'] :
+			(isset($_GET['mode']) && is_scalar($_GET['mode']) ? (string) $_GET['mode'] : '');
+		if ($mode === 'personal')
+		{
+			$params['mode'] = 'personal';
+		}
+
+		$user_key = defined('POST_USERS_URL') ? POST_USERS_URL : 'u';
+		$user_value = isset($_POST[$user_key]) && is_scalar($_POST[$user_key]) ? $_POST[$user_key] :
+			(isset($_GET[$user_key]) && is_scalar($_GET[$user_key]) ? $_GET[$user_key] : 0);
+		$user_id = max(0, intval($user_value));
+		if ($user_id > 0)
+		{
+			$params[$user_key] = $user_id;
+		}
+
+		$params[$var] = substr((string) $value, 0, 32);
+		return '?' . str_replace('&', '&amp;', http_build_query($params, '', '&', PHP_QUERY_RFC3986));
+	}
 	
 	
     /***************************************************************************
@@ -94,9 +105,11 @@
     ***************************************************************************/
 	function getPostForumsList($mini_cal_post_auth, $and_post_auth_sql = '')
 	{
-   		if ($mini_cal_post_auth != '')
+		if ($mini_cal_post_auth != '' && preg_match('/^[0-9]+(?:,[0-9]+)*$/D', (string) $mini_cal_post_auth))
 	   	{
 			global $db, $template, $lang;
+			$selected_forum = isset($_POST[POST_FORUM_URL]) && is_scalar($_POST[POST_FORUM_URL]) ? intval($_POST[POST_FORUM_URL]) :
+				(isset($_GET[POST_FORUM_URL]) && is_scalar($_GET[POST_FORUM_URL]) ? intval($_GET[POST_FORUM_URL]) : 0);
 
 	       // get a list of events forums
 	       $sql = 'SELECT c.cat_id, c.cat_title, f.forum_id, f.forum_name 
@@ -115,10 +128,11 @@
 	               $forums_list = '<select style="width: 100%" name="' . POST_FORUM_URL . '" onchange="if(this.options[this.selectedIndex].value > -1){ forms[\'mini_cal\'].submit() }">';
 	               	                    
 	               $cat_id = 0;
-	       	       while ($row = $db->sql_fetchrow($result))
-	               {
-	                    	                    $forums_list .=  '<option value="' . $row['forum_id'] . '"' . $selected . '>  - ' . substr($row['forum_name'],0,20) . '</option>';
-	               }
+		       while ($row = $db->sql_fetchrow($result))
+		       {
+					$selected = ((int) $row['forum_id'] === $selected_forum) ? ' selected="selected"' : '';
+					$forums_list .= '<option value="' . (int) $row['forum_id'] . '"' . $selected . '>  - ' . htmlspecialchars(substr((string) $row['forum_name'], 0, 20), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</option>';
+		       }
 	               $forums_list .= '</select>';
 	               
 	               $template->assign_vars( array(
