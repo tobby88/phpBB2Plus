@@ -56,6 +56,7 @@ if ($erc_query_token !== '')
 }
 
 include($phpbb_root_path . 'includes/constants.'.$phpEx);
+include_once($phpbb_root_path . 'includes/php_compat.'.$phpEx);
 include($phpbb_root_path . 'includes/functions.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_dbmtnc.'.$phpEx);
 include($phpbb_root_path . 'includes/db.'.$phpEx);
@@ -793,14 +794,11 @@ switch($mode)
 						$default_config['cookie_secure'] = '1';
 					}
 				}
-				if (!empty($HTTP_SERVER_VARS['SERVER_NAME']) || !empty($HTTP_ENV_VARS['SERVER_NAME']))
-				{
-					$default_config['server_name'] = (!empty($HTTP_SERVER_VARS['SERVER_NAME'])) ? $HTTP_SERVER_VARS['SERVER_NAME'] : $HTTP_ENV_VARS['SERVER_NAME'];
-				}
-				else if (!empty($HTTP_SERVER_VARS['HTTP_HOST']) || !empty($HTTP_ENV_VARS['HTTP_HOST']))
-				{
-					$default_config['server_name'] = (!empty($HTTP_SERVER_VARS['HTTP_HOST'])) ? $HTTP_SERVER_VARS['HTTP_HOST'] : $HTTP_ENV_VARS['HTTP_HOST'];
-				}
+				$server_name_candidate = (!empty($HTTP_SERVER_VARS['SERVER_NAME'])) ? $HTTP_SERVER_VARS['SERVER_NAME'] :
+					((!empty($HTTP_ENV_VARS['SERVER_NAME'])) ? $HTTP_ENV_VARS['SERVER_NAME'] :
+					((!empty($HTTP_SERVER_VARS['HTTP_HOST'])) ? $HTTP_SERVER_VARS['HTTP_HOST'] :
+					((!empty($HTTP_ENV_VARS['HTTP_HOST'])) ? $HTTP_ENV_VARS['HTTP_HOST'] : '')));
+				$default_config['server_name'] = phpbb_normalize_host($server_name_candidate, $default_config['server_name']);
 				if (!empty($HTTP_SERVER_VARS['SERVER_PORT']) || !empty($HTTP_ENV_VARS['SERVER_PORT']))
 				{
 					$default_config['server_port'] = (!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'];
@@ -832,8 +830,10 @@ switch($mode)
 					if ( !($row = $db->sql_fetchrow($result)) )
 					{
 						echo("<li><b>$key:</b> $value</li>\n");
+						$key_sql = $db->sql_escape($key);
+						$value_sql = $db->sql_escape($value);
 						$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value)
-							VALUES ('$key', '$value')";
+							VALUES ('$key_sql', '$value_sql')";
 						$result = $db->sql_query($sql);
 						if ( !$result )
 						{

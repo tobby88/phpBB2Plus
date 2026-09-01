@@ -208,6 +208,7 @@ $lang['Restore_Error_uploading'] = 'Fehler beim Hochladen der Backup-Datei';
 $lang['Restore_Error_filename'] = 'Probleme mit dem Dateinamen, probiere einen anderen';
 $lang['Restore_Error_decompress'] = 'Die GZip-Version kann nicht dekomprimiert werden, nutze bitte eine Nur-Text-Datei';
 $lang['Restore_Error_no_file'] = 'Es wurde keine Datei hochgeladen';
+$lang['Restore_Error_too_large'] = 'Das entpackte Backup ist größer als 64 MiB. Bitte spiele es mit dem Datenbankwerkzeug des Hosters ein.';
 
 
 //

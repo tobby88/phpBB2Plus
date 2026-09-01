@@ -17,6 +17,15 @@ security_entropy_assert(strlen($token) === 64, 'random strings must have the req
 security_entropy_assert(preg_match('/^[ABC234]+$/D', $token) === 1, 'random strings must use only the selected alphabet');
 security_entropy_assert(strlen(bin2hex(phpbb_random_bytes(16))) === 32, '128-bit identifiers must retain the legacy 32-character shape');
 
+$compat_source = file_get_contents($root . '/phpBB2/includes/php_compat.php');
+security_entropy_assert(strpos($compat_source, 'uniqid(') === false, 'the shared CSPRNG helper must not fall back to predictable uniqid data');
+security_entropy_assert(strpos($compat_source, 'mt_rand(') === false, 'the shared CSPRNG helper must not fall back to the legacy PRNG');
+security_entropy_assert(strpos($compat_source, "throw new RuntimeException('No cryptographically secure random source is available.')") !== false, 'the shared CSPRNG helper must fail closed when no secure provider exists');
+
+$pclzip_source = file_get_contents($root . '/phpBB2/album_pclzip_lib.php');
+security_entropy_assert(substr_count($pclzip_source, 'bin2hex(phpbb_random_bytes(16))') === 3, 'all PclZip temporary archives must use unpredictable names');
+security_entropy_assert(strpos($pclzip_source, "uniqid('pclzip-')") === false, 'PclZip must not retain predictable temporary archive names');
+
 $files = array(
 	'posting.php',
 	'ctracker/engines/ct_visual_confirm.php',

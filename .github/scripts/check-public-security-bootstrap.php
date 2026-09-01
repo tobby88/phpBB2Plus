@@ -31,6 +31,15 @@ foreach (array('ct_security.', 'ct_varsetter.', 'ct_request_limiter.', 'ct_ipblo
 		$errors[] = 'common.php no longer loads ' . $engine;
 	}
 }
+if (strpos($common, '$_REQUEST = array_merge($phpbb_request_get, $phpbb_request_post);') === false)
+{
+	$errors[] = 'common.php no longer excludes cookie-backed routing values from $_REQUEST';
+}
+if (strpos($common, '$phpbb_request_get = is_array($_GET) ? $_GET : array();') === false ||
+	strpos($common, '$phpbb_request_post = is_array($_POST) ? $_POST : array();') === false)
+{
+	$errors[] = 'common.php must normalize GET and POST before rebuilding $_REQUEST';
+}
 
 $standalone = file_get_contents($public_root . '/text2schild.php');
 if (strpos($standalone, "define('PHPBB_STANDALONE_VALIDATED', true)") === false ||

@@ -2897,14 +2897,12 @@ switch($mode_id)
 						$default_config['cookie_secure'] = '1';
 					}
 				}
-				if (!empty($HTTP_SERVER_VARS['SERVER_NAME']) || !empty($HTTP_ENV_VARS['SERVER_NAME']))
-				{
-					$default_config['server_name'] = (!empty($HTTP_SERVER_VARS['SERVER_NAME'])) ? $HTTP_SERVER_VARS['SERVER_NAME'] : $HTTP_ENV_VARS['SERVER_NAME'];
-				}
-				else if (!empty($HTTP_SERVER_VARS['HTTP_HOST']) || !empty($HTTP_ENV_VARS['HTTP_HOST']))
-				{
-					$default_config['server_name'] = (!empty($HTTP_SERVER_VARS['HTTP_HOST'])) ? $HTTP_SERVER_VARS['HTTP_HOST'] : $HTTP_ENV_VARS['HTTP_HOST'];
-				}
+				$server_name_candidate = (!empty($HTTP_SERVER_VARS['SERVER_NAME'])) ? $HTTP_SERVER_VARS['SERVER_NAME'] :
+					((!empty($HTTP_ENV_VARS['SERVER_NAME'])) ? $HTTP_ENV_VARS['SERVER_NAME'] :
+					((!empty($HTTP_SERVER_VARS['HTTP_HOST'])) ? $HTTP_SERVER_VARS['HTTP_HOST'] :
+					((!empty($HTTP_ENV_VARS['HTTP_HOST'])) ? $HTTP_ENV_VARS['HTTP_HOST'] : '')));
+				$default_config['server_name'] = phpbb_normalize_host($server_name_candidate,
+					isset($board_config['server_name']) ? $board_config['server_name'] : $default_config['server_name']);
 				if (!empty($HTTP_SERVER_VARS['SERVER_PORT']) || !empty($HTTP_ENV_VARS['SERVER_PORT']))
 				{
 					$default_config['server_port'] = (!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'];
@@ -2939,8 +2937,10 @@ switch($mode_id)
 							$list_open = TRUE;
 						}
 						echo("<li><b>$key:</b> $value</li>\n");
+						$key_sql = $db->sql_escape($key);
+						$value_sql = $db->sql_escape($value);
 						$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value)
-							VALUES ('$key', '$value')";
+							VALUES ('$key_sql', '$value_sql')";
 						$result = $db->sql_query($sql);
 						if ( !$result )
 						{

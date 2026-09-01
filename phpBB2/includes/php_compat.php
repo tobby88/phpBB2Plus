@@ -246,14 +246,21 @@ if (!function_exists('phpbb_random_bytes'))
 			}
 		}
 
-		// Last-resort compatibility fallback for unusually limited PHP 5.6
-		// builds. Modern supported installations use random_bytes().
-		$bytes = '';
-		while (strlen($bytes) < $length)
+		// Some preserved PHP 5.6 builds expose the operating-system CSPRNG only
+		// through mcrypt. MCRYPT_DEV_URANDOM maps to the platform's secure random
+		// provider and does not use the legacy userspace PRNG.
+		if (function_exists('mcrypt_create_iv') && defined('MCRYPT_DEV_URANDOM'))
 		{
-			$bytes .= hash('sha256', uniqid((string) mt_rand(), true) . microtime(true), true);
+			$bytes = @mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+			if (is_string($bytes) && strlen($bytes) === $length)
+			{
+				return $bytes;
+			}
 		}
-		return substr($bytes, 0, $length);
+
+		// Security tokens must never silently degrade to predictable process and
+		// timestamp data. PHP 7+ normally provides random_bytes() itself.
+		throw new RuntimeException('No cryptographically secure random source is available.');
 	}
 }
 
@@ -287,6 +294,80 @@ if (!function_exists('phpbb_random_string'))
 			}
 		}
 		return $result;
+	}
+}
+
+/**
+ * Read a plain or gzip file without letting compressed or oversized input
+ * consume unbounded process memory.
+ */
+if (!function_exists('phpbb_read_limited_file'))
+{
+	function phpbb_read_limited_file($path, $gzip, $maximum_bytes)
+	{
+		$path = is_scalar($path) ? (string) $path : '';
+		$gzip = (bool) $gzip;
+		$maximum_bytes = max(1, (int) $maximum_bytes);
+		if ($path === '' || strpos($path, "\0") !== false || ($gzip && !function_exists('gzopen')))
+		{
+			return array('status' => 'error', 'data' => '');
+		}
+		$data = '';
+		$total = 0;
+		$handle = $gzip ? @gzopen($path, 'rb') : @fopen($path, 'rb');
+		if (!$handle)
+		{
+			return array('status' => 'error', 'data' => '');
+		}
+
+		while ($gzip ? !gzeof($handle) : !feof($handle))
+		{
+			$chunk = $gzip ? @gzread($handle, 8192) : @fread($handle, 8192);
+			if ($chunk === '')
+			{
+				if ($gzip ? gzeof($handle) : feof($handle))
+				{
+					break;
+				}
+				$chunk = false;
+			}
+			if ($chunk === false)
+			{
+				if ($gzip)
+				{
+					@gzclose($handle);
+				}
+				else
+				{
+					@fclose($handle);
+				}
+				return array('status' => 'error', 'data' => '');
+			}
+			$total += strlen($chunk);
+			if ($total > $maximum_bytes)
+			{
+				if ($gzip)
+				{
+					@gzclose($handle);
+				}
+				else
+				{
+					@fclose($handle);
+				}
+				return array('status' => 'too_large', 'data' => '');
+			}
+			$data .= $chunk;
+		}
+
+		if ($gzip)
+		{
+			@gzclose($handle);
+		}
+		else
+		{
+			@fclose($handle);
+		}
+		return array('status' => 'ok', 'data' => $data);
 	}
 }
 
@@ -387,6 +468,35 @@ if (!function_exists('phpbb_board_url'))
 		$script_path = ($script_path === '' || $script_path === '/') ? '/' : '/' . trim($script_path, '/') . '/';
 
 		return $scheme . '://' . $host . $port_part . $script_path . ltrim($relative_path, '/');
+	}
+}
+
+/**
+ * Normalize a request/configuration host without accepting paths, credentials
+ * or header-control data. The returned value never contains a port.
+ */
+if (!function_exists('phpbb_normalize_host'))
+{
+	function phpbb_normalize_host($value, $fallback = '')
+	{
+		$value = is_scalar($value) ? trim((string) $value) : '';
+		$parts = ($value !== '' && !preg_match('/[\\\\\x00-\x20\x7f]/', $value))
+			? @parse_url('http://' . $value)
+			: false;
+		if (is_array($parts) && !empty($parts['host']) &&
+			!isset($parts['user']) && !isset($parts['pass']) && !isset($parts['query']) && !isset($parts['fragment']) &&
+			(!isset($parts['path']) || $parts['path'] === '') &&
+			(!isset($parts['port']) || ((int) $parts['port'] >= 1 && (int) $parts['port'] <= 65535)))
+		{
+			$host = strtolower(rtrim((string) $parts['host'], '.'));
+			if (preg_match('/^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[a-f0-9:]+\])$/iD', $host))
+			{
+				return $host;
+			}
+		}
+
+		$fallback = is_scalar($fallback) ? strtolower(rtrim(trim((string) $fallback), '.')) : '';
+		return preg_match('/^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[a-f0-9:]+\])$/iD', $fallback) ? $fallback : '';
 	}
 }
 

@@ -208,6 +208,7 @@ $lang['Restore_Error_uploading'] = 'Error in uploading the backup file';
 $lang['Restore_Error_filename'] = 'Filename problem; please try an alternative file';
 $lang['Restore_Error_decompress'] = 'Cannot decompress a gzip file; please upload a plain text version';
 $lang['Restore_Error_no_file'] = 'No file was uploaded';
+$lang['Restore_Error_too_large'] = 'The expanded backup is larger than 64 MiB. Please restore it with your hosting provider\'s database tool.';
 
 
 //

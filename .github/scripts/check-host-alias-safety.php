@@ -26,6 +26,12 @@ host_alias_assert(phpbb_board_hosts_match('EXAMPLE.com.', 'example.com'), 'case/
 host_alias_assert(!phpbb_board_hosts_match('forum.example.com', 'www.example.com'), 'unrelated subdomain accepted');
 host_alias_assert(!phpbb_board_hosts_match('example.com.attacker.test', 'example.com'), 'suffix-spoofing host accepted');
 
+host_alias_assert(phpbb_normalize_host('EXAMPLE.com.:443') === 'example.com', 'valid host and port were not normalized');
+host_alias_assert(phpbb_normalize_host('[2001:db8::1]:8443') === '[2001:db8::1]', 'IPv6 host and port were not normalized');
+host_alias_assert(phpbb_normalize_host("example.com\r\nInjected: value", 'safe.example') === 'safe.example', 'header-control data was accepted as a host');
+host_alias_assert(phpbb_normalize_host('example.com/path', 'safe.example') === 'safe.example', 'host path data was accepted');
+host_alias_assert(phpbb_normalize_host('user@example.com', 'safe.example') === 'safe.example', 'host credentials were accepted');
+
 host_alias_assert(phpbb_referer_is_allowed('https://example.com/album.php', 'www.example.com'), 'apex Referer rejected');
 host_alias_assert(phpbb_referer_is_allowed('https://www.example.com/album.php', 'example.com'), 'www Referer rejected');
 host_alias_assert(phpbb_referer_is_allowed('https://cdn.example.net/file', 'example.com', 'example.net'), 'explicit subdomain allowlist rejected');

@@ -61,6 +61,7 @@ include($phpbb_root_path . 'includes/sql_parse.'.$phpEx);
 // Set VERBOSE to 1  for debugging info..
 //
 define("VERBOSE", 0);
+define('PHPBB_DB_RESTORE_MAX_BYTES', 67108864);
 
 //
 // Increase maximum execution time, but don't complain about it if it isn't
@@ -751,37 +752,22 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 				{
 					if( preg_match('/\.sql(?:\.gz)?$/iD', $backup_file_name) )
 					{
-						if( preg_match('/\.gz$/iD', $backup_file_name) )
+						$is_gzip_restore = preg_match('/\.gz$/iD', $backup_file_name) === 1;
+						if ($is_gzip_restore && !extension_loaded('zlib'))
 						{
-							$do_gzip_compress = extension_loaded('zlib');
+							message_die(GENERAL_ERROR, $lang['Restore_Error_decompress']);
+						}
 
-							if($do_gzip_compress)
-							{
-								$gz_ptr = gzopen($backup_file_tmpname, 'rb');
-								if (!$gz_ptr)
-								{
-									message_die(GENERAL_ERROR, $lang['Restore_Error_decompress']);
-								}
-								$sql_query = "";
-								while( !gzeof($gz_ptr) )
-								{
-									$sql_query .= gzgets($gz_ptr, 100000);
-								}
-								gzclose($gz_ptr);
-							}
-							else
-							{
-								message_die(GENERAL_ERROR, $lang['Restore_Error_decompress']);
-							}
-						}
-						else
+						$restore_read = phpbb_read_limited_file($backup_file_tmpname, $is_gzip_restore, PHPBB_DB_RESTORE_MAX_BYTES);
+						if ($restore_read['status'] === 'too_large')
 						{
-							$sql_query = file_get_contents($backup_file_tmpname);
-							if ($sql_query === false)
-							{
-								message_die(GENERAL_ERROR, $lang['Restore_Error_uploading']);
-							}
+							message_die(GENERAL_ERROR, $lang['Restore_Error_too_large']);
 						}
+						if ($restore_read['status'] !== 'ok')
+						{
+							message_die(GENERAL_ERROR, $is_gzip_restore ? $lang['Restore_Error_decompress'] : $lang['Restore_Error_uploading']);
+						}
+						$sql_query = $restore_read['data'];
 						//
 						// Comment this line out to see if this fixes the stuff...
 						//

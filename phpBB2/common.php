@@ -35,6 +35,13 @@ include_once($phpbb_root_path . 'includes/php_compat.' . $phpEx);
 phpbb_rotate_local_log($phpbb_error_log, 8388608, 2);
 unset($phpbb_error_log);
 
+// Never let a same-named cookie steer routing or mutation parameters read by
+// preserved modules through $_REQUEST. POST intentionally wins over GET.
+$phpbb_request_get = is_array($_GET) ? $_GET : array();
+$phpbb_request_post = is_array($_POST) ? $_POST : array();
+$_REQUEST = array_merge($phpbb_request_get, $phpbb_request_post);
+unset($phpbb_request_get, $phpbb_request_post);
+
 if (!headers_sent())
 {
 	header('X-Content-Type-Options: nosniff');

@@ -28,6 +28,8 @@ dbmtnc_safety_assert(strpos($admin, 'mode=perform&amp;function=check_post') === 
 dbmtnc_safety_assert(strpos($admin, '$HTTP_POST_VARS') === false, 'configuration writes must use scalar-checked POST values');
 dbmtnc_safety_assert(strpos($admin, 'dbmtnc_post_int') !== false, 'numeric configuration values must pass through one scalar validator');
 dbmtnc_safety_assert(strpos($admin, "phpbb_admin_html(\$function)") !== false, 'confirmed function names must be escaped in hidden fields');
+dbmtnc_safety_assert(strpos($admin, 'phpbb_normalize_host($server_name_candidate') !== false, 'restored server names must use the shared host validator');
+dbmtnc_safety_assert(strpos($admin, '$value_sql = $db->sql_escape($value);') !== false, 'restored configuration values must be SQL-escaped');
 dbmtnc_safety_assert(strpos($english, "\$lang['Confirm_dbmtnc_action']") !== false, 'English generic write confirmation is missing');
 dbmtnc_safety_assert(strpos($german, "\$lang['Confirm_dbmtnc_action']") !== false, 'German generic write confirmation is missing');
 
@@ -48,5 +50,7 @@ foreach (array(
 	dbmtnc_safety_assert(strpos($erc, $marker) !== false, 'Emergency console hardening is missing: ' . $marker);
 }
 dbmtnc_safety_assert(strpos($erc, "\$_REQUEST['token']") === false, 'Emergency capability tokens must not be cookie-merged through REQUEST.');
+dbmtnc_safety_assert(strpos($erc, 'phpbb_normalize_host($server_name_candidate') !== false, 'ERC-restored server names must use the shared host validator');
+dbmtnc_safety_assert(strpos($erc, '$value_sql = $db->sql_escape($value);') !== false, 'ERC-restored configuration values must be SQL-escaped');
 
 echo "Database-maintenance safety tests passed.\n";

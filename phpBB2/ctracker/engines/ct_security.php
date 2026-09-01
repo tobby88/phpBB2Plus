@@ -62,13 +62,19 @@ function ct_security_normalize($value)
 function ct_security_url_host($value, $is_authority)
 {
 	$value = is_scalar($value) ? trim((string) $value) : '';
-	if ($value === '' || strlen($value) > 2048 || preg_match('/[\x00-\x20\x7f]/', $value))
+	$maximum_length = $is_authority ? 255 : 2048;
+	if ($value === '' || strlen($value) > $maximum_length || preg_match('/[\\\\\x00-\x20\x7f]/', $value))
 	{
 		return false;
 	}
 
 	$parts = @parse_url($is_authority ? 'http://' . $value : $value);
-	if (!is_array($parts) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']))
+	if (!is_array($parts) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) ||
+		(isset($parts['port']) && ((int) $parts['port'] < 1 || (int) $parts['port'] > 65535)))
+	{
+		return false;
+	}
+	if ($is_authority && ((isset($parts['path']) && $parts['path'] !== '') || isset($parts['query']) || isset($parts['fragment'])))
 	{
 		return false;
 	}
@@ -77,7 +83,8 @@ function ct_security_url_host($value, $is_authority)
 		return false;
 	}
 
-	return strtolower(rtrim($parts['host'], '.'));
+	$host = strtolower(rtrim((string) $parts['host'], '.'));
+	return preg_match('/^(?:[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|\[[a-f0-9:]+\])$/iD', $host) ? $host : false;
 }
 
 function ct_security_hosts_match($first, $second)

@@ -72,6 +72,18 @@ if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' =
 {
 	$errors[] = 'A source-bearing POST with no valid request host was not blocked.';
 }
+foreach (array('forum.example/path', 'forum.example?query=1', 'forum.example#fragment', 'user@forum.example', 'forum.example:70000', str_repeat('a', 256)) as $invalid_host)
+{
+	if (ct_security_cross_site_write(array('REQUEST_METHOD' => 'POST', 'HTTP_HOST' => $invalid_host, 'HTTP_ORIGIN' => 'https://forum.example')) !== true)
+	{
+		$errors[] = 'Malformed request authority was accepted: ' . substr($invalid_host, 0, 80);
+	}
+}
+if (ct_security_url_host('Forum.Example.:443', true) !== 'forum.example' ||
+	ct_security_url_host('[2001:db8::1]:8443', true) !== '[2001:db8::1]')
+{
+	$errors[] = 'Valid request authorities were not normalized.';
+}
 if (!ct_security_disallowed_method(array('REQUEST_METHOD' => 'TRACE')) ||
 	!ct_security_disallowed_method(array('REQUEST_METHOD' => 'PUT')) ||
 	ct_security_disallowed_method(array('REQUEST_METHOD' => 'GET')) ||

@@ -1916,7 +1916,7 @@ if (!defined('IN_PHPBB'))
 		//--(MAGIC-PclTrace)--//PclTraceFctMessage(__FILE__, __LINE__, 5, "Position in file : ".ftell($this->zip_fd)."'");
 
 		// ----- Creates a temporay file
-		$v_zip_temp_name = PCLZIP_TEMPORARY_DIR.uniqid('pclzip-').'.tmp';
+		$v_zip_temp_name = PCLZIP_TEMPORARY_DIR.'pclzip-'.bin2hex(phpbb_random_bytes(16)).'.tmp';
 
 		// ----- Open the temporary file in write mode
 		//--(MAGIC-PclTrace)--//PclTraceFctMessage(__FILE__, __LINE__, 3, "Open file in binary read mode");
@@ -4601,7 +4601,7 @@ if (!defined('IN_PHPBB'))
 		{
 
 			// ----- Creates a temporay file
-			$v_zip_temp_name = PCLZIP_TEMPORARY_DIR.uniqid('pclzip-').'.tmp';
+			$v_zip_temp_name = PCLZIP_TEMPORARY_DIR.'pclzip-'.bin2hex(phpbb_random_bytes(16)).'.tmp';
 
 			// ----- Creates a temporary zip archive
 			$v_temp_zip = new PclZip($v_zip_temp_name);
@@ -4942,7 +4942,7 @@ if (!defined('IN_PHPBB'))
 		//--(MAGIC-PclTrace)--//PclTraceFctMessage(__FILE__, __LINE__, 5, "Position in archive_to_add : ".ftell($p_archive_to_add->zip_fd)."'");
 
 		// ----- Creates a temporay file
-		$v_zip_temp_name = PCLZIP_TEMPORARY_DIR.uniqid('pclzip-').'.tmp';
+		$v_zip_temp_name = PCLZIP_TEMPORARY_DIR.'pclzip-'.bin2hex(phpbb_random_bytes(16)).'.tmp';
 
 		// ----- Open the temporary file in write mode
 		//--(MAGIC-PclTrace)--//PclTraceFctMessage(__FILE__, __LINE__, 3, "Open file in binary read mode");
