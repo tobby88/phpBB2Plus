@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Constrained runtime theme rows to the sole preserved FI Subsilver Shadow
+  package before any filesystem or template use. Stylesheet/background paths,
+  colors, CSS classes, font families and numeric presentation values now pass
+  strict allowlists and bounds, preventing a corrupt legacy theme record from
+  becoming path traversal, markup or inline-script content.
 - Escaped stored forum, topic, bookmark and site labels in the browser
   navigation metadata emitted in every page header. Navigation URLs and
   relation attributes are now encoded at their attribute boundary, and the

@@ -129,6 +129,61 @@ function phpbb_profile_asset_path($value)
 	return implode('/', array_map('rawurlencode', $parts));
 }
 
+/**
+ * Constrain the single preserved style's database row before it reaches HTML,
+ * inline JavaScript or filesystem paths.
+ */
+function phpbb_standard_theme_row($row)
+{
+	$row = is_array($row) ? $row : array();
+	$color_fields = array(
+		'body_bgcolor', 'body_text', 'body_link', 'body_vlink', 'body_alink', 'body_hlink',
+		'tr_color1', 'tr_color2', 'tr_color3', 'th_color1', 'th_color2', 'th_color3',
+		'td_color1', 'td_color2', 'td_color3', 'fontcolor1', 'fontcolor2', 'fontcolor3',
+	);
+	$class_fields = array(
+		'tr_class1', 'tr_class2', 'tr_class3', 'th_class1', 'th_class2', 'th_class3',
+		'td_class1', 'td_class2', 'td_class3', 'span_class1', 'span_class2', 'span_class3',
+		'div_class1', 'div_class2', 'div_class3', 'row_class1', 'row_class2', 'row_class3',
+		'col_class1', 'col_class2', 'col_class3',
+	);
+	$font_fields = array('fontface1', 'fontface2', 'fontface3');
+
+	$row['themes_id'] = isset($row['themes_id']) ? max(1, (int) $row['themes_id']) : 1;
+	$row['template_name'] = 'fisubsilversh';
+	$row['style_name'] = 'FI Subsilver Shadow';
+	$row['head_stylesheet'] = 'fisubsilversh.css';
+	$background = isset($row['body_background']) ? phpbb_profile_asset_path($row['body_background']) : '';
+	$row['body_background'] = ($background !== '' && preg_match('/\.(?:gif|jpe?g|png|webp)$/iD', $background)) ? $background : '';
+
+	foreach ($color_fields as $field)
+	{
+		$value = isset($row[$field]) ? ltrim(trim((string) $row[$field]), '#') : '';
+		$row[$field] = preg_match('/^(?:[0-9a-f]{3}|[0-9a-f]{6})$/iD', $value) ? strtolower($value) : '';
+	}
+	foreach ($class_fields as $field)
+	{
+		$value = isset($row[$field]) ? trim((string) $row[$field]) : '';
+		$row[$field] = ($value === '' || preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,63}$/D', $value)) ? $value : '';
+	}
+	foreach ($font_fields as $field)
+	{
+		$value = isset($row[$field]) ? trim((string) $row[$field]) : '';
+		$row[$field] = (strlen($value) <= 100 && !preg_match('/[;{}<>\x00-\x1f\x7f]/', $value)) ? $value : '';
+	}
+	foreach (array('fontsize1', 'fontsize2', 'fontsize3') as $field)
+	{
+		$row[$field] = isset($row[$field]) ? max(0, min(72, (int) $row[$field])) : 0;
+	}
+	foreach (array('img_size_poll', 'img_size_privmsg') as $field)
+	{
+		$row[$field] = isset($row[$field]) ? max(0, min(2000, (int) $row[$field])) : 0;
+	}
+	$row['theme_public'] = empty($row['theme_public']) ? 0 : 1;
+
+	return $row;
+}
+
 function phpbb_avatar_asset_url($avatar, $avatar_type, $path_prefix = '')
 {
 	global $board_config;
@@ -1333,6 +1388,7 @@ function setup_style($style)
 	}
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
+	$row = phpbb_standard_theme_row($row);
 	$template_path = 'templates/' ;
 	$template_name = $row['template_name'] ;
 

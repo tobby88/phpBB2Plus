@@ -1,5 +1,8 @@
 <?php
 
+define('IN_PHPBB', true);
+require dirname(dirname(__DIR__)) . '/phpBB2/includes/functions.php';
+
 function standard_style_assert($condition, $message)
 {
 	if (!$condition)
@@ -41,6 +44,22 @@ standard_style_assert(strpos($template_engine, "var \$tpldef = 'fisubsilversh';"
 standard_style_assert(strpos($page_header, "'S_CONTENT_LANGUAGE' =>") !== false, 'the page header must expose the active document language');
 standard_style_assert(strpos($header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'the public document must declare its language');
 standard_style_assert(strpos($simple_header, 'lang="{S_CONTENT_LANGUAGE}"') !== false, 'simple public documents must declare their language');
+
+$safe_theme = phpbb_standard_theme_row(array(
+	'themes_id' => '2',
+	'template_name' => '../outside',
+	'head_stylesheet' => '\"><script>alert(1)</script>',
+	'body_background' => '../outside.php',
+	'td_color1' => "fff';alert(1);//",
+	'td_class1' => 'row1 onclick=alert(1)',
+	'fontface1' => 'Arial;</style><script>alert(1)</script>',
+	'fontsize1' => 999,
+	'theme_public' => 1,
+));
+standard_style_assert($safe_theme['template_name'] === 'fisubsilversh' && $safe_theme['head_stylesheet'] === 'fisubsilversh.css', 'database theme paths must resolve to the preserved style');
+standard_style_assert($safe_theme['body_background'] === '' && $safe_theme['td_color1'] === '' && $safe_theme['td_class1'] === '' && $safe_theme['fontface1'] === '', 'unsafe theme presentation values must fail closed');
+standard_style_assert($safe_theme['fontsize1'] === 72, 'theme numeric presentation values must be bounded');
+standard_style_assert(strpos($functions, '$row = phpbb_standard_theme_row($row);') !== false, 'style setup must sanitize database rows before path and template use');
 
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($templates_root . '/fisubsilversh', FilesystemIterator::SKIP_DOTS));
 foreach ($iterator as $file)
