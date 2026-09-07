@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- CrackerTracker no longer treats failed regex checks as successful non-matches.
+  Reserved-key and attack-signature checks reject uninspectable input instead
+  of silently bypassing the filter. Nested free-text fields retain their text
+  policy, including the real poll-option array used by the posting form; null
+  bytes, unsafe keys, size/depth limits and custom literal rules still apply.
 - Preserve same-name nested formatting when saving posts: a shared token/pair
   pass replaces the old first-closer regexes for bold/italic, colors, alignment,
   fonts and related effects. Quote-name attributes remain literal, already

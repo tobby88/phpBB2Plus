@@ -225,12 +225,12 @@ function ct_security_disallowed_method($server)
 function ct_security_key_is_safe($key)
 {
 	$key = strtolower(ct_security_normalize($key));
-	if ($key === '' || preg_match('/[\x00-\x1f\x7f]/', $key))
+	if ($key === '' || preg_match('/[\x00-\x1f\x7f]/', $key) !== 0)
 	{
 		return false;
 	}
 
-	return !preg_match('/^(?:globals|_(?:get|post|cookie|request|server|env|files|session)|http_(?:get|post|cookie|server|env|session)_vars)$/D', $key);
+	return preg_match('/^(?:globals|_(?:get|post|cookie|request|server|env|files|session)|http_(?:get|post|cookie|server|env|session)_vars)$/D', $key) === 0;
 }
 
 function ct_security_value_is_attack($value, $free_text, $custom_rules)
@@ -259,7 +259,9 @@ function ct_security_value_is_attack($value, $free_text, $custom_rules)
 		);
 		foreach ($patterns as $pattern)
 		{
-			if (preg_match($pattern, $value))
+			// Only a completed non-match is safe. A PCRE resource failure is
+			// not evidence that the parameter passed this security check.
+			if (preg_match($pattern, $value) !== 0)
 			{
 				return true;
 			}
@@ -279,7 +281,7 @@ function ct_security_value_is_attack($value, $free_text, $custom_rules)
 	return false;
 }
 
-function ct_security_array_is_attack($values, $ignored_fields, $free_text_fields, $custom_rules, $scan_values)
+function ct_security_array_is_attack($values, $ignored_fields, $free_text_fields, $custom_rules, $scan_values, $parent_free_text = false)
 {
 	foreach ((array) $values as $field => $value)
 	{
@@ -289,9 +291,12 @@ function ct_security_array_is_attack($values, $ignored_fields, $free_text_fields
 		}
 
 		$field_name = strtolower((string) $field);
+		$free_text = $parent_free_text || in_array($field_name, $free_text_fields, true);
 		if (is_array($value))
 		{
-			if (ct_security_array_is_attack($value, $ignored_fields, $free_text_fields, $custom_rules, $scan_values))
+			// Numeric children of a named text field (e.g. poll options) keep
+			// its content policy. Keys, shape and custom rules are still checked.
+			if (ct_security_array_is_attack($value, $ignored_fields, $free_text_fields, $custom_rules, $scan_values, $free_text))
 			{
 				return true;
 			}
@@ -302,7 +307,6 @@ function ct_security_array_is_attack($values, $ignored_fields, $free_text_fields
 		{
 			return true;
 		}
-		$free_text = in_array($field_name, $free_text_fields, true);
 		if (strpos((string) $value, "\0") !== false)
 		{
 			return true;
@@ -402,6 +406,19 @@ function ct_security_block_request($phpbb_root_path, $phpEx)
 	exit;
 }
 
+function ct_security_free_post_fields()
+{
+	return array(
+		'username', 'password', 'subject', 'message', 'poll_title', 'poll_option',
+		'email', 'aim', 'msn', 'yim', 'interests', 'occupation', 'signature',
+		'website', 'location', 'search', 'sitename', 'word', 'replacement', 'help',
+		'last_msg', 'quote', 'content', 'site_desc', 'disable_reg_msg', 'disable_msg',
+		'pic_desc', 'pic_title', 'filecomment', 'comment', 'search_author',
+		'add_poll_option_text', 'poll_option_text', 'global_message', 'article_name', 'article_desc',
+		'title', 'description'
+	);
+}
+
 if (!defined('CTRACKER_SECURITY_NO_AUTO_RUN'))
 {
 	if (!isset($phpbb_root_path) || !is_string($phpbb_root_path) || $phpbb_root_path === '')
@@ -409,15 +426,7 @@ if (!defined('CTRACKER_SECURITY_NO_AUTO_RUN'))
 		die('CrackerTracker: invalid phpBB root path.');
 	}
 
-	$free_post_fields = array(
-		'username', 'password', 'subject', 'message', 'poll_title', 'poll_option',
-		'email', 'aim', 'msn', 'yim', 'interests', 'occupation', 'signature',
-		'website', 'location', 'search', 'sitename', 'word', 'replacement', 'help',
-		'last_msg', 'quote', 'content', 'site_desc', 'disable_reg_msg', 'disable_msg',
-		'pic_desc', 'pic_title', 'filecomment', 'comment', 'search_author',
-		'add_poll_option_text', 'global_message', 'article_name', 'article_desc',
-		'title', 'description'
-	);
+	$free_post_fields = ct_security_free_post_fields();
 	$free_get_fields = array('search_author', 'search_keywords', 'highlight', 'topic', 'q');
 	$ignored_get = array('submit');
 	$ignored_post = array();
