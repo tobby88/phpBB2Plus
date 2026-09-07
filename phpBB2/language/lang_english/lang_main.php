@@ -458,6 +458,7 @@ $lang['AJAX_use_edit'] = 'AJAX quickedit';
 // Private Messaging
 //
 $lang['Private_Messaging'] = 'Private Messaging';
+$lang['PM_cleanup_failed'] = 'Private-message cleanup stopped after a database error. Already completed deletions remain in effect. Please reload your mailbox; remaining attachment records can be reviewed in the administration panel.';
 
 $lang['Login_check_pm'] = 'Log in to check your private messages';
 $lang['New_pms'] = 'You have %d new messages'; // You have 2 new messages

@@ -29,6 +29,7 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_privmsgs.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
 function privmsg_post_session_is_valid($sid, $userdata)
@@ -312,48 +313,8 @@ else if ( $mode == 'read' )
 			message_die(GENERAL_ERROR, 'Could not update private message read status', '', __LINE__, __FILE__, $sql);
 		}
 
-		// Check to see if the poster has a 'full' sent box
-		$sql = "SELECT COUNT(privmsgs_id) AS sent_items, MIN(privmsgs_date) AS oldest_post_time 
-			FROM " . PRIVMSGS_TABLE . " 
-			WHERE privmsgs_type = " . PRIVMSGS_SENT_MAIL . " 
-				AND privmsgs_from_userid = " . $privmsg['privmsgs_from_userid'];
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain sent message info for sendee', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql_priority = ( SQL_LAYER == 'mysql' ) ? 'LOW_PRIORITY' : '';
-
-		if ( $sent_info = $db->sql_fetchrow($result) )
-		{
-			if ($board_config['max_sentbox_privmsgs'] && $sent_info['sent_items'] >= $board_config['max_sentbox_privmsgs'])
-			{
-				$sql = "SELECT privmsgs_id FROM " . PRIVMSGS_TABLE . " 
-					WHERE privmsgs_type = " . PRIVMSGS_SENT_MAIL . " 
-						AND privmsgs_date = " . $sent_info['oldest_post_time'] . " 
-						AND privmsgs_from_userid = " . $privmsg['privmsgs_from_userid'];
-				if ( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not find oldest privmsgs', '', __LINE__, __FILE__, $sql);
-				}
-				$old_privmsgs_id = $db->sql_fetchrow($result);
-				$old_privmsgs_id = $old_privmsgs_id['privmsgs_id'];
-			
-				$sql = "DELETE $sql_priority FROM " . PRIVMSGS_TABLE . " 
-					WHERE privmsgs_id = $old_privmsgs_id";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs (sent)', '', __LINE__, __FILE__, $sql);
-				}
-
-				$sql = "DELETE $sql_priority FROM " . PRIVMSGS_TEXT_TABLE . " 
-					WHERE privmsgs_text_id = $old_privmsgs_id";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (sent)', '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
+		phpbb_pm_trim_oldest($privmsg['privmsgs_from_userid'], 'sentbox', $board_config['max_sentbox_privmsgs']);
+		$sql_priority = (SQL_LAYER == 'mysql') ? 'LOW_PRIORITY' : '';
 
 		//
 		// This makes a copy of the post and stores it as a SENT message from the sendee. Perhaps
@@ -754,193 +715,7 @@ else if ( ( $delete && $mark_list ) || $delete_all )
 			message_die(GENERAL_ERROR, $lang['Session_invalid']);
 		}
 
-		$delete_sql_id = '';
-
-		if (!$delete_all)
-		{
-			for ($i = 0; $i < count($mark_list); $i++)
-			{
-				$delete_sql_id .= (($delete_sql_id != '') ? ', ' : '') . intval($mark_list[$i]);
-			}
-			$delete_sql_id = "AND privmsgs_id IN ($delete_sql_id)";
-		}
-
-		switch($folder)
-		{
-			case 'inbox':
-				$delete_type = "privmsgs_to_userid = " . $userdata['user_id'] . " AND (
-				privmsgs_type = " . PRIVMSGS_READ_MAIL . " OR privmsgs_type = " . PRIVMSGS_NEW_MAIL . " OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-				break;
-
-			case 'outbox':
-				$delete_type = "privmsgs_from_userid = " . $userdata['user_id'] . " AND ( privmsgs_type = " . PRIVMSGS_NEW_MAIL . " OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-				break;
-
-			case 'sentbox':
-				$delete_type = "privmsgs_from_userid = " . $userdata['user_id'] . " AND privmsgs_type = " . PRIVMSGS_SENT_MAIL;
-				break;
-
-			case 'savebox':
-				$delete_type = "( ( privmsgs_from_userid = " . $userdata['user_id'] . " 
-					AND privmsgs_type = " . PRIVMSGS_SAVED_OUT_MAIL . " ) 
-				OR ( privmsgs_to_userid = " . $userdata['user_id'] . " 
-					AND privmsgs_type = " . PRIVMSGS_SAVED_IN_MAIL . " ) )";
-				break;
-		}
-
-		$sql = "SELECT privmsgs_id
-			FROM " . PRIVMSGS_TABLE . "
-			WHERE $delete_type $delete_sql_id";
-
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain id list to delete messages', '', __LINE__, __FILE__, $sql);
-		}
-
-		$mark_list = array();
-		while ( $row = $db->sql_fetchrow($result) )
-		{
-			$mark_list[] = $row['privmsgs_id'];
-		}
-
-		unset($delete_type);
-		$attachment_mod['pm']->delete_all_pm_attachments($mark_list);
-		if ( count($mark_list) )
-		{
-			$delete_sql_id = '';
-			for ($i = 0; $i < sizeof($mark_list); $i++)
-			{
-				$delete_sql_id .= (($delete_sql_id != '') ? ', ' : '') . intval($mark_list[$i]);
-			}
-
-			if ($folder == 'inbox' || $folder == 'outbox')
-			{
-				switch ($folder)
-				{
-					case 'inbox':
-						$sql = "privmsgs_to_userid = " . $userdata['user_id'];
-						break;
-					case 'outbox':
-						$sql = "privmsgs_from_userid = " . $userdata['user_id'];
-						break;
-				}
-
-				// Get information relevant to new or unread mail
-				// so we can adjust users counters appropriately
-				$sql = "SELECT privmsgs_to_userid, privmsgs_type 
-					FROM " . PRIVMSGS_TABLE . " 
-					WHERE privmsgs_id IN ($delete_sql_id) 
-						AND $sql  
-						AND privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . ", " . PRIVMSGS_UNREAD_MAIL . ")";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not obtain user id list for outbox messages', '', __LINE__, __FILE__, $sql);
-				}
-
-				if ( $row = $db->sql_fetchrow($result))
-				{
-					$update_users = $update_list = array();
-				
-					do
-					{
-						switch ($row['privmsgs_type'])
-						{
-							case PRIVMSGS_NEW_MAIL:
-								$update_users['new'][$row['privmsgs_to_userid']]++;
-								break;
-
-							case PRIVMSGS_UNREAD_MAIL:
-								$update_users['unread'][$row['privmsgs_to_userid']]++;
-								break;
-						}
-					}
-					while ($row = $db->sql_fetchrow($result));
-
-					if (sizeof($update_users))
-					{
-						foreach ($update_users as $type => $users)
-						{
-							foreach ($users as $user_id => $dec)
-							{
-								$update_list[$type][$dec][] = $user_id;
-							}
-						}
-						unset($update_users);
-
-						foreach ($update_list as $type => $dec_ary)
-						{
-							switch ($type)
-							{
-								case 'new':
-									$type = "user_new_privmsg";
-									break;
-
-								case 'unread':
-									$type = "user_unread_privmsg";
-									break;
-							}
-
-							foreach ($dec_ary as $dec => $user_ary)
-							{
-								$user_ids = implode(', ', array_map('intval', $user_ary));
-								$dec = intval($dec);
-
-								$sql = "UPDATE " . USERS_TABLE . " 
-									SET $type = $type - $dec 
-									WHERE user_id IN ($user_ids)";
-								if ( !$db->sql_query($sql) )
-								{
-									message_die(GENERAL_ERROR, 'Could not update user pm counters', '', __LINE__, __FILE__, $sql);
-								}
-							}
-						}
-						unset($update_list);
-					}
-				}
-				$db->sql_freeresult($result);
-			}
-
-			// Delete the messages
-			$delete_text_sql = "DELETE FROM " . PRIVMSGS_TEXT_TABLE . "
-				WHERE privmsgs_text_id IN ($delete_sql_id)";
-			$delete_sql = "DELETE FROM " . PRIVMSGS_TABLE . "
-				WHERE privmsgs_id IN ($delete_sql_id)
-					AND ";
-
-			switch( $folder )
-			{
-				case 'inbox':
-					$delete_sql .= "privmsgs_to_userid = " . $userdata['user_id'] . " AND (
-						privmsgs_type = " . PRIVMSGS_READ_MAIL . " OR privmsgs_type = " . PRIVMSGS_NEW_MAIL . " OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-					break;
-
-				case 'outbox':
-					$delete_sql .= "privmsgs_from_userid = " . $userdata['user_id'] . " AND ( 
-						privmsgs_type = " . PRIVMSGS_NEW_MAIL . " OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " )";
-					break;
-
-				case 'sentbox':
-					$delete_sql .= "privmsgs_from_userid = " . $userdata['user_id'] . " AND privmsgs_type = " . PRIVMSGS_SENT_MAIL;
-					break;
-
-				case 'savebox':
-					$delete_sql .= "( ( privmsgs_from_userid = " . $userdata['user_id'] . " 
-						AND privmsgs_type = " . PRIVMSGS_SAVED_OUT_MAIL . " ) 
-					OR ( privmsgs_to_userid = " . $userdata['user_id'] . " 
-						AND privmsgs_type = " . PRIVMSGS_SAVED_IN_MAIL . " ) )";
-					break;
-			}
-
-			if ( !$db->sql_query($delete_sql, BEGIN_TRANSACTION) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete private message info', '', __LINE__, __FILE__, $delete_sql);
-			}
-
-			if ( !$db->sql_query($delete_text_sql, END_TRANSACTION) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete private message text', '', __LINE__, __FILE__, $delete_text_sql);
-			}
-		}
+		phpbb_pm_delete_messages($mark_list, $userdata['user_id'], $folder, (bool) $delete_all);
 	}
 }
 else if ( $save && $mark_list && $folder != 'savebox' && $folder != 'outbox' )
@@ -956,53 +731,7 @@ else if ( $save && $mark_list && $folder != 'savebox' && $folder != 'outbox' )
 	
 	if (sizeof($mark_list))
 	{
-		// See if recipient is at their savebox limit
-		$sql = "SELECT COUNT(privmsgs_id) AS savebox_items, MIN(privmsgs_date) AS oldest_post_time 
-			FROM " . PRIVMSGS_TABLE . " 
-			WHERE ( ( privmsgs_to_userid = " . $userdata['user_id'] . " 
-					AND privmsgs_type = " . PRIVMSGS_SAVED_IN_MAIL . " )
-				OR ( privmsgs_from_userid = " . $userdata['user_id'] . " 
-					AND privmsgs_type = " . PRIVMSGS_SAVED_OUT_MAIL . ") )";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain sent message info for sendee', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql_priority = ( SQL_LAYER == 'mysql' ) ? 'LOW_PRIORITY' : '';
-
-		if ( $saved_info = $db->sql_fetchrow($result) )
-		{
-			if ($board_config['max_savebox_privmsgs'] && $saved_info['savebox_items'] >= $board_config['max_savebox_privmsgs'] )
-			{
-				$sql = "SELECT privmsgs_id FROM " . PRIVMSGS_TABLE . " 
-					WHERE ( ( privmsgs_to_userid = " . $userdata['user_id'] . " 
-								AND privmsgs_type = " . PRIVMSGS_SAVED_IN_MAIL . " )
-							OR ( privmsgs_from_userid = " . $userdata['user_id'] . " 
-								AND privmsgs_type = " . PRIVMSGS_SAVED_OUT_MAIL . ") ) 
-						AND privmsgs_date = " . $saved_info['oldest_post_time'];
-				if ( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not find oldest privmsgs (save)', '', __LINE__, __FILE__, $sql);
-				}
-				$old_privmsgs_id = $db->sql_fetchrow($result);
-				$old_privmsgs_id = $old_privmsgs_id['privmsgs_id'];
-			
-				$sql = "DELETE $sql_priority FROM " . PRIVMSGS_TABLE . " 
-					WHERE privmsgs_id = $old_privmsgs_id";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs (save)', '', __LINE__, __FILE__, $sql);
-				}
-
-				$sql = "DELETE $sql_priority FROM " . PRIVMSGS_TEXT_TABLE . " 
-					WHERE privmsgs_text_id = $old_privmsgs_id";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (save)', '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
-	
+		phpbb_pm_trim_oldest($userdata['user_id'], 'savebox', $board_config['max_savebox_privmsgs']);
 		$saved_sql_id = '';
 		for ($i = 0; $i < sizeof($mark_list); $i++)
 		{
@@ -1319,54 +1048,7 @@ else if ( $submit || $refresh || $mode != '' )
 
 		if ( $mode != 'edit' )
 		{
-			//
-			// See if recipient is at their inbox limit
-			//
-			$sql = "SELECT COUNT(privmsgs_id) AS inbox_items, MIN(privmsgs_date) AS oldest_post_time 
-				FROM " . PRIVMSGS_TABLE . " 
-				WHERE ( privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
-						OR privmsgs_type = " . PRIVMSGS_READ_MAIL . "  
-						OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " ) 
-					AND privmsgs_to_userid = " . $to_userdata['user_id'];
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_MESSAGE, $lang['No_such_user']);
-			}
-
-			$sql_priority = ( SQL_LAYER == 'mysql' ) ? 'LOW_PRIORITY' : '';
-
-			if ( $inbox_info = $db->sql_fetchrow($result) )
-			{
-				if ($board_config['max_inbox_privmsgs'] && $inbox_info['inbox_items'] >= $board_config['max_inbox_privmsgs'])
-				{
-					$sql = "SELECT privmsgs_id FROM " . PRIVMSGS_TABLE . " 
-						WHERE ( privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
-								OR privmsgs_type = " . PRIVMSGS_READ_MAIL . " 
-								OR privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . "  ) 
-							AND privmsgs_date = " . $inbox_info['oldest_post_time'] . " 
-							AND privmsgs_to_userid = " . $to_userdata['user_id'];
-					if ( !$result = $db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not find oldest privmsgs (inbox)', '', __LINE__, __FILE__, $sql);
-					}
-					$old_privmsgs_id = $db->sql_fetchrow($result);
-					$old_privmsgs_id = $old_privmsgs_id['privmsgs_id'];
-				
-					$sql = "DELETE $sql_priority FROM " . PRIVMSGS_TABLE . " 
-						WHERE privmsgs_id = $old_privmsgs_id";
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs (inbox)'.$sql, '', __LINE__, __FILE__, $sql);
-					}
-
-					$sql = "DELETE $sql_priority FROM " . PRIVMSGS_TEXT_TABLE . " 
-						WHERE privmsgs_text_id = $old_privmsgs_id";
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not delete oldest privmsgs text (inbox)', '', __LINE__, __FILE__, $sql);
-					}
-				}
-			}
+			phpbb_pm_trim_oldest($to_userdata['user_id'], 'inbox', $board_config['max_inbox_privmsgs']);
 
 			$sql_info = "INSERT INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
 				VALUES (" . PRIVMSGS_NEW_MAIL . ", '$subject_sql', $sender_id, $recipient_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on, $attach_sig)";

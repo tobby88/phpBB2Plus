@@ -779,6 +779,7 @@ class attach_parent
 	function do_insert_attachment_locked($db, $mode, $message_type, $message_id)
 	{
 		global $lang;
+		if (!attach_message_exists($db, $message_type, $message_id)) { message_die(GENERAL_ERROR, $lang['Attachment_publish_unavailable']); }
 
 		if ($message_type == 'pm')
 		{

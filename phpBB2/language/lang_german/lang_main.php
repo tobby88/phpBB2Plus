@@ -460,6 +460,7 @@ $lang['AJAX_use_edit'] = 'Benutze AJAX Schnelledit';
 // Private Messaging
 //
 $lang['Private_Messaging'] = 'Private Nachrichten';
+$lang['PM_cleanup_failed'] = 'Die Bereinigung privater Nachrichten wurde wegen eines Datenbankfehlers abgebrochen. Bereits abgeschlossene Löschungen bleiben bestehen. Bitte lade dein Postfach neu; verbliebene Anhangdaten können im Administrationsbereich geprüft werden.';
 
 $lang['Login_check_pm'] = 'Einloggen, um private Nachrichten zu lesen';
 $lang['New_pms'] = 'Du hast %d neue Nachrichten'; // You have 2 new messages

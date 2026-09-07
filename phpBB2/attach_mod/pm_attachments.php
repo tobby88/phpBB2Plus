@@ -95,6 +95,7 @@ class attach_pm extends attach_parent
 	function duplicate_attachment_pm_locked($db, $switch_attachment, $original_privmsg_id, $new_privmsg_id)
 	{
 		global $privmsg, $folder;
+		if (!attach_message_exists($db, 'pm', $original_privmsg_id) || !attach_message_exists($db, 'pm', $new_privmsg_id)) { return; }
 
 		if (($privmsg['privmsgs_type'] == PRIVMSGS_NEW_MAIL || $privmsg['privmsgs_type'] == PRIVMSGS_UNREAD_MAIL) && $folder == 'inbox' && intval($switch_attachment) == 1)
 		{

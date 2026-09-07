@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Unify selected/all private-message deletion and inbox/sentbox/savebox trimming
+  on an owned attachment-writer session. Recheck owner/mailbox predicates at
+  parent deletion and remove text/attachments only for actually deleted rows.
+  Preserve other mailbox copies, recount new/unread counters, and deterministically
+  select one oldest message at capacity. Reject attachment publication/copy to
+  missing parents. No schema migration; mailbox capacity policy is unchanged.
 - Revalidate complete ACP orphan-attachment selections under the shared writer
   lock before mutation. Protect newly registered references and unfinished
   uploads with a minimum 24-hour file-age check (unknown FTP ages stay hidden).

@@ -444,3 +444,6 @@ jobs:
 
       - name: Test attachment orphan cleanup and pending upload protection
         run: php .github/scripts/check-attachment-shadow.php
+
+      - name: Test private-message deletion and attachment lifecycle
+        run: php .github/scripts/check-private-message-cleanup.php

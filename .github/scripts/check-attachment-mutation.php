@@ -52,7 +52,7 @@ class MutationForum
 }
 class sql_db
 {
-	var $db_connect_id = true; var $state; var $closed = false;
+	var $db_connect_id = true; var $state; var $closed = false; var $affected = 0;
 	function __construct($server, $user, $password, $name, $persistent)
 	{
 		mutation_check($server === 'fixture' && $persistent === false, 'Use a dedicated non-persistent session');
@@ -77,6 +77,7 @@ class sql_db
 		if ($this->closed || !$this->db_connect_id) { return false; }
 		if ($s->failure !== '' && strpos($sql, $s->failure) === 0) { return false; }
 		$statement = $s->pdo->query($sql);
+		$this->affected = $statement->rowCount();
 		return preg_match('/^SELECT/', $sql) ? $this->result($statement->fetchAll(PDO::FETCH_ASSOC)) : true;
 	}
 	function result($rows) { $result = new stdClass(); $result->rows = $rows; $result->position = 0; return $result; }
@@ -85,6 +86,7 @@ class sql_db
 	function sql_numrows($result) { return count($result->rows); }
 	function sql_freeresult($result) {}
 	function sql_nextid() { return (int) $this->state->pdo->lastInsertId(); }
+	function sql_affectedrows() { return $this->affected; }
 	function sql_escape($value) { return str_replace("'", "''", $value); }
 	function sql_close()
 	{

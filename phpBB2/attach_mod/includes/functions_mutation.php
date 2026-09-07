@@ -51,6 +51,19 @@ function attach_require_mutation_lock($database)
 	return $lock;
 }
 
+function attach_message_exists($database, $type, $id)
+{
+	global $lang;
+	if ((int) $id <= 0 || !in_array($type, array('post', 'pm'), true)) { return false; }
+	$table = $type === 'pm' ? PRIVMSGS_TABLE : POSTS_TABLE;
+	$key = $type === 'pm' ? 'privmsgs_id' : 'post_id';
+	$result = $database->sql_query('SELECT ' . $key . ' FROM ' . $table . ' WHERE ' . $key . ' = ' . (int) $id);
+	if (!$result) { message_die(GENERAL_ERROR, $lang['Attachment_publish_unavailable']); }
+	$exists = $database->sql_numrows($result) > 0;
+	$database->sql_freeresult($result);
+	return $exists;
+}
+
 // Must run under the mutation lock. A retained description also reserves its
 // physical name during/after failed cleanup: stale forms cannot publish a new
 // reference while the old operation is deleting that file, even if its DB
