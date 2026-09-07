@@ -394,3 +394,6 @@ jobs:
 
       - name: Verify complete CI test inventory
         run: php .github/scripts/check-ci-test-inventory.php
+
+      - name: Test CrackerTracker settings submission validation
+        run: php .github/scripts/check-ctracker-settings-runtime.php

@@ -385,6 +385,7 @@ $lang['ctracker_glob_msg_invalid_type'] = 'Invalid announcement type. Please sel
 $lang['ctracker_error_blocklist_id'] = 'Invalid block entry identifier. Nothing was changed. Please reload the blocklist.';
 $lang['ctracker_error_loading_config']    = 'The CBACK CrackerTracker Configuration couldn\'t be loaded from the database. Have you run the installation script and edited the file "includes/constants.php" correctly?';
 $lang['ctracker_error_updating_config']   = 'The CBACK CrackerTracker Configuration couldn\'t be updated. Have you run the installation script and edited the file "includes/constants.php" correctly?';
+$lang['ctracker_error_settings_input'] = 'Invalid value for setting %s. Please select one of the available values. No settings have been saved.';
 $lang['ctracker_error_loading_blocklist'] = 'The CBACK CrackerTracker Blocklist couldn\'t be loaded from Database. Have you run the installation script and edited the file "includes/constants.php" correctly?';
 $lang['ctracker_error_insert_blocklist']  = 'The data couldn\'t be added to CBACK CrackerTracker Blocklist. Have you run the installation script and edited the file "includes/constants.php" correctly?';
 $lang['ctracker_error_delete_blocklist']  = 'The data couldn\'t be removed from CBACK CrackerTracker Blocklist. Have you run the installation script and edited the file "includes/constants.php" correctly?';

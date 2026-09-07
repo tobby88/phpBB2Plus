@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate all submitted CrackerTracker settings before the first write.
+  Malformed numbers, arrays and out-of-range selections no longer silently
+  disable protection or change a limit; omitted fields remain unchanged.
+  Input errors are available in German and English.
 - Preserve complete Unicode global announcements up to the database's
   255-character limit instead of cutting at 255 bytes. Validate text/type before
   writing either field, store the pair in one upsert, and activate only after

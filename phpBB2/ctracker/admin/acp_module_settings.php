@@ -48,13 +48,27 @@ if( isset($HTTP_POST_VARS['submit']) )
 		'request_limit_account' => array(1, 100), 'request_limit_write' => array(20, 500),
 		'request_limit_upload' => array(1, 100), 'request_limit_content' => array(10, 200)
 	);
+	// Validate the entire submitted form before writing any setting. A malformed
+	// number must never be coerced into a disabled protection or clamped limit.
+	$pending_settings = array();
 	foreach ($setting_ranges as $setting_name => $range)
 	{
-		$value = intval(phpbb_admin_post_string($setting_name, isset($ctracker_config->settings[$setting_name]) ? $ctracker_config->settings[$setting_name] : $range[0]));
-		$value = min($range[1], max($range[0], $value));
-		$ctracker_config->change_configuration($setting_name, (string) $value);
-		$ctracker_config->settings[$setting_name] = (string) $value;
-	}	
+		if (!array_key_exists($setting_name, $_POST))
+		{
+			continue;
+		}
+		$value = $_POST[$setting_name];
+		if (!is_string($value) || preg_match('/\A(?:0|[1-9][0-9]{0,2})\z/D', $value) !== 1 ||
+			(int) $value < $range[0] || (int) $value > $range[1])
+		{
+			message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_error_settings_input'], $setting_name));
+		}
+		$pending_settings[$setting_name] = $value;
+	}
+	foreach ($pending_settings as $setting_name => $value)
+	{
+		$ctracker_config->change_configuration($setting_name, $value);
+	}
 }
 
 

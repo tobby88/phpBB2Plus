@@ -384,6 +384,7 @@ $lang['ctracker_glob_msg_invalid_type'] = 'Ungültiger Ankündigungstyp. Bitte w
 $lang['ctracker_error_blocklist_id'] = 'Ungültige Kennung des Sperreintrags. Es wurde nichts geändert. Bitte lade die Blockliste erneut.';
 $lang['ctracker_error_loading_config']    = 'Die CBACK CrackerTracker Konfiguration konnte nicht von der Datenbank geladen werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';
 $lang['ctracker_error_updating_config']   = 'Die CBACK CrackerTracker Konfiguration konnte nicht aktualisiert werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';
+$lang['ctracker_error_settings_input'] = 'Ungültiger Wert für die Einstellung %s. Bitte wähle einen der angebotenen Werte. Es wurden keine Einstellungen gespeichert.';
 $lang['ctracker_error_loading_blocklist'] = 'Die CBACK CrackerTracker Blockliste konnte nicht von der Datenbank geladen werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';
 $lang['ctracker_error_insert_blocklist']  = 'Der Datensatz konnte nicht in die CBACK CrackerTracker Blockliste eingefügt werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';
 $lang['ctracker_error_delete_blocklist']  = 'Der Datensatz konnte nicht von der CBACK CrakerTracker Blockliste entfernt werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';
