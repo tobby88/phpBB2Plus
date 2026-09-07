@@ -477,3 +477,6 @@ jobs:
 
       - name: Test AJAX edit storage and current permissions
         run: php .github/scripts/check-ajax-edit-storage.php
+
+      - name: Test coordinated poll votes and failure recovery
+        run: php .github/scripts/check-poll-storage.php

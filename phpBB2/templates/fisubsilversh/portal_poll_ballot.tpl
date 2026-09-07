@@ -19,12 +19,7 @@
 					</tr>
 					<tr>
 						<td  class="row1" align="center">
-						 <!-- BEGIN switch_user_logged_in -->
 						 {L_SUBMIT_VOTE}
-						 <!-- END switch_user_logged_in -->		
-						 <!-- BEGIN switch_user_logged_out -->
-						 <span class="gensmall">{LOGIN_TO_VOTE}<span>
-						 <!-- END switch_user_logged_out -->
 		  				</td>
 					</tr>
 				</table>{S_HIDDEN_FIELDS}</form></td>

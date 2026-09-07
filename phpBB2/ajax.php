@@ -299,138 +299,20 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 		AJAX_message_die($result_ar);
 	}
 	
-	// Get vote_option_id and vote_id
-	if ($mode == 'vote_poll')
+	require_once($phpbb_root_path . 'includes/functions_poll_storage.' . $phpEx);
+	try
 	{
-		$vote_option_id = ajax_request_int('vote_option_id');
-		
-		if (!empty($vote_option_id))
+		if ($mode === 'vote_poll')
 		{
-			// Get vote_id from vote_option_id
-			$sql = 'SELECT vd.*, t.forum_id, t.topic_id, t.topic_status 
-			        FROM '. VOTE_DESC_TABLE .' vd, '. VOTE_RESULTS_TABLE .' vr, '. TOPICS_TABLE ." t 
-			        WHERE vr.vote_id = vd.vote_id 
-			        AND t.topic_id = vd.topic_id 
-			        AND vr.vote_option_id = $vote_option_id 
-			        AND t.topic_id = $topic_id 
-			        GROUP BY vd.vote_id";
-			if (!($result = $db->sql_query($sql)))
-			{
-				$error = $db->sql_error();
-				$result_ar = array(
-					'result' => AJAX_ERROR,
-					'error_msg' => 'Could not query vote information'
-				);
-				AJAX_message_die($result_ar);
-			}
-			$vote_info = $db->sql_fetchrow($result);
-			$db->sql_freeresult($result);
+			phpbb_cast_poll_vote($db, $topic_id, ajax_request_int('vote_option_id'));
 		}
+		$poll_state = phpbb_poll_state($db, $topic_id);
+		$vote_info = $poll_state['poll']; $can_vote = $poll_state['can_vote'];
+		if ($mode === 'view_ballot' && !$can_vote) { $mode = 'view_poll'; }
 	}
-	else
+	catch (PhpbbPollStorageException $error)
 	{
-		// Get vote_id from vote_option_id
-		$sql = 'SELECT vd.*, t.forum_id, t.topic_id, t.topic_status 
-		        FROM '. VOTE_DESC_TABLE .' vd, '. TOPICS_TABLE ." t 
-		        WHERE t.topic_id = vd.topic_id 
-		        AND t.topic_id = $topic_id 
-		        GROUP BY vd.vote_id";
-		if (!($result = $db->sql_query($sql)))
-		{
-			$error = $db->sql_error();
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'Could not query vote information'
-			);
-			AJAX_message_die($result_ar);
-		}
-		$vote_info = $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);
-	}
-	
-	if ($vote_info)
-	{
-		// Check if the user is allowed to vote
-		$is_auth = auth(AUTH_ALL, $vote_info['forum_id'], $userdata);
-		if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
-		{
-			AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'This topic does not exist'));
-		}
-		$poll_expired = ($vote_info['vote_length']) ? (($vote_info['vote_start'] + $vote_info['vote_length'] < time()) ? True : False) : False;
-		$can_vote = $is_auth['auth_vote'] && (($vote_info['topic_status'] != TOPIC_LOCKED) || ($is_auth['auth_mod'])) && !$poll_expired;
-		if ($can_vote)
-		{
-			$vote_id = intval($vote_info['vote_id']);
-			$vote_user_id = (int) $userdata['user_id'];
-			$vote_identity = ($vote_user_id == ANONYMOUS)
-				? "vote_user_id = " . ANONYMOUS . " AND vote_user_ip = '" . $db->sql_escape($user_ip) . "'"
-				: "vote_user_id = $vote_user_id";
-		
-			// Check if the user already voted
-			$sql = 'SELECT * FROM '. VOTE_USERS_TABLE ." 
-			        WHERE vote_id = $vote_id 
-			        AND $vote_identity";
-			if (!($result = $db->sql_query($sql)))
-			{
-				$result_ar = array(
-					'result' => AJAX_ERROR,
-					'error_msg' => 'Could not obtain user vote data for this topic'
-				);
-				AJAX_message_die($result_ar);
-			}
-			$row = $db->sql_fetchrow($result);
-			$db->sql_freeresult($result);
-			
-			$can_vote = $can_vote && !$row;
-
-			if (!$row && ($mode == 'vote_poll'))
-			{
-				$vote_ip = $db->sql_escape($user_ip);
-				$sql = 'INSERT INTO '. VOTE_USERS_TABLE ." (vote_id, vote_user_id, vote_user_ip)
-					SELECT $vote_id, $vote_user_id, '$vote_ip'
-					WHERE NOT EXISTS (
-						SELECT 1 FROM " . VOTE_USERS_TABLE . "
-						WHERE vote_id = $vote_id AND $vote_identity
-					)";
-				if (!$db->sql_query($sql))
-				{
-					$result_ar = array(
-						'result' => AJAX_ERROR,
-						'error_msg' => 'Could not record poll voter'
-					);
-					AJAX_message_die($result_ar);
-				}
-
-				if ($db->sql_affectedrows() == 1)
-				{
-					$sql = 'UPDATE '. VOTE_RESULTS_TABLE ."
-						SET vote_result = vote_result + 1
-						WHERE vote_id = $vote_id
-						AND vote_option_id = $vote_option_id";
-					if (!$db->sql_query($sql))
-					{
-						$db->sql_query('DELETE FROM ' . VOTE_USERS_TABLE . " WHERE vote_id = $vote_id AND $vote_identity");
-						AJAX_message_die(array(
-							'result' => AJAX_ERROR,
-							'error_msg' => 'Could not update poll result'
-						));
-					}
-				}
-				$can_vote = False;
-			}
-			else if (!$can_vote && ($mode == 'view_ballot'))
-			{
-				$mode = 'view_poll';
-			}
-		}
-		if ($mode == 'view_ballot' && !$can_vote)
-		{
-			$mode = 'view_poll';
-		}
-	}
-	else
-	{
-		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => 'Could not get vote information'));
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => $error->getMessage()));
 	}
 	
 	// Display vote information

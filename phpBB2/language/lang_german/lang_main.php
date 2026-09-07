@@ -1631,4 +1631,7 @@ $lang['Posting_target_changed'] = 'Das Thema oder die Umfrage hat sich inzwische
 $lang['Ajax_edit_invalid_text'] = 'Der Text konnte nicht als gültiges UTF-8 verarbeitet werden. Bitte prüfe deine Eingabe.';
 $lang['Ajax_edit_too_large'] = 'Der Text ist für eine Direktbearbeitung zu lang. Bitte kürze ihn oder verwende den vollständigen Editor.';
 
+$lang['Poll_storage_failed'] = 'Deine Stimme konnte nicht zuverlässig gespeichert werden. Bitte versuche es später erneut.';
+$lang['Poll_vote_denied'] = 'Du darfst an dieser Umfrage nicht teilnehmen.';
+$lang['Poll_expired'] = 'Diese Umfrage ist beendet.';
 ?>

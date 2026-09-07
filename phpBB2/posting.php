@@ -754,80 +754,16 @@ else if ( $mode == 'vote' )
 
 	if ( !empty($_POST['vote_id']) )
 	{
-		$vote_option_id = intval($_POST['vote_id']);
-
-		$sql = "SELECT vd.vote_id    
-			FROM " . VOTE_DESC_TABLE . " vd, " . VOTE_RESULTS_TABLE . " vr
-			WHERE vd.topic_id = $topic_id 
-				AND vr.vote_id = vd.vote_id 
-				AND vr.vote_option_id = $vote_option_id
-			GROUP BY vd.vote_id";
-		if ( !($result = $db->sql_query($sql)) )
+		require_once($phpbb_root_path . 'includes/functions_poll_storage.' . $phpEx);
+		try
 		{
-			message_die(GENERAL_ERROR, 'Could not obtain vote data for this topic', '', __LINE__, __FILE__, $sql);
+			$vote_status = phpbb_cast_poll_vote($db, $topic_id, $_POST['vote_id']);
+			$message = $lang[$vote_status];
 		}
-
-		if ( $vote_info = $db->sql_fetchrow($result) )
+		catch (PhpbbPollStorageException $error)
 		{
-			$vote_id = $vote_info['vote_id'];
-
-			$vote_user_id = intval($userdata['user_id']);
-			$vote_ip = $db->sql_escape($user_ip);
-			$vote_identity = ($vote_user_id == ANONYMOUS)
-				? "vote_user_id = " . ANONYMOUS . " AND vote_user_ip = '$vote_ip'"
-				: "vote_user_id = $vote_user_id";
-			$sql = "SELECT vote_id
-				FROM " . VOTE_USERS_TABLE . "
-				WHERE vote_id = $vote_id
-					AND $vote_identity";
-			if ( !($result2 = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain user vote data for this topic', '', __LINE__, __FILE__, $sql);
-			}
-
-			if ( !($row = $db->sql_fetchrow($result2)) )
-			{
-				$sql = "INSERT INTO " . VOTE_USERS_TABLE . " (vote_id, vote_user_id, vote_user_ip)
-					SELECT $vote_id, $vote_user_id, '$vote_ip'
-					WHERE NOT EXISTS (
-						SELECT 1 FROM " . VOTE_USERS_TABLE . "
-						WHERE vote_id = $vote_id AND $vote_identity
-					)";
-				if ( !$db->sql_query($sql, BEGIN_TRANSACTION) )
-				{
-					message_die(GENERAL_ERROR, 'Could not record poll voter', '', __LINE__, __FILE__, $sql);
-				}
-
-				if ($db->sql_affectedrows() == 1)
-				{
-					$sql = "UPDATE " . VOTE_RESULTS_TABLE . "
-						SET vote_result = vote_result + 1
-						WHERE vote_id = $vote_id
-							AND vote_option_id = $vote_option_id";
-					if ( !$db->sql_query($sql, END_TRANSACTION) )
-					{
-						$db->sql_query("DELETE FROM " . VOTE_USERS_TABLE . " WHERE vote_id = $vote_id AND $vote_identity");
-						message_die(GENERAL_ERROR, 'Could not update poll result', '', __LINE__, __FILE__, $sql);
-					}
-
-					$message = $lang['Vote_cast'];
-				}
-				else
-				{
-					$message = $lang['Already_voted'];
-				}
-			}
-			else
-			{
-				$message = $lang['Already_voted'];
-			}
-			$db->sql_freeresult($result2);
+			message_die(GENERAL_MESSAGE, $error->getMessage());
 		}
-		else
-		{
-			$message = $lang['No_vote_option'];
-		}
-		$db->sql_freeresult($result);
 
 		$template->assign_vars(array(
 			'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id") . '">')

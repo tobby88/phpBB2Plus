@@ -1008,7 +1008,14 @@ if (count($readable_poll_forums))
 	$pollrow = $db->sql_fetchrowset($result);
 	$db->sql_freeresult($result);
 
-	if ( $total_polls != 0 )
+	$poll_state = null;
+	if ($total_polls != 0)
+	{
+		require_once($phpbb_root_path . 'includes/functions_poll_storage.' . $phpEx);
+		try { $poll_state = phpbb_poll_state($db, $pollrow[0]['topic_id']); }
+		catch (PhpbbPollStorageException $error) { /* Hide an unavailable or no longer readable poll, not the portal. */ }
+	}
+	if ( $total_polls != 0 && $poll_state !== null )
 	{
 	$topic_id = $pollrow[0]['topic_id'] ;
 
@@ -1029,18 +1036,6 @@ if (count($readable_poll_forums))
 			$vote_id = $vote_info[0]['vote_id'];
 			$vote_title = $vote_info[0]['vote_text'];
 
-			$sql = "SELECT vote_id
-				FROM " . VOTE_USERS_TABLE . "
-				WHERE vote_id = $vote_id
-					AND vote_user_id = " . $userdata['user_id'];
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't obtain user vote data for this topic", "", __LINE__, __FILE__, $sql);
-			}
-
-			$user_voted = ( $db->sql_numrows($result) ) ? TRUE : 0;
-			$db->sql_freeresult($result);
-
 			if ((isset($_GET['vote']) && is_scalar($_GET['vote'])) || (isset($_POST['vote']) && is_scalar($_POST['vote'])))
 			{
 				$view_result = ( ( ( isset($_GET['vote']) ) ? $_GET['vote'] : $_POST['vote'] ) == "viewresult" ) ? TRUE : 0;
@@ -1050,9 +1045,7 @@ if (count($readable_poll_forums))
 				$view_result = 0;
 			}
 
-			$poll_expired = ( $vote_info[0]['vote_length'] ) ? ( ( $vote_info[0]['vote_start'] + $vote_info[0]['vote_length'] < time() ) ? TRUE : 0 ) : 0;
-
-			if( $user_voted || $view_result || $poll_expired || $pollrow[0]['topic_status'] == TOPIC_LOCKED )
+			if( $view_result || !$poll_state['can_vote'] )
 			{
 
 				$template->set_filenames(array(
@@ -1118,10 +1111,6 @@ if (count($readable_poll_forums))
 						"POLL_OPTION_CAPTION" => $vote_info[$i]['vote_option_text'])		
 					);
 				}
-				$template->assign_vars(array(
-					"LOGIN_TO_VOTE" => '<b><a href="' . append_sid("login.$phpEx?redirect=portal.$phpEx") . '">' . $lang['Login_to_vote'] . '</a><b>')
-				);
-
 				$s_hidden_fields = '<input type="hidden" name="topic_id" value="' . $topic_id . '"><input type="hidden" name="mode" value="vote"><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '">';
 			}
 

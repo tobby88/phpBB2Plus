@@ -908,17 +908,9 @@ if ( !empty($forum_topic_data['topic_vote']) )
 		$vote_id = $vote_info[0]['vote_id'];
 		$vote_title = $vote_info[0]['vote_text'];
 
-		$sql = "SELECT vote_id
-			FROM " . VOTE_USERS_TABLE . "
-			WHERE vote_id = $vote_id
-				AND vote_user_id = " . intval($userdata['user_id']);
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, "Could not obtain user vote data for this topic", '', __LINE__, __FILE__, $sql);
-		}
-
-		$user_voted = ( $row = $db->sql_fetchrow($result) ) ? TRUE : 0;
-		$db->sql_freeresult($result);
+		require_once($phpbb_root_path . 'includes/functions_poll_storage.' . $phpEx);
+		try { $poll_state = phpbb_poll_state($db, $topic_id); }
+		catch (PhpbbPollStorageException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		if ( isset($_GET['vote']) || isset($_POST['vote']) )
 		{
@@ -929,9 +921,7 @@ if ( !empty($forum_topic_data['topic_vote']) )
 			$view_result = 0;
 		}
 
-		$poll_expired = ( $vote_info[0]['vote_length'] ) ? ( ( $vote_info[0]['vote_start'] + $vote_info[0]['vote_length'] < time() ) ? TRUE : 0 ) : 0;
-
-		if ( $user_voted || $view_result || $poll_expired || !$is_auth['auth_vote'] || $forum_topic_data['topic_status'] == TOPIC_LOCKED )
+		if ( $view_result || !$poll_state['can_vote'] )
 		{
 			$template->set_filenames(array(
 				'pollbox' => 'viewtopic_poll_result.tpl')
@@ -978,7 +968,7 @@ if ( !empty($forum_topic_data['topic_vote']) )
 				'U_VIEW_BALLOT' => append_sid("viewtopic.$phpEx?". POST_TOPIC_URL ."=$topic_id&amp;postdays=$post_days&amp;postorder=$post_order"))
 			);
 			
-			if (!$user_voted && !$poll_expired && $is_auth['auth_vote'] && ($forum_topic_data['topic_status'] != TOPIC_LOCKED))
+			if ($poll_state['can_vote'])
 			{
 				$template->assign_block_vars('switch_view_ballot', array());
 			}

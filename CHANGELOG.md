@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Use one coordinated voting worker for standard and AJAX poll submissions.
+  Recheck current access, forum/topic locks, expiry and the selected option under
+  the shared writer lock; count each member (or permitted guest IP) only once.
+  Check actual counter updates, including removed/moved/locked parents and integer
+  limits; compensate the newly inserted voter when counting fails. Return a
+  controlled error if storage cannot complete. Ballot lookups no longer rely on
+  nonaggregated GROUP BY queries. No schema migration or historical vote changes.
+  Topic and portal ballots use the same eligibility checks and distinguish guest
+  IPs; explicitly permitted guests can also submit the portal ballot.
+  This is not a crash-recovery journal: a lost connection or failed compensation
+  on legacy MyISAM can still require administrative reconciliation.
 - Coordinate AJAX subject/body edits with normal post and moderator writers.
   Check current forum/group permissions on the owning connection without a stale
   forum-tree override, reject locked/inconsistent/missing parents and refresh real

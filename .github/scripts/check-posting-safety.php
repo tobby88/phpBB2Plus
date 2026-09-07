@@ -28,7 +28,7 @@ $checks = array(
     'post storage uses the database driver' => strpos($functions, '$post_message_sql = $db->sql_escape(stripslashes((string) $post_message));') !== false,
     'poll option normalization updates the caller array' => strpos($functions, '$poll_options = $temp_option_text;') !== false,
     'poll options use database-driver escaping' => strpos($functions, '$option_text = $db->sql_escape(stripslashes((string) $option_text));') !== false,
-    'poll voters are recorded before their result is counted' => strpos($posting, 'INSERT INTO " . VOTE_USERS_TABLE') < strpos($posting, 'SET vote_result = vote_result + 1'),
+    'both poll endpoints use the coordinated storage worker' => strpos($posting, 'phpbb_cast_poll_vote($db, $topic_id,') !== false && strpos($ajax, 'phpbb_cast_poll_vote($db, $topic_id,') !== false,
     'portal poll form carries the session id' => strpos($portal, 'name="sid" value="\' . htmlspecialchars($userdata[\'session_id\']') !== false,
     'AJAX-rendered poll form carries the session id' => strpos($ajax, 'name="sid" value="\' . htmlspecialchars($userdata[\'session_id\']') !== false,
 );
