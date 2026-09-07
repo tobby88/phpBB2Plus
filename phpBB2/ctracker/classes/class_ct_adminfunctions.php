@@ -357,9 +357,14 @@ class ct_adminfunctions
 		{
 			return false;
 		}
-		if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $path))
+		$colon = strpos($path, ':');
+		if ($colon !== false && $colon < strcspn($path, '/\\'))
 		{
-			return DIRECTORY_SEPARATOR === '\\' && preg_match('~^[a-z]:[/\\\\]~i', $path) === 1;
+			// Do not depend on PCRE for this security boundary. Also reject
+			// unusual registered schemes, including ones beginning with digits.
+			return DIRECTORY_SEPARATOR === '\\' && $colon === 1 && strlen($path) > 2 &&
+				strspn($path[0], 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') === 1 &&
+				($path[2] === '/' || $path[2] === '\\');
 		}
 		return true;
 	}

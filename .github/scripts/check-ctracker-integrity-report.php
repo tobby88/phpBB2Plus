@@ -56,6 +56,15 @@ $has_link = function_exists('symlink') && @symlink($root . '/good.php', $link);
 try
 {
 	$admin = new ct_adminfunctions();
+	$backtrack_limit = ini_get('pcre.backtrack_limit');
+	ini_set('pcre.backtrack_limit', '0');
+	try
+	{
+		integrity_assert(!$admin->is_local_file_path('ctfixture://payload.php') &&
+			!$admin->is_local_file_path('0ctfixture://payload.php') &&
+			$admin->is_local_file_path($root . '/good.php'), 'Local-path boundary must work independently of PCRE limits');
+	}
+	finally { ini_set('pcre.backtrack_limit', $backtrack_limit); }
 	integrity_assert($admin->file_checksum('ctfixture://payload.php') === false &&
 		$admin->file_checksum('ctfixture://payload.php', $root) === false &&
 		$admin->resolve_file_within_root('ctfixture://payload.php', $root) === false &&
@@ -78,6 +87,7 @@ try
 			array($root . '/missing.php', $hash, 'deleted'),
 			array(__FILE__, $hash, 'unreadable'),
 			array('ctfixture://payload.php', $hash, 'unreadable'),
+			array('0ctfixture://payload.php', $hash, 'unreadable'),
 			array('ctfixture://<script>payload</script>', $hash, 'unreadable'),
 			array($root . '/not-a-directory/missing.php', $hash, 'unreadable'),
 			array($root . '/blocked', $hash, 'unreadable'),
