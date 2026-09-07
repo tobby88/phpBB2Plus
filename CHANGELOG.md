@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Remove premature whole-post attachment deletion during form preparation.
+  Parent deletion must affect the authorized post/topic/forum selection before
+  removing its text or attachments. Coordinate that storage block with attachment
+  publication on the same locked connection and refresh surviving topic flags.
+  Failed or stale parent deletes retain attachments; ordinary edits no longer
+  trigger whole-post cleanup. No schema migration. Topic/search/statistics
+  processing remains separate, not a whole-operation transaction.
 - Fix uncached Album permission lookup to request all authorization flags.
   Missing/invalid request-local caches fall back safely for real categories;
   virtual roots retain explicit cached permissions only. Partial/malformed

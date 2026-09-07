@@ -616,6 +616,55 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 //
 // Delete a post/poll
 //
+// Delete storage only after the authorized parent selection succeeds. All
+// queries here share the attachment publisher's owning connection, so a late
+// upload cannot create a reference between parent deletion and file cleanup.
+// This is not a transaction for the entire topic/search/statistics lifecycle.
+function phpbb_delete_post_storage($database, $post_id, $topic_id, $forum_id)
+{
+	global $lang;
+	$scope = array();
+	foreach (array($post_id, $topic_id, $forum_id) as $id)
+	{
+		if ((!is_int($id) && !is_string($id)) || !preg_match('/^[0-9]+$/D', (string) $id))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
+		}
+		$ids = attach_delete_id_array($id);
+		if ($ids === false || count($ids) !== 1)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
+		}
+		$scope[] = $ids[0];
+	}
+
+	$lock = attach_require_mutation_lock($database);
+	try
+	{
+		$storage_db = $lock->connection;
+		$sql = 'DELETE FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $scope[0] .
+			' AND topic_id = ' . $scope[1] . ' AND forum_id = ' . $scope[2];
+		if (!$storage_db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
+		}
+		if ((int) $storage_db->sql_affectedrows() !== 1)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
+		}
+
+		$sql = 'DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $scope[0];
+		if (!$storage_db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
+		}
+		attach_delete_selected($storage_db, array($scope[0]), array(), 0, 0, false, true);
+		// The deleted parent can no longer identify its topic during attachment sync.
+		attachment_sync_topic($scope[1], $storage_db);
+	}
+	finally { $lock->release(); }
+}
+
 function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id)
 {
 	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
@@ -625,19 +674,7 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	{
 		include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
-		$sql = "DELETE FROM " . POSTS_TABLE . " 
-			WHERE post_id = $post_id";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql = "DELETE FROM " . POSTS_TEXT_TABLE . " 
-			WHERE post_id = $post_id";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-		}
+		phpbb_delete_post_storage($db, $post_id, $topic_id, $forum_id);
 
 		if ($post_data['last_post'])
 		{

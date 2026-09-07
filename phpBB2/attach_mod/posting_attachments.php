@@ -1696,7 +1696,7 @@ class attach_posting extends attach_parent
 	*/
 	function posting_attachment_mod()
 	{
-		global $mode, $confirm, $is_auth, $post_id, $delete, $refresh, $_POST;
+		global $mode, $refresh, $_POST;
 
 		if (!$refresh)
 		{
@@ -1714,13 +1714,8 @@ class attach_posting extends attach_parent
 			return;
 		}
 
-		if ($confirm && ($delete || $mode == 'delete' || $mode == 'editpost') && ($is_auth['auth_delete'] || $is_auth['auth_mod']))
-		{
-			if ($post_id)
-			{
-				delete_attachment($post_id);
-			}
-		}
+		// Whole-post attachment removal belongs to successful parent deletion,
+		// not form preparation (which also runs for rejected deletes and edits).
 
 		$this->display_attachment_bodies();
 	}

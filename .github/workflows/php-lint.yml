@@ -456,3 +456,6 @@ jobs:
 
       - name: Test authenticated Album ownership and missing-owner handling
         run: php .github/scripts/check-album-owner-authorization.php
+
+      - name: Test post deletion storage and attachment form ordering
+        run: php .github/scripts/check-post-deletion-storage.php
