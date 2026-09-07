@@ -74,6 +74,8 @@ foreach (array('ct_login_count', 'ct_login_vconfirm') as $column)
 }
 
 $forbidden = array(
+	'user_login_tries',
+	'user_last_login_try',
 	'$blocktime = ", user_block_by',
 	"use_template('bad_login'",
 	'$ctracker_config->handle_wrong_login',

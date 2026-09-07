@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Remove unused legacy HTML/link-decoding helpers and commented-out account-wide
+  login-lock logic. The credential query now loads only fields used by the
+  active login path; administrator blocks and CrackerTracker limits remain
+  intact. Historical database columns are retained for existing tooling.
 - Automatic link recognition now preserves existing links, quoted HTML
   attributes, comments and literal code/raw-text regions instead of creating
   nested anchors or corrupting markup. Regex failures retain the entire original

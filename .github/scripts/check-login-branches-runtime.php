@@ -16,7 +16,20 @@ class LoginBranchDatabase
 	public $queries = array();
 	public function sql_escape($value) { return addslashes($value); }
 	public function sql_query($sql) { $this->queries[] = $sql; return true; }
-	public function sql_fetchrow($result) { return $this->row; }
+	public function sql_fetchrow($result)
+	{
+		if ($this->row === false) { return false; }
+		$sql = end($this->queries);
+		branch_assert(preg_match('/\ASELECT\s+(.*?)\s+FROM\s/is', $sql, $select) === 1, 'fixture must execute the credential lookup');
+		$row = array();
+		foreach (explode(',', $select[1]) as $column)
+		{
+			$column = trim($column);
+			branch_assert(array_key_exists($column, $this->row), 'credential lookup must request a supported field: ' . $column);
+			$row[$column] = $this->row[$column];
+		}
+		return $row;
+	}
 }
 class LoginBranchTemplate
 {

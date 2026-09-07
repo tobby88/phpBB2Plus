@@ -69,7 +69,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 		$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
 		$password_value = (isset($_POST['password']) && is_scalar($_POST['password'])) ? (string) $_POST['password'] : '';
 		$password = (strlen($password_value) <= 128) ? $password_value : '';
-		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_login_tries, user_last_login_try, user_badlogin, user_blocktime, user_email, user_lang, user_timezone,user_passwd_change
+		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_blocktime
 			FROM " . USERS_TABLE . "
 			WHERE username = '" . $username_sql . "'";
 		if ( !($result = $db->sql_query($sql)) )
@@ -85,25 +85,9 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 			}
 			else
 			{
-				// Start add - Protect user account MOD
+				// Keep administrator-imposed blocks separate from rate limiting.
 				if ($row['user_blocktime']<time() )
 				{
-					/*
-					// If the last login is more than x minutes ago, then reset the login tries/time
-					if ($row['user_last_login_try'] && $board_config['login_reset_time'] && $row['user_last_login_try'] < (time() - ($board_config['login_reset_time'] * 60)))
-					{
-						$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_login_tries = 0, user_last_login_try = 0 WHERE user_id = ' . $row['user_id']);
-						$row['user_last_login_try'] = $row['user_login_tries'] = 0;
-					}
-					
-					// Check to see if user is allowed to login again... if his tries are exceeded
-					if ($row['user_last_login_try'] && $board_config['login_reset_time'] && $board_config['max_login_attempts'] && 
-						$row['user_last_login_try'] >= (time() - ($board_config['login_reset_time'] * 60)) && $row['user_login_tries'] >= $board_config['max_login_attempts'] && $userdata['user_level'] != ADMIN)
-					{
-						message_die(GENERAL_MESSAGE, sprintf($lang['Login_attempts_exceeded'], $board_config['max_login_attempts'], $board_config['login_reset_time']));
-					}
-					*/
-					// End add - Protect user account MOD
 					if( phpbb_password_verify($password, $row['user_password']) && $row['user_active'] )
 					{
 						if (!empty($board_config['password_hashing']) && phpbb_password_needs_rehash($row['user_password']))
@@ -120,13 +104,6 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						$admin = (isset($HTTP_POST_VARS['admin'])) ? 1 : 0;
 						$session_id = session_begin($row['user_id'], $user_ip, PAGE_INDEX, FALSE, $autologin, $admin);
 	
-						// Start add - Protect user account MOD
-						/*
-						// Reset login tries
-						$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_login_tries = 0, user_last_login_try = 0 WHERE user_id = ' . $row['user_id']);
-						*/
-						// End add - Protect user account MOD
-
 						// CrackerTracker v5.x
 						if ( $ctracker_config->settings['login_history'] == 1 )
 						{
@@ -187,18 +164,6 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 					// Only store a failed login attempt for an active user - inactive users can't login even with a correct password
 					elseif( $row['user_active'] )
 					{
-						// Start add - Protect user account MOD
-						/*
-						// Save login tries and last login
-						if ($row['user_id'] != ANONYMOUS)
-						{
-							$sql = 'UPDATE ' . USERS_TABLE . '
-								SET user_login_tries = user_login_tries + 1, user_last_login_try = ' . time() . '
-								WHERE user_id = ' . $row['user_id'];
-							$db->sql_query($sql);
-						}
-						*/
-						// End add - Protect user account MOD
 						if ($row['user_id'] != ANONYMOUS)
 						{
 							// CrackerTracker v5.x
@@ -236,12 +201,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 					'META' => "<meta http-equiv=\"refresh\" content=\"3;url=login.$phpEx?redirect=$redirect\">")
 				);
 
-			// Start add - Protect user account MOD
-		/*
-				$message = $lang['Error_login'] . '<br /><br />' . sprintf($lang['Click_return_login'], "<a href=\"login.$phpEx?redirect=$redirect\">", '</a>') . '<br /><br />' .  sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-		*/
 				$message = $lang['Error_login'] . '<br /><br />' . sprintf($lang['Click_return_login'], '<a href="' . append_sid("login.$phpEx?redirect=$redirect") . '">', '</a>') . '<br /><br />' .  sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-				// End add - Protect user account MOD
 				message_die(GENERAL_MESSAGE, $message);
 			}
 		}
