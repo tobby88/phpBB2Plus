@@ -85,7 +85,7 @@ $search_terms = ($search_terms == 'all') ? 1 : 0;
 $search_fields = phpbb_request_scalar($_POST, 'search_fields', phpbb_request_scalar($_GET, 'search_fields', 'all'));
 $search_fields = ($search_fields == 'all') ? 1 : 0;
 
-$return_chars = max(0, min(1000, intval(phpbb_request_scalar($_POST, 'return_chars', phpbb_request_scalar($_GET, 'return_chars', 200)))));
+$return_chars = phpbb_search_return_chars(phpbb_request_scalar($_POST, 'return_chars', phpbb_request_scalar($_GET, 'return_chars', 200)));
 
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- delete
@@ -961,7 +961,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 				$sort_dir = (isset($search_data['sort_dir']) && $search_data['sort_dir'] === 'ASC') ? 'ASC' : 'DESC';
 				$cached_show_results = isset($search_data['show_results']) && is_scalar($search_data['show_results']) ? (string) $search_data['show_results'] : 'posts';
 				$show_results = in_array($cached_show_results, array('posts', 'topics', 'bookmarks'), true) ? $cached_show_results : 'posts';
-				$return_chars = max(0, min(1000, intval(isset($search_data['return_chars']) ? $search_data['return_chars'] : 200)));
+				$return_chars = phpbb_search_return_chars(isset($search_data['return_chars']) ? $search_data['return_chars'] : 200);
 			}
 		}
 	}
@@ -972,21 +972,30 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 	if ( $search_results != '' )
 	{
 		$this_auth = auth(AUTH_ALL,AUTH_LIST_ALL,$userdata);
+		// Cached IDs are not an authorization grant: permissions and topic
+		// locations may have changed since the search was first performed.
+		$readable_forums = phpbb_search_readable_forums($this_auth);
+		if (empty($readable_forums))
+		{
+			phpbb_search_no_results($show_results, $is_ajax);
+		}
+		$readable_forum_sql = implode(', ', $readable_forums);
 
 		if ( $show_results == 'posts' )
 		{
-			$sql = "SELECT pt.post_text, pt.bbcode_uid, pt.post_subject, p.*, f.forum_id, f.forum_name, t.*, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid  
-				FROM " . FORUMS_TABLE . " f, " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TEXT_TABLE . " pt 
+			$result_select_sql = "SELECT pt.post_text, pt.bbcode_uid, pt.post_subject, p.*, f.forum_id, f.forum_name, t.*, u.username, u.user_id, u.user_sig, u.user_sig_bbcode_uid";
+			$result_from_sql = " FROM " . FORUMS_TABLE . " f, " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TEXT_TABLE . " pt
 				WHERE p.post_id IN ($search_results)
 					AND pt.post_id = p.post_id
 					AND f.forum_id = p.forum_id
 					AND p.topic_id = t.topic_id
+					AND t.forum_id = f.forum_id
 					AND p.poster_id = u.user_id";
 		}
 		else
 		{
-			$sql = "SELECT t.*, f.forum_id, f.forum_name, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time 
-				FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
+			$result_select_sql = "SELECT t.*, f.forum_id, f.forum_name, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time";
+			$result_from_sql = " FROM " . TOPICS_TABLE . " t, " . FORUMS_TABLE . " f, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
 				WHERE t.topic_id IN ($search_results) 
 					AND t.topic_poster = u.user_id
 					AND f.forum_id = t.forum_id 
@@ -996,6 +1005,23 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		}
 
 		$per_page = max(1, intval(( $show_results == 'posts' ) ? $board_config['posts_per_page'] : $board_config['topics_per_page']));
+		$result_from_sql .= " AND f.forum_id IN ($readable_forum_sql)";
+		// Count the same joined, authorized rows that will be rendered. Deleted
+		// posts and inaccessible forums must not leave stale counts or pages.
+		$sql = 'SELECT COUNT(*) AS total' . $result_from_sql;
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, 'Could not count search results', '', __LINE__, __FILE__, $sql);
+		}
+		$count_row = $db->sql_fetchrow($result);
+		$total_match_count = intval($count_row['total']);
+		$db->sql_freeresult($result);
+		if (!$total_match_count)
+		{
+			phpbb_search_no_results($show_results, $is_ajax);
+		}
+		$start = min($start, intval(floor(($total_match_count - 1) / $per_page)) * $per_page);
+		$sql = $result_select_sql . $result_from_sql;
 
 		$sql .= " ORDER BY ";
 		switch ( $sort_by )
@@ -1162,16 +1188,13 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 					//
 					if ( $return_chars != -1 )
 					{
-						$message = strip_tags($message);
-						$message = preg_replace("/\[.*?:$bbcode_uid:?.*?\]/si", '', $message);
-						$message = preg_replace('/\[url\]|\[\/url\]/si', '', $message);
-						$message = ( strlen($message) > $return_chars ) ? substr($message, 0, $return_chars) . ' ...' : $message;
+						$message = phpbb_search_excerpt($message, $bbcode_uid, $return_chars);
 					}
 					else
 					{
-						if ( !$board_config['allow_html'] )
+						if ( !$board_config['allow_html'] || !$userdata['user_allowhtml'] )
 						{
-							if ( $postrow[$i]['enable_html'] )
+							if ( $searchset[$i]['enable_html'] )
 							{
 								$message = preg_replace('#(<)([\/]?.*?)(>)#is', '&lt;\\2&gt;', $message);
 							}
@@ -1310,6 +1333,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 				if ( $userdata['session_logged_in'] && $searchset[$i]['post_time'] > $userdata['user_lastvisit'] )
 				{
+					$topic_last_read = intval($userdata['user_lastvisit']);
 					if ( !empty($tracking_topics[$topic_id]) && !empty($tracking_forums[$forum_id]) )
 					{
 						$topic_last_read = ( $tracking_topics[$topic_id] > $tracking_forums[$forum_id] ) ? $tracking_topics[$topic_id] : $tracking_forums[$forum_id];

@@ -34,7 +34,7 @@
 </tr>
 <tr>
 <td valign="top" class="row1">
-{searchresults.U_EDIT_IMG}<span id="postmessage_{searchresults.U_POST_ID}"><span class="postbody">{searchresults.MESSAGE}</span></span>
+{searchresults.U_EDIT_IMG}<div id="postmessage_{searchresults.U_POST_ID}" class="postbody">{searchresults.MESSAGE}</div>
 <!-- BEGIN can_edit -->
 <div class="gen" id="post_{searchresults.U_POST_ID}" style="display:none; text-align:right;">
 <textarea id="posttext_{searchresults.U_POST_ID}" rows="15" cols="35" wrap="virtual" class="post" style="width:100%;" onkeyup="AJAXPostEditkeyUp(event, {searchresults.U_POST_ID})">{searchresults.RAW_MESSAGE}</textarea><textarea id="orig_posttext_{searchresults.U_POST_ID}" rows="1" cols="1" style="display:none;">{searchresults.RAW_MESSAGE}</textarea><br />

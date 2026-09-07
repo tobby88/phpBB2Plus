@@ -282,8 +282,7 @@ else if ($mode == 'edit_post_text')
 	}
 	
 	// This is only needed on the search page
-	$return_chars = ajax_request_int('return_chars', -1);
-	$return_chars = ($return_chars < 0) ? -1 : min(10000, $return_chars);
+	$return_chars = phpbb_search_return_chars(ajax_request_int('return_chars', -1));
 	$highlight_match = $highlight = '';
 	if (isset($HTTP_GET_VARS['highlight']) || isset($HTTP_POST_VARS['highlight']))
 	{
@@ -448,10 +447,7 @@ else if ($mode == 'edit_post_text')
 	}
 	else
 	{
-		$message = strip_tags($message);
-		$message = preg_replace("/\[.*?:$bbcode_uid:?.*?\]/si", '', $message);
-		$message = preg_replace('/\[url\]|\[\/url\]/si', '', $message);
-		$message = ( strlen($message) > $return_chars ) ? substr($message, 0, $return_chars) . ' ...' : $message;
+		$message = phpbb_search_excerpt($message, $bbcode_uid, $return_chars);
 	}
 	
 	$orig_word = array();

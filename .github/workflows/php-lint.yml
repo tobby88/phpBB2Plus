@@ -48,6 +48,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          extensions: pdo_sqlite
 
       - name: Lint PHP sources
         shell: bash
@@ -183,6 +184,9 @@ jobs:
 
       - name: Test forum search safety
         run: php .github/scripts/check-search-safety.php
+
+      - name: Test search result permissions and pagination
+        run: php .github/scripts/check-search-results-runtime.php
 
       - name: Test session-page constants
         run: php .github/scripts/check-session-page-constants.php

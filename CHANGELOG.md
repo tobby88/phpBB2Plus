@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recheck current forum visibility and read permissions when displaying cached
+  searches or bookmarks, including moved topics. Count only existing authorized
+  results and adjust obsolete page offsets instead of exposing stale metadata.
+- Restore the search's full-post option and preserve complete UTF-8 characters
+  and HTML entities in shortened excerpts, including after inline AJAX edits.
+  Full results respect the reader's HTML preference and use block-safe markup;
+  unread indicators no longer inherit another result's tracking timestamp.
 - Added a separately configurable five-minute CrackerTracker limit for posts,
   private messages, shoutbox entries, comments, ratings and Arcade scores,
   distinct from the broad per-minute write and hourly upload limits.

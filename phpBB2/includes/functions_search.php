@@ -19,6 +19,58 @@
  *
  ***************************************************************************/
 
+function phpbb_search_return_chars($value)
+{
+	$value = is_scalar($value) ? intval($value) : 200;
+	return ($value === -1) ? -1 : max(0, min(1000, $value));
+}
+
+// Excerpts contain visible text only. Count Unicode characters, not UTF-8 bytes
+// or the bytes of their HTML entities, and escape again before rendering.
+function phpbb_search_excerpt($message, $uid, $length)
+{
+	$length = max(0, phpbb_search_return_chars($length));
+	if ($length === 0)
+	{
+		return '';
+	}
+	$message = strip_tags((string) $message);
+	if ((string) $uid !== '')
+	{
+		$message = preg_replace('#\[.*?:' . preg_quote((string) $uid, '#') . ':?.*?\]#si', '', $message);
+	}
+	$message = preg_replace('#\[/?url(?:=[^\]]*)?\]#i', '', $message);
+	$message = html_entity_decode($message, ENT_QUOTES, 'UTF-8');
+	// Substitute malformed legacy bytes before asking PCRE to match Unicode.
+	$message = html_entity_decode(htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+	preg_match('/\A.{0,' . $length . '}/us', $message, $match);
+	$excerpt = isset($match[0]) ? $match[0] : '';
+	return htmlspecialchars($excerpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ((strlen($excerpt) < strlen($message)) ? ' ...' : '');
+}
+
+function phpbb_search_readable_forums($auth)
+{
+	$forums = array();
+	foreach ($auth as $forum_id => $permissions)
+	{
+		if (intval($forum_id) > 0 && !empty($permissions['auth_view']) && !empty($permissions['auth_read']))
+		{
+			$forums[] = intval($forum_id);
+		}
+	}
+	return $forums;
+}
+
+function phpbb_search_no_results($show_results, $is_ajax)
+{
+	global $lang;
+	if ($is_ajax)
+	{
+		AJAX_message_die(array('search_id' => 0, 'results' => 0, 'keywords' => ''));
+	}
+	message_die(GENERAL_MESSAGE, $lang[($show_results === 'bookmarks') ? 'No_Bookmarks' : 'No_search_match']);
+}
+
 function clean_words($mode, $entry, &$stopword_list, &$synonym_list)
 {
 	static $drop_char_match =   array('^', '$', '&', '(', ')', '<', '>', '`', '\'', '"', '|', ',', '@', '_', '?', '%', '-', '~', '+', '.', '[', ']', '{', '}', ':', '\\', '/', '=', '#', '\'', ';', '!');
