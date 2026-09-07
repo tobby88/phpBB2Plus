@@ -348,7 +348,8 @@ function entry_exists($attach_id)
 */
 function attach_inventory_file($name)
 {
-	return $name !== 'index.php' && $name !== '.htaccess' && strpos($name, '.phpbb-test-') !== 0;
+	$name = strtolower($name);
+	return !in_array($name, array('index.php', '.htaccess', '.htpasswd'), true) && strpos($name, '.phpbb-test-') !== 0;
 }
 
 function collect_attachments()

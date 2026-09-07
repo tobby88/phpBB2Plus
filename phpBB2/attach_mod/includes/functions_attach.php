@@ -190,41 +190,47 @@ function is_forum_authed($auth_cache, $check_forum_id)
 /**
 * Init FTP Session
 */
-function attach_init_ftp($mode = false)
+function attach_init_ftp($mode = false, $quiet = false, &$failure = null)
 {
 	global $lang, $attach_config;
-
-	$server = (trim($attach_config['ftp_server']) == '') ? 'localhost' : trim($attach_config['ftp_server']);
-	
-	$ftp_path = ($mode == MODE_THUMBNAIL) ? trim($attach_config['ftp_path']) . '/' . THUMB_DIR : trim($attach_config['ftp_path']);
-
-	$conn_id = @ftp_connect($server);
-
-	if (!$conn_id)
+	$failure = ''; $connection = false; $server = 'localhost';
+	foreach (array('ftp_connect', 'ftp_login', 'ftp_pasv', 'ftp_chdir', 'ftp_close') as $function)
 	{
-		message_die(GENERAL_ERROR, sprintf($lang['Ftp_error_connect'], $server));
+		if (!function_exists($function)) { $failure = $lang['Attachment_test_ftp_unavailable']; break; }
 	}
-
-	$login_result = @ftp_login($conn_id, $attach_config['ftp_user'], $attach_config['ftp_pass']);
-
-	if (!$login_result)
+	foreach (array('ftp_server', 'ftp_path', 'ftp_user', 'ftp_pass', 'ftp_pasv_mode') as $key)
 	{
-		message_die(GENERAL_ERROR, sprintf($lang['Ftp_error_login'], $attach_config['ftp_user']));
+		if (!isset($attach_config[$key]) || !is_string($attach_config[$key]) || preg_match('/[\\x00\\r\\n]/', $attach_config[$key]))
+		{
+			$failure = $lang['Attachment_test_ftp_invalid']; break;
+		}
 	}
-		
-	if (!@ftp_pasv($conn_id, intval($attach_config['ftp_pasv_mode'])))
+	if ($failure === '')
 	{
-		message_die(GENERAL_ERROR, $lang['Ftp_error_pasv_mode']);
+		$server = trim($attach_config['ftp_server']); $server = $server === '' ? 'localhost' : $server;
+		$path = trim($attach_config['ftp_path']); $path = $path === '' ? '.' : $path;
+		if ($mode == MODE_THUMBNAIL) { $path = rtrim($path, '/') . '/' . THUMB_DIR; }
+		try
+		{
+			$connection = @ftp_connect($server, 21, 30);
+			if ($connection === false) { $failure = sprintf($lang['Ftp_error_connect'], htmlspecialchars($server, ENT_QUOTES, 'UTF-8')); }
+			elseif (!@ftp_login($connection, $attach_config['ftp_user'], $attach_config['ftp_pass']))
+			{
+				$failure = sprintf($lang['Ftp_error_login'], htmlspecialchars($attach_config['ftp_user'], ENT_QUOTES, 'UTF-8'));
+			}
+			elseif (!@ftp_pasv($connection, (bool) $attach_config['ftp_pasv_mode'])) { $failure = $lang['Ftp_error_pasv_mode']; }
+			elseif (!@ftp_chdir($connection, $path)) { $failure = sprintf($lang['Ftp_error_path'], htmlspecialchars($path, ENT_QUOTES, 'UTF-8')); }
+		}
+		catch (Exception $exception) { $failure = sprintf($lang['Ftp_error_connect'], htmlspecialchars($server, ENT_QUOTES, 'UTF-8')); }
+		catch (Error $exception) { $failure = sprintf($lang['Ftp_error_connect'], htmlspecialchars($server, ENT_QUOTES, 'UTF-8')); }
 	}
-	
-	$result = @ftp_chdir($conn_id, $ftp_path);
-
-	if (!$result)
+	if ($failure !== '')
 	{
-		message_die(GENERAL_ERROR, sprintf($lang['Ftp_error_path'], $ftp_path));
+		if ($connection !== false) { @ftp_close($connection); }
+		if (!$quiet) { message_die(GENERAL_ERROR, $failure); }
+		return false;
 	}
-
-	return $conn_id;
+	return $connection;
 }
 
 /**
@@ -233,49 +239,27 @@ function attach_init_ftp($mode = false)
 function unlink_attach($filename, $mode = false)
 {
 	global $upload_dir, $attach_config, $lang;
-
+	if (!is_string($filename)) { return false; }
 	$filename = basename($filename);
-	
+	if (attach_ftp_listing_entry($filename, '0') === false || in_array(strtolower($filename), array('index.php', '.htaccess', '.htpasswd'), true)) { return false; }
+	if ($mode == MODE_THUMBNAIL) { $filename = 't_' . $filename; }
 	if (!intval($attach_config['allow_ftp_upload']))
 	{
-		if ($mode == MODE_THUMBNAIL)
-		{
-			$filename = $upload_dir . '/' . THUMB_DIR . '/t_' . $filename;
-		}
-		else
-		{
-			$filename = $upload_dir . '/' . $filename;
-		}
-
-		$deleted = @unlink($filename);
+		$directory = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');
+		return @unlink($directory . '/' . $filename);
 	}
-	else
+	if (!function_exists('ftp_delete')) { message_die(GENERAL_ERROR, $lang['Attachment_test_ftp_unavailable']); }
+	$connection = attach_init_ftp($mode); $deleted = false;
+	try { $deleted = @ftp_delete($connection, $filename); }
+	catch (Exception $exception) { $deleted = false; }
+	catch (Error $exception) { $deleted = false; }
+	finally { @ftp_close($connection); }
+	if (!$deleted && ATTACH_DEBUG)
 	{
-		$conn_id = attach_init_ftp($mode);
-
-		if ($mode == MODE_THUMBNAIL)
-		{
-			$filename = 't_' . $filename;
-		}
-		
-		$res = @ftp_delete($conn_id, $filename);
-		if (!$res)
-		{
-			if (ATTACH_DEBUG)
-			{
-				$add = ($mode == MODE_THUMBNAIL) ? '/' . THUMB_DIR : ''; 
-				message_die(GENERAL_ERROR, sprintf($lang['Ftp_error_delete'], $attach_config['ftp_path'] . $add));
-			}
-
-			return $deleted;
-		}
-
-		@ftp_quit($conn_id);
-
-		$deleted = true;
+		$path = $attach_config['ftp_path'] . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');
+		message_die(GENERAL_ERROR, sprintf($lang['Ftp_error_delete'], htmlspecialchars($path, ENT_QUOTES, 'UTF-8')));
 	}
-
-	return $deleted;
+	return (bool) $deleted;
 }
 
 /**
@@ -284,38 +268,46 @@ function unlink_attach($filename, $mode = false)
 function ftp_file($source_file, $dest_file, $mimetype, $disable_error_mode = false)
 {
 	global $attach_config, $lang, $error, $error_msg;
-
-	$conn_id = attach_init_ftp();
-
-	// Binary or Ascii ?
-	$mode = FTP_BINARY;
-	if (preg_match("/text/i", $mimetype) || preg_match("/html/i", $mimetype))
+	$failure = ''; $uploaded = false; $connection = false;
+	// Callers upload either one generated basename or its thumbnail. Do not
+	// permit FTP commands/path traversal through a destination parameter.
+	$name = is_string($dest_file) && strpos($dest_file, THUMB_DIR . '/') === 0 ? substr($dest_file, strlen(THUMB_DIR) + 1) : $dest_file;
+	if (!function_exists('ftp_put')) { $failure = $lang['Attachment_test_ftp_unavailable']; }
+	elseif (attach_ftp_listing_entry($name, '0') === false || in_array(strtolower($name), array('index.php', '.htaccess', '.htpasswd'), true) ||
+		!is_string($source_file) || strpos($source_file, "\0") !== false || strpos($source_file, '://') !== false ||
+		!is_file($source_file) || !is_readable($source_file))
 	{
-		$mode = FTP_ASCII;
+		$failure = sprintf($lang['Ftp_error_upload'], htmlspecialchars($attach_config['ftp_path'], ENT_QUOTES, 'UTF-8'));
 	}
-
-	$res = @ftp_put($conn_id, $dest_file, $source_file, $mode);
-
-	if (!$res && !$disable_error_mode)
+	else { $connection = attach_init_ftp(false, true, $failure); }
+	if ($connection !== false)
+	{
+		try
+		{
+			// Preserve bytes for text/HTML too: ASCII mode can change line
+			// endings and make the stored size/checksum differ from the upload.
+			$uploaded = @ftp_put($connection, $dest_file, $source_file, FTP_BINARY);
+			if ($uploaded && function_exists('ftp_site'))
+			{
+				// chmod is optional on FTP servers; its failure does not mean
+				// that a successfully transferred attachment was lost.
+				try { @ftp_site($connection, 'CHMOD 0644 ' . $dest_file); }
+				catch (Exception $exception) {}
+				catch (Error $exception) {}
+			}
+		}
+		catch (Exception $exception) { $uploaded = false; }
+		catch (Error $exception) { $uploaded = false; }
+		finally { @ftp_close($connection); }
+	}
+	if (!$uploaded && !$disable_error_mode)
 	{
 		$error = true;
-		if (!empty($error_msg))
-		{
-			$error_msg .= '<br />';
-		}
-		$error_msg = sprintf($lang['Ftp_error_upload'], $attach_config['ftp_path']) . '<br />';
-		@ftp_quit($conn_id);
-		return false;
+		$error_msg = isset($error_msg) && is_string($error_msg) ? $error_msg : '';
+		if (!empty($error_msg)) { $error_msg .= '<br />'; }
+		$error_msg .= $failure !== '' ? $failure : sprintf($lang['Ftp_error_upload'], htmlspecialchars($attach_config['ftp_path'], ENT_QUOTES, 'UTF-8'));
 	}
-
-	if (!$res)
-	{
-		return false;
-	}
-
-	@ftp_site($conn_id, 'CHMOD 0644 ' . $dest_file);
-	@ftp_quit($conn_id);
-	return true;
+	return (bool) $uploaded;
 }
 
 /**

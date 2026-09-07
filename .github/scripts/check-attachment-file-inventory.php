@@ -48,6 +48,7 @@ $unix = array(
 	'-rw-r--r-- 1 owner group 4 Sep 7 12:34 .phpbb-test-active.tmp'
 );
 $attach_config = array('allow_ftp_upload' => '1');
+foreach (array('INDEX.PHP', '.HTACCESS', '.htpasswd', '.PHPBB-TEST-active.tmp') as $protected) { inventory_check(!attach_inventory_file($protected), 'Protected files are never offered for orphan deletion'); }
 $lang = array('Attachment_listing_failed' => 'Cannot read inventory', 'Attachment_selection_invalid' => 'Invalid selection', 'Not_available' => 'N/A', 'Bytes' => 'Bytes', 'KB' => 'KB', 'MB' => 'MB');
 reset_inventory($unix);
 inventory_check(collect_attachments() === array('0', 'space name.txt', ' leading '), 'Directory rows must not hide following files; retain exact names and skip protection/probe files');

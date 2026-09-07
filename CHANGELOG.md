@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve attachment bytes with binary FTP transfers, including text/HTML.
+  Close runtime FTP sessions on setup, upload and deletion failures; retain
+  earlier posting errors and keep optional thumbnail failures nonfatal.
+  Validate FTP settings/destinations, escape setup errors and return explicit
+  deletion results. Unsupported optional FTP chmod does not invalidate uploads.
 - Share attachment file inventories across size displays, orphan checks and
   thumbnail synchronization. Prefer MLSD with a validated UNIX/DOS LIST fallback;
   reject incomplete or ambiguous results rather than marking files missing.
