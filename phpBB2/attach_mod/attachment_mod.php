@@ -82,18 +82,15 @@ function get_config()
 {
 	global $db, $board_config;
 
-	$attach_config = array();
-
-	$sql = 'SELECT *
-		FROM ' . ATTACH_CONFIG_TABLE;
-	if (!($result = $db->sql_query($sql)))
+	$attach_config = phpbb_load_config_table($db, ATTACH_CONFIG_TABLE);
+	if ($attach_config === false)
 	{
-		message_die(GENERAL_ERROR, 'Could not query attachment information', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, 'Could not load attachment configuration', '', __LINE__, __FILE__);
 	}
 
-	while ($row = $db->sql_fetchrow($result))
+	foreach ($attach_config as $name => $value)
 	{
-		$attach_config[$row['config_name']] = trim($row['config_value']);
+		$attach_config[$name] = trim($value);
 	}
 
 	// We assign the original default board language here, because it gets overwritten later with the users default language
@@ -103,33 +100,10 @@ function get_config()
 }
 
 // Get Attachment Config
-$cache_dir = $phpbb_root_path . 'cache';
-$cache_file = $cache_dir . '/attach_config_data.cache';
-$attach_config = array();
-
-if (file_exists($cache_dir) && is_dir($cache_dir))
-{
-	if (file_exists($cache_file))
-	{
-		$cached_attach_config = phpbb_data_cache_read($cache_file);
-		if (is_array($cached_attach_config))
-		{
-			$attach_config = $cached_attach_config;
-		}
-	}
-	if (empty($attach_config))
-	{
-		$attach_config = get_config();
-		if (is_writable($cache_dir))
-		{
-			phpbb_data_cache_write($cache_file, $attach_config);
-		}
-	}
-}
-else
-{
-	$attach_config = get_config();
-}
+// Read current settings once per request. An older request must never publish
+// its snapshot after an ACP change invalidates an unversioned file cache.
+// This also keeps the language fallback tied to the current board language.
+$attach_config = get_config();
 
 // Please do not change the include-order, it is valuable for proper execution.
 // Functions for displaying Attachment Things

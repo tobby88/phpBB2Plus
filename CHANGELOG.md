@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Read attachment configuration directly once per request so delayed requests
+  cannot republish obsolete upload restrictions after an ACP change. Derive
+  the language fallback from the current board language, release the buffered
+  query result, and stop cleanly if configuration is unavailable or empty.
 - Repair quick-reply table/form nesting so its controls stay inside the form
   and do not alter the surrounding topic/filter layout. Submit explicitly as
   UTF-8, handle empty quote selections correctly and insert smilies/quotes at
