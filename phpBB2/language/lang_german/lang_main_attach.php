@@ -92,7 +92,7 @@ $lang['Attachment_feature_disabled'] = 'Das Attachment Feature ist abgeschaltet.
 
 $lang['Directory_does_not_exist'] = 'Das Verzeichnis \'%s\' existiert nicht oder kann nicht gefunden werden.'; // replace %s with directory
 $lang['Directory_is_not_a_dir'] = 'Bitte prüfe ob \'%s\' ein Verzeichnis ist.'; // replace %s with directory
-$lang['Directory_not_writeable'] = 'Das Verzeichnis \'%s\' ist nicht schreibbar. Du musst das Upload Verzeichnis erstellen und zu 777 chmodden (oder den Besitzer des Verzeichnisses auf den Besitzer des HTTP-Servers stellen) um Dateien hochladen zu können.<br />Wenn du nur FTP-Zugriff hast, dann ändere das \'Attribut\' des Verzeichnisses auf rwxrwxrwx.'; // replace %s with directory
+$lang['Directory_not_writeable'] = 'Das Verzeichnis \'%s\' ist nicht schreibbar. Prüfe, ob es existiert und das PHP-/Webserver-Benutzerkonto die benötigten Schreibrechte besitzt. Vergib zur Fehlerbehebung nicht pauschal Schreibrechte für alle.'; // replace %s with directory
 
 $lang['Ftp_error_connect'] = 'Kann den FTP-Server nicht erreichen: \'%s\'. Bitte prüfe die FTP Einstellungen.';
 $lang['Ftp_error_login'] = 'Login Fehlgeschlagen. Der Benutzername \'%s\' oder das Passwort sind falsch. Bitte prüfe die FTP Einstellungen.';
@@ -100,6 +100,11 @@ $lang['Ftp_error_path'] = 'Kann FTP Verzeichnis nicht finden oder darauf zugreif
 $lang['Ftp_error_upload'] = 'Kann Dateien nicht in das FTP Verzeichnis hochladen: \'%s\'. Bitte prüfe die FTP Einstellungen.';
 $lang['Ftp_error_delete'] = 'Kann Dateien im FTP Verzeichnis nicht löschen: \'%s\'. Bitte prüfe die FTP Einstellungen.<br />Ein anderer Grund für diesen Fehler kann das nicht vorhandensein eines Attachments sein, bitte prüfe das erst im Menü Shadow Attachments.';
 $lang['Ftp_error_pasv_mode'] = 'Kann den FTP Passiv Modus nicht ein-/ausschalten.';
+$lang['Attachment_test_temporary_failed'] = 'Der Upload-Test konnte seine temporäre Datei nicht sicher erstellen oder verwenden. Es wurden keine vorhandenen Dateien zum Überschreiben ausgewählt.';
+$lang['Attachment_test_cleanup_failed'] = 'Das Löschen der temporären Testdatei konnte nicht bestätigt werden: %s. Bitte prüfe diese Datei vor einem erneuten Test.';
+$lang['Attachment_test_ftp_unavailable'] = 'Die benötigten PHP-FTP-Funktionen sind nicht verfügbar. Bitte prüfe die Serverkonfiguration.';
+$lang['Attachment_test_ftp_invalid'] = 'Die FTP-Einstellungen enthalten nicht unterstützte Steuerzeichen. Bitte prüfe die Konfiguration.';
+$lang['Attachment_test_ftp_listing'] = 'Das FTP-Verzeichnis %s konnte nicht aufgelistet werden. Der Diagnose-Upload wurde abgebrochen, weil eine Dateinamenskollision nicht geprüft werden konnte.';
 
 // Attach Rules Window
 $lang['Rules_page'] = 'Attachment Regeln';

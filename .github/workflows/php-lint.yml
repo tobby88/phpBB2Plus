@@ -346,6 +346,9 @@ jobs:
       - name: Test authoritative attachment configuration and language fallback
         run: php .github/scripts/check-attachment-config-consistency.php
 
+      - name: Test attachment upload diagnostics and failure cleanup
+        run: php .github/scripts/check-attachment-upload-probes.php
+
       - name: Test download delivery safety
         run: php .github/scripts/check-download-delivery-safety.php
 

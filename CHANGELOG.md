@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Consolidate attachment ACP upload diagnostics: exclusive local test files,
+  random FTP probe names checked against directory listings, in-memory FTP
+  streams and cleanup of partial transfers. Handle missing FTP support and
+  connection failures without PHP 8 type errors; report cleanup failures and
+  escape diagnostic details in both languages. Do not recommend world-writable
+  directories. Preserve existing files rather than using shared test names.
 - Read attachment configuration directly once per request so delayed requests
   cannot republish obsolete upload restrictions after an ACP change. Derive
   the language fallback from the current board language, release the buffered

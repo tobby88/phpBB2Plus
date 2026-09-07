@@ -12,6 +12,148 @@
 * All Attachment Functions only needed in Admin
 */
 
+// Upload diagnostics must only remove files created by that diagnostic run.
+function attach_admin_probe_error($key, $detail = '')
+{
+	global $lang;
+	return sprintf($lang[$key], htmlspecialchars((string) $detail, ENT_QUOTES, 'UTF-8')) . '<br />';
+}
+
+function attach_admin_probe_local($directory, $create = false)
+{
+	if ($directory === '' || strpos($directory, "\0") !== false || preg_match('#^[a-z][a-z0-9+.-]*://#i', $directory))
+	{
+		return attach_admin_probe_error('Directory_does_not_exist', $directory);
+	}
+	if (!is_dir($directory) && $create) { @mkdir($directory, 0775); }
+	if (!is_dir($directory)) { return attach_admin_probe_error('Directory_does_not_exist', $directory); }
+	$directory = realpath($directory);
+	if ($directory === false) { return attach_admin_probe_error('Attachment_test_temporary_failed'); }
+	$handle = false; $owned_file = ''; $error = '';
+	try
+	{
+		for ($attempt = 0; $attempt < 3; $attempt++)
+		{
+			$candidate = $directory . '/.phpbb-test-' . bin2hex(phpbb_random_bytes(16)) . '.tmp';
+			$handle = @fopen($candidate, 'x+b');
+			if ($handle !== false) { $owned_file = $candidate; break; }
+		}
+		if ($handle === false || @fwrite($handle, 'test') !== 4 || !@fflush($handle))
+		{
+			$error = attach_admin_probe_error('Directory_not_writeable', $directory);
+		}
+	}
+	catch (Exception $exception) { $error = attach_admin_probe_error('Attachment_test_temporary_failed'); }
+	catch (Error $exception) { $error = attach_admin_probe_error('Attachment_test_temporary_failed'); }
+	finally
+	{
+		if (is_resource($handle)) { fclose($handle); }
+		if ($owned_file !== '' && !@unlink($owned_file))
+		{
+			$error .= attach_admin_probe_error('Attachment_test_cleanup_failed', $owned_file);
+		}
+	}
+	return $error;
+}
+
+function attach_admin_probe_ftp($config, $thumbnail = false)
+{
+	foreach (array('ftp_connect', 'ftp_login', 'ftp_pasv', 'ftp_chdir', 'ftp_mkdir', 'ftp_nlist', 'ftp_fput', 'ftp_delete', 'ftp_close') as $function)
+	{
+		if (!function_exists($function)) { return attach_admin_probe_error('Attachment_test_ftp_unavailable'); }
+	}
+	$server = trim($config['ftp_server']); $server = $server === '' ? 'localhost' : $server;
+	$path = trim($config['ftp_path']); $path = $path === '' ? '.' : $path;
+	foreach (array($server, $path, $config['ftp_user'], $config['ftp_pass']) as $value)
+	{
+		if (preg_match('/[\x00\r\n]/', $value)) { return attach_admin_probe_error('Attachment_test_ftp_invalid'); }
+	}
+	$connection = false; $stream = false; $attempted_file = ''; $error = '';
+	try
+	{
+		do
+		{
+			$connection = @ftp_connect($server, 21, 10);
+			if ($connection === false) { $error = attach_admin_probe_error('Ftp_error_connect', $server); break; }
+			if (!@ftp_login($connection, $config['ftp_user'], $config['ftp_pass']))
+			{
+				$error = attach_admin_probe_error('Ftp_error_login', $config['ftp_user']); break;
+			}
+			if (!@ftp_pasv($connection, (bool) $config['ftp_pasv_mode']))
+			{
+				$error = attach_admin_probe_error('Ftp_error_pasv_mode'); break;
+			}
+			if (!@ftp_chdir($connection, $path)) { $error = attach_admin_probe_error('Ftp_error_path', $path); break; }
+			if ($thumbnail)
+			{
+				$path = rtrim($path, '/') . '/' . THUMB_DIR;
+				if (!@ftp_chdir($connection, THUMB_DIR))
+				{
+					@ftp_mkdir($connection, THUMB_DIR);
+					if (!@ftp_chdir($connection, THUMB_DIR)) { $error = attach_admin_probe_error('Ftp_error_path', $path); break; }
+				}
+			}
+			// FTP STOR is not exclusive. Use an unpredictable name and check the
+			// listing for collisions; never fall back to a shared fixed filename.
+			$listing = @ftp_nlist($connection, '.');
+			if (!is_array($listing)) { $error = attach_admin_probe_error('Attachment_test_ftp_listing', $path); break; }
+			$existing = array();
+			foreach ($listing as $entry) { $existing[strtolower(basename(str_replace('\\', '/', rtrim($entry, '/'))))] = true; }
+			$name = '';
+			for ($attempt = 0; $attempt < 3; $attempt++)
+			{
+				$candidate = '.phpbb-test-' . bin2hex(phpbb_random_bytes(16)) . '.tmp';
+				if (!isset($existing[$candidate])) { $name = $candidate; break; }
+			}
+			if ($name === '') { $error = attach_admin_probe_error('Attachment_test_temporary_failed'); break; }
+			$stream = @fopen('php://temp', 'w+b');
+			if ($stream === false || @fwrite($stream, 'test') !== 4 || !@rewind($stream))
+			{
+				$error = attach_admin_probe_error('Attachment_test_temporary_failed'); break;
+			}
+			$attempted_file = $name;
+			if (!@ftp_fput($connection, $name, $stream, FTP_BINARY)) { $error = attach_admin_probe_error('Ftp_error_upload', $path); }
+		}
+		while (false);
+	}
+	catch (Exception $exception) { $error = attach_admin_probe_error('Attachment_test_temporary_failed'); }
+	catch (Error $exception) { $error = attach_admin_probe_error('Attachment_test_temporary_failed'); }
+	finally
+	{
+		if (is_resource($stream)) { fclose($stream); }
+		if ($connection !== false)
+		{
+			try
+			{
+				// A failed transfer can still leave a partial file. Try cleanup in
+				// that case too, and disclose when deletion cannot be confirmed.
+				if ($attempted_file !== '' && !@ftp_delete($connection, $attempted_file))
+				{
+					$error .= attach_admin_probe_error('Attachment_test_cleanup_failed', rtrim($path, '/') . '/' . $attempted_file);
+				}
+			}
+			catch (Exception $exception) { $error .= attach_admin_probe_error('Attachment_test_cleanup_failed', rtrim($path, '/') . '/' . $attempted_file); }
+			catch (Error $exception) { $error .= attach_admin_probe_error('Attachment_test_cleanup_failed', rtrim($path, '/') . '/' . $attempted_file); }
+			finally { @ftp_close($connection); }
+		}
+	}
+	return $error;
+}
+
+function attach_admin_test_settings($config, $root, $thumbnail = false)
+{
+	if ($thumbnail && !intval($config['img_create_thumbnail'])) { return ''; }
+	if (intval($config['allow_ftp_upload'])) { return attach_admin_probe_ftp($config, $thumbnail); }
+	$directory = str_replace('\\', '/', $config['upload_dir']);
+	if ($directory === '' || strpos($directory, "\0") !== false || preg_match('#^[a-z][a-z0-9+.-]*://#i', $directory))
+	{
+		return attach_admin_probe_error('Directory_does_not_exist', $directory);
+	}
+	if ($directory[0] !== '/' && !preg_match('#^[a-z]:/#i', $directory)) { $directory = $root . $directory; }
+	if ($thumbnail) { $directory = rtrim($directory, '/') . '/' . THUMB_DIR; }
+	return attach_admin_probe_local($directory, $thumbnail);
+}
+
 /**
 * Set/Change Quotas
 */

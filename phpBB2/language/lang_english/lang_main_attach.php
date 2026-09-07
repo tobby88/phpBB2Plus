@@ -92,7 +92,7 @@ $lang['Attachment_feature_disabled'] = 'The Attachment Feature is disabled.';
 
 $lang['Directory_does_not_exist'] = 'The Directory \'%s\' does not exist or couldn\'t be found.'; // replace %s with directory
 $lang['Directory_is_not_a_dir'] = 'Please check if \'%s\' is a directory.'; // replace %s with directory
-$lang['Directory_not_writeable'] = 'Directory \'%s\' is not writeable. You\'ll have to create the upload path and chmod it to 777 (or change the owner to you httpd-servers owner) to upload files.<br />If you have only plain ftp-access change the \'Attribute\' of the directory to rwxrwxrwx.'; // replace %s with directory
+$lang['Directory_not_writeable'] = 'Directory \'%s\' is not writable. Check that the directory exists and that the PHP/web-server account has the required write permissions. Do not grant write access to everyone just to resolve this error.'; // replace %s with directory
 
 $lang['Ftp_error_connect'] = 'Could not connect to FTP Server: \'%s\'. Please check your FTP-Settings.';
 $lang['Ftp_error_login'] = 'Could not login to FTP Server. The Username \'%s\' or the Password is wrong. Please check your FTP-Settings.';
@@ -100,6 +100,11 @@ $lang['Ftp_error_path'] = 'Could not access ftp directory: \'%s\'. Please check 
 $lang['Ftp_error_upload'] = 'Could not upload files to ftp directory: \'%s\'. Please check your FTP Settings.';
 $lang['Ftp_error_delete'] = 'Could not delete files in ftp directory: \'%s\'. Please check your FTP Settings.<br />Another reason for this error could be the non-existence of the Attachment, please check this first in Shadow Attachments.';
 $lang['Ftp_error_pasv_mode'] = 'Unable to enable/disable FTP Passive Mode';
+$lang['Attachment_test_temporary_failed'] = 'The upload test could not safely create or use its temporary file. No existing files were selected for replacement.';
+$lang['Attachment_test_cleanup_failed'] = 'Removal of the temporary test file could not be confirmed: %s. Please check this file before repeating the test.';
+$lang['Attachment_test_ftp_unavailable'] = 'The required PHP FTP functions are unavailable. Check the server configuration.';
+$lang['Attachment_test_ftp_invalid'] = 'The FTP settings contain unsupported control characters. Please check the configuration.';
+$lang['Attachment_test_ftp_listing'] = 'The FTP directory %s could not be listed. The diagnostic upload was stopped because a filename collision could not be checked.';
 
 // Attach Rules Window
 $lang['Rules_page'] = 'Attachment Rules';

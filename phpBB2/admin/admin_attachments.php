@@ -33,7 +33,8 @@ include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 
 if (!intval($attach_config['allow_ftp_upload']))
 {
-	if ( ($attach_config['upload_dir'][0] == '/') || ( ($attach_config['upload_dir'][0] != '/') && ($attach_config['upload_dir'][1] == ':') ) )
+	if (isset($attach_config['upload_dir'][0]) && ($attach_config['upload_dir'][0] == '/' ||
+		(isset($attach_config['upload_dir'][1]) && $attach_config['upload_dir'][1] == ':')))
 	{
 		$upload_dir = $attach_config['upload_dir'];
 	}
@@ -146,7 +147,7 @@ while ($row = $db->sql_fetchrow($result))
 		{
 			$value = trim($new_attach[$config_name]);
 
-			if ($value[strlen($value)-1] == '/')
+			if ($value !== '' && $value[strlen($value)-1] == '/')
 			{
 				$value[strlen($value)-1] = ' ';
 			}
@@ -240,140 +241,10 @@ if ($search_imagick)
 // Check Settings
 if ($check_upload)
 {
-	// Some tests...
-	$attach_config = array();
+	$attach_config = get_config();
+	$error_msg = attach_admin_test_settings($attach_config, $phpbb_root_path, false);
+	$error = $error_msg !== '';
 
-	$sql = 'SELECT *
-		FROM ' . ATTACH_CONFIG_TABLE;
-
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not find Attachment Config Table', '', __LINE__, __FILE__, $sql);
-	}
-
-	$row = $db->sql_fetchrowset($result);
-	$num_rows = $db->sql_numrows($result);
-	$db->sql_freeresult($result);
-
-	for ($i = 0; $i < $num_rows; $i++)
-	{
-		$attach_config[$row[$i]['config_name']] = trim($row[$i]['config_value']);
-	}
-
-	if ($attach_config['upload_dir'][0] == '/' || ($attach_config['upload_dir'][0] != '/' && $attach_config['upload_dir'][1] == ':'))
-	{
-		$upload_dir = $attach_config['upload_dir'];
-	}
-	else
-	{
-		$upload_dir = $phpbb_root_path . $attach_config['upload_dir'];
-	}
-
-	$error = false;
-
-	// Does the target directory exist, is it a directory and writeable. (only test if ftp upload is disabled)
-	if (intval($attach_config['allow_ftp_upload']) == 0)
-	{
-		if (!@file_exists(@amod_realpath($upload_dir)))
-		{
-			$error = true;
-			$error_msg = sprintf($lang['Directory_does_not_exist'], $attach_config['upload_dir']) . '<br />';
-		}
-	
-		if (!$error && !is_dir($upload_dir))
-		{
-			$error = TRUE;
-			$error_msg = sprintf($lang['Directory_is_not_a_dir'], $attach_config['upload_dir']) . '<br />';
-		}
-	
-		if (!$error)
-		{
-			if ( !($fp = @fopen($upload_dir . '/0_000000.000', 'w')) )
-			{
-				$error = TRUE;
-				$error_msg = sprintf($lang['Directory_not_writeable'], $attach_config['upload_dir']) . '<br />';
-			}
-			else
-			{
-				@fclose($fp);
-				unlink_attach($upload_dir . '/0_000000.000');
-			}
-		}
-	}
-	else
-	{
-		// Check FTP Settings
-		$server = ( empty($attach_config['ftp_server']) ) ? 'localhost' : $attach_config['ftp_server'];
-
-		$conn_id = @ftp_connect($server);
-
-		if (!$conn_id)
-		{
-			$error = TRUE;
-			$error_msg = sprintf($lang['Ftp_error_connect'], $server) . '<br />';
-		}
-
-		$login_result = @ftp_login($conn_id, $attach_config['ftp_user'], $attach_config['ftp_pass']);
-
-		if ( (!$login_result) && (!$error) )
-		{
-			$error = TRUE;
-			$error_msg = sprintf($lang['Ftp_error_login'], $attach_config['ftp_user']) . '<br />';
-		}
-		
-		if (!@ftp_pasv($conn_id, intval($attach_config['ftp_pasv_mode'])))
-		{
-			$error = TRUE;
-			$error_msg = $lang['Ftp_error_pasv_mode'];
-		}
-
-		if (!$error)
-		{
-			// Check Upload
-			$tmpfname = @tempnam('/tmp', 't0000');
-
-			@unlink($tmpfname); // unlink for safety on php4.0.3+
-
-			$fp = @fopen($tmpfname, 'w');
-
-			@fwrite($fp, 'test');
-
-			@fclose($fp);
-
-			$result = @ftp_chdir($conn_id, $attach_config['ftp_path']);
-
-			if (!$result)
-			{
-				$error = TRUE;
-				$error_msg = sprintf($lang['Ftp_error_path'], $attach_config['ftp_path']) . '<br />';
-			}
-			else
-			{
-				$res = @ftp_put($conn_id, 't0000', $tmpfname, FTP_ASCII);
-				
-				if (!$res)
-				{
-					$error = TRUE;
-					$error_msg = sprintf($lang['Ftp_error_upload'], $attach_config['ftp_path']) . '<br />';
-				}
-				else
-				{
-					$res = @ftp_delete($conn_id, 't0000');
-
-					if (!$res)
-					{
-						$error = TRUE;
-						$error_msg = sprintf($lang['Ftp_error_delete'], $attach_config['ftp_path']) . '<br />';
-					}
-				}
-			}
-
-			@ftp_quit($conn_id);
-
-			@unlink($tmpfname);
-		}
-	}
-	
 	if (!$error)
 	{
 		message_die(GENERAL_MESSAGE, $lang['Test_settings_successful'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=manage") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
@@ -850,156 +721,10 @@ if ($mode == 'cats')
 // Check Cat Settings
 if ($check_image_cat)
 {
-	// Some tests...
-	$attach_config = array();
+	$attach_config = get_config();
+	$error_msg = attach_admin_test_settings($attach_config, $phpbb_root_path, true);
+	$error = $error_msg !== '';
 
-	$sql = 'SELECT *
-		FROM ' . ATTACH_CONFIG_TABLE;
-
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not find Attachment Config Table', '', __LINE__, __FILE__, $sql);
-	}
-
-	$row = $db->sql_fetchrowset($result);
-	$num_rows = $db->sql_numrows($result);
-	$db->sql_freeresult($result);
-
-	for ($i = 0; $i < $num_rows; $i++)
-	{
-		$attach_config[$row[$i]['config_name']] = trim($row[$i]['config_value']);
-	}
-
-	if ($attach_config['upload_dir'][0] == '/' || ($attach_config['upload_dir'][0] != '/' && $attach_config['upload_dir'][1] == ':'))
-	{
-		$upload_dir = $attach_config['upload_dir'];
-	}
-	else
-	{
-		$upload_dir = $phpbb_root_path . $attach_config['upload_dir'];
-	}
-	
-	$upload_dir = $upload_dir . '/' . THUMB_DIR;
-
-	$error = false;
-
-	// Does the target directory exist, is it a directory and writeable. (only test if ftp upload is disabled)
-	if (intval($attach_config['allow_ftp_upload']) == 0 && intval($attach_config['img_create_thumbnail']) == 1)
-	{
-		if (!@file_exists(@amod_realpath($upload_dir)))
-		{
-			@mkdir($upload_dir, 0755);
-			@chmod($upload_dir, 0775);
-		
-			if (!@file_exists(@amod_realpath($upload_dir)))
-			{
-				$error = TRUE;
-				$error_msg = sprintf($lang['Directory_does_not_exist'], $upload_dir) . '<br />';
-			}
-
-		}
-	
-		if (!$error && !is_dir($upload_dir))
-		{
-			$error = TRUE;
-			$error_msg = sprintf($lang['Directory_is_not_a_dir'], $upload_dir) . '<br />';
-		}
-	
-		if (!$error)
-		{
-			if ( !($fp = @fopen($upload_dir . '/0_000000.000', 'w')) )
-			{
-				$error = TRUE;
-				$error_msg = sprintf($lang['Directory_not_writeable'], $upload_dir) . '<br />';
-			}
-			else
-			{
-				@fclose($fp);
-				@unlink($upload_dir . '/0_000000.000');
-			}
-		}
-	}
-	else if (intval($attach_config['allow_ftp_upload']) && intval($attach_config['img_create_thumbnail']))
-	{
-		// Check FTP Settings
-		$server = ( empty($attach_config['ftp_server']) ) ? 'localhost' : $attach_config['ftp_server'];
-
-		$conn_id = @ftp_connect($server);
-
-		if (!$conn_id)
-		{
-			$error = TRUE;
-			$error_msg = sprintf($lang['Ftp_error_connect'], $server) . '<br />';
-		}
-
-		$login_result = @ftp_login($conn_id, $attach_config['ftp_user'], $attach_config['ftp_pass']);
-
-		if (!$login_result && !$error)
-		{
-			$error = TRUE;
-			$error_msg = sprintf($lang['Ftp_error_login'], $attach_config['ftp_user']) . '<br />';
-		}
-		
-		if (!@ftp_pasv($conn_id, intval($attach_config['ftp_pasv_mode'])))
-		{
-			$error = TRUE;
-			$error_msg = $lang['Ftp_error_pasv_mode'];
-		}
-
-		if (!$error)
-		{
-			// Check Upload
-			$tmpfname = @tempnam('/tmp', 't0000');
-
-			@unlink($tmpfname); // unlink for safety on php4.0.3+
-
-			$fp = @fopen($tmpfname, 'w');
-
-			@fwrite($fp, 'test');
-
-			@fclose($fp);
-
-			$result = @ftp_chdir($conn_id, $attach_config['ftp_path'] . '/' . THUMB_DIR);
-			
-			if (!$result)
-			{
-				@ftp_mkdir($conn_id, $attach_config['ftp_path'] . '/' . THUMB_DIR);
-			}
-			
-			$result = @ftp_chdir($conn_id, $attach_config['ftp_path'] . '/' . THUMB_DIR);
-
-			if (!$result)
-			{
-				$error = TRUE;
-				$error_msg = sprintf($lang['Ftp_error_path'], $attach_config['ftp_path'] . '/' . THUMB_DIR) . '<br />';
-			}
-			else
-			{
-				$res = @ftp_put($conn_id, 't0000', $tmpfname, FTP_ASCII);
-				
-				if (!$res)
-				{
-					$error = TRUE;
-					$error_msg = sprintf($lang['Ftp_error_upload'], $attach_config['ftp_path'] . '/' . THUMB_DIR) . '<br />';
-				}
-				else
-				{
-					$res = @ftp_delete($conn_id, 't0000');
-
-					if (!$res)
-					{
-						$error = TRUE;
-						$error_msg = sprintf($lang['Ftp_error_delete'], $attach_config['ftp_path'] . '/' . THUMB_DIR) . '<br />';
-					}
-				}
-			}
-
-			@ftp_quit($conn_id);
-
-			@unlink($tmpfname);
-		}
-	}
-	
 	if (!$error)
 	{
 		message_die(GENERAL_MESSAGE, $lang['Test_settings_successful'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=cats") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
