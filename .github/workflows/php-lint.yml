@@ -95,6 +95,9 @@ jobs:
       - name: Test CrackerTracker regex failures and text arrays
         run: php .github/scripts/check-ctracker-security-errors.php
 
+      - name: Test CrackerTracker log redaction failures
+        run: php .github/scripts/check-ctracker-log-redaction-errors.php
+
       - name: Test apex and www host aliases
         run: php .github/scripts/check-host-alias-safety.php
 

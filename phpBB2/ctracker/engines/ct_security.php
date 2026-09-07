@@ -410,6 +410,7 @@ function ct_security_free_post_fields()
 {
 	return array(
 		'username', 'password', 'subject', 'message', 'poll_title', 'poll_option',
+		'new_password', 'password_confirm', 'cur_password', 'smtp_password', 'ftp_pass',
 		'email', 'aim', 'msn', 'yim', 'interests', 'occupation', 'signature',
 		'website', 'location', 'search', 'sitename', 'word', 'replacement', 'help',
 		'last_msg', 'quote', 'content', 'site_desc', 'disable_reg_msg', 'disable_msg',

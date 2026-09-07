@@ -99,8 +99,14 @@ class log_manager
 		$key = strtolower(rawurldecode(str_replace('+', ' ', (string) $key)));
 		// Treat brackets, dots, dashes and other form-name separators alike so
 		// nested names such as account[token] cannot bypass redaction.
-		$key = trim(preg_replace('/[^a-z0-9]+/', '_', $key), '_');
-		return preg_match('/(?:^|_)(?:password|passwd|pass|sid|session(?:id)?|token|csrf|confirm(?:ation)?_?code|act(?:ivation)?_?key|reset_?key|api_?key|access_?key|autologinid|credential|secret|user_actkey)(?:$|_)/', $key) === 1;
+		$key = preg_replace('/[^a-z0-9]+/', '_', $key);
+		if ($key === null || preg_last_error() !== PREG_NO_ERROR)
+		{
+			return true;
+		}
+		$key = trim($key, '_');
+		// A failed privacy check must redact, never expose the original value.
+		return preg_match('/(?:^|_)(?:password|passwd|pass|sid|session(?:id)?|token|csrf|confirm(?:ation)?_?code|act(?:ivation)?_?key|reset_?key|api_?key|access_?key|autologinid|credential|secret|user_actkey)(?:$|_)/', $key) !== 0;
 	}
 
 	function redact_query_string($query_string)
@@ -112,6 +118,10 @@ class log_manager
 		}
 
 		$parts = preg_split('/([&;])/', $query_string, -1, PREG_SPLIT_DELIM_CAPTURE);
+		if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR)
+		{
+			return 'REDACTED';
+		}
 		for ($i = 0; $i < count($parts); $i += 2)
 		{
 			$separator = strpos($parts[$i], '=');

@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Treat all existing credential form fields as free text in CrackerTracker,
+  including new/current/confirmed and SMTP/FTP passwords; legitimate complex
+  passwords are no longer mistaken for technical exploit parameters. Security
+  log redaction now fails closed on regex errors, masking uncertain values or
+  the whole query instead of retaining credentials in request/referrer logs.
 - CrackerTracker no longer treats failed regex checks as successful non-matches.
   Reserved-key and attack-signature checks reject uninspectable input instead
   of silently bypassing the filter. Nested free-text fields retain their text

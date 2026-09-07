@@ -7,6 +7,10 @@ function ct_error_assert($ok, $message)
 	if (!$ok) { fwrite(STDERR, "CrackerTracker error-path test failed: $message\n"); exit(1); }
 }
 $options = array('post_free_text' => ct_security_free_post_fields(), 'scan_post' => true);
+foreach (array('password', 'new_password', 'cur_password', 'password_confirm', 'smtp_password', 'ftp_pass') as $field)
+{
+	ct_error_assert(!ct_security_request_is_attack(array(), array($field => 'Long!Pass;select<svg>Example9'), array(), $options), 'credential field must accept arbitrary non-NUL password characters: ' . $field);
+}
 $attack = array('id' => '1 UNION ALL SELECT user_password FROM phpbb_users');
 ct_error_assert(ct_security_request_is_attack($attack, array(), array(), $options), 'baseline signature must be recognized');
 $old_limit = ini_get('pcre.backtrack_limit');
