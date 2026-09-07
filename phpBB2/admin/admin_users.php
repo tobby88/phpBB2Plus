@@ -42,6 +42,7 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_post.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_privmsgs.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_selects.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
@@ -190,6 +191,8 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 			}
 
 			$row = $db->sql_fetchrow($result);
+			// Clean PNs before deleting the account so failure can be retried.
+			phpbb_pm_delete_user_messages($user_id);
 			
 			$sql = "UPDATE " . POSTS_TABLE . "
 				SET poster_id = " . DELETED . ", post_username = '" . admin_user_sql_value($this_userdata['username']) . "'
@@ -200,7 +203,7 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 			}
 			// Start add - Fully integrated shoutbox MOD
 			$sql = "UPDATE " . SHOUTBOX_TABLE . "
-				SET shout_user_id = " . DELETED . ", shout_username = '$username' 
+				SET shout_user_id = " . DELETED . ", shout_username = '" . admin_user_sql_value($this_userdata['username']) . "'
 				WHERE shout_user_id = $user_id";
 			if( !$db->sql_query($sql) )
 			{
@@ -292,40 +295,6 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 				message_die(GENERAL_ERROR, 'Could not delete auto-login keys for this user', '', __LINE__, __FILE__, $sql);
 			}
 
-			$sql = "SELECT privmsgs_id
-				FROM " . PRIVMSGS_TABLE . "
-				WHERE privmsgs_from_userid = $user_id 
-					OR privmsgs_to_userid = $user_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not select all users private messages', '', __LINE__, __FILE__, $sql);
-			}
-
-			// This little bit of code directly from the private messaging section.
-			while ( $row_privmsgs = $db->sql_fetchrow($result) )
-			{
-				$mark_list[] = $row_privmsgs['privmsgs_id'];
-			}
-			
-			if ( count($mark_list) )
-			{
-				$delete_sql_id = implode(', ', $mark_list);
-				
-				$delete_text_sql = "DELETE FROM " . PRIVMSGS_TEXT_TABLE . "
-					WHERE privmsgs_text_id IN ($delete_sql_id)";
-				$delete_sql = "DELETE FROM " . PRIVMSGS_TABLE . "
-					WHERE privmsgs_id IN ($delete_sql_id)";
-				
-				if ( !$db->sql_query($delete_sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete private message info', '', __LINE__, __FILE__, $delete_sql);
-				}
-				
-				if ( !$db->sql_query($delete_text_sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete private message text', '', __LINE__, __FILE__, $delete_text_sql);
-				}
-			}
 
 			$message = $lang['User_deleted'] . '<br /><br />' . sprintf($lang['Click_return_useradmin'], '<a href="' . append_sid("admin_users.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 

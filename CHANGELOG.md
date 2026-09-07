@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save private messages under the shared mutation lock, authorize the complete
+  source selection and evict old archived messages only after a successful move.
+  Respect batch capacity without immediately deleting newly saved messages;
+  reject oversized batches without changes and recount unread counters.
+  Account removal now cleans matching PM attachments before removing the user,
+  preserving unrelated shared files, and retains the correct escaped shout name.
+  No schema changes or migration required.
 - Unify selected/all private-message deletion and inbox/sentbox/savebox trimming
   on an owned attachment-writer session. Recheck owner/mailbox predicates at
   parent deletion and remove text/attachments only for actually deleted rows.

@@ -23,6 +23,74 @@ function phpbb_pm_cleanup_query($database, $sql)
 	return $result;
 }
 
+function phpbb_pm_recount_recipient($database, $recipient)
+{
+	$recipient = (int) $recipient;
+	phpbb_pm_cleanup_query($database, 'UPDATE ' . USERS_TABLE . ' SET
+		user_new_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_NEW_MAIL . '),
+		user_unread_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_UNREAD_MAIL . ')
+		WHERE user_id = ' . $recipient);
+}
+
+function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
+{
+	global $db, $lang;
+	$ids = attach_delete_id_array($ids);
+	$where = phpbb_pm_mailbox_condition($user_id, $folder);
+	if (!$ids || $where === false || !in_array($folder, array('inbox', 'sentbox'), true)) { return 0; }
+	$limit = (int) $limit;
+	$lock = attach_require_mutation_lock($db);
+	try
+	{
+		$database = $lock->connection;
+		$where = '(' . $where . ') AND privmsgs_id IN (' . implode(',', $ids) . ')';
+		$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
+		$selected = $database->sql_fetchrowset($result); $database->sql_freeresult($result);
+		if (!$selected) { return 0; }
+		if ($limit > 0 && count($selected) > $limit) { message_die(GENERAL_MESSAGE, $lang['PM_save_limit_exceeded']); }
+		$selected_ids = array();
+		foreach ($selected as $entry) { $selected_ids[] = (int) $entry['privmsgs_id']; }
+		$where .= ' AND privmsgs_id IN (' . implode(',', $selected_ids) . ')';
+		$save_where = phpbb_pm_mailbox_condition($user_id, 'savebox');
+		// Snapshot only pre-existing archive rows. Never evict a newly saved
+		// message, even if its original date is older than the current archive.
+		$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $save_where . ' ORDER BY privmsgs_date, privmsgs_id');
+		$old = $database->sql_fetchrowset($result); $database->sql_freeresult($result);
+		$type = $folder === 'inbox' ? PRIVMSGS_SAVED_IN_MAIL : PRIVMSGS_SAVED_OUT_MAIL;
+		phpbb_pm_cleanup_query($database, 'UPDATE ' . PRIVMSGS_TABLE . ' SET privmsgs_type = ' . $type . ' WHERE ' . $where);
+		$moved = (int) $database->sql_affectedrows();
+		if (!$moved) { return 0; }
+		phpbb_pm_recount_recipient($database, $user_id);
+		// Eviction follows successful movement, not an untrusted selection or
+		// stale form. On SQL failure completed moves remain; no fake rollback.
+		if ($limit > 0)
+		{
+			$result = phpbb_pm_cleanup_query($database, 'SELECT COUNT(*) AS total FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $save_where);
+			$row = $database->sql_fetchrow($result); $database->sql_freeresult($result);
+			$excess = max(0, (int) $row['total'] - $limit);
+			foreach ($old as $entry)
+			{
+				if (!$excess) { break; }
+				$excess -= phpbb_pm_delete_selected($database, '(' . $save_where . ') AND privmsgs_id = ' . (int) $entry['privmsgs_id']);
+			}
+		}
+		return $moved;
+	}
+	finally { $lock->release(); }
+}
+
+// Administrator-only account removal retains the existing from/to deletion
+// policy, but also cleans shared attachment references and recipient counters.
+function phpbb_pm_delete_user_messages($user_id)
+{
+	global $db, $userdata;
+	$ids = attach_delete_id_array(array($user_id));
+	if (!defined('IN_ADMIN') || !IN_ADMIN || !isset($userdata['user_level']) || $userdata['user_level'] != ADMIN || !$ids) { return 0; }
+	$lock = attach_require_mutation_lock($db);
+	try { return phpbb_pm_delete_selected($lock->connection, '(privmsgs_from_userid = ' . $ids[0] . ' OR privmsgs_to_userid = ' . $ids[0] . ')'); }
+	finally { $lock->release(); }
+}
+
 // Internal helper: callers authorize explicit deletion or the existing mailbox
 // capacity policy. Never accept a caller-supplied SQL predicate.
 function phpbb_pm_delete_messages($ids, $user_id, $folder, $all = false)
@@ -80,10 +148,7 @@ function phpbb_pm_delete_selected($database, $where)
 	foreach ($recipients as $recipient)
 	{
 		// Recount rather than subtract stale counters or create negative values.
-		phpbb_pm_cleanup_query($database, 'UPDATE ' . USERS_TABLE . ' SET
-			user_new_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_NEW_MAIL . '),
-			user_unread_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_UNREAD_MAIL . ')
-			WHERE user_id = ' . $recipient);
+		phpbb_pm_recount_recipient($database, $recipient);
 	}
 	if ($deleted) { attach_delete_selected($database, $deleted, array(), PAGE_PRIVMSGS, 0, false, true); }
 	return count($deleted);

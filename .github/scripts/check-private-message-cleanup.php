@@ -87,7 +87,50 @@ try
 		mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===2 && is_file($upload_dir.'/fixture.txt') && !$mutation_server->owner,'Later database failure retains attachment recovery records and releases lock');
 	}
 	$controller=file_get_contents($forum_root.'privmsg.php');
-	mutation_check(substr_count($controller,'phpbb_pm_trim_oldest(')===3 && substr_count($controller,'phpbb_pm_delete_messages(')===1 && strpos($controller,'delete_all_pm_attachments(')===false,'All four PN controller deletion paths use helper');
+	mutation_check(substr_count($controller,'phpbb_pm_trim_oldest(')===2 && substr_count($controller,'phpbb_pm_delete_messages(')===1 && substr_count($controller,'phpbb_pm_save_messages(')===1 && strpos($controller,'delete_all_pm_attachments(')===false,'All PN controller deletion/save paths use helper');
+	define('GENERAL_MESSAGE',200); define('ADMIN',1);
+	$lang['PM_save_limit_exceeded']='save limit';
+	pm_cleanup_fixture();
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=3,privmsgs_to_userid=7 WHERE privmsgs_id=21');
+	foreach (array(array(),array(0),array(20,null),array(999)) as $ids) { mutation_check(phpbb_pm_save_messages($ids,7,'inbox',1)===0,'Invalid/stale save selection does not evict'); }
+	mutation_check(phpbb_pm_save_messages(array(20),99,'inbox',1)===0 && phpbb_pm_save_messages(array(20),8,'outbox',1)===0,'Foreign mailbox and unsupported save source refused');
+	mutation_check($mutation_server->count_rows(PRIVMSGS_TABLE)===2,'No invalid save operation deleted a parent');
+	$mutation_server->failure='UPDATE fixture_messages';
+	mutation_expect_failure(function(){phpbb_pm_save_messages(array(20),7,'inbox',1);},'pm database');
+	mutation_check($mutation_server->count_rows(PRIVMSGS_TABLE)===2 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Failed move does not evict existing archive');
+	$mutation_server->failure='';
+	mutation_check(phpbb_pm_save_messages(array(20),7,'inbox',1)===1,'Inbox message saved');
+	mutation_check(pm_scalar('SELECT privmsgs_type FROM fixture_messages WHERE privmsgs_id=20')===3 && pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_id=21')===0,'New save retained, oldest existing archive evicted');
+	mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===1 && is_file($upload_dir.'/fixture.txt') && pm_scalar('SELECT user_new_privmsg FROM fixture_users WHERE user_id=7')===0,'Saved attachment and correct counters preserved');
+	mutation_check(phpbb_pm_save_messages(array(20),7,'inbox',1)===0 && $mutation_server->count_rows(PRIVMSGS_TABLE)===1,'Repeated stale save cannot erase archive');
+	pm_cleanup_fixture();
+	mutation_check(phpbb_pm_save_messages(array(21),8,'sentbox',0)===1 && pm_scalar('SELECT privmsgs_type FROM fixture_messages WHERE privmsgs_id=21')===4,'Sent copy saves to outgoing archive, unlimited capacity supported');
+	mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Move preserves original and sent attachment links');
+	pm_cleanup_fixture();
+	$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES(22,1,7,8,0,1),(23,3,7,8,0,300),(24,3,7,8,0,300)');
+	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(22,'new selection'),(23,'archive'),(24,'archive tie')");
+	mutation_expect_failure(function(){phpbb_pm_save_messages(array(20,22),7,'inbox',1);},'save limit');
+	mutation_check($mutation_server->count_rows(PRIVMSGS_TABLE)===5,'Oversized batch rejected before writes');
+	mutation_check(phpbb_pm_save_messages(array(20,22),7,'inbox',2)===2 && pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_id IN (20,22) AND privmsgs_type=3')===2 && pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_id IN (23,24)')===0,'Multi-save respects capacity and retains selected messages even with older original dates');
+	pm_cleanup_fixture(); $moved=false;
+	$mutation_server->hook=function($sql) use (&$moved) {
+		if (!$moved && strpos($sql,'UPDATE fixture_messages SET privmsgs_type')===0) { $moved=true; $GLOBALS['mutation_server']->pdo->exec('UPDATE fixture_messages SET privmsgs_type=3 WHERE privmsgs_id=20'); }
+	};
+	mutation_check(phpbb_pm_save_messages(array(20),7,'inbox',1)===0 && $moved && $mutation_server->count_rows(PRIVMSGS_TEXT_TABLE)===2,'Zero affected save rows cannot evict or delete text');
+	pm_cleanup_fixture();
+	mutation_check(phpbb_pm_delete_user_messages(7)===0,'No account cleanup outside administrator context');
+	define('IN_ADMIN',true); $userdata['user_level']=0;
+	mutation_check(phpbb_pm_delete_user_messages(7)===0,'Regular user cannot invoke account cleanup');
+	$userdata['user_level']=ADMIN;
+	foreach(array(0,-1,'7 OR 1=1',null) as $invalid_user) { mutation_check(phpbb_pm_delete_user_messages($invalid_user)===0,'Invalid account target refused'); }
+	$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES(22,2,99,99,0,123)');
+	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(22,'unrelated')");
+	mutation_pm()->duplicate_attachment_pm(1,20,22);
+	mutation_check(phpbb_pm_delete_user_messages(7)===2 && $mutation_server->count_rows(PRIVMSGS_TABLE)===1 && $mutation_server->count_rows(PRIVMSGS_TEXT_TABLE)===1,'Account cleanup removes only existing from/to scope');
+	mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===1 && is_file($upload_dir.'/fixture.txt'),'Unrelated shared reference protects physical file during account cleanup');
+	mutation_check(phpbb_pm_delete_user_messages(99)===1 && !is_file($upload_dir.'/fixture.txt'),'Last account reference removes final file');
+	$admin=file_get_contents($forum_root.'admin/admin_users.php');
+	mutation_check(strpos($admin,'phpbb_pm_delete_user_messages($user_id);') < strpos($admin,'DELETE FROM " . USERS_TABLE') && strpos($admin,'SELECT privmsgs_id')===false,'Account cleanup precedes irreversible account removal and replaces legacy PM deletion');
 	echo "Private-message selected/all deletion, mailbox trimming, counters and attachment lifecycle checks passed.\n";
 }
 finally
