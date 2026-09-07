@@ -125,8 +125,8 @@ $mtnc[] = array('synchronize_post',
 	0);
 $mtnc[] = array('synchronize_user',
 	'Synchronize user post counters',
-	'This will synchronize the post counters for the users.',
-	'<b>Attention:</b> pruned posts are normaly not substracted from the post counter. When running this command, the pruned posts will be substracted from the counter and cannot be restored. Proceed?',
+	'Recount existing posts in forums where personal post counting is enabled. Guest and reserved accounts are left unchanged.',
+	'<b>Attention:</b> historical counts retained after pruning may decrease. The recount uses the current forum settings. Run during a quiet maintenance window after existing requests have finished. Proceed?',
 	6);
 $mtnc[] = array('synchronize_mod_state',
 	'Synchronize moderator status',

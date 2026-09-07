@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Align the ACP user post-count rebuild with the forum's personal-count option.
+  Count only existing posts in eligible forums, include users with zero counted
+  posts in one query and leave guest/reserved identities untouched. Remove the
+  old blanket reset and obsolete query variant; report changes after successful
+  writes. Clarify the maintenance warning in English/German. This remains an
+  explicit offline maintenance action, not an automatic migration or live recount.
 - Preserve topic bookmarks when deleting a reply. Whole-topic deletion cleans
   bookmarks and watches only while the topic is actually absent. Separate the
   personal post-count option from forum/topic totals used for pagination, guard

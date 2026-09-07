@@ -133,10 +133,8 @@ $mtnc[] = array('synchronize_post',
 	0);
 $mtnc[] = array('synchronize_user',
 	'Synchronisiere Beitragszähler der Benutzer',
-	'Diese Funktion synchronisiert die Zahl der Beiträge der Benutzer.',
-	'<b>Achtung:</b> durch die Pruning-Funktion gelöschte Beiträge werden normalerweise nicht von der Zahl der Beiträge der
-		Benutzer abgezogen. Wird diese Funktion ausgeführt, so berücksichtigen die Zähler diese Beiträge nicht mehr und können
-		nicht wiederhergestellt werden. Fortfahren?',
+	'Zählt vorhandene Beiträge aus Foren mit aktivierter persönlicher Beitragszählung neu. Gast- und reservierte Datensätze bleiben unverändert.',
+	'<b>Achtung:</b> Nach dem Pruning beibehaltene historische Zählerstände können sinken. Es gelten die aktuellen Foreneinstellungen. Bitte in einem ruhigen Wartungsfenster ausführen, nachdem laufende Anfragen beendet sind. Fortfahren?',
 	6);
 $mtnc[] = array('synchronize_mod_state',
 	'Synchronisiere Moderatoren-Status',

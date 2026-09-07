@@ -462,3 +462,6 @@ jobs:
 
       - name: Test post statistics and topic preference cleanup
         run: php .github/scripts/check-post-statistics.php
+
+      - name: Test user post-count maintenance and excluded forums
+        run: php .github/scripts/check-user-post-recount.php

@@ -3745,26 +3745,15 @@ switch($mode_id)
 				echo("<h1>" . $lang['Synchronize_post_counters'] . "</h1>\n");
 				lock_db();
 
-				// Updating new pm counter
+				// Count existing posts only where personal post counting is enabled.
+				// LEFT JOIN retains zero-post users without a separate blanket reset.
 				echo("<p class=\"gen\"><b>" . $lang['Synchronize_user_post_counter'] . "</b></p>\n");
-				if (check_mysql_version())
-				{
-					$sql = "SELECT u.user_id, u.username, u.user_posts, Count(p.post_id) AS new_counter
-						FROM " . USERS_TABLE . " u
-							INNER JOIN " . POSTS_TABLE . " p ON u.user_id = p.poster_id
-						WHERE u.user_id <> " . ANONYMOUS . "
-						GROUP BY u.user_id, u.username, u.user_posts";
-				}
-				else
-				{
-					$sql = "SELECT u.user_id, u.username, u.user_posts, Count(p.post_id) AS new_counter
-						FROM " . USERS_TABLE . " u, " .
-							POSTS_TABLE . " p
-						WHERE u.user_id = p.poster_id
-							AND u.user_id <> " . ANONYMOUS . "
-						GROUP BY u.user_id, u.username, u.user_posts";
-				}
-				$result_array = array();
+				$sql = "SELECT u.user_id, u.username, u.user_posts, COUNT(f.forum_id) AS new_counter
+					FROM " . USERS_TABLE . " u
+					LEFT JOIN " . POSTS_TABLE . " p ON u.user_id = p.poster_id
+					LEFT JOIN " . FORUMS_TABLE . " f ON f.forum_id = p.forum_id AND f.count_posts <> 0
+					WHERE u.user_id > 0
+					GROUP BY u.user_id, u.username, u.user_posts";
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
@@ -3772,9 +3761,16 @@ switch($mode_id)
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					$result_array[] = $row['user_id'];
 					if ($row['new_counter'] != $row['user_posts'] )
 					{
+						$sql2 = "UPDATE " . USERS_TABLE . "
+							SET user_posts = " . (int) $row['new_counter'] . "
+							WHERE user_id = " . (int) $row['user_id'] . ' AND user_id > 0';
+						$result2 = $db->sql_query($sql2);
+						if ( !$result2 )
+						{
+							throw_error("Couldn't update user information!", __LINE__, __FILE__, $sql2);
+						}
 						if (!$list_open)
 						{
 							echo("<p class=\"gen\">" . $lang['Synchronizing_users'] . ":</p>\n");
@@ -3782,50 +3778,6 @@ switch($mode_id)
 							$list_open = TRUE;
 						}
 						echo("<li>" . sprintf($lang['Synchronizing_user_counter'], htmlspecialchars($row['username']), $row['user_id'], $row['user_posts'], $row['new_counter']) . "</li>\n");
-						$sql2 = "UPDATE " . USERS_TABLE . "
-							SET user_posts = " . $row['new_counter'] . "
-							WHERE user_id = " . $row['user_id'];
-						$result2 = $db->sql_query($sql2);
-						if ( !$result2 )
-						{
-							throw_error("Couldn't update user information!", __LINE__, __FILE__, $sql2);
-						}
-					}
-				}
-				$db->sql_freeresult($result);
-				// All other users
-				if ( count($result_array) )
-				{
-					$sql_string = 'user_id NOT IN (' . implode(',', $result_array) . ') AND';
-				}
-				else
-				{
-					$sql_string = '';
-				}
-				$sql = "SELECT user_id, username, user_posts
-					FROM " . USERS_TABLE . "
-					WHERE $sql_string user_posts <> 0";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Synchronizing_users'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Synchronizing_user_counter'], htmlspecialchars($row['username']), $row['user_id'], $row['user_posts'], 0) . "</li>\n");
-					$sql2 = "UPDATE " . USERS_TABLE . "
-						SET user_posts = 0
-						WHERE user_id = " . $row['user_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update user information!", __LINE__, __FILE__, $sql2);
 					}
 				}
 				$db->sql_freeresult($result);
