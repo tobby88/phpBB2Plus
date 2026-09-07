@@ -103,6 +103,8 @@ $lang['Ftp_error_pasv_mode'] = 'Unable to enable/disable FTP Passive Mode';
 $lang['Attachment_test_temporary_failed'] = 'The upload test could not safely create or use its temporary file. No existing files were selected for replacement.';
 $lang['Attachment_test_cleanup_failed'] = 'Removal of the temporary test file could not be confirmed: %s. Please check this file before repeating the test.';
 $lang['Attachment_test_ftp_unavailable'] = 'The required PHP FTP functions are unavailable. Check the server configuration.';
+$lang['Attachment_listing_failed'] = 'The attachment directory could not be read completely and reliably. Check directory access and the FTP listing format if applicable. The inventory check was stopped; an unreadable directory must not be treated as missing attachments.';
+$lang['Attachment_selection_invalid'] = 'The selected attachment filenames are invalid or no longer match the current directory. No files from this selection were deleted. Refresh the list and select the files again.';
 $lang['Attachment_test_ftp_invalid'] = 'The FTP settings contain unsupported control characters. Please check the configuration.';
 $lang['Attachment_test_ftp_listing'] = 'The FTP directory %s could not be listed. The diagnostic upload was stopped because a filename collision could not be checked.';
 

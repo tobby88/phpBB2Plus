@@ -321,57 +321,108 @@ function ftp_file($source_file, $dest_file, $mimetype, $disable_error_mode = fal
 /**
 * Check if Attachment exist
 */
-function attachment_exists($filename)
+function attach_ftp_listing_entry($name, $size)
 {
-	global $upload_dir, $attach_config;
+	if (!is_string($name) || $name === '' || $name === '.' || $name === '..' || preg_match('#[\\\\/\x00-\x1f\x7f]#', $name)) { return false; }
+	if (!is_string($size) && !is_int($size)) { return false; }
+	$size = (string) $size;
+	if (!preg_match('/^[0-9]+$/D', $size)) { return false; }
+	$size = ltrim($size, '0'); $size = $size === '' ? '0' : $size;
+	$maximum = (string) PHP_INT_MAX;
+	if (strlen($size) > strlen($maximum) || (strlen($size) === strlen($maximum) && strcmp($size, $maximum) > 0)) { return false; }
+	return array('name' => $name, 'size' => (int) $size);
+}
 
-	$filename = basename($filename);
-
-	if (!intval($attach_config['allow_ftp_upload']))
+// Return complete regular-file metadata or false. Never reuse metadata from
+// another LIST row, or turn an unsupported/failed listing into an empty one.
+function attach_ftp_parse_file_entries($rows, $structured)
+{
+	$files = array(); $seen = array();
+	if (!is_array($rows)) { return false; }
+	foreach ($rows as $row)
 	{
-		if (!@file_exists(@amod_realpath($upload_dir . '/' . $filename)))
+		if ($structured)
 		{
-			return false;
+			if (!is_array($row) || !isset($row['type']) || !is_string($row['type'])) { return false; }
+			$type = strtolower($row['type']);
+			if (in_array($type, array('dir', 'cdir', 'pdir', 'os.unix=slink', 'os.unix=symlink'), true) || strpos($type, 'os.unix=slink:') === 0) { continue; }
+			if ($type !== 'file') { return false; }
+			if (!isset($row['name'], $row['size'])) { return false; }
+			$entry = attach_ftp_listing_entry($row['name'], $row['size']);
 		}
 		else
 		{
-			return true;
+			if (!is_string($row)) { return false; }
+			if ($row === '' || preg_match('/^total\s+[0-9]+\s*$/iD', $row)) { continue; }
+			if (preg_match('/^([-dlbcps])[rwxstST-]{9}[+@.]?\s+[0-9]+\s+\S+\s+\S+\s+([0-9]+)\s+\S+\s+[0-9]{1,2}\s+(?:[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?|[0-9]{4}) (.*)$/D', $row, $match))
+			{
+				if ($match[1] !== '-') { continue; }
+				$entry = attach_ftp_listing_entry($match[3], $match[2]);
+			}
+			elseif (preg_match('/^[0-9]{2}-[0-9]{2}-[0-9]{2,4}\s+[0-9]{1,2}:[0-9]{2}(?:AM|PM)\s+(<DIR>|[0-9]+)\s+(.+)$/iD', $row, $match))
+			{
+				if (strtoupper($match[1]) === '<DIR>') { continue; }
+				$entry = attach_ftp_listing_entry($match[2], $match[1]);
+			}
+			else { return false; }
 		}
+		if ($entry === false || isset($seen['file:' . $entry['name']])) { return false; }
+		$seen['file:' . $entry['name']] = true; $files[] = $entry;
 	}
-	else
+	return $files;
+}
+
+function attach_ftp_list_files($connection)
+{
+	if (function_exists('ftp_mlsd'))
 	{
-		$found = false;
-
-		$conn_id = attach_init_ftp();
-
-		$file_listing = array();
-
-		$file_listing = @ftp_rawlist($conn_id, $filename);
-
-		for ($i = 0, $size = sizeof($file_listing); $i < $size; $i++)
-		{
-			if (preg_match("#([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)#", $file_listing[$i], $regs))
-			{
-				if ($regs[1] == 'd') 
-				{	
-					$dirinfo[0] = 1;	// Directory == 1
-				}
-				$dirinfo[1] = $regs[2]; // Size
-				$dirinfo[2] = $regs[3]; // Date
-				$dirinfo[3] = $regs[4]; // Filename
-				$dirinfo[4] = $regs[5]; // Time
-			}
-			
-			if ($dirinfo[0] != 1 && $dirinfo[4] == $filename)
-			{
-				$found = true;
-			}
-		}
-
-		@ftp_quit($conn_id);	
-		
-		return $found;
+		$files = attach_ftp_parse_file_entries(@ftp_mlsd($connection, '.'), true);
+		if ($files !== false) { return $files; }
 	}
+	return attach_ftp_parse_file_entries(@ftp_rawlist($connection, ''), false);
+}
+
+function attach_storage_file_entries($mode = false)
+{
+	global $upload_dir, $attach_config;
+	if (intval($attach_config['allow_ftp_upload']))
+	{
+		$connection = attach_init_ftp($mode);
+		try { return attach_ftp_list_files($connection); }
+		finally { @ftp_close($connection); }
+	}
+	$directory = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');
+	$handle = @opendir($directory);
+	if ($handle === false) { return false; }
+	$files = array();
+	try
+	{
+		while (($name = readdir($handle)) !== false)
+		{
+			$path = $directory . '/' . $name;
+			if (is_link($path) || is_dir($path)) { continue; }
+			if (!is_file($path)) { return false; }
+			$size = @filesize($path);
+			if ($size === false || $size < 0) { return false; }
+			$files[] = array('name' => $name, 'size' => $size);
+		}
+	}
+	finally { closedir($handle); }
+	return $files;
+}
+
+function attach_storage_file_exists($filename, $mode = false)
+{
+	global $lang;
+	$files = attach_storage_file_entries($mode);
+	if ($files === false) { message_die(GENERAL_ERROR, $lang['Attachment_listing_failed']); }
+	foreach ($files as $entry) { if ($entry['name'] === $filename) { return true; } }
+	return false;
+}
+
+function attachment_exists($filename)
+{
+	return attach_storage_file_exists(basename($filename));
 }
 
 /**
@@ -379,56 +430,7 @@ function attachment_exists($filename)
 */
 function thumbnail_exists($filename)
 {
-	global $upload_dir, $attach_config;
-
-	$filename = basename($filename);
-
-	if (!intval($attach_config['allow_ftp_upload']))
-	{
-		if (!@file_exists(@amod_realpath($upload_dir . '/' . THUMB_DIR . '/t_' . $filename)))
-		{
-			return false;
-		}
-		else
-		{
-			return true;
-		}
-	}
-	else
-	{
-		$found = false;
-
-		$conn_id = attach_init_ftp(MODE_THUMBNAIL);
-
-		$file_listing = array();
-
-		$filename = 't_' . $filename;
-		$file_listing = @ftp_rawlist($conn_id, $filename);
-
-		for ($i = 0, $size = sizeof($file_listing); $i < $size; $i++)
-		{
-			if (preg_match("#([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)#", $file_listing[$i], $regs))
-			{
-				if ($regs[1] == 'd')
-				{	
-					$dirinfo[0] = 1;	// Directory == 1
-				}
-				$dirinfo[1] = $regs[2]; // Size
-				$dirinfo[2] = $regs[3]; // Date
-				$dirinfo[3] = $regs[4]; // Filename
-				$dirinfo[4] = $regs[5]; // Time
-			}
-			
-			if ($dirinfo[0] != 1 && $dirinfo[4] == $filename)
-			{
-				$found = true;
-			}
-		}
-
-		@ftp_quit($conn_id);	
-		
-		return $found;
-	}
+	return attach_storage_file_exists('t_' . basename($filename), MODE_THUMBNAIL);
 }
 
 /**

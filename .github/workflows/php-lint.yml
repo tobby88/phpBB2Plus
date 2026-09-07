@@ -349,6 +349,9 @@ jobs:
       - name: Test attachment upload diagnostics and failure cleanup
         run: php .github/scripts/check-attachment-upload-probes.php
 
+      - name: Test attachment inventory and thumbnail synchronization boundaries
+        run: php .github/scripts/check-attachment-file-inventory.php
+
       - name: Test download delivery safety
         run: php .github/scripts/check-download-delivery-safety.php
 

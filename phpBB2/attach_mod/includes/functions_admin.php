@@ -346,68 +346,39 @@ function entry_exists($attach_id)
 /**
 * Collect all Attachments in Filesystem
 */
+function attach_inventory_file($name)
+{
+	return $name !== 'index.php' && $name !== '.htaccess' && strpos($name, '.phpbb-test-') !== 0;
+}
+
 function collect_attachments()
 {
-	global $upload_dir, $attach_config;
+	global $lang;
+	$entries = attach_storage_file_entries();
+	if ($entries === false) { message_die(GENERAL_ERROR, $lang['Attachment_listing_failed']); }
+	$files = array();
+	foreach ($entries as $entry) { if (attach_inventory_file($entry['name'])) { $files[] = $entry['name']; } }
+	return $files;
+}
 
-	$file_attachments = array(); 
-
-	if (!intval($attach_config['allow_ftp_upload']))
+function attach_shadow_selected_files($posted)
+{
+	global $lang;
+	if (!is_array($posted)) { message_die(GENERAL_ERROR, $lang['Attachment_selection_invalid']); }
+	if (!$posted) { return array(); }
+	$available = collect_attachments(); $selected = array();
+	foreach ($posted as $value)
 	{
-		if ($dir = @opendir($upload_dir))
+		// common.php added slashes, but names are not HTML and must not be
+		// trimmed: a different file may exist without those spaces/characters.
+		$name = is_string($value) ? stripslashes($value) : '';
+		if (attach_ftp_listing_entry($name, '0') === false || !in_array($name, $available, true))
 		{
-			while ($file = @readdir($dir))
-			{
-				if ($file != 'index.php' && $file != '.htaccess' && !is_dir($upload_dir . '/' . $file) && !is_link($upload_dir . '/' . $file))
-				{
-					$file_attachments[] = trim($file);
-				}
-			}
-		
-			closedir($dir);
+			message_die(GENERAL_ERROR, $lang['Attachment_selection_invalid']);
 		}
-		else
-		{
-			message_die(GENERAL_ERROR, 'Is Safe Mode Restriction in effect? The Attachment Mod seems to be unable to collect the Attachments within the upload Directory. Try to use FTP Upload to circumvent this error. Another reason could be that the directory ' . $upload_dir . ' does not exist.');
-		}
+		if (!in_array($name, $selected, true)) { $selected[] = $name; }
 	}
-	else
-	{
-		$conn_id = attach_init_ftp();
-
-		$file_listing = array();
-
-		$file_listing = @ftp_rawlist($conn_id, '');
-
-		if (!$file_listing)
-		{
-			message_die(GENERAL_ERROR, 'Unable to get Raw File Listing. Please be sure the LIST command is enabled at your FTP Server.');
-		}
-
-		for ($i = 0; $i < sizeof($file_listing); $i++)
-		{
-			if (preg_match("#([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)#", $file_listing[$i], $regs))
-			{
-				if ($regs[1] == 'd') 
-				{	
-					$dirinfo[0] = 1;	// Directory == 1
-				}
-				$dirinfo[1] = $regs[2]; // Size
-				$dirinfo[2] = $regs[3]; // Date
-				$dirinfo[3] = $regs[4]; // Filename
-				$dirinfo[4] = $regs[5]; // Time
-			}
-			
-			if ($dirinfo[0] != 1 && $dirinfo[4] != 'index.php' && $dirinfo[4] != '.htaccess')
-			{
-				$file_attachments[] = trim($dirinfo[4]);
-			}
-		}
-
-		@ftp_quit($conn_id);
-	}
-
-	return $file_attachments;
+	return $selected;
 }
 
 /**
@@ -415,65 +386,11 @@ function collect_attachments()
 */
 function get_formatted_dirsize()
 {
-	global $attach_config, $upload_dir, $lang;
-
+	global $lang;
+	$entries = attach_storage_file_entries();
+	if ($entries === false) { return $lang['Not_available']; }
 	$upload_dir_size = 0;
-
-	if (!intval($attach_config['allow_ftp_upload']))
-	{
-		if ($dirname = @opendir($upload_dir))
-		{
-			while ($file = @readdir($dirname))
-			{
-				if ($file != 'index.php' && $file != '.htaccess' && !is_dir($upload_dir . '/' . $file) && !is_link($upload_dir . '/' . $file))
-				{
-					$upload_dir_size += @filesize($upload_dir . '/' . $file);
-				}
-			}
-			@closedir($dirname);
-		}
-		else
-		{
-			$upload_dir_size = $lang['Not_available'];
-			return $upload_dir_size;
-		}
-	}
-	else
-	{
-		$conn_id = attach_init_ftp();
-
-		$file_listing = array();
-
-		$file_listing = @ftp_rawlist($conn_id, '');
-
-		if (!$file_listing)
-		{
-			$upload_dir_size = $lang['Not_available'];
-			return $upload_dir_size;
-		}
-
-		for ($i = 0; $i < count($file_listing); $i++)
-		{
-			if (preg_match("#([-d])[rwxst-]{9}.* ([0-9]*) ([a-zA-Z]+[0-9: ]*[0-9]) ([0-9]{2}:[0-9]{2}) (.+)#", $file_listing[$i], $regs))
-			{
-				if ($regs[1] == 'd') 
-				{	
-					$dirinfo[0] = 1;	// Directory == 1
-				}
-				$dirinfo[1] = $regs[2]; // Size
-				$dirinfo[2] = $regs[3]; // Date
-				$dirinfo[3] = $regs[4]; // Filename
-				$dirinfo[4] = $regs[5]; // Time
-			}
-			
-			if ($dirinfo[0] != 1 && $dirinfo[4] != 'index.php' && $dirinfo[4] != '.htaccess')
-			{
-				$upload_dir_size += $dirinfo[1];
-			}
-		}
-
-		@ftp_quit($conn_id);
-	}
+	foreach ($entries as $entry) { if (attach_inventory_file($entry['name'])) { $upload_dir_size += $entry['size']; } }
 
 	if ($upload_dir_size >= 1048576)
 	{

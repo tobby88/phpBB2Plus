@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Share attachment file inventories across size displays, orphan checks and
+  thumbnail synchronization. Prefer MLSD with a validated UNIX/DOS LIST fallback;
+  reject incomplete or ambiguous results rather than marking files missing.
+  Preserve exact filenames (including `0`), skip symbolic links/protection files
+  and use one thumbnail snapshot before updates. Validate complete shadow-file
+  selections before deletion without trimming names or treating distinct numeric
+  strings as equal. Close listing sessions on failure as well as success.
 - Consolidate attachment ACP upload diagnostics: exclusive local test files,
   random FTP probe names checked against directory listings, in-memory FTP
   streams and cleanup of partial transfers. Handle missing FTP support and

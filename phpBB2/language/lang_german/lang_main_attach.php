@@ -103,6 +103,8 @@ $lang['Ftp_error_pasv_mode'] = 'Kann den FTP Passiv Modus nicht ein-/ausschalten
 $lang['Attachment_test_temporary_failed'] = 'Der Upload-Test konnte seine temporäre Datei nicht sicher erstellen oder verwenden. Es wurden keine vorhandenen Dateien zum Überschreiben ausgewählt.';
 $lang['Attachment_test_cleanup_failed'] = 'Das Löschen der temporären Testdatei konnte nicht bestätigt werden: %s. Bitte prüfe diese Datei vor einem erneuten Test.';
 $lang['Attachment_test_ftp_unavailable'] = 'Die benötigten PHP-FTP-Funktionen sind nicht verfügbar. Bitte prüfe die Serverkonfiguration.';
+$lang['Attachment_listing_failed'] = 'Das Anhangsverzeichnis konnte nicht vollständig und zuverlässig gelesen werden. Bitte prüfe die Verzeichnisrechte und gegebenenfalls das FTP-Listenformat. Die Bestandsprüfung wurde angehalten; ein unlesbares Verzeichnis darf nicht als fehlende Anhänge gewertet werden.';
+$lang['Attachment_selection_invalid'] = 'Die ausgewählten Anhangsdateinamen sind ungültig oder stimmen nicht mehr mit dem aktuellen Verzeichnis überein. Aus dieser Auswahl wurden keine Dateien gelöscht. Bitte lade die Liste neu und wähle die Dateien erneut aus.';
 $lang['Attachment_test_ftp_invalid'] = 'Die FTP-Einstellungen enthalten nicht unterstützte Steuerzeichen. Bitte prüfe die Konfiguration.';
 $lang['Attachment_test_ftp_listing'] = 'Das FTP-Verzeichnis %s konnte nicht aufgelistet werden. Der Diagnose-Upload wurde abgebrochen, weil eine Dateinamenskollision nicht geprüft werden konnte.';
 

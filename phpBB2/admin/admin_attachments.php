@@ -384,7 +384,7 @@ if ($mode == 'manage')
 if ($submit && $mode == 'shadow')
 {
 	// Delete Attachments from file system...
-	$attach_file_list = get_var('attach_file_list', array(''));
+	$attach_file_list = attach_shadow_selected_files(isset($HTTP_POST_VARS['attach_file_list']) ? $HTTP_POST_VARS['attach_file_list'] : array());
 	
 	for ($i = 0; $i < sizeof($attach_file_list); $i++)
 	{
@@ -513,9 +513,9 @@ if ($mode == 'shadow')
 		{
 			if ($file_attachments[$i] != '')
 			{
-				if (!in_array(trim($file_attachments[$i]), $table_attachments['physical_filename']) )
+				if (!in_array($file_attachments[$i], $table_attachments['physical_filename'], true))
 				{	
-					$shadow_attachments[] = trim($file_attachments[$i]);
+					$shadow_attachments[] = $file_attachments[$i];
 					// Delete this file from the file_attachments to not have double assignments in next steps
 					$file_attachments[$i] = '';
 				}
@@ -525,7 +525,7 @@ if ($mode == 'shadow')
 		{
 			if ($file_attachments[$i] != '')
 			{
-				$shadow_attachments[] = trim($file_attachments[$i]);
+				$shadow_attachments[] = $file_attachments[$i];
 				// Delete this file from the file_attachments to not have double assignments in next steps
 				$file_attachments[$i] = '';
 			}
@@ -548,10 +548,10 @@ if ($mode == 'shadow')
 	{
 		if ($table_attachments['physical_filename'][$i] != '')
 		{
-			if ( !in_array(trim($table_attachments['physical_filename'][$i]), $file_attachments))
+			if (!in_array($table_attachments['physical_filename'][$i], $file_attachments, true))
 			{	
 				$shadow_row['attach_id'][] = $table_attachments['attach_id'][$i];
-				$shadow_row['physical_filename'][] = trim($table_attachments['physical_filename'][$i]);
+				$shadow_row['physical_filename'][] = $table_attachments['physical_filename'][$i];
 				$shadow_row['comment'][] = $table_attachments['comment'][$i];
 
 				// Delete this entry from the table_attachments, to not interfere with the next step
@@ -570,7 +570,7 @@ if ($mode == 'shadow')
 			if (!entry_exists($table_attachments['attach_id'][$i]))
 			{
 				$shadow_row['attach_id'][] = $table_attachments['attach_id'][$i];
-				$shadow_row['physical_filename'][] = trim($table_attachments['physical_filename'][$i]);
+				$shadow_row['physical_filename'][] = $table_attachments['physical_filename'][$i];
 				$shadow_row['comment'][] = $table_attachments['comment'][$i];
 			}
 		}
@@ -820,6 +820,12 @@ if ($mode == 'sync' && $sync_confirm)
 	echo (isset($lang['Sync_thumbnails'])) ? $lang['Sync_thumbnails'] : 'Sync Thumbnails';
 	
 	// Sync Thumbnails (if a thumbnail is no longer there, delete it)
+	// Read one complete snapshot before changing thumbnail flags. A failed
+	// listing is not evidence that every thumbnail has disappeared.
+	$thumbnail_entries = attach_storage_file_entries(MODE_THUMBNAIL);
+	if ($thumbnail_entries === false) { message_die(GENERAL_ERROR, $lang['Attachment_listing_failed']); }
+	$thumbnail_lookup = array();
+	foreach ($thumbnail_entries as $entry) { $thumbnail_lookup['file:' . $entry['name']] = true; }
 	// Get all Posts/PM's with the Thumbnail Flag set
 	// Go through all of them and make sure the Thumbnail exist. If it does not exist, unset the Thumbnail Flag
 	$sql = "SELECT attach_id, physical_filename, thumbnail FROM " . ATTACHMENTS_DESC_TABLE . " WHERE thumbnail = 1";
@@ -841,7 +847,7 @@ if ($mode == 'sync' && $sync_confirm)
 			echo '<br />';
 		}
 
-		if (!thumbnail_exists(basename($row['physical_filename'])))
+		if (!isset($thumbnail_lookup['file:t_' . basename($row['physical_filename'])]))
 		{
 			$info .= sprintf($lang['Sync_thumbnail_resetted'], $row['physical_filename']) . '<br />';
 			$sql = "UPDATE " . ATTACHMENTS_DESC_TABLE . " SET thumbnail = 0 WHERE attach_id = " . (int) $row['attach_id'];
@@ -877,7 +883,7 @@ if ($mode == 'sync' && $sync_confirm)
 			echo '<br />';
 		}
 
-		if (thumbnail_exists(basename($row['physical_filename'])))
+		if (isset($thumbnail_lookup['file:t_' . basename($row['physical_filename'])]))
 		{
 			$info .= sprintf($lang['Sync_thumbnail_resetted'], $row['physical_filename']) . '<br />';
 			unlink_attach(basename($row['physical_filename']), MODE_THUMBNAIL);
