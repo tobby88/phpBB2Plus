@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Reject failed or incomplete BBCode template loading before marking templates
+  ready. Cold-start regex failures now preserve the entire escaped message
+  without missing-key warnings or poisoning subsequent rendering in the same
+  request. Missing optional style overrides still use the complete defaults.
 - Apply the per-IP/account failed-login limiter to unknown names as well as
   existing accounts. Existing-account attempts use the DB-resolved canonical
   username so case/accent aliases do not split the counter. Successful logins

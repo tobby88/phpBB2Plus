@@ -116,8 +116,8 @@ function phpbb_schild($smilie, $parameter, $text)
  * Loads bbcode templates from the bbcode.tpl file of the current template set.
  * Creates an array, keys are bbcode names like "b_open" or "url", values
  * are the associated template.
- * Probably pukes all over the place if there's something really screwed
- * with the bbcode.tpl file.
+ * Incomplete template sets are rejected before preparation, so the public
+ * rendering entry point can preserve the message as safe source text.
  *
  * Nathan Codding, Sept 26 2001.
  */
@@ -147,7 +147,7 @@ function load_bbcode_template_blocks($tpl_filename)
 		return array();
 	}
 
-	$tpl = file_get_contents($tpl_filename);
+	$tpl = @file_get_contents($tpl_filename);
 	if ($tpl === false)
 	{
 		return array();
@@ -157,7 +157,12 @@ function load_bbcode_template_blocks($tpl_filename)
 	$tpl = str_replace("\n", '', $tpl);
 	$bbcode_tpls = array();
 	$matches = array();
-	if (preg_match_all('#<!-- BEGIN (.*?) -->(.*?)<!-- END \\1 -->#', $tpl, $matches, PREG_SET_ORDER))
+	$count = @preg_match_all('#<!-- BEGIN (.*?) -->(.*?)<!-- END \\1 -->#', $tpl, $matches, PREG_SET_ORDER);
+	if ($count === false || preg_last_error() !== PREG_NO_ERROR)
+	{
+		throw new PhpbbBbcodeParseException('BBCode template block matching failed');
+	}
+	if ($count > 0)
 	{
 		foreach ($matches as $match)
 		{
@@ -182,6 +187,26 @@ function load_bbcode_template_blocks($tpl_filename)
 function prepare_bbcode_template($bbcode_tpl)
 {
 	global $lang;
+
+	// Validate the whole renderer contract before preparing any block or setting
+	// BBCODE_TPL_READY. Missing closers must never leave half-rendered page HTML.
+	$required = array('listitem', 'img', 'url', 'email', 'schild', 'ram', 'flash',
+		'stream', 'video', 'hr', 'google', 'left', 'right', 'quote_username_open');
+	foreach (array('ulist', 'olist', 'quote', 'code', 'php', 'b', 'u', 'i',
+		'color', 'size', 'align', 'marq', 'table', 'cell', 'font', 'poet', 'fade',
+		'glow', 'shadow', 'highlight', 's', 'scrollleft', 'scrollright',
+		'scrollup', 'scrolldown', 'fliph', 'flipv', 'acronym') as $name)
+	{
+		$required[] = $name . '_open';
+		$required[] = $name . '_close';
+	}
+	foreach ($required as $name)
+	{
+		if (!is_array($bbcode_tpl) || !isset($bbcode_tpl[$name]) || !is_string($bbcode_tpl[$name]))
+		{
+			throw new PhpbbBbcodeParseException('Incomplete BBCode template set');
+		}
+	}
 
 	$bbcode_tpl['olist_open'] = str_replace('{LIST_TYPE}', '\\1', $bbcode_tpl['olist_open']);
 
