@@ -3,6 +3,7 @@
 $root = dirname(dirname(__DIR__));
 $admin = (string) file_get_contents($root . '/phpBB2/admin/admin_jr_admin.php');
 $errors = array();
+define('IN_PHPBB', true);
 
 require_once $root . '/phpBB2/includes/functions_jr_admin.php';
 $lang = array(

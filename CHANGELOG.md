@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Bind Junior Admin grants to the executing ACP endpoint: an allowed module
+  identifier no longer unlocks unrelated controllers. Use SCRIPT_NAME instead
+  of request-URI text, require the exact index filename, and retain documented
+  Arcade/Download/XS helper scopes. Read literal module declarations without
+  re-executing controllers, avoiding function redeclarations during POST checks.
+  Existing grant hashes remain valid; no database migration is required.
 - Route user-pruning private messages through guarded text/attachment cleanup,
   rechecking that the account is still absent. Keep other users' delivered and
   archived copies, anonymize their removed participant, and include pending

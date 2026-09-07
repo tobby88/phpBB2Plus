@@ -450,3 +450,6 @@ jobs:
 
       - name: Test inactive-account and pruning deletion boundaries
         run: php .github/scripts/check-user-deletion-lifecycle.php
+
+      - name: Test Junior Admin endpoint-bound permissions
+        run: php .github/scripts/check-jr-admin-authorization.php

@@ -2,6 +2,7 @@
 
 define('EXPLODE_SEPERATOR_CHAR', '|');
 define('JR_ADMIN_DIR', 'admin/');
+require_once(dirname(__FILE__) . '/functions_jr_admin_auth.php');
 if (!defined('COPYRIGHT_NIVISEC_FORMAT')) define('COPYRIGHT_NIVISEC_FORMAT',
 '<br /><span class="copyright"><center>
 	%s 
@@ -142,47 +143,22 @@ if (!function_exists('sql_query_nivisec'))
 	}
 }
 
-function jr_admin_check_file_hashes($file)
+function jr_admin_check_file_hashes($file, $requested_module = null)
 {
 	global $phpEx, $userdata;
 	$file = is_scalar($file) ? basename((string) $file) : '';
-	if (!preg_match('/^admin_[a-z0-9_]+\.' . preg_quote($phpEx, '/') . '$/iD', $file))
+	if (!preg_match('/^(?:admin_[a-z0-9_]+|xs_[a-z0-9_]+)\.' . preg_quote($phpEx, '/') . '$/iD', $file)) { return false; }
+	$directory = jr_admin_module_directory();
+	if ($directory === false || !is_file($directory . $file)) { return false; }
+	$routes = jr_admin_authorization_routes();
+	if ($routes === false) { return false; }
+	$info = jr_admin_get_user_info($userdata['user_id']);
+	$grants = isset($info['user_jr_admin']) ? explode(EXPLODE_SEPERATOR_CHAR, $info['user_jr_admin']) : array();
+	foreach ($grants as $hash)
 	{
-		return false;
+		if ($requested_module !== null && $requested_module !== $hash) { continue; }
+		if (isset($routes[$hash]) && jr_admin_route_matches_file($routes[$hash], $file)) { return true; }
 	}
-	$module_directory = jr_admin_module_directory();
-	if ($module_directory === false || !is_file($module_directory . $file))
-	{
-		return false;
-	}
-	$module = array();
-	
-	//Include the file to get the module list
-	$setmodules = 1;
-	include($module_directory . $file);
-	unset($setmodules);
-	
-	$jr_admin_userdata = jr_admin_get_user_info($userdata['user_id']);
-	
-	$user_modules = explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_userdata['user_jr_admin']);
-	
-	foreach($module as $cat => $module_data)
-	{
-		foreach($module_data as $module_name => $module_file)
-		{
-			//Remove sid if we find one
-			$module_file = preg_replace("/(\?|&|&amp;)sid=[a-f0-9]{32}/i", '', $module_file);
-			//Make our unique ID
-			$file_hash = md5($cat.$module_name.$module_file);
-			//See if it is in the array
-			if (in_array($file_hash, $user_modules, true))
-			{
-				return true;
-			}
-		}
-	}
-	
-	//If we get this far, the user has no business with the module filename
 	return false;
 }
 
@@ -394,8 +370,9 @@ function jr_admin_prepare_navigation_modules($module_list)
 
 function jr_admin_secure($file)
 {
-	global $_GET, $_POST, $db, $lang, $userdata;
-	$file = is_scalar($file) ? basename((string) $file) : '';
+	global $_GET, $_POST, $db, $lang, $userdata, $phpEx;
+	$file = is_scalar($file) ? (string) $file : '';
+	$file = explode('?', $file, 2); $file = basename($file[0]);
 	
 	/* Debugging in this function causes changes to the way ADMIN users
 	are interpreted.  You are warned */
@@ -405,7 +382,7 @@ function jr_admin_secure($file)
 	
 	if ($debug)
 	{
-		if (!preg_match("/^index.$phpEx/", $file))
+		if ($file !== 'index.' . $phpEx)
 		{
 			print '<pre><span class="gen"><font color="red">DEBUG - File Accessed - ';
 			print $file;
@@ -422,15 +399,15 @@ function jr_admin_secure($file)
 		//This user has no modules and no business being here
 		return false;
 	}
-	elseif (preg_match("/^index.$phpEx/", $file))
+	elseif ($file === 'index.' . $phpEx)
 	{
 		//We are at the index file, which is already secure pretty much
 		return true;
 	}
 	elseif (isset($_GET['module']) && is_scalar($_GET['module']) && preg_match('/^[a-f0-9]{32}$/D', (string) $_GET['module']) && in_array((string) $_GET['module'], explode(EXPLODE_SEPERATOR_CHAR, $jr_admin_userdata['user_jr_admin']), true))
 	{
-		//The user has access for sure by module_id security from GET vars only
-		return true;
+		// A valid grant is not a bearer token for unrelated ACP files.
+		return jr_admin_check_file_hashes($file, (string) $_GET['module']);
 	}
 	elseif (!isset($_GET['module']) && count($_POST))
 	{

@@ -54,7 +54,7 @@ if (!$userdata['session_logged_in'])
 {
 	redirect(append_sid("login.$phpEx?redirect=admin/index.$phpEx", true));
 }
-elseif (!jr_admin_secure(basename($HTTP_SERVER_VARS['REQUEST_URI'])))
+elseif (!jr_admin_secure(isset($_SERVER['SCRIPT_NAME']) && is_scalar($_SERVER['SCRIPT_NAME']) ? basename((string) $_SERVER['SCRIPT_NAME']) : ''))
 {
 	message_die(GENERAL_ERROR, $lang['Error_Module_ID'], '', __LINE__, __FILE__);	
 }
