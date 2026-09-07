@@ -4,7 +4,7 @@ $root = dirname(dirname(__DIR__));
 $workflow = file_get_contents($root . '/.github/workflows/php-lint.yml');
 $missing = array();
 
-foreach (glob(__DIR__ . '/check-*.php') as $test_file)
+foreach (array_merge(glob(__DIR__ . '/check-*.php'), glob(__DIR__ . '/check-*.js')) as $test_file)
 {
 	$name = basename($test_file);
 	if (strpos($workflow, '.github/scripts/' . $name) === false)

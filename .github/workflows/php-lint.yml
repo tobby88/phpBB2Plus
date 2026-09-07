@@ -12,6 +12,7 @@ on:
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
+      - ".github/scripts/*.js"
       - ".github/workflows/php-lint.yml"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
+      - ".github/scripts/*.js"
       - ".github/workflows/php-lint.yml"
 
 permissions:
@@ -415,3 +417,9 @@ jobs:
 
       - name: Test authoritative configuration loading and transactional migration
         run: php .github/scripts/check-configuration-consistency.php
+
+      - name: Test quick-reply form structure and rendering boundaries
+        run: php .github/scripts/check-quick-reply.php
+
+      - name: Test quick-reply client selection and submission behavior
+        run: node .github/scripts/check-quick-reply-client.js

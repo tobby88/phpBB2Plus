@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repair quick-reply table/form nesting so its controls stay inside the form
+  and do not alter the surrounding topic/filter layout. Submit explicitly as
+  UTF-8, handle empty quote selections correctly and insert smilies/quotes at
+  the cursor in modern browsers. Remove the unused legacy smilie-row helper.
 - Restore CrackerTracker configuration within an owned InnoDB transaction,
   rolling back all pending settings on failure rather than leaving a partial
   restore. Fresh installs and the idempotent post-1.53a updater use InnoDB for
