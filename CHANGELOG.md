@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Distinguish missing files from unreadable/disallowed paths in the
+  CrackerTracker integrity report; malformed baseline hashes require a rebuild.
+  Reject stream-wrapper paths before metadata/checksum access. Remove the
+  unused report-truncation method and keep unlocked rebuild internals private.
 - Serialize concurrent CrackerTracker baseline/report rebuilds with a
   database-scoped advisory lock. A separate non-persistent connection owns
   both the lock and all scan queries; contention returns a German/English

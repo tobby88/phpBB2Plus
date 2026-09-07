@@ -180,8 +180,9 @@ $lang['ctracker_fchk_tablehead1']		  = 'Dateipfad';
 $lang['ctracker_fchk_tablehead2']		  = 'Status';
 $lang['ctracker_file_unchanged']		  = 'UNVERÄNDERT';
 $lang['ctracker_file_changed']		 	  = 'GEÄNDERT';
-$lang['ctracker_file_deleted']        = 'GELÖSCHT';
-$lang['ctracker_file_legacy_checksum'] = 'VERALTETE PRÜFSUMME – NEU AUFBAUEN';
+$lang['ctracker_file_deleted']        = 'DATEI NICHT GEFUNDEN';
+$lang['ctracker_file_unreadable']     = 'NICHT PRÜFBAR – NICHT LESBAR ODER UNZULÄSSIGER PFAD';
+$lang['ctracker_file_legacy_checksum'] = 'VERALTETE ODER UNGÜLTIGE PRÜFSUMME – NEU AUFBAUEN';
 
 
 /*

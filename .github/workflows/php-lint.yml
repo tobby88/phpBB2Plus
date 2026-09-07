@@ -403,3 +403,6 @@ jobs:
 
       - name: Test concurrent CrackerTracker scans and lock cleanup
         run: php .github/scripts/check-ctracker-scan-lock.php
+
+      - name: Test CrackerTracker integrity report and persisted path boundaries
+        run: php .github/scripts/check-ctracker-integrity-report.php

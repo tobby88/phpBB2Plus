@@ -260,7 +260,7 @@ class ct_adminfunctions
 		return $lock;
 	}
 
-	function build_filechk()
+	private function build_filechk()
 	{
 		global $lang, $phpbb_root_path, $phpEx;
 		$db = $this->scan_database();
@@ -321,7 +321,7 @@ class ct_adminfunctions
 	 */
 	function resolve_file_within_root($path, $required_root)
 	{
-		if (!is_string($path) || $path === '' || !is_string($required_root) || $required_root === '')
+		if (!$this->is_local_file_path($path) || !$this->is_local_file_path($required_root))
 		{
 			return false;
 		}
@@ -347,13 +347,57 @@ class ct_adminfunctions
 		return $resolved_path;
 	}
 
+	/**
+	 * Reject stream wrappers before ANY stat/read operation on persisted paths.
+	 * Native Windows drive paths are local; URL schemes and NUL bytes are not.
+	 */
+	function is_local_file_path($path)
+	{
+		if (!is_string($path) || $path === '' || strpos($path, "\0") !== false)
+		{
+			return false;
+		}
+		if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $path))
+		{
+			return DIRECTORY_SEPARATOR === '\\' && preg_match('~^[a-z]:[/\\\\]~i', $path) === 1;
+		}
+		return true;
+	}
+
+	/**
+	 * Only report "not found" beneath a readable/searchable, in-tree parent.
+	 * Unresolvable parents, links and out-of-tree paths remain "not checkable".
+	 */
+	function missing_file_within_root($path, $required_root)
+	{
+		if (!$this->is_local_file_path($path) || !$this->is_local_file_path($required_root))
+		{
+			return false;
+		}
+		$root = @realpath($required_root);
+		$parent = @realpath(dirname($path));
+		if ($root === false || $parent === false)
+		{
+			return false;
+		}
+		$root = str_replace('\\', '/', rtrim($root, '/\\'));
+		$parent = str_replace('\\', '/', $parent);
+		if (($parent !== $root && strpos($parent, $root . '/') !== 0) ||
+			!is_dir($parent) || !is_readable($parent) ||
+			(DIRECTORY_SEPARATOR !== '\\' && !is_executable($parent)))
+		{
+			return false;
+		}
+		return @lstat($path) === false;
+	}
+
 
 	/**
 	 * Return a content checksum suitable for detecting same-size changes.
 	 */
 	function file_checksum($path, $required_root = '')
 	{
-		if (!is_string($path) || $path === '' || !is_file($path) || !is_readable($path))
+		if (!$this->is_local_file_path($path))
 		{
 			return false;
 		}
@@ -364,6 +408,10 @@ class ct_adminfunctions
 			{
 				return false;
 			}
+		}
+		else if (!is_file($path) || !is_readable($path))
+		{
+			return false;
 		}
 
 		$checksum = @hash_file('sha256', $path);
@@ -732,7 +780,7 @@ class ct_adminfunctions
 		}
 	}
 
-	function build_file_scan($dir, $extension = '')
+	private function build_file_scan($dir, $extension = '')
 	{
 		global $lang;
 		$db = $this->scan_database();
@@ -778,23 +826,6 @@ class ct_adminfunctions
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 		$db->sql_query('DROP TABLE IF EXISTS ' . $backup_table);
-	}
-
-
-	/**
-	* <b>DropData</b><br>
-	* This function cleans up the Database from the FileScanner before rescanning
-	*/
-	function DropData()
-	{
-		global $db, $lang;
-
-	  	$sql = 'TRUNCATE TABLE ' . CTRACKER_FILESCANNER;
-
-	  	if(!($result = $db->sql_query($sql)))
-	  	{
-	    	message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-	  	}
 	}
 
 

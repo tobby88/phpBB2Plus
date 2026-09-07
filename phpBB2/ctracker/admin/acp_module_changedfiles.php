@@ -69,10 +69,11 @@ else if ( $action == 'chk' )
 
 		if ($current_hash === false)
 		{
-			$filestatus = $lang['ctracker_file_deleted'];
-			$color = '#0300FF';
+			$missing = $ct_admin->missing_file_within_root($row['filepath'], $phpbb_root_path);
+			$filestatus = $lang[$missing ? 'ctracker_file_deleted' : 'ctracker_file_unreadable'];
+			$color = $missing ? '#0300FF' : '#B05A00';
 		}
-		elseif (strlen($stored_hash) !== 64)
+		elseif (!preg_match('/\A[a-f0-9]{64}\z/', $stored_hash))
 		{
 			// The legacy baseline only hashed size and line count and cannot prove
 			// integrity. Require an explicit administrator-triggered rebuild.
@@ -90,7 +91,7 @@ else if ( $action == 'chk' )
 			$color = '#269F00';
 		}
 
-		$path_cleaned = str_replace('./../', '', $row['filepath']);
+		$path_cleaned = str_replace('./../', '', (string) $row['filepath']);
 
 		$template->assign_block_vars('file_output', array(
 			'PATH'	 => phpbb_admin_html($path_cleaned),

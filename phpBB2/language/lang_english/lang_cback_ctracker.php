@@ -182,8 +182,9 @@ $lang['ctracker_fchk_tablehead1']		  = 'Filepath';
 $lang['ctracker_fchk_tablehead2']		  = 'State';
 $lang['ctracker_file_unchanged']		  = 'UNMODIFIED';
 $lang['ctracker_file_changed']		 	  = 'MODIFIED';
-$lang['ctracker_file_deleted']        = 'DELETED';
-$lang['ctracker_file_legacy_checksum'] = 'LEGACY CHECKSUM – REBUILD REQUIRED';
+$lang['ctracker_file_deleted']        = 'FILE NOT FOUND';
+$lang['ctracker_file_unreadable']     = 'NOT CHECKABLE – UNREADABLE OR DISALLOWED PATH';
+$lang['ctracker_file_legacy_checksum'] = 'LEGACY OR INVALID CHECKSUM – REBUILD REQUIRED';
 
 
 /*
