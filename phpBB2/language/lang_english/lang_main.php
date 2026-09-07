@@ -1628,4 +1628,7 @@ $lang['Activity'] = 'Games';
 $lang['BBCode_media_open'] = 'Open media file';
 $lang['BBCode_flash_open'] = 'Open Flash file';
 
+$lang['Moderation_delete_failed'] = 'Topic deletion could not be completed. Some steps may already have succeeded. Please ask an administrator to check the remaining data before retrying.';
+$lang['Moderation_delete_changed'] = 'A post changed while its topic was being deleted. Deletion was stopped to protect unrelated data. Please ask an administrator to check the remaining data.';
+
 ?>

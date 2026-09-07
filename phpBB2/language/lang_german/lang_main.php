@@ -1623,4 +1623,7 @@ $lang['Activity'] = 'Spiele';
 $lang['BBCode_media_open'] = 'Mediendatei öffnen';
 $lang['BBCode_flash_open'] = 'Flash-Datei öffnen';
 
+$lang['Moderation_delete_failed'] = 'Die Themenlöschung konnte nicht abgeschlossen werden. Einzelne Schritte können bereits erfolgt sein. Bitte lasse die verbliebenen Daten vor einem erneuten Versuch durch einen Administrator prüfen.';
+$lang['Moderation_delete_changed'] = 'Ein Beitrag wurde während der Themenlöschung verändert. Die Löschung wurde zum Schutz anderer Daten angehalten. Bitte lasse die verbliebenen Daten durch einen Administrator prüfen.';
+
 ?>

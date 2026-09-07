@@ -37,6 +37,7 @@ include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_moderation.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_log.'.$phpEx);
 
 //
@@ -304,175 +305,17 @@ switch( $mode )
 
 			$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
-			$topic_id_sql = '';
-			for($i = 0; $i < count($topics); $i++)
-			{
-				$topic_id_sql .= ( ( $topic_id_sql != '' ) ? ', ' : '' ) . intval($topics[$i]);
-			}
-
-			$sql = "SELECT topic_id 
-				FROM " . TOPICS_TABLE . "
-				WHERE topic_id IN ($topic_id_sql)
-					AND forum_id = $forum_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not get topic id information', '', __LINE__, __FILE__, $sql);
-			}
-			
-			$topic_id_sql = '';
-			while ($row = $db->sql_fetchrow($result))
-			{
-				$topic_id_sql .= (($topic_id_sql != '') ? ', ' : '') . intval($row['topic_id']);
-			}
-			$db->sql_freeresult($result);
-
-			if ( $topic_id_sql == '')
+			$removed = phpbb_delete_moderated_topics($db, $forum_id, $topics);
+			if (!$removed['topic_ids'])
 			{
 				message_die(GENERAL_MESSAGE, $lang['None_selected']);
 			}
-
-			$sql = "SELECT poster_id, COUNT(post_id) AS posts 
-				FROM " . POSTS_TABLE . " 
-				WHERE topic_id IN ($topic_id_sql) 
-				GROUP BY poster_id";
-			if ( !($result = $db->sql_query($sql)) )
+			$topic_id_sql = implode(', ', $removed['topic_ids']);
+			$post_id_sql = implode(', ', $removed['post_ids']);
+			if ($post_id_sql !== '')
 			{
-				message_die(GENERAL_ERROR, 'Could not get poster id information', '', __LINE__, __FILE__, $sql);
-			}
-
-			$count_sql = array();
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$count_sql[] = "UPDATE " . USERS_TABLE . " 
-					SET user_posts = user_posts - " . $row['posts'] . " 
-					WHERE user_id = " . $row['poster_id'];
-			}
-			$db->sql_freeresult($result);
-
-			if ( sizeof($count_sql) )
-			{
-				for($i = 0; $i < sizeof($count_sql); $i++)
-				{
-					if ( !$db->sql_query($count_sql[$i]) )
-					{
-						message_die(GENERAL_ERROR, 'Could not update user post count information', '', __LINE__, __FILE__, $sql);
-					}
-				}
-			}
-			
-			$sql = "SELECT post_id 
-				FROM " . POSTS_TABLE . " 
-				WHERE topic_id IN ($topic_id_sql)";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not get post id information', '', __LINE__, __FILE__, $sql);
-			}
-
-			$post_id_sql = '';
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$post_id_sql .= ( ( $post_id_sql != '' ) ? ', ' : '' ) . intval($row['post_id']);
-			}
-			$db->sql_freeresult($result);
-
-			$sql = "SELECT vote_id 
-				FROM " . VOTE_DESC_TABLE . " 
-				WHERE topic_id IN ($topic_id_sql)";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not get vote id information', '', __LINE__, __FILE__, $sql);
-			}
-
-			$vote_id_sql = '';
-			while ( $row = $db->sql_fetchrow($result) )
-			{
-				$vote_id_sql .= ( ( $vote_id_sql != '' ) ? ', ' : '' ) . $row['vote_id'];
-			}
-			$db->sql_freeresult($result);
-
-			//
-			// Got all required info so go ahead and start deleting everything
-			//
-			$sql = "DELETE 
-				FROM " . TOPICS_TABLE . " 
-				WHERE topic_id IN ($topic_id_sql) 
-					OR topic_moved_id IN ($topic_id_sql)";
-			if ( !$db->sql_query($sql, BEGIN_TRANSACTION) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete topics', '', __LINE__, __FILE__, $sql);
-			}
-			$sql = "DELETE 
-				FROM " . BOOKMARK_TABLE . " 
-				WHERE topic_id IN ($topic_id_sql)";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete bookmarks', '', __LINE__, __FILE__, $sql);
-			}
-			if ( $post_id_sql != '' )
-			{
-				$sql = "DELETE 
-					FROM " . POSTS_TABLE . " 
-					WHERE post_id IN ($post_id_sql)";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete posts', '', __LINE__, __FILE__, $sql);
-				}
-
-				$sql = "DELETE 
-					FROM " . POSTS_TEXT_TABLE . " 
-					WHERE post_id IN ($post_id_sql)";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete posts text', '', __LINE__, __FILE__, $sql);
-				}
-
 				remove_search_post($post_id_sql);
-				delete_attachment(explode(', ', $post_id_sql));
 			}
-
-			if ( $vote_id_sql != '' )
-			{
-				$sql = "DELETE 
-					FROM " . VOTE_DESC_TABLE . " 
-					WHERE vote_id IN ($vote_id_sql)";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete vote descriptions', '', __LINE__, __FILE__, $sql);
-				}
-
-				$sql = "DELETE 
-					FROM " . VOTE_RESULTS_TABLE . " 
-					WHERE vote_id IN ($vote_id_sql)";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete vote results', '', __LINE__, __FILE__, $sql);
-				}
-
-				$sql = "DELETE 
-					FROM " . VOTE_USERS_TABLE . " 
-					WHERE vote_id IN ($vote_id_sql)";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete vote users', '', __LINE__, __FILE__, $sql);
-				}
-			}
-
-			$sql = "DELETE 
-				FROM " . TOPICS_WATCH_TABLE . " 
-				WHERE topic_id IN ($topic_id_sql)";
-			if ( !$db->sql_query($sql, END_TRANSACTION) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete watched post list', '', __LINE__, __FILE__, $sql);
-			}
-			// Start add - Who viewed a topic MOD
-			$sql = "DELETE 
-        			FROM " . TOPIC_VIEW_TABLE . " 
-        			WHERE topic_id IN ($topic_id_sql)"; 
-			if ( !$db->sql_query($sql, END_TRANSACTION) ) 
-			{ 
-				message_die(GENERAL_ERROR, 'Could not delete viewed post list', '', __LINE__, __FILE__, $sql); 
-			}
-			// End add - Who viewed a topic MOD
 			sync('forum', $forum_id);
 			log_action('delete', $topic_id_sql, $userdata['user_id'], $userdata['username']);
 

@@ -23,11 +23,8 @@ class PostStatsDatabase
 	var $pdo; var $queries = array(); var $failure = ''; var $hook = null;
 	function __construct($count_posts)
 	{
-		$this->pdo = class_exists('Pdo\\Sqlite') ? new Pdo\Sqlite('sqlite::memory:') : new PDO('sqlite::memory:');
+		$this->pdo = new PDO('sqlite::memory:');
 		$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$greatest = function ($left, $right) { return max($left, $right); };
-		if (method_exists($this->pdo, 'createFunction')) { $this->pdo->createFunction('GREATEST', $greatest, 2); }
-		else { $this->pdo->sqliteCreateFunction('GREATEST', $greatest, 2); }
 		$this->pdo->exec('CREATE TABLE fixture_forums (forum_id INTEGER PRIMARY KEY, count_posts INTEGER, forum_posts INTEGER, forum_topics INTEGER, forum_last_post_id INTEGER)');
 		$this->pdo->exec('CREATE TABLE fixture_topics (topic_id INTEGER PRIMARY KEY, topic_moved_id INTEGER, topic_replies INTEGER, topic_first_post_id INTEGER, topic_last_post_id INTEGER, topic_vote INTEGER)');
 		$this->pdo->exec('CREATE TABLE fixture_posts (post_id INTEGER PRIMARY KEY, topic_id INTEGER, forum_id INTEGER)');

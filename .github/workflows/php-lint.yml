@@ -465,3 +465,6 @@ jobs:
 
       - name: Test user post-count maintenance and excluded forums
         run: php .github/scripts/check-user-post-recount.php
+
+      - name: Test moderated topic deletion and attachment coordination
+        run: php .github/scripts/check-moderated-topic-deletion.php

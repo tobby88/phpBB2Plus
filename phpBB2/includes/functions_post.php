@@ -474,7 +474,7 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 	// for forum/topic display and pagination.
 	$count_posts = !empty($forum_information['count_posts']);
 	$sign = ($mode == 'delete') ? '- 1' : '+ 1';
-	$forum_update_sql = ($mode == 'delete') ? 'forum_posts = GREATEST(forum_posts - 1, 0)' : 'forum_posts = forum_posts + 1';
+	$forum_update_sql = ($mode == 'delete') ? 'forum_posts = CASE WHEN forum_posts > 0 THEN forum_posts - 1 ELSE 0 END' : 'forum_posts = forum_posts + 1';
 	$topic_update_sql = '';
 
 	if ($mode == 'delete')
@@ -483,12 +483,12 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 		{
 			if ($post_data['first_post'])
 			{
-				$forum_update_sql .= ', forum_topics = GREATEST(forum_topics - 1, 0)';
+				$forum_update_sql .= ', forum_topics = CASE WHEN forum_topics > 0 THEN forum_topics - 1 ELSE 0 END';
 			}
 			else
 			{
 
-				$topic_update_sql .= 'topic_replies = GREATEST(topic_replies - 1, 0)';
+				$topic_update_sql .= 'topic_replies = CASE WHEN topic_replies > 0 THEN topic_replies - 1 ELSE 0 END';
 
 				$sql = "SELECT MAX(post_id) AS last_post_id
 					FROM " . POSTS_TABLE . " 
@@ -531,12 +531,12 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 
 			if ($row = $db->sql_fetchrow($result))
 			{
-				$topic_update_sql .= 'topic_replies = GREATEST(topic_replies - 1, 0), topic_first_post_id = ' . (int) $row['first_post_id'];
+				$topic_update_sql .= 'topic_replies = CASE WHEN topic_replies > 0 THEN topic_replies - 1 ELSE 0 END, topic_first_post_id = ' . (int) $row['first_post_id'];
 			}
 		}
 		else
 		{
-			$topic_update_sql .= 'topic_replies = GREATEST(topic_replies - 1, 0)';
+			$topic_update_sql .= 'topic_replies = CASE WHEN topic_replies > 0 THEN topic_replies - 1 ELSE 0 END';
 		}
 	}
 	else if ($mode != 'poll_delete')
@@ -573,7 +573,7 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 
 	if ($mode != 'poll_delete' && $count_posts)
 	{
-		$user_update_sql = ($mode == 'delete') ? 'GREATEST(user_posts - 1, 0)' : 'user_posts + 1';
+		$user_update_sql = ($mode == 'delete') ? 'CASE WHEN user_posts > 0 THEN user_posts - 1 ELSE 0 END' : 'user_posts + 1';
 		$sql = "UPDATE " . USERS_TABLE . "
 			SET user_posts = $user_update_sql
 			WHERE user_id = $user_id";

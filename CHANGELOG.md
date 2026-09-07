@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate moderator topic deletion with attachment writers on one owning DB
+  connection. Requalify topics/posts against the authorized forum and decrement
+  personal counters only after the corresponding post was actually removed,
+  respecting excluded forums and preserving guests/zero floors. Scope attachment,
+  poll and preference cleanup; retain shared files and nonempty redirect stubs.
+  Fail explicitly on changed parents or partial storage errors. This does not
+  make the complete forum/search lifecycle transactional. No schema migration.
+- Make counter floors safe for the actual UNSIGNED schema: branch before
+  subtracting zero, since GREATEST(counter - 1, 0) can underflow before clamping.
+  Apply this to ordinary post/forum/topic counters and moderator user counters.
 - Align the ACP user post-count rebuild with the forum's personal-count option.
   Count only existing posts in eligible forums, include users with zero counted
   posts in one query and leave guest/reserved identities untouched. Remove the
