@@ -35,6 +35,20 @@ $unhtml_specialchars_replace = array('>', '<', '"', '&');
 // This function will prepare a posted message for
 // entry into the database.
 //
+function phpbb_post_escape_html($text)
+{
+	global $html_entities_match, $html_entities_replace;
+	$text = (string) $text;
+	$escaped = preg_replace($html_entities_match, $html_entities_replace, $text);
+	if ($escaped === null || preg_last_error() !== PREG_NO_ERROR)
+	{
+		// If PCRE cannot finish, escape the full input with the non-regex
+		// primitive. Never preserve raw HTML or return an empty partial result.
+		return htmlspecialchars($text, ENT_COMPAT | ENT_SUBSTITUTE, 'UTF-8');
+	}
+	return $escaped;
+}
+
 function prepare_message($message, $html_on, $bbcode_on, $smile_on, $bbcode_uid = 0)
 {
 	global $board_config, $html_entities_match, $html_entities_replace;
@@ -54,14 +68,20 @@ function prepare_message($message, $html_on, $bbcode_on, $smile_on, $bbcode_uid 
 		$matches = array();
 
 		$message_split = preg_split($html_match, $message);
-		preg_match_all($html_match, $message, $matches);
-
-		$message = '';
-
-		foreach ($message_split as $part)
+		$split_ok = is_array($message_split) && preg_last_error() === PREG_NO_ERROR;
+		$match_count = preg_match_all($html_match, $message, $matches);
+		if (!$split_ok || $match_count === false || preg_last_error() !== PREG_NO_ERROR)
 		{
-			$tag = array(array_shift($matches[0]), array_shift($matches[1]), array_shift($matches[2]));
-			$message .= preg_replace($html_entities_match, $html_entities_replace, $part) . clean_html($tag);
+			$message = phpbb_post_escape_html($message);
+		}
+		else
+		{
+			$message = '';
+			foreach ($message_split as $part)
+			{
+				$tag = array(array_shift($matches[0]), array_shift($matches[1]), array_shift($matches[2]));
+				$message .= phpbb_post_escape_html($part) . clean_html($tag);
+			}
 		}
 
 		$message = addslashes($message);
@@ -69,7 +89,7 @@ function prepare_message($message, $html_on, $bbcode_on, $smile_on, $bbcode_uid 
 	}
 	else
 	{
-		$message = preg_replace($html_entities_match, $html_entities_replace, $message);
+		$message = phpbb_post_escape_html($message);
 	}
 
 	if($bbcode_on && $bbcode_uid != '')

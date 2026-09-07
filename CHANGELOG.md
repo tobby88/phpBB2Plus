@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Handle BBCode encoding/rendering and HTML-preparation regex failures without
+  losing the message or returning partially generated layout. Resource-limit
+  fallbacks retain complete, safely escaped source; normal HTML allowlists and
+  formatting still apply when parsing succeeds. Legacy poet blocks are visible
+  with preserved spacing instead of calling the missing `doPoetry()` script.
 - Validate table/cell BBCode against its enclosing structure before rendering.
   Standalone cells, crossed quotes/divs and malformed tables remain readable
   source instead of modifying the forum's own table layout. Independent valid

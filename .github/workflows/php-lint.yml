@@ -194,6 +194,9 @@ jobs:
       - name: Test table BBCode structure
         run: php .github/scripts/check-table-bbcode-runtime.php
 
+      - name: Test BBCode parser failure recovery
+        run: php .github/scripts/check-bbcode-failure-runtime.php
+
       - name: Test search result permissions and pagination
         run: php .github/scripts/check-search-results-runtime.php
 

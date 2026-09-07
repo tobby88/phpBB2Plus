@@ -44,8 +44,8 @@
 <!-- BEGIN font_open --><span style="font-family:{FONT}"><!-- END font_open --> 
 <!-- BEGIN font_close --></span><!-- END font_close --> 
 
-<!-- BEGIN poet_open --><div style="display:none"><!-- END poet_open -->
-<!-- BEGIN poet_close --></div><script>doPoetry()</script><!-- END poet_close -->
+<!-- BEGIN poet_open --><div class="bbcode-poem" style="white-space:pre-wrap"><!-- END poet_open -->
+<!-- BEGIN poet_close --></div><!-- END poet_close -->
 
 <!-- BEGIN ram --><div style="text-align:center"><audio controls="controls" preload="metadata" src="{URL}"><a href="{URL}" rel="noopener noreferrer">{L_MEDIA_OPEN}</a></audio></div><!-- END ram -->
 
