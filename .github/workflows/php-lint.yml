@@ -200,6 +200,9 @@ jobs:
       - name: Test BBCode container boundaries
         run: php .github/scripts/check-container-bbcode-runtime.php
 
+      - name: Test nested formatting round trips
+        run: php .github/scripts/check-nested-formatting-runtime.php
+
       - name: Test search result permissions and pagination
         run: php .github/scripts/check-search-results-runtime.php
 

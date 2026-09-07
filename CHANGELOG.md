@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve same-name nested formatting when saving posts: a shared token/pair
+  pass replaces the old first-closer regexes for bold/italic, colors, alignment,
+  fonts and related effects. Quote-name attributes remain literal, already
+  compiled tags are not compiled again, and excessive nesting retains the full
+  original source. Existing second-pass boundary validation remains in effect.
 - Validate all independently rendered BBCode containers, not only quote/table
   counts. Orphan closers, unclosed formatting and crossed pairs remain readable
   source instead of escaping the post layout; independent valid formatting and

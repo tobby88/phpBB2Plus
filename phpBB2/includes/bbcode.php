@@ -897,6 +897,47 @@ function make_bbcode_uid()
 	return phpbb_random_string(BBCODE_UID_LEN, '0123456789abcdef');
 }
 
+/** Encode complete formatting pairs without consuming the first nested closer. */
+function phpbb_bbcode_encode_formatting($text, $uid)
+{
+	$rules = array_fill_keys(array('b', 'i', 'u', 's', 'center', 'fade', 'flipv', 'fliph', 'scrollleft', 'scrollright', 'scrollup', 'scrolldown'), '');
+	$rules += array(
+		'color' => '=(?:\#[0-9a-f]{6}|[a-z]+)', 'size' => '=[1-2]?[0-9]',
+		'font' => '=[^\[\]]*', 'align' => '=(?:left|right|center|justify)',
+		'marq' => '=(?:left|right|up|down)', 'poet' => '(?:=[^\[\]]*)?',
+		'glow' => '=(?:\#[0-9a-f]{6}|[a-z]+)', 'shadow' => '=(?:\#[0-9a-f]{6}|[a-z]+)',
+		'highlight' => '=(?:\#[0-9a-f]{6}|[a-z]+)'
+	);
+	$uid_pattern = preg_quote((string) $uid, '#');
+	// Quote names/acronym descriptions are atomic attributes, not body text.
+	$parts = preg_split('#(\[(?:quote|acronym):' . $uid_pattern . '=(?:\\\\?"|\\\\?&quot;).*?(?:\\\\?"|\\\\?&quot;)\]|\[[^\[\]]*\])#is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR)
+	{
+		throw new PhpbbBbcodeParseException('Formatting tokenization failed');
+	}
+	$stacks = array();
+	foreach ($parts as $index => $part)
+	{
+		if (($index % 2) === 0 || phpbb_bbcode_match('#:' . $uid_pattern . '\]$#i', $part)) { continue; }
+		if (!phpbb_bbcode_match('#^\[(/?)([a-z]+)([^\[\]]*)\]$#is', $part, $tag)) { continue; }
+		$name = strtolower($tag[2]);
+		if (!isset($rules[$name])) { continue; }
+		if ($tag[1] === '')
+		{
+			if (!phpbb_bbcode_match('#^' . $rules[$name] . '$#is', $tag[3])) { continue; }
+			$stacks[$name][] = array('index' => $index, 'opening' => '[' . $name . $tag[3] . ':' . $uid . ']');
+			if (count($stacks[$name]) > 256) { throw new PhpbbBbcodeParseException('Formatting nesting limit exceeded'); }
+		}
+		else if ($tag[3] === '' && !empty($stacks[$name]))
+		{
+			$opening = array_pop($stacks[$name]);
+			$parts[$opening['index']] = $opening['opening'];
+			$parts[$index] = '[/' . $name . ':' . $uid . ']';
+		}
+	}
+	return implode('', $parts);
+}
+
 function bbencode_first_pass($text, $uid)
 {
 	$text = (string) $text;
@@ -947,32 +988,8 @@ function phpbb_bbcode_encode_first_pass($text, $uid)
 	// ordered.
 	$text = bbencode_first_pass_pda($text, $uid, $open_tag, "[/list]", "[/list:o]",  false, 'replace_listitems');
 
-	// [color] and [/color] for setting text color
-	$text = phpbb_bbcode_replace("#\[color=(\#[0-9A-F]{6}|[a-z\-]+)\](.*?)\[/color\]#si", "[color=\\1:$uid]\\2[/color:$uid]", $text);
-
-	// [size] and [/size] for setting text size
-	$text = phpbb_bbcode_replace("#\[size=([1-2]?[0-9])\](.*?)\[/size\]#si", "[size=\\1:$uid]\\2[/size:$uid]", $text);
-	
-	// [b] and [/b] for bolding text.
-	$text = phpbb_bbcode_replace("#\[b\](.*?)\[/b\]#si", "[b:$uid]\\1[/b:$uid]", $text);
-	
-	// [scroll] and [/scroll] for scrolling text.
-	$text = phpbb_bbcode_replace("#\[scrollleft\](.*?)\[/scrollleft\]#si", "[scrollleft:$uid]\\1[/scrollleft:$uid]", $text);
-	$text = phpbb_bbcode_replace("#\[scrollright\](.*?)\[/scrollright\]#si", "[scrollright:$uid]\\1[/scrollright:$uid]", $text);
-	$text = phpbb_bbcode_replace("#\[scrollup\](.*?)\[/scrollup\]#si", "[scrollup:$uid]\\1[/scrollup:$uid]", $text);
-	$text = phpbb_bbcode_replace("#\[scrolldown\](.*?)\[/scrolldown\]#si", "[scrolldown:$uid]\\1[/scrolldown:$uid]", $text);
-	
-	// [u] and [/u] for underlining text.
-	$text = phpbb_bbcode_replace("#\[u\](.*?)\[/u\]#si", "[u:$uid]\\1[/u:$uid]", $text);
-
-	// [i] and [/i] for italicizing text.
-	$text = phpbb_bbcode_replace("#\[i\](.*?)\[/i\]#si", "[i:$uid]\\1[/i:$uid]", $text);
-	
-	// [flipv] and [/flipv] for flipped text.
-	$text = phpbb_bbcode_replace("#\[flipv\](.*?)\[/flipv\]#si", "[flipv:$uid]\\1[/flipv:$uid]", $text);
-
-	// [fliph] and [/fliph] for flipped text.
-	$text = phpbb_bbcode_replace("#\[fliph\](.*?)\[/fliph\]#si", "[fliph:$uid]\\1[/fliph:$uid]", $text);
+	// Pair nested formatting in one token pass, including repeated tag names.
+	$text = phpbb_bbcode_encode_formatting($text, $uid);
 	
 	// [img]image_url_here[/img] code..
 	$text = phpbb_bbcode_replace_callback("#\[img\]((http|ftp|https|ftps)://)([^\?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))\[/img\]#si",
@@ -983,22 +1000,10 @@ function phpbb_bbcode_encode_first_pass($text, $uid)
 		$text);
 	
 	// bbcode_box Mod
-	// [fade] and [/fade] for faded text.
-	$text = phpbb_bbcode_replace("#\[fade\](.*?)\[/fade\]#si", "[fade:$uid]\\1[/fade:$uid]", $text);
-	// [align] and [/align]
-	$text = phpbb_bbcode_replace("#\[align=(left|right|center|justify)\](.*?)\[/align\]#si", "[align=\\1:$uid]\\2[/align:$uid]", $text);
-	// [marq] and [/marq]
-	$text = phpbb_bbcode_replace("#\[marq=(left|right|up|down)\](.*?)\[/marq\]#si", "[marq=\\1:$uid]\\2[/marq:$uid]", $text);
 	// [table] and [/table]
 	$text = bbencode_first_pass_pda($text, $uid, '#\[table=(?![^\]]*:' . preg_quote($uid, '#') . '\])([^\]]*)\]#is', '[/table]', '', false, '', "[table=\\1:$uid]");
 	// [cell] and [/cell]
 	$text = bbencode_first_pass_pda($text, $uid, '#\[cell=(?![^\]]*:' . preg_quote($uid, '#') . '\])([^\]]*)\]#is', '[/cell]', '', false, '', "[cell=\\1:$uid]");
-	// [font] and [/font]
-	$text = phpbb_bbcode_replace("#\[font=(.*?)\](.*?)\[/font\]#si", "[font=\\1:$uid]\\2[/font:$uid]", $text);
-	// [poet] and [/poet]
-	$text = bbencode_first_pass_pda($text, $uid, '#\[poet(?![^\]]*:' . preg_quote($uid, '#') . '\])((?:=[^\[\]]*)?)\]#is', '[/poet]', '', false, '', "[poet\\1:$uid]");
-	// [center] and [/center]
-	$text = phpbb_bbcode_replace("#\[center\](.*?)\[/center\]#si", "[center:$uid]\\1[/center:$uid]", $text);
 	// [real]and[/real]
 	$text = phpbb_bbcode_replace("#\[ram\](https?://[^\\s\"'<>\[\]]+)\[/ram\]#si", "[ram:$uid]\\1[/ram:$uid]", $text);
 	// [stream]and[/stream]
@@ -1009,14 +1014,6 @@ function phpbb_bbcode_encode_first_pass($text, $uid)
 	$text = phpbb_bbcode_replace("#\[video width=([0-6]?[0-9]?[0-9]) height=([0-4]?[0-9]?[0-9])\](https?://[^\\s\"'<>\[\]]+)\[\/video\]#si", "[video width=\\1 height=\\2:$uid]\\3[/video:$uid]", $text);
 	// [hr]
 	$text = phpbb_bbcode_replace("#\[hr\]#si", "[hr:$uid]", $text);
-	//[glow=red]and[/glow]for glowing text.
-	$text = phpbb_bbcode_replace("#\[glow=(\#[0-9A-F]{6}|[a-z\-]+)\](.*?)\[/glow\]#si", "[glow=\\1:$uid]\\2[/glow:$uid]", $text);
-	//[shadow=red]and[/shadow]for glowing text.
-	$text = phpbb_bbcode_replace("#\[shadow=(\#[0-9A-F]{6}|[a-z\-]+)\](.*?)\[/shadow\]#si", "[shadow=\\1:$uid]\\2[/shadow:$uid]", $text);
-	// [highlight] and [/highlight] for setting text highlight
-	$text = phpbb_bbcode_replace("#\[highlight=(\#[0-9A-F]{6}|[a-z\-]+)\](.*?)\[/highlight\]#si", "[highlight=\\1:$uid]\\2[/highlight:$uid]", $text);
-	// [s] and [/s] for sed text.
-	$text = phpbb_bbcode_replace("#\[s\](.*?)\[/s\]#si", "[s:$uid]\\1[/s:$uid]", $text);
 	// [left]image_url_here[/left] code..
 	$text = phpbb_bbcode_replace_callback("#\[left\]((http|ftp|https|ftps)://)([^ \?&=\#\"\n\r\t<]*?(\.(jpg|jpeg|gif|png)))\[/left\]#si",
 		function($matches) use ($uid)
