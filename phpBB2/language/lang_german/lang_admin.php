@@ -1023,7 +1023,7 @@ $lang['Create_user'] = 'Neuen Benutzer erstellen';
 $lang['Create_user_explain'] = 'Du bist dabei, einen neuen Beuntzer zu erstellen. Das Script wird bei den Daten für diesen Benutzer %s nachsehen; die Benutzer-ID dieses Benutzers ist in der Datei admin_users.php festgelegt, Du kannst diese Einstellung ganz oben in der Datei ändern, wenn eine andere Benutzer-ID benötigt wird.<br />Hiervon gibt es zwei Ausnahmen: <br />1. das Paßwort des Benutzers wird auf "%s" festgelegt, wenn Du es nicht auf der Benutzer-hinzufügen-Seite anders festgelegt hast<br />2. die E-Mail des Benutzers muß auf der Benutzer-hinzufügen-Seite ausgefüllt werden';
 // End add - Admin add user MOD
 
-$lang['Post_count'] = 'Beiträge in diesem Forum zählen ?';
+$lang['Post_count'] = 'Beiträge dieses Forums zum persönlichen Beitragszähler der Benutzer hinzufügen?';
 
 $lang['Contact_Config'] = 'KontaKt EMail';
 $lang['Contact_Explain'] = 'Gib die EMail Adresse an, an die die Beiträge gesendet werden sollen, die über das Kontakt-Formular abgesendet werden';

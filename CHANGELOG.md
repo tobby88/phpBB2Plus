@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve topic bookmarks when deleting a reply. Whole-topic deletion cleans
+  bookmarks and watches only while the topic is actually absent. Separate the
+  personal post-count option from forum/topic totals used for pagination, guard
+  against negative counters and stop on unavailable forum settings. Clarify the
+  option in English/German. No schema change or automatic historical recount;
+  existing forum/topic synchronization remains available for old counter drift.
 - Remove premature whole-post attachment deletion during form preparation.
   Parent deletion must affect the authorized post/topic/forum selection before
   removing its text or attachments. Coordinate that storage block with attachment

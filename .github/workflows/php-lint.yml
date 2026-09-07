@@ -459,3 +459,6 @@ jobs:
 
       - name: Test post deletion storage and attachment form ordering
         run: php .github/scripts/check-post-deletion-storage.php
+
+      - name: Test post statistics and topic preference cleanup
+        run: php .github/scripts/check-post-statistics.php

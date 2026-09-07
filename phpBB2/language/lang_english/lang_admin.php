@@ -1025,7 +1025,7 @@ $lang['Create_user'] = 'Create new user';
 $lang['Create_user_explain'] = 'You are about to create a new user, when creating a new user, the script will look up the data from this user %s, the user ID of this user is hard coded into the file admin_users.php, you may change this setting in the top of this file if another user ID should be used.<br />There are 2 exceptions from this: <br />1. users Password will default to "%s" if you do not specify differently into the admin add user page<br />2. users email must be filled into the admin add user page';
 // End add - Admin add user MOD
 
-$lang['Post_count'] = 'Count Posts in this forum?';
+$lang['Post_count'] = 'Add posts in this forum to users\' personal post counts?';
 
 $lang['Contact_Config'] = 'Contact EMail';
 $lang['Contact_Explain'] = 'Enter the Email-Address to which the Contact Form Mails should be sent to';

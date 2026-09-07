@@ -459,36 +459,22 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 {
 	global $db;
 
-	$sql = "SELECT * FROM " . 
-      FORUMS_TABLE . " 
-      WHERE forum_id = $forum_id"; 
-   $result = $db->sql_query($sql); 
-   $forum_information = $db->sql_fetchrow($result); 
-   $count_posts = $forum_information['count_posts']; 
-    
-   if ($mode == 'delete') 
-   { 
-      if ($count_posts) 
-      { 
-         $sign = "- 1"; 
-      } 
-      else 
-      { 
-         $sign = ""; 
-      } 
-   } 
-   else 
-   { 
-      if ($count_posts) 
-      { 
-         $sign = "+ 1"; 
-      } 
-      else 
-      { 
-         $sign = ""; 
-      } 
-                }
-	$forum_update_sql = "forum_posts = forum_posts $sign";
+	$sql = 'SELECT count_posts FROM ' . FORUMS_TABLE . " WHERE forum_id = $forum_id";
+	if (!($result = $db->sql_query($sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain forum post-count setting', '', __LINE__, __FILE__, $sql);
+	}
+	$forum_information = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if (!$forum_information)
+	{
+		message_die(GENERAL_ERROR, 'Could not obtain forum post-count setting');
+	}
+	// This option controls personal/rank counts, not the actual totals used
+	// for forum/topic display and pagination.
+	$count_posts = !empty($forum_information['count_posts']);
+	$sign = ($mode == 'delete') ? '- 1' : '+ 1';
+	$forum_update_sql = ($mode == 'delete') ? 'forum_posts = GREATEST(forum_posts - 1, 0)' : 'forum_posts = forum_posts + 1';
 	$topic_update_sql = '';
 
 	if ($mode == 'delete')
@@ -497,15 +483,12 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 		{
 			if ($post_data['first_post'])
 			{
-				if ($sign != '')
-				{
-					$forum_update_sql .= ', forum_topics = GREATEST(forum_topics - 1, 0)';
-				}
+				$forum_update_sql .= ', forum_topics = GREATEST(forum_topics - 1, 0)';
 			}
 			else
 			{
 
-				$topic_update_sql .= ($sign != '') ? 'topic_replies = GREATEST(topic_replies - 1, 0)' : 'topic_replies = topic_replies';
+				$topic_update_sql .= 'topic_replies = GREATEST(topic_replies - 1, 0)';
 
 				$sql = "SELECT MAX(post_id) AS last_post_id
 					FROM " . POSTS_TABLE . " 
@@ -514,15 +497,9 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 				{
 					message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
 				}
-				$sql = "DELETE FROM " . BOOKMARK_TABLE . "
-					WHERE topic_id = $topic_id";
-				if ( !$db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-				}
 				if ($row = $db->sql_fetchrow($result))
 				{
-					$topic_update_sql .= ', topic_last_post_id = ' . $row['last_post_id'];
+					$topic_update_sql .= ', topic_last_post_id = ' . (int) $row['last_post_id'];
 				}
 			}
 
@@ -554,12 +531,12 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 
 			if ($row = $db->sql_fetchrow($result))
 			{
-				$topic_update_sql .= (($sign != '') ? 'topic_replies = GREATEST(topic_replies - 1, 0)' : 'topic_replies = topic_replies') . ', topic_first_post_id = ' . $row['first_post_id'];
+				$topic_update_sql .= 'topic_replies = GREATEST(topic_replies - 1, 0), topic_first_post_id = ' . (int) $row['first_post_id'];
 			}
 		}
 		else
 		{
-			$topic_update_sql .= ($sign != '') ? 'topic_replies = GREATEST(topic_replies - 1, 0)' : 'topic_replies = topic_replies';
+			$topic_update_sql .= 'topic_replies = GREATEST(topic_replies - 1, 0)';
 		}
 	}
 	else if ($mode != 'poll_delete')
@@ -594,10 +571,11 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 		}
 	}
 
-	if ($mode != 'poll_delete')
+	if ($mode != 'poll_delete' && $count_posts)
 	{
+		$user_update_sql = ($mode == 'delete') ? 'GREATEST(user_posts - 1, 0)' : 'user_posts + 1';
 		$sql = "UPDATE " . USERS_TABLE . "
-			SET user_posts = user_posts $sign 
+			SET user_posts = $user_update_sql
 			WHERE user_id = $user_id";
 		if (!$db->sql_query($sql, END_TRANSACTION))
 		{
@@ -665,6 +643,31 @@ function phpbb_delete_post_storage($database, $post_id, $topic_id, $forum_id)
 	finally { $lock->release(); }
 }
 
+// Topic preferences belong to the topic, not to its most recent reply.
+// Each write verifies actual topic absence instead of trusting form flags.
+function phpbb_cleanup_removed_topic_preferences($database, $topic_id)
+{
+	global $lang;
+	if ((!is_int($topic_id) && !is_string($topic_id)) || !preg_match('/^[0-9]+$/D', (string) $topic_id))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
+	}
+	$ids = attach_delete_id_array($topic_id);
+	if ($ids === false || count($ids) !== 1)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
+	}
+	foreach (array(TOPICS_WATCH_TABLE, BOOKMARK_TABLE) as $table)
+	{
+		$sql = 'DELETE FROM ' . $table . ' WHERE topic_id = ' . $ids[0] .
+			' AND NOT EXISTS (SELECT 1 FROM ' . TOPICS_TABLE . ' WHERE topic_id = ' . $ids[0] . ')';
+		if (!$database->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Error in deleting topic preferences', '', __LINE__, __FILE__, $sql);
+		}
+	}
+}
+
 function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id)
 {
 	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
@@ -688,12 +691,7 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 					message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
 				}
 
-				$sql = "DELETE FROM " . TOPICS_WATCH_TABLE . "
-					WHERE topic_id = $topic_id";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-				}
+				phpbb_cleanup_removed_topic_preferences($db, $topic_id);
 			}
 		}
 
