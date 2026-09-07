@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Serialize CrackerTracker configuration backups and restores against each
+  other using an owned database session. Preserve the last backup on
+  concurrent/empty rebuilds, ignore historical backup metadata in the source
+  configuration, and require a valid completion timestamp before restoring.
+  New on-demand backup tables use the same utf8mb4-safe key length as the
+  main configuration table; existing backup tables are not truncated/altered.
 - Share numeric CrackerTracker bounds across runtime loading, central writes
   and ACP forms. Reject malformed direct writes and footer choices without
   coercion. Use canonical defaults for damaged stored numbers without changing

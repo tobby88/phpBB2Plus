@@ -364,6 +364,8 @@ $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker konnte die Dat
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker konnte die Datenbankoperation nicht korrekt durchführen.';
 $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker konnte das Forum-Verzeichnis nicht vollständig für die Dateiprüfung lesen.';
 $lang['ctracker_scan_busy']               = 'Diese Dateiprüfung läuft bereits. Bitte warte, bis sie abgeschlossen ist, bevor du sie erneut startest. Der bisherige Bericht bleibt verfügbar.';
+$lang['ctracker_recovery_busy']           = 'Eine Konfigurationssicherung oder Wiederherstellung läuft bereits. Bitte warte, bis sie abgeschlossen ist, bevor du einen weiteren Vorgang startest.';
+$lang['ctracker_rec_empty_source']        = 'Die Konfiguration enthält keine sicherbaren Werte. Eine vorhandene Sicherung bleibt unverändert.';
 $lang['ctracker_error_logfileop']         = 'CBACK CrackerTracker konnte die lokale Protokolldatei nicht sicher aktualisieren.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 

@@ -409,3 +409,6 @@ jobs:
 
       - name: Test CrackerTracker numeric configuration across write and load paths
         run: php .github/scripts/check-ctracker-numeric-config.php
+
+      - name: Test concurrent CrackerTracker configuration backups and restores
+        run: php .github/scripts/check-ctracker-recovery-concurrency.php

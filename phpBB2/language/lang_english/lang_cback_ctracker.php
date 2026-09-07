@@ -365,6 +365,8 @@ $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker couldn\'t run 
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker couldn\'t run the database operation correctly.';
 $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker could not completely read the board directory for its integrity check.';
 $lang['ctracker_scan_busy']               = 'This scan is already running. Please wait until it has finished before starting it again. The existing report remains available.';
+$lang['ctracker_recovery_busy']           = 'A configuration backup or restore is already running. Please wait until it has finished before starting another operation.';
+$lang['ctracker_rec_empty_source']        = 'The configuration contains no values to back up. Any existing backup remains unchanged.';
 $lang['ctracker_error_logfileop']         = 'CBACK CrackerTracker could not safely update the local log file.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 

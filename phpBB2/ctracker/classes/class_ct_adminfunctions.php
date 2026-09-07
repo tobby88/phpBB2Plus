@@ -26,7 +26,7 @@ if ( !defined('IN_PHPBB') || !defined('CTRACKER_ACP') )
  * Serialize publication on the database server, including installations with
  * several web workers/hosts. A dedicated non-persistent connection owns the
  * advisory lock: normal return, exceptions, message_die/exit and termination
- * cannot leave it on a pooled forum connection. All scan SQL uses that same
+ * cannot leave it on a pooled forum connection. All scan/recovery SQL uses that same
  * connection, so losing the lock session also prevents further publication.
  */
 class ct_scan_lock
@@ -245,13 +245,13 @@ class ct_adminfunctions
 		}
 	}
 
-	function acquire_scan_lock($table)
+	function acquire_scan_lock($table, $busy_message = 'ctracker_scan_busy')
 	{
 		global $db, $lang;
 		$lock = new ct_scan_lock($db, $table);
 		if ($lock->acquired === 0)
 		{
-			message_die(GENERAL_MESSAGE, $lang['ctracker_scan_busy']);
+			message_die(GENERAL_MESSAGE, $lang[$busy_message]);
 		}
 		if ($lock->acquired !== 1)
 		{
@@ -970,12 +970,25 @@ class ct_adminfunctions
 	 */
 	function recover_configuration()
 	{
-		global $db, $lang;
+		$lock = $this->acquire_scan_lock(CTRACKER_BACKUP, 'ctracker_recovery_busy');
+		try
+		{
+			$this->build_configuration_backup($lock->connection);
+		}
+		finally
+		{
+			$lock->release();
+		}
+	}
+
+	private function build_configuration_backup($db)
+	{
+		global $lang;
 
 		// Keep the backup table stable so a failed refresh cannot drop the last
 		// usable snapshot before a replacement exists.
 		$sql = 'CREATE TABLE IF NOT EXISTS ' . CTRACKER_BACKUP . ' (
-					`config_name` varchar( 255 ) NOT NULL ,
+					`config_name` varchar( 191 ) NOT NULL ,
 					`config_value` varchar( 255 ) NOT NULL ,
 					PRIMARY KEY ( `config_name` )
 					) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
@@ -1005,8 +1018,15 @@ class ct_adminfunctions
 			message_die(GENERAL_ERROR, $lang['ctracker_error_loading_config'], '', __LINE__, __FILE__, $sql);
 		}
 
+		$backup_values = 0;
 		while ( $row = $db->sql_fetchrow($result) )
 		{
+			// Older restores could copy this metadata key into CONFIG_TABLE.
+			// It must not collide with the completion marker written below.
+			if (strcasecmp((string) $row['config_name'], 'ct_last_backup') === 0)
+			{
+				continue;
+			}
 			$config_name = $db->sql_escape((string) $row['config_name']);
 			$config_value = $db->sql_escape((string) $row['config_value']);
 			$sql2 = "INSERT INTO " . $temporary_table . " (`config_name`, `config_value`) VALUES ('" . $config_name . "', '" . $config_value . "')";
@@ -1014,6 +1034,13 @@ class ct_adminfunctions
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql2);
 			}
+			$backup_values++;
+		}
+		$db->sql_freeresult($result);
+		if ($backup_values < 1)
+		{
+			$db->sql_query('DROP TABLE IF EXISTS ' . $temporary_table);
+			message_die(GENERAL_ERROR, $lang['ctracker_rec_empty_source']);
 		}
 
 		// Insert Backup Timestamp
@@ -1044,7 +1071,22 @@ class ct_adminfunctions
 	 */
 	function restore_configuration()
 	{
-		global $db, $lang;
+		// Share the backup's lock so its marker and rows cannot come from
+		// different snapshots and another restore cannot interleave its writes.
+		$lock = $this->acquire_scan_lock(CTRACKER_BACKUP, 'ctracker_recovery_busy');
+		try
+		{
+			$this->restore_configuration_backup($lock->connection);
+		}
+		finally
+		{
+			$lock->release();
+		}
+	}
+
+	private function restore_configuration_backup($db)
+	{
+		global $lang;
 
 		// The timestamp is written last into the staging snapshot. Its presence
 		// proves that enumeration completed before the tables were swapped.
@@ -1056,7 +1098,7 @@ class ct_adminfunctions
 		}
 		$marker_row = $db->sql_fetchrow($marker_result);
 		$db->sql_freeresult($marker_result);
-		if (!$marker_row || intval($marker_row['config_value']) < 1)
+		if (!$marker_row || !self::valid_backup_timestamp($marker_row['config_value']))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_rec_never_saved']);
 		}
@@ -1092,6 +1134,19 @@ class ct_adminfunctions
 
 		global $phpbb_root_path;
 		@unlink($phpbb_root_path . 'cache/config_data.cache');
+	}
+
+	static function valid_backup_timestamp($value)
+	{
+		if (!is_string($value) && !is_int($value))
+		{
+			return false;
+		}
+		$value = (string) $value;
+		$max = (string) PHP_INT_MAX;
+		return $value !== '' && $value[0] !== '0' &&
+			strlen($value) <= strlen($max) && strspn($value, '0123456789') === strlen($value) &&
+			(strlen($value) < strlen($max) || strcmp($value, $max) <= 0);
 	}
 }
 

@@ -70,7 +70,7 @@ else
 	{
 		$backup[$row['config_name']] = $row['config_value'];
 	}
-	if (isset($backup['ct_last_backup']) && intval($backup['ct_last_backup']) > 0)
+	if (isset($backup['ct_last_backup']) && ct_adminfunctions::valid_backup_timestamp($backup['ct_last_backup']))
 	{
 		$saved_now = true;
 		$save_status = sprintf($lang['ctracker_rec_last_saved'], date($board_config['default_dateformat'], intval($backup['ct_last_backup'])));

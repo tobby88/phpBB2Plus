@@ -17,6 +17,10 @@ function recovery_test_assert($condition, $message)
 
 class recovery_test_db
 {
+	var $server = 'fixture';
+	var $user = 'fixture';
+	var $password = '';
+	var $dbname = 'fixture';
 	var $queries = array();
 	var $rows = array(
 		array('config_name' => 'server_name', 'config_value' => 'forum.example'),
@@ -32,10 +36,15 @@ class recovery_test_db
 	{
 		return ($result === 'config-result' && $this->rows) ? array_shift($this->rows) : false;
 	}
+	function sql_freeresult($result) {}
 }
 
 class recovery_restore_test_db
 {
+	var $server = 'fixture';
+	var $user = 'fixture';
+	var $password = '';
+	var $dbname = 'fixture';
 	var $queries = array();
 	var $restore_rows = array(
 		array('config_name' => 'server_name', 'config_value' => 'restored.example'),
@@ -61,12 +70,24 @@ class recovery_restore_test_db
 	}
 	function sql_freeresult($result) { return true; }
 }
+class sql_db
+{
+	var $db_connect_id = true;
+	var $database;
+	function __construct($server, $user, $password, $dbname, $persistent) { $this->database = $GLOBALS['db']; }
+	function sql_query($sql) { return strpos($sql, 'SELECT GET_LOCK(') === 0 ? 'lock' : $this->database->sql_query($sql); }
+	function sql_fetchrow($result) { return $result === 'lock' ? array('acquired' => '1') : $this->database->sql_fetchrow($result); }
+	function sql_freeresult($result) {}
+	function sql_escape($value) { return $this->database->sql_escape($value); }
+	function sql_close() {}
+}
 
 $db = new recovery_test_db();
 $lang = array('ctracker_error_database_op' => 'database error', 'ctracker_error_loading_config' => 'config error');
 $admin = new ct_adminfunctions();
 $admin->recover_configuration();
 $sql = implode("\n", $db->queries);
+recovery_test_assert(strpos($sql, 'varchar( 191 )') !== false, 'New backup keys must match the utf8mb4-safe main configuration schema');
 
 recovery_test_assert(strpos($sql, 'CREATE TABLE phpbb_ctracker_backup_new LIKE phpbb_ctracker_backup') !== false, 'snapshot must be written to a staging table');
 recovery_test_assert(strpos($sql, 'INSERT INTO phpbb_ctracker_backup_new') !== false, 'configuration values must target the staging table');
