@@ -185,6 +185,9 @@ jobs:
       - name: Test forum search safety
         run: php .github/scripts/check-search-safety.php
 
+      - name: Check quote and code controls JavaScript syntax
+        run: node --check phpBB2/templates/select_expand_bbcodes.js
+
       - name: Test search result permissions and pagination
         run: php .github/scripts/check-search-results-runtime.php
 

@@ -34,6 +34,7 @@ var phpbb_root_path = '{PHPBB_ROOT_PATH}';
 </script>
 
 <script type="text/javascript" src="includes/javascript/ajax_core.js?v=20260831-2"></script>
+<script type="text/javascript" src="templates/select_expand_bbcodes.js?v=20260907-1" defer="defer"></script>
 
 <script language="Javascript" type="text/javascript"> 
 <!-- 

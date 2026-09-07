@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replaced parser-time JavaScript in quote, code and PHP-code boxes with complete
+  HTML and shared DOM controls. Selection and expansion also work after AJAX
+  edits/previews; generated control IDs no longer collide, and content remains
+  readable without JavaScript. Legacy orphan quote closers cannot close the
+  surrounding page, and quote-author text cannot introduce nested BBCode markup.
 - Recheck current forum visibility and read permissions when displaying cached
   searches or bookmarks, including moved topics. Count only existing authorized
   results and adjust obsolete page offsets instead of exposing stale metadata.

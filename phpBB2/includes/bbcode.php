@@ -214,25 +214,17 @@ function prepare_bbcode_template($bbcode_tpl)
  
 	//Begin Smilie Creator Mod Copyright esperitox 2003
 
-	//+MOD: Select Expand BBcodes MOD
-	global $phpbb_root_path;
-	$u_sxbb_jslib = $phpbb_root_path . 'templates/select_expand_bbcodes.js';
-
-	// Replacing BBCode variables, but also adding CR to preserve HTML comment delimiters for JS code.
-	$expand_ary1 = array('<!--', '//-->', '{L_SELECT}', '{L_EXPAND}', '{L_CONTRACT}', '{U_SXBB_JSLIB}');
-	$expand_ary2 = array("\r<!--\r", "\r//-->\r", $lang['Select'], $lang['Expand'], $lang['Contract'], $u_sxbb_jslib);
-	$expand_ary3 = array('<!--', '//-->');
-	$expand_ary4 = array("\r<!--\r", "\r//-->\r");
-
-	$bbcode_tpl['quote_open'] = str_replace($expand_ary1, $expand_ary2, $bbcode_tpl['quote_open']);
-	$bbcode_tpl['quote_username_open'] = str_replace($expand_ary1, $expand_ary2, $bbcode_tpl['quote_username_open']);
-	$bbcode_tpl['code_open'] = str_replace($expand_ary1, $expand_ary2, $bbcode_tpl['code_open']);
-	$bbcode_tpl['php_open'] = str_replace($expand_ary1, $expand_ary2, $bbcode_tpl['php_open']);
-
-	$bbcode_tpl['quote_close'] = str_replace($expand_ary3, $expand_ary4, $bbcode_tpl['quote_close']);
-	$bbcode_tpl['code_close'] = str_replace($expand_ary3, $expand_ary4, $bbcode_tpl['code_close']);
-	$bbcode_tpl['php_close'] = str_replace($expand_ary3, $expand_ary4, $bbcode_tpl['php_close']);
-//-MOD: Select Expand BBcodes MOD
+	// Select/expand controls use HTML attributes, never inline JavaScript.
+	$expand_keys = array('{L_SELECT}', '{L_EXPAND}', '{L_CONTRACT}');
+	$expand_labels = array();
+	foreach (array('Select', 'Expand', 'Contract') as $label)
+	{
+		$expand_labels[] = htmlspecialchars($lang[$label], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	}
+	foreach (array('quote_open', 'quote_username_open', 'code_open', 'php_open') as $block)
+	{
+		$bbcode_tpl[$block] = str_replace($expand_keys, $expand_labels, $bbcode_tpl[$block]);
+	}
 	
 	define("BBCODE_TPL_READY", true);
 
@@ -262,7 +254,7 @@ function phpbb_bbcode_safe_text($value, $max_length = 0)
 }
 
 /**
- * Close legacy quotes that were stored with a missing [/quote] tag.
+ * Balance encoded legacy quotes in document order, including orphan closers.
  *
  * Old first-pass data can contain an encoded opening quote without its closing
  * partner. Turning that opening tag into the table-based quote template would
@@ -278,15 +270,23 @@ function phpbb_bbcode_balance_quotes($text, $uid)
 	}
 
 	$uid_pattern = preg_quote($uid, '#');
-	$opening_count = preg_match_all('#\[quote:' . $uid_pattern . '(?:="[^"]*")?\]#i', $text, $opening_matches);
-	$closing_count = preg_match_all('#\[/quote:' . $uid_pattern . '\]#i', $text, $closing_matches);
-	$missing_count = max(0, intval($opening_count) - intval($closing_count));
-	if ($missing_count > 0)
+	$depth = 0;
+	$text = preg_replace_callback('#\[(?:quote:' . $uid_pattern . '(?:="(.*?)")?|(/)quote:' . $uid_pattern . ')\]#is', function ($match) use ($uid, &$depth)
 	{
-		$text .= str_repeat('[/quote:' . $uid . ']', $missing_count);
-	}
-
-	return $text;
+		if (!empty($match[2]))
+		{
+			if ($depth === 0)
+			{
+				// Keep malformed source visible without closing the page's table.
+				return '[/quote]';
+			}
+			$depth--;
+			return '[/quote:' . $uid . ']';
+		}
+		$depth++;
+		return '[quote:' . $uid . (isset($match[1]) ? '="' . $match[1] . '"' : '') . ']';
+	}, $text);
+	return $text . str_repeat('[/quote:' . $uid . ']', $depth);
 }
 
 function phpbb_bbcode_safe_font($value)
@@ -395,14 +395,20 @@ function bbencode_second_pass($text, $uid)
 	$text = phpbb_bbcode_balance_quotes($text, $uid);
 	
 	// [QUOTE] and [/QUOTE] for posting replies with quote, or just for quoting stuff.
-	$text = str_replace("[quote:$uid]", $bbcode_tpl['quote_open'], $text);
-	$text = str_replace("[/quote:$uid]", $bbcode_tpl['quote_close'], $text);
-
-	// New one liner to deal with opening quotes with usernames...
-	// replaces the two line version that I had here before..
-	$text = preg_replace_callback("/\[quote:$uid=\"(.*?)\"\]/si", function ($matches) use ($bbcode_tpl)
+	// Consume each complete token once: quote-like text inside a username must
+	// never be interpreted as layout markup by a separate replacement pass.
+	$text = preg_replace_callback('#\[(?:quote:' . preg_quote($uid, '#') . '(?:="(.*?)")?|(/)quote:' . preg_quote($uid, '#') . ')\]#s', function ($matches) use ($bbcode_tpl)
 	{
-		return str_replace('\\1', phpbb_bbcode_safe_text($matches[1], 255), $bbcode_tpl['quote_username_open']);
+		if (!empty($matches[2]))
+		{
+			return $bbcode_tpl['quote_close'];
+		}
+		if (!isset($matches[1]))
+		{
+			return $bbcode_tpl['quote_open'];
+		}
+		$username = str_replace(array('[', ']'), array('&#91;', '&#93;'), phpbb_bbcode_safe_text($matches[1], 255));
+		return str_replace('\\1', $username, $bbcode_tpl['quote_username_open']);
 	}, $text);
 	/* BEGIN CMX ACRONYM MOD */
 

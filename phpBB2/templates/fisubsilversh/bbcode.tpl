@@ -6,99 +6,12 @@
 
 <!-- BEGIN listitem --><li><!-- END listitem -->
 
-<!-- BEGIN quote_username_open -->
-<table class="bodyline" width="90%" cellspacing="1" cellpadding="3" border="0" align="center">
-<tr> 
-	  <td class="helpline"><span class="genmed"><b>{USERNAME} {L_WROTE}:</b>
-<script type="text/javascript" src="{U_SXBB_JSLIB}"></script>
-<script type="text/javascript">
-<!--
-	var id = 'SXBB' + (1000 + Math.floor(Math.random() * 5000));
-	SXBB[id] = new _SXBB(id);
-	SXBB[id].T['select'] = '{L_SELECT}';
-	SXBB[id].T['expand'] = '{L_EXPAND}';
-	SXBB[id].T['contract'] = '{L_CONTRACT}';
-	SXBB[id].writeCmd();
-//-->
-</script>
-		</span></td>
-	</tr>
-	<tr>
-	  <td class="quote">
-<script type="text/javascript">
-<!--
-	SXBB[id].writeDiv();
-//-->
-</script><!-- END quote_username_open -->
-<!-- BEGIN quote_open -->
-<table class="bodyline" width="90%" cellspacing="1" cellpadding="3" border="0" align="center">
-<tr> 
-	  <td class="helpline"><span class="genmed"><b>{L_QUOTE}:</b>
-<script type="text/javascript" src="{U_SXBB_JSLIB}"></script>
-<script type="text/javascript">
-<!--
-	var id = 'SXBB' + (1000 + Math.floor(Math.random() * 5000));
-	SXBB[id] = new _SXBB(id);
-	SXBB[id].T['select'] = '{L_SELECT}';
-	SXBB[id].T['expand'] = '{L_EXPAND}';
-	SXBB[id].T['contract'] = '{L_CONTRACT}';
-	SXBB[id].writeCmd();
-//-->
-</script>
-		</span></td>
-	</tr>
-	<tr>
-	  <td class="quote">
-<script type="text/javascript">
-<!--
-	SXBB[id].writeDiv();
-//-->
-</script><!-- END quote_open -->
-<!-- BEGIN quote_close -->
-<script type="text/javascript">
-<!--
-	document.write('</div>');
-//-->
-</script>
-		</td>
-	</tr>
-</table>
-<!-- END quote_close -->
+<!-- BEGIN quote_username_open --><table class="bodyline" data-sxbb-box="1" width="90%" cellspacing="1" cellpadding="3" border="0" align="center"><tr><td class="helpline"><span class="genmed"><b>{USERNAME} {L_WROTE}:</b><span data-sxbb-controls="1" style="display:none">&nbsp;<button type="button" class="liteoption" data-sxbb-action="select">{L_SELECT}</button>&nbsp;<button type="button" class="liteoption" data-sxbb-action="toggle" data-sxbb-expand="{L_EXPAND}" data-sxbb-contract="{L_CONTRACT}" aria-expanded="true">{L_CONTRACT}</button></span></span></td></tr><tr><td class="quote"><div data-sxbb-content="1" style="overflow:auto"><!-- END quote_username_open -->
+<!-- BEGIN quote_open --><table class="bodyline" data-sxbb-box="1" width="90%" cellspacing="1" cellpadding="3" border="0" align="center"><tr><td class="helpline"><span class="genmed"><b>{L_QUOTE}:</b><span data-sxbb-controls="1" style="display:none">&nbsp;<button type="button" class="liteoption" data-sxbb-action="select">{L_SELECT}</button>&nbsp;<button type="button" class="liteoption" data-sxbb-action="toggle" data-sxbb-expand="{L_EXPAND}" data-sxbb-contract="{L_CONTRACT}" aria-expanded="true">{L_CONTRACT}</button></span></span></td></tr><tr><td class="quote"><div data-sxbb-content="1" style="overflow:auto"><!-- END quote_open -->
+<!-- BEGIN quote_close --></div></td></tr></table><!-- END quote_close -->
 
-<!-- BEGIN code_open -->
-<table class="bodyline" width="90%" cellspacing="1" cellpadding="3" border="0" align="center">
-<tr> 
-	  <td class="helpline"><span class="genmed"><b>{L_CODE}:</b>
-<script type="text/javascript" src="{U_SXBB_JSLIB}"></script>
-<script type="text/javascript">
-<!--
-	var id = 'SXBB' + (1000 + Math.floor(Math.random() * 5000));
-	SXBB[id] = new _SXBB(id);
-	SXBB[id].T['select'] = '{L_SELECT}';
-	SXBB[id].T['expand'] = '{L_EXPAND}';
-	SXBB[id].T['contract'] = '{L_CONTRACT}';
-	SXBB[id].writeCmd();
-//-->
-</script>
-		</span></td>
-	</tr>
-	<tr>
-	  <td class="code">
-<script type="text/javascript">
-<!--
-	SXBB[id].writeDiv();
-//-->
-</script><!-- END code_open -->
-<!-- BEGIN code_close -->
-<script type="text/javascript">
-<!--
-	document.write('</div>');
-//-->
-</script>
-		</td>
-	</tr>
-</table>
-<!-- END code_close -->
+<!-- BEGIN code_open --><table class="bodyline" data-sxbb-box="1" width="90%" cellspacing="1" cellpadding="3" border="0" align="center"><tr><td class="helpline"><span class="genmed"><b>{L_CODE}:</b><span data-sxbb-controls="1" style="display:none">&nbsp;<button type="button" class="liteoption" data-sxbb-action="select">{L_SELECT}</button>&nbsp;<button type="button" class="liteoption" data-sxbb-action="toggle" data-sxbb-expand="{L_EXPAND}" data-sxbb-contract="{L_CONTRACT}" aria-expanded="true">{L_CONTRACT}</button></span></span></td></tr><tr><td class="code"><div data-sxbb-content="1" style="overflow:auto"><!-- END code_open -->
+<!-- BEGIN code_close --></div></td></tr></table><!-- END code_close -->
 
 <!-- BEGIN b_open --><span style="font-weight:bold"><!-- END b_open -->
 <!-- BEGIN b_close --></span><!-- END b_close -->
@@ -114,40 +27,8 @@
 <!-- BEGIN url --><a href="{URL}" target="_blank" class="postlink" rel="noopener noreferrer">{DESCRIPTION}</a><!-- END url -->
 <!-- BEGIN email --><a href="mailto:{EMAIL}">{EMAIL}</a><!-- END email -->
 <!-- BEGIN schild --><img src="{URL}" border="0"><!-- END schild -->
-<!-- BEGIN php_open -->
-<table class="bodyline" border="0" align="center" width="90%" cellpadding="3" cellspacing="1">
-<tr> 
-	  <td class="helpline"><span class="genmed"><b>{L_PHP}:</b>
-<script type="text/javascript" src="{U_SXBB_JSLIB}"></script>
-<script type="text/javascript">
-<!--
-	var id = 'SXBB' + (1000 + Math.floor(Math.random() * 5000));
-	SXBB[id] = new _SXBB(id);
-	SXBB[id].T['select'] = '{L_SELECT}';
-	SXBB[id].T['expand'] = '{L_EXPAND}';
-	SXBB[id].T['contract'] = '{L_CONTRACT}';
-	SXBB[id].writeCmd();
-//-->
-</script>
-		</span></td>
-	</tr>
-	<tr>
-	  <td class="code">
-<script type="text/javascript">
-<!--
-	SXBB[id].writeDiv();
-//-->
-</script><!-- END php_open -->
-		<!-- BEGIN php_close -->
-<script type="text/javascript">
-<!--
-	document.write('</div>');
-//-->
-</script>
-		</td>
-	</tr>
-</table>
-<!-- END php_close -->
+<!-- BEGIN php_open --><table class="bodyline" data-sxbb-box="1" width="90%" cellspacing="1" cellpadding="3" border="0" align="center"><tr><td class="helpline"><span class="genmed"><b>{L_PHP}:</b><span data-sxbb-controls="1" style="display:none">&nbsp;<button type="button" class="liteoption" data-sxbb-action="select">{L_SELECT}</button>&nbsp;<button type="button" class="liteoption" data-sxbb-action="toggle" data-sxbb-expand="{L_EXPAND}" data-sxbb-contract="{L_CONTRACT}" aria-expanded="true">{L_CONTRACT}</button></span></span></td></tr><tr><td class="code"><div data-sxbb-content="1" style="overflow:auto"><!-- END php_open -->
+<!-- BEGIN php_close --></div></td></tr></table><!-- END php_close -->
 <!-- BEGIN align_open --><div style="text-align:{ALIGN}"><!-- END align_open -->
 <!-- BEGIN align_close --></div><!-- END align_close -->
 
