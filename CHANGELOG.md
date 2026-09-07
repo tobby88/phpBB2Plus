@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Apply the per-IP/account failed-login limiter to unknown names as well as
+  existing accounts. Existing-account attempts use the DB-resolved canonical
+  username so case/accent aliases do not split the counter. Successful logins
+  still bypass the failed-attempt counter; session-token validation and dummy
+  password verification for unknown users remain in place. Failed-login return
+  links now handle session URLs identically for known and unknown accounts.
 - Align CrackerTracker's rate-limit classification with actual profile/download
   routing. Conflicting GET/POST values, empty/non-scalar POST fallbacks and
   download-module action suffixes can no longer move registration, mail or

@@ -7,7 +7,8 @@ $errors = array();
 
 $required = array(
 	'hash_equals((string) $userdata[\'session_id\']',
-	'ctracker_enforce_login_identity_limit($submitted_username)',
+	'ctracker_enforce_login_identity_limit($row[\'username\'])',
+	'ctracker_enforce_login_identity_limit($username)',
 	'user_badlogin = user_badlogin + 1',
 	"phpbb_password_verify(\$password, '')"
 );

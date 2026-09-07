@@ -113,6 +113,9 @@ jobs:
       - name: Test login abuse protections
         run: php .github/scripts/check-login-protection.php
 
+      - name: Test real login branch limiter coverage
+        run: php .github/scripts/check-login-branches-runtime.php
+
       - name: Test account lifecycle safety
         run: php .github/scripts/check-account-lifecycle-safety.php
 

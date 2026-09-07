@@ -220,9 +220,9 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						}
 					}
 				}
-				// Apply this to existing and unknown names alike to avoid turning the
-				// limiter into an account-enumeration signal.
-				ctracker_enforce_login_identity_limit($submitted_username);
+				// Use the DB-resolved spelling so case/accent aliases of the same
+				// account cannot split its per-IP failed-attempt bucket.
+				ctracker_enforce_login_identity_limit($row['username']);
 				$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
 				$redirect = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : '';
 				$redirect = str_replace('?', '&', $redirect);
@@ -250,6 +250,9 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 			// Keep unknown account names on the same adaptive-hash timing path as
 			// real accounts before returning the common login error.
 			phpbb_password_verify($password, '');
+			// Unknown names must reach the same failed-attempt limiter. Otherwise
+			// its throttled response would reveal which account names exist.
+			ctracker_enforce_login_identity_limit($username);
 			$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
 			$redirect = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : "";
 			$redirect = str_replace("?", "&", $redirect);
@@ -263,7 +266,7 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 				'META' => "<meta http-equiv=\"refresh\" content=\"3;url=login.$phpEx?redirect=$redirect\">")
 			);
 
-			$message = $lang['Error_login'] . '<br /><br />' . sprintf($lang['Click_return_login'], "<a href=\"login.$phpEx?redirect=$redirect\">", '</a>') . '<br /><br />' .  sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
+			$message = $lang['Error_login'] . '<br /><br />' . sprintf($lang['Click_return_login'], '<a href="' . append_sid("login.$phpEx?redirect=$redirect") . '">', '</a>') . '<br /><br />' .  sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
 
 			message_die(GENERAL_MESSAGE, $message);
 		}
