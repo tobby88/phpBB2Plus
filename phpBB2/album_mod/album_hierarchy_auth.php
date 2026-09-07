@@ -409,6 +409,10 @@ function album_permissions($user_id, $cat_id, $permission_checks, $catdata = 0)
 // ------------------------------------------------------------------------
 function album_check_permission($auth_data, $access_check, $or_check = false)
 {
+	if (!is_array($auth_data) || !is_int($access_check) || $access_check < 0 || ($access_check & ~ALBUM_AUTH_ALL) !== 0)
+	{
+		return false;
+	}
  	// NOTE : ALBUM_AUTH_CREATE_PERSONAL and ALBUM_AUTH_UPLOAD are synomous for each other
  	//	and thus only the ALBUM_AUTH_UPLOAD is present here
 	$access_type = array (
@@ -450,7 +454,7 @@ function album_check_permission($auth_data, $access_check, $or_check = false)
 	{
 		// $access_string should hold strings like 'view', 'upload' and so on
 		$access_string = $access_type[$access_to_check[$idx]];
-		if ($auth_data[$access_string] == 1)
+		if (isset($auth_data[$access_string]) && in_array($auth_data[$access_string], array(1, '1', true), true))
 		{
 			$result += $access_to_check[$idx];
 
@@ -471,32 +475,25 @@ function album_check_permission($auth_data, $access_check, $or_check = false)
 }
 
 // ------------------------------------------------------------------------
-// Get the authentication data for the category usefull to be used for
-// simple authentication, I think it's not used at all !?!
+// Read cached category permissions, or calculate all permissions for an actual
+// category when no usable cache entry exists. Virtual roots have no SQL fallback.
 // ------------------------------------------------------------------------
 function album_get_auth_data($cat_id)
 {
 	global $album_data;
 
-	if ($cat_id != ALBUM_ROOT_CATEGORY && (!isset ($album_data) || !is_array($album_data) || count($album_data) == 0))
+	if (!is_int($cat_id) && (!is_string($cat_id) || !preg_match('/^-?[0-9]+$/D', $cat_id)))
 	{
-		//$auth_data = //album_user_access($cat_id, 0, 1, 1, 1, 1, 1, 1);
-		$auth_data = album_permissions(0, $cat_id, 0, ALBUM_AUTH_ALL);
-		return $auth_data;
+		return false;
 	}
-
-	if (album_is_debug_enabled() == true)
+	$cat_id = (int) $cat_id;
+	if ($cat_id < ALBUM_ROOT_CATEGORY) { return false; }
+	if (isset($album_data['auth']) && is_array($album_data['auth']) &&
+		isset($album_data['auth'][$cat_id]) && is_array($album_data['auth'][$cat_id]))
 	{
-		if (!array_key_exists($cat_id, $album_data['auth']))
-			return false;
+		return $album_data['auth'][$cat_id];
 	}
-	else
-	{
-		if (@!array_key_exists($cat_id, $album_data['auth']))
-		    return false;
-	}
-
-	return $album_data['auth'][$cat_id];
+	return ($cat_id > 0) ? album_permissions(ALBUM_PUBLIC_GALLERY, $cat_id, ALBUM_AUTH_ALL) : false;
 }
 
 // ------------------------------------------------------------------------
@@ -516,6 +513,7 @@ function album_build_auth_list($user_id, $cat_id = ALBUM_ROOT_CATEGORY, $auth_da
 
 		$auth_data = album_get_auth_data($cat_id);
 	}
+	if (!is_array($auth_data)) { return ''; }
 
 	$auth_key = array_keys($auth_data);
 

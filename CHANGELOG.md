@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Fix uncached Album permission lookup to request all authorization flags.
+  Missing/invalid request-local caches fall back safely for real categories;
+  virtual roots retain explicit cached permissions only. Partial/malformed
+  permission data fails closed without PHP8 array errors, preserving AND/OR
+  behavior for supported flags. Harden category owner/ID/mode parameters and
+  missing-tree handling; unavailable permission lists no longer cause TypeErrors.
 - Require a logged-in positive user identity for Album ownership and admin
   shortcuts: guest/public sentinel IDs cannot become personal-gallery owners.
   Preserve explicit guest permissions and confirmed group moderation, without

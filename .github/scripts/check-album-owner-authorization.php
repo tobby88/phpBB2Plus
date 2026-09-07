@@ -1,5 +1,6 @@
 <?php
 define('IN_PHPBB',true); define('ADMIN',1); define('GENERAL_ERROR',202);
+define('GENERAL_MESSAGE',200);
 define('USERS_TABLE','fixture_users'); define('USER_GROUP_TABLE','fixture_members');
 $table_prefix='fixture_'; $root=dirname(dirname(__DIR__));
 require $root.'/phpBB2/album_mod/album_constants.php';
@@ -35,7 +36,7 @@ function owner_category($owner)
 	foreach(array('view','upload','rate','comment','edit','delete') as $key){$cat['cat_'.$key.'_level']=ALBUM_PRIVATE;$cat['cat_'.$key.'_groups']='';}
 	return $cat;
 }
-$db=new AlbumOwnerDatabase(); $lang=array('Guest'=>'Gast','No_such_user'=>'No such user');
+$db=new AlbumOwnerDatabase(); $lang=array('Guest'=>'Gast','No_such_user'=>'No such user','Category_not_exist'=>'Missing category');
 $album_config=array('personal_gallery'=>ALBUM_USER,'personal_allow_gallery_mod'=>1,'personal_allow_sub_categories'=>1,'personal_sub_category_limit'=>5,'rate'=>1,'comment'=>1,'personal_gallery_view'=>ALBUM_USER);
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try
@@ -86,6 +87,72 @@ try
 	$result=new AlbumOwnerResult(array()); $caught=false;
 	try{eval(substr($personal,$start,$end-$start));}catch(AlbumOwnerFailure $e){$caught=$e->getMessage()==='No such user';}
 	owner_check($caught,'Missing legacy personal gallery owner is rejected without undefined-row warnings');
+	// Resolve actual category ACLs without a prebuilt hierarchy cache.
+	$cat=owner_category(0); $cat['cat_view_level']=ALBUM_GUEST; $cat['cat_comment_level']=ALBUM_USER;
+	$columns=array(); $values=array();
+	foreach($cat as $key=>$value){$columns[]=$key.' '.(is_int($value)?'INTEGER':'TEXT');$values[]=is_int($value)?$value:$db->pdo->quote($value);}
+	$db->pdo->exec('CREATE TABLE fixture_album_cat ('.implode(',',$columns).')');
+	$db->pdo->exec('INSERT INTO fixture_album_cat VALUES('.implode(',',$values).')');
+	$album_data=array(); $userdata=array('user_id'=>-1,'session_logged_in'=>false,'user_level'=>0);
+	$auth=album_get_auth_data(10);
+	owner_check($auth['view']===1 && $auth['comment']===0,'Uncached category lookup must request all permission flags');
+	foreach(array(null,false,'bad',array('keys'=>array()),array('auth'=>null),array('auth'=>'bad'),array('auth'=>array()),array('auth'=>array(10=>null))) as $cache)
+	{
+		$album_data=$cache; $before=count($db->queries); $auth=album_get_auth_data('10');
+		owner_check($auth['view']===1 && $auth['comment']===0 && count($db->queries)===$before+1,'Incomplete cache safely falls back to actual category permissions');
+	}
+	$userdata=array('user_id'=>7,'session_logged_in'=>true,'user_level'=>0); $album_data=array();
+	$auth=album_get_auth_data(10); owner_check($auth['view']===1 && $auth['comment']===1,'Uncached member lookup retains registered permissions');
+	$album_data=array('auth'=>array(10=>$auth)); $before=count($db->queries);
+	owner_check(album_get_auth_data(10)===$auth && count($db->queries)===$before,'Usable request-local cache is preserved');
+	$album_data=array('auth'=>array(10=>array()));
+	owner_check(album_get_auth_data(10)===array(),'Explicit empty permission entry remains denied');
+	$album_data=array();
+	foreach(array(ALBUM_ROOT_CATEGORY,0,null,true,array(10),'10 OR 1=1',-2) as $id){owner_check(album_get_auth_data($id)===false,'Invalid or uncached virtual category cannot grant access');}
+	owner_check(count($db->queries)===$before,'Invalid and virtual IDs do not query unrelated categories');
+	$album_data=array('auth'=>array(ALBUM_ROOT_CATEGORY=>$auth));
+	owner_check(album_get_auth_data(ALBUM_ROOT_CATEGORY)===$auth,'Known virtual-root cache entry remains usable');
+	$album_data=array(); $caught=false;
+	try{album_get_auth_data(999);}catch(AlbumOwnerFailure $e){$caught=$e->getMessage()==='Missing category';}
+	owner_check($caught,'Missing actual category retains explicit rejection');
+	$db->failure=true; $caught=false;
+	try{album_get_auth_data(10);}catch(AlbumOwnerFailure $e){$caught=true;}
+	$db->failure=false; owner_check($caught,'Uncached database failure is not hidden');
+	foreach(array(false,null,'bad',array()) as $data){owner_check(!album_check_permission($data,ALBUM_AUTH_VIEW),'Absent permission data fails closed');}
+	foreach(array(array(),2,'1junk',null) as $grant){owner_check(!album_check_permission(array('view'=>$grant),ALBUM_AUTH_VIEW),'Malformed grant cannot authorize');}
+	foreach(array(1,'1',true) as $grant){owner_check(album_check_permission(array('view'=>$grant),ALBUM_AUTH_VIEW),'Supported scalar grant representation retained');}
+	$partial=array('view'=>1);
+	owner_check(!album_check_permission($partial,ALBUM_AUTH_VIEW|ALBUM_AUTH_COMMENT) && album_check_permission($partial,ALBUM_AUTH_VIEW|ALBUM_AUTH_COMMENT,true),'AND/OR semantics preserved with absent fields denied');
+	foreach(array(256,-1,array(1),'1') as $mask){owner_check(!album_check_permission($partial,$mask,true),'Unknown/malformed requested bits fail closed');}
+	owner_check(album_check_permission($partial,0),'Empty check retains its existing no-requirements meaning');
+	owner_check(album_build_auth_list(0,0,false)==='','Unavailable auth list is empty rather than a PHP8 TypeError');
+	$category_source=file_get_contents($root.'/phpBB2/album_cat.php');
+	$start=strpos($category_source,"if( isset(\$_POST['user_id']) )"); $end=strpos($category_source,'// END check request',$start);
+	owner_check($start!==false && $end!==false,'Category request extraction markers');
+	$request_block=substr($category_source,$start,$end-$start);
+	foreach(array('get','post') as $method)
+	{
+		foreach(array('user_id','cat_id') as $field)
+		{
+			$_POST=array(); $_GET=array('cat_id'=>10);
+			if($method==='post'){$_POST[$field]=array(10);}else{$_GET[$field]=array(10);}
+			$caught=false; try{eval($request_block);}catch(AlbumOwnerFailure $e){$caught=$e->getMessage()==='Missing category';}
+			owner_check($caught,'Array category/owner parameter is explicitly rejected');
+		}
+		$_POST=array(); $_GET=array('cat_id'=>10);
+		if($method==='post'){$_POST['mode']=array('list');}else{$_GET['mode']=array('list');}
+		eval($request_block); owner_check($album_view_mode==='','Array view mode safely falls back to normal mode');
+	}
+	$_POST=array(); $_GET=array('cat_id'=>'10','user_id'=>'7','mode'=>'LIST'); eval($request_block);
+	owner_check($cat_id===10 && $album_user_id===7 && $album_view_mode===ALBUM_VIEW_LIST,'Normal scalar category requests retain behavior');
+	$start=strpos($category_source,"if (!isset(\$album_data['keys'])"); $end=strpos($category_source,'$thiscat = $album_data',$start);
+	owner_check($start!==false && $end!==false,'Category cache guard extraction markers');
+	foreach(array(null,array(),array('keys'=>null),array('keys'=>array())) as $cache)
+	{
+		$album_data=$cache; $caught=false;
+		try{eval(substr($category_source,$start,$end-$start));}catch(AlbumOwnerFailure $e){$caught=$e->getMessage()==='Missing category';}
+		owner_check($caught,'Missing category tree returns a controlled error without array_key_exists TypeError');
+	}
 	echo "Album owner authorization and missing-owner checks passed.\n";
 }
 finally {restore_error_handler();}

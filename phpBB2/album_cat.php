@@ -75,10 +75,12 @@ include($album_root_path . 'album_common.'.$phpEx);
 // ------------------------------------
 if( isset($_POST['user_id']) )
 {
+	if (!is_scalar($_POST['user_id'])) { message_die(GENERAL_ERROR, $lang['Category_not_exist']); }
 	$album_user_id = intval($_POST['user_id']);
 }
 else if( isset($_GET['user_id']) )
 {
+	if (!is_scalar($_GET['user_id'])) { message_die(GENERAL_ERROR, $lang['Category_not_exist']); }
 	$album_user_id = intval($_GET['user_id']);
 }
 else
@@ -89,10 +91,12 @@ else
 //--- Album Category Hierarchy : end
 if( isset($_POST['cat_id']) )
 {
+	if (!is_scalar($_POST['cat_id'])) { message_die(GENERAL_ERROR, $lang['Category_not_exist']); }
 	$cat_id = intval($_POST['cat_id']);
 }
 else if( isset($_GET['cat_id']) )
 {
+	if (!is_scalar($_GET['cat_id'])) { message_die(GENERAL_ERROR, $lang['Category_not_exist']); }
 	$cat_id = intval($_GET['cat_id']);
 }
 else
@@ -105,11 +109,11 @@ else
 $album_view_mode = '';
 if (isset ($_POST['mode']))
 {
-	$album_view_mode = strtolower($_POST['mode']);
+	$album_view_mode = is_scalar($_POST['mode']) ? strtolower((string) $_POST['mode']) : '';
 }
 elseif (isset ($_GET['mode']))
 {
-	$album_view_mode = strtolower($_GET['mode']);
+	$album_view_mode = is_scalar($_GET['mode']) ? strtolower((string) $_GET['mode']) : '';
 }
 // make sure that it only contains some valid value
 switch ($album_view_mode)
@@ -213,7 +217,7 @@ $read_options = ($album_view_mode == ALBUM_VIEW_LIST ) ? ALBUM_READ_ALL_CATEGORI
 $catrows = album_read_tree($album_user_id, $read_options);
 
 // check if the category exists in the album_tree data
-if (@!array_key_exists($cat_id, $album_data['keys']) )
+if (!isset($album_data['keys']) || !is_array($album_data['keys']) || !array_key_exists($cat_id, $album_data['keys']))
 {
 	message_die(GENERAL_MESSAGE, $lang['Category_not_exist']);
 }
@@ -226,7 +230,7 @@ $auth_data = album_get_auth_data($cat_id);
 // ------------------------------------
 // Check permissions
 // ------------------------------------
-if( !$auth_data['view'] )
+if( !album_check_permission($auth_data, ALBUM_AUTH_VIEW) )
 {
 	if (!$userdata['session_logged_in'])
 	{
