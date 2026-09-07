@@ -236,7 +236,7 @@ function attach_init_ftp($mode = false, $quiet = false, &$failure = null)
 /**
 * Deletes an Attachment
 */
-function unlink_attach($filename, $mode = false)
+function unlink_attach($filename, $mode = false, $quiet = false)
 {
 	global $upload_dir, $attach_config, $lang;
 	if (!is_string($filename)) { return false; }
@@ -248,13 +248,18 @@ function unlink_attach($filename, $mode = false)
 		$directory = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');
 		return @unlink($directory . '/' . $filename);
 	}
-	if (!function_exists('ftp_delete')) { message_die(GENERAL_ERROR, $lang['Attachment_test_ftp_unavailable']); }
-	$connection = attach_init_ftp($mode); $deleted = false;
+	if (!function_exists('ftp_delete'))
+	{
+		if (!$quiet) { message_die(GENERAL_ERROR, $lang['Attachment_test_ftp_unavailable']); }
+		return false;
+	}
+	$connection = attach_init_ftp($mode, $quiet); $deleted = false;
+	if ($connection === false) { return false; }
 	try { $deleted = @ftp_delete($connection, $filename); }
 	catch (Exception $exception) { $deleted = false; }
 	catch (Error $exception) { $deleted = false; }
 	finally { @ftp_close($connection); }
-	if (!$deleted && ATTACH_DEBUG)
+	if (!$deleted && ATTACH_DEBUG && !$quiet)
 	{
 		$path = $attach_config['ftp_path'] . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');
 		message_die(GENERAL_ERROR, sprintf($lang['Ftp_error_delete'], htmlspecialchars($path, ENT_QUOTES, 'UTF-8')));
@@ -374,13 +379,16 @@ function attach_ftp_list_files($connection)
 	return attach_ftp_parse_file_entries(@ftp_rawlist($connection, ''), false);
 }
 
-function attach_storage_file_entries($mode = false)
+function attach_storage_file_entries($mode = false, $quiet = false)
 {
 	global $upload_dir, $attach_config;
 	if (intval($attach_config['allow_ftp_upload']))
 	{
-		$connection = attach_init_ftp($mode);
+		$connection = attach_init_ftp($mode, $quiet);
+		if ($connection === false) { return false; }
 		try { return attach_ftp_list_files($connection); }
+		catch (Exception $exception) { if (!$quiet) { throw $exception; } return false; }
+		catch (Error $exception) { if (!$quiet) { throw $exception; } return false; }
 		finally { @ftp_close($connection); }
 	}
 	$directory = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');

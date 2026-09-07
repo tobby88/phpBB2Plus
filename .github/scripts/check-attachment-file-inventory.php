@@ -16,7 +16,7 @@ $attach_source = file_get_contents($forum_root . 'attach_mod/includes/functions_
 $start = strpos($attach_source, 'function attach_ftp_listing_entry(');
 $end = strpos($attach_source, '/**' . "\n" . '* Physical Filename stored already', $start);
 inventory_check($start !== false && $end > $start, 'Locate actual listing and existence helpers');
-eval('namespace AttachmentInventoryFixture; ' . substr($attach_source, $start, $end - $start));
+eval('namespace AttachmentInventoryFixture; use Exception; use Error; ' . substr($attach_source, $start, $end - $start));
 $admin_source = file_get_contents($forum_root . 'attach_mod/includes/functions_admin.php');
 $start = strpos($admin_source, 'function attach_inventory_file(');
 $end = strpos($admin_source, '/*' . "\n" . '* Build SQL-Statement', $start);
@@ -24,13 +24,28 @@ inventory_check($start !== false && $end > $start, 'Locate actual inventory and 
 eval('namespace AttachmentInventoryFixture; ' . substr($admin_source, $start, $end - $start));
 
 function function_exists($name) { return $name === 'ftp_mlsd' ? $GLOBALS['inventory_mlsd_available'] : \function_exists($name); }
-function attach_init_ftp($mode = false) { $GLOBALS['inventory_calls'][] = 'open:' . (int) $mode; return new \stdClass(); }
+function attach_init_ftp($mode = false, $quiet = false)
+{
+	$GLOBALS['inventory_calls'][] = 'open:' . (int) $mode;
+	if (!empty($GLOBALS['inventory_init_fail']))
+	{
+		if (!$quiet) { throw new InventoryFailure('Setup failed'); }
+		return false;
+	}
+	return new \stdClass();
+}
 function ftp_mlsd($connection, $path) { $GLOBALS['inventory_calls'][] = 'mlsd'; return $GLOBALS['inventory_mlsd']; }
-function ftp_rawlist($connection, $path) { $GLOBALS['inventory_calls'][] = 'list'; return $GLOBALS['inventory_list']; }
+function ftp_rawlist($connection, $path)
+{
+	$GLOBALS['inventory_calls'][] = 'list';
+	if (!empty($GLOBALS['inventory_list_throw'])) { throw new RuntimeException('Private connection detail'); }
+	return $GLOBALS['inventory_list'];
+}
 function ftp_close($connection) { $GLOBALS['inventory_calls'][] = 'close'; return true; }
 function unlink_attach($filename, $mode = false) { $GLOBALS['inventory_deletes'][] = array($filename, $mode); return true; }
 function reset_inventory($rows, $structured = false)
 {
+	$GLOBALS['inventory_init_fail'] = false; $GLOBALS['inventory_list_throw'] = false;
 	$GLOBALS['inventory_calls'] = array(); $GLOBALS['inventory_deletes'] = array();
 	$GLOBALS['inventory_mlsd_available'] = $structured;
 	$GLOBALS['inventory_mlsd'] = $structured ? $rows : false;
@@ -161,5 +176,12 @@ foreach (array(false, array('-rw-r--r-- 1 owner group 2 Sep 7 12:34 t_a.jpg', '-
 		inventory_check($GLOBALS['inventory_calls'] === array('open:1', 'list', 'close'), 'Use one complete snapshot, not a full FTP listing for every thumbnail');
 	}
 }
+reset_inventory(array()); $GLOBALS['inventory_init_fail'] = true;
+inventory_check(attach_storage_file_entries(false, true) === false && $GLOBALS['inventory_calls'] === array('open:0'), 'Quiet failed setup returns unavailable without listing or closing a nonexistent session');
+reset_inventory(array()); $GLOBALS['inventory_list_throw'] = true;
+inventory_check(attach_storage_file_entries(false, true) === false && end($GLOBALS['inventory_calls']) === 'close', 'Quiet listing exceptions remain unavailable and close the owned session');
+reset_inventory(array()); $GLOBALS['inventory_list_throw'] = true; $caught = false;
+try { attach_storage_file_entries(); } catch (RuntimeException $error) { $caught = true; }
+inventory_check($caught && end($GLOBALS['inventory_calls']) === 'close', 'Default listing still propagates errors after closing');
 restore_error_handler();
 echo "Attachment file inventory and synchronization checks passed.\n";

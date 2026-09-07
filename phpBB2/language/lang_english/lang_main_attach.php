@@ -85,6 +85,7 @@ $lang['Error_no_attachment'] = 'The selected Attachment does not exist anymore';
 $lang['Confirm_delete_attachments'] = 'Are you sure you want to delete the selected Attachments?';
 $lang['Deleted_attachments'] = 'The selected Attachments have been deleted.';
 $lang['Error_deleted_attachments'] = 'Could not delete Attachments.';
+$lang['Attachment_delete_incomplete'] = 'The selected attachment links were removed, but some files could not be deleted. Their file information has been retained for recovery. Please ask an administrator to check the attachment storage and orphan entries.';
 $lang['Confirm_delete_pm_attachments'] = 'Are you sure you want to delete all Attachments posted in this PM?';
 
 // General Error Messages

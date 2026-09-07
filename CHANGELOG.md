@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve attachment descriptions when physical deletion fails and report
+  incomplete cleanup after synchronizing removed post/PM links. Remove optional
+  thumbnails before main files and record completed thumbnail cleanup. Treat
+  already missing files as removed only after a complete directory inventory;
+  unavailable FTP or failed listings do not discard recovery metadata.
 - Validate complete attachment deletion ID selections before any SQL, without
   silently accepting malformed entries or truncating maintenance batches.
   Keep post and private-message references separate, preserve other mailbox

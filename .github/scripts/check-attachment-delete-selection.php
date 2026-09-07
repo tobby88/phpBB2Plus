@@ -25,11 +25,15 @@ function message_die($type, $message, $title = '', $line = 0, $file = '', $sql =
 set_error_handler(function ($severity, $message) { throw new RuntimeException($message); });
 require $forum_root . 'attach_mod/includes/functions_delete.php';
 $source = file_get_contents($forum_root . 'attach_mod/includes/functions_attach.php');
+$start = strpos($source, 'function attach_ftp_listing_entry(');
+$end = strpos($source, '// Return complete regular-file metadata', $start);
+delete_selection_check($start !== false && $end > $start, 'Locate actual filename validator');
+eval(substr($source, $start, $end - $start));
 $start = strpos($source, 'function attachment_sync_topic(');
 $end = strpos($source, 'function get_extension(', $start);
 delete_selection_check($start !== false && $end > $start, 'Locate actual topic synchronization');
 eval(substr($source, $start, $end - $start));
-$lang = array('Error_deleted_attachments' => 'Fixture deletion failed');
+$lang = array('Error_deleted_attachments' => 'Fixture deletion failed', 'Attachment_delete_incomplete' => 'Fixture file cleanup incomplete');
 
 class AttachmentSelectionDatabase
 {
@@ -63,19 +67,42 @@ class AttachmentSelectionDatabase
 	function scalar($sql) { return (int) $this->pdo->query($sql)->fetchColumn(); }
 }
 $fixture_dir = sys_get_temp_dir() . '/phpbb-delete-selection-' . uniqid('', true);
-$fixture_files = array(); $unlinked = array();
-function unlink_attach($name, $mode = false)
+$fixture_files = array(); $unlinked = array(); $delete_failures = array(); $listing_failure = false;
+function unlink_attach($name, $mode = false, $quiet = false)
 {
-	global $fixture_dir, $fixture_files, $unlinked;
+	global $fixture_dir, $fixture_files, $unlinked, $delete_failures;
+	delete_selection_check($quiet === true, 'Caller handles deletion failure after synchronizing flags');
 	$path = $fixture_dir . '/' . ($mode ? 't_' : '') . $name;
 	delete_selection_check(in_array($path, $fixture_files, true), 'Delete only an owned test file');
+	if (isset($delete_failures[basename($path)]))
+	{
+		if ($delete_failures[basename($path)] === 'throw') { throw new RuntimeException('private storage details'); }
+		return false;
+	}
+	if (!is_file($path)) { return false; }
 	$unlinked[] = basename($path);
 	return unlink($path);
 }
+function attach_storage_file_entries($mode = false, $quiet = false)
+{
+	global $fixture_dir, $fixture_files, $listing_failure;
+	delete_selection_check($quiet === true, 'Listing failure must remain distinguishable from an empty directory');
+	if ($listing_failure) { return false; }
+	$entries = array();
+	foreach ($fixture_files as $file)
+	{
+		$name = basename($file);
+		if (is_file($file) && (strpos($name, 't_') === 0) === (bool) $mode)
+		{
+			$entries[] = array('name' => $name, 'size' => filesize($file));
+		}
+	}
+	return $entries;
+}
 function selection_fixture($links, $descriptions)
 {
-	global $db, $fixture_dir, $fixture_files, $unlinked;
-	$db = new AttachmentSelectionDatabase(); $unlinked = array();
+	global $db, $fixture_dir, $fixture_files, $unlinked, $delete_failures, $listing_failure;
+	$db = new AttachmentSelectionDatabase(); $unlinked = array(); $delete_failures = array(); $listing_failure = false;
 	foreach ($links as $link) { $db->pdo->exec('INSERT INTO fixture_links VALUES (' . implode(',', $link) . ')'); }
 	foreach ($descriptions as $id => $thumbnail)
 	{
@@ -124,7 +151,7 @@ try
 	delete_attachment(0, 1, PAGE_PRIVMSGS, 8);
 	delete_selection_check($db->scalar('SELECT COUNT(*) FROM fixture_links WHERE attach_id = 1') === 1 && !$unlinked, 'Sender cannot delete recipient inbox attachment');
 	delete_attachment(0, 1, PAGE_PRIVMSGS, 7);
-	delete_selection_check($unlinked === array('attachment-1.dat', 't_attachment-1.dat'), 'Remove main and thumbnail only after last selected reference');
+	delete_selection_check($unlinked === array('t_attachment-1.dat', 'attachment-1.dat'), 'Remove thumbnail then main only after last selected reference');
 	delete_selection_check($db->scalar('SELECT privmsgs_attachment FROM fixture_messages WHERE privmsgs_id = 20') === 0, 'Synchronize selected PM flag');
 	delete_selection_check($db->scalar('SELECT privmsgs_attachment FROM fixture_messages WHERE privmsgs_id = 21') === 1, 'Preserve other PM flag');
 	selection_fixture(array(array(3, 0, 20), array(3, 0, 21)), array(3 => 0));
@@ -168,7 +195,37 @@ try
 		try { delete_attachment(0, 8, PAGE_PRIVMSGS, $owner); } catch (AttachmentSelectionFailure $error) { $failed = true; }
 		delete_selection_check($failed && !$db->queries && !$unlinked, 'Malformed owner must not disable PM ownership filtering');
 	}
-	echo "Attachment deletion selections, post/PM isolation, ownership and actual SQL/files passed.\n";
+	foreach (array('attachment-12.dat', 't_attachment-12.dat') as $failed_file)
+	{
+		foreach (array(true, 'throw') as $failure)
+		{
+			selection_fixture(array(array(12, 10, 0)), array(12 => 1));
+			$delete_failures[$failed_file] = $failure; $caught = false;
+			try { delete_attachment(10); } catch (AttachmentSelectionFailure $error) { $caught = $error->getMessage() === $lang['Attachment_delete_incomplete']; }
+			delete_selection_check($caught && $db->scalar('SELECT COUNT(*) FROM fixture_descriptions') === 1, 'Failed file cleanup preserves description and reports a safe error');
+			delete_selection_check(is_file($fixture_dir . '/attachment-12.dat'), 'Main file is retained on main or thumbnail failure');
+			delete_selection_check($db->scalar('SELECT thumbnail FROM fixture_descriptions') === ($failed_file === 't_attachment-12.dat' ? 1 : 0), 'Metadata records successful thumbnail cleanup before main-file failure');
+			delete_selection_check($db->scalar('SELECT COUNT(*) FROM fixture_links') === 0 && $db->scalar('SELECT post_attachment FROM fixture_posts WHERE post_id = 10') === 0 && $db->scalar('SELECT topic_attachment FROM fixture_topics') === 0, 'Removed links and flags are consistent before file error is reported');
+		}
+	}
+	selection_fixture(array(array(13, 0, 20), array(14, 0, 21)), array(13 => 0, 14 => 0));
+	$delete_failures['attachment-13.dat'] = true; $caught = false;
+	try { delete_attachment('20,21', 0, PAGE_PRIVMSGS); } catch (AttachmentSelectionFailure $error) { $caught = true; }
+	delete_selection_check($caught && $db->scalar('SELECT COUNT(*) FROM fixture_descriptions WHERE attach_id = 13') === 1 && $db->scalar('SELECT COUNT(*) FROM fixture_descriptions WHERE attach_id = 14') === 0, 'Mixed batch retains failed metadata and cleans up successful file');
+	delete_selection_check($db->scalar('SELECT SUM(privmsgs_attachment) FROM fixture_messages') === 0, 'All removed PM links synchronize before failure report');
+	selection_fixture(array(array(15, 10, 0)), array(15 => 1));
+	unlink($fixture_dir . '/t_attachment-15.dat'); unlink($fixture_dir . '/attachment-15.dat');
+	delete_attachment(10);
+	delete_selection_check($db->scalar('SELECT COUNT(*) FROM fixture_descriptions') === 0 && !$unlinked, 'Already missing files may be cleaned up after a complete inventory');
+	selection_fixture(array(array(16, 10, 0)), array(16 => 0));
+	unlink($fixture_dir . '/attachment-16.dat'); $listing_failure = true; $caught = false;
+	try { delete_attachment(10); } catch (AttachmentSelectionFailure $error) { $caught = true; }
+	delete_selection_check($caught && $db->scalar('SELECT COUNT(*) FROM fixture_descriptions') === 1, 'Failed inventory cannot prove absence or discard metadata');
+	foreach (array('index.php', '.htpasswd', '../attachment-16.dat', array('nested')) as $name)
+	{
+		delete_selection_check(!attach_delete_file($name), 'Reserved or invalid names never count as successful cleanup');
+	}
+	echo "Attachment deletion selections, ownership, file failures, recovery metadata and actual SQL/files passed.\n";
 }
 finally
 {

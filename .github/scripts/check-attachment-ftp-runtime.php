@@ -128,6 +128,12 @@ try
 	reset_ftp('missing-delete'); $caught = false;
 	try { unlink_attach('file.dat'); } catch (FtpFailure $exception) { $caught = true; }
 	ftp_check($caught && !$GLOBALS['ftp_calls'], 'Missing delete function stops maintenance without opening FTP');
+	foreach (array('missing-delete', 'connect', 'login', 'pasv', 'path', 'init-exception', 'delete', 'delete-exception') as $failure)
+	{
+		reset_ftp($failure);
+		ftp_check(unlink_attach('file.dat', false, true) === false, 'Quiet deletion propagates setup/transfer failure without aborting its caller: ' . $failure);
+		if (in_array('login', $GLOBALS['ftp_calls'])) { ftp_check(end($GLOBALS['ftp_calls']) === 'close', 'Quiet failure closes acquired FTP session'); }
+	}
 	reset_ftp(); $attach_config['allow_ftp_upload'] = '0'; $upload_dir = $temporary;
 	file_put_contents($temporary . '/index.php', 'protect'); file_put_contents($temporary . '/thumbs/t_file.dat', 'thumb');
 	ftp_check(!unlink_attach('index.php') && file_get_contents($temporary . '/index.php') === 'protect', 'Protection files cannot be selected for deletion');

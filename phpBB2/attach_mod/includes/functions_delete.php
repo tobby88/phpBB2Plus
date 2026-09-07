@@ -44,6 +44,28 @@ function attach_delete_id_array($value)
 	return array_values($ids);
 }
 
+// Deletion is idempotent only when a complete inventory confirms that the
+// regular file is already absent. A failed/unavailable listing is not proof.
+function attach_delete_file($filename, $mode = false)
+{
+	if (attach_ftp_listing_entry($filename, '0') === false ||
+		in_array(strtolower($filename), array('index.php', '.htaccess', '.htpasswd'), true))
+	{
+		return false;
+	}
+	try
+	{
+		if (unlink_attach($filename, $mode, true)) { return true; }
+		$files = attach_storage_file_entries($mode, true);
+		if ($files === false) { return false; }
+		$name = $mode == MODE_THUMBNAIL ? 't_' . $filename : $filename;
+		foreach ($files as $entry) { if ($entry['name'] === $name) { return false; } }
+		return true;
+	}
+	catch (Exception $exception) { return false; }
+	catch (Error $exception) { return false; }
+}
+
 function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, $user_id = 0)
 {
 	global $db, $lang;
@@ -212,6 +234,7 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 		$sql_id = 'post_id';
 	}
 
+	$delete_incomplete = false;
 	if (sizeof($post_id_array) && sizeof($attach_id_array))
 	{
 		// Only attachments currently linked to this selection are deletion
@@ -277,11 +300,26 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 					// delete attachments
 					for ($j = 0; $j < $num_attach; $j++)
 					{
-						unlink_attach($attachments[$j]['physical_filename']);
-	
+						// Keep the main file and description if thumbnail removal
+						// fails. Persist successful thumbnail cleanup before trying
+						// the main file, so a later recovery knows what remains.
 						if (intval($attachments[$j]['thumbnail']) == 1)
 						{
-							unlink_attach($attachments[$j]['physical_filename'], MODE_THUMBNAIL);
+							if (!attach_delete_file($attachments[$j]['physical_filename'], MODE_THUMBNAIL))
+							{
+								$delete_incomplete = true;
+								continue;
+							}
+							$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' SET thumbnail = 0 WHERE attach_id = ' . (int) $attachments[$j]['attach_id'];
+							if (!$db->sql_query($sql))
+							{
+								message_die(GENERAL_ERROR, $lang['Error_deleted_attachments'], '', __LINE__, __FILE__, $sql);
+							}
+						}
+						if (!attach_delete_file($attachments[$j]['physical_filename']))
+						{
+							$delete_incomplete = true;
+							continue;
 						}
 					
 						$sql = 'DELETE FROM ' . ATTACHMENTS_DESC_TABLE . '
@@ -351,6 +389,9 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 			$db->sql_freeresult($result);
 		}
 	}
+	// Link removal has already happened: synchronize its flags, then report
+	// incomplete file cleanup instead of displaying an unconditional success.
+	if ($delete_incomplete) { message_die(GENERAL_ERROR, $lang['Attachment_delete_incomplete']); }
 }
 
 ?>

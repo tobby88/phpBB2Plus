@@ -85,6 +85,7 @@ $lang['Error_no_attachment'] = 'Das ausgewählte Attachment existiert leider nic
 $lang['Confirm_delete_attachments'] = 'Bist du sicher, daß du die ausgewählten Attachments löschen möchtest';
 $lang['Deleted_attachments'] = 'Die ausgewählten Attachments wurden gelöscht';
 $lang['Error_deleted_attachments'] = 'Das Attachment konnte nicht gelöscht werden';
+$lang['Attachment_delete_incomplete'] = 'Die ausgewählten Anhang-Verknüpfungen wurden entfernt, aber einige Dateien konnten nicht gelöscht werden. Ihre Dateiinformationen bleiben für eine spätere Bereinigung erhalten. Bitte einen Administrator bitten, den Anhang-Speicher und die verwaisten Einträge zu prüfen.';
 $lang['Confirm_delete_pm_attachments'] = 'Bist du sicher alle Attachments in dieser Privaten Nachricht zu löschen?';
 
 // General Error Messages
