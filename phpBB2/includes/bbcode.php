@@ -455,6 +455,118 @@ function phpbb_bbcode_validate_tables($text, $uid)
 	return implode('', $parts);
 }
 
+/**
+ * Keep independently substituted container tags inside their own post. The
+ * first pass normally pairs them, but legacy/crossed markup is not necessarily
+ * balanced. Invalidate only offending pairs, preserving independent neighbors.
+ * Table/cell grammar has already been checked by validate_tables().
+ */
+function phpbb_bbcode_validate_containers($text, $uid)
+{
+	$uid_pattern = preg_quote((string) $uid, '#');
+	$parts = preg_split('#(\[(?:quote|acronym):' . $uid_pattern . '=".*?"\]|\[[^\[\]]*?:' . $uid_pattern . '\])#is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR)
+	{
+		throw new PhpbbBbcodeParseException('BBCode container tokenization failed');
+	}
+	$simple = array('b', 'i', 'u', 's', 'center', 'fade', 'flipv', 'fliph', 'scrollleft', 'scrollright', 'scrollup', 'scrolldown');
+	$valued = array(
+		'color' => '(?:\#[0-9A-F]{6}|[a-z]+)', 'size' => '[1-2]?[0-9]',
+		'glow' => '(?:\#[0-9A-F]{6}|[a-z]+)', 'shadow' => '(?:\#[0-9A-F]{6}|[a-z]+)',
+		'highlight' => '(?:\#[0-9A-F]{6}|[a-z]+)', 'font' => '[^\[\]]*',
+		'align' => '(?:left|right|center|justify)', 'marq' => '(?:left|right|up|down)',
+		'table' => '[^\[\]]*', 'cell' => '[^\[\]]*'
+	);
+	$frames = array(); $stack = array(); $literal = array();
+	$names = implode('|', array_merge($simple, array_keys($valued), array('poet', 'quote', 'acronym', 'list')));
+	foreach ($parts as $index => $part)
+	{
+		if (($index % 2) === 0)
+		{
+			// Incomplete prefixes must not become active later when another
+			// substitution removes their nested brackets or generates HTML.
+			$parts[$index] = phpbb_bbcode_replace('#\[(?=/?(?:' . $names . ')(?:[=:\]\s]))#i', '&#91;', $part);
+			continue;
+		}
+		if (phpbb_bbcode_match('#^\[\*:' . $uid_pattern . '\]$#i', $part))
+		{
+			$list = null;
+			for ($position = count($stack) - 1; $position >= 0; $position--)
+			{
+				if ($frames[$stack[$position]]['name'] === 'list') { $list = $stack[$position]; break; }
+			}
+			if ($list === null) { $literal[$index] = true; }
+			else
+			{
+				$frames[$list]['tokens'][] = $index;
+				if ($position !== count($stack) - 1) { $frames[$list]['invalid'] = true; }
+				$parts[$index] = '[*:' . $uid . ']';
+			}
+			continue;
+		}
+		if (!phpbb_bbcode_match('#^\[(/?)([a-z]+)(.*)\]$#is', $part, $tag)) { continue; }
+		$name = strtolower($tag[2]); $closing = ($tag[1] === '/'); $kind = '';
+		if (in_array($name, $simple, true)) { $suffix = ''; }
+		else if (isset($valued[$name])) { $suffix = '=' . $valued[$name]; }
+		else if ($name === 'poet') { $suffix = '(?:=[^\[\]]*)?'; }
+		else if ($name === 'quote' || $name === 'acronym') { $suffix = ''; }
+		else if ($name === 'list') { $suffix = '(?:=[a1])?'; }
+		else { continue; }
+		$pattern = '#^\[' . ($closing ? '/' : '') . $name . ($closing ? '' : $suffix) . ':' . $uid_pattern . '\]$#is';
+		if (!$closing && ($name === 'quote' || $name === 'acronym'))
+		{
+			$pattern = '#^\[' . $name . ':' . $uid_pattern . ($name === 'quote' ? '(?:=".*?")?' : '=".*?"') . '\]$#is';
+		}
+		else if ($closing && $name === 'list') { $pattern = '#^\[/list:([uo]):' . $uid_pattern . '\]$#i'; }
+		if (!phpbb_bbcode_match($pattern, $part, $matched)) { $literal[$index] = true; continue; }
+		if ($name === 'list') { $kind = $closing ? strtolower($matched[1]) : (strpos($part, '=') === false ? 'u' : 'o'); }
+		// Canonicalize tag names/UIDs together: regex openers are case-insensitive
+		// while the historic closing substitutions use exact string matching.
+		if ($closing) { $parts[$index] = '[/' . $name . ($name === 'list' ? ':' . $kind : '') . ':' . $uid . ']'; }
+		else
+		{
+			$parts[$index] = phpbb_bbcode_replace('#^\[[a-z]+#i', '[' . $name, $part);
+			$uid_location = ($name === 'quote' || $name === 'acronym') ? '#^(\[' . $name . '):' . $uid_pattern . '#i' : '#:' . $uid_pattern . '\]$#i';
+			$parts[$index] = phpbb_bbcode_replace($uid_location, ($name === 'quote' || $name === 'acronym') ? '${1}:' . $uid : ':' . $uid . ']', $parts[$index]);
+		}
+		if (!$closing)
+		{
+			$id = count($frames);
+			$frames[$id] = array('name' => $name, 'kind' => $kind, 'tokens' => array($index), 'closed' => false, 'invalid' => false);
+			$stack[] = $id;
+			if (count($stack) > 256) { throw new PhpbbBbcodeParseException('BBCode nesting limit exceeded'); }
+			continue;
+		}
+		$match = -1;
+		for ($position = count($stack) - 1; $position >= 0; $position--)
+		{
+			if ($frames[$stack[$position]]['name'] === $name) { $match = $position; break; }
+		}
+		if ($match === -1) { $literal[$index] = true; continue; }
+		$id = $stack[$match];
+		$frames[$id]['tokens'][] = $index;
+		$frames[$id]['closed'] = true;
+		if ($frames[$id]['kind'] !== $kind) { $frames[$id]['invalid'] = true; }
+		if ($match !== count($stack) - 1)
+		{
+			for ($position = $match; $position < count($stack); $position++) { $frames[$stack[$position]]['invalid'] = true; }
+		}
+		array_splice($stack, $match, 1);
+	}
+	foreach ($frames as $frame)
+	{
+		if (!$frame['closed'] || $frame['invalid'])
+		{
+			foreach ($frame['tokens'] as $index) { $literal[$index] = true; }
+		}
+	}
+	foreach ($literal as $index => $unused)
+	{
+		$parts[$index] = str_replace(array('[', ']'), array('&#91;', '&#93;'), htmlspecialchars(phpbb_bbcode_code_source($parts[$index], $uid), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+	}
+	return implode('', $parts);
+}
+
 function phpbb_bbcode_safe_font($value)
 {
 	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
@@ -572,6 +684,7 @@ function phpbb_bbcode_render_second_pass($text, $uid)
 	// table-based quote layout to consume the rest of the topic page.
 	$text = phpbb_bbcode_balance_quotes($text, $uid);
 	$text = phpbb_bbcode_validate_tables($text, $uid);
+	$text = phpbb_bbcode_validate_containers($text, $uid);
 	
 	// [QUOTE] and [/QUOTE] for posting replies with quote, or just for quoting stuff.
 	// Consume each complete token once: quote-like text inside a username must
@@ -718,13 +831,13 @@ function phpbb_bbcode_render_second_pass($text, $uid)
 	$text = phpbb_bbcode_replace("/\[marq=(left|right|up|down):$uid\]/si", $bbcode_tpl['marq_open'], $text);
 	$text = str_replace("[/marq:$uid]", $bbcode_tpl['marq_close'], $text);
 	// table
-	$text = phpbb_bbcode_replace_callback("/\[table=(.*?):$uid\]/si", function ($matches) use ($bbcode_tpl)
+	$text = phpbb_bbcode_replace_callback("/\[table=([^\[\]]*):$uid\]/si", function ($matches) use ($bbcode_tpl)
 	{
 		return str_replace('\\1', phpbb_bbcode_safe_style($matches[1]), $bbcode_tpl['table_open']);
 	}, $text);
 	$text = str_replace("[/table:$uid]", $bbcode_tpl['table_close'], $text);
 	// cell
-	$text = phpbb_bbcode_replace_callback("/\[cell=(.*?):$uid\]/si", function ($matches) use ($bbcode_tpl)
+	$text = phpbb_bbcode_replace_callback("/\[cell=([^\[\]]*):$uid\]/si", function ($matches) use ($bbcode_tpl)
 	{
 		return str_replace('\\1', phpbb_bbcode_safe_style($matches[1]), $bbcode_tpl['cell_open']);
 	}, $text);
@@ -734,13 +847,13 @@ function phpbb_bbcode_render_second_pass($text, $uid)
 	$text = str_replace("[center:$uid]", $center_open, $text);
 	$text = str_replace("[/center:$uid]", $bbcode_tpl['align_close'], $text);
 	// font
-	$text = phpbb_bbcode_replace_callback("/\[font=(.*?):$uid\]/si", function ($matches) use ($bbcode_tpl)
+	$text = phpbb_bbcode_replace_callback("/\[font=([^\[\]]*):$uid\]/si", function ($matches) use ($bbcode_tpl)
 	{
 		return str_replace('\\1', phpbb_bbcode_safe_font($matches[1]), $bbcode_tpl['font_open']);
 	}, $text);
 	$text = str_replace("[/font:$uid]", $bbcode_tpl['font_close'], $text);
 	// poet
-	$text = phpbb_bbcode_replace("/\[poet[^\]]*:$uid\]/i", $bbcode_tpl['poet_open'], $text);
+	$text = phpbb_bbcode_replace("/\[poet(?:=[^\[\]]*)?:$uid\]/i", $bbcode_tpl['poet_open'], $text);
 	$text = str_replace("[/poet:$uid]", $bbcode_tpl['poet_close'], $text);
 	//[hr]
 	$text = str_replace("[hr:$uid]", $bbcode_tpl['hr'], $text);
@@ -883,7 +996,7 @@ function phpbb_bbcode_encode_first_pass($text, $uid)
 	// [font] and [/font]
 	$text = phpbb_bbcode_replace("#\[font=(.*?)\](.*?)\[/font\]#si", "[font=\\1:$uid]\\2[/font:$uid]", $text);
 	// [poet] and [/poet]
-	$text = bbencode_first_pass_pda($text, $uid, '#\[poet(?![^\]]*:' . preg_quote($uid, '#') . '\])([^\]]*)\]#is', '[/poet]', '', false, '', "[poet\\1:$uid]");
+	$text = bbencode_first_pass_pda($text, $uid, '#\[poet(?![^\]]*:' . preg_quote($uid, '#') . '\])((?:=[^\[\]]*)?)\]#is', '[/poet]', '', false, '', "[poet\\1:$uid]");
 	// [center] and [/center]
 	$text = phpbb_bbcode_replace("#\[center\](.*?)\[/center\]#si", "[center:$uid]\\1[/center:$uid]", $text);
 	// [real]and[/real]

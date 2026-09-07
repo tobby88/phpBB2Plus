@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate all independently rendered BBCode containers, not only quote/table
+  counts. Orphan closers, unclosed formatting and crossed pairs remain readable
+  source instead of escaping the post layout; independent valid formatting and
+  nested lists remain supported. Normalize mixed-case legacy tags consistently
+  and prevent incomplete attribute prefixes from consuming generated markup.
 - Handle BBCode encoding/rendering and HTML-preparation regex failures without
   losing the message or returning partially generated layout. Resource-limit
   fallbacks retain complete, safely escaped source; normal HTML allowlists and
