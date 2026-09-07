@@ -148,6 +148,7 @@ function album_store_staged_upload($source, $destination, $configured_path, $psi
 function album_user_access($cat_id, $passed_auth = 0, $view_check = false, $upload_check = false, $rate_check = false, $comment_check = false, $edit_check = false, $delete_check = false)
 {
 	global $db, $album_config, $userdata;
+	$logged_in = !empty($userdata['session_logged_in']) && isset($userdata['user_id']) && (int) $userdata['user_id'] > 0;
 
 	// --------------------------------
 	// Force to check moderator status
@@ -218,7 +219,7 @@ function album_user_access($cat_id, $passed_auth = 0, $view_check = false, $uplo
 	// --------------------------------
 	// If the current user is an ADMIN (ALBUM_ADMIN == ADMIN)
 	// --------------------------------
-	if ($userdata['user_level'] == ADMIN)
+	if ($logged_in && $userdata['user_level'] == ADMIN)
 	{
 		for ($i = 0; $i < count($album_user_access); $i++)
 		{
@@ -238,7 +239,7 @@ function album_user_access($cat_id, $passed_auth = 0, $view_check = false, $uplo
 	// --------------------------------
 	// if this is a GUEST, we will ignore some checking
 	// --------------------------------
-	if (!$userdata['session_logged_in'])
+	if (!$logged_in)
 	{
 		$edit_check = 0;
 		$delete_check = 0;
@@ -383,14 +384,14 @@ function album_user_access($cat_id, $passed_auth = 0, $view_check = false, $uplo
 				break;
 
 			case ALBUM_USER:
-				if ($userdata['session_logged_in'])
+				if ($logged_in)
 				{
 					$album_user_access[$access_type[$i]] = 1;
 				}
 				break;
 
 			case ALBUM_PRIVATE:
-				if( ($thiscat['cat_'. $access_type[$i] .'_groups'] != '') and ($userdata['session_logged_in']) )
+				if( ($thiscat['cat_'. $access_type[$i] .'_groups'] != '') and $logged_in )
 				{
 					$groups_access[] = $access_type[$i];
 				}
@@ -470,7 +471,8 @@ function album_user_access($cat_id, $passed_auth = 0, $view_check = false, $uplo
 	{
 		for ($i = 0; $i < count($album_user_access); $i++)
 		{
-			if( $thiscat['cat_'. $album_user_access_keys[$i] .'_level'] != ALBUM_ADMIN )
+			$level_key = 'cat_' . $album_user_access_keys[$i] . '_level';
+			if ($album_user_access_keys[$i] != 'moderator' && isset($thiscat[$level_key]) && $thiscat[$level_key] != ALBUM_ADMIN)
 			{
 				$album_user_access[$album_user_access_keys[$i]] = 1;
 			}
@@ -498,6 +500,7 @@ function album_user_access($cat_id, $passed_auth = 0, $view_check = false, $uplo
 function personal_gallery_access($check_view, $check_upload)
 {
 	global $db, $userdata, $album_config;
+	$logged_in = !empty($userdata['session_logged_in']) && isset($userdata['user_id']) && (int) $userdata['user_id'] > 0;
 
 	// This array will contain the result
 	$personal_gallery_access = array(
@@ -513,18 +516,18 @@ function personal_gallery_access($check_view, $check_upload)
 		switch ($album_config['personal_gallery'])
 		{
 			case ALBUM_USER:
-				if ($userdata['session_logged_in'])
+				if ($logged_in)
 				{
 					$personal_gallery_access['upload'] = 1;
 				}
 				break;
 
 			case ALBUM_PRIVATE:
-				if( ($userdata['session_logged_in']) and ($userdata['user_level'] == ADMIN) )
+				if( $logged_in and ($userdata['user_level'] == ADMIN) )
 				{
 					$personal_gallery_access['upload'] = 1;
 				}
-				else if(!empty($album_config['personal_gallery_private']) and $userdata['session_logged_in'])
+				else if(!empty($album_config['personal_gallery_private']) and $logged_in)
 				{
 					$private_group_ids = album_sql_id_list($album_config['personal_gallery_private']);
 					$sql = "SELECT group_id, user_id
@@ -544,7 +547,7 @@ function personal_gallery_access($check_view, $check_upload)
 				break;
 
 			case ALBUM_ADMIN:
-				if( ($userdata['session_logged_in']) and ($userdata['user_level'] == ADMIN) )
+				if( $logged_in and ($userdata['user_level'] == ADMIN) )
 				{
 					$personal_gallery_access['upload'] = 1;
 				}
@@ -564,18 +567,18 @@ function personal_gallery_access($check_view, $check_upload)
 				break;
 
 			case ALBUM_USER:
-				if ($userdata['session_logged_in'])
+				if ($logged_in)
 				{
 					$personal_gallery_access['view'] = 1;
 				}
 				break;
 
 			case ALBUM_PRIVATE:
-				if( ($userdata['session_logged_in']) and ($userdata['user_level'] == ADMIN) )
+				if( $logged_in and ($userdata['user_level'] == ADMIN) )
 				{
 					$personal_gallery_access['view'] = 1;
 				}
-				else if(!empty($album_config['personal_gallery_private']) and $userdata['session_logged_in'])
+				else if(!empty($album_config['personal_gallery_private']) and $logged_in)
 				{
 					$private_group_ids = album_sql_id_list($album_config['personal_gallery_private']);
 					$sql = "SELECT group_id, user_id

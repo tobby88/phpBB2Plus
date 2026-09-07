@@ -679,7 +679,10 @@ function album_check_user_exists($user_id)
 // ------------------------------------------------------------------------
 function album_get_user_name($user_id)
 {
-	global $db;
+	global $db, $lang;
+	if (!is_int($user_id) && (!is_string($user_id) || !ctype_digit($user_id))) { return $lang['Guest']; }
+	$user_id = (int) $user_id;
+	if ($user_id < 0) { return $lang['Guest']; }
 
 	if ($user_id == ALBUM_PUBLIC_GALLERY)
 	    return "";
@@ -697,7 +700,7 @@ function album_get_user_name($user_id)
 	$row = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
 	
-	return $row['username'];
+	return isset($row['username']) ? $row['username'] : $lang['Guest'];
 }
 
 // ------------------------------------------------------------------------

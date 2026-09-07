@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Require a logged-in positive user identity for Album ownership and admin
+  shortcuts: guest/public sentinel IDs cannot become personal-gallery owners.
+  Preserve explicit guest permissions and confirmed group moderation, without
+  reading a nonexistent moderator-level column. Missing gallery owners now use
+  a warning-free localized fallback or an explicit missing-user response.
+  Existing gallery owners, category access settings and stored files are unchanged.
 - Complete inactive-account removal for previously used accounts: preserve posts
   and shouts as guest-authored with the captured UTF-8 display name, detach topic/
   vote ownership and reassign group moderation. Pruning shares this guarded

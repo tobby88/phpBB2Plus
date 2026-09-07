@@ -101,11 +101,12 @@ if( !($result = $db->sql_query($sql)) )
 
 $row = $db->sql_fetchrow($result);
 
-$username = $row['username'];
+$username = isset($row['username']) ? $row['username'] : '';
+$db->sql_freeresult($result);
 
 if( empty($username) )
 {
-	message_die(GENERAL_ERROR, 'Sorry, this user does not exist');
+	message_die(GENERAL_ERROR, $lang['No_such_user']);
 }
 $username_html = album_html_text($username);
 

@@ -453,3 +453,6 @@ jobs:
 
       - name: Test Junior Admin endpoint-bound permissions
         run: php .github/scripts/check-jr-admin-authorization.php
+
+      - name: Test authenticated Album ownership and missing-owner handling
+        run: php .github/scripts/check-album-owner-authorization.php
