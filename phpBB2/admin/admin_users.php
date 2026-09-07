@@ -190,7 +190,12 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 				message_die(GENERAL_ERROR, 'Could not obtain group information for this user', '', __LINE__, __FILE__, $sql);
 			}
 
-			$row = $db->sql_fetchrow($result);
+			$personal_groups = array();
+			while ($group_row = $db->sql_fetchrow($result))
+			{
+				$personal_groups[(int) $group_row['group_id']] = (int) $group_row['group_id'];
+			}
+			$db->sql_freeresult($result);
 			// Clean PNs before deleting the account so failure can be retried.
 			phpbb_pm_delete_user_messages($user_id);
 			
@@ -248,18 +253,25 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 				message_die(GENERAL_ERROR, 'Could not delete user from user_group table', '', __LINE__, __FILE__, $sql);
 			}
 
-			$sql = "DELETE FROM " . GROUPS_TABLE . "
-				WHERE group_id = " . $row['group_id'];
-			if( !$db->sql_query($sql) )
+			// Only this account's captured personal groups may be removed. A
+			// missing group is valid; a group gaining members must keep its ACL.
+			foreach ($personal_groups as $personal_group_id)
 			{
-				message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . "
-				WHERE group_id = " . $row['group_id'];
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
+				$sql = "DELETE FROM " . GROUPS_TABLE . "
+					WHERE group_id = $personal_group_id AND group_single_user = 1
+					AND NOT EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " ug WHERE ug.group_id = $personal_group_id)";
+				if (!$db->sql_query($sql))
+				{
+					message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
+				}
+				if ((int) $db->sql_affectedrows() === 1)
+				{
+					$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . " WHERE group_id = $personal_group_id";
+					if (!$db->sql_query($sql))
+					{
+						message_die(GENERAL_ERROR, 'Could not delete group permissions for this user', '', __LINE__, __FILE__, $sql);
+					}
+				}
 			}
 
 			$sql = "DELETE FROM " . TOPICS_WATCH_TABLE . "

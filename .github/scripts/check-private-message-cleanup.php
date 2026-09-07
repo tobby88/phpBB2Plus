@@ -4,6 +4,7 @@ define('PRIVMSGS_TEXT_TABLE', 'fixture_message_text');
 define('USERS_TABLE', 'fixture_users');
 require $forum_root . 'includes/functions_privmsgs.php';
 $lang['PM_cleanup_failed'] = 'pm database';
+$lang['Not_Authorised'] = 'pm permission';
 $upload_dir = sys_get_temp_dir() . '/phpbb-pm-cleanup-' . uniqid('',true);
 function pm_cleanup_fixture()
 {
@@ -118,9 +119,10 @@ try
 	};
 	mutation_check(phpbb_pm_save_messages(array(20),7,'inbox',1)===0 && $moved && $mutation_server->count_rows(PRIVMSGS_TEXT_TABLE)===2,'Zero affected save rows cannot evict or delete text');
 	pm_cleanup_fixture();
-	mutation_check(phpbb_pm_delete_user_messages(7)===0,'No account cleanup outside administrator context');
+	mutation_expect_failure(function(){phpbb_pm_delete_user_messages(7);},'pm permission');
 	define('IN_ADMIN',true); $userdata['user_level']=0;
-	mutation_check(phpbb_pm_delete_user_messages(7)===0,'Regular user cannot invoke account cleanup');
+	$userdata['session_logged_in']=true; $userdata['session_admin']=true;
+	mutation_expect_failure(function(){phpbb_pm_delete_user_messages(7);},'pm permission');
 	$userdata['user_level']=ADMIN;
 	foreach(array(0,-1,'7 OR 1=1',null) as $invalid_user) { mutation_check(phpbb_pm_delete_user_messages($invalid_user)===0,'Invalid account target refused'); }
 	$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES(22,2,99,99,0,123)');
@@ -133,7 +135,7 @@ try
 	mutation_check(strpos($admin,'phpbb_pm_delete_user_messages($user_id);') < strpos($admin,'DELETE FROM " . USERS_TABLE') && strpos($admin,'SELECT privmsgs_id')===false,'Account cleanup precedes irreversible account removal and replaces legacy PM deletion');
 	define('DELETED',-1);
 	pm_cleanup_fixture(); $userdata['user_level']=0;
-	mutation_check(phpbb_pm_repair_messages(array(20),'missing_text',1000)===0,'Nonadmin maintenance refused');
+	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
 	$userdata['user_level']=ADMIN;
 	mutation_check(phpbb_pm_repair_messages(array(20,null),'missing_text',1000)===0 && phpbb_pm_repair_messages(array(20),'unknown',1000)===0,'Invalid maintenance input refused');
 	$mutation_server->pdo->exec('DELETE FROM fixture_message_text WHERE privmsgs_text_id=20');
@@ -231,6 +233,37 @@ try
 	finally { $lock->release(); }
 	$download=file_get_contents($forum_root.'download.php');
 	mutation_check(strpos($download,'phpbb_pm_attachment_access($db,')!==false && strpos($download,"\$userdata['user_id'] == \$auth_pages[\$i]['user_id_")===false,'Download uses authoritative parent ownership rather than stale link participants');
+	// Real module authorization with only its grant lookup replaced: mutation SQL
+	// must still go through the fixture's actual owning connection.
+	define('JR_ADMIN_TABLE','fixture_jr_admin'); $phpEx='php';
+	function sql_query_nivisec($sql,$error,$fast=true,$return_items=0)
+	{
+		mutation_check(preg_match('/^SELECT \* FROM fixture_jr_admin\s+WHERE user_id = 8$/D',$sql)===1,'Only current fixture admin grants queried');
+		return array('user_jr_admin'=>$GLOBALS['pm_fixture_grants']);
+	}
+	require $forum_root.'includes/functions_jr_admin.php';
+	pm_cleanup_fixture(); $userdata['user_level']=0;
+	$pm_fixture_grants=md5('UsersManageadmin_users.php');
+	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
+	mutation_check(!$mutation_server->owner && $mutation_server->count_rows(PRIVMSGS_TABLE)===2,'Wrong module cannot begin maintenance writes');
+	mutation_check(phpbb_pm_delete_user_messages(7)===2 && !is_file($upload_dir.'/fixture.txt'),'Delegated user manager performs complete PN cleanup');
+	pm_cleanup_fixture(); $pm_fixture_grants=md5('GeneralDB_Maintenanceadmin_db_maintenance.php');
+	mutation_expect_failure(function(){phpbb_pm_delete_user_messages(7);},'pm permission');
+	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(77,'orphan')");
+	mutation_check(phpbb_pm_repair_messages(array(77),'orphan_text')===1,'Delegated maintenance repairs PN data');
+	$pm_fixture_grants='';
+	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
+	$pm_fixture_grants=md5('UsersManageadmin_users.php');
+	foreach(array('session_admin','session_logged_in') as $flag)
+	{
+		$userdata[$flag]=false;
+		mutation_expect_failure(function(){phpbb_pm_delete_user_messages(7);},'pm permission');
+		$userdata['user_level']=ADMIN;
+		mutation_expect_failure(function(){phpbb_pm_delete_user_messages(7);},'pm permission');
+		$userdata['user_level']=0; $userdata[$flag]=true;
+	}
+	mutation_expect_failure(function(){phpbb_pm_require_admin_module('admin_board.php');},'pm permission');
+	mutation_check(!$mutation_server->owner && $mutation_server->count_rows(PRIVMSGS_TABLE)===2,'Revoked or unauthenticated capabilities leave messages intact');
 	echo "Private-message cleanup, saving, account removal, maintenance and download checks passed.\n";
 }
 finally

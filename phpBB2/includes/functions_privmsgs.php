@@ -103,13 +103,30 @@ function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
 	finally { $lock->release(); }
 }
 
-// Administrator-only account removal retains the existing from/to deletion
+function phpbb_pm_require_admin_module($module)
+{
+	global $userdata, $lang;
+	$allowed = defined('IN_ADMIN') && IN_ADMIN && !empty($userdata['session_logged_in'])
+		&& !empty($userdata['session_admin']) && isset($userdata['user_id']) && (int) $userdata['user_id'] > 0
+		&& in_array($module, array('admin_users.php', 'admin_db_maintenance.php'), true);
+	if ($allowed)
+	{
+		$allowed = isset($userdata['user_level']) && $userdata['user_level'] == ADMIN;
+		if (!$allowed && function_exists('jr_admin_check_file_hashes')) { $allowed = jr_admin_check_file_hashes($module); }
+	}
+	// A skipped cleanup is not a successful account removal/repair. Abort the
+	// caller before its later writes if the required capability is unavailable.
+	if (!$allowed) { message_die(GENERAL_ERROR, $lang['Not_Authorised']); }
+}
+
+// Authorized ACP account removal retains the existing from/to deletion
 // policy, but also cleans shared attachment references and recipient counters.
 function phpbb_pm_delete_user_messages($user_id)
 {
 	global $db, $userdata;
 	$ids = attach_delete_id_array(array($user_id));
-	if (!defined('IN_ADMIN') || !IN_ADMIN || !isset($userdata['user_level']) || $userdata['user_level'] != ADMIN || !$ids) { return 0; }
+	if (!$ids) { return 0; }
+	phpbb_pm_require_admin_module('admin_users.php');
 	$lock = attach_require_mutation_lock($db);
 	try { return phpbb_pm_delete_selected($lock->connection, '(privmsgs_from_userid = ' . $ids[0] . ' OR privmsgs_to_userid = ' . $ids[0] . ')'); }
 	finally { $lock->release(); }
@@ -141,13 +158,14 @@ function phpbb_pm_prune_user_messages($user_id)
 	finally { $lock->release(); }
 }
 
-// Administrator-only repair. IDs from a diagnostic snapshot are not sufficient:
+// Authorized ACP repair. IDs from a diagnostic snapshot are not sufficient:
 // recheck the defect in the modifying statement on the guarded session.
 function phpbb_pm_repair_messages($ids, $mode, $now = null)
 {
 	global $db, $userdata;
 	$ids = attach_delete_id_array($ids);
-	if (!defined('IN_ADMIN') || !IN_ADMIN || !isset($userdata['user_level']) || $userdata['user_level'] != ADMIN || !$ids) { return 0; }
+	if (!$ids) { return 0; }
+	phpbb_pm_require_admin_module('admin_db_maintenance.php');
 	$table = PRIVMSGS_TABLE; $key = 'privmsgs_id'; $update = '';
 	switch ($mode)
 	{

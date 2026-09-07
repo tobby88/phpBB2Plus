@@ -43,6 +43,28 @@ $prune=file_get_contents($root.'/phpBB2/delete_users.php');
 $start=strpos($prune,'@set_time_limit(5);'); $end=strpos($prune,'$sql = "DELETE FROM " . TOPICS_WATCH_TABLE',$start);
 deletion_check($start!==false && $end!==false,'Prune controller extraction markers');
 $prune_block=substr($prune,$start,$end-$start);
+$user_admin=file_get_contents($root.'/phpBB2/admin/admin_users.php');
+$delete_branch=strpos($user_admin,"if( !empty(\$_POST['deleteuser'])");
+deletion_check($delete_branch!==false,'User deletion branch exists');
+$start=strpos($user_admin,'$sql = "SELECT g.group_id',$delete_branch);
+$end=strpos($user_admin,'$sql = "DELETE FROM " . TOPICS_WATCH_TABLE',$start);
+deletion_check($start!==false && $end!==false,'User manager deletion extraction markers');
+$user_admin_block=substr($user_admin,$start,$end-$start);
+define('SHOUTBOX_TABLE','fixture_shouts');
+function admin_user_sql_value($value) { return str_replace("'","''",$value); }
+function phpbb_pm_delete_user_messages($id)
+{
+	deletion_check($id===7,'PN cleanup scoped to selected user');
+	if (!empty($GLOBALS['fixture_pm_denied'])) { throw new DeletionFailure('pm permission'); }
+}
+function run_user_admin($db)
+{
+	global $user_admin_block;
+	$user_id=7; $userdata=array('user_id'=>9); $this_userdata=array('username'=>"O'Brien");
+	$db->pdo->exec('CREATE TABLE fixture_shouts(shout_user_id INTEGER,shout_username TEXT)');
+	$db->pdo->exec("INSERT INTO fixture_shouts VALUES(7,''),(8,'')");
+	eval($user_admin_block);
+}
 function run_inactive($db,$id=7)
 {
 	global $account_block;
@@ -55,6 +77,9 @@ function run_prune($db)
 	$user_list=array(array('user_id'=>7)); $i=0; $userdata=array('user_id'=>9);
 	$prune_selection_sql='FROM fixture_users WHERE user_id <> -1 AND user_level <> 1 AND user_posts = 0';
 	eval('foreach (array(0) as $iteration) {' . $prune_block . '}');
+	// The controller's five-second per-user timer must not cover creation of
+	// subsequent, independent database fixtures (especially native InnoDB DDL).
+	set_time_limit(0);
 }
 function expect_deletion_failure($callback) { $caught=false; try { $callback(); } catch(DeletionFailure $e) { $caught=true; } deletion_check($caught,'Expected controlled rejection'); }
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
@@ -91,6 +116,29 @@ try
 	$db=new DeletionDatabase(); $db->hook=function($sql,$db){if(strpos($sql,'DELETE FROM fixture_groups')===0){$db->pdo->exec('INSERT INTO fixture_members VALUES(8,70)');}};
 	run_prune($db); deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id=70')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===1,'Prune preserves a personal group that gained a member');
 	deletion_check(strpos($prune,'$deleted_users++;')!==false && strpos($prune,"sprintf(\$lang['Prune_users_number'], \$deleted_users)")!==false,'Prune counts completed deletions separately from skipped candidates');
-	echo "Inactive-account and pruning eligibility/group-scope checks passed.\n";
+	$db=new DeletionDatabase(); $GLOBALS['fixture_pm_denied']=true;
+	expect_deletion_failure(function()use($db){run_user_admin($db);});
+	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1,'PN capability failure stops subsequent account/post mutations');
+	$GLOBALS['fixture_pm_denied']=false;
+	foreach(array('missing','multiple','shared','reclassified','ordinary') as $case)
+	{
+		$db=new DeletionDatabase();
+		if($case==='missing') { $db->pdo->exec('DELETE FROM fixture_members WHERE group_id=70'); $db->pdo->exec('DELETE FROM fixture_groups WHERE group_id=70'); }
+		if($case==='multiple') { $db->pdo->exec('INSERT INTO fixture_groups VALUES(71,1,7)'); $db->pdo->exec('INSERT INTO fixture_members VALUES(7,71)'); $db->pdo->exec('INSERT INTO fixture_permissions VALUES(71,1)'); }
+		if($case==='shared' || $case==='reclassified')
+		{
+			$db->hook=function($sql,$db)use($case){if(strpos($sql,'DELETE FROM fixture_groups')===0){$db->pdo->exec($case==='shared'?'INSERT INTO fixture_members VALUES(8,70)':'UPDATE fixture_groups SET group_single_user=0 WHERE group_id=70');}};
+		}
+		run_user_admin($db);
+		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===0,'User manager supports '.$case.' personal groups');
+		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id IN (80,90,100,200,201)')===5,'User manager retains unrelated and nonpersonal groups');
+		deletion_check($db->scalar('SELECT shout_username FROM fixture_shouts WHERE shout_user_id=-1')==="O'Brien",'Actual controller safely anonymizes shout author');
+		if($case==='shared' || $case==='reclassified') { deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id=70')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===1,'Changed group retains its permissions'); }
+		if($case==='multiple' || $case==='ordinary') { deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id IN (70,71)')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id IN (70,71)')===0,'All captured empty personal groups and only their ACLs removed'); }
+	}
+	$db=new DeletionDatabase(); $db->failure='DELETE FROM fixture_groups';
+	expect_deletion_failure(function()use($db){run_user_admin($db);});
+	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===1,'Group deletion failure preserves permission recovery records');
+	echo "Inactive-account, user management and pruning eligibility/group-scope checks passed.\n";
 }
 finally { restore_error_handler(); }

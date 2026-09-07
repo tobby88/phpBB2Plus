@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Honor freshly checked Junior Admin module grants in ACP private-message
+  cleanup and database repairs, requiring an authenticated admin session.
+  Missing permissions now stop the caller instead of silently skipping cleanup.
+  User management handles missing/multiple personal groups and removes group
+  permissions only after deleting a still-personal, empty captured group.
+  No schema migration; whole-account deletion is not a database transaction.
 - Bind Junior Admin grants to the executing ACP endpoint: an allowed module
   identifier no longer unlocks unrelated controllers. Use SCRIPT_NAME instead
   of request-URI text, require the exact index filename, and retain documented
