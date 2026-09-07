@@ -22,12 +22,76 @@ if ( !defined('IN_PHPBB') || !defined('CTRACKER_ACP') )
 }
 
 
+/**
+ * Serialize publication on the database server, including installations with
+ * several web workers/hosts. A dedicated non-persistent connection owns the
+ * advisory lock: normal return, exceptions, message_die/exit and termination
+ * cannot leave it on a pooled forum connection. All scan SQL uses that same
+ * connection, so losing the lock session also prevents further publication.
+ */
+class ct_scan_lock
+{
+	var $connection = null;
+	var $acquired = null;
+
+	function __construct($database, $table)
+	{
+		// Strip an explicit persistent prefix as well as passing false.
+		$server = preg_replace('/^p:/', '', $database->server);
+		$this->connection = new sql_db($server, $database->user, $database->password, $database->dbname, false);
+		if (!$this->connection->db_connect_id)
+		{
+			$this->connection = null;
+			return;
+		}
+		register_shutdown_function(array($this, 'release'));
+		// GET_LOCK names are server-global and limited to 64 bytes on MySQL.
+		$name = 'ctscan:' . md5($database->dbname . "\0" . $table);
+		$result = $this->connection->sql_query("SELECT GET_LOCK('" . $name . "', 0) AS acquired");
+		if ($result)
+		{
+			$row = $this->connection->sql_fetchrow($result);
+			$this->connection->sql_freeresult($result);
+			if (isset($row['acquired']) && ($row['acquired'] === 1 || $row['acquired'] === '1'))
+			{
+				$this->acquired = 1;
+			}
+			else if (isset($row['acquired']) && ($row['acquired'] === 0 || $row['acquired'] === '0'))
+			{
+				$this->acquired = 0;
+			}
+		}
+		if ($this->acquired !== 1)
+		{
+			$this->release();
+		}
+	}
+
+	function release()
+	{
+		if ($this->connection !== null)
+		{
+			$connection = $this->connection;
+			$this->connection = null;
+			// Connection termination releases its GET_LOCK, even when the
+			// ordinary forum connection was already closed by error rendering.
+			$connection->sql_close();
+		}
+	}
+}
+
 class ct_adminfunctions
 {
 	var $filechk_root = '';
 	var $filechk_count = 0;
 	var $filescan_root = '';
 	var $filescan_count = 0;
+	var $scan_database = null;
+
+	function scan_database()
+	{
+		return $this->scan_database !== null ? $this->scan_database : $GLOBALS['db'];
+	}
 
 	/**
 	 * <b>ct_adminfunctions</b>
@@ -168,7 +232,38 @@ class ct_adminfunctions
 	 */
 	function do_filechk()
 	{
-		global $db, $lang, $phpbb_root_path, $phpEx;
+		$lock = $this->acquire_scan_lock(CTRACKER_FILECHK);
+		$this->scan_database = $lock->connection;
+		try
+		{
+			$this->build_filechk();
+		}
+		finally
+		{
+			$this->scan_database = null;
+			$lock->release();
+		}
+	}
+
+	function acquire_scan_lock($table)
+	{
+		global $db, $lang;
+		$lock = new ct_scan_lock($db, $table);
+		if ($lock->acquired === 0)
+		{
+			message_die(GENERAL_MESSAGE, $lang['ctracker_scan_busy']);
+		}
+		if ($lock->acquired !== 1)
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op']);
+		}
+		return $lock;
+	}
+
+	function build_filechk()
+	{
+		global $lang, $phpbb_root_path, $phpEx;
+		$db = $this->scan_database();
 
 		$scan_root = @realpath($phpbb_root_path);
 		if ($scan_root === false || !is_dir($scan_root) || !is_readable($scan_root))
@@ -286,7 +381,8 @@ class ct_adminfunctions
 	 */
 	function recursive_filechk($dir, $prefix = '', $extension = '', $target_table = '')
 	{
-		global $db, $lang;
+		global $lang;
+		$db = $this->scan_database();
 
 		if ($target_table === '')
 		{
@@ -390,7 +486,8 @@ class ct_adminfunctions
 	*/
 	function ScanFile($source_table = '')
 	{
-		global $db, $phpbb_root_path, $lang;
+		global $phpbb_root_path, $lang;
+		$db = $this->scan_database();
 		if ($source_table === '')
 		{
 			$source_table = CTRACKER_FILESCANNER;
@@ -438,7 +535,10 @@ class ct_adminfunctions
 			if (!is_array($filename))
 			{
 				$write_back = 'UPDATE ' . $source_table . ' SET safety = 10 WHERE id = ' . $file_db_id;
-				$db->sql_query($write_back);
+				if (!$db->sql_query($write_back))
+				{
+					message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $write_back);
+				}
 				continue;
 			}
 
@@ -619,7 +719,23 @@ class ct_adminfunctions
 	 */
 	function RunFileScan($dir, $extension = '')
 	{
-		global $db, $lang;
+		$lock = $this->acquire_scan_lock(CTRACKER_FILESCANNER);
+		$this->scan_database = $lock->connection;
+		try
+		{
+			$this->build_file_scan($dir, $extension);
+		}
+		finally
+		{
+			$this->scan_database = null;
+			$lock->release();
+		}
+	}
+
+	function build_file_scan($dir, $extension = '')
+	{
+		global $lang;
+		$db = $this->scan_database();
 
 		$scan_root = @realpath($dir);
 		if ($scan_root === false || !is_dir($scan_root) || !is_readable($scan_root))
@@ -695,7 +811,8 @@ class ct_adminfunctions
 	 */
 	function CreateFileList($dir, $prefix = '', $extension = '', $target_table = '')
 	{
-	  	global $db, $lang;
+		global $lang;
+		$db = $this->scan_database();
 		if ($target_table === '')
 		{
 			$target_table = CTRACKER_FILESCANNER;

@@ -12,6 +12,10 @@ function phpbb_admin_require_post_session() { $GLOBALS['scan_session_checks']++;
 function scan_assert($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
 class ScanDatabase
 {
+	var $server = 'fixture';
+	var $user = 'fixture';
+	var $password = '';
+	var $dbname = 'fixture';
 	var $queries = array();
 	var $fail = '';
 	function sql_query($sql)
@@ -22,6 +26,19 @@ class ScanDatabase
 	}
 	function sql_escape($value) { return str_replace("'", "''", $value); }
 	function sql_fetchrow($result) { return false; }
+}
+// Lock transport fixture; concurrency and connection failure behavior are
+// covered separately by check-ctracker-scan-lock.php.
+class sql_db
+{
+	var $db_connect_id = true;
+	var $database;
+	function __construct($server, $user, $password, $dbname, $persistent) { $this->database = $GLOBALS['db']; }
+	function sql_query($sql) { return strpos($sql, 'SELECT GET_LOCK(') === 0 ? 'lock' : $this->database->sql_query($sql); }
+	function sql_fetchrow($result) { return $result === 'lock' ? array('acquired' => '1') : $this->database->sql_fetchrow($result); }
+	function sql_escape($value) { return $this->database->sql_escape($value); }
+	function sql_freeresult($result) {}
+	function sql_close() {}
 }
 require $forum_root . 'ctracker/classes/class_ct_adminfunctions.php';
 class FailingScanAdmin extends ct_adminfunctions

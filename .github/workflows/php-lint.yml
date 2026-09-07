@@ -400,3 +400,6 @@ jobs:
 
       - name: Test CrackerTracker scan publication failure boundaries
         run: php .github/scripts/check-ctracker-scan-publication.php
+
+      - name: Test concurrent CrackerTracker scans and lock cleanup
+        run: php .github/scripts/check-ctracker-scan-lock.php

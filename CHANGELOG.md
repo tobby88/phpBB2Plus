@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Serialize concurrent CrackerTracker baseline/report rebuilds with a
+  database-scoped advisory lock. A separate non-persistent connection owns
+  both the lock and all scan queries; contention returns a German/English
+  notice before touching staging tables, and errors/exit release the lock.
+  Failed writes of an unreadable-file status also prevent publication.
 - Keep the previous CrackerTracker integrity baseline and file-scan report
   when a directory traversal or checksum read fails. Propagate nested scan
   failures, skip already excluded directory trees before traversal, and update
