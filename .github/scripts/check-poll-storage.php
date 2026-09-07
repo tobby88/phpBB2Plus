@@ -1,12 +1,17 @@
 <?php
 require __DIR__ . '/check-ajax-edit-storage.php';
 require $forum_root . 'includes/functions_poll_storage.php';
+$ip_source=file_get_contents($forum_root.'includes/functions.php');
+$ip_start=strpos($ip_source,'function encode_ip('); $ip_end=strpos($ip_source,'function decode_ip(',$ip_start);
+mutation_check($ip_start!==false && $ip_end>$ip_start,'Locate the actual legacy IP encoder');
+eval(substr($ip_source,$ip_start,$ip_end-$ip_start));
 foreach (array('Poll_storage_failed','Poll_vote_denied','Poll_expired','No_vote_option','Vote_cast','Already_voted') as $key) { $lang[$key]=$key; }
 function poll_fixture()
 {
-	global $mutation_server;
+	global $mutation_server, $user_ip;
 	ajax_storage_fixture(); $p=$mutation_server->pdo;
-	$p->exec('ALTER TABLE fixture_voters ADD vote_user_ip VARCHAR(45)');
+	$user_ip=encode_ip('127.0.0.1');
+	$p->exec('ALTER TABLE fixture_voters ADD vote_user_ip CHAR(8)');
 	$p->exec("INSERT INTO fixture_votes VALUES (1,100,'Fixture poll',1,0)");
 	$p->exec("INSERT INTO fixture_vote_results VALUES (1,1,'First',0),(1,2,'Second',0)");
 }
@@ -44,16 +49,16 @@ try
 {
 	poll_fixture();
 	mutation_check(phpbb_cast_poll_vote($db,100,1)==='Vote_cast','First registered vote succeeds');
-	$user_ip='2001:db8::8';
+	$user_ip=encode_ip('2001:db8::8');
 	mutation_check(phpbb_cast_poll_vote($db,100,2)==='Already_voted','Registered identity is independent of IP and chosen option');
 	mutation_check((int)posting_value('SELECT SUM(vote_result) FROM fixture_vote_results')===1 && (int)posting_value('SELECT COUNT(*) FROM fixture_voters')===1,'Duplicate vote changes neither count nor voter rows');
 	$userdata['user_id']=9;
 	mutation_check(phpbb_cast_poll_vote($db,100,2)==='Vote_cast','Another member may vote from the same IP');
 	poll_fixture(); $userdata['session_logged_in']=false; $userdata['user_id']=ANONYMOUS;
-	$mutation_server->pdo->exec('UPDATE fixture_forums SET auth_view=0,auth_read=0,auth_vote=0'); $user_ip='2001:db8::1';
+	$mutation_server->pdo->exec('UPDATE fixture_forums SET auth_view=0,auth_read=0,auth_vote=0'); $user_ip=encode_ip('2001:db8::1');
 	mutation_check(phpbb_cast_poll_vote($db,100,1)==='Vote_cast','Guest can vote when explicitly permitted');
 	mutation_check(phpbb_cast_poll_vote($db,100,2)==='Already_voted','Guest IP identifies a repeated vote');
-	$user_ip='2001:db8::2';
+	$user_ip=encode_ip('2001:db8::2');
 	mutation_check(phpbb_cast_poll_vote($db,100,2)==='Vote_cast','Separate guest IP is not conflated with all anonymous users');
 	foreach(array(
 		array('UPDATE fixture_forums SET auth_vote=5','Poll_vote_denied'),
@@ -148,11 +153,11 @@ try
 		foreach(array('open','same_guest','other_guest','locked_forum','denied_vote') as $case)
 		{
 			poll_fixture(); $db=new PollReadDatabase(); $template=new PollTemplateFixture();
-			$userdata['session_logged_in']=false; $userdata['user_id']=ANONYMOUS; $userdata['session_id']='fixture'; $user_ip='2001:db8::1';
+			$userdata['session_logged_in']=false; $userdata['user_id']=ANONYMOUS; $userdata['session_id']='fixture'; $user_ip=encode_ip('2001:db8::1');
 			$mutation_server->pdo->exec('UPDATE fixture_topics SET topic_vote=1');
 			$mutation_server->pdo->exec('UPDATE fixture_forums SET auth_view=0,auth_read=0,auth_vote=0');
-			if($case==='same_guest') { $mutation_server->pdo->exec("INSERT INTO fixture_voters VALUES (1,-1,'2001:db8::1')"); }
-			if($case==='other_guest') { $mutation_server->pdo->exec("INSERT INTO fixture_voters VALUES (1,-1,'2001:db8::2')"); }
+			if($case==='same_guest') { $mutation_server->pdo->exec("INSERT INTO fixture_voters VALUES (1,-1,'".encode_ip('2001:db8::1')."')"); }
+			if($case==='other_guest') { $mutation_server->pdo->exec("INSERT INTO fixture_voters VALUES (1,-1,'".encode_ip('2001:db8::2')."')"); }
 			if($case==='locked_forum') { $mutation_server->pdo->exec('UPDATE fixture_forums SET forum_status=1'); }
 			if($case==='denied_vote') { $mutation_server->pdo->exec('UPDATE fixture_forums SET auth_vote=1'); }
 			$topic_id=100; $forum_topic_data=array('topic_vote'=>1); $readable_poll_forums=array(3);
