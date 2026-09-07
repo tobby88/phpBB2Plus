@@ -195,8 +195,8 @@ class ct_adminfunctions
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 
-		$this->recursive_filechk($phpbb_root_path, '', $phpEx, $temporary_table);
-		if ($this->filechk_count < 1)
+		$scan_complete = $this->recursive_filechk($phpbb_root_path, '', $phpEx, $temporary_table);
+		if (!$scan_complete || $this->filechk_count < 1)
 		{
 			$db->sql_query('DROP TABLE IF EXISTS ' . $temporary_table);
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_fileop']);
@@ -319,7 +319,8 @@ class ct_adminfunctions
 			$resolved_path = @realpath($path);
 			if ($resolved_path === false)
 			{
-				continue;
+				@closedir($directory);
+				return false;
 			}
 			$resolved_path = str_replace('\\', '/', $resolved_path);
 			if ($resolved_path !== $this->filechk_root && strpos($resolved_path, $this->filechk_root . '/') !== 0)
@@ -329,7 +330,17 @@ class ct_adminfunctions
 
 			if (@is_dir($path))
 			{
-				$this->recursive_filechk($path, '', $extension, $target_table);
+				// Cached PHP is deliberately outside the baseline; do not enter
+				// excluded directories and mistake their permissions for failure.
+				if (strcasecmp($file, 'cache') === 0)
+				{
+					continue;
+				}
+				if (!$this->recursive_filechk($path, '', $extension, $target_table))
+				{
+					@closedir($directory);
+					return false;
+				}
 				continue;
 			}
 
@@ -343,7 +354,8 @@ class ct_adminfunctions
 			$filehash = $this->file_checksum($resolved_path);
 			if ($filehash === false)
 			{
-				continue;
+				@closedir($directory);
+				return false;
 			}
 
 			// Keep relocatable paths in the database so the installation can move.
@@ -630,8 +642,8 @@ class ct_adminfunctions
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 
-		$this->CreateFileList($dir, '', $extension, $temporary_table);
-		if ($this->filescan_count < 1)
+		$scan_complete = $this->CreateFileList($dir, '', $extension, $temporary_table);
+		if (!$scan_complete || $this->filescan_count < 1)
 		{
 			$db->sql_query('DROP TABLE IF EXISTS ' . $temporary_table);
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_fileop']);
@@ -721,7 +733,8 @@ class ct_adminfunctions
 			$resolved_path = @realpath($path);
 			if ($resolved_path === false)
 			{
-				continue;
+				@closedir($directory);
+				return false;
 			}
 			$resolved_path = str_replace('\\', '/', $resolved_path);
 			if ($resolved_path !== $this->filescan_root && strpos($resolved_path, $this->filescan_root . '/') !== 0)
@@ -746,7 +759,16 @@ class ct_adminfunctions
 
 			if ($is_dir)
 			{
-				$this->CreateFileList($path, '', $extension, $target_table);
+				// These trees are already excluded from this heuristic report.
+				if (in_array(strtolower($file), array('language', 'db', 'cache'), true))
+				{
+					continue;
+				}
+				if (!$this->CreateFileList($path, '', $extension, $target_table))
+				{
+					@closedir($directory);
+					return false;
+				}
 			}
 		}
 

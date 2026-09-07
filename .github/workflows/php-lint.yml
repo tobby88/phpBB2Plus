@@ -397,3 +397,6 @@ jobs:
 
       - name: Test CrackerTracker settings submission validation
         run: php .github/scripts/check-ctracker-settings-runtime.php
+
+      - name: Test CrackerTracker scan publication failure boundaries
+        run: php .github/scripts/check-ctracker-scan-publication.php

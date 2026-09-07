@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep the previous CrackerTracker integrity baseline and file-scan report
+  when a directory traversal or checksum read fails. Propagate nested scan
+  failures, skip already excluded directory trees before traversal, and update
+  the integrity-baseline timestamp only after successful publication.
 - Validate all submitted CrackerTracker settings before the first write.
   Malformed numbers, arrays and out-of-range selections no longer silently
   disable protection or change a limit; omitted fields remain unchanged.
