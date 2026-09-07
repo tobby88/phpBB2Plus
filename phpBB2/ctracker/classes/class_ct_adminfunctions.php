@@ -1071,15 +1071,52 @@ class ct_adminfunctions
 	 */
 	function restore_configuration()
 	{
+		global $lang, $phpbb_root_path;
 		// Share the backup's lock so its marker and rows cannot come from
 		// different snapshots and another restore cannot interleave its writes.
 		$lock = $this->acquire_scan_lock(CTRACKER_BACKUP, 'ctracker_recovery_busy');
 		try
 		{
+			$db = $lock->connection;
+			// Never commit silently truncated values from a legacy/custom backup.
+			if (!$db->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')"))
+			{
+				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+			}
+			if (!$db->sql_query('START TRANSACTION'))
+			{
+				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+			}
+			// Hold a metadata lock before checking the engine, so a concurrent
+			// ALTER cannot silently remove transactional guarantees mid-restore.
+			$result = $db->sql_query('SELECT config_name FROM ' . CONFIG_TABLE . ' LIMIT 0');
+			if (!$result)
+			{
+				message_die(GENERAL_ERROR, $lang['ctracker_error_loading_config']);
+			}
+			$db->sql_freeresult($result);
+			$sql = "SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" .
+				$db->sql_escape(CONFIG_TABLE) . "'";
+			$result = $db->sql_query($sql);
+			$engine = $result ? $db->sql_fetchrow($result) : false;
+			if ($result) { $db->sql_freeresult($result); }
+			if (!$engine || !isset($engine['ENGINE']) || strcasecmp($engine['ENGINE'], 'InnoDB') !== 0)
+			{
+				message_die(GENERAL_ERROR, $lang['ctracker_rec_transaction_required']);
+			}
 			$this->restore_configuration_backup($lock->connection);
+			if (!$db->sql_query('COMMIT'))
+			{
+				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
+			}
+			// Legacy caches are no longer read by common.php. Remove one if it
+			// remains from an earlier installation, only after a committed restore.
+			@unlink($phpbb_root_path . 'cache/config_data.cache');
 		}
 		finally
 		{
+			// The owned non-persistent connection also rolls back uncommitted
+			// writes on exception, message_die/exit or worker termination.
 			$lock->release();
 		}
 	}
@@ -1132,8 +1169,6 @@ class ct_adminfunctions
 			message_die(GENERAL_ERROR, $lang['ctracker_rec_never_saved']);
 		}
 
-		global $phpbb_root_path;
-		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
 
 	static function valid_backup_timestamp($value)

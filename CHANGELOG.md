@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Restore CrackerTracker configuration within an owned InnoDB transaction,
+  rolling back all pending settings on failure rather than leaving a partial
+  restore. Fresh installs and the idempotent post-1.53a updater use InnoDB for
+  the main configuration table only. Refuse restore before this migration.
+  Read board/Plus configuration directly per request so an older request cannot
+  republish stale settings after restore or another ACP configuration update.
 - Serialize CrackerTracker configuration backups and restores against each
   other using an owned database session. Preserve the last backup on
   concurrent/empty rebuilds, ignore historical backup metadata in the source

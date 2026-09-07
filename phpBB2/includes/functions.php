@@ -1321,6 +1321,23 @@ function phpbb_serialized_data_write($filename, $data, $allowed_root)
 	return true;
 }
 
+// Internal table constants only; never pass a request-supplied table name.
+function phpbb_load_config_table($database, $table)
+{
+	$result = $database->sql_query('SELECT config_name, config_value FROM ' . $table);
+	if (!$result)
+	{
+		return false;
+	}
+	$values = array();
+	while ($row = $database->sql_fetchrow($result))
+	{
+		$values[$row['config_name']] = $row['config_value'];
+	}
+	$database->sql_freeresult($result);
+	return $values ? $values : false;
+}
+
 function phpbb_data_cache_read($filename)
 {
 	global $phpbb_root_path;

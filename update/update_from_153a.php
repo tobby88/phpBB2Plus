@@ -214,6 +214,30 @@ function update_column_exists($connection, $database, $table, $column)
 	return (int) update_scalar($connection, $sql) > 0;
 }
 
+function update_config_engine($connection, $database, $table)
+{
+	return (string) update_scalar($connection, "SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = '" .
+		mysqli_real_escape_string($connection, $database) . "' AND TABLE_NAME = '" .
+		mysqli_real_escape_string($connection, $table) . "'");
+}
+
+function update_queue_config_engine(&$operations, $connection, $database, $table)
+{
+	if (strcasecmp(update_config_engine($connection, $database, $table), 'InnoDB') === 0)
+	{
+		return;
+	}
+	$support = update_scalar($connection, "SELECT SUPPORT FROM information_schema.ENGINES WHERE ENGINE = 'InnoDB'");
+	if (!in_array(strtoupper((string) $support), array('YES', 'DEFAULT'), true))
+	{
+		fwrite(STDERR, "InnoDB must be enabled before upgrading configuration recovery. No update operations were applied.\n");
+		exit(3);
+	}
+	// Only the main configuration needs transactional restore. Preserve every
+	// column/index/value and leave unrelated legacy MyISAM tables unchanged.
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ENGINE=InnoDB';
+}
+
 function update_column_max_length($connection, $database, $table, $column)
 {
 	$sql = "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" .
@@ -390,6 +414,7 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 }
 
 $operations = array();
+update_queue_config_engine($operations, $connection, $dbname, $table_prefix . 'config');
 
 // Reuse the fresh-install schema as the canonical definition for restored
 // Arcade and CrackerTracker tables.
@@ -794,6 +819,11 @@ if ($legacy_cleanup_count > 0)
 	echo "WARNING: $legacy_cleanup_count incompatible CrackerTracker 4.x database objects will be removed. Their old settings and logs cannot be migrated.\n\n";
 }
 
+if ($apply)
+{
+	// A disabled engine must fail, never silently fall back to MyISAM.
+	update_query_or_fail($connection, "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')");
+}
 foreach ($operations as $sql)
 {
 	echo $sql . ";\n";
@@ -805,6 +835,11 @@ foreach ($operations as $sql)
 
 if ($apply)
 {
+	if (strcasecmp(update_config_engine($connection, $dbname, $table_prefix . 'config'), 'InnoDB') !== 0)
+	{
+		fwrite(STDERR, "Configuration engine conversion was not applied. Do not use configuration restore until InnoDB is enabled.\n");
+		exit(3);
+	}
 	echo "\nDatabase update complete. Incompatible CrackerTracker 4.x tables and user columns were removed when present, as required by the official 4.x-to-5.x upgrade path.\n";
 }
 else

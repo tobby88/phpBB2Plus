@@ -230,6 +230,15 @@ Older databases that already contain UTF-8 bytes in columns labelled as
 Latin-1 need individual inspection—an unchecked conversion can create
 mojibake.
 
+The main `config` table now uses InnoDB so CrackerTracker configuration restores
+commit together or roll back on failure. The post-1.53a updater converts this
+table without changing its columns or values; unrelated MyISAM tables remain
+unchanged. Back up the database and run the updater before using restore on an
+older installation. The runtime refuses an unsafe restore until this migration
+has completed. Configuration is read directly from the database on each request
+(one small query each for board and Plus settings), rather than using the old
+unversioned file cache. Other caches are unaffected.
+
 MySQLi is the supported modern database driver. Existing `config.php` files
 which still name `mysql` or `mysql4` automatically use MySQLi, so they do not
 call the removed PHP `mysql_*` extension on PHP 7 or 8. Fresh installations

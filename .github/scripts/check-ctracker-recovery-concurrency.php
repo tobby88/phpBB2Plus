@@ -15,6 +15,7 @@ class RecoveryServer
 	var $queries = array();
 	var $hook = null;
 	var $failure = '';
+	var $engine = 'InnoDB';
 }
 class RecoveryForumDatabase
 {
@@ -24,6 +25,7 @@ class RecoveryForumDatabase
 class sql_db
 {
 	var $db_connect_id = true; var $server_state; var $owns_lock = false; var $closed = false;
+	var $pending = null;
 	function __construct($server, $user, $password, $dbname, $persistent)
 	{
 		recovery_assert(!$persistent, 'Recovery connection must not be persistent');
@@ -47,6 +49,16 @@ class sql_db
 		if (is_callable($s->hook)) { call_user_func($s->hook, $sql, $this); }
 		if (!$this->db_connect_id) { return false; }
 		if ($s->failure !== '' && strpos($sql, $s->failure) === 0) { return false; }
+		if ($sql === "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')") { return true; }
+		if ($sql === 'START TRANSACTION') { $this->pending = array(); return true; }
+		if ($sql === 'COMMIT')
+		{
+			recovery_assert(is_array($this->pending), 'Commit must follow a transaction');
+			foreach ($this->pending as $key => $value) { $s->tables['fixture_config'][$key] = $value; }
+			$this->pending = null; return true;
+		}
+		if ($sql === 'SELECT config_name FROM fixture_config LIMIT 0') { return $this->result(array()); }
+		if (strpos($sql, 'SELECT ENGINE FROM information_schema.TABLES') === 0) { return $this->result(array(array('ENGINE' => $s->engine))); }
 		if (strpos($sql, 'CREATE TABLE IF NOT EXISTS fixture_backup') === 0) { return true; }
 		if (preg_match('/^DROP TABLE IF EXISTS (\w+)$/', $sql, $m)) { unset($s->tables[$m[1]]); return true; }
 		if (preg_match('/^CREATE TABLE (\w+) LIKE /', $sql, $m)) { $s->tables[$m[1]] = array(); return true; }
@@ -67,6 +79,11 @@ class sql_db
 		}
 		if (preg_match("/^INSERT INTO (\w+) .*?VALUES \('([^']*)', '([^']*)'\)/s", $sql, $m))
 		{
+			if ($m[1] === 'fixture_config')
+			{
+				recovery_assert(is_array($this->pending), 'Configuration writes must be transactional');
+				$this->pending[$m[2]] = $m[3]; return true;
+			}
 			if ($m[1] !== 'fixture_config' && isset($s->tables[$m[1]][$m[2]])) { return false; }
 			$s->tables[$m[1]][$m[2]] = $m[3]; return true;
 		}
@@ -84,6 +101,7 @@ class sql_db
 	{
 		recovery_assert(!$this->closed, 'Connection must only close once');
 		$this->closed = true;
+		$this->pending = null;
 		if ($this->server_state->lock === $this) { $this->server_state->lock = null; }
 	}
 }
@@ -94,7 +112,8 @@ function recovery_run($action)
 }
 $db = new RecoveryForumDatabase();
 $lang = array('ctracker_recovery_busy' => 'busy', 'ctracker_error_database_op' => 'database',
-	'ctracker_error_loading_config' => 'load', 'ctracker_rec_never_saved' => 'empty', 'ctracker_rec_empty_source' => 'empty');
+	'ctracker_error_loading_config' => 'load', 'ctracker_rec_never_saved' => 'empty', 'ctracker_rec_empty_source' => 'empty',
+	'ctracker_rec_transaction_required' => 'engine');
 $root = sys_get_temp_dir() . '/ct-recovery-lock-' . md5(uniqid('', true));
 mkdir($root, 0700); mkdir($root . '/cache', 0700); $phpbb_root_path = $root . '/';
 try
@@ -161,6 +180,33 @@ try
 		$recovery_server = new RecoveryServer(); $recovery_server->tables['fixture_backup']['ct_last_backup'] = $marker; $before = $recovery_server->tables['fixture_config'];
 		try { recovery_run('restore'); throw new RuntimeException('Invalid marker accepted'); } catch (RecoveryExit $e) { recovery_assert($e->getMessage() === 'empty', 'Invalid marker refused'); }
 		recovery_assert($recovery_server->tables['fixture_config'] === $before && $recovery_server->lock === null, 'Invalid marker must leave configuration unchanged');
+	}
+	foreach (array('MyISAM', 'Aria', '', null) as $engine)
+	{
+		$recovery_server = new RecoveryServer(); $recovery_server->engine = $engine; $before = $recovery_server->tables;
+		try { recovery_run('restore'); throw new RuntimeException('Nontransactional restore accepted'); }
+		catch (RecoveryExit $e) { recovery_assert($e->getMessage() === 'engine', 'Explain the required migration'); }
+		recovery_assert($recovery_server->tables === $before && $recovery_server->lock === null, 'Engine preflight must leave all data unchanged');
+	}
+	foreach (array('sql', 'exception', 'disconnect', 'commit') as $failure)
+	{
+		$recovery_server = new RecoveryServer(); $before = $recovery_server->tables; $writes = 0; $triggered = false;
+		$recovery_server->hook = function($sql, $connection) use ($failure, $before, &$writes, &$triggered)
+		{
+			$s = $connection->server_state;
+			recovery_assert($s->tables === $before, 'Readers must not observe partially restored values');
+			if (strpos($sql, 'INSERT INTO fixture_config') === 0) { $writes++; }
+			if (($failure !== 'commit' && $writes === 2) || ($failure === 'commit' && $sql === 'COMMIT'))
+			{
+				$triggered = true;
+				if ($failure === 'exception') { throw new RuntimeException('interrupted'); }
+				if ($failure === 'disconnect') { $connection->db_connect_id = false; $s->lock = null; }
+				else { $s->failure = $failure === 'commit' ? 'COMMIT' : 'INSERT INTO fixture_config'; }
+			}
+		};
+		try { recovery_run('restore'); throw new RuntimeException('Partial restore accepted'); }
+		catch (RuntimeException $e) { recovery_assert(in_array($e->getMessage(), array('interrupted', 'database'), true), 'Expected late failure'); }
+		recovery_assert($triggered && $writes >= 2 && $recovery_server->tables === $before && $recovery_server->lock === null, 'Late failures must discard every uncommitted write and release ownership');
 	}
 	echo "CrackerTracker recovery concurrency tests passed.\n";
 }

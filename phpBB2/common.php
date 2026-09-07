@@ -192,89 +192,20 @@ include($phpbb_root_path . 'ctracker/engines/ct_varsetter.' . $phpEx);
 include($phpbb_root_path . 'ctracker/engines/ct_request_limiter.' . $phpEx);
 include($phpbb_root_path . 'ctracker/engines/ct_ipblocker.' . $phpEx);
 
-// cache configs -----------------
-$cache_dir = $phpbb_root_path . 'cache';
-$cache_config = $cache_dir . '/config_data.cache';
+// Keep the unrelated colour-group cache enabled. Configuration itself is read
+// from the database on every request: an in-flight reader could otherwise
+// republish a stale file after an ACP update or configuration restore.
 define('CCache', true);
-
-if (@file_exists($cache_config) && defined('CCache'))
+$board_config = phpbb_load_config_table($db, CONFIG_TABLE);
+if ($board_config === false)
 {
-	$config_cache = phpbb_data_cache_read($cache_config);
-	if (is_array($config_cache) && isset($config_cache['board'], $config_cache['plus']) &&
-		is_array($config_cache['board']) && is_array($config_cache['plus']))
-	{
-		$board_config = $config_cache['board'];
-		$plus_config = $config_cache['plus'];
-	}
+	message_die(CRITICAL_ERROR, 'Could not query config information');
 }
-// cache configs -----------------
-
-//
-// Setup forum wide options, if this fails
-// then we output a CRITICAL_ERROR since
-// basic forum information is not available
-//
-// cache configs -----------------
-if (empty($board_config['config_id']))
+$plus_config = phpbb_load_config_table($db, PLUS_TABLE);
+if ($plus_config === false)
 {
-	// is /cache/ useable 
-	$use_cache = (is_writable($cache_dir) && defined('CCache') && !defined('IN_ADMIN') ) ? true : false;
-
-	// Boardconfig -----------------
-	$sql = "SELECT *
-		FROM " . CONFIG_TABLE;
-	if( !($result = $db->sql_query($sql)) )
-	{
-		message_die(CRITICAL_ERROR, "Could not query config information", "", __LINE__, __FILE__, $sql);
-	}
-
-	while ( $row = $db->sql_fetchrow($result) )
-	{
-		$board_config[$row['config_name']] = $row['config_value'];
-	}
-	// Boardconfig -----------------
-	
-	// PLUSconfig -----------------
-	$sql = "SELECT *
-		FROM " . PLUS_TABLE;
-	if( !($result = $db->sql_query($sql)) )
-	{
-		message_die(CRITICAL_ERROR, "Could not query Plus-Config information", "", __LINE__, __FILE__, $sql);
-	}
-	
-	while ( $row = $db->sql_fetchrow($result) )
-	{
-		$plus_config[$row['config_name']] = $row['config_value'];
-	}
-	// PLUSconfig -----------------
-	
-	$db->sql_freeresult($result);
-
-	if ($use_cache)
-	{
-		phpbb_data_cache_write($cache_config, array(
-			'board' => $board_config,
-			'plus' => $plus_config,
-		));
-	}
-
-	// \:cls 
-	unset($config_cache, $cache_config, $use_cache);
+	message_die(CRITICAL_ERROR, 'Could not query Plus-Config information');
 }
-/*
-else {
-	$sql = "SELECT * FROM " . CONFIG_TABLE . " WHERE config_name 
-			IN (xs_template_time, )";
-	if( !($result = $db->sql_query($sql)) ) {
-		message_die(CRITICAL_ERROR, "Could not query config information", "", __LINE__, __FILE__, $sql);
-	}
-	while ( $row = $db->sql_fetchrow($result) ) {
-		$board_config[$row['config_name']] = $row['config_value'];
-	}
-	$db->sql_freeresult($result);
-}
-*/
-// cache configs -----------------
 
 $board_config = phpbb_normalize_board_config($board_config);
 $phpbb_original_default_lang = isset($board_config['default_lang']) ? (string) $board_config['default_lang'] : '';

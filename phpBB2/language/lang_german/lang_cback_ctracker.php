@@ -366,6 +366,7 @@ $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker konnte das For
 $lang['ctracker_scan_busy']               = 'Diese Dateiprüfung läuft bereits. Bitte warte, bis sie abgeschlossen ist, bevor du sie erneut startest. Der bisherige Bericht bleibt verfügbar.';
 $lang['ctracker_recovery_busy']           = 'Eine Konfigurationssicherung oder Wiederherstellung läuft bereits. Bitte warte, bis sie abgeschlossen ist, bevor du einen weiteren Vorgang startest.';
 $lang['ctracker_rec_empty_source']        = 'Die Konfiguration enthält keine sicherbaren Werte. Eine vorhandene Sicherung bleibt unverändert.';
+$lang['ctracker_rec_transaction_required'] = 'Für eine sichere Wiederherstellung muss die Konfigurationstabelle InnoDB verwenden. Bitte zuerst update/update_from_153a.php mit bestätigter Datenbanksicherung ausführen. Es wurden keine Einstellungen wiederhergestellt.';
 $lang['ctracker_error_logfileop']         = 'CBACK CrackerTracker konnte die lokale Protokolldatei nicht sicher aktualisieren.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 

@@ -100,7 +100,7 @@ CREATE TABLE phpbb_config (
     config_name varchar(191) NOT NULL,
     config_value varchar(255) NOT NULL,
     PRIMARY KEY (config_name)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 # --------------------------------------------------------

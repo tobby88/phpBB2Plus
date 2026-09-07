@@ -367,6 +367,7 @@ $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker could not comp
 $lang['ctracker_scan_busy']               = 'This scan is already running. Please wait until it has finished before starting it again. The existing report remains available.';
 $lang['ctracker_recovery_busy']           = 'A configuration backup or restore is already running. Please wait until it has finished before starting another operation.';
 $lang['ctracker_rec_empty_source']        = 'The configuration contains no values to back up. Any existing backup remains unchanged.';
+$lang['ctracker_rec_transaction_required'] = 'Safe restoration requires an InnoDB configuration table. Run update/update_from_153a.php with a confirmed database backup first. No settings have been restored.';
 $lang['ctracker_error_logfileop']         = 'CBACK CrackerTracker could not safely update the local log file.';
 $lang['ctracker_message_dialog_title']    = 'CBACK CrackerTracker Professional';
 

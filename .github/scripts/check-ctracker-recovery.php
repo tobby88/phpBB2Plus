@@ -55,12 +55,14 @@ class recovery_restore_test_db
 	function sql_query($sql)
 	{
 		$this->queries[] = $sql;
+		if (strpos($sql, 'SELECT ENGINE FROM information_schema.TABLES') === 0) return 'engine-result';
 		if (strpos($sql, "config_name = 'ct_last_backup'") !== false) return 'marker-result';
 		if (strpos($sql, "config_name <> 'ct_last_backup'") !== false) return 'restore-result';
 		return true;
 	}
 	function sql_fetchrow($result)
 	{
+		if ($result === 'engine-result') return array('ENGINE' => 'InnoDB');
 		if ($result === 'marker-result' && !$this->marker_returned)
 		{
 			$this->marker_returned = true;
