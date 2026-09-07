@@ -191,6 +191,9 @@ jobs:
       - name: Test code source preservation
         run: php .github/scripts/check-code-block-runtime.php
 
+      - name: Test table BBCode structure
+        run: php .github/scripts/check-table-bbcode-runtime.php
+
       - name: Test search result permissions and pagination
         run: php .github/scripts/check-search-results-runtime.php
 

@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate table/cell BBCode against its enclosing structure before rendering.
+  Standalone cells, crossed quotes/divs and malformed tables remain readable
+  source instead of modifying the forum's own table layout. Independent valid
+  tables retain their styling, nested tables now survive first-pass encoding,
+  and whitespace between cells cannot become invalid row-level line breaks.
 - Preserve literal code examples across PHP 5.6, 7.4 and 8.5: PHP highlighting
   retains quotes, Unicode, indentation and source line breaks without adding
   synthetic PHP delimiters. Old compiler-added BBCode UIDs are removed when

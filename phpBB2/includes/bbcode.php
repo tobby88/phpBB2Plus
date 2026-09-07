@@ -289,6 +289,137 @@ function phpbb_bbcode_balance_quotes($text, $uid)
 	return $text . str_repeat('[/quote:' . $uid . ']', $depth);
 }
 
+/**
+ * Validate table/cell structure before substituting HTML. Invalid tables retain
+ * their readable source tags; valid, independent tables are left intact.
+ * Track other containers too, since a table crossing a quote/div boundary is
+ * unsafe even when the numbers of table and cell tags happen to match.
+ */
+function phpbb_bbcode_validate_tables($text, $uid)
+{
+	if (stripos($text, '[table') === false && stripos($text, '[cell') === false && stripos($text, '[/table') === false && stripos($text, '[/cell') === false)
+	{
+		return $text;
+	}
+	$uid_pattern = preg_quote((string) $uid, '#');
+	$parts = preg_split('#(\[(?:quote|acronym):' . $uid_pattern . '=".*?"\]|\[[^\[\]]*?:' . $uid_pattern . '\])#is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR)
+	{
+		return str_replace(array('[', ']'), array('&#91;', '&#93;'), $text);
+	}
+	$containers = array('quote', 'acronym', 'table', 'cell', 'list', 'b', 'i', 'u', 's', 'color', 'size', 'font', 'align', 'center', 'poet', 'fade', 'glow', 'shadow', 'highlight', 'flipv', 'fliph', 'scrollleft', 'scrollright', 'scrollup', 'scrolldown', 'marq', 'img', 'left', 'right', 'ram', 'stream', 'flash', 'video');
+	$stack = array();
+	$groups = array();
+	$literal = array();
+	$all_table_tokens = array();
+	$too_deep = false;
+	foreach ($parts as $index => $part)
+	{
+		$top = count($stack) ? $stack[count($stack) - 1] : null;
+		if (($index % 2) === 0)
+		{
+			if ($top !== null && $top['name'] === 'table')
+			{
+				if (trim($part) !== '') { $groups[$top['group']]['invalid'] = true; }
+				else { $groups[$top['group']]['gaps'][] = $index; }
+			}
+			continue;
+		}
+		if (!preg_match('#^\[(/?)([a-z]+)(.*)\]$#is', $part, $tag)) { continue; }
+		$name = strtolower($tag[2]);
+		$closing = ($tag[1] === '/');
+		$is_table_tag = ($name === 'table' || $name === 'cell');
+		if ($is_table_tag) { $all_table_tokens[] = $index; }
+		if ($too_deep) { continue; }
+		if ($top !== null && $top['name'] === 'table' && !(($name === 'cell' && !$closing) || ($name === 'table' && $closing)))
+		{
+			$groups[$top['group']]['invalid'] = true;
+		}
+		if (!in_array($name, $containers, true)) { continue; }
+		if ($is_table_tag)
+		{
+			$pattern = $closing ? '#^\[/(table|cell):' . $uid_pattern . '\]$#i' : '#^\[(table|cell)=(.*):' . $uid_pattern . '\]$#is';
+			if (!preg_match($pattern, $part, $table_tag))
+			{
+				$literal[$index] = true;
+				continue;
+			}
+			$parts[$index] = '[' . ($closing ? '/' : '') . $name . ($closing ? '' : '=' . $table_tag[2]) . ':' . $uid . ']';
+		}
+		if (!$closing)
+		{
+			$group = null;
+			if ($name === 'table')
+			{
+				$group = count($groups);
+				$groups[$group] = array('tokens' => array($index), 'gaps' => array(), 'cells' => 0, 'closed' => false, 'invalid' => false);
+			}
+			else if ($name === 'cell')
+			{
+				if ($top !== null && $top['name'] === 'table')
+				{
+					$group = $top['group'];
+					$groups[$group]['tokens'][] = $index;
+					$groups[$group]['cells']++;
+				}
+				else { $literal[$index] = true; }
+			}
+			$stack[] = array('name' => $name, 'group' => $group);
+			if (count($stack) > 256) { $too_deep = true; }
+			continue;
+		}
+		$match = -1;
+		for ($position = count($stack) - 1; $position >= 0; $position--)
+		{
+			if ($stack[$position]['name'] === $name) { $match = $position; break; }
+		}
+		if ($match === -1 || $match !== count($stack) - 1)
+		{
+			// Any crossing inside an open table invalidates that table, not
+			// just the closing token that happens to expose the crossing.
+			foreach ($stack as $frame)
+			{
+				if ($frame['group'] !== null) { $groups[$frame['group']]['invalid'] = true; }
+			}
+		}
+		if ($match === -1)
+		{
+			if ($is_table_tag) { $literal[$index] = true; }
+			continue;
+		}
+		$frame = $stack[$match];
+		if ($is_table_tag)
+		{
+			if ($frame['group'] === null) { $literal[$index] = true; }
+			else
+			{
+				$groups[$frame['group']]['tokens'][] = $index;
+				if ($name === 'table') { $groups[$frame['group']]['closed'] = true; }
+			}
+		}
+		$stack = array_slice($stack, 0, $match);
+	}
+	foreach ($groups as $group)
+	{
+		if ($group['invalid'] || !$group['closed'] || !$group['cells'])
+		{
+			foreach ($group['tokens'] as $index) { $literal[$index] = true; }
+		}
+		else
+		{
+			// The caller later turns newlines into <br>; between cells those
+			// would become invalid row children, so discard formatting gaps.
+			foreach ($group['gaps'] as $index) { $parts[$index] = ''; }
+		}
+	}
+	if ($too_deep) { $literal = array_fill_keys($all_table_tokens, true); }
+	foreach ($literal as $index => $unused)
+	{
+		$parts[$index] = str_replace(array('[', ']'), array('&#91;', '&#93;'), htmlspecialchars(phpbb_bbcode_code_source($parts[$index], $uid), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+	}
+	return implode('', $parts);
+}
+
 function phpbb_bbcode_safe_font($value)
 {
 	$value = html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8');
@@ -390,6 +521,7 @@ function bbencode_second_pass($text, $uid)
 	// Preserve old posts with incomplete quote markup without allowing their
 	// table-based quote layout to consume the rest of the topic page.
 	$text = phpbb_bbcode_balance_quotes($text, $uid);
+	$text = phpbb_bbcode_validate_tables($text, $uid);
 	
 	// [QUOTE] and [/QUOTE] for posting replies with quote, or just for quoting stuff.
 	// Consume each complete token once: quote-like text inside a username must
@@ -412,7 +544,8 @@ function bbencode_second_pass($text, $uid)
 	// acronym
 	$text = preg_replace_callback("/\[acronym:$uid=\"(.*?)\"\]/si", function ($matches) use ($bbcode_tpl)
 	{
-		return str_replace('\\1', phpbb_bbcode_safe_attribute($matches[1], 255), $bbcode_tpl['acronym_open']);
+		$description = str_replace(array('[', ']'), array('&#91;', '&#93;'), phpbb_bbcode_safe_attribute($matches[1], 255));
+		return str_replace('\\1', $description, $bbcode_tpl['acronym_open']);
 	}, $text);
 	$text = str_replace("[/acronym:$uid]", $bbcode_tpl['acronym_close'], $text);
 	/* END CMX ACRONYM MOD */ 
@@ -679,9 +812,9 @@ function bbencode_first_pass($text, $uid)
 	// [marq] and [/marq]
 	$text = preg_replace("#\[marq=(left|right|up|down)\](.*?)\[/marq\]#si", "[marq=\\1:$uid]\\2[/marq:$uid]", $text);
 	// [table] and [/table]
-	$text = preg_replace("#\[table=(.*?)\](.*?)\[/table\]#si", "[table=\\1:$uid]\\2[/table:$uid]", $text);
+	$text = bbencode_first_pass_pda($text, $uid, '#\[table=(?![^\]]*:' . preg_quote($uid, '#') . '\])([^\]]*)\]#is', '[/table]', '', false, '', "[table=\\1:$uid]");
 	// [cell] and [/cell]
-	$text = preg_replace("#\[cell=(.*?)\](.*?)\[/cell\]#si", "[cell=\\1:$uid]\\2[/cell:$uid]", $text);
+	$text = bbencode_first_pass_pda($text, $uid, '#\[cell=(?![^\]]*:' . preg_quote($uid, '#') . '\])([^\]]*)\]#is', '[/cell]', '', false, '', "[cell=\\1:$uid]");
 	// [font] and [/font]
 	$text = preg_replace("#\[font=(.*?)\](.*?)\[/font\]#si", "[font=\\1:$uid]\\2[/font:$uid]", $text);
 	// [poet] and [/poet]
