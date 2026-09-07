@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate normal new-topic/reply/edit/delete/poll operations with attachment
+  and moderator deletion writers on their owning DB connection. Revalidate current
+  forum/topic locks, post ownership, poll state and first/last-post flags; guard
+  writes against missing or changed parents. Include text, search and counters in
+  that boundary, retain the old index on a failed text edit, preserve incoming
+  votes when editing option labels and leave guest counters alone. Move moderator
+  index cleanup and forum synchronization inside the boundary; resynchronize
+  forums affected by empty redirect removal. No schema migration. MyISAM/file
+  errors can still leave partial changes; other writers (including AJAX and
+  maintenance) and durable recovery require further coordination.
 - Preserve search words still used by another post, title or body when removing
   selected index references. Handle empty indexes and batch deletions, validate
   post IDs and report storage errors instead of continuing with incomplete reads.

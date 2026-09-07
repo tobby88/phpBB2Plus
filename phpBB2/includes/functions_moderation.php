@@ -19,6 +19,8 @@ function phpbb_moderation_query($database, $sql)
 function phpbb_delete_moderated_topics($database, $forum_id, $topic_ids)
 {
 	global $lang;
+	require_once dirname(__FILE__) . '/functions_posting_storage.php';
+	require_once dirname(__FILE__) . '/functions_search.php';
 	$forums = (is_int($forum_id) || is_string($forum_id)) && preg_match('/^[0-9]+$/D', (string) $forum_id) ? attach_delete_id_array($forum_id) : false;
 	$topics = is_array($topic_ids) ? attach_delete_id_array($topic_ids) : false;
 	if ($forums === false || count($forums) !== 1 || $topics === false || !$topics)
@@ -64,6 +66,7 @@ function phpbb_delete_moderated_topics($database, $forum_id, $topic_ids)
 						' SET user_posts = CASE WHEN user_posts > 0 THEN user_posts - 1 ELSE 0 END WHERE user_id = ' . $poster_id);
 				}
 				phpbb_moderation_query($storage, 'DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $post_id);
+				remove_search_post($post_id, true, true, $storage);
 				attach_delete_selected($storage, array($post_id), array(), 0, 0, false, true);
 			}
 
@@ -88,9 +91,9 @@ function phpbb_delete_moderated_topics($database, $forum_id, $topic_ids)
 			}
 			// Remove only empty redirect stubs; malformed stubs containing posts
 			// must not hide another topic's stored content as a side effect.
-			phpbb_moderation_query($storage, 'DELETE FROM ' . TOPICS_TABLE . ' WHERE topic_moved_id = ' . $topic_id .
-				' AND NOT EXISTS (SELECT 1 FROM ' . POSTS_TABLE . ' WHERE ' . POSTS_TABLE . '.topic_id = ' . TOPICS_TABLE . '.topic_id)');
+			phpbb_posting_cleanup_empty_redirects($storage, $topic_id);
 		}
+		phpbb_posting_sync_forum($storage, $forum_id);
 	}
 	finally { $lock->release(); }
 	return $removed;

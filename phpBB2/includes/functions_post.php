@@ -243,20 +243,11 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 
 function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id, &$topic_type, &$bbcode_on, &$html_on, &$smilies_on, &$attach_sig, &$bbcode_uid, $post_username, $post_subject, $post_message, $poll_title, &$poll_options, &$poll_length, &$topic_desc, $topic_announce_duration = 0, $post_icon = 0, $topic_calendar_time = 0, $topic_calendar_duration = 0, &$news_category = 0)
 {
-	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
+	global $board_config, $lang, $phpbb_root_path, $phpEx;
 	global $userdata, $user_ip;
 	global $ctracker_config;
 
-	// Request data is slash-normalized by common.php for legacy callers. Undo
-	// that representation once, then let the active driver quote SQL values.
-	$post_username_sql = $db->sql_escape(stripslashes((string) $post_username));
-	$post_subject_sql = $db->sql_escape(stripslashes((string) $post_subject));
-	$post_message_sql = $db->sql_escape(stripslashes((string) $post_message));
-	$poll_title_sql = $db->sql_escape(stripslashes((string) $poll_title));
-	$topic_desc_sql = $db->sql_escape(stripslashes((string) $topic_desc));
-	$bbcode_uid_sql = $db->sql_escape((string) $bbcode_uid);
-	$user_ip_sql = $db->sql_escape((string) $user_ip);
-
+	if (!in_array($mode, array('newtopic', 'reply', 'editpost'), true)) { message_die(GENERAL_MESSAGE, $lang['No_valid_mode']); }
 	// CrackerTracker v5.x
 	if ( ($mode == 'newtopic' || $mode == 'reply') && ($ctracker_config->settings['spammer_blockmode'] > 0 || $ctracker_config->settings['spam_attack_boost'] == 1) && $userdata['user_id'] != ANONYMOUS )
 	{
@@ -265,32 +256,50 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		$login_functions->handle_postings();
 		unset($login_functions);
 	}
-	// BEGIN cmx_slash_news_mod
-	if( isset( $news_category ) && is_numeric( $news_category ) )
+	require_once dirname(__FILE__) . '/functions_posting_storage.php';
+	$lock = attach_require_mutation_lock($GLOBALS['db']);
+	try
 	{
-		$news_id = intval( $news_category );
-		$topic_type = POST_NEWS;
-	}
-	else
-	{
-		$news_id = 0;
-	}
-// END cmx_slash_news_mod
-	include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
+		$db = $lock->connection;
+		phpbb_posting_revalidate($db, $mode, $post_data, $forum_id, $topic_id, $post_id, $poll_id);
+		// Request data is slash-normalized by common.php for legacy callers. Undo
+		// that representation once, then let the active driver quote SQL values.
+		$post_username_sql = $db->sql_escape(stripslashes((string) $post_username));
+		$post_subject_sql = $db->sql_escape(stripslashes((string) $post_subject));
+		$post_message_sql = $db->sql_escape(stripslashes((string) $post_message));
+		$poll_title_sql = $db->sql_escape(stripslashes((string) $poll_title));
+		$topic_desc_sql = $db->sql_escape(stripslashes((string) $topic_desc));
+		$bbcode_uid_sql = $db->sql_escape((string) $bbcode_uid);
+		$user_ip_sql = $db->sql_escape((string) $user_ip);
 
-	$current_time = time();
-
-	if ($mode == 'newtopic' || $mode == 'reply' || $mode == 'editpost') 
-	{
-		//
-		// Flood control
-		//
-		$where_sql = ($userdata['user_id'] == ANONYMOUS) ? "poster_ip = '$user_ip'" : 'poster_id = ' . $userdata['user_id'];
-		$sql = "SELECT MAX(post_time) AS last_post_time
-			FROM " . POSTS_TABLE . "
-			WHERE $where_sql";
-		if ($result = $db->sql_query($sql))
+		// BEGIN cmx_slash_news_mod
+		if( isset( $news_category ) && is_numeric( $news_category ) )
 		{
+			$news_id = intval( $news_category );
+			$topic_type = POST_NEWS;
+		}
+		else
+		{
+			$news_id = 0;
+		}
+	// END cmx_slash_news_mod
+		require_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
+
+		$current_time = time();
+
+		if ($mode == 'newtopic' || $mode == 'reply' || $mode == 'editpost')
+		{
+			//
+			// Flood control
+			//
+			$where_sql = ($userdata['user_id'] == ANONYMOUS) ? "poster_ip = '$user_ip_sql'" : 'poster_id = ' . $userdata['user_id'];
+			$sql = "SELECT MAX(post_time) AS last_post_time
+				FROM " . POSTS_TABLE . "
+				WHERE $where_sql";
+			if (!($result = $db->sql_query($sql)))
+			{
+				message_die(GENERAL_ERROR, $lang['Posting_storage_failed'], '', __LINE__, __FILE__, $sql);
+			}
 			if ($row = $db->sql_fetchrow($result))
 			{
 				if (intval($row['last_post_time']) > 0 && ($current_time - intval($row['last_post_time'])) < intval($board_config['flood_interval']))
@@ -298,149 +307,164 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 					message_die(GENERAL_MESSAGE, $lang['Flood_Error']);
 				}
 			}
+			$db->sql_freeresult($result);
 		}
-	}
 
-	if ($mode == 'editpost')
-	{
-		remove_search_post($post_id);
-	}
-
-	if ($mode == 'newtopic' || ($mode == 'editpost' && $post_data['first_post']))
-	{
-		$topic_vote = (!empty($poll_title) && count($poll_options) >= 2) ? 1 : 0;
-		//-- mod : announces -------------------------------------------------------------------------------
-// here we added 
-//	topic_announce_duration,
-//	$topic_announce_duration,
-//
-// and
-//	, topic_announce_duration = $topic_announce_duration
-//-- modify
-//-- mod : post icon -------------------------------------------------------------------------------
-// here we added
-//	, topic_icon
-//	, $post_icon
-//
-// and
-//	, topic_icon = $post_icon
-//-- modify
-//-- mod : calendar --------------------------------------------------------------------------------
-// here we have added
-//	, topic_calendar_time, topic_calendar_duration
-//	, $topic_calendar_time, $topic_calendar_duration
-// and
-//	, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration
-//-- modify
-
-		$sql  = ($mode != "editpost") ? "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_desc, topic_poster, topic_time, forum_id, news_id, topic_status, topic_type, topic_calendar_time, topic_calendar_duration, topic_icon, topic_announce_duration, topic_vote) VALUES ('$post_subject_sql', '$topic_desc_sql', " . $userdata['user_id'] . ", $current_time, $forum_id, $news_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_calendar_time, $topic_calendar_duration, $post_icon, $topic_announce_duration, $topic_vote)" : "UPDATE " . TOPICS_TABLE . " SET topic_title = '$post_subject_sql', topic_desc = '$topic_desc_sql', news_id = $news_id, topic_type = $topic_type, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration, topic_icon=$post_icon, topic_announce_duration = $topic_announce_duration " . ((!empty($post_data['edit_poll']) || !empty($poll_title)) ? ", topic_vote = " . $topic_vote : "") . " WHERE topic_id = $topic_id";
-		if (!$db->sql_query($sql))
+		if ($mode == 'newtopic' || ($mode == 'editpost' && $post_data['first_post']))
 		{
-			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
-		}
-
-		if ($mode == 'newtopic')
-		{
-			$topic_id = $db->sql_nextid();
-		}
-	}
-
-	$edited_sql = ($mode == 'editpost' && !$post_data['last_post'] && $post_data['poster_post']) ? ", post_edit_time = $current_time, post_edit_count = post_edit_count + 1 " : "";
-	//-- mod : post icon -------------------------------------------------------------------------------
-// here we added
-// , post_icon
-// , $post_icon
-//
-// and
-//  , post_icon = $post_icon
-//-- modify
-
-	$sql = ($mode != "editpost") ? "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig, post_icon) VALUES ($topic_id, $forum_id, " . $userdata['user_id'] . ", '$post_username_sql', $current_time, '$user_ip_sql', $bbcode_on, $html_on, $smilies_on, $attach_sig, $post_icon)" : "UPDATE " . POSTS_TABLE . " SET post_username = '$post_username_sql', enable_bbcode = $bbcode_on, enable_html = $html_on, enable_smilies = $smilies_on, enable_sig = $attach_sig, post_icon = $post_icon" . $edited_sql . " WHERE post_id = $post_id";
-	if (!$db->sql_query($sql, BEGIN_TRANSACTION))
-	{
-		message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
-	}
-
-	if ($mode != 'editpost')
-	{
-		$post_id = $db->sql_nextid();
-	}
-
-	$sql = ($mode != 'editpost') ? "INSERT INTO " . POSTS_TEXT_TABLE . " (post_id, post_subject, bbcode_uid, post_text) VALUES ($post_id, '$post_subject_sql', '$bbcode_uid_sql', '$post_message_sql')" : "UPDATE " . POSTS_TEXT_TABLE . " SET post_text = '$post_message_sql',  bbcode_uid = '$bbcode_uid_sql', post_subject = '$post_subject_sql' WHERE post_id = $post_id";
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
-	}
-
-	add_search_words('single', $post_id, stripslashes($post_message), stripslashes($post_subject));
-
+			$topic_vote = (!empty($poll_title) && count($poll_options) >= 2) ? 1 : 0;
+			//-- mod : announces -------------------------------------------------------------------------------
+	// here we added
+	//	topic_announce_duration,
+	//	$topic_announce_duration,
 	//
-	// Add poll
-	// 
-	if (($mode == 'newtopic' || ($mode == 'editpost' && $post_data['edit_poll'])) && !empty($poll_title) && count($poll_options) >= 2)
-	{
-		$sql = (!$post_data['has_poll']) ? "INSERT INTO " . VOTE_DESC_TABLE . " (topic_id, vote_text, vote_start, vote_length) VALUES ($topic_id, '$poll_title_sql', $current_time, " . ($poll_length * 86400) . ")" : "UPDATE " . VOTE_DESC_TABLE . " SET vote_text = '$poll_title_sql', vote_length = " . ($poll_length * 86400) . " WHERE topic_id = $topic_id";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
-		}
+	// and
+	//	, topic_announce_duration = $topic_announce_duration
+	//-- modify
+	//-- mod : post icon -------------------------------------------------------------------------------
+	// here we added
+	//	, topic_icon
+	//	, $post_icon
+	//
+	// and
+	//	, topic_icon = $post_icon
+	//-- modify
+	//-- mod : calendar --------------------------------------------------------------------------------
+	// here we have added
+	//	, topic_calendar_time, topic_calendar_duration
+	//	, $topic_calendar_time, $topic_calendar_duration
+	// and
+	//	, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration
+	//-- modify
 
-		$delete_option_sql = '';
-		$old_poll_result = array();
-		if ($mode == 'editpost' && $post_data['has_poll'])
-		{
-			$sql = "SELECT vote_option_id, vote_result  
-				FROM " . VOTE_RESULTS_TABLE . " 
-				WHERE vote_id = $poll_id 
-				ORDER BY vote_option_id ASC";
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain vote data results for this topic', '', __LINE__, __FILE__, $sql);
-			}
-
-			while ($row = $db->sql_fetchrow($result))
-			{
-				$old_poll_result[$row['vote_option_id']] = $row['vote_result'];
-
-				if (!isset($poll_options[$row['vote_option_id']]))
-				{
-					$delete_option_sql .= ($delete_option_sql != '') ? ', ' . $row['vote_option_id'] : $row['vote_option_id'];
-				}
-			}
-		}
-		else
-		{
-			$poll_id = $db->sql_nextid();
-		}
-
-		$poll_option_id = 1;
-		foreach ($poll_options as $option_id => $option_text)
-		{
-			if (!empty($option_text))
-			{
-				$option_text = $db->sql_escape(stripslashes((string) $option_text));
-				$poll_result = ($mode == "editpost" && isset($old_poll_result[$option_id])) ? $old_poll_result[$option_id] : 0;
-
-				$sql = ($mode != "editpost" || !isset($old_poll_result[$option_id])) ? "INSERT INTO " . VOTE_RESULTS_TABLE . " (vote_id, vote_option_id, vote_option_text, vote_result) VALUES ($poll_id, $poll_option_id, '$option_text', $poll_result)" : "UPDATE " . VOTE_RESULTS_TABLE . " SET vote_option_text = '$option_text', vote_result = $poll_result WHERE vote_option_id = $option_id AND vote_id = $poll_id";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
-				}
-				$poll_option_id++;
-			}
-		}
-
-		if ($delete_option_sql != '')
-		{
-			$sql = "DELETE FROM " . VOTE_RESULTS_TABLE . " 
-				WHERE vote_option_id IN ($delete_option_sql) 
-					AND vote_id = $poll_id";
+			$sql  = ($mode != "editpost") ? "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_desc, topic_poster, topic_time, forum_id, news_id, topic_status, topic_type, topic_calendar_time, topic_calendar_duration, topic_icon, topic_announce_duration, topic_vote) SELECT '$post_subject_sql', '$topic_desc_sql', " . $userdata['user_id'] . ", $current_time, $forum_id, $news_id, " . TOPIC_UNLOCKED . ", $topic_type, $topic_calendar_time, $topic_calendar_duration, $post_icon, $topic_announce_duration, $topic_vote FROM " . FORUMS_TABLE . " WHERE forum_id = $forum_id" : "UPDATE " . TOPICS_TABLE . " SET topic_title = '$post_subject_sql', topic_desc = '$topic_desc_sql', news_id = $news_id, topic_type = $topic_type, topic_calendar_time = $topic_calendar_time, topic_calendar_duration = $topic_calendar_duration, topic_icon=$post_icon, topic_announce_duration = $topic_announce_duration " . ((!empty($post_data['edit_poll']) || !empty($poll_title)) ? ", topic_vote = " . $topic_vote : "") . " WHERE topic_id = $topic_id AND forum_id = $forum_id";
 			if (!$db->sql_query($sql))
 			{
-				message_die(GENERAL_ERROR, 'Error deleting pruned poll options', '', __LINE__, __FILE__, $sql);
+				message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
+			}
+
+			if ($mode == 'newtopic')
+			{
+				if ((int) $db->sql_affectedrows() !== 1) { message_die(GENERAL_MESSAGE, $lang['Posting_target_changed']); }
+				$topic_id = $db->sql_nextid();
 			}
 		}
+
+		$edited_sql = ($mode == 'editpost' && !$post_data['last_post'] && $post_data['poster_post']) ? ", post_edit_time = $current_time, post_edit_count = post_edit_count + 1 " : "";
+		//-- mod : post icon -------------------------------------------------------------------------------
+	// here we added
+	// , post_icon
+	// , $post_icon
+	//
+	// and
+	//  , post_icon = $post_icon
+	//-- modify
+
+		$sql = ($mode != "editpost") ? "INSERT INTO " . POSTS_TABLE . " (topic_id, forum_id, poster_id, post_username, post_time, poster_ip, enable_bbcode, enable_html, enable_smilies, enable_sig, post_icon) SELECT $topic_id, $forum_id, " . $userdata['user_id'] . ", '$post_username_sql', $current_time, '$user_ip_sql', $bbcode_on, $html_on, $smilies_on, $attach_sig, $post_icon FROM " . TOPICS_TABLE . " t JOIN " . FORUMS_TABLE . " f ON f.forum_id = t.forum_id WHERE t.topic_id = $topic_id AND t.forum_id = $forum_id AND t.topic_moved_id = 0" : "UPDATE " . POSTS_TABLE . " SET post_username = '$post_username_sql', enable_bbcode = $bbcode_on, enable_html = $html_on, enable_smilies = $smilies_on, enable_sig = $attach_sig, post_icon = $post_icon" . $edited_sql . " WHERE post_id = $post_id AND topic_id = $topic_id AND forum_id = $forum_id AND poster_id = " . (int) $post_data['poster_id'];
+		if (!$db->sql_query($sql, BEGIN_TRANSACTION))
+		{
+			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
+		}
+
+		if ($mode != 'editpost')
+		{
+			if ((int) $db->sql_affectedrows() !== 1) { message_die(GENERAL_MESSAGE, $lang['Posting_target_changed']); }
+			$post_id = $db->sql_nextid();
+		}
+
+		$storage_poster = $mode === 'editpost' ? (int) $post_data['poster_id'] : (int) $userdata['user_id'];
+		$post_scope_sql = ' FROM ' . POSTS_TABLE . ' p JOIN ' . TOPICS_TABLE . ' t ON t.topic_id = p.topic_id AND t.forum_id = p.forum_id'
+			. " WHERE p.post_id = $post_id AND p.topic_id = $topic_id AND p.forum_id = $forum_id AND p.poster_id = $storage_poster AND t.topic_moved_id = 0";
+		$sql = ($mode != 'editpost') ? "INSERT INTO " . POSTS_TEXT_TABLE . " (post_id, post_subject, bbcode_uid, post_text) SELECT $post_id, '$post_subject_sql', '$bbcode_uid_sql', '$post_message_sql'" . $post_scope_sql : "UPDATE " . POSTS_TEXT_TABLE . " SET post_text = '$post_message_sql', bbcode_uid = '$bbcode_uid_sql', post_subject = '$post_subject_sql' WHERE post_id = $post_id AND EXISTS (SELECT 1" . $post_scope_sql . ')';
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
+		}
+		if ((int) $db->sql_affectedrows() === 0)
+		{
+			// An unchanged edit is valid; a vanished/changed target is not.
+			$result = phpbb_posting_query($db, 'SELECT p.post_id' . $post_scope_sql . ' AND EXISTS (SELECT 1 FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $post_id . ')');
+			$current_post = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+			if ($mode !== 'editpost' || !$current_post) { message_die(GENERAL_MESSAGE, $lang['Posting_target_changed']); }
+		}
+
+		if ($mode == 'editpost') { remove_search_post($post_id, true, true, $db); }
+		add_search_words('single', $post_id, stripslashes($post_message), stripslashes($post_subject), $db);
+
+		//
+		// Add poll
+		//
+		if (($mode == 'newtopic' || ($mode == 'editpost' && $post_data['edit_poll'])) && !empty($poll_title) && count($poll_options) >= 2)
+		{
+			$sql = (!$post_data['has_poll']) ? "INSERT INTO " . VOTE_DESC_TABLE . " (topic_id, vote_text, vote_start, vote_length) VALUES ($topic_id, '$poll_title_sql', $current_time, " . ($poll_length * 86400) . ")" : "UPDATE " . VOTE_DESC_TABLE . " SET vote_text = '$poll_title_sql', vote_length = " . ($poll_length * 86400) . " WHERE topic_id = $topic_id";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
+			}
+
+			$delete_option_sql = '';
+			$old_poll_result = array();
+			if ($mode == 'editpost' && $post_data['has_poll'])
+			{
+				$sql = "SELECT vote_option_id, vote_result
+					FROM " . VOTE_RESULTS_TABLE . "
+					WHERE vote_id = $poll_id
+					ORDER BY vote_option_id ASC";
+				if (!($result = $db->sql_query($sql)))
+				{
+					message_die(GENERAL_ERROR, 'Could not obtain vote data results for this topic', '', __LINE__, __FILE__, $sql);
+				}
+
+				while ($row = $db->sql_fetchrow($result))
+				{
+					$old_poll_result[$row['vote_option_id']] = $row['vote_result'];
+
+					if (!isset($poll_options[$row['vote_option_id']]))
+					{
+						$delete_option_sql .= ($delete_option_sql != '') ? ', ' . $row['vote_option_id'] : $row['vote_option_id'];
+					}
+				}
+			}
+			else
+			{
+				$poll_id = $db->sql_nextid();
+			}
+
+			$poll_option_id = 1;
+			foreach ($poll_options as $option_id => $option_text)
+			{
+				if (!empty($option_text))
+				{
+					$option_text = $db->sql_escape(stripslashes((string) $option_text));
+					$poll_result = ($mode == "editpost" && isset($old_poll_result[$option_id])) ? $old_poll_result[$option_id] : 0;
+
+					$sql = ($mode != "editpost" || !isset($old_poll_result[$option_id])) ? "INSERT INTO " . VOTE_RESULTS_TABLE . " (vote_id, vote_option_id, vote_option_text, vote_result) VALUES ($poll_id, $poll_option_id, '$option_text', $poll_result)" : "UPDATE " . VOTE_RESULTS_TABLE . " SET vote_option_text = '$option_text' WHERE vote_option_id = $option_id AND vote_id = $poll_id";
+					if (!$db->sql_query($sql))
+					{
+						message_die(GENERAL_ERROR, 'Error in posting', '', __LINE__, __FILE__, $sql);
+					}
+					$poll_option_id++;
+				}
+			}
+
+			if ($delete_option_sql != '')
+			{
+				$sql = "DELETE FROM " . VOTE_RESULTS_TABLE . "
+					WHERE vote_option_id IN ($delete_option_sql)
+						AND vote_id = $poll_id";
+				if (!$db->sql_query($sql))
+				{
+					message_die(GENERAL_ERROR, 'Error deleting pruned poll options', '', __LINE__, __FILE__, $sql);
+				}
+			}
+		}
+		if ($mode !== 'editpost')
+		{
+			$user_id = (int) $userdata['user_id'];
+			update_post_stats($mode, $post_data, $forum_id, $topic_id, $post_id, $user_id, $db, false);
+		}
 	}
+	finally { $lock->release(); }
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 	board_stats();
@@ -455,9 +479,13 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 //
 // Update post stats and details
 //
-function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_id, &$user_id)
+function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_id, &$user_id, $database = null, $refresh_cache = true)
 {
-	global $db;
+	// Server-created request state, never a form field. This also prevents an
+	// older controller from recounting during per-file deployment overlap.
+	$stats_signature = $mode . ':' . (int) $post_id;
+	if (isset($post_data['_stats_completed']) && $post_data['_stats_completed'] === $stats_signature) { return; }
+	$db = $database !== null ? $database : $GLOBALS['db'];
 
 	$sql = 'SELECT count_posts FROM ' . FORUMS_TABLE . " WHERE forum_id = $forum_id";
 	if (!($result = $db->sql_query($sql)))
@@ -571,7 +599,7 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 		}
 	}
 
-	if ($mode != 'poll_delete' && $count_posts)
+	if ($mode != 'poll_delete' && $count_posts && (int) $user_id > 0)
 	{
 		$user_update_sql = ($mode == 'delete') ? 'CASE WHEN user_posts > 0 THEN user_posts - 1 ELSE 0 END' : 'user_posts + 1';
 		$sql = "UPDATE " . USERS_TABLE . "
@@ -584,8 +612,8 @@ function update_post_stats(&$mode, &$post_data, &$forum_id, &$topic_id, &$post_i
 	}
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
-	board_stats();
-	cache_tree(true);
+	$post_data['_stats_completed'] = $stats_signature;
+	if ($refresh_cache) { board_stats(); cache_tree(true); }
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 	return;
@@ -619,28 +647,34 @@ function phpbb_delete_post_storage($database, $post_id, $topic_id, $forum_id)
 	$lock = attach_require_mutation_lock($database);
 	try
 	{
-		$storage_db = $lock->connection;
-		$sql = 'DELETE FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $scope[0] .
-			' AND topic_id = ' . $scope[1] . ' AND forum_id = ' . $scope[2];
-		if (!$storage_db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-		}
-		if ((int) $storage_db->sql_affectedrows() !== 1)
-		{
-			message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
-		}
-
-		$sql = 'DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $scope[0];
-		if (!$storage_db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-		}
-		attach_delete_selected($storage_db, array($scope[0]), array(), 0, 0, false, true);
-		// The deleted parent can no longer identify its topic during attachment sync.
-		attachment_sync_topic($scope[1], $storage_db);
+		phpbb_delete_post_storage_owned($lock->connection, $scope[0], $scope[1], $scope[2]);
 	}
 	finally { $lock->release(); }
+}
+
+// Internal worker: the caller has validated the IDs and owns the mutation lock.
+function phpbb_delete_post_storage_owned($storage_db, $post_id, $topic_id, $forum_id, $poster_id = null)
+{
+	global $lang;
+	$sql = 'DELETE FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $post_id .
+		' AND topic_id = ' . $topic_id . ' AND forum_id = ' . $forum_id . ($poster_id !== null ? ' AND poster_id = ' . (int) $poster_id : '');
+	if (!$storage_db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
+	}
+	if ((int) $storage_db->sql_affectedrows() !== 1)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
+	}
+
+	$sql = 'DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $post_id;
+	if (!$storage_db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
+	}
+	attach_delete_selected($storage_db, array($post_id), array(), 0, 0, false, true);
+	// The deleted parent can no longer identify its topic during attachment sync.
+	attachment_sync_topic($topic_id, $storage_db);
 }
 
 // Topic preferences belong to the topic, not to its most recent reply.
@@ -670,57 +704,72 @@ function phpbb_cleanup_removed_topic_preferences($database, $topic_id)
 
 function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_id, &$post_id, &$poll_id)
 {
-	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
+	global $board_config, $lang, $phpbb_root_path, $phpEx;
 	global $userdata, $user_ip;
 
-	if ($mode != 'poll_delete')
+	if (!in_array($mode, array('delete', 'poll_delete'), true)) { message_die(GENERAL_MESSAGE, $lang['No_valid_mode']); }
+	require_once dirname(__FILE__) . '/functions_posting_storage.php';
+	$lock = attach_require_mutation_lock($GLOBALS['db']);
+	try
 	{
-		include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
-
-		phpbb_delete_post_storage($db, $post_id, $topic_id, $forum_id);
-
-		if ($post_data['last_post'])
+		$db = $lock->connection;
+		phpbb_posting_revalidate($db, $mode, $post_data, $forum_id, $topic_id, $post_id, $poll_id);
+		if ($mode != 'poll_delete')
 		{
-			if ($post_data['first_post'])
-			{
-				$sql = "DELETE FROM " . TOPICS_TABLE . "
-					WHERE topic_id = $topic_id 
-						OR topic_moved_id = $topic_id";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-				}
+			require_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 
-				phpbb_cleanup_removed_topic_preferences($db, $topic_id);
+			phpbb_delete_post_storage_owned($db, $post_id, $topic_id, $forum_id, $post_data['poster_id']);
+
+			if ($post_data['last_post'])
+			{
+				if ($post_data['first_post'])
+				{
+					$sql = "DELETE FROM " . TOPICS_TABLE . "
+						WHERE topic_id = $topic_id AND forum_id = $forum_id
+							AND NOT EXISTS (SELECT 1 FROM " . POSTS_TABLE . " WHERE " . POSTS_TABLE . ".topic_id = " . TOPICS_TABLE . ".topic_id)";
+					if (!$db->sql_query($sql))
+					{
+						message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
+					}
+					if ((int) $db->sql_affectedrows() !== 1) { message_die(GENERAL_MESSAGE, $lang['Posting_target_changed']); }
+
+					phpbb_cleanup_removed_topic_preferences($db, $topic_id);
+					phpbb_posting_cleanup_empty_redirects($db, $topic_id);
+				}
+			}
+
+			remove_search_post($post_id, true, true, $db);
+		}
+
+		if ($mode == 'poll_delete' || ($mode == 'delete' && $post_data['first_post'] && $post_data['last_post']) && $post_data['has_poll'])
+		{
+			$sql = "DELETE FROM " . VOTE_DESC_TABLE . "
+				WHERE topic_id = $topic_id";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
+			}
+
+			$sql = "DELETE FROM " . VOTE_RESULTS_TABLE . "
+				WHERE vote_id = $poll_id";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
+			}
+
+			$sql = "DELETE FROM " . VOTE_USERS_TABLE . "
+				WHERE vote_id = $poll_id";
+			if (!$db->sql_query($sql))
+			{
+				message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
 			}
 		}
 
-		remove_search_post($post_id);
+		$user_id = (int) $post_data['poster_id'];
+		update_post_stats($mode, $post_data, $forum_id, $topic_id, $post_id, $user_id, $db, false);
+		if ($mode === 'delete') { phpbb_posting_sync_forum($db, $forum_id); }
 	}
-
-	if ($mode == 'poll_delete' || ($mode == 'delete' && $post_data['first_post'] && $post_data['last_post']) && $post_data['has_poll'] && $post_data['edit_poll'])
-	{
-		$sql = "DELETE FROM " . VOTE_DESC_TABLE . " 
-			WHERE topic_id = $topic_id";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql = "DELETE FROM " . VOTE_RESULTS_TABLE . " 
-			WHERE vote_id = $poll_id";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql = "DELETE FROM " . VOTE_USERS_TABLE . " 
-			WHERE vote_id = $poll_id";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
-		}
-	}
+	finally { $lock->release(); }
 
 	if ($mode == 'delete' && $post_data['first_post'] && $post_data['last_post'])
 	{

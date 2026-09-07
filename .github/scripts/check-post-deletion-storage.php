@@ -48,7 +48,7 @@ try
 	require $forum_root . 'includes/functions_post.php';
 	$end = strpos($source, "\nfunction delete_post(");
 	mutation_check($end !== false, 'Locate actual delete controller');
-	mutation_check(strpos(substr($source, $end), 'phpbb_delete_post_storage($db, $post_id, $topic_id, $forum_id);') !== false, 'Actual delete controller calls guarded storage');
+	mutation_check(strpos(substr($source, $end), 'phpbb_delete_post_storage_owned($db, $post_id, $topic_id, $forum_id, $post_data[\'poster_id\']);') !== false, 'Actual delete controller calls storage on its owning connection with current author');
 	foreach (array(0, -1, '', null, true, '10,11', '10,10', array(10), '10x', '9999999999999999999999999') as $invalid)
 	{
 		foreach (array(0, 1, 2) as $position)

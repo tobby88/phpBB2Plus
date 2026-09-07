@@ -286,6 +286,8 @@ $lang['View_ballot'] = 'View Ballot';
 $lang['No_newer_topics'] = 'There are no newer topics in this forum';
 $lang['No_older_topics'] = 'There are no older topics in this forum';
 $lang['Topic_post_not_exist'] = 'The topic or post you requested does not exist';
+$lang['Posting_storage_failed'] = 'The post operation could not be completed. Some changes may already have been saved. Please check the topic before retrying and contact the administrator if necessary.';
+$lang['Posting_target_changed'] = 'The topic or poll has changed in the meantime. Please reopen it and check its current state before submitting again.';
 $lang['No_posts_topic'] = 'No posts exist for this topic';
 
 $lang['Display_posts'] = 'Display posts from previous';

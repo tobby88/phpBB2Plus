@@ -1004,11 +1004,7 @@ if ($lock_subject)
 
 	if ( $error_msg == '' )
 	{
-		if ( $mode != 'editpost' )
-		{
-			$user_id = ( $mode == 'reply' || $mode == 'newtopic' ) ? $userdata['user_id'] : $post_data['poster_id'];
-			update_post_stats($mode, $post_data, $forum_id, $topic_id, $post_id, $user_id);
-		}
+		// Core storage and counters have completed on the owning writer connection.
 		$attachment_mod['posting']->insert_attachment($post_id);
 		if ($error_msg == '' && $mode != 'poll_delete')
 		{

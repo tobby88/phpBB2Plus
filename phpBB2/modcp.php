@@ -312,11 +312,9 @@ switch( $mode )
 			}
 			$topic_id_sql = implode(', ', $removed['topic_ids']);
 			$post_id_sql = implode(', ', $removed['post_ids']);
-			if ($post_id_sql !== '')
-			{
-				remove_search_post($post_id_sql);
-			}
-			sync('forum', $forum_id);
+			// Index and forum totals were synchronized before releasing the writer.
+			board_stats();
+			cache_tree(true);
 			log_action('delete', $topic_id_sql, $userdata['user_id'], $userdata['username']);
 
 			if ( !empty($topic_id) )

@@ -6,6 +6,7 @@ define('TOPICS_TABLE', 'fixture_topics'); define('USERS_TABLE', 'fixture_users')
 define('BOOKMARK_TABLE', 'fixture_bookmarks'); define('TOPICS_WATCH_TABLE', 'fixture_watches');
 $forum_root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require $forum_root . 'includes/functions_post.php';
+require $forum_root . 'includes/functions_posting_storage.php';
 require $forum_root . 'attach_mod/includes/functions_delete.php';
 function board_stats() {}
 function cache_tree($force = false) {}
@@ -20,7 +21,7 @@ function stats_expect_failure($callback)
 }
 class PostStatsDatabase
 {
-	var $pdo; var $queries = array(); var $failure = ''; var $hook = null;
+	var $pdo; var $queries = array(); var $failure = ''; var $hook = null; var $affected = 0;
 	function __construct($count_posts)
 	{
 		$this->pdo = new PDO('sqlite::memory:');
@@ -43,8 +44,11 @@ class PostStatsDatabase
 		$this->queries[] = $sql;
 		if (is_callable($this->hook)) { call_user_func($this->hook, $sql); }
 		if ($this->failure !== '' && strpos($sql, $this->failure) === 0) { return false; }
-		return $this->pdo->query($sql);
+		$result = $this->pdo->query($sql);
+		$this->affected = $result->rowCount();
+		return $result;
 	}
+	function sql_affectedrows() { return $this->affected; }
 	function sql_fetchrow($result) { return $result->fetch(PDO::FETCH_ASSOC); }
 	function sql_freeresult($result) { $result->closeCursor(); }
 	function value($sql) { return (int) $this->pdo->query($sql)->fetchColumn(); }
@@ -54,7 +58,7 @@ function stats_run($mode, $flags)
 	$forum_id = 3; $topic_id = 100; $post_id = 15; $user_id = 8;
 	update_post_stats($mode, $flags, $forum_id, $topic_id, $post_id, $user_id);
 }
-$lang = array('Topic_post_not_exist' => 'missing post');
+$lang = array('Topic_post_not_exist' => 'missing post', 'Posting_target_changed' => 'changed', 'Posting_storage_failed' => 'storage failure');
 set_error_handler(function ($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try
 {
@@ -127,14 +131,20 @@ try
 	// Execute the actual whole-topic removal branch without deleting user posts.
 	$source = file_get_contents($forum_root . 'includes/functions_post.php');
 	$controller = strpos($source, 'function delete_post(');
-	$start = strpos($source, "\t\t\t\t\$sql = \"DELETE FROM \" . TOPICS_TABLE", $controller);
-	$end = strpos($source, "\n\t\t\t}\n\t\t}", $start);
+	$start = strpos($source, "\t\t\t\t\t\$sql = \"DELETE FROM \" . TOPICS_TABLE", $controller);
+	$end = strpos($source, "\n\t\t\t\t}\n\t\t\t}", $start);
 	stats_check($controller !== false && $start !== false && $end > $start, 'Locate actual whole-topic cleanup branch');
-	$branch = substr($source, $start, $end-$start); $topic_id=100;
+	$branch = substr($source, $start, $end-$start); $topic_id=100; $forum_id=3;
 	$db = new PostStatsDatabase(1); $db->failure = 'DELETE FROM fixture_topics';
-	stats_expect_failure(function () use ($branch, $topic_id, $db) { eval($branch); });
+	stats_expect_failure(function () use ($branch, $topic_id, $forum_id, $db, $lang) { eval($branch); });
 	stats_check($db->value('SELECT COUNT(*) FROM fixture_bookmarks') === 3, 'Failed topic removal must retain bookmarks');
-	$db = new PostStatsDatabase(1); eval($branch);
+	$db = new PostStatsDatabase(1);
+	// Redirect synchronization also needs a forum assignment for stub candidates.
+	$db->pdo->exec('ALTER TABLE fixture_topics ADD forum_id INTEGER DEFAULT 3');
+	stats_expect_failure(function () use ($branch, $topic_id, $forum_id, $db, $lang) { eval($branch); });
+	stats_check($db->value('SELECT COUNT(*) FROM fixture_bookmarks') === 3, 'A topic with surviving posts retains its preferences');
+	$db->pdo->exec('DELETE FROM fixture_posts WHERE topic_id=100');
+	eval($branch);
 	stats_check($db->value('SELECT COUNT(*) FROM fixture_bookmarks') === 1 && $db->value('SELECT COUNT(*) FROM fixture_watches') === 1, 'Successful whole-topic controller invokes scoped cleanup');
 	echo "Post statistics and topic preference cleanup checks passed.\n";
 }

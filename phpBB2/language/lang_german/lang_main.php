@@ -1626,4 +1626,7 @@ $lang['BBCode_flash_open'] = 'Flash-Datei öffnen';
 $lang['Moderation_delete_failed'] = 'Die Themenlöschung konnte nicht abgeschlossen werden. Einzelne Schritte können bereits erfolgt sein. Bitte lasse die verbliebenen Daten vor einem erneuten Versuch durch einen Administrator prüfen.';
 $lang['Moderation_delete_changed'] = 'Ein Beitrag wurde während der Themenlöschung verändert. Die Löschung wurde zum Schutz anderer Daten angehalten. Bitte lasse die verbliebenen Daten durch einen Administrator prüfen.';
 
+$lang['Posting_storage_failed'] = 'Der Beitragsvorgang konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits gespeichert sein. Bitte prüfe das Thema vor einem erneuten Versuch und wende dich bei Bedarf an den Administrator.';
+$lang['Posting_target_changed'] = 'Das Thema oder die Umfrage hat sich inzwischen geändert. Bitte öffne es erneut und prüfe den aktuellen Stand vor dem nächsten Absenden.';
+
 ?>

@@ -2,6 +2,10 @@
 require __DIR__ . '/check-attachment-mutation.php';
 foreach (array('GENERAL_MESSAGE'=>200,'BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,'FORUMS_TABLE'=>'fixture_forums','USERS_TABLE'=>'fixture_users','POSTS_TEXT_TABLE'=>'fixture_post_text','VOTE_DESC_TABLE'=>'fixture_votes','VOTE_RESULTS_TABLE'=>'fixture_vote_results','VOTE_USERS_TABLE'=>'fixture_voters','BOOKMARK_TABLE'=>'fixture_bookmarks','TOPICS_WATCH_TABLE'=>'fixture_watches','TOPIC_VIEW_TABLE'=>'fixture_views') as $key=>$value) { define($key,$value); }
 $lang['None_selected'] = 'none';
+define('SEARCH_WORD_TABLE', 'fixture_words');
+define('SEARCH_MATCH_TABLE', 'fixture_matches');
+$lang['Topic_post_not_exist'] = 'missing post';
+$lang['Posting_storage_failed'] = 'posting storage failed';
 $lang['Moderation_delete_failed'] = 'Moderated deletion failed';
 $lang['Moderation_delete_changed'] = 'Post changed during moderated topic deletion';
 require $forum_root . 'includes/functions_moderation.php';
@@ -14,7 +18,11 @@ function moderation_fixture($count_posts = 1)
 	$pdo->exec('ALTER TABLE fixture_posts ADD poster_id INTEGER DEFAULT 8');
 	$pdo->exec('ALTER TABLE fixture_topics ADD forum_id INTEGER DEFAULT 3');
 	$pdo->exec('ALTER TABLE fixture_topics ADD topic_moved_id INTEGER DEFAULT 0');
-	$pdo->exec('CREATE TABLE fixture_forums (forum_id INTEGER PRIMARY KEY, count_posts INTEGER)');
+	$pdo->exec('CREATE TABLE fixture_forums (forum_id INTEGER PRIMARY KEY, count_posts INTEGER, forum_posts INTEGER DEFAULT 0, forum_topics INTEGER DEFAULT 0, forum_last_post_id INTEGER DEFAULT 0)');
+	$pdo->exec('CREATE TABLE fixture_words (word_id INTEGER PRIMARY KEY, word_common INTEGER DEFAULT 0)');
+	$pdo->exec('CREATE TABLE fixture_matches (post_id INTEGER, word_id INTEGER, title_match INTEGER)');
+	$pdo->exec('INSERT INTO fixture_words VALUES (1,0)');
+	$pdo->exec('INSERT INTO fixture_matches VALUES (10,1,0),(13,1,0)');
 	$pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY, user_posts INTEGER)');
 	$pdo->exec('CREATE TABLE fixture_post_text (post_id INTEGER PRIMARY KEY, post_text TEXT)');
 	$pdo->exec('CREATE TABLE fixture_votes (vote_id INTEGER PRIMARY KEY, topic_id INTEGER)');
@@ -25,7 +33,7 @@ function moderation_fixture($count_posts = 1)
 		$pdo->exec('CREATE TABLE '.$table.' (topic_id INTEGER, user_id INTEGER)');
 		$pdo->exec('INSERT INTO '.$table.' VALUES (100,8),(101,8)');
 	}
-	$pdo->exec('INSERT INTO fixture_forums VALUES (3,'.(int)$count_posts.'),(4,0)');
+	$pdo->exec('INSERT INTO fixture_forums (forum_id,count_posts) VALUES (3,'.(int)$count_posts.'),(4,0)');
 	$pdo->exec('INSERT INTO fixture_users VALUES (8,5),(9,0),(-1,77)');
 	$pdo->exec('INSERT INTO fixture_topics VALUES (101,1,4,0),(200,0,4,100),(201,0,4,100)');
 	$pdo->exec('INSERT INTO fixture_posts VALUES (11,100,0,3,9),(12,100,0,3,-1),(13,101,1,4,8),(14,201,0,4,8)');
@@ -98,6 +106,8 @@ try
 		$removed=phpbb_delete_moderated_topics($db,'3',array('100',101,100));
 		mutation_check($removed===array('topic_ids'=>array(100),'post_ids'=>array(10,11,12)),'Only authorized forum parents appear in removed result');
 		mutation_check($interleaved && $mutation_server->owner===null,'Coordinate publication/deletion on one owner');
+		mutation_check(moderation_scalar('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')===0 && moderation_scalar('SELECT forum_topics FROM fixture_forums WHERE forum_id=3')===0,'Synchronize deleted forum before release');
+		mutation_check(moderation_scalar('SELECT forum_posts FROM fixture_forums WHERE forum_id=4')===2 && moderation_scalar('SELECT forum_topics FROM fixture_forums WHERE forum_id=4')===2 && moderation_scalar('SELECT forum_last_post_id FROM fixture_forums WHERE forum_id=4')===14,'Empty redirect cleanup synchronizes its forum and preserves nonempty stubs');
 		mutation_check(moderation_scalar('SELECT user_posts FROM fixture_users WHERE user_id=8')===($count_posts?4:5) && moderation_scalar('SELECT user_posts FROM fixture_users WHERE user_id=9')===0 && moderation_scalar('SELECT user_posts FROM fixture_users WHERE user_id=-1')===77,'Count only actual removed counted posts; floor0/preserve guest');
 		mutation_check($mutation_server->count_rows(POSTS_TABLE)===2 && $mutation_server->count_rows(POSTS_TEXT_TABLE)===2,'Preserve foreign and nonempty-shadow posts/text');
 		mutation_check($mutation_server->count_rows(TOPICS_TABLE)===2 && moderation_scalar('SELECT COUNT(*) FROM fixture_topics WHERE topic_id=201')===1,'Remove empty redirect stub only');

@@ -471,3 +471,6 @@ jobs:
 
       - name: Test search index storage and partial-edit cleanup
         run: php .github/scripts/check-search-index-storage.php
+
+      - name: Test posting lifecycle and stale-target coordination
+        run: php .github/scripts/check-posting-lifecycle.php
