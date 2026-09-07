@@ -15,38 +15,62 @@
 /**
 * Delete Attachment(s) from post(s) (intern)
 */
+function attach_delete_id_array($value)
+{
+	// Destructive selections must be validated in full, never truncated or
+	// partially accepted. Only the caller may interpret integer 0 as a sentinel.
+	if (is_int($value) || is_string($value))
+	{
+		if (is_string($value) && trim($value) === '') { return array(); }
+		$value = explode(',', (string) $value);
+	}
+	if (!is_array($value)) { return false; }
+	$ids = array();
+	$maximum = (string) PHP_INT_MAX;
+	foreach ($value as $part)
+	{
+		if (!is_int($part) && !is_string($part)) { return false; }
+		$part = trim((string) $part);
+		if (!preg_match('/^[0-9]+$/D', $part)) { return false; }
+		$part = ltrim($part, '0');
+		if ($part === '' || strlen($part) > strlen($maximum) ||
+			(strlen($part) === strlen($maximum) && strcmp($part, $maximum) > 0))
+		{
+			return false;
+		}
+		$id = (int) $part;
+		$ids[$id] = $id;
+	}
+	return array_values($ids);
+}
+
 function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, $user_id = 0)
 {
-	global $db;
+	global $db, $lang;
 
-	// Generate Array, if it's not an array
-	if ($post_id_array === 0 && $attach_id_array === 0 && $page === 0)
+	$discover_posts = ($post_id_array === 0);
+	$discover_attachments = ($attach_id_array === 0);
+	$post_id_array = $discover_posts ? array() : attach_delete_id_array($post_id_array);
+	$attach_id_array = $discover_attachments ? array() : attach_delete_id_array($attach_id_array);
+	$user_ids = ($user_id === 0) ? array() : attach_delete_id_array($user_id);
+	if ($post_id_array === false || $attach_id_array === false || $user_ids === false ||
+		($user_id !== 0 && count($user_ids) !== 1))
+	{
+		message_die(GENERAL_ERROR, $lang['Error_deleted_attachments']);
+	}
+	$user_id = $user_ids ? $user_ids[0] : 0;
+
+	// No implicit "all attachments" operation, including in the PM context.
+	if (($discover_posts && $discover_attachments) ||
+		(!$discover_posts && !$post_id_array) || (!$discover_attachments && !$attach_id_array))
 	{
 		return;
 	}
 
-	if ($post_id_array === 0 && $attach_id_array !== 0)
+	if ($discover_posts)
 	{
 		$post_id_array = array();
 
-		if (!is_array($attach_id_array))
-		{
-			if (strstr($attach_id_array, ', '))
-			{
-				$attach_id_array = explode(', ', $attach_id_array);
-			}
-			else if (strstr($attach_id_array, ','))
-			{
-				$attach_id_array = explode(',', $attach_id_array);
-			}
-			else
-			{
-				$attach_id = intval($attach_id_array);
-				$attach_id_array = array();
-				$attach_id_array[] = $attach_id;
-			}
-		}
-	
 		// Get the post_ids to fill the array
 		if ($page == PAGE_PRIVMSGS)
 		{
@@ -59,7 +83,7 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 
 		$sql = "SELECT $p_id 
 			FROM " . ATTACHMENTS_TABLE . '
-				WHERE attach_id IN (' . implode(', ', $attach_id_array) . ")
+				WHERE attach_id IN (' . implode(', ', $attach_id_array) . ") AND $p_id > 0
 			GROUP BY $p_id";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -82,37 +106,13 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 		$db->sql_freeresult($result);
 	}
 		
-	if (!is_array($post_id_array))
-	{
-		if (trim($post_id_array) == '')
-		{
-			return;
-		}
-
-		if (strstr($post_id_array, ', '))
-		{
-			$post_id_array = explode(', ', $post_id_array);
-		}
-		else if (strstr($post_id_array, ','))
-		{
-			$post_id_array = explode(',', $post_id_array);
-		}
-		else
-		{
-			$post_id = intval($post_id_array);
-
-			$post_id_array = array();
-			$post_id_array[] = $post_id;
-		}
-	}
-		
 	if (!sizeof($post_id_array))
 	{
 		return;
 	}
 
 	// First of all, determine the post id and attach_id
-	if ($attach_id_array === 0)
+	if ($discover_attachments)
 	{
 		$attach_id_array = array();
 
@@ -150,25 +150,6 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 		$db->sql_freeresult($result);
 	}
 	
-	if (!is_array($attach_id_array))
-	{
-		if (strstr($attach_id_array, ', '))
-		{
-			$attach_id_array = explode(', ', $attach_id_array);
-		}
-		else if (strstr($attach_id_array, ','))
-		{
-			$attach_id_array = explode(',', $attach_id_array);
-		}
-		else
-		{
-			$attach_id = intval($attach_id_array);
-
-			$attach_id_array = array();
-			$attach_id_array[] = $attach_id;
-		}
-	}
-
 	if (!sizeof($attach_id_array))
 	{
 		return;
@@ -233,6 +214,24 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 
 	if (sizeof($post_id_array) && sizeof($attach_id_array))
 	{
+		// Only attachments currently linked to this selection are deletion
+		// candidates. An unrelated/orphan ID must not trigger physical cleanup.
+		$sql = 'SELECT attach_id FROM ' . ATTACHMENTS_TABLE . '
+			WHERE attach_id IN (' . implode(', ', $attach_id_array) . ")
+				AND $sql_id IN (" . implode(', ', $post_id_array) . ')
+			GROUP BY attach_id';
+		if (!($result = $db->sql_query($sql)))
+		{
+			message_die(GENERAL_ERROR, $lang['Error_deleted_attachments'], '', __LINE__, __FILE__, $sql);
+		}
+		$attach_id_array = array();
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$attach_id_array[] = (int) $row['attach_id'];
+		}
+		$db->sql_freeresult($result);
+		if (!$attach_id_array) { return; }
+
 		$sql = 'DELETE FROM ' . ATTACHMENTS_TABLE . ' 
 			WHERE attach_id IN (' . implode(', ', $attach_id_array) . ") 
 				AND $sql_id IN (" . implode(', ', $post_id_array) . ')';

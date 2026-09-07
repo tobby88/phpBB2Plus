@@ -435,3 +435,6 @@ jobs:
 
       - name: Test quick-reply client selection and submission behavior
         run: node .github/scripts/check-quick-reply-client.js
+
+      - name: Test attachment deletion selections and post/PM ownership
+        run: php .github/scripts/check-attachment-delete-selection.php

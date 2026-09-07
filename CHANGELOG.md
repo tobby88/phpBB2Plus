@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate complete attachment deletion ID selections before any SQL, without
+  silently accepting malformed entries or truncating maintenance batches.
+  Keep post and private-message references separate, preserve other mailbox
+  copies, and restrict physical cleanup to attachments linked to the selected
+  messages. ACP removal explicitly covers both contexts. Empty selections do
+  nothing; database failures report the localized attachment error correctly.
 - Preserve attachment bytes with binary FTP transfers, including text/HTML.
   Close runtime FTP sessions on setup, upload and deletion failures; retain
   earlier posting errors and keep optional thumbnail failures nonfatal.

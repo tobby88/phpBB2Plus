@@ -225,6 +225,9 @@ if ($confirm && sizeof($delete_id_list) > 0)
 	$attachments = array();
 
 	delete_attachment(0, $delete_id_list);
+	// ACP removal intentionally covers both contexts; the shared deletion
+	// helper must never treat post_id = 0 as permission to remove PM links.
+	delete_attachment(0, $delete_id_list, PAGE_PRIVMSGS);
 }
 else if ($delete && sizeof($delete_id_list) > 0)
 {
