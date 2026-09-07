@@ -480,3 +480,6 @@ jobs:
 
       - name: Test coordinated poll votes and failure recovery
         run: php .github/scripts/check-poll-storage.php
+
+      - name: Test scoped moderator states and action logs
+        run: php .github/scripts/check-topic-state-storage.php

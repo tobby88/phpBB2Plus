@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Scope all moderator topic-type/state batches to the currently authorized forum,
+  rejecting a foreign/missing/moved selection before any write. Coordinate both
+  modcp and AJAX lock/unlock with post, poll and deletion writers; recheck current
+  moderator/read/type permissions and conditional update results. Make desired
+  states idempotent and audit only actual changes on the owning connection.
+  Keep controlled partial-failure errors; this is not a MyISAM recovery journal.
+  Use driver escaping in moderation logs and retain the real IPv6 client address
+  when available instead of interpreting a legacy session hash as IPv4.
+  No schema changes or automatic modification of historical moderation records.
 - Use one coordinated voting worker for standard and AJAX poll submissions.
   Recheck current access, forum/topic locks, expiry and the selected option under
   the shared writer lock; count each member (or permitted guest IP) only once.

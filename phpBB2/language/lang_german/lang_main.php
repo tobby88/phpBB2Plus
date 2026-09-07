@@ -1634,4 +1634,7 @@ $lang['Ajax_edit_too_large'] = 'Der Text ist für eine Direktbearbeitung zu lang
 $lang['Poll_storage_failed'] = 'Deine Stimme konnte nicht zuverlässig gespeichert werden. Bitte versuche es später erneut.';
 $lang['Poll_vote_denied'] = 'Du darfst an dieser Umfrage nicht teilnehmen.';
 $lang['Poll_expired'] = 'Diese Umfrage ist beendet.';
+$lang['Moderation_state_failed'] = 'Die Moderationsaktion konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits erfolgt sein; bitte prüfe die Themen und das Aktionsprotokoll vor einem erneuten Versuch.';
+$lang['Moderation_state_changed'] = 'Die ausgewählten Themen gehören nicht mehr zu diesem Forum oder haben sich geändert. Bitte lade die Themenliste neu.';
+$lang['Moderation_state_denied'] = 'Du darfst diesen Thementyp nicht zuweisen.';
 ?>

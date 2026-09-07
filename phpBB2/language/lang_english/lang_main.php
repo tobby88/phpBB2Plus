@@ -1638,4 +1638,7 @@ $lang['Moderation_delete_changed'] = 'A post changed while its topic was being d
 $lang['Poll_storage_failed'] = 'Your vote could not be saved reliably. Please try again later.';
 $lang['Poll_vote_denied'] = 'You are not allowed to vote in this poll.';
 $lang['Poll_expired'] = 'This poll has ended.';
+$lang['Moderation_state_failed'] = 'The moderation action could not be completed. Some changes may already have been applied; please check the topics and action log before retrying.';
+$lang['Moderation_state_changed'] = 'The selected topics no longer match this forum or have changed. Please reload the topic list.';
+$lang['Moderation_state_denied'] = 'You are not allowed to assign this topic type.';
 ?>

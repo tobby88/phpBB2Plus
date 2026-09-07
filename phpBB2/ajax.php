@@ -616,76 +616,22 @@ else if ($mode == 'watch_topic')
 }
 else if ($mode == 'lock_topic')
 {
-	// Get topic_id
 	$topic_id = ajax_request_int(POST_TOPIC_URL);
-	
-	if (empty($topic_id))
+	$lock_value = ajax_request_value('lock_status');
+	if (!in_array($lock_value, array('0', '1'), true))
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'No topic_id'
-		);
-		AJAX_message_die($result_ar);
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => $lang['No_valid_mode']));
 	}
-	
-	// Get watch_status
-	$lock_status = ajax_request_int('lock_status') === 1 ? 1 : 0;
-	
-	$sql = 'SELECT forum_id, topic_status FROM '. TOPICS_TABLE ." 
-	        WHERE topic_id = $topic_id";
-	if (!($result = $db->sql_query($sql)))
+	$lock_status = (int) $lock_value;
+	require_once($phpbb_root_path . 'includes/functions_topic_state.' . $phpEx);
+	try { phpbb_moderate_topic_state($db, null, array($topic_id), $lock_status ? 'lock' : 'unlock'); }
+	catch (PhpbbTopicStateException $error)
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'Could not query topics table'
-		);
-		AJAX_message_die($result_ar);
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => $error->getMessage()));
 	}
-	$topic_row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	
-	if (!$topic_row)
+	// Desired-state requests are idempotent: a repeated click synchronizes the UI.
+	if (!$lock_status)
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'This topic does not exist'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	$is_auth = auth(AUTH_MOD, $topic_row['forum_id'], $userdata);
-	if (!$is_auth['auth_mod'])
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'You cannot lock/unlock this topic'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	if ($topic_row['topic_status'] == TOPIC_LOCKED)
-	{
-		if ($lock_status)
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'Topic already locked'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		$sql = 'UPDATE '. TOPICS_TABLE .' 
-		        SET topic_status = '. TOPIC_UNLOCKED ." 
-		        WHERE topic_id = $topic_id";
-		if (!$db->sql_query($sql))
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'Could not update topics table'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
 		$mod_token = rawurlencode(phpbb_session_action_token('moderate-topic', 'lock', $topic_id, $userdata['session_id']));
 		$linkurl = "modcp.$phpEx?". POST_TOPIC_URL ."=$topic_id&mode=lock&sid=". $userdata['session_id'] . '&mod_token=' . $mod_token;
 		$imgurl = $images['topic_mod_lock'];
@@ -696,27 +642,6 @@ else if ($mode == 'lock_topic')
 	}
 	else
 	{
-		if (!$lock_status)
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'Topic not locked'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		$sql = 'UPDATE '. TOPICS_TABLE .' 
-		        SET topic_status = '. TOPIC_LOCKED ." 
-		        WHERE topic_id = $topic_id";
-		if (!$db->sql_query($sql))
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'Could not update topics table'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
 		$mod_token = rawurlencode(phpbb_session_action_token('moderate-topic', 'unlock', $topic_id, $userdata['session_id']));
 		$linkurl = "modcp.$phpEx?". POST_TOPIC_URL ."=$topic_id&mode=unlock&sid=". $userdata['session_id'] . '&mod_token=' . $mod_token;
 		$imgurl = $images['topic_mod_unlock'];
@@ -725,7 +650,7 @@ else if ($mode == 'lock_topic')
 		$replytext = $lang['Topic_locked'];
 		$locked = 1;
 	}
-	
+
 	$result_ar = array(
 		'result' => AJAX_LOCK_TOPIC,
 		'topicid' => $topic_id,

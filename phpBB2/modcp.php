@@ -573,22 +573,9 @@ switch( $mode )
 
 		$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
-		$topic_id_sql = '';
-		for($i = 0; $i < count($topics); $i++)
-		{
-			$topic_id_sql .= ( ( $topic_id_sql != '' ) ? ', ' : '' ) . intval($topics[$i]);
-		}
-
-		$sql = "UPDATE " . TOPICS_TABLE . " 
-			SET topic_status = " . TOPIC_LOCKED . " 
-			WHERE topic_id IN ($topic_id_sql) 
-				AND forum_id = $forum_id
-				AND topic_moved_id = 0";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update topics table', '', __LINE__, __FILE__, $sql);
-		}
-		log_action('lock', $topic_id_sql, $userdata['user_id'], $userdata['username']);
+		require_once($phpbb_root_path . 'includes/functions_topic_state.' . $phpEx);
+		try { phpbb_moderate_topic_state($db, $forum_id, $topics, $mode); }
+		catch (PhpbbTopicStateException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		if ( !empty($topic_id) )
 		{
@@ -619,22 +606,9 @@ switch( $mode )
 
 		$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
-		$topic_id_sql = '';
-		for($i = 0; $i < count($topics); $i++)
-		{
-			$topic_id_sql .= ( ( $topic_id_sql != "") ? ', ' : '' ) . intval($topics[$i]);
-		}
-
-		$sql = "UPDATE " . TOPICS_TABLE . " 
-			SET topic_status = " . TOPIC_UNLOCKED . " 
-			WHERE topic_id IN ($topic_id_sql) 
-				AND forum_id = $forum_id
-				AND topic_moved_id = 0";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update topics table', '', __LINE__, __FILE__, $sql);
-		}
-		log_action('unlock', $topic_id_sql, $userdata['user_id'], $userdata['username']);
+		require_once($phpbb_root_path . 'includes/functions_topic_state.' . $phpEx);
+		try { phpbb_moderate_topic_state($db, $forum_id, $topics, $mode); }
+		catch (PhpbbTopicStateException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		if ( !empty($topic_id) )
 		{
@@ -677,23 +651,9 @@ switch( $mode )
 
 		$topics = !empty($topic_id_list) ? $topic_id_list : array($topic_id);
 
-		$topic_id_sql = '';
-		for($i = 0; $i < count($topics); $i++)
-		{
-			$topic_id_sql .= ( ( $topic_id_sql != "") ? ', ' : '' ) . intval($topics[$i]);
-		}
-
-        $topic_type = ($mode == 'sticky') ? POST_STICKY : (($mode == 'announce') ? POST_ANNOUNCE : POST_NORMAL);
-		$sql = "UPDATE " . TOPICS_TABLE . " 
-			SET topic_type = " . $topic_type . " 
-			WHERE topic_id IN ($topic_id_sql) 
-				AND topic_moved_id = 0";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update topics table', '', __LINE__, __FILE__, $sql);
-		}
-		$log_mode = ($mode == 'normalise') ? 'normal' : $mode;
-		log_action($log_mode, $topic_id_sql, $userdata['user_id'], $userdata['username']);
+		require_once($phpbb_root_path . 'includes/functions_topic_state.' . $phpEx);
+		try { phpbb_moderate_topic_state($db, $forum_id, $topics, $mode); }
+		catch (PhpbbTopicStateException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		if ( !empty($topic_id) )
 		{
