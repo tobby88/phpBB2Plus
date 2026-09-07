@@ -34,18 +34,19 @@ if ( isset($HTTP_POST_VARS['submit']) )
 {
 	phpbb_admin_require_post_session();
 	$adminfunctions = new ct_adminfunctions();
-	$message_type = intval(phpbb_admin_post_string('global_message_type', '0')) === 1 ? '1' : '0';
-	$global_message = substr(phpbb_admin_post_string('global_message'), 0, 255);
+	$message_type = phpbb_admin_post_string('global_message_type');
+	if ($message_type !== '0' && $message_type !== '1')
+	{
+		message_die(GENERAL_MESSAGE, $lang['ctracker_glob_msg_invalid_type']);
+	}
+	$message_input = isset($_POST['global_message']) && is_string($_POST['global_message']) ? phpbb_admin_post_string('global_message') : null;
+	$global_message = $ctracker_config->normalize_global_message($message_input);
 	if ($message_type === '0' && phpbb_profile_http_url($global_message) === '')
 	{
 		message_die(GENERAL_MESSAGE, $lang['ctracker_glob_msg_invalid_url']);
 	}
 
-	$ctracker_config->change_configuration('global_message_type', $message_type);
-	$ctracker_config->settings['global_message_type'] = $message_type;
-	
-	$ctracker_config->change_configuration('global_message', $global_message);
-	$ctracker_config->settings['global_message'] = $global_message;
+	$ctracker_config->change_global_message($global_message, $message_type);
 	
 	$adminfunctions->set_global_message();
 	unset($adminfunctions);

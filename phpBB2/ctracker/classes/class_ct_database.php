@@ -159,12 +159,16 @@ class ct_database
 		global $db, $lang;
 
 		$setting = is_scalar($setting) ? trim((string) $setting) : '';
-		$value = is_scalar($value) ? trim((string) $value) : '';
 		$known_settings = $this->default_settings();
 		if (!preg_match('/^[a-z0-9_]{1,64}$/D', $setting) || !array_key_exists($setting, $known_settings))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config']);
 		}
+		if (!is_string($value) && !is_int($value))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config']);
+		}
+		$value = ($setting === 'global_message') ? $this->normalize_global_message($value) : trim((string) $value);
 
 		// INSERT ... ON DUPLICATE KEY UPDATE also repairs a missing row. A plain
 		// UPDATE silently affected zero rows in partially upgraded databases.
@@ -180,6 +184,40 @@ class ct_database
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config'], '', __LINE__, __FILE__, $sql);
 		}
 		$this->settings[$setting] = $value;
+	}
+
+	/** Preserve complete UTF-8 announcements within the VARCHAR(255) limit. */
+	function normalize_global_message($message)
+	{
+		if (!is_string($message) || strlen($message) > 1020 ||
+			preg_match('/\A.{0,255}\z/us', $message) !== 1 ||
+			preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/', $message) !== 0)
+		{
+			global $lang;
+			message_die(GENERAL_MESSAGE, $lang['ctracker_error_global_message']);
+		}
+		return $message;
+	}
+
+	/** Validate both announcement fields before issuing a single upsert. */
+	function change_global_message($message, $type)
+	{
+		global $db, $lang;
+		$message = $this->normalize_global_message($message);
+		if ($type !== '0' && $type !== '1')
+		{
+			message_die(GENERAL_MESSAGE, $lang['ctracker_glob_msg_invalid_type']);
+		}
+		$message_sql = $db->sql_escape($message);
+		$sql = "INSERT INTO " . CTRACKER_CONFIG . " (ct_config_name, ct_config_value)
+			VALUES ('global_message_type', '$type'), ('global_message', '$message_sql')
+			ON DUPLICATE KEY UPDATE ct_config_value = VALUES(ct_config_value)";
+		if (!$db->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config'], '', __LINE__, __FILE__, $sql);
+		}
+		$this->settings['global_message_type'] = $type;
+		$this->settings['global_message'] = $message;
 	}
 
 
@@ -242,6 +280,7 @@ class ct_database
 	{
 		$value = is_string($value) ? trim($value, ' ') : '';
 		if ($value === '' || strlen($value) > 200 || substr_count($value, '*') > 8 ||
+			preg_match('//u', $value) !== 1 ||
 			preg_match('/[\x00-\x1f\x7f]/', $value) !== 0)
 		{
 			global $lang;

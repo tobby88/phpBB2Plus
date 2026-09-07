@@ -35,7 +35,7 @@ $HTTP_ENV_VARS = array();
 require $forum_root . 'ctracker/classes/class_ct_database.php';
 $config = new ct_database();
 foreach (array("192.0.\n2.*", "*\0*", "\tbad", "bad\r", 'bad' . chr(127),
-	'', ' ', str_repeat('a', 201), '*********', array('bad'), new stdClass()) as $invalid)
+	'', ' ', str_repeat('a', 201), '*********', "\xff", "Agent\xc3*", "\xc0\xaf", array('bad'), new stdClass()) as $invalid)
 {
 	foreach (array('save_to_blocklist', 'update_blocklist') as $method)
 	{
@@ -63,7 +63,8 @@ foreach (array('7junk', '7 OR 1=1', 0, -1, '16777216', str_repeat('9', 50), 7.5,
 		blocklist_write_assert($rejected && !$db->queries, 'invalid identifiers must never select another record by integer coercion');
 	}
 }
-foreach (array('192.0.2.0/24', '2001:0db8::42', 'Mozilla/5.0*', "Agent\\Path's*", str_repeat('a', 200), 'a*b*c*d*e*f*g*h*') as $valid)
+foreach (array('192.0.2.0/24', '2001:0db8::42', 'Mozilla/5.0*', "Agent\\Path's*",
+	'BöserBot*', '代理*', str_repeat('ä', 100), str_repeat('a', 200), 'a*b*c*d*e*f*g*h*') as $valid)
 {
 	$db->queries = array(); $db->escaped = array();
 	$config->save_to_blocklist(' ' . $valid . ' ');

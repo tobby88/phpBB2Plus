@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve complete Unicode global announcements up to the database's
+  255-character limit instead of cutting at 255 bytes. Validate text/type before
+  writing either field, store the pair in one upsert, and activate only after
+  successful storage. Reject malformed UTF-8 block rules and non-string/non-
+  integer configuration values instead of silently coercing them to empty text.
 - Match exact IPv6 block entries by address value, including equivalent
   compressed/expanded and IPv4-mapped IPv6 spellings. Reject control characters
   in new/updated block rules instead of silently joining lines into a different

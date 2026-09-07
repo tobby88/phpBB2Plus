@@ -113,6 +113,9 @@ jobs:
       - name: Test CrackerTracker blocklist mutations
         run: php .github/scripts/check-ctracker-blocklist-writes.php
 
+      - name: Test CrackerTracker Unicode announcements
+        run: php .github/scripts/check-ctracker-globalmessage-runtime.php
+
       - name: Test login abuse protections
         run: php .github/scripts/check-login-protection.php
 

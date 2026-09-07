@@ -83,6 +83,17 @@ if (!$unknown_rejected)
 }
 
 $db->queries = array();
+foreach (array(array('1'), new stdClass(), null, true, 1.5) as $invalid_value)
+{
+	$before = $config->settings;
+	$rejected = false;
+	try { $config->change_configuration('request_limit_enabled', $invalid_value); }
+	catch (Exception $exception) { $rejected = true; }
+	if (!$rejected || $db->queries || $config->settings !== $before)
+	{
+		throw new RuntimeException('Invalid configuration value must not become an empty/disabled setting');
+	}
+}
 $config->settings['login_history_count'] = '10';
 $config->update_login_history(23);
 $history_sql = implode("\n", $db->queries);
