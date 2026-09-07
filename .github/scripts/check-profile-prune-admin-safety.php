@@ -49,7 +49,7 @@ foreach (array('is_scalar($_GET[$vars])', 'phpbb_admin_html($user_list[$i][\'use
 		$errors[] = 'Missing prune-list safety marker: ' . $marker;
 	}
 }
-foreach (array("is_scalar(\$_POST['mode'])", '$db->sql_escape($username)', 'intval($row[\'group_id\'])') as $marker)
+foreach (array("is_scalar(\$_POST['mode'])", '$db->sql_escape($username)', '(int) $row[\'group_id\']', 'foreach ($personal_groups as $personal_group_id)', 'phpbb_cleanup_removed_user_references($db, $user_id);') as $marker)
 {
 	if (strpos($delete_users, $marker) === false)
 	{

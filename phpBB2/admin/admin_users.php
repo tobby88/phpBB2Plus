@@ -43,6 +43,7 @@ require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_privmsgs.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_user_cleanup.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_selects.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
@@ -245,6 +246,11 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 			{
 				message_die(GENERAL_ERROR, 'Could not delete user', '', __LINE__, __FILE__, $sql);
 			}
+			if ((int) $db->sql_affectedrows() !== 1)
+			{
+				message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']);
+			}
+			phpbb_cleanup_removed_user_references($db, $user_id);
 
 			$sql = "DELETE FROM " . USER_GROUP_TABLE . "
 				WHERE user_id = $user_id";
@@ -273,40 +279,6 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 					}
 				}
 			}
-
-			$sql = "DELETE FROM " . TOPICS_WATCH_TABLE . "
-				WHERE user_id = $user_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete user from topic watch table', '', __LINE__, __FILE__, $sql);
-			}
-			$sql = "DELETE FROM " . BOOKMARK_TABLE . "
-				WHERE user_id = $user_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete user\'s bookmarks', '', __LINE__, __FILE__, $sql);
-			}
-			$sql = "DELETE FROM " . BANLIST_TABLE . "
-				WHERE ban_userid = $user_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete user from banlist table', '', __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "DELETE FROM " . SESSIONS_TABLE . "
-				WHERE session_user_id = $user_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete sessions for this user', '', __LINE__, __FILE__, $sql);
-			}
-			
-			$sql = "DELETE FROM " . SESSIONS_KEYS_TABLE . "
-				WHERE user_id = $user_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete auto-login keys for this user', '', __LINE__, __FILE__, $sql);
-			}
-
 
 			$message = $lang['User_deleted'] . '<br /><br />' . sprintf($lang['Click_return_useradmin'], '<a href="' . append_sid("admin_users.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 

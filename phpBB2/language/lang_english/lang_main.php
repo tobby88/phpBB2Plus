@@ -867,6 +867,7 @@ $lang['Auth_Administrators'] = '<b>administrators</b>';
 
 $lang['Not_Moderator'] = 'You are not a moderator of this forum.';
 $lang['Not_Authorised'] = 'Not Authorised';
+$lang['User_reference_cleanup_failed'] = 'Account cleanup could not be completed. Please contact an administrator; the operation may be partially completed.';
 
 $lang['You_been_banned'] = 'You have been banned from this forum.<br />Please contact the webmaster or board administrator for more information.';
 

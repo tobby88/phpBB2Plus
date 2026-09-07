@@ -129,6 +129,7 @@ if (!$confirmed)
 //
 
 require_once($phpbb_root_path . 'includes/functions_privmsgs.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_user_cleanup.' . $phpEx);
 $prune_selection_sql = trim($sql);
 if(!$result = $db->sql_query('SELECT user_id , username, user_email, user_lang ' . $prune_selection_sql . ' ORDER BY username LIMIT 800'))
 	message_die(GENERAL_ERROR, 'Error obtaining userdata', '', __LINE__, __FILE__, $sql);
@@ -165,16 +166,18 @@ while (isset($user_list[$i]['user_id']))
 	{
 		message_die(GENERAL_ERROR, 'Could not obtain group information for this user', '', __LINE__, __FILE__, $sql);
 	}
-	$row = $db->sql_fetchrow($result);
-	if( empty($row))
+	$personal_groups = array();
+	while ($row = $db->sql_fetchrow($result))
 	{
-		message_die(GENERAL_ERROR, 'Could not find group information for this user: "'.$user_id.'"', '', __LINE__, __FILE__);
+		$personal_groups[(int) $row['group_id']] = (int) $row['group_id'];
 	}
+	$db->sql_freeresult($result);
 	// Claim only a still-eligible row before changing posts, groups or sending
 	// notifications. In particular, never continue after a zero-row deletion.
 	$sql = 'DELETE ' . $eligibility_sql;
 	if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not delete pruning candidate.'); }
 	if ((int) $db->sql_affectedrows() !== 1) { $i++; continue; }
+	phpbb_cleanup_removed_user_references($db, $user_id);
 
 	$sql = "UPDATE " . POSTS_TABLE . "
 		SET poster_id = " . DELETED . ", post_username = '$username_sql'
@@ -209,23 +212,18 @@ while (isset($user_list[$i]['user_id']))
 		message_die(GENERAL_ERROR, 'Could not delete user from user_group table', '', __LINE__, __FILE__, $sql);
 	}
 
-	$personal_group_id = intval($row['group_id']);
-	$sql = 'DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $personal_group_id . ' AND group_single_user = 1 AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug WHERE ug.group_id = ' . GROUPS_TABLE . '.group_id)';
+	foreach ($personal_groups as $personal_group_id)
+	{
+		$sql = 'DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $personal_group_id . ' AND group_single_user = 1 AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug WHERE ug.group_id = ' . GROUPS_TABLE . '.group_id)';
 		if( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
 		}
 
-	if ((int) $db->sql_affectedrows() === 1 && !$db->sql_query('DELETE FROM ' . AUTH_ACCESS_TABLE . ' WHERE group_id = ' . $personal_group_id))
-	{
-		message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
-	}
-
-	$sql = "DELETE FROM " . TOPICS_WATCH_TABLE . "
-		WHERE user_id = $user_id";
-	if ( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not delete user from topic watch table', '', __LINE__, __FILE__, $sql);
+		if ((int) $db->sql_affectedrows() === 1 && !$db->sql_query('DELETE FROM ' . AUTH_ACCESS_TABLE . ' WHERE group_id = ' . $personal_group_id))
+		{
+			message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
+		}
 	}
 
 	phpbb_pm_prune_user_messages($user_id);

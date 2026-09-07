@@ -10,6 +10,7 @@ if( !empty($setmodules) )
 $phpbb_root_path = "../";
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_user_cleanup.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin.' . $phpEx);
 
 // Deleting an account is irreversible. Accept it only from this page's POST
@@ -54,6 +55,8 @@ if (isset($_POST['delete']) && is_scalar($_POST['delete']))
 		{
 			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 		}
+
+		phpbb_cleanup_removed_user_references($db, $delete);
 
         $sql = "DELETE FROM " . USER_GROUP_TABLE . " WHERE user_id = $delete";
         if( !$db->sql_query($sql) )

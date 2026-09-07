@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Share post-delete reference cleanup across user management, inactive-account
+  removal and pruning: revoke autologin keys, sessions and Junior Admin grants,
+  then remove watches, bookmarks and user-scoped bans. Recheck user absence in
+  each write, preserve other users/global rows and report partial failures.
+  Pruning also supports missing/multiple personal groups; the user manager
+  stops subsequent cleanup after a zero-row user deletion. No schema migration.
 - Honor freshly checked Junior Admin module grants in ACP private-message
   cleanup and database repairs, requiring an authenticated admin session.
   Missing permissions now stop the caller instead of silently skipping cleanup.
