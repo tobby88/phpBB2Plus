@@ -366,7 +366,7 @@ $lang['Invalid_result'] = 'Lösche Ergebnis: %s (Stimmen: %d)';
 $lang['Checking_voters_data'] = 'Prüfe auf ungültige Umfragen-Daten';
 // check_pm
 $lang['Checking_pm_tables'] = 'Prüfe Private Nachrichten-Tabellen';
-$lang['Checking_pms_wo_text'] = 'Prüfe auf Private Nachrichten ohne Text';
+$lang['Checking_pms_wo_text'] = 'Prüfe auf Private Nachrichten ohne Text (Nachrichten unter fünf Minuten werden übersprungen)';
 $lang['Pms_wo_text_found'] = 'Private Nachrichten ohne Text gefunden';
 $lang['Deleting_pn_wo_text'] = '%d (Betreff: %s; Absender: %s (%d); Empfänger: %s (%d))';
 $lang['Deleting_Pms'] = 'Lösche Daten der Privaten Nachrichten';

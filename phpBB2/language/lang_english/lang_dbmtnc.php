@@ -345,7 +345,7 @@ $lang['Invalid_result'] = 'Deleting result: %s (Votes: %d)';
 $lang['Checking_voters_data'] = 'Checking for invalid voting data';
 // check_pm
 $lang['Checking_pm_tables'] = 'Checking private messages tables';
-$lang['Checking_pms_wo_text'] = 'Checking for private messages without a text';
+$lang['Checking_pms_wo_text'] = 'Checking for private messages without a text (messages less than five minutes old are skipped)';
 $lang['Pms_wo_text_found'] = 'Found private messages without text';
 $lang['Deleting_pn_wo_text'] = '%d (Subject: %s; Sender: %s (%d); Recipient: %s (%d))';
 $lang['Deleting_Pms'] = 'Deleting private message data';

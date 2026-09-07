@@ -91,8 +91,48 @@ function phpbb_pm_delete_user_messages($user_id)
 	finally { $lock->release(); }
 }
 
-// Internal helper: callers authorize explicit deletion or the existing mailbox
-// capacity policy. Never accept a caller-supplied SQL predicate.
+// Administrator-only repair. IDs from a diagnostic snapshot are not sufficient:
+// recheck the defect in the modifying statement on the guarded session.
+function phpbb_pm_repair_messages($ids, $mode, $now = null)
+{
+	global $db, $userdata;
+	$ids = attach_delete_id_array($ids);
+	if (!defined('IN_ADMIN') || !IN_ADMIN || !isset($userdata['user_level']) || $userdata['user_level'] != ADMIN || !$ids) { return 0; }
+	$table = PRIVMSGS_TABLE; $key = 'privmsgs_id'; $update = '';
+	switch ($mode)
+	{
+		case 'missing_text':
+			// Sending creates parent and text separately. A recently created
+			// parent must not be interpreted as a broken message.
+			$where = 'privmsgs_date <= ' . (($now === null ? time() : (int) $now) - 300) . ' AND NOT EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' pmt WHERE pmt.privmsgs_text_id = ' . PRIVMSGS_TABLE . '.privmsgs_id)';
+			break;
+		case 'orphan_text':
+			$table = PRIVMSGS_TEXT_TABLE; $key = 'privmsgs_text_id';
+			$where = 'NOT EXISTS (SELECT 1 FROM ' . PRIVMSGS_TABLE . ' pm WHERE pm.privmsgs_id = ' . PRIVMSGS_TEXT_TABLE . '.privmsgs_text_id)';
+			break;
+		case 'invalid_sender':
+		case 'invalid_recipient':
+			$update = $mode === 'invalid_sender' ? 'privmsgs_from_userid' : 'privmsgs_to_userid';
+			$where = 'NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . PRIVMSGS_TABLE . '.' . $update . ')';
+			break;
+		case 'deleted_users':
+			$where = '((privmsgs_from_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ')) OR (privmsgs_to_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')))';
+			break;
+		default: return 0;
+	}
+	$where = '(' . $where . ') AND ' . $key . ' IN (' . implode(',', $ids) . ')';
+	$lock = attach_require_mutation_lock($db);
+	try
+	{
+		$database = $lock->connection;
+		if ($mode === 'missing_text' || $mode === 'deleted_users') { return phpbb_pm_delete_selected($database, $where); }
+		$sql = $update !== '' ? 'UPDATE ' . $table . ' SET ' . $update . ' = ' . DELETED : 'DELETE FROM ' . $table;
+		phpbb_pm_cleanup_query($database, $sql . ' WHERE ' . $where);
+		return (int) $database->sql_affectedrows();
+	}
+	finally { $lock->release(); }
+}
+
 function phpbb_pm_delete_messages($ids, $user_id, $folder, $all = false)
 {
 	global $db;

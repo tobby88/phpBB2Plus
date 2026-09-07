@@ -131,7 +131,42 @@ try
 	mutation_check(phpbb_pm_delete_user_messages(99)===1 && !is_file($upload_dir.'/fixture.txt'),'Last account reference removes final file');
 	$admin=file_get_contents($forum_root.'admin/admin_users.php');
 	mutation_check(strpos($admin,'phpbb_pm_delete_user_messages($user_id);') < strpos($admin,'DELETE FROM " . USERS_TABLE') && strpos($admin,'SELECT privmsgs_id')===false,'Account cleanup precedes irreversible account removal and replaces legacy PM deletion');
-	echo "Private-message selected/all deletion, mailbox trimming, counters and attachment lifecycle checks passed.\n";
+	define('DELETED',-1);
+	pm_cleanup_fixture(); $userdata['user_level']=0;
+	mutation_check(phpbb_pm_repair_messages(array(20),'missing_text',1000)===0,'Nonadmin maintenance refused');
+	$userdata['user_level']=ADMIN;
+	mutation_check(phpbb_pm_repair_messages(array(20,null),'missing_text',1000)===0 && phpbb_pm_repair_messages(array(20),'unknown',1000)===0,'Invalid maintenance input refused');
+	$mutation_server->pdo->exec('DELETE FROM fixture_message_text WHERE privmsgs_text_id=20');
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_date=701 WHERE privmsgs_id=20');
+	mutation_check(phpbb_pm_repair_messages(array(20),'missing_text',1000)===0,'Recent missing-text parent protected by five-minute grace');
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_date=700 WHERE privmsgs_id=20');
+	mutation_check(phpbb_pm_repair_messages(array(20),'missing_text',1000)===1 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===1 && is_file($upload_dir.'/fixture.txt'),'Old missing-text PN cleans attachment reference and preserves copy');
+	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(77,'orphan')");
+	mutation_check(phpbb_pm_repair_messages(array(21,77),'orphan_text')===1 && pm_scalar('SELECT COUNT(*) FROM fixture_message_text WHERE privmsgs_text_id=21')===1,'Orphan-text deletion rechecks parent absence');
+	pm_cleanup_fixture(); $restored=false;
+	$mutation_server->pdo->exec('DELETE FROM fixture_message_text WHERE privmsgs_text_id=20');
+	$mutation_server->hook=function($sql) use (&$restored) {
+		if (!$restored && strpos($sql,'DELETE FROM fixture_messages')===0) { $restored=true; $GLOBALS['mutation_server']->pdo->exec("INSERT INTO fixture_message_text VALUES(20,'restored')"); }
+	};
+	mutation_check(phpbb_pm_repair_messages(array(20),'missing_text',1000)===0 && $restored && $mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Text restored after selection protects parent and attachments');
+	pm_cleanup_fixture();
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=999 WHERE privmsgs_id=20');
+	mutation_check(phpbb_pm_repair_messages(array(20,21),'invalid_sender')===1 && pm_scalar('SELECT privmsgs_from_userid FROM fixture_messages WHERE privmsgs_id=21')===8,'Only currently invalid sender anonymized');
+	mutation_check(phpbb_pm_repair_messages(array(20,21),'deleted_users')===1 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===1,'Deleted-sender policy uses full attachment cleanup');
+	mutation_check(phpbb_pm_repair_messages(array(21),'invalid_recipient')===0,'Existing recipient is never anonymized');
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_to_userid=999 WHERE privmsgs_id=21');
+	mutation_check(phpbb_pm_repair_messages(array(21),'invalid_recipient')===1 && phpbb_pm_repair_messages(array(21),'deleted_users')===0,'Sent copy survives deleted recipient per existing policy');
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=-1 WHERE privmsgs_id=21');
+	mutation_check(phpbb_pm_repair_messages(array(21),'deleted_users')===1 && !is_file($upload_dir.'/fixture.txt'),'Final invalid-user reference cleans file');
+	pm_cleanup_fixture(); $restored=false;
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=999 WHERE privmsgs_id=20');
+	$mutation_server->hook=function($sql) use (&$restored) {
+		if (!$restored && strpos($sql,'UPDATE fixture_messages')===0) { $restored=true; $GLOBALS['mutation_server']->pdo->exec('INSERT INTO fixture_users VALUES(999,0,0)'); }
+	};
+	mutation_check(phpbb_pm_repair_messages(array(20),'invalid_sender')===0 && pm_scalar('SELECT privmsgs_from_userid FROM fixture_messages WHERE privmsgs_id=20')===999,'Restored user protected in modifying statement');
+	$maintenance=file_get_contents($forum_root.'admin/admin_db_maintenance.php');
+	mutation_check(substr_count($maintenance,'phpbb_pm_repair_messages(')===5,'All five PN repair mutation paths delegate to guarded helper');
+	echo "Private-message cleanup, saving, account removal and maintenance checks passed.\n";
 }
 finally
 {

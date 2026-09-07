@@ -45,6 +45,7 @@ $no_page_header = TRUE; // We do not send the page header right here to prevent 
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'includes/functions_dbmtnc.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_privmsgs.'.$phpEx);
 
 //
 // Set up timer
@@ -2490,7 +2491,7 @@ switch($mode_id)
 						LEFT JOIN " . PRIVMSGS_TEXT_TABLE . " pmt ON pm.privmsgs_id = pmt.privmsgs_text_id
 						LEFT JOIN " . USERS_TABLE . " uf ON pm.privmsgs_from_userid = uf.user_id
 						LEFT JOIN " . USERS_TABLE . " ut ON pm.privmsgs_to_userid = ut.user_id
-					WHERE pmt.privmsgs_text_id IS NULL";
+					WHERE pmt.privmsgs_text_id IS NULL AND pm.privmsgs_date <= " . (time() - 300);
 				$result_array = array();
 				$result = $db->sql_query($sql);
 				if ( !$result )
@@ -2516,15 +2517,8 @@ switch($mode_id)
 				}
 				if ( count($result_array) )
 				{
-					$record_list = implode(',', $result_array);
 					echo("<p class=\"gen\">" . $lang['Deleting_Pms'] . " </p>\n");
-					$sql = "DELETE FROM " . PRIVMSGS_TABLE . "
-						WHERE privmsgs_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete private message data!", __LINE__, __FILE__, $sql);
-					}
+					phpbb_pm_repair_messages($result_array, 'missing_text');
 				}
 				else
 				{
@@ -2551,15 +2545,7 @@ switch($mode_id)
 				if ( count($result_array) )
 				{
 					echo("<p class=\"gen\">" . $lang['Deleting_pm_texts'] . "</p>\n");
-					$record_list = implode(',', $result_array);
-					$sql = "DELETE FROM " . PRIVMSGS_TEXT_TABLE . "
-						WHERE privmsgs_text_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete private message text data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
+					$affected_rows = phpbb_pm_repair_messages($result_array, 'orphan_text');
 					if ( $affected_rows == 1 )
 					{
 						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
@@ -2596,14 +2582,7 @@ switch($mode_id)
 					$record_list = implode(',', $result_array);
 					echo("<p class=\"gen\">" . $lang['Invalid_pm_senders_found'] . ": $record_list</p>\n");
 					echo("<p class=\"gen\">" . $lang['Updating_pms'] . "</p>\n");
-					$sql = "UPDATE " . PRIVMSGS_TABLE . "
-						SET privmsgs_from_userid = " . DELETED . "
-						WHERE privmsgs_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update private message information!", __LINE__, __FILE__, $sql);
-					}
+					phpbb_pm_repair_messages($result_array, 'invalid_sender');
 				}
 				else
 				{
@@ -2632,14 +2611,7 @@ switch($mode_id)
 					$record_list = implode(',', $result_array);
 					echo("<p class=\"gen\">" . $lang['Invalid_pm_recipients_found'] . ": $record_list</p>\n");
 					echo("<p class=\"gen\">" . $lang['Updating_pms'] . "</p>\n");
-					$sql = "UPDATE " . PRIVMSGS_TABLE . "
-						SET privmsgs_to_userid = " . DELETED . "
-						WHERE privmsgs_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update private message information!", __LINE__, __FILE__, $sql);
-					}
+					phpbb_pm_repair_messages($result_array, 'invalid_recipient');
 				}
 				else
 				{
@@ -2668,20 +2640,7 @@ switch($mode_id)
 					$record_list = implode(',', $result_array);
 					echo("<p class=\"gen\">" . $lang['Invalid_pm_users_found'] . ": $record_list</p>\n");
 					echo("<p class=\"gen\">" . $lang['Deleting_pms'] . "</p>\n");
-					$sql = "DELETE FROM " . PRIVMSGS_TABLE . "
-						WHERE privmsgs_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete private message data!", __LINE__, __FILE__, $sql);
-					}
-					$sql = "DELETE FROM " . PRIVMSGS_TEXT_TABLE . "
-						WHERE privmsgs_text_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete private message data!", __LINE__, __FILE__, $sql);
-					}
+					phpbb_pm_repair_messages($result_array, 'deleted_users');
 				}
 				else
 				{

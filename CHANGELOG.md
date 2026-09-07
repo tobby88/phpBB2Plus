@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate PN maintenance defects on the attachment-writer session before
+  deleting message/text rows or anonymizing missing users. Preserve messages
+  repaired since diagnostic selection, use shared attachment cleanup, and skip
+  incomplete message parents less than five minutes old. No schema migration.
 - Save private messages under the shared mutation lock, authorize the complete
   source selection and evict old archived messages only after a successful move.
   Respect batch capacity without immediately deleting newly saved messages;
