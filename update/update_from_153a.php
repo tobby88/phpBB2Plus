@@ -248,6 +248,32 @@ function update_column_max_length($connection, $database, $table, $column)
 	return $value === null ? 0 : (int) $value;
 }
 
+function update_queue_log_widths(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	$is_mariadb = stripos((string) update_scalar($connection, 'SELECT VERSION()'), 'MariaDB') !== false;
+	foreach (array('username' => 255, 'user_ip' => 45) as $column => $width)
+	{
+		$current = update_column_max_length($connection, $database, $table, $column);
+		if ($current <= 0 || $current >= $width) { continue; }
+		$where = " FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" . mysqli_real_escape_string($connection, $database)
+			. "' AND TABLE_NAME = '" . mysqli_real_escape_string($connection, $table) . "' AND COLUMN_NAME = '" . $column . "'";
+		$nullable = update_scalar($connection, 'SELECT IS_NULLABLE' . $where) === 'YES';
+		$default = update_scalar($connection, 'SELECT COLUMN_DEFAULT' . $where);
+		$collation = update_scalar($connection, 'SELECT COLLATION_NAME' . $where);
+		$comment = update_scalar($connection, 'SELECT COLUMN_COMMENT' . $where);
+		$definition = 'VARCHAR(' . $width . ')';
+		if (is_string($collation) && preg_match('/^[a-z0-9_]+$/iD', $collation)) { $definition .= ' COLLATE ' . update_quote_identifier($collation); }
+		$definition .= $nullable ? ' NULL' : ' NOT NULL';
+		// MariaDB metadata supplies an SQL default expression; MySQL supplies
+		// the literal string value. Preserve the server's representation.
+		if ($default !== null) { $definition .= ' DEFAULT ' . ($is_mariadb ? $default : "'" . mysqli_real_escape_string($connection, $default) . "'"); }
+		else if ($nullable) { $definition .= ' DEFAULT NULL'; }
+		if (is_string($comment) && $comment !== '') { $definition .= " COMMENT '" . mysqli_real_escape_string($connection, $comment) . "'"; }
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' MODIFY ' . update_quote_identifier($column) . ' ' . $definition;
+	}
+}
+
 function update_column_extra($connection, $database, $table, $column)
 {
 	$sql = "SELECT EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" .
@@ -426,6 +452,8 @@ foreach ($create_statements as $generic_table => $generic_sql)
 		$operations[] = preg_replace('/\bphpbb_/', $table_prefix, $generic_sql);
 	}
 }
+
+update_queue_log_widths($operations, $connection, $dbname, $table_prefix . 'logs');
 
 $user_columns = array(
 	'games_block_pm' => 'TINYINT(1) NOT NULL DEFAULT 1',

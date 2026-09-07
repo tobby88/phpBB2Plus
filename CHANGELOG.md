@@ -16,7 +16,9 @@ changes consolidated after that baseline without implying active maintenance.
   Keep controlled partial-failure errors; this is not a MyISAM recovery journal.
   Use driver escaping in moderation logs and retain the real IPv6 client address
   when available instead of interpreting a legacy session hash as IPv4.
-  No schema changes or automatic modification of historical moderation records.
+  The post-1.53a updater widens older moderation-log name/IP columns when needed,
+  preserving existing entries, nullability, defaults and collation. No automatic
+  rewriting of historical moderation records.
 - Use one coordinated voting worker for standard and AJAX poll submissions.
   Recheck current access, forum/topic locks, expiry and the selected option under
   the shared writer lock; count each member (or permitted guest IP) only once.

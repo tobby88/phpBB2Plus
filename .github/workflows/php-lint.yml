@@ -483,3 +483,6 @@ jobs:
 
       - name: Test scoped moderator states and action logs
         run: php .github/scripts/check-topic-state-storage.php
+
+      - name: Test moderation-log width migrations
+        run: php .github/scripts/check-log-width-migration.php
