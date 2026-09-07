@@ -11,6 +11,7 @@ $phpbb_root_path = "../";
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 require_once($phpbb_root_path . 'includes/functions_user_cleanup.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_privmsgs.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin.' . $phpEx);
 
 // Deleting an account is irreversible. Accept it only from this page's POST
@@ -18,13 +19,14 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 if (isset($_POST['delete']) && is_scalar($_POST['delete']))
 {
 	phpbb_admin_require_post_session();
+	phpbb_pm_require_admin_module('admin_account.php');
         $delete = (isset($_POST['delete']) && is_scalar($_POST['delete'])) ? intval($_POST['delete']) : 0;
 		if ($delete <= 0)
         {
                 message_die(GENERAL_ERROR, $lang['Not_Authorised']);
         }
 
-        $sql = "SELECT user_id
+        $sql = "SELECT user_id, username
                 FROM " . USERS_TABLE . "
                 WHERE user_id = $delete
                         AND user_id <> " . ANONYMOUS . "
@@ -34,7 +36,8 @@ if (isset($_POST['delete']) && is_scalar($_POST['delete']))
         {
                 message_die(GENERAL_ERROR, 'Could not verify inactive user.', '', __LINE__, __FILE__, $sql);
         }
-        if (!$db->sql_fetchrow($delete_result))
+        $deleted_account = $db->sql_fetchrow($delete_result);
+        if (!$deleted_account)
         {
                 message_die(GENERAL_ERROR, $lang['Not_Authorised']);
         }
@@ -57,6 +60,8 @@ if (isset($_POST['delete']) && is_scalar($_POST['delete']))
 		}
 
 		phpbb_cleanup_removed_user_references($db, $delete);
+		phpbb_anonymize_removed_user_content($db, $delete, $deleted_account['username'], (int) $userdata['user_id']);
+		phpbb_pm_delete_inactive_user_messages($delete);
 
         $sql = "DELETE FROM " . USER_GROUP_TABLE . " WHERE user_id = $delete";
         if( !$db->sql_query($sql) )

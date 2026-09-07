@@ -264,6 +264,20 @@ try
 	}
 	mutation_expect_failure(function(){phpbb_pm_require_admin_module('admin_board.php');},'pm permission');
 	mutation_check(!$mutation_server->owner && $mutation_server->count_rows(PRIVMSGS_TABLE)===2,'Revoked or unauthenticated capabilities leave messages intact');
+	pm_cleanup_fixture();
+	mutation_expect_failure(function(){phpbb_pm_delete_inactive_user_messages(7);},'pm permission');
+	$pm_fixture_grants=md5('UsersActivate_titleadmin_account.php');
+	mutation_check(phpbb_pm_delete_inactive_user_messages(7)===0 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Inactive module cannot clean an existing account');
+	$mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
+	mutation_check(phpbb_pm_delete_inactive_user_messages(7)===1 && pm_scalar('SELECT privmsgs_to_userid FROM fixture_messages WHERE privmsgs_id=21')===-1,'Delegated inactive manager removes deleted recipient mailbox and anonymizes other sender copy');
+	mutation_check(is_file($upload_dir.'/fixture.txt') && $mutation_server->count_rows(ATTACHMENTS_TABLE)===1,'Inactive deletion preserves the other user attachment copy');
+	mutation_check(phpbb_pm_delete_inactive_user_messages(7)===0,'Repeated inactive PN cleanup is harmless');
+	mutation_expect_failure(function(){phpbb_pm_delete_user_messages(8);},'pm permission');
+	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(21),'deleted_users');},'pm permission');
+	$userdata['session_admin']=false;
+	mutation_expect_failure(function(){phpbb_pm_delete_inactive_user_messages(7);},'pm permission');
+	$userdata['session_admin']=true; $pm_fixture_grants='';
+	mutation_expect_failure(function(){phpbb_pm_delete_inactive_user_messages(7);},'pm permission');
 	echo "Private-message cleanup, saving, account removal, maintenance and download checks passed.\n";
 }
 finally

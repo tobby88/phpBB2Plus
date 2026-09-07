@@ -32,6 +32,8 @@ class DeletionDatabase
 		$this->pdo->exec("INSERT INTO fixture_posts VALUES(7,''),(8,'')");
 		$this->pdo->exec('CREATE TABLE fixture_topics(topic_poster INTEGER)'); $this->pdo->exec('INSERT INTO fixture_topics VALUES(7),(8)');
 		$this->pdo->exec('CREATE TABLE fixture_votes(vote_user_id INTEGER)'); $this->pdo->exec('INSERT INTO fixture_votes VALUES(7),(8)');
+		$this->pdo->exec('CREATE TABLE fixture_shouts(shout_user_id INTEGER,shout_username TEXT)');
+		$this->pdo->exec("INSERT INTO fixture_shouts VALUES(7,''),(8,'')");
 		foreach(deletion_reference_tables() as $table=>$column)
 		{
 			$this->pdo->exec('CREATE TABLE '.$table.'('.$column.' INTEGER)');
@@ -70,17 +72,28 @@ function phpbb_pm_delete_user_messages($id)
 	deletion_check($id===7,'PN cleanup scoped to selected user');
 	if (!empty($GLOBALS['fixture_pm_denied'])) { throw new DeletionFailure('pm permission'); }
 }
+function phpbb_pm_require_admin_module($module)
+{
+	deletion_check($module==='admin_account.php','Inactive controller uses its own capability');
+	if (!empty($GLOBALS['fixture_inactive_permission_denied'])) { throw new DeletionFailure('permission'); }
+}
+function phpbb_pm_delete_inactive_user_messages($id)
+{
+	deletion_check($id===7,'Inactive PN cleanup targets selected account');
+	if (!empty($GLOBALS['fixture_inactive_pm_failed'])) { throw new DeletionFailure('pm cleanup'); }
+	$GLOBALS['fixture_inactive_pm_calls']++;
+}
+$GLOBALS['fixture_inactive_pm_calls']=0;
 function run_user_admin($db)
 {
 	global $user_admin_block, $lang;
 	$user_id=7; $userdata=array('user_id'=>9); $this_userdata=array('username'=>"O'Brien");
-	$db->pdo->exec('CREATE TABLE fixture_shouts(shout_user_id INTEGER,shout_username TEXT)');
-	$db->pdo->exec("INSERT INTO fixture_shouts VALUES(7,''),(8,'')");
 	eval($user_admin_block);
 }
 function run_inactive($db,$id=7)
 {
 	global $account_block;
+	$userdata=array('user_id'=>9);
 	$_POST=array('delete'=>$id); $lang=array('Not_Authorised'=>'denied','Deleted_user'=>'deleted %d'); $template=new DeletionTemplate();
 	eval($account_block); return $template->vars;
 }
@@ -194,6 +207,31 @@ try
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_keys WHERE user_id=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_sessions WHERE session_user_id=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_grants WHERE user_id=7')===0,'Credentials and delegated grants revoked before ancillary-table failure');
 	$db->failure=''; phpbb_cleanup_removed_user_references($db,7); phpbb_cleanup_removed_user_references($db,7);
 	foreach(deletion_reference_tables() as $table=>$column){deletion_check((int)$db->scalar('SELECT COUNT(*) FROM '.$table)===3,'Reference helper is safely repeatable after partial failure');}
-	echo "Inactive-account, user management and pruning eligibility/group/reference-scope checks passed.\n";
+	foreach(array('run_inactive','run_prune') as $controller)
+	{
+		$db=new DeletionDatabase(); $db->pdo->exec("UPDATE fixture_users SET username='O''Brien Grüße' WHERE user_id=7");
+		$pm_before=$GLOBALS['fixture_inactive_pm_calls']; call_user_func($controller,$db);
+		deletion_check($db->scalar('SELECT post_username FROM fixture_posts WHERE poster_id=-1')==="O'Brien Grüße" && $db->scalar('SELECT shout_username FROM fixture_shouts WHERE shout_user_id=-1')==="O'Brien Grüße",'Removed authors retain escaped UTF-8 display names: '.$controller);
+		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=8')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=8')===1,'Other authors remain untouched');
+		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_topics WHERE topic_poster=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_votes WHERE vote_user_id=7')===0 && (int)$db->scalar('SELECT group_moderator FROM fixture_groups WHERE group_id=200')===9,'Topics/votes/moderation reassigned only for removed target');
+		if($controller==='run_inactive'){deletion_check($GLOBALS['fixture_inactive_pm_calls']===$pm_before+1,'Inactive deletion invokes guarded PN cleanup');}
+	}
+	$db=new DeletionDatabase(); $GLOBALS['fixture_inactive_permission_denied']=true;
+	expect_deletion_failure(function()use($db){run_inactive($db);}); $GLOBALS['fixture_inactive_permission_denied']=false;
+	deletion_check(count($db->queries)===0,'Missing inactive capability stops before account SQL');
+	$db=new DeletionDatabase(); $GLOBALS['fixture_inactive_pm_failed']=true;
+	expect_deletion_failure(function()use($db){run_inactive($db);}); $GLOBALS['fixture_inactive_pm_failed']=false;
+	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_members WHERE user_id=7')===2,'PN cleanup failure prevents false success and later group deletion');
+	$db=new DeletionDatabase(); expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
+	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1,'Existing account content cannot be anonymized');
+	$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $restored=false;
+	$db->hook=function($sql,$db)use(&$restored){if(!$restored && strpos($sql,'UPDATE fixture_posts')===0){$restored=true;$db->pdo->exec("INSERT INTO fixture_users VALUES(7,1,0,0,'Restored','','english')");}};
+	expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
+	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=7')===1 && (int)$db->scalar('SELECT group_moderator FROM fixture_groups WHERE group_id=200')===7,'Restored account protected in every content write');
+	$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $db->failure='UPDATE fixture_shouts';
+	expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
+	$db->failure=''; phpbb_anonymize_removed_user_content($db,7,'Name',9); phpbb_anonymize_removed_user_content($db,7,'Name',9);
+	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=7')===0,'Content helper can finish after partial failure without deleting content');
+	echo "Inactive-account, user management and pruning eligibility/group/reference/content-scope checks passed.\n";
 }
 finally { restore_error_handler(); }

@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Complete inactive-account removal for previously used accounts: preserve posts
+  and shouts as guest-authored with the captured UTF-8 display name, detach topic/
+  vote ownership and reassign group moderation. Pruning shares this guarded
+  content helper and now also handles shouts. Recheck account absence per write.
+  Inactive-account PN cleanup uses its own freshly checked ACP capability and
+  retains other users' delivered/saved copies and shared attachment files.
+  No schema migration; full multi-module account deletion is not transactional.
 - Share post-delete reference cleanup across user management, inactive-account
   removal and pruning: revoke autologin keys, sessions and Junior Admin grants,
   then remove watches, bookmarks and user-scoped bans. Recheck user absence in

@@ -29,6 +29,33 @@ function phpbb_cleanup_removed_user_references($database, $user_id)
 	phpbb_require_removed_user($database, $user_id);
 }
 
+// Preserve published content as guest-authored, retaining the captured display
+// name. Inactive accounts may have posted before an administrator disabled them.
+function phpbb_anonymize_removed_user_content($database, $user_id, $username, $moderator_id)
+{
+	global $lang;
+	phpbb_require_removed_user($database, $user_id);
+	if (!is_string($username) || !is_int($moderator_id) || $moderator_id <= 0 || $moderator_id === $user_id)
+	{
+		message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']);
+	}
+	$name = $database->sql_escape($username);
+	$targets = array(
+		array(POSTS_TABLE, 'poster_id', 'poster_id = ' . DELETED . ", post_username = '" . $name . "'"),
+		array(SHOUTBOX_TABLE, 'shout_user_id', 'shout_user_id = ' . DELETED . ", shout_username = '" . $name . "'"),
+		array(TOPICS_TABLE, 'topic_poster', 'topic_poster = ' . DELETED),
+		array(VOTE_USERS_TABLE, 'vote_user_id', 'vote_user_id = ' . DELETED),
+		array(GROUPS_TABLE, 'group_moderator', 'group_moderator = ' . $moderator_id)
+	);
+	foreach ($targets as $target)
+	{
+		$sql = 'UPDATE ' . $target[0] . ' SET ' . $target[2] . ' WHERE ' . $target[1] . ' = ' . $user_id
+			. ' AND NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $user_id . ')';
+		if (!$database->sql_query($sql)) { message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']); }
+	}
+	phpbb_require_removed_user($database, $user_id);
+}
+
 function phpbb_require_removed_user($database, $user_id)
 {
 	global $lang;

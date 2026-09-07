@@ -154,7 +154,6 @@ while (isset($user_list[$i]['user_id']))
 	if (!$current_user) { $i++; continue; }
 	$user_list[$i] = $current_user;
 	$username = $user_list[$i]['username'];
-	$username_sql = $db->sql_escape($username);
 	$user_email = $user_list[$i]['user_email'];
 	$user_lang =  $user_list[$i]['user_lang'];
 	$sql = "SELECT g.group_id
@@ -179,31 +178,7 @@ while (isset($user_list[$i]['user_id']))
 	if ((int) $db->sql_affectedrows() !== 1) { $i++; continue; }
 	phpbb_cleanup_removed_user_references($db, $user_id);
 
-	$sql = "UPDATE " . POSTS_TABLE . "
-		SET poster_id = " . DELETED . ", post_username = '$username_sql'
-		WHERE poster_id = $user_id";
-	if( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not update posts for this user', '', __LINE__, __FILE__, $sql);
-	}
-	$sql = "UPDATE " . TOPICS_TABLE . "
-		SET topic_poster = " . DELETED . "
-		WHERE topic_poster = $user_id";
-	if( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not update topics for this user', '', __LINE__, __FILE__, $sql);
-	}
-
-	$sql = "UPDATE " . VOTE_USERS_TABLE . "
-		SET vote_user_id = " . DELETED . "
-		WHERE vote_user_id = $user_id";
-	if( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not update votes for this user', '', __LINE__, __FILE__, $sql);
-	}
-
-	$sql = 'UPDATE ' . GROUPS_TABLE . ' SET group_moderator = ' . intval($userdata['user_id']) . ' WHERE group_moderator = ' . $user_id;
-	if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not update group moderators.'); }
+	phpbb_anonymize_removed_user_content($db, $user_id, $username, (int) $userdata['user_id']);
 
 	$sql = "DELETE FROM " . USER_GROUP_TABLE . "
 		WHERE user_id = $user_id";

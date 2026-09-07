@@ -108,7 +108,7 @@ function phpbb_pm_require_admin_module($module)
 	global $userdata, $lang;
 	$allowed = defined('IN_ADMIN') && IN_ADMIN && !empty($userdata['session_logged_in'])
 		&& !empty($userdata['session_admin']) && isset($userdata['user_id']) && (int) $userdata['user_id'] > 0
-		&& in_array($module, array('admin_users.php', 'admin_db_maintenance.php'), true);
+		&& in_array($module, array('admin_users.php', 'admin_db_maintenance.php', 'admin_account.php'), true);
 	if ($allowed)
 	{
 		$allowed = isset($userdata['user_level']) && $userdata['user_level'] == ADMIN;
@@ -139,6 +139,22 @@ function phpbb_pm_prune_user_messages($user_id)
 	global $db, $userdata;
 	$ids = attach_delete_id_array(array($user_id));
 	if (!$ids || empty($userdata['session_logged_in']) || !isset($userdata['user_level']) || $userdata['user_level'] != ADMIN) { return 0; }
+	return phpbb_pm_remove_deleted_user_messages($ids[0]);
+}
+
+function phpbb_pm_delete_inactive_user_messages($user_id)
+{
+	phpbb_pm_require_admin_module('admin_account.php');
+	return phpbb_pm_remove_deleted_user_messages($user_id);
+}
+
+// Internal worker shared by authorized account-removal paths. Existing or
+// restored user rows are protected in every write, including copy anonymization.
+function phpbb_pm_remove_deleted_user_messages($user_id)
+{
+	global $db;
+	$ids = attach_delete_id_array(array($user_id));
+	if (!$ids) { return 0; }
 	$user_id = $ids[0];
 	$missing = 'NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $user_id . ')';
 	// Pending mail belongs to both outbox and inbox. Include UNREAD as well as
