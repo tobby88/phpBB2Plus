@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate AJAX subject/body edits with normal post and moderator writers.
+  Check current forum/group permissions on the owning connection without a stale
+  forum-tree override, reject locked/inconsistent/missing parents and refresh real
+  first/last-post boundaries. Keep partial-index updates within that boundary and
+  return controlled AJAX errors on storage failures. Preserve Unicode characters
+  and complete HTML entities at title limits; normalize legacy request slashes
+  once so quotes, backslashes and percent signs survive storage and editor drafts.
+  No schema migration or automatic rewriting of historical post contents.
 - Coordinate normal new-topic/reply/edit/delete/poll operations with attachment
   and moderator deletion writers on their owning DB connection. Revalidate current
   forum/topic locks, post ownership, poll state and first/last-post flags; guard

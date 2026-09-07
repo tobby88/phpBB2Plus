@@ -103,126 +103,19 @@ if (($mode != 'mark_topic') && ($mode != 'mark_forum'))
 //
 if ($mode == 'edit_post_subject')
 {
-	include($phpbb_root_path .'includes/functions_search.'. $phpEx);
-	
-	// Determine post_id and new subject
+	require_once($phpbb_root_path .'includes/functions_search.'. $phpEx);
+	require_once($phpbb_root_path .'includes/functions_ajax_storage.'. $phpEx);
 	$post_id = ajax_request_int(POST_POST_URL);
-	$subject = ajax_htmlspecialchars(trim(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject'))));
-	$subject = substr($subject, 0, 60);
-	
-	// Check if data was submitted
-	if (empty($post_id))
+	$subject = stripslashes(utf8_rawurldecode(ajax_scalar_value($HTTP_POST_VARS, 'subject')));
+	try
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'No post_id specified'
-		);
-		AJAX_message_die($result_ar);
+		$edited = phpbb_ajax_edit_post($db, $post_id, 'subject', $subject);
 	}
-	
-	// Get post/topic information
-	$sql = 'SELECT t.topic_id, t.topic_first_post_id, t.topic_last_post_id, t.topic_poster, t.forum_id, t.topic_status, p.poster_id, p.post_edit_time, p.post_edit_count, u.username, p.post_username 
-	        FROM '. TOPICS_TABLE .' t, '. POSTS_TABLE .' p, '. USERS_TABLE ." u 
-	        WHERE t.topic_id = p.topic_id 
-	        AND p.poster_id = u.user_id 
-	        AND p.post_id = $post_id";
-	if (!($result = $db->sql_query($sql)))
+	catch (PhpbbAjaxStorageException $error)
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'Could not fetch post details'
-		);
-		AJAX_message_die($result_ar);
+		AJAX_message_die(array('result' => AJAX_ERROR, 'postid' => $post_id, 'error_msg' => $error->getMessage()));
 	}
-	$row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if (!$row)
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'Invalid post_id'
-		);
-		AJAX_message_die($result_ar);
-	}
-	$forum_id = $row['forum_id'];
-	
-	if (($post_id == $row['topic_first_post_id']) && empty($subject))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'No subject specified'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	//Check auth settings
-	$is_auth = array();
-	$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
-	if (!$is_auth['auth_mod'] && (!$userdata['session_logged_in'] || empty($is_auth['auth_edit']) || $row['poster_id'] != $userdata['user_id'] || $row['topic_status'] == TOPIC_LOCKED))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'You\'re not allowed to edit this post'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	// Edit post subject and topic subject (if necessary)
-	$topic_title = $db->sql_escape($subject);
-	if ($row['topic_first_post_id'] == $post_id)
-	{
-		$sql = 'UPDATE '. TOPICS_TABLE ." 
-		        SET topic_title = '$topic_title' 
-		        WHERE topic_id = ". $row['topic_id'];
-		if (!$db->sql_query($sql))
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'postid' => $post_id,
-				'error_msg' => 'Could not update topic title'
-			);
-			AJAX_message_die($result_ar);
-		}
-	}
-	
-	$sql = 'UPDATE '. POSTS_TEXT_TABLE ." 
-	        SET post_subject = '$topic_title' 
-	        WHERE post_id = $post_id";
-	if (!$db->sql_query($sql))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'Could not update post subject'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	// Update post edited message (if necessary)
-	if (($row['poster_id'] == $userdata['user_id']) && ($post_id != $row['topic_last_post_id']))
-	{
-		$time_now = time();
-		$sql = 'UPDATE '. POSTS_TABLE ." 
-		        SET post_edit_time = $time_now, post_edit_count = post_edit_count + 1
-		        WHERE post_id = $post_id";
-		if (!$db->sql_query($sql))
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'postid' => $post_id,
-				'error_msg' => 'Could not update post edit information'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		$row['post_edit_time'] = $time_now;
-		$row['post_edit_count'] = ($row['post_edit_count'] == NULL) ? 0 : $row['post_edit_count'] + 1;
-	}
+	$row = $edited['post']; $forum_id = (int) $row['forum_id']; $subject = $edited['value'];
 	// Get new edited message
 	if ($row['post_edit_count'])
 	{
@@ -239,10 +132,6 @@ if ($mode == 'edit_post_subject')
 		$editmessage = '';
 	}
 	
-	// Refresh search index for this post (subject only)
-	remove_search_post($post_id, True, False);
-	add_search_words('single', $post_id, '', $subject);
-	
 	// Censor the subject
 	$raw_subject = $subject;
 	$orig_word = array();
@@ -257,7 +146,7 @@ if ($mode == 'edit_post_subject')
 	$result_ar = array(
 		'result' => AJAX_POST_SUBJECT_EDITED,
 		'postid' => $post_id,
-		'subject' => (empty($subject)) ? $lang['No_subject'] : unhtmlspecialchars($subject),
+		'subject' => ($subject === '') ? $lang['No_subject'] : unhtmlspecialchars($subject),
 		'rawsubject' => unhtmlspecialchars($raw_subject),
 		'editmessage' => $editmessage
 	);
@@ -266,8 +155,8 @@ if ($mode == 'edit_post_subject')
 // Editing of post text
 else if ($mode == 'edit_post_text')
 {
-	include($phpbb_root_path .'includes/functions_search.'. $phpEx);
-	include($phpbb_root_path .'includes/bbcode.'. $phpEx);
+	require_once($phpbb_root_path .'includes/functions_search.'. $phpEx);
+	require_once($phpbb_root_path .'includes/bbcode.'. $phpEx);
 	
 	// Determine post_id and message
 	$post_id = ajax_request_int(POST_POST_URL);
@@ -303,97 +192,17 @@ else if ($mode == 'edit_post_text')
 		$highlight_match = phpbb_rtrim($highlight_match, "\\");
 	}
 	
-	// Check if data was submitted
-	if (empty($post_id) || empty($message))
+	require_once($phpbb_root_path .'includes/functions_ajax_storage.'. $phpEx);
+	try
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'No post_id or message specified'
-		);
-		AJAX_message_die($result_ar);
+		$edited = phpbb_ajax_edit_post($db, $post_id, 'text', stripslashes($message));
 	}
-	
-	$sql = 'SELECT p.poster_id, p.forum_id, p.enable_bbcode, p.enable_html, p.enable_smilies, t.topic_last_post_id, t.topic_status, p.post_edit_time, p.post_edit_count, u.username, p.post_username 
-	        FROM '. POSTS_TABLE .' p, '. POSTS_TEXT_TABLE .' pt, '. TOPICS_TABLE .' t, '. USERS_TABLE ." u 
-	        WHERE p.post_id = $post_id 
-	        AND p.topic_id = t.topic_id 
-	        AND p.poster_id = u.user_id 
-	        AND p.post_id = pt.post_id";
-	if (!($result = $db->sql_query($sql)))
+	catch (PhpbbAjaxStorageException $error)
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'Could not fetch post details'
-		);
-		AJAX_message_die($result_ar);
+		AJAX_message_die(array('result' => AJAX_ERROR, 'postid' => $post_id, 'error_msg' => $error->getMessage()));
 	}
-	$row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if (!$row)
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'Invalid post_id'
-		);
-		AJAX_message_die($result_ar);
-	}
-	$forum_id = $row['forum_id'];
-	
-	//Check auth settings
-	$is_auth = array();
-	$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
-	if (!$is_auth['auth_mod'] && (!$userdata['session_logged_in'] || empty($is_auth['auth_edit']) || $row['poster_id'] != $userdata['user_id'] || $row['topic_status'] == TOPIC_LOCKED))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'You are not allowed to edit this post'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	// Prepare message for posting and edit post text
-	$bbcode_uid = ($row['enable_bbcode']) ? make_bbcode_uid() : '';
-	$message = prepare_message(trim($message), $row['enable_html'], $row['enable_bbcode'], $row['enable_smilies'], $bbcode_uid);
-	$message = $row['enable_html'] ? stripslashes($message) : $message;
-	$message_sql = $db->sql_escape($message);
-	
-	$sql = 'UPDATE '. POSTS_TEXT_TABLE ."
-	        SET post_text = '$message_sql', bbcode_uid = '$bbcode_uid'
-	        WHERE post_id = $post_id";
-	if (!$db->sql_query($sql))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'postid' => $post_id,
-			'error_msg' => 'Could not update post'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	// Update post edited message (if necessary)
-	if (($row['poster_id'] == $userdata['user_id']) && ($post_id != $row['topic_last_post_id']))
-	{
-		$time_now = time();
-		$sql = 'UPDATE '. POSTS_TABLE ." 
-		        SET post_edit_time = $time_now, post_edit_count = post_edit_count + 1
-		        WHERE post_id = $post_id";
-		if (!$db->sql_query($sql))
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'postid' => $post_id,
-				'error_msg' => 'Could not update post edit information'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		$row['post_edit_time'] = $time_now;
-		$row['post_edit_count'] = ($row['post_edit_count'] == NULL) ? 0 : $row['post_edit_count'] + 1;
-	}
+	$row = $edited['post']; $forum_id = (int) $row['forum_id'];
+	$message = $edited['value']; $bbcode_uid = $edited['bbcode_uid'];
 	// Get new edited message
 	if ($row['post_edit_count'])
 	{
@@ -411,10 +220,6 @@ else if ($mode == 'edit_post_text')
 	}
 	
 	$raw_message = $message;
-	
-	// Refresh search index for this post (message only)
-	remove_search_post($post_id, False);
-	add_search_words('single', $post_id, $message);
 	
 	// Prepare the new raw message for the textarea
 	if (!empty($bbcode_uid))

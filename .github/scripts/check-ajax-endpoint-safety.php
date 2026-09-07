@@ -21,7 +21,8 @@ ajax_endpoint_assert(strpos($ajax, 'function ajax_request_value(') !== false, 'r
 ajax_endpoint_assert(strpos($ajax, '$allowed_modes = array_merge(') !== false, 'modes need an explicit allowlist');
 ajax_endpoint_assert(strpos($ajax, '$post_modes = array_merge(') !== false, 'mutations and previews must require POST');
 ajax_endpoint_assert(strpos($ajax, "!isset(\$HTTP_POST_VARS['sid']) || !is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'POST actions need a scalar session token in their body');
-ajax_endpoint_assert(substr_count($ajax, "empty(\$is_auth['auth_edit'])") >= 2, 'inline subject and text edits must enforce edit permission');
+$storage = file_get_contents($root . '/phpBB2/includes/functions_ajax_storage.php');
+ajax_endpoint_assert(substr_count($ajax, 'phpbb_ajax_edit_post($db, $post_id, ') === 2 && strpos($storage, "empty(\$is_auth['auth_edit'])") !== false, 'both inline edit modes must share the permission-checked storage worker');
 ajax_endpoint_assert(substr_count($ajax, "empty(\$is_auth['auth_view']) || empty(\$is_auth['auth_read'])") >= 4, 'poll, watch and mark endpoints must not expose unreadable forums');
 ajax_endpoint_assert(strpos($ajax, 'urlencode($HTTP_GET_VARS') === false, 'nested highlight input must not reach urlencode');
 ajax_endpoint_assert(strpos($ajax, '$username_sql = $db->sql_escape(') !== false, 'member lookup must use the database escape routine');

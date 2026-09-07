@@ -48,14 +48,17 @@
 	forum auth levels, this will prevent the auth function having to do its own
 	lookup
 */
-function auth($type, $forum_id, $userdata, $f_access = '')
+function auth($type, $forum_id, $userdata, $f_access = '', $database = null)
 {
-	global $db, $lang;
+	global $lang;
+	$db = $database !== null ? $database : $GLOBALS['db'];
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 	global $tree;
 
-	if ( !empty($tree['data']) )
+	// Locked storage callers request current permissions on their owning
+	// connection; do not replace them with a cached forum-tree snapshot.
+	if ( $database === null && !empty($tree['data']) )
 	{
 		$f_access = array();
 		if ( !empty($forum_id) )

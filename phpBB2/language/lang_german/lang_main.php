@@ -1628,5 +1628,7 @@ $lang['Moderation_delete_changed'] = 'Ein Beitrag wurde während der Themenlösc
 
 $lang['Posting_storage_failed'] = 'Der Beitragsvorgang konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits gespeichert sein. Bitte prüfe das Thema vor einem erneuten Versuch und wende dich bei Bedarf an den Administrator.';
 $lang['Posting_target_changed'] = 'Das Thema oder die Umfrage hat sich inzwischen geändert. Bitte öffne es erneut und prüfe den aktuellen Stand vor dem nächsten Absenden.';
+$lang['Ajax_edit_invalid_text'] = 'Der Text konnte nicht als gültiges UTF-8 verarbeitet werden. Bitte prüfe deine Eingabe.';
+$lang['Ajax_edit_too_large'] = 'Der Text ist für eine Direktbearbeitung zu lang. Bitte kürze ihn oder verwende den vollständigen Editor.';
 
 ?>

@@ -474,3 +474,6 @@ jobs:
 
       - name: Test posting lifecycle and stale-target coordination
         run: php .github/scripts/check-posting-lifecycle.php
+
+      - name: Test AJAX edit storage and current permissions
+        run: php .github/scripts/check-ajax-edit-storage.php
