@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Share numeric CrackerTracker bounds across runtime loading, central writes
+  and ACP forms. Reject malformed direct writes and footer choices without
+  coercion. Use canonical defaults for damaged stored numbers without changing
+  the database, and disclose the affected settings in the ACP.
 - Distinguish missing files from unreadable/disallowed paths in the
   CrackerTracker integrity report; malformed baseline hashes require a rebuild.
   Reject stream-wrapper paths before metadata/checksum access. Remove the

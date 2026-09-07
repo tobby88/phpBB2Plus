@@ -39,6 +39,7 @@ class ct_database
 	var $blocklist_count = 0;
 	var $verbose         = false;
 	var $user_ip_value   = '';
+	var $invalid_settings = array();
 
 	/**
 	 * <b>Constructor</b><br>
@@ -73,8 +74,15 @@ class ct_database
 		}
 
 		$runtime_defaults = $this->default_settings();
+		$numeric_ranges = $this->setting_ranges();
 		foreach ($runtime_defaults as $setting_name => $setting_value)
 		{
+			if (array_key_exists($setting_name, $this->settings) && isset($numeric_ranges[$setting_name]) &&
+				!$this->valid_numeric_setting($setting_name, $this->settings[$setting_name]))
+			{
+				$this->invalid_settings[$setting_name] = true;
+				$this->settings[$setting_name] = $setting_value;
+			}
 			if (!isset($this->settings[$setting_name]))
 			{
 				$this->settings[$setting_name] = $setting_value;
@@ -84,6 +92,56 @@ class ct_database
 				$this->fieldnames_set[] = $setting_name;
 			}
 		}
+	}
+
+	/** Shared bounds for runtime loading, write APIs and ACP forms. */
+	function setting_ranges()
+	{
+		static $ranges = array(
+			'ipblock_enabled' => array(0, 1), 'ipblock_logsize' => array(1, 400),
+			'search_feature_enabled' => array(0, 1), 'search_time_user' => array(1, 90),
+			'search_count_user' => array(1, 6), 'search_time_guest' => array(1, 90),
+			'search_count_guest' => array(1, 6), 'loginfeature' => array(0, 1),
+			'logsize_logins' => array(1, 400), 'logincount' => array(5, 20),
+			'login_history' => array(0, 1), 'login_history_count' => array(1, 60),
+			'login_ip_check' => array(0, 1), 'spammer_blockmode' => array(0, 1),
+			'spammer_postcount' => array(1, 12), 'spammer_time' => array(1, 90),
+			'reg_protection' => array(0, 1), 'reg_blocktime' => array(1, 200),
+			'pw_control' => array(0, 1), 'pw_validity' => array(6, 365),
+			'pw_complex' => array(0, 1), 'pw_complex_mode' => array(1, 9),
+			'pw_complex_min' => array(1, 20), 'pw_reset_feature' => array(0, 1),
+			'pwreset_time' => array(1, 180), 'massmail_protection' => array(0, 1),
+			'massmail_time' => array(1, 180), 'auto_recovery' => array(0, 1),
+			'vconfirm_guest' => array(0, 1), 'autoban_mails' => array(0, 1),
+			'detect_misconfiguration' => array(0, 1), 'spam_attack_boost' => array(0, 1),
+			'spam_keyword_det' => array(0, 2), 'request_limit_enabled' => array(0, 1),
+			'request_limit_login' => array(5, 100), 'request_limit_register' => array(1, 50),
+			'request_limit_account' => array(1, 100), 'request_limit_write' => array(20, 500),
+			'request_limit_upload' => array(1, 100), 'request_limit_content' => array(10, 200),
+			'global_message_type' => array(0, 1), 'footer_layout' => array(1, 8),
+			'password_timestamps_split' => array(0, 1),
+			'last_file_scan' => array(0, PHP_INT_MAX), 'last_checksum_scan' => array(0, PHP_INT_MAX)
+		);
+		return $ranges;
+	}
+
+	function valid_numeric_setting($setting, $value)
+	{
+		$ranges = $this->setting_ranges();
+		if (!is_string($setting) || !isset($ranges[$setting]) || (!is_string($value) && !is_int($value)))
+		{
+			return false;
+		}
+		$value = (string) $value;
+		$max = (string) PHP_INT_MAX;
+		if ($value === '' || strlen($value) > strlen($max) ||
+			strspn($value, '0123456789') !== strlen($value) ||
+			(strlen($value) > 1 && $value[0] === '0') ||
+			(strlen($value) === strlen($max) && strcmp($value, $max) > 0))
+		{
+			return false;
+		}
+		return (int) $value >= $ranges[$setting][0] && (int) $value <= $ranges[$setting][1];
 	}
 
 
@@ -168,7 +226,18 @@ class ct_database
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config']);
 		}
-		$value = ($setting === 'global_message') ? $this->normalize_global_message($value) : trim((string) $value);
+		if ($setting === 'global_message')
+		{
+			$value = $this->normalize_global_message($value);
+		}
+		else
+		{
+			if (!$this->valid_numeric_setting($setting, $value))
+			{
+				message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config']);
+			}
+			$value = (string) $value;
+		}
 
 		// INSERT ... ON DUPLICATE KEY UPDATE also repairs a missing row. A plain
 		// UPDATE silently affected zero rows in partially upgraded databases.
@@ -184,6 +253,7 @@ class ct_database
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_config'], '', __LINE__, __FILE__, $sql);
 		}
 		$this->settings[$setting] = $value;
+		unset($this->invalid_settings[$setting]);
 	}
 
 	/** Preserve complete UTF-8 announcements within the VARCHAR(255) limit. */
@@ -218,6 +288,7 @@ class ct_database
 		}
 		$this->settings['global_message_type'] = $type;
 		$this->settings['global_message'] = $message;
+		unset($this->invalid_settings['global_message_type']);
 	}
 
 

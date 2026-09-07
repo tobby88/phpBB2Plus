@@ -21,7 +21,7 @@ if ( !defined('IN_PHPBB') || !defined('CTRACKER_ACP') )
 /*
  * Include footer file
  */
-include($phpbb_root_path . 'ctracker/engines/ct_footer.' . $phpEx);
+include_once($phpbb_root_path . 'ctracker/engines/ct_footer.' . $phpEx);
 
 
 /*
@@ -38,9 +38,12 @@ $template->set_filenames(array(
 if ( isset($HTTP_POST_VARS['submit']) )
 {
 	phpbb_admin_require_post_session();
-	$footer_layout = min(8, max(1, intval(phpbb_admin_post_string('footer_layout', '1'))));
+	$footer_layout = isset($_POST['footer_layout']) ? $_POST['footer_layout'] : null;
+	if (!is_string($footer_layout) || !$ctracker_config->valid_numeric_setting('footer_layout', $footer_layout))
+	{
+		message_die(GENERAL_MESSAGE, sprintf($lang['ctracker_error_settings_input'], 'footer_layout'));
+	}
 	$ctracker_config->change_configuration('footer_layout', $footer_layout);
-	$ctracker_config->settings['footer_layout'] = $footer_layout;
 	$template->assign_block_vars('infobox', array());
 }
 

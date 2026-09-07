@@ -1,5 +1,8 @@
 <h1>{L_CT_HEAD}</h1>
 <p>{L_CT_EXPL}</p>
+<!-- BEGIN config_fallback -->
+<p class="genmed" role="alert">{config_fallback.MESSAGE}</p>
+<!-- END config_fallback -->
 
 <br />
 

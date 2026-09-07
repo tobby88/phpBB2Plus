@@ -406,3 +406,6 @@ jobs:
 
       - name: Test CrackerTracker integrity report and persisted path boundaries
         run: php .github/scripts/check-ctracker-integrity-report.php
+
+      - name: Test CrackerTracker numeric configuration across write and load paths
+        run: php .github/scripts/check-ctracker-numeric-config.php
