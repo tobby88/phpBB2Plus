@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate complete ACP orphan-attachment selections under the shared writer
+  lock before mutation. Protect newly registered references and unfinished
+  uploads with a minimum 24-hour file-age check (unknown FTP ages stay hidden).
+  Reserve unregistered names during cleanup, remove stale links before files,
+  preserve shared file bytes and failed-cleanup metadata, and synchronize
+  affected post/PM flags. Explicit subsequent cleanup can finish retained
+  orphans. Check real post/PM existence without zero-placeholder false positives.
+  No schema migration is required; reservations use attachment descriptions.
 - Coordinate attachment publication, sent-PM copies and regular deletion with
   a database-scoped lock on a dedicated nonpersistent connection. Keep protected
   SQL and publication flags on the owning session; connection loss cannot use

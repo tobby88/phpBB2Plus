@@ -24,7 +24,7 @@ if (!isset($lang) || !is_array($lang))
 
 // Modules, this replaces the keys used
 $lang['Control_Panel'] = 'Kontrollzentrum';
-$lang['Shadow_attachments'] = '"Versteckte" Attachments';
+$lang['Shadow_attachments'] = 'Verwaiste Anhänge';
 $lang['Forbidden_extensions'] = 'Verbotene Dateiendungen';
 $lang['Extension_control'] = 'Bearbeite Erweiterungen';
 $lang['Extension_group_manage'] = 'Bearbeite Dateiendungsgruppen';
@@ -86,9 +86,12 @@ $lang['Ftp_passive_mode_explain'] = 'Das PASV Kommando erzwingt das öffnen eine
 $lang['No_ftp_extensions_installed'] = 'Du kannst die FTP Upload Methode nicht verwenden, da die FTP Erweiterungen nicht in deiner PHP Installation integriert/installiert wurden.';
 
 // Attachments -> Shadow Attachments
-$lang['Shadow_attachments_explain'] = 'Hier kannst du die Attachments löschen, die einer Nachricht zugeordnet sind aber nicht mehr existieren und die Dateien, die zwar existieren aber in keiner Nachricht auftauchen. Du kannst dir die existierenden Dateien angucken oder herunterladen wenn du auf diese klickst. Wenn kein Link existiert, dann gibt es diese Datei auch nicht mehr im Dateisystem.';
-$lang['Shadow_attachments_file_explain'] = 'Alle Attachments löschen die im Dateisystem verblieben sind aber keiner Nachricht zugeordnet werden kann.';
-$lang['Shadow_attachments_row_explain'] = 'Alle Attachments Informationen löschen die auf nicht vorhandene Attachments im Dateisystem verweisen.';
+$lang['Shadow_attachments_explain'] = 'Hier kannst du nicht mehr verwendete Anhangdateien und unvollständige Datenbankeinträge gezielt bereinigen. Eine Datenbankzeile kann verwaist sein, weil die Datei, die Nachricht oder deren Verknüpfung fehlt. Die Auswahl wird beim Absenden erneut geprüft; inzwischen verwendete Anhänge werden nicht gelöscht. Bei einem Fehler bitte die Liste neu laden und verbliebene Einträge prüfen.';
+$lang['Shadow_attachments_file_explain'] = 'Nicht registrierte Dateien werden erst nach mindestens 24 Stunden angezeigt. Neuere Dateien können zu noch nicht abgesendeten Beiträgen gehören. Ohne verlässliches Änderungsdatum (z. B. bei manchen FTP-Servern) werden sie nicht zur Bereinigung angeboten. Die Auswahl wird vor dem Löschen erneut geprüft.';
+$lang['Shadow_attachments_row_explain'] = 'Verwaiste Datenbankeinträge und Verknüpfungen bereinigen. Fehlende Dateien oder Nachrichten werden vor dem Löschen erneut geprüft. Nicht mehr verwendete Dateien werden mit entfernt; bei Fehlern bleiben Wiederherstellungsinformationen erhalten.';
+$lang['Attachment_shadow_pending'] = 'Die Auswahl enthält eine noch nicht mindestens 24 Stunden alte Datei oder ihr Alter konnte nicht sicher bestimmt werden. Es wurde nichts gelöscht. Bitte lade die Liste neu.';
+$lang['Attachment_shadow_changed'] = 'Die Anhang-Auswahl ist nicht mehr aktuell oder enthält einen inzwischen verwendeten Anhang. Es wurde nichts gelöscht. Bitte lade die Liste neu.';
+$lang['Attachment_shadow_database_failed'] = 'Die Anhang-Bereinigung wurde wegen eines Datenbankfehlers abgebrochen. Bereits abgeschlossene Schritte bleiben bestehen; vorhandene Wiederherstellungsinformationen werden nicht verworfen. Bitte lade die Liste neu.';
 $lang['Empty_file_entry'] = 'Leerer Dateieintrag';
 
 // Attachments -> Sync

@@ -50,6 +50,7 @@ else
 
 include($phpbb_root_path . 'attach_mod/includes/functions_selects.' . $phpEx);
 include($phpbb_root_path . 'attach_mod/includes/functions_admin.' . $phpEx);
+include($phpbb_root_path . 'attach_mod/includes/functions_shadow.' . $phpEx);
 
 // Check if the language got included
 if (!isset($lang['Test_settings_successful']))
@@ -383,40 +384,10 @@ if ($mode == 'manage')
 // Shadow Attachments
 if ($submit && $mode == 'shadow')
 {
-	// Delete Attachments from file system...
-	$attach_file_list = attach_shadow_selected_files(isset($HTTP_POST_VARS['attach_file_list']) ? $HTTP_POST_VARS['attach_file_list'] : array());
-	
-	for ($i = 0; $i < sizeof($attach_file_list); $i++)
-	{
-		unlink_attach($attach_file_list[$i]);
-		unlink_attach($attach_file_list[$i], MODE_THUMBNAIL);
-	}
-	
-	// Delete Attachments from table...
-	$attach_id_list = get_var('attach_id_list', array(0));
-
-	$attach_id_sql = implode(', ', $attach_id_list);
-
-	if ($attach_id_sql != '')
-	{
-		$sql = 'DELETE 
-			FROM ' . ATTACHMENTS_DESC_TABLE . ' 
-			WHERE attach_id IN (' . $attach_id_sql . ')';
-
-		if (!$result = $db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Could not delete attachment entries', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql = 'DELETE 
-			FROM ' . ATTACHMENTS_TABLE . ' 
-			WHERE attach_id IN (' . $attach_id_sql . ')';
-
-		if (!$result = $db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Could not delete attachment entries', '', __LINE__, __FILE__, $sql);
-		}
-	}
+	attach_shadow_cleanup(
+		isset($HTTP_POST_VARS['attach_file_list']) ? $HTTP_POST_VARS['attach_file_list'] : array(),
+		isset($HTTP_POST_VARS['attach_id_list']) ? $HTTP_POST_VARS['attach_id_list'] : array()
+	);
 
 	$message = $lang['Attach_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=shadow") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
@@ -576,6 +547,7 @@ if ($mode == 'shadow')
 		}
 	}
 
+	$shadow_attachments = attach_shadow_expired_files($shadow_attachments);
 	for ($i = 0; $i < sizeof($shadow_attachments); $i++)
 	{
 		$template->assign_block_vars('file_shadow_row', array(

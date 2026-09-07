@@ -279,67 +279,20 @@ function sort_multi_array ($sort_array, $key, $sort_order, $pre_string_sort = 0)
 	return $sort_array;
 }
 
-/**
-* See if a post or pm really exist
-*/
-function entry_exists($attach_id)
+// A valid post OR PM reference keeps a description in use. Zero placeholders
+// must not reuse the preceding query or count as an existing message.
+function entry_exists($attach_id, $database = null)
 {
-	global $db;
-
-	$attach_id = (int) $attach_id;
-
-	if (!$attach_id)
-	{
-		return false;
-	}
-	
-	$sql = 'SELECT post_id, privmsgs_id
-		FROM ' . ATTACHMENTS_TABLE . "
-		WHERE attach_id = $attach_id";
+	$db = $database === null ? $GLOBALS['db'] : $database;
+	if ((int) $attach_id <= 0) { return false; }
+	$sql = 'SELECT a.attach_id FROM ' . ATTACHMENTS_TABLE . ' a
+		LEFT JOIN ' . POSTS_TABLE . ' p ON p.post_id = a.post_id AND a.post_id > 0
+		LEFT JOIN ' . PRIVMSGS_TABLE . ' m ON m.privmsgs_id = a.privmsgs_id AND a.privmsgs_id > 0
+		WHERE a.attach_id = ' . (int) $attach_id . ' AND (p.post_id IS NOT NULL OR m.privmsgs_id IS NOT NULL) LIMIT 1';
 	$result = $db->sql_query($sql);
-
-	if (!$result)
-	{
-		message_die(GENERAL_ERROR, 'Could not get Entry', '', __LINE__, __FILE__, $sql);
-	}
-
-	$ids = $db->sql_fetchrowset($result);
-	$num_ids = $db->sql_numrows($result);
+	if (!$result) { message_die(GENERAL_ERROR, 'Could not check attachment references'); }
+	$exists = $db->sql_numrows($result) > 0;
 	$db->sql_freeresult($result);
-
-	$exists = false;
-	
-	for ($i = 0; $i < $num_ids; $i++)
-	{
-		if (intval($ids[$i]['post_id']) != 0)
-		{
-			$sql = 'SELECT post_id
-				FROM ' . POSTS_TABLE . '
-				WHERE post_id = ' . intval($ids[$i]['post_id']);
-		}
-		else if (intval($ids[$i]['privmsgs_id']) != 0)
-		{
-			$sql = 'SELECT privmsgs_id
-				FROM ' . PRIVMSGS_TABLE . '
-				WHERE privmsgs_id = ' . intval($ids[$i]['privmsgs_id']);
-		}
-		$result = $db->sql_query($sql);
-
-		if (!$result)
-		{
-			message_die(GENERAL_ERROR, 'Could not get Entry', '', __LINE__, __FILE__, $sql);
-		}
-	
-		$num_rows = $db->sql_numrows($result);
-		$db->sql_freeresult($result);
-
-		if ($num_rows > 0)
-		{
-			$exists = true;
-			break;
-		}
-	}
-
 	return $exists;
 }
 

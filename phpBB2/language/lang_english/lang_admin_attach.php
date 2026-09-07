@@ -24,7 +24,7 @@ if (!isset($lang) || !is_array($lang))
 
 // Modules, this replaces the keys used
 $lang['Control_Panel'] = 'Control Panel';
-$lang['Shadow_attachments'] = 'Shadow Attachments';
+$lang['Shadow_attachments'] = 'Orphan attachments';
 $lang['Forbidden_extensions'] = 'Forbidden Extensions';
 $lang['Extension_control'] = 'Extension Control';
 $lang['Extension_group_manage'] = 'Extension Groups Control';
@@ -86,9 +86,12 @@ $lang['Ftp_passive_mode_explain'] = 'The PASV command requests that the remote s
 $lang['No_ftp_extensions_installed'] = 'You are not able to use the FTP Upload Methods, because FTP Extensions are not compiled into your PHP Installation.';
 
 // Attachments -> Shadow Attachments
-$lang['Shadow_attachments_explain'] = 'Here you can delete attachment data from postings when the files are missing from your filesystem, and delete files that are no longer attached to any postings. You can download or view a file if you click on it; if no link is present, the file does not exist.';
-$lang['Shadow_attachments_file_explain'] = 'Delete all attachments files that exist on your filesystem and are not assigned to an existing post.';
-$lang['Shadow_attachments_row_explain'] = 'Delete all posting attachment data for files that don\'t exist on your filesystem.';
+$lang['Shadow_attachments_explain'] = 'Select unused attachment files and incomplete database entries for cleanup. A database entry can be orphaned because its file, message or link is missing. The selection is checked again on submission; attachments now in use are not deleted. After a failure, reload the list and review the remaining entries.';
+$lang['Shadow_attachments_file_explain'] = 'Unregistered files are listed only when they are at least 24 hours old. Newer files may belong to unfinished posts. Files without a reliable modification time (for example on some FTP servers) are not offered for cleanup. The selection is checked again before deletion.';
+$lang['Shadow_attachments_row_explain'] = 'Clean up orphaned database entries and links. Missing files or messages are checked again before deletion. Unused files are removed too; failures retain recovery information.';
+$lang['Attachment_shadow_pending'] = 'The selection includes a file less than 24 hours old or its age could not be verified. Nothing was deleted. Please reload the list.';
+$lang['Attachment_shadow_changed'] = 'The attachment selection is stale or includes an attachment that is now in use. Nothing was deleted. Please reload the list.';
+$lang['Attachment_shadow_database_failed'] = 'Attachment cleanup stopped after a database error. Already completed steps remain in effect; existing recovery information is retained. Please reload the list.';
 $lang['Empty_file_entry'] = 'Empty File Entry';
 
 // Attachments -> Sync

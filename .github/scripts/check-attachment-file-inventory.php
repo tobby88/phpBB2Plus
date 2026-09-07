@@ -132,16 +132,16 @@ class SyncDatabase
 	function sql_freeresult($result) {}
 }
 $controller = file_get_contents($forum_root . 'admin/admin_attachments.php');
-$start = strpos($controller, "\t// Delete Attachments from file system...");
-$end = strpos($controller, "\t// Delete Attachments from table...", $start);
-inventory_check($start !== false && $end > $start, 'Locate actual shadow file-deletion branch');
-$delete_branch = substr($controller, $start, $end - $start);
+inventory_check(strpos($controller, 'attach_shadow_cleanup(') !== false, 'ACP delegates cleanup to the shared locked helper');
+// Exact-name validation stays isolated here; full deletion/DB coordination and
+// all orphan variants are executed by check-attachment-shadow.php.
 $attach_config['allow_ftp_upload'] = '1';
 foreach (array(array(' leading '), array('0', 'missing'), array('../0'), array('.htaccess'), array(array('0')), 'invalid') as $selection)
 {
 	reset_inventory($unix); $HTTP_POST_VARS = array('attach_file_list' => $selection); $caught = false;
-	try { eval('namespace AttachmentInventoryFixture; ' . $delete_branch); } catch (InventoryFailure $error) { $caught = true; }
-	if ($selection === array(' leading ')) { inventory_check(!$caught && $GLOBALS['inventory_deletes'] === array(array(' leading ', false), array(' leading ', MODE_THUMBNAIL)), 'Deletion uses the exact displayed filename, without trimming'); }
+	$selected = array();
+	try { $selected = attach_shadow_selected_files($selection); } catch (InventoryFailure $error) { $caught = true; }
+	if ($selection === array(' leading ')) { inventory_check(!$caught && $selected === array(' leading '), 'Selection preserves the exact displayed filename, without trimming'); }
 	else { inventory_check($caught && !$GLOBALS['inventory_deletes'], 'Validate the whole submitted selection before any file deletion'); }
 }
 reset_inventory(array('-rw-r--r-- 1 owner group 2 Sep 7 12:34 name&quote\'.txt'));

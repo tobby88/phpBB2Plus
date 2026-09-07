@@ -441,3 +441,6 @@ jobs:
 
       - name: Test attachment publication and deletion coordination
         run: php .github/scripts/check-attachment-mutation.php
+
+      - name: Test attachment orphan cleanup and pending upload protection
+        run: php .github/scripts/check-attachment-shadow.php
