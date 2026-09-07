@@ -71,12 +71,20 @@ function phpbb_search_no_results($show_results, $is_ajax)
 	message_die(GENERAL_MESSAGE, $lang[($show_results === 'bookmarks') ? 'No_Bookmarks' : 'No_search_match']);
 }
 
+// Match PHP 8's locale-independent ASCII folding on older supported runtimes.
+// Byte-oriented strtolower under a non-C locale can corrupt UTF-8 on PHP 5/7.
+// Do not introduce extension-dependent Unicode folding into an existing index.
+function phpbb_search_ascii_lower($text)
+{
+	return strtr((string) $text, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz');
+}
+
 function clean_words($mode, $entry, &$stopword_list, &$synonym_list)
 {
 	static $drop_char_match =   array('^', '$', '&', '(', ')', '<', '>', '`', '\'', '"', '|', ',', '@', '_', '?', '%', '-', '~', '+', '.', '[', ']', '{', '}', ':', '\\', '/', '=', '#', '\'', ';', '!');
 	static $drop_char_replace = array(' ', ' ', ' ', ' ', ' ', ' ', ' ', '',  '',   ' ', ' ', ' ', ' ', '',  ' ', ' ', '',  ' ',  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' , ' ', ' ', ' ', ' ',  ' ', ' ');
 
-	$entry = ' ' . strip_tags(strtolower($entry)) . ' ';
+	$entry = ' ' . strip_tags(phpbb_search_ascii_lower($entry)) . ' ';
 
 	if ( $mode == 'post' )
 	{
@@ -130,7 +138,7 @@ function clean_words($mode, $entry, &$stopword_list, &$synonym_list)
 	{
 		for ($j = 0; $j < count($synonym_list); $j++)
 		{
-			list($replace_synonym, $match_synonym) = explode(' ', trim(strtolower($synonym_list[$j])));
+			list($replace_synonym, $match_synonym) = explode(' ', trim(phpbb_search_ascii_lower($synonym_list[$j])));
 			if ( $mode == 'post' || ( $match_synonym != 'not' && $match_synonym != 'and' && $match_synonym != 'or' ) )
 			{
 				$entry =  str_replace(' ' . trim($match_synonym) . ' ', ' ' . trim($replace_synonym) . ' ', $entry);
@@ -154,9 +162,13 @@ function split_words($entry, $mode = 'post')
 	return explode(' ', trim(preg_replace('#\s+#', ' ', $entry)));
 }
 
-function add_search_words($mode, $post_id, $post_text, $post_title = '')
+function add_search_words($mode, $post_id, $post_text, $post_title = '', $database = null)
 {
-	global $db, $phpbb_root_path, $board_config, $lang;
+	global $phpbb_root_path, $board_config, $lang;
+	$db = $database !== null ? $database : $GLOBALS['db'];
+	$post_ids = phpbb_search_post_ids($post_id);
+	if (count($post_ids) !== 1) { message_die(GENERAL_ERROR, 'Invalid search index post selection'); }
+	$post_id = $post_ids[0];
 
 	$stopword_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_stopwords.txt");
 	$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_synonyms.txt");
@@ -181,9 +193,9 @@ function add_search_words($mode, $post_id, $post_text, $post_title = '')
 				if( $search_matches[$i] != '' )
 				{
 					$word[] = $search_matches[$i];
-					if ( !strstr($word_insert_sql[$word_in], "'" . $search_matches[$i] . "'") )
+					if ( !strstr($word_insert_sql[$word_in], "'" . $db->sql_escape($search_matches[$i]) . "'") )
 					{
-						$word_insert_sql[$word_in] .= ( $word_insert_sql[$word_in] != "" ) ? ", '" . $search_matches[$i] . "'" : "'" . $search_matches[$i] . "'";
+						$word_insert_sql[$word_in] .= ( $word_insert_sql[$word_in] != "" ) ? ", '" . $db->sql_escape($search_matches[$i]) . "'" : "'" . $db->sql_escape($search_matches[$i]) . "'";
 					}
 				}
 			}
@@ -202,7 +214,7 @@ function add_search_words($mode, $post_id, $post_text, $post_title = '')
 			if ( $word[$i] != $prev_word )
 			{
 				$temp_word[] = $word[$i];
-				$word_text_sql .= ( ( $word_text_sql != '' ) ? ', ' : '' ) . "'" . $word[$i] . "'";
+				$word_text_sql .= ( ( $word_text_sql != '' ) ? ', ' : '' ) . "'" . $db->sql_escape($word[$i]) . "'";
 			}
 			$prev_word = $word[$i];
 		}
@@ -248,15 +260,15 @@ function add_search_words($mode, $post_id, $post_text, $post_title = '')
 					case 'mysql':
 					case 'mysql4':
 					case 'mysqli':
-						$value_sql .= ( ( $value_sql != '' ) ? ', ' : '' ) . '(\'' . $word[$i] . '\', 0)';
+						$value_sql .= ( ( $value_sql != '' ) ? ', ' : '' ) . '(\'' . $db->sql_escape($word[$i]) . '\', 0)';
 						break;
 					case 'mssql':
 					case 'mssql-odbc':
-						$value_sql .= ( ( $value_sql != '' ) ? ' UNION ALL ' : '' ) . "SELECT '" . $word[$i] . "', 0";
+						$value_sql .= ( ( $value_sql != '' ) ? ' UNION ALL ' : '' ) . "SELECT '" . $db->sql_escape($word[$i]) . "', 0";
 						break;
 					default:
 						$sql = "INSERT INTO " . SEARCH_WORD_TABLE . " (word_text, word_common)
-							VALUES ('" . $word[$i] . "', 0)";
+							VALUES ('" . $db->sql_escape($word[$i]) . "', 0)";
 						if( !$db->sql_query($sql) )
 						{
 							message_die(GENERAL_ERROR, 'Could not insert new word', '', __LINE__, __FILE__, $sql);
@@ -299,7 +311,7 @@ function add_search_words($mode, $post_id, $post_text, $post_title = '')
 			$sql = "INSERT INTO " . SEARCH_MATCH_TABLE . " (post_id, word_id, title_match)
 				SELECT $post_id, word_id, $title_match
 					FROM " . SEARCH_WORD_TABLE . "
-					WHERE word_text IN ($match_sql)";
+					WHERE word_text IN ($match_sql) AND word_common = 0";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Could not insert new word matches', '', __LINE__, __FILE__, $sql);
@@ -309,7 +321,7 @@ function add_search_words($mode, $post_id, $post_text, $post_title = '')
 
 	if ($mode == 'single')
 	{
-		remove_common('single', 4/10, $word);
+		remove_common('single', 4/10, $word, $db);
 	}
 
 	return;
@@ -318,9 +330,10 @@ function add_search_words($mode, $post_id, $post_text, $post_title = '')
 //
 // Check if specified words are too common now
 //
-function remove_common($mode, $fraction, $word_id_list = array())
+function remove_common($mode, $fraction, $word_id_list = array(), $database = null)
 {
-	global $db;
+	$db = $database !== null ? $database : $GLOBALS['db'];
+	if ($mode === 'single' && !$word_id_list) { return; }
 
 	$sql = "SELECT COUNT(post_id) AS total_posts
 		FROM " . POSTS_TABLE;
@@ -340,7 +353,7 @@ function remove_common($mode, $fraction, $word_id_list = array())
 			$word_id_sql = '';
 			for($i = 0; $i < count($word_id_list); $i++)
 			{
-				$word_id_sql .= ( ( $word_id_sql != '' ) ? ', ' : '' ) . "'" . $word_id_list[$i] . "'";
+				$word_id_sql .= ( ( $word_id_sql != '' ) ? ', ' : '' ) . "'" . $db->sql_escape($word_id_list[$i]) . "'";
 			}
 
 			$sql = "SELECT m.word_id
@@ -348,14 +361,14 @@ function remove_common($mode, $fraction, $word_id_list = array())
 				WHERE w.word_text IN ($word_id_sql)
 					AND m.word_id = w.word_id
 				GROUP BY m.word_id
-				HAVING COUNT(m.word_id) > $common_threshold";
+				HAVING COUNT(DISTINCT m.post_id) > $common_threshold";
 		}
 		else
 		{
 			$sql = "SELECT word_id
 				FROM " . SEARCH_MATCH_TABLE . "
 				GROUP BY word_id
-				HAVING COUNT(word_id) > $common_threshold";
+				HAVING COUNT(DISTINCT post_id) > $common_threshold";
 		}
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -392,99 +405,62 @@ function remove_common($mode, $fraction, $word_id_list = array())
 	return;
 }
 
-function remove_search_post($post_id_sql, $remove_subject = true, $remove_message = true)
+// Internal callers may pass one ID, a comma-separated list or an ID array.
+// Never let an empty or malformed selection broaden a destructive query.
+function phpbb_search_post_ids($selection)
 {
-	global $db;
-
-	$words_removed = false;
-
-	$where_sql = '';
-	if (!$remove_subject || !$remove_message)
+	if ($selection === '' || $selection === array()) { return array(); }
+	$values = is_array($selection) ? $selection : explode(',', is_int($selection) || is_string($selection) ? (string) $selection : '');
+	$ids = array();
+	foreach ($values as $value)
 	{
-		$where_sql = ' AND title_match = '. (($remove_subject) ? 1 : 0);
+		if (!is_int($value) && !is_string($value)) { message_die(GENERAL_ERROR, 'Invalid search index post selection'); }
+		$value = trim((string) $value);
+		$canonical = ltrim($value, '0');
+		if (!preg_match('/^[0-9]+$/D', $value) || $canonical === '' || (string) intval($value) !== $canonical)
+		{
+			message_die(GENERAL_ERROR, 'Invalid search index post selection');
+		}
+		$ids[intval($value)] = intval($value);
 	}
+	return array_values($ids);
+}
 
-	switch ( SQL_LAYER )
+function remove_search_post($post_id_sql, $remove_subject = true, $remove_message = true, $database = null)
+{
+	$db = $database !== null ? $database : $GLOBALS['db'];
+	$post_ids = phpbb_search_post_ids($post_id_sql);
+	if (!$post_ids || (!$remove_subject && !$remove_message)) { return false; }
+	$post_id_sql = implode(', ', $post_ids);
+	$where_sql = (!$remove_subject || !$remove_message) ? ' AND title_match = ' . ($remove_subject ? 1 : 0) : '';
+
+	$sql = 'SELECT DISTINCT word_id FROM ' . SEARCH_MATCH_TABLE . " WHERE post_id IN ($post_id_sql) $where_sql";
+	if (!($result = $db->sql_query($sql)))
 	{
-		case 'mysql':
-		case 'mysql4':
-		case 'mysqli':
-			$sql = "SELECT word_id
-				FROM " . SEARCH_MATCH_TABLE . "
-				WHERE post_id IN ($post_id_sql)
-				$where_sql
-				GROUP BY word_id";
-			if ( $result = $db->sql_query($sql) )
-			{
-				$word_id_sql = '';
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$word_id_sql .= ( $word_id_sql != '' ) ? ', ' . $row['word_id'] : $row['word_id'];
-				}
-
-				$sql = "SELECT word_id
-					FROM " . SEARCH_MATCH_TABLE . "
-					WHERE word_id IN ($word_id_sql)
-					$where_sql
-					GROUP BY word_id
-					HAVING COUNT(word_id) = 1";
-				if ( $result = $db->sql_query($sql) )
-				{
-					$word_id_sql = '';
-					while ( $row = $db->sql_fetchrow($result) )
-					{
-						$word_id_sql .= ( $word_id_sql != '' ) ? ', ' . $row['word_id'] : $row['word_id'];
-					}
-
-					if ( $word_id_sql != '' )
-					{
-						$sql = "DELETE FROM " . SEARCH_WORD_TABLE . "
-							WHERE word_id IN ($word_id_sql)";
-						if ( !$db->sql_query($sql) )
-						{
-							message_die(GENERAL_ERROR, 'Could not delete word list entry', '', __LINE__, __FILE__, $sql);
-						}
-
-						$words_removed = $db->sql_affectedrows();
-					}
-				}
-			}
-			break;
-
-		default:
-			$sql = "DELETE FROM " . SEARCH_WORD_TABLE . "
-				WHERE word_id IN (
-					SELECT word_id
-					FROM " . SEARCH_MATCH_TABLE . "
-					WHERE word_id IN (
-						SELECT word_id
-						FROM " . SEARCH_MATCH_TABLE . "
-						WHERE post_id IN ($post_id_sql)
-						$where_sql
-						GROUP BY word_id
-					)
-					$where_sql
-					GROUP BY word_id
-					HAVING COUNT(word_id) = 1
-				)";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete old words from word table', '', __LINE__, __FILE__, $sql);
-			}
-
-			$words_removed = $db->sql_affectedrows();
-
-			break;
+		message_die(GENERAL_ERROR, 'Could not obtain search word matches', '', __LINE__, __FILE__, $sql);
 	}
+	$word_ids = array();
+	while ($row = $db->sql_fetchrow($result)) { $word_ids[] = intval($row['word_id']); }
+	$db->sql_freeresult($result);
 
-	$sql = "DELETE FROM " . SEARCH_MATCH_TABLE . "
-		WHERE post_id IN ($post_id_sql) $where_sql";
-	if ( !$db->sql_query($sql) )
+	// Remove the requested references first. A word used by any surviving post,
+	// title or body must remain, including references outside this selection.
+	$sql = 'DELETE FROM ' . SEARCH_MATCH_TABLE . " WHERE post_id IN ($post_id_sql) $where_sql";
+	if (!$db->sql_query($sql))
 	{
-		message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, 'Could not delete word match entry', '', __LINE__, __FILE__, $sql);
 	}
+	if (!$word_ids) { return false; }
 
-	return $words_removed;
+	$word_id_sql = implode(', ', $word_ids);
+	$sql = 'DELETE FROM ' . SEARCH_WORD_TABLE . " WHERE word_id IN ($word_id_sql) AND word_common = 0"
+		. ' AND NOT EXISTS (SELECT 1 FROM ' . SEARCH_MATCH_TABLE
+		. ' WHERE ' . SEARCH_MATCH_TABLE . '.word_id = ' . SEARCH_WORD_TABLE . '.word_id)';
+	if (!$db->sql_query($sql))
+	{
+		message_die(GENERAL_ERROR, 'Could not delete word list entry', '', __LINE__, __FILE__, $sql);
+	}
+	return $db->sql_affectedrows();
 }
 
 //

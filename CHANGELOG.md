@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve search words still used by another post, title or body when removing
+  selected index references. Handle empty indexes and batch deletions, validate
+  post IDs and report storage errors instead of continuing with incomplete reads.
+  Count distinct posts for common-word thresholds, retain common-word markers and
+  avoid republishing their matches. Escape indexed words with the chosen driver;
+  allow explicit connections for coordinated callers. Use locale-independent
+  ASCII folding on PHP 5/7 as on PHP 8, without corrupting UTF-8 word bytes.
+  No schema migration; an
+  offline search-index rebuild can recover previously missing derived matches.
+  These helpers alone do not serialize concurrent posting/editing requests.
 - Coordinate moderator topic deletion with attachment writers on one owning DB
   connection. Requalify topics/posts against the authorized forum and decrement
   personal counters only after the corresponding post was actually removed,

@@ -230,6 +230,12 @@ Older databases that already contain UTF-8 bytes in columns labelled as
 Latin-1 need individual inspection—an unchecked conversion can create
 mojibake.
 
+After upgrading from an older indexer, missing matches caused by partial title/
+text edits or incorrect common-word counts can be recovered with the same search
+index rebuild command above. Use a backed-up maintenance window without concurrent
+posts or edits: rebuilding clears derived index data, not stored posts. Code
+updates alone do not reconstruct old missing matches or reclassify old markers.
+
 The main `config` table now uses InnoDB so CrackerTracker configuration restores
 commit together or roll back on failure. The post-1.53a updater converts this
 table without changing its columns or values; unrelated MyISAM tables remain

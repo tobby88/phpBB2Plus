@@ -468,3 +468,6 @@ jobs:
 
       - name: Test moderated topic deletion and attachment coordination
         run: php .github/scripts/check-moderated-topic-deletion.php
+
+      - name: Test search index storage and partial-edit cleanup
+        run: php .github/scripts/check-search-index-storage.php
