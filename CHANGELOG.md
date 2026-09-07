@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Route user-pruning private messages through guarded text/attachment cleanup,
+  rechecking that the account is still absent. Keep other users' delivered and
+  archived copies, anonymize their removed participant, and include pending
+  NEW/UNREAD mail consistently with database maintenance. Recount affected
+  inboxes and retain shared files until the last reference is removed.
+- Authorize private-message attachment downloads against the existing parent
+  and current mailbox owner, not stale participant IDs in attachment links.
+  Reject guest/deleted-user identities and orphan links. No schema migration.
 - Recheck account-pruning eligibility in the user DELETE before dependent
   changes, and stop inactive-account group cleanup when no user was deleted.
   Limit personal-group cleanup to the removed account, preserving groups that

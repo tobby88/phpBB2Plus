@@ -20,6 +20,7 @@ define('IN_PHPBB', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_privmsgs.' . $phpEx);
 
 //
 // Delete the / * to uncomment the block, and edit the values (read the comments) to
@@ -342,7 +343,7 @@ for ($i = 0; $i < $num_auth_pages && $authorised == false; $i++)
 	}
 	else
 	{
-		if ( (intval($attach_config['allow_pm_attach'])) && ( ($userdata['user_id'] == $auth_pages[$i]['user_id_2']) || ($userdata['user_id'] == $auth_pages[$i]['user_id_1']) ) || ($userdata['user_level'] == ADMIN) )
+		if (phpbb_pm_attachment_access($db, $auth_pages[$i]['privmsgs_id'], $userdata, (bool) $attach_config['allow_pm_attach']))
 		{
 			$authorised = TRUE;
 		}

@@ -166,7 +166,72 @@ try
 	mutation_check(phpbb_pm_repair_messages(array(20),'invalid_sender')===0 && pm_scalar('SELECT privmsgs_from_userid FROM fixture_messages WHERE privmsgs_id=20')===999,'Restored user protected in modifying statement');
 	$maintenance=file_get_contents($forum_root.'admin/admin_db_maintenance.php');
 	mutation_check(substr_count($maintenance,'phpbb_pm_repair_messages(')===5,'All five PN repair mutation paths delegate to guarded helper');
-	echo "Private-message cleanup, saving, account removal and maintenance checks passed.\n";
+	pm_cleanup_fixture(); $userdata['session_logged_in']=false;
+	mutation_check(phpbb_pm_prune_user_messages(7)===0,'Logged-out pruning helper refused');
+	$userdata['session_logged_in']=true; $userdata['user_level']=0;
+	mutation_check(phpbb_pm_prune_user_messages(7)===0,'Nonadmin pruning helper refused');
+	$userdata['user_level']=ADMIN;
+	foreach(array(0,-1,null,'7 OR 1=1') as $bad) { mutation_check(phpbb_pm_prune_user_messages($bad)===0,'Invalid pruning account refused'); }
+	mutation_check(phpbb_pm_prune_user_messages(7)===0 && pm_scalar('SELECT privmsgs_to_userid FROM fixture_messages WHERE privmsgs_id=20')===7,'Existing account cannot be pruned or anonymized');
+	$mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
+	mutation_check(phpbb_pm_prune_user_messages(7)===1 && pm_scalar('SELECT privmsgs_to_userid FROM fixture_messages WHERE privmsgs_id=21')===-1,'Deleted recipient inbox removed, other sender copy anonymized');
+	mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===1 && is_file($upload_dir.'/fixture.txt') && pm_scalar('SELECT COUNT(*) FROM fixture_message_text WHERE privmsgs_text_id=21')===1,'Preserved sender copy keeps its text and shared attachment');
+	mutation_check(phpbb_pm_prune_user_messages(7)===0,'Repeated pruning is harmless');
+	$mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=8');
+	mutation_check(phpbb_pm_prune_user_messages(8)===1 && !is_file($upload_dir.'/fixture.txt'),'Last pruned owner removes final attachment bytes');
+	pm_cleanup_fixture();
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_to_userid=99,privmsgs_from_userid=99');
+	foreach(array('from','to') as $direction) {
+		foreach(range(0,5) as $type) {
+			$id=100+($direction==='from'?0:10)+$type; $from=$direction==='from'?7:8; $to=$direction==='to'?7:8;
+			$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES('.$id.','.$type.','.$to.','.$from.',0,123)');
+			$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(".$id.",'policy fixture')");
+		}
+	}
+	$mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
+	mutation_check(phpbb_pm_prune_user_messages(7)===8,'All six message types obey deleted-account mailbox ownership in both directions');
+	mutation_check(pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_id IN (100,103,112,114)')===4 && pm_scalar('SELECT COUNT(*) FROM fixture_message_text')===6,'Delivered/saved copies belonging to other users and unrelated messages survive');
+	mutation_check(pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_from_userid=7 OR privmsgs_to_userid=7')===0,'Surviving copies no longer point at removed account');
+	mutation_check(pm_scalar('SELECT user_new_privmsg FROM fixture_users WHERE user_id=8')===0 && pm_scalar('SELECT user_unread_privmsg FROM fixture_users WHERE user_id=8')===0,'Deleted pending outgoing mail recounts recipient counters');
+	pm_cleanup_fixture(); $restored=false;
+	$mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
+	$mutation_server->hook=function($sql) use (&$restored) {
+		if (!$restored && strpos($sql,'DELETE FROM fixture_messages')===0) { $restored=true; $GLOBALS['mutation_server']->pdo->exec('INSERT INTO fixture_users VALUES(7,0,0)'); }
+	};
+	mutation_check(phpbb_pm_prune_user_messages(7)===0 && $restored && pm_scalar('SELECT privmsgs_to_userid FROM fixture_messages WHERE privmsgs_id=21')===7 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Restored account between selection and deletion protects messages, participant IDs and files');
+	pm_cleanup_fixture(); $mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $mutation_server->failure='DELETE FROM fixture_messages';
+	mutation_expect_failure(function(){phpbb_pm_prune_user_messages(7);},'pm database');
+	mutation_check(!$mutation_server->owner && $mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Pruning failure preserves recovery references and releases writer lock');
+	$prune_controller=file_get_contents($forum_root.'delete_users.php');
+	mutation_check(substr_count($prune_controller,'phpbb_pm_prune_user_messages($user_id);')===1 && strpos($prune_controller,'SELECT privmsgs_id')===false && strpos($prune_controller,'SET privmsgs_to_userid')===false,'Standalone prune controller delegates its entire PN lifecycle');
+
+	pm_cleanup_fixture(); $lock=attach_require_mutation_lock($db);
+	try {
+		$viewer=array('user_id'=>7,'user_level'=>0,'session_logged_in'=>true);
+		foreach(range(0,5) as $type) {
+			$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type='.$type.' WHERE privmsgs_id=20');
+			$viewer['user_id']=7;
+			mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,true)===in_array($type,array(0,1,3,5),true),'Recipient download requires recipient-owned copy');
+			$viewer['user_id']=8;
+			mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,true)===in_array($type,array(1,2,4,5),true),'Sender download requires sender-owned copy');
+		}
+		$viewer['user_id']=99; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Unrelated viewer cannot download private attachment');
+		$viewer['user_id']=8; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,false),'Disabled PM attachments deny ordinary download');
+		$viewer['user_level']=ADMIN; mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,false),'Administrator retains access to an existing parent');
+		$viewer['session_logged_in']=false; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Logged-out metadata cannot grant access');
+		$viewer['session_logged_in']=true; $viewer['user_id']=-1;
+		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_to_userid=-1,privmsgs_from_userid=-1');
+		mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Deleted participant sentinel never authorizes guest downloads');
+		$viewer['user_id']=8; $mutation_server->pdo->exec('DELETE FROM fixture_messages WHERE privmsgs_id=20');
+		mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Orphan attachment link cannot grant even admin access without a message');
+		foreach(array(null,0,'20 OR 1=1') as $bad) { mutation_check(!phpbb_pm_attachment_access($lock->connection,$bad,$viewer,true),'Malformed PM download target rejected'); }
+		$mutation_server->failure='SELECT privmsgs_id FROM fixture_messages';
+		mutation_expect_failure(function()use($lock,$viewer){phpbb_pm_attachment_access($lock->connection,21,$viewer,true);},'pm database');
+	}
+	finally { $lock->release(); }
+	$download=file_get_contents($forum_root.'download.php');
+	mutation_check(strpos($download,'phpbb_pm_attachment_access($db,')!==false && strpos($download,"\$userdata['user_id'] == \$auth_pages[\$i]['user_id_")===false,'Download uses authoritative parent ownership rather than stale link participants');
+	echo "Private-message cleanup, saving, account removal, maintenance and download checks passed.\n";
 }
 finally
 {

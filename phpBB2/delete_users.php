@@ -128,6 +128,7 @@ if (!$confirmed)
 // Do not change anything below this line
 //
 
+require_once($phpbb_root_path . 'includes/functions_privmsgs.' . $phpEx);
 $prune_selection_sql = trim($sql);
 if(!$result = $db->sql_query('SELECT user_id , username, user_email, user_lang ' . $prune_selection_sql . ' ORDER BY username LIMIT 800'))
 	message_die(GENERAL_ERROR, 'Error obtaining userdata', '', __LINE__, __FILE__, $sql);
@@ -140,7 +141,6 @@ $messages = '';
 while (isset($user_list[$i]['user_id']))
 {
 	@set_time_limit(5);
-	$mark_list = array();
 	$user_id = intval($user_list[$i]['user_id']);
 	// A candidate list can become stale during a long batch. Recheck the
 	// original eligibility and refresh the name/contact data for this account.
@@ -228,79 +228,7 @@ while (isset($user_list[$i]['user_id']))
 		message_die(GENERAL_ERROR, 'Could not delete user from topic watch table', '', __LINE__, __FILE__, $sql);
 	}
 
-	$sql = "SELECT privmsgs_id
-		FROM " . PRIVMSGS_TABLE . "
-		WHERE ( ( privmsgs_from_userid = $user_id
-		AND privmsgs_type = " . PRIVMSGS_NEW_MAIL . " )
-		OR ( privmsgs_from_userid = $user_id
-		AND privmsgs_type = " . PRIVMSGS_SENT_MAIL . " )
-		OR ( privmsgs_to_userid = $user_id
-		AND privmsgs_type = " . PRIVMSGS_READ_MAIL . " )
-		OR ( privmsgs_to_userid = $user_id
-		AND privmsgs_type = " . PRIVMSGS_SAVED_IN_MAIL . " )
-		OR ( privmsgs_from_userid = $user_id
-		AND privmsgs_type = " . PRIVMSGS_SAVED_OUT_MAIL . " ) )";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not select all user\'s private messages', '', __LINE__, __FILE__, $sql);
-	}
-
-	//
-	// This little bit of code directly from the private messaging section.
-	// Thanks Paul!
-	//
-
-	while ( $row_privmsgs = $db->sql_fetchrow($result) )
-	{
-		$mark_list[] = $row_privmsgs['privmsgs_id'];
-	}
-
-	if ( count($mark_list) )
-	{
-		$delete_sql_id = implode(', ', $mark_list);
-
-		//
-		// We shouldn't need to worry about updating conters here...
-		// They are already gone!
-		//
-
-		$delete_text_sql = "DELETE FROM " . PRIVMSGS_TEXT_TABLE . "
-		WHERE privmsgs_text_id IN ($delete_sql_id)";
-		$delete_sql = "DELETE FROM " . PRIVMSGS_TABLE . "
-		WHERE privmsgs_id IN ($delete_sql_id)";
-
-		//
-		// Shouldn't need the switch statement here, either, as we just want
-		// to take out all of the private messages.  This will not affect
-		// the other messages we want to keep; the ids are unique.
-		//
-
-		if ( !$db->sql_query($delete_sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not delete private message info', '', __LINE__, __FILE__, $delete_sql);
-		}
-
-		if ( !$db->sql_query($delete_text_sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not delete private message text', '', __LINE__, __FILE__, $delete_text_sql);
-		}
-	}
-
-	$sql = "UPDATE " . PRIVMSGS_TABLE . "
-		SET privmsgs_to_userid = " . DELETED . "
-		WHERE privmsgs_to_userid = $user_id";
-	if ( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not update private messages saved to the user', '', __LINE__, __FILE__, $sql);
-	}
-
-	$sql = "UPDATE " . PRIVMSGS_TABLE . "
-		SET privmsgs_from_userid = " . DELETED . "
-		WHERE privmsgs_from_userid = $user_id";
-	if ( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not update private messages saved from the user', '', __LINE__, __FILE__, $sql);
-	}
+	phpbb_pm_prune_user_messages($user_id);
 
 	if (NOTIFY_USERS && !empty($user_email))
 	{

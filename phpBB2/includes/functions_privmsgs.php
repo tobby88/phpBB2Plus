@@ -15,6 +15,30 @@ function phpbb_pm_mailbox_condition($user_id, $folder)
 	return false;
 }
 
+// Attachment links are not authorization records: their participant IDs can
+// outlive an account, mailbox copy or message. Check the current parent/copy.
+function phpbb_pm_attachment_access($database, $message_id, $viewer, $allow_pm_attach)
+{
+	$message_ids = attach_delete_id_array(array($message_id));
+	$viewer_ids = isset($viewer['user_id']) ? attach_delete_id_array(array($viewer['user_id'])) : false;
+	if (!$message_ids || !$viewer_ids || empty($viewer['session_logged_in'])) { return false; }
+	$is_admin = isset($viewer['user_level']) && $viewer['user_level'] == ADMIN;
+	if (!$is_admin && !$allow_pm_attach) { return false; }
+	$where = 'privmsgs_id = ' . $message_ids[0];
+	if (!$is_admin)
+	{
+		$mailboxes = array();
+		foreach (array('inbox', 'outbox', 'sentbox', 'savebox') as $folder)
+		{
+			$mailboxes[] = '(' . phpbb_pm_mailbox_condition($viewer_ids[0], $folder) . ')';
+		}
+		$where .= ' AND (' . implode(' OR ', $mailboxes) . ')';
+	}
+	$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
+	$row = $database->sql_fetchrow($result); $database->sql_freeresult($result);
+	return (bool) $row;
+}
+
 function phpbb_pm_cleanup_query($database, $sql)
 {
 	global $lang;
@@ -88,6 +112,32 @@ function phpbb_pm_delete_user_messages($user_id)
 	if (!defined('IN_ADMIN') || !IN_ADMIN || !isset($userdata['user_level']) || $userdata['user_level'] != ADMIN || !$ids) { return 0; }
 	$lock = attach_require_mutation_lock($db);
 	try { return phpbb_pm_delete_selected($lock->connection, '(privmsgs_from_userid = ' . $ids[0] . ' OR privmsgs_to_userid = ' . $ids[0] . ')'); }
+	finally { $lock->release(); }
+}
+
+// Standalone ADMIN pruning calls this only after its POST/session validation
+// and successful account DELETE. Preserve other users' delivered/saved copies.
+function phpbb_pm_prune_user_messages($user_id)
+{
+	global $db, $userdata;
+	$ids = attach_delete_id_array(array($user_id));
+	if (!$ids || empty($userdata['session_logged_in']) || !isset($userdata['user_level']) || $userdata['user_level'] != ADMIN) { return 0; }
+	$user_id = $ids[0];
+	$missing = 'NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $user_id . ')';
+	// Pending mail belongs to both outbox and inbox. Include UNREAD as well as
+	// NEW, consistently with the existing deleted-user maintenance policy.
+	$where = '((privmsgs_from_userid = ' . $user_id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ')) OR (privmsgs_to_userid = ' . $user_id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . '))) AND ' . $missing;
+	$lock = attach_require_mutation_lock($db);
+	try
+	{
+		$database = $lock->connection;
+		$deleted = phpbb_pm_delete_selected($database, $where);
+		foreach (array('privmsgs_from_userid', 'privmsgs_to_userid') as $field)
+		{
+			phpbb_pm_cleanup_query($database, 'UPDATE ' . PRIVMSGS_TABLE . ' SET ' . $field . ' = ' . DELETED . ' WHERE ' . $field . ' = ' . $user_id . ' AND ' . $missing);
+		}
+		return $deleted;
+	}
 	finally { $lock->release(); }
 }
 
