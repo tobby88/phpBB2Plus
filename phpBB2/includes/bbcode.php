@@ -383,12 +383,9 @@ function bbencode_second_pass($text, $uid)
 		$bbcode_tpl = prepare_bbcode_template($bbcode_tpl);
 	}
 
-	// [CODE] and [/CODE] for posting code (HTML, PHP, C etc etc) in your posts.
-	$text = bbencode_second_pass_code($text, $uid, $bbcode_tpl);
-	
-	// PHP MOD
-	// [PHP] and [/PHP] for posting PHP code in your posts.
-	$text = bbencode_second_pass_php($text, $uid, $bbcode_tpl);
+	// Handle both literal block types together so a PHP example containing
+	// [code] syntax cannot turn into a nested, active HTML table (or vice versa).
+	$text = phpbb_bbcode_render_code_blocks($text, $uid, $bbcode_tpl);
 
 	// Preserve old posts with incomplete quote markup without allowing their
 	// table-based quote layout to consume the rest of the topic page.
@@ -924,7 +921,7 @@ function bbencode_first_pass_pda($text, $uid, $open_tag, $close_tag, $close_tag_
 						// Mark the lowest nesting level if needed.
 						if ($mark_lowest_level && ($curr_nesting_depth == 1))
 						{
-							if ($open_tag[0] == '[code]')
+							if ($open_tag[0] == '[code]' || $open_tag[0] == '[php]')
 							{
 								$code_entities_match = array('#<#', '#>#', '#"#', '#:#', '#\[#', '#\]#', '#\(#', '#\)#', '#\{#', '#\}#');
 								$code_entities_replace = array('&lt;', '&gt;', '&quot;', '&#58;', '&#91;', '&#93;', '&#40;', '&#41;', '&#123;', '&#125;');
@@ -996,112 +993,84 @@ function bbencode_first_pass_pda($text, $uid, $open_tag, $close_tag, $close_tag_
 } // bbencode_first_pass_pda()
 
 /**
- * Does second-pass bbencoding of the [code] tags. This includes
- * running htmlspecialchars() over the text contained between
- * any pair of [code] tags that are at the first level of
- * nesting. Tags at the first level of nesting are indicated
- * by this format: [code:1:$uid] ... [/code:1:$uid]
- * Other tags are in this format: [code:$uid] ... [/code:$uid]
+ * Recover visible source from first-pass storage. Older PHP blocks also had
+ * ordinary BBCode processed inside them, so remove only this post's tag UID.
  */
-function bbencode_second_pass_code($text, $uid, $bbcode_tpl)
+function phpbb_bbcode_code_source($source, $uid)
 {
-	global $lang;
-
-	$code_start_html = $bbcode_tpl['code_open'];
-	$code_end_html =  $bbcode_tpl['code_close'];
-
-	// First, do all the 1st-level matches. These need an htmlspecialchars() run,
-	// so they have to be handled differently.
-	$match_count = preg_match_all("#\[code:1:$uid\](.*?)\[/code:1:$uid\]#si", $text, $matches);
-
-	for ($i = 0; $i < $match_count; $i++)
+	$source = html_entity_decode((string) $source, ENT_QUOTES, 'UTF-8');
+	$uid_pattern = preg_quote((string) $uid, '#');
+	$cleaned = preg_replace_callback('#\\[[^\\]\\r\\n]*\\]#', function ($match) use ($uid_pattern)
 	{
-		$before_replace = $matches[1][$i];
-		$after_replace = $matches[1][$i];
+		return preg_replace('#:(?:[a-z0-9]:)?' . $uid_pattern . '(?=[=\\]])#i', '', $match[0]);
+	}, $source);
+	return ($cleaned === null || preg_last_error() !== PREG_NO_ERROR) ? $source : $cleaned;
+}
 
-		// Replace 2 spaces with "&nbsp; " so non-tabbed code indents without making huge long lines.
-		$after_replace = str_replace("  ", "&nbsp; ", $after_replace);
-		// now Replace 2 spaces with " &nbsp;" to catch odd #s of spaces.
-		$after_replace = str_replace("  ", " &nbsp;", $after_replace);
-
-		// Replace tabs with "&nbsp; &nbsp;" so tabbed code indents sorta right without making huge long lines.
-		$after_replace = str_replace("\t", "&nbsp; &nbsp;", $after_replace);
-
-		// now Replace space occurring at the beginning of a line
-		$after_replace = preg_replace("/^ {1}/m", '&nbsp;', $after_replace);
-
-		$str_to_match = "[code:1:$uid]" . $before_replace . "[/code:1:$uid]";
-
-		$replacement = $code_start_html;
-		$replacement .= $after_replace;
-		$replacement .= $code_end_html;
-
-		$text = str_replace($str_to_match, $replacement, $text);
-	}
-
-	// Now, do all the non-first-level matches. These are simple.
-	$text = str_replace("[code:$uid]", $code_start_html, $text);
-	$text = str_replace("[/code:$uid]", $code_end_html, $text);
-
-	return $text;
-
-} // bbencode_second_pass_code()
-/**
- * PHP MOD
- * Original code/function by phpBB Group
- * Modified by JW Frazier / Fubonis < php_fubonis@yahoo.com >
- */
-function bbencode_second_pass_php($text, $uid, $bbcode_tpl)
+function phpbb_bbcode_render_code_blocks($text, $uid, $templates)
 {
-	$code_start_html = $bbcode_tpl['php_open'];
-	$code_end_html =  $bbcode_tpl['php_close'];
-	$matches = array();
-	$match_count = preg_match_all("#\[php:1:$uid\](.*?)\[/php:1:$uid\]#si", $text, $matches);
-
-	for ($i = 0; $i < $match_count; $i++)
+	$original = (string) $text;
+	$uid_pattern = preg_quote((string) $uid, '#');
+	$text = preg_replace_callback('#\\[(code|php)(?::1)?:' . $uid_pattern . '\\](.*?)\\[/\\1(?::1)?:' . $uid_pattern . '\\]#is', function ($match) use ($uid, $templates)
 	{
-		$before_replace = $matches[1][$i];
-		$after_replace = trim($matches[1][$i]);
-		$str_to_match = "[php:1:$uid]" . $before_replace . "[/php:1:$uid]";
-		$replacement = $code_start_html;
-		$after_replace = str_replace('&lt;', '<', $after_replace);
-		$after_replace = str_replace('&gt;', '>', $after_replace);
-		$after_replace = str_replace('&amp;', '&', $after_replace);
-		$added = FALSE;
-		if (preg_match('/^<\?.*?\?>$/si', $after_replace) <= 0)
+		$kind = strtolower($match[1]);
+		$source = phpbb_bbcode_code_source($match[2], $uid);
+		if ($kind === 'php')
 		{
-			$after_replace = "<?php $after_replace ?>";
-			$added = TRUE;
-		}
-		if(strcmp('4.2.0', phpversion()) > 0)
-		{
-			ob_start();
-			highlight_string($after_replace);
-			$after_replace = ob_get_contents();
-			ob_end_clean();
+			$added_prefix = !preg_match('#\\A\\s*<\\?#', $source);
+			$html = highlight_string(($added_prefix ? '<?php ' : '') . $source, true);
+			if ($added_prefix)
+			{
+				// Remove exactly the synthetic opening token; never add a fake
+				// closing PHP token or depend on PHP 4's obsolete font markup.
+				$html = preg_replace('#&lt;\\?php(?:&nbsp;| )?#', '', $html, 1);
+			}
+			// New highlighters wrap source in <pre> and retain real newlines.
+			// Older versions use <br /> for source lines and add formatting
+			// newlines around their HTML tags. Remove only that extra markup.
+			if (strpos($html, '<pre>') === 0)
+			{
+				$html = str_replace(array('<pre>', '</pre>'), '', $html);
+			}
+			else
+			{
+				$html = str_replace(array("\r", "\n"), '', $html);
+			}
 		}
 		else
 		{
-			$after_replace = highlight_string($after_replace, TRUE);
+			$html = '<code>' . htmlspecialchars($source, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code>';
 		}
-		if ($added == TRUE)
-		{
-			$after_replace = str_replace('<font color="#0000BB">&lt;?php ', '<font color="#0000BB">', $after_replace);
-			$after_replace = str_replace('<font color="#0000BB">?&gt;</font>', '', $after_replace);
-		}
-		$after_replace = preg_replace('/<font color="(.*?)">/si', '<span style="color: \\1;">', $after_replace);
-		$after_replace = str_replace('</font>', '</span>', $after_replace);
-		$after_replace = str_replace("\n", '', $after_replace);
-		$replacement .= $after_replace;
-		$replacement .= $code_end_html;
-
-		$text = str_replace($str_to_match, $replacement, $text);
+		// Later BBCode passes must not interpret syntax shown in an example.
+		$html = str_replace(array('[', ']'), array('&#91;', '&#93;'), $html);
+		return $templates[$kind . '_open'] . $html . $templates[$kind . '_close'];
+	}, $original);
+	if ($text === null || preg_last_error() !== PREG_NO_ERROR)
+	{
+		// A regex resource limit must not turn a long legacy post into an
+		// empty result or let its unparsed code become active BBCode later.
+		return str_replace(array('[', ']'), array('&#91;', '&#93;'), htmlspecialchars(html_entity_decode($original, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
 	}
+	// Unmatched legacy source tags remain visible, not unbalanced HTML tables.
+	return preg_replace('#\\[(/?)(code|php)(?::1)?:' . $uid_pattern . '\\]#i', '&#91;$1$2&#93;', $text);
+}
 
-	$text = str_replace("[php:$uid]", $code_start_html, $text);
-	$text = str_replace("[/php:$uid]", $code_end_html, $text);
-
-	return $text;
+/** Apply prose-only transformations without modifying rendered code examples. */
+function phpbb_bbcode_transform_prose($text, $callback)
+{
+	$segments = preg_split('#(<code\\b[^>]*>.*?</code>)#is', (string) $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	if (!is_array($segments) || preg_last_error() !== PREG_NO_ERROR)
+	{
+		return (string) $text;
+	}
+	foreach ($segments as $index => $segment)
+	{
+		if (($index % 2) === 0)
+		{
+			$segments[$index] = $callback($segment);
+		}
+	}
+	return implode('', $segments);
 }
 /**
  * Rewritten by Nathan Codding - Feb 6, 2001.
@@ -1117,6 +1086,11 @@ function bbencode_second_pass_php($text, $uid, $bbcode_tpl)
  * have it require something like xxxx@yyyy.zzzz or such. We'll see.
  */
 function make_clickable($text)
+{
+	return phpbb_bbcode_transform_prose($text, 'phpbb_make_clickable_prose');
+}
+
+function phpbb_make_clickable_prose($text)
 {
 	$text = preg_replace('#(script|about|applet|activex|chrome):#is', "\\1&#058;", $text);
 	
@@ -1255,8 +1229,11 @@ function smilies_pass($message)
 
 	if (count($orig))
 	{
-		$message = preg_replace($orig, $repl, ' ' . $message . ' ');
-		$message = substr($message, 1, -1);
+		$message = phpbb_bbcode_transform_prose($message, function ($segment) use ($orig, $repl)
+		{
+			$replaced = preg_replace($orig, $repl, ' ' . $segment . ' ');
+			return ($replaced === null) ? $segment : substr($replaced, 1, -1);
+		});
 	}
 	
 	return $message;
@@ -1301,7 +1278,11 @@ function acronym_pass($message)
 	
 	if( count( $orig ) )
 	{
-		$segments = preg_split( '#(<acronym.+?>.+?</acronym>|<.+?>)#s' , $message, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+		$segments = preg_split( '#(<code\b[^>]*>.*?</code>|<acronym.+?>.+?</acronym>|<.+?>)#s' , $message, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+		if (!is_array($segments) || preg_last_error() !== PREG_NO_ERROR)
+		{
+			return $message;
+		}
 
 		$message = '';
 

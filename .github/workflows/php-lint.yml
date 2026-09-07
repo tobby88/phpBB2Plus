@@ -188,6 +188,9 @@ jobs:
       - name: Check quote and code controls JavaScript syntax
         run: node --check phpBB2/templates/select_expand_bbcodes.js
 
+      - name: Test code source preservation
+        run: php .github/scripts/check-code-block-runtime.php
+
       - name: Test search result permissions and pagination
         run: php .github/scripts/check-search-results-runtime.php
 

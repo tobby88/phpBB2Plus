@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve literal code examples across PHP 5.6, 7.4 and 8.5: PHP highlighting
+  retains quotes, Unicode, indentation and source line breaks without adding
+  synthetic PHP delimiters. Old compiler-added BBCode UIDs are removed when
+  rendering source, malformed code delimiters remain harmless text, and normal
+  link/smiley/acronym processing no longer modifies code examples.
 - Replaced parser-time JavaScript in quote, code and PHP-code boxes with complete
   HTML and shared DOM controls. Selection and expansion also work after AJAX
   edits/previews; generated control IDs no longer collide, and content remains
