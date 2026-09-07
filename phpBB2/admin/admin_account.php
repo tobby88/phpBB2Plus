@@ -37,6 +37,12 @@ if (isset($_POST['delete']) && is_scalar($_POST['delete']))
         {
                 message_die(GENERAL_ERROR, $lang['Not_Authorised']);
         }
+		$db->sql_freeresult($delete_result);
+		// Remember only this account's personal groups, never all orphan groups.
+		$sql = 'SELECT g.group_id FROM ' . GROUPS_TABLE . ' g JOIN ' . USER_GROUP_TABLE . ' ug ON ug.group_id = g.group_id WHERE ug.user_id = ' . $delete . ' AND g.group_single_user = 1';
+		if (!($result = $db->sql_query($sql))) { message_die(GENERAL_ERROR, 'Could not obtain personal groups.'); }
+		$delete_groups = $db->sql_fetchrowset($result);
+		$db->sql_freeresult($result);
 
         $sql = "DELETE FROM " . USERS_TABLE . "
                 WHERE user_id = $delete AND user_active = 0 AND user_level <> " . ADMIN;
@@ -44,6 +50,10 @@ if (isset($_POST['delete']) && is_scalar($_POST['delete']))
         {
                 message_die(GENERAL_ERROR, "Unable to delete user.", "", __LINE__, __FILE__, $sql);
         }
+		if ((int) $db->sql_affectedrows() !== 1)
+		{
+			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+		}
 
         $sql = "DELETE FROM " . USER_GROUP_TABLE . " WHERE user_id = $delete";
         if( !$db->sql_query($sql) )
@@ -51,21 +61,18 @@ if (isset($_POST['delete']) && is_scalar($_POST['delete']))
                 message_die(GENERAL_ERROR, 'Could not delete user from user_group table', '', __LINE__, __FILE__, $sql);
         }
 
-        $sql = "SELECT g.group_id
-                   FROM " . GROUPS_TABLE . " g LEFT JOIN " . USER_GROUP_TABLE . " ug
-                            ON g.group_id = ug.group_id
-                   WHERE group_single_user = 1 AND ug.group_id IS NULL";
-        if ( !($result = $db->sql_query($sql)) )
+        foreach ($delete_groups as $row)
         {
-                message_die(GENERAL_ERROR, 'Could not obtain group information.', '', __LINE__, __FILE__, $sql);
-        }
-        while ( $row = $db->sql_fetchrow($result) )
-        {
-				$sql2 = "DELETE FROM " . GROUPS_TABLE . " WHERE group_id = " . intval($row['group_id']);
+				$group_id = intval($row['group_id']);
+				$sql2 = 'DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id . ' AND group_single_user = 1 AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug WHERE ug.group_id = ' . GROUPS_TABLE . '.group_id)';
                 if ( !($db->sql_query($sql2)) )
                 {
                         message_die(GENERAL_ERROR, 'Could not delete group.', '', __LINE__, __FILE__, $sql2);
                 }
+				if ((int) $db->sql_affectedrows() === 1 && !$db->sql_query('DELETE FROM ' . AUTH_ACCESS_TABLE . ' WHERE group_id = ' . $group_id))
+				{
+					message_die(GENERAL_ERROR, 'Could not delete personal group permissions.');
+				}
         }
 
         $template->assign_vars(array(

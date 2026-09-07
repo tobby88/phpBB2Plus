@@ -447,3 +447,6 @@ jobs:
 
       - name: Test private-message deletion and attachment lifecycle
         run: php .github/scripts/check-private-message-cleanup.php
+
+      - name: Test inactive-account and pruning deletion boundaries
+        run: php .github/scripts/check-user-deletion-lifecycle.php

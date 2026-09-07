@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recheck account-pruning eligibility in the user DELETE before dependent
+  changes, and stop inactive-account group cleanup when no user was deleted.
+  Limit personal-group cleanup to the removed account, preserving groups that
+  gained members and unrelated orphan groups. Remove associated permissions
+  only for actually deleted personal groups. Correct prune moderator reassignment
+  to use user IDs, refresh candidate names, and exclude skipped candidates from
+  the deletion count. No schema migration required.
 - Revalidate PN maintenance defects on the attachment-writer session before
   deleting message/text rows or anonymizing missing users. Preserve messages
   repaired since diagnostic selection, use shared attachment cleanup, and skip

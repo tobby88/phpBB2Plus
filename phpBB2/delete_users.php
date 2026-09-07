@@ -128,19 +128,30 @@ if (!$confirmed)
 // Do not change anything below this line
 //
 
-if(!$result = $db->sql_query('SELECT user_id , username, user_email, user_lang ' . $sql . ' ORDER BY username LIMIT 800'))
+$prune_selection_sql = trim($sql);
+if(!$result = $db->sql_query('SELECT user_id , username, user_email, user_lang ' . $prune_selection_sql . ' ORDER BY username LIMIT 800'))
 	message_die(GENERAL_ERROR, 'Error obtaining userdata', '', __LINE__, __FILE__, $sql);
 $user_list = $db->sql_fetchrowset($result);
 
 $i=0;
+$deleted_users = 0;
 $name_list = '';
 $messages = '';
 while (isset($user_list[$i]['user_id']))
 {
 	@set_time_limit(5);
-	$group_moderator = array();
 	$mark_list = array();
 	$user_id = intval($user_list[$i]['user_id']);
+	// A candidate list can become stale during a long batch. Recheck the
+	// original eligibility and refresh the name/contact data for this account.
+	$eligibility_sql = $prune_selection_sql . ' AND user_id = ' . $user_id;
+	if (!($result = $db->sql_query('SELECT user_id, username, user_email, user_lang ' . $eligibility_sql)))
+	{
+		message_die(GENERAL_ERROR, 'Could not recheck pruning candidate.');
+	}
+	$current_user = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+	if (!$current_user) { $i++; continue; }
+	$user_list[$i] = $current_user;
 	$username = $user_list[$i]['username'];
 	$username_sql = $db->sql_escape($username);
 	$user_email = $user_list[$i]['user_email'];
@@ -159,6 +170,11 @@ while (isset($user_list[$i]['user_id']))
 	{
 		message_die(GENERAL_ERROR, 'Could not find group information for this user: "'.$user_id.'"', '', __LINE__, __FILE__);
 	}
+	// Claim only a still-eligible row before changing posts, groups or sending
+	// notifications. In particular, never continue after a zero-row deletion.
+	$sql = 'DELETE ' . $eligibility_sql;
+	if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not delete pruning candidate.'); }
+	if ((int) $db->sql_affectedrows() !== 1) { $i++; continue; }
 
 	$sql = "UPDATE " . POSTS_TABLE . "
 		SET poster_id = " . DELETED . ", post_username = '$username_sql'
@@ -183,36 +199,8 @@ while (isset($user_list[$i]['user_id']))
 		message_die(GENERAL_ERROR, 'Could not update votes for this user', '', __LINE__, __FILE__, $sql);
 	}
 
-	$sql = "SELECT group_id
-		FROM " . GROUPS_TABLE . "
-		WHERE group_moderator = $user_id";
-	if( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not select groups where user was moderator', '', __LINE__, __FILE__, $sql);
-	}
-
-	while ( $row_group = $db->sql_fetchrow($result) )
-	{
-		$group_moderator[] = intval($row_group['group_id']);
-	}
-
-	if ( count($group_moderator) )
-	{
-		$update_moderator_id = implode(', ', $group_moderator);
-		$sql = "UPDATE " . GROUPS_TABLE . "
-			SET group_moderator = " . intval($userdata['user_id']) . "
-			WHERE group_moderator IN ($update_moderator_id)";
-		if( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update group moderators', '', __LINE__, __FILE__, $sql);
-		}
-	}
-	$sql = "DELETE FROM " . USERS_TABLE . "
-		WHERE user_id = $user_id";
-	if( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not delete user', '', __LINE__, __FILE__, $sql);
-	}
+	$sql = 'UPDATE ' . GROUPS_TABLE . ' SET group_moderator = ' . intval($userdata['user_id']) . ' WHERE group_moderator = ' . $user_id;
+	if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not update group moderators.'); }
 
 	$sql = "DELETE FROM " . USER_GROUP_TABLE . "
 		WHERE user_id = $user_id";
@@ -221,16 +209,14 @@ while (isset($user_list[$i]['user_id']))
 		message_die(GENERAL_ERROR, 'Could not delete user from user_group table', '', __LINE__, __FILE__, $sql);
 	}
 
-	$sql = "DELETE FROM " . GROUPS_TABLE . "
-		WHERE group_id = " . intval($row['group_id']);
+	$personal_group_id = intval($row['group_id']);
+	$sql = 'DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $personal_group_id . ' AND group_single_user = 1 AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug WHERE ug.group_id = ' . GROUPS_TABLE . '.group_id)';
 		if( !$db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
 		}
 
-	$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . "
-		WHERE group_id = " . intval($row['group_id']);
-	if( !$db->sql_query($sql) )
+	if ((int) $db->sql_affectedrows() === 1 && !$db->sql_query('DELETE FROM ' . AUTH_ACCESS_TABLE . ' WHERE group_id = ' . $personal_group_id))
 	{
 		message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
 	}
@@ -333,9 +319,10 @@ while (isset($user_list[$i]['user_id']))
 		$emailer->reset();
 	}
 	$name_list .= (($name_list) ? ' , ' : '<br />') . htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+	$deleted_users++;
 	$i++;
 }
-$messages .= ((DEBUG) ? '<b>Mode:[' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . ']</b><br />' : '') . (($i) ? sprintf($lang['Prune_users_number'], $i) . $name_list : $lang['Prune_no_users']);
+$messages .= ((DEBUG) ? '<b>Mode:[' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . ']</b><br />' : '') . (($deleted_users) ? sprintf($lang['Prune_users_number'], $deleted_users) . $name_list : $lang['Prune_no_users']);
 message_die(GENERAL_MESSAGE,$messages.'<br />'.sprintf($lang['Click_return_forum'],'<a href="'.append_sid("admin/index.$phpEx").'">','</a>')
 );
 ?>
