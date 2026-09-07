@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Align CrackerTracker's rate-limit classification with actual profile/download
+  routing. Conflicting GET/POST values, empty/non-scalar POST fallbacks and
+  download-module action suffixes can no longer move registration, mail or
+  upload operations into the more generous generic write bucket.
 - Treat all existing credential form fields as free text in CrackerTracker,
   including new/current/confirmed and SMTP/FTP passwords; legitimate complex
   passwords are no longer mistaken for technical exploit parameters. Security

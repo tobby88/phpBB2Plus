@@ -22,8 +22,12 @@ function ctracker_request_limit_profile($script, $post, $get)
 	}
 	if ($script === 'profile.php')
 	{
-		$mode_value = isset($post['mode']) ? $post['mode'] : (isset($get['mode']) ? $get['mode'] : '');
-		$mode = is_scalar($mode_value) ? strtolower((string) $mode_value) : '';
+		// Match profile.php's dispatch order, not the generic POST-first rule.
+		// A conflicting POST mode must not downgrade a GET registration/email.
+		$get_mode = isset($get['mode']) && is_scalar($get['mode']) ? (string) $get['mode'] : '';
+		$post_mode = isset($post['mode']) && is_scalar($post['mode']) ? (string) $post['mode'] : '';
+		$mode = strtolower($get_mode !== '' ? $get_mode : $post_mode);
+		if (!empty($post['signature']) || !empty($get['signature'])) { $mode = 'signature'; }
 		if ($mode === 'register')
 		{
 			return array('register', 3600, 'request_limit_register', 10);
@@ -43,8 +47,13 @@ function ctracker_request_limit_profile($script, $post, $get)
 	}
 	if ($script === 'dload.php')
 	{
-		$action_value = isset($post['action']) ? $post['action'] : (isset($get['action']) ? $get['action'] : '');
-		$action = is_scalar($action_value) ? strtolower((string) $action_value) : '';
+		// dload.php falls back on empty/non-scalar POST values and dispatches
+		// the part before its optional ?module-action suffix.
+		$post_action = isset($post['action']) && is_scalar($post['action']) ? (string) $post['action'] : '';
+		$get_action = isset($get['action']) && is_scalar($get['action']) ? (string) $get['action'] : '';
+		$action = substr($post_action !== '' ? $post_action : ($get_action !== '' ? $get_action : 'main'), 0, 120);
+		$action_parts = explode('?', $action, 2);
+		$action = strtolower($action_parts[0]);
 		if ($action === 'email')
 		{
 			return array('account', 3600, 'request_limit_account', 20);

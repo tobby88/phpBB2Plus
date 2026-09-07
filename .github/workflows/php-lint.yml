@@ -89,6 +89,9 @@ jobs:
       - name: Test CrackerTracker request limiter
         run: php .github/scripts/check-ctracker-request-limiter.php
 
+      - name: Test CrackerTracker endpoint routing parity
+        run: php .github/scripts/check-ctracker-routing.php
+
       - name: Test CrackerTracker request security
         run: php .github/scripts/check-ctracker-security.php
 
