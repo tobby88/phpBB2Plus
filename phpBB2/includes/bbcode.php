@@ -1420,12 +1420,61 @@ function phpbb_bbcode_transform_prose($text, $callback)
  */
 function make_clickable($text)
 {
-	return phpbb_bbcode_transform_prose($text, 'phpbb_make_clickable_prose');
+	$original = (string) $text;
+	try
+	{
+		// Attribute values may contain > signs or URL-looking text. Keep whole
+		// tags/comments intact and never add anchors inside an existing link or
+		// literal source container. This processes already escaped/rendered HTML,
+		// not raw user HTML, and is not a substitute for input/output escaping.
+		$parts = @preg_split('#(<!--.*?-->|<(?:[^<>"\']++|"[^"]*"|\'[^\']*\')*>)#s', $original, -1, PREG_SPLIT_DELIM_CAPTURE);
+		if (!is_array($parts) || preg_last_error() !== PREG_NO_ERROR)
+		{
+			throw new PhpbbBbcodeParseException('Auto-link HTML splitting failed');
+		}
+		$protected = array();
+		foreach ($parts as $index => $part)
+		{
+			if (($index % 2) === 0)
+			{
+				if (empty($protected))
+				{
+					$parts[$index] = phpbb_make_clickable_prose($part);
+				}
+			}
+			else if (phpbb_bbcode_match('#^<(/?)(a|code|pre|script|style|textarea)(?=[\s/>])#i', $part, $tag))
+			{
+				$name = strtolower($tag[2]);
+				// Raw-text HTML elements do not open nested elements: a string
+				// containing "<a>" inside a script must not swallow later prose.
+				if (!empty($protected) && in_array(end($protected), array('script', 'style', 'textarea'), true))
+				{
+					if ($tag[1] === '/' && end($protected) === $name) { array_pop($protected); }
+					continue;
+				}
+				if ($tag[1] === '')
+				{
+					$protected[] = $name;
+				}
+				else if (!empty($protected) && end($protected) === $name)
+				{
+					array_pop($protected);
+				}
+			}
+		}
+		return implode('', $parts);
+	}
+	catch (PhpbbBbcodeParseException $error)
+	{
+		// Keep the complete original HTML, including safe code/BBCode markup,
+		// instead of returning partial links or losing failed prose segments.
+		return $original;
+	}
 }
 
 function phpbb_make_clickable_prose($text)
 {
-	$text = preg_replace('#(script|about|applet|activex|chrome):#is', "\\1&#058;", $text);
+	$text = phpbb_bbcode_replace('#(script|about|applet|activex|chrome):#is', "\\1&#058;", $text);
 	
 	// pad it with a space so we can match things at the start of the 1st line.
 	$ret = ' ' . $text;
@@ -1433,17 +1482,17 @@ function phpbb_make_clickable_prose($text)
 	// matches an "xxxx://yyyy" URL at the start of a line, or after a space.
 	// xxxx can only be alpha characters.
 	// yyyy is anything up to the first space, newline, comma, double quote or <
-	$ret = preg_replace("#(^|[\n ])((?:https?|ftps?)://[\w\#$%&~/.\-;:=,?@\[\]+]*)#is", "\\1<a href=\"\\2\" target=\"_blank\" rel=\"noopener noreferrer\">\\2</a>", $ret);
+	$ret = phpbb_bbcode_replace("#(^|[\n ])((?:https?|ftps?)://[\w\#$%&~/.\-;:=,?@\[\]+]*)#is", "\\1<a href=\"\\2\" target=\"_blank\" rel=\"noopener noreferrer\">\\2</a>", $ret);
 
 	// matches a "www|ftp.xxxx.yyyy[/zzzz]" kinda lazy URL thing
 	// Must contain at least 2 dots. xxxx contains either alphanum, or "-"
 	// zzzz is optional.. will contain everything up to the first space, newline, 
 	// comma, double quote or <.
-	$ret = preg_replace("#(^|[\n ])((www|ftp)\.[\w\#$%&~/.\-;:=,?@\[\]+]*)#is", "\\1<a href=\"http://\\2\" target=\"_blank\" rel=\"noopener noreferrer\">\\2</a>", $ret);
+	$ret = phpbb_bbcode_replace("#(^|[\n ])((www|ftp)\.[\w\#$%&~/.\-;:=,?@\[\]+]*)#is", "\\1<a href=\"http://\\2\" target=\"_blank\" rel=\"noopener noreferrer\">\\2</a>", $ret);
 
 	// matches an email@domain type address at the start of a line, or after a space.
 	// Note: Only the followed chars are valid; alphanums, "-", "_" and or ".".
-	$ret = preg_replace("#(^|[\n ])([a-z0-9&\-_.]+?)@([\w\-]+\.([\w\-\.]+\.)*[\w]+)#i", "\\1<a href=\"mailto:\\2@\\3\">\\2@\\3</a>", $ret);
+	$ret = phpbb_bbcode_replace("#(^|[\n ])([a-z0-9&\-_.]+?)@([\w\-]+\.([\w\-\.]+\.)*[\w]+)#i", "\\1<a href=\"mailto:\\2@\\3\">\\2@\\3</a>", $ret);
 
 	// Remove our padding..
 	$ret = substr($ret, 1);

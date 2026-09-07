@@ -365,6 +365,9 @@ jobs:
       - name: Test cold BBCode template failure and recovery
         run: php .github/scripts/check-bbcode-template-runtime.php
 
+      - name: Test automatic link markup boundaries and failure recovery
+        run: php .github/scripts/check-auto-links-runtime.php
+
       - name: Test new-window link safety
         run: php .github/scripts/check-new-window-link-safety.php
 

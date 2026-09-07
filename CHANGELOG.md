@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Automatic link recognition now preserves existing links, quoted HTML
+  attributes, comments and literal code/raw-text regions instead of creating
+  nested anchors or corrupting markup. Regex failures retain the entire original
+  message rather than blanking prose or returning partially transformed HTML.
 - Reject failed or incomplete BBCode template loading before marking templates
   ready. Cold-start regex failures now preserve the entire escaped message
   without missing-key warnings or poisoning subsequent rendering in the same
