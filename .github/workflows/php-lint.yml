@@ -438,3 +438,6 @@ jobs:
 
       - name: Test attachment deletion selections and post/PM ownership
         run: php .github/scripts/check-attachment-delete-selection.php
+
+      - name: Test attachment publication and deletion coordination
+        run: php .github/scripts/check-attachment-mutation.php

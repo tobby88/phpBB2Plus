@@ -762,12 +762,23 @@ class attach_parent
 	*/
 	function do_insert_attachment($mode, $message_type, $message_id)
 	{
-		global $db, $upload_dir;
-
-		if (intval($message_id) < 0)
+		global $db;
+		$ids = attach_delete_id_array($message_id);
+		if ($ids === false || count($ids) !== 1 || !in_array($message_type, array('post', 'pm'), true) || !in_array($mode, array('attach_list', 'last_attachment'), true)) { return false; }
+		if (($mode === 'attach_list' && !$this->attachment_list) || ($mode === 'last_attachment' && (!$this->post_attach || isset($_POST['update_attachment'])))) { return true; }
+		$lock = attach_require_mutation_lock($db);
+		try
 		{
-			return FALSE;
+			$result = $this->do_insert_attachment_locked($lock->connection, $mode, $message_type, $ids[0]);
+			attach_sync_message($lock->connection, $message_type, $ids[0]);
+			return $result;
 		}
+		finally { $lock->release(); }
+	}
+
+	function do_insert_attachment_locked($db, $mode, $message_type, $message_id)
+	{
+		global $lang;
 
 		if ($message_type == 'pm')
 		{
@@ -779,7 +790,7 @@ class attach_parent
 			$user_id_2 = (int) $to_userdata['user_id'];
 			$sql_id = 'privmsgs_id';
 		}
-		else if ($message_type = 'post')
+		else if ($message_type == 'post')
 		{
 			global $post_info, $userdata;
 
@@ -834,6 +845,7 @@ class attach_parent
 				else
 				{
 					// insert attachment into db 
+					attach_require_unpublished_file($db, basename($this->attachment_list[$i]));
 					$sql_ary = array(
 						'physical_filename'		=> (string) basename($this->attachment_list[$i]),
 						'real_filename'			=> (string) basename($this->attachment_filename_list[$i]),
@@ -879,6 +891,7 @@ class attach_parent
 			if ($this->post_attach && !isset($_POST['update_attachment']))
 			{
 				// insert attachment into db, here the user submited it directly 
+				attach_require_unpublished_file($db, basename($this->attach_filename));
 				$sql_ary = array(
 					'physical_filename'		=> (string) basename($this->attach_filename),
 					'real_filename'			=> (string) basename($this->filename),
@@ -1674,38 +1687,6 @@ class attach_posting extends attach_parent
 			$this->do_insert_attachment('attach_list', 'post', $post_id);
 			$this->do_insert_attachment('last_attachment', 'post', $post_id);
 
-			if ((sizeof($this->attachment_list) > 0 || $this->post_attach) && !isset($_POST['update_attachment']))
-			{
-				$sql = 'UPDATE ' . POSTS_TABLE . '
-					SET post_attachment = 1
-					WHERE post_id = ' . (int) $post_id;
-
-				if (!($db->sql_query($sql)))
-				{
-					message_die(GENERAL_ERROR, 'Unable to update Posts Table.', '', __LINE__, __FILE__, $sql);
-				}
-
-				$sql = 'SELECT topic_id 
-					FROM ' . POSTS_TABLE . '
-					WHERE post_id = ' . (int) $post_id;
-				
-				if (!($result = $db->sql_query($sql)))
-				{
-					message_die(GENERAL_ERROR, 'Unable to select Posts Table.', '', __LINE__, __FILE__, $sql);
-				}
-
-				$row = $db->sql_fetchrow($result);
-				$db->sql_freeresult($result);
-
-				$sql = 'UPDATE ' . TOPICS_TABLE . '
-					SET topic_attachment = 1
-					WHERE topic_id = ' . (int) $row['topic_id'];
-
-				if (!($db->sql_query($sql)))
-				{
-					message_die(GENERAL_ERROR, 'Unable to update Topics Table.', '', __LINE__, __FILE__, $sql);
-				}
-			}
 		}
 	}
 

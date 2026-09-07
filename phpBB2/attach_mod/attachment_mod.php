@@ -18,6 +18,7 @@ if (!defined('IN_PHPBB'))
 }
 
 include($phpbb_root_path . 'attach_mod/includes/constants.' . $phpEx);
+include($phpbb_root_path . 'attach_mod/includes/functions_mutation.' . $phpEx);
 include($phpbb_root_path . 'attach_mod/includes/functions_includes.' . $phpEx);
 include($phpbb_root_path . 'attach_mod/includes/functions_attach.' . $phpEx);
 include($phpbb_root_path . 'attach_mod/includes/functions_delete.' . $phpEx);

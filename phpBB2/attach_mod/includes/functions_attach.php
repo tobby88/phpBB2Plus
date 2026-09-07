@@ -725,9 +725,9 @@ function get_extension_informations()
 /**
 * Sync Topic (includes/functions_admin.php)
 */
-function attachment_sync_topic($topic_id)
+function attachment_sync_topic($topic_id, $database = null)
 {
-	global $db;
+	$db = $database !== null ? $database : $GLOBALS['db'];
 
 	if (!$topic_id)
 	{

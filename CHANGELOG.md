@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate attachment publication, sent-PM copies and regular deletion with
+  a database-scoped lock on a dedicated nonpersistent connection. Keep protected
+  SQL and publication flags on the owning session; connection loss cannot use
+  an unlocked fallback. Reject stale upload submissions for registered/missing
+  files and preserve retained metadata after partial publication. Preserve files
+  shared by legacy duplicate physical-name registrations. No schema change.
 - Preserve attachment descriptions when physical deletion fails and report
   incomplete cleanup after synchronizing removed post/PM links. Remove optional
   thumbnails before main files and record completed thumbnail cleanup. Treat

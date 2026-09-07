@@ -76,17 +76,6 @@ class attach_pm extends attach_parent
 			$this->do_insert_attachment('attach_list', 'pm', $a_privmsgs_id);
 			$this->do_insert_attachment('last_attachment', 'pm', $a_privmsgs_id);
 
-			if ((sizeof($this->attachment_list) > 0 || $this->post_attach) && !isset($_POST['update_attachment']))
-			{
-				$sql = 'UPDATE ' . PRIVMSGS_TABLE . '
-					SET privmsgs_attachment = 1
-					WHERE privmsgs_id = ' . (int) $a_privmsgs_id;
-
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Unable to update Private Message Table.', '', __LINE__, __FILE__, $sql);
-				}
-			}
 		}
 	}
 
@@ -96,12 +85,22 @@ class attach_pm extends attach_parent
 	function duplicate_attachment_pm($switch_attachment, $original_privmsg_id, $new_privmsg_id)
 	{
 		global $db, $privmsg, $folder;
+		if (($privmsg['privmsgs_type'] != PRIVMSGS_NEW_MAIL && $privmsg['privmsgs_type'] != PRIVMSGS_UNREAD_MAIL) || $folder != 'inbox' || intval($switch_attachment) != 1) { return; }
+		if ((int) $original_privmsg_id <= 0 || (int) $new_privmsg_id <= 0 || (int) $original_privmsg_id === (int) $new_privmsg_id) { return; }
+		$lock = attach_require_mutation_lock($db);
+		try { $this->duplicate_attachment_pm_locked($lock->connection, $switch_attachment, $original_privmsg_id, $new_privmsg_id); }
+		finally { $lock->release(); }
+	}
+
+	function duplicate_attachment_pm_locked($db, $switch_attachment, $original_privmsg_id, $new_privmsg_id)
+	{
+		global $privmsg, $folder;
 
 		if (($privmsg['privmsgs_type'] == PRIVMSGS_NEW_MAIL || $privmsg['privmsgs_type'] == PRIVMSGS_UNREAD_MAIL) && $folder == 'inbox' && intval($switch_attachment) == 1)
 		{
-			$sql = 'SELECT *
-				FROM ' . ATTACHMENTS_TABLE . '
-				WHERE privmsgs_id = ' . (int) $original_privmsg_id;
+			$sql = 'SELECT a.*
+				FROM ' . ATTACHMENTS_TABLE . ' a, ' . ATTACHMENTS_DESC_TABLE . ' d
+				WHERE a.attach_id = d.attach_id AND a.privmsgs_id = ' . (int) $original_privmsg_id;
 
 			if (!($result = $db->sql_query($sql)))
 			{

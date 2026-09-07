@@ -18,6 +18,15 @@ define('PRIVMSGS_UNREAD_MAIL', 5);
 $forum_root = dirname(dirname(__DIR__)) . '/phpBB2/';
 function delete_selection_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 class AttachmentSelectionFailure extends RuntimeException {}
+// This suite isolates deletion selection/SQL/files. Dedicated-session locking
+// and competing publishers are exercised by check-attachment-mutation.php.
+class AttachmentSelectionLock
+{
+	var $connection;
+	function __construct($database) { $this->connection = $database; }
+	function release() {}
+}
+function attach_require_mutation_lock($database) { return new AttachmentSelectionLock($database); }
 function message_die($type, $message, $title = '', $line = 0, $file = '', $sql = '')
 {
 	throw new AttachmentSelectionFailure($message);
@@ -61,6 +70,7 @@ class AttachmentSelectionDatabase
 		return $result;
 	}
 	function sql_numrows($result) { return count($result->rows); }
+	function sql_escape($value) { return str_replace("'", "''", $value); }
 	function sql_fetchrow($result) { return isset($result->rows[$result->position]) ? $result->rows[$result->position++] : false; }
 	function sql_fetchrowset($result) { return $result->rows; }
 	function sql_freeresult($result) {}

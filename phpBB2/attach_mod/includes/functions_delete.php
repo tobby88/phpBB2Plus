@@ -89,6 +89,18 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 		return;
 	}
 
+	$lock = attach_require_mutation_lock($db);
+	try
+	{
+		return attach_delete_selected($lock->connection, $post_id_array, $attach_id_array, $page, $user_id, $discover_posts, $discover_attachments);
+	}
+	finally { $lock->release(); }
+}
+
+// Internal: caller owns the attachment mutation lock on this connection.
+function attach_delete_selected($db, $post_id_array, $attach_id_array, $page, $user_id, $discover_posts, $discover_attachments)
+{
+	global $lang;
 	if ($discover_posts)
 	{
 		$post_id_array = array();
@@ -300,26 +312,39 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 					// delete attachments
 					for ($j = 0; $j < $num_attach; $j++)
 					{
-						// Keep the main file and description if thumbnail removal
-						// fails. Persist successful thumbnail cleanup before trying
-						// the main file, so a later recovery knows what remains.
-						if (intval($attachments[$j]['thumbnail']) == 1)
+						// Legacy imports may register the same file under several
+						// attachment IDs. Another description reserves its bytes,
+						// including when it is retained for failed-cleanup recovery.
+						$sql = 'SELECT attach_id FROM ' . ATTACHMENTS_DESC_TABLE . " WHERE physical_filename = '" . $db->sql_escape($attachments[$j]['physical_filename']) . "' AND attach_id <> " . (int) $attachments[$j]['attach_id'] . ' LIMIT 1';
+						if (!($result = $db->sql_query($sql)))
 						{
-							if (!attach_delete_file($attachments[$j]['physical_filename'], MODE_THUMBNAIL))
+							message_die(GENERAL_ERROR, $lang['Error_deleted_attachments'], '', __LINE__, __FILE__, $sql);
+						}
+						$shared_file = $db->sql_numrows($result) > 0;
+						$db->sql_freeresult($result);
+						if (!$shared_file)
+						{
+							// Keep the main file and description if thumbnail removal
+							// fails. Persist successful thumbnail cleanup before trying
+							// the main file, so a later recovery knows what remains.
+							if (intval($attachments[$j]['thumbnail']) == 1)
+							{
+								if (!attach_delete_file($attachments[$j]['physical_filename'], MODE_THUMBNAIL))
+								{
+									$delete_incomplete = true;
+									continue;
+								}
+								$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' SET thumbnail = 0 WHERE attach_id = ' . (int) $attachments[$j]['attach_id'];
+								if (!$db->sql_query($sql))
+								{
+									message_die(GENERAL_ERROR, $lang['Error_deleted_attachments'], '', __LINE__, __FILE__, $sql);
+								}
+							}
+							if (!attach_delete_file($attachments[$j]['physical_filename']))
 							{
 								$delete_incomplete = true;
 								continue;
 							}
-							$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' SET thumbnail = 0 WHERE attach_id = ' . (int) $attachments[$j]['attach_id'];
-							if (!$db->sql_query($sql))
-							{
-								message_die(GENERAL_ERROR, $lang['Error_deleted_attachments'], '', __LINE__, __FILE__, $sql);
-							}
-						}
-						if (!attach_delete_file($attachments[$j]['physical_filename']))
-						{
-							$delete_incomplete = true;
-							continue;
 						}
 					
 						$sql = 'DELETE FROM ' . ATTACHMENTS_DESC_TABLE . '
@@ -384,7 +409,7 @@ function delete_attachment($post_id_array = 0, $attach_id_array = 0, $page = 0, 
 	
 			while ($row = $db->sql_fetchrow($result))
 			{
-				attachment_sync_topic($row['topic_id']);
+				attachment_sync_topic($row['topic_id'], $db);
 			}
 			$db->sql_freeresult($result);
 		}
