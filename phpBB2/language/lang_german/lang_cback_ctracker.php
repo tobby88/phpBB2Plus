@@ -378,6 +378,8 @@ $lang['ctracker_fdisplay_g'] 			  = '<b>%s</b> Angriffe abgewehrt';
 /*
  * Language Strings for the class_ct_database.php
  */
+$lang['ctracker_error_blocklist_value'] = 'Ungültiger Sperreintrag. Erlaubt sind 1 bis 200 Bytes und höchstens acht Sterne (*), aber keine Zeilenumbrüche oder Steuerzeichen. Es wurde nichts gespeichert.';
+$lang['ctracker_error_blocklist_id'] = 'Ungültige Kennung des Sperreintrags. Es wurde nichts geändert. Bitte lade die Blockliste erneut.';
 $lang['ctracker_error_loading_config']    = 'Die CBACK CrackerTracker Konfiguration konnte nicht von der Datenbank geladen werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';
 $lang['ctracker_error_updating_config']   = 'Die CBACK CrackerTracker Konfiguration konnte nicht aktualisiert werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';
 $lang['ctracker_error_loading_blocklist'] = 'Die CBACK CrackerTracker Blockliste konnte nicht von der Datenbank geladen werden. Hast Du das Installationsskript ausgeführt und die Datei "includes/constants.php" korrekt editiert?';

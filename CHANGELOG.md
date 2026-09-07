@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Match exact IPv6 block entries by address value, including equivalent
+  compressed/expanded and IPv4-mapped IPv6 spellings. Reject control characters
+  in new/updated block rules instead of silently joining lines into a different
+  rule. Strict blocklist identifiers prevent malformed values from selecting
+  another entry by integer coercion; validation errors are translated.
 - Remove unused legacy HTML/link-decoding helpers and commented-out account-wide
   login-lock logic. The credential query now loads only fields used by the
   active login path; administrator blocks and CrackerTracker limits remain

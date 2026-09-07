@@ -235,6 +235,35 @@ class ct_database
 
 
 	/**
+	 * Validate rules without silently joining pasted lines or dropping NULs.
+	 * Such rewriting can create a different (even catch-all) blocking rule.
+	 */
+	function normalize_blocklist_value($value)
+	{
+		$value = is_string($value) ? trim($value, ' ') : '';
+		if ($value === '' || strlen($value) > 200 || substr_count($value, '*') > 8 ||
+			preg_match('/[\x00-\x1f\x7f]/', $value) !== 0)
+		{
+			global $lang;
+			message_die(GENERAL_MESSAGE, $lang['ctracker_error_blocklist_value']);
+		}
+		return $value;
+	}
+
+	function normalize_blocklist_id($id)
+	{
+		$value = (is_string($id) || is_int($id)) ? (string) $id : '';
+		$blocklist_id = (int) $value;
+		if ($value === '' || strlen($value) > 8 || !ctype_digit($value) ||
+			$blocklist_id < 1 || $blocklist_id > 16777215)
+		{
+			global $lang;
+			message_die(GENERAL_MESSAGE, $lang['ctracker_error_blocklist_id']);
+		}
+		return $blocklist_id;
+	}
+
+	/**
 	 * <b>save_to_blocklist</b><br>
 	 * This function writes a new entry into the Blocklist
 	 *
@@ -244,12 +273,7 @@ class ct_database
 	{
 		global $db, $lang;
 
-		$blocklist_value = is_scalar($blocklist_value) ? trim((string) $blocklist_value) : '';
-		$blocklist_value = str_replace(array("\r", "\n", "\0"), '', $blocklist_value);
-		if ($blocklist_value === '' || strlen($blocklist_value) > 200 || substr_count($blocklist_value, '*') > 8 || preg_match('/[\x00-\x1f\x7f]/', $blocklist_value))
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_insert_blocklist']);
-		}
+		$blocklist_value = $this->normalize_blocklist_value($blocklist_value);
 
 		// The primary key is AUTO_INCREMENT. Let the database allocate it so
 		// concurrent administrators cannot race on MAX(id) + 1.
@@ -274,12 +298,8 @@ class ct_database
 	{
 		global $db, $lang;
 
-		// Clean up the input
-		$blocklist_id = intval($blocklist_id);
-		if ($blocklist_id < 1)
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_delete_blocklist']);
-		}
+		// Reject malformed IDs instead of coercing them to another record.
+		$blocklist_id = $this->normalize_blocklist_id($blocklist_id);
 
 		// Build an SQL Query
 		$sql = 'DELETE FROM ' . CTRACKER_IPBLOCKER . ' WHERE id = ' . $blocklist_id;
@@ -324,13 +344,8 @@ class ct_database
 	{
 		global $db, $lang;
 
-		$blocklist_id = intval($blocklist_id);
-		$blocklist_val = is_scalar($blocklist_val) ? trim((string) $blocklist_val) : '';
-		$blocklist_val = str_replace(array("\r", "\n", "\0"), '', $blocklist_val);
-		if ($blocklist_id < 1 || $blocklist_val === '' || strlen($blocklist_val) > 200 || substr_count($blocklist_val, '*') > 8 || preg_match('/[\x00-\x1f\x7f]/', $blocklist_val))
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
-		}
+		$blocklist_id = $this->normalize_blocklist_id($blocklist_id);
+		$blocklist_val = $this->normalize_blocklist_value($blocklist_val);
 
 		$sql = "UPDATE " . CTRACKER_IPBLOCKER . "
 			SET ct_blocker_value = '" . $db->sql_escape($blocklist_val) . "'

@@ -35,6 +35,30 @@ if ($errors)
 	exit(1);
 }
 
+foreach (array(
+	array('2001:0DB8:0000:0000:0000:0000:0000:0042', '2001:db8::42'),
+	array('2001:db8::42', '2001:0db8:0:0:0:0:0:42'),
+	array('::ffff:c000:207', '::ffff:192.0.2.7')
+) as $aliases)
+{
+	if (!ctracker_blocklist_matches($aliases[0], $aliases[1], '', ''))
+	{
+		throw new RuntimeException('Equivalent exact IPv6 addresses must match regardless of notation');
+	}
+}
+foreach (array(
+	array('2001:db8::42', '2001:db8::43'),
+	array('::ffff:192.0.2.7', '::ffff:192.0.2.8'),
+	array('192.0.2.7', '192.0.2.70'),
+	array('2001:db8::42', '192.0.2.7')
+) as $different)
+{
+	if (ctracker_blocklist_matches($different[0], $different[1], '', ''))
+	{
+		throw new RuntimeException('Exact address comparison must not broaden a block to other addresses');
+	}
+}
+
 echo "CrackerTracker blocklist matching passed.\n";
 
 ?>

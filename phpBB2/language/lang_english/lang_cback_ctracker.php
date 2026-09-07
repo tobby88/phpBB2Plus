@@ -379,6 +379,8 @@ $lang['ctracker_fdisplay_g'] 			  = '<b>%s</b> Attacks blocked';
 /*
  * Language Strings for the class_ct_database.php
  */
+$lang['ctracker_error_blocklist_value'] = 'Invalid block entry. Use 1 to 200 bytes and at most eight asterisks (*), without line breaks or control characters. Nothing was saved.';
+$lang['ctracker_error_blocklist_id'] = 'Invalid block entry identifier. Nothing was changed. Please reload the blocklist.';
 $lang['ctracker_error_loading_config']    = 'The CBACK CrackerTracker Configuration couldn\'t be loaded from the database. Have you run the installation script and edited the file "includes/constants.php" correctly?';
 $lang['ctracker_error_updating_config']   = 'The CBACK CrackerTracker Configuration couldn\'t be updated. Have you run the installation script and edited the file "includes/constants.php" correctly?';
 $lang['ctracker_error_loading_blocklist'] = 'The CBACK CrackerTracker Blocklist couldn\'t be loaded from Database. Have you run the installation script and edited the file "includes/constants.php" correctly?';

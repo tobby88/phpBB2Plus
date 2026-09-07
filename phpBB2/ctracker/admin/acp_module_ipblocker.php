@@ -33,7 +33,7 @@ $mode = phpbb_admin_post_string('mode');
 if ( $mode == 'remove' )
 {
 	phpbb_admin_require_post_session();
-	$ctracker_config->delete_from_blocklist(intval(phpbb_admin_post_string('id', '0')));
+	$ctracker_config->delete_from_blocklist(phpbb_admin_post_string('id', '0'));
 	$template->assign_block_vars('deleted', array(
 			'L_SUCCESSFULLY_DELETED' => $lang['ctracker_ipb_deleted'])
 	);

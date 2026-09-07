@@ -121,7 +121,17 @@ function ctracker_blocklist_pattern_matches($pattern, $target)
 
 function ctracker_blocklist_matches($pattern, $ip, $user_agent, $remote_host)
 {
-	if (ctracker_ip_matches_cidr((string) $ip, (string) $pattern))
+	$pattern = is_scalar($pattern) ? trim((string) $pattern) : '';
+	$ip = is_scalar($ip) ? (string) $ip : '';
+	// Exact IPv6 addresses have multiple equivalent textual representations.
+	// Compare packed addresses before falling back to CIDR and literal masks.
+	$packed_pattern = @inet_pton($pattern);
+	$packed_ip = @inet_pton($ip);
+	if ($packed_pattern !== false && $packed_ip !== false && $packed_pattern === $packed_ip)
+	{
+		return true;
+	}
+	if (ctracker_ip_matches_cidr($ip, $pattern))
 	{
 		return true;
 	}
