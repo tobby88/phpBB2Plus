@@ -1636,6 +1636,8 @@ $lang['BBCode_flash_open'] = 'Open Flash file';
 
 $lang['Moderation_delete_failed'] = 'Topic deletion could not be completed. Some steps may already have succeeded. Please ask an administrator to check the remaining data before retrying.';
 $lang['Moderation_delete_changed'] = 'A post changed while its topic was being deleted. Deletion was stopped to protect unrelated data. Please ask an administrator to check the remaining data.';
+$lang['Prune_selection_changed'] = 'The forum or cleanup settings have changed or are inconsistent. Please review the current configuration before trying again.';
+$lang['Prune_storage_failed'] = 'Forum cleanup could not be completed. Some steps may already have succeeded; ask an administrator to check the remaining data before retrying.';
 
 $lang['Poll_storage_failed'] = 'Your vote could not be saved reliably. Please try again later.';
 $lang['Poll_vote_denied'] = 'You are not allowed to vote in this poll.';

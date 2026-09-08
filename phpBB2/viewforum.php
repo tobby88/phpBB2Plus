@@ -280,9 +280,17 @@ if ( $is_auth['auth_mod'] && $board_config['prune_enable'] )
 {
 	if ( $forum_row['prune_next'] < time() && $forum_row['prune_enable'] )
 	{
-		include($phpbb_root_path . 'includes/prune.'.$phpEx);
-		require($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
-		auto_prune($forum_id);
+		require_once($phpbb_root_path . 'includes/prune.'.$phpEx);
+		try
+		{
+			auto_prune($forum_id);
+		}
+		catch (PhpbbPruneException $error)
+		{
+			// Optional maintenance must not hide a readable forum. Keep partial
+			// storage failures visible to operators without logging user content.
+			error_log('phpBB automatic forum pruning did not complete.');
+		}
 	}
 }
 //

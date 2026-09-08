@@ -1337,182 +1337,24 @@ if( !empty($mode) )
 			break;
 
 		case 'movedelforum':
-			//
-			// Move or delete a forum in the DB
-			//
-			$from_id = admin_forum_post_int('from_id');
-			//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- delete
-//			$to_id = intval($_POST['to_id']);
-//-- add
-			$to_fid = admin_forum_post_scalar('to_id');
-			if (intval($to_fid) == -1)
+			require_once $phpbb_root_path . 'includes/functions_forum_maintenance.' . $phpEx;
+			try
 			{
-				$to_type = '';
-				$to_id = -1;
+				// Validate the original values, never a lossy integer cast.
+				$from_id = isset($_POST['from_id']) ? $_POST['from_id'] : null;
+				$to_fid = isset($_POST['to_id']) ? $_POST['to_id'] : null;
+				if (!is_string($to_fid) || ($to_fid !== '-1' && !preg_match('/^f[0-9]+$/D', $to_fid)))
+				{
+					phpbb_prune_error('Prune_selection_changed');
+				}
+				$to_id = $to_fid === '-1' ? null : substr($to_fid, 1);
+				phpbb_remove_forum($db, $from_id, $to_id);
 			}
-			else
+			catch (PhpbbPruneException $error)
 			{
-				$to_type	= substr($to_fid, 0, 1);
-				$to_id		= intval(substr($to_fid, 1));
-				if (($to_type != POST_FORUM_URL) || ($to_fid == 'Root'))
-				{
-					message_die(GENERAL_MESSAGE, $lang['Only_forum_for_topics']);
-				}
+				message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8'));
 			}
-
-			// check if sub-levels present
-			if (!empty($tree['sub'][POST_FORUM_URL. $from_id]))
-			{
-				message_die(GENERAL_MESSAGE, $lang['Delete_forum_with_attachment_denied']);
-			}
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-			$delete_old = admin_forum_post_int('delete_old');
-
-
-			// Either delete or move all posts in a forum
-			if($to_id == -1)
-			{
-				// Delete polls in this forum
-				$sql = "SELECT v.vote_id 
-					FROM " . VOTE_DESC_TABLE . " v, " . TOPICS_TABLE . " t 
-					WHERE t.forum_id = $from_id 
-						AND v.topic_id = t.topic_id";
-				if (!($result = $db->sql_query($sql)))
-				{
-					message_die(GENERAL_ERROR, "Couldn't obtain list of vote ids", "", __LINE__, __FILE__, $sql);
-				}
-
-				if ($row = $db->sql_fetchrow($result))
-				{
-					$vote_ids = '';
-					do
-					{
-						$vote_ids .= (($vote_ids != '') ? ', ' : '') . $row['vote_id'];
-					}
-					while ($row = $db->sql_fetchrow($result));
-
-					$sql = "DELETE FROM " . VOTE_DESC_TABLE . " 
-						WHERE vote_id IN ($vote_ids)";
-					$db->sql_query($sql);
-
-					$sql = "DELETE FROM " . VOTE_RESULTS_TABLE . " 
-						WHERE vote_id IN ($vote_ids)";
-					$db->sql_query($sql);
-
-					$sql = "DELETE FROM " . VOTE_USERS_TABLE . " 
-						WHERE vote_id IN ($vote_ids)";
-					$db->sql_query($sql);
-				}
-				$db->sql_freeresult($result);
-				
-				include($phpbb_root_path . "includes/prune.$phpEx");
-				prune($from_id, 0, true); // Delete everything from forum
-			}
-			else
-			{
-				$sql = "SELECT *
-					FROM " . FORUMS_TABLE . "
-					WHERE forum_id IN ($from_id, $to_id)";
-				if( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, "Couldn't verify existence of forums", "", __LINE__, __FILE__, $sql);
-				}
-
-				if($db->sql_numrows($result) != 2)
-				{
-					message_die(GENERAL_ERROR, "Ambiguous forum ID's", "", __LINE__, __FILE__);
-				}
-				$sql = "UPDATE " . TOPICS_TABLE . "
-					SET forum_id = $to_id
-					WHERE forum_id = $from_id";
-				if( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, "Couldn't move topics to other forum", "", __LINE__, __FILE__, $sql);
-				}
-				$sql = "UPDATE " . POSTS_TABLE . "
-					SET	forum_id = $to_id
-					WHERE forum_id = $from_id";
-				if( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, "Couldn't move posts to other forum", "", __LINE__, __FILE__, $sql);
-				}
-				sync('forum', $to_id);
-			}
-
-			// Alter Mod level if appropriate - 2.0.4
-			$sql = "SELECT ug.user_id 
-				FROM " . AUTH_ACCESS_TABLE . " a, " . USER_GROUP_TABLE . " ug 
-				WHERE a.forum_id <> $from_id 
-					AND a.auth_mod = 1
-					AND ug.group_id = a.group_id";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't obtain moderator list", "", __LINE__, __FILE__, $sql);
-			}
-
-			if ($row = $db->sql_fetchrow($result))
-			{
-				$user_ids = '';
-				do
-				{
-					$user_ids .= (($user_ids != '') ? ', ' : '' ) . $row['user_id'];
-				}
-				while ($row = $db->sql_fetchrow($result));
-
-				$sql = "SELECT ug.user_id 
-					FROM " . AUTH_ACCESS_TABLE . " a, " . USER_GROUP_TABLE . " ug 
-					WHERE a.forum_id = $from_id 
-						AND a.auth_mod = 1 
-						AND ug.group_id = a.group_id
-						AND ug.user_id NOT IN ($user_ids)";
-				if( !$result2 = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, "Couldn't obtain moderator list", "", __LINE__, __FILE__, $sql);
-				}
-					
-				if ($row = $db->sql_fetchrow($result2))
-				{
-					$user_ids = '';
-					do
-					{
-						$user_ids .= (($user_ids != '') ? ', ' : '' ) . $row['user_id'];
-					}
-					while ($row = $db->sql_fetchrow($result2));
-
-					$sql = "UPDATE " . USERS_TABLE . " 
-						SET user_level = " . USER . " 
-						WHERE user_id IN ($user_ids) 
-							AND user_level <> " . ADMIN;
-					$db->sql_query($sql);
-				}
-				$db->sql_freeresult($result);
-
-			}
-			$db->sql_freeresult($result2);
-
-			$sql = "DELETE FROM " . FORUMS_TABLE . "
-				WHERE forum_id = $from_id";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't delete forum", "", __LINE__, __FILE__, $sql);
-			}
-			
-			$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . "
-				WHERE forum_id = $from_id";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't delete forum", "", __LINE__, __FILE__, $sql);
-			}
-			
-			$sql = "DELETE FROM " . PRUNE_TABLE . "
-				WHERE forum_id = $from_id";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't delete forum prune information!", "", __LINE__, __FILE__, $sql);
-			}
-			//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- add
+			// The storage worker has released its connection before cache work.
 			cache_tree(true);			
 			board_stats();
 			@unlink($phpbb_root_path . 'cache/c_seolist.cache');

@@ -138,8 +138,12 @@ else
 if( isset($_POST['doprune']) )
 {
 	phpbb_admin_require_post_session();
-	$prunedays = ( isset($_POST['prunedays']) ) ? intval($_POST['prunedays']) : 0;
-	$prunedays = max(1, min(36500, $prunedays));
+	$prunedays = isset($_POST['prunedays']) ? $_POST['prunedays'] : null;
+	if (!is_string($prunedays) || !preg_match('/^[0-9]{1,5}$/D', $prunedays) || (int)$prunedays < 1 || (int)$prunedays > 36500)
+	{
+		message_die(GENERAL_MESSAGE, $lang['Prune_selection_changed']);
+	}
+	$prunedays = (int)$prunedays;
 
 	// Convert days to seconds for timestamp functions...
 	$prunedate = time() - ( $prunedays * 86400 );
@@ -150,8 +154,14 @@ if( isset($_POST['doprune']) )
 
 	for($i = 0; $i < count($forum_rows); $i++)
 	{
-		$p_result = prune($forum_rows[$i]['forum_id'], $prunedate);
-		sync('forum', $forum_rows[$i]['forum_id']);
+		try
+		{
+			$p_result = prune($forum_rows[$i]['forum_id'], $prunedate);
+		}
+		catch (PhpbbPruneException $error)
+		{
+			message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8'));
+		}
 	
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 		$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
@@ -171,6 +181,8 @@ if( isset($_POST['doprune']) )
 		);
 	}
 
+	cache_tree(true);
+	board_stats();
 	$template->assign_vars(array(
 		'L_FORUM_PRUNE' => $lang['Forum_Prune'],
 		'L_FORUM' => $lang['Forum'],

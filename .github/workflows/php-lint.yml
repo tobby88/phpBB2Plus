@@ -515,3 +515,9 @@ jobs:
 
       - name: Test removed topic and redirect record cleanup
         run: php .github/scripts/check-topic-removal-cleanup.php
+
+      - name: Test coordinated age-pruning policy and scheduling
+        run: php .github/scripts/check-prune-storage.php
+
+      - name: Test coordinated whole-forum move and removal
+        run: php .github/scripts/check-forum-maintenance.php

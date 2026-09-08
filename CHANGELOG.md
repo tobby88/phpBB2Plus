@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate manual/automatic age pruning and whole-forum move/removal with
+  post, poll and attachment writers. Recheck current accounts, ACP delegation,
+  forum hierarchy and complete content selections; protect recent posts and
+  actual polls when cached topic metadata is stale. Move topics and posts in
+  one guarded statement, preserve shared attachments and update counters and
+  remaining moderator roles. Advance automatic schedules only after successful
+  cleanup. Keep partial storage failures explicit; no schema changes or
+  automatic cleanup of unrelated existing inconsistencies.
+
 - Remove per-user view records when the final post removes its topic. Clean
   watches, bookmarks and view records for actually deleted empty redirects,
   preserving changed/nonempty redirects and unrelated topics. Recheck absence
