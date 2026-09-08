@@ -530,3 +530,6 @@ jobs:
 
       - name: Test coordinated userlist bulk actions and protected accounts
         run: php .github/scripts/check-userlist-storage.php
+
+      - name: Test coordinated group lifecycle and notification boundaries
+        run: php .github/scripts/check-group-storage.php

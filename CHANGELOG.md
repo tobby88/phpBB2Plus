@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate public group status changes, joins, withdrawals, additions,
+  removals, approvals and denials. Recheck current active actors, group owners,
+  administrator roles and nonpersonal/open-group rules at the actual writes.
+  Derive moderator status only after changing the intended membership; preserve
+  concurrently promoted administrators, group leaders and other groups' rights.
+  Pending denials cannot delete approved memberships. Reject malformed IDs and
+  ambiguous legacy/entity username matches; preserve apostrophes and UTF-8.
+  Send only actual-transition notifications, in each recipient's language,
+  outside the storage lock; optional mail failures do not undo successful work.
+  Remove obsolete database-driver branches from this controller. No schema change.
+
 - Coordinate all five user-list bulk actions on one writer connection, re-read
   active administrator/module grants and protect current administrators and
   the acting user on every target write. Reject malformed IDs without coercion.

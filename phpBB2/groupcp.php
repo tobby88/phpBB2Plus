@@ -97,6 +97,21 @@ function groupcp_require_post_session($sid, $userdata, $lang)
 		message_die(GENERAL_ERROR, $lang['Session_invalid']);
 	}
 }
+
+function groupcp_change($action, $value = null)
+{
+	global $db, $phpbb_root_path, $phpEx;
+	require_once $phpbb_root_path . 'includes/functions_group_storage.' . $phpEx;
+	$original_group = isset($_POST[POST_GROUPS_URL]) ? $_POST[POST_GROUPS_URL] : (isset($_GET[POST_GROUPS_URL]) ? $_GET[POST_GROUPS_URL] : null);
+	try { return phpbb_group_change($db, $action, $original_group, $value); }
+	catch (PhpbbGroupException $error) { message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8')); }
+}
+function groupcp_notify($outcome)
+{
+	global $phpbb_root_path, $phpEx, $lang;
+	require_once $phpbb_root_path . 'includes/functions_group_notifications.' . $phpEx;
+	return phpbb_group_notify($outcome) ? '' : '<br /><br />' . $lang['Group_mail_failed'];
+}
 //
 // --------------------------
 
@@ -155,164 +170,16 @@ $is_moderator = FALSE;
 
 if ( isset($_POST['groupstatus']) && $group_id )
 {
-	if ( !$userdata['session_logged_in'] )
-	{
-		redirect(append_sid("login.$phpEx?redirect=groupcp.$phpEx&" . POST_GROUPS_URL . "=$group_id", true));
-	}
 	groupcp_require_post_session($sid, $userdata, $lang);
-
-	$sql = "SELECT group_moderator 
-		FROM " . GROUPS_TABLE . "  
-		WHERE group_id = $group_id";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain user and group information', '', __LINE__, __FILE__, $sql);
-	}
-
-	$row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if (!$row)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_groups_exist']);
-	}
-
-	if ( $row['group_moderator'] != $userdata['user_id'] && $userdata['user_level'] != ADMIN )
-	{
-		$template->assign_vars(array(
-			'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("index.$phpEx") . '">')
-		);
-
-		$message = $lang['Not_group_moderator'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
-		message_die(GENERAL_MESSAGE, $message);
-	}
-
-	$group_type = (isset($_POST['group_type']) && is_scalar($_POST['group_type'])) ? intval($_POST['group_type']) : -1;
-	if ( !in_array($group_type, array(GROUP_OPEN, GROUP_CLOSED, GROUP_HIDDEN), true) )
-	{
-		message_die(GENERAL_ERROR, $lang['Invalid_group_type']);
-	}
-
-	$sql = "UPDATE " . GROUPS_TABLE . " 
-		SET group_type = " . $group_type . "
-		WHERE group_id = $group_id";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain user and group information', '', __LINE__, __FILE__, $sql);
-	}
-
-	$template->assign_vars(array(
-		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">')
-	);
-
-	$message = $lang['Group_type_updated'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
-	message_die(GENERAL_MESSAGE, $message);
-
+	groupcp_change('status', isset($_POST['group_type']) ? $_POST['group_type'] : null);
+	message_die(GENERAL_MESSAGE, $lang['Group_type_updated'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>'));
 }
 else if ( isset($_POST['joingroup']) && $group_id )
 {
-	//
-	// First, joining a group
-	// If the user isn't logged in redirect them to login
-	//
-	if ( !$userdata['session_logged_in'] )
-	{
-		redirect(append_sid("login.$phpEx?redirect=groupcp.$phpEx&" . POST_GROUPS_URL . "=$group_id", true));
-	}
 	groupcp_require_post_session($sid, $userdata, $lang);
-
-	$sql = "SELECT g.group_type
-		FROM " . GROUPS_TABLE . " g
-		WHERE g.group_id = $group_id 
-			AND g.group_type = " . GROUP_OPEN;
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain user and group information', '', __LINE__, __FILE__, $sql);
-	}
-
-	$group_join_info = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if (!$group_join_info)
-	{
-		message_die(GENERAL_MESSAGE, $lang['This_closed_group']);
-	}
-
-	$user_id = intval($userdata['user_id']);
-	$sql = "SELECT user_id
-		FROM " . USER_GROUP_TABLE . "
-		WHERE group_id = $group_id
-			AND user_id = $user_id
-		LIMIT 1";
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain user and group information', '', __LINE__, __FILE__, $sql);
-	}
-	$already_joined = (bool) $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	if ($already_joined)
-	{
-		$message = $lang['Already_member_group'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-		message_die(GENERAL_MESSAGE, $message);
-	}
-
-	$sql = "INSERT INTO " . USER_GROUP_TABLE . " (group_id, user_id, user_pending) 
-		SELECT $group_id, $user_id, 1
-		WHERE NOT EXISTS (
-			SELECT 1 FROM " . USER_GROUP_TABLE . "
-			WHERE group_id = $group_id AND user_id = $user_id
-		)";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, "Error inserting user group subscription", "", __LINE__, __FILE__, $sql);
-	}
-	if (!$db->sql_affectedrows())
-	{
-		$message = $lang['Already_member_group'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-		message_die(GENERAL_MESSAGE, $message);
-	}
-
-	$sql = "SELECT u.user_email, u.username, u.user_lang, g.group_name 
-		FROM ".USERS_TABLE . " u, " . GROUPS_TABLE . " g 
-		WHERE u.user_id = g.group_moderator 
-			AND g.group_id = $group_id";
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, "Error getting group moderator data", "", __LINE__, __FILE__, $sql);
-	}
-
-	$moderator = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-
-	if ($moderator && !empty($moderator['user_email']))
-	{
-		include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-		$emailer = new emailer($board_config['smtp_delivery']);
-
-		$emailer->from($board_config['board_email']);
-		$emailer->replyto($board_config['board_email']);
-
-		$emailer->use_template('group_request', $moderator['user_lang']);
-		$emailer->email_address($moderator['user_email']);
-		$emailer->set_subject($lang['Group_request']);
-
-		$emailer->assign_vars(array(
-			'SITENAME' => $board_config['sitename'],
-			'GROUP_MODERATOR' => $moderator['username'],
-			'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
-
-			'U_GROUPCP' => $server_url . '?' . POST_GROUPS_URL . "=$group_id&validate=true")
-		);
-		$emailer->send();
-		$emailer->reset();
-	}
-
-	$template->assign_vars(array(
-		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("index.$phpEx") . '">')
-	);
-
-	$message = $lang['Group_joined'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
+	$outcome = groupcp_change('join');
+	$notice = groupcp_notify($outcome);
+	$message = $lang[$outcome['changed'] ? 'Group_joined' : 'Already_member_group'] . $notice . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>');
 	message_die(GENERAL_MESSAGE, $message);
 }
 else if ( (isset($_POST['unsub']) || isset($_POST['unsubpending'])) && $group_id )
@@ -334,37 +201,7 @@ else if ( (isset($_POST['unsub']) || isset($_POST['unsubpending'])) && $group_id
 
 	if ( $confirm )
 	{
-		$sql = "DELETE FROM " . USER_GROUP_TABLE . " 
-			WHERE user_id = " . $userdata['user_id'] . " 
-				AND group_id = $group_id";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not delete group memebership data', '', __LINE__, __FILE__, $sql);
-		}
-
-		if ( $userdata['user_level'] != ADMIN && $userdata['user_level'] == MOD )
-		{
-			$sql = "SELECT COUNT(auth_mod) AS is_auth_mod 
-				FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug 
-				WHERE ug.user_id = " . $userdata['user_id'] . " 
-					AND aa.group_id = ug.group_id 
-					AND aa.auth_mod = 1";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain moderator status', '', __LINE__, __FILE__, $sql);
-			}
-
-			if ( !($row = $db->sql_fetchrow($result)) || $row['is_auth_mod'] == 0 )
-			{
-				$sql = "UPDATE " . USERS_TABLE . " 
-					SET user_level = " . USER . " 
-					WHERE user_id = " . $userdata['user_id'];
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
+		groupcp_change(isset($_POST['unsubpending']) ? 'unsubscribe_pending' : 'unsubscribe');
 
 		$template->assign_vars(array(
 			'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("index.$phpEx") . '">')
@@ -378,7 +215,7 @@ else if ( (isset($_POST['unsub']) || isset($_POST['unsubpending'])) && $group_id
 	{
 		$unsub_msg = ( isset($_POST['unsub']) ) ? $lang['Confirm_unsub'] : $lang['Confirm_unsub_pending'];
 
-		$s_hidden_fields = '<input type="hidden" name="' . POST_GROUPS_URL . '" value="' . $group_id . '" /><input type="hidden" name="unsub" value="1" />';
+		$s_hidden_fields = '<input type="hidden" name="' . POST_GROUPS_URL . '" value="' . $group_id . '" /><input type="hidden" name="' . (isset($_POST['unsubpending']) ? 'unsubpending' : 'unsub') . '" value="1" />';
 		$s_hidden_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
 
 		$page_title = $lang['Group_Control_Panel'];
@@ -420,48 +257,15 @@ else if ( $group_id )
 	//
 	// For security, get the ID of the group moderator.
 	//
-	switch(SQL_LAYER)
-	{
-		case 'postgresql':
-			$sql = "SELECT g.group_moderator, g.group_type, aa.auth_mod 
-				FROM " . GROUPS_TABLE . " g, " . AUTH_ACCESS_TABLE . " aa 
-				WHERE g.group_id = $group_id
-					AND aa.group_id = g.group_id 
-					UNION (
-						SELECT g.group_moderator, g.group_type, NULL 
-						FROM " . GROUPS_TABLE . " g
-						WHERE g.group_id = $group_id
-							AND NOT EXISTS (
-							SELECT aa.group_id 
-							FROM " . AUTH_ACCESS_TABLE . " aa 
-							WHERE aa.group_id = g.group_id  
-						)
-					)
-				ORDER BY auth_mod DESC";
-			break;
-
-		case 'oracle':
-			$sql = "SELECT g.group_moderator, g.group_type, aa.auth_mod 
-				FROM " . GROUPS_TABLE . " g, " . AUTH_ACCESS_TABLE . " aa 
-				WHERE g.group_id = $group_id
-					AND aa.group_id (+) = g.group_id
-				ORDER BY aa.auth_mod DESC";
-			break;
-
-		default:
-			$sql = "SELECT g.group_moderator, g.group_type, aa.auth_mod 
-				FROM ( " . GROUPS_TABLE . " g 
-				LEFT JOIN " . AUTH_ACCESS_TABLE . " aa ON aa.group_id = g.group_id )
-				WHERE g.group_id = $group_id
-				ORDER BY aa.auth_mod DESC";
-			break;
-	}
+	$sql = "SELECT group_moderator, group_type FROM " . GROUPS_TABLE . " WHERE group_id = $group_id AND group_single_user = 0";
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Could not get moderator information', '', __LINE__, __FILE__, $sql);
 	}
 
-	if ( $group_info = $db->sql_fetchrow($result) )
+	$group_info = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	if ( $group_info )
 	{
 		$group_moderator = $group_info['group_moderator'];
 	
@@ -473,299 +277,15 @@ else if ( $group_id )
 		//
 		// Handle Additions, removals, approvals and denials
 		//
-		if ( !empty($_POST['add']) || !empty($_POST['remove']) || isset($_POST['approve']) || isset($_POST['deny']) )
+		if ( isset($_POST['add']) || isset($_POST['remove']) || isset($_POST['approve']) || isset($_POST['deny']) )
 		{
-			if ( !$userdata['session_logged_in'] )
-			{
-				redirect(append_sid("login.$phpEx?redirect=groupcp.$phpEx&" . POST_GROUPS_URL . "=$group_id", true));
-			}
 			groupcp_require_post_session($sid, $userdata, $lang);
-
-			if ( !$is_moderator )
-			{
-				$template->assign_vars(array(
-					'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("index.$phpEx") . '">')
-				);
-
-				$message = $lang['Not_group_moderator'] . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
-				message_die(GENERAL_MESSAGE, $message);
-			}
-
-			if ( isset($_POST['add']) )
-			{
-				$username_value = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
-				$username = ($username_value !== '') ? phpbb_clean_username($username_value) : '';
-				
-				$sql = "SELECT user_id, user_email, user_lang, user_level  
-					FROM " . USERS_TABLE . " 
-					WHERE username = '" . $db->sql_escape($username) . "'";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, "Could not get user information", $lang['Error'], __LINE__, __FILE__, $sql);
-				}
-
-				if ( !($row = $db->sql_fetchrow($result)) )
-				{
-					$template->assign_vars(array(
-						'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">')
-					);
-
-					$message = $lang['Could_not_add_user'] . "<br /><br />" . sprintf($lang['Click_return_group'], "<a href=\"" . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_index'], "<a href=\"" . append_sid("index.$phpEx") . "\">", "</a>");
-
-					message_die(GENERAL_MESSAGE, $message);
-				}
-
-				if ( $row['user_id'] == ANONYMOUS )
-				{
-					$template->assign_vars(array(
-						'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">')
-					);
-
-					$message = $lang['Could_not_anon_user'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
-					message_die(GENERAL_MESSAGE, $message);
-				}
-				
-				$sql = "SELECT ug.user_id, u.user_level 
-					FROM " . USER_GROUP_TABLE . " ug, " . USERS_TABLE . " u 
-					WHERE u.user_id = " . $row['user_id'] . " 
-						AND ug.user_id = u.user_id 
-						AND ug.group_id = $group_id";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not get user information', '', __LINE__, __FILE__, $sql);
-				}
-
-				if ( !($db->sql_fetchrow($result)) )
-				{
-					$sql = "INSERT INTO " . USER_GROUP_TABLE . " (user_id, group_id, user_pending) 
-						VALUES (" . $row['user_id'] . ", $group_id, 0)";
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not add user to group', '', __LINE__, __FILE__, $sql);
-					}
-					
-					if ( $row['user_level'] != ADMIN && $row['user_level'] != MOD && $group_info['auth_mod'] )
-					{
-						$sql = "UPDATE " . USERS_TABLE . " 
-							SET user_level = " . MOD . " 
-							WHERE user_id = " . $row['user_id'];
-						if ( !$db->sql_query($sql) )
-						{
-							message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
-						}
-					}
-
-					//
-					// Get the group name
-					// Email the user and tell them they're in the group
-					//
-					$group_sql = "SELECT group_name 
-						FROM " . GROUPS_TABLE . " 
-						WHERE group_id = $group_id";
-					if ( !($result = $db->sql_query($group_sql)) )
-					{
-						message_die(GENERAL_ERROR, 'Could not get group information', '', __LINE__, __FILE__, $group_sql);
-					}
-
-					$group_name_row = $db->sql_fetchrow($result);
-
-					$group_name = $group_name_row['group_name'];
-
-					include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-					$emailer = new emailer($board_config['smtp_delivery']);
-
-					$emailer->from($board_config['board_email']);
-					$emailer->replyto($board_config['board_email']);
-
-					$emailer->use_template('group_added', $row['user_lang']);
-					$emailer->email_address($row['user_email']);
-					$emailer->set_subject($lang['Group_added']);
-
-					$emailer->assign_vars(array(
-						'SITENAME' => $board_config['sitename'], 
-						'GROUP_NAME' => $group_name,
-						'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '', 
-
-						'U_GROUPCP' => $server_url . '?' . POST_GROUPS_URL . "=$group_id")
-					);
-					$emailer->send();
-					$emailer->reset();
-				}
-				else
-				{
-					$template->assign_vars(array(
-						'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">')
-					);
-
-					$message = $lang['User_is_member_group'] . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
-					message_die(GENERAL_MESSAGE, $message);
-				}
-			}
-			else 
-			{
-				if ( ( ( isset($_POST['approve']) || isset($_POST['deny']) ) && isset($_POST['pending_members']) ) || ( isset($_POST['remove']) && isset($_POST['members']) ) )
-				{
-
-					$members = ( isset($_POST['approve']) || isset($_POST['deny']) ) ? $_POST['pending_members'] : $_POST['members'];
-					if (!is_array($members))
-					{
-						message_die(GENERAL_MESSAGE, $lang['No_user_specified']);
-					}
-
-					$member_ids = array();
-					foreach ($members as $member_id)
-					{
-						if (is_scalar($member_id) && intval($member_id) > 0)
-						{
-							$member_ids[intval($member_id)] = intval($member_id);
-						}
-					}
-					if (empty($member_ids))
-					{
-						message_die(GENERAL_MESSAGE, $lang['No_user_specified']);
-					}
-					$sql_in = implode(', ', $member_ids);
-
-					if ( isset($_POST['approve']) )
-					{
-						if ( $group_info['auth_mod'] )
-						{
-							$sql = "UPDATE " . USERS_TABLE . " 
-								SET user_level = " . MOD . " 
-								WHERE user_id IN ($sql_in) 
-									AND user_level NOT IN (" . MOD . ", " . ADMIN . ")";
-							if ( !$db->sql_query($sql) )
-							{
-								message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
-							}
-						}
-
-						$sql = "UPDATE " . USER_GROUP_TABLE . " 
-							SET user_pending = 0 
-							WHERE user_id IN ($sql_in) 
-								AND group_id = $group_id";
-						$sql_select = "SELECT user_email 
-							FROM ". USERS_TABLE . " 
-							WHERE user_id IN ($sql_in)"; 
-					}
-					else if ( isset($_POST['deny']) || isset($_POST['remove']) )
-					{
-						if ( $group_info['auth_mod'] )
-						{
-							$sql = "SELECT ug.user_id, ug.group_id 
-								FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug 
-								WHERE ug.user_id IN  ($sql_in) 
-									AND aa.group_id = ug.group_id 
-									AND aa.auth_mod = 1 
-								GROUP BY ug.user_id, ug.group_id 
-								ORDER BY ug.user_id, ug.group_id";
-							if ( !($result = $db->sql_query($sql)) )
-							{
-								message_die(GENERAL_ERROR, 'Could not obtain moderator status', '', __LINE__, __FILE__, $sql);
-							}
-
-							if ( $row = $db->sql_fetchrow($result) )
-							{
-								$group_check = array();
-								$remove_mod_sql = '';
-
-								do
-								{
-									$group_check[$row['user_id']][] = $row['group_id'];
-								}
-								while ( $row = $db->sql_fetchrow($result) );
-
-								foreach ($group_check as $user_id => $group_list)
-								{
-									if ( count($group_list) == 1 )
-									{
-										$remove_mod_sql .= ( ( $remove_mod_sql != '' ) ? ', ' : '' ) . $user_id;
-									}
-								}
-
-								if ( $remove_mod_sql != '' )
-								{
-									$sql = "UPDATE " . USERS_TABLE . " 
-										SET user_level = " . USER . " 
-										WHERE user_id IN ($remove_mod_sql) 
-											AND user_level NOT IN (" . ADMIN . ")";
-									if ( !$db->sql_query($sql) )
-									{
-										message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
-									}
-								}
-							}
-						}
-
-						$sql = "DELETE FROM " . USER_GROUP_TABLE . " 
-							WHERE user_id IN ($sql_in) 
-								AND group_id = $group_id";
-					}
-
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not update user group table', '', __LINE__, __FILE__, $sql);
-					}
-
-					//
-					// Email users when they are approved
-					//
-					if ( isset($_POST['approve']) )
-					{
-						if ( !($result = $db->sql_query($sql_select)) )
-						{
-							message_die(GENERAL_ERROR, 'Could not get user email information', '', __LINE__, __FILE__, $sql);
-						}
-
-						$bcc_list = array();
-						while ($row = $db->sql_fetchrow($result))
-						{
-							$bcc_list[] = $row['user_email'];
-						}
-
-						//
-						// Get the group name
-						//
-						$group_sql = "SELECT group_name 
-							FROM " . GROUPS_TABLE . " 
-							WHERE group_id = $group_id";
-						if ( !($result = $db->sql_query($group_sql)) )
-						{
-							message_die(GENERAL_ERROR, 'Could not get group information', '', __LINE__, __FILE__, $group_sql);
-						}
-
-						$group_name_row = $db->sql_fetchrow($result);
-						$group_name = $group_name_row['group_name'];
-
-						include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-						$emailer = new emailer($board_config['smtp_delivery']);
-
-						$emailer->from($board_config['board_email']);
-						$emailer->replyto($board_config['board_email']);
-
-						for ($i = 0; $i < count($bcc_list); $i++)
-						{
-							$emailer->bcc($bcc_list[$i]);
-						}
-
-						$emailer->use_template('group_approved');
-						$emailer->set_subject($lang['Group_approved']);
-
-						$emailer->assign_vars(array(
-							'SITENAME' => $board_config['sitename'], 
-							'GROUP_NAME' => $group_name,
-							'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '', 
-
-							'U_GROUPCP' => $server_url . '?' . POST_GROUPS_URL . "=$group_id")
-						);
-						$emailer->send();
-						$emailer->reset();
-					}
-				}
-			}
+			$action = isset($_POST['add']) ? 'add' : (isset($_POST['approve']) ? 'approve' : (isset($_POST['deny']) ? 'deny' : 'remove'));
+			$field = $action === 'add' ? 'username' : ($action === 'remove' ? 'members' : 'pending_members');
+			$outcome = groupcp_change($action, isset($_POST[$field]) ? $_POST[$field] : null);
+			$notice = groupcp_notify($outcome);
+			$message = sprintf($lang['Group_members_changed'], count($outcome['changed'])) . $notice . '<br /><br />' . sprintf($lang['Click_return_group'], '<a href="' . append_sid("groupcp.$phpEx?" . POST_GROUPS_URL . "=$group_id") . '">', '</a>');
+			message_die(GENERAL_MESSAGE, $message);
 		}
 		//
 		// END approve or deny
