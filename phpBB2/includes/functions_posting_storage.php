@@ -97,10 +97,23 @@ function phpbb_posting_cleanup_empty_redirects($database, $topic_id)
 {
 	$topic_id = phpbb_posting_scope_id($topic_id);
 	$where = ' WHERE topic_moved_id = ' . $topic_id . ' AND NOT EXISTS (SELECT 1 FROM ' . POSTS_TABLE . ' WHERE ' . POSTS_TABLE . '.topic_id = ' . TOPICS_TABLE . '.topic_id)';
-	$result = phpbb_posting_query($database, 'SELECT DISTINCT forum_id FROM ' . TOPICS_TABLE . $where);
-	$forums = array();
-	while ($row = $database->sql_fetchrow($result)) { $forums[] = (int) $row['forum_id']; }
+	$result = phpbb_posting_query($database, 'SELECT topic_id, forum_id FROM ' . TOPICS_TABLE . $where . ' ORDER BY topic_id');
+	$redirects = array(); $forums = array();
+	while ($row = $database->sql_fetchrow($result)) { $redirects[] = $row; }
 	$database->sql_freeresult($result);
-	phpbb_posting_query($database, 'DELETE FROM ' . TOPICS_TABLE . $where);
+	foreach ($redirects as $redirect)
+	{
+		$id = (int) $redirect['topic_id']; $forum = (int) $redirect['forum_id'];
+		phpbb_posting_query($database, 'DELETE FROM ' . TOPICS_TABLE . $where . ' AND topic_id = ' . $id . ' AND forum_id = ' . $forum);
+		if ((int) $database->sql_affectedrows() !== 1) { continue; }
+		$forums[$forum] = $forum;
+		// A stale/changed stub must not authorize deleting its dependent rows.
+		// Recheck absence on every write, including for malformed legacy data.
+		foreach (array(TOPICS_WATCH_TABLE, BOOKMARK_TABLE, TOPIC_VIEW_TABLE) as $table)
+		{
+			phpbb_posting_query($database, 'DELETE FROM ' . $table . ' WHERE topic_id = ' . $id
+				. ' AND NOT EXISTS (SELECT 1 FROM ' . TOPICS_TABLE . ' WHERE topic_id = ' . $id . ')');
+		}
+	}
 	foreach ($forums as $forum_id) { phpbb_posting_sync_forum($database, $forum_id); }
 }

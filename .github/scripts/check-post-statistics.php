@@ -4,6 +4,7 @@ define('GENERAL_ERROR', 202); define('GENERAL_MESSAGE', 200); define('END_TRANSA
 define('FORUMS_TABLE', 'fixture_forums'); define('POSTS_TABLE', 'fixture_posts');
 define('TOPICS_TABLE', 'fixture_topics'); define('USERS_TABLE', 'fixture_users');
 define('BOOKMARK_TABLE', 'fixture_bookmarks'); define('TOPICS_WATCH_TABLE', 'fixture_watches');
+define('TOPIC_VIEW_TABLE', 'fixture_views');
 $forum_root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require $forum_root . 'includes/functions_post.php';
 require $forum_root . 'includes/functions_posting_storage.php';
@@ -32,12 +33,14 @@ class PostStatsDatabase
 		$this->pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY, user_posts INTEGER)');
 		$this->pdo->exec('CREATE TABLE fixture_bookmarks (topic_id INTEGER, user_id INTEGER)');
 		$this->pdo->exec('CREATE TABLE fixture_watches (topic_id INTEGER, user_id INTEGER)');
+		$this->pdo->exec('CREATE TABLE fixture_views (topic_id INTEGER, user_id INTEGER)');
 		$this->pdo->exec('INSERT INTO fixture_forums VALUES (3,' . (int) $count_posts . ',5,2,15)');
 		$this->pdo->exec('INSERT INTO fixture_topics VALUES (100,0,2,10,15,1),(101,0,1,20,21,0)');
 		$this->pdo->exec('INSERT INTO fixture_posts VALUES (10,100,3),(12,100,3)');
 		$this->pdo->exec('INSERT INTO fixture_users VALUES (8,9)');
 		$this->pdo->exec('INSERT INTO fixture_bookmarks VALUES (100,8),(100,9),(101,8)');
 		$this->pdo->exec('INSERT INTO fixture_watches VALUES (100,8),(100,9),(101,8)');
+		$this->pdo->exec('INSERT INTO fixture_views VALUES (100,8),(100,9),(101,8)');
 	}
 	function sql_query($sql, $transaction = false)
 	{

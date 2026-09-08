@@ -512,3 +512,6 @@ jobs:
 
       - name: Test coordinated topic merge storage and confirmation
         run: php .github/scripts/check-topic-merge-storage.php
+
+      - name: Test removed topic and redirect record cleanup
+        run: php .github/scripts/check-topic-removal-cleanup.php

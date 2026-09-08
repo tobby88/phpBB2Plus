@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Remove per-user view records when the final post removes its topic. Clean
+  watches, bookmarks and view records for actually deleted empty redirects,
+  preserving changed/nonempty redirects and unrelated topics. Recheck absence
+  on each dependent write and keep failures explicit. No schema changes or
+  automatic sweep of existing orphan records.
+
 - Preserve dedicated writer connections after CrackerTracker removes public
   database credentials. Use the MySQLi driver's private connection factory;
   never restore the public password or reload config.php. Debug dumps omit the

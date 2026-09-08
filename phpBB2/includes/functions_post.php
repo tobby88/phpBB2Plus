@@ -691,7 +691,7 @@ function phpbb_cleanup_removed_topic_preferences($database, $topic_id)
 	{
 		message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']);
 	}
-	foreach (array(TOPICS_WATCH_TABLE, BOOKMARK_TABLE) as $table)
+	foreach (array(TOPICS_WATCH_TABLE, BOOKMARK_TABLE, TOPIC_VIEW_TABLE) as $table)
 	{
 		$sql = 'DELETE FROM ' . $table . ' WHERE topic_id = ' . $ids[0] .
 			' AND NOT EXISTS (SELECT 1 FROM ' . TOPICS_TABLE . ' WHERE topic_id = ' . $ids[0] . ')';
