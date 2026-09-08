@@ -486,3 +486,6 @@ jobs:
 
       - name: Test moderation-log width migrations
         run: php .github/scripts/check-log-width-migration.php
+
+      - name: Test topic move permissions, storage and redirect lifecycle
+        run: php .github/scripts/check-topic-move-storage.php

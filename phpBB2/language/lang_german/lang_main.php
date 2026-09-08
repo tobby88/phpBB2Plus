@@ -1637,4 +1637,7 @@ $lang['Poll_expired'] = 'Diese Umfrage ist beendet.';
 $lang['Moderation_state_failed'] = 'Die Moderationsaktion konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits erfolgt sein; bitte prüfe die Themen und das Aktionsprotokoll vor einem erneuten Versuch.';
 $lang['Moderation_state_changed'] = 'Die ausgewählten Themen gehören nicht mehr zu diesem Forum oder haben sich geändert. Bitte lade die Themenliste neu.';
 $lang['Moderation_state_denied'] = 'Du darfst diesen Thementyp nicht zuweisen.';
+$lang['Moderation_move_failed'] = 'Das Verschieben konnte nicht abgeschlossen werden. Einzelne Schritte können bereits erfolgt sein. Bitte prüfe Themen, Zähler und Aktionsprotokoll vor einem erneuten Versuch.';
+$lang['Moderation_move_changed'] = 'Die ausgewählten Themen oder ihre Beiträge haben sich geändert. Bitte lade die Liste neu und prüfe die aktuellen Foren.';
+$lang['Moderation_move_denied'] = 'Du darfst diese Themen nicht in das ausgewählte Forum verschieben.';
 ?>

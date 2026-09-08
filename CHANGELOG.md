@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate moderator topic moves with post, poll, attachment and state writers.
+  Recheck current source moderation and destination read/post/type permissions,
+  reject incomplete or cross-forum selections and publish topic/post forum IDs in
+  one joined update. Preserve topic contents, polls, search and attachment links;
+  copy redirect titles/descriptions without damaging quotes or Unicode. Remove
+  redundant empty destination redirects and their preferences on a return move,
+  retain nonempty malformed redirects and avoid duplicate source redirects.
+  Refresh forum totals and affected user totals across the count-posts boundary;
+  audit actual moves and keep the bulk moderator return link. No schema changes.
+  Later storage failures are explicit, not silently reported as success; this
+  does not provide crash recovery or full multi-statement MyISAM transactions.
 - Scope all moderator topic-type/state batches to the currently authorized forum,
   rejecting a foreign/missing/moved selection before any write. Coordinate both
   modcp and AJAX lock/unlock with post, poll and deletion writers; recheck current

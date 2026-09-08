@@ -1641,4 +1641,7 @@ $lang['Poll_expired'] = 'This poll has ended.';
 $lang['Moderation_state_failed'] = 'The moderation action could not be completed. Some changes may already have been applied; please check the topics and action log before retrying.';
 $lang['Moderation_state_changed'] = 'The selected topics no longer match this forum or have changed. Please reload the topic list.';
 $lang['Moderation_state_denied'] = 'You are not allowed to assign this topic type.';
+$lang['Moderation_move_failed'] = 'The move could not be completed. Some steps may already have succeeded. Please check the topics, counters and action log before retrying.';
+$lang['Moderation_move_changed'] = 'The selected topics or their posts have changed. Please reload the list and check the current forums.';
+$lang['Moderation_move_denied'] = 'You may not move these topics into the selected forum.';
 ?>
