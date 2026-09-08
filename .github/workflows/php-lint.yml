@@ -524,3 +524,6 @@ jobs:
 
       - name: Test current moderator identity across destructive actions
         run: php .github/scripts/check-moderator-identity.php
+
+      - name: Test moderator bootstrap and forum-name initialization
+        run: php .github/scripts/check-moderator-bootstrap.php

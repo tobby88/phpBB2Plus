@@ -181,12 +181,7 @@ if ( !empty($topic_id) )
 	
 	$forum_topics = ( $topic_row['forum_topics'] == 0 ) ? 1 : $topic_row['forum_topics'];
 	$forum_id = $topic_row['forum_id'];
-//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- delete
-//	$forum_name = $topic_row['forum_name'];
-//-- add
-	$forum_name = get_object_lang(POST_FORUM_URL . $topic_row['forum_id'], 'name');
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
+	$db->sql_freeresult($result);
 }
 else if ( !empty($forum_id) )
 {
@@ -204,12 +199,7 @@ else if ( !empty($forum_id) )
 	}
 	
 	$forum_topics = ( $topic_row['forum_topics'] == 0 ) ? 1 : $topic_row['forum_topics'];
-//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- delete
-//	$forum_name = $topic_row['forum_name'];
-//-- add
-	$forum_name = get_object_lang(POST_FORUM_URL . $topic_row['forum_id'], 'name');
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
+	$db->sql_freeresult($result);
 }
 else
 {
@@ -228,7 +218,7 @@ init_userprefs($userdata);
 // session id check
 if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 {
-	message_die(GENERAL_ERROR, 'Invalid_session');
+	message_die(GENERAL_ERROR, $lang['Session_invalid']);
 }
 
 // The legacy topic toolbar uses GET links as a non-JavaScript fallback.
@@ -241,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && in_array($mode, $direct_topic_modes
 	$expected_token = phpbb_session_action_token('moderate-topic', $mode, $topic_id, $userdata['session_id']);
 	if ($topic_id <= 0 || $submitted_token === '' || !hash_equals($expected_token, $submitted_token))
 	{
-		message_die(GENERAL_ERROR, 'Invalid_session');
+		message_die(GENERAL_ERROR, $lang['Session_invalid']);
 	}
 }
 
@@ -276,6 +266,9 @@ if ( !$is_auth['auth_mod'] )
 {
 	message_die(GENERAL_MESSAGE, $lang['Not_Moderator'], $lang['Not_Authorised']);
 }
+// Language and hierarchy caches are initialized by init_userprefs(). Resolve
+// only after authorization, using the canonical forum ID from either route.
+$forum_name = get_object_lang(POST_FORUM_URL . $forum_id, 'name');
 //
 // End Auth Check
 //

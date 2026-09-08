@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Resolve moderator-panel forum names only after session preferences and
+  authorization initialize the hierarchy/language data. Use the canonical
+  forum ID for both topic and forum routes, release the metadata result and
+  translate invalid-session messages instead of showing a raw language key.
+
 - Re-read active accounts and roles on the owning writer connection before
   moderator topic deletion, lock/type changes, moves and splits. Cached admin
   roles no longer bypass current group/forum permissions after demotion or
