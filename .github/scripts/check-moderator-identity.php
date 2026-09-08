@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/check-topic-split-storage.php';
+$lang['Session_invalid']='Session_invalid';
 
 function moderator_identity_fixture()
 {
