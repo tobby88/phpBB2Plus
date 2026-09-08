@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Split only a complete post selection from one currently moderated topic, using
+  the shared writer lock and current source/destination permissions. Enforce that
+  the actual original first post stays with its poll; expand "this post onward"
+  in stable timestamp/post-ID order before updating posts. Preserve original
+  subscriptions and add moved subscribed authors once to the new topic; refresh
+  attachment flags, topic bounds, forum totals and affected counted user totals.
+  Use a shared Unicode/entity-safe subject boundary for splits and AJAX titles,
+  decoding legacy request slashes only once. Audit completed splits and clean
+  only a newly allocated empty topic after failed publication. No schema changes;
+  partial failures remain explicit, not a multi-statement crash-recovery journal.
+  Use self-joins for redirect/subscription INSERT deduplication, avoiding MySQL's
+  restriction on selecting the INSERT target inside a subquery.
 - Coordinate moderator topic moves with post, poll, attachment and state writers.
   Recheck current source moderation and destination read/post/type permissions,
   reject incomplete or cross-forum selections and publish topic/post forum IDs in

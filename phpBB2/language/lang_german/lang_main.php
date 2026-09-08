@@ -1640,4 +1640,10 @@ $lang['Moderation_state_denied'] = 'Du darfst diesen Thementyp nicht zuweisen.';
 $lang['Moderation_move_failed'] = 'Das Verschieben konnte nicht abgeschlossen werden. Einzelne Schritte können bereits erfolgt sein. Bitte prüfe Themen, Zähler und Aktionsprotokoll vor einem erneuten Versuch.';
 $lang['Moderation_move_changed'] = 'Die ausgewählten Themen oder ihre Beiträge haben sich geändert. Bitte lade die Liste neu und prüfe die aktuellen Foren.';
 $lang['Moderation_move_denied'] = 'Du darfst diese Themen nicht in das ausgewählte Forum verschieben.';
+$lang['Moderation_split_failed'] = 'Das Abtrennen konnte nicht abgeschlossen werden. Einzelne Schritte können bereits erfolgt sein. Bitte prüfe beide Themen, Zähler und Aktionsprotokoll vor einem erneuten Versuch.';
+$lang['Moderation_split_changed'] = 'Die ausgewählten Beiträge oder ihr Thema haben sich geändert. Bitte lade das Thema neu und prüfe die Auswahl.';
+$lang['Moderation_split_denied'] = 'Du darfst keine Beiträge in das ausgewählte Forum abtrennen.';
+$lang['Moderation_split_keep_first'] = 'Der ursprüngliche erste Beitrag muss in seinem Thema bleiben. Verwende „Verschieben“, um das gesamte Thema zu verschieben.';
+$lang['Moderation_split_subject'] = 'Bitte gib einen gültigen UTF-8-Titel in angemessener Länge ein.';
+$lang['Click_view_split_topic'] = 'Klicke %shier%s, um das neue Thema anzusehen.';
 ?>

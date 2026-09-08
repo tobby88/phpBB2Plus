@@ -28,15 +28,9 @@ class PhpbbAjaxStorageDatabase
 // Keep complete UTF-8 characters and complete entities at that boundary.
 function phpbb_ajax_storage_subject($value)
 {
-	if (preg_match_all('/./us', $value, $characters) === false) { phpbb_ajax_storage_error('Ajax_edit_invalid_text'); }
-	$result = ''; $length = 0;
-	foreach ($characters[0] as $character)
-	{
-		$escaped = htmlspecialchars($character, ENT_COMPAT, 'UTF-8');
-		$size = $escaped === $character ? 1 : strlen($escaped);
-		if ($length + $size > 60) { break; }
-		$result .= $escaped; $length += $size;
-	}
+	require_once dirname(__FILE__) . '/functions_post_subject.php';
+	$result = phpbb_storage_subject($value);
+	if ($result === false) { phpbb_ajax_storage_error('Ajax_edit_invalid_text'); }
 	return $result;
 }
 

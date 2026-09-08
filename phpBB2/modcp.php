@@ -629,146 +629,33 @@ switch( $mode )
 		$page_title = $lang['Mod_CP'];
 		include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
-		$post_id_sql = '';
-
 		if (isset($_POST['split_type_all']) || isset($_POST['split_type_beyond']))
 		{
-			$posts = $post_id_list;
-
-			for ($i = 0; $i < count($posts); $i++)
+			require_once $phpbb_root_path . 'includes/functions_topic_split.' . $phpEx;
+			$fid = phpbb_request_scalar($_POST, 'new_forum_id');
+			if (!preg_match('/^' . POST_FORUM_URL . '[1-9][0-9]*$/D', $fid))
 			{
-				$post_id_sql .= (($post_id_sql != '') ? ', ' : '') . intval($posts[$i]);
+				message_die(GENERAL_MESSAGE, $lang['Forum_not_exist']);
 			}
-		}
-
-		if ($post_id_sql != '')
-		{
-			$sql = "SELECT post_id 
-				FROM " . POSTS_TABLE . "
-				WHERE post_id IN ($post_id_sql)
-					AND forum_id = $forum_id";
-			if ( !($result = $db->sql_query($sql)) )
+			$split_mode = isset($_POST['split_type_beyond']) ? 'after' : 'selected';
+			if (isset($_POST['split_type_beyond'], $_POST['split_type_all'])) { $split_mode = ''; }
+			$selected_posts = isset($_POST['post_id_list']) ? $_POST['post_id_list'] : array();
+			try
 			{
-				message_die(GENERAL_ERROR, 'Could not get post id information', '', __LINE__, __FILE__, $sql);
+				$split = phpbb_split_topic($db, $forum_id, $topic_id, substr($fid, 1), $selected_posts, $split_mode, stripslashes(phpbb_request_scalar($_POST, 'subject')));
 			}
-			
-			$post_id_sql = '';
-			while ($row = $db->sql_fetchrow($result))
+			catch (PhpbbTopicSplitException $error)
 			{
-				$post_id_sql .= (($post_id_sql != '') ? ', ' : '') . intval($row['post_id']);
+				message_die(GENERAL_MESSAGE, $error->getMessage());
 			}
-			$db->sql_freeresult($result);
-
-			if ($post_id_sql == '')
-			{
-				message_die(GENERAL_MESSAGE, $lang['None_selected']);
-			}
-
-			$sql = "SELECT post_id, poster_id, topic_id, post_time
-				FROM " . POSTS_TABLE . "
-				WHERE post_id IN ($post_id_sql) 
-				ORDER BY post_time ASC";
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not get post information', '', __LINE__, __FILE__, $sql);
-			}
-
-			if ($row = $db->sql_fetchrow($result))
-			{
-				$first_poster = $row['poster_id'];
-				$topic_id = $row['topic_id'];
-				$post_time = $row['post_time'];
-
-				$user_id_sql = '';
-				$post_id_sql = '';
-				do
-				{
-					$user_id_sql .= (($user_id_sql != '') ? ', ' : '') . intval($row['poster_id']);
-					$post_id_sql .= (($post_id_sql != '') ? ', ' : '') . intval($row['post_id']);;
-				}
-				while ($row = $db->sql_fetchrow($result));
-
-				$post_subject = trim(htmlspecialchars(phpbb_request_scalar($_POST, 'subject')));
-				if (empty($post_subject))
-				{
-					message_die(GENERAL_MESSAGE, $lang['Empty_subject']);
-				}
-
-				//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- delete
-//				$new_forum_id = intval($_POST['new_forum_id']);
-//-- add
-				$fid = phpbb_request_scalar($_POST, 'new_forum_id');
-				if ($fid == 'Root')
-				{
-					$type = POST_CAT_URL;
-					$new_forum_id = 0;
-				}
-				else
-				{
-					$type = substr($fid, 0, 1);
-					$new_forum_id = ($type == POST_FORUM_URL) ? intval(substr($fid, 1)) : 0;
-				}
-				if ($new_forum_id <= 0 ) message_die(GENERAL_MESSAGE, $lang['Forum_not_exist']);
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-				$topic_time = time();
-				$sql = 'SELECT forum_id FROM ' . FORUMS_TABLE . '
-					WHERE forum_id = ' . $new_forum_id;
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not select from forums table', '', __LINE__, __FILE__, $sql);
-				}
-				
-				if (!$db->sql_fetchrow($result))
-				{
-					message_die(GENERAL_MESSAGE, 'New forum does not exist');
-				}
-
-				$db->sql_freeresult($result);
-				$sql  = "INSERT INTO " . TOPICS_TABLE . " (topic_title, topic_poster, topic_time, forum_id, topic_status, topic_type)
-					VALUES ('" . str_replace("\'", "''", $post_subject) . "', $first_poster, " . $topic_time . ", $new_forum_id, " . TOPIC_UNLOCKED . ", " . POST_NORMAL . ")";
-				if (!($db->sql_query($sql, BEGIN_TRANSACTION)))
-				{
-					message_die(GENERAL_ERROR, 'Could not insert new topic', '', __LINE__, __FILE__, $sql);
-				}
-
-				$new_topic_id = $db->sql_nextid();
-
-				// Update topic watch table, switch users whose posts
-				// have moved, over to watching the new topic
-				$sql = "UPDATE " . TOPICS_WATCH_TABLE . " 
-					SET topic_id = $new_topic_id 
-					WHERE topic_id = $topic_id 
-						AND user_id IN ($user_id_sql)";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Could not update topics watch table', '', __LINE__, __FILE__, $sql);
-				}
-
-				$sql_where = (!empty($_POST['split_type_beyond'])) ? " post_time >= $post_time AND topic_id = $topic_id" : "post_id IN ($post_id_sql)";
-
-				$sql = 	"UPDATE " . POSTS_TABLE . "
-					SET topic_id = $new_topic_id, forum_id = $new_forum_id 
-					WHERE $sql_where";
-				if (!$db->sql_query($sql, END_TRANSACTION))
-				{
-					message_die(GENERAL_ERROR, 'Could not update posts table', '', __LINE__, __FILE__, $sql);
-				}
-
-				sync('topic', $new_topic_id);
-				sync('topic', $topic_id);
-				sync('forum', $new_forum_id);
-				sync('forum', $forum_id);
-				log_action('split', array($topic_id, $new_topic_id), $userdata['user_id'], $userdata['username']);
-
-				$template->assign_vars(array(
-					'META' => '<meta http-equiv="refresh" content="3;url=' . "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'] . '">')
-				);
-
-				$message = $lang['Topic_split'] . '<br /><br />' . sprintf($lang['Click_return_topic'], '<a href="' . "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'] . '">', '</a>');
-				message_die(GENERAL_MESSAGE, $message);
-			}
+			board_stats();
+			cache_tree(true);
+			$redirect_page = "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'];
+			$template->assign_vars(array('META' => '<meta http-equiv="refresh" content="3;url=' . $redirect_page . '">'));
+			$message = $lang['Topic_split'] . '<br /><br />'
+				. sprintf($lang['Click_return_topic'], '<a href="' . $redirect_page . '">', '</a>') . '<br /><br />'
+				. sprintf($lang['Click_view_split_topic'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . '=' . $split['topic_id']) . '">', '</a>');
+			message_die(GENERAL_MESSAGE, $message);
 		}
 		else
 		{
@@ -781,10 +668,11 @@ switch( $mode )
 
 			$sql = "SELECT u.username, p.*, pt.post_text, pt.bbcode_uid, pt.post_subject, p.post_username
 				FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt
-				WHERE p.topic_id = $topic_id
-					AND p.poster_id = u.user_id
-					AND p.post_id = pt.post_id
-				ORDER BY p.post_time ASC";
+					WHERE p.topic_id = $topic_id
+						AND p.forum_id = $forum_id
+						AND p.poster_id = u.user_id
+						AND p.post_id = pt.post_id
+					ORDER BY p.post_time ASC, p.post_id ASC";
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Could not get topic/post information', '', __LINE__, __FILE__, $sql);
@@ -795,6 +683,7 @@ switch( $mode )
 			if( ( $total_posts = $db->sql_numrows($result) ) > 0 )
 			{
 				$postrow = $db->sql_fetchrowset($result);
+				$split_first_post_id = min(array_map('intval', array_column($postrow, 'post_id')));
 
 				$template->assign_vars(array(
 					'L_SPLIT_TOPIC' => $lang['Split_Topic'],
@@ -888,7 +777,7 @@ switch( $mode )
 					$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];
 					$row_class = ( !($i % 2) ) ? $theme['td_class1'] : $theme['td_class2'];
 
-					$checkbox = ( $i > 0 ) ? '<input type="checkbox" name="post_id_list[]" value="' . $post_id . '" />' : '&nbsp;';
+					$checkbox = ( (int) $post_id !== $split_first_post_id ) ? '<input type="checkbox" name="post_id_list[]" value="' . $post_id . '" />' : '&nbsp;';
 					
 					$template->assign_block_vars('postrow', array(
 						'ROW_COLOR' => '#' . $row_color,

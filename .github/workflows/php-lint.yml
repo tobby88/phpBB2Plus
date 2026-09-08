@@ -489,3 +489,6 @@ jobs:
 
       - name: Test topic move permissions, storage and redirect lifecycle
         run: php .github/scripts/check-topic-move-storage.php
+
+      - name: Test topic split scope and dependent storage
+        run: php .github/scripts/check-topic-split-storage.php

@@ -1644,4 +1644,10 @@ $lang['Moderation_state_denied'] = 'You are not allowed to assign this topic typ
 $lang['Moderation_move_failed'] = 'The move could not be completed. Some steps may already have succeeded. Please check the topics, counters and action log before retrying.';
 $lang['Moderation_move_changed'] = 'The selected topics or their posts have changed. Please reload the list and check the current forums.';
 $lang['Moderation_move_denied'] = 'You may not move these topics into the selected forum.';
+$lang['Moderation_split_failed'] = 'The split could not be completed. Some steps may already have succeeded. Please check both topics, counters and the action log before retrying.';
+$lang['Moderation_split_changed'] = 'The selected posts or their topic have changed. Please reload the topic and check your selection.';
+$lang['Moderation_split_denied'] = 'You may not split posts into the selected forum.';
+$lang['Moderation_split_keep_first'] = 'The original first post must remain in its topic. Use Move to move the entire topic.';
+$lang['Moderation_split_subject'] = 'Please enter a valid UTF-8 subject of reasonable length.';
+$lang['Click_view_split_topic'] = 'Click %sHere%s to view the new topic.';
 ?>

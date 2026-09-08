@@ -103,8 +103,8 @@ function phpbb_move_topics($database, $source_forum, $target_forum, $topic_ids, 
 				// slash-normalizing names already in the database.
 				$db->sql_query('INSERT INTO ' . TOPICS_TABLE . ' (forum_id, topic_title, topic_desc, topic_poster, topic_time, topic_status, topic_type, topic_vote, topic_views, topic_replies, topic_first_post_id, topic_last_post_id, topic_moved_id, topic_icon, topic_attachment)'
 					. " SELECT $source_forum, t.topic_title, t.topic_desc, t.topic_poster, t.topic_time, " . TOPIC_MOVED . ', ' . POST_NORMAL . ', t.topic_vote, t.topic_views, t.topic_replies, t.topic_first_post_id, t.topic_last_post_id, t.topic_id, t.topic_icon, t.topic_attachment'
-					. ' FROM ' . TOPICS_TABLE . ' t JOIN ' . FORUMS_TABLE . " f ON f.forum_id = $source_forum WHERE t.topic_id = $topic_id AND t.forum_id = $target_forum AND t.topic_moved_id = 0"
-					. ' AND NOT EXISTS (SELECT 1 FROM ' . TOPICS_TABLE . " existing WHERE existing.forum_id = $source_forum AND existing.topic_moved_id = $topic_id)");
+					. ' FROM ' . TOPICS_TABLE . ' t JOIN ' . FORUMS_TABLE . " f ON f.forum_id = $source_forum LEFT JOIN " . TOPICS_TABLE
+					. " existing ON existing.forum_id = $source_forum AND existing.topic_moved_id = $topic_id WHERE t.topic_id = $topic_id AND t.forum_id = $target_forum AND t.topic_moved_id = 0 AND existing.topic_id IS NULL");
 				$result = $db->sql_query('SELECT topic_id FROM ' . TOPICS_TABLE . " WHERE forum_id = $source_forum AND topic_moved_id = $topic_id");
 				$stub = $db->sql_fetchrow($result); $db->sql_freeresult($result);
 				if (!$stub) { phpbb_topic_move_error('Moderation_move_changed'); }
