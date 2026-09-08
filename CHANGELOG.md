@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve dedicated writer connections after CrackerTracker removes public
+  database credentials. Use the MySQLi driver's private connection factory;
+  never restore the public password or reload config.php. Debug dumps omit the
+  factory and credentials. This fixes unavailable writer locks after the full
+  application bootstrap; no schema changes.
+
 - Coordinate confirmed topic merges with post/poll/attachment/moderation writers
   on the shared lock's own connection. Bind confirmation to current topics,
   forums, poll questions/options, requested title and shadow choice; reject a

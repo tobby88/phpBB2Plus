@@ -13,8 +13,17 @@ class attach_mutation_lock
 	{
 		try
 		{
-			$this->connection = new sql_db(preg_replace('/^p:/', '', $database->server), $database->user, $database->password, $database->dbname, false);
-			if (!$this->connection->db_connect_id) { $this->connection = null; return; }
+			if (method_exists($database, 'sql_dedicated_connection'))
+			{
+				$this->connection = $database->sql_dedicated_connection();
+			}
+			else
+			{
+				// Compatibility for alternate adapters; never access a removed field.
+				if (!isset($database->password)) { return; }
+				$this->connection = new sql_db(preg_replace('/^p:/', '', $database->server), $database->user, $database->password, $database->dbname, false);
+			}
+			if (!$this->connection || !$this->connection->db_connect_id) { $this->connection = null; return; }
 			register_shutdown_function(array($this, 'release'));
 			$name = 'attachment:' . md5($database->dbname . "\0" . ATTACHMENTS_TABLE);
 			// Optional statistics may skip a busy writer without delaying readers.

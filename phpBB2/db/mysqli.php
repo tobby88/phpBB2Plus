@@ -35,6 +35,7 @@ class sql_db
 	var $password;
 	var $server;
 	var $dbname;
+	private $dedicated_connection_factory;
 
 	//
 	// Constructor
@@ -56,6 +57,15 @@ class sql_db
 		$this->password = $sqlpassword;
 		$this->server = $sqlserver;
 		$this->dbname = $database;
+		// CrackerTracker deliberately unsets the public password after bootstrap.
+		// Keep only an internal connection factory for coordinated writers; do not
+		// restore the public field or re-include configuration during a request.
+		$this->dedicated_connection_factory = static function () use ($sqlserver, $sqluser, $sqlpassword, $database)
+		{
+			$connection = new sql_db(preg_replace('/^p:/', '', $sqlserver), $sqluser, $sqlpassword, $database, false);
+			unset($connection->password);
+			return $connection;
+		};
 
 		if($this->persistency)
 		{
@@ -100,6 +110,17 @@ class sql_db
 	//
 	// Other base methods
 	//
+	function sql_dedicated_connection()
+	{
+		return is_callable($this->dedicated_connection_factory) ? call_user_func($this->dedicated_connection_factory) : false;
+	}
+
+	function __debugInfo()
+	{
+		// Debug dumps must not expose credentials captured by the factory.
+		return array('connected' => (bool) $this->db_connect_id, 'num_queries' => $this->num_queries);
+	}
+
 	function sql_close()
 	{
 		$connection = $this->db_connect_id;

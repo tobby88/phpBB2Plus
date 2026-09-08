@@ -8,11 +8,20 @@ class mysqli_result
 	public $rows; public $position=0; public $closed=false;
 	function __construct($rows) { $this->rows=$rows; }
 }
+function mysqli_connect($server,$user,$password,$database,$port)
+{
+	$GLOBALS['driver_fixture_connect']=array($server,$user,$password,$database);
+	return new mysqli();
+}
+function mysqli_set_charset($connection,$charset) { return $charset==='utf8mb4'; }
+function mysqli_character_set_name($connection) { return 'utf8mb4'; }
+function mysqli_select_db($connection,$database) { return true; }
 function mysqli_query($connection,$sql)
 {
 	if($connection->closed) { throw new \RuntimeException('Closed connection used'); }
 	if($sql==='FAIL') { $connection->error='fixture SQL failure'; $connection->errno=1064; return false; }
 	$connection->error=''; $connection->errno=0;
+	if(strpos($sql,'SELECT GET_LOCK(')===0) { return new mysqli_result(array(array('acquired'=>'1'))); }
 	if($sql==='SELECT first') { return new mysqli_result(array(array(0=>11,1=>null,'id'=>11,'value'=>null),array(0=>12,1=>'Grüße','id'=>12,'value'=>'Grüße'))); }
 	if($sql==='SELECT second') { return new mysqli_result(array(array(0=>99,1=>'other','id'=>99,'value'=>'other'))); }
 	if($sql==='SELECT empty') { return new mysqli_result(array()); }
@@ -77,6 +86,31 @@ try
 	check($db->sql_freeresult()===true && $db->query_result===false,'Release current result clears pointer');
 	check($db->sql_close()===true && $db->db_connect_id===false && $db->sql_close()===false,'Close is safe to repeat and invalidates owned connection');
 	check($db->sql_query('SELECT second')===false,'Closed driver cannot execute SQL');
+	// Exercise the real credential reset from the CrackerTracker bootstrap,
+	// rather than a fixture that retains the original public password forever.
+	$db=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
+	$dbuser='fixture-user'; $dbpasswd='fixture-secret';
+	$reset=file_get_contents(dirname(dirname(__DIR__)).'/phpBB2/ctracker/engines/ct_varsetter.php');
+	$reset_start=strpos($reset,'unset($dbuser)'); $reset_end=strpos($reset,'include($phpbb_root_path',$reset_start);
+	check($reset_start!==false && $reset_end>$reset_start,'Locate actual CrackerTracker variable reset');
+	eval(substr($reset,$reset_start,$reset_end-$reset_start));
+	check(!isset($db->password) && !isset($dbpasswd) && !isset($dbuser),'Public credentials remain removed after CrackerTracker');
+	$dedicated=$db->sql_dedicated_connection();
+	check($dedicated!==$db && $dedicated->db_connect_id!==$db->db_connect_id,'Writer obtains an independent connection');
+	check($GLOBALS['driver_fixture_connect']===array('fixture','fixture-user','fixture-secret','fixture-db'),'Factory retains original credentials privately');
+	check($dedicated->persistency===false && !isset($dedicated->password) && !isset($db->password),'Neither parent nor writer restores public password');
+	ob_start(); var_dump($db); $debug=ob_get_clean();
+	check(strpos($debug,'fixture-secret')===false && strpos($debug,'dedicated_connection_factory')===false,'Debug dump cannot expose captured credentials');
+	$dedicated->sql_close();
+	define('IN_PHPBB',true); define('ATTACHMENTS_TABLE','fixture_links');
+	$mutation=file_get_contents(dirname(dirname(__DIR__)).'/phpBB2/attach_mod/includes/functions_mutation.php');
+	eval('namespace PhpbbDriverFixture;'.substr($mutation,5));
+	$lock=new attach_mutation_lock($db,false);
+	check($lock->acquired && !isset($db->password) && !isset($lock->connection->password),'Actual writer lock works after real CrackerTracker reset');
+	$lock->release(); $db->sql_close();
+	$missing=(object)array('server'=>'fixture','user'=>'fixture','dbname'=>'fixture');
+	$lock=new attach_mutation_lock($missing,false);
+	check(!$lock->acquired,'Adapter without credentials fails closed without an undefined-property warning');
 	echo "MySQLi failure, result metadata, field/cursor and connection contract checks passed.\n";
 }
 finally { restore_error_handler(); }
