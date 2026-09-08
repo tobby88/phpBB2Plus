@@ -302,6 +302,13 @@ function update_queue_column(&$operations, $connection, $database, $table, $colu
 	}
 }
 
+function update_queue_topic_notification_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	update_queue_column($operations, $connection, $database, $table, 'notify_claim', "CHAR(32) NOT NULL DEFAULT ''");
+	update_queue_column($operations, $connection, $database, $table, 'notify_claimed_at', 'INT(10) UNSIGNED NOT NULL DEFAULT 0');
+}
+
 function update_queue_default(&$operations, $connection, $table, $key_column, $value_column, $key, $value)
 {
 	$exists_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($table) . ' WHERE ' .
@@ -523,6 +530,7 @@ foreach (array('ct_last_used_ip', 'ct_last_ip') as $ip_column)
 			' MODIFY ' . update_quote_identifier($ip_column) . " VARCHAR(45) DEFAULT '0.0.0.0'";
 	}
 }
+update_queue_topic_notification_columns($operations, $connection, $dbname, $table_prefix . 'topics_watch');
 $login_history_table = $table_prefix . 'ctracker_loginhistory';
 if (update_table_exists($connection, $dbname, $login_history_table) &&
 	!update_column_exists($connection, $dbname, $login_history_table, 'ct_login_id'))

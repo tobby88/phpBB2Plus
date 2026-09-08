@@ -149,6 +149,10 @@ php update/update_from_153a.php --apply --backup-confirmed
 ```
 
 The updater is idempotent and preserves existing current configuration values.
+Run it before publishing the notification changes: the runtime needs the
+additive `notify_claim` and `notify_claimed_at` columns in `topics_watch`.
+These columns preserve existing subscriptions and coordinate concurrent mail
+deliveries without holding a forum writer lock during mail transmission.
 As required by the original CrackerTracker 4.x-to-5.x instructions, it removes
 the incompatible 4.x tables and user columns after preparing the 5.x schema.
 The old CrackerTracker settings and logs cannot be migrated and are discarded;

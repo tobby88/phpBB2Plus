@@ -795,164 +795,25 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 //
 // Handle user notification on new post
 //
-function user_notification($mode, &$post_data, &$topic_title, &$forum_id, &$topic_id, &$post_id, &$notify_user)
+function user_notification($mode, &$post_data, &$topic_title, &$forum_id, &$topic_id, &$post_id, &$notify_user, $bookmark = false)
 {
-	global $board_config, $lang, $db, $phpbb_root_path, $phpEx;
-	global $userdata, $user_ip;
-
-	$current_time = time();
-
-	if ($mode != 'delete')
+	global $db, $userdata, $lang;
+	if ($mode === 'delete') { return; }
+	require_once dirname(__FILE__) . '/functions_topic_notifications.php';
+	try
 	{
-		if ($mode == 'reply')
+		if (!empty($userdata['session_logged_in']) && (int) $userdata['user_id'] > 0)
 		{
-			$sql = "SELECT ban_userid 
-				FROM " . BANLIST_TABLE;
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain banlist', '', __LINE__, __FILE__, $sql);
-			}
-
-			$user_id_sql = '';
-			while ($row = $db->sql_fetchrow($result))
-			{
-				if (isset($row['ban_userid']) && !empty($row['ban_userid']))
-				{
-					$user_id_sql .= ', ' . $row['ban_userid'];
-				}
-			}
-
-			$sql = "SELECT u.user_id, u.user_email, u.user_lang 
-				FROM " . TOPICS_WATCH_TABLE . " tw, " . USERS_TABLE . " u 
-				WHERE tw.topic_id = $topic_id 
-					AND tw.user_id NOT IN (" . $userdata['user_id'] . ", " . ANONYMOUS . $user_id_sql . ") 
-					AND tw.notify_status = " . TOPIC_WATCH_UN_NOTIFIED . " 
-					AND u.user_id = tw.user_id";
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain list of topic watchers', '', __LINE__, __FILE__, $sql);
-			}
-
-			$update_watched_sql = '';
-			$bcc_list_ary = array();
-			
-			if ($row = $db->sql_fetchrow($result))
-			{
-				// Sixty second limit
-				@set_time_limit(60);
-
-				do
-				{
-					if ($row['user_email'] != '')
-					{
-						$bcc_list_ary[$row['user_lang']][] = $row['user_email'];
-					}
-					$update_watched_sql .= ($update_watched_sql != '') ? ', ' . $row['user_id'] : $row['user_id'];
-				}
-				while ($row = $db->sql_fetchrow($result));
-
-				//
-				// Let's do some checking to make sure that mass mail functions
-				// are working in win32 versions of php.
-				//
-				if (preg_match('/[c-z]:\\\.*/i', getenv('PATH')) && !$board_config['smtp_delivery'])
-				{
-					$ini_val = (@phpversion() >= '4.0.0') ? 'ini_get' : 'get_cfg_var';
-
-					// We are running on windows, force delivery to use our smtp functions
-					// since php's are broken by default
-					$board_config['smtp_delivery'] = 1;
-					$board_config['smtp_host'] = @$ini_val('SMTP');
-				}
-
-				if (sizeof($bcc_list_ary))
-				{
-					include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-					$emailer = new emailer($board_config['smtp_delivery']);
-
-					$orig_word = array();
-					$replacement_word = array();
-					obtain_word_list($orig_word, $replacement_word);
-
-					$emailer->from($board_config['board_email']);
-					$emailer->replyto($board_config['board_email']);
-
-					$topic_title = (count($orig_word)) ? preg_replace($orig_word, $replacement_word, unprepare_message($topic_title)) : unprepare_message($topic_title);
-
-					foreach ($bcc_list_ary as $user_lang => $bcc_list)
-					{
-						$emailer->use_template('topic_notify', $user_lang);
-		
-						for ($i = 0; $i < count($bcc_list); $i++)
-						{
-							$emailer->bcc($bcc_list[$i]);
-						}
-
-						// The Topic_reply_notification lang string below will be used
-						// if for some reason the mail template subject cannot be read 
-						// ... note it will not necessarily be in the posters own language!
-						$emailer->set_subject($lang['Topic_reply_notification']); 
-						
-						// This is a nasty kludge to remove the username var ... till (if?)
-						// translators update their templates
-						$emailer->msg = preg_replace('#[ ]?{USERNAME}#', '', $emailer->msg);
-
-						$emailer->assign_vars(array(
-							'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
-							'SITENAME' => $board_config['sitename'],
-							'TOPIC_TITLE' => $topic_title, 
-
-							'U_TOPIC' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . "=$post_id#$post_id"),
-							'U_STOP_WATCHING_TOPIC' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_TOPIC_URL . "=$topic_id&unwatch=topic"))
-						);
-
-						$emailer->send();
-						$emailer->reset();
-					}
-				}
-			}
-			$db->sql_freeresult($result);
-
-			if ($update_watched_sql != '')
-			{
-				$sql = "UPDATE " . TOPICS_WATCH_TABLE . "
-					SET notify_status = " . TOPIC_WATCH_NOTIFIED . "
-					WHERE topic_id = $topic_id
-						AND user_id IN ($update_watched_sql)";
-				$db->sql_query($sql);
-			}
+			if ($bookmark) { phpbb_topic_preference($db, $topic_id, 'bookmark', true); }
+			phpbb_topic_preference($db, $topic_id, 'watch', (bool) $notify_user);
 		}
-
-		$sql = "SELECT topic_id 
-			FROM " . TOPICS_WATCH_TABLE . "
-			WHERE topic_id = $topic_id
-				AND user_id = " . $userdata['user_id'];
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain topic watch information', '', __LINE__, __FILE__, $sql);
-		}
-
-		$row = $db->sql_fetchrow($result);
-
-		if (!$notify_user && !empty($row['topic_id']))
-		{
-			$sql = "DELETE FROM " . TOPICS_WATCH_TABLE . "
-				WHERE topic_id = $topic_id
-					AND user_id = " . $userdata['user_id'];
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not delete topic watch information', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else if ($notify_user && empty($row['topic_id']))
-		{
-			$sql = "INSERT INTO " . TOPICS_WATCH_TABLE . " (user_id, topic_id, notify_status)
-				VALUES (" . $userdata['user_id'] . ", $topic_id, 0)";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not insert topic watch information', '', __LINE__, __FILE__, $sql);
-			}
-		}
+		if ($mode === 'reply') { phpbb_send_topic_notifications($db, $post_id); }
+	}
+	catch (PhpbbTopicPreferenceException $exception)
+	{
+		// The post is already stored. Do not invite duplicate resubmission by
+		// claiming publication failed because its optional notification failed.
+		error_log('phpBB topic notification/preference processing failed.');
 	}
 }
 

@@ -8,6 +8,19 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate interactive watch/bookmark writes with topic storage; repeated
+  requests are idempotent and adding preferences checks current user/read ACLs.
+  Email unsubscribe links (including legacy links) lead to a logged-in POST
+  confirmation, which also works after a topic becomes inaccessible or deleted.
+  Recheck notification recipients and current topic titles before delivery;
+  inactive/blocked users and users without read permission are excluded.
+  Reserve deliveries under short-lived writer locks, releasing locks before
+  mail I/O. Per-delivery claims prevent concurrent duplicate work and stale
+  completion from undoing a read/unsubscribe; interrupted claims become eligible
+  again on a later reply after ten minutes (not an exactly-once mail queue).
+  Run update_from_153a.php before publishing these changes to add notify_claim
+  and notify_claimed_at to topics_watch; existing subscriptions remain intact.
+
 - Return actual MySQLi query failures even when legacy callers pass an END marker;
   preserve only an empty END marker as a no-op, without implying a transaction.
   Keep error details available and handle strict mysqli exceptions through the

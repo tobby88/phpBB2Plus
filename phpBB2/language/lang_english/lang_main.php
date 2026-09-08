@@ -322,6 +322,8 @@ $lang['Split_topic'] = 'Split this topic';
 
 $lang['Stop_watching_topic'] = 'Stop watching this topic';
 $lang['Start_watching_topic'] = 'Watch this topic for replies';
+$lang['Topic_unwatch_confirm'] = 'Stop email notifications for this topic for your currently logged-in account?';
+$lang['Topic_preference_failed'] = 'The topic preference could not be saved. Please try again.';
 $lang['No_longer_watching'] = 'You are no longer watching this topic';
 $lang['You_are_watching'] = 'You are now watching this topic';
 

@@ -944,11 +944,7 @@ if ($lock_subject)
 		$attachment_mod['posting']->insert_attachment($post_id);
 		if ($error_msg == '' && $mode != 'poll_delete')
 		{
-			if ( $setbm )
-			{
-				set_bookmark($topic_id);
-			}
-			user_notification($mode, $post_data, $post_info['topic_title'], $forum_id, $topic_id, $post_id, $notify_user);
+			user_notification($mode, $post_data, $post_info['topic_title'], $forum_id, $topic_id, $post_id, $notify_user, (bool) $setbm);
 		}
 		if ($lock_subject) 
 { 

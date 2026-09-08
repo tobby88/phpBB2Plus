@@ -62,6 +62,14 @@ if (!$topic_id && !$post_id)
 	message_die(GENERAL_MESSAGE, 'Topic_post_not_exist');
 }
 
+// Older notification emails have no session-bound toolbar capability.
+// They lead to confirmation, never directly to a preference mutation.
+if ($topic_id > 0 && !$post_id && phpbb_request_scalar($_GET, 'unwatch') === 'topic' &&
+	phpbb_request_scalar($_GET, 'watch') === '' && phpbb_request_scalar($_GET, 'action_token') === '')
+{
+	redirect("topic_watch.$phpEx?" . POST_TOPIC_URL . "=$topic_id");
+}
+
 //
 // Find topic id if user requested a newer
 // or older topic
@@ -335,86 +343,18 @@ if( $userdata['session_logged_in'] )
 		}
 	}
 
-	$sql = "SELECT notify_status
-		FROM " . TOPICS_WATCH_TABLE . "
-		WHERE topic_id = $topic_id
-			AND user_id = " . $userdata['user_id'];
-	if ( !($result = $db->sql_query($sql)) )
+	require_once $phpbb_root_path . 'includes/functions_topic_preferences.' . $phpEx;
+	try
 	{
-		message_die(GENERAL_ERROR, "Could not obtain topic watch information", '', __LINE__, __FILE__, $sql);
+		$desired_watch = $unwatch_action !== '' ? false : ($watch_action !== '' ? true : null);
+		$is_watching_topic = phpbb_topic_preference($db, $topic_id, 'watch', $desired_watch);
 	}
-
-	if ( $row = $db->sql_fetchrow($result) )
+	catch (PhpbbTopicPreferenceException $exception) { message_die(GENERAL_MESSAGE, $exception->getMessage()); }
+	if ($desired_watch !== null)
 	{
-		if ( $unwatch_action !== '' )
-		{
-			if ( $unwatch_action == 'topic' )
-			{
-				$is_watching_topic = 0;
-
-				$sql_priority = (SQL_LAYER == "mysql") ? "LOW_PRIORITY" : '';
-				$sql = "DELETE $sql_priority FROM " . TOPICS_WATCH_TABLE . "
-					WHERE topic_id = $topic_id
-						AND user_id = " . $userdata['user_id'];
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, "Could not delete topic watch information", '', __LINE__, __FILE__, $sql);
-				}
-			}
-
-			$template->assign_vars(array(
-				'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start") . '">')
-			);
-
-			$message = $lang['No_longer_watching'] . '<br /><br />' . sprintf($lang['Click_return_topic'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start") . '">', '</a>');
-			message_die(GENERAL_MESSAGE, $message);
-		}
-		else
-		{
-			$is_watching_topic = TRUE;
-
-			if ( $row['notify_status'] )
-			{
-				$sql_priority = (SQL_LAYER == "mysql") ? "LOW_PRIORITY" : '';
-				$sql = "UPDATE $sql_priority " . TOPICS_WATCH_TABLE . "
-					SET notify_status = 0
-					WHERE topic_id = $topic_id
-						AND user_id = " . $userdata['user_id'];
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, "Could not update topic watch information", '', __LINE__, __FILE__, $sql);
-				}
-			}
-		}
-	}
-	else
-	{
-		if ( $watch_action !== '' )
-		{
-			if ( $watch_action == 'topic' )
-			{
-				$is_watching_topic = TRUE;
-
-				$sql_priority = (SQL_LAYER == "mysql") ? "LOW_PRIORITY" : '';
-				$sql = "INSERT $sql_priority INTO " . TOPICS_WATCH_TABLE . " (user_id, topic_id, notify_status)
-					VALUES (" . $userdata['user_id'] . ", $topic_id, 0)";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, "Could not insert topic watch information", '', __LINE__, __FILE__, $sql);
-				}
-			}
-
-			$template->assign_vars(array(
-				'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start") . '">')
-			);
-
-			$message = $lang['You_are_watching'] . '<br /><br />' . sprintf($lang['Click_return_topic'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start") . '">', '</a>');
-			message_die(GENERAL_MESSAGE, $message);
-		}
-		else
-		{
-			$is_watching_topic = 0;
-		}
+		$template->assign_vars(array('META'=>'<meta http-equiv="refresh" content="3;url=' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start") . '">'));
+		$message = $lang[$is_watching_topic ? 'You_are_watching' : 'No_longer_watching'] . '<br /><br />' . sprintf($lang['Click_return_topic'], '<a href="' . append_sid("viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;start=$start") . '">', '</a>');
+		message_die(GENERAL_MESSAGE, $message);
 	}
 }
 else
@@ -424,7 +364,7 @@ else
 	{
 		if ( $anonymous_unwatch == 'topic' )
 		{
-			redirect(append_sid("login.$phpEx?redirect=viewtopic.$phpEx&" . POST_TOPIC_URL . "=$topic_id", true));
+			redirect(append_sid("topic_watch.$phpEx?" . POST_TOPIC_URL . "=$topic_id", true));
 		}
 	}
 	else

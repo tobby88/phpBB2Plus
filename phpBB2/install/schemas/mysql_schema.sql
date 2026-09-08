@@ -526,6 +526,8 @@ CREATE TABLE phpbb_topics_watch (
   topic_id mediumint(8) UNSIGNED NOT NULL default '0',
   user_id mediumint(8) NOT NULL default '0',
   notify_status tinyint(1) NOT NULL default '0',
+  notify_claim char(32) NOT NULL default '',
+  notify_claimed_at int(10) UNSIGNED NOT NULL default '0',
   KEY topic_id (topic_id),
   KEY user_id (user_id),
   KEY notify_status (notify_status)

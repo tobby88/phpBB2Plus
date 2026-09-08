@@ -463,156 +463,34 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 }
 else if ($mode == 'watch_topic')
 {
-	// Get topic_id
-	$topic_id = ajax_request_int(POST_TOPIC_URL);
-	
-	if (empty($topic_id))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'No topic_id'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	// Get watch_status
-	$watch_status = ajax_request_int('watch_status') === 1 ? 1 : 0;
-	
-	// Get start
+	$topic_id = ajax_request_value(POST_TOPIC_URL);
+	$watch_value = ajax_request_value('watch_status');
 	$start = max(0, ajax_request_int('start'));
-	
-	// Not logged in? Bye bye
-	if (!$userdata['session_logged_in'])
+	if (!in_array($watch_value, array('0', '1'), true))
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'Not logged in'
-		);
-		AJAX_message_die($result_ar);
+		AJAX_message_die(array('result'=>AJAX_ERROR, 'error_msg'=>$lang['Session_invalid']));
 	}
-	
-	// Get the forum_id for the auth check below, also a nice way to check if the topic exists
-	$sql = 'SELECT forum_id FROM '. TOPICS_TABLE ." 
-	        WHERE topic_id = $topic_id";
-	if (!($result = $db->sql_query($sql)))
+	require_once $phpbb_root_path . 'includes/functions_topic_preferences.' . $phpEx;
+	try { $watching = phpbb_topic_preference($db, $topic_id, 'watch', $watch_value === '1') ? 1 : 0; }
+	catch (PhpbbTopicPreferenceException $exception)
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'Could not query topics table'
-		);
-		AJAX_message_die($result_ar);
+		AJAX_message_die(array('result'=>AJAX_ERROR, 'error_msg'=>$exception->getMessage()));
 	}
-	$topic_row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	
-	if (!$topic_row)
+	$topic_id = (int) $topic_id;
+	if ($watching)
 	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'This topic does not exist'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	// Check the permissions, don't want people to watch topics they're not supposed to read.
-	// If the person is not authed, we'll just pretend that the topic doesn't exist, just like phpBB does...
-	$is_auth = auth(AUTH_ALL, $topic_row['forum_id'], $userdata);
-	if (empty($is_auth['auth_view']) || empty($is_auth['auth_read']))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'This topic does not exist'
-		);
-		AJAX_message_die($result_ar);
-	}
-	
-	// Check if the user is already watching this topic
-	$sql = 'SELECT notify_status FROM '. TOPICS_WATCH_TABLE ." 
-	        WHERE topic_id = $topic_id 
-	        AND user_id = ". $userdata['user_id'];
-	if (!($result = $db->sql_query($sql)))
-	{
-		$result_ar = array(
-			'result' => AJAX_ERROR,
-			'error_msg' => 'Could not query topics watch table'
-		);
-		AJAX_message_die($result_ar);
-	}
-	$watch_row = $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	
-	if ($watch_row)
-	{
-		// User is watching this topic
-		if ($watch_status)
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'You are already watching this topic'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		// Remove topic from watch list
-		$sql = 'DELETE FROM '. TOPICS_WATCH_TABLE ." 
-		        WHERE topic_id = $topic_id 
-		        AND user_id = ". $userdata['user_id'];
-		if (!$db->sql_query($sql))
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'Could not delete topic from watch table'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		$action_token = rawurlencode(phpbb_session_action_token('topic-preference', 'watch', $topic_id, $userdata['session_id']));
-		$link_url = "viewtopic.$phpEx?". POST_TOPIC_URL . "=$topic_id&watch=topic&start=$start&sid=" . urlencode($userdata['session_id']) . '&action_token=' . $action_token;
-		$link_text = $lang['Start_watching_topic'];
-		$img_url = $images['Topic_watch'];
-		$watching = 0;
+		$action_token = rawurlencode(phpbb_session_action_token('topic-preference', 'unwatch', $topic_id, $userdata['session_id']));
+		$link_url = "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&unwatch=topic&start=$start&sid=" . urlencode($userdata['session_id']) . '&action_token=' . $action_token;
+		$link_text = $lang['Stop_watching_topic']; $img_url = $images['topic_un_watch'];
 	}
 	else
 	{
-		// User is not watching this topic
-		if (!$watch_status)
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'You are not watching this topic'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		// Add topic to watch list
-		$sql = 'INSERT INTO '. TOPICS_WATCH_TABLE .' (user_id, topic_id, notify_status) 
-		        VALUES ('. $userdata['user_id'] .", $topic_id, 0)";
-		if (!$db->sql_query($sql))
-		{
-			$result_ar = array(
-				'result' => AJAX_ERROR,
-				'error_msg' => 'Could not add topic to watch table'
-			);
-			AJAX_message_die($result_ar);
-		}
-		
-		$action_token = rawurlencode(phpbb_session_action_token('topic-preference', 'unwatch', $topic_id, $userdata['session_id']));
-		$link_url = "viewtopic.$phpEx?". POST_TOPIC_URL . "=$topic_id&unwatch=topic&start=$start&sid=" . urlencode($userdata['session_id']) . '&action_token=' . $action_token;
-		$link_text = $lang['Stop_watching_topic'];
-		$img_url = $images['topic_un_watch'];
-		$watching = 1;
+		$action_token = rawurlencode(phpbb_session_action_token('topic-preference', 'watch', $topic_id, $userdata['session_id']));
+		$link_url = "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&watch=topic&start=$start&sid=" . urlencode($userdata['session_id']) . '&action_token=' . $action_token;
+		$link_text = $lang['Start_watching_topic']; $img_url = $images['Topic_watch'];
 	}
-	
-	$result_ar = array(
-		'result' => AJAX_WATCH_TOPIC,
-		'topicid' => $topic_id,
-		'linkurl' => $link_url,
-		'linktext' => $link_text,
-		'imgurl' => $img_url,
-		'start' => $start,
-		'watching' => $watching
-	);
-	AJAX_message_die($result_ar);
+	AJAX_message_die(array('result'=>AJAX_WATCH_TOPIC, 'topicid'=>$topic_id, 'linkurl'=>$link_url,
+		'linktext'=>$link_text, 'imgurl'=>$img_url, 'start'=>$start, 'watching'=>$watching));
 }
 else if ($mode == 'lock_topic')
 {

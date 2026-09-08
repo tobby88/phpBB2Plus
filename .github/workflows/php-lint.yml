@@ -12,6 +12,7 @@ on:
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
+      - ".github/fixtures/**/*.php"
       - ".github/scripts/*.js"
       - ".github/workflows/php-lint.yml"
   pull_request:
@@ -23,6 +24,7 @@ on:
       - "phpBB2/install/schemas/*.sql"
       - "update/**/*.php"
       - ".github/scripts/*.php"
+      - ".github/fixtures/**/*.php"
       - ".github/scripts/*.js"
       - ".github/workflows/php-lint.yml"
 
@@ -495,3 +497,9 @@ jobs:
 
       - name: Test MySQLi failures and result lifecycle contract
         run: php .github/scripts/check-mysqli-driver-contract.php
+
+      - name: Test topic preferences and notification delivery lifecycle
+        run: php .github/scripts/check-topic-notifications.php
+
+      - name: Test topic notification additive migration
+        run: php .github/scripts/check-topic-notification-migration.php

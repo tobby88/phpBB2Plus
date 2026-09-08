@@ -23,7 +23,12 @@ ajax_endpoint_assert(strpos($ajax, '$post_modes = array_merge(') !== false, 'mut
 ajax_endpoint_assert(strpos($ajax, "!isset(\$HTTP_POST_VARS['sid']) || !is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'POST actions need a scalar session token in their body');
 $storage = file_get_contents($root . '/phpBB2/includes/functions_ajax_storage.php');
 ajax_endpoint_assert(substr_count($ajax, 'phpbb_ajax_edit_post($db, $post_id, ') === 2 && strpos($storage, "empty(\$is_auth['auth_edit'])") !== false, 'both inline edit modes must share the permission-checked storage worker');
-ajax_endpoint_assert(substr_count($ajax, "empty(\$is_auth['auth_view']) || empty(\$is_auth['auth_read'])") >= 3, 'watch and mark endpoints must not expose unreadable forums');
+ajax_endpoint_assert(substr_count($ajax, "empty(\$is_auth['auth_view']) || empty(\$is_auth['auth_read'])") >= 2, 'both mark endpoints must not expose unreadable forums');
+$preferences = file_get_contents($root . '/phpBB2/includes/functions_topic_preferences.php');
+ajax_endpoint_assert(strpos($ajax, "phpbb_topic_preference(\$db, \$topic_id, 'watch'") !== false &&
+	strpos($preferences, "auth(AUTH_VIEW, \$forum_id, \$user, '', \$db)") !== false &&
+	strpos($preferences, "auth(AUTH_READ, \$forum_id, \$user, '', \$db)") !== false,
+	'watch creation must use current view/read permissions on the owning connection');
 $poll = file_get_contents($root . '/phpBB2/includes/functions_poll_storage.php');
 ajax_endpoint_assert(strpos($ajax, 'phpbb_poll_state($db, $topic_id)') !== false && strpos($poll, "empty(\$auth['auth_view']) || empty(\$auth['auth_read'])") !== false, 'poll responses need current read permissions');
 ajax_endpoint_assert(strpos($ajax, 'urlencode($HTTP_GET_VARS') === false, 'nested highlight input must not reach urlencode');

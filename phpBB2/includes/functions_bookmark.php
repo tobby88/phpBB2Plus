@@ -18,68 +18,15 @@
  *
  ***************************************************************************/
 
-//
-// Checks whether a bookmark is set or not
-//
-function is_bookmark_set($topic_id)
+if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_topic_preferences.php';
+
+function phpbb_bookmark_preference($topic_id, $state)
 {
-	global $db, $userdata;
-
-	$topic_id = intval($topic_id);
-	$user_id = intval($userdata['user_id']);
-	$sql = "SELECT topic_id, user_id
-		FROM " . BOOKMARK_TABLE . " 
-		WHERE topic_id = $topic_id AND user_id = $user_id";
-	if ( $result = $db->sql_query($sql) )
-	{
-		$is_bookmark_set = ($db->sql_fetchrow($result)) ? (TRUE) : (FALSE);
-	}
-	else
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain bookmark information', '', __LINE__, __FILE__, $sql);
-		$is_bookmark_set = FALSE;
-	}
-	$db->sql_freeresult($result);
-	
-	return $is_bookmark_set;
+	global $db;
+	try { return phpbb_topic_preference($db, $topic_id, 'bookmark', $state); }
+	catch (PhpbbTopicPreferenceException $exception) { message_die(GENERAL_MESSAGE, $exception->getMessage()); }
 }
-
-//
-// Sets a bookmark
-//
-function set_bookmark($topic_id)
-{
-	global $db, $userdata;
-
-	$topic_id = intval($topic_id);
-	$user_id = intval($userdata['user_id']);
-	if ( !is_bookmark_set($topic_id) )
-	{
-		$sql = "INSERT INTO " . BOOKMARK_TABLE . " (topic_id, user_id)
-			VALUES ($topic_id, $user_id)";
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not insert bookmark information', '', __LINE__, __FILE__, $sql);
-		}
-	}
-	return;
-}
-
-//
-// Removes a bookmark
-//
-function remove_bookmark($topic_id)
-{
-	global $db, $userdata;
-
-	$topic_id = intval($topic_id);
-	$user_id = intval($userdata['user_id']);
-	$sql = "DELETE FROM " . BOOKMARK_TABLE . "
-		WHERE topic_id IN ($topic_id) AND user_id = $user_id";
-	if ( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not remove bookmark information', '', __LINE__, __FILE__, $sql);
-	}
-	return;
-}
-?>
+function is_bookmark_set($topic_id) { return phpbb_bookmark_preference($topic_id, null); }
+function set_bookmark($topic_id) { return phpbb_bookmark_preference($topic_id, true); }
+function remove_bookmark($topic_id) { return phpbb_bookmark_preference($topic_id, false); }

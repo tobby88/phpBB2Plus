@@ -320,6 +320,8 @@ $lang['Split_topic'] = 'Thema teilen';
 
 $lang['Stop_watching_topic'] = 'Bei Antworten zu diesem Thema nicht mehr benachrichtigen';
 $lang['Start_watching_topic'] = 'Bei Antworten zu diesem Thema benachrichtigen';
+$lang['Topic_unwatch_confirm'] = 'E-Mail-Benachrichtigungen zu diesem Thema für dein derzeit angemeldetes Benutzerkonto abbestellen?';
+$lang['Topic_preference_failed'] = 'Die Einstellung zum Thema konnte nicht gespeichert werden. Bitte versuche es erneut.';
 $lang['No_longer_watching'] = 'Das Thema wird nicht mehr von Dir beobachtet.';
 $lang['You_are_watching'] = 'Du beobachtest nun das Thema.';
 
