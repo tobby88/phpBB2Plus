@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Re-read active accounts and roles on the owning writer connection before
+  moderator topic deletion, lock/type changes, moves and splits. Cached admin
+  roles no longer bypass current group/forum permissions after demotion or
+  deactivation. Topic deletion also rechecks its POST/session and current
+  view/read/moderate/delete grants. Preserve ordinary forum moderators and
+  current administrator access; no schema changes.
+
 - Coordinate manual/automatic age pruning and whole-forum move/removal with
   post, poll and attachment writers. Recheck current accounts, ACP delegation,
   forum hierarchy and complete content selections; protect recent posts and

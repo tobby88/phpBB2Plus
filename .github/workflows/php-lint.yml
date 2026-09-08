@@ -521,3 +521,6 @@ jobs:
 
       - name: Test coordinated whole-forum move and removal
         run: php .github/scripts/check-forum-maintenance.php
+
+      - name: Test current moderator identity across destructive actions
+        run: php .github/scripts/check-moderator-identity.php

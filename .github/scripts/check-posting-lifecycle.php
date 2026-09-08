@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/check-attachment-mutation.php';
+require_once __DIR__ . '/fixture-current-moderator.php';
 foreach (array('GENERAL_MESSAGE'=>200,'BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,'FORUMS_TABLE'=>'fixture_forums','USERS_TABLE'=>'fixture_users','POSTS_TEXT_TABLE'=>'fixture_post_text','VOTE_DESC_TABLE'=>'fixture_votes','VOTE_RESULTS_TABLE'=>'fixture_vote_results','VOTE_USERS_TABLE'=>'fixture_voters','BOOKMARK_TABLE'=>'fixture_bookmarks','TOPICS_WATCH_TABLE'=>'fixture_watches','TOPIC_VIEW_TABLE'=>'fixture_views','SEARCH_WORD_TABLE'=>'fixture_words','SEARCH_MATCH_TABLE'=>'fixture_matches','SQL_LAYER'=>'mysqli','FORUM_LOCKED'=>1,'TOPIC_LOCKED'=>1,'TOPIC_UNLOCKED'=>0,'POST_NEWS'=>4,'ANONYMOUS'=>-1,'POST_POST_URL'=>'p','POST_TOPIC_URL'=>'t','POST_FORUM_URL'=>'f') as $key=>$value) { define($key,$value); }
 require $forum_root . 'includes/functions_post.php';
 require $forum_root . 'includes/functions_moderation.php';
@@ -110,6 +111,7 @@ try
 	};
 	posting_submit('reply'); $mutation_server->hook=null;
 	mutation_check($interleaved && !$mutation_server->owner,'Parent deletion cannot interleave with text/index/counter publication');
+	fixture_current_moderator($mutation_server->pdo);
 	phpbb_delete_moderated_topics($db,3,array(100));
 	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_matches')===0 && (int)posting_value('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')===0,'Moderator cleanup includes search and forum totals on owning connection');
 	mutation_expect_failure(function () { posting_submit('reply'); }, 'Topic_post_not_exist');

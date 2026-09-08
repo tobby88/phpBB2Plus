@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_moderator_identity.php';
 
 class PhpbbTopicSplitException extends RuntimeException {}
 function phpbb_topic_split_error($key)
@@ -58,10 +59,12 @@ function phpbb_split_topic($database, $source_forum, $source_topic, $target_foru
 	try
 	{
 		$db = new PhpbbTopicSplitDatabase($lock->connection);
+		$user=phpbb_current_moderator_user($db);
+		if (!$user) { phpbb_topic_split_error('Not_Moderator'); }
 		$result = $db->sql_query('SELECT forum_id, forum_status, forum_link, count_posts FROM ' . FORUMS_TABLE . " WHERE forum_id IN ($source_forum,$target_forum)");
 		$forums = array(); while ($row = $db->sql_fetchrow($result)) { $forums[(int) $row['forum_id']] = $row; } $db->sql_freeresult($result);
 		if (!isset($forums[$source_forum], $forums[$target_forum]) || !empty($forums[$target_forum]['forum_link'])) { phpbb_topic_split_error('Forum_not_exist'); }
-		$source_auth = auth(AUTH_ALL, $source_forum, $userdata, '', $db); $target_auth = auth(AUTH_ALL, $target_forum, $userdata, '', $db);
+		$source_auth = auth(AUTH_ALL, $source_forum, $user, '', $db); $target_auth = auth(AUTH_ALL, $target_forum, $user, '', $db);
 		if (empty($source_auth['auth_mod']) || empty($source_auth['auth_view']) || empty($source_auth['auth_read'])) { phpbb_topic_split_error('Not_Moderator'); }
 		if (empty($target_auth['auth_view']) || empty($target_auth['auth_read']) || (empty($target_auth['auth_post']) && empty($target_auth['auth_mod']))) { phpbb_topic_split_error('Moderation_split_denied'); }
 		if ((int) $forums[$target_forum]['forum_status'] === FORUM_LOCKED && empty($target_auth['auth_mod'])) { phpbb_topic_split_error('Forum_locked'); }

@@ -16,8 +16,6 @@ function merge_access_fixture()
 {
 	global $mutation_server;
 	topic_move_fixture(); $p=$mutation_server->pdo;
-	$p->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
-	$p->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
 	return new MergeReadDatabase();
 }
 set_error_handler(function($severity,$message) { if(error_reporting() & $severity) { throw new RuntimeException($message); } });

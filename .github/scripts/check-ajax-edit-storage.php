@@ -1,9 +1,9 @@
 <?php
 require __DIR__ . '/check-posting-lifecycle.php';
-foreach (array('AUTH_ALL'=>0,'AUTH_LIST_ALL'=>0,'AUTH_REG'=>1,'AUTH_ACL'=>2,'AUTH_MOD'=>3,'AUTH_ADMIN'=>5,'ADMIN'=>1,'AUTH_ACCESS_TABLE'=>'fixture_auth','USER_GROUP_TABLE'=>'fixture_groups') as $key=>$value) { define($key,$value); }
+foreach (array('AUTH_ALL'=>0,'AUTH_LIST_ALL'=>0,'AUTH_REG'=>1,'AUTH_ACL'=>2,'AUTH_MOD'=>3,'AUTH_ADMIN'=>5,'ADMIN'=>1,'AUTH_ACCESS_TABLE'=>'fixture_auth','USER_GROUP_TABLE'=>'fixture_groups') as $key=>$value) { if(!defined($key)) { define($key,$value); } }
 require $forum_root . 'includes/php_compat.php';
-require $forum_root . 'includes/auth.php';
-require $forum_root . 'attach_mod/includes/functions_includes.php';
+require_once $forum_root . 'includes/auth.php';
+require_once $forum_root . 'attach_mod/includes/functions_includes.php';
 require $forum_root . 'includes/bbcode.php';
 require $forum_root . 'includes/functions_ajax_storage.php';
 foreach (array('Ajax_edit_invalid_text','Ajax_edit_too_large','Empty_subject','Empty_message','Auth_Anonymous_Users','Auth_Registered_Users','Auth_Users_granted_access','Auth_Moderators','Auth_Administrators') as $key) { $lang[$key]=$key; }

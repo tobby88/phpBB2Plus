@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_moderator_identity.php';
 
 class PhpbbTopicStateException extends RuntimeException {}
 function phpbb_topic_state_error($key)
@@ -46,6 +47,8 @@ function phpbb_moderate_topic_state($database, $forum_id, $topic_ids, $mode)
 	try
 	{
 		$db = new PhpbbTopicStateDatabase($lock->connection);
+		$user=phpbb_current_moderator_user($db);
+		if (!$user) { phpbb_topic_state_error('Not_Moderator'); }
 		$result = $db->sql_query('SELECT topic_id, forum_id, topic_status, topic_type, topic_moved_id FROM ' . TOPICS_TABLE
 			. ' WHERE topic_id IN (' . implode(',', $ids) . ') ORDER BY topic_id');
 		$rows = $db->sql_fetchrowset($result); $db->sql_freeresult($result);
@@ -60,7 +63,7 @@ function phpbb_moderate_topic_state($database, $forum_id, $topic_ids, $mode)
 				phpbb_topic_state_error('Moderation_state_changed');
 			}
 		}
-		$auth = auth(AUTH_ALL, $forum_id, $userdata, '', $db);
+		$auth = auth(AUTH_ALL, $forum_id, $user, '', $db);
 		if (empty($auth['auth_mod']) || empty($auth['auth_view']) || empty($auth['auth_read'])) { phpbb_topic_state_error('Not_Moderator'); }
 		if (($mode === 'sticky' && empty($auth['auth_sticky'])) || ($mode === 'announce' && empty($auth['auth_announce']))) { phpbb_topic_state_error('Moderation_state_denied'); }
 		require_once dirname(__FILE__) . '/functions_log.php';

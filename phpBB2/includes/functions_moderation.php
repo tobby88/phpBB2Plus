@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_moderator_identity.php';
 
 function phpbb_moderation_query($database, $sql)
 {
@@ -12,7 +13,7 @@ function phpbb_moderation_query($database, $sql)
 	return $result;
 }
 
-// Internal: modcp has checked the moderator's delete permission and POST session.
+// Recheck modcp's confirmed POST and current account/permissions on the owner.
 // Requalify every parent against that forum on the attachment lock's connection.
 // MyISAM/filesystem cleanup is not transactional; stop explicitly on a partial
 // failure and retain remaining text/file metadata rather than guessing success.
@@ -31,6 +32,19 @@ function phpbb_delete_moderated_topics($database, $forum_id, $topic_ids)
 	$lock = attach_require_mutation_lock($database);
 	try
 	{
+		global $userdata;
+		if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_string($_POST['sid'])
+			|| empty($userdata['session_id']) || !hash_equals((string)$userdata['session_id'], $_POST['sid']))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Session_invalid']);
+		}
+		$user=phpbb_current_moderator_user($lock->connection);
+		if (!$user) { message_die(GENERAL_MESSAGE, $lang['Not_Moderator']); }
+		$rights=auth(AUTH_ALL, $forum_id, $user, '', $lock->connection);
+		if (empty($rights['auth_view']) || empty($rights['auth_read']) || empty($rights['auth_mod']) || empty($rights['auth_delete']))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Moderator']);
+		}
 		return phpbb_delete_moderated_topics_owned($lock->connection, $forum_id, $topics);
 	}
 	finally { $lock->release(); }

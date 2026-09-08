@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/check-attachment-mutation.php';
+require_once __DIR__ . '/fixture-current-moderator.php';
 foreach (array('GENERAL_MESSAGE'=>200,'BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,'FORUMS_TABLE'=>'fixture_forums','USERS_TABLE'=>'fixture_users','POSTS_TEXT_TABLE'=>'fixture_post_text','VOTE_DESC_TABLE'=>'fixture_votes','VOTE_RESULTS_TABLE'=>'fixture_vote_results','VOTE_USERS_TABLE'=>'fixture_voters','BOOKMARK_TABLE'=>'fixture_bookmarks','TOPICS_WATCH_TABLE'=>'fixture_watches','TOPIC_VIEW_TABLE'=>'fixture_views') as $key=>$value) { define($key,$value); }
 $lang['None_selected'] = 'none';
 define('SEARCH_WORD_TABLE', 'fixture_words');
@@ -44,6 +45,7 @@ function moderation_fixture($count_posts = 1)
 	file_put_contents($upload_dir.'/fixture.txt','owned');
 	mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','post',10);
 	$pdo->exec('INSERT INTO fixture_links VALUES (1,13,0,8,0)');
+	fixture_current_moderator($pdo);
 }
 function moderation_scalar($sql) { return (int)$GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
 function moderation_untouched()
