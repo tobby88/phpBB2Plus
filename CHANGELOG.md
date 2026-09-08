@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate all five user-list bulk actions on one writer connection, re-read
+  active administrator/module grants and protect current administrators and
+  the acting user on every target write. Reject malformed IDs without coercion.
+  Check session invalidation before applying account changes; report partial
+  storage failures honestly. Explicit group additions approve pending requests
+  and derive moderator status only from an existing forum's moderator group.
+  Preserve personal groups and IP/email bans; report changed/unchanged counts.
+  No schema changes; legacy permission writers are not all coordinated yet.
+
 - Resolve moderator-panel forum names only after session preferences and
   authorization initialize the hierarchy/language data. Use the canonical
   forum ID for both topic and forum routes, release the metadata result and

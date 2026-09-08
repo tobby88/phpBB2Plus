@@ -19,7 +19,7 @@ $errors = array();
 foreach (array(
 	'phpbb_admin_require_post_session();',
 	'phpbb_admin_session_field()',
-	'AND user_level <> " . ADMIN',
+	'phpbb_userlist_apply($db, $action, $selected_users,',
 	'$db->sql_escape($alpha)',
 	"is_scalar(\$_POST['bulk_action'])"
 ) as $marker)

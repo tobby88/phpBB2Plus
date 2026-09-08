@@ -527,3 +527,6 @@ jobs:
 
       - name: Test moderator bootstrap and forum-name initialization
         run: php .github/scripts/check-moderator-bootstrap.php
+
+      - name: Test coordinated userlist bulk actions and protected accounts
+        run: php .github/scripts/check-userlist-storage.php

@@ -57,99 +57,22 @@ $alpha_sql = ($alpha === '') ? '' : (($alpha === '0')
 	? " AND u.username NOT REGEXP '^[A-Za-z]'"
 	: " AND u.username LIKE '" . $db->sql_escape($alpha) . "%'");
 
-$selected_users = isset($_POST[POST_USERS_URL]) && is_array($_POST[POST_USERS_URL])
-	? array_values(array_unique(array_filter(array_map('intval', $_POST[POST_USERS_URL]))))
-	: array();
-$selected_users = array_values(array_diff($selected_users, array(ANONYMOUS, intval($userdata['user_id']))));
+$selected_users = isset($_POST[POST_USERS_URL]) ? $_POST[POST_USERS_URL] : array();
 $action = (isset($_POST['bulk_action']) && is_scalar($_POST['bulk_action'])) ? (string) $_POST['bulk_action'] : '';
 
 if (!empty($selected_users) && in_array($action, array('activate', 'deactivate', 'ban', 'unban', 'group'), true))
 {
 	phpbb_admin_require_post_session();
-	$requested_user_id_sql = implode(', ', $selected_users);
-	$sql = "SELECT user_id FROM " . USERS_TABLE . "
-		WHERE user_id IN ($requested_user_id_sql) AND user_level <> " . ADMIN;
-	if (!($result = $db->sql_query($sql)))
+	require_once($phpbb_root_path . 'includes/functions_userlist_storage.' . $phpEx);
+	try
 	{
-		message_die(GENERAL_ERROR, 'Could not verify selected users', '', __LINE__, __FILE__, $sql);
+		$summary = phpbb_userlist_apply($db, $action, $selected_users, isset($_POST['group_id']) ? $_POST['group_id'] : null);
 	}
-	$selected_users = array();
-	while ($row = $db->sql_fetchrow($result))
+	catch (PhpbbUserlistException $error)
 	{
-		$selected_users[] = intval($row['user_id']);
+		message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8'));
 	}
-	$db->sql_freeresult($result);
-	if (empty($selected_users))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Admin_userlist_updated']);
-	}
-	$user_id_sql = implode(', ', $selected_users);
-
-	if ($action === 'activate' || $action === 'deactivate')
-	{
-		$active = ($action === 'activate') ? 1 : 0;
-		$sql = "UPDATE " . USERS_TABLE . " SET user_active = $active WHERE user_id IN ($user_id_sql)";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Could not update user status', '', __LINE__, __FILE__, $sql);
-		}
-	}
-	else if ($action === 'ban')
-	{
-		foreach ($selected_users as $selected_user)
-		{
-			$sql = "SELECT ban_userid FROM " . BANLIST_TABLE . " WHERE ban_userid = $selected_user";
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not read ban list', '', __LINE__, __FILE__, $sql);
-			}
-			if (!$db->sql_fetchrow($result))
-			{
-				$sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid) VALUES ($selected_user)";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Could not update ban list', '', __LINE__, __FILE__, $sql);
-				}
-			}
-			$db->sql_freeresult($result);
-		}
-	}
-	else if ($action === 'unban')
-	{
-		$sql = "DELETE FROM " . BANLIST_TABLE . " WHERE ban_userid IN ($user_id_sql)";
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Could not update ban list', '', __LINE__, __FILE__, $sql);
-		}
-	}
-	else
-	{
-		$group_id = (isset($_POST['group_id']) && is_scalar($_POST['group_id'])) ? intval($_POST['group_id']) : 0;
-		$sql = "SELECT group_id FROM " . GROUPS_TABLE . " WHERE group_id = $group_id AND group_single_user = 0";
-		if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
-		{
-			message_die(GENERAL_MESSAGE, $lang['Admin_userlist_invalid_group']);
-		}
-		$db->sql_freeresult($result);
-		foreach ($selected_users as $selected_user)
-		{
-			$sql = "SELECT user_id FROM " . USER_GROUP_TABLE . " WHERE user_id = $selected_user AND group_id = $group_id";
-			$result = $db->sql_query($sql);
-			if ($result && !$db->sql_fetchrow($result))
-			{
-				$sql = "INSERT INTO " . USER_GROUP_TABLE . " (group_id, user_id, user_pending) VALUES ($group_id, $selected_user, 0)";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Could not add user to group', '', __LINE__, __FILE__, $sql);
-				}
-			}
-			if ($result) { $db->sql_freeresult($result); }
-		}
-	}
-
-	$sql = "DELETE FROM " . SESSIONS_TABLE . " WHERE session_user_id IN ($user_id_sql)";
-	$db->sql_query($sql);
-	message_die(GENERAL_MESSAGE, $lang['Admin_userlist_updated'] . '<br /><br />' . sprintf($lang['Click_return_userlist'], '<a href="' . append_sid("admin_users_list.$phpEx") . '">', '</a>'));
+	message_die(GENERAL_MESSAGE, sprintf($lang['Admin_userlist_result'], $summary['changed'], $summary['unchanged']) . '<br /><br />' . sprintf($lang['Click_return_userlist'], '<a href="' . append_sid("admin_users_list.$phpEx") . '">', '</a>'));
 }
 
 $template->set_filenames(array('body' => 'admin/admin_users_list_body.tpl'));
