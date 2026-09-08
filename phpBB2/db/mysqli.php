@@ -102,18 +102,13 @@ class sql_db
 	//
 	function sql_close()
 	{
-		if($this->db_connect_id)
-		{
-			// Closing the connection releases outstanding results. Re-freeing a
-			// result already released by sql_freeresult() throws on PHP 8.
-			$this->query_result = false;
-			$result = @mysqli_close($this->db_connect_id);
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
+		$connection = $this->db_connect_id;
+		$this->db_connect_id = false;
+		$this->query_result = false;
+		if (!($connection instanceof mysqli)) { return false; }
+		try { return @mysqli_close($connection); }
+		catch (\Exception $error) { return false; }
+		catch (\Throwable $error) { return false; }
 	}
 
 	//
@@ -121,22 +116,16 @@ class sql_db
 	//
 	function sql_query($query = "", $transaction = FALSE)
 	{
-		// Remove any pre-existing queries
-		unset($this->query_result);
-		if($query != "")
-		{
-			$this->num_queries++;
-
-			$this->query_result = @mysqli_query($this->db_connect_id, $query);
-		}
-		if($this->query_result)
-		{
-			return $this->query_result;
-		}
-		else
-		{
-			return ( $transaction == END_TRANSACTION ) ? true : false;
-		}
+		$this->query_result = false;
+		// Preserve only the empty legacy END marker as a no-op. These old flags
+		// do not start/commit a transaction and must never hide a failed query.
+		if ($query === '') { return defined('END_TRANSACTION') && $transaction === END_TRANSACTION; }
+		if (!is_string($query) || !($this->db_connect_id instanceof mysqli)) { return false; }
+		$this->num_queries++;
+		try { $this->query_result = @mysqli_query($this->db_connect_id, $query); }
+		catch (\Exception $error) { return false; }
+		catch (\Throwable $error) { return false; }
+		return $this->query_result;
 	}
 
 	function sql_escape($value)
@@ -147,175 +136,87 @@ class sql_db
 	//
 	// Other query methods
 	//
+	// Return a live result only. PHP 8 throws for released result objects;
+	// older mysqli versions warn/return false. Keep one consistent API contract.
+	function sql_result($query_id = 0)
+	{
+		if ($query_id === 0) { $query_id = $this->query_result; }
+		if (!($query_id instanceof mysqli_result)) { return false; }
+		try { return @mysqli_num_fields($query_id) > 0 ? $query_id : false; }
+		catch (\Exception $error) { return false; }
+		catch (\Throwable $error) { return false; }
+	}
 	function sql_numrows($query_id = 0)
 	{
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
-		if($query_id)
-		{
-			$result = @mysqli_num_rows($query_id);
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
-	}
-	function sql_affectedrows()
-	{
-		if($this->db_connect_id)
-		{
-			$result = @mysqli_affected_rows($this->db_connect_id);
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
+		$result = $this->sql_result($query_id);
+		return $result ? mysqli_num_rows($result) : false;
 	}
 	function sql_numfields($query_id = 0)
 	{
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
-		if($query_id)
-		{
-			$result = @mysqli_field_count($query_id);
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
+		$result = $this->sql_result($query_id);
+		return $result ? mysqli_num_fields($result) : false;
+	}
+	function sql_field($offset, $query_id = 0)
+	{
+		$result = $this->sql_result($query_id);
+		if (!$result || !(is_int($offset) || (is_string($offset) && preg_match('/^[0-9]+$/D', $offset)))) { return false; }
+		$offset = (int) $offset;
+		if ($offset < 0 || $offset >= mysqli_num_fields($result)) { return false; }
+		return mysqli_fetch_field_direct($result, $offset);
 	}
 	function sql_fieldname($offset, $query_id = 0)
 	{
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
-		if($query_id)
-		{
-			$field = @mysqli_fetch_field_direct($query_id, $offset);
-			return $field->name;
-		}
-		else
-		{
-			return false;
-		}
+		$field = $this->sql_field($offset, $query_id);
+		return $field ? $field->name : false;
 	}
 	function sql_fieldtype($offset, $query_id = 0)
 	{
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
-		if($query_id)
-		{
-			$field = @mysqli_fetch_field_direct($query_id, $offset);
-			return $field->type;
-		}
-		else
-		{
-			return false;
-		}
+		$field = $this->sql_field($offset, $query_id);
+		return $field ? $field->type : false;
 	}
 	function sql_fetchrow($query_id = 0)
 	{
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
-		if($query_id)
-		{
-			$result = @mysqli_fetch_array($query_id);
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
+		$result = $this->sql_result($query_id);
+		if (!$result) { return false; }
+		$row = mysqli_fetch_array($result);
+		return is_array($row) ? $row : false;
 	}
 	function sql_fetchrowset($query_id = 0)
 	{
-		$result = array();
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
-		if($query_id)
-		{
-			while($row = @mysqli_fetch_array($query_id))
-			{
-				$result[] = $row;
-			}
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
+		$result = $this->sql_result($query_id);
+		if (!$result) { return false; }
+		$rows = array();
+		while ($row = $this->sql_fetchrow($result)) { $rows[] = $row; }
+		return $rows;
 	}
-
 	function mysqli_result($query_id, $rownum = 0, $field = 0)
 	{
-		$numrows = mysqli_num_rows($query_id);
-		if ($numrows && $rownum <= ($numrows - 1) && $rownum >= 0)
-		{
-			mysqli_data_seek($query_id, $rownum);
-			$row = (is_numeric($field)) ? mysqli_fetch_row($query_id) : mysqli_fetch_assoc($query_id);
-			if (isset($row[$field]))
-			{
-				return $row[$field];
-			}
-		}
-		return false;
+		if (!$this->sql_rowseek($rownum, $query_id)) { return false; }
+		return $this->sql_fetchfield($field, -1, $query_id);
 	}
-
 	function sql_fetchfield($field, $rownum = -1, $query_id = 0)
 	{
-		if(!$query_id)
+		$result = $this->sql_result($query_id);
+		if (!$result || !(is_int($field) || is_string($field))) { return false; }
+		if (!(is_int($rownum) || (is_string($rownum) && preg_match('/^-?[0-9]+$/D', $rownum)))) { return false; }
+		if ((int) $rownum >= 0)
 		{
-			$query_id = $this->query_result;
+			return $this->mysqli_result($result, (int) $rownum, $field);
 		}
-		if($query_id)
-		{
-			if($rownum > -1)
-			{
-				$result = @mysqli_result($query_id, $rownum, $field);
-			}
-			else
-			{
-				$row = $this->sql_fetchrow();
-				if($row)
-				{
-					$result = $row[$field];
-				}
-			}
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
+		$row = $this->sql_fetchrow($result);
+		return is_array($row) && array_key_exists($field, $row) ? $row[$field] : false;
 	}
-	function sql_rowseek($rownum, $query_id = 0){
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
-		if($query_id)
-		{
-			$result = @mysqli_data_seek($query_id, $rownum);
-			return $result;
-		}
-		else
-		{
-			return false;
-		}
+	function sql_rowseek($rownum, $query_id = 0)
+	{
+		$result = $this->sql_result($query_id);
+		if (!$result || !(is_int($rownum) || (is_string($rownum) && preg_match('/^[0-9]+$/D', $rownum)))) { return false; }
+		$rownum = (int) $rownum;
+		if ($rownum < 0 || $rownum >= mysqli_num_rows($result)) { return false; }
+		return mysqli_data_seek($result, $rownum);
+	}
+	function sql_affectedrows()
+	{
+		return $this->db_connect_id ? mysqli_affected_rows($this->db_connect_id) : false;
 	}
 	function sql_nextid(){
 		if($this->db_connect_id)
@@ -329,10 +230,7 @@ class sql_db
 		}
 	}
 	function sql_freeresult($query_id = 0){
-		if(!$query_id)
-		{
-			$query_id = $this->query_result;
-		}
+		$query_id = $this->sql_result($query_id);
 
 		if ( $query_id instanceof mysqli_result )
 		{

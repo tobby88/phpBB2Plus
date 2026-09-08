@@ -492,3 +492,6 @@ jobs:
 
       - name: Test topic split scope and dependent storage
         run: php .github/scripts/check-topic-split-storage.php
+
+      - name: Test MySQLi failures and result lifecycle contract
+        run: php .github/scripts/check-mysqli-driver-contract.php

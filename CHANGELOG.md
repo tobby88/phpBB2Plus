@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Return actual MySQLi query failures even when legacy callers pass an END marker;
+  preserve only an empty END marker as a no-op, without implying a transaction.
+  Keep error details available and handle strict mysqli exceptions through the
+  existing false-result API. Fix result field counts, indexed/sequential field
+  retrieval and explicit interleaved results; preserve SQL NULL and return
+  controlled false values for missing rows/fields, invalid offsets, write booleans
+  and released results. Make connection closing safe to repeat. No schema changes.
 - Split only a complete post selection from one currently moderated topic, using
   the shared writer lock and current source/destination permissions. Enforce that
   the actual original first post stays with its poll; expand "this post onward"
