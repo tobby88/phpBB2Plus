@@ -506,3 +506,6 @@ jobs:
 
       - name: Test mail failure boundaries and SMTP protocol runtime
         run: php .github/scripts/check-mail-delivery-runtime.php
+
+      - name: Test merge picker and preview authorization
+        run: php .github/scripts/check-topic-merge-access.php

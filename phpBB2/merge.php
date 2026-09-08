@@ -27,69 +27,7 @@ include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_topics_list.' . $phpEx);
 
-// function block
-function get_topic_id($topic)
-{
-	global $db;
-	$topic_id = 0;
-	if (!is_scalar($topic))
-	{
-		return 0;
-	}
-	$topic = (string) $topic;
-
-	// is this a direct value ?
-	$num_topic = intval($topic);
-	if ($num_topic > 0 && ctype_digit($topic))
-	{
-		$topic_id = intval($topic);
-	}
-
-	// is it an url with topic id or post id ?
-	else
-	{
-		$name = explode('?', $topic);
-		$parms = ( isset($name[1]) ) ? $name[1] : $name[0];
-		parse_str($parms, $parm);
-		$found = false;
-		$topic_id = 0;
-		foreach ($parm as $key => $val)
-		{
-			if ($found || !is_scalar($val))
-			{
-				continue;
-			}
-
-			$vals = explode('#', $val);
-			$val = intval($vals[0]);
-			if ($val <= 0)
-			{
-				continue;
-			}
-			switch($key)
-			{
-				case POST_POST_URL:
-					$sql = "SELECT topic_id FROM " . POSTS_TABLE . " WHERE post_id=$val";
-					if ( !($result = $db->sql_query($sql)) ) message_die(GENERAL_ERROR, 'Could not get post informations', '', __LINE__, __FILE__, $sql);
-					if ($row = $db->sql_fetchrow($result))
-					{
-						$val = $row['topic_id'];
-						$found = true;
-					}
-					break;
-				case POST_TOPIC_URL:
-					$found = true;
-					break;
-			}
-			if ($found)
-			{
-				$topic_id = intval($val);
-			}
-		}
-	}
-
-	return $topic_id;
-}
+include_once($phpbb_root_path . 'includes/functions_topic_merge.' . $phpEx);
 
 //
 // Start session management
@@ -107,22 +45,22 @@ if (($userdata['user_level'] != MOD) && ($userdata['user_level'] != ADMIN))
 }
 
 // from topic
-$from_topic = strtolower(trim(htmlspecialchars(phpbb_request_scalar($_POST, 'from_topic'))));
+$from_topic = trim(stripslashes(phpbb_request_scalar($_POST, 'from_topic')));
 if (empty($from_topic) && (isset($_GET[POST_TOPIC_URL]) || isset($_GET[POST_POST_URL])))
 {
-	$get_topic_id = intval(phpbb_request_scalar($_GET, POST_TOPIC_URL, 0));
-	$get_post_id = intval(phpbb_request_scalar($_GET, POST_POST_URL, 0));
+	$get_topic_id = phpbb_merge_id(phpbb_request_scalar($_GET, POST_TOPIC_URL, 0));
+	$get_post_id = phpbb_merge_id(phpbb_request_scalar($_GET, POST_POST_URL, 0));
 	$from_topic = ($get_topic_id > 0) ? $get_topic_id : POST_POST_URL . '=' . $get_post_id;
 }
-$from_topic_id = get_topic_id($from_topic);
+$from_topic_id = phpbb_merge_topic_id($db, $from_topic);
 
 // to topic
-$to_topic = strtolower(trim(htmlspecialchars(phpbb_request_scalar($_POST, 'to_topic'))));
-$to_topic_id =  get_topic_id($to_topic);
+$to_topic = trim(stripslashes(phpbb_request_scalar($_POST, 'to_topic')));
+$to_topic_id =  phpbb_merge_topic_id($db, $to_topic);
 
 // topic title
 $topic_title = '';
-if (isset($_POST['topic_title'])) $topic_title = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'topic_title'))));
+if (isset($_POST['topic_title'])) $topic_title = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'topic_title'))), ENT_COMPAT, 'UTF-8');
 
 // start
 $start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', 0))));
@@ -142,7 +80,7 @@ $page_next = isset($_POST['page_next']);
 $topic_selected = 0;
 if (isset($_POST['topic_selected']))
 {
-	$topic_selected = intval(substr(phpbb_request_scalar($_POST, 'topic_selected'), 1));
+	$topic_selected = phpbb_merge_id(substr(phpbb_request_scalar($_POST, 'topic_selected'), 1));
 }
 
 if ($submit && !empty($topic_selected))
@@ -162,33 +100,20 @@ if ($submit && !empty($topic_selected))
 	$select_to = false;
 }
 
-// session id
-$sid = '';
-if (phpbb_request_scalar($_POST, 'sid') !== '' || phpbb_request_scalar($_GET, 'sid') !== '')
-{
-	$sid = phpbb_request_scalar($_POST, 'sid', phpbb_request_scalar($_GET, 'sid'));
-}
+// Mutation confirmation accepts only the submitted form's session ID.
+$sid = phpbb_request_scalar($_POST, 'sid');
 
-// titles
-$from_title = '';
-if (!empty($from_topic_id))
+// Authorize each requested topic before rendering its title, including refresh
+// and selection requests that never enter the submission branch.
+$from_title = ''; $to_title = '';
+foreach (array('from', 'to') as $side)
 {
-	$sql = "SELECT topic_title FROM " . TOPICS_TABLE . " WHERE topic_id=$from_topic_id";
-	if ( !($result = $db->sql_query($sql)) ) message_die(GENERAL_ERROR, 'Could not get from-topic informations', '', __LINE__, __FILE__, $sql);
-	if ($row = $db->sql_fetchrow($result))
-	{
-		$from_title = $row['topic_title'];
-	}
-}
-$to_title = '';
-if (!empty($to_topic_id))
-{
-	$sql = "SELECT topic_title FROM " . TOPICS_TABLE . " WHERE topic_id=$to_topic_id";
-	if ( !($result = $db->sql_query($sql)) ) message_die(GENERAL_ERROR, 'Could not get to-topic informations', '', __LINE__, __FILE__, $sql);
-	if ($row = $db->sql_fetchrow($result))
-	{
-		$to_title = $row['topic_title'];
-	}
+	$id = $side === 'from' ? $from_topic_id : $to_topic_id;
+	if (!$id) { continue; }
+	$preview = phpbb_merge_topic_preview($db, $id);
+	if (!$preview) { message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); }
+	if ($side === 'from') { $from_title = phpbb_merge_html($preview['topic_title'], true); }
+	else { $to_title = phpbb_merge_html($preview['topic_title'], true); }
 }
 
 // forum_id
@@ -209,6 +134,7 @@ if (isset($_POST['fid']) || isset($_GET['fid']))
 // selection
 if (($select_from || $select_to) && (!$cancel))
 {
+	if ($forum_id && !phpbb_merge_forum_allowed($db, $forum_id)) { message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); }
 	// get the list of forums
 	if (function_exists('selectbox'))
 	{
@@ -221,7 +147,7 @@ if (($select_from || $select_to) && (!$cancel))
 
 	// how many record in the forum
 	$nbpages = 0;
-	$per_page = intval($board_config['topics_per_page']);
+	$per_page = max(1, min(100, intval($board_config['topics_per_page'])));
 
 	$sql_merge = "SELECT t.*, u.username, u.user_id, u2.username as user2, u2.user_id as id2, p.post_username, p2.post_username AS post_username2, p2.post_time 
 		FROM " . TOPICS_TABLE . " t, " . USERS_TABLE . " u, " . POSTS_TABLE . " p, " . POSTS_TABLE . " p2, " . USERS_TABLE . " u2
@@ -310,9 +236,9 @@ if (($select_from || $select_to) && (!$cancel))
 
 	// system
 	$s_hidden_fields  = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
-	$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . addslashes($topic_title) . '" />';
-	$s_hidden_fields .= '<input type="hidden" name="from_topic" value="' . $from_topic . '" />';
-	$s_hidden_fields .= '<input type="hidden" name="to_topic" value="' . $to_topic . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . phpbb_merge_html($topic_title, true) . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="from_topic" value="' . phpbb_merge_html($from_topic) . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="to_topic" value="' . phpbb_merge_html($to_topic) . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="submit" value="1" />';
 	if ($shadow) $s_hidden_fields .= '<input type="hidden" name="shadow" value="1" />';
 	if ($select_from) $s_hidden_fields .= '<input type="hidden" name="select_from" value="1" />';
@@ -525,7 +451,7 @@ if ($submit)
 		$sql_update = '';
 		if ( !empty($topic_title) )
 		{
-			$sql_update .= "topic_title = '" . str_replace("'", "''", $topic_title) . "'";
+			$sql_update .= "topic_title = '" . $db->sql_escape($topic_title) . "'";
 		}
 
 		// update the poll status
@@ -569,9 +495,9 @@ if ($submit)
 		);
 
 		$s_hidden_fields  = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . addslashes($topic_title) . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="from_topic" value="' . $from_topic . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="to_topic" value="' . $to_topic . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . phpbb_merge_html($topic_title, true) . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="from_topic" value="' . phpbb_merge_html($from_topic) . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="to_topic" value="' . phpbb_merge_html($to_topic) . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="submit" value="1" />';
 		if ($shadow) $s_hidden_fields .= '<input type="hidden" name="shadow" value="1" />';
 
@@ -627,9 +553,9 @@ if (!empty($to_title) && empty($topic_title))
 }
 // values
 $template->assign_vars(array(
-	'TOPIC_TITLE'	=> $topic_title,
-	'FROM_TOPIC'	=> $from_topic,
-	'TO_TOPIC'		=> $to_topic,
+	'TOPIC_TITLE'	=> phpbb_merge_html($topic_title, true),
+	'FROM_TOPIC'	=> phpbb_merge_html($from_topic),
+	'TO_TOPIC'		=> phpbb_merge_html($to_topic),
 	'SHADOW'		=> ($shadow) ? 'checked="checked"' : '',
 	)
 );

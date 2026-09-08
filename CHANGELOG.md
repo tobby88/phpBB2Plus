@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Authorize merge title previews and the forum topic picker before disclosure,
+  using current account, group moderation and view/read permissions. Recheck
+  the topic's forum during title lookup; reject inactive/stale privileged users.
+  Parse plain topic/post URLs before HTML escaping, reject malformed or conflicting
+  IDs, escape rendered form values and use the database driver for title quoting.
+  Require the submitted form's SID and bound picker page sizes. No schema changes.
+  This hardens selection/preview, not yet the legacy multi-table merge operation.
+
 - Recover from optional topic-notification mail/template failures without
   reporting an already-stored reply as failed. Release unsent delivery claims
   and stop repeated transport attempts within that reply; log only a generic
