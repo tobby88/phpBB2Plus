@@ -503,3 +503,6 @@ jobs:
 
       - name: Test topic notification additive migration
         run: php .github/scripts/check-topic-notification-migration.php
+
+      - name: Test mail failure boundaries and SMTP protocol runtime
+        run: php .github/scripts/check-mail-delivery-runtime.php

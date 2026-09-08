@@ -24,8 +24,11 @@
 // in the 2.0 release but we can probable find some way of using it in a future
 // release
 //
+class PhpbbMailException extends RuntimeException {}
+
 class emailer
 {
+	var $optional_delivery = false;
 	var $msg, $subject, $extra_headers;
 	var $addresses, $reply_to, $from;
 	var $use_smtp;
@@ -33,16 +36,32 @@ class emailer
 
 	var $tpl_msg = array();
 
-	function __construct($use_smtp)
+	function __construct($use_smtp, $optional_delivery = false)
 	{
-		$this->emailer($use_smtp);
+		$this->emailer($use_smtp, $optional_delivery);
 	}
 
-	function emailer($use_smtp)
+	function emailer($use_smtp, $optional_delivery = false)
 	{
 		$this->reset();
 		$this->use_smtp = $use_smtp;
+		$this->optional_delivery = (bool) $optional_delivery;
 		$this->reply_to = $this->from = '';
+	}
+
+	// Optional notifications opt in per instance; registration/password mails
+	// and all existing callers retain their visible failure behavior.
+	function fail($message)
+	{
+		if ($this->optional_delivery) { throw new PhpbbMailException($message); }
+		message_die(GENERAL_ERROR, $message, '', __LINE__, __FILE__);
+	}
+
+	function php_mail($to)
+	{
+		try { return @mail($to, $this->subject, $this->msg, $this->extra_headers); }
+		catch (\Exception $error) { return false; }
+		catch (\Throwable $error) { return false; }
 	}
 
 	// Resets all the data (address, template file, etc etc to default
@@ -120,11 +139,12 @@ class emailer
 	function use_template($template_file, $template_lang = '')
 	{
 		global $board_config, $phpbb_root_path;
+		$this->msg = '';
 
 		$template_file = trim((string) $template_file);
 		if (!preg_match('/^[a-z0-9_-]{1,80}$/iD', $template_file))
 		{
-			message_die(GENERAL_ERROR, 'No template file set', '', __LINE__, __FILE__);
+			$this->fail('No template file set');
 		}
 
 		$template_lang = strtolower(trim((string) $template_lang));
@@ -152,18 +172,20 @@ class emailer
 
 				if (!@is_file($tpl_file) || @is_link($tpl_file))
 				{
-					message_die(GENERAL_ERROR, 'Could not find email template file :: ' . $template_file, '', __LINE__, __FILE__);
+					$this->fail('Could not find email template file');
 				}
 				$template_lang = $fallback_lang;
 			}
 
 			if (!($fd = @fopen($tpl_file, 'r')))
 			{
-				message_die(GENERAL_ERROR, 'Failed opening template file :: ' . $tpl_file, '', __LINE__, __FILE__);
+				$this->fail('Failed opening email template file');
 			}
 
-			$this->tpl_msg[$template_lang . $template_file] = fread($fd, filesize($tpl_file));
-			fclose($fd);
+			try { $contents = stream_get_contents($fd, 1048577); }
+			finally { fclose($fd); }
+			if ($contents === false || $contents === '' || strlen($contents) > 1048576) { $this->fail('Invalid email template contents'); }
+			$this->tpl_msg[$template_lang . $template_file] = $contents;
 		}
 
 		$this->msg = $this->tpl_msg[$template_lang . $template_file];
@@ -195,7 +217,7 @@ class emailer
 		}
 		if ($board_email === '' || ($this->addresses['to'] === '' && !$this->addresses['cc'] && !$this->addresses['bcc']))
 		{
-			return false;
+			$this->fail('Invalid email sender or recipient');
 		}
 		$server_name = trim(preg_replace('#[^a-z0-9.-]+#i', '', (string) $board_config['server_name']));
 		if ($server_name === '')
@@ -271,36 +293,36 @@ class emailer
 				include($phpbb_root_path . 'includes/smtp.' . $phpEx);
 			}
 
-			$result = smtpmail($to, $this->subject, $this->msg, $this->extra_headers);
+			try { $result = smtpmail($to, $this->subject, $this->msg, $this->extra_headers, true); }
+			catch (PhpbbSmtpException $error) { $this->fail($error->getMessage()); }
 		}
 		else
 		{
 			$empty_to_header = ($to == '') ? TRUE : FALSE;
 			$to = ($to == '') ? (($board_config['sendmail_fix']) ? ' ' : 'Undisclosed-recipients:;') : $to;
 	
-			$result = @mail($to, $this->subject, preg_replace("#(?<!\r)\n#s", "\n", $this->msg), $this->extra_headers);
+			$result = $this->php_mail($to);
 			
 			if (!$result && !$board_config['sendmail_fix'] && $empty_to_header)
 			{
 				$to = ' ';
-
-				$sql = "UPDATE " . CONFIG_TABLE . " 
-					SET config_value = '1'
-					WHERE config_name = 'sendmail_fix'";
-				if (!$db->sql_query($sql))
+				$result = $this->php_mail($to);
+				// Remember this workaround only after it actually succeeds. A
+				// failed preference update cannot undo accepted email delivery.
+				if ($result)
 				{
-					message_die(GENERAL_ERROR, 'Unable to update config table', '', __LINE__, __FILE__, $sql);
+					$board_config['sendmail_fix'] = 1;
+					$sql = "UPDATE " . CONFIG_TABLE . " SET config_value = '1' WHERE config_name = 'sendmail_fix'";
+					if ($db->sql_query($sql)) { @unlink($phpbb_root_path . 'cache/config_data.cache'); }
+					else { error_log('phpBB could not save the confirmed sendmail compatibility setting.'); }
 				}
-				@unlink($phpbb_root_path . 'cache/config_data.cache');
-				$board_config['sendmail_fix'] = 1;
-				$result = @mail($to, $this->subject, preg_replace("#(?<!\r)\n#s", "\n", $this->msg), $this->extra_headers);
 			}
 		}
 
 		// Did it work?
 		if (!$result)
 		{
-			message_die(GENERAL_ERROR, 'Failed sending email :: ' . (($this->use_smtp) ? 'SMTP' : 'PHP') . ' :: ' . $result, '', __LINE__, __FILE__);
+			$this->fail('Failed sending email :: ' . (($this->use_smtp) ? 'SMTP' : 'PHP'));
 		}
 
 		return true;

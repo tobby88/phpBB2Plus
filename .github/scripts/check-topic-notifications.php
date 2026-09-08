@@ -116,6 +116,19 @@ try
 	notification_send(); mutation_check(count($notification_deliveries)===1,'Notified recipient does not get duplicate mail');
 	notification_fixture(); $notification_delivery_result=false; notification_send();
 	mutation_check((int)posting_value('SELECT notify_status FROM fixture_watches WHERE user_id=9')===0,'Dispatcher restores eligibility after explicit transport failure');
+	notification_fixture();
+	$mutation_server->pdo->exec("INSERT INTO fixture_users (user_id,user_active,user_level,user_email,user_lang,user_blocktime) VALUES (10,1,0,'second@example.invalid','english',0)");
+	$mutation_server->pdo->exec('INSERT INTO fixture_watches (topic_id,user_id) VALUES (100,10)');
+	$notification_delivery_hook=function() { throw new PhpbbMailException('FIXTURE_SECRET_REMOTE_REPLY'); };
+	$log=tmpfile(); $log_meta=stream_get_meta_data($log); $previous_log=ini_get('error_log'); ini_set('error_log',$log_meta['uri']);
+	try
+	{
+		notification_send();
+		$logged=file_get_contents($log_meta['uri']);
+		mutation_check(strpos($logged,'optional topic notification delivery failed')!==false && strpos($logged,'FIXTURE_SECRET_REMOTE_REPLY')===false,'Optional error logs are actionable but contain no remote detail');
+	}
+	finally { ini_set('error_log',$previous_log); fclose($log); }
+	mutation_check(count($notification_deliveries)===1 && (int)posting_value('SELECT SUM(notify_status) FROM fixture_watches')===0,'Optional failure returns normally, stops repeated network attempts and releases remaining claims');
 	notification_fixture(); $notification_delivery_hook=function() use(&$userdata,$db) { $userdata['user_id']=9; phpbb_topic_preference($db,100,'watch',null); }; notification_send();
 	mutation_check((int)posting_value('SELECT notify_status FROM fixture_watches WHERE user_id=9')===0,'Actual delivery permits concurrent reader without stale overwrite');
 

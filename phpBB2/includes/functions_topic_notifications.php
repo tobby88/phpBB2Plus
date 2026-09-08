@@ -92,25 +92,40 @@ function phpbb_send_topic_notifications($database, $post_id)
 	if (!$tasks) { return; }
 	include_once($phpbb_root_path . 'includes/emailer.' . $phpEx);
 	$original = array(); $replacement = array(); obtain_word_list($original, $replacement);
+	$delivery_failed = false;
 	foreach ($tasks as $task)
 	{
+		if ($delivery_failed) { phpbb_topic_notification_finish($database, $task, false); continue; }
 		$current = phpbb_topic_notification_ready($database, $task);
 		if (!$current) { continue; }
-		$emailer = new emailer($board_config['smtp_delivery']);
-		$emailer->from($board_config['board_email']); $emailer->replyto($board_config['board_email']);
-		$emailer->email_address($current['user']['user_email']);
-		$emailer->use_template('topic_notify', $current['user']['user_lang']);
-		$emailer->set_subject($lang['Topic_reply_notification']);
-		$emailer->msg = preg_replace('#[ ]?{USERNAME}#', '', $emailer->msg);
-		$title = unprepare_message($current['topic']['topic_title']);
-		if ($original) { $title = preg_replace($original, $replacement, $title); }
-		$emailer->assign_vars(array(
-			'EMAIL_SIG'=>!empty($board_config['board_email_sig']) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
-			'SITENAME'=>$board_config['sitename'], 'TOPIC_TITLE'=>$title,
-			'U_TOPIC'=>phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $task['post_id'] . '#' . $task['post_id']),
-			'U_STOP_WATCHING_TOPIC'=>phpbb_board_url('topic_watch.' . $phpEx . '?' . POST_TOPIC_URL . '=' . $task['topic_id'])
-		));
-		$sent = $emailer->send();
+		try
+		{
+			$emailer = new emailer($board_config['smtp_delivery'], true);
+			$emailer->from($board_config['board_email']); $emailer->replyto($board_config['board_email']);
+			$emailer->email_address($current['user']['user_email']);
+			$emailer->use_template('topic_notify', $current['user']['user_lang']);
+			$emailer->set_subject($lang['Topic_reply_notification']);
+			$emailer->msg = preg_replace('#[ ]?{USERNAME}#', '', $emailer->msg);
+			$title = unprepare_message($current['topic']['topic_title']);
+			if ($original) { $title = preg_replace($original, $replacement, $title); }
+			$emailer->assign_vars(array(
+				'EMAIL_SIG'=>!empty($board_config['board_email_sig']) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
+				'SITENAME'=>$board_config['sitename'], 'TOPIC_TITLE'=>$title,
+				'U_TOPIC'=>phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . '=' . $task['post_id'] . '#' . $task['post_id']),
+				'U_STOP_WATCHING_TOPIC'=>phpbb_board_url('topic_watch.' . $phpEx . '?' . POST_TOPIC_URL . '=' . $task['topic_id'])
+			));
+			$sent = $emailer->send();
+		}
+		catch (PhpbbMailException $error)
+		{
+			$sent = false;
+		}
+		if (!$sent)
+		{
+			$delivery_failed = true;
+			// No recipient, credentials, message contents or server reply text.
+			error_log('phpBB optional topic notification delivery failed.');
+		}
 		phpbb_topic_notification_finish($database, $task, (bool) $sent);
 	}
 }

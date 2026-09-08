@@ -1,9 +1,10 @@
 <?php
 // Only the delivery transport is substituted. Never sends email or uses SMTP.
+class PhpbbMailException extends RuntimeException {}
 class emailer
 {
 	var $msg = ''; var $vars = array(); var $address = '';
-	function __construct($smtp) {}
+	function __construct($smtp, $optional = false) { mutation_check($optional === true, 'Only optional notifications select recoverable mail errors'); }
 	function from($value) {}
 	function replyto($value) {}
 	function email_address($value) { $this->address = $value; }

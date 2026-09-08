@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recover from optional topic-notification mail/template failures without
+  reporting an already-stored reply as failed. Release unsent delivery claims
+  and stop repeated transport attempts within that reply; log only a generic
+  message. Mandatory mail callers retain visible failure reporting.
+  Validate bounded SMTP replies, accept forwarding status 251, finish short
+  writes and close sockets on failure. Never expose remote response text or
+  retry an accepted message just because QUIT fails. Preserve folded Bcc privacy.
+  Persist the PHP-mail compatibility fallback only after successful delivery;
+  failed config persistence does not negate accepted mail. No schema changes.
+  This does not add a durable mail queue or STARTTLS/SMTP-port configuration.
+
 - Coordinate interactive watch/bookmark writes with topic storage; repeated
   requests are idempotent and adding preferences checks current user/read ACLs.
   Email unsubscribe links (including legacy links) lead to a logged-in POST

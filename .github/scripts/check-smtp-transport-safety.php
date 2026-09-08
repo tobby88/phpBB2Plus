@@ -19,7 +19,7 @@ smtp_transport_assert(smtp_dot_stuff("first\n.\n..last") === "first\r\n..\r\n...
 smtp_transport_assert(strpos($source, 'stream_set_timeout($socket, 20)') !== false, 'SMTP reads need a finite timeout');
 smtp_transport_assert(strpos($source, '$deadline = microtime(true) + 20') !== false, 'multiline responses need one total deadline');
 smtp_transport_assert(strpos($source, "!empty(\$metadata['timed_out'])") !== false, 'read failures must distinguish timeouts');
-smtp_transport_assert(strpos($source, 'ENT_QUOTES | ENT_SUBSTITUTE') !== false, 'remote SMTP responses must be escaped before HTML output');
+smtp_transport_assert(strpos($source, "'Mail server rejected command (SMTP ' . \$code") !== false && strpos($source, '$safe_response') === false, 'remote SMTP reply text must not reach errors or expose credentials');
 smtp_transport_assert(strpos($source, 'smtp_dot_stuff($data)') !== false, 'the complete DATA payload must be dot-stuffed');
 smtp_transport_assert(strpos($source, 'MAIL FROM: <" . $board_config') === false, 'the configured sender must not be interpolated directly into SMTP commands');
 
