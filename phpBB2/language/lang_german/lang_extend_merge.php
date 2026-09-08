@@ -50,5 +50,8 @@ $lang['Merge_poll_from'] = 'Die Umfrage im zusammenzuführenden Thema wird zum Z
 $lang['Merge_poll_from_and_to'] = 'Das Zielthema enthält bereits eine Umfrage. Die Umfrage des zusammenzuführenden Themas wird daher gelöscht.';
 $lang['Merge_confirm_process'] = 'Bist Du sicher, <br />"<b>%s</b>"<br />mit<br />"<b>%s</b>"<br />zusammenzuführen?"';
 $lang['Merge_topic_done'] = 'Die Themen wurden erfolgreich zusammengeführt.';
+$lang['Merge_changed'] = 'Die Themen oder Umfragen passen nicht mehr zu dieser Bestätigung. Bitte öffne das Formular erneut und prüfe die aktuelle Auswahl.';
+$lang['Merge_invalid_subject'] = 'Bitte gib einen gültigen UTF-8-Thementitel ein.';
+$lang['Merge_storage_failed'] = 'Die Zusammenführung konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits gespeichert sein; prüfe bitte beide Themen vor einem erneuten Versuch.';
 
 ?>

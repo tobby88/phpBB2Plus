@@ -13,7 +13,7 @@ function log_action($action, $topic_ids, $user_id = 0, $username = '', $database
 	global $userdata, $user_ip, $client_ip;
 	$db = $database !== null ? $database : $GLOBALS['db'];
 
-	$allowed = array('delete', 'move', 'lock', 'unlock', 'split', 'edit', 'announce', 'sticky', 'normal');
+	$allowed = array('delete', 'move', 'lock', 'unlock', 'split', 'merge', 'edit', 'announce', 'sticky', 'normal');
 	if (!in_array($action, $allowed, true))
 	{
 		return false;

@@ -74,17 +74,7 @@ try
 	mutation_expect_failure(function() use($picker,$db,$forum_id,$select_from,$select_to,$cancel,$lang) { eval($picker); },'Not_Authorised');
 	$forum_id=3; eval($picker);
 	mutation_check(strpos($source,'$sid = phpbb_request_scalar($_POST, \'sid\');')!==false,'Mutation SID comes from POST, not URL fallback');
-	mutation_check(strpos($source,'addslashes($topic_title)')===false && strpos($source,'$db->sql_escape($topic_title)')!==false,'Hidden fields avoid slash accumulation and SQL titles use the driver boundary');
-	$start=strpos($source,'// build the update request'); $end=strpos($source,'// final update',$start);
-	mutation_check($start!==false && $end>$start,'Locate actual title SQL builder'); $title_branch=substr($source,$start,$end-$start);
-	$from_poll=false; $to_poll=false;
-	foreach(array("O'Reilly \\ Grüße 😀", "\\' OR '1'='1", '&quot; &amp; text') as $topic_title)
-	{
-		eval($title_branch);
-		mutation_check(strpos($sql_update,'topic_title = ')===0,'Title assignment prefix');
-		$result=$db->sql_query('SELECT '.substr($sql_update,14).' AS title'); $row=$db->sql_fetchrow($result); $db->sql_freeresult($result);
-		mutation_check($row['title']===$topic_title,'Actual title builder round-trips driver-quoted text as a constant, not SQL');
-	}
+	mutation_check(strpos($source,'addslashes($topic_title)')===false && strpos($source,'phpbb_merge_topics($db,')!==false,'Hidden fields avoid slash accumulation and mutation uses tested storage worker');
 	echo "Merge picker/preview current ACL, strict URL identifiers and output boundaries passed.\n";
 }
 finally { restore_error_handler(); }

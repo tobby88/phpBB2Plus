@@ -48,5 +48,8 @@ $lang['Merge_poll_from'] = 'There is a poll on the topic to merge. It will be co
 $lang['Merge_poll_from_and_to'] = 'The destination topic already has got a poll. The poll of the topic to merge will be deleted';
 $lang['Merge_confirm_process'] = 'Are you sure you want to merge <br />"<b>%s</b>"<br />to<br />"<b>%s</b>"';
 $lang['Merge_topic_done'] = 'The topics have been successfully merged.';
+$lang['Merge_changed'] = 'The topics or polls no longer match this confirmation. Please open the merge form again and review the current selection.';
+$lang['Merge_invalid_subject'] = 'Please enter a valid UTF-8 topic title.';
+$lang['Merge_storage_failed'] = 'The merge could not be completed. Some changes may already have been saved; check both topics before trying again.';
 
 ?>

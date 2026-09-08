@@ -1114,6 +1114,7 @@ $lang['Log_action_move'] = 'Verschoben';
 $lang['Log_action_lock'] = 'Gesperrt';
 $lang['Log_action_unlock'] = 'Entsperrt';
 $lang['Log_action_split'] = 'Geteilt';
+$lang['Log_action_merge'] = 'Zusammengeführt';
 $lang['Log_action_edit'] = 'Bearbeitet';
 $lang['Log_action_announce'] = 'In Ankündigung geändert';
 $lang['Log_action_sticky'] = 'In Wichtig geändert';

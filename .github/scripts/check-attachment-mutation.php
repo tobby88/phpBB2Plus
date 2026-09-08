@@ -63,8 +63,9 @@ class sql_db
 	{
 		if ($this->closed || !$this->db_connect_id) { return false; }
 		$s = $this->state;
-		if (preg_match("/^SELECT GET_LOCK\('([^']+)', 10\) AS acquired$/D", $sql, $match))
+		if (preg_match("/^SELECT GET_LOCK\('([^']+)', (0|10)\) AS acquired$/D", $sql, $match))
 		{
+			$GLOBALS['mutation_last_lock_timeout'] = (int) $match[2];
 			mutation_check($match[1] === 'attachment:' . md5("fixture\0" . ATTACHMENTS_TABLE) && strlen($match[1]) <= 64, 'Database-scoped bounded lock name');
 			if ($s->failure === 'lock-query') { return false; }
 			if ($s->failure === 'lock-throw') { throw new RuntimeException('Private database details'); }

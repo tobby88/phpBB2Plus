@@ -509,3 +509,6 @@ jobs:
 
       - name: Test merge picker and preview authorization
         run: php .github/scripts/check-topic-merge-access.php
+
+      - name: Test coordinated topic merge storage and confirmation
+        run: php .github/scripts/check-topic-merge-storage.php

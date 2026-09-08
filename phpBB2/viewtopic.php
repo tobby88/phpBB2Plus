@@ -279,19 +279,9 @@ if ( !$is_auth['auth_read'] )
 //
 // End auth check
 //
-// Start add - Who viewed a topic MOD
-$user_id=$userdata['user_id'];
-$sql='UPDATE '.TOPIC_VIEW_TABLE.' SET topic_id="'.$topic_id.'", view_time="'.time().'", view_count=view_count+1 WHERE topic_id='.$topic_id.' AND user_id='.$user_id;
-if ( !$db->sql_query($sql) || !$db->sql_affectedrows() )
-{
-	$sql = 'INSERT IGNORE INTO '.TOPIC_VIEW_TABLE.' (topic_id, user_id, view_time,view_count)
-		VALUES ('.$topic_id.', "'.$user_id.'", "'.time().'","1")';
-	if ( !($db->sql_query($sql)) )
-	{
-		message_die(CRITICAL_ERROR, 'Error create user view topic information ', '', __LINE__, __FILE__, $sql);
-	}
-}
-// End add - Who viewed a topic MOD
+// Personal and total view counters share the topic writer boundary.
+require_once $phpbb_root_path . 'includes/functions_topic_views.' . $phpEx;
+phpbb_record_topic_view($db, $topic_id);
 
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- delete
@@ -963,15 +953,7 @@ if ( !empty($forum_topic_data['topic_vote']) )
 }
 init_display_post_attachments($forum_topic_data['topic_attachment']);
 //
-// Update the topic view counter
-//
-$sql = "UPDATE " . TOPICS_TABLE . "
-	SET topic_views = topic_views + 1
-	WHERE topic_id = $topic_id";
-if ( !$db->sql_query($sql) )
-{
-	message_die(GENERAL_ERROR, "Could not update topic views.", '', __LINE__, __FILE__, $sql);
-}
+// View counters were recorded together after the access check.
 include($phpbb_root_path . 'includes/chinese.'.$phpEx);
 //
 // Okay, let's do the loop, yeah come on baby let's do the loop

@@ -8,13 +8,32 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate confirmed topic merges with post/poll/attachment/moderation writers
+  on the shared lock's own connection. Bind confirmation to current topics,
+  forums, poll questions/options, requested title and shadow choice; reject a
+  stale or incomplete selection before guarded post publication. Preserve post
+  text, search and attachment IDs, transfer the source poll where possible and
+  discard a conflicting source poll only after explicit current confirmation.
+  Preserve target notification claims, copy source-only watches with fresh
+  state, retain bookmarks and combine view counts without multiplying legacy
+  target duplicates. Refresh topic/forum/user totals and first-post metadata,
+  retarget empty redirects, support a renderable source shadow and audit merges
+  with English/German ACP labels. Titles use the shared UTF-8 storage boundary.
+  Personal and total view counters use the same writer lock and current read
+  permissions, so stale readers cannot recreate source records or overwrite
+  merge totals. Count a visit once across legacy duplicate view rows; cap counters
+  at column limits and keep optional statistics failures from breaking the page.
+  Skip optional view statistics immediately when the writer lock is busy,
+  without changing the existing wait for posts or moderation actions.
+  No schema changes; late storage failures remain explicit and can leave partial
+  progress. This does not provide MyISAM crash recovery or a rollback journal.
+
 - Authorize merge title previews and the forum topic picker before disclosure,
   using current account, group moderation and view/read permissions. Recheck
   the topic's forum during title lookup; reject inactive/stale privileged users.
   Parse plain topic/post URLs before HTML escaping, reject malformed or conflicting
   IDs, escape rendered form values and use the database driver for title quoting.
   Require the submitted form's SID and bound picker page sizes. No schema changes.
-  This hardens selection/preview, not yet the legacy multi-table merge operation.
 
 - Recover from optional topic-notification mail/template failures without
   reporting an already-stored reply as failed. Release unsent delivery claims

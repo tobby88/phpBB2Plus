@@ -9,7 +9,7 @@ class attach_mutation_lock
 	var $connection = null;
 	var $acquired = false;
 
-	function __construct($database)
+	function __construct($database, $wait = true)
 	{
 		try
 		{
@@ -17,7 +17,9 @@ class attach_mutation_lock
 			if (!$this->connection->db_connect_id) { $this->connection = null; return; }
 			register_shutdown_function(array($this, 'release'));
 			$name = 'attachment:' . md5($database->dbname . "\0" . ATTACHMENTS_TABLE);
-			$result = $this->connection->sql_query("SELECT GET_LOCK('" . $name . "', 10) AS acquired");
+			// Optional statistics may skip a busy writer without delaying readers.
+			$timeout = $wait === false ? 0 : 10;
+			$result = $this->connection->sql_query("SELECT GET_LOCK('" . $name . "', " . $timeout . ") AS acquired");
 			if ($result)
 			{
 				$row = $this->connection->sql_fetchrow($result);

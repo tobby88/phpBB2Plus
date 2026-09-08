@@ -1117,6 +1117,7 @@ $lang['Log_action_move'] = 'Moved';
 $lang['Log_action_lock'] = 'Locked';
 $lang['Log_action_unlock'] = 'Unlocked';
 $lang['Log_action_split'] = 'Split';
+$lang['Log_action_merge'] = 'Merged';
 $lang['Log_action_edit'] = 'Edited';
 $lang['Log_action_announce'] = 'Changed to announcement';
 $lang['Log_action_sticky'] = 'Changed to sticky';

@@ -27,7 +27,7 @@ include($phpbb_root_path . 'common.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_topics_list.' . $phpEx);
 
-include_once($phpbb_root_path . 'includes/functions_topic_merge.' . $phpEx);
+include_once($phpbb_root_path . 'includes/functions_topic_merge_storage.' . $phpEx);
 
 //
 // Start session management
@@ -60,7 +60,7 @@ $to_topic_id =  phpbb_merge_topic_id($db, $to_topic);
 
 // topic title
 $topic_title = '';
-if (isset($_POST['topic_title'])) $topic_title = htmlspecialchars(trim(stripslashes(phpbb_request_scalar($_POST, 'topic_title'))), ENT_COMPAT, 'UTF-8');
+if (isset($_POST['topic_title'])) $topic_title = trim(stripslashes(phpbb_request_scalar($_POST, 'topic_title')));
 
 // start
 $start = max(0, min(1000000, intval(phpbb_request_scalar($_POST, 'start', 0))));
@@ -236,7 +236,7 @@ if (($select_from || $select_to) && (!$cancel))
 
 	// system
 	$s_hidden_fields  = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
-	$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . phpbb_merge_html($topic_title, true) . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . phpbb_merge_html($topic_title) . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="from_topic" value="' . phpbb_merge_html($from_topic) . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="to_topic" value="' . phpbb_merge_html($to_topic) . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="submit" value="1" />';
@@ -255,267 +255,59 @@ if (($select_from || $select_to) && (!$cancel))
 	exit;
 }
 
-// submission
+// submission: the worker repeats ACL and state checks under the shared lock.
 if ($submit)
 {
-	// check session id
-	if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
+	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST'
+		|| $sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 	{
 		message_die(GENERAL_ERROR, 'Invalid_session');
 	}
-
-	// init
-	$error = false;
-	$error_msg = '';
-	$message = '';
-
-	// check if the from topic exists and get the forum_id
-	$found = false;
-	$from_forum_id = 0;
-	$from_poll = false;
-	if (!empty($from_topic_id))
+	try
 	{
-		$sql = "SELECT forum_id, topic_vote FROM " . TOPICS_TABLE . " WHERE topic_id=$from_topic_id";
-		if ( !($result = $db->sql_query($sql)) ) message_die(GENERAL_ERROR, 'Could not get topic informations', '', __LINE__, __FILE__, $sql);
-		if ($row = $db->sql_fetchrow($result))
+		if ($confirm)
 		{
-			$from_forum_id = $row['forum_id'];
-			$from_poll = $row['topic_vote'];
-			$found = true;
-		}
-	}
-	if (!$found)
-	{
-		$error = true;
-		$error_msg .= (($error_msg != '') ? '<br />' : '') . $lang['Merge_from_not_found'];
-	}
-
-	// check if the from topic exists and get the forum_id
-	$found = false;
-	$to_forum_id = 0;
-	$to_poll = false;
-	if (!empty($to_topic_id))
-	{
-		$sql = "SELECT forum_id, topic_vote FROM " . TOPICS_TABLE . " WHERE topic_id=$to_topic_id";
-		if ( !($result = $db->sql_query($sql)) ) message_die(GENERAL_ERROR, 'Could not get topic informations', '', __LINE__, __FILE__, $sql);
-		if ($row = $db->sql_fetchrow($result))
-		{
-			$to_forum_id = $row['forum_id'];
-			$to_poll = $row['topic_vote'];
-			$found = true;
-		}
-	}
-	if (!$found)
-	{
-		$error = true;
-		$error_msg .= (($error_msg != '') ? '<br />' : '') . $lang['Merge_to_not_found'];
-	}
-
-	// verify the topics are not the same
-	if (!$error)
-	{
-		if ($from_topic_id == $to_topic_id)
-		{
-			$error = true;
-			$error_msg .= (($error_msg != '') ? '<br />' : '') . $lang['Merge_topics_equals'];
-		}
-	}
-
-	// check authorizations
-	if (!empty($from_forum_id))
-	{
-		$is_auth = auth(AUTH_ALL, $from_forum_id, $userdata);
-		if ( !$is_auth['auth_mod'] )
-		{
-			$error = true;
-			$error_msg .= (($error_msg != '') ? '<br />' : '') . $lang['Merge_from_not_authorized'];
-		}
-	}
-	if (!empty($to_forum_id))
-	{
-		$is_auth = auth(AUTH_ALL, $to_forum_id, $userdata);
-		if ( !$is_auth['auth_mod'] )
-		{
-			$error = true;
-			$error_msg .= (($error_msg != '') ? '<br />' : '') . $lang['Merge_to_not_authorized'];
-		}
-	}
-
-	//
-	// warnings
-	//
-	// add here warnings regarding ie mycalendar
-
-	// does from topic has a poll ?
-	if ($from_poll)
-	{
-		if ($to_poll)
-		{
-			$message .= (($message != '') ? '<br />' : '') . $lang['Merge_poll_from_and_to'];
+			$to_topic_id = phpbb_merge_topics($db, $from_topic_id, $to_topic_id, $topic_title, $shadow, phpbb_request_scalar($_POST, 'merge_token'));
 		}
 		else
 		{
-			$message .= (($message != '') ? '<br />' : '') . $lang['Merge_poll_from'];
+			$merge_context = phpbb_prepare_topic_merge($db, $from_topic_id, $to_topic_id, $topic_title, $shadow);
 		}
 	}
-
-	// error found
-	if ($error)
+	catch (PhpbbTopicMergeException $error)
 	{
-		message_die(GENERAL_ERROR, $error_msg);
+		message_die(GENERAL_MESSAGE, phpbb_merge_html($error->getMessage()));
 	}
-
-	// ask for confirmation or process
 	if ($confirm)
 	{
-		// process poll
-		if ($from_poll)
-		{
-			if ($to_poll)
-			{
-				// delete the vote
-				$vote_id = 0;
-				$sql = "SELECT vote_id FROM " . VOTE_DESC_TABLE . " WHERE topic_id=$from_topic_id";
-				if ( !$result=$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not read vote description', '', __LINE__, __FILE__, $sql);
-				if ($row=$db->sql_fetchrow($result)) $vote_id = $row['vote_id'];
-				if (!empty($vote_id))
-				{
-					// delete voters
-					$sql = "DELETE FROM " . VOTE_USERS_TABLE . " WHERE vote_id=$vote_id";
-					if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not delete votes', '', __LINE__, __FILE__, $sql);
-					// delete results
-					$sql = "DELETE FROM " . VOTE_RESULTS_TABLE . " WHERE vote_id=$vote_id";
-					if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not delete vote results', '', __LINE__, __FILE__, $sql);
-					// delete description
-					$sql = "DELETE FROM " . VOTE_DESC_TABLE . " WHERE vote_id=$vote_id";
-					if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not delete vote description', '', __LINE__, __FILE__, $sql);
-				}
-			}
-			else
-			{
-				// grab the poll to the new topic
-				$sql = "UPDATE " . VOTE_DESC_TABLE . "
-							SET topic_id=$to_topic_id
-							WHERE topic_id=$from_topic_id";
-				if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not update vote desc information', '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-		// here you can add the process of ie mycalendar dates
-
-		// check if the destination is already watched
-		$sql = "SELECT * FROM " . TOPICS_WATCH_TABLE . " WHERE topic_id=$to_topic_id";
-		if ( !$result=$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not read topics watch informations', '', __LINE__, __FILE__, $sql);
-		$user_ids = array();
-		while ($row = $db->sql_fetchrow($result)) $user_ids[] = intval($row['user_id']);
-		$sql_user = '';
-		if (!empty($user_ids))
-		{
-			$sql_user = " AND user_id NOT IN (" . implode(', ', $user_ids) . ")";
-		}
-		// grab the topics watch to the new topic
-		$sql = "UPDATE " . TOPICS_WATCH_TABLE . " SET topic_id=$to_topic_id WHERE topic_id=$from_topic_id" . $sql_user;
-		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not update topics watch table', '', __LINE__, __FILE__, $sql);
-		// clean up the old topics watch
-		$sql = "DELETE FROM " . TOPICS_WATCH_TABLE . " WHERE topic_id=$from_topic_id";
-		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not delete topics watch table', '', __LINE__, __FILE__, $sql);
-
-		// process the posts
-		$sql = "UPDATE " . POSTS_TABLE . " SET forum_id=$to_forum_id, topic_id=$to_topic_id WHERE topic_id=$from_topic_id";
-		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not update posts information', '', __LINE__, __FILE__, $sql);
-
-		// get the old topic data for a shadow
-		$sql = "SELECT * FROM " . TOPICS_TABLE . " WHERE topic_id=$from_topic_id";
-		if ( !$result = $db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not read from-topic informations', '', __LINE__, __FILE__, $sql);
-		$topic_data = $db->sql_fetchrow($result);
-
-		if ($shadow)
-		{
-			// transform the merged topic in a shadow
-			$sql = "UPDATE " . TOPICS_TABLE . " 
-					SET topic_status=" . TOPIC_MOVED . ", topic_type=" . POST_NORMAL . ", topic_moved_id=$to_topic_id
-					WHERE topic_id=$from_topic_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not set shadow topic', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else
-		{
-			// delete the old topic
-			$sql = "DELETE FROM " . TOPICS_TABLE . " WHERE topic_id=$from_topic_id";
-			if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not update delete topic merged', '', __LINE__, __FILE__, $sql);
-		}
-
-		// build the update request
-		$sql_update = '';
-		if ( !empty($topic_title) )
-		{
-			$sql_update .= "topic_title = '" . $db->sql_escape($topic_title) . "'";
-		}
-
-		// update the poll status
-		if ($from_poll && !$to_poll)
-		{
-			$sql_update .= ( empty($sql_update) ? '' : ', ') . 'topic_vote=1';
-			$sql = "UPDATE " . TOPICS_TABLE . " SET topic_vote=1 WHERE topic_id=$to_topic_id";
-		}
-
-		// final update
-		if ( !empty($sql_update) )
-		{
-			$sql = " UPDATE " . TOPICS_TABLE . " SET $sql_update WHERE topic_id=$to_topic_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update to topic', '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-		// synchronise the destination topic, and the both forums
-		sync('topic', $to_topic_id);
-		if ($from_forum_id != $to_forum_id) sync('forum', $from_forum_id);
-		sync('forum', $to_forum_id);
-		
-		// send end message
-		$template->assign_vars(array(
-			'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("./viewtopic.$phpEx?" . POST_TOPIC_URL . "=$to_topic_id") . '">')
-		);
-		message_die(GENERAL_MESSAGE, $lang['Merge_topic_done'] . '<br /><br />' . sprintf($lang['Click_return_topic'], '<a href="' . append_sid("./viewtopic.$phpEx?" . POST_TOPIC_URL . "=$to_topic_id") . '" class="gen">', '</a>')  . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("./index.$phpEx") . '" class="gen">', '</a>'));
-		exit;
+		board_stats(); cache_tree(true);
+		$template->assign_vars(array('META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("./viewtopic.$phpEx?" . POST_TOPIC_URL . "=$to_topic_id") . '">'));
+		message_die(GENERAL_MESSAGE, $lang['Merge_topic_done'] . '<br /><br />' . sprintf($lang['Click_return_topic'], '<a href="' . append_sid("./viewtopic.$phpEx?" . POST_TOPIC_URL . "=$to_topic_id") . '" class="gen">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("./index.$phpEx") . '" class="gen">', '</a>'));
 	}
-	else
+	// The confirmation is tied to the same actual polls used for this warning.
+	$message = '';
+	if ($merge_context['polls'][$from_topic_id])
 	{
-		// ask for confirmation
-		$message .= (($message != '') ? '<br />' : '') . sprintf($lang['Merge_confirm_process'], $from_title, $to_title);
-
-		$page_title = $lang['Merge_topics'];
-		include ($phpbb_root_path . 'includes/page_header.'.$phpEx);
-		$template->set_filenames(array(
-			'body' => 'confirm_body.tpl')
-		);
-
-		$s_hidden_fields  = '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . phpbb_merge_html($topic_title, true) . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="from_topic" value="' . phpbb_merge_html($from_topic) . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="to_topic" value="' . phpbb_merge_html($to_topic) . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="submit" value="1" />';
-		if ($shadow) $s_hidden_fields .= '<input type="hidden" name="shadow" value="1" />';
-
-		// header
-		$template->assign_vars(array(
-			'MESSAGE_TITLE'		=> $page_title,
-			'MESSAGE_TEXT'		=> $message,
-			'L_YES'				=> $lang['Yes'],
-			'L_NO'				=> $lang['No'],
-			'S_CONFIRM_ACTION'	=> append_sid("./merge.$phpEx"),
-			'S_HIDDEN_FIELDS'	=> $s_hidden_fields,
-			)
-		);
-		// footer
-		$template->pparse('body');
-		include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
-		exit;
+		$message = $lang[$merge_context['polls'][$to_topic_id] ? 'Merge_poll_from_and_to' : 'Merge_poll_from'] . '<br />';
 	}
+	$message .= sprintf($lang['Merge_confirm_process'], phpbb_merge_html($merge_context['topics'][$from_topic_id]['topic_title'], true), phpbb_merge_html($merge_context['topics'][$to_topic_id]['topic_title'], true));
+	$page_title = $lang['Merge_topics'];
+	include($phpbb_root_path . 'includes/page_header.' . $phpEx);
+	$template->set_filenames(array('body' => 'confirm_body.tpl'));
+	$s_hidden_fields = '<input type="hidden" name="sid" value="' . phpbb_merge_html($userdata['session_id']) . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="topic_title" value="' . phpbb_merge_html($topic_title) . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="from_topic" value="' . $from_topic_id . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="to_topic" value="' . $to_topic_id . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="merge_token" value="' . phpbb_merge_html($merge_context['token']) . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="submit" value="1" />';
+	if ($shadow) { $s_hidden_fields .= '<input type="hidden" name="shadow" value="1" />'; }
+	$template->assign_vars(array(
+		'MESSAGE_TITLE'=>$page_title, 'MESSAGE_TEXT'=>$message, 'L_YES'=>$lang['Yes'], 'L_NO'=>$lang['No'],
+		'S_CONFIRM_ACTION'=>append_sid("./merge.$phpEx"), 'S_HIDDEN_FIELDS'=>$s_hidden_fields
+	));
+	$template->pparse('body');
+	include($phpbb_root_path . 'includes/page_tail.' . $phpEx);
+	exit;
 }
 
 //
@@ -549,11 +341,11 @@ $template->assign_vars(array(
 );
 if (!empty($to_title) && empty($topic_title))
 {
-	$topic_title = $to_title;
+	$topic_title = html_entity_decode($to_title, ENT_QUOTES, 'UTF-8');
 }
 // values
 $template->assign_vars(array(
-	'TOPIC_TITLE'	=> phpbb_merge_html($topic_title, true),
+	'TOPIC_TITLE'	=> phpbb_merge_html($topic_title),
 	'FROM_TOPIC'	=> phpbb_merge_html($from_topic),
 	'TO_TOPIC'		=> phpbb_merge_html($to_topic),
 	'SHADOW'		=> ($shadow) ? 'checked="checked"' : '',
