@@ -8,6 +8,19 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Require current database-backed maintenance permissions throughout all five
+  PM repair modes, including dependent text/counter/attachment cleanup. Guard
+  writes against concurrent revocation and recheck query results before further
+  work. Compare delegated-grant snapshots byte-for-byte, including on database
+  collations that ignore case or trailing spaces. Page diagnostics and repairs
+  in bounded batches, preserve current source repairs and incomplete-send grace,
+  and leave anonymous/deleted-user counter sentinels alone.
+  Replace the old ACP lists with actual EN/DE affected counts and explicit
+  partial-failure reports. PM maintenance no longer changes global forum
+  availability, avoiding a stranded board-disable flag on failure. No schema
+  change is required. Interrupted parent/text/attachment cleanup remains a
+  separate recovery concern; completed writes are not rolled back.
+
 - Recalculate new/unread PM counters from current recipient mailbox state in
   the same guarded write, instead of publishing stale snapshots or zeroing
   newly delivered messages. Coordinate with mailbox writers, require current

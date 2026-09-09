@@ -73,7 +73,7 @@ function phpbb_acl_actor($db,$mode)
 			}
 		}
 		if (!$allowed) { phpbb_acl_error('Not_Authorised'); }
-		$grant.=' OR EXISTS (SELECT 1 FROM '.JR_ADMIN_TABLE.' j WHERE j.user_id = '.(int)$user['user_id']." AND j.user_jr_admin = '".$db->sql_escape($rows[0]['user_jr_admin'])."')";
+		$grant.=' OR EXISTS (SELECT 1 FROM '.JR_ADMIN_TABLE.' j WHERE j.user_id = '.(int)$user['user_id']." AND HEX(j.user_jr_admin) = HEX('".$db->sql_escape($rows[0]['user_jr_admin'])."'))";
 	}
 	$user['guard']='EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active,user_level FROM '.USERS_TABLE.' WHERE user_id = '.(int)$user['user_id'].') acl_actor WHERE acl_actor.user_active <> 0 AND ('.$grant.'))';
 	return $user;

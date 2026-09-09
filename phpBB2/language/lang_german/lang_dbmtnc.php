@@ -27,6 +27,12 @@
 $lang['DB_Maintenance'] = 'Datenbank-Wartung';
 $lang['Maintenance_pm_counter_failed'] = 'Die Wartung der PN-Zähler wurde unterbrochen. Vorherige bestätigte Zählerkorrekturen können bereits gespeichert sein; zum Abschließen die Prüfung erneut starten. Dieser Zählerschritt hat keine Nachrichten oder Lesestatus geändert.';
 $lang['Maintenance_pm_counter_summary'] = 'Die Zähler für neue und ungelesene private Nachrichten wurden bei %d Benutzerkonten aktualisiert.';
+$lang['Maintenance_pm_repair_failed'] = 'Die PN-Reparatur wurde unterbrochen. Vorherige bestätigte Änderungen können bereits gespeichert sein. Verbleibende Unstimmigkeiten bei Nachrichten und Anhängen prüfen; abgeschlossene Schritte werden nicht zurückgerollt.';
+$lang['Maintenance_pm_repair_missing_text'] = 'Alte private Nachrichten ohne Text entfernt: %d.';
+$lang['Maintenance_pm_repair_orphan_text'] = 'Verwaiste PN-Texte entfernt: %d.';
+$lang['Maintenance_pm_repair_invalid_sender'] = 'Nicht mehr vorhandene PN-Absender anonymisiert: %d.';
+$lang['Maintenance_pm_repair_invalid_recipient'] = 'Nicht mehr vorhandene PN-Empfänger anonymisiert: %d.';
+$lang['Maintenance_pm_repair_deleted_users'] = 'Ungültige Postfachkopien gelöschter Benutzerkonten entfernt: %d.';
 $lang['Maintenance_poll_failed'] = 'Die Umfrage-Wartung wurde unterbrochen. Vorherige bestätigte Änderungen können bereits gespeichert sein; zum Fortsetzen die Prüfung erneut starten. Es erfolgt kein vollständiges Zurückrollen.';
 $lang['Maintenance_poll_summary'] = 'Entfernte verwaiste Umfragen: %d; Antwortmöglichkeiten: %d; Abstimmungsdatensätze: %d. Anonymisierte Abstimmende ohne vorhandenes Benutzerkonto: %d. Korrigierte Umfrage-Markierungen bei Themen: %d.';
 $lang['Maintenance_poll_review'] = '%d Umfrage-Datensätze müssen noch geprüft werden (höchstens 100 werden angezeigt). Fehlende Antworttexte und mehrere Umfragen zu einem Thema lassen sich nicht automatisch rekonstruieren. Diese Datensätze, Ergebnisse und Abstimmungen wurden erhalten. Vor der Bearbeitung fehlende Quelldaten wiederherstellen oder widersprüchliche Umfragen prüfen.';

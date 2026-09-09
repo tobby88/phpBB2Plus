@@ -2,9 +2,16 @@
 require __DIR__ . '/check-attachment-mutation.php';
 define('PRIVMSGS_TEXT_TABLE', 'fixture_message_text');
 define('USERS_TABLE', 'fixture_users');
+define('JR_ADMIN_TABLE','fixture_jr_admin'); $phpEx='php'; $phpbb_root_path=$forum_root;
 require $forum_root . 'includes/functions_privmsgs.php';
 $lang['PM_cleanup_failed'] = 'pm database';
 $lang['Not_Authorised'] = 'pm permission';
+$pm_fixture_grants='';
+function sql_query_nivisec($sql,$error,$fast=true,$return_items=0)
+{
+	mutation_check(preg_match('/^SELECT \* FROM fixture_jr_admin\s+WHERE user_id = 8$/D',$sql)===1,'Only current fixture admin grants queried');
+	return array('user_jr_admin'=>$GLOBALS['pm_fixture_grants']);
+}
 $upload_dir = sys_get_temp_dir() . '/phpbb-pm-cleanup-' . uniqid('',true);
 function pm_cleanup_fixture()
 {
@@ -13,11 +20,17 @@ function pm_cleanup_fixture()
 	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_date INTEGER DEFAULT 123');
 	$mutation_server->pdo->exec('CREATE TABLE fixture_message_text (privmsgs_text_id INTEGER PRIMARY KEY, privmsgs_text TEXT)');
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES (20,'original'),(21,'sent copy')");
-	$mutation_server->pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY, user_new_privmsg INTEGER, user_unread_privmsg INTEGER)');
-	$mutation_server->pdo->exec('INSERT INTO fixture_users VALUES(7,9,9),(8,0,0),(99,0,0)');
+	$mutation_server->pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY, user_new_privmsg INTEGER, user_unread_privmsg INTEGER,user_active INTEGER DEFAULT 1,user_level INTEGER DEFAULT 0)');
+	$mutation_server->pdo->exec('INSERT INTO fixture_users (user_id,user_new_privmsg,user_unread_privmsg) VALUES(7,9,9),(8,0,0),(99,0,0)');
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
+	$mutation_server->pdo->exec('CREATE TABLE fixture_jr_admin (user_id INTEGER,user_jr_admin TEXT)');
 	file_put_contents($upload_dir.'/fixture.txt','owned');
 	mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','pm',20);
 	mutation_pm()->duplicate_attachment_pm(1,20,21);
+}
+function pm_repair_expect_failure($callback,$expected){
+ $caught='';try{call_user_func($callback);}catch(PhpbbAclException $error){$caught=$error->getMessage();}
+ mutation_check($caught===$expected,'Expected current-authority PM repair failure');
 }
 function pm_scalar($sql) { return (int)$GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
 set_error_handler(function ($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
@@ -135,8 +148,10 @@ try
 	mutation_check(strpos($admin,'phpbb_admin_user_remove($db, $_POST)')!==false && strpos($admin,'phpbb_pm_delete_user_messages($user_id);')===false && strpos($admin,'SELECT privmsgs_id')===false,'Account removal uses the mode-aware durable worker, without legacy pre-delete PM mutation');
 	define('DELETED',-1);
 	pm_cleanup_fixture(); $userdata['user_level']=0;
-	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=0 WHERE user_id=8');
+	pm_repair_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
 	$userdata['user_level']=ADMIN;
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
 	mutation_check(phpbb_pm_repair_messages(array(20,null),'missing_text',1000)===0 && phpbb_pm_repair_messages(array(20),'unknown',1000)===0,'Invalid maintenance input refused');
 	$mutation_server->pdo->exec('DELETE FROM fixture_message_text WHERE privmsgs_text_id=20');
 	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_date=701 WHERE privmsgs_id=20');
@@ -163,11 +178,11 @@ try
 	pm_cleanup_fixture(); $restored=false;
 	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=999 WHERE privmsgs_id=20');
 	$mutation_server->hook=function($sql) use (&$restored) {
-		if (!$restored && strpos($sql,'UPDATE fixture_messages')===0) { $restored=true; $GLOBALS['mutation_server']->pdo->exec('INSERT INTO fixture_users VALUES(999,0,0)'); }
+		if (!$restored && strpos($sql,'UPDATE fixture_messages')===0) { $restored=true; $GLOBALS['mutation_server']->pdo->exec('INSERT INTO fixture_users (user_id,user_new_privmsg,user_unread_privmsg) VALUES(999,0,0)'); }
 	};
 	mutation_check(phpbb_pm_repair_messages(array(20),'invalid_sender')===0 && pm_scalar('SELECT privmsgs_from_userid FROM fixture_messages WHERE privmsgs_id=20')===999,'Restored user protected in modifying statement');
 	$maintenance=file_get_contents($forum_root.'admin/admin_db_maintenance.php');
-	mutation_check(substr_count($maintenance,'phpbb_pm_repair_messages(')===5,'All five PN repair mutation paths delegate to guarded helper');
+	mutation_check(strpos($maintenance,'dbmtnc_repair_pm($db, $_POST)')!==false && strpos($maintenance,'phpbb_pm_repair_messages(')===false,'Controller delegates all repair modes to current-authority service');
 	pm_cleanup_fixture(); $userdata['session_logged_in']=false;
 	mutation_check(phpbb_pm_prune_user_messages(7)===0,'Logged-out pruning helper refused');
 	$userdata['session_logged_in']=true; $userdata['user_level']=0;
@@ -198,7 +213,7 @@ try
 	pm_cleanup_fixture(); $restored=false;
 	$mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
 	$mutation_server->hook=function($sql) use (&$restored) {
-		if (!$restored && strpos($sql,'DELETE FROM fixture_messages')===0) { $restored=true; $GLOBALS['mutation_server']->pdo->exec('INSERT INTO fixture_users VALUES(7,0,0)'); }
+		if (!$restored && strpos($sql,'DELETE FROM fixture_messages')===0) { $restored=true; $GLOBALS['mutation_server']->pdo->exec('INSERT INTO fixture_users (user_id,user_new_privmsg,user_unread_privmsg) VALUES(7,0,0)'); }
 	};
 	mutation_check(phpbb_pm_prune_user_messages(7)===0 && $restored && pm_scalar('SELECT privmsgs_to_userid FROM fixture_messages WHERE privmsgs_id=21')===7 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Restored account between selection and deletion protects messages, participant IDs and files');
 	pm_cleanup_fixture(); $mutation_server->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $mutation_server->failure='DELETE FROM fixture_messages';
@@ -235,24 +250,23 @@ try
 	mutation_check(strpos($download,'phpbb_pm_attachment_access($db,')!==false && strpos($download,"\$userdata['user_id'] == \$auth_pages[\$i]['user_id_")===false,'Download uses authoritative parent ownership rather than stale link participants');
 	// Real module authorization with only its grant lookup replaced: mutation SQL
 	// must still go through the fixture's actual owning connection.
-	define('JR_ADMIN_TABLE','fixture_jr_admin'); $phpEx='php';
-	function sql_query_nivisec($sql,$error,$fast=true,$return_items=0)
-	{
-		mutation_check(preg_match('/^SELECT \* FROM fixture_jr_admin\s+WHERE user_id = 8$/D',$sql)===1,'Only current fixture admin grants queried');
-		return array('user_jr_admin'=>$GLOBALS['pm_fixture_grants']);
-	}
-	require $forum_root.'includes/functions_jr_admin.php';
+	$phpEx='php';
+	require_once $forum_root.'includes/functions_jr_admin.php';
 	pm_cleanup_fixture(); $userdata['user_level']=0;
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=0 WHERE user_id=8');
 	$pm_fixture_grants=md5('UsersManageadmin_users.php');
-	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
+	pm_repair_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
 	mutation_check(!$mutation_server->owner && $mutation_server->count_rows(PRIVMSGS_TABLE)===2,'Wrong module cannot begin maintenance writes');
 	mutation_check(phpbb_pm_delete_user_messages(7)===2 && !is_file($upload_dir.'/fixture.txt'),'Delegated user manager performs complete PN cleanup');
 	pm_cleanup_fixture(); $pm_fixture_grants=md5('GeneralDB_Maintenanceadmin_db_maintenance.php');
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=0 WHERE user_id=8');
+	$mutation_server->pdo->exec("INSERT INTO fixture_jr_admin VALUES (8,'".$pm_fixture_grants."')");
 	mutation_expect_failure(function(){phpbb_pm_delete_user_messages(7);},'pm permission');
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(77,'orphan')");
 	mutation_check(phpbb_pm_repair_messages(array(77),'orphan_text')===1,'Delegated maintenance repairs PN data');
 	$pm_fixture_grants='';
-	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
+	$mutation_server->pdo->exec('DELETE FROM fixture_jr_admin');
+	pm_repair_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');
 	$pm_fixture_grants=md5('UsersManageadmin_users.php');
 	foreach(array('session_admin','session_logged_in') as $flag)
 	{
@@ -273,11 +287,30 @@ try
 	mutation_check(is_file($upload_dir.'/fixture.txt') && $mutation_server->count_rows(ATTACHMENTS_TABLE)===1,'Inactive deletion preserves the other user attachment copy');
 	mutation_check(phpbb_pm_delete_inactive_user_messages(7)===0,'Repeated inactive PN cleanup is harmless');
 	mutation_expect_failure(function(){phpbb_pm_delete_user_messages(8);},'pm permission');
-	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(21),'deleted_users');},'pm permission');
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=0 WHERE user_id=8');
+	pm_repair_expect_failure(function(){phpbb_pm_repair_messages(array(21),'deleted_users');},'pm permission');
 	$userdata['session_admin']=false;
 	mutation_expect_failure(function(){phpbb_pm_delete_inactive_user_messages(7);},'pm permission');
 	$userdata['session_admin']=true; $pm_fixture_grants='';
 	mutation_expect_failure(function(){phpbb_pm_delete_inactive_user_messages(7);},'pm permission');
+	// Current authority also protects follow-up text/counter/link cleanup and
+	// the final reads that precede physical file removal. Parent deletions may
+	// already be committed: this asserts stopping, not transaction rollback.
+	foreach(array('DELETE FROM fixture_message_text','UPDATE fixture_users','DELETE FROM fixture_links','SELECT attach_id, physical_filename, thumbnail','SELECT attach_id FROM fixture_descriptions WHERE physical_filename') as $boundary)
+	{
+		pm_cleanup_fixture(); $userdata['user_level']=ADMIN;
+		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=-1');
+		$revoked=false;
+		$mutation_server->hook=function($sql) use($boundary,&$revoked)
+		{
+			if(strpos($sql,$boundary)!==0){return;}
+			$revoked=true; $GLOBALS['mutation_server']->hook=null;
+			$GLOBALS['mutation_server']->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=8');
+		};
+		pm_repair_expect_failure(function(){phpbb_pm_repair_messages(array(20,21),'deleted_users');},'pm permission');
+		mutation_check($revoked && !$mutation_server->owner && is_file($upload_dir.'/fixture.txt'),'Revocation stops dependent cleanup/file removal: '.$boundary);
+		mutation_check($mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===1,'Pending file metadata retained for later recovery');
+	}
 	echo "Private-message cleanup, saving, account removal, maintenance and download checks passed.\n";
 }
 finally

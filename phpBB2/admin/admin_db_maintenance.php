@@ -1991,170 +1991,20 @@ switch($mode_id)
 				}
 				break;
 			case 'check_pm': // Check private messages
-				echo("<h1>" . $lang['Checking_pm_tables'] . "</h1>\n");
-				lock_db();
-
-				// Check for pms without a text
-				echo("<p class=\"gen\"><b>" . $lang['Checking_pms_wo_text'] . "</b></p>\n");
-				$sql = "SELECT pm.privmsgs_id, pm.privmsgs_subject, uf.user_id AS from_user_id, uf.username AS from_username, ut.user_id AS to_user_id, ut.username AS to_username
-					FROM " . PRIVMSGS_TABLE . " pm
-						LEFT JOIN " . PRIVMSGS_TEXT_TABLE . " pmt ON pm.privmsgs_id = pmt.privmsgs_text_id
-						LEFT JOIN " . USERS_TABLE . " uf ON pm.privmsgs_from_userid = uf.user_id
-						LEFT JOIN " . USERS_TABLE . " ut ON pm.privmsgs_to_userid = ut.user_id
-					WHERE pmt.privmsgs_text_id IS NULL AND pm.privmsgs_date <= " . (time() - 300);
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
+				require_once($phpbb_root_path . 'includes/functions_maintenance_pm.' . $phpEx);
+				echo('<h1>' . $lang['Checking_pm_tables'] . '</h1>');
+				$pm_repair_error = '';
+				try { $pm_repairs = dbmtnc_repair_pm($db, $_POST); }
+				catch (PhpbbAclException $error) { $pm_repair_error = $error->getMessage(); }
+				catch (Exception $error) { $pm_repair_error = $lang['Maintenance_pm_repair_failed']; }
+				catch (Throwable $error) { $pm_repair_error = $lang['Maintenance_pm_repair_failed']; }
+				if ($pm_repair_error !== '')
 				{
-					throw_error("Couldn't get private message data!", __LINE__, __FILE__, $sql);
+					throw_error($pm_repair_error . ($pm_repair_error === $lang['Maintenance_pm_repair_failed'] ? '' : '<br />' . $lang['Maintenance_pm_repair_failed']));
 				}
-				while ( $row = $db->sql_fetchrow($result) )
+				foreach ($pm_repairs as $pm_mode => $pm_changed)
 				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Pms_wo_text_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Deleting_pn_wo_text'], $row['privmsgs_id'], htmlspecialchars($row['privmsgs_subject']), htmlspecialchars($row['from_username']), $row['from_user_id'], htmlspecialchars($row['to_username']), $row['to_user_id']) . "</li>\n");
-					$result_array[] = $row['privmsgs_id'];
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				if ( count($result_array) )
-				{
-					echo("<p class=\"gen\">" . $lang['Deleting_Pms'] . " </p>\n");
-					phpbb_pm_repair_messages($result_array, 'missing_text');
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check for texts without a private message
-				echo("<p class=\"gen\"><b>" . $lang['Checking_texts_wo_pm'] . "</b></p>\n");
-				$sql = "SELECT pmt.privmsgs_text_id
-					FROM " . PRIVMSGS_TEXT_TABLE . " pmt
-						LEFT JOIN " . PRIVMSGS_TABLE . " pm ON pmt.privmsgs_text_id = pm.privmsgs_id
-					WHERE pm.privmsgs_id IS NULL";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get private messages and text data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['privmsgs_text_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					echo("<p class=\"gen\">" . $lang['Deleting_pm_texts'] . "</p>\n");
-					$affected_rows = phpbb_pm_repair_messages($result_array, 'orphan_text');
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check pms for invaild senders
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_pm_senders'] . "</b></p>\n");
-				$sql = "SELECT pm.privmsgs_id
-					FROM " . PRIVMSGS_TABLE . " pm
-						LEFT JOIN " . USERS_TABLE . " u ON pm.privmsgs_from_userid = u.user_id
-					WHERE u.user_id IS NULL";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get private message and user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['privmsgs_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					echo("<p class=\"gen\">" . $lang['Invalid_pm_senders_found'] . ": $record_list</p>\n");
-					echo("<p class=\"gen\">" . $lang['Updating_pms'] . "</p>\n");
-					phpbb_pm_repair_messages($result_array, 'invalid_sender');
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check pms for invaild recipients
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_pm_recipients'] . "</b></p>\n");
-				$sql = "SELECT pm.privmsgs_id
-					FROM " . PRIVMSGS_TABLE . " pm
-						LEFT JOIN " . USERS_TABLE . " u ON pm.privmsgs_to_userid = u.user_id
-					WHERE u.user_id IS NULL";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get private message and user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['privmsgs_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					echo("<p class=\"gen\">" . $lang['Invalid_pm_recipients_found'] . ": $record_list</p>\n");
-					echo("<p class=\"gen\">" . $lang['Updating_pms'] . "</p>\n");
-					phpbb_pm_repair_messages($result_array, 'invalid_recipient');
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check for pns with deleted sender or recipient
-				echo("<p class=\"gen\"><b>" . $lang['Checking_pm_deleted_users'] . "</b></p>\n");
-				$sql = "SELECT privmsgs_id
-					FROM " . PRIVMSGS_TABLE . "
-					WHERE (privmsgs_from_userid = " . DELETED . " AND privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . "," . PRIVMSGS_UNREAD_MAIL . "," . PRIVMSGS_SENT_MAIL . "," . PRIVMSGS_SAVED_OUT_MAIL . ")) OR
-						(privmsgs_to_userid = " . DELETED . " AND privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . "," . PRIVMSGS_UNREAD_MAIL . "," . PRIVMSGS_READ_MAIL . "," . PRIVMSGS_SAVED_IN_MAIL . "))";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get private message and user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['privmsgs_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					echo("<p class=\"gen\">" . $lang['Invalid_pm_users_found'] . ": $record_list</p>\n");
-					echo("<p class=\"gen\">" . $lang['Deleting_pms'] . "</p>\n");
-					phpbb_pm_repair_messages($result_array, 'deleted_users');
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
+					echo('<p class="gen">' . sprintf($lang['Maintenance_pm_repair_' . $pm_mode], $pm_changed) . '</p>');
 				}
 
 				// Synchronize both PM counters from current mailbox state.
@@ -2164,7 +2014,6 @@ switch($mode_id)
 				catch (PhpbbAclException $error) { $pm_counter_error = $error->getMessage(); }
 				catch (Exception $error) { $pm_counter_error = $lang['Maintenance_pm_counter_failed']; }
 				catch (Throwable $error) { $pm_counter_error = $lang['Maintenance_pm_counter_failed']; }
-				finally { lock_db(TRUE); }
 				if ($pm_counter_error !== '') { throw_error($pm_counter_error); }
 				echo('<p class="gen">' . sprintf($lang['Maintenance_pm_counter_summary'], $pm_counter_changed) . '</p>');
 				break;

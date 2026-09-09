@@ -140,11 +140,10 @@ try{
   foreach(array('success','failure','invalid','empty') as $case){
    pm_counter_fixture($engine);if($case==='failure'){$pm_counter_server->failure='UPDATE fixture_users SET user_new_privmsg';}if($case==='invalid'){$_POST['sid']='bad';}if($case==='empty'){pm_counter_run();}
    $function='check_pm';$db=new PmCounterForum();$board_locks=array();$caught='';ob_start();try{eval($branch);}catch(PmCounterControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
-   pm_counter_check($board_locks===array(array(true,true,false)),'Actual counter stage always restores preceding board lock');
+   pm_counter_check($board_locks===array(),'PM maintenance does not change global board availability');
    pm_counter_check(($caught!=='')===in_array($case,array('failure','invalid'),true),'Actual counter controller reports failure');
    if($caught===''){pm_counter_check(strpos($html,sprintf($lang['Maintenance_pm_counter_summary'],$case==='empty'?0:2))!==false,'Actual localized affected-account count');}
   }
   echo $engine.' '.$locale." PM counter maintenance passed.\n";
  }}
 }finally{restore_error_handler();}
-

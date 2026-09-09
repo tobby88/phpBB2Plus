@@ -611,3 +611,6 @@ jobs:
 
       - name: Test current PM counter maintenance and interrupted batches
         run: php .github/scripts/check-maintenance-pm-counters.php
+
+      - name: Test current-authority PM repairs and full ACP failure handling
+        run: php .github/scripts/check-maintenance-pm-repair.php

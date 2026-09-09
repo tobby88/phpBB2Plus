@@ -50,6 +50,7 @@ function phpbb_pm_cleanup_query($database, $sql)
 function phpbb_pm_recount_recipient($database, $recipient)
 {
 	$recipient = (int) $recipient;
+	if ($recipient <= 0) { return; }
 	phpbb_pm_cleanup_query($database, 'UPDATE ' . USERS_TABLE . ' SET
 		user_new_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_NEW_MAIL . '),
 		user_unread_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_UNREAD_MAIL . ')
@@ -178,10 +179,25 @@ function phpbb_pm_remove_deleted_user_messages($user_id)
 // recheck the defect in the modifying statement on the guarded session.
 function phpbb_pm_repair_messages($ids, $mode, $now = null)
 {
-	global $db, $userdata;
+	global $db;
 	$ids = attach_delete_id_array($ids);
 	if (!$ids) { return 0; }
-	phpbb_pm_require_admin_module('admin_db_maintenance.php');
+	require_once dirname(__FILE__) . '/functions_maintenance_pm.php';
+	$spec = phpbb_pm_repair_spec($mode, $now);
+	if (!$spec) { return 0; }
+	if (!defined('IN_ADMIN') || !IN_ADMIN) { phpbb_acl_error('Not_Authorised'); }
+	$lock = new attach_mutation_lock($db);
+	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
+	try
+	{
+		$database = new PhpbbPmRepairDatabase($lock->connection, 'Maintenance_pm_repair_failed');
+		return phpbb_pm_repair_selected($database, $ids, $spec);
+	}
+	finally { $lock->release(); }
+}
+
+function phpbb_pm_repair_spec($mode, $now = null)
+{
 	$table = PRIVMSGS_TABLE; $key = 'privmsgs_id'; $update = '';
 	switch ($mode)
 	{
@@ -197,24 +213,25 @@ function phpbb_pm_repair_messages($ids, $mode, $now = null)
 		case 'invalid_sender':
 		case 'invalid_recipient':
 			$update = $mode === 'invalid_sender' ? 'privmsgs_from_userid' : 'privmsgs_to_userid';
-			$where = 'NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . PRIVMSGS_TABLE . '.' . $update . ')';
+			$where = $update . ' <> ' . DELETED . ' AND NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . PRIVMSGS_TABLE . '.' . $update . ')';
 			break;
 		case 'deleted_users':
 			$where = '((privmsgs_from_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ')) OR (privmsgs_to_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')))';
 			break;
-		default: return 0;
+		default: return false;
 	}
-	$where = '(' . $where . ') AND ' . $key . ' IN (' . implode(',', $ids) . ')';
-	$lock = attach_require_mutation_lock($db);
-	try
-	{
-		$database = $lock->connection;
-		if ($mode === 'missing_text' || $mode === 'deleted_users') { return phpbb_pm_delete_selected($database, $where); }
-		$sql = $update !== '' ? 'UPDATE ' . $table . ' SET ' . $update . ' = ' . DELETED : 'DELETE FROM ' . $table;
-		phpbb_pm_cleanup_query($database, $sql . ' WHERE ' . $where);
-		return (int) $database->sql_affectedrows();
-	}
-	finally { $lock->release(); }
+	return array('table'=>$table, 'key'=>$key, 'update'=>$update, 'where'=>$where, 'delete_parent'=>$mode==='missing_text'||$mode==='deleted_users');
+}
+
+// Internal worker: the caller holds the mutation lock and supplies the
+// current-authority connection. Diagnostic IDs alone never authorize a write.
+function phpbb_pm_repair_selected($database, $ids, $spec)
+{
+	$where = '(' . $spec['where'] . ') AND ' . $spec['key'] . ' IN (' . implode(',', $ids) . ')';
+	if ($spec['delete_parent']) { return phpbb_pm_delete_selected($database, $where); }
+	$sql = $spec['update'] !== '' ? 'UPDATE ' . $spec['table'] . ' SET ' . $spec['update'] . ' = ' . DELETED : 'DELETE FROM ' . $spec['table'];
+	phpbb_pm_cleanup_query($database, $sql . ' WHERE ' . $where);
+	return (int)$database->sql_affectedrows();
 }
 
 function phpbb_pm_delete_messages($ids, $user_id, $folder, $all = false)

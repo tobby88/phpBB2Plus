@@ -2,6 +2,33 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
 
+// All queries made by the legacy PM/attachment cleanup helpers use this
+// owning connection. Guard writes in SQL and revalidate reads before their
+// results can authorize follow-up work (including attachment file removal).
+class PhpbbPmRepairDatabase extends PhpbbAclDatabase
+{
+	var $affected = 0;
+	function sql_query($sql, $transaction = false)
+	{
+		$auth = new PhpbbAclDatabase($this->connection, 'Maintenance_pm_repair_failed');
+		$actor = phpbb_acl_actor($auth, 'maintenance');
+		$write = preg_match('/^\s*(UPDATE|DELETE FROM)\b/i', $sql);
+		if ($write)
+		{
+			// Only the internal WHERE-qualified cleanup statements are accepted.
+			if (!preg_match('/\bWHERE\b/i', $sql)) { phpbb_acl_error('Maintenance_pm_repair_failed'); }
+			$sql .= ' AND (' . $actor['guard'] . ')';
+		}
+		elseif (!preg_match('/^\s*SELECT\b/i', $sql)) { phpbb_acl_error('Maintenance_pm_repair_failed'); }
+		$result = $this->connection->sql_query($sql, $transaction);
+		if (!$result) { phpbb_acl_error('Maintenance_pm_repair_failed'); }
+		if ($write) { $this->affected = (int)$this->connection->sql_affectedrows(); }
+		phpbb_acl_actor($auth, 'maintenance');
+		return $result;
+	}
+	function sql_affectedrows() { return $this->affected; }
+}
+
 function dbmtnc_pm_counter_request($request)
 {
 	global $userdata;
@@ -41,6 +68,34 @@ function dbmtnc_synchronize_pm_counters($database, $request)
 		}
 		phpbb_acl_actor($db,'maintenance');
 		return $changed;
+	}
+	finally { $lock->release(); }
+}
+
+function dbmtnc_repair_pm($database, $request)
+{
+	dbmtnc_pm_counter_request($request);
+	require_once dirname(__FILE__) . '/functions_privmsgs.php';
+	$lock = new attach_mutation_lock($database);
+	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
+	try
+	{
+		$db = new PhpbbPmRepairDatabase($lock->connection, 'Maintenance_pm_repair_failed');
+		$now = time(); $counts = array();
+		foreach (array('missing_text','orphan_text','invalid_sender','invalid_recipient','deleted_users') as $mode)
+		{
+			$spec = phpbb_pm_repair_spec($mode, $now); $cursor = 0; $counts[$mode] = 0;
+			while (true)
+			{
+				$rows = phpbb_acl_rows($db, 'SELECT ' . $spec['key'] . ' AS id FROM ' . $spec['table']
+					. ' WHERE ' . $spec['key'] . ' > ' . $cursor . ' AND (' . $spec['where'] . ') ORDER BY ' . $spec['key'] . ' LIMIT 100');
+				if (!$rows) { break; }
+				$ids = array(); foreach ($rows as $row) { $ids[] = (int)$row['id']; }
+				$cursor = end($ids);
+				$counts[$mode] += phpbb_pm_repair_selected($db, $ids, $spec);
+			}
+		}
+		return $counts;
 	}
 	finally { $lock->release(); }
 }

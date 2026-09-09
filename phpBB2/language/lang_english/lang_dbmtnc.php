@@ -27,6 +27,12 @@
 $lang['DB_Maintenance'] = 'Database Maintenance';
 $lang['Maintenance_pm_counter_failed'] = 'Private-message counter maintenance was interrupted. Earlier confirmed counter updates may already be saved; repeat the check to finish. Messages and their read states were not changed by this counter step.';
 $lang['Maintenance_pm_counter_summary'] = 'New and unread private-message counters updated for %d user accounts.';
+$lang['Maintenance_pm_repair_failed'] = 'Private-message repair was interrupted. Earlier confirmed changes may already be saved. Check the remaining message and attachment inconsistencies; this operation does not roll back completed steps.';
+$lang['Maintenance_pm_repair_missing_text'] = 'Old private messages without text removed: %d.';
+$lang['Maintenance_pm_repair_orphan_text'] = 'Orphaned private-message texts removed: %d.';
+$lang['Maintenance_pm_repair_invalid_sender'] = 'Missing private-message senders anonymized: %d.';
+$lang['Maintenance_pm_repair_invalid_recipient'] = 'Missing private-message recipients anonymized: %d.';
+$lang['Maintenance_pm_repair_deleted_users'] = 'Invalid mailbox copies of deleted accounts removed: %d.';
 $lang['Maintenance_poll_failed'] = 'Poll maintenance was interrupted. Earlier confirmed changes may already be saved; run the check again to continue. No rollback is claimed.';
 $lang['Maintenance_poll_summary'] = 'Removed orphan polls: %d; orphan options: %d; orphan voter records: %d. Anonymized voters whose account is absent: %d. Updated topic poll flags: %d.';
 $lang['Maintenance_poll_review'] = '%d poll records still need review (up to 100 shown). Missing answer texts and multiple polls for one topic cannot be reconstructed automatically. These records, their results and vote history were retained. Restore the missing source data or review the conflicting polls before editing them.';
