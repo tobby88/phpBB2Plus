@@ -578,3 +578,6 @@ jobs:
 
       - name: Test complete account publication and database failures
         run: php .github/scripts/check-account-publication.php
+
+      - name: Test non-destructive personal-group maintenance
+        run: php .github/scripts/check-maintenance-personal-groups.php

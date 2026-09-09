@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make personal-group maintenance safe on an already consistent database and
+  distinguish duplicate membership rows from genuinely different groups. Create
+  only missing personal groups. Preserve and report multiple/shared personal
+  groups instead of deleting/recreating their IDs and losing ACLs or MOD links.
+  Do not approve pending members of ambiguously owned personal groups. Preserve
+  and report empty groups rather than assuming they have no remaining rights,
+  quotas or plugin references. Update English/German repair warnings. No schema
+  migration or automatic live repair; existing ambiguities require review.
+
 - Publish public registrations and quick-added ACP accounts after personal-group
   membership creation. Include registration IP, CrackerTracker password-change
   time and custom fields in the final INSERT; combine ACP core/custom profile

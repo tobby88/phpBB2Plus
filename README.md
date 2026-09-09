@@ -69,6 +69,14 @@ creation can still leave an inactive ACP placeholder or unused personal-group
 records for a permanently reserved ID. Existing records are not automatically
 deleted or activated; no additional schema migration is needed for this change.
 
+Database Maintenance recreates missing personal groups, but does not guess how
+to merge multiple or shared personal groups. It reports the affected user IDs
+and preserves their group IDs, memberships and permission references for review.
+Empty groups are also reported without deletion: they can still own forum
+permissions, quotas or plugin policies. Back up first and resolve ambiguous
+ownership explicitly; a maintenance report does not mean every inconsistency
+has been automatically repaired.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

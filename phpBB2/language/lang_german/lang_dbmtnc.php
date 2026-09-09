@@ -87,7 +87,7 @@ $mtnc[] = array('check_user',
 	'Prüfe Benutzer- und Gruppen-Tabellen',
 	'Diese Funktion prüft die Benutzer- und die Gruppen-Tabellen auf Fehler. Fehlende Einbenutzer-Gruppen werden wieder
 		hergestellt.',
-	'Alle Gruppen ohne Mitglied werden durch diese Aktion verloren gehen. Fortfahren?',
+	'Diese Aktion repariert Unstimmigkeiten bei Benutzern und Gruppen. Mehrdeutige persönliche Gruppen und leere Gruppen bleiben erhalten und werden zur Prüfung angezeigt. Bitte vorher die Datenbank sichern. Fortfahren?',
 	0);
 $mtnc[] = array('check_post',
 	'Prüfe Beitrags- und Themen-Tabellen',
@@ -274,6 +274,8 @@ $lang['Updating_invalid_pendig_users'] = 'Fehlerhafter Wartend-Status %d Benutze
 $lang['Updating_pending_information'] = 'Aktualisiere Wartend-Status von Einbenutzer-Gruppen';
 $lang['Checking_missing_user_groups'] = 'Prüfe auf Benutzer mit mehreren oder keiner Einbenutzer-Gruppe';
 $lang['Found_multiple_SUG'] = 'Benutzer mit mehreren Einbenutzer-Gruppen wurden gefunden';
+$lang['Review_personal_groups'] = 'Prüfung für diese Benutzer-IDs erforderlich: Mehrere oder gemeinsam genutzte persönliche Gruppen bleiben samt Berechtigungen erhalten. Vor einem Löschen oder Zusammenführen müssen Eigentümer, Forenrechte und Plugin-Zuordnungen geprüft werden.';
+$lang['Review_empty_groups'] = 'Prüfung für diese Gruppen-IDs erforderlich: Leere Gruppen bleiben erhalten, da sie noch Berechtigungen, Quoten oder Plugin-Zuordnungen besitzen können. Eine leere Gruppe ist nicht automatisch gefahrlos löschbar.';
 $lang['Resolving_user_id'] = 'Löse Gruppen der Benutzer auf';
 $lang['Removing_groups'] = 'Entferne Gruppen';
 $lang['Removing_user_groups'] = 'Entferne Gruppen-Benutzer-Zuordnung';

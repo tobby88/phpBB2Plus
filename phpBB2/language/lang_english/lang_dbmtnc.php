@@ -84,7 +84,7 @@ $mtnc[] = array('--', '', '', '', 0);
 $mtnc[] = array('check_user',
 	'Check user and group tables',
 	'This will check the user and the group tables for errors and will restore missing single user groups.',
-	'You will loose all groups without any member by this action. Proceed?',
+	'This operation repairs user/group inconsistencies. Ambiguous personal groups and empty groups are preserved and reported for review. Back up the database before proceeding. Continue?',
 	0);
 $mtnc[] = array('check_post',
 	'Check post and topic tables',
@@ -258,6 +258,8 @@ $lang['Updating_invalid_pendig_users'] = 'Updated invalid pending information of
 $lang['Updating_pending_information'] = 'Updating pending information of single user groups';
 $lang['Checking_missing_user_groups'] = 'Checking for users with multiple or no single user group';
 $lang['Found_multiple_SUG'] = 'Found users with multiple single user groups';
+$lang['Review_personal_groups'] = 'Review required for these user IDs: multiple or shared personal groups were preserved together with their permissions. Do not delete or merge them without checking ownership, forum permissions and plugin references.';
+$lang['Review_empty_groups'] = 'Review required for these group IDs: empty groups were preserved because they may still have permissions, quotas or plugin references. Emptiness alone does not make a group safe to delete.';
 $lang['Resolving_user_id'] = 'Resolving users to group';
 $lang['Removing_groups'] = 'Removing groups';
 $lang['Removing_user_groups'] = 'Removing user to group connection';

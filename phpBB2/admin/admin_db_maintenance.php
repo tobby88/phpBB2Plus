@@ -583,22 +583,14 @@ switch($mode_id)
 					echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_pendig_users'], $affected_rows) . "</p>\n");
 				}
 				// Check for pending single user groups
-				if (check_mysql_version())
-				{
-					$sql = "SELECT g.group_id
-						FROM " . USER_GROUP_TABLE . " ug
-							INNER JOIN " . GROUPS_TABLE . " g ON ug.group_id = g.group_id
-						WHERE ug.user_pending = 1 AND g.group_single_user = 1";
-				}
-				else
-				{
-					$sql = "SELECT g.group_id
-						FROM " . USER_GROUP_TABLE . " ug, " .
-							GROUPS_TABLE . " g
-						WHERE ug.group_id = g.group_id
-							AND ug.user_pending = 1
-							AND g.group_single_user = 1";
-				}
+				// A corrupted personal group can have more than one owner. Never
+				// approve one owner's request using another owner's private rights.
+				$sql = "SELECT DISTINCT g.group_id
+					FROM " . USER_GROUP_TABLE . " ug
+						INNER JOIN " . GROUPS_TABLE . " g ON ug.group_id = g.group_id
+					WHERE ug.user_pending = 1 AND g.group_single_user = 1
+						AND NOT EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " other_member
+							WHERE other_member.group_id = ug.group_id AND other_member.user_id <> ug.user_id)";
 				$result_array = array();
 				$result = $db->sql_query($sql);
 				if ( !$result )
@@ -632,86 +624,39 @@ switch($mode_id)
 				// Checking for users without a single user group
 				echo("<p class=\"gen\"><b>" . $lang['Checking_missing_user_groups'] . "</b></p>\n");
 				$db_updated = FALSE;
-				$sql = "SELECT u.user_id, Sum(g.group_single_user) AS group_count
+				$sql = "SELECT u.user_id, COUNT(DISTINCT CASE WHEN g.group_single_user = 1 THEN g.group_id ELSE NULL END) AS group_count
 					FROM " . USERS_TABLE . " u
 						LEFT JOIN " . USER_GROUP_TABLE . " ug ON u.user_id = ug.user_id
 						LEFT JOIN " . GROUPS_TABLE . " g ON ug.group_id = g.group_id
 					GROUP BY u.user_id
-					HAVING group_count <> 1 OR IsNull(group_count)";
-				$missig_groups = array();
+					HAVING group_count <> 1";
+				$missing_groups = array();
 				$multiple_groups = array();
 				$result = $db->sql_query($sql);
-				if ( !$result )
+				if (!$result) { throw_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql); }
+				while ($row = $db->sql_fetchrow($result))
 				{
-					throw_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if ( $row['group_count'] != 0 )
-					{
-						$multiple_groups[] = $row['user_id'];
-					}
-					$missing_groups[] = $row['user_id'];
+					if ((int) $row['group_count'] === 0) { $missing_groups[] = (int) $row['user_id']; }
+					else { $multiple_groups[] = (int) $row['user_id']; }
 				}
 				$db->sql_freeresult($result);
-				// Check for multiple records
-				if ( count($multiple_groups) )
+				// A single personal group shared by different users is ambiguous too.
+				$sql = "SELECT DISTINCT ug.user_id FROM " . USER_GROUP_TABLE . " ug
+					INNER JOIN " . GROUPS_TABLE . " g ON g.group_id = ug.group_id
+					WHERE g.group_single_user = 1
+						AND EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " other_member
+							WHERE other_member.group_id = ug.group_id AND other_member.user_id <> ug.user_id)";
+				$result = $db->sql_query($sql);
+				if (!$result) { throw_error("Couldn't check personal group ownership!", __LINE__, __FILE__, $sql); }
+				while ($row = $db->sql_fetchrow($result)) { $multiple_groups[] = (int) $row['user_id']; }
+				$db->sql_freeresult($result);
+				$multiple_groups = array_values(array_unique($multiple_groups));
+				sort($multiple_groups, SORT_NUMERIC);
+				if (count($multiple_groups))
 				{
-					$db_updated = TRUE;
-					$record_list = implode(',', $multiple_groups);
-					echo("<p class=\"gen\">" . $lang['Found_multiple_SUG'] . ":</p>\n");
-					echo("<font class=\"gen\"><ul>\n");
-					$list_open = TRUE;
-					echo("<li>" . $lang['Resolving_user_id'] . ": $record_list</li>\n");
-					if (check_mysql_version())
-					{
-						$sql = "SELECT g.group_id
-							FROM " . USERS_TABLE . " u
-								INNER JOIN " . USER_GROUP_TABLE . " ug ON u.user_id = ug.user_id
-								INNER JOIN " . GROUPS_TABLE . " g ON ug.group_id = g.group_id
-							WHERE u.user_id IN ($record_list) AND g.group_single_user = 1";
-					}
-					else
-					{
-						$sql = "SELECT g.group_id
-							FROM " . USERS_TABLE . " u, " .
-								USER_GROUP_TABLE . " ug, " . 
-								GROUPS_TABLE . " g
-							WHERE u.user_id = ug.user_id
-								AND ug.group_id = g.group_id
-								AND u.user_id IN ($record_list)
-								AND g.group_single_user = 1";
-					}
-					$result_array = array();
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't get group data!", __LINE__, __FILE__, $sql);
-					}
-					while ( $row = $db->sql_fetchrow($result) )
-					{
-						$result_array[] = $row['group_id'];
-					}
-					$db->sql_freeresult($result);
-					$record_list = implode(',', $result_array);
-					echo("<li>" . $lang['Removing_groups'] . ": $record_list</li>\n");
-					$sql = "DELETE FROM " . GROUPS_TABLE . "
-						WHERE group_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete groups!", __LINE__, __FILE__, $sql);
-					}
-					echo("<li>" . $lang['Removing_user_groups'] . ": $record_list</li>\n");
-					$sql = "DELETE FROM " . USER_GROUP_TABLE . "
-						WHERE group_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete groups!", __LINE__, __FILE__, $sql);
-					}
-					echo("</ul></font>\n");
-					$list_open = FALSE;
+					// Do not destroy/recreate groups: IDs can own ACLs, quotas and MOD
+					// policies, and may have another legitimate member. Preserve them.
+					echo("<p class=\"gen\"><b>" . $lang['Review_personal_groups'] . "</b><br />" . implode(', ', $multiple_groups) . "</p>\n");
 				}
 				// Create single user groups
 				if ( count($missing_groups) )
@@ -739,7 +684,7 @@ switch($mode_id)
 						}
 					}
 				}
-				if (!$db_updated)
+				if (!$db_updated && !count($multiple_groups))
 				{
 					echo($lang['Nothing_to_do']);
 				}
@@ -898,48 +843,21 @@ switch($mode_id)
 					echo($lang['Nothing_to_do']);
 				}
 
-				// Remove groups without any members
-				echo("<p class=\"gen\"><b>" . $lang['Remove_empty_groups'] . "</b></p>\n");
-				// Since we alread added the moderators to the groups this will only include rests of single user groups. So we don't need to display more information
-				$sql = "SELECT g.group_id
-					FROM " . GROUPS_TABLE . " g
-						LEFT JOIN " . USER_GROUP_TABLE . " ug ON g.group_id = ug.group_id
-					WHERE ug.group_id IS NULL";
-				$result_array = array();
+				// Remove groups without any members: historical deletion is replaced
+				// by review. Empty groups may still own permissions or plugin rules.
+				$sql = "SELECT g.group_id FROM " . GROUPS_TABLE . " g
+					WHERE NOT EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " ug WHERE ug.group_id = g.group_id)
+					ORDER BY g.group_id";
 				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['group_id'];
-				}
+				if (!$result) { throw_error("Couldn't check empty groups!", __LINE__, __FILE__, $sql); }
+				$empty_groups = array();
+				while ($row = $db->sql_fetchrow($result)) { $empty_groups[] = (int) $row['group_id']; }
 				$db->sql_freeresult($result);
-				if ( count($result_array) )
+				if (count($empty_groups))
 				{
-					$record_list = implode(',', $result_array);
-					$sql = "DELETE FROM " . GROUPS_TABLE . "
-						WHERE group_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update group data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
+					echo("<p class=\"gen\"><b>" . $lang['Review_empty_groups'] . "</b><br />" . implode(', ', $empty_groups) . "</p>\n");
 				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
+				else { echo($lang['Nothing_to_do']); }
 
 				// Remove user-group data without a valid group
 				echo("<p class=\"gen\"><b>" . $lang['Remove_invalid_group_data'] . "</b></p>\n");
