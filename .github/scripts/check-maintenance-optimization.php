@@ -29,7 +29,7 @@ class Database {
  function sql_freeresult($r){if(!($r instanceof Rows)){$r->closeCursor();}}
 }
 $helper_source=file_get_contents($root.'includes/functions_dbmtnc.php');
-foreach(array('get_table_statistic','convert_bytes','dbmtnc_optimize_table') as $name){
+foreach(array('get_table_statistic','convert_bytes','dbmtnc_optimize_table','dbmtnc_table_maintenance') as $name){
  if(preg_match('/^function '.$name.'\(.*?^\}/ms',$helper_source,$m)){eval('namespace MaintenanceOptimizationFixture;'.$m[0]);}
 }
 $source=file_get_contents($root.'admin/admin_db_maintenance.php');
@@ -62,6 +62,7 @@ try{
    array(array(message('status','Operation failed')),false,'Operation failed'),
    array(array(message('error','<script>bad</script>'),message('status','Operation failed')),false,'&lt;script&gt;bad&lt;/script&gt;'),
    array(array(message('status','OK'),message('error','late failure')),false,'late failure'),
+   array(array(message('status','OK'),message('note','no final confirmation')),false,'no final confirmation'),
    array(array(message('warning','unsupported engine'),message('status','OK')),false,'unsupported engine'),
    array(array(message('note','no final status')),false,'no final status'),
    array(array(),false,''),

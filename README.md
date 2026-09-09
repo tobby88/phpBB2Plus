@@ -95,6 +95,15 @@ growth remains visible and a zero starting size has no percentage. This action
 is not run by deployment or migration. Use a backed-up maintenance window: table
 optimization can rebuild and lock tables.
 
+CHECK and REPAIR use the same complete diagnostic handling in the ACP and
+Emergency Recovery Console. A failed status is never presented as OK, and the
+console only confirms success if every table has a final successful status
+without warnings or errors. Unsupported engines remain explicitly unresolved;
+there is no automatic engine conversion or alternative repair attempt. Follow
+the server's [CHECK TABLE](https://dev.mysql.com/doc/refman/8.4/en/check-table.html)
+and [REPAIR TABLE](https://dev.mysql.com/doc/refman/8.4/en/repair-table.html)
+instructions and back up before repairs; the report is not a recovery guarantee.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

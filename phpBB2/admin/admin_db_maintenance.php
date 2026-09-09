@@ -4038,43 +4038,20 @@ switch($mode_id)
 				echo("<font class=\"gen\"><ul>\n");
 				$list_open = TRUE;
 
-				for($i = 0; $i < count($tables); $i++)
+				$maintenance_complete = count($tables) > 0;
+				for ($i = 0; $i < count($tables); $i++)
 				{
-					$tablename = $table_prefix . $tables[$i];
-					$sql = "CHECK TABLE $tablename";
-					$result = $db->sql_query($sql);
-					if ( !$result )
+					if (!dbmtnc_table_maintenance($table_prefix . $tables[$i], 'CHECK'))
 					{
-						throw_error("Couldn't check table!", __LINE__, __FILE__, $sql);
+						$maintenance_complete = false;
 					}
-					if ( $row = $db->sql_fetchrow($result) )
-					{
-						if ($row['Msg_type'] == 'status')
-						{
-							echo("<li>$tablename: " . $lang['Table_OK'] . "</li>\n");
-						}
-						else //  We got an error
-						{
-							// Check whether the error results from HEAP-table type
-							$sql2 = "SHOW TABLE STATUS LIKE '$tablename'";
-							$result2 = $db->sql_query($sql2);
-							$row2 = $db->sql_fetchrow($result2);
-							if ( (isset($row2['Type']) && $row2['Type'] == 'HEAP') || (isset($row2['Engine']) && ($row2['Engine'] == 'HEAP' || $row2['Engine'] == 'MEMORY')) )
-							{
-								// Table is from HEAP-table type
-								echo("<li>$tablename: " . $lang['Table_HEAP_info'] . "</li>\n");
-							}
-							else
-							{
-								echo("<li><b>$tablename:</b> " . htmlspecialchars($row['Msg_text']) . "</li>\n");
-							}
-							$db->sql_freeresult($result2);
-						}
-					}
-					$db->sql_freeresult($result);
 				}
 				echo("</ul></font>\n");
 				$list_open = FALSE;
+				if (!$maintenance_complete)
+				{
+					echo('<p class="gen"><b>' . $lang['Maintenance_incomplete'] . "</b></p>\n");
+				}
 				lock_db(TRUE);
 				break;
 			case 'repair_db': // Repair database
@@ -4089,43 +4066,20 @@ switch($mode_id)
 				echo("<font class=\"gen\"><ul>\n");
 				$list_open = TRUE;
 
-				for($i = 0; $i < count($tables); $i++)
+				$maintenance_complete = count($tables) > 0;
+				for ($i = 0; $i < count($tables); $i++)
 				{
-					$tablename = $table_prefix . $tables[$i];
-					$sql = "REPAIR TABLE $tablename";
-					$result = $db->sql_query($sql);
-					if ( !$result )
+					if (!dbmtnc_table_maintenance($table_prefix . $tables[$i], 'REPAIR'))
 					{
-						throw_error("Couldn't repair table!", __LINE__, __FILE__, $sql);
+						$maintenance_complete = false;
 					}
-					if ( $row = $db->sql_fetchrow($result) )
-					{
-						if ($row['Msg_type'] == 'status')
-						{
-							echo("<li>$tablename: " . $lang['Table_OK'] . "</li>\n");
-						}
-						else //  We got an error
-						{
-							// Check whether the error results from HEAP-table type
-							$sql2 = "SHOW TABLE STATUS LIKE '$tablename'";
-							$result2 = $db->sql_query($sql2);
-							$row2 = $db->sql_fetchrow($result2);
-							if ( (isset($row2['Type']) && $row2['Type'] == 'HEAP') || (isset($row2['Engine']) && ($row2['Engine'] == 'HEAP' || $row2['Engine'] == 'MEMORY')) )
-							{
-								// Table is from HEAP-table type
-								echo("<li>$tablename: " . $lang['Table_HEAP_info'] . "</li>\n");
-							}
-							else
-							{
-								echo("<li><b>$tablename:</b> " . htmlspecialchars($row['Msg_text']) . "</li>\n");
-							}
-							$db->sql_freeresult($result2);
-						}
-					}
-					$db->sql_freeresult($result);
 				}
 				echo("</ul></font>\n");
 				$list_open = FALSE;
+				if (!$maintenance_complete)
+				{
+					echo('<p class="gen"><b>' . $lang['Maintenance_incomplete'] . "</b></p>\n");
+				}
 				lock_db(TRUE);
 				break;
 			case 'optimize_db': // Optimize database

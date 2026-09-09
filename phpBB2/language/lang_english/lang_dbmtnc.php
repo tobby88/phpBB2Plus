@@ -443,6 +443,10 @@ $lang['Optimization_statistic'] = 'Reported table size before: %s; after: %s. Di
 $lang['Optimization_percent_unavailable'] = 'percentage unavailable: initial size was zero';
 $lang['Optimization_unconfirmed'] = 'Optimization was not confirmed without warnings or errors. Review all server messages above.';
 $lang['Optimization_incomplete'] = 'Not all table optimizations were confirmed. The size comparison below does not indicate overall success.';
+$lang['Maintenance_unconfirmed'] = 'The operation was not confirmed without warnings or errors. Review all server messages above.';
+$lang['Maintenance_incomplete'] = 'Not all table operations were confirmed. Review the messages before assuming that checks or repairs succeeded. Unsupported storage engines require a different recovery procedure; no automatic fallback was attempted.';
+$lang['Maintenance_invalid_target'] = 'Invalid table name or maintenance operation.';
+$lang['Maintenance_query_failed'] = 'The table maintenance query failed.';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repairing missing auto-increment attributes';
 $lang['Ai_review_column'] = 'Not changed: review this column manually. Automatic repair requires a non-null integer single-column primary key, no explicit default or special attributes, and no other auto-increment column.';

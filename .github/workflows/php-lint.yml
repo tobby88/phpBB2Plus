@@ -587,3 +587,6 @@ jobs:
 
       - name: Test complete optimization results and zero-size reports
         run: php .github/scripts/check-maintenance-optimization.php
+
+      - name: Test truthful CHECK and REPAIR reports in ACP and emergency recovery
+        run: php .github/scripts/check-maintenance-reports.php

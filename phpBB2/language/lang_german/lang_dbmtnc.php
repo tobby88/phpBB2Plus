@@ -461,6 +461,10 @@ $lang['Optimization_statistic'] = 'Gemeldete Tabellengröße vorher: %s; nachher
 $lang['Optimization_percent_unavailable'] = 'Prozentwert nicht verfügbar: Ausgangsgröße war null';
 $lang['Optimization_unconfirmed'] = 'Die Optimierung wurde nicht ohne Warnungen oder Fehler bestätigt. Bitte alle Servermeldungen oben prüfen.';
 $lang['Optimization_incomplete'] = 'Nicht alle Tabellenoptimierungen wurden bestätigt. Der folgende Größenvergleich bedeutet keinen Gesamterfolg.';
+$lang['Maintenance_unconfirmed'] = 'Der Vorgang wurde nicht ohne Warnungen oder Fehler bestätigt. Bitte alle Servermeldungen oben prüfen.';
+$lang['Maintenance_incomplete'] = 'Nicht alle Tabellenvorgänge wurden bestätigt. Bitte die Meldungen prüfen, bevor Prüfungen oder Reparaturen als erfolgreich gelten. Nicht unterstützte Speicher-Engines benötigen ein anderes Wiederherstellungsverfahren; es wurde kein automatisches Ersatzverfahren versucht.';
+$lang['Maintenance_invalid_target'] = 'Ungültiger Tabellenname oder Wartungsvorgang.';
+$lang['Maintenance_query_failed'] = 'Die Datenbankabfrage zur Tabellenwartung ist fehlgeschlagen.';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repariere fehlende Auto-Increment-Attribute';
 $lang['Ai_review_column'] = 'Unverändert: Bitte diese Spalte manuell prüfen. Die automatische Reparatur benötigt einen ganzzahligen, nicht nullbaren Einspalten-Primärschlüssel ohne expliziten Standardwert oder Sonderattribute und ohne weitere Auto-Increment-Spalte.';

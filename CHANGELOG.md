@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Share complete diagnostic handling across table CHECK, REPAIR and OPTIMIZE.
+  ACP checks/repairs no longer mislabel failed statuses as OK or discard later
+  errors. Emergency recovery only reports success for fully confirmed repairs
+  and routes query failures through its own error handler. Require a successful
+  final row, retain earlier warnings/errors, flag empty/incomplete batches and
+  unsupported engines, and remove obsolete HEAP-only diagnostic handling.
+  Add English/German actual-controller and native-engine coverage. No automatic
+  recovery fallback, live database repair or schema migration.
+
 - Read all OPTIMIZE TABLE messages instead of mistaking any first status for
   success or losing the final InnoDB result after a note. Preserve and escape
   diagnostics, flag incomplete/failed/unsupported results, and report size changes

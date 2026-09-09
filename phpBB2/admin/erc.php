@@ -724,65 +724,32 @@ switch($mode)
 				}
 				success_message($lang['cls_success']);
 				break;
-			case 'rdb': // Clear Sessions
+			case 'rdb': // Repair database
 				check_authorisation();
-				if ( !check_mysql_version() )
+				if (!check_mysql_version())
 				{
-?>
-	<p><span style="color:red"><?php echo $lang['Old_MySQL_Version'] ?></span></p>
-<?php
+					echo('<p><span style="color:red">' . $lang['Old_MySQL_Version'] . '</span></p>');
 				}
 				else
 				{
-?>
-	<p><?php echo $lang['Repairing_tables'] ?>:</p>
-	<ul>
-<?php
-					for($i = 0; $i < count($tables); $i++)
+					echo('<p>' . $lang['Repairing_tables'] . ':</p><ul>');
+					$maintenance_complete = count($tables) > 0;
+					for ($i = 0; $i < count($tables); $i++)
 					{
-						$tablename = $table_prefix . $tables[$i];
-						$sql = "REPAIR TABLE $tablename";
-						$result = $db->sql_query($sql);
-						if ( !$result )
+						if (!dbmtnc_table_maintenance($table_prefix . $tables[$i], 'REPAIR', true))
 						{
-							throw_error("Couldn't repair table!", __LINE__, __FILE__, $sql);
+							$maintenance_complete = false;
 						}
-						if ( $row = $db->sql_fetchrow($result) )
-						{
-							if ($row['Msg_type'] == 'status')
-							{
-?>
-		<li><?php echo "$tablename: " . $lang['Table_OK']?></li>
-<?php
-							}
-							else //  We got an error
-							{
-								// Check whether the error results from HEAP-table type
-								$sql2 = "SHOW TABLE STATUS LIKE '$tablename'";
-								$result2 = $db->sql_query($sql2);
-								$row2 = $db->sql_fetchrow($result2);
-								if ( (isset($row2['Type']) && $row2['Type'] == 'HEAP') || (isset($row2['Engine']) && ($row2['Engine'] == 'HEAP' || $row2['Engine'] == 'MEMORY')) )
-								{
-									// Table is from HEAP-table type
-?>
-		<li><?php echo "$tablename: " . $lang['Table_HEAP_info']?></li>
-<?php
-								}
-								else
-								{
-?>
-		<li><?php echo "<b>$tablename:</b> " . htmlspecialchars($row['Msg_text'])?></li>
-<?php
-								}
-								$db->sql_freeresult($result2);
-							}
-						}
-						$db->sql_freeresult($result);
 					}
-?>
-	</ul>
-<?php
-					success_message($lang['rdb_success']);
+					echo('</ul>');
+					if ($maintenance_complete)
+					{
+						success_message($lang['rdb_success']);
+					}
+					else
+					{
+						echo('<p><b>' . $lang['Maintenance_incomplete'] . '</b></p>');
+					}
 				}
 				break;
 			case 'cct': // Check config table

@@ -458,21 +458,28 @@ function convert_bytes($bytes)
 	}
 }
 
-// OPTIMIZE may return a note followed by a status, or errors in later rows.
-// A result set alone is not proof that the operation succeeded.
 function dbmtnc_optimize_table($tablename)
 {
+	return dbmtnc_table_maintenance($tablename, 'OPTIMIZE');
+}
+
+// CHECK, REPAIR and OPTIMIZE may return several diagnostic rows. Neither a
+// result set nor an arbitrary status row proves that the operation succeeded.
+function dbmtnc_table_maintenance($tablename, $operation, $erc = false)
+{
 	global $db, $lang;
-	if (!is_string($tablename) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $tablename))
+	if (!is_string($tablename) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $tablename) || !in_array($operation, array('CHECK', 'REPAIR', 'OPTIMIZE'), true))
 	{
-		throw_error('Invalid maintenance table name');
+		if ($erc) { erc_throw_error($lang['Maintenance_invalid_target']); }
+		else { throw_error($lang['Maintenance_invalid_target']); }
 		return false;
 	}
-	$sql = 'OPTIMIZE TABLE `' . $tablename . '`';
+	$sql = $operation . ' TABLE `' . $tablename . '`';
 	$result = $db->sql_query($sql);
 	if (!$result)
 	{
-		throw_error("Couldn't optimize table!", __LINE__, __FILE__, $sql);
+		if ($erc) { erc_throw_error($lang['Maintenance_query_failed'], __LINE__, __FILE__, $sql); }
+		else { throw_error($lang['Maintenance_query_failed'], __LINE__, __FILE__, $sql); }
 		return false;
 	}
 	$success = false;
@@ -482,7 +489,8 @@ function dbmtnc_optimize_table($tablename)
 		$type = isset($row['Msg_type']) && is_string($row['Msg_type']) ? strtolower(trim($row['Msg_type'])) : '';
 		$text = isset($row['Msg_text']) && is_string($row['Msg_text']) ? $row['Msg_text'] : '';
 		$status_ok = $type === 'status' && in_array(strtolower(trim($text)), array('ok', 'table is already up to date'), true);
-		$success = $success || $status_ok;
+		// The final result row must confirm completion, not an earlier status.
+		$success = $status_ok;
 		if (!$status_ok && !in_array($type, array('note', 'info'), true))
 		{
 			$problem = true;
@@ -493,7 +501,8 @@ function dbmtnc_optimize_table($tablename)
 	$db->sql_freeresult($result);
 	if (!$success || $problem)
 	{
-		echo('<li><b>' . $tablename . ': ' . $lang['Optimization_unconfirmed'] . "</b></li>\n");
+		$unconfirmed = $operation === 'OPTIMIZE' ? $lang['Optimization_unconfirmed'] : $lang['Maintenance_unconfirmed'];
+		echo('<li><b>' . $tablename . ': ' . $unconfirmed . "</b></li>\n");
 		return false;
 	}
 	return true;
