@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate maintenance moderator synchronization with account/group/ACL writes.
+  Replace stale unconditional role updates with current-role and permission
+  guards; retain administrator/special roles and reject pending or orphan grants.
+  Revalidate root/delegated maintenance authorization and expire affected cached
+  sessions. Restore the maintenance setting on controlled failures and report
+  changed/skipped accounts with escaped names. Test concurrent promotions, ACL
+  and actor revocation, lock/DB failures, repeat runs and actual controller output
+  in English/German, including native MyISAM/InnoDB. No schema migration.
+
 - Replace raw SQL/driver diagnostics with a shared, bounded metadata renderer in
   main, repeated, ACP maintenance and emergency recovery errors. Preserve numeric
   error codes, statement type and escaped source basenames/lines, but omit driver

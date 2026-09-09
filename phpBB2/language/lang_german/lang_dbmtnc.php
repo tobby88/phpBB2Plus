@@ -465,6 +465,8 @@ $lang['Maintenance_unconfirmed'] = 'Der Vorgang wurde nicht ohne Warnungen oder 
 $lang['Maintenance_incomplete'] = 'Nicht alle Tabellenvorgänge wurden bestätigt. Bitte die Meldungen prüfen, bevor Prüfungen oder Reparaturen als erfolgreich gelten. Nicht unterstützte Speicher-Engines benötigen ein anderes Wiederherstellungsverfahren; es wurde kein automatisches Ersatzverfahren versucht.';
 $lang['Maintenance_invalid_target'] = 'Ungültiger Tabellenname oder Wartungsvorgang.';
 $lang['Maintenance_query_failed'] = 'Die Datenbankabfrage zur Tabellenwartung ist fehlgeschlagen.';
+$lang['Maintenance_role_sync_failed'] = 'Die Moderator-Synchronisierung konnte nicht abgeschlossen werden. Vorherige Änderungen oder Sitzungsabläufe können bereits wirksam sein; es wird keine vollständige Rücknahme zugesichert. Bitte den Fehler beheben und die Synchronisierung erneut ausführen.';
+$lang['Maintenance_role_sync_skipped'] = 'Nicht geändert, weil sich Konto oder Rechte zwischenzeitlich geändert haben oder die Rolle bereits konsistent ist (Benutzer-ID %d).';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repariere fehlende Auto-Increment-Attribute';
 $lang['Ai_review_column'] = 'Unverändert: Bitte diese Spalte manuell prüfen. Die automatische Reparatur benötigt einen ganzzahligen, nicht nullbaren Einspalten-Primärschlüssel ohne expliziten Standardwert oder Sonderattribute und ohne weitere Auto-Increment-Spalte.';

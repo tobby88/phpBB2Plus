@@ -593,3 +593,6 @@ jobs:
 
       - name: Test private-data-free SQL diagnostics and real error renderers
         run: php .github/scripts/check-error-diagnostic-rendering.php
+
+      - name: Test guarded moderator synchronization and concurrent role changes
+        run: php .github/scripts/check-maintenance-roles.php

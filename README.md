@@ -77,6 +77,15 @@ permissions, quotas or plugin policies. Back up first and resolve ambiguous
 ownership explicitly; a maintenance report does not mean every inconsistency
 has been automatically repaired.
 
+Moderator synchronization only repairs ordinary USER/MOD flags from approved
+memberships with an existing group and forum. It shares the coordinated writer
+lock and rechecks current roles, permissions and the acting administrator before
+writes; administrator and special roles are excluded. Changed accounts lose
+cached sessions. Concurrently changed candidates are skipped and reported.
+Failures can leave earlier repairs or session expiry in place, especially on
+MyISAM: this is not an all-or-nothing transaction. No migration or automatic
+synchronization runs during deployment.
+
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.
 Explicit defaults, special attributes and ambiguous keys are left for review.

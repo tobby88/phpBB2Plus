@@ -3717,130 +3717,35 @@ switch($mode_id)
 				break;
 			case 'synchronize_mod_state': // Synchronize moderator status
 				echo("<h1>" . $lang['Synchronize_moderators'] . "</h1>\n");
+				require_once($phpbb_root_path . 'includes/functions_maintenance_roles.' . $phpEx);
 				lock_db();
-
-				// Getting moderator data
-				echo("<p class=\"gen\"><b>" . $lang['Getting_moderators'] . "</b></p>\n");
-				if (check_mysql_version())
+				$role_sync_error = '';
+				try
 				{
-					$sql = "SELECT ug.user_id
-						FROM " . USER_GROUP_TABLE . " ug
-							INNER JOIN " . AUTH_ACCESS_TABLE . " aa ON ug.group_id = aa.group_id
-						WHERE aa.auth_mod = 1 AND ug.user_pending <> 1
-						GROUP BY ug.user_id";
+					$role_sync_result = dbmtnc_synchronize_mod_state($db, $_POST);
 				}
-				else
-				{
-					$sql = "SELECT ug.user_id
-						FROM " . USER_GROUP_TABLE . " ug, " .
-							AUTH_ACCESS_TABLE . " aa
-						WHERE ug.group_id = aa.group_id
-							AND aa.auth_mod = 1
-							AND ug.user_pending <> 1
-						GROUP BY ug.user_id";
-				}
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get moderator data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['user_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$moderator_list = implode(',', $result_array);
-				}
-				else
-				{
-					$moderator_list = '0';
-				}
-				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
-
-				// Checking non moderators
-				echo("<p class=\"gen\"><b>" . $lang['Checking_non_moderators'] . "</b></p>\n");
-				$sql = "SELECT user_id, username
-					FROM " . USERS_TABLE . "
-					WHERE user_level = " . MOD . "
-						AND user_id NOT IN ($moderator_list)";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Updating_mod_state'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Changing_moderator_status'], htmlspecialchars($row['username']), $row['user_id']) . "</li>\n");
-					$sql2 = "UPDATE " . USERS_TABLE . "
-						SET user_level = " . USER . "
-						WHERE user_id = " . $row['user_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update user information!", __LINE__, __FILE__, $sql2);
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				else
+				catch (PhpbbAclException $error) { $role_sync_error = $error->getMessage(); }
+				catch (Exception $error) { $role_sync_error = $lang['Maintenance_role_sync_failed']; }
+				catch (Throwable $error) { $role_sync_error = $lang['Maintenance_role_sync_failed']; }
+				finally { lock_db(TRUE); }
+				if ($role_sync_error !== '') { throw_error($role_sync_error); }
+				if (!$role_sync_result['changed'] && !$role_sync_result['skipped'])
 				{
 					echo($lang['Nothing_to_do']);
 				}
-
-				// Checking moderators
-				echo("<p class=\"gen\"><b>" . $lang['Checking_moderators'] . "</b></p>\n");
-				$sql = "SELECT user_id, username
-					FROM " . USERS_TABLE . "
-					WHERE user_level = " . USER . "
-						AND user_id IN ($moderator_list)";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Updating_mod_state'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Changing_moderator_status'], htmlspecialchars($row['username']), $row['user_id']) . "</li>\n");
-					$sql2 = "UPDATE " . USERS_TABLE . "
-						SET user_level = " . MOD . "
-						WHERE user_id = " . $row['user_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update user information!", __LINE__, __FILE__, $sql2);
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
 				else
 				{
-					echo($lang['Nothing_to_do']);
+					echo('<ul class="gen">');
+					foreach ($role_sync_result['changed'] as $role_user)
+					{
+						echo('<li>' . sprintf($lang['Changing_moderator_status'], htmlspecialchars($role_user['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $role_user['user_id']) . '</li>');
+					}
+					foreach ($role_sync_result['skipped'] as $role_user)
+					{
+						echo('<li>' . sprintf($lang['Maintenance_role_sync_skipped'], $role_user['user_id']) . '</li>');
+					}
+					echo('</ul>');
 				}
-
-				lock_db(TRUE);
 				break;
 			case 'reset_date': // Reset dates
 				echo("<h1>" . $lang['Resetting_future_post_dates'] . "</h1>\n");

@@ -447,6 +447,8 @@ $lang['Maintenance_unconfirmed'] = 'The operation was not confirmed without warn
 $lang['Maintenance_incomplete'] = 'Not all table operations were confirmed. Review the messages before assuming that checks or repairs succeeded. Unsupported storage engines require a different recovery procedure; no automatic fallback was attempted.';
 $lang['Maintenance_invalid_target'] = 'Invalid table name or maintenance operation.';
 $lang['Maintenance_query_failed'] = 'The table maintenance query failed.';
+$lang['Maintenance_role_sync_failed'] = 'Moderator synchronization could not be completed. Earlier changes or session expirations may already have taken effect; no full rollback is implied. Resolve the error and run synchronization again.';
+$lang['Maintenance_role_sync_skipped'] = 'Not changed because the account or its permissions changed meanwhile, or the role is already consistent (user ID %d).';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repairing missing auto-increment attributes';
 $lang['Ai_review_column'] = 'Not changed: review this column manually. Automatic repair requires a non-null integer single-column primary key, no explicit default or special attributes, and no other auto-increment column.';
