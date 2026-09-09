@@ -77,6 +77,15 @@ permissions, quotas or plugin policies. Back up first and resolve ambiguous
 ownership explicitly; a maintenance report does not mean every inconsistency
 has been automatically repaired.
 
+The auto-increment maintenance action repairs a missing attribute on an ordinary
+integer primary key; it does not reset healthy counters or replace column types.
+Explicit defaults, special attributes and ambiguous keys are left for review.
+Back up first: DDL may rebuild a table and is not transactionally rolled back.
+The repair restates supported existing attributes as required by
+[MySQL's MODIFY rules](https://dev.mysql.com/doc/refman/8.4/en/alter-table.html)
+and protects existing zero IDs using
+[MariaDB's documented NO_AUTO_VALUE_ON_ZERO behavior](https://mariadb.com/docs/server/reference/data-types/auto_increment).
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

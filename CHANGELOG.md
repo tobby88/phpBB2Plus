@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replace legacy auto-increment repair's unconditional MEDIUMINT definition and
+  ALTER IGNORE fallback with metadata-based attribute repair. Preserve the actual
+  integer type, signedness, width/zerofill, comment, IDs and healthy counters.
+  Protect existing zero IDs with NO_AUTO_VALUE_ON_ZERO and use strict conversion;
+  restore SQL mode on success/failure. Unsupported defaults, special attributes
+  or ambiguous keys require explicit review instead of silent schema changes.
+  Verify repaired metadata, report uncertain DDL without claiming rollback, and
+  coordinate this maintenance branch on the dedicated writer connection. Update
+  English/German labels and backup warnings. No automatic migration or live DDL.
+
 - Make personal-group maintenance safe on an already consistent database and
   distinguish duplicate membership rows from genuinely different groups. Create
   only missing personal groups. Preserve and report multiple/shared personal

@@ -4187,6 +4187,8 @@ switch($mode_id)
 			case 'reset_auto_increment': // Reset autoincrement values
 				echo("<h1>" . $lang['Reset_ai'] . "</h1>\n");
 				lock_db();
+				require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
+				$auto_repair_scope = phpbb_user_write_begin($db);
 				echo("<p class=\"gen\"><b>" . $lang['Reset_ai'] . "...</b></p>\n");
 				echo("<font class=\"gen\"><ul>\n");
 
@@ -4208,6 +4210,7 @@ switch($mode_id)
 				echo("</ul></font>\n");
 				$list_open = FALSE;
 
+				phpbb_user_write_end($db, $auto_repair_scope);
 				lock_db(TRUE);
 				break;
 			case 'heap_convert': // Convert session table to HEAP

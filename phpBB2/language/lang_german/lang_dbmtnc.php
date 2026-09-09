@@ -184,11 +184,9 @@ $mtnc[] = array('repair_db',
 	1);
 $mtnc[] = array('--', '', '', '', 0);
 $mtnc[] = array('reset_auto_increment',
-	'Wiederherstellen der automatischen Zähler',
-	'Diese Funktion stellt die automatischen Zähler (auto increment) in den Datenbank-Tabellen wieder her. Diese Funktion sollte
-		nur durchgeführt werden, wenn Probleme beim Einfügen neuer Datensätze auftreten.',
-	'Sollen die automatischen Zähler wirklich wiederhergestellt werden? Auch wenn dadurch keine Daten verloren gehen, sollte die
-		Funktion nur wenn unbedingt nötig ausgeführt werden.',
+	'Fehlende Auto-Increment-Attribute reparieren',
+	'Ergänzt ein fehlendes AUTO_INCREMENT-Attribut bei gewöhnlichen ganzzahligen Primärschlüsseln. Bestehende Zählerstände, Spaltentypen und IDs werden nicht zurückgesetzt. Ungewöhnliche Definitionen werden zur Prüfung gemeldet.',
+	'Bitte zuerst die Datenbank sichern. Tabellen können dabei neu aufgebaut werden; DDL-Änderungen lassen sich nicht wie gewöhnliche Transaktionen zurückrollen. Fehlende Attribute jetzt reparieren?',
 	0);
 $mtnc[] = array('heap_convert',
 	'Konvertiere Sitzungs-Tabelle',
@@ -461,7 +459,9 @@ $lang['Optimizing_db'] = 'Optimiere Datenbank';
 $lang['Optimizing_tables'] = 'Optimiere Tabellen';
 $lang['Optimization_statistic'] = 'Die Optimierung reduzierte die Größe der Tabellen von %s auf %s. Das ist eine Reduzierung von %s oder %01.2f%%.';
 // reset_auto_increment
-$lang['Reset_ai'] = 'Stelle automatische Zähler wieder her';
+$lang['Reset_ai'] = 'Repariere fehlende Auto-Increment-Attribute';
+$lang['Ai_review_column'] = 'Unverändert: Bitte diese Spalte manuell prüfen. Die automatische Reparatur benötigt einen ganzzahligen, nicht nullbaren Einspalten-Primärschlüssel ohne expliziten Standardwert oder Sonderattribute und ohne weitere Auto-Increment-Spalte.';
+$lang['Ai_repair_failed'] = 'Die Auto-Increment-Reparatur konnte nicht sicher abgeschlossen oder bestätigt werden. Bitte die Tabelle vor einem erneuten Versuch prüfen; DDL-Änderungen können bereits wirksam sein. Es wurde kein Ausweichversuch mit ignorierten Fehlern durchgeführt.';
 $lang['Ai_message_update_table'] = 'Tabelle aktualisiert';
 $lang['Ai_message_no_update'] = 'Kein Update notwendig';
 $lang['Ai_message_update_table_old_mysql'] = 'Tabelle aktualisiert'; // Used if an old version of MySQL is used which does not allow a table check before updating the table

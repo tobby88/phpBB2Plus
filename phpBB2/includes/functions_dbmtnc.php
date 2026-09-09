@@ -688,48 +688,104 @@ function get_word_id($word)
 //
 // Resets the auto increment for a table
 //
+function dbmtnc_auto_rows($database, $sql)
+{
+	$result = $database->sql_query($sql);
+	if (!$result) { throw new RuntimeException('Auto-increment metadata unavailable'); }
+	$rows = array();
+	while ($row = $database->sql_fetchrow($result)) { $rows[] = $row; }
+	$database->sql_freeresult($result);
+	return $rows;
+}
+
+// Legacy length/signedness parameters remain accepted, but never override the
+// real schema. This restores an attribute, not a column type or an ID counter.
 function set_autoincrement($table, $column, $length, $unsigned = TRUE)
 {
 	global $db, $lang;
-
-	$sql = "ALTER IGNORE TABLE $table MODIFY $column mediumint($length) " . (($unsigned) ? 'unsigned ' : '') . "NOT NULL auto_increment";
-	if (check_mysql_version())
+	if (!is_string($table) || !is_string($column) ||
+		!preg_match('/^[A-Za-z0-9_]{1,64}$/D', $table) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $column))
 	{
-		$sql2 = "SHOW COLUMNS FROM $table LIKE '$column'";
-		$result = $db->sql_query($sql2);
-		if( !$result )
+		throw_error($lang['Ai_repair_failed']);
+	}
+	$changed_mode = false; $failure = false; $repaired = false; $review = false; $original_mode = '';
+	try
+	{
+		$columns = dbmtnc_auto_rows($db, 'SHOW FULL COLUMNS FROM `' . $table . '`');
+		$target = false; $other_auto = false;
+		foreach ($columns as $field)
 		{
-			throw_error("Couldn't get table status!", __LINE__, __FILE__, $sql2);
+			if (!isset($field['Field'], $field['Extra'])) { throw new RuntimeException('Incomplete metadata'); }
+			if ($field['Field'] === $column) { $target = $field; }
+			elseif (stripos($field['Extra'], 'auto_increment') !== false) { $other_auto = true; }
 		}
-		$row = $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);
-		if( !$row )
+		if (!$target) { throw new RuntimeException('Missing column'); }
+		if (stripos($target['Extra'], 'auto_increment') !== false)
 		{
-			throw_error("Couldn't get table status!", __LINE__, __FILE__, $sql2);
-		}
-		if (strpos($row['Extra'], 'auto_increment') !== FALSE)
-		{
+			// In particular, do not lower a healthy counter after rows were deleted.
 			echo("<li>$table: " . $lang['Ai_message_no_update'] . "</li>\n");
+			return;
 		}
-		else
+		$review = $other_auto || !isset($target['Type'], $target['Null'], $target['Comment']) ||
+			!array_key_exists('Default', $target) || $target['Default'] !== null ||
+			$target['Null'] !== 'NO' || $target['Extra'] !== '' ||
+			!preg_match('/^(?:tinyint|smallint|mediumint|int|bigint)(?:\\([0-9]{1,3}\\))?(?: unsigned)?(?: zerofill)?$/iD', $target['Type']);
+		$primary = array();
+		if (!$review)
 		{
-			echo("<li>$table: <b>" . $lang['Ai_message_update_table'] . "</b></li>\n");
-			$result = $db->sql_query($sql);
-			if( !$result )
+			foreach (dbmtnc_auto_rows($db, 'SHOW INDEX FROM `' . $table . '`') as $index)
 			{
-				throw_error("Couldn't alter table!", __LINE__, __FILE__, $sql);
+				if (isset($index['Key_name']) && $index['Key_name'] === 'PRIMARY') { $primary[] = $index; }
 			}
+			// A missing/compound key is a different repair; don't guess or create it.
+			$review = count($primary) !== 1 || !isset($primary[0]['Column_name'], $primary[0]['Seq_in_index']) ||
+				$primary[0]['Column_name'] !== $column || (int) $primary[0]['Seq_in_index'] !== 1;
 		}
-	}
-	else // old Version of MySQL - do the update in any case
-	{
-		echo("<li>$table: <b>" . $lang['Ai_message_update_table_old_mysql'] . "</b></li>\n");
-		$result = $db->sql_query($sql);
-		if( !$result )
+		if (!$review)
 		{
-			throw_error("Couldn't alter table!", __LINE__, __FILE__, $sql);
+			$modes = dbmtnc_auto_rows($db, 'SELECT @@SESSION.sql_mode AS sql_mode');
+			if (count($modes) !== 1 || !isset($modes[0]['sql_mode'])) { throw new RuntimeException('Missing SQL mode'); }
+			$original_mode = $modes[0]['sql_mode'];
+			$mode_list = $original_mode === '' ? array() : explode(',', $original_mode);
+			$mode_list[] = 'STRICT_ALL_TABLES'; $mode_list[] = 'NO_AUTO_VALUE_ON_ZERO';
+			$repair_mode = implode(',', array_unique($mode_list));
+			if (!$db->sql_query("SET SESSION sql_mode = '" . $db->sql_escape($repair_mode) . "'")) { throw new RuntimeException('Cannot protect IDs'); }
+			$changed_mode = true;
+			// MODIFY requires attributes to be restated. Keep exact integer type,
+			// signedness, display width/zerofill and comment; indexes stay untouched.
+			// NO_AUTO_VALUE_ON_ZERO prevents renumbering an existing zero/sentinel.
+			$sql = 'ALTER TABLE `' . $table . '` MODIFY COLUMN `' . $column . '` ' .
+				$target['Type'] . " NOT NULL AUTO_INCREMENT COMMENT '" . $db->sql_escape($target['Comment']) . "'";
+			if (!$db->sql_query($sql)) { throw new RuntimeException('Strict repair failed'); }
+			$actual = false;
+			foreach (dbmtnc_auto_rows($db, 'SHOW FULL COLUMNS FROM `' . $table . '`') as $field)
+			{
+				if ($field['Field'] === $column) { $actual = $field; }
+			}
+			if (!$actual || stripos($actual['Extra'], 'auto_increment') === false ||
+				$actual['Type'] !== $target['Type'] || $actual['Null'] !== $target['Null'] ||
+				$actual['Comment'] !== $target['Comment'] || $actual['Default'] !== null)
+			{
+				throw new RuntimeException('Repair metadata could not be verified');
+			}
+			$repaired = true;
 		}
 	}
+	catch (Exception $error) { $failure = true; }
+	catch (Throwable $error) { $failure = true; }
+	finally
+	{
+		if ($changed_mode)
+		{
+			try { if (!$db->sql_query("SET SESSION sql_mode = '" . $db->sql_escape($original_mode) . "'")) { $failure = true; } }
+			catch (Exception $error) { $failure = true; }
+			catch (Throwable $error) { $failure = true; }
+		}
+	}
+	// DDL isn't transactional. An uncertain result is reported, never rolled back
+	// by guessing or retried with IGNORE/foreign-key checks disabled.
+	if ($failure) { throw_error($lang['Ai_repair_failed']); }
+	echo("<li>$table: <b>" . $lang[$repaired ? 'Ai_message_update_table' : 'Ai_review_column'] . "</b></li>\n");
 }
 
 //

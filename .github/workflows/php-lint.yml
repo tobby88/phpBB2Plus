@@ -581,3 +581,6 @@ jobs:
 
       - name: Test non-destructive personal-group maintenance
         run: php .github/scripts/check-maintenance-personal-groups.php
+
+      - name: Test schema-preserving auto-increment attribute repair
+        run: php .github/scripts/check-maintenance-auto-increment.php

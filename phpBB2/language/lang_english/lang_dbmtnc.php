@@ -173,9 +173,9 @@ $mtnc[] = array('repair_db',
 	1);
 $mtnc[] = array('--', '', '', '', 0);
 $mtnc[] = array('reset_auto_increment',
-	'Reset auto increment values',
-	'This function resets the auto increment values. This should only be performed if there seems to be a problem when inserting new data in the tables.',
-	'Do you realy want to reset the auto increment values? No data will get lost but this function only should be used if neccessary.',
+	'Repair missing auto-increment attributes',
+	'Restores a missing AUTO_INCREMENT attribute on ordinary integer primary keys. Existing counters, column types and IDs are not reset. Unusual definitions are reported for review.',
+	'Back up the database first. This operation may rebuild tables; DDL cannot be rolled back like an ordinary transaction. Repair missing attributes now?',
 	0);
 $mtnc[] = array('heap_convert',
 	'Convert Session-Table',
@@ -441,7 +441,9 @@ $lang['Optimizing_db'] = 'Optimizing database';
 $lang['Optimizing_tables'] = 'Optimizing tables';
 $lang['Optimization_statistic'] = 'Optimization reduced size of tables from %s to %s. That is a reduction of %s or %01.2f%%.';
 // reset_auto_increment
-$lang['Reset_ai'] = 'Resetting auto increment values';
+$lang['Reset_ai'] = 'Repairing missing auto-increment attributes';
+$lang['Ai_review_column'] = 'Not changed: review this column manually. Automatic repair requires a non-null integer single-column primary key, no explicit default or special attributes, and no other auto-increment column.';
+$lang['Ai_repair_failed'] = 'Auto-increment repair could not be completed or verified safely. Review the table before retrying; DDL changes may already have taken effect. No fallback with ignored errors was attempted.';
 $lang['Ai_message_update_table'] = 'table updated';
 $lang['Ai_message_no_update'] = 'no update necessary';
 $lang['Ai_message_update_table_old_mysql'] = 'table updated'; // Used if an old version of MySQL is used which does not allow a table check before updating the table
