@@ -444,11 +444,11 @@ function get_table_statistic()
 //
 function convert_bytes($bytes)
 {
-	if( $bytes >= 1048576 )
+	if( abs($bytes) >= 1048576 )
 	{
 		return sprintf("%.2f MB", ( $bytes / 1048576 ));
 	}
-	else if( $bytes >= 1024 )
+	else if( abs($bytes) >= 1024 )
 	{
 		return sprintf("%.2f KB", ( $bytes / 1024 ));
 	}
@@ -456,6 +456,47 @@ function convert_bytes($bytes)
 	{
 		return sprintf("%.2f Bytes", $bytes);
 	}
+}
+
+// OPTIMIZE may return a note followed by a status, or errors in later rows.
+// A result set alone is not proof that the operation succeeded.
+function dbmtnc_optimize_table($tablename)
+{
+	global $db, $lang;
+	if (!is_string($tablename) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $tablename))
+	{
+		throw_error('Invalid maintenance table name');
+		return false;
+	}
+	$sql = 'OPTIMIZE TABLE `' . $tablename . '`';
+	$result = $db->sql_query($sql);
+	if (!$result)
+	{
+		throw_error("Couldn't optimize table!", __LINE__, __FILE__, $sql);
+		return false;
+	}
+	$success = false;
+	$problem = false;
+	while ($row = $db->sql_fetchrow($result))
+	{
+		$type = isset($row['Msg_type']) && is_string($row['Msg_type']) ? strtolower(trim($row['Msg_type'])) : '';
+		$text = isset($row['Msg_text']) && is_string($row['Msg_text']) ? $row['Msg_text'] : '';
+		$status_ok = $type === 'status' && in_array(strtolower(trim($text)), array('ok', 'table is already up to date'), true);
+		$success = $success || $status_ok;
+		if (!$status_ok && !in_array($type, array('note', 'info'), true))
+		{
+			$problem = true;
+		}
+		$display = $type === 'status' && strtolower(trim($text)) === 'ok' ? $lang['Table_OK'] : '[' . $type . '] ' . $text;
+		echo('<li>' . $tablename . ': ' . htmlspecialchars($display, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</li>\n");
+	}
+	$db->sql_freeresult($result);
+	if (!$success || $problem)
+	{
+		echo('<li><b>' . $tablename . ': ' . $lang['Optimization_unconfirmed'] . "</b></li>\n");
+		return false;
+	}
+	return true;
 }
 
 //

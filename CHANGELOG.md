@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Read all OPTIMIZE TABLE messages instead of mistaking any first status for
+  success or losing the final InnoDB result after a note. Preserve and escape
+  diagnostics, flag incomplete/failed/unsupported results, and report size changes
+  neutrally, including growth and an unavailable percentage for a zero baseline.
+  Format negative sizes consistently and correct the session-engine action title.
+  Add actual-controller English/German regression and optional native-engine tests.
+  No schema migration or automatic optimization of an existing installation.
+
 - Replace legacy auto-increment repair's unconditional MEDIUMINT definition and
   ALTER IGNORE fallback with metadata-based attribute repair. Preserve the actual
   integer type, signedness, width/zerofill, comment, IDs and healthy counters.

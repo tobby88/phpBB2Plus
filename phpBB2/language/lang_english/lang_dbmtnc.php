@@ -439,7 +439,10 @@ $lang['Repairing_tables'] = 'Repairing tables';
 // optimize_db
 $lang['Optimizing_db'] = 'Optimizing database';
 $lang['Optimizing_tables'] = 'Optimizing tables';
-$lang['Optimization_statistic'] = 'Optimization reduced size of tables from %s to %s. That is a reduction of %s or %01.2f%%.';
+$lang['Optimization_statistic'] = 'Reported table size before: %s; after: %s. Difference (before minus after): %s (%s). A negative difference means growth. These are server statistics, not a guarantee of reclaimed disk space.';
+$lang['Optimization_percent_unavailable'] = 'percentage unavailable: initial size was zero';
+$lang['Optimization_unconfirmed'] = 'Optimization was not confirmed without warnings or errors. Review all server messages above.';
+$lang['Optimization_incomplete'] = 'Not all table optimizations were confirmed. The size comparison below does not indicate overall success.';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repairing missing auto-increment attributes';
 $lang['Ai_review_column'] = 'Not changed: review this column manually. Automatic repair requires a non-null integer single-column primary key, no explicit default or special attributes, and no other auto-increment column.';

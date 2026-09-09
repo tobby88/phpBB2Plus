@@ -584,3 +584,6 @@ jobs:
 
       - name: Test schema-preserving auto-increment attribute repair
         run: php .github/scripts/check-maintenance-auto-increment.php
+
+      - name: Test complete optimization results and zero-size reports
+        run: php .github/scripts/check-maintenance-optimization.php

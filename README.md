@@ -86,6 +86,15 @@ The repair restates supported existing attributes as required by
 and protects existing zero IDs using
 [MariaDB's documented NO_AUTO_VALUE_ON_ZERO behavior](https://mariadb.com/docs/server/reference/data-types/auto_increment).
 
+The optional table-optimization action displays every server message, including
+the final status after an InnoDB rebuild note (see
+[MySQL's OPTIMIZE output](https://dev.mysql.com/doc/refman/8.4/en/optimize-table.html)).
+Warnings, failures and missing success statuses are reported explicitly. Size
+comparisons are server statistics, not proof of success or reclaimed disk space;
+growth remains visible and a zero starting size has no percentage. This action
+is not run by deployment or migration. Use a backed-up maintenance window: table
+optimization can rebuild and lock tables.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

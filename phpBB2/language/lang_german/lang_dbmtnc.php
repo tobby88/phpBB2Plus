@@ -457,7 +457,10 @@ $lang['Repairing_tables'] = 'Repariere Tabellen';
 // optimize_db
 $lang['Optimizing_db'] = 'Optimiere Datenbank';
 $lang['Optimizing_tables'] = 'Optimiere Tabellen';
-$lang['Optimization_statistic'] = 'Die Optimierung reduzierte die Größe der Tabellen von %s auf %s. Das ist eine Reduzierung von %s oder %01.2f%%.';
+$lang['Optimization_statistic'] = 'Gemeldete Tabellengröße vorher: %s; nachher: %s. Differenz (vorher minus nachher): %s (%s). Eine negative Differenz bedeutet Wachstum. Dies sind Serverstatistiken, keine Garantie für freigegebenen Speicherplatz.';
+$lang['Optimization_percent_unavailable'] = 'Prozentwert nicht verfügbar: Ausgangsgröße war null';
+$lang['Optimization_unconfirmed'] = 'Die Optimierung wurde nicht ohne Warnungen oder Fehler bestätigt. Bitte alle Servermeldungen oben prüfen.';
+$lang['Optimization_incomplete'] = 'Nicht alle Tabellenoptimierungen wurden bestätigt. Der folgende Größenvergleich bedeutet keinen Gesamterfolg.';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repariere fehlende Auto-Increment-Attribute';
 $lang['Ai_review_column'] = 'Unverändert: Bitte diese Spalte manuell prüfen. Die automatische Reparatur benötigt einen ganzzahligen, nicht nullbaren Einspalten-Primärschlüssel ohne expliziten Standardwert oder Sonderattribute und ohne weitere Auto-Increment-Spalte.';

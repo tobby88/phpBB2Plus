@@ -4137,6 +4137,7 @@ switch($mode_id)
 				}
 				lock_db();
 				$old_stat = get_table_statistic();
+				$optimization_complete = true;
 				echo("<p class=\"gen\"><b>" . $lang['Optimizing_tables'] . ":</b></p>\n");
 				echo("<font class=\"gen\"><ul>\n");
 				$list_open = TRUE;
@@ -4144,44 +4145,21 @@ switch($mode_id)
 				for($i = 0; $i < count($tables); $i++)
 				{
 					$tablename = $table_prefix . $tables[$i];
-					$sql = "OPTIMIZE TABLE $tablename";
-					$result = $db->sql_query($sql);
-					if ( !$result )
+					if (!dbmtnc_optimize_table($tablename))
 					{
-						throw_error("Couldn't optimize table!", __LINE__, __FILE__, $sql);
+						$optimization_complete = false;
 					}
-					if ( $row = $db->sql_fetchrow($result) )
-					{
-						if ($row['Msg_type'] == 'status')
-						{
-							echo("<li>$tablename: " . $lang['Table_OK'] . "</li>\n");
-						}
-						else //  We got an error
-						{
-							// Check whether the error results from HEAP-table type
-							$sql2 = "SHOW TABLE STATUS LIKE '$tablename'";
-							$result2 = $db->sql_query($sql2);
-							$row2 = $db->sql_fetchrow($result2);
-							if ( (isset($row2['Type']) && $row2['Type'] == 'HEAP') || (isset($row2['Engine']) && ($row2['Engine'] == 'HEAP' || $row2['Engine'] == 'MEMORY')) )
-							{
-								// Table is from HEAP-table type
-								echo("<li>$tablename: " . $lang['Table_HEAP_info'] . "</li>\n");
-							}
-							else
-							{
-								echo("<li><b>$tablename:</b> " . htmlspecialchars($row['Msg_text']) . "</li>\n");
-							}
-							$db->sql_freeresult($result2);
-						}
-					}
-					$db->sql_freeresult($result);
 				}
 				echo("</ul></font>\n");
 				$list_open = FALSE;
 				$new_stat = get_table_statistic();
 				$reduction_absolute = $old_stat['core']['size'] - $new_stat['core']['size'];
-				$reduction_percent = ($reduction_absolute / $old_stat['core']['size']) * 100;
-				echo("<p class=\"gen\">" . sprintf($lang['Optimization_statistic'], convert_bytes($old_stat['core']['size']), convert_bytes($new_stat['core']['size']), convert_bytes($reduction_absolute), $reduction_percent) . "</b></p>\n");
+				$reduction_percent = $old_stat['core']['size'] > 0 ? sprintf('%01.2f%%', ($reduction_absolute / $old_stat['core']['size']) * 100) : $lang['Optimization_percent_unavailable'];
+				if (!$optimization_complete)
+				{
+					echo('<p class="gen"><b>' . $lang['Optimization_incomplete'] . "</b></p>\n");
+				}
+				echo("<p class=\"gen\">" . sprintf($lang['Optimization_statistic'], convert_bytes($old_stat['core']['size']), convert_bytes($new_stat['core']['size']), convert_bytes($reduction_absolute), $reduction_percent) . "</p>\n");
 				lock_db(TRUE);
 				break;
 			case 'reset_auto_increment': // Reset autoincrement values
@@ -4214,7 +4192,7 @@ switch($mode_id)
 				lock_db(TRUE);
 				break;
 			case 'heap_convert': // Convert session table to HEAP
-				echo("<h1>" . $lang['Reset_ai'] . "</h1>\n");
+				echo("<h1>" . $lang['Converting_heap'] . "</h1>\n");
 				if ( !check_mysql_version() )
 				{
 					echo("<p class=\"gen\">" . $lang['Old_MySQL_Version'] . "</p>\n");
