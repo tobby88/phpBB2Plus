@@ -536,3 +536,6 @@ jobs:
 
       - name: Test coordinated ACL writes and delegated administrator modes
         run: php .github/scripts/check-acl-storage.php
+
+      - name: Test coordinated group administration, leadership and quotas
+        run: php .github/scripts/check-group-admin-storage.php

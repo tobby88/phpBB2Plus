@@ -40,18 +40,9 @@ $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 
-function admin_group_text_length($value)
-{
-	if (function_exists('mb_strlen'))
-	{
-		return mb_strlen($value, 'UTF-8');
-	}
-	if (preg_match_all('/./us', $value, $matches))
-	{
-		return count($matches[0]);
-	}
-	return strlen($value);
-}
+require_once($phpbb_root_path . 'includes/functions_group_admin_storage.' . $phpEx);
+try { phpbb_group_admin_actor(new PhpbbGroupDatabase($db)); }
+catch (PhpbbGroupException $error) { message_die(GENERAL_MESSAGE, phpbb_admin_html($error->getMessage())); }
 
 if ( isset($_POST[POST_GROUPS_URL]) || isset($_GET[POST_GROUPS_URL]) )
 {
@@ -75,26 +66,6 @@ else
 	$mode = '';
 }
 
-$validated_group_info = false;
-if (isset($_POST['group_update']))
-{
-	phpbb_admin_require_post_session();
-	if ($mode === 'editgroup')
-	{
-		$sql = 'SELECT * FROM ' . GROUPS_TABLE . '
-			WHERE group_single_user <> ' . TRUE . "
-				AND group_id = $group_id";
-		if (!($result = $db->sql_query($sql)) || !($validated_group_info = $db->sql_fetchrow($result)))
-		{
-			message_die(GENERAL_MESSAGE, $lang['Group_not_exist']);
-		}
-		$db->sql_freeresult($result);
-	}
-	else if ($mode !== 'newgroup')
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_group_action']);
-	}
-}
 if ( isset($_POST['edit']) || isset($_POST['new']) )
 {
 	//
@@ -153,12 +124,10 @@ if ( isset($_POST['edit']) || isset($_POST['new']) )
 			message_die(GENERAL_ERROR, 'Could not obtain user info for moderator list', '', __LINE__, __FILE__, $sql);
 		}
 
-		if ( !($row = $db->sql_fetchrow($result)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain user info for moderator list', '', __LINE__, __FILE__, $sql);
-		}
-
-		$group_moderator = $row['username'];
+		$row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		// A deleted leader must not prevent opening the form to appoint another.
+		$group_moderator = $row ? $row['username'] : '';
 	}
 	else
 	{
@@ -212,198 +181,12 @@ if ( isset($_POST['edit']) || isset($_POST['new']) )
 }
 else if ( isset($_POST['group_update']) )
 {
-	//
-	// Ok, they are submitting a group, let's save the data based on if it's new or editing
-	//
-	if ( isset($_POST['group_delete']) )
-	{
-		if ($mode !== 'editgroup' || !$validated_group_info)
-		{
-			message_die(GENERAL_MESSAGE, $lang['Group_not_exist']);
-		}
-		attachment_quota_settings('group', true, $mode);
-		//
-		// Reset User Moderator Level
-		//
-
-		// Is Group moderating a forum ?
-		$sql = "SELECT MAX(auth_mod) AS auth_mod FROM " . AUTH_ACCESS_TABLE . "
-			WHERE group_id = " . $group_id;
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not select auth_access', '', __LINE__, __FILE__, $sql);
-		}
-
-		$row = $db->sql_fetchrow($result);
-		if ($row && intval($row['auth_mod']) == 1)
-		{
-			// Yes, get the assigned users and update their Permission if they are no longer moderator of one of the forums
-			$sql = "SELECT user_id FROM " . USER_GROUP_TABLE . "
-				WHERE group_id = " . $group_id;
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not select user_group', '', __LINE__, __FILE__, $sql);
-			}
-
-			$rows = $db->sql_fetchrowset($result);
-			for ($i = 0; $i < count($rows); $i++)
-			{
-				$sql = "SELECT g.group_id FROM " . AUTH_ACCESS_TABLE . " a, " . GROUPS_TABLE . " g, " . USER_GROUP_TABLE . " ug
-				WHERE (a.auth_mod = 1) AND (g.group_id = a.group_id) AND (a.group_id = ug.group_id) AND (g.group_id = ug.group_id) 
-					AND (ug.user_id = " . intval($rows[$i]['user_id']) . ") AND (ug.group_id <> " . $group_id . ")";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not obtain moderator permissions', '', __LINE__, __FILE__, $sql);
-				}
-
-				if ($db->sql_numrows($result) == 0)
-				{
-					$sql = "UPDATE " . USERS_TABLE . " SET user_level = " . USER . " 
-					WHERE user_level = " . MOD . " AND user_id = " . intval($rows[$i]['user_id']);
-					
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not update moderator permissions', '', __LINE__, __FILE__, $sql);
-					}
-				}
-			}
-		}
-
-		//
-		// Delete Group
-		//
-		$sql = "DELETE FROM " . GROUPS_TABLE . "
-			WHERE group_id = " . $group_id;
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update group', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql = "DELETE FROM " . USER_GROUP_TABLE . "
-			WHERE group_id = " . $group_id;
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update user_group', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . "
-			WHERE group_id = " . $group_id;
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update auth_access', '', __LINE__, __FILE__, $sql);
-		}
-
-		$message = $lang['Deleted_group'] . '<br /><br />' . sprintf($lang['Click_return_groupsadmin'], '<a href="' . append_sid("admin_groups.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
-
-		message_die(GENERAL_MESSAGE, $message);
-	}
-	else
-	{
-		$group_type_value = (isset($_POST['group_type']) && is_scalar($_POST['group_type'])) ? intval($_POST['group_type']) : GROUP_OPEN;
-		$group_type = in_array($group_type_value, array(GROUP_OPEN, GROUP_CLOSED, GROUP_HIDDEN), true) ? $group_type_value : GROUP_OPEN;
-		$group_name = trim(phpbb_admin_post_string('group_name'));
-		$group_description = trim(phpbb_admin_post_string('group_description'));
-		$group_moderator = trim(phpbb_admin_post_string('username'));
-		$delete_old_moderator = isset($_POST['delete_old_moderator']) ? true : false;
-
-		if ( $group_name == '' )
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_group_name']);
-		}
-		else if ( $group_moderator == '' )
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_group_moderator']);
-		}
-		else if (admin_group_text_length($group_name) > 40 || admin_group_text_length($group_description) > 255)
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_group_action']);
-		}
-		
-		$this_userdata = get_userdata($group_moderator, true);
-		$group_moderator = (is_array($this_userdata) && isset($this_userdata['user_id'])) ? max(0, intval($this_userdata['user_id'])) : 0;
-
-		if ( !$group_moderator )
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_group_moderator']);
-		}
-				
-		if( $mode == "editgroup" )
-		{
-			$group_info = $validated_group_info;
-			attachment_quota_settings('group', true, $mode);
-		
-			if ( $group_info['group_moderator'] != $group_moderator )
-			{
-				if ( $delete_old_moderator )
-				{
-					$sql = "DELETE FROM " . USER_GROUP_TABLE . "
-						WHERE user_id = " . $group_info['group_moderator'] . " 
-							AND group_id = " . $group_id;
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not update group moderator', '', __LINE__, __FILE__, $sql);
-					}
-				}
-
-				$sql = "SELECT user_id 
-					FROM " . USER_GROUP_TABLE . " 
-					WHERE user_id = $group_moderator 
-						AND group_id = $group_id";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Failed to obtain current group moderator info', '', __LINE__, __FILE__, $sql);
-				}
-
-				if ( !($row = $db->sql_fetchrow($result)) )
-				{
-					$sql = "INSERT INTO " . USER_GROUP_TABLE . " (group_id, user_id, user_pending)
-						VALUES (" . $group_id . ", " . $group_moderator . ", 0)";
-					if ( !$db->sql_query($sql) )
-					{
-						message_die(GENERAL_ERROR, 'Could not update group moderator', '', __LINE__, __FILE__, $sql);
-					}
-				}
-			}
-
-			$sql = "UPDATE " . GROUPS_TABLE . "
-				SET group_type = $group_type, group_name = '" . $db->sql_escape($group_name) . "', group_description = '" . $db->sql_escape($group_description) . "', group_moderator = $group_moderator
-				WHERE group_id = $group_id";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update group', '', __LINE__, __FILE__, $sql);
-			}
-	
-			$message = $lang['Updated_group'] . '<br /><br />' . sprintf($lang['Click_return_groupsadmin'], '<a href="' . append_sid("admin_groups.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');;
-
-			message_die(GENERAL_MESSAGE, $message);
-		}
-		else if( $mode == 'newgroup' )
-		{
-			$sql = "INSERT INTO " . GROUPS_TABLE . " (group_type, group_name, group_description, group_moderator, group_single_user) 
-				VALUES ($group_type, '" . $db->sql_escape($group_name) . "', '" . $db->sql_escape($group_description) . "', $group_moderator,	'0')";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not insert new group', '', __LINE__, __FILE__, $sql);
-			}
-			$new_group_id = $db->sql_nextid();
-
-			$sql = "INSERT INTO " . USER_GROUP_TABLE . " (group_id, user_id, user_pending)
-				VALUES ($new_group_id, $group_moderator, 0)";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not insert new user-group info', '', __LINE__, __FILE__, $sql);
-			}
-			
-			$message = $lang['Added_new_group'] . '<br /><br />' . sprintf($lang['Click_return_groupsadmin'], '<a href="' . append_sid("admin_groups.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');;
-
-			message_die(GENERAL_MESSAGE, $message);
-
-		}
-		else
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_group_action']);
-		}
-	}
+	phpbb_admin_require_post_session();
+	try { $result_key = phpbb_group_admin_save($db, $_POST); }
+	catch (PhpbbGroupException $error) { message_die(GENERAL_MESSAGE, phpbb_admin_html($error->getMessage())); }
+	cache_tree(true);
+	$message = $lang[$result_key] . '<br /><br />' . sprintf($lang['Click_return_groupsadmin'], '<a href="' . append_sid("admin_groups.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 else
 {

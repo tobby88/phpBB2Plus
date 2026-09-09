@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate ACP group creation, updates and removal with membership/ACL writers.
+  Recheck current administrator or delegated group-management grants; validate
+  original IDs, UTF-8 text, leaders and quota assignments. Approve pending or
+  missing leader memberships, preserve group colors, other memberships and
+  administrator roles; derive moderator status only from approved memberships
+  and existing forums. Remove forum/download grants and group quotas before
+  deleting a group, retaining a retryable target on partial MyISAM failures.
+  A deleted leader no longer prevents opening the group repair form. No schema
+  changes or automatic changes to existing accounts/groups are required.
+
 - Coordinate user/group permission saves and administrator role transitions.
   Recheck active ACP actors, exact Junior Admin user/group module grants
   for both viewing and saving,

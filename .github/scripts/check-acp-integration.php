@@ -67,7 +67,7 @@ $integrations = array(
 	'includes/functions_color_groups.php' => array("preg_match('/^lang_[a-z0-9_]+$/iD'", "message_die(GENERAL_ERROR, 'Invalid language file request.'"),
 	'admin/admin_jr_admin.php' => array("\$module['Users']['Jr_Admin']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$allowed_module_hashes', 'jr_admin_safe_color'),
 	'admin/admin_forumauth.php' => array("\$module['Forums']['Permissions']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$s_column_span = 0;'),
-	'admin/admin_groups.php' => array("\$module['Groups']['Manage']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$validated_group_info', '$db->sql_escape($group_name)'),
+	'admin/admin_groups.php' => array("\$module['Groups']['Manage']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_group_admin_save($db, $_POST)', 'phpbb_group_admin_actor(new PhpbbGroupDatabase($db))'),
 	'admin/admin_ug_auth.php' => array("\$module['Users']['Permissions']", "\$module['Groups']['Permissions']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_acl_save($db, $original_mode, $original_target, $_POST)'),
 	'admin/admin_attachments.php' => array("\$module['Attachments']['Manage']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$sync_confirm'),
 	'admin/admin_extensions.php' => array("\$module['Extensions']['Extension_control']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$add_forum || $delete_forum'),

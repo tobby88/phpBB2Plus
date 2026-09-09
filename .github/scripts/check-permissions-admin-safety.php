@@ -33,11 +33,11 @@ foreach (array(
 }
 
 foreach (array(
-	'$validated_group_info',
+	'phpbb_group_admin_save($db, $_POST)',
 	'group_single_user <>',
-	'$db->sql_escape($group_name)',
-	'$db->sql_escape($group_description)',
-	'admin_group_text_length',
+	'catch (PhpbbGroupException $error)',
+	'cache_tree(true);',
+	'phpbb_group_admin_actor(new PhpbbGroupDatabase($db))',
 	'phpbb_admin_html($group_info[\'group_description\'])'
 ) as $marker)
 {
