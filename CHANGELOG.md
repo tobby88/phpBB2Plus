@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make inactive-account removal resumable after partial database or attachment
+  storage failures, including MyISAM installations. Persist the selected personal
+  groups, PM copies and attachment filenames before deleting the account; retain
+  unfinished jobs in the ACP for explicit resumption. Recheck current delegation,
+  account eligibility and identity, preserve shared files and other recipients'
+  saved/delivered copies, and approve successor group leaders' membership. Never
+  automatically delete an account restored under the same ID. Completed journal
+  records are removed; unfinished jobs contain no credentials or message bodies.
+  Existing installations need the two additive journal tables provided by
+  `update/update_from_153a.php` before using this inactive-account workflow.
+  This does not yet make the separate user-manager and pruning paths resumable.
+
 - Coordinate forum-policy saves with content and ACL writers. Reject malformed
   original forum IDs, preset IDs and access levels instead of silently making
   permissions public. Preserve unsubmitted advanced fields, all seven original

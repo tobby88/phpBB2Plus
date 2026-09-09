@@ -258,6 +258,8 @@ define('TOPIC_VIEW_TABLE', $table_prefix.'topic_view');
 define('TOPICS_WATCH_TABLE', $table_prefix.'topics_watch');
 define('USER_GROUP_TABLE', $table_prefix.'user_group');
 define('USERS_TABLE', $table_prefix.'users');
+define('USER_REMOVALS_TABLE', $table_prefix.'user_removals');
+define('USER_REMOVAL_ITEMS_TABLE', $table_prefix.'user_removal_items');
 define('WORDS_TABLE', $table_prefix.'words');
 define('VOTE_DESC_TABLE', $table_prefix.'vote_desc');
 define('VOTE_RESULTS_TABLE', $table_prefix.'vote_results');

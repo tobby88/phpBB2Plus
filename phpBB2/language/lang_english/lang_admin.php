@@ -1,4 +1,19 @@
 <?php
+$lang['Removal_invalid'] = 'Invalid account-removal request.';
+$lang['Removal_storage_failed'] = 'Account removal did not finish. Steps already applied remain in place. Please check the pending removals on this page and resume the appropriate request.';
+$lang['Removal_account_changed'] = 'The account state or your permission has changed. An existing or restored account will not be deleted again. Review the request; where appropriate, discard it and start a new removal after checking the account.';
+$lang['Removal_pending_exists'] = 'A pending removal already exists for this account. Please use the pending request list.';
+$lang['Removal_completed'] = 'Account removal and associated cleanup completed.';
+$lang['Removal_cancelled'] = 'Only the removal request was discarded. The account and user data were not changed.';
+$lang['Removal_jobs_unavailable'] = 'Pending removals could not be loaded. Check the database connection and whether update/update_from_153a.php has been run.';
+$lang['Removal_pending_title'] = 'Pending account removals';
+$lang['Removal_pending_explain'] = 'These requests have not fully finished. Resume continues the saved removal or cleanup. If the account exists again or has not yet been removed, you can discard the request without deleting user data. The oldest 100 requests are shown.';
+$lang['Removal_resume'] = 'Resume';
+$lang['Removal_cancel'] = 'Discard request';
+$lang['Removal_state_prepared'] = 'Prepared; account not yet claimed for removal';
+$lang['Removal_state_removing'] = 'Removal started; account state needs checking';
+$lang['Removal_state_removed'] = 'Account removed; cleanup pending';
+$lang['Removal_state_complete'] = 'Cleanup finished; final record cleanup pending';
 
 /***************************************************************************
  *                            lang_admin.php [English]

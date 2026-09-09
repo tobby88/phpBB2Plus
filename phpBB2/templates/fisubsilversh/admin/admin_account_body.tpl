@@ -1,10 +1,13 @@
 <br /><br />
 
+<p class="genmed"><b>{INFO_MESSAGE}</b></p>
+{REMOVAL_JOBS}
+
 <form method="post" action="{S_MODE_ACTION}">
 	<!-- BEGIN there_are_users -->
 <table width="100%" cellspacing="2" cellpadding="2" border="0" align="center">
   <tr> 
-        <td><span class="genmed"><b>{INFO_MESSAGE}</b></span></td>
+        <td>&nbsp;</td>
         <td align="right" nowrap="nowrap"><span class="genmed">{L_SELECT_SORT_METHOD}:&nbsp;{S_MODE_SELECT}&nbsp;&nbsp;
                                                              {L_ORDER}&nbsp;{S_ORDER_SELECT}&nbsp;&nbsp; <input type="submit" name="submit" value="{L_SUBMIT}" 
                                                               class="liteoption" /></span></td>

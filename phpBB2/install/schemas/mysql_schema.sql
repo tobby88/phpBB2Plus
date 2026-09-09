@@ -45,6 +45,29 @@ CREATE TABLE phpbb_user_group (
    KEY user_id (user_id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+# Durable, short-lived account-removal intents. No passwords or mail bodies.
+CREATE TABLE phpbb_user_removals (
+   job_id char(32) NOT NULL,
+   user_id mediumint(8) unsigned NOT NULL,
+   removal_mode varchar(16) NOT NULL,
+   removal_state varchar(16) NOT NULL,
+   username varchar(255) NOT NULL,
+   identity_hash char(64) NOT NULL,
+   created_by mediumint(8) unsigned NOT NULL,
+   created_at int(10) unsigned NOT NULL,
+   PRIMARY KEY (job_id),
+   UNIQUE KEY user_id (user_id)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE phpbb_user_removal_items (
+   job_id char(32) NOT NULL,
+   item_type varchar(16) NOT NULL,
+   item_id int(10) unsigned NOT NULL,
+   related_id int(11) NOT NULL default '0',
+   item_name varchar(255) NOT NULL default '',
+   PRIMARY KEY (job_id, item_type, item_id, related_id)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 #
 # Table structure for table 'phpbb_groups'
 #

@@ -14,79 +14,22 @@ require_once($phpbb_root_path . 'includes/functions_user_cleanup.' . $phpEx);
 require_once($phpbb_root_path . 'includes/functions_privmsgs.' . $phpEx);
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin.' . $phpEx);
 
-// Deleting an account is irreversible. Accept it only from this page's POST
-// form and only for a still-inactive, non-administrator account.
-if (isset($_POST['delete']) && is_scalar($_POST['delete']))
+require_once($phpbb_root_path . 'includes/functions_user_removal.' . $phpEx);
+try { phpbb_removal_actor(new PhpbbRemovalDatabase($db)); }
+catch (PhpbbRemovalException $error) { message_die(GENERAL_MESSAGE, phpbb_admin_html($error->getMessage())); }
+
+// The worker retains a durable intent across partial MyISAM/file failures.
+if (isset($_POST['delete']) || isset($_POST['removal_resume']) || isset($_POST['removal_cancel']))
 {
 	phpbb_admin_require_post_session();
-	phpbb_pm_require_admin_module('admin_account.php');
-        $delete = (isset($_POST['delete']) && is_scalar($_POST['delete'])) ? intval($_POST['delete']) : 0;
-		if ($delete <= 0)
-        {
-                message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-        }
-
-        $sql = "SELECT user_id, username
-                FROM " . USERS_TABLE . "
-                WHERE user_id = $delete
-                        AND user_id <> " . ANONYMOUS . "
-                        AND user_active = 0
-                        AND user_level <> " . ADMIN;
-        if (!($delete_result = $db->sql_query($sql)))
-        {
-                message_die(GENERAL_ERROR, 'Could not verify inactive user.', '', __LINE__, __FILE__, $sql);
-        }
-        $deleted_account = $db->sql_fetchrow($delete_result);
-        if (!$deleted_account)
-        {
-                message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-        }
-		$db->sql_freeresult($delete_result);
-		// Remember only this account's personal groups, never all orphan groups.
-		$sql = 'SELECT g.group_id FROM ' . GROUPS_TABLE . ' g JOIN ' . USER_GROUP_TABLE . ' ug ON ug.group_id = g.group_id WHERE ug.user_id = ' . $delete . ' AND g.group_single_user = 1';
-		if (!($result = $db->sql_query($sql))) { message_die(GENERAL_ERROR, 'Could not obtain personal groups.'); }
-		$delete_groups = $db->sql_fetchrowset($result);
-		$db->sql_freeresult($result);
-
-        $sql = "DELETE FROM " . USERS_TABLE . "
-                WHERE user_id = $delete AND user_active = 0 AND user_level <> " . ADMIN;
-        if( !$db->sql_query($sql) )
-        {
-                message_die(GENERAL_ERROR, "Unable to delete user.", "", __LINE__, __FILE__, $sql);
-        }
-		if ((int) $db->sql_affectedrows() !== 1)
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
-
-		phpbb_cleanup_removed_user_references($db, $delete);
-		phpbb_anonymize_removed_user_content($db, $delete, $deleted_account['username'], (int) $userdata['user_id']);
-		phpbb_pm_delete_inactive_user_messages($delete);
-
-        $sql = "DELETE FROM " . USER_GROUP_TABLE . " WHERE user_id = $delete";
-        if( !$db->sql_query($sql) )
-        {
-                message_die(GENERAL_ERROR, 'Could not delete user from user_group table', '', __LINE__, __FILE__, $sql);
-        }
-
-        foreach ($delete_groups as $row)
-        {
-				$group_id = intval($row['group_id']);
-				$sql2 = 'DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id . ' AND group_single_user = 1 AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug WHERE ug.group_id = ' . GROUPS_TABLE . '.group_id)';
-                if ( !($db->sql_query($sql2)) )
-                {
-                        message_die(GENERAL_ERROR, 'Could not delete group.', '', __LINE__, __FILE__, $sql2);
-                }
-				if ((int) $db->sql_affectedrows() === 1 && !$db->sql_query('DELETE FROM ' . AUTH_ACCESS_TABLE . ' WHERE group_id = ' . $group_id))
-				{
-					message_die(GENERAL_ERROR, 'Could not delete personal group permissions.');
-				}
-        }
-
-        $template->assign_vars(array(
-                'INFO_MESSAGE' => sprintf($lang['Deleted_user'], $delete))
-        );
+	try { $removal_message = $lang[phpbb_inactive_user_remove($db, $_POST)]; }
+	catch (PhpbbRemovalException $error) { $removal_message = $error->getMessage(); }
+	cache_tree(true);
+	$template->assign_vars(array('INFO_MESSAGE' => phpbb_admin_html($removal_message)));
 }
+try { $pending_removals = phpbb_removal_pending_html($db); }
+catch (PhpbbRemovalException $error) { $pending_removals = '<p class="genmed">' . phpbb_admin_html($error->getMessage()) . '</p>'; }
+$template->assign_vars(array('REMOVAL_JOBS' => $pending_removals));
 
 // sort part
 $start = (isset($_GET['start']) && is_scalar($_GET['start'])) ? max(0, intval($_GET['start'])) : 0;

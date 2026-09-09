@@ -1,4 +1,19 @@
 <?php
+$lang['Removal_invalid'] = 'Ungültiger Löschauftrag.';
+$lang['Removal_storage_failed'] = 'Die Kontolöschung wurde nicht vollständig abgeschlossen. Bereits ausgeführte Schritte bleiben bestehen. Bitte prüfe die offenen Löschaufträge auf dieser Seite und setze den passenden Auftrag fort.';
+$lang['Removal_account_changed'] = 'Der Kontostand oder deine Berechtigung hat sich geändert. Ein vorhandenes oder wiederhergestelltes Konto wird nicht erneut gelöscht. Prüfe den Auftrag; du kannst ihn gegebenenfalls verwerfen und die Löschung nach erneuter Prüfung neu starten.';
+$lang['Removal_pending_exists'] = 'Für dieses Konto gibt es bereits einen offenen Löschauftrag. Bitte verwende die Liste der offenen Aufträge.';
+$lang['Removal_completed'] = 'Kontolöschung und zugehörige Bereinigung abgeschlossen.';
+$lang['Removal_cancelled'] = 'Nur der Löschauftrag wurde verworfen. Konto und Nutzerdaten wurden dabei nicht verändert.';
+$lang['Removal_jobs_unavailable'] = 'Offene Löschaufträge konnten nicht geladen werden. Prüfe die Datenbankverbindung und ob update/update_from_153a.php ausgeführt wurde.';
+$lang['Removal_pending_title'] = 'Offene Kontolöschungen';
+$lang['Removal_pending_explain'] = 'Diese Aufträge wurden noch nicht vollständig abgeschlossen. Fortsetzen setzt die gespeicherte Löschung beziehungsweise Bereinigung fort. Ist das Konto wieder vorhanden oder wurde es noch nicht gelöscht, kann der Auftrag verworfen werden; das löscht keine Nutzerdaten. Es werden die ältesten 100 Aufträge angezeigt.';
+$lang['Removal_resume'] = 'Fortsetzen';
+$lang['Removal_cancel'] = 'Auftrag verwerfen';
+$lang['Removal_state_prepared'] = 'Vorbereitet; Konto noch nicht zur Löschung freigegeben';
+$lang['Removal_state_removing'] = 'Löschung begonnen; Kontostand muss geprüft werden';
+$lang['Removal_state_removed'] = 'Konto entfernt; Bereinigung offen';
+$lang['Removal_state_complete'] = 'Bereinigung abgeschlossen; Abschlussvermerk noch offen';
 
 /***************************************************************************
  *                            lang_admin.php [German]

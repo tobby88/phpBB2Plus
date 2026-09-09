@@ -33,7 +33,7 @@ function update_usage()
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs))`?\s*\(.*?\)\s*ENGINE\s*=\s*MyISAM[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items))`?\s*\(.*?\)\s*ENGINE\s*=\s*MyISAM[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)

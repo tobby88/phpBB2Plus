@@ -542,3 +542,9 @@ jobs:
 
       - name: Test coordinated forum policies and preserved permission presets
         run: php .github/scripts/check-forum-acl-storage.php
+
+      - name: Test durable inactive account removal and recovery
+        run: php .github/scripts/check-user-removal-storage.php
+
+      - name: Test additive removal journal migration
+        run: php .github/scripts/check-user-removal-migration.php

@@ -31,7 +31,7 @@ function phpbb_cleanup_removed_user_references($database, $user_id)
 
 // Preserve published content as guest-authored, retaining the captured display
 // name. Inactive accounts may have posted before an administrator disabled them.
-function phpbb_anonymize_removed_user_content($database, $user_id, $username, $moderator_id)
+function phpbb_anonymize_removed_user_content($database, $user_id, $username, $moderator_id, $reassign_groups = true)
 {
 	global $lang;
 	phpbb_require_removed_user($database, $user_id);
@@ -49,6 +49,7 @@ function phpbb_anonymize_removed_user_content($database, $user_id, $username, $m
 	);
 	foreach ($targets as $target)
 	{
+		if (!$reassign_groups && $target[0] === GROUPS_TABLE) { continue; }
 		$sql = 'UPDATE ' . $target[0] . ' SET ' . $target[2] . ' WHERE ' . $target[1] . ' = ' . $user_id
 			. ' AND NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $user_id . ')';
 		if (!$database->sql_query($sql)) { message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']); }
