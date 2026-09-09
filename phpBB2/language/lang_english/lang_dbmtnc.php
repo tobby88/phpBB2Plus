@@ -447,6 +447,8 @@ $lang['Maintenance_unconfirmed'] = 'The operation was not confirmed without warn
 $lang['Maintenance_incomplete'] = 'Not all table operations were confirmed. Review the messages before assuming that checks or repairs succeeded. Unsupported storage engines require a different recovery procedure; no automatic fallback was attempted.';
 $lang['Maintenance_invalid_target'] = 'Invalid table name or maintenance operation.';
 $lang['Maintenance_query_failed'] = 'The table maintenance query failed.';
+$lang['Maintenance_post_sync_failed'] = 'Post synchronization could not finish. Earlier counter changes may already be applied; a full rollback is not guaranteed. Resolve the error and retry.';
+$lang['Maintenance_post_sync_review'] = 'These topics need review (empty, inconsistent, or changed concurrently): %s. No topics or posts were deleted.';
 $lang['Maintenance_role_sync_failed'] = 'Moderator synchronization could not be completed. Earlier changes or session expirations may already have taken effect; no full rollback is implied. Resolve the error and run synchronization again.';
 $lang['Maintenance_role_sync_skipped'] = 'Not changed because the account or its permissions changed meanwhile, or the role is already consistent (user ID %d).';
 // reset_auto_increment

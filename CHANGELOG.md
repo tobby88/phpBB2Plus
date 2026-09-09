@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replace maintenance topic/redirect/forum snapshot writes with a coordinated
+  counter service. Compute aggregates at write time, revalidate actor and target
+  identity, preserve move-time redirect cutoffs, and handle empty/redirect-only
+  forums consistently. Report empty/invalid/concurrently changed topics without
+  deleting content. Preserve validated session-bound continuations and restore
+  their maintenance state on controlled errors. Test actual controller output,
+  late posts, changed targets, authorization revocation and database failures in
+  English/German, SQLite and native MyISAM/InnoDB. No schema migration.
+
 - Coordinate maintenance moderator synchronization with account/group/ACL writes.
   Replace stale unconditional role updates with current-role and permission
   guards; retain administrator/special roles and reject pending or orphan grants.

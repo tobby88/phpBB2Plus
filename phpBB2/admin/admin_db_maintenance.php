@@ -3303,365 +3303,41 @@ switch($mode_id)
 				exit;
 				break;
 			case 'synchronize_post': // Synchronize post data
-			case 'synchronize_post_direct': // Run directly
-				echo("<h1>" . $lang['Synchronize_posts'] . "</h1>\n");
-				if ($function == 'synchronize_post_direct')
+			case 'synchronize_post_direct': // Session-bound continuation
+				echo('<h1>' . $lang['Synchronize_posts'] . '</h1>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_posts.' . $phpEx);
+				$post_sync_direct = $function === 'synchronize_post_direct';
+				$post_sync_request = $post_sync_direct ? $_GET : $_POST;
+				// Validate before changing the maintenance flag, including continuations.
+				try { dbmtnc_post_sync_request($function, $post_sync_request); }
+				catch (PhpbbAclException $error) { throw_error($error->getMessage()); }
+				if (!$post_sync_direct) { lock_db(); }
+				$post_sync_error = '';
+				try { $post_sync_result = dbmtnc_synchronize_posts($db, $function, $post_sync_request); }
+				catch (PhpbbAclException $error) { $post_sync_error = $error->getMessage(); }
+				catch (Exception $error) { $post_sync_error = $lang['Maintenance_post_sync_failed']; }
+				catch (Throwable $error) { $post_sync_error = $lang['Maintenance_post_sync_failed']; }
+				finally
 				{
-					$db_state = (isset($_GET['db_state']) && is_scalar($_GET['db_state'])) ? intval($_GET['db_state']) : 1;
+					if (!$post_sync_direct) { lock_db(TRUE); }
+					elseif ($post_sync_request['db_state'] === '0') { lock_db(TRUE, TRUE, TRUE); }
 				}
-				else
+				if ($post_sync_error !== '') { throw_error($post_sync_error); }
+				foreach (array('topics' => 'Synchronize_topic_data', 'redirects' => 'Synchronize_moved_topic_data', 'forums' => 'Synchronizing_forums') as $post_sync_kind => $post_sync_title)
 				{
-					lock_db();
-				}
-
-				// Updating normal topics
-				echo("<p class=\"gen\"><b>" . $lang['Synchronize_topic_data'] . "</b></p>\n");
-				if (check_mysql_version())
-				{
-					$sql = "SELECT t.topic_id, t.topic_title, t.topic_replies, t.topic_first_post_id, t.topic_last_post_id, Count(p.post_id) - 1 AS new_replies, Min(p.post_id) AS new_first_post_id, Max(p.post_id) AS new_last_post_id
-						FROM " . TOPICS_TABLE . " t
-							INNER JOIN " . POSTS_TABLE . " p ON t.topic_id = p.topic_id
-						GROUP BY t.topic_id, t.topic_title, t.topic_replies, t.topic_first_post_id, t.topic_last_post_id
-						HAVING new_replies <> t.topic_replies OR
-							new_first_post_id <> t.topic_first_post_id OR
-							new_last_post_id <> t.topic_last_post_id";
-				}
-				else
-				{
-					$sql = "SELECT t.topic_id, t.topic_title, t.topic_replies, t.topic_first_post_id, t.topic_last_post_id, Count(p.post_id) - 1 AS new_replies, Min(p.post_id) AS new_first_post_id, Max(p.post_id) AS new_last_post_id
-						FROM " . TOPICS_TABLE . " t, " .
-							POSTS_TABLE . " p
-						WHERE t.topic_id = p.topic_id
-						GROUP BY t.topic_id, t.topic_title, t.topic_replies, t.topic_first_post_id, t.topic_last_post_id
-						HAVING new_replies <> t.topic_replies OR
-							new_first_post_id <> t.topic_first_post_id OR
-							new_last_post_id <> t.topic_last_post_id";
-				}
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get topic and post data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
+					echo('<p class="gen"><b>' . $lang[$post_sync_title] . '</b></p>');
+					if (!$post_sync_result[$post_sync_kind]) { echo($lang['Nothing_to_do']); continue; }
+					echo('<ul class="gen">');
+					foreach ($post_sync_result[$post_sync_kind] as $post_sync_row)
 					{
-						echo("<p class=\"gen\">" . $lang['Synchronizing_topics'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
+						echo('<li>' . (int) $post_sync_row['id'] . ': ' . htmlspecialchars($post_sync_row['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>');
 					}
-					echo("<li>" . sprintf($lang['Synchronizing_topic'], $row['topic_id'], htmlspecialchars($row['topic_title'])) . "</li>\n");
-					$sql2 = "UPDATE " . TOPICS_TABLE . "
-						SET topic_replies = " . $row['new_replies'] . ",
-							topic_first_post_id = " . $row['new_first_post_id'] . ",
-							topic_last_post_id = " . $row['new_last_post_id'] . "
-						WHERE topic_id = " . $row['topic_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql2);
-					}
+					echo('</ul>');
 				}
-				$db->sql_freeresult($result);
-				if ($list_open)
+				if ($post_sync_result['review'])
 				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
+					echo('<p class="gen">' . sprintf($lang['Maintenance_post_sync_review'], implode(', ', array_map('intval', $post_sync_result['review']))) . '</p>');
 				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Updating moved topics
-				echo("<p class=\"gen\"><b>" . $lang['Synchronize_moved_topic_data'] . "</b></p>\n");
-				$sql = "SELECT topic_id, topic_title, topic_last_post_id, topic_moved_id
-					FROM " . TOPICS_TABLE . "
-					WHERE topic_status = " . TOPIC_MOVED;
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get topic data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					// Getting data for original topic
-					$sql2 = "SELECT topic_id, Count(post_id) - 1 AS topic_replies, Min(post_id) AS topic_first_post_id, Max(post_id) AS topic_last_post_id
-						FROM " . POSTS_TABLE . "
-						WHERE topic_id = " . $row['topic_moved_id'] . " AND
-							post_id <= " . $row['topic_last_post_id'] . "
-						GROUP BY topic_id";
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't get post information!", __LINE__, __FILE__, $sql2);
-					}
-					if ( $row2 = $db->sql_fetchrow($result2) )
-					{
-						$sql3 = "SELECT topic_id
-							FROM " . TOPICS_TABLE . "
-							WHERE topic_id = " . $row['topic_id'] . " AND
-								(topic_replies <> " . $row2['topic_replies'] . " OR topic_first_post_id <> " . $row2['topic_first_post_id'] . " OR topic_last_post_id <> " . $row2['topic_last_post_id'] . ")";
-						$result3 = $db->sql_query($sql3);
-						if ( !$result3 )
-						{
-							throw_error("Couldn't get topic information!", __LINE__, __FILE__, $sql3);
-						}
-						$row3 = $db->sql_fetchrow($result3);
-						$db->sql_freeresult($result3);
-						if ( $row3 )
-						{
-							if (!$list_open)
-							{
-								echo("<p class=\"gen\">" . $lang['Synchronizing_moved_topics'] . ":</p>\n");
-								echo("<font class=\"gen\"><ul>\n");
-								$list_open = TRUE;
-							}
-							echo("<li>" . sprintf($lang['Synchronizing_moved_topic'], $row['topic_id'], $row['topic_moved_id'], htmlspecialchars($row['topic_title'])) . "</li>\n");
-							$sql3 = "UPDATE " . TOPICS_TABLE . "
-								SET topic_replies = " . $row2['topic_replies'] . ",
-									topic_first_post_id = " . $row2['topic_first_post_id'] . ",
-									topic_last_post_id = " . $row2['topic_last_post_id'] . "
-								WHERE topic_id = " . $row['topic_id'];
-							$result3 = $db->sql_query($sql3);
-							if ( !$result3 )
-							{
-								throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql3);
-							}
-						}
-					}
-					else
-					{
-						throw_error(sprintf($lang['Inconsistencies_found'], "<a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=start&amp;function=check_post") . "\">", '</a>'));
-					}
-					$db->sql_freeresult($result2);
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Updating topic data of forums
-				echo("<p class=\"gen\"><b>" . $lang['Synchronize_forum_topic_data'] . "</b></p>\n");
-				if (check_mysql_version())
-				{
-					$sql = "SELECT f.forum_id, f.forum_name, f.forum_topics, Count(t.topic_id) AS new_topics
-						FROM " . FORUMS_TABLE . " f
-							INNER JOIN " . TOPICS_TABLE . " t ON f.forum_id = t.forum_id
-						GROUP BY f.forum_id, f.forum_name, f.forum_topics
-						HAVING new_topics <> f.forum_topics";
-				}
-				else
-				{
-					$sql = "SELECT f.forum_id, f.forum_name, f.forum_topics, Count(t.topic_id) AS new_topics
-						FROM " . FORUMS_TABLE . " f, " .
-							TOPICS_TABLE . " t
-						WHERE f.forum_id = t.forum_id
-						GROUP BY f.forum_id, f.forum_name, f.forum_topics
-						HAVING new_topics <> f.forum_topics";
-				}
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get forum and topic data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Synchronizing_forums'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Synchronizing_forum'], $row['forum_id'], htmlspecialchars($row['forum_name'])) . "</li>\n");
-					$sql2 = "UPDATE " . FORUMS_TABLE . "
-						SET forum_topics = " . $row['new_topics'] . "
-						WHERE forum_id = " . $row['forum_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update forum information!", __LINE__, __FILE__, $sql2);
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Updating forums without a topic
-				echo("<p class=\"gen\"><b>" . $lang['Synchronize_forum_data_wo_topic'] . "</b></p>\n");
-				$sql = "SELECT f.forum_id
-					FROM " . FORUMS_TABLE . " f
-						LEFT JOIN " . TOPICS_TABLE . " t ON f.forum_id = t.forum_id
-					WHERE t.forum_id IS NULL AND
-						(f.forum_topics <> 0 OR f.forum_last_post_id <> 0)";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get forum and topic data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['forum_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					$sql = "UPDATE " . FORUMS_TABLE . "
-						SET forum_topics = 0,
-							forum_last_post_id = 0
-						WHERE forum_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update forum data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
-				}
-				elseif ( !$db_updated )
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Updating post data of forums
-				echo("<p class=\"gen\"><b>" . $lang['Synchronize_forum_post_data'] . "</b></p>\n");
-				if (check_mysql_version())
-				{
-					$sql = "SELECT f.forum_id, f.forum_name, f.forum_posts, f.forum_last_post_id, Count(p.post_id) AS new_posts, Max(p.post_id) AS new_last_post_id
-						FROM " . FORUMS_TABLE . " f
-							INNER JOIN " . POSTS_TABLE . " p ON f.forum_id = p.forum_id
-						GROUP BY f.forum_id, f.forum_name, f.forum_posts, f.forum_last_post_id
-						HAVING new_posts <> f.forum_posts OR
-							new_last_post_id <> f.forum_last_post_id";
-				}
-				else
-				{
-					$sql = "SELECT f.forum_id, f.forum_name, f.forum_posts, f.forum_last_post_id, Count(p.post_id) AS new_posts, Max(p.post_id) AS new_last_post_id
-						FROM " . FORUMS_TABLE . " f, " .
-							POSTS_TABLE . " p
-						WHERE f.forum_id = p.forum_id
-						GROUP BY f.forum_id, f.forum_name, f.forum_posts, f.forum_last_post_id
-						HAVING new_posts <> f.forum_posts OR
-							new_last_post_id <> f.forum_last_post_id";
-				}
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get forum and post data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Synchronizing_forums'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Synchronizing_forum'], $row['forum_id'], htmlspecialchars($row['forum_name'])) . "</li>\n");
-					$sql2 = "UPDATE " . FORUMS_TABLE . "
-						SET forum_posts = " . $row['new_posts'] . ",
-							forum_last_post_id = " . $row['new_last_post_id'] . "
-						WHERE forum_id = " . $row['forum_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update forum information!", __LINE__, __FILE__, $sql2);
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Updating forums without a post
-				echo("<p class=\"gen\"><b>" . $lang['Synchronize_forum_data_wo_post'] . "</b></p>\n");
-				$sql = "SELECT f.forum_id
-					FROM " . FORUMS_TABLE . " f
-						LEFT JOIN " . POSTS_TABLE . " p ON f.forum_id = p.forum_id
-					WHERE p.forum_id IS NULL AND
-						(f.forum_posts <> 0)";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get forum and topic data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['forum_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					$sql = "UPDATE " . FORUMS_TABLE . "
-						SET forum_posts = 0
-						WHERE forum_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update forum data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
-				}
-				elseif ( !$db_updated )
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				if ($function == 'synchronize_post_direct')
-				{
-					if ($db_state == 0)
-					{
-						lock_db(TRUE, TRUE, TRUE);
-					}
-					else
-					{
-						echo('<p class="gen"><b>' . $lang['Unlock_db'] . "</b></p>\n");
-						echo('<p class="gen">' . $lang['Ignore_unlock_command'] . "</p>\n");
-					}
-				}
-				else
-				{
-					lock_db(TRUE);
-				}
-
 				break;
 			case 'synchronize_user': // Synchronize post counter of users
 				echo("<h1>" . $lang['Synchronize_post_counters'] . "</h1>\n");

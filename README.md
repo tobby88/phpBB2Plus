@@ -86,6 +86,16 @@ Failures can leave earlier repairs or session expiry in place, especially on
 MyISAM: this is not an all-or-nothing transaction. No migration or automatic
 synchronization runs during deployment.
 
+Post synchronization uses the same writer lock and computes topic/forum counters
+inside guarded writes, rather than publishing an earlier snapshot. Moved-topic
+links retain their historical post cutoff. Empty topics, invalid redirects and
+concurrently changed targets are reported for review without deleting content.
+Empty forums and forums containing only redirects get zero own-post counters.
+Signed continuations retain their maintenance-state behavior, and current ACP
+authorization is checked throughout. A failed run can leave earlier counter
+repairs in place; back up first and retry after resolving the error. Deployment
+does not run this repair, and no new schema migration is required.
+
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.
 Explicit defaults, special attributes and ambiguous keys are left for review.

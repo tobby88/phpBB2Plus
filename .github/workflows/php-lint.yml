@@ -596,3 +596,6 @@ jobs:
 
       - name: Test guarded moderator synchronization and concurrent role changes
         run: php .github/scripts/check-maintenance-roles.php
+
+      - name: Test coordinated topic and forum counter maintenance
+        run: php .github/scripts/check-maintenance-posts.php
