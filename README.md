@@ -112,6 +112,12 @@ Maintenance console above for emergency recovery instead.
 
 ## Upgrading an existing forum
 
+Current registration requires the durable `user_id_sequence` table supplied by
+`update/update_from_153a.php` (and by the fresh-install schema). Complete that
+database update before reopening registration with the current files. Keep the
+counter in full database backups and restores; never reset it to the highest
+surviving account ID. See [update/README.md](update/README.md) for details.
+
 Before replacing files or running anything from `update/`:
 
 1. Back up the complete database and the complete existing web root.

@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Reserve new user IDs durably across all three registration paths instead of
+  reusing `MAX(user_id) + 1` after account deletion. Include retained numeric
+  album, Arcade, PM and other bundled-module ownership when determining the
+  next ID; do not assign orphaned content to a new member. Serialize reservations
+  on a dedicated connection, preserve them after registration failure or caller
+  rollback, and fail safely when the sequence is missing or the existing signed
+  MEDIUMINT range is exhausted. The consolidated updater initializes the new
+  InnoDB counter without changing accounts or content; fresh installs include it.
+  This does not make the complete multi-table registration operation atomic.
+
 - Extend durable removal to the ACP user manager. Dispatch deletion before
   account creation, profile saves or quota changes, and claim the current account
   before touching published content or PNs. Preserve its distinct all-copy PM

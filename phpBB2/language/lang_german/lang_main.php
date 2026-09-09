@@ -1,4 +1,6 @@
 <?php
+$lang['User_id_allocation_failed'] = 'Die Benutzer-ID konnte nicht sicher reserviert werden. Das Konto wurde nicht angelegt. Bitte versuche es später erneut; die Administration muss gegebenenfalls update/update_from_153a.php ausführen oder den ID-Speicher prüfen.';
+$lang['User_id_capacity_exhausted'] = 'Es ist keine weitere Benutzer-ID im unterstützten Bereich verfügbar. Das Konto wurde nicht angelegt. Bitte kontaktiere die Administration.';
 
 /***************************************************************************
  *                            lang_main.php [German]

@@ -21,6 +21,16 @@ columns, Arcade Mod Plus 2.1.8, Nuffload 1.4.2, DB Maintenance 1.3.8, modern
 social-profile fields, cookie consent and the disabled StopForumSpam option.
 It also normalizes all theme and member-style records to FI Subsilver Shadow.
 Existing unrelated configuration values are preserved.
+
+The updater also creates and initializes `user_id_sequence`, the durable
+counter required by all current registration paths. Its initial floor includes
+existing accounts and retained numeric ownership in bundled modules, not just
+the highest surviving account. Repeated updates never lower the counter and
+do not rewrite accounts or content. Run the update before reopening registration
+with the new code; missing sequence metadata stops account creation safely.
+Include this table in database backups and restores. Resetting it or restoring
+only older account tables can defeat the historical non-reuse guarantee.
+
 It also reconciles the public components-and-credits table with the verified
 post-1.53a integrations, including Arcade Rewards API, social-profile fields
 and the bundled Ruffle runtime, while retaining the

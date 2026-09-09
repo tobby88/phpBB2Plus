@@ -207,18 +207,9 @@ if ( isset($_POST['submit']) )
 
 	if ( !$error )
 	{
-		$sql = "SELECT MAX(user_id) AS total
-			FROM " . USERS_TABLE;
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain next user_id information', '', __LINE__, __FILE__, $sql);
-		}
-
-		if ( !($row = $db->sql_fetchrow($result)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain next user_id information', '', __LINE__, __FILE__, $sql);
-		}
-		$user_id = $row['total'] + 1;
+		require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
+		try { $user_id = phpbb_allocate_user_id($db, $table_prefix); }
+		catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		$new_password = phpbb_password_hash($new_password);
 

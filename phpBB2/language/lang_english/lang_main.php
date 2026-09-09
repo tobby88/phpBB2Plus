@@ -1,4 +1,6 @@
 <?php
+$lang['User_id_allocation_failed'] = 'A user ID could not be reserved safely. The account was not created. Please try again later; an administrator may need to run update/update_from_153a.php or check the ID storage.';
+$lang['User_id_capacity_exhausted'] = 'No further user ID is available in the supported range. The account was not created. Please contact an administrator.';
 /***************************************************************************
  *                            lang_main.php [English]
  *                              -------------------

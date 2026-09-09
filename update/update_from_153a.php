@@ -19,6 +19,8 @@ if (PHP_SAPI !== 'cli')
 
 $project_root = dirname(__DIR__);
 $forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+require_once $forum_root . '/includes/functions_user_ids.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
 
@@ -33,7 +35,7 @@ function update_usage()
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items))`?\s*\(.*?\)\s*ENGINE\s*=\s*MyISAM[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items|user_id_sequence))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)
@@ -75,6 +77,10 @@ $seed_statements = update_extract_seed_statements($basic_source);
 
 if (in_array('--self-test', $argv, true))
 {
+	if (!isset($create_statements['phpbb_user_id_sequence']) || strpos($basic_source, 'INSERT INTO phpbb_user_id_sequence (singleton, last_id) VALUES (1, 0);') === false)
+	{
+		fwrite(STDERR, "User ID sequence schema/seed self-test failed.\n"); exit(3);
+	}
 	$arcade_tables = 0;
 	$ctracker_tables = 0;
 	foreach (array_keys($create_statements) as $table)
@@ -195,6 +201,35 @@ function update_scalar($connection, $sql)
 	$row = mysqli_fetch_row($result);
 	mysqli_free_result($result);
 	return $row ? $row[0] : null;
+}
+
+class UpdateUserIdDatabase
+{
+	var $connection;
+	function __construct($connection) { $this->connection = $connection; }
+	function sql_query($sql) { return update_query_or_fail($this->connection, $sql); }
+	function sql_fetchrowset($result) { $rows = array(); while ($row = mysqli_fetch_assoc($result)) { $rows[] = $row; } return $rows; }
+	function sql_freeresult($result) { mysqli_free_result($result); }
+}
+function update_queue_user_id_sequence(&$operations, $database, $prefix, $exists)
+{
+	$prefix = phpbb_user_id_prefix($prefix);
+	$table = '`' . $prefix . 'user_id_sequence`';
+	$floor = phpbb_user_id_reference_floor($database, $prefix);
+	$rows = $exists ? phpbb_user_id_rows($database, 'SELECT last_id FROM ' . $table . ' WHERE singleton = 1') : array();
+	if (count($rows) > 1) { phpbb_user_id_error(); }
+	if (!$rows)
+	{
+		$operations[] = 'INSERT INTO ' . $table . ' (singleton,last_id) SELECT 1,' . $floor . ' WHERE NOT EXISTS (SELECT 1 FROM ' . $table . ' WHERE singleton = 1)';
+		// A concurrently inserted lower seed must still adopt this observed
+		// historical floor; never lose it merely because INSERT became a no-op.
+		$operations[] = 'UPDATE ' . $table . ' SET last_id = ' . $floor . ' WHERE singleton = 1 AND last_id < ' . $floor;
+	}
+	elseif (phpbb_user_id_number($rows[0]['last_id']) < $floor)
+	{
+		// Applying an older plan must never lower a concurrently advanced mark.
+		$operations[] = 'UPDATE ' . $table . ' SET last_id = ' . $floor . ' WHERE singleton = 1 AND last_id < ' . $floor;
+	}
 }
 
 function update_table_exists($connection, $database, $table)
@@ -461,6 +496,7 @@ foreach ($create_statements as $generic_table => $generic_sql)
 }
 
 update_queue_log_widths($operations, $connection, $dbname, $table_prefix . 'logs');
+update_queue_user_id_sequence($operations, new UpdateUserIdDatabase($connection), $table_prefix, update_table_exists($connection, $dbname, $table_prefix . 'user_id_sequence'));
 
 $user_columns = array(
 	'games_block_pm' => 'TINYINT(1) NOT NULL DEFAULT 1',
