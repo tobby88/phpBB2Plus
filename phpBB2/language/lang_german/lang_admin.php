@@ -1040,7 +1040,7 @@ $lang['Prune_users'] = 'Benutzer löschen';
 
 // Start add - Admin add user MOD
 $lang['Create_user'] = 'Neuen Benutzer erstellen';
-$lang['Create_user_explain'] = 'Du erstellst ein neues Konto mit Vorgaben von %s, dem in admin_users.php festgelegten Referenzkonto. Gib eine E-Mail-Adresse ein und trage das neue Passwort zweimal ein. Es gibt kein gemeinsames Standardpasswort.';
+$lang['Create_user_explain'] = 'Du erstellst ein neues Konto mit Profilvorgaben von %s, dem in admin_users.php festgelegten Referenzkonto. Gruppenmitgliedschaften und deren Rechte werden nicht übernommen. Vergib benötigte Gruppen anschließend separat über die Gruppenverwaltung. Gib eine E-Mail-Adresse ein und trage das neue Passwort zweimal ein. Es gibt kein gemeinsames Standardpasswort.';
 $lang['New_user_password_required'] = 'Für ein neues Konto musst du ein Passwort und die passende Bestätigung eingeben. Es wird kein Standardpasswort vergeben.';
 // End add - Admin add user MOD
 

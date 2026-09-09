@@ -1042,7 +1042,7 @@ $lang['Prune_users'] = 'Prune users';
 
 // Start add - Admin add user MOD
 $lang['Create_user'] = 'Create new user';
-$lang['Create_user_explain'] = 'You are creating a new account using defaults from %s, the reference account configured in admin_users.php. Supply an email address and enter the new password twice. There is no shared default password.';
+$lang['Create_user_explain'] = 'You are creating a new account using profile defaults from %s, the reference account configured in admin_users.php. Group memberships and their permissions are not copied. Assign any required groups separately through group administration. Supply an email address and enter the new password twice. There is no shared default password.';
 $lang['New_user_password_required'] = 'A new account requires an explicit password and matching confirmation. No default password is assigned.';
 // End add - Admin add user MOD
 

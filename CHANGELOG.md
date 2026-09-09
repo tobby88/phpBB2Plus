@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Separate ACP profile defaults from group permissions. New accounts no longer
+  silently inherit shared groups from the reference account (usually user 2),
+  including its private/moderator groups or pending membership requests that
+  were previously inserted as approved. Keep the new account's personal group
+  and profile defaults; direct administrators to the existing authorized group
+  workflow. No existing memberships are removed and no migration is required.
+
 - Keep automatic bcrypt upgrades monotonic across PHP versions: a stored higher
   work factor is not reduced to an older runtime's default. Preserve other hash
   algorithms instead of implicitly converting them to bcrypt; retain the opt-in

@@ -572,3 +572,6 @@ jobs:
 
       - name: Test monotonic password rehash and concurrent credential changes
         run: php .github/scripts/check-password-rehash-runtime.php
+
+      - name: Test account creation without inherited group privileges
+        run: php .github/scripts/check-account-group-isolation.php

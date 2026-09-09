@@ -51,6 +51,12 @@ explicit password and matching confirmation; no shared default password is
 assigned. These changes do not alter existing account credentials or retract
 passwords from emails already sent by older versions.
 
+The ACP reference account supplies profile defaults only. New accounts receive
+their own personal group, but do not inherit the reference account's shared
+memberships or permissions (including pending membership requests). Assign
+required shared groups separately through the authorized group-management
+workflow. Existing accounts and memberships are not changed automatically.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

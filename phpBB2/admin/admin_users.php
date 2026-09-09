@@ -148,24 +148,8 @@ if ($new_user)
 			message_die(GENERAL_ERROR, 'Could not insert data into groups table', '', __LINE__, __FILE__, $sql);
 		}
 		$group_id = $db->sql_nextid();
-		//go get the usergroups, the default user are member of
-		$sql = "SELECT g.group_id
-			FROM " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g
-			WHERE NOT g.group_single_user AND ug.group_id=g.group_id AND ug.user_id='".DEFAULT_USER_ID."'";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain default user group information', '', __LINE__, __FILE__, $sql);
-		}
-		while ($group_data = $db->sql_fetchrow($result))
-		{
-			//user join default groups
-			$sql = "INSERT INTO " . USER_GROUP_TABLE . " (group_id, user_id, user_pending) 
-				VALUES (".$group_data['group_id'].", $user_id, '0')";
-			if ( !($db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Error insert default groupst', '', __LINE__, __FILE__, $sql);
-			}
-		}
+		// The reference account supplies profile defaults, never permissions.
+		// Shared memberships must be explicitly assigned by group administration.
 
 		$sql = "INSERT INTO " . USER_GROUP_TABLE . " (user_id, group_id, user_pending)
 			VALUES ($user_id, $group_id, 0)";
