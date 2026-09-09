@@ -95,7 +95,9 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 							$upgraded_password = phpbb_password_hash($password);
 							if ($upgraded_password !== false)
 							{
-								$db->sql_query("UPDATE " . USERS_TABLE . " SET user_password = '" . str_replace("'", "''", $upgraded_password) . "' WHERE user_id = " . (int) $row['user_id']);
+								// A concurrent reset/change must not be overwritten by this
+								// optional upgrade of the password observed before login.
+								$db->sql_query("UPDATE " . USERS_TABLE . " SET user_password = '" . $db->sql_escape($upgraded_password) . "' WHERE user_id = " . (int) $row['user_id'] . " AND user_active = 1 AND CAST(user_password AS BINARY) = CAST('" . $db->sql_escape($row['user_password']) . "' AS BINARY)");
 							}
 						}
 

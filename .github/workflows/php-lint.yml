@@ -569,3 +569,6 @@ jobs:
 
       - name: Test shared password policy and hashing failure boundaries
         run: php .github/scripts/check-password-policy-runtime.php
+
+      - name: Test monotonic password rehash and concurrent credential changes
+        run: php .github/scripts/check-password-rehash-runtime.php

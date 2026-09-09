@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep automatic bcrypt upgrades monotonic across PHP versions: a stored higher
+  work factor is not reduced to an older runtime's default. Preserve other hash
+  algorithms instead of implicitly converting them to bcrypt; retain the opt-in
+  legacy MD5 migration. A login rehash updates only an active account with the
+  exact originally observed hash, preventing a concurrent password change/reset
+  or stronger rehash from being overwritten, including under case-insensitive
+  database collations. No bulk credential changes or schema migration are needed.
+
 - Apply shared new-password bounds (nonempty, no NUL, at most 72 UTF-8 bytes)
   across registration, resets, profile edits, ACP creation/editing and installation.
   Enforce configured rules in both ACP forms and strict confirmation in the
