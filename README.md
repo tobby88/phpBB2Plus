@@ -104,6 +104,15 @@ the server's [CHECK TABLE](https://dev.mysql.com/doc/refman/8.4/en/check-table.h
 and [REPAIR TABLE](https://dev.mysql.com/doc/refman/8.4/en/repair-table.html)
 instructions and back up before repairs; the report is not a recovery guarantee.
 
+SQL diagnostics in the main error page, repeated errors, database maintenance
+and emergency recovery show only a numeric error code, a recognized statement
+type and an escaped source basename/line. Driver messages and full SQL values
+are deliberately omitted: they can repeat passwords, tokens or private content.
+DEBUG remains off by default; main/ACP details additionally require an authenticated
+administrator in the ACP. ERC remains behind its explicit recovery access gates.
+Trusted localized help links remain available. No sensitive diagnostic copy is
+written to a new log by this renderer.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

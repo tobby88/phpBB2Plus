@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replace raw SQL/driver diagnostics with a shared, bounded metadata renderer in
+  main, repeated, ACP maintenance and emergency recovery errors. Preserve numeric
+  error codes, statement type and escaped source basenames/lines, but omit driver
+  text and SQL values that may contain passwords, tokens or private content.
+  Enforce the existing authenticated-ACP debug gate in maintenance errors too;
+  keep trusted localized help markup and correct a remaining ERC error-handler
+  callsite. Test actual renderer exits, nested errors, DEBUG/role combinations,
+  malformed metadata, UTF-8 and missing DB objects on PHP 5.6/7.4/8.5.
+  No database migration or new sensitive log.
+
 - Share complete diagnostic handling across table CHECK, REPAIR and OPTIMIZE.
   ACP checks/repairs no longer mislabel failed statuses as OK or discard later
   errors. Emergency recovery only reports success for fully confirmed repairs

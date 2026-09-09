@@ -1,6 +1,43 @@
 <?php
 
 /**
+ * Render bounded SQL diagnostic metadata, never query values or driver text.
+ * Driver messages can repeat passwords, private content and SQL literals in
+ * formats that cannot be reliably redacted. Authorization stays with callers.
+ */
+if (!function_exists('phpbb_safe_sql_diagnostics'))
+{
+	function phpbb_safe_sql_diagnostics($error, $sql = '', $line = '', $file = '')
+	{
+		$html = '';
+		$code = is_array($error) && isset($error['code']) && (is_int($error['code']) || is_string($error['code'])) ? (string) $error['code'] : '';
+		if (preg_match('/^[0-9]{1,10}$/D', $code) && (float) $code > 0)
+		{
+			$html .= '<br /><br />SQL Error: ' . $code;
+		}
+		if (is_string($sql) && $sql !== '')
+		{
+			$operation = 'OTHER';
+			if (preg_match('/^\s*(SELECT|INSERT|UPDATE|DELETE|REPLACE|ALTER|CREATE|DROP|TRUNCATE|CHECK|REPAIR|OPTIMIZE|SHOW|SET|DESCRIBE|EXPLAIN|START|COMMIT|ROLLBACK)\b/i', substr($sql, 0, 64), $match))
+			{
+				$operation = strtoupper($match[1]);
+			}
+			$html .= '<br /><br />SQL: ' . $operation;
+		}
+		if ((is_int($line) || is_string($line)) && preg_match('/^[0-9]{1,10}$/D', (string) $line) && (float) $line > 0)
+		{
+			$html .= '<br /><br />Line: ' . $line;
+			if (is_string($file) && $file !== '')
+			{
+				$name = substr(basename(str_replace('\\', '/', $file)), 0, 128);
+				$html .= '<br />File: ' . htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+			}
+		}
+		return $html;
+	}
+}
+
+/**
  * Compatibility helpers for APIs removed after PHP 5.
  *
  * Every helper is conditional so PHP 5.6 continues to use its native API.

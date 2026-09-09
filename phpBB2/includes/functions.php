@@ -1860,14 +1860,7 @@ function message_die($msg_code, $msg_text = '', $msg_title = '', $err_line = '',
 					echo '<b>' . $msg_history[$i]['msg_title'] . "</b>\n<br />\n";
 				}
 				echo $msg_history[$i]['msg_text'] . "\n<br /><br />\n";
-				if( !empty($msg_history[$i]['err_line']) )
-				{
-					echo '<b>Line :</b> ' . intval($msg_history[$i]['err_line']) . '<br /><b>File :</b> ' . htmlspecialchars(basename($msg_history[$i]['err_file']), ENT_QUOTES, 'UTF-8') . "</b>\n<br />\n";
-				}
-				if( !empty($msg_history[$i]['sql']) )
-				{
-					echo '<b>SQL :</b> ' . htmlspecialchars($msg_history[$i]['sql'], ENT_QUOTES, 'UTF-8') . "\n<br />\n";
-				}
+				echo phpbb_safe_sql_diagnostics(array(), $msg_history[$i]['sql'], $msg_history[$i]['err_line'], $msg_history[$i]['err_file']);
 				echo "&nbsp;<hr />\n";
 			}
 		}
@@ -1889,22 +1882,8 @@ function message_die($msg_code, $msg_text = '', $msg_title = '', $err_line = '',
 	//
 	if ( phpbb_debug_details_allowed() && ( $msg_code == GENERAL_ERROR || $msg_code == CRITICAL_ERROR ) )
 	{
-		$sql_error = $db->sql_error();
-
-		if ( $sql_error['message'] != '' )
-		{
-			$debug_text .= '<br /><br />SQL Error : ' . $sql_error['code'] . ' ' . $sql_error['message'];
-		}
-
-		if ( $sql_store != '' )
-		{
-			$debug_text .= "<br /><br />$sql_store";
-		}
-
-		if ( $err_line != '' && $err_file != '' )
-		{
-			$debug_text .= '<br /><br />Line : ' . $err_line . '<br />File : ' . basename($err_file);
-		}
+		$sql_error = is_object($db) && method_exists($db, 'sql_error') ? $db->sql_error() : array();
+		$debug_text = phpbb_safe_sql_diagnostics($sql_error, $sql_store, $err_line, $err_file);
 	}
 
 	if( empty($userdata) && ( $msg_code == GENERAL_MESSAGE || $msg_code == GENERAL_ERROR ) )

@@ -1032,7 +1032,7 @@ switch($mode)
 					$result = $db->sql_query($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't add user data!", __LINE__, __FILE__, $sql);
+						erc_throw_error("Couldn't add user data!", __LINE__, __FILE__, $sql);
 					}
 					success_message($lang['cbl_success_anonymous']);
 				}

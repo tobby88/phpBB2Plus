@@ -590,3 +590,6 @@ jobs:
 
       - name: Test truthful CHECK and REPAIR reports in ACP and emergency recovery
         run: php .github/scripts/check-maintenance-reports.php
+
+      - name: Test private-data-free SQL diagnostics and real error renderers
+        run: php .github/scripts/check-error-diagnostic-rendering.php

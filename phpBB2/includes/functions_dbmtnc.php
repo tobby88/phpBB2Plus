@@ -160,36 +160,11 @@ function throw_error($msg_text = '', $err_line = '', $err_file = '', $sql = '')
 	global $db, $template, $lang, $phpEx, $phpbb_root_path, $theme;
 	global $list_open;
 
-	$sql_store = $sql;
-
-	//
-	// Get SQL error if we are debugging. Do this as soon as possible to prevent
-	// subsequent queries from overwriting the status of sql_error()
-	//
-	if ( DEBUG )
+	$debug_text = '';
+	if (phpbb_debug_details_allowed())
 	{
-		$sql_error = $db->sql_error();
-
-		$debug_text = '';
-
-		if ( $sql_error['message'] != '' )
-		{
-			$debug_text .= '<br /><br />SQL Error : ' . $sql_error['code'] . ' ' . $sql_error['message'];
-		}
-
-		if ( $sql_store != '' )
-		{
-			$debug_text .= "<br /><br />$sql_store";
-		}
-
-		if ( $err_line != '' && $err_file != '' )
-		{
-			$debug_text .= '</br /><br />Line : ' . $err_line . '<br />File : ' . $err_file;
-		}
-	}
-	else
-	{
-		$debug_text = '';
+		$error = is_object($db) && method_exists($db, 'sql_error') ? $db->sql_error() : array();
+		$debug_text = phpbb_safe_sql_diagnostics($error, $sql, $err_line, $err_file);
 	}
 
 	//
@@ -845,36 +820,11 @@ function erc_throw_error($msg_text = '', $err_line = '', $err_file = '', $sql = 
 {
 	global $db, $lang;
 
-	$sql_store = $sql;
-
-	//
-	// Get SQL error if we are debugging. Do this as soon as possible to prevent
-	// subsequent queries from overwriting the status of sql_error()
-	//
-	if ( DEBUG )
+	$debug_text = '';
+	if (defined('DEBUG') && DEBUG)
 	{
-		$sql_error = $db->sql_error();
-
-		$debug_text = '';
-
-		if ( $sql_error['message'] != '' )
-		{
-			$debug_text .= '<br /><br />SQL Error : ' . $sql_error['code'] . ' ' . $sql_error['message'];
-		}
-
-		if ( $sql_store != '' )
-		{
-			$debug_text .= "<br /><br />$sql_store";
-		}
-
-		if ( $err_line != '' && $err_file != '' )
-		{
-			$debug_text .= '</br /><br />Line : ' . $err_line . '<br />File : ' . $err_file;
-		}
-	}
-	else
-	{
-		$debug_text = '';
+		$error = is_object($db) && method_exists($db, 'sql_error') ? $db->sql_error() : array();
+		$debug_text = phpbb_safe_sql_diagnostics($error, $sql, $err_line, $err_file);
 	}
 
 	if ( $msg_text == '' )
