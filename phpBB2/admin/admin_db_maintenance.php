@@ -2845,143 +2845,24 @@ switch($mode_id)
 				lock_db(TRUE);
 				break;
 			case 'check_search_wordmatch': // Check search word match data
-				echo("<h1>" . $lang['Checking_search_wordmatch_tables'] . "</h1>\n");
-				lock_db();
-
-				// Checking for invalid search word match data
-				echo("<p class=\"gen\"><b>" . $lang['Checking_search_data'] . "</b></p>\n");
-				$sql = "SELECT sm.post_id
-					FROM " . SEARCH_MATCH_TABLE . " sm
-						LEFT JOIN " . POSTS_TABLE . " p ON sm.post_id = p.post_id
-					WHERE p.post_id IS NULL
-					GROUP BY sm.post_id";
-				$post_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get search-match and post data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$post_array[] = $row['post_id'];
-				}
-				$db->sql_freeresult($result);
-				$sql = "SELECT sm.word_id
-					FROM " . SEARCH_MATCH_TABLE . " sm
-						LEFT JOIN " . SEARCH_WORD_TABLE . " sw ON sm.word_id = sw.word_id
-					WHERE sw.word_id IS NULL
-						OR sw.word_common = 1
-					GROUP BY sm.word_id";
-				$word_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get search-match and word data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$word_array[] = $row['word_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($post_array) || count($word_array) )
-				{
-					$sql_query = '';
-					if ( count($post_array) )
-					{
-						$sql_query = 'post_id IN (' . implode(',', $post_array) . ') ';
-					}
-					if ( count($word_array) )
-					{
-						$sql_query .= (($sql_query == '') ? '' : ' OR ') . 'word_id IN (' . implode(',', $word_array) . ') ';
-					}
-					$sql = "DELETE FROM " . SEARCH_MATCH_TABLE . "
-						WHERE $sql_query";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update search-match data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				lock_db(TRUE);
-				break;
 			case 'check_search_wordlist': // Check search word list data
-				echo("<h1>" . $lang['Checking_search_wordlist_tables'] . "</h1>\n");
+				echo('<h1>' . $lang[$function === 'check_search_wordlist' ? 'Checking_search_wordlist_tables' : 'Checking_search_wordmatch_tables'] . '</h1>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_search.' . $phpEx);
+				try { dbmtnc_search_cleanup_request($function, $_POST); }
+				catch (PhpbbAclException $error) { throw_error($error->getMessage()); }
 				lock_db();
-
-				// Checking for invalid search word list data
-				echo("<p class=\"gen\"><b>" . $lang['Checking_search_words'] . "</b></p>\n");
-				$sql = "SELECT sw.word_id
-					FROM " . SEARCH_WORD_TABLE . " sw
-						LEFT JOIN " . SEARCH_MATCH_TABLE . " sm ON sw.word_id = sm.word_id
-					WHERE sm.word_id IS NULL
-						AND sw.word_common <> 1";
-				$result_array = array();
-				$affected_rows = 0;
-				$result = $db->sql_query($sql);
-				if ( !$result )
+				$search_cleanup_error = '';
+				try { $affected_rows = dbmtnc_cleanup_search($db, $function, $_POST); }
+				catch (PhpbbAclException $error) { $search_cleanup_error = $error->getMessage(); }
+				catch (Exception $error) { $search_cleanup_error = $lang['Maintenance_search_cleanup_failed']; }
+				catch (Throwable $error) { $search_cleanup_error = $lang['Maintenance_search_cleanup_failed']; }
+				finally { lock_db(TRUE); }
+				if ($search_cleanup_error !== '') { throw_error($search_cleanup_error); }
+				if ($affected_rows > 0)
 				{
-					throw_error("Couldn't get search data!", __LINE__, __FILE__, $sql);
+					echo('<p class="gen">' . sprintf($lang[$affected_rows === 1 ? 'Affected_row' : 'Affected_rows'], $affected_rows) . '</p>');
 				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['word_id'];
-					if ( count($result_array) >= 100 )
-					{
-						echo("<p class=\"gen\">" . $lang['Removing_part_invalid_words'] . "...</p>\n");
-						$record_list = implode(',', $result_array);
-						$sql2 = "DELETE FROM " . SEARCH_WORD_TABLE . "
-							WHERE word_id IN ($record_list)";
-						$result2 = $db->sql_query($sql2);
-						if ( !$result2 )
-						{
-							throw_error("Couldn't update search words!", __LINE__, __FILE__, $sql2);
-						}
-						$affected_rows += $db->sql_affectedrows();
-						$result_array = array();
-					}
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					echo("<p class=\"gen\">" . $lang['Removing_invalid_words'] . "</p>\n");
-					$record_list = implode(',', $result_array);
-					$sql = "DELETE FROM " . SEARCH_WORD_TABLE . "
-						WHERE word_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update search words!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows += $db->sql_affectedrows();
-				}
-				if ( $affected_rows == 1 )
-				{
-					echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-				}
-				elseif ( $affected_rows > 1 )
-				{
-					echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				lock_db(TRUE);
+				else { echo($lang['Nothing_to_do']); }
 				break;
 			case 'rebuild_search_index': // Rebuild Search Index
 				echo("<h1>" . $lang['Rebuilding_search_index'] . "</h1>\n");

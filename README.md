@@ -103,6 +103,14 @@ Only current authorized ACP requests can run it. Reports use verified current
 counts and names, and flag removed or changed targets. Partial failures can leave
 earlier corrections applied; no automatic recount runs during deployment.
 
+Search-index maintenance cleans unused non-common words and invalid matches on
+the coordinated writer connection. Each batch contains at most 100 candidate
+word or post IDs; deletion rechecks current references, common-word flags and
+ACP authorization. Newly used words and restored valid matches are retained.
+This does not delete source posts or rebuild the entire index. Earlier batches
+can remain applied after a failure, so back up before maintenance and retry only
+after resolving the error. Deployment does not perform cleanup or a migration.
+
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.
 Explicit defaults, special attributes and ambiguous keys are left for review.

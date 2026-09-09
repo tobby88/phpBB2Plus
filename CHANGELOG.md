@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate both search word-list and word-match maintenance with shared
+  writers. Replace stale ID-only deletion with current reference/common-word
+  and actor guards; page through bounded candidate-ID batches. Preserve newly
+  used words, restored valid matches and common dictionary entries. Restore
+  maintenance state on controlled failures and report actual affected rows,
+  without claiming rollback of earlier batches. Add actual-controller EN/DE,
+  batch-boundary, concurrent index changes, authorization and native-engine
+  tests. No source-post deletion, full-index reset or schema migration.
+
 - Coordinate personal post-count maintenance with posting and forum-policy
   writers. Replace snapshot counts with current aggregates inside guarded UPDATEs,
   recheck maintenance authorization, preserve count-enabled forum and sentinel-ID
