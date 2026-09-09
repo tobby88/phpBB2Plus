@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Defer recipient-inbox and sender-sentbox quota eviction until new message/
+  sent-copy header, text and attachment publication have succeeded. Exclude the
+  just-published copy even if its original date is older than existing mail;
+  recheck current publication, capacity and actor in destructive writes. Recount
+  delivery counters instead of double-incrementing after quota cleanup, and keep
+  last-delivery timestamps monotonic. Test actual controller failure paths under
+  PHP 5.6/7.4/8.5. No new schema is required. This prevents collateral old-mail
+  deletion; it does not make the entire legacy send/read workflow transactional.
+
 - Add owner-scoped durable cleanup for ordinary PM deletion, saved-mailbox
   eviction and send/read quota trimming, separate from ACP repair permissions.
   Reopening the affected mailbox resumes dependent cleanup after SQL/file

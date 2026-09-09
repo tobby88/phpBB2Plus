@@ -629,3 +629,9 @@ jobs:
 
       - name: Test additive ordinary mailbox cleanup migration
         run: php .github/scripts/check-pm-mailbox-migration.php
+
+      - name: Test actual PM publication before quota eviction
+        run: php .github/scripts/check-pm-publication-quota.php
+
+      - name: Test post-publication quota and counter database operations
+        run: php .github/scripts/check-pm-publication-storage.php

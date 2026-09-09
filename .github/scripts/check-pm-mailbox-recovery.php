@@ -198,7 +198,7 @@ try
 	}
 	$source=file_get_contents($forum_root.'privmsg.php');
 	mutation_check(strpos($source,"phpbb_pm_recover_mailbox(\$userdata['user_id'], \$folder)")!==false,'Actual controller exposes owner-scoped retry after a vanished selection');
-	mutation_check(strpos($source,"'read', \$privmsg['privmsgs_id']")!==false && strpos($source,"'max_inbox_privmsgs'], 'send'")!==false,'Actual automatic trim calls bind distinct capabilities');
+	mutation_check(strpos($source,"'read', \$privmsg['privmsgs_id']")!==false && strpos($source,'phpbb_pm_finalize_delivery(')!==false,'Actual automatic trim/finalization calls bind distinct capabilities');
 }
 finally
 {

@@ -321,7 +321,6 @@ else if ( $mode == 'read' )
 			message_die(GENERAL_ERROR, 'Could not update private message read status', '', __LINE__, __FILE__, $sql);
 		}
 
-		phpbb_pm_trim_oldest($privmsg['privmsgs_from_userid'], 'sentbox', $board_config['max_sentbox_privmsgs'], 'read', $privmsg['privmsgs_id']);
 		$sql_priority = (SQL_LAYER == 'mysql') ? 'LOW_PRIORITY' : '';
 
 		//
@@ -349,6 +348,7 @@ else if ( $mode == 'read' )
 			message_die(GENERAL_ERROR, 'Could not insert private message sent text', '', __LINE__, __FILE__, $sql);
 		}
 		$attachment_mod['pm']->duplicate_attachment_pm($privmsg['privmsgs_attachment'], $privmsg['privmsgs_id'], $privmsg_sent_id);
+		phpbb_pm_trim_oldest($privmsg['privmsgs_from_userid'], 'sentbox', $board_config['max_sentbox_privmsgs'], 'read', $privmsg['privmsgs_id'], $privmsg_sent_id);
 	}
 	//
 	// Pick a folder, any folder, so long as it's one below ...
@@ -925,8 +925,6 @@ else if ( $submit || $refresh || $mode != '' )
 
 		if ( $mode != 'edit' )
 		{
-			phpbb_pm_trim_oldest($to_userdata['user_id'], 'inbox', $board_config['max_inbox_privmsgs'], 'send');
-
 			$sql_info = "INSERT INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
 				VALUES (" . PRIVMSGS_NEW_MAIL . ", '$subject_sql', $sender_id, $recipient_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on, $attach_sig)";
 		}
@@ -971,16 +969,7 @@ else if ( $submit || $refresh || $mode != '' )
 		$attachment_mod['pm']->insert_attachment_pm($privmsg_id);
 		if ( $mode != 'edit' )
 		{
-			//
-			// Add to the users new pm counter
-			//
-			$sql = "UPDATE " . USERS_TABLE . "
-				SET user_new_privmsg = user_new_privmsg + 1, user_last_privmsg = " . time() . "  
-				WHERE user_id = " . $to_userdata['user_id']; 
-			if ( !$status = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update private message new/read status for user', '', __LINE__, __FILE__, $sql);
-			}
+			phpbb_pm_finalize_delivery($to_userdata['user_id'], $privmsg_sent_id, $board_config['max_inbox_privmsgs']);
 
 			if ( $to_userdata['user_notify_pm'] && !empty($to_userdata['user_email']) && $to_userdata['user_active'] )
 			{

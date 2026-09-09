@@ -101,6 +101,11 @@ fresh authorized action. Sending and reading have separate quota capabilities
 because they can legitimately trim another participant's mailbox. Explicit
 deletion and saving require POST/session validation. Delete-all pagination does
 not expand to newly arriving higher message IDs.
+Delivery and sent-copy quota eviction now run only after the new header, text
+and attachment-publication steps succeed. The new copy is excluded from eviction
+even when it carries an older original date. Delivery counters are recounted,
+not incremented again after quota cleanup. Failed publication therefore does
+not first discard an older message merely to make space.
 
 The post-1.53a updater adds `pm_delete_jobs` and `pm_delete_items` without
 rewriting existing messages. Run it before opening mailboxes with this version.

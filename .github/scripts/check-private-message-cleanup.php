@@ -121,7 +121,7 @@ try
 		mutation_check($mutation_server->count_rows(PM_DELETE_JOBS_TABLE)===0 && $mutation_server->count_rows(PRIVMSGS_TEXT_TABLE)===1 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===1,'Retry completes cleanup even after the selected parent disappeared');
 	}
 	$controller=file_get_contents($forum_root.'privmsg.php');
-	mutation_check(substr_count($controller,'phpbb_pm_trim_oldest(')===2 && substr_count($controller,'phpbb_pm_delete_messages(')===1 && substr_count($controller,'phpbb_pm_save_messages(')===1 && strpos($controller,'delete_all_pm_attachments(')===false,'All PN controller deletion/save paths use helper');
+	mutation_check(substr_count($controller,'phpbb_pm_trim_oldest(')===1 && substr_count($controller,'phpbb_pm_finalize_delivery(')===1 && substr_count($controller,'phpbb_pm_delete_messages(')===1 && substr_count($controller,'phpbb_pm_save_messages(')===1 && strpos($controller,'delete_all_pm_attachments(')===false,'All PN controller deletion/save/finalization paths use helper');
 	define('GENERAL_MESSAGE',200); define('ADMIN',1);
 	$lang['PM_save_limit_exceeded']='save limit';
 	pm_cleanup_fixture();

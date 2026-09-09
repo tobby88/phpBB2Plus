@@ -260,7 +260,7 @@ function phpbb_pm_delete_messages($ids, $user_id, $folder, $all = false)
 	finally { $lock->release(); }
 }
 
-function phpbb_pm_trim_oldest($user_id, $folder, $limit, $policy = 'owner', $source_id = 0)
+function phpbb_pm_trim_oldest($user_id, $folder, $limit, $policy = 'owner', $source_id = 0, $published_id = 0)
 {
 	global $db;
 	$where = phpbb_pm_mailbox_condition($user_id, $folder);
@@ -270,14 +270,62 @@ function phpbb_pm_trim_oldest($user_id, $folder, $limit, $policy = 'owner', $sou
 	try
 	{
 		$database = new PhpbbMailboxDatabase($lock->connection, $user_id, $folder, $policy, $source_id);
-		phpbb_mailbox_recover($database);
-		$result = phpbb_pm_cleanup_query($database, 'SELECT COUNT(*) AS total FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
-		$row = $database->sql_fetchrow($result); $database->sql_freeresult($result);
-		if ((int) $row['total'] < $limit) { return 0; }
-		// Deterministic tie-breaker; do not remove every message with the same date.
-		$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where . ' ORDER BY privmsgs_date, privmsgs_id LIMIT 1');
-		$row = $database->sql_fetchrow($result); $database->sql_freeresult($result);
-		return $row ? phpbb_mailbox_delete_selected($database, '(' . $where . ') AND privmsgs_id = ' . (int) $row['privmsgs_id']) : 0;
+		return phpbb_pm_trim_mailbox_locked($database, $limit, $published_id);
+	}
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	finally { $lock->release(); }
+}
+
+function phpbb_pm_trim_mailbox_locked($database, $limit, $published_id = 0)
+{
+	$limit = (int)$limit;
+	if ($limit <= 0) { return 0; }
+	$ids = $published_id === 0 ? array() : attach_delete_id_array(array($published_id));
+	if ($ids === false) { return 0; }
+	$where = phpbb_pm_mailbox_condition($database->owner, $database->folder);
+	phpbb_mailbox_recover($database);
+	if ($ids)
+	{
+		// Capacity is reclaimed only after a complete copy is in this mailbox.
+		// A moved/deleted/half-written new copy must not authorize eviction.
+		$ready = phpbb_acl_rows($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE (' . $where . ') AND privmsgs_id = ' . $ids[0]
+			. ' AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' t WHERE t.privmsgs_text_id = ' . $ids[0] . ')');
+		if (!$ready) { return 0; }
+	}
+	$rows = phpbb_acl_rows($database, 'SELECT COUNT(*) AS total FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
+	if ((int)$rows[0]['total'] < $limit + ($ids ? 1 : 0)) { return 0; }
+	if ($ids)
+	{
+		$published = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE (' . $where . ') AND privmsgs_id = ' . $ids[0]
+			. ' AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' t WHERE t.privmsgs_text_id = ' . $ids[0] . ')) quota_publication)';
+		$full = '(SELECT COUNT(*) FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where . ') quota_mailbox) > ' . $limit;
+		$where = '(' . $where . ') AND privmsgs_id <> ' . $ids[0] . ' AND ' . $published . ' AND ' . $full;
+	}
+	$rows = phpbb_acl_rows($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where . ' ORDER BY privmsgs_date, privmsgs_id LIMIT 1');
+	return $rows ? phpbb_mailbox_delete_selected($database, '(' . $where . ') AND privmsgs_id = ' . (int)$rows[0]['privmsgs_id']) : 0;
+}
+
+// Called only after header, text and attachment publication returned success.
+// Recount instead of adding one after a quota deletion already recounted mail.
+function phpbb_pm_finalize_delivery($user_id, $published_id, $limit)
+{
+	global $db;
+	$ids = attach_delete_id_array(array($published_id));
+	if (!$ids) { return 0; }
+	$lock = attach_require_mutation_lock($db);
+	try
+	{
+		$database = new PhpbbMailboxDatabase($lock->connection, $user_id, 'inbox', 'send');
+		$ready = phpbb_acl_rows($database, 'SELECT privmsgs_date FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $ids[0]
+			. ' AND privmsgs_from_userid = ' . $database->actor . ' AND privmsgs_to_userid = ' . $database->owner
+			. ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')'
+			. ' AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' t WHERE t.privmsgs_text_id = ' . $ids[0] . ')');
+		if (!$ready) { return 0; }
+		phpbb_pm_recount_recipient($database, $database->owner);
+		$sent_at = max(0,(int)$ready[0]['privmsgs_date']);
+		$database->sql_query('UPDATE ' . USERS_TABLE . ' SET user_last_privmsg = CASE WHEN user_last_privmsg IS NULL OR user_last_privmsg < ' . $sent_at
+			. ' THEN ' . $sent_at . ' ELSE user_last_privmsg END WHERE user_id = ' . $database->owner);
+		return phpbb_pm_trim_mailbox_locked($database, $limit, $ids[0]);
 	}
 	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	finally { $lock->release(); }
