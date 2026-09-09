@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recalculate new/unread PM counters from current recipient mailbox state in
+  the same guarded write, instead of publishing stale snapshots or zeroing
+  newly delivered messages. Coordinate with mailbox writers, require current
+  maintenance permissions, process bounded batches and preserve nonpositive
+  sentinel accounts. Report confirmed changes and interrupted runs in EN/DE;
+  always restore the preceding board lock when the counter stage ends.
+  This changes derived counters only, not message content or read states, and
+  requires no schema migration. Earlier PM repair stages remain separate.
+
 - Coordinate ACP poll maintenance with normal voting and posting. Recheck
   current parent references and administrator permissions inside every write,
   process bounded ID batches, report actual changes and acknowledge partial

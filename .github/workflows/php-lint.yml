@@ -608,3 +608,6 @@ jobs:
 
       - name: Test coordinated poll maintenance and preserved vote history
         run: php .github/scripts/check-maintenance-polls.php
+
+      - name: Test current PM counter maintenance and interrupted batches
+        run: php .github/scripts/check-maintenance-pm-counters.php
