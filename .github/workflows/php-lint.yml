@@ -602,3 +602,6 @@ jobs:
 
       - name: Test guarded search-index maintenance and batch failures
         run: php .github/scripts/check-maintenance-search.php
+
+      - name: Test durable search rebuild and interrupted finalization
+        run: php .github/scripts/check-maintenance-rebuild.php

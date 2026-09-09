@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replace the PHP 3/4 search-index rebuilding paths with a resumable,
+  generation-bound maintenance job. Reindex current source posts under the
+  shared writer lock, checkpoint confirmed posts, finalize common/orphan
+  entries in retryable batches, and restore the original maintenance state
+  only after completion. Preserve word IDs and concurrent new-post indexes;
+  add EN/DE progress and recovery messages plus additive installer/update
+  defaults. Retire obsolete rebuild tuning controls and unsafe legacy word SQL.
+
 - Coordinate both search word-list and word-match maintenance with shared
   writers. Replace stale ID-only deletion with current reference/common-word
   and actor guards; page through bounded candidate-ID batches. Preserve newly

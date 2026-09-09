@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('UTC');
 require __DIR__ . '/check-ajax-edit-storage.php';
-foreach(array('POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3,'CONFIG_TABLE'=>'fixture_config','PRUNE_TABLE'=>'fixture_prune','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value) { define($key,$value); }
+foreach(array('POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3,'PRUNE_TABLE'=>'fixture_prune','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value) { define($key,$value); }
 require $forum_root.'includes/functions_prune_storage.php';
 function prune_fixture()
 {
@@ -13,7 +13,6 @@ function prune_fixture()
 	$p->exec("ALTER TABLE fixture_forums ADD forum_link VARCHAR(255) DEFAULT ''");
 	$p->exec('ALTER TABLE fixture_forums ADD prune_enable INTEGER DEFAULT 1');
 	$p->exec('ALTER TABLE fixture_forums ADD prune_next INTEGER DEFAULT 0');
-	$p->exec('CREATE TABLE fixture_config (config_name VARCHAR(255), config_value VARCHAR(255))');
 	$p->exec("INSERT INTO fixture_config VALUES ('prune_enable','1')");
 	$p->exec('CREATE TABLE fixture_prune (prune_id INTEGER, forum_id INTEGER, prune_days INTEGER, prune_freq INTEGER)');
 	$p->exec('INSERT INTO fixture_prune VALUES (1,3,7,1)');

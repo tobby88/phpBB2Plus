@@ -650,6 +650,7 @@ $config_defaults = array(
 	'password_hashing' => '1',
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',
+	'dbmtnc_rebuild_job' => '',
 	'dbmtnc_rebuildcfg_maxmemory' => '500',
 	'dbmtnc_rebuildcfg_minposts' => '3',
 	'dbmtnc_rebuildcfg_php3only' => '0',

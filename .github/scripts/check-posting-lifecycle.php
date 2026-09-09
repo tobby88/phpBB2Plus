@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/check-attachment-mutation.php';
 require_once __DIR__ . '/fixture-current-moderator.php';
+define('CONFIG_TABLE','fixture_config');
 foreach (array('GENERAL_MESSAGE'=>200,'BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,'FORUMS_TABLE'=>'fixture_forums','USERS_TABLE'=>'fixture_users','POSTS_TEXT_TABLE'=>'fixture_post_text','VOTE_DESC_TABLE'=>'fixture_votes','VOTE_RESULTS_TABLE'=>'fixture_vote_results','VOTE_USERS_TABLE'=>'fixture_voters','BOOKMARK_TABLE'=>'fixture_bookmarks','TOPICS_WATCH_TABLE'=>'fixture_watches','TOPIC_VIEW_TABLE'=>'fixture_views','SEARCH_WORD_TABLE'=>'fixture_words','SEARCH_MATCH_TABLE'=>'fixture_matches','SQL_LAYER'=>'mysqli','FORUM_LOCKED'=>1,'TOPIC_LOCKED'=>1,'TOPIC_UNLOCKED'=>0,'POST_NEWS'=>4,'ANONYMOUS'=>-1,'POST_POST_URL'=>'p','POST_TOPIC_URL'=>'t','POST_FORUM_URL'=>'f') as $key=>$value) { define($key,$value); }
 require $forum_root . 'includes/functions_post.php';
 require $forum_root . 'includes/functions_moderation.php';
@@ -20,6 +21,7 @@ function posting_fixture()
 	global $mutation_server, $db, $userdata, $is_auth, $board_config, $phpbb_root_path, $phpEx, $ctracker_config, $user_ip;
 	$mutation_server = new MutationServer(); $db = new MutationForum();
 	$mutation_server->pdo = new PostingFixturePDO($mutation_server->pdo); $p = $mutation_server->pdo;
+	$p->exec('CREATE TABLE fixture_config (config_name VARCHAR(64) PRIMARY KEY, config_value VARCHAR(255))');
 	foreach (array('forum_id INTEGER DEFAULT 3','poster_id INTEGER DEFAULT 8','post_username TEXT','post_time INTEGER DEFAULT 1','poster_ip TEXT','enable_bbcode INTEGER DEFAULT 1','enable_html INTEGER DEFAULT 0','enable_smilies INTEGER DEFAULT 1','enable_sig INTEGER DEFAULT 0','post_icon INTEGER DEFAULT 0','post_edit_time INTEGER DEFAULT 0','post_edit_count INTEGER DEFAULT 0') as $column) { $p->exec('ALTER TABLE fixture_posts ADD ' . $column); }
 	foreach (array('forum_id INTEGER DEFAULT 3','topic_status INTEGER DEFAULT 0','topic_moved_id INTEGER DEFAULT 0','topic_title TEXT','topic_desc TEXT','topic_poster INTEGER DEFAULT 8','topic_time INTEGER DEFAULT 1','news_id INTEGER DEFAULT 0','topic_type INTEGER DEFAULT 0','topic_calendar_time INTEGER DEFAULT 0','topic_calendar_duration INTEGER DEFAULT 0','topic_icon INTEGER DEFAULT 0','topic_announce_duration INTEGER DEFAULT 0','topic_vote INTEGER DEFAULT 0','topic_replies INTEGER DEFAULT 0','topic_first_post_id INTEGER DEFAULT 10','topic_last_post_id INTEGER DEFAULT 10') as $column) { $p->exec('ALTER TABLE fixture_topics ADD ' . $column); }
 	$p->exec('CREATE TABLE fixture_forums (forum_id INTEGER PRIMARY KEY, forum_status INTEGER, count_posts INTEGER, forum_posts INTEGER, forum_topics INTEGER, forum_last_post_id INTEGER)');

@@ -1027,6 +1027,7 @@ INSERT INTO phpbb_album_config (config_name, config_value) VALUES ('resize_quali
 #
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuild_end', '0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuild_pos', '-1');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuild_job', '');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_maxmemory', '500');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_minposts', '3');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('dbmtnc_rebuildcfg_php3only', '0');

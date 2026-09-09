@@ -25,9 +25,8 @@ if (!defined('IN_PHPBB'))
 define('DBMTNC_VERSION', '1.3.8');
 // CONFIG_LEVEL = 0: configuration is disabled
 // CONFIG_LEVEL = 1: only general configuration available
-// CONFIG_LEVEL = 2: also configuration of rebuilding available
-// CONFIG_LEVEL = 3: also configuration of current rebuilding available
-define('CONFIG_LEVEL', 2); // Level of configuration available (see above)
+// Rebuild batches and checkpoints are managed by the durable rebuild service.
+define('CONFIG_LEVEL', 1); // Only general options remain configurable.
 define('HEAP_SIZE', 500); // Limit of Heap-Table for session data
 
 if ( !empty($setmodules) )
@@ -127,7 +126,13 @@ if ($function !== '' && !in_array($function, $dbmtnc_allowed_functions, true))
 
 if ($mode_id == 'perform')
 {
-	if (in_array($function, array('perform_rebuild', 'synchronize_post_direct'), true))
+	if ($function === 'perform_rebuild')
+	{
+		require_once($phpbb_root_path . 'includes/functions_maintenance_rebuild.' . $phpEx);
+		try { dbmtnc_rebuild_request('step', $_GET); }
+		catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	}
+	elseif ($function === 'synchronize_post_direct')
 	{
 		$dbmtnc_state = (isset($_GET['db_state']) && is_scalar($_GET['db_state'])) ? intval($_GET['db_state']) : 0;
 		$dbmtnc_token = (isset($_GET['dbmtnc_token']) && is_scalar($_GET['dbmtnc_token'])) ? (string) $_GET['dbmtnc_token'] : '';
@@ -199,6 +204,14 @@ switch($mode_id)
 			$s_hidden_fields = '<input type="hidden" name="mode" value="perform" />';
 			$s_hidden_fields .= '<input type="hidden" name="function" value="' . phpbb_admin_html($function) . '" />';
 			$s_hidden_fields .= phpbb_admin_session_field();
+			if (in_array($function, array('rebuild_search_index','proceed_rebuilding'), true))
+			{
+				require_once($phpbb_root_path . 'includes/functions_maintenance_rebuild.' . $phpEx);
+				try { $rebuild_snapshot = dbmtnc_rebuild_read(new PhpbbAclDatabase($db,'Maintenance_rebuild_failed')); }
+				catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+				$rebuild_generation = $rebuild_snapshot['state'] && $rebuild_snapshot['state']['s'] !== 'done' ? $rebuild_snapshot['state']['g'] : '';
+				$s_hidden_fields .= '<input type="hidden" name="job" value="' . phpbb_admin_html($rebuild_generation) . '" />';
+			}
 
 			$template->set_filenames(array(
 				'body' => 'admin/dbmtnc_confirm_body.tpl')
@@ -385,146 +398,35 @@ switch($mode_id)
 
 				$template->pparse("body");
 				break;
-			case 'config': // Configuration
+			case 'config': // General maintenance configuration; rebuild state is not editable.
+				if (CONFIG_LEVEL < 1) { message_die(GENERAL_ERROR, $lang['Invalid_dbmtnc_request']); }
 				if (isset($_POST['submit']))
 				{
 					$disallow_postcounter = dbmtnc_post_int('disallow_postcounter', 0);
 					$disallow_rebuild = dbmtnc_post_int('disallow_rebuild', 0);
-					$rebuildcfg_timelimit = dbmtnc_post_int('rebuildcfg_timelimit', 240);
-					$rebuildcfg_timeoverwrite = dbmtnc_post_int('rebuildcfg_timeoverwrite', 0);
-					$rebuildcfg_maxmemory = dbmtnc_post_int('rebuildcfg_maxmemory', 500);
-					$rebuildcfg_minposts = dbmtnc_post_int('rebuildcfg_minposts', 3);
-					$rebuildcfg_php3only = dbmtnc_post_int('rebuildcfg_php3only', 0);
-					$rebuildcfg_php4pps = dbmtnc_post_int('rebuildcfg_php4pps', 8);
-					$rebuildcfg_php3pps = dbmtnc_post_int('rebuildcfg_php3pps', 1);
-					$rebuild_pos = dbmtnc_post_int('rebuild_pos', -1);
-					$rebuild_end = dbmtnc_post_int('rebuild_end', 0);
-
-					switch(CONFIG_LEVEL)
-					{
-						case 3: // Current search config
-							if ($rebuild_end >= 0)
-							{
-								update_config('dbmtnc_rebuild_end', $rebuild_end);
-							}
-							if ($rebuild_pos >= -1)
-							{
-								update_config('dbmtnc_rebuild_pos', $rebuild_pos);
-							}
-						case 2: // Search config
-							if ($rebuildcfg_php3pps > 0)
-							{
-								update_config('dbmtnc_rebuildcfg_php3pps', $rebuildcfg_php3pps);
-							}
-							if ($rebuildcfg_php4pps > 0)
-							{
-								update_config('dbmtnc_rebuildcfg_php4pps', $rebuildcfg_php4pps);
-							}
-							if ($rebuildcfg_php3only >= 0 && $rebuildcfg_php3only <= 1)
-							{
-								update_config('dbmtnc_rebuildcfg_php3only', $rebuildcfg_php3only);
-							}
-							if ($rebuildcfg_minposts > 0)
-							{
-								update_config('dbmtnc_rebuildcfg_minposts', $rebuildcfg_minposts);
-							}
-							if ($rebuildcfg_maxmemory >= 0)
-							{
-								update_config('dbmtnc_rebuildcfg_maxmemory', $rebuildcfg_maxmemory);
-							}
-							if ($rebuildcfg_timeoverwrite >= 0)
-							{
-								update_config('dbmtnc_rebuildcfg_timeoverwrite', $rebuildcfg_timeoverwrite);
-							}
-							if ($rebuildcfg_timelimit >= 0)
-							{
-								update_config('dbmtnc_rebuildcfg_timelimit', $rebuildcfg_timelimit);
-							}
-						case 1: // DBMTNC config
-							if ($disallow_rebuild >= 0 && $disallow_rebuild <= 1)
-							{
-								update_config('dbmtnc_disallow_rebuild', $disallow_rebuild);
-							}
-							if ($disallow_postcounter >= 0 && $disallow_postcounter <= 1)
-							{
-								update_config('dbmtnc_disallow_postcounter', $disallow_postcounter);
-							}
-					}
-					$message = $lang['Dbmtnc_config_updated'] . "<br /><br />" . sprintf($lang['Click_return_dbmtnc_config'], "<a href=\"" . append_sid("admin_db_maintenance.$phpEx?mode=start&function=config") . "\">", "</a>");
+					if ($disallow_rebuild >= 0 && $disallow_rebuild <= 1) { update_config('dbmtnc_disallow_rebuild', $disallow_rebuild); }
+					if ($disallow_postcounter >= 0 && $disallow_postcounter <= 1) { update_config('dbmtnc_disallow_postcounter', $disallow_postcounter); }
+					$message = $lang['Dbmtnc_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_dbmtnc_config'], '<a href="' . append_sid("admin_db_maintenance.$phpEx?mode=start&function=config") . '">', '</a>');
 					message_die(GENERAL_MESSAGE, $message);
 				}
-
-				$template->set_filenames(array(
-					'body' => 'admin/dbmtnc_config_body.tpl')
-				);
-
+				$template->set_filenames(array('body' => 'admin/dbmtnc_config_body.tpl'));
 				$template->assign_vars(array(
 					'S_CONFIG_ACTION' => append_sid("admin_db_maintenance.$phpEx?mode=start&function=config"),
 					'S_HIDDEN_FIELDS' => phpbb_admin_session_field(),
-
 					'L_DBMTNC_TITLE' => $lang['DB_Maintenance'],
 					'L_DBMTNC_SUB_TITLE' => $lang['Config_title'],
 					'L_CONFIG_INFO' => $lang['Config_info'],
 					'L_GENERAL_CONFIG' => $lang['General_Config'],
-					'L_REBUILD_CONFIG' => $lang['Rebuild_Config'],
-					'L_CURRENTREBUILD_CONFIG' => $lang['Current_Rebuild_Config'],
-					'L_REBUILD_SETTINGS_EXPLAIN' => $lang['Rebuild_Settings_Explain'],
-					'L_CURRENTREBUILD_SETTINGS_EXPLAIN' => $lang['Current_Rebuild_Settings_Explain'],
 					'L_DISALLOW_POSTCOUNTER' => $lang['Disallow_postcounter'],
 					'L_DISALLOW_POSTCOUNTER_EXPLAIN' => $lang['Disallow_postcounter_Explain'],
 					'L_DISALLOW_REBUILD' => $lang['Disallow_rebuild'],
 					'L_DISALLOW_REBUILD_EXPLAIN' => $lang['Disallow_rebuild_Explain'],
-					'L_REBUILDCFG_TIMELIMIT' => $lang['Rebuildcfg_Timelimit'],
-					'L_REBUILDCFG_TIMELIMIT_EXPLAIN' => $lang['Rebuildcfg_Timelimit_Explain'],
-					'L_REBUILDCFG_TIMEOVERWRITE' => $lang['Rebuildcfg_Timeoverwrite'],
-					'L_REBUILDCFG_TIMEOVERWRITE_EXPLAIN' => $lang['Rebuildcfg_Timeoverwrite_Explain'],
-					'L_REBUILDCFG_MAXMEMORY' => $lang['Rebuildcfg_Maxmemory'],
-					'L_REBUILDCFG_MAXMEMORY_EXPLAIN' => $lang['Rebuildcfg_Maxmemory_Explain'],
-					'L_REBUILDCFG_MINPOSTS' => $lang['Rebuildcfg_Minposts'],
-					'L_REBUILDCFG_MINPOSTS_EXPLAIN' => $lang['Rebuildcfg_Minposts_Explain'],
-					'L_REBUILDCFG_PHP3ONLY' => $lang['Rebuildcfg_PHP3Only'],
-					'L_REBUILDCFG_PHP3ONLY_EXPLAIN' => $lang['Rebuildcfg_PHP3Only_Explain'],
-					'L_REBUILDCFG_PHP4PPS' => $lang['Rebuildcfg_PHP4PPS'],
-					'L_REBUILDCFG_PHP4PPS_EXPLAIN' => $lang['Rebuildcfg_PHP4PPS_Explain'],
-					'L_REBUILDCFG_PHP3PPS' => $lang['Rebuildcfg_PHP3PPS'],
-					'L_REBUILDCFG_PHP3PPS_EXPLAIN' => $lang['Rebuildcfg_PHP3PPS_Explain'],
-					'L_REBUILD_POS' => $lang['Rebuild_Pos'],
-					'L_REBUILD_POS_EXPLAIN' => $lang['Rebuild_Pos_Explain'],
-					'L_REBUILD_END' => $lang['Rebuild_End'],
-					'L_REBUILD_END_EXPLAIN' => $lang['Rebuild_End_Explain'],
-
-					'L_YES' => $lang['Yes'],
-					'L_NO' => $lang['No'],
-					'L_SUBMIT' => $lang['Submit'],
-					'L_RESET' => $lang['Reset'],
-
-					'DISALLOW_POSTCOUNTER_YES' => ( $board_config['dbmtnc_disallow_postcounter'] ) ? "checked=\"checked\"" : "",
-					'DISALLOW_POSTCOUNTER_NO' => ( !$board_config['dbmtnc_disallow_postcounter'] ) ? "checked=\"checked\"" : "",
-					'DISALLOW_REBUILD_YES' => ( $board_config['dbmtnc_disallow_rebuild'] ) ? "checked=\"checked\"" : "",
-					'DISALLOW_REBUILD_NO' => ( !$board_config['dbmtnc_disallow_rebuild'] ) ? "checked=\"checked\"" : "",
-					'REBUILDCFG_TIMELIMIT' => intval($board_config['dbmtnc_rebuildcfg_timelimit']),
-					'REBUILDCFG_MAXMEMORY' => intval($board_config['dbmtnc_rebuildcfg_maxmemory']),
-					'REBUILDCFG_TIMEOVERWRITE' => intval($board_config['dbmtnc_rebuildcfg_timeoverwrite']),
-					'REBUILDCFG_MINPOSTS' => intval($board_config['dbmtnc_rebuildcfg_minposts']),
-					'REBUILDCFG_PHP3ONLY_YES' => ( $board_config['dbmtnc_rebuildcfg_php3only'] ) ? "checked=\"checked\"" : "",
-					'REBUILDCFG_PHP3ONLY_NO' => ( !$board_config['dbmtnc_rebuildcfg_php3only'] ) ? "checked=\"checked\"" : "",
-					'REBUILDCFG_PHP4PPS' => intval($board_config['dbmtnc_rebuildcfg_php4pps']),
-					'REBUILDCFG_PHP3PPS' => intval($board_config['dbmtnc_rebuildcfg_php3pps']),
-					'REBUILD_POS' => intval($board_config['dbmtnc_rebuild_pos']),
-					'REBUILD_END' => intval($board_config['dbmtnc_rebuild_end']))
-				);
-
-				// Display of vonfiguration dependend on settings
-				if ( CONFIG_LEVEL >= 2 )
-				{
-					$template->assign_block_vars('rebuild_settings', array());
-				}
-				if ( CONFIG_LEVEL >= 3 )
-				{
-					$template->assign_block_vars('currentrebuild_settings', array());
-				}
-
-				$template->pparse("body");
+					'L_YES' => $lang['Yes'], 'L_NO' => $lang['No'], 'L_SUBMIT' => $lang['Submit'], 'L_RESET' => $lang['Reset'],
+					'DISALLOW_POSTCOUNTER_YES' => $board_config['dbmtnc_disallow_postcounter'] ? 'checked="checked"' : '',
+					'DISALLOW_POSTCOUNTER_NO' => !$board_config['dbmtnc_disallow_postcounter'] ? 'checked="checked"' : '',
+					'DISALLOW_REBUILD_YES' => $board_config['dbmtnc_disallow_rebuild'] ? 'checked="checked"' : '',
+					'DISALLOW_REBUILD_NO' => !$board_config['dbmtnc_disallow_rebuild'] ? 'checked="checked"' : ''));
+				$template->pparse('body');
 				break;
 			case 'check_user': // Check user tables
 				echo("<h1>" . $lang['Checking_user_tables'] . "</h1>\n");
@@ -2864,324 +2766,46 @@ switch($mode_id)
 				}
 				else { echo($lang['Nothing_to_do']); }
 				break;
-			case 'rebuild_search_index': // Rebuild Search Index
-				echo("<h1>" . $lang['Rebuilding_search_index'] . "</h1>\n");
-				$db_state = lock_db();
-
-				// Clear Tables
-				echo("<p class=\"gen\"><b>" . $lang['Deleting_search_tables'] . "</b></p>\n");
-				$sql = "DELETE FROM " . SEARCH_TABLE;
-				if ( !($db->sql_query($sql)) )
+			case 'rebuild_search_index':
+			case 'proceed_rebuilding':
+			case 'perform_rebuild':
+				require_once($phpbb_root_path . 'includes/functions_maintenance_rebuild.' . $phpEx);
+				$rebuild_mode = $function === 'perform_rebuild' ? 'step' : ($function === 'proceed_rebuilding' ? 'resume' : 'start');
+				$rebuild_request = $rebuild_mode === 'step' ? $_GET : $_POST;
+				$rebuild_error = '';
+				try
 				{
-					throw_error("Couldn't delete from search result table!", __LINE__, __FILE__, $sql);
+					$rebuild_language = in_array($board_config['default_lang'], array('english','german'), true) ? $board_config['default_lang'] : 'english';
+					$rebuild_stopwords = @file($phpbb_root_path . 'language/lang_' . $rebuild_language . '/search_stopwords.txt');
+					$rebuild_synonyms = @file($phpbb_root_path . 'language/lang_' . $rebuild_language . '/search_synonyms.txt');
+					$rebuild_job = dbmtnc_rebuild_batch($db, $rebuild_mode, $rebuild_request,
+						is_array($rebuild_stopwords) ? $rebuild_stopwords : array(), is_array($rebuild_synonyms) ? $rebuild_synonyms : array());
 				}
-				$sql = "DELETE FROM " . SEARCH_WORD_TABLE;
-				if ( !($db->sql_query($sql)) )
+				catch (PhpbbAclException $error) { $rebuild_error = $error->getMessage(); }
+				catch (Exception $error) { $rebuild_error = $lang['Maintenance_rebuild_failed']; }
+				catch (Throwable $error) { $rebuild_error = $lang['Maintenance_rebuild_failed']; }
+				$rebuild_url = '';
+				if ($rebuild_error === '' && $rebuild_job['state']['s'] !== 'done')
 				{
-					throw_error("Couldn't delete from search-word table!", __LINE__, __FILE__, $sql);
+					$rebuild_url = dbmtnc_rebuild_url($rebuild_job['state']);
+					if ($rebuild_mode === 'step') { $template->assign_vars(array('META' => '<meta http-equiv="refresh" content="1;url=' . $rebuild_url . '" />')); }
 				}
-				$sql = "DELETE FROM " . SEARCH_MATCH_TABLE;
-				if ( !($db->sql_query($sql)) )
+				if ($rebuild_mode === 'step') { include('./page_header_admin.' . $phpEx); }
+				echo('<h1>' . $lang['Rebuilding_search_index'] . '</h1>');
+				if ($rebuild_error !== '')
 				{
-					throw_error("Couldn't delete from search-match table!", __LINE__, __FILE__, $sql);
+					echo('<p class="gen">' . phpbb_admin_html($rebuild_error) . '</p><p class="gen">' . $lang['Maintenance_rebuild_resume_help'] . '</p>');
+					break;
 				}
-				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
-
-				// Reset auto increment
-				echo("<p class=\"gen\"><b>" . $lang['Reset_search_autoincrement'] . "</b></p>\n");
-				$sql = "ALTER TABLE " . SEARCH_WORD_TABLE . " AUTO_INCREMENT=1";
-				if ( !($db->sql_query($sql)) )
-				{
-					throw_error("Couldn't reset auto_increment!", __LINE__, __FILE__, $sql);
-				}
-				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
-				
-				echo("<p class=\"gen\"><b>" . $lang['Preparing_config_data'] . "</b></p>\n");
-				// Set data for start position in config table
-				update_config('dbmtnc_rebuild_pos', '0');
-				// Get data for end position
-				$sql = "SELECT Max(post_id) AS max_post_id
-					FROM " . POSTS_TABLE;
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get post data!", __LINE__, __FILE__, $sql);
-				}
-				if ( !($row = $db->sql_fetchrow($result)) )
-				{
-					throw_error("Couldn't get post data!", __LINE__, __FILE__, $sql);
-				}
-				$db->sql_freeresult($result);
-				// Set data for end position in config table
-				update_config('dbmtnc_rebuild_end', intval($row['max_post_id']));
-				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
-
-				echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('perform_rebuild', (($db_state) ? 1 : 0)) . "\">" . $lang['Can_start_rebuilding'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
-				// Send Information about processing time
-				echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
-				include('./page_footer_admin.'.$phpEx);
-				exit;
-				break;
-			case 'proceed_rebuilding': // Proceed rebuilding search index
-				echo("<h1>" . $lang['Preparing_to_proceed'] . "</h1>\n");
-				$db_state = lock_db();
-
-				// Clear Tables
-				echo("<p class=\"gen\"><b>" . $lang['Preparing_search_tables'] . "</b></p>\n");
-				$sql = "DELETE FROM " . SEARCH_TABLE;
-				if ( !($db->sql_query($sql)) )
-				{
-					throw_error("Couldn't delete from search result table!", __LINE__, __FILE__, $sql);
-				}
-				$sql = "DELETE FROM " . SEARCH_MATCH_TABLE . "
-					WHERE post_id > " . intval($board_config['dbmtnc_rebuild_pos']) . "
-						AND post_id <= " . intval($board_config['dbmtnc_rebuild_end']);
-				if ( !($db->sql_query($sql)) )
-				{
-					throw_error("Couldn't delete from search-match table!", __LINE__, __FILE__, $sql);
-				}
-				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
-
-				echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('perform_rebuild', (($db_state) ? 1 : 0)) . "\">" . $lang['Can_start_rebuilding'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
-				// Send Information about processing time
-				echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
-				include('./page_footer_admin.'.$phpEx);
-				exit;
-				break;
-			case 'perform_rebuild': // Rebuild search index (perform part)
-				// ATTENTION: page_header not sent yet!
-				$db_state = (isset($_GET['db_state']) && is_scalar($_GET['db_state'])) ? intval($_GET['db_state']) : 0;
-				// Load functions
-				include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
-				// Identify PHP version and time limit configuration
-				if (phpversion() >= '4.0.5' && ($board_config['dbmtnc_rebuildcfg_php3only'] == 0)) // Handle PHP beffore 4.0.5 as PHP 3 since array_search is not available
-				{
-					$php_ver = 4;
-					// try to reset time limit
-					$reset_allowed = TRUE;
-					$execution_time = $board_config['dbmtnc_rebuildcfg_timelimit'];
-					set_error_handler('catch_error');
-					set_time_limit($board_config['dbmtnc_rebuildcfg_timelimit']);
-					restore_error_handler();
-					// Try to set unlimited execution time
-					@set_time_limit(0);
-				}
+				if ($rebuild_job['state']['s'] === 'done') { echo('<p class="gen">' . $lang['Indexing_finished'] . '</p>'); }
 				else
 				{
-					$php_ver = 3;
-					$execution_time = get_cfg_var('max_execution_time');
-					// Try to set unlimited execution time
-					@set_time_limit(0);
+					$rebuild_state = $rebuild_job['state'];
+					$rebuild_message = in_array($rebuild_state['s'],array('finish','release'),true)
+						? $lang['Maintenance_rebuild_finishing']
+						: sprintf($lang['Maintenance_rebuild_checkpoint'], $rebuild_state['p'], $rebuild_state['e']);
+					echo('<p class="gen">' . $rebuild_message . '</p><p class="gen"><a href="' . $rebuild_url . '">' . $lang['Click_or_wait_to_proceed'] . '</a></p>');
 				}
-				if ($execution_time === FALSE)
-				{
-					$execution_time = 30; // Asume 30 if an error occurs
-				}
-				// Calculate posts to process
-				$posts_to_index = intval(($execution_time - 5) * (($php_ver == 4) ? $board_config['dbmtnc_rebuildcfg_php4pps'] : $board_config['dbmtnc_rebuildcfg_php3pps']));
-				if ($posts_to_index < $board_config['dbmtnc_rebuildcfg_minposts'])
-				{
-					$posts_to_index = $board_config['dbmtnc_rebuildcfg_minposts'];
-				}
-				// Check whether a special limit was set
-				if ( intval($board_config['dbmtnc_rebuildcfg_timeoverwrite']) != 0 )
-				{
-					$posts_to_index = intval($board_config['dbmtnc_rebuildcfg_timeoverwrite']);
-				}
-				// We have all data so get the post information
-				$sql = "SELECT post_id, post_subject, post_text
-					FROM " . POSTS_TEXT_TABLE . "
-					WHERE post_id > " . intval($board_config['dbmtnc_rebuild_pos']) . "
-						AND post_id <= " . intval($board_config['dbmtnc_rebuild_end']) . "
-					ORDER BY post_id
-					LIMIT $posts_to_index";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					include('./page_header_admin.'.$phpEx);
-					throw_error("Couldn't get post data!", __LINE__, __FILE__, $sql);
-				}
-				// Get first record
-				$row = $db->sql_fetchrow($result);
-				if ( !$row ) // Yeah! we reached the end of the posts - finish actions and exit
-				{
-					$db->sql_freeresult($result);
-					include('./page_header_admin.'.$phpEx);
-					update_config('dbmtnc_rebuild_pos', '-1');
-					update_config('dbmtnc_rebuild_end', '0');
-					
-					echo("<p class=\"gen\">" . $lang['Indexing_finished'] . ".</p>\n");
-
-					if ($db_state == 0)
-					{
-						lock_db(TRUE, TRUE, TRUE);
-					}
-					else
-					{
-						echo('<p class="gen"><b>' . $lang['Unlock_db'] . "</b></p>\n");
-						echo('<p class="gen">' . $lang['Ignore_unlock_command'] . "</p>\n");
-					}
-
-					echo("<p class=\"gen\"><a href=\"" . append_sid("admin_db_maintenance.$phpEx") . "\">" . $lang['Back_to_DB_Maintenance'] . "</a></p>\n");
-					// Send Information about processing time
-					echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
-					include('./page_footer_admin.'.$phpEx);
-					exit;
-				}
-				$last_post = 0;
-				switch ($php_ver)
-				{
-					case 3: // use standard method if we have PHP 3
-						while ($row)
-						{
-							$last_post = $row['post_id'];
-							add_search_words('single', $last_post, stripslashes($row['post_text']), stripslashes($row['post_subject']));
-							$row = $db->sql_fetchrow($result);
-						}
-					break;
-					case 4: // use advanced method if we have PHP 4+ (we can make use of the advanced array functions)
-						$post_size = strlen($row['post_text']) + strlen($row['post_subject']); // needed for controlling array size
-						// get stopword and synonym array
-						$stopword_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_stopwords.txt"); 
-						$synonym_array = @file($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . "/search_synonyms.txt");
-						if (!is_array($stopword_array))
-						{
-							$stopword_array = array();
-						}
-						if (!is_array($synonym_array))
-						{
-							$synonym_array = array();
-						}
-						$empty_array = array(); // We'll need this array for passing it to the clean_words function
-						// Convert arrays
-						for ($i = 0; $i < count($stopword_array); $i++)
-						{
-							$stopword_array[$i] = trim(strtolower($stopword_array[$i]));
-						}
-						$result_array = array(array(), array());
-						for ($i = 0; $i < count($synonym_array); $i++)
-						{
-							list($replace_synonym, $match_synonym) = preg_split('/\s+/', trim(strtolower($synonym_array[$i])), 2);
-							$result_array[0][] = trim($replace_synonym);
-							$result_array[1][] = trim($match_synonym);
-						}
-						$synonym_array = $result_array;
-						$result_array = array(array(), array(), array());
-						$i = 0;
-						while ($row && ($post_size <= $board_config['dbmtnc_rebuildcfg_maxmemory'] * 1024 || $i < $board_config['dbmtnc_rebuildcfg_minposts']))
-						{
-							$last_post = $row['post_id'];
-							// handle text
-							$word_list = split_words(clean_words('post', $row['post_text'], $empty_array, $empty_array));
-							foreach ($word_list as $word)
-							{
-								// cutting of long words in functions_search.php seems not to work under some conditions - so check it again
-								if ( $word != '' && strlen($word) <= 20 )
-								{
-									$result_array[0][] = $last_post;
-									$result_array[1][] = 0;
-									$result_array[2][] = $word;
-								}
-							}
-							// handle subject
-							$word_list = split_words(clean_words('post', $row['post_subject'], $empty_array, $empty_array));
-							foreach ($word_list as $word)
-							{
-								// cutting of long words in functions_search.php seems not to work under some conditions - so check it again
-								if ( $word != '' && strlen($word) <= 20 )
-								{
-									$result_array[0][] = $last_post;
-									$result_array[1][] = 1;
-									$result_array[2][] = $word;
-								}
-							}
-							unset($word_list);
-							$row = $db->sql_fetchrow($result);
-							$i++;
-							if ($row)
-							{
-								$post_size += strlen($row['post_text']) + strlen($row['post_subject']);
-							}
-						}
-						// sort array
-						array_multisort($result_array[2], SORT_ASC, SORT_STRING, $result_array[0], SORT_ASC, SORT_NUMERIC, $result_array[1]);
-						// insert array in database
-						$cache_word = '';
-						$cache_word_id = 0;
-						$insert_values = '';
-						$word_array = array();
-						$last_post_id = 0;
-						$last_word_id = 0;
-						$last_title_match = -1;
-						$array_count = count($result_array[0]);
-						for ($i = 0; $i < $array_count; $i++)
-						{
-							if ( $result_array[2][$i] !== $cache_word ) // We have a new word (don't allow type conversions)
-							{
-								$cache_word_id = get_word_id($result_array[2][$i]);
-								$cache_word = $result_array[2][$i];
-								$word_array[] = $cache_word;
-							}
-							if ( !is_null($cache_word_id) && ( $last_post_id <> $result_array[0][$i] || $last_word_id <> $cache_word_id || $last_title_match <> $result_array[1][$i] ) )
-							{
-								$last_post_id = $result_array[0][$i];
-								$last_word_id = $cache_word_id;
-								$last_title_match = $result_array[1][$i];
-								$sql = "INSERT INTO " . SEARCH_MATCH_TABLE . " (post_id, word_id, title_match) VALUES ($last_post_id, $last_word_id, $last_title_match)";
-								if ( !$db->sql_query($sql) )
-								{
-									include('./page_header_admin.'.$phpEx);
-									throw_error("Couldn't insert into search match!", __LINE__, __FILE__, $sql);
-								}
-							}
-							unset($result_array[0][$i]);
-							unset($result_array[1][$i]);
-							unset($result_array[2][$i]);
-						}
-						remove_common('single', 4/10, $word_array);
-					break;
-				}
-				// All posts are indexed for this turn - update Config-Data
-				update_config('dbmtnc_rebuild_pos', $last_post);
-				// OK, all actions are done - send headers
-				$template->assign_vars(array(
-					'META' => '<meta http-equiv="refresh" content="1;url=' . dbmtnc_continuation_url('perform_rebuild', $db_state) . '">')
-				);
-				include('./page_header_admin.'.$phpEx);
-				ob_end_flush();
-				$db->sql_freeresult($result);
-				// Get Statistics
-				$posts_total = 0;
-				$sql = "SELECT Count(*) AS posts_total
-					FROM " . POSTS_TEXT_TABLE . "
-					WHERE post_id <= " . intval($board_config['dbmtnc_rebuild_end']);
-				if ( $result = $db->sql_query($sql) )
-				{
-					if ( $row = $db->sql_fetchrow($result) )
-					{
-						$posts_total = $row['posts_total'];
-					}
-					$db->sql_freeresult($result);
-				}
-				$posts_indexed = 0;
-				$sql = "SELECT Count(*) AS posts_indexed
-					FROM " . POSTS_TEXT_TABLE . "
-					WHERE post_id <= " . intval($last_post);
-				if ( $result = $db->sql_query($sql) )
-				{
-					if ( $row = $db->sql_fetchrow($result) )
-					{
-						$posts_indexed = $row['posts_indexed'];
-					}
-					$db->sql_freeresult($result);
-				}
-				
-				echo("<p class=\"gen\">" . sprintf($lang['Indexing_progress'], $posts_indexed, $posts_total, ($posts_indexed / $posts_total) * 100, $last_post) . "</p>\n");
-				echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('perform_rebuild', $db_state) . "\">" . $lang['Click_or_wait_to_proceed'] . "</a><br><span class=\"gensmall\">" . $lang['Click_once_warning'] . "</span></p>\n");
-				// Send Information about processing time
-				echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
-				include('./page_footer_admin.'.$phpEx);
-				exit;
 				break;
 			case 'synchronize_post': // Synchronize post data
 			case 'synchronize_post_direct': // Session-bound continuation

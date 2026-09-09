@@ -22,6 +22,17 @@ social-profile fields, cookie consent and the disabled StopForumSpam option.
 It also normalizes all theme and member-style records to FI Subsilver Shadow.
 Existing unrelated configuration values are preserved.
 
+Search-index rebuilding in the ACP now saves an atomic `dbmtnc_rebuild_job`
+checkpoint in the configuration table. The updater adds an empty default only
+when absent; it never overwrites an active job. The ACP also initializes this
+value when starting on an older installation. Keep following the continuation
+link through final cleanup, not just the last post. After interruption use
+**Continue rebuilding search index**; source posts are not deleted. The original
+board-disable setting is restored only after successful completion. A rebuild
+resumed from the legacy cursor cannot infer whether the board was previously
+enabled, so it preserves the existing disabled state. Old PHP 3/4 tuning values
+are no longer used; batch size and checkpoint integrity are managed internally.
+
 The updater also creates and initializes `user_id_sequence`, the durable
 counter required by all current registration paths. Its initial floor includes
 existing accounts and retained numeric ownership in bundled modules, not just

@@ -7,6 +7,7 @@ define('SQL_LAYER', 'mysqli');
 define('POSTS_TABLE', 'fixture_posts');
 define('SEARCH_WORD_TABLE', 'fixture_words');
 define('SEARCH_MATCH_TABLE', 'fixture_matches');
+define('CONFIG_TABLE', 'fixture_config');
 function message_die($type, $message) { throw new RuntimeException($message); }
 function index_check($condition, $message)
 {
@@ -30,6 +31,7 @@ class IndexDatabase
 		$this->pdo = new PDO('sqlite::memory:');
 		$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		$this->pdo->exec('CREATE TABLE fixture_posts (post_id INTEGER PRIMARY KEY)');
+		$this->pdo->exec('CREATE TABLE fixture_config (config_name VARCHAR(64) PRIMARY KEY, config_value VARCHAR(255))');
 		$this->pdo->exec('CREATE TABLE fixture_words (word_id INTEGER PRIMARY KEY AUTOINCREMENT, word_text VARCHAR(255) UNIQUE, word_common INTEGER NOT NULL DEFAULT 0)');
 		$this->pdo->exec('CREATE TABLE fixture_matches (post_id INTEGER, word_id INTEGER, title_match INTEGER, UNIQUE(post_id, word_id, title_match))');
 	}
@@ -131,6 +133,14 @@ try
 	$storage->queries = array();
 	remove_common('single', .4, array(), $storage);
 	index_check(!$storage->queries, 'Empty single-post vocabulary is not a global reclassification');
+	$storage->pdo->exec("INSERT INTO fixture_config VALUES ('dbmtnc_rebuild_job','{\"s\":\"run\"}')");
+	remove_common('global', .4, array(), $storage);
+	index_check($storage->scalar('SELECT word_common FROM fixture_words WHERE word_id=2')===0&&$storage->scalar('SELECT COUNT(*) FROM fixture_matches WHERE word_id=2')===82,'Normal posting does not prune an active rebuild');
+	$storage->pdo->exec("UPDATE fixture_config SET config_value=''");
+	$storage->hook=function($sql,$database){if(strpos($sql,'UPDATE fixture_words')===0){$database->hook=null;$database->pdo->exec("UPDATE fixture_config SET config_value='{\"s\":\"run\"}'");}};
+	remove_common('global', .4, array(), $storage);
+	index_check($storage->scalar('SELECT word_common FROM fixture_words WHERE word_id=2')===0&&$storage->scalar('SELECT COUNT(*) FROM fixture_matches WHERE word_id=2')===82,'A rebuild started after candidate selection blocks both pruning writes');
+	$storage->pdo->exec("UPDATE fixture_config SET config_value='{\"s\":\"done\"}'");
 	remove_common('global', .4, array(), $storage);
 	index_check($storage->scalar('SELECT word_common FROM fixture_words WHERE word_id = 2') === 1 && $storage->scalar('SELECT COUNT(*) FROM fixture_matches WHERE word_id = 2') === 0, 'Global threshold removes genuinely common matches');
 	index_check($storage->scalar('SELECT COUNT(*) FROM fixture_matches WHERE word_id = 1') === 60, 'Uncommon search matches remain');

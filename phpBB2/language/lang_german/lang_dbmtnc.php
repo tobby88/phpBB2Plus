@@ -25,6 +25,13 @@
 //
 
 $lang['DB_Maintenance'] = 'Datenbank-Wartung';
+$lang['Maintenance_rebuild_failed'] = 'Der Suchindex-Neuaufbau wurde unterbrochen. Der letzte bestätigte Fortschritt ist gespeichert; einzelne Indexeinträge können bereits geändert sein.';
+$lang['Maintenance_rebuild_state_invalid'] = 'Der gespeicherte Neuaufbau-Zustand ist ungültig. Index und Fortschritt nicht manuell verändern; vor dem Fortsetzen eine gültige Konfigurationssicherung wiederherstellen.';
+$lang['Maintenance_rebuild_changed'] = 'Der Neuaufbau oder seine Quelldaten wurden zwischenzeitlich geändert. Öffne die Datenbank-Wartung erneut und setze den aktuellen Neuaufbau fort.';
+$lang['Maintenance_rebuild_text_missing'] = 'Zu einem Beitrag fehlt der Text-Datensatz. Der Neuaufbau wurde davor angehalten; vor dem Fortsetzen den fehlenden Quelldatensatz reparieren oder wiederherstellen.';
+$lang['Maintenance_rebuild_resume_help'] = 'Kehre zur Datenbank-Wartung zurück und wähle Suchindex-Neuaufbau fortsetzen. Starte nur dann einen neuen Neuaufbau, wenn du wirklich von vorne beginnen möchtest. Das Forum bleibt bis zum Abschluss gesperrt. Bei Übernahme eines Neuaufbaus aus dem alten Wartungsmodul bleibt ein bereits gesperrtes Forum gesperrt.';
+$lang['Maintenance_rebuild_finishing'] = 'Alle ausgewählten Beiträge sind verarbeitet. Häufige Wörter, verwaiste Einträge und Wartungseinstellungen werden abschließend bereinigt…';
+$lang['Maintenance_rebuild_checkpoint'] = 'Bestätigter Fortschritt: Beitrags-ID %d von anfänglich letzter Beitrags-ID %d. Lücken in den IDs sind normal; danach folgt die Abschlussbereinigung.';
 $lang['DB_Maintenance_Description'] = 'Hier kannst du die Datenbank auf Inkonsistenzen und Fehler überprüfen.<br />
 	<b>Achtung:</b> Manche Vorgänge brauchen einige Zeit zur Ausführung. Dein Board ist während der Ausführung der Funktionen
 	<b>gesperrt</b>.</br />

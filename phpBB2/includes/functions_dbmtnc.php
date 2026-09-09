@@ -21,7 +21,7 @@
 // List of tables used
 $tables = array('auth_access', 'banlist', 'categories', 'config', 'disallow', 'forums', 'forum_prune', 'groups', 'posts', 'posts_text', 'privmsgs', 'privmsgs_text', 'ranks', 'search_results', 'search_wordlist', 'search_wordmatch', 'sessions', 'smilies', 'themes', 'themes_name', 'topics', 'topics_watch', 'user_group', 'users', 'vote_desc', 'vote_results', 'vote_voters', 'words');
 // List of configuration data required
-$config_data = array('dbmtnc_disallow_postcounter', 'dbmtnc_disallow_rebuild', 'dbmtnc_rebuildcfg_maxmemory', 'dbmtnc_rebuildcfg_minposts', 'dbmtnc_rebuildcfg_php3only', 'dbmtnc_rebuildcfg_php3pps', 'dbmtnc_rebuildcfg_php4pps', 'dbmtnc_rebuildcfg_timeoverwrite', 'dbmtnc_rebuildcfg_timelimit', 'dbmtnc_rebuild_end', 'dbmtnc_rebuild_pos');
+$config_data = array('dbmtnc_disallow_postcounter', 'dbmtnc_disallow_rebuild', 'dbmtnc_rebuild_end', 'dbmtnc_rebuild_pos');
 // Default configuration records - from installation file
 $default_config = array(
 	'config_id' => '1',
@@ -88,6 +88,7 @@ $default_config = array(
 	// DB Maintenance specific entries
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',
+	'dbmtnc_rebuild_job' => '',
 	'dbmtnc_rebuildcfg_maxmemory' => '500',
 	'dbmtnc_rebuildcfg_minposts' => '3',
 	'dbmtnc_rebuildcfg_php3only' => '0',
@@ -299,6 +300,12 @@ function check_condition($check)
 			}
 			break;
 		case 4: // Search index in recreation
+			if (!empty($board_config['dbmtnc_rebuild_job']))
+			{
+				require_once dirname(__FILE__) . '/functions_maintenance_rebuild.php';
+				$job = dbmtnc_rebuild_decode($board_config['dbmtnc_rebuild_job']);
+				return $job !== null && $job['s'] !== 'done';
+			}
 			if( $board_config['dbmtnc_rebuild_pos'] <> -1 )
 			{
 				// Rebuilding was interrupted - check for end position
@@ -647,68 +654,6 @@ function get_poster($topic_id)
 	return $row['poster_id'];
 }
 
-//
-// Error handler when trying to reset timelimit
-//
-function catch_error($errno, $errstr)
-{
-	global $execution_time;
-
-	$execution_time = ini_get('max_execution_time'); // Will only get executet when running on PHP 4+
-}
-
-//
-// Gets the ID of a word or creates it
-//
-function get_word_id($word)
-{
-	global $board_config, $db, $lang, $phpEx, $template, $theme;
-	global $stopword_array, $synonym_array;
-
-	// Check whether word is in stopword array
-	if ( in_array($word, $stopword_array) )
-	{
-		return NULL;
-	}
-	if ( in_array($word, $synonym_array[1]) )
-	{
-		$key = array_search($word, $synonym_array[1]);
-		$word = $synonym_array[0][$key];
-	}
-
-	$sql = "SELECT word_id, word_common
-		FROM " . SEARCH_WORD_TABLE . "
-		WHERE word_text = '$word'";
-	$result = $db->sql_query($sql);
-	if ( !$result )
-	{
-		include('./page_header_admin.'.$phpEx);
-		throw_error("Couldn't get search word data!", __LINE__, __FILE__, $sql);
-	}
-	if ( $row = $db->sql_fetchrow($result) ) // Word was found
-	{
-		if ( $row['word_common'] ) // Common word
-		{
-			return NULL;
-		}
-		else // Not a common word
-		{
-			return $row['word_id'];
-		}
-	}
-	else // Word was not found
-	{
-		$sql = "INSERT INTO " . SEARCH_WORD_TABLE . " (word_text, word_common)
-			VALUES ('$word', 0)";
-		if ( !$db->sql_query($sql) )
-		{
-			include('./page_header_admin.'.$phpEx);
-			throw_error("Couldn't insert search word data!", __LINE__, __FILE__, $sql);
-		}
-		return $db->sql_nextid();
-	}
-	$db->sql_freeresult($result);
-}
 
 //
 // Resets the auto increment for a table

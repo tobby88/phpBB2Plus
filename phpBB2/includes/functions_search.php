@@ -138,7 +138,9 @@ function clean_words($mode, $entry, &$stopword_list, &$synonym_list)
 	{
 		for ($j = 0; $j < count($synonym_list); $j++)
 		{
-			list($replace_synonym, $match_synonym) = explode(' ', trim(phpbb_search_ascii_lower($synonym_list[$j])));
+			$synonym = preg_split('/\s+/', trim(phpbb_search_ascii_lower($synonym_list[$j])));
+			if (count($synonym) !== 2 || $synonym[0] === '' || $synonym[1] === '') { continue; }
+			list($replace_synonym, $match_synonym) = $synonym;
 			if ( $mode == 'post' || ( $match_synonym != 'not' && $match_synonym != 'and' && $match_synonym != 'or' ) )
 			{
 				$entry =  str_replace(' ' . trim($match_synonym) . ' ', ' ' . trim($replace_synonym) . ' ', $entry);
@@ -334,6 +336,19 @@ function remove_common($mode, $fraction, $word_id_list = array(), $database = nu
 {
 	$db = $database !== null ? $database : $GLOBALS['db'];
 	if ($mode === 'single' && !$word_id_list) { return; }
+	// Do not prune a partially rebuilt index between its batches. Recheck this
+	// snapshot in each write too, in case a rebuild starts after this read.
+	$job_sql = 'SELECT config_value FROM ' . CONFIG_TABLE . " WHERE config_name = 'dbmtnc_rebuild_job'";
+	if (!($job_result = $db->sql_query($job_sql))) { message_die(GENERAL_ERROR, 'Could not obtain search rebuild state'); }
+	$job_row = $db->sql_fetchrow($job_result);
+	$db->sql_freeresult($job_result);
+	$job_raw = $job_row ? (string)$job_row['config_value'] : '';
+	if ($job_raw !== '')
+	{
+		$job_state = json_decode($job_raw,true);
+		if (!is_array($job_state) || !isset($job_state['s']) || $job_state['s'] !== 'done') { return; }
+	}
+	$job_guard = 'NOT EXISTS (SELECT 1 FROM ' . CONFIG_TABLE . " WHERE config_name = 'dbmtnc_rebuild_job' AND HEX(config_value) <> '" . strtoupper(bin2hex($job_raw)) . "')";
 
 	$sql = "SELECT COUNT(post_id) AS total_posts
 		FROM " . POSTS_TABLE;
@@ -387,14 +402,14 @@ function remove_common($mode, $fraction, $word_id_list = array(), $database = nu
 		{
 			$sql = "UPDATE " . SEARCH_WORD_TABLE . "
 				SET word_common = " . TRUE . "
-				WHERE word_id IN ($common_word_id)";
+				WHERE word_id IN ($common_word_id) AND $job_guard";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Could not delete word list entry', '', __LINE__, __FILE__, $sql);
 			}
 
 			$sql = "DELETE FROM " . SEARCH_MATCH_TABLE . "
-				WHERE word_id IN ($common_word_id)";
+				WHERE word_id IN ($common_word_id) AND $job_guard";
 			if ( !$db->sql_query($sql) )
 			{
 				message_die(GENERAL_ERROR, 'Could not delete word match entry', '', __LINE__, __FILE__, $sql);

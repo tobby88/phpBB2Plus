@@ -25,6 +25,13 @@
 //
 
 $lang['DB_Maintenance'] = 'Database Maintenance';
+$lang['Maintenance_rebuild_failed'] = 'The search-index rebuild was interrupted. Its last confirmed checkpoint is saved; some index rows may already have changed.';
+$lang['Maintenance_rebuild_state_invalid'] = 'The saved rebuild state is invalid. Do not edit the index tables or checkpoint manually; restore a valid configuration backup before continuing.';
+$lang['Maintenance_rebuild_changed'] = 'The rebuild or its source data changed. Open Database Maintenance again and resume the current rebuild.';
+$lang['Maintenance_rebuild_text_missing'] = 'A post has no matching text record. The rebuild stopped before that post; repair or restore the missing source record before resuming.';
+$lang['Maintenance_rebuild_resume_help'] = 'Return to Database Maintenance and choose Continue rebuilding search index. Do not start a new rebuild unless you intend to restart it. The board remains disabled until completion. A rebuild inherited from the old maintenance module keeps an already disabled board disabled.';
+$lang['Maintenance_rebuild_finishing'] = 'All selected posts have been processed. Finalizing common words, orphan entries and maintenance settings…';
+$lang['Maintenance_rebuild_checkpoint'] = 'Confirmed checkpoint: post ID %d of initial last post ID %d. Gaps in post IDs are normal; final cleanup follows afterwards.';
 $lang['DB_Maintenance_Description'] = 'Here you can check your database for inconsistencies and errors.<br />
 	<b>Attention:</b> Some opperations will take a longer time to perform. Your board will be <b>locked</b> during the operations.</br />
 	<br />
