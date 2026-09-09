@@ -17,13 +17,13 @@ set_error_handler(function($severity,$message){if(error_reporting()&$severity){t
 try
 {
 	$lang['New_user_password_required']='required'; $lang['Password_mismatch']='mismatch';
-	foreach(array(array(),array('password'=>''),array('password'=>' ','password_confirm'=>' '),array('password'=>array('secret'),'password_confirm'=>'secret'),array('password'=>'secret','password_confirm'=>array('secret')),array('password'=>true,'password_confirm'=>true),array('password'=>'0','password_confirm'=>'0'),array('password'=>'different','password_confirm'=>'values')) as $values)
+	foreach(array(array(),array('password'=>''),array('password'=>array('secret'),'password_confirm'=>'secret'),array('password'=>'secret','password_confirm'=>array('secret')),array('password'=>true,'password_confirm'=>true),array('password'=>'different','password_confirm'=>'values'),array('password'=>' value','password_confirm'=>'value')) as $values)
 	{
 		$_POST=array_merge(array('new_user'=>'1','submit'=>'Save'),$values); $passed=false; $caught=false; $mode='save';
 		try { eval($gate); $passed=true; } catch(LegacyMailFailure $error) { $caught=in_array($error->getMessage(),array('required','mismatch'),true); }
 		mail_check($caught && !$passed,'Missing/malformed/mismatched password stops actual creation dispatch before writes');
 	}
-	foreach(array('Unique-fixture!Q9','Grüße & <wörtlich> "Z9"') as $password)
+	foreach(array('Unique-fixture!Q9','Grüße & <wörtlich> "Z9"',' leading and trailing ','0') as $password)
 	{
 		$_POST=array('new_user'=>1,'submit'=>'Save','password'=>$password,'password_confirm'=>$password); $mode='save'; eval($gate);
 		mail_check($_POST['password']===$password && $_POST['password_confirm']===$password,'Valid input passes gate without mutating credential fields');

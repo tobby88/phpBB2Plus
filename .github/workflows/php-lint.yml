@@ -563,3 +563,6 @@ jobs:
 
       - name: Test account credential disclosure and explicit creation passwords
         run: php .github/scripts/check-account-credential-disclosure.php
+
+      - name: Test ACP raw password and login round trips
+        run: php .github/scripts/check-admin-password-roundtrip.php

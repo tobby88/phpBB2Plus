@@ -51,6 +51,11 @@ explicit password and matching confirmation; no shared default password is
 assigned. These changes do not alter existing account credentials or retract
 passwords from emails already sent by older versions.
 
+ACP password creation and changes preserve special characters and whitespace
+as entered, matching login. Existing password hashes are not rewritten. If an
+older ACP version saved a transformed password, use the regular password-reset
+or administrator workflow to set it again; no alternate decoded login is added.
+
 ## Repository layout
 
 - `phpBB2/` contains the deployable forum application.

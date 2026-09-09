@@ -73,11 +73,11 @@ function admin_user_require_creation_password()
 	{
 		message_die(GENERAL_MESSAGE, $lang['New_user_password_required']);
 	}
-	// Match this legacy editor's existing normalization, but validate before
-	// reserving an ID or inserting the placeholder account and its groups.
-	$password = trim(strip_tags(htmlspecialchars($_POST['password'])));
-	$confirmation = trim(strip_tags(htmlspecialchars($_POST['password_confirm'])));
-	if (empty($password) || empty($confirmation)) { message_die(GENERAL_MESSAGE, $lang['New_user_password_required']); }
+	// Passwords are opaque strings, just as on login. Validate before reserving
+	// an ID or inserting the placeholder account and its groups.
+	$password = $_POST['password'];
+	$confirmation = $_POST['password_confirm'];
+	if ($password === '' || $confirmation === '') { message_die(GENERAL_MESSAGE, $lang['New_user_password_required']); }
 	if (!hash_equals($password, $confirmation)) { message_die(GENERAL_MESSAGE, $lang['Password_mismatch']); }
 }
 
@@ -234,8 +234,8 @@ if( !empty($_POST['unblock_account']) )
 		$username = ( admin_user_post_string('username') !== '' ) ? phpbb_clean_username(admin_user_post_string('username')) : '';
 		$email = trim(strip_tags(htmlspecialchars(admin_user_post_string('email'))));
 
-		$password = trim(strip_tags(htmlspecialchars(admin_user_post_string('password'))));
-		$password_confirm = trim(strip_tags(htmlspecialchars(admin_user_post_string('password_confirm'))));
+		$password = (isset($_POST['password']) && is_string($_POST['password'])) ? $_POST['password'] : '';
+		$password_confirm = (isset($_POST['password_confirm']) && is_string($_POST['password_confirm'])) ? $_POST['password_confirm'] : '';
 
 		$icq = trim(strip_tags(admin_user_post_string('icq')));
 		$aim = trim(strip_tags(admin_user_post_string('aim')));
@@ -450,12 +450,12 @@ if( !empty($_POST['unblock_account']) )
 		//
 
 		$passwd_sql = '';
-		if( !empty($password) && !empty($password_confirm) )
+		if ($password !== '' && $password_confirm !== '')
 		{
 			//
 			// Awww, the user wants to change their password, isn't that cute..
 			//
-			if($password != $password_confirm)
+			if (!hash_equals($password, $password_confirm))
 			{
 				$error = TRUE;
 				$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];
@@ -468,12 +468,12 @@ if( !empty($_POST['unblock_account']) )
 				$passwd_sql .= ($force_new_passwd) ? '' : "user_passwd_change = $password_changed_at, ";
 			}
 		}
-		else if( $password && !$password_confirm )
+		else if ($password !== '' && $password_confirm === '')
 		{
 			$error = TRUE;
 			$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];
 		}
-		else if( !$password && $password_confirm )
+		else if ($password === '' && $password_confirm !== '')
 		{
 			$error = TRUE;
 			$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];

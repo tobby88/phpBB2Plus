@@ -82,7 +82,10 @@ if (
 	include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 	include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 
-	$strip_var_list = array('username' => 'username', 'email' => 'email', 'new_password' => 'new_password', 'password_confirm' => 'password_confirm');
+	// Passwords must reach the hash unchanged, matching the login form.
+	$new_password = (isset($_POST['new_password']) && is_string($_POST['new_password'])) ? $_POST['new_password'] : '';
+	$password_confirm = (isset($_POST['password_confirm']) && is_string($_POST['password_confirm'])) ? $_POST['password_confirm'] : '';
+	$strip_var_list = array('username' => 'username', 'email' => 'email');
 
 	// Strip all tags from data ... may p**s some people off, bah, strip_tags is
 	// doing the job but can still break HTML output ... have no choice, have
@@ -132,9 +135,6 @@ if (
 	{
 		$username = stripslashes($username);
 		$email = stripslashes($email);
-		$cur_password = htmlspecialchars(stripslashes($cur_password));
-		$new_password = htmlspecialchars(stripslashes($new_password));
-		$password_confirm = htmlspecialchars(stripslashes($password_confirm));
 
 		$user_lang = stripslashes($user_lang);
 		$user_dateformat = stripslashes($user_dateformat);
@@ -156,12 +156,12 @@ if ($mode == 'register' && ($userdata['session_logged_in'] || $username == $user
 if ( isset($_POST['submit']) )
 {
 	$passwd_sql = '';
-	if ( empty($username) || empty($new_password) || empty($password_confirm) || empty($email) )
+	if (empty($username) || $new_password === '' || $password_confirm === '' || empty($email))
 	{
 		$error = TRUE;
 		$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Fields_empty'];
 	}
-	else if ( ( empty($new_password) && !empty($password_confirm) ) || ( !empty($new_password) && empty($password_confirm) ) || ( $new_password != $password_confirm ) )
+	else if (!hash_equals($new_password, $password_confirm))
 	{
 		$error = TRUE;
 		$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];
@@ -299,9 +299,10 @@ $user_hot_threshold = $board_config['hot_threshold'];
 
 $template->assign_vars(array(
 	'USERNAME' => admin_add_user_form_text($username),
-	'CUR_PASSWORD' => $cur_password,
-	'NEW_PASSWORD' => $new_password,
-	'PASSWORD_CONFIRM' => $password_confirm,
+	// Never reflect credentials, including on non-submit and error paths.
+	'CUR_PASSWORD' => '',
+	'NEW_PASSWORD' => '',
+	'PASSWORD_CONFIRM' => '',
 	'EMAIL' => admin_add_user_form_text($email),
 	'LANGUAGE_SELECT' => language_select($user_lang, 'language'),
 	'STYLE_SELECT' => style_select($user_style, 'style'),

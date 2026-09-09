@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve password bytes in both ACP account-creation forms and profile edits,
+  matching login instead of HTML-encoding or trimming credentials. Compare
+  confirmations strictly, including numeric-looking strings, and never reflect
+  passwords into the quick-add form. Blank password edits remain unchanged.
+  Existing hashes are not rewritten; no decoding fallback or credential aliases
+  are added. Previously affected credentials can be reset through the normal
+  password-reset or administrator workflow. No database migration is required.
+
 - Stop including account passwords in registration emails and parental-consent
   forms. Remove the credential assignments and all eight English/German welcome
   mail placeholders while preserving activation links and consent return details.
