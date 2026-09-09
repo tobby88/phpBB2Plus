@@ -605,3 +605,6 @@ jobs:
 
       - name: Test durable search rebuild and interrupted finalization
         run: php .github/scripts/check-maintenance-rebuild.php
+
+      - name: Test coordinated poll maintenance and preserved vote history
+        run: php .github/scripts/check-maintenance-polls.php

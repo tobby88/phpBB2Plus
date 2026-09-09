@@ -25,6 +25,10 @@
 //
 
 $lang['DB_Maintenance'] = 'Datenbank-Wartung';
+$lang['Maintenance_poll_failed'] = 'Die Umfrage-Wartung wurde unterbrochen. Vorherige bestätigte Änderungen können bereits gespeichert sein; zum Fortsetzen die Prüfung erneut starten. Es erfolgt kein vollständiges Zurückrollen.';
+$lang['Maintenance_poll_summary'] = 'Entfernte verwaiste Umfragen: %d; Antwortmöglichkeiten: %d; Abstimmungsdatensätze: %d. Anonymisierte Abstimmende ohne vorhandenes Benutzerkonto: %d. Korrigierte Umfrage-Markierungen bei Themen: %d.';
+$lang['Maintenance_poll_review'] = '%d Umfrage-Datensätze müssen noch geprüft werden (höchstens 100 werden angezeigt). Fehlende Antworttexte und mehrere Umfragen zu einem Thema lassen sich nicht automatisch rekonstruieren. Diese Datensätze, Ergebnisse und Abstimmungen wurden erhalten. Vor der Bearbeitung fehlende Quelldaten wiederherstellen oder widersprüchliche Umfragen prüfen.';
+$lang['Maintenance_poll_review_item'] = 'Umfrage %d, Thema %d: %s';
 $lang['Maintenance_rebuild_failed'] = 'Der Suchindex-Neuaufbau wurde unterbrochen. Der letzte bestätigte Fortschritt ist gespeichert; einzelne Indexeinträge können bereits geändert sein.';
 $lang['Maintenance_rebuild_state_invalid'] = 'Der gespeicherte Neuaufbau-Zustand ist ungültig. Index und Fortschritt nicht manuell verändern; vor dem Fortsetzen eine gültige Konfigurationssicherung wiederherstellen.';
 $lang['Maintenance_rebuild_changed'] = 'Der Neuaufbau oder seine Quelldaten wurden zwischenzeitlich geändert. Öffne die Datenbank-Wartung erneut und setze den aktuellen Neuaufbau fort.';

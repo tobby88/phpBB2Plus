@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate ACP poll maintenance with normal voting and posting. Recheck
+  current parent references and administrator permissions inside every write,
+  process bounded ID batches, report actual changes and acknowledge partial
+  completion on failures.
+  Preserve polls with missing answer text or duplicate topic ownership for
+  manual source repair. Preserve guest votes and anonymize missing-account
+  voters consistently with account removal, without guessing result totals.
+  Replace the obsolete controller and missing translation key with tested
+  English/German summaries. No schema migration is required for this repair.
+
 - Replace the PHP 3/4 search-index rebuilding paths with a resumable,
   generation-bound maintenance job. Reindex current source posts under the
   shared writer lock, checkpoint confirmed posts, finalize common/orphan
