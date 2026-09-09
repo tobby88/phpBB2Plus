@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate forum-policy saves with content and ACL writers. Reject malformed
+  original forum IDs, preset IDs and access levels instead of silently making
+  permissions public. Preserve unsubmitted advanced fields, all seven original
+  presets and Attachment MOD fields; retain the registered-user minimum for
+  voting. Recheck current ACP delegation and the actual policy snapshot on the
+  atomic update. Refresh hierarchy data outside the writer even when a read
+  fails after saving, and keep the selected forum in the success redirect.
+  No account changes, forced logouts, schema changes or data migration.
+
 - Coordinate ACP group creation, updates and removal with membership/ACL writers.
   Recheck current administrator or delegated group-management grants; validate
   original IDs, UTF-8 text, leaders and quota assignments. Approve pending or

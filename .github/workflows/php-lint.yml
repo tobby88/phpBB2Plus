@@ -539,3 +539,6 @@ jobs:
 
       - name: Test coordinated group administration, leadership and quotas
         run: php .github/scripts/check-group-admin-storage.php
+
+      - name: Test coordinated forum policies and preserved permission presets
+        run: php .github/scripts/check-forum-acl-storage.php

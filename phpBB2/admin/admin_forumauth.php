@@ -40,6 +40,9 @@ $no_page_header = TRUE;
 $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_forum_acl_storage.' . $phpEx);
+try { phpbb_acl_actor(new PhpbbAclDatabase($db, 'Acl_read_failed'), 'forum'); }
+catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, phpbb_admin_html($error->getMessage())); }
 
 //
 // Start program - define vars
@@ -105,76 +108,14 @@ else
 if( isset($_POST['submit']) )
 {
 	phpbb_admin_require_post_session();
-	if (empty($forum_id))
-	{
-		message_die(GENERAL_MESSAGE, isset($lang['No_forum']) ? $lang['No_forum'] : 'Invalid forum.');
-	}
-	$sql = '';
-
-	if(!empty($forum_id))
-	{
-		if (!isset($tree['keys'][POST_FORUM_URL . $forum_id]))
-		{
-			message_die(GENERAL_MESSAGE, isset($lang['No_forum']) ? $lang['No_forum'] : 'Invalid forum.');
-		}
-		if(isset($_POST['simpleauth']))
-		{
-			if (!is_scalar($_POST['simpleauth']) || !isset($simple_auth_ary[intval($_POST['simpleauth'])]))
-			{
-				message_die(GENERAL_MESSAGE, 'Invalid forum permissions.');
-			}
-			$simple_ary = $simple_auth_ary[intval($_POST['simpleauth'])];
-
-			for($i = 0; $i < count($simple_ary); $i++)
-			{
-				$sql .= ( ( $sql != '' ) ? ', ' : '' ) . $forum_auth_fields[$i] . ' = ' . $simple_ary[$i];
-			}
-
-			if (is_array($simple_ary))
-			{
-				$sql = "UPDATE " . FORUMS_TABLE . " SET $sql WHERE forum_id = $forum_id";
-			}
-		}
-		else
-		{
-			for($i = 0; $i < count($forum_auth_fields); $i++)
-			{
-				$post_auth_value = (isset($_POST[$forum_auth_fields[$i]]) && is_scalar($_POST[$forum_auth_fields[$i]])) ? intval($_POST[$forum_auth_fields[$i]]) : AUTH_ALL;
-				$value = in_array($post_auth_value, $forum_auth_const, true) ? $post_auth_value : AUTH_ALL;
-
-				if ( $forum_auth_fields[$i] == 'auth_vote' )
-				{
-					if ( $value == AUTH_ALL )
-					{
-						$value = AUTH_REG;
-					}
-				}
-
-				$sql .= ( ( $sql != '' ) ? ', ' : '' ) .$forum_auth_fields[$i] . ' = ' . $value;
-			}
-
-			$sql = "UPDATE " . FORUMS_TABLE . " SET $sql WHERE forum_id = $forum_id";
-		}
-
-		if ( $sql != '' )
-		{
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update auth table', '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-		$forum_sql = '';
-		$adv = 0;
-	}
-	//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- add
-	cache_tree(true);
-
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
+	$refresh_needed = false; $storage_error = null;
+	try { $forum_id = phpbb_forum_acl_save($db, $_POST, $refresh_needed); }
+	catch (PhpbbAclException $error) { $storage_error = $error; }
+	if ($refresh_needed) { cache_tree(true); }
+	if ($storage_error !== null) { message_die(GENERAL_MESSAGE, phpbb_admin_html($storage_error->getMessage())); }
 
 	$template->assign_vars(array(
-		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("admin_forumauth.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">')
+		'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("admin_forumauth.$phpEx?" . POST_FORUM_URL . "=f$forum_id") . '">')
 	);
 	$message = $lang['Forum_auth_updated'] . '<br /><br />' . sprintf($lang['Click_return_forumauth'],  '<a href="' . append_sid("admin_forumauth.$phpEx") . '">', "</a>");
 	message_die(GENERAL_MESSAGE, $message);

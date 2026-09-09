@@ -53,6 +53,8 @@ function phpbb_acl_fields()
 function phpbb_acl_actor($db,$mode)
 {
 	global $userdata,$phpEx;
+	if (!is_string($mode) || !in_array($mode,array('user','group','forum'),true)) { phpbb_acl_error('Acl_selection_changed'); }
+	$route=$mode==='forum'?'admin_forumauth.'.$phpEx:'admin_ug_auth.'.$phpEx.'?mode='.$mode;
 	$user=phpbb_current_moderator_user($db);
 	if (!$user || empty($userdata['session_admin'])) { phpbb_acl_error('Not_Authorised'); }
 	$user['root']=(int)$user['user_level']===ADMIN;
@@ -67,7 +69,7 @@ function phpbb_acl_actor($db,$mode)
 			foreach (explode(EXPLODE_SEPERATOR_CHAR,$rows[0]['user_jr_admin']) as $hash)
 			{
 				// Both ACP modes share a file but are distinct delegated modules.
-				if (isset($routes[$hash]) && $routes[$hash]==='admin_ug_auth.'.$phpEx.'?mode='.$mode) { $allowed=true; break; }
+				if (isset($routes[$hash]) && $routes[$hash]===$route) { $allowed=true; break; }
 			}
 		}
 		if (!$allowed) { phpbb_acl_error('Not_Authorised'); }

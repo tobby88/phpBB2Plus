@@ -21,8 +21,8 @@ foreach ($files as $name => $body)
 
 foreach (array(
 	'$s_column_span = 0;',
-	'isset($simple_auth_ary[intval($_POST[\'simpleauth\'])])',
-	'in_array($post_auth_value, $forum_auth_const, true)',
+	'phpbb_forum_acl_save($db, $_POST, $refresh_needed)',
+	'if ($refresh_needed) { cache_tree(true); }',
 	'phpbb_admin_html($forum_name)'
 ) as $marker)
 {
