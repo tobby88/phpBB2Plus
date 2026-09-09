@@ -3339,57 +3339,33 @@ switch($mode_id)
 					echo('<p class="gen">' . sprintf($lang['Maintenance_post_sync_review'], implode(', ', array_map('intval', $post_sync_result['review']))) . '</p>');
 				}
 				break;
-			case 'synchronize_user': // Synchronize post counter of users
-				echo("<h1>" . $lang['Synchronize_post_counters'] . "</h1>\n");
+			case 'synchronize_user': // Synchronize personal post counters
+				echo('<h1>' . $lang['Synchronize_post_counters'] . '</h1>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_posts.' . $phpEx);
+				try { dbmtnc_post_sync_request('synchronize_user', $_POST); }
+				catch (PhpbbAclException $error) { throw_error($error->getMessage()); }
 				lock_db();
-
-				// Count existing posts only where personal post counting is enabled.
-				// LEFT JOIN retains zero-post users without a separate blanket reset.
-				echo("<p class=\"gen\"><b>" . $lang['Synchronize_user_post_counter'] . "</b></p>\n");
-				$sql = "SELECT u.user_id, u.username, u.user_posts, COUNT(f.forum_id) AS new_counter
-					FROM " . USERS_TABLE . " u
-					LEFT JOIN " . POSTS_TABLE . " p ON u.user_id = p.poster_id
-					LEFT JOIN " . FORUMS_TABLE . " f ON f.forum_id = p.forum_id AND f.count_posts <> 0
-					WHERE u.user_id > 0
-					GROUP BY u.user_id, u.username, u.user_posts";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get user and post data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if ($row['new_counter'] != $row['user_posts'] )
-					{
-						$sql2 = "UPDATE " . USERS_TABLE . "
-							SET user_posts = " . (int) $row['new_counter'] . "
-							WHERE user_id = " . (int) $row['user_id'] . ' AND user_id > 0';
-						$result2 = $db->sql_query($sql2);
-						if ( !$result2 )
-						{
-							throw_error("Couldn't update user information!", __LINE__, __FILE__, $sql2);
-						}
-						if (!$list_open)
-						{
-							echo("<p class=\"gen\">" . $lang['Synchronizing_users'] . ":</p>\n");
-							echo("<font class=\"gen\"><ul>\n");
-							$list_open = TRUE;
-						}
-						echo("<li>" . sprintf($lang['Synchronizing_user_counter'], htmlspecialchars($row['username']), $row['user_id'], $row['user_posts'], $row['new_counter']) . "</li>\n");
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
+				$user_sync_error = '';
+				try { $user_sync_result = dbmtnc_synchronize_user_counts($db, $_POST); }
+				catch (PhpbbAclException $error) { $user_sync_error = $error->getMessage(); }
+				catch (Exception $error) { $user_sync_error = $lang['Maintenance_user_sync_failed']; }
+				catch (Throwable $error) { $user_sync_error = $lang['Maintenance_user_sync_failed']; }
+				finally { lock_db(TRUE); }
+				if ($user_sync_error !== '') { throw_error($user_sync_error); }
+				if (!$user_sync_result['changed'] && !$user_sync_result['skipped']) { echo($lang['Nothing_to_do']); }
 				else
 				{
-					echo($lang['Nothing_to_do']);
+					echo('<ul class="gen">');
+					foreach ($user_sync_result['changed'] as $user_sync_row)
+					{
+						echo('<li>' . sprintf($lang['Maintenance_user_counter_changed'], htmlspecialchars($user_sync_row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), (int) $user_sync_row['user_id'], (int) $user_sync_row['user_posts']) . '</li>');
+					}
+					foreach ($user_sync_result['skipped'] as $user_sync_id)
+					{
+						echo('<li>' . sprintf($lang['Maintenance_user_counter_skipped'], $user_sync_id) . '</li>');
+					}
+					echo('</ul>');
 				}
-
-				lock_db(TRUE);
 				break;
 			case 'synchronize_mod_state': // Synchronize moderator status
 				echo("<h1>" . $lang['Synchronize_moderators'] . "</h1>\n");

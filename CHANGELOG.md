@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate personal post-count maintenance with posting and forum-policy
+  writers. Replace snapshot counts with current aggregates inside guarded UPDATEs,
+  recheck maintenance authorization, preserve count-enabled forum and sentinel-ID
+  rules, and verify current counts/names before reporting. Restore maintenance
+  state on controlled failures and report skipped/deleted targets. Expand the
+  existing actual-controller regression with concurrent posts/policy changes,
+  current root/Junior Admin checks, writer contention and native engine coverage.
+  No schema migration or automatic live recount.
+
 - Replace maintenance topic/redirect/forum snapshot writes with a coordinated
   counter service. Compute aggregates at write time, revalidate actor and target
   identity, preserve move-time redirect cutoffs, and handle empty/redirect-only

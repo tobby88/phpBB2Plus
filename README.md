@@ -96,6 +96,13 @@ authorization is checked throughout. A failed run can leave earlier counter
 repairs in place; back up first and retry after resolving the error. Deployment
 does not run this repair, and no new schema migration is required.
 
+Personal post-count synchronization also uses this writer coordination. Counts
+are calculated at write time from posts in existing count-enabled forums, with
+zero for accounts without counted posts; guest/reserved IDs remain untouched.
+Only current authorized ACP requests can run it. Reports use verified current
+counts and names, and flag removed or changed targets. Partial failures can leave
+earlier corrections applied; no automatic recount runs during deployment.
+
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.
 Explicit defaults, special attributes and ambiguous keys are left for review.

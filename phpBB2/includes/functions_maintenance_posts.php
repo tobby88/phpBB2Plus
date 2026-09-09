@@ -7,7 +7,7 @@ function dbmtnc_post_sync_request($function, $request)
 	global $userdata;
 	if (!is_array($request) || empty($userdata['session_id'])) { phpbb_acl_error('Invalid_dbmtnc_request'); }
 	$method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : '';
-	if ($function === 'synchronize_post')
+	if ($function === 'synchronize_post' || $function === 'synchronize_user')
 	{
 		if ($method !== 'POST' || !isset($request['sid']) || !is_string($request['sid'])
 			|| !hash_equals((string) $userdata['session_id'], $request['sid'])) { phpbb_acl_error('Session_invalid'); }
@@ -26,6 +26,7 @@ function dbmtnc_post_sync_request($function, $request)
 // Derived counters only: no topic, redirect, post or attachment deletion.
 function dbmtnc_synchronize_posts($database, $function, $request)
 {
+	if (!in_array($function, array('synchronize_post', 'synchronize_post_direct'), true)) { phpbb_acl_error('Invalid_dbmtnc_request'); }
 	dbmtnc_post_sync_request($function, $request);
 	$lock = new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
@@ -89,6 +90,36 @@ function dbmtnc_synchronize_posts($database, $function, $request)
 			$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . implode(', ', $sets) . ' WHERE forum_id = ' . $id . ' AND (' . implode(' OR ', $different) . ') AND ' . $actor['guard']);
 			if ((int) $db->sql_affectedrows() === 1) { $output['forums'][] = array('id' => $id, 'name' => $row['forum_name']); }
 			phpbb_acl_actor($db, 'maintenance');
+		}
+		phpbb_acl_actor($db, 'maintenance');
+		return $output;
+	}
+	finally { $lock->release(); }
+}
+
+function dbmtnc_synchronize_user_counts($database, $request)
+{
+	dbmtnc_post_sync_request('synchronize_user', $request);
+	$lock = new attach_mutation_lock($database);
+	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
+	try
+	{
+		$db = new PhpbbAclDatabase($lock->connection, 'Maintenance_user_sync_failed');
+		phpbb_acl_actor($db, 'maintenance');
+		$counter = '(SELECT COUNT(*) FROM ' . POSTS_TABLE . ' p INNER JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id AND f.count_posts <> 0 WHERE p.poster_id = u.user_id)';
+		$rows = phpbb_acl_rows($db, 'SELECT u.user_id FROM ' . USERS_TABLE . ' u WHERE u.user_id > 0 AND u.user_posts <> ' . $counter . ' ORDER BY u.user_id');
+		$output = array('changed' => array(), 'skipped' => array());
+		foreach ($rows as $row)
+		{
+			$id = (int) $row['user_id'];
+			$actor = phpbb_acl_actor($db, 'maintenance');
+			$counter = '(SELECT COUNT(*) FROM ' . POSTS_TABLE . ' p INNER JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id AND f.count_posts <> 0 WHERE p.poster_id = ' . $id . ')';
+			$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_posts = ' . $counter . ' WHERE user_id = ' . $id . ' AND user_id > 0 AND user_posts <> ' . $counter . ' AND ' . $actor['guard']);
+			$changed = (int) $db->sql_affectedrows() === 1;
+			phpbb_acl_actor($db, 'maintenance');
+			$current = phpbb_acl_rows($db, 'SELECT user_id, username, user_posts FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND user_posts = ' . $counter);
+			if (!$current) { $output['skipped'][] = $id; }
+			elseif ($changed) { $output['changed'][] = $current[0]; }
 		}
 		phpbb_acl_actor($db, 'maintenance');
 		return $output;

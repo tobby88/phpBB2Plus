@@ -106,6 +106,8 @@ try{
    else{$function='synchronize_post_direct';$request=sync_direct('0');$expected=$lang['Invalid_dbmtnc_request'];if($case==='bad-token'){$request['dbmtnc_token']='bad';}elseif($case==='wrong-function-token'){$request['dbmtnc_token']=hash_hmac('sha256','perform_rebuild|0',$userdata['session_id']);}elseif($case==='state-array'){$request['db_state']=array();}else{$request['db_state']='1';}}
    sync_run($expected,$function,$request);sync_check(sync_value('SELECT topic_replies FROM fixture_topics WHERE topic_id=1')===99,'Denied requests leave counters alone');
   }
+  sync_fixture($engine);sync_run($lang['Invalid_dbmtnc_request'],'synchronize_user',$_POST);
+  sync_check(sync_value('SELECT topic_replies FROM fixture_topics WHERE topic_id=1')===99,'User recount mode cannot dispatch the topic service');
   foreach(array('0','1') as $state){sync_fixture($engine);sync_run('','synchronize_post_direct',sync_direct($state));}
   sync_fixture($engine,20);$hash=md5('GeneralDB_Maintenanceadmin_db_maintenance.php');$sync_server->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".$hash."')");sync_run();
   sync_fixture($engine,20);sync_run($lang['Not_Authorised']);
