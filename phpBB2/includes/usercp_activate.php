@@ -180,7 +180,6 @@ if ( $row = $db->sql_fetchrow($result) )
 			$emailer->assign_vars(array(
 				'SITENAME' => $board_config['sitename'], 
 				'USERNAME' => $row['username'],
-				'PASSWORD' => '',
 				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '')
 			);
 			$emailer->send();

@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Stop including account passwords in registration emails and parental-consent
+  forms. Remove the credential assignments and all eight English/German welcome
+  mail placeholders while preserving activation links and consent return details.
+  Remove the ACP user's shared default password; require an explicit matching
+  password before any new-account ID reservation or placeholder/group insert.
+  Blank password fields still leave existing accounts unchanged. No database
+  migration, forced reset or changes to existing password hashes are performed.
+
 - Extend resumable account cleanup to standalone user pruning. Persist the
   original age/activity criteria, recheck current full-administrator authority
   and eligibility on writes, and recover partial account/PN/group/file cleanup

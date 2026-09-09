@@ -1040,7 +1040,8 @@ $lang['Prune_users'] = 'Benutzer löschen';
 
 // Start add - Admin add user MOD
 $lang['Create_user'] = 'Neuen Benutzer erstellen';
-$lang['Create_user_explain'] = 'Du bist dabei, einen neuen Beuntzer zu erstellen. Das Script wird bei den Daten für diesen Benutzer %s nachsehen; die Benutzer-ID dieses Benutzers ist in der Datei admin_users.php festgelegt, Du kannst diese Einstellung ganz oben in der Datei ändern, wenn eine andere Benutzer-ID benötigt wird.<br />Hiervon gibt es zwei Ausnahmen: <br />1. das Paßwort des Benutzers wird auf "%s" festgelegt, wenn Du es nicht auf der Benutzer-hinzufügen-Seite anders festgelegt hast<br />2. die E-Mail des Benutzers muß auf der Benutzer-hinzufügen-Seite ausgefüllt werden';
+$lang['Create_user_explain'] = 'Du erstellst ein neues Konto mit Vorgaben von %s, dem in admin_users.php festgelegten Referenzkonto. Gib eine E-Mail-Adresse ein und trage das neue Passwort zweimal ein. Es gibt kein gemeinsames Standardpasswort.';
+$lang['New_user_password_required'] = 'Für ein neues Konto musst du ein Passwort und die passende Bestätigung eingeben. Es wird kein Standardpasswort vergeben.';
 // End add - Admin add user MOD
 
 $lang['Post_count'] = 'Beiträge dieses Forums zum persönlichen Beitragszähler der Benutzer hinzufügen?';

@@ -560,3 +560,6 @@ jobs:
 
       - name: Test durable standalone account pruning and notification boundaries
         run: php .github/scripts/check-user-pruning.php
+
+      - name: Test account credential disclosure and explicit creation passwords
+        run: php .github/scripts/check-account-credential-disclosure.php

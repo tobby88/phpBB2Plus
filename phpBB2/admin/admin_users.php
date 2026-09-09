@@ -27,7 +27,6 @@ if (!defined('IN_PHPBB'))
 // Start add - Admin add user MOD
 // define a "dummy user", the profile settings of this user, will be used as default settings for new users
 define('DEFAULT_USER_ID', 2);
-define('DEFAULT_PASSWD', '123456');
 // End add - Admin add user MOD
 if( !empty($setmodules) )
 {
@@ -67,6 +66,21 @@ function admin_user_sql_value($value)
 	return $db->sql_escape((string) $value);
 }
 
+function admin_user_require_creation_password()
+{
+	global $lang;
+	if (!isset($_POST['password'], $_POST['password_confirm']) || !is_string($_POST['password']) || !is_string($_POST['password_confirm']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['New_user_password_required']);
+	}
+	// Match this legacy editor's existing normalization, but validate before
+	// reserving an ID or inserting the placeholder account and its groups.
+	$password = trim(strip_tags(htmlspecialchars($_POST['password'])));
+	$confirmation = trim(strip_tags(htmlspecialchars($_POST['password_confirm'])));
+	if (empty($password) || empty($confirmation)) { message_die(GENERAL_MESSAGE, $lang['New_user_password_required']); }
+	if (!hash_equals($password, $confirmation)) { message_die(GENERAL_MESSAGE, $lang['Password_mismatch']); }
+}
+
 //
 // Set mode
 //
@@ -99,6 +113,7 @@ $template->assign_vars(array('REMOVAL_JOBS' => $pending_removals));
 $new_user = ((int) admin_user_post_string('new_user') === 1) ? TRUE : 0;
 if ($new_user)
 {
+	if ($mode === 'save' && isset($_POST['submit'])) { admin_user_require_creation_password(); }
 	//see if user already exist
 	if (get_userdata(admin_user_post_string('username')))
 	{
@@ -466,12 +481,8 @@ if( !empty($_POST['unblock_account']) )
 		// Start add - Admin add user MOD
 		else if ($new_user)
 		{
-			//no password given for this new user, create default password
-			$password = phpbb_password_hash(DEFAULT_PASSWD);
-			$password_changed_at = time();
-			$passwd_sql = "user_password = '$password', ct_last_pw_change = $password_changed_at, ";
-			$passwd_sql .= ($force_new_passwd) ? '' : "user_passwd_change = $password_changed_at, ";
-			//send out email notification goes here
+			$error = TRUE;
+			$error_msg .= (isset($error_msg) ? '<br />' : '') . $lang['New_user_password_required'];
 		}
 		// End add - Admin add user MOD
 		if ($signature != '')
@@ -965,7 +976,7 @@ if( !empty($_POST['unblock_account']) )
 
 			$template->assign_vars(array(
 				"L_USER_TITLE" => $lang['User_admin'],
-				"L_USER_EXPLAIN" => ($new_user) ? sprintf( $lang['Create_user_explain'],'<a href="'.append_sid('/profile.'.$phpEx.'?mode=viewprofile&'.POST_USERS_URL.'='.$default_user['user_id']).'">'.$default_user['username'].'</a>', DEFAULT_PASSWD ) : $lang['User_admin_explain'],
+				"L_USER_EXPLAIN" => ($new_user) ? sprintf( $lang['Create_user_explain'],'<a href="'.append_sid('/profile.'.$phpEx.'?mode=viewprofile&'.POST_USERS_URL.'='.$default_user['user_id']).'">'.$default_user['username'].'</a>' ) : $lang['User_admin_explain'],
 				"L_AVATAR_GALLERY" => $lang['Avatar_gallery'], 
 				"L_SELECT_AVATAR" => $lang['Select_avatar'], 
 				"L_RETURN_PROFILE" => $lang['Return_profile'], 
@@ -1362,7 +1373,7 @@ if ($this_userdata['user_passwd_change']>0)
 			// End add - Protect user account MOD
 			'L_USERNAME' => $lang['Username'],
 			'L_USER_TITLE' => $lang['User_admin'],
-			'L_USER_EXPLAIN' => ($new_user) ? sprintf( $lang['Create_user_explain'],'<a href="'.append_sid('/profile.'.$phpEx.'?mode=viewprofile&'.POST_USERS_URL.'='.$default_user['user_id']).'">'.$default_user['username'].'</a>', DEFAULT_PASSWD ) : $lang['User_admin_explain'],
+			'L_USER_EXPLAIN' => ($new_user) ? sprintf( $lang['Create_user_explain'],'<a href="'.append_sid('/profile.'.$phpEx.'?mode=viewprofile&'.POST_USERS_URL.'='.$default_user['user_id']).'">'.$default_user['username'].'</a>' ) : $lang['User_admin_explain'],
 			'L_NEW_PASSWORD' => $lang['New_password'], 
 			'L_PASSWORD_IF_CHANGED' => $lang['password_if_changed'],
 			'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],

@@ -45,6 +45,12 @@ safe by default for an untrusted public deployment.
 Use backups, test changes in an isolated environment, and review all migration
 scripts before running them against an existing forum.
 
+Current welcome emails do not contain passwords. Account activation links remain
+part of the corresponding mails. The ACP account-creation form requires an
+explicit password and matching confirmation; no shared default password is
+assigned. These changes do not alter existing account credentials or retract
+passwords from emails already sent by older versions.
+
 ## Repository layout
 
 - `phpBB2/` contains the deployable forum application.

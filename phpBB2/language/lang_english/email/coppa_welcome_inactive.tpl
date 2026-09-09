@@ -17,7 +17,6 @@ OR mail it to:
 Permission to Participate at {SITENAME}
 
 Username: {USERNAME}
-Password: {PASSWORD}
 Email: {EMAIL_ADDRESS}
 
 ICQ Number: {ICQ}
@@ -46,7 +45,7 @@ Date: _______________
 
 Once the administrator has received the above form via fax or regular mail your account will be activated.
 
-Please do not forget your password as it has been encrypted in our database and we cannot retrieve it for you. However, should you forget your password you can request a new one which will be activated in the same way as this account.
+Your password is not included in this email. Keep it private, including when submitting a consent form. If you forget it, use the password-reset option on the login page.
 
 Thank you for registering.
 

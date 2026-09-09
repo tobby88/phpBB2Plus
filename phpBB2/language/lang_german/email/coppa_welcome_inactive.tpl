@@ -18,7 +18,6 @@ ODER maile sie an:
 Erlaubnis auf {SITENAME} zu posten
 
 Username: {USERNAME}
-Passwort: {PASSWORD}
 Email: {EMAIL_ADDRESS}
 
 ICQ Nummer: {ICQ}
@@ -47,7 +46,7 @@ Datum:        __________________
 
 Sobald der Administrator den oben angeführten Abschnitt über FAX oder Post erhalten hat, wird dieser Account aktiviert.
 
-Das Passwort wurde nur verschlüsselt in unserer Datenbank gespeichert, wenn du es also vergisst, können wir es dir nicht mehr zusenden. Wenn du es trotzdem vergessen solltest, kannst du aber jederzeit ein neues anfordern.
+Dein Passwort wird nicht per E-Mail mitgeteilt. Halte es geheim, auch beim Einreichen einer Einverständniserklärung. Falls du es vergisst, nutze die Funktion zum Zurücksetzen des Passworts auf der Login-Seite.
 
 Danke für deine Registrierung!
 

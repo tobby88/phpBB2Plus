@@ -121,8 +121,8 @@ if (strpos($send_password, "\$lang['Password_reset_requested']") === false ||
 {
 	$errors[] = 'The non-enumerating password-reset response is not available in both supported languages.';
 }
-if (substr_count($admin_users, 'ct_last_pw_change = $password_changed_at') < 2 ||
-	substr_count($admin_users, 'user_passwd_change = $password_changed_at') < 2 ||
+if (substr_count($admin_users, 'ct_last_pw_change = $password_changed_at') !== 1 ||
+	substr_count($admin_users, 'user_passwd_change = $password_changed_at') !== 1 ||
 	strpos($admin_add_user, 'user_passwd_change, ct_last_pw_change') === false)
 {
 	$errors[] = 'Administrator password writes do not update both password-age timestamps.';

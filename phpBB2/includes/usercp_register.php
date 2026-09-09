@@ -1046,7 +1046,6 @@ if ( isset($_POST['submit']) )
 					'SITENAME' => $board_config['sitename'],
 					'WELCOME_MSG' => sprintf($lang['Welcome_subject'], $board_config['sitename']),
 					'USERNAME' => preg_replace($unhtml_specialchars_match, $unhtml_specialchars_replace, substr(str_replace("\'", "'", $username), 0, 25)),
-					'PASSWORD' => $password_confirm,
 					'EMAIL_SIG' => str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']),
 
 					'FAX_INFO' => $board_config['coppa_fax'],
@@ -1068,7 +1067,6 @@ if ( isset($_POST['submit']) )
 					'SITENAME' => $board_config['sitename'],
 					'WELCOME_MSG' => sprintf($lang['Welcome_subject'], $board_config['sitename']),
 					'USERNAME' => preg_replace($unhtml_specialchars_match, $unhtml_specialchars_replace, substr(str_replace("\'", "'", $username), 0, 25)),
-					'PASSWORD' => $password_confirm,
 					'EMAIL_SIG' => str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']),
 
 					'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
