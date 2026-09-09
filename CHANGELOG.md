@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Journal destructive ACP PM repairs before deleting message parents or
+  attachment links. Resume prepared inventories after failed SQL, lost write
+  acknowledgements, unavailable thumbnail storage or interrupted file cleanup;
+  preserve restored parents, moved copies, current references and shared files.
+  Record only IDs, ownership/state metadata and registered attachment filenames,
+  not PM subjects, bodies or passwords. Add additive `pm_repair_jobs` and
+  `pm_repair_items` installer/updater tables and EN/DE recovery/review reports.
+  Run the post-1.53a updater before using PM maintenance on an older database.
+  Do not sweep unrelated orphan files or unfinished uploads. This journal covers
+  ACP repair, not every normal mailbox operation or pre-journal interruption.
+
 - Require current database-backed maintenance permissions throughout all five
   PM repair modes, including dependent text/counter/attachment cleanup. Guard
   writes against concurrent revocation and recheck query results before further
@@ -17,16 +28,16 @@ changes consolidated after that baseline without implying active maintenance.
   and leave anonymous/deleted-user counter sentinels alone.
   Replace the old ACP lists with actual EN/DE affected counts and explicit
   partial-failure reports. PM maintenance no longer changes global forum
-  availability, avoiding a stranded board-disable flag on failure. No schema
-  change is required. Interrupted parent/text/attachment cleanup remains a
-  separate recovery concern; completed writes are not rolled back.
+  availability, avoiding a stranded board-disable flag on failure. The later
+  repair journal above handles interrupted cleanup; completed source writes
+  are not rolled back.
 
 - Recalculate new/unread PM counters from current recipient mailbox state in
   the same guarded write, instead of publishing stale snapshots or zeroing
   newly delivered messages. Coordinate with mailbox writers, require current
   maintenance permissions, process bounded batches and preserve nonpositive
   sentinel accounts. Report confirmed changes and interrupted runs in EN/DE;
-  always restore the preceding board lock when the counter stage ends.
+  the current PM maintenance path does not change global board availability.
   This changes derived counters only, not message content or read states, and
   requires no schema migration. Earlier PM repair stages remain separate.
 

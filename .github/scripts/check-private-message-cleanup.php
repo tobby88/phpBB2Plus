@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/check-attachment-mutation.php';
+require_once __DIR__ . '/pm-repair-journal-fixture.php';
 define('PRIVMSGS_TEXT_TABLE', 'fixture_message_text');
 define('USERS_TABLE', 'fixture_users');
 define('JR_ADMIN_TABLE','fixture_jr_admin'); $phpEx='php'; $phpbb_root_path=$forum_root;
@@ -17,6 +18,7 @@ function pm_cleanup_fixture()
 {
 	global $mutation_server, $upload_dir;
 	$mutation_server = new MutationServer();
+	pm_journal_fixture_tables($mutation_server->pdo);
 	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_date INTEGER DEFAULT 123');
 	$mutation_server->pdo->exec('CREATE TABLE fixture_message_text (privmsgs_text_id INTEGER PRIMARY KEY, privmsgs_text TEXT)');
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES (20,'original'),(21,'sent copy')");
@@ -296,7 +298,7 @@ try
 	// Current authority also protects follow-up text/counter/link cleanup and
 	// the final reads that precede physical file removal. Parent deletions may
 	// already be committed: this asserts stopping, not transaction rollback.
-	foreach(array('DELETE FROM fixture_message_text','UPDATE fixture_users','DELETE FROM fixture_links','SELECT attach_id, physical_filename, thumbnail','SELECT attach_id FROM fixture_descriptions WHERE physical_filename') as $boundary)
+	foreach(array('DELETE FROM fixture_message_text','UPDATE fixture_users','DELETE FROM fixture_links','SELECT attach_id,physical_filename,thumbnail','SELECT attach_id FROM fixture_descriptions WHERE HEX(physical_filename)') as $boundary)
 	{
 		pm_cleanup_fixture(); $userdata['user_level']=ADMIN;
 		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=-1');

@@ -199,12 +199,13 @@ function phpbb_pm_repair_messages($ids, $mode, $now = null)
 function phpbb_pm_repair_spec($mode, $now = null)
 {
 	$table = PRIVMSGS_TABLE; $key = 'privmsgs_id'; $update = '';
+	$cutoff = max(0, ($now === null ? time() : (int)$now) - 300);
 	switch ($mode)
 	{
 		case 'missing_text':
 			// Sending creates parent and text separately. A recently created
 			// parent must not be interpreted as a broken message.
-			$where = 'privmsgs_date <= ' . (($now === null ? time() : (int) $now) - 300) . ' AND NOT EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' pmt WHERE pmt.privmsgs_text_id = ' . PRIVMSGS_TABLE . '.privmsgs_id)';
+			$where = 'privmsgs_date <= ' . $cutoff . ' AND NOT EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' pmt WHERE pmt.privmsgs_text_id = ' . PRIVMSGS_TABLE . '.privmsgs_id)';
 			break;
 		case 'orphan_text':
 			$table = PRIVMSGS_TEXT_TABLE; $key = 'privmsgs_text_id';
@@ -220,7 +221,7 @@ function phpbb_pm_repair_spec($mode, $now = null)
 			break;
 		default: return false;
 	}
-	return array('table'=>$table, 'key'=>$key, 'update'=>$update, 'where'=>$where, 'delete_parent'=>$mode==='missing_text'||$mode==='deleted_users');
+	return array('table'=>$table, 'key'=>$key, 'update'=>$update, 'where'=>$where, 'delete_parent'=>$mode==='missing_text'||$mode==='deleted_users', 'mode'=>$mode, 'cutoff'=>$cutoff);
 }
 
 // Internal worker: the caller holds the mutation lock and supplies the
@@ -228,7 +229,11 @@ function phpbb_pm_repair_spec($mode, $now = null)
 function phpbb_pm_repair_selected($database, $ids, $spec)
 {
 	$where = '(' . $spec['where'] . ') AND ' . $spec['key'] . ' IN (' . implode(',', $ids) . ')';
-	if ($spec['delete_parent']) { return phpbb_pm_delete_selected($database, $where); }
+	if ($spec['delete_parent'])
+	{
+		require_once dirname(__FILE__) . '/functions_pm_repair_journal.php';
+		return dbmtnc_pm_delete_planned($database, $ids, $spec);
+	}
 	$sql = $spec['update'] !== '' ? 'UPDATE ' . $spec['table'] . ' SET ' . $spec['update'] . ' = ' . DELETED : 'DELETE FROM ' . $spec['table'];
 	phpbb_pm_cleanup_query($database, $sql . ' WHERE ' . $where);
 	return (int)$database->sql_affectedrows();

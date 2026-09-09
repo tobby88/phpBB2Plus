@@ -77,6 +77,20 @@ permissions, quotas or plugin policies. Back up first and resolve ambiguous
 ownership explicitly; a maintenance report does not mean every inconsistency
 has been automatically repaired.
 
+ACP private-message repair keeps a durable cleanup inventory before deleting
+message parents or attachment links. After an interrupted run, reopen the same
+maintenance operation: it rechecks current permissions and source state before
+finishing the pending text, counter and attachment cleanup. Restored messages,
+changed attachment registrations and other references are protected; changed-source cases are
+reported for review. Completed writes are not rolled back. The journal contains
+IDs, state/ownership metadata and registered filenames, not message text or
+passwords. It does not sweep unrelated orphan files or unfinished uploads, and
+does not reconstruct inventories for interruptions that predate this change.
+This recovery currently covers ACP PM repair, not all normal mailbox operations.
+On existing databases, back up first and run `update/update_from_153a.php` (dry
+run, then `--apply --backup-confirmed`) to add the two PM repair journal tables
+before using maintenance. Fresh installations include them automatically.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

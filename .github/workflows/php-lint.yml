@@ -614,3 +614,9 @@ jobs:
 
       - name: Test current-authority PM repairs and full ACP failure handling
         run: php .github/scripts/check-maintenance-pm-repair.php
+
+      - name: Test durable PM repair and interrupted file cleanup recovery
+        run: php .github/scripts/check-maintenance-pm-recovery.php
+
+      - name: Test additive PM repair journal migration
+        run: php .github/scripts/check-pm-repair-migration.php

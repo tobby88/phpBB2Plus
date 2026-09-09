@@ -260,6 +260,8 @@ define('USER_GROUP_TABLE', $table_prefix.'user_group');
 define('USERS_TABLE', $table_prefix.'users');
 define('USER_REMOVALS_TABLE', $table_prefix.'user_removals');
 define('USER_REMOVAL_ITEMS_TABLE', $table_prefix.'user_removal_items');
+define('PM_REPAIR_JOBS_TABLE', $table_prefix.'pm_repair_jobs');
+define('PM_REPAIR_ITEMS_TABLE', $table_prefix.'pm_repair_items');
 define('WORDS_TABLE', $table_prefix.'words');
 define('VOTE_DESC_TABLE', $table_prefix.'vote_desc');
 define('VOTE_RESULTS_TABLE', $table_prefix.'vote_results');

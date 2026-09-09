@@ -1,5 +1,6 @@
 <?php
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
+require_once __DIR__ . '/pm-repair-journal-fixture.php';
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','PRIVMSGS_TABLE'=>'fixture_pm','IN_ADMIN'=>true,'DELETED'=>-1,'PAGE_PRIVMSGS'=>-10,'PRIVMSGS_TEXT_TABLE'=>'fixture_text','ATTACHMENTS_DESC_TABLE'=>'fixture_descriptions','PRIVMSGS_READ_MAIL'=>0,'PRIVMSGS_SENT_MAIL'=>2,'PRIVMSGS_SAVED_IN_MAIL'=>3,'PRIVMSGS_SAVED_OUT_MAIL'=>4,'PRIVMSGS_NEW_MAIL'=>1,'PRIVMSGS_UNREAD_MAIL'=>5,'JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
 require_once $root.'includes/functions_maintenance_pm.php';
 require_once $root.'attach_mod/includes/functions_delete.php';
@@ -16,6 +17,7 @@ class PmRepairServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+  pm_journal_fixture_tables($this->pdo,$engine);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_new_privmsg INTEGER,user_unread_privmsg INTEGER','pm'=>'privmsgs_id INTEGER PRIMARY KEY,privmsgs_to_userid INTEGER,privmsgs_from_userid INTEGER,privmsgs_type INTEGER,privmsgs_date INTEGER DEFAULT 0,privmsgs_attachment INTEGER DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)','text'=>'privmsgs_text_id INTEGER PRIMARY KEY,privmsgs_text VARCHAR(255)','links'=>'attach_id INTEGER,privmsgs_id INTEGER,post_id INTEGER','descriptions'=>'attach_id INTEGER PRIMARY KEY,physical_filename VARCHAR(255),thumbnail INTEGER');
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
@@ -52,7 +54,16 @@ class PmRepairConnection {
  function sql_numrows($r){return count($r->rows);}
  function sql_affectedrows(){return $this->affected;}
  function sql_escape($s){return substr($this->pdo->quote($s),1,-1);}
- function sql_close(){if($this->server->owner===$this){$this->server->owner=null;}$this->closed=true;$this->db_connect_id=false;$this->pdo=null;}
+ function sql_close(){
+  if($this->server->owner===$this){
+   // PDO 5.6 can retain the connection through exception/statement references
+   // after assigning null. Model mysqli_close's immediate lock release rather
+   // than leaking a fixture lease into the next independent test case.
+   if($GLOBALS['native']&&$this->pdo){$name='attachment:'.md5("pm-counter-fixture\0".ATTACHMENTS_TABLE);$this->pdo->query("SELECT RELEASE_LOCK('".$name."')")->fetchColumn();}
+   $this->server->owner=null;
+  }
+  $this->closed=true;$this->db_connect_id=false;$this->pdo=null;
+ }
 }
 
 
@@ -76,13 +87,13 @@ function pm_repair_many($count){
 $controller=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($controller,"case 'check_pm':");$b=strpos($controller,"case 'check_config':",$a);
 pm_repair_check($a!==false&&$b>$a,'Actual complete PM controller found');$branch='switch($function){'.substr($controller,$a,$b-$a).'}';
 $selections=array('missing_text'=>array(10),'orphan_text'=>array(13),'invalid_sender'=>array(14),'invalid_recipient'=>array(15),'deleted_users'=>array(16,17));
-$writes=array('missing_text'=>'DELETE FROM fixture_pm','orphan_text'=>'DELETE FROM fixture_text','invalid_sender'=>'UPDATE fixture_pm SET privmsgs_from_userid','invalid_recipient'=>'UPDATE fixture_pm SET privmsgs_to_userid','deleted_users'=>'DELETE FROM fixture_pm');
+$writes=array('missing_text'=>'DELETE FROM fixture_pm WHERE','orphan_text'=>'DELETE FROM fixture_text','invalid_sender'=>'UPDATE fixture_pm SET privmsgs_from_userid','invalid_recipient'=>'UPDATE fixture_pm SET privmsgs_to_userid','deleted_users'=>'DELETE FROM fixture_pm WHERE');
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{
  foreach($native?array('MyISAM','InnoDB'):array('SQLite') as $engine){foreach(array('english','german') as $locale){
   $lang=array('Not_Authorised'=>'not-authorized','Session_invalid'=>'session-invalid','Attachment_storage_busy'=>'busy','PM_cleanup_failed'=>'pm-failed');$phpEx='php';include $root.'language/lang_'.$locale.'/lang_dbmtnc.php';
   pm_repair_fixture($engine);$sentinels=$pm_repair_server->pdo->query('SELECT * FROM fixture_users WHERE user_id<=0 ORDER BY user_id')->fetchAll(PDO::FETCH_ASSOC);
-  $counts=pm_repair_run();pm_repair_check($counts===array('missing_text'=>1,'orphan_text'=>1,'invalid_sender'=>1,'invalid_recipient'=>1,'deleted_users'=>2),'All five repair modes return actual counts');
+  $counts=pm_repair_run();pm_repair_check($counts===array('missing_text'=>1,'orphan_text'=>1,'invalid_sender'=>1,'invalid_recipient'=>1,'deleted_users'=>2,'recovered'=>0,'cancelled'=>0),'All five repair modes return actual counts');
   pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm WHERE privmsgs_id IN (11,12,14,15,18)')===5,'Recent incomplete, valid, received and sent/saved copies retained');
   pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_text WHERE privmsgs_text_id IN (12,14,15,18)')===4,'Retained messages keep their texts');
   pm_repair_check($sentinels===$pm_repair_server->pdo->query('SELECT * FROM fixture_users WHERE user_id<=0 ORDER BY user_id')->fetchAll(PDO::FETCH_ASSOC),'Negative/zero recipient sentinels not recounted');
@@ -140,9 +151,30 @@ try{
    pm_repair_run($lang['Session_invalid'],$request);pm_repair_check(!$pm_repair_server->queries,'Invalid form rejected before database access');
   }
   pm_repair_fixture($engine);$pm_repair_server->failure='lock';pm_repair_run($lang['Attachment_storage_busy']);
+  foreach(array(PM_REPAIR_JOBS_TABLE,PM_REPAIR_ITEMS_TABLE) as $table){
+   pm_repair_fixture($engine);$before=pm_repair_snapshot('fixture_pm');$pm_repair_server->pdo->exec('DROP TABLE '.$table);
+   pm_repair_run($lang['Maintenance_pm_journal_unavailable']);pm_repair_check($before===pm_repair_snapshot('fixture_pm'),'Missing migration fails before source mutation');
+  }
+  foreach(array('INSERT INTO fixture_pm_repair_jobs','INSERT INTO fixture_pm_repair_items','UPDATE fixture_pm_repair_jobs SET repair_state','DELETE FROM fixture_pm WHERE','DELETE FROM fixture_text','DELETE FROM fixture_pm_repair_jobs WHERE') as $failure){
+   pm_repair_fixture($engine);
+   // A registered file with a second live reference exercises inventory SQL
+   // without deleting physical files in this database-only engine fixture.
+   $pm_repair_server->pdo->exec("INSERT INTO fixture_descriptions VALUES (1,'shared.txt',0)");
+   $pm_repair_server->pdo->exec('INSERT INTO fixture_links VALUES (1,10,0),(1,12,0)');
+   $pm_repair_server->failure=$failure;pm_repair_run($lang['Maintenance_pm_repair_failed'],null,'missing_text',array(10));
+   $pm_repair_server->failure='';$result=pm_repair_run();
+   pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm_repair_jobs')===0&&pm_repair_value('SELECT COUNT(*) FROM fixture_pm_repair_items')===0,'Interrupted journal SQL resumes completely');
+   pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_links WHERE privmsgs_id=12')===1&&pm_repair_value('SELECT COUNT(*) FROM fixture_descriptions')===1,'Recovery retains other attachment reference');
+   pm_repair_check(array_sum(pm_repair_run())===0,'Database recovery repeat is no-op');
+  }
+  foreach(array('INSERT INTO fixture_pm_repair_jobs','UPDATE fixture_pm_repair_jobs SET repair_state','DELETE FROM fixture_pm WHERE','DELETE FROM fixture_pm_repair_jobs WHERE') as $boundary){
+   pm_repair_fixture($engine);$committed=false;$pm_repair_server->hook=function($sql) use($boundary,&$committed){if(strpos($sql,$boundary)!==0){return;}$s=$GLOBALS['pm_repair_server'];$s->hook=null;$s->pdo->exec($sql);$s->failure=$sql;$committed=true;};
+   pm_repair_run($lang['Maintenance_pm_repair_failed'],null,'missing_text',array(10));pm_repair_check($committed,'Accepted engine write with lost acknowledgement');
+   $pm_repair_server->failure='';pm_repair_run();pm_repair_check(array_sum(pm_repair_run())===0&&pm_repair_value('SELECT COUNT(*) FROM fixture_pm_repair_jobs')===0,'Lost acknowledgement retry completes without duplicate source work');
+  }
   pm_repair_fixture($engine);$contended=false;$pm_repair_server->hook=function($sql) use(&$contended){if(strpos($sql,'SELECT privmsgs_id AS id')===0){$GLOBALS['pm_repair_server']->hook=null;$other=new attach_mutation_lock(new PmRepairForum(),false);$contended=!$other->acquired;$other->release();}};pm_repair_run();pm_repair_check($contended,'Same shared writer lock covers diagnostics and repairs');
   foreach(array('success','empty','invalid','query','actor') as $case){
-   pm_repair_fixture($engine);if($case==='empty'){pm_repair_run();dbmtnc_synchronize_pm_counters($db,$_POST);}if($case==='invalid'){$_POST['sid']='bad';}if($case==='query'){$pm_repair_server->failure='DELETE FROM fixture_pm';}if($case==='actor'){$pm_repair_server->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}
+   pm_repair_fixture($engine);if($case==='empty'){pm_repair_run();dbmtnc_synchronize_pm_counters($db,$_POST);}if($case==='invalid'){$_POST['sid']='bad';}if($case==='query'){$pm_repair_server->failure='DELETE FROM fixture_pm WHERE';}if($case==='actor'){$pm_repair_server->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}
    $function='check_pm';$board_locks=array();$caught='';ob_start();try{eval($branch);}catch(PmRepairControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
    pm_repair_check(!$board_locks,'Actual complete PM controller never disables the board');
    pm_repair_check(($caught!=='')===in_array($case,array('invalid','query','actor'),true),'Actual controller reports outcome');
@@ -152,4 +184,3 @@ try{
   echo $engine.' '.$locale." current-authority PM repair passed.\n";
  }}
 }finally{restore_error_handler();}
-

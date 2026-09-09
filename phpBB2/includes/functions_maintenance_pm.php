@@ -8,6 +8,7 @@ require_once dirname(__FILE__) . '/functions_acl_storage.php';
 class PhpbbPmRepairDatabase extends PhpbbAclDatabase
 {
 	var $affected = 0;
+	var $pm_repair_cancelled = 0;
 	function sql_query($sql, $transaction = false)
 	{
 		$auth = new PhpbbAclDatabase($this->connection, 'Maintenance_pm_repair_failed');
@@ -27,6 +28,16 @@ class PhpbbPmRepairDatabase extends PhpbbAclDatabase
 		return $result;
 	}
 	function sql_affectedrows() { return $this->affected; }
+	function insert_guarded($table, $columns, $select, $condition)
+	{
+		$auth = new PhpbbAclDatabase($this->connection, 'Maintenance_pm_repair_failed');
+		$actor = phpbb_acl_actor($auth, 'maintenance');
+		$sql = 'INSERT INTO ' . $table . ' (' . $columns . ') SELECT ' . $select . ' WHERE (' . $condition . ') AND (' . $actor['guard'] . ')';
+		if (!$this->connection->sql_query($sql)) { phpbb_acl_error('Maintenance_pm_repair_failed'); }
+		$this->affected = (int)$this->connection->sql_affectedrows();
+		phpbb_acl_actor($auth, 'maintenance');
+		return $this->affected;
+	}
 }
 
 function dbmtnc_pm_counter_request($request)
@@ -76,11 +87,13 @@ function dbmtnc_repair_pm($database, $request)
 {
 	dbmtnc_pm_counter_request($request);
 	require_once dirname(__FILE__) . '/functions_privmsgs.php';
+	require_once dirname(__FILE__) . '/functions_pm_repair_journal.php';
 	$lock = new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
 	try
 	{
 		$db = new PhpbbPmRepairDatabase($lock->connection, 'Maintenance_pm_repair_failed');
+		$recovered = dbmtnc_pm_recover_pending($db);
 		$now = time(); $counts = array();
 		foreach (array('missing_text','orphan_text','invalid_sender','invalid_recipient','deleted_users') as $mode)
 		{
@@ -95,6 +108,8 @@ function dbmtnc_repair_pm($database, $request)
 				$counts[$mode] += phpbb_pm_repair_selected($db, $ids, $spec);
 			}
 		}
+		$counts['recovered'] = $recovered;
+		$counts['cancelled'] = $db->pm_repair_cancelled;
 		return $counts;
 	}
 	finally { $lock->release(); }
