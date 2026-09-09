@@ -79,6 +79,11 @@ function admin_user_require_creation_password()
 	$confirmation = $_POST['password_confirm'];
 	if ($password === '' || $confirmation === '') { message_die(GENERAL_MESSAGE, $lang['New_user_password_required']); }
 	if (!hash_equals($password, $confirmation)) { message_die(GENERAL_MESSAGE, $lang['Password_mismatch']); }
+	$password_result = validate_complex_password(admin_user_post_string('username'), $password);
+	if ($password_result['error']) { message_die(GENERAL_MESSAGE, $password_result['error_msg']); }
+	$hash = phpbb_password_hash($password);
+	if ($hash === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
+	return $hash;
 }
 
 //
@@ -113,7 +118,7 @@ $template->assign_vars(array('REMOVAL_JOBS' => $pending_removals));
 $new_user = ((int) admin_user_post_string('new_user') === 1) ? TRUE : 0;
 if ($new_user)
 {
-	if ($mode === 'save' && isset($_POST['submit'])) { admin_user_require_creation_password(); }
+	if ($mode === 'save' && isset($_POST['submit'])) { $new_user_password_hash = admin_user_require_creation_password(); }
 	//see if user already exist
 	if (get_userdata(admin_user_post_string('username')))
 	{
@@ -462,7 +467,10 @@ if( !empty($_POST['unblock_account']) )
 			}
 			else
 			{
-				$password = phpbb_password_hash($password);
+				$password_result = validate_complex_password($username, $password);
+				if ($password_result['error']) { message_die(GENERAL_MESSAGE, $password_result['error_msg']); }
+				$password = ($new_user && isset($new_user_password_hash)) ? $new_user_password_hash : phpbb_password_hash($password);
+				if ($password === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
 				$password_changed_at = time();
 				$passwd_sql = "user_password = '$password', ct_last_pw_change = $password_changed_at, ";
 				$passwd_sql .= ($force_new_passwd) ? '' : "user_passwd_change = $password_changed_at, ";
@@ -1375,6 +1383,7 @@ if ($this_userdata['user_passwd_change']>0)
 			'L_USER_TITLE' => $lang['User_admin'],
 			'L_USER_EXPLAIN' => ($new_user) ? sprintf( $lang['Create_user_explain'],'<a href="'.append_sid('/profile.'.$phpEx.'?mode=viewprofile&'.POST_USERS_URL.'='.$default_user['user_id']).'">'.$default_user['username'].'</a>' ) : $lang['User_admin_explain'],
 			'L_NEW_PASSWORD' => $lang['New_password'], 
+			'L_PASSWORD_LIMIT' => $lang['Password_long'],
 			'L_PASSWORD_IF_CHANGED' => $lang['password_if_changed'],
 			'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],
 			'L_PASSWORD_CONFIRM_IF_CHANGED' => $lang['password_confirm_if_changed'],

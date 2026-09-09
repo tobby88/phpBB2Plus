@@ -357,24 +357,20 @@ function validate_complex_password ($username, $password)
 	global $board_config, $lang;
 	$ret = FALSE;
 	$msg_explain = '';
-	if (!is_string($password) || strpos($password, "\0") !== false)
+	$input_error = phpbb_password_input_error($password);
+	if ($input_error !== '')
 	{
-		return array('error' => TRUE, 'error_msg' => $lang['Password_invalid']);
+		return array('error' => TRUE, 'error_msg' => $lang[$input_error]);
 	}
 	//verify minimum length
-	if ( strlen($password) < $board_config['min_password_len'] )
+	$minimum_length = max(0, min(72, (int) $board_config['min_password_len']));
+	if (strlen($password) < $minimum_length)
 	{
 		$ret= TRUE;
-		$msg_explain .= sprintf ($lang['Password_to_short'],$board_config['min_password_len']);
-	}
-	if ( strlen($password) > 128 )
-	{
-		$ret = TRUE;
-		$msg_explain .= ($msg_explain) ? ', ' : '';
-		$msg_explain .= $lang['Password_long'];
+		$msg_explain .= sprintf($lang['Password_to_short'], $minimum_length);
 	}
 	// verify password not the same as login
-	if ($board_config['password_not_login'] && $username == $password )
+	if ($board_config['password_not_login'] && (string) $username === $password)
 	{	
 		$ret = TRUE;
 		$msg_explain .= ($msg_explain) ? ', ' : '';

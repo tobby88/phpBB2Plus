@@ -34,6 +34,10 @@ $is_submit = isset($_POST['submit']);
 if ($is_submit)
 {
 	phpbb_admin_require_post_session();
+	if (isset($_POST['min_password_len']) && (!is_string($_POST['min_password_len']) || !preg_match('/^[0-9]{1,2}$/D', $_POST['min_password_len']) || (int) $_POST['min_password_len'] > 72))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Password_minimum_invalid']);
+	}
 }
 
 //
@@ -510,7 +514,7 @@ $template->assign_vars(array(
 	"ABSENT_BUTTON_NO" => $absent_button_no,
 	// Start add - Protect user account MOD
 	'BLOCK_TIME' => $new['block_time'], 
-	'MIN_PASSWORD_LEN' => $new['min_password_len'],
+	'MIN_PASSWORD_LEN' => max(0, min(72, (int) $new['min_password_len'])),
 	'PASSWORD_INTERVALL' => $new['max_password_age'],
 	'S_PASSWORD_COMPLEX_ENABLED' => $password_complex_yes,
 	'S_PASSWORD_COMPLEX_DISABLED' => $password_complex_no,

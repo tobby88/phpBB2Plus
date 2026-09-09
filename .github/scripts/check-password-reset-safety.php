@@ -26,6 +26,6 @@ password_reset_assert(strpos($activate, "ct_last_pw_reset >= \$now") !== false, 
 password_reset_assert(strpos($activate, "user_actkey = '\$activation_key_sql'") !== false, 'the atomic reset must consume only the presented token');
 password_reset_assert(strpos($activate, '$db->sql_affectedrows() < 1') !== false, 'concurrent or reused reset links must fail closed');
 password_reset_assert(strpos($activate, 'session_reset_keys((int) $row[\'user_id\']') !== false, 'a completed reset must revoke existing sessions and auto-login keys');
-password_reset_assert(strpos($validate, 'strpos($password, "\\0")') !== false, 'password validation must reject NUL before password_hash');
+password_reset_assert(strpos($validate, 'phpbb_password_input_error($password)') !== false, 'password validation must use the shared NUL and byte-length boundary before password_hash');
 
 echo "Password reset safety checks passed.\n";

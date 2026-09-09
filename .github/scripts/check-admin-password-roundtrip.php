@@ -4,6 +4,7 @@
 namespace AdminPasswordFixture;
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require_once $root . 'includes/php_compat.php';
+require_once $root . 'includes/functions_validate.php';
 if (!defined('GENERAL_MESSAGE')) { define('GENERAL_MESSAGE', 200); }
 function message_die($type, $message) { throw new \RuntimeException($message); }
 function check($ok, $message) { if (!$ok) { throw new \RuntimeException($message); } }
@@ -25,18 +26,20 @@ $quick_validate = fragment($quick, "\t\$passwd_sql = '';", "\t//\n\t// Do a ban 
 // Source files may have checkout CRLF; fragment anchors otherwise stay exact.
 $login_input = fragment($login, "\t\t\$password_value =", "\t\t\$sql =");
 check(preg_match('/^function admin_user_require_creation_password\(\).*?^\}/ms', $admin, $gate) === 1, 'Actual early creation gate located');
+check(preg_match('/^function admin_user_post_string\(.*?^\}/ms', $admin, $post_reader) === 1, 'Actual input reader located');
+eval('namespace AdminPasswordFixture;' . $post_reader[0]);
 eval('namespace AdminPasswordFixture;' . $gate[0]);
 check(preg_match('/\$new_password = phpbb_password_hash\(\$new_password\);/', $quick, $hash) === 1, 'Actual quick-add hash located');
 $quick_hash = 'namespace AdminPasswordFixture;' . $hash[0];
 check(strpos($login, 'phpbb_password_verify($password, $row[\'user_password\'])') !== false, 'Login uses the tested raw input with the actual verifier');
-$lang = array('New_user_password_required' => 'required', 'Password_mismatch' => 'mismatch', 'Fields_empty' => 'required');
+$lang = array('New_user_password_required' => 'required', 'Password_mismatch' => 'mismatch', 'Fields_empty' => 'required', 'Password_invalid' => 'invalid', 'Password_long' => 'long', 'Password_hash_failed' => 'hash-failed');
 set_error_handler(function($severity, $message) { if (error_reporting() & $severity) { throw new \RuntimeException($message); } });
 try
 {
     $values = array('Normal-secret!Q9', 'Grüße & <wörtlich> "Q9"', "Apostrophe' and \\slash!9", ' leading and trailing !9 ', '&amp; literal &#39;!9', '0');
     foreach (array(0, 1) as $hashing)
     {
-        $board_config = array('password_hashing' => $hashing);
+        $board_config = array('password_hashing' => $hashing, 'min_password_len' => 0, 'force_complex_password' => 0, 'password_not_login' => 0);
         foreach ($values as $original)
         {
             foreach (array(false, true) as $quick_add)

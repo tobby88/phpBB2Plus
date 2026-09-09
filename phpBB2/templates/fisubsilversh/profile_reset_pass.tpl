@@ -21,7 +21,7 @@
 </tr>
 <tr>
 	<td nowrap="nowrap" class="row1"><span class="explaintitle">{L_NEW_PASSWORD}:</span></td>
-	<td class="row2" width="100%"><input type="password" class="post" style="width: 240px" name="new_password" size="30" maxlength="128" autocomplete="new-password" required="required" /></td>
+	<td class="row2" width="100%"><input type="password" class="post" style="width: 240px" name="new_password" size="30" maxlength="128" autocomplete="new-password" required="required" /><br /><span class="gensmall">{L_PASSWORD_LIMIT}</span></td>
 </tr>
 <tr>
 	<td nowrap="nowrap" class="row1"><span class="explaintitle">{L_CONFIRM_PASSWORD}:</span></td>

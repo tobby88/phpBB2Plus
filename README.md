@@ -56,6 +56,22 @@ as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset
 or administrator workflow to set it again; no alternate decoded login is added.
 
+New passwords are limited to **72 UTF-8 bytes**, not 72 characters, because the
+portable bcrypt implementation ignores bytes beyond that limit. The forms show
+this limit and reject longer submissions instead of truncating them. Accented
+characters and emoji can occupy multiple bytes. Configured minimum-length and
+complexity rules now also apply to both ACP forms; historical minimum settings
+above 72 are bounded to 72 at runtime and in the ACP display. The installer uses
+the fresh-install policy. No database migration or bulk password rewrite is
+needed. This follows the [OWASP bcrypt input guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#input-limits-of-bcrypt).
+
+Existing long passwords remain verifiable within the previous 128-byte login
+bound so their owners can authenticate and change them; they are not silently
+rehash-truncated. The existing policy check requests a replacement after login.
+Old bcrypt hashes cannot reveal or restore previously ignored suffixes. Users
+who previously chose a password longer than 72 bytes should set a new one;
+retaining legacy verification does not repair that historical ambiguity.
+
 ## Repository layout
 
 - `phpBB2/` contains the deployable forum application.

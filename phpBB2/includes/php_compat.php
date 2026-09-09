@@ -862,15 +862,26 @@ if (!function_exists('phpbb_session_action_token'))
 	}
 }
 
-/**
- * Password helpers accept historical unsalted MD5 hashes and create only
- * adaptive hashes. Successful legacy logins can therefore migrate in place.
- */
+// Bounds for NEW passwords. Verification deliberately retains historical
+// credentials so their owners can authenticate and choose a replacement.
+if (!function_exists('phpbb_password_input_error'))
+{
+	function phpbb_password_input_error($password)
+	{
+		if (!is_string($password) || strpos($password, "\0") !== false) { return 'Password_invalid'; }
+		if ($password === '') { return 'Fields_empty'; }
+		if (strlen($password) > 72) { return 'Password_long'; }
+		return '';
+	}
+}
+
+/** Password helpers retain historical MD5 until the schema opts into bcrypt. */
 if (!function_exists('phpbb_password_hash'))
 {
 	function phpbb_password_hash($password)
 	{
 		global $board_config;
+		if (phpbb_password_input_error($password) !== '') { return false; }
 
 		// Existing databases opt in only after their password columns have
 		// been widened by update_from_153a.php.
@@ -879,7 +890,11 @@ if (!function_exists('phpbb_password_hash'))
 			return md5($password);
 		}
 
-		return password_hash($password, PASSWORD_DEFAULT);
+		// PHP 5/7 can return false; PHP 8 can throw. Never let a failed hash
+		// become an empty stored credential or leak a password in an exception.
+		try { return @password_hash($password, PASSWORD_DEFAULT); }
+		catch (Exception $error) { return false; }
+		catch (Throwable $error) { return false; }
 	}
 }
 
@@ -892,9 +907,9 @@ if (!function_exists('phpbb_password_verify'))
 		$dummy_hash = '$2y$10$a69Y35T0bxEO.FwchNKEX.BmLguLKRHzzCbtMMUgMgrTcATJka/sm';
 		$password_is_scalar = is_scalar($password);
 		$password = $password_is_scalar ? (string) $password : '';
-		if (!$password_is_scalar)
+		if (!$password_is_scalar || strpos($password, "\0") !== false || strlen($password) > 128)
 		{
-			password_verify($password, $dummy_hash);
+			password_verify('', $dummy_hash);
 			return false;
 		}
 		if (!is_string($stored_hash) || $stored_hash === '')

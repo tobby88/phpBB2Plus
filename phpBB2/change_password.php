@@ -55,7 +55,7 @@ if ($submit)
 		$error = true;
 		$error_msg .= $lang['Fields_empty'];
 	} 
-	if ($new_password != $password_confirm)
+	if (!hash_equals($new_password, $password_confirm))
 	{
 		$error=true;
 		$error_msg .= $lang['Password_mismatch'];
@@ -78,6 +78,7 @@ if ($submit)
 	if (!$error)
 	{	//update new password + time
 		$new_password_hash = phpbb_password_hash($new_password);
+		if ($new_password_hash === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
 		$new_password_hash_sql = $db->sql_escape($new_password_hash);
 		$user_id = (int) $userdata['user_id'];
 		$password_change_time = time();
@@ -147,6 +148,7 @@ if ($updated)
 		'USERNAME' => $userdata['username'],
 		'L_CUR_PASSWORD' => $lang['Current_password'],
 		'L_NEW_PASSWORD' => $lang['New_password'],
+		'L_PASSWORD_LIMIT' => $lang['Password_long'],
 		'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],
 		'L_SUBMIT' => $lang['Submit'],
 		'L_RESET' => $lang['Reset'],

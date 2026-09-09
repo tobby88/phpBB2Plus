@@ -654,7 +654,9 @@ $lang['Profile_updated_inactive'] = 'Your profile has been updated. However, you
 
 $lang['Password_mismatch'] = 'The passwords you entered did not match.';
 $lang['Current_password_mismatch'] = 'The current password you supplied does not match that stored in the database.';
-$lang['Password_long'] = 'Your password must be no more than 128 characters.';
+$lang['Password_long'] = 'New passwords may contain at most 72 UTF-8 bytes. Accented characters and emoji can use multiple bytes; passwords are never shortened automatically.';
+$lang['Password_hash_failed'] = 'The password could not be saved securely. Please try again later or contact an administrator.';
+$lang['Password_minimum_invalid'] = 'The minimum password length must be a whole number between 0 and 72 UTF-8 bytes.';
 $lang['Password_invalid'] = 'The password contains an invalid character.';
 $lang['Too_many_registers'] = 'You have made too many registration attempts. Please try again later.';
 $lang['Username_taken'] = 'Sorry, but this username has already been taken.';

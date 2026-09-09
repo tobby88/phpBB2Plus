@@ -268,10 +268,13 @@ include_once($phpbb_root_path . 'includes/php_compat.' . $phpEx);
 $userdata = array();
 $lang = array();
 $error = false;
+// Match the policy seeded for a fresh installation (mysql_basic.sql).
+$board_config = array('password_hashing' => 1, 'min_password_len' => 6, 'force_complex_password' => 0, 'password_not_login' => 1);
 
 // Include some required functions
 include($phpbb_root_path.'includes/constants.'.$phpEx);
 include($phpbb_root_path.'includes/functions.'.$phpEx);
+include_once($phpbb_root_path.'includes/functions_validate.'.$phpEx);
 include($phpbb_root_path.'includes/sessions.'.$phpEx);
 
 // Define schema info
@@ -313,8 +316,10 @@ $dbname = (!empty($_POST['dbname'])) ? $_POST['dbname'] : '';
 $table_prefix = (!empty($_POST['prefix'])) ? $_POST['prefix'] : '';
 
 $admin_name = (!empty($_POST['admin_name'])) ? $_POST['admin_name'] : '';
-$admin_pass1 = (!empty($_POST['admin_pass1'])) ? $_POST['admin_pass1'] : '';
-$admin_pass2 = (!empty($_POST['admin_pass2'])) ? $_POST['admin_pass2'] : '';
+// Undo only the installer's request adapter, never normalize credentials.
+$admin_pass1 = (isset($_POST['admin_pass1']) && is_string($_POST['admin_pass1'])) ? stripslashes($_POST['admin_pass1']) : '';
+$admin_pass2 = (isset($_POST['admin_pass2']) && is_string($_POST['admin_pass2'])) ? stripslashes($_POST['admin_pass2']) : '';
+$install_password_error = phpbb_password_input_error($admin_pass1);
 
 $ftp_path = (!empty($_POST['ftp_path'])) ? $_POST['ftp_path'] : '';
 $ftp_user = (!empty($_POST['ftp_user'])) ? $_POST['ftp_user'] : '';
@@ -389,6 +394,7 @@ if (defined("PHPBB_INSTALLED"))
 // Import language file, setup template ...
 include($phpbb_root_path.'language/lang_' . $language . '/lang_main.'.$phpEx);
 include($phpbb_root_path.'language/lang_' . $language . '/lang_admin.'.$phpEx);
+$install_password_policy = validate_complex_password(is_string($admin_name) ? stripslashes($admin_name) : '', $admin_pass1);
 
 // Ok for the time being I'm commenting this out whilst I'm working on
 // better integration of the install with upgrade as per Bart's request
@@ -523,7 +529,7 @@ else if (!empty($_POST['ftp_file']))
 		// this by calling the admin_board.php from the normal board admin
 		// section.
 		$s_hidden_fields = '<input type="hidden" name="username" value="' . install_html($admin_name) . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="password" value="' . install_html($admin_pass1) . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="password" value="' . install_html_raw($admin_pass1) . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="redirect" value="../admin/index.'.$phpEx.'" />';
 		$s_hidden_fields .= '<input type="hidden" name="submit" value="' . install_html_raw($lang['Login']) . '" />';
 
@@ -533,7 +539,7 @@ else if (!empty($_POST['ftp_file']))
 		exit();
 	}
 }
-else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_pass1) || empty($dbhost)))
+else if (empty($install_step) || !hash_equals($admin_pass1, $admin_pass2) || $install_password_error !== '' || ($upgrade != 1 && $install_password_policy['error']) || empty($dbhost))
 {
 	// Ok we haven't installed before so lets work our way through the various
 	// steps of the install process.  This could turn out to be quite a lengty 
@@ -545,11 +551,12 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 
 	if (!empty($install_step))
 	{
-		if ((($_POST['admin_pass1'] != $_POST['admin_pass2'])) ||
-			(empty($_POST['admin_pass1']) || empty($dbhost)) && $_POST['cur_lang'] == $language)
+		if (!hash_equals($admin_pass1, $admin_pass2) || $admin_pass1 === '' || empty($dbhost))
 		{
 			$error = $lang['Password_mismatch'];
 		}
+		if ($install_password_error !== '') { $error = $lang[$install_password_error]; }
+		if ($upgrade != 1 && $install_password_policy['error']) { $error = $install_password_policy['error_msg']; }
 	}
 
 	$dirname = $phpbb_root_path . 'language';
@@ -673,11 +680,11 @@ else if ((empty($install_step) || $admin_pass1 != $admin_pass2 || empty($admin_p
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Admin_Password']; ?>: </span></td>
-						<td class="row2"><input type="password" name="admin_pass1" value="<?php echo install_html($admin_pass1); ?>" /></td>
+						<td class="row2"><input type="password" name="admin_pass1" maxlength="128" value="" autocomplete="new-password" /><br /><?php echo $lang['Password_long']; ?></td>
 					</tr>
 					<tr>
 						<td class="row1" align="right"><span class="gen"><?php echo $lang['Admin_Password_confirm']; ?>: </span></td>
-						<td class="row2"><input type="password" name="admin_pass2" value="<?php echo install_html($admin_pass2); ?>" /></td>
+						<td class="row2"><input type="password" name="admin_pass2" maxlength="128" value="" autocomplete="new-password" /></td>
 					</tr>
 <?php
 
@@ -721,6 +728,15 @@ else
 	{
 		if ($upgrade != 1)
 		{
+			// Hash successfully BEFORE creating tables or inserting seed accounts.
+			$admin_password = phpbb_password_hash($admin_pass1);
+			if ($admin_password === false)
+			{
+				page_header($lang['Install']);
+				page_error($lang['Installer_Error'], $lang['Password_hash_failed']);
+				page_footer();
+				exit;
+			}
 			// Load in the sql parser
 			include($phpbb_root_path.'includes/sql_parse.'.$phpEx);
 
@@ -835,8 +851,6 @@ else
 					$error .= "Could not insert default_lang :: " . $sql . " :: " . __LINE__ . " :: " . __FILE__ . "<br /><br />";
 				}
 			}
-
-			$admin_password = ($confirm && $userdata['user_level'] == ADMIN) ? $admin_pass1 : phpbb_password_hash($admin_pass1);
 
 			$sql = "UPDATE " . $table_prefix . "users 
 				SET username = '" . str_replace("\'", "''", $admin_name) . "', user_password='" . str_replace("\'", "''", $admin_password) . "', user_lang = '" . str_replace("\'", "''", $language) . "', user_email='" . str_replace("\'", "''", $board_email) . "'
@@ -966,7 +980,7 @@ else
 		// this by calling the admin_board.php from the normal board admin
 		// section.
 		$s_hidden_fields = '<input type="hidden" name="username" value="' . install_html($admin_name) . '" />';
-		$s_hidden_fields .= '<input type="hidden" name="password" value="' . install_html($admin_pass1) . '" />';
+		$s_hidden_fields .= '<input type="hidden" name="password" value="' . install_html_raw($admin_pass1) . '" />';
 		$s_hidden_fields .= '<input type="hidden" name="redirect" value="admin/index.'.$phpEx.'" />';
 		$s_hidden_fields .= '<input type="hidden" name="login" value="true" />';
 

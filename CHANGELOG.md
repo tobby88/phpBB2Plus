@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Apply shared new-password bounds (nonempty, no NUL, at most 72 UTF-8 bytes)
+  across registration, resets, profile edits, ACP creation/editing and installation.
+  Enforce configured rules in both ACP forms and strict confirmation in the
+  remaining public forms. Explain the bcrypt byte limit in all password forms.
+  Preserve historical long-password verification for authentication/replacement,
+  but never silently truncate such input into a new hash. Existing bcrypt suffix
+  ambiguity cannot be recovered from stored hashes; no bulk rewrite is attempted.
+  Safely contain hash failures and reject them before password SQL; precompute
+  new ACP/installer hashes before ID/placeholder/schema writes. Fix installer
+  password escaping and use its seeded policy. No database migration is needed.
+
 - Preserve password bytes in both ACP account-creation forms and profile edits,
   matching login instead of HTML-encoding or trimming credentials. Compare
   confirmations strictly, including numeric-looking strings, and never reflect

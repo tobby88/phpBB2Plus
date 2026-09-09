@@ -21,7 +21,7 @@
 	  <td class="row1"><span class="gen">{L_NEW_PASSWORD}: *</span><br />
 		<span class="gensmall">{L_PASSWORD_IF_CHANGED}</span></td>
 	  <td class="row2">
-      <input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="128" value="{NEW_PASSWORD}" autocomplete="new-password" />
+      <input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="128" value="{NEW_PASSWORD}" autocomplete="new-password" /><br /><span class="gensmall">{L_PASSWORD_LIMIT}</span>
      </td>
    </tr>
    <tr>

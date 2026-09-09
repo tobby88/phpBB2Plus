@@ -2,6 +2,8 @@
 namespace MailDeliveryFixture;
 require __DIR__ . '/check-mail-delivery-runtime.php';
 require_once $root.'includes/php_compat.php';
+require_once $root.'includes/functions_validate.php';
+$board_config = array_merge($board_config, array('min_password_len'=>0,'force_complex_password'=>0,'password_not_login'=>0));
 if(!defined('GENERAL_MESSAGE')) { define('GENERAL_MESSAGE',200); }
 $admin=file_get_contents($root.'admin/admin_users.php');
 foreach(array('admin_user_post_string','admin_user_require_creation_password') as $function)
@@ -17,6 +19,8 @@ set_error_handler(function($severity,$message){if(error_reporting()&$severity){t
 try
 {
 	$lang['New_user_password_required']='required'; $lang['Password_mismatch']='mismatch';
+	$lang['Fields_empty']='required'; $lang['Password_invalid']='invalid'; $lang['Password_long']='long'; $lang['Password_hash_failed']='hash-failed';
+	$username = 'Fixture Member';
 	foreach(array(array(),array('password'=>''),array('password'=>array('secret'),'password_confirm'=>'secret'),array('password'=>'secret','password_confirm'=>array('secret')),array('password'=>true,'password_confirm'=>true),array('password'=>'different','password_confirm'=>'values'),array('password'=>' value','password_confirm'=>'value')) as $values)
 	{
 		$_POST=array_merge(array('new_user'=>'1','submit'=>'Save'),$values); $passed=false; $caught=false; $mode='save';
@@ -39,6 +43,7 @@ try
 	foreach(array(0,1) as $hashing)
 	{
 		$board_config['password_hashing']=$hashing;
+		unset($new_user_password_hash);
 		$password='Unique-fixture!Q9'; $password_confirm=$password; $new_user=true; $error=false; $error_msg=''; $force_new_passwd=false; eval($body);
 		mail_check(!$error && \phpbb_password_verify('Unique-fixture!Q9',$password) && (($hashing && strlen($password)>32) || (!$hashing && strlen($password)===32)) && strpos($passwd_sql,'ct_last_pw_change =')!==false && strpos($passwd_sql,'user_passwd_change =')!==false,'Explicit password respects actual configured hash migration state and both age timestamps');
 	}

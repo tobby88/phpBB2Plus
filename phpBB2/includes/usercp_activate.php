@@ -37,6 +37,7 @@ function usercp_render_password_reset($row, $activation_key, $error_message = ''
 		'L_RESET_TITLE' => $lang['Password_reset_title'],
 		'L_RESET_EXPLAIN' => $lang['Password_reset_explain'],
 		'L_NEW_PASSWORD' => $lang['New_password'],
+		'L_PASSWORD_LIMIT' => $lang['Password_long'],
 		'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],
 		'L_SUBMIT' => $lang['Submit'],
 		'S_RESET_ACTION' => append_sid('profile.' . $phpEx . '?mode=activate&amp;' . POST_USERS_URL . '=' . (int) $row['user_id'] . '&amp;act_key=' . rawurlencode($activation_key)),
@@ -122,6 +123,7 @@ if ( $row = $db->sql_fetchrow($result) )
 			}
 
 			$new_hash = phpbb_password_hash($new_password);
+			if ($new_hash === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
 			$new_hash_sql = $db->sql_escape($new_hash);
 			$activation_key_sql = $db->sql_escape($activation_key);
 			$reset_marker_sql = $db->sql_escape(PHPBB_PASSWORD_RESET_PENDING);

@@ -61,7 +61,7 @@
 <td class="row1"><span class="explaintitle">{L_NEW_PASSWORD}:</span> *<br />
 <span class="gensmall">{L_PASSWORD_IF_CHANGED}</span></td>
 <td class="row2">
-<input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="128" value="{NEW_PASSWORD}" autocomplete="new-password" onchange="ComparePasswords(this.value, document.addprofile.password_confirm.value);" />
+<input type="password" class="post" style="width: 200px" name="new_password" size="25" maxlength="128" value="{NEW_PASSWORD}" autocomplete="new-password" onchange="ComparePasswords(this.value, document.addprofile.password_confirm.value);" /><br /><span class="gensmall">{L_PASSWORD_LIMIT}</span>
 </td>
 </tr>
 <tr>

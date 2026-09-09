@@ -166,6 +166,12 @@ if ( isset($_POST['submit']) )
 		$error = TRUE;
 		$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];
 	}
+	$password_result = validate_complex_password($username, $new_password);
+	if ($password_result['error'])
+	{
+		$error = true;
+		$error_msg = (isset($error_msg) ? $error_msg . '<br />' : '') . $password_result['error_msg'];
+	}
 
 	//
 	// Do a ban check on this email address
@@ -207,11 +213,11 @@ if ( isset($_POST['submit']) )
 
 	if ( !$error )
 	{
+		$new_password = phpbb_password_hash($new_password);
+		if ($new_password === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
 		require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
 		try { $user_id = phpbb_allocate_user_id($db, $table_prefix); }
 		catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
-
-		$new_password = phpbb_password_hash($new_password);
 
 		$account_created_at = time();
 		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey, user_passwd_change, ct_last_pw_change)
@@ -312,6 +318,7 @@ $template->assign_vars(array(
 	'L_USERNAME' => $lang['Username'],
 	'L_CURRENT_PASSWORD' => $lang['Current_password'],
 	'L_NEW_PASSWORD' => ( $mode == 'register' ) ? $lang['Password'] : $lang['New_password'],
+	'L_PASSWORD_LIMIT' => $lang['Password_long'],
 	'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],
 	'L_CONFIRM_PASSWORD_EXPLAIN' => ( $mode == 'editprofile' ) ? $lang['Confirm_password_explain'] : '',
 	'L_PASSWORD_IF_CHANGED' => ( $mode == 'editprofile' ) ? $lang['password_if_changed'] : '',

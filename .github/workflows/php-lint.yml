@@ -566,3 +566,6 @@ jobs:
 
       - name: Test ACP raw password and login round trips
         run: php .github/scripts/check-admin-password-roundtrip.php
+
+      - name: Test shared password policy and hashing failure boundaries
+        run: php .github/scripts/check-password-policy-runtime.php

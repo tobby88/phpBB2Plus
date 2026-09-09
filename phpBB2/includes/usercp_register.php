@@ -580,7 +580,7 @@ if ( isset($_POST['submit']) )
 		
 		}
 		// End add - Protect user account MOD
-		if ( $new_password != $password_confirm )
+		if (!hash_equals($new_password, $password_confirm))
 		{
 			$error = TRUE;
 			$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Password_mismatch'];
@@ -599,6 +599,7 @@ if ( isset($_POST['submit']) )
 			if ( !$error )
 			{
 				$new_password = phpbb_password_hash($new_password);
+				if ($new_password === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
 				$passwd_sql = "user_password = '$new_password', ";
 			}
 		}
@@ -1802,6 +1803,7 @@ else
 
 		'L_CURRENT_PASSWORD' => $lang['Current_password'],
 		'L_NEW_PASSWORD' => ( $mode == 'register' ) ? $lang['Password'] : $lang['New_password'],
+		'L_PASSWORD_LIMIT' => $lang['Password_long'],
 		'L_CONFIRM_PASSWORD' => $lang['Confirm_password'],
 		'L_CONFIRM_PASSWORD_EXPLAIN' => ( $mode == 'editprofile' ) ? $lang['Confirm_password_explain'] : '',
 		'L_PASSWORD_IF_CHANGED' => ( $mode == 'editprofile' ) ? $lang['password_if_changed'] : '',
