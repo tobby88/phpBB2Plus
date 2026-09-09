@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Publish public registrations and quick-added ACP accounts after personal-group
+  membership creation. Include registration IP, CrackerTracker password-change
+  time and custom fields in the final INSERT; combine ACP core/custom profile
+  writes so a failed custom field cannot leave an activated partial profile.
+  Coordinate personal-group creation and database user/group repair with the
+  existing dedicated-connection writer lock, including requests already in flight.
+  Preserve self/admin/COPPA activation, Unicode and existing accounts. Exercise
+  actual controller SQL with injected failures on SQLite, MyISAM and InnoDB.
+  Interrupted nontransactional creation can retain unused reserved-ID group
+  records or inactive ACP placeholders; no automatic deletion or new migration.
+
 - Separate ACP profile defaults from group permissions. New accounts no longer
   silently inherit shared groups from the reference account (usually user 2),
   including its private/moderator groups or pending membership requests that

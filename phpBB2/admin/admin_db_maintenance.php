@@ -529,6 +529,9 @@ switch($mode_id)
 			case 'check_user': // Check user tables
 				echo("<h1>" . $lang['Checking_user_tables'] . "</h1>\n");
 				lock_db();
+				require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
+				// Board-disable alone does not stop requests already in flight.
+				$user_repair_scope = phpbb_user_write_begin($db);
 
 				// Check for missing anonymous user
 				echo("<p class=\"gen\"><b>" . $lang['Checking_missing_anonymous'] . "</b></p>\n");
@@ -1339,6 +1342,7 @@ switch($mode_id)
 					}
 				}
 
+				phpbb_user_write_end($db, $user_repair_scope);
 				lock_db(TRUE);
 				break;
 			case 'check_post': // Checks post data

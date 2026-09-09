@@ -57,6 +57,18 @@ memberships or permissions (including pending membership requests). Assign
 required shared groups separately through the authorized group-management
 workflow. Existing accounts and memberships are not changed automatically.
 
+New registrations and quick-added accounts are published only after their
+personal group and membership exist. Registration IP, password-change time and
+custom profile fields are included in the final account insert; ACP core and
+custom profile changes are saved together. This prevents the tested database
+failure paths from exposing usable, incomplete accounts, including on MyISAM.
+Creation and the maintenance module's user/group repair use the same dedicated
+writer connection and lock, so repair cannot remove in-flight personal groups.
+It is not a transactional rollback of every ancillary operation: interrupted
+creation can still leave an inactive ACP placeholder or unused personal-group
+records for a permanently reserved ID. Existing records are not automatically
+deleted or activated; no additional schema migration is needed for this change.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

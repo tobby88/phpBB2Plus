@@ -935,26 +935,6 @@ if ( isset($_POST['submit']) )
 			require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
 			try { $user_id = phpbb_allocate_user_id($db, $table_prefix); }
 			catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
-			//
-			// Get current date
-			//
-			$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_from_flag, user_interests, user_absence_mode, user_absence, user_absence_text, user_sig, user_sig_bbcode_uid, user_avatar, user_avatar_type, user_viewemail, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_signal, user_threema, user_attachsig, user_setbm, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_viewonline, user_notify, user_notify_pm, games_block_pm, user_popup_pm, user_timezone, user_dateformat, user_lang, user_style, user_gender, user_level, user_allow_pm, user_birthday, user_next_birthday_greeting, user_passwd_change, user_active, user_actkey)
-				VALUES ($user_id, '" . usercp_sql_value($username) . "', " . time() . ", '" . usercp_sql_value($new_password) . "', '" . usercp_sql_value($email) . "', '" . usercp_sql_value($icq) . "', '" . usercp_sql_value($website) . "', '" . usercp_sql_value($occupation) . "', '" . usercp_sql_value($location) . "', '" . usercp_sql_value($user_flag) . "', '" . usercp_sql_value($interests) . "', $user_absence_mode, $user_absence, '" . usercp_sql_value($user_absence_text) . "', '" . usercp_sql_value($signature) . "', '" . usercp_sql_value($signature_bbcode_uid) . "', $avatar_sql, $viewemail, '" . usercp_sql_value(str_replace(' ', '+', $aim)) . "', '" . usercp_sql_value($yim) . "', '" . usercp_sql_value($msn) . "', '" . usercp_sql_value($fb) . "', '" . usercp_sql_value($ig) . "', '" . usercp_sql_value($pt) . "', '" . usercp_sql_value($twr) . "', '" . usercp_sql_value($skp) . "', '" . usercp_sql_value($tg) . "', '" . usercp_sql_value($li) . "', '" . usercp_sql_value($tt) . "', '" . usercp_sql_value($dc) . "', '" . usercp_sql_value($signal) . "', '" . usercp_sql_value($threema) . "', $attachsig, $setbm, $allowsmilies, $allowhtml, $allowbbcode, $allowviewonline, $notifyreply, $notifypm, $games_block_pm, $popup_pm, $user_timezone, '" . usercp_sql_value($user_dateformat) . "', '" . usercp_sql_value($user_lang) . "', $user_style, '" . usercp_sql_value($gender) . "', 0, 1, '$birthday', '$next_birthday_greeting', ".time().",";
-			if ( $board_config['require_activation'] == USER_ACTIVATION_SELF || $board_config['require_activation'] == USER_ACTIVATION_ADMIN || $coppa )
-			{
-				$user_actkey = gen_rand_string(true);
-				$sql .= "0, '" . usercp_sql_value($user_actkey) . "')";
-			}
-			else
-			{
-				$sql .= "1, '')";
-			}
-
-			if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);
-			}
-
 			// Registration IP 1.1.2 (adapted): trust only the address supplied by
 			// the web server. Forwarding headers are user-controlled unless a
 			// deployment has an explicitly configured trusted proxy.
@@ -964,19 +944,36 @@ if ( isset($_POST['submit']) )
 				$registration_ip = '';
 			}
 			$registration_ip_sql = usercp_sql_value(substr($registration_ip, 0, 45));
-			$sql = "UPDATE " . USERS_TABLE . " SET user_reg_ip = '$registration_ip_sql' WHERE user_id = $user_id";
-			if (!$db->sql_query($sql))
+			// Include auxiliary fields in the same final account INSERT. No account
+			// is published before its personal group and all profile data are ready.
+			if (empty($profile_data)) { $profile_data = get_fields('WHERE users_can_view = '.ALLOW_VIEW); }
+			$profile_names = array();
+			phpbb_profile_field_assignments($profile_data, $HTTP_POST_VARS, $profile_names);
+			$registration_extra_columns = ', user_reg_ip, ct_last_pw_change';
+			$registration_extra_values = ", '$registration_ip_sql', " . time();
+			foreach ($profile_names as $column => $value)
 			{
-				message_die(GENERAL_ERROR, 'Could not store registration IP', '', __LINE__, __FILE__, $sql);
+				$registration_extra_columns .= ', ' . $column;
+				$registration_extra_values .= ", '" . usercp_sql_value($value) . "'";
+			}
+			$account_insert_sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_from_flag, user_interests, user_absence_mode, user_absence, user_absence_text, user_sig, user_sig_bbcode_uid, user_avatar, user_avatar_type, user_viewemail, user_aim, user_yim, user_msnm, user_fb, user_ig, user_pt, user_twr, user_skp, user_tg, user_li, user_tt, user_dc, user_signal, user_threema, user_attachsig, user_setbm, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_viewonline, user_notify, user_notify_pm, games_block_pm, user_popup_pm, user_timezone, user_dateformat, user_lang, user_style, user_gender, user_level, user_allow_pm, user_birthday, user_next_birthday_greeting, user_passwd_change, user_active, user_actkey" . $registration_extra_columns . ")
+				VALUES ($user_id, '" . usercp_sql_value($username) . "', " . time() . ", '" . usercp_sql_value($new_password) . "', '" . usercp_sql_value($email) . "', '" . usercp_sql_value($icq) . "', '" . usercp_sql_value($website) . "', '" . usercp_sql_value($occupation) . "', '" . usercp_sql_value($location) . "', '" . usercp_sql_value($user_flag) . "', '" . usercp_sql_value($interests) . "', $user_absence_mode, $user_absence, '" . usercp_sql_value($user_absence_text) . "', '" . usercp_sql_value($signature) . "', '" . usercp_sql_value($signature_bbcode_uid) . "', $avatar_sql, $viewemail, '" . usercp_sql_value(str_replace(' ', '+', $aim)) . "', '" . usercp_sql_value($yim) . "', '" . usercp_sql_value($msn) . "', '" . usercp_sql_value($fb) . "', '" . usercp_sql_value($ig) . "', '" . usercp_sql_value($pt) . "', '" . usercp_sql_value($twr) . "', '" . usercp_sql_value($skp) . "', '" . usercp_sql_value($tg) . "', '" . usercp_sql_value($li) . "', '" . usercp_sql_value($tt) . "', '" . usercp_sql_value($dc) . "', '" . usercp_sql_value($signal) . "', '" . usercp_sql_value($threema) . "', $attachsig, $setbm, $allowsmilies, $allowhtml, $allowbbcode, $allowviewonline, $notifyreply, $notifypm, $games_block_pm, $popup_pm, $user_timezone, '" . usercp_sql_value($user_dateformat) . "', '" . usercp_sql_value($user_lang) . "', $user_style, '" . usercp_sql_value($gender) . "', 0, 1, '$birthday', '$next_birthday_greeting', ".time().",";
+			if ( $board_config['require_activation'] == USER_ACTIVATION_SELF || $board_config['require_activation'] == USER_ACTIVATION_ADMIN || $coppa )
+			{
+				$user_actkey = gen_rand_string(true);
+				$account_insert_sql .= "0, '" . usercp_sql_value($user_actkey) . "'";
+			}
+			else
+			{
+				$account_insert_sql .= "1, ''";
 			}
 
-			// BEGIN CrackerTracker v5.x
-			($mode == 'register')? $profile_security->pw_create_date($user_id) : null;
-			// END CrackerTracker v5.x
+			$account_insert_sql .= $registration_extra_values . ")";
 
+			$creation_scope = phpbb_user_write_begin($db);
 			$sql = "INSERT INTO " . GROUPS_TABLE . " (group_name, group_description, group_single_user, group_moderator)
 				VALUES ('', 'Personal User', 1, 0)";
-			if ( !($result = $db->sql_query($sql)) )
+			if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
 			{
 				message_die(GENERAL_ERROR, 'Could not insert data into groups table', '', __LINE__, __FILE__, $sql);
 			}
@@ -985,31 +982,17 @@ if ( isset($_POST['submit']) )
 
 			$sql = "INSERT INTO " . USER_GROUP_TABLE . " (user_id, group_id, user_pending)
 				VALUES ($user_id, $group_id, 0)";
-			if( !($result = $db->sql_query($sql, END_TRANSACTION)) )
+			if( !($result = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Could not insert data into user_group table', '', __LINE__, __FILE__, $sql);
 			}
 
-			//
-			// Custom Profile Fields MOD
-			//
-			  if (empty($profile_data))
-			  	$profile_data = get_fields('WHERE users_can_view = '.ALLOW_VIEW);
-			  $profile_names = array();
-			  $profile_assignments = phpbb_profile_field_assignments($profile_data, $HTTP_POST_VARS, $profile_names);
-			 if ( !empty($profile_assignments) )
-			 {
-			  $sql2 = "UPDATE " . USERS_TABLE . "
-				  SET " . implode(', ', $profile_assignments) . "
-				WHERE user_id = " . (int) $user_id;
-			  
-			  if(!$db->sql_query($sql2))
-					message_die(GENERAL_ERROR,'Could not insert(update) custom profile fields','',__LINE__,__FILE__,$sql2);
-			 }
-			//
-			// END Custom Profile Fields MOD
-			//
+			if (!$db->sql_query($account_insert_sql, END_TRANSACTION))
+			{
+				message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $account_insert_sql);
+			}
 
+			phpbb_user_write_end($db, $creation_scope);
 			if ( $coppa )
 			{
 				$message = $lang['COPPA'];

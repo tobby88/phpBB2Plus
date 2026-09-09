@@ -9,6 +9,8 @@ define('BEGIN_TRANSACTION',1); define('END_TRANSACTION',2); define('DEFAULT_USER
 function check($ok,$message) { if(!$ok) { throw new \RuntimeException($message); } }
 function message_die($type,$message) { throw new \RuntimeException($message); }
 function phpbb_allocate_user_id($db,$prefix) { check($prefix==='fixture_','Expected allocator prefix'); return 42; }
+function phpbb_user_write_begin(&$db) { return $db; }
+function phpbb_user_write_end(&$db,$scope) { check($db===$scope,'Creation releases its writer scope'); }
 class CreationDb
 {
     public $pdo; public $queries=array();

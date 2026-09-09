@@ -220,16 +220,13 @@ if ( isset($_POST['submit']) )
 		catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		$account_created_at = time();
-		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey, user_passwd_change, ct_last_pw_change)
+		// Publish the usable account only after its personal group is durable.
+		$account_insert_sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey, user_passwd_change, ct_last_pw_change)
 			VALUES ($user_id, '" . $db->sql_escape($username) . "',	" . $account_created_at . ",	'" . $db->sql_escape($new_password) . "',	'" . $db->sql_escape($email) . "', $user_style, $user_timezone, '" . $db->sql_escape($user_dateformat) . "', '" . $db->sql_escape($user_lang) . "', 0, 1, 'user_actkey', " . $account_created_at . ", " . $account_created_at . ")";
-		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);
-		}
-
+		$creation_scope = phpbb_user_write_begin($db);
 		$sql = "INSERT INTO " . GROUPS_TABLE . " (group_name, group_description, group_single_user, group_moderator)
 			VALUES ('', 'Personal User', 1, 0)";
-		if ( !($result = $db->sql_query($sql)) )
+		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert data into groups table', '', __LINE__, __FILE__, $sql);
 		}
@@ -238,11 +235,17 @@ if ( isset($_POST['submit']) )
 
 		$sql = "INSERT INTO " . USER_GROUP_TABLE . " (user_id, group_id, user_pending)
 			VALUES ($user_id, $group_id, 0)";
-		if( !($result = $db->sql_query($sql, END_TRANSACTION)) )
+		if( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert data into user_group table', '', __LINE__, __FILE__, $sql);
 		}
 
+		if (!$db->sql_query($account_insert_sql, END_TRANSACTION))
+		{
+			message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $account_insert_sql);
+		}
+
+		phpbb_user_write_end($db, $creation_scope);
 		$message = $lang['Account_added'];
 		message_die(GENERAL_MESSAGE, $message);
 	}

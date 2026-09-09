@@ -3,6 +3,23 @@ if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__DIR__) . '/attach_mod/includes/functions_mutation.php';
 
 class PhpbbUserIdException extends RuntimeException {}
+
+// Share the same writer connection with account cleanup and group maintenance.
+// Reserving an ID is a separate durable operation; acquire this scope AFTER
+// allocation and release it before notifications or other lock-taking helpers.
+function phpbb_user_write_begin(&$database)
+{
+	$original = $database;
+	$lock = attach_require_mutation_lock($database);
+	$database = $lock->connection;
+	return array($original, $lock);
+}
+function phpbb_user_write_end(&$database, $scope)
+{
+	$database = $scope[0];
+	$scope[1]->release();
+}
+
 function phpbb_user_id_error($key = 'User_id_allocation_failed')
 {
 	global $lang;

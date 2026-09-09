@@ -575,3 +575,6 @@ jobs:
 
       - name: Test account creation without inherited group privileges
         run: php .github/scripts/check-account-group-isolation.php
+
+      - name: Test complete account publication and database failures
+        run: php .github/scripts/check-account-publication.php

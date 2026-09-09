@@ -135,6 +135,7 @@ if ($new_user)
 		require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
 		try { $user_id = phpbb_allocate_user_id($db, $table_prefix); }
 		catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+		$creation_scope = phpbb_user_write_begin($db);
 		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_active)
 			VALUES ($user_id, 'new_user', " . time() . ",'0')";
 		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
@@ -157,6 +158,7 @@ if ($new_user)
 		{
 			message_die(GENERAL_ERROR, 'Could not insert data into user_group table', '', __LINE__, __FILE__, $sql);
 		}
+		phpbb_user_write_end($db, $creation_scope);
 		$_POST[POST_USERS_URL] = $user_id;
 	} else
 	{
@@ -601,9 +603,13 @@ if( !empty($_POST['unblock_account']) )
       message_die(GENERAL_ERROR, "Couldn't remove ban_userid info into database", "", __LINE__, __FILE__, $sql); 
    else $no_error_ban=true; 
 }
+			// Core and custom profile data become visible in one statement. In
+			// particular, a new placeholder must not become active before custom
+			// fields have been stored successfully (also on MyISAM).
+			$account_profile_sql = empty($profile_assignments) ? '' : ', ' . implode(', ', $profile_assignments);
 			$sql = "UPDATE " . USERS_TABLE . "
-				SET " . $username_sql . $passwd_sql . "user_email = '" . admin_user_sql_value($email) . "', user_icq = '" . admin_user_sql_value($icq) . "', user_website = '" . admin_user_sql_value($website) . "', user_occ = '" . admin_user_sql_value($occupation) . "', user_from = '" . admin_user_sql_value($location) . "', user_from_flag = '" . admin_user_sql_value($user_flag) . "', user_interests = '" . admin_user_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . admin_user_sql_value($user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . admin_user_sql_value($signature) . "', user_viewemail = $viewemail, user_aim = '" . admin_user_sql_value($aim) . "', user_yim = '" . admin_user_sql_value($yim) . "', user_msnm = '" . admin_user_sql_value($msn) . "', user_fb = '" . admin_user_sql_value($fb) . "', user_ig = '" . admin_user_sql_value($ig) . "', user_pt = '" . admin_user_sql_value($pt) . "', user_twr = '" . admin_user_sql_value($twr) . "', user_skp = '" . admin_user_sql_value($skp) . "', user_tg = '" . admin_user_sql_value($tg) . "', user_li = '" . admin_user_sql_value($li) . "', user_tt = '" . admin_user_sql_value($tt) . "', user_dc = '" . admin_user_sql_value($dc) . "', user_signal = '" . admin_user_sql_value($signal) . "', user_threema = '" . admin_user_sql_value($threema) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '" . admin_user_sql_value($signature_bbcode_uid) . "', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . admin_user_sql_value($user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . admin_user_sql_value($user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '" . admin_user_sql_value($gender) . "'" . $avatar_sql . $force_new_passwd_sql . "
-				WHERE user_id = $user_id";
+				SET " . $username_sql . $passwd_sql . "user_email = '" . admin_user_sql_value($email) . "', user_icq = '" . admin_user_sql_value($icq) . "', user_website = '" . admin_user_sql_value($website) . "', user_occ = '" . admin_user_sql_value($occupation) . "', user_from = '" . admin_user_sql_value($location) . "', user_from_flag = '" . admin_user_sql_value($user_flag) . "', user_interests = '" . admin_user_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . admin_user_sql_value($user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . admin_user_sql_value($signature) . "', user_viewemail = $viewemail, user_aim = '" . admin_user_sql_value($aim) . "', user_yim = '" . admin_user_sql_value($yim) . "', user_msnm = '" . admin_user_sql_value($msn) . "', user_fb = '" . admin_user_sql_value($fb) . "', user_ig = '" . admin_user_sql_value($ig) . "', user_pt = '" . admin_user_sql_value($pt) . "', user_twr = '" . admin_user_sql_value($twr) . "', user_skp = '" . admin_user_sql_value($skp) . "', user_tg = '" . admin_user_sql_value($tg) . "', user_li = '" . admin_user_sql_value($li) . "', user_tt = '" . admin_user_sql_value($tt) . "', user_dc = '" . admin_user_sql_value($dc) . "', user_signal = '" . admin_user_sql_value($signal) . "', user_threema = '" . admin_user_sql_value($threema) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '" . admin_user_sql_value($signature_bbcode_uid) . "', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . admin_user_sql_value($user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . admin_user_sql_value($user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '" . admin_user_sql_value($gender) . "'" . $avatar_sql . $force_new_passwd_sql . $account_profile_sql . "
+				WHERE user_id = " . (int) $user_id;
 
 			if( $result = $db->sql_query($sql) )
 			{
@@ -624,21 +630,6 @@ if( !empty($_POST['unblock_account']) )
 					}
 				}
 				
-				//
-				// Custom Profile Fields MOD
-				//
-				 if ( !empty($profile_assignments) )
-				 {
-				  $sql2 = "UPDATE " . USERS_TABLE . "
-					  SET " . implode(', ', $profile_assignments) . "
-					WHERE user_id = " . (int) $user_id;
-				  
-				  if(!$db->sql_query($sql2))
-						message_die(GENERAL_ERROR,'Could not update custom profile fields','',__LINE__,__FILE__,$sql2);
-				 }
-				//
-				// END Custom Profile Fields MOD
-				//
 
 				// We remove all stored login keys since the password has been updated
 				// and change the current one (if applicable)

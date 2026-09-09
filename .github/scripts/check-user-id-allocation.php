@@ -122,6 +122,24 @@ try
         try { call_user_func(function() use($body,$db,$forum_root) { $phpbb_root_path=$forum_root; $phpEx='php'; $table_prefix='fixture_'; eval($body); throw new RuntimeException('Failed allocation fell through to account INSERT'); }); } catch(MutationFailure $error) { $caught=$error->getMessage()==='User_id_allocation_failed'; }
         mutation_check($caught && user_id_value('SELECT COUNT(*) FROM fixture_users')===3,'Controller stops before account creation on allocation failure: '.$file);
     }
-    echo "Durable user ID allocation and controller checks passed.\n";
+    user_id_fixture(); $original_db=$db;
+    $scope=phpbb_user_write_begin($db);
+    mutation_check($db!==$original_db && $db===$mutation_server->owner,'Creation switches to the owning writer connection');
+    $contender=$original_db; $caught=false;
+    try { phpbb_user_write_begin($contender); } catch(MutationFailure $error) { $caught=$error->getMessage()==='busy'; }
+    mutation_check($caught && $contender===$original_db && $mutation_server->owner===$db,'Concurrent repair/creation cannot enter or replace the owner');
+    mutation_check($db->sql_query('SELECT user_id FROM fixture_users')!==false,'Scoped reads use the live owner');
+    phpbb_user_write_end($db,$scope);
+    mutation_check($db===$original_db && $mutation_server->owner===null,'Publication restores original connection and releases writer lock');
+    $scope=phpbb_user_write_begin($db); $scope[1]->release();
+    mutation_check($db->sql_query('SELECT user_id FROM fixture_users')===false,'Lost ownership cannot silently continue on the unlocked connection');
+    phpbb_user_write_end($db,$scope);
+    mutation_check($db===$original_db,'Failure cleanup restores original connection');
+    foreach(array('admin/admin_users.php','admin/admin_user_register.php','includes/usercp_register.php','admin/admin_db_maintenance.php') as $file)
+    {
+        $source=file_get_contents($forum_root.$file);
+        mutation_check(strpos($source,'phpbb_user_write_begin($db)')!==false && strpos($source,'phpbb_user_write_end($db,')!==false,'Account/group repair scopes are connected: '.$file);
+    }
+    echo "Durable user ID allocation, shared publication lock and controller checks passed.\n";
 }
 finally { restore_error_handler(); }
