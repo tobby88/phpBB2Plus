@@ -620,3 +620,12 @@ jobs:
 
       - name: Test additive PM repair journal migration
         run: php .github/scripts/check-pm-repair-migration.php
+
+      - name: Test ordinary mailbox cleanup recovery and capabilities
+        run: php .github/scripts/check-pm-mailbox-recovery.php
+
+      - name: Test ordinary mailbox journal database operations
+        run: php .github/scripts/check-pm-mailbox-storage.php
+
+      - name: Test additive ordinary mailbox cleanup migration
+        run: php .github/scripts/check-pm-mailbox-migration.php

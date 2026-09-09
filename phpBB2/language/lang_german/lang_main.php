@@ -464,7 +464,9 @@ $lang['AJAX_use_edit'] = 'Benutze AJAX Schnelledit';
 // Private Messaging
 //
 $lang['Private_Messaging'] = 'Private Nachrichten';
-$lang['PM_cleanup_failed'] = 'Die Verarbeitung privater Nachrichten wurde wegen eines Datenbankfehlers abgebrochen. Bereits abgeschlossene Änderungen bleiben bestehen. Bitte lade dein Postfach neu; verbliebene Anhangdaten können im Administrationsbereich geprüft werden.';
+$lang['PM_cleanup_failed'] = 'Die Verarbeitung privater Nachrichten konnte nicht abgeschlossen werden. Bereits abgeschlossene Änderungen bleiben bestehen. Bitte öffne das betroffene Postfach erneut, um die vorgemerkte Bereinigung fortzusetzen. Bleibt der Fehler bestehen, sollte ein Administrator die Verfügbarkeit von Datenbank und Anhangspeicher prüfen.';
+$lang['PM_journal_unavailable'] = 'Der Speicher für die Nachrichtenbereinigung ist nicht verfügbar. Ein Administrator muss vor dem Fortfahren das Update nach 1.53a ausführen und den Datenbankzugriff prüfen.';
+$lang['PM_journal_changed'] = 'Nachrichten- oder Anhangdaten haben sich während der Bereinigung geändert. Geänderte Daten wurden erhalten. Bitte öffne das Postfach erneut; gegebenenfalls muss ein Administrator verbliebene Anhangdaten prüfen.';
 $lang['PM_save_limit_exceeded'] = 'Die ausgewählten Nachrichten überschreiten die Kapazität deines gespeicherten Postfachs. Bitte wähle weniger Nachrichten aus. Es wurde nichts verschoben oder gelöscht.';
 
 $lang['Login_check_pm'] = 'Einloggen, um private Nachrichten zu lesen';

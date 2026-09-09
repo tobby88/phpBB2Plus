@@ -30,6 +30,9 @@ include($phpbb_root_path . 'common.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_privmsgs.'.$phpEx);
+// Also load directly so the additive recovery API is available while older
+// mailbox helpers are being replaced in a per-file deployment.
+include_once($phpbb_root_path . 'includes/functions_pm_mailbox_journal.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
 function privmsg_post_session_is_valid($sid, $userdata)
@@ -99,6 +102,11 @@ else
 //
 $userdata = session_pagestart($user_ip, PAGE_PRIVMSGS);
 init_userprefs($userdata);
+if (!empty($userdata['session_logged_in']))
+{
+	try { phpbb_pm_recover_mailbox($userdata['user_id'], $folder); }
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+}
 //
 // End session management
 //
@@ -313,7 +321,7 @@ else if ( $mode == 'read' )
 			message_die(GENERAL_ERROR, 'Could not update private message read status', '', __LINE__, __FILE__, $sql);
 		}
 
-		phpbb_pm_trim_oldest($privmsg['privmsgs_from_userid'], 'sentbox', $board_config['max_sentbox_privmsgs']);
+		phpbb_pm_trim_oldest($privmsg['privmsgs_from_userid'], 'sentbox', $board_config['max_sentbox_privmsgs'], 'read', $privmsg['privmsgs_id']);
 		$sql_priority = (SQL_LAYER == 'mysql') ? 'LOW_PRIORITY' : '';
 
 		//
@@ -917,7 +925,7 @@ else if ( $submit || $refresh || $mode != '' )
 
 		if ( $mode != 'edit' )
 		{
-			phpbb_pm_trim_oldest($to_userdata['user_id'], 'inbox', $board_config['max_inbox_privmsgs']);
+			phpbb_pm_trim_oldest($to_userdata['user_id'], 'inbox', $board_config['max_inbox_privmsgs'], 'send');
 
 			$sql_info = "INSERT INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
 				VALUES (" . PRIVMSGS_NEW_MAIL . ", '$subject_sql', $sender_id, $recipient_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on, $attach_sig)";

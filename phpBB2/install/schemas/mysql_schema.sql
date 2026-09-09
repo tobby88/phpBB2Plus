@@ -88,6 +88,30 @@ CREATE TABLE phpbb_pm_repair_items (
    PRIMARY KEY (job_id, attach_id)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE phpbb_pm_delete_jobs (
+   job_id char(32) NOT NULL,
+   message_id int(10) unsigned NOT NULL,
+   owner_id mediumint(8) unsigned NOT NULL,
+   folder varchar(16) NOT NULL,
+   job_state varchar(16) NOT NULL,
+   from_user_id int(11) NOT NULL,
+   to_user_id int(11) NOT NULL,
+   message_type smallint(6) NOT NULL,
+   message_date int(10) unsigned NOT NULL,
+   created_by mediumint(8) unsigned NOT NULL,
+   created_at int(10) unsigned NOT NULL,
+   PRIMARY KEY (job_id),
+   UNIQUE KEY message_id (message_id),
+   KEY owner_folder (owner_id, folder)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE phpbb_pm_delete_items (
+   job_id char(32) NOT NULL,
+   attach_id int(10) unsigned NOT NULL,
+   physical_filename varchar(255) NOT NULL,
+   PRIMARY KEY (job_id, attach_id)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_user_removal_items (
    job_id char(32) NOT NULL,
    item_type varchar(16) NOT NULL,

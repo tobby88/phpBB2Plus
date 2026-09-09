@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Add owner-scoped durable cleanup for ordinary PM deletion, saved-mailbox
+  eviction and send/read quota trimming, separate from ACP repair permissions.
+  Reopening the affected mailbox resumes dependent cleanup after SQL/file
+  failures or lost write acknowledgements, but never executes an old intent
+  against a surviving parent. Recheck current actors, distinct send/read quota
+  capabilities, registered attachment inventories and shared references; preserve
+  restored messages and changed registrations. Bound delete-all to its original
+  upper message ID. Add EN/DE errors and additive `pm_delete_jobs`/`pm_delete_items`
+  installer/updater tables. Whole send/read publication is not made transactional
+  by this change; completed writes are not rolled back.
+
 - Journal destructive ACP PM repairs before deleting message parents or
   attachment links. Resume prepared inventories after failed SQL, lost write
   acknowledgements, unavailable thumbnail storage or interrupted file cleanup;

@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_pm_mailbox_journal.php';
 
 function phpbb_pm_mailbox_condition($user_id, $folder)
 {
@@ -67,7 +68,8 @@ function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
 	$lock = attach_require_mutation_lock($db);
 	try
 	{
-		$database = $lock->connection;
+		$database = new PhpbbMailboxDatabase($lock->connection, $user_id, 'savebox', 'owner');
+		phpbb_mailbox_recover($database);
 		$where = '(' . $where . ') AND privmsgs_id IN (' . implode(',', $ids) . ')';
 		$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
 		$selected = $database->sql_fetchrowset($result); $database->sql_freeresult($result);
@@ -96,11 +98,12 @@ function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
 			foreach ($old as $entry)
 			{
 				if (!$excess) { break; }
-				$excess -= phpbb_pm_delete_selected($database, '(' . $save_where . ') AND privmsgs_id = ' . (int) $entry['privmsgs_id']);
+				$excess -= phpbb_mailbox_delete_selected($database, '(' . $save_where . ') AND privmsgs_id = ' . (int) $entry['privmsgs_id']);
 			}
 		}
 		return $moved;
 	}
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	finally { $lock->release(); }
 }
 
@@ -248,13 +251,16 @@ function phpbb_pm_delete_messages($ids, $user_id, $folder, $all = false)
 	$lock = attach_require_mutation_lock($db);
 	try
 	{
+		$database = new PhpbbMailboxDatabase($lock->connection, $user_id, $folder, 'owner');
+		phpbb_mailbox_recover($database);
 		if ($all !== true) { $where = '(' . $where . ') AND privmsgs_id IN (' . implode(',', $ids) . ')'; }
-		return phpbb_pm_delete_selected($lock->connection, $where);
+		return phpbb_mailbox_delete_selected($database, $where);
 	}
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	finally { $lock->release(); }
 }
 
-function phpbb_pm_trim_oldest($user_id, $folder, $limit)
+function phpbb_pm_trim_oldest($user_id, $folder, $limit, $policy = 'owner', $source_id = 0)
 {
 	global $db;
 	$where = phpbb_pm_mailbox_condition($user_id, $folder);
@@ -263,15 +269,17 @@ function phpbb_pm_trim_oldest($user_id, $folder, $limit)
 	$lock = attach_require_mutation_lock($db);
 	try
 	{
-		$database = $lock->connection;
+		$database = new PhpbbMailboxDatabase($lock->connection, $user_id, $folder, $policy, $source_id);
+		phpbb_mailbox_recover($database);
 		$result = phpbb_pm_cleanup_query($database, 'SELECT COUNT(*) AS total FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
 		$row = $database->sql_fetchrow($result); $database->sql_freeresult($result);
 		if ((int) $row['total'] < $limit) { return 0; }
 		// Deterministic tie-breaker; do not remove every message with the same date.
 		$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where . ' ORDER BY privmsgs_date, privmsgs_id LIMIT 1');
 		$row = $database->sql_fetchrow($result); $database->sql_freeresult($result);
-		return $row ? phpbb_pm_delete_selected($database, '(' . $where . ') AND privmsgs_id = ' . (int) $row['privmsgs_id']) : 0;
+		return $row ? phpbb_mailbox_delete_selected($database, '(' . $where . ') AND privmsgs_id = ' . (int) $row['privmsgs_id']) : 0;
 	}
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	finally { $lock->release(); }
 }
 

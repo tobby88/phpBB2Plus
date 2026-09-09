@@ -86,10 +86,30 @@ reported for review. Completed writes are not rolled back. The journal contains
 IDs, state/ownership metadata and registered filenames, not message text or
 passwords. It does not sweep unrelated orphan files or unfinished uploads, and
 does not reconstruct inventories for interruptions that predate this change.
-This recovery currently covers ACP PM repair, not all normal mailbox operations.
+This journal is specific to ACP PM repair; ordinary mailboxes use the separate
+owner-scoped journal described below.
 On existing databases, back up first and run `update/update_from_153a.php` (dry
 run, then `--apply --backup-confirmed`) to add the two PM repair journal tables
 before using maintenance. Fresh installations include them automatically.
+
+Ordinary PM deletion, savebox eviction and automatic mailbox-capacity cleanup
+also record their cleanup inventories before removing messages. Reopening the
+affected mailbox as its authenticated, active owner retries interrupted cleanup
+of already removed messages (at most 100 pending jobs per visit). An old intent
+never deletes a surviving or restored message: another deletion requires a
+fresh authorized action. Sending and reading have separate quota capabilities
+because they can legitimately trim another participant's mailbox. Explicit
+deletion and saving require POST/session validation. Delete-all pagination does
+not expand to newly arriving higher message IDs.
+
+The post-1.53a updater adds `pm_delete_jobs` and `pm_delete_items` without
+rewriting existing messages. Run it before opening mailboxes with this version.
+These tables store only IDs, state/ownership metadata and registered filenames,
+not PM content. Shared references, changed attachment registrations and unrelated
+uploads are preserved. Resolve persistent storage errors before retrying; changed
+registrations and journals belonging to removed accounts can need administrator
+review. This is cleanup recovery, not a transaction/rollback guarantee for the
+entire send/read/copy workflow, and it cannot reconstruct pre-journal failures.
 
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
