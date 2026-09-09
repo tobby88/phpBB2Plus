@@ -5,6 +5,7 @@
 <h1>{L_PRUNE_USERS}</h1>
 
 <p>{L_PRUNE_USERS_EXPLAIN}</p>
+{REMOVAL_JOBS}
 <form name="DaysFrm" action="{S_PRUNE_USERS}" method="post">
 <table cellspacing="1" cellpadding="4" border="0" align="center" class="forumline">
 
@@ -21,4 +22,3 @@
 	</tr>
 <!-- END prune_list -->
 </table></form>
-

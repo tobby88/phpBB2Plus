@@ -16,12 +16,13 @@ $lang['X_Months'] = '%d Months';
 $lang['X_Years'] = '%d Years';
 
 $lang['Prune_no_users']="No users deleted";
+$lang['Prune_notification_failed'] = 'Account cleanup completed, but its notification could not be sent. Notifications are best-effort and are not automatically retried after interrupted delivery.';
 $lang['Prune_users_number']="The following %d users were deleted:";
 
 $lang['Prune_user_list'] = 'Users who will be deleted';
 $lang['Prune_on_click'] = 'You are about to delete %d users. Are you sure?';
 $lang['Prune_Action'] = 'Click link below to execute';
-$lang['Prune_users_explain'] = 'From this page you can prune users. You can choose one of three links: delete old users who have never posted, delete old users who have never logged in, delete users who have never activated their account.<p/><b>Note:</b> There is no undo function.';
+$lang['Prune_users_explain'] = 'Choose one of five age/activity criteria below. Administrators are excluded, and current eligibility is checked again before each deletion. Interrupted cleanup can be resumed under pending account removals. Notifications are best-effort, not a delivery guarantee.<p><b>Warning:</b> Completed account deletion cannot be undone here.</p>';
 $lang['Prune_commands'] = array();
 
 // here you can make more entries if needed

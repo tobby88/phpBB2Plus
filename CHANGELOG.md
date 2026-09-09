@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Extend resumable account cleanup to standalone user pruning. Persist the
+  original age/activity criteria, recheck current full-administrator authority
+  and eligibility on writes, and recover partial account/PN/group/file cleanup
+  from the ACP or original pruning route. Preserve other recipients' delivered
+  and saved PM copies, and reject changed/restored identities. Use one shared
+  predicate for ACP previews and actual pruning, excluding administrators and
+  avoiding division by zero. Pending jobs reuse existing journal tables and
+  temporarily retain notification contact data, removed at completion/discard.
+  Optional mail is handed off only after cleanup and lock release, without
+  automatic retries after ambiguous delivery; it remains best-effort.
+
 - Reserve new user IDs durably across all three registration paths instead of
   reusing `MAX(user_id) + 1` after account deletion. Include retained numeric
   album, Arcade, PM and other bundled-module ownership when determining the
@@ -26,7 +37,7 @@ changes consolidated after that baseline without implying active maintenance.
   administrator protection, reject self-deletion, and prevent delegated user
   managers from deleting administrators or resuming their cleanup. Persist the
   required privilege with captured items so protection survives account removal.
-  Separate pruning remains outside this durable workflow for now.
+  Standalone pruning is integrated as described above, with its distinct policy.
 
 - Make inactive-account removal resumable after partial database or attachment
   storage failures, including MyISAM installations. Persist the selected personal
@@ -38,7 +49,7 @@ changes consolidated after that baseline without implying active maintenance.
   records are removed; unfinished jobs contain no credentials or message bodies.
   Existing installations need the two additive journal tables provided by
   `update/update_from_153a.php` before using this inactive-account workflow.
-  The user-manager extension is described above; separate pruning is still open.
+  The user-manager and standalone-pruning extensions are described above.
 
 - Coordinate forum-policy saves with content and ACL writers. Reject malformed
   original forum IDs, preset IDs and access levels instead of silently making

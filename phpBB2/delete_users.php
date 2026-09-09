@@ -43,187 +43,78 @@
 #########################################################
 
 define('IN_PHPBB', true);
-// to enable email notification to the user, after deletion, enable this
+// Set false here to disable deletion notifications.
 define('NOTIFY_USERS', true);
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
-include($phpbb_root_path . 'common.'.$phpEx);
-include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_prune_users.' . $phpEx);
-
-############################################### Do not change anything below this line #######################################
-
-//
-// Start session management
-//
+include($phpbb_root_path . 'common.' . $phpEx);
+include($phpbb_root_path . 'includes/emailer.' . $phpEx);
 $userdata = session_pagestart($user_ip, PAGE_INDEX);
 init_userprefs($userdata);
-//
-// End session management
-//
+include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin.' . $phpEx);
+include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_prune_users.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_user_prune.' . $phpEx);
 
-if ($userdata['user_level']!=ADMIN)
-      message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+try { phpbb_removal_actor(new PhpbbRemovalDatabase($db), 'prune'); }
+catch (PhpbbRemovalException $error) { message_die(GENERAL_MESSAGE, phpbb_prune_html($error->getMessage())); }
 
-$del_user = (isset($_POST['del_user']) && is_scalar($_POST['del_user'])) ? intval($_POST['del_user']) :
-	((isset($_GET['del_user']) && is_scalar($_GET['del_user'])) ? intval($_GET['del_user']) : 0);
-$mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
-	((isset($_GET['mode']) && is_scalar($_GET['mode'])) ? (string) $_GET['mode'] : '');
-$days = (isset($_POST['days']) && is_scalar($_POST['days'])) ? intval($_POST['days']) :
-	((isset($_GET['days']) && is_scalar($_GET['days'])) ? intval($_GET['days']) : 0);
-$days = max(1, min(36500, $days));
-
-// ******************************************************************************************
-// Define you own modes here
-
-switch ($mode)
+$messages = ''; $deleted_users = 0; $name_list = ''; $attempted = false;
+try
 {
-	case 'user_id' :
-		if ($del_user <= 0)
+	// A recovery POST carries only its original job token, never new criteria.
+	if (isset($_POST['removal_resume']) || isset($_POST['removal_cancel']))
+	{
+		$attempted = true;
+		$result = phpbb_prune_user_remove($db, $_POST);
+		$messages = phpbb_prune_html($lang[is_array($result) ? $result['status'] : $result]);
+		if (!phpbb_prune_notify($result)) { $messages .= '<p>' . phpbb_prune_html($lang['Prune_notification_failed']) . '</p>'; }
+	}
+	else
+	{
+		$is_post = isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST';
+		$request = $is_post ? $_POST : $_GET;
+		$policy = phpbb_prune_policy($request);
+		$target = $policy['mode'] === 'user_id' ? phpbb_removal_id(isset($request['del_user']) ? $request['del_user'] : null) : 0;
+		$confirmed = $is_post && isset($_POST['confirm']);
+		if (!$confirmed)
 		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+			$messages = '<form method="post" action="' . phpbb_prune_html(append_sid('delete_users.' . $phpEx)) . '"><p>' . phpbb_prune_html($lang['Confirm']) . ': ' . phpbb_prune_html($policy['mode']) . '</p>'
+				. '<input type="hidden" name="mode" value="' . phpbb_prune_html($policy['mode']) . '" />'
+				. '<input type="hidden" name="days" value="' . $policy['days'] . '" />'
+				. '<input type="hidden" name="del_user" value="' . $target . '" />'
+				. '<input type="hidden" name="sid" value="' . phpbb_prune_html($userdata['session_id']) . '" />'
+				. '<button type="submit" name="confirm" class="mainoption" value="1">' . phpbb_prune_html($lang['Confirm']) . '</button></form>';
 		}
-		$sql = ' FROM ' . USERS_TABLE . ' WHERE user_id = "' . $del_user . '" AND user_id <> "' . ANONYMOUS . '" AND user_level <> "' . ADMIN . '"';
-		break;
-
-	case 'prune_0' :
-	case 'zero_poster' :	$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_posts="0" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
-
-	case 'prune_1' :
-	case 'not_login': 	$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit="0" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
-
-	case 'prune_2' :
-					$sql=' FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit="0" AND user_active="0" AND user_actkey<>"" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
-
-	case 'prune_3' :
-					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit<'.(time()-86400*60).' AND user_regdate<"'.(time()-(86400*$days)).'"';break;
-
-	case 'prune_4' :
-					$sql = 'FROM '.USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'" AND user_level<>"'.ADMIN.'" AND user_lastvisit > user_regdate AND user_posts/((user_lastvisit - user_regdate)/86400) < "0.1" AND user_regdate<"'.(time()-(86400*$days)).'"';break;
-
-	default:		message_die(GENERAL_ERROR, 'No mode specifyed', '', __LINE__, __FILE__);
-}
-
-$confirmed = isset($_SERVER['REQUEST_METHOD']) && strtoupper($_SERVER['REQUEST_METHOD']) === 'POST'
-	&& isset($_POST['confirm'])
-	&& isset($_POST['sid'])
-	&& is_scalar($_POST['sid'])
-	&& hash_equals((string) $userdata['session_id'], (string) $_POST['sid']);
-if (!$confirmed)
-{
-	$action = append_sid('delete_users.' . $phpEx);
-	$message = '<form action="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '" method="post">'
-		. '<p>' . htmlspecialchars($lang['Confirm'], ENT_QUOTES, 'UTF-8') . ': '
-		. htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . '</p>'
-		. '<input type="hidden" name="mode" value="' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . '" />'
-		. '<input type="hidden" name="days" value="' . $days . '" />'
-		. '<input type="hidden" name="del_user" value="' . $del_user . '" />'
-		. '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />'
-		. '<input type="submit" name="confirm" value="' . htmlspecialchars($lang['Confirm'], ENT_QUOTES, 'UTF-8') . '" class="mainoption" />'
-		. '</form>';
-	message_die(GENERAL_MESSAGE, $message);
-}
-
-// ******************************************************************************************
-// Do not change anything below this line
-//
-
-require_once($phpbb_root_path . 'includes/functions_privmsgs.' . $phpEx);
-require_once($phpbb_root_path . 'includes/functions_user_cleanup.' . $phpEx);
-$prune_selection_sql = trim($sql);
-if(!$result = $db->sql_query('SELECT user_id , username, user_email, user_lang ' . $prune_selection_sql . ' ORDER BY username LIMIT 800'))
-	message_die(GENERAL_ERROR, 'Error obtaining userdata', '', __LINE__, __FILE__, $sql);
-$user_list = $db->sql_fetchrowset($result);
-
-$i=0;
-$deleted_users = 0;
-$name_list = '';
-$messages = '';
-while (isset($user_list[$i]['user_id']))
-{
-	@set_time_limit(5);
-	$user_id = intval($user_list[$i]['user_id']);
-	// A candidate list can become stale during a long batch. Recheck the
-	// original eligibility and refresh the name/contact data for this account.
-	$eligibility_sql = $prune_selection_sql . ' AND user_id = ' . $user_id;
-	if (!($result = $db->sql_query('SELECT user_id, username, user_email, user_lang ' . $eligibility_sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not recheck pruning candidate.');
-	}
-	$current_user = $db->sql_fetchrow($result); $db->sql_freeresult($result);
-	if (!$current_user) { $i++; continue; }
-	$user_list[$i] = $current_user;
-	$username = $user_list[$i]['username'];
-	$user_email = $user_list[$i]['user_email'];
-	$user_lang =  $user_list[$i]['user_lang'];
-	$sql = "SELECT g.group_id
-		FROM " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g
-		WHERE ug.user_id = $user_id
-		AND g.group_id = ug.group_id
-		AND g.group_single_user = 1";
-	if( !($result = $db->sql_query($sql)) )
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain group information for this user', '', __LINE__, __FILE__, $sql);
-	}
-	$personal_groups = array();
-	while ($row = $db->sql_fetchrow($result))
-	{
-		$personal_groups[(int) $row['group_id']] = (int) $row['group_id'];
-	}
-	$db->sql_freeresult($result);
-	// Claim only a still-eligible row before changing posts, groups or sending
-	// notifications. In particular, never continue after a zero-row deletion.
-	$sql = 'DELETE ' . $eligibility_sql;
-	if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Could not delete pruning candidate.'); }
-	if ((int) $db->sql_affectedrows() !== 1) { $i++; continue; }
-	phpbb_cleanup_removed_user_references($db, $user_id);
-
-	phpbb_anonymize_removed_user_content($db, $user_id, $username, (int) $userdata['user_id']);
-
-	$sql = "DELETE FROM " . USER_GROUP_TABLE . "
-		WHERE user_id = $user_id";
-	if( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not delete user from user_group table', '', __LINE__, __FILE__, $sql);
-	}
-
-	foreach ($personal_groups as $personal_group_id)
-	{
-		$sql = 'DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $personal_group_id . ' AND group_single_user = 1 AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug WHERE ug.group_id = ' . GROUPS_TABLE . '.group_id)';
-		if( !$db->sql_query($sql) )
+		else
 		{
-			message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
-		}
-
-		if ((int) $db->sql_affectedrows() === 1 && !$db->sql_query('DELETE FROM ' . AUTH_ACCESS_TABLE . ' WHERE group_id = ' . $personal_group_id))
-		{
-			message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
+			// Validate the original POST even when no eligible accounts remain.
+			if (!is_scalar($_POST['confirm']) || !isset($_POST['sid']) || !is_string($_POST['sid']) || empty($userdata['session_id']) || !hash_equals((string) $userdata['session_id'], $_POST['sid'])) { phpbb_removal_error('Session_invalid'); }
+			$selection = phpbb_prune_where($policy) . ($target ? ' AND user_id = ' . $target : '');
+			$users = phpbb_removal_rows(new PhpbbRemovalDatabase($db), 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE ' . $selection . ' ORDER BY username,user_id LIMIT 800');
+			foreach ($users as $candidate)
+			{
+				// Leave room for the shared writer's ten-second contention wait.
+				@set_time_limit(30);
+				$attempted = true;
+				$result = phpbb_prune_user_remove($db, $_POST, $candidate['user_id'], $policy);
+				if ($result['status'] === 'Prune_skipped') { continue; }
+				$deleted_users++;
+				$name_list .= ($name_list === '' ? '' : ', ') . phpbb_prune_html($result['username']);
+				if (!phpbb_prune_notify($result)) { $messages .= '<p>' . phpbb_prune_html($lang['Prune_notification_failed']) . '</p>'; }
+			}
+			$messages = '<p>' . phpbb_prune_html($deleted_users ? sprintf($lang['Prune_users_number'], $deleted_users) : $lang['Prune_no_users']) . ' ' . $name_list . '</p>' . $messages;
 		}
 	}
-
-	phpbb_pm_prune_user_messages($user_id);
-
-	if (NOTIFY_USERS && !empty($user_email))
-	{
-		$emailer = new emailer($board_config['smtp_delivery']);
-		$emailer->from($board_config['board_email']);
-		$emailer->replyto($board_config['board_email']);
-		$emailer->email_address($user_email);
-		$emailer->use_template('delete_users', (file_exists($phpbb_root_path . 'language/lang_' . $user_lang . '/email/delete_users.tpl')) ? $user_lang : '');
-		$emailer->assign_vars(array(
-			'U_REGISTER' => phpbb_board_url('profile.' . $phpEx . '?mode=register'),
-			'USER' => $userdata['username'],
-			'USERNAME' => $username,
-			'SITENAME' => $board_config['sitename'],
-			'BOARD_EMAIL' => $board_config['board_email']));
-		$emailer->send();
-		$emailer->reset();
-	}
-	$name_list .= (($name_list) ? ' , ' : '<br />') . htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
-	$deleted_users++;
-	$i++;
 }
-$messages .= ((DEBUG) ? '<b>Mode:[' . htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') . ']</b><br />' : '') . (($deleted_users) ? sprintf($lang['Prune_users_number'], $deleted_users) . $name_list : $lang['Prune_no_users']);
-message_die(GENERAL_MESSAGE,$messages.'<br />'.sprintf($lang['Click_return_forum'],'<a href="'.append_sid("admin/index.$phpEx").'">','</a>')
-);
-?>
+catch (Exception $error)
+{
+	$messages .= '<p>' . phpbb_prune_html($error instanceof PhpbbRemovalException ? $error->getMessage() : $lang['Removal_storage_failed']) . '</p>';
+	if ($deleted_users) { $messages .= '<p>' . phpbb_prune_html(sprintf($lang['Prune_users_number'], $deleted_users)) . ' ' . $name_list . '</p>'; }
+}
+catch (Error $error) { $messages .= '<p>' . phpbb_prune_html($lang['Removal_storage_failed']) . '</p>'; }
+// Cache refresh and mail dispatch are outside every owning storage connection.
+if ($attempted) { cache_tree(true); }
+try { $messages .= phpbb_prune_pending_html($db); }
+catch (Exception $error) { $messages .= '<p>' . phpbb_prune_html($lang['Removal_jobs_unavailable']) . '</p>'; }
+catch (Error $error) { $messages .= '<p>' . phpbb_prune_html($lang['Removal_jobs_unavailable']) . '</p>'; }
+message_die(GENERAL_MESSAGE, $messages . '<p><a href="' . phpbb_prune_html(append_sid('admin/admin_prune_users.' . $phpEx)) . '">' . phpbb_prune_html($lang['Prune_users']) . '</a></p>');

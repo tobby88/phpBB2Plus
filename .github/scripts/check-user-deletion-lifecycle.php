@@ -51,61 +51,13 @@ class DeletionDatabase
 }
 $root=dirname(dirname(__DIR__));
 require $root.'/phpBB2/includes/functions_user_cleanup.php';
-$prune=file_get_contents($root.'/phpBB2/delete_users.php');
-$start=strpos($prune,'@set_time_limit(5);'); $end=strpos($prune,'phpbb_pm_prune_user_messages($user_id);',$start);
-deletion_check($start!==false && $end!==false,'Prune controller extraction markers');
-$prune_block=substr($prune,$start,$end-$start);
 define('SHOUTBOX_TABLE','fixture_shouts');
-function run_prune($db)
-{
-	global $prune_block;
-	$user_list=array(array('user_id'=>7)); $i=0; $userdata=array('user_id'=>9);
-	$prune_selection_sql='FROM fixture_users WHERE user_id <> -1 AND user_level <> 1 AND user_posts = 0';
-	try { eval('foreach (array(0) as $iteration) {' . $prune_block . '}'); }
-	finally
-	{
-		// The controller's per-user timer must not cover subsequent fixtures.
-		set_time_limit(0);
-	}
-}
+// Actual pruning is exercised by check-user-pruning.php; retain the shared
+// cleanup-helper contract tests below without copying the former controller.
 function expect_deletion_failure($callback) { $caught=false; try { $callback(); } catch(DeletionFailure $e) { $caught=true; } deletion_check($caught,'Expected controlled rejection'); }
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try
 {
-	foreach(array('user_level=1','user_posts=1') as $change)
-	{
-		$db=new DeletionDatabase(); $db->hook=function($sql,$db)use($change){if(strpos($sql,'DELETE FROM fixture_users')===0){$db->pdo->exec('UPDATE fixture_users SET '.$change.' WHERE user_id=7');}};
-		run_prune($db);
-		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1 && (int)$db->scalar('SELECT group_moderator FROM fixture_groups WHERE group_id=200')===7,'Prune rechecks eligibility in DELETE before any dependent mutation');
-	}
-	$db=new DeletionDatabase(); $db->pdo->exec("UPDATE fixture_users SET username='O''Brien' WHERE user_id=7"); run_prune($db);
-	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===0 && $db->scalar('SELECT post_username FROM fixture_posts WHERE poster_id=-1')==="O'Brien",'Prune refreshes and safely escapes actual current name');
-	deletion_check((int)$db->scalar('SELECT group_moderator FROM fixture_groups WHERE group_id=200')===9 && (int)$db->scalar('SELECT group_moderator FROM fixture_groups WHERE group_id=201')===200,'Prune replaces target moderator without confusing group IDs with user IDs');
-	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id=70')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===0,'Prune removes the empty personal group with its permissions');
-	$db=new DeletionDatabase(); $db->hook=function($sql,$db){if(strpos($sql,'DELETE FROM fixture_groups')===0){$db->pdo->exec('INSERT INTO fixture_members VALUES(8,70)');}};
-	run_prune($db); deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id=70')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===1,'Prune preserves a personal group that gained a member');
-	deletion_check(strpos($prune,'$deleted_users++;')!==false && strpos($prune,"sprintf(\$lang['Prune_users_number'], \$deleted_users)")!==false,'Prune counts completed deletions separately from skipped candidates');
-	foreach(array('run_prune') as $controller)
-	{
-		$db=new DeletionDatabase(); call_user_func($controller,$db);
-		foreach(deletion_reference_tables() as $table=>$column)
-		{
-			deletion_check((int)$db->scalar('SELECT COUNT(*) FROM '.$table.' WHERE '.$column.'=7')===0,'Controller clears removed account reference: '.$controller.'/'.$table);
-			deletion_check((int)$db->scalar('SELECT COUNT(*) FROM '.$table)===3,'Other accounts and zero/global rows retained');
-		}
-		$db=new DeletionDatabase(); $db->failure='DELETE FROM fixture_keys';
-		expect_deletion_failure(function()use($controller,$db){call_user_func($controller,$db);});
-		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_members WHERE user_id=7')===2,'Credential cleanup failure stops later group changes');
-	}
-	foreach(array('missing','multiple') as $case)
-	{
-		$db=new DeletionDatabase();
-		if($case==='missing') { $db->pdo->exec('DELETE FROM fixture_members WHERE group_id=70'); $db->pdo->exec('DELETE FROM fixture_groups WHERE group_id=70'); }
-		else { $db->pdo->exec('INSERT INTO fixture_groups VALUES(71,1,7)'); $db->pdo->exec('INSERT INTO fixture_members VALUES(7,71)'); $db->pdo->exec('INSERT INTO fixture_permissions VALUES(71,1)'); }
-		run_prune($db);
-		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id IN (70,71)')===0,'Pruning handles '.$case.' personal groups');
-		if($case==='multiple') { deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id IN (70,71)')===0,'Pruning clears all captured empty personal-group permissions'); }
-	}
 	foreach(array(0,-1,null,'7','7 OR 1=1',array(7)) as $bad)
 	{
 		$db=new DeletionDatabase(); expect_deletion_failure(function()use($db,$bad){phpbb_cleanup_removed_user_references($db,$bad);});
@@ -122,14 +74,6 @@ try
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_keys WHERE user_id=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_sessions WHERE session_user_id=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_grants WHERE user_id=7')===0,'Credentials and delegated grants revoked before ancillary-table failure');
 	$db->failure=''; phpbb_cleanup_removed_user_references($db,7); phpbb_cleanup_removed_user_references($db,7);
 	foreach(deletion_reference_tables() as $table=>$column){deletion_check((int)$db->scalar('SELECT COUNT(*) FROM '.$table)===3,'Reference helper is safely repeatable after partial failure');}
-	foreach(array('run_prune') as $controller)
-	{
-		$db=new DeletionDatabase(); $db->pdo->exec("UPDATE fixture_users SET username='O''Brien Grüße' WHERE user_id=7");
-		call_user_func($controller,$db);
-		deletion_check($db->scalar('SELECT post_username FROM fixture_posts WHERE poster_id=-1')==="O'Brien Grüße" && $db->scalar('SELECT shout_username FROM fixture_shouts WHERE shout_user_id=-1')==="O'Brien Grüße",'Removed authors retain escaped UTF-8 display names: '.$controller);
-		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=8')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=8')===1,'Other authors remain untouched');
-		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_topics WHERE topic_poster=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_votes WHERE vote_user_id=7')===0 && (int)$db->scalar('SELECT group_moderator FROM fixture_groups WHERE group_id=200')===9,'Topics/votes/moderation reassigned only for removed target');
-	}
 	$db=new DeletionDatabase(); expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1,'Existing account content cannot be anonymized');
 	$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7'); $restored=false;
@@ -140,6 +84,6 @@ try
 	expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
 	$db->failure=''; phpbb_anonymize_removed_user_content($db,7,'Name',9); phpbb_anonymize_removed_user_content($db,7,'Name',9);
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=7')===0,'Content helper can finish after partial failure without deleting content');
-	echo "Pruning eligibility/group/reference/content-scope checks passed.\n";
+	echo "Removed-account reference/content helper checks passed.\n";
 }
 finally { restore_error_handler(); }

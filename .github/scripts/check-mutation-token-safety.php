@@ -23,7 +23,7 @@ $overall_header = file_get_contents($root . '/phpBB2/templates/fisubsilversh/ove
 
 foreach ($files as $label => $source)
 {
-	mutation_token_assert(strpos($source, "is_scalar(\$_POST['sid'])") !== false || strpos($source, "is_scalar(\$_GET['sid'])") !== false, $label . ' must reject array session tokens');
+	mutation_token_assert(strpos($source, "is_scalar(\$_POST['sid'])") !== false || strpos($source, "is_string(\$_POST['sid'])") !== false || strpos($source, "is_scalar(\$_GET['sid'])") !== false, $label . ' must reject array session tokens');
 }
 
 mutation_token_assert(strpos($files['absence notification'], "REQUEST_METHOD']) !== 'POST'") !== false, 'absence changes must require POST');

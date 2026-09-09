@@ -17,6 +17,7 @@ class PhpbbRemovalDatabase
 	function __call($name, $args) { return call_user_func_array(array($this->connection, $name), $args); }
 	function sql_query($sql, $transaction = false)
 	{
+		$guarded_write = false;
 		// These internal cleanup workers use WHERE-qualified UPDATE/DELETE,
 		// without trailing ORDER/LIMIT. Repeat the actor/absence guard even in
 		// existing helper SQL; an initial authorization read is not sufficient.
@@ -24,11 +25,21 @@ class PhpbbRemovalDatabase
 		{
 			if (!preg_match('/\bWHERE\b/i', $sql)) { phpbb_removal_error('Removal_storage_failed'); }
 			$sql .= ' AND (' . $this->guard . ')';
+			$guarded_write = true;
 		}
 		$result = $this->connection->sql_query($sql, $transaction);
 		if (!$result) { phpbb_removal_error('Removal_storage_failed'); }
+		if (preg_match('/^\s*(UPDATE|DELETE FROM|INSERT INTO)\b/i', $sql)) { $this->affected = (int) $this->connection->sql_affectedrows(); }
+		// Preserve affected-row reporting: validate on a separate result but do
+		// not let the SELECT replace the caller's mutation count.
+		if ($guarded_write)
+		{
+			phpbb_removal_assert($this);
+		}
 		return $result;
 	}
+	var $affected = 0;
+	function sql_affectedrows() { return $this->affected; }
 }
 function phpbb_removal_rows($db, $sql)
 {
@@ -44,10 +55,10 @@ function phpbb_removal_id($value)
 function phpbb_removal_actor($db, $mode = 'inactive')
 {
 	global $userdata, $phpEx;
-	if (!in_array($mode, array('inactive','user'), true)) { phpbb_removal_error('Removal_invalid'); }
+	if (!in_array($mode, array('inactive','user','prune'), true)) { phpbb_removal_error('Removal_invalid'); }
 	$route = ($mode === 'user' ? 'admin_users.' : 'admin_account.') . $phpEx;
 	$user = phpbb_current_moderator_user($db);
-	if (!$user || empty($userdata['session_admin'])) { phpbb_removal_error('Not_Authorised'); }
+	if (!$user || ($mode !== 'prune' && empty($userdata['session_admin'])) || ($mode === 'prune' && (int) $user['user_level'] !== ADMIN)) { phpbb_removal_error('Not_Authorised'); }
 	$grant = 'removal_actor.user_level = ' . ADMIN;
 	if ((int) $user['user_level'] !== ADMIN)
 	{
@@ -70,6 +81,7 @@ function phpbb_removal_actor($db, $mode = 'inactive')
 function phpbb_removal_eligibility($mode, $actor)
 {
 	if ($mode === 'inactive') { return 'user_active = 0 AND user_level <> ' . ADMIN; }
+	if ($mode === 'prune') { return 'user_id > 0 AND user_level <> ' . ADMIN; }
 	// Preserve CrackerTracker's lowest-current-administrator protection and
 	// self protection. Delegated user managers may never delete an ADMIN.
 	$first = 'SELECT MIN(protected_admin.user_id) FROM (SELECT DISTINCT user_id FROM ' . USERS_TABLE . ' WHERE user_level = ' . ADMIN . ') protected_admin';
@@ -80,7 +92,7 @@ function phpbb_removal_fingerprint($user, $mode)
 	$value = $user['username'] . "\0" . $user['user_regdate'] . "\0" . $user['user_password'];
 	// Keep existing inactive jobs compatible. General deletion also records
 	// the selected activation/role snapshot, including secondary administrators.
-	if ($mode === 'user') { $value .= "\0" . $user['user_active'] . "\0" . $user['user_level']; }
+	if ($mode === 'user' || $mode === 'prune') { $value .= "\0" . $user['user_active'] . "\0" . $user['user_level']; }
 	return hash('sha256', $value);
 }
 function phpbb_removal_assert($db)
@@ -97,13 +109,18 @@ function phpbb_removal_pm_where($id, $mode = 'inactive')
 function phpbb_removal_capture($db, $job)
 {
 	$id = (int) $job['user_id']; $key = "job_id = '" . $job['job_id'] . "'";
-	$db->sql_query('DELETE FROM ' . USER_REMOVAL_ITEMS_TABLE . ' WHERE ' . $key);
+	$db->sql_query('DELETE FROM ' . USER_REMOVAL_ITEMS_TABLE . ' WHERE ' . $key . " AND item_type <> 'prune_policy'");
 	$prefix = 'INSERT INTO ' . USER_REMOVAL_ITEMS_TABLE . ' (job_id,item_type,item_id,related_id,item_name) SELECT DISTINCT ' . "'" . $job['job_id'] . "',";
 	$db->sql_query($prefix . "'group',g.group_id,0,'' FROM " . GROUPS_TABLE . ' g,' . USER_GROUP_TABLE . ' ug WHERE ug.user_id = ' . $id . ' AND g.group_id = ug.group_id AND g.group_single_user = 1 AND ' . $db->guard);
 	if ($job['removal_mode'] === 'user')
 	{
 		// Retain the required privilege after the account row has vanished.
 		$db->sql_query($prefix . "'user_level',user_level,0,'' FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
+	}
+	if ($job['removal_mode'] === 'prune' && (!defined('NOTIFY_USERS') || NOTIFY_USERS))
+	{
+		$db->sql_query($prefix . "'notify_email',0,0,user_email FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
+		$db->sql_query($prefix . "'notify_lang',0,0,user_lang FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
 	}
 	$db->sql_query($prefix . "'pm',privmsgs_id,privmsgs_to_userid,'' FROM " . PRIVMSGS_TABLE . ' WHERE ' . phpbb_removal_pm_where($id, $job['removal_mode']) . ' AND ' . $db->guard);
 	$db->sql_query($prefix . "'attachment',a.attach_id,0,d.physical_filename FROM " . ATTACHMENTS_TABLE . ' a,' . ATTACHMENTS_DESC_TABLE . ' d WHERE d.attach_id = a.attach_id AND a.privmsgs_id IN (SELECT item_id FROM ' . USER_REMOVAL_ITEMS_TABLE . ' WHERE ' . $key . " AND item_type = 'pm') AND " . $db->guard);
@@ -196,10 +213,11 @@ function phpbb_admin_user_remove($database, $post)
 	}
 	return phpbb_user_remove($database, $post, 'user');
 }
-function phpbb_user_remove($database, $post, $mode)
+function phpbb_user_remove($database, $post, $mode, $prune_policy = null)
 {
 	global $userdata;
-	if (!in_array($mode, array('inactive','user'), true)) { phpbb_removal_error('Removal_invalid'); }
+	if (!in_array($mode, array('inactive','user','prune'), true)) { phpbb_removal_error('Removal_invalid'); }
+	if ($mode === 'prune') { require_once dirname(__FILE__) . '/functions_user_prune.php'; }
 	if (!is_array($post) || !isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !isset($post['sid']) || !is_string($post['sid']) || !hash_equals((string) $userdata['session_id'], $post['sid'])) { phpbb_removal_error('Session_invalid'); }
 	$actions = array_intersect(array('delete','removal_resume','removal_cancel'), array_keys($post));
 	if (count($actions) !== 1) { phpbb_removal_error('Removal_invalid'); }
@@ -214,13 +232,22 @@ function phpbb_user_remove($database, $post, $mode)
 		$eligibility = phpbb_removal_eligibility($mode, $actor);
 		if ($id)
 		{
+			if ($mode === 'prune') { $prune_policy = phpbb_prune_validate_policy($prune_policy); $eligibility = phpbb_prune_where($prune_policy); }
 			if ($id === (int) $actor['user_id']) { phpbb_removal_error('Not_Authorised'); }
 			if (phpbb_removal_rows($db, 'SELECT job_id FROM ' . USER_REMOVALS_TABLE . ' WHERE user_id = ' . $id)) { phpbb_removal_error('Removal_pending_exists'); }
 			$users = phpbb_removal_rows($db, 'SELECT user_id,username,user_regdate,user_password,user_active,user_level FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $eligibility);
-			if (!$users) { phpbb_removal_error('Not_Authorised'); }
+			if (!$users)
+			{
+				if ($mode === 'prune') { return array('status'=>'Prune_skipped','username'=>'','email'=>'','language'=>''); }
+				phpbb_removal_error('Not_Authorised');
+			}
 			$user = $users[0]; $token = bin2hex(phpbb_random_bytes(16));
 			$fingerprint = phpbb_removal_fingerprint($user, $mode);
 			$db->sql_query('INSERT INTO ' . USER_REMOVALS_TABLE . ' (job_id,user_id,removal_mode,removal_state,username,identity_hash,created_by,created_at) SELECT ' . "'" . $token . "'," . $id . ",'" . $mode . "','prepared','" . $db->sql_escape($user['username']) . "','" . $fingerprint . "'," . (int) $actor['user_id'] . ',' . time() . ' WHERE ' . $db->guard);
+			if ($mode === 'prune')
+			{
+				$db->sql_query('INSERT INTO ' . USER_REMOVAL_ITEMS_TABLE . " (job_id,item_type,item_id,related_id,item_name) SELECT '" . $token . "','prune_policy',0,0,'" . $db->sql_escape(json_encode($prune_policy)) . "' WHERE " . $db->guard);
+			}
 		}
 		$key = "job_id = '" . $token . "' AND removal_mode = '" . $mode . "'";
 		$jobs = phpbb_removal_rows($db, 'SELECT * FROM ' . USER_REMOVALS_TABLE . ' WHERE ' . $key);
@@ -240,6 +267,17 @@ function phpbb_user_remove($database, $post, $mode)
 			$db->sql_query('DELETE FROM ' . USER_REMOVALS_TABLE . ' WHERE ' . $key . " AND (removal_state = 'prepared' OR EXISTS (SELECT 1 FROM " . USERS_TABLE . ' u WHERE u.user_id = ' . $id . '))');
 			if ((int) $db->sql_affectedrows() !== 1) { phpbb_removal_error('Removal_account_changed'); }
 			return 'Removal_cancelled';
+		}
+		if ($mode === 'prune')
+		{
+			$policies = phpbb_removal_rows($db, 'SELECT item_name FROM ' . USER_REMOVAL_ITEMS_TABLE . " WHERE job_id = '" . $token . "' AND item_type = 'prune_policy'");
+			// A prepared job whose policy write failed cannot guess new criteria.
+			// Complete jobs may have already removed their item metadata on retry.
+			if ($job['removal_state'] !== 'complete')
+			{
+				if (count($policies) !== 1) { phpbb_removal_error('Removal_storage_failed'); }
+				$eligibility = phpbb_prune_where(phpbb_prune_validate_policy(json_decode($policies[0]['item_name'], true)));
+			}
 		}
 		if ($job['removal_state'] === 'prepared')
 		{
@@ -274,10 +312,18 @@ function phpbb_user_remove($database, $post, $mode)
 			$db->sql_query('UPDATE ' . USER_REMOVALS_TABLE . " SET removal_state = 'complete' WHERE " . $key);
 		}
 		phpbb_removal_assert($db);
+		$notification = array('status'=>'Removal_completed','username'=>$job['username'],'email'=>'','language'=>'');
+		if ($mode === 'prune')
+		{
+			$items = phpbb_removal_rows($db, 'SELECT item_type,item_name FROM ' . USER_REMOVAL_ITEMS_TABLE . " WHERE job_id = '" . $token . "' AND item_type IN ('notify_email','notify_lang')");
+			foreach ($items as $item) { $notification[$item['item_type'] === 'notify_email' ? 'email' : 'language'] = $item['item_name']; }
+		}
 		$db->sql_query('DELETE FROM ' . USER_REMOVAL_ITEMS_TABLE . " WHERE job_id = '" . $token . "'");
 		$db->sql_query('DELETE FROM ' . USER_REMOVALS_TABLE . ' WHERE ' . $key . " AND removal_state = 'complete'");
 		if ((int) $db->sql_affectedrows() !== 1) { phpbb_removal_error('Removal_storage_failed'); }
-		return 'Removal_completed';
+		// Notification is best-effort and only handed off after durable cleanup
+		// metadata is gone. A replay/resume cannot automatically send it twice.
+		return $mode === 'prune' ? $notification : 'Removal_completed';
 	}
 	finally { $lock->release(); }
 }

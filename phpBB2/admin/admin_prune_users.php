@@ -47,45 +47,10 @@ $phpbb_root_path = "../";
 require($phpbb_root_path . 'extension.inc');
 require('pagestart.' . $phpEx);
 include($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_prune_users.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_user_prune.' . $phpEx);
 
-$sql = array();
-$default = array();
-
-
-// ********************************************************************************
-// from here you can define you own delete creterias, if you makes more, then you shall also
-// edit the files lang_main.php, and the file delete_users.php, so they hold the same amount
-// of options
-
-//
-// Initial selection
-//
-
-// find zero posters
-$sql [0] = ' AND user_posts="0"';
-$default [0] = 240;
-
-// find users who have newer logged in
-$sql [1] = ' AND user_lastvisit="0"';
-$default [1] = 240;
-
-// find not activated users
-$sql [2] = ' AND user_lastvisit=0 AND user_active=0';
-$default [2] = 240;
-
-// find users not visited since 60 days 
-$sql [3] = ' AND user_lastvisit<'.(time()-86400*60); 
-$default [3] = 120;
- 
-// 
-// Users with less than 0.1 posts per day avg. 
-// 
-$sql[4] = ' AND user_posts/((user_lastvisit - user_regdate)/86400) < "0.1"'; 
-$default[4] =360;
-
-
-// ********************************************************************************
-// ****************** Do not change any thing below *******************************
+// Shared selection predicates live in functions_user_prune.php.
+$default = array(240, 240, 240, 120, 360);
 
 $day_options = array(
 	1 => $lang['1_Day'],
@@ -105,14 +70,14 @@ $day_options = array(
 include('page_header_admin.'.$phpEx);
 $template->set_filenames(array("body" => "admin/prune_users_body.tpl"));
 $n=0;
-while ( !empty($sql[$n]) )
+while (isset($default[$n]))
 {
 	$vars='days_'.$n;
 	
 	$default[$n] = !empty($default[$n]) ? $default[$n] : 10;
-	$day_value = (isset($_POST[$vars]) && is_scalar($_POST[$vars])) ? $_POST[$vars] :
-		((isset($_GET[$vars]) && is_scalar($_GET[$vars])) ? $_GET[$vars] : $default[$n]);
-	$days[$n] = max(1, min(36500, intval($day_value)));
+	$day_value = isset($_POST[$vars]) ? $_POST[$vars] : (isset($_GET[$vars]) ? $_GET[$vars] : $default[$n]);
+	try { $days[$n] = phpbb_prune_days($day_value); }
+	catch (PhpbbRemovalException $error) { message_die(GENERAL_MESSAGE, phpbb_prune_html($error->getMessage())); }
 	$current_options = $day_options;
 	if (!isset($current_options[$days[$n]]))
 	{
@@ -127,8 +92,9 @@ while ( !empty($sql[$n]) )
 	}
 	$select[$n] .= '</select>';
 
-	if(!($result = $db->sql_query('SELECT user_id , username, user_level FROM '. USERS_TABLE .' WHERE user_id<>"'.ANONYMOUS.'"'.$sql[$n].' AND user_regdate<"'.(time()-(86400*$days [$n])).'" ORDER BY username LIMIT 800')))
-		message_die(GENERAL_ERROR, 'Error obtaining userdata'.$sql[$n], '', __LINE__, __FILE__, $sql[$n]);
+	$policy = array('mode'=>'prune_' . $n,'days'=>$days[$n],'at'=>time());
+	if(!($result = $db->sql_query('SELECT user_id, username, user_level FROM ' . USERS_TABLE . ' WHERE ' . phpbb_prune_where($policy) . ' ORDER BY username,user_id LIMIT 800')))
+		message_die(GENERAL_ERROR, 'Error obtaining pruning candidates', '', __LINE__, __FILE__);
 	$user_list = $db->sql_fetchrowset($result);
 	$user_count=count($user_list);
 	$list[$n] = '';
@@ -149,7 +115,12 @@ $template->assign_block_vars('prune_list', array(
 	$n++;
 }
 
+try { $pending_removals = phpbb_prune_pending_html($db); }
+catch (Exception $error) { $pending_removals = '<p>' . phpbb_prune_html($error instanceof PhpbbRemovalException ? $error->getMessage() : $lang['Removal_jobs_unavailable']) . '</p>'; }
+catch (Error $error) { $pending_removals = '<p>' . phpbb_prune_html($lang['Removal_jobs_unavailable']) . '</p>'; }
 $template->assign_vars(array(
+	'REMOVAL_JOBS' => $pending_removals,
+	'S_PRUNE_USERS' => append_sid('admin_prune_users.' . $phpEx),
 	"L_PRUNE_ACTION" => $lang['Prune_Action'],
 	"L_PRUNE_LIST" =>	$lang['Prune_user_list'],
 	"L_DAYS" => $lang['Days'],

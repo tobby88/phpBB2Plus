@@ -42,14 +42,14 @@ if (strpos($link_categories, '<input type="hidden" name="sid"') !== false)
 	$errors[] = 'Link-category administration still hand-builds session fields.';
 }
 
-foreach (array('is_scalar($_GET[$vars])', 'phpbb_admin_html($user_list[$i][\'username\'])', 'max(1, min(36500, intval($day_value)))') as $marker)
+foreach (array('phpbb_prune_days($day_value)', 'phpbb_admin_html($user_list[$i][\'username\'])', 'phpbb_prune_where($policy)', 'phpbb_prune_pending_html($db)') as $marker)
 {
 	if (strpos($prune, $marker) === false)
 	{
 		$errors[] = 'Missing prune-list safety marker: ' . $marker;
 	}
 }
-foreach (array("is_scalar(\$_POST['mode'])", 'phpbb_anonymize_removed_user_content($db, $user_id, $username,', '(int) $row[\'group_id\']', 'foreach ($personal_groups as $personal_group_id)', 'phpbb_cleanup_removed_user_references($db, $user_id);') as $marker)
+foreach (array('phpbb_prune_policy($request)', 'phpbb_prune_user_remove($db, $_POST,', 'phpbb_prune_notify($result)', 'phpbb_prune_pending_html($db)', 'phpbb_prune_where($policy)') as $marker)
 {
 	if (strpos($delete_users, $marker) === false)
 	{

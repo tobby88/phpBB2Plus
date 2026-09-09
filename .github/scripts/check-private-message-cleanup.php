@@ -205,7 +205,7 @@ try
 	mutation_expect_failure(function(){phpbb_pm_prune_user_messages(7);},'pm database');
 	mutation_check(!$mutation_server->owner && $mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Pruning failure preserves recovery references and releases writer lock');
 	$prune_controller=file_get_contents($forum_root.'delete_users.php');
-	mutation_check(substr_count($prune_controller,'phpbb_pm_prune_user_messages($user_id);')===1 && strpos($prune_controller,'SELECT privmsgs_id')===false && strpos($prune_controller,'SET privmsgs_to_userid')===false,'Standalone prune controller delegates its entire PN lifecycle');
+	mutation_check(strpos($prune_controller,'phpbb_prune_user_remove($db, $_POST,')!==false && strpos($prune_controller,'SELECT privmsgs_id')===false && strpos($prune_controller,'SET privmsgs_to_userid')===false,'Standalone prune controller delegates its entire durable account/PN lifecycle');
 
 	pm_cleanup_fixture(); $lock=attach_require_mutation_lock($db);
 	try {

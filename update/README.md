@@ -43,6 +43,12 @@ settings and logs cannot be migrated.
 The same definitions are part of the normal fresh-install schema, so a new
 installation does not run this updater.
 
+The existing `user_removals` and `user_removal_items` journal tables also cover
+standalone account pruning. Its saved criteria and temporary notification data
+use typed journal items; no additional columns or separate migration are needed.
+Do not drop pending journal records to recover a failed cleanup. Use its resume
+controls in the original ACP module instead.
+
 The source update also replaces legacy executable configuration/cache files
 with non-executable data. Run `set-permissions.sh` after deploying the files;
 it makes the protected `phpBB2/data` directory writable. Existing post-icon

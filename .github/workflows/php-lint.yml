@@ -557,3 +557,6 @@ jobs:
 
       - name: Test user ID sequence migration and retained ownership floors
         run: php .github/scripts/check-user-id-migration.php
+
+      - name: Test durable standalone account pruning and notification boundaries
+        run: php .github/scripts/check-user-pruning.php
