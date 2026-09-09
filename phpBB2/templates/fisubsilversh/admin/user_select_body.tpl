@@ -4,6 +4,7 @@
 <br />
 <div class="genmed">{L_USER_EXPLAIN}</div>
 <br />
+{REMOVAL_JOBS}
 <form method="post" name="post" action="{S_USER_ACTION}">
 <table cellspacing="1" cellpadding="3" border="0" align="center" class="forumline">
 <tr> 

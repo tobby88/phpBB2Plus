@@ -41,9 +41,11 @@ function phpbb_removal_id($value)
 	if ($value === '' || strlen($value) > 8 || (int) $value > 16777215) { phpbb_removal_error('Removal_invalid'); }
 	return (int) $value;
 }
-function phpbb_removal_actor($db)
+function phpbb_removal_actor($db, $mode = 'inactive')
 {
 	global $userdata, $phpEx;
+	if (!in_array($mode, array('inactive','user'), true)) { phpbb_removal_error('Removal_invalid'); }
+	$route = ($mode === 'user' ? 'admin_users.' : 'admin_account.') . $phpEx;
 	$user = phpbb_current_moderator_user($db);
 	if (!$user || empty($userdata['session_admin'])) { phpbb_removal_error('Not_Authorised'); }
 	$grant = 'removal_actor.user_level = ' . ADMIN;
@@ -56,21 +58,38 @@ function phpbb_removal_actor($db)
 		{
 			foreach (explode(EXPLODE_SEPERATOR_CHAR, $rows[0]['user_jr_admin']) as $hash)
 			{
-				if (isset($routes[$hash]) && $routes[$hash] === 'admin_account.' . $phpEx) { $allowed = true; break; }
+				if (isset($routes[$hash]) && $routes[$hash] === $route) { $allowed = true; break; }
 			}
 		}
 		if (!$allowed) { phpbb_removal_error('Not_Authorised'); }
-		$grant .= ' OR EXISTS (SELECT 1 FROM ' . JR_ADMIN_TABLE . ' j WHERE j.user_id = ' . (int) $user['user_id'] . " AND j.user_jr_admin = '" . $db->sql_escape($rows[0]['user_jr_admin']) . "')";
+		$grant .= ' OR EXISTS (SELECT 1 FROM ' . JR_ADMIN_TABLE . ' j WHERE j.user_id = ' . (int) $user['user_id'] . " AND HEX(j.user_jr_admin) = HEX('" . $db->sql_escape($rows[0]['user_jr_admin']) . "'))";
 	}
 	$user['guard'] = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active,user_level FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $user['user_id'] . ') removal_actor WHERE removal_actor.user_active <> 0 AND (' . $grant . '))';
 	return $user;
+}
+function phpbb_removal_eligibility($mode, $actor)
+{
+	if ($mode === 'inactive') { return 'user_active = 0 AND user_level <> ' . ADMIN; }
+	// Preserve CrackerTracker's lowest-current-administrator protection and
+	// self protection. Delegated user managers may never delete an ADMIN.
+	$first = 'SELECT MIN(protected_admin.user_id) FROM (SELECT DISTINCT user_id FROM ' . USERS_TABLE . ' WHERE user_level = ' . ADMIN . ') protected_admin';
+	return 'user_id <> ' . (int) $actor['user_id'] . ' AND user_id <> COALESCE((' . $first . '),0)' . ((int) $actor['user_level'] === ADMIN ? '' : ' AND user_level <> ' . ADMIN);
+}
+function phpbb_removal_fingerprint($user, $mode)
+{
+	$value = $user['username'] . "\0" . $user['user_regdate'] . "\0" . $user['user_password'];
+	// Keep existing inactive jobs compatible. General deletion also records
+	// the selected activation/role snapshot, including secondary administrators.
+	if ($mode === 'user') { $value .= "\0" . $user['user_active'] . "\0" . $user['user_level']; }
+	return hash('sha256', $value);
 }
 function phpbb_removal_assert($db)
 {
 	if (!phpbb_removal_rows($db, 'SELECT 1 AS allowed WHERE ' . $db->guard)) { phpbb_removal_error('Removal_account_changed'); }
 }
-function phpbb_removal_pm_where($id)
+function phpbb_removal_pm_where($id, $mode = 'inactive')
 {
+	if ($mode === 'user') { return '(privmsgs_from_userid = ' . $id . ' OR privmsgs_to_userid = ' . $id . ')'; }
 	// Inactive/pruned accounts retain other people's delivered and saved
 	// copies. Do not silently replace this with the ACP user's all-copy policy.
 	return '((privmsgs_from_userid = ' . $id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ')) OR (privmsgs_to_userid = ' . $id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')))';
@@ -81,7 +100,12 @@ function phpbb_removal_capture($db, $job)
 	$db->sql_query('DELETE FROM ' . USER_REMOVAL_ITEMS_TABLE . ' WHERE ' . $key);
 	$prefix = 'INSERT INTO ' . USER_REMOVAL_ITEMS_TABLE . ' (job_id,item_type,item_id,related_id,item_name) SELECT DISTINCT ' . "'" . $job['job_id'] . "',";
 	$db->sql_query($prefix . "'group',g.group_id,0,'' FROM " . GROUPS_TABLE . ' g,' . USER_GROUP_TABLE . ' ug WHERE ug.user_id = ' . $id . ' AND g.group_id = ug.group_id AND g.group_single_user = 1 AND ' . $db->guard);
-	$db->sql_query($prefix . "'pm',privmsgs_id,privmsgs_to_userid,'' FROM " . PRIVMSGS_TABLE . ' WHERE ' . phpbb_removal_pm_where($id) . ' AND ' . $db->guard);
+	if ($job['removal_mode'] === 'user')
+	{
+		// Retain the required privilege after the account row has vanished.
+		$db->sql_query($prefix . "'user_level',user_level,0,'' FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
+	}
+	$db->sql_query($prefix . "'pm',privmsgs_id,privmsgs_to_userid,'' FROM " . PRIVMSGS_TABLE . ' WHERE ' . phpbb_removal_pm_where($id, $job['removal_mode']) . ' AND ' . $db->guard);
 	$db->sql_query($prefix . "'attachment',a.attach_id,0,d.physical_filename FROM " . ATTACHMENTS_TABLE . ' a,' . ATTACHMENTS_DESC_TABLE . ' d WHERE d.attach_id = a.attach_id AND a.privmsgs_id IN (SELECT item_id FROM ' . USER_REMOVAL_ITEMS_TABLE . ' WHERE ' . $key . " AND item_type = 'pm') AND " . $db->guard);
 	phpbb_removal_assert($db);
 }
@@ -135,7 +159,7 @@ function phpbb_removal_cleanup($db, $job, $actor)
 	{
 		if ($item['item_type'] !== 'pm') { continue; }
 		$mid = (int) $item['item_id'];
-		$db->sql_query('DELETE FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $mid . ' AND ' . phpbb_removal_pm_where($id));
+		$db->sql_query('DELETE FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $mid . ' AND ' . phpbb_removal_pm_where($id, $job['removal_mode']));
 		$missing = 'NOT EXISTS (SELECT 1 FROM ' . PRIVMSGS_TABLE . ' p WHERE p.privmsgs_id = ' . $mid . ')';
 		$db->sql_query('DELETE FROM ' . PRIVMSGS_TEXT_TABLE . ' WHERE privmsgs_text_id = ' . $mid . ' AND ' . $missing);
 		$db->sql_query('DELETE FROM ' . ATTACHMENTS_TABLE . ' WHERE privmsgs_id = ' . $mid . ' AND ' . $missing);
@@ -159,7 +183,23 @@ function phpbb_removal_cleanup($db, $job, $actor)
 
 function phpbb_inactive_user_remove($database, $post)
 {
+	return phpbb_user_remove($database, $post, 'inactive');
+}
+function phpbb_admin_user_remove($database, $post)
+{
+	if (!is_array($post) || isset($post['delete'])) { phpbb_removal_error('Removal_invalid'); }
+	if (isset($post['deleteuser']))
+	{
+		if (!in_array($post['deleteuser'], array('on','1',1), true) || !isset($post['mode'], $post['submit'], $post['id']) || $post['mode'] !== 'save'
+			|| (isset($post['new_user']) && !in_array($post['new_user'], array('', '0', 0), true))) { phpbb_removal_error('Removal_invalid'); }
+		$post['delete'] = $post['id'];
+	}
+	return phpbb_user_remove($database, $post, 'user');
+}
+function phpbb_user_remove($database, $post, $mode)
+{
 	global $userdata;
+	if (!in_array($mode, array('inactive','user'), true)) { phpbb_removal_error('Removal_invalid'); }
 	if (!is_array($post) || !isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !isset($post['sid']) || !is_string($post['sid']) || !hash_equals((string) $userdata['session_id'], $post['sid'])) { phpbb_removal_error('Session_invalid'); }
 	$actions = array_intersect(array('delete','removal_resume','removal_cancel'), array_keys($post));
 	if (count($actions) !== 1) { phpbb_removal_error('Removal_invalid'); }
@@ -170,18 +210,19 @@ function phpbb_inactive_user_remove($database, $post)
 	if (!$lock->acquired) { phpbb_removal_error('Attachment_storage_busy'); }
 	try
 	{
-		$db = new PhpbbRemovalDatabase($lock->connection); $actor = phpbb_removal_actor($db); $db->guard = $actor['guard'];
+		$db = new PhpbbRemovalDatabase($lock->connection); $actor = phpbb_removal_actor($db, $mode); $db->guard = $actor['guard'];
+		$eligibility = phpbb_removal_eligibility($mode, $actor);
 		if ($id)
 		{
 			if ($id === (int) $actor['user_id']) { phpbb_removal_error('Not_Authorised'); }
 			if (phpbb_removal_rows($db, 'SELECT job_id FROM ' . USER_REMOVALS_TABLE . ' WHERE user_id = ' . $id)) { phpbb_removal_error('Removal_pending_exists'); }
-			$users = phpbb_removal_rows($db, 'SELECT user_id,username,user_regdate,user_password FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND user_active = 0 AND user_level <> ' . ADMIN);
+			$users = phpbb_removal_rows($db, 'SELECT user_id,username,user_regdate,user_password,user_active,user_level FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $eligibility);
 			if (!$users) { phpbb_removal_error('Not_Authorised'); }
 			$user = $users[0]; $token = bin2hex(phpbb_random_bytes(16));
-			$fingerprint = hash('sha256', $user['username'] . "\0" . $user['user_regdate'] . "\0" . $user['user_password']);
-			$db->sql_query('INSERT INTO ' . USER_REMOVALS_TABLE . ' (job_id,user_id,removal_mode,removal_state,username,identity_hash,created_by,created_at) SELECT ' . "'" . $token . "'," . $id . ",'inactive','prepared','" . $db->sql_escape($user['username']) . "','" . $fingerprint . "'," . (int) $actor['user_id'] . ',' . time() . ' WHERE ' . $db->guard);
+			$fingerprint = phpbb_removal_fingerprint($user, $mode);
+			$db->sql_query('INSERT INTO ' . USER_REMOVALS_TABLE . ' (job_id,user_id,removal_mode,removal_state,username,identity_hash,created_by,created_at) SELECT ' . "'" . $token . "'," . $id . ",'" . $mode . "','prepared','" . $db->sql_escape($user['username']) . "','" . $fingerprint . "'," . (int) $actor['user_id'] . ',' . time() . ' WHERE ' . $db->guard);
 		}
-		$key = "job_id = '" . $token . "' AND removal_mode = 'inactive'";
+		$key = "job_id = '" . $token . "' AND removal_mode = '" . $mode . "'";
 		$jobs = phpbb_removal_rows($db, 'SELECT * FROM ' . USER_REMOVALS_TABLE . ' WHERE ' . $key);
 		if (count($jobs) !== 1) { phpbb_removal_error('Removal_invalid'); }
 		$job = $jobs[0]; $id = (int) $job['user_id'];
@@ -204,10 +245,10 @@ function phpbb_inactive_user_remove($database, $post)
 		{
 			if (!$users) { phpbb_removal_error('Removal_account_changed'); }
 			$user = $users[0];
-			if ((int) $user['user_active'] !== 0 || (int) $user['user_level'] === ADMIN || !hash_equals($job['identity_hash'], hash('sha256', $user['username'] . "\0" . $user['user_regdate'] . "\0" . $user['user_password']))) { phpbb_removal_error('Removal_account_changed'); }
+			if (!hash_equals($job['identity_hash'], phpbb_removal_fingerprint($user, $mode)) || !phpbb_removal_rows($db, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $eligibility)) { phpbb_removal_error('Removal_account_changed'); }
 			// Forum collations commonly ignore case and trailing spaces. The
 			// destructive identity comparison must match the fingerprint bytes.
-			$identity = 'user_id = ' . $id . ' AND user_active = 0 AND user_level <> ' . ADMIN . " AND HEX(username) = HEX('" . $db->sql_escape($user['username']) . "') AND user_regdate = " . (int) $user['user_regdate'] . " AND HEX(user_password) = HEX('" . $db->sql_escape($user['user_password']) . "')";
+			$identity = 'user_id = ' . $id . ' AND ' . $eligibility . ' AND user_active = ' . (int) $user['user_active'] . ' AND user_level = ' . (int) $user['user_level'] . " AND HEX(username) = HEX('" . $db->sql_escape($user['username']) . "') AND user_regdate = " . (int) $user['user_regdate'] . " AND HEX(user_password) = HEX('" . $db->sql_escape($user['user_password']) . "')";
 			$db->guard = $actor['guard'] . ' AND EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' WHERE ' . $identity . ')';
 			phpbb_removal_capture($db, $job);
 			$db->sql_query('UPDATE ' . USER_REMOVALS_TABLE . " SET removal_state = 'removing' WHERE " . $key . " AND removal_state = 'prepared'");
@@ -219,6 +260,12 @@ function phpbb_inactive_user_remove($database, $post)
 		}
 		elseif ($users) { phpbb_removal_error('Removal_account_changed'); }
 		if (!in_array($job['removal_state'], array('removing','removed','complete'), true)) { phpbb_removal_error('Removal_invalid'); }
+		if ($mode === 'user' && $job['removal_state'] !== 'complete')
+		{
+			$levels = phpbb_removal_rows($db, 'SELECT item_id FROM ' . USER_REMOVAL_ITEMS_TABLE . " WHERE job_id = '" . $token . "' AND item_type = 'user_level'");
+			if (count($levels) !== 1) { phpbb_removal_error('Removal_storage_failed'); }
+			if ((int) $levels[0]['item_id'] === ADMIN && (int) $actor['user_level'] !== ADMIN) { phpbb_removal_error('Not_Authorised'); }
+		}
 		$db->guard = $actor['guard'] . ' AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ') removal_user)';
 		if ($job['removal_state'] !== 'complete')
 		{
@@ -235,11 +282,12 @@ function phpbb_inactive_user_remove($database, $post)
 	finally { $lock->release(); }
 }
 
-function phpbb_removal_pending_html($database)
+function phpbb_removal_pending_html($database, $mode = 'inactive')
 {
 	global $lang, $userdata, $phpEx;
-	$db = new PhpbbRemovalDatabase($database); phpbb_removal_actor($db);
-	$sql = 'SELECT j.job_id,j.user_id,j.username,j.removal_state,u.user_id AS existing_user FROM ' . USER_REMOVALS_TABLE . ' j LEFT JOIN ' . USERS_TABLE . " u ON u.user_id = j.user_id WHERE j.removal_mode = 'inactive' ORDER BY j.created_at,j.job_id LIMIT 100";
+	$db = new PhpbbRemovalDatabase($database); phpbb_removal_actor($db, $mode);
+	$route = ($mode === 'user' ? 'admin_users.' : 'admin_account.') . $phpEx;
+	$sql = 'SELECT j.job_id,j.user_id,j.username,j.removal_state,u.user_id AS existing_user FROM ' . USER_REMOVALS_TABLE . ' j LEFT JOIN ' . USERS_TABLE . " u ON u.user_id = j.user_id WHERE j.removal_mode = '" . $mode . "' ORDER BY j.created_at,j.job_id LIMIT 100";
 	$result = $database->sql_query($sql);
 	if (!$result) { phpbb_removal_error('Removal_jobs_unavailable'); }
 	$rows = $database->sql_fetchrowset($result); $database->sql_freeresult($result);
@@ -249,7 +297,7 @@ function phpbb_removal_pending_html($database)
 	{
 		if (!preg_match('/^[a-f0-9]{32}$/D', $row['job_id'])) { continue; }
 		$state = 'Removal_state_' . $row['removal_state'];
-		$html .= '<form method="post" action="' . phpbb_admin_html(append_sid('admin_account.' . $phpEx)) . '"><p class="genmed"><strong>' . phpbb_admin_html($row['username']) . ' (#' . (int) $row['user_id'] . ')</strong> — ' . phpbb_admin_html(isset($lang[$state]) ? $lang[$state] : $row['removal_state']) . ' ';
+		$html .= '<form method="post" action="' . phpbb_admin_html(append_sid($route)) . '"><p class="genmed"><strong>' . phpbb_admin_html($row['username']) . ' (#' . (int) $row['user_id'] . ')</strong> — ' . phpbb_admin_html(isset($lang[$state]) ? $lang[$state] : $row['removal_state']) . ' ';
 		$html .= '<button type="submit" class="liteoption" name="removal_resume" value="' . $row['job_id'] . '">' . phpbb_admin_html($lang['Removal_resume']) . '</button> ';
 		if ($row['existing_user'] !== null || $row['removal_state'] === 'prepared')
 		{

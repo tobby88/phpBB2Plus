@@ -548,3 +548,6 @@ jobs:
 
       - name: Test additive removal journal migration
         run: php .github/scripts/check-user-removal-migration.php
+
+      - name: Test managed account removal and protected administrator jobs
+        run: php .github/scripts/check-admin-user-removal.php

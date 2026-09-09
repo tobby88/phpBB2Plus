@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Extend durable removal to the ACP user manager. Dispatch deletion before
+  account creation, profile saves or quota changes, and claim the current account
+  before touching published content or PNs. Preserve its distinct all-copy PM
+  policy and reuse the existing recovery tables without another migration.
+  Bind pending jobs to their original ACP route, preserve CrackerTracker's first
+  administrator protection, reject self-deletion, and prevent delegated user
+  managers from deleting administrators or resuming their cleanup. Persist the
+  required privilege with captured items so protection survives account removal.
+  Separate pruning remains outside this durable workflow for now.
+
 - Make inactive-account removal resumable after partial database or attachment
   storage failures, including MyISAM installations. Persist the selected personal
   groups, PM copies and attachment filenames before deleting the account; retain
@@ -18,7 +28,7 @@ changes consolidated after that baseline without implying active maintenance.
   records are removed; unfinished jobs contain no credentials or message bodies.
   Existing installations need the two additive journal tables provided by
   `update/update_from_153a.php` before using this inactive-account workflow.
-  This does not yet make the separate user-manager and pruning paths resumable.
+  The user-manager extension is described above; separate pruning is still open.
 
 - Coordinate forum-policy saves with content and ACL writers. Reject malformed
   original forum IDs, preset IDs and access levels instead of silently making

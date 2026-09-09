@@ -151,10 +151,16 @@ php update/update_from_153a.php --apply --backup-confirmed
 The updater is idempotent and preserves existing current configuration values.
 It also creates `user_removals` and `user_removal_items` (with your configured
 table prefix). These tables are required before publishing the resumable
-inactive-account removal workflow. Failed removals remain visible in that ACP
-module for explicit resumption; completed job metadata is cleared. Existing or
+inactive-account and user-manager removal workflows. Failed removals remain
+visible in their original ACP module for explicit resumption; completed job
+metadata is cleared. Existing or
 restored accounts are not automatically deleted by a pending job. This recovery
-mechanism does not yet cover the separate user-manager and pruning workflows.
+mechanism does not yet cover the separate pruning workflow. The user manager
+retains its all-participant-copy PM deletion policy; inactive-account removal
+preserves other recipients' delivered/saved copies. The first administrator and
+self-deletion remain protected; only full administrators may delete or resume
+removal of a secondary administrator. No additional schema beyond these two
+journal tables is needed for user-manager recovery.
 Run it before publishing the notification changes: the runtime needs the
 additive `notify_claim` and `notify_claimed_at` columns in `topics_watch`.
 These columns preserve existing subscriptions and coordinate concurrent mail

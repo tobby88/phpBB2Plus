@@ -79,6 +79,22 @@ if ($admin_user_mutation)
 {
 	phpbb_admin_require_post_session();
 }
+// Durable user deletion is dispatched BEFORE profile creation, quotas or saves.
+$admin_user_removal = isset($_POST['deleteuser']) || isset($_POST['removal_resume']) || isset($_POST['removal_cancel']);
+if ($admin_user_removal)
+{
+	phpbb_admin_require_post_session();
+	try { $removal_message = $lang[phpbb_admin_user_remove($db, $_POST)]; }
+	catch (PhpbbRemovalException $error) { $removal_message = $error->getMessage(); }
+	cache_tree(true);
+	try { $pending_removals = phpbb_removal_pending_html($db, 'user'); }
+	catch (PhpbbRemovalException $error) { $pending_removals = '<p class="genmed">' . phpbb_admin_html($error->getMessage()) . '</p>'; }
+	message_die(GENERAL_MESSAGE, phpbb_admin_html($removal_message) . '<br />' . $pending_removals . '<br />' . sprintf($lang['Click_return_useradmin'], '<a href="' . phpbb_admin_html(append_sid('admin_users.' . $phpEx)) . '">', '</a>'));
+}
+try { $pending_removals = phpbb_removal_pending_html($db, 'user'); }
+catch (PhpbbRemovalException $error) { $pending_removals = '<p class="genmed">' . phpbb_admin_html($error->getMessage()) . '</p>'; }
+$template->assign_vars(array('REMOVAL_JOBS' => $pending_removals));
+
 // Start add - Admin add user MOD
 $new_user = ((int) admin_user_post_string('new_user') === 1) ? TRUE : 0;
 if ($new_user)
@@ -179,111 +195,6 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 		$signature_bbcode_uid = ($new_user || empty($this_userdata['user_sig_bbcode_uid'])) ? '' : $this_userdata['user_sig_bbcode_uid'];
 		$message = '';
 
-		if( !empty($_POST['deleteuser']) && ( $userdata['user_id'] != $user_id ) && $new_user==0)
-		{
-			$sql = "SELECT g.group_id 
-				FROM " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g  
-				WHERE ug.user_id = $user_id 
-					AND g.group_id = ug.group_id 
-					AND g.group_single_user = 1";
-			if( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain group information for this user', '', __LINE__, __FILE__, $sql);
-			}
-
-			$personal_groups = array();
-			while ($group_row = $db->sql_fetchrow($result))
-			{
-				$personal_groups[(int) $group_row['group_id']] = (int) $group_row['group_id'];
-			}
-			$db->sql_freeresult($result);
-			// Clean PNs before deleting the account so failure can be retried.
-			phpbb_pm_delete_user_messages($user_id);
-			
-			$sql = "UPDATE " . POSTS_TABLE . "
-				SET poster_id = " . DELETED . ", post_username = '" . admin_user_sql_value($this_userdata['username']) . "'
-				WHERE poster_id = $user_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update posts for this user', '', __LINE__, __FILE__, $sql);
-			}
-			// Start add - Fully integrated shoutbox MOD
-			$sql = "UPDATE " . SHOUTBOX_TABLE . "
-				SET shout_user_id = " . DELETED . ", shout_username = '" . admin_user_sql_value($this_userdata['username']) . "'
-				WHERE shout_user_id = $user_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update shouts for this user', '', __LINE__, __FILE__, $sql);
-			}
-			// End add - Fully integrated shoutbox MOD
-			$sql = "UPDATE " . TOPICS_TABLE . "
-				SET topic_poster = " . DELETED . " 
-				WHERE topic_poster = $user_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update topics for this user', '', __LINE__, __FILE__, $sql);
-			}
-			
-			$sql = "UPDATE " . VOTE_USERS_TABLE . "
-				SET vote_user_id = " . DELETED . "
-				WHERE vote_user_id = $user_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update votes for this user', '', __LINE__, __FILE__, $sql);
-			}
-			
-			$sql = "UPDATE " . GROUPS_TABLE . "
-				SET group_moderator = " . $userdata['user_id'] . "
-				WHERE group_moderator = $user_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update group moderators', '', __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "DELETE FROM " . USERS_TABLE . "
-				WHERE user_id = $user_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete user', '', __LINE__, __FILE__, $sql);
-			}
-			if ((int) $db->sql_affectedrows() !== 1)
-			{
-				message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']);
-			}
-			phpbb_cleanup_removed_user_references($db, $user_id);
-
-			$sql = "DELETE FROM " . USER_GROUP_TABLE . "
-				WHERE user_id = $user_id";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete user from user_group table', '', __LINE__, __FILE__, $sql);
-			}
-
-			// Only this account's captured personal groups may be removed. A
-			// missing group is valid; a group gaining members must keep its ACL.
-			foreach ($personal_groups as $personal_group_id)
-			{
-				$sql = "DELETE FROM " . GROUPS_TABLE . "
-					WHERE group_id = $personal_group_id AND group_single_user = 1
-					AND NOT EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " ug WHERE ug.group_id = $personal_group_id)";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Could not delete group for this user', '', __LINE__, __FILE__, $sql);
-				}
-				if ((int) $db->sql_affectedrows() === 1)
-				{
-					$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . " WHERE group_id = $personal_group_id";
-					if (!$db->sql_query($sql))
-					{
-						message_die(GENERAL_ERROR, 'Could not delete group permissions for this user', '', __LINE__, __FILE__, $sql);
-					}
-				}
-			}
-
-			$message = $lang['User_deleted'] . '<br /><br />' . sprintf($lang['Click_return_useradmin'], '<a href="' . append_sid("admin_users.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
-
-			message_die(GENERAL_MESSAGE, $message);
-		}
 		// Start add - Protect user account MOD
 if( !empty($_POST['block_account']) )
 {

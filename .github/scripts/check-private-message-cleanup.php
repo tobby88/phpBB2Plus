@@ -132,7 +132,7 @@ try
 	mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===1 && is_file($upload_dir.'/fixture.txt'),'Unrelated shared reference protects physical file during account cleanup');
 	mutation_check(phpbb_pm_delete_user_messages(99)===1 && !is_file($upload_dir.'/fixture.txt'),'Last account reference removes final file');
 	$admin=file_get_contents($forum_root.'admin/admin_users.php');
-	mutation_check(strpos($admin,'phpbb_pm_delete_user_messages($user_id);') < strpos($admin,'DELETE FROM " . USERS_TABLE') && strpos($admin,'SELECT privmsgs_id')===false,'Account cleanup precedes irreversible account removal and replaces legacy PM deletion');
+	mutation_check(strpos($admin,'phpbb_admin_user_remove($db, $_POST)')!==false && strpos($admin,'phpbb_pm_delete_user_messages($user_id);')===false && strpos($admin,'SELECT privmsgs_id')===false,'Account removal uses the mode-aware durable worker, without legacy pre-delete PM mutation');
 	define('DELETED',-1);
 	pm_cleanup_fixture(); $userdata['user_level']=0;
 	mutation_expect_failure(function(){phpbb_pm_repair_messages(array(20),'missing_text',1000);},'pm permission');

@@ -2,6 +2,7 @@
 <br />
 <div class="genmed">{L_USER_EXPLAIN}</div>
 <br />
+{REMOVAL_JOBS}
 {ERROR_BOX}
 <form action="{S_PROFILE_ACTION}" {S_FORM_ENCTYPE} method="post">
 <table width="100%" cellspacing="1" cellpadding="3" border="0" class="forumline">

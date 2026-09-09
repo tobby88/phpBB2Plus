@@ -2,7 +2,7 @@
 $lang['Removal_invalid'] = 'Invalid account-removal request.';
 $lang['Removal_storage_failed'] = 'Account removal did not finish. Steps already applied remain in place. Please check the pending removals on this page and resume the appropriate request.';
 $lang['Removal_account_changed'] = 'The account state or your permission has changed. An existing or restored account will not be deleted again. Review the request; where appropriate, discard it and start a new removal after checking the account.';
-$lang['Removal_pending_exists'] = 'A pending removal already exists for this account. Please use the pending request list.';
+$lang['Removal_pending_exists'] = 'A pending removal already exists for this account. Check the pending requests in user management or Account Actions; a request can only be resumed in its original administration module.';
 $lang['Removal_completed'] = 'Account removal and associated cleanup completed.';
 $lang['Removal_cancelled'] = 'Only the removal request was discarded. The account and user data were not changed.';
 $lang['Removal_jobs_unavailable'] = 'Pending removals could not be loaded. Check the database connection and whether update/update_from_153a.php has been run.';

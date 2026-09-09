@@ -2,7 +2,7 @@
 $lang['Removal_invalid'] = 'Ungültiger Löschauftrag.';
 $lang['Removal_storage_failed'] = 'Die Kontolöschung wurde nicht vollständig abgeschlossen. Bereits ausgeführte Schritte bleiben bestehen. Bitte prüfe die offenen Löschaufträge auf dieser Seite und setze den passenden Auftrag fort.';
 $lang['Removal_account_changed'] = 'Der Kontostand oder deine Berechtigung hat sich geändert. Ein vorhandenes oder wiederhergestelltes Konto wird nicht erneut gelöscht. Prüfe den Auftrag; du kannst ihn gegebenenfalls verwerfen und die Löschung nach erneuter Prüfung neu starten.';
-$lang['Removal_pending_exists'] = 'Für dieses Konto gibt es bereits einen offenen Löschauftrag. Bitte verwende die Liste der offenen Aufträge.';
+$lang['Removal_pending_exists'] = 'Für dieses Konto gibt es bereits einen offenen Löschauftrag. Prüfe die offenen Aufträge in der Benutzerverwaltung beziehungsweise unter Account Aktionen; ein Auftrag kann nur in seinem ursprünglichen Verwaltungsmodul fortgesetzt werden.';
 $lang['Removal_completed'] = 'Kontolöschung und zugehörige Bereinigung abgeschlossen.';
 $lang['Removal_cancelled'] = 'Nur der Löschauftrag wurde verworfen. Konto und Nutzerdaten wurden dabei nicht verändert.';
 $lang['Removal_jobs_unavailable'] = 'Offene Löschaufträge konnten nicht geladen werden. Prüfe die Datenbankverbindung und ob update/update_from_153a.php ausgeführt wurde.';

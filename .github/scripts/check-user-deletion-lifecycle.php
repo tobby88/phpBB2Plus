@@ -1,7 +1,8 @@
 <?php
 // Execute the actual controller mutation blocks against isolated SQLite data.
-// Inactive deletion's owning connection and durable jobs are exercised in
-// check-user-removal-storage.php, including its actual controller rendering.
+// Inactive and managed deletion now use durable owning-connection workers,
+// covered by check-user-removal-storage.php and check-admin-user-removal.php.
+// Keep the separate legacy pruning and reusable cleanup-helper regressions.
 if (!extension_loaded('pdo_sqlite')) { fwrite(STDERR,"pdo_sqlite required\n"); exit(1); }
 foreach (array('USERS_TABLE'=>'fixture_users','GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_members','AUTH_ACCESS_TABLE'=>'fixture_permissions','POSTS_TABLE'=>'fixture_posts','TOPICS_TABLE'=>'fixture_topics','VOTE_USERS_TABLE'=>'fixture_votes','ADMIN'=>1,'ANONYMOUS'=>-1,'DELETED'=>-1,'GENERAL_ERROR'=>202) as $key=>$value) { define($key,$value); }
 define('IN_PHPBB',true);
@@ -13,9 +14,7 @@ function deletion_reference_tables()
 }
 class DeletionFailure extends RuntimeException {}
 function message_die($type,$message) { throw new DeletionFailure($message); }
-function phpbb_admin_require_post_session() { if (empty($GLOBALS['fixture_session'])) { throw new DeletionFailure('session'); } }
 function deletion_check($ok,$message) { if (!$ok) { throw new RuntimeException($message); } }
-class DeletionTemplate { var $vars=array(); function assign_vars($vars) { $this->vars=$vars; } }
 class DeletionDatabase
 {
 	var $pdo; var $affected=0; var $hook=null; var $failure=''; var $queries=array();
@@ -56,26 +55,7 @@ $prune=file_get_contents($root.'/phpBB2/delete_users.php');
 $start=strpos($prune,'@set_time_limit(5);'); $end=strpos($prune,'phpbb_pm_prune_user_messages($user_id);',$start);
 deletion_check($start!==false && $end!==false,'Prune controller extraction markers');
 $prune_block=substr($prune,$start,$end-$start);
-$user_admin=file_get_contents($root.'/phpBB2/admin/admin_users.php');
-$delete_branch=strpos($user_admin,"if( !empty(\$_POST['deleteuser'])");
-deletion_check($delete_branch!==false,'User deletion branch exists');
-$start=strpos($user_admin,'$sql = "SELECT g.group_id',$delete_branch);
-$end=strpos($user_admin,"\$message = \$lang['User_deleted']",$start);
-deletion_check($start!==false && $end!==false,'User manager deletion extraction markers');
-$user_admin_block=substr($user_admin,$start,$end-$start);
 define('SHOUTBOX_TABLE','fixture_shouts');
-function admin_user_sql_value($value) { return str_replace("'","''",$value); }
-function phpbb_pm_delete_user_messages($id)
-{
-	deletion_check($id===7,'PN cleanup scoped to selected user');
-	if (!empty($GLOBALS['fixture_pm_denied'])) { throw new DeletionFailure('pm permission'); }
-}
-function run_user_admin($db)
-{
-	global $user_admin_block, $lang;
-	$user_id=7; $userdata=array('user_id'=>9); $this_userdata=array('username'=>"O'Brien");
-	eval($user_admin_block);
-}
 function run_prune($db)
 {
 	global $prune_block;
@@ -105,30 +85,7 @@ try
 	$db=new DeletionDatabase(); $db->hook=function($sql,$db){if(strpos($sql,'DELETE FROM fixture_groups')===0){$db->pdo->exec('INSERT INTO fixture_members VALUES(8,70)');}};
 	run_prune($db); deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id=70')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===1,'Prune preserves a personal group that gained a member');
 	deletion_check(strpos($prune,'$deleted_users++;')!==false && strpos($prune,"sprintf(\$lang['Prune_users_number'], \$deleted_users)")!==false,'Prune counts completed deletions separately from skipped candidates');
-	$db=new DeletionDatabase(); $GLOBALS['fixture_pm_denied']=true;
-	expect_deletion_failure(function()use($db){run_user_admin($db);});
-	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_posts WHERE poster_id=7')===1,'PN capability failure stops subsequent account/post mutations');
-	$GLOBALS['fixture_pm_denied']=false;
-	foreach(array('missing','multiple','shared','reclassified','ordinary') as $case)
-	{
-		$db=new DeletionDatabase();
-		if($case==='missing') { $db->pdo->exec('DELETE FROM fixture_members WHERE group_id=70'); $db->pdo->exec('DELETE FROM fixture_groups WHERE group_id=70'); }
-		if($case==='multiple') { $db->pdo->exec('INSERT INTO fixture_groups VALUES(71,1,7)'); $db->pdo->exec('INSERT INTO fixture_members VALUES(7,71)'); $db->pdo->exec('INSERT INTO fixture_permissions VALUES(71,1)'); }
-		if($case==='shared' || $case==='reclassified')
-		{
-			$db->hook=function($sql,$db)use($case){if(strpos($sql,'DELETE FROM fixture_groups')===0){$db->pdo->exec($case==='shared'?'INSERT INTO fixture_members VALUES(8,70)':'UPDATE fixture_groups SET group_single_user=0 WHERE group_id=70');}};
-		}
-		run_user_admin($db);
-		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===0,'User manager supports '.$case.' personal groups');
-		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id IN (80,90,100,200,201)')===5,'User manager retains unrelated and nonpersonal groups');
-		deletion_check($db->scalar('SELECT shout_username FROM fixture_shouts WHERE shout_user_id=-1')==="O'Brien",'Actual controller safely anonymizes shout author');
-		if($case==='shared' || $case==='reclassified') { deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id=70')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===1,'Changed group retains its permissions'); }
-		if($case==='multiple' || $case==='ordinary') { deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id IN (70,71)')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id IN (70,71)')===0,'All captured empty personal groups and only their ACLs removed'); }
-	}
-	$db=new DeletionDatabase(); $db->failure='DELETE FROM fixture_groups';
-	expect_deletion_failure(function()use($db){run_user_admin($db);});
-	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id=70')===1,'Group deletion failure preserves permission recovery records');
-	foreach(array('run_prune','run_user_admin') as $controller)
+	foreach(array('run_prune') as $controller)
 	{
 		$db=new DeletionDatabase(); call_user_func($controller,$db);
 		foreach(deletion_reference_tables() as $table=>$column)
@@ -149,9 +106,6 @@ try
 		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_users WHERE user_id=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_groups WHERE group_id IN (70,71)')===0,'Pruning handles '.$case.' personal groups');
 		if($case==='multiple') { deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_permissions WHERE group_id IN (70,71)')===0,'Pruning clears all captured empty personal-group permissions'); }
 	}
-	$db=new DeletionDatabase(); $db->hook=function($sql,$db){if(strpos($sql,'DELETE FROM fixture_users')===0){$db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');}};
-	expect_deletion_failure(function()use($db){run_user_admin($db);});
-	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_keys WHERE user_id=7')===1 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_members WHERE user_id=7')===2,'Zero-row user manager deletion stops subsequent cleanup');
 	foreach(array(0,-1,null,'7','7 OR 1=1',array(7)) as $bad)
 	{
 		$db=new DeletionDatabase(); expect_deletion_failure(function()use($db,$bad){phpbb_cleanup_removed_user_references($db,$bad);});
@@ -186,6 +140,6 @@ try
 	expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
 	$db->failure=''; phpbb_anonymize_removed_user_content($db,7,'Name',9); phpbb_anonymize_removed_user_content($db,7,'Name',9);
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=7')===0,'Content helper can finish after partial failure without deleting content');
-	echo "User management and pruning eligibility/group/reference/content-scope checks passed.\n";
+	echo "Pruning eligibility/group/reference/content-scope checks passed.\n";
 }
 finally { restore_error_handler(); }
