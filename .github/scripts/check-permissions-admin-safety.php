@@ -48,9 +48,9 @@ foreach (array(
 }
 
 foreach (array(
-	'admin_ug_boolean_map',
-	'foreach ($forum_auth_action as $forum_id => $action)',
-	'if ($group_user)',
+	'phpbb_acl_save($db, $original_mode, $original_target, $_POST)',
+	'catch (PhpbbAclException $error)',
+	'cache_tree(true);',
 	'group_single_user <>',
 	'phpbb_admin_html(get_object_lang',
 	'$auth_access_count[$access_forum_id] = isset('

@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate user/group permission saves and administrator role transitions.
+  Recheck active ACP actors, exact Junior Admin user/group module grants
+  for both viewing and saving,
+  personal-group ownership and current forum permission levels on writes.
+  Only current full administrators may change full administrator status;
+  preserve first-administrator and self-role protections. Scope derived
+  moderator roles to affected memberships and preserve concurrent promotions,
+  other groups' rights, unsubmitted permissions and Attachment MOD fields.
+  Strictly validate original request maps; expire affected sessions before
+  changes and rebuild hierarchy caches only after releasing the writer.
+  Partial storage failures remain explicit; no schema changes or global sweep.
+
 - Coordinate public group status changes, joins, withdrawals, additions,
   removals, approvals and denials. Recheck current active actors, group owners,
   administrator roles and nonpersonal/open-group rules at the actual writes.

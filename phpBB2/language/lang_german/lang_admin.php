@@ -283,6 +283,11 @@ $lang['User_auth_updated'] = 'Benutzerberechtigungen aktualisiert';
 $lang['Group_auth_updated'] = 'Gruppenberechtigungen aktualisiert';
 
 $lang['Auth_updated'] = 'Befugnisse wurden aktualisiert';
+$lang['Acl_selection_changed'] = 'Die Berechtigungsauswahl oder ihr Ziel ist ungültig oder wurde zwischenzeitlich verändert. Bitte lade die Seite neu und prüfe die gespeicherten Rechte.';
+$lang['Acl_read_failed'] = 'Die aktuellen Berechtigungsinformationen konnten nicht geladen werden. Bitte versuche es später erneut.';
+$lang['Acl_storage_failed'] = 'Die Rechte konnten nicht vollständig gespeichert werden. Bereits ausgeführte Änderungen bleiben bestehen. Bitte prüfe die betroffenen Konten und Rechte, bevor du fortfährst.';
+$lang['Acl_root_required'] = 'Nur ein aktueller Volladministrator kann Volladministrator-Rechte erteilen oder entziehen.';
+$lang['Acl_self_role_change'] = 'Du kannst deinen eigenen Volladministrator-Status hier nicht ändern.';
 $lang['Click_return_userauth'] = 'Klicke %shier%s, um zu den Benutzerrechten zurückzukehren';
 $lang['Click_return_groupauth'] = 'Klicke %shier%s, um zu den Gruppenrechten zurückzukehren';
 $lang['Click_return_forumauth'] = 'Klicke %shier%s, um zu den Forenberechtigungen zurückzukehren';

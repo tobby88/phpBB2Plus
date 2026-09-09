@@ -283,6 +283,11 @@ $lang['User_auth_updated'] = 'User permissions updated';
 $lang['Group_auth_updated'] = 'Group permissions updated';
 
 $lang['Auth_updated'] = 'Permissions have been updated';
+$lang['Acl_selection_changed'] = 'The permission selection or its target has changed or is invalid. Please reload the page and check the saved permissions.';
+$lang['Acl_read_failed'] = 'The current permission information could not be loaded. Please try again later.';
+$lang['Acl_storage_failed'] = 'Permissions could not be fully saved. Changes already applied remain in place. Please check the affected accounts and permissions before continuing.';
+$lang['Acl_root_required'] = 'Only a current full administrator can grant or revoke full administrator status.';
+$lang['Acl_self_role_change'] = 'You cannot change your own full administrator status here.';
 $lang['Click_return_userauth'] = 'Click %sHere%s to return to User Permissions';
 $lang['Click_return_groupauth'] = 'Click %sHere%s to return to Group Permissions';
 $lang['Click_return_forumauth'] = 'Click %sHere%s to return to Forum Permissions';

@@ -56,6 +56,17 @@ $user_id = max(0, intval($user_id_value));
 $group_id = max(0, intval($group_id_value));
 $adv = intval($adv_value) ? 1 : 0;
 
+// Viewing a different mode must not bypass the same delegated module boundary.
+require_once $phpbb_root_path . 'includes/functions_acl_storage.' . $phpEx;
+try
+{
+	$acl_view_actor = phpbb_acl_actor(new PhpbbAclDatabase($db, 'Acl_read_failed'), $mode);
+}
+catch (PhpbbAclException $error)
+{
+	message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8'));
+}
+
 //
 // Start program - define vars
 //
@@ -110,556 +121,30 @@ function check_auth($type, $key, $u_access, $is_admin)
 	return $auth_user;
 }
 
-function admin_ug_boolean_map($value)
-{
-	$normalized = array();
-	if (!is_array($value))
-	{
-		return $normalized;
-	}
-	foreach ($value as $id => $enabled)
-	{
-		$id = max(0, intval($id));
-		if ($id > 0 && is_scalar($enabled))
-		{
-			$normalized[$id] = intval($enabled) ? 1 : 0;
-		}
-	}
-	return $normalized;
-}
 //
 // End Functions
 // -------------
 
-if ( isset($_POST['submit']) && ( ( $mode == 'user' && $user_id ) || ( $mode == 'group' && $group_id ) ) )
+if ( isset($_POST['submit']) )
 {
 	phpbb_admin_require_post_session();
-	$user_level = '';
-	if ( $mode == 'user' )
+	require_once $phpbb_root_path . 'includes/functions_acl_storage.' . $phpEx;
+	$original_mode = isset($_POST['mode']) ? $_POST['mode'] : (isset($_GET['mode']) ? $_GET['mode'] : 'user');
+	$target_key = $original_mode === 'group' ? POST_GROUPS_URL : POST_USERS_URL;
+	$original_target = isset($_POST[$target_key]) ? $_POST[$target_key] : (isset($_GET[$target_key]) ? $_GET[$target_key] : null);
+	try
 	{
-		//
-		// Get group_id for this user_id
-		//
-		$sql = "SELECT g.group_id, u.user_level
-			FROM " . USER_GROUP_TABLE . " ug, " . USERS_TABLE . " u, " . GROUPS_TABLE . " g
-			WHERE u.user_id = $user_id 
-				AND ug.user_id = u.user_id 
-				AND g.group_id = ug.group_id 
-				AND g.group_single_user = " . TRUE;
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Could not select info from user/user_group table', '', __LINE__, __FILE__, $sql);
-		}
-
-		$row = $db->sql_fetchrow($result);
-		if (!$row || $user_id == ANONYMOUS)
-		{
-			message_die(GENERAL_MESSAGE, $lang['No_such_user']);
-		}
-
-		$group_id = $row['group_id'];
-		$user_level = $row['user_level'];
-
-		$db->sql_freeresult($result);
+		phpbb_acl_save($db, $original_mode, $original_target, $_POST);
 	}
-	else
+	catch (PhpbbAclException $error)
 	{
-		$sql = 'SELECT group_id FROM ' . GROUPS_TABLE . " WHERE group_id = $group_id AND group_single_user <> " . TRUE;
-		if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
-		{
-			message_die(GENERAL_MESSAGE, $lang['Group_not_exist']);
-		}
-		$db->sql_freeresult($result);
+		message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8'));
 	}
-	$userlevel = (isset($_POST['userlevel']) && is_scalar($_POST['userlevel']) && $_POST['userlevel'] === 'admin') ? 'admin' : 'user';
-
-	//
-	// Carry out requests
-	//
-	if ( $mode == 'user' && $userlevel == 'admin' && $user_level != ADMIN )
-	{
-		//
-		// Make user an admin (if already user)
-		//
-		if ( $userdata['user_id'] != $user_id )
-		{
-			$sql = "UPDATE " . USERS_TABLE . "
-				SET user_level = " . ADMIN . "
-				WHERE user_id = $user_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . "
-				WHERE group_id = $group_id 
-					AND auth_mod = 0";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't delete auth access info", "", __LINE__, __FILE__, $sql);
-			}
-
-			//
-			// Delete any entries in auth_access, they are not required if user is becoming an
-			// admin
-			//
-			$sql = "UPDATE " . AUTH_ACCESS_TABLE . "
-				SET auth_view = 0, auth_read = 0, auth_post = 0, auth_reply = 0, auth_edit = 0, auth_delete = 0, auth_sticky = 0, auth_announce = 0, auth_ban = 0, auth_greencard = 0, auth_bluecard = 0
-				WHERE group_id = $group_id"; 
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't update auth access", "", __LINE__, __FILE__, $sql);
-			}
-		}
-		//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- add
-		cache_tree(true);
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-		$message = $lang['Auth_updated'] . '<br /><br />' . sprintf($lang['Click_return_userauth'], '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$mode") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
-		message_die(GENERAL_MESSAGE, $message);
-	}
-	else
-	{
-		if ( $mode == 'user' && $userlevel == 'user' && $user_level == ADMIN )
-		{
-			$ctracker_config->first_admin_protection($user_id);
-
-			//
-			// Make admin a user (if already admin) ... ignore if you're trying
-			// to change yourself from an admin to user!
-			//
-			if ( $userdata['user_id'] != $user_id )
-			{
-				$sql = "UPDATE " . AUTH_ACCESS_TABLE . "
-					SET auth_view = 0, auth_read = 0, auth_post = 0, auth_reply = 0, auth_edit = 0, auth_delete = 0, auth_sticky = 0, auth_announce = 0, auth_ban = 0, auth_greencard = 0, auth_bluecard = 0
-					WHERE group_id = $group_id";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not update auth access', '', __LINE__, __FILE__, $sql);
-				}
-
-				//
-				// Update users level, reset to USER
-				//
-				$sql = "UPDATE " . USERS_TABLE . "
-					SET user_level = " . USER . "
-					WHERE user_id = $user_id";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
-				}
-			}
-
-			$message = $lang['Auth_updated'] . '<br /><br />' . sprintf($lang['Click_return_userauth'], '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$mode") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
-		}
-		else
-		{
-	
-			$change_mod_list = admin_ug_boolean_map(isset($_POST['moderator']) ? $_POST['moderator'] : array());
-			$change_acl_list = array();
-
-			if ( empty($adv) )
-			{
-				$sql = "SELECT f.*
-					FROM " . FORUMS_TABLE . " f, " . CATEGORIES_TABLE . " c
-					WHERE f.cat_id = c.cat_id
-					ORDER BY c.cat_order, f.forum_order ASC";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, "Couldn't obtain forum information", "", __LINE__, __FILE__, $sql);
-				}
-
-				$forum_access = $forum_auth_level_fields = array();
-				while( $row = $db->sql_fetchrow($result) )
-				{
-					$forum_access[] = $row;
-				}
-				$db->sql_freeresult($result);
-
-				for($i = 0; $i < count($forum_access); $i++)
-				{
-					$forum_id = $forum_access[$i]['forum_id'];
-
-					for($j = 0; $j < count($forum_auth_fields); $j++)
-					{
-						$forum_auth_level_fields[$forum_id][$forum_auth_fields[$j]] = $forum_access[$i][$forum_auth_fields[$j]] == AUTH_ACL;
-					}
-				}
-
-				$private_acl = admin_ug_boolean_map(isset($_POST['private']) ? $_POST['private'] : array());
-				foreach ($private_acl as $forum_id => $value)
-				{
-					if (!isset($forum_auth_level_fields[$forum_id]))
-					{
-						continue;
-					}
-					foreach ($forum_auth_level_fields[$forum_id] as $auth_field => $exists)
-					{
-						if ($exists)
-						{
-							$change_acl_list[$forum_id][$auth_field] = $value;
-						}
-					}
-				}
-			}
-			else
-			{
-				for($j = 0; $j < count($forum_auth_fields); $j++)
-				{
-					$auth_field = $forum_auth_fields[$j];
-					$field_values = admin_ug_boolean_map(isset($_POST['private_' . $auth_field]) ? $_POST['private_' . $auth_field] : array());
-					foreach ($field_values as $forum_id => $value)
-					{
-						$change_acl_list[$forum_id][$auth_field] = $value;
-					}
-				}
-			}
-
-//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- delete
-//			$sql = 'SELECT f.* 
-//				FROM ' . FORUMS_TABLE . ' f, ' . CATEGORIES_TABLE . ' c
-//				WHERE f.cat_id = c.cat_id
-//				ORDER BY c.cat_order, f.forum_order';
-//			if ( !($result = $db->sql_query($sql)) )
-//			{
-//				message_die(GENERAL_ERROR, "Couldn't obtain forum information", "", __LINE__, __FILE__, $sql);
-//			}
-//
-//			$forum_access = array();
-//			while( $row = $db->sql_fetchrow($result) )
-//			{
-//				$forum_access[] = $row;
-//			}
-//			$db->sql_freeresult($result);
-//-- add
-			// get all sorted by level
-			$keys = array();
-			$keys = get_auth_keys('Root', true);
-			$forum_access = array();
-
-			// extract forums
-			$forum_access = array();
-			for ($i=0; $i < count($keys['id']); $i++)
-			{
-				$tree_idx = $keys['idx'][$i];
-				if (isset($tree['type'][$tree_idx]) && $tree['type'][$tree_idx] == POST_FORUM_URL)
-				{
-					$forum_access[] = $tree['data'][$tree_idx];
-				}
-			}
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-
-			$sql = ( $mode == 'user' ) ? "SELECT aa.* FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE. " g WHERE ug.user_id = $user_id AND g.group_id = ug.group_id AND aa.group_id = ug.group_id AND g.group_single_user = " . TRUE : "SELECT * FROM " . AUTH_ACCESS_TABLE . " WHERE group_id = $group_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't obtain user/group permissions", "", __LINE__, __FILE__, $sql);
-			}
-
-			$auth_access = array();
-			while( $row = $db->sql_fetchrow($result) )
-			{
-				$auth_access[$row['forum_id']] = $row;
-			}
-			$db->sql_freeresult($result);
-
-			$forum_auth_action = array();
-			$update_acl_status = array();
-			$update_mod_status = array();
-
-			for($i = 0; $i < count($forum_access); $i++)
-			{
-				$forum_id = intval($forum_access[$i]['forum_id']);
-				$change_mod_value = isset($change_mod_list[$forum_id]) ? $change_mod_list[$forum_id] : 0;
-
-				if ( 
-					( isset($auth_access[$forum_id]['auth_mod']) && $change_mod_value != $auth_access[$forum_id]['auth_mod'] ) ||
-					( !isset($auth_access[$forum_id]['auth_mod']) && !empty($change_mod_value) )
-				)
-				{
-					$update_mod_status[$forum_id] = $change_mod_value;
-
-					if ( !$update_mod_status[$forum_id] )
-					{
-						$forum_auth_action[$forum_id] = 'delete';
-					}
-					else if ( !isset($auth_access[$forum_id]['auth_mod']) )
-					{
-						$forum_auth_action[$forum_id] = 'insert';
-					}
-					else
-					{
-						$forum_auth_action[$forum_id] = 'update';
-					}
-				}
-
-				for($j = 0; $j < count($forum_auth_fields); $j++)
-				{
-					$auth_field = $forum_auth_fields[$j];
-
-					/*	//	http://www.phpbb2.de/ftopic34033.html*/
-					if( $forum_access[$i][$auth_field] == AUTH_ACL && isset($change_acl_list[$forum_id][$auth_field]) )
-					/* << deletet || added >>   
-					if( $forum_access[$i][$auth_field] == AUTH_ACL && isset($change_acl_list[$forum_id]) )
-						http://www.phpbb2.de/ftopic34033.html */
-					{
-						if ( ( empty($auth_access[$forum_id]['auth_mod']) && 
-							( isset($auth_access[$forum_id][$auth_field]) && $change_acl_list[$forum_id][$auth_field] != $auth_access[$forum_id][$auth_field] ) || 
-						/*	//	http://www.phpbb2.de/ftopic34033.html*/
-							( !isset($auth_access[$forum_id][$auth_field]) && !empty($change_acl_list[$forum_id][$auth_field]) ) ) ||
-						/* << deletet || added >>   
-							( !isset($auth_access[$forum_id][$auth_field]) && empty($change_acl_list[$forum_id][$auth_field]) ) ) ||
-							http://www.phpbb2.de/ftopic34033.html */
-							!empty($update_mod_status[$forum_id])
-						)
-						{
-							$update_acl_status[$forum_id][$auth_field] = ( !empty($update_mod_status[$forum_id]) ) ? 0 :  $change_acl_list[$forum_id][$auth_field];
-
-							$current_action = isset($forum_auth_action[$forum_id]) ? $forum_auth_action[$forum_id] : '';
-							if ( isset($auth_access[$forum_id][$auth_field]) && empty($update_acl_status[$forum_id][$auth_field]) && $current_action != 'insert' && $current_action != 'update' )
-							{
-								$forum_auth_action[$forum_id] = 'delete';
-							}
-							else if ( !isset($auth_access[$forum_id][$auth_field]) && !( $current_action == 'delete' && empty($update_acl_status[$forum_id][$auth_field]) ) )
-							{
-								$forum_auth_action[$forum_id] = 'insert';
-							}
-							else if ( isset($auth_access[$forum_id][$auth_field]) && !empty($update_acl_status[$forum_id][$auth_field]) ) 
-							{
-								$forum_auth_action[$forum_id] = 'update';
-							}
-						}
-						else if ( ( empty($auth_access[$forum_id]['auth_mod']) && 
-							( isset($auth_access[$forum_id][$auth_field]) && $change_acl_list[$forum_id][$auth_field] == $auth_access[$forum_id][$auth_field] ) ) && isset($forum_auth_action[$forum_id]) && $forum_auth_action[$forum_id] == 'delete' )
-						{
-							$forum_auth_action[$forum_id] = 'update';
-						}
-					}
-				}
-			}
-
-			//
-			// Checks complete, make updates to DB
-			//
-			$delete_sql = '';
-			foreach ($forum_auth_action as $forum_id => $action)
-			{
-				if ( $action == 'delete' )
-				{
-					$delete_sql .= ( ( $delete_sql != '' ) ? ', ' : '' ) . $forum_id;
-				}
-				else
-				{
-					if ( $action == 'insert' )
-					{
-						$sql_field = '';
-						$sql_value = '';
-						$forum_acl_updates = isset($update_acl_status[$forum_id]) ? $update_acl_status[$forum_id] : array();
-						foreach ($forum_acl_updates as $auth_type => $value)
-						{
-							$sql_field .= ( ( $sql_field != '' ) ? ', ' : '' ) . $auth_type;
-							$sql_value .= ( ( $sql_value != '' ) ? ', ' : '' ) . $value;
-						}
-						$sql_field .= ( ( $sql_field != '' ) ? ', ' : '' ) . 'auth_mod';
-						$sql_value .= ( ( $sql_value != '' ) ? ', ' : '' ) . ( ( !isset($update_mod_status[$forum_id]) ) ? 0 : $update_mod_status[$forum_id]);
-
-						$sql = "INSERT INTO " . AUTH_ACCESS_TABLE . " (forum_id, group_id, $sql_field) 
-							VALUES ($forum_id, $group_id, $sql_value)";
-					}
-					else
-					{
-						$sql_values = '';
-						$forum_acl_updates = isset($update_acl_status[$forum_id]) ? $update_acl_status[$forum_id] : array();
-						foreach ($forum_acl_updates as $auth_type => $value)
-						{
-							$sql_values .= ( ( $sql_values != '' ) ? ', ' : '' ) . $auth_type . ' = ' . $value;
-						}
-						$sql_values .= ( ( $sql_values != '' ) ? ', ' : '' ) . 'auth_mod = ' . ( ( !isset($update_mod_status[$forum_id]) ) ? 0 : $update_mod_status[$forum_id]);
-
-						$sql = "UPDATE " . AUTH_ACCESS_TABLE . " 
-							SET $sql_values 
-							WHERE group_id = $group_id 
-								AND forum_id = $forum_id";
-					}
-					if( !($result = $db->sql_query($sql)) )
-					{
-						message_die(GENERAL_ERROR, "Couldn't update private forum permissions", "", __LINE__, __FILE__, $sql);
-					}
-				}
-			}
-
-			if ( $delete_sql != '' )
-			{
-				$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . " 
-					WHERE group_id = $group_id 
-						AND forum_id IN ($delete_sql)";
-				if( !($result = $db->sql_query($sql)) )
-				{
-					message_die(GENERAL_ERROR, "Couldn't delete permission entries", "", __LINE__, __FILE__, $sql);
-				}
-			}
-
-			$l_auth_return = ( $mode == 'user' ) ? $lang['Click_return_userauth'] : $lang['Click_return_groupauth'];
-			$message = $lang['Auth_updated'] . '<br /><br />' . sprintf($l_auth_return, '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$mode") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
-		}
-
-		//
-		// Update user level to mod for appropriate users
-		// 
-		$sql = "SELECT u.user_id 
-			FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug, " . USERS_TABLE . " u  
-			WHERE ug.group_id = aa.group_id 
-				AND u.user_id = ug.user_id 
-				AND ug.user_pending = 0
-				AND u.user_level NOT IN (" . MOD . ", " . ADMIN . ") 
-			GROUP BY u.user_id 
-			HAVING SUM(aa.auth_mod) > 0";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, "Couldn't obtain user/group permissions", "", __LINE__, __FILE__, $sql);
-		}
-
-		$set_mod = '';
-		while( $row = $db->sql_fetchrow($result) )
-		{
-			$set_mod .= ( ( $set_mod != '' ) ? ', ' : '' ) . intval($row['user_id']);
-		}
-		$db->sql_freeresult($result);
-
-		//
-		// Update user level to user for appropriate users
-		// 
-		switch ( SQL_LAYER )
-		{
-			case 'postgresql':
-				$sql = "SELECT u.user_id 
-					FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug, " . AUTH_ACCESS_TABLE . " aa
-					WHERE ug.user_id = u.user_id 
-						AND aa.group_id = ug.group_id 
-						AND u.user_level NOT IN (" . USER . ", " . ADMIN . ")
-					GROUP BY u.user_id 
-					HAVING SUM(aa.auth_mod) = 0 
-					UNION (
-						SELECT u.user_id  
-						FROM " . USERS_TABLE . " u 
-						WHERE NOT EXISTS ( 
-							SELECT aa.auth_mod 
-							FROM " . USER_GROUP_TABLE . " ug, " . AUTH_ACCESS_TABLE . " aa 
-							WHERE ug.user_id = u.user_id 
-								AND aa.group_id = ug.group_id
-						)
-						AND u.user_level NOT IN (" . USER . ", " . ADMIN . ")  
-						GROUP BY u.user_id
-					)";
-				break;
-			case 'oracle':
-				$sql = "SELECT u.user_id 
-					FROM " . USERS_TABLE . " u, " . USER_GROUP_TABLE . " ug, " . AUTH_ACCESS_TABLE . " aa 
-					WHERE ug.user_id = u.user_id(+)
-						AND aa.group_id = ug.group_id(+) 
-						AND u.user_level NOT IN (" . USER . ", " . ADMIN . ")
-					GROUP BY u.user_id 
-					HAVING SUM(aa.auth_mod) = 0";
-				break;
-			default:
-				$sql = "SELECT u.user_id 
-					FROM ( ( " . USERS_TABLE . " u  
-					LEFT JOIN " . USER_GROUP_TABLE . " ug ON ug.user_id = u.user_id ) 
-					LEFT JOIN " . AUTH_ACCESS_TABLE . " aa ON aa.group_id = ug.group_id ) 
-					WHERE u.user_level NOT IN (" . USER . ", " . ADMIN . ")
-					GROUP BY u.user_id 
-					HAVING SUM(aa.auth_mod) = 0";
-				break;
-		}
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, "Couldn't obtain user/group permissions", "", __LINE__, __FILE__, $sql);
-		}
-
-		$unset_mod = "";
-		while( $row = $db->sql_fetchrow($result) )
-		{
-			$unset_mod .= ( ( $unset_mod != '' ) ? ', ' : '' ) . intval($row['user_id']);
-		}
-		$db->sql_freeresult($result);
-
-		if ( $set_mod != '' )
-		{
-			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_level = " . MOD . " 
-				WHERE user_id IN ($set_mod)";
-			if( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't update user level", "", __LINE__, __FILE__, $sql);
-			}
-		}
-		//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- add
-		cache_tree(true);
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-		if ( $unset_mod != '' )
-		{
-			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_level = " . USER . " 
-				WHERE user_id IN ($unset_mod)";
-			if( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't update user level", "", __LINE__, __FILE__, $sql);
-			}
-		}
-		$sql = 'SELECT user_id FROM ' . USER_GROUP_TABLE . "
-			WHERE group_id = $group_id";
-		$result = $db->sql_query($sql);
-
-		$group_user = array();
-		while ($row = $db->sql_fetchrow($result))
-		{
-			$member_id = max(0, intval($row['user_id']));
-			if ($member_id > 0)
-			{
-				$group_user[$member_id] = $member_id;
-			}
-		}
-		$db->sql_freeresult($result);
-
-		if ($group_user)
-		{
-			$sql = "SELECT ug.user_id, COUNT(auth_mod) AS is_auth_mod
-				FROM " . AUTH_ACCESS_TABLE . " aa, " . USER_GROUP_TABLE . " ug
-				WHERE ug.user_id IN (" . implode(', ', $group_user) . ")
-					AND aa.group_id = ug.group_id
-					AND aa.auth_mod = 1
-				GROUP BY ug.user_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain moderator status', '', __LINE__, __FILE__, $sql);
-			}
-
-			while ($row = $db->sql_fetchrow($result))
-			{
-				if ($row['is_auth_mod'])
-				{
-					unset($group_user[intval($row['user_id'])]);
-				}
-			}
-			$db->sql_freeresult($result);
-		}
-
-		if (sizeof($group_user))
-		{
-			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_level = " . USER . " 
-				WHERE user_id IN (" . implode(', ', $group_user) . ") AND user_level = " . MOD;
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update user level', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		message_die(GENERAL_MESSAGE, $message);
-	}
+	// Rebuild shared hierarchy only after all writes and owner release.
+	cache_tree(true);
+	$l_auth_return = $mode === 'user' ? $lang['Click_return_userauth'] : $lang['Click_return_groupauth'];
+	$message = $lang['Auth_updated'] . '<br /><br />' . sprintf($l_auth_return, '<a href="' . append_sid("admin_ug_auth.$phpEx?mode=$mode") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 else if ( ( $mode == 'user' && ( isset($_POST['username']) || $user_id ) ) || ( $mode == 'group' && $group_id ) )
 {
@@ -1028,6 +513,10 @@ else if ( ( $mode == 'user' && ( isset($_POST['username']) || $user_id ) ) || ( 
 	{
 		$t_username = phpbb_admin_html($ug_info[0]['username']);
 		$s_user_type = ( $is_admin ) ? '<select name="userlevel"><option value="admin" selected="selected">' . $lang['Auth_Admin'] . '</option><option value="user">' . $lang['Auth_User'] . '</option></select>' : '<select name="userlevel"><option value="admin">' . $lang['Auth_Admin'] . '</option><option value="user" selected="selected">' . $lang['Auth_User'] . '</option></select>';
+		if (!$acl_view_actor['root'] || (int) $userdata['user_id'] === (int) $ug_info[0]['user_id'])
+		{
+			$s_user_type = ($is_admin ? $lang['Auth_Admin'] : $lang['Auth_User']) . '<input type="hidden" name="userlevel" value="' . ($is_admin ? 'admin' : 'user') . '" />';
+		}
 	}
 	else
 	{
