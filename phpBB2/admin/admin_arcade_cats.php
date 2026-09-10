@@ -501,11 +501,8 @@ if( isset($HTTP_POST_VARS['save_cat']) )
 //
 if( $mode == 'resync_cats')
 {
-  $sql = "REPAIR TABLE " . iNA_GAMES . ", " . iNA_CAT . ", " . iNA_FAV . ", " . iNA_SESSIONS . ", " . iNA_SCORES . ", " . iNA_AT_SCORES;
-  if(!$result = $db->sql_query($sql))
-  {
-  	message_die(GENERAL_ERROR, $lang['no_game_repair'], "", __LINE__, __FILE__, $sql);
-  }
+  // Category synchronization updates logical counters below; it must not run
+  // physical MyISAM repair commands (unsupported on InnoDB).
   $catrows = $arcade->read_cat('./../');
 
   $total_played = (get_games_total('SUM(played)')); 

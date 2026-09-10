@@ -13,17 +13,18 @@ function dbmtnc_table_begin(&$db,$request){$GLOBALS['locks'][]='begin';return ar
 function dbmtnc_table_end(&$db,$scope){check($db===$scope[0],'Original report connection preserved');$GLOBALS['locks'][]='end';}
 function check_authorisation(){if($GLOBALS['deny']){throw new MaintenanceFailure('auth');}$GLOBALS['authorized']=true;}
 function success_message($message){$GLOBALS['successes'][]=$message;}
-class Rows {public $rows;function __construct($rows){$this->rows=$rows;}}
+class Rows {public $rows;public $metadata;function __construct($rows,$metadata=false){$this->rows=$rows;$this->metadata=$metadata;}}
 class Database {
  public $messages=array();public $queries=array();public $failure=false;public $pdo=null;public $freed=0;
  function sql_query($sql){
+  if(strpos($sql,'SELECT ENGINE FROM information_schema.TABLES ')===0){return $this->pdo?$this->pdo->query($sql):new Rows(array(array('ENGINE'=>'MyISAM')),true);}
   check(preg_match('/^(CHECK|REPAIR) TABLE `fixture_(first|second)`$/D',$sql)===1,'Only intended table operation issued');
   $this->queries[]=$sql;if($this->failure){return false;}
   if($this->pdo){return $this->pdo->query($sql);}
   return new Rows($this->messages[count($this->queries)-1]);
  }
  function sql_fetchrow($r){return $r instanceof Rows?array_shift($r->rows):$r->fetch(\PDO::FETCH_ASSOC);}
- function sql_freeresult($r){$this->freed++;if(!($r instanceof Rows)){$r->closeCursor();}}
+ function sql_freeresult($r){if(!($r instanceof Rows)){$this->freed++;$r->closeCursor();}elseif(!$r->metadata){$this->freed++;}}
 }
 $helper=file_get_contents($root.'includes/functions_dbmtnc.php');
 check(preg_match('/^function dbmtnc_table_maintenance\(.*?^\}/ms',$helper,$m)===1,'Actual shared helper found');
@@ -100,7 +101,7 @@ try{
      $lang=array();include($root.'language/lang_'.$language.'/lang_dbmtnc.php');$lang['rdb_success']='fixture success';
      foreach(array('check_db','repair_db','rdb') as $action){
       $database=new Database();$database->pdo=$pdo;$html=run_branch($database,$action);
-      $supported=$engine==='MyISAM'||($engine==='InnoDB'&&$action==='check_db');
+      $supported=$engine==='MyISAM'||$engine==='InnoDB';
       check((strpos($html,$lang['Maintenance_incomplete'])===false)===$supported,'Native support accurately reflected: '.$engine.'/'.$action);
       if($action==='rdb'){check(count($GLOBALS['successes'])===($supported?1:0),'Native ERC success reflects engine support');}
       foreach(array('first','second') as $table){check($before===$pdo->query('SELECT * FROM fixture_'.$table.' ORDER BY id')->fetchAll(\PDO::FETCH_ASSOC),'Every fixture row/ID preserved');}

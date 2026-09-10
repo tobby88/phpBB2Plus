@@ -50,8 +50,8 @@ function removal_fixture($actor=1)
 	$schema=file_get_contents($forum_root.'install/schemas/mysql_schema.sql');
 	foreach (array('user_removals','user_removal_items') as $table)
 	{
-		mutation_check(preg_match('/CREATE TABLE phpbb_'.$table.' \(.*?\) ENGINE=MyISAM[^;]*;/s',$schema,$match)===1,'Canonical removal table found');
-		$sql=preg_replace('/\) ENGINE=MyISAM[^;]*;$/',')',str_replace('phpbb_'.$table,'fixture_'.$table,$match[0]));
+		mutation_check(preg_match('/CREATE TABLE phpbb_'.$table.' \(.*?\) ENGINE=InnoDB ROW_FORMAT=DYNAMIC[^;]*;/s',$schema,$match)===1,'Canonical removal table found');
+		$sql=preg_replace('/\) ENGINE=InnoDB ROW_FORMAT=DYNAMIC[^;]*;$/',')',str_replace('phpbb_'.$table,'fixture_'.$table,$match[0]));
 		if ($p->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite')
 		{
 			$sql=preg_replace('/\b(?:mediumint|int)\([0-9]+\)(?: unsigned)?/i','INTEGER',$sql);

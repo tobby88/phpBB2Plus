@@ -46,6 +46,7 @@ class TableConnection {
   $command=preg_match('/^(CHECK|REPAIR|OPTIMIZE) TABLE `fixture_(first|second)`$/D',$sql)===1;
   try{
    if($command){$s->commands++;$rows=$GLOBALS['native']?$this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC):array(array('Msg_type'=>'status','Msg_text'=>'OK'));}
+   elseif(strpos($sql,'SELECT ENGINE FROM information_schema.TABLES ')===0&&!$GLOBALS['native']){$rows=array(array('ENGINE'=>'MyISAM'));}
    elseif($sql==='SHOW TABLE STATUS'&&!$GLOBALS['native']){$rows=array(array('Name'=>'fixture_first','Rows'=>2,'Data_length'=>1024,'Index_length'=>0),array('Name'=>'fixture_second','Rows'=>2,'Data_length'=>1024,'Index_length'=>0));}
    else{$rows=$this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);}
    if(is_callable($s->after)){call_user_func($s->after,$sql,$this);}
@@ -94,6 +95,7 @@ set_error_handler(function($severity,$message){if(error_reporting()&$severity){t
 try{foreach($native?array('MyISAM','InnoDB','MEMORY'):array('SQLite') as $engine){foreach(array('english','german') as $locale){
  $lang=array('Not_Authorised'=>'not-authorized','Session_invalid'=>'session-invalid','Attachment_storage_busy'=>'busy');$phpEx='php';include $root.'language/lang_'.$locale.'/lang_dbmtnc.php';
  foreach(array('check_db'=>'CHECK','repair_db'=>'REPAIR','optimize_db'=>'OPTIMIZE') as $action=>$operation){
+  if($engine==='InnoDB'&&$operation==='REPAIR'){$operation='CHECK';}
   foreach(array(0,1) as $disabled){foreach(array('success','failure','late-disable','late-disable-failure') as $case){
    table_fixture($engine);$table_server->pdo->exec('UPDATE fixture_config SET board_disable='.$disabled);$command=$operation.' TABLE';
    if($case==='failure'){$table_server->failure=$command;}

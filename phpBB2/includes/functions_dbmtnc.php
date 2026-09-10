@@ -433,6 +433,23 @@ function dbmtnc_table_maintenance($tablename, $operation, $erc = false)
 		else { throw_error($lang['Maintenance_invalid_target']); }
 		return false;
 	}
+	if ($operation === 'REPAIR')
+	{
+		$metadata = $db->sql_query("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $tablename . "'");
+		$engine = $metadata ? $db->sql_fetchrow($metadata) : false;
+		if ($metadata) { $db->sql_freeresult($metadata); }
+		if (!$engine || !isset($engine['ENGINE']))
+		{
+			if ($erc) { erc_throw_error($lang['Maintenance_query_failed']); }
+			else { throw_error($lang['Maintenance_query_failed']); }
+			return false;
+		}
+		if (strcasecmp($engine['ENGINE'], 'InnoDB') === 0)
+		{
+			echo '<li>' . $tablename . ': ' . $lang['Maintenance_innodb_check'] . "</li>\n";
+			$operation = 'CHECK';
+		}
+	}
 	$sql = $operation . ' TABLE `' . $tablename . '`';
 	$result = $db->sql_query($sql);
 	if (!$result)

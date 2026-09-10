@@ -39,8 +39,8 @@ function recovery_fixture($engine,$actor=1){
   if($GLOBALS['resetNative']&&in_array($name,array('categories','forums','topics','posts','text'),true)){
    $schema=file_get_contents($GLOBALS['root'].'install/schemas/mysql_schema.sql');
    $suffix=$name==='text'?'posts_text':$name;
-   reset_check(preg_match('/CREATE TABLE phpbb_'.$suffix.' \(.*?\) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/s',$schema,$m)===1,'Canonical native schema available');
-   $p->exec(str_replace(array('phpbb_'.$suffix,'ENGINE=MyISAM'),array('fixture_'.$name,'ENGINE='.$engine),$m[0]));
+   reset_check(preg_match('/CREATE TABLE phpbb_'.$suffix.' \(.*?\) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/s',$schema,$m)===1,'Canonical native schema available');
+   $p->exec(str_replace(array('phpbb_'.$suffix,'ENGINE=InnoDB ROW_FORMAT=DYNAMIC'),array('fixture_'.$name,'ENGINE='.$engine),$m[0]));
   }else{$p->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['resetNative']?' ENGINE='.$engine:''));}
  }
  $p->exec("INSERT INTO fixture_config VALUES ('allow_html','0'),('allow_bbcode','1'),('allow_smilies','1'),('board_disable','0')");

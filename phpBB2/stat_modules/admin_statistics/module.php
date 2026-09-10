@@ -115,46 +115,15 @@ if ($users_per_day > $total_users)
 if (!$statistics->result_cache_used)
 {
 	$dbsize = 0;
-
-	if( preg_match("/^mysql/", SQL_LAYER) )
+	// Engine-aware size estimates; old MySQL 3/4 version gating hid modern DBs.
+	$sql = "SELECT COALESCE(SUM(DATA_LENGTH + INDEX_LENGTH),0) AS dbsize FROM information_schema.TABLES " .
+		"WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' AND ENGINE IN ('InnoDB','MyISAM','MEMORY') " .
+		"AND LEFT(TABLE_NAME," . strlen($table_prefix) . ")='" . $db->sql_escape($table_prefix) . "'";
+	if ($result = $db->sql_query($sql))
 	{
-		$sql = "SELECT VERSION() AS mysql_version";
-		if($result = $db->sql_query($sql))
-		{
-			$row = $db->sql_fetchrow($result);
-			$version = $row['mysql_version'];
-	
-			if( preg_match("/^(3\.23|4\.)/", $version) )
-			{
-				$db_name = ( preg_match("/^(3\.23\.[6-9])|(3\.23\.[1-9][1-9])|(4\.)/", $version) ) ? "`$dbname`" : $dbname;
-
-				$sql = "SHOW TABLE STATUS 
-				FROM " . $db_name;
-				if($result = $db->sql_query($sql))
-				{
-					$tabledata_ary = $db->sql_fetchrowset($result);
-
-					$dbsize = 0;
-					for($i = 0; $i < count($tabledata_ary); $i++)
-					{
-						if( $tabledata_ary[$i]['Type'] != "MRG_MyISAM" )
-						{
-							if( $table_prefix != "" )
-							{
-								if( strstr($tabledata_ary[$i]['Name'], $table_prefix) )
-								{
-									$dbsize += $tabledata_ary[$i]['Data_length'] + $tabledata_ary[$i]['Index_length'];
-								}
-							}
-							else
-							{
-								$dbsize += $tabledata_ary[$i]['Data_length'] + $tabledata_ary[$i]['Index_length'];
-							}
-						}	
-					}
-				}
-			}
-		}
+		$row = $db->sql_fetchrow($result);
+		$dbsize = $row ? (float) $row['dbsize'] : 0;
+		$db->sql_freeresult($result);
 	}
 
 	$result_cache->assign_vars(array(

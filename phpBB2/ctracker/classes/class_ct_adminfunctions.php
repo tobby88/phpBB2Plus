@@ -991,7 +991,7 @@ class ct_adminfunctions
 					`config_name` varchar( 191 ) NOT NULL ,
 					`config_value` varchar( 255 ) NOT NULL ,
 					PRIMARY KEY ( `config_name` )
-					) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+					) ENGINE=InnoDB ROW_FORMAT=DYNAMIC CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
 		if ( !$result = $db->sql_query($sql) )
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);

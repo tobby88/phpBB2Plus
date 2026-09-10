@@ -61,6 +61,9 @@ jobs:
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
 
+      - name: Check InnoDB migration schema and updater integration
+        run: php .github/scripts/check-innodb-migration.php
+
       - name: Preserve valid profiles and login keys during user maintenance
         run: php .github/scripts/check-maintenance-user-values.php
 

@@ -1414,13 +1414,23 @@ else if( $mode == "delete")
 //
 else if( $mode == "repair_game" )
 {
-	$sql = "REPAIR TABLE " . iNA_GAMES . ", " . iNA_CAT . ", " . iNA_FAV . ", " . iNA_SESSIONS . ", " . iNA_SCORES . ", " . iNA_AT_SCORES;
-	if(!$result = $db->sql_query($sql))
+	// Verify indexes without claiming that InnoDB supports REPAIR TABLE.
+	// Inspect every diagnostic row; a result set alone is not success.
+	$sql = "CHECK TABLE " . iNA_GAMES . ", " . iNA_CAT . ", " . iNA_FAV . ", " . iNA_SESSIONS . ", " . iNA_SCORES . ", " . iNA_AT_SCORES;
+	$result = $db->sql_query($sql);
+	$checked = array(); $problem = !$result;
+	if ($result)
 	{
-		message_die(GENERAL_ERROR, $lang['no_game_repair'], "", __LINE__, __FILE__, $sql);
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$key = isset($row['Table']) ? $row['Table'] : '';
+			$ok = isset($row['Msg_type'], $row['Msg_text']) && $row['Msg_type'] === 'status' && strtolower(trim($row['Msg_text'])) === 'ok';
+			$checked[$key] = $ok;
+			if (!$ok && (!isset($row['Msg_type']) || !in_array($row['Msg_type'], array('note','info'), true))) { $problem = true; }
+		}
+		$db->sql_freeresult($result);
 	}
-	$sql = "OPTIMIZE TABLE " . iNA_GAMES . ", " . iNA_CAT . ", " . iNA_FAV . ", " . iNA_SESSIONS . ", " . iNA_SCORES . ", " . iNA_AT_SCORES;
-	if(!$result = $db->sql_query($sql))
+	if ($problem || count($checked) !== 6 || in_array(false, $checked, true))
 	{
 		message_die(GENERAL_ERROR, $lang['no_game_repair'], "", __LINE__, __FILE__, $sql);
 	}

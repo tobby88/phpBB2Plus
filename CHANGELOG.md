@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Standardize fresh and upgraded forum tables on InnoDB. Add a shared strict,
+  resumable migration to the post-1.53a updater and a storage-only mode for
+  already updated installations. Require backup and external maintenance
+  confirmation; retain data, collation, keys and auto-increment floors. Test
+  native conversion, interrupted retries, mixed legacy engines and fresh schema.
+  Remove physical MyISAM repair from Arcade synchronization, report real table
+  check results, use InnoDB for newly created CrackerTracker backups, and identify
+  approximate table statistics and InnoDB checks accurately in both languages.
+  Exercise the actual CLI updater in native tests and fix an unsupported
+  LIMIT-in-IN subquery in its existing style cleanup. Restore modern-server
+  database size reporting in the administrative statistics module.
+
 - Run the full ACP user-maintenance workflow on a dedicated, shared writer
   without changing board availability. Recheck current account, delegated
   maintenance grant and ACP session around reads/writes, with authorization

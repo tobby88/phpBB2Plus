@@ -3,7 +3,7 @@
  * Bring an existing phpBB2 Plus 1.53a database to this repository's schema.
  *
  * Dry run: php update/update_from_153a.php
- * Apply:   php update/update_from_153a.php --apply --backup-confirmed
+ * Apply:   php update/update_from_153a.php --apply --backup-confirmed --maintenance-confirmed
  * Test:    php update/update_from_153a.php --self-test
  *
  * This script is intentionally CLI-only and idempotent. Existing settings and
@@ -21,6 +21,7 @@ $project_root = dirname(__DIR__);
 $forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 require_once $forum_root . '/includes/functions_user_ids.php';
+require_once __DIR__ . '/innodb_migration.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
 
@@ -28,9 +29,12 @@ function update_usage()
 {
 	echo "phpBB2 Plus post-1.53a database updater\n\n";
 	echo "  php update/update_from_153a.php                         Dry run\n";
-	echo "  php update/update_from_153a.php --apply --backup-confirmed  Apply\n";
+	echo "  php update/update_from_153a.php --apply --backup-confirmed --maintenance-confirmed  Apply\n";
 	echo "  php update/update_from_153a.php --database=clone_name       Use a clone\n";
 	echo "  php update/update_from_153a.php --self-test                 Test schema input\n";
+	echo "  --storage-only         Only convert known existing forum tables to InnoDB\n";
+	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
+	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
 
 function update_extract_create_tables($schema)
@@ -125,6 +129,15 @@ if ($apply && !$backup_confirmed)
 }
 
 $config_file = $forum_root . DIRECTORY_SEPARATOR . 'config.php';
+foreach ($argv as $argument)
+{
+	if (strpos($argument, '--config=') === 0)
+	{
+		$resolved_config = realpath(substr($argument, strlen('--config=')));
+		if ($resolved_config === false || !is_file($resolved_config)) { fwrite(STDERR, "CLI config file not found.\n"); exit(2); }
+		$config_file = $resolved_config;
+	}
+}
 if (!is_file($config_file))
 {
 	fwrite(STDERR, "phpBB2/config.php was not found.\n");
@@ -167,6 +180,10 @@ if (isset($dbms) && !in_array($dbms, array('mysql', 'mysql4', 'mysqli'), true))
 }
 
 mysqli_report(MYSQLI_REPORT_OFF);
+if (in_array('--apply', $argv, true) && !in_array('--maintenance-confirmed', $argv, true))
+{
+	fwrite(STDERR, "Stop web/cron writers, then pass --maintenance-confirmed. No changes made.\n"); exit(2);
+}
 $connection = @mysqli_connect($dbhost, $dbuser, $dbpasswd, $dbname);
 if (!$connection)
 {
@@ -268,8 +285,8 @@ function update_queue_config_engine(&$operations, $connection, $database, $table
 		fwrite(STDERR, "InnoDB must be enabled before upgrading configuration recovery. No update operations were applied.\n");
 		exit(3);
 	}
-	// Only the main configuration needs transactional restore. Preserve every
-	// column/index/value and leave unrelated legacy MyISAM tables unchanged.
+	// Configuration recovery needs InnoDB before later upgrade operations.
+	// The shared storage phase converts the remaining known forum tables.
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ENGINE=InnoDB';
 }
 
@@ -564,11 +581,29 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 	$operations[] = 'UPDATE ' . $config_sql . ' SET config_value = ' . $standard_id . " WHERE config_name = 'default_style'";
 	$operations[] = 'UPDATE ' . $config_sql . " SET config_value = 'fisubsilversh' WHERE config_name = 'xs_def_template'";
 	$operations[] = 'UPDATE ' . $users_sql . ' SET user_style = ' . $standard_id . ' WHERE user_style IS NULL OR user_style <> ' . $standard_id;
-	$operations[] = 'DELETE FROM ' . $themes_name_sql . ' WHERE themes_id NOT IN (' . $standard_id_select . ')';
+	$operations[] = 'DELETE FROM ' . $themes_name_sql . ' WHERE themes_id <> (' . $standard_id_select . ')';
 	$operations[] = 'DELETE FROM ' . $themes_sql . " WHERE template_name <> 'fisubsilversh'";
 	$operations[] = 'DELETE FROM ' . $themes_sql . ' WHERE themes_id <> (SELECT themes_id FROM (SELECT themes_id FROM ' .
 		$themes_sql . " WHERE template_name = 'fisubsilversh' ORDER BY themes_id LIMIT 1) standard_theme)";
 }
+
+$storage_tables = plus_storage_tables($schema_source, $table_prefix);
+try
+{
+	$storage_plan = plus_storage_plan($connection, $storage_tables);
+	if (in_array('--storage-only', $argv, true))
+	{
+		foreach ($storage_plan as $sql) { echo $sql . ";\n"; }
+		if ($apply)
+		{
+			$count = plus_storage_apply($connection, $storage_tables, in_array('--backup-confirmed', $argv, true), in_array('--maintenance-confirmed', $argv, true));
+			echo "InnoDB conversion complete: $count tables.\n";
+		}
+		else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\n"); exit(3); }
 
 $operations = array();
 foreach (array('categories', 'forums', 'topics') as $recovery_table)
@@ -1013,6 +1048,14 @@ if ($apply)
 		exit(3);
 	}
 }
+if ($apply)
+{
+	try
+	{
+		plus_storage_apply($connection, $storage_tables, in_array('--backup-confirmed', $argv, true), in_array('--maintenance-confirmed', $argv, true));
+	}
+	catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; verify backup before retry.\n"); exit(3); }
+}
 foreach ($version_operations as $sql)
 {
 	echo $sql . ";\n";
@@ -1024,6 +1067,8 @@ if ($apply)
 }
 else
 {
+	echo "\nFinal InnoDB conversion (new tables already use InnoDB):\n";
+	foreach ($storage_plan as $sql) { echo $sql . ";\n"; }
 	echo "\nDry run only. No database changes were made.\n";
 }
 

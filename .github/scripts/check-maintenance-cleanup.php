@@ -11,8 +11,8 @@ function cleanup_fixture($engine,$actor=1){
  foreach(array('groups'=>'group_id INTEGER PRIMARY KEY','auth_access'=>'group_id INTEGER,forum_id INTEGER','topics_watch'=>'user_id INTEGER,topic_id INTEGER,notify_status INTEGER','forum_prune'=>'prune_id INTEGER PRIMARY KEY,forum_id INTEGER,prune_days INTEGER,prune_freq INTEGER') as $name=>$definition){
   $p->exec('DROP TABLE IF EXISTS fixture_'.$name);
   if($GLOBALS['resetNative']&&$name==='forum_prune'){
-   $schema=file_get_contents($GLOBALS['root'].'install/schemas/mysql_schema.sql');reset_check(preg_match('/CREATE TABLE phpbb_forum_prune \(.*?\) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/s',$schema,$m)===1,'Canonical prune schema');
-   $p->exec(str_replace(array('phpbb_forum_prune','ENGINE=MyISAM'),array('fixture_forum_prune','ENGINE='.$engine),$m[0]));
+   $schema=file_get_contents($GLOBALS['root'].'install/schemas/mysql_schema.sql');reset_check(preg_match('/CREATE TABLE phpbb_forum_prune \(.*?\) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/s',$schema,$m)===1,'Canonical prune schema');
+   $p->exec(str_replace(array('phpbb_forum_prune','ENGINE=InnoDB ROW_FORMAT=DYNAMIC'),array('fixture_forum_prune','ENGINE='.$engine),$m[0]));
   }else{$p->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['resetNative']?' ENGINE='.$engine:''));}
  }
  $p->exec("INSERT INTO fixture_categories (cat_id,cat_title,cat_order,cat_main_type,cat_main,cat_desc) VALUES (10,'Original',10,'c',0,'')");

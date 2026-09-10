@@ -12,8 +12,8 @@ function author_fixture($engine,$actor=1){
   $p->exec('DROP TABLE IF EXISTS fixture_'.$name);
   if($GLOBALS['resetNative']){
    $schema=file_get_contents($GLOBALS['root'].'install/schemas/mysql_schema.sql');
-   reset_check(preg_match('/CREATE TABLE phpbb_'.$name.' \(.*?\) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/s',$schema,$m)===1,'Canonical author schema');
-   $p->exec(str_replace(array('phpbb_'.$name,'ENGINE=MyISAM'),array('fixture_'.$name,'ENGINE='.$engine),$m[0]));
+   reset_check(preg_match('/CREATE TABLE phpbb_'.$name.' \(.*?\) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/s',$schema,$m)===1,'Canonical author schema');
+   $p->exec(str_replace(array('phpbb_'.$name,'ENGINE=InnoDB ROW_FORMAT=DYNAMIC'),array('fixture_'.$name,'ENGINE='.$engine),$m[0]));
   }else{$p->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')');}
  }
  $p->exec("INSERT INTO fixture_posts (post_id,topic_id,poster_id,post_username,poster_ip,post_time) VALUES (1,10,999,'Grüße Alias','',100),(2,10,20,'','',90),(3,30,-1,'Guest@Fixture','',80),(4,40,222,'Preserve','',70),(5,50,20,'','',60),(6,60,20,'','',50)");

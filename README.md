@@ -34,6 +34,42 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## InnoDB storage migration
+
+Fresh installations use InnoDB with utf8mb4. Existing installations are converted
+by `update/update_from_153a.php`; this includes known optional Arcade and
+CrackerTracker tables, but never arbitrary tables merely sharing the prefix.
+For an already updated installation, use `--storage-only` to avoid unrelated
+schema/data updates. The default is a read-only plan:
+
+```sh
+php update/update_from_153a.php --storage-only
+php update/update_from_153a.php --storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+First test a restored copy and verify a complete database backup. Stop **all**
+web requests, cron jobs and other database writers for the apply run; the forum's
+ordinary disabled setting alone does not stop administrators or background jobs.
+The confirmation flag asserts that this external maintenance gate is in place;
+the script does not install or remove it. Allow extra disk space for table/index
+rebuilds and expect a maintenance window. The server must support InnoDB with
+DYNAMIC row format and the existing utf8mb4 indexes. Unsupported schemas fail
+strictly; no index shortening, discarded rows or forced constraint removal is used.
+
+Conversion verifies row counts, column/index definitions, collation and the
+auto-increment floor. HASH indexes may become equivalent BTREE indexes; InnoDB
+may select an existing NOT NULL unique key as its clustered key. DDL commits per
+table and cannot be rolled back as a single unit. After an interruption, keep
+writers stopped, review the error and rerun; completed conversions are skipped.
+Missing tables are not invented by storage-only mode. The full updater creates
+its normal missing extension tables before completing storage conversion.
+
+InnoDB does not automatically make existing multi-statement PHP workflows one
+transaction. Existing writer coordination and recovery journals remain necessary,
+especially for filesystem operations. MyISAM/MEMORY remain migration-test inputs,
+not the target storage format. ACP row statistics are labelled as estimates;
+InnoDB checks do not falsely claim to repair corruption with REPAIR TABLE.
+
 ## Project status
 
 This is legacy software. The original phpBB2 and phpBB2 Plus projects are no
@@ -474,7 +510,7 @@ php update/update_from_153a.php
 Apply it only to a tested copy after verifying current backups:
 
 ```text
-php update/update_from_153a.php --apply --backup-confirmed
+php update/update_from_153a.php --apply --backup-confirmed --maintenance-confirmed
 ```
 
 The updater is idempotent and preserves existing current configuration values.
