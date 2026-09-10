@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repair missing post/topic authors through the shared writer connection with
+  fresh ACP authority and current source checks. Keep stored guest names and
+  valid or concurrently restored author assignments, including inactive existing
+  accounts. Derive a missing topic author from its current first post inside the
+  update; report EN/DE counts and retryable partial failures. No schema change.
+
 - Recover orphan post texts into a locked, administrator-only area using current
   source text and current ACP authority at each write. Keep original text, subject,
   BBCode identity and attachment links; reuse reserved category/forum/topic IDs

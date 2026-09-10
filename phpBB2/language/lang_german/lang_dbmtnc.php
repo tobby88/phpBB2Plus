@@ -460,6 +460,8 @@ $lang['Updating_mod_state'] = 'Aktualisiere Moderator-Status der Benutzer';
 $lang['Changing_moderator_status'] = 'Aktualisiere Moderator-Status des Benutzers %s (%d)';
 $lang['Checking_moderators'] = 'Prüfe auf Benutzer ohne Moderator-Status, die mindestens ein Forum moderieren';
 // reset_date
+$lang['Maintenance_author_failed'] = 'Die Reparatur der Autorenzuordnung wurde unterbrochen. Frühere Korrekturen können bereits gespeichert sein. Behebe den Fehler und wiederhole die Reparatur; gespeicherte Gastnamen und Beitragsinhalte werden nicht überschrieben.';
+$lang['Maintenance_author_summary'] = '%d ungültige Beitragsautoren und %d ungültige Themenautoren korrigiert; %d inzwischen veränderte Einträge übersprungen. Vorhandene Gastnamen wurden beibehalten.';
 $lang['Maintenance_recovery_failed'] = 'Die Beitragswiederherstellung wurde unterbrochen. Frühere Reparaturen oder Wiederherstellungsbereiche können bereits gespeichert sein. Prüfe den Datenbankzugriff, führe bei Bedarf update/update_from_153a.php aus und wiederhole die Reparatur. Bereits gespeicherte Änderungen wurden nicht zurückgerollt.';
 $lang['Maintenance_recovery_changed'] = 'Der Wiederherstellungsbereich wurde verändert oder konnte nicht sicher angelegt werden. Prüfe seine Kategorie, das gesperrte Forum mit Zugriff nur für Administratoren und das gesperrte Thema, bevor du fortfährst. Vorhandene Inhalte wurden nicht überschrieben.';
 $lang['Maintenance_recovery_summary'] = '%d verwaiste Beitragstexte wiederhergestellt; %d inzwischen veränderte Kandidaten übersprungen. Wiederherstellungsbereiche werden beim erneuten Versuch wiederverwendet und sind nur Administratoren zugänglich.';

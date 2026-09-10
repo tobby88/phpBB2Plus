@@ -202,6 +202,13 @@ This does not delete source posts or rebuild the entire index. Earlier batches
 can remain applied after a failure, so back up before maintenance and retry only
 after resolving the error. Deployment does not perform cleanup or a migration.
 
+Missing-author repair preserves stored guest names and valid user references,
+including inactive accounts. Each write rechecks the original missing reference,
+current users and current ACP authority. Topic authors come from the current
+first post, with an anonymous fallback; post text and other metadata are untouched.
+Interrupted repairs can be retried without re-anonymizing a repaired assignment.
+This action needs no additional schema migration.
+
 Orphan-text recovery in structural maintenance preserves original text, subjects,
 BBCode IDs and existing attachment links. It creates missing post records only
 while the selected original still exists unchanged, in a locked administrator-only

@@ -695,3 +695,6 @@ jobs:
 
       - name: Add recovery container identities without rewriting existing data
         run: php .github/scripts/check-maintenance-recovery-migration.php
+
+      - name: Preserve current attribution during missing-author repair
+        run: php .github/scripts/check-maintenance-authors.php

@@ -1172,84 +1172,16 @@ switch($mode_id)
 				// Set a variable to check whether we should update the post data
 				$update_post_data = FALSE;
 
-				// Check posts for invaild posters
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_posters'] . "</b></p>\n");
-				$sql = "SELECT p.post_id
-					FROM " . POSTS_TABLE . " p
-						LEFT JOIN " . USERS_TABLE . " u ON p.poster_id = u.user_id
-					WHERE u.user_id IS NULL";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get post and user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['post_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					echo("<p class=\"gen\">" . $lang['Invalid_poster_found'] . ": $record_list</p>\n");
-					echo("<p class=\"gen\">" . $lang['Updating_posts'] . "</p>\n");
-					$sql = "UPDATE " . POSTS_TABLE . "
-						SET poster_id = " . DELETED . ",
-							post_username = ''
-						WHERE post_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update post information!", __LINE__, __FILE__, $sql);
-					}
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check topics for invaild posters
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_topic_posters'] . "</b></p>\n");
-				$sql = "SELECT t.topic_id, t.topic_poster
-					FROM " . TOPICS_TABLE . " t
-						LEFT JOIN " . USERS_TABLE . " u ON t.topic_poster = u.user_id
-					WHERE u.user_id IS NULL";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get topic and user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Invalid_topic_poster_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					$poster_id = get_poster($row['topic_id']);
-					echo("<li>" . sprintf($lang['Updating_topic'], $row['topic_id'], $row['topic_poster'], $poster_id) . "</li>\n");
-					$sql2 = "UPDATE " . TOPICS_TABLE . "
-						SET topic_poster = $poster_id
-						WHERE topic_id = " . $row['topic_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql2);
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
+				// Repair missing authors against current source and ACP authority.
+				echo('<p class="gen"><b>' . $lang['Checking_invalid_posters'] . ' / ' . $lang['Checking_invalid_topic_posters'] . '</b></p>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_authors.' . $phpEx);
+				$author_repair_error = '';
+				try { $author_repair = dbmtnc_repair_authors($db, $_POST); }
+				catch (PhpbbAclException $error) { $author_repair_error = $error->getMessage(); }
+				catch (Exception $error) { $author_repair_error = $lang['Maintenance_author_failed']; }
+				catch (Throwable $error) { $author_repair_error = $lang['Maintenance_author_failed']; }
+				if ($author_repair_error !== '') { throw_error($author_repair_error); }
+				echo('<p class="gen">' . sprintf($lang['Maintenance_author_summary'], $author_repair['posts'], $author_repair['topics'], $author_repair['skipped']) . '</p>');
 
 				// Check for forums with invalid categories
 				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_forums'] . "</b></p>\n");

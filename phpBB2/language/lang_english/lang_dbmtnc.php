@@ -442,6 +442,8 @@ $lang['Updating_mod_state'] = 'Updating moderator status of users';
 $lang['Changing_moderator_status'] = 'Changing moderator status of user %s (%d)';
 $lang['Checking_moderators'] = 'Checking for users without moderator status who do moderate a forum';
 // reset_date
+$lang['Maintenance_author_failed'] = 'Author repair was interrupted. Earlier corrections may already be saved. Resolve the error and repeat the repair; stored guest names and post contents are not rewritten.';
+$lang['Maintenance_author_summary'] = 'Repaired %d missing post-author references and %d topic-author references; skipped %d candidates whose current state changed. Existing guest names were preserved.';
 $lang['Maintenance_recovery_failed'] = 'Post recovery was interrupted. Earlier repairs or recovery containers may already be saved. Check database access, run update/update_from_153a.php if needed, and repeat the repair to resume. No rollback is claimed.';
 $lang['Maintenance_recovery_changed'] = 'The recovery area was changed or could not be allocated safely. Check its category, locked administrator-only forum and locked topic before retrying. Existing content was not overwritten.';
 $lang['Maintenance_recovery_summary'] = 'Recovered %d orphan post texts; skipped %d candidates whose source changed. Recovery containers are reused on retry and are restricted to administrators.';
