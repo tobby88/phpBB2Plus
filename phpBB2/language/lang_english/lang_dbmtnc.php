@@ -113,7 +113,7 @@ $mtnc[] = array('check_user',
 $mtnc[] = array('check_post',
 	'Check post and topic tables',
 	'This will check the post and the topic tables for errors.',
-	'You will loose all posts without any text. Proceed?',
+	'This repairs relationships and removes posts without text, ordinary empty topics and invalid references. Conflicting pruning rules and reserved recovery topics are retained. Back up first; partial changes can remain after an error. Board availability is not changed. Proceed?',
 	0);
 $mtnc[] = array('check_vote',
 	'Check vote tables',
@@ -353,7 +353,6 @@ $lang['Updating_invalid_prune_setting'] = 'Updating invalid prune settings of on
 $lang['Updating_invalid_prune_settings'] = 'Updating invalid prune settings of %d forums';
 $lang['Checking_topic_watch_data'] = 'Checking for invalid watched topics';
 $lang['Checking_auth_access_data'] = 'Checking for invalid group authorisation data';
-$lang['Must_synchronize'] = 'You have to synchronize the post data before using the board. Click to proceed.';
 // check_vote
 $lang['Checking_vote_tables'] = 'Check vote tables';
 $lang['Checking_votes_wo_topic'] = 'Checking for votes without corresponding topic';
@@ -442,6 +441,11 @@ $lang['Updating_mod_state'] = 'Updating moderator status of users';
 $lang['Changing_moderator_status'] = 'Changing moderator status of user %s (%d)';
 $lang['Checking_moderators'] = 'Checking for users without moderator status who do moderate a forum';
 // reset_date
+$lang['Maintenance_cleanup_failed'] = 'The structural cleanup could not finish. Earlier changes may already have been saved. Correct the cause and repeat the check; board availability has not been changed.';
+$lang['Maintenance_cleanup_parent_summary'] = 'Removed %d posts without text and %d empty topics; skipped %d entries whose state changed. Reserved recovery topics are retained.';
+$lang['Maintenance_cleanup_reference_summary'] = 'Removed %d invalid redirects; corrected %d move markers; removed %d orphan or identical duplicate prune rules; disabled %d forums with no prune rule; removed %d invalid subscriptions and %d invalid permission references; skipped %d changed entries.';
+$lang['Maintenance_cleanup_prune_conflicts'] = 'Different prune rules were retained for these forum IDs: %s. Please choose the intended policy in forum administration. Automatic pruning refuses ambiguous rules.';
+$lang['Maintenance_cleanup_complete'] = 'Structural check and counter synchronization finished. %d topic relationships still need review. Board availability was not changed; no continuation link is required.';
 $lang['Maintenance_topology_heading'] = 'Repairing category, forum and topic relationships';
 $lang['Maintenance_topology_failed'] = 'Relationship repair was interrupted. Earlier moves or recovery containers may already be saved. Resolve the error and rerun this repair to finish remaining routing and counters; no rollback is claimed. Post texts and attachment files are not rewritten.';
 $lang['Maintenance_topology_summary'] = 'Reassigned %d forums and %d topics; recovered %d posts into separate locked recovery topics; corrected %d post/forum links. Skipped %d changed candidates. Counter synchronization still requires review for %d topics.';

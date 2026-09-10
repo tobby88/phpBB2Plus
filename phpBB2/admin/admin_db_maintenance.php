@@ -67,15 +67,6 @@ function dbmtnc_continuation_token($function, $db_state)
 	return hash_hmac('sha256', (string) $function . '|' . (int) $db_state, (string) $userdata['session_id']);
 }
 
-function dbmtnc_continuation_url($function, $db_state)
-{
-	global $phpEx;
-
-	$db_state = (int) $db_state;
-	return append_sid("admin_db_maintenance.$phpEx?mode=perform&amp;function=" . rawurlencode((string) $function) .
-		'&amp;db_state=' . $db_state . '&amp;dbmtnc_token=' . dbmtnc_continuation_token($function, $db_state));
-}
-
 function dbmtnc_post_int($key, $default)
 {
 	return (isset($_POST[$key]) && is_scalar($_POST[$key]) && is_numeric($_POST[$key])) ? intval($_POST[$key]) : (int) $default;
@@ -1167,10 +1158,7 @@ switch($mode_id)
 				break;
 			case 'check_post': // Checks post data
 				echo("<h1>" . $lang['Checking_post_tables'] . "</h1>\n");
-				$db_state = lock_db();
-
-				// Set a variable to check whether we should update the post data
-				$update_post_data = FALSE;
+				// Each phase owns the shared writer; never change board availability.
 
 				// Repair missing authors against current source and ACP authority.
 				echo('<p class="gen"><b>' . $lang['Checking_invalid_posters'] . ' / ' . $lang['Checking_invalid_topic_posters'] . '</b></p>');
@@ -1185,111 +1173,15 @@ switch($mode_id)
 
 				// Check for forums with invalid categories: handled by the topology worker below.
 
-				// Check for posts without a text
-				echo("<p class=\"gen\"><b>" . $lang['Checking_posts_wo_text'] . "</b></p>\n");
-				$sql = "SELECT p.post_id, t.topic_id, t.topic_title, u.user_id, u.username
-					FROM " . POSTS_TABLE . " p
-						LEFT JOIN " . POSTS_TEXT_TABLE . " pt ON p.post_id = pt.post_id
-						LEFT JOIN " . TOPICS_TABLE . " t ON p.topic_id = t.topic_id
-						LEFT JOIN " . USERS_TABLE . " u ON p.poster_id = u.user_id
-					WHERE pt.post_id IS NULL";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get post data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Posts_wo_text_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Deleting_post_wo_text'], $row['post_id'], htmlspecialchars((string) $row['topic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $row['topic_id'], htmlspecialchars((string) $row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $row['user_id']) . "</li>\n");
-					$result_array[] = $row['post_id'];
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					echo("<p class=\"gen\">" . $lang['Deleting_Posts'] . " </p>\n");
-					$sql = "DELETE FROM " . POSTS_TABLE . "
-						WHERE post_id IN ($record_list)
-						AND NOT EXISTS (SELECT 1 FROM " . POSTS_TEXT_TABLE . " current_text
-							WHERE current_text.post_id = " . POSTS_TABLE . ".post_id)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete post data!", __LINE__, __FILE__, $sql);
-					}
-					$removed = (int) $db->sql_affectedrows();
-					$update_post_data = $update_post_data || $removed > 0;
-					echo('<p class="gen">' . sprintf($lang['Maintenance_parent_delete_summary'], $removed, count($result_array) - $removed) . '</p>');
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check for topics without a post
-				echo("<p class=\"gen\"><b>" . $lang['Checking_topics_wo_post'] . "</b></p>\n");
-				$sql = "SELECT t.topic_id, t.topic_title
-					FROM " . TOPICS_TABLE . " t
-						LEFT JOIN " . POSTS_TABLE . " p ON t.topic_id = p.topic_id
-					WHERE p.topic_id IS NULL
-						AND t.topic_status <> " . TOPIC_MOVED;
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get topic and post data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Topics_wo_post_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . htmlspecialchars($row['topic_title']) . " (" . $row['topic_id'] . ")</li>\n");
-					$result_array[] = $row['topic_id'];
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					echo("<p class=\"gen\">" . $lang['Deleting_topics'] . " </p>\n");
-					$sql = "DELETE FROM " . TOPICS_TABLE . "
-						WHERE topic_id IN ($record_list)
-						AND topic_status <> " . TOPIC_MOVED . "
-						AND NOT EXISTS (SELECT 1 FROM " . POSTS_TABLE . " current_post
-							WHERE current_post.topic_id = " . TOPICS_TABLE . ".topic_id)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete topic data!", __LINE__, __FILE__, $sql);
-					}
-					$removed = (int) $db->sql_affectedrows();
-					$update_post_data = $update_post_data || $removed > 0;
-					echo('<p class="gen">' . sprintf($lang['Maintenance_parent_delete_summary'], $removed, count($result_array) - $removed) . '</p>');
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
+				// Check for posts without a text and topics without a post under one owner.
+				require_once($phpbb_root_path . 'includes/functions_maintenance_cleanup.' . $phpEx);
+				$cleanup_error = '';
+				try { $parent_cleanup = dbmtnc_cleanup_structure($db, $_POST, 'parents'); }
+				catch (PhpbbAclException $error) { $cleanup_error = $error->getMessage(); }
+				catch (Exception $error) { $cleanup_error = $lang['Maintenance_cleanup_failed']; }
+				catch (Throwable $error) { $cleanup_error = $lang['Maintenance_cleanup_failed']; }
+				if ($cleanup_error !== '') { throw_error($cleanup_error); }
+				echo('<p class="gen">' . sprintf($lang['Maintenance_cleanup_parent_summary'], $parent_cleanup['steps']['posts'], $parent_cleanup['steps']['topics'], $parent_cleanup['skipped']) . '</p>');
 
 				// Check for topics with invalid forum, orphan posts and mismatched routing.
 				echo('<p class="gen"><b>' . $lang['Maintenance_topology_heading'] . '</b></p>');
@@ -1300,7 +1192,6 @@ switch($mode_id)
 				catch (Exception $error) { $topology_error = $lang['Maintenance_topology_failed']; }
 				catch (Throwable $error) { $topology_error = $lang['Maintenance_topology_failed']; }
 				if ($topology_error !== '') { throw_error($topology_error); }
-				$update_post_data = $update_post_data || $topology['topics'] > 0 || $topology['posts'] > 0 || $topology['routes'] > 0;
 				echo('<p class="gen">' . sprintf($lang['Maintenance_topology_summary'], $topology['forums'], $topology['topics'], $topology['posts'], $topology['routes'], $topology['skipped'], count($topology['synchronization']['review'])) . '</p>');
 
 				// Check for texts without a post: current-source, retryable recovery.
@@ -1308,328 +1199,27 @@ switch($mode_id)
 				require_once($phpbb_root_path . 'includes/functions_maintenance_recovery.' . $phpEx);
 				try { $orphan_recovery = dbmtnc_recover_orphan_text($db, $_POST); }
 				catch (PhpbbAclException $error) { throw_error($error->getMessage(), __LINE__, __FILE__); break; }
-				$update_post_data = $update_post_data || $orphan_recovery['restored'] > 0;
+				catch (Exception $error) { throw_error($lang['Maintenance_recovery_failed']); break; }
+				catch (Throwable $error) { throw_error($lang['Maintenance_recovery_failed']); break; }
 				echo('<p class="gen">' . sprintf($lang['Maintenance_recovery_summary'], $orphan_recovery['restored'], $orphan_recovery['skipped']) . '</p>');
 
-				// Check moved topics
-				echo("<p class=\"gen\"><b>" . $lang['Checking_moved_topics'] . "</b></p>\n");
-				$db_updated = FALSE;
-				$sql = "SELECT t.topic_id
-					FROM " . TOPICS_TABLE . " t
-						LEFT JOIN " . TOPICS_TABLE . " mt ON t.topic_moved_id = mt.topic_id
-					WHERE mt.topic_id IS NULL AND
-						t.topic_status = " . TOPIC_MOVED;
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
+				// Check moved topics, pruning, subscriptions and ACL references.
+				$cleanup_error = '';
+				try { $reference_cleanup = dbmtnc_cleanup_structure($db, $_POST, 'references'); }
+				catch (PhpbbAclException $error) { $cleanup_error = $error->getMessage(); }
+				catch (Exception $error) { $cleanup_error = $lang['Maintenance_cleanup_failed']; }
+				catch (Throwable $error) { $cleanup_error = $lang['Maintenance_cleanup_failed']; }
+				if ($cleanup_error !== '') { throw_error($cleanup_error); }
+				echo('<p class="gen">' . sprintf($lang['Maintenance_cleanup_reference_summary'],
+					$reference_cleanup['steps']['redirects'], $reference_cleanup['steps']['moved'],
+					$reference_cleanup['steps']['prune_orphans'] + $reference_cleanup['steps']['prune_duplicates'],
+					$reference_cleanup['steps']['prune_disabled'], $reference_cleanup['steps']['watch'],
+					$reference_cleanup['steps']['acl'], $reference_cleanup['skipped']) . '</p>');
+				if ($reference_cleanup['conflicts'])
 				{
-					throw_error("Couldn't get topic data!", __LINE__, __FILE__, $sql);
+					echo('<p class="gen">' . sprintf($lang['Maintenance_cleanup_prune_conflicts'], implode(', ', $reference_cleanup['conflicts'])) . '</p>');
 				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['topic_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					echo("<p class=\"gen\">" . $lang['Deleting_invalid_moved_topics'] . "</p>\n");
-					$sql = "DELETE FROM " . TOPICS_TABLE . "
-						WHERE topic_id IN ($record_list)
-							AND topic_status = " . TOPIC_MOVED . "
-						AND NOT EXISTS (SELECT 1 FROM " . POSTS_TABLE . " current_post
-							WHERE current_post.topic_id = " . TOPICS_TABLE . ".topic_id)
-						AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT topic_id FROM " . TOPICS_TABLE . ") current_target
-							WHERE current_target.topic_id = " . TOPICS_TABLE . ".topic_moved_id)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					echo('<p class="gen">' . sprintf($lang['Maintenance_parent_delete_summary'], (int) $affected_rows, count($result_array) - (int) $affected_rows) . '</p>');
-					if ( $affected_rows == 1 )
-					{
-						$db_updated = TRUE;
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						$db_updated = TRUE;
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
-				}
-				// Check for normal topics with move information
-				$sql = "UPDATE " . TOPICS_TABLE . "
-					SET topic_moved_id = 0
-					WHERE topic_moved_id <> 0
-						AND topic_status <> " . TOPIC_MOVED;
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql);
-				}
-				$affected_rows = $db->sql_affectedrows();
-				if ( $affected_rows == 1 )
-				{
-					echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_moved_topic'], $affected_rows) . "</p>\n");
-				}
-				elseif ( $affected_rows > 1 )
-				{
-					echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_moved_topics'], $affected_rows) . "</p>\n");
-				}
-				elseif ( !$db_updated )
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Checking for invalid prune settings
-				echo("<p class=\"gen\"><b>" . $lang['Checking_prune_settings'] . "</b></p>\n");
-				$db_updated = FALSE;
-				$sql = "SELECT p.forum_id
-					FROM " . PRUNE_TABLE . " p
-						LEFT JOIN " . FORUMS_TABLE . " f ON p.forum_id = f.forum_id
-					WHERE f.forum_id IS NULL
-					GROUP BY p.forum_id";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get forum and prune data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['forum_id'];
-				}
-				$db->sql_freeresult($result);
-				// Forums with multiple prune settings
-				$sql = "SELECT p.forum_id
-					FROM " . PRUNE_TABLE . " p
-						LEFT JOIN " . FORUMS_TABLE . " f ON p.forum_id = f.forum_id
-					GROUP BY p.forum_id
-					HAVING Count(p.forum_id) > 1";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get forum and prune data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['forum_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					echo("<p class=\"gen\">" . $lang['Removing_invalid_prune_settings'] . "</p>\n");
-					$record_list = implode(',', $result_array);
-					$db_updated = TRUE;
-					$sql = "DELETE FROM " . PRUNE_TABLE . "
-						WHERE forum_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update user data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_moved_topic'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_moved_topics'], $affected_rows) . "</p>\n");
-					}
-				}
-				// Forums with pruning enabled and no prune settings
-				$sql = "SELECT f.forum_id
-					FROM " . FORUMS_TABLE . " f
-						LEFT JOIN " . PRUNE_TABLE . " p ON f.forum_id = p.forum_id
-					WHERE p.forum_id IS NULL
-						AND f.prune_enable = 1";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get forum and prune data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$result_array[] = $row['forum_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					$sql = "UPDATE " . FORUMS_TABLE . "
-						SET prune_enable = 0
-						WHERE forum_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update user data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_prune_setting'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_prune_settings'], $affected_rows) . "</p>\n");
-					}
-				}
-				elseif ( !$db_updated )
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Checking for invalid topic-watch data
-				echo("<p class=\"gen\"><b>" . $lang['Checking_topic_watch_data'] . "</b></p>\n");
-				$sql = "SELECT tw.user_id
-					FROM " . TOPICS_WATCH_TABLE . " tw
-						LEFT JOIN " . USERS_TABLE . " u ON tw.user_id = u.user_id
-					WHERE u.user_id IS NULL
-					GROUP BY tw.user_id";
-				$user_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get topic-watch and user data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$user_array[] = $row['user_id'];
-				}
-				$db->sql_freeresult($result);
-				$sql = "SELECT tw.topic_id
-					FROM " . TOPICS_WATCH_TABLE . " tw
-						LEFT JOIN " . TOPICS_TABLE . " t ON tw.topic_id = t.topic_id
-					WHERE t.topic_id IS NULL
-					GROUP BY tw.topic_id";
-				$topic_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get topic-watch and topic data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$topic_array[] = $row['topic_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($user_array) || count($topic_array) )
-				{
-					$sql_query = '';
-					if ( count($user_array) )
-					{
-						$sql_query = 'user_id IN (' . implode(',', $user_array) . ') ';
-					}
-					if ( count($topic_array) )
-					{
-						$sql_query .= (($sql_query == '') ? '' : ' OR ') . 'topic_id IN (' . implode(',', $topic_array) . ') ';
-					}
-					$sql = "DELETE FROM " . TOPICS_WATCH_TABLE . "
-						WHERE $sql_query";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update topic-watch data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Checking for invalid auth-access data
-				echo("<p class=\"gen\"><b>" . $lang['Checking_auth_access_data'] . "</b></p>\n");
-				$sql = "SELECT aa.group_id
-					FROM " . AUTH_ACCESS_TABLE . " aa
-						LEFT JOIN " . GROUPS_TABLE . " g ON aa.group_id = g.group_id
-					WHERE g.group_id IS NULL
-					GROUP BY aa.group_id";
-				$group_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get auth-access and group data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$group_array[] = $row['group_id'];
-				}
-				$db->sql_freeresult($result);
-				$sql = "SELECT aa.forum_id
-					FROM " . AUTH_ACCESS_TABLE . " aa
-						LEFT JOIN " . FORUMS_TABLE . " f ON aa.forum_id = f.forum_id
-					WHERE f.forum_id IS NULL
-					GROUP BY aa.forum_id";
-				$forum_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get auth-access and forum data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					$forum_array[] = $row['forum_id'];
-				}
-				$db->sql_freeresult($result);
-				if ( count($group_array) || count($forum_array) )
-				{
-					$sql_query = '';
-					if ( count($group_array) )
-					{
-						$sql_query = 'group_id IN (' . implode(',', $group_array) . ') ';
-					}
-					if ( count($forum_array) )
-					{
-						$sql_query .= (($sql_query == '') ? '' : ' OR ') . 'forum_id IN (' . implode(',', $forum_array) . ') ';
-					}
-					$sql = "DELETE FROM " . AUTH_ACCESS_TABLE . "
-						WHERE $sql_query";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update auth-access data!", __LINE__, __FILE__, $sql);
-					}
-					$affected_rows = $db->sql_affectedrows();
-					if ( $affected_rows == 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-					}
-					elseif ( $affected_rows > 1 )
-					{
-						echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-					}
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// If post or topic data has been updated, we interrupt here and add a link to resync the data
-				if ($update_post_data)
-				{
-					echo("<p class=\"gen\"><a href=\"" . dbmtnc_continuation_url('synchronize_post_direct', (($db_state) ? 1 : 0)) . "\">" . $lang['Must_synchronize'] . "</a></p>\n");
-					// Send Information about processing time
-					echo('<p class="gensmall">' . sprintf($lang['Processing_time'], getmicrotime() - $timer) . '</p>');
-					include('./page_footer_admin.'.$phpEx);
-					exit;
-				}
-				else
-				{
-					lock_db(TRUE);
-				}
+				echo('<p class="gen">' . sprintf($lang['Maintenance_cleanup_complete'], count($reference_cleanup['synchronization']['review'])) . '</p>');
 				break;
 			case 'check_vote': // Guarded poll maintenance; source repair is reported.
 				echo('<h1>' . $lang['Checking_vote_tables'] . '</h1>');

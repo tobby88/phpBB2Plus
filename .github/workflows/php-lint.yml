@@ -688,7 +688,7 @@ jobs:
         run: php .github/scripts/check-maintenance-dates.php
 
       - name: Preserve repaired posts and topics during structural cleanup
-        run: php .github/scripts/check-maintenance-parent-deletes.php
+        run: php .github/scripts/check-maintenance-cleanup.php
 
       - name: Recover orphan post text with durable restricted containers
         run: php .github/scripts/check-maintenance-recovery.php

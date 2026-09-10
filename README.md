@@ -229,8 +229,20 @@ reference types or exhausted ID ranges require manual review, not ID reuse.
 On MySQL, the dedicated recovery connection disables
 [cached table metadata](https://dev.mysql.com/doc/mysql-infoschema-excerpt/8.0/en/information-schema-tables-table.html)
 when that session option exists, before consulting the auto-increment value.
-Do not repurpose the reserved recovery area while recovering data. This safeguard
-does not make the remaining legacy structural-maintenance steps transactional.
+Do not repurpose the reserved recovery area while recovering data.
+
+The complete post-table check now coordinates every repair/cleanup phase with
+the shared writer lock and current ACP session/authorization. Deletions recheck
+current parent references, and empty reserved recovery topics survive retries.
+Prune rules are coalesced only when all rules for that forum are identical;
+different policies are retained and reported by forum ID for manual selection.
+Automatic pruning refuses ambiguous schedules. Valid subscriptions and permission
+references restored during diagnosis are not deleted. The check finishes its
+counter synchronization inline and never toggles the board-disable setting,
+including on failure or when the administrator had already disabled the forum.
+This is not an all-or-nothing transaction: resolve reported errors and repeat the
+check after an interrupted run. These cleanup changes need no additional schema
+migration beyond the recovery identities above and never run during deployment.
 
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.

@@ -139,11 +139,10 @@ try{
    recovery_run($lang['Not_Authorised']);
   }
   foreach(array('success','failure','invalid') as $case){
-   recovery_fixture($engine);$db=new ResetForum();$update_post_data=false;$caught='';
+   recovery_fixture($engine);$db=new ResetForum();$caught='';
    if($case==='failure'){$resetServer->failure='INSERT INTO fixture_posts';}if($case==='invalid'){$_POST['sid']='bad';}
    ob_start();try{eval($recoveryBranch);}catch(ResetControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
    reset_check(($caught!=='')===($case!=='success'),'Actual recovery controller outcome');
-   reset_check($update_post_data===($case==='success'),'Actual controller synchronization flag');
    if($case==='success'){reset_check(strpos($html,sprintf($lang['Maintenance_recovery_summary'],2,0))!==false,'Actual localized summary');}
   }
   echo $engine.' '.$locale." orphan text recovery passed.\n";

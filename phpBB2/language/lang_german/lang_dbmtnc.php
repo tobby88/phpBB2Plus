@@ -116,7 +116,7 @@ $mtnc[] = array('check_user',
 $mtnc[] = array('check_post',
 	'Prüfe Beitrags- und Themen-Tabellen',
 	'Diese Funktion prüft die Beitrags- und die Themen-Tabellen auf Fehler.',
-	'Alle Beiträge ohne gespeichertem Text werden durch diese Aktion verloren gehen. Fortfahren?',
+	'Diese Aktion repariert Zuordnungen und entfernt Beiträge ohne Text, gewöhnliche leere Themen und ungültige Verknüpfungen. Widersprüchliche Prune-Regeln und reservierte Wiederherstellungsthemen bleiben erhalten. Bitte vorher sichern; bei Fehlern können Teiländerungen bestehen bleiben. Die Erreichbarkeit des Forums wird nicht geändert. Fortfahren?',
 	0);
 $mtnc[] = array('check_vote',
 	'Prüfe Umfrage-Tabellen',
@@ -369,8 +369,6 @@ $lang['Updating_invalid_prune_setting'] = 'Aktualisiere ungültige Prune-Einstel
 $lang['Updating_invalid_prune_settings'] = 'Aktualisiere ungültige Prune-Einstellungen von %d Foren';
 $lang['Checking_topic_watch_data'] = 'Prüfe auf ungültige beobachtete Themen';
 $lang['Checking_auth_access_data'] = 'Prüfe auf ungültige Gruppenberechtigungs-Daten';
-$lang['Must_synchronize'] = 'Du musst die Beitragsdaten synchronisieren, bevor du das Board nutzen kannst. Klicke hier, um
-	fortzusetzen.';
 // check_vote
 $lang['Checking_vote_tables'] = 'Prüfe Umfrage-Tabellen';
 $lang['Checking_votes_wo_topic'] = 'Prüfe auf Umfragen ohne zugehöriges Thema';
@@ -460,6 +458,11 @@ $lang['Updating_mod_state'] = 'Aktualisiere Moderator-Status der Benutzer';
 $lang['Changing_moderator_status'] = 'Aktualisiere Moderator-Status des Benutzers %s (%d)';
 $lang['Checking_moderators'] = 'Prüfe auf Benutzer ohne Moderator-Status, die mindestens ein Forum moderieren';
 // reset_date
+$lang['Maintenance_cleanup_failed'] = 'Die Strukturbereinigung konnte nicht abgeschlossen werden. Frühere Änderungen können bereits gespeichert sein. Bitte behebe die Ursache und wiederhole die Prüfung; die Erreichbarkeit des Forums wurde nicht geändert.';
+$lang['Maintenance_cleanup_parent_summary'] = '%d Beiträge ohne Text und %d leere Themen entfernt; %d inzwischen geänderte Einträge übersprungen. Reservierte Wiederherstellungsthemen bleiben erhalten.';
+$lang['Maintenance_cleanup_reference_summary'] = '%d ungültige Weiterleitungen entfernt; %d Verschiebungsmarker korrigiert; %d verwaiste oder identisch doppelte Prune-Regeln entfernt; Pruning in %d Foren ohne Regel deaktiviert; %d ungültige Abonnements und %d ungültige Berechtigungszuordnungen entfernt; %d geänderte Einträge übersprungen.';
+$lang['Maintenance_cleanup_prune_conflicts'] = 'Unterschiedliche Prune-Regeln für diese Foren-IDs wurden beibehalten: %s. Bitte wähle in der Forenverwaltung die gewünschte Regel. Automatisches Pruning lehnt mehrdeutige Regeln ab.';
+$lang['Maintenance_cleanup_complete'] = 'Strukturprüfung und Zählerabgleich abgeschlossen. %d Themenzuordnungen müssen noch geprüft werden. Die Erreichbarkeit des Forums wurde nicht geändert; ein Fortsetzungslink ist nicht erforderlich.';
 $lang['Maintenance_topology_heading'] = 'Kategorie-, Foren- und Themenzuordnungen reparieren';
 $lang['Maintenance_topology_failed'] = 'Die Reparatur der Zuordnungen wurde unterbrochen. Frühere Verschiebungen oder Wiederherstellungsbereiche können bereits gespeichert sein. Behebe den Fehler und wiederhole die Reparatur, um übrige Zuordnungen und Zähler zu vervollständigen; es erfolgt kein automatisches Zurückrollen. Beitragstexte und Anhangdateien werden nicht überschrieben.';
 $lang['Maintenance_topology_summary'] = '%d Foren und %d Themen neu zugeordnet; %d Beiträge in getrennten, gesperrten Themen wiederhergestellt; %d Beitrags-/Forenzuordnungen korrigiert. %d inzwischen veränderte Einträge übersprungen. Bei %d Themen erfordert die Zählersynchronisierung noch eine Prüfung.';

@@ -101,10 +101,9 @@ try{foreach($resetNative?array('MyISAM','InnoDB'):array('SQLite') as $engine){fo
  }
  topology_fixture($engine,20);$resetServer->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".$grant."')");topology_run();topology_complete();
  foreach(array('success','failure','invalid') as $case){
-  topology_fixture($engine);$db=new ResetForum();$update_post_data=false;$caught='';if($case==='failure'){$resetServer->failure='UPDATE fixture_topics SET forum_id';}elseif($case==='invalid'){$_POST['sid']='bad';}
+  topology_fixture($engine);$db=new ResetForum();$caught='';if($case==='failure'){$resetServer->failure='UPDATE fixture_topics SET forum_id';}elseif($case==='invalid'){$_POST['sid']='bad';}
   ob_start();try{eval($branch);}catch(ResetControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
   reset_check(($caught==='')===($case==='success'),'Actual topology controller failure handling');
-  reset_check($update_post_data===($case==='success'),'Actual topology synchronization flag');
   if($case==='success'){reset_check(strpos($html,sprintf($lang['Maintenance_topology_summary'],1,2,4,5,0,1))!==false,'Actual translated topology summary');}
  }
  echo $engine.' '.$locale." topology maintenance passed.\n";

@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Coordinate the complete post-table maintenance check with the shared writer
+  and current ACP authority/session. Recheck parent validity at deletion time,
+  preserve reserved recovery topics, and retain conflicting pruning policies
+  while coalescing only wholly identical rules. Fix stale subscription/ACL
+  cleanup and misleading prune diagnostics. Complete counters inline without
+  changing board availability or leaving a browser continuation pending.
+  Regression coverage includes the full controller, late restorations and
+  revocations, lost write acknowledgements, retry and disabled-board behavior.
 - Replace stale-list category/topic recovery and post routing with a guarded,
   retryable topology worker. Keep original topics when only their forum is
   missing; preserve separate orphan-topic groups, titles, authors, texts and

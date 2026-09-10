@@ -23,7 +23,9 @@ dbmtnc_safety_assert(strpos($admin, 'phpbb_admin_require_post_session();') !== f
 dbmtnc_safety_assert(strpos($admin, "array('', 'start', 'perform')") !== false, 'maintenance modes must use a strict allowlist');
 dbmtnc_safety_assert(strpos($admin, "array('perform_rebuild', 'synchronize_post_direct')") !== false, 'only explicit long-running continuations may bypass POST');
 dbmtnc_safety_assert(strpos($admin, 'dbmtnc_continuation_token') !== false, 'long-running continuations must carry a session-bound token');
-dbmtnc_safety_assert(substr_count($admin, 'dbmtnc_continuation_url(') >= 2 && strpos($admin, 'dbmtnc_rebuild_url($rebuild_job') !== false, 'both synchronization and rebuild continuations use their signed helpers');
+dbmtnc_safety_assert(strpos($admin, 'dbmtnc_rebuild_url($rebuild_job') !== false, 'remaining rebuild continuations use their signed helper');
+dbmtnc_safety_assert(strpos($admin, 'hash_equals(dbmtnc_continuation_token($function, $dbmtnc_state), $dbmtnc_token)') !== false && strpos($admin, 'dbmtnc_post_sync_request($function, $post_sync_request)') !== false, 'legacy synchronization links still validate both gateway and worker request signatures');
+dbmtnc_safety_assert(strpos($admin, 'dbmtnc_continuation_url(') === false, 'post checks must not generate obsolete browser-dependent synchronization links');
 dbmtnc_safety_assert(strpos($admin, "dbmtnc_rebuild_request('step', \$_GET)") !== false, 'rebuild gateway validates generation and position tokens separately');
 dbmtnc_safety_assert(strpos($admin, 'mode=perform&amp;function=check_post') === false, 'ordinary maintenance must not be linked as a GET mutation');
 dbmtnc_safety_assert(strpos($admin, '$HTTP_POST_VARS') === false, 'configuration writes must use scalar-checked POST values');
