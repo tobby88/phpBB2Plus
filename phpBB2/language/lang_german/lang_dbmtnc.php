@@ -504,6 +504,7 @@ $lang['Maintenance_unconfirmed'] = 'Der Vorgang wurde nicht ohne Warnungen oder 
 $lang['Maintenance_incomplete'] = 'Nicht alle Tabellenvorgänge wurden bestätigt. Bitte die Meldungen prüfen, bevor Prüfungen oder Reparaturen als erfolgreich gelten. Nicht unterstützte Speicher-Engines benötigen ein anderes Wiederherstellungsverfahren; es wurde kein automatisches Ersatzverfahren versucht.';
 $lang['Maintenance_invalid_target'] = 'Ungültiger Tabellenname oder Wartungsvorgang.';
 $lang['Maintenance_query_failed'] = 'Die Datenbankabfrage zur Tabellenwartung ist fehlgeschlagen.';
+$lang['Maintenance_user_failed'] = 'Die Benutzerwartung konnte nicht abgeschlossen werden. Vorherige Reparaturen können bereits wirksam sein; sie wurden nicht automatisch rückgängig gemacht. Bitte den Fehler prüfen und erneut versuchen.';
 $lang['Maintenance_search_cleanup_failed'] = 'Die Suchindex-Bereinigung konnte nicht abgeschlossen werden. Vorherige Stapel können bereits gelöscht sein; eine vollständige Rücknahme ist nicht zugesichert. Bitte den Fehler beheben und erneut ausführen. Diese Aktion löscht keine Originalbeiträge.';
 $lang['Maintenance_user_sync_failed'] = 'Die Synchronisierung der Benutzer-Beitragszähler konnte nicht abgeschlossen werden. Vorherige Änderungen können bereits wirksam sein; eine vollständige Rücknahme ist nicht zugesichert. Bitte den Fehler beheben und erneut ausführen.';
 $lang['Maintenance_user_counter_changed'] = '%s (Benutzer-ID %d): Beitragszähler auf %d synchronisiert.';

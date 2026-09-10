@@ -5,6 +5,7 @@ define('USERS_TABLE','fixture_users'); define('GROUPS_TABLE','fixture_groups'); 
 function check($ok,$message){if(!$ok){throw new \RuntimeException($message);}}
 class RepairFailure extends \RuntimeException {}
 function throw_error($message){throw new RepairFailure($message);}
+function dbmtnc_user_error($message){throw new RepairFailure($message);}
 function check_mysql_version(){return true;}
 class Database {
  public $pdo;public $failure='';public $affected=0;
@@ -19,6 +20,7 @@ class Database {
  function sql_freeresult($r){$r->closeCursor();}
  function sql_affectedrows(){return $this->affected;}
  function sql_nextid(){return (int)$this->pdo->lastInsertId();}
+ function sql_write($sql){return $this->sql_query($sql);}
 }
 function fragment($source,$start,$end){$a=strpos($source,$start);$b=$a===false?false:strpos($source,$end,$a);check($a!==false&&$b>$a,'Actual maintenance fragment found');return 'namespace MaintenanceGroupFixture;'.substr($source,$a,$b-$a);}
 $source=file_get_contents($root.'admin/admin_db_maintenance.php');

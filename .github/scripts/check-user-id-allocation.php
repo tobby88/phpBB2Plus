@@ -135,11 +135,18 @@ try
     mutation_check($db->sql_query('SELECT user_id FROM fixture_users')===false,'Lost ownership cannot silently continue on the unlocked connection');
     phpbb_user_write_end($db,$scope);
     mutation_check($db===$original_db,'Failure cleanup restores original connection');
-    foreach(array('admin/admin_users.php','admin/admin_user_register.php','includes/usercp_register.php','admin/admin_db_maintenance.php') as $file)
+    foreach(array('admin/admin_users.php','admin/admin_user_register.php','includes/usercp_register.php') as $file)
     {
         $source=file_get_contents($forum_root.$file);
         mutation_check(strpos($source,'phpbb_user_write_begin($db)')!==false && strpos($source,'phpbb_user_write_end($db,')!==false,'Account/group repair scopes are connected: '.$file);
     }
+    // Maintenance now adds current ACP authorization to the same dedicated
+    // writer. Its complete lifecycle and mutation guards run in the separate
+    // check-maintenance-users.php controller suite, not this allocator fixture.
+    $source=file_get_contents($forum_root.'admin/admin_db_maintenance.php');
+    $maintenance=file_get_contents($forum_root.'includes/functions_maintenance_users.php');
+    mutation_check(strpos($source,'dbmtnc_user_begin($db, $_POST)')!==false && strpos($source,'dbmtnc_user_end($db, $user_repair_scope)')!==false,'Authorized maintenance scope is connected');
+    mutation_check(strpos($maintenance,'new attach_mutation_lock($database)')!==false && strpos($maintenance,'$lock->connection')!==false && strpos($maintenance,'$scope[1]->release()')!==false,'Maintenance still shares the dedicated account-publication writer');
     echo "Durable user ID allocation, shared publication lock and controller checks passed.\n";
 }
 finally { restore_error_handler(); }

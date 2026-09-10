@@ -8,6 +8,19 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Run the full ACP user-maintenance workflow on a dedicated, shared writer
+  without changing board availability. Recheck current account, delegated
+  maintenance grant and ACP session around reads/writes, with authorization
+  predicates inside every mutation. Release the writer before rendering errors;
+  retain partial repairs honestly after interruption and permit safe retries.
+  Requalify current personal-group ownership, moderator membership, orphan
+  references, ranks and themes rather than overwriting independently repaired
+  data. Preserve IP/email rules when clearing a dangling user from a combined
+  ban; retain ambiguous/empty groups and their ACL/plugin references. Correct
+  missing-guest reporting and remove style-repair SQL debug output. Test the
+  actual complete controller, every reached write under revocation/failure,
+  lost acknowledgements, current-source changes and both board states. No
+  schema migration or automatic user repair is introduced by this update.
 - Escape legacy language values in ACP user-maintenance SQL and HTML. Compare
   exact bytes instead of collation-equivalent values, repair NULL preferences,
   validate installed language-pack names and fail without changing preferences

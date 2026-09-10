@@ -489,6 +489,7 @@ $lang['Maintenance_unconfirmed'] = 'The operation was not confirmed without warn
 $lang['Maintenance_incomplete'] = 'Not all table operations were confirmed. Review the messages before assuming that checks or repairs succeeded. Unsupported storage engines require a different recovery procedure; no automatic fallback was attempted.';
 $lang['Maintenance_invalid_target'] = 'Invalid table name or maintenance operation.';
 $lang['Maintenance_query_failed'] = 'The table maintenance query failed.';
+$lang['Maintenance_user_failed'] = 'User maintenance could not be completed. Previous repairs may already have been applied; no automatic rollback was attempted. Review the error and retry.';
 $lang['Maintenance_search_cleanup_failed'] = 'Search-index cleanup could not finish. Earlier batches may already have been removed; a full rollback is not guaranteed. Resolve the error and retry. No source posts are deleted by this action.';
 $lang['Maintenance_user_sync_failed'] = 'User post-count synchronization could not finish. Earlier counter changes may already be applied; a full rollback is not guaranteed. Resolve the error and retry.';
 $lang['Maintenance_user_counter_changed'] = '%s (user ID %d): post count synchronized to %d.';

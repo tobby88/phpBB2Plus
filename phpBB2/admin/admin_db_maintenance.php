@@ -420,10 +420,12 @@ switch($mode_id)
 				break;
 			case 'check_user': // Check user tables
 				echo("<h1>" . $lang['Checking_user_tables'] . "</h1>\n");
-				lock_db();
-				require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
-				// Board-disable alone does not stop requests already in flight.
-				$user_repair_scope = phpbb_user_write_begin($db);
+				require_once($phpbb_root_path . 'includes/functions_maintenance_users.' . $phpEx);
+				$user_repair_scope = null;
+				$user_repair_error = '';
+				try
+				{
+				$user_repair_scope = dbmtnc_user_begin($db, $_POST);
 
 				// Check for missing anonymous user
 				echo("<p class=\"gen\"><b>" . $lang['Checking_missing_anonymous'] . "</b></p>\n");
@@ -432,7 +434,7 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get user information!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get user information!", __LINE__, __FILE__, $sql);
 				}
 				if ( $row = $db->sql_fetchrow($result) ) // anonymous user exists
 				{
@@ -442,13 +444,13 @@ switch($mode_id)
 				{
 					// Recreate entry
 					$sql = "INSERT INTO " . USERS_TABLE . " (user_id, username, user_level, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_interests, user_sig, user_viewemail, user_style, user_aim, user_yim, user_msnm, user_posts, user_attachsig, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_pm, user_notify_pm, user_allow_viewonline, user_rank, user_avatar, user_lang, user_timezone, user_dateformat, user_actkey, user_newpasswd, user_notify, user_active)
-						VALUES (" . ANONYMOUS . ", 'Anonymous', 0, 0, '', '', '', '', '', '', '', '', 0, NULL, '', '', '', 0, 0, 1, 1, 1, 0, 1, 1, 0, '', '', 0, '', '', '', 0, 0)";
-					$result = $db->sql_query($sql);
+						SELECT " . ANONYMOUS . ", 'Anonymous', 0, 0, '', '', '', '', '', '', '', '', 0, NULL, '', '', '', 0, 0, 1, 1, 1, 0, 1, 1, 0, '', '', 0, '', '', '', 0, 0 WHERE NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id FROM " . USERS_TABLE . ") guest_current WHERE user_id = " . ANONYMOUS . ")";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't add user data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't add user data!", __LINE__, __FILE__, $sql);
 					}
-					echo("<p class=\"gen\">" . sprintf($lang['Anonymous_recreated'], $affected_rows) . "</p>\n");
+					echo("<p class=\"gen\">" . sprintf($lang['Anonymous_recreated'], $db->sql_affectedrows()) . "</p>\n");
 				}
 
 				// Update incorrect pending information: either a single user group with pending state or a group with pending state NULL
@@ -458,10 +460,10 @@ switch($mode_id)
 				$sql = "UPDATE " . USER_GROUP_TABLE . "
 					SET user_pending = 1
 					WHERE user_pending IS NULL";
-				$result = $db->sql_query($sql);
+				$result = $db->sql_write($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't update pending information!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't update pending information!", __LINE__, __FILE__, $sql);
 				}
 				$affected_rows = $db->sql_affectedrows();
 				if ( $affected_rows == 1 )
@@ -487,11 +489,11 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					$result_array[] = $row['group_id'];
+					$result_array[] = (int) $row['group_id'];
 				}
 				$db->sql_freeresult($result);
 				if ( count($result_array) )
@@ -501,11 +503,15 @@ switch($mode_id)
 					echo("<p class=\"gen\">" . $lang['Updating_pending_information'] . ": $record_list</p>\n");
 					$sql = "UPDATE " . USER_GROUP_TABLE . "
 						SET user_pending = 0
-						WHERE group_id IN ($record_list)";
-					$result = $db->sql_query($sql);
+						WHERE group_id IN ($record_list)"
+						. " AND user_pending = 1 AND EXISTS (SELECT 1 FROM " . GROUPS_TABLE . " pending_group"
+						. " WHERE pending_group.group_id = " . USER_GROUP_TABLE . ".group_id AND pending_group.group_single_user = 1)"
+						. " AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT group_id, user_id FROM " . USER_GROUP_TABLE . ") pending_other"
+						. " WHERE pending_other.group_id = " . USER_GROUP_TABLE . ".group_id AND pending_other.user_id <> " . USER_GROUP_TABLE . ".user_id)";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't update pending information!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't update pending information!", __LINE__, __FILE__, $sql);
 					}
 				}
 				if (!$db_updated)
@@ -525,7 +531,7 @@ switch($mode_id)
 				$missing_groups = array();
 				$multiple_groups = array();
 				$result = $db->sql_query($sql);
-				if (!$result) { throw_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql); }
+				if (!$result) { dbmtnc_user_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql); }
 				while ($row = $db->sql_fetchrow($result))
 				{
 					if ((int) $row['group_count'] === 0) { $missing_groups[] = (int) $row['user_id']; }
@@ -539,7 +545,7 @@ switch($mode_id)
 						AND EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " other_member
 							WHERE other_member.group_id = ug.group_id AND other_member.user_id <> ug.user_id)";
 				$result = $db->sql_query($sql);
-				if (!$result) { throw_error("Couldn't check personal group ownership!", __LINE__, __FILE__, $sql); }
+				if (!$result) { dbmtnc_user_error("Couldn't check personal group ownership!", __LINE__, __FILE__, $sql); }
 				while ($row = $db->sql_fetchrow($result)) { $multiple_groups[] = (int) $row['user_id']; }
 				$db->sql_freeresult($result);
 				$multiple_groups = array_values(array_unique($multiple_groups));
@@ -560,19 +566,31 @@ switch($mode_id)
 					{
 						$group_name = ($missing_groups[$i] == ANONYMOUS) ? 'Anonymous' : '';
 						$sql = "INSERT INTO " . GROUPS_TABLE . " (group_type, group_name, group_description, group_moderator, group_single_user)
-							VALUES (1, '$group_name', 'Personal User', 0, 1)";
-						$result = $db->sql_query($sql);
+							SELECT 1, '$group_name', 'Personal User', 0, 1 WHERE 1 = 1"
+							. " AND EXISTS (SELECT 1 FROM " . USERS_TABLE . " missing_owner WHERE missing_owner.user_id = " . $missing_groups[$i] . ")"
+							. " AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT ug.user_id FROM " . USER_GROUP_TABLE . " ug"
+							. " INNER JOIN " . GROUPS_TABLE . " g ON g.group_id = ug.group_id WHERE g.group_single_user = 1) existing_personal"
+							. " WHERE existing_personal.user_id = " . $missing_groups[$i] . ")";
+						$result = $db->sql_write($sql);
 						if ( !$result )
 						{
-							throw_error("Couldn't add group data!", __LINE__, __FILE__, $sql);
+							dbmtnc_user_error("Couldn't add group data!", __LINE__, __FILE__, $sql);
 						}
-						$group_id = $db->sql_nextid();
+						if ($db->sql_affectedrows() !== 1) { continue; }
+						$group_id = (int) $db->sql_nextid();
+						if ($group_id <= 0) { dbmtnc_user_error($lang['Maintenance_user_failed']); }
 						$sql = "INSERT INTO " . USER_GROUP_TABLE . " (group_id, user_id, user_pending)
-							VALUES ($group_id, " . $missing_groups[$i] . ", 0)";
-						$result = $db->sql_query($sql);
+							SELECT $group_id, " . $missing_groups[$i] . ", 0 WHERE 1 = 1"
+							. " AND EXISTS (SELECT 1 FROM " . USERS_TABLE . " missing_owner WHERE missing_owner.user_id = " . $missing_groups[$i] . ")"
+							. " AND EXISTS (SELECT 1 FROM " . GROUPS_TABLE . " new_personal WHERE new_personal.group_id = $group_id AND new_personal.group_single_user = 1)"
+							. " AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT group_id FROM " . USER_GROUP_TABLE . ") existing_member WHERE existing_member.group_id = $group_id)"
+							. " AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT ug.user_id FROM " . USER_GROUP_TABLE . " ug"
+							. " INNER JOIN " . GROUPS_TABLE . " g ON g.group_id = ug.group_id WHERE g.group_single_user = 1) existing_personal"
+							. " WHERE existing_personal.user_id = " . $missing_groups[$i] . ")";
+						$result = $db->sql_write($sql);
 						if ( !$result )
 						{
-							throw_error("Couldn't add user - group connection!", __LINE__, __FILE__, $sql);
+							dbmtnc_user_error("Couldn't add user - group connection!", __LINE__, __FILE__, $sql);
 						}
 					}
 				}
@@ -591,7 +609,7 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get group data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get group data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
@@ -603,12 +621,14 @@ switch($mode_id)
 					}
 					echo("<li>" . htmlspecialchars($row['group_name']) . " (" . $row['group_id'] . ")</li>\n");
 					$sql2 = "UPDATE " . GROUPS_TABLE . "
-						SET group_moderator = " . $userdata['user_id'] . "
-						WHERE group_id = " . $row['group_id'];
-					$result2 = $db->sql_query($sql2);
+						SET group_moderator = " . (int) $userdata['user_id'] . "
+						WHERE group_id = " . (int) $row['group_id']
+						. " AND group_single_user = 0 AND (group_moderator = " . ANONYMOUS
+						. " OR NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " current_moderator WHERE current_moderator.user_id = " . GROUPS_TABLE . ".group_moderator))";
+					$result2 = $db->sql_write($sql2);
 					if ( !$result2 )
 					{
-						throw_error("Couldn't update group data!", __LINE__, __FILE__, $sql2);
+						dbmtnc_user_error("Couldn't update group data!", __LINE__, __FILE__, $sql2);
 					}
 				}
 				$db->sql_freeresult($result);
@@ -630,7 +650,7 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get group data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get group data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
@@ -641,7 +661,7 @@ switch($mode_id)
 					$result2 = $db->sql_query($sql2);
 					if ( !$result2 )
 					{
-						throw_error("Couldn't get group data!", __LINE__, __FILE__, $sql2);
+						dbmtnc_user_error("Couldn't get group data!", __LINE__, __FILE__, $sql2);
 					}
 					if ( !($row2 = $db->sql_fetchrow($result2)) ) // No record found
 					{
@@ -653,11 +673,17 @@ switch($mode_id)
 						}
 						echo("<li>" . htmlspecialchars($row['group_name']) . " (" . $row['group_id'] . ") - " . $lang['Moderator_added'] . "</li>\n");
 						$sql3 = "INSERT INTO " . USER_GROUP_TABLE . " (group_id, user_id, user_pending)
-							VALUES (" . $row['group_id'] . ", " . $row['group_moderator'] . ", 0)";
-						$result3 = $db->sql_query($sql3);
+							SELECT " . (int) $row['group_id'] . ", " . (int) $row['group_moderator'] . ", 0 WHERE 1 = 1"
+							. " AND EXISTS (SELECT 1 FROM " . GROUPS_TABLE . " current_group INNER JOIN " . USERS_TABLE . " current_mod"
+							. " ON current_mod.user_id = current_group.group_moderator WHERE current_group.group_id = " . (int) $row['group_id']
+							. " AND current_group.group_single_user = 0 AND current_group.group_moderator = " . (int) $row['group_moderator']
+							. " AND current_mod.user_id <> " . ANONYMOUS . ")"
+							. " AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT group_id,user_id FROM " . USER_GROUP_TABLE . ") current_member"
+							. " WHERE current_member.group_id = " . (int) $row['group_id'] . " AND current_member.user_id = " . (int) $row['group_moderator'] . ")";
+						$result3 = $db->sql_write($sql3);
 						if ( !$result3 )
 						{
-							throw_error("Couldn't insert data in user-group-table!", __LINE__, __FILE__, $sql3);
+							dbmtnc_user_error("Couldn't insert data in user-group-table!", __LINE__, __FILE__, $sql3);
 						}
 					}
 					elseif ( $row2['user_pending'] == 1 ) // Record found but moderator is pending
@@ -671,12 +697,16 @@ switch($mode_id)
 						echo("<li>" . htmlspecialchars($row['group_name']) . " (" . $row['group_id'] . ") - " . $lang['Moderator_changed_pending'] . "</li>\n");
 						$sql3 = "UPDATE " . USER_GROUP_TABLE . "
 							SET user_pending = 0
-							WHERE group_id = " . $row['group_id'] . "
-								AND user_id = " . $row['group_moderator'];
-						$result3 = $db->sql_query($sql3);
+							WHERE group_id = " . (int) $row['group_id'] . "
+								AND user_id = " . (int) $row['group_moderator']
+							. " AND user_pending = 1 AND EXISTS (SELECT 1 FROM " . GROUPS_TABLE . " current_group INNER JOIN " . USERS_TABLE . " current_mod"
+							. " ON current_mod.user_id = current_group.group_moderator WHERE current_group.group_id = " . (int) $row['group_id']
+							. " AND current_group.group_single_user = 0 AND current_group.group_moderator = " . (int) $row['group_moderator']
+							. " AND current_mod.user_id <> " . ANONYMOUS . ")";
+						$result3 = $db->sql_write($sql3);
 						if ( !$result3 )
 						{
-							throw_error("Couldn't update data in user-group-table!", __LINE__, __FILE__, $sql3);
+							dbmtnc_user_error("Couldn't update data in user-group-table!", __LINE__, __FILE__, $sql3);
 						}
 					}
 					$db->sql_freeresult($result2);
@@ -703,22 +733,23 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					$result_array[] = $row['user_id'];
+					$result_array[] = (int) $row['user_id'];
 				}
 				$db->sql_freeresult($result);
 				if ( count($result_array) )
 				{
 					$record_list = implode(',', $result_array);
 					$sql = "DELETE FROM " . USER_GROUP_TABLE . "
-						WHERE user_id IN ($record_list)";
-					$result = $db->sql_query($sql);
+						WHERE user_id IN ($record_list)"
+						. " AND NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " repair_user WHERE repair_user.user_id = " . USER_GROUP_TABLE . ".user_id)";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't update user-group data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't update user-group data!", __LINE__, __FILE__, $sql);
 					}
 					$affected_rows = $db->sql_affectedrows();
 					if ( $affected_rows == 1 )
@@ -741,7 +772,7 @@ switch($mode_id)
 					WHERE NOT EXISTS (SELECT 1 FROM " . USER_GROUP_TABLE . " ug WHERE ug.group_id = g.group_id)
 					ORDER BY g.group_id";
 				$result = $db->sql_query($sql);
-				if (!$result) { throw_error("Couldn't check empty groups!", __LINE__, __FILE__, $sql); }
+				if (!$result) { dbmtnc_user_error("Couldn't check empty groups!", __LINE__, __FILE__, $sql); }
 				$empty_groups = array();
 				while ($row = $db->sql_fetchrow($result)) { $empty_groups[] = (int) $row['group_id']; }
 				$db->sql_freeresult($result);
@@ -762,22 +793,23 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get user and group data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					$result_array[] = $row['group_id'];
+					$result_array[] = (int) $row['group_id'];
 				}
 				$db->sql_freeresult($result);
 				if ( count($result_array) )
 				{
 					$record_list = implode(',', $result_array);
 					$sql = "DELETE FROM " . USER_GROUP_TABLE . "
-						WHERE group_id IN ($record_list)";
-					$result = $db->sql_query($sql);
+						WHERE group_id IN ($record_list)"
+						. " AND NOT EXISTS (SELECT 1 FROM " . GROUPS_TABLE . " current_group WHERE current_group.group_id = " . USER_GROUP_TABLE . ".group_id)";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't update user-group data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't update user-group data!", __LINE__, __FILE__, $sql);
 					}
 					$affected_rows = $db->sql_affectedrows();
 					if ( $affected_rows == 1 )
@@ -804,7 +836,7 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get user and rank data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get user and rank data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
@@ -815,7 +847,7 @@ switch($mode_id)
 						$list_open = TRUE;
 					}
 					echo("<li>" . htmlspecialchars($row['username']) . " (" . $row['user_id'] . ")</li>\n");
-					$result_array[] = $row['user_id'];
+					$result_array[] = (int) $row['user_id'];
 				}
 				$db->sql_freeresult($result);
 				if ($list_open)
@@ -829,11 +861,12 @@ switch($mode_id)
 					$record_list = implode(',', $result_array);
 					$sql = "UPDATE " . USERS_TABLE . "
 						SET user_rank = 0
-						WHERE user_id IN ($record_list)";
-					$result = $db->sql_query($sql);
+						WHERE user_id IN ($record_list)"
+						. " AND user_rank <> 0 AND NOT EXISTS (SELECT 1 FROM " . RANKS_TABLE . " current_rank WHERE current_rank.rank_id = " . USERS_TABLE . ".user_rank)";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't update user data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't update user data!", __LINE__, __FILE__, $sql);
 					}
 				}
 				else
@@ -852,7 +885,7 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get user and theme data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get user and theme data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
@@ -863,16 +896,16 @@ switch($mode_id)
 						$sql2 = "UPDATE " . USERS_TABLE . "
 							SET user_style = 0
 							WHERE user_style IS NULL AND user_id <> " . ANONYMOUS;
-						$result2 = $db->sql_query($sql2);
+						$result2 = $db->sql_write($sql2);
 						if ( !$result2 )
 						{
-							throw_error("Couldn't update themes data!", __LINE__, __FILE__, $sql2);
+							dbmtnc_user_error("Couldn't update themes data!", __LINE__, __FILE__, $sql2);
 						}
 						$result_array[] = 0;
 					}
 					else
 					{
-						$result_array[] = $row['user_style'];
+						$result_array[] = (int) $row['user_style'];
 					}
 				}
 				$db->sql_freeresult($result);
@@ -882,15 +915,15 @@ switch($mode_id)
 					$record_list = implode(',', $result_array);
 					$sql = "SELECT themes_id
 						FROM " . THEMES_TABLE . "
-						WHERE themes_id = " . $board_config['default_style'];
+						WHERE themes_id = " . (int) $board_config['default_style'];
 					$result = $db->sql_query($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't get themes data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't get themes data!", __LINE__, __FILE__, $sql);
 					}
 					if ( $row = $db->sql_fetchrow($result) )
 					{
-						$new_style = $row['themes_id'];
+						$new_style = (int) $row['themes_id'];
 					}
 					else // the default template is not available
 					{
@@ -898,31 +931,33 @@ switch($mode_id)
 						$db->sql_freeresult($result);
 						$sql = "SELECT themes_id
 							FROM " . THEMES_TABLE . "
-							WHERE themes_id = " . $userdata['user_style'];
-							echo($sql);
+							WHERE themes_id = " . (int) $userdata['user_style'];
 						$result = $db->sql_query($sql);
 						if ( !$result )
 						{
-							throw_error("Couldn't get themes data!", __LINE__, __FILE__, $sql);
+							dbmtnc_user_error("Couldn't get themes data!", __LINE__, __FILE__, $sql);
 						}
 						if ( $row = $db->sql_fetchrow($result) )
 						{
-							$new_style = $row['themes_id'];
+							$new_style = (int) $row['themes_id'];
 						}
 						else // We never should get to this point. If both the board and the user style is invalid, I don't know how someone should get to this point
 						{
-							throw_error("Fatal error!");
+							dbmtnc_user_error("Fatal error!");
 						}
 					}
 					$db->sql_freeresult($result);
 					echo("<p class=\"gen\">" . sprintf($lang['Updating_themes'], $new_style) . "...</p>\n");
 					$sql = "UPDATE " . USERS_TABLE . "
 						SET user_style = $new_style
-						WHERE user_style IN ($record_list)";
-					$result = $db->sql_query($sql);
+						WHERE user_style IN ($record_list)"
+						. " AND user_id <> " . ANONYMOUS
+						. " AND EXISTS (SELECT 1 FROM " . THEMES_TABLE . " replacement_style WHERE replacement_style.themes_id = $new_style)"
+						. " AND NOT EXISTS (SELECT 1 FROM " . THEMES_TABLE . " current_style WHERE current_style.themes_id = " . USERS_TABLE . ".user_style)";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't update themes data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't update themes data!", __LINE__, __FILE__, $sql);
 					}
 				}
 				else
@@ -940,11 +975,11 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get themes data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get themes data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					$result_array[] = $row['themes_id'];
+					$result_array[] = (int) $row['themes_id'];
 				}
 				$db->sql_freeresult($result);
 				if ( count($result_array) )
@@ -952,11 +987,12 @@ switch($mode_id)
 					echo("<p class=\"gen\">" . $lang['Removing_invalid_theme_names'] . "</p>\n");
 					$record_list = implode(',', $result_array);
 					$sql = "DELETE FROM " . THEMES_NAME_TABLE . "
-						WHERE themes_id IN ($record_list)";
-					$result = $db->sql_query($sql);
+						WHERE themes_id IN ($record_list)"
+						. " AND NOT EXISTS (SELECT 1 FROM " . THEMES_TABLE . " current_style WHERE current_style.themes_id = " . THEMES_NAME_TABLE . ".themes_id)";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't update user data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't update user data!", __LINE__, __FILE__, $sql);
 					}
 					$affected_rows = $db->sql_affectedrows();
 					if ( $affected_rows == 1 )
@@ -982,7 +1018,7 @@ switch($mode_id)
 					WHERE user_id <> " . ANONYMOUS;
 				$result_array = array();
 				$result = $db->sql_query($sql);
-				if (!$result) { throw_error("Couldn't get user language data!", __LINE__, __FILE__, $sql); }
+				if (!$result) { dbmtnc_user_error("Couldn't get user language data!", __LINE__, __FILE__, $sql); }
 				while ($row = $db->sql_fetchrow($result))
 				{
 					// Do not construct filesystem paths from unchecked legacy values.
@@ -997,10 +1033,10 @@ switch($mode_id)
 				{
 					$sql = "SELECT config_value FROM " . CONFIG_TABLE . " WHERE config_name = 'default_lang'";
 					$result = $db->sql_query($sql);
-					if (!$result) { throw_error("Couldn't get language data!", __LINE__, __FILE__, $sql); }
+					if (!$result) { dbmtnc_user_error("Couldn't get language data!", __LINE__, __FILE__, $sql); }
 					$row = $db->sql_fetchrow($result);
 					$db->sql_freeresult($result);
-					if (!$row) { throw_error("Couldn't get config data! Please check your configuration table."); }
+					if (!$row) { dbmtnc_user_error("Couldn't get config data! Please check your configuration table."); }
 					$board_language = $row['config_value'];
 					$default_lang = null;
 					foreach (array($board_language, $userdata['user_lang'], 'english') as $candidate)
@@ -1013,7 +1049,7 @@ switch($mode_id)
 						}
 					}
 					// Never replace preferences with another missing language pack.
-					if ($default_lang === null) { throw_error($lang['English_language_invalid']); }
+					if ($default_lang === null) { dbmtnc_user_error($lang['English_language_invalid']); }
 					if ($default_lang !== $board_language) { echo('<p class="gen">' . $lang['Default_language_invalid'] . '</p>'); }
 					echo('<p class="gen">' . $lang['Invalid_languages_found'] . ':</p><ul class="gen">');
 					$list_open = TRUE;
@@ -1025,8 +1061,8 @@ switch($mode_id)
 						// an independently corrected preference must remain untouched.
 						$sql = "UPDATE " . USERS_TABLE . " SET user_lang = '" . $db->sql_escape($default_lang) . "'"
 							. " WHERE " . $language_match . " AND user_id <> " . ANONYMOUS;
-						$result = $db->sql_query($sql);
-						if (!$result) { throw_error("Couldn't update user language data!", __LINE__, __FILE__, $sql); }
+						$result = $db->sql_write($sql);
+						if (!$result) { dbmtnc_user_error("Couldn't update user language data!", __LINE__, __FILE__, $sql); }
 						if ($db->sql_affectedrows() > 0)
 						{
 							echo('<li>' . sprintf($lang['Changing_language'],
@@ -1054,24 +1090,33 @@ switch($mode_id)
 				$result = $db->sql_query($sql);
 				if ( !$result )
 				{
-					throw_error("Couldn't get banlist and user data!", __LINE__, __FILE__, $sql);
+					dbmtnc_user_error("Couldn't get banlist and user data!", __LINE__, __FILE__, $sql);
 				}
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					$result_array[] = $row['ban_userid'];
+					$result_array[] = (int) $row['ban_userid'];
 				}
 				$db->sql_freeresult($result);
 				if ( count($result_array) )
 				{
 					$record_list = implode(',', $result_array);
 					$sql = "DELETE FROM " . BANLIST_TABLE . "
-						WHERE ban_userid IN ($record_list)";
-					$result = $db->sql_query($sql);
+						WHERE ban_userid IN ($record_list)"
+						. " AND NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " repair_user WHERE repair_user.user_id = " . BANLIST_TABLE . ".ban_userid)"
+						. " AND (ban_ip IS NULL OR ban_ip = '') AND (ban_email IS NULL OR ban_email = '')";
+					$result = $db->sql_write($sql);
 					if ( !$result )
 					{
-						throw_error("Couldn't update ban data!", __LINE__, __FILE__, $sql);
+						dbmtnc_user_error("Couldn't update ban data!", __LINE__, __FILE__, $sql);
 					}
 					$affected_rows = $db->sql_affectedrows();
+					// A combined ban can still enforce an IP/email restriction. Clear
+					// only its dangling user reference, never those independent rules.
+					$sql = "UPDATE " . BANLIST_TABLE . " SET ban_userid = 0 WHERE ban_userid IN ($record_list)"
+						. " AND NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " repair_user WHERE repair_user.user_id = " . BANLIST_TABLE . ".ban_userid)"
+						. " AND ((ban_ip IS NOT NULL AND ban_ip <> '') OR (ban_email IS NOT NULL AND ban_email <> ''))";
+					$db->sql_write($sql);
+					$affected_rows += $db->sql_affectedrows();
 					if ( $affected_rows == 1 )
 					{
 						echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
@@ -1094,11 +1139,11 @@ switch($mode_id)
 					// user_id. Qualify each current row directly, so another user's
 					// identical key or a concurrently restored account survives.
 					$sql = "DELETE FROM " . SESSIONS_KEYS_TABLE
-						. " WHERE NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " key_user"
+						. " WHERE (NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " key_user"
 						. " WHERE key_user.user_id = " . SESSIONS_KEYS_TABLE . ".user_id)"
-						. " OR user_id = " . ANONYMOUS . " OR last_login > " . time();
-					$result = $db->sql_query($sql);
-					if (!$result) { throw_error("Couldn't update session key data!", __LINE__, __FILE__, $sql); }
+						. " OR user_id = " . ANONYMOUS . " OR last_login > " . time() . ")";
+					$result = $db->sql_write($sql);
+					if (!$result) { dbmtnc_user_error("Couldn't update session key data!", __LINE__, __FILE__, $sql); }
 					$affected_rows = $db->sql_affectedrows();
 					if ($affected_rows > 0)
 					{
@@ -1110,8 +1155,13 @@ switch($mode_id)
 					}
 				}
 
-				phpbb_user_write_end($db, $user_repair_scope);
-				lock_db(TRUE);
+				$db->actor();
+				}
+				catch (PhpbbAclException $error) { $user_repair_error = $error->getMessage(); }
+				catch (Exception $error) { $user_repair_error = $lang['Maintenance_user_failed']; }
+				catch (Throwable $error) { $user_repair_error = $lang['Maintenance_user_failed']; }
+				finally { if ($user_repair_scope !== null) { dbmtnc_user_end($db, $user_repair_scope); } }
+				if ($user_repair_error !== '') { throw_error($user_repair_error); }
 				break;
 			case 'check_post': // Checks post data
 				echo("<h1>" . $lang['Checking_post_tables'] . "</h1>\n");

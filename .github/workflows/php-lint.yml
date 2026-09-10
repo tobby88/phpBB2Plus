@@ -64,6 +64,9 @@ jobs:
       - name: Preserve valid profiles and login keys during user maintenance
         run: php .github/scripts/check-maintenance-user-values.php
 
+      - name: Guard the full user maintenance lifecycle and each writer
+        run: php .github/scripts/check-maintenance-users.php
+
       - name: Check public security bootstrap
         shell: bash
         run: |

@@ -7,6 +7,7 @@ define('SESSIONS_KEYS_TABLE', 'fixture_keys'); define('ANONYMOUS', -1);
 function check($ok, $message) { if (!$ok) { throw new \RuntimeException($message); } }
 class RepairFailure extends \RuntimeException {}
 function throw_error($message) { throw new RepairFailure($message); }
+function dbmtnc_user_error($message) { throw new RepairFailure($message); }
 function phpbb_realpath($path) { return $path; }
 class Database {
  public $pdo; public $affected = 0; public $failure = ''; public $hook = null;
@@ -21,6 +22,7 @@ class Database {
  function sql_freeresult($r) { $r->closeCursor(); }
  function sql_affectedrows() { return $this->affected; }
  function sql_escape($value) { return substr($this->pdo->quote($value), 1, -1); }
+ function sql_write($sql) { return $this->sql_query($sql); }
 }
 function fragment($source, $start, $end) {
  $a = strpos($source, $start); $b = $a === false ? false : strpos($source, $end, $a);
@@ -29,7 +31,7 @@ function fragment($source, $start, $end) {
 }
 $source = file_get_contents($root . 'admin/admin_db_maintenance.php');
 $languageCode = fragment($source, '// Checking for invalid languages', '// Remove ban data without a valid user');
-$keyCode = fragment($source, '// Remove session key data without valid user', 'phpbb_user_write_end($db, $user_repair_scope)');
+$keyCode = fragment($source, '// Remove session key data without valid user', '$db->actor();');
 $dsn = getenv('PHPBB_MAINTENANCE_TEST_DSN'); $native = $dsn !== false && $dsn !== '';
 if ($native) { check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_maintenance_[a-f0-9]{16};charset=utf8mb4$/D', $dsn) === 1, 'Only owned loopback schema allowed'); }
 $pdo = new \PDO($native ? $dsn : 'sqlite::memory:', $native ? 'root' : null, $native ? '' : null, array(\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION));
