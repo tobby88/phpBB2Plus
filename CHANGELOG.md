@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Require the current ACP session at each search-index cleanup batch and inside
+  its deletion statement. Preserve independently selected board availability;
+  cleanup no longer disables or reopens the forum. Keep bounded orphan/common
+  word cleanup, source posts and valid title/body matches intact. Cover revoked
+  sessions, partial batches, lost acknowledgements and retry. No schema change.
 - Require the current ACP session for moderator-status synchronization, both
   when expiring target sessions and when changing derived USER/MOD flags.
   Preserve board availability and a legitimately delegated administrator's

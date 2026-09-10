@@ -215,7 +215,10 @@ never recreated. This change requires no schema migration.
 Search-index maintenance cleans unused non-common words and invalid matches on
 the coordinated writer connection. Each batch contains at most 100 candidate
 word or post IDs; deletion rechecks current references, common-word flags and
-ACP authorization. Newly used words and restored valid matches are retained.
+ACP authorization and the currently logged-in ACP session. Deleted, reassigned,
+logged-out or deprivileged sessions cannot continue cleanup. Newly used words
+and restored valid matches are retained. The existing board-disable setting is
+left untouched, including independent changes made while cleanup is running.
 This does not delete source posts or rebuild the entire index. Earlier batches
 can remain applied after a failure, so back up before maintenance and retry only
 after resolving the error. Deployment does not perform cleanup or a migration.

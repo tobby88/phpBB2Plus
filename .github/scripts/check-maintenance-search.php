@@ -2,20 +2,26 @@
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','POSTS_TABLE'=>'fixture_posts','SEARCH_WORD_TABLE'=>'fixture_words','SEARCH_MATCH_TABLE'=>'fixture_matches','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
 require_once $root.'includes/functions_maintenance_search.php';
+define('SESSIONS_TABLE','fixture_sessions');
 function cleanup_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 function message_die($code,$message){throw new RuntimeException($message);}
 class CleanupControllerFailure extends RuntimeException {}
 function throw_error($message){throw new CleanupControllerFailure($message);}
-function lock_db($unlock=false,$delay=true,$ignore=false){$GLOBALS['board_locks'][]=array($unlock,$delay,$ignore);}
+function lock_db($unlock=false,$delay=true,$ignore=false){throw new RuntimeException('Search cleanup must not toggle board availability');}
 class CleanupRows {public $rows;function __construct($rows){$this->rows=$rows;}}
 $dsn=getenv('PHPBB_CLEANUP_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
 if($native){cleanup_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_cleanup_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class CleanupServer {
- public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
+ public $pdo;public $owner=null;public $hook=null;public $failure='';public $lostAck='';public $queries=array();
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','words'=>'word_id INTEGER PRIMARY KEY,word_common INTEGER,word_text VARCHAR(255)','matches'=>'word_id INTEGER,post_id INTEGER,title_match INTEGER','posts'=>'post_id INTEGER PRIMARY KEY','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
+  $this->pdo->exec('DROP TABLE IF EXISTS fixture_sessions');
+  $this->pdo->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER, session_admin INTEGER)'.($GLOBALS['native']?' ENGINE='.$engine:''));
+  $this->pdo->exec('DROP TABLE IF EXISTS fixture_config');
+  $this->pdo->exec('CREATE TABLE fixture_config (board_disable INTEGER)'.($GLOBALS['native']?' ENGINE='.$engine:''));
+  $this->pdo->exec('INSERT INTO fixture_config VALUES (0)');
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1)");
   $this->pdo->exec("INSERT INTO fixture_words VALUES (1,0,'Grüße'),(2,1,'common'),(3,0,'unused'),(4,0,'orphan-post'),(5,1,'unused-common')");
   $this->pdo->exec('INSERT INTO fixture_posts VALUES (10)');
@@ -25,6 +31,7 @@ class CleanupServer {
 }
 class CleanupForum {
  public $dbname='cleanup-fixture';
+ function __construct(){if($GLOBALS['native']){preg_match('/dbname=([^;]+)/',$GLOBALS['dsn'],$match);$this->dbname=$match[1];}}
  function sql_query($sql){throw new RuntimeException('Unlocked main connection used');}
  function sql_dedicated_connection(){return new CleanupConnection($GLOBALS['cleanup_server']);}
 }
@@ -41,7 +48,7 @@ class CleanupConnection {
   cleanup_check($s->owner===$this,'Every protected query uses the owning connection');
   if(is_callable($s->hook)){call_user_func($s->hook,$sql,$this);}
   if($this->closed||($s->failure!==''&&strpos($sql,$s->failure)===0)){return false;}
-  try{$r=$this->pdo->query($sql);$this->affected=$r->rowCount();return preg_match('/^SELECT/',$sql)?new CleanupRows($r->fetchAll(PDO::FETCH_ASSOC)):true;}catch(PDOException $e){return false;}
+  try{$r=$this->pdo->query($sql);$this->affected=$r->rowCount();if($s->lostAck!==''&&strpos($sql,$s->lostAck)===0){return false;}return preg_match('/^SELECT/',$sql)?new CleanupRows($r->fetchAll(PDO::FETCH_ASSOC)):true;}catch(PDOException $e){return false;}
  }
  function sql_fetchrow($r){return array_shift($r->rows);}
  function sql_fetchrowset($r){return $r->rows;}
@@ -55,9 +62,24 @@ class CleanupConnection {
 function cleanup_fixture($engine,$actor=1){
  global $cleanup_server,$userdata,$phpEx,$phpbb_root_path,$root;
  $cleanup_server=new CleanupServer($engine);$userdata=array('user_id'=>$actor,'user_level'=>ADMIN,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');
+ $cleanup_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',".(int)$actor.",1,1)");
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-sid');$phpEx='php';$phpbb_root_path=$root;
 }
 function cleanup_value($sql){return (int)$GLOBALS['cleanup_server']->pdo->query($sql)->fetchColumn();}
+function cleanup_revoke_session($case){
+ $pdo=$GLOBALS['cleanup_server']->pdo;
+ if($case==='missing'){$pdo->exec('DELETE FROM fixture_sessions');}
+ elseif($case==='foreign'){$pdo->exec('UPDATE fixture_sessions SET session_user_id=20');}
+ elseif($case==='logged-out'){$pdo->exec('UPDATE fixture_sessions SET session_logged_in=0');}
+ elseif($case==='not-admin'){$pdo->exec('UPDATE fixture_sessions SET session_admin=0');}
+ elseif($case==='case-changed'){$pdo->exec("UPDATE fixture_sessions SET session_id='FIXTURE-SID'");}
+ else{throw new RuntimeException('Unknown session test');}
+}
+function cleanup_index_snapshot(){
+ $pdo=$GLOBALS['cleanup_server']->pdo;$result=array();
+ foreach(array('words'=>'word_id','matches'=>'word_id,post_id,title_match','posts'=>'post_id','users'=>'user_id') as $table=>$order){$result[$table]=$pdo->query('SELECT * FROM fixture_'.$table.' ORDER BY '.$order)->fetchAll(PDO::FETCH_ASSOC);}
+ return $result;
+}
 function cleanup_run($mode,$expected='',$request=null){
  $caught='';$result=null;try{$result=dbmtnc_cleanup_search(new CleanupForum(),$mode,$request===null?$_POST:$request);}catch(PhpbbAclException $e){$caught=$e->getMessage();}
  cleanup_check($caught===$expected,'Expected cleanup outcome: '.$caught.' / '.$expected);cleanup_check($GLOBALS['cleanup_server']->owner===null,'Owner released');return $result;
@@ -101,6 +123,11 @@ try{
   cleanup_check(cleanup_run($wordmatch)===204&&cleanup_value('SELECT COUNT(*) FROM fixture_matches WHERE post_id=10')===1,'Match cleanup pages many orphan post IDs while retaining valid one');
   foreach(array($wordlist,$wordmatch) as $mode){
    $delete=$mode===$wordlist?'DELETE FROM fixture_words':'DELETE FROM fixture_matches';$select=$mode===$wordlist?'SELECT DISTINCT word_id':'SELECT DISTINCT post_id';
+   foreach(array('missing','foreign','logged-out','not-admin','case-changed') as $case){foreach(array('entry','delete') as $phase){
+    cleanup_fixture($engine);$before=cleanup_index_snapshot();
+    if($phase==='entry'){cleanup_revoke_session($case);}else{$cleanup_server->hook=function($sql) use($delete,$case){if(strpos($sql,$delete)===0){$GLOBALS['cleanup_server']->hook=null;cleanup_revoke_session($case);}};}
+    cleanup_run($mode,$lang['Not_Authorised']);cleanup_check(cleanup_index_snapshot()===$before,'Revoked current session blocks actual index writes at '.$phase.': '.$case);
+   }}
    foreach(array('lock',$select,$delete) as $failure){
     cleanup_fixture($engine);$cleanup_server->failure=$failure;cleanup_run($mode,$failure==='lock'?$lang['Attachment_storage_busy']:$lang['Maintenance_search_cleanup_failed']);
     cleanup_check(cleanup_value('SELECT COUNT(*) FROM fixture_words')===5&&cleanup_value('SELECT COUNT(*) FROM fixture_matches')===5,'Initial failure leaves index alone');
@@ -109,9 +136,9 @@ try{
     cleanup_fixture($engine);$cleanup_server->hook=function($sql,$connection) use($delete,$race){if(strpos($sql,$delete)!==0){return;}$GLOBALS['cleanup_server']->hook=null;if($race==='lost-owner'){$connection->sql_close();}else{$GLOBALS['cleanup_server']->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}};
     cleanup_run($mode,$race==='actor'?$lang['Not_Authorised']:$lang['Maintenance_search_cleanup_failed']);cleanup_check(cleanup_value('SELECT COUNT(*) FROM fixture_words')===5&&cleanup_value('SELECT COUNT(*) FROM fixture_matches')===5,'Lost owner or revoked actor cannot delete');
    }
-   foreach(array('get','sid-array','wrong-sid','no-admin-session','demoted') as $case){
+   foreach(array('get','sid-array','wrong-sid','cached-sid-array','no-admin-session','demoted') as $case){
     cleanup_fixture($engine);$request=$_POST;$expected=$lang['Session_invalid'];
-    if($case==='get'){$_SERVER['REQUEST_METHOD']='GET';}elseif($case==='sid-array'){$request['sid']=array();}elseif($case==='wrong-sid'){$request['sid']='bad';}
+    if($case==='get'){$_SERVER['REQUEST_METHOD']='GET';}elseif($case==='sid-array'){$request['sid']=array();}elseif($case==='wrong-sid'){$request['sid']='bad';}elseif($case==='cached-sid-array'){$userdata['session_id']=array('fixture-sid');}
     elseif($case==='no-admin-session'){$userdata['session_admin']=false;$expected=$lang['Not_Authorised'];}else{$cleanup_server->pdo->exec('UPDATE fixture_users SET user_level=0 WHERE user_id=1');$expected=$lang['Not_Authorised'];}
     cleanup_run($mode,$expected,$request);
    }
@@ -120,20 +147,29 @@ try{
    cleanup_fixture($engine,20);$cleanup_server->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".$hash."')");$cleanup_server->hook=function($sql) use($delete){if(strpos($sql,$delete)===0){$GLOBALS['cleanup_server']->hook=null;$GLOBALS['cleanup_server']->pdo->exec('DELETE FROM fixture_junior');}};cleanup_run($mode,$lang['Not_Authorised']);
    cleanup_check(cleanup_value('SELECT COUNT(*) FROM fixture_words')===5&&cleanup_value('SELECT COUNT(*) FROM fixture_matches')===5,'Current delegation guarded inside deletion');
    cleanup_fixture($engine);$contended=false;$cleanup_server->hook=function($sql) use(&$contended,$select){if(strpos($sql,$select)===0){$GLOBALS['cleanup_server']->hook=null;$other=new attach_mutation_lock(new CleanupForum(),false);$contended=!$other->acquired;$other->release();}};cleanup_run($mode);cleanup_check($contended,'Writer lock acquired before cleanup snapshot');
-   foreach(array('success','failure','invalid','empty') as $case){
+   foreach(array(0,1) as $disabled){foreach(array('success','failure','invalid','empty','disabled-during','disabled-during-failure') as $case){
     cleanup_fixture($engine);if($case==='failure'){$cleanup_server->failure=$delete;}if($case==='invalid'){$_POST['sid']='bad';}if($case==='empty'){cleanup_run($mode);}
-    $function=$mode;$db=new CleanupForum();$board_locks=array();$caught='';ob_start();try{eval($branch);}catch(CleanupControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
-    cleanup_check($board_locks===($case==='invalid'?array():array(array(false,true,false),array(true,true,false))),'Actual cleanup controller restores maintenance state');
-    cleanup_check(($caught!=='')===in_array($case,array('failure','invalid'),true),'Actual controller reports failure');
+    $cleanup_server->pdo->exec('UPDATE fixture_config SET board_disable='.$disabled);
+    $during=strpos($case,'disabled-during')===0;
+    if($during){$cleanup_server->hook=function($sql) use($delete,$case){if(strpos($sql,$delete)===0){$s=$GLOBALS['cleanup_server'];$s->hook=null;$s->pdo->exec('UPDATE fixture_config SET board_disable=1');if($case==='disabled-during-failure'){$s->failure=$delete;}}};}
+    $function=$mode;$db=new CleanupForum();$caught='';ob_start();try{eval($branch);}catch(CleanupControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
+    cleanup_check(cleanup_value('SELECT board_disable FROM fixture_config')===($during?1:$disabled),'Actual cleanup controller preserves independent board availability');
+    cleanup_check(($caught!=='')===in_array($case,array('failure','invalid','disabled-during-failure'),true),'Actual controller reports failure');
     if($case==='success'){cleanup_check(strpos($html,sprintf($lang[$mode===$wordlist?'Affected_row':'Affected_rows'],$mode===$wordlist?1:3))!==false,'Only actual affected rows reported');}
     if($case==='empty'){cleanup_check(strpos($html,$lang['Nothing_to_do'])!==false,'Actual no-op report');}
-   }
+   }}
+   cleanup_fixture($engine);$cleanup_server->lostAck=$delete;cleanup_run($mode,$lang['Maintenance_search_cleanup_failed']);
+   cleanup_check(cleanup_value('SELECT COUNT(*) FROM '.($mode===$wordlist?'fixture_words':'fixture_matches'))===($mode===$wordlist?4:2),'Lost acknowledgment does not pretend committed deletion rolled back');
+   $cleanup_server->lostAck='';cleanup_check(cleanup_run($mode)===0,'Retry after lost acknowledgment preserves valid rows and is a no-op');
   }
-  foreach(array('query','actor') as $failure){
-   cleanup_fixture($engine);cleanup_words(205);$batches=0;$cleanup_server->hook=function($sql) use(&$batches,$failure){if(strpos($sql,'DELETE FROM fixture_words')===0&&++$batches===2){$s=$GLOBALS['cleanup_server'];$s->hook=null;if($failure==='actor'){$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}else{$s->failure='DELETE FROM fixture_words';}}};
-   cleanup_run($wordlist,$failure==='actor'?$lang['Not_Authorised']:$lang['Maintenance_search_cleanup_failed']);
-   cleanup_check(cleanup_value('SELECT COUNT(*) FROM fixture_words')===105,'Earlier batch remains applied; failed/revoked next batch untouched');
-  }
+  foreach(array($wordlist,$wordmatch) as $mode){foreach(array('query','actor','session') as $failure){
+   cleanup_fixture($engine);cleanup_words(205);if($mode===$wordmatch){$cleanup_server->pdo->exec('DELETE FROM fixture_posts');for($id=1;$id<=205;$id++){$cleanup_server->pdo->exec('INSERT INTO fixture_matches VALUES (1,'.$id.',0)');}}
+   $delete=$mode===$wordlist?'DELETE FROM fixture_words':'DELETE FROM fixture_matches';$batches=0;$cleanup_server->hook=function($sql) use(&$batches,$failure,$delete){if(strpos($sql,$delete)===0&&++$batches===2){$s=$GLOBALS['cleanup_server'];$s->hook=null;if($failure==='actor'){$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}elseif($failure==='session'){cleanup_revoke_session('missing');}else{$s->failure=$delete;}}};
+   cleanup_run($mode,$failure==='query'?$lang['Maintenance_search_cleanup_failed']:$lang['Not_Authorised']);
+   cleanup_check(cleanup_value('SELECT COUNT(*) FROM '.($mode===$wordlist?'fixture_words':'fixture_matches'))===105,'Earlier batch remains applied; failed/revoked next batch untouched');
+   if($failure==='query'){$cleanup_server->failure='';}elseif($failure==='actor'){$cleanup_server->pdo->exec('UPDATE fixture_users SET user_active=1 WHERE user_id=1');}else{$cleanup_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',1,1,1)");}
+   cleanup_check(cleanup_run($mode)===105,'Valid retry completes only remaining batches');
+  }}
   cleanup_fixture($engine);cleanup_run('rebuild_search_index',$lang['Invalid_dbmtnc_request']);cleanup_check(cleanup_value('SELECT COUNT(*) FROM fixture_words')===5,'Cleanup cannot dispatch whole-index rebuild');
   echo $engine.' '.$locale." search maintenance cleanup passed.\n";
  }}

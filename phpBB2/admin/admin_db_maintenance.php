@@ -1357,13 +1357,11 @@ switch($mode_id)
 				require_once($phpbb_root_path . 'includes/functions_maintenance_search.' . $phpEx);
 				try { dbmtnc_search_cleanup_request($function, $_POST); }
 				catch (PhpbbAclException $error) { throw_error($error->getMessage()); }
-				lock_db();
 				$search_cleanup_error = '';
 				try { $affected_rows = dbmtnc_cleanup_search($db, $function, $_POST); }
 				catch (PhpbbAclException $error) { $search_cleanup_error = $error->getMessage(); }
 				catch (Exception $error) { $search_cleanup_error = $lang['Maintenance_search_cleanup_failed']; }
 				catch (Throwable $error) { $search_cleanup_error = $lang['Maintenance_search_cleanup_failed']; }
-				finally { lock_db(TRUE); }
 				if ($search_cleanup_error !== '') { throw_error($search_cleanup_error); }
 				if ($affected_rows > 0)
 				{
