@@ -292,6 +292,14 @@ migration beyond the recovery identities above and never run during deployment.
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.
 Explicit defaults, special attributes and ambiguous keys are left for review.
+The ACP action keeps the existing board availability setting unchanged and uses
+the shared dedicated writer connection. It checks the current administrator and
+session before and after metadata reads and ALTER commands, including already
+healthy tables. Errors release the writer before the error page is rendered.
+Revocation stops further work, but cannot cancel DDL already submitted. Session
+SQL mode is restored where the connection remains usable; failed connections
+are closed, not returned for reuse. Deployment never runs this repair, and this
+controller hardening needs no schema migration.
 Back up first: DDL may rebuild a table and is not transactionally rolled back.
 The repair restates supported existing attributes as required by
 [MySQL's MODIFY rules](https://dev.mysql.com/doc/refman/8.4/en/alter-table.html)

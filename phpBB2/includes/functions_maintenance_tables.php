@@ -8,7 +8,7 @@ class PhpbbMaintenanceTableDatabase extends PhpbbAclDatabase
 {
 	function sql_query($sql, $transaction = false)
 	{
-		$table_command = preg_match('/^(?:CHECK|REPAIR|OPTIMIZE) TABLE /D', $sql) === 1;
+		$table_command = preg_match('/^(?:(?:CHECK|REPAIR|OPTIMIZE|ALTER) TABLE |SHOW FULL COLUMNS FROM )/D', $sql) === 1;
 		if ($table_command) { dbmtnc_date_actor($this); }
 		$result = parent::sql_query($sql, $transaction);
 		if ($table_command)
@@ -18,7 +18,7 @@ class PhpbbMaintenanceTableDatabase extends PhpbbAclDatabase
 			// it does stop reporting success and proceeding to another table.
 			$authorized = false;
 			try { dbmtnc_date_actor($this); $authorized = true; }
-			finally { if (!$authorized) { $this->sql_freeresult($result); } }
+			finally { if (!$authorized && $result !== true) { $this->sql_freeresult($result); } }
 		}
 		return $result;
 	}

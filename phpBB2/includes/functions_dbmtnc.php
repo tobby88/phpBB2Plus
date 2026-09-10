@@ -512,9 +512,9 @@ function set_autoincrement($table, $column, $length, $unsigned = TRUE)
 	if (!is_string($table) || !is_string($column) ||
 		!preg_match('/^[A-Za-z0-9_]{1,64}$/D', $table) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $column))
 	{
-		throw_error($lang['Ai_repair_failed']);
+		throw new RuntimeException($lang['Ai_repair_failed']);
 	}
-	$changed_mode = false; $failure = false; $repaired = false; $review = false; $original_mode = '';
+	$changed_mode = false; $failure = false; $repaired = false; $review = false; $original_mode = ''; $failure_reason = null;
 	try
 	{
 		$columns = dbmtnc_auto_rows($db, 'SHOW FULL COLUMNS FROM `' . $table . '`');
@@ -577,8 +577,8 @@ function set_autoincrement($table, $column, $length, $unsigned = TRUE)
 			$repaired = true;
 		}
 	}
-	catch (Exception $error) { $failure = true; }
-	catch (Throwable $error) { $failure = true; }
+	catch (Exception $error) { $failure = true; $failure_reason = $error; }
+	catch (Throwable $error) { $failure = true; $failure_reason = $error; }
 	finally
 	{
 		if ($changed_mode)
@@ -590,7 +590,13 @@ function set_autoincrement($table, $column, $length, $unsigned = TRUE)
 	}
 	// DDL isn't transactional. An uncertain result is reported, never rolled back
 	// by guessing or retried with IGNORE/foreign-key checks disabled.
-	if ($failure) { throw_error($lang['Ai_repair_failed']); }
+	if ($failure)
+	{
+		// Let the owning controller release its scope BEFORE the error renderer
+		// exits. Preserve authorization failures without exposing driver messages.
+		if ($failure_reason instanceof PhpbbAclException) { throw $failure_reason; }
+		throw new RuntimeException($lang['Ai_repair_failed']);
+	}
 	echo("<li>$table: <b>" . $lang[$repaired ? 'Ai_message_update_table' : 'Ai_review_column'] . "</b></li>\n");
 }
 

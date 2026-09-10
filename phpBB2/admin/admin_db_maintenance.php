@@ -1566,32 +1566,38 @@ switch($mode_id)
 				break;
 			case 'reset_auto_increment': // Reset autoincrement values
 				echo("<h1>" . $lang['Reset_ai'] . "</h1>\n");
-				lock_db();
-				require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
-				$auto_repair_scope = phpbb_user_write_begin($db);
-				echo("<p class=\"gen\"><b>" . $lang['Reset_ai'] . "...</b></p>\n");
-				echo("<font class=\"gen\"><ul>\n");
+				require_once($phpbb_root_path . 'includes/functions_maintenance_tables.' . $phpEx);
+				$auto_repair_scope = null; $auto_repair_error = '';
+				try
+				{
+					$auto_repair_scope = dbmtnc_table_begin($db, $_POST);
+					echo("<p class=\"gen\"><b>" . $lang['Reset_ai'] . "...</b></p>\n");
+					echo("<font class=\"gen\"><ul>\n");
 
-				set_autoincrement(BANLIST_TABLE, 'ban_id', 8);
-				set_autoincrement(CATEGORIES_TABLE, 'cat_id', 8);
-				set_autoincrement(DISALLOW_TABLE, 'disallow_id', 8);
-				set_autoincrement(PRUNE_TABLE, 'prune_id', 8);
-				set_autoincrement(GROUPS_TABLE, 'group_id', 8, FALSE);
-				set_autoincrement(POSTS_TABLE, 'post_id', 8);
-				set_autoincrement(PRIVMSGS_TABLE, 'privmsgs_id', 8);
-				set_autoincrement(RANKS_TABLE, 'rank_id', 5);
-				set_autoincrement(SEARCH_WORD_TABLE, 'word_id', 8);
-				set_autoincrement(SMILIES_TABLE, 'smilies_id', 5);
-				set_autoincrement(THEMES_TABLE, 'themes_id', 8);
-				set_autoincrement(TOPICS_TABLE, 'topic_id', 8);
-				set_autoincrement(VOTE_DESC_TABLE, 'vote_id', 8);
-				set_autoincrement(WORDS_TABLE, 'word_id', 8);
+					set_autoincrement(BANLIST_TABLE, 'ban_id', 8);
+					set_autoincrement(CATEGORIES_TABLE, 'cat_id', 8);
+					set_autoincrement(DISALLOW_TABLE, 'disallow_id', 8);
+					set_autoincrement(PRUNE_TABLE, 'prune_id', 8);
+					set_autoincrement(GROUPS_TABLE, 'group_id', 8, FALSE);
+					set_autoincrement(POSTS_TABLE, 'post_id', 8);
+					set_autoincrement(PRIVMSGS_TABLE, 'privmsgs_id', 8);
+					set_autoincrement(RANKS_TABLE, 'rank_id', 5);
+					set_autoincrement(SEARCH_WORD_TABLE, 'word_id', 8);
+					set_autoincrement(SMILIES_TABLE, 'smilies_id', 5);
+					set_autoincrement(THEMES_TABLE, 'themes_id', 8);
+					set_autoincrement(TOPICS_TABLE, 'topic_id', 8);
+					set_autoincrement(VOTE_DESC_TABLE, 'vote_id', 8);
+					set_autoincrement(WORDS_TABLE, 'word_id', 8);
 
-				echo("</ul></font>\n");
-				$list_open = FALSE;
+					echo("</ul></font>\n");
+					$list_open = FALSE;
 
-				phpbb_user_write_end($db, $auto_repair_scope);
-				lock_db(TRUE);
+				}
+				catch (\PhpbbAclException $error) { $auto_repair_error = $error->getMessage(); }
+				catch (\Exception $error) { $auto_repair_error = $lang['Ai_repair_failed']; }
+				catch (\Throwable $error) { $auto_repair_error = $lang['Ai_repair_failed']; }
+				finally { if ($auto_repair_scope !== null) { dbmtnc_table_end($db, $auto_repair_scope); } }
+				if ($auto_repair_error !== '') { throw_error($auto_repair_error); }
 				break;
 			case 'heap_convert': // Convert session table to HEAP
 				echo("<h1>" . $lang['Converting_heap'] . "</h1>\n");

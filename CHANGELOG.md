@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep board availability unchanged during ACP auto-increment attribute repair.
+  Recheck current administrator/session rights around metadata reads and ALTER
+  commands, stop later work after revocation, and release the dedicated writer
+  before terminal error reporting. Preserve existing column types, IDs, healthy
+  counters and SQL-mode restoration. Test the actual fourteen-table controller
+  under session/grant revocation, database faults, lost acknowledgements, retry
+  and independent board disabling. No schema migration or automatic repair.
 - Restore missing ACP configuration through the owning writer with current
   session/authority and absence rechecked inside each insertion. Preserve
   existing/concurrently restored values and board availability; a missing board

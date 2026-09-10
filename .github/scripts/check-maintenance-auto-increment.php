@@ -34,7 +34,7 @@ class Database {
  function sql_freeresult($r){if(!($r instanceof Rows)){$r->closeCursor();}}
 }
 function run_repair($db,$expect_failure=false,$table='fixture_auto'){
- $GLOBALS['db']=$db;$caught=false;ob_start();try{set_autoincrement($table,'id',8,false);}catch(RepairFailure $e){$caught=$e->getMessage()===$GLOBALS['lang']['Ai_repair_failed'];}finally{$output=ob_get_clean();}
+ $GLOBALS['db']=$db;$caught=false;ob_start();try{set_autoincrement($table,'id',8,false);}catch(\RuntimeException $e){$caught=$e->getMessage()===$GLOBALS['lang']['Ai_repair_failed'];}finally{$output=ob_get_clean();}
  check($caught===$expect_failure,'Expected controlled repair result');return $output;
 }
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new \RuntimeException($message);}});
@@ -94,6 +94,6 @@ try{
   }
  }
  $admin=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($admin,"case 'reset_auto_increment':");$b=strpos($admin,"case 'heap_convert':",$a);$body=substr($admin,$a,$b-$a);
- $begin=strpos($body,'phpbb_user_write_begin($db)');$end=strpos($body,'phpbb_user_write_end($db,');$first=strpos($body,'set_autoincrement(');$last=strrpos($body,'set_autoincrement(');
+ $begin=strpos($body,'dbmtnc_table_begin($db, $_POST)');$end=strpos($body,'dbmtnc_table_end($db,');$first=strpos($body,'set_autoincrement(');$last=strrpos($body,'set_autoincrement(');
  check($begin!==false&&$end!==false&&$first!==false&&$last!==false&&$begin<$first&&$end>$last,'All DDL uses shared dedicated writer scope');
 }finally{restore_error_handler();}
