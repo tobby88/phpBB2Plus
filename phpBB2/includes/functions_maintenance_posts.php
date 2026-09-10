@@ -1,11 +1,11 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
-require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_maintenance_dates.php';
 
 function dbmtnc_post_sync_request($function, $request)
 {
 	global $userdata;
-	if (!is_array($request) || empty($userdata['session_id'])) { phpbb_acl_error('Invalid_dbmtnc_request'); }
+	if (!is_array($request) || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_acl_error('Invalid_dbmtnc_request'); }
 	$method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : '';
 	if ($function === 'synchronize_post' || $function === 'synchronize_user')
 	{
@@ -30,28 +30,25 @@ function dbmtnc_synchronize_posts($database, $function, $request)
 	dbmtnc_post_sync_request($function, $request);
 	$lock = new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
+	$refresh = false;
 	try
 	{
 		$db = new PhpbbAclDatabase($lock->connection, 'Maintenance_post_sync_failed');
+		dbmtnc_date_actor($db);
+		$refresh = true;
 		return dbmtnc_synchronize_posts_owned($db);
 	}
-	finally { $lock->release(); }
+	finally
+	{
+		$lock->release();
+		if ($refresh && function_exists('cache_tree')) { cache_tree(true); }
+	}
 }
 
 // Internal worker: caller must already own the shared writer connection.
-function dbmtnc_post_sync_actor($db, $check_session)
+function dbmtnc_synchronize_posts_owned($db)
 {
-	if ($check_session)
-	{
-		require_once dirname(__FILE__) . '/functions_maintenance_dates.php';
-		return dbmtnc_date_actor($db);
-	}
-	return phpbb_acl_actor($db, 'maintenance');
-}
-
-function dbmtnc_synchronize_posts_owned($db, $check_session = false)
-{
-	dbmtnc_post_sync_actor($db, $check_session);
+	dbmtnc_date_actor($db);
 	$output = array('topics' => array(), 'redirects' => array(), 'forums' => array(), 'review' => array());
 	$rows = phpbb_acl_rows($db, 'SELECT topic_id, forum_id, topic_title, topic_status, topic_moved_id, topic_last_post_id FROM ' . TOPICS_TABLE . ' ORDER BY topic_id');
 	foreach ($rows as $row)
@@ -60,7 +57,7 @@ function dbmtnc_synchronize_posts_owned($db, $check_session = false)
 		$forum = (int) $row['forum_id'];
 		$moved = (int) $row['topic_moved_id'];
 		$status = (int) $row['topic_status'];
-		$actor = dbmtnc_post_sync_actor($db, $check_session);
+		$actor = dbmtnc_date_actor($db);
 		$redirect = $status === TOPIC_MOVED && $moved > 0 && $moved !== $id;
 		if ($id <= 0 || ($status === TOPIC_MOVED && !$redirect) || ($status !== TOPIC_MOVED && $moved !== 0))
 		{
@@ -91,13 +88,13 @@ function dbmtnc_synchronize_posts_owned($db, $check_session = false)
 		if ((int) $db->sql_affectedrows() === 1) { $output[$redirect ? 'redirects' : 'topics'][] = array('id' => $id, 'name' => $row['topic_title']); }
 		elseif (!phpbb_acl_rows($db, 'SELECT topic_id FROM ' . TOPICS_TABLE . ' WHERE ' . $where . ' AND ' . $exists . ' AND NOT (' . implode(' OR ', $different) . ')'))
 		{ $output['review'][] = $id; }
-		dbmtnc_post_sync_actor($db, $check_session);
+		dbmtnc_date_actor($db);
 	}
 	$rows = phpbb_acl_rows($db, 'SELECT forum_id, forum_name FROM ' . FORUMS_TABLE . ' ORDER BY forum_id');
 	foreach ($rows as $row)
 	{
 		$id = (int) $row['forum_id'];
-		$actor = dbmtnc_post_sync_actor($db, $check_session);
+		$actor = dbmtnc_date_actor($db);
 		$values = array(
 			'forum_topics' => '(SELECT COUNT(*) FROM ' . TOPICS_TABLE . ' WHERE forum_id = ' . $id . ')',
 			'forum_posts' => '(SELECT COUNT(*) FROM ' . POSTS_TABLE . ' WHERE forum_id = ' . $id . ')',
@@ -107,9 +104,9 @@ function dbmtnc_synchronize_posts_owned($db, $check_session = false)
 		foreach ($values as $field => $value) { $sets[] = $field . ' = ' . $value; $different[] = $field . ' <> ' . $value; }
 		$db->sql_query('UPDATE ' . FORUMS_TABLE . ' SET ' . implode(', ', $sets) . ' WHERE forum_id = ' . $id . ' AND (' . implode(' OR ', $different) . ') AND ' . $actor['guard']);
 		if ((int) $db->sql_affectedrows() === 1) { $output['forums'][] = array('id' => $id, 'name' => $row['forum_name']); }
-		dbmtnc_post_sync_actor($db, $check_session);
+		dbmtnc_date_actor($db);
 	}
-	dbmtnc_post_sync_actor($db, $check_session);
+	dbmtnc_date_actor($db);
 	return $output;
 }
 
@@ -121,23 +118,23 @@ function dbmtnc_synchronize_user_counts($database, $request)
 	try
 	{
 		$db = new PhpbbAclDatabase($lock->connection, 'Maintenance_user_sync_failed');
-		phpbb_acl_actor($db, 'maintenance');
+		dbmtnc_date_actor($db);
 		$counter = '(SELECT COUNT(*) FROM ' . POSTS_TABLE . ' p INNER JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id AND f.count_posts <> 0 WHERE p.poster_id = u.user_id)';
 		$rows = phpbb_acl_rows($db, 'SELECT u.user_id FROM ' . USERS_TABLE . ' u WHERE u.user_id > 0 AND u.user_posts <> ' . $counter . ' ORDER BY u.user_id');
 		$output = array('changed' => array(), 'skipped' => array());
 		foreach ($rows as $row)
 		{
 			$id = (int) $row['user_id'];
-			$actor = phpbb_acl_actor($db, 'maintenance');
+			$actor = dbmtnc_date_actor($db);
 			$counter = '(SELECT COUNT(*) FROM ' . POSTS_TABLE . ' p INNER JOIN ' . FORUMS_TABLE . ' f ON f.forum_id = p.forum_id AND f.count_posts <> 0 WHERE p.poster_id = ' . $id . ')';
 			$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_posts = ' . $counter . ' WHERE user_id = ' . $id . ' AND user_id > 0 AND user_posts <> ' . $counter . ' AND ' . $actor['guard']);
 			$changed = (int) $db->sql_affectedrows() === 1;
-			phpbb_acl_actor($db, 'maintenance');
+			dbmtnc_date_actor($db);
 			$current = phpbb_acl_rows($db, 'SELECT user_id, username, user_posts FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND user_posts = ' . $counter);
 			if (!$current) { $output['skipped'][] = $id; }
 			elseif ($changed) { $output['changed'][] = $current[0]; }
 		}
-		phpbb_acl_actor($db, 'maintenance');
+		dbmtnc_date_actor($db);
 		return $output;
 	}
 	finally { $lock->release(); }

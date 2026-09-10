@@ -1418,20 +1418,14 @@ switch($mode_id)
 				require_once($phpbb_root_path . 'includes/functions_maintenance_posts.' . $phpEx);
 				$post_sync_direct = $function === 'synchronize_post_direct';
 				$post_sync_request = $post_sync_direct ? $_GET : $_POST;
-				// Validate before changing the maintenance flag, including continuations.
+				// Old signed links remain valid for recounting only, never for reopening.
 				try { dbmtnc_post_sync_request($function, $post_sync_request); }
 				catch (PhpbbAclException $error) { throw_error($error->getMessage()); }
-				if (!$post_sync_direct) { lock_db(); }
 				$post_sync_error = '';
 				try { $post_sync_result = dbmtnc_synchronize_posts($db, $function, $post_sync_request); }
 				catch (PhpbbAclException $error) { $post_sync_error = $error->getMessage(); }
 				catch (Exception $error) { $post_sync_error = $lang['Maintenance_post_sync_failed']; }
 				catch (Throwable $error) { $post_sync_error = $lang['Maintenance_post_sync_failed']; }
-				finally
-				{
-					if (!$post_sync_direct) { lock_db(TRUE); }
-					elseif ($post_sync_request['db_state'] === '0') { lock_db(TRUE, TRUE, TRUE); }
-				}
 				if ($post_sync_error !== '') { throw_error($post_sync_error); }
 				foreach (array('topics' => 'Synchronize_topic_data', 'redirects' => 'Synchronize_moved_topic_data', 'forums' => 'Synchronizing_forums') as $post_sync_kind => $post_sync_title)
 				{
@@ -1454,13 +1448,11 @@ switch($mode_id)
 				require_once($phpbb_root_path . 'includes/functions_maintenance_posts.' . $phpEx);
 				try { dbmtnc_post_sync_request('synchronize_user', $_POST); }
 				catch (PhpbbAclException $error) { throw_error($error->getMessage()); }
-				lock_db();
 				$user_sync_error = '';
 				try { $user_sync_result = dbmtnc_synchronize_user_counts($db, $_POST); }
 				catch (PhpbbAclException $error) { $user_sync_error = $error->getMessage(); }
 				catch (Exception $error) { $user_sync_error = $lang['Maintenance_user_sync_failed']; }
 				catch (Throwable $error) { $user_sync_error = $lang['Maintenance_user_sync_failed']; }
-				finally { lock_db(TRUE); }
 				if ($user_sync_error !== '') { throw_error($user_sync_error); }
 				if (!$user_sync_result['changed'] && !$user_sync_result['skipped']) { echo($lang['Nothing_to_do']); }
 				else

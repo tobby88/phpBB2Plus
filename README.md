@@ -194,6 +194,15 @@ Only current authorized ACP requests can run it. Reports use verified current
 counts and names, and flag removed or changed targets. Partial failures can leave
 earlier corrections applied; no automatic recount runs during deployment.
 
+Manual post/forum and user-post recounts preserve the current board-disable
+setting, including an administrator's change made while a recount is running.
+Old signed synchronization links still authenticate their original state token,
+but that state no longer authorizes reopening the forum. Each counter write
+requires a currently logged-in ACP session belonging to the current authorized
+administrator. Deleted, logged-out or deprivileged sessions cannot continue a
+recount. Post/forum recounts refresh the navigation cache after releasing their
+writer, including after partial failures. No extra schema migration is needed.
+
 Search-index maintenance cleans unused non-common words and invalid matches on
 the coordinated writer connection. Each batch contains at most 100 candidate
 word or post IDs; deletion rechecks current references, common-word flags and

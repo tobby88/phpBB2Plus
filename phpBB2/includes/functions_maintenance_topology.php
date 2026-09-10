@@ -114,7 +114,7 @@ function dbmtnc_repair_topology($database, $request)
 		// Always finish derived counters on retry, even after the last routing
 		// UPDATE succeeded but its acknowledgement was lost. Reuse the canonical
 		// counter worker under this same owner; never acquire a nested writer.
-		$output['synchronization'] = dbmtnc_synchronize_posts_owned($db, true);
+		$output['synchronization'] = dbmtnc_synchronize_posts_owned($db);
 		$tokens = phpbb_acl_rows($db, 'SELECT config_value FROM ' . CONFIG_TABLE . " WHERE config_name = 'dbmtnc_orphan_recovery_token'");
 		if ($tokens)
 		{

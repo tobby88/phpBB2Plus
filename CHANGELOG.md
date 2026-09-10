@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve board availability during manual post/forum and user-post recounts;
+  old signed synchronization links can no longer reopen an independently
+  disabled forum. Require the current ACP session at every counter write,
+  without an internal session-check opt-out. Refresh derived navigation caches
+  after releasing the post recount writer, including partial failures. Add
+  real-controller coverage for late board disabling, revoked sessions, legacy
+  links, failed/lost acknowledgements and retry under both database engines.
 - Coordinate the complete post-table maintenance check with the shared writer
   and current ACP authority/session. Recheck parent validity at deletion time,
   preserve reserved recovery topics, and retain conflicting pruning policies

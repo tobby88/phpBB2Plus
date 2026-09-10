@@ -106,7 +106,7 @@ function dbmtnc_cleanup_structure($database, $request, $phase)
 			// Finish counters even when a previous DELETE committed but its reply
 			// was lost. No browser continuation or global board-disable flag needed.
 			$cache_needed = true;
-			$output['synchronization'] = dbmtnc_synchronize_posts_owned($db, true);
+			$output['synchronization'] = dbmtnc_synchronize_posts_owned($db);
 		}
 		dbmtnc_date_actor($db);
 		return $output;
