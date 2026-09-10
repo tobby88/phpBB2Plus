@@ -1,12 +1,15 @@
 <?php
 namespace MaintenanceOptimizationFixture;
+define('IN_PHPBB',true);
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 $phpEx='php';
 function check($ok,$message){if(!$ok){throw new \RuntimeException($message);}}
 class MaintenanceFailure extends \RuntimeException {}
 function throw_error($message){throw new MaintenanceFailure($message);}
 function check_mysql_version(){return true;}
-function lock_db($unlock=false){$GLOBALS['locks'][]=$unlock;}
+function lock_db($unlock=false){throw new \RuntimeException('Optimization must not change board availability');}
+function dbmtnc_table_begin(&$db,$request){$GLOBALS['locks'][]='begin';return array($db);}
+function dbmtnc_table_end(&$db,$scope){check($db===$scope[0],'Original report connection preserved');$GLOBALS['locks'][]='end';}
 class Rows {public $rows;function __construct($rows){$this->rows=$rows;}}
 class Database {
  public $old_size=0;public $new_size=0;public $reads=0;public $queries=array();public $messages=array();public $failure=false;public $pdo=null;
@@ -37,11 +40,12 @@ $start=strpos($source,"case 'optimize_db':");$end=strpos($source,"case 'reset_au
 check($start!==false&&$end>$start,'Actual optimization branch found');
 $branch='namespace MaintenanceOptimizationFixture; switch("optimize_db") {'.substr($source,$start,$end-$start).'}';
 function run_branch($database,$expect_failure=false){
- global $branch,$db,$tables,$table_prefix,$lang;
+ global $branch,$db,$tables,$table_prefix,$lang,$phpbb_root_path,$phpEx;
+ $phpbb_root_path=$GLOBALS['root'];$_POST=array('sid'=>'fixture');
  $db=$database;$tables=array('items');$table_prefix='fixture_';$GLOBALS['locks']=array();$caught=false;
  ob_start();try{eval($branch);}catch(MaintenanceFailure $e){$caught=true;}finally{$html=ob_get_clean();}
  check($caught===$expect_failure,'Expected query failure boundary');
- if(!$caught){check($GLOBALS['locks']===array(false,true),'Maintenance lock restored after report');}
+ check($GLOBALS['locks']===array('begin','end'),'Writer released after complete/incomplete/failed report');
  return $html;
 }
 function message($type,$text){return array('Msg_type'=>$type,'Msg_text'=>$text);}

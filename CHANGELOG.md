@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep board availability unchanged during ACP CHECK/REPAIR/OPTIMIZE, including
+  query and statistics failures. Run table commands on the shared dedicated
+  writer connection with current ACP authority/session checked before and after
+  each command; release it before reporting an error. Revocation stops later
+  commands, but cannot undo one already submitted to the database. Preserve
+  complete diagnostic reporting and the emergency console's separate access.
+  Add real-controller, session-revocation, failure/retry and native engine tests.
+  No schema migration is needed; deployment does not run table maintenance.
 - Require the current ACP session at each search-index cleanup batch and inside
   its deletion statement. Preserve independently selected board availability;
   cleanup no longer disables or reopens the forum. Keep bounded orphan/common

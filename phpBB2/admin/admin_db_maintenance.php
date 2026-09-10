@@ -1519,26 +1519,35 @@ switch($mode_id)
 					echo("<p class=\"gen\">" . $lang['Old_MySQL_Version'] . "</p>\n");
 					break;
 				}
-				lock_db();
-				echo("<p class=\"gen\"><b>" . $lang['Checking_tables'] . ":</b></p>\n");
-				echo("<font class=\"gen\"><ul>\n");
-				$list_open = TRUE;
-
-				$maintenance_complete = count($tables) > 0;
-				for ($i = 0; $i < count($tables); $i++)
+				require_once($phpbb_root_path . 'includes/functions_maintenance_tables.' . $phpEx);
+				$table_scope = null; $table_error = '';
+				try
 				{
-					if (!dbmtnc_table_maintenance($table_prefix . $tables[$i], 'CHECK'))
+					$table_scope = dbmtnc_table_begin($db, $_POST);
+					echo("<p class=\"gen\"><b>" . $lang['Checking_tables'] . ":</b></p>\n");
+					echo("<font class=\"gen\"><ul>\n");
+					$list_open = TRUE;
+
+					$maintenance_complete = count($tables) > 0;
+					for ($i = 0; $i < count($tables); $i++)
 					{
-						$maintenance_complete = false;
+						if (!dbmtnc_table_maintenance($table_prefix . $tables[$i], 'CHECK'))
+						{
+							$maintenance_complete = false;
+						}
+					}
+					echo("</ul></font>\n");
+					$list_open = FALSE;
+					if (!$maintenance_complete)
+					{
+						echo('<p class="gen"><b>' . $lang['Maintenance_incomplete'] . "</b></p>\n");
 					}
 				}
-				echo("</ul></font>\n");
-				$list_open = FALSE;
-				if (!$maintenance_complete)
-				{
-					echo('<p class="gen"><b>' . $lang['Maintenance_incomplete'] . "</b></p>\n");
-				}
-				lock_db(TRUE);
+				catch (\PhpbbAclException $error) { $table_error = $error->getMessage(); }
+				catch (\Exception $error) { $table_error = $lang['Maintenance_query_failed']; }
+				catch (\Throwable $error) { $table_error = $lang['Maintenance_query_failed']; }
+				finally { if ($table_scope !== null) { dbmtnc_table_end($db, $table_scope); } }
+				if ($table_error !== '') { throw_error($table_error); }
 				break;
 			case 'repair_db': // Repair database
 				echo("<h1>" . $lang['Repairing_db'] . "</h1>\n");
@@ -1547,26 +1556,35 @@ switch($mode_id)
 					echo("<p class=\"gen\">" . $lang['Old_MySQL_Version'] . "</p>\n");
 					break;
 				}
-				lock_db();
-				echo("<p class=\"gen\"><b>" . $lang['Repairing_tables'] . ":</b></p>\n");
-				echo("<font class=\"gen\"><ul>\n");
-				$list_open = TRUE;
-
-				$maintenance_complete = count($tables) > 0;
-				for ($i = 0; $i < count($tables); $i++)
+				require_once($phpbb_root_path . 'includes/functions_maintenance_tables.' . $phpEx);
+				$table_scope = null; $table_error = '';
+				try
 				{
-					if (!dbmtnc_table_maintenance($table_prefix . $tables[$i], 'REPAIR'))
+					$table_scope = dbmtnc_table_begin($db, $_POST);
+					echo("<p class=\"gen\"><b>" . $lang['Repairing_tables'] . ":</b></p>\n");
+					echo("<font class=\"gen\"><ul>\n");
+					$list_open = TRUE;
+
+					$maintenance_complete = count($tables) > 0;
+					for ($i = 0; $i < count($tables); $i++)
 					{
-						$maintenance_complete = false;
+						if (!dbmtnc_table_maintenance($table_prefix . $tables[$i], 'REPAIR'))
+						{
+							$maintenance_complete = false;
+						}
+					}
+					echo("</ul></font>\n");
+					$list_open = FALSE;
+					if (!$maintenance_complete)
+					{
+						echo('<p class="gen"><b>' . $lang['Maintenance_incomplete'] . "</b></p>\n");
 					}
 				}
-				echo("</ul></font>\n");
-				$list_open = FALSE;
-				if (!$maintenance_complete)
-				{
-					echo('<p class="gen"><b>' . $lang['Maintenance_incomplete'] . "</b></p>\n");
-				}
-				lock_db(TRUE);
+				catch (\PhpbbAclException $error) { $table_error = $error->getMessage(); }
+				catch (\Exception $error) { $table_error = $lang['Maintenance_query_failed']; }
+				catch (\Throwable $error) { $table_error = $lang['Maintenance_query_failed']; }
+				finally { if ($table_scope !== null) { dbmtnc_table_end($db, $table_scope); } }
+				if ($table_error !== '') { throw_error($table_error); }
 				break;
 			case 'optimize_db': // Optimize database
 				echo("<h1>" . $lang['Optimizing_db'] . "</h1>\n");
@@ -1575,32 +1593,41 @@ switch($mode_id)
 					echo("<p class=\"gen\">" . $lang['Old_MySQL_Version'] . "</p>\n");
 					break;
 				}
-				lock_db();
-				$old_stat = get_table_statistic();
-				$optimization_complete = true;
-				echo("<p class=\"gen\"><b>" . $lang['Optimizing_tables'] . ":</b></p>\n");
-				echo("<font class=\"gen\"><ul>\n");
-				$list_open = TRUE;
+				require_once($phpbb_root_path . 'includes/functions_maintenance_tables.' . $phpEx);
+				$table_scope = null; $table_error = '';
+				try
+				{
+					$table_scope = dbmtnc_table_begin($db, $_POST);
+					$old_stat = get_table_statistic();
+					$optimization_complete = true;
+					echo("<p class=\"gen\"><b>" . $lang['Optimizing_tables'] . ":</b></p>\n");
+					echo("<font class=\"gen\"><ul>\n");
+					$list_open = TRUE;
 
-				for($i = 0; $i < count($tables); $i++)
-				{
-					$tablename = $table_prefix . $tables[$i];
-					if (!dbmtnc_optimize_table($tablename))
+					for($i = 0; $i < count($tables); $i++)
 					{
-						$optimization_complete = false;
+						$tablename = $table_prefix . $tables[$i];
+						if (!dbmtnc_optimize_table($tablename))
+						{
+							$optimization_complete = false;
+						}
 					}
+					echo("</ul></font>\n");
+					$list_open = FALSE;
+					$new_stat = get_table_statistic();
+					$reduction_absolute = $old_stat['core']['size'] - $new_stat['core']['size'];
+					$reduction_percent = $old_stat['core']['size'] > 0 ? sprintf('%01.2f%%', ($reduction_absolute / $old_stat['core']['size']) * 100) : $lang['Optimization_percent_unavailable'];
+					if (!$optimization_complete)
+					{
+						echo('<p class="gen"><b>' . $lang['Optimization_incomplete'] . "</b></p>\n");
+					}
+					echo("<p class=\"gen\">" . sprintf($lang['Optimization_statistic'], convert_bytes($old_stat['core']['size']), convert_bytes($new_stat['core']['size']), convert_bytes($reduction_absolute), $reduction_percent) . "</p>\n");
 				}
-				echo("</ul></font>\n");
-				$list_open = FALSE;
-				$new_stat = get_table_statistic();
-				$reduction_absolute = $old_stat['core']['size'] - $new_stat['core']['size'];
-				$reduction_percent = $old_stat['core']['size'] > 0 ? sprintf('%01.2f%%', ($reduction_absolute / $old_stat['core']['size']) * 100) : $lang['Optimization_percent_unavailable'];
-				if (!$optimization_complete)
-				{
-					echo('<p class="gen"><b>' . $lang['Optimization_incomplete'] . "</b></p>\n");
-				}
-				echo("<p class=\"gen\">" . sprintf($lang['Optimization_statistic'], convert_bytes($old_stat['core']['size']), convert_bytes($new_stat['core']['size']), convert_bytes($reduction_absolute), $reduction_percent) . "</p>\n");
-				lock_db(TRUE);
+				catch (\PhpbbAclException $error) { $table_error = $error->getMessage(); }
+				catch (\Exception $error) { $table_error = $lang['Maintenance_query_failed']; }
+				catch (\Throwable $error) { $table_error = $lang['Maintenance_query_failed']; }
+				finally { if ($table_scope !== null) { dbmtnc_table_end($db, $table_scope); } }
+				if ($table_error !== '') { throw_error($table_error); }
 				break;
 			case 'reset_auto_increment': // Reset autoincrement values
 				echo("<h1>" . $lang['Reset_ai'] . "</h1>\n");

@@ -223,6 +223,18 @@ This does not delete source posts or rebuild the entire index. Earlier batches
 can remain applied after a failure, so back up before maintenance and retry only
 after resolving the error. Deployment does not perform cleanup or a migration.
 
+ACP table checking, repair and optimization likewise leave board availability
+unchanged. They hold the coordinated writer connection, rechecking the current
+administrator and ACP session immediately before and after each table command.
+A revoked session stops subsequent commands, but cannot cancel or roll back a
+command already submitted to the database. Query and statistics failures release
+the writer before the error report; resolve the error and explicitly retry.
+Database table locks can still delay concurrent requests while a command runs.
+Unsupported or unconfirmed operations remain visible as incomplete diagnostics.
+If damaged login/permission tables prevent normal ACP authorization, use the
+separately authenticated emergency console rather than bypassing ACP checks.
+No additional migration or automatic table repair is performed by deployment.
+
 Missing-author repair preserves stored guest names and valid user references,
 including inactive accounts. Each write rechecks the original missing reference,
 current users and current ACP authority. Topic authors come from the current

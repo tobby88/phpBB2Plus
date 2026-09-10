@@ -1,5 +1,6 @@
 <?php
 namespace MaintenanceReportFixture;
+define('IN_PHPBB',true);
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 $phpEx='php';
 function check($ok,$message){if(!$ok){throw new \RuntimeException($message);}}
@@ -7,7 +8,9 @@ class MaintenanceFailure extends \RuntimeException {}
 function throw_error($message){throw new MaintenanceFailure('acp');}
 function erc_throw_error($message){throw new MaintenanceFailure('erc');}
 function check_mysql_version(){return true;}
-function lock_db($unlock=false){$GLOBALS['locks'][]=$unlock;}
+function lock_db($unlock=false){throw new \RuntimeException('Table maintenance must not change board availability');}
+function dbmtnc_table_begin(&$db,$request){$GLOBALS['locks'][]='begin';return array($db);}
+function dbmtnc_table_end(&$db,$scope){check($db===$scope[0],'Original report connection preserved');$GLOBALS['locks'][]='end';}
 function check_authorisation(){if($GLOBALS['deny']){throw new MaintenanceFailure('auth');}$GLOBALS['authorized']=true;}
 function success_message($message){$GLOBALS['successes'][]=$message;}
 class Rows {public $rows;function __construct($rows){$this->rows=$rows;}}
@@ -36,12 +39,13 @@ check($execute!==false,'ERC execute dispatch found');$a=strpos($source,"case 'rd
 check($a!==false&&$b>$a,'Actual ERC execution, not confirmation branch found');
 $branches['rdb']='namespace MaintenanceReportFixture; switch("rdb"){'.substr($source,$a,$b-$a).'}';
 function run_branch($database,$action,$expected_failure='', $empty=false){
- global $branches,$db,$lang,$tables,$table_prefix;
+ global $branches,$db,$lang,$tables,$table_prefix,$phpbb_root_path,$phpEx;
+ $phpbb_root_path=$GLOBALS['root'];$_POST=array('sid'=>'fixture');
  $db=$database;$tables=$empty?array():array('first','second');$table_prefix='fixture_';$GLOBALS['locks']=array();$GLOBALS['successes']=array();$GLOBALS['authorized']=false;$caught='';
  ob_start();try{eval($branches[$action]);}catch(MaintenanceFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
  check($caught===$expected_failure,'Failure uses appropriate ACP, ERC or authorization boundary');
  if($action==='rdb'&&$expected_failure!=='auth'){check($GLOBALS['authorized'],'ERC checks authorization before execution');}
- if($action!=='rdb'&&$caught===''){check($GLOBALS['locks']===array(false,true),'ACP maintenance lock restored after complete/incomplete result');}
+ if($action!=='rdb'){check($GLOBALS['locks']===array('begin','end'),'ACP writer released after complete/incomplete/failed result');}
  return $html;
 }
 function message($type,$text){return array('Msg_type'=>$type,'Msg_text'=>$text);}
