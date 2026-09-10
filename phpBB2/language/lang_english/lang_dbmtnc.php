@@ -165,8 +165,8 @@ $mtnc[] = array('reset_date',
 	0);
 $mtnc[] = array('reset_sessions',
 	'Reset all sessions',
-	'This will reset all current sessions by emptying the session table.',
-	'All currently active users will loose their session and their search results. Proceed?',
+	'This removes all current sessions except the administrator session performing this action. Saved search results are cleared. Remember-me keys are not revoked.',
+	'All other current sessions and all saved search results will be removed. Your current administrator session remains unchanged. Proceed?',
 	0);
 $mtnc[] = array('--', '', '', '', 8);
 $mtnc[] = array('rebuild_search_index',
@@ -449,6 +449,8 @@ $lang['Checking_email_dates'] = 'Checking dates of last e-mail';
 $lang['Checking_login_dates'] = 'Checking dates of last login attempt';
 $lang['Checking_search_dates'] = 'Checking dates of search results';
 // reset_sessions
+$lang['Maintenance_session_reset_failed'] = 'Session reset was interrupted. Some search results or other sessions may already have been removed; repeat the action to finish. Your current session is not deleted or recreated by this action.';
+$lang['Maintenance_session_reset_summary'] = 'Removed %d other sessions and %d saved search results. Your current administrator session was preserved unchanged. Remember-me keys were not revoked.';
 $lang['Resetting_sessions'] = 'Resetting sessions';
 $lang['Deleting_session_tables'] = 'Emptying session and search result tables';
 $lang['Restoring_session'] = 'Restoring session of active user';

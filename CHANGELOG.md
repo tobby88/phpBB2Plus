@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve the executing administrator session when resetting sessions in DB
+  Maintenance, rather than deleting and reconstructing it. Check current account,
+  delegated maintenance permission and live ACP session at each guarded write;
+  clear search caches before other sessions. Keep board availability and
+  remember-me keys unchanged, and report interrupted nontransactional work in
+  English/German. No schema migration is required.
+
 - Preserve other PM copies when replacing attachments, hiding thumbnails or
   changing comments. Create separate metadata before switching only the edited
   message's link, requalify source/permission/metadata at the switch, and keep

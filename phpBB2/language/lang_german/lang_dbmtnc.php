@@ -175,8 +175,8 @@ $mtnc[] = array('reset_date',
 	0);
 $mtnc[] = array('reset_sessions',
 	'Setze alle Sitzungs-Daten zurück',
-	'Diese Funktion setzt alle aktiven Sitzungen zurück, in dem die Sitzungs-Tabelle geleert wird.',
-	'Alle derzeit aktiven Benutzer werden ihre Sitzungsdaten inkl. ihrer Suchergebnisse verlieren. Fortfahren?',
+	'Diese Funktion entfernt alle aktuellen Sitzungen außer der ausführenden Admin-Sitzung sowie alle gespeicherten Suchergebnisse. Schlüssel für die automatische Anmeldung bleiben erhalten.',
+	'Alle anderen aktuellen Sitzungen und alle gespeicherten Suchergebnisse werden entfernt. Deine aktuelle Admin-Sitzung bleibt unverändert. Fortfahren?',
 	0);
 $mtnc[] = array('--', '', '', '', 8);
 $mtnc[] = array('rebuild_search_index',
@@ -467,6 +467,8 @@ $lang['Checking_email_dates'] = 'Prüfe Zeiten in den E-Mails';
 $lang['Checking_login_dates'] = 'Prüfe Zeiten des letzten Anmeldeversuchs';
 $lang['Checking_search_dates'] = 'Prüfe Zeiten der Suchergebnisse';
 // reset_sessions
+$lang['Maintenance_session_reset_failed'] = 'Das Zurücksetzen der Sitzungen wurde unterbrochen. Einige Suchergebnisse oder andere Sitzungen können bereits entfernt sein; wiederhole den Vorgang zum Abschluss. Deine aktuelle Sitzung wird dabei weder gelöscht noch neu angelegt.';
+$lang['Maintenance_session_reset_summary'] = '%d andere Sitzungen und %d gespeicherte Suchergebnisse entfernt. Deine aktuelle Admin-Sitzung blieb unverändert. Schlüssel für die automatische Anmeldung wurden nicht widerrufen.';
 $lang['Resetting_sessions'] = 'Setze Sitzungs-Daten zurück';
 $lang['Deleting_session_tables'] = 'Leere Sitzungs- und Suchergebnis-Tabellen';
 $lang['Restoring_session'] = 'Stelle Sitzung des aktuellen Benutzers wieder her';

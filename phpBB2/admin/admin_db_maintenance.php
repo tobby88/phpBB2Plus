@@ -2390,55 +2390,12 @@ switch($mode_id)
 
 				lock_db(TRUE);
 				break;
-			case 'reset_sessions': // Reset sessions
-				echo("<h1>" . $lang['Resetting_sessions'] . "</h1>\n");
-				lock_db();
-
-				// Deleting tables
-				echo("<p class=\"gen\"><b>" . $lang['Deleting_session_tables'] . "</b></p>\n");
-				$sql = "DELETE FROM " . SESSIONS_TABLE;
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't delete from session table!", __LINE__, __FILE__, $sql);
-				}
-				$sql = "DELETE FROM " . SEARCH_TABLE;
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't delete from search result table!", __LINE__, __FILE__, $sql);
-				}
-				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
-
-				// Restore session data of current user to prevent getting thrown out of the admin panel
-				echo("<p class=\"gen\"><b>" . $lang['Restoring_session'] . "</b></p>\n");
-				// Set Variables
-				$session_id = $userdata['session_id'];
-				$user_id = $userdata['user_id'];
-				$current_time = time();
-				$user_ip = $userdata['session_ip'];
-				$page_id = $userdata['session_page'];
-				$login = $userdata['session_logged_in'];
-				if ( $phpbb_version[1] >= 15 )
-				{
-					$sql = "INSERT INTO " . SESSIONS_TABLE . "
-						(session_id, session_user_id, session_start, session_time, session_ip, session_page, session_logged_in, session_admin)
-						VALUES ('$session_id', $user_id, $current_time, $current_time, '$user_ip', $page_id, $login, 1)";
-				}
-				else
-				{
-					$sql = "INSERT INTO " . SESSIONS_TABLE . "
-						(session_id, session_user_id, session_start, session_time, session_ip, session_page, session_logged_in)
-						VALUES ('$session_id', $user_id, $current_time, $current_time, '$user_ip', $page_id, $login)";
-				}
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't restore session data!", __LINE__, __FILE__, $sql);
-				}
-				echo("<p class=\"gen\">" . $lang['Done'] . "</p>\n");
-
-				lock_db(TRUE);
+			case 'reset_sessions': // Preserve the current ACP session; never reconstruct it.
+				echo('<h1>' . $lang['Resetting_sessions'] . '</h1>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_sessions.' . $phpEx);
+				try { $session_reset = dbmtnc_reset_sessions($db, $_POST); }
+				catch (PhpbbAclException $error) { throw_error($error->getMessage(), __LINE__, __FILE__); break; }
+				echo('<p class="gen">' . sprintf($lang['Maintenance_session_reset_summary'], $session_reset['sessions'], $session_reset['searches']) . '</p>');
 				break;
 			case 'check_db': // Check database
 				echo("<h1>" . $lang['Checking_db'] . "</h1>\n");

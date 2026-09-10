@@ -680,3 +680,6 @@ jobs:
 
       - name: Test additive PM publication migration
         run: php .github/scripts/check-pm-write-migration.php
+
+      - name: Preserve current ACP session during maintenance resets
+        run: php .github/scripts/check-maintenance-sessions.php
