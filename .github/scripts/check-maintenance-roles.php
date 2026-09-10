@@ -6,25 +6,29 @@ function role_check($ok,$message){if(!$ok){throw new RuntimeException($message);
 function message_die($code,$message){throw new RuntimeException($message);}
 class RoleControllerFailure extends RuntimeException {}
 function throw_error($message){throw new RoleControllerFailure($message);}
-function lock_db($unlock=false){$GLOBALS['board_locks'][]=$unlock;}
+function lock_db(){throw new RuntimeException('Role synchronization must not change board availability');}
 class RoleRows {public $rows;function __construct($rows){$this->rows=$rows;}}
 $dsn=getenv('PHPBB_ROLE_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
 if($native){role_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_roles_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local role schemas allowed');}
 class RoleServer {
- public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
+ public $pdo;public $owner=null;public $hook=null;public $failure='';public $lostAck=false;public $queries=array();
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','groups'=>'group_id INTEGER PRIMARY KEY','members'=>'user_id INTEGER,group_id INTEGER,user_pending INTEGER','auth'=>'group_id INTEGER,forum_id INTEGER,auth_mod INTEGER','forums'=>'forum_id INTEGER PRIMARY KEY','sessions'=>'session_user_id INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
+  $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
+  $definitions['config']='config_name VARCHAR(50) PRIMARY KEY,config_value VARCHAR(255)';
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (-1,'Anonymous',2,1),(0,'Zero',2,1),(1,'Root',1,1),(2,'Other admin',1,1),(10,'<script>Grüße</script>',0,1),(11,'Stale moderator',2,1),(12,'Valid moderator',2,1),(13,'Pending',2,1),(14,'Orphan group',2,1),(15,'Orphan forum',2,1),(16,'Invalid pending flag',2,1),(17,'Inactive',0,0),(18,'Special role',3,1),(20,'Junior',0,1)");
   $this->pdo->exec('INSERT INTO fixture_groups VALUES (10),(11)');$this->pdo->exec('INSERT INTO fixture_forums VALUES (5)');
   $this->pdo->exec('INSERT INTO fixture_auth VALUES (10,5,1),(11,999,1),(999,5,1)');
   $this->pdo->exec('INSERT INTO fixture_members VALUES (10,10,0),(12,10,0),(13,10,1),(14,999,0),(15,11,0),(16,10,2),(17,10,0)');
-  $this->pdo->exec('INSERT INTO fixture_sessions SELECT user_id FROM fixture_users');
+  foreach($this->pdo->query('SELECT user_id FROM fixture_users')->fetchAll(PDO::FETCH_ASSOC) as $row){$id=(int)$row['user_id'];$this->pdo->exec("INSERT INTO fixture_sessions VALUES ('session-".$id."',".$id.',1,1)');}
+  $this->pdo->exec("INSERT INTO fixture_config VALUES ('board_disable','0')");
  }
 }
 class RoleForum {
  public $dbname='role-fixture';
+ function __construct(){if($GLOBALS['native']){preg_match('/dbname=([^;]+);/',$GLOBALS['dsn'],$match);$this->dbname=$match[1];}}
  function sql_query($sql){throw new RuntimeException('Unlocked main connection used');}
  function sql_dedicated_connection(){return new RoleConnection($GLOBALS['role_server']);}
 }
@@ -40,8 +44,9 @@ class RoleConnection {
   }
   role_check($s->owner===$this,'Every role/ACL query uses the owning connection');
   if(is_callable($s->hook)){call_user_func($s->hook,$sql,$this);}
-  if($this->closed||($s->failure!==''&&strpos($sql,$s->failure)===0)){return false;}
-  try{$r=$this->pdo->query($sql);$this->affected=$r->rowCount();return preg_match('/^SELECT/',$sql)?new RoleRows($r->fetchAll(PDO::FETCH_ASSOC)):true;}catch(PDOException $e){return false;}
+  $fail=$s->failure!==''&&strpos($sql,$s->failure)===0;
+  if($this->closed||($fail&&!$s->lostAck)){return false;}
+  try{$r=$this->pdo->query($sql);$this->affected=$r->rowCount();if($fail){return false;}return preg_match('/^SELECT/',$sql)?new RoleRows($r->fetchAll(PDO::FETCH_ASSOC)):true;}catch(PDOException $e){return false;}
  }
  function sql_fetchrow($r){return array_shift($r->rows);}
  function sql_fetchrowset($r){return $r->rows;}
@@ -53,6 +58,7 @@ class RoleConnection {
 function role_fixture($engine,$actor=1){
  global $role_server,$userdata,$phpEx,$phpbb_root_path,$root;
  $role_server=new RoleServer($engine);$userdata=array('user_id'=>$actor,'user_level'=>ADMIN,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');
+ $role_server->pdo->exec("UPDATE fixture_sessions SET session_id='fixture-sid' WHERE session_user_id=".(int)$actor);
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-sid');$phpEx='php';$phpbb_root_path=$root;
 }
 function role_value($sql){return (int)$GLOBALS['role_server']->pdo->query($sql)->fetchColumn();}
@@ -102,13 +108,42 @@ try{
    role_run($expected);role_check(role_value('SELECT COUNT(*) FROM fixture_sessions')===14,'Denied request leaves sessions untouched');
   }
   role_fixture($engine,20);$hash=md5('GeneralDB_Maintenanceadmin_db_maintenance.php');$role_server->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".$hash."')");role_run();
+  foreach(array('missing','foreign','logged-out','admin-lost','case-changed') as $case){
+   role_fixture($engine);$sql=array('missing'=>"DELETE FROM fixture_sessions WHERE session_id='fixture-sid'",'foreign'=>"UPDATE fixture_sessions SET session_user_id=20 WHERE session_id='fixture-sid'",'logged-out'=>"UPDATE fixture_sessions SET session_logged_in=0 WHERE session_id='fixture-sid'",'admin-lost'=>"UPDATE fixture_sessions SET session_admin=0 WHERE session_id='fixture-sid'",'case-changed'=>"UPDATE fixture_sessions SET session_id='FIXTURE-SID' WHERE session_id='fixture-sid'");$role_server->pdo->exec($sql[$case]);
+   $beforeSessions=$role_server->pdo->query('SELECT * FROM fixture_sessions ORDER BY session_id')->fetchAll(PDO::FETCH_ASSOC);role_run($lang['Not_Authorised']);
+   role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=10')===USER&&$beforeSessions===$role_server->pdo->query('SELECT * FROM fixture_sessions ORDER BY session_id')->fetchAll(PDO::FETCH_ASSOC),'Invalid current session blocks role and session changes '.$case);
+  }
+  foreach(array('DELETE FROM fixture_sessions','UPDATE fixture_users') as $target){foreach(array('deleted','logged-out','admin-lost','foreign') as $case){
+   role_fixture($engine);$role_server->hook=function($sql)use($target,$case){if(strpos($sql,$target)!==0){return;}$s=$GLOBALS['role_server'];$s->hook=null;$s->pdo->exec(($case==='deleted'?'DELETE FROM fixture_sessions':'UPDATE fixture_sessions SET '.($case==='foreign'?'session_user_id=20':($case==='logged-out'?'session_logged_in=0':'session_admin=0')))." WHERE session_id='fixture-sid'");};
+   role_run($lang['Not_Authorised']);role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=10')===USER,'Late session revocation blocks role UPDATE');
+   role_check(role_value('SELECT COUNT(*) FROM fixture_sessions WHERE session_user_id=10')===($target==='DELETE FROM fixture_sessions'?1:0),'Late session revocation blocks actual DELETE, not just success report');
+  }}
+  foreach(array('promote','demote') as $direction){foreach(array('success','delete-failure','update-failure','delete-lost','update-lost','session-revoked','grant-revoked','promotion-to-admin','grant-cancelled') as $case){
+   role_fixture($engine,20);$p=$role_server->pdo;$p->exec("INSERT INTO fixture_junior VALUES (20,'".$hash."'); INSERT INTO fixture_sessions VALUES ('other-self',20,1,1)");
+   if($direction==='promote'){$p->exec('INSERT INTO fixture_members VALUES (20,10,0)');}else{$p->exec('UPDATE fixture_users SET user_level=2 WHERE user_id=20');}
+   $currentSession=$p->query("SELECT * FROM fixture_sessions WHERE session_id='fixture-sid'")->fetch(PDO::FETCH_ASSOC);
+   $expected='';
+   if(strpos($case,'delete-')===0||strpos($case,'update-')===0){$role_server->hook=function($sql)use($case){$delete=strpos($case,'delete-')===0;$target=$delete?'DELETE FROM fixture_sessions WHERE session_user_id = 20':'UPDATE fixture_users SET user_level';if(strpos($sql,$target)!==0||(!$delete&&strpos($sql,'WHERE user_id = 20 ')===false)){return;}$s=$GLOBALS['role_server'];$s->hook=null;$s->failure=$target;$s->lostAck=strpos($case,'-lost')!==false;};$expected=$lang['Maintenance_role_sync_failed'];}
+   elseif($case!=='success'){$role_server->hook=function($sql)use($case,$direction){if(strpos($sql,'DELETE FROM fixture_sessions WHERE session_user_id = 20')!==0){return;}$s=$GLOBALS['role_server'];$s->hook=null;if($case==='session-revoked'){$s->pdo->exec("DELETE FROM fixture_sessions WHERE session_id='fixture-sid'");}elseif($case==='grant-revoked'){$s->pdo->exec('DELETE FROM fixture_junior');}elseif($case==='promotion-to-admin'){$s->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=20');}elseif($direction==='promote'){$s->pdo->exec('DELETE FROM fixture_members WHERE user_id=20');}else{$s->pdo->exec('INSERT INTO fixture_members VALUES (20,10,0)');}};if(in_array($case,array('session-revoked','grant-revoked'),true)){$expected=$lang['Not_Authorised'];}}
+   $out=role_run($expected);
+   if($case==='session-revoked'){role_check($p->query("SELECT * FROM fixture_sessions WHERE session_id='fixture-sid'")->fetch(PDO::FETCH_ASSOC)===false,'Revoked own session never recreated');}
+   else{role_check($p->query("SELECT * FROM fixture_sessions WHERE session_id='fixture-sid'")->fetch(PDO::FETCH_ASSOC)===$currentSession,'Active self session retained unchanged');}
+   if(in_array($case,array('session-revoked','grant-revoked'),true)){role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=20')===($direction==='promote'?USER:MOD),'Revocation blocks actual self role change');role_check(role_value("SELECT COUNT(*) FROM fixture_sessions WHERE session_id='other-self'")===1,'Revocation also preserves unrelated self session');}
+   if($case==='success'){role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=20')===($direction==='promote'?MOD:USER)&&count($out['changed'])===8,'Authorized self role repair completes');role_check(role_value('SELECT COUNT(*) FROM fixture_sessions WHERE session_user_id=20')===1,'Only current self session survives');}
+   if($case==='promotion-to-admin'){role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=20')===ADMIN&&role_value('SELECT COUNT(*) FROM fixture_sessions WHERE session_user_id=20')===2,'Concurrent ADMIN promotion preserves both sessions');}
+   if($case==='grant-cancelled'){role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=20')===($direction==='promote'?USER:MOD)&&role_value('SELECT COUNT(*) FROM fixture_sessions WHERE session_user_id=20')===2,'No obsolete self correction or session expiry');}
+   if($expected===$lang['Maintenance_role_sync_failed']){$role_server->failure='';role_run();role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=20')===($direction==='promote'?MOD:USER),'Self repair retries safely after lost acknowledgement');role_check($p->query("SELECT * FROM fixture_sessions WHERE session_id='fixture-sid'")->fetch(PDO::FETCH_ASSOC)===$currentSession,'Retry does not recreate or mutate current session');}
+  }}
   role_fixture($engine,20);$wrong=md5('GroupsPermissionsadmin_ug_auth.php?mode=group');$role_server->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".$wrong."')");role_run($lang['Not_Authorised']);
   role_fixture($engine,20);$role_server->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".$hash."')");$role_server->hook=function($sql){if(strpos($sql,'DELETE FROM fixture_sessions')===0){$GLOBALS['role_server']->hook=null;$GLOBALS['role_server']->pdo->exec('DELETE FROM fixture_junior');}};role_run($lang['Not_Authorised']);
   role_check(role_value('SELECT COUNT(*) FROM fixture_sessions')===14,'Delegation revocation guards session mutation');
+  role_fixture($engine);$role_server->failure='UPDATE fixture_users';$role_server->lostAck=true;role_run($lang['Maintenance_role_sync_failed']);role_check(role_value('SELECT user_level FROM fixture_users WHERE user_id=10')===MOD,'Lost acknowledgement is not a rollback');$role_server->failure='';role_run();
   role_fixture($engine);$contended=false;$role_server->hook=function($sql) use(&$contended){if(strpos($sql,'SELECT role_user')===0){$GLOBALS['role_server']->hook=null;$other=new attach_mutation_lock(new RoleForum(),false);$contended=!$other->acquired;$other->release();}};role_run();role_check($contended,'Competing writer cannot acquire lock during role snapshot');
-  foreach(array(false,true) as $fail){role_fixture($engine);if($fail){$role_server->failure='UPDATE fixture_users';}$db=new RoleForum();$board_locks=array();$caught='';ob_start();try{eval($branch);}catch(RoleControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
-   role_check($board_locks===array(false,true),'Controller restores maintenance setting on success/failure');role_check(($caught!=='')===$fail,'Controller reports service failures');if(!$fail){role_check(strpos($html,'&lt;script&gt;Grüße&lt;/script&gt;')!==false&&strpos($html,'<script>')===false,'Actual controller escapes displayed usernames');}
-  }
+  foreach(array(false,true) as $fail){foreach(array(0,1) as $disabled){foreach(array(false,true) as $lateDisable){role_fixture($engine);if($fail){$role_server->failure='UPDATE fixture_users';}$role_server->pdo->exec("UPDATE fixture_config SET config_value='".$disabled."'");
+   if($lateDisable){$role_server->hook=function($sql){if(strpos($sql,'UPDATE fixture_users')!==0){return;}$GLOBALS['role_server']->hook=null;$GLOBALS['role_server']->pdo->exec("UPDATE fixture_config SET config_value='1'");};}
+   $db=new RoleForum();$caught='';ob_start();try{eval($branch);}catch(RoleControllerFailure $e){$caught=$e->getMessage();}finally{$html=ob_get_clean();}
+   role_check(role_value('SELECT config_value FROM fixture_config')===($lateDisable?1:$disabled),'Controller preserves existing and late board disabling');role_check(($caught!=='')===$fail,'Controller reports service failures');if(!$fail){role_check(strpos($html,'&lt;script&gt;Grüße&lt;/script&gt;')!==false&&strpos($html,'<script>')===false,'Actual controller escapes displayed usernames');}
+  }}}
   echo $engine.' '.$locale." moderator role synchronization passed.\n";
  }}
 }finally{restore_error_handler();}

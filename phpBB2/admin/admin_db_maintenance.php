@@ -1472,7 +1472,6 @@ switch($mode_id)
 			case 'synchronize_mod_state': // Synchronize moderator status
 				echo("<h1>" . $lang['Synchronize_moderators'] . "</h1>\n");
 				require_once($phpbb_root_path . 'includes/functions_maintenance_roles.' . $phpEx);
-				lock_db();
 				$role_sync_error = '';
 				try
 				{
@@ -1481,7 +1480,6 @@ switch($mode_id)
 				catch (PhpbbAclException $error) { $role_sync_error = $error->getMessage(); }
 				catch (Exception $error) { $role_sync_error = $lang['Maintenance_role_sync_failed']; }
 				catch (Throwable $error) { $role_sync_error = $lang['Maintenance_role_sync_failed']; }
-				finally { lock_db(TRUE); }
 				if ($role_sync_error !== '') { throw_error($role_sync_error); }
 				if (!$role_sync_result['changed'] && !$role_sync_result['skipped'])
 				{

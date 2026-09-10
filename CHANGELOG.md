@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Require the current ACP session for moderator-status synchronization, both
+  when expiring target sessions and when changing derived USER/MOD flags.
+  Preserve board availability and a legitimately delegated administrator's
+  active session during self-repair; all other target sessions still expire.
+  Test revoked sessions/grants, concurrent administrator promotion, self-role
+  promotion/demotion, lost acknowledgements and safe retries. No migration needed.
 - Preserve board availability during manual post/forum and user-post recounts;
   old signed synchronization links can no longer reopen an independently
   disabled forum. Require the current ACP session at every counter write,

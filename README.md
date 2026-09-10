@@ -203,6 +203,15 @@ administrator. Deleted, logged-out or deprivileged sessions cannot continue a
 recount. Post/forum recounts refresh the navigation cache after releasing their
 writer, including after partial failures. No extra schema migration is needed.
 
+Moderator-status synchronization also preserves board availability and requires
+the current ACP session before expiring target sessions or updating derived
+USER/MOD flags. A delegated administrator whose own derived role needs repair
+keeps only the active, freshly verified ACP session; other sessions still expire.
+Its separate maintenance grant must remain valid throughout, and subsequent
+requests reload the current user record. Administrator and other special roles
+are not rewritten. Interrupted changes may be retried, but revoked sessions are
+never recreated. This change requires no schema migration.
+
 Search-index maintenance cleans unused non-common words and invalid matches on
 the coordinated writer connection. Each batch contains at most 100 candidate
 word or post IDs; deletion rechecks current references, common-word flags and
