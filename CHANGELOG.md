@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Escape legacy language values in ACP user-maintenance SQL and HTML. Compare
+  exact bytes instead of collation-equivalent values, repair NULL preferences,
+  validate installed language-pack names and fail without changing preferences
+  if no valid fallback exists. Preserve preferences corrected during the scan.
+  Delete invalid persistent-login rows against current account/timestamp state,
+  not a list of key strings that could also identify another user's valid login.
+  Add English/German controller-fragment regression tests for injection, stored
+  markup, collations, duplicate key values, retry and database failures. These
+  corrections change no schema and do not run repairs automatically on update.
 - Replace the destructive HEAP session-table conversion with an explicitly
   confirmed InnoDB conversion. Preserve every current session and custom column
   or index; remove the arbitrary 500-session deletion/cap. Require current ACP

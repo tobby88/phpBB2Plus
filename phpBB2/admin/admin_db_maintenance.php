@@ -975,85 +975,66 @@ switch($mode_id)
 
 				// Checking for invalid languages
 				echo("<p class=\"gen\"><b>" . $lang['Checking_languages'] . "</b></p>\n");
-				$sql = "SELECT user_lang
+				// Keep byte-distinct values separate even under case/accent-insensitive
+				// database collations. NULL also needs an explicit repair predicate.
+				$sql = "SELECT DISTINCT user_lang, HEX(user_lang) AS language_bytes
 					FROM " . USERS_TABLE . "
-					WHERE user_id <> " . ANONYMOUS . "
-					GROUP BY user_lang";
+					WHERE user_id <> " . ANONYMOUS;
 				$result_array = array();
 				$result = $db->sql_query($sql);
-				if ( !$result )
+				if (!$result) { throw_error("Couldn't get user language data!", __LINE__, __FILE__, $sql); }
+				while ($row = $db->sql_fetchrow($result))
 				{
-					throw_error("Couldn't get user and theme data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if ( !file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $row['user_lang'] . '/lang_main.'.$phpEx)) )
+					// Do not construct filesystem paths from unchecked legacy values.
+					if (!is_string($row['user_lang']) || !preg_match('/^[a-z0-9_-]{1,30}$/D', $row['user_lang'])
+						|| !is_file($phpbb_root_path . 'language/lang_' . $row['user_lang'] . '/lang_main.' . $phpEx))
 					{
 						$result_array[] = $row['user_lang'];
 					}
 				}
 				$db->sql_freeresult($result);
-				if ( count($result_array) )
+				if (count($result_array))
 				{
-					// Getting default board_language as long as the original one was changed in functions.php
-					$sql = "SELECT config_value
-						FROM " . CONFIG_TABLE . "
-						WHERE config_name = 'default_lang'";
+					$sql = "SELECT config_value FROM " . CONFIG_TABLE . " WHERE config_name = 'default_lang'";
 					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't get language data!", __LINE__, __FILE__, $sql);
-					}
-					if ( $row = $db->sql_fetchrow($result) )
-					{
-						$boad_language = $row['config_value'];
-					}
-					else
-					{
-						throw_error("Couldn't get config data! Please check your configuration table.");
-					}
+					if (!$result) { throw_error("Couldn't get language data!", __LINE__, __FILE__, $sql); }
+					$row = $db->sql_fetchrow($result);
 					$db->sql_freeresult($result);
-
-					// Getting default language
-					if ( file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $boad_language . '/lang_main.'.$phpEx)) )
+					if (!$row) { throw_error("Couldn't get config data! Please check your configuration table."); }
+					$board_language = $row['config_value'];
+					$default_lang = null;
+					foreach (array($board_language, $userdata['user_lang'], 'english') as $candidate)
 					{
-						$default_lang = $boad_language;
-					}
-					elseif ( file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $userdata['user_lang'] . '/lang_main.'.$phpEx)) )
-					{
-						echo("<p class=\"gen\">" . $lang['Default_language_invalid'] . "</p>\n");
-						$default_lang = $userdata['user_lang'];
-					}
-					elseif ( file_exists(@phpbb_realpath($phpbb_root_path . 'language/lang_english/lang_main.'.$phpEx)) )
-					{
-						echo("<p class=\"gen\">" . $lang['Default_language_invalid'] . "</p>\n");
-						$default_lang = 'english';
-					}
-					else
-					{
-						echo("<p class=\"gen\">" . $lang['English_language_invalid'] . "</p>\n");
-						$default_lang = 'english';
-					}
-
-					echo("<p class=\"gen\">" . $lang['Invalid_languages_found'] . ":</p>\n");
-					echo("<font class=\"gen\"><ul>\n");
-					$list_open = TRUE;
-
-					for($i = 0; $i < count($result_array); $i++)
-					{
-						echo("<li>" . sprintf($lang['Changing_language'], $result_array[$i], $default_lang) . "</li>\n");
-						$sql = "UPDATE " . USERS_TABLE . "
-							SET user_lang = '$default_lang'
-							WHERE user_lang = '" . $result_array[$i] . "'
-								AND user_id <> " . ANONYMOUS;
-						$result = $db->sql_query($sql);
-						if ( !$result )
+						if (is_string($candidate) && preg_match('/^[a-z0-9_-]{1,30}$/D', $candidate)
+							&& is_file($phpbb_root_path . 'language/lang_' . $candidate . '/lang_main.' . $phpEx))
 						{
-							throw_error("Couldn't update language language data!", __LINE__, __FILE__, $sql);
+							$default_lang = $candidate;
+							break;
 						}
 					}
-
-					echo("</ul></font>\n");
+					// Never replace preferences with another missing language pack.
+					if ($default_lang === null) { throw_error($lang['English_language_invalid']); }
+					if ($default_lang !== $board_language) { echo('<p class="gen">' . $lang['Default_language_invalid'] . '</p>'); }
+					echo('<p class="gen">' . $lang['Invalid_languages_found'] . ':</p><ul class="gen">');
+					$list_open = TRUE;
+					foreach ($result_array as $invalid_language)
+					{
+						$language_match = $invalid_language === null ? 'user_lang IS NULL'
+							: "HEX(user_lang) = HEX('" . $db->sql_escape($invalid_language) . "')";
+						// Compare current bytes, not a collation-equivalent valid value;
+						// an independently corrected preference must remain untouched.
+						$sql = "UPDATE " . USERS_TABLE . " SET user_lang = '" . $db->sql_escape($default_lang) . "'"
+							. " WHERE " . $language_match . " AND user_id <> " . ANONYMOUS;
+						$result = $db->sql_query($sql);
+						if (!$result) { throw_error("Couldn't update user language data!", __LINE__, __FILE__, $sql); }
+						if ($db->sql_affectedrows() > 0)
+						{
+							echo('<li>' . sprintf($lang['Changing_language'],
+								htmlspecialchars((string) $invalid_language, ENT_QUOTES, 'UTF-8'),
+								htmlspecialchars($default_lang, ENT_QUOTES, 'UTF-8')) . "</li>\n");
+						}
+					}
+					echo("</ul>\n");
 					$list_open = FALSE;
 				}
 				else
@@ -1106,45 +1087,22 @@ switch($mode_id)
 				}
 
 				// Remove session key data without valid user
-				if ( $phpbb_version[0] == 0 && $phpbb_version[1] >= 18 )
+				if ($phpbb_version[0] == 0 && $phpbb_version[1] >= 18)
 				{
 					echo("<p class=\"gen\"><b>" . $lang['Remove_invalid_session_keys'] . "</b></p>\n");
-					$sql = "SELECT k.key_id
-						FROM " . SESSIONS_KEYS_TABLE . " k
-							LEFT JOIN " . USERS_TABLE . " u ON k.user_id = u.user_id
-						WHERE u.user_id IS NULL
-							OR k.user_id = " . ANONYMOUS . "
-							OR k.last_login > " . time();
-					$result_array = array();
+					// key_id alone is not an identity: the primary key also contains
+					// user_id. Qualify each current row directly, so another user's
+					// identical key or a concurrently restored account survives.
+					$sql = "DELETE FROM " . SESSIONS_KEYS_TABLE
+						. " WHERE NOT EXISTS (SELECT 1 FROM " . USERS_TABLE . " key_user"
+						. " WHERE key_user.user_id = " . SESSIONS_KEYS_TABLE . ".user_id)"
+						. " OR user_id = " . ANONYMOUS . " OR last_login > " . time();
 					$result = $db->sql_query($sql);
-					if ( !$result )
+					if (!$result) { throw_error("Couldn't update session key data!", __LINE__, __FILE__, $sql); }
+					$affected_rows = $db->sql_affectedrows();
+					if ($affected_rows > 0)
 					{
-						throw_error("Couldn't get session key data!", __LINE__, __FILE__, $sql);
-					}
-					while ( $row = $db->sql_fetchrow($result) )
-					{
-						$result_array[] = $row['key_id'];
-					}
-					$db->sql_freeresult($result);
-					if ( count($result_array) )
-					{
-						$record_list = '\'' . implode('\',\'', $result_array) . '\'';
-						$sql = "DELETE FROM " . SESSIONS_KEYS_TABLE . "
-							WHERE key_id IN ($record_list)";
-						$result = $db->sql_query($sql);
-						if ( !$result )
-						{
-							throw_error("Couldn't update session key data!", __LINE__, __FILE__, $sql);
-						}
-						$affected_rows = $db->sql_affectedrows();
-						if ( $affected_rows == 1 )
-						{
-							echo("<p class=\"gen\">" . sprintf($lang['Affected_row'], $affected_rows) . "</p>\n");
-						}
-						elseif ( $affected_rows > 1 )
-						{
-							echo("<p class=\"gen\">" . sprintf($lang['Affected_rows'], $affected_rows) . "</p>\n");
-						}
+						echo('<p class="gen">' . sprintf($lang[$affected_rows == 1 ? 'Affected_row' : 'Affected_rows'], $affected_rows) . "</p>\n");
 					}
 					else
 					{
