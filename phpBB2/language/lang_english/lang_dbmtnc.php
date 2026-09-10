@@ -442,6 +442,9 @@ $lang['Updating_mod_state'] = 'Updating moderator status of users';
 $lang['Changing_moderator_status'] = 'Changing moderator status of user %s (%d)';
 $lang['Checking_moderators'] = 'Checking for users without moderator status who do moderate a forum';
 // reset_date
+$lang['Maintenance_date_reset_failed'] = 'Date repair was interrupted. Earlier corrections may already be saved; repeat the repair to finish. This operation does not change board availability.';
+$lang['Maintenance_date_reset_summary'] = 'Corrected future timestamps: %d posts, %d private messages, %d last-email times and %d login-attempt times. Removed %d cached search results with future dates.';
+$lang['Maintenance_date_reset_deferred'] = '%d future-dated private messages were left unchanged because publication or sent-copy recovery is unfinished. Complete that recovery before repeating date repair.';
 $lang['Resetting_future_post_dates'] = 'Resetting entries in the future';
 $lang['Checking_post_dates'] = 'Checking dates of posts';
 $lang['Checking_pm_dates'] = 'Checking dates of private messages';

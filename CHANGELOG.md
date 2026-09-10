@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repair future post, PM, email and login timestamps and discard future-dated
+  search-cache entries without disabling the board. Coordinate with writers,
+  recheck current maintenance permission and ACP session at each write, and
+  report partial failures honestly. Defer unfinished PM publication and both
+  sides of interrupted sent-copy recovery to preserve their date invariants.
+  Keep past timestamps, guest/reserved account sentinels and unrelated fields;
+  provide English/German counts and recovery guidance. No schema change needed.
+
 - Preserve the executing administrator session when resetting sessions in DB
   Maintenance, rather than deleting and reconstructing it. Check current account,
   delegated maintenance permission and live ACP session at each guarded write;
