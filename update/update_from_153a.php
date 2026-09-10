@@ -358,6 +358,16 @@ function update_queue_pm_read_columns(&$operations, $connection, $database, $tab
 	}
 }
 
+function update_queue_maintenance_recovery_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	update_queue_column($operations, $connection, $database, $table, 'maintenance_token', 'CHAR(32) DEFAULT NULL');
+	if (!update_index_exists($connection, $database, $table, 'maintenance_token'))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ADD UNIQUE KEY maintenance_token (maintenance_token)';
+	}
+}
+
 function update_queue_pm_write_columns(&$operations, $connection, $database, $table)
 {
 	if (!update_table_exists($connection, $database, $table)) { return; }
@@ -530,6 +540,10 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 }
 
 $operations = array();
+foreach (array('categories', 'forums', 'topics') as $recovery_table)
+{
+	update_queue_maintenance_recovery_columns($operations, $connection, $dbname, $table_prefix . $recovery_table);
+}
 update_queue_pm_read_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
 update_queue_pm_write_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
 update_queue_pm_attachment_columns($operations, $connection, $dbname, $table_prefix . 'attachments_desc');

@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recover orphan post texts into a locked, administrator-only area using current
+  source text and current ACP authority at each write. Keep original text, subject,
+  BBCode identity and attachment links; reuse reserved category/forum/topic IDs
+  after interrupted work and repair their counters on retry. Add nullable unique
+  recovery identities through the consolidated updater and fresh-install schema.
+  Report partial failures in EN/DE and shorten the German replacement author to
+  fit the existing field. This replaces orphan-text recovery, not the entire
+  structural-maintenance workflow.
+
 - Recheck missing post text, empty topics and orphan redirect destinations in
   the actual structural-maintenance DELETE statements. Preserve posts whose
   body appeared after diagnosis, topics with new posts or changed status, and

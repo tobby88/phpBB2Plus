@@ -1617,50 +1617,13 @@ switch($mode_id)
 					echo($lang['Nothing_to_do']);
 				}
 
-				// Check for texts without a post
-				echo("<p class=\"gen\"><b>" . $lang['Checking_texts_wo_post'] . "</b></p>\n");
-				$sql = "SELECT pt.post_id, pt.bbcode_uid, pt.post_text
-					FROM " . POSTS_TEXT_TABLE . " pt
-						LEFT JOIN " . POSTS_TABLE . " p ON pt.post_id = p.post_id
-					WHERE p.post_id IS NULL";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get post and text data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Invalid_texts_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-						$new_forum = create_forum();
-						$new_topic = create_topic();
-						$enable_html = $board_config['allow_html'];
-						$enable_smilies = $board_config['allow_smilies'];
-					}
-					$enable_bbcode = ($board_config['allow_bbcode'] && $row['bbcode_uid'] != '') ? 1 : 0;
-					echo("<li>" . sprintf($lang['Recreating_post'], $row['post_id'], $lang['New_topic_name'], $lang['New_forum_name'], substr(htmlspecialchars(strip_tags($row['post_text'])), 0, 30)) . "</li>\n");
-					$sql2 = "INSERT INTO " . POSTS_TABLE . ' (post_id, topic_id, forum_id, poster_id, post_time, poster_ip, post_username, enable_bbcode, enable_html, enable_smilies, enable_sig, post_edit_time, post_edit_count)
-						VALUES (' . $row['post_id'] . ", $new_topic, $new_forum, " . ANONYMOUS . ', ' . time() . ', \'\', \'' . $lang['New_poster_name'] . "', $enable_bbcode, $enable_html, $enable_smilies, 0, NULL, 0)";
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update post information!", __LINE__, __FILE__, $sql2);
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-					$update_post_data = TRUE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
+				// Check for texts without a post: current-source, retryable recovery.
+				echo('<p class="gen"><b>' . $lang['Checking_texts_wo_post'] . '</b></p>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_recovery.' . $phpEx);
+				try { $orphan_recovery = dbmtnc_recover_orphan_text($db, $_POST); }
+				catch (PhpbbAclException $error) { throw_error($error->getMessage(), __LINE__, __FILE__); break; }
+				$update_post_data = $update_post_data || $orphan_recovery['restored'] > 0;
+				echo('<p class="gen">' . sprintf($lang['Maintenance_recovery_summary'], $orphan_recovery['restored'], $orphan_recovery['skipped']) . '</p>');
 
 				// Check moved topics
 				echo("<p class=\"gen\"><b>" . $lang['Checking_moved_topics'] . "</b></p>\n");

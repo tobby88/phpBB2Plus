@@ -88,7 +88,7 @@ $lang['New_cat_name'] = 'Wiederhergestellte Foren';
 $lang['New_forum_name'] = 'Wiederhergestellte Themen';
 $lang['New_topic_name'] = 'Wiederhergestellte Beiträge';
 $lang['Restored_topic_name'] = 'Wiederhergestelltes Thema';
-$lang['New_poster_name'] = 'Wiederhergestellter Beitrag'; // Name for Poster of a restored post
+$lang['New_poster_name'] = 'Wiederhergestellt'; // Fits the 25-character post_username column.
 
 //
 // Functions available
@@ -460,6 +460,9 @@ $lang['Updating_mod_state'] = 'Aktualisiere Moderator-Status der Benutzer';
 $lang['Changing_moderator_status'] = 'Aktualisiere Moderator-Status des Benutzers %s (%d)';
 $lang['Checking_moderators'] = 'Prüfe auf Benutzer ohne Moderator-Status, die mindestens ein Forum moderieren';
 // reset_date
+$lang['Maintenance_recovery_failed'] = 'Die Beitragswiederherstellung wurde unterbrochen. Frühere Reparaturen oder Wiederherstellungsbereiche können bereits gespeichert sein. Prüfe den Datenbankzugriff, führe bei Bedarf update/update_from_153a.php aus und wiederhole die Reparatur. Bereits gespeicherte Änderungen wurden nicht zurückgerollt.';
+$lang['Maintenance_recovery_changed'] = 'Der Wiederherstellungsbereich wurde verändert oder konnte nicht sicher angelegt werden. Prüfe seine Kategorie, das gesperrte Forum mit Zugriff nur für Administratoren und das gesperrte Thema, bevor du fortfährst. Vorhandene Inhalte wurden nicht überschrieben.';
+$lang['Maintenance_recovery_summary'] = '%d verwaiste Beitragstexte wiederhergestellt; %d inzwischen veränderte Kandidaten übersprungen. Wiederherstellungsbereiche werden beim erneuten Versuch wiederverwendet und sind nur Administratoren zugänglich.';
 $lang['Maintenance_parent_delete_summary'] = '%d weiterhin ungültige Datensätze entfernt; %d Kandidaten übersprungen, deren aktueller Zustand keine Löschung mehr erlaubt.';
 $lang['Maintenance_date_reset_failed'] = 'Die Datumsreparatur wurde unterbrochen. Frühere Korrekturen können bereits gespeichert sein; wiederhole die Reparatur zum Abschluss. Die Verfügbarkeit des Forums wird dabei nicht verändert.';
 $lang['Maintenance_date_reset_summary'] = 'Zukünftige Zeitstempel korrigiert: %d Beiträge, %d private Nachrichten, %d Zeiten der letzten E-Mail und %d Zeiten letzter Anmeldeversuche. %d zwischengespeicherte Suchergebnisse mit zukünftigem Datum entfernt.';

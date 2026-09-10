@@ -689,3 +689,9 @@ jobs:
 
       - name: Preserve repaired posts and topics during structural cleanup
         run: php .github/scripts/check-maintenance-parent-deletes.php
+
+      - name: Recover orphan post text with durable restricted containers
+        run: php .github/scripts/check-maintenance-recovery.php
+
+      - name: Add recovery container identities without rewriting existing data
+        run: php .github/scripts/check-maintenance-recovery-migration.php

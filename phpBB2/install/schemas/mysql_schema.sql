@@ -156,6 +156,7 @@ CREATE TABLE phpbb_banlist (
 # Table structure for table 'phpbb_categories'
 #
 CREATE TABLE phpbb_categories (
+   maintenance_token char(32) default NULL,
    cat_id mediumint(8) UNSIGNED NOT NULL auto_increment,
    cat_title varchar(100),
    cat_order mediumint(8) UNSIGNED NOT NULL,
@@ -164,6 +165,7 @@ CREATE TABLE phpbb_categories (
    cat_desc text default '' NOT NULL,
    icon varchar(255),
    PRIMARY KEY (cat_id),
+   UNIQUE KEY maintenance_token (maintenance_token),
    KEY cat_order (cat_order)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -221,6 +223,7 @@ CREATE TABLE phpbb_forum_prune (
 # Table structure for table 'phpbb_forums'
 #
 CREATE TABLE phpbb_forums (
+   maintenance_token char(32) default NULL,
    forum_id smallint(5) UNSIGNED NOT NULL,
    cat_id mediumint(8) UNSIGNED NOT NULL,
    forum_name varchar(150),
@@ -258,6 +261,7 @@ CREATE TABLE phpbb_forums (
    auth_bluecard tinyint(2) default '1' NOT NULL,
    count_posts char(1) default '1' NOT NULL,
    PRIMARY KEY (forum_id),
+   UNIQUE KEY maintenance_token (maintenance_token),
    KEY forums_order (forum_order),
    KEY cat_id (cat_id),
    KEY forum_last_post_id (forum_last_post_id)
@@ -585,6 +589,7 @@ CREATE TABLE phpbb_themes_name (
 # Table structure for table 'phpbb_topics'
 #
 CREATE TABLE phpbb_topics (
+   maintenance_token char(32) default NULL,
    topic_id mediumint(8) UNSIGNED NOT NULL auto_increment,
    forum_id smallint(8) UNSIGNED default '0' NOT NULL,
    topic_title varchar(60) NOT NULL,
@@ -607,6 +612,7 @@ CREATE TABLE phpbb_topics (
    news_id int UNSIGNED default '0' NOT NULL,
 
    PRIMARY KEY (topic_id),
+   UNIQUE KEY maintenance_token (maintenance_token),
    KEY forum_id (forum_id),
    KEY topic_moved_id (topic_moved_id),
    KEY topic_status (topic_status),

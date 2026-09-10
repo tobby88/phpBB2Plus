@@ -442,6 +442,9 @@ $lang['Updating_mod_state'] = 'Updating moderator status of users';
 $lang['Changing_moderator_status'] = 'Changing moderator status of user %s (%d)';
 $lang['Checking_moderators'] = 'Checking for users without moderator status who do moderate a forum';
 // reset_date
+$lang['Maintenance_recovery_failed'] = 'Post recovery was interrupted. Earlier repairs or recovery containers may already be saved. Check database access, run update/update_from_153a.php if needed, and repeat the repair to resume. No rollback is claimed.';
+$lang['Maintenance_recovery_changed'] = 'The recovery area was changed or could not be allocated safely. Check its category, locked administrator-only forum and locked topic before retrying. Existing content was not overwritten.';
+$lang['Maintenance_recovery_summary'] = 'Recovered %d orphan post texts; skipped %d candidates whose source changed. Recovery containers are reused on retry and are restricted to administrators.';
 $lang['Maintenance_parent_delete_summary'] = 'Removed %d still-invalid records; skipped %d candidates whose current state no longer permits deletion.';
 $lang['Maintenance_date_reset_failed'] = 'Date repair was interrupted. Earlier corrections may already be saved; repeat the repair to finish. This operation does not change board availability.';
 $lang['Maintenance_date_reset_summary'] = 'Corrected future timestamps: %d posts, %d private messages, %d last-email times and %d login-attempt times. Removed %d cached search results with future dates.';

@@ -202,6 +202,18 @@ This does not delete source posts or rebuild the entire index. Earlier batches
 can remain applied after a failure, so back up before maintenance and retry only
 after resolving the error. Deployment does not perform cleanup or a migration.
 
+Orphan-text recovery in structural maintenance preserves original text, subjects,
+BBCode IDs and existing attachment links. It creates missing post records only
+while the selected original still exists unchanged, in a locked administrator-only
+recovery area. Reserved category/forum/topic identities let a retry reuse partially
+created containers and finish their counters. Back up first and run
+`update/update_from_153a.php` before using this action on an existing installation:
+it adds nullable unique `maintenance_token` columns to categories, forums and topics.
+Neither migration nor deployment runs content recovery automatically. Resolve a
+reported failure before retrying; partial MyISAM writes are not rolled back.
+Do not repurpose the reserved recovery area while recovering data. This safeguard
+does not make the remaining legacy structural-maintenance steps transactional.
+
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.
 Explicit defaults, special attributes and ambiguous keys are left for review.
