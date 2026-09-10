@@ -8,6 +8,19 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replace stale-list category/topic recovery and post routing with a guarded,
+  retryable topology worker. Keep original topics when only their forum is
+  missing; preserve separate orphan-topic groups, titles, authors, texts and
+  attachment links. Finish routing, attachment badges and canonical counters
+  after interruptions using the same owning connection and current ACP session.
+  Reserve recovery IDs above dangling references (including subscriptions,
+  polls, bookmarks, logs, KB links, ACLs and hierarchy parents) and existing
+  auto-increment high-water marks. Stop safely at ID capacity or unexpected
+  reference types. Reuse the existing recovery-identity migration; no additional
+  schema change. Remove four unused legacy recovery helpers and correct the
+  invalid-pruning diagnostic key. The outer maintenance-mode lifecycle and
+  remaining legacy cleanup steps are separate work.
+
 - Repair missing post/topic authors through the shared writer connection with
   fresh ACP authority and current source checks. Keep stored guest names and
   valid or concurrently restored author assignments, including inactive existing

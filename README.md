@@ -218,6 +218,17 @@ created containers and finish their counters. Back up first and run
 it adds nullable unique `maintenance_token` columns to categories, forums and topics.
 Neither migration nor deployment runs content recovery automatically. Resolve a
 reported failure before retrying; partial MyISAM writes are not rolled back.
+Structural topology repair also reuses these identities. Topics with a missing
+forum keep their original IDs; posts with a missing/redirect topic are recovered
+in separate locked topics according to their original topic IDs. A repeated run
+finishes dependent forum links, attachment indicators and counters after an
+interruption. New recovery IDs avoid dangling numeric references and respect
+auto-increment high-water marks, so old subscriptions or ACLs are not adopted by
+new content. The account must be able to read its own database metadata. Invalid
+reference types or exhausted ID ranges require manual review, not ID reuse.
+On MySQL, the dedicated recovery connection disables
+[cached table metadata](https://dev.mysql.com/doc/mysql-infoschema-excerpt/8.0/en/information-schema-tables-table.html)
+when that session option exists, before consulting the auto-increment value.
 Do not repurpose the reserved recovery area while recovering data. This safeguard
 does not make the remaining legacy structural-maintenance steps transactional.
 

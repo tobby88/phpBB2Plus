@@ -460,6 +460,9 @@ $lang['Updating_mod_state'] = 'Aktualisiere Moderator-Status der Benutzer';
 $lang['Changing_moderator_status'] = 'Aktualisiere Moderator-Status des Benutzers %s (%d)';
 $lang['Checking_moderators'] = 'Prüfe auf Benutzer ohne Moderator-Status, die mindestens ein Forum moderieren';
 // reset_date
+$lang['Maintenance_topology_heading'] = 'Kategorie-, Foren- und Themenzuordnungen reparieren';
+$lang['Maintenance_topology_failed'] = 'Die Reparatur der Zuordnungen wurde unterbrochen. Frühere Verschiebungen oder Wiederherstellungsbereiche können bereits gespeichert sein. Behebe den Fehler und wiederhole die Reparatur, um übrige Zuordnungen und Zähler zu vervollständigen; es erfolgt kein automatisches Zurückrollen. Beitragstexte und Anhangdateien werden nicht überschrieben.';
+$lang['Maintenance_topology_summary'] = '%d Foren und %d Themen neu zugeordnet; %d Beiträge in getrennten, gesperrten Themen wiederhergestellt; %d Beitrags-/Forenzuordnungen korrigiert. %d inzwischen veränderte Einträge übersprungen. Bei %d Themen erfordert die Zählersynchronisierung noch eine Prüfung.';
 $lang['Maintenance_author_failed'] = 'Die Reparatur der Autorenzuordnung wurde unterbrochen. Frühere Korrekturen können bereits gespeichert sein. Behebe den Fehler und wiederhole die Reparatur; gespeicherte Gastnamen und Beitragsinhalte werden nicht überschrieben.';
 $lang['Maintenance_author_summary'] = '%d ungültige Beitragsautoren und %d ungültige Themenautoren korrigiert; %d inzwischen veränderte Einträge übersprungen. Vorhandene Gastnamen wurden beibehalten.';
 $lang['Maintenance_recovery_failed'] = 'Die Beitragswiederherstellung wurde unterbrochen. Frühere Reparaturen oder Wiederherstellungsbereiche können bereits gespeichert sein. Prüfe den Datenbankzugriff, führe bei Bedarf update/update_from_153a.php aus und wiederhole die Reparatur. Bereits gespeicherte Änderungen wurden nicht zurückgerollt.';

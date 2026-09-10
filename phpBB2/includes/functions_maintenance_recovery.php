@@ -42,8 +42,10 @@ function dbmtnc_recovery_token($db, $source)
 	return $rows[0]['config_value'];
 }
 
-function dbmtnc_recovery_container_guard($db, $token, $ids)
+function dbmtnc_recovery_container_guard($db, $token, $ids, $topic_token = null)
 {
+	if ($topic_token === null) { $topic_token = $token; }
+	if (!preg_match('/^[a-f0-9]{32}$/D', $token) || !preg_match('/^[a-f0-9]{32}$/D', $topic_token)) { phpbb_acl_error('Maintenance_recovery_changed'); }
 	$guard = dbmtnc_recovery_token_guard($db, $token);
 	if (isset($ids['category']))
 	{
@@ -60,14 +62,59 @@ function dbmtnc_recovery_container_guard($db, $token, $ids)
 	if (isset($ids['topic']))
 	{
 		$guard .= ' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT * FROM ' . TOPICS_TABLE . ' WHERE topic_id = ' . $ids['topic'] . ') recovery_topic WHERE topic_id = ' . $ids['topic']
-			. ' AND forum_id = ' . $ids['forum'] . " AND maintenance_token = '" . $token . "' AND topic_status = " . TOPIC_LOCKED . ' AND topic_moved_id = 0)';
+			. ' AND forum_id = ' . $ids['forum'] . " AND maintenance_token = '" . $topic_token . "' AND topic_status = " . TOPIC_LOCKED . ' AND topic_moved_id = 0)';
 	}
 	return $guard;
 }
 
-function dbmtnc_recovery_containers($db, $token, $source)
+function dbmtnc_recovery_allocation($db, $kind)
+{
+	// MySQL can cache TABLES.AUTO_INCREMENT. This dedicated connection must
+	// read the engine's current high-water mark, not yesterday's statistics.
+	$expiry = phpbb_acl_rows($db, "SHOW SESSION VARIABLES WHERE Variable_name = 'information_schema_stats_expiry'");
+	if ($expiry) { $db->sql_query('SET SESSION information_schema_stats_expiry = 0'); }
+	// Explicit numeric references, including optional bundled modules. Never
+	// attach dangling subscriptions, ACLs or posts to a newly created identity.
+	if (!preg_match('/^([A-Za-z0-9_]*)categories$/D', CATEGORIES_TABLE, $match)) { phpbb_acl_error('Maintenance_recovery_changed'); }
+	$prefix = $match[1];
+	$registry = array(
+		'category' => array('categories' => array('cat_id' => '', 'cat_main' => "cat_main_type = 'c'"), 'forums' => array('cat_id' => "main_type = 'c'")),
+		'forum' => array('forums' => array('forum_id' => '', 'cat_id' => "main_type = 'f'"), 'categories' => array('cat_main' => "cat_main_type = 'f'"),
+			'topics' => array('forum_id' => ''), 'posts' => array('forum_id' => ''), 'auth_access' => array('forum_id' => ''), 'forum_prune' => array('forum_id' => '')),
+		'topic' => array('topics' => array('topic_id' => '', 'topic_moved_id' => ''), 'posts' => array('topic_id' => ''),
+			'topics_watch' => array('topic_id' => ''), 'vote_desc' => array('topic_id' => ''), 'logs' => array('topic_id' => ''),
+			'bookmarks' => array('topic_id' => ''), 'topic_view' => array('topic_id' => ''), 'kb_articles' => array('topic_id' => ''), 'sessions' => array('session_topic' => ''))
+	);
+	if (!isset($registry[$kind])) { phpbb_acl_error('Maintenance_recovery_changed'); }
+	$tables = array(); foreach ($registry[$kind] as $suffix => $fields) { $tables[] = "'" . $prefix . $suffix . "'"; }
+	$rows = phpbb_acl_rows($db, 'SELECT TABLE_NAME AS table_name,COLUMN_NAME AS column_name,DATA_TYPE AS data_type FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (' . implode(',', $tables) . ')');
+	$inventory = array(); foreach ($rows as $row) { $inventory[$row['table_name']][$row['column_name']] = strtolower($row['data_type']); }
+	$selects = array();
+	foreach ($registry[$kind] as $suffix => $fields)
+	{
+		$table = $prefix . $suffix;
+		foreach ($fields as $field => $where)
+		{
+			if (!isset($inventory[$table][$field]))
+			{
+				if (in_array($suffix, array('categories','forums','topics','posts'), true)) { phpbb_acl_error('Maintenance_recovery_changed'); }
+				continue;
+			}
+			if (!in_array($inventory[$table][$field], array('tinyint','smallint','mediumint','int','bigint'), true)) { phpbb_acl_error('Maintenance_recovery_changed'); }
+			$selects[] = 'SELECT COALESCE(MAX(`' . $field . '`),0) AS value FROM `' . $table . '`' . ($where === '' ? '' : ' WHERE ' . $where);
+		}
+	}
+	$target = $prefix . ($kind === 'category' ? 'categories' : ($kind === 'forum' ? 'forums' : 'topics'));
+	$selects[] = "SELECT COALESCE(AUTO_INCREMENT,1)-1 AS value FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . $target . "'";
+	$floor = 'SELECT COALESCE(MAX(value),0)+1 AS next_id FROM (' . implode(' UNION ALL ', $selects) . ') recovery_reference_floor';
+	return ' FROM (SELECT id_floor.next_id' . ($kind === 'category' ? ',(SELECT COALESCE(MAX(cat_order),0)+10 FROM ' . CATEGORIES_TABLE . ') AS next_order' : '')
+		. ' FROM (' . $floor . ') id_floor) allocation';
+}
+
+function dbmtnc_recovery_containers($db, $token, $source, $through = 'topic')
 {
 	global $lang;
+	if (!in_array($through, array('category', 'forum', 'topic'), true)) { phpbb_acl_error('Maintenance_recovery_changed'); }
 	$ids = array();
 	foreach (array('category' => array(CATEGORIES_TABLE, 'cat_id'), 'forum' => array(FORUMS_TABLE, 'forum_id'), 'topic' => array(TOPICS_TABLE, 'topic_id')) as $kind => $table)
 	{
@@ -76,12 +123,13 @@ function dbmtnc_recovery_containers($db, $token, $source)
 		$rows = phpbb_acl_rows($db, 'SELECT ' . $table[1] . ' FROM ' . $table[0] . " WHERE maintenance_token = '" . $token . "'");
 		if (!$rows)
 		{
-			$values = array('maintenance_token' => "'" . $token . "'"); $allocation = '';
+			$values = array('maintenance_token' => "'" . $token . "'", $table[1] => 'allocation.next_id');
+			$allocation = dbmtnc_recovery_allocation($db, $kind);
+			$parent_guard .= ' AND allocation.next_id <= ' . ($kind === 'forum' ? 65535 : 16777215);
 			if ($kind === 'category')
 			{
 				$values += array('cat_title' => dbmtnc_recovery_literal($db, $lang['New_cat_name']), 'cat_order' => 'allocation.next_order',
 					'cat_main_type' => "'c'", 'cat_main' => '0', 'cat_desc' => "''", 'icon' => "''");
-				$allocation = ' FROM (SELECT COALESCE(MAX(cat_order),0)+10 AS next_order FROM ' . CATEGORIES_TABLE . ') allocation';
 				$parent_guard .= ' AND allocation.next_order <= 16777215';
 			}
 			elseif ($kind === 'forum')
@@ -90,8 +138,6 @@ function dbmtnc_recovery_containers($db, $token, $source)
 					'forum_name' => dbmtnc_recovery_literal($db, $lang['New_forum_name']), 'forum_desc' => "''", 'forum_status' => (string) FORUM_LOCKED,
 					'forum_order' => '10', 'prune_next' => 'NULL', 'prune_enable' => '0', 'forum_link' => "''", 'main_type' => "'c'", 'count_posts' => "'0'");
 				foreach (phpbb_acl_fields() as $field) { $values[$field] = (string) AUTH_ADMIN; }
-				$allocation = ' FROM (SELECT COALESCE(MAX(forum_id),0)+1 AS next_id FROM ' . FORUMS_TABLE . ') allocation';
-				$parent_guard .= ' AND allocation.next_id <= 65535';
 			}
 			else
 			{
@@ -110,6 +156,7 @@ function dbmtnc_recovery_containers($db, $token, $source)
 		$ids[$kind] = phpbb_acl_id($rows[0][$table[1]]);
 		if (!phpbb_acl_rows($db, 'SELECT 1 AS allowed WHERE ' . dbmtnc_recovery_container_guard($db, $token, $ids)))
 		{ phpbb_acl_error('Maintenance_recovery_changed'); }
+		if ($kind === $through) { break; }
 	}
 	return $ids;
 }

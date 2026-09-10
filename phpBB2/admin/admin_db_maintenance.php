@@ -1183,54 +1183,7 @@ switch($mode_id)
 				if ($author_repair_error !== '') { throw_error($author_repair_error); }
 				echo('<p class="gen">' . sprintf($lang['Maintenance_author_summary'], $author_repair['posts'], $author_repair['topics'], $author_repair['skipped']) . '</p>');
 
-				// Check for forums with invalid categories
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_forums'] . "</b></p>\n");
-				$sql = "SELECT f.forum_id, f.forum_name
-					FROM " . FORUMS_TABLE . " f
-						LEFT JOIN " . CATEGORIES_TABLE . " c ON f.cat_id = c.cat_id
-               WHERE c.cat_id IS NULL 
-               AND main_type = 'c'"; 
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get categories and forums data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Invalid_forums_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . htmlspecialchars($row['forum_name']) . " (" . $row['forum_id'] . ")</li>\n");
-					$result_array[] = $row['forum_id'];
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					$new_cat = create_cat();
-					echo("<p class=\"gen\">" . sprintf($lang['Setting_category'], $lang['New_cat_name']) . " </p>\n");
-					$sql = "UPDATE " . FORUMS_TABLE . "
-						SET cat_id = $new_cat
-						WHERE forum_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update forum information!", __LINE__, __FILE__, $sql);
-					}
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
+				// Check for forums with invalid categories: handled by the topology worker below.
 
 				// Check for posts without a text
 				echo("<p class=\"gen\"><b>" . $lang['Checking_posts_wo_text'] . "</b></p>\n");
@@ -1338,216 +1291,17 @@ switch($mode_id)
 					echo($lang['Nothing_to_do']);
 				}
 
-				// Check for topics with invalid forum
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_topics'] . "</b></p>\n");
-				$sql = "SELECT t.topic_id, t.topic_title
-					FROM " . TOPICS_TABLE . " t
-						LEFT JOIN " . FORUMS_TABLE . " f ON t.forum_id = f.forum_id
-					WHERE f.forum_id IS NULL";
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get topic and forum data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Invalid_topics_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . htmlspecialchars($row['topic_title']) . " (" . $row['topic_id'] . ")</li>\n");
-					$result_array[] = $row['topic_id'];
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				if ( count($result_array) )
-				{
-					$record_list = implode(',', $result_array);
-					$new_forum = create_forum();
-					echo("<p class=\"gen\">" . sprintf($lang['Setting_forum'], $lang['New_forum_name']) . " </p>\n");
-					$sql = "UPDATE " . TOPICS_TABLE . "
-						SET forum_id = $new_forum
-						WHERE topic_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql);
-					}
-					$sql = "UPDATE " . POSTS_TABLE . "
-						SET forum_id = $new_forum
-						WHERE topic_id IN ($record_list)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql);
-					}
-					$update_post_data = TRUE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check for posts with invalid topic
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_posts'] . "</b></p>\n");
-				$sql = "SELECT p.post_id, p.topic_id
-					FROM " . POSTS_TABLE . " p
-						LEFT JOIN " . TOPICS_TABLE . " t ON p.topic_id = t.topic_id
-					WHERE t.topic_id IS NULL OR t.topic_status = " . TOPIC_MOVED . "
-					ORDER BY p.topic_id, p.post_time";
-				$current_topic = -1;
-				$result_array = array();
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get post and topic data!", __LINE__, __FILE__, $sql);
-				}
-				$row = $db->sql_fetchrow($result); // We need to do it outside the while-condition to prevent endless loops
-				while ( $row || count($result_array) )
-				{
-					if ( $current_topic != $row['topic_id'] || !$row )
-					{
-						if ( count($result_array) )
-						{
-							// Restoring topic
-							if (!$list_open)
-							{
-								echo("<p class=\"gen\">" . $lang['Invalid_posts_found'] . ":</p>\n");
-								echo("<font class=\"gen\"><ul>\n");
-								$list_open = TRUE;
-							}
-							$record_list = implode(',', $result_array);
-							$new_forum = create_forum();
-							$first_post = implode(',', array_slice($result_array, 0, 1));
-							$last_post = implode(',', array_slice($result_array, -1, 1));
-							$post_replies = count($result_array) - 1;
-							// Get title for new topic
-							$sql2 = "SELECT post_subject
-								FROM " . POSTS_TEXT_TABLE . "
-								WHERE post_id = $first_post";
-							$result2 = $db->sql_query($sql2);
-							if ( !$result2 )
-							{
-								throw_error("Couldn't get post information!", __LINE__, __FILE__, $sql2);
-							}
-							$row2 = $db->sql_fetchrow($result2);
-							if ( !$row2 )
-							{
-								throw_error("Couldn't get post information!");
-							}
-							$db->sql_freeresult($result2);
-							$topic_title = ( $row2['post_subject'] == '') ? $lang['Restored_topic_name'] : $row2['post_subject'];
-							// Get data from first post
-							$sql2 = "SELECT poster_id, post_time
-								FROM " . POSTS_TABLE . "
-								WHERE post_id = $first_post";
-							$result2 = $db->sql_query($sql2);
-							if ( !$result2 )
-							{
-								throw_error("Couldn't get post information!", __LINE__, __FILE__, $sql2);
-							}
-							$row2 = $db->sql_fetchrow($result2);
-							if ( !$row2 )
-							{
-								throw_error("Couldn't get post information!");
-							}
-							$db->sql_freeresult($result2);
-							// Restore topic
-							$sql2 = 'INSERT INTO ' . TOPICS_TABLE . " (forum_id, topic_title, topic_poster, topic_time, topic_views, topic_replies, topic_status, topic_vote, topic_type, topic_first_post_id, topic_last_post_id, topic_moved_id)
-								VALUES ($new_forum, '" . addslashes($topic_title) . "', " . $row2['poster_id'] . ", " . $row2['post_time'] . ", 0, $post_replies, " . TOPIC_UNLOCKED . ", 0, " . POST_NORMAL . ", $first_post, $last_post, 0)";
-							$result2 = $db->sql_query($sql2);
-							if ( !$result2 )
-							{
-								throw_error("Couldn't update topic data!", __LINE__, __FILE__, $sql2);
-							}
-							$new_topic = $db->sql_nextid();
-							echo("<li>" . sprintf($lang['Setting_topic'], $record_list, htmlspecialchars($topic_title), $new_topic, $lang['New_forum_name']) . " </li>\n");
-							$sql2 = "UPDATE " . POSTS_TABLE . "
-								SET forum_id = $new_forum,
-									topic_id = $new_topic
-								WHERE post_id IN ($record_list)";
-							$result2 = $db->sql_query($sql2);
-							if ( !$result2 )
-							{
-								throw_error("Couldn't update post information!", __LINE__, __FILE__, $sql2);
-							}
-						}
-						// Reset data
-						$result_array = array();
-						if ( $row ) // Update the array only if we have a new post
-						{
-							$result_array[] = $row['post_id'];
-							$current_topic = $row['topic_id'];
-							$row = $db->sql_fetchrow($result); // Go to the next record
-						}
-					}
-					else
-					{
-						$result_array[] = $row['post_id'];
-						$row = $db->sql_fetchrow($result); // Go to the next record
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-					$update_post_data = TRUE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-
-				// Check for posts with invalid forum
-				echo("<p class=\"gen\"><b>" . $lang['Checking_invalid_forums_posts'] . "</b></p>\n");
-				$sql = "SELECT p.post_id, p.forum_id AS p_forum_id, fp.forum_name AS p_forum_name, t.forum_id AS t_forum_id, ft.forum_name AS t_forum_name
-					FROM " . POSTS_TABLE . " p
-						LEFT JOIN " . TOPICS_TABLE . " t ON p.topic_id = t.topic_id
-						LEFT JOIN " . FORUMS_TABLE . " fp ON p.forum_id = fp.forum_id
-						LEFT JOIN " . FORUMS_TABLE . " ft ON t.forum_id = ft.forum_id
-					WHERE p.forum_id <> t.forum_id";
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't get post and topic data!", __LINE__, __FILE__, $sql);
-				}
-				while ( $row = $db->sql_fetchrow($result) )
-				{
-					if (!$list_open)
-					{
-						echo("<p class=\"gen\">" . $lang['Invalid_forum_posts_found'] . ":</p>\n");
-						echo("<font class=\"gen\"><ul>\n");
-						$list_open = TRUE;
-					}
-					echo("<li>" . sprintf($lang['Setting_post_forum'], $row['post_id'], htmlspecialchars($row['p_forum_name']), $row['p_forum_id'], htmlspecialchars($row['t_forum_name']), $row['t_forum_id']) . "</li>\n");
-					$sql2 = "UPDATE " . POSTS_TABLE . "
-						SET forum_id = " . $row['t_forum_id'] . "
-						WHERE post_id = " . $row['post_id'];
-					$result2 = $db->sql_query($sql2);
-					if ( !$result2 )
-					{
-						throw_error("Couldn't update post information!", __LINE__, __FILE__, $sql2);
-					}
-				}
-				$db->sql_freeresult($result);
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-					$update_post_data = TRUE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
+				// Check for topics with invalid forum, orphan posts and mismatched routing.
+				echo('<p class="gen"><b>' . $lang['Maintenance_topology_heading'] . '</b></p>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_topology.' . $phpEx);
+				$topology_error = '';
+				try { $topology = dbmtnc_repair_topology($db, $_POST); }
+				catch (PhpbbAclException $error) { $topology_error = $error->getMessage(); }
+				catch (Exception $error) { $topology_error = $lang['Maintenance_topology_failed']; }
+				catch (Throwable $error) { $topology_error = $lang['Maintenance_topology_failed']; }
+				if ($topology_error !== '') { throw_error($topology_error); }
+				$update_post_data = $update_post_data || $topology['topics'] > 0 || $topology['posts'] > 0 || $topology['routes'] > 0;
+				echo('<p class="gen">' . sprintf($lang['Maintenance_topology_summary'], $topology['forums'], $topology['topics'], $topology['posts'], $topology['routes'], $topology['skipped'], count($topology['synchronization']['review'])) . '</p>');
 
 				// Check for texts without a post: current-source, retryable recovery.
 				echo('<p class="gen"><b>' . $lang['Checking_texts_wo_post'] . '</b></p>');
@@ -1721,7 +1475,7 @@ switch($mode_id)
 					}
 					elseif ( $affected_rows > 1 )
 					{
-						echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_moved_settings'], $affected_rows) . "</p>\n");
+						echo("<p class=\"gen\">" . sprintf($lang['Updating_invalid_prune_settings'], $affected_rows) . "</p>\n");
 					}
 				}
 				elseif ( !$db_updated )

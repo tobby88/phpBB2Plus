@@ -442,6 +442,9 @@ $lang['Updating_mod_state'] = 'Updating moderator status of users';
 $lang['Changing_moderator_status'] = 'Changing moderator status of user %s (%d)';
 $lang['Checking_moderators'] = 'Checking for users without moderator status who do moderate a forum';
 // reset_date
+$lang['Maintenance_topology_heading'] = 'Repairing category, forum and topic relationships';
+$lang['Maintenance_topology_failed'] = 'Relationship repair was interrupted. Earlier moves or recovery containers may already be saved. Resolve the error and rerun this repair to finish remaining routing and counters; no rollback is claimed. Post texts and attachment files are not rewritten.';
+$lang['Maintenance_topology_summary'] = 'Reassigned %d forums and %d topics; recovered %d posts into separate locked recovery topics; corrected %d post/forum links. Skipped %d changed candidates. Counter synchronization still requires review for %d topics.';
 $lang['Maintenance_author_failed'] = 'Author repair was interrupted. Earlier corrections may already be saved. Resolve the error and repeat the repair; stored guest names and post contents are not rewritten.';
 $lang['Maintenance_author_summary'] = 'Repaired %d missing post-author references and %d topic-author references; skipped %d candidates whose current state changed. Existing guest names were preserved.';
 $lang['Maintenance_recovery_failed'] = 'Post recovery was interrupted. Earlier repairs or recovery containers may already be saved. Check database access, run update/update_from_153a.php if needed, and repeat the repair to resume. No rollback is claimed.';

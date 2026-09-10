@@ -13,9 +13,10 @@ class ResetRows { public $rows; function __construct($rows) { $this->rows=$rows;
 $resetDsn = getenv('PHPBB_SESSION_RESET_TEST_DSN'); $resetNative = $resetDsn !== false && $resetDsn !== '';
 if ($resetNative) { reset_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_session_reset_[a-f0-9]{16};charset=utf8mb4$/D',$resetDsn)===1,'Only owned local schemas allowed'); }
 class ResetServer {
- public $pdo; public $owner=null; public $hook=null; public $failure=''; public $lostAck=false; public $queries=array();
+ public $pdo; public $owner=null; public $hook=null; public $failure=''; public $lostAck=false; public $queries=array(); public $metadataExpiry=null;
  function __construct($engine,$actor) {
-  $this->pdo = $GLOBALS['resetNative'] ? new PDO($GLOBALS['resetDsn'],'root','') : new PDO('sqlite::memory:');
+  $sqliteClass=class_exists('Pdo\\Sqlite')?'Pdo\\Sqlite':'PDO';
+  $this->pdo = $GLOBALS['resetNative'] ? new PDO($GLOBALS['resetDsn'],'root','') : new $sqliteClass('sqlite::memory:');
   $this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER',
    'junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
@@ -34,6 +35,10 @@ class ResetServer {
 }
 class ResetForum {
  public $dbname='session-reset-fixture';
+ function __construct() {
+  // Separate disposable databases must not contend on a global fixture name.
+  if ($GLOBALS['resetNative']) { preg_match('/dbname=([^;]+);/',$GLOBALS['resetDsn'],$match); $this->dbname=$match[1]; }
+ }
  function sql_query($sql) { throw new RuntimeException('Unowned main connection used'); }
  function sql_dedicated_connection() { return new ResetConnection($GLOBALS['resetServer']); }
 }
@@ -54,10 +59,14 @@ class ResetConnection {
   if (is_callable($s->hook)) { call_user_func($s->hook,$sql,$this); }
   $fail=$s->failure!=='' && strpos($sql,$s->failure)===0;
   if ($this->closed || ($fail && !$s->lostAck)) { return false; }
+  if ($sql==="SHOW SESSION VARIABLES WHERE Variable_name = 'information_schema_stats_expiry'" && (!$GLOBALS['resetNative'] || $s->metadataExpiry!==null)) {
+   return new ResetRows($s->metadataExpiry===null?array():array(array('Variable_name'=>'information_schema_stats_expiry','Value'=>(string)$s->metadataExpiry)));
+  }
+  if ($sql==='SET SESSION information_schema_stats_expiry = 0' && $s->metadataExpiry!==null) { $s->metadataExpiry=0; return $fail?false:true; }
   try {
    $r=$this->pdo->query($sql); $this->affected=$r->rowCount();
    if ($fail) { return false; }
-   return strpos($sql,'SELECT')===0 ? new ResetRows($r->fetchAll(PDO::FETCH_ASSOC)) : true;
+   return preg_match('/^(?:SELECT|SHOW)\\b/',$sql) ? new ResetRows($r->fetchAll(PDO::FETCH_ASSOC)) : true;
   } catch (PDOException $error) { throw new RuntimeException('Fixture SQL error: '.$error->getMessage().' SQL: '.$sql); }
  }
  function sql_fetchrow($r) { return array_shift($r->rows); }

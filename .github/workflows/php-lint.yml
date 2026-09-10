@@ -698,3 +698,9 @@ jobs:
 
       - name: Preserve current attribution during missing-author repair
         run: php .github/scripts/check-maintenance-authors.php
+
+      - name: Recover forum topology without adopting dangling identities
+        run: php .github/scripts/check-maintenance-topology.php
+
+      - name: Reserve recovery IDs above references and sequence high-water marks
+        run: php .github/scripts/check-maintenance-recovery-allocation.php

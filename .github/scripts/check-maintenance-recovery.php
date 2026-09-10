@@ -9,6 +9,18 @@ foreach(array('POSTS_TABLE'=>'fixture_posts','POSTS_TEXT_TABLE'=>'fixture_text',
 function phpbb_random_bytes($length){return str_repeat("\x12",$length);}
 function cache_tree($write=false){reset_check($GLOBALS['resetServer']->owner===null&&$write===true,'Navigation refresh occurs after owner release');}
 require_once $root.'includes/functions_maintenance_recovery.php';
+function recovery_metadata_fixture($p){
+ if($GLOBALS['resetNative']){return;}
+ $attached=false;foreach($p->query('PRAGMA database_list')->fetchAll(PDO::FETCH_ASSOC) as $row){if($row['name']==='information_schema'){$attached=true;}}
+ if(!$attached){$p->exec("ATTACH DATABASE ':memory:' AS information_schema");}
+ $method=method_exists($p,'createFunction')?'createFunction':'sqliteCreateFunction';$p->$method('DATABASE',function(){return 'fixture';});
+ $p->exec('DROP TABLE IF EXISTS information_schema.COLUMNS; DROP TABLE IF EXISTS information_schema.TABLES; CREATE TABLE information_schema.COLUMNS (TABLE_SCHEMA TEXT,TABLE_NAME TEXT,COLUMN_NAME TEXT,DATA_TYPE TEXT); CREATE TABLE information_schema.TABLES (TABLE_SCHEMA TEXT,TABLE_NAME TEXT,AUTO_INCREMENT INTEGER)');
+ $insert=$p->prepare('INSERT INTO information_schema.COLUMNS VALUES (?,?,?,?)');
+ foreach($p->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_ASSOC) as $table){
+  foreach($p->query('PRAGMA table_info('.$table['name'].')')->fetchAll(PDO::FETCH_ASSOC) as $row){$insert->execute(array('fixture',$table['name'],$row['name'],stripos($row['type'],'INT')!==false?'int':'varchar'));}
+  $p->exec("INSERT INTO information_schema.TABLES VALUES ('fixture',".$p->quote($table['name']).",1)");
+ }
+}
 function recovery_fixture($engine,$actor=1){
  reset_fixture($engine,$actor);$p=$GLOBALS['resetServer']->pdo;
  $auto=$GLOBALS['resetNative']?'INTEGER PRIMARY KEY AUTO_INCREMENT':'INTEGER PRIMARY KEY AUTOINCREMENT';
@@ -34,6 +46,7 @@ function recovery_fixture($engine,$actor=1){
  $p->exec("INSERT INTO fixture_config VALUES ('allow_html','0'),('allow_bbcode','1'),('allow_smilies','1'),('board_disable','0')");
  $p->exec("INSERT INTO fixture_text VALUES (1,'abcd1234','Grüße ''?','Body one'),(2,'','Second','Body two')");
  $p->exec("INSERT INTO fixture_links VALUES (7,1); INSERT INTO fixture_descriptions VALUES (7,'fixture.jpg')");
+ recovery_metadata_fixture($p);
 }
 function recovery_run($expected=''){
  $out=null;$caught='';try{$out=dbmtnc_recover_orphan_text(new ResetForum(),$_POST);}catch(PhpbbAclException $e){$caught=$e->getMessage();}
