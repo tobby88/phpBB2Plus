@@ -19,6 +19,10 @@ changes consolidated after that baseline without implying active maintenance.
   Exercise the actual CLI updater in native tests and fix an unsupported
   LIMIT-in-IN subquery in its existing style cleanup. Restore modern-server
   database size reporting in the administrative statistics module.
+- Cover legacy disabled MyISAM indexes in native migration tests. Normalize only
+  their rebuilt/enabled state and metadata listing order, retaining every index
+  definition and constraint. Handle the specific informational InnoDB Note 1031
+  without accepting actual warnings; report detailed failure categories.
 
 - Run the full ACP user-maintenance workflow on a dedicated, shared writer
   without changing board availability. Recheck current account, delegated

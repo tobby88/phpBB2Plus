@@ -58,8 +58,12 @@ strictly; no index shortening, discarded rows or forced constraint removal is us
 
 Conversion verifies row counts, column/index definitions, collation and the
 auto-increment floor. HASH indexes may become equivalent BTREE indexes; InnoDB
-may select an existing NOT NULL unique key as its clustered key. DDL commits per
-table and cannot be rolled back as a single unit. After an interruption, keep
+may select an existing NOT NULL unique key as its clustered key. Legacy MyISAM
+non-unique indexes left in DISABLE KEYS state are rebuilt
+and enabled by InnoDB; physical index listing order is not a schema change.
+Only MariaDB's informational Note 1031 about an unsupported legacy engine option
+is accepted after strict verification; real warnings and errors still stop.
+DDL commits per table and cannot be rolled back as a single unit. After an interruption, keep
 writers stopped, review the error and rerun; completed conversions are skipped.
 Missing tables are not invented by storage-only mode. The full updater creates
 its normal missing extension tables before completing storage conversion.

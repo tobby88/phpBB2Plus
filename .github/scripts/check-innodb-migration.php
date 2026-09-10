@@ -6,7 +6,12 @@ $tables=plus_storage_tables($schema,'fixture_');
 storage_check(count($tables)>=118&&in_array('fixture_ctracker_backup',$tables,true),'Known bundled tables');
 storage_check(strpos($schema,'ENGINE=MyISAM')===false,'Fresh schema uses InnoDB');
 storage_check(!in_array('fixture_unrelated',$tables,true),'No prefix wildcard');
+$index_rows=array(array('Key_name'=>'z','Seq_in_index'=>'2','Column_name'=>'second'),array('Key_name'=>'PRIMARY','Seq_in_index'=>'1','Column_name'=>'id'),array('Key_name'=>'z','Seq_in_index'=>'1','Column_name'=>'first'));
+storage_check(plus_storage_sort_indexes($index_rows)===plus_storage_sort_indexes(array_reverse($index_rows)),'Physical index row order is irrelevant; component sequence is retained');
 storage_check(!plus_storage_counter_at_least('18446744073709551613','18446744073709551614')&&plus_storage_counter_at_least('18446744073709551614','18446744073709551614'),'No float rounding of unsigned 64-bit counters');
+$note=array('Level'=>'Note','Code'=>'1031','Message'=>"Storage engine InnoDB of the table `fixture`.`table` doesn't have this option");
+storage_check(!plus_storage_fatal_warnings(array($note)),'Known informational legacy option note');
+foreach(array(array('Level'=>'Warning'),array('Code'=>'1265'),array('Message'=>'Other problem')) as $change){storage_check(plus_storage_fatal_warnings(array(array_merge($note,$change))),'All actual warnings and unrelated notes still stop');}
 foreach(array('bad`name','',str_repeat('a',65)) as $bad){$caught=false;try{plus_storage_identifier($bad);}catch(Exception $e){$caught=true;}storage_check($caught,'Unsafe identifier rejected');}
 $updater=file_get_contents($root.'/update/update_from_153a.php');
 storage_check(substr_count($updater,'plus_storage_apply(')===2&&strpos($updater,'--storage-only')!==false,'Both updater paths use shared migrator');
@@ -41,6 +46,14 @@ try {
   storage_check(mysqli_query($db,"INSERT INTO `".$t."` (body) VALUES ('C@ro')")===false,'Unique key still enforced');
  }
  storage_check(plus_storage_metadata($db,'fixture_unrelated')['ENGINE']==='MyISAM','Foreign table untouched');
+ plus_storage_query($db,'CREATE TABLE fixture_disabled (id INT NOT NULL, body VARCHAR(64), KEY id_key(id), KEY body_key(body)) ENGINE=MyISAM');
+ plus_storage_query($db,"INSERT INTO fixture_disabled VALUES (1,'kept'),(2,'also kept')");
+ plus_storage_query($db,'ALTER TABLE fixture_disabled DISABLE KEYS');
+ $disabled_indexes=plus_storage_rows($db,'SHOW INDEX FROM fixture_disabled');
+ storage_check($disabled_indexes[0]['Comment']==='disabled','Actual legacy disabled index fixture');
+ plus_storage_apply($db,array('fixture_disabled'),true,true);
+ foreach(plus_storage_rows($db,'SHOW INDEX FROM fixture_disabled') as $index){storage_check($index['Comment']==='','InnoDB indexes enabled after rebuild');}
+ storage_check(plus_storage_rows($db,'SELECT * FROM fixture_disabled ORDER BY id')===array(array('id'=>'1','body'=>'kept'),array('id'=>'2','body'=>'also kept')),'Disabled legacy indexes rebuilt without data loss');
  $mode=plus_storage_rows($db,'SELECT @@SESSION.sql_mode AS mode');storage_check($mode[0]['mode']==='NO_AUTO_VALUE_ON_ZERO','SQL mode restored');
  plus_storage_query($db,'CREATE TABLE fixture_grouped (bucket INT NOT NULL,id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(bucket,id)) ENGINE=MyISAM');
  $caught=false;try{plus_storage_plan($db,array('fixture_unrelated','fixture_grouped'));}catch(Exception $e){$caught=true;}
@@ -49,7 +62,7 @@ try {
  plus_storage_query($other,"DO GET_LOCK('plus_innodb_".sha1($name)."',0)");
  $caught=false;try{plus_storage_apply($db,$selected,true,true);}catch(Exception $e){$caught=true;}
  storage_check($caught,'Concurrent migration rejected');mysqli_close($other);
- foreach(array_merge($selected,array('fixture_unrelated','fixture_grouped')) as $t){plus_storage_query($db,'DROP TABLE `'.$t.'`');}
+ foreach(array_merge($selected,array('fixture_unrelated','fixture_grouped','fixture_disabled')) as $t){plus_storage_query($db,'DROP TABLE `'.$t.'`');}
  preg_match_all('/CREATE TABLE\s+.*?;(?=\s*(?:#|CREATE|$))/s',$schema,$matches);
  foreach($matches[0] as $sql){plus_storage_query($db,$sql);}
  storage_check(count($matches[0])===count(plus_storage_tables($schema,'phpbb_'))-2,'Entire canonical schema executed');

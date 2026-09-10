@@ -84,8 +84,23 @@ function plus_storage_signature($db, $table)
 		// A physical HASH -> BTREE rebuild is expected; uniqueness, full indexed
 		// columns, order and prefix lengths must still match exactly.
 		if ($index['Index_type'] === 'HASH') { $index['Index_type'] = 'BTREE'; $index['Collation'] = 'A'; }
+		// DISABLE KEYS is a MyISAM bulk-load state, not an index definition.
+		// InnoDB rebuilds/enables these non-unique indexes during conversion.
+		// Keep real index comments, ignored flags and all constraints unchanged.
+		if ($index['Comment'] === 'disabled' && (string) $index['Non_unique'] === '1') { $index['Comment'] = ''; }
 	} unset($index);
-	return array($columns, $indexes);
+	return array($columns, plus_storage_sort_indexes($indexes));
+}
+
+function plus_storage_sort_indexes($indexes)
+{
+	// SHOW INDEX row order is not contractual. A rebuild can move PRIMARY
+	// before keys which were physically added earlier in an old MyISAM table.
+	usort($indexes, function ($a, $b) {
+		$name = strcmp($a['Key_name'], $b['Key_name']);
+		return $name !== 0 ? $name : ((int) $a['Seq_in_index'] - (int) $b['Seq_in_index']);
+	});
+	return $indexes;
 }
 
 function plus_storage_counter_at_least($actual, $minimum)
@@ -93,6 +108,20 @@ function plus_storage_counter_at_least($actual, $minimum)
 	if (!preg_match('/^[0-9]+$/D', (string) $actual) || !preg_match('/^[0-9]+$/D', (string) $minimum)) { return false; }
 	$actual = ltrim((string) $actual, '0'); $minimum = ltrim((string) $minimum, '0');
 	return strlen($actual) > strlen($minimum) || (strlen($actual) === strlen($minimum) && strcmp($actual, $minimum) >= 0);
+}
+
+function plus_storage_fatal_warnings($warnings)
+{
+	foreach ($warnings as $warning)
+	{
+		// MariaDB can report this informational note when discarding a legacy
+		// engine option such as DISABLE KEYS. Never accept Warning/Error, truncation,
+		// key loss or other notes. Schema, counts and ID floors are still checked.
+		if (!isset($warning['Level'], $warning['Code'], $warning['Message']) ||
+			$warning['Level'] !== 'Note' || (string) $warning['Code'] !== '1031' ||
+			!preg_match('/^Storage engine InnoDB of the table .+ doesn\x27t have this option$/D', $warning['Message'])) { return true; }
+	}
+	return false;
 }
 
 function plus_storage_apply($db, $tables, $backup_confirmed, $maintenance_confirmed, $progress = null)
@@ -115,13 +144,15 @@ function plus_storage_apply($db, $tables, $backup_confirmed, $maintenance_confir
 			$count = plus_storage_rows($db, 'SELECT COUNT(*) AS n FROM ' . plus_storage_identifier($table));
 			plus_storage_query($db, $sql);
 			$warnings = plus_storage_rows($db, 'SHOW WARNINGS');
-			if ($warnings) { throw new RuntimeException('Review conversion warnings for ' . $table . '; earlier changes remain applied'); }
+			if (plus_storage_fatal_warnings($warnings)) { throw new RuntimeException('Review conversion warnings for ' . $table . ': ' . json_encode($warnings) . '; earlier changes remain applied'); }
 			$after = plus_storage_metadata($db, $table);
 			$after_count = plus_storage_rows($db, 'SELECT COUNT(*) AS n FROM ' . plus_storage_identifier($table));
-			if (!$after || strtoupper($after['ENGINE']) !== 'INNODB' || $before['TABLE_COLLATION'] !== $after['TABLE_COLLATION'] ||
-				$signature !== plus_storage_signature($db, $table) || $count !== $after_count ||
-				($before['AUTO_INCREMENT'] !== null && !plus_storage_counter_at_least($after['AUTO_INCREMENT'], $before['AUTO_INCREMENT'])))
-			{ throw new RuntimeException('Conversion verification failed for ' . $table . '; do not reopen writers'); }
+			$checks = array('engine'=>$after && strtoupper($after['ENGINE']) === 'INNODB',
+				'collation'=>$after && $before['TABLE_COLLATION'] === $after['TABLE_COLLATION'],
+				'schema'=>$signature === plus_storage_signature($db, $table), 'rows'=>$count === $after_count,
+				'counter'=>$after && ($before['AUTO_INCREMENT'] === null || plus_storage_counter_at_least($after['AUTO_INCREMENT'], $before['AUTO_INCREMENT'])));
+			if (in_array(false, $checks, true))
+			{ throw new RuntimeException('Conversion verification failed for ' . $table . ': ' . json_encode($checks) . '; do not reopen writers'); }
 			if (is_callable($progress)) { call_user_func($progress, $table, $count[0]['n']); }
 		}
 		if (plus_storage_plan($db, $tables)) { throw new RuntimeException('Storage conversion incomplete'); }
