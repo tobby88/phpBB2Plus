@@ -90,7 +90,7 @@ function auto_snapshot(){
 }
 $source=file_get_contents($root.'includes/functions_dbmtnc.php');
 foreach(array('dbmtnc_auto_rows','set_autoincrement') as $name){auto_check(preg_match('/^function '.$name.'\(.*?^\}/ms',$source,$m)===1,'Actual repair helper found');eval($m[0]);}
-$source=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($source,"case 'reset_auto_increment':");$b=strpos($source,"case 'heap_convert':",$a);auto_check($a!==false&&$b>$a,'Actual controller branch found');$branch='switch($function){'.substr($source,$a,$b-$a).'}';
+$source=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($source,"case 'reset_auto_increment':");$b=strpos($source,"case 'session_storage':",$a);auto_check($a!==false&&$b>$a,'Actual controller branch found');$branch='switch($function){'.substr($source,$a,$b-$a).'}';
 function auto_run($expected='',$modeRestored=true){
  global $db,$original,$server,$lang,$branch,$phpbb_root_path,$phpEx;
  $original=new AutoForum();$db=$original;$function='reset_auto_increment';$before=auto_snapshot();$caught='';ob_start();

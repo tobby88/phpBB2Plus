@@ -289,6 +289,20 @@ This is not an all-or-nothing transaction: resolve reported errors and repeat th
 check after an interrupted run. These cleanup changes need no additional schema
 migration beyond the recovery identities above and never run during deployment.
 
+Session storage now uses InnoDB for fresh installations. The post-1.53a updater
+converts existing MyISAM/MEMORY session tables without deleting sessions, changing
+columns, or imposing the old 500-session cap. It verifies the resulting engine
+before reporting completion. Back up first and review the dry run; conversion
+can rebuild the table and block requests. Other legacy table engines are left
+for explicit review, not silently substituted.
+
+The ACP offers the same conversion as an explicitly confirmed action. It checks
+the current administrator/session, preserves the existing board availability
+setting, restores its connection settings and releases its writer on errors.
+Already-InnoDB tables are not rebuilt. Old HEAP action URLs/forms are rejected,
+and deployment does not execute the conversion. This replaces the historical
+MEMORY recommendation: [MEMORY rows are lost on a database restart](https://mariadb.com/docs/server/server-usage/storage-engines/memory-storage-engine).
+
 The auto-increment maintenance action repairs a missing attribute on an ordinary
 integer primary key; it does not reset healthy counters or replace column types.
 Explicit defaults, special attributes and ambiguous keys are left for review.

@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Replace the destructive HEAP session-table conversion with an explicitly
+  confirmed InnoDB conversion. Preserve every current session and custom column
+  or index; remove the arbitrary 500-session deletion/cap. Require current ACP
+  session/authority, retain independently chosen board availability and release
+  the dedicated writer on failure. Reject old HEAP forms instead of reusing
+  their consent for a different action. Use InnoDB in the installer and include
+  an engine-only, verified migration in the post-1.53a updater. Already-InnoDB
+  tables are unchanged; unsupported engines require review. No live conversion
+  occurs during deployment. Add controller and migration tests with 602 rows,
+  revocation, interrupted DDL, retry and unavailable-engine preflight.
 - Keep board availability unchanged during ACP auto-increment attribute repair.
   Recheck current administrator/session rights around metadata reads and ALTER
   commands, stop later work after revocation, and release the dedicated writer

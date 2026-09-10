@@ -260,33 +260,11 @@ function check_condition($check)
 		case 1: // MySQL >= 3.23.17
 			return check_mysql_version();
 			break;
-		case 2: // Session Table not HEAP
-			if (!check_mysql_version())
-			{
-				return FALSE;
-			}
-			$sql = "SHOW TABLE STATUS
-				LIKE '" . SESSIONS_TABLE . "'";
-			$result = $db->sql_query($sql);
-			if( !$result )
-			{
-				return FALSE; // Status unknown
-			}
-			$row = $db->sql_fetchrow($result);
-			$db->sql_freeresult($result);
-			if( !$row )
-			{
-				return FALSE; // Status unknown
-			}
-			if ( (isset($row['Type']) && $row['Type'] == 'HEAP') || (isset($row['Engine']) && ($row['Engine'] == 'HEAP' || $row['Engine'] == 'MEMORY')) )
-			{
-				return FALSE;
-			}
-			else
-			{
-				return TRUE;
-			}
-			break;
+		case 2: // Session storage can be upgraded without discarding rows
+			require_once dirname(__FILE__) . '/functions_maintenance_session_storage.php';
+			try { return in_array(dbmtnc_session_storage_engine($db), array('HEAP', 'MEMORY', 'MYISAM'), true); }
+			catch (Exception $error) { return FALSE; }
+			catch (Throwable $error) { return FALSE; }
 		case 3: // DB locked
 			if ( $board_config['board_disable'] == 1 )
 			{

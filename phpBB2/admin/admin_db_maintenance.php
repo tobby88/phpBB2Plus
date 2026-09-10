@@ -27,7 +27,6 @@ define('DBMTNC_VERSION', '1.3.8');
 // CONFIG_LEVEL = 1: only general configuration available
 // Rebuild batches and checkpoints are managed by the durable rebuild service.
 define('CONFIG_LEVEL', 1); // Only general options remain configurable.
-define('HEAP_SIZE', 500); // Limit of Heap-Table for session data
 
 if ( !empty($setmodules) )
 {
@@ -1599,53 +1598,16 @@ switch($mode_id)
 				finally { if ($auto_repair_scope !== null) { dbmtnc_table_end($db, $auto_repair_scope); } }
 				if ($auto_repair_error !== '') { throw_error($auto_repair_error); }
 				break;
-			case 'heap_convert': // Convert session table to HEAP
-				echo("<h1>" . $lang['Converting_heap'] . "</h1>\n");
-				if ( !check_mysql_version() )
-				{
-					echo("<p class=\"gen\">" . $lang['Old_MySQL_Version'] . "</p>\n");
-					break;
-				}
-				lock_db();
-				echo("<p class=\"gen\"><b>" . $lang['Converting_heap'] . "...</b></p>\n");
-				
-				// First check for current table size
-				$sql = "SELECT Count(*) as count FROM " . SESSIONS_TABLE;
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					throw_error("Couldn't get session data!", __LINE__, __FILE__, $sql);
-				}
-				if ( !($row = $db->sql_fetchrow($result)) )
-				{
-					throw_error("Couldn't get session data!", __LINE__, __FILE__, $sql);
-				}
-				if ( intval($row['count']) > HEAP_SIZE )
-				{
-					// Table is to big - so delete some records
-					$sql = "DELETE FROM " . SESSIONS_TABLE . "
-						WHERE session_id != '" . $userdata['session_id'] . "'";
-					if ( SQL_LAYER == 'mysql4' || SQL_LAYER == 'mysqli' )
-					{
-						// When using MySQL 4: delete only the oldest records
-						$sql .= " ORDER BY session_start
-							LIMIT " . (intval($row['count']) - HEAP_SIZE);
-					}
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't delete session data!", __LINE__, __FILE__, $sql);
-					}
-				}
-				
-				$sql = "ALTER TABLE " . SESSIONS_TABLE . "
-					ENGINE=MEMORY MAX_ROWS=" . HEAP_SIZE;
-				$result = $db->sql_query($sql);
-				if ( !$result )
-				{
-					throw_error("Couldn't convert table!", __LINE__, __FILE__, $sql);
-				}
-
-				lock_db(TRUE);
+			case 'session_storage': // Preserve sessions in persistent InnoDB storage
+				require_once($phpbb_root_path . 'includes/functions_maintenance_session_storage.' . $phpEx);
+				echo('<h1>' . $lang['Session_storage_title'] . "</h1>\n");
+				$storage_error = '';
+				try { $storage_outcome = dbmtnc_convert_session_storage($db, $_POST); }
+				catch (\PhpbbAclException $error) { $storage_error = $error->getMessage(); }
+				catch (\Exception $error) { $storage_error = $lang['Session_storage_failed']; }
+				catch (\Throwable $error) { $storage_error = $lang['Session_storage_failed']; }
+				if ($storage_error !== '') { throw_error($storage_error); }
+				echo('<p class="gen">' . $lang[$storage_outcome] . "</p>\n");
 				break;
 			case 'unlock_db': // Unlock the database
 				echo("<h1>" . $lang['Unlocking_db'] . "</h1>\n");

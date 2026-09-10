@@ -588,6 +588,12 @@ jobs:
       - name: Test actual auto-increment controller session and failure lifecycle
         run: php .github/scripts/check-maintenance-auto-controller.php
 
+      - name: Preserve sessions when converting legacy storage to InnoDB
+        run: php .github/scripts/check-maintenance-session-storage.php
+
+      - name: Test persistent session storage migration and installer parity
+        run: php .github/scripts/check-session-storage-migration.php
+
       - name: Test complete optimization results and zero-size reports
         run: php .github/scripts/check-maintenance-optimization.php
 

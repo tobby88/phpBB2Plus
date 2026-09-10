@@ -425,11 +425,7 @@ CREATE TABLE phpbb_search_wordmatch (
 #
 # Table structure for table 'phpbb_sessions'
 #
-# Note that if you're running 3.23.x you may want to make
-# this table a type HEAP. This type of table is stored
-# within system memory and therefore for big busy boards
-# is likely to be noticeably faster than continually
-# writing to disk ...
+# Keep sessions persistent across database restarts, without a MEMORY row cap.
 #
 CREATE TABLE phpbb_sessions (
    session_id char(32) default '' NOT NULL,
@@ -444,7 +440,7 @@ CREATE TABLE phpbb_sessions (
    PRIMARY KEY (session_id),
    KEY session_user_id (session_user_id),
    KEY session_id_ip_user_id (session_id, session_ip, session_user_id)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 # --------------------------------------------------------
 #

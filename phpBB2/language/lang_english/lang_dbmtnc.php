@@ -201,10 +201,10 @@ $mtnc[] = array('reset_auto_increment',
 	'Restores a missing AUTO_INCREMENT attribute on ordinary integer primary keys. Existing counters, column types and IDs are not reset. Unusual definitions are reported for review.',
 	'Back up the database first. This operation may rebuild tables; DDL cannot be rolled back like an ordinary transaction. Repair missing attributes now?',
 	0);
-$mtnc[] = array('heap_convert',
-	'Convert Session-Table',
-	'This function converts the session-table to HEAP table type. This normaly will be done during installation and speed up phpBB a bit. You should use this function if your session-table is not of the HEAP table type.',
-	'Do you realy want to convert the table?',
+$mtnc[] = array('session_storage',
+	'Move sessions to InnoDB',
+	'Converts the session table from MyISAM or MEMORY to persistent InnoDB storage. Existing sessions are preserved without a 500-session limit.',
+	'Back up the database and choose a maintenance window first: conversion may block requests and DDL cannot be transactionally rolled back. Move sessions to InnoDB now?',
 	2);
 $mtnc[] = array('--', '', '', '', 3);
 $mtnc[] = array('unlock_db',
@@ -504,8 +504,12 @@ $lang['Ai_repair_failed'] = 'Auto-increment repair could not be completed or ver
 $lang['Ai_message_update_table'] = 'table updated';
 $lang['Ai_message_no_update'] = 'no update necessary';
 $lang['Ai_message_update_table_old_mysql'] = 'table updated'; // Used if an old version of MySQL is used which does not allow a table check before updating the table
-// heap_convert
-$lang['Converting_heap'] = 'Converting Session-Table to HEAP';
+// session_storage
+$lang['Session_storage_title'] = 'Persistent session storage';
+$lang['Session_storage_current'] = 'The session table already uses InnoDB. No change is needed.';
+$lang['Session_storage_converted'] = 'The session table was converted to InnoDB without deleting sessions.';
+$lang['Session_storage_unsupported'] = 'This table engine is not converted automatically, or InnoDB is unavailable. Review the database configuration.';
+$lang['Session_storage_failed'] = 'The conversion could not be completed or verified safely. Submitted DDL may already have taken effect. Review the table status before retrying.';
 // unlock_db
 $lang['Unlocking_db'] = 'Unlocking database';
 

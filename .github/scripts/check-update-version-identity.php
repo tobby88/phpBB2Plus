@@ -23,7 +23,7 @@ $version_prelude= <<<'PHP'
 <?php
 namespace VersionPipelineFixture;
 function update_query_or_fail($connection,$sql){if($sql==='FAIL_FIXTURE'){exit(3);}$connection->exec($sql);if($GLOBALS['fixture_case']==='identity-ack'&&strpos($sql,'INSERT INTO `fixture_config`')===0){exit(3);}return true;}
-function update_config_engine($connection,$database,$table){return $GLOBALS['fixture_case']==='engine-failure'?'MyISAM':'InnoDB';}
+function update_config_engine($connection,$database,$table){return $GLOBALS['fixture_case']==='engine-failure'||($GLOBALS['fixture_case']==='session-engine-failure'&&$table==='fixture_sessions')?'MyISAM':'InnoDB';}
 function mysqli_close($connection){}
 $connection=new \PDO('sqlite::memory:');$connection->setAttribute(\PDO::ATTR_ERRMODE,\PDO::ERRMODE_EXCEPTION);
 $connection->exec('CREATE TABLE fixture_config (config_name TEXT PRIMARY KEY,config_value TEXT)');$connection->exec('CREATE TABLE fixture_steps (step TEXT)');
@@ -33,7 +33,7 @@ $operations=array("INSERT INTO fixture_steps VALUES ('first')",$GLOBALS['fixture
 PHP;
 $version_command=escapeshellarg(PHP_BINARY).' -d display_errors=0';
 if(DIRECTORY_SEPARATOR==='\\'){$version_command.=' -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d extension=php_pdo_sqlite.dll';}
-foreach(array('success','dry','schema-failure','engine-failure','identity-ack') as $version_case){
+foreach(array('success','dry','schema-failure','engine-failure','session-engine-failure','identity-ack') as $version_case){
  $input=str_replace("namespace VersionPipelineFixture;","namespace VersionPipelineFixture;\n\$GLOBALS['fixture_case']='".$version_case."';",$version_prelude)."\n".$version_helpers."\n\$version_operations=update_version_identity_sql('fixture_config',null);\n".$version_tail;
  $pipes=array();$process=proc_open($version_command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));version_check(is_resource($process),'Child fixture process available');fwrite($pipes[0],$input);fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($process);
  version_check(preg_match('/FIXTURE_STATE=(\{[^\r\n]+\})/',$out,$m)===1,'Actual execution tail reported final state: '.$err);$state=json_decode($m[1],true);

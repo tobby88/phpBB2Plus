@@ -88,7 +88,7 @@ try{
   $database=new Database();$database->failure=true;run_branch($database,true);
  }
  check(convert_bytes(-2048)==='-2.00 KB'&&convert_bytes(-2097152)==='-2.00 MB','Signed changes retain appropriate units');
- check(strpos(str_replace("\r\n","\n",$source),"case 'heap_convert': // Convert session table to HEAP\n\t\t\t\techo(\"<h1>\" . \$lang['Converting_heap']")!==false,'Session engine action uses its own title');
+ check(strpos($source,"case 'session_storage':")!==false&&strpos($source,"echo('<h1>' . \$lang['Session_storage_title']")!==false,'Session engine action uses its own title');
  $db=new Database();$caught=false;try{dbmtnc_optimize_table('fixture_items; DROP TABLE fixture_items');}catch(MaintenanceFailure $e){$caught=true;}
  check($caught&&count($db->queries)===0,'Invalid identifiers never reach SQL');
  $dsn=getenv('PHPBB_OPTIMIZE_TEST_DSN');

@@ -212,12 +212,10 @@ $mtnc[] = array('reset_auto_increment',
 	'Ergänzt ein fehlendes AUTO_INCREMENT-Attribut bei gewöhnlichen ganzzahligen Primärschlüsseln. Bestehende Zählerstände, Spaltentypen und IDs werden nicht zurückgesetzt. Ungewöhnliche Definitionen werden zur Prüfung gemeldet.',
 	'Bitte zuerst die Datenbank sichern. Tabellen können dabei neu aufgebaut werden; DDL-Änderungen lassen sich nicht wie gewöhnliche Transaktionen zurückrollen. Fehlende Attribute jetzt reparieren?',
 	0);
-$mtnc[] = array('heap_convert',
-	'Konvertiere Sitzungs-Tabelle',
-	'Diese Funktion konvertiert die Sitzungs-Tabelle zum HEAP-Tabellen-Typ. Dies wird normalerweise automatisch während der
-		Installation gemacht, um die Geschwindigkeit von phpBB etwas zu verbessern. Diese Funktion sollte nur ausgeführt werden,
-		wenn die Sitzungs-Tabelle keine HEAP-Tabelle ist.',
-	'Soll die Tabelle wirklich konvertiert werden?',
+$mtnc[] = array('session_storage',
+	'Sitzungen auf InnoDB umstellen',
+	'Stellt die Sitzungs-Tabelle von MyISAM oder MEMORY auf dauerhaftes InnoDB um. Bestehende Sitzungen bleiben erhalten; es gibt keine Begrenzung auf 500 Sitzungen.',
+	'Bitte zuerst die Datenbank sichern und ein Wartungsfenster wählen: Der Tabellenumbau kann Anfragen blockieren und lässt sich nicht transaktional zurückrollen. Sitzungen jetzt auf InnoDB umstellen?',
 	2);
 $mtnc[] = array('--', '', '', '', 3);
 $mtnc[] = array('unlock_db',
@@ -521,8 +519,12 @@ $lang['Ai_repair_failed'] = 'Die Auto-Increment-Reparatur konnte nicht sicher ab
 $lang['Ai_message_update_table'] = 'Tabelle aktualisiert';
 $lang['Ai_message_no_update'] = 'Kein Update notwendig';
 $lang['Ai_message_update_table_old_mysql'] = 'Tabelle aktualisiert'; // Used if an old version of MySQL is used which does not allow a table check before updating the table
-// heap_convert
-$lang['Converting_heap'] = 'Konvertiere die Sitzungs-Tabelle in den HEAP-Tabellen-Typ';
+// session_storage
+$lang['Session_storage_title'] = 'Dauerhafte Speicherung der Sitzungen';
+$lang['Session_storage_current'] = 'Die Sitzungs-Tabelle verwendet bereits InnoDB. Keine Änderung erforderlich.';
+$lang['Session_storage_converted'] = 'Die Sitzungs-Tabelle wurde ohne Löschen von Sitzungen auf InnoDB umgestellt.';
+$lang['Session_storage_unsupported'] = 'Diese Tabellen-Engine wird nicht automatisch umgestellt, oder InnoDB ist nicht verfügbar. Bitte die Datenbankkonfiguration prüfen.';
+$lang['Session_storage_failed'] = 'Die Umstellung konnte nicht sicher abgeschlossen oder bestätigt werden. Bereits ausgeführte DDL-Änderungen können bestehen bleiben. Bitte den Tabellenstatus vor einem erneuten Versuch prüfen.';
 // unlock_db
 $lang['Unlocking_db'] = 'Entsperre Datenbank';
 

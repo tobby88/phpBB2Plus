@@ -273,6 +273,21 @@ function update_queue_config_engine(&$operations, $connection, $database, $table
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ENGINE=InnoDB';
 }
 
+function update_queue_session_engine(&$operations, $connection, $database, $table)
+{
+	$engine = strtoupper(update_config_engine($connection, $database, $table));
+	if ($engine === 'INNODB') { return; }
+	$support = update_scalar($connection, "SELECT SUPPORT FROM information_schema.ENGINES WHERE ENGINE = 'InnoDB'");
+	if (!in_array($engine, array('HEAP', 'MEMORY', 'MYISAM'), true) ||
+		!in_array(strtoupper((string) $support), array('YES', 'DEFAULT'), true))
+	{
+		fwrite(STDERR, "Session storage requires an existing MyISAM/MEMORY/InnoDB table and enabled InnoDB. No update operations were applied.\n");
+		exit(3);
+	}
+	// Retain every session and custom column/index; remove the legacy row hint.
+	$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ENGINE=InnoDB MAX_ROWS=0';
+}
+
 function update_column_max_length($connection, $database, $table, $column)
 {
 	$sql = "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '" .
@@ -565,6 +580,7 @@ update_queue_pm_write_columns($operations, $connection, $dbname, $table_prefix .
 update_queue_pm_attachment_columns($operations, $connection, $dbname, $table_prefix . 'attachments_desc');
 update_queue_pm_receipt_columns($operations, $connection, $dbname, $table_prefix . 'pm_write_receipts');
 update_queue_config_engine($operations, $connection, $dbname, $table_prefix . 'config');
+update_queue_session_engine($operations, $connection, $dbname, $table_prefix . 'sessions');
 
 // Reuse the fresh-install schema as the canonical definition for restored
 // Arcade and CrackerTracker tables.
@@ -989,6 +1005,11 @@ if ($apply)
 	if (strcasecmp(update_config_engine($connection, $dbname, $table_prefix . 'config'), 'InnoDB') !== 0)
 	{
 		fwrite(STDERR, "Configuration engine conversion was not applied. Do not use configuration restore until InnoDB is enabled.\n");
+		exit(3);
+	}
+	if (strcasecmp(update_config_engine($connection, $dbname, $table_prefix . 'sessions'), 'InnoDB') !== 0)
+	{
+		fwrite(STDERR, "Session engine conversion was not applied. Review session storage before retrying.\n");
 		exit(3);
 	}
 }

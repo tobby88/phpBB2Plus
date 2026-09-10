@@ -93,7 +93,7 @@ try{
    echo $engine.": native wide/zero/negative IDs, attributes, next counters and strict failures passed.\n";
   }
  }
- $admin=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($admin,"case 'reset_auto_increment':");$b=strpos($admin,"case 'heap_convert':",$a);$body=substr($admin,$a,$b-$a);
+ $admin=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos($admin,"case 'reset_auto_increment':");$b=strpos($admin,"case 'session_storage':",$a);$body=substr($admin,$a,$b-$a);
  $begin=strpos($body,'dbmtnc_table_begin($db, $_POST)');$end=strpos($body,'dbmtnc_table_end($db,');$first=strpos($body,'set_autoincrement(');$last=strrpos($body,'set_autoincrement(');
  check($begin!==false&&$end!==false&&$first!==false&&$last!==false&&$begin<$first&&$end>$last,'All DDL uses shared dedicated writer scope');
 }finally{restore_error_handler();}
