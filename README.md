@@ -116,6 +116,58 @@ registrations and journals belonging to removed accounts can need administrator
 review. This is cleanup recovery, not a transaction/rollback guarantee for the
 entire send/read/copy workflow, and it cannot reconstruct pre-journal failures.
 
+PM read transitions retain a recovery token on the source and a unique token on
+the sent copy. Interrupted text/attachment copying resumes without creating a
+second sent copy; unfinished copies are not displayed or downloadable. The
+post-1.53a updater adds the corresponding source/copy fields and index without
+rewriting existing message bodies. It also adds the publication fields,
+`pm_write_receipts` table and attachment reservation fields used by the durable
+write helpers. Apply these additive changes before replacing the PM code.
+Unlike the cleanup inventories above, an unfinished publication payload contains
+the prepared message text and attachment metadata until publication completes.
+Protect these fields and backups as private-message content.
+
+SEND/EDIT forms carry a random request identity and an edit revision. Repeated
+accepted requests resume their stored payload before upload parsing, encoding or
+flood checks, without publishing a second message. The sender's mailbox offers
+session-protected POST actions for unfinished writes. Ordinary message deletion
+retains the content-free replay receipt; removal of its owning account cleans it
+up. Editing a message does not resend its creation notification.
+
+The updater also adds `pm_write_receipts.notify_state`. Existing receipts default
+to no notification. New-message email attempts are claimed once before calling
+the mailer, with current recipient preferences checked and the database lock
+released before SMTP. A lost acknowledgement or mail-server failure does not
+automatically trigger another email. This avoids duplicate automatic attempts,
+but is not a guaranteed-delivery mail queue; the saved PM remains in the forum.
+
+Attachment-only deletion checks the current mailbox owner and session before
+changing links. Compose attachment edits use the shared owning connection, with
+fresh author/undelivered-message checks at database mutations. Replies and quotes
+do not inherit attachment-edit permissions from their source. New temporary PM
+uploads use server-generated, uploader-bound random filenames; stored message
+attachments keep their existing names. Reload forms opened before this change
+and re-add any not-yet-saved uploads. These checks do not reconstruct previously
+lost files or undo writes already completed before an interruption.
+
+Replacing a stored PM attachment or hiding its thumbnail creates separate
+metadata and switches only the edited message's link. Other copies, shared file
+registrations and their thumbnails remain intact. Changed attachment comments
+also use a request-bound metadata copy and resume with the same reserved ID.
+Failed pre-switch writes leave the original attached; a lost switch response can
+mean the replacement already succeeded, so reload the message before retrying.
+Interrupted cleanup can leave an unreferenced description for ACP orphan cleanup;
+it must not be confused with permission to remove shared bytes.
+
+An accepted publication also protects its new upload filenames before attachment
+description rows exist. Older compose forms, another send request and orphan-file
+cleanup cannot remove or adopt those uploads while that intent is pending. The
+original request can still resume. Unknown or malformed pending intents preserve
+the uploader's temporary files for review instead of treating them as abandoned;
+the cleanup age threshold alone is not sufficient to release them.
+Temporary PM uploads are also excluded from the ordinary post editor and its
+publication/deletion helpers, so they cannot be exposed through a public post.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

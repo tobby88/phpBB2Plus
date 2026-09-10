@@ -25,7 +25,11 @@ function phpbb_pm_attachment_access($database, $message_id, $viewer, $allow_pm_a
 	if (!$message_ids || !$viewer_ids || empty($viewer['session_logged_in'])) { return false; }
 	$is_admin = isset($viewer['user_level']) && $viewer['user_level'] == ADMIN;
 	if (!$is_admin && !$allow_pm_attach) { return false; }
-	$where = 'privmsgs_id = ' . $message_ids[0];
+	// Neither an unfinished write nor its unpublished sent-copy staging row
+	// is a downloadable message, including via a previously known attachment ID.
+	$where = 'privmsgs_id = ' . $message_ids[0] . ' AND privmsgs_write_payload IS NULL AND privmsgs_type IN ('
+		. PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_SENT_MAIL . ','
+		. PRIVMSGS_SAVED_IN_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ')';
 	if (!$is_admin)
 	{
 		$mailboxes = array();
@@ -53,9 +57,80 @@ function phpbb_pm_recount_recipient($database, $recipient)
 	$recipient = (int) $recipient;
 	if ($recipient <= 0) { return; }
 	phpbb_pm_cleanup_query($database, 'UPDATE ' . USERS_TABLE . ' SET
-		user_new_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_NEW_MAIL . '),
-		user_unread_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_type = ' . PRIVMSGS_UNREAD_MAIL . ')
+		user_new_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_write_payload IS NULL AND privmsgs_type = ' . PRIVMSGS_NEW_MAIL . '),
+		user_unread_privmsg = (SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_to_userid = ' . $recipient . ' AND privmsgs_write_payload IS NULL AND privmsgs_type = ' . PRIVMSGS_UNREAD_MAIL . ')
 		WHERE user_id = ' . $recipient);
+}
+
+function phpbb_pm_require_complete_selection($database, $where)
+{
+	if (phpbb_acl_rows($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE (' . $where . ') AND privmsgs_write_payload IS NOT NULL LIMIT 1'))
+	{
+		phpbb_acl_error('PM_write_pending');
+	}
+}
+
+// Attachment-only deletion keeps the message itself. Its authority must remain
+// bound to every selected current mailbox parent, not to stale link user IDs.
+class PhpbbPmAttachmentDatabase extends PhpbbMailboxDatabase
+{
+	var $message_ids;
+	function __construct($connection, $owner, $folder, $ids)
+	{
+		$this->message_ids = attach_delete_id_array($ids);
+		if (!$this->message_ids) { phpbb_acl_error('PM_journal_changed'); }
+		parent::__construct($connection, $owner, $folder, 'owner');
+	}
+	function authority()
+	{
+		$guard = parent::authority();
+		$guard .= ' AND (SELECT COUNT(*) FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE
+			. ' WHERE privmsgs_id IN (' . implode(',', $this->message_ids) . ') AND (' . phpbb_pm_mailbox_condition($this->owner, $this->folder)
+			. ') AND privmsgs_write_payload IS NULL) attachment_parents) = ' . count($this->message_ids);
+		$check = new PhpbbAclDatabase($this->connection, 'PM_cleanup_failed');
+		if (!phpbb_acl_rows($check, 'SELECT 1 AS allowed WHERE ' . $guard)) { phpbb_acl_error('Not_Authorised'); }
+		return $guard;
+	}
+}
+
+function phpbb_pm_delete_attachments($ids, $user_id, $folder)
+{
+	global $db;
+	phpbb_mailbox_post_request();
+	$ids = attach_delete_id_array($ids);
+	if (!$ids || !phpbb_pm_mailbox_condition($user_id, $folder)) { phpbb_acl_error('PM_journal_changed'); }
+	$lock = attach_require_mutation_lock($db);
+	try
+	{
+		$owner = new PhpbbMailboxDatabase($lock->connection, $user_id, $folder, 'owner');
+		phpbb_pm_require_complete_selection($owner, 'privmsgs_id IN (' . implode(',', $ids) . ') AND (' . phpbb_pm_mailbox_condition($user_id, $folder) . ')');
+		$database = new PhpbbPmAttachmentDatabase($lock->connection, $user_id, $folder, $ids);
+		return attach_delete_selected($database, $ids, array(), PAGE_PRIVMSGS, 0, false, true);
+	}
+	finally { $lock->release(); }
+}
+
+// Run before the legacy compose parser even on GET: loading an edit form
+// otherwise exposes another message's attachment metadata before the later
+// message controller checks ownership. Reply/quote sources are NOT editable
+// attachment parents; those forms start a new attachment list.
+function phpbb_pm_compose_attachment_source($database, $mode, $message_id)
+{
+	global $userdata;
+	if (!in_array($mode, array('post','reply','quote','edit'), true)
+		|| empty($userdata['session_logged_in'])) { phpbb_acl_error('Not_Authorised'); }
+	$actor = isset($userdata['user_id']) ? attach_delete_id_array(array($userdata['user_id'])) : false;
+	if (!$actor || !phpbb_acl_rows($database, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $actor[0]
+		. ' AND user_active <> 0 AND user_allow_pm <> 0')) { phpbb_acl_error('Not_Authorised'); }
+	if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST') { phpbb_mailbox_post_request(); }
+	if ($mode !== 'edit') { return 0; }
+	$ids = attach_delete_id_array(array($message_id));
+	if (!$ids) { phpbb_acl_error('Not_Authorised'); }
+	$rows = phpbb_acl_rows($database, 'SELECT privmsgs_write_payload FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $ids[0]
+		. ' AND (' . phpbb_pm_mailbox_condition($actor[0], 'outbox') . ')');
+	if (!$rows) { phpbb_acl_error('Not_Authorised'); }
+	if ($rows[0]['privmsgs_write_payload'] !== null) { phpbb_acl_error('PM_write_pending'); }
+	return $ids[0];
 }
 
 function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
@@ -71,6 +146,8 @@ function phpbb_pm_save_messages($ids, $user_id, $folder, $limit)
 		$database = new PhpbbMailboxDatabase($lock->connection, $user_id, 'savebox', 'owner');
 		phpbb_mailbox_recover($database);
 		$where = '(' . $where . ') AND privmsgs_id IN (' . implode(',', $ids) . ')';
+		phpbb_pm_require_complete_selection($database, $where);
+		$where .= ' AND privmsgs_write_payload IS NULL';
 		$result = phpbb_pm_cleanup_query($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
 		$selected = $database->sql_fetchrowset($result); $database->sql_freeresult($result);
 		if (!$selected) { return 0; }
@@ -163,7 +240,7 @@ function phpbb_pm_remove_deleted_user_messages($user_id)
 	$missing = 'NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $user_id . ')';
 	// Pending mail belongs to both outbox and inbox. Include UNREAD as well as
 	// NEW, consistently with the existing deleted-user maintenance policy.
-	$where = '((privmsgs_from_userid = ' . $user_id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ')) OR (privmsgs_to_userid = ' . $user_id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . '))) AND ' . $missing;
+	$where = '((privmsgs_from_userid = ' . $user_id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ',' . PRIVMSGS_PENDING_SENT_MAIL . ')) OR (privmsgs_to_userid = ' . $user_id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ',' . PRIVMSGS_PENDING_SENT_MAIL . '))) AND ' . $missing;
 	$lock = attach_require_mutation_lock($db);
 	try
 	{
@@ -199,6 +276,22 @@ function phpbb_pm_repair_messages($ids, $mode, $now = null)
 	finally { $lock->release(); }
 }
 
+// Only never-published sent-copy staging can be discarded automatically.
+// A surviving matching read intent protects it, including the interval before
+// the copy ID is bound. Correlate the generation and original participants.
+function phpbb_pm_abandoned_copy_condition()
+{
+	$table = PRIVMSGS_TABLE;
+	return 'privmsgs_type = ' . PRIVMSGS_PENDING_SENT_MAIL . " AND privmsgs_copy_token IS NOT NULL AND HEX(privmsgs_copy_token) <> ''"
+		. ' AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT privmsgs_read_token,privmsgs_read_copy_id,privmsgs_type,privmsgs_from_userid,privmsgs_to_userid,privmsgs_date FROM '
+		. $table . ') pending_source WHERE HEX(pending_source.privmsgs_read_token) = HEX(' . $table . '.privmsgs_copy_token)'
+		. ' AND pending_source.privmsgs_type IN (' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')'
+		. ' AND pending_source.privmsgs_read_copy_id IN (0,' . $table . '.privmsgs_id)'
+		. ' AND pending_source.privmsgs_from_userid = ' . $table . '.privmsgs_from_userid'
+		. ' AND pending_source.privmsgs_to_userid = ' . $table . '.privmsgs_to_userid'
+		. ' AND pending_source.privmsgs_date = ' . $table . '.privmsgs_date)';
+}
+
 function phpbb_pm_repair_spec($mode, $now = null)
 {
 	$table = PRIVMSGS_TABLE; $key = 'privmsgs_id'; $update = '';
@@ -208,7 +301,10 @@ function phpbb_pm_repair_spec($mode, $now = null)
 		case 'missing_text':
 			// Sending creates parent and text separately. A recently created
 			// parent must not be interpreted as a broken message.
-			$where = 'privmsgs_date <= ' . $cutoff . ' AND NOT EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' pmt WHERE pmt.privmsgs_text_id = ' . PRIVMSGS_TABLE . '.privmsgs_id)';
+			$where = 'privmsgs_date <= ' . $cutoff . ' AND privmsgs_type <> ' . PRIVMSGS_PENDING_SENT_MAIL . ' AND privmsgs_write_payload IS NULL AND NOT EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' pmt WHERE pmt.privmsgs_text_id = ' . PRIVMSGS_TABLE . '.privmsgs_id)';
+			break;
+		case 'abandoned_copy':
+			$where = phpbb_pm_abandoned_copy_condition();
 			break;
 		case 'orphan_text':
 			$table = PRIVMSGS_TEXT_TABLE; $key = 'privmsgs_text_id';
@@ -220,11 +316,11 @@ function phpbb_pm_repair_spec($mode, $now = null)
 			$where = $update . ' <> ' . DELETED . ' AND NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . PRIVMSGS_TABLE . '.' . $update . ')';
 			break;
 		case 'deleted_users':
-			$where = '((privmsgs_from_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ')) OR (privmsgs_to_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')))';
+			$where = '((privmsgs_from_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ',' . PRIVMSGS_PENDING_SENT_MAIL . ')) OR (privmsgs_to_userid = ' . DELETED . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ',' . PRIVMSGS_PENDING_SENT_MAIL . ')))';
 			break;
 		default: return false;
 	}
-	return array('table'=>$table, 'key'=>$key, 'update'=>$update, 'where'=>$where, 'delete_parent'=>$mode==='missing_text'||$mode==='deleted_users', 'mode'=>$mode, 'cutoff'=>$cutoff);
+	return array('table'=>$table, 'key'=>$key, 'update'=>$update, 'where'=>$where, 'delete_parent'=>in_array($mode, array('missing_text','deleted_users','abandoned_copy'), true), 'mode'=>$mode, 'cutoff'=>$cutoff);
 }
 
 // Internal worker: the caller holds the mutation lock and supplies the
@@ -254,6 +350,8 @@ function phpbb_pm_delete_messages($ids, $user_id, $folder, $all = false)
 		$database = new PhpbbMailboxDatabase($lock->connection, $user_id, $folder, 'owner');
 		phpbb_mailbox_recover($database);
 		if ($all !== true) { $where = '(' . $where . ') AND privmsgs_id IN (' . implode(',', $ids) . ')'; }
+		phpbb_pm_require_complete_selection($database, $where);
+		$where = '(' . $where . ') AND privmsgs_write_payload IS NULL';
 		return phpbb_mailbox_delete_selected($database, $where);
 	}
 	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
@@ -276,7 +374,7 @@ function phpbb_pm_trim_oldest($user_id, $folder, $limit, $policy = 'owner', $sou
 	finally { $lock->release(); }
 }
 
-function phpbb_pm_trim_mailbox_locked($database, $limit, $published_id = 0)
+function phpbb_pm_trim_mailbox_locked($database, $limit, $published_id = 0, $publication_guard = '1 = 1')
 {
 	$limit = (int)$limit;
 	if ($limit <= 0) { return 0; }
@@ -289,7 +387,7 @@ function phpbb_pm_trim_mailbox_locked($database, $limit, $published_id = 0)
 		// Capacity is reclaimed only after a complete copy is in this mailbox.
 		// A moved/deleted/half-written new copy must not authorize eviction.
 		$ready = phpbb_acl_rows($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE (' . $where . ') AND privmsgs_id = ' . $ids[0]
-			. ' AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' t WHERE t.privmsgs_text_id = ' . $ids[0] . ')');
+			. ' AND (' . $publication_guard . ') AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' t WHERE t.privmsgs_text_id = ' . $ids[0] . ')');
 		if (!$ready) { return 0; }
 	}
 	$rows = phpbb_acl_rows($database, 'SELECT COUNT(*) AS total FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where);
@@ -297,10 +395,13 @@ function phpbb_pm_trim_mailbox_locked($database, $limit, $published_id = 0)
 	if ($ids)
 	{
 		$published = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE (' . $where . ') AND privmsgs_id = ' . $ids[0]
-			. ' AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' t WHERE t.privmsgs_text_id = ' . $ids[0] . ')) quota_publication)';
+			. ' AND (' . $publication_guard . ') AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TEXT_TABLE . ' t WHERE t.privmsgs_text_id = ' . $ids[0] . ')) quota_publication)';
 		$full = '(SELECT COUNT(*) FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where . ') quota_mailbox) > ' . $limit;
 		$where = '(' . $where . ') AND privmsgs_id <> ' . $ids[0] . ' AND ' . $published . ' AND ' . $full;
 	}
+	// An interrupted accepted edit/send retains its recovery payload. A
+	// subsequent unrelated delivery must not evict that unfinished operation.
+	$where .= ' AND privmsgs_write_payload IS NULL';
 	$rows = phpbb_acl_rows($database, 'SELECT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE ' . $where . ' ORDER BY privmsgs_date, privmsgs_id LIMIT 1');
 	return $rows ? phpbb_mailbox_delete_selected($database, '(' . $where . ') AND privmsgs_id = ' . (int)$rows[0]['privmsgs_id']) : 0;
 }

@@ -107,6 +107,8 @@ define('PRIVMSGS_SENT_MAIL', 2);
 define('PRIVMSGS_SAVED_IN_MAIL', 3);
 define('PRIVMSGS_SAVED_OUT_MAIL', 4);
 define('PRIVMSGS_UNREAD_MAIL', 5);
+// Internal sent-copy staging; never displayed in a user's mailbox.
+define('PRIVMSGS_PENDING_SENT_MAIL', 6);
 
 
 // URL PARAMETERS
@@ -263,6 +265,7 @@ define('USER_REMOVAL_ITEMS_TABLE', $table_prefix.'user_removal_items');
 define('PM_REPAIR_JOBS_TABLE', $table_prefix.'pm_repair_jobs');
 define('PM_REPAIR_ITEMS_TABLE', $table_prefix.'pm_repair_items');
 define('PM_DELETE_JOBS_TABLE', $table_prefix.'pm_delete_jobs');
+define('PM_WRITE_RECEIPTS_TABLE', $table_prefix.'pm_write_receipts');
 define('PM_DELETE_ITEMS_TABLE', $table_prefix.'pm_delete_items');
 define('WORDS_TABLE', $table_prefix.'words');
 define('VOTE_DESC_TABLE', $table_prefix.'vote_desc');

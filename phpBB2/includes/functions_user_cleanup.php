@@ -14,7 +14,10 @@ function phpbb_cleanup_removed_user_references($database, $user_id)
 		JR_ADMIN_TABLE => 'user_id',
 		TOPICS_WATCH_TABLE => 'user_id',
 		BOOKMARK_TABLE => 'user_id',
-		BANLIST_TABLE => 'ban_userid'
+		BANLIST_TABLE => 'ban_userid',
+		// Ordinary PM deletion retains replay receipts. Only removal of the
+		// owning account makes these per-sender request identities obsolete.
+		PM_WRITE_RECEIPTS_TABLE => 'user_id'
 	);
 	foreach ($targets as $table => $column)
 	{

@@ -18,12 +18,15 @@ $upload_dir = sys_get_temp_dir() . '/phpbb-pm-cleanup-' . uniqid('',true);
 function pm_cleanup_fixture()
 {
 	global $mutation_server, $upload_dir;
+	$GLOBALS['folder'] = 'inbox';
+	$GLOBALS['privmsg'] = array('privmsgs_type'=>PRIVMSGS_NEW_MAIL);
 	$mutation_server = new MutationServer();
 	pm_journal_fixture_tables($mutation_server->pdo);
 	pm_mailbox_fixture_tables($mutation_server->pdo);
 	$GLOBALS['userdata']['user_id']=8; $GLOBALS['userdata']['session_logged_in']=true; $GLOBALS['userdata']['session_id']='fixture-sid';
 	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture-sid');
 	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_date INTEGER DEFAULT 123');
+	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
 	$mutation_server->pdo->exec('CREATE TABLE fixture_message_text (privmsgs_text_id INTEGER PRIMARY KEY, privmsgs_text TEXT)');
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES (20,'original'),(21,'sent copy')");
 	$mutation_server->pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY, user_new_privmsg INTEGER, user_unread_privmsg INTEGER,user_active INTEGER DEFAULT 1,user_level INTEGER DEFAULT 0,user_allow_pm INTEGER DEFAULT 1)');
@@ -82,7 +85,7 @@ try
 		mutation_check($mutation_server->count_rows(PRIVMSGS_TEXT_TABLE)===1 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===1 && is_file($upload_dir.'/fixture.txt'),'Automatic trimming preserves shared file and removes only expired copy');
 	}
 	pm_cleanup_fixture();
-	$mutation_server->pdo->exec("INSERT INTO fixture_messages VALUES(22,1,7,8,0,123),(23,1,99,8,0,1)");
+	$mutation_server->pdo->exec("INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_to_userid,privmsgs_from_userid,privmsgs_attachment,privmsgs_date) VALUES(22,1,7,8,0,123),(23,1,99,8,0,1)");
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(22,'same date'),(23,'foreign')");
 	mutation_check(pm_fixture_trim(7,'inbox',2)===1 && pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_id=20')===0 && pm_scalar('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_id IN (22,23)')===2,'Trim has deterministic ID tie-break and never crosses owner');
 
@@ -121,7 +124,7 @@ try
 		mutation_check($mutation_server->count_rows(PM_DELETE_JOBS_TABLE)===0 && $mutation_server->count_rows(PRIVMSGS_TEXT_TABLE)===1 && $mutation_server->count_rows(ATTACHMENTS_TABLE)===1,'Retry completes cleanup even after the selected parent disappeared');
 	}
 	$controller=file_get_contents($forum_root.'privmsg.php');
-	mutation_check(substr_count($controller,'phpbb_pm_trim_oldest(')===1 && substr_count($controller,'phpbb_pm_finalize_delivery(')===1 && substr_count($controller,'phpbb_pm_delete_messages(')===1 && substr_count($controller,'phpbb_pm_save_messages(')===1 && strpos($controller,'delete_all_pm_attachments(')===false,'All PN controller deletion/save/finalization paths use helper');
+	mutation_check(substr_count($controller,'phpbb_pm_read_message(')===1 && substr_count($controller,'phpbb_pm_write_message(')===1 && substr_count($controller,'phpbb_pm_finalize_delivery(')===0 && substr_count($controller,'phpbb_pm_delete_messages(')===1 && substr_count($controller,'phpbb_pm_save_messages(')===1 && strpos($controller,'delete_all_pm_attachments(')===false,'All PN controller deletion/save/publication paths use durable helpers');
 	define('GENERAL_MESSAGE',200); define('ADMIN',1);
 	$lang['PM_save_limit_exceeded']='save limit';
 	pm_cleanup_fixture();
@@ -141,7 +144,7 @@ try
 	mutation_check(pm_fixture_save(array(21),8,'sentbox',0)===1 && pm_scalar('SELECT privmsgs_type FROM fixture_messages WHERE privmsgs_id=21')===4,'Sent copy saves to outgoing archive, unlimited capacity supported');
 	mutation_check($mutation_server->count_rows(ATTACHMENTS_TABLE)===2,'Move preserves original and sent attachment links');
 	pm_cleanup_fixture();
-	$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES(22,1,7,8,0,1),(23,3,7,8,0,300),(24,3,7,8,0,300)');
+	$mutation_server->pdo->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_to_userid,privmsgs_from_userid,privmsgs_attachment,privmsgs_date) VALUES(22,1,7,8,0,1),(23,3,7,8,0,300),(24,3,7,8,0,300)');
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(22,'new selection'),(23,'archive'),(24,'archive tie')");
 	mutation_expect_failure(function(){pm_fixture_save(array(20,22),7,'inbox',1);},'save limit');
 	mutation_check($mutation_server->count_rows(PRIVMSGS_TABLE)===5,'Oversized batch rejected before writes');
@@ -158,7 +161,7 @@ try
 	mutation_expect_failure(function(){phpbb_pm_delete_user_messages(7);},'pm permission');
 	$userdata['user_level']=ADMIN;
 	foreach(array(0,-1,'7 OR 1=1',null) as $invalid_user) { mutation_check(phpbb_pm_delete_user_messages($invalid_user)===0,'Invalid account target refused'); }
-	$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES(22,2,99,99,0,123)');
+	$mutation_server->pdo->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_to_userid,privmsgs_from_userid,privmsgs_attachment,privmsgs_date) VALUES(22,2,99,99,0,123)');
 	$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(22,'unrelated')");
 	mutation_pm()->duplicate_attachment_pm(1,20,22);
 	mutation_check(phpbb_pm_delete_user_messages(7)===2 && $mutation_server->count_rows(PRIVMSGS_TABLE)===1 && $mutation_server->count_rows(PRIVMSGS_TEXT_TABLE)===1,'Account cleanup removes only existing from/to scope');
@@ -221,7 +224,7 @@ try
 	foreach(array('from','to') as $direction) {
 		foreach(range(0,5) as $type) {
 			$id=100+($direction==='from'?0:10)+$type; $from=$direction==='from'?7:8; $to=$direction==='to'?7:8;
-			$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES('.$id.','.$type.','.$to.','.$from.',0,123)');
+			$mutation_server->pdo->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_to_userid,privmsgs_from_userid,privmsgs_attachment,privmsgs_date) VALUES('.$id.','.$type.','.$to.','.$from.',0,123)');
 			$mutation_server->pdo->exec("INSERT INTO fixture_message_text VALUES(".$id.",'policy fixture')");
 		}
 	}
@@ -255,6 +258,16 @@ try
 		$viewer['user_id']=99; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Unrelated viewer cannot download private attachment');
 		$viewer['user_id']=8; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,false),'Disabled PM attachments deny ordinary download');
 		$viewer['user_level']=ADMIN; mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,false),'Administrator retains access to an existing parent');
+		foreach(array(0,ADMIN) as $level)
+		{
+			$viewer['user_level']=$level;
+			$mutation_server->pdo->exec("UPDATE fixture_messages SET privmsgs_write_payload='pending' WHERE privmsgs_id=20");
+			mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Unfinished write attachments remain unavailable even to admin');
+			$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload=NULL,privmsgs_type=6 WHERE privmsgs_id=20');
+			mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Staging sent-copy attachments remain unavailable even to admin');
+			$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_type=5 WHERE privmsgs_id=20');
+			mutation_check(phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Published parent restores download access');
+		}
 		$viewer['session_logged_in']=false; mutation_check(!phpbb_pm_attachment_access($lock->connection,20,$viewer,true),'Logged-out metadata cannot grant access');
 		$viewer['session_logged_in']=true; $viewer['user_id']=-1;
 		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_to_userid=-1,privmsgs_from_userid=-1');

@@ -58,8 +58,8 @@ function dbmtnc_synchronize_pm_counters($database, $request)
 	{
 		$db = new PhpbbAclDatabase($lock->connection,'Maintenance_pm_counter_failed');
 		phpbb_acl_actor($db,'maintenance');
-		$new_count = '(SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' pm WHERE pm.privmsgs_to_userid = ' . USERS_TABLE . '.user_id AND pm.privmsgs_type = ' . PRIVMSGS_NEW_MAIL . ')';
-		$unread_count = '(SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' pm WHERE pm.privmsgs_to_userid = ' . USERS_TABLE . '.user_id AND pm.privmsgs_type = ' . PRIVMSGS_UNREAD_MAIL . ')';
+		$new_count = '(SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' pm WHERE pm.privmsgs_to_userid = ' . USERS_TABLE . '.user_id AND pm.privmsgs_write_payload IS NULL AND pm.privmsgs_type = ' . PRIVMSGS_NEW_MAIL . ')';
+		$unread_count = '(SELECT COUNT(*) FROM ' . PRIVMSGS_TABLE . ' pm WHERE pm.privmsgs_to_userid = ' . USERS_TABLE . '.user_id AND pm.privmsgs_write_payload IS NULL AND pm.privmsgs_type = ' . PRIVMSGS_UNREAD_MAIL . ')';
 		$different = '(user_new_privmsg IS NULL OR user_unread_privmsg IS NULL OR user_new_privmsg <> ' . $new_count . ' OR user_unread_privmsg <> ' . $unread_count . ')';
 		$cursor = 0; $changed = 0;
 		while (true)
@@ -93,9 +93,13 @@ function dbmtnc_repair_pm($database, $request)
 	try
 	{
 		$db = new PhpbbPmRepairDatabase($lock->connection, 'Maintenance_pm_repair_failed');
+		// Validate the additive read-checkpoint migration before any repair,
+		// including resuming old jobs. An old schema must not fail halfway in.
+		$schema = $db->sql_query('SELECT privmsgs_read_token,privmsgs_read_copy_id,privmsgs_copy_token,privmsgs_write_payload FROM ' . PRIVMSGS_TABLE . ' WHERE 1 = 0');
+		$db->sql_freeresult($schema);
 		$recovered = dbmtnc_pm_recover_pending($db);
 		$now = time(); $counts = array();
-		foreach (array('missing_text','orphan_text','invalid_sender','invalid_recipient','deleted_users') as $mode)
+		foreach (array('missing_text','orphan_text','invalid_sender','invalid_recipient','deleted_users','abandoned_copy') as $mode)
 		{
 			$spec = phpbb_pm_repair_spec($mode, $now); $cursor = 0; $counts[$mode] = 0;
 			while (true)

@@ -87,7 +87,8 @@ $lang['Deleted_attachments'] = 'Die ausgewählten Attachments wurden gelöscht';
 $lang['Error_deleted_attachments'] = 'Das Attachment konnte nicht gelöscht werden';
 $lang['Attachment_delete_incomplete'] = 'Die ausgewählten Anhang-Verknüpfungen wurden entfernt, aber einige Dateien konnten nicht gelöscht werden. Ihre Dateiinformationen bleiben für eine spätere Bereinigung erhalten. Bitte einen Administrator bitten, den Anhang-Speicher und die verwaisten Einträge zu prüfen.';
 $lang['Attachment_storage_busy'] = 'Der Anhang-Speicher ist gerade beschäftigt oder nicht erreichbar. Bitte kurz warten und erneut versuchen. Dieser Vorgang hat noch keine Anhang-Änderungen begonnen.';
-$lang['Attachment_publish_unavailable'] = 'Der Anhang kann nicht mehr gespeichert werden. Möglicherweise wurde er bereits abgesendet oder entfernt. Die Nachricht wurde gespeichert; bitte vor erneutem Absenden prüfen.';
+$lang['Attachment_publish_unavailable'] = 'Der Anhang kann nicht mehr gespeichert werden. Möglicherweise wurde er bereits abgesendet oder entfernt. Bitte prüfe die Nachricht vor erneutem Absenden.';
+$lang['Attachment_private_upload'] = 'Dieser temporäre Upload gehört zu einer privaten Nachricht und kann hier nicht verwendet werden.';
 $lang['Confirm_delete_pm_attachments'] = 'Bist du sicher alle Attachments in dieser Privaten Nachricht zu löschen?';
 
 // General Error Messages

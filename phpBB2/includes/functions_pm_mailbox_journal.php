@@ -15,8 +15,9 @@ class PhpbbMailboxDatabase extends PhpbbAclDatabase
 		$this->owner = (int)$owner; $this->folder = $folder; $this->policy = $policy; $this->source = (int)$source;
 		$this->actor = isset($userdata['user_id']) ? (int)$userdata['user_id'] : 0;
 		if (!phpbb_pm_mailbox_condition($this->owner, $folder)
-			|| !in_array($policy, array('owner','recover','send','read'), true)) { phpbb_acl_error('Not_Authorised'); }
-		if (($policy === 'owner' || $policy === 'recover') && $this->actor !== $this->owner) { phpbb_acl_error('Not_Authorised'); }
+			|| !in_array($policy, array('owner','recover','send','read','staging'), true)) { phpbb_acl_error('Not_Authorised'); }
+		if (in_array($policy, array('owner','recover','staging'), true) && $this->actor !== $this->owner) { phpbb_acl_error('Not_Authorised'); }
+		if ($policy === 'staging' && $folder !== 'sentbox') { phpbb_acl_error('Not_Authorised'); }
 		if ($policy === 'send' && $folder !== 'inbox') { phpbb_acl_error('Not_Authorised'); }
 		if ($policy === 'read' && ($folder !== 'sentbox' || $this->source <= 0)) { phpbb_acl_error('Not_Authorised'); }
 		if ($policy === 'owner' || $policy === 'send') { phpbb_mailbox_post_request(); }
@@ -35,7 +36,7 @@ class PhpbbMailboxDatabase extends PhpbbAclDatabase
 		{
 			$guard .= ' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT privmsgs_id FROM ' . PRIVMSGS_TABLE . ' WHERE privmsgs_id = ' . $this->source
 				. ' AND privmsgs_to_userid = ' . $this->actor . ' AND privmsgs_from_userid = ' . $this->owner
-				. ' AND privmsgs_type = ' . PRIVMSGS_READ_MAIL . ') mailbox_source)';
+				. ' AND privmsgs_type IN (' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')) mailbox_source)';
 		}
 		$result = parent::sql_query('SELECT 1 AS allowed WHERE ' . $guard);
 		$allowed = $this->connection->sql_fetchrow($result); $this->connection->sql_freeresult($result);
@@ -48,8 +49,15 @@ class PhpbbMailboxDatabase extends PhpbbAclDatabase
 		$write = preg_match('/^\s*(UPDATE|DELETE FROM)\b/i', $sql);
 		if ($write)
 		{
+			if ($this->policy === 'staging' && preg_match('/^\s*UPDATE\s+' . preg_quote(PRIVMSGS_TABLE, '/') . '\s/i', $sql)) { phpbb_acl_error('Not_Authorised'); }
 			if (!preg_match('/\bWHERE\b/i', $sql)) { phpbb_acl_error('PM_cleanup_failed'); }
 			$sql .= ' AND (' . $guard . ')';
+			if ($this->policy === 'staging' && preg_match('/^\s*DELETE FROM\s+' . preg_quote(PRIVMSGS_TABLE, '/') . '\s+WHERE\b/i', $sql))
+			{
+				// This GET recovery capability never authorizes deleting a visible
+				// mailbox message or another participant's staging copy.
+				$sql .= ' AND privmsgs_from_userid = ' . $this->owner . ' AND (' . phpbb_pm_abandoned_copy_condition() . ')';
+			}
 		}
 		elseif (!preg_match('/^\s*SELECT\b/i', $sql)) { phpbb_acl_error('PM_cleanup_failed'); }
 		$result = parent::sql_query($sql, $transaction);

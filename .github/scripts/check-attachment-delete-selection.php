@@ -1,4 +1,5 @@
 <?php
+if (!defined('PRIVMSGS_PENDING_SENT_MAIL')) { define('PRIVMSGS_PENDING_SENT_MAIL', 6); }
 // Real deletion and synchronization SQL, isolated in-memory database and files.
 define('IN_PHPBB', true);
 define('GENERAL_ERROR', 202);

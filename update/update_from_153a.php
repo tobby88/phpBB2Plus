@@ -35,7 +35,7 @@ function update_usage()
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)
@@ -344,6 +344,54 @@ function update_queue_topic_notification_columns(&$operations, $connection, $dat
 	update_queue_column($operations, $connection, $database, $table, 'notify_claimed_at', 'INT(10) UNSIGNED NOT NULL DEFAULT 0');
 }
 
+function update_queue_pm_read_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	update_queue_column($operations, $connection, $database, $table, 'privmsgs_read_token', "CHAR(32) NOT NULL DEFAULT ''");
+	update_queue_column($operations, $connection, $database, $table, 'privmsgs_read_copy_id', 'MEDIUMINT(8) UNSIGNED NOT NULL DEFAULT 0');
+	// NULL permits all existing independent copies; only new read operations
+	// carry a token. Do not infer historical source/copy pairs from their text.
+	update_queue_column($operations, $connection, $database, $table, 'privmsgs_copy_token', 'CHAR(32) DEFAULT NULL');
+	if (!update_index_exists($connection, $database, $table, 'privmsgs_copy_token'))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ADD UNIQUE KEY privmsgs_copy_token (privmsgs_copy_token)';
+	}
+}
+
+function update_queue_pm_write_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	foreach (array('privmsgs_write_token'=>'CHAR(32) DEFAULT NULL','privmsgs_write_hash'=>"CHAR(64) NOT NULL DEFAULT ''",
+		'privmsgs_write_payload'=>'MEDIUMTEXT DEFAULT NULL') as $column=>$definition)
+	{
+		update_queue_column($operations, $connection, $database, $table, $column, $definition);
+	}
+	foreach (array('privmsgs_write_token') as $index)
+	{
+		if (!update_index_exists($connection, $database, $table, $index))
+		{
+			$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ADD UNIQUE KEY ' . $index . ' (' . $index . ')';
+		}
+	}
+}
+
+function update_queue_pm_attachment_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	update_queue_column($operations, $connection, $database, $table, 'pm_write_token', 'CHAR(32) DEFAULT NULL');
+	update_queue_column($operations, $connection, $database, $table, 'pm_write_slot', 'SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0');
+	if (!update_index_exists($connection, $database, $table, 'pm_write_slot'))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ADD UNIQUE KEY pm_write_slot (pm_write_token, pm_write_slot)';
+	}
+}
+
+function update_queue_pm_receipt_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	update_queue_column($operations, $connection, $database, $table, 'notify_state', 'TINYINT(1) UNSIGNED NOT NULL DEFAULT 0');
+}
+
 function update_queue_default(&$operations, $connection, $table, $key_column, $value_column, $key, $value)
 {
 	$exists_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($table) . ' WHERE ' .
@@ -482,6 +530,10 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 }
 
 $operations = array();
+update_queue_pm_read_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
+update_queue_pm_write_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
+update_queue_pm_attachment_columns($operations, $connection, $dbname, $table_prefix . 'attachments_desc');
+update_queue_pm_receipt_columns($operations, $connection, $dbname, $table_prefix . 'pm_write_receipts');
 update_queue_config_engine($operations, $connection, $dbname, $table_prefix . 'config');
 
 // Reuse the fresh-install schema as the canonical definition for restored

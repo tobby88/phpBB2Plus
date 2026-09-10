@@ -8,6 +8,47 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve other PM copies when replacing attachments, hiding thumbnails or
+  changing comments. Create separate metadata before switching only the edited
+  message's link, requalify source/permission/metadata at the switch, and keep
+  shared files and thumbnails. Resume accepted comment edits on their reserved
+  clone after SQL failure/lost acknowledgements. Validate complete replacement
+  selections before upload; do not treat partially completed edits as rolled back.
+
+- Route actual PM send/edit forms through durable publication. Preserve a random
+  request identity and edit revision, resume accepted requests before parsing
+  uploads or encoding text again, and expose sender-only POST recovery actions
+  with English/German labels. Retain replay receipts after message deletion;
+  clean up only the removed account's receipts during account removal. Add an
+  additive notification state, checking current recipient preferences and
+  claiming each automatic email attempt before SMTP outside the database lock.
+  Historical receipts and edits do not send new notifications; interrupted mail
+  delivery is not automatically retried or advertised as guaranteed delivery.
+
+- Add durable PM read/copy checkpoints and publication/attachment reservation
+  helpers, with additive installer/updater fields, unique operation indexes and
+  replay receipts. Hide unfinished publication and sent-copy staging from mailbox
+  display and attachment downloads. Preserve shared attachment references and
+  defer quota eviction until the new content and attachments are ready.
+
+- Check session and current mailbox ownership before attachment-only PM deletion.
+  Serialize compose attachment processing with the coordinated writer connection;
+  recheck current author, undelivered parent and active PM permission at writes.
+  Do not let reply/quote forms edit their source attachments. Use uploader-bound,
+  randomly generated temporary PM filenames and validate submitted new-file size
+  and extension against storage. Accept the legacy parser's string-zero upload
+  IDs without discarding or duplicating the attachment. Old unsaved upload forms
+  must be reloaded; existing stored attachment names are unchanged.
+
+- Protect accepted PM uploads even when publication failed before creating their
+  attachment descriptions. Check exact filenames in paginated pending intents
+  before compose removal/reuse, new-send acceptance and orphan cleanup. Preserve
+  uncertain pending state for review and allow the original accepted request to
+  resume. Explicitly deny the inherited INSERT helper on read-only compose visits.
+  Exclude temporary PM uploads from post-editor deletion/publication, validate
+  complete attachment-list shapes before processing, and avoid claiming that a
+  message was saved when attachment publication was refused before saving it.
+
 - Defer recipient-inbox and sender-sentbox quota eviction until new message/
   sent-copy header, text and attachment publication have succeeded. Exclude the
   just-published copy even if its original date is older than existing mail;

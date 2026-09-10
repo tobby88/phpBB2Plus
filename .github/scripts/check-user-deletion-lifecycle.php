@@ -6,11 +6,11 @@
 if (!extension_loaded('pdo_sqlite')) { fwrite(STDERR,"pdo_sqlite required\n"); exit(1); }
 foreach (array('USERS_TABLE'=>'fixture_users','GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_members','AUTH_ACCESS_TABLE'=>'fixture_permissions','POSTS_TABLE'=>'fixture_posts','TOPICS_TABLE'=>'fixture_topics','VOTE_USERS_TABLE'=>'fixture_votes','ADMIN'=>1,'ANONYMOUS'=>-1,'DELETED'=>-1,'GENERAL_ERROR'=>202) as $key=>$value) { define($key,$value); }
 define('IN_PHPBB',true);
-foreach(array('SESSIONS_KEYS_TABLE'=>'fixture_keys','SESSIONS_TABLE'=>'fixture_sessions','JR_ADMIN_TABLE'=>'fixture_grants','TOPICS_WATCH_TABLE'=>'fixture_watches','BOOKMARK_TABLE'=>'fixture_bookmarks','BANLIST_TABLE'=>'fixture_bans') as $key=>$value) { define($key,$value); }
+foreach(array('PM_WRITE_RECEIPTS_TABLE'=>'fixture_receipts','SESSIONS_KEYS_TABLE'=>'fixture_keys','SESSIONS_TABLE'=>'fixture_sessions','JR_ADMIN_TABLE'=>'fixture_grants','TOPICS_WATCH_TABLE'=>'fixture_watches','BOOKMARK_TABLE'=>'fixture_bookmarks','BANLIST_TABLE'=>'fixture_bans') as $key=>$value) { define($key,$value); }
 $lang=array('User_reference_cleanup_failed'=>'reference cleanup');
 function deletion_reference_tables()
 {
-	return array('fixture_keys'=>'user_id','fixture_sessions'=>'session_user_id','fixture_grants'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid');
+	return array('fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_sessions'=>'session_user_id','fixture_grants'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid');
 }
 class DeletionFailure extends RuntimeException {}
 function message_die($type,$message) { throw new DeletionFailure($message); }

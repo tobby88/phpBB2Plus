@@ -1,5 +1,6 @@
 <?php
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
+define('PRIVMSGS_PENDING_SENT_MAIL',6);
 require_once __DIR__ . '/pm-repair-journal-fixture.php';
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','PRIVMSGS_TABLE'=>'fixture_pm','IN_ADMIN'=>true,'DELETED'=>-1,'PAGE_PRIVMSGS'=>-10,'PRIVMSGS_TEXT_TABLE'=>'fixture_text','ATTACHMENTS_DESC_TABLE'=>'fixture_descriptions','PRIVMSGS_READ_MAIL'=>0,'PRIVMSGS_SENT_MAIL'=>2,'PRIVMSGS_SAVED_IN_MAIL'=>3,'PRIVMSGS_SAVED_OUT_MAIL'=>4,'PRIVMSGS_NEW_MAIL'=>1,'PRIVMSGS_UNREAD_MAIL'=>5,'JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
 require_once $root.'includes/functions_maintenance_pm.php';
@@ -24,6 +25,7 @@ class PmRepairServer {
   $this->pdo->exec("INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES (10,8,1,1),(11,8,1,1),(12,8,1,1),(14,8,999,0),(15,999,8,2),(16,8,-1,1),(17,-1,8,0),(18,8,1,3)");
   $this->pdo->exec('UPDATE fixture_pm SET privmsgs_date='.time().' WHERE privmsgs_id=11');
   $this->pdo->exec("INSERT INTO fixture_text VALUES (12,'Grüße'),(13,'orphan'),(14,'Received'),(15,'Sent copy'),(16,'Invalid'),(17,'Invalid'),(18,'Saved')");
+  foreach(array("privmsgs_read_token CHAR(32) NOT NULL DEFAULT ''",'privmsgs_read_copy_id INTEGER NOT NULL DEFAULT 0','privmsgs_copy_token CHAR(32) DEFAULT NULL','privmsgs_write_payload TEXT DEFAULT NULL') as $column){$this->pdo->exec('ALTER TABLE fixture_pm ADD COLUMN '.$column);}
 
 
  }
@@ -93,7 +95,7 @@ try{
  foreach($native?array('MyISAM','InnoDB'):array('SQLite') as $engine){foreach(array('english','german') as $locale){
   $lang=array('Not_Authorised'=>'not-authorized','Session_invalid'=>'session-invalid','Attachment_storage_busy'=>'busy','PM_cleanup_failed'=>'pm-failed');$phpEx='php';include $root.'language/lang_'.$locale.'/lang_dbmtnc.php';
   pm_repair_fixture($engine);$sentinels=$pm_repair_server->pdo->query('SELECT * FROM fixture_users WHERE user_id<=0 ORDER BY user_id')->fetchAll(PDO::FETCH_ASSOC);
-  $counts=pm_repair_run();pm_repair_check($counts===array('missing_text'=>1,'orphan_text'=>1,'invalid_sender'=>1,'invalid_recipient'=>1,'deleted_users'=>2,'recovered'=>0,'cancelled'=>0),'All five repair modes return actual counts');
+  $counts=pm_repair_run();pm_repair_check($counts===array('missing_text'=>1,'orphan_text'=>1,'invalid_sender'=>1,'invalid_recipient'=>1,'deleted_users'=>2,'abandoned_copy'=>0,'recovered'=>0,'cancelled'=>0),'All repair modes return actual counts');
   pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_pm WHERE privmsgs_id IN (11,12,14,15,18)')===5,'Recent incomplete, valid, received and sent/saved copies retained');
   pm_repair_check(pm_repair_value('SELECT COUNT(*) FROM fixture_text WHERE privmsgs_text_id IN (12,14,15,18)')===4,'Retained messages keep their texts');
   pm_repair_check($sentinels===$pm_repair_server->pdo->query('SELECT * FROM fixture_users WHERE user_id<=0 ORDER BY user_id')->fetchAll(PDO::FETCH_ASSOC),'Negative/zero recipient sentinels not recounted');

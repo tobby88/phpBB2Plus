@@ -635,3 +635,48 @@ jobs:
 
       - name: Test post-publication quota and counter database operations
         run: php .github/scripts/check-pm-publication-storage.php
+
+      - name: Test durable PM read worker recovery
+        run: php .github/scripts/check-pm-read-recovery.php
+
+      - name: Check private message read controller
+        run: php .github/scripts/check-pm-read-controller.php
+
+      - name: Test additive PM read checkpoint migration
+        run: php .github/scripts/check-pm-read-migration.php
+
+      - name: Test read resumption and abandoned-copy cleanup
+        run: php .github/scripts/check-pm-read-cleanup.php
+
+      - name: Test durable PM text publication and edit recovery
+        run: php .github/scripts/check-pm-write-recovery.php
+
+      - name: PM notification claim safety
+        run: php .github/scripts/check-pm-notifications.php
+
+      - name: Actual PM compose send edit and recovery controller
+        run: php .github/scripts/check-pm-write-controller.php
+
+      - name: PM attachment replacement and thumbnail controller
+        run: php .github/scripts/check-pm-attachment-edit.php
+
+      - name: PM attachment copy-on-write storage
+        run: php .github/scripts/check-pm-attachment-edit-storage.php
+
+      - name: Check private message attachment recovery
+        run: php .github/scripts/check-pm-write-attachments.php
+
+      - name: Check private message attachment actions
+        run: php .github/scripts/check-pm-attachment-actions.php
+
+      - name: Check private message compose attachment ownership
+        run: php .github/scripts/check-pm-compose-attachments.php
+
+      - name: Check accepted private message upload claims
+        run: php .github/scripts/check-pm-staging-claims.php
+
+      - name: Check private message attachment migration
+        run: php .github/scripts/check-pm-attachment-migration.php
+
+      - name: Test additive PM publication migration
+        run: php .github/scripts/check-pm-write-migration.php

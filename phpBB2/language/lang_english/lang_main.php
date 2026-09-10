@@ -469,6 +469,10 @@ $lang['Private_Messaging'] = 'Private Messaging';
 $lang['PM_cleanup_failed'] = 'The private-message operation could not finish. Already completed changes remain in effect. Please reopen the affected mailbox to retry recorded cleanup. If the error persists, ask an administrator to check database and attachment storage availability.';
 $lang['PM_journal_unavailable'] = 'Private-message cleanup storage is unavailable. An administrator must run the post-1.53a update and check database access before continuing.';
 $lang['PM_journal_changed'] = 'Private-message or attachment records changed during cleanup. Changed records have been preserved. Please reopen the mailbox; an administrator may need to review remaining attachment records.';
+$lang['PM_write_pending'] = 'This message has not finished saving. Please try again later; its sender can resume the interrupted operation.';
+$lang['PM_resume_title'] = 'Unfinished private messages';
+$lang['PM_resume_explain'] = 'These accepted requests have not finished saving. Resume the recorded request without sending a second message. Completed changes cannot be undone here.';
+$lang['PM_resume'] = 'Resume saving';
 $lang['PM_save_limit_exceeded'] = 'The selected messages exceed the capacity of your saved mailbox. Please select fewer messages. Nothing has been moved or deleted.';
 
 $lang['Login_check_pm'] = 'Log in to check your private messages';

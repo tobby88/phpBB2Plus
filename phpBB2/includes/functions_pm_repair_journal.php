@@ -17,7 +17,7 @@ function dbmtnc_pm_journal_ready($db)
 function dbmtnc_pm_job_key($job)
 {
 	if (!is_array($job) || !isset($job['job_id'],$job['repair_mode'],$job['repair_state']) || !is_string($job['job_id']) || !preg_match('/^[a-f0-9]{32}$/D', $job['job_id'])
-		|| !in_array($job['repair_mode'], array('missing_text','deleted_users'), true)
+		|| !in_array($job['repair_mode'], array('missing_text','deleted_users','abandoned_copy'), true)
 		|| !in_array($job['repair_state'], array('planning','prepared'), true)) { phpbb_acl_error('Maintenance_pm_journal_changed'); }
 	foreach (array('message_id','from_user_id','to_user_id','message_type','message_date','cutoff') as $field)
 	{

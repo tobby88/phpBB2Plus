@@ -22,7 +22,116 @@ if ( !defined('IN_PHPBB') )
 */
 class attach_pm extends attach_parent
 {
-	var $pm_delete_attachments = false;
+	var $compose_database = null;
+
+	function handle_attachments($mode)
+	{
+		global $db, $privmsg_id;
+		require_once dirname(__DIR__) . '/includes/functions_pm_compose_attachments.php';
+		$original_db = $db;
+		$lock = attach_require_mutation_lock($original_db);
+		try
+		{
+			$this->compose_database = new PhpbbPmComposeDatabase($lock->connection, $mode, $privmsg_id);
+			$db = $this->compose_database;
+			$this->validate_compose_attachments();
+			return parent::handle_attachments($mode);
+		}
+		finally { $db = $original_db; $this->compose_database = null; $lock->release(); }
+	}
+
+	function validate_compose_attachments()
+	{
+		$db = $this->compose_database;
+		if (!$db || count($this->attachment_list) !== count($this->attachment_id_list)) { phpbb_acl_error('PM_journal_changed'); }
+		foreach ($this->attachment_list as $i=>$filename)
+		{
+			if (!isset($this->attachment_id_list[$i]) || !is_string($filename)) { phpbb_acl_error('PM_journal_changed'); }
+			$id = $this->attachment_id_list[$i];
+			if ($id === 0 || $id === '0')
+			{
+				phpbb_pm_staged_attachment_name($filename, $db->actor);
+				if (attach_pm_stage_is_claimed($db, $filename)) { phpbb_acl_error('PM_write_pending'); }
+				attach_require_unpublished_file($db, $filename);
+			}
+			else
+			{
+				$ids = attach_delete_id_array(array($id));
+				if (!$ids || !$db->message_id || !phpbb_acl_rows($db, 'SELECT a.attach_id FROM ' . ATTACHMENTS_TABLE . ' a,' . ATTACHMENTS_DESC_TABLE
+					. ' d WHERE a.attach_id = ' . $ids[0] . ' AND d.attach_id = a.attach_id AND a.privmsgs_id = ' . $db->message_id
+					. ' AND a.post_id = 0 AND a.user_id_1 = ' . $db->actor . " AND HEX(d.physical_filename) = HEX('" . $db->sql_escape($filename) . "')")) { phpbb_acl_error('Not_Authorised'); }
+			}
+		}
+		// Validate every selected action before uploading or changing any entry.
+		foreach (array('update_attachment','del_attachment','del_thumbnail') as $action)
+		{
+			if (!isset($_POST[$action])) { continue; }
+			if (!is_array($_POST[$action]) || !$_POST[$action] || ($action === 'update_attachment' && count($_POST[$action]) !== 1)) { phpbb_acl_error('PM_journal_changed'); }
+			foreach ($_POST[$action] as $key=>$value)
+			{
+				if (!is_scalar($value)) { phpbb_acl_error('PM_journal_changed'); }
+				if ($action === 'update_attachment')
+				{
+					$ids=attach_delete_id_array(array($key));
+					if (!$ids || !$db->message_id || !in_array((string)$ids[0],array_map('strval',$this->attachment_id_list),true)) { phpbb_acl_error('Not_Authorised'); }
+				}
+				elseif (!is_string($key) || !in_array($key,$this->attachment_list,true)) { phpbb_acl_error('Not_Authorised'); }
+			}
+		}
+	}
+
+	function prepare_physical_filename()
+	{
+		if (!$this->compose_database) { phpbb_acl_error('Not_Authorised'); }
+		$this->compose_database->require_write();
+		$this->attach_filename = 'pm_' . $this->compose_database->actor . '_' . bin2hex(phpbb_random_bytes(16)) . '.' . strtolower($this->extension);
+		phpbb_pm_staged_attachment_name($this->attach_filename, $this->compose_database->actor);
+	}
+
+	function replace_stored_attachment($attachment_id, $old, $metadata)
+	{
+		require_once dirname(__DIR__) . '/includes/functions_pm_attachment_edit.php';
+		return phpbb_pm_edit_attachment($this->compose_database,$attachment_id,$metadata,true);
+	}
+
+	function remove_stored_thumbnail($attachment_id)
+	{
+		require_once dirname(__DIR__) . '/includes/functions_pm_attachment_edit.php';
+		return phpbb_pm_edit_attachment($this->compose_database,$attachment_id,array('thumbnail'=>0));
+	}
+
+	function delete_stored_attachment($message_id, $attachment_id)
+	{
+		if (!$this->compose_database || (int)$message_id !== $this->compose_database->message_id || !$message_id) { phpbb_acl_error('Not_Authorised'); }
+		$this->compose_database->require_write();
+		$ids = attach_delete_id_array(array($attachment_id));
+		if (!$ids) { phpbb_acl_error('PM_journal_changed'); }
+		return attach_delete_selected($this->compose_database, array((int)$message_id), $ids, PAGE_PRIVMSGS, 0, false, false);
+	}
+
+	function delete_temporary_attachment($filename, $thumbnail = false)
+	{
+		if (!$this->compose_database) { phpbb_acl_error('Not_Authorised'); }
+		$this->compose_database->require_write();
+		phpbb_pm_staged_attachment_name($filename, $this->compose_database->actor);
+		if (attach_pm_stage_is_claimed($this->compose_database, $filename)) { phpbb_acl_error('PM_write_pending'); }
+		if (!is_string($filename) || attach_ftp_listing_entry($filename, '0') === false
+			|| phpbb_acl_rows($this->compose_database, 'SELECT attach_id FROM ' . ATTACHMENTS_DESC_TABLE
+				. " WHERE physical_filename = '" . $this->compose_database->sql_escape($filename) . "' LIMIT 1")) { phpbb_acl_error('PM_journal_changed'); }
+		// The original may have just been removed before its thumbnail. Verify
+		// absence idempotently instead of requiring the original to still exist.
+		if (!attach_delete_file($filename, $thumbnail)) { phpbb_acl_error('Attachment_delete_incomplete'); }
+		return true;
+	}
+
+	function move_uploaded_attachment($mode, $file)
+	{
+		if (!$this->compose_database) { phpbb_acl_error('Not_Authorised'); }
+		$this->compose_database->require_write();
+		$result = parent::move_uploaded_attachment($mode, $file);
+		$this->compose_database->authority();
+		return $result;
+	}
 
 	/**
 	* Constructor
@@ -37,7 +146,6 @@ class attach_pm extends attach_parent
 		global $_POST;
 
 		$this->attach_parent();
-		$this->pm_delete_attachments = (isset($_POST['pm_delete_attach'])) ? true : false;
 		$this->page = PAGE_PRIVMSGS;
 	}
 
@@ -77,6 +185,49 @@ class attach_pm extends attach_parent
 			$this->do_insert_attachment('last_attachment', 'pm', $a_privmsgs_id);
 
 		}
+	}
+
+	// Export the values already processed by handle_attachments. The durable
+	// writer consumes this plan on its own connection; this method performs no
+	// SQL writes, file operations or lock acquisition of its own.
+	function prepared_write_attachments()
+	{
+		global $attach_config;
+		require_once dirname(__DIR__) . '/includes/functions_pm_write_attachments.php';
+		$items = array();
+		foreach ($this->attachment_list as $i=>$name)
+		{
+			if (!isset($this->attachment_id_list[$i],$this->attachment_comment_list[$i])) { phpbb_acl_error('PM_journal_changed'); }
+			$id = $this->attachment_id_list[$i];
+			// The legacy parser uses string "0" for a just-uploaded file and
+			// database drivers return stored IDs as decimal strings.
+			if ($id === 0 || $id === '0') { $id = 0; }
+			else
+			{
+				$ids = attach_delete_id_array(array($id));
+				if (!$ids) { phpbb_acl_error('PM_journal_changed'); }
+				$id = $ids[0];
+			}
+			$entry = array('id'=>$id,'comment'=>$this->attachment_comment_list[$i]);
+			if (!$id)
+			{
+				$entry['physical_filename'] = $name;
+				foreach (array('real_filename'=>'attachment_filename_list','extension'=>'attachment_extension_list','mimetype'=>'attachment_mimetype_list',
+					'filesize'=>'attachment_filesize_list','filetime'=>'attachment_filetime_list','thumbnail'=>'attachment_thumbnail_list') as $key=>$property)
+				{
+					if (!isset($this->{$property}[$i])) { phpbb_acl_error('PM_journal_changed'); }
+					$entry[$key] = $this->{$property}[$i];
+				}
+			}
+			$items[] = $entry;
+		}
+		if ($this->post_attach && !isset($_POST['update_attachment']))
+		{
+			$items[] = array('id'=>0,'physical_filename'=>$this->attach_filename,'real_filename'=>$this->filename,'comment'=>$this->file_comment,
+				'extension'=>$this->extension,'mimetype'=>$this->type,'filesize'=>$this->filesize,'filetime'=>$this->filetime,'thumbnail'=>$this->thumbnail);
+		}
+		if ($items && (empty($attach_config['allow_pm_attach']) || !empty($attach_config['disable_mod']))) { phpbb_acl_error('Not_Authorised'); }
+		return phpbb_pm_write_attachment_plan($items);
 	}
 
 	/**
@@ -213,6 +364,9 @@ class attach_pm extends attach_parent
 		{
 			$this->display_attach_box_limits();
 		}
+		// Mailbox delete/save are handled by the current owner-scoped controller.
+		// Only compose requests may process staged uploads or attachment edits.
+		if (!in_array($mode, array('post','reply','quote','edit'), true)) { return; }
 
 		if (!intval($attach_config['allow_pm_attach']))
 		{
@@ -227,40 +381,22 @@ class attach_pm extends attach_parent
 			$refresh = $add_attachment_box || $posted_attachments_box;
 		}
 
-		$post_id = $privmsgs_id;
-
-		$result = $this->handle_attachments($mode, PAGE_PRIVMSGS);
+		$source_id = phpbb_pm_compose_attachment_source($db, $mode, $privmsg_id);
+		$original_id = $privmsg_id;
+		$original_post_id = $post_id;
+		try
+		{
+			$privmsg_id = $source_id;
+			$post_id = $source_id;
+			$result = $this->handle_attachments($mode === 'quote' ? 'reply' : $mode);
+		}
+		finally { $privmsg_id = $original_id; $post_id = $original_post_id; }
 
 		if ($result === false)
 		{
 			return;
 		}
 
-		$mark_list = get_var('mark', array(0));
-
-		if (($this->pm_delete_attachments || $delete) && sizeof($mark_list))
-		{
-			if (!$userdata['session_logged_in'])
-			{
-				$header_location = ( @preg_match('/Microsoft|WebSTAR|Xitami/', getenv('SERVER_SOFTWARE')) ) ? 'Refresh: 0; URL=' : 'Location: ';
-				header($header_location . append_sid($phpbb_root_path . "login.$phpEx?redirect=privmsg.$phpEx&folder=inbox", true));
-				exit;
-			}
-			
-			if (sizeof($mark_list))
-			{
-				$delete_sql_id = '';
-				for ($i = 0; $i < sizeof($mark_list); $i++)
-				{
-					$delete_sql_id .= (($delete_sql_id != '') ? ', ' : '') . intval($mark_list[$i]);
-				}
-
-				if (($this->pm_delete_attachments || $confirm) && !$delete_all)
-				{
-					delete_attachment($delete_sql_id, 0, PAGE_PRIVMSGS);
-				}
-			}
-		}
 
 		if ($submit || $refresh || $mode != '')
 		{

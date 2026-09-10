@@ -18,6 +18,7 @@ class PmCounterServer {
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
   $this->pdo->exec("INSERT INTO fixture_pm VALUES (1,8,1,1,'Grüße'),(2,8,1,5,'Unread'),(3,8,1,0,'Read'),(4,8,1,2,'Sent'),(5,8,1,3,'Saved'),(6,8,1,4,'Saved out'),(7,77,8,1,'Sender only')");
+  $this->pdo->exec('ALTER TABLE fixture_pm ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
 
  }
 }
@@ -82,12 +83,14 @@ try{
   pm_counter_check($messages===pm_counter_snapshot('SELECT * FROM fixture_pm ORDER BY privmsgs_id'),'Messages, content and states untouched');
   pm_counter_check($accounts===pm_counter_snapshot('SELECT user_id,username,user_level,user_active FROM fixture_users ORDER BY user_id'),'Other account fields unchanged');
   pm_counter_check($sentinels===pm_counter_snapshot('SELECT * FROM fixture_users WHERE user_id<=0 ORDER BY user_id'),'Nonpositive sentinel counters preserved');
+  $pm_counter_server->pdo->exec("UPDATE fixture_pm SET privmsgs_write_payload='unfinished' WHERE privmsgs_id IN (1,2)");
+  pm_counter_check(pm_counter_run()===1 && pm_counter_value('SELECT user_new_privmsg+user_unread_privmsg FROM fixture_users WHERE user_id=8')===0,'ACP counters exclude pending publication just like the mailbox');
   foreach(array('deliver-new','deliver-unread','open','read','save','delete','move','already-correct','new-recipient') as $race){
    pm_counter_fixture($engine);$pm_counter_server->hook=function($sql) use($race){
     if(strpos($sql,'UPDATE fixture_users SET user_new_privmsg')!==0){return;}$s=$GLOBALS['pm_counter_server'];$s->hook=null;
     if($race==='deliver-new'||$race==='deliver-unread'||$race==='new-recipient'){
      $type=$race==='deliver-unread'?5:1;$recipient=$race==='new-recipient'?9:8;
-     $s->pdo->exec("INSERT INTO fixture_pm VALUES (99,".$recipient.",1,".$type.",'Concurrent')");
+     $s->pdo->exec("INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type,body) VALUES (99,".$recipient.",1,".$type.",'Concurrent')");
     }elseif($race==='delete'){$s->pdo->exec('DELETE FROM fixture_pm WHERE privmsgs_id=1');}
     elseif($race==='move'){$s->pdo->exec('UPDATE fixture_pm SET privmsgs_to_userid=9 WHERE privmsgs_id=1');}
     elseif($race==='already-correct'){$s->pdo->exec('UPDATE fixture_users SET user_new_privmsg=1,user_unread_privmsg=1 WHERE user_id=8');}

@@ -7,6 +7,7 @@ use Error;
 // with controllable filesystem failures. No production database is loaded.
 require __DIR__ . '/check-attachment-mutation.php';
 require $forum_root . 'attach_mod/includes/functions_admin.php';
+require_once $forum_root . 'attach_mod/includes/functions_pm_staging.php';
 eval('namespace ShadowCleanupFixture; use Exception; use Error; ' . substr(file_get_contents($forum_root . 'attach_mod/includes/functions_shadow.php'), 5));
 function attach_delete_file($name, $mode = false)
 {
@@ -35,6 +36,9 @@ function shadow_reset()
 {
 	global $mutation_server, $upload_dir, $shadow_file_failure, $shadow_file_hook, $shadow_inventory_failure, $attach_config;
 	$mutation_server = new \MutationServer(); $shadow_file_failure = ''; $shadow_file_hook = null; $shadow_inventory_failure = false; $attach_config['allow_ftp_upload'] = 0;
+	$mutation_server->pdo->exec('ALTER TABLE fixture_descriptions ADD COLUMN pm_write_token CHAR(32) DEFAULT NULL');
+	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_write_token CHAR(32) DEFAULT NULL');
+	$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
 	foreach (array('fixture.txt', 'fresh.txt', 'thumbs/t_fixture.txt') as $name) { if (is_file($upload_dir . '/' . $name)) { unlink($upload_dir . '/' . $name); } }
 	file_put_contents($upload_dir . '/fixture.txt', 'owned'); touch($upload_dir . '/fixture.txt', time() - 172800);
 }
@@ -63,7 +67,32 @@ try
 	\mutation_check($mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===2,'Valid orphan before stale row is not partially removed');
 	\mutation_expect_failure(function () use ($id) { attach_shadow_cleanup(array(),array(999,$id)); },'changed');
 
+	// A durable PN reservation is not an orphan even before its link INSERT.
+	shadow_reset(); $id=shadow_publish(); $pending_token=str_repeat('a',32);
+	$mutation_server->pdo->exec("UPDATE fixture_messages SET privmsgs_write_token='".$pending_token."',privmsgs_write_payload='pending' WHERE privmsgs_id=20");
+	$mutation_server->pdo->exec("UPDATE fixture_descriptions SET pm_write_token='".$pending_token."' WHERE attach_id=".$id);
+	$mutation_server->pdo->exec('DELETE FROM fixture_links');
+	\mutation_expect_failure(function () use ($id) { attach_shadow_cleanup(array(),array($id)); },'pending');
+	\mutation_check(is_file($upload_dir.'/fixture.txt') && $mutation_server->count_rows(ATTACHMENTS_DESC_TABLE)===1,'Pending unlinked description and bytes retained');
+	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload=NULL WHERE privmsgs_id=20');
+	attach_shadow_cleanup(array(),array($id));
+	\mutation_check(!is_file($upload_dir.'/fixture.txt') && !$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Retired orphan reservation can be cleaned normally');
+
 	// File-only orphan reserves its name; concurrent publishers cannot interleave.
+	shadow_reset();$stage='pm_8_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt';
+	file_put_contents($upload_dir.'/'.$stage,'owned pending bytes');touch($upload_dir.'/'.$stage,time()-90000);
+	try
+	{
+		$intent=json_encode(array('version'=>1,'content'=>array('attachments'=>array(array('id'=>0,'physical_filename'=>$stage)))));
+		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload='.$mutation_server->pdo->quote($intent).' WHERE privmsgs_id=20');
+		\mutation_expect_failure(function()use($stage){attach_shadow_cleanup(array('fixture.txt',$stage),array());},'pending');
+		\mutation_check(is_file($upload_dir.'/'.$stage)&&is_file($upload_dir.'/fixture.txt')&&!$mutation_server->count_rows(ATTACHMENTS_DESC_TABLE),'Accepted file-only intent protects whole selection before any cleanup reservation');
+		$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_write_payload=NULL WHERE privmsgs_id=20');
+		attach_shadow_cleanup(array($stage),array());
+		\mutation_check(!is_file($upload_dir.'/'.$stage),'Expired stage can be cleaned after its pending claim is retired');
+	}
+	finally{if(is_file($upload_dir.'/'.$stage)){unlink($upload_dir.'/'.$stage);}}
+
 	shadow_reset(); $called=false;
 	$shadow_file_hook=function () use (&$called)
 	{

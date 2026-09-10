@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_pm_staging.php';
 
 // Attachment writers cooperate across web workers/hosts, independently of the
 // table engine. Every protected query uses the connection that owns this lock.

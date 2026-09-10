@@ -15,6 +15,7 @@ function pm_recovery_fixture()
 {
 	global $userdata,$mutation_server;
 	pm_recovery_clear_files(); pm_cleanup_fixture();
+	foreach(array("privmsgs_read_token CHAR(32) NOT NULL DEFAULT ''",'privmsgs_read_copy_id INTEGER NOT NULL DEFAULT 0','privmsgs_copy_token CHAR(32) DEFAULT NULL') as $column){$mutation_server->pdo->exec('ALTER TABLE fixture_messages ADD COLUMN '.$column);}
 	$userdata=array('user_id'=>8,'user_level'=>ADMIN,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');
 	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture-sid');
 	$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=-1');
@@ -113,7 +114,7 @@ try
 			{
 				$mutation_server->failure=$case==='moved-copy'?'DELETE FROM fixture_messages WHERE':'DELETE FROM fixture_message_text';
 				pm_recovery_fail(function(){phpbb_pm_repair_messages(array(20,21),'deleted_users');},$lang['Maintenance_pm_repair_failed']);
-				if($case==='restored-parent'){$mutation_server->pdo->exec('INSERT INTO fixture_messages VALUES (20,0,7,8,1,999)');$mutation_server->pdo->exec("UPDATE fixture_message_text SET privmsgs_text='Restored body' WHERE privmsgs_text_id=20");}
+				if($case==='restored-parent'){$mutation_server->pdo->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_to_userid,privmsgs_from_userid,privmsgs_attachment,privmsgs_date) VALUES (20,0,7,8,1,999)');$mutation_server->pdo->exec("UPDATE fixture_message_text SET privmsgs_text='Restored body' WHERE privmsgs_text_id=20");}
 				elseif($case==='moved-copy'){$mutation_server->pdo->exec('UPDATE fixture_messages SET privmsgs_from_userid=8,privmsgs_type=3 WHERE privmsgs_id=20');}
 				elseif($case==='changed-descriptor')
 				{

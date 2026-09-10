@@ -33,6 +33,8 @@ include_once($phpbb_root_path . 'includes/functions_privmsgs.'.$phpEx);
 // Also load directly so the additive recovery API is available while older
 // mailbox helpers are being replaced in a per-file deployment.
 include_once($phpbb_root_path . 'includes/functions_pm_mailbox_journal.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_pm_read.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_pm_controller.'.$phpEx);
 include_once($phpbb_root_path.'includes/functions_color_groups.'.$phpEx);
 
 function privmsg_post_session_is_valid($sid, $userdata)
@@ -104,7 +106,11 @@ $userdata = session_pagestart($user_ip, PAGE_PRIVMSGS);
 init_userprefs($userdata);
 if (!empty($userdata['session_logged_in']))
 {
-	try { phpbb_pm_recover_mailbox($userdata['user_id'], $folder); }
+	try
+	{
+		phpbb_pm_resume_reads($board_config['max_sentbox_privmsgs']);
+		phpbb_pm_recover_mailbox($userdata['user_id'], $folder);
+	}
 	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 }
 //
@@ -163,7 +169,55 @@ $sentbox_url = ( $folder != 'sentbox' || $mode != '' ) ? '<a href="' . append_si
 
 $savebox_img = ( $folder != 'savebox' || $mode != '' ) ? '<a href="' . append_sid("privmsg.$phpEx?folder=savebox") . '"><img src="' . $images['pm_savebox'] . '" border="0" alt="' . $lang['Savebox'] . '" /></a>' : '<img src="' . $images['pm_savebox'] . '" border="0" alt="' . $lang['Savebox'] . '" />';
 $savebox_url = ( $folder != 'savebox' || $mode != '' ) ? '<a href="' . append_sid("privmsg.$phpEx?folder=savebox") . '">' . $lang['Savebox'] . '</a>' : $lang['Savebox'];
-execute_privmsgs_attachment_handling($mode);
+// Attachment processing can move/delete files. Apply the same login/session
+// gate before that processing, including preview and attachment-only buttons.
+if (empty($userdata['session_logged_in']))
+{
+	redirect(append_sid("login.$phpEx?redirect=privmsg.$phpEx&folder=$folder&mode=" . urlencode($mode) . '&' . POST_POST_URL . '=' . (int)$privmsg_id, true));
+}
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' && !privmsg_post_session_is_valid($sid, $userdata))
+{
+	message_die(GENERAL_ERROR, $lang['Session_invalid']);
+}
+if (isset($_POST['pm_delete_attach']))
+{
+	try { phpbb_pm_delete_attachments(isset($_POST['mark']) ? $_POST['mark'] : array(), $userdata['user_id'], $folder); }
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	redirect(append_sid("privmsg.$phpEx?folder=$folder", true));
+}
+// Durable write form identity and accepted-request recovery precede attachment
+// parsing and flood checks: a retry must not re-upload or re-encode saved data.
+$pm_write_nonce = ''; $pm_write_revision = '';
+if (in_array($mode, array('post','reply','quote','edit'), true) || isset($_POST['pm_retry']))
+{
+	try
+	{
+		if (isset($_POST['pm_write_nonce'])) { $pm_write_nonce = phpbb_pm_write_nonce($_POST['pm_write_nonce']); }
+		elseif ($submit || isset($_POST['pm_retry'])) { phpbb_acl_error('Session_invalid'); }
+		else { $pm_write_nonce = bin2hex(phpbb_random_bytes(16)); }
+		if (isset($_POST['pm_retry']))
+		{
+			phpbb_pm_retry_write($pm_write_nonce, $board_config['max_inbox_privmsgs']);
+			phpbb_pm_complete_response($pm_write_nonce);
+		}
+		if ($submit && phpbb_pm_retry_write($pm_write_nonce, $board_config['max_inbox_privmsgs'], true) !== false)
+		{
+			phpbb_pm_complete_response($pm_write_nonce);
+		}
+		if ($mode === 'edit')
+		{
+			if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST')
+			{
+				if (!isset($_POST['pm_write_revision'])) { phpbb_acl_error('Session_invalid'); }
+				$pm_write_revision = phpbb_pm_revision($_POST['pm_write_revision']);
+			}
+			else { $pm_write_revision = phpbb_pm_form_revision($privmsg_id); }
+		}
+	}
+	catch (PhpbbAclException $error) { phpbb_pm_write_error($error); }
+}
+try { execute_privmsgs_attachment_handling($mode); }
+catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 // ----------
 // Start main
 //
@@ -260,12 +314,18 @@ else if ( $mode == 'read' )
 			break;
 	}
 
+	// Complete the current recipient's read transition before fetching the
+	// displayed body. Never render the stale pre-lock edit/read snapshot.
+	try { phpbb_pm_read_message($privmsgs_id, $folder, $board_config['max_sentbox_privmsgs']); }
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+
 	//
 	// Major query obtains the message ...
 	//
 	$sql = "SELECT u.username AS username_1, u.user_id AS user_id_1, u.user_absence, u.user_absence_mode, u2.username AS username_2, u2.user_id AS user_id_2, u.user_sig_bbcode_uid, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_fb, u.user_ig, u.user_pt, u.user_twr, u.user_skp, u.user_tg, u.user_li, u.user_tt, u.user_dc, u.user_signal, u.user_threema, u.user_viewemail, u.user_rank, u.user_sig, u.user_avatar, pm.*, pmt.privmsgs_bbcode_uid, pmt.privmsgs_text
 		FROM " . PRIVMSGS_TABLE . " pm, " . PRIVMSGS_TEXT_TABLE . " pmt, " . USERS_TABLE . " u, " . USERS_TABLE . " u2 
 		WHERE pm.privmsgs_id = $privmsgs_id
+			AND pm.privmsgs_write_payload IS NULL
 			AND pmt.privmsgs_text_id = pm.privmsgs_id 
 			$pm_sql_user 
 			AND u.user_id = pm.privmsgs_from_userid 
@@ -288,68 +348,6 @@ else if ( $mode == 'read' )
 
 	$privmsg_id = $privmsg['privmsgs_id'];
 
-	//
-	// Is this a new message in the inbox? If it is then save
-	// a copy in the posters sent box
-	//
-	if (($privmsg['privmsgs_type'] == PRIVMSGS_NEW_MAIL || $privmsg['privmsgs_type'] == PRIVMSGS_UNREAD_MAIL) && $folder == 'inbox')
-	{
-		// Update appropriate counter
-		switch ($privmsg['privmsgs_type'])
-		{
-			case PRIVMSGS_NEW_MAIL:
-				$sql = "user_new_privmsg = user_new_privmsg - 1";
-				break;
-			case PRIVMSGS_UNREAD_MAIL:
-				$sql = "user_unread_privmsg = user_unread_privmsg - 1";
-				break;
-		}
-
-		$sql = "UPDATE " . USERS_TABLE . " 
-			SET $sql 
-			WHERE user_id = " . $userdata['user_id'];
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update private message read status for user', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql = "UPDATE " . PRIVMSGS_TABLE . "
-			SET privmsgs_type = " . PRIVMSGS_READ_MAIL . "
-			WHERE privmsgs_id = " . $privmsg['privmsgs_id'];
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update private message read status', '', __LINE__, __FILE__, $sql);
-		}
-
-		$sql_priority = (SQL_LAYER == 'mysql') ? 'LOW_PRIORITY' : '';
-
-		//
-		// This makes a copy of the post and stores it as a SENT message from the sendee. Perhaps
-		// not the most DB friendly way but a lot easier to manage, besides the admin will be able to
-		// set limits on numbers of storable posts for users ... hopefully!
-		//
-		$copy_subject = $db->sql_escape((string) $privmsg['privmsgs_subject']);
-		$copy_ip = $db->sql_escape((string) $privmsg['privmsgs_ip']);
-		$sql = "INSERT $sql_priority INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
-			VALUES (" . PRIVMSGS_SENT_MAIL . ", '$copy_subject', " . intval($privmsg['privmsgs_from_userid']) . ", " . intval($privmsg['privmsgs_to_userid']) . ", " . intval($privmsg['privmsgs_date']) . ", '$copy_ip', " . intval($privmsg['privmsgs_enable_html']) . ", " . intval($privmsg['privmsgs_enable_bbcode']) . ", " . intval($privmsg['privmsgs_enable_smilies']) . ", " . intval($privmsg['privmsgs_attach_sig']) . ")";
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not insert private message sent info', '', __LINE__, __FILE__, $sql);
-		}
-
-		$privmsg_sent_id = $db->sql_nextid();
-
-		$copy_bbcode_uid = $db->sql_escape((string) $privmsg['privmsgs_bbcode_uid']);
-		$copy_text = $db->sql_escape((string) $privmsg['privmsgs_text']);
-		$sql = "INSERT $sql_priority INTO " . PRIVMSGS_TEXT_TABLE . " (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
-			VALUES ($privmsg_sent_id, '$copy_bbcode_uid', '$copy_text')";
-		if ( !$db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not insert private message sent text', '', __LINE__, __FILE__, $sql);
-		}
-		$attachment_mod['pm']->duplicate_attachment_pm($privmsg['privmsgs_attachment'], $privmsg['privmsgs_id'], $privmsg_sent_id);
-		phpbb_pm_trim_oldest($privmsg['privmsgs_from_userid'], 'sentbox', $board_config['max_sentbox_privmsgs'], 'read', $privmsg['privmsgs_id'], $privmsg_sent_id);
-	}
 	//
 	// Pick a folder, any folder, so long as it's one below ...
 	//
@@ -434,6 +432,7 @@ else if ( $mode == 'read' )
 	}
 
 	$s_hidden_fields = '<input type="hidden" name="mark[]" value="' . $privmsgs_id . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />';
 
 	$page_title = $lang['Read_pm'];
 	include($phpbb_root_path . 'includes/page_header.'.$phpEx);
@@ -884,6 +883,7 @@ else if ( $submit || $refresh || $mode != '' )
 		{
 			if ( !$error )
 			{
+				$bbcode_uid = '';
 				if ( $bbcode_on )
 				{
 					$bbcode_uid = make_bbcode_uid();
@@ -911,104 +911,17 @@ else if ( $submit || $refresh || $mode != '' )
 			message_die(GENERAL_MESSAGE, $message);
 		}
 
-		$msg_time = time();
-		$sender_id = intval($userdata['user_id']);
-		$recipient_id = intval($to_userdata['user_id']);
-		$subject_sql = $db->sql_escape(stripslashes($privmsg_subject));
-		$message_sql = $db->sql_escape(stripslashes($privmsg_message));
-		$bbcode_uid_sql = $db->sql_escape((string) $bbcode_uid);
-		$user_ip_sql = $db->sql_escape((string) $user_ip);
-		$html_on = intval($html_on);
-		$bbcode_on = intval($bbcode_on);
-		$smilies_on = intval($smilies_on);
-		$attach_sig = intval($attach_sig);
-
-		if ( $mode != 'edit' )
+		try
 		{
-			$sql_info = "INSERT INTO " . PRIVMSGS_TABLE . " (privmsgs_type, privmsgs_subject, privmsgs_from_userid, privmsgs_to_userid, privmsgs_date, privmsgs_ip, privmsgs_enable_html, privmsgs_enable_bbcode, privmsgs_enable_smilies, privmsgs_attach_sig)
-				VALUES (" . PRIVMSGS_NEW_MAIL . ", '$subject_sql', $sender_id, $recipient_id, $msg_time, '$user_ip_sql', $html_on, $bbcode_on, $smilies_on, $attach_sig)";
+			$privmsg_sent_id = phpbb_pm_write_message($pm_write_nonce, $mode === 'edit' ? (int)$privmsg_id : 0, $pm_write_revision,
+				array('subject'=>stripslashes($privmsg_subject), 'text'=>stripslashes($privmsg_message),
+					'bbcode_uid'=>$bbcode_on && isset($bbcode_uid) ? (string)$bbcode_uid : '', 'ip'=>(string)$user_ip,
+					'recipient'=>(int)$to_userdata['user_id'], 'html'=>(int)$html_on, 'bbcode'=>(int)$bbcode_on,
+					'smilies'=>(int)$smilies_on, 'sig'=>(int)$attach_sig, 'attachments'=>$attachment_mod['pm']->prepared_write_attachments()),
+				$board_config['max_inbox_privmsgs']);
+			phpbb_pm_complete_response($pm_write_nonce);
 		}
-		else
-		{
-			$sql_info = "UPDATE " . PRIVMSGS_TABLE . "
-				SET privmsgs_type = " . PRIVMSGS_NEW_MAIL . ", privmsgs_subject = '$subject_sql', privmsgs_from_userid = $sender_id, privmsgs_to_userid = $recipient_id, privmsgs_date = $msg_time, privmsgs_ip = '$user_ip_sql', privmsgs_enable_html = $html_on, privmsgs_enable_bbcode = $bbcode_on, privmsgs_enable_smilies = $smilies_on, privmsgs_attach_sig = $attach_sig
-				WHERE privmsgs_id = " . intval($privmsg_id) . "
-					AND privmsgs_from_userid = $sender_id
-					AND privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . ", " . PRIVMSGS_UNREAD_MAIL . ")";
-		}
-
-		if ( !($result = $db->sql_query($sql_info, BEGIN_TRANSACTION)) )
-		{
-			message_die(GENERAL_ERROR, "Could not insert/update private message sent info.", "", __LINE__, __FILE__, $sql_info);
-		}
-
-		if ( $mode != 'edit' )
-		{
-			$privmsg_sent_id = $db->sql_nextid();
-
-			$sql = "INSERT INTO " . PRIVMSGS_TEXT_TABLE . " (privmsgs_text_id, privmsgs_bbcode_uid, privmsgs_text)
-				VALUES ($privmsg_sent_id, '$bbcode_uid_sql', '$message_sql')";
-		}
-		else
-		{
-			$sql = "UPDATE " . PRIVMSGS_TEXT_TABLE . "
-				SET privmsgs_text = '$message_sql', privmsgs_bbcode_uid = '$bbcode_uid_sql'
-				WHERE privmsgs_text_id = " . intval($privmsg_id) . "
-					AND EXISTS (
-						SELECT 1 FROM " . PRIVMSGS_TABLE . "
-						WHERE privmsgs_id = " . intval($privmsg_id) . "
-							AND privmsgs_from_userid = $sender_id
-							AND privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . ", " . PRIVMSGS_UNREAD_MAIL . ")
-					)";
-		}
-
-		if ( !$db->sql_query($sql, END_TRANSACTION) )
-		{
-			message_die(GENERAL_ERROR, "Could not insert/update private message sent text.", "", __LINE__, __FILE__, $sql);
-		}
-		$attachment_mod['pm']->insert_attachment_pm($privmsg_id);
-		if ( $mode != 'edit' )
-		{
-			phpbb_pm_finalize_delivery($to_userdata['user_id'], $privmsg_sent_id, $board_config['max_inbox_privmsgs']);
-
-			if ( $to_userdata['user_notify_pm'] && !empty($to_userdata['user_email']) && $to_userdata['user_active'] )
-			{
-				$script_name = preg_replace('/^\/?(.*?)\/?$/', "\\1", trim($board_config['script_path']));
-				$script_name = ( $script_name != '' ) ? $script_name . '/privmsg.'.$phpEx : 'privmsg.'.$phpEx;
-				$server_name = trim($board_config['server_name']);
-				$server_protocol = ( $board_config['cookie_secure'] ) ? 'https://' : 'http://';
-				$server_port = ( $board_config['server_port'] <> 80 ) ? ':' . trim($board_config['server_port']) . '/' : '/';
-
-				include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-				$emailer = new emailer($board_config['smtp_delivery']);
-					
-				$emailer->from($board_config['board_email']);
-				$emailer->replyto($board_config['board_email']);
-
-				$emailer->use_template('privmsg_notify', $to_userdata['user_lang']);
-				$emailer->email_address($to_userdata['user_email']);
-				$emailer->set_subject($lang['Notification_subject']);
-					
-				$emailer->assign_vars(array(
-					'USERNAME' => stripslashes($to_username), 
-					'SITENAME' => $board_config['sitename'],
-					'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '', 
-
-					'U_INBOX' => $server_protocol . $server_name . $server_port . $script_name . '?folder=inbox')
-				);
-
-				$emailer->send();
-				$emailer->reset();
-			}
-		}
-
-		$template->assign_vars(array(
-			'META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("privmsg.$phpEx?folder=inbox") . '">')
-		);
-
-		$msg = $lang['Message_sent'] . '<br /><br />' . sprintf($lang['Click_return_inbox'], '<a href="' . append_sid("privmsg.$phpEx?folder=inbox") . '">', '</a> ') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
-
-		message_die(GENERAL_MESSAGE, $msg);
+		catch (PhpbbAclException $error) { phpbb_pm_write_error($error); }
 	}
 	else if ( $preview || $refresh || $error )
 	{
@@ -1121,6 +1034,7 @@ else if ( $submit || $refresh || $mode != '' )
 			$sql = "SELECT pm.*, pmt.privmsgs_bbcode_uid, pmt.privmsgs_text, u.username, u.user_id, u.user_sig 
 				FROM " . PRIVMSGS_TABLE . " pm, " . PRIVMSGS_TEXT_TABLE . " pmt, " . USERS_TABLE . " u
 				WHERE pm.privmsgs_id = $privmsg_id
+					AND pm.privmsgs_write_payload IS NULL
 					AND pmt.privmsgs_text_id = pm.privmsgs_id
 					AND pm.privmsgs_from_userid = " . $userdata['user_id'] . "
 					AND ( pm.privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
@@ -1161,6 +1075,8 @@ else if ( $submit || $refresh || $mode != '' )
 			$sql = "SELECT pm.privmsgs_subject, pm.privmsgs_date, pmt.privmsgs_bbcode_uid, pmt.privmsgs_text, u.username, u.user_id
 				FROM " . PRIVMSGS_TABLE . " pm, " . PRIVMSGS_TEXT_TABLE . " pmt, " . USERS_TABLE . " u
 				WHERE pm.privmsgs_id = $privmsg_id
+					AND pm.privmsgs_write_payload IS NULL
+					AND pm.privmsgs_type IN (" . PRIVMSGS_NEW_MAIL . "," . PRIVMSGS_UNREAD_MAIL . "," . PRIVMSGS_READ_MAIL . "," . PRIVMSGS_SAVED_IN_MAIL . ")
 					AND pmt.privmsgs_text_id = pm.privmsgs_id
 					AND pm.privmsgs_to_userid = " . $userdata['user_id'] . "
 					AND u.user_id = pm.privmsgs_from_userid";
@@ -1451,6 +1367,8 @@ for ($i=1; $i<=$max_rows; $i++)
 	$s_hidden_fields = '<input type="hidden" name="folder" value="' . $folder . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="mode" value="' . $mode . '" />';
 	$s_hidden_fields .= '<input type="hidden" name="sid" value="' . $userdata['session_id'] . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="pm_write_nonce" value="' . phpbb_profile_text($pm_write_nonce) . '" />';
+	$s_hidden_fields .= '<input type="hidden" name="pm_write_revision" value="' . phpbb_profile_text($pm_write_revision) . '" />';
 	if ( $mode == 'edit' )
 	{
 		$s_hidden_fields .= '<input type="hidden" name="' . POST_POST_URL . '" value="' . $privmsg_id . '" />';
@@ -1585,31 +1503,13 @@ if ( !$userdata['session_logged_in'] )
 	redirect(append_sid("login.$phpEx?redirect=privmsg.$phpEx&folder=inbox", true));
 }
 
-//
-// Update unread status 
-//
-$sql = "UPDATE " . USERS_TABLE . "
-	SET user_unread_privmsg = user_unread_privmsg + user_new_privmsg, user_new_privmsg = 0, user_last_privmsg = " . $userdata['session_start'] . " 
-	WHERE user_id = " . $userdata['user_id'];
-if ( !$db->sql_query($sql) )
+// Mark complete messages noticed, then refresh the actual stored counters.
+try
 {
-	message_die(GENERAL_ERROR, 'Could not update private message new/read status for user', '', __LINE__, __FILE__, $sql);
+	$pm_counts = phpbb_pm_visit_mailbox($userdata['session_start']);
+	foreach ($pm_counts as $pm_counter => $pm_value) { $userdata[$pm_counter] = (int)$pm_value; }
 }
-
-$sql = "UPDATE " . PRIVMSGS_TABLE . "
-	SET privmsgs_type = " . PRIVMSGS_UNREAD_MAIL . " 
-	WHERE privmsgs_type = " . PRIVMSGS_NEW_MAIL . " 
-		AND privmsgs_to_userid = " . $userdata['user_id'];
-if ( !$db->sql_query($sql) )
-{
-	message_die(GENERAL_ERROR, 'Could not update private message new/read status (2) for user', '', __LINE__, __FILE__, $sql);
-}
-
-//
-// Reset PM counters
-//
-$userdata['user_new_privmsg'] = 0;
-$userdata['user_unread_privmsg'] = ( $userdata['user_new_privmsg'] + $userdata['user_unread_privmsg'] );
+catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 
 //
 // Generate page
@@ -1697,6 +1597,8 @@ switch( $folder )
 //
 // Show messages over previous x days/months
 //
+$sql_tot .= ' AND privmsgs_write_payload IS NULL';
+$sql .= ' AND pm.privmsgs_write_payload IS NULL';
 $post_msg_days = (isset($_POST['msgdays']) && is_scalar($_POST['msgdays'])) ? intval($_POST['msgdays']) : 0;
 $get_msg_days = (isset($_GET['msgdays']) && is_scalar($_GET['msgdays'])) ? intval($_GET['msgdays']) : 0;
 if ( $submit_msgdays && ( $post_msg_days || $get_msg_days ) )
@@ -1845,6 +1747,7 @@ $template->assign_vars(array(
 
 	'S_PRIVMSGS_ACTION' => append_sid("privmsg.$phpEx?folder=$folder"),
 	'S_HIDDEN_FIELDS' => '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />',
+	'PM_WRITE_RECOVERY' => phpbb_pm_pending_writes_html(),
 	'S_POST_NEW_MSG' => $post_new_mesg_url,
 	'S_SELECT_MSG_DAYS' => $select_msg_days,
 

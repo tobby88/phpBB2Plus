@@ -87,7 +87,8 @@ $lang['Deleted_attachments'] = 'The selected Attachments have been deleted.';
 $lang['Error_deleted_attachments'] = 'Could not delete Attachments.';
 $lang['Attachment_delete_incomplete'] = 'The selected attachment links were removed, but some files could not be deleted. Their file information has been retained for recovery. Please ask an administrator to check the attachment storage and orphan entries.';
 $lang['Attachment_storage_busy'] = 'Attachment storage is currently busy or unavailable. Please try again shortly. No attachment changes were started by this operation.';
-$lang['Attachment_publish_unavailable'] = 'The attachment can no longer be published. It may already have been submitted or removed. Your message has been saved; please check it before submitting again.';
+$lang['Attachment_publish_unavailable'] = 'The attachment can no longer be published. It may already have been submitted or removed. Please check your message before submitting again.';
+$lang['Attachment_private_upload'] = 'This temporary upload belongs to a private message and cannot be used here.';
 $lang['Confirm_delete_pm_attachments'] = 'Are you sure you want to delete all Attachments posted in this PM?';
 
 // General Error Messages

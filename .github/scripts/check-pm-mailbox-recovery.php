@@ -72,7 +72,7 @@ try
 		{
 			if(strpos($sql,'DELETE FROM fixture_message_text')!==0){return;}
 			$s=$GLOBALS['mutation_server'];$s->hook=null;$restored=true;
-			$s->pdo->exec('INSERT INTO fixture_messages VALUES(21,2,7,8,1,999)');
+			$s->pdo->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_to_userid,privmsgs_from_userid,privmsgs_attachment,privmsgs_date) VALUES(21,2,7,8,1,999)');
 			$s->pdo->exec("UPDATE fixture_message_text SET privmsgs_text='restored Grüße' WHERE privmsgs_text_id=21");
 		};
 		mailbox_fail(function(){phpbb_pm_delete_messages(array(21),8,'sentbox');},$lang['PM_journal_changed']);
@@ -189,7 +189,7 @@ try
 		{
 			if(strpos($sql,'DELETE FROM fixture_messages WHERE')!==0){return;}
 			$s=$GLOBALS['mutation_server'];$s->hook=null;$delivered=true;
-			$s->pdo->exec('INSERT INTO fixture_messages VALUES(30,2,7,8,0,999)');
+			$s->pdo->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_to_userid,privmsgs_from_userid,privmsgs_attachment,privmsgs_date) VALUES(30,2,7,8,0,999)');
 			$s->pdo->exec("INSERT INTO fixture_message_text VALUES(30,'new arrival')");
 		};
 		mutation_check(phpbb_pm_delete_messages(array(),8,'sentbox',true)===1 && $delivered,'Delete-all removes the original bounded selection');
@@ -198,7 +198,9 @@ try
 	}
 	$source=file_get_contents($forum_root.'privmsg.php');
 	mutation_check(strpos($source,"phpbb_pm_recover_mailbox(\$userdata['user_id'], \$folder)")!==false,'Actual controller exposes owner-scoped retry after a vanished selection');
-	mutation_check(strpos($source,"'read', \$privmsg['privmsgs_id']")!==false && strpos($source,'phpbb_pm_finalize_delivery(')!==false,'Actual automatic trim/finalization calls bind distinct capabilities');
+	mutation_check(strpos($source,'phpbb_pm_read_message(')!==false && strpos($source,'phpbb_pm_write_message(')!==false,'Actual controller uses durable recipient-read and sender-publication entry points');
+	$read_worker=file_get_contents($forum_root.'includes/functions_pm_read.php');
+	mutation_check(strpos($read_worker,"'sentbox', 'read', \$source")!==false,'Read worker binds quota capability to current source on owning connection');
 }
 finally
 {

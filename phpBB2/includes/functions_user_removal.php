@@ -104,7 +104,7 @@ function phpbb_removal_pm_where($id, $mode = 'inactive')
 	if ($mode === 'user') { return '(privmsgs_from_userid = ' . $id . ' OR privmsgs_to_userid = ' . $id . ')'; }
 	// Inactive/pruned accounts retain other people's delivered and saved
 	// copies. Do not silently replace this with the ACP user's all-copy policy.
-	return '((privmsgs_from_userid = ' . $id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ')) OR (privmsgs_to_userid = ' . $id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ')))';
+	return '((privmsgs_from_userid = ' . $id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_SENT_MAIL . ',' . PRIVMSGS_SAVED_OUT_MAIL . ',' . PRIVMSGS_PENDING_SENT_MAIL . ')) OR (privmsgs_to_userid = ' . $id . ' AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL . ',' . PRIVMSGS_UNREAD_MAIL . ',' . PRIVMSGS_READ_MAIL . ',' . PRIVMSGS_SAVED_IN_MAIL . ',' . PRIVMSGS_PENDING_SENT_MAIL . ')))';
 }
 function phpbb_removal_capture($db, $job)
 {

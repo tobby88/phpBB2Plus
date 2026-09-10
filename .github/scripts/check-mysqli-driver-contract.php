@@ -104,6 +104,9 @@ try
 	$dedicated->sql_close();
 	define('IN_PHPBB',true); define('ATTACHMENTS_TABLE','fixture_links');
 	$mutation=file_get_contents(dirname(dirname(__DIR__)).'/phpBB2/attach_mod/includes/functions_mutation.php');
+	// Eval retains the fixture namespace but must resolve the production
+	// module's sibling dependencies relative to that module, not this script.
+	$mutation=str_replace('dirname(__FILE__)',var_export(dirname(dirname(__DIR__)).'/phpBB2/attach_mod/includes',true),$mutation);
 	eval('namespace PhpbbDriverFixture;'.substr($mutation,5));
 	$lock=new attach_mutation_lock($db,false);
 	check($lock->acquired && !isset($db->password) && !isset($lock->connection->password),'Actual writer lock works after real CrackerTracker reset');

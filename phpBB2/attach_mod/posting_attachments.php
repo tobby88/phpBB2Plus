@@ -336,8 +336,17 @@ class attach_parent
 		$actual_id_list				= get_var('attach_id_list', array(0));
 		$actual_list				= get_var('attachment_list', array(''));
 
+		if (array_keys($actual_id_list) !== array_keys($actual_list)
+			|| ($actual_list && array_keys($actual_list) !== range(0, count($actual_list) - 1)))
+		{
+			message_die(GENERAL_ERROR, 'Invalid attachment upload data');
+		}
 		for ($i = 0; $i < sizeof($actual_list); $i++)
 		{
+			if (!is_string($actual_list[$i]) || !is_int($actual_id_list[$i]) || $actual_id_list[$i] < 0)
+			{
+				message_die(GENERAL_ERROR, 'Invalid attachment upload data');
+			}
 			if ($actual_id_list[$i] != 0)
 			{
 				if (!in_array($actual_id_list[$i], $allowed_attach_ids))
@@ -347,6 +356,7 @@ class attach_parent
 			}
 			else
 			{
+				if ($this->page != PAGE_PRIVMSGS) { attach_require_post_temporary_file($actual_list[$i]); }
 				// Really new attachment? If so, the filename should be unique...
 				if (physical_filename_already_stored($actual_list[$i]))
 				{
@@ -564,16 +574,16 @@ class attach_parent
 							// delete selected attachment
 							if ($actual_id_list[$i] == '0' )
 							{
-								unlink_attach($actual_list[$i]);
+								$this->delete_temporary_attachment($actual_list[$i]);
 								
 								if ($actual_thumbnail_list[$i] == 1)
 								{
-									unlink_attach($actual_list[$i], MODE_THUMBNAIL);
+									$this->delete_temporary_attachment($actual_list[$i], MODE_THUMBNAIL);
 								}
 							}
 							else
 							{
-								delete_attachment($post_id, $actual_id_list[$i], $this->page);
+								$this->delete_stored_attachment($post_id, $actual_id_list[$i]);
 							}
 						}
 						else if ($del_thumb)
@@ -591,18 +601,12 @@ class attach_parent
 
 							if ($actual_id_list[$i] == 0)
 							{
-								unlink_attach($actual_list[$i], MODE_THUMBNAIL);
+								$this->delete_temporary_attachment($actual_list[$i], MODE_THUMBNAIL);
 							}
 							else
 							{
-								$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . '
-									SET thumbnail = 0
-									WHERE attach_id = ' . (int) $actual_id_list[$i];
-
-								if (!($db->sql_query($sql)))
-								{
-									message_die(GENERAL_ERROR, 'Unable to update ' . ATTACHMENTS_DESC_TABLE . ' Table.', '', __LINE__, __FILE__, $sql);
-								}
+								$new_id = $this->remove_stored_thumbnail($actual_id_list[$i]);
+								$this->attachment_id_list[count($this->attachment_id_list) - 1] = $new_id;
 							}
 						}
 					}
@@ -690,22 +694,7 @@ class attach_parent
 							'thumbnail'				=> (int) $this->thumbnail
 						);
 						
-						$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' SET ' . attach_mod_sql_build_array('UPDATE', $sql_ary) . '
-							WHERE attach_id = ' . (int) $attachment_id;
-						
-						if (!($db->sql_query($sql)))
-						{
-							message_die(GENERAL_ERROR, 'Unable to update the Attachment.', '', __LINE__, __FILE__, $sql);
-						}
-
-						// Delete the Old Attachment
-						unlink_attach($row['physical_filename']);
-
-						if (intval($row['thumbnail']) == 1)
-						{
-							unlink_attach($row['physical_filename'], MODE_THUMBNAIL);
-						}
-
+						$attachment_id = $this->replace_stored_attachment($attachment_id, $row, $sql_ary);
 						// Make sure it is displayed
 						$this->attachment_list[$actual_element] = $this->attach_filename;
 						$this->attachment_comment_list[$actual_element] = $comment;
@@ -714,7 +703,7 @@ class attach_parent
 						$this->attachment_mimetype_list[$actual_element] = $this->type;
 						$this->attachment_filesize_list[$actual_element] = $this->filesize;
 						$this->attachment_filetime_list[$actual_element] = $this->filetime;
-						$this->attachment_id_list[$actual_element] = $actual_id_list[$actual_element];
+						$this->attachment_id_list[$actual_element] = $attachment_id;
 						$this->attachment_thumbnail_list[$actual_element] = $this->thumbnail;
 						$this->file_comment = '';
 					}
@@ -776,10 +765,49 @@ class attach_parent
 		finally { $lock->release(); }
 	}
 
+	// PM compose overrides these operations to retain its owning connection;
+	// ordinary post attachment handling keeps its existing deletion lifecycle.
+	function delete_stored_attachment($message_id, $attachment_id)
+	{
+		return delete_attachment($message_id, $attachment_id, $this->page);
+	}
+	function delete_temporary_attachment($filename, $thumbnail = false)
+	{
+		attach_require_post_temporary_file($filename);
+		return unlink_attach($filename, $thumbnail);
+	}
+	function replace_stored_attachment($attachment_id, $old, $metadata)
+	{
+		global $db;
+		$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' SET ' . attach_mod_sql_build_array('UPDATE', $metadata) . ' WHERE attach_id = ' . (int)$attachment_id;
+		if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Unable to update the Attachment.', '', __LINE__, __FILE__, $sql); }
+		unlink_attach($old['physical_filename']);
+		if ((int)$old['thumbnail'] === 1) { unlink_attach($old['physical_filename'], MODE_THUMBNAIL); }
+		return (int)$attachment_id;
+	}
+	function remove_stored_thumbnail($attachment_id)
+	{
+		global $db;
+		$sql = 'UPDATE ' . ATTACHMENTS_DESC_TABLE . ' SET thumbnail = 0 WHERE attach_id = ' . (int)$attachment_id;
+		if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, 'Unable to update ' . ATTACHMENTS_DESC_TABLE . ' Table.', '', __LINE__, __FILE__, $sql); }
+		return (int)$attachment_id;
+	}
+
 	function do_insert_attachment_locked($db, $mode, $message_type, $message_id)
 	{
 		global $lang;
 		if (!attach_message_exists($db, $message_type, $message_id)) { message_die(GENERAL_ERROR, $lang['Attachment_publish_unavailable']); }
+		if ($message_type === 'post')
+		{
+			if ($mode === 'attach_list')
+			{
+				foreach ($this->attachment_list as $i=>$filename)
+				{
+					if (empty($this->attachment_id_list[$i])) { attach_require_post_temporary_file($filename); }
+				}
+			}
+			else { attach_require_post_temporary_file($this->attach_filename); }
+		}
 
 		if ($message_type == 'pm')
 		{
@@ -1300,6 +1328,7 @@ class attach_parent
 					$this->attach_filename = $u_id . '_' . $this->filetime . '.' . $this->extension;
 				}
 				
+				$this->prepare_physical_filename();
 				// Do we have to create a thumbnail ?
 				if ($cat_id == IMAGE_CAT && intval($attach_config['img_create_thumbnail']))
 				{
@@ -1561,6 +1590,8 @@ class attach_parent
 	}
 	
 	// Copy the temporary attachment to the right location (copy, move_uploaded_file or ftp)
+	function prepare_physical_filename() {}
+
 	function move_uploaded_attachment($upload_mode, $file)
 	{
 		global $error, $error_msg, $lang, $upload_dir;

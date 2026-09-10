@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/check-group-storage.php';
-foreach (array('IN_ADMIN'=>true,'DELETED'=>-1,'ANONYMOUS'=>-1,'USER_REMOVALS_TABLE'=>'fixture_user_removals','USER_REMOVAL_ITEMS_TABLE'=>'fixture_user_removal_items','SESSIONS_KEYS_TABLE'=>'fixture_keys','JR_ADMIN_TABLE'=>'fixture_junior','TOPICS_WATCH_TABLE'=>'fixture_watches','BOOKMARK_TABLE'=>'fixture_bookmarks','BANLIST_TABLE'=>'fixture_bans','SHOUTBOX_TABLE'=>'fixture_shouts','VOTE_USERS_TABLE'=>'fixture_votes','PRIVMSGS_TEXT_TABLE'=>'fixture_pm_text','QUOTA_TABLE'=>'fixture_quotas','PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
+foreach (array('IN_ADMIN'=>true,'DELETED'=>-1,'ANONYMOUS'=>-1,'USER_REMOVALS_TABLE'=>'fixture_user_removals','USER_REMOVAL_ITEMS_TABLE'=>'fixture_user_removal_items','PM_WRITE_RECEIPTS_TABLE'=>'fixture_receipts','SESSIONS_KEYS_TABLE'=>'fixture_keys','JR_ADMIN_TABLE'=>'fixture_junior','TOPICS_WATCH_TABLE'=>'fixture_watches','BOOKMARK_TABLE'=>'fixture_bookmarks','BANLIST_TABLE'=>'fixture_bans','SHOUTBOX_TABLE'=>'fixture_shouts','VOTE_USERS_TABLE'=>'fixture_votes','PRIVMSGS_TEXT_TABLE'=>'fixture_pm_text','QUOTA_TABLE'=>'fixture_quotas','PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 require_once $forum_root.'includes/php_compat.php';
 require $forum_root.'includes/functions_user_removal.php';
 foreach (array('phpbb_admin_html','phpbb_admin_session_field') as $function) { eval(group_test_function(file_get_contents($forum_root.'admin/pagestart.php'),$function)); }
@@ -34,7 +34,7 @@ function removal_fixture($actor=1)
 	$p->exec('ALTER TABLE fixture_topics ADD topic_poster INTEGER DEFAULT 9');
 	$p->exec('CREATE TABLE fixture_shouts (shout_user_id INTEGER,shout_username VARCHAR(255))'); $p->exec("INSERT INTO fixture_shouts VALUES (9,''),(8,'')");
 	$p->exec('CREATE TABLE fixture_votes (vote_user_id INTEGER)'); $p->exec('INSERT INTO fixture_votes VALUES (9),(8)');
-	foreach (array('fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
+	foreach (array('fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
 	{
 		$p->exec('CREATE TABLE '.$table.' ('.$column.' INTEGER)'); $p->exec('INSERT INTO '.$table.' VALUES (0),(9),(8)');
 	}
@@ -42,6 +42,7 @@ function removal_fixture($actor=1)
 	$p->exec('CREATE TABLE fixture_quotas (user_id INTEGER,group_id INTEGER)'); $p->exec('INSERT INTO fixture_quotas VALUES (9,0),(0,4),(0,11),(8,0),(0,12)');
 	$p->exec('CREATE TABLE fixture_pa_auth (group_id INTEGER)'); $p->exec('INSERT INTO fixture_pa_auth VALUES (4),(11),(12)');
 	$p->exec('DELETE FROM fixture_messages');
+	$p->exec('ALTER TABLE fixture_messages ADD COLUMN privmsgs_write_payload TEXT DEFAULT NULL');
 	$p->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_from_userid,privmsgs_to_userid,privmsgs_attachment) VALUES (20,0,9,8,1),(21,0,8,9,1),(22,1,9,8,1),(23,2,9,8,1),(24,4,8,9,0),(25,3,9,8,1),(26,1,9,-1,0)');
 	$p->exec('CREATE TABLE fixture_pm_text (privmsgs_text_id INTEGER,privmsgs_text TEXT)'); $p->exec("INSERT INTO fixture_pm_text VALUES (20,'kept'),(21,'removed'),(22,'removed'),(23,'removed'),(24,'kept'),(25,'kept'),(26,'removed')");
 	$p->exec("INSERT INTO fixture_descriptions (attach_id,physical_filename,thumbnail) VALUES (1,'only.txt',0),(2,'shared.txt',0),(3,'twin.txt',0),(4,'twin.txt',0),(5,'thumb.txt',1)");
@@ -83,7 +84,7 @@ function removal_assert_completed()
 	mutation_check(group_value('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=8')===1 && $mutation_server->pdo->query('SELECT shout_username FROM fixture_shouts WHERE shout_user_id=-1')->fetchColumn()==="O'Brien Grüße",'Other shouts preserved and target shout anonymized');
 	mutation_check(group_value('SELECT group_moderator FROM fixture_groups WHERE group_id=10')===1 && group_value('SELECT user_pending FROM fixture_memberships WHERE group_id=10 AND user_id=1')===0,'Successor leader has approved membership');
 	mutation_check(group_value('SELECT user_level FROM fixture_users WHERE user_id=1')===1,'Administrator role preserved');
-	foreach (array('fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
+	foreach (array('fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
 	{
 		mutation_check(group_value('SELECT COUNT(*) FROM '.$table.' WHERE '.$column.'=9')===0 && group_value('SELECT COUNT(*) FROM '.$table)===2,'Only target references removed; global and unrelated rows retained: '.$table);
 	}
@@ -98,6 +99,15 @@ set_error_handler(function($severity,$message) { if(error_reporting()&$severity)
 try
 {
 	removal_fixture(); mutation_check(removal_run()==='Removal_completed','Ordinary inactive removal succeeds'); removal_assert_completed();
+	foreach (array(array(9,8),array(8,9)) as $participants)
+	{
+		removal_fixture(); $p=$mutation_server->pdo;
+		$p->exec('INSERT INTO fixture_messages (privmsgs_id,privmsgs_type,privmsgs_from_userid,privmsgs_to_userid,privmsgs_attachment) VALUES (30,6,'.$participants[0].','.$participants[1].',1)');
+		$p->exec("INSERT INTO fixture_pm_text VALUES (30,'Unpublished copy')");
+		$p->exec('INSERT INTO fixture_links (attach_id,post_id,privmsgs_id,user_id_1,user_id_2) VALUES (2,0,30,'.$participants[0].','.$participants[1].')');
+		removal_run(); removal_assert_completed();
+		mutation_check(group_value('SELECT COUNT(*) FROM fixture_messages WHERE privmsgs_type=6')===0,'Removing either participant retires never-published copy and preserves shared uploads');
+	}
 	removal_fixture(); $mutation_server->pdo->exec('DELETE FROM fixture_memberships WHERE group_id IN (4,11)'); $mutation_server->pdo->exec('DELETE FROM fixture_groups WHERE group_id IN (4,11)');
 	removal_run(); mutation_check(group_value('SELECT COUNT(*) FROM fixture_users WHERE user_id=9')===0 && group_value('SELECT COUNT(*) FROM fixture_auth WHERE group_id IN (4,11)')===2,'Missing personal groups do not trigger unrelated orphan cleanup');
 	foreach (array(array('delete'=>9,'removal_resume'=>str_repeat('a',32)),array('removal_resume'=>array('bad')),array('removal_resume'=>'bad'),array('removal_resume'=>str_repeat('a',32))) as $post)
@@ -105,7 +115,7 @@ try
 		removal_fixture(); removal_failure(function() use($post) { removal_run($post); },'Removal_invalid');
 		mutation_check(group_value('SELECT COUNT(*) FROM fixture_users WHERE user_id=9')===1 && group_value('SELECT COUNT(*) FROM fixture_user_removals')===0,'Mixed actions and invalid/unknown job tokens cannot mutate accounts');
 	}
-	foreach (array('INSERT INTO fixture_user_removal_items',"UPDATE fixture_user_removals SET removal_state = 'removing'", "UPDATE fixture_user_removals SET removal_state = 'removed'", 'DELETE FROM fixture_keys','DELETE FROM fixture_watches','UPDATE fixture_posts','UPDATE fixture_shouts','UPDATE fixture_groups','DELETE FROM fixture_messages','DELETE FROM fixture_pm_text','DELETE FROM fixture_links','UPDATE fixture_descriptions','DELETE FROM fixture_descriptions','DELETE FROM fixture_memberships','DELETE FROM fixture_auth','DELETE FROM fixture_pa_auth','DELETE FROM fixture_quotas','DELETE FROM fixture_groups',"UPDATE fixture_user_removals SET removal_state = 'complete'",'DELETE FROM fixture_user_removals') as $failure)
+	foreach (array('INSERT INTO fixture_user_removal_items',"UPDATE fixture_user_removals SET removal_state = 'removing'", "UPDATE fixture_user_removals SET removal_state = 'removed'", 'DELETE FROM fixture_keys','DELETE FROM fixture_watches','DELETE FROM fixture_receipts','UPDATE fixture_posts','UPDATE fixture_shouts','UPDATE fixture_groups','DELETE FROM fixture_messages','DELETE FROM fixture_pm_text','DELETE FROM fixture_links','UPDATE fixture_descriptions','DELETE FROM fixture_descriptions','DELETE FROM fixture_memberships','DELETE FROM fixture_auth','DELETE FROM fixture_pa_auth','DELETE FROM fixture_quotas','DELETE FROM fixture_groups',"UPDATE fixture_user_removals SET removal_state = 'complete'",'DELETE FROM fixture_user_removals') as $failure)
 	{
 		removal_fixture(); $mutation_server->failure=$failure;
 		removal_failure(function() { removal_run(); },'Removal_storage_failed');

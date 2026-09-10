@@ -309,8 +309,22 @@ CREATE TABLE phpbb_posts_text (
 
 # --------------------------------------------------------
 #
-# Table structure for table 'phpbb_privmsgs'
+# Completed write requests contain no message text and prevent form replay
+# from recreating a message that its owner has already deleted.
 #
+CREATE TABLE phpbb_pm_write_receipts (
+   request_token char(32) NOT NULL,
+   request_hash char(64) NOT NULL,
+   notify_state tinyint(1) UNSIGNED NOT NULL DEFAULT '0',
+   user_id mediumint(8) UNSIGNED NOT NULL,
+   message_id mediumint(8) UNSIGNED NOT NULL,
+   created_at int(11) UNSIGNED NOT NULL,
+   PRIMARY KEY (request_token),
+   KEY user_id (user_id),
+   KEY message_id (message_id)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+# Table structure for table 'phpbb_privmsgs'
 CREATE TABLE phpbb_privmsgs (
    privmsgs_id mediumint(8) UNSIGNED NOT NULL auto_increment,
    privmsgs_type tinyint(4) default '0' NOT NULL,
@@ -324,7 +338,15 @@ CREATE TABLE phpbb_privmsgs (
    privmsgs_enable_smilies tinyint(1) default '1' NOT NULL,
    privmsgs_attach_sig tinyint(1) default '1' NOT NULL,
    privmsgs_attachment tinyint(1) default '0' NOT NULL,
+   privmsgs_read_token char(32) default '' NOT NULL,
+   privmsgs_read_copy_id mediumint(8) UNSIGNED default '0' NOT NULL,
+   privmsgs_copy_token char(32) default NULL,
+   privmsgs_write_token char(32) default NULL,
+   privmsgs_write_hash char(64) default '' NOT NULL,
+   privmsgs_write_payload mediumtext,
    PRIMARY KEY (privmsgs_id),
+   UNIQUE KEY privmsgs_copy_token (privmsgs_copy_token),
+   UNIQUE KEY privmsgs_write_token (privmsgs_write_token),
    KEY privmsgs_from_userid (privmsgs_from_userid),
    KEY privmsgs_to_userid (privmsgs_to_userid)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -854,7 +876,10 @@ CREATE TABLE phpbb_attachments_desc (
   filesize int(20) NOT NULL,
   filetime int(11) default '0' NOT NULL,
   thumbnail tinyint(1) default '0' NOT NULL,
+  pm_write_token char(32) DEFAULT NULL,
+  pm_write_slot smallint(5) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (attach_id),
+  UNIQUE KEY pm_write_slot (pm_write_token, pm_write_slot),
   KEY filetime (filetime),
   KEY physical_filename (physical_filename(10)),
   KEY filesize (filesize)

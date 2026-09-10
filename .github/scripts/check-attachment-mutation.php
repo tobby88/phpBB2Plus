@@ -16,6 +16,7 @@ define('PRIVMSGS_SENT_MAIL', 2);
 define('PRIVMSGS_SAVED_IN_MAIL', 3);
 define('PRIVMSGS_SAVED_OUT_MAIL', 4);
 define('PRIVMSGS_UNREAD_MAIL', 5);
+define('PRIVMSGS_PENDING_SENT_MAIL', 6);
 function mutation_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 class MutationFailure extends RuntimeException {}
 function message_die($type, $message, $title = '', $line = 0, $file = '', $sql = '') { throw new MutationFailure($message); }

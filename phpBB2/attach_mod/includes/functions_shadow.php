@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+if (!function_exists('attach_pm_stage_is_claimed')) { require_once dirname(__FILE__) . '/functions_pm_staging.php'; }
 
 // Files may belong to unfinished posting forms. Only age-confirmed, abandoned
 // uploads are eligible; an unavailable FTP MDTM is not proof of age.
@@ -45,6 +46,17 @@ function attach_shadow_query($database, $sql)
 	return $result;
 }
 
+function attach_shadow_require_pm_idle($database, $id)
+{
+	global $lang;
+	$result = attach_shadow_query($database, 'SELECT d.attach_id FROM ' . ATTACHMENTS_DESC_TABLE . ' d WHERE d.attach_id = ' . (int)$id
+		. ' AND EXISTS (SELECT 1 FROM ' . PRIVMSGS_TABLE . ' p WHERE p.privmsgs_write_payload IS NOT NULL AND ('
+		. 'HEX(p.privmsgs_write_token) = HEX(d.pm_write_token) OR EXISTS (SELECT 1 FROM ' . ATTACHMENTS_TABLE
+		. ' a WHERE a.attach_id = d.attach_id AND a.privmsgs_id = p.privmsgs_id)))');
+	$reserved = $database->sql_numrows($result) > 0; $database->sql_freeresult($result);
+	if ($reserved) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
+}
+
 function attach_shadow_cleanup($posted_files, $posted_ids)
 {
 	global $db, $lang;
@@ -66,6 +78,7 @@ function attach_shadow_cleanup_locked($database, $posted_files, $ids)
 	$descriptions = array(); $links = array();
 	foreach ($names as $name)
 	{
+		if (attach_pm_stage_is_claimed($database, $name)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
 		if (!in_array($name, $expired, true)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
 		$result = attach_shadow_query($database, 'SELECT attach_id FROM ' . ATTACHMENTS_DESC_TABLE . " WHERE physical_filename = '" . $database->sql_escape($name) . "' LIMIT 1");
 		$registered = $database->sql_numrows($result) > 0; $database->sql_freeresult($result);
@@ -73,6 +86,7 @@ function attach_shadow_cleanup_locked($database, $posted_files, $ids)
 	}
 	foreach ($ids as $id)
 	{
+		attach_shadow_require_pm_idle($database, $id);
 		$result = attach_shadow_query($database, 'SELECT attach_id, physical_filename, thumbnail FROM ' . ATTACHMENTS_DESC_TABLE . ' WHERE attach_id = ' . $id);
 		$description = $database->sql_fetchrow($result); $database->sql_freeresult($result);
 		$result = attach_shadow_query($database, 'SELECT post_id, privmsgs_id FROM ' . ATTACHMENTS_TABLE . ' WHERE attach_id = ' . $id);
@@ -81,6 +95,7 @@ function attach_shadow_cleanup_locked($database, $posted_files, $ids)
 		if ($description)
 		{
 			$name = $description['physical_filename'];
+			if (attach_pm_stage_is_claimed($database, $name)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
 			if (attach_ftp_listing_entry($name, '0') === false || !attach_inventory_file($name)) { message_die(GENERAL_ERROR, $lang['Attachment_selection_invalid']); }
 			if (in_array($name, $files, true) && entry_exists($id, $database)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_changed']); }
 		}
@@ -94,6 +109,7 @@ function attach_shadow_cleanup_locked($database, $posted_files, $ids)
 	// dies during unlink, a stale posting form still cannot publish the file.
 	foreach ($names as $name)
 	{
+		if (attach_pm_stage_is_claimed($database, $name)) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
 		$thumbnail = in_array('t_' . $name, $thumb_names, true) ? 1 : 0;
 		$escaped = $database->sql_escape($name);
 		attach_shadow_query($database, 'INSERT INTO ' . ATTACHMENTS_DESC_TABLE . " (physical_filename, real_filename, filesize, filetime, thumbnail) VALUES ('" . $escaped . "', '" . $escaped . "', 0, 0, " . $thumbnail . ')');
@@ -104,6 +120,8 @@ function attach_shadow_cleanup_locked($database, $posted_files, $ids)
 	$posts = array(); $messages = array(); $incomplete = false;
 	foreach ($descriptions as $id => $description)
 	{
+		if ($description && attach_pm_stage_is_claimed($database, $description['physical_filename'])) { message_die(GENERAL_ERROR, $lang['Attachment_shadow_pending']); }
+		attach_shadow_require_pm_idle($database, $id);
 		// Remove stale link sources first, so PM copies cannot revive them after
 		// loss of this session during subsequent filesystem operations.
 		attach_shadow_query($database, 'DELETE FROM ' . ATTACHMENTS_TABLE . ' WHERE attach_id = ' . (int) $id);

@@ -29,6 +29,7 @@ $lang['Maintenance_pm_counter_failed'] = 'Private-message counter maintenance wa
 $lang['Maintenance_pm_counter_summary'] = 'New and unread private-message counters updated for %d user accounts.';
 $lang['Maintenance_pm_repair_failed'] = 'Private-message repair was interrupted. Earlier confirmed changes may already be saved. Check the remaining message and attachment inconsistencies; this operation does not roll back completed steps.';
 $lang['Maintenance_pm_repair_missing_text'] = 'Old private messages without text removed: %d.';
+$lang['Maintenance_pm_repair_abandoned_copy'] = 'Abandoned, unpublished sent copies without their source removed: %d.';
 $lang['Maintenance_pm_repair_orphan_text'] = 'Orphaned private-message texts removed: %d.';
 $lang['Maintenance_pm_repair_invalid_sender'] = 'Missing private-message senders anonymized: %d.';
 $lang['Maintenance_pm_repair_invalid_recipient'] = 'Missing private-message recipients anonymized: %d.';

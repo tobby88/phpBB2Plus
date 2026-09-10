@@ -29,6 +29,7 @@ $lang['Maintenance_pm_counter_failed'] = 'Die Wartung der PN-Zähler wurde unter
 $lang['Maintenance_pm_counter_summary'] = 'Die Zähler für neue und ungelesene private Nachrichten wurden bei %d Benutzerkonten aktualisiert.';
 $lang['Maintenance_pm_repair_failed'] = 'Die PN-Reparatur wurde unterbrochen. Vorherige bestätigte Änderungen können bereits gespeichert sein. Verbleibende Unstimmigkeiten bei Nachrichten und Anhängen prüfen; abgeschlossene Schritte werden nicht zurückgerollt.';
 $lang['Maintenance_pm_repair_missing_text'] = 'Alte private Nachrichten ohne Text entfernt: %d.';
+$lang['Maintenance_pm_repair_abandoned_copy'] = 'Abgebrochene, nicht veröffentlichte Gesendet-Kopien ohne Original entfernt: %d.';
 $lang['Maintenance_pm_repair_orphan_text'] = 'Verwaiste PN-Texte entfernt: %d.';
 $lang['Maintenance_pm_repair_invalid_sender'] = 'Nicht mehr vorhandene PN-Absender anonymisiert: %d.';
 $lang['Maintenance_pm_repair_invalid_recipient'] = 'Nicht mehr vorhandene PN-Empfänger anonymisiert: %d.';
