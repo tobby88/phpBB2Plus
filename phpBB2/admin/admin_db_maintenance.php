@@ -1322,7 +1322,7 @@ switch($mode_id)
 						echo("<font class=\"gen\"><ul>\n");
 						$list_open = TRUE;
 					}
-					echo("<li>" . sprintf($lang['Deleting_post_wo_text'], $row['post_id'], htmlspecialchars($row['topic_title']), $row['topic_id'], htmlspecialchars($row['username']), $row['user_id']) . "</li>\n");
+					echo("<li>" . sprintf($lang['Deleting_post_wo_text'], $row['post_id'], htmlspecialchars((string) $row['topic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $row['topic_id'], htmlspecialchars((string) $row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $row['user_id']) . "</li>\n");
 					$result_array[] = $row['post_id'];
 				}
 				$db->sql_freeresult($result);
@@ -1336,13 +1336,17 @@ switch($mode_id)
 					$record_list = implode(',', $result_array);
 					echo("<p class=\"gen\">" . $lang['Deleting_Posts'] . " </p>\n");
 					$sql = "DELETE FROM " . POSTS_TABLE . "
-						WHERE post_id IN ($record_list)";
+						WHERE post_id IN ($record_list)
+						AND NOT EXISTS (SELECT 1 FROM " . POSTS_TEXT_TABLE . " current_text
+							WHERE current_text.post_id = " . POSTS_TABLE . ".post_id)";
 					$result = $db->sql_query($sql);
 					if ( !$result )
 					{
 						throw_error("Couldn't delete post data!", __LINE__, __FILE__, $sql);
 					}
-					$update_post_data = TRUE;
+					$removed = (int) $db->sql_affectedrows();
+					$update_post_data = $update_post_data || $removed > 0;
+					echo('<p class="gen">' . sprintf($lang['Maintenance_parent_delete_summary'], $removed, count($result_array) - $removed) . '</p>');
 				}
 				else
 				{
@@ -1384,13 +1388,18 @@ switch($mode_id)
 					$record_list = implode(',', $result_array);
 					echo("<p class=\"gen\">" . $lang['Deleting_topics'] . " </p>\n");
 					$sql = "DELETE FROM " . TOPICS_TABLE . "
-						WHERE topic_id IN ($record_list)";
+						WHERE topic_id IN ($record_list)
+						AND topic_status <> " . TOPIC_MOVED . "
+						AND NOT EXISTS (SELECT 1 FROM " . POSTS_TABLE . " current_post
+							WHERE current_post.topic_id = " . TOPICS_TABLE . ".topic_id)";
 					$result = $db->sql_query($sql);
 					if ( !$result )
 					{
 						throw_error("Couldn't delete topic data!", __LINE__, __FILE__, $sql);
 					}
-					$update_post_data = TRUE;
+					$removed = (int) $db->sql_affectedrows();
+					$update_post_data = $update_post_data || $removed > 0;
+					echo('<p class="gen">' . sprintf($lang['Maintenance_parent_delete_summary'], $removed, count($result_array) - $removed) . '</p>');
 				}
 				else
 				{
@@ -1678,13 +1687,18 @@ switch($mode_id)
 					echo("<p class=\"gen\">" . $lang['Deleting_invalid_moved_topics'] . "</p>\n");
 					$sql = "DELETE FROM " . TOPICS_TABLE . "
 						WHERE topic_id IN ($record_list)
-							AND topic_status = " . TOPIC_MOVED;
+							AND topic_status = " . TOPIC_MOVED . "
+						AND NOT EXISTS (SELECT 1 FROM " . POSTS_TABLE . " current_post
+							WHERE current_post.topic_id = " . TOPICS_TABLE . ".topic_id)
+						AND NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT topic_id FROM " . TOPICS_TABLE . ") current_target
+							WHERE current_target.topic_id = " . TOPICS_TABLE . ".topic_moved_id)";
 					$result = $db->sql_query($sql);
 					if ( !$result )
 					{
 						throw_error("Couldn't update topic information!", __LINE__, __FILE__, $sql);
 					}
 					$affected_rows = $db->sql_affectedrows();
+					echo('<p class="gen">' . sprintf($lang['Maintenance_parent_delete_summary'], (int) $affected_rows, count($result_array) - (int) $affected_rows) . '</p>');
 					if ( $affected_rows == 1 )
 					{
 						$db_updated = TRUE;

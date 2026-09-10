@@ -460,6 +460,7 @@ $lang['Updating_mod_state'] = 'Aktualisiere Moderator-Status der Benutzer';
 $lang['Changing_moderator_status'] = 'Aktualisiere Moderator-Status des Benutzers %s (%d)';
 $lang['Checking_moderators'] = 'Prüfe auf Benutzer ohne Moderator-Status, die mindestens ein Forum moderieren';
 // reset_date
+$lang['Maintenance_parent_delete_summary'] = '%d weiterhin ungültige Datensätze entfernt; %d Kandidaten übersprungen, deren aktueller Zustand keine Löschung mehr erlaubt.';
 $lang['Maintenance_date_reset_failed'] = 'Die Datumsreparatur wurde unterbrochen. Frühere Korrekturen können bereits gespeichert sein; wiederhole die Reparatur zum Abschluss. Die Verfügbarkeit des Forums wird dabei nicht verändert.';
 $lang['Maintenance_date_reset_summary'] = 'Zukünftige Zeitstempel korrigiert: %d Beiträge, %d private Nachrichten, %d Zeiten der letzten E-Mail und %d Zeiten letzter Anmeldeversuche. %d zwischengespeicherte Suchergebnisse mit zukünftigem Datum entfernt.';
 $lang['Maintenance_date_reset_deferred'] = '%d private Nachrichten mit zukünftigem Datum blieben unverändert, weil ihr Versand oder die Wiederherstellung der Gesendet-Kopie noch nicht abgeschlossen ist. Schließe diese Wiederherstellung vor einer erneuten Datumsreparatur ab.';

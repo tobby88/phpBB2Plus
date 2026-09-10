@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recheck missing post text, empty topics and orphan redirect destinations in
+  the actual structural-maintenance DELETE statements. Preserve posts whose
+  body appeared after diagnosis, topics with new posts or changed status, and
+  redirects whose destination was restored or changed. Never delete a redirect
+  containing posts through orphan-stub cleanup. Report actual removals and
+  skipped candidates in EN/DE; handle absent diagnostic author/title values
+  without PHP 8 warnings. This targeted safeguard is not a transactional rewrite
+  of all structural recovery and dependent cleanup. No schema change needed.
+
 - Repair future post, PM, email and login timestamps and discard future-dated
   search-cache entries without disabling the board. Coordinate with writers,
   recheck current maintenance permission and ACP session at each write, and

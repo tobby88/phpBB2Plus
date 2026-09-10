@@ -686,3 +686,6 @@ jobs:
 
       - name: Repair future dates without disabling the forum
         run: php .github/scripts/check-maintenance-dates.php
+
+      - name: Preserve repaired posts and topics during structural cleanup
+        run: php .github/scripts/check-maintenance-parent-deletes.php
