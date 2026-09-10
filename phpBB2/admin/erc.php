@@ -755,28 +755,8 @@ switch($mode)
 			case 'cct': // Check config table
 				check_authorisation();
 
-				// Update config data to match current configuration
-				if (!empty($HTTP_SERVER_VARS['SERVER_PROTOCOL']) || !empty($HTTP_ENV_VARS['SERVER_PROTOCOL']))
-				{
-					$protocol = (!empty($HTTP_SERVER_VARS['SERVER_PROTOCOL'])) ? $HTTP_SERVER_VARS['SERVER_PROTOCOL'] : $HTTP_ENV_VARS['SERVER_PROTOCOL'];
-					if ( strtolower(substr($protocol, 0 , 5)) == 'https' )
-					{
-						$default_config['cookie_secure'] = '1';
-					}
-				}
-				$server_name_candidate = (!empty($HTTP_SERVER_VARS['SERVER_NAME'])) ? $HTTP_SERVER_VARS['SERVER_NAME'] :
-					((!empty($HTTP_ENV_VARS['SERVER_NAME'])) ? $HTTP_ENV_VARS['SERVER_NAME'] :
-					((!empty($HTTP_SERVER_VARS['HTTP_HOST'])) ? $HTTP_SERVER_VARS['HTTP_HOST'] :
-					((!empty($HTTP_ENV_VARS['HTTP_HOST'])) ? $HTTP_ENV_VARS['HTTP_HOST'] : '')));
-				$default_config['server_name'] = phpbb_normalize_host($server_name_candidate, $default_config['server_name']);
-				if (!empty($HTTP_SERVER_VARS['SERVER_PORT']) || !empty($HTTP_ENV_VARS['SERVER_PORT']))
-				{
-					$default_config['server_port'] = phpbb_normalize_port((!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'], $default_config['server_port']);
-				}
-				$script_name = !empty($HTTP_SERVER_VARS['SCRIPT_NAME']) ? $HTTP_SERVER_VARS['SCRIPT_NAME'] : (isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '');
-				$admin_path = dirname((string) $script_name);
-				$script_path_candidate = (strtolower(basename(str_replace('\\', '/', $admin_path))) === 'admin') ? dirname($admin_path) : $admin_path;
-				$default_config['script_path'] = phpbb_normalize_script_path($script_path_candidate, $default_config['script_path']);
+				require_once($phpbb_root_path . 'includes/functions_maintenance_config.' . $phpEx);
+				$default_config = dbmtnc_config_defaults($default_config);
 				$sql = "SELECT Min(topic_time) as startdate FROM " . TOPICS_TABLE;
 				if ( $result = $db->sql_query($sql) )
 				{
@@ -784,6 +764,7 @@ switch($mode)
 					{
 						$default_config['board_startdate'] = $row['startdate'];
 					}
+					$db->sql_freeresult($result);
 				}
 
 				// Start the job				
@@ -800,23 +781,27 @@ switch($mode)
 					{
 						erc_throw_error("Couldn't query config table!", __LINE__, __FILE__, $sql);
 					}
-					if ( !($row = $db->sql_fetchrow($result)) )
+					$row = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+					if (!$row)
 					{
-						echo("<li><b>$key:</b> $value</li>\n");
 						$key_sql = $db->sql_escape($key);
 						$value_sql = $db->sql_escape($value);
 						$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value)
-							VALUES ('$key_sql', '$value_sql')";
+							SELECT '$key_sql', '$value_sql' WHERE NOT EXISTS (SELECT 1 FROM " . CONFIG_TABLE . " WHERE config_name = '$key_sql')";
 						$result = $db->sql_query($sql);
 						if ( !$result )
 						{
 							erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
 						}
+						if ((int) $db->sql_affectedrows() === 1) { echo('<li>' . htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>'); }
 					}
 				}
 ?>
 	</ul>
 <?php
+				try { $version_unknown = dbmtnc_config_version_unknown(new PhpbbAclDatabase($db, 'Maintenance_config_failed')); }
+				catch (PhpbbAclException $error) { erc_throw_error($error->getMessage()); break; }
+				if ($version_unknown) { echo('<p><b>' . $lang['Maintenance_config_version_unknown'] . '</b></p>'); }
 				success_message($lang['cct_success']);
 				break;
 			case 'rpd': // Reset path data

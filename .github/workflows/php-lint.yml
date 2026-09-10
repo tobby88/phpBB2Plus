@@ -594,6 +594,12 @@ jobs:
       - name: Check table maintenance session authority and board lifecycle
         run: php .github/scripts/check-maintenance-tables.php
 
+      - name: Check configuration recovery and current session authority
+        run: php .github/scripts/check-maintenance-config.php
+
+      - name: Check version identity finalization after successful migrations
+        run: php .github/scripts/check-update-version-identity.php
+
       - name: Test private-data-free SQL diagnostics and real error renderers
         run: php .github/scripts/check-error-diagnostic-rendering.php
 

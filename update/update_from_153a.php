@@ -402,6 +402,22 @@ function update_queue_pm_receipt_columns(&$operations, $connection, $database, $
 	update_queue_column($operations, $connection, $database, $table, 'notify_state', 'TINYINT(1) UNSIGNED NOT NULL DEFAULT 0');
 }
 
+// Final identity repair, executed only AFTER all schema work and validation.
+// Existing unknown/custom version markers are not guessed or overwritten.
+function update_version_identity_sql($table, $current)
+{
+	$table = update_quote_identifier($table);
+	if ($current === null)
+	{
+		return array('INSERT INTO ' . $table . " (config_name, config_value) SELECT 'version', '.0.23' WHERE NOT EXISTS (SELECT 1 FROM " . $table . " WHERE config_name = 'version')");
+	}
+	if (in_array($current, array('', '.0.0', '.0.21', '.0.22'), true))
+	{
+		return array('UPDATE ' . $table . " SET config_value = '.0.23' WHERE config_name = 'version' AND HEX(config_value) = HEX('" . $current . "')");
+	}
+	return array();
+}
+
 function update_queue_default(&$operations, $connection, $table, $key_column, $value_column, $key, $value)
 {
 	$exists_sql = 'SELECT COUNT(*) FROM ' . update_quote_identifier($table) . ' WHERE ' .
@@ -942,16 +958,12 @@ $legacy_cleanup_count = count($operations) - $legacy_cleanup_start;
 
 $version_table = $table_prefix . 'config';
 $version_sql = 'SELECT config_value FROM ' . update_quote_identifier($version_table) . " WHERE config_name = 'version'";
-$current_version = (string) update_scalar($connection, $version_sql);
-if ($current_version === '.0.22')
-{
-	$operations[] = 'UPDATE ' . update_quote_identifier($version_table) . " SET config_value = '.0.23' WHERE config_name = 'version'";
-}
+$version_operations = update_version_identity_sql($version_table, update_scalar($connection, $version_sql));
 
 echo ($apply ? 'APPLY' : 'DRY RUN') . " post-1.53a database update\n";
 echo "Database: $dbname\n";
 echo "Table prefix: $table_prefix\n";
-echo 'Operations: ' . count($operations) . "\n\n";
+echo 'Operations: ' . (count($operations) + count($version_operations)) . "\n\n";
 
 if ($legacy_cleanup_count > 0)
 {
@@ -979,6 +991,14 @@ if ($apply)
 		fwrite(STDERR, "Configuration engine conversion was not applied. Do not use configuration restore until InnoDB is enabled.\n");
 		exit(3);
 	}
+}
+foreach ($version_operations as $sql)
+{
+	echo $sql . ";\n";
+	if ($apply) { update_query_or_fail($connection, $sql); }
+}
+if ($apply)
+{
 	echo "\nDatabase update complete. Incompatible CrackerTracker 4.x tables and user columns were removed when present, as required by the official 4.x-to-5.x upgrade path.\n";
 }
 else

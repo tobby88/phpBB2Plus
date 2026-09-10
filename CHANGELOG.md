@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Restore missing ACP configuration through the owning writer with current
+  session/authority and absence rechecked inside each insertion. Preserve
+  existing/concurrently restored values and board availability; a missing board
+  availability setting is recreated disabled for review. Use current HTTPS/path
+  normalization in ACP and emergency recovery, and report keys without exposing
+  restored values. Stop inventing version 2.0.0 during configuration repair.
+  The post-1.53a updater finalizes missing/empty/2.0.0/2.0.21/2.0.22 identities
+  as 2.0.23 only after all planned schema work and engine verification succeed;
+  existing custom markers remain untouched. No automatic live recovery occurs.
 - Keep board availability unchanged during ACP CHECK/REPAIR/OPTIMIZE, including
   query and statistics failures. Run table commands on the shared dedicated
   writer connection with current ACP authority/session checked before and after

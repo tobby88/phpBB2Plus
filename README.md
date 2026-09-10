@@ -235,6 +235,18 @@ If damaged login/permission tables prevent normal ACP authorization, use the
 separately authenticated emergency console rather than bypassing ACP checks.
 No additional migration or automatic table repair is performed by deployment.
 
+Configuration recovery adds missing defaults only; existing and concurrently
+restored settings win. ACP writes require the current authorized session and
+shared writer. Existing board availability is untouched; if that setting itself
+is missing, recovery restores it disabled so an administrator can review it.
+ACP and emergency recovery use the current HTTPS/path validators and list only
+restored keys, not values. A lost or unknown version remains explicitly flagged,
+not replaced with an invented completed migration. After backup and dry-run
+review, `update/update_from_153a.php` finalizes missing/empty/2.0.0/2.0.21/2.0.22
+version markers as 2.0.23 only after its schema work and engine check succeed.
+Custom version markers and other settings are retained. Interrupted additions
+may remain; resolve the cause and retry. Deployment itself performs no recovery.
+
 Missing-author repair preserves stored guest names and valid user references,
 including inactive accounts. Each write rechecks the original missing reference,
 current users and current ACP authority. Topic authors come from the current

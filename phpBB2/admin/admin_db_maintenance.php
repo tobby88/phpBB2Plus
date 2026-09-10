@@ -1270,86 +1270,21 @@ switch($mode_id)
 				if ($pm_counter_error !== '') { throw_error($pm_counter_error); }
 				echo('<p class="gen">' . sprintf($lang['Maintenance_pm_counter_summary'], $pm_counter_changed) . '</p>');
 				break;
-			case 'check_config': // Check config table
-				echo("<h1>" . $lang['Checking_config_table'] . "</h1>\n");
-				lock_db();
-
-				echo("<p class=\"gen\"><b>" . $lang['Checking_config_entries'] . "</b></p>\n");
-
-				// Update config data to match current configuration
-				if (!empty($HTTP_SERVER_VARS['SERVER_PROTOCOL']) || !empty($HTTP_ENV_VARS['SERVER_PROTOCOL']))
+			case 'check_config': // Restore missing settings without changing existing values.
+				echo('<h1>' . $lang['Checking_config_table'] . '</h1>');
+				require_once($phpbb_root_path . 'includes/functions_maintenance_config.' . $phpEx);
+				try { $config_recovery = dbmtnc_recover_config($db, $_POST, $default_config); }
+				catch (\PhpbbAclException $error) { throw_error($error->getMessage()); break; }
+				catch (\Exception $error) { throw_error($lang['Maintenance_config_failed']); break; }
+				catch (\Throwable $error) { throw_error($lang['Maintenance_config_failed']); break; }
+				if ($config_recovery['restored'])
 				{
-					$protocol = (!empty($HTTP_SERVER_VARS['SERVER_PROTOCOL'])) ? $HTTP_SERVER_VARS['SERVER_PROTOCOL'] : $HTTP_ENV_VARS['SERVER_PROTOCOL'];
-					if ( strtolower(substr($protocol, 0 , 5)) == 'https' )
-					{
-						$default_config['cookie_secure'] = '1';
-					}
+					echo('<p class="gen">' . $lang['Restoring_config'] . ':</p><ul>');
+					foreach ($config_recovery['restored'] as $config_key) { echo('<li>' . htmlspecialchars($config_key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>'); }
+					echo('</ul>');
 				}
-				$server_name_candidate = (!empty($HTTP_SERVER_VARS['SERVER_NAME'])) ? $HTTP_SERVER_VARS['SERVER_NAME'] :
-					((!empty($HTTP_ENV_VARS['SERVER_NAME'])) ? $HTTP_ENV_VARS['SERVER_NAME'] :
-					((!empty($HTTP_SERVER_VARS['HTTP_HOST'])) ? $HTTP_SERVER_VARS['HTTP_HOST'] :
-					((!empty($HTTP_ENV_VARS['HTTP_HOST'])) ? $HTTP_ENV_VARS['HTTP_HOST'] : '')));
-				$default_config['server_name'] = phpbb_normalize_host($server_name_candidate,
-					isset($board_config['server_name']) ? $board_config['server_name'] : $default_config['server_name']);
-				if (!empty($HTTP_SERVER_VARS['SERVER_PORT']) || !empty($HTTP_ENV_VARS['SERVER_PORT']))
-				{
-					$default_config['server_port'] = phpbb_normalize_port((!empty($HTTP_SERVER_VARS['SERVER_PORT'])) ? $HTTP_SERVER_VARS['SERVER_PORT'] : $HTTP_ENV_VARS['SERVER_PORT'], $default_config['server_port']);
-				}
-				$script_name = !empty($HTTP_SERVER_VARS['SCRIPT_NAME']) ? $HTTP_SERVER_VARS['SCRIPT_NAME'] : (isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : '');
-				$admin_path = dirname((string) $script_name);
-				$script_path_candidate = (strtolower(basename(str_replace('\\', '/', $admin_path))) === 'admin') ? dirname($admin_path) : $admin_path;
-				$default_config['script_path'] = phpbb_normalize_script_path($script_path_candidate, isset($board_config['script_path']) ? $board_config['script_path'] : $default_config['script_path']);
-				$sql = "SELECT Min(topic_time) as startdate FROM " . TOPICS_TABLE;
-				if ( $result = $db->sql_query($sql) )
-				{
-					if ( ($row = $db->sql_fetchrow($result)) && $row['startdate'] > 0 )
-					{
-						$default_config['board_startdate'] = $row['startdate'];
-					}
-				}
-
-				// Start the job				
-				foreach ($default_config as $key => $value)
-				{
-					$sql = 'SELECT config_value FROM ' . CONFIG_TABLE . "
-						WHERE config_name = '$key'";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						throw_error("Couldn't query config table!", __LINE__, __FILE__, $sql);
-					}
-					if ( !($row = $db->sql_fetchrow($result)) )
-					{
-						// entry does not exists
-						if (!$list_open)
-						{
-							echo("<p class=\"gen\">" . $lang['Restoring_config'] . ":</p>\n");
-							echo("<font class=\"gen\"><ul>\n");
-							$list_open = TRUE;
-						}
-						echo("<li><b>$key:</b> $value</li>\n");
-						$key_sql = $db->sql_escape($key);
-						$value_sql = $db->sql_escape($value);
-						$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value)
-							VALUES ('$key_sql', '$value_sql')";
-						$result = $db->sql_query($sql);
-						if ( !$result )
-						{
-							throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-						}
-					}
-				}
-				if ($list_open)
-				{
-					echo("</ul></font>\n");
-					$list_open = FALSE;
-				}
-				else
-				{
-					echo($lang['Nothing_to_do']);
-				}
-				
-				lock_db(TRUE);
+				else { echo($lang['Nothing_to_do']); }
+				if ($config_recovery['version_unknown']) { echo('<p class="gen"><b>' . $lang['Maintenance_config_version_unknown'] . '</b></p>'); }
 				break;
 			case 'check_search_wordmatch': // Check search word match data
 			case 'check_search_wordlist': // Check search word list data

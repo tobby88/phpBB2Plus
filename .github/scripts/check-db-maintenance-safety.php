@@ -12,6 +12,7 @@ function dbmtnc_safety_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $admin = file_get_contents($root . '/phpBB2/admin/admin_db_maintenance.php');
 $erc = file_get_contents($root . '/phpBB2/admin/erc.php');
+$config_helper = file_get_contents($root . '/phpBB2/includes/functions_maintenance_config.php');
 $english = file_get_contents($root . '/phpBB2/language/lang_english/lang_dbmtnc.php');
 $german = file_get_contents($root . '/phpBB2/language/lang_german/lang_dbmtnc.php');
 $templates = array(
@@ -31,11 +32,11 @@ dbmtnc_safety_assert(strpos($admin, 'mode=perform&amp;function=check_post') === 
 dbmtnc_safety_assert(strpos($admin, '$HTTP_POST_VARS') === false, 'configuration writes must use scalar-checked POST values');
 dbmtnc_safety_assert(strpos($admin, 'dbmtnc_post_int') !== false, 'numeric configuration values must pass through one scalar validator');
 dbmtnc_safety_assert(strpos($admin, "phpbb_admin_html(\$function)") !== false, 'confirmed function names must be escaped in hidden fields');
-dbmtnc_safety_assert(strpos($admin, 'phpbb_normalize_host($server_name_candidate') !== false, 'restored server names must use the shared host validator');
-dbmtnc_safety_assert(strpos($admin, 'phpbb_normalize_port(') !== false, 'restored server ports must use the shared port validator');
-dbmtnc_safety_assert(strpos($admin, 'phpbb_normalize_script_path(') !== false, 'restored script paths must use the shared path validator');
+dbmtnc_safety_assert(strpos($config_helper, 'phpbb_normalize_host(') !== false, 'restored server names must use the shared host validator');
+dbmtnc_safety_assert(strpos($config_helper, 'phpbb_normalize_port(') !== false, 'restored server ports must use the shared port validator');
+dbmtnc_safety_assert(strpos($config_helper, 'phpbb_normalize_script_path(') !== false, 'restored script paths must use the shared path validator');
 dbmtnc_safety_assert(strpos($admin, "str_replace('admin', '', dirname") === false, 'restored paths must not use substring removal on PHP_SELF');
-dbmtnc_safety_assert(strpos($admin, '$value_sql = $db->sql_escape($value);') !== false, 'restored configuration values must be SQL-escaped');
+dbmtnc_safety_assert(strpos($config_helper, '$value_sql = $db->sql_escape((string) $value);') !== false, 'restored configuration values must be SQL-escaped');
 dbmtnc_safety_assert(strpos($english, "\$lang['Confirm_dbmtnc_action']") !== false, 'English generic write confirmation is missing');
 dbmtnc_safety_assert(strpos($german, "\$lang['Confirm_dbmtnc_action']") !== false, 'German generic write confirmation is missing');
 
@@ -56,10 +57,11 @@ foreach (array(
 	dbmtnc_safety_assert(strpos($erc, $marker) !== false, 'Emergency console hardening is missing: ' . $marker);
 }
 dbmtnc_safety_assert(strpos($erc, "\$_REQUEST['token']") === false, 'Emergency capability tokens must not be cookie-merged through REQUEST.');
-dbmtnc_safety_assert(strpos($erc, 'phpbb_normalize_host($server_name_candidate') !== false, 'ERC-restored server names must use the shared host validator');
-dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_port(') >= 2, 'ERC server ports must be normalized in recovery and manual repair');
-dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_script_path(') >= 3, 'ERC script paths must be normalized in preview, recovery and manual repair');
+dbmtnc_safety_assert(strpos($config_helper, 'phpbb_normalize_host(') !== false, 'ERC-restored server names must use the shared host validator');
+dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_port(') >= 1, 'ERC server ports must be normalized in recovery and manual repair');
+dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_script_path(') >= 2, 'ERC script paths must be normalized in preview, recovery and manual repair');
 dbmtnc_safety_assert(strpos($erc, "str_replace('admin', '', dirname") === false, 'ERC paths must not use substring removal on PHP_SELF');
 dbmtnc_safety_assert(strpos($erc, '$value_sql = $db->sql_escape($value);') !== false, 'ERC-restored configuration values must be SQL-escaped');
 
+dbmtnc_safety_assert(strpos($admin, 'dbmtnc_recover_config($db, $_POST, $default_config)') !== false && strpos($erc, 'dbmtnc_config_defaults($default_config)') !== false, 'ACP and ERC use shared validated recovery defaults');
 echo "Database-maintenance safety tests passed.\n";

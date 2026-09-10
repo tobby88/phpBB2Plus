@@ -82,7 +82,6 @@ $default_config = array(
 	'server_name' => 'www.myserver.tld',
 	'server_port' => '80',
 	'script_path' => '/phpBB2/',
-	'version' => '.0.0',
 	'default_lang' => 'english',
 	'board_startdate' => '0',
 	// DB Maintenance specific entries
@@ -100,14 +99,14 @@ $default_config = array(
 	'dbmtnc_disallow_rebuild' => '0'
 );
 // append data added in later versions
-if ( isset($board_config) && isset($board_config['version']) )
+if (isset($board_config['version']) && is_string($board_config['version']) && preg_match('/^\.0\.([0-9]{1,2})$/D', $board_config['version'], $version_match) && (int) $version_match[1] > 0)
 {
-	$phpbb_version = explode('.', substr($board_config['version'], 1));
+	$phpbb_version = array(0, (int) $version_match[1]);
 }
 else
 {
-	// Fallback for ERC
-	$phpbb_version = array(0, 22);
+	// Runtime inventory fallback only, never a database version assignment.
+	$phpbb_version = array(0, 23);
 }
 if ( $phpbb_version[0] == 0 && $phpbb_version[1] >= 5 )
 {

@@ -649,4 +649,6 @@ $lang['Option_Help_Text'] = '<p>Wenn du eine Fehlermeldung erhälst, dass bei de
 	<p>Wenn dein Board gehackt wurde, solltest du alle Admin-Accounts entfernen, indem du <b>Entferne alle
 	Administratoren</b> entfernst. (Die Accounts selbst werden nicht gelöscht sondern nur die Admin-Rechte entfernt.)</p>
 	<p>Wenn du die config.php wiederherstellen musst, kannst du dies mit <b>Stelle config.php wieder her</b> machen.</p>';
+$lang['Maintenance_config_failed'] = 'Die Konfigurationsreparatur ist fehlgeschlagen. Vorhandene Einstellungen wurden nicht überschrieben; zuvor ergänzte Werte können erhalten bleiben. Behebe den Fehler vor einem erneuten Versuch.';
+$lang['Maintenance_config_version_unknown'] = 'Die Datenbankversion fehlt oder ist unbekannt. Stelle sie mit update/update_from_153a.php nach Prüfung des Testlaufs und einem Backup wieder her; die Konfigurationsreparatur markiert keine Migrationen als abgeschlossen.';
 ?>

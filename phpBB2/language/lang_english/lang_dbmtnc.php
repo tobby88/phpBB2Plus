@@ -618,4 +618,6 @@ $lang['Option_Help_Text'] = '<p>If you get reported that there was an error crea
 	a new user, you can clear the ban list with <b>Clear ban list</b> (this will also restore the anonymous user).</p>
 	<p>If your board was hacked, it\'s recommended that you remove all admin accounts by selecting <b>Remove all administrators</b>. (The account itself will not be deleted but the rights will be removed.)</p>
 	<p>If you need to restore your config.php you can do so by selecting <b>Recreate config.php</b>.</p>';
+$lang['Maintenance_config_failed'] = 'Configuration recovery failed. Existing settings were not overwritten; earlier additions may remain. Resolve the error before retrying.';
+$lang['Maintenance_config_version_unknown'] = 'The database version is missing or unknown. Restore it through update/update_from_153a.php after reviewing its dry run and making a backup; configuration repair does not mark migrations as completed.';
 ?>
