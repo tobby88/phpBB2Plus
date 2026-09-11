@@ -202,7 +202,8 @@ $lang['Database_Utilities'] = 'Database Utilities';
 
 $lang['Restore'] = 'Restore';
 $lang['Backup'] = 'Backup';
-$lang['Restore_explain'] = 'This will perform a full restore of all phpBB tables from a saved file. If your server supports it, you may upload a gzip-compressed text file and it will automatically be decompressed. <b>WARNING</b>: This will overwrite any existing data. The restore may take a long time to process, so please do not move from this page until it is complete.';
+$lang['Restore_explain'] = 'Database restores require an offline maintenance window; SQL uploads are not executed by the forum.';
+$lang['Restore_offline_only'] = 'Web-based SQL restore is disabled. A dump can overwrite current data, recreate legacy tables or change connection settings. Stop all web and scheduled writers, verify a complete backup and test the restore in an isolated database. Import through your hosting provider or database CLI, then follow the UTF-8 and InnoDB migration instructions in update/README.md before reopening the forum. CrackerTracker configuration recovery is separate and remains available.';
 $lang['Backup_explain'] = 'Here you can back up all your phpBB-related data. If you have any additional custom tables in the same database with phpBB that you would like to back up as well, please enter their names, separated by commas, in the Additional Tables textbox below. If your server supports it you may also gzip-compress the file to reduce its size before download.';
 
 $lang['Backup_options'] = 'Backup options';

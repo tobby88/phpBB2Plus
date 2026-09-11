@@ -39,7 +39,7 @@ function plus_storage_tables($schema, $prefix)
 function plus_storage_metadata($db, $table)
 {
 	plus_storage_identifier($table);
-	$rows = plus_storage_rows($db, "SELECT ENGINE,TABLE_TYPE,TABLE_COLLATION,AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . mysqli_real_escape_string($db, $table) . "'");
+	$rows = plus_storage_rows($db, "SELECT ENGINE,ROW_FORMAT,TABLE_TYPE,TABLE_COLLATION,AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . mysqli_real_escape_string($db, $table) . "'");
 	if (!$rows) { return null; }
 	if (count($rows) !== 1 || $rows[0]['TABLE_TYPE'] !== 'BASE TABLE') { throw new RuntimeException('Not a base table: ' . $table); }
 	return $rows[0];
@@ -53,8 +53,8 @@ function plus_storage_plan($db, $tables)
 	foreach (array_unique($tables) as $table)
 	{
 		$meta = plus_storage_metadata($db, $table);
-		if (!$meta || strtoupper($meta['ENGINE']) === 'INNODB') { continue; }
-		if (!in_array(strtoupper($meta['ENGINE']), array('MYISAM','MEMORY','HEAP'), true)) { throw new RuntimeException('Unsupported source engine for ' . $table); }
+		if (!$meta || (strtoupper($meta['ENGINE']) === 'INNODB' && strtoupper($meta['ROW_FORMAT']) === 'DYNAMIC')) { continue; }
+		if (!in_array(strtoupper($meta['ENGINE']), array('INNODB','MYISAM','MEMORY','HEAP'), true)) { throw new RuntimeException('Unsupported source engine for ' . $table); }
 		$columns = plus_storage_rows($db, 'SHOW FULL COLUMNS FROM ' . plus_storage_identifier($table));
 		$indexes = plus_storage_rows($db, 'SHOW INDEX FROM ' . plus_storage_identifier($table));
 		foreach ($columns as $column)
@@ -147,7 +147,7 @@ function plus_storage_apply($db, $tables, $backup_confirmed, $maintenance_confir
 			if (plus_storage_fatal_warnings($warnings)) { throw new RuntimeException('Review conversion warnings for ' . $table . ': ' . json_encode($warnings) . '; earlier changes remain applied'); }
 			$after = plus_storage_metadata($db, $table);
 			$after_count = plus_storage_rows($db, 'SELECT COUNT(*) AS n FROM ' . plus_storage_identifier($table));
-			$checks = array('engine'=>$after && strtoupper($after['ENGINE']) === 'INNODB',
+			$checks = array('engine'=>$after && strtoupper($after['ENGINE']) === 'INNODB' && strtoupper($after['ROW_FORMAT']) === 'DYNAMIC',
 				'collation'=>$after && $before['TABLE_COLLATION'] === $after['TABLE_COLLATION'],
 				'schema'=>$signature === plus_storage_signature($db, $table), 'rows'=>$count === $after_count,
 				'counter'=>$after && ($before['AUTO_INCREMENT'] === null || plus_storage_counter_at_least($after['AUTO_INCREMENT'], $before['AUTO_INCREMENT'])));

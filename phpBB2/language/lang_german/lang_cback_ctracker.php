@@ -362,6 +362,7 @@ $lang['ctracker_rec_pab']				  = 'Wiederherstellung erst nach einem erfolgreiche
  */
 $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker konnte die Datenbankoperationen in der Benutzertabelle nicht ausführen.';
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker konnte die Datenbankoperation nicht korrekt durchführen.';
+$lang['ctracker_error_storage_migration'] = 'Die CrackerTracker-Tabelle verwendet nicht das erforderliche InnoDB/Dynamic- und utf8mb4-Format, oder ihre Metadaten konnten nicht geprüft werden. Es wurde kein Ersatz veröffentlicht. Befolge vor dem erneuten Versuch die Offline-Migrationsanleitung in update/README.md.';
 $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker konnte das Forum-Verzeichnis nicht vollständig für die Dateiprüfung lesen.';
 $lang['ctracker_scan_busy']               = 'Diese Dateiprüfung läuft bereits. Bitte warte, bis sie abgeschlossen ist, bevor du sie erneut startest. Der bisherige Bericht bleibt verfügbar.';
 $lang['ctracker_recovery_busy']           = 'Eine Konfigurationssicherung oder Wiederherstellung läuft bereits. Bitte warte, bis sie abgeschlossen ist, bevor du einen weiteren Vorgang startest.';

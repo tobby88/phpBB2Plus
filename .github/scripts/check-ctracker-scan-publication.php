@@ -18,14 +18,16 @@ class ScanDatabase
 	var $dbname = 'fixture';
 	var $queries = array();
 	var $fail = '';
+	var $modern_storage = '1';
 	function sql_query($sql)
 	{
 		$this->queries[] = $sql;
 		$GLOBALS['scan_events'][] = $sql;
+		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0 && $this->fail === '') { return 'storage'; }
 		return $this->fail === '' || strpos($sql, $this->fail) !== 0;
 	}
 	function sql_escape($value) { return str_replace("'", "''", $value); }
-	function sql_fetchrow($result) { return false; }
+	function sql_fetchrow($result) { return $result === 'storage' ? array('modern_storage' => $this->modern_storage) : false; }
 }
 // Lock transport fixture; concurrency and connection failure behavior are
 // covered separately by check-ctracker-scan-lock.php.
@@ -98,9 +100,21 @@ file_put_contents($root . '/broken.php', "<?php echo 'broken fixture';");
 file_put_contents($root . '/blocked/inside.php', "<?php echo 'inside';");
 file_put_contents($root . '/cache/ignored.php', "<?php echo 'cache';");
 $lang = array('ctracker_error_fileop' => 'file failure', 'ctracker_error_database_op' => 'database failure', 'ctracker_fchk_update_action' => 'complete');
+$lang['ctracker_error_storage_migration'] = 'migration required';
 $phpEx = 'php'; $phpbb_root_path = $root;
 try
 {
+	foreach (array('checksum', 'scanner') as $kind)
+	{
+		foreach (array('0', null) as $legacy)
+		{
+			$db = new ScanDatabase(); $db->modern_storage = $legacy; $scan_events = array(); $admin = new FailingScanAdmin();
+			$outcome = 'success';
+			try { if ($kind === 'checksum') { $admin->do_filechk(); } else { $admin->RunFileScan($root, 'php'); } }
+			catch (ScanExit $error) { $outcome = $error->getMessage(); }
+			scan_assert($outcome === 'migration required' && !preg_match('/(?:CREATE|DROP|RENAME) TABLE/', implode("\n", $db->queries)), 'Legacy or unavailable storage metadata must stop before modifying any scan table');
+		}
+	}
 	foreach (array('checksum', 'scanner') as $kind)
 	{
 		foreach (array('top', 'nested', 'hash', '', 'excluded') as $failure)

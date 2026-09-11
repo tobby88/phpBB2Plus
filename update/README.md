@@ -12,7 +12,7 @@ confirmation before applying them:
 
 ```text
 php update/update_from_153a.php
-php update/update_from_153a.php --apply --backup-confirmed
+php update/update_from_153a.php --apply --backup-confirmed --maintenance-confirmed
 ```
 
 It installs the database additions represented by the source after the 1.53a
@@ -78,8 +78,12 @@ Both are CLI-only and require `--apply --backup-confirmed` before writing.
 
 ## Historical upgrade paths
 
-These files are preserved for installations older than 1.53a. Run only the
-path matching the actual source version:
+These files describe installations older than 1.53a, but are **not executable in
+this package**. They stop before bootstrap or database access, even if the former
+legacy-updater opt-in is set. Their original SQL is retained as historical
+reference, not silently rewritten to claim a modern migration. For an older
+installation, prepare an isolated 1.53a copy using the matching historical release,
+verify it, and then apply the current UTF-8 and post-1.53a migration path.
 
 - `update_phpbb_to_2022.php` — legacy phpBB database upgrade to 2.0.22;
 - `update_attachment_221_to_243.php` — Attachment MOD 2.2.1+ to 2.4.3;
@@ -90,5 +94,34 @@ path matching the actual source version:
 - `migrate_album_personal_galleries.php` — legacy Album Category Hierarchy
   personal-gallery migration.
 
-The `fissh/` directory contains presentation assets required by these browser
-based legacy scripts.
+The duplicate `phpBB2/install/update_to_latest.php` entrypoint and the phpBB 1
+conversion (`phpBB2/install/upgrade.php`, including installer POST requests) are
+blocked too. Fresh installation remains available.
+The `fissh/` directory retains the presentation assets of the historical scripts.
+
+## Offline database restore
+
+The ACP no longer executes uploaded SQL, including previously generated dumps.
+This avoids reintroducing MyISAM/MEMORY, old character sets or arbitrary session
+settings and prevents partial imports while the forum is accepting writes.
+Backup downloads and CrackerTracker's separate configuration recovery remain.
+
+1. Verify a complete current backup and first test the intended restore in an
+   isolated database. Restore a coherent snapshot including the ID sequence,
+   pending journals and their associated user files; do not mix table versions.
+2. Block **all** web requests and scheduled/external writers. Board-disable alone
+   is insufficient. Import the trusted dump using the hosting tools or database
+   CLI; do not remove the maintenance gate after a partial or failed import.
+3. For a legacy character set, preview and apply
+   `migrate_database_to_utf8mb4.php` as described in the project README. It is a
+   character-set migration, not a repair for previously corrupted/mojibake text.
+4. Preview `update_from_153a.php`, then apply with `--apply --backup-confirmed
+   --maintenance-confirmed`. Use `--storage-only` only when the restored schema
+   already matches the current source. This also converts older InnoDB row
+   formats to DYNAMIC; it does not change character encodings.
+5. Verify the expected tables/columns, InnoDB/DYNAMIC, utf8mb4, content and file
+   consistency. Rebuild the derived search index when required by a character-set
+   migration. Reopen the forum only after successful completion.
+
+No application can prevent a database administrator or external SQL import from
+overriding its schema. These offline checks are required after those operations.

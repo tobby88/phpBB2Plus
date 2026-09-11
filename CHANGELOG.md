@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Guard new storage paths: set InnoDB defaults and no-engine-substitution on
+  every forum connection, specify DYNAMIC in every installer table, and verify
+  CrackerTracker clone source/replacement engine, row format and character
+  columns. Include older InnoDB row formats in the resumable updater. Disable
+  arbitrary ACP SQL uploads and historical updater entrypoints before any
+  import/bootstrap, with English/German guidance and a documented offline restore
+  path. Retain backup downloads and configuration recovery. Add native database
+  and controller tests for defaults, legacy sources and blocked restore paths.
 - Standardize fresh and upgraded forum tables on InnoDB. Add a shared strict,
   resumable migration to the post-1.53a updater and a storage-only mode for
   already updated installations. Require backup and external maintenance

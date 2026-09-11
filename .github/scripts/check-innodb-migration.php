@@ -46,6 +46,13 @@ try {
   storage_check(mysqli_query($db,"INSERT INTO `".$t."` (body) VALUES ('C@ro')")===false,'Unique key still enforced');
  }
  storage_check(plus_storage_metadata($db,'fixture_unrelated')['ENGINE']==='MyISAM','Foreign table untouched');
+ plus_storage_query($db,'CREATE TABLE fixture_compact (id INT PRIMARY KEY, body VARCHAR(40)) ENGINE=InnoDB ROW_FORMAT=COMPACT DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ plus_storage_query($db,"INSERT INTO fixture_compact VALUES (1,'Grüße 😀')");
+ storage_check(count(plus_storage_plan($db,array('fixture_compact')))===1,'Older InnoDB row format still needs conversion');
+ plus_storage_apply($db,array('fixture_compact'),true,true);
+ storage_check(plus_storage_metadata($db,'fixture_compact')['ROW_FORMAT']==='Dynamic','Older InnoDB format becomes Dynamic');
+ storage_check(plus_storage_rows($db,'SELECT * FROM fixture_compact')===array(array('id'=>'1','body'=>'Grüße 😀')),'Row-format conversion preserves text');
+ plus_storage_query($db,'DROP TABLE fixture_compact');
  plus_storage_query($db,'CREATE TABLE fixture_disabled (id INT NOT NULL, body VARCHAR(64), KEY id_key(id), KEY body_key(body)) ENGINE=MyISAM');
  plus_storage_query($db,"INSERT INTO fixture_disabled VALUES (1,'kept'),(2,'also kept')");
  plus_storage_query($db,'ALTER TABLE fixture_disabled DISABLE KEYS');

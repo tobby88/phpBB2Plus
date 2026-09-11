@@ -363,6 +363,7 @@ $lang['ctracker_rec_pab']				  = 'Recovery is not available before you have made
  */
 $lang['ctracker_error_updating_userdata'] = 'CBACK CrackerTracker couldn\'t run the database operation in the Usertable.';
 $lang['ctracker_error_database_op']       = 'CBACK CrackerTracker couldn\'t run the database operation correctly.';
+$lang['ctracker_error_storage_migration'] = 'The CrackerTracker table does not use the required InnoDB/Dynamic and utf8mb4 storage, or its metadata could not be checked. No replacement was published. Follow the offline migration instructions in update/README.md before retrying.';
 $lang['ctracker_error_fileop']            = 'CBACK CrackerTracker could not completely read the board directory for its integrity check.';
 $lang['ctracker_scan_busy']               = 'This scan is already running. Please wait until it has finished before starting it again. The existing report remains available.';
 $lang['ctracker_recovery_busy']           = 'A configuration backup or restore is already running. Please wait until it has finished before starting another operation.';

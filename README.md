@@ -76,6 +76,24 @@ InnoDB checks do not falsely claim to repair corruption with REPAIR TABLE.
 
 ## Project status
 
+Current database connections require InnoDB defaults (including SQL temporary
+tables), `NO_ENGINE_SUBSTITUTION` and strict InnoDB DDL. Connection setup fails
+instead of silently falling back when these settings cannot be applied; server-
+wide settings and other applications are not changed. The installer specifies
+InnoDB/DYNAMIC and utf8mb4 explicitly for every table. CrackerTracker checks both
+source and replacement storage, including character columns, before publishing
+its table copies. Existing InnoDB tables with older row formats are covered by
+the storage updater too.
+
+Arbitrary SQL uploads in the ACP are disabled: a dump can change SQL modes,
+recreate legacy tables and partially overwrite a running forum. The ACP restore
+page now explains the offline workflow; database backup downloads and the
+separate CrackerTracker configuration recovery remain available. See
+[offline restore and historical upgrades](update/README.md#offline-database-restore).
+These application guards cannot restrict a hosting control panel, external SQL
+client or database administrator. Keep writers stopped after any external restore
+until the required migrations and verification have completed.
+
 This is legacy software. The original phpBB2 and phpBB2 Plus projects are no
 longer supported, and this archive does not provide maintenance or security
 support. The included compatibility fixes reduce some runtime failures but do

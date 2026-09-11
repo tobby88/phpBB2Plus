@@ -1025,6 +1025,7 @@ if ($apply)
 {
 	// A disabled engine must fail, never silently fall back to MyISAM.
 	update_query_or_fail($connection, "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')");
+	update_query_or_fail($connection, "SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON");
 }
 foreach ($operations as $sql)
 {

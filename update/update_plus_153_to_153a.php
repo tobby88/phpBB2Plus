@@ -1,4 +1,10 @@
 <?php
+// Historical source only: never execute an old intermediate upgrade on this package.
+if (PHP_SAPI !== 'cli') { http_response_code(410); header('Content-Type: text/plain; charset=UTF-8'); }
+echo "This historical updater is disabled. Use update/update_from_153a.php for Plus 1.53a or later.\n";
+echo "For older versions, first prepare an isolated 1.53a copy using the matching historical release. See update/README.md.\n";
+exit(1);
+
 #########################################################
 ## phpBB2 Update phpBB2 Plus 1.53 prereleases/final -> 1.53a
 ## Author: Niels Chr. Rød

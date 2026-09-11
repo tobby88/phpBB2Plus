@@ -61,7 +61,6 @@ include($phpbb_root_path . 'includes/sql_parse.'.$phpEx);
 // Set VERBOSE to 1  for debugging info..
 //
 define("VERBOSE", 0);
-define('PHPBB_DB_RESTORE_MAX_BYTES', 67108864);
 
 //
 // Increase maximum execution time, but don't complain about it if it isn't
@@ -699,135 +698,10 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 			break;
 
 		case 'restore':
-			if(!isset($_POST['restore_start']))
-			{
-				//
-				// Define Template files...
-				//
-				include('./page_header_admin.'.$phpEx);
-
-				$template->set_filenames(array(
-					"body" => "admin/db_utils_restore_body.tpl")
-				);
-
-				$s_hidden_fields = "<input type=\"hidden\" name=\"perform\" value=\"restore\" />" . phpbb_admin_session_field();
-
-				$template->assign_vars(array(
-					"L_DATABASE_RESTORE" => $lang['Database_Utilities'] . " : " . $lang['Restore'],
-					"L_RESTORE_EXPLAIN" => $lang['Restore_explain'],
-					"L_SELECT_FILE" => $lang['Select_file'],
-					"L_START_RESTORE" => $lang['Start_Restore'],
-
-					"S_DBUTILS_ACTION" => append_sid("admin_db_utilities.$phpEx"),
-					"S_HIDDEN_FIELDS" => $s_hidden_fields)
-				);
-				$template->pparse("body");
-
-				break;
-
-			}
-			else
-			{
-				phpbb_admin_require_post_session();
-				//
-				// Handle the file upload ....
-				// If no file was uploaded report an error...
-				//
-				$backup_file = isset($_FILES['backup_file']) && is_array($_FILES['backup_file']) ? $_FILES['backup_file'] : array();
-				$backup_file_name = isset($backup_file['name']) && is_scalar($backup_file['name']) ? basename((string) $backup_file['name']) : '';
-				$backup_file_tmpname = isset($backup_file['tmp_name']) && is_scalar($backup_file['tmp_name']) ? (string) $backup_file['tmp_name'] : '';
-				$backup_file_error = isset($backup_file['error']) ? (int) $backup_file['error'] : UPLOAD_ERR_NO_FILE;
-
-				if($backup_file_error !== UPLOAD_ERR_OK || $backup_file_tmpname === '' || $backup_file_name === '')
-				{
-					message_die(GENERAL_MESSAGE, $lang['Restore_Error_no_file']);
-				}
-				//
-				// If I file was actually uploaded, check to make sure that we
-				// are actually passed the name of an uploaded file, and not
-				// a hackers attempt at getting us to process a local system
-				// file.
-				//
-				if( is_uploaded_file($backup_file_tmpname) )
-				{
-					if( preg_match('/\.sql(?:\.gz)?$/iD', $backup_file_name) )
-					{
-						$is_gzip_restore = preg_match('/\.gz$/iD', $backup_file_name) === 1;
-						if ($is_gzip_restore && !extension_loaded('zlib'))
-						{
-							message_die(GENERAL_ERROR, $lang['Restore_Error_decompress']);
-						}
-
-						$restore_read = phpbb_read_limited_file($backup_file_tmpname, $is_gzip_restore, PHPBB_DB_RESTORE_MAX_BYTES);
-						if ($restore_read['status'] === 'too_large')
-						{
-							message_die(GENERAL_ERROR, $lang['Restore_Error_too_large']);
-						}
-						if ($restore_read['status'] !== 'ok')
-						{
-							message_die(GENERAL_ERROR, $is_gzip_restore ? $lang['Restore_Error_decompress'] : $lang['Restore_Error_uploading']);
-						}
-						$sql_query = $restore_read['data'];
-						//
-						// Comment this line out to see if this fixes the stuff...
-						//
-						//$sql_query = stripslashes($sql_query);
-					}
-					else
-					{
-						message_die(GENERAL_ERROR, $lang['Restore_Error_filename']);
-					}
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, $lang['Restore_Error_uploading']);
-				}
-
-				if($sql_query != "")
-				{
-					// Strip out sql comments...
-					$sql_query = remove_remarks($sql_query);
-					$pieces = split_sql_file($sql_query, ";");
-
-					$sql_count = count($pieces);
-					for($i = 0; $i < $sql_count; $i++)
-					{
-						$sql = trim($pieces[$i]);
-
-						if(!empty($sql) and $sql[0] != "#")
-						{
-							if(VERBOSE == 1)
-							{
-								echo "Executing: $sql\n<br>";
-								flush();
-							}
-
-							$result = $db->sql_query($sql);
-
-							if(!$result && ( !(SQL_LAYER == 'postgresql' && preg_match("/drop table/i", $sql) ) ) )
-							{
-								message_die(GENERAL_ERROR, "Error importing backup file", "", __LINE__, __FILE__, $sql);
-							}
-						}
-					}
-				}
-
-				include('./page_header_admin.'.$phpEx);
-
-				$template->set_filenames(array(
-					"body" => "admin/admin_message_body.tpl")
-				);
-
-				$message = $lang['Restore_success'];
-
-				$template->assign_vars(array(
-					"MESSAGE_TITLE" => $lang['Database_Utilities'] . " : " . $lang['Restore'],
-					"MESSAGE_TEXT" => $message)
-				);
-
-				$template->pparse("body");
-				break;
-			}
+			// A dump can execute arbitrary DDL/session changes before a later error.
+			// Never partially import it into an open forum or rewrite SQL by regex.
+			http_response_code(403);
+			message_die(GENERAL_MESSAGE, $lang['Restore_offline_only']);
 			break;
 	}
 }

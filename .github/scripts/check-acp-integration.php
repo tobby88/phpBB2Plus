@@ -92,7 +92,7 @@ $integrations = array(
 	'admin/admin_pa_fchecker.php' => array("\$pafiledb_config['upload_dir']", "\$pafiledb_config['screenshots_dir']", 'phpbb_admin_html($temp)'),
 	'admin/admin_flags.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function phpbb_flag_image_name'),
 	'admin/admin_db_maintenance.php' => array('dbmtnc_continuation_token', 'phpbb_admin_require_post_session();', "array('', 'start', 'perform')"),
-	'admin/admin_db_utilities.php' => array("in_array(\$perform, array('backup', 'restore'), true)", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'is_uploaded_file($backup_file_tmpname)'),
+	'admin/admin_db_utilities.php' => array("in_array(\$perform, array('backup', 'restore'), true)", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "\$lang['Restore_offline_only']"),
 	'admin/admin_links.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function admin_links_post_scalar', "'U_LINK_DELETE' => append_sid"),
 	'admin/admin_news_cats.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "array('', 'delete', 'edit', 'save', 'savenew')"),
 	'admin/admin_banner.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function admin_banner_post_scalar', 'foreach ($options as $offset => $type)'),

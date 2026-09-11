@@ -49,6 +49,7 @@ class sql_db
 		if (is_callable($s->hook)) { call_user_func($s->hook, $sql, $this); }
 		if (!$this->db_connect_id) { return false; }
 		if ($s->failure !== '' && strpos($sql, $s->failure) === 0) { return false; }
+		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0) { return $this->result(array(array('modern_storage' => '1'))); }
 		if ($sql === "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')") { return true; }
 		if ($sql === 'START TRANSACTION') { $this->pending = array(); return true; }
 		if ($sql === 'COMMIT')
@@ -113,7 +114,7 @@ function recovery_run($action)
 $db = new RecoveryForumDatabase();
 $lang = array('ctracker_recovery_busy' => 'busy', 'ctracker_error_database_op' => 'database',
 	'ctracker_error_loading_config' => 'load', 'ctracker_rec_never_saved' => 'empty', 'ctracker_rec_empty_source' => 'empty',
-	'ctracker_rec_transaction_required' => 'engine');
+	'ctracker_rec_transaction_required' => 'engine', 'ctracker_error_storage_migration' => 'migration');
 $root = sys_get_temp_dir() . '/ct-recovery-lock-' . md5(uniqid('', true));
 mkdir($root, 0700); mkdir($root . '/cache', 0700); $phpbb_root_path = $root . '/';
 try

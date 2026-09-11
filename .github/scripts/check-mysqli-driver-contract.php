@@ -11,13 +11,15 @@ class mysqli_result
 function mysqli_connect($server,$user,$password,$database,$port)
 {
 	$GLOBALS['driver_fixture_connect']=array($server,$user,$password,$database);
-	return new mysqli();
+	$connection=new mysqli(); $GLOBALS['driver_fixture_connection']=$connection; return $connection;
 }
 function mysqli_set_charset($connection,$charset) { return $charset==='utf8mb4'; }
 function mysqli_character_set_name($connection) { return 'utf8mb4'; }
 function mysqli_select_db($connection,$database) { return true; }
 function mysqli_query($connection,$sql)
 {
+	$GLOBALS['driver_fixture_queries'][]=$sql;
+	if(isset($GLOBALS['driver_fixture_fail']) && $sql===$GLOBALS['driver_fixture_fail']) { return false; }
 	if($connection->closed) { throw new \RuntimeException('Closed connection used'); }
 	if($sql==='FAIL') { $connection->error='fixture SQL failure'; $connection->errno=1064; return false; }
 	$connection->error=''; $connection->errno=0;
@@ -89,6 +91,15 @@ try
 	// Exercise the real credential reset from the CrackerTracker bootstrap,
 	// rather than a fixture that retains the original public password forever.
 	$db=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',false);
+	foreach (array("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')",
+		"SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON") as $policy)
+	{
+		check(in_array($policy,$GLOBALS['driver_fixture_queries'],true),'Connection configures storage policy');
+		$GLOBALS['driver_fixture_fail']=$policy;
+		$failed=new sql_db('fixture','fixture-user','fixture-secret','fixture-db',true);
+		check($failed->db_connect_id===false && $GLOBALS['driver_fixture_connection']->closed,'Policy failure closes even a pooled connection');
+		unset($GLOBALS['driver_fixture_fail']);
+	}
 	$dbuser='fixture-user'; $dbpasswd='fixture-secret';
 	$reset=file_get_contents(dirname(dirname(__DIR__)).'/phpBB2/ctracker/engines/ct_varsetter.php');
 	$reset_start=strpos($reset,'unset($dbuser)'); $reset_end=strpos($reset,'include($phpbb_root_path',$reset_start);

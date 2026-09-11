@@ -303,6 +303,11 @@ else
 
 $upgrade = (!empty($_POST['upgrade'])) ? $_POST['upgrade']: '';
 $upgrade_now = (!empty($_POST['upgrade_now'])) ? $_POST['upgrade_now']:'';
+if (!empty($upgrade) || !empty($upgrade_now))
+{
+	http_response_code(410);
+	die('Historical upgrades are disabled in this installer. Use the offline migration path in update/README.md.');
+}
 
 $dbms = (isset($_POST['dbms']) && is_scalar($_POST['dbms']) && isset($available_dbms[stripslashes((string) $_POST['dbms'])]))
 	? stripslashes((string) $_POST['dbms'])
@@ -598,7 +603,7 @@ else if (empty($install_step) || !hash_equals($admin_pass1, $admin_pass2) || $in
 	$upgrade_option = '<select name="upgrade"';
 	$upgrade_option .= 'onchange="if (this.options[this.selectedIndex].value == 1) { this.form.dbms.selectedIndex = 0; }">';
 	$upgrade_option .= '<option value="0">' . $lang['Install'] . '</option>';
-	$upgrade_option .= '<option value="1">' . $lang['Upgrade'] . ' from phpBB 1</option></select>';
+	$upgrade_option .= '</select>';
 	
 	$s_hidden_fields = '<input type="hidden" name="install_step" value="1" /><input type="hidden" name="cur_lang" value="' . install_html_raw($language) . '" />';
 

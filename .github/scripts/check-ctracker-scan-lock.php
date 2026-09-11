@@ -56,6 +56,7 @@ class sql_db
 		// A lost lock connection must not continue on the ordinary forum DB.
 		if ($this->closed || !$this->db_connect_id) { return false; }
 		if ($s->failure !== '' && strpos($sql, $s->failure) === 0) { return false; }
+		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0) { $this->rows = array(array('modern_storage' => '1')); return 'storage'; }
 		if (preg_match('/^DROP TABLE IF EXISTS (\w+)$/', $sql, $m)) { unset($s->tables[$m[1]]); return true; }
 		if (preg_match('/^CREATE TABLE (\w+) LIKE /', $sql, $m)) { $s->tables[$m[1]] = array(); return true; }
 		if (preg_match('/^INSERT INTO (\w+) /', $sql, $m)) { $s->tables[$m[1]][] = $sql; return true; }
@@ -92,6 +93,7 @@ class LockTestForumDatabase
 }
 $db = new LockTestForumDatabase();
 $lang = array('ctracker_scan_busy' => 'busy', 'ctracker_error_database_op' => 'database', 'ctracker_error_fileop' => 'file');
+$lang['ctracker_error_storage_migration'] = 'migration';
 $lock_server = new LockTestServer();
 if (isset($argv[1]) && $argv[1] === '--shutdown-child')
 {

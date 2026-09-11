@@ -260,6 +260,27 @@ class ct_adminfunctions
 		return $lock;
 	}
 
+	/** Reject old/restored source tables before CREATE LIKE can propagate them. */
+	private function require_modern_storage($db, $table)
+	{
+		global $lang;
+		$name = $db->sql_escape($table);
+		$sql = "SELECT COUNT(*) AS modern_storage FROM information_schema.TABLES t " .
+			"WHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_NAME = '" . $name . "' " .
+			"AND t.TABLE_TYPE = 'BASE TABLE' AND t.ENGINE = 'InnoDB' AND t.ROW_FORMAT = 'Dynamic' " .
+			"AND t.TABLE_COLLATION = 'utf8mb4_unicode_ci' AND NOT EXISTS (" .
+			"SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA " .
+			"AND c.TABLE_NAME = t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL " .
+			"AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))";
+		$result = $db->sql_query($sql);
+		$row = $result ? $db->sql_fetchrow($result) : false;
+		if ($result) { $db->sql_freeresult($result); }
+		if (!$row || !isset($row['modern_storage']) || (string) $row['modern_storage'] !== '1')
+		{
+			message_die(CRITICAL_ERROR, $lang['ctracker_error_storage_migration']);
+		}
+	}
+
 	private function build_filechk()
 	{
 		global $lang, $phpbb_root_path, $phpEx;
@@ -278,6 +299,7 @@ class ct_adminfunctions
 		// if hashing or a database write fails halfway through the scan.
 		$temporary_table = CTRACKER_FILECHK . '_new';
 		$backup_table = CTRACKER_FILECHK . '_old';
+		$this->require_modern_storage($db, CTRACKER_FILECHK);
 		$sql = 'DROP TABLE IF EXISTS ' . $temporary_table;
 		if (!$db->sql_query($sql))
 		{
@@ -291,6 +313,7 @@ class ct_adminfunctions
 		}
 
 		$scan_complete = $this->recursive_filechk($phpbb_root_path, '', $phpEx, $temporary_table);
+		$this->require_modern_storage($db, $temporary_table);
 		if (!$scan_complete || $this->filechk_count < 1)
 		{
 			$db->sql_query('DROP TABLE IF EXISTS ' . $temporary_table);
@@ -800,6 +823,7 @@ class ct_adminfunctions
 
 		$temporary_table = CTRACKER_FILESCANNER . '_new';
 		$backup_table = CTRACKER_FILESCANNER . '_old';
+		$this->require_modern_storage($db, CTRACKER_FILESCANNER);
 		$sql = 'DROP TABLE IF EXISTS ' . $temporary_table;
 		if (!$db->sql_query($sql))
 		{
@@ -812,6 +836,7 @@ class ct_adminfunctions
 		}
 
 		$scan_complete = $this->CreateFileList($dir, '', $extension, $temporary_table);
+		$this->require_modern_storage($db, $temporary_table);
 		if (!$scan_complete || $this->filescan_count < 1)
 		{
 			$db->sql_query('DROP TABLE IF EXISTS ' . $temporary_table);
@@ -999,6 +1024,7 @@ class ct_adminfunctions
 
 		$temporary_table = CTRACKER_BACKUP . '_new';
 		$backup_table = CTRACKER_BACKUP . '_old';
+		$this->require_modern_storage($db, CTRACKER_BACKUP);
 		$sql = 'DROP TABLE IF EXISTS ' . $temporary_table;
 		if (!$db->sql_query($sql))
 		{
@@ -1011,6 +1037,7 @@ class ct_adminfunctions
 		}
 
 		// Insert config data
+		$this->require_modern_storage($db, $temporary_table);
 		$sql = 'SELECT * FROM ' . CONFIG_TABLE;
 
 		if ( !($result = $db->sql_query($sql)) )

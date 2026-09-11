@@ -202,7 +202,8 @@ $lang['Database_Utilities'] = 'Datenbankfunktionen';
 
 $lang['Restore'] = 'Wiederherstellen';
 $lang['Backup'] = 'Backup';
-$lang['Restore_explain'] = 'Hiermit werden alle phpBB Tabellen aus einer Datei wiederhergestellt. Falls es dein Server unterstützt, kannst du auch einen GZip-komprimierten Text hochladen - er wird automatisch dekomprimiert! <b>ACHTUNG</b>: Es werden alle existierenden Daten überschrieben. Der Vorgang wird einige Zeit dauern, bitte verlasse diese Seite nicht, bis er abgeschlossen wurde.';
+$lang['Restore_explain'] = 'Datenbank-Wiederherstellungen benötigen ein Offline-Wartungsfenster; das Forum führt keine hochgeladenen SQL-Dateien aus.';
+$lang['Restore_offline_only'] = 'Die SQL-Wiederherstellung im Browser ist gesperrt. Ein Dump kann aktuelle Daten überschreiben, alte Tabellenformate wiederherstellen oder Verbindungseinstellungen ändern. Stoppe alle Webzugriffe und Hintergrundaufgaben, prüfe ein vollständiges Backup und teste die Wiederherstellung in einer isolierten Datenbank. Importiere über den Hoster oder die Datenbank-Kommandozeile und befolge vor dem Freigeben des Forums die UTF-8- und InnoDB-Migrationsanleitung in update/README.md. Die separate CrackerTracker-Konfigurationswiederherstellung bleibt verfügbar.';
 $lang['Backup_explain'] = 'Hier kannst du alle phpBB-Tabellen abspeichern. Solltest du noch weitere, eigene Tabellen in derselben Datenbank wie die phpBB-Tabellen haben, die auch gespeichert werden sollen, gib ihre Namen in der \'Zusätzliche Tabellen\'-Textbox an (getrennt mit Kommata). Sollte dein Server es unterstützen, kannst du die Datei(en) auch mit GZip komprimieren, bevor du sie runterlädst.';
 
 $lang['Backup_options'] = 'Backup-Optionen';

@@ -31,3 +31,7 @@ jobs:
         env:
           PHPBB_STORAGE_NATIVE: '1'
           PHPBB_STORAGE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-storage-policy.php
+        env:
+          PHPBB_STORAGE_NATIVE: '1'
+          PHPBB_STORAGE_PASSWORD: fixture-only

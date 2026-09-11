@@ -82,7 +82,11 @@ class sql_db
 			// templates, language files and fresh-install schema.
 			if (!@mysqli_set_charset($this->db_connect_id, 'utf8mb4') ||
 				strtolower(@mysqli_character_set_name($this->db_connect_id)) != 'utf8mb4' ||
-				!@mysqli_query($this->db_connect_id, "SET collation_connection = 'utf8mb4_unicode_ci'"))
+				!@mysqli_query($this->db_connect_id, "SET collation_connection = 'utf8mb4_unicode_ci'") ||
+				// Apply on every checkout, including pooled and dedicated connections.
+				// Do not replace unrelated SQL modes or change server-wide defaults.
+				!@mysqli_query($this->db_connect_id, "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')") ||
+				!@mysqli_query($this->db_connect_id, "SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON"))
 			{
 				@mysqli_close($this->db_connect_id);
 				$this->db_connect_id = false;

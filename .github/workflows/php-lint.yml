@@ -63,6 +63,8 @@ jobs:
 
       - name: Check InnoDB migration schema and updater integration
         run: php .github/scripts/check-innodb-migration.php
+      - name: Storage defaults and restore guards
+        run: php .github/scripts/check-storage-policy.php
 
       - name: Preserve valid profiles and login keys during user maintenance
         run: php .github/scripts/check-maintenance-user-values.php

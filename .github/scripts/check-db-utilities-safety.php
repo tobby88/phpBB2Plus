@@ -14,12 +14,7 @@ $required = array(
 	"in_array(\$backup_type, array('full', 'structure', 'data'), true)",
 	'strpos($table_name, $table_prefix) === 0',
 	"preg_match('/^[A-Za-z0-9_]+$/D', \$additional_table)",
-	'is_uploaded_file($backup_file_tmpname)',
-	"preg_match('/\\.sql(?:\\.gz)?$/iD', \$backup_file_name)",
-	"isset(\$_FILES['backup_file'])",
-	'define(\'PHPBB_DB_RESTORE_MAX_BYTES\', 67108864)',
-	'phpbb_read_limited_file($backup_file_tmpname, $is_gzip_restore, PHPBB_DB_RESTORE_MAX_BYTES)',
-	"\$restore_read['status'] === 'too_large'",
+	"message_die(GENERAL_MESSAGE, \$lang['Restore_offline_only'])",
 	'SHOW CREATE TABLE ',
 	"\$db->sql_escape(\$row[\$field_names[\$j]])",
 	'SET FOREIGN_KEY_CHECKS=0;',
@@ -45,7 +40,10 @@ $forbidden = array(
 	'<meta http-equiv="refresh"',
 	'@each(',
 	'addslashes($row[$field_names[$j]])',
-	'file_get_contents($backup_file_tmpname)'
+	'file_get_contents($backup_file_tmpname)',
+	"\$_FILES['backup_file']",
+	'split_sql_file($sql_query',
+	"\$_POST['restore_start']"
 );
 
 foreach ($forbidden as $marker)
@@ -56,9 +54,9 @@ foreach ($forbidden as $marker)
 	}
 }
 
-if (substr_count($body, 'phpbb_admin_require_post_session();') < 2)
+if (substr_count($body, 'phpbb_admin_require_post_session();') < 1)
 {
-	$errors[] = 'Backup and restore must each enforce the AdminCP POST token.';
+	$errors[] = 'Backup must enforce the AdminCP POST token; SQL restore is blocked altogether.';
 }
 
 $plain_restore = tempnam(sys_get_temp_dir(), 'phpbb-db-restore-');

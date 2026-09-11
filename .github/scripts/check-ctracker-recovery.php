@@ -30,10 +30,12 @@ class recovery_test_db
 	function sql_query($sql)
 	{
 		$this->queries[] = $sql;
+		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0) { return 'storage-result'; }
 		return (strpos($sql, 'SELECT * FROM phpbb_config') === 0) ? 'config-result' : true;
 	}
 	function sql_fetchrow($result)
 	{
+		if ($result === 'storage-result') { return array('modern_storage' => '1'); }
 		return ($result === 'config-result' && $this->rows) ? array_shift($this->rows) : false;
 	}
 	function sql_freeresult($result) {}
