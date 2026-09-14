@@ -4,18 +4,7 @@ require_once dirname(__FILE__) . '/functions_acl_storage.php';
 
 function dbmtnc_session_reset_actor($db)
 {
-	global $userdata;
-	$actor = phpbb_acl_actor($db, 'maintenance');
-	$sid = $db->sql_escape($userdata['session_id']);
-	$where = "HEX(session_id) = HEX('" . $sid . "') AND session_user_id = " . (int) $actor['user_id']
-		. ' AND session_logged_in = 1 AND session_admin = 1';
-	if (!phpbb_acl_rows($db, 'SELECT session_id FROM ' . SESSIONS_TABLE . ' WHERE ' . $where))
-	{ phpbb_acl_error('Not_Authorised'); }
-	// Materialize the session lookup when the DELETE targets this same table.
-	// Never recreate an expired/revoked session from cached userdata.
-	$actor['guard'] .= ' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT session_id, session_user_id, session_logged_in, session_admin FROM '
-		. SESSIONS_TABLE . " WHERE HEX(session_id) = HEX('" . $sid . "')) reset_actor_session WHERE " . $where . ')';
-	return $actor;
+	return phpbb_acl_actor($db, 'maintenance');
 }
 
 function dbmtnc_reset_sessions($database, $request)

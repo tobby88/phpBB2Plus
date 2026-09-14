@@ -6,6 +6,9 @@ function acl_fixture($actor=1)
 {
 	global $mutation_server,$userdata;
 	group_fixture($actor); $p=$mutation_server->pdo; $userdata['session_admin']=true;
+	foreach(array('session_id VARCHAR(32)','session_logged_in INTEGER DEFAULT 1','session_admin INTEGER DEFAULT 1') as $column){$p->exec('ALTER TABLE fixture_sessions ADD COLUMN '.$column);}
+	$p->exec("UPDATE fixture_sessions SET session_id='other-' || session_user_id");
+	$p->exec("UPDATE fixture_sessions SET session_id='fixture-session' WHERE session_user_id=".(int)$actor);
 	foreach (phpbb_acl_fields() as $field) { $p->exec('ALTER TABLE fixture_auth ADD '.$field.' INTEGER DEFAULT 0'); }
 	foreach (phpbb_acl_fields() as $field) { $p->exec('ALTER TABLE fixture_forums ADD '.$field.' INTEGER DEFAULT 2'); }
 	$p->exec('UPDATE fixture_forums SET auth_post=1 WHERE forum_id=2');
@@ -126,7 +129,7 @@ try
 				$GLOBALS['mutation_server']->pdo->exec($case==='actor'?'UPDATE fixture_users SET user_level=0 WHERE user_id=1':($case==='forum'?'UPDATE fixture_forums SET auth_read=1 WHERE forum_id=3':'UPDATE fixture_groups SET group_single_user=1 WHERE group_id=3'));
 			}
 		};
-		acl_failure(function() use($db) { phpbb_acl_save($db,'group',3,acl_post(array('private'=>array(3=>1)))); },'Acl_selection_changed');
+		acl_failure(function() use($db) { phpbb_acl_save($db,'group',3,acl_post(array('private'=>array(3=>1)))); },$case==='actor'?'Not_Authorised':'Acl_selection_changed');
 		mutation_check(group_value('SELECT COUNT(*) FROM fixture_auth WHERE group_id=3 AND forum_id=3')===0,'Actual ACL write repeats current actor/forum/target predicates');
 	}
 	foreach (array('DELETE FROM fixture_sessions','INSERT INTO fixture_auth','UPDATE fixture_users') as $failure)

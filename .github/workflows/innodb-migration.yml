@@ -25,7 +25,7 @@ jobs:
       - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysqli, pdo_mysql, openssl
+          extensions: mysqli, pdo_mysql, pdo_sqlite, openssl
           coverage: none
       - run: php .github/scripts/check-innodb-migration.php
         env:
@@ -49,3 +49,7 @@ jobs:
         env:
           PHPBB_PM_MAINTENANCE_NATIVE: '1'
           PHPBB_PM_MAINTENANCE_TEST_PASSWORD: fixture-only
+      - run: php .github/scripts/run-native-acl-session.php
+        env:
+          PHPBB_ACL_SESSION_NATIVE: '1'
+          PHPBB_ACL_SESSION_TEST_PASSWORD: fixture-only

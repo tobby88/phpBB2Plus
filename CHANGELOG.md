@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Centralize live ACP session validation for user, group and forum permission
+  viewing/writes and maintenance. Revalidate role transitions and ACL results,
+  keep the acting session while expiring affected target sessions, and use a
+  materialized session predicate compatible with MySQL same-table DELETEs.
+  No schema migration is required.
 - Revalidate the live ACP session throughout PM counter and repair maintenance,
   including delegated access, journal planning/recovery and reads that authorize
   attachment cleanup. Keep interrupted repair state for an explicit retry after

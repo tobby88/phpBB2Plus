@@ -76,6 +76,8 @@ jobs:
           php .github/scripts/check-pm-counter-session.php
           php .github/scripts/check-pm-repair-session.php
           php .github/scripts/check-pm-recovery-session.php
+      - name: Current ACP session for user group and forum permissions
+        run: php .github/scripts/check-acl-session-authority.php
 
       - name: Preserve valid profiles and login keys during user maintenance
         run: php .github/scripts/check-maintenance-user-values.php

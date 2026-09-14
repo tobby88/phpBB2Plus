@@ -42,7 +42,7 @@ function phpbb_forum_acl_save($database, $post, &$refresh_needed = false)
 	$refresh_needed = false;
 	if (!is_array($post) || !isset($post[POST_FORUM_URL]) || !is_string($post[POST_FORUM_URL]) || !preg_match('/^' . preg_quote(POST_FORUM_URL, '/') . '([0-9]+)$/D', $post[POST_FORUM_URL], $match)) { phpbb_acl_error('Acl_selection_changed'); }
 	$id = phpbb_acl_id($match[1]);
-	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !isset($post['sid']) || !is_string($post['sid']) || !hash_equals((string) $userdata['session_id'], $post['sid'])) { phpbb_acl_error('Session_invalid'); }
+	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($post['sid']) || !is_string($post['sid']) || !hash_equals((string) $userdata['session_id'], $post['sid'])) { phpbb_acl_error('Session_invalid'); }
 	$values = phpbb_forum_acl_values($post); $fields = phpbb_acl_fields();
 	$lock = new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
@@ -68,6 +68,7 @@ function phpbb_forum_acl_save($database, $post, &$refresh_needed = false)
 		foreach ($expected as $field=>$value) { if ((int) $rows[0][$field] !== (int) $value) { phpbb_acl_error('Acl_selection_changed'); } }
 		// No account role or membership changes here. Permission policies are
 		// read per request; the caller refreshes the hierarchy after release.
+		phpbb_acl_actor($db, 'forum');
 		return $id;
 	}
 	finally { $lock->release(); }

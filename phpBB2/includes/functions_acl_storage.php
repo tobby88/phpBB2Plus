@@ -54,6 +54,7 @@ function phpbb_acl_actor($db,$mode)
 {
 	global $userdata,$phpEx;
 	if (!is_string($mode) || !in_array($mode,array('user','group','forum','maintenance'),true)) { phpbb_acl_error('Acl_selection_changed'); }
+	if (empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_acl_error('Not_Authorised'); }
 	$route=$mode==='maintenance'?'admin_db_maintenance.'.$phpEx:($mode==='forum'?'admin_forumauth.'.$phpEx:'admin_ug_auth.'.$phpEx.'?mode='.$mode);
 	$user=phpbb_current_moderator_user($db);
 	if (!$user || empty($userdata['session_admin'])) { phpbb_acl_error('Not_Authorised'); }
@@ -76,6 +77,12 @@ function phpbb_acl_actor($db,$mode)
 		$grant.=' OR EXISTS (SELECT 1 FROM '.JR_ADMIN_TABLE.' j WHERE j.user_id = '.(int)$user['user_id']." AND HEX(j.user_jr_admin) = HEX('".$db->sql_escape($rows[0]['user_jr_admin'])."'))";
 	}
 	$user['guard']='EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active,user_level FROM '.USERS_TABLE.' WHERE user_id = '.(int)$user['user_id'].') acl_actor WHERE acl_actor.user_active <> 0 AND ('.$grant.'))';
+	// Materialize the exact live ACP session: ACL role changes also DELETE
+	// from sessions, so a mergeable same-table subquery is not MySQL-safe.
+	$user['guard'].=' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT session_id,session_user_id,session_logged_in,session_admin FROM '.SESSIONS_TABLE
+		. " WHERE HEX(session_id) = HEX('".$db->sql_escape($userdata['session_id'])."')) acl_session WHERE acl_session.session_user_id = ".(int)$user['user_id']
+		. ' AND acl_session.session_logged_in = 1 AND acl_session.session_admin = 1)';
+	if (!phpbb_acl_rows($db,'SELECT 1 AS allowed WHERE '.$user['guard'])) { phpbb_acl_error('Not_Authorised'); }
 	return $user;
 }
 function phpbb_acl_target($db,$mode,$id)
@@ -125,7 +132,7 @@ function phpbb_acl_save($database,$mode,$id,$post)
 		foreach ($maps[$field] as $forum=>$value) { $forums[$forum]=0; }
 	}
 	if (count($forums)>10000) { phpbb_acl_error('Acl_selection_changed'); }
-	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD']!=='POST' || empty($userdata['session_id']) || !isset($post['sid']) || !is_string($post['sid']) || !hash_equals((string)$userdata['session_id'],$post['sid'])) { phpbb_acl_error('Session_invalid'); }
+	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD']!=='POST' || empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($post['sid']) || !is_string($post['sid']) || !hash_equals((string)$userdata['session_id'],$post['sid'])) { phpbb_acl_error('Session_invalid'); }
 	$lock=new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
 	try
@@ -152,7 +159,9 @@ function phpbb_acl_save($database,$mode,$id,$post)
 			$db->sql_query('UPDATE '.AUTH_ACCESS_TABLE.' SET '.implode(',',$zero).' WHERE group_id = '.$group_id.' AND '.$guard);
 			$desired=$level==='admin' ? (string)ADMIN : 'CASE WHEN '.phpbb_acl_mod_guard($id).' THEN '.MOD.' ELSE '.USER.' END';
 			$db->sql_query('UPDATE '.USERS_TABLE.' SET user_level = '.$desired.' WHERE user_id = '.$id.' AND '.$guard);
-			if ((int)$db->sql_affectedrows()!==1) { phpbb_acl_error('Acl_selection_changed'); }
+			$changed=(int)$db->sql_affectedrows();
+			phpbb_acl_actor($db,$mode);
+			if ($changed!==1) { phpbb_acl_error('Acl_selection_changed'); }
 			return true;
 		}
 		if (!$forums) { return false; }
@@ -187,6 +196,7 @@ function phpbb_acl_save($database,$mode,$id,$post)
 			}
 			// Check the resulting values, not affected-row conventions (a no-op
 			// UPDATE can validly report zero). Guard failures cannot claim success.
+			phpbb_acl_actor($db,$mode);
 			$actual=phpbb_acl_rows($db,'SELECT '.implode(',',array_keys($values)).' FROM '.AUTH_ACCESS_TABLE.' WHERE '.$where);
 			if (array_sum($values) && !$actual) { phpbb_acl_error('Acl_selection_changed'); }
 			foreach ($actual as $row) { foreach ($values as $field=>$value) { if ((int)$row[$field]!==$value) { phpbb_acl_error('Acl_selection_changed'); } } }

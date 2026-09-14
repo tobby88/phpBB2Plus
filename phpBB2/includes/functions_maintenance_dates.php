@@ -4,15 +4,7 @@ require_once dirname(__FILE__) . '/functions_acl_storage.php';
 
 function dbmtnc_date_actor($db)
 {
-	global $userdata;
-	if (empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_acl_error('Not_Authorised'); }
-	$actor = phpbb_acl_actor($db, 'maintenance');
-	$actor['guard'] .= ' AND EXISTS (SELECT 1 FROM ' . SESSIONS_TABLE
-		. " date_session WHERE HEX(date_session.session_id) = HEX('" . $db->sql_escape($userdata['session_id'])
-		. "') AND date_session.session_user_id = " . (int) $actor['user_id']
-		. ' AND date_session.session_logged_in = 1 AND date_session.session_admin = 1)';
-	if (!phpbb_acl_rows($db, 'SELECT 1 AS allowed WHERE ' . $actor['guard'])) { phpbb_acl_error('Not_Authorised'); }
-	return $actor;
+	return phpbb_acl_actor($db, 'maintenance');
 }
 
 function dbmtnc_date_pm_ready()
