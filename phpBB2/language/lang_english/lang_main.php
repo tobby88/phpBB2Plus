@@ -792,7 +792,7 @@ $lang['User_is_member_group'] = 'User is already a member of this group';
 $lang['Group_type_updated'] = 'Successfully updated group type.';
 $lang['Invalid_group_type'] = 'The selected group type is invalid.';
 $lang['Group_invalid_selection'] = 'The group or user selection is invalid. Please reload the page.';
-$lang['Group_storage_failed'] = 'The group change could not be fully saved. Changes already applied remain in place. Please check memberships and permissions before continuing.';
+$lang['Group_storage_failed'] = 'The group change could not be confirmed. Please reload the group and check its memberships and permissions before trying again.';
 $lang['Group_members_changed'] = '%d memberships changed. Ineligible or already processed entries remain unchanged.';
 $lang['Group_mail_failed'] = 'The group change was saved, but at least one notification email could not be sent.';
 
