@@ -114,6 +114,14 @@ try { $pending_removals = phpbb_removal_pending_html($db, 'user'); }
 catch (PhpbbRemovalException $error) { $pending_removals = '<p class="genmed">' . phpbb_admin_html($error->getMessage()) . '</p>'; }
 $template->assign_vars(array('REMOVAL_JOBS' => $pending_removals));
 
+require_once($phpbb_root_path . 'includes/functions_admin_profile_storage.' . $phpEx);
+$admin_profile_scope = null;
+try
+{
+if (isset($_POST['submit']) && $mode !== 'save') { phpbb_acl_error('Session_invalid'); }
+if (isset($_POST['new_user']) && !in_array($_POST['new_user'], array(0,'0',1,'1'), true)) { phpbb_acl_error('Acl_selection_changed'); }
+if (isset($_POST['submit']) && (isset($_POST['avatargallery']) || isset($_POST['submitavatar']) || isset($_POST['cancelavatar']))) { phpbb_acl_error('Acl_selection_changed'); }
+
 // Start add - Admin add user MOD
 $new_user = ((int) admin_user_post_string('new_user') === 1) ? TRUE : 0;
 if ($new_user)
@@ -135,9 +143,10 @@ if ($new_user)
 		require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
 		try { $user_id = phpbb_allocate_user_id($db, $table_prefix); }
 		catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
-		$creation_scope = phpbb_user_write_begin($db);
-		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_active)
-			VALUES ($user_id, 'new_user', " . time() . ",'0')";
+		$admin_profile_scope = new PhpbbAdminProfileScope($db, $user_id, true, $_POST);
+		$db = $admin_profile_scope;
+		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_password, user_regdate, user_active)
+			VALUES ($user_id, 'new_user', '', " . time() . ",'0')";
 		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);
@@ -158,7 +167,7 @@ if ($new_user)
 		{
 			message_die(GENERAL_ERROR, 'Could not insert data into user_group table', '', __LINE__, __FILE__, $sql);
 		}
-		phpbb_user_write_end($db, $creation_scope);
+		// Placeholder, personal group and final profile publish in one commit.
 		$_POST[POST_USERS_URL] = $user_id;
 	} else
 	{
@@ -171,12 +180,15 @@ if ($new_user)
 //
 // Begin program
 //
+if ($mode === 'save' && isset($_POST['submit']) && !$new_user)
+{
+	$admin_profile_scope = new PhpbbAdminProfileScope($db, isset($_POST['id']) ? $_POST['id'] : null, false, $_POST);
+	$db = $admin_profile_scope;
+}
 if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset($_GET[POST_USERS_URL]) || isset( $_POST[POST_USERS_URL]) ) )
 {
-	// A created account has a newly allocated ID; the hidden id still describes
-	// the reference profile. Never apply its quota edits to that reference user.
-	attachment_quota_settings('user', isset($_POST['submit']) ? $_POST['submit'] : '', $mode,
-		($new_user && $mode === 'save' && isset($_POST['submit'])) ? $user_id : null);
+	// Quotas save only through the owning profile transaction. Form rendering
+	// below uses a separate read-only helper, including validation failures.
 	//
 	// Ok, the profile has been modified and submitted, let's update
 	//
@@ -197,7 +209,7 @@ if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset(
 		$message = '';
 
 		// Start add - Protect user account MOD
-if( !empty($_POST['block_account']) )
+if( $admin_profile_scope !== null && !empty($_POST['block_account']) )
 {
 	$sql = "UPDATE ".USERS_TABLE." SET 
 		user_blocktime='".(time()+$board_config['block_time']*60)."', user_block_by='$user_ip' 
@@ -213,7 +225,7 @@ if( !empty($_POST['block_account']) )
 	}
 
 } else
-if( !empty($_POST['unblock_account']) )
+if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 {
 	$sql = "UPDATE ".USERS_TABLE." SET 
 		user_blocktime='0', user_badlogin='0' 
@@ -584,6 +596,8 @@ if( !empty($_POST['unblock_account']) )
 		//
 		if( !$error )
 		{
+			if ($admin_profile_scope === null) { phpbb_acl_error('Session_invalid'); }
+			$admin_profile_scope->assign_quotas($_POST);
 			if ($user_ycard>$board_config['max_user_bancard']) 
 { 
    $sql = "SELECT ban_userid FROM " . BANLIST_TABLE . " WHERE ban_userid=$user_id"; 
@@ -592,7 +606,7 @@ if( !empty($_POST['unblock_account']) )
       if (!$db->sql_fetchrowset($result)) 
       { 
          // insert the user in the ban list 
-         $sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid) VALUES ($user_id)"; 
+         $sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid, ban_ip) VALUES ($user_id, '')";
          if (!$result = $db->sql_query($sql) ) 
             message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql); 
          else $no_error_ban=true; 
@@ -608,7 +622,7 @@ if( !empty($_POST['unblock_account']) )
 }
 			// Core and custom profile data become visible in one statement. In
 			// particular, a new placeholder must not become active before custom
-			// fields have been stored successfully (also on MyISAM).
+			// fields have been stored successfully in the InnoDB transaction.
 			$account_profile_sql = empty($profile_assignments) ? '' : ', ' . implode(', ', $profile_assignments);
 			$sql = "UPDATE " . USERS_TABLE . "
 				SET " . $username_sql . $passwd_sql . "user_email = '" . admin_user_sql_value($email) . "', user_icq = '" . admin_user_sql_value($icq) . "', user_website = '" . admin_user_sql_value($website) . "', user_occ = '" . admin_user_sql_value($occupation) . "', user_from = '" . admin_user_sql_value($location) . "', user_from_flag = '" . admin_user_sql_value($user_flag) . "', user_interests = '" . admin_user_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . admin_user_sql_value($user_absence_text) . "', user_birthday='$birthday', user_next_birthday_greeting=$next_birthday_greeting, user_sig = '" . admin_user_sql_value($signature) . "', user_viewemail = $viewemail, user_aim = '" . admin_user_sql_value($aim) . "', user_yim = '" . admin_user_sql_value($yim) . "', user_msnm = '" . admin_user_sql_value($msn) . "', user_fb = '" . admin_user_sql_value($fb) . "', user_ig = '" . admin_user_sql_value($ig) . "', user_pt = '" . admin_user_sql_value($pt) . "', user_twr = '" . admin_user_sql_value($twr) . "', user_skp = '" . admin_user_sql_value($skp) . "', user_tg = '" . admin_user_sql_value($tg) . "', user_li = '" . admin_user_sql_value($li) . "', user_tt = '" . admin_user_sql_value($tt) . "', user_dc = '" . admin_user_sql_value($dc) . "', user_signal = '" . admin_user_sql_value($signal) . "', user_threema = '" . admin_user_sql_value($threema) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_sig_bbcode_uid = '" . admin_user_sql_value($signature_bbcode_uid) . "', user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowavatar = $user_allowavatar, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_allow_pm = $user_allowpm, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popuppm, user_lang = '" . admin_user_sql_value($user_lang) . "', user_style = $user_style, user_timezone = $user_timezone, user_dateformat = '" . admin_user_sql_value($user_dateformat) . "', user_active = $user_status, user_warnings = $user_ycard, user_rank = $user_rank, user_gender = '" . admin_user_sql_value($gender) . "'" . $avatar_sql . $force_new_passwd_sql . $account_profile_sql . "
@@ -619,6 +633,7 @@ if( !empty($_POST['unblock_account']) )
 				if (isset($rename_user))
 				{
 					phpbb_sync_username_references($user_id, $this_userdata['username'], $rename_user);
+					$admin_profile_scope->rename_cache_needed = true;
 				}
 				
 				// Delete user session, to prevent the user navigating the forum (if logged in) when disabled
@@ -638,7 +653,7 @@ if( !empty($_POST['unblock_account']) )
 				// and change the current one (if applicable)
 				if ( !empty($passwd_sql) )
 				{
-					session_reset_keys($user_id, $user_ip);
+					$admin_profile_scope->login_cookie = session_reset_keys($user_id, $user_ip, true);
 				}
 				
 				$message .= $lang['Admin_user_updated'];
@@ -648,12 +663,14 @@ if( !empty($_POST['unblock_account']) )
 				message_die(GENERAL_ERROR, 'Admin_user_fail', '', __LINE__, __FILE__, $sql);
 			}
 
+			$admin_profile_scope->finish();
 			$message .= '<br /><br />' . sprintf($lang['Click_return_useradmin'], '<a href="' . append_sid("admin_users.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
 
 			message_die(GENERAL_MESSAGE, $message);
 		}
 		else
 		{
+			if ($admin_profile_scope !== null) { $admin_profile_scope->release(); }
 			$template->set_filenames(array(
 				'reg_header' => 'error_body.tpl')
 			);
@@ -805,6 +822,7 @@ if( !empty($_POST['unblock_account']) )
 		$smilies_status = ($this_userdata['user_allowsmile'] ) ? $lang['Smilies_are_ON'] : $lang['Smilies_are_OFF'];
 	}
 
+	phpbb_admin_profile_quota_controls($user_id, $_POST);
 	if( isset($_POST['avatargallery']) && !$error )
 	{
 		if( !$error )
@@ -903,6 +921,10 @@ if( !empty($_POST['unblock_account']) )
 			// End add - Admin add user MOD
 			$s_hidden_fields .= '<input type="hidden" name="id" value="' . $user_id . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="sid" value="' . htmlspecialchars((string) $userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
+			foreach (array('user_upload_quota', 'user_pm_quota') as $quota_field)
+			{
+				if (isset($_POST[$quota_field])) { $s_hidden_fields .= '<input type="hidden" name="' . $quota_field . '" value="' . phpbb_attach_quota_id($_POST[$quota_field], true) . '" />'; }
+			}
 			
 			$s_hidden_fields .= '<input type="hidden" name="username" value="' . phpbb_profile_display_text($username) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="email" value="' . phpbb_profile_display_text($email) . '" />';
@@ -1525,6 +1547,16 @@ else
 
 }
 
+}
+catch (PhpbbAclException $error)
+{
+	if ($admin_profile_scope !== null) { $admin_profile_scope->release(); }
+	message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8'));
+}
+finally
+{
+	if ($admin_profile_scope !== null) { $admin_profile_scope->release(); }
+}
 include('./page_footer_admin.'.$phpEx);
 
 ?>

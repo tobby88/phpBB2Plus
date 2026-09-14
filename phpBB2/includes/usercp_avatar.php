@@ -75,8 +75,13 @@ function user_avatar_gallery_directory()
 
 function user_avatar_delete($avatar_type, $avatar_file)
 {
-	global $userdata;
+	global $userdata, $admin_profile_scope;
 	$avatar_file = basename($avatar_file);
+	if (isset($admin_profile_scope) && $admin_profile_scope instanceof PhpbbAdminProfileScope && $admin_profile_scope->ready && $avatar_type == USER_AVATAR_UPLOAD && $avatar_file !== '')
+	{
+		$admin_profile_scope->remember_avatar($avatar_file, false);
+		return ", user_avatar = '', user_avatar_type = " . USER_AVATAR_NONE;
+	}
 	$avatar_dir = user_avatar_storage_directory();
 	
 	if ( $avatar_type == USER_AVATAR_UPLOAD && $avatar_file != '' && $avatar_dir !== false )
@@ -146,7 +151,7 @@ function user_avatar_url($mode, &$error, &$error_msg, $avatar_filename)
 
 function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_type, &$error, &$error_msg, $avatar_filename, $avatar_realname, $avatar_filesize, $avatar_filetype)
 {
-	global $board_config, $db, $lang;
+	global $board_config, $db, $lang, $admin_profile_scope;
 
 	$avatar_sql = '';
 	if ($avatar_mode == 'remote')
@@ -203,6 +208,7 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 		}
 
 		@chmod($destination, 0664);
+		if (isset($admin_profile_scope) && $admin_profile_scope instanceof PhpbbAdminProfileScope && $admin_profile_scope->ready) { $admin_profile_scope->remember_avatar($new_filename, true); }
 		if ( $mode == 'editprofile' && $current_type == USER_AVATAR_UPLOAD && $current_avatar != '' )
 		{
 			user_avatar_delete($current_type, $current_avatar);

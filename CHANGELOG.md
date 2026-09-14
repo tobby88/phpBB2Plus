@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make ACP profile saves transactional across account creation, personal groups,
+  custom/core fields, quotas, bans, username references and password/session
+  changes. Hold current exact ACP authority and target protection until commit;
+  reject legacy storage and implicit-commit statements in profile helpers.
+  Delay replaced-avatar deletion and login-cookie publication until confirmed
+  commit; retain avatar files when the commit outcome is uncertain. Explicitly
+  initialize the inactive new-account password and account-ban IP sentinel for
+  strict SQL compatibility. Preserve quota controls on validation/gallery turns
+  without letting form rendering trigger writes.
+  Existing storage migrations suffice; no additional schema change is required.
 - Commit each user/group permission request atomically, including multi-forum
   grants, derived moderator roles, administrator-role transitions, personal
   grant cleanup and session invalidation. Recheck exact live ACP sessions and

@@ -1,6 +1,6 @@
 <?php
-// Execute the real ACP creation SQL against an isolated database. Only durable
-// ID allocation is stubbed; its own runtime/native regression suite covers it.
+// Execute the real ACP creation SQL against an isolated database. Allocation
+// and profile-scope ownership are covered separately by their native suites.
 namespace AccountGroupFixture;
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 define('USERS_TABLE','fixture_users'); define('GROUPS_TABLE','fixture_groups');
@@ -11,6 +11,13 @@ function message_die($type,$message) { throw new \RuntimeException($message); }
 function phpbb_allocate_user_id($db,$prefix) { check($prefix==='fixture_','Expected allocator prefix'); return 42; }
 function phpbb_user_write_begin(&$db) { return $db; }
 function phpbb_user_write_end(&$db,$scope) { check($db===$scope,'Creation releases its writer scope'); }
+class PhpbbAdminProfileScope
+{
+    public $inner;
+    function __construct($db,$id,$creating,$request) { check($id===42 && $creating===true,'Creation scope owns allocated account, not reference'); $this->inner=$db; }
+    function __call($method,$args) { return call_user_func_array(array($this->inner,$method),$args); }
+    function __get($name) { return $this->inner->$name; }
+}
 class CreationDb
 {
     public $pdo; public $queries=array();
@@ -34,11 +41,11 @@ try
         foreach(array(0,1) as $pending)
         {
             $db=new CreationDb(); $pdo=$db->pdo; $table_prefix='fixture_'; $_POST=array();
-            $pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY,username TEXT,user_regdate INTEGER,user_active INTEGER,user_level INTEGER DEFAULT 0)');
+            $pdo->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY,username TEXT,user_regdate INTEGER,user_active INTEGER,user_level INTEGER DEFAULT 0,user_password TEXT NOT NULL DEFAULT "")');
             $pdo->exec('CREATE TABLE fixture_groups (group_id INTEGER PRIMARY KEY AUTOINCREMENT,group_name TEXT,group_description TEXT,group_single_user INTEGER,group_moderator INTEGER)');
             $pdo->exec('CREATE TABLE fixture_user_group (user_id INTEGER,group_id INTEGER,user_pending INTEGER)');
             $pdo->exec('CREATE TABLE fixture_auth_access (group_id INTEGER,auth_view INTEGER,auth_read INTEGER,auth_mod INTEGER)');
-            $pdo->exec("INSERT INTO fixture_users VALUES (2,'Reference',100,1,".$reference_level."),(8,'Other member',200,1,0)");
+            $pdo->exec("INSERT INTO fixture_users (user_id,username,user_regdate,user_active,user_level) VALUES (2,'Reference',100,1,".$reference_level."),(8,'Other member',200,1,0)");
             $pdo->exec("INSERT INTO fixture_groups VALUES (10,'Private','Private access',0,2),(20,'Pending','Requested membership',0,8),(30,'Moderators','Moderator access',0,2),(100,'','Reference personal group',1,0)");
             $pdo->exec('INSERT INTO fixture_user_group VALUES (2,10,0),(2,20,'.$pending.'),(2,30,0),(2,100,0),(8,10,0)');
             $pdo->exec('INSERT INTO fixture_auth_access VALUES (10,1,1,0),(20,1,1,0),(30,1,1,1)');

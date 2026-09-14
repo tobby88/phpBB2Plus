@@ -63,6 +63,8 @@ jobs:
 
       - name: Check InnoDB migration schema and updater integration
         run: php .github/scripts/check-innodb-migration.php
+      - name: ACP avatar upload transaction integration
+        run: php .github/scripts/check-admin-profile-avatar.php
       - name: Storage defaults and restore guards
         run: php .github/scripts/check-storage-policy.php
       - name: Maintenance unlock and settings authorization

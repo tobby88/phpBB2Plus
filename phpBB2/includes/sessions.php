@@ -568,7 +568,7 @@ function session_clean($session_id)
 * Reset all login keys for the specified user
 * Called on password changes
 */
-function session_reset_keys($user_id, $user_ip)
+function session_reset_keys($user_id, $user_ip, $defer_cookie = false)
 {
 	global $db, $userdata, $board_config;
 
@@ -616,12 +616,20 @@ function session_reset_keys($user_id, $user_ip)
 		$cookiedomain = $board_config['cookie_domain'];
 		$cookiesecure = $board_config['cookie_secure'];
 
-		phpbb_setcookie($cookiename . '_data', serialize($sessiondata), $current_time + 31536000, $cookiepath, $cookiedomain, $cookiesecure);
-		
-		$userdata['session_key'] = $auto_login_key;
+		$publication = array('name'=>$cookiename . '_data','value'=>serialize($sessiondata),'expires'=>$current_time + 31536000,
+			'path'=>$cookiepath,'domain'=>$cookiedomain,'secure'=>$cookiesecure,'key'=>$auto_login_key);
+		if ($defer_cookie) { return $publication; }
+		phpbb_session_publish_reset_cookie($publication);
 		unset($sessiondata);
 		unset($auto_login_key);
 	}
+}
+
+function phpbb_session_publish_reset_cookie($publication)
+{
+	global $userdata;
+	phpbb_setcookie($publication['name'], $publication['value'], $publication['expires'], $publication['path'], $publication['domain'], $publication['secure']);
+	$userdata['session_key'] = $publication['key'];
 }
 
 //

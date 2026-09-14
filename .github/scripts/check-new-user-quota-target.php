@@ -1,15 +1,20 @@
 <?php
+// Exact controller bindings; the real scope/assignment SQL is exercised by
+// check-admin-profile-native.php. Never execute a live forum bootstrap here.
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');ob_start();require __DIR__.'/check-attachment-settings-storage.php';ob_end_clean();
-require $ats_source.'attach_mod/includes/functions_attach.php';
-ats_load_function($ats_source.'attach_mod/includes/functions_includes.php','attachment_quota_settings');
-function attachment_quota_save_form($mode,$id,$delete=false){$GLOBALS['new_quota_target']=$id;}
-$phpbb_root_path=$ats_source;$attach_config=array('allow_ftp_upload'=>'0','upload_dir'=>'files');
-$controller=file_get_contents($ats_source.'admin/admin_users.php');
-ats_check(preg_match('/\battachment_quota_settings\([\s\S]*?\);/',$controller,$call)===1,'Actual user controller call');
-foreach(array(true,false) as $new_user){
- $mode='save';$user_id=5;$_POST=array('id'=>'2','u'=>'999','new_user'=>$new_user?'1':'0','submit'=>'Save','user_upload_quota'=>'1');$_GET=array();$HTTP_POST_VARS=&$_POST;$HTTP_GET_VARS=&$_GET;
- // The allocator's trusted result is 5; both posted IDs are different. Execute
- // the real controller expression and real quota dispatch, not a copied branch.
- eval($call[0]);ats_check($new_quota_target===($new_user?5:2),'New account targets allocated ID; edit keeps selected account');
+class PhpbbAdminProfileScope
+{
+ var $id; var $creating;
+ function __construct($db,$id,$creating,$request){$this->id=$id;$this->creating=$creating;}
+ function assign_quotas($request){$GLOBALS['new_quota_target']=$this->id;}
 }
-echo "Actual user-controller quota target checks passed\n";
+$controller=file_get_contents($ats_source.'admin/admin_users.php');
+ats_check(strpos($controller,"attachment_quota_settings('user'")===false&&strpos($controller,'phpbb_admin_profile_quota_controls($user_id, $_POST);')!==false,'Profile rendering cannot invoke legacy request-derived quota writer');
+ats_check(preg_match_all('/\\$admin_profile_scope = new PhpbbAdminProfileScope\\([^;]+;/',$controller,$calls)===2,'Actual creation and edit scope bindings');
+ats_check(preg_match('/\\$admin_profile_scope->assign_quotas\\(\\$_POST\\);/',$controller,$save)===1,'Actual deferred quota binding');
+foreach(array(true,false) as $new_user){
+ $db=null;$user_id=5;$_POST=array('id'=>'2','u'=>'999','new_user'=>$new_user?'1':'0','submit'=>'Save','user_upload_quota'=>'1');
+ eval($calls[0][$new_user?0:1]);eval($save[0]);
+ ats_check((int)$new_quota_target===($new_user?5:2)&&$admin_profile_scope->creating===$new_user,'Quotas follow scope-owned allocated or selected user, never reference/URL ID');
+}
+echo "Actual profile-scope quota target bindings passed\n";

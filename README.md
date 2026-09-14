@@ -76,6 +76,14 @@ InnoDB checks do not falsely claim to repair corruption with REPAIR TABLE.
 
 ## Project status
 
+ACP profile saves publish account/group creation, profile fields, quotas, bans,
+username references and session changes in one InnoDB transaction. Current ACP
+authority is locked through the save. Replacement avatars and login cookies are
+finalized only after confirmed commit. A lost commit reply reports uncertainty:
+reload and check the account before retrying; both avatar files may be retained
+to avoid deleting an image referenced by a committed profile. The regular storage
+updater covers the required tables; deployment does not alter existing accounts.
+
 Manual forum unlock and maintenance-setting changes require a current active
 account, current module permission and the exact live ACP session at the write
 boundary, not just the permissions cached when the page was opened. Failed or

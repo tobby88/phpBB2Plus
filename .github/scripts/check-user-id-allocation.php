@@ -138,7 +138,11 @@ try
     foreach(array('admin/admin_users.php','admin/admin_user_register.php','includes/usercp_register.php') as $file)
     {
         $source=file_get_contents($forum_root.$file);
-        mutation_check(strpos($source,'phpbb_user_write_begin($db)')!==false && strpos($source,'phpbb_user_write_end($db,')!==false,'Account/group repair scopes are connected: '.$file);
+        if ($file==='admin/admin_users.php')
+        {
+            mutation_check(strpos($source,'new PhpbbAdminProfileScope($db, $user_id, true, $_POST)')!==false && strpos($source,'$db = $admin_profile_scope;')!==false && strpos($source,'$admin_profile_scope->finish();')!==false,'ACP creation uses complete authorized profile transaction');
+        }
+        else { mutation_check(strpos($source,'phpbb_user_write_begin($db)')!==false && strpos($source,'phpbb_user_write_end($db,')!==false,'Account/group repair scopes are connected: '.$file); }
     }
     // Maintenance now adds current ACP authorization to the same dedicated
     // writer. Its complete lifecycle and mutation guards run in the separate

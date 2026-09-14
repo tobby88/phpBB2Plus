@@ -90,8 +90,8 @@ try
     removal_failure(function() use($job) { removal_run(array('removal_resume'=>$job)); },'Removal_invalid');
     managed_removal_run(array('removal_resume'=>$job)); managed_removal_complete();
     $controller=file_get_contents($forum_root.'admin/admin_users.php');
-    $begin=strpos($controller,'// Durable user deletion is dispatched'); $end=strpos($controller,'// Start add - Admin add user MOD',$begin);
-    mutation_check($begin!==false && $end>$begin && $end<strpos($controller,'$new_user =') && $end<strpos($controller,'attachment_quota_settings('),'Deletion dispatch precedes creation, quotas and profile mutations');
+    $begin=strpos($controller,'// Durable user deletion is dispatched'); $end=strpos($controller,"require_once(\$phpbb_root_path . 'includes/functions_admin_profile_storage.'",$begin);
+    mutation_check($begin!==false && $end>$begin && $end<strpos($controller,'$new_user =') && $end<strpos($controller,'$admin_profile_scope->assign_quotas('),'Deletion dispatch precedes creation, quotas and profile mutations');
     mutation_check(strpos($controller,'phpbb_pm_delete_user_messages(')===false,'No legacy pre-account-delete PM path remains in user manager');
     $body=substr($controller,$begin,$end-$begin); $lang['Click_return_useradmin']='Return %susers%s';
     managed_removal_fixture(); $reader=new RemovalReader(); $template=new RemovalTemplate(); $_POST=array('sid'=>'fixture-session','deleteuser'=>'on','mode'=>'save','submit'=>'Save','id'=>9); $mutation_server->failure='DELETE FROM fixture_keys';
