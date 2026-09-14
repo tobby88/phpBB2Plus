@@ -428,6 +428,16 @@ sign in with current permission and retry. An error after a committed publicatio
 does not undo that already completed transaction. No additional migration is needed
 once the documented InnoDB migration has completed.
 
+General configuration accepts only its displayed form fields, not internal
+version/recovery/maintenance keys or settings owned by other modules. The complete
+request is validated before an automatic backup or configuration write. Submitted
+values are saved in one transaction using current ACP authority; unsubmitted
+settings are not rewritten from a stale snapshot. SMTP password bytes and UTF-8
+text are preserved. Automatic backups remain a separate preceding operation, so
+a usable backup may remain even when the subsequent configuration save fails.
+No additional migration is needed; configuration and authority tables must meet
+the existing InnoDB/DYNAMIC/utf8mb4 migration requirements.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

@@ -43,106 +43,24 @@ if ($is_submit)
 //
 // Pull all config data
 //
-$sql = "SELECT *
-	FROM " . CONFIG_TABLE;
-if(!$result = $db->sql_query($sql))
+require_once($phpbb_root_path . 'includes/functions_board_config.' . $phpEx);
+if ($is_submit)
 {
-	message_die(CRITICAL_ERROR, "Could not query config information in admin_board", "", __LINE__, __FILE__, $sql);
+	try { phpbb_board_config_save($db, $_POST); }
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	$message = $lang['Config_updated'] . "<br /><br />" . sprintf($lang['Click_return_config'], "<a href=\"" . append_sid("admin_board.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
+	message_die(GENERAL_MESSAGE, $message);
 }
-else
+
+// Rendering never writes values back, including internal metadata.
+$sql = 'SELECT config_name, config_value FROM ' . CONFIG_TABLE;
+if (!$result = $db->sql_query($sql))
 {
-	// CrackerTracker v5.x
-	if ( $is_submit && $ctracker_config->settings['detect_misconfiguration'] == 1 )
-	{
-		if ( phpbb_admin_post_string('server_port') == '21' )
-		{
-			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_1']);
-		}
-		if ( intval(phpbb_admin_post_string('session_length')) < 100 )
-		{
-			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_2']);
-		}
-		if ( !preg_match('/\\A\/$|\\A\/.*\/$/', phpbb_admin_post_string('script_path')) )
-		{
-			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_3']);
-		}
-		if ( preg_match('/\/$/', phpbb_admin_post_string('server_name')) )
-		{
-			message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_pu_4']);
-		}
-	}
-
-	if ( $is_submit && $ctracker_config->settings['auto_recovery'] == 1 )
-	{
-		define('CTRACKER_ACP', true);
-		include_once($phpbb_root_path . 'ctracker/classes/class_ct_adminfunctions.' . $phpEx);
-		$backup_system = new ct_adminfunctions();
-		$backup_system->recover_configuration('board');
-		unset($backup_system);
-	}
-
-	while( $row = $db->sql_fetchrow($result) )
-	{
-		$config_name = $row['config_name'];
-		$config_value = $row['config_value'];
-		$default_config[$config_name] = $config_value;
-		$new[$config_name] = ($is_submit && isset($_POST[$config_name]) && is_scalar($_POST[$config_name]))
-			? phpbb_admin_post_string($config_name)
-			: $default_config[$config_name];
-		if ($is_submit && strlen($new[$config_name]) > 255)
-		{
-			message_die(GENERAL_MESSAGE, 'The submitted value for ' . phpbb_admin_html($config_name) . ' is too long.');
-		}
-
-		if ($config_name == 'cookie_name')
-		{
-			$new['cookie_name'] = str_replace('.', '_', $new['cookie_name']);
-		}
-
-		// Attempt to prevent a common mistake with this value,
-		// http:// is the protocol and not part of the server name
-		if ($config_name == 'server_name')
-		{
-			$server_name_candidate = preg_replace('#^https?://#i', '', trim($new['server_name']));
-			$new['server_name'] = phpbb_normalize_host($server_name_candidate, $default_config['server_name']);
-		}
-		if ($config_name == 'server_port')
-		{
-			$new['server_port'] = phpbb_normalize_port($new['server_port'], $default_config['server_port']);
-		}
-		if ($config_name == 'script_path')
-		{
-			$new['script_path'] = phpbb_normalize_script_path($new['script_path'], $default_config['script_path']);
-		}
-		// Attempt to prevent a mistake with this value.
-		if ($config_name == 'avatar_path')
-		{
-			$new['avatar_path'] = str_replace('\\', '/', trim($new['avatar_path']));
-			if (strstr($new['avatar_path'], "\0") || preg_match('#(?:^|/)\.\.(?:/|$)#', $new['avatar_path']) || substr($new['avatar_path'], 0, 1) === '/' ||
-				!is_dir($phpbb_root_path . $new['avatar_path']) || !is_writable($phpbb_root_path . $new['avatar_path']))
-			{
-				$new['avatar_path'] = $default_config['avatar_path'];
-			}
-		}
-		if( $is_submit )
-		{
-			$sql = "UPDATE " . CONFIG_TABLE . " SET
-				config_value = '" . $db->sql_escape($new[$config_name]) . "'
-				WHERE config_name = '" . $db->sql_escape($config_name) . "'";
-			if( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Failed to update general configuration for $config_name", "", __LINE__, __FILE__, $sql);
-			}
-		}
-	}
-
-	if( $is_submit )
-	{
-		$message = $lang['Config_updated'] . "<br /><br />" . sprintf($lang['Click_return_config'], "<a href=\"" . append_sid("admin_board.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-
-		message_die(GENERAL_MESSAGE, $message);
-	}
+	message_die(CRITICAL_ERROR, 'Could not query config information in admin_board', '', __LINE__, __FILE__, $sql);
 }
+$new = array();
+while ($row = $db->sql_fetchrow($result)) { $new[$row['config_name']] = $row['config_value']; }
+$db->sql_freeresult($result);
 
 $style_select = style_select($new['default_style'], 'default_style', "../templates");
 $lang_select = language_select($new['default_lang'], 'default_lang', "language");

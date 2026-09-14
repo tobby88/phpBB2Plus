@@ -59,7 +59,7 @@ $integrations = array(
 	'admin/admin_album_nuffload_config.php' => array('$module[\'Photo_Album\'][\'Nuffload\']', 'admin/admin_album_nuffload_config_body.tpl'),
 	'admin/admin_cracker_tracker.php' => array('$module[\'ctracker_module_category\'][\'ctracker_module_1\']', '?modu=11'),
 	'ctracker/admin/acp_module_maintenance.php' => array('CTRACKER_RATE_LIMITS', "version_compare(PHP_VERSION, '5.6.0'", 'password_hashing', 'HTTPS'),
-	'admin/admin_board.php' => array('cookie_consent_enable', 'sfs_enable', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape($new[$config_name])'),
+	'admin/admin_board.php' => array('cookie_consent_enable', 'sfs_enable', 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_board_config_save($db, $_POST)'),
 	'admin/admin_board_extend.php' => array("\$module['General']['Configuration_extend']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape((string) $$field_name)', '$dir !== false'),
 	'admin/admin_hacks_list.php' => array("\$module['General']['Hacks_List']", 'phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'admin_hacks_form_values', "preg_match('/^(delete|update|add)_id_"),
 	'includes/functions_hacks_list.php' => array('$dir_handle === false', '$db->sql_escape($val)', 'if (!is_array($file_data))'),

@@ -63,3 +63,7 @@ jobs:
         env:
           PHPBB_CT_RECOVERY_NATIVE: '1'
           PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only
+      - run: php .github/scripts/check-board-config-storage.php
+        env:
+          PHPBB_BOARD_CONFIG_NATIVE: '1'
+          PHPBB_BOARD_CONFIG_PASSWORD: fixture-only

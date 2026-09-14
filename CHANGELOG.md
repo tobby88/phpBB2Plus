@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save general configuration through an explicit rendered-field allowlist and
+  a dedicated InnoDB transaction. Validate the whole request before automatic
+  backups or configuration writes, preserve unsubmitted/internal metadata and
+  exact UTF-8/SMTP password bytes, and recheck current ACP authority through
+  commit. Add native tests of the actual controller, rollback, concurrent
+  metadata changes and delegated automatic backups. No new migration required.
 - Revalidate live account, exact ACP session and delegated module permissions
   throughout CrackerTracker configuration snapshots, restores and both scanners,
   including automatic snapshots from general board configuration. Publish reports
