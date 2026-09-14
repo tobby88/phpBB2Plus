@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Use the database driver's private connection factory for CrackerTracker
+  scanners and configuration snapshots after bootstrap removes public database
+  credentials. Preserve current availability, schema/style versions, rebuild
+  state and recovery tokens when restoring settings, including aliases in old
+  backups with different collations. Cover real scans, snapshots and restores
+  with native database tests. No schema migration is required.
 - Preserve newer CrackerTracker rate windows, quotas and successful-action
   timestamps when delayed requests finish out of order. Read back the current
   window, bound rate-limit Retry-After values and saturate counters safely.

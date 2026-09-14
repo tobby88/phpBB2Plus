@@ -91,6 +91,19 @@ class LockTestForumDatabase
 	var $dbname = 'fixture';
 	function sql_query($sql) { throw new RuntimeException('Builder used the unlocked forum connection'); }
 }
+class LockTestFactoryDatabase extends LockTestForumDatabase
+{
+	var $factory_calls = 0;
+	var $factory_failure = '';
+	function sql_dedicated_connection()
+	{
+		$this->factory_calls++;
+		if ($this->factory_failure === 'false') { return false; }
+		if ($this->factory_failure === 'exception') { throw new RuntimeException('Unavailable'); }
+		if ($this->factory_failure === 'error') { throw new Error('Unavailable'); }
+		return new sql_db('fixture', 'fixture', '', $this->dbname, false);
+	}
+}
 $db = new LockTestForumDatabase();
 $lang = array('ctracker_scan_busy' => 'busy', 'ctracker_error_database_op' => 'database', 'ctracker_error_fileop' => 'file');
 $lang['ctracker_error_storage_migration'] = 'migration';
@@ -115,6 +128,23 @@ function run_locked_scan($kind)
 }
 try
 {
+	// Real bootstrap removes public credentials. Prefer the driver's private
+	// factory, and fail closed without warning/retrying a removed password.
+	foreach (array('', 'false', 'exception', 'error') as $failure)
+	{
+		if ($failure === 'error' && PHP_VERSION_ID < 70000) { continue; }
+		$lock_server = new LockTestServer();
+		$factory_db = new LockTestFactoryDatabase(); unset($factory_db->password);
+		$factory_db->factory_failure = $failure;
+		$factory_lock = new ct_scan_lock($factory_db, CTRACKER_FILECHK);
+		lock_assert($factory_db->factory_calls === 1 && !isset($factory_db->password), 'Use private factory once without restoring credentials');
+		lock_assert($failure === '' ? $factory_lock->acquired === 1 : $factory_lock->acquired === null && $factory_lock->connection === null, 'Factory failure stays closed');
+		$factory_lock->release();
+		lock_assert(!$lock_server->locks, 'Factory lock released');
+	}
+	$legacy_db = new LockTestForumDatabase(); unset($legacy_db->password);
+	$legacy_lock = new ct_scan_lock($legacy_db, CTRACKER_FILECHK);
+	lock_assert($legacy_lock->acquired === null && $legacy_lock->connection === null, 'Adapter without credentials or factory fails closed');
 	foreach (array('hash', 'scan') as $kind)
 	{
 		$table = 'fixture_' . $kind;

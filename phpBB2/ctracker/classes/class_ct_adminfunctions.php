@@ -36,10 +36,23 @@ class ct_scan_lock
 
 	function __construct($database, $table)
 	{
-		// Strip an explicit persistent prefix as well as passing false.
-		$server = preg_replace('/^p:/', '', $database->server);
-		$this->connection = new sql_db($server, $database->user, $database->password, $database->dbname, false);
-		if (!$this->connection->db_connect_id)
+		// Bootstrap removes the public password. The driver retains a private
+		// factory for independent, non-persistent writer connections.
+		try
+		{
+			if (method_exists($database, 'sql_dedicated_connection'))
+			{
+				$this->connection = $database->sql_dedicated_connection();
+			}
+			else
+			{
+				if (!isset($database->password)) { return; }
+				$this->connection = new sql_db(preg_replace('/^p:/', '', $database->server), $database->user, $database->password, $database->dbname, false);
+			}
+		}
+		catch (Exception $exception) { $this->connection = null; }
+		catch (Error $exception) { $this->connection = null; }
+		if (!$this->connection || !$this->connection->db_connect_id)
 		{
 			$this->connection = null;
 			return;
@@ -1170,7 +1183,14 @@ class ct_adminfunctions
 		// Restore values in place. Dropping and recreating the live configuration
 		// table could lose its charset, indexes or newer settings on interruption.
 		$sql = 'SELECT config_name, config_value FROM ' . CTRACKER_BACKUP .
-			" WHERE config_name <> 'ct_last_backup'";
+			" WHERE config_name <> 'ct_last_backup'" .
+			// A settings snapshot is not a database rollback. Never resurrect
+			// completed jobs/tokens, undo an upgrade or change current availability.
+			// Compare with the live schema's collation even for old binary backups:
+			// case, accent and trailing-space aliases can hit the same target key.
+			" AND CONVERT(config_name USING utf8mb4) COLLATE utf8mb4_unicode_ci NOT IN (" .
+			"'ct_last_backup','board_disable','version','xs_version','dbmtnc_rebuild_job'," .
+			"'dbmtnc_rebuild_pos','dbmtnc_rebuild_end','dbmtnc_orphan_recovery_token')";
 
 		if ( !($result = $db->sql_query($sql)) )
 		{

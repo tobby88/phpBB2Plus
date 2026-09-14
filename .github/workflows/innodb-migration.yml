@@ -57,3 +57,7 @@ jobs:
         env:
           PHPBB_RATE_NATIVE: '1'
           PHPBB_RATE_TEST_PASSWORD: fixture-only
+      - run: php .github/scripts/check-ctracker-recovery-storage.php
+        env:
+          PHPBB_CT_RECOVERY_NATIVE: '1'
+          PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only

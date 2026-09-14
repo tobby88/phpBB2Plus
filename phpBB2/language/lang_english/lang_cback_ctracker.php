@@ -349,7 +349,7 @@ $lang['ctracker_mu_no_defined']			  = 'There are no users marked as "Miserable U
  * Recovery feature in ACP
  */
 $lang['ctracker_rec_head']				  = 'System Recovery';
-$lang['ctracker_rec_subhead']			  = 'Create a snapshot of the phpBB configuration or restore the last completely saved values. When automatic recovery is enabled, a new snapshot is created before general board settings are changed. The previous snapshot remains available if that operation is interrupted.<br /><br /><b>Important:</b> This is not a complete database backup and does not replace one. The formerly public CrackerTracker emergency console is permanently disabled for security reasons. If ACP access is lost, use a verified database backup or the separate database-maintenance tool.';
+$lang['ctracker_rec_subhead']			  = 'Create a snapshot of the phpBB configuration or restore the last completely saved values. When automatic recovery is enabled, a new snapshot is created before general board settings are changed. The previous snapshot remains available if that operation is interrupted. Restoring settings leaves the current board availability, internal versions, search rebuild progress and recovery tokens unchanged.<br /><br /><b>Important:</b> This is not a complete database backup and does not replace one. The formerly public CrackerTracker emergency console is permanently disabled for security reasons. If ACP access is lost, use a verified database backup or the separate database-maintenance tool.';
 $lang['ctracker_rec_last_saved']		  = 'Last Backup of the Configuration Table: <b>%s</b>';
 $lang['ctracker_rec_never_saved']		  = 'The Configuration Table has not been backed up so far!';
 $lang['ctracker_rec_backup']			  = 'Backup of Configuration Table';
