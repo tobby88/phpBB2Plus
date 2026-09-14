@@ -35,7 +35,10 @@ function phpbb_mod_settings_values($request, $fields, $current)
 				if (!in_array($value, array_map('strval', $field['values']), true)) { phpbb_acl_error('Board_config_invalid'); }
 				break;
 			case 'TINYINT': case 'SMALLINT': case 'MEDIUMINT': case 'INT':
-				$limits = array('TINYINT' => 255, 'SMALLINT' => 65535, 'MEDIUMINT' => 16777215, 'INT' => 2147483647);
+				// These legacy type names select form widths, not SQL column types:
+				// config_value is VARCHAR. Preserve valid three/five/eight-digit
+				// settings (e.g. a 365-day announcement) from the existing form.
+				$limits = array('TINYINT' => 999, 'SMALLINT' => 99999, 'MEDIUMINT' => 99999999, 'INT' => 2147483647);
 				if (!preg_match('/^[0-9]{1,10}$/D', $value) || (float)$value > $limits[$field['type']]) { phpbb_acl_error('Board_config_invalid'); }
 				$value = (string)(int)$value;
 				break;

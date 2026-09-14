@@ -30,7 +30,8 @@ $ajax=$ms_sections['AJAX_features'];
 foreach(array(array('use_ajax_edit'=>'2'),array('use_ajax_edit'=>array('1')),array('use_ajax_edit_over'=>'2'),array('use_ajax_edit_over'=>array('1')),array('version'=>'2'),array('max_posts'=>'2'),array('calendar_nb_row'=>'2'),array()) as $request){
  $denied=false;try{phpbb_mod_settings_values($request,$ajax,$ms_defaults);}catch(PhpbbAclException $e){$denied=true;}ms_check($denied,'Reject forged/hidden/foreign/empty controls');
 }
-foreach(array('-1','2x','1.5','256',str_repeat('9',20)) as $value){$denied=false;try{phpbb_mod_settings_values(array('calendar_nb_row'=>$value),$ms_sections['Calendar'],$ms_defaults);}catch(PhpbbAclException $e){$denied=true;}ms_check($denied,'Strict bounded numeric input');}
+foreach(array('-1','2x','1.5','1000',str_repeat('9',20)) as $value){$denied=false;try{phpbb_mod_settings_values(array('calendar_nb_row'=>$value),$ms_sections['Calendar'],$ms_defaults);}catch(PhpbbAclException $e){$denied=true;}ms_check($denied,'Strict bounded numeric input');}
+ms_check(phpbb_mod_settings_values(array('calendar_title_length'=>'365'),$ms_sections['Calendar'],$ms_defaults)===array('calendar_title_length'=>'365'),'Preserve existing three-digit form values beyond SQL TINYINT range');
 $textfields=array('example'=>array('type'=>'TEXT'));ms_check(phpbb_mod_settings_values(array('example'=>addslashes("Ä ' \\ 😀")),$textfields,array('example'=>''))===array('example'=>"Ä ' \\ 😀"),'Extension text decodes once');
 foreach(array("\xc3",str_repeat('x',256),"a\0b") as $value){$denied=false;try{phpbb_mod_settings_values(array('example'=>addslashes($value)),$textfields,array('example'=>''));}catch(PhpbbAclException $e){$denied=true;}ms_check($denied,'Invalid extension text rejected');}
 echo "Mod Settings input/section/override checks passed\n";
@@ -106,6 +107,7 @@ try{
  }
  ms_reset('wrong-route');$before=ms_snapshot();ms_check(ms_run(array('use_ajax_edit'=>'0'))==='Not_Authorised'&&ms_snapshot()===$before,'Main config grant cannot authorize Config+');
  foreach($ms_sections as $name=>$fields){ms_reset('root');$request=$ms_selectors[$name];foreach($fields as $key=>$field){$request[$key]=(string)$ms_defaults[$key];if(!empty($field['user'])){$request[$key.'_over']='1';}}ms_check(strpos(ms_run($request),'saved')===0,'Actual controller entire section: '.$name);}
+ ms_reset('root');ms_check(strpos(ms_run(array_merge($ms_selectors['Calendar'],array('calendar_title_length'=>'365'))),'saved')===0&&ms_snapshot()['calendar_title_length']==='365','Actual controller preserves existing three-digit settings');
  foreach(array('ENGINE=MyISAM','ROW_FORMAT=COMPACT','CONVERT TO CHARACTER SET latin1','MODIFY config_value VARCHAR(255) CHARACTER SET latin1 NOT NULL') as $legacy){ms_reset('root');ms_sql('ALTER TABLE fixture_config '.$legacy);$before=ms_snapshot();ms_check(ms_run(array('use_ajax_edit'=>'0'))==='storage'&&ms_snapshot()===$before,'Reject legacy table/column policy');ms_sql('DROP TABLE fixture_config');ms_sql(str_replace('phpbb_config',CONFIG_TABLE,$m[0]));}
  ms_reset('root');$ms_hook=function($sql){if(strpos($sql,'START TRANSACTION')===0){$GLOBALS['ms_hook']=null;ms_sql("DELETE FROM fixture_config WHERE config_name='use_ajax_edit_over'");}};
  ms_check(ms_run(array('use_ajax_edit'=>'0'))==='migration'&&ms_snapshot()['use_ajax_edit']==='1','Required row disappears before transactional lock');
