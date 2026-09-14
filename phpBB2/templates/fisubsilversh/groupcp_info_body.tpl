@@ -71,7 +71,14 @@
 </tr>
 <tr>
 <td class="row1" align="center">&nbsp;{MOD_PM_IMG}&nbsp;</td>
-<td class="row1" align="center"><a href="{U_MOD_VIEWPROFILE}" class="name">{MOD_USERNAME}</a></td>
+<td class="row1" align="center">
+<!-- BEGIN switch_group_moderator_present -->
+<a href="{U_MOD_VIEWPROFILE}" class="name">{MOD_USERNAME}</a>
+<!-- END switch_group_moderator_present -->
+<!-- BEGIN switch_group_moderator_missing -->
+<span class="name">{MOD_USERNAME}</span>
+<!-- END switch_group_moderator_missing -->
+</td>
 <td class="row1" align="center">{MOD_POSTS}</td>
 <td class="row1" align="center">{MOD_FROM}</td>
 <td class="row1" align="center">{MOD_EMAIL_IMG}</td>

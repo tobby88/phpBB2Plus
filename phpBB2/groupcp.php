@@ -35,6 +35,11 @@ $select_sort_order = '';
 function generate_user_info(&$row, $date_format, $group_mod, &$from, &$posts, &$joined, &$poster_avatar, &$profile_img, &$profile, &$search_img, &$search, &$pm_img, &$pm, &$email_img, &$email, &$www_img, &$www, &$icq_status_img, &$icq_img, &$icq, &$aim_img, &$aim, &$msn_img, &$msn, &$yim_img, &$yim)
 {
 	global $lang, $images, $board_config, $phpEx;
+	if (empty($row['user_id']) || (int)$row['user_id'] === ANONYMOUS)
+	{
+		$from = $posts = $joined = $poster_avatar = $profile_img = $profile = $search_img = $search = $pm_img = $pm = $email_img = $email = $www_img = $www = $icq_status_img = $icq_img = $icq = $aim_img = $aim = $msn_img = $msn = $yim_img = $yim = '';
+		return;
+	}
 
 	$from = ( !empty($row['user_from']) ) ? phpbb_profile_text($row['user_from']) : '&nbsp;';
 	$joined = create_date($date_format, $row['user_regdate'], $board_config['board_timezone']);
@@ -83,8 +88,9 @@ function generate_user_info(&$row, $date_format, $group_mod, &$from, &$posts, &$
 	$yim = '';
 
 	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($row['username']) . "&amp;showresults=posts");
-	$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $row['username']) . '" title="' . sprintf($lang['Search_user_posts'], $row['username']) . '" border="0" /></a>';
-	$search = '<a href="' . $temp_url . '">' . sprintf($lang['Search_user_posts'], $row['username']) . '</a>';
+	$search_label = phpbb_stored_text(sprintf($lang['Search_user_posts'], $row['username']));
+	$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . $search_label . '" title="' . $search_label . '" border="0" /></a>';
+	$search = '<a href="' . $temp_url . '">' . $search_label . '</a>';
 
 	return;
 }
@@ -325,6 +331,14 @@ else if ( $group_id )
 	}
 
 	$group_moderator = $db->sql_fetchrow($result); 
+	$db->sql_freeresult($result);
+	$has_group_moderator = is_array($group_moderator) && (int)$group_moderator['user_id'] > 0;
+	if (!$has_group_moderator)
+	{
+		// Keep orphan groups readable and repairable; never invent a user or
+		// exclude an arbitrary member, and never link to a nonexistent profile.
+		$group_moderator = array('user_id'=>0, 'username'=>$lang['Group_no_moderator'], 'user_absence'=>0);
+	}
 
 	//
 	// Get user information for this group
@@ -447,8 +461,9 @@ else if ( $group_id )
 	//
 	// Add the moderator
 	//
-	$username = $group_moderator['username'];
+	$username = phpbb_stored_text($group_moderator['username']);
 	$user_id = $group_moderator['user_id'];
+	$template->assign_block_vars($has_group_moderator ? 'switch_group_moderator_present' : 'switch_group_moderator_missing', array());
 
 	generate_user_info($group_moderator, $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
 	$mod_social = phpbb_social_profile_links($group_moderator);
@@ -493,8 +508,8 @@ else if ( $group_id )
 		'L_ADD_MEMBER' => $lang['Add_member'],
 		'L_FIND_USERNAME' => $lang['Find_username'],
 
-		'GROUP_NAME' => $group_info['group_name'],
-		'GROUP_DESC' => $group_info['group_description'],
+		'GROUP_NAME' => phpbb_stored_text($group_info['group_name']),
+		'GROUP_DESC' => phpbb_stored_text($group_info['group_description']),
 		'GROUP_DETAILS' => $group_details,
 		'MOD_ROW_COLOR' => '#' . $theme['td_color1'],
 		'MOD_ROW_CLASS' => $theme['td_class1'],
@@ -541,7 +556,7 @@ else if ( $group_id )
 		'MOD_DC_IMG' => $mod_social['DC_IMG'],
 		'MOD_DC' => $mod_social['DC'],
 
-		'U_MOD_VIEWPROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id"), 
+		'U_MOD_VIEWPROFILE' => $has_group_moderator ? append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id") : '',
 		'U_SEARCH_USER' => append_sid("search.$phpEx?mode=searchuser"), 
 
 		'S_GROUP_OPEN_TYPE' => GROUP_OPEN,
@@ -561,7 +576,7 @@ else if ( $group_id )
 	//
 	for($i = $start; $i < min($board_config['topics_per_page'] + $start, $members_count); $i++)
 	{
-		$username = $group_members[$i]['username'];
+		$username = phpbb_stored_text($group_members[$i]['username']);
 		$user_id = $group_members[$i]['user_id'];
 
 		generate_user_info($group_members[$i], $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
@@ -676,7 +691,7 @@ else if ( $group_id )
 		{
 			for($i = 0; $i < $modgroup_pending_count; $i++)
 			{
-				$username = $modgroup_pending_list[$i]['username'];
+			$username = phpbb_stored_text($modgroup_pending_list[$i]['username']);
 				$user_id = $modgroup_pending_list[$i]['user_id'];
 
 				generate_user_info($modgroup_pending_list[$i], $board_config['default_dateformat'], $is_moderator, $from, $posts, $joined, $poster_avatar, $profile_img, $profile, $search_img, $search, $pm_img, $pm, $email_img, $email, $www_img, $www, $icq_status_img, $icq_img, $icq, $aim_img, $aim, $msn_img, $msn, $yim_img, $yim);
@@ -799,11 +814,11 @@ else
 				$in_group[] = $row['group_id'];
 				if ( $row['user_pending'] )
 				{
-					$s_pending_groups_opt .= '<option value="' . $row['group_id'] . '">' . $row['group_name'] . '</option>';
+					$s_pending_groups_opt .= '<option value="' . (int)$row['group_id'] . '">' . phpbb_stored_text($row['group_name']) . '</option>';
 				}
 				else
 				{
-					$s_member_groups_opt .= '<option value="' . $row['group_id'] . '">' . $row['group_name'] . '</option>';
+					$s_member_groups_opt .= '<option value="' . (int)$row['group_id'] . '">' . phpbb_stored_text($row['group_name']) . '</option>';
 				}
 			}
 			while( $row = $db->sql_fetchrow($result) );
@@ -832,7 +847,7 @@ else
 	{
 		if  ( $row['group_type'] != GROUP_HIDDEN || $userdata['user_level'] == ADMIN )
 		{
-			$s_group_list_opt .='<option value="' . $row['group_id'] . '">' . $row['group_name'] . '</option>';
+			$s_group_list_opt .='<option value="' . (int)$row['group_id'] . '">' . phpbb_stored_text($row['group_name']) . '</option>';
 		}
 	}
 	$s_group_list = '<select name="' . POST_GROUPS_URL . '">' . $s_group_list_opt . '</select>';

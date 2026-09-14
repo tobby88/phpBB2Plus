@@ -6,7 +6,7 @@ function acl_fixture($actor=1)
 {
 	global $mutation_server,$userdata;
 	group_fixture($actor); $p=$mutation_server->pdo; $userdata['session_admin']=true;
-	foreach(array('session_id VARCHAR(32)','session_logged_in INTEGER DEFAULT 1','session_admin INTEGER DEFAULT 1') as $column){$p->exec('ALTER TABLE fixture_sessions ADD COLUMN '.$column);}
+	// Session columns are supplied by the shared current-login group fixture.
 	$p->exec("UPDATE fixture_sessions SET session_id='other-' || session_user_id");
 	$p->exec("UPDATE fixture_sessions SET session_id='fixture-session' WHERE session_user_id=".(int)$actor);
 	foreach (phpbb_acl_fields() as $field) { $p->exec('ALTER TABLE fixture_auth ADD '.$field.' INTEGER DEFAULT 0'); }

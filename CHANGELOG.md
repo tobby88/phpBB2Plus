@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make all eight public group-membership actions transactional across member
+  state, moderator roles and session invalidation. Revalidate the exact public
+  login and current manager authority through commit, retain ordinary member
+  self-service, and send transition notifications only after committed storage.
+  Cover independent revocations and every write/commit failure with native tests.
+  Keep groups with deleted leaders readable, remove nonexistent-account links,
+  and escape group metadata, selectors and member/search labels while retaining
+  trusted absence decoration. Verify the actual Extreme Styles render. Existing
+  storage migrations suffice; no group/user data is rewritten by deployment.
 - Make ACP group creation, editing and deletion transactional across group
   metadata, leader membership, moderator roles, session invalidation, dependent
   forum/download permissions and quota assignments. Reject stale live ACP

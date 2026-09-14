@@ -621,7 +621,18 @@ exact group-management delegation and live ACP session are rechecked through
 commit; the existing attachment mutex still coordinates related writers.
 All participant tables must already satisfy the storage policy above. No new
 schema migration is needed beyond the existing normal updater. This boundary
-does not include the separate public group-membership or user-profile forms.
+does not include the separate user-profile form.
+
+Public group membership has its own transaction boundary for all eight actions:
+join, add, approve, deny, remove, unsubscribe, withdraw a pending request and
+change group status. It checks the exact current public login and current
+group-leader/administrator authority where needed, without requiring ACP access
+for ordinary members. Memberships, derived moderator roles and affected sessions
+commit together; notifications follow successful commit and lock release, not
+partial writes or unchanged retries. The existing storage updater suffices.
+Groups with a deleted leader remain readable without invalid profile links;
+their leadership can be repaired in the ACP. Group names, descriptions and
+selectors are escaped for display rather than interpreted as HTML.
 
 The updater also creates `user_removals` and `user_removal_items` (with your configured
 table prefix). These tables are required before publishing the resumable

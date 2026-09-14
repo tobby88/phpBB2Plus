@@ -26,10 +26,6 @@ function ga_fixture($actor=1)
 	global $mutation_server,$userdata,$db;
 	group_fixture($actor); $p=$mutation_server->pdo; $userdata['session_admin']=true;
 	$db=new GaLogicForum();
-	$p->exec('ALTER TABLE fixture_sessions ADD session_id VARCHAR(32)');
-	$p->exec('ALTER TABLE fixture_sessions ADD session_logged_in INTEGER DEFAULT 1');
-	$p->exec('ALTER TABLE fixture_sessions ADD session_admin INTEGER DEFAULT 1');
-	$p->exec("UPDATE fixture_sessions SET session_id='fixture-session' WHERE session_user_id=".(int)$actor);
 	$p->exec('DROP TABLE fixture_groups');
 	$p->exec('CREATE TABLE fixture_groups (group_id INTEGER PRIMARY KEY AUTOINCREMENT,group_type INTEGER,group_single_user INTEGER,group_moderator INTEGER,group_name VARCHAR(255),group_description VARCHAR(255),group_color_group INTEGER DEFAULT 0)');
 	$p->exec("INSERT INTO fixture_groups VALUES (3,0,0,8,'Test','Description',7),(4,0,1,9,'Personal','Personal',0),(7,0,0,1,'Other','Other',0)");

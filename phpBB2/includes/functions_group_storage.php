@@ -34,8 +34,9 @@ function phpbb_group_rows($db, $sql)
 }
 function phpbb_group_context($db, $group_id, $action)
 {
+	global $userdata;
 	$user = phpbb_current_moderator_user($db);
-	if (!$user) { phpbb_group_error('Not_Authorised'); }
+	if (!$user || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_group_error('Not_Authorised'); }
 	$rows = phpbb_group_rows($db, 'SELECT group_id, group_name, group_type, group_moderator FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id . ' AND group_single_user = 0');
 	if (!$rows) { phpbb_group_error('Group_not_exist'); }
 	$group = $rows[0];
@@ -49,7 +50,10 @@ function phpbb_group_context($db, $group_id, $action)
 		. ' WHERE group_actor.user_active <> 0 AND group_policy.group_single_user = 0';
 	if ($managed) { $guard .= ' AND (group_actor.user_level = ' . ADMIN . ' OR group_policy.group_moderator = group_actor.user_id)'; }
 	if ($action === 'join') { $guard .= ' AND group_policy.group_type = ' . GROUP_OPEN; }
-	$group['guard'] = $guard . ')'; $group['actor_id'] = (int) $user['user_id'];
+	$group['guard'] = $guard . ') AND EXISTS (SELECT 1 FROM (SELECT DISTINCT session_id,session_user_id,session_logged_in FROM ' . SESSIONS_TABLE
+		. " WHERE HEX(session_id)=HEX('" . $db->sql_escape($userdata['session_id']) . "')) group_session WHERE group_session.session_user_id=" . (int)$user['user_id'] . ' AND group_session.session_logged_in=1)';
+	if (!phpbb_group_rows($db, 'SELECT 1 AS allowed WHERE ' . $group['guard'])) { phpbb_group_error('Not_Authorised'); }
+	$group['actor_id'] = (int) $user['user_id'];
 	return $group;
 }
 function phpbb_group_moderator_membership($id)
@@ -58,8 +62,41 @@ function phpbb_group_moderator_membership($id)
 		. ' WHERE ug.user_id = ' . $id . ' AND ug.user_pending = 0 AND g.group_id = ug.group_id AND a.group_id = g.group_id AND a.auth_mod = 1 AND f.forum_id = a.forum_id)';
 }
 
-// Only this storage function owns the lock. Notifications/rendering occur
-// after return, including when a legacy MyISAM operation partly fails.
+class PhpbbGroupMemberDatabase extends PhpbbGroupDatabase
+{
+	function begin()
+	{
+		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->sql_query('START TRANSACTION');
+		foreach (array(USERS_TABLE, SESSIONS_TABLE, GROUPS_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, FORUMS_TABLE) as $table)
+		{
+			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
+			$rows = phpbb_group_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci')
+			{ phpbb_group_error('Group_storage_failed'); }
+		}
+	}
+	function commit($group_id, $action)
+	{
+		global $userdata;
+		$group = phpbb_group_context($this, $group_id, $action); $sid = $this->sql_escape($userdata['session_id']);
+		foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
+			'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . $group['actor_id']) as $sql)
+		{ $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
+		// The group row (including current leader/status) was locked at entry.
+		// Public self-service needs a current login, not an ACP-session grant.
+		phpbb_group_context($this, $group_id, $action); $this->sql_query('COMMIT'); phpbb_group_context($this, $group_id, $action);
+	}
+	function rollback()
+	{
+		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+	}
+}
+
+// Only this function owns the lock/transaction. Notifications and rendering
+// happen after successful commit and connection release, never on partial save.
 function phpbb_group_change($database, $action, $group_id, $value = null)
 {
 	global $userdata;
@@ -73,18 +110,22 @@ function phpbb_group_change($database, $action, $group_id, $value = null)
 	}
 	if ($action === 'status' && (!(is_int($value) || is_string($value)) || !in_array((string) $value, array((string) GROUP_OPEN,(string) GROUP_CLOSED,(string) GROUP_HIDDEN), true))) { phpbb_group_error('Invalid_group_type'); }
 	if ($action === 'add' && (!is_string($value) || trim($value) === '' || strlen($value) > 255)) { phpbb_group_error('Could_not_add_user'); }
-	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals((string) $userdata['session_id'], $_POST['sid'])) { phpbb_group_error('Session_invalid'); }
+	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals($userdata['session_id'], $_POST['sid'])) { phpbb_group_error('Session_invalid'); }
 	$lock = new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_group_error('Attachment_storage_busy'); }
+	$db = new PhpbbGroupMemberDatabase($lock->connection);
 	try
 	{
-		$db = new PhpbbGroupDatabase($lock->connection); $group = phpbb_group_context($db, $group_id, $action);
+		phpbb_group_context($db, $group_id, $action); $db->begin();
+		phpbb_group_rows($db, 'SELECT group_id FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id . ' FOR UPDATE');
+		$group = phpbb_group_context($db, $group_id, $action);
 		$output = array('group_id'=>$group_id,'group_name'=>$group['group_name'],'action'=>$action,'changed'=>array(),'recipients'=>array());
 		if ($action === 'status')
 		{
 			$db->sql_query('UPDATE ' . GROUPS_TABLE . ' SET group_type = ' . (int) $value . ' WHERE group_id = ' . $group_id . ' AND group_type <> ' . (int) $value . ' AND ' . $group['guard']);
 			if ($db->sql_affectedrows()) { $output['changed'][] = $group_id; }
 			phpbb_group_context($db, $group_id, $action);
+			$db->commit($group_id, $action);
 			return $output;
 		}
 		if (in_array($action, array('join','unsubscribe','unsubscribe_pending'), true)) { $ids = array($group['actor_id']); }
@@ -102,6 +143,8 @@ function phpbb_group_change($database, $action, $group_id, $value = null)
 			if (count($rows) !== 1) { phpbb_group_error('Could_not_add_user'); }
 			$ids = array(phpbb_group_id($rows[0]['user_id']));
 		}
+		sort($ids, SORT_NUMERIC);
+		if ($ids) { phpbb_group_rows($db, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id IN (' . implode(',', $ids) . ') ORDER BY user_id FOR UPDATE'); }
 		foreach ($ids as $id)
 		{
 			$group = phpbb_group_context($db, $group_id, $action);
@@ -147,7 +190,8 @@ function phpbb_group_change($database, $action, $group_id, $value = null)
 				if ($rows) { $output['recipients'][] = $rows[0]; }
 			}
 		}
+		$db->commit($group_id, $action);
 		return $output;
 	}
-	finally { $lock->release(); }
+	finally { $db->rollback(); $lock->release(); }
 }

@@ -2,6 +2,25 @@
 require __DIR__ . '/check-attachment-mutation.php';
 foreach (array('ADMIN'=>1,'MOD'=>2,'USER'=>0,'GROUP_OPEN'=>0,'GROUP_CLOSED'=>1,'GROUP_HIDDEN'=>2,'GENERAL_MESSAGE'=>200,'POST_GROUPS_URL'=>'g','USERS_TABLE'=>'fixture_users','GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_memberships','AUTH_ACCESS_TABLE'=>'fixture_auth','FORUMS_TABLE'=>'fixture_forums','SESSIONS_TABLE'=>'fixture_sessions') as $key=>$value) { define($key,$value); }
 require $forum_root . 'includes/functions_group_storage.php';
+// Logic/controller fixture only. Real metadata, independent revocations and
+// locking are covered by check-group-membership-native.php against MariaDB.
+class GroupLogicConnection extends sql_db
+{
+	function sql_query($sql)
+	{
+		if (strpos($sql,'SET SESSION ')===0) { return true; }
+		if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES')===0)
+		{ return $this->result(array(array('ENGINE'=>'InnoDB','ROW_FORMAT'=>'Dynamic','TABLE_COLLATION'=>'utf8mb4_unicode_ci'))); }
+		if ($sql==='START TRANSACTION') { return $this->state->pdo->beginTransaction(); }
+		if ($sql==='COMMIT') { return $this->state->pdo->commit(); }
+		if ($sql==='ROLLBACK') { return !$this->state->pdo->inTransaction() || $this->state->pdo->rollBack(); }
+		return parent::sql_query(str_replace(array(' FOR UPDATE',' LOCK IN SHARE MODE'), '', $sql));
+	}
+}
+class GroupLogicForum extends MutationForum
+{
+	function sql_dedicated_connection() { return new GroupLogicConnection('fixture','','','',false); }
+}
 // Extract unchanged function bodies; do not load common.php or a real forum DB.
 function group_test_function($source,$name)
 {
@@ -22,8 +41,9 @@ function group_test_function($source,$name)
 }
 function group_fixture($actor = 8)
 {
-	global $mutation_server,$userdata,$phpEx,$phpbb_root_path;
+	global $mutation_server,$userdata,$phpEx,$phpbb_root_path,$db;
 	$mutation_server = new MutationServer(); $p = $mutation_server->pdo;
+	$db=new GroupLogicForum();
 	$p->exec('CREATE TABLE fixture_users (user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER,username VARCHAR(255),user_email VARCHAR(255),user_lang VARCHAR(20))');
 	$p->exec("INSERT INTO fixture_users VALUES (1,1,1,'Root','root@example.invalid','english'),(8,2,1,'Leader','leader@example.invalid','german'),(9,0,1,'Member','member@example.invalid','english'),(10,0,1,'Pending','pending@example.invalid','german'),(11,0,1,'Stranger','stranger@example.invalid','english'),(12,0,1,'O''Brien','obrien@example.invalid','english')");
 	$p->exec('CREATE TABLE fixture_groups (group_id INTEGER PRIMARY KEY,group_type INTEGER,group_single_user INTEGER,group_moderator INTEGER,group_name VARCHAR(255))');
@@ -34,6 +54,10 @@ function group_fixture($actor = 8)
 	$p->exec('INSERT INTO fixture_auth VALUES (3,2,1),(7,2,1)');
 	$p->exec('CREATE TABLE fixture_forums (forum_id INTEGER PRIMARY KEY)'); $p->exec('INSERT INTO fixture_forums VALUES (2)');
 	$p->exec('CREATE TABLE fixture_sessions (session_user_id INTEGER)'); $p->exec('INSERT INTO fixture_sessions VALUES (1),(8),(9),(10),(11),(12)');
+	$p->exec('ALTER TABLE fixture_sessions ADD session_id VARCHAR(32)');
+	$p->exec('ALTER TABLE fixture_sessions ADD session_logged_in INTEGER DEFAULT 1');
+	$p->exec('ALTER TABLE fixture_sessions ADD session_admin INTEGER DEFAULT 1');
+	$p->exec("UPDATE fixture_sessions SET session_id='fixture-session' WHERE session_user_id=".(int)$actor);
 	$userdata = array('user_id'=>$actor,'user_level'=>$actor === 1 ? 1 : ($actor === 8 ? 2 : 0),'session_logged_in'=>true,'session_id'=>'fixture-session');
 	$_SERVER['REQUEST_METHOD'] = 'POST'; $_POST = array('sid'=>'fixture-session'); $_GET = array();
 	$phpEx = 'php'; $phpbb_root_path = $GLOBALS['forum_root'];
@@ -124,7 +148,7 @@ try
 		group_failure(function() use($db,$action,$value) { phpbb_group_change($db,$action,3,$value); },'Not_group_moderator');
 		mutation_check(group_value('SELECT COUNT(*) FROM fixture_sessions') === 6,'Unprivileged group management has no writes');
 	}
-	foreach (array('inactive','deleted','get','nested-sid','wrong-sid') as $case)
+	foreach (array('inactive','deleted','get','nested-sid','wrong-sid','nested-cached-sid') as $case)
 	{
 		group_fixture(); $error = 'Not_Authorised';
 		if ($case === 'inactive') { $mutation_server->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=8'); }
@@ -132,6 +156,7 @@ try
 		if ($case === 'get') { $_SERVER['REQUEST_METHOD'] = 'GET'; $error = 'Session_invalid'; }
 		if ($case === 'nested-sid') { $_POST['sid'] = array('fixture-session'); $error = 'Session_invalid'; }
 		if ($case === 'wrong-sid') { $_POST['sid'] = 'wrong'; $error = 'Session_invalid'; }
+		if ($case === 'nested-cached-sid') { $userdata['session_id'] = array('fixture-session'); $error = 'Session_invalid'; }
 		group_failure(function() use($db) { phpbb_group_change($db,'approve',3,array(10)); },$error);
 	}
 	foreach (array(array(3),'3oops',true,0,-1,'16777216') as $invalid)
@@ -179,7 +204,7 @@ try
 	{
 		group_fixture(); $mutation_server->failure = $failure;
 		group_failure(function() use($db) { phpbb_group_change($db,'approve',3,array(10)); },'Group_storage_failed');
-		mutation_check(group_value('SELECT user_pending FROM fixture_memberships WHERE user_id=10 AND group_id=3') === (in_array($failure,array('DELETE FROM fixture_sessions','UPDATE fixture_memberships'),true) ? 1 : 0),'Storage failure does not pretend MyISAM rollback');
+		mutation_check(group_value('SELECT user_pending FROM fixture_memberships WHERE user_id=10 AND group_id=3') === 1 && group_value('SELECT COUNT(*) FROM fixture_sessions')===6,'Storage failure rolls back membership and session changes');
 	}
 	group_fixture(); $interleaved = false;
 	$mutation_server->hook = function($sql) use($db,&$interleaved) {
