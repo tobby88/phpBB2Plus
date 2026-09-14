@@ -87,6 +87,7 @@ rebuild_check($a!==false&&$b>$a,'Actual rebuild controller found');
 $branch='switch($function){'.substr($controller,$a,$b-$a).'}';
 $branch=str_replace("include('./page_header_admin.' . \$phpEx);",'$GLOBALS[\'rebuild_headers\']++;',$branch);
 $updater=file_get_contents(dirname($root).'/update/update_from_153a.php');
+$mod_settings_defaults=require dirname($root).'/update/mod_settings_defaults.php';
 $a=strpos($updater,'$config_defaults = array(');$b=strpos($updater,'foreach ($config_defaults',$a);
 rebuild_check($a!==false&&$b>$a,'Actual updater defaults found');eval(substr($updater,$a,$b-$a));
 rebuild_check(array_key_exists('dbmtnc_rebuild_job',$config_defaults)&&$config_defaults['dbmtnc_rebuild_job']==='','Consolidated updater seeds empty job');

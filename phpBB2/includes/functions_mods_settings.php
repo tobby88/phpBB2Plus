@@ -35,27 +35,17 @@ function mods_settings_get_lang($key)
 
 //---------------------------------------------------------------
 //
-//	init_board_config_key() : add a key and its value to the board config table
+//	init_board_config_key() : request-local fallback, never database initialization
 //
 //---------------------------------------------------------------
 function init_board_config_key($key, $value, $force=false)
 {
-	global $db, $board_config, $phpbb_root_path, $phpEx;
-
-	if (!isset($board_config[$key]))
-	{
-		$board_config[$key] = $value;
-		$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name,config_value) VALUES('$key','$value')";
-		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not add key ' . $key . ' in config table', '', __LINE__, __FILE__, $sql);
-		@unlink($phpbb_root_path . 'cache/config_data.cache');
-	}
-	else if ($force)
-	{
-		$board_config[$key] = $value;
-		$sql = "UPDATE " . CONFIG_TABLE . " SET config_value='$value' WHERE config_name='$key'";
-		if ( !$db->sql_query($sql) ) message_die(GENERAL_ERROR, 'Could not add key ' . $key . ' in config table', '', __LINE__, __FILE__, $sql);
-		@unlink($phpbb_root_path . 'cache/config_data.cache');
-	}
+	global $board_config;
+	// Registration runs during ordinary guest views and profile/bootstrap reads.
+	// Persist defaults only in the installer/updater; stale request snapshots
+	// must neither INSERT duplicates nor overwrite a concurrent administrator.
+	// Legacy force callers may override this request's value, not stored state.
+	if (!isset($board_config[$key]) || $force) { $board_config[$key] = $value; }
 }
 
 //---------------------------------------------------------------
@@ -125,11 +115,11 @@ function init_board_config($mod_name, $config_fields, $sub_name='', $sub_sort=0,
 		);
 		if (!isset($config_data['user_only']) || !$config_data['user_only'])
 		{
-			// create the key value
+			// supply a request-local default when an installation still needs updating
 			init_board_config_key($config_key, ( !empty($config_data['values']) ? $config_data['values'][ $config_data['default'] ] : $config_data['default']) );
 			if (!empty($config_data['user']))
 			{
-				// create the "overwrite user choice" value
+				// default the "overwrite user choice" flag for this request
 				init_board_config_key($config_key . '_over', 0);
 
 				// get user choice value

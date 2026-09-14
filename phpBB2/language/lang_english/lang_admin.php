@@ -304,6 +304,7 @@ $lang['Acl_read_failed'] = 'The current permission information could not be load
 $lang['Acl_storage_failed'] = 'Permissions could not be fully saved. Changes already applied remain in place. Please check the affected accounts and permissions before continuing.';
 $lang['Board_config_invalid'] = 'The configuration form contains an invalid or unsupported value. No configuration values were saved. Please check the form and try again.';
 $lang['Board_config_failed'] = 'The configuration could not be confirmed as saved. Please check the current settings before trying again. The required database migration must be complete.';
+$lang['Mod_settings_update_required'] = 'Required Mod Settings entries are missing. Run update/update_from_153a.php using its documented backup and maintenance procedure before saving these settings. No settings were saved.';
 $lang['Acl_root_required'] = 'Only a current full administrator can grant or revoke full administrator status.';
 $lang['Acl_self_role_change'] = 'You cannot change your own full administrator status here.';
 $lang['Click_return_userauth'] = 'Click %sHere%s to return to User Permissions';

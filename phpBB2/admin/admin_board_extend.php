@@ -225,6 +225,14 @@ while ($row = $db->sql_fetchrow($result))
 if ($submit)
 {
 	phpbb_admin_require_post_session();
+	// Registry defaults are request-local. Do not report a successful UPDATE
+	// against missing rows on an installation that has not run its updater.
+	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
+	{
+		if (!empty($field['user_only'])) { continue; }
+		if (!array_key_exists($field_name, $config) || (!empty($field['user']) && !array_key_exists($field_name . '_over', $config)))
+		{ message_die(GENERAL_ERROR, $lang['Mod_settings_update_required']); }
+	}
 
 	// init for error
 	$error = false;

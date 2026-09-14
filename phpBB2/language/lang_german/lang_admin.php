@@ -304,6 +304,7 @@ $lang['Acl_read_failed'] = 'Die aktuellen Berechtigungsinformationen konnten nic
 $lang['Acl_storage_failed'] = 'Die Rechte konnten nicht vollständig gespeichert werden. Bereits ausgeführte Änderungen bleiben bestehen. Bitte prüfe die betroffenen Konten und Rechte, bevor du fortfährst.';
 $lang['Board_config_invalid'] = 'Das Konfigurationsformular enthält einen ungültigen oder nicht unterstützten Wert. Es wurden keine Konfigurationswerte gespeichert. Bitte prüfe das Formular und versuche es erneut.';
 $lang['Board_config_failed'] = 'Das Speichern der Konfiguration konnte nicht bestätigt werden. Bitte prüfe vor einem erneuten Versuch die aktuellen Einstellungen. Die erforderliche Datenbankmigration muss abgeschlossen sein.';
+$lang['Mod_settings_update_required'] = 'Erforderliche Einträge der Mod-Einstellungen fehlen. Bitte führe vor dem Speichern update/update_from_153a.php gemäß der dokumentierten Backup- und Wartungsanleitung aus. Es wurden keine Einstellungen gespeichert.';
 $lang['Acl_root_required'] = 'Nur ein aktueller Volladministrator kann Volladministrator-Rechte erteilen oder entziehen.';
 $lang['Acl_self_role_change'] = 'Du kannst deinen eigenen Volladministrator-Status hier nicht ändern.';
 $lang['Click_return_userauth'] = 'Klicke %shier%s, um zu den Benutzerrechten zurückzukehren';

@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make Mod Settings registration read-only during ordinary page/profile loads.
+  Supply all 55 defaults through the fresh installer and idempotent updater,
+  preserving existing and concurrently initialized administrator values. Reject
+  Configuration + saves when required stored settings are missing, with an
+  explicit update instruction instead of silently updating zero rows.
 - Save general configuration through an explicit rendered-field allowlist and
   a dedicated InnoDB transaction. Validate the whole request before automatic
   backups or configuration writes, preserve unsubmitted/internal metadata and

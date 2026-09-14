@@ -22,6 +22,7 @@ $forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 require_once $forum_root . '/includes/functions_user_ids.php';
 require_once __DIR__ . '/innodb_migration.php';
+$mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
 
@@ -81,6 +82,12 @@ $seed_statements = update_extract_seed_statements($basic_source);
 
 if (in_array('--self-test', $argv, true))
 {
+	if (!is_array($mod_settings_defaults) || !$mod_settings_defaults) { fwrite(STDERR, "Mod Settings defaults are missing.\n"); exit(3); }
+	foreach ($mod_settings_defaults as $key => $value)
+	{
+		$pattern = "~INSERT INTO phpbb_config\\s*\\(config_name,\\s*config_value\\)\\s*VALUES\\s*\\('" . preg_quote($key, '~') . "',\\s*'" . preg_quote($value, '~') . "'\\);~";
+		if (preg_match_all($pattern, $basic_source, $matches) !== 1) { fwrite(STDERR, "Mod Settings fresh-install/default mismatch: " . $key . "\n"); exit(3); }
+	}
 	if (!isset($create_statements['phpbb_user_id_sequence']) || strpos($basic_source, 'INSERT INTO phpbb_user_id_sequence (singleton, last_id) VALUES (1, 0);') === false)
 	{
 		fwrite(STDERR, "User ID sequence schema/seed self-test failed.\n"); exit(3);
@@ -794,6 +801,9 @@ $config_defaults = array(
 	'dbmtnc_disallow_postcounter' => '0',
 	'dbmtnc_disallow_rebuild' => '0'
 );
+// Runtime registry loading no longer writes on ordinary page requests. Seed
+// missing bundled settings here while retaining every existing value.
+$config_defaults += $mod_settings_defaults;
 foreach ($config_defaults as $key => $value)
 {
 	update_queue_default($operations, $connection, $table_prefix . 'config', 'config_name', 'config_value', $key, $value);
