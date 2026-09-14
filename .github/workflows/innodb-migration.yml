@@ -39,3 +39,7 @@ jobs:
         env:
           PHPBB_REBUILD_NATIVE: '1'
           PHPBB_REBUILD_TEST_PASSWORD: fixture-only
+      - run: php .github/scripts/run-native-poll-session.php
+        env:
+          PHPBB_POLL_MAINTENANCE_NATIVE: '1'
+          PHPBB_POLL_MAINTENANCE_TEST_PASSWORD: fixture-only

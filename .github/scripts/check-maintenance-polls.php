@@ -1,6 +1,7 @@
 <?php
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','DELETED'=>-1,'TOPICS_TABLE'=>'fixture_topics','VOTE_DESC_TABLE'=>'fixture_polls','VOTE_RESULTS_TABLE'=>'fixture_options','VOTE_USERS_TABLE'=>'fixture_voters','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
+define('SESSIONS_TABLE','fixture_sessions');
 require_once $root.'includes/functions_maintenance_polls.php';
 function poll_mtnc_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 function message_die($code,$message){throw new RuntimeException($message);}
@@ -9,12 +10,13 @@ function throw_error($message){throw new PollMaintenanceControllerFailure($messa
 function lock_db($unlock=false,$delay=true,$ignore=false){$GLOBALS['board_locks'][]=array($unlock,$delay,$ignore);}
 class PollMaintenanceRows {public $rows;function __construct($rows){$this->rows=$rows;}}
 $dsn=getenv('PHPBB_POLL_MAINTENANCE_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
-if($native){poll_mtnc_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_poll_mtnc_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
+if($native){poll_mtnc_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_poll_mtnc_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class PollMaintenanceServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
  function __construct($engine){
-  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_POLL_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','topics'=>'topic_id INTEGER PRIMARY KEY,topic_vote INTEGER','polls'=>'vote_id INTEGER PRIMARY KEY,topic_id INTEGER,vote_text VARCHAR(255),vote_start INTEGER,vote_length INTEGER','options'=>'vote_id INTEGER,vote_option_id INTEGER,vote_option_text VARCHAR(255),vote_result INTEGER','voters'=>'vote_id INTEGER,vote_user_id INTEGER,vote_user_ip VARCHAR(45)','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
+  $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1),(8,'Member',0,1)");
   $this->pdo->exec('INSERT INTO fixture_topics VALUES (10,0),(20,1),(30,1),(40,0)');
@@ -31,7 +33,7 @@ class PollMaintenanceForum {
 }
 class PollMaintenanceConnection {
  public $server;public $pdo;public $db_connect_id=true;public $closed=false;public $affected=0;
- function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root','',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
+ function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_POLL_MAINTENANCE_TEST_PASSWORD')?:'',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
  function sql_query($sql){
   if($this->closed){return false;}$s=$this->server;$s->queries[]=$sql;
   if(strpos($sql,'SELECT GET_LOCK(')===0){
@@ -55,6 +57,7 @@ class PollMaintenanceConnection {
 function poll_mtnc_fixture($engine,$actor=1){
  global $poll_mtnc_server,$userdata,$phpEx,$phpbb_root_path,$root,$board_locks;
  $poll_mtnc_server=new PollMaintenanceServer($engine);$userdata=array('user_id'=>$actor,'user_level'=>ADMIN,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');
+ $poll_mtnc_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',".(int)$actor.",1,1)");
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-sid');$phpEx='php';$phpbb_root_path=$root;$board_locks=array();
 }
 function poll_mtnc_value($sql){return (int)$GLOBALS['poll_mtnc_server']->pdo->query($sql)->fetchColumn();}

@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Require the current ACP session for all poll-maintenance cleanup,
+  anonymization and topic-flag writes, including delegated administrators.
+  Stop after session revocation without further changes and allow an explicit,
+  idempotent retry after signing in again. No migration is required.
 - Bind every search-rebuild write to the current live ACP session as well as
   current account/module rights. Stop start, resume, signed continuation and
   final board-release writes after session revocation; retain resumable job

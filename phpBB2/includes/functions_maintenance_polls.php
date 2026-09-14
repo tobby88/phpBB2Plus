@@ -1,12 +1,13 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_maintenance_dates.php';
 
 function dbmtnc_poll_request($request)
 {
 	global $userdata;
 	if (!is_array($request) || !isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST'
-		|| empty($userdata['session_id']) || !isset($request['sid']) || !is_string($request['sid'])
+		|| empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($request['sid']) || !is_string($request['sid'])
 		|| !hash_equals((string)$userdata['session_id'],$request['sid'])) { phpbb_acl_error('Session_invalid'); }
 }
 
@@ -17,16 +18,16 @@ function dbmtnc_poll_batches($db, $table, $key, $predicate, $assignment = '')
 	$cursor = null; $changed = 0;
 	while (true)
 	{
-		phpbb_acl_actor($db,'maintenance');
+		dbmtnc_date_actor($db);
 		$rows = phpbb_acl_rows($db,'SELECT DISTINCT ' . $key . ' FROM ' . $table . ' WHERE (' . $predicate . ')'
 			. ($cursor === null ? '' : ' AND ' . $key . ' > ' . $cursor) . ' ORDER BY ' . $key . ' LIMIT 100');
 		if (!$rows) { break; }
 		$ids = array(); foreach ($rows as $row) { $ids[] = (int)$row[$key]; }
-		$cursor = end($ids); $actor = phpbb_acl_actor($db,'maintenance');
+		$cursor = end($ids); $actor = dbmtnc_date_actor($db);
 		$db->sql_query(($assignment === '' ? 'DELETE FROM ' . $table : 'UPDATE ' . $table . ' SET ' . $assignment)
 			. ' WHERE ' . $key . ' IN (' . implode(',',$ids) . ') AND (' . $predicate . ') AND ' . $actor['guard']);
 		$changed += (int)$db->sql_affectedrows();
-		phpbb_acl_actor($db,'maintenance');
+		dbmtnc_date_actor($db);
 	}
 	return $changed;
 }
@@ -39,7 +40,7 @@ function dbmtnc_maintain_polls($database, $request)
 	try
 	{
 		$db = new PhpbbAclDatabase($lock->connection,'Maintenance_poll_failed');
-		phpbb_acl_actor($db,'maintenance');
+		dbmtnc_date_actor($db);
 		$output = array();
 		$output['polls_removed'] = dbmtnc_poll_batches($db,VOTE_DESC_TABLE,'vote_id',
 			'NOT EXISTS (SELECT 1 FROM ' . TOPICS_TABLE . ' t WHERE t.topic_id = ' . VOTE_DESC_TABLE . '.topic_id)');
@@ -66,7 +67,7 @@ function dbmtnc_maintain_polls($database, $request)
 		$count = phpbb_acl_rows($db,'SELECT COUNT(*) AS total FROM ' . VOTE_DESC_TABLE . ' v WHERE ' . $review);
 		$output['review_count'] = (int)$count[0]['total'];
 		$output['review'] = phpbb_acl_rows($db,'SELECT v.vote_id,v.topic_id,v.vote_text FROM ' . VOTE_DESC_TABLE . ' v WHERE ' . $review . ' ORDER BY v.vote_id LIMIT 100');
-		phpbb_acl_actor($db,'maintenance');
+		dbmtnc_date_actor($db);
 		return $output;
 	}
 	finally { $lock->release(); }
