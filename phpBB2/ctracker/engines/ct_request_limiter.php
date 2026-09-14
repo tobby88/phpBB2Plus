@@ -111,20 +111,23 @@ function ctracker_rate_limit_increment($bucket, $identity, $window_seconds, $lim
 	$now = time();
 	$window_start = intval(floor($now / $window_seconds) * $window_seconds);
 	$bucket_hash = hash('sha256', $bucket . "\0" . $identity);
+	// A request can wait after capturing its timestamp while another worker
+	// commits a newer window. Never rewind that window or discard its quota.
+	// Assignment order matters: compare the old window before advancing it.
 	$sql = 'INSERT INTO ' . CTRACKER_RATE_LIMITS . "
 		(bucket_hash, window_start, request_count, updated_at)
 		VALUES ('" . $db->sql_escape($bucket_hash) . "', $window_start, 1, $now)
 		ON DUPLICATE KEY UPDATE
-			request_count = IF(window_start = VALUES(window_start), request_count + 1, 1),
-			window_start = VALUES(window_start), updated_at = VALUES(updated_at)";
+			request_count = IF(window_start >= VALUES(window_start), LEAST(request_count, 4294967294) + 1, 1),
+			window_start = GREATEST(window_start, VALUES(window_start)),
+			updated_at = GREATEST(updated_at, VALUES(updated_at))";
 	if (!$db->sql_query($sql))
 	{
 		return false;
 	}
 
-	$sql = 'SELECT request_count FROM ' . CTRACKER_RATE_LIMITS . "
-		WHERE bucket_hash = '" . $db->sql_escape($bucket_hash) . "'
-			AND window_start = $window_start";
+	$sql = 'SELECT request_count, window_start FROM ' . CTRACKER_RATE_LIMITS . "
+		WHERE bucket_hash = '" . $db->sql_escape($bucket_hash) . "'";
 	if (!($result = $db->sql_query($sql)))
 	{
 		return false;
@@ -137,8 +140,9 @@ function ctracker_rate_limit_increment($bucket, $identity, $window_seconds, $lim
 		$db->sql_query('DELETE FROM ' . CTRACKER_RATE_LIMITS . ' WHERE updated_at < ' . ($now - 172800));
 	}
 
-	return ($row && intval($row['request_count']) > $limit)
-		? max(1, ($window_start + $window_seconds) - $now)
+	if (!$row || !isset($row['request_count'], $row['window_start'])) { return false; }
+	return ((float) $row['request_count'] > $limit)
+		? (int) max(1, min($window_seconds, (float) $row['window_start'] + $window_seconds - time()))
 		: 0;
 }
 
@@ -196,8 +200,9 @@ function ctracker_rate_limit_mark_success($bucket, $identity)
 	$sql = 'INSERT INTO ' . CTRACKER_RATE_LIMITS . "
 		(bucket_hash, window_start, request_count, updated_at)
 		VALUES ('" . $db->sql_escape($bucket_hash) . "', $now, 1, $now)
-		ON DUPLICATE KEY UPDATE window_start = VALUES(window_start),
-			request_count = request_count + 1, updated_at = VALUES(updated_at)";
+		ON DUPLICATE KEY UPDATE window_start = GREATEST(window_start, VALUES(window_start)),
+			request_count = LEAST(request_count, 4294967294) + 1,
+			updated_at = GREATEST(updated_at, VALUES(updated_at))";
 	return (bool) $db->sql_query($sql);
 }
 

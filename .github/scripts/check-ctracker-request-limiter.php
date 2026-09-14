@@ -57,7 +57,7 @@ class limiter_test_db
 		}
 		return true;
 	}
-	function sql_fetchrow($result) { return array('request_count' => $this->count, 'updated_at' => $this->last_updated_at); }
+	function sql_fetchrow($result) { return array('request_count' => $this->count, 'window_start' => $this->last_updated_at, 'updated_at' => $this->last_updated_at); }
 	function sql_freeresult($result) { return true; }
 }
 

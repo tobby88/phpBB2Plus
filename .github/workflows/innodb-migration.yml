@@ -53,3 +53,7 @@ jobs:
         env:
           PHPBB_ACL_SESSION_NATIVE: '1'
           PHPBB_ACL_SESSION_TEST_PASSWORD: fixture-only
+      - run: php .github/scripts/check-ctracker-rate-storage.php
+        env:
+          PHPBB_RATE_NATIVE: '1'
+          PHPBB_RATE_TEST_PASSWORD: fixture-only

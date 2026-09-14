@@ -2,6 +2,7 @@
 
 $root = dirname(dirname(__DIR__));
 $workflow = file_get_contents($root . '/.github/workflows/php-lint.yml');
+$workflow .= "\n" . file_get_contents($root . '/.github/workflows/innodb-migration.yml');
 $missing = array();
 
 foreach (array_merge(glob(__DIR__ . '/check-*.php'), glob(__DIR__ . '/check-*.js')) as $test_file)
@@ -15,7 +16,7 @@ foreach (array_merge(glob(__DIR__ . '/check-*.php'), glob(__DIR__ . '/check-*.js
 
 if ($missing)
 {
-	fwrite(STDERR, "CI test inventory failed; the workflow does not execute:\n" . implode("\n", $missing) . "\n");
+	fwrite(STDERR, "CI test inventory failed; the workflows do not execute:\n" . implode("\n", $missing) . "\n");
 	exit(1);
 }
 

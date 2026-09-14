@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve newer CrackerTracker rate windows, quotas and successful-action
+  timestamps when delayed requests finish out of order. Read back the current
+  window, bound rate-limit Retry-After values and saturate counters safely.
+  Add native database regression coverage for ordering, normal rollover,
+  independent identities and storage failures. No schema migration is required.
 - Centralize live ACP session validation for user, group and forum permission
   viewing/writes and maintenance. Revalidate role transitions and ACL results,
   keep the acting session while expiring affected target sessions, and use a
