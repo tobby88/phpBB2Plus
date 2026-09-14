@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate current account, delegated maintenance permission and exact ACP
+  session when manually unlocking the forum or saving maintenance settings.
+  Coordinate these writes with the shared writer lock and guard the UPDATE
+  itself; save both settings in one statement. Invalidate the configuration
+  cache after attempted writes, including lost acknowledgements, and remove the
+  unused unguarded legacy lock/config helpers. No database migration is needed.
 - Guard new storage paths: set InnoDB defaults and no-engine-substitution on
   every forum connection, specify DYNAMIC in every installer table, and verify
   CrackerTracker clone source/replacement engine, row format and character

@@ -136,21 +136,6 @@ sort($tables);
 
 
 
-//
-// Function for updating the config_table
-//
-function update_config($name, $value)
-{
-	global $db, $board_config;
-
-	$sql = 'UPDATE ' . CONFIG_TABLE . " SET config_value = '$value' WHERE config_name = '$name'";
-	$result = $db->sql_query($sql);
-	if( !$result )
-	{
-		throw_error("Couldn't update forum configuration!", __LINE__, __FILE__, $sql);
-	}
-	$board_config[$name] = $value;
-}
 
 //
 // This is the equivalent function for message_die. Since we do not use the template system when doing database work, message_die() will not work.
@@ -190,60 +175,6 @@ function throw_error($msg_text = '', $err_line = '', $err_file = '', $sql = '')
 	exit;
 }
 
-//
-// Locks or unlocks the database
-//
-function lock_db($unlock = FALSE, $delay = TRUE, $ignore_default = FALSE)
-{
-	global $board_config, $db, $lang;
-	static $db_was_locked = FALSE;
-
-	if ($unlock)
-	{
-		echo('<p class="gen"><b>' . $lang['Unlock_db'] . "</b></p>\n");
-		if ( $db_was_locked && !$ignore_default )
-		{
-			// The database was locked and we were not told to ignore the default. So we exit
-			echo('<p class="gen">' . $lang['Ignore_unlock_command'] . "</p>\n");
-			return;
-		}
-	}
-	else
-	{
-		echo('<p class="gen"><b>' . $lang['Lock_db'] . "</b></p>\n");
-		// Check current lock state
-		if ( $board_config['board_disable'] == 1 )
-		{
-			// DB is already locked. Write this to var and exit
-			$db_was_locked = TRUE;
-			echo('<p class="gen">' . $lang['Already_locked'] . "</p>\n");
-			return $db_was_locked;
-		}
-		else
-		{
-			$db_was_locked = FALSE;
-		}
-	}
-
-	// OK, now we can update the settings
-	update_config('board_disable', ($unlock) ? '0' : '1');
-
-	//
-	// Delay 3 seconds to allow database to finish operation
-	//
-	if (!$unlock && $delay)
-	{
-		global $timer;
-		echo('<p class="gen">' . $lang['Delay_info'] . "</p>\n");
-		sleep(3);
-		$timer += 3; // remove delaying time from timer
-	}
-	else
-	{
-		echo('<p class="gen">' . $lang['Done'] . "</p>\n");
-	}
-	return $db_was_locked;
-}
 
 //
 // Checks several conditions for the menu

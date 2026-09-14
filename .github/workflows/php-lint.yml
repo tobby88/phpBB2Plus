@@ -65,6 +65,8 @@ jobs:
         run: php .github/scripts/check-innodb-migration.php
       - name: Storage defaults and restore guards
         run: php .github/scripts/check-storage-policy.php
+      - name: Maintenance unlock and settings authorization
+        run: php .github/scripts/check-maintenance-controls.php
 
       - name: Preserve valid profiles and login keys during user maintenance
         run: php .github/scripts/check-maintenance-user-values.php

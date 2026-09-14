@@ -2,6 +2,69 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_maintenance_dates.php';
 
+// Explicit ACP actions only. Revalidate the live account, delegated module and
+// exact admin session inside the same statement that changes these settings.
+function dbmtnc_save_controls($database, $request, $action)
+{
+	global $userdata, $board_config, $phpbb_root_path;
+	if (!is_array($request) || !isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST'
+		|| empty($userdata['session_id']) || !is_string($userdata['session_id'])
+		|| !isset($request['sid']) || !is_string($request['sid']) || !hash_equals($userdata['session_id'], $request['sid']))
+	{ phpbb_acl_error('Session_invalid'); }
+	if ($action === 'unlock') { $values = array('board_disable' => '0'); }
+	elseif ($action === 'settings')
+	{
+		$values = array();
+		foreach (array('disallow_rebuild', 'disallow_postcounter') as $key)
+		{
+			$value = isset($request[$key]) ? $request[$key] : '0';
+			if (!(is_string($value) || is_int($value)) || !in_array((string) $value, array('0', '1'), true))
+			{ phpbb_acl_error('Invalid_dbmtnc_request'); }
+			$values['dbmtnc_' . $key] = (string) $value;
+		}
+	}
+	else { phpbb_acl_error('Invalid_dbmtnc_request'); }
+	$lock = new attach_mutation_lock($database);
+	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
+	$attempted = false;
+	try
+	{
+		$db = new PhpbbAclDatabase($lock->connection, 'Maintenance_config_failed');
+		$actor = dbmtnc_date_actor($db);
+		$keys = array(); $cases = array();
+		foreach ($values as $key => $value)
+		{
+			$keys[] = "'" . $key . "'";
+			$cases[] = "WHEN '" . $key . "' THEN '" . $value . "'";
+		}
+		$where = 'config_name IN (' . implode(',', $keys) . ')';
+		$rows = phpbb_acl_rows($db, 'SELECT config_name, config_value FROM ' . CONFIG_TABLE . ' WHERE ' . $where);
+		if (count($rows) !== count($values)) { phpbb_acl_error('Maintenance_config_failed'); }
+		// One UPDATE for the complete settings form, rather than two writes that
+		// could leave half a form saved after a failure or revoked permission.
+		$attempted = true;
+		$db->sql_query('UPDATE ' . CONFIG_TABLE . ' SET config_value = CASE config_name ' . implode(' ', $cases)
+			. ' ELSE config_value END WHERE ' . $where . ' AND ' . $actor['guard']);
+		dbmtnc_date_actor($db);
+		$rows = phpbb_acl_rows($db, 'SELECT config_name, config_value FROM ' . CONFIG_TABLE . ' WHERE ' . $where);
+		if (count($rows) !== count($values)) { phpbb_acl_error('Maintenance_config_failed'); }
+		foreach ($rows as $row)
+		{
+			if (!isset($values[$row['config_name']]) || (string) $row['config_value'] !== $values[$row['config_name']])
+			{ phpbb_acl_error('Maintenance_config_failed'); }
+		}
+		dbmtnc_date_actor($db);
+		foreach ($values as $key => $value) { $board_config[$key] = $value; }
+	}
+	finally
+	{
+		// A lost acknowledgement can follow a committed write. Never leave the
+		// previous cache behind or report that failure as a successful rollback.
+		if ($attempted) { @unlink($phpbb_root_path . 'cache/config_data.cache'); }
+		$lock->release();
+	}
+}
+
 // Internal defaults only, not a submitted configuration map. Never infer a
 // completed database upgrade from the version of the currently deployed code.
 function dbmtnc_config_defaults($defaults)

@@ -76,6 +76,13 @@ InnoDB checks do not falsely claim to repair corruption with REPAIR TABLE.
 
 ## Project status
 
+Manual forum unlock and maintenance-setting changes require a current active
+account, current module permission and the exact live ACP session at the write
+boundary, not just the permissions cached when the page was opened. Failed or
+revoked requests do not report success. Both maintenance toggles are saved in
+one statement; missing configuration records are reported for repair rather
+than recreated implicitly. This authorization fix needs no database migration.
+
 Current database connections require InnoDB defaults (including SQL temporary
 tables), `NO_ENGINE_SUBSTITUTION` and strict InnoDB DDL. Connection setup fails
 instead of silently falling back when these settings cannot be applied; server-

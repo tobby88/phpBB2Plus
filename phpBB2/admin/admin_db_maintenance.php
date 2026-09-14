@@ -392,10 +392,9 @@ switch($mode_id)
 				if (CONFIG_LEVEL < 1) { message_die(GENERAL_ERROR, $lang['Invalid_dbmtnc_request']); }
 				if (isset($_POST['submit']))
 				{
-					$disallow_postcounter = dbmtnc_post_int('disallow_postcounter', 0);
-					$disallow_rebuild = dbmtnc_post_int('disallow_rebuild', 0);
-					if ($disallow_rebuild >= 0 && $disallow_rebuild <= 1) { update_config('dbmtnc_disallow_rebuild', $disallow_rebuild); }
-					if ($disallow_postcounter >= 0 && $disallow_postcounter <= 1) { update_config('dbmtnc_disallow_postcounter', $disallow_postcounter); }
+					require_once($phpbb_root_path . 'includes/functions_maintenance_config.' . $phpEx);
+					try { dbmtnc_save_controls($db, $_POST, 'settings'); }
+					catch (\PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 					$message = $lang['Dbmtnc_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_dbmtnc_config'], '<a href="' . append_sid("admin_db_maintenance.$phpEx?mode=start&function=config") . '">', '</a>');
 					message_die(GENERAL_MESSAGE, $message);
 				}
@@ -1619,7 +1618,14 @@ switch($mode_id)
 				break;
 			case 'unlock_db': // Unlock the database
 				echo("<h1>" . $lang['Unlocking_db'] . "</h1>\n");
-				lock_db(TRUE, TRUE, TRUE);
+				require_once($phpbb_root_path . 'includes/functions_maintenance_config.' . $phpEx);
+				$unlock_error = '';
+				try { dbmtnc_save_controls($db, $_POST, 'unlock'); }
+				catch (\PhpbbAclException $error) { $unlock_error = $error->getMessage(); }
+				catch (\Exception $error) { $unlock_error = $lang['Maintenance_config_failed']; }
+				catch (\Throwable $error) { $unlock_error = $lang['Maintenance_config_failed']; }
+				if ($unlock_error !== '') { throw_error($unlock_error); }
+				echo('<p class="gen">' . $lang['Done'] . "</p>\n");
 				break;
 			default:
 				echo("<p class=\"gen\">" . $lang['function_unknown'] . "</p>\n");
