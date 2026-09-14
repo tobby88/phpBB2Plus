@@ -139,6 +139,7 @@ try{
  // Execute the distinct production group-admin writer, not just its lock class.
  foreach(array('USER'=>0,'MOD'=>2,'GROUP_OPEN'=>0,'GROUP_CLOSED'=>1,'GROUP_HIDDEN'=>2,'POST_GROUPS_URL'=>'g','USER_GROUP_TABLE'=>'fixture_user_group','AUTH_ACCESS_TABLE'=>'fixture_auth','FORUMS_TABLE'=>'fixture_forums') as $key=>$value){if(!defined($key)){define($key,$value);}}
  require $ats_source.'includes/functions_group_admin_storage.php';
+ define('PA_AUTH_ACCESS_TABLE','fixture_pa_auth');qsql('CREATE TABLE fixture_pa_auth (group_id INT,cat_id INT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC');
  qsql('ALTER TABLE fixture_groups ADD group_type INT DEFAULT 0, ADD group_moderator INT DEFAULT 0, ADD group_description VARCHAR(255) DEFAULT NULL');
  qsql('CREATE TABLE fixture_user_group (group_id INT,user_id INT,user_pending INT) ENGINE=InnoDB');qsql('CREATE TABLE fixture_auth (group_id INT,forum_id INT,auth_mod INT) ENGINE=InnoDB');qsql('CREATE TABLE fixture_forums (forum_id INT) ENGINE=InnoDB');
  qreset();qsql('UPDATE fixture_groups SET group_moderator=2');qsql('INSERT INTO fixture_user_group VALUES (10,2,0)');

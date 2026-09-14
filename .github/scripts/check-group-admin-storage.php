@@ -2,10 +2,34 @@
 require __DIR__ . '/check-group-storage.php';
 foreach (array('IN_ADMIN'=>true,'JR_ADMIN_TABLE'=>'fixture_junior','QUOTA_TABLE'=>'fixture_quotas','QUOTA_LIMITS_TABLE'=>'fixture_limits','QUOTA_UPLOAD_LIMIT'=>1,'QUOTA_PM_LIMIT'=>2,'PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 require $forum_root . 'includes/functions_group_admin_storage.php';
+// SQLite covers form/controller logic only. Native MariaDB regression covers
+// metadata, row locks, independent revocations and transaction durability.
+class GaLogicConnection extends sql_db
+{
+	function sql_query($sql)
+	{
+		if (strpos($sql,'SET SESSION ')===0) { return true; }
+		if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES')===0)
+		{ return $this->result(array(array('ENGINE'=>'InnoDB','ROW_FORMAT'=>'Dynamic','TABLE_COLLATION'=>'utf8mb4_unicode_ci'))); }
+		if ($sql==='START TRANSACTION') { return $this->state->pdo->beginTransaction(); }
+		if ($sql==='COMMIT') { return $this->state->pdo->commit(); }
+		if ($sql==='ROLLBACK') { return !$this->state->pdo->inTransaction() || $this->state->pdo->rollBack(); }
+		return parent::sql_query(str_replace(array(' FOR UPDATE',' LOCK IN SHARE MODE'), '', $sql));
+	}
+}
+class GaLogicForum extends MutationForum
+{
+	function sql_dedicated_connection() { return new GaLogicConnection('fixture','','','',false); }
+}
 function ga_fixture($actor=1)
 {
-	global $mutation_server,$userdata;
+	global $mutation_server,$userdata,$db;
 	group_fixture($actor); $p=$mutation_server->pdo; $userdata['session_admin']=true;
+	$db=new GaLogicForum();
+	$p->exec('ALTER TABLE fixture_sessions ADD session_id VARCHAR(32)');
+	$p->exec('ALTER TABLE fixture_sessions ADD session_logged_in INTEGER DEFAULT 1');
+	$p->exec('ALTER TABLE fixture_sessions ADD session_admin INTEGER DEFAULT 1');
+	$p->exec("UPDATE fixture_sessions SET session_id='fixture-session' WHERE session_user_id=".(int)$actor);
 	$p->exec('DROP TABLE fixture_groups');
 	$p->exec('CREATE TABLE fixture_groups (group_id INTEGER PRIMARY KEY AUTOINCREMENT,group_type INTEGER,group_single_user INTEGER,group_moderator INTEGER,group_name VARCHAR(255),group_description VARCHAR(255),group_color_group INTEGER DEFAULT 0)');
 	$p->exec("INSERT INTO fixture_groups VALUES (3,0,0,8,'Test','Description',7),(4,0,1,9,'Personal','Personal',0),(7,0,0,1,'Other','Other',0)");
@@ -60,8 +84,9 @@ try
 	mutation_check($id>7 && group_value('SELECT COUNT(*) FROM fixture_memberships WHERE group_id='.$id.' AND user_id=10 AND user_pending=0')===1,'New group has approved leader');
 	ga_fixture(); $mutation_server->failure='INSERT INTO fixture_memberships';
 	group_failure(function() { ga_run(array('mode'=>'newgroup')); },'Group_storage_failed');
-	$id=group_value('SELECT MAX(group_id) FROM fixture_groups'); $mutation_server->failure='';
-	ga_run(array('g'=>$id)); mutation_check(group_value('SELECT COUNT(*) FROM fixture_memberships WHERE group_id='.$id.' AND user_id=10 AND user_pending=0')===1,'Partially created group can be repaired through ordinary edit');
+	mutation_check(group_value('SELECT MAX(group_id) FROM fixture_groups')===7,'Failed creation leaves no partial group'); $mutation_server->failure='';
+	ga_run(array('mode'=>'newgroup')); $id=group_value('SELECT MAX(group_id) FROM fixture_groups');
+	mutation_check(group_value('SELECT COUNT(*) FROM fixture_memberships WHERE group_id='.$id.' AND user_id=10 AND user_pending=0')===1,'Creation can be retried after full rollback');
 	foreach (array('none','pending','approved','orphan','admin') as $case)
 	{
 		ga_fixture();
@@ -135,7 +160,7 @@ try
 	foreach (array('DELETE FROM fixture_auth','DELETE FROM fixture_pa_auth','DELETE FROM fixture_quotas','UPDATE fixture_users','DELETE FROM fixture_memberships','DELETE FROM fixture_groups') as $failure)
 	{
 		ga_fixture(); $mutation_server->failure=$failure; group_failure(function() { ga_run(array('group_delete'=>'on')); },'Group_storage_failed');
-		mutation_check(group_value('SELECT COUNT(*) FROM fixture_groups WHERE group_id=3')===1,'Failed MyISAM deletion leaves group visible for retry');
+		mutation_check(group_value('SELECT COUNT(*) FROM fixture_groups WHERE group_id=3')===1 && group_value('SELECT COUNT(*) FROM fixture_auth WHERE group_id=3')===1 && group_value('SELECT COUNT(*) FROM fixture_memberships WHERE group_id=3')===3,'Failed deletion restores group and all dependents');
 		$mutation_server->failure=''; ga_run(array('group_delete'=>'on'));
 		mutation_check(group_value('SELECT user_level FROM fixture_users WHERE user_id=9')===0,'Retry finishes role cleanup even after dependent failure');
 	}

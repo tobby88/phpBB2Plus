@@ -1,30 +1,51 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_group_storage.php';
+require_once dirname(__FILE__) . '/functions_acl_storage.php';
 
 function phpbb_group_admin_actor($db)
 {
-	global $userdata, $phpEx;
-	$user = phpbb_current_moderator_user($db);
-	if (!$user || empty($userdata['session_admin'])) { phpbb_group_error('Not_Authorised'); }
-	$grant = 'ga_actor.user_level = ' . ADMIN;
-	if ((int) $user['user_level'] !== ADMIN)
+	global $phpEx;
+	try { return phpbb_acp_actor($db, 'admin_groups.' . $phpEx); }
+	catch (PhpbbAclException $e) { throw new PhpbbGroupException($e->getMessage()); }
+}
+
+// The attachment mutex serializes group/quota/account cleanup; the dedicated
+// transaction additionally makes every group, role and session change atomic.
+class PhpbbGroupAdminDatabase extends PhpbbGroupDatabase
+{
+	function begin()
 	{
-		require_once dirname(__FILE__) . '/functions_jr_admin.php';
-		$rows = phpbb_group_rows($db, 'SELECT user_jr_admin FROM ' . JR_ADMIN_TABLE . ' WHERE user_id = ' . (int) $user['user_id']);
-		$routes = jr_admin_authorization_routes(); $allowed = false;
-		if ($rows && $routes !== false)
+		phpbb_group_admin_actor($this);
+		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->sql_query('START TRANSACTION');
+		foreach (array(USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE, GROUPS_TABLE, USER_GROUP_TABLE,
+			AUTH_ACCESS_TABLE, FORUMS_TABLE, PA_AUTH_ACCESS_TABLE, QUOTA_TABLE, QUOTA_LIMITS_TABLE) as $table)
 		{
-			foreach (explode(EXPLODE_SEPERATOR_CHAR, $rows[0]['user_jr_admin']) as $hash)
-			{
-				if (isset($routes[$hash]) && $routes[$hash] === 'admin_groups.' . $phpEx) { $allowed = true; break; }
-			}
+			// Pin metadata before checking it; never silently use nontransactional
+			// plugin tables or repair schema with implicit-commit runtime DDL.
+			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
+			$rows = phpbb_group_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci')
+			{ phpbb_group_error('Group_storage_failed'); }
 		}
-		if (!$allowed) { phpbb_group_error('Not_Authorised'); }
-		$grant .= ' OR EXISTS (SELECT 1 FROM ' . JR_ADMIN_TABLE . ' j WHERE j.user_id = ' . (int) $user['user_id'] . " AND j.user_jr_admin = '" . $db->sql_escape($rows[0]['user_jr_admin']) . "')";
 	}
-	$user['guard'] = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_active,user_level FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $user['user_id'] . ') ga_actor WHERE ga_actor.user_active <> 0 AND (' . $grant . '))';
-	return $user;
+	function commit()
+	{
+		global $userdata;
+		$actor = phpbb_group_admin_actor($this); $sid = $this->sql_escape($userdata['session_id']);
+		foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
+			'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$actor['user_id'],
+			'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . (int)$actor['user_id']) as $sql)
+		{ $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
+		phpbb_group_admin_actor($this); $this->sql_query('COMMIT'); phpbb_group_admin_actor($this);
+	}
+	function rollback()
+	{
+		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+	}
 }
 function phpbb_group_admin_target($db, $id)
 {
@@ -85,13 +106,17 @@ function phpbb_group_admin_save($database, $post)
 	}
 	$lock = new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_group_error('Attachment_storage_busy'); }
+	$db = new PhpbbGroupAdminDatabase($lock->connection);
 	try
 	{
-		$db = new PhpbbGroupDatabase($lock->connection); $actor = phpbb_group_admin_actor($db);
+		if (!defined('PA_AUTH_ACCESS_TABLE')) { require_once dirname(__DIR__) . '/pafiledb/includes/pafiledb_constants.php'; }
+		$db->begin(); $actor = phpbb_group_admin_actor($db);
+		if ($id) { phpbb_group_rows($db, 'SELECT group_id FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $id . ' FOR UPDATE'); }
 		$group = $id ? phpbb_group_admin_target($db, $id) : null;
 		$guard = $actor['guard'] . ($group ? ' AND ' . $group['guard'] : '');
 		$members = $id ? phpbb_group_rows($db, 'SELECT DISTINCT user_id FROM ' . USER_GROUP_TABLE . ' WHERE group_id = ' . $id . ' AND user_id > 0') : array();
 		$ids = array(); foreach ($members as $member) { $ids[(int) $member['user_id']] = (int) $member['user_id']; }
+		if ($group && (int)$group['group_moderator'] > 0) { $ids[(int)$group['group_moderator']] = (int)$group['group_moderator']; }
 		if (!$delete)
 		{
 			$leader = phpbb_group_admin_leader($db, $leader_name); $ids[$leader] = $leader;
@@ -104,13 +129,14 @@ function phpbb_group_admin_save($database, $post)
 		}
 		if ($ids)
 		{
+			ksort($ids);
+			phpbb_group_rows($db, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id IN (' . implode(',', $ids) . ') ORDER BY user_id FOR UPDATE');
 			$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id IN (' . implode(',', $ids) . ') AND session_user_id <> ' . (int) $actor['user_id'] . ' AND ' . $guard);
 		}
 		if ($delete)
 		{
-			// Remove dependent grants while the guarded group still exists. If a
-			// MyISAM write fails, retain the group as a visible, retryable target.
-			if (!defined('PA_AUTH_ACCESS_TABLE')) { require_once dirname(__DIR__) . '/pafiledb/includes/pafiledb_constants.php'; }
+			// Remove dependent grants while the guarded group still exists.
+			// Any later failure restores the entire group and its dependents.
 			foreach (array(AUTH_ACCESS_TABLE, PA_AUTH_ACCESS_TABLE, QUOTA_TABLE) as $table)
 			{
 				$db->sql_query('DELETE FROM ' . $table . ' WHERE group_id = ' . $id . ' AND ' . $guard);
@@ -119,6 +145,7 @@ function phpbb_group_admin_save($database, $post)
 			$db->sql_query('DELETE FROM ' . USER_GROUP_TABLE . ' WHERE group_id = ' . $id . ' AND ' . $guard);
 			$db->sql_query('DELETE FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $id . ' AND ' . $guard);
 			if ((int) $db->sql_affectedrows() !== 1) { phpbb_group_error('Group_storage_failed'); }
+			$db->commit();
 			return 'Deleted_group';
 		}
 		if (!$id)
@@ -169,7 +196,8 @@ function phpbb_group_admin_save($database, $post)
 			foreach ($rows as $row) { if ((int) $row['quota_limit_id'] !== $limit) { phpbb_group_error('Group_storage_failed'); } }
 			if ($limit && !phpbb_group_rows($db, 'SELECT quota_limit_id FROM ' . QUOTA_LIMITS_TABLE . ' WHERE quota_limit_id = ' . $limit)) { phpbb_group_error('Group_storage_failed'); }
 		}
+		$db->commit();
 		return $mode === 'newgroup' ? 'Added_new_group' : 'Updated_group';
 	}
-	finally { $lock->release(); }
+	finally { $db->rollback(); $lock->release(); }
 }

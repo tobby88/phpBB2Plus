@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make ACP group creation, editing and deletion transactional across group
+  metadata, leader membership, moderator roles, session invalidation, dependent
+  forum/download permissions and quota assignments. Reject stale live ACP
+  sessions and revoked exact module grants through commit, pin modern storage,
+  and roll back every partial failure. Preserve unrelated groups and existing
+  optional fields, repair orphan former-leader roles when deleting a group,
+  and cover each write/commit boundary with native concurrent/failure tests.
+  Existing storage migrations suffice; no runtime DDL or new schema required.
 - Make Attachment MOD quota editing transactional across definitions, linked
   assignments and default references, with exact current ACP/module/session
   authority through commit. Validate complete forms before writes, retain

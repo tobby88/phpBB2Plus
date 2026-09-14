@@ -613,6 +613,16 @@ Run the **normal** `update/update_from_153a.php` plan/apply procedure above (not
 metadata and wider custom columns are retained; the migration is idempotent.
 Fresh installations already have the corrected width. No runtime DDL is used.
 
+Group administration saves creation, edits and deletion in one dedicated
+InnoDB transaction, including leader membership, derived moderator roles,
+affected sessions, download/forum grants and quota assignments. Failed saves
+leave no partial new group or partly removed dependents. Current account,
+exact group-management delegation and live ACP session are rechecked through
+commit; the existing attachment mutex still coordinates related writers.
+All participant tables must already satisfy the storage policy above. No new
+schema migration is needed beyond the existing normal updater. This boundary
+does not include the separate public group-membership or user-profile forms.
+
 The updater also creates `user_removals` and `user_removal_items` (with your configured
 table prefix). These tables are required before publishing the resumable
 inactive-account, user-manager and standalone pruning workflows. Failed removals remain

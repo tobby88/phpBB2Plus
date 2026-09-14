@@ -83,3 +83,7 @@ jobs:
         env:
           PHPBB_QUOTA_NATIVE: '1'
           PHPBB_QUOTA_PASSWORD: fixture-only
+      - run: php .github/scripts/check-group-admin-native.php
+        env:
+          PHPBB_GROUP_ADMIN_NATIVE: '1'
+          PHPBB_GROUP_ADMIN_PASSWORD: fixture-only
