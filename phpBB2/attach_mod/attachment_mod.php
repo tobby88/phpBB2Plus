@@ -91,7 +91,7 @@ function get_config()
 
 	foreach ($attach_config as $name => $value)
 	{
-		$attach_config[$name] = trim($value);
+		$attach_config[$name] = ($name === 'ftp_user' || $name === 'ftp_pass') ? $value : trim($value);
 	}
 
 	// We assign the original default board language here, because it gets overwritten later with the users default language

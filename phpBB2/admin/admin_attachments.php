@@ -81,132 +81,36 @@ $hidden = phpbb_admin_session_field();
 $error = false;
 $template->assign_var('S_HIDDEN_FIELDS', phpbb_admin_session_field());
 
-// Re-evaluate the Attachment Configuration
-$sql = 'SELECT * 
-	FROM ' . ATTACH_CONFIG_TABLE;
-	 
-if (!$result = $db->sql_query($sql))
+// Raw settings are stored independently of their HTML presentation.
+require_once($phpbb_root_path . 'attach_mod/includes/functions_settings_storage.' . $phpEx);
+if ($submit && ($mode === 'manage' || $mode === 'cats'))
 {
-	message_die(GENERAL_ERROR, 'Could not find Attachment Config Table', '', __LINE__, __FILE__, $sql);
+	try { phpbb_attach_settings_save($db, $_POST, $mode); }
+	catch (PhpbbAclException $exception) { message_die(GENERAL_ERROR, $exception->getMessage()); }
+	message_die(GENERAL_MESSAGE, $lang['Attach_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=$mode") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
 }
-
-while ($row = $db->sql_fetchrow($result))
+try { $new_attach = phpbb_attach_settings_read($db); }
+catch (PhpbbAclException $exception) { message_die(GENERAL_ERROR, $exception->getMessage()); }
+// Preserve unsaved form input on diagnostic/search responses, without writing it.
+if ($check_upload || $check_image_cat || $search_imagick)
 {
-	$config_name = $row['config_name'];
-	$config_value = $row['config_value'];
-
-	$new_attach[$config_name] = get_var($config_name, trim($attach_config[$config_name]));
-
-	if (!$size && !$submit && $config_name == 'max_filesize')
+	if (($check_upload && $mode !== 'manage') || (($check_image_cat || $search_imagick) && $mode !== 'cats'))
+	{ message_die(GENERAL_ERROR, $lang['Board_config_invalid']); }
+	$preview_request = $_POST;
+	unset($preview_request['settings'], $preview_request['cat_settings'], $preview_request['search_imagick']);
+	try
 	{
-		$size = ($attach_config[$config_name] >= 1048576) ? 'mb' : (($attach_config[$config_name] >= 1024) ? 'kb' : 'b');
-	} 
-
-	if (!$quota_size && !$submit && $config_name == 'attachment_quota')
-	{
-		$quota_size = ($attach_config[$config_name] >= 1048576) ? 'mb' : (($attach_config[$config_name] >= 1024) ? 'kb' : 'b');
+		$preview_writer = new PhpbbAttachSettingsWriter($db, $mode);
+		try { $preview_writer->actor(); } finally { $preview_writer->release(); }
+		$new_attach = array_merge($new_attach, phpbb_attach_settings_values($preview_request, $mode, $new_attach));
 	}
-
-	if (!$pm_size && !$submit && $config_name == 'max_filesize_pm')
-	{
-		$pm_size = ($attach_config[$config_name] >= 1048576) ? 'mb' : (($attach_config[$config_name] >= 1024) ? 'kb' : 'b');
-	}
-
-	if (!$submit && ($config_name == 'max_filesize' || $config_name == 'attachment_quota' || $config_name == 'max_filesize_pm'))
-	{
-		if ($new_attach[$config_name] >= 1048576)
-		{
-			$new_attach[$config_name] = round($new_attach[$config_name] / 1048576 * 100) / 100;
-		}
-		else if ($new_attach[$config_name] >= 1024)
-		{
-			$new_attach[$config_name] = round($new_attach[$config_name] / 1024 * 100) / 100;
-		}
-	}
-
-	if ($submit && ($mode == 'manage' || $mode == 'cats'))
-	{
-		if ($config_name == 'max_filesize')
-		{
-			$old = $new_attach[$config_name];
-			$new_attach[$config_name] = ($size == 'kb') ? round($new_attach[$config_name] * 1024) : (($size == 'mb') ? round($new_attach[$config_name] * 1048576) : $new_attach[$config_name]);
-		}
-		
-		if ($config_name == 'attachment_quota')
-		{
-			$old = $new_attach[$config_name];
-			$new_attach[$config_name] = ( $quota_size == 'kb' ) ? round($new_attach[$config_name] * 1024) : ( ($quota_size == 'mb') ? round($new_attach[$config_name] * 1048576) : $new_attach[$config_name] );
-		}
-
-		if ($config_name == 'max_filesize_pm')
-		{
-			$old = $new_attach[$config_name];
-			$new_attach[$config_name] = ( $pm_size == 'kb' ) ? round($new_attach[$config_name] * 1024) : ( ($pm_size == 'mb') ? round($new_attach[$config_name] * 1048576) : $new_attach[$config_name] );
-		}
-
-		if ($config_name == 'ftp_server' || $config_name == 'ftp_path' || $config_name == 'download_path')
-		{
-			$value = trim($new_attach[$config_name]);
-
-			if ($value !== '' && $value[strlen($value)-1] == '/')
-			{
-				$value[strlen($value)-1] = ' ';
-			}
-			
-			$new_attach[$config_name] = trim($value);
-		}
-		
-		if ($config_name == 'max_filesize')
-		{
-			$old_size = $attach_config[$config_name];
-			$new_size = $new_attach[$config_name];
-
-			if ($old_size != $new_size)
-			{
-				// See, if we have a similar value of old_size in Mime Groups. If so, update these values.
-				$sql = 'UPDATE ' . EXTENSION_GROUPS_TABLE . '
-					SET max_filesize = ' . (int) $new_size . '
-					WHERE max_filesize = ' . (int) $old_size;
-
-				if (!($result_2 = $db->sql_query($sql)))
-				{
-					message_die(GENERAL_ERROR, 'Could not update Extension Group informations', '', __LINE__, __FILE__, $sql);
-				}
-			}
-
-			$sql = "UPDATE " . ATTACH_CONFIG_TABLE . " 
-				SET	config_value = '" . attach_mod_sql_escape($new_attach[$config_name]) . "'
-				WHERE config_name = '" . attach_mod_sql_escape($config_name) . "'";
-		}
-		else
-		{
-			$sql = "UPDATE " . ATTACH_CONFIG_TABLE . " 
-				SET	config_value = '" . attach_mod_sql_escape($new_attach[$config_name]) . "'
-				WHERE config_name = '" . attach_mod_sql_escape($config_name) . "'";
-		}
-
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Failed to update attachment configuration for ' . $config_name, '', __LINE__, __FILE__, $sql);
-		}
-	
-		if ($config_name == 'max_filesize' || $config_name == 'attachment_quota' || $config_name == 'max_filesize_pm')
-		{
-			$new_attach[$config_name] = $old;
-		}
-	}
+	catch (PhpbbAclException $exception) { message_die(GENERAL_ERROR, $exception->getMessage()); }
 }
-$db->sql_freeresult($result);
-
-$cache_dir = $phpbb_root_path . 'cache';
-$cache_file = $cache_dir . '/attach_config_data.cache';
-
-if ((file_exists($cache_dir)) && (is_dir($cache_dir)))
+foreach (array('max_filesize'=>'size', 'attachment_quota'=>'quota_size', 'max_filesize_pm'=>'pm_size') as $field => $unit_field)
 {
-	if (file_exists($cache_file))
-	{
-		@unlink($cache_file);
-	}
+	if (!in_array($$unit_field, array('b', 'kb', 'mb'), true))
+	{ $$unit_field = (float)$new_attach[$field] >= 1048576 ? 'mb' : ((float)$new_attach[$field] >= 1024 ? 'kb' : 'b'); }
+	$new_attach[$field] = phpbb_attach_settings_display_size($new_attach[$field], $$unit_field);
 }
 
 $select_size_mode = size_select('size', $size);
@@ -253,13 +157,6 @@ if ($check_upload)
 }
 
 // Management
-if ($submit && $mode == 'manage')
-{
-	if (!$error)
-	{
-		message_die(GENERAL_MESSAGE, $lang['Attach_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=manage") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
-	}
-}
 
 if ($mode == 'manage')
 {
@@ -351,19 +248,19 @@ if ($mode == 'manage')
 		'L_UPLOAD_QUOTA'		=> $lang['Upload_quota'],
 		'L_PM_QUOTA'			=> $lang['Pm_quota'],
 
-		'UPLOAD_DIR'			=> $new_attach['upload_dir'],
-		'ATTACHMENT_IMG_PATH'	=> $new_attach['upload_img'],
-		'TOPIC_ICON'			=> $new_attach['topic_icon'],
-		'MAX_FILESIZE'			=> $new_attach['max_filesize'],
-		'ATTACHMENT_QUOTA'		=> $new_attach['attachment_quota'],
-		'MAX_FILESIZE_PM'		=> $new_attach['max_filesize_pm'],
-		'MAX_ATTACHMENTS'		=> $new_attach['max_attachments'],
-		'MAX_ATTACHMENTS_PM'	=> $new_attach['max_attachments_pm'],
-		'FTP_SERVER'			=> $new_attach['ftp_server'],
-		'FTP_PATH'				=> $new_attach['ftp_path'],
-		'FTP_USER'				=> $new_attach['ftp_user'],
-		'FTP_PASS'				=> $new_attach['ftp_pass'],
-		'DOWNLOAD_PATH'			=> $new_attach['download_path'],
+		'UPLOAD_DIR'			=> phpbb_admin_html($new_attach['upload_dir']),
+		'ATTACHMENT_IMG_PATH'	=> phpbb_admin_html($new_attach['upload_img']),
+		'TOPIC_ICON'			=> phpbb_admin_html($new_attach['topic_icon']),
+		'MAX_FILESIZE'			=> phpbb_admin_html($new_attach['max_filesize']),
+		'ATTACHMENT_QUOTA'		=> phpbb_admin_html($new_attach['attachment_quota']),
+		'MAX_FILESIZE_PM'		=> phpbb_admin_html($new_attach['max_filesize_pm']),
+		'MAX_ATTACHMENTS'		=> phpbb_admin_html($new_attach['max_attachments']),
+		'MAX_ATTACHMENTS_PM'	=> phpbb_admin_html($new_attach['max_attachments_pm']),
+		'FTP_SERVER'			=> phpbb_admin_html($new_attach['ftp_server']),
+		'FTP_PATH'				=> phpbb_admin_html($new_attach['ftp_path']),
+		'FTP_USER'				=> phpbb_admin_html($new_attach['ftp_user']),
+		'FTP_PASS'				=> phpbb_admin_html($new_attach['ftp_pass']),
+		'DOWNLOAD_PATH'			=> phpbb_admin_html($new_attach['download_path']),
 		'DISABLE_MOD_YES'		=> $disable_mod_yes,
 		'DISABLE_MOD_NO'		=> $disable_mod_no,
 		'PM_ATTACH_YES'			=> $allow_pm_attach_yes,
@@ -568,13 +465,6 @@ if ($mode == 'shadow')
 	}
 }
 
-if ($submit && $mode == 'cats')
-{
-	if (!$error)
-	{
-		message_die(GENERAL_MESSAGE, $lang['Attach_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=cats") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>'));
-	}
-}
 
 if ($mode == 'cats')
 {
@@ -668,13 +558,13 @@ if ($mode == 'cats')
 		'L_USE_GD2'						=> $lang['Use_gd2'],
 		'L_USE_GD2_EXPLAIN'				=> $lang['Use_gd2_explain'],
 
-		'IMAGE_MAX_HEIGHT'			=> $new_attach['img_max_height'],
-		'IMAGE_MAX_WIDTH'			=> $new_attach['img_max_width'],
+		'IMAGE_MAX_HEIGHT'			=> phpbb_admin_html($new_attach['img_max_height']),
+		'IMAGE_MAX_WIDTH'			=> phpbb_admin_html($new_attach['img_max_width']),
 		
-		'IMAGE_LINK_HEIGHT'			=> $new_attach['img_link_height'],
-		'IMAGE_LINK_WIDTH'			=> $new_attach['img_link_width'],
-		'IMAGE_MIN_THUMB_FILESIZE'	=> $new_attach['img_min_thumb_filesize'],
-		'IMAGE_IMAGICK_PATH'		=> $new_attach['img_imagick'],
+		'IMAGE_LINK_HEIGHT'			=> phpbb_admin_html($new_attach['img_link_height']),
+		'IMAGE_LINK_WIDTH'			=> phpbb_admin_html($new_attach['img_link_width']),
+		'IMAGE_MIN_THUMB_FILESIZE'	=> phpbb_admin_html($new_attach['img_min_thumb_filesize']),
+		'IMAGE_IMAGICK_PATH'		=> phpbb_admin_html($new_attach['img_imagick']),
 
 		'DISPLAY_INLINED_YES'	=> $display_inlined_yes,
 		'DISPLAY_INLINED_NO'	=> $display_inlined_no,
@@ -685,7 +575,7 @@ if ($mode == 'cats')
 		'USE_GD2_YES'	=> $use_gd2_yes,
 		'USE_GD2_NO'	=> $use_gd2_no,
 
-		'S_ASSIGNED_GROUP_IMAGES'	=> implode(', ', $s_assigned_group_images),
+		'S_ASSIGNED_GROUP_IMAGES'	=> phpbb_admin_html(implode(', ', $s_assigned_group_images)),
 		'S_ATTACH_ACTION'			=> append_sid('admin_attachments.' . $phpEx . '?mode=cats'))
 	);
 }

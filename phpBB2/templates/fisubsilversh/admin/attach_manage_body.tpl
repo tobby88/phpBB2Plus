@@ -39,15 +39,15 @@
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_MAX_FILESIZE}<br /><span class="gensmall">{L_MAX_FILESIZE_EXPLAIN}</span></td>
-		<td class="row2"><input type="text" size="8" maxlength="15" name="max_filesize" class="post" value="{MAX_FILESIZE}" /> {S_FILESIZE}</td>
+		<td class="row2"><input type="text" size="8" maxlength="40" name="max_filesize" class="post" value="{MAX_FILESIZE}" /> {S_FILESIZE}</td>
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_ATTACH_QUOTA}<br /><span class="gensmall">{L_ATTACH_QUOTA_EXPLAIN}</span></td>
-		<td class="row2"><input type="text" size="8" maxlength="15" name="attachment_quota" class="post" value="{ATTACHMENT_QUOTA}" /> {S_FILESIZE_QUOTA}</td>
+		<td class="row2"><input type="text" size="8" maxlength="40" name="attachment_quota" class="post" value="{ATTACHMENT_QUOTA}" /> {S_FILESIZE_QUOTA}</td>
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_MAX_FILESIZE_PM}<br /><span class="gensmall">{L_MAX_FILESIZE_PM_EXPLAIN}</span></td>
-		<td class="row2"><input type="text" size="8" maxlength="15" name="max_filesize_pm" class="post" value="{MAX_FILESIZE_PM}" /> {S_FILESIZE_PM}</td>
+		<td class="row2"><input type="text" size="8" maxlength="40" name="max_filesize_pm" class="post" value="{MAX_FILESIZE_PM}" /> {S_FILESIZE_PM}</td>
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_DEFAULT_QUOTA_LIMIT}<br /><span class="gensmall">{L_DEFAULT_QUOTA_LIMIT_EXPLAIN}</span></td>
@@ -124,7 +124,7 @@
 	</tr>
 	<tr>
 		<td class="row1" width="80%">{L_ATTACHMENT_FTP_PASS}</td>
-		<td class="row2"><input type="password" size="10" maxlength="20" name="ftp_pass" class="post" value="{FTP_PASS}" /></td>
+		<td class="row2"><input type="password" size="20" maxlength="255" name="ftp_pass" class="post" value="{FTP_PASS}" /></td>
 	</tr>
 <!-- END switch_ftp -->
 <!-- BEGIN switch_no_ftp -->

@@ -73,3 +73,7 @@ jobs:
         env:
           PHPBB_MOD_SETTINGS_NATIVE: '1'
           PHPBB_MOD_SETTINGS_PASSWORD: fixture-only
+      - run: php .github/scripts/check-attachment-settings-storage.php
+        env:
+          PHPBB_ATTACH_SETTINGS_NATIVE: '1'
+          PHPBB_ATTACH_SETTINGS_PASSWORD: fixture-only

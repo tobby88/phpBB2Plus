@@ -41,6 +41,7 @@ function ftp_connect($host, $port, $timeout)
 function ftp_login($connection, $username, $password)
 {
 	ftp_call('login', $connection);
+	$GLOBALS['ftp_login_values'] = array($username, $password);
 	if ($GLOBALS['ftp_failure'] === 'init-exception') { throw new RuntimeException('private-password'); }
 	return $GLOBALS['ftp_failure'] !== 'login';
 }
@@ -78,6 +79,9 @@ foreach (array('missing', 'connect', 'login', 'pasv', 'path', 'init-exception') 
 	try { attach_init_ftp(); } catch (FtpFailure $exception) { $caught = true; ftp_check(strpos($exception->getMessage(), 'private-password') === false, 'Do not expose native exception or password'); }
 	ftp_check($caught, 'Default initialization still stops dependent maintenance on failure');
 }
+reset_ftp(); $exact_credentials = array(" user & ' \\ 😀 ", " pass & < > \" ' \\ 😀 ");
+$attach_config['ftp_user'] = $exact_credentials[0]; $attach_config['ftp_pass'] = $exact_credentials[1];
+$connection = attach_init_ftp(); ftp_check($GLOBALS['ftp_login_values'] === $exact_credentials, 'Runtime FTP login preserves exact credential bytes'); ftp_close($connection);
 reset_ftp(); $connection = attach_init_ftp(MODE_THUMBNAIL); ftp_check(end($GLOBALS['ftp_calls']) === 'cwd:uploads/thumbs', 'Thumbnail setup uses the configured subdirectory'); ftp_close($connection);
 foreach (array("bad\0value", "bad\r\nvalue", array('nested')) as $bad)
 {

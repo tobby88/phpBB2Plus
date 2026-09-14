@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save Attachment MOD management and image settings through separate rendered-
+  field allowlists and a dedicated InnoDB transaction. Recheck the current ACP
+  session and exact delegated-module grant through commit; roll back partial
+  setting/group-limit writes, preserve unrelated values and validate referenced
+  quotas. Preserve FTP credential bytes from input through runtime login, escape
+  settings/group/quota labels only for HTML, and retain exact byte limits when
+  displaying and resaving KB/MB values. No additional schema migration required.
 - Save Configuration + through a dedicated InnoDB transaction with current
   account, ACP session and exact delegated-module permission checks through
   commit. Validate the entire selected section's submitted controls and override

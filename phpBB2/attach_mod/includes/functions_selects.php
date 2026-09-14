@@ -222,7 +222,7 @@ function quota_limit_select($select_name, $default_quota = 0)
 	for ($i = 0; $i < sizeof($quota_name); $i++)
 	{
 		$selected = ($quota_name[$i]['quota_limit_id'] == $default_quota) ? ' selected="selected"' : '';
-		$quota_select .= '<option value="' . $quota_name[$i]['quota_limit_id'] . '"' . $selected . '>' . $quota_name[$i]['quota_desc'] . '</option>';
+		$quota_select .= '<option value="' . (int)$quota_name[$i]['quota_limit_id'] . '"' . $selected . '>' . htmlspecialchars($quota_name[$i]['quota_desc'], ENT_QUOTES, 'UTF-8') . '</option>';
 	}
 	$quota_select .= '</select>';
 
@@ -258,7 +258,7 @@ function default_quota_limit_select($select_name, $default_quota = 0)
 	for ($i = 0; $i < sizeof($quota_name); $i++)
 	{
 		$selected = ( $quota_name[$i]['quota_limit_id'] == $default_quota ) ? ' selected="selected"' : '';
-		$quota_select .= '<option value="' . $quota_name[$i]['quota_limit_id'] . '"' . $selected . '>' . $quota_name[$i]['quota_desc'] . '</option>';
+		$quota_select .= '<option value="' . (int)$quota_name[$i]['quota_limit_id'] . '"' . $selected . '>' . htmlspecialchars($quota_name[$i]['quota_desc'], ENT_QUOTES, 'UTF-8') . '</option>';
 	}
 	$quota_select .= '</select>';
 

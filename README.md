@@ -585,7 +585,21 @@ through commit. A failure rolls back all changes; unrelated configuration values
 are preserved. A lost commit acknowledgement is reported as an error (the save
 may nevertheless have committed), and the cache is invalidated in either case.
 No additional migration is required beyond the existing storage policy/defaults.
-It also creates `user_removals` and `user_removal_items` (with your configured
+
+Attachment MOD management and image settings likewise use separate field lists
+and transactional saves with current ACP/session/module checks through commit.
+Matching extension-group file limits change atomically with the global limit;
+custom group limits and unsubmitted settings are preserved. Quota references
+must exist. Byte limits survive an unchanged KB/MB display-and-save round trip.
+FTP usernames and passwords retain their exact bytes (including surrounding
+spaces); HTML escaping happens only in the rendered form. If an earlier version
+already saved HTML entities or removed spaces from credentials, re-enter the
+original credentials: the intended value cannot safely be inferred. No new
+database migration is needed beyond the existing InnoDB/utf8mb4 update. As with
+other transactional saves, a lost commit acknowledgement reports an error even
+when the server may have committed; reload to check before retrying.
+
+The updater also creates `user_removals` and `user_removal_items` (with your configured
 table prefix). These tables are required before publishing the resumable
 inactive-account, user-manager and standalone pruning workflows. Failed removals remain
 visible in their original ACP module for explicit resumption; completed job
