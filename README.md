@@ -577,6 +577,14 @@ and user-override switches) without replacing existing values. Configuration +
 refuses to save a section with missing stored keys and asks for the documented
 backup/maintenance update procedure above. Existing complete installations need
 no additional database changes for this safeguard.
+
+Configuration + saves its selected Mod Settings section in a dedicated InnoDB
+transaction. It validates submitted controls and 0/1 user-override switches,
+rejects invalid section selectors and rechecks the exact current ACP permission
+through commit. A failure rolls back all changes; unrelated configuration values
+are preserved. A lost commit acknowledgement is reported as an error (the save
+may nevertheless have committed), and the cache is invalidated in either case.
+No additional migration is required beyond the existing storage policy/defaults.
 It also creates `user_removals` and `user_removal_items` (with your configured
 table prefix). These tables are required before publishing the resumable
 inactive-account, user-manager and standalone pruning workflows. Failed removals remain

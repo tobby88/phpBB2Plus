@@ -52,6 +52,16 @@ if ($dir !== false)
 }
 
 // menu_id
+// Posted selectors must identify a real section, never fall back silently.
+if (isset($_POST['submit']))
+{
+	phpbb_admin_require_post_session();
+	foreach (array('menu_id', 'mod_id', 'sub_id') as $selector)
+	{
+		if (isset($_POST[$selector]) && (!is_string($_POST[$selector]) || !preg_match('/^[0-9]{1,6}$/D', $_POST[$selector])))
+		{ message_die(GENERAL_ERROR, $lang['Board_config_invalid']); }
+	}
+}
 $menu_id = 0;
 if ( isset($_GET['menu']) || isset($_POST['menu_id']) )
 {
@@ -177,6 +187,9 @@ foreach ($mods as $menu_name => $menu)
 @array_multisort($menu_sort, $menu_keys, $mod_sort, $mod_keys, $sub_sort, $sub_keys);
 
 // fix menu id
+if (isset($_POST['submit']) && (!isset($menu_keys[$menu_id], $mod_keys[$menu_id][$mod_id])
+	|| ($sub_id !== 0 && !isset($sub_keys[$menu_id][$mod_id][$sub_id]))))
+{ message_die(GENERAL_ERROR, $lang['Board_config_invalid']); }
 if ( !isset($menu_keys[$menu_id]) )
 {
 	$menu_id = 0;
@@ -234,101 +247,9 @@ if ($submit)
 		{ message_die(GENERAL_ERROR, $lang['Mod_settings_update_required']); }
 	}
 
-	// init for error
-	$error = false;
-	$error_msg = '';
-
-	// format and verify data
-	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
-	{
-		if (isset($_POST[$field_name]))
-		{
-			if (!is_scalar($_POST[$field_name]))
-			{
-				$error = true;
-				$msg = mods_settings_get_lang($field['lang_key']);
-				$error_msg .= (empty($error_msg) ? '' : '<br />') . $lang['Error'] . ':&nbsp;' . phpbb_admin_html($msg);
-				$post_value = '';
-			}
-			else
-			{
-				$post_value = (string) $_POST[$field_name];
-			}
-			switch ($field['type'])
-			{
-				case 'LIST_RADIO':
-				case 'LIST_DROP':
-					$$field_name = $post_value;
-					$allowed_values = array_map('strval', $field['values']);
-					if (!in_array($$field_name, $allowed_values, true))
-					{
-						$error = true;
-						$msg = mods_settings_get_lang( $mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'][$field_name]['lang_key'] );
-						$error_msg = (empty($error_msg) ? '' : '<br />') . $lang['Error'] . ':&nbsp;' . $msg;
-					}
-					break;
-				case 'TINYINT':
-				case 'SMALLINT':
-				case 'MEDIUMINT':
-				case 'INT':
-					$$field_name = intval($post_value);
-					break;
-				case 'VARCHAR':
-				case 'TEXT':
-				case 'DATEFMT':
-					$$field_name = trim($post_value);
-					break;
-				case 'HTMLVARCHAR':
-				case 'HTMLTEXT':
-					$$field_name = trim($post_value);
-					break;
-				default:
-					$$field_name = '';
-					if ( !empty($field['chk_func']) && function_exists($field['chk_func']) )
-					{
-						$$field_name = $field['chk_func']($field_name, $post_value);
-					}
-					else
-					{
-						message_die(GENERAL_ERROR, 'Unknown type of config data : ' . $field_name, '', __LINE__, __FILE__, '');
-					}
-					break;
-			}
-			if ($error)
-			{
-				$message = $error_msg . '<br /><br />' . sprintf($lang['Click_return_config'], '<a href="' . append_sid("./admin_board_extend.$phpEx?menu=$menu_id&mod=$mod_id&msub=$sub_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("./index.$phpEx?pane=right") . '">', '</a>');
-				message_die(GENERAL_MESSAGE, $message);
-			}
-		}
-	}
-
-	// save data
-	foreach ($mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data'] as $field_name => $field)
-	{
-		if (isset($$field_name))
-		{
-			// update
-			$sql = "UPDATE " . CONFIG_TABLE . " 
-			SET config_value = '" . $db->sql_escape((string) $$field_name) . "'
-					WHERE config_name = '" . $db->sql_escape($field_name) . "'";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Failed to update general configuration for ' . $field_name, '', __LINE__, __FILE__, $sql);
-			}
-		}
-		if ( isset($_POST[$field_name . '_over']) && !empty($field['user']) && isset($userdata[ $field['user'] ]) )
-		{
-			$override_value = is_scalar($_POST[$field_name . '_over']) ? intval($_POST[$field_name . '_over']) : 0;
-			// update
-			$sql = "UPDATE " . CONFIG_TABLE . " 
-					SET config_value = '" . $override_value . "'
-					WHERE config_name = '" . $db->sql_escape($field_name . '_over') . "'";
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Failed to update general configuration for ' . $field_name, '', __LINE__, __FILE__, $sql);
-			}
-		}
-	}
+	require_once($phpbb_root_path . 'includes/functions_mod_settings_storage.' . $phpEx);
+	try { phpbb_mod_settings_save($db, $_POST, $mods[$menu_name]['data'][$mod_name]['data'][$sub_name]['data']); }
+	catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 
 	// send an update message
 	$message = $lang['Config_updated'] . '<br /><br />' . sprintf($lang['Click_return_config'], '<a href="' . append_sid("./admin_board_extend.$phpEx?menu=$menu_id&mod=$mod_id&msub=$sub_id") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("./index.$phpEx?pane=right") . '">', '</a>');

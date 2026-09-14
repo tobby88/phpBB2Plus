@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save Configuration + through a dedicated InnoDB transaction with current
+  account, ACP session and exact delegated-module permission checks through
+  commit. Validate the entire selected section's submitted controls and override
+  switches, preserve unrelated settings, roll back partial failures and evict
+  stale configuration cache even after a lost commit acknowledgement. Cover all
+  six sections and native concurrent revocations. No new migration required.
 - Make Mod Settings registration read-only during ordinary page/profile loads.
   Supply all 55 defaults through the fresh installer and idempotent updater,
   preserving existing and concurrently initialized administrator values. Reject
