@@ -16,7 +16,7 @@
 	</tr>
 	<tr>
 		<td class="row1" align="center" valign="middle"><input type="text" size="20" maxlength="25" name="quota_description" class="post" value=""/></td>
-		<td class="row2" align="center" valign="middle"><input type="text" size="8" maxlength="15" name="add_max_filesize" class="post" value="{MAX_FILESIZE}" /> {S_FILESIZE}</td>
+		<td class="row2" align="center" valign="middle"><input type="text" size="8" maxlength="40" name="add_max_filesize" class="post" value="{MAX_FILESIZE}" /> {S_FILESIZE}</td>
 		<td class="row1" align="center" valign="middle"><input type="checkbox" name="add_quota_check" /></td>
 	</tr>
 	<tr align="right">
@@ -38,7 +38,7 @@
 	  </tr>
 	  </table>
 	  </td>	
-	  <td class="row2" align="center" valign="middle"><input type="text" size="8" maxlength="15" name="max_filesize_list[]" class="post" value="{limit_row.MAX_FILESIZE}" /> {limit_row.S_FILESIZE}</td>
+	  <td class="row2" align="center" valign="middle"><input type="text" size="8" maxlength="40" name="max_filesize_list[]" class="post" value="{limit_row.MAX_FILESIZE}" /> {limit_row.S_FILESIZE}</td>
 	  <td class="row1" align="center" valign="middle"><input type="checkbox" name="quota_id_list[]" value="{limit_row.QUOTA_ID}" /></td>
 	</tr>
 <!-- END limit_row -->

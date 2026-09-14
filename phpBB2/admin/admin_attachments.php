@@ -763,114 +763,11 @@ if ($mode == 'sync' && $sync_confirm)
 // Quota Limit Settings
 if ($submit && $mode == 'quota')
 {
-	// Change Quota Limit
-	$quota_change_list = get_var('quota_change_list', array(0));
-	$quota_desc_list = get_var('quota_desc_list', array(''));
-	$filesize_list = get_var('max_filesize_list', array(0));
-	$size_select_list = get_var('size_select_list', array(''));
-
-	$allowed_list = array();
-
-	for ($i = 0; $i < sizeof($quota_change_list); $i++)
-	{
-		$filesize_list[$i] = ($size_select_list[$i] == 'kb') ? round($filesize_list[$i] * 1024) : ( ($size_select_list[$i] == 'mb') ? round($filesize_list[$i] * 1048576) : $filesize_list[$i] );
-
-		$sql = 'UPDATE ' . QUOTA_LIMITS_TABLE . " 
-			SET quota_desc = '" . attach_mod_sql_escape($quota_desc_list[$i]) . "', quota_limit = " . (int) $filesize_list[$i] . "
-			WHERE quota_limit_id = " . (int) $quota_change_list[$i];
-		
-		if (!($db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Couldn\'t update Quota Limits', '', __LINE__, __FILE__, $sql);
-		}
-	}
-	
-	// Delete Quota Limits
-	$quota_id_list = get_var('quota_id_list', array(0));
-
-	$quota_id_sql = implode(', ', $quota_id_list);
-
-	if ($quota_id_sql != '')
-	{
-		$sql = 'DELETE 
-			FROM ' . QUOTA_LIMITS_TABLE . ' 
-			WHERE quota_limit_id IN (' . $quota_id_sql . ')';
-
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Could not delete Quota Limits', '', __LINE__, __FILE__, $sql);
-		}
-
-		// Delete Quotas linked to this setting
-		$sql = 'DELETE 
-			FROM ' . QUOTA_TABLE . ' 
-			WHERE quota_limit_id IN (' . $quota_id_sql . ')';
-
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Could not delete Quotas', '', __LINE__, __FILE__, $sql);
-		}
-	}
-		
-	// Add Quota Limit ?
-	$quota_desc = get_var('quota_description', '');
-	$filesize = get_var('add_max_filesize', 0);
-	$size_select = get_var('add_size_select', '');
-	$add = ( isset($HTTP_POST_VARS['add_quota_check']) ) ? TRUE : FALSE;
-
-	if ($quota_desc != '' && $add)
-	{
-		// check Quota Description
-		$sql = 'SELECT quota_desc
-			FROM ' . QUOTA_LIMITS_TABLE;
-	
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Could not query Quota Limits Table', '', __LINE__, __FILE__, $sql);
-		}
-			
-		$row = $db->sql_fetchrowset($result);
-		$num_rows = $db->sql_numrows($result);
-		$db->sql_freeresult($result);
-
-		if ($num_rows > 0)
-		{
-			for ($i = 0; $i < $num_rows; $i++)
-			{
-				if ($row[$i]['quota_desc'] == $quota_desc)
-				{
-					$error = TRUE;
-					if( isset($error_msg) )
-					{
-						$error_msg .= '<br />';
-					}
-					$error_msg .= sprintf($lang['Quota_limit_exist'], $extension_group);
-				}
-			}
-		}
-			
-		if (!$error)
-		{
-			$filesize = ($size_select == 'kb' ) ? round($filesize * 1024) : ( ($size_select == 'mb') ? round($filesize * 1048576) : $filesize );
-		
-			$sql = "INSERT INTO " . QUOTA_LIMITS_TABLE . " (quota_desc, quota_limit) 
-			VALUES ('" . attach_mod_sql_escape($quota_desc) . "', " . (int) $filesize . ")";
-	
-			if (!($db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not add Quota Limit', '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-	}
-
-	if (!$error)
-	{
-		$message = $lang['Attach_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=quota") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
-
-		message_die(GENERAL_MESSAGE, $message);
-	}
-
+	require_once($phpbb_root_path . 'attach_mod/includes/functions_quota_storage.' . $phpEx);
+	try { phpbb_attach_quota_save($db, $_POST); }
+	catch (PhpbbAclException $exception) { message_die(GENERAL_ERROR, $exception->getMessage()); }
+	$message = $lang['Attach_config_updated'] . '<br /><br />' . sprintf($lang['Click_return_attach_config'], '<a href="' . append_sid("admin_attachments.$phpEx?mode=quota") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid("index.$phpEx?pane=right") . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 
 if ($mode == 'quota')
@@ -882,14 +779,7 @@ if ($mode == 'quota')
 	$max_add_filesize = $attach_config['max_filesize'];
 	$size = ($max_add_filesize >= 1048576) ? 'mb' : ( ($max_add_filesize >= 1024) ? 'kb' : 'b' );
 
-	if ($max_add_filesize >= 1048576)
-	{
-		$max_add_filesize = round($max_add_filesize / 1048576 * 100) / 100;
-	}
-	else if ( $max_add_filesize >= 1024)
-	{
-		$max_add_filesize = round($max_add_filesize / 1024 * 100) / 100;
-	}
+	$max_add_filesize = phpbb_attach_settings_display_size($max_add_filesize, $size);
 
 	$template->assign_vars(array(
 		'L_MANAGE_QUOTAS_TITLE'		=> $lang['Manage_quotas'],
@@ -924,17 +814,10 @@ if ($mode == 'quota')
 	{
 		$size_format = ($rows[$i]['quota_limit'] >= 1048576) ? 'mb' : ( ($rows[$i]['quota_limit'] >= 1024) ? 'kb' : 'b' );
 
-		if ($rows[$i]['quota_limit'] >= 1048576)
-		{
-			$rows[$i]['quota_limit'] = round($rows[$i]['quota_limit'] / 1048576 * 100) / 100;
-		}
-		else if($rows[$i]['quota_limit'] >= 1024)
-		{
-			$rows[$i]['quota_limit'] = round($rows[$i]['quota_limit'] / 1024 * 100) / 100;
-		}
+		$rows[$i]['quota_limit'] = phpbb_attach_settings_display_size($rows[$i]['quota_limit'], $size_format);
 
 		$template->assign_block_vars('limit_row', array(
-			'QUOTA_NAME'		=> $rows[$i]['quota_desc'],
+			'QUOTA_NAME'		=> phpbb_admin_html($rows[$i]['quota_desc']),
 			'QUOTA_ID'			=> $rows[$i]['quota_limit_id'],
 			'S_FILESIZE'		=> size_select('size_select_list[]', $size_format),
 			'U_VIEW'			=> append_sid("admin_attachments.$phpEx?mode=$mode&amp;e_mode=view_quota&amp;quota_id=" . $rows[$i]['quota_limit_id']),
@@ -963,9 +846,10 @@ if ($mode == 'quota' && $e_mode == 'view_quota')
 	
 	$row = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
+	if (!$row) { message_die(GENERAL_MESSAGE, $lang['Board_config_invalid']); }
 
 	$template->assign_vars(array(
-		'L_QUOTA_LIMIT_DESC'	=> $row['quota_desc'],
+		'L_QUOTA_LIMIT_DESC'	=> phpbb_admin_html($row['quota_desc']),
 		'L_ASSIGNED_USERS'		=> $lang['Assigned_users'],
 		'L_ASSIGNED_GROUPS'		=> $lang['Assigned_groups'],
 		'L_UPLOAD_QUOTA'		=> $lang['Upload_quota'],
@@ -993,14 +877,14 @@ if ($mode == 'quota' && $e_mode == 'view_quota')
 		{
 			$template->assign_block_vars('users_upload_row', array(
 				'USER_ID'		=> $rows[$i]['user_id'],
-				'USERNAME'		=> $rows[$i]['username'])
+				'USERNAME'		=> phpbb_admin_html($rows[$i]['username']))
 			);
 		}
 		else if ($rows[$i]['quota_type'] == QUOTA_PM_LIMIT)
 		{
 			$template->assign_block_vars('users_pm_row', array(
 				'USER_ID'		=> $rows[$i]['user_id'],
-				'USERNAME'		=> $rows[$i]['username'])
+				'USERNAME'		=> phpbb_admin_html($rows[$i]['username']))
 			);
 		}
 	}
@@ -1026,14 +910,14 @@ if ($mode == 'quota' && $e_mode == 'view_quota')
 		{
 			$template->assign_block_vars('groups_upload_row', array(
 				'GROUP_ID'		=> $rows[$i]['group_id'],
-				'GROUPNAME'		=> $rows[$i]['group_name'])
+				'GROUPNAME'		=> phpbb_admin_html($rows[$i]['group_name']))
 			);
 		}
 		else if ($rows[$i]['quota_type'] == QUOTA_PM_LIMIT)
 		{
 			$template->assign_block_vars('groups_pm_row', array(
 				'GROUP_ID'		=> $rows[$i]['group_id'],
-				'GROUPNAME'		=> $rows[$i]['group_name'])
+				'GROUPNAME'		=> phpbb_admin_html($rows[$i]['group_name']))
 			);
 		}
 	}

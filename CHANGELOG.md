@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make Attachment MOD quota editing transactional across definitions, linked
+  assignments and default references, with exact current ACP/module/session
+  authority through commit. Validate complete forms before writes, retain
+  fractional byte limits and raw UTF-8 names, and escape quota views. Coordinate
+  with the existing group/account attachment mutex and save both user quota
+  controls together; validate references and protect administrator accounts.
+  Correct the form/schema name-width mismatch through a non-shrinking,
+  metadata-preserving 20-to-25-character migration in the normal updater and
+  canonical installer schema. No runtime schema changes or user-file deletions.
 - Save Attachment MOD management and image settings through separate rendered-
   field allowlists and a dedicated InnoDB transaction. Recheck the current ACP
   session and exact delegated-module grant through commit; roll back partial

@@ -599,6 +599,20 @@ database migration is needed beyond the existing InnoDB/utf8mb4 update. As with
 other transactional saves, a lost commit acknowledgement reports an error even
 when the server may have committed; reload to check before retrying.
 
+The separate Attachment MOD quota editor saves changes, additions, deletions,
+linked user/group assignments and affected default quotas in one transaction.
+It preserves fractional KB/MB limits and stores names as UTF-8, escaping them
+only for HTML. Quota writes coordinate with group/account operations using the
+shared attachment mutex; submitted references must still exist. The user quota
+controls save upload and PM assignments together, rechecking current account,
+ACP session and exact module access, including protection of administrator
+accounts. This does not make the entire legacy user-profile form transactional.
+Run the **normal** `update/update_from_153a.php` plan/apply procedure above (not
+`--storage-only`) before using the new quota editor: it widens `quota_desc` from
+20 to the 25 characters already allowed by the form. Existing values, column
+metadata and wider custom columns are retained; the migration is idempotent.
+Fresh installations already have the corrected width. No runtime DDL is used.
+
 The updater also creates `user_removals` and `user_removal_items` (with your configured
 table prefix). These tables are required before publishing the resumable
 inactive-account, user-manager and standalone pruning workflows. Failed removals remain

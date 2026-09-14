@@ -907,7 +907,7 @@ CREATE TABLE phpbb_attachments (
 #
 CREATE TABLE phpbb_quota_limits (
   quota_limit_id mediumint(8) unsigned NOT NULL auto_increment,
-  quota_desc varchar(20) NOT NULL default '',
+  quota_desc varchar(25) NOT NULL default '',
   quota_limit bigint(20) unsigned NOT NULL default '0',
   PRIMARY KEY  (quota_limit_id)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

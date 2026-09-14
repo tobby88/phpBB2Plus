@@ -77,3 +77,7 @@ jobs:
         env:
           PHPBB_ATTACH_SETTINGS_NATIVE: '1'
           PHPBB_ATTACH_SETTINGS_PASSWORD: fixture-only
+      - run: php .github/scripts/check-attachment-quota-storage.php
+        env:
+          PHPBB_QUOTA_NATIVE: '1'
+          PHPBB_QUOTA_PASSWORD: fixture-only

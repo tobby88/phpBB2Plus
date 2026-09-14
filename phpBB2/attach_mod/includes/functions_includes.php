@@ -142,6 +142,18 @@ function attach_build_auth_levels($is_auth, &$s_auth_can)
 /**
 * Called from admin_users.php and admin_groups.php in order to process Quota Settings (admin/admin_users.php:admin/admin_groups.php)
 */
+function attachment_quota_save_form($mode, $id, $delete = false)
+{
+	global $db;
+	require_once dirname(__FILE__) . '/functions_quota_storage.php';
+	try
+	{
+		$values = $delete ? array(QUOTA_UPLOAD_LIMIT=>'0',QUOTA_PM_LIMIT=>'0') : phpbb_attach_quota_assignment_fields($mode, $_POST);
+		phpbb_attach_quota_assign($db, $mode, $id, $values, $_POST);
+	}
+	catch (PhpbbAclException $exception) { message_die(GENERAL_ERROR, $exception->getMessage()); }
+}
+
 function attachment_quota_settings($admin_mode, $submit = false, $mode = '')
 {
 	global $template, $db, $HTTP_POST_VARS, $HTTP_GET_VARS, $lang, $lang, $phpbb_root_path, $phpEx, $attach_config;
@@ -151,7 +163,7 @@ function attachment_quota_settings($admin_mode, $submit = false, $mode = '')
 
 	if (!intval($attach_config['allow_ftp_upload']))
 	{
-		if ($attach_config['upload_dir'][0] == '/' || ($attach_config['upload_dir'][0] != '/' && $attach_config['upload_dir'][1] == ':'))
+		if (isset($attach_config['upload_dir'][0]) && ($attach_config['upload_dir'][0] == '/' || (isset($attach_config['upload_dir'][1]) && $attach_config['upload_dir'][1] == ':')))
 		{
 			$upload_dir = $attach_config['upload_dir'];
 		}
@@ -254,17 +266,11 @@ function attachment_quota_settings($admin_mode, $submit = false, $mode = '')
 
 	if ($admin_mode == 'user' && $submit && !empty($HTTP_POST_VARS['deleteuser']))
 	{
-		process_quota_settings($admin_mode, $user_id, QUOTA_UPLOAD_LIMIT, 0);
-		process_quota_settings($admin_mode, $user_id, QUOTA_PM_LIMIT, 0);
+		attachment_quota_save_form($admin_mode, $user_id, true);
 	}
 	else if ($admin_mode == 'user' && $submit && $mode == 'save')
 	{
-		// Get the contents
-		$upload_quota = get_var('user_upload_quota', 0);
-		$pm_quota = get_var('user_pm_quota', 0);
-
-		process_quota_settings($admin_mode, $user_id, QUOTA_UPLOAD_LIMIT, $upload_quota);
-		process_quota_settings($admin_mode, $user_id, QUOTA_PM_LIMIT, $pm_quota);
+		attachment_quota_save_form($admin_mode, $user_id);
 	}
 
 	if ($admin_mode == 'group' && $mode == 'newgroup')
@@ -323,19 +329,13 @@ function attachment_quota_settings($admin_mode, $submit = false, $mode = '')
 	{
 		$group_id = get_var(POST_GROUPS_URL, 0);
 	
-		process_quota_settings($admin_mode, $group_id, QUOTA_UPLOAD_LIMIT, 0);
-		process_quota_settings($admin_mode, $group_id, QUOTA_PM_LIMIT, 0);
+		attachment_quota_save_form($admin_mode, $group_id, true);
 	}
 	else if ($admin_mode == 'group' && $submit)
 	{
 		$group_id = get_var(POST_GROUPS_URL, 0);
 	
-		// Get the contents
-		$upload_quota = get_var('group_upload_quota', 0);
-		$pm_quota = get_var('group_pm_quota', 0);
-
-		process_quota_settings($admin_mode, $group_id, QUOTA_UPLOAD_LIMIT, $upload_quota);
-		process_quota_settings($admin_mode, $group_id, QUOTA_PM_LIMIT, $pm_quota);
+		attachment_quota_save_form($admin_mode, $group_id);
 	}
 
 }

@@ -160,102 +160,15 @@ function attach_admin_test_settings($config, $root, $thumbnail = false)
 function process_quota_settings($mode, $id, $quota_type, $quota_limit_id = 0)
 {
 	global $db;
-
-	$id = (int) $id;
-	$quota_type = (int) $quota_type;
-	$quota_limit_id = (int) $quota_limit_id;
-
-	if ($mode == 'user')
+	// Compatibility entry point for bundled/third-party ACP integrations.
+	// Normal form saves submit both limits to the writer in a single call.
+	require_once dirname(__FILE__) . '/functions_quota_storage.php';
+	try
 	{
-		if (!$quota_limit_id)
-		{
-			$sql = 'DELETE FROM ' . QUOTA_TABLE . "
-				WHERE user_id = $id
-					AND quota_type = $quota_type";
-		}
-		else
-		{
-			// Check if user is already entered
-			$sql = 'SELECT user_id 
-				FROM ' . QUOTA_TABLE . " 
-				WHERE user_id = $id
-					AND quota_type = $quota_type";
-
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not get Entry', '', __LINE__, __FILE__, $sql);
-			}
-
-			if ($db->sql_numrows($result) == 0)
-			{
-				$sql_ary = array(
-					'user_id'		=> (int) $id,
-					'group_id'		=> 0,
-					'quota_type'	=> (int) $quota_type,
-					'quota_limit_id'=> (int) $quota_limit_id
-				);
-
-				$sql = 'INSERT INTO ' . QUOTA_TABLE . ' ' . attach_mod_sql_build_array('INSERT', $sql_ary);
-			}
-			else
-			{
-				$sql = 'UPDATE ' . QUOTA_TABLE . "
-					SET quota_limit_id = $quota_limit_id
-					WHERE user_id = $id
-						AND quota_type = $quota_type";
-			}
-			$db->sql_freeresult($result);
-		}
-	
-		if (!($result = $db->sql_query($sql)))
-		{
-			message_die(GENERAL_ERROR, 'Unable to update quota Settings', '', __LINE__, __FILE__, $sql);
-		}
-		
+		if (!(is_int($quota_limit_id) || is_string($quota_limit_id))) { phpbb_acl_error('Board_config_invalid'); }
+		phpbb_attach_quota_assign($db, $mode, $id, array((int)$quota_type=>(string)$quota_limit_id), $_POST);
 	}
-	else if ($mode == 'group')
-	{
-		if (!$quota_limit_id)
-		{
-			$sql = 'DELETE FROM ' . QUOTA_TABLE . " 
-				WHERE group_id = $id 
-					AND quota_type = $quota_type";
-
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Unable to delete quota Settings', '', __LINE__, __FILE__, $sql);
-			}
-		}
-		else
-		{
-			// Check if user is already entered
-			$sql = 'SELECT group_id 
-				FROM ' . QUOTA_TABLE . " 
-				WHERE group_id = $id 
-					AND quota_type = $quota_type";
-
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not get Entry', '', __LINE__, __FILE__, $sql);
-			}
-
-			if ($db->sql_numrows($result) == 0)
-			{
-				$sql = 'INSERT INTO ' . QUOTA_TABLE . " (user_id, group_id, quota_type, quota_limit_id) 
-					VALUES (0, $id, $quota_type, $quota_limit_id)";
-			}
-			else
-			{
-				$sql = 'UPDATE ' . QUOTA_TABLE . " SET quota_limit_id = $quota_limit_id 
-					WHERE group_id = $id AND quota_type = $quota_type";
-			}
-	
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Unable to update quota Settings', '', __LINE__, __FILE__, $sql);
-			}
-		}
-	}
+	catch (PhpbbAclException $exception) { message_die(GENERAL_ERROR, $exception->getMessage()); }
 }
 
 /**

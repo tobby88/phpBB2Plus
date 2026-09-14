@@ -324,9 +324,14 @@ function update_column_max_length($connection, $database, $table, $column)
 
 function update_queue_log_widths(&$operations, $connection, $database, $table)
 {
+	update_queue_text_widths($operations, $connection, $database, $table, array('username' => 255, 'user_ip' => 45));
+}
+
+function update_queue_text_widths(&$operations, $connection, $database, $table, $widths)
+{
 	if (!update_table_exists($connection, $database, $table)) { return; }
 	$is_mariadb = stripos((string) update_scalar($connection, 'SELECT VERSION()'), 'MariaDB') !== false;
-	foreach (array('username' => 255, 'user_ip' => 45) as $column => $width)
+	foreach ($widths as $column => $width)
 	{
 		$current = update_column_max_length($connection, $database, $table, $column);
 		if ($current <= 0 || $current >= $width) { continue; }
@@ -697,6 +702,9 @@ if (update_column_max_length($connection, $dbname, $users_table, 'user_newpasswd
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($users_table) .
 		' MODIFY `user_newpasswd` VARCHAR(255) DEFAULT NULL';
 }
+// The quota form has always allowed 25 characters; the old column held only 20.
+// Widen only, retaining custom defaults, collation and wider custom columns.
+update_queue_text_widths($operations, $connection, $dbname, $table_prefix . 'quota_limits', array('quota_desc' => 25));
 foreach (array('ct_last_used_ip', 'ct_last_ip') as $ip_column)
 {
 	if (update_column_exists($connection, $dbname, $users_table, $ip_column) &&
