@@ -83,6 +83,11 @@ revoked requests do not report success. Both maintenance toggles are saved in
 one statement; missing configuration records are reported for repair rather
 than recreated implicitly. This authorization fix needs no database migration.
 
+Search-index rebuilds also revalidate the live ACP session at each write,
+including checkpoint updates and final board release. If the session is revoked,
+the job stops without discarding its checkpoint. Sign in again and explicitly
+resume it; continuation links from the previous session are no longer valid.
+
 Current database connections require InnoDB defaults (including SQL temporary
 tables), `NO_ENGINE_SUBSTITUTION` and strict InnoDB DDL. Connection setup fails
 instead of silently falling back when these settings cannot be applied; server-

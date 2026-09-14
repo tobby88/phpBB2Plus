@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/php_compat.php';
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_maintenance_dates.php';
 require_once dirname(__FILE__) . '/functions_search.php';
 require_once dirname(__FILE__) . '/functions_maintenance_search.php';
 
@@ -34,7 +35,7 @@ function dbmtnc_rebuild_job_guard($raw)
 
 function dbmtnc_rebuild_guard($db, $raw)
 {
-	$actor = phpbb_acl_actor($db, 'maintenance');
+	$actor = dbmtnc_date_actor($db);
 	$current = dbmtnc_rebuild_read($db);
 	if ($current['raw'] !== $raw) { phpbb_acl_error('Maintenance_rebuild_changed'); }
 	return $actor['guard'] . ' AND ' . dbmtnc_rebuild_job_guard($raw);
@@ -45,7 +46,7 @@ function dbmtnc_rebuild_store($db, &$job, $state)
 	$raw = json_encode($state);
 	if (!is_string($raw) || strlen($raw) > 255) { phpbb_acl_error('Maintenance_rebuild_state_invalid'); }
 	dbmtnc_rebuild_decode($raw);
-	$actor = phpbb_acl_actor($db, 'maintenance');
+	$actor = dbmtnc_date_actor($db);
 	if ($job['raw'] === null)
 	{
 		$sql = 'INSERT INTO ' . CONFIG_TABLE . " (config_name,config_value) SELECT 'dbmtnc_rebuild_job','" . $db->sql_escape($raw) . "' WHERE " . $actor['guard']
@@ -57,7 +58,9 @@ function dbmtnc_rebuild_store($db, &$job, $state)
 			. strtoupper(bin2hex($job['raw'])) . "' AND " . $actor['guard'];
 	}
 	$db->sql_query($sql);
-	if ((int) $db->sql_affectedrows() !== 1) { phpbb_acl_error('Maintenance_rebuild_changed'); }
+	$changed = (int) $db->sql_affectedrows();
+	dbmtnc_date_actor($db);
+	if ($changed !== 1) { phpbb_acl_error('Maintenance_rebuild_changed'); }
 	$job = array('raw' => $raw, 'state' => $state);
 	dbmtnc_rebuild_guard($db, $raw);
 }
@@ -79,7 +82,9 @@ function dbmtnc_rebuild_set_setting($db, $job, $name, $value)
 	$guard = str_replace('FROM ' . CONFIG_TABLE . ' rebuild_job', 'FROM (SELECT DISTINCT config_name,config_value FROM ' . CONFIG_TABLE . ') rebuild_job', $guard);
 	$db->sql_query('UPDATE ' . CONFIG_TABLE . " SET config_value = '" . $db->sql_escape((string) $value) . "' WHERE config_name = '" . $db->sql_escape($name)
 		. "' AND HEX(config_value) = '" . strtoupper(bin2hex($old)) . "' AND " . $guard);
-	if ((int) $db->sql_affectedrows() !== 1) { phpbb_acl_error('Maintenance_rebuild_changed'); }
+	$changed = (int) $db->sql_affectedrows();
+	dbmtnc_date_actor($db);
+	if ($changed !== 1) { phpbb_acl_error('Maintenance_rebuild_changed'); }
 }
 
 function dbmtnc_rebuild_token($generation, $position, $sid)
@@ -97,7 +102,7 @@ function dbmtnc_rebuild_url($state)
 function dbmtnc_rebuild_request($mode, $request)
 {
 	global $userdata;
-	if (!is_array($request) || empty($userdata['session_id']) || !in_array($mode,array('start','resume','step'),true)) { phpbb_acl_error('Invalid_dbmtnc_request'); }
+	if (!is_array($request) || empty($userdata['session_id']) || !is_string($userdata['session_id']) || !in_array($mode,array('start','resume','step'),true)) { phpbb_acl_error('Invalid_dbmtnc_request'); }
 	$method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : '';
 	if ($mode !== 'step')
 	{
@@ -218,7 +223,7 @@ function dbmtnc_rebuild_batch($database, $mode, $request, $stopwords, $synonyms)
 	try
 	{
 		$db = new PhpbbAclDatabase($lock->connection,'Maintenance_rebuild_failed');
-		phpbb_acl_actor($db,'maintenance'); $job = dbmtnc_rebuild_read($db);
+		dbmtnc_date_actor($db); $job = dbmtnc_rebuild_read($db);
 		if ($mode === 'start' || ($mode === 'resume' && !$job['state']))
 		{
 			$expected = $job['state'] && $job['state']['s'] !== 'done' ? $job['state']['g'] : '';

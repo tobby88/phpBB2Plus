@@ -1,6 +1,7 @@
 <?php
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','POSTS_TABLE'=>'fixture_posts','POSTS_TEXT_TABLE'=>'fixture_texts','CONFIG_TABLE'=>'fixture_config','SEARCH_TABLE'=>'fixture_results','SEARCH_WORD_TABLE'=>'fixture_words','SEARCH_MATCH_TABLE'=>'fixture_matches','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
+define('SESSIONS_TABLE','fixture_sessions');
 require_once $root.'includes/functions_maintenance_rebuild.php';
 function rebuild_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 function message_die($code,$message){throw new RuntimeException($message);}
@@ -9,14 +10,15 @@ function throw_error($message){throw new RebuildControllerFailure($message);}
 function lock_db($unlock=false,$delay=true,$ignore=false){$GLOBALS['board_locks'][]=array($unlock,$delay,$ignore);}
 class RebuildRows {public $rows;function __construct($rows){$this->rows=$rows;}}
 $dsn=getenv('PHPBB_REBUILD_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
-if($native){rebuild_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_rebuild_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
+if($native){rebuild_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_rebuild_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class RebuildServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
  function __construct($engine){
   $sqliteClass=class_exists('Pdo\Sqlite')?'Pdo\Sqlite':'PDO';
-  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new $sqliteClass('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_REBUILD_TEST_PASSWORD')?:''):new $sqliteClass('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   if(!$GLOBALS['native']){$method=method_exists($this->pdo,'createFunction')?'createFunction':'sqliteCreateFunction';$this->pdo->$method('SHA2',function($value,$bits){return hash('sha256',$value);},2);}
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','config'=>'config_name VARCHAR(64) PRIMARY KEY,config_value VARCHAR(255)','posts'=>'post_id INTEGER PRIMARY KEY,topic_id INTEGER,forum_id INTEGER,poster_id INTEGER','texts'=>'post_id INTEGER PRIMARY KEY,post_subject VARCHAR(255),post_text TEXT','words'=>'word_id INTEGER PRIMARY KEY'.($GLOBALS['native']?' AUTO_INCREMENT':'').',word_common INTEGER,word_text VARCHAR(50) UNIQUE','matches'=>'word_id INTEGER,post_id INTEGER,title_match INTEGER','results'=>'search_id INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
+  $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1)");
   $this->pdo->exec("INSERT INTO fixture_config VALUES ('board_disable','0'),('dbmtnc_rebuild_pos','-1'),('dbmtnc_rebuild_end','0')");
@@ -35,7 +37,7 @@ class RebuildForum {
 }
 class RebuildConnection {
  public $server;public $pdo;public $db_connect_id=true;public $closed=false;public $affected=0;
- function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root','',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
+ function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_REBUILD_TEST_PASSWORD')?:'',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
  function sql_query($sql){
   if($this->closed){return false;}$s=$this->server;$s->queries[]=$sql;
   if(strpos($sql,'SELECT GET_LOCK(')===0){
@@ -59,6 +61,7 @@ class RebuildConnection {
 function rebuild_fixture($engine,$actor=1){
  global $rebuild_server,$userdata,$phpEx,$phpbb_root_path,$root,$lang;
  $rebuild_server=new RebuildServer($engine);$userdata=array('user_id'=>$actor,'user_level'=>ADMIN,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');
+ $rebuild_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',".(int)$actor.",1,1)");
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-sid');$phpEx='php';$phpbb_root_path=$root;$lang=array();
 }
 function rebuild_value($sql){return $GLOBALS['rebuild_server']->pdo->query($sql)->fetchColumn();}
@@ -193,7 +196,7 @@ try{
     elseif($race==='delete'){$s->pdo->exec('DELETE FROM fixture_posts WHERE post_id=10');}
     else{$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}
    };
-   $error=$race==='owner'?'Maintenance_rebuild_failed':(in_array($race,array('actor'),true)?'Not_Authorised':'Maintenance_rebuild_changed');
+   $error=$race==='owner'?'Maintenance_rebuild_failed':(in_array($race,array('actor','checkpoint'),true)?'Not_Authorised':'Maintenance_rebuild_changed');
    rebuild_run('start',null,$error);rebuild_check(rebuild_saved()['p']===0,'Interleaving does not commit old source checkpoint');
    $rebuild_server->pdo->exec('UPDATE fixture_users SET user_active=1 WHERE user_id=1');$job=rebuild_run('resume');
    rebuild_check($job['state']['p']===20,'Current source can be resumed after conflict');
