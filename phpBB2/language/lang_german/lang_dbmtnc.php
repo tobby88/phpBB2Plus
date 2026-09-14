@@ -512,7 +512,7 @@ $lang['Maintenance_user_counter_changed'] = '%s (Benutzer-ID %d): Beitragszähle
 $lang['Maintenance_user_counter_skipped'] = 'Benutzer-ID %d wurde zwischenzeitlich verändert oder entfernt; bitte prüfen und erneut ausführen.';
 $lang['Maintenance_post_sync_failed'] = 'Die Beitrags-Synchronisierung konnte nicht abgeschlossen werden. Vorherige Zähleränderungen können bereits wirksam sein; eine vollständige Rücknahme ist nicht zugesichert. Bitte den Fehler beheben und erneut ausführen.';
 $lang['Maintenance_post_sync_review'] = 'Diese Themen müssen geprüft werden (leer, inkonsistent oder zwischenzeitlich verändert): %s. Es wurden keine Themen oder Beiträge gelöscht.';
-$lang['Maintenance_role_sync_failed'] = 'Die Moderator-Synchronisierung konnte nicht abgeschlossen werden. Vorherige Änderungen oder Sitzungsabläufe können bereits wirksam sein; es wird keine vollständige Rücknahme zugesichert. Bitte den Fehler beheben und die Synchronisierung erneut ausführen.';
+$lang['Maintenance_role_sync_failed'] = 'Die Moderator-Synchronisierung konnte nicht bestätigt werden. Lade die aktuellen Rollen neu und prüfe sie vor einem erneuten Versuch; bei einer verlorenen Speicherbestätigung kann die vollständige Korrektur bereits gespeichert sein.';
 $lang['Maintenance_role_sync_skipped'] = 'Nicht geändert, weil sich Konto oder Rechte zwischenzeitlich geändert haben oder die Rolle bereits konsistent ist (Benutzer-ID %d).';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repariere fehlende Auto-Increment-Attribute';

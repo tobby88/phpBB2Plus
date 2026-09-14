@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make maintenance moderator synchronization transactional across every selected
+  USER/MOD correction and session invalidation. Reuse the current ACP authority
+  and seven-table storage checks, retain root/special roles and the exact acting
+  session, and undo unnecessary session expiry when a correction is skipped.
+  Guard commit confirmation, preserve independent board-availability changes,
+  and verify failures/concurrent revocations with the native database driver.
+  Existing storage migrations suffice; deployment never runs the repair itself.
 - Make ACP profile saves transactional across account creation, personal groups,
   custom/core fields, quotas, bans, username references and password/session
   changes. Hold current exact ACP authority and target protection until commit;
@@ -422,10 +429,11 @@ changes consolidated after that baseline without implying active maintenance.
   Replace stale unconditional role updates with current-role and permission
   guards; retain administrator/special roles and reject pending or orphan grants.
   Revalidate root/delegated maintenance authorization and expire affected cached
-  sessions. Restore the maintenance setting on controlled failures and report
+  sessions. Leave board availability unchanged and report
   changed/skipped accounts with escaped names. Test concurrent promotions, ACL
   and actor revocation, lock/DB failures, repeat runs and actual controller output
-  in English/German, including native MyISAM/InnoDB. No schema migration.
+  in English/German. The native transactional checks above supersede the former
+  nontransactional MyISAM path. No additional schema migration.
 
 - Replace raw SQL/driver diagnostics with a shared, bounded metadata renderer in
   main, repeated, ACP maintenance and emergency recovery errors. Preserve numeric

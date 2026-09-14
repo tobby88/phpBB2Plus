@@ -497,7 +497,7 @@ $lang['Maintenance_user_counter_changed'] = '%s (user ID %d): post count synchro
 $lang['Maintenance_user_counter_skipped'] = 'User ID %d changed or disappeared during synchronization; please review and retry.';
 $lang['Maintenance_post_sync_failed'] = 'Post synchronization could not finish. Earlier counter changes may already be applied; a full rollback is not guaranteed. Resolve the error and retry.';
 $lang['Maintenance_post_sync_review'] = 'These topics need review (empty, inconsistent, or changed concurrently): %s. No topics or posts were deleted.';
-$lang['Maintenance_role_sync_failed'] = 'Moderator synchronization could not be completed. Earlier changes or session expirations may already have taken effect; no full rollback is implied. Resolve the error and run synchronization again.';
+$lang['Maintenance_role_sync_failed'] = 'Moderator synchronization could not be confirmed. Reload and check the current roles before retrying; a lost commit reply may mean the complete repair was already saved.';
 $lang['Maintenance_role_sync_skipped'] = 'Not changed because the account or its permissions changed meanwhile, or the role is already consistent (user ID %d).';
 // reset_auto_increment
 $lang['Reset_ai'] = 'Repairing missing auto-increment attributes';

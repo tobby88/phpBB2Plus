@@ -251,9 +251,13 @@ memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before
 writes; administrator and special roles are excluded. Changed accounts lose
 cached sessions. Concurrently changed candidates are skipped and reported.
-Failures can leave earlier repairs or session expiry in place, especially on
-MyISAM: this is not an all-or-nothing transaction. No migration or automatic
-synchronization runs during deployment.
+All role repairs and session expirations now commit together in one InnoDB
+transaction. A skipped correction also rolls back its unnecessary session expiry.
+The exact current ACP session is preserved, including a delegated administrator
+whose ordinary USER/MOD flag needs repair. Legacy storage is refused; the normal
+storage updater covers the seven required tables. A lost commit reply reports
+uncertainty: check current roles before retrying. No new schema migration or
+automatic synchronization runs during deployment.
 
 Post synchronization uses the same writer lock and computes topic/forum counters
 inside guarded writes, rather than publishing an earlier snapshot. Moved-topic

@@ -129,8 +129,8 @@ function phpbb_acl_expire_sessions($db,$actor,$target)
 	$db->sql_query('DELETE FROM '.SESSIONS_TABLE.' WHERE session_user_id <> '.(int)$actor['user_id'].' AND session_user_id IN (SELECT ug.user_id FROM '.USER_GROUP_TABLE.' ug,'.USERS_TABLE.' u WHERE ug.group_id = '.$target['group_id'].' AND u.user_id = ug.user_id AND u.user_id > 0 AND u.user_level <> '.ADMIN.') AND '.$actor['guard'].' AND '.$target['guard']);
 }
 
-// Only the user/group permission writer owns this transaction. Other ACP
-// helpers use PhpbbAclDatabase independently and retain their own lifecycle.
+// Explicit transaction owner for permission saves and derived-role maintenance.
+// Other ACP helpers use PhpbbAclDatabase independently with their own lifecycle.
 class PhpbbAclSaveDatabase extends PhpbbAclDatabase
 {
 	function begin($mode)
