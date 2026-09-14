@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Commit each user/group permission request atomically, including multi-forum
+  grants, derived moderator roles, administrator-role transitions, personal
+  grant cleanup and session invalidation. Recheck exact live ACP sessions and
+  mode-scoped junior permissions through commit; preserve founder/self-role
+  protection and unsubmitted fields. Pin and validate all seven modern-storage
+  participants without runtime DDL. Native failure/concurrency checks verify
+  whole-request rollback and serialization, including failed or lost-ack commits.
+  The existing normal storage updater remains sufficient; no new schema change.
 - Make all eight public group-membership actions transactional across member
   state, moderator roles and session invalidation. Revalidate the exact public
   login and current manager authority through commit, retain ordinary member

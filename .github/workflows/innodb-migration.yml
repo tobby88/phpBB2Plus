@@ -93,3 +93,7 @@ jobs:
         env:
           PHPBB_GROUP_MEMBERSHIP_NATIVE: '1'
           PHPBB_GROUP_MEMBERSHIP_PASSWORD: fixture-only
+      - run: php .github/scripts/check-acl-save-native.php
+        env:
+          PHPBB_ACL_SAVE_NATIVE: '1'
+          PHPBB_ACL_SAVE_PASSWORD: fixture-only

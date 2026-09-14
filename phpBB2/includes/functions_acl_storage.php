@@ -129,6 +129,45 @@ function phpbb_acl_expire_sessions($db,$actor,$target)
 	$db->sql_query('DELETE FROM '.SESSIONS_TABLE.' WHERE session_user_id <> '.(int)$actor['user_id'].' AND session_user_id IN (SELECT ug.user_id FROM '.USER_GROUP_TABLE.' ug,'.USERS_TABLE.' u WHERE ug.group_id = '.$target['group_id'].' AND u.user_id = ug.user_id AND u.user_id > 0 AND u.user_level <> '.ADMIN.') AND '.$actor['guard'].' AND '.$target['guard']);
 }
 
+// Only the user/group permission writer owns this transaction. Other ACP
+// helpers use PhpbbAclDatabase independently and retain their own lifecycle.
+class PhpbbAclSaveDatabase extends PhpbbAclDatabase
+{
+	function begin($mode)
+	{
+		phpbb_acl_actor($this,$mode);
+		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->sql_query('START TRANSACTION');
+		foreach (array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE,AUTH_ACCESS_TABLE,FORUMS_TABLE) as $table)
+		{
+			// Pin before validating; runtime DDL would implicitly commit a save.
+			$r=$this->sql_query('SELECT * FROM '.$table.' LIMIT 0'); $this->sql_freeresult($r);
+			$rows=phpbb_acl_rows($this,"SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='".$this->sql_escape($table)."'"
+				." AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			if (count($rows)!==1 || $rows[0]['ENGINE']!=='InnoDB' || strtolower($rows[0]['ROW_FORMAT'])!=='dynamic' || $rows[0]['TABLE_COLLATION']!=='utf8mb4_unicode_ci') { phpbb_acl_error('Acl_storage_failed'); }
+		}
+	}
+	function commit($mode,$require_root=false)
+	{
+		global $userdata;
+		$actor=phpbb_acl_actor($this,$mode); $sid=$this->sql_escape($userdata['session_id']);
+		foreach (array('SELECT session_id FROM '.SESSIONS_TABLE." WHERE session_id='".$sid."' AND HEX(session_id)=HEX('".$sid."')",
+			'SELECT user_id FROM '.USERS_TABLE.' WHERE user_id='.(int)$actor['user_id'],
+			'SELECT user_id FROM '.JR_ADMIN_TABLE.' WHERE user_id='.(int)$actor['user_id']) as $sql)
+		{ $r=$this->sql_query($sql.' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
+		$actor=phpbb_acl_actor($this,$mode);
+		if ($require_root && !$actor['root']) { phpbb_acl_error('Acl_root_required'); }
+		$this->sql_query('COMMIT');
+		$actor=phpbb_acl_actor($this,$mode);
+		if ($require_root && !$actor['root']) { phpbb_acl_error('Acl_root_required'); }
+	}
+	function rollback()
+	{
+		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+	}
+}
+
 function phpbb_acl_save($database,$mode,$id,$post)
 {
 	global $userdata;
@@ -150,9 +189,19 @@ function phpbb_acl_save($database,$mode,$id,$post)
 	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD']!=='POST' || empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($post['sid']) || !is_string($post['sid']) || !hash_equals((string)$userdata['session_id'],$post['sid'])) { phpbb_acl_error('Session_invalid'); }
 	$lock=new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_acl_error('Attachment_storage_busy'); }
+	$db=new PhpbbAclSaveDatabase($lock->connection);
 	try
 	{
-		$db=new PhpbbAclDatabase($lock->connection); $actor=phpbb_acl_actor($db,$mode); $target=phpbb_acl_target($db,$mode,$id);
+		$db->begin($mode); $target=phpbb_acl_target($db,$mode,$id); $group_id=$target['group_id'];
+		phpbb_acl_rows($db,'SELECT group_id FROM '.GROUPS_TABLE.' WHERE group_id = '.$group_id.' FOR UPDATE');
+		$target=phpbb_acl_target($db,$mode,$id);
+		if ($target['group_id']!==$group_id) { phpbb_acl_error('Acl_selection_changed'); }
+		$members=phpbb_acl_rows($db,'SELECT DISTINCT user_id FROM '.USER_GROUP_TABLE.' WHERE group_id = '.$group_id.' AND user_id > 0');
+		$ids=array(); foreach ($members as $member) { $ids[(int)$member['user_id']]=(int)$member['user_id']; }
+		if ($mode==='user') { $ids[$id]=$id; }
+		if ($ids) { ksort($ids); phpbb_acl_rows($db,'SELECT user_id FROM '.USERS_TABLE.' WHERE user_id IN ('.implode(',',$ids).') ORDER BY user_id FOR UPDATE'); }
+		$actor=phpbb_acl_actor($db,$mode); $target=phpbb_acl_target($db,$mode,$id);
+		if ($target['group_id']!==$group_id) { phpbb_acl_error('Acl_selection_changed'); }
 		$guard=$actor['guard'].' AND '.$target['guard']; $group_id=$target['group_id'];
 		$transition=$mode==='user' && $level!==null && (($level==='admin')!==($target['user_level']===ADMIN));
 		if ($transition)
@@ -177,9 +226,12 @@ function phpbb_acl_save($database,$mode,$id,$post)
 			$changed=(int)$db->sql_affectedrows();
 			phpbb_acl_actor($db,$mode);
 			if ($changed!==1) { phpbb_acl_error('Acl_selection_changed'); }
+			$db->commit($mode,true);
 			return true;
 		}
 		if (!$forums) { return false; }
+		ksort($forums);
+		phpbb_acl_rows($db,'SELECT forum_id FROM '.FORUMS_TABLE.' WHERE forum_id IN ('.implode(',',array_keys($forums)).') ORDER BY forum_id LOCK IN SHARE MODE');
 		phpbb_acl_expire_sessions($db,$actor,$target);
 		foreach ($forums as $forum_id=>$unused)
 		{
@@ -225,7 +277,8 @@ function phpbb_acl_save($database,$mode,$id,$post)
 			$db->sql_query('UPDATE '.USERS_TABLE.' SET user_level = CASE WHEN '.phpbb_acl_mod_guard($member_id).' THEN '.MOD.' ELSE '.USER.' END WHERE user_id = '.$member_id.' AND user_level IN ('.USER.','.MOD.') AND '.$actor['guard'].' AND '.$target['guard'].' AND EXISTS (SELECT 1 FROM '.USER_GROUP_TABLE.' acl_member WHERE acl_member.group_id = '.$group_id.' AND acl_member.user_id = '.$member_id.')');
 		}
 		phpbb_acl_actor($db,$mode);
+		$db->commit($mode);
 		return true;
 	}
-	finally { $lock->release(); }
+	finally { $db->rollback(); $lock->release(); }
 }

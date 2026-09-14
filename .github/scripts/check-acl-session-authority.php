@@ -27,7 +27,11 @@ function acl_session_login($actor){
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{foreach($aclSessionNative?array('InnoDB','MyISAM'):array('SQLite') as $engine){
  $tables=array_keys($aclSessionSchema);
- foreach(array('group-insert','group-update','group-delete','user-insert','promote','demote','forum') as $scenario){
+ // User/group writers now require modern transactional storage. Their exact
+ // native driver, all write/COMMIT failures and independently serialized
+ // revocations are covered by check-acl-save-native.php. This older adapter
+ // keeps testing the separate single-statement forum-policy writer.
+ foreach(array('forum') as $scenario){
   foreach(in_array($scenario,array('promote','demote'),true)?array(1):array(1,8) as $actor){
    acl_session_fixture($engine,$actor,$scenario);$writes=0;
    $mutation_server->hook=function($sql)use(&$writes){if(preg_match('/^(INSERT|UPDATE|DELETE) /',$sql)){$writes++;}};
@@ -58,5 +62,5 @@ try{foreach($aclSessionNative?array('InnoDB','MyISAM'):array('SQLite') as $engin
  acl_session_fixture($engine,1,'group-insert');$userdata['session_id']=array('bad');
  acl_failure(function()use($db){phpbb_acl_save($db,'group',3,acl_post());},'Session_invalid');
  acl_failure(function()use($db){phpbb_forum_acl_save($db,fa_post(array('auth_read'=>0)));},'Session_invalid');
- echo $engine." ACL current-session, every write, role transition, target expiry and retry passed\n";
+ echo $engine." forum policy current-session, every write and retry passed\n";
 }}finally{restore_error_handler();}

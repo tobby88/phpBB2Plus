@@ -56,7 +56,7 @@ function acl_session_fixture($engine,$actor,$scenario){
    }
   }
   $aclSessionNativeEngine=$engine;$mutation_server->pdo=$aclSessionPdo;$db=new NativeAclSessionForum();
- }else{$db=new MutationForum();}
+ }else{$db=new GroupLogicForum();}
  $p=$mutation_server->pdo;
  if($actor===8){
   $mode=$scenario==='forum'?'forum':(strpos($scenario,'user')===0?'user':'group');

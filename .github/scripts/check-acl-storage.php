@@ -136,7 +136,7 @@ try
 	{
 		acl_fixture(); $mutation_server->failure=$failure;
 		acl_failure(function() use($db) { phpbb_acl_save($db,'group',3,acl_post(array('private'=>array(3=>1)))); },'Acl_storage_failed');
-		mutation_check(group_value('SELECT COUNT(*) FROM fixture_auth WHERE group_id=3 AND forum_id=3')===($failure==='UPDATE fixture_users'?1:0),'Partial save is explicit, not imaginary rollback');
+		mutation_check(group_value('SELECT COUNT(*) FROM fixture_auth WHERE group_id=3 AND forum_id=3')===0 && group_value('SELECT COUNT(*) FROM fixture_sessions')===6,'Whole permission save and session invalidation roll back');
 	}
 	acl_fixture(); $interleaved=false; $mutation_server->hook=function($sql) use($db,&$interleaved) {
 		if ($interleaved || strpos($sql,'INSERT INTO fixture_auth')!==0) { return; } $interleaved=true; $caught=false;
@@ -167,6 +167,10 @@ try
 	acl_fixture(); $_POST=acl_post(array('submit'=>1,'mode'=>'group','g'=>3,'private'=>array(3=>1))); $acl_cache_refreshes=0;
 	mutation_expect_failure(function() use($branch,$db,$lang,$phpbb_root_path,$phpEx) { $mode='group'; eval($branch); });
 	mutation_check($acl_cache_refreshes===1 && group_value('SELECT auth_read FROM fixture_auth WHERE group_id=3 AND forum_id=3')===1,'Actual controller writes then refreshes hierarchy once');
+	acl_fixture(); $_POST=acl_post(array('submit'=>1,'mode'=>'group','g'=>3,'private'=>array(3=>1))); $acl_cache_refreshes=0;
+	$mutation_server->failure='UPDATE fixture_users';
+	mutation_expect_failure(function() use($branch,$db,$lang,$phpbb_root_path,$phpEx) { $mode='group'; eval($branch); },'Acl_storage_failed');
+	mutation_check($acl_cache_refreshes===0 && group_value('SELECT COUNT(*) FROM fixture_sessions')===6 && group_value('SELECT COUNT(*) FROM fixture_auth WHERE group_id=3 AND forum_id=3')===0,'Late controller failure rolls back and does not publish cache refresh');
 	acl_fixture(); $_POST=acl_post(array('submit'=>1,'mode'=>array('group'),'g'=>3)); $acl_cache_refreshes=0;
 	mutation_expect_failure(function() use($branch,$db,$lang,$phpbb_root_path,$phpEx) { $mode='user'; eval($branch); },'Acl_selection_changed');
 	mutation_check($acl_cache_refreshes===0 && group_value('SELECT COUNT(*) FROM fixture_sessions')===6,'Controller preserves nested original mode for rejection');

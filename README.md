@@ -634,6 +634,16 @@ Groups with a deleted leader remain readable without invalid profile links;
 their leadership can be repaired in the ACP. Group names, descriptions and
 selectors are escaped for display rather than interpreted as HTML.
 
+The user/group permission editor commits the complete submitted set of forum
+grants, derived moderator roles and affected session invalidations together.
+Administrator promotions/demotions also include personal-grant cleanup in that
+transaction. Failed writes roll back the whole request. Current exact ACP
+session and mode-specific delegation are checked through commit; role changes
+still require a full administrator and retain self/founder protection. All seven
+participant tables must satisfy the existing storage policy. No additional
+schema migration is needed. Hierarchy refresh happens only after a successful
+save and release of the writer connection.
+
 The updater also creates `user_removals` and `user_removal_items` (with your configured
 table prefix). These tables are required before publishing the resumable
 inactive-account, user-manager and standalone pruning workflows. Failed removals remain
