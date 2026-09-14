@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate the live ACP session throughout PM counter and repair maintenance,
+  including delegated access, journal planning/recovery and reads that authorize
+  attachment cleanup. Keep interrupted repair state for an explicit retry after
+  signing in again; reject malformed cached session IDs without warnings.
+  No schema migration is required.
 - Require the current ACP session for all poll-maintenance cleanup,
   anonymization and topic-flag writes, including delegated administrators.
   Stop after session revocation without further changes and allow an explicit,

@@ -43,3 +43,9 @@ jobs:
         env:
           PHPBB_POLL_MAINTENANCE_NATIVE: '1'
           PHPBB_POLL_MAINTENANCE_TEST_PASSWORD: fixture-only
+      - run: |
+          php .github/scripts/run-native-pm-maintenance.php counter
+          php .github/scripts/run-native-pm-maintenance.php repair
+        env:
+          PHPBB_PM_MAINTENANCE_NATIVE: '1'
+          PHPBB_PM_MAINTENANCE_TEST_PASSWORD: fixture-only

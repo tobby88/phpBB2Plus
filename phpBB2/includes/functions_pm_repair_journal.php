@@ -5,13 +5,13 @@ function dbmtnc_pm_journal_ready($db)
 {
 	if (!defined('PM_REPAIR_JOBS_TABLE') || !defined('PM_REPAIR_ITEMS_TABLE')) { phpbb_acl_error('Maintenance_pm_journal_unavailable'); }
 	$auth = new PhpbbAclDatabase($db->connection, 'Maintenance_pm_journal_unavailable');
-	phpbb_acl_actor($auth, 'maintenance');
+	dbmtnc_date_actor($auth);
 	foreach (array(PM_REPAIR_JOBS_TABLE, PM_REPAIR_ITEMS_TABLE) as $table)
 	{
 		$result = $auth->sql_query('SELECT job_id FROM ' . $table . ' LIMIT 1');
 		$auth->sql_freeresult($result);
 	}
-	phpbb_acl_actor($auth, 'maintenance');
+	dbmtnc_date_actor($auth);
 }
 
 function dbmtnc_pm_job_key($job)
@@ -206,7 +206,7 @@ function dbmtnc_pm_delete_planned($db, $ids, $spec)
 			$token = bin2hex(phpbb_random_bytes(16)); $p = $parents[0];
 			$job = array('job_id'=>$token,'message_id'=>$id,'repair_mode'=>$spec['mode'],'repair_state'=>'planning','from_user_id'=>(int)$p['privmsgs_from_userid'],
 				'to_user_id'=>(int)$p['privmsgs_to_userid'],'message_type'=>(int)$p['privmsgs_type'],'message_date'=>(int)$p['privmsgs_date'],'cutoff'=>$spec['cutoff']);
-			$actor = phpbb_acl_actor(new PhpbbAclDatabase($db->connection, 'Maintenance_pm_repair_failed'), 'maintenance');
+			$actor = dbmtnc_date_actor(new PhpbbAclDatabase($db->connection, 'Maintenance_pm_repair_failed'));
 			$db->insert_guarded(PM_REPAIR_JOBS_TABLE, 'job_id,message_id,repair_mode,repair_state,from_user_id,to_user_id,message_type,message_date,cutoff,created_by,created_at',
 				"'" . $token . "'," . $id . ",'" . $spec['mode'] . "','planning'," . $job['from_user_id'] . ',' . $job['to_user_id'] . ',' . $job['message_type'] . ',' . $job['message_date'] . ',' . $job['cutoff'] . ',' . (int)$actor['user_id'] . ',' . time() . ' FROM ' . PRIVMSGS_TABLE,
 				dbmtnc_pm_job_parent($job) . ' AND (' . $spec['where'] . ') AND NOT EXISTS (SELECT 1 FROM ' . PM_REPAIR_JOBS_TABLE . ' j WHERE j.message_id = ' . $id . ')');

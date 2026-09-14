@@ -71,6 +71,11 @@ jobs:
         run: php .github/scripts/check-rebuild-session-authority.php
       - name: Poll maintenance live-session authorization and recovery
         run: php .github/scripts/check-poll-session-authority.php
+      - name: PM maintenance live-session authorization and recovery
+        run: |
+          php .github/scripts/check-pm-counter-session.php
+          php .github/scripts/check-pm-repair-session.php
+          php .github/scripts/check-pm-recovery-session.php
 
       - name: Preserve valid profiles and login keys during user maintenance
         run: php .github/scripts/check-maintenance-user-values.php

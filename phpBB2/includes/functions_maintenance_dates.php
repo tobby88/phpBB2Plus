@@ -5,6 +5,7 @@ require_once dirname(__FILE__) . '/functions_acl_storage.php';
 function dbmtnc_date_actor($db)
 {
 	global $userdata;
+	if (empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_acl_error('Not_Authorised'); }
 	$actor = phpbb_acl_actor($db, 'maintenance');
 	$actor['guard'] .= ' AND EXISTS (SELECT 1 FROM ' . SESSIONS_TABLE
 		. " date_session WHERE HEX(date_session.session_id) = HEX('" . $db->sql_escape($userdata['session_id'])

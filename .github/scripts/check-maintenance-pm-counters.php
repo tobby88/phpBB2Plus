@@ -1,6 +1,7 @@
 <?php
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','PRIVMSGS_TABLE'=>'fixture_pm','PRIVMSGS_NEW_MAIL'=>1,'PRIVMSGS_UNREAD_MAIL'=>5,'JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
+define('SESSIONS_TABLE','fixture_sessions');
 require_once $root.'includes/functions_maintenance_pm.php';
 function pm_counter_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 function message_die($code,$message){throw new RuntimeException($message);}
@@ -9,12 +10,13 @@ function throw_error($message){throw new PmCounterControllerFailure($message);}
 function lock_db($unlock=false,$delay=true,$ignore=false){$GLOBALS['board_locks'][]=array($unlock,$delay,$ignore);}
 class PmCounterRows {public $rows;function __construct($rows){$this->rows=$rows;}}
 $dsn=getenv('PHPBB_PM_COUNTER_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
-if($native){pm_counter_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_pm_counter_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
+if($native){pm_counter_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_pm_counter_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class PmCounterServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
  function __construct($engine){
-  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_PM_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_new_privmsg INTEGER,user_unread_privmsg INTEGER','pm'=>'privmsgs_id INTEGER PRIMARY KEY,privmsgs_to_userid INTEGER,privmsgs_from_userid INTEGER,privmsgs_type INTEGER,body VARCHAR(255)','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
+  $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
   $this->pdo->exec("INSERT INTO fixture_pm VALUES (1,8,1,1,'Grüße'),(2,8,1,5,'Unread'),(3,8,1,0,'Read'),(4,8,1,2,'Sent'),(5,8,1,3,'Saved'),(6,8,1,4,'Saved out'),(7,77,8,1,'Sender only')");
@@ -29,7 +31,7 @@ class PmCounterForum {
 }
 class PmCounterConnection {
  public $server;public $pdo;public $db_connect_id=true;public $closed=false;public $affected=0;
- function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root','',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
+ function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_PM_MAINTENANCE_TEST_PASSWORD')?:'',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
  function sql_query($sql){
   if($this->closed){return false;}$s=$this->server;$s->queries[]=$sql;
   if(strpos($sql,'SELECT GET_LOCK(')===0){
@@ -55,6 +57,7 @@ class PmCounterConnection {
 function pm_counter_fixture($engine,$actor=1){
  global $pm_counter_server,$userdata,$phpEx,$phpbb_root_path,$root;
  $pm_counter_server=new PmCounterServer($engine);$userdata=array('user_id'=>$actor,'user_level'=>ADMIN,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');
+ $pm_counter_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',".(int)$actor.",1,1)");
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-sid');$phpEx='php';$phpbb_root_path=$root;
 }
 function pm_counter_value($sql){return (int)$GLOBALS['pm_counter_server']->pdo->query($sql)->fetchColumn();}

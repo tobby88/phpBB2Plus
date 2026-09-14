@@ -3,6 +3,7 @@ $root=dirname(dirname(__DIR__)).'/phpBB2/';
 define('PRIVMSGS_PENDING_SENT_MAIL',6);
 require_once __DIR__ . '/pm-repair-journal-fixture.php';
 foreach(array('IN_PHPBB'=>true,'ADMIN'=>1,'MOD'=>2,'USER'=>0,'GENERAL_ERROR'=>202,'ATTACHMENTS_TABLE'=>'fixture_links','USERS_TABLE'=>'fixture_users','PRIVMSGS_TABLE'=>'fixture_pm','IN_ADMIN'=>true,'DELETED'=>-1,'PAGE_PRIVMSGS'=>-10,'PRIVMSGS_TEXT_TABLE'=>'fixture_text','ATTACHMENTS_DESC_TABLE'=>'fixture_descriptions','PRIVMSGS_READ_MAIL'=>0,'PRIVMSGS_SENT_MAIL'=>2,'PRIVMSGS_SAVED_IN_MAIL'=>3,'PRIVMSGS_SAVED_OUT_MAIL'=>4,'PRIVMSGS_NEW_MAIL'=>1,'PRIVMSGS_UNREAD_MAIL'=>5,'JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value){define($key,$value);}
+define('SESSIONS_TABLE','fixture_sessions');
 require_once $root.'includes/functions_maintenance_pm.php';
 require_once $root.'attach_mod/includes/functions_delete.php';
 require_once $root.'includes/functions_privmsgs.php';
@@ -13,13 +14,14 @@ function throw_error($message){throw new PmRepairControllerFailure($message);}
 function lock_db($unlock=false,$delay=true,$ignore=false){$GLOBALS['board_locks'][]=array($unlock,$delay,$ignore);}
 class PmRepairRows {public $rows;function __construct($rows){$this->rows=$rows;}}
 $dsn=getenv('PHPBB_PM_REPAIR_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
-if($native){pm_repair_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_pm_repair_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
+if($native){pm_repair_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_pm_repair_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class PmRepairServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
  function __construct($engine){
-  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_PM_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   pm_journal_fixture_tables($this->pdo,$engine);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER,user_new_privmsg INTEGER,user_unread_privmsg INTEGER','pm'=>'privmsgs_id INTEGER PRIMARY KEY,privmsgs_to_userid INTEGER,privmsgs_from_userid INTEGER,privmsgs_type INTEGER,privmsgs_date INTEGER DEFAULT 0,privmsgs_attachment INTEGER DEFAULT 0','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)','text'=>'privmsgs_text_id INTEGER PRIMARY KEY,privmsgs_text VARCHAR(255)','links'=>'attach_id INTEGER,privmsgs_id INTEGER,post_id INTEGER','descriptions'=>'attach_id INTEGER PRIMARY KEY,physical_filename VARCHAR(255),thumbnail INTEGER');
+  $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
   foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1,0,0),(20,'Junior',0,1,0,0),(-1,'Anonymous',0,0,17,18),(0,'Deleted',0,0,19,20),(8,'Recipient',0,1,99,99),(9,'Empty',0,0,NULL,NULL)");
   $this->pdo->exec("INSERT INTO fixture_pm (privmsgs_id,privmsgs_to_userid,privmsgs_from_userid,privmsgs_type) VALUES (10,8,1,1),(11,8,1,1),(12,8,1,1),(14,8,999,0),(15,999,8,2),(16,8,-1,1),(17,-1,8,0),(18,8,1,3)");
@@ -37,7 +39,7 @@ class PmRepairForum {
 }
 class PmRepairConnection {
  public $server;public $pdo;public $db_connect_id=true;public $closed=false;public $affected=0;
- function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root','',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
+ function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_PM_MAINTENANCE_TEST_PASSWORD')?:'',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
  function sql_query($sql){
   if($this->closed){return false;}$s=$this->server;$s->queries[]=$sql;
   if(strpos($sql,'SELECT GET_LOCK(')===0){
@@ -74,6 +76,7 @@ class PmRepairConnection {
 function pm_repair_fixture($engine,$actor=1){
  global $pm_repair_server,$userdata,$phpEx,$phpbb_root_path,$root,$db;
  $pm_repair_server=new PmRepairServer($engine);$userdata=array('user_id'=>$actor,'user_level'=>ADMIN,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-sid');
+ $pm_repair_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',".(int)$actor.",1,1)");
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-sid');$phpEx='php';$phpbb_root_path=$root;$db=new PmRepairForum();
 }
 function pm_repair_value($sql){return (int)$GLOBALS['pm_repair_server']->pdo->query($sql)->fetchColumn();}

@@ -4,6 +4,7 @@ require_once __DIR__ . '/pm-repair-journal-fixture.php';
 require_once __DIR__ . '/pm-mailbox-journal-fixture.php';
 define('PRIVMSGS_TEXT_TABLE', 'fixture_message_text');
 define('USERS_TABLE', 'fixture_users');
+define('SESSIONS_TABLE','fixture_sessions');
 define('JR_ADMIN_TABLE','fixture_jr_admin'); $phpEx='php'; $phpbb_root_path=$forum_root;
 require $forum_root . 'includes/functions_privmsgs.php';
 $lang['PM_cleanup_failed'] = 'pm database';
@@ -33,6 +34,8 @@ function pm_cleanup_fixture()
 	$mutation_server->pdo->exec('INSERT INTO fixture_users (user_id,user_new_privmsg,user_unread_privmsg) VALUES(7,9,9),(8,0,0),(99,0,0)');
 	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
 	$mutation_server->pdo->exec('CREATE TABLE fixture_jr_admin (user_id INTEGER,user_jr_admin TEXT)');
+	$mutation_server->pdo->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER)');
+	$mutation_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture-sid',8,1,1)");
 	file_put_contents($upload_dir.'/fixture.txt','owned');
 	mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','pm',20);
 	mutation_pm()->duplicate_attachment_pm(1,20,21);
