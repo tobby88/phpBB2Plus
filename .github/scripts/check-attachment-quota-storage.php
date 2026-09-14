@@ -70,9 +70,9 @@ function qrun($request,$get=array()){
  $GLOBALS['HTTP_POST_VARS']=$_POST;$GLOBALS['HTTP_GET_VARS']=$_GET;$_SERVER['REQUEST_METHOD']=$request===null?'GET':'POST';
  try{include $GLOBALS['ats_source'].'admin/admin_attachments.php';throw new RuntimeException('Controller did not stop');}catch(AttachSettingsExit $e){return strpos($e->getMessage(),'saved')===0?'saved':$e->getMessage();}
 }
-function qassignment($mode,$request){
+function qassignment($mode,$request,$resolved_user_id=null){
  $_POST=array_merge(array('sid'=>'fixture-admin','submit'=>'Save','id'=>'2'),$request);$GLOBALS['HTTP_POST_VARS']=$_POST;$GLOBALS['HTTP_GET_VARS']=array();$_SERVER['REQUEST_METHOD']='POST';
- try{if($mode==='user'){attachment_quota_settings('user',true,'save');}else{attachment_quota_save_form('group',10);}return 'saved';}catch(AttachSettingsExit $e){return $e->getMessage();}
+ try{if($mode==='user'){attachment_quota_settings('user',true,'save',$resolved_user_id);}else{attachment_quota_save_form('group',10);}return 'saved';}catch(AttachSettingsExit $e){return $e->getMessage();}
 }
 function qboundary($sql){return preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)||$sql==='COMMIT'||strpos($sql,' LOCK IN SHARE MODE')!==false;}
 function qrevoke($kind){$queries=array('role'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=1','inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=1','grant'=>'DELETE FROM fixture_jr',
@@ -125,6 +125,10 @@ try{
   qreset($actor,$mode);$before=qsnap();ats_check(qassignment($mode,array($mode.'_upload_quota'=>array('1')))==='invalid'&&qsnap()===$before,'Nested assignment rejected');
   qreset($actor,$mode);$before=qsnap();ats_check(qassignment($mode,array())==='saved'&&qsnap()===$before,'Omitted assignment controls do not clear data');
  }}
+ qreset();qsql('UPDATE fixture_users SET user_level=0,user_active=0 WHERE user_id=3');$oldAssignments=qsnap()['assign'];
+ ats_check(qassignment('user',array('id'=>'2','u'=>'999','new_user'=>'1','user_upload_quota'=>'1'),3)==='saved','Newly created inactive account receives its quota');
+ $newRows=phpbb_acl_rows($peer,'SELECT * FROM '.QUOTA_TABLE.' WHERE user_id=3');ats_check(count($newRows)===1&&(int)$newRows[0]['quota_limit_id']===1,'Allocated account is actual assignment owner');
+ ats_check(phpbb_acl_rows($peer,'SELECT * FROM '.QUOTA_TABLE.' WHERE user_id<>3 ORDER BY user_id,group_id,quota_type')===$oldAssignments,'Reference account assignments remain untouched');
  qreset('delegated','wrong');$before=qsnap();ats_check(qassignment('user',array('user_upload_quota'=>'1'))==='Not_Authorised'&&qsnap()===$before,'Wrong module cannot assign user quota');
  qreset('delegated','user');$before=qsnap();$denied=false;try{phpbb_attach_quota_assign($db,'user',3,array(1=>'1'),array('sid'=>'fixture-admin'));}catch(PhpbbAclException $e){$denied=$e->getMessage()==='Not_Authorised';}ats_check($denied&&qsnap()===$before,'Delegated user admin cannot change administrator quota');
  qreset();qsql('UPDATE fixture_users SET user_level=1 WHERE user_id=2');$userdata['user_id']=2;qsql('UPDATE fixture_sessions SET session_user_id=2');$denied=false;try{phpbb_attach_quota_assign($db,'user',1,array(1=>'1'),array('sid'=>'fixture-admin'));}catch(PhpbbAclException $e){$denied=$e->getMessage()==='Not_Authorised';}ats_check($denied,'First administrator protection applies before quota changes');

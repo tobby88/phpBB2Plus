@@ -154,7 +154,7 @@ function attachment_quota_save_form($mode, $id, $delete = false)
 	catch (PhpbbAclException $exception) { message_die(GENERAL_ERROR, $exception->getMessage()); }
 }
 
-function attachment_quota_settings($admin_mode, $submit = false, $mode = '')
+function attachment_quota_settings($admin_mode, $submit = false, $mode = '', $resolved_user_id = null)
 {
 	global $template, $db, $HTTP_POST_VARS, $HTTP_GET_VARS, $lang, $lang, $phpbb_root_path, $phpEx, $attach_config;
 
@@ -211,7 +211,9 @@ function attachment_quota_settings($admin_mode, $submit = false, $mode = '')
 		}
 		else
 		{
-			$user_id = get_var('id', 0);
+			// Only the controller may supply a newly allocated account ID. Do not
+			// trust the posted profile/reference ID for account creation.
+			$user_id = $resolved_user_id === null ? get_var('id', 0) : $resolved_user_id;
 			
 			if (!$user_id)
 			{

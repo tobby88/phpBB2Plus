@@ -173,7 +173,10 @@ if ($new_user)
 //
 if ( $mode == 'edit' || $mode == 'save' && ( isset($_POST['username']) || isset($_GET[POST_USERS_URL]) || isset( $_POST[POST_USERS_URL]) ) )
 {
-	attachment_quota_settings('user', isset($_POST['submit']) ? $_POST['submit'] : '', $mode);
+	// A created account has a newly allocated ID; the hidden id still describes
+	// the reference profile. Never apply its quota edits to that reference user.
+	attachment_quota_settings('user', isset($_POST['submit']) ? $_POST['submit'] : '', $mode,
+		($new_user && $mode === 'save' && isset($_POST['submit'])) ? $user_id : null);
 	//
 	// Ok, the profile has been modified and submitted, let's update
 	//

@@ -14,6 +14,8 @@ changes consolidated after that baseline without implying active maintenance.
   fractional byte limits and raw UTF-8 names, and escape quota views. Coordinate
   with the existing group/account attachment mutex and save both user quota
   controls together; validate references and protect administrator accounts.
+  Assign newly created users' quotas to the allocator's actual ID, never to
+  the hidden reference-profile ID or a forged posted ID.
   Correct the form/schema name-width mismatch through a non-shrinking,
   metadata-preserving 20-to-25-character migration in the normal updater and
   canonical installer schema. No runtime schema changes or user-file deletions.
