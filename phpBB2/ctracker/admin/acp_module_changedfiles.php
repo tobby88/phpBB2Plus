@@ -39,8 +39,6 @@ if ( $action == 'akt' )
 	 * Update the File Hashes
 	 */
 	$ct_admin->do_filechk();
-	$timestamp = time();
-	$ctracker_config->change_configuration('last_checksum_scan', $timestamp);
 
 	$template->assign_block_vars('akt_complete', array(
 		'L_UPDATE_ACTION'	=> $lang['ctracker_fchk_update_action'])

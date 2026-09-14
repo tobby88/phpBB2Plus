@@ -417,6 +417,17 @@ administrator in the ACP. ERC remains behind its explicit recovery access gates.
 Trusted localized help links remain available. No sensitive diagnostic copy is
 written to a new log by this renderer.
 
+CrackerTracker scans, configuration snapshots and restores revalidate the live
+account, exact ACP session and delegated module throughout processing. Automatic
+snapshots use the general-configuration permission, not an unrelated CrackerTracker
+module. Completed reports and their timestamps are published in one InnoDB
+transaction. Short commit-phase authority locks order a concurrent revocation
+before or after that transaction without locking the account during file traversal.
+Interrupted staging leaves the previous committed report or snapshot available;
+sign in with current permission and retry. An error after a committed publication
+does not undo that already completed transaction. No additional migration is needed
+once the documented InnoDB migration has completed.
+
 ACP password creation and changes preserve special characters and whitespace
 as entered, matching login. Existing password hashes are not rewritten. If an
 older ACP version saved a transformed password, use the regular password-reset

@@ -34,7 +34,14 @@ preg_match_all('/CREATE TABLE\s+.*?;(?=\s*(?:#|CREATE|$))/s', $schema, $definiti
 policy_check(count($definitions[0])===116, 'Review inventory when adding fresh-install tables');
 foreach ($definitions[0] as $sql) { policy_check(strpos($sql,'ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')!==false, 'Explicit fresh storage and charset'); }
 $ct=file_get_contents($root.'/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
-policy_check(substr_count($ct,'$this->require_modern_storage(')===6, 'All three clone sources and replacements checked');
+policy_check(substr_count($ct,'$this->require_modern_storage(')===10, 'Clone and transactional publication storage-check inventory');
+foreach(array('CTRACKER_FILECHK','CTRACKER_FILESCANNER','CTRACKER_BACKUP') as $table){
+ policy_check(strpos($ct,'$this->require_modern_storage($db, '.$table.');')!==false,'Each clone source checked');
+}
+policy_check(substr_count($ct,'$this->require_modern_storage($db, $temporary_table);')===3,'All three cloned replacements checked');
+foreach(array('$table','$stage','$locked_table','CTRACKER_CONFIG') as $table){
+ policy_check(strpos($ct,'$this->require_modern_storage($db, '.$table.');')!==false,'Publication and timestamp storage checked');
+}
 policy_check(preg_match_all('/\bCREATE\s+TABLE\b/i',$ct,$ct_creates)===4,'Review every additional CrackerTracker table creator');
 $installer=file_get_contents($root.'/phpBB2/install/install.php');
 policy_check(strpos($installer,'if (!empty($upgrade) || !empty($upgrade_now))')!==false && strpos($installer,'from phpBB 1</option>')===false,'Legacy installer POST route blocked and removed from options');

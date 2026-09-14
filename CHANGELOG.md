@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate live account, exact ACP session and delegated module permissions
+  throughout CrackerTracker configuration snapshots, restores and both scanners,
+  including automatic snapshots from general board configuration. Publish reports
+  into stable InnoDB tables using guarded transactions instead of DDL swaps.
+  Commit each scanner timestamp with its report, hold authority rows only for
+  the short commit phase, and retain prior committed data on interruption.
+  Add native revocation tests at every write/commit-lock boundary and keep the
+  existing ACL entry routes unchanged. No schema migration is required.
 - Use the database driver's private connection factory for CrackerTracker
   scanners and configuration snapshots after bootstrap removes public database
   credentials. Preserve current availability, schema/style versions, rebuild

@@ -58,7 +58,7 @@ if ($link_created)
 
 $source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
 filescan_test_assert(strpos($source, 'CTracker_Ignore') === false && strpos(strtolower($source), 'ctracker_ignore') === false, 'source comments must not bypass scanning');
-filescan_test_assert(strpos($source, 'RENAME TABLE') !== false, 'completed results must be swapped atomically');
+filescan_test_assert(strpos($source, '$this->publish_stage($db, CTRACKER_FILESCANNER,') !== false && strpos($source, 'START TRANSACTION') !== false, 'completed results must publish transactionally');
 filescan_test_assert(strpos($source, 'SELECT MAX(id) AS total') === false, 'file indexing must not perform one MAX query per file');
 
 $db->queries = array();

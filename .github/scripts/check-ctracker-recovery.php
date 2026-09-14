@@ -5,6 +5,7 @@ define('CTRACKER_ACP', true);
 define('CTRACKER_BACKUP', 'phpbb_ctracker_backup');
 define('CONFIG_TABLE', 'phpbb_config');
 require dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php';
+require __DIR__ . '/ctracker-admin-authority-fixture.php';
 
 function recovery_test_assert($condition, $message)
 {
@@ -22,6 +23,7 @@ class recovery_test_db
 	var $password = '';
 	var $dbname = 'fixture';
 	var $queries = array();
+	var $stage_count = 0;
 	var $rows = array(
 		array('config_name' => 'server_name', 'config_value' => 'forum.example'),
 		array('config_name' => 'site_desc', 'config_value' => "A board's description")
@@ -29,16 +31,21 @@ class recovery_test_db
 	function sql_escape($value) { return addslashes((string) $value); }
 	function sql_query($sql)
 	{
+		if ($authority = ct_fixture_authority_query($sql)) { return $authority; }
+		if (strpos($sql, 'INSERT INTO phpbb_ctracker_backup_new ') === 0) { $this->stage_count++; }
+		if (strpos($sql, 'SELECT COUNT(*) AS stage_count FROM ') === 0) { return new CtFixtureAuthorityResult(array(array('stage_count'=>$this->stage_count))); }
 		$this->queries[] = $sql;
 		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0) { return 'storage-result'; }
 		return (strpos($sql, 'SELECT * FROM phpbb_config') === 0) ? 'config-result' : true;
 	}
 	function sql_fetchrow($result)
 	{
+		if ($result instanceof CtFixtureAuthorityResult) { return $result->rows ? array_shift($result->rows) : false; }
 		if ($result === 'storage-result') { return array('modern_storage' => '1'); }
 		return ($result === 'config-result' && $this->rows) ? array_shift($this->rows) : false;
 	}
 	function sql_freeresult($result) {}
+	function sql_affectedrows() { return $this->stage_count; }
 }
 
 class recovery_restore_test_db
@@ -53,9 +60,12 @@ class recovery_restore_test_db
 		array('config_name' => 'site_desc', 'config_value' => "Restored board's description")
 	);
 	var $marker_returned = false;
+	var $stored_values = array('server_name'=>'restored.example', 'site_desc'=>"Restored board's description");
 	function sql_escape($value) { return addslashes((string) $value); }
 	function sql_query($sql)
 	{
+		if ($authority = ct_fixture_authority_query($sql)) { return $authority; }
+		if (preg_match("/^SELECT config_value FROM phpbb_config WHERE config_name = '([^']+)'$/", $sql, $m)) { return new CtFixtureAuthorityResult(array(array('config_value'=>$this->stored_values[$m[1]]))); }
 		$this->queries[] = $sql;
 		if (strpos($sql, 'SELECT ENGINE FROM information_schema.TABLES') === 0) return 'engine-result';
 		if (strpos($sql, "config_name = 'ct_last_backup'") !== false) return 'marker-result';
@@ -64,6 +74,7 @@ class recovery_restore_test_db
 	}
 	function sql_fetchrow($result)
 	{
+		if ($result instanceof CtFixtureAuthorityResult) { return $result->rows ? array_shift($result->rows) : false; }
 		if ($result === 'engine-result') return array('ENGINE' => 'InnoDB');
 		if ($result === 'marker-result' && !$this->marker_returned)
 		{
@@ -82,6 +93,8 @@ class sql_db
 	function sql_query($sql) { return strpos($sql, 'SELECT GET_LOCK(') === 0 ? 'lock' : $this->database->sql_query($sql); }
 	function sql_fetchrow($result) { return $result === 'lock' ? array('acquired' => '1') : $this->database->sql_fetchrow($result); }
 	function sql_freeresult($result) {}
+	function sql_fetchrowset($result) { $rows=array(); while ($row=$this->sql_fetchrow($result)) { $rows[]=$row; } return $rows; }
+	function sql_affectedrows() { return $this->database->sql_affectedrows(); }
 	function sql_escape($value) { return $this->database->sql_escape($value); }
 	function sql_close() {}
 }
@@ -95,8 +108,8 @@ recovery_test_assert(strpos($sql, 'varchar( 191 )') !== false, 'New backup keys 
 
 recovery_test_assert(strpos($sql, 'CREATE TABLE phpbb_ctracker_backup_new LIKE phpbb_ctracker_backup') !== false, 'snapshot must be written to a staging table');
 recovery_test_assert(strpos($sql, 'INSERT INTO phpbb_ctracker_backup_new') !== false, 'configuration values must target the staging table');
-recovery_test_assert(strpos($sql, 'RENAME TABLE phpbb_ctracker_backup TO phpbb_ctracker_backup_old, phpbb_ctracker_backup_new TO phpbb_ctracker_backup') !== false, 'completed snapshot must be swapped atomically');
-recovery_test_assert(strpos($sql, 'DELETE FROM phpbb_ctracker_backup') === false, 'the previous snapshot must not be emptied first');
+recovery_test_assert(strpos($sql, 'INSERT INTO phpbb_ctracker_backup (config_name,config_value) SELECT config_name,config_value FROM phpbb_ctracker_backup_new WHERE ') !== false && strpos($sql, 'COMMIT') !== false, 'completed snapshot must publish transactionally with an authority predicate');
+recovery_test_assert(strpos($sql, 'START TRANSACTION') < strpos($sql, 'DELETE FROM phpbb_ctracker_backup WHERE '), 'the previous snapshot must only be replaced inside the transaction');
 recovery_test_assert(strpos($sql, "board\\'s description") !== false, 'snapshot values must be SQL escaped');
 
 $source = file_get_contents(dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php');

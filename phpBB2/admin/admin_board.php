@@ -77,7 +77,7 @@ else
 		define('CTRACKER_ACP', true);
 		include_once($phpbb_root_path . 'ctracker/classes/class_ct_adminfunctions.' . $phpEx);
 		$backup_system = new ct_adminfunctions();
-		$backup_system->recover_configuration();
+		$backup_system->recover_configuration('board');
 		unset($backup_system);
 	}
 

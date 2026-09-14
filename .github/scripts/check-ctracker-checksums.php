@@ -39,7 +39,7 @@ checksum_test_assert($admin->file_checksum(__FILE__, dirname($first_path)) === f
 $class_source = file_get_contents($repository_root . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
 checksum_test_assert(strpos($class_source, "hash_file('sha256'") !== false, 'scanner must use SHA-256 content hashing');
 checksum_test_assert(strpos($class_source, '@is_link($path)') !== false, 'scanner must skip symbolic links');
-checksum_test_assert(strpos($class_source, 'RENAME TABLE') !== false, 'baseline replacement must use an atomic table rename');
+checksum_test_assert(strpos($class_source, '$this->publish_stage($db, CTRACKER_FILECHK,') !== false && strpos($class_source, 'START TRANSACTION') !== false, 'baseline replacement must use guarded transactional publication');
 checksum_test_assert(strpos($class_source, '$db->sql_escape($stored_path)') !== false, 'stored paths must be escaped');
 
 echo "CrackerTracker checksum tests passed.\n";

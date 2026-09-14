@@ -5,7 +5,9 @@ if (PHP_SAPI !== 'cli' || getenv('PHPBB_CT_RECOVERY_NATIVE') !== '1')
 define('IN_PHPBB', true); define('CTRACKER_ACP', true);
 define('CONFIG_TABLE', 'fixture_config'); define('CTRACKER_BACKUP', 'fixture_backup');
 define('CTRACKER_FILECHK', 'fixture_filechk'); define('CTRACKER_FILESCANNER', 'fixture_filescanner');
+define('CTRACKER_CONFIG', 'fixture_ct_config');
 define('GENERAL_ERROR', 1); define('GENERAL_MESSAGE', 2); define('CRITICAL_ERROR', 3); define('END_TRANSACTION', 2);
+define('USERS_TABLE', 'fixture_users'); define('SESSIONS_TABLE', 'fixture_sessions'); define('JR_ADMIN_TABLE', 'fixture_jr_admin'); define('ADMIN', 1);
 class NativeRecoveryExit extends RuntimeException {}
 function message_die($level, $message) { throw new NativeRecoveryExit($message); }
 function recovery_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
@@ -40,10 +42,17 @@ function recovery_value($table, $name, $value) {
 }
 set_error_handler(function($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try {
+ recovery_sql('CREATE TABLE fixture_users (user_id INT PRIMARY KEY,user_level INT,user_active INT) ENGINE=InnoDB');
+ recovery_sql('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT) ENGINE=InnoDB');
+ recovery_sql('CREATE TABLE fixture_jr_admin (user_id INT PRIMARY KEY,user_jr_admin TEXT) ENGINE=InnoDB');
+ recovery_sql('INSERT INTO fixture_users VALUES (1,1,1)');
+ recovery_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',1,1,1)");
+ $userdata=array('user_id'=>1,'session_id'=>'fixture-admin','session_logged_in'=>1,'session_admin'=>1);
+ $_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture-admin');
  $schema = file_get_contents($source . 'install/schemas/mysql_schema.sql');
- foreach (array('config', 'ctracker_filechk', 'ctracker_filescanner') as $table) {
+ foreach (array('config', 'ctracker_config', 'ctracker_filechk', 'ctracker_filescanner') as $table) {
   recovery_check(preg_match('/CREATE TABLE `?phpbb_' . $table . '`?\s*\([\s\S]*?;/', $schema, $m) === 1, 'Canonical schema');
-  recovery_sql(str_replace('phpbb_' . $table, $table === 'config' ? CONFIG_TABLE : 'fixture_' . substr($table, 9), $m[0]));
+  recovery_sql(str_replace('phpbb_' . $table, $table === 'config' ? CONFIG_TABLE : ($table === 'ctracker_config' ? CTRACKER_CONFIG : 'fixture_' . substr($table, 9)), $m[0]));
  }
  // Match the real CrackerTracker bootstrap, which removes the public password.
  unset($db->password);

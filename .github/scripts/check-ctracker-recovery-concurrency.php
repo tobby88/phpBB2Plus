@@ -2,6 +2,7 @@
 define('IN_PHPBB', true); define('CTRACKER_ACP', true);
 define('CTRACKER_BACKUP', 'fixture_backup'); define('CONFIG_TABLE', 'fixture_config');
 define('GENERAL_ERROR', 1); define('GENERAL_MESSAGE', 2); define('CRITICAL_ERROR', 3);
+require __DIR__ . '/ctracker-admin-authority-fixture.php';
 class RecoveryExit extends RuntimeException {}
 function message_die($level, $message) { throw new RecoveryExit($message); }
 function recovery_assert($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
@@ -26,6 +27,7 @@ class sql_db
 {
 	var $db_connect_id = true; var $server_state; var $owns_lock = false; var $closed = false;
 	var $pending = null;
+	var $affected = 0;
 	function __construct($server, $user, $password, $dbname, $persistent)
 	{
 		recovery_assert(!$persistent, 'Recovery connection must not be persistent');
@@ -46,19 +48,27 @@ class sql_db
 			return $this->result(array(array('acquired' => '1')));
 		}
 		recovery_assert($this->owns_lock && $s->lock === $this, 'Every recovery query must own its lock');
+		if ($authority = ct_fixture_authority_query($sql)) { return $authority; }
 		if (is_callable($s->hook)) { call_user_func($s->hook, $sql, $this); }
 		if (!$this->db_connect_id) { return false; }
 		if ($s->failure !== '' && strpos($sql, $s->failure) === 0) { return false; }
 		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0) { return $this->result(array(array('modern_storage' => '1'))); }
 		if ($sql === "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')") { return true; }
+		if ($sql === 'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED') { return true; }
+		if ($sql === 'ROLLBACK') { $this->pending = null; return true; }
 		if ($sql === 'START TRANSACTION') { $this->pending = array(); return true; }
 		if ($sql === 'COMMIT')
 		{
 			recovery_assert(is_array($this->pending), 'Commit must follow a transaction');
-			foreach ($this->pending as $key => $value) { $s->tables['fixture_config'][$key] = $value; }
+			foreach ($this->pending as $table => $values) { $s->tables[$table] = $values; }
 			$this->pending = null; return true;
 		}
 		if ($sql === 'SELECT config_name FROM fixture_config LIMIT 0') { return $this->result(array()); }
+		if (preg_match('/^SELECT .* LIMIT 0$/', $sql)) { return $this->result(array()); }
+		if (preg_match('/^SELECT COUNT\(\*\) AS stage_count FROM (\w+)$/', $sql, $m)) { return $this->result(array(array('stage_count'=>count($s->tables[$m[1]])))); }
+		if (preg_match('/^DELETE FROM (\w+) WHERE /', $sql, $m)) { recovery_assert(is_array($this->pending), 'Publish DELETE must be transactional'); $this->pending[$m[1]]=array(); return true; }
+		if (preg_match('/^INSERT INTO (\w+) \([^)]*\) SELECT [^ ]+ FROM (\w+) WHERE /', $sql, $m)) { recovery_assert(is_array($this->pending), 'Publish INSERT must be transactional'); $this->pending[$m[1]]=$s->tables[$m[2]]; $this->affected=count($s->tables[$m[2]]); return true; }
+		if (preg_match("/^SELECT config_value FROM fixture_config WHERE config_name = '([^']+)'$/", $sql, $m)) { $values=isset($this->pending['fixture_config'])?$this->pending['fixture_config']:$s->tables['fixture_config']; return $this->result(isset($values[$m[1]])?array(array('config_value'=>$values[$m[1]])):array()); }
 		if (strpos($sql, 'SELECT ENGINE FROM information_schema.TABLES') === 0) { return $this->result(array(array('ENGINE' => $s->engine))); }
 		if (strpos($sql, 'CREATE TABLE IF NOT EXISTS fixture_backup') === 0) { return true; }
 		if (preg_match('/^DROP TABLE IF EXISTS (\w+)$/', $sql, $m)) { unset($s->tables[$m[1]]); return true; }
@@ -78,25 +88,23 @@ class sql_db
 			return $this->result(isset($s->tables['fixture_backup']['ct_last_backup']) ?
 				array(array('config_value' => $s->tables['fixture_backup']['ct_last_backup'])) : array());
 		}
-		if (preg_match("/^INSERT INTO (\w+) .*?VALUES \('([^']*)', '([^']*)'\)/s", $sql, $m))
+		if (preg_match("/^INSERT INTO (\w+) .*?(?:VALUES \(|SELECT )'([^']*)', '([^']*)'/s", $sql, $m))
 		{
 			if ($m[1] === 'fixture_config')
 			{
 				recovery_assert(is_array($this->pending), 'Configuration writes must be transactional');
-				$this->pending[$m[2]] = $m[3]; return true;
+				if (!isset($this->pending['fixture_config'])) { $this->pending['fixture_config']=$s->tables['fixture_config']; }
+				$this->pending['fixture_config'][$m[2]] = $m[3]; return true;
 			}
 			if ($m[1] !== 'fixture_config' && isset($s->tables[$m[1]][$m[2]])) { return false; }
 			$s->tables[$m[1]][$m[2]] = $m[3]; return true;
-		}
-		if (preg_match('/^RENAME TABLE (\w+) TO (\w+), (\w+) TO (\w+)$/', $sql, $m))
-		{
-			$s->tables[$m[2]] = $s->tables[$m[1]]; $s->tables[$m[4]] = $s->tables[$m[3]];
-			unset($s->tables[$m[3]]); return true;
 		}
 		throw new RuntimeException('Unexpected SQL ' . $sql);
 	}
 	function sql_fetchrow($result) { return $result->rows ? array_shift($result->rows) : false; }
 	function sql_freeresult($result) {}
+	function sql_fetchrowset($result) { $rows=array(); while ($row=$this->sql_fetchrow($result)) { $rows[]=$row; } return $rows; }
+	function sql_affectedrows() { return $this->affected; }
 	function sql_escape($value) { return addslashes($value); }
 	function sql_close()
 	{
@@ -138,9 +146,8 @@ try
 				$recovery_server->tables['fixture_config'] === array('one' => 'saved1', 'two' => 'saved2', 'new' => 'extra'), 'Expected coherent complete result');
 			recovery_run($second);
 		}
-		foreach (array('connect', 'lock-query', 'lock-null', 'SELECT', 'INSERT', 'RENAME TABLE') as $failure)
+		foreach (array('connect', 'lock-query', 'lock-null', 'SELECT', 'INSERT', 'COMMIT') as $failure)
 		{
-			if ($first === 'restore' && $failure === 'RENAME TABLE') { continue; }
 			$recovery_server = new RecoveryServer(); $recovery_server->failure = $failure;
 			$before = $recovery_server->tables;
 			try { recovery_run($first); throw new RuntimeException('Failure accepted ' . $failure); } catch (RecoveryExit $e) {}

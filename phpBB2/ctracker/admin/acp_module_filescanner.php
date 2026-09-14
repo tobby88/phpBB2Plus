@@ -42,9 +42,6 @@ if( $action == 'scan' )
 	// scan files
 	$admin_filescan->RunFileScan($phpbb_root_path, $phpEx);
 	
-	$timestamp = time();
-	$ctracker_config->change_configuration('last_file_scan', $timestamp);
-	$ctracker_config->settings['last_file_scan'] = $timestamp;
 	
 	$template->assign_block_vars('akt_complete', array(
 		'L_UPDATE_ACTION'	=> $lang['ctracker_fscan_complete'])

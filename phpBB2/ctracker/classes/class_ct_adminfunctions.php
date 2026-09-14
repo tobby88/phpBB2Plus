@@ -93,6 +93,22 @@ class ct_scan_lock
 	}
 }
 
+// Only the owned scan/recovery connection is decorated. Authority reads use
+// its raw connection, never the ordinary forum connection or a stale cache.
+class ct_authorized_database
+{
+	var $connection;
+	var $authorizer;
+	function __construct($connection, $authorizer) { $this->connection = $connection; $this->authorizer = $authorizer; }
+	function __call($method, $args) { return call_user_func_array(array($this->connection, $method), $args); }
+	function actor() { return call_user_func($this->authorizer, $this->connection); }
+	function sql_query($sql, $transaction = false)
+	{
+		$this->actor();
+		return $this->connection->sql_query($sql, $transaction);
+	}
+}
+
 class ct_adminfunctions
 {
 	var $filechk_root = '';
@@ -100,6 +116,125 @@ class ct_adminfunctions
 	var $filescan_root = '';
 	var $filescan_count = 0;
 	var $scan_database = null;
+	var $authority_route = '';
+
+	function current_authority($db)
+	{
+		global $userdata, $lang;
+		require_once dirname(dirname(__DIR__)) . '/includes/functions_acl_storage.php';
+		try
+		{
+			if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST'
+				|| empty($userdata['session_id']) || !is_string($userdata['session_id'])
+				|| !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals($userdata['session_id'], $_POST['sid']))
+			{ phpbb_acl_error('Session_invalid'); }
+			return phpbb_acp_actor($db, $this->authority_route);
+		}
+		catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	}
+
+	private function authorized_database($connection, $route)
+	{
+		$this->authority_route = $route;
+		$db = new ct_authorized_database($connection, array($this, 'current_authority'));
+		$db->actor();
+		return $db;
+	}
+
+	private function commit_authorized($db)
+	{
+		global $userdata, $lang;
+		$actor = $db->actor();
+		// Freeze the concrete authority rows only for the short commit phase,
+		// not for filesystem traversal. Revocation either wins before these locks
+		// or waits until this already-authorized transaction has finished.
+		$locks = array(
+			'SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '" . $db->sql_escape($userdata['session_id']) . "' AND HEX(session_id) = HEX('" . $db->sql_escape($userdata['session_id']) . "')",
+			'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int)$actor['user_id'],
+			'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id = ' . (int)$actor['user_id']
+		);
+		foreach ($locks as $sql)
+		{
+			$result = $db->sql_query($sql . ' LOCK IN SHARE MODE');
+			if (!$result) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+			$db->sql_freeresult($result);
+		}
+		$db->actor();
+		if (!$db->sql_query('COMMIT')) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+		$db->actor();
+	}
+
+	// Publish into stable InnoDB tables. DDL swaps implicitly commit and cannot
+	// carry a current-session predicate; transactional DML can be guarded and
+	// rolled back without exposing an empty or half-built report.
+	private function publish_stage($db, $table, $stage, $columns, $timestamp_name = '')
+	{
+		global $lang, $ctracker_config;
+		$timestamp = time();
+		$this->require_modern_storage($db, $table);
+		$this->require_modern_storage($db, $stage);
+		if (!$db->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED') || !$db->sql_query('START TRANSACTION'))
+		{ message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+		try
+		{
+			// Hold metadata locks through COMMIT before trusting either engine.
+			// A concurrent ALTER must not remove rollback guarantees after preflight.
+			foreach (array($table, $stage) as $locked_table)
+			{
+				$metadata = $db->sql_query('SELECT ' . $columns . ' FROM ' . $locked_table . ' LIMIT 0');
+				if (!$metadata) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+				$db->sql_freeresult($metadata);
+				$this->require_modern_storage($db, $locked_table);
+			}
+			if ($timestamp_name !== '')
+			{
+				$metadata = $db->sql_query('SELECT ct_config_name FROM ' . CTRACKER_CONFIG . ' LIMIT 0');
+				if (!$metadata) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+				$db->sql_freeresult($metadata);
+				$this->require_modern_storage($db, CTRACKER_CONFIG);
+			}
+			$result = $db->sql_query('SELECT COUNT(*) AS stage_count FROM ' . $stage);
+			$row = $result ? $db->sql_fetchrow($result) : false;
+			if ($result) { $db->sql_freeresult($result); }
+			if (!$row || !isset($row['stage_count']) || (int)$row['stage_count'] < 1)
+			{ message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+			$expected = (int)$row['stage_count'];
+			$actor = $db->actor();
+			if (!$db->sql_query('DELETE FROM ' . $table . ' WHERE ' . $actor['guard']))
+			{ message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+			$actor = $db->actor();
+			if (!$db->sql_query('INSERT INTO ' . $table . ' (' . $columns . ') SELECT ' . $columns . ' FROM ' . $stage . ' WHERE ' . $actor['guard']))
+			{ message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+			$changed = (int)$db->sql_affectedrows();
+			$db->actor();
+			if ($changed !== $expected)
+			{ message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+			if ($timestamp_name !== '')
+			{
+				$actor = $db->actor();
+				$sql = 'INSERT INTO ' . CTRACKER_CONFIG . " (ct_config_name,ct_config_value) SELECT '" . $timestamp_name . "','" . $timestamp . "' WHERE " . $actor['guard'] . ' ON DUPLICATE KEY UPDATE ct_config_value=VALUES(ct_config_value)';
+				if (!$db->sql_query($sql)) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+				$result = $db->sql_query('SELECT ct_config_value FROM ' . CTRACKER_CONFIG . " WHERE ct_config_name='" . $timestamp_name . "'");
+				$row = $result ? $db->sql_fetchrow($result) : false;
+				if ($result) { $db->sql_freeresult($result); }
+				if (!$row || (string)$row['ct_config_value'] !== (string)$timestamp) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+			}
+			$this->commit_authorized($db);
+		}
+		finally
+		{
+			// Also safe after a successful COMMIT or a lost commit acknowledgement.
+			// Cleanup must not itself require the now potentially revoked session.
+			$db->connection->sql_query('ROLLBACK');
+		}
+		$db->sql_query('DROP TABLE IF EXISTS ' . $stage);
+		$db->actor();
+		if ($timestamp_name !== '' && isset($ctracker_config) && is_object($ctracker_config) && isset($ctracker_config->settings) && is_array($ctracker_config->settings))
+		{
+			$ctracker_config->settings[$timestamp_name] = $timestamp;
+			if (isset($ctracker_config->invalid_settings[$timestamp_name])) { unset($ctracker_config->invalid_settings[$timestamp_name]); }
+		}
+	}
 
 	function scan_database()
 	{
@@ -245,10 +380,11 @@ class ct_adminfunctions
 	 */
 	function do_filechk()
 	{
+		global $phpEx;
 		$lock = $this->acquire_scan_lock(CTRACKER_FILECHK);
-		$this->scan_database = $lock->connection;
 		try
 		{
+			$this->scan_database = $this->authorized_database($lock->connection, 'admin_cracker_tracker.' . $phpEx . '?modu=1');
 			$this->build_filechk();
 		}
 		finally
@@ -339,14 +475,7 @@ class ct_adminfunctions
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
 
-		$sql = 'RENAME TABLE ' . CTRACKER_FILECHK . ' TO ' . $backup_table . ', ' .
-			$temporary_table . ' TO ' . CTRACKER_FILECHK;
-		if (!$db->sql_query($sql))
-		{
-			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-		}
-
-		$db->sql_query('DROP TABLE IF EXISTS ' . $backup_table);
+		$this->publish_stage($db, CTRACKER_FILECHK, $temporary_table, 'filepath,hash', 'last_checksum_scan');
 	}
 
 
@@ -808,10 +937,11 @@ class ct_adminfunctions
 	 */
 	function RunFileScan($dir, $extension = '')
 	{
+		global $phpEx;
 		$lock = $this->acquire_scan_lock(CTRACKER_FILESCANNER);
-		$this->scan_database = $lock->connection;
 		try
 		{
+			$this->scan_database = $this->authorized_database($lock->connection, 'admin_cracker_tracker.' . $phpEx . '?modu=3');
 			$this->build_file_scan($dir, $extension);
 		}
 		finally
@@ -862,13 +992,7 @@ class ct_adminfunctions
 		{
 			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
-		$sql = 'RENAME TABLE ' . CTRACKER_FILESCANNER . ' TO ' . $backup_table . ', ' .
-			$temporary_table . ' TO ' . CTRACKER_FILESCANNER;
-		if (!$db->sql_query($sql))
-		{
-			message_die(CRITICAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-		}
-		$db->sql_query('DROP TABLE IF EXISTS ' . $backup_table);
+		$this->publish_stage($db, CTRACKER_FILESCANNER, $temporary_table, 'id,filepath,safety', 'last_file_scan');
 	}
 
 
@@ -1006,12 +1130,15 @@ class ct_adminfunctions
 	 * <b>recover_configuration</b>
 	 * Quick Recover phpBB Configuration
 	 */
-	function recover_configuration()
+	function recover_configuration($context = 'ctracker')
 	{
+		global $phpEx;
+		if (!in_array($context, array('ctracker', 'board'), true)) { message_die(GENERAL_ERROR, 'Invalid administration request.'); }
 		$lock = $this->acquire_scan_lock(CTRACKER_BACKUP, 'ctracker_recovery_busy');
 		try
 		{
-			$this->build_configuration_backup($lock->connection);
+			$route = $context === 'board' ? 'admin_board.' . $phpEx : 'admin_cracker_tracker.' . $phpEx . '?modu=10';
+			$this->build_configuration_backup($this->authorized_database($lock->connection, $route));
 		}
 		finally
 		{
@@ -1095,13 +1222,7 @@ class ct_adminfunctions
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
 		}
-		$sql = 'RENAME TABLE ' . CTRACKER_BACKUP . ' TO ' . $backup_table . ', ' .
-			$temporary_table . ' TO ' . CTRACKER_BACKUP;
-		if (!$db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql);
-		}
-		$db->sql_query('DROP TABLE IF EXISTS ' . $backup_table);
+		$this->publish_stage($db, CTRACKER_BACKUP, $temporary_table, 'config_name,config_value');
 	}
 
 
@@ -1111,19 +1232,19 @@ class ct_adminfunctions
 	 */
 	function restore_configuration()
 	{
-		global $lang, $phpbb_root_path;
+		global $lang, $phpbb_root_path, $phpEx;
 		// Share the backup's lock so its marker and rows cannot come from
 		// different snapshots and another restore cannot interleave its writes.
 		$lock = $this->acquire_scan_lock(CTRACKER_BACKUP, 'ctracker_recovery_busy');
 		try
 		{
-			$db = $lock->connection;
+			$db = $this->authorized_database($lock->connection, 'admin_cracker_tracker.' . $phpEx . '?modu=10');
 			// Never commit silently truncated values from a legacy/custom backup.
 			if (!$db->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')"))
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
 			}
-			if (!$db->sql_query('START TRANSACTION'))
+			if (!$db->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED') || !$db->sql_query('START TRANSACTION'))
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
 			}
@@ -1144,11 +1265,8 @@ class ct_adminfunctions
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_rec_transaction_required']);
 			}
-			$this->restore_configuration_backup($lock->connection);
-			if (!$db->sql_query('COMMIT'))
-			{
-				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
-			}
+			$this->restore_configuration_backup($db);
+			$this->commit_authorized($db);
 			// Legacy caches are no longer read by common.php. Remove one if it
 			// remains from an earlier installation, only after a committed restore.
 			@unlink($phpbb_root_path . 'cache/config_data.cache');
@@ -1166,7 +1284,7 @@ class ct_adminfunctions
 		global $lang;
 
 		// The timestamp is written last into the staging snapshot. Its presence
-		// proves that enumeration completed before the tables were swapped.
+		// proves that enumeration completed before the snapshot was published.
 		$marker_sql = 'SELECT config_value FROM ' . CTRACKER_BACKUP .
 			" WHERE config_name = 'ct_last_backup' LIMIT 1";
 		if (!($marker_result = $db->sql_query($marker_sql)))
@@ -1202,14 +1320,21 @@ class ct_adminfunctions
 		{
 			$config_name = $db->sql_escape((string) $row['config_name']);
 			$config_value = $db->sql_escape((string) $row['config_value']);
+			$actor = $db->actor();
 			$sql2 = "INSERT INTO " . CONFIG_TABLE . " (`config_name`, `config_value`)
-				VALUES ('" . $config_name . "', '" . $config_value . "')
+				SELECT '" . $config_name . "', '" . $config_value . "' WHERE " . $actor['guard'] . "
 				ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)";
 			if ( !$result2 = $db->sql_query($sql2) )
 			{
 				message_die(GENERAL_ERROR, $lang['ctracker_error_database_op'], '', __LINE__, __FILE__, $sql2);
 			}
 			$restored_values++;
+			$db->actor();
+			$check = $db->sql_query("SELECT config_value FROM " . CONFIG_TABLE . " WHERE config_name = '" . $config_name . "'");
+			$stored = $check ? $db->sql_fetchrow($check) : false;
+			if ($check) { $db->sql_freeresult($check); }
+			if (!$stored || !isset($stored['config_value']) || (string)$stored['config_value'] !== (string)$row['config_value'])
+			{ message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
 		}
 		if ($restored_values < 1)
 		{

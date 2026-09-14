@@ -5,6 +5,7 @@ define('CTRACKER_ACP', true);
 define('CTRACKER_FILECHK', 'test_filechk');
 define('CTRACKER_FILESCANNER', 'test_filescan');
 define('CRITICAL_ERROR', 1);
+require __DIR__ . '/ctracker-admin-authority-fixture.php';
 class ScanExit extends RuntimeException {}
 function message_die($level, $message) { throw new ScanExit($message); }
 function phpbb_admin_post_string($key) { return isset($_POST[$key]) ? $_POST[$key] : ''; }
@@ -19,15 +20,23 @@ class ScanDatabase
 	var $queries = array();
 	var $fail = '';
 	var $modern_storage = '1';
+	var $stage_count = 0;
+	var $timestamp = 0;
 	function sql_query($sql)
 	{
+		if ($authority = ct_fixture_authority_query($sql)) { return $authority; }
+		if (preg_match("/^INSERT INTO fixture_ct_config .* SELECT '([^']+)','([0-9]+)' WHERE /",$sql,$m)) { $this->timestamp=$m[2]; }
+		if (strpos($sql,'SELECT ct_config_value FROM fixture_ct_config WHERE ')===0) { return new CtFixtureAuthorityResult(array(array('ct_config_value'=>$this->timestamp))); }
+		if (strpos($sql, 'INSERT INTO test_filechk_new ') === 0 || strpos($sql, 'INSERT INTO test_filescan_new ') === 0) { $this->stage_count++; }
+		if (strpos($sql, 'SELECT COUNT(*) AS stage_count FROM ') === 0) { return new CtFixtureAuthorityResult(array(array('stage_count'=>$this->stage_count))); }
 		$this->queries[] = $sql;
 		$GLOBALS['scan_events'][] = $sql;
 		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0 && $this->fail === '') { return 'storage'; }
 		return $this->fail === '' || strpos($sql, $this->fail) !== 0;
 	}
 	function sql_escape($value) { return str_replace("'", "''", $value); }
-	function sql_fetchrow($result) { return $result === 'storage' ? array('modern_storage' => $this->modern_storage) : false; }
+	function sql_fetchrow($result) { if ($result instanceof CtFixtureAuthorityResult) { return $result->rows ? array_shift($result->rows) : false; } return $result === 'storage' ? array('modern_storage' => $this->modern_storage) : false; }
+	function sql_affectedrows() { return $this->stage_count; }
 }
 // Lock transport fixture; concurrency and connection failure behavior are
 // covered separately by check-ctracker-scan-lock.php.
@@ -40,6 +49,8 @@ class sql_db
 	function sql_fetchrow($result) { return $result === 'lock' ? array('acquired' => '1') : $this->database->sql_fetchrow($result); }
 	function sql_escape($value) { return $this->database->sql_escape($value); }
 	function sql_freeresult($result) {}
+	function sql_fetchrowset($result) { $rows=array(); while ($row=$this->sql_fetchrow($result)) { $rows[]=$row; } return $rows; }
+	function sql_affectedrows() { return $this->database->sql_affectedrows(); }
 	function sql_close() {}
 }
 require $forum_root . 'ctracker/classes/class_ct_adminfunctions.php';
@@ -84,11 +95,11 @@ class ScanTemplate
 }
 function scan_controller($root)
 {
-	global $db, $lang, $phpbb_root_path, $phpEx, $forum_root, $scan_events, $scan_session_checks;
+	global $db, $lang, $phpbb_root_path, $phpEx, $forum_root, $scan_events, $scan_session_checks, $ctracker_config;
 	$phpbb_root_path = $root; $phpEx = 'php';
 	$db = new ScanDatabase(); $scan_events = array(); $scan_session_checks = 0;
 	$ctracker_config = new ScanConfig(); $template = new ScanTemplate();
-	$_POST = array('action' => 'akt'); $_GET = array();
+	$_POST = array('action' => 'akt', 'sid'=>'fixture-admin'); $_GET = array();
 	try { include $forum_root . 'ctracker/admin/acp_module_changedfiles.php'; }
 	catch (ScanExit $error) { $outcome = $error->getMessage(); }
 	return array($outcome, $ctracker_config->settings, $scan_events);
@@ -125,7 +136,7 @@ try
 			$outcome = 'success';
 			try { if ($kind === 'checksum') { $admin->do_filechk(); } else { $admin->RunFileScan($root, 'php'); } }
 			catch (ScanExit $error) { $outcome = $error->getMessage(); }
-			$published = strpos(implode("\n", $db->queries), 'RENAME TABLE') !== false;
+			$published = in_array('COMMIT', $db->queries, true);
 			$valid = $failure === '' || $failure === 'excluded';
 			scan_assert($valid ? $outcome === 'success' && $published : $outcome === 'file failure' && !$published,
 				$kind . ' must preserve the old report after a traversal/hash failure: ' . $failure);
@@ -144,7 +155,7 @@ try
 				$outcome = 'success';
 				try { if ($kind === 'checksum') { $admin->do_filechk(); } else { $admin->RunFileScan($root, 'php'); } }
 				catch (ScanExit $error) { $outcome = $error->getMessage(); }
-				scan_assert($outcome === 'file failure' && strpos(implode("\n", $db->queries), 'RENAME TABLE') === false, 'Real unreadable directory must preserve ' . $kind . ' report');
+				scan_assert($outcome === 'file failure' && !in_array('COMMIT', $db->queries, true), 'Real unreadable directory must preserve ' . $kind . ' report');
 			}
 		}
 		chmod($root . '/blocked', 0700);
@@ -154,17 +165,17 @@ try
 			$db = new ScanDatabase(); $scan_events = array(); $admin = new ct_adminfunctions();
 			$outcome = 'success';
 			try { $admin->do_filechk(); } catch (ScanExit $error) { $outcome = $error->getMessage(); }
-			scan_assert($outcome === 'file failure' && strpos(implode("\n", $db->queries), 'RENAME TABLE') === false, 'Real unreadable file must preserve integrity baseline');
+			scan_assert($outcome === 'file failure' && !in_array('COMMIT', $db->queries, true), 'Real unreadable file must preserve integrity baseline');
 		}
 		chmod($root . '/broken.php', 0600);
 	}
 	list($outcome, $settings, $events) = scan_controller($root . '/missing');
 	scan_assert($outcome === 'file failure' && $settings['last_checksum_scan'] === 123 && !in_array('timestamp', $events, true), 'Failed baseline rebuild must retain its previous timestamp');
 	list($outcome, $settings, $events) = scan_controller($root);
-	$rename_index = null;
-	foreach ($events as $index => $event) { if (strpos($event, 'RENAME TABLE') === 0) { $rename_index = $index; } }
-	scan_assert($outcome === 'complete' && $scan_session_checks === 1 && $rename_index !== null &&
-		$rename_index < array_search('timestamp', $events, true) && end($events) === 'complete', 'Timestamp and success must follow baseline publication');
+	$commit_index = null; $timestamp_index = null;
+	foreach ($events as $index => $event) { if ($event === 'COMMIT') { $commit_index = $index; } if (strpos($event,'INSERT INTO fixture_ct_config ')===0) { $timestamp_index=$index; } }
+	scan_assert($outcome === 'complete' && $scan_session_checks === 1 && $commit_index !== null && $timestamp_index !== null &&
+		array_search('START TRANSACTION',$events,true)<$timestamp_index && $timestamp_index<$commit_index && $settings['last_checksum_scan']>123 && end($events)==='complete', 'Report and timestamp must commit together before success');
 	echo "CrackerTracker scan publication runtime tests passed.\n";
 }
 finally

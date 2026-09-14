@@ -9,6 +9,7 @@ class LockTestExit extends RuntimeException {}
 function message_die($level, $message) { throw new LockTestExit($message); }
 function lock_assert($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
 require dirname(dirname(__DIR__)) . '/phpBB2/ctracker/classes/class_ct_adminfunctions.php';
+require __DIR__ . '/ctracker-admin-authority-fixture.php';
 
 class LockTestServer
 {
@@ -29,6 +30,8 @@ class sql_db
 	var $name = '';
 	var $closed = false;
 	var $rows = array();
+	var $pending = null;
+	var $affected = 0;
 	function __construct($server, $user, $password, $dbname, $persistent)
 	{
 		lock_assert($server === 'fixture' && $persistent === false, 'Lock connection must never be persistent');
@@ -52,10 +55,21 @@ class sql_db
 			$this->rows = array(array('acquired' => $value)); return 'lock';
 		}
 		lock_assert($this->name !== '' && isset($s->locks[$this->name]), 'Scan SQL must use the session that owns its lock');
+		if ($authority = ct_fixture_authority_query($sql)) { return $authority; }
 		if (is_callable($s->inject)) { call_user_func($s->inject, $sql, $this); }
 		// A lost lock connection must not continue on the ordinary forum DB.
 		if ($this->closed || !$this->db_connect_id) { return false; }
 		if ($s->failure !== '' && strpos($sql, $s->failure) === 0) { return false; }
+		if ($sql === 'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED') { return true; }
+		if ($sql === 'START TRANSACTION') { $this->pending = array(); return true; }
+		if ($sql === 'ROLLBACK') { $this->pending = null; return true; }
+		if ($sql === 'COMMIT') { foreach ($this->pending as $table => $rows) { $s->tables[$table] = $rows; } $this->pending = null; return true; }
+		if (preg_match('/^SELECT COUNT\(\*\) AS stage_count FROM (\w+)$/', $sql, $m)) { return new CtFixtureAuthorityResult(array(array('stage_count'=>count($s->tables[$m[1]])))); }
+		if (preg_match('/^SELECT .* LIMIT 0$/', $sql)) { return new CtFixtureAuthorityResult(array()); }
+		if (preg_match('/^DELETE FROM (\w+) WHERE /', $sql, $m)) { lock_assert(is_array($this->pending), 'Publish DELETE must be transactional'); $this->pending[$m[1]] = array(); return true; }
+		if (preg_match("/^INSERT INTO fixture_ct_config .* SELECT '([^']+)','([0-9]+)' WHERE /",$sql,$m)) { $this->pending['fixture_ct_config'][$m[1]]=$m[2]; return true; }
+		if (preg_match("/^SELECT ct_config_value FROM fixture_ct_config WHERE ct_config_name='([^']+)'$/",$sql,$m)) { return new CtFixtureAuthorityResult(array(array('ct_config_value'=>$this->pending['fixture_ct_config'][$m[1]]))); }
+		if (preg_match('/^INSERT INTO (\w+) \([^)]*\) SELECT [^ ]+ FROM (\w+) WHERE /', $sql, $m)) { lock_assert(is_array($this->pending), 'Publish INSERT must be transactional'); $this->pending[$m[1]] = $s->tables[$m[2]]; $this->affected = count($s->tables[$m[2]]); return true; }
 		if (strpos($sql, 'SELECT COUNT(*) AS modern_storage') === 0) { $this->rows = array(array('modern_storage' => '1')); return 'storage'; }
 		if (preg_match('/^DROP TABLE IF EXISTS (\w+)$/', $sql, $m)) { unset($s->tables[$m[1]]); return true; }
 		if (preg_match('/^CREATE TABLE (\w+) LIKE /', $sql, $m)) { $s->tables[$m[1]] = array(); return true; }
@@ -64,20 +78,17 @@ class sql_db
 		{
 			$this->rows = $s->scanner_rows; return 'scan';
 		}
-		if (preg_match('/^RENAME TABLE (\w+) TO (\w+), (\w+) TO (\w+)$/', $sql, $m))
-		{
-			$s->tables[$m[2]] = $s->tables[$m[1]];
-			$s->tables[$m[4]] = $s->tables[$m[3]];
-			unset($s->tables[$m[3]]); return true;
-		}
 		throw new RuntimeException('Unexpected SQL: ' . $sql);
 	}
-	function sql_fetchrow($result) { return $this->rows ? array_shift($this->rows) : false; }
+	function sql_fetchrow($result) { if ($result instanceof CtFixtureAuthorityResult) { return $result->rows ? array_shift($result->rows) : false; } return $this->rows ? array_shift($this->rows) : false; }
+	function sql_fetchrowset($result) { $rows=array(); while ($row=$this->sql_fetchrow($result)) { $rows[]=$row; } return $rows; }
+	function sql_affectedrows() { return $this->affected; }
 	function sql_freeresult($result) {}
 	function sql_close()
 	{
 		lock_assert(!$this->closed, 'A lock connection must only close once');
 		$this->closed = true;
+		$this->pending = null;
 		if ($this->name !== '' && isset($this->server_state->locks[$this->name]) &&
 			$this->server_state->locks[$this->name] === $this) { unset($this->server_state->locks[$this->name]); }
 		if (isset($GLOBALS['shutdown_marker'])) { file_put_contents($GLOBALS['shutdown_marker'], 'released'); }
@@ -160,7 +171,7 @@ try
 		lock_assert($attempted && count($lock_server->tables[$table]) === 3, 'The complete first scan must be published');
 		lock_assert(!$lock_server->locks, 'Normal return releases the lock');
 		run_locked_scan($kind); // the same scan can run again immediately
-		foreach (array('connect', 'query', 'null', 'CREATE TABLE', 'INSERT INTO', 'RENAME TABLE') as $failure)
+		foreach (array('connect', 'query', 'null', 'CREATE TABLE', 'INSERT INTO', 'COMMIT') as $failure)
 		{
 			$lock_server = new LockTestServer(); $lock_server->failure = $failure;
 			try { run_locked_scan($kind); throw new RuntimeException('Failure accepted: ' . $failure); }

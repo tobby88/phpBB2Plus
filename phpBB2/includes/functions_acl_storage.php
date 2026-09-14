@@ -56,6 +56,19 @@ function phpbb_acl_actor($db,$mode)
 	if (!is_string($mode) || !in_array($mode,array('user','group','forum','maintenance'),true)) { phpbb_acl_error('Acl_selection_changed'); }
 	if (empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_acl_error('Not_Authorised'); }
 	$route=$mode==='maintenance'?'admin_db_maintenance.'.$phpEx:($mode==='forum'?'admin_forumauth.'.$phpEx:'admin_ug_auth.'.$phpEx.'?mode='.$mode);
+	return phpbb_acp_actor($db,$route);
+}
+
+// Internal exact routes, never a request-supplied arbitrary module name.
+function phpbb_acp_actor($db,$route)
+{
+	global $userdata,$phpEx;
+	$routes=array('admin_db_maintenance.'.$phpEx,'admin_forumauth.'.$phpEx,
+		'admin_ug_auth.'.$phpEx.'?mode=user','admin_ug_auth.'.$phpEx.'?mode=group',
+		'admin_board.'.$phpEx,'admin_cracker_tracker.'.$phpEx.'?modu=1',
+		'admin_cracker_tracker.'.$phpEx.'?modu=3','admin_cracker_tracker.'.$phpEx.'?modu=10');
+	if (!is_string($route) || !in_array($route,$routes,true)) { phpbb_acl_error('Acl_selection_changed'); }
+	if (empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_acl_error('Not_Authorised'); }
 	$user=phpbb_current_moderator_user($db);
 	if (!$user || empty($userdata['session_admin'])) { phpbb_acl_error('Not_Authorised'); }
 	$user['root']=(int)$user['user_level']===ADMIN;
