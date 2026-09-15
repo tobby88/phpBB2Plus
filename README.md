@@ -246,6 +246,17 @@ the cleanup age threshold alone is not sufficient to release them.
 Temporary PM uploads are also excluded from the ordinary post editor and its
 publication/deletion helpers, so they cannot be exposed through a public post.
 
+Topic moves commit the selected topics/posts, redirect cleanup and creation,
+redirect preferences, affected user/forum/global counters and action logs in
+one InnoDB transaction. The worker rechecks the exact current login session and
+source/destination permissions, including special topic types, before writes and
+at commit. Ordinary moderators do not need an ACP session. All thirteen storage
+participants must use the normal modern storage policy; the existing InnoDB and
+UTF-8 migration tools already cover them. A lost commit reply can mean the
+complete move was saved:
+reload before retrying. The optional tree cache is invalidated after release,
+including uncertain commits. Deployment itself never moves any topic.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

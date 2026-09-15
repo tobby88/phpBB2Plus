@@ -7,6 +7,8 @@ function moderator_identity_fixture()
 	global $userdata;
 	topic_split_fixture();
 	$userdata['session_logged_in']=true; $userdata['session_id']='identity-fixture';
+	$mutation_server = $GLOBALS['mutation_server'];
+	$mutation_server->pdo->exec("UPDATE fixture_sessions SET session_id='identity-fixture' WHERE session_user_id=8");
 	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'identity-fixture','confirm'=>'yes');
 }
 function moderator_identity_action($action)

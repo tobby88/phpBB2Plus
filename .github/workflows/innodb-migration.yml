@@ -105,3 +105,7 @@ jobs:
         env:
           PHPBB_ROLES_NATIVE: '1'
           PHPBB_ROLES_PASSWORD: fixture-only
+      - run: php .github/scripts/check-topic-move-native.php
+        env:
+          PHPBB_MOVE_NATIVE: '1'
+          PHPBB_MOVE_PASSWORD: fixture-only

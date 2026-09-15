@@ -412,11 +412,8 @@ switch( $mode )
 			{
 				message_die(GENERAL_MESSAGE, $error->getMessage());
 			}
-			if ($moved)
-			{
-				board_stats();
-				cache_tree(true);
-			}
+			// The move worker commits forum/global counters and invalidates the
+			// optional tree cache, including uncertain commit replies.
 			$message = $lang[$moved ? 'Topics_Moved' : 'No_Topics_Moved'] . '<br /><br />';
 
 			if ( !empty($topic_id) )

@@ -1,8 +1,11 @@
 <?php
 require __DIR__ . '/check-topic-state-storage.php';
-foreach(array('POST_GLOBAL_ANNOUNCE'=>3,'TOPIC_MOVED'=>2,'POST_CAT_URL'=>'c') as $key=>$value) { if(!defined($key)) { define($key,$value); } }
+foreach(array('POST_GLOBAL_ANNOUNCE'=>3,'TOPIC_MOVED'=>2,'POST_CAT_URL'=>'c','SESSIONS_TABLE'=>'fixture_sessions','GROUPS_TABLE'=>'fixture_real_groups') as $key=>$value) { if(!defined($key)) { define($key,$value); } }
 require $forum_root . 'includes/functions_topic_move.php';
-foreach(array('Moderation_move_failed','Moderation_move_changed','Moderation_move_denied','Forum_not_exist','Topics_Moved','No_Topics_Moved') as $key) { $lang[$key]=$key; }
+foreach(array('Moderation_move_failed','Moderation_move_changed','Moderation_move_denied','Moderation_move_storage','Forum_not_exist','Topics_Moved','No_Topics_Moved') as $key) { $lang[$key]=$key; }
+require_once dirname(dirname(__DIR__)).'/update/innodb_migration.php';
+$move_migration_tables=plus_storage_tables(file_get_contents($forum_root.'install/schemas/mysql_schema.sql'),'migration_fixture_');
+foreach(array('users','sessions','forums','topics','posts','groups','user_group','auth_access','bookmarks','topics_watch','topic_view','logs','config') as $suffix){mutation_check(in_array('migration_fixture_'.$suffix,$move_migration_tables,true),'Normal migration covers move participant '.$suffix);}
 // SQLite models only the joined UPDATE. All predicates still execute as a
 // SELECT; native mysqli/MyISAM/InnoDB fixtures execute the original SQL verbatim.
 class TopicMoveFixtureStatement
@@ -18,6 +21,14 @@ class TopicMoveFixturePDO
 	function __call($method,$args) { return call_user_func_array(array($this->inner,$method),$args); }
 	function query($sql)
 	{
+		// Explicit SQLite protocol model, not evidence for native row/metadata locks.
+		if ($this->inner->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite')
+		{
+			if (strpos($sql,'SET SESSION ')===0) { return $this->inner->query('SELECT 1'); }
+			if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.')===0) { return $this->inner->query("SELECT 'InnoDB' AS ENGINE, 'Dynamic' AS ROW_FORMAT, 'utf8mb4_unicode_ci' AS TABLE_COLLATION"); }
+			if ($sql==='START TRANSACTION') { $sql='BEGIN'; }
+			$sql=preg_replace('/ (FOR UPDATE|LOCK IN SHARE MODE)$/D','',$sql);
+		}
 		if(strpos($sql,'UPDATE fixture_topics t JOIN fixture_posts p ')!==0 || $this->inner->getAttribute(PDO::ATTR_DRIVER_NAME)!=='sqlite') { return $this->inner->query($sql); }
 		mutation_check(preg_match('/^UPDATE (.+) SET t.forum_id = ([0-9]+), p.forum_id = \2 WHERE (.+)$/D',$sql,$parts)===1,'Recognize exact joined move SQL');
 		$rows=$this->inner->query('SELECT t.topic_id, p.post_id FROM '.$parts[1].' WHERE '.$parts[3])->fetchAll(PDO::FETCH_ASSOC);
@@ -34,6 +45,11 @@ function topic_move_fixture()
 {
 	global $mutation_server;
 	topic_state_fixture(); $mutation_server->pdo=new TopicMoveFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
+	$p->exec('CREATE TABLE fixture_real_groups (group_id INTEGER PRIMARY KEY)');
+	$p->exec('INSERT INTO fixture_real_groups VALUES (7)');
+	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
+	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)");
+	$p->exec("INSERT INTO fixture_config VALUES ('max_topics','1'),('max_posts','2')");
 	$p->exec("ALTER TABLE fixture_forums ADD forum_link VARCHAR(255) DEFAULT ''");
 	$p->exec('ALTER TABLE fixture_topics ADD topic_views INTEGER DEFAULT 4');
 	$p->exec("UPDATE fixture_topics SET topic_title=".$p->quote("Grüße O'Reilly \\ 😀").",topic_desc=".$p->quote("Pfad \\ und 'Zitat'").',topic_replies=1,topic_last_post_id=11');

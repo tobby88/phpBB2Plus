@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make topic moves transactional across topics/posts, redirect preferences,
+  shadows, user/forum/global counters and the action log. Revalidate the exact
+  current ordinary login session and actual forum permissions before writes and
+  at commit, hold source/target rows, reject legacy storage and invalidate the
+  optional tree cache after release. Report uncertain commit replies without
+  claiming rollback. No additional schema migration is required.
 - Make maintenance moderator synchronization transactional across every selected
   USER/MOD correction and session invalidation. Reuse the current ACP authority
   and seven-table storage checks, retain root/special roles and the exact acting
@@ -742,6 +748,8 @@ changes consolidated after that baseline without implying active maintenance.
   audit actual moves and keep the bulk moderator return link. No schema changes.
   Later storage failures are explicit, not silently reported as success; this
   does not provide crash recovery or full multi-statement MyISAM transactions.
+  The InnoDB transaction described above supersedes this former partial-save
+  behavior and requires the modern storage migration path.
 - Scope all moderator topic-type/state batches to the currently authorized forum,
   rejecting a foreign/missing/moved selection before any write. Coordinate both
   modcp and AJAX lock/unlock with post, poll and deletion writers; recheck current
