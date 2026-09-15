@@ -59,9 +59,11 @@ function dbmtnc_maintain_polls($database, $request)
 		$has_poll = 'EXISTS (SELECT 1 FROM ' . VOTE_DESC_TABLE . ' v WHERE v.topic_id = ' . TOPICS_TABLE . '.topic_id)';
 		$value = '(CASE WHEN ' . $has_poll . ' THEN 1 ELSE 0 END)';
 		$output['topics_updated'] = dbmtnc_poll_batches($db,TOPICS_TABLE,'topic_id','topic_vote <> ' . $value,'topic_vote = ' . $value);
-		// Missing option text and multiple polls per topic cannot be reconstructed
-		// from voter counts. Report these source records instead of destroying them.
+		// Missing options, multiple polls per topic and ambiguous option identities
+		// cannot be reconstructed from voter counts. Report, never guess or renumber.
 		$review = '(NOT EXISTS (SELECT 1 FROM ' . VOTE_RESULTS_TABLE . ' r WHERE r.vote_id = v.vote_id)'
+			. ' OR EXISTS (SELECT 1 FROM ' . VOTE_RESULTS_TABLE . ' r WHERE r.vote_id = v.vote_id AND (r.vote_option_id IS NULL OR r.vote_option_id < 1 OR r.vote_option_id > 255))'
+			. ' OR EXISTS (SELECT 1 FROM ' . VOTE_RESULTS_TABLE . ' r WHERE r.vote_id = v.vote_id GROUP BY r.vote_option_id HAVING COUNT(*) > 1)'
 			. ' OR (SELECT COUNT(*) FROM ' . VOTE_DESC_TABLE . ' other WHERE other.topic_id = v.topic_id) > 1'
 			. ' OR NOT EXISTS (SELECT 1 FROM ' . TOPICS_TABLE . ' t WHERE t.topic_id = v.topic_id))';
 		$count = phpbb_acl_rows($db,'SELECT COUNT(*) AS total FROM ' . VOTE_DESC_TABLE . ' v WHERE ' . $review);

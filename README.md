@@ -324,7 +324,8 @@ the parser identifier and produces no extra edit count or audit entry. Existing
 migrations cover all fifteen participants. Poll options retain their original
 IDs when other options are removed or appended, preserving retained vote counts.
 Duplicate/invalid legacy option IDs are reported instead of silently rewritten;
-review such polls before changing their options. No automatic historical ballot
+the ACP database-maintenance poll review also lists these ambiguous records.
+Review such polls before changing their options. No automatic historical ballot
 repair or new schema migration is performed. After an uncertain acknowledgement,
 reload before retrying, particularly when adding a poll to an existing topic.
 

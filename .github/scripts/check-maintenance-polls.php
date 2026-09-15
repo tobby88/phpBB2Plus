@@ -81,6 +81,15 @@ try{
   poll_mtnc_check(poll_mtnc_value('SELECT COUNT(*) FROM fixture_topics')===4&&poll_mtnc_value('SELECT COUNT(*) FROM fixture_users')===3,'No topics or accounts removed');
   $again=poll_mtnc_run();foreach(array('polls_removed','options_removed','voters_removed','voters_anonymized','topics_updated') as $key){poll_mtnc_check($again[$key]===0,'Repeated repair is a no-op: '.$key);}
   poll_mtnc_check($again['review_count']===3,'Unresolved source repairs remain visible on repeat');
+  foreach(array('1','0','-1','256','NULL') as $bad_id){
+   poll_mtnc_fixture($engine);poll_mtnc_run();
+   $poll_mtnc_server->pdo->exec("INSERT INTO fixture_options VALUES (1,".$bad_id.",'ambiguous historical answer',17)");
+   $saved=array();foreach(array('fixture_polls','fixture_options','fixture_voters') as $table){$saved[$table]=$poll_mtnc_server->pdo->query('SELECT * FROM '.$table)->fetchAll(PDO::FETCH_ASSOC);}
+   $out=poll_mtnc_run();
+   poll_mtnc_check($out['review_count']===4&&array_map('intval',array_column($out['review'],'vote_id'))===array(1,3,4,5),'Duplicate/out-of-range option IDs need explicit review: '.$bad_id);
+   foreach($saved as $table=>$rows){poll_mtnc_check($poll_mtnc_server->pdo->query('SELECT * FROM '.$table)->fetchAll(PDO::FETCH_ASSOC)===$rows,'Review must not guess option identity or rewrite ballots: '.$table);}
+   poll_mtnc_check(poll_mtnc_run()['review_count']===4,'Ambiguous options remain visible on repeated review');
+  }
   foreach(array('topic','parent','user','new-poll','removed-poll') as $race){
    poll_mtnc_fixture($engine);$poll_mtnc_server->hook=function($sql) use($race){
     $prefix=$race==='topic'?'DELETE FROM fixture_polls':($race==='parent'?'DELETE FROM fixture_options':($race==='user'?'UPDATE fixture_voters':'UPDATE fixture_topics'));

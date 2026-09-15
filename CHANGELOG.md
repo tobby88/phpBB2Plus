@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Include duplicate/out-of-range poll-option IDs in the ACP database-maintenance
+  review, matching the editor's refusal of ambiguous historical options. Retain
+  all option rows, results and voter history; never infer or renumber answers.
+  No schema change or automatic historical-data repair.
 - Make moderator batch deletion, automatic/manual age pruning, and ACP forum
   removal atomic, including move-before-removal, counters, schedules and audit.
   Keep their distinct selection and authorization policies; check exact current
