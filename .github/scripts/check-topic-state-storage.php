@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/check-poll-storage.php';
-foreach(array('POST_STICKY'=>1,'POST_ANNOUNCE'=>2,'POST_NORMAL'=>0,'AJAX_LOCK_TOPIC'=>7,'LOGS_TABLE'=>'fixture_action_log') as $key=>$value) { if(!defined($key)) { define($key,$value); } }
+foreach(array('POST_STICKY'=>1,'POST_ANNOUNCE'=>2,'POST_NORMAL'=>0,'AJAX_LOCK_TOPIC'=>7,'LOGS_TABLE'=>'fixture_action_log','SESSIONS_TABLE'=>'fixture_sessions') as $key=>$value) { if(!defined($key)) { define($key,$value); } }
 require $forum_root . 'includes/functions_topic_state.php';
 if(!function_exists('decode_ip'))
 {
@@ -8,13 +8,34 @@ if(!function_exists('decode_ip'))
 	mutation_check($start!==false && $end>$start,'Locate actual legacy IP decoder'); eval(substr($source,$start,$end-$start));
 }
 foreach(array('Moderation_state_failed','Moderation_state_changed','Moderation_state_denied','Not_Moderator','Lock_topic','Unlock_topic','Reply_to_topic','Topics_Locked','Topics_Unlocked','Topics_Stickyd','Topics_Announced','Topics_Normalised','Click_return_modcp') as $key) { $lang[$key]=$key; }
+// Protocol model only. Native mysqli tests independently verify row locks,
+// metadata checks and cross-connection rollback/authorization semantics.
+class TopicStateFixturePDO
+{
+	var $inner;
+	function __construct($inner) { $this->inner=$inner; }
+	function __call($method,$args) { return call_user_func_array(array($this->inner,$method),$args); }
+	function query($sql)
+	{
+		if ($this->inner->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite')
+		{
+			if (strpos($sql,'SET SESSION ')===0) { return $this->inner->query('SELECT 1'); }
+			if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.')===0) { return $this->inner->query("SELECT 'InnoDB' AS ENGINE, 'Dynamic' AS ROW_FORMAT, 'utf8mb4_unicode_ci' AS TABLE_COLLATION"); }
+			if ($sql==='START TRANSACTION') { $sql='BEGIN'; }
+			$sql=preg_replace('/ (FOR UPDATE|LOCK IN SHARE MODE)$/D','',$sql);
+		}
+		return $this->inner->query($sql);
+	}
+}
 function topic_state_fixture()
 {
 	global $mutation_server,$userdata,$client_ip;
-	poll_fixture(); $p=$mutation_server->pdo;
+	poll_fixture(); $mutation_server->pdo=new TopicStateFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
 	$p->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
 	$p->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
 	$userdata['username']="O'Reilly \\' Grüße 😀"; $userdata['session_id']='fixture'; $client_ip='2001:db8::42';
+	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
+	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)");
 	$p->exec('CREATE TABLE fixture_action_log (mode VARCHAR(20),topic_id INTEGER,user_id INTEGER,username VARCHAR(255),user_ip VARCHAR(45),log_time INTEGER)');
 	$p->exec('INSERT INTO fixture_auth (forum_id,group_id,auth_mod) VALUES (3,7,1)');
 	$p->exec('INSERT INTO fixture_groups VALUES (8,7,0)');
@@ -81,7 +102,7 @@ try
 		topic_state_fixture(); $mutation_server->failure=$failure;
 		topic_state_failure(function() use($db) { phpbb_moderate_topic_state($db,3,array(100),'lock'); },'Moderation_state_failed');
 		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_action_log')===0,'Failed log is not reported as success');
-		mutation_check((int)posting_value('SELECT topic_status FROM fixture_topics WHERE topic_id=100')===($failure==='INSERT INTO fixture_action_log'?1:0),'Partial audit failure is explicit; failed UPDATE does not change state');
+		mutation_check((int)posting_value('SELECT topic_status FROM fixture_topics WHERE topic_id=100')===0,'Failed topic update or audit rolls back the whole action');
 	}
 	foreach(array('DELETE FROM fixture_topics','UPDATE fixture_topics SET forum_id=4','UPDATE fixture_topics SET topic_moved_id=99','UPDATE fixture_topics SET topic_status=1') as $change)
 	{
@@ -111,7 +132,7 @@ try
 		if(strpos($sql,'UPDATE fixture_topics')===0 && strpos($sql,'topic_id = 200')!==false) { $GLOBALS['mutation_server']->failure='UPDATE fixture_topics'; }
 	};
 	topic_state_failure(function() use($db) { phpbb_moderate_topic_state($db,3,array(100,200),'lock'); },'Moderation_state_failed');
-	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_action_log')===1 && (int)posting_value('SELECT topic_id FROM fixture_action_log')===100,'A later failure retains an accurate audit of the completed topic only');
+	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_action_log')===0 && (int)posting_value('SELECT SUM(topic_status) FROM fixture_topics')===0,'A later failure rolls back every topic and audit entry');
 	topic_state_fixture();
 	$mutation_server->hook=function($sql)
 	{

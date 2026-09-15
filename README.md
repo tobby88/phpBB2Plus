@@ -257,6 +257,15 @@ complete move was saved:
 reload before retrying. The optional tree cache is invalidated after release,
 including uncertain commits. Deployment itself never moves any topic.
 
+Topic locking/unlocking and sticky/announcement/normal type changes likewise
+save the entire selected batch and its action log in one transaction. The AJAX
+single-topic action uses the same worker. Exact ordinary sessions and current
+forum/type permissions are checked through commit; replaying an unchanged state
+does not duplicate the audit log. Users, sessions, forums, topics, memberships,
+forum grants and logs must use modern storage. The existing storage and UTF-8
+migration tools cover these tables. On an uncertain commit reply, reload before
+retrying; the operation never intentionally leaves a partially saved batch.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

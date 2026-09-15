@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save topic lock/unlock and sticky/announcement/normal state changes together
+  with their audit log in one transaction, including whole moderator batches
+  and single-topic AJAX actions. Recheck the exact current ordinary login and
+  forum permissions through commit; reject legacy table formats. Preserve
+  no-op replay behavior and report uncertain completion without false success.
+  Existing storage and UTF-8 migration tools cover all seven participants.
 - Make topic moves transactional across topics/posts, redirect preferences,
   shadows, user/forum/global counters and the action log. Revalidate the exact
   current ordinary login session and actual forum permissions before writes and

@@ -47,8 +47,6 @@ function topic_move_fixture()
 	topic_state_fixture(); $mutation_server->pdo=new TopicMoveFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
 	$p->exec('CREATE TABLE fixture_real_groups (group_id INTEGER PRIMARY KEY)');
 	$p->exec('INSERT INTO fixture_real_groups VALUES (7)');
-	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
-	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)");
 	$p->exec("INSERT INTO fixture_config VALUES ('max_topics','1'),('max_posts','2')");
 	$p->exec("ALTER TABLE fixture_forums ADD forum_link VARCHAR(255) DEFAULT ''");
 	$p->exec('ALTER TABLE fixture_topics ADD topic_views INTEGER DEFAULT 4');
