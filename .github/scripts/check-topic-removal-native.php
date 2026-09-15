@@ -44,6 +44,8 @@ function tr_revoke($policy,$actor)
  if($actor==='delegate'){return 'DELETE FROM fixture_jr_admin_users WHERE user_id=8';}
  return $actor==='moderator'?'DELETE FROM fixture_auth_access WHERE forum_id=3':'UPDATE fixture_users SET user_level=0 WHERE user_id=8';
 }
+class PruneNativeTemplate {function assign_block_vars($block,$values){} function assign_vars($values){}}
+function get_object_lang($id,$field){return 'Fixture forum';}
 $body= <<<'PHP'
  require $phpbb_root_path.'attach_mod/includes/functions_attach.php';require $phpbb_root_path.'attach_mod/includes/functions_admin.php';require $phpbb_root_path.'attach_mod/includes/functions_shadow.php';require $phpbb_root_path.'includes/functions_forum_maintenance.php';
  $upload_dir=sys_get_temp_dir().'/phpbb-topic-removal-owned-'.bin2hex(phpbb_random_bytes(8));$attach_config=array('allow_ftp_upload'=>'0');ae_check(mkdir($upload_dir,0700)&&mkdir($upload_dir.'/'.THUMB_DIR,0700),'Owned directories');
@@ -107,6 +109,14 @@ $body= <<<'PHP'
    ae_check(!empty($out['cleanup_pending'])&&$GLOBALS['ps_aftercommit']===2&&is_file($owned_log),'Actual automatic wrapper refreshes caches and reports pending cleanup');
    $notice=file_get_contents($owned_log);ae_check(strpos($notice,'detached attachment cleanup remains pending')!==false&&strpos($notice,'Grüße')===false,'Recovery log is actionable without user content');$cases++;
   }finally{ini_set('error_log',$old_log);if(is_file($owned_log)){unlink($owned_log);}}
+  tr_fixture('prune_admin');$GLOBALS['ps_aftercommit']=0;$ae_fail='DELETE FROM fixture_topics WHERE topic_id = 900';
+  $forum_rows=array(array('forum_id'=>3),array('forum_id'=>4));$prunedate=100;
+  $template=new PruneNativeTemplate();$theme=array('td_color1'=>'ffffff','td_color2'=>'eeeeee','td_class1'=>'row1','td_class2'=>'row2');
+  $controller=file_get_contents($phpbb_root_path.'admin/admin_forum_prune.php');$a=strpos($controller,'$cleanup_pending = false;');$b=strpos($controller,"\n}\nelse",$a);
+  ae_check($a!==false&&$b>$a,'Actual multi-forum prune controller');$failure='';
+  try{eval(substr($controller,$a,$b-$a));}catch(RuntimeException $e){$failure=$e->getMessage();}
+  ae_check(strpos($failure,sprintf($lang['Prune_batch_interrupted'],1))!==false&&$GLOBALS['ps_aftercommit']===2,'Controller reports prior completed forum and refreshes caches after later failure');
+  ae_check(!ae_rows('SELECT * FROM fixture_topics WHERE topic_id IN (100,200)')&&count(ae_rows('SELECT * FROM fixture_topics WHERE topic_id=900'))===1&&pd_files()===array(false,false),'Separate forum commits preserve prior confirmed deletion and roll back only failed forum');$cases++;
  }
  echo 'Native topic/forum removal: '.$cases.' failure/authority/storage/recovery cases, '.$serialized." serialized changes passed.\n";
  }finally{foreach(array($upload_dir.'/owned.txt',$upload_dir.'/'.THUMB_DIR.'/t_owned.txt') as $path){if(is_file($path)){unlink($path);}elseif(is_dir($path)){rmdir($path);}}rmdir($upload_dir.'/'.THUMB_DIR);rmdir($upload_dir);}

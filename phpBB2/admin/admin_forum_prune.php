@@ -162,7 +162,13 @@ if( isset($_POST['doprune']) )
 		}
 		catch (PhpbbPruneException $error)
 		{
-			message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8'));
+			// Each forum commits separately. Refresh earlier completed changes even
+			// when a later forum fails; never describe the whole request as undone.
+			cache_tree(true); board_stats();
+			$message = htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8');
+			if ($i > 0) { $message .= '<br /><br />' . sprintf($lang['Prune_batch_interrupted'], $i); }
+			if ($cleanup_pending) { $message .= '<br /><br />' . $lang['Moderation_cleanup_pending']; }
+			message_die(GENERAL_MESSAGE, $message);
 		}
 	
 		$row_color = ( !($i % 2) ) ? $theme['td_color1'] : $theme['td_color2'];

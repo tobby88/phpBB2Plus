@@ -351,6 +351,9 @@ preserves its age, poll, announcement and due-date guards. The next execution
 time and action log commit with the deletion. Moving contents before removing a
 forum also rolls back as a whole if a later step fails. The existing updater
 covers the 21/22/23/24 participating tables; no new migration is required.
+ACP pruning commits **each forum separately**. If a later forum fails, earlier
+completed operations remain committed; the error reports this and refreshes
+the caches. This is not a transaction across the whole multi-forum batch.
 An uncertain commit never unlinks attachments: check the current state before
 retrying. Completed operations with pending file cleanup are reported separately;
 automatic pruning writes a content-free server-log notice for ACP recovery.
