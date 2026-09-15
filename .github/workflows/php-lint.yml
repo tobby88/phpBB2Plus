@@ -219,7 +219,9 @@ jobs:
         run: php .github/scripts/check-private-message-safety.php
 
       - name: Test posting and poll safety
-        run: php .github/scripts/check-posting-safety.php
+        run: |
+          php .github/scripts/check-posting-safety.php
+          php .github/scripts/check-full-editor-form.php
 
       - name: Test warning-card safety
         run: php .github/scripts/check-card-safety.php

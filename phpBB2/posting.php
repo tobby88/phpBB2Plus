@@ -312,6 +312,7 @@ $post_data = array();
 $poll_title = '';
 $poll_length = 0;
 $poll_options = array();
+$reserved_poll_option_ids = array();
 switch ( $mode )
 {
 	case 'newtopic':
@@ -459,6 +460,7 @@ if ( ($result = $db->sql_query($sql)) && ($post_info = $db->sql_fetchrow($result
 				do
 				{
 					$poll_options[$row['vote_option_id']] = $row['vote_option_text']; 
+					$reserved_poll_option_ids[(int)$row['vote_option_id']] = true;
 					$poll_results_sum += $row['vote_result'];
 				}
 				while ( $row = $db->sql_fetchrow($result) );
@@ -917,7 +919,7 @@ if ($lock_subject)
 	$message = addslashes(sprintf($lang['Link_to_post'],$url,"</a>")).$message;	
 }
 				submit_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, $username, $subject, $message, $poll_title, $poll_options, $poll_length, $topic_desc, $topic_announce_duration, $post_icon, $topic_calendar_time, $topic_calendar_duration, $news_category);
-				if ($mode == 'editpost' && !empty($is_auth['auth_mod']))
+				if ($mode == 'editpost' && !empty($is_auth['auth_mod']) && empty($post_data['_edit_audit_completed']))
 				{
 				log_action('edit', $topic_id, $userdata['user_id'], $userdata['username']);
 			}
@@ -1010,7 +1012,12 @@ if( $refresh || isset($_POST['del_poll_option']) || $error_msg != '' )
 	$add_poll_option_text = $request_scalar($_POST, 'add_poll_option_text');
 	if (isset($poll_add) && $add_poll_option_text !== '')
 	{
-		$poll_options[] = htmlspecialchars(trim(stripslashes($add_poll_option_text)));
+		// Do not reuse an option merely removed from this unsaved form: its
+		// persisted votes still belong to the old identity until publication.
+		$new_option_id = 1;
+		while ($new_option_id <= 255 && (isset($poll_options[$new_option_id]) || isset($reserved_poll_option_ids[$new_option_id]))) { $new_option_id++; }
+		if ($new_option_id <= 255) { $poll_options[$new_option_id] = htmlspecialchars(trim(stripslashes($add_poll_option_text))); }
+		else { $error_msg .= ($error_msg !== '' ? '<br />' : '') . $lang['Full_edit_poll_options']; }
 	}
 
 	if ( $mode == 'newtopic' || $mode == 'reply')

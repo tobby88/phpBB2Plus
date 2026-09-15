@@ -32,7 +32,6 @@ function topic_state_fixture()
 	global $mutation_server,$userdata,$client_ip;
 	poll_fixture(); $mutation_server->pdo=new TopicStateFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
 	$userdata['username']="O'Reilly \\' Grüße 😀"; $userdata['session_id']='fixture'; $client_ip='2001:db8::42';
-	$p->exec('CREATE TABLE fixture_action_log (mode VARCHAR(20),topic_id INTEGER,user_id INTEGER,username VARCHAR(255),user_ip VARCHAR(45),log_time INTEGER)');
 	$p->exec('INSERT INTO fixture_auth (forum_id,group_id,auth_mod) VALUES (3,7,1)');
 	$p->exec('INSERT INTO fixture_groups VALUES (8,7,0)');
 }

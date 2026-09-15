@@ -9,7 +9,7 @@ foreach (array('Topic_post_not_exist','Forum_locked','Topic_locked','No_valid_mo
 function board_stats() { mutation_check($GLOBALS['mutation_server']->owner === null, 'Board metadata is refreshed after releasing storage lock'); }
 function cache_tree($force = false) { board_stats(); }
 function append_sid($url) { return $url; }
-foreach (array('SESSIONS_TABLE'=>'fixture_sessions','POST_NORMAL'=>0,'POST_STICKY'=>1,'POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3) as $key=>$value) { if (!defined($key)) { define($key,$value); } }
+foreach (array('SESSIONS_TABLE'=>'fixture_sessions','LOGS_TABLE'=>'fixture_action_log','POST_NORMAL'=>0,'POST_STICKY'=>1,'POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3) as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 foreach (array('Posting_submit_unconfirmed','Posting_submit_denied','Posting_submit_upgrade') as $key) { $lang[$key]=$key; }
 class PostingFixturePDO
 {
@@ -56,13 +56,16 @@ function posting_fixture()
 	$p->exec('UPDATE fixture_users SET user_level=0'); $userdata['user_level']=0;
 	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
 	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)");
+	$p->exec('ALTER TABLE fixture_users ADD username VARCHAR(255)');
+	$p->exec("UPDATE fixture_users SET username='Fixture user'");
+	$p->exec('CREATE TABLE fixture_action_log (mode VARCHAR(20),topic_id INTEGER,user_id INTEGER,username VARCHAR(255),user_ip VARCHAR(45),log_time INTEGER)');
 }
 function posting_value($sql) { return $GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
 function posting_submit($mode, $post_id = 10, $topic_id = 100, $forum_id = 3, $poll = false)
 {
 	$post_data = array('first_post'=>true,'last_post'=>true,'poster_post'=>true,'poster_id'=>8,'has_poll'=>$poll === 'edit','edit_poll'=>true);
 	$message = ''; $meta = ''; $poll_id = $poll === 'edit' ? 1 : 0; $topic_type=0; $bbcode_on=1; $html_on=0; $smilies_on=1; $attach_sig=0; $bbcode_uid='abc';
-	$poll_title = $poll ? 'fixture poll' : ''; $poll_options = $poll ? array(1=>'firstoption',2=>'secondoption') : array(); $poll_length=1; $topic_desc='description'; $news_category='';
+	$poll_title = $poll ? 'fixture poll' : ''; $poll_options = $poll ? array(1=>$poll === 'edit' ? 'changedfirstoption' : 'firstoption',2=>$poll === 'edit' ? 'changedsecondoption' : 'secondoption') : array(); $poll_length=1; $topic_desc='description'; $news_category='';
 	submit_post($mode, $post_data, $message, $meta, $forum_id, $topic_id, $post_id, $poll_id, $topic_type, $bbcode_on, $html_on, $smilies_on, $attach_sig, $bbcode_uid, '', 'fixturetitle', addslashes("Grüße author's quasarwort"), $poll_title, $poll_options, $poll_length, $topic_desc, 0,0,0,0,$news_category);
 	return array($post_id,$topic_id,$post_data,$message,$poll_id);
 }
@@ -160,13 +163,14 @@ try
 	{
 		if (strpos($sql,'INSERT INTO fixture_posts')===0) { $GLOBALS['mutation_server']->pdo->exec('DELETE FROM fixture_topics WHERE topic_id=100'); }
 	};
-	mutation_expect_failure(function () { posting_submit('reply'); }, 'Posting_submit_unconfirmed');
+	mutation_expect_failure(function () { posting_submit('reply'); }, 'Posting_target_changed');
 	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_posts')===1,'INSERT SELECT cannot publish into a target lost after validation');
 	posting_fixture(); $mutation_server->failure='DELETE FROM fixture_posts';
 	mutation_expect_failure(function () { posting_delete(); });
 	mutation_check((int)posting_value('SELECT user_posts FROM fixture_users WHERE user_id=8')===1 && (int)posting_value('SELECT COUNT(*) FROM fixture_matches')===2,'Failed parent deletion leaves counts and index intact');
 
 	posting_fixture(); $pollpost=posting_submit('newtopic',0,0,3,true); $is_auth['auth_mod']=true;
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
 	$mutation_server->hook=function($sql,$connection)
 	{
 		if (strpos($sql,'UPDATE fixture_vote_results SET vote_option_text')===0) { $GLOBALS['mutation_server']->pdo->exec('UPDATE fixture_vote_results SET vote_result=vote_result+1 WHERE vote_option_id=1'); }

@@ -314,8 +314,19 @@ writes and commit. Allowed guest posting is retained. The existing migrations
 cover all thirteen required tables. A lost commit acknowledgement does not prove
 failure: keep the draft and check the topic before submitting again, since new
 posts are not automatically deduplicated. Attachments and notifications happen
-after core publication. This transaction does not yet cover full-editor edits
-or deletion, which have separate storage and filesystem concerns.
+after core publication. Deletion has separate database and filesystem concerns.
+
+Full-editor changes have their own atomic boundary covering content, topic
+metadata, polls, search index, edit counters and moderator audit. They use the
+current ordinary session/account and granular rights; unavailable news/calendar/
+announcement controls do not erase existing metadata. An unchanged retry keeps
+the parser identifier and produces no extra edit count or audit entry. Existing
+migrations cover all fifteen participants. Poll options retain their original
+IDs when other options are removed or appended, preserving retained vote counts.
+Duplicate/invalid legacy option IDs are reported instead of silently rewritten;
+review such polls before changing their options. No automatic historical ballot
+repair or new schema migration is performed. After an uncertain acknowledgement,
+reload before retrying, particularly when adding a poll to an existing topic.
 
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer

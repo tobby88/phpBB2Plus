@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make full-editor changes atomic across content, first-post topic metadata,
+  polls, search index, edit counters and moderator audit. Recheck the current
+  session/account and granular permissions through commit; retain restricted
+  metadata when its controls are unavailable. Unchanged retries preserve parser
+  identifiers, counters and audit rows. Keep existing poll-option identities
+  when removing or adding options, rather than accidentally assigning a retained
+  option's ID twice. Refuse ambiguous legacy options without rewriting votes.
+  Remove the replaced legacy editor storage path; preserve a compatible audit
+  handover during deployment. Existing migrations cover all fifteen participants.
 - Publish new topics and replies with their text, optional poll, search index
   and user/forum/topic counters in one InnoDB transaction. Recheck exact current
   guest/member sessions and granular forum permissions before writes and commit;
@@ -15,8 +24,8 @@ changes consolidated after that baseline without implying active maintenance.
   Restore generated request IDs on failure and warn about uncertain commit
   acknowledgement instead of automatically retrying a possibly published post.
   Zero/no news category no longer changes a normal topic into a news topic.
-  Attachments and notifications remain separate post-commit operations; normal
-  full-editor edits and deletion are not covered by this new-post transaction.
+  Attachments and notifications remain separate post-commit operations;
+  deletion has separate database and filesystem recovery concerns.
 - Save inline AJAX edits, first-post topic titles, edit metadata and search-index
   changes in one transaction. Revalidate the exact current session/account and
   editing/moderation rights through commit. Roll back failures and disconnects;

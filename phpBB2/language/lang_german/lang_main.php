@@ -1652,6 +1652,8 @@ $lang['Ajax_edit_storage_failed'] = 'Das Speichern deiner Änderung konnte nicht
 $lang['Posting_submit_unconfirmed'] = 'Das Absenden deines Beitrags konnte nicht bestätigt werden. Sichere deinen Entwurf und prüfe vor einem erneuten Absenden das Thema, damit kein doppelter Beitrag entsteht.';
 $lang['Posting_submit_denied'] = 'Deine aktuellen Berechtigungen erlauben das Absenden dieses Beitrags nicht. Sichere deinen Entwurf und lade das Forum neu.';
 $lang['Posting_submit_upgrade'] = 'Das Absenden benötigt das aktuelle InnoDB/utf8mb4-Datenbankformat. Bitte einen Administrator, die Datenbank-Updates abzuschließen.';
+$lang['Full_edit_poll_options'] = 'Die Umfrageoptionen sind ungültig oder überschreiten die Speichergrenzen. Sichere deinen Entwurf und prüfe die Optionsnummern und Textlängen.';
+$lang['Full_edit_poll_ambiguous'] = 'Diese Umfrage enthält doppelte oder ungültige Optionsnummern. Es wurden keine Änderungen gespeichert. Bitte einen Administrator, die Umfrage unter Erhalt ihrer Stimmen zu prüfen.';
 $lang['Ajax_edit_storage_upgrade'] = 'Das Bearbeiten benötigt das aktuelle InnoDB/utf8mb4-Datenbankformat. Bitte einen Administrator, die Datenbank-Updates abzuschließen.';
 $lang['Ajax_edit_too_large'] = 'Der Text ist für eine Direktbearbeitung zu lang. Bitte kürze ihn oder verwende den vollständigen Editor.';
 

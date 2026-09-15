@@ -18,7 +18,7 @@ class PhpbbPostSubmitDatabase
 	{
 		$this->connection = $connection; $this->mode = $mode;
 		$this->forum_id = phpbb_posting_scope_id($forum_id);
-		$this->topic_id = $mode === 'reply' ? phpbb_posting_scope_id($topic_id) : 0;
+		$this->topic_id = $mode !== 'newtopic' ? phpbb_posting_scope_id($topic_id) : 0;
 		$this->required = $required;
 	}
 	function __call($method, $args) { return call_user_func_array(array($this->connection, $method), $args); }
@@ -78,13 +78,17 @@ class PhpbbPostSubmitDatabase
 		}
 		return $auth;
 	}
+	function tables()
+	{
+		return array(USERS_TABLE, SESSIONS_TABLE, FORUMS_TABLE, TOPICS_TABLE, POSTS_TABLE, POSTS_TEXT_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, SEARCH_WORD_TABLE, SEARCH_MATCH_TABLE, CONFIG_TABLE, VOTE_DESC_TABLE, VOTE_RESULTS_TABLE);
+	}
 	function begin()
 	{
 		$this->actor();
 		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
 		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 		$this->control('START TRANSACTION'); $this->transactional = true;
-		foreach (array(USERS_TABLE, SESSIONS_TABLE, FORUMS_TABLE, TOPICS_TABLE, POSTS_TABLE, POSTS_TEXT_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, SEARCH_WORD_TABLE, SEARCH_MATCH_TABLE, CONFIG_TABLE, VOTE_DESC_TABLE, VOTE_RESULTS_TABLE) as $table)
+		foreach ($this->tables() as $table)
 		{
 			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
 			$word_binary = "(c.TABLE_NAME = '" . $this->sql_escape(SEARCH_WORD_TABLE) . "' AND c.COLUMN_NAME = 'word_text' AND c.COLLATION_NAME = 'utf8mb4_bin')";
@@ -93,7 +97,7 @@ class PhpbbPostSubmitDatabase
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { $this->fail('Posting_submit_upgrade'); }
 		}
 		$this->rows('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $this->forum_id . ' FOR UPDATE');
-		if ($this->mode === 'reply') { $this->rows('SELECT topic_id FROM ' . TOPICS_TABLE . ' WHERE topic_id = ' . $this->topic_id . ' FOR UPDATE'); }
+		if ($this->topic_id) { $this->rows('SELECT topic_id FROM ' . TOPICS_TABLE . ' WHERE topic_id = ' . $this->topic_id . ' FOR UPDATE'); }
 		$this->authorize();
 	}
 	function commit()

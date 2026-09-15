@@ -133,3 +133,7 @@ jobs:
         env:
           PHPBB_POST_SUBMIT_NATIVE: '1'
           PHPBB_POST_SUBMIT_PASSWORD: fixture-only
+      - run: php .github/scripts/check-full-editor-native.php
+        env:
+          PHPBB_FULL_EDITOR_NATIVE: '1'
+          PHPBB_FULL_EDITOR_PASSWORD: fixture-only

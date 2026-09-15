@@ -3,6 +3,7 @@
 $root = dirname(dirname(__DIR__));
 $posting = file_get_contents($root . '/phpBB2/posting.php');
 $functions = file_get_contents($root . '/phpBB2/includes/functions_post.php');
+$editor = file_get_contents($root . '/phpBB2/includes/functions_full_editor_storage.php');
 $portal = file_get_contents($root . '/phpBB2/portal.php');
 $ajax = file_get_contents($root . '/phpBB2/ajax.php');
 
@@ -20,7 +21,8 @@ $checks = array(
 	'poll form defaults are initialized for edit paths' => strpos($posting, "\$poll_title = '';\n\$poll_length = 0;\n\$poll_options = array();") !== false,
 	'topic types are initialized for replies and new topics' => strpos($posting, "\$post_data['topic_type'] = isset(\$post_info['topic_type']) ? intval(\$post_info['topic_type']) : POST_NORMAL;") !== false,
 	'edit submit query retains integrated MOD fields' => strpos($posting, "\$select_sql = ', t.news_id, t.topic_calendar_time, t.topic_calendar_duration, t.topic_icon, t.topic_announce_duration, p.post_icon';") !== false,
-	'poll update uses the defined edit flag' => strpos($functions, "!empty(\$post_data['edit_poll'])") !== false && strpos($functions, "\$post_data['edit_vote']") === false,
+	'poll update uses current first-post scope and explicit poll fields' => strpos($editor, '$poll_requested = $first &&') !== false && strpos($functions, "\$post_data['edit_vote']") === false,
+	'full-editor audit is not repeated by the controller' => strpos($posting, "empty(\$post_data['_edit_audit_completed'])") !== false,
 	'AJAX drafts require an edit mode and explicit marker' => strpos($posting, "\$ajax_draft_requested = (\$mode == 'editpost' && \$request_scalar(\$_POST, 'ajax_draft') === '1');") !== false,
 	'AJAX drafts require the posting session' => strpos($posting, "posting_post_session_is_valid(\$sid, \$userdata['session_id'])") !== false,
 	'AJAX drafts only prefill the editor' => strpos($posting, "\$message = htmlspecialchars(\$draft_message, ENT_COMPAT | ENT_SUBSTITUTE, 'UTF-8');") !== false,

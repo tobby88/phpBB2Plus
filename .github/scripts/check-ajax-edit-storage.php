@@ -30,8 +30,6 @@ function ajax_storage_fixture()
 	$userdata['session_id']='fixture';
 	$userdata['session_logged_in']=true; $userdata['user_allowhtml']=false;
 	$board_config['allow_html']=false; $board_config['allow_bbcode']=true; $board_config['allow_smilies']=false;
-	$p->exec('ALTER TABLE fixture_users ADD username VARCHAR(255)');
-	$p->exec("UPDATE fixture_users SET username='Fixture user'");
 	$tree=array('data'=>array(array('forum_id'=>3,'auth_edit'=>0,'auth_view'=>0,'auth_read'=>0)),'keys'=>array('f3'=>0),'type'=>array('f'));
 }
 function ajax_storage_failure($callback,$expected)
