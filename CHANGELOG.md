@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Restrict posting/editor/deletion metadata checks to their literal table and
+  current database, avoiding expensive correlated information-schema scans on
+  MariaDB. Preserve all engine, row-format, column-collation and metadata-lock
+  checks, including the narrowly scoped binary search-word collation exception.
 - Include duplicate/out-of-range poll-option IDs in the ACP database-maintenance
   review, matching the editor's refusal of ambiguous historical options. Retain
   all option rows, results and voter history; never infer or renumber answers.

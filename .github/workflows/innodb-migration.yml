@@ -145,3 +145,7 @@ jobs:
         env:
           PHPBB_TOPIC_REMOVAL_NATIVE: '1'
           PHPBB_TOPIC_REMOVAL_PASSWORD: fixture-only
+      - run: php .github/scripts/check-post-storage-metadata-native.php
+        env:
+          PHPBB_POST_METADATA_NATIVE: '1'
+          PHPBB_POST_METADATA_PASSWORD: fixture-only

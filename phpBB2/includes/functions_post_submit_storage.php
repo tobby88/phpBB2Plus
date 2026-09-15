@@ -91,9 +91,12 @@ class PhpbbPostSubmitDatabase
 		foreach ($this->tables() as $table)
 		{
 			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
+			$table_name = $this->sql_escape($table);
 			$word_binary = "(c.TABLE_NAME = '" . $this->sql_escape(SEARCH_WORD_TABLE) . "' AND c.COLUMN_NAME = 'word_text' AND c.COLLATION_NAME = 'utf8mb4_bin')";
-			$rows = $this->rows("SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR (c.COLLATION_NAME <> 'utf8mb4_unicode_ci' AND NOT " . $word_binary . ")))");
+			// Literal schema/table restrictions let MariaDB prune metadata scans.
+			// Keep the same column policy and transaction-held metadata locks.
+			$rows = $this->rows("SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $table_name . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $table_name . "' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR (c.COLLATION_NAME <> 'utf8mb4_unicode_ci' AND NOT " . $word_binary . ")))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { $this->fail('Posting_submit_upgrade'); }
 		}
 		$this->rows('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $this->forum_id . ' FOR UPDATE');
