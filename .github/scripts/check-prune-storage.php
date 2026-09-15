@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('UTC');
 require __DIR__ . '/check-ajax-edit-storage.php';
-foreach(array('POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3,'PRUNE_TABLE'=>'fixture_prune','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value) { define($key,$value); }
+foreach(array('POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3,'PRUNE_TABLE'=>'fixture_prune','JR_ADMIN_TABLE'=>'fixture_junior') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 require $forum_root.'includes/functions_prune_storage.php';
 function prune_fixture()
 {

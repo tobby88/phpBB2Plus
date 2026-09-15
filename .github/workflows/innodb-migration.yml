@@ -129,3 +129,7 @@ jobs:
         env:
           PHPBB_AJAX_EDIT_NATIVE: '1'
           PHPBB_AJAX_EDIT_PASSWORD: fixture-only
+      - run: php .github/scripts/check-post-submit-native.php
+        env:
+          PHPBB_POST_SUBMIT_NATIVE: '1'
+          PHPBB_POST_SUBMIT_PASSWORD: fixture-only

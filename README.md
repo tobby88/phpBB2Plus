@@ -307,6 +307,16 @@ search dictionary supports its canonical `utf8mb4_bin` word column as well as
 the `utf8mb4_unicode_ci` variant produced by UTF-8 migration; editing does not
 change collation or rebuild historical index data.
 
+New topics and replies also commit content, optional polls, the search index and
+personal/forum/topic counters together. Exact current guest/member sessions and
+granular posting/news/announcement/calendar/poll permissions are checked before
+writes and commit. Allowed guest posting is retained. The existing migrations
+cover all thirteen required tables. A lost commit acknowledgement does not prove
+failure: keep the draft and check the topic before submitting again, since new
+posts are not automatically deduplicated. Attachments and notifications happen
+after core publication. This transaction does not yet cover full-editor edits
+or deletion, which have separate storage and filesystem concerns.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

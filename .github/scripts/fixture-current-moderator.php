@@ -1,7 +1,7 @@
 <?php
 // Give storage-only legacy fixtures a real current administrator and the real
 // authorization schema/functions. Do not stub permission decisions as true.
-function fixture_current_moderator($pdo)
+function fixture_current_moderator($pdo, $set_request = true)
 {
 	global $forum_root,$userdata,$lang;
 	foreach(array('AUTH_ALL'=>0,'AUTH_LIST_ALL'=>0,'AUTH_REG'=>1,'AUTH_ACL'=>2,'AUTH_MOD'=>3,'AUTH_ADMIN'=>5,'ADMIN'=>1,'AUTH_ACCESS_TABLE'=>'fixture_auth','USER_GROUP_TABLE'=>'fixture_groups','POST_FORUM_URL'=>'f') as $key=>$value) { if(!defined($key)) { define($key,$value); } }
@@ -17,5 +17,5 @@ function fixture_current_moderator($pdo)
 	$pdo->exec('CREATE TABLE fixture_auth ('.implode(',',$columns).')');
 	$pdo->exec('CREATE TABLE fixture_groups (user_id INTEGER,group_id INTEGER,user_pending INTEGER)');
 	$userdata=array('user_id'=>8,'user_level'=>1,'session_logged_in'=>true,'session_id'=>'fixture');
-	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture');
+	if ($set_request) { $_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture'); }
 }

@@ -1649,6 +1649,9 @@ $lang['Posting_storage_failed'] = 'Der Beitragsvorgang konnte nicht abgeschlosse
 $lang['Posting_target_changed'] = 'Das Thema oder die Umfrage hat sich inzwischen geändert. Bitte öffne es erneut und prüfe den aktuellen Stand vor dem nächsten Absenden.';
 $lang['Ajax_edit_invalid_text'] = 'Der Text konnte nicht als gültiges UTF-8 verarbeitet werden. Bitte prüfe deine Eingabe.';
 $lang['Ajax_edit_storage_failed'] = 'Das Speichern deiner Änderung konnte nicht bestätigt werden. Sichere deinen Entwurf und lade den Beitrag vor einem erneuten Versuch neu.';
+$lang['Posting_submit_unconfirmed'] = 'Das Absenden deines Beitrags konnte nicht bestätigt werden. Sichere deinen Entwurf und prüfe vor einem erneuten Absenden das Thema, damit kein doppelter Beitrag entsteht.';
+$lang['Posting_submit_denied'] = 'Deine aktuellen Berechtigungen erlauben das Absenden dieses Beitrags nicht. Sichere deinen Entwurf und lade das Forum neu.';
+$lang['Posting_submit_upgrade'] = 'Das Absenden benötigt das aktuelle InnoDB/utf8mb4-Datenbankformat. Bitte einen Administrator, die Datenbank-Updates abzuschließen.';
 $lang['Ajax_edit_storage_upgrade'] = 'Das Bearbeiten benötigt das aktuelle InnoDB/utf8mb4-Datenbankformat. Bitte einen Administrator, die Datenbank-Updates abzuschließen.';
 $lang['Ajax_edit_too_large'] = 'Der Text ist für eine Direktbearbeitung zu lang. Bitte kürze ihn oder verwende den vollständigen Editor.';
 

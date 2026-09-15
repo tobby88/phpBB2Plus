@@ -9,12 +9,21 @@ foreach (array('Topic_post_not_exist','Forum_locked','Topic_locked','No_valid_mo
 function board_stats() { mutation_check($GLOBALS['mutation_server']->owner === null, 'Board metadata is refreshed after releasing storage lock'); }
 function cache_tree($force = false) { board_stats(); }
 function append_sid($url) { return $url; }
+foreach (array('SESSIONS_TABLE'=>'fixture_sessions','POST_NORMAL'=>0,'POST_STICKY'=>1,'POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3) as $key=>$value) { if (!defined($key)) { define($key,$value); } }
+foreach (array('Posting_submit_unconfirmed','Posting_submit_denied','Posting_submit_upgrade') as $key) { $lang[$key]=$key; }
 class PostingFixturePDO
 {
 	var $inner;
 	function __construct($pdo) { $this->inner = $pdo; }
 	function __call($method, $args) { return call_user_func_array(array($this->inner, $method), $args); }
-	function query($sql) { return $this->inner->query(str_replace('INSERT IGNORE INTO ', 'INSERT OR IGNORE INTO ', $sql)); }
+	function query($sql)
+	{
+		// Protocol-only adapter; native MariaDB tests cover locking and metadata.
+		if (strpos($sql,'SET SESSION ')===0) { return $this->inner->query('SELECT 1'); }
+		if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.')===0) { return $this->inner->query("SELECT 'InnoDB' AS ENGINE, 'Dynamic' AS ROW_FORMAT, 'utf8mb4_unicode_ci' AS TABLE_COLLATION"); }
+		if ($sql==='START TRANSACTION') { $sql='BEGIN'; }
+		return $this->inner->query(str_replace('INSERT IGNORE INTO ', 'INSERT OR IGNORE INTO ', preg_replace('/ (FOR UPDATE|LOCK IN SHARE MODE)$/D','',$sql)));
+	}
 }
 function posting_fixture()
 {
@@ -43,6 +52,10 @@ function posting_fixture()
 	$board_config = array('default_lang'=>'english','flood_interval'=>0);
 	$phpbb_root_path = $GLOBALS['forum_root']; $phpEx = 'php'; $user_ip = '127.0.0.1';
 	$ctracker_config = new stdClass(); $ctracker_config->settings = array('spammer_blockmode'=>0,'spam_attack_boost'=>0);
+	fixture_current_moderator($p, false);
+	$p->exec('UPDATE fixture_users SET user_level=0'); $userdata['user_level']=0;
+	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
+	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)");
 }
 function posting_value($sql) { return $GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
 function posting_submit($mode, $post_id = 10, $topic_id = 100, $forum_id = 3, $poll = false)
@@ -113,7 +126,8 @@ try
 	};
 	posting_submit('reply'); $mutation_server->hook=null;
 	mutation_check($interleaved && !$mutation_server->owner,'Parent deletion cannot interleave with text/index/counter publication');
-	fixture_current_moderator($mutation_server->pdo);
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8');
+	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture');
 	phpbb_delete_moderated_topics($db,3,array(100));
 	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_matches')===0 && (int)posting_value('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')===0,'Moderator cleanup includes search and forum totals on owning connection');
 	mutation_expect_failure(function () { posting_submit('reply'); }, 'Topic_post_not_exist');
@@ -146,7 +160,7 @@ try
 	{
 		if (strpos($sql,'INSERT INTO fixture_posts')===0) { $GLOBALS['mutation_server']->pdo->exec('DELETE FROM fixture_topics WHERE topic_id=100'); }
 	};
-	mutation_expect_failure(function () { posting_submit('reply'); }, 'Posting_target_changed');
+	mutation_expect_failure(function () { posting_submit('reply'); }, 'Posting_submit_unconfirmed');
 	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_posts')===1,'INSERT SELECT cannot publish into a target lost after validation');
 	posting_fixture(); $mutation_server->failure='DELETE FROM fixture_posts';
 	mutation_expect_failure(function () { posting_delete(); });
@@ -167,6 +181,9 @@ try
 	$uncounted=posting_submit('reply'); posting_delete($uncounted[0],$uncounted[1]);
 	mutation_check((int)posting_value('SELECT user_posts FROM fixture_users WHERE user_id=8')===1,'Excluded forum leaves personal counts unchanged through publication and deletion');
 	posting_fixture(); $userdata['user_id']=-1;
+	$userdata['session_logged_in']=false;
+	$mutation_server->pdo->exec('UPDATE fixture_sessions SET session_user_id=-1, session_logged_in=0');
+	$mutation_server->pdo->exec('UPDATE fixture_forums SET auth_view=0, auth_read=0, auth_reply=0');
 	posting_submit('reply');
 	mutation_check((int)posting_value('SELECT user_posts FROM fixture_users WHERE user_id=-1')===77,'Guest posts never change shared guest identity counters');
 	$controller=file_get_contents($forum_root.'posting.php');

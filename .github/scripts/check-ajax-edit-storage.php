@@ -27,19 +27,11 @@ function ajax_storage_fixture()
 {
 	global $mutation_server,$userdata,$board_config,$tree;
 	posting_fixture(); $mutation_server->pdo=new AjaxFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
-	$p->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
-	$p->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
-	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
-	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)"); $userdata['session_id']='fixture';
+	$userdata['session_id']='fixture';
 	$userdata['session_logged_in']=true; $userdata['user_allowhtml']=false;
 	$board_config['allow_html']=false; $board_config['allow_bbcode']=true; $board_config['allow_smilies']=false;
 	$p->exec('ALTER TABLE fixture_users ADD username VARCHAR(255)');
 	$p->exec("UPDATE fixture_users SET username='Fixture user'");
-	$fields=array('auth_view','auth_read','auth_news','auth_post','auth_reply','auth_edit','auth_delete','auth_cal','auth_sticky','auth_announce','auth_global_announce','auth_vote','auth_pollcreate','auth_ban','auth_greencard','auth_bluecard','auth_attachments','auth_download');
-	$columns=array('forum_id INTEGER','group_id INTEGER','auth_mod INTEGER DEFAULT 0');
-	foreach ($fields as $field) { $p->exec('ALTER TABLE fixture_forums ADD '.$field.' INTEGER DEFAULT 1'); $columns[]=$field.' INTEGER DEFAULT 0'; }
-	$p->exec('CREATE TABLE fixture_auth ('.implode(',',$columns).')');
-	$p->exec('CREATE TABLE fixture_groups (user_id INTEGER,group_id INTEGER,user_pending INTEGER)');
 	$tree=array('data'=>array(array('forum_id'=>3,'auth_edit'=>0,'auth_view'=>0,'auth_read'=>0)),'keys'=>array('f3'=>0),'type'=>array('f'));
 }
 function ajax_storage_failure($callback,$expected)

@@ -28,7 +28,8 @@ function phpbb_posting_revalidate($database, $mode, &$post_data, &$forum_id, &$t
 		message_die(GENERAL_MESSAGE, $lang['No_valid_mode']);
 	}
 	$forum_id = phpbb_posting_scope_id($forum_id);
-	$is_mod = !empty($is_auth['auth_mod']);
+	$current_auth = $database instanceof PhpbbPostSubmitDatabase ? $database->authorize() : $is_auth;
+	$is_mod = !empty($current_auth['auth_mod']);
 	$result = phpbb_posting_query($database, 'SELECT forum_status FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $forum_id);
 	$forum = $database->sql_fetchrow($result); $database->sql_freeresult($result);
 	if (!$forum) { message_die(GENERAL_MESSAGE, $lang['Topic_post_not_exist']); }

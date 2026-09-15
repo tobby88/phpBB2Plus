@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Publish new topics and replies with their text, optional poll, search index
+  and user/forum/topic counters in one InnoDB transaction. Recheck exact current
+  guest/member sessions and granular forum permissions before writes and commit;
+  preserve permitted guest posting and moderator exceptions for locked forums.
+  Restore generated request IDs on failure and warn about uncertain commit
+  acknowledgement instead of automatically retrying a possibly published post.
+  Zero/no news category no longer changes a normal topic into a news topic.
+  Attachments and notifications remain separate post-commit operations; normal
+  full-editor edits and deletion are not covered by this new-post transaction.
 - Save inline AJAX edits, first-post topic titles, edit metadata and search-index
   changes in one transaction. Revalidate the exact current session/account and
   editing/moderation rights through commit. Roll back failures and disconnects;

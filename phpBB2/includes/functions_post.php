@@ -258,9 +258,37 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	}
 	require_once dirname(__FILE__) . '/functions_posting_storage.php';
 	$lock = attach_require_mutation_lock($GLOBALS['db']);
+	$submission = null; $submission_error = null;
+	$submission_before = array($post_data, $forum_id, $topic_id, $post_id, $poll_id, $topic_type);
 	try
 	{
 		$db = $lock->connection;
+		if ($mode === 'newtopic' || $mode === 'reply')
+		{
+			require_once dirname(__FILE__) . '/functions_post_submit_storage.php';
+			$required = array($mode === 'newtopic' ? 'auth_post' : 'auth_reply');
+			if ($mode === 'newtopic')
+			{
+				if (is_numeric($news_category) && (int)$news_category > 0) { $topic_type = POST_NEWS; }
+				$type_permissions = array(POST_NORMAL => 'auth_post', POST_STICKY => 'auth_sticky', POST_ANNOUNCE => 'auth_announce', POST_GLOBAL_ANNOUNCE => 'auth_global_announce', POST_NEWS => 'auth_news');
+				if (!isset($type_permissions[(int)$topic_type])) { throw new PhpbbPostSubmitException('No_valid_mode'); }
+				$required[] = $type_permissions[(int)$topic_type];
+				if ($topic_calendar_time || $topic_calendar_duration) { $required[] = 'auth_cal'; }
+				if ($poll_title !== '' || count($poll_options)) { $required[] = 'auth_pollcreate'; }
+			}
+			$submission = new PhpbbPostSubmitDatabase($db, $mode, $forum_id, $topic_id, $required);
+			$db = $submission; $submission->begin();
+			unset($post_data['_stats_completed']);
+			if ($mode === 'newtopic') { $post_data['has_poll'] = false; $post_data['edit_poll'] = false; }
+			// prepare_post supplies escaped HTML with legacy request slashes.
+			// Normalize to the same whole-character/entity boundary as AJAX edits
+			// before strict SQL can reject an otherwise valid 60-character title.
+			require_once dirname(__FILE__) . '/functions_post_subject.php';
+			$stored_subject = phpbb_storage_subject(htmlspecialchars_decode(stripslashes((string)$post_subject), ENT_QUOTES));
+			if ($stored_subject === false) { throw new PhpbbPostSubmitException('Ajax_edit_invalid_text'); }
+			if ($mode === 'newtopic' && $stored_subject === '') { throw new PhpbbPostSubmitException('Empty_subject'); }
+			$post_subject = addslashes($stored_subject);
+		}
 		phpbb_posting_revalidate($db, $mode, $post_data, $forum_id, $topic_id, $post_id, $poll_id);
 		// Request data is slash-normalized by common.php for legacy callers. Undo
 		// that representation once, then let the active driver quote SQL values.
@@ -273,7 +301,7 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		$user_ip_sql = $db->sql_escape((string) $user_ip);
 
 		// BEGIN cmx_slash_news_mod
-		if( isset( $news_category ) && is_numeric( $news_category ) )
+		if( isset( $news_category ) && is_numeric( $news_category ) && (int) $news_category > 0 )
 		{
 			$news_id = intval( $news_category );
 			$topic_type = POST_NEWS;
@@ -463,8 +491,29 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 			$user_id = (int) $userdata['user_id'];
 			update_post_stats($mode, $post_data, $forum_id, $topic_id, $post_id, $user_id, $db, false);
 		}
+		if ($submission !== null) { $submission->commit(); }
 	}
-	finally { $lock->release(); }
+	catch (PhpbbPostSubmitException $error) { $submission_error = $error->getMessage(); }
+	catch (Exception $error)
+	{
+		if ($submission === null) { throw $error; }
+		$submission_error = 'Posting_submit_unconfirmed';
+	}
+	catch (Error $error)
+	{
+		if ($submission === null) { throw $error; }
+		$submission_error = 'Posting_submit_unconfirmed';
+	}
+	finally
+	{
+		if ($submission !== null)
+		{
+			$submission->rollback();
+			if (!$submission->confirmed) { list($post_data, $forum_id, $topic_id, $post_id, $poll_id, $topic_type) = $submission_before; }
+		}
+		$lock->release();
+	}
+	if ($submission_error !== null) { message_die(GENERAL_MESSAGE, isset($lang[$submission_error]) ? $lang[$submission_error] : $lang['Posting_storage_failed']); }
 //-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 	board_stats();
