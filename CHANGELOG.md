@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make topic merges transactional across posts, polls, bookmarks, watches,
+  view totals, redirects, attachment flags, user/forum/global counters and logs.
+  Preserve snapshot-bound confirmation of conflicting source-poll removal;
+  revalidate exact ordinary sessions and both-forum moderation through commit.
+  Reject legacy storage and implicit commits, retain existing target preference
+  claims and duplicates without multiplying totals, and invalidate optional
+  tree caches after release even on uncertain commit replies. Existing storage
+  and UTF-8 migrations cover all sixteen participants. Module translations also
+  tolerate an absent administrative language-context flag without warnings.
 - Make splitting topics atomic across the new topic, selected posts, attachment
   flags, copied subscriptions, user/forum/global counters and both audit records.
   Revalidate current ordinary sessions and source/target permissions through

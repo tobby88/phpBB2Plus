@@ -276,6 +276,17 @@ storage, covered by the existing storage and UTF-8 migrations. On a lost commit
 reply, check the topics before retrying. The optional tree cache is invalidated
 after release, including uncertain commits; deployment does not split content.
 
+Merging topics likewise commits posts, poll transfer or explicitly confirmed
+conflicting-source-poll removal, preferences, view totals, redirects, attachment
+flags, counters and audit records together. Confirmation remains bound to the
+selected topics and actual poll questions/options; changed confirmation state
+must be reviewed again. Exact ordinary sessions and moderation rights in both
+forums are checked through commit. Existing target watch claims and duplicate
+view rows are retained without multiplying copied totals. Sixteen participating
+tables require the documented modern storage/UTF-8 migrations. A lost commit
+reply reports uncertainty; reload before retrying. The optional tree cache is
+invalidated after release, and deployment does not merge or delete user content.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

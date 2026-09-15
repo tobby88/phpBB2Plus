@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_topic_merge.php';
 require_once dirname(__FILE__) . '/functions_post_subject.php';
+require_once dirname(__FILE__) . '/functions_moderator_identity.php';
 
 class PhpbbTopicMergeException extends RuntimeException {}
 function phpbb_merge_error($key)
@@ -12,13 +13,73 @@ function phpbb_merge_error($key)
 class PhpbbTopicMergeDatabase
 {
 	var $connection;
+	var $forums = array();
+	var $transactional = false;
+	var $write_attempted = false;
 	function __construct($connection) { $this->connection = $connection; }
 	function __call($method, $args) { return call_user_func_array(array($this->connection, $method), $args); }
-	function sql_query($sql, $transaction = false)
+	function control($sql)
 	{
-		$result = $this->connection->sql_query($sql, $transaction);
+		$result = $this->connection->sql_query($sql);
 		if (!$result) { phpbb_merge_error('Merge_storage_failed'); }
 		return $result;
+	}
+	function sql_query($sql, $transaction = false)
+	{
+		if (!is_string($sql) || !preg_match('/^\s*(SELECT|UPDATE|INSERT|DELETE)\b/i', $sql)) { phpbb_merge_error('Merge_storage_failed'); }
+		if (preg_match('/^\s*(UPDATE|INSERT|DELETE)\b/i', $sql))
+		{
+			// Preview is read-only. Enlisted helpers cannot commit or issue DDL.
+			if (!$this->transactional) { phpbb_merge_error('Merge_storage_failed'); }
+			$this->authorize(); $this->write_attempted = true;
+		}
+		return $this->control($sql);
+	}
+	function actor()
+	{
+		global $userdata;
+		$user = phpbb_current_moderator_user($this);
+		if (!$user || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_merge_error('Not_Authorised'); }
+		$sid = $this->sql_escape($userdata['session_id']);
+		if (!phpbb_merge_rows($this, 'SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '$sid' AND HEX(session_id) = HEX('$sid')"
+			. ' AND session_user_id = ' . (int)$user['user_id'] . ' AND session_logged_in = 1')) { phpbb_merge_error('Not_Authorised'); }
+		return $user;
+	}
+	function authorize()
+	{
+		$this->actor();
+		if (!$this->forums) { phpbb_merge_error('Merge_changed'); }
+		foreach ($this->forums as $forum) { if (!phpbb_merge_forum_allowed($this, $forum)) { phpbb_merge_error('Not_Authorised'); } }
+	}
+	function begin()
+	{
+		$this->actor();
+		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->control('START TRANSACTION'); $this->transactional = true;
+		foreach (array(USERS_TABLE, SESSIONS_TABLE, FORUMS_TABLE, TOPICS_TABLE, POSTS_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, ATTACHMENTS_TABLE, BOOKMARK_TABLE, TOPICS_WATCH_TABLE, TOPIC_VIEW_TABLE, VOTE_DESC_TABLE, VOTE_RESULTS_TABLE, VOTE_USERS_TABLE, LOGS_TABLE, CONFIG_TABLE) as $table)
+		{
+			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
+			$rows = phpbb_merge_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { phpbb_merge_error('Merge_storage_upgrade'); }
+		}
+	}
+	function commit()
+	{
+		global $userdata;
+		$user = $this->actor(); $id = (int)$user['user_id']; $sid = $this->sql_escape($userdata['session_id']);
+		phpbb_merge_rows($this, 'SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '$sid' AND HEX(session_id) = HEX('$sid') LOCK IN SHARE MODE");
+		phpbb_merge_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' LOCK IN SHARE MODE');
+		phpbb_merge_rows($this, 'SELECT group_id FROM ' . USER_GROUP_TABLE . ' WHERE user_id = ' . $id . ' ORDER BY group_id LOCK IN SHARE MODE');
+		phpbb_merge_rows($this, 'SELECT group_id FROM ' . AUTH_ACCESS_TABLE . ' WHERE forum_id IN (' . implode(',', $this->forums) . ') ORDER BY group_id, forum_id LOCK IN SHARE MODE');
+		$this->authorize();
+		$this->control('COMMIT');
+		$this->authorize();
+	}
+	function rollback()
+	{
+		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
 	}
 }
 function phpbb_merge_rows($db, $sql)
@@ -40,25 +101,26 @@ function phpbb_merge_context($db, $from, $to)
 	$from = phpbb_merge_id($from); $to = phpbb_merge_id($to);
 	if (!$from || !$to) { phpbb_merge_error('Merge_changed'); }
 	if ($from === $to) { phpbb_merge_error('Merge_topics_equals'); }
+	$row_lock = $db->transactional ? ' FOR UPDATE' : '';
 	$topics = array(); $forums = array();
-	foreach (phpbb_merge_rows($db, 'SELECT topic_id, forum_id, topic_title, topic_status, topic_type, topic_moved_id, topic_views FROM ' . TOPICS_TABLE . " WHERE topic_id IN ($from,$to) ORDER BY topic_id") as $row)
+	foreach (phpbb_merge_rows($db, 'SELECT topic_id, forum_id, topic_title, topic_status, topic_type, topic_moved_id, topic_views FROM ' . TOPICS_TABLE . " WHERE topic_id IN ($from,$to) ORDER BY topic_id" . $row_lock) as $row)
 	{
 		if ((int) $row['topic_moved_id'] !== 0 || !in_array((int) $row['topic_status'], array(TOPIC_UNLOCKED, TOPIC_LOCKED), true)) { phpbb_merge_error('Merge_changed'); }
 		$forum = (int) $row['forum_id'];
-		if (!phpbb_merge_forum_allowed($db, $forum)) { phpbb_merge_error('Not_Authorised'); }
-		$forums[$forum] = phpbb_merge_read_row($db, 'SELECT forum_id, forum_status, count_posts FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $forum);
+		$forums[$forum] = phpbb_merge_read_row($db, 'SELECT forum_id, forum_status, count_posts FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $forum . $row_lock);
 		if (!$forums[$forum]) { phpbb_merge_error('Merge_changed'); }
+		if (!phpbb_merge_forum_allowed($db, $forum)) { phpbb_merge_error('Not_Authorised'); }
 		$topics[(int) $row['topic_id']] = $row;
 	}
 	if (!isset($topics[$from], $topics[$to])) { phpbb_merge_error('Merge_changed'); }
 	$polls = array($from => array(), $to => array()); $poll_ids = array();
-	foreach (phpbb_merge_rows($db, 'SELECT vote_id, topic_id, vote_text, vote_start, vote_length FROM ' . VOTE_DESC_TABLE . " WHERE topic_id IN ($from,$to) ORDER BY vote_id") as $row)
+	foreach (phpbb_merge_rows($db, 'SELECT vote_id, topic_id, vote_text, vote_start, vote_length FROM ' . VOTE_DESC_TABLE . " WHERE topic_id IN ($from,$to) ORDER BY vote_id" . $row_lock) as $row)
 	{
 		$id = (int) $row['topic_id'];
 		if ($polls[$id] || !phpbb_merge_id($row['vote_id'])) { phpbb_merge_error('Merge_changed'); }
 		$polls[$id] = array_map('strval', $row); $poll_ids[] = (int) $row['vote_id'];
 	}
-	$options = $poll_ids ? phpbb_merge_rows($db, 'SELECT vote_id, vote_option_id, vote_option_text FROM ' . VOTE_RESULTS_TABLE . ' WHERE vote_id IN (' . implode(',', $poll_ids) . ') ORDER BY vote_id, vote_option_id') : array();
+	$options = $poll_ids ? phpbb_merge_rows($db, 'SELECT vote_id, vote_option_id, vote_option_text FROM ' . VOTE_RESULTS_TABLE . ' WHERE vote_id IN (' . implode(',', $poll_ids) . ') ORDER BY vote_id, vote_option_id' . $row_lock) : array();
 	$options = array_map(function($row) { return array_map('strval', $row); }, $options);
 	// Views and newly arriving replies/votes need not invalidate confirmation.
 	// Topic placement/type/title and poll questions/options must remain the same.
@@ -81,7 +143,9 @@ function phpbb_prepare_topic_merge($database, $from, $to, $subject, $shadow)
 	if (!$lock->acquired) { phpbb_merge_error('Attachment_storage_busy'); }
 	try
 	{
-		$context = phpbb_merge_context(new PhpbbTopicMergeDatabase($lock->connection), $from, $to);
+		$db = new PhpbbTopicMergeDatabase($lock->connection); $db->actor();
+		$context = phpbb_merge_context($db, $from, $to);
+		$db->forums = array_keys($context['forums']); $db->authorize();
 		$context['token'] = phpbb_merge_confirmation($context, $subject, $shadow);
 		return $context;
 	}
@@ -90,24 +154,31 @@ function phpbb_prepare_topic_merge($database, $from, $to, $subject, $shadow)
 
 // Endpoint checks POST/SID; this worker also binds the confirmed destructive
 // choice to fresh topic/poll state. No network I/O takes place under this lock.
-// Like the other legacy MyISAM writers, this is not crash-recovery journaling.
+// All dependent changes participate in the same InnoDB transaction.
 function phpbb_merge_topics($database, $from, $to, $subject, $shadow, $token)
 {
 	global $userdata;
 	$subject = phpbb_merge_subject($subject);
 	$lock = new attach_mutation_lock($database);
 	if (!$lock->acquired) { phpbb_merge_error('Attachment_storage_busy'); }
+	$db = new PhpbbTopicMergeDatabase($lock->connection);
 	try
 	{
-		$db = new PhpbbTopicMergeDatabase($lock->connection);
+		$db->begin();
 		$context = phpbb_merge_context($db, $from, $to);
+		$db->forums = array_keys($context['forums']);
+		$db->authorize();
 		// Confirmation canonicalizes plain text; do not escape it a second time.
 		$plain_subject = html_entity_decode($subject, ENT_COMPAT, 'UTF-8');
 		$expected = phpbb_merge_confirmation($context, $plain_subject, $shadow);
 		if (!is_string($token) || !hash_equals($expected, $token)) { phpbb_merge_error('Merge_changed'); }
 		$from = $context['from']; $to = $context['to'];
 		$source_forum = (int) $context['topics'][$from]['forum_id']; $target_forum = (int) $context['topics'][$to]['forum_id'];
-		$posts = phpbb_merge_rows($db, 'SELECT post_id, topic_id, forum_id, poster_id, post_time FROM ' . POSTS_TABLE . " WHERE topic_id IN ($from,$to) ORDER BY post_id");
+		$posts = phpbb_merge_rows($db, 'SELECT post_id, topic_id, forum_id, poster_id, post_time FROM ' . POSTS_TABLE . " WHERE topic_id IN ($from,$to) ORDER BY post_id FOR UPDATE");
+		foreach (array(BOOKMARK_TABLE, TOPICS_WATCH_TABLE, TOPIC_VIEW_TABLE) as $table)
+		{
+			phpbb_merge_rows($db, 'SELECT topic_id, user_id FROM ' . $table . " WHERE topic_id IN ($from,$to) ORDER BY topic_id, user_id FOR UPDATE");
+		}
 		$selected = array(); $target_ids = array(); $posters = array(); $target_count = 0;
 		foreach ($posts as $post)
 		{
@@ -207,8 +278,20 @@ function phpbb_merge_topics($database, $from, $to, $subject, $shadow, $token)
 		if ((int) $db->sql_affectedrows() !== 1) { phpbb_merge_error('Merge_changed'); }
 		require_once dirname(__FILE__) . '/functions_posting_storage.php'; require_once dirname(__FILE__) . '/functions_log.php';
 		phpbb_posting_sync_forum($db, $source_forum); if ($target_forum !== $source_forum) { phpbb_posting_sync_forum($db, $target_forum); }
+		if (count(phpbb_merge_rows($db, 'SELECT config_name FROM ' . CONFIG_TABLE . " WHERE config_name IN ('max_topics','max_posts') FOR UPDATE")) !== 2) { phpbb_merge_error('Merge_storage_upgrade'); }
+		$db->sql_query('UPDATE ' . CONFIG_TABLE . " SET config_value = CASE WHEN config_name = 'max_topics' THEN (SELECT COALESCE(SUM(forum_topics),0) FROM " . FORUMS_TABLE
+			. ') ELSE (SELECT COALESCE(SUM(forum_posts),0) FROM ' . FORUMS_TABLE . ") END WHERE config_name IN ('max_topics','max_posts')");
 		if (!log_action('merge', array($from, $to), $userdata['user_id'], $userdata['username'], $db)) { phpbb_merge_error('Merge_storage_failed'); }
+		$db->commit();
 		return $to;
 	}
-	finally { $lock->release(); }
+	finally
+	{
+		$db->rollback(); $lock->release();
+		if ($db->write_attempted && defined('CACHE_TREE'))
+		{
+			global $phpbb_root_path;
+			@unlink($phpbb_root_path . 'cache/tree.cache');
+		}
+	}
 }

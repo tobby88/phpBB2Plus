@@ -28,7 +28,7 @@ if ( !defined('IN_PHPBB') )
 }
 
 // admin part
-if ( $lang_extend_admin )
+if ( !empty($lang_extend_admin) )
 {
 	$lang['Lang_extend_merge'] = 'Simply Merge Threads';
 }
@@ -52,6 +52,7 @@ $lang['Merge_confirm_process'] = 'Bist Du sicher, <br />"<b>%s</b>"<br />mit<br 
 $lang['Merge_topic_done'] = 'Die Themen wurden erfolgreich zusammengeführt.';
 $lang['Merge_changed'] = 'Die Themen oder Umfragen passen nicht mehr zu dieser Bestätigung. Bitte öffne das Formular erneut und prüfe die aktuelle Auswahl.';
 $lang['Merge_invalid_subject'] = 'Bitte gib einen gültigen UTF-8-Thementitel ein.';
-$lang['Merge_storage_failed'] = 'Die Zusammenführung konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits gespeichert sein; prüfe bitte beide Themen vor einem erneuten Versuch.';
+$lang['Merge_storage_failed'] = 'Die Zusammenführung konnte nicht bestätigt werden. Themen, Umfragen, Verweise, Zähler und Aktionsprotokoll werden gemeinsam gespeichert; bei einem Verbindungsabbruch zum Abschluss prüfe bitte vor einem erneuten Versuch ihren Zustand.';
+$lang['Merge_storage_upgrade'] = 'Das Zusammenführen benötigt InnoDB-Tabellen mit modernem UTF-8-Speicherformat. Bitte führe vor einem erneuten Versuch die dokumentierten Speicherformat- und UTF-8-Updates aus.';
 
 ?>

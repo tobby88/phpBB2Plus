@@ -126,6 +126,7 @@ try
 		merge_storage_fixture(); $token=merge_storage_token(); $before=merge_content_snapshot(); $mutation_server->failure=$failure;
 		merge_storage_failure(function() use($token){ merge_storage_run('',false,$token); },'Merge_storage_failed');
 		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_posts')===3 && merge_content_snapshot()===$before,'Storage failure never deletes text/index/attachments/transferred vote contents');
+		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_topics WHERE topic_id IN (100,200)')===2 && (int)posting_value('SELECT COUNT(*) FROM fixture_posts WHERE topic_id=100 AND forum_id=3')===2 && (int)posting_value('SELECT COUNT(*) FROM fixture_action_log')===0,'Every failed merge restores original topics/posts and writes no partial audit');
 	}
 	merge_storage_fixture(); $interleaved=false;
 	$mutation_server->hook=function($sql) use(&$interleaved)
@@ -218,6 +219,17 @@ try
 	$viewtopic=file_get_contents($forum_root.'viewtopic.php');
 	mutation_check(strpos($viewtopic,'phpbb_record_topic_view($db, $topic_id)')>strpos($viewtopic,'// End auth check') && strpos($viewtopic,'$topic_id = intval($forum_topic_data[\'topic_id\']);')!==false,'Counter call follows session/authorization and keeps canonical post-to-topic resolution');
 	mutation_check(substr_count($viewtopic,'phpbb_record_topic_view($db, $topic_id)')===1 && strpos($viewtopic,'SET topic_views = topic_views + 1')===false && strpos($viewtopic,'INSERT IGNORE INTO \'.TOPIC_VIEW_TABLE')===false,'Actual topic page has one coordinated counter path, no legacy unlocked fallback');
+	$merge_saved_lang=$lang; $merge_saved_admin=isset($lang_extend_admin)?$lang_extend_admin:null;
+	foreach(array('english','german') as $locale)
+	{
+		foreach(array(null,false,true) as $admin_flag)
+		{
+			$lang=array(); if($admin_flag===null) { unset($lang_extend_admin); } else { $lang_extend_admin=$admin_flag; }
+			require $forum_root.'language/lang_'.$locale.'/lang_extend_merge.php';
+			mutation_check(isset($lang['Merge_storage_upgrade']) && isset($lang['Merge_storage_failed']) && isset($lang['Lang_extend_merge'])===($admin_flag===true),'Merge translations load with absent/public/admin context without warnings');
+		}
+	}
+	$lang=$merge_saved_lang; if($merge_saved_admin===null) { unset($lang_extend_admin); } else { $lang_extend_admin=$merge_saved_admin; }
 	echo "Coordinated merge storage, confirmation, poll/preferences, counters and failures passed.\n";
 }
 finally { if(isset($mutation_server) && $mutation_server->owner!==null) { $mutation_server->owner->sql_close(); } restore_error_handler(); }

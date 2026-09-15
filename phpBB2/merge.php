@@ -280,7 +280,6 @@ if ($submit)
 	}
 	if ($confirm)
 	{
-		board_stats(); cache_tree(true);
 		$template->assign_vars(array('META' => '<meta http-equiv="refresh" content="3;url=' . append_sid("./viewtopic.$phpEx?" . POST_TOPIC_URL . "=$to_topic_id") . '">'));
 		message_die(GENERAL_MESSAGE, $lang['Merge_topic_done'] . '<br /><br />' . sprintf($lang['Click_return_topic'], '<a href="' . append_sid("./viewtopic.$phpEx?" . POST_TOPIC_URL . "=$to_topic_id") . '" class="gen">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("./index.$phpEx") . '" class="gen">', '</a>'));
 	}
