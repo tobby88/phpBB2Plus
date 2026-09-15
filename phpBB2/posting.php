@@ -933,7 +933,7 @@ if ($lock_subject)
 				message_die(GENERAL_MESSAGE, $error_msg);
 			}
 			delete_post($mode, $post_data, $return_message, $return_meta, $forum_id, $topic_id, $post_id, $poll_id);
-			if ($mode == 'delete' && !empty($is_auth['auth_mod']))
+			if ($mode == 'delete' && !empty($is_auth['auth_mod']) && empty($post_data['_delete_audit_completed']))
 			{
 				log_action('delete', $topic_id, $userdata['user_id'], $userdata['username']);
 			}

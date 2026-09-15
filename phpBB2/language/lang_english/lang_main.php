@@ -1,4 +1,6 @@
 <?php
+$lang['Posting_delete_unconfirmed'] = 'The deletion could not be confirmed. Reload the topic to check its current state before trying again. Attachment files were not removed by this request.';
+$lang['Posting_delete_cleanup_pending'] = 'The post was deleted. Cleanup of its detached attachment files is still pending. An administrator can finish it under Attachments → Shadow attachments; do not delete the post again.';
 $lang['User_id_allocation_failed'] = 'A user ID could not be reserved safely. The account was not created. Please try again later; an administrator may need to run update/update_from_153a.php or check the ID storage.';
 $lang['User_id_capacity_exhausted'] = 'No further user ID is available in the supported range. The account was not created. Please contact an administrator.';
 /***************************************************************************

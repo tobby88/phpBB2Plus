@@ -48,6 +48,7 @@ function attach_delete_id_array($value)
 // regular file is already absent. A failed/unavailable listing is not proof.
 function attach_delete_file($filename, $mode = false)
 {
+	global $upload_dir, $attach_config;
 	if (attach_ftp_listing_entry($filename, '0') === false ||
 		in_array(strtolower($filename), array('index.php', '.htaccess', '.htpasswd'), true))
 	{
@@ -55,7 +56,20 @@ function attach_delete_file($filename, $mode = false)
 	}
 	try
 	{
+		// A directory/symlink at this exact name is a storage conflict, not an
+		// absent attachment. File-only inventory deliberately omits both.
+		if (!intval($attach_config['allow_ftp_upload']))
+		{
+			$path = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR . '/t_' : '/') . $filename;
+			clearstatcache(true, $path);
+			if (is_dir($path) || is_link($path)) { return false; }
+		}
 		if (unlink_attach($filename, $mode, true)) { return true; }
+		if (isset($path))
+		{
+			clearstatcache(true, $path);
+			if (is_dir($path) || is_link($path)) { return false; }
+		}
 		$files = attach_storage_file_entries($mode, true);
 		if ($files === false) { return false; }
 		$name = $mode == MODE_THUMBNAIL ? 't_' . $filename : $filename;

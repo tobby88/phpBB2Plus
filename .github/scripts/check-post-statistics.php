@@ -131,24 +131,9 @@ try
 	stats_expect_failure(function () use ($db) { phpbb_cleanup_removed_topic_preferences($db, 100); });
 	stats_check($db->value('SELECT COUNT(*) FROM fixture_bookmarks') === 3, 'Failed preference cleanup is explicit and stops subsequent deletion');
 
-	// Execute the actual whole-topic removal branch without deleting user posts.
-	$source = file_get_contents($forum_root . 'includes/functions_post.php');
-	$controller = strpos($source, 'function delete_post(');
-	$start = strpos($source, "\t\t\t\t\t\$sql = \"DELETE FROM \" . TOPICS_TABLE", $controller);
-	$end = strpos($source, "\n\t\t\t\t}\n\t\t\t}", $start);
-	stats_check($controller !== false && $start !== false && $end > $start, 'Locate actual whole-topic cleanup branch');
-	$branch = substr($source, $start, $end-$start); $topic_id=100; $forum_id=3;
-	$db = new PostStatsDatabase(1); $db->failure = 'DELETE FROM fixture_topics';
-	stats_expect_failure(function () use ($branch, $topic_id, $forum_id, $db, $lang) { eval($branch); });
-	stats_check($db->value('SELECT COUNT(*) FROM fixture_bookmarks') === 3, 'Failed topic removal must retain bookmarks');
-	$db = new PostStatsDatabase(1);
-	// Redirect synchronization also needs a forum assignment for stub candidates.
-	$db->pdo->exec('ALTER TABLE fixture_topics ADD forum_id INTEGER DEFAULT 3');
-	stats_expect_failure(function () use ($branch, $topic_id, $forum_id, $db, $lang) { eval($branch); });
-	stats_check($db->value('SELECT COUNT(*) FROM fixture_bookmarks') === 3, 'A topic with surviving posts retains its preferences');
-	$db->pdo->exec('DELETE FROM fixture_posts WHERE topic_id=100');
-	eval($branch);
-	stats_check($db->value('SELECT COUNT(*) FROM fixture_bookmarks') === 1 && $db->value('SELECT COUNT(*) FROM fixture_watches') === 1, 'Successful whole-topic controller invokes scoped cleanup');
+	// Whole-topic deletion now lives in its owning transactional worker, not
+	// an independently executable controller fragment. check-post-delete-native
+	// exercises that actual worker, including every failed write and COMMIT.
 	echo "Post statistics and topic preference cleanup checks passed.\n";
 }
 finally { restore_error_handler(); }

@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make normal post/poll deletion atomic across content, attachment links,
+  polls, search, counters, removed-topic preferences and moderator audit.
+  Recheck exact current sessions, active accounts, ownership and permissions
+  through commit. Start physical attachment cleanup only after a confirmed
+  commit; preserve shared files and retain detached descriptions for existing
+  ACP recovery on failure. Report completed deletion with pending cleanup
+  distinctly from an unconfirmed transaction. Refuse local directory/symlink
+  conflicts instead of mistaking them for already removed files. Existing
+  migrations cover all 21 participants; no new schema or live data rewrite.
 - Make full-editor changes atomic across content, first-post topic metadata,
   polls, search index, edit counters and moderator audit. Recheck the current
   session/account and granular permissions through commit; retain restricted

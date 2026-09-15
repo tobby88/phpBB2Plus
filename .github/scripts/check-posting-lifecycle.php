@@ -59,6 +59,9 @@ function posting_fixture()
 	$p->exec('ALTER TABLE fixture_users ADD username VARCHAR(255)');
 	$p->exec("UPDATE fixture_users SET username='Fixture user'");
 	$p->exec('CREATE TABLE fixture_action_log (mode VARCHAR(20),topic_id INTEGER,user_id INTEGER,username VARCHAR(255),user_ip VARCHAR(45),log_time INTEGER)');
+	foreach (array('download_count INTEGER DEFAULT 0','pm_write_token TEXT DEFAULT ""','pm_write_slot INTEGER DEFAULT 0') as $column) { $p->exec('ALTER TABLE fixture_descriptions ADD ' . $column); }
+	$p->exec('ALTER TABLE fixture_messages ADD privmsgs_write_token TEXT');
+	$p->exec('ALTER TABLE fixture_messages ADD privmsgs_write_payload TEXT');
 }
 function posting_value($sql) { return $GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
 function posting_submit($mode, $post_id = 10, $topic_id = 100, $forum_id = 3, $poll = false)
@@ -116,7 +119,7 @@ try
 	mutation_check(posting_value('SELECT post_text FROM fixture_post_text WHERE post_id=10')==='originalword','Changed owner retains original text');
 	posting_fixture(); $newreply=posting_submit('reply');
 	mutation_expect_failure(function () { posting_delete(); }, 'Cannot_delete_replied');
-	$is_auth['auth_mod']=true; posting_delete();
+	$is_auth['auth_mod']=true; $mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8'); posting_delete();
 	mutation_check((int)posting_value('SELECT topic_first_post_id FROM fixture_topics WHERE topic_id=100')===$newreply[0] && (int)posting_value('SELECT COUNT(*) FROM fixture_bookmarks')===1,'Moderator deletion of first post retains topic and preferences with fresh bounds');
 
 	posting_fixture(); $interleaved=false;
@@ -178,8 +181,9 @@ try
 	posting_submit('editpost',$pollpost[0],$pollpost[1],3,'edit'); $mutation_server->hook=null;
 	mutation_check((int)posting_value('SELECT vote_result FROM fixture_vote_results WHERE vote_option_id=1')===2,'Poll option text edits do not restore stale vote counts');
 	$is_auth['auth_mod']=false;
-	mutation_expect_failure(function () use ($pollpost) { posting_delete($pollpost[0],$pollpost[1],'poll_delete',true); }, 'Posting_target_changed');
-	$is_auth['auth_mod']=true; posting_delete($pollpost[0],$pollpost[1],'poll_delete',true);
+	$mutation_server->pdo->exec('UPDATE fixture_users SET user_level=0 WHERE user_id=8');
+	mutation_expect_failure(function () use ($pollpost) { posting_delete($pollpost[0],$pollpost[1],'poll_delete',true); }, 'Cannot_delete_poll');
+	$is_auth['auth_mod']=true; $mutation_server->pdo->exec('UPDATE fixture_users SET user_level=1 WHERE user_id=8'); posting_delete($pollpost[0],$pollpost[1],'poll_delete',true);
 	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_votes')===0 && (int)posting_value('SELECT COUNT(*) FROM fixture_posts')===2,'Explicit poll deletion keeps posts');
 	posting_fixture(); $mutation_server->pdo->exec('UPDATE fixture_forums SET count_posts=0 WHERE forum_id=3');
 	$uncounted=posting_submit('reply'); posting_delete($uncounted[0],$uncounted[1]);

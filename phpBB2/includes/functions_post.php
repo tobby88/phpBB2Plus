@@ -594,68 +594,17 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	global $userdata, $user_ip;
 
 	if (!in_array($mode, array('delete', 'poll_delete'), true)) { message_die(GENERAL_MESSAGE, $lang['No_valid_mode']); }
-	require_once dirname(__FILE__) . '/functions_posting_storage.php';
-	$lock = attach_require_mutation_lock($GLOBALS['db']);
+	require_once dirname(__FILE__) . '/functions_post_delete_storage.php';
 	try
 	{
-		$db = $lock->connection;
-		phpbb_posting_revalidate($db, $mode, $post_data, $forum_id, $topic_id, $post_id, $poll_id);
-		if ($mode != 'poll_delete')
-		{
-			require_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
-
-			phpbb_delete_post_storage_owned($db, $post_id, $topic_id, $forum_id, $post_data['poster_id']);
-
-			if ($post_data['last_post'])
-			{
-				if ($post_data['first_post'])
-				{
-					$sql = "DELETE FROM " . TOPICS_TABLE . "
-						WHERE topic_id = $topic_id AND forum_id = $forum_id
-							AND NOT EXISTS (SELECT 1 FROM " . POSTS_TABLE . " WHERE " . POSTS_TABLE . ".topic_id = " . TOPICS_TABLE . ".topic_id)";
-					if (!$db->sql_query($sql))
-					{
-						message_die(GENERAL_ERROR, 'Error in deleting post', '', __LINE__, __FILE__, $sql);
-					}
-					if ((int) $db->sql_affectedrows() !== 1) { message_die(GENERAL_MESSAGE, $lang['Posting_target_changed']); }
-
-					phpbb_cleanup_removed_topic_preferences($db, $topic_id);
-					phpbb_posting_cleanup_empty_redirects($db, $topic_id);
-				}
-			}
-
-			remove_search_post($post_id, true, true, $db);
-		}
-
-		if ($mode == 'poll_delete' || ($mode == 'delete' && $post_data['first_post'] && $post_data['last_post']) && $post_data['has_poll'])
-		{
-			$sql = "DELETE FROM " . VOTE_DESC_TABLE . "
-				WHERE topic_id = $topic_id";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "DELETE FROM " . VOTE_RESULTS_TABLE . "
-				WHERE vote_id = $poll_id";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
-			}
-
-			$sql = "DELETE FROM " . VOTE_USERS_TABLE . "
-				WHERE vote_id = $poll_id";
-			if (!$db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Error in deleting poll', '', __LINE__, __FILE__, $sql);
-			}
-		}
-
-		$user_id = (int) $post_data['poster_id'];
-		update_post_stats($mode, $post_data, $forum_id, $topic_id, $post_id, $user_id, $db, false);
-		if ($mode === 'delete') { phpbb_posting_sync_forum($db, $forum_id); }
+		$out = phpbb_submit_post_delete($GLOBALS['db'], $mode, $forum_id, $topic_id, $post_id, $poll_id);
 	}
-	finally { $lock->release(); }
+	catch (PhpbbPostSubmitException $e)
+	{
+		$key = $e->getMessage();
+		message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Posting_submit_unconfirmed']);
+	}
+	$post_data = array_merge($post_data, $out['post_data']); $poll_id = $out['poll_id'];
 
 	if ($mode == 'delete' && $post_data['first_post'] && $post_data['last_post'])
 	{
@@ -669,6 +618,12 @@ function delete_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 	}
 
 	$message .=  '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . append_sid("viewforum.$phpEx?" . POST_FORUM_URL . "=$forum_id") . '">', '</a>');
+	if (!empty($post_data['_delete_cleanup_pending']))
+	{
+		// Core deletion is already committed; do not invite a destructive retry
+		// or hide the pending cleanup behind an automatic redirect.
+		$meta = ''; $message .= '<br /><br />' . $lang['Posting_delete_cleanup_pending'];
+	}
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
 	board_stats();

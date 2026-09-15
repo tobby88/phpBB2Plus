@@ -137,3 +137,7 @@ jobs:
         env:
           PHPBB_FULL_EDITOR_NATIVE: '1'
           PHPBB_FULL_EDITOR_PASSWORD: fixture-only
+      - run: php .github/scripts/check-post-delete-native.php
+        env:
+          PHPBB_POST_DELETE_NATIVE: '1'
+          PHPBB_POST_DELETE_PASSWORD: fixture-only

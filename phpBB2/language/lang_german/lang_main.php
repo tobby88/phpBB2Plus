@@ -1,4 +1,6 @@
 <?php
+$lang['Posting_delete_unconfirmed'] = 'Die Löschung konnte nicht bestätigt werden. Lade das Thema erneut, um vor einem weiteren Versuch den aktuellen Stand zu prüfen. Dieser Vorgang hat keine Anhangdateien entfernt.';
+$lang['Posting_delete_cleanup_pending'] = 'Der Beitrag wurde gelöscht. Die Bereinigung seiner nicht mehr zugeordneten Anhangdateien steht noch aus. Ein Administrator kann sie unter Anhänge → Verwaiste Anhänge abschließen; bitte den Beitrag nicht erneut löschen.';
 $lang['User_id_allocation_failed'] = 'Die Benutzer-ID konnte nicht sicher reserviert werden. Das Konto wurde nicht angelegt. Bitte versuche es später erneut; die Administration muss gegebenenfalls update/update_from_153a.php ausführen oder den ID-Speicher prüfen.';
 $lang['User_id_capacity_exhausted'] = 'Es ist keine weitere Benutzer-ID im unterstützten Bereich verfügbar. Das Konto wurde nicht angelegt. Bitte kontaktiere die Administration.';
 

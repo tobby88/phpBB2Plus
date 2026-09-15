@@ -328,6 +328,20 @@ review such polls before changing their options. No automatic historical ballot
 repair or new schema migration is performed. After an uncertain acknowledgement,
 reload before retrying, particularly when adding a poll to an existing topic.
 
+Normal post/poll deletion commits the selected content, poll records, attachment
+links, index, counters, removed-topic preferences and moderator audit together.
+It rechecks the exact current session/account and deletion permissions through
+commit, including ownership, actual last-post status and existing poll votes.
+All 21 participating tables are already covered by the storage updater. No files
+are unlinked before a confirmed commit, even after a lost commit acknowledgement.
+Shared attachment references retain their bytes. If subsequent file cleanup
+fails, the deleted post stays deleted and its detached attachment descriptions
+reserve the remaining files. The result explicitly reports pending cleanup;
+an administrator can finish it under **Attachments → Shadow attachments**.
+This is not a filesystem transaction and does not change the separate moderator
+bulk-deletion or pruning paths. A directory or symbolic link occupying a local
+attachment filename is a conflict, not proof that the attachment is absent.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

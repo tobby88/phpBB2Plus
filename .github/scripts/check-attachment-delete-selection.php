@@ -5,6 +5,8 @@ define('IN_PHPBB', true);
 define('GENERAL_ERROR', 202);
 define('PAGE_PRIVMSGS', -10);
 define('MODE_THUMBNAIL', 1);
+define('THUMB_DIR', '.'); // This fixture keeps its thumbnail files in one owned directory.
+$attach_config = array('allow_ftp_upload'=>0);
 define('ATTACHMENTS_TABLE', 'fixture_links');
 define('ATTACHMENTS_DESC_TABLE', 'fixture_descriptions');
 define('POSTS_TABLE', 'fixture_posts');
@@ -78,6 +80,7 @@ class AttachmentSelectionDatabase
 	function scalar($sql) { return (int) $this->pdo->query($sql)->fetchColumn(); }
 }
 $fixture_dir = sys_get_temp_dir() . '/phpbb-delete-selection-' . uniqid('', true);
+$upload_dir = $fixture_dir;
 $fixture_files = array(); $unlinked = array(); $delete_failures = array(); $listing_failure = false;
 function unlink_attach($name, $mode = false, $quiet = false)
 {
