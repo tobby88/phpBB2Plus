@@ -1,6 +1,23 @@
 <?php
 require __DIR__ . '/check-ajax-edit-storage.php';
 require $forum_root . 'includes/functions_poll_storage.php';
+if (!defined('SESSIONS_TABLE')) { define('SESSIONS_TABLE','fixture_sessions'); }
+if (!defined('USER')) { define('USER',0); }
+// Protocol model only; native tests separately exercise real InnoDB semantics.
+class PollFixturePDO
+{
+	var $inner;
+	function __construct($inner) { $this->inner=$inner; }
+	function __call($method,$args) { return call_user_func_array(array($this->inner,$method),$args); }
+	function query($sql)
+	{
+		if (strpos($sql,'SET SESSION ')===0) { return $this->inner->query('SELECT 1'); }
+		if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.')===0) { return $this->inner->query("SELECT 'InnoDB' AS ENGINE, 'Dynamic' AS ROW_FORMAT, 'utf8mb4_unicode_ci' AS TABLE_COLLATION"); }
+		if ($sql==='START TRANSACTION') { $sql='BEGIN'; }
+		$sql=preg_replace('/ (FOR UPDATE|LOCK IN SHARE MODE)$/D','',$sql);
+		return $this->inner->query($sql);
+	}
+}
 $ip_source=file_get_contents($forum_root.'includes/functions.php');
 $ip_start=strpos($ip_source,'function encode_ip('); $ip_end=strpos($ip_source,'function decode_ip(',$ip_start);
 mutation_check($ip_start!==false && $ip_end>$ip_start,'Locate the actual legacy IP encoder');
@@ -8,8 +25,12 @@ eval(substr($ip_source,$ip_start,$ip_end-$ip_start));
 foreach (array('Poll_storage_failed','Poll_vote_denied','Poll_expired','No_vote_option','Vote_cast','Already_voted') as $key) { $lang[$key]=$key; }
 function poll_fixture()
 {
-	global $mutation_server, $user_ip;
-	ajax_storage_fixture(); $p=$mutation_server->pdo;
+	global $mutation_server, $user_ip, $userdata;
+	ajax_storage_fixture(); $mutation_server->pdo=new PollFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
+	$p->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
+	$p->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
+	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
+	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)"); $userdata['session_id']='fixture';
 	$user_ip=encode_ip('127.0.0.1');
 	$p->exec('ALTER TABLE fixture_voters ADD vote_user_ip CHAR(8)');
 	$p->exec("INSERT INTO fixture_votes VALUES (1,100,'Fixture poll',1,0)");
@@ -53,8 +74,10 @@ try
 	mutation_check(phpbb_cast_poll_vote($db,100,2)==='Already_voted','Registered identity is independent of IP and chosen option');
 	mutation_check((int)posting_value('SELECT SUM(vote_result) FROM fixture_vote_results')===1 && (int)posting_value('SELECT COUNT(*) FROM fixture_voters')===1,'Duplicate vote changes neither count nor voter rows');
 	$userdata['user_id']=9;
+	$mutation_server->pdo->exec('UPDATE fixture_sessions SET session_user_id=9');
 	mutation_check(phpbb_cast_poll_vote($db,100,2)==='Vote_cast','Another member may vote from the same IP');
 	poll_fixture(); $userdata['session_logged_in']=false; $userdata['user_id']=ANONYMOUS;
+	$mutation_server->pdo->exec('UPDATE fixture_sessions SET session_user_id=-1,session_logged_in=0');
 	$mutation_server->pdo->exec('UPDATE fixture_forums SET auth_view=0,auth_read=0,auth_vote=0'); $user_ip=encode_ip('2001:db8::1');
 	mutation_check(phpbb_cast_poll_vote($db,100,1)==='Vote_cast','Guest can vote when explicitly permitted');
 	mutation_check(phpbb_cast_poll_vote($db,100,2)==='Already_voted','Guest IP identifies a repeated vote');
@@ -71,6 +94,7 @@ try
 		array('DELETE FROM fixture_forums','Topic_post_not_exist'),
 		array('DELETE FROM fixture_votes','Topic_post_not_exist'),
 		array('DELETE FROM fixture_vote_results WHERE vote_option_id=1','No_vote_option'),
+		array("INSERT INTO fixture_vote_results VALUES (1,1,'Duplicate',2147483647)",'No_vote_option'),
 		array('UPDATE fixture_votes SET vote_start=1,vote_length=1','Poll_expired'),
 		array("INSERT INTO fixture_votes VALUES (2,100,'Duplicate',1,0)",'Topic_post_not_exist')
 	) as $case)
@@ -113,7 +137,7 @@ try
 			if(strpos($sql,'UPDATE fixture_vote_results')===0) { $GLOBALS['mutation_server']->pdo->exec($change); }
 		};
 		poll_failure(function() use($db) { phpbb_cast_poll_vote($db,100,1); },'Poll_storage_failed');
-		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_voters')===0,'Zero affected count update compensates this voter');
+		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_voters')===0,'Zero affected count update rolls back this voter');
 	}
 	// Execute the actual controller handoffs, including their transport catches.
 	poll_fixture();
@@ -122,7 +146,7 @@ try
 		if(strpos($sql,'UPDATE fixture_vote_results')===0) { $GLOBALS['mutation_server']->pdo->exec('DELETE FROM fixture_vote_results WHERE vote_option_id=1'); $GLOBALS['mutation_server']->failure='DELETE FROM fixture_voters'; }
 	};
 	poll_failure(function() use($db) { phpbb_cast_poll_vote($db,100,1); },'Poll_storage_failed');
-	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_voters')===1,'Failed compensation reports an error rather than a false successful vote');
+	mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_voters')===0,'No compensating DELETE is needed: the whole vote rolls back');
 	$ajax=file_get_contents($forum_root.'ajax.php'); $posting=file_get_contents($forum_root.'posting.php');
 	$start=strpos($ajax,"\t// Get topic_id",strpos($ajax,'// Voting/Viewing of polls'));
 	$end=strpos($ajax,"\t// Display vote information",$start); mutation_check($start!==false && $end>$start,'Locate actual AJAX poll branch');
@@ -171,7 +195,7 @@ try
 	}
 	$portal_template=file_get_contents($forum_root.'templates/fisubsilversh/portal_poll_ballot.tpl');
 	mutation_check(strpos($portal_template,'switch_user_logged_in')===false && strpos($portal_template,'{L_SUBMIT_VOTE}')!==false,'An explicitly permitted guest receives the portal submit button');
-	echo "Poll voting identity, current permissions, shared lock, compensation and ballot rendering checks passed.\n";
+	echo "Poll voting identity, current permissions, shared lock, rollback and ballot rendering checks passed.\n";
 }
 finally
 {

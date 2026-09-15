@@ -121,3 +121,7 @@ jobs:
         env:
           PHPBB_MERGE_NATIVE: '1'
           PHPBB_MERGE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-poll-vote-native.php
+        env:
+          PHPBB_VOTE_NATIVE: '1'
+          PHPBB_VOTE_PASSWORD: fixture-only

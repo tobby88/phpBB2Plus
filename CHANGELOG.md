@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Record poll voters and result increments in one transaction, including normal
+  and AJAX submissions. Revalidate exact persisted guest/member sessions, active
+  accounts and current forum permissions through commit; preserve explicitly
+  allowed guest voting, IP-based guest duplicate detection and moderator lock
+  exceptions. Failed writes or disconnects no longer leave an uncounted voter.
+  Uncertain commit replies report uncertainty and retries cannot count twice.
+  Existing storage/UTF-8 migrations cover all nine required participants.
 - Make topic merges transactional across posts, polls, bookmarks, watches,
   view totals, redirects, attachment flags, user/forum/global counters and logs.
   Preserve snapshot-bound confirmation of conflicting source-poll removal;

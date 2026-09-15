@@ -287,6 +287,15 @@ tables require the documented modern storage/UTF-8 migrations. A lost commit
 reply reports uncertainty; reload before retrying. The optional tree cache is
 invalidated after release, and deployment does not merge or delete user content.
 
+Normal and AJAX poll submissions commit the voter marker and result increment
+together. Exact current guest/member sessions and current permissions are checked
+through commit, including moderator exceptions for locked topics. Guest voting
+remains possible where explicitly allowed; guest IP and registered-user duplicate
+rules are unchanged. A failed write or disconnect cannot consume an uncounted
+vote. If completion cannot be confirmed, reload before retrying: a recorded vote
+will not count twice. The existing storage and UTF-8 migrations cover all nine
+participating tables. No historical ballot totals are inferred or rewritten.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

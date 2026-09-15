@@ -1654,7 +1654,8 @@ $lang['Moderation_delete_changed'] = 'A post changed while its topic was being d
 $lang['Prune_selection_changed'] = 'The forum or cleanup settings have changed or are inconsistent. Please review the current configuration before trying again.';
 $lang['Prune_storage_failed'] = 'Forum cleanup could not be completed. Some steps may already have succeeded; ask an administrator to check the remaining data before retrying.';
 
-$lang['Poll_storage_failed'] = 'Your vote could not be saved reliably. Please try again later.';
+$lang['Poll_storage_failed'] = 'The result of saving your vote could not be confirmed. Reload the poll before trying again; an already recorded vote will not be counted twice.';
+$lang['Poll_storage_upgrade'] = 'Voting requires the current InnoDB/utf8mb4 database format. Please ask an administrator to complete the database updates.';
 $lang['Poll_vote_denied'] = 'You are not allowed to vote in this poll.';
 $lang['Poll_expired'] = 'This poll has ended.';
 $lang['Moderation_state_failed'] = 'The moderation action could not be confirmed. Topic changes and their audit log are saved together; if the connection was lost at completion, please check their state before retrying.';
