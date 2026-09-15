@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep acknowledged AJAX edits and poll votes successful if their session,
+  permission or connection changes after commit. Check authority under locks
+  before commit, reject invalid transaction lifecycle calls, and retain full
+  rollback/uncertain-acknowledgement handling before confirmation. Bound these
+  paths' metadata scans to the current database and literal table without
+  weakening storage checks or the supported binary search-word collation.
+  Distinguish a recorded AJAX vote from a failed result refresh in English and
+  German without falsely confirming an unacknowledged vote.
 - Make ACP poll maintenance atomic across orphan cleanup, voter anonymization,
   topic flags and its confirmed report. Recheck current ACP sessions/accounts
   and delegated maintenance grants through commit; preserve current-source

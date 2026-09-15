@@ -1669,6 +1669,7 @@ $lang['Prune_atomic_unconfirmed'] = 'Completion of this forum operation could no
 $lang['Prune_batch_interrupted'] = '%d earlier forum operations completed successfully and were not rolled back. Review the affected forum before retrying; do not repeat the entire batch blindly.';
 
 $lang['Poll_storage_failed'] = 'The result of saving your vote could not be confirmed. Reload the poll before trying again; an already recorded vote will not be counted twice.';
+$lang['Poll_results_unavailable'] = 'The results could not be refreshed. Reload the page; your recorded vote is not affected.';
 $lang['Poll_storage_upgrade'] = 'Voting requires the current InnoDB/utf8mb4 database format. Please ask an administrator to complete the database updates.';
 $lang['Poll_vote_denied'] = 'You are not allowed to vote in this poll.';
 $lang['Poll_expired'] = 'This poll has ended.';

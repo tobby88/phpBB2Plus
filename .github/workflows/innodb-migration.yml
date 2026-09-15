@@ -153,3 +153,9 @@ jobs:
         env:
           PHPBB_POLL_MAINTENANCE_NATIVE: '1'
           PHPBB_POLL_MAINTENANCE_PASSWORD: fixture-only
+      - run: |
+          php .github/scripts/check-interactive-storage-native.php ajax
+          php .github/scripts/check-interactive-storage-native.php vote
+        env:
+          PHPBB_INTERACTIVE_NATIVE: '1'
+          PHPBB_INTERACTIVE_PASSWORD: fixture-only

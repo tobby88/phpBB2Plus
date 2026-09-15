@@ -300,11 +300,12 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 	}
 	
 	require_once($phpbb_root_path . 'includes/functions_poll_storage.' . $phpEx);
+	$vote_status = '';
 	try
 	{
 		if ($mode === 'vote_poll')
 		{
-			phpbb_cast_poll_vote($db, $topic_id, ajax_request_int('vote_option_id'));
+			$vote_status = phpbb_cast_poll_vote($db, $topic_id, ajax_request_int('vote_option_id'));
 		}
 		$poll_state = phpbb_poll_state($db, $topic_id);
 		$vote_info = $poll_state['poll']; $can_vote = $poll_state['can_vote'];
@@ -312,7 +313,7 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 	}
 	catch (PhpbbPollStorageException $error)
 	{
-		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => $error->getMessage()));
+		AJAX_message_die(array('result' => AJAX_ERROR, 'error_msg' => phpbb_poll_response_error($error->getMessage(), $vote_status)));
 	}
 	
 	// Display vote information
@@ -325,7 +326,7 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 	{
 		$result_ar = array(
 			'result' => AJAX_ERROR,
-			'error_msg' => 'Could not get vote information'
+			'error_msg' => phpbb_poll_response_error('Could not get vote information', $vote_status)
 		);
 		AJAX_message_die($result_ar);
 	}
@@ -336,7 +337,7 @@ else if (($mode == 'vote_poll') || ($mode == 'view_poll') || ($mode == 'view_bal
 	{
 		$result_ar = array(
 			'result' => AJAX_ERROR,
-			'error_msg' => 'Could not get vote information'
+			'error_msg' => phpbb_poll_response_error('Could not get vote information', $vote_status)
 		);
 		AJAX_message_die($result_ar);
 	}

@@ -1665,6 +1665,7 @@ $lang['Ajax_edit_storage_upgrade'] = 'Das Bearbeiten benötigt das aktuelle Inno
 $lang['Ajax_edit_too_large'] = 'Der Text ist für eine Direktbearbeitung zu lang. Bitte kürze ihn oder verwende den vollständigen Editor.';
 
 $lang['Poll_storage_failed'] = 'Das Speichern deiner Stimme konnte nicht bestätigt werden. Lade die Umfrage vor einem erneuten Versuch neu; eine bereits gespeicherte Stimme wird nicht doppelt gezählt.';
+$lang['Poll_results_unavailable'] = 'Die Ergebnisse konnten nicht neu geladen werden. Lade die Seite neu; deine gespeicherte Stimme bleibt erhalten.';
 $lang['Poll_storage_upgrade'] = 'Abstimmungen benötigen das aktuelle InnoDB/utf8mb4-Datenbankformat. Bitte einen Administrator, die Datenbank-Updates abzuschließen.';
 $lang['Poll_vote_denied'] = 'Du darfst an dieser Umfrage nicht teilnehmen.';
 $lang['Poll_expired'] = 'Diese Umfrage ist beendet.';

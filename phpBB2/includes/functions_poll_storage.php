@@ -8,6 +8,18 @@ function phpbb_poll_error($key)
 	throw new PhpbbPollStorageException(isset($lang[$key]) ? $lang[$key] : $key);
 }
 
+// A failed result refresh is not a failed vote after a confirmed submission.
+function phpbb_poll_response_error($message, $vote_status = '')
+{
+	global $lang;
+	if (in_array($vote_status, array('Vote_cast', 'Already_voted'), true))
+	{
+		$notice = isset($lang['Poll_results_unavailable']) ? $lang['Poll_results_unavailable'] : 'The results could not be refreshed. Please reload the page.';
+		return $lang[$vote_status] . ' ' . $notice;
+	}
+	return $message;
+}
+
 // auth() must use this connection and report failures through the caller's
 // normal HTML or AJAX transport, not terminate inside a locked SQL operation.
 class PhpbbPollStorageDatabase
@@ -67,6 +79,7 @@ class PhpbbPollVoteDatabase extends PhpbbPollStorageDatabase
 	}
 	function begin()
 	{
+		if ($this->transactional) { phpbb_poll_error('Poll_storage_failed'); }
 		$this->actor();
 		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
 		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
@@ -74,14 +87,17 @@ class PhpbbPollVoteDatabase extends PhpbbPollStorageDatabase
 		foreach (array(USERS_TABLE, SESSIONS_TABLE, FORUMS_TABLE, TOPICS_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, VOTE_DESC_TABLE, VOTE_RESULTS_TABLE, VOTE_USERS_TABLE) as $table)
 		{
 			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
-			$rows = $this->rows("SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			$table_name = $this->sql_escape($table);
+			// Bound metadata scans without weakening column policy or held locks.
+			$rows = $this->rows("SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $table_name . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $table_name . "' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { phpbb_poll_error('Poll_storage_upgrade'); }
 		}
 	}
 	function commit()
 	{
 		global $userdata;
+		if (!$this->transactional) { phpbb_poll_error('Poll_storage_failed'); }
 		$user = $this->actor(); $id = (int)$user['user_id']; $sid = $this->sql_escape($userdata['session_id']);
 		$this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '$sid' AND HEX(session_id) = HEX('$sid') LOCK IN SHARE MODE");
 		if ($id !== ANONYMOUS)
@@ -91,12 +107,15 @@ class PhpbbPollVoteDatabase extends PhpbbPollStorageDatabase
 		}
 		$state = $this->authorize(); $forum = (int)$state['poll']['forum_id'];
 		$this->rows('SELECT group_id FROM ' . AUTH_ACCESS_TABLE . ' WHERE forum_id = ' . $forum . ' ORDER BY group_id LOCK IN SHARE MODE');
+		// Authority is pinned through COMMIT; a later expiry/revocation must
+		// not report an already acknowledged, fully counted vote as failed.
 		$this->authorize(); $this->control('COMMIT'); $this->transactional = false;
-		$this->authorize();
 	}
 	function rollback()
 	{
+		if (!$this->transactional) { return; }
 		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+		$this->transactional = false;
 	}
 }
 

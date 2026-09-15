@@ -67,6 +67,7 @@ class PhpbbAjaxStorageDatabase
 	}
 	function begin()
 	{
+		if ($this->transactional) { phpbb_ajax_storage_error('Ajax_edit_storage_failed'); }
 		$this->actor();
 		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
 		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
@@ -77,24 +78,31 @@ class PhpbbAjaxStorageDatabase
 			// Canonical new installs deliberately give search words a binary
 			// collation; converted installs may use unicode_ci. Both are utf8mb4.
 			$word_binary = "(c.TABLE_NAME = '" . $this->sql_escape(SEARCH_WORD_TABLE) . "' AND c.COLUMN_NAME = 'word_text' AND c.COLLATION_NAME = 'utf8mb4_bin')";
-			$rows = $this->rows("SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR (c.COLLATION_NAME <> 'utf8mb4_unicode_ci' AND NOT " . $word_binary . ")))");
+			$table_name = $this->sql_escape($table);
+			// Bound metadata scans without weakening column policy or held locks.
+			$rows = $this->rows("SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $table_name . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $table_name . "' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR (c.COLLATION_NAME <> 'utf8mb4_unicode_ci' AND NOT " . $word_binary . ")))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { phpbb_ajax_storage_error('Ajax_edit_storage_upgrade'); }
 		}
 	}
 	function commit()
 	{
 		global $userdata;
+		if (!$this->transactional) { phpbb_ajax_storage_error('Ajax_edit_storage_failed'); }
 		$user = $this->actor(); $id = (int)$user['user_id']; $sid = $this->sql_escape($userdata['session_id']);
 		$this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '$sid' AND HEX(session_id) = HEX('$sid') LOCK IN SHARE MODE");
 		$this->rows('SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' LOCK IN SHARE MODE');
 		$this->rows('SELECT group_id FROM ' . USER_GROUP_TABLE . ' WHERE user_id = ' . $id . ' ORDER BY group_id LOCK IN SHARE MODE');
 		$this->rows('SELECT group_id FROM ' . AUTH_ACCESS_TABLE . ' WHERE forum_id = ' . $this->context['forum_id'] . ' ORDER BY group_id LOCK IN SHARE MODE');
-		$this->authorize(); $this->control('COMMIT'); $this->transactional = false; $this->authorize();
+		// Authority is pinned through COMMIT. A later revocation or disconnect
+		// cannot roll back an acknowledged edit or turn it into a failed save.
+		$this->authorize(); $this->control('COMMIT'); $this->transactional = false;
 	}
 	function rollback()
 	{
+		if (!$this->transactional) { return; }
 		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+		$this->transactional = false;
 	}
 }
 

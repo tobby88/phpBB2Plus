@@ -166,6 +166,13 @@ review the current state before retrying. Retained answers, vote totals and
 anonymous/deleted-account voting history are not reconstructed or renumbered;
 ambiguous source records remain in the bounded review list.
 
+AJAX edits and poll votes validate current authority under locks through
+commit. Once the database acknowledges that commit, a later session expiry,
+permission change or disconnect does not turn the completed save into a failed
+mutation. Subsequent requests still require current permissions. An unconfirmed
+commit remains an error; retries of an already stored edit/vote do not count it
+twice. Storage validation remains scoped to the current database and table.
+
 ACP private-message repair keeps a durable cleanup inventory before deleting
 message parents or attachment links. After an interrupted run, reopen the same
 maintenance operation: it rechecks current permissions and source state before
