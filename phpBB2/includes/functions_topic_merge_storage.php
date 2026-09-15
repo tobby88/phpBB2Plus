@@ -53,6 +53,7 @@ class PhpbbTopicMergeDatabase
 	}
 	function begin()
 	{
+		if ($this->transactional) { phpbb_merge_error('Merge_storage_failed'); }
 		$this->actor();
 		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
 		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
@@ -60,26 +61,32 @@ class PhpbbTopicMergeDatabase
 		foreach (array(USERS_TABLE, SESSIONS_TABLE, FORUMS_TABLE, TOPICS_TABLE, POSTS_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, ATTACHMENTS_TABLE, BOOKMARK_TABLE, TOPICS_WATCH_TABLE, TOPIC_VIEW_TABLE, VOTE_DESC_TABLE, VOTE_RESULTS_TABLE, VOTE_USERS_TABLE, LOGS_TABLE, CONFIG_TABLE) as $table)
 		{
 			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
-			$rows = phpbb_merge_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			$table_name = $this->sql_escape($table);
+			// Keep the column policy and metadata locks, but bound the scan.
+			$rows = phpbb_merge_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $table_name . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $table_name . "' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { phpbb_merge_error('Merge_storage_upgrade'); }
 		}
 	}
 	function commit()
 	{
 		global $userdata;
+		if (!$this->transactional) { phpbb_merge_error('Merge_storage_failed'); }
 		$user = $this->actor(); $id = (int)$user['user_id']; $sid = $this->sql_escape($userdata['session_id']);
 		phpbb_merge_rows($this, 'SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id = '$sid' AND HEX(session_id) = HEX('$sid') LOCK IN SHARE MODE");
 		phpbb_merge_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id = ' . $id . ' LOCK IN SHARE MODE');
 		phpbb_merge_rows($this, 'SELECT group_id FROM ' . USER_GROUP_TABLE . ' WHERE user_id = ' . $id . ' ORDER BY group_id LOCK IN SHARE MODE');
 		phpbb_merge_rows($this, 'SELECT group_id FROM ' . AUTH_ACCESS_TABLE . ' WHERE forum_id IN (' . implode(',', $this->forums) . ') ORDER BY group_id, forum_id LOCK IN SHARE MODE');
 		$this->authorize();
-		$this->control('COMMIT');
-		$this->authorize();
+		// Authority stays pinned through COMMIT. Later changes cannot undo
+		// an acknowledged operation or its audit/counter updates.
+		$this->control('COMMIT'); $this->transactional = false;
 	}
 	function rollback()
 	{
+		if (!$this->transactional) { return; }
 		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+		$this->transactional = false;
 	}
 }
 function phpbb_merge_rows($db, $sql)

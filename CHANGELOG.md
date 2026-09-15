@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Harden topic move, split, merge and lock/type-change transaction lifecycles:
+  reject writes outside a transaction and implicit commits from repeated begin
+  calls. Preserve acknowledged changes, audit records and counters when the
+  session, permission or connection changes after commit; current authority
+  remains checked under locks before commit. Keep cache invalidation for failed
+  and uncertain writes. Restrict metadata scans to the current database/table
+  with unchanged InnoDB/utf8mb4/DYNAMIC requirements and updater coverage.
 - Keep acknowledged AJAX edits and poll votes successful if their session,
   permission or connection changes after commit. Check authority under locks
   before commit, reject invalid transaction lifecycle calls, and retain full

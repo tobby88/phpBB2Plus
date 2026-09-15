@@ -159,3 +159,11 @@ jobs:
         env:
           PHPBB_INTERACTIVE_NATIVE: '1'
           PHPBB_INTERACTIVE_PASSWORD: fixture-only
+      - run: |
+          php .github/scripts/check-moderation-commit-native.php state
+          php .github/scripts/check-moderation-commit-native.php move
+          php .github/scripts/check-moderation-commit-native.php split
+          php .github/scripts/check-moderation-commit-native.php merge
+        env:
+          PHPBB_MODERATION_COMMIT_NATIVE: '1'
+          PHPBB_MODERATION_COMMIT_PASSWORD: fixture-only

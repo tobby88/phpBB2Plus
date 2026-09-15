@@ -173,6 +173,13 @@ mutation. Subsequent requests still require current permissions. An unconfirmed
 commit remains an error; retries of an already stored edit/vote do not count it
 twice. Storage validation remains scoped to the current database and table.
 
+Topic moves, splits, merges and lock/type changes follow the same commit
+boundary: current permissions are checked under locks before confirmation,
+and a later session or connection change cannot turn an acknowledged operation
+into a failed one. Audit records and counters are committed together with the
+change. Optional tree caches are invalidated after attempted move/split/merge
+writes, including failures where the commit acknowledgement is uncertain.
+
 ACP private-message repair keeps a durable cleanup inventory before deleting
 message parents or attachment links. After an interrupted run, reopen the same
 maintenance operation: it rechecks current permissions and source state before
