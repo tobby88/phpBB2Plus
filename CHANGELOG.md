@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make ACP poll maintenance atomic across orphan cleanup, voter anonymization,
+  topic flags and its confirmed report. Recheck current ACP sessions/accounts
+  and delegated maintenance grants through commit; preserve current-source
+  guards and surviving poll history. Refuse old storage across all seven
+  participants, covered by the existing updater. Lost acknowledgements report
+  uncertainty and repeated completed cleanup does not change data again.
 - Restrict posting/editor/deletion metadata checks to their literal table and
   current database, avoiding expensive correlated information-schema scans on
   MariaDB. Preserve all engine, row-format, column-collation and metadata-lock

@@ -155,6 +155,17 @@ permissions, quotas or plugin policies. Back up first and resolve ambiguous
 ownership explicitly; a maintenance report does not mean every inconsistency
 has been automatically repaired.
 
+ACP poll maintenance commits orphan-poll/dependent cleanup, deleted-voter
+anonymization and topic poll flags together. Current-source predicates remain
+in place: restored parents or accounts are not removed through stale selections.
+The exact current ACP session, active account and delegated maintenance grant
+are checked through commit. All seven participating tables must use the current
+InnoDB/utf8mb4/DYNAMIC format; the existing updater covers them. No new schema
+migration or automatic maintenance run is introduced. On an unconfirmed commit,
+review the current state before retrying. Retained answers, vote totals and
+anonymous/deleted-account voting history are not reconstructed or renumbered;
+ambiguous source records remain in the bounded review list.
+
 ACP private-message repair keeps a durable cleanup inventory before deleting
 message parents or attachment links. After an interrupted run, reopen the same
 maintenance operation: it rechecks current permissions and source state before

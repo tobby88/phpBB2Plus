@@ -1,4 +1,6 @@
 <?php
+$lang['Maintenance_poll_unconfirmed'] = 'Der Abschluss der Umfragewartung konnte nicht bestätigt werden. Prüfe vor einem erneuten Versuch den aktuellen Umfragestand; eine verlorene Bestätigung kann auch nach einer bereits abgeschlossenen Bereinigung auftreten. Antwort-IDs oder Stimmensummen werden nicht automatisch rekonstruiert.';
+$lang['Maintenance_poll_upgrade'] = 'Die Umfragewartung benötigt für alle beteiligten Tabellen InnoDB im aktuellen utf8mb4-/DYNAMIC-Speicherformat. Schließe zunächst die Datenbank-Updates ab.';
 
 /***************************************************************************
  *                            lang_dbmtnc.php [German]

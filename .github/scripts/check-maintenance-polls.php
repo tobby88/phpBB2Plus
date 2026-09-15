@@ -12,12 +12,13 @@ class PollMaintenanceRows {public $rows;function __construct($rows){$this->rows=
 $dsn=getenv('PHPBB_POLL_MAINTENANCE_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
 if($native){poll_mtnc_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_poll_mtnc_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned local schemas allowed');}
 class PollMaintenanceServer {
- public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();
+ public $pdo;public $owner=null;public $hook=null;public $failure='';public $queries=array();public $actor_blocked=false;
  function __construct($engine){
   $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_POLL_MAINTENANCE_TEST_PASSWORD')?:''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+  if($GLOBALS['native']){$this->pdo->exec('SET SESSION innodb_lock_wait_timeout=1');}
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','topics'=>'topic_id INTEGER PRIMARY KEY,topic_vote INTEGER','polls'=>'vote_id INTEGER PRIMARY KEY,topic_id INTEGER,vote_text VARCHAR(255),vote_start INTEGER,vote_length INTEGER','options'=>'vote_id INTEGER,vote_option_id INTEGER,vote_option_text VARCHAR(255),vote_result INTEGER','voters'=>'vote_id INTEGER,vote_user_id INTEGER,vote_user_ip VARCHAR(45)','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)');
   $definitions['sessions']='session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER';
-  foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
+  foreach($definitions as $name=>$definition){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$definition.')'.($GLOBALS['native']?' ENGINE='.$engine.' ROW_FORMAT=DYNAMIC DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci':''));}
   $this->pdo->exec("INSERT INTO fixture_users VALUES (1,'Root',1,1),(20,'Junior',0,1),(8,'Member',0,1)");
   $this->pdo->exec('INSERT INTO fixture_topics VALUES (10,0),(20,1),(30,1),(40,0)');
   $this->pdo->exec("INSERT INTO fixture_polls VALUES (1,10,'valid',1,0),(2,99,'orphan',1,0),(3,30,'<script>Grüße</script>',1,0),(4,40,'duplicate one',1,0),(5,40,'duplicate two',1,0)");
@@ -32,7 +33,7 @@ class PollMaintenanceForum {
  function sql_dedicated_connection(){return new PollMaintenanceConnection($GLOBALS['poll_mtnc_server']);}
 }
 class PollMaintenanceConnection {
- public $server;public $pdo;public $db_connect_id=true;public $closed=false;public $affected=0;
+ public $server;public $pdo;public $db_connect_id=true;public $closed=false;public $affected=0;public $transactional=false;
  function __construct($server){$this->server=$server;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',getenv('PHPBB_POLL_MAINTENANCE_TEST_PASSWORD')?:'',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
  function sql_query($sql){
   if($this->closed){return false;}$s=$this->server;$s->queries[]=$sql;
@@ -44,14 +45,21 @@ class PollMaintenanceConnection {
   poll_mtnc_check($s->owner===$this,'Every protected query uses the owning connection');
   if(is_callable($s->hook)){call_user_func($s->hook,$sql,$this);}
   if($this->closed||($s->failure!==''&&strpos($sql,$s->failure)===0)){return false;}
-  try{$r=$this->pdo->query($sql);$this->affected=$r->rowCount();return preg_match('/^SELECT/',$sql)?new PollMaintenanceRows($r->fetchAll(PDO::FETCH_ASSOC)):true;}catch(PDOException $e){return false;}
+  if(!$GLOBALS['native']){
+   // Protocol translation only; the native fixture checks actual table metadata,
+   // independent connections, row locks, rollback and commit acknowledgement.
+   if(strpos($sql,'SET SESSION ')===0){return true;}
+   if(strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.')===0){return new PollMaintenanceRows(array(array('ENGINE'=>'InnoDB','ROW_FORMAT'=>'Dynamic','TABLE_COLLATION'=>'utf8mb4_unicode_ci')));}
+   $sql=$sql==='START TRANSACTION'?'BEGIN':preg_replace('/ (FOR UPDATE|LOCK IN SHARE MODE)$/D','',$sql);
+  }
+  try{$r=$this->pdo->query($sql);if($sql==='BEGIN'||$sql==='START TRANSACTION'){$this->transactional=true;}elseif($sql==='COMMIT'||$sql==='ROLLBACK'){$this->transactional=false;}$this->affected=$r->rowCount();return preg_match('/^SELECT/',$sql)?new PollMaintenanceRows($r->fetchAll(PDO::FETCH_ASSOC)):true;}catch(PDOException $e){return false;}
  }
  function sql_fetchrow($r){return array_shift($r->rows);}
  function sql_fetchrowset($r){return $r->rows;}
  function sql_freeresult($r){}
  function sql_affectedrows(){return $this->affected;}
  function sql_escape($s){return substr($this->pdo->quote($s),1,-1);}
- function sql_close(){if($this->server->owner===$this){$this->server->owner=null;}$this->closed=true;$this->db_connect_id=false;$this->pdo=null;}
+ function sql_close(){if(!$GLOBALS['native']&&$this->server->owner===$this&&$this->pdo!==null&&$this->transactional){$this->pdo->exec('ROLLBACK');$this->transactional=false;}if($this->server->owner===$this){$this->server->owner=null;}$this->closed=true;$this->db_connect_id=false;$this->pdo=null;}
 }
 
 function poll_mtnc_fixture($engine,$actor=1){
@@ -63,6 +71,7 @@ function poll_mtnc_fixture($engine,$actor=1){
 function poll_mtnc_value($sql){return (int)$GLOBALS['poll_mtnc_server']->pdo->query($sql)->fetchColumn();}
 function poll_mtnc_run($expected='',$request=null){
  $caught='';$result=null;try{$result=dbmtnc_maintain_polls(new PollMaintenanceForum(),$request===null?$_POST:$request);}catch(PhpbbAclException $e){$caught=$e->getMessage();}
+ if(is_callable($expected)){$expected=call_user_func($expected);}
  poll_mtnc_check($caught===$expected,'Expected maintenance outcome: '.$caught.' / '.$expected);poll_mtnc_check($GLOBALS['poll_mtnc_server']->owner===null,'Owner released');return $result;
 }
 function phpbb_admin_html($value){return htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
@@ -70,8 +79,9 @@ $controller=file_get_contents($root.'admin/admin_db_maintenance.php');$a=strpos(
 poll_mtnc_check($a!==false&&$b>$a,'Actual poll controller branch found');$branch='switch($function){'.substr($controller,$a,$b-$a).'}';
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{
- foreach($native?array('MyISAM','InnoDB'):array('SQLite') as $engine){foreach(array('english','german') as $locale){
+ foreach($native?array('InnoDB'):array('SQLite') as $engine){foreach(array('english','german') as $locale){
   $lang=array('Not_Authorised'=>'not-authorized','Session_invalid'=>'session-invalid','Attachment_storage_busy'=>'busy');$phpEx='php';include $root.'language/lang_'.$locale.'/lang_dbmtnc.php';
+  if($native){poll_mtnc_fixture('MyISAM');poll_mtnc_run($lang['Maintenance_poll_upgrade']);poll_mtnc_check(poll_mtnc_value('SELECT COUNT(*) FROM fixture_polls')===5,'Legacy storage is refused before any mutation');}
   poll_mtnc_fixture($engine);$out=poll_mtnc_run();
   foreach(array('polls_removed'=>1,'options_removed'=>2,'voters_removed'=>2,'voters_anonymized'=>1,'topics_updated'=>3,'review_count'=>3) as $key=>$expected){poll_mtnc_check($out[$key]===$expected,'Accurate affected count: '.$key);}
   poll_mtnc_check(array_map('intval',array_column($out['review'],'vote_id'))===array(3,4,5),'Optionless and duplicate polls retained for source repair');
@@ -109,14 +119,17 @@ try{
   }
   foreach(array('DELETE FROM fixture_polls','DELETE FROM fixture_options','DELETE FROM fixture_voters','UPDATE fixture_voters','UPDATE fixture_topics') as $prefix){
    foreach(array('failure','actor','owner') as $race){
-    poll_mtnc_fixture($engine);$poll_mtnc_server->hook=function($sql,$connection) use($prefix,$race){
+    poll_mtnc_fixture($engine);$before=array();foreach(array('topics','polls','options','voters') as $table){$before[$table]=$poll_mtnc_server->pdo->query('SELECT * FROM fixture_'.$table)->fetchAll(PDO::FETCH_ASSOC);}
+    $poll_mtnc_server->hook=function($sql,$connection) use($prefix,$race){
      if(strpos($sql,$prefix)!==0){return;}$s=$GLOBALS['poll_mtnc_server'];$s->hook=null;
-     if($race==='actor'){$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}elseif($race==='owner'){$connection->sql_close();}else{$s->failure=$prefix;}
+     if($race==='actor'){try{$s->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=1');}catch(PDOException $e){if(!$GLOBALS['native']||!isset($e->errorInfo[1])||(int)$e->errorInfo[1]!==1205){throw $e;}$s->actor_blocked=true;}}elseif($race==='owner'){$connection->sql_close();}else{$s->failure=$prefix;}
     };
-    poll_mtnc_run($lang[$race==='actor'?'Not_Authorised':'Maintenance_poll_failed']);
+    $attempt=poll_mtnc_run(function()use($race,$lang){return $GLOBALS['poll_mtnc_server']->actor_blocked?'':$lang[$race==='actor'?'Not_Authorised':'Maintenance_poll_unconfirmed'];});
+    if($poll_mtnc_server->actor_blocked){foreach(array('polls_removed'=>1,'options_removed'=>2,'voters_removed'=>2,'voters_anonymized'=>1,'topics_updated'=>3) as $key=>$count){poll_mtnc_check($attempt[$key]===$count,'Blocked independent revocation serializes with complete maintenance');}}
+    else{foreach($before as $table=>$rows){poll_mtnc_check($poll_mtnc_server->pdo->query('SELECT * FROM fixture_'.$table)->fetchAll(PDO::FETCH_ASSOC)===$rows,'Any failed step rolls back every poll-maintenance change: '.$table);}}
     poll_mtnc_check(poll_mtnc_value('SELECT COUNT(*) FROM fixture_polls WHERE vote_id=3')===1&&poll_mtnc_value('SELECT COUNT(*) FROM fixture_voters WHERE vote_id=3')===1,'Interrupted repair never destroys optionless source');
     $poll_mtnc_server->failure='';$poll_mtnc_server->pdo->exec('UPDATE fixture_users SET user_active=1 WHERE user_id=1');$out=poll_mtnc_run();
-    poll_mtnc_check($out['review_count']===3&&poll_mtnc_value('SELECT COUNT(*) FROM fixture_polls WHERE vote_id=2')===0,'Retry completes dependent cleanup after partial table changes');
+    poll_mtnc_check($out['review_count']===3&&poll_mtnc_value('SELECT COUNT(*) FROM fixture_polls WHERE vote_id=2')===0,'Retry completes the previously rolled-back maintenance operation');
    }
   }
   foreach(array('get','bad-sid','array-sid','inactive','no-admin','demoted','lock') as $case){
@@ -135,7 +148,7 @@ try{
   poll_mtnc_check(strpos($html,sprintf($lang['Maintenance_poll_summary'],1,2,2,1,3))!==false&&strpos($html,'&lt;script&gt;Grüße&lt;/script&gt;')!==false&&strpos($html,'<script>')===false,'Actual localized controller reports confirmed counts and escapes source text');
   poll_mtnc_check(!$board_locks,'Controller leaves global board-disable state untouched');
   poll_mtnc_fixture($engine);$db=new PollMaintenanceForum();$poll_mtnc_server->failure='DELETE FROM fixture_options';$caught='';ob_start();try{eval($branch);}catch(PollMaintenanceControllerFailure $e){$caught=$e->getMessage();}finally{ob_end_clean();}
-  poll_mtnc_check($caught===$lang['Maintenance_poll_failed']&&$poll_mtnc_server->owner===null&&!$board_locks,'Actual controller handles partial failures without a stuck board lock');
+  poll_mtnc_check($caught===$lang['Maintenance_poll_unconfirmed']&&$poll_mtnc_server->owner===null&&!$board_locks,'Actual controller handles uncertain transaction failures without a stuck board lock');
   echo $engine.' '.$locale." current-state poll maintenance and controller checks passed.\n";
  }}
 }finally{restore_error_handler();}

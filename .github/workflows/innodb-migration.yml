@@ -149,3 +149,7 @@ jobs:
         env:
           PHPBB_POST_METADATA_NATIVE: '1'
           PHPBB_POST_METADATA_PASSWORD: fixture-only
+      - run: php .github/scripts/check-poll-maintenance-native.php
+        env:
+          PHPBB_POLL_MAINTENANCE_NATIVE: '1'
+          PHPBB_POLL_MAINTENANCE_PASSWORD: fixture-only

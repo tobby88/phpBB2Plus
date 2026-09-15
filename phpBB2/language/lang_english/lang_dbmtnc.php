@@ -1,4 +1,6 @@
 <?php
+$lang['Maintenance_poll_unconfirmed'] = 'The poll-maintenance transaction could not be confirmed. Check the current poll state before retrying; a lost acknowledgement can follow an already completed cleanup. No option identities or vote totals are reconstructed automatically.';
+$lang['Maintenance_poll_upgrade'] = 'Poll maintenance requires InnoDB with the current utf8mb4/DYNAMIC storage format for every participating table. Complete the database updates before running it.';
 
 /***************************************************************************
  *                            lang_dbmtnc.php [English]

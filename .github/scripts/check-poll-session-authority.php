@@ -13,20 +13,21 @@ function poll_session_revoke($kind){
  $GLOBALS['poll_mtnc_server']->pdo->exec($sql[$kind]);
 }
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
-try{foreach($native?array('InnoDB','MyISAM'):array('SQLite') as $engine){
+try{foreach($native?array('InnoDB'):array('SQLite') as $engine){
  foreach(array(1,20) as $actor){foreach(array('missing','foreign','logged-out','admin-revoked','case-changed','replacement') as $kind){
   foreach(array('entry','DELETE FROM fixture_polls','DELETE FROM fixture_options','DELETE FROM fixture_voters','UPDATE fixture_voters','UPDATE fixture_topics') as $boundary){
    poll_mtnc_fixture($engine,$actor);
    if($actor===20){$poll_mtnc_server->pdo->exec("INSERT INTO fixture_junior VALUES (20,'".md5('GeneralDB_Maintenanceadmin_db_maintenance.php')."')");}
    $snapshot=poll_session_snapshot();$intercepted=false;
    if($boundary==='entry'){poll_session_revoke($kind);}
-   else{$poll_mtnc_server->hook=function($sql)use($kind,$boundary,&$snapshot,&$intercepted){
+   else{$poll_mtnc_server->hook=function($sql)use($kind,$boundary,&$intercepted){
     if(strpos($sql,$boundary)!==0){return;}
-    $GLOBALS['poll_mtnc_server']->hook=null;$snapshot=poll_session_snapshot();$intercepted=true;poll_session_revoke($kind);
+    $GLOBALS['poll_mtnc_server']->hook=null;$intercepted=true;try{poll_session_revoke($kind);}catch(PDOException $e){if(!$GLOBALS['native']||!isset($e->errorInfo[1])||(int)$e->errorInfo[1]!==1205){throw $e;}$GLOBALS['poll_mtnc_server']->actor_blocked=true;}
    };}
-   poll_mtnc_run($lang['Not_Authorised']);
+   $out=poll_mtnc_run(function()use($lang){return $GLOBALS['poll_mtnc_server']->actor_blocked?'':$lang['Not_Authorised'];});
    poll_mtnc_check($boundary==='entry'||$intercepted,'Actual poll write-boundary injection reached');
-   poll_mtnc_check(poll_session_snapshot()===$snapshot,'No changes after session revocation: '.$actor.' '.$kind.' '.$boundary);
+   if($poll_mtnc_server->actor_blocked){foreach(array('polls_removed'=>1,'options_removed'=>2,'voters_removed'=>2,'voters_anonymized'=>1,'topics_updated'=>3) as $key=>$count){poll_mtnc_check($out[$key]===$count,'Blocked revocation serializes with complete maintenance');}}
+   else{poll_mtnc_check(poll_session_snapshot()===$snapshot,'Complete rollback after effective session revocation: '.$actor.' '.$kind.' '.$boundary);}
    $poll_mtnc_server->pdo->exec('DELETE FROM fixture_sessions');
    $poll_mtnc_server->pdo->exec("INSERT INTO fixture_sessions VALUES ('new-admin-sid',".$actor.",1,1)");
    $userdata['session_id']='new-admin-sid';
