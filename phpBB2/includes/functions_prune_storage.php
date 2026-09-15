@@ -8,6 +8,8 @@ function phpbb_prune_error($key)
 	global $lang;
 	throw new PhpbbPruneException(isset($lang[$key]) ? $lang[$key] : $key);
 }
+// Compatibility for requests which loaded an older forum-maintenance caller
+// during per-file deployment. Current entry points use the transaction owner.
 class PhpbbPruneDatabase
 {
 	var $connection;
@@ -88,9 +90,11 @@ function phpbb_prune_forum($database,$forum_id,$cutoff=null,&$schedule_updated=n
 	$empty=array('topics'=>0,'posts'=>0);
 	$lock=new attach_mutation_lock($database,!$automatic);
 	if(!$lock->acquired) { if($automatic) { return $empty; } phpbb_prune_error('Attachment_storage_busy'); }
+	$db = null;
 	try
 	{
-		$db=new PhpbbPruneDatabase($lock->connection); $user=phpbb_prune_actor($db);
+		$db = new PhpbbTopicRemovalDatabase($lock->connection, $forum_id, $automatic ? 'prune_auto' : 'prune_admin');
+		$db->begin(); $user = $db->actor();
 		$forums=phpbb_prune_rows($db,'SELECT forum_id, forum_link, prune_enable, prune_next FROM '.FORUMS_TABLE.' WHERE forum_id = '.$forum_id);
 		if(!$forums || !empty($forums[0]['forum_link'])) { phpbb_prune_error('Prune_selection_changed'); }
 		$schedule_guard=''; $now=time();
@@ -114,6 +118,7 @@ function phpbb_prune_forum($database,$forum_id,$cutoff=null,&$schedule_updated=n
 			$schedule_guard=' AND EXISTS (SELECT 1 FROM '.FORUMS_TABLE.' f WHERE f.forum_id = '.$forum_id.' AND f.prune_enable = 1 AND f.prune_next = '.(int)$forums[0]['prune_next'].')'.$settings_guard;
 		}
 		elseif(!phpbb_prune_admin_allowed($db,$user)) { phpbb_prune_error('Not_Authorised'); }
+		$db->policy_guard = $schedule_guard;
 		$guard=phpbb_prune_topic_guard($forum_id,$cutoff).$schedule_guard;
 		$rows=phpbb_prune_rows($db,'SELECT topic_id FROM '.TOPICS_TABLE.' WHERE forum_id = '.$forum_id.$guard.' ORDER BY topic_id');
 		$ids=array(); foreach($rows as $row) { $ids[]=phpbb_prune_id($row['topic_id']); }
@@ -124,9 +129,17 @@ function phpbb_prune_forum($database,$forum_id,$cutoff=null,&$schedule_updated=n
 			// the next one a no-op. Never advance scheduling on storage failure.
 			$db->sql_query('UPDATE '.FORUMS_TABLE.' SET prune_next = '.$next.' WHERE forum_id = '.$forum_id.' AND prune_enable = 1 AND prune_next = '.(int)$forums[0]['prune_next'].$settings_guard);
 			if((int)$db->sql_affectedrows()!==1) { phpbb_prune_error('Prune_selection_changed'); }
-			$schedule_updated=true;
+			$db->policy_guard = ' AND EXISTS (SELECT 1 FROM ' . FORUMS_TABLE . ' f WHERE f.forum_id = ' . $forum_id . ' AND f.prune_enable = 1 AND f.prune_next = ' . $next . ')' . $settings_guard;
 		}
-		return array('topics'=>count($removed['topic_ids']),'posts'=>count($removed['post_ids']));
+		$db->audit($removed['topic_ids']); $db->commit();
+		$schedule_updated = $automatic;
+		$result = array('topics'=>count($removed['topic_ids']),'posts'=>count($removed['post_ids']));
+		if (!$db->cleanup()) { $result['cleanup_pending'] = true; }
+		return $result;
 	}
-	finally { $lock->release(); }
+	catch (PhpbbPruneException $e) { throw $e; }
+	catch (PhpbbPostSubmitException $e) { phpbb_prune_error($e->getMessage()); }
+	catch (Exception $e) { phpbb_prune_error('Prune_atomic_unconfirmed'); }
+	catch (Error $e) { phpbb_prune_error('Prune_atomic_unconfirmed'); }
+	finally { if ($db !== null) { $db->rollback(); } $lock->release(); }
 }

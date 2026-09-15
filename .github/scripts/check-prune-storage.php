@@ -29,6 +29,8 @@ function prune_fixture()
 	$p->exec("INSERT INTO fixture_vote_results VALUES (1,1,'keep',4)");
 	$p->exec('INSERT INTO fixture_voters VALUES (1,8)');
 	$userdata['session_id']='fixture-session'; $userdata['session_admin']=true;
+	$p->exec('ALTER TABLE fixture_sessions ADD session_admin INTEGER DEFAULT 1');
+	$p->exec("UPDATE fixture_sessions SET session_id='fixture-session',session_user_id=8,session_logged_in=1,session_admin=1");
 	$_SERVER['REQUEST_METHOD']='POST'; $_POST=array('sid'=>'fixture-session');
 }
 function prune_expect_failure($callback,$expected)
@@ -54,7 +56,7 @@ try
 	$mutation_server->pdo->exec("INSERT INTO fixture_junior VALUES (8,'".$module."')");
 	mutation_check(phpbb_prune_forum($db,3,100)['topics']===2,'Current delegated ACP prune grant is supported');
 	prune_fixture(); $userdata['user_level']=ADMIN; $mutation_server->pdo->exec('UPDATE fixture_users SET user_level=0,user_active=0 WHERE user_id=8');
-	prune_expect_failure(function() use($db){ phpbb_prune_forum($db,3,100); },'Not_Authorised');
+	prune_expect_failure(function() use($db){ phpbb_prune_forum($db,3,100); },'Session_invalid');
 	foreach(array('GET','sid') as $failure)
 	{
 		prune_fixture(); if($failure==='GET') { $_SERVER['REQUEST_METHOD']='GET'; } else { $_POST['sid']='wrong'; }
@@ -98,7 +100,7 @@ try
 	foreach(array('DELETE FROM fixture_topics','DELETE FROM fixture_post_text','DELETE FROM fixture_views','UPDATE fixture_forums SET prune_next') as $failure)
 	{
 		prune_fixture(); $mutation_server->failure=$failure;
-		prune_expect_failure(function() use($db){ phpbb_prune_forum($db,3); },'Prune_storage_failed');
+		prune_expect_failure(function() use($db){ phpbb_prune_forum($db,3); },'Prune_atomic_unconfirmed');
 		mutation_check((int)posting_value('SELECT prune_next FROM fixture_forums WHERE forum_id=3')===0,'Failed automatic run does not advance schedule');
 	}
 	prune_fixture(); $interleaved=false;

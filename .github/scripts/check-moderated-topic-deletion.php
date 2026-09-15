@@ -9,7 +9,24 @@ $lang['Topic_post_not_exist'] = 'missing post';
 $lang['Posting_storage_failed'] = 'posting storage failed';
 $lang['Moderation_delete_failed'] = 'Moderated deletion failed';
 $lang['Moderation_delete_changed'] = 'Post changed during moderated topic deletion';
+foreach (array('Moderation_delete_unconfirmed','Moderation_storage_upgrade') as $key) { $lang[$key]=$key; }
+foreach (array('ANONYMOUS'=>-1,'SESSIONS_TABLE'=>'fixture_sessions','CONFIG_TABLE'=>'fixture_config','LOGS_TABLE'=>'fixture_action_log') as $key=>$value) { define($key,$value); }
 require $forum_root . 'includes/functions_moderation.php';
+// SQL protocol translation only; native MariaDB checks exercise actual locks,
+// metadata, independent writers and disconnect/COMMIT acknowledgement failures.
+class ModerationFixturePDO
+{
+	var $inner;
+	function __construct($inner) { $this->inner=$inner; }
+	function __call($method,$args) { return call_user_func_array(array($this->inner,$method),$args); }
+	function query($sql)
+	{
+		if (strpos($sql,'SET SESSION ')===0) { return $this->inner->query('SELECT 1'); }
+		if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.')===0) { return $this->inner->query("SELECT 'InnoDB' AS ENGINE, 'Dynamic' AS ROW_FORMAT, 'utf8mb4_unicode_ci' AS TABLE_COLLATION"); }
+		if ($sql==='START TRANSACTION') { $sql='BEGIN'; }
+		return $this->inner->query(preg_replace('/ (FOR UPDATE|LOCK IN SHARE MODE)$/D','',$sql));
+	}
+}
 function moderation_fixture($count_posts = 1)
 {
 	global $mutation_server, $upload_dir, $db;
@@ -46,6 +63,18 @@ function moderation_fixture($count_posts = 1)
 	mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','post',10);
 	$pdo->exec('INSERT INTO fixture_links VALUES (1,13,0,8,0)');
 	fixture_current_moderator($pdo);
+	$pdo->exec('CREATE TABLE fixture_sessions (session_id TEXT PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
+	$pdo->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)");
+	$pdo->exec('CREATE TABLE fixture_config (config_name TEXT, config_value TEXT)');
+	$pdo->exec('ALTER TABLE fixture_users ADD username TEXT');
+	$pdo->exec("UPDATE fixture_users SET username='Fixture user'");
+	$pdo->exec('CREATE TABLE fixture_action_log (mode TEXT,topic_id INTEGER,user_id INTEGER,username TEXT,user_ip TEXT,log_time INTEGER)');
+	$pdo->exec("ALTER TABLE fixture_descriptions ADD pm_write_token TEXT DEFAULT ''");
+	$pdo->exec('ALTER TABLE fixture_descriptions ADD pm_write_slot INTEGER DEFAULT 0');
+	$pdo->exec('ALTER TABLE fixture_descriptions ADD download_count INTEGER DEFAULT 0');
+	$pdo->exec('ALTER TABLE fixture_messages ADD privmsgs_write_token TEXT');
+	$pdo->exec('ALTER TABLE fixture_messages ADD privmsgs_write_payload TEXT');
+	$mutation_server->pdo = new ModerationFixturePDO($pdo);
 }
 function moderation_scalar($sql) { return (int)$GLOBALS['mutation_server']->pdo->query($sql)->fetchColumn(); }
 function moderation_untouched()
@@ -96,7 +125,7 @@ try
 	$removed=phpbb_delete_moderated_topics($db,3,array(100));
 	mutation_check(!$removed['topic_ids'] && !$removed['post_ids'],'Moved topic must not authorize dependent deletion'); moderation_untouched();
 	moderation_fixture(); $mutation_server->hook=function ($sql) { if (strpos($sql,'DELETE FROM fixture_posts WHERE post_id = 10')===0) { $GLOBALS['mutation_server']->pdo->exec('UPDATE fixture_posts SET poster_id=9 WHERE post_id=10'); } };
-	mutation_expect_failure(function () use ($db) { phpbb_delete_moderated_topics($db,3,array(100)); },'Post changed during moderated topic deletion'); moderation_untouched();
+	mutation_expect_failure(function () use ($db) { phpbb_delete_moderated_topics($db,3,array(100)); },'Moderation_delete_unconfirmed'); moderation_untouched();
 	foreach (array(0,1) as $count_posts)
 	{
 		moderation_fixture($count_posts); $interleaved=false;
@@ -106,7 +135,7 @@ try
 			$interleaved=true; mutation_expect_failure(function () { mutation_publisher('fixture.txt')->do_insert_attachment('last_attachment','post',10); },'busy');
 		};
 		$removed=phpbb_delete_moderated_topics($db,'3',array('100',101,100));
-		mutation_check($removed===array('topic_ids'=>array(100),'post_ids'=>array(10,11,12)),'Only authorized forum parents appear in removed result');
+		mutation_check($removed===array('topic_ids'=>array(100),'post_ids'=>array(10,11,12),'_audit_completed'=>true,'cleanup_pending'=>false),'Only authorized forum parents appear in confirmed/audited removed result');
 		mutation_check($interleaved && $mutation_server->owner===null,'Coordinate publication/deletion on one owner');
 		mutation_check(moderation_scalar('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')===0 && moderation_scalar('SELECT forum_topics FROM fixture_forums WHERE forum_id=3')===0,'Synchronize deleted forum before release');
 		mutation_check(moderation_scalar('SELECT forum_posts FROM fixture_forums WHERE forum_id=4')===2 && moderation_scalar('SELECT forum_topics FROM fixture_forums WHERE forum_id=4')===2 && moderation_scalar('SELECT forum_last_post_id FROM fixture_forums WHERE forum_id=4')===14,'Empty redirect cleanup synchronizes its forum and preserves nonempty stubs');
@@ -121,7 +150,8 @@ try
 	}
 	moderation_fixture(); $mutation_server->failure='DELETE FROM fixture_posts WHERE post_id = 11';
 	mutation_expect_failure(function () use ($db) { phpbb_delete_moderated_topics($db,3,array(100)); });
-	mutation_check(moderation_scalar('SELECT user_posts FROM fixture_users WHERE user_id=8')===4 && moderation_scalar('SELECT user_posts FROM fixture_users WHERE user_id=9')===0 && moderation_scalar('SELECT COUNT(*) FROM fixture_posts WHERE post_id=11')===1 && $mutation_server->owner===null,'Partial failure accounts only for actually removed post');
+	moderation_untouched();
+	mutation_check($mutation_server->count_rows(LOGS_TABLE)===0,'Late failure rolls back content, counters and audit together');
 	foreach (array('UPDATE fixture_users','DELETE FROM fixture_post_text','DELETE FROM fixture_links') as $failure)
 	{
 		moderation_fixture(); $mutation_server->failure=$failure;

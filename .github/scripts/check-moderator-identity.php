@@ -43,15 +43,15 @@ try
 		{
 			moderator_identity_fixture(); $userdata['user_level']=ADMIN;
 			$mutation_server->pdo->exec($change);
-			moderator_identity_denied($action);
+			moderator_identity_denied($action,$action==='delete' && (strpos($change,'UPDATE fixture_users')===0 || strpos($change,'DELETE FROM fixture_users')===0) ? 'Session_invalid' : 'Not_Moderator');
 		}
 		foreach(array(0,-1,null,true,'8junk','16777216',array(8)) as $bad)
 		{
 			moderator_identity_fixture(); $userdata['user_id']=$bad;
-			moderator_identity_denied($action);
+			moderator_identity_denied($action,$action==='delete'?'Session_invalid':'Not_Moderator');
 		}
 		moderator_identity_fixture(); $userdata['session_logged_in']=false;
-		moderator_identity_denied($action);
+		moderator_identity_denied($action,$action==='delete'?'Session_invalid':'Not_Moderator');
 		// A real current administrator stays authorized even if the old session
 		// role says ordinary user; group-less ordinary users do not gain access.
 		moderator_identity_fixture(); $userdata['user_level']=0;
@@ -65,9 +65,9 @@ try
 		mutation_check($mutation_server->owner===null,'Normal current forum moderator needs no ACP privilege: '.$action);
 		moderator_identity_fixture(); $changed=false;
 		$mutation_server->hook=function($sql) use(&$changed){ if(!$changed && strpos($sql,'SELECT user_id, user_level, user_active')===0) { $changed=true; $GLOBALS['mutation_server']->pdo->exec('UPDATE fixture_users SET user_active=0 WHERE user_id=8'); } };
-		moderator_identity_denied($action); mutation_check($changed,'Account recheck occurs on the owning connection: '.$action);
+		moderator_identity_denied($action,$action==='delete'?'Session_invalid':'Not_Moderator'); mutation_check($changed,'Account recheck occurs on the owning connection: '.$action);
 		moderator_identity_fixture(); $mutation_server->failure='SELECT user_id, user_level, user_active';
-		$errors=array('delete'=>'Could not obtain current moderator account','lock'=>'Moderation_state_failed','sticky'=>'Moderation_state_failed','announce'=>'Moderation_state_failed','move'=>'Moderation_move_failed','split'=>'Moderation_split_failed');
+		$errors=array('delete'=>'Moderation_delete_unconfirmed','lock'=>'Moderation_state_failed','sticky'=>'Moderation_state_failed','announce'=>'Moderation_state_failed','move'=>'Moderation_move_failed','split'=>'Moderation_split_failed');
 		moderator_identity_denied($action,$errors[$action]);
 	}
 	moderator_identity_fixture(); $mutation_server->pdo->exec('UPDATE fixture_forums SET auth_delete=5 WHERE forum_id=3');

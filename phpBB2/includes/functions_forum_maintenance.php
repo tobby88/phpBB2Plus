@@ -27,7 +27,8 @@ function phpbb_forum_has_children($db,$forum_id)
 
 // ACP move-and-delete operation. Null target explicitly discards all contents;
 // a numeric target preserves them. The caller refreshes caches after return.
-// Coordinated MyISAM operations can still fail partway; no rollback is claimed.
+// Contents, forum removal and grant/count cleanup commit together. Attachment
+// files are processed only afterward; uncertain commits never unlink them.
 function phpbb_remove_forum($database,$source,$target=null)
 {
 	global $userdata;
@@ -37,9 +38,11 @@ function phpbb_remove_forum($database,$source,$target=null)
 		|| !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals((string)$userdata['session_id'],$_POST['sid'])) { phpbb_prune_error('Session_invalid'); }
 	$lock=new attach_mutation_lock($database);
 	if(!$lock->acquired) { phpbb_prune_error('Attachment_storage_busy'); }
+	$db = null;
 	try
 	{
-		$db=new PhpbbPruneDatabase($lock->connection); $user=phpbb_prune_actor($db);
+		$db = new PhpbbTopicRemovalDatabase($lock->connection, $source, 'forum_admin', $target);
+		$db->begin(); $user = $db->actor();
 		if(!phpbb_prune_admin_allowed($db,$user,'admin_forums')) { phpbb_prune_error('Not_Authorised'); }
 		$rows=phpbb_prune_rows($db,'SELECT forum_id, forum_link, count_posts FROM '.FORUMS_TABLE.' WHERE forum_id IN ('.$source.($target!==null?','.$target:'').')');
 		$forums=array(); foreach($rows as $row) { $forums[(int)$row['forum_id']]=$row; }
@@ -84,6 +87,7 @@ function phpbb_remove_forum($database,$source,$target=null)
 			.' LEFT JOIN '.TOPICS_TABLE.' t ON t.forum_id = f.forum_id LEFT JOIN '.POSTS_TABLE.' p ON p.forum_id = f.forum_id'
 			.' WHERE f.forum_id = '.$source.' AND child.forum_id IS NULL AND c.cat_id IS NULL AND t.topic_id IS NULL AND p.post_id IS NULL');
 		if((int)$db->sql_affectedrows()!==1) { phpbb_prune_error('Prune_selection_changed'); }
+		$db->forum_removed = true;
 		foreach(array(AUTH_ACCESS_TABLE,PRUNE_TABLE) as $table)
 		{
 			$db->sql_query('DELETE FROM '.$table.' WHERE forum_id = '.$source.' AND NOT EXISTS (SELECT 1 FROM '.FORUMS_TABLE.' WHERE forum_id = '.$source.')');
@@ -94,7 +98,15 @@ function phpbb_remove_forum($database,$source,$target=null)
 				.' AND NOT EXISTS (SELECT 1 FROM '.AUTH_ACCESS_TABLE.' a JOIN '.USER_GROUP_TABLE.' ug ON ug.group_id = a.group_id JOIN '.FORUMS_TABLE.' f ON f.forum_id = a.forum_id'
 				.' WHERE ug.user_id = '.USERS_TABLE.'.user_id AND ug.user_pending = 0 AND a.auth_mod = 1)');
 		}
-		return array('topics'=>count($contents['topics']),'posts'=>count($contents['posts']),'target'=>$target);
+		if ($target === null) { $db->audit($contents['topics']); }
+		$db->commit();
+		$result = array('topics'=>count($contents['topics']),'posts'=>count($contents['posts']),'target'=>$target);
+		if (!$db->cleanup()) { $result['cleanup_pending'] = true; }
+		return $result;
 	}
-	finally { $lock->release(); }
+	catch (PhpbbPruneException $e) { throw $e; }
+	catch (PhpbbPostSubmitException $e) { phpbb_prune_error($e->getMessage()); }
+	catch (Exception $e) { phpbb_prune_error('Prune_atomic_unconfirmed'); }
+	catch (Error $e) { phpbb_prune_error('Prune_atomic_unconfirmed'); }
+	finally { if ($db !== null) { $db->rollback(); } $lock->release(); }
 }

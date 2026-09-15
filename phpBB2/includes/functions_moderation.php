@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_moderator_identity.php';
+require_once dirname(__FILE__) . '/functions_topic_removal_storage.php';
 
 function phpbb_moderation_query($database, $sql)
 {
@@ -15,8 +16,8 @@ function phpbb_moderation_query($database, $sql)
 
 // Recheck modcp's confirmed POST and current account/permissions on the owner.
 // Requalify every parent against that forum on the attachment lock's connection.
-// MyISAM/filesystem cleanup is not transactional; stop explicitly on a partial
-// failure and retain remaining text/file metadata rather than guessing success.
+// Core deletion is atomic. Physical files are removed only after confirmed
+// COMMIT, with retained descriptions reserving any pending cleanup.
 function phpbb_delete_moderated_topics($database, $forum_id, $topic_ids)
 {
 	global $lang;
@@ -30,24 +31,26 @@ function phpbb_delete_moderated_topics($database, $forum_id, $topic_ids)
 	}
 	$forum_id = $forums[0];
 	$lock = attach_require_mutation_lock($database);
+	$storage = null;
 	try
 	{
 		global $userdata;
 		if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_string($_POST['sid'])
 			|| empty($userdata['session_id']) || !hash_equals((string)$userdata['session_id'], $_POST['sid']))
 		{
-			message_die(GENERAL_MESSAGE, $lang['Session_invalid']);
+			throw new PhpbbPostSubmitException('Session_invalid');
 		}
-		$user=phpbb_current_moderator_user($lock->connection);
-		if (!$user) { message_die(GENERAL_MESSAGE, $lang['Not_Moderator']); }
-		$rights=auth(AUTH_ALL, $forum_id, $user, '', $lock->connection);
-		if (empty($rights['auth_view']) || empty($rights['auth_read']) || empty($rights['auth_mod']) || empty($rights['auth_delete']))
-		{
-			message_die(GENERAL_MESSAGE, $lang['Not_Moderator']);
-		}
-		return phpbb_delete_moderated_topics_owned($lock->connection, $forum_id, $topics);
+		$storage = new PhpbbTopicRemovalDatabase($lock->connection, $forum_id, 'moderator');
+		$storage->begin();
+		$removed = phpbb_delete_moderated_topics_owned($storage, $forum_id, $topics);
+		$storage->audit($removed['topic_ids']); $storage->commit();
+		$removed['_audit_completed'] = true; $removed['cleanup_pending'] = !$storage->cleanup();
+		return $removed;
 	}
-	finally { $lock->release(); }
+	catch (PhpbbPostSubmitException $e) { $key = $e->getMessage(); message_die(GENERAL_MESSAGE, isset($lang[$key]) ? $lang[$key] : $lang['Moderation_delete_unconfirmed']); }
+	catch (Exception $e) { message_die(GENERAL_ERROR, $lang['Moderation_delete_unconfirmed']); }
+	catch (Error $e) { message_die(GENERAL_ERROR, $lang['Moderation_delete_unconfirmed']); }
+	finally { if ($storage !== null) { $storage->rollback(); } $lock->release(); }
 }
 
 // Internal shared worker. The caller owns the writer lock and has validated
@@ -56,15 +59,17 @@ function phpbb_delete_moderated_topics($database, $forum_id, $topic_ids)
 function phpbb_delete_moderated_topics_owned($storage, $forum_id, $topics, $topic_guard = '')
 {
 	global $lang;
+	if (!($storage instanceof PhpbbTopicRemovalDatabase) || !$storage->transactional || (int)$forum_id !== $storage->forum_id) { throw new PhpbbPostSubmitException('Moderation_delete_unconfirmed'); }
 	require_once dirname(__FILE__) . '/functions_posting_storage.php';
 	require_once dirname(__FILE__) . '/functions_search.php';
 	$removed = array('topic_ids' => array(), 'post_ids' => array());
+	$topic_guard .= ' AND NOT EXISTS (SELECT 1 FROM ' . POSTS_TABLE . ' foreign_post WHERE foreign_post.topic_id = ' . TOPICS_TABLE . '.topic_id AND foreign_post.forum_id <> ' . (int)$forum_id . ')';
 	$result = phpbb_moderation_query($storage, 'SELECT count_posts FROM ' . FORUMS_TABLE . ' WHERE forum_id = ' . $forum_id);
 	$forum = $storage->sql_fetchrow($result); $storage->sql_freeresult($result);
 	if (!$forum) { message_die(GENERAL_MESSAGE, $lang['None_selected']); }
 	$count_posts = !empty($forum['count_posts']);
 	$result = phpbb_moderation_query($storage, 'SELECT topic_id FROM ' . TOPICS_TABLE .
-		' WHERE forum_id = ' . $forum_id . ' AND topic_id IN (' . implode(', ', $topics) . ')' . $topic_guard . ' ORDER BY topic_id');
+		' WHERE forum_id = ' . $forum_id . ' AND topic_id IN (' . implode(', ', $topics) . ')' . $topic_guard . ' ORDER BY topic_id FOR UPDATE');
 	$selected = $storage->sql_fetchrowset($result); $storage->sql_freeresult($result);
 	foreach ($selected as $topic)
 	{
@@ -74,7 +79,7 @@ function phpbb_delete_moderated_topics_owned($storage, $forum_id, $topics, $topi
 		$removed['topic_ids'][] = $topic_id;
 
 		$result = phpbb_moderation_query($storage, 'SELECT post_id, poster_id FROM ' . POSTS_TABLE .
-			' WHERE topic_id = ' . $topic_id . ' AND forum_id = ' . $forum_id . ' ORDER BY post_id');
+			' WHERE topic_id = ' . $topic_id . ' AND forum_id = ' . $forum_id . ' ORDER BY post_id FOR UPDATE');
 		$posts = $storage->sql_fetchrowset($result); $storage->sql_freeresult($result);
 		foreach ($posts as $post)
 		{
@@ -93,7 +98,7 @@ function phpbb_delete_moderated_topics_owned($storage, $forum_id, $topics, $topi
 			}
 			phpbb_moderation_query($storage, 'DELETE FROM ' . POSTS_TEXT_TABLE . ' WHERE post_id = ' . $post_id);
 			remove_search_post($post_id, true, true, $storage);
-			attach_delete_selected($storage, array($post_id), array(), 0, 0, false, true);
+			$storage->detach_post_files($post_id);
 		}
 
 		$result = phpbb_moderation_query($storage, 'SELECT vote_id FROM ' . VOTE_DESC_TABLE . ' WHERE topic_id = ' . $topic_id);

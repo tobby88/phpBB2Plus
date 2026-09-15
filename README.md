@@ -338,9 +338,21 @@ Shared attachment references retain their bytes. If subsequent file cleanup
 fails, the deleted post stays deleted and its detached attachment descriptions
 reserve the remaining files. The result explicitly reports pending cleanup;
 an administrator can finish it under **Attachments → Shadow attachments**.
-This is not a filesystem transaction and does not change the separate moderator
-bulk-deletion or pruning paths. A directory or symbolic link occupying a local
+This is not a filesystem transaction. A directory or symbolic link occupying a local
 attachment filename is a conflict, not proof that the attachment is absent.
+
+Moderator batch deletion, automatic/manual age pruning, and ACP forum removal
+now use the same transaction and recoverable file-cleanup boundary. Their
+authorization and selection policies remain separate: normal moderation needs
+current forum rights; manual pruning and forum removal need a current ACP session
+and the corresponding administrator/delegated module grant. Automatic pruning
+preserves its age, poll, announcement and due-date guards. The next execution
+time and action log commit with the deletion. Moving contents before removing a
+forum also rolls back as a whole if a later step fails. The existing updater
+covers the 21/22/23/24 participating tables; no new migration is required.
+An uncertain commit never unlinks attachments: check the current state before
+retrying. Completed operations with pending file cleanup are reported separately;
+automatic pruning writes a content-free server-log notice for ACP recovery.
 
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer

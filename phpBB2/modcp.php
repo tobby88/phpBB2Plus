@@ -308,7 +308,7 @@ switch( $mode )
 			// Index and forum totals were synchronized before releasing the writer.
 			board_stats();
 			cache_tree(true);
-			log_action('delete', $topic_id_sql, $userdata['user_id'], $userdata['username']);
+			if (empty($removed['_audit_completed'])) { log_action('delete', $topic_id_sql, $userdata['user_id'], $userdata['username']); }
 
 			if ( !empty($topic_id) )
 			{
@@ -322,10 +322,10 @@ switch( $mode )
 			}
 
 			$template->assign_vars(array(
-				'META' => '<meta http-equiv="refresh" content="3;url=' . $redirect_page . '">')
+				'META' => !empty($removed['cleanup_pending']) ? '' : '<meta http-equiv="refresh" content="3;url=' . $redirect_page . '">')
 			);
 
-			message_die(GENERAL_MESSAGE, $lang['Topics_Removed'] . '<br /><br />' . $l_redirect);
+			message_die(GENERAL_MESSAGE, $lang['Topics_Removed'] . (!empty($removed['cleanup_pending']) ? '<br /><br />' . $lang['Moderation_cleanup_pending'] : '') . '<br /><br />' . $l_redirect);
 		}
 		else
 		{

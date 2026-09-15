@@ -1,4 +1,7 @@
 <?php
+$lang['Moderation_delete_unconfirmed'] = 'The deletion could not be confirmed. Check the current topics before retrying. Attachment files were not removed by this request.';
+$lang['Moderation_storage_upgrade'] = 'This operation requires the current InnoDB/utf8mb4 database format. An administrator must complete the database updates first.';
+$lang['Moderation_cleanup_pending'] = 'The database changes were completed, but some detached attachment files still need cleanup. An administrator can finish this under Attachments → Shadow attachments. Do not repeat the deletion.';
 $lang['Posting_delete_unconfirmed'] = 'The deletion could not be confirmed. Reload the topic to check its current state before trying again. Attachment files were not removed by this request.';
 $lang['Posting_delete_cleanup_pending'] = 'The post was deleted. Cleanup of its detached attachment files is still pending. An administrator can finish it under Attachments → Shadow attachments; do not delete the post again.';
 $lang['User_id_allocation_failed'] = 'A user ID could not be reserved safely. The account was not created. Please try again later; an administrator may need to run update/update_from_153a.php or check the ID storage.';
@@ -1662,6 +1665,7 @@ $lang['Moderation_delete_failed'] = 'Topic deletion could not be completed. Some
 $lang['Moderation_delete_changed'] = 'A post changed while its topic was being deleted. Deletion was stopped to protect unrelated data. Please ask an administrator to check the remaining data.';
 $lang['Prune_selection_changed'] = 'The forum or cleanup settings have changed or are inconsistent. Please review the current configuration before trying again.';
 $lang['Prune_storage_failed'] = 'Forum cleanup could not be completed. Some steps may already have succeeded; ask an administrator to check the remaining data before retrying.';
+$lang['Prune_atomic_unconfirmed'] = 'Completion of the forum changes could not be confirmed. Check the current contents before retrying; the database transaction may have completed without its acknowledgement. Attachment files were not removed by this request.';
 
 $lang['Poll_storage_failed'] = 'The result of saving your vote could not be confirmed. Reload the poll before trying again; an already recorded vote will not be counted twice.';
 $lang['Poll_storage_upgrade'] = 'Voting requires the current InnoDB/utf8mb4 database format. Please ask an administrator to complete the database updates.';

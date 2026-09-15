@@ -11,6 +11,7 @@ function cache_tree($force = false) { board_stats(); }
 function append_sid($url) { return $url; }
 foreach (array('SESSIONS_TABLE'=>'fixture_sessions','LOGS_TABLE'=>'fixture_action_log','POST_NORMAL'=>0,'POST_STICKY'=>1,'POST_ANNOUNCE'=>2,'POST_GLOBAL_ANNOUNCE'=>3) as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 foreach (array('Posting_submit_unconfirmed','Posting_submit_denied','Posting_submit_upgrade') as $key) { $lang[$key]=$key; }
+foreach (array('Moderation_delete_unconfirmed','Moderation_storage_upgrade') as $key) { $lang[$key]=$key; }
 class PostingFixturePDO
 {
 	var $inner;

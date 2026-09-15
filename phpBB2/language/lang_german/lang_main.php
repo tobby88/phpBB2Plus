@@ -1,4 +1,7 @@
 <?php
+$lang['Moderation_delete_unconfirmed'] = 'Die Löschung konnte nicht bestätigt werden. Prüfe vor einem erneuten Versuch den aktuellen Themenbestand. Dieser Vorgang hat keine Anhangdateien entfernt.';
+$lang['Moderation_storage_upgrade'] = 'Dieser Vorgang benötigt das aktuelle InnoDB/utf8mb4-Datenbankformat. Ein Administrator muss zunächst die Datenbank-Updates abschließen.';
+$lang['Moderation_cleanup_pending'] = 'Die Datenbankänderungen sind abgeschlossen, einige nicht mehr zugeordnete Anhangdateien müssen jedoch noch bereinigt werden. Ein Administrator kann dies unter Anhänge → Verwaiste Anhänge abschließen. Bitte die Löschung nicht wiederholen.';
 $lang['Posting_delete_unconfirmed'] = 'Die Löschung konnte nicht bestätigt werden. Lade das Thema erneut, um vor einem weiteren Versuch den aktuellen Stand zu prüfen. Dieser Vorgang hat keine Anhangdateien entfernt.';
 $lang['Posting_delete_cleanup_pending'] = 'Der Beitrag wurde gelöscht. Die Bereinigung seiner nicht mehr zugeordneten Anhangdateien steht noch aus. Ein Administrator kann sie unter Anhänge → Verwaiste Anhänge abschließen; bitte den Beitrag nicht erneut löschen.';
 $lang['User_id_allocation_failed'] = 'Die Benutzer-ID konnte nicht sicher reserviert werden. Das Konto wurde nicht angelegt. Bitte versuche es später erneut; die Administration muss gegebenenfalls update/update_from_153a.php ausführen oder den ID-Speicher prüfen.';
@@ -1646,6 +1649,7 @@ $lang['Moderation_delete_failed'] = 'Die Themenlöschung konnte nicht abgeschlos
 $lang['Moderation_delete_changed'] = 'Ein Beitrag wurde während der Themenlöschung verändert. Die Löschung wurde zum Schutz anderer Daten angehalten. Bitte lasse die verbliebenen Daten durch einen Administrator prüfen.';
 $lang['Prune_selection_changed'] = 'Das Forum oder die Bereinigungseinstellungen wurden verändert oder sind widersprüchlich. Bitte prüfe vor einem erneuten Versuch die aktuelle Konfiguration.';
 $lang['Prune_storage_failed'] = 'Die Forumsbereinigung konnte nicht abgeschlossen werden. Einzelne Schritte können bereits erfolgt sein; bitte lasse die verbliebenen Daten vor einem erneuten Versuch durch einen Administrator prüfen.';
+$lang['Prune_atomic_unconfirmed'] = 'Der Abschluss der Forenänderungen konnte nicht bestätigt werden. Prüfe vor einem erneuten Versuch den aktuellen Inhalt; die Datenbanktransaktion könnte ohne übermittelte Bestätigung abgeschlossen worden sein. Dieser Vorgang hat keine Anhangdateien entfernt.';
 
 $lang['Posting_storage_failed'] = 'Der Beitragsvorgang konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits gespeichert sein. Bitte prüfe das Thema vor einem erneuten Versuch und wende dich bei Bedarf an den Administrator.';
 $lang['Posting_target_changed'] = 'Das Thema oder die Umfrage hat sich inzwischen geändert. Bitte öffne es erneut und prüfe den aktuellen Stand vor dem nächsten Absenden.';

@@ -99,14 +99,14 @@ try
 	foreach(array('UPDATE fixture_users SET user_level=0 WHERE user_id=8','UPDATE fixture_users SET user_active=0 WHERE user_id=8') as $change)
 	{
 		forum_maintenance_fixture(); $mutation_server->pdo->exec($change);
-		prune_expect_failure(function() use($db){ phpbb_remove_forum($db,3,4); },'Not_Authorised');
+		prune_expect_failure(function() use($db){ phpbb_remove_forum($db,3,4); },strpos($change,'user_active')!==false ? 'Session_invalid' : 'Not_Authorised');
 	}
 	forum_maintenance_fixture(); $_POST['sid']='wrong';
 	prune_expect_failure(function() use($db){ phpbb_remove_forum($db,3,4); },'Session_invalid');
 	foreach(array('UPDATE fixture_topics t LEFT JOIN','DELETE f FROM','DELETE FROM fixture_auth','UPDATE fixture_users SET user_level') as $failure)
 	{
 		forum_maintenance_fixture(); $mutation_server->failure=$failure;
-		prune_expect_failure(function() use($db){ phpbb_remove_forum($db,3,4); },'Prune_storage_failed');
+		prune_expect_failure(function() use($db){ phpbb_remove_forum($db,3,4); },'Prune_atomic_unconfirmed');
 		mutation_check(is_file($upload_dir.'/shared.txt'),'Late move failure does not remove attachment bytes');
 	}
 	foreach(array(null,0,-1,16777216,'3x',true,array(3)) as $bad)
@@ -129,7 +129,7 @@ try
 	forum_maintenance_fixture(); $added=false;
 	$mutation_server->hook=function($sql) use(&$added){ if(!$added && strpos($sql,'DELETE FROM fixture_topics')===0) { $added=true; $GLOBALS['mutation_server']->pdo->exec('INSERT INTO fixture_posts (post_id,topic_id,forum_id) VALUES (99,100,3)'); } };
 	prune_expect_failure(function() use($db){ phpbb_remove_forum($db,3); },'Prune_selection_changed');
-	mutation_check($added && (int)posting_value('SELECT COUNT(*) FROM fixture_topics WHERE forum_id=3')===10 && (int)posting_value('SELECT COUNT(*) FROM fixture_posts WHERE post_id=99')===1,'Late reply prevents destructive consumption of previously selected parents');
+	mutation_check($added && (int)posting_value('SELECT COUNT(*) FROM fixture_topics WHERE forum_id=3')===10 && (int)posting_value('SELECT COUNT(*) FROM fixture_posts WHERE post_id=99')===0,'Late same-connection fixture reply prevents consumption and is rolled back with the transaction; independent writers are tested natively');
 	forum_maintenance_fixture(); $interleaved=false;
 	$mutation_server->hook=function($sql) use(&$interleaved){ if(!$interleaved && strpos($sql,'UPDATE fixture_topics t LEFT JOIN')===0) { $interleaved=true; $owner=$GLOBALS['mutation_server']->owner; $busy=false; try { phpbb_remove_forum($GLOBALS['db'],3,4); } catch(PhpbbPruneException $error) { $busy=$error->getMessage()==='busy'; } mutation_check($busy && $GLOBALS['mutation_server']->owner===$owner,'Busy contender preserves the original owner'); } };
 	phpbb_remove_forum($db,3,4); mutation_check($interleaved,'Second forum mutation cannot enter the active writer boundary');

@@ -1348,7 +1348,7 @@ if( !empty($mode) )
 					phpbb_prune_error('Prune_selection_changed');
 				}
 				$to_id = $to_fid === '-1' ? null : substr($to_fid, 1);
-				phpbb_remove_forum($db, $from_id, $to_id);
+				$removal_result = phpbb_remove_forum($db, $from_id, $to_id);
 			}
 			catch (PhpbbPruneException $error)
 			{
@@ -1361,6 +1361,7 @@ if( !empty($mode) )
 //-- fin mod : categories hierarchy ----------------------------------------------------------------
 
 			$message = $lang['Forums_updated'] . "<br /><br />" . sprintf($lang['Click_return_forumadmin'], "<a href=\"" . append_sid("admin_forums.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
+			if (!empty($removal_result['cleanup_pending'])) { $message .= '<br /><br />' . $lang['Moderation_cleanup_pending']; }
 
 			message_die(GENERAL_MESSAGE, $message);
 

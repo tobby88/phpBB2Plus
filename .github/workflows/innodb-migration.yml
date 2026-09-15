@@ -141,3 +141,7 @@ jobs:
         env:
           PHPBB_POST_DELETE_NATIVE: '1'
           PHPBB_POST_DELETE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-topic-removal-native.php
+        env:
+          PHPBB_TOPIC_REMOVAL_NATIVE: '1'
+          PHPBB_TOPIC_REMOVAL_PASSWORD: fixture-only

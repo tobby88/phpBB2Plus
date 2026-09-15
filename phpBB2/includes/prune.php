@@ -44,5 +44,6 @@ function auto_prune($forum_id = 0)
 	// This runs after the backend has released its writer connection.
 	if ($schedule_updated) { cache_tree(true); }
 	if ($result['topics']) { board_stats(); }
+	if (!empty($result['cleanup_pending'])) { error_log('phpBB automatic pruning completed; detached attachment cleanup remains pending in ACP Shadow attachments.'); }
 	return $result;
 }

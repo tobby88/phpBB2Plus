@@ -152,11 +152,13 @@ if( isset($_POST['doprune']) )
 		'body' => 'admin/forum_prune_result_body.tpl')
 	);
 
+	$cleanup_pending = false;
 	for($i = 0; $i < count($forum_rows); $i++)
 	{
 		try
 		{
 			$p_result = prune($forum_rows[$i]['forum_id'], $prunedate);
+			$cleanup_pending = $cleanup_pending || !empty($p_result['cleanup_pending']);
 		}
 		catch (PhpbbPruneException $error)
 		{
@@ -188,7 +190,7 @@ if( isset($_POST['doprune']) )
 		'L_FORUM' => $lang['Forum'],
 		'L_TOPICS_PRUNED' => $lang['Topics_pruned'],
 		'L_POSTS_PRUNED' => $lang['Posts_pruned'],
-		'L_PRUNE_RESULT' => $lang['Prune_success'])
+		'L_PRUNE_RESULT' => $lang['Prune_success'] . ($cleanup_pending ? '<br /><br />' . $lang['Moderation_cleanup_pending'] : ''))
 	);
 }
 else

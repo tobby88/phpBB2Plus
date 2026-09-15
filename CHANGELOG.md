@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make moderator batch deletion, automatic/manual age pruning, and ACP forum
+  removal atomic, including move-before-removal, counters, schedules and audit.
+  Keep their distinct selection and authorization policies; check exact current
+  sessions, active accounts, forum rights and delegated ACP grants through commit.
+  Refuse legacy storage for every participant (21/22/23/24 tables, already
+  covered by the updater). Unconfirmed commits never remove attachment files.
+  Reuse retained descriptions and ACP Shadow attachments for post-commit cleanup;
+  distinguish pending cleanup in the UI and log it for automatic pruning.
+  No new tables, migration step or automatic content cleanup on deployment.
 - Make normal post/poll deletion atomic across content, attachment links,
   polls, search, counters, removed-topic preferences and moderator audit.
   Recheck exact current sessions, active accounts, ownership and permissions
