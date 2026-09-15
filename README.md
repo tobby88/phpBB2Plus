@@ -573,9 +573,13 @@ module. Completed reports and their timestamps are published in one InnoDB
 transaction. Short commit-phase authority locks order a concurrent revocation
 before or after that transaction without locking the account during file traversal.
 Interrupted staging leaves the previous committed report or snapshot available;
-sign in with current permission and retry. An error after a committed publication
-does not undo that already completed transaction. No additional migration is needed
-once the documented InnoDB migration has completed.
+sign in with current permission and retry. Once COMMIT is acknowledged, a later
+session/permission change or failure to remove the job's fixed staging table does
+not turn the completed operation into an error. Stage cleanup keeps the server
+lock and is retried by the next authorized build if necessary. Failed or lost
+commit acknowledgements still report failure; they do not prove that the database
+rolled back, so inspect the current report or snapshot before retrying. No
+additional migration is needed once the documented InnoDB migration has completed.
 
 General configuration accepts only its displayed form fields, not internal
 version/recovery/maintenance keys or settings owned by other modules. The complete

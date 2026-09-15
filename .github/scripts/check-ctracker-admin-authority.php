@@ -113,7 +113,10 @@ try{
  $cases=0;$serialized=0;
  foreach(array('backup','auto','restore','hash','scan') as $operation){foreach(array('root','delegated') as $actor){
   ca_reset($operation,$actor);$before=ca_snapshot();ca_run($operation);ca_check(ca_snapshot()!==$before,'Authorized operation publishes');
-  $writes=array_values(array_filter($ca_queries,'ca_boundary'));
+  // Publication boundaries end at COMMIT. Subsequent fixed-stage disposal
+  // cannot undo an acknowledged result; check that separately in the native
+  // commit fixture without weakening any pre-COMMIT revocation assertion.
+  $writes=array();foreach($ca_queries as $query){if(ca_boundary($query)){$writes[]=$query;}if($query==='COMMIT'){break;}}
   ca_check(count($writes)>0,'Actual write boundaries captured');
   $kinds=array('inactive','missing','logout','admin-off','foreign','case',$actor==='root'?'role':'grant');
   foreach($kinds as $kind){

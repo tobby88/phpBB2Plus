@@ -161,7 +161,8 @@ class ct_adminfunctions
 		}
 		$db->actor();
 		if (!$db->sql_query('COMMIT')) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
-		$db->actor();
+		// Authority was pinned and checked through COMMIT. A later revocation
+		// cannot undo this acknowledged publication or turn it into a failure.
 	}
 
 	// Publish into stable InnoDB tables. DDL swaps implicitly commit and cannot
@@ -175,6 +176,7 @@ class ct_adminfunctions
 		$this->require_modern_storage($db, $stage);
 		if (!$db->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED') || !$db->sql_query('START TRANSACTION'))
 		{ message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
+		$committed = false;
 		try
 		{
 			// Hold metadata locks through COMMIT before trusting either engine.
@@ -220,15 +222,27 @@ class ct_adminfunctions
 				if (!$row || (string)$row['ct_config_value'] !== (string)$timestamp) { message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']); }
 			}
 			$this->commit_authorized($db);
+			$committed = true;
 		}
 		finally
 		{
-			// Also safe after a successful COMMIT or a lost commit acknowledgement.
-			// Cleanup must not itself require the now potentially revoked session.
-			$db->connection->sql_query('ROLLBACK');
+			if (!$committed)
+			{
+				// Best effort only: preserve the original failure on disconnect or
+				// lost acknowledgement. Closing the owned connection also rolls back
+				// a still-active transaction; an unconfirmed commit is never success.
+				try { $db->connection->sql_query('ROLLBACK'); }
+				catch (Exception $error) {}
+				catch (Error $error) {}
+			}
 		}
-		$db->sql_query('DROP TABLE IF EXISTS ' . $stage);
-		$db->actor();
+		// The current job's fixed staging table is internal cleanup, not another
+		// privileged publication. Keep the server lock while removing it without
+		// reauthorizing a completed job. A failure is harmless: the next authorized
+		// build drops this same stage before recreating it. Never drop on lost ACK.
+		try { $db->connection->sql_query('DROP TABLE IF EXISTS ' . $stage); }
+		catch (Exception $error) {}
+		catch (Error $error) {}
 		if ($timestamp_name !== '' && isset($ctracker_config) && is_object($ctracker_config) && isset($ctracker_config->settings) && is_array($ctracker_config->settings))
 		{
 			$ctracker_config->settings[$timestamp_name] = $timestamp;

@@ -60,6 +60,7 @@ jobs:
       - run: |
           php .github/scripts/check-ctracker-recovery-storage.php
           php .github/scripts/check-ctracker-admin-authority.php
+          php .github/scripts/check-ctracker-commit-native.php
         env:
           PHPBB_CT_RECOVERY_NATIVE: '1'
           PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only

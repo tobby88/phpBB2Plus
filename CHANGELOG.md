@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve acknowledged CrackerTracker scans, configuration snapshots and
+  restores when a session, permission or connection changes after commit.
+  Keep current authority checks and commit-phase locks; never report success
+  for a failed or lost acknowledgement. Clean up only the job's fixed staging
+  table after success, under its existing server lock, without allowing cleanup
+  failures to hide completed publication or its scan timestamp. Preserve the
+  original failure if rollback cleanup also fails. No additional migration.
 - Harden topic move, split, merge and lock/type-change transaction lifecycles:
   reject writes outside a transaction and implicit commits from repeated begin
   calls. Preserve acknowledged changes, audit records and counters when the
