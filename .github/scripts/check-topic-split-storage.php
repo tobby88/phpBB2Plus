@@ -138,7 +138,7 @@ try
 		topic_split_failure(function() { topic_split_run(); },'Moderation_split_failed');
 		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_posts')===6 && topic_split_snapshot()===$snapshot,'Storage failure never deletes text, poll, attachment references or source preferences');
 		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_action_log')===0,'Failed split is not reported as complete');
-		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_topics t WHERE NOT EXISTS (SELECT 1 FROM fixture_posts p WHERE p.topic_id=t.topic_id)')===0,'Failed publication removes only its empty new topic');
+		mutation_check((int)posting_value('SELECT COUNT(*) FROM fixture_topics')===1 && (int)posting_value('SELECT COUNT(*) FROM fixture_posts WHERE topic_id<>100 OR forum_id<>3')===0,'Failed publication rolls back the new topic and every post move');
 	}
 	foreach(array('UPDATE fixture_topics SET topic_moved_id=99 WHERE topic_id=100','DELETE FROM fixture_posts WHERE post_id=10','UPDATE fixture_forums SET forum_status=1 WHERE forum_id=4','DELETE FROM fixture_topics WHERE topic_id<>100') as $change)
 	{

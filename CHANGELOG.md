@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make splitting topics atomic across the new topic, selected posts, attachment
+  flags, copied subscriptions, user/forum/global counters and both audit records.
+  Revalidate current ordinary sessions and source/target permissions through
+  commit, lock current targets and reject legacy storage. Preserve the original
+  first post, poll and post content; invalidate optional tree caches after
+  release, including uncertain commits. Existing migration tools cover all
+  eleven storage participants; no automatic content changes during deployment.
 - Save topic lock/unlock and sticky/announcement/normal state changes together
   with their audit log in one transaction, including whole moderator batches
   and single-topic AJAX actions. Recheck the exact current ordinary login and

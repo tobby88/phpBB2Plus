@@ -266,6 +266,16 @@ forum grants and logs must use modern storage. The existing storage and UTF-8
 migration tools cover these tables. On an uncertain commit reply, reload before
 retrying; the operation never intentionally leaves a partially saved batch.
 
+Splitting selected posts (or posts from a selected chronological boundary)
+commits the new topic, post placement, attachment flags, copied subscriptions,
+user/forum/global counters and both audit entries together. The original first
+post and poll stay with the source; post text, search entries and attachment
+references remain unchanged. Current ordinary sessions and source/destination
+permissions are rechecked through commit. All eleven participants use modern
+storage, covered by the existing storage and UTF-8 migrations. On a lost commit
+reply, check the topics before retrying. The optional tree cache is invalidated
+after release, including uncertain commits; deployment does not split content.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

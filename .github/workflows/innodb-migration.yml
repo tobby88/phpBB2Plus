@@ -113,3 +113,7 @@ jobs:
         env:
           PHPBB_STATE_NATIVE: '1'
           PHPBB_STATE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-topic-split-native.php
+        env:
+          PHPBB_SPLIT_NATIVE: '1'
+          PHPBB_SPLIT_PASSWORD: fixture-only

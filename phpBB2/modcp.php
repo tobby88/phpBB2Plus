@@ -638,8 +638,6 @@ switch( $mode )
 			{
 				message_die(GENERAL_MESSAGE, $error->getMessage());
 			}
-			board_stats();
-			cache_tree(true);
 			$redirect_page = "viewtopic.$phpEx?" . POST_TOPIC_URL . "=$topic_id&amp;sid=" . $userdata['session_id'];
 			$template->assign_vars(array('META' => '<meta http-equiv="refresh" content="3;url=' . $redirect_page . '">'));
 			$message = $lang['Topic_split'] . '<br /><br />'
