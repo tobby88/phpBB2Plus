@@ -27,10 +27,6 @@ function poll_fixture()
 {
 	global $mutation_server, $user_ip, $userdata;
 	ajax_storage_fixture(); $mutation_server->pdo=new PollFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
-	$p->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
-	$p->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
-	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
-	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)"); $userdata['session_id']='fixture';
 	$user_ip=encode_ip('127.0.0.1');
 	$p->exec('ALTER TABLE fixture_voters ADD vote_user_ip CHAR(8)');
 	$p->exec("INSERT INTO fixture_votes VALUES (1,100,'Fixture poll',1,0)");

@@ -7,8 +7,6 @@ function prune_fixture()
 {
 	global $mutation_server,$userdata;
 	ajax_storage_fixture(); $p=$mutation_server->pdo;
-	$p->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
-	$p->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
 	$p->exec('UPDATE fixture_users SET user_level=1,user_posts=10 WHERE user_id=8');
 	$p->exec("ALTER TABLE fixture_forums ADD forum_link VARCHAR(255) DEFAULT ''");
 	$p->exec('ALTER TABLE fixture_forums ADD prune_enable INTEGER DEFAULT 1');

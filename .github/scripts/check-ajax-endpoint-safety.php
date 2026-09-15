@@ -22,7 +22,7 @@ ajax_endpoint_assert(strpos($ajax, '$allowed_modes = array_merge(') !== false, '
 ajax_endpoint_assert(strpos($ajax, '$post_modes = array_merge(') !== false, 'mutations and previews must require POST');
 ajax_endpoint_assert(strpos($ajax, "!isset(\$HTTP_POST_VARS['sid']) || !is_scalar(\$HTTP_POST_VARS['sid'])") !== false, 'POST actions need a scalar session token in their body');
 $storage = file_get_contents($root . '/phpBB2/includes/functions_ajax_storage.php');
-ajax_endpoint_assert(substr_count($ajax, 'phpbb_ajax_edit_post($db, $post_id, ') === 2 && strpos($storage, "empty(\$is_auth['auth_edit'])") !== false, 'both inline edit modes must share the permission-checked storage worker');
+ajax_endpoint_assert(substr_count($ajax, 'phpbb_ajax_edit_post($db, $post_id, ') === 2 && strpos($storage, "empty(\$auth['auth_edit'])") !== false && strpos($storage, "auth(AUTH_ALL, \$c['forum_id'], \$user, '', \$this)") !== false, 'both inline edit modes must share the current-account permission-checked storage worker');
 ajax_endpoint_assert(substr_count($ajax, "empty(\$is_auth['auth_view']) || empty(\$is_auth['auth_read'])") >= 2, 'both mark endpoints must not expose unreadable forums');
 $preferences = file_get_contents($root . '/phpBB2/includes/functions_topic_preferences.php');
 ajax_endpoint_assert(strpos($ajax, "phpbb_topic_preference(\$db, \$topic_id, 'watch'") !== false &&

@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save inline AJAX edits, first-post topic titles, edit metadata and search-index
+  changes in one transaction. Revalidate the exact current session/account and
+  editing/moderation rights through commit. Roll back failures and disconnects;
+  report uncertain completion without losing the draft. Unchanged retries keep
+  parser identifiers, edit counters and index rows intact. Include common-word
+  index pruning while respecting rebuild state. Existing migrations cover all
+  eleven participants; retain supported binary/Unicode UTF-8 word collations.
 - Record poll voters and result increments in one transaction, including normal
   and AJAX submissions. Revalidate exact persisted guest/member sessions, active
   accounts and current forum permissions through commit; preserve explicitly

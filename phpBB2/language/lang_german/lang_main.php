@@ -1648,6 +1648,8 @@ $lang['Prune_storage_failed'] = 'Die Forumsbereinigung konnte nicht abgeschlosse
 $lang['Posting_storage_failed'] = 'Der Beitragsvorgang konnte nicht abgeschlossen werden. Einzelne Änderungen können bereits gespeichert sein. Bitte prüfe das Thema vor einem erneuten Versuch und wende dich bei Bedarf an den Administrator.';
 $lang['Posting_target_changed'] = 'Das Thema oder die Umfrage hat sich inzwischen geändert. Bitte öffne es erneut und prüfe den aktuellen Stand vor dem nächsten Absenden.';
 $lang['Ajax_edit_invalid_text'] = 'Der Text konnte nicht als gültiges UTF-8 verarbeitet werden. Bitte prüfe deine Eingabe.';
+$lang['Ajax_edit_storage_failed'] = 'Das Speichern deiner Änderung konnte nicht bestätigt werden. Sichere deinen Entwurf und lade den Beitrag vor einem erneuten Versuch neu.';
+$lang['Ajax_edit_storage_upgrade'] = 'Das Bearbeiten benötigt das aktuelle InnoDB/utf8mb4-Datenbankformat. Bitte einen Administrator, die Datenbank-Updates abzuschließen.';
 $lang['Ajax_edit_too_large'] = 'Der Text ist für eine Direktbearbeitung zu lang. Bitte kürze ihn oder verwende den vollständigen Editor.';
 
 $lang['Poll_storage_failed'] = 'Das Speichern deiner Stimme konnte nicht bestätigt werden. Lade die Umfrage vor einem erneuten Versuch neu; eine bereits gespeicherte Stimme wird nicht doppelt gezählt.';

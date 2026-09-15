@@ -12,7 +12,7 @@ function notification_fixture()
 {
 	global $mutation_server,$userdata,$board_config,$notification_deliveries,$notification_delivery_hook,$notification_delivery_result;
 	ajax_storage_fixture(); $p=$mutation_server->pdo;
-	foreach (array('user_level INTEGER DEFAULT 0','user_active INTEGER DEFAULT 1','user_email VARCHAR(255)','user_lang VARCHAR(32)','user_blocktime INTEGER DEFAULT 0') as $column) { $p->exec('ALTER TABLE fixture_users ADD '.$column); }
+	foreach (array('user_email VARCHAR(255)','user_lang VARCHAR(32)','user_blocktime INTEGER DEFAULT 0') as $column) { $p->exec('ALTER TABLE fixture_users ADD '.$column); }
 	$p->exec("UPDATE fixture_users SET user_email='recipient@example.invalid',user_lang='english'");
 	$p->exec("UPDATE fixture_topics SET topic_title='Current Grüße 😀 title'");
 	$p->exec('CREATE TABLE fixture_bans (ban_userid INTEGER)');

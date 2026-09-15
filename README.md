@@ -296,6 +296,17 @@ vote. If completion cannot be confirmed, reload before retrying: a recorded vote
 will not count twice. The existing storage and UTF-8 migrations cover all nine
 participating tables. No historical ballot totals are inferred or rewritten.
 
+Inline AJAX edits likewise commit the post body/title, first-post topic title,
+edit count/time and search-index changes together. Current ordinary sessions,
+active accounts and editing/moderation rights are checked through commit. A
+failed write or disconnect leaves no partial edit; an unchanged retry preserves
+the parser identifier, edit counter and index. Keep a copy of the draft and
+reload if completion cannot be confirmed. Existing migrations cover all eleven
+participants, including common-word pruning and its rebuild-state guard. The
+search dictionary supports its canonical `utf8mb4_bin` word column as well as
+the `utf8mb4_unicode_ci` variant produced by UTF-8 migration; editing does not
+change collation or rebuild historical index data.
+
 Moderator synchronization only repairs ordinary USER/MOD flags from approved
 memberships with an existing group and forum. It shares the coordinated writer
 lock and rechecks current roles, permissions and the acting administrator before

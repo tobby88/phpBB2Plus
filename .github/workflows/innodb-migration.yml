@@ -125,3 +125,7 @@ jobs:
         env:
           PHPBB_VOTE_NATIVE: '1'
           PHPBB_VOTE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-ajax-edit-native.php
+        env:
+          PHPBB_AJAX_EDIT_NATIVE: '1'
+          PHPBB_AJAX_EDIT_PASSWORD: fixture-only

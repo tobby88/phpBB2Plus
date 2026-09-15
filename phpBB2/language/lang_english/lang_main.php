@@ -291,6 +291,8 @@ $lang['Topic_post_not_exist'] = 'The topic or post you requested does not exist'
 $lang['Posting_storage_failed'] = 'The post operation could not be completed. Some changes may already have been saved. Please check the topic before retrying and contact the administrator if necessary.';
 $lang['Posting_target_changed'] = 'The topic or poll has changed in the meantime. Please reopen it and check its current state before submitting again.';
 $lang['Ajax_edit_invalid_text'] = 'The text could not be processed as valid UTF-8. Please check your input.';
+$lang['Ajax_edit_storage_failed'] = 'The result of saving your edit could not be confirmed. Keep a copy of your draft and reload the post before trying again.';
+$lang['Ajax_edit_storage_upgrade'] = 'Editing requires the current InnoDB/utf8mb4 database format. Please ask an administrator to complete the database updates.';
 $lang['Ajax_edit_too_large'] = 'The text is too large for an inline edit. Please shorten it or use the full editor.';
 $lang['No_posts_topic'] = 'No posts exist for this topic';
 

@@ -6,11 +6,31 @@ require_once $forum_root . 'includes/auth.php';
 require_once $forum_root . 'attach_mod/includes/functions_includes.php';
 require $forum_root . 'includes/bbcode.php';
 require $forum_root . 'includes/functions_ajax_storage.php';
+if (!defined('SESSIONS_TABLE')) { define('SESSIONS_TABLE','fixture_sessions'); }
+// SQL protocol adapter only. Independent native tests cover real row locks,
+// metadata, rollback and authority changes through another mysqli connection.
+class AjaxFixturePDO
+{
+	var $inner;
+	function __construct($inner) { $this->inner=$inner; }
+	function __call($method,$args) { return call_user_func_array(array($this->inner,$method),$args); }
+	function query($sql)
+	{
+		if (strpos($sql,'SET SESSION ')===0) { return $this->inner->query('SELECT 1'); }
+		if (strpos($sql,'SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.')===0) { return $this->inner->query("SELECT 'InnoDB' AS ENGINE, 'Dynamic' AS ROW_FORMAT, 'utf8mb4_unicode_ci' AS TABLE_COLLATION"); }
+		if ($sql==='START TRANSACTION') { $sql='BEGIN'; }
+		return $this->inner->query(preg_replace('/ (FOR UPDATE|LOCK IN SHARE MODE)$/D','',$sql));
+	}
+}
 foreach (array('Ajax_edit_invalid_text','Ajax_edit_too_large','Empty_subject','Empty_message','Auth_Anonymous_Users','Auth_Registered_Users','Auth_Users_granted_access','Auth_Moderators','Auth_Administrators') as $key) { $lang[$key]=$key; }
 function ajax_storage_fixture()
 {
 	global $mutation_server,$userdata,$board_config,$tree;
-	posting_fixture(); $p=$mutation_server->pdo;
+	posting_fixture(); $mutation_server->pdo=new AjaxFixturePDO($mutation_server->pdo); $p=$mutation_server->pdo;
+	$p->exec('ALTER TABLE fixture_users ADD user_level INTEGER DEFAULT 0');
+	$p->exec('ALTER TABLE fixture_users ADD user_active INTEGER DEFAULT 1');
+	$p->exec('CREATE TABLE fixture_sessions (session_id VARCHAR(32) PRIMARY KEY, session_user_id INTEGER, session_logged_in INTEGER)');
+	$p->exec("INSERT INTO fixture_sessions VALUES ('fixture',8,1)"); $userdata['session_id']='fixture';
 	$userdata['session_logged_in']=true; $userdata['user_allowhtml']=false;
 	$board_config['allow_html']=false; $board_config['allow_bbcode']=true; $board_config['allow_smilies']=false;
 	$p->exec('ALTER TABLE fixture_users ADD username VARCHAR(255)');
@@ -94,6 +114,8 @@ try
 	$result=phpbb_ajax_edit_post($db,10,'subject','Actual first post');
 	mutation_check(posting_value('SELECT topic_title FROM fixture_topics WHERE topic_id=100')==='Actual first post','Title update uses actual first post, not cached ID');
 	mutation_check((int)$result['post']['post_edit_count']===1 && (int)posting_value('SELECT post_edit_count FROM fixture_posts WHERE post_id=10')===1,'Actual last-post bounds and NULL count yield truthful edit metadata');
+	phpbb_ajax_edit_post($db,10,'subject','Actual first post');
+	mutation_check((int)posting_value('SELECT post_edit_count FROM fixture_posts WHERE post_id=10')===1,'No-op retry does not increment edit count');
 	phpbb_ajax_edit_post($db,$newreply[0],'subject','');
 	mutation_check(posting_value('SELECT topic_title FROM fixture_topics WHERE topic_id=100')==='Actual first post','Empty reply subject does not erase topic title');
 
@@ -115,7 +137,8 @@ try
 	foreach(array('SELECT p.post_id','SELECT a.forum_id','UPDATE fixture_post_text','DELETE FROM fixture_matches','INSERT INTO fixture_matches') as $failure)
 	{
 		ajax_storage_fixture(); $mutation_server->failure=$failure;
-		ajax_storage_failure(function() use($db) { phpbb_ajax_edit_post($db,10,'text','quasarword replacement'); },'Posting_storage_failed');
+		ajax_storage_failure(function() use($db) { phpbb_ajax_edit_post($db,10,'text','quasarword replacement'); },'Ajax_edit_storage_failed');
+		mutation_check(posting_value('SELECT post_text FROM fixture_post_text WHERE post_id=10')==='originalword' && (int)posting_value('SELECT COUNT(*) FROM fixture_matches')===2,'Every failed step rolls back body and selected index');
 		if($failure==='UPDATE fixture_post_text') { mutation_check(posting_value('SELECT post_text FROM fixture_post_text WHERE post_id=10')==='originalword' && (int)posting_value('SELECT COUNT(*) FROM fixture_matches')===2,'Failed text SQL retains old body and index'); }
 	}
 	foreach(array('UPDATE fixture_posts SET poster_id=9','DELETE FROM fixture_post_text') as $change)
