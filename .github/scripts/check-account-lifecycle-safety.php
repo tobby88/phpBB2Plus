@@ -78,7 +78,7 @@ foreach (array(
 foreach (array(
 	"preg_match('/^[a-f0-9]{6,32}$/iD', \$activation_key)",
 	'hash_equals(trim($row[\'user_actkey\']), $activation_key)',
-	"ct_last_pw_change='"
+	'phpbb_account_activate($db, $row, $activation_key)'
 ) as $marker)
 {
 	if (strpos($activate, $marker) === false)

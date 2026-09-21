@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Activate accounts and consume password-reset tokens in an owned transaction.
+  Verify the exact current token/account and activation policy; admin approval
+  requires a current root login. Password changes revoke every old session and
+  persistent login key atomically, including self-reset logouts after commit.
+  Reject stale reset forms, disabled-account resets and malformed legacy hashes;
+  preserve valid historical activation/password links and current password policy.
+  Report optional activation-email failures separately from confirmed storage.
+  Existing canonical tables/updater suffice; no additional schema migration.
 - Preserve acknowledged user/group permission saves and moderator-role repairs
   after subsequent session, delegation or connection changes. Retain current
   authority locks and root-only role transitions; enforce the transaction

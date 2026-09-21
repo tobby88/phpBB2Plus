@@ -12,6 +12,7 @@ function password_reset_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $send = file_get_contents($root . '/phpBB2/includes/usercp_sendpasswd.php');
 $activate = file_get_contents($root . '/phpBB2/includes/usercp_activate.php');
+$storage = file_get_contents($root . '/phpBB2/includes/functions_account_activation.php');
 $constants = file_get_contents($root . '/phpBB2/includes/constants.php');
 $validate = file_get_contents($root . '/phpBB2/includes/functions_validate.php');
 $english_mail = file_get_contents($root . '/phpBB2/language/lang_english/email/user_activate_passwd.tpl');
@@ -22,10 +23,11 @@ password_reset_assert(strpos($send, "user_newpasswd = '\$reset_marker_sql'") !==
 password_reset_assert(strpos($send, 'phpbb_password_hash($user_password)') === false, 'the request handler must not create a password for the user');
 password_reset_assert(strpos($send, "'PASSWORD' =>") === false, 'the mailer must never receive a plaintext password');
 password_reset_assert(strpos($english_mail, '{PASSWORD}') === false && strpos($german_mail, '{PASSWORD}') === false, 'reset e-mails must never contain a password placeholder');
-password_reset_assert(strpos($activate, "ct_last_pw_reset >= \$now") !== false, 'the atomic reset must enforce token expiry');
-password_reset_assert(strpos($activate, "user_actkey = '\$activation_key_sql'") !== false, 'the atomic reset must consume only the presented token');
-password_reset_assert(strpos($activate, '$db->sql_affectedrows() < 1') !== false, 'concurrent or reused reset links must fail closed');
-password_reset_assert(strpos($activate, 'session_reset_keys((int) $row[\'user_id\']') !== false, 'a completed reset must revoke existing sessions and auto-login keys');
+password_reset_assert(strpos($storage, "(int)\$row['ct_last_pw_reset'] < \$now") !== false, 'the locked reset must enforce token expiry');
+password_reset_assert(strpos($storage, "HEX(user_actkey)=HEX('\$key_sql')") !== false, 'the atomic reset must consume only the exact presented token');
+password_reset_assert(strpos($storage, '$db->sql_affectedrows() !== 1') !== false, 'concurrent or reused reset links must fail closed');
+password_reset_assert(strpos($activate, 'phpbb_account_activate($db, $row, $activation_key, $new_hash, $submitted_sid)') !== false, 'controller uses the owned reset publication');
+password_reset_assert(strpos($storage, "'DELETE FROM ' . SESSIONS_TABLE") !== false && strpos($storage, "'DELETE FROM ' . SESSIONS_KEYS_TABLE") !== false, 'a completed reset must revoke all existing sessions and auto-login keys');
 password_reset_assert(strpos($validate, 'phpbb_password_input_error($password)') !== false, 'password validation must use the shared NUL and byte-length boundary before password_hash');
 
 echo "Password reset safety checks passed.\n";

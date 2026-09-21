@@ -1687,4 +1687,7 @@ $lang['Click_view_split_topic'] = 'Klicke %shier%s, um das neue Thema anzusehen.
 $lang['Public_profile_save_failed'] = 'Das vollständige Speichern des Profils konnte nicht bestätigt werden. Bei einem Verbindungsabbruch zum Abschluss prüfe bitte vor einem erneuten Versuch dein Profil und deinen Login.';
 $lang['Public_profile_changed'] = 'Deine Sitzung oder deine Kontodaten haben sich geändert. Bitte melde dich gegebenenfalls erneut an und lade das Profilformular neu.';
 $lang['Public_profile_storage_upgrade'] = 'Das Speichern von Profilen benötigt InnoDB-Tabellen mit modernem UTF-8-Speicherformat. Bitte führe zunächst die dokumentierten Speicherformat- und UTF-8-Updates aus.';
+$lang['Activation_save_failed'] = 'Die Aktivierung oder Passwortzurücksetzung konnte nicht bestätigt werden. Bei einem Verbindungsabbruch zum Abschluss versuche bitte zunächst, dich einzuloggen, bevor du einen neuen Link anforderst.';
+$lang['Activation_storage_upgrade'] = 'Die Kontoaktivierung benötigt InnoDB-Tabellen mit modernem UTF-8-Speicherformat. Bitte führe zunächst die dokumentierten Speicherformat- und UTF-8-Updates aus.';
+$lang['Activation_mail_failed'] = 'Das Konto ist aktiv, aber die Benachrichtigungs-E-Mail konnte nicht gesendet werden. Bitte informiere das Mitglied separat; die Aktivierung muss nicht wiederholt werden.';
 ?>

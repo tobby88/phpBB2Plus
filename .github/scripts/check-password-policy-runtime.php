@@ -86,7 +86,7 @@ try
         array($quick, '$new_password = phpbb_password_hash($new_password);', 'require_once('),
         array(file_get_contents($root.'change_password.php'), '$new_password_hash = phpbb_password_hash($new_password);', '$new_password_hash_sql ='),
         array(file_get_contents($root.'includes/usercp_register.php'), '$new_password = phpbb_password_hash($new_password);', '$passwd_sql ='),
-        array(file_get_contents($root.'includes/usercp_activate.php'), '$new_hash = phpbb_password_hash($new_password);', '$new_hash_sql ='),
+        array(file_get_contents($root.'includes/usercp_activate.php'), '$new_hash = phpbb_password_hash($new_password);', 'try'),
         array($installer, '$admin_password = phpbb_password_hash($admin_pass1);', '// Load in the sql parser')
     ) as $writer)
     {

@@ -1691,4 +1691,7 @@ $lang['Click_view_split_topic'] = 'Click %sHere%s to view the new topic.';
 $lang['Public_profile_save_failed'] = 'The complete profile save could not be confirmed. If the connection was lost at completion, please check your profile and login before retrying.';
 $lang['Public_profile_changed'] = 'Your session or account details have changed. Please sign in again if necessary and reload the profile form.';
 $lang['Public_profile_storage_upgrade'] = 'Saving profiles requires InnoDB tables with modern UTF-8 storage. Please complete the documented storage and UTF-8 upgrades first.';
+$lang['Activation_save_failed'] = 'The activation or password reset could not be confirmed. If the connection was lost at completion, please try logging in before requesting another link.';
+$lang['Activation_storage_upgrade'] = 'Account activation requires InnoDB tables with modern UTF-8 storage. Please complete the documented storage and UTF-8 upgrades first.';
+$lang['Activation_mail_failed'] = 'The account is active, but the notification email could not be sent. Please inform the member separately; activation does not need to be repeated.';
 ?>

@@ -26,6 +26,7 @@ if ( !defined('IN_PHPBB') )
 	die('Hacking attempt');
 	exit;
 }
+require_once dirname(__FILE__) . '/functions_account_activation.php';
 
 function usercp_render_password_reset($row, $activation_key, $error_message = '')
 {
@@ -81,6 +82,12 @@ if ( $row = $db->sql_fetchrow($result) )
 	}
 	else if (trim($row['user_actkey']) !== '' && hash_equals(trim($row['user_actkey']), $activation_key))
 	{
+		// A stale reset form must never turn into an account activation after
+		// a different operation has replaced the token's purpose.
+		if (!empty($_POST['reset_password']) && $row['user_newpasswd'] !== PHPBB_PASSWORD_RESET_PENDING)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Wrong_activation']);
+		}
 		if ($row['user_newpasswd'] === PHPBB_PASSWORD_RESET_PENDING)
 		{
 			$now = time();
@@ -124,21 +131,12 @@ if ( $row = $db->sql_fetchrow($result) )
 
 			$new_hash = phpbb_password_hash($new_password);
 			if ($new_hash === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
-			$new_hash_sql = $db->sql_escape($new_hash);
-			$activation_key_sql = $db->sql_escape($activation_key);
-			$reset_marker_sql = $db->sql_escape(PHPBB_PASSWORD_RESET_PENDING);
-			$sql = "UPDATE " . USERS_TABLE . "
-				SET user_password = '$new_hash_sql', user_newpasswd = '', user_actkey = '',
-					user_passwd_change = $now, ct_last_pw_change = $now
-				WHERE user_id = " . (int) $row['user_id'] . "
-					AND user_actkey = '$activation_key_sql'
-					AND user_newpasswd = '$reset_marker_sql'
-					AND ct_last_pw_reset >= $now";
-			if (!$db->sql_query($sql) || $db->sql_affectedrows() < 1)
+			try
 			{
-				message_die(GENERAL_MESSAGE, $lang['Password_reset_expired']);
+				$activation_result = phpbb_account_activate($db, $row, $activation_key, $new_hash, $submitted_sid);
 			}
-			session_reset_keys((int) $row['user_id'], $user_ip);
+			catch (PhpbbActivationException $error) { message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8')); }
+			phpbb_activation_publish_logout($activation_result);
 			message_die(GENERAL_MESSAGE, $lang['Password_reset_complete'] . '<br /><br />' . sprintf($lang['Click_return_login'], '<a href="' . append_sid('login.' . $phpEx) . '">', '</a>'));
 		}
 
@@ -153,24 +151,20 @@ if ( $row = $db->sql_fetchrow($result) )
 				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 			}
 		}
-		$password_activation_time = time();
-		$sql_update_pass = ( $row['user_newpasswd'] != '' ) ? ", user_password = '" . str_replace("\'", "''", $row['user_newpasswd']) . "', user_newpasswd = '', user_passwd_change='".(($row['user_newpasswd']==$row['user_password']) ? $password_activation_time : '0')."', ct_last_pw_change='" . $password_activation_time . "'" : '';
-
-		$sql = "UPDATE " . USERS_TABLE . "
-			SET user_active = 1, user_actkey = ''" . $sql_update_pass . " 
-			WHERE user_id = " . $row['user_id']; 
-		if ( !($result = $db->sql_query($sql)) )
+		try
 		{
-			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
+			$activation_result = phpbb_account_activate($db, $row, $activation_key);
 		}
-		if ( $row['user_newpasswd'] != '' )
+		catch (PhpbbActivationException $error) { message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8')); }
+		phpbb_activation_publish_logout($activation_result);
+		$row = $activation_result['row'];
+		if ($activation_result['admin'])
 		{
-			session_reset_keys((int) $row['user_id'], $user_ip);
-		}
-		if ( intval($board_config['require_activation']) == USER_ACTIVATION_ADMIN && $sql_update_pass == '' )
-		{
-			include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-			$emailer = new emailer($board_config['smtp_delivery']);
+			$activation_mail_failed = false;
+			try
+			{
+			require_once($phpbb_root_path . 'includes/emailer.'.$phpEx);
+			$emailer = new emailer($board_config['smtp_delivery'], true);
 
 			$emailer->from($board_config['board_email']);
 			$emailer->replyto($board_config['board_email']);
@@ -184,14 +178,17 @@ if ( $row = $db->sql_fetchrow($result) )
 				'USERNAME' => $row['username'],
 				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '')
 			);
-			$emailer->send();
+			$activation_mail_failed = !$emailer->send();
 			$emailer->reset();
+			}
+			catch (Exception $error) { $activation_mail_failed = true; }
+			catch (Throwable $error) { $activation_mail_failed = true; }
 
 			$template->assign_vars(array(
 				'META' => '<meta http-equiv="refresh" content="10;url=' . append_sid("index.$phpEx") . '">')
 			);
 
-			message_die(GENERAL_MESSAGE, $lang['Account_active_admin']);
+			message_die(GENERAL_MESSAGE, $lang['Account_active_admin'] . ($activation_mail_failed ? '<br /><br />' . $lang['Activation_mail_failed'] : ''));
 		}
 		else
 		{
@@ -199,7 +196,7 @@ if ( $row = $db->sql_fetchrow($result) )
 				'META' => '<meta http-equiv="refresh" content="10;url=' . append_sid("index.$phpEx") . '">')
 			);
 
-			$message = ( $sql_update_pass == '' ) ? $lang['Account_active'] : $lang['Password_activated']; 
+			$message = $activation_result['legacy'] ? $lang['Password_activated'] : $lang['Account_active'];
 			message_die(GENERAL_MESSAGE, $message);
 		}
 	}
