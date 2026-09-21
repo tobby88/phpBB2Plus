@@ -753,3 +753,6 @@ jobs:
 
       - name: Preserve avatars through rejected or uncertain public profile saves
         run: php .github/scripts/check-public-profile-avatar.php
+
+      - name: Check public profile transaction dependencies
+        run: php .github/scripts/check-public-profile-native.php

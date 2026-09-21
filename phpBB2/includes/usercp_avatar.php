@@ -96,6 +96,13 @@ class PhpbbPublicAvatarScope
 		if ($new) { $this->new_files[$file] = $file; } else { $this->old_files[$file] = $file; }
 	}
 	function write_attempted() { $this->attempted = true; }
+	// Only an owning transaction with an acknowledged rollback BEFORE any
+	// COMMIT attempt can prove that its new reference was never published.
+	function rolled_back()
+	{
+		if ($this->confirmed || $this->finished) { return; }
+		$this->attempted = false; $this->release();
+	}
 	function saved()
 	{
 		if (!$this->attempted || $this->finished) { return; }

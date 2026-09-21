@@ -33,10 +33,10 @@ $end = strpos($controller, '// End add - Birthday MOD', $start);
 avatar_check($start !== false && $end > $start, 'Actual avatar and subsequent birthday validation');
 $prepare = substr($controller, $start, $end - $start);
 $start = strpos($controller, '$public_avatar_scope->write_attempted();');
-$end = strpos($controller, '$public_avatar_scope->saved();', $start) + strlen('$public_avatar_scope->saved();');
+$end = strpos($controller, 'if ( !empty($passwd_sql) )', $start);
 $write = substr($controller, $start, $end - $start);
 avatar_check(strpos($write, 'Could not update users table') !== false, 'Actual edit write boundary');
-avatar_check(substr_count($controller, '$public_avatar_scope->write_attempted();') === 2 && substr_count($controller, '$public_avatar_scope->saved();') === 2, 'Edit and registration enlist their account writes');
+avatar_check(substr_count($controller, '$public_avatar_scope->write_attempted();') === 2 && substr_count($controller, '$public_avatar_scope->saved();') === 1 && strpos($controller, '$profile_scope->finish();') !== false, 'Edit confirms through owning transaction; registration enlists its account write');
 avatar_check(strpos($controller, "phpbb_user_write_end(\$db, \$creation_scope);\n\t\t\t\$public_avatar_scope->saved();") !== false, 'Registration confirms after releasing its writer');
 class AvatarFixtureDatabase
 {
@@ -113,7 +113,9 @@ try {
     $public_avatar_scope->saved();
    } else {
     $sql = 'UPDATE fixture_users SET user_id=1' . $avatar_sql . ' WHERE user_id=1';
-    try { eval($write); } catch (AvatarFixtureExit $e) { $failed = true; }
+    // This fixture isolates the avatar lifecycle; full transaction confirmation
+    // and rollback are exercised by check-public-profile-native.php.
+    try { eval($write); $public_avatar_scope->saved(); } catch (AvatarFixtureExit $e) { $failed = true; }
    }
   }
   $public_avatar_scope->release(); $public_avatar_scope->release();

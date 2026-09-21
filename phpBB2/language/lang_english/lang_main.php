@@ -1688,4 +1688,7 @@ $lang['Moderation_split_denied'] = 'You may not split posts into the selected fo
 $lang['Moderation_split_keep_first'] = 'The original first post must remain in its topic. Use Move to move the entire topic.';
 $lang['Moderation_split_subject'] = 'Please enter a valid UTF-8 subject of reasonable length.';
 $lang['Click_view_split_topic'] = 'Click %sHere%s to view the new topic.';
+$lang['Public_profile_save_failed'] = 'The complete profile save could not be confirmed. If the connection was lost at completion, please check your profile and login before retrying.';
+$lang['Public_profile_changed'] = 'Your session or account details have changed. Please sign in again if necessary and reload the profile form.';
+$lang['Public_profile_storage_upgrade'] = 'Saving profiles requires InnoDB tables with modern UTF-8 storage. Please complete the documented storage and UTF-8 upgrades first.';
 ?>

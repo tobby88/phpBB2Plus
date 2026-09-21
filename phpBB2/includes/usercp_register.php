@@ -796,21 +796,26 @@ if ( isset($_POST['submit']) )
 
 		if ( $mode == 'editprofile' )
 		{
+			require_once($phpbb_root_path . 'includes/functions_public_profile_storage.' . $phpEx);
+			$profile_scope = null;
+			try
+			{
+			$profile_scope = new PhpbbPublicProfileScope($db, $user_id, $sid, $public_avatar_scope);
+			$db = $profile_scope;
+			// Validation ran before waiting for the shared account writer lock.
+			if ($username_sql !== '') { $checked = validate_username($username, false); if ($checked['error']) { throw new PhpbbPublicProfileException($checked['error_msg']); } }
+			if ($email !== $userdata['user_email']) { $checked = validate_email($email, false); if ($checked['error']) { throw new PhpbbPublicProfileException($checked['error_msg']); } }
 			if ( $email != $userdata['user_email'] && $board_config['require_activation'] != USER_ACTIVATION_NONE && $userdata['user_level'] != ADMIN )
 			{
 				$user_active = 0;
 
 				$user_actkey = gen_rand_string(true);
 
-				if ( $userdata['session_logged_in'] )
-				{
-					session_end($userdata['session_id'], $userdata['user_id']);
-				}
 			}
 			else
 			{
 				$user_active = 1;
-				$user_actkey = '';
+				$user_actkey = (!empty($passwd_sql) || $email !== $userdata['user_email']) ? '' : $profile_scope->account['user_actkey'];
 				// Start add - Protect user account MOD
 				$passwd_sql .= (empty($passwd_sql)) ? "" : " user_passwd_change=".time().",";
 				// End add - Protect user account MOD
@@ -824,13 +829,19 @@ if ( isset($_POST['submit']) )
 			{
 				message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
 			}
-			$public_avatar_scope->saved();
 			if ( !empty($passwd_sql) )
 			{
 				$profile_security->pw_create_date($user_id);
 			}
+			if (!empty($passwd_sql) || $email !== $userdata['user_email'])
+			{
+				// An old password-reset marker must not repurpose the new email
+				// activation link or survive a deliberate credential change.
+				$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_newpasswd='' WHERE user_id=" . (int)$user_id);
+			}
 			if ($username_sql !== '')
 			{
+				$profile_scope->rename_cache_needed = true;
 				phpbb_sync_username_references($user_id, $userdata['username'], $username);
 			}
 
@@ -838,7 +849,7 @@ if ( isset($_POST['submit']) )
 			// and change the current one (if applicable)
 			if ( !empty($passwd_sql) )
 			{
-				session_reset_keys($user_id, $user_ip);
+				$profile_scope->login_cookie = session_reset_keys($user_id, $user_ip, true);
 			}
 
 			//
@@ -860,6 +871,15 @@ if ( isset($_POST['submit']) )
 			//
 			// END Custom Profile Fields MOD
 			//
+			if (!$user_active) { $profile_scope->end_sessions(); }
+			$profile_scope->finish();
+			}
+			catch (PhpbbPublicProfileException $profile_failure)
+			{
+				if ($profile_scope !== null) { $profile_scope->release(); }
+				message_die(GENERAL_MESSAGE, $profile_failure->getMessage());
+			}
+			finally { if ($profile_scope !== null) { $profile_scope->release(); } }
 
 			if ( !$user_active )
 			{

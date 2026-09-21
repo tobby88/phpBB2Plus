@@ -1684,4 +1684,7 @@ $lang['Moderation_split_denied'] = 'Du darfst keine Beiträge in das ausgewählt
 $lang['Moderation_split_keep_first'] = 'Der ursprüngliche erste Beitrag muss in seinem Thema bleiben. Verwende „Verschieben“, um das gesamte Thema zu verschieben.';
 $lang['Moderation_split_subject'] = 'Bitte gib einen gültigen UTF-8-Titel in angemessener Länge ein.';
 $lang['Click_view_split_topic'] = 'Klicke %shier%s, um das neue Thema anzusehen.';
+$lang['Public_profile_save_failed'] = 'Das vollständige Speichern des Profils konnte nicht bestätigt werden. Bei einem Verbindungsabbruch zum Abschluss prüfe bitte vor einem erneuten Versuch dein Profil und deinen Login.';
+$lang['Public_profile_changed'] = 'Deine Sitzung oder deine Kontodaten haben sich geändert. Bitte melde dich gegebenenfalls erneut an und lade das Profilformular neu.';
+$lang['Public_profile_storage_upgrade'] = 'Das Speichern von Profilen benötigt InnoDB-Tabellen mit modernem UTF-8-Speicherformat. Bitte führe zunächst die dokumentierten Speicherformat- und UTF-8-Updates aus.';
 ?>

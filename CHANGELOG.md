@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save self-service profile edits in one owned transaction, including custom
+  fields, CrackerTracker password timestamps, name references and login keys.
+  Pin the exact current session/account and reject stale password, email, role
+  or avatar snapshots. Deactivated accounts cannot reactivate themselves through
+  a pending edit. Defer avatar/cookie publication until confirmed commit; revoke
+  all logins on email reactivation. Preserve pending resets on ordinary edits,
+  cancel them on credential changes, and keep activation/reset tokens distinct.
+  Require existing InnoDB/DYNAMIC/utf8mb4 upgrades; no new schema migration.
 - Defer public-profile avatar deletion until the account write succeeds.
   Rejected forms retain their previous image; newly staged uploads are removed
   before any attempted write. Keep shared images and both files after an

@@ -179,3 +179,7 @@ jobs:
         env:
           PHPBB_PUBLIC_AVATAR_NATIVE: '1'
           PHPBB_PUBLIC_AVATAR_PASSWORD: fixture-only
+      - run: php .github/scripts/check-public-profile-native.php
+        env:
+          PHPBB_PUBLIC_PROFILE_NATIVE: '1'
+          PHPBB_PUBLIC_PROFILE_PASSWORD: fixture-only
