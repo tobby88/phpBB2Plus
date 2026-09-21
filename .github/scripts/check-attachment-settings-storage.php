@@ -65,9 +65,12 @@ class AttachSettingsConnection {
  function __construct($db){$this->connection=$db;$this->db_connect_id=$db->db_connect_id;}
  function __call($method,$args){return call_user_func_array(array($this->connection,$method),$args);}
  function sql_query($sql,$transaction=false){
+  if(!empty($GLOBALS['ats_acknowledged'])){$GLOBALS['ats_after_ack_queries'][]=$sql;}
   $GLOBALS['ats_queries'][]=$sql;if(is_callable($GLOBALS['ats_hook'])){call_user_func($GLOBALS['ats_hook'],$sql);}
   if($GLOBALS['ats_failure']!==''&&strpos($sql,$GLOBALS['ats_failure'])===0){return false;}
-  $result=$this->connection->sql_query($sql,$transaction);if($sql==='COMMIT'&&$GLOBALS['ats_failure']==='commit-ack'){return false;}return $result;
+  $result=$this->connection->sql_query($sql,$transaction);if($sql==='COMMIT'&&$GLOBALS['ats_failure']==='commit-ack'){return false;}
+  if($sql==='COMMIT'&&$result){$GLOBALS['ats_acknowledged']=true;if(is_callable($GLOBALS['ats_after_commit'])){call_user_func($GLOBALS['ats_after_commit'],$this);}}
+  return $result;
  }
 }
 class AttachSettingsDatabase extends sql_db {function sql_dedicated_connection(){return new AttachSettingsConnection(parent::sql_dedicated_connection());}}
@@ -80,11 +83,12 @@ class AttachSettingsTemplate {
  function pparse($name){throw new AttachSettingsExit('rendered');}
 }
 $db=new AttachSettingsDatabase($host,'root',$password,$fixture,false);unset($db->password);$peer=new sql_db($host,'root',$password,$fixture,false);
-$ats_queries=array();$ats_hook=null;$ats_failure='';$userdata=array();$attach_config=array();
+$ats_queries=array();$ats_hook=null;$ats_failure='';$ats_after_commit=null;$ats_acknowledged=false;$ats_after_ack_queries=array();$userdata=array();$attach_config=array();
 function ats_sql($sql){$result=$GLOBALS['peer']->sql_query($sql);ats_check($result,'Fixture SQL');return $result;}
 function ats_snapshot(){return array('config'=>phpbb_attach_settings_read($GLOBALS['peer']),'groups'=>phpbb_acl_rows($GLOBALS['peer'],'SELECT group_id,max_filesize FROM '.EXTENSION_GROUPS_TABLE.' ORDER BY group_id'));}
 function ats_reset($actor,$mode){
  global $ats_queries,$ats_hook,$ats_failure,$userdata,$attach_config;
+ $GLOBALS['ats_after_commit']=null;$GLOBALS['ats_acknowledged']=false;$GLOBALS['ats_after_ack_queries']=array();
  $ats_hook=null;$ats_failure='';$ats_queries=array();foreach(array(ATTACH_CONFIG_TABLE,EXTENSION_GROUPS_TABLE,QUOTA_LIMITS_TABLE,USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE) as $table){ats_sql('DELETE FROM '.$table);}
  foreach($GLOBALS['ats_defaults'] as $key=>$value){ats_sql("INSERT INTO ".ATTACH_CONFIG_TABLE." VALUES ('".$key."','".$value."')");}
  ats_sql("INSERT INTO ".EXTENSION_GROUPS_TABLE." (group_id,group_name,cat_id,max_filesize) VALUES (1,'<group &>',1,262144),(2,'same',0,262144),(3,'custom',0,4096)");
@@ -126,7 +130,33 @@ try{
    else{ats_check($outcome==='Not_Authorised'&&ats_snapshot()===$before,'Revocation rolls back config and matching limits');}
    ats_check(ats_run($mode,$payload)==='Not_Authorised','Following request denied');$cases++;
   }}
-  foreach(array('COMMIT','commit-ack') as $failure){ats_reset($actor,$mode);$before=ats_snapshot();$ats_failure=$failure;ats_check(ats_run($mode,$payload)==='storage','Commit uncertainty reports error');ats_check($failure==='COMMIT'?ats_snapshot()===$before:ats_snapshot()!==$before,'Known rollback versus lost acknowledgement');$cases++;}
+  foreach(array('none','inactive','missing','admin-off','foreign','logout','case',$actor==='root'?'role':'grant','disconnect') as $kind){
+   ats_reset($actor,$mode);$local_before=$attach_config;$committed=null;
+   $ats_hook=function($sql){if($sql==='COMMIT'){file_put_contents($GLOBALS['ats_root'].'/cache/attach_config_data.cache','reader-filled-before-commit');}};
+   $ats_after_commit=function($connection)use($kind,&$committed){
+    $committed=ats_snapshot();
+    if($kind==='disconnect'){ats_sql('KILL CONNECTION '.(int)mysqli_thread_id($connection->db_connect_id));}
+    elseif($kind!=='none'){ats_sql(ats_revoke($kind));}
+   };
+   ats_check(strpos(ats_run($mode,$payload),'saved')===0,'Confirmed save survives post-commit '.$kind.' '.$actor.' '.$mode);
+   ats_check($ats_acknowledged&&$committed===$after&&ats_snapshot()===$after,'Complete settings and matching extension limits durable');
+   $expected_local=array_merge($local_before,phpbb_attach_settings_values($payload,$mode,$local_before));
+   ats_check($attach_config===$expected_local&&!$ats_after_ack_queries,'Publish exact local settings without querying released authority/connection');
+   ats_check(!is_file($ats_root.'/cache/attach_config_data.cache'),'Confirmed save evicts refilled legacy cache');
+   if($kind!=='none'&&$kind!=='disconnect'){
+    $ats_after_commit=null;$ats_acknowledged=false;
+    ats_check(ats_run($mode,$payload)==='Not_Authorised'&&ats_snapshot()===$after,'Next request still obeys revoked authority');
+   }
+   $cases++;
+  }
+  foreach(array('COMMIT','commit-ack') as $failure){
+   ats_reset($actor,$mode);$before=ats_snapshot();$local_before=$attach_config;$ats_failure=$failure;
+   $ats_hook=function($sql){if($sql==='COMMIT'){file_put_contents($GLOBALS['ats_root'].'/cache/attach_config_data.cache','reader-filled-before-commit');}};
+   ats_check(ats_run($mode,$payload)==='storage','Commit uncertainty reports error');
+   ats_check($failure==='COMMIT'?ats_snapshot()===$before:ats_snapshot()===$after,'Known rollback versus complete but unacknowledged commit');
+   ats_check($attach_config===$local_before&&!$ats_acknowledged,'Unconfirmed commit never publishes success/local settings');
+   ats_check(!is_file($ats_root.'/cache/attach_config_data.cache'),'Uncertain commit evicts refilled legacy cache');$cases++;
+  }
   ats_reset($actor,$mode);$before=ats_snapshot();$ats_failure='UPDATE '.ATTACH_CONFIG_TABLE." SET config_value='".($mode==='manage'?'1536':'640')."'";
   ats_check(ats_run($mode,$payload)==='storage'&&ats_snapshot()===$before,'Failure after prior writes rolls back both tables');$cases++;
   foreach(array(array_merge($payload,array('attach_version'=>'forged')),array_merge($payload,array($mode==='manage'?'ftp_pass':'img_max_width'=>array('bad'))),array_merge($payload,array($mode==='manage'?'img_max_width':'ftp_pass'=>'bad')),array_merge($payload,array('sid'=>'wrong'))) as $request){ats_reset($actor,$mode);$before=ats_snapshot();ats_check(strpos(ats_run($mode,$request),'saved')!==0&&ats_snapshot()===$before,'Whole invalid form rejected');ats_check(!array_filter($ats_queries,function($sql){return preg_match('/^(UPDATE|INSERT|DELETE|COMMIT)\b/',$sql);}), 'No writes before whole-request validation');$cases++;}
@@ -147,6 +177,7 @@ try{
  ats_check(ats_run('manage',array('ftp_pass'=>'after'))==='storage','Missing config row during transaction rejected');
  echo 'Native attachment settings: '.$cases.' cases; '.$serialized." serialized before revocation; render/readback checks passed\n";
 }finally{
+ if(is_file($ats_root.'/cache/attach_config_data.cache')){unlink($ats_root.'/cache/attach_config_data.cache');}
  $ats_hook=null;$ats_failure='';$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();chdir($previous);
  foreach($files as $file=>$body){unlink($ats_root.'/'.$file);}foreach(array_reverse($dirs) as $dir){rmdir($dir);}restore_error_handler();
 }

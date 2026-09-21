@@ -138,7 +138,9 @@ function phpbb_attach_settings_save($database, $request, $mode)
 		{ $result = $db->sql_query($sql . ' LOCK IN SHARE MODE'); $db->sql_freeresult($result); }
 		$db->actor(); $stored = phpbb_attach_settings_read($db);
 		foreach ($values as $key => $value) { if (!isset($stored[$key]) || (string)$stored[$key] !== $value) { phpbb_acl_error('Board_config_failed'); } }
-		$db->sql_query('COMMIT'); $db->actor();
+		// Authority is pinned through COMMIT. A later logout or connection loss
+		// must not turn an acknowledged save into a misleading failure.
+		$db->sql_query('COMMIT');
 		foreach ($values as $key => $value) { $attach_config[$key] = $value; }
 	}
 	finally { $db->release(); if ($attempted) { @unlink($phpbb_root_path . 'cache/attach_config_data.cache'); } }

@@ -122,7 +122,8 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 		$had_connection = $this->connection !== null;
 		if (!$had_connection) { return; }
 		$rolled_back = false;
-		try { $rolled_back = (bool)$this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+		if (!$this->confirmed)
+		{ try { $rolled_back = (bool)$this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {} }
 		// A lost COMMIT reply can mean the complete profile already exists.
 		// Retain both files in that case; never break a possibly saved avatar.
 		$files = $this->confirmed ? $this->old_avatars : ($this->commit_attempted || !$rolled_back ? array() : $this->new_avatars);

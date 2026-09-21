@@ -22,14 +22,17 @@ class ApConnection {
   $GLOBALS['ap_queries'][]=$sql;if(is_callable($GLOBALS['ap_hook'])){call_user_func($GLOBALS['ap_hook'],$sql);}
   if(preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)&&++$GLOBALS['ap_write']===$GLOBALS['ap_fail']){return false;}
   if($sql==='COMMIT'&&$GLOBALS['ap_commit']==='fail'){return false;}
-  $r=$this->db->sql_query($sql,$tx);if(!$r){$GLOBALS['ap_sql_error']=$this->db->sql_error();}return $sql==='COMMIT'&&$GLOBALS['ap_commit']==='ack'?false:$r;
+  $r=$this->db->sql_query($sql,$tx);if(!$r){$GLOBALS['ap_sql_error']=$this->db->sql_error();}
+  if($sql==='COMMIT'&&$GLOBALS['ap_commit']==='ack'){return false;}
+  if($sql==='COMMIT'&&$r&&is_callable($GLOBALS['ap_after_commit'])){call_user_func($GLOBALS['ap_after_commit'],$this);}
+  return $r;
  }
 }
 class ApDatabase extends sql_db {function sql_dedicated_connection(){return new ApConnection(parent::sql_dedicated_connection());}}
 class ApTemplate {var $vars=array();function assign_vars($vars){$this->vars=array_merge($this->vars,$vars);}}
 $ap_main=new ApDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);$db=$ap_main;
 $ap_tables=array('users','sessions','sessions_keys','jr_admin_users','groups','user_group','banlist','attach_quota','quota_limits','album','album_comment','ina_comment','ina_at_scores','ina_highscore','shout');
-$ap_hook=null;$ap_write=$ap_fail=0;$ap_commit='';$ap_queries=$ap_cookies=array();
+$ap_hook=null;$ap_write=$ap_fail=0;$ap_commit='';$ap_queries=$ap_cookies=array();$ap_after_commit=null;
 $ap_files=sys_get_temp_dir().'/phpbb-profile-'.bin2hex(function_exists('random_bytes')?random_bytes(8):openssl_random_pseudo_bytes(8));ats_check(mkdir($ap_files),'Owned avatar fixture directory');
 ats_check(mkdir($ap_files.'/cache'),'Owned name-cache fixture directory');
 function user_avatar_storage_directory(){return $GLOBALS['ap_files'];}
@@ -56,6 +59,7 @@ function ap_insert($table,$values){
 function ap_reset($actor='root',$scenario='edit'){
  global $db,$userdata,$ap_hook,$ap_write,$ap_fail,$ap_commit,$ap_queries,$ap_cookies,$admin_profile_scope,$board_config,$ap_actor,$ap_target;
  $db=$GLOBALS['ap_main'];$admin_profile_scope=null;$ap_hook=null;$ap_write=$ap_fail=0;$ap_commit='';$ap_queries=$ap_cookies=array();$GLOBALS['ap_sql_error']=null;
+ $GLOBALS['ap_after_commit']=null;
  ap_sql('START TRANSACTION');foreach($GLOBALS['ap_tables'] as $s){ap_sql('DELETE FROM fixture_'.($s==='jr_admin_users'?'jr':$s));}ap_sql('COMMIT');
  ap_sql('ALTER TABLE fixture_groups AUTO_INCREMENT=1');ap_sql('ALTER TABLE fixture_banlist AUTO_INCREMENT=1');ap_sql('START TRANSACTION');
  foreach(array(1,2,5) as $id){ap_insert('fixture_users',array('user_id'=>$id,'username'=>'fixture-'.$id,'user_level'=>$id===1?1:0,'user_active'=>1,'user_password'=>'fixture-before','user_avatar'=>$id===2?'before.png':'','user_avatar_type'=>$id===2?1:0));}
@@ -132,6 +136,18 @@ try{
   if($scenario==='ban'){ats_check(count(ap_rows('SELECT * FROM fixture_banlist WHERE ban_userid=2'))===1,'Warning threshold inserts ban');}
   if($scenario==='disable'){ats_check(!ap_rows('SELECT * FROM fixture_sessions WHERE session_user_id=2'),'Disabled target loses sessions');}
   if($scenario==='new'){ats_check(count(ap_rows('SELECT * FROM fixture_users WHERE user_id=42 AND user_active=1'))===1&&count(ap_rows('SELECT * FROM fixture_user_group WHERE user_id=42'))===1,'New account and personal membership publish together');}
+  foreach(array('missing',$actor==='root'?'role':'delegation','disconnect') as $kind){
+   ap_reset($actor,$scenario);$committed=null;
+   $ap_after_commit=function($connection)use($kind,&$committed){
+    $committed=ap_snap();if($kind==='disconnect'){ap_sql('KILL CONNECTION '.(int)mysqli_thread_id($connection->db_connect_id));}
+    else{ap_sql(ap_revoke($kind));}
+   };
+   ats_check(ap_run($scenario)===true,'Confirmed profile survives post-commit '.$kind.' '.$actor.' '.$scenario);
+   ats_check(ap_committed($committed)===ap_committed($after),'Complete profile was committed before later authority change');
+   ats_check($db===$ap_main&&count($ap_cookies)===($scenario==='self'?1:0),'Confirmed profile restores ordinary connection and publishes self cookie');
+   if($scenario==='avatar'){ats_check(!is_file($ap_files.'/before.png')&&is_file($ap_files.'/after.png'),'Confirmed avatar cleanup survives writer disconnect/revocation');}
+   $other=new attach_mutation_lock($peer,false);ats_check($other->acquired,'Confirmed profile releases attachment mutex');$other->release();$cases++;
+  }
   for($n=1;$n<=$writes;$n++){ap_reset($actor,$scenario);$before=ap_snap();$ap_fail=$n;ats_check(ap_run($scenario)==='error'&&ap_snap()===$before&&!$ap_cookies,'Whole profile rollback at write '.$n.' '.$scenario);ats_check(is_file($ap_files.'/before.png'),'Failure preserves old avatar');if($scenario==='avatar'&&$admin_profile_scope->new_avatars){ats_check(!is_file($ap_files.'/after.png'),'Confirmed rollback removes staged unreferenced avatar');}$cases++;}
   foreach(array('fail','ack') as $kind){ap_reset($actor,$scenario);$before=ap_snap();$ap_commit=$kind;
    if(in_array($scenario,array('rename','new'),true)){$ap_hook=function($sql){if($sql==='COMMIT'){file_put_contents($GLOBALS['ap_files'].'/cache/cg_users.cache','reader-filled-before-commit');}};}

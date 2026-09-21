@@ -87,6 +87,7 @@ jobs:
       - run: |
           php .github/scripts/check-new-user-quota-target.php
           php .github/scripts/check-attachment-quota-storage.php
+          php .github/scripts/check-attachment-quota-lifecycle-native.php
         env:
           PHPBB_QUOTA_NATIVE: '1'
           PHPBB_QUOTA_PASSWORD: fixture-only

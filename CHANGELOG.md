@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve acknowledged attachment settings, quota changes/assignments and
+  ACP profile saves after a later session, permission or connection change.
+  Keep current authority locked through commit and uncertain results distinct
+  from success, including request-local defaults, caches, avatar cleanup and
+  login cookies. Reject quota/profile writes outside an owned transaction,
+  repeated starts and implicit-commit statements. Preserve profile metadata
+  reads and the shared attachment mutation lock. No schema/migration change.
 - Preserve acknowledged general-configuration and Configuration+ saves after
   session, permission or connection changes. Keep exact current ACP authority
   locked through commit and revalidate after a preceding automatic backup.

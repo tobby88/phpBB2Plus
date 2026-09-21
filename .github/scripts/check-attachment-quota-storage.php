@@ -34,7 +34,10 @@ class QuotaConnection {
   $GLOBALS['qqueries'][]=$sql;if(is_callable($GLOBALS['qhook'])){call_user_func($GLOBALS['qhook'],$sql);}
   if(preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)&&++$GLOBALS['qwrite']===$GLOBALS['qfailWrite']){return false;}
   if($sql==='COMMIT'&&$GLOBALS['qcommit']==='fail'){return false;}
-  $r=$this->connection->sql_query($sql,$transaction);return $sql==='COMMIT'&&$GLOBALS['qcommit']==='ack'?false:$r;
+  $r=$this->connection->sql_query($sql,$transaction);
+  if($sql==='COMMIT'&&$GLOBALS['qcommit']==='ack'){return false;}
+  if($sql==='COMMIT'&&$r&&is_callable($GLOBALS['qafter_commit'])){call_user_func($GLOBALS['qafter_commit'],$this);}
+  return $r;
  }
 }
 class QuotaDatabase extends sql_db {function sql_dedicated_connection(){return new QuotaConnection(parent::sql_dedicated_connection());}}
@@ -47,13 +50,14 @@ class QuotaTemplate {
  function pparse($name){throw new AttachSettingsExit('rendered');}
 }
 $db=new QuotaDatabase($host,'root',$password,$fixture,false);unset($db->password);$peer=new sql_db($host,'root',$password,$fixture,false);
-$qqueries=array();$qhook=null;$qwrite=0;$qfailWrite=0;$qcommit='';
+$qqueries=array();$qhook=null;$qwrite=0;$qfailWrite=0;$qcommit='';$qafter_commit=null;
 function qsql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Fixture SQL');return $r;}
 function qsnap(){return array('limits'=>phpbb_acl_rows($GLOBALS['peer'],'SELECT * FROM '.QUOTA_LIMITS_TABLE.' ORDER BY quota_limit_id'),
  'assign'=>phpbb_acl_rows($GLOBALS['peer'],'SELECT * FROM '.QUOTA_TABLE.' ORDER BY user_id,group_id,quota_type'),'defaults'=>phpbb_attach_settings_read($GLOBALS['peer']));}
 function qreset($actor='root',$route='quota'){
  global $qqueries,$qhook,$qwrite,$qfailWrite,$qcommit,$userdata,$attach_config,$board_config;
  $qqueries=array();$qhook=null;$qwrite=$qfailWrite=0;$qcommit='';
+ $GLOBALS['qafter_commit']=null;
  foreach(array(ATTACH_CONFIG_TABLE,QUOTA_LIMITS_TABLE,QUOTA_TABLE,USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE) as $t){qsql('DELETE FROM '.$t);}
  qsql('ALTER TABLE '.QUOTA_LIMITS_TABLE.' AUTO_INCREMENT=1');
  foreach($GLOBALS['ats_defaults'] as $k=>$v){if($k==='default_upload_quota'){$v='2';}qsql("INSERT INTO ".ATTACH_CONFIG_TABLE." VALUES ('".$k."','".$v."')");}
@@ -93,6 +97,19 @@ try{
   qreset($actor);ats_check(qrun($qform)==='saved','Actual combined quota save');$after=qsnap();$boundaries=array_values(array_filter($qqueries,'qboundary'));$writes=$qwrite;
   ats_check(count($after['limits'])===3&&$after['limits'][0]['quota_limit']==1536&&$after['limits'][2]['quota_limit']==1048577,'Update/delete/add exact limits');
   ats_check($after['defaults']['default_upload_quota']==='0'&&count($after['assign'])===1,'Deleted quota defaults and both owner types removed');
+  foreach(array('none','missing','inactive','admin-off','foreign','logout','case',$actor==='root'?'role':'grant','disconnect') as $kind){
+   qreset($actor);$local_before=$attach_config;$committed=null;
+   $qafter_commit=function($connection)use($kind,&$committed){
+    $committed=qsnap();if($kind==='disconnect'){qsql('KILL CONNECTION '.(int)mysqli_thread_id($connection->db_connect_id));}
+    elseif($kind!=='none'){qsql(qrevoke($kind));}
+   };
+   ats_check(qrun($qform)==='saved','Confirmed quota save survives post-commit '.$kind.' '.$actor);
+   ats_check($committed===$after&&qsnap()===$after,'Complete quota/default/assignment save remains durable');
+   $local_before['default_upload_quota']='0';ats_check($attach_config===$local_before,'Confirmed cleared default published locally');
+   $qafter_commit=null;
+   if($kind!=='none'&&$kind!=='disconnect'){ats_check(qrun($qform)==='Not_Authorised'&&qsnap()===$after,'Following quota request obeys revocation');}
+   $other=new attach_mutation_lock($peer,false);ats_check($other->acquired,'Post-commit fault releases shared attachment mutex');$other->release();$cases++;
+  }
   foreach(array('inactive','missing','admin-off','foreign','logout','case',$actor==='root'?'role':'grant') as $kind){qreset($actor);qsql(qrevoke($kind));$before=qsnap();ats_check(qrun($qform)==='Not_Authorised'&&qsnap()===$before,'Entry revocation preserves all tables');$cases++;}
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    qreset($actor);$before=qsnap();$seen=0;$reached=$blocked=false;
@@ -101,7 +118,7 @@ try{
    ats_check(qrun($qform)==='Not_Authorised','Following request denied');$cases++;
   }}
   for($nth=1;$nth<=$writes;$nth++){qreset($actor);$before=qsnap();$qfailWrite=$nth;ats_check(qrun($qform)==='storage'&&qsnap()===$before,'Every write failure rolls back full form');$cases++;}
-  foreach(array('fail','ack') as $fault){qreset($actor);$before=qsnap();$qcommit=$fault;ats_check(qrun($qform)==='storage','Commit uncertainty reported');ats_check($fault==='fail'?qsnap()===$before:qsnap()!==$before,'Known rollback versus already committed acknowledgement loss');$cases++;}
+  foreach(array('fail','ack') as $fault){qreset($actor);$before=qsnap();$local_before=$attach_config;$qcommit=$fault;ats_check(qrun($qform)==='storage','Commit uncertainty reported');ats_check($fault==='fail'?qsnap()===$before:qsnap()===$after,'Known rollback versus complete committed acknowledgement loss');ats_check($attach_config===$local_before,'Unconfirmed save does not publish local defaults');$cases++;}
   echo $actor." actual quota controller and concurrent revocation passed\n";
  }
  foreach($bad as $patch){qreset();$before=qsnap();ats_check(qrun(array_merge($qform,$patch))!=='saved'&&qsnap()===$before&&$qwrite===0,'Whole form rejects before writes');}
@@ -113,6 +130,14 @@ try{
  ats_check(qrun($qform)==='saved'&&$locked,'Definition writer holds actual group/deletion mutation mutex');$other=new attach_mutation_lock($peer,false);ats_check($other->acquired,'Mutex released after save');$other->release();
  foreach(array('user','group') as $mode){foreach(array('root','delegated') as $actor){
   $request=array($mode.'_upload_quota'=>'1',$mode.'_pm_quota'=>'3');qreset($actor,$mode);ats_check(qassignment($mode,$request)==='saved','Actual assignment entry point');$aboundaries=array_values(array_filter($qqueries,'qboundary'));
+  $after_assignment=qsnap();
+  foreach(array('missing',$actor==='root'?'role':'grant','disconnect') as $kind){
+   qreset($actor,$mode);$qafter_commit=function($connection)use($kind){
+    if($kind==='disconnect'){qsql('KILL CONNECTION '.(int)mysqli_thread_id($connection->db_connect_id));}else{qsql(qrevoke($kind));}
+   };
+   ats_check(qassignment($mode,$request)==='saved'&&qsnap()===$after_assignment,'Confirmed '.$mode.' assignment survives post-commit '.$kind);
+   $qafter_commit=null;if($kind!=='disconnect'){ats_check(qassignment($mode,$request)==='Not_Authorised','Next assignment still denied');}$cases++;
+  }
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($aboundaries);$nth++){
    qreset($actor,$mode);$before=qsnap();$seen=0;$blocked=$reached=false;
    $qhook=function($sql)use($nth,$kind,&$seen,&$blocked,&$reached){if(!qboundary($sql)||++$seen!==$nth){return;}$GLOBALS['qhook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(qrevoke($kind))){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Assignment revocation native timeout');$blocked=true;}};

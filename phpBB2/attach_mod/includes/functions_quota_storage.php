@@ -77,6 +77,7 @@ class PhpbbAttachQuotaWriter extends PhpbbAclDatabase
 {
 	var $lock;
 	var $route;
+	var $transactional = false;
 	function __construct($database, $mode)
 	{
 		global $phpEx;
@@ -89,17 +90,56 @@ class PhpbbAttachQuotaWriter extends PhpbbAclDatabase
 		register_shutdown_function(array($this, 'release'));
 	}
 	function actor() { return phpbb_acp_actor($this, $this->route); }
+	function sql_query($sql, $transaction = false)
+	{
+		if (!$this->connection || !is_string($sql)) { phpbb_acl_error($this->failure_key); }
+		$command = strtoupper(trim($sql));
+		if ($command === 'START TRANSACTION')
+		{
+			if ($this->transactional) { phpbb_acl_error($this->failure_key); }
+		}
+		elseif ($command === 'COMMIT')
+		{
+			if (!$this->transactional) { phpbb_acl_error($this->failure_key); }
+			$this->actor();
+		}
+		elseif ($command === 'ROLLBACK')
+		{
+			if (!$this->transactional) { return true; }
+		}
+		elseif (preg_match('/^\s*(?:INSERT|UPDATE|DELETE)\b/i', $sql))
+		{
+			if (!$this->transactional) { phpbb_acl_error($this->failure_key); }
+			$this->actor();
+		}
+		elseif (!preg_match('/^\s*(?:SELECT|SHOW|DESCRIBE)\b/i', $sql))
+		{
+			// Profile helpers need metadata reads, but must never implicitly
+			// commit through DDL, autocommit or a second transaction start.
+			if ($this->transactional || !in_array($sql, array(
+				"SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')",
+				'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'), true))
+			{ phpbb_acl_error($this->failure_key); }
+		}
+		$result = parent::sql_query($sql, $transaction);
+		if ($command === 'START TRANSACTION') { $this->transactional = true; }
+		elseif ($command === 'COMMIT' || $command === 'ROLLBACK') { $this->transactional = false; }
+		return $result;
+	}
 	function release()
 	{
 		if ($this->connection)
 		{
-			try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+			if ($this->transactional)
+			{ try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {} }
+			$this->transactional = false;
 			$this->connection = null;
 		}
 		if ($this->lock) { $this->lock->release(); $this->lock = null; }
 	}
 	function begin($tables)
 	{
+		if (!$this->connection || $this->transactional) { phpbb_acl_error($this->failure_key); }
 		$this->actor();
 		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
 		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'); $this->sql_query('START TRANSACTION');
@@ -115,12 +155,15 @@ class PhpbbAttachQuotaWriter extends PhpbbAclDatabase
 	function commit()
 	{
 		global $userdata;
+		if (!$this->connection || !$this->transactional) { phpbb_acl_error($this->failure_key); }
 		$actor = $this->actor(); $sid = $this->sql_escape($userdata['session_id']);
 		foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
 			'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$actor['user_id'],
 			'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . (int)$actor['user_id']) as $sql)
 		{ $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
-		$this->actor(); $this->sql_query('COMMIT'); $this->actor();
+		// The locks serialize authority changes before or after this commit.
+		// Never reinterpret a confirmed save using a later session/role state.
+		$this->actor(); $this->sql_query('COMMIT');
 	}
 }
 function phpbb_attach_quota_post($request)
