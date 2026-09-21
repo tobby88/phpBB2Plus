@@ -64,16 +64,29 @@ function phpbb_group_moderator_membership($id)
 
 class PhpbbGroupMemberDatabase extends PhpbbGroupDatabase
 {
+	var $transactional = false;
+	var $finished = false;
+	private function control($sql) { return parent::sql_query($sql); }
+	function sql_query($sql, $transaction = false)
+	{
+		// Context reads also run before begin; mutations belong exclusively to
+		// this one transaction. Helpers may never issue implicit commits.
+		if (!is_string($sql) || !preg_match('/^\s*(SELECT|UPDATE|INSERT|DELETE)\b/i', $sql, $command)
+			|| (strtoupper($command[1]) !== 'SELECT' && !$this->transactional)) { phpbb_group_error('Group_storage_failed'); }
+		return $this->control($sql);
+	}
 	function begin()
 	{
-		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
-		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
-		$this->sql_query('START TRANSACTION');
+		if ($this->transactional || $this->finished) { phpbb_group_error('Group_storage_failed'); }
+		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->control('START TRANSACTION'); $this->transactional = true;
 		foreach (array(USERS_TABLE, SESSIONS_TABLE, GROUPS_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, FORUMS_TABLE) as $table)
 		{
 			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
-			$rows = phpbb_group_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			$name = $this->sql_escape($table);
+			$rows = phpbb_group_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $name . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $name . "' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci')
 			{ phpbb_group_error('Group_storage_failed'); }
 		}
@@ -81,17 +94,23 @@ class PhpbbGroupMemberDatabase extends PhpbbGroupDatabase
 	function commit($group_id, $action)
 	{
 		global $userdata;
+		if (!$this->transactional || $this->finished) { phpbb_group_error('Group_storage_failed'); }
 		$group = phpbb_group_context($this, $group_id, $action); $sid = $this->sql_escape($userdata['session_id']);
 		foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
 			'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . $group['actor_id']) as $sql)
 		{ $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
 		// The group row (including current leader/status) was locked at entry.
 		// Public self-service needs a current login, not an ACP-session grant.
-		phpbb_group_context($this, $group_id, $action); $this->sql_query('COMMIT'); phpbb_group_context($this, $group_id, $action);
+		phpbb_group_context($this, $group_id, $action); $this->control('COMMIT');
+		// These locks protected the acknowledged outcome. Later revocation or
+		// disconnect must not withhold its notification recipients or success.
+		$this->transactional = false; $this->finished = true;
 	}
 	function rollback()
 	{
+		if (!$this->transactional) { return; }
 		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+		$this->transactional = false; $this->finished = true;
 	}
 }
 

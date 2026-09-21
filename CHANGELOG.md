@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve acknowledged public group membership and ACP group changes after
+  later session, authority or connection changes. Keep current member/leader/
+  administrator checks and commit-phase locks, transition-only notifications,
+  quotas and derived roles. Reject writes outside each owned transaction and
+  implicit commits; avoid post-success rollback/query attempts. Bound metadata
+  checks to the current database/table without relaxing storage requirements.
+  No schema or migration change.
 - Save self-service profile edits in one owned transaction, including custom
   fields, CrackerTracker password timestamps, name references and login keys.
   Pin the exact current session/account and reject stale password, email, role

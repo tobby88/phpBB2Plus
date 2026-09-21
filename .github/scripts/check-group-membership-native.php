@@ -20,15 +20,19 @@ class GmnConnection
  function __construct($db){$this->db=$db;$this->db_connect_id=$db->db_connect_id;}
  function __call($method,$args){return call_user_func_array(array($this->db,$method),$args);}
  function sql_query($sql,$tx=false){
+  if(!empty($GLOBALS['gmn_acknowledged'])){$GLOBALS['gmn_after_queries'][]=$sql;}
   $GLOBALS['gmn_queries'][]=$sql;if(is_callable($GLOBALS['gmn_hook'])){call_user_func($GLOBALS['gmn_hook'],$sql);}
   if(preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)&&++$GLOBALS['gmn_write']===$GLOBALS['gmn_fail']){return false;}
   if($sql==='COMMIT'&&$GLOBALS['gmn_commit']==='fail'){return false;}
-  $r=$this->db->sql_query($sql,$tx);return $sql==='COMMIT'&&$GLOBALS['gmn_commit']==='ack'?false:$r;
+  $r=$this->db->sql_query($sql,$tx);
+  if($sql==='COMMIT'&&$r&&$GLOBALS['gmn_commit']!=='ack'){$GLOBALS['gmn_acknowledged']=true;if(is_callable($GLOBALS['gmn_after_commit'])){call_user_func($GLOBALS['gmn_after_commit'],$this);}}
+  return $sql==='COMMIT'&&$GLOBALS['gmn_commit']==='ack'?false:$r;
  }
 }
 class GmnDatabase extends sql_db {function sql_dedicated_connection(){return new GmnConnection(parent::sql_dedicated_connection());}}
 $db=new GmnDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
 $gmn_hook=null;$gmn_fail=$gmn_write=0;$gmn_commit='';$gmn_queries=array();
+$gmn_after_commit=null;$gmn_acknowledged=false;$gmn_after_queries=array();
 $gmn_tables=array('groups','user_group','auth_access','forums','pa_auth','attach_quota','quota_limits','users','sessions','jr');
 function gmn_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native fixture SQL');return $r;}
 function gmn_rows($sql){return phpbb_group_rows($GLOBALS['peer'],$sql);}
@@ -38,6 +42,7 @@ function gmn_snap(){
 function gmn_reset($actor='root'){
  global $userdata,$gmn_actor,$gmn_hook,$gmn_fail,$gmn_write,$gmn_commit,$gmn_queries;
  $gmn_hook=null;$gmn_fail=$gmn_write=0;$gmn_commit='';$gmn_queries=array();
+ $GLOBALS['gmn_after_commit']=null;$GLOBALS['gmn_acknowledged']=false;$GLOBALS['gmn_after_queries']=array();
  foreach($GLOBALS['gmn_tables'] as $s){gmn_sql('DELETE FROM fixture_'.$s);}
  gmn_sql('ALTER TABLE fixture_groups AUTO_INCREMENT=1');
  gmn_sql("INSERT INTO fixture_users (user_id,user_level,user_active,username) VALUES (1,1,1,'actor'),(2,2,1,'old'),(3,0,1,'new'),(4,2,1,'member'),(5,0,1,'unrelated')");
@@ -100,6 +105,12 @@ try{
   for($i=1;$i<=$writes;$i++){gmn_reset($actor);$before=gmn_snap();$gmn_fail=$i;ats_check(gmn_run($action,$value)==='error'&&gmn_snap()===$before,'Every failed write rolls back all state: '.$action.' '.$i);$cases++;}
   foreach(array('fail','ack') as $commit){gmn_reset($actor);$before=gmn_snap();$gmn_commit=$commit;ats_check(gmn_run($action,$value)==='error','Failed/uncertain COMMIT not reported successful');ats_check(gmn_snap()===($commit==='fail'?$before:$after),'Whole outcome on COMMIT failure/lost ack');$cases++;}
   $authority=$actor==='root'?'role':($actor==='leader'?'leader':'inactive');
+  foreach(array('missing',$authority,'disconnect') as $kind){
+   gmn_reset($actor);$stored=null;
+   $gmn_after_commit=function($writer)use($kind,&$stored){$stored=gmn_snap();if($kind==='disconnect'){gmn_sql('KILL CONNECTION '.(int)mysqli_thread_id($writer->db_connect_id));}else{gmn_sql(gmn_revoke($kind));}};
+   $actual=gmn_run($action,$value);
+   ats_check($stored===$after&&$actual===$out&&!$gmn_after_queries,'Acknowledged outcome/recipients survive later '.$actor.' '.$action.' '.$kind);$cases++;
+  }
   foreach(array('inactive','missing','foreign','logout','case',$authority) as $kind){gmn_reset($actor);gmn_sql(gmn_revoke($kind));$before=gmn_snap();ats_check(gmn_run($action,$value)==='error'&&gmn_snap()===$before,'Current entry authority: '.$actor.' '.$action.' '.$kind);$cases++;}
   foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    gmn_reset($actor);$before=gmn_snap();$seen=0;$reached=$blocked=false;
@@ -121,6 +132,19 @@ try{
  gmn_reset('leader');$before=gmn_snap();$out=gmn_run('remove',array(2));ats_check(is_array($out)&&!$out['changed']&&gmn_snap()===$before,'Mandatory leader cannot be removed');
  gmn_reset('leader');$before=gmn_snap();ats_check(gmn_run('approve',array(3),array('g'=>array(10)))==='error'&&gmn_snap()===$before,'Actual controller preserves nested original selection for validation');
  gmn_reset('outsider');gmn_sql('UPDATE fixture_groups SET group_type=1 WHERE group_id=10');$before=gmn_snap();ats_check(gmn_run('join')==='error'&&gmn_snap()===$before,'Closed group rejects new join');
+ foreach(array('before-begin','repeat-begin','after-commit','after-rollback','raw-commit','ddl','empty-commit') as $case){
+  gmn_reset();$_POST=array('sid'=>'fixture-admin');$before=gmn_snap();$lock=new attach_mutation_lock($db);ats_check($lock->acquired,'Owned lifecycle connection');$owner=new PhpbbGroupMemberDatabase($lock->connection);$denied=false;
+  try{
+   if($case!=='before-begin'&&$case!=='empty-commit'){$owner->begin();$owner->sql_query("UPDATE fixture_groups SET group_description='owned' WHERE group_id=10");}
+   if($case==='repeat-begin'){$owner->begin();}
+   elseif($case==='empty-commit'){$owner->commit(10,'status');}
+   elseif($case==='raw-commit'){$owner->sql_query('COMMIT');}
+   elseif($case==='ddl'){$owner->sql_query('ALTER TABLE fixture_groups ENGINE=MyISAM');}
+   else{if($case==='after-commit'){$owner->commit(10,'status');}if($case==='after-rollback'){$owner->rollback();}$owner->sql_query("UPDATE fixture_groups SET group_description='escaped' WHERE group_id=10");}
+  }catch(PhpbbGroupException $e){$denied=true;}finally{$owner->rollback();$lock->release();}
+  ats_check($denied,'Reject group transaction escape '.$case);
+  ats_check($case==='after-commit'?gmn_rows('SELECT group_description FROM fixture_groups WHERE group_id=10')[0]['group_description']==='owned':gmn_snap()===$before,'Lifecycle guard never implicitly publishes a partial request');$cases++;
+ }
  echo 'Native public group membership: '.$cases.' boundary/failure cases, '.$serialized." serialized revocations; all eight actions passed.\n";
 }finally{
  $gmn_hook=null;$gmn_fail=0;$gmn_commit='';$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();

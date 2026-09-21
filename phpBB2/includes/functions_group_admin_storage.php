@@ -14,20 +14,31 @@ function phpbb_group_admin_actor($db)
 // transaction additionally makes every group, role and session change atomic.
 class PhpbbGroupAdminDatabase extends PhpbbGroupDatabase
 {
+	var $transactional = false;
+	var $finished = false;
+	private function control($sql) { return parent::sql_query($sql); }
+	function sql_query($sql, $transaction = false)
+	{
+		if (!is_string($sql) || !preg_match('/^\s*(SELECT|UPDATE|INSERT|DELETE)\b/i', $sql, $command)
+			|| (strtoupper($command[1]) !== 'SELECT' && !$this->transactional)) { phpbb_group_error('Group_storage_failed'); }
+		return $this->control($sql);
+	}
 	function begin()
 	{
+		if ($this->transactional || $this->finished) { phpbb_group_error('Group_storage_failed'); }
 		phpbb_group_admin_actor($this);
-		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
-		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
-		$this->sql_query('START TRANSACTION');
+		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->control('START TRANSACTION'); $this->transactional = true;
 		foreach (array(USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE, GROUPS_TABLE, USER_GROUP_TABLE,
 			AUTH_ACCESS_TABLE, FORUMS_TABLE, PA_AUTH_ACCESS_TABLE, QUOTA_TABLE, QUOTA_LIMITS_TABLE) as $table)
 		{
 			// Pin metadata before checking it; never silently use nontransactional
 			// plugin tables or repair schema with implicit-commit runtime DDL.
 			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
-			$rows = phpbb_group_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			$name = $this->sql_escape($table);
+			$rows = phpbb_group_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $name . "'"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $name . "' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci')
 			{ phpbb_group_error('Group_storage_failed'); }
 		}
@@ -35,16 +46,22 @@ class PhpbbGroupAdminDatabase extends PhpbbGroupDatabase
 	function commit()
 	{
 		global $userdata;
+		if (!$this->transactional || $this->finished) { phpbb_group_error('Group_storage_failed'); }
 		$actor = phpbb_group_admin_actor($this); $sid = $this->sql_escape($userdata['session_id']);
 		foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
 			'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$actor['user_id'],
 			'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . (int)$actor['user_id']) as $sql)
 		{ $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
-		phpbb_group_admin_actor($this); $this->sql_query('COMMIT'); phpbb_group_admin_actor($this);
+		// Current root/delegated authority is pinned through this commit. A
+		// later revocation cannot undo it or turn the saved result into failure.
+		phpbb_group_admin_actor($this); $this->control('COMMIT');
+		$this->transactional = false; $this->finished = true;
 	}
 	function rollback()
 	{
+		if (!$this->transactional) { return; }
 		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+		$this->transactional = false; $this->finished = true;
 	}
 }
 function phpbb_group_admin_target($db, $id)

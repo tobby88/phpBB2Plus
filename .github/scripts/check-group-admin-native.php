@@ -19,15 +19,19 @@ class GanConnection
  function __construct($db){$this->db=$db;$this->db_connect_id=$db->db_connect_id;}
  function __call($method,$args){return call_user_func_array(array($this->db,$method),$args);}
  function sql_query($sql,$tx=false){
+  if(!empty($GLOBALS['gan_acknowledged'])){$GLOBALS['gan_after_queries'][]=$sql;}
   $GLOBALS['gan_queries'][]=$sql;if(is_callable($GLOBALS['gan_hook'])){call_user_func($GLOBALS['gan_hook'],$sql);}
   if(preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)&&++$GLOBALS['gan_write']===$GLOBALS['gan_fail']){return false;}
   if($sql==='COMMIT'&&$GLOBALS['gan_commit']==='fail'){return false;}
-  $r=$this->db->sql_query($sql,$tx);return $sql==='COMMIT'&&$GLOBALS['gan_commit']==='ack'?false:$r;
+  $r=$this->db->sql_query($sql,$tx);
+  if($sql==='COMMIT'&&$r&&$GLOBALS['gan_commit']!=='ack'){$GLOBALS['gan_acknowledged']=true;if(is_callable($GLOBALS['gan_after_commit'])){call_user_func($GLOBALS['gan_after_commit'],$this);}}
+  return $sql==='COMMIT'&&$GLOBALS['gan_commit']==='ack'?false:$r;
  }
 }
 class GanDatabase extends sql_db {function sql_dedicated_connection(){return new GanConnection(parent::sql_dedicated_connection());}}
 $db=new GanDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
 $gan_hook=null;$gan_fail=$gan_write=0;$gan_commit='';$gan_queries=array();
+$gan_after_commit=null;$gan_acknowledged=false;$gan_after_queries=array();
 $gan_tables=array('groups','user_group','auth_access','forums','pa_auth','attach_quota','quota_limits','users','sessions','jr');
 function gan_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native fixture SQL');return $r;}
 function gan_rows($sql){return phpbb_group_rows($GLOBALS['peer'],$sql);}
@@ -37,6 +41,7 @@ function gan_snap(){
 function gan_reset($actor='root'){
  global $userdata,$gan_hook,$gan_fail,$gan_write,$gan_commit,$gan_queries;
  $gan_hook=null;$gan_fail=$gan_write=0;$gan_commit='';$gan_queries=array();
+ $GLOBALS['gan_after_commit']=null;$GLOBALS['gan_acknowledged']=false;$GLOBALS['gan_after_queries']=array();
  foreach($GLOBALS['gan_tables'] as $s){gan_sql('DELETE FROM fixture_'.$s);}
  gan_sql('ALTER TABLE fixture_groups AUTO_INCREMENT=1');
  gan_sql("INSERT INTO fixture_users VALUES (1,".($actor==='root'?1:0).",1,'actor'),(2,2,1,'old'),(3,0,1,'new'),(4,2,1,'member'),(5,1,1,'unrelated')");
@@ -89,6 +94,10 @@ try{
   ats_check(count(gan_rows('SELECT * FROM fixture_sessions WHERE session_user_id=5'))===1&&count(gan_rows('SELECT * FROM fixture_pa_auth WHERE group_id=11'))===1,'Unrelated user/group untouched');
   for($i=1;$i<=$writes;$i++){gan_reset($actor);$before=gan_snap();$gan_fail=$i;ats_check(gan_run($mode)==='error'&&gan_snap()===$before,'Every failed write fully rolls back: '.$mode.' '.$i);$cases++;}
   foreach(array('fail','ack') as $commit){gan_reset($actor);$before=gan_snap();$gan_commit=$commit;ats_check(gan_run($mode)==='error','Uncertain/failed COMMIT never reports success');ats_check(gan_snap()===($commit==='fail'?$before:$after),'COMMIT failure or lost acknowledgement has whole-state outcome');$cases++;}
+  foreach(array('missing',$actor==='root'?'role':'grant','disconnect') as $kind){
+   gan_reset($actor);$stored=null;$gan_after_commit=function($writer)use($kind,&$stored){$stored=gan_snap();if($kind==='disconnect'){gan_sql('KILL CONNECTION '.(int)mysqli_thread_id($writer->db_connect_id));}else{gan_sql(gan_revoke($kind));}};
+   ats_check(gan_run($mode)===$success&&$stored===$after&&!$gan_after_queries,'Acknowledged administrative outcome survives later '.$kind);$cases++;
+  }
   foreach(array('inactive','missing','admin-off','foreign','logout','case',$actor==='root'?'role':'grant') as $kind){gan_reset($actor);gan_sql(gan_revoke($kind));$before=gan_snap();ats_check(gan_run($mode)==='error'&&gan_snap()===$before,'Entry authority checks');$cases++;}
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    gan_reset($actor);$before=gan_snap();$seen=0;$reached=$blocked=false;
@@ -106,6 +115,15 @@ try{
  gan_sql('ALTER TABLE fixture_groups MODIFY group_name VARCHAR(40) CHARACTER SET latin1');$before=gan_snap();ats_check(gan_run('edit')==='error'&&gan_snap()===$before,'Reject legacy text column despite modern table default');gan_sql('ALTER TABLE fixture_groups MODIFY group_name VARCHAR(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
  foreach(array(array('group_name'=>str_repeat('😀',41)),array('group_type'=>'oops'),array('username'=>'missing'),array('group_pm_quota'=>'999'),array('sid'=>'wrong')) as $patch){gan_reset();$before=gan_snap();ats_check(gan_run('edit',$patch)==='error'&&gan_snap()===$before,'Invalid complete form has no writes');}
  gan_reset();gan_sql('DELETE FROM fixture_user_group WHERE group_id=10 AND user_id=2');ats_check(gan_run('delete')==='Deleted_group'&&gan_rows('SELECT user_level FROM fixture_users WHERE user_id=2')[0]['user_level']==0,'Orphan former leader role repaired on deletion');
+ foreach(array('before-begin','repeat-begin','after-commit','after-rollback','raw-commit','ddl','empty-commit') as $case){
+  gan_reset();$before=gan_snap();$lock=new attach_mutation_lock($db);ats_check($lock->acquired,'Owned ACP lifecycle connection');$owner=new PhpbbGroupAdminDatabase($lock->connection);$denied=false;
+  try{
+   if($case!=='before-begin'&&$case!=='empty-commit'){$owner->begin();$owner->sql_query("UPDATE fixture_groups SET group_description='owned' WHERE group_id=10");}
+   if($case==='repeat-begin'){$owner->begin();}elseif($case==='empty-commit'){$owner->commit();}elseif($case==='raw-commit'){$owner->sql_query('COMMIT');}elseif($case==='ddl'){$owner->sql_query('ALTER TABLE fixture_groups ENGINE=MyISAM');}
+   else{if($case==='after-commit'){$owner->commit();}if($case==='after-rollback'){$owner->rollback();}$owner->sql_query("UPDATE fixture_groups SET group_description='escaped' WHERE group_id=10");}
+  }catch(PhpbbGroupException $e){$denied=true;}finally{$owner->rollback();$lock->release();}
+  ats_check($denied,'Reject ACP transaction escape '.$case);ats_check($case==='after-commit'?gan_rows('SELECT group_description FROM fixture_groups WHERE group_id=10')[0]['group_description']==='owned':gan_snap()===$before,'No implicit partial administrative publication');$cases++;
+ }
  echo 'Native group administration: '.$cases.' boundary/failure cases, '.$serialized." serialized revocations; schema and lifecycle checks passed.\n";
 }finally{
  $gan_hook=null;$gan_fail=0;$gan_commit='';$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();
