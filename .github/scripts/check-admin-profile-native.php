@@ -132,7 +132,11 @@ try{
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');
  foreach($ap_tables as $s){ats_check(preg_match('/CREATE TABLE phpbb_'.$s.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical table '.$s);$name='fixture_'.($s==='jr_admin_users'?'jr':$s);ap_sql(str_replace('phpbb_'.$s,$name,$m[0]));preg_match_all('/ALTER TABLE phpbb_'.$s.'\s+[\s\S]*?;/',$schema,$extra);foreach($extra[0] as $ddl){ap_sql(str_replace('phpbb_'.$s,$name,$ddl));}}
  ap_sql('ALTER TABLE fixture_users ADD user_custom_fixture VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL');
- ap_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
+ // A synchronous callback pauses the owner while the real peer attempts its
+ // write. An immediate 1205 proves the held lock just as a delayed 1205 does;
+ // no owner work can happen during an otherwise idle one-second timeout.
+ ap_sql('SET SESSION innodb_lock_wait_timeout=0');
+ ats_check((int)ap_rows('SELECT @@SESSION.innodb_lock_wait_timeout AS wait_seconds')[0]['wait_seconds']===0,'Immediate native contention probe enabled');$cases=$serialized=0;
  foreach(array('root','junior') as $actor){foreach(array('edit','new','password','self','rename','block','unblock','avatar','ban','disable') as $scenario){
   ap_reset($actor,$scenario);$before=ap_snap();$ok=ap_run($scenario);ats_check($ok===true,'Authorized '.$actor.' '.$scenario.' '.json_encode(isset($ap_sql_error)?$ap_sql_error:null));$after=ap_snap();$writes=$ap_write;$boundaries=array_values(array_filter($ap_queries,'ap_boundary'));
   ats_check($db===$ap_main,'Restore main connection');
