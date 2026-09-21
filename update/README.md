@@ -43,6 +43,12 @@ already belong to this updater; no additional column or table is introduced.
 Its account/group/membership publication now rolls back as one transaction and
 checks the exact current Add new user grant. Existing records are unchanged.
 
+Self-service profile edits require the same modern storage for their account,
+session, username-reference, rule, custom-field, config, CrackerTracker config
+and theme tables. This updater already covers all of them. The runtime pins
+current identities/policies through the complete save; no new table/column or
+cleanup of historical duplicate accounts is introduced.
+
 The full ACP profile editor also requires current storage for configuration,
 disallowed names, word rules, custom-field definitions and themes. These tables
 already belong to this updater. No new columns, conversion of identity values,

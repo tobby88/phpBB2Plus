@@ -207,3 +207,7 @@ jobs:
         env:
           PHPBB_SIGNATURE_NATIVE: '1'
           PHPBB_SIGNATURE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-public-profile-identity-native.php
+        env:
+          PHPBB_PUBLIC_PROFILE_NATIVE: '1'
+          PHPBB_PUBLIC_PROFILE_PASSWORD: fixture-only

@@ -12,6 +12,13 @@ changes consolidated after that baseline without implying active maintenance.
   Signature content can no longer alter other account columns. Preserve literal
   apostrophes, backslashes and Unicode in both plain-text and HTML preparation.
   This source-only fix does not change existing signatures or database schema.
+- Hold self-service profile identity/rule ranges and current profile, avatar and
+  CrackerTracker password policies until commit. Reject stale activation rules,
+  changed custom-field definitions, missing styles and revoked avatar permission.
+  Prevent independent writers from claiming a name/email between validation and
+  saving, without rewriting unchanged historical duplicates. Preserve atomic
+  profile/session/avatar publication and current reset/reactivation behavior.
+  The consolidated storage updater already covers every participating table.
 - Hold changed ACP profile names/emails and their current validation rules until
   commit, preventing independent writers from claiming a validated identity in
   between. Pin password/profile/avatar policy and custom-field definitions;

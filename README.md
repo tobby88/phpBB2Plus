@@ -184,6 +184,12 @@ Current password/hash policy, available style and local identity/name/email rule
 are validated under locks. A revoked session/grant cannot publish a stale form;
 failed writes roll back together while retaining the durable ID reservation.
 The full ACP account editor has its own transaction described above.
+Self-service profile saves also pin the current identity/name/email rules,
+profile/avatar and CrackerTracker password policy, available style and custom
+field definitions. A policy changed since validation requires a fresh form;
+in particular, enabling email confirmation cannot be bypassed by a stale edit.
+Existing unchanged duplicate identities remain editable. No schema addition or
+automatic account cleanup is needed beyond the consolidated storage migration.
 Interrupted legacy workflows may have left unused groups or inactive
 placeholders; such existing records are not automatically deleted or activated.
 

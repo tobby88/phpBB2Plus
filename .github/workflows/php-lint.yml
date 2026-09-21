@@ -759,3 +759,5 @@ jobs:
 
       - name: Check signature SQL value boundaries
         run: php .github/scripts/check-signature-save-native.php
+      - name: Check public profile identity transaction dependencies
+        run: php .github/scripts/check-public-profile-identity-native.php

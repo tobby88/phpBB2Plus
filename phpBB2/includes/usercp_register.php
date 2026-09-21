@@ -792,9 +792,9 @@ if ( isset($_POST['submit']) )
 			{
 			$profile_scope = new PhpbbPublicProfileScope($db, $user_id, $sid, $public_avatar_scope);
 			$db = $profile_scope;
-			// Validation ran before waiting for the shared account writer lock.
-			if ($username_sql !== '') { $checked = validate_username($username, false); if ($checked['error']) { throw new PhpbbPublicProfileException($checked['error_msg']); } }
-			if ($email !== $userdata['user_email']) { $checked = validate_email($email, false); if ($checked['error']) { throw new PhpbbPublicProfileException($checked['error_msg']); } }
+			// Revalidate the actual proposed identity and original field snapshot;
+			// retain the corresponding current ranges until the complete save.
+			$profile_scope->validate_identity($username_sql !== '' ? $username : $userdata['username'], $email, $user_style, $profile_data);
 			if ( $email != $userdata['user_email'] && $board_config['require_activation'] != USER_ACTIVATION_NONE && $userdata['user_level'] != ADMIN )
 			{
 				$user_active = 0;
