@@ -184,25 +184,16 @@ if ($submit)
 	}
 	else
 	{
-		$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
-		// The legacy HTML preparer consumes and returns slash-escaped text.
-		// Normalize that boundary, then escape SQL with the active DB driver.
-		$signature_text = prepare_message($html_on ? addslashes($signature_text) : $signature_text, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
-		if ($html_on) { $signature_text = stripslashes($signature_text); }
-		$user_id = (int) $userdata['user_id'];
-
-		$sql = "UPDATE " . USERS_TABLE . "
-		SET user_sig = '" . $db->sql_escape($signature_text) . "', user_sig_bbcode_uid = '" . $db->sql_escape($bbcode_uid) . "'
-		WHERE user_id = $user_id";
-
-		if ( !($result = $db->sql_query($sql)) )
+		require_once($phpbb_root_path . 'includes/functions_signature_storage.' . $phpEx);
+		try
 		{
-			message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
-		}
-
-		else
-		{
+			$saved_signature = phpbb_signature_save($db, $signature_text, $submitted_sid);
+			$signature_text = $saved_signature['text']; $bbcode_uid = $saved_signature['uid'];
 			$save_message = $lang['sig_save_message'];
+		}
+		catch (PhpbbSignatureException $signature_failure)
+		{
+			$save_message = $signature_failure->getMessage();
 		}
 	}
 }

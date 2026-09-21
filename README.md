@@ -190,6 +190,10 @@ field definitions. A policy changed since validation requires a fresh form;
 in particular, enabling email confirmation cannot be bypassed by a stale edit.
 Existing unchanged duplicate identities remain editable. No schema addition or
 automatic account cleanup is needed beyond the consolidated storage migration.
+The separate signature editor similarly holds its current session, active
+account, user-ban state and formatting policy through commit. Stale signature
+or preference snapshots and concurrent password resets require reloading the
+editor. A failed or uncertain save is not presented as a successful update.
 Interrupted legacy workflows may have left unused groups or inactive
 placeholders; such existing records are not automatically deleted or activated.
 

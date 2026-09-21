@@ -6,6 +6,11 @@ public web root after use.
 
 ## Current preserved baseline
 
+The standalone signature editor requires modern storage for the users,
+sessions, config and banlist tables. These are already covered by the
+consolidated updater and its `--storage-only` mode; no separate migration or
+signature-data rewrite is needed for its transactional save guard.
+
 For an existing phpBB2 Plus 1.53a database, use the CLI-only consolidated
 updater. It previews changes by default and requires an explicit backup
 confirmation before applying them:

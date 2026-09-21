@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save standalone signatures against the current active account, exact login
+  session, ban state and formatting policy in one transaction. Reject stale
+  signatures/preferences and concurrent password resets; hold the validated
+  state until commit. Failed or unconfirmed saves never report success.
+  Existing storage migration already covers the four participating tables;
+  no schema changes or rewriting of saved signatures is required.
 - Escape signature text and BBCode identifiers through the database driver.
   Signature content can no longer alter other account columns. Preserve literal
   apostrophes, backslashes and Unicode in both plain-text and HTML preparation.

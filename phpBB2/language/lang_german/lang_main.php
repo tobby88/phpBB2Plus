@@ -1686,6 +1686,7 @@ $lang['Moderation_split_subject'] = 'Bitte gib einen gültigen UTF-8-Titel in an
 $lang['Click_view_split_topic'] = 'Klicke %shier%s, um das neue Thema anzusehen.';
 $lang['Public_profile_save_failed'] = 'Das vollständige Speichern des Profils konnte nicht bestätigt werden. Bei einem Verbindungsabbruch zum Abschluss prüfe bitte vor einem erneuten Versuch dein Profil und deinen Login.';
 $lang['Public_profile_changed'] = 'Deine Sitzung, deine Kontodaten oder die Regeln für Profile haben sich geändert. Bitte melde dich gegebenenfalls erneut an und lade das Profilformular neu.';
+$lang['Signature_save_failed'] = 'Das Speichern deiner Signatur konnte nicht bestätigt werden. Lade den Signatur-Editor neu, bevor du es erneut versuchst.';
 $lang['Registration_changed'] = 'Die Registrierungsregeln haben sich während der Verarbeitung geändert. Bitte lade das Registrierungsformular neu und versuche es erneut.';
 $lang['Registration_storage_upgrade'] = 'Die Registrierung benötigt die aktuellen InnoDB- und UTF-8-Datenbankupdates. Bitte wende dich an die Administration des Forums.';
 $lang['Registration_save_failed'] = 'Die Registrierung konnte nicht bestätigt werden. Bitte prüfe vor einem erneuten Versuch, ob das Konto bereits besteht.';
