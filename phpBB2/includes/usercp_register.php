@@ -471,18 +471,14 @@ if ( isset($_POST['submit']) )
 	
 			$anti_robot_row = $db->sql_fetchrow($result);
 	 
-			if (( strtolower(usercp_post_scalar('reg_key')) != $anti_robot_row['reg_key'] ) or ($anti_robot_row['reg_key'] == ''))
+			if (!$anti_robot_row || !isset($anti_robot_row['reg_key']) || $anti_robot_row['reg_key'] === '' || !hash_equals((string)$anti_robot_row['reg_key'], strtolower(usercp_post_scalar('reg_key'))))
 			{
 				$error = TRUE;
 				$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Wrong_reg_key'];
 			}
 			else
 			{
-				$sql = "DELETE FROM " . ANTI_ROBOT_TABLE . " WHERE session_id = '" . $userdata['session_id'] . "'";
-				if( !$result = $db->sql_query($sql) )
-				{
-					message_die(GENERAL_ERROR, 'Could not delete validation key', '', __LINE__, __FILE__, $sql);
-				}
+				// Consume only inside the successful account transaction below.
 			}
 			// --------------------------
 			//
@@ -520,13 +516,7 @@ if ( isset($_POST['submit']) )
 					}
 					else
 					{
-						$sql = 'DELETE FROM ' . CONFIRM_TABLE . " 
-							WHERE confirm_id = '$confirm_id' 
-								AND session_id = '" . $userdata['session_id'] . "'";
-						if (!$db->sql_query($sql))
-						{
-							message_die(GENERAL_ERROR, 'Could not delete confirmation code', '', __LINE__, __FILE__, $sql);
-						}
+						// Consume only inside the successful account transaction below.
 					}
 				}
 				else
@@ -958,9 +948,15 @@ if ( isset($_POST['submit']) )
 			require_once($phpbb_root_path . 'includes/functions_user_ids.' . $phpEx);
 			try { $user_id = phpbb_allocate_user_id($db, $table_prefix); }
 			catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+			require_once($phpbb_root_path . 'includes/functions_registration_storage.' . $phpEx);
 			// Registration IP 1.1.2 (adapted): trust only the address supplied by
 			// the web server. Forwarding headers are user-controlled unless a
 			// deployment has an explicitly configured trusted proxy.
+			$registration_scope = null;
+			try
+			{
+			$registration_scope = new PhpbbRegistrationScope($db, $sid, $username, $email, $profile_data, $public_avatar_scope);
+			$db = $registration_scope;
 			$registration_ip = isset($_SERVER['REMOTE_ADDR']) ? trim((string) $_SERVER['REMOTE_ADDR']) : '';
 			if (filter_var($registration_ip, FILTER_VALIDATE_IP) === false)
 			{
@@ -993,7 +989,6 @@ if ( isset($_POST['submit']) )
 
 			$account_insert_sql .= $registration_extra_values . ")";
 
-			$creation_scope = phpbb_user_write_begin($db);
 			$sql = "INSERT INTO " . GROUPS_TABLE . " (group_name, group_description, group_single_user, group_moderator)
 				VALUES ('', 'Personal User', 1, 0)";
 			if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
@@ -1016,8 +1011,14 @@ if ( isset($_POST['submit']) )
 				message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $account_insert_sql);
 			}
 
-			phpbb_user_write_end($db, $creation_scope);
-			$public_avatar_scope->saved();
+			$registration_scope->finish();
+			}
+			catch (PhpbbRegistrationException $failure)
+			{
+				if ($registration_scope !== null) { $registration_scope->release(); }
+				message_die(GENERAL_MESSAGE, htmlspecialchars($failure->getMessage(), ENT_QUOTES, 'UTF-8'));
+			}
+			finally { if ($registration_scope !== null) { $registration_scope->release(); } }
 			if ( $coppa )
 			{
 				$message = $lang['COPPA'];
@@ -1039,8 +1040,11 @@ if ( isset($_POST['submit']) )
 				$email_template = 'user_welcome';
 			}
 
-			include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-			$emailer = new emailer($board_config['smtp_delivery']);
+			$registration_mail_failed = false;
+			try
+			{
+			require_once($phpbb_root_path . 'includes/emailer.'.$phpEx);
+			$emailer = new emailer($board_config['smtp_delivery'], true);
 
 			$emailer->from($board_config['board_email']);
 			$emailer->replyto($board_config['board_email']);
@@ -1082,7 +1086,7 @@ if ( isset($_POST['submit']) )
 				);
 			}
 
-			$emailer->send();
+			if (!$emailer->send()) { $registration_mail_failed = true; }
 			$emailer->reset();
 
 			if ( $board_config['require_activation'] == USER_ACTIVATION_ADMIN )
@@ -1093,7 +1097,7 @@ if ( isset($_POST['submit']) )
 				
 				if ( !($result = $db->sql_query($sql)) )
 				{
-					message_die(GENERAL_ERROR, 'Could not select Administrators', '', __LINE__, __FILE__, $sql);
+					throw new RuntimeException('Registration administrator notification lookup failed');
 				}
 				
 				while ($row = $db->sql_fetchrow($result))
@@ -1111,15 +1115,18 @@ if ( isset($_POST['submit']) )
 
 						'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
 					);
-					$emailer->send();
+					if (!$emailer->send()) { $registration_mail_failed = true; }
 					$emailer->reset();
 				}
 				$db->sql_freeresult($result);
 			}
 
-			// Start the per-IP registration cooldown only after the account,
-			// personal group, profile fields and notification mail were handled.
-			$profile_security->reg_done();
+			}
+			catch (Exception $failure) { $registration_mail_failed = true; }
+			catch (Throwable $failure) { $registration_mail_failed = true; }
+			// Storage/cooldown already committed. A mail failure cannot make a
+			// created account look like a failed registration or trigger a retry.
+			if ($registration_mail_failed) { $message .= '<br /><br />' . $lang['Registration_mail_failed']; }
 
 			$message = $message . '<br /><br />' . sprintf($lang['Click_return_index'],  '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
 

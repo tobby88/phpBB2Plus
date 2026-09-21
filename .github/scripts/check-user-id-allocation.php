@@ -142,6 +142,11 @@ try
         {
             mutation_check(strpos($source,'new PhpbbAdminProfileScope($db, $user_id, true, $_POST)')!==false && strpos($source,'$db = $admin_profile_scope;')!==false && strpos($source,'$admin_profile_scope->finish();')!==false,'ACP creation uses complete authorized profile transaction');
         }
+        elseif ($file==='includes/usercp_register.php')
+        {
+            $owner=file_get_contents($forum_root.'includes/functions_registration_storage.php');
+            mutation_check(strpos($source,'new PhpbbRegistrationScope($db,')!==false && strpos($source,'$registration_scope->finish();')!==false && strpos($owner,'new attach_mutation_lock($database)')!==false,'Public creation owns transaction on shared account/group writer');
+        }
         else { mutation_check(strpos($source,'phpbb_user_write_begin($db)')!==false && strpos($source,'phpbb_user_write_end($db,')!==false,'Account/group repair scopes are connected: '.$file); }
     }
     // Maintenance now adds current ACP authorization to the same dedicated

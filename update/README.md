@@ -29,6 +29,14 @@ and new bound reset markers are preserved. This cleanup is idempotent; the
 runtime also rejects obsolete links without waiting for cleanup. Storage-only
 mode deliberately does not modify account data.
 
+Public registration now requires the current storage format for its existing
+account, group, session, policy, custom-field, CAPTCHA and CrackerTracker rate
+tables. The consolidated updater already covers these canonical tables; no new
+registration table or column is added. A failed registration retains its durable
+ID reservation, while account/group/challenge/cooldown changes roll back together.
+Existing duplicate accounts and orphan groups are not automatically merged or
+deleted by this change.
+
 Search-index rebuilding in the ACP now saves an atomic `dbmtnc_rebuild_job`
 checkpoint in the configuration table. The updater adds an empty default only
 when absent; it never overwrites an active job. The ACP also initializes this

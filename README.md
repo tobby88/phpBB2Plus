@@ -149,17 +149,29 @@ memberships or permissions (including pending membership requests). Assign
 required shared groups separately through the authorized group-management
 workflow. Existing accounts and memberships are not changed automatically.
 
-New registrations and quick-added accounts are published only after their
-personal group and membership exist. Registration IP, password-change time and
-custom profile fields are included in the final account insert; ACP core and
-custom profile changes are saved together. This prevents the tested database
-failure paths from exposing usable, incomplete accounts, including on MyISAM.
-Creation and the maintenance module's user/group repair use the same dedicated
-writer connection and lock, so repair cannot remove in-flight personal groups.
-It is not a transactional rollback of every ancillary operation: interrupted
-creation can still leave an inactive ACP placeholder or unused personal-group
-records for a permanently reserved ID. Existing records are not automatically
-deleted or activated; no additional schema migration is needed for this change.
+Public registration commits the account, personal group/membership, CAPTCHA
+consumption and CrackerTracker success cooldown in one owned InnoDB transaction.
+It rechecks the exact live guest session, current registration/password/avatar
+rules, local name/email bans, profile fields and identity uniqueness under locks.
+Overlapping submissions cannot reuse an already-consumed challenge or publish
+duplicate names/emails after earlier validation. Changed rules require a fresh
+form instead of silently applying a stale activation policy. The shared writer
+lock also coordinates bundled account/group maintenance.
+
+User-ID reservation is deliberately separate and durable: failed registrations
+do not reuse reserved identities. Avatar publication and welcome/activation
+notifications follow confirmed commit and release. Mail failures warn about the
+saved account instead of suggesting a second registration. An uncertain commit
+must be checked before retrying; staged avatar files may remain for safety.
+All participating tables already belong to the consolidated storage/UTF-8
+upgrade path. No new table or column is introduced, and this change does not
+rewrite existing accounts or merge historical duplicates.
+
+Quick-add has separate, earlier statement-ordering safeguards: its personal group
+precedes account publication, but this alone does not imply transactional rollback
+of every operation. The full ACP account editor has its own transaction described
+above. Interrupted legacy workflows may have left unused groups or inactive
+placeholders; such existing records are not automatically deleted or activated.
 
 Database Maintenance recreates missing personal groups, but does not guess how
 to merge multiple or shared personal groups. It reports the affected user IDs

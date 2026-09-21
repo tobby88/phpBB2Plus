@@ -20,6 +20,15 @@ function admin_user_sql_value($v){return usercp_sql_value($v);}
 // user-ID suite; this fixture isolates the actual controller statement order.
 function phpbb_user_write_begin(&$db){return $db;}
 function phpbb_user_write_end(&$db,$scope){check($db===$scope,'Publication releases its writer scope');}
+// This legacy fixture checks INSERT contents/order only. Actual registration
+// ownership, current policy, rollback and races live in check-registration-native.
+class PhpbbRegistrationScope {
+ var $original;var $avatar;
+ function __construct($db,$sid,$username,$email,$fields,$avatar){$this->original=$db;$this->avatar=$avatar;}
+ function __call($m,$a){return call_user_func_array(array($this->original,$m),$a);}
+ function finish(){$this->release();$this->avatar->saved();}
+ function release(){$GLOBALS['db']=$this->original;}
+}
 function fragment($source,$begin,$end){$start=strpos($source,$begin);$stop=$start===false?false:strpos($source,$end,$start);check($start!==false&&$stop>$start,'Actual publication fragment located');return 'namespace AccountPublicationFixture;'.substr($source,$start,$stop-$start);}
 class Database {
  public $pdo; public $fail; public $queries=array(); public $native; public $next_id=0;
@@ -71,7 +80,7 @@ foreach($native?array('MyISAM','InnoDB'):array('SQLite nontransactional') as $en
     $pdo->exec('INSERT INTO fixture_user_group VALUES (99,100,0)');
     $existing=$pdo->query('SELECT * FROM fixture_users WHERE user_id=99')->fetch(\PDO::FETCH_ASSOC);
     $db=new Database($pdo,$failure,$native);$GLOBALS['db']=$db;
-    $user_id=42;$username="Fixture O'Connor 😀";$new_password=md5('fixture-only');$email='fixture@example.invalid';
+    $user_id=42;$sid='fixture-sid';$username="Fixture O'Connor 😀";$new_password=md5('fixture-only');$email='fixture@example.invalid';
     $user_style=1;$user_timezone=0;$user_dateformat='Y-m-d';$user_lang='german';
     $icq=$website=$occupation=$location=$user_flag=$interests=$user_absence_text=$signature=$signature_bbcode_uid=$aim=$yim=$msn='';
     $fb=$ig=$pt=$twr=$skp=$tg=$li=$tt=$dc=$signal=$threema='';

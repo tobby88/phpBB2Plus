@@ -36,8 +36,9 @@ $start = strpos($controller, '$public_avatar_scope->write_attempted();');
 $end = strpos($controller, 'if ( !empty($passwd_sql) )', $start);
 $write = substr($controller, $start, $end - $start);
 avatar_check(strpos($write, 'Could not update users table') !== false, 'Actual edit write boundary');
-avatar_check(substr_count($controller, '$public_avatar_scope->write_attempted();') === 2 && substr_count($controller, '$public_avatar_scope->saved();') === 1 && strpos($controller, '$profile_scope->finish();') !== false, 'Edit confirms through owning transaction; registration enlists its account write');
-avatar_check(strpos($controller, "phpbb_user_write_end(\$db, \$creation_scope);\n\t\t\t\$public_avatar_scope->saved();") !== false, 'Registration confirms after releasing its writer');
+avatar_check(substr_count($controller, '$public_avatar_scope->write_attempted();') === 2 && substr_count($controller, '$public_avatar_scope->saved();') === 0 && strpos($controller, '$profile_scope->finish();') !== false, 'Edit confirms through owning transaction; registration enlists its account write');
+$registration_owner=file_get_contents($source.'includes/functions_registration_storage.php');
+avatar_check(strpos($controller, '$registration_scope->finish();') !== false && strpos($registration_owner, 'if ($this->confirmed) { $this->avatar->saved(); }') !== false, 'Registration confirms avatar only after owned commit and release');
 class AvatarFixtureDatabase
 {
  var $native; var $failure = ''; var $references = 1; var $queries = 0;

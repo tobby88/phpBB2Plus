@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Publish public registrations, personal groups/memberships, CAPTCHA consumption
+  and CrackerTracker success cooldown atomically. Lock current guest sessions,
+  policy/validation inputs and identity ranges; reject overlapping duplicates,
+  consumed challenges and stale activation rules. Keep durable ID reservations
+  outside rollback, defer avatars/mail until confirmed commit, and distinguish
+  notification failures from stored accounts. Preserve self/admin/COPPA activation
+  and custom profiles. Existing storage/UTF-8 migrations cover all participants;
+  no new schema or automatic rewriting of existing accounts is required.
 - Issue password-reset links in an owned transaction against the current account,
   live session and CrackerTracker cooldown policy. Bind links to the current
   credentials, email and account state so later changes invalidate them.

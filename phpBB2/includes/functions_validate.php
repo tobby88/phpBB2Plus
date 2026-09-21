@@ -142,7 +142,8 @@ function validate_email($email, $check_stopforumspam = false)
 				{
 					do
 					{
-						$match_email = str_replace('*', '.*?', $row['ban_email']);
+						// IP/user-only bans legitimately have a NULL email value.
+						$match_email = str_replace('*', '.*?', (string) $row['ban_email']);
 						if (preg_match('/^' . $match_email . '$/is', $email))
 						{
 							$db->sql_freeresult($result);
