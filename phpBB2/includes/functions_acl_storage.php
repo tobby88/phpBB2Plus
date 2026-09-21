@@ -133,24 +133,40 @@ function phpbb_acl_expire_sessions($db,$actor,$target)
 // Other ACP helpers use PhpbbAclDatabase independently with their own lifecycle.
 class PhpbbAclSaveDatabase extends PhpbbAclDatabase
 {
+	var $transactional = false;
+	var $finished = false;
+	private function control($sql) { return parent::sql_query($sql); }
+	function sql_query($sql,$transaction=false)
+	{
+		// Context reads may precede begin. All writes and the role repair's
+		// fixed per-target savepoint belong to the active outer transaction.
+		$read = is_string($sql) && preg_match('/^\s*SELECT\b/i',$sql);
+		$write = is_string($sql) && (preg_match('/^\s*(UPDATE|INSERT|DELETE)\b/i',$sql)
+			|| preg_match('/^(SAVEPOINT|ROLLBACK TO SAVEPOINT|RELEASE SAVEPOINT) phpbb_role_target$/D',$sql));
+		if (!$read && (!$write || !$this->transactional)) { phpbb_acl_error($this->failure_key); }
+		return $this->control($sql);
+	}
 	function begin($mode)
 	{
+		if ($this->transactional || $this->finished) { phpbb_acl_error($this->failure_key); }
 		phpbb_acl_actor($this,$mode);
-		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
-		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
-		$this->sql_query('START TRANSACTION');
+		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->control('START TRANSACTION'); $this->transactional = true;
 		foreach (array(USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE,AUTH_ACCESS_TABLE,FORUMS_TABLE) as $table)
 		{
 			// Pin before validating; runtime DDL would implicitly commit a save.
 			$r=$this->sql_query('SELECT * FROM '.$table.' LIMIT 0'); $this->sql_freeresult($r);
-			$rows=phpbb_acl_rows($this,"SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='".$this->sql_escape($table)."'"
-				." AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+			$name=$this->sql_escape($table);
+			$rows=phpbb_acl_rows($this,"SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='".$name."'"
+				." AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='".$name."' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
 			if (count($rows)!==1 || $rows[0]['ENGINE']!=='InnoDB' || strtolower($rows[0]['ROW_FORMAT'])!=='dynamic' || $rows[0]['TABLE_COLLATION']!=='utf8mb4_unicode_ci') { phpbb_acl_error('Acl_storage_failed'); }
 		}
 	}
 	function commit($mode,$require_root=false)
 	{
 		global $userdata;
+		if (!$this->transactional || $this->finished) { phpbb_acl_error($this->failure_key); }
 		$actor=phpbb_acl_actor($this,$mode); $sid=$this->sql_escape($userdata['session_id']);
 		foreach (array('SELECT session_id FROM '.SESSIONS_TABLE." WHERE session_id='".$sid."' AND HEX(session_id)=HEX('".$sid."')",
 			'SELECT user_id FROM '.USERS_TABLE.' WHERE user_id='.(int)$actor['user_id'],
@@ -158,13 +174,15 @@ class PhpbbAclSaveDatabase extends PhpbbAclDatabase
 		{ $r=$this->sql_query($sql.' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
 		$actor=phpbb_acl_actor($this,$mode);
 		if ($require_root && !$actor['root']) { phpbb_acl_error('Acl_root_required'); }
-		$this->sql_query('COMMIT');
-		$actor=phpbb_acl_actor($this,$mode);
-		if ($require_root && !$actor['root']) { phpbb_acl_error('Acl_root_required'); }
+		// Authority stays locked through COMMIT. A subsequent revocation or
+		// disconnect cannot undo this acknowledged permission/role change.
+		$this->control('COMMIT'); $this->transactional = false; $this->finished = true;
 	}
 	function rollback()
 	{
+		if (!$this->transactional) { return; }
 		try { $this->connection->sql_query('ROLLBACK'); } catch (Exception $e) {} catch (Error $e) {}
+		$this->transactional = false; $this->finished = true;
 	}
 }
 

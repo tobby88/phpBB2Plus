@@ -16,16 +16,20 @@ class AsnConnection {
  function __construct($db){$this->db=$db;$this->db_connect_id=$db->db_connect_id;}
  function __call($m,$args){return call_user_func_array(array($this->db,$m),$args);}
  function sql_query($sql,$tx=false){
+  if(!empty($GLOBALS['asn_acknowledged'])){$GLOBALS['asn_after_queries'][]=$sql;}
   $GLOBALS['asn_queries'][]=$sql;if(is_callable($GLOBALS['asn_hook'])){call_user_func($GLOBALS['asn_hook'],$sql);}
   if(preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)&&++$GLOBALS['asn_write']===$GLOBALS['asn_fail']){return false;}
   if($sql==='COMMIT'&&$GLOBALS['asn_commit']==='fail'){return false;}
-  $r=$this->db->sql_query($sql,$tx);return $sql==='COMMIT'&&$GLOBALS['asn_commit']==='ack'?false:$r;
+  $r=$this->db->sql_query($sql,$tx);
+  if($sql==='COMMIT'&&$r&&$GLOBALS['asn_commit']!=='ack'){$GLOBALS['asn_acknowledged']=true;if(is_callable($GLOBALS['asn_after_commit'])){call_user_func($GLOBALS['asn_after_commit'],$this);}}
+  return $sql==='COMMIT'&&$GLOBALS['asn_commit']==='ack'?false:$r;
  }
 }
 class AsnDatabase extends sql_db {function sql_dedicated_connection(){return new AsnConnection(parent::sql_dedicated_connection());}}
 $db=new AsnDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
 $asn_tables=array('users','sessions','jr','groups','user_group','auth_access','forums');
 $asn_hook=null;$asn_write=$asn_fail=0;$asn_commit='';$asn_queries=array();
+$asn_after_commit=null;$asn_acknowledged=false;$asn_after_queries=array();
 function asn_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native fixture SQL');return $r;}
 function asn_rows($sql){return phpbb_acl_rows($GLOBALS['peer'],$sql);}
 function asn_snap(){
@@ -34,6 +38,7 @@ function asn_snap(){
 function asn_reset($actor,$scenario){
  global $userdata,$asn_actor,$asn_mode,$asn_target,$asn_post,$asn_hook,$asn_write,$asn_fail,$asn_commit,$asn_queries;
  $asn_hook=null;$asn_write=$asn_fail=0;$asn_commit='';$asn_queries=array();
+ $GLOBALS['asn_after_commit']=null;$GLOBALS['asn_acknowledged']=false;$GLOBALS['asn_after_queries']=array();
  foreach($GLOBALS['asn_tables'] as $s){asn_sql('DELETE FROM fixture_'.$s);}
  asn_sql("INSERT INTO fixture_users VALUES (1,1,1,'root'),(2,0,1,'target'),(3,2,1,'member'),(4,0,1,'pending'),(5,0,1,'junior')");
  asn_sql("INSERT INTO fixture_sessions VALUES ('fixture-admin',".($actor==='root'?1:5).",1,1),('target-session',2,1,0),('member-session',3,1,0),('pending-session',4,1,0),('unrelated-session',99,1,0)");
@@ -92,6 +97,10 @@ try{
   for($n=1;$n<=$writes;$n++){asn_reset($actor,$scenario);$before=asn_snap();$asn_fail=$n;ats_check(asn_run()==='error'&&asn_snap()===$before,'Every failed write rolls back all grants/roles/sessions: '.$scenario.' '.$n);$cases++;}
   foreach(array('fail','ack') as $kind){asn_reset($actor,$scenario);$before=asn_snap();$asn_commit=$kind;ats_check(asn_run()==='error','Uncertain commit never announces success');ats_check(asn_snap()===($kind==='fail'?$before:$after),'COMMIT has whole before/after outcome');$cases++;}
   $authority=$actor==='root'?'role':'delegation';
+  foreach(array('missing',$authority,'disconnect') as $kind){
+   asn_reset($actor,$scenario);$stored=null;$asn_after_commit=function($writer)use($kind,&$stored){$stored=asn_snap();if($kind==='disconnect'){asn_sql('KILL CONNECTION '.(int)mysqli_thread_id($writer->db_connect_id));}else{asn_sql(asn_revoke($kind));}};
+   ats_check(asn_run()===true&&$stored===$after&&!$asn_after_queries,'Acknowledged permission/role save survives later '.$kind);$cases++;
+  }
   foreach(array('inactive','missing','foreign','logout','acp','case','replacement',$authority) as $kind){asn_reset($actor,$scenario);asn_sql(asn_revoke($kind));$before=asn_snap();ats_check(asn_run()==='error'&&asn_snap()===$before,'Current entry authority '.$kind);$cases++;}
   foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
    asn_reset($actor,$scenario);$before=asn_snap();$seen=0;$reached=$blocked=false;
@@ -123,6 +132,18 @@ try{
   asn_reset('root','user-insert');$blocked=false;$reached=false;
   $asn_hook=function($query)use($sql,&$blocked,&$reached){if(strpos($query,'INSERT INTO fixture_auth_access')!==0){return;}$GLOBALS['asn_hook']=null;$reached=true;$r=$GLOBALS['peer']->sql_query($sql);if(!$r){$e=$GLOBALS['peer']->sql_error();ats_check((int)$e['code']===1205,'Native target lock timeout');$blocked=true;}};
   ats_check(asn_run()===true&&$reached&&$blocked,'Concurrent '.$kind.' change serialized');asn_sql($sql);
+ }
+ foreach(array('before-begin','repeat-begin','after-commit','after-rollback','raw-commit','ddl','empty-commit','savepoint-before','savepoint-after','unknown-savepoint','raw-rollback','set-autocommit') as $case){
+  asn_reset('root','group-insert');$before=asn_snap();$lock=new attach_mutation_lock($db);ats_check($lock->acquired,'Owned ACL lifecycle');$owner=new PhpbbAclSaveDatabase($lock->connection);$denied=false;
+  try{
+   if(!in_array($case,array('before-begin','empty-commit','savepoint-before'),true)){$owner->begin('group');$owner->sql_query("UPDATE fixture_groups SET group_description='owned' WHERE group_id=10");}
+   if($case==='repeat-begin'){$owner->begin('group');}elseif($case==='empty-commit'){$owner->commit('group');}
+   elseif($case==='raw-commit'){$owner->sql_query('COMMIT');}elseif($case==='ddl'){$owner->sql_query('ALTER TABLE fixture_groups ENGINE=MyISAM');}
+   elseif($case==='unknown-savepoint'){$owner->sql_query('SAVEPOINT unknown');}elseif($case==='raw-rollback'){$owner->sql_query('ROLLBACK');}elseif($case==='set-autocommit'){$owner->sql_query('SET autocommit=1');}
+   elseif($case==='savepoint-before'||$case==='savepoint-after'){if($case==='savepoint-after'){$owner->commit('group');}$owner->sql_query('SAVEPOINT phpbb_role_target');}
+   else{if($case==='after-commit'){$owner->commit('group');}if($case==='after-rollback'){$owner->rollback();}$owner->sql_query("UPDATE fixture_groups SET group_description='escaped' WHERE group_id=10");}
+  }catch(PhpbbAclException $e){$denied=true;}finally{$owner->rollback();$lock->release();}
+  ats_check($denied,'Reject ACL transaction escape '.$case);ats_check(in_array($case,array('after-commit','savepoint-after'),true)?asn_rows('SELECT group_description FROM fixture_groups WHERE group_id=10')[0]['group_description']==='owned':asn_snap()===$before,'No implicit permission publication');$cases++;
  }
  echo 'Native user/group ACL: '.$cases.' boundary/failure cases, '.$serialized." serialized revocations; whole multi-forum grants and roles passed.\n";
 }finally{

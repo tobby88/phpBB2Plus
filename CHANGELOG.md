@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve acknowledged user/group permission saves and moderator-role repairs
+  after subsequent session, delegation or connection changes. Retain current
+  authority locks and root-only role transitions; enforce the transaction
+  lifecycle while preserving the repair's per-target savepoint rollback.
+  Check participant metadata using exact database/table names. No schema change.
 - Preserve acknowledged public group membership and ACP group changes after
   later session, authority or connection changes. Keep current member/leader/
   administrator checks and commit-phase locks, transition-only notifications,

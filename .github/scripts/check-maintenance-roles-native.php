@@ -14,17 +14,21 @@ class RnConnection {
  function __construct($db){$this->db=$db;$this->db_connect_id=$db->db_connect_id;}
  function __call($m,$args){return call_user_func_array(array($this->db,$m),$args);}
  function sql_query($sql,$tx=false){
+  if(!empty($GLOBALS['rn_acknowledged'])){$GLOBALS['rn_after_queries'][]=$sql;}
   $GLOBALS['rn_queries'][]=$sql;if(is_callable($GLOBALS['rn_hook'])){call_user_func($GLOBALS['rn_hook'],$sql);}
   if(preg_match('/^(UPDATE|DELETE|INSERT)\b/',$sql)&&++$GLOBALS['rn_write']===$GLOBALS['rn_fail']){return false;}
   if($GLOBALS['rn_failure']!==''&&strpos($sql,$GLOBALS['rn_failure'])===0){return false;}
   if($sql==='COMMIT'&&$GLOBALS['rn_commit']==='fail'){return false;}
-  $r=$this->db->sql_query($sql,$tx);if(!$r){$GLOBALS['rn_error']=$this->db->sql_error();}return $sql==='COMMIT'&&$GLOBALS['rn_commit']==='ack'?false:$r;
+  $r=$this->db->sql_query($sql,$tx);if(!$r){$GLOBALS['rn_error']=$this->db->sql_error();}
+  if($sql==='COMMIT'&&$r&&$GLOBALS['rn_commit']!=='ack'){$GLOBALS['rn_acknowledged']=true;if(is_callable($GLOBALS['rn_after_commit'])){call_user_func($GLOBALS['rn_after_commit'],$this);}}
+  return $sql==='COMMIT'&&$GLOBALS['rn_commit']==='ack'?false:$r;
  }
 }
 class RnDatabase extends sql_db {function sql_dedicated_connection(){$c=new RnConnection(parent::sql_dedicated_connection());$GLOBALS['rn_writer']=$c;return $c;}}
 $rn_main=new RnDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
 $rn_tables=array('users','sessions','jr','groups','user_group','auth_access','forums','config');
 $rn_hook=null;$rn_write=$rn_fail=0;$rn_failure=$rn_commit='';$rn_queries=array();
+$rn_after_commit=null;$rn_acknowledged=false;$rn_after_queries=array();
 function rn_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Native fixture SQL: '.json_encode($GLOBALS['peer']->sql_error()));return $r;}
 function rn_rows($sql){$rows=phpbb_acl_rows($GLOBALS['peer'],$sql);foreach($rows as &$row){foreach(array_keys($row) as $key){if(is_int($key)){unset($row[$key]);}}}unset($row);return $rows;}
 function rn_snap(){$out=array();foreach($GLOBALS['rn_tables'] as $s){$rows=rn_rows('SELECT * FROM fixture_'.$s);usort($rows,function($a,$b){return strcmp(json_encode($a),json_encode($b));});$out[$s]=$rows;}return $out;}
@@ -35,6 +39,7 @@ function rn_insert($table,$values){
 function rn_reset($actor='root',$scenario='repair'){
  global $userdata,$rn_hook,$rn_write,$rn_fail,$rn_failure,$rn_commit,$rn_queries,$rn_actor;
  $rn_hook=null;$rn_write=$rn_fail=0;$rn_failure=$rn_commit='';$rn_queries=array();$GLOBALS['rn_error']=null;
+ $GLOBALS['rn_after_commit']=null;$GLOBALS['rn_acknowledged']=false;$GLOBALS['rn_after_queries']=array();
  rn_sql('START TRANSACTION');foreach($GLOBALS['rn_tables'] as $s){rn_sql('DELETE FROM fixture_'.$s);}
  foreach(array(-1=>2,0=>2,1=>1,2=>1,10=>0,11=>2,12=>2,13=>2,14=>2,15=>2,16=>2,17=>0,18=>3,20=>0) as $id=>$level){rn_insert('fixture_users',array('user_id'=>$id,'username'=>$id===10?'<script>Grüße</script>':'fixture-'.$id,'user_level'=>$level,'user_active'=>$id===17?0:1));}
  foreach(array(10,11) as $id){rn_insert('fixture_groups',array('group_id'=>$id,'group_name'=>'fixture-'.$id));}rn_insert('fixture_forums',array('forum_id'=>5,'forum_name'=>'fixture'));
@@ -68,6 +73,10 @@ try{
   foreach(array('fail','ack') as $kind){rn_reset($actor,$scenario);$before=rn_snap();$rn_commit=$kind;ats_check(rn_run()==='error'&&rn_snap()===($kind==='fail'?$before:$after),'COMMIT whole before/after, never false success');$rn_commit='';ats_check(is_array(rn_run())&&rn_snap()===$after,'Safe retry after uncertain commit');$cases++;}
   foreach(array('SAVEPOINT','RELEASE SAVEPOINT') as $failure){rn_reset($actor,$scenario);$before=rn_snap();$rn_failure=$failure;ats_check(rn_run()==='error'&&rn_snap()===$before,'Failed transaction boundary rolls back');$cases++;}
   $authority=$actor==='root'?'role':'delegation';
+  foreach(array('missing',$authority,'disconnect') as $kind){
+   rn_reset($actor,$scenario);$stored=null;$rn_after_commit=function($writer)use($kind,&$stored){$stored=rn_snap();if($kind==='disconnect'){rn_sql('KILL CONNECTION '.(int)mysqli_thread_id($writer->db_connect_id));}else{rn_sql(rn_revoke($kind));}};
+   $out=rn_run();ats_check(is_array($out)&&$out===$result&&$stored===$after&&!$rn_after_queries,'Acknowledged repair/result list survives later '.$kind);$cases++;
+  }
   foreach(array('inactive','missing','foreign','logout','acp','case',$authority) as $kind){rn_reset($actor,$scenario);rn_sql(rn_revoke($kind));$before=rn_snap();ats_check(rn_run()==='error'&&rn_snap()===$before,'Exact current entry authority '.$kind);$cases++;}
   if($scenario==='repair'){
    foreach(array('missing',$authority) as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
