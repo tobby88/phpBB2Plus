@@ -167,10 +167,14 @@ All participating tables already belong to the consolidated storage/UTF-8
 upgrade path. No new table or column is introduced, and this change does not
 rewrite existing accounts or merge historical duplicates.
 
-Quick-add has separate, earlier statement-ordering safeguards: its personal group
-precedes account publication, but this alone does not imply transactional rollback
-of every operation. The full ACP account editor has its own transaction described
-above. Interrupted legacy workflows may have left unused groups or inactive
+ACP quick-add commits the account and personal group/membership atomically too.
+It locks the current active administrator, exact live ACP session and delegated
+**Add new user** grant, independently of the full user editor's permission.
+Current password/hash policy, available style and local identity/name/email rules
+are validated under locks. A revoked session/grant cannot publish a stale form;
+failed writes roll back together while retaining the durable ID reservation.
+The full ACP account editor has its own transaction described above.
+Interrupted legacy workflows may have left unused groups or inactive
 placeholders; such existing records are not automatically deleted or activated.
 
 Database Maintenance recreates missing personal groups, but does not guess how

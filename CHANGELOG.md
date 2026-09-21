@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make ACP quick-add atomic and require current administrator/session authority
+  or the exact delegated Add new user module grant throughout publication.
+  Lock current password/hash policy, style and identity/name/email rules; reject
+  stale forms, overlapping duplicates and the actor's own name/email. Roll back
+  account/group/member writes together, preserve durable IDs and distinguish
+  acknowledged commit from an uncertain result. Active accounts no longer get
+  a literal placeholder activation token. Existing storage migrations suffice.
+- Compare Unicode user/group names case-insensitively in the UTF-8 database;
+  older PHP versions no longer corrupt multibyte names through locale-dependent
+  byte-wise lowercasing before validation.
 - Publish public registrations, personal groups/memberships, CAPTCHA consumption
   and CrackerTracker success cooldown atomically. Lock current guest sessions,
   policy/validation inputs and identity ranges; reject overlapping duplicates,

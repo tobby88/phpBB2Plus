@@ -32,10 +32,12 @@ function validate_username($username, $check_stopforumspam = false)
 	// Remove doubled up spaces
 	$username = preg_replace('#\s+#', ' ', trim($username)); 
 	$username = phpbb_clean_username($username);
+	// Let the UTF-8 database lower both sides. Older PHP's locale-dependent
+	// byte-wise strtolower can corrupt a multibyte name before the comparison.
 
 	$sql = "SELECT username 
 		FROM " . USERS_TABLE . "
-		WHERE LOWER(username) = '" . strtolower($username) . "'";
+		WHERE LOWER(username) = LOWER('" . $username . "')";
 	if ($result = $db->sql_query($sql))
 	{
 		while ($row = $db->sql_fetchrow($result))
@@ -51,7 +53,7 @@ function validate_username($username, $check_stopforumspam = false)
 
 	$sql = "SELECT group_name
 		FROM " . GROUPS_TABLE . " 
-		WHERE LOWER(group_name) = '" . strtolower($username) . "'";
+		WHERE LOWER(group_name) = LOWER('" . $username . "')";
 	if ($result = $db->sql_query($sql))
 	{
 		if ($row = $db->sql_fetchrow($result))

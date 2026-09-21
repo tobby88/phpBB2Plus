@@ -29,6 +29,14 @@ class PhpbbRegistrationScope {
  function finish(){$this->release();$this->avatar->saved();}
  function release(){$GLOBALS['db']=$this->original;}
 }
+// INSERT contents/order only; the actual quick-add owner and authority/races
+// are exercised against native MariaDB in check-admin-registration-native.php.
+class PhpbbAdminRegistrationScope {
+ var $original;
+ function __construct($db,$request,$username,$email,$style){$this->original=$db;}
+ function finish(){$this->release();}
+ function release(){$GLOBALS['db']=$this->original;}
+}
 function fragment($source,$begin,$end){$start=strpos($source,$begin);$stop=$start===false?false:strpos($source,$end,$start);check($start!==false&&$stop>$start,'Actual publication fragment located');return 'namespace AccountPublicationFixture;'.substr($source,$start,$stop-$start);}
 class Database {
  public $pdo; public $fail; public $queries=array(); public $native; public $next_id=0;
@@ -52,6 +60,9 @@ $quick=str_replace("\r\n","\n",file_get_contents($root.'admin/admin_user_registe
 $public=str_replace("\r\n","\n",file_get_contents($root.'includes/usercp_register.php'));
 $admin=str_replace("\r\n","\n",file_get_contents($root.'admin/admin_users.php'));
 $quick_body=fragment($quick,'$account_created_at = time();',"\t\t\$message = \$lang['Account_added'];");
+// The isolated statement-order fixture above supplies the owner double; native
+// quick-add tests load the real helper and execute the unmodified controller.
+$quick_body=str_replace("require_once(\$phpbb_root_path . 'includes/functions_admin_registration_storage.' . \$phpEx);",'', $quick_body);
 $public_body=fragment($public,'// Registration IP 1.1.2 (adapted):',"\t\t\tif ( \$coppa )");
 $admin_body=fragment($admin,'$account_profile_sql =',"\n\t\t\tif( \$result = \$db->sql_query(\$sql) )");
 check(strpos(substr($admin,strpos($admin,'$account_profile_sql =')), 'SET " . implode(\', \', $profile_assignments)')===false,'No second profile write after account activation');
@@ -80,7 +91,7 @@ foreach($native?array('MyISAM','InnoDB'):array('SQLite nontransactional') as $en
     $pdo->exec('INSERT INTO fixture_user_group VALUES (99,100,0)');
     $existing=$pdo->query('SELECT * FROM fixture_users WHERE user_id=99')->fetch(\PDO::FETCH_ASSOC);
     $db=new Database($pdo,$failure,$native);$GLOBALS['db']=$db;
-    $user_id=42;$sid='fixture-sid';$username="Fixture O'Connor 😀";$new_password=md5('fixture-only');$email='fixture@example.invalid';
+    $phpbb_root_path=$root;$phpEx='php';$user_id=42;$sid='fixture-sid';$username="Fixture O'Connor 😀";$new_password=md5('fixture-only');$email='fixture@example.invalid';
     $user_style=1;$user_timezone=0;$user_dateformat='Y-m-d';$user_lang='german';
     $icq=$website=$occupation=$location=$user_flag=$interests=$user_absence_text=$signature=$signature_bbcode_uid=$aim=$yim=$msn='';
     $fb=$ig=$pt=$twr=$skp=$tg=$li=$tt=$dc=$signal=$threema='';

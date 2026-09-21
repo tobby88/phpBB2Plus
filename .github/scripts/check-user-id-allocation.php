@@ -147,6 +147,11 @@ try
             $owner=file_get_contents($forum_root.'includes/functions_registration_storage.php');
             mutation_check(strpos($source,'new PhpbbRegistrationScope($db,')!==false && strpos($source,'$registration_scope->finish();')!==false && strpos($owner,'new attach_mutation_lock($database)')!==false,'Public creation owns transaction on shared account/group writer');
         }
+        elseif ($file==='admin/admin_user_register.php')
+        {
+            $owner=file_get_contents($forum_root.'includes/functions_admin_registration_storage.php');
+            mutation_check(strpos($source,'new PhpbbAdminRegistrationScope($db,')!==false && strpos($source,'$creation_scope->finish();')!==false && strpos($owner,'new attach_mutation_lock($database)')!==false,'Quick-add uses authorized atomic account/group writer');
+        }
         else { mutation_check(strpos($source,'phpbb_user_write_begin($db)')!==false && strpos($source,'phpbb_user_write_end($db,')!==false,'Account/group repair scopes are connected: '.$file); }
     }
     // Maintenance now adds current ACP authorization to the same dedicated

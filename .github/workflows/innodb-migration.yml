@@ -117,6 +117,10 @@ jobs:
         env:
           PHPBB_REGISTRATION_NATIVE: '1'
           PHPBB_REGISTRATION_PASSWORD: fixture-only
+      - run: php .github/scripts/check-admin-registration-native.php
+        env:
+          PHPBB_QUICK_ADD_NATIVE: '1'
+          PHPBB_QUICK_ADD_PASSWORD: fixture-only
       - run: php .github/scripts/check-admin-profile-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'

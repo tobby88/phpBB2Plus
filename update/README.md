@@ -37,6 +37,12 @@ ID reservation, while account/group/challenge/cooldown changes roll back togethe
 Existing duplicate accounts and orphan groups are not automatically merged or
 deleted by this change.
 
+ACP quick-add likewise requires current InnoDB/DYNAMIC/utf8mb4 storage for its
+account, session, delegated-grant, policy, group, rule and theme tables. These
+already belong to this updater; no additional column or table is introduced.
+Its account/group/membership publication now rolls back as one transaction and
+checks the exact current Add new user grant. Existing records are unchanged.
+
 Search-index rebuilding in the ACP now saves an atomic `dbmtnc_rebuild_job`
 checkpoint in the configuration table. The updater adds an empty default only
 when absent; it never overwrites an active job. The ACP also initializes this

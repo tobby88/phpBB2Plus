@@ -220,10 +220,14 @@ if ( isset($_POST['submit']) )
 		catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		$account_created_at = time();
-		// Publish the usable account only after its personal group is durable.
+		require_once($phpbb_root_path . 'includes/functions_admin_registration_storage.' . $phpEx);
+		$creation_scope = null;
+		try
+		{
+		$creation_scope = new PhpbbAdminRegistrationScope($db, $_POST, $username, $email, $user_style);
+		// Publish account, personal group and membership together.
 		$account_insert_sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey, user_passwd_change, ct_last_pw_change)
-			VALUES ($user_id, '" . $db->sql_escape($username) . "',	" . $account_created_at . ",	'" . $db->sql_escape($new_password) . "',	'" . $db->sql_escape($email) . "', $user_style, $user_timezone, '" . $db->sql_escape($user_dateformat) . "', '" . $db->sql_escape($user_lang) . "', 0, 1, 'user_actkey', " . $account_created_at . ", " . $account_created_at . ")";
-		$creation_scope = phpbb_user_write_begin($db);
+			VALUES ($user_id, '" . $db->sql_escape($username) . "',	" . $account_created_at . ",	'" . $db->sql_escape($new_password) . "',	'" . $db->sql_escape($email) . "', $user_style, $user_timezone, '" . $db->sql_escape($user_dateformat) . "', '" . $db->sql_escape($user_lang) . "', 0, 1, '', " . $account_created_at . ", " . $account_created_at . ")";
 		$sql = "INSERT INTO " . GROUPS_TABLE . " (group_name, group_description, group_single_user, group_moderator)
 			VALUES ('', 'Personal User', 1, 0)";
 		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
@@ -245,7 +249,12 @@ if ( isset($_POST['submit']) )
 			message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $account_insert_sql);
 		}
 
-		phpbb_user_write_end($db, $creation_scope);
+		$creation_scope->finish();
+		}
+		catch (PhpbbAclException $failure) { message_die(GENERAL_MESSAGE, $failure->getMessage()); }
+		catch (Exception $failure) { message_die(GENERAL_MESSAGE, $lang['Admin_profile_save_failed']); }
+		catch (Throwable $failure) { message_die(GENERAL_MESSAGE, $lang['Admin_profile_save_failed']); }
+		finally { if ($creation_scope !== null) { $creation_scope->release(); } }
 		$message = $lang['Account_added'];
 		message_die(GENERAL_MESSAGE, $message);
 	}
