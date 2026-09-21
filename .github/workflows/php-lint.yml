@@ -759,5 +759,7 @@ jobs:
 
       - name: Check signature SQL value boundaries
         run: php .github/scripts/check-signature-save-native.php
+      - name: Check signature preview and editor round trips
+        run: php .github/scripts/check-signature-rendering.php
       - name: Check public profile identity transaction dependencies
         run: php .github/scripts/check-public-profile-identity-native.php

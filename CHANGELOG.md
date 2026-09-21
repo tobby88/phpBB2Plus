@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve signature text across preview and reopening: literal backslashes,
+  ampersands, quotes and Unicode no longer disappear or accumulate entities.
+  Prepare raw text once for both saving and preview; render stored BBCode once
+  and remove internal IDs when editing, including attributed/list tags. Keep
+  textarea output escaped and apply current HTML/BBCode display policy.
 - Save standalone signatures against the current active account, exact login
   session, ban state and formatting policy in one transaction. Reject stale
   signatures/preferences and concurrent password resets; hold the validated

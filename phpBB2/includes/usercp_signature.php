@@ -165,6 +165,7 @@ $page_title = $lang['Signature'];
 
 include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_signature.' . $phpEx);
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 // save new signature
@@ -214,25 +215,9 @@ else if ($preview)
 
 		else
 		{
-			$preview_sig = htmlspecialchars(stripslashes($preview_sig));
 			$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
-			$preview_sig = stripslashes(prepare_message(addslashes(unprepare_message($preview_sig)), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
-
-			if( $preview_sig != '' )
-			{
-				if ( $bbcode_on  == 1 ) { $preview_sig = bbencode_second_pass($preview_sig, $bbcode_uid); }
-				if ( $bbcode_on  == 1 ) { $preview_sig = bbencode_first_pass($preview_sig, $bbcode_uid); }
-				if ( $bbcode_on  == 1 ) { $preview_sig = make_clickable($preview_sig); }
-				if ( $smilies_on == 1 ) { $preview_sig = smilies_pass($preview_sig); }
-
-				$preview_sig = '_________________<br />' . $preview_sig;
-				$preview_sig = nl2br($preview_sig);
-			}
-
-			else
-			{
-				$preview_sig = $lang['sig_none'];
-			}
+			$preview_sig = phpbb_signature_prepare($preview_sig, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+			$preview_sig = phpbb_signature_render($preview_sig, $bbcode_uid, $html_on, $bbcode_on, $smilies_on);
 		}
 	}
 }
@@ -244,23 +229,9 @@ else if ($mode || empty($mode))
 	$template->assign_block_vars('switch_current_sig', array());
 
 	$signature_bbcode_uid = $userdata['user_sig_bbcode_uid'];
-	$signature_text = ( $signature_bbcode_uid != '' ) ? preg_replace("/:(([a-z0-9]+:)?)$signature_bbcode_uid\]/si", ']', $userdata['user_sig']) : $userdata['user_sig'];
+	$signature_text = phpbb_signature_edit_text($userdata['user_sig'], $signature_bbcode_uid);
 	$bbcode_uid = $userdata['user_sig_bbcode_uid'];
-	$user_sig = prepare_message($userdata['user_sig'], $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
-
-	if( $user_sig != '' )
-	{
-		if ( $bbcode_on  == 1 ) { $user_sig = bbencode_second_pass($user_sig, $bbcode_uid); }
-		if ( $bbcode_on  == 1 ) { $user_sig = bbencode_first_pass($user_sig, $bbcode_uid); }
-		if ( $bbcode_on  == 1 ) { $user_sig = make_clickable($user_sig); }
-		if ( $smilies_on == 1 ) { $user_sig = smilies_pass($user_sig); }
-		$user_sig = '_________________<br />' . $user_sig;
-		$user_sig = nl2br($user_sig);
-	}
-	else
-	{
-		$user_sig = $lang['sig_none'];
-	}
+	$user_sig = phpbb_signature_render($userdata['user_sig'], $bbcode_uid, $html_on, !empty($board_config['allow_bbcode']), $smilies_on);
 }
 
 // template
@@ -296,7 +267,7 @@ else if ($mode || empty($mode))
 
 		'SIGNATURE' => phpbb_profile_text($signature_text),
 		'CURRENT_PREVIEW' => $user_sig,
-		'PREVIEW' => htmlspecialchars(stripslashes($signature_text)),
+		'PREVIEW' => phpbb_profile_text($signature_text),
 		'REAL_PREVIEW' => $preview_sig,
 		'SAVE_MESSAGE' => $save_message,
 

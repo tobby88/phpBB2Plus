@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__DIR__) . '/attach_mod/includes/functions_mutation.php';
+require_once __DIR__ . '/functions_signature.php';
 
 class PhpbbSignatureException extends RuntimeException {}
 function phpbb_signature_error($key = 'Signature_save_failed')
@@ -80,8 +81,7 @@ function phpbb_signature_save($database, $text, $sid)
 		$uid = $bbcode ? make_bbcode_uid() : '';
 		// Preserve the fixed raw/legacy HTML boundary, followed by driver SQL
 		// escaping. Formatting happens only after current policy is held.
-		$text = prepare_message($html ? addslashes($text) : $text, $html, $bbcode, $smilies, $uid);
-		if ($html) { $text = stripslashes($text); }
+		$text = phpbb_signature_prepare($text, $html, $bbcode, $smilies, $uid);
 		$writer->query('UPDATE ' . USERS_TABLE . " SET user_sig='" . $writer->escape($text) . "',user_sig_bbcode_uid='" . $writer->escape($uid) . "' WHERE user_id=$id");
 		$writer->query('COMMIT'); $transactional = false;
 		return array('text'=>$text, 'uid'=>$uid);
