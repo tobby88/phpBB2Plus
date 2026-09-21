@@ -9,6 +9,27 @@ function phpbb_activation_error($key = 'Activation_save_failed')
 	throw new PhpbbActivationException(isset($lang[$key]) ? $lang[$key] : $key);
 }
 
+function phpbb_reset_pending($value) { return $value !== null && (string)$value !== ''; }
+function phpbb_reset_binding($row)
+{
+	$values = array('reset-context-v1');
+	foreach (array('user_id','username','user_email','user_password','user_active','user_level','user_passwd_change','ct_last_pw_change','user_actkey','ct_last_pw_reset') as $key)
+	{
+		if (!array_key_exists($key, $row) || ($row[$key] !== null && !is_scalar($row[$key]))) { return ''; }
+		// Historical CrackerTracker timestamps may legitimately be NULL. Keep
+		// that distinct from zero/empty without treating the column as missing.
+		$values[] = $row[$key] === null ? null : (string)$row[$key];
+	}
+	// The random bearer token stays in user_actkey. This stored fingerprint
+	// binds its purpose to credentials without requiring a new schema column.
+	return '!phpbb-reset-v1!' . hash('sha256', serialize($values));
+}
+function phpbb_reset_binding_valid($row)
+{
+	$binding = phpbb_reset_binding($row);
+	return $binding !== '' && isset($row['user_newpasswd']) && is_string($row['user_newpasswd']) && hash_equals($binding, $row['user_newpasswd']);
+}
+
 // Token consumption, credentials and login revocation are one publication.
 // A normal activation link is a bearer capability; admin activation additionally
 // requires a current root login (not an ACP reauthentication or delegated grant).
@@ -17,7 +38,7 @@ class PhpbbActivationDatabase
 	var $lock;
 	var $connection = null;
 	var $transactional = false;
-	function __construct($database)
+	function __construct($database, $reset_request = false)
 	{
 		$this->lock = new attach_mutation_lock($database);
 		if (!$this->lock->acquired) { phpbb_activation_error('Attachment_storage_busy'); }
@@ -28,7 +49,9 @@ class PhpbbActivationDatabase
 			$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
 			$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 			$this->control('START TRANSACTION'); $this->transactional = true;
-			foreach (array(USERS_TABLE, SESSIONS_TABLE, SESSIONS_KEYS_TABLE, CONFIG_TABLE) as $table)
+			$tables = array(USERS_TABLE, SESSIONS_TABLE, SESSIONS_KEYS_TABLE, CONFIG_TABLE);
+			if ($reset_request) { $tables[] = CTRACKER_CONFIG; }
+			foreach ($tables as $table)
 			{
 				$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
 				$name = $this->sql_escape($table);
@@ -83,17 +106,17 @@ function phpbb_account_activate($database, $expected, $key, $new_hash = null, $s
 		$policy = array();
 		foreach ($db->rows("SELECT config_name,config_value FROM " . CONFIG_TABLE . " WHERE config_name IN ('require_activation','min_password_len','password_not_login','force_complex_password','password_hashing') LOCK IN SHARE MODE") as $setting) { $policy[$setting['config_name']] = $setting['config_value']; }
 		if (count($policy) !== 5 || !in_array((string)$policy['require_activation'], array('0','1','2'), true)) { phpbb_activation_error('Activation_storage_upgrade'); }
-		$rows = $db->rows('SELECT user_active,user_id,username,user_email,user_password,user_newpasswd,user_lang,user_actkey,ct_last_pw_reset FROM ' . USERS_TABLE . ' WHERE user_id=' . $id . ' FOR UPDATE');
+		$rows = $db->rows('SELECT user_active,user_id,username,user_email,user_password,user_newpasswd,user_lang,user_actkey,ct_last_pw_reset,user_level,user_passwd_change,ct_last_pw_change FROM ' . USERS_TABLE . ' WHERE user_id=' . $id . ' FOR UPDATE');
 		if (count($rows) !== 1) { phpbb_activation_error('Wrong_activation'); }
 		$row = $rows[0];
 		foreach (array('user_active','username','user_email','user_password','user_newpasswd','user_lang','user_actkey','ct_last_pw_reset') as $field)
 		{ if (!array_key_exists($field, $expected) || (string)$row[$field] !== (string)$expected[$field]) { phpbb_activation_error('Wrong_activation'); } }
 		if ($row['user_actkey'] === '' || !hash_equals((string)$row['user_actkey'], $key)) { phpbb_activation_error('Wrong_activation'); }
-		$reset = $row['user_newpasswd'] === PHPBB_PASSWORD_RESET_PENDING;
-		$legacy = !$reset && $row['user_newpasswd'] !== '' && $row['user_newpasswd'] !== null;
-		$admin = !$reset && !$legacy && (int)$policy['require_activation'] === USER_ACTIVATION_ADMIN;
-		if ($reset || $legacy)
+		$reset = phpbb_reset_pending($row['user_newpasswd']);
+		$admin = !$reset && (int)$policy['require_activation'] === USER_ACTIVATION_ADMIN;
+		if ($reset)
 		{
+			if (!phpbb_reset_binding_valid($row)) { phpbb_activation_error('Password_reset_expired'); }
 			// A reset must never reactivate a subsequently disabled account.
 			if ((int)$row['user_active'] !== 1) { phpbb_activation_error('Wrong_activation'); }
 		}
@@ -122,18 +145,12 @@ function phpbb_account_activate($database, $expected, $key, $new_hash = null, $s
 			if (!is_string($new_hash) || $new_hash === '') { phpbb_activation_error('Password_hash_failed'); }
 			$password_sql = ",user_password='" . $db->sql_escape($new_hash) . "',user_newpasswd='',user_passwd_change=$now,ct_last_pw_change=$now";
 		}
-		elseif ($legacy)
-		{
-			$info = password_get_info($row['user_newpasswd']);
-			if (!preg_match('/^[a-f0-9]{32}$/iD', $row['user_newpasswd']) && $info['algoName'] === 'unknown') { phpbb_activation_error('Wrong_activation'); }
-			$password_sql = ",user_password='" . $db->sql_escape($row['user_newpasswd']) . "',user_newpasswd='',user_passwd_change=" . ($row['user_newpasswd'] === $row['user_password'] ? $now : 0) . ",ct_last_pw_change=$now";
-		}
 		elseif ($new_hash !== null) { phpbb_activation_error('Wrong_activation'); }
 		$key_sql = $db->sql_escape($key);
 		$db->sql_query('UPDATE ' . USERS_TABLE . " SET user_active=1,user_actkey=''" . $password_sql . " WHERE user_id=$id AND HEX(user_actkey)=HEX('$key_sql')");
 		if ((int)$db->sql_affectedrows() !== 1) { phpbb_activation_error('Wrong_activation'); }
 		$guest = null;
-		if ($reset || $legacy)
+		if ($reset)
 		{
 			$db->sql_query('DELETE FROM ' . SESSIONS_KEYS_TABLE . ' WHERE user_id=' . $id);
 			$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id=' . $id);
@@ -144,7 +161,7 @@ function phpbb_account_activate($database, $expected, $key, $new_hash = null, $s
 			}
 		}
 		$db->commit();
-		return array('row'=>$row, 'reset'=>$reset, 'legacy'=>$legacy, 'admin'=>$admin, 'guest'=>$guest);
+		return array('row'=>$row, 'reset'=>$reset, 'legacy'=>false, 'admin'=>$admin, 'guest'=>$guest);
 	}
 	finally { $db->release(); }
 }

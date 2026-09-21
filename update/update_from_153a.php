@@ -702,6 +702,11 @@ if (update_column_max_length($connection, $dbname, $users_table, 'user_newpasswd
 	$operations[] = 'ALTER TABLE ' . update_quote_identifier($users_table) .
 		' MODIFY `user_newpasswd` VARCHAR(255) DEFAULT NULL';
 }
+// Retire unbound reset links, never account activation links or current passwords.
+// New reset markers fit the already widened user_newpasswd column and bind the
+// bearer token to the exact current credential/account state. Idempotent cleanup.
+$operations[] = 'UPDATE ' . update_quote_identifier($users_table) .
+	" SET user_newpasswd='',user_actkey='',ct_last_pw_reset=0 WHERE COALESCE(user_newpasswd,'') <> '' AND user_newpasswd NOT LIKE '!phpbb-reset-v1!%'";
 // The quota form has always allowed 25 characters; the old column held only 20.
 // Widen only, retaining custom defaults, collation and wider custom columns.
 update_queue_text_widths($operations, $connection, $dbname, $table_prefix . 'quota_limits', array('quota_desc' => 25));

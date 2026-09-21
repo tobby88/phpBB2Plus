@@ -8,12 +8,21 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Issue password-reset links in an owned transaction against the current account,
+  live session and CrackerTracker cooldown policy. Bind links to the current
+  credentials, email and account state so later changes invalidate them.
+  Deliver only after acknowledged commit and release; failed mail retires only
+  its own token without exposing account existence or overwriting a newer request.
+  Retire earlier unbound reset links at runtime and in the consolidated updater;
+  members can immediately request a fresh link. Preserve current passwords,
+  normal logins and account-activation links. No new schema columns are needed.
 - Activate accounts and consume password-reset tokens in an owned transaction.
   Verify the exact current token/account and activation policy; admin approval
   requires a current root login. Password changes revoke every old session and
   persistent login key atomically, including self-reset logouts after commit.
   Reject stale reset forms, disabled-account resets and malformed legacy hashes;
-  preserve valid historical activation/password links and current password policy.
+  preserve valid account-activation links and current password policy. Legacy
+  password-reset links are superseded by the bound-link change above.
   Report optional activation-email failures separately from confirmed storage.
   Existing canonical tables/updater suffice; no additional schema migration.
 - Preserve acknowledged user/group permission saves and moderator-role repairs

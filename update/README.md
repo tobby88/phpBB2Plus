@@ -22,6 +22,13 @@ social-profile fields, cookie consent and the disabled StopForumSpam option.
 It also normalizes all theme and member-style records to FI Subsilver Shadow.
 Existing unrelated configuration values are preserved.
 
+The full updater also expires legacy, unbound password-reset links, including
+pending hashes from older versions. Members can request a fresh credential-bound
+link immediately. Existing passwords, normal logins, account-activation links
+and new bound reset markers are preserved. This cleanup is idempotent; the
+runtime also rejects obsolete links without waiting for cleanup. Storage-only
+mode deliberately does not modify account data.
+
 Search-index rebuilding in the ACP now saves an atomic `dbmtnc_rebuild_job`
 checkpoint in the configuration table. The updater adds an empty default only
 when absent; it never overwrites an active job. The ACP also initializes this

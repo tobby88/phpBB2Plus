@@ -62,7 +62,7 @@ if ($activation_user_id <= 0 || !preg_match('/^[a-f0-9]{6,32}$/iD', $activation_
 	message_die(GENERAL_MESSAGE, $lang['Wrong_activation']);
 }
 
-$sql = "SELECT user_active, user_id, username, user_email, user_password, user_newpasswd, user_lang, user_actkey, ct_last_pw_reset
+$sql = "SELECT user_active, user_id, username, user_email, user_password, user_newpasswd, user_lang, user_actkey, ct_last_pw_reset, user_level, user_passwd_change, ct_last_pw_change
 	FROM " . USERS_TABLE . "
 	WHERE user_id = " . $activation_user_id;
 if ( !($result = $db->sql_query($sql)) )
@@ -84,14 +84,14 @@ if ( $row = $db->sql_fetchrow($result) )
 	{
 		// A stale reset form must never turn into an account activation after
 		// a different operation has replaced the token's purpose.
-		if (!empty($_POST['reset_password']) && $row['user_newpasswd'] !== PHPBB_PASSWORD_RESET_PENDING)
+		if (!empty($_POST['reset_password']) && !phpbb_reset_pending($row['user_newpasswd']))
 		{
 			message_die(GENERAL_MESSAGE, $lang['Wrong_activation']);
 		}
-		if ($row['user_newpasswd'] === PHPBB_PASSWORD_RESET_PENDING)
+		if (phpbb_reset_pending($row['user_newpasswd']))
 		{
 			$now = time();
-			if (intval($row['ct_last_pw_reset']) < $now)
+			if (!phpbb_reset_binding_valid($row) || intval($row['ct_last_pw_reset']) < $now)
 			{
 				message_die(GENERAL_MESSAGE, $lang['Password_reset_expired']);
 			}
@@ -196,7 +196,7 @@ if ( $row = $db->sql_fetchrow($result) )
 				'META' => '<meta http-equiv="refresh" content="10;url=' . append_sid("index.$phpEx") . '">')
 			);
 
-			$message = $activation_result['legacy'] ? $lang['Password_activated'] : $lang['Account_active'];
+			$message = $lang['Account_active'];
 			message_die(GENERAL_MESSAGE, $message);
 		}
 	}

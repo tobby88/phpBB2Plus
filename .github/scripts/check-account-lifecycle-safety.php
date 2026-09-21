@@ -8,6 +8,7 @@ $register = (string) file_get_contents($root . '/phpBB2/includes/usercp_register
 $activate = (string) file_get_contents($root . '/phpBB2/includes/usercp_activate.php');
 $page_header = (string) file_get_contents($root . '/phpBB2/includes/page_header.php');
 $send_password = (string) file_get_contents($root . '/phpBB2/includes/usercp_sendpasswd.php');
+$send_password_storage = (string) file_get_contents($root . '/phpBB2/includes/functions_password_reset.php');
 $admin_add_user = (string) file_get_contents($root . '/phpBB2/admin/admin_user_register.php');
 $lang_english = (string) file_get_contents($root . '/phpBB2/language/lang_english/lang_main.php');
 $lang_german = (string) file_get_contents($root . '/phpBB2/language/lang_german/lang_main.php');
@@ -96,13 +97,13 @@ if (strpos($page_header, "\$userdata['ct_last_pw_change']") === false ||
 {
 	$errors[] = 'Password-age notices still use the reset-request cooldown timestamp.';
 }
-if (strpos($send_password, 'ct_last_pw_reset') === false || strpos($send_password, 'ct_last_pw_change') !== false)
+if (strpos($send_password_storage, "\$row['ct_last_pw_reset'] = \$now +") === false || strpos($send_password_storage, 'SET ct_last_pw_change') !== false)
 {
 	$errors[] = 'Password-reset throttling is not isolated from password-age tracking.';
 }
-foreach (array("\$db->sql_escape(\$username)", "\$db->sql_escape(\$email)", 'min(180, $pwreset_minutes)') as $marker)
+foreach (array("\$db->sql_escape(\$username)", "\$db->sql_escape(\$email)", "(int)\$settings['pwreset_time'] > 180") as $marker)
 {
-	if (strpos($send_password, $marker) === false)
+	if (strpos($send_password_storage, $marker) === false)
 	{
 		$errors[] = 'Password-reset input or cooldown hardening is missing: ' . $marker;
 	}

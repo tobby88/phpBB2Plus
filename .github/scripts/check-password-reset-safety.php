@@ -13,13 +13,14 @@ $root = dirname(dirname(__DIR__));
 $send = file_get_contents($root . '/phpBB2/includes/usercp_sendpasswd.php');
 $activate = file_get_contents($root . '/phpBB2/includes/usercp_activate.php');
 $storage = file_get_contents($root . '/phpBB2/includes/functions_account_activation.php');
+$request = file_get_contents($root . '/phpBB2/includes/functions_password_reset.php');
 $constants = file_get_contents($root . '/phpBB2/includes/constants.php');
 $validate = file_get_contents($root . '/phpBB2/includes/functions_validate.php');
 $english_mail = file_get_contents($root . '/phpBB2/language/lang_english/email/user_activate_passwd.tpl');
 $german_mail = file_get_contents($root . '/phpBB2/language/lang_german/email/user_activate_passwd.tpl');
 
 password_reset_assert(strpos($constants, "define('PHPBB_PASSWORD_RESET_PENDING'") !== false, 'pending resets need an unambiguous compatibility marker');
-password_reset_assert(strpos($send, "user_newpasswd = '\$reset_marker_sql'") !== false, 'reset requests must store only the pending marker');
+password_reset_assert(strpos($request, 'phpbb_reset_binding($row)') !== false && strpos($storage, 'hash_equals($binding, $row[\'user_newpasswd\'])') !== false, 'reset requests bind the marker to current credentials');
 password_reset_assert(strpos($send, 'phpbb_password_hash($user_password)') === false, 'the request handler must not create a password for the user');
 password_reset_assert(strpos($send, "'PASSWORD' =>") === false, 'the mailer must never receive a plaintext password');
 password_reset_assert(strpos($english_mail, '{PASSWORD}') === false && strpos($german_mail, '{PASSWORD}') === false, 'reset e-mails must never contain a password placeholder');

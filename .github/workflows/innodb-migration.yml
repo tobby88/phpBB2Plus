@@ -109,6 +109,10 @@ jobs:
         env:
           PHPBB_ACTIVATION_NATIVE: '1'
           PHPBB_ACTIVATION_PASSWORD: fixture-only
+      - run: php .github/scripts/check-password-reset-request-native.php
+        env:
+          PHPBB_RESET_REQUEST_NATIVE: '1'
+          PHPBB_RESET_REQUEST_PASSWORD: fixture-only
       - run: php .github/scripts/check-admin-profile-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'

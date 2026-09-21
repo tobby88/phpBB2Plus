@@ -45,6 +45,7 @@ function an_reset($mode){
  foreach(array(-1,1,2,7) as $id){an_insert('fixture_users',array('user_id'=>$id,'username'=>'Grüße-'.$id,'user_email'=>'member'.$id.'@example.invalid','user_password'=>'before','user_newpasswd'=>'','user_actkey'=>'','user_active'=>1,'user_level'=>$id===1?ADMIN:0));}
  $pending=strpos($mode,'reset')===0?PHPBB_PASSWORD_RESET_PENDING:(strpos($mode,'legacy')===0?md5('LegacyFixture!9'):'');
  an_sql("UPDATE fixture_users SET user_active=".($pending===''?0:1).",user_actkey='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',user_newpasswd='".$pending."',ct_last_pw_reset=2000000000 WHERE user_id=2");
+ if(strpos($mode,'reset')===0){$binding=phpbb_reset_binding(an_rows('SELECT * FROM fixture_users WHERE user_id=2')[0]);an_sql("UPDATE fixture_users SET user_newpasswd='".$binding."' WHERE user_id=2");}
  $actor=$mode==='admin'?1:(strpos($mode,'self-reset')===0||substr($mode,-4)==='self'?2:-1);
  // Account self-activation remains a guest bearer-link action.
  if($mode==='self'){$actor=-1;}
@@ -63,7 +64,7 @@ try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');foreach($an_tables as $s){ats_check(preg_match('/CREATE TABLE phpbb_'.$s.'\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical participant');an_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$m[0]));}
  an_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
- foreach(array('self','admin','reset-guest','reset-self','legacy-guest','legacy-self') as $mode){
+ foreach(array('self','admin','reset-guest','reset-self') as $mode){
   an_reset($mode);$before=an_snap();$out=an_run();ats_check(an_success($out,$mode),'Authorized actual controller '.$mode);$after=an_snap();$writes=$an_writes;$boundaries=array_values(array_filter($an_queries,'an_boundary'));
   ats_check(an_rows('SELECT user_actkey FROM fixture_users WHERE user_id=2')[0]['user_actkey']==='','Consume once');
   if(strpos($mode,'reset')===0||strpos($mode,'legacy')===0){ats_check(!an_rows('SELECT * FROM fixture_sessions WHERE session_user_id=2')&&!an_rows('SELECT * FROM fixture_sessions_keys WHERE user_id=2'),'Revoke every target login/key');ats_check(phpbb_password_verify(strpos($mode,'reset')===0?$_POST['new_password']:'LegacyFixture!9',an_rows('SELECT user_password FROM fixture_users WHERE user_id=2')[0]['user_password']),'Exact Unicode or legacy credential');}
@@ -83,10 +84,12 @@ try{
   }}
   echo $mode." native token/authority/atomic publication passed\n";
  }
- foreach(array('token','case','pending','expired','inactive','sid','get','policy','root','root-inactive','admin-sid','wrong-policy','legacy-marker') as $case){
+ foreach(array('token','case','pending','expired','inactive','sid','get','policy','root','root-inactive','admin-sid','wrong-policy','legacy-marker','legacy-hash','bare-marker','changed-email','changed-password','changed-role') as $case){
   $mode=strpos($case,'root')===0||$case==='admin-sid'?'admin':($case==='legacy-marker'?'legacy-guest':'reset-guest');an_reset($mode);
   $changes=array('token'=>"UPDATE fixture_users SET user_actkey='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' WHERE user_id=2",'case'=>"UPDATE fixture_users SET user_actkey=UPPER(user_actkey) WHERE user_id=2",'pending'=>"UPDATE fixture_users SET user_newpasswd='' WHERE user_id=2",'expired'=>'UPDATE fixture_users SET ct_last_pw_reset=1 WHERE user_id=2','inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=2','sid'=>"DELETE FROM fixture_sessions WHERE session_id='fixture-sid'",'policy'=>"UPDATE fixture_config SET config_value='20' WHERE config_name='min_password_len'",'root'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=1','root-inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=1','admin-sid'=>"UPDATE fixture_sessions SET session_id='FIXTURE-SID' WHERE session_id='fixture-sid'",'wrong-policy'=>"UPDATE fixture_config SET config_value='2' WHERE config_name='require_activation'",'legacy-marker'=>"UPDATE fixture_users SET user_newpasswd='not-a-password-hash' WHERE user_id=2");
   if(isset($changes[$case])){an_sql($changes[$case]);}if($case==='get'){$_SERVER['REQUEST_METHOD']='GET';}
+  $bindings=array('legacy-hash'=>"user_newpasswd='".md5('old-pending-password')."'",'bare-marker'=>"user_newpasswd='".PHPBB_PASSWORD_RESET_PENDING."'",'changed-email'=>"user_email='new@example.invalid'",'changed-password'=>"user_password='new-admin-password'",'changed-role'=>'user_level=1');
+  if(isset($bindings[$case])){an_sql('UPDATE fixture_users SET '.$bindings[$case].' WHERE user_id=2');}
   // Admin activation policy does not prohibit an active user's password reset.
   if($case==='wrong-policy'){ats_check(an_success(an_run(),$mode),'Reset independent of account activation policy');continue;}
   $before=an_snap();$out=an_run();ats_check(!an_success($out,$mode)&&an_snap()===$before&&!$an_mail&&!$an_cookies,'Reject invalid current activation '.$case);$cases++;
@@ -96,6 +99,9 @@ try{
  an_sql('ALTER TABLE fixture_users MODIFY username VARCHAR(25) CHARACTER SET latin1 NOT NULL');$before=an_snap();ats_check(!an_success(an_run(),'reset-guest')&&an_snap()===$before,'Reject old column encoding');an_sql('ALTER TABLE fixture_users MODIFY username VARCHAR(25) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL');
  an_reset('admin');$an_mail_fail=true;$out=an_run();ats_check(an_success($out,'admin')&&strpos($out,$lang['Activation_mail_failed'])!==false&&an_rows('SELECT user_active FROM fixture_users WHERE user_id=2')[0]['user_active']==1,'Mail failure does not undo confirmed activation');
  an_reset('reset-guest');$board_config['password_hashing']=1;an_sql("UPDATE fixture_config SET config_value='1' WHERE config_name='password_hashing'");ats_check(an_success(an_run(),'reset-guest')&&password_verify($_POST['new_password'],an_rows('SELECT user_password FROM fixture_users WHERE user_id=2')[0]['user_password']),'Modern bcrypt Unicode reset');
+ an_reset('reset-guest');an_sql('UPDATE fixture_users SET ct_last_pw_change=NULL WHERE user_id=2');
+ $binding=phpbb_reset_binding(an_rows('SELECT * FROM fixture_users WHERE user_id=2')[0]);an_sql("UPDATE fixture_users SET user_newpasswd='".$binding."' WHERE user_id=2");
+ ats_check(an_success(an_run(),'reset-guest'),'Bound reset with historical nullable timestamp');
  foreach(array('view','confirmation','empty','long','nul','array-sid','foreign-session','logged-out-admin','missing-policy') as $case){
   an_reset($case==='logged-out-admin'?'admin':'reset-guest');
   if($case==='view'){unset($_POST['reset_password']);$_SERVER['REQUEST_METHOD']='GET';}

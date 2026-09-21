@@ -129,6 +129,20 @@ explicit password and matching confirmation; no shared default password is
 assigned. These changes do not alter existing account credentials or retract
 passwords from emails already sent by older versions.
 
+Password-reset links are bound to the account's current credentials, email and
+account state. Changing these invalidates an outstanding link. Requests lock
+the current account/session and CrackerTracker policy until the token is committed;
+mail delivery occurs afterward without holding those locks. Failed delivery is
+logged and retires only that request's token, permitting a retry. The public
+response does not reveal whether an account matched or delivery failed.
+
+On upgrade, previously issued **unbound password-reset links expire** and must
+be requested again. Ordinary logins, existing passwords and account-activation
+links remain unchanged. The full `update/update_from_153a.php` updater clears
+obsolete reset markers idempotently; the runtime rejects them even before this
+cleanup. Storage-only mode does not perform account-data cleanup. No additional
+schema column is needed beyond the existing widened `user_newpasswd` field.
+
 The ACP reference account supplies profile defaults only. New accounts receive
 their own personal group, but do not inherit the reference account's shared
 memberships or permissions (including pending membership requests). Assign
@@ -828,7 +842,9 @@ These columns preserve existing subscriptions and coordinate concurrent mail
 deliveries without holding a forum writer lock during mail transmission.
 Optional reply-notification delivery failures are logged without failing the
 stored post; unsent claims become eligible for a later reply. This is not a
-background retry queue. Required account/password mail still reports failures.
+background retry queue. Password-reset delivery failures are logged privately,
+with the same public response as a non-matching request; they are not retried
+automatically.
 As required by the original CrackerTracker 4.x-to-5.x instructions, it removes
 the incompatible 4.x tables and user columns after preparing the 5.x schema.
 The old CrackerTracker settings and logs cannot be migrated and are discarded;

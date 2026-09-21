@@ -26,6 +26,7 @@ if ( !defined('IN_PHPBB') )
 	die('Hacking attempt');
 	exit;
 }
+require_once dirname(__FILE__) . '/functions_password_reset.php';
 
 if ( isset($_POST['submit']) )
 {
@@ -39,22 +40,12 @@ if ( isset($_POST['submit']) )
 	$email_value = (isset($_POST['email']) && is_scalar($_POST['email'])) ? (string) $_POST['email'] : '';
 	$username = ( $username_value !== '' ) ? phpbb_clean_username($username_value) : '';
 	$email = ( $email_value !== '' ) ? trim(strip_tags(htmlspecialchars($email_value))) : '';
-	$username_sql = $db->sql_escape($username);
-	$email_sql = $db->sql_escape($email);
-
-	$sql = "SELECT user_id, username, user_email, user_active, user_lang, ct_last_pw_reset
-		FROM " . USERS_TABLE . " 
-		WHERE user_email = '$email_sql'
-			AND username = '$username_sql'";
-	if ( !($result = $db->sql_query($sql)) )
+	try
 	{
-		message_die(GENERAL_ERROR, 'Could not obtain user information for sendpassword', '', __LINE__, __FILE__, $sql);
+		$reset_request = phpbb_password_reset_request($db, $username, $email, $submitted_sid);
 	}
-	$row = $db->sql_fetchrow($result);
-	$pwreset_minutes = isset($ctracker_config->settings['pwreset_time']) ? intval($ctracker_config->settings['pwreset_time']) : 20;
-	$pwreset_minutes = ($pwreset_minutes > 0) ? min(180, $pwreset_minutes) : 20;
-	$reset_throttling = isset($ctracker_config->settings['pw_reset_feature']) && $ctracker_config->settings['pw_reset_feature'] == 1;
-	$reset_allowed = $row && !empty($row['user_active']) && (!$reset_throttling || intval($row['ct_last_pw_reset']) < time());
+	catch (PhpbbActivationException $error) { message_die(GENERAL_MESSAGE, htmlspecialchars($error->getMessage(), ENT_QUOTES, 'UTF-8')); }
+	$reset_allowed = $reset_request !== null;
 
 	// Use the same public response for unknown, inactive and temporarily
 	// throttled accounts. This prevents the form from becoming an account and
@@ -62,39 +53,44 @@ if ( isset($_POST['submit']) )
 	// the normal activation email.
 	if ($reset_allowed)
 	{
+		$row = $reset_request;
 		$username = $row['username'];
 		$user_id = (int) $row['user_id'];
-
-		$user_actkey = gen_rand_string(true);
-		$new_time = time() + ($pwreset_minutes * 60);
-		$reset_marker_sql = $db->sql_escape(PHPBB_PASSWORD_RESET_PENDING);
-		$user_actkey_sql = $db->sql_escape($user_actkey);
-		$sql = "UPDATE " . USERS_TABLE . "
-			SET user_newpasswd = '$reset_marker_sql', user_actkey = '$user_actkey_sql', ct_last_pw_reset = $new_time WHERE user_id = $user_id";
-		if ( !$db->sql_query($sql) )
+		$user_actkey = $row['user_actkey'];
+		$reset_mail_failed = false;
+		try
 		{
-			message_die(GENERAL_ERROR, 'Could not update new password information', '', __LINE__, __FILE__, $sql);
+			require_once($phpbb_root_path . 'includes/emailer.'.$phpEx);
+			$emailer = new emailer($board_config['smtp_delivery'], true);
+
+			$emailer->from($board_config['board_email']);
+			$emailer->replyto($board_config['board_email']);
+
+			$emailer->use_template('user_activate_passwd', $row['user_lang']);
+			$emailer->email_address($row['user_email']);
+			$emailer->set_subject($lang['New_password_activation']);
+
+			$emailer->assign_vars(array(
+				'SITENAME' => $board_config['sitename'],
+				'USERNAME' => $username,
+				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
+
+				'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
+			);
+			$reset_mail_failed = !$emailer->send();
+			$emailer->reset();
 		}
-
-		include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-		$emailer = new emailer($board_config['smtp_delivery']);
-
-		$emailer->from($board_config['board_email']);
-		$emailer->replyto($board_config['board_email']);
-
-		$emailer->use_template('user_activate_passwd', $row['user_lang']);
-		$emailer->email_address($row['user_email']);
-		$emailer->set_subject($lang['New_password_activation']);
-
-		$emailer->assign_vars(array(
-			'SITENAME' => $board_config['sitename'],
-			'USERNAME' => $username,
-			'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
-
-			'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
-		);
-		$emailer->send();
-		$emailer->reset();
+		catch (Exception $error) { $reset_mail_failed = true; }
+		catch (Throwable $error) { $reset_mail_failed = true; }
+		if ($reset_mail_failed)
+		{
+			// Same public response even on delivery failure; do not reveal which
+			// account/address matched. Retire only our token to permit a retry.
+			try { phpbb_password_reset_cancel($db, $reset_request); }
+			catch (Exception $error) { error_log('Password reset notification cleanup failed.'); }
+			catch (Throwable $error) { error_log('Password reset notification cleanup failed.'); }
+			error_log('Password reset notification delivery failed.');
+		}
 	}
 
 	$template->assign_vars(array(
