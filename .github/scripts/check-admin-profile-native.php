@@ -154,7 +154,10 @@ try{
    ats_check(ap_committed($committed)===ap_committed($after),'Complete profile was committed before later authority change');
    ats_check($db===$ap_main&&count($ap_cookies)===($scenario==='self'?1:0),'Confirmed profile restores ordinary connection and publishes self cookie');
    if($scenario==='avatar'){ats_check(!is_file($ap_files.'/before.png')&&is_file($ap_files.'/after.png'),'Confirmed avatar cleanup survives writer disconnect/revocation');}
-   $other=new attach_mutation_lock($peer,false);ats_check($other->acquired,'Confirmed profile releases attachment mutex');$other->release();$cases++;
+   // KILL CONNECTION/COM_QUIT cleanup is asynchronous on the server. Use the
+   // normal writer's bounded wait, not a racy zero-time observation. A leaked
+   // owner still fails this check; native cleanup cannot retain its mutex.
+   $other=new attach_mutation_lock($peer);ats_check($other->acquired,'Confirmed profile releases attachment mutex within the normal writer wait');$other->release();$cases++;
   }
   for($n=1;$n<=$writes;$n++){ap_reset($actor,$scenario);$before=ap_snap();$ap_fail=$n;ats_check(ap_run($scenario)==='error'&&ap_snap()===$before&&!$ap_cookies,'Whole profile rollback at write '.$n.' '.$scenario);ats_check(is_file($ap_files.'/before.png'),'Failure preserves old avatar');if($scenario==='avatar'&&$admin_profile_scope->new_avatars){ats_check(!is_file($ap_files.'/after.png'),'Confirmed rollback removes staged unreferenced avatar');}$cases++;}
   foreach(array('fail','ack') as $kind){ap_reset($actor,$scenario);$before=ap_snap();$ap_commit=$kind;
