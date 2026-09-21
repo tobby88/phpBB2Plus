@@ -750,3 +750,6 @@ jobs:
 
       - name: Reserve recovery IDs above references and sequence high-water marks
         run: php .github/scripts/check-maintenance-recovery-allocation.php
+
+      - name: Preserve avatars through rejected or uncertain public profile saves
+        run: php .github/scripts/check-public-profile-avatar.php

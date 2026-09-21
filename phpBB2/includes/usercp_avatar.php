@@ -73,13 +73,76 @@ function user_avatar_gallery_directory()
 	return ($normalized_root !== '' && $normalized_dir !== '' && strpos($normalized_dir, $normalized_root) === 0) ? $gallery_dir : false;
 }
 
+// Public profile validation must not remove bytes before its account write.
+// This owns files only, not the profile's database/session transaction.
+class PhpbbPublicAvatarScope
+{
+	var $database;
+	var $directory;
+	var $old_files = array();
+	var $new_files = array();
+	var $attempted = false;
+	var $confirmed = false;
+	var $finished = false;
+	function __construct($database)
+	{
+		$this->database = $database;
+		$this->directory = user_avatar_storage_directory();
+		register_shutdown_function(array($this, 'release'));
+	}
+	function remember($file, $new)
+	{
+		if ($this->finished || !is_string($file) || $file === '' || basename($file) !== $file || strpos($file, '\\') !== false || strpos($file, "\0") !== false) { return; }
+		if ($new) { $this->new_files[$file] = $file; } else { $this->old_files[$file] = $file; }
+	}
+	function write_attempted() { $this->attempted = true; }
+	function saved()
+	{
+		if (!$this->attempted || $this->finished) { return; }
+		$this->confirmed = true;
+		$this->release();
+	}
+	function release()
+	{
+		if ($this->finished) { return; }
+		$this->finished = true;
+		// A failed/lost SQL acknowledgement is not evidence of rollback. Keep
+		// both files then. Before any write, only this request's new files can
+		// be discarded. After success, keep any old file still used by a user.
+		$files = $this->confirmed ? $this->old_files : ($this->attempted ? array() : $this->new_files);
+		if ($this->directory === false || user_avatar_storage_directory() !== $this->directory) { return; }
+		foreach ($files as $file)
+		{
+			try
+			{
+				if ($this->confirmed)
+				{
+					$r = $this->database->sql_query('SELECT COUNT(*) AS avatar_references FROM ' . USERS_TABLE . ' WHERE user_avatar_type=' . USER_AVATAR_UPLOAD . " AND user_avatar='" . $this->database->sql_escape($file) . "'");
+					if (!$r) { continue; }
+					$row = $this->database->sql_fetchrow($r);
+					$this->database->sql_freeresult($r);
+					if (!is_array($row) || !isset($row['avatar_references']) || (string)$row['avatar_references'] !== '0') { continue; }
+				}
+				$path = $this->directory . DIRECTORY_SEPARATOR . $file;
+				if (!is_link($path) && is_file($path)) { @unlink($path); }
+			}
+			catch (Exception $e) {} catch (Error $e) {}
+		}
+	}
+}
+
 function user_avatar_delete($avatar_type, $avatar_file)
 {
-	global $userdata, $admin_profile_scope;
+	global $userdata, $admin_profile_scope, $public_avatar_scope;
 	$avatar_file = basename($avatar_file);
 	if (isset($admin_profile_scope) && $admin_profile_scope instanceof PhpbbAdminProfileScope && $admin_profile_scope->ready && $avatar_type == USER_AVATAR_UPLOAD && $avatar_file !== '')
 	{
 		$admin_profile_scope->remember_avatar($avatar_file, false);
+		return ", user_avatar = '', user_avatar_type = " . USER_AVATAR_NONE;
+	}
+	if (isset($public_avatar_scope) && $public_avatar_scope instanceof PhpbbPublicAvatarScope)
+	{
+		if ($avatar_type == USER_AVATAR_UPLOAD) { $public_avatar_scope->remember($avatar_file, false); }
 		return ", user_avatar = '', user_avatar_type = " . USER_AVATAR_NONE;
 	}
 	$avatar_dir = user_avatar_storage_directory();
@@ -151,7 +214,7 @@ function user_avatar_url($mode, &$error, &$error_msg, $avatar_filename)
 
 function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_type, &$error, &$error_msg, $avatar_filename, $avatar_realname, $avatar_filesize, $avatar_filetype)
 {
-	global $board_config, $db, $lang, $admin_profile_scope;
+	global $board_config, $db, $lang, $admin_profile_scope, $public_avatar_scope;
 
 	$avatar_sql = '';
 	if ($avatar_mode == 'remote')
@@ -209,6 +272,7 @@ function user_avatar_upload($mode, $avatar_mode, &$current_avatar, &$current_typ
 
 		@chmod($destination, 0664);
 		if (isset($admin_profile_scope) && $admin_profile_scope instanceof PhpbbAdminProfileScope && $admin_profile_scope->ready) { $admin_profile_scope->remember_avatar($new_filename, true); }
+		elseif (isset($public_avatar_scope) && $public_avatar_scope instanceof PhpbbPublicAvatarScope) { $public_avatar_scope->remember($new_filename, true); }
 		if ( $mode == 'editprofile' && $current_type == USER_AVATAR_UPLOAD && $current_avatar != '' )
 		{
 			user_avatar_delete($current_type, $current_avatar);

@@ -175,3 +175,7 @@ jobs:
         env:
           PHPBB_MODERATION_COMMIT_NATIVE: '1'
           PHPBB_MODERATION_COMMIT_PASSWORD: fixture-only
+      - run: php .github/scripts/check-public-profile-avatar.php
+        env:
+          PHPBB_PUBLIC_AVATAR_NATIVE: '1'
+          PHPBB_PUBLIC_AVATAR_PASSWORD: fixture-only

@@ -9,6 +9,7 @@ define('GENERAL_ERROR',1); define('USER_ACTIVATION_SELF',1); define('USER_ACTIVA
 define('ALLOW_VIEW',1); define('CHECKBOX',3); define('RADIO',2); define('TEXTAREA',1);
 define('TEXT_FIELD_MAXLENGTH',255); define('TEXTAREA_MAXLENGTH',60000);
 require_once $root.'includes/functions_profile_fields.php';
+require_once $root.'includes/usercp_avatar.php';
 function check($ok,$message){if(!$ok){throw new \RuntimeException($message);}}
 class QueryFailure extends \RuntimeException {}
 function message_die($type,$message){throw new QueryFailure($message);}
@@ -76,7 +77,8 @@ foreach($native?array('MyISAM','InnoDB'):array('SQLite nontransactional') as $en
     $fb=$ig=$pt=$twr=$skp=$tg=$li=$tt=$dc=$signal=$threema='';
     $user_absence_mode=$user_absence=$viewemail=$attachsig=$setbm=$allowsmilies=$allowhtml=$allowbbcode=$allowviewonline=$notifyreply=$notifypm=$games_block_pm=$popup_pm=$gender=0;
     $avatar_sql=$route==='public'?"'', 0":'';$birthday=999999;$next_birthday_greeting=0;
-    $board_config=array('require_activation'=>$activation[0]);$coppa=$activation[1];$_SERVER['REMOTE_ADDR']='2001:db8::123';
+    $board_config=array('require_activation'=>$activation[0],'avatar_path'=>'fixture-no-avatar-directory');$coppa=$activation[1];$_SERVER['REMOTE_ADDR']='2001:db8::123';
+    $public_avatar_scope=new \PhpbbPublicAvatarScope($db);
     $profile_data=array(array('field_name'=>'fixture_profile','field_type'=>0,'text_field_maxlen'=>200));
     $HTTP_POST_VARS=array('fixture_profile'=>"Grüße O'Connor, 😀");$expected_profile=htmlspecialchars($HTTP_POST_VARS['fixture_profile'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     if($route==='admin'){
@@ -89,6 +91,8 @@ foreach($native?array('MyISAM','InnoDB'):array('SQLite nontransactional') as $en
     $caught=false;
     try{eval($route==='quick'?$quick_body:($route==='public'?$public_body:$admin_body));if($route==='admin'&&!$db->sql_query($sql)){throw new QueryFailure('final profile statement failed');}}
     catch(QueryFailure $e){$caught=true;}
+    $public_avatar_scope->release();
+    if($route==='public'){check($public_avatar_scope->confirmed===($failure===''),'Avatar scope confirms only an acknowledged account INSERT');}
     check($caught===($failure!==''),'Expected controlled query failure for '.$route.'/'.$failure);
     check($existing===$pdo->query('SELECT * FROM fixture_users WHERE user_id=99')->fetch(\PDO::FETCH_ASSOC),'Unrelated existing account remains unchanged');
     $rows=$pdo->query('SELECT * FROM fixture_users WHERE user_id=42')->fetchAll(\PDO::FETCH_ASSOC);

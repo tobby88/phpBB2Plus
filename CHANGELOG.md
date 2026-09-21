@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Defer public-profile avatar deletion until the account write succeeds.
+  Rejected forms retain their previous image; newly staged uploads are removed
+  before any attempted write. Keep shared images and both files after an
+  uncertain database result. Avatar cleanup failures cannot hide a saved profile.
+  Registration uses the same file lifecycle. No schema or migration change.
 - Preserve acknowledged attachment settings, quota changes/assignments and
   ACP profile saves after a later session, permission or connection change.
   Keep current authority locked through commit and uncertain results distinct

@@ -433,6 +433,7 @@ if ($mode == 'register' && ($userdata['session_logged_in'] || $username == $user
 if ( isset($_POST['submit']) )
 {
 	include($phpbb_root_path . 'includes/usercp_avatar.'.$phpEx);
+	$public_avatar_scope = new PhpbbPublicAvatarScope($db);
 	// session id check
 	if ($sid == '' || $sid != $userdata['session_id'])
 	{
@@ -716,12 +717,12 @@ if ( isset($_POST['submit']) )
 
 	$avatar_sql = '';
 
-	if ( isset($_POST['avatardel']) && $mode == 'editprofile' )
+	if ( !$error && isset($_POST['avatardel']) && $mode == 'editprofile' )
 	{
 		$avatar_sql = user_avatar_delete($userdata['user_avatar_type'], $userdata['user_avatar']);
 	}
 		else
-	if ( ( !empty($user_avatar_upload) || !empty($user_avatar_name) ) && $board_config['allow_avatar_upload'] )
+	if ( !$error && ( !empty($user_avatar_upload) || !empty($user_avatar_name) ) && $board_config['allow_avatar_upload'] )
 	{
 		if ( !empty($user_avatar_upload) )
 		{
@@ -736,12 +737,12 @@ if ( isset($_POST['submit']) )
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ) . $l_avatar_size;
 		}
 	}
-	else if ( $user_avatar_remoteurl != '' && $board_config['allow_avatar_remote'] )
+	else if ( !$error && $user_avatar_remoteurl != '' && $board_config['allow_avatar_remote'] )
 	{
 		user_avatar_delete($userdata['user_avatar_type'], $userdata['user_avatar']);
 		$avatar_sql = user_avatar_url($mode, $error, $error_msg, $user_avatar_remoteurl);
 	}
-	else if ( $user_avatar_local != '' && $board_config['allow_avatar_local'] )
+	else if ( !$error && $user_avatar_local != '' && $board_config['allow_avatar_local'] )
 	{
 		user_avatar_delete($userdata['user_avatar_type'], $userdata['user_avatar']);
 		$avatar_sql = user_avatar_gallery($mode, $error, $error_msg, $user_avatar_local, $user_avatar_category);
@@ -818,10 +819,12 @@ if ( isset($_POST['submit']) )
 			$sql = "UPDATE " . USERS_TABLE . "
 				SET " . $username_sql . $passwd_sql . "user_email = '" . usercp_sql_value($email) ."', user_icq = '" . usercp_sql_value($icq) . "', user_website = '" . usercp_sql_value($website) . "', user_occ = '" . usercp_sql_value($occupation) . "', user_from = '" . usercp_sql_value($location) . "', user_from_flag = '" . usercp_sql_value($user_flag) . "', user_interests = '" . usercp_sql_value($interests) . "', user_absence_mode = $user_absence_mode, user_absence = $user_absence, user_absence_text = '" . usercp_sql_value($user_absence_text) . "', user_birthday = '$birthday', user_next_birthday_greeting = '$next_birthday_greeting', user_viewemail = $viewemail, user_aim = '" . usercp_sql_value(str_replace(' ', '+', $aim)) . "', user_yim = '" . usercp_sql_value($yim) . "', user_msnm = '" . usercp_sql_value($msn) . "', user_fb = '" . usercp_sql_value($fb) . "', user_ig = '" . usercp_sql_value($ig) . "', user_pt = '" . usercp_sql_value($pt) . "', user_twr = '" . usercp_sql_value($twr) . "', user_skp = '" . usercp_sql_value($skp) . "', user_tg = '" . usercp_sql_value($tg) . "', user_li = '" . usercp_sql_value($li) . "', user_tt = '" . usercp_sql_value($tt) . "', user_dc = '" . usercp_sql_value($dc) . "', user_signal = '" . usercp_sql_value($signal) . "', user_threema = '" . usercp_sql_value($threema) . "', user_attachsig = $attachsig, user_setbm = $setbm, user_allowsmile = $allowsmilies, user_allowhtml = $allowhtml, user_allowbbcode = $allowbbcode, user_allow_viewonline = $allowviewonline, user_notify = $notifyreply, user_notify_pm = $notifypm, games_block_pm = $games_block_pm, user_popup_pm = $popup_pm, user_timezone = $user_timezone, user_dateformat = '" . usercp_sql_value($user_dateformat) . "', user_lang = '" . usercp_sql_value($user_lang) . "', user_style = $user_style, user_active = $user_active, user_actkey = '" . usercp_sql_value($user_actkey) . "'" . $avatar_sql . ", user_gender = '" . usercp_sql_value($gender) . "'
 				WHERE user_id = $user_id";
+			$public_avatar_scope->write_attempted();
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				message_die(GENERAL_ERROR, 'Could not update users table', '', __LINE__, __FILE__, $sql);
 			}
+			$public_avatar_scope->saved();
 			if ( !empty($passwd_sql) )
 			{
 				$profile_security->pw_create_date($user_id);
@@ -987,12 +990,14 @@ if ( isset($_POST['submit']) )
 				message_die(GENERAL_ERROR, 'Could not insert data into user_group table', '', __LINE__, __FILE__, $sql);
 			}
 
+			$public_avatar_scope->write_attempted();
 			if (!$db->sql_query($account_insert_sql, END_TRANSACTION))
 			{
 				message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $account_insert_sql);
 			}
 
 			phpbb_user_write_end($db, $creation_scope);
+			$public_avatar_scope->saved();
 			if ( $coppa )
 			{
 				$message = $lang['COPPA'];
@@ -1103,6 +1108,9 @@ if ( isset($_POST['submit']) )
 	}
 } // End of submit
 
+// Rejected forms have never attempted to publish an avatar reference.
+// Shutdown also covers early exits while preparing a registration.
+if (isset($public_avatar_scope)) { $public_avatar_scope->release(); }
 
 if ( $error )
 {
