@@ -69,6 +69,12 @@ jobs:
           PHPBB_BOARD_CONFIG_NATIVE: '1'
           PHPBB_BOARD_CONFIG_PASSWORD: fixture-only
       - run: |
+          php .github/scripts/check-settings-commit-native.php board
+          php .github/scripts/check-settings-commit-native.php mods
+        env:
+          PHPBB_SETTINGS_COMMIT_NATIVE: '1'
+          PHPBB_SETTINGS_COMMIT_PASSWORD: fixture-only
+      - run: |
           php .github/scripts/check-mod-settings-defaults.php
           php .github/scripts/check-mod-settings-storage.php
         env:

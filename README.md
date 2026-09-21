@@ -588,6 +588,13 @@ values are saved in one transaction using current ACP authority; unsubmitted
 settings are not rewritten from a stale snapshot. SMTP password bytes and UTF-8
 text are preserved. Automatic backups remain a separate preceding operation, so
 a usable backup may remain even when the subsequent configuration save fails.
+Both general configuration and Configuration+ retain a confirmed save when a
+session, permission or connection changes after COMMIT. Their shared writer
+requires an active transaction for updates, refuses repeated BEGIN/COMMIT and
+implicit-commit DDL, and rolls back only an unconfirmed transaction. Legacy
+configuration cache files are evicted after attempted writes even when the
+acknowledgement is lost; local values are updated only after confirmation.
+Metadata checks remain strict and are limited to the current database/table.
 No additional migration is needed; configuration and authority tables must meet
 the existing InnoDB/DYNAMIC/utf8mb4 migration requirements.
 

@@ -85,6 +85,7 @@ function phpbb_board_config_values($request, $current)
 
 class PhpbbBoardConfigWriter extends PhpbbAclDatabase
 {
+	var $transactional = false;
 	function __construct($database)
 	{
 		if (!method_exists($database, 'sql_dedicated_connection')) { phpbb_acl_error('Board_config_failed'); }
@@ -96,14 +97,57 @@ class PhpbbBoardConfigWriter extends PhpbbAclDatabase
 		register_shutdown_function(array($this, 'release'));
 	}
 	function actor() { global $phpEx; return phpbb_acp_actor($this, 'admin_board.' . $phpEx); }
+	function sql_query($sql, $transaction = false)
+	{
+		if (!$this->connection || !is_string($sql)) { phpbb_acl_error('Board_config_failed'); }
+		$command = strtoupper(trim($sql));
+		// Keep the existing internal query interface for independently deployed
+		// callers, but never allow autocommit writes or implicit-commit DDL.
+		if ($command === 'START TRANSACTION')
+		{
+			if ($this->transactional) { phpbb_acl_error('Board_config_failed'); }
+		}
+		elseif ($command === 'COMMIT')
+		{
+			if (!$this->transactional) { phpbb_acl_error('Board_config_failed'); }
+			$this->actor();
+		}
+		elseif ($command === 'ROLLBACK')
+		{
+			if (!$this->transactional) { return true; }
+		}
+		elseif (preg_match('/^\\s*UPDATE\\b/i', $sql))
+		{
+			if (!$this->transactional) { phpbb_acl_error('Board_config_failed'); }
+			$this->actor();
+		}
+		elseif (!preg_match('/^\\s*SELECT\\b/i', $sql))
+		{
+			// These two setup statements must precede the owned transaction.
+			if ($this->transactional || !in_array($sql, array(
+				"SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')",
+				'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'), true))
+			{ phpbb_acl_error('Board_config_failed'); }
+		}
+		$result = parent::sql_query($sql, $transaction);
+		if ($command === 'START TRANSACTION') { $this->transactional = true; }
+		elseif ($command === 'COMMIT' || $command === 'ROLLBACK') { $this->transactional = false; }
+		return $result;
+	}
+	function rollback()
+	{
+		if (!$this->transactional) { return; }
+		try { $this->connection->sql_query('ROLLBACK'); }
+		catch (Exception $error) {}
+		catch (Error $error) {}
+		$this->transactional = false;
+	}
 	function release()
 	{
+		$this->rollback();
 		$connection = $this->connection; $this->connection = null;
 		if ($connection)
 		{
-			try { $connection->sql_query('ROLLBACK'); }
-			catch (Exception $error) {}
-			catch (Error $error) {}
 			try { $connection->sql_close(); }
 			catch (Exception $error) {}
 			catch (Error $error) {}
@@ -125,6 +169,7 @@ function phpbb_board_config_save($database, $request)
 		|| empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($request['sid'])
 		|| !is_string($request['sid']) || !hash_equals($userdata['session_id'], $request['sid'])) { phpbb_acl_error('Session_invalid'); }
 	$db = new PhpbbBoardConfigWriter($database);
+	$invalidate = false;
 	try
 	{
 		$db->actor();
@@ -145,7 +190,7 @@ function phpbb_board_config_save($database, $request)
 		{
 			$result = $db->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $db->sql_freeresult($result);
 			$rows = phpbb_acl_rows($db, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $db->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL"
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $db->sql_escape($table) . "' AND c.CHARACTER_SET_NAME IS NOT NULL"
 				. " AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic'
 				|| $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { phpbb_acl_error('Board_config_failed'); }
@@ -161,6 +206,7 @@ function phpbb_board_config_save($database, $request)
 		foreach ($values as $key => $value)
 		{
 			$actor = $db->actor();
+			$invalidate = true;
 			$db->sql_query('UPDATE ' . CONFIG_TABLE . " SET config_value='" . $db->sql_escape($value) . "' WHERE config_name='" . $db->sql_escape($key) . "' AND " . $actor['guard']);
 		}
 		// Serialize the actual commit against account/session/module revocation.
@@ -172,10 +218,16 @@ function phpbb_board_config_save($database, $request)
 		$db->actor();
 		$stored = phpbb_board_config_read($db);
 		foreach ($values as $key => $value) { if (!isset($stored[$key]) || (string)$stored[$key] !== $value) { phpbb_acl_error('Board_config_failed'); } }
+		// Authority remains pinned through COMMIT; a later revocation cannot
+		// turn this acknowledged save into a misleading failure.
 		$db->sql_query('COMMIT');
-		$db->actor();
 		foreach ($values as $key => $value) { $board_config[$key] = $value; }
-		@unlink($phpbb_root_path . 'cache/config_data.cache');
 	}
-	finally { $db->release(); }
+	finally
+	{
+		$db->release();
+		// Lost acknowledgement may still mean durable new settings. Evict the
+		// legacy cache after attempted writes, including rollback/uncertainty.
+		if ($invalidate) { @unlink($phpbb_root_path . 'cache/config_data.cache'); }
+	}
 }

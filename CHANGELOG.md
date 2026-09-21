@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve acknowledged general-configuration and Configuration+ saves after
+  session, permission or connection changes. Keep exact current ACP authority
+  locked through commit and revalidate after a preceding automatic backup.
+  Harden the shared writer against autocommit updates, repeated transaction
+  boundaries and implicit-commit DDL without changing its query interface.
+  Evict legacy configuration caches on uncertain writes, retain unsubmitted
+  values and restrict strict metadata checks to their current database/table.
+  No schema or migration change.
 - Preserve acknowledged CrackerTracker scans, configuration snapshots and
   restores when a session, permission or connection changes after commit.
   Keep current authority checks and commit-phase locks; never report success
