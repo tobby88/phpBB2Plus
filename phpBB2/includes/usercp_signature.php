@@ -185,11 +185,14 @@ if ($submit)
 	else
 	{
 		$bbcode_uid = ( $bbcode_on ) ? make_bbcode_uid() : '';
-		$signature_text = prepare_message($signature_text, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
-		$user_id =  $userdata['user_id'];
+		// The legacy HTML preparer consumes and returns slash-escaped text.
+		// Normalize that boundary, then escape SQL with the active DB driver.
+		$signature_text = prepare_message($html_on ? addslashes($signature_text) : $signature_text, $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
+		if ($html_on) { $signature_text = stripslashes($signature_text); }
+		$user_id = (int) $userdata['user_id'];
 
 		$sql = "UPDATE " . USERS_TABLE . "
-		SET user_sig = '" . str_replace("\'", "''", $signature_text) . "', user_sig_bbcode_uid = '$bbcode_uid'
+		SET user_sig = '" . $db->sql_escape($signature_text) . "', user_sig_bbcode_uid = '" . $db->sql_escape($bbcode_uid) . "'
 		WHERE user_id = $user_id";
 
 		if ( !($result = $db->sql_query($sql)) )

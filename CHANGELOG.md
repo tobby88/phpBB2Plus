@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Escape signature text and BBCode identifiers through the database driver.
+  Signature content can no longer alter other account columns. Preserve literal
+  apostrophes, backslashes and Unicode in both plain-text and HTML preparation.
+  This source-only fix does not change existing signatures or database schema.
 - Make ACP quick-add atomic and require current administrator/session authority
   or the exact delegated Add new user module grant throughout publication.
   Lock current password/hash policy, style and identity/name/email rules; reject
