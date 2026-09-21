@@ -125,6 +125,10 @@ jobs:
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-admin-profile-identity-native.php
+        env:
+          PHPBB_ADMIN_PROFILE_NATIVE: '1'
+          PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
       - run: php .github/scripts/check-maintenance-roles-native.php
         env:
           PHPBB_ROLES_NATIVE: '1'

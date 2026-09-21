@@ -43,6 +43,12 @@ already belong to this updater; no additional column or table is introduced.
 Its account/group/membership publication now rolls back as one transaction and
 checks the exact current Add new user grant. Existing records are unchanged.
 
+The full ACP profile editor also requires current storage for configuration,
+disallowed names, word rules, custom-field definitions and themes. These tables
+already belong to this updater. No new columns, conversion of identity values,
+or automatic cleanup of historical duplicate identities is introduced. Changed
+names/emails are now checked and held free until the profile commit.
+
 Search-index rebuilding in the ACP now saves an atomic `dbmtnc_rebuild_job`
 checkpoint in the configuration table. The updater adds an empty default only
 when absent; it never overwrites an active job. The ACP also initializes this

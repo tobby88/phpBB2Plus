@@ -33,6 +33,8 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 	var $old_avatars = array();
 	var $login_cookie = null;
 	var $rename_cache_needed = false;
+	var $original_identity = null;
+	var $identity_validated = false;
 	function __construct($database, $id, $creating, $request)
 	{
 		global $userdata, $table_prefix, $board_config;
@@ -43,8 +45,8 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 		{
 			$tables = array(USERS_TABLE, SESSIONS_TABLE, SESSIONS_KEYS_TABLE, BANLIST_TABLE, GROUPS_TABLE, USER_GROUP_TABLE,
 				QUOTA_TABLE, QUOTA_LIMITS_TABLE, $table_prefix . 'album', $table_prefix . 'album_comment', iNA_GAMES_COMMENT,
-				iNA_AT_SCORES, SHOUTBOX_TABLE, iNA_HIGHSCORES);
-			$this->begin($tables); $actor = $this->actor(); $sid = $this->sql_escape($userdata['session_id']);
+				iNA_AT_SCORES, SHOUTBOX_TABLE, iNA_HIGHSCORES, CONFIG_TABLE, DISALLOW_TABLE, WORDS_TABLE, PROFILE_FIELDS_TABLE, THEMES_TABLE);
+			$this->begin($tables, true); $actor = $this->actor(); $sid = $this->sql_escape($userdata['session_id']);
 			// Authority is held throughout this request's filesystem preparation
 			// and writes. Independent revocations happen before or after it.
 			foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
@@ -52,10 +54,19 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 				'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . (int)$actor['user_id']) as $sql)
 			{ $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
 			$actor = $this->actor();
-			$rows = phpbb_acl_rows($this, 'SELECT user_id,user_level FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->target_id . ' FOR UPDATE');
+			$keys = self::policy_keys();
+			$policy = phpbb_acl_rows($this, 'SELECT config_name,config_value FROM ' . CONFIG_TABLE . " WHERE config_name IN ('" . implode("','", $keys) . "')");
+			if (count($policy) !== count($keys)) { phpbb_acl_error('Registration_storage_upgrade'); }
+			foreach ($policy as $row)
+			{ if (!array_key_exists($row['config_name'], $board_config) || (string)$board_config[$row['config_name']] !== (string)$row['config_value']) { phpbb_acl_error('Acl_selection_changed'); } }
+			// Freeze custom-field definitions before the controller validates them,
+			// including an empty range. Identity/rule gaps are locked when checked.
+			phpbb_acl_rows($this, 'SELECT field_id FROM ' . PROFILE_FIELDS_TABLE);
+			$rows = phpbb_acl_rows($this, 'SELECT user_id,user_level,username,user_email FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->target_id . ' FOR UPDATE');
 			if ($this->creating ? count($rows) !== 0 : count($rows) !== 1) { phpbb_acl_error('Acl_selection_changed'); }
 			if (!$this->creating)
 			{
+				$this->original_identity = $rows[0];
 				if ((int)$rows[0]['user_level'] === ADMIN && !$actor['root']) { phpbb_acl_error('Not_Authorised'); }
 				$first = phpbb_acl_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_level=' . ADMIN . ' AND user_id>0 ORDER BY user_id LIMIT 1');
 				if ($first && (int)$first[0]['user_id'] === $this->target_id && (int)$actor['user_id'] !== $this->target_id) { phpbb_acl_error('ctracker_gmb_1stadmin'); }
@@ -70,6 +81,11 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 	}
 	function sql_query($sql, $transaction = false)
 	{
+		// RR supplies next-key locks for unused names and rule ranges. Never
+		// validate with an older snapshot after an independent committed change.
+		if ($this->transactional && is_string($sql) && preg_match('/^\s*SELECT\b/i', $sql)
+			&& stripos($sql, 'information_schema.') === false && !preg_match('/(?:FOR UPDATE|LOCK IN SHARE MODE)\s*$/i', $sql))
+		{ $sql = rtrim($sql, "; \t\r\n") . ' LOCK IN SHARE MODE'; }
 		if ($this->ready)
 		{
 			// Legacy helpers may read or write rows, never implicitly commit the
@@ -79,6 +95,45 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 			if (preg_match('/^\s*(?:INSERT|UPDATE|DELETE)\b/i', $sql)) { $this->actor(); }
 		}
 		return parent::sql_query($sql, $transaction);
+	}
+	static function policy_keys()
+	{
+		return array('min_password_len','password_not_login','force_complex_password','password_hashing',
+			'block_time','max_user_bancard','allow_html','allow_html_tags','allow_bbcode','allow_smilies',
+			'max_sig_chars','min_user_age','max_user_age','allow_avatar_local','allow_avatar_remote','allow_avatar_upload',
+			'avatar_filesize','avatar_max_width','avatar_max_height','avatar_path','avatar_gallery_path',
+			'default_style');
+	}
+	function actor()
+	{
+		global $userdata;
+		if ($this->transactional)
+		{
+			// Explicit current session read: a derived EXISTS inside the shared
+			// ACP guard must not be satisfied by an earlier RR snapshot.
+			$id = phpbb_acl_id(isset($userdata['user_id']) ? $userdata['user_id'] : null);
+			$sid = isset($userdata['session_id']) && is_string($userdata['session_id']) ? $this->sql_escape($userdata['session_id']) : '';
+			if (!phpbb_acl_rows($this, 'SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='$sid' AND HEX(session_id)=HEX('$sid') AND session_user_id=" . $id . ' AND session_logged_in=1 AND session_admin=1')) { phpbb_acl_error('Not_Authorised'); }
+		}
+		return parent::actor();
+	}
+	function validate_identity($username, $email, $style)
+	{
+		if (!$this->ready || !$this->transactional || !is_string($username) || !is_string($email) || $username === '') { phpbb_acl_error('Acl_selection_changed'); }
+		// Preserve unchanged historical identities, including legacy shared email
+		// addresses. Changed/new identities must satisfy current rules and be free.
+		$changed_name = $this->creating || $username !== $this->original_identity['username'];
+		$changed_email = $this->creating || $email !== $this->original_identity['user_email'];
+		foreach (array('username'=>array($username,$changed_name,'Username_taken'), 'user_email'=>array($email,$changed_email,'Email_taken')) as $column=>$check)
+		{
+			if ($check[1] && phpbb_acl_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE ' . $column . "='" . $this->sql_escape($check[0]) . "' AND user_id<>" . $this->target_id)) { phpbb_acl_error($check[2]); }
+		}
+		foreach (array('validate_username'=>array($username,$changed_name), 'validate_email'=>array($email,$changed_email)) as $validator=>$check)
+		{
+			if ($check[1]) { $result = $validator($check[0], false, $this->target_id); if ($result['error']) { throw new PhpbbAclException($result['error_msg']); } }
+		}
+		if (!phpbb_acl_rows($this, 'SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id=' . (int)$style)) { phpbb_acl_error('Acl_selection_changed'); }
+		$this->identity_validated = true;
 	}
 	function assign_quotas($request)
 	{
@@ -111,6 +166,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 	}
 	function finish()
 	{
+		if (!$this->identity_validated) { phpbb_acl_error('Admin_profile_save_failed'); }
 		$this->actor(); $this->commit_attempted = true; parent::commit();
 		$this->confirmed = true;
 		$this->release();

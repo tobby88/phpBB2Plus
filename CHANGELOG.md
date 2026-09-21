@@ -12,6 +12,15 @@ changes consolidated after that baseline without implying active maintenance.
   Signature content can no longer alter other account columns. Preserve literal
   apostrophes, backslashes and Unicode in both plain-text and HTML preparation.
   This source-only fix does not change existing signatures or database schema.
+- Hold changed ACP profile names/emails and their current validation rules until
+  commit, preventing independent writers from claiming a validated identity in
+  between. Pin password/profile/avatar policy and custom-field definitions;
+  use current locking reads and an explicit current ACP-session check. Preserve
+  unchanged historical duplicates and personalized language/date/time settings.
+  Other quota writers retain their previous transaction isolation. Existing
+  storage migrations already cover the additional validation participants.
+  Scope metadata checks to the exact database/table to avoid unnecessary schema
+  scans; retain the same engine, row-format and per-column encoding requirements.
 - Make ACP quick-add atomic and require current administrator/session authority
   or the exact delegated Add new user module grant throughout publication.
   Lock current password/hash policy, style and identity/name/email rules; reject

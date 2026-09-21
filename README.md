@@ -149,6 +149,16 @@ memberships or permissions (including pending membership requests). Assign
 required shared groups separately through the authorized group-management
 workflow. Existing accounts and memberships are not changed automatically.
 
+The full ACP profile editor also locks changed/new names and email addresses
+through commit and rechecks their current rules. This prevents a competing writer
+from claiming a previously validated identity. Unchanged historical duplicate
+names/emails remain editable; the editor does not merge or rename old accounts.
+Password, signature, age and avatar rules are pinned to the configuration used
+by validation, and custom-field definitions remain stable during the save.
+Personalized language, timezone and date display are not mistaken for changed
+board policy. The configured style must still exist. These checks use the same
+owned profile transaction; other quota workflows retain their existing isolation.
+
 Public registration commits the account, personal group/membership, CAPTCHA
 consumption and CrackerTracker success cooldown in one owned InnoDB transaction.
 It rechecks the exact live guest session, current registration/password/avatar

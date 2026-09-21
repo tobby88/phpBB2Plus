@@ -118,7 +118,8 @@ class PhpbbAttachQuotaWriter extends PhpbbAclDatabase
 			// commit through DDL, autocommit or a second transaction start.
 			if ($this->transactional || !in_array($sql, array(
 				"SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')",
-				'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'), true))
+				'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
+				'SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ'), true))
 			{ phpbb_acl_error($this->failure_key); }
 		}
 		$result = parent::sql_query($sql, $transaction);
@@ -137,17 +138,19 @@ class PhpbbAttachQuotaWriter extends PhpbbAclDatabase
 		}
 		if ($this->lock) { $this->lock->release(); $this->lock = null; }
 	}
-	function begin($tables)
+	function begin($tables, $repeatable_read = false)
 	{
 		if (!$this->connection || $this->transactional) { phpbb_acl_error($this->failure_key); }
 		$this->actor();
 		$this->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
-		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'); $this->sql_query('START TRANSACTION');
+		$this->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL ' . ($repeatable_read === true ? 'REPEATABLE READ' : 'READ COMMITTED')); $this->sql_query('START TRANSACTION');
 		foreach (array_unique(array_merge($tables, array(USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE))) as $table)
 		{
 			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
+			// Keep both metadata queries confined to this exact table. Correlating
+			// COLUMNS with the outer virtual TABLES row can scan unrelated schemas.
 			$rows = phpbb_acl_rows($this, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape($table) . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=t.TABLE_SCHEMA AND c.TABLE_NAME=t.TABLE_NAME AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME='" . $this->sql_escape($table) . "' AND c.CHARACTER_SET_NAME IS NOT NULL AND (c.CHARACTER_SET_NAME <> 'utf8mb4' OR c.COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
 			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic' || $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci')
 			{ phpbb_acl_error('Board_config_failed'); }
 		}

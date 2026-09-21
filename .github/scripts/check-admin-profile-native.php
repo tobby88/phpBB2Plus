@@ -4,8 +4,11 @@ function phpbb_setcookie($name,$value,$expires,$path,$domain,$secure){$GLOBALS['
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
 foreach(array('USER'=>0,'MOD'=>2,'USER_AVATAR_NONE'=>0,'USER_AVATAR_UPLOAD'=>1,'POST_USERS_URL'=>'u','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,
  'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','BANLIST_TABLE'=>'fixture_banlist',
+ 'CONFIG_TABLE'=>'fixture_config','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','THEMES_TABLE'=>'fixture_themes',
  'iNA_GAMES_COMMENT'=>'fixture_ina_comment','iNA_AT_SCORES'=>'fixture_ina_at_scores','iNA_HIGHSCORES'=>'fixture_ina_highscore','SHOUTBOX_TABLE'=>'fixture_shout') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_admin_profile_storage.php';
+require $ats_source.'includes/functions_validate.php';
+foreach(array('phpbb_clean_username','phpbb_rtrim','phpbb_ltrim') as $name){ats_load_function($ats_source.'includes/functions.php',$name);}
 foreach(array('admin_user_sql_value'=>'admin/admin_users.php','session_reset_keys'=>'includes/sessions.php','phpbb_session_publish_reset_cookie'=>'includes/sessions.php',
  'phpbb_sync_username_references'=>'includes/functions.php','user_avatar_delete'=>'includes/usercp_avatar.php') as $name=>$file){ats_load_function($ats_source.$file,$name);}
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ADMIN_PROFILE_NATIVE')!=='1'){echo "Native ACP profile checks require an explicitly enabled disposable MySQL/MariaDB fixture.\n";return;}
@@ -31,7 +34,7 @@ class ApConnection {
 class ApDatabase extends sql_db {function sql_dedicated_connection(){return new ApConnection(parent::sql_dedicated_connection());}}
 class ApTemplate {var $vars=array();function assign_vars($vars){$this->vars=array_merge($this->vars,$vars);}}
 $ap_main=new ApDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);$db=$ap_main;
-$ap_tables=array('users','sessions','sessions_keys','jr_admin_users','groups','user_group','banlist','attach_quota','quota_limits','album','album_comment','ina_comment','ina_at_scores','ina_highscore','shout');
+$ap_tables=array('users','sessions','sessions_keys','jr_admin_users','groups','user_group','banlist','attach_quota','quota_limits','album','album_comment','ina_comment','ina_at_scores','ina_highscore','shout','config','disallow','words','profile_fields','themes');
 $ap_hook=null;$ap_write=$ap_fail=0;$ap_commit='';$ap_queries=$ap_cookies=array();$ap_after_commit=null;
 $ap_files=sys_get_temp_dir().'/phpbb-profile-'.bin2hex(function_exists('random_bytes')?random_bytes(8):openssl_random_pseudo_bytes(8));ats_check(mkdir($ap_files),'Owned avatar fixture directory');
 ats_check(mkdir($ap_files.'/cache'),'Owned name-cache fixture directory');
@@ -69,8 +72,11 @@ function ap_reset($actor='root',$scenario='edit'){
  foreach(array(1,2,5) as $id){ap_insert('fixture_sessions_keys',array('key_id'=>md5('old-key-'.$id),'user_id'=>$id,'last_ip'=>'7f000001','last_login'=>1));}
  if($actor==='junior'){ap_insert('fixture_jr',array('user_id'=>5,'user_jr_admin'=>md5('UsersManageadmin_users.php')));}
  ap_insert('fixture_quota_limits',array('quota_limit_id'=>1,'quota_desc'=>'fixture','quota_limit'=>1024));ap_insert('fixture_attach_quota',array('user_id'=>2,'group_id'=>0,'quota_type'=>1,'quota_limit_id'=>1));
- $userdata=array('user_id'=>$ap_actor,'user_level'=>1,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-admin','session_key'=>'old-key-'.$ap_actor);
+ $userdata=array('user_id'=>$ap_actor,'username'=>'fixture-'.$ap_actor,'user_level'=>1,'session_logged_in'=>true,'session_admin'=>true,'session_id'=>'fixture-admin','session_key'=>'old-key-'.$ap_actor);
  $board_config=array('block_time'=>5,'max_user_bancard'=>10,'cookie_name'=>'fixture','cookie_path'=>'/','cookie_domain'=>'','cookie_secure'=>0);
+ $basic=file_get_contents($GLOBALS['ats_source'].'install/schemas/mysql_basic.sql');
+ foreach(PhpbbAdminProfileScope::policy_keys() as $key){if($key==='default_lang'){$m=array('','english');}else{ats_check(preg_match("/VALUES\\s*\\('".preg_quote($key,'/')."'\\s*,\\s*'([^']*)'\\)/",$basic,$m)===1,'Installer profile policy '.$key);}if(!isset($board_config[$key])){$board_config[$key]=$m[1];}ap_insert('fixture_config',array('config_name'=>$key,'config_value'=>$board_config[$key]));}
+ ap_insert('fixture_themes',array('themes_id'=>1,'template_name'=>'fisubsilversh'));
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-admin','id'=>'2','u'=>'999','new_user'=>$scenario==='new'?'1':'0','submit'=>'Save','user_status'=>'1','user_upload_quota'=>'1','user_pm_quota'=>'0');
  if($scenario==='block'){$_POST['block_account']='1';}if($scenario==='unblock'){$_POST['unblock_account']='1';ap_sql('UPDATE fixture_users SET user_blocktime=123,user_badlogin=3 WHERE user_id=2');}
  ap_sql('COMMIT');
@@ -78,7 +84,7 @@ function ap_reset($actor='root',$scenario='edit'){
 }
 function ap_fragment($source,$start,$end){$a=strpos($source,$start);$b=$a===false?false:strpos($source,$end,$a);ats_check($a!==false&&$b>$a,'Actual profile fragment '.$start);return substr($source,$a,$b-$a);}
 $ap_controller=file_get_contents($ats_source.'admin/admin_users.php');
-$ap_projection=ap_fragment($ap_controller,'$account_profile_sql =',"\n\t\t\tif( \$result = \$db->sql_query(\$sql) )");
+$ap_projection=ap_fragment($ap_controller,'$admin_profile_scope->validate_identity(',"\n\t\t\tif( \$result = \$db->sql_query(\$sql) )");
 $ap_creation=ap_fragment($ap_controller,'$sql = "INSERT INTO " . USERS_TABLE',"\t\t\$_POST[POST_USERS_URL] = \$user_id;");
 $ap_block=ap_fragment($ap_controller,'// Start add - Protect user account MOD','// End add - Protect user account MOD');
 $ap_ban=ap_fragment($ap_controller,"if ($".'user_ycard>$board_config',"\t\t\t// Core and custom profile data");
@@ -91,7 +97,7 @@ function ap_run($scenario){
   $admin_profile_scope=new PhpbbAdminProfileScope($db,$id,$scenario==='new',$_POST);$db=$admin_profile_scope;
   if($scenario==='new'){eval($GLOBALS['ap_creation']);}
   eval($GLOBALS['ap_block']);$admin_profile_scope->assign_quotas($_POST);
-  $profile_assignments=array("user_custom_fixture='".$db->sql_escape("Grüße ' 😀")."'");$username_sql=in_array($scenario,array('rename','new'),true)?"username='renamed', ":'';$passwd_sql=in_array($scenario,array('password','self','new'),true)?"user_password='fixture-after', ":'';$email='fixture@example.invalid';
+  $profile_assignments=array("user_custom_fixture='".$db->sql_escape("Grüße ' 😀")."'");$username='renamed';$this_userdata=array('username'=>'fixture-'.$id);$username_sql=in_array($scenario,array('rename','new'),true)?"username='renamed', ":'';$passwd_sql=in_array($scenario,array('password','self','new'),true)?"user_password='fixture-after', ":'';$email='fixture@example.invalid';
   $user_style=1;$user_timezone=0;$user_dateformat='Y-m-d';$user_lang='german';
   $icq=$website=$occupation=$location=$user_flag=$interests=$user_absence_text=$signature=$signature_bbcode_uid=$aim=$yim=$msn='';
   $fb=$ig=$pt=$twr=$skp=$tg=$li=$tt=$dc=$signal=$threema='';

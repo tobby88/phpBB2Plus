@@ -25,9 +25,11 @@
 // Also checks if it includes the " character, which we don't allow in usernames.
 // Used for registering, changing names, and posting anonymously with a username
 //
-function validate_username($username, $check_stopforumspam = false)
+function validate_username($username, $check_stopforumspam = false, $exclude_user_id = 0)
 {
 	global $db, $lang, $userdata, $board_config;
+	// An owning profile transaction may exclude its already-authorized target,
+	// e.g. for case-only edits. Ordinary registration keeps the default of zero.
 
 	// Remove doubled up spaces
 	$username = preg_replace('#\s+#', ' ', trim($username)); 
@@ -37,7 +39,8 @@ function validate_username($username, $check_stopforumspam = false)
 
 	$sql = "SELECT username 
 		FROM " . USERS_TABLE . "
-		WHERE LOWER(username) = LOWER('" . $username . "')";
+		WHERE LOWER(username) = LOWER('" . $username . "')"
+		. (is_int($exclude_user_id) && $exclude_user_id > 0 ? ' AND user_id <> ' . $exclude_user_id : '');
 	if ($result = $db->sql_query($sql))
 	{
 		while ($row = $db->sql_fetchrow($result))
@@ -128,7 +131,7 @@ function validate_username($username, $check_stopforumspam = false)
 // Check to see if email address is banned
 // or already present in the DB
 //
-function validate_email($email, $check_stopforumspam = false)
+function validate_email($email, $check_stopforumspam = false, $exclude_user_id = 0)
 {
 	global $db, $lang, $board_config;
 
@@ -159,7 +162,8 @@ function validate_email($email, $check_stopforumspam = false)
 
 			$sql = "SELECT user_email
 				FROM " . USERS_TABLE . "
-				WHERE user_email = '" . str_replace("\'", "''", $email) . "'";
+				WHERE user_email = '" . $db->sql_escape($email) . "'"
+				. (is_int($exclude_user_id) && $exclude_user_id > 0 ? ' AND user_id <> ' . $exclude_user_id : '');
 			if (!($result = $db->sql_query($sql)))
 			{
 				message_die(GENERAL_ERROR, "Couldn't obtain user email information.", "", __LINE__, __FILE__, $sql);
