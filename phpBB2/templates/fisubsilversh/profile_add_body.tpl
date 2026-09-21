@@ -193,10 +193,12 @@
 <td class="row2"><span class="gen">{S_BIRTHDAY}</span></td>
 </tr>
 <!-- End add - Birthday MOD -->
-<tr> 
+<!-- BEGIN switch_signature_editor -->
+<tr>
 <td class="row1"><span class="explaintitle">{SIG_DESC}:</span></td>
-<td class="row2"><INPUT TYPE="submit" VALUE="{SIG_BUTTON_DESC}" name="signature"></td>
+<td class="row2"><a class="gen" href="{U_SIGNATURE_EDITOR}" target="_blank" rel="noopener noreferrer">{SIG_BUTTON_DESC}</a><br /><span class="gensmall">{L_SIGNATURE_NEW_TAB}</span></td>
 </tr>
+<!-- END switch_signature_editor -->
 <!-- Custom Profile Fields MOD start + -->
 <!-- BEGIN switch_custom_fields -->
 <tr> 

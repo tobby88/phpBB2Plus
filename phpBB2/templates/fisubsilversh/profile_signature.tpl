@@ -45,7 +45,7 @@
 	<tr>
 		<td class="row1" width="130" height="20">&nbsp;</td>
 		<td class="row2" width="530" align="middle">
-		<INPUT TYPE="submit" VALUE="{L_PROFILE}" name="editprofile">
+		<a href="{U_PROFILE}" class="gen">{L_PROFILE}</a>
 		<INPUT TYPE="submit" VALUE="{SIG_CURRENT}" name="current">
 		<INPUT TYPE="submit" VALUE="{SIG_PREVIEW}" name="preview">
 		<INPUT TYPE="submit" VALUE="{SIG_SAVE}" name="save">
@@ -98,7 +98,7 @@
 	<tr>
 		<td class="row1" width="130" height="20">&nbsp;</td>
 		<td class="row2" width="530" align="middle">
-		<INPUT TYPE="submit" VALUE="{L_PROFILE}" name="editprofile">
+		<a href="{U_PROFILE}" class="gen">{L_PROFILE}</a>
 		<INPUT TYPE="submit" VALUE="{SIG_CURRENT}" name="current">
 		<INPUT TYPE="submit" VALUE="{SIG_PREVIEW}" name="preview">
 		<INPUT TYPE="submit" VALUE="{SIG_SAVE}" name="save">
@@ -122,25 +122,24 @@
 	<tr>
 		<td class="row1" valign="middle" align="middle" height="100"><span class="gen">{SAVE_MESSAGE}</span></td>
 	</tr>
+	<!-- BEGIN switch_retry_sig -->
+	<tr><td class="row2" align="center">
+		<textarea name="signature_text" rows="8" cols="70" class="post">{SIGNATURE}</textarea><br />
+		<input type="submit" value="{SIG_PREVIEW}" name="preview" />
+		<input type="submit" value="{SIG_SAVE}" name="save" />
+	</td></tr>
+	<!-- END switch_retry_sig -->
 	<tr>
 		<td class="row2" align="middle">
-		<INPUT TYPE="submit" VALUE="{L_PROFILE}" name="editprofile">
+		<a href="{U_PROFILE}" class="gen">{L_PROFILE}</a>
 		<INPUT TYPE="submit" VALUE="{SIG_CURRENT}" name="current">
 		</td>
 	</tr>
 </table>
 
-</form>
 {S_HIDDEN_FIELDS}
+</form>
 
 <!-- END switch_save_sig -->
 
 </center>
-<script language="javascript" type="text/javascript">
-<!--
-if ({RETURN_PROFILE} == 1)
-{
-	document.preview.submit();
-}
-//-->
-</script>

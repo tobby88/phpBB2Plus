@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Separate the signature editor from unsaved profile forms. Its profile link
+  opens a labeled new tab, preserving profile text, password fields and chosen
+  uploads in the original tab. Remove unused hidden-profile transport, obsolete
+  messenger icons, automatic form submission and the alternate `second` parser.
+  Form data named `signature` no longer overrides profile routing (including
+  avatar-gallery returns); CrackerTracker uses the same route and cannot assign
+  registration/reset requests a weaker bucket based on this field.
+  Initialize display state, retain rejected signature
+  text for correction and keep the SID inside every rendered signature form.
 - Preserve signature text across preview and reopening: literal backslashes,
   ampersands, quotes and Unicode no longer disappear or accumulate entities.
   Prepare raw text once for both saving and preview; render stored BBCode once

@@ -1176,7 +1176,7 @@ if ( $error )
 	$user_dateformat = stripslashes($user_dateformat);
 
 }
-else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_POST['submitavatar']) && !isset($_POST['cancelavatar']) && !isset($_GET['second']) )
+else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_POST['submitavatar']) && !isset($_POST['cancelavatar']) )
 {
 	$user_id = $userdata['user_id'];
 	$username = $userdata['username'];
@@ -1239,60 +1239,6 @@ else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_
 	$user_lang = $userdata['user_lang'];
 	$user_timezone = $userdata['user_timezone'];
 	$user_dateformat = $userdata['user_dateformat'];
-}
-else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_POST['submitavatar']) && !isset($_POST['cancelavatar']) && isset($_GET['second']) )
-{
-	$strip_var_list = array('user_id' => 'user_id', 'username' => 'username', 'email' => 'email', 'icq' => 'icq', 'aim' => 'aim', 'msn' => 'msn', 'yim' => 'yim', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests');
-	foreach ($strip_var_list as $var => $param)
-	{
-		if ( usercp_post_scalar($param) !== '' )
-		{
-			$$var = trim(htmlspecialchars(usercp_post_scalar($param)));
-		}
-	}
-
-	$password_var_list = array('cur_password', 'new_password', 'password_confirm');
-	foreach ($password_var_list as $password_var)
-	{
-		$$password_var = usercp_post_scalar($password_var);
-	}
-	$signature = trim(usercp_post_scalar('signature'));
-
-	$user_absence = ( isset($_POST['user_absence']) ) ? ( ($_POST['user_absence']) ? TRUE : 0 ) : 0;
-	$user_absence_mode = abs(intval(usercp_post_scalar('user_absence_mode', '0')));
-	$user_absence_text = htmlspecialchars(usercp_post_scalar('user_absence_text'));
-	$gender = intval(usercp_post_scalar('gender', '0'));
-	$birthday = intval(usercp_post_scalar('birthday', '0'));
-	$b_day = intval(usercp_post_scalar('b_day', '0'));
-	$b_md = intval(usercp_post_scalar('b_md', '0'));
-	$b_year = intval(usercp_post_scalar('b_year', '0'));
-	$viewemail = ( isset($_POST['viewemail']) ) ? ( ($_POST['viewemail']) ? TRUE : 0 ) : 0;
-	$allowviewonline = ( isset($_POST['hideonline']) ) ? ( ($_POST['hideonline']) ? 0 : TRUE ) : TRUE;
-	$notifyreply = ( isset($_POST['notifyreply']) ) ? ( ($_POST['notifyreply']) ? TRUE : 0 ) : 0;
-	$notifypm = ( isset($_POST['notifypm']) ) ? ( ($_POST['notifypm']) ? TRUE : 0 ) : TRUE;
-	$games_block_pm = ( isset($_POST['games_block_pm']) ) ? ( ($_POST['games_block_pm']) ? TRUE : 0 ) : TRUE;
-	$popup_pm = ( isset($_POST['popup_pm']) ) ? ( ($_POST['popup_pm']) ? TRUE : 0 ) : TRUE;
-	$sid = usercp_post_scalar('sid');
-	$attachsig = ( isset($_POST['attachsig']) ) ? ( ($_POST['attachsig']) ? TRUE : 0 ) : 0;
-	$setbm = ( isset($_POST['setbm']) ) ? ( ($_POST['setbm']) ? TRUE : 0 ) : 0;
-	$allowbbcode = ( isset($_POST['allowbbcode']) ) ? ( ($_POST['allowbbcode']) ? TRUE : 0 ) : $userdata['user_allowbbcode'];
-	$allowhtml = ( isset($_POST['allowhtml']) ) ? ( ($_POST['allowhtml']) ? TRUE : 0 ) : $userdata['user_allowhtml'];
-	$allowsmilies = ( isset($_POST['allowsmilies']) ) ? ( ($_POST['allowsmilies']) ? TRUE : 0 ) : $userdata['user_allowsmile'];
-	$user_lang = htmlspecialchars(usercp_installed_language(usercp_post_scalar('language', $board_config['default_lang']), $board_config['default_lang']));
-	$user_style = usercp_installed_style(usercp_post_scalar('style', (string) $board_config['default_style']), $board_config['default_style']);
-	$user_timezone = usercp_timezone(usercp_post_scalar('timezone', (string) $board_config['board_timezone']), $board_config['board_timezone']);
-	$dateformat_value = usercp_post_scalar('dateformat');
-	$user_dateformat = htmlspecialchars(usercp_dateformat($dateformat_value, $board_config['default_dateformat']));
-	$user_avatar_name = usercp_avatar_file_scalar('name');
-	$user_avatar_size = intval(usercp_avatar_file_scalar('size', '0'));
-	$user_avatar_filetype = usercp_avatar_file_scalar('type');
-	$avatarurl_value = usercp_post_scalar('avatarurl');
-	$avatarremoteurl_value = usercp_post_scalar('avatarremoteurl');
-	$avatar_tmp_name = usercp_avatar_file_scalar('tmp_name');
-	$user_avatar_upload = ( $avatarurl_value !== '' ) ? trim($avatarurl_value) : ( ( $avatar_tmp_name !== '' && $avatar_tmp_name != 'none') ? $avatar_tmp_name : '' );
-	$user_avatar_remoteurl = ( $avatarremoteurl_value !== '' ) ? trim(htmlspecialchars($avatarremoteurl_value)) : '';
-	$user_flag_value = usercp_post_scalar('user_flag');
-	$user_flag = ( $user_flag_value !== '' ) ? phpbb_profile_image_name($user_flag_value) : '' ;
 }
 
 //
@@ -1522,6 +1468,7 @@ else
 	if ( $mode == 'editprofile' )
 	{
 		$template->assign_block_vars('switch_edit_profile', array());
+		$template->assign_block_vars('switch_signature_editor', array());
 	}
 	// FLAGHACK-start
 	// query to get the list of flags
@@ -1742,6 +1689,8 @@ else
 		//signature editor
 		'SIG_DESC' => $lang['sig_description'],
 		'SIG_BUTTON_DESC' => $lang['sig_edit'],
+		'U_SIGNATURE_EDITOR' => phpbb_profile_text(append_sid("profile.$phpEx?mode=signature", true)),
+		'L_SIGNATURE_NEW_TAB' => $lang['Signature_new_tab'],
 		//signature editor
 		'YIM' => phpbb_profile_display_text($yim),
 		'ICQ' => phpbb_profile_display_text($icq),

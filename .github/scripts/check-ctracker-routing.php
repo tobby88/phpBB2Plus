@@ -19,7 +19,9 @@ routing_assert('account', 'profile.php', array('mode'=>array('x')), array('mode'
 routing_assert('register', 'profile.php', array('mode'=>'register'), array('mode'=>''));
 routing_assert('register', 'profile.php', array('mode'=>'register'), array('mode'=>array('x')));
 routing_assert('write', 'profile.php', array('mode'=>'register'), array('mode'=>'viewprofile'));
-routing_assert('write', 'profile.php', array('mode'=>'register', 'signature'=>'text'), array());
+// Signature text is form data, not routing: it cannot weaken registration's limit.
+routing_assert('register', 'profile.php', array('mode'=>'register', 'signature'=>'text'), array());
+routing_assert('account', 'profile.php', array('mode'=>'sendpassword'), array('signature'=>'text'));
 // dload.php falls back to GET on empty/non-scalar POST and accepts ?module suffixes.
 routing_assert('account', 'dload.php', array('action'=>''), array('action'=>'email'));
 routing_assert('upload', 'dload.php', array('action'=>array('x')), array('action'=>'user_upload'));

@@ -27,7 +27,6 @@ function ctracker_request_limit_profile($script, $post, $get)
 		$get_mode = isset($get['mode']) && is_scalar($get['mode']) ? (string) $get['mode'] : '';
 		$post_mode = isset($post['mode']) && is_scalar($post['mode']) ? (string) $post['mode'] : '';
 		$mode = strtolower($get_mode !== '' ? $get_mode : $post_mode);
-		if (!empty($post['signature']) || !empty($get['signature'])) { $mode = 'signature'; }
 		if ($mode === 'register')
 		{
 			return array('register', 3600, 'request_limit_register', 10);

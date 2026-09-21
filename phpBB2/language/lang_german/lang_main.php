@@ -1482,6 +1482,7 @@ $lang['Moved'] = 'Verschoben';
 //signature editor
 $lang['sig_description'] = "Signatur bearbeiten (<b>inklusive Vorschau</b>)";
 $lang['sig_edit'] = "Signatur bearbeiten";
+$lang['Signature_new_tab'] = 'Öffnet einen neuen Tab. Ungespeicherte Profiländerungen bleiben in diesem Tab erhalten.';
 $lang['sig_current'] = "Aktuelle Signatur";
 $lang['sig_preview'] = "Vorschau";
 $lang['sig_none'] = "Keine Signatur vorhanden";

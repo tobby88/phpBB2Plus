@@ -10,121 +10,9 @@ function usercp_signature_post_scalar($name, $default = '')
 	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
 }
 
-function usercp_signature_get_scalar($name, $default = '')
-{
-	return (isset($_GET[$name]) && is_scalar($_GET[$name])) ? (string) $_GET[$name] : $default;
-}
-
-function usercp_signature_avatar_file_scalar($name, $default = '')
-{
-	global $HTTP_POST_FILES;
-
-	return (isset($HTTP_POST_FILES['avatar']) && is_array($HTTP_POST_FILES['avatar']) &&
-		isset($HTTP_POST_FILES['avatar'][$name]) && is_scalar($HTTP_POST_FILES['avatar'][$name]))
-		? (string) $HTTP_POST_FILES['avatar'][$name]
-		: $default;
-}
-
-$strip_var_list = array('editprofile' => 'editprofile', 'username' => 'username', 'email' => 'email', 'icq' => 'icq', 'aim' => 'aim', 'msn' => 'msn', 'yim' => 'yim', 'fb' => 'fb', 'ig' => 'ig', 'pt' => 'pt', 'twr' => 'twr', 'skp' => 'skp', 'tg' => 'tg', 'li' => 'li', 'tt' => 'tt', 'dc' => 'dc', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests');
-foreach ($strip_var_list as $var => $param)
-{
-	if ( usercp_signature_post_scalar($param) !== '' )
-	{
-		$$var = trim(htmlspecialchars(usercp_signature_post_scalar($param)));
-	}
-}
-
-$password_var_list = array('cur_password', 'new_password', 'password_confirm');
-foreach ($password_var_list as $password_var)
-{
-	$$password_var = usercp_signature_post_scalar($password_var);
-}
-$signature = trim(usercp_signature_post_scalar('signature'));
-
-$user_absence = ( isset($_POST['user_absence']) ) ? ( ($_POST['user_absence']) ? TRUE : 0 ) : 0;
-$user_absence_mode = abs(intval(usercp_signature_post_scalar('user_absence_mode', '0')));
-$user_absence_text = htmlspecialchars(usercp_signature_post_scalar('user_absence_text'));
-$gender = intval(usercp_signature_post_scalar('gender', '0'));
-$birthday = intval(usercp_signature_post_scalar('birthday', '0'));
-$b_day = intval(usercp_signature_post_scalar('b_day', '0'));
-$b_md = intval(usercp_signature_post_scalar('b_md', '0'));
-$b_year = intval(usercp_signature_post_scalar('b_year', '0'));
-$viewemail = ( isset($_POST['viewemail']) ) ? ( ($_POST['viewemail']) ? TRUE : 0 ) : 0;
-$allowviewonline = ( isset($_POST['hideonline']) ) ? ( ($_POST['hideonline']) ? 0 : TRUE ) : TRUE;
-$notifyreply = ( isset($_POST['notifyreply']) ) ? ( ($_POST['notifyreply']) ? TRUE : 0 ) : 0;
-$notifypm = ( isset($_POST['notifypm']) ) ? ( ($_POST['notifypm']) ? TRUE : 0 ) : TRUE;
-$games_block_pm = ( isset($_POST['games_block_pm']) ) ? ( ($_POST['games_block_pm']) ? TRUE : 0 ) : TRUE;
-$popup_pm = ( isset($_POST['popup_pm']) ) ? ( ($_POST['popup_pm']) ? TRUE : 0 ) : TRUE;
-$attachsig = ( isset($_POST['attachsig']) ) ? ( ($_POST['attachsig']) ? TRUE : 0 ) : 0;
-$setbm = ( isset($_POST['setbm']) ) ? ( ($_POST['setbm']) ? TRUE : 0 ) : 0;
-$allowbbcode = ( isset($_POST['allowbbcode']) ) ? ( ($_POST['allowbbcode']) ? TRUE : 0 ) : $userdata['user_allowbbcode'];
-$allowhtml = ( isset($_POST['allowhtml']) ) ? ( ($_POST['allowhtml']) ? TRUE : 0 ) : $userdata['user_allowhtml'];
-$allowsmilies = ( isset($_POST['allowsmilies']) ) ? ( ($_POST['allowsmilies']) ? TRUE : 0 ) : $userdata['user_allowsmile'];
-$user_lang = htmlspecialchars(usercp_signature_post_scalar('language', $board_config['default_lang']));
-$user_style = intval(usercp_signature_post_scalar('style', (string) $board_config['default_style']));
-$timezone_value = usercp_signature_post_scalar('timezone');
-$user_timezone = ( $timezone_value !== '' ) ? doubleval($timezone_value) : $board_config['board_timezone'];
-$dateformat_value = usercp_signature_post_scalar('dateformat');
-$user_dateformat = ( $dateformat_value !== '' ) ? trim(htmlspecialchars($dateformat_value)) : $board_config['default_dateformat'];
-$user_avatar_name = usercp_signature_avatar_file_scalar('name');
-$user_avatar_size = intval(usercp_signature_avatar_file_scalar('size', '0'));
-$user_avatar_filetype = usercp_signature_avatar_file_scalar('type');
-$avatarurl_value = usercp_signature_post_scalar('avatarurl');
-$avatar_tmp_name = usercp_signature_avatar_file_scalar('tmp_name');
-$user_avatar_upload = ( $avatarurl_value !== '' ) ? trim($avatarurl_value) : ( ( $avatar_tmp_name !== '' && $avatar_tmp_name != 'none') ? $avatar_tmp_name : '' );
-$avatarremoteurl_value = usercp_signature_post_scalar('avatarremoteurl');
-$user_avatar_remoteurl = ( $avatarremoteurl_value !== '' ) ? trim(htmlspecialchars($avatarremoteurl_value)) : '';
-$user_flag_value = usercp_signature_post_scalar('user_flag');
-$user_flag = ( $user_flag_value !== '' ) ? phpbb_profile_image_name($user_flag_value) : '' ;
-
-$s_hidden_fields = '<input type="hidden" name="username" value="' . str_replace("\"", "&quot;", $username) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="user_id" value="' . str_replace("\"", "&quot;", $userdata['user_id']) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="email" value="' . str_replace("\"", "&quot;", $email) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="icq" value="' . str_replace("\"", "&quot;", $icq) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="aim" value="' . str_replace("\"", "&quot;", $aim) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="msn" value="' . str_replace("\"", "&quot;", $msn) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="yim" value="' . str_replace("\"", "&quot;", $yim) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="fb" value="' . str_replace("\"", "&quot;", isset($fb) ? $fb : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="ig" value="' . str_replace("\"", "&quot;", isset($ig) ? $ig : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="pt" value="' . str_replace("\"", "&quot;", isset($pt) ? $pt : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="twr" value="' . str_replace("\"", "&quot;", isset($twr) ? $twr : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="skp" value="' . str_replace("\"", "&quot;", isset($skp) ? $skp : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="tg" value="' . str_replace("\"", "&quot;", isset($tg) ? $tg : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="li" value="' . str_replace("\"", "&quot;", isset($li) ? $li : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="tt" value="' . str_replace("\"", "&quot;", isset($tt) ? $tt : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="dc" value="' . str_replace("\"", "&quot;", isset($dc) ? $dc : '') . '" />';
-$s_hidden_fields .= '<input type="hidden" name="website" value="' . str_replace("\"", "&quot;", $website) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="location" value="' . str_replace("\"", "&quot;", $location) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="occupation" value="' . str_replace("\"", "&quot;", $occupation) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="interests" value="' . str_replace("\"", "&quot;", $interests) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="user_absence_mode" value="' . $user_absence_mode . '" />';
-$s_hidden_fields .= '<input type="hidden" name="user_absence" value="' . $user_absence . '" />';
-$s_hidden_fields .= '<input type="hidden" name="user_absence_text" value="' . $user_absence_text . '" />';
-$s_hidden_fields .= '<input type="hidden" name="gender" value="' . $gender . '" />';
-$s_hidden_fields .= '<input type="hidden" name="birthday" value="'.$birthday.'" />';
-$s_hidden_fields .= '<input type="hidden" name="b_day" value="'.$b_day.'" />';
-$s_hidden_fields .= '<input type="hidden" name="b_md" value="'.$b_md.'" />';
-$s_hidden_fields .= '<input type="hidden" name="b_year" value="'.$b_year.'" />';
-$s_hidden_fields .= '<input type="hidden" name="viewemail" value="' . $viewemail . '" />';
-$s_hidden_fields .= '<input type="hidden" name="hideonline" value="' . !$allowviewonline . '" />';
-$s_hidden_fields .= '<input type="hidden" name="notifyreply" value="' . $notifyreply . '" />';
-$s_hidden_fields .= '<input type="hidden" name="notifypm" value="' . $notifypm . '" />';
-$s_hidden_fields .= '<input type="hidden" name="games_block_pm" value="' . $games_block_pm . '" />';
-$s_hidden_fields .= '<input type="hidden" name="popup_pm" value="' . $popup_pm . '" />';
-$s_hidden_fields .= '<input type="hidden" name="attachsig" value="' . $attachsig . '" />';
-$s_hidden_fields .= '<input type="hidden" name="setbm" value="' . $setbm . '" />';
-$s_hidden_fields .= '<input type="hidden" name="allowbbcode" value="' . $allowbbcode . '" />';
-$s_hidden_fields .= '<input type="hidden" name="allowhtml" value="' . $allowhtml . '" />';
-$s_hidden_fields .= '<input type="hidden" name="allowsmilies" value="' . $allowsmilies . '" />';
-$s_hidden_fields .= '<input type="hidden" name="language" value="' . $user_lang . '" />';
-$s_hidden_fields .= '<input type="hidden" name="style" value="' . $user_style . '" />';
-$s_hidden_fields .= '<input type="hidden" name="timezone" value="' . $user_timezone . '" />';
-$s_hidden_fields .= '<input type="hidden" name="dateformat" value="' . str_replace("\"", "&quot;", $user_dateformat) . '" />';
-$s_hidden_fields .= '<input type="hidden" name="user_flag" value="' . $user_flag . '" />';
-$s_hidden_fields .= '<input type="hidden" name="avatarurl" value="' . $user_avatar_upload . '" />';
-$s_hidden_fields .= '<input type="hidden" name="avatarremoteurl" value="' . $user_avatar_remoteurl . '" />';
-$s_hidden_fields .= '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />';
-
+// Profile editing stays in its original tab; never transport unrelated fields.
+$s_hidden_fields = '<input type="hidden" name="sid" value="' . phpbb_profile_text($userdata['session_id']) . '" />';
+$user_sig = $preview_sig = $save_message = $bbcode_uid = '';
 
 // get the board & user settings ...
 $html_status    = ( $userdata['user_allowhtml'] && $board_config['allow_html'] ) ? $lang['HTML_is_ON'] : $lang['HTML_is_OFF'];
@@ -139,38 +27,25 @@ $smilies_on = ( $userdata['user_allowsmile'] && $board_config['allow_smilies']  
 $submit = usercp_signature_post_scalar('save');
 $preview = usercp_signature_post_scalar('preview');
 $current = usercp_signature_post_scalar('current');
-$mode_value = usercp_signature_post_scalar('mode');
-$mode = ($mode_value !== '') ? $mode_value : usercp_signature_get_scalar('mode');
 $signature_text = trim(usercp_signature_post_scalar('signature_text'));
 
-if ($editprofile)
-{
-        $template->assign_vars(array('RETURN_PROFILE' => 1));
-        $sig_link = append_sid("profile.$phpEx?mode=editprofile");
-}
-else
-{
-	$template->assign_vars(array('RETURN_PROFILE' => 0));
-	$sig_link = append_sid("profile.$phpEx?mode=signature");
-}
-
-$signature = str_replace('<br />', "\n", $signature);
+$sig_link = append_sid("profile.$phpEx?mode=signature", true);
 if ($current)
 {
-	$mode = '';
-	$submit = '';
+	$submit = $preview = '';
 }
 
 $page_title = $lang['Signature'];
 
-include($phpbb_root_path . 'includes/bbcode.'.$phpEx);
-include($phpbb_root_path . 'includes/functions_post.'.$phpEx);
+include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
+include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_signature.' . $phpEx);
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
 
 // save new signature
 if ($submit)
 {
+	$signature_saved = false;
 	$submitted_sid = usercp_signature_post_scalar('sid');
 	if ($submitted_sid === '' || !hash_equals((string) $userdata['session_id'], $submitted_sid))
 	{
@@ -189,7 +64,7 @@ if ($submit)
 		try
 		{
 			$saved_signature = phpbb_signature_save($db, $signature_text, $submitted_sid);
-			$signature_text = $saved_signature['text']; $bbcode_uid = $saved_signature['uid'];
+			$signature_saved = true;
 			$save_message = $lang['sig_save_message'];
 		}
 		catch (PhpbbSignatureException $signature_failure)
@@ -197,6 +72,7 @@ if ($submit)
 			$save_message = $signature_failure->getMessage();
 		}
 	}
+	if (!$signature_saved) { $template->assign_block_vars('switch_save_sig.switch_retry_sig', array()); }
 }
 
 // catch the submitted message and prepare it for a preview
@@ -223,7 +99,7 @@ else if ($preview)
 }
 
 // read current signature and prepare it for a preview
-else if ($mode || empty($mode))
+else
 {
 
 	$template->assign_block_vars('switch_current_sig', array());
@@ -247,17 +123,15 @@ else if ($mode || empty($mode))
 		'EMAIL_IMG'  => '<img src="' . $images['icon_email'] . '" alt="' . $lang['Send_email'] . '" title="' . $lang['Send_email'] . '" border="0" />',
 		'PM_IMG'     => '<img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" />',
 		'WWW_IMG'    => '<img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" />',
-		'AIM_IMG'    => '<img src="' . $images['icon_aim'] . '" alt="' . $lang['AIM'] . '" title="' . $lang['AIM'] . '" border="0" />',
-		'YIM_IMG'    => '<img src="' . $images['icon_yim'] . '" alt="' . $lang['YIM'] . '" title="' . $lang['YIM'] . '" border="0" />',
-		'MSN_IMG'    => '<img src="' . $images['icon_msnm'] . '" alt="' . $lang['MSNM'] . '" title="' . $lang['MSNM'] . '" border="0" />',
-		'ICQ_IMG'    => '<img src="' . $images['icon_icq'] . '" alt="' . $lang['ICQ'] . '" title="' . $lang['ICQ'] . '" border="0" />',
 
 		'SIG_SAVE' => $lang['sig_save'],
 		'SIG_CANCEL' => $lang['Cancel'],
 		'SIG_PREVIEW' => $lang['Preview'],
 		'SIG_EDIT' => $lang['sig_edit'],
 		'SIG_CURRENT' => $lang['sig_current'],
-		'SIG_LINK' => $sig_link,
+		'SIG_LINK' => phpbb_profile_text($sig_link),
+		'U_PROFILE' => phpbb_profile_text(append_sid("profile.$phpEx?mode=editprofile", true)),
+		'L_PROFILE' => $lang['Profile'],
 
 		'L_SIGNATURE' => $lang['Signature'],
 		'L_SIGNATURE_EXPLAIN' => sprintf($lang['Signature_explain'], $board_config['max_sig_chars']),

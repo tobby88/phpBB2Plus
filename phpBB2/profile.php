@@ -79,9 +79,6 @@ if ( isset($_GET['mode']) || isset($_POST['mode']) )
 	$post_mode = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] : '';
 	$mode = htmlspecialchars($get_mode !== '' ? $get_mode : $post_mode);
 
-	$mode = (!empty($_POST['signature'])) ? 'signature' : $mode;
-	$mode = (!empty($_GET['signature'])) ? 'signature' : $mode;
-
 	if ( $mode == 'viewprofile' )
 	{
 		//--- Album Category Hierarchy : begin
