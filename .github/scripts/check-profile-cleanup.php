@@ -109,8 +109,13 @@ $tail= <<<'PHP'
  // never a real forum configuration or credentials. Use its own constants and
  // preview token, including its exact database/prefix lock namespace.
  function pfc_cli($config,$arguments){
-  $extension=PHP_OS==='WINNT'?'php_mysqli.dll':'mysqli';
-  $command=escapeshellarg(PHP_BINARY).' -n -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d '.escapeshellarg('extension='.$extension).' '.escapeshellarg(dirname($GLOBALS['ats_source']).'/update/purge_profile_fields.php').' '.escapeshellarg('--config='.$config);
+  $extension_dir=ini_get('extension_dir');
+  $command=escapeshellarg(PHP_BINARY).' -n -d '.escapeshellarg('extension_dir='.$extension_dir);
+  // Linux packages may split mysqlnd into its own module. PHP 5.6 also
+  // requires the actual .so filename rather than resolving a bare name.
+  // Built-in modules need no load flag; keep mysqlnd before dynamic mysqli.
+  foreach(PHP_OS==='WINNT'?array('php_mysqli.dll'):array('mysqlnd.so','mysqli.so') as $extension){if(is_file($extension_dir.DIRECTORY_SEPARATOR.$extension)){$command.=' -d '.escapeshellarg('extension='.$extension);}}
+  $command.=' '.escapeshellarg(dirname($GLOBALS['ats_source']).'/update/purge_profile_fields.php').' '.escapeshellarg('--config='.$config);
   foreach($arguments as $argument){$command.=' '.escapeshellarg($argument);}
   $pipes=array();$process=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));ats_check(is_resource($process),'Start real cleanup CLI');fclose($pipes[0]);
   $stdout=stream_get_contents($pipes[1]);$stderr=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$code=proc_close($process);

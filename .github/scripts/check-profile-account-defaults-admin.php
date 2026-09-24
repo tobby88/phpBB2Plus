@@ -43,6 +43,10 @@ $tail= <<<'PHP'
   ats_check(ap_run('new')===true&&$blocked,'Full ACP pins retirement metadata/range '.$change);$cases++;
  }
  pad_admin_reset('root');ap_sql('ALTER TABLE fixture_profile_field_actions ENGINE=MyISAM');$before=ap_snap();ats_check(ap_run('new')==='error'&&ap_snap()===$before,'Full ACP rejects legacy retirement storage');ap_sql('ALTER TABLE fixture_profile_field_actions ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;
+ ap_reset('root','edit');ap_sql('ALTER TABLE fixture_profile_field_actions ENGINE=MyISAM');
+ ats_check(ap_run('edit')===true,'Existing-account edits have no unused retirement-table dependency');
+ foreach($ap_queries as $sql){ats_check(strpos($sql,'fixture_profile_field_actions')===false,'Existing edit does not read or write retirement receipts');}
+ ap_sql('ALTER TABLE fixture_profile_field_actions ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;
  echo 'Native full ACP defaults: '.$cases." exact defaults, no inheritance, atomic failures, ACK and metadata locking cases passed.\n";
 }finally{
  if(isset($admin_profile_scope)&&$admin_profile_scope!==null){$admin_profile_scope->release();}

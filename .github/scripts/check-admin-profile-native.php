@@ -187,7 +187,7 @@ try{
    }}
   }
  }}
- foreach($ap_tables as $s){ap_reset();$table='fixture_'.($s==='jr_admin_users'?'jr':$s);ap_sql('ALTER TABLE '.$table.' ENGINE=MyISAM');$before=ap_snap();ats_check(ap_run('edit')==='error'&&ap_snap()===$before,'Reject nontransactional participant '.$s);ap_sql('ALTER TABLE '.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
+ foreach($ap_tables as $s){$scenario=$s==='profile_field_actions'?'new':'edit';ap_reset('root',$scenario);$table='fixture_'.($s==='jr_admin_users'?'jr':$s);ap_sql('ALTER TABLE '.$table.' ENGINE=MyISAM');$before=ap_snap();ats_check(ap_run($scenario)==='error'&&ap_snap()===$before,'Reject nontransactional participant '.$s);ap_sql('ALTER TABLE '.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  foreach(array('id','sid','quota','self-disable','self-block','self-ban','founder','admin-target','collision') as $bad){
   ap_reset($bad==='admin-target'?'junior':'root');
   if($bad==='id'){$ap_target='2junk';}if($bad==='sid'){$_POST['sid']='FIXTURE-ADMIN';}if($bad==='quota'){$_POST['user_upload_quota']='999';}
