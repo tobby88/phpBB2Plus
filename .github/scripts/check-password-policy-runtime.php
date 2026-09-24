@@ -87,11 +87,11 @@ try
         array(file_get_contents($root.'change_password.php'), '$new_password_hash = phpbb_password_hash($new_password);', '$new_password_hash_sql ='),
         array(file_get_contents($root.'includes/usercp_register.php'), '$new_password = phpbb_password_hash($new_password);', '$passwd_sql ='),
         array(file_get_contents($root.'includes/usercp_activate.php'), '$new_hash = phpbb_password_hash($new_password);', 'try'),
-        array($installer, '$admin_password = phpbb_password_hash($admin_pass1);', '// Load in the sql parser')
+        array($installer, '$admin_password = phpbb_password_hash($admin_password_value);', '// Load in the sql parser')
     ) as $writer)
     {
         $failure_fragment=fragment($writer[0],$writer[1],$writer[2]);
-        rejects(function() use ($failure_fragment) { global $lang; $new_password=$admin_pass1='Correct!99'; eval($failure_fragment); }, 'hash-failed');
+        rejects(function() use ($failure_fragment) { global $lang; $new_password=$admin_pass1=$admin_password_value='Correct!99'; eval($failure_fragment); }, 'hash-failed');
     }
     $fail_hash=false;
 
@@ -108,12 +108,14 @@ try
     check(!\phpbb_password_verify("Correct!99\0tail",md5('Correct!99')), 'NUL rejected consistently during verification');
     check(!\phpbb_password_verify(str_repeat('x',129),md5(str_repeat('x',129))), 'Verification matches the existing login 128-byte bound');
 
-    foreach (array("Quote' & \\slash!9",str_repeat('ä',36),str_repeat('ä',37),"Null\0value9") as $value)
+    foreach (array("Quote' & \\slash!9",str_repeat('ä',36),str_repeat('ä',37),str_repeat("'",37),"Null\0value9") as $value)
     {
         $_POST=array('admin_pass1'=>addslashes($value),'admin_pass2'=>addslashes($value)); eval($installer_input);
-        check($admin_pass1===$value && $admin_pass2===$value && $install_password_error===\phpbb_password_input_error($value), 'Installer removes exactly its own adapter escaping and applies shared bounds');
+        $expected_error=\phpbb_password_input_error($value);
+        if($expected_error===''){$expected_error=\phpbb_password_input_error(addslashes($value));}
+        check($admin_pass1===$value && $admin_pass2===$value && $admin_password_value===addslashes($value) && $install_password_error===$expected_error, 'Installer keeps raw confirmation and applies login-representation bounds before hashing');
     }
-    check(strpos($installer,'$admin_password = phpbb_password_hash($admin_pass1);') < strpos($installer,'// Load in the sql parser'), 'Installer hashes before schema or account writes');
+    check(strpos($installer,'$admin_password = phpbb_password_hash($admin_password_value);') < strpos($installer,'// Load in the sql parser'), 'Installer hashes before schema or account writes');
     check(strpos($installer,'$admin_pass1 != $admin_pass2')===false && strpos($installer,'install_html($admin_pass1)')===false, 'Installer neither loosely compares nor double-unescapes passwords');
     check(strpos($installer,"'min_password_len' => 6")!==false && strpos($installer,"'password_not_login' => 1")!==false && strpos($installer,'$install_password_policy = validate_complex_password(')!==false, 'Installer enforces its seeded policy before creation');
 

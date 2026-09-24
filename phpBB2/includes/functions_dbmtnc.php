@@ -623,13 +623,16 @@ function check_authorisation($die = TRUE, &$write_guard = null, &$actor_id = nul
 	$write_guard = '0 = 1';
 	$actor_id = null;
 
-	$auth_method = ( isset($HTTP_POST_VARS['auth_method']) ) ? htmlspecialchars($HTTP_POST_VARS['auth_method']) : '';
-	$board_user = isset($HTTP_POST_VARS['board_user']) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
+	$auth_method = (isset($HTTP_POST_VARS['auth_method']) && is_string($HTTP_POST_VARS['auth_method'])) ? $HTTP_POST_VARS['auth_method'] : '';
+	$board_user = (isset($HTTP_POST_VARS['board_user']) && is_string($HTTP_POST_VARS['board_user'])) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
 	$board_user = substr(str_replace("\\'", "'", $board_user), 0, 25);
 	$board_user = str_replace("'", "\\'", $board_user);
-	$board_password = ( isset($HTTP_POST_VARS['board_password']) ) ? stripslashes($HTTP_POST_VARS['board_password']) : '';
-	$db_user = ( isset($HTTP_POST_VARS['db_user']) ) ? stripslashes($HTTP_POST_VARS['db_user']) : '';
-	$db_password = ( isset($HTTP_POST_VARS['db_password']) ) ? stripslashes($HTTP_POST_VARS['db_password']) : '';
+	// The ERC adapter already applied exactly the same legacy escaping as
+	// common.php. Board credentials must reach the verifier just as on login;
+	// only literal database-owner credentials below are decoded for comparison.
+	$board_password = (isset($HTTP_POST_VARS['board_password']) && is_string($HTTP_POST_VARS['board_password'])) ? $HTTP_POST_VARS['board_password'] : null;
+	$db_user = (isset($HTTP_POST_VARS['db_user']) && is_string($HTTP_POST_VARS['db_user'])) ? stripslashes($HTTP_POST_VARS['db_user']) : null;
+	$db_password = (isset($HTTP_POST_VARS['db_password']) && is_string($HTTP_POST_VARS['db_password'])) ? stripslashes($HTTP_POST_VARS['db_password']) : null;
 	// Change authentication mode if selected option does not allow database authentication
 	if ( $option == 'rld' || $option == 'rtd' )
 	{
@@ -639,6 +642,7 @@ function check_authorisation($die = TRUE, &$write_guard = null, &$actor_id = nul
 	switch ($auth_method)
 	{
 		case 'board':
+			if ($board_user === '' || !is_string($board_password)) { $allow_access = false; break; }
 			$sql = "SELECT user_id, username, user_password, user_active, user_level
 				FROM " . USERS_TABLE . "
 				WHERE username = '" . str_replace("\\'", "''", $board_user) . "'";
@@ -672,7 +676,7 @@ function check_authorisation($die = TRUE, &$write_guard = null, &$actor_id = nul
 			$db->sql_freeresult($result);
 			break;
 		case 'db':
-			if ($db_user == $dbuser && $db_password == $dbpasswd)
+			if (is_string($db_user) && is_string($db_password) && hash_equals((string) $dbuser, $db_user) && hash_equals((string) $dbpasswd, $db_password))
 			{
 				$allow_access = TRUE;
 				$actor_id = 0; // Database-owner recovery has no board account.

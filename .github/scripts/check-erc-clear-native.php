@@ -117,6 +117,23 @@ try {
         ercc_reset(); $before = count($db->queries);
         ercc_check(!dbmtnc_erc_clear_table(USERS_TABLE) && !dbmtnc_erc_clear_table('fixture_bans; DROP TABLE fixture_users'), 'Only the four explicit recovery tables are allowed');
         ercc_check(count($db->queries) === $before && ercc_count(USERS_TABLE) === 2, 'Invalid target performs no query'); $cases++;
+        foreach (array(0, 1) as $hashing) {
+            $board_config = array('password_hashing'=>$hashing);
+            foreach (array("Quote'Only!93", 'Quote"Only!93', 'Slash\\Only!93', 'Grüße-only!93', ' space only!93 ') as $raw) {
+                ercc_reset(); $hash = phpbb_password_hash(addslashes($raw));
+                ercc_check(is_string($hash), 'Canonical fixture password hash');
+                ercc_sql("UPDATE fixture_users SET user_password='" . $db->sql_escape($hash) . "' WHERE user_id=2");
+                $HTTP_POST_VARS = phpbb_addslashes_recursive(array('auth_method'=>'board', 'board_user'=>'Admin', 'board_password'=>$raw));
+                ercc_check(dbmtnc_erc_clear_table(BANLIST_TABLE) && ercc_count(BANLIST_TABLE) === 0, 'Stored canonical board password authorizes native ERC write'); $cases++;
+            }
+        }
+        foreach (array('auth_method', 'board_user', 'board_password', 'db_user', 'db_password') as $field) {
+            ercc_reset(strpos($field, 'db_') === 0 ? 'db' : 'board'); $HTTP_POST_VARS[$field] = array('invalid');
+            ercc_check(!dbmtnc_erc_clear_table(BANLIST_TABLE) && ercc_count(BANLIST_TABLE) === 2, 'Malformed credential cannot dispatch DELETE'); $cases++;
+        }
+        ercc_reset('db'); $dbpasswd = '0e123'; $HTTP_POST_VARS['db_password'] = '0e456';
+        ercc_check(!dbmtnc_erc_clear_table(BANLIST_TABLE) && ercc_count(BANLIST_TABLE) === 2, 'Numeric-looking database-password alias cannot dispatch DELETE');
+        $dbpasswd = 'owner-only'; $cases++;
     }
     echo "ERC clear: $cases native authorization, dispatch-race, controller and failure cases passed.\n";
 } finally {

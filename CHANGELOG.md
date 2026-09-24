@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Align installer and emergency-console board passwords with the unchanged login
+  and account-creation representation, including quotes/backslashes and the hash
+  byte limit. Preserve raw installer confirmation/output, reject malformed
+  credentials, and compare database-owner credentials exactly rather than with
+  PHP's numeric-string coercion. No existing hashes or account data are migrated;
+  previously affected installer accounts can use the normal password-reset flow.
 - Preserve the authenticated administrator by database-resolved user ID in the
   emergency console's administrator-removal action, including case/accent aliases.
   Recheck credentials at every write; refuse an independently renamed/replaced

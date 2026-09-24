@@ -324,7 +324,12 @@ $admin_name = (!empty($_POST['admin_name'])) ? $_POST['admin_name'] : '';
 // Undo only the installer's request adapter, never normalize credentials.
 $admin_pass1 = (isset($_POST['admin_pass1']) && is_string($_POST['admin_pass1'])) ? stripslashes($_POST['admin_pass1']) : '';
 $admin_pass2 = (isset($_POST['admin_pass2']) && is_string($_POST['admin_pass2'])) ? stripslashes($_POST['admin_pass2']) : '';
+// common.php's login and account writers hash the escaped legacy request
+// representation. Keep raw values for confirmation/output, but use precisely
+// that same representation for policy/hash; do not introduce password aliases.
+$admin_password_value = addslashes($admin_pass1);
 $install_password_error = phpbb_password_input_error($admin_pass1);
+if ($install_password_error === '') { $install_password_error = phpbb_password_input_error($admin_password_value); }
 
 $ftp_path = (!empty($_POST['ftp_path'])) ? $_POST['ftp_path'] : '';
 $ftp_user = (!empty($_POST['ftp_user'])) ? $_POST['ftp_user'] : '';
@@ -399,7 +404,7 @@ if (defined("PHPBB_INSTALLED"))
 // Import language file, setup template ...
 include($phpbb_root_path.'language/lang_' . $language . '/lang_main.'.$phpEx);
 include($phpbb_root_path.'language/lang_' . $language . '/lang_admin.'.$phpEx);
-$install_password_policy = validate_complex_password(is_string($admin_name) ? stripslashes($admin_name) : '', $admin_pass1);
+$install_password_policy = validate_complex_password(is_string($admin_name) ? stripslashes($admin_name) : '', $admin_password_value);
 
 // Ok for the time being I'm commenting this out whilst I'm working on
 // better integration of the install with upgrade as per Bart's request
@@ -734,7 +739,7 @@ else
 		if ($upgrade != 1)
 		{
 			// Hash successfully BEFORE creating tables or inserting seed accounts.
-			$admin_password = phpbb_password_hash($admin_pass1);
+			$admin_password = phpbb_password_hash($admin_password_value);
 			if ($admin_password === false)
 			{
 				page_header($lang['Install']);

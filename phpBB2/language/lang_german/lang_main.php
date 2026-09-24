@@ -663,7 +663,7 @@ $lang['Profile_updated_inactive'] = 'Dein Profil wurde aktualisiert. Du hast jed
 
 $lang['Password_mismatch'] = 'Du musst zweimal das gleiche Passwort eingeben.';
 $lang['Current_password_mismatch'] = 'Das aktuelle Passwort stimmt nicht mit dem in der Datenbank überein.';
-$lang['Password_long'] = 'Neue Passwörter dürfen höchstens 72 UTF-8-Bytes enthalten. Umlaute und Emoji können mehrere Bytes belegen; Passwörter werden niemals automatisch gekürzt.';
+$lang['Password_long'] = 'Neue Passwörter dürfen intern höchstens 72 Bytes belegen. Umlaute und Emoji zählen mit ihrer UTF-8-Byte-Länge; Anführungszeichen, Apostrophe und Backslashes zählen aus Kompatibilitätsgründen jeweils doppelt. Passwörter werden niemals automatisch gekürzt.';
 $lang['Password_hash_failed'] = 'Das Passwort konnte nicht sicher gespeichert werden. Bitte versuche es später erneut oder kontaktiere einen Administrator.';
 $lang['Password_minimum_invalid'] = 'Die Mindestlänge des Passworts muss eine ganze Zahl zwischen 0 und 72 UTF-8-Bytes sein.';
 $lang['Password_invalid'] = 'Das Passwort enthält ein ungültiges Zeichen.';

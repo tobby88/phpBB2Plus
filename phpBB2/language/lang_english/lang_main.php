@@ -672,7 +672,7 @@ $lang['Profile_updated_inactive'] = 'Your profile has been updated. However, you
 
 $lang['Password_mismatch'] = 'The passwords you entered did not match.';
 $lang['Current_password_mismatch'] = 'The current password you supplied does not match that stored in the database.';
-$lang['Password_long'] = 'New passwords may contain at most 72 UTF-8 bytes. Accented characters and emoji can use multiple bytes; passwords are never shortened automatically.';
+$lang['Password_long'] = 'New passwords may use at most 72 bytes internally. Accented characters and emoji use their UTF-8 byte length; quotes and backslashes each count as two bytes for compatibility. Passwords are never shortened automatically.';
 $lang['Password_hash_failed'] = 'The password could not be saved securely. Please try again later or contact an administrator.';
 $lang['Password_minimum_invalid'] = 'The minimum password length must be a whole number between 0 and 72 UTF-8 bytes.';
 $lang['Password_invalid'] = 'The password contains an invalid character.';

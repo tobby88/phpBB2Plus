@@ -76,6 +76,17 @@ InnoDB checks do not falsely claim to repair corruption with REPAIR TABLE.
 
 ## Project status
 
+Installer, normal login and emergency-console board authentication use the same
+legacy password-input representation, including quotes and backslashes. Existing
+working account hashes are not rewritten, and no alternate password spellings
+are accepted. The 72-byte creation limit applies to this internal representation;
+quotes and backslashes each count as two bytes. Accounts created by an older
+affected installer with such characters
+may already have unusable login credentials; use the normal password-reset flow
+for those accounts. An updater cannot recover or infer the original password from
+its hash. Emergency-console database-owner credentials remain literal strings
+and are compared exactly, independently of board password hashing.
+
 ACP profile saves publish account/group creation, profile fields, quotas, bans,
 username references and session changes in one InnoDB transaction. Current ACP
 authority is locked through the save. Replacement avatars and login cookies are
