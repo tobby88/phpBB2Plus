@@ -51,6 +51,10 @@ jobs:
         env:
           PHPBB_ERC_RECOVERY_NATIVE: '1'
           PHPBB_ERC_RECOVERY_PASSWORD: fixture-only
+      - run: php .github/scripts/check-erc-language-native.php
+        env:
+          PHPBB_ERC_LANGUAGE_NATIVE: '1'
+          PHPBB_ERC_LANGUAGE_PASSWORD: fixture-only
       - run: php .github/scripts/check-innodb-migration.php
         env:
           PHPBB_STORAGE_NATIVE: '1'

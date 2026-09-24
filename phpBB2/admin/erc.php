@@ -800,36 +800,13 @@ switch($mode)
 				success_message($lang['rcd_success']);
 				break;
 			case 'rld': // Reset language data
-				check_authorisation();
-				$new_lang = ( isset($HTTP_POST_VARS['new_lang']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['new_lang']) : '';
-				$board_user = isset($HTTP_POST_VARS['board_user']) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
-				$board_user = substr(str_replace("\\'", "'", $board_user), 0, 25);
-				$board_user = str_replace("'", "\\'", $board_user);
-
-				if ( is_file(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $new_lang . '/lang_main.' . $phpEx)) && is_file(@phpbb_realpath($phpbb_root_path . 'language/lang_' . $new_lang . '/lang_admin.' . $phpEx)) )
+				check_authorisation(true, $language_guard, $language_actor_id);
+				$new_lang = isset($HTTP_POST_VARS['new_lang']) && is_string($HTTP_POST_VARS['new_lang']) ? $HTTP_POST_VARS['new_lang'] : null;
+				if (!dbmtnc_erc_reset_language($new_lang, $language_actor_id))
 				{
-					$sql = "UPDATE " . USERS_TABLE . "
-						SET user_lang = '$new_lang'
-						WHERE username = '$board_user'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update user table!", __LINE__, __FILE__, $sql);
-					}
-					$sql = "UPDATE " . CONFIG_TABLE . "
-						SET config_value = '$new_lang'
-						WHERE config_name = 'default_lang'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-					}
-					success_message($lang['rld_success']);
+					erc_throw_error($lang['ERC_language_failed']);
 				}
-				else
-				{
-					success_message($lang['rld_failed']);
-				}
+				success_message($lang['rld_success']);
 				break;
 			case 'rtd': // Reset template data
 				check_authorisation();

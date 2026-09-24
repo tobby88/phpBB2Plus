@@ -656,6 +656,7 @@ $lang['Option_Help_Text'] = '<p>Wenn du eine Fehlermeldung erhälst, dass bei de
 	Administratoren</b> entfernst. (Die Accounts selbst werden nicht gelöscht sondern nur die Admin-Rechte entfernt.)</p>
 	<p>Wenn du die config.php wiederherstellen musst, kannst du dies mit <b>Stelle config.php wieder her</b> machen.</p>';
 $lang['ERC_config_invalid'] = 'Ungültiger Konfigurationswert.';
+$lang['ERC_language_failed'] = 'Die Sprachreparatur konnte nicht vollständig bestätigt werden. Prüfe die installierten Sprachdateien, die aktuellen Administrator-Zugangsdaten, den Eintrag default_lang und den Konfigurationscache. Bereits gespeicherte Änderungen können erhalten bleiben; kontrolliere sie vor einem erneuten Versuch.';
 $lang['ERC_cookie_format'] = 'Cookie-Namen dürfen Buchstaben, Ziffern, Unterstriche und Bindestriche enthalten. Eine leere Domain beschränkt Cookies auf den aktuellen Host. Verwende einen absoluten Pfad, zum Beispiel /forum/.';
 $lang['Maintenance_config_failed'] = 'Die Konfigurationsänderung oder -reparatur konnte nicht vollständig bestätigt werden. Bereits gespeicherte Änderungen können erhalten bleiben. Prüfe Datenbank und Konfigurationscache vor einem erneuten Versuch.';
 $lang['Maintenance_config_version_unknown'] = 'Die Datenbankversion fehlt oder ist unbekannt. Stelle sie mit update/update_from_153a.php nach Prüfung des Testlaufs und einem Backup wieder her; die Konfigurationsreparatur markiert keine Migrationen als abgeschlossen.';

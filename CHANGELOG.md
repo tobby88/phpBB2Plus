@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repair the emergency console's account and board language in one guarded
+  statement, bound to the authenticated account ID and its current credentials.
+  Reject incomplete language packs and missing, aliased or duplicated default
+  settings; verify both results and expire only the configuration cache after
+  attempted writes, including uncertain outcomes and harmless same-value retries.
 - Share non-overwriting configuration recovery between the ACP and emergency
   console, with the appropriate fresh authority predicate on every insertion.
   Stop after revoked credentials or uncertain outcomes, preserve independently

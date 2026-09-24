@@ -876,6 +876,58 @@ function dbmtnc_erc_update_config($values, $expected_actor_id)
 	return true;
 }
 
+/** Recover the authenticated account and board language together, never by a
+ * second interpretation of the submitted username or by owner credentials. */
+function dbmtnc_erc_reset_language($language, $expected_actor_id)
+{
+	global $db, $phpbb_root_path, $board_config;
+	if (!is_int($expected_actor_id) || $expected_actor_id <= 0 || !is_string($language)
+		|| !preg_match('/^[a-z][a-z0-9_]{0,63}$/D', $language)) { return false; }
+	foreach (array('main', 'admin') as $part)
+	{
+		if (!is_file($phpbb_root_path . 'language/lang_' . $language . '/lang_' . $part . '.php')) { return false; }
+	}
+	if (!check_authorisation(false, $guard, $actor_id) || $actor_id !== $expected_actor_id) { return false; }
+	$read = "SELECT config_name, config_value FROM " . CONFIG_TABLE . " WHERE config_name = 'default_lang'";
+	$result = $db->sql_query($read);
+	if (!$result) { return false; }
+	$row = $db->sql_fetchrow($result); $extra = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+	if (!$row || $extra || $row['config_name'] !== 'default_lang') { return false; }
+	if (!check_authorisation(false, $guard, $actor_id) || $actor_id !== $expected_actor_id) { return false; }
+	// Materialize the current key count so a concurrent deletion, case alias or
+	// duplicate cannot update the account without its matching board setting.
+	$config_guard = 'EXISTS (SELECT 1 FROM (SELECT COUNT(*) AS row_count,'
+		. " SUM(BINARY config_name = 'default_lang') AS exact_count FROM " . CONFIG_TABLE
+		. " WHERE config_name = 'default_lang') erc_language_current WHERE row_count = 1 AND exact_count = 1)";
+	$value = $db->sql_escape($language); $success = false;
+	try
+	{
+		if (!$db->sql_query('UPDATE ' . USERS_TABLE . ' erc_language_user CROSS JOIN ' . CONFIG_TABLE . ' erc_language_config'
+			. " SET erc_language_user.user_lang = '" . $value . "', erc_language_config.config_value = '" . $value . "'"
+			. ' WHERE erc_language_user.user_id = ' . $expected_actor_id . " AND erc_language_config.config_name = 'default_lang'"
+			. ' AND (' . $guard . ') AND ' . $config_guard)) { return false; }
+		if (!check_authorisation(false, $after_guard, $after_actor_id) || $after_actor_id !== $expected_actor_id) { return false; }
+		$result = $db->sql_query($read);
+		if (!$result) { return false; }
+		$row = $db->sql_fetchrow($result); $extra = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+		if (!$row || $extra || $row['config_name'] !== 'default_lang' || $row['config_value'] !== $language) { return false; }
+		$result = $db->sql_query('SELECT user_lang FROM ' . USERS_TABLE . ' WHERE user_id = ' . $expected_actor_id);
+		if (!$result) { return false; }
+		$row = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+		$success = $row && $row['user_lang'] === $language;
+		if (!check_authorisation(false, $after_guard, $after_actor_id) || $after_actor_id !== $expected_actor_id) { $success = false; }
+	}
+	finally
+	{
+		// A lost ACK may follow completed changes even on legacy recovery tables.
+		// Never retry automatically, claim rollback or leave the old cache behind.
+		$cache = $phpbb_root_path . 'cache/config_data.cache'; clearstatcache(true, $cache);
+		if ((file_exists($cache) || is_link($cache)) && !@unlink($cache)) { $success = false; }
+	}
+	if ($success) { $board_config['default_lang'] = $language; }
+	return $success;
+}
+
 function get_config_data($option)
 {
 	global $db;
