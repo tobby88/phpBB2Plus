@@ -43,6 +43,14 @@ jobs:
         env:
           PHPBB_ERC_CONFIG_NATIVE: '1'
           PHPBB_ERC_CONFIG_PASSWORD: fixture-only
+      - run: php .github/scripts/run-native-config-recovery.php
+        env:
+          PHPBB_CONFIG_RECOVERY_NATIVE: '1'
+          PHPBB_CONFIG_RECOVERY_PASSWORD: fixture-only
+      - run: php .github/scripts/check-erc-recovery-native.php
+        env:
+          PHPBB_ERC_RECOVERY_NATIVE: '1'
+          PHPBB_ERC_RECOVERY_PASSWORD: fixture-only
       - run: php .github/scripts/check-innodb-migration.php
         env:
           PHPBB_STORAGE_NATIVE: '1'

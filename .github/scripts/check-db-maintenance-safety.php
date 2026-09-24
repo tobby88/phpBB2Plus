@@ -61,7 +61,7 @@ dbmtnc_safety_assert(strpos($config_helper, 'phpbb_normalize_host(') !== false, 
 dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_port(') >= 1, 'ERC server ports must be normalized in recovery and manual repair');
 dbmtnc_safety_assert(substr_count($erc, 'phpbb_normalize_script_path(') >= 2, 'ERC script paths must be normalized in preview, recovery and manual repair');
 dbmtnc_safety_assert(strpos($erc, "str_replace('admin', '', dirname") === false, 'ERC paths must not use substring removal on PHP_SELF');
-dbmtnc_safety_assert(strpos($erc, '$value_sql = $db->sql_escape($value);') !== false, 'ERC-restored configuration values must be SQL-escaped');
+dbmtnc_safety_assert(strpos($erc, 'dbmtnc_erc_recover_config($default_config, $recovery_actor_id)') !== false && strpos($config_helper, '$value_sql = $db->sql_escape((string) $value);') !== false, 'ERC recovery must use the shared SQL-escaped configuration writer');
 
-dbmtnc_safety_assert(strpos($admin, 'dbmtnc_recover_config($db, $_POST, $default_config)') !== false && strpos($erc, 'dbmtnc_config_defaults($default_config)') !== false, 'ACP and ERC use shared validated recovery defaults');
+dbmtnc_safety_assert(strpos($admin, 'dbmtnc_recover_config($db, $_POST, $default_config)') !== false && substr_count($config_helper, 'return dbmtnc_config_restore_rows(') === 2 && strpos($config_helper, '$defaults = dbmtnc_config_defaults($defaults);') !== false, 'ACP and ERC use shared validated recovery defaults');
 echo "Database-maintenance safety tests passed.\n";

@@ -628,6 +628,6 @@ $lang['Option_Help_Text'] = '<p>If you get reported that there was an error crea
 	<p>If you need to restore your config.php you can do so by selecting <b>Recreate config.php</b>.</p>';
 $lang['ERC_config_invalid'] = 'Invalid configuration value.';
 $lang['ERC_cookie_format'] = 'Cookie names may contain letters, digits, underscores and hyphens. Leave the domain empty for host-only cookies. Use an absolute path, for example /forum/.';
-$lang['Maintenance_config_failed'] = 'Configuration recovery failed. Existing settings were not overwritten; earlier additions may remain. Resolve the error before retrying.';
+$lang['Maintenance_config_failed'] = 'The configuration update or recovery could not be fully confirmed. Completed changes may remain. Check the database and configuration cache before retrying.';
 $lang['Maintenance_config_version_unknown'] = 'The database version is missing or unknown. Restore it through update/update_from_153a.php after reviewing its dry run and making a backup; configuration repair does not mark migrations as completed.';
 ?>

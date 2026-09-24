@@ -8,15 +8,18 @@ function throw_error($message){config_check($GLOBALS['config_server']->owner===n
 function erc_throw_error($message){throw new ConfigControllerFailure($message);}
 function message_die($code,$message){throw new RuntimeException($message);}
 function lock_db($unlock=false){throw new RuntimeException('Recovery must not toggle board availability');}
-function check_authorisation(){if(!$GLOBALS['erc_allowed']){throw new ConfigControllerFailure('erc-denied');}$GLOBALS['erc_checked']=true;}
+// Only the defaults/controller fixture uses this synthetic credential gate;
+// check-erc-recovery-native.php exercises the actual verifier and SQL predicate.
+function check_authorisation($die=true,&$guard=null,&$actor_id=null){$guard='0 = 1';$actor_id=null;if(!$GLOBALS['erc_allowed']){if(!$die){return false;}throw new ConfigControllerFailure('erc-denied');}$GLOBALS['erc_checked']=true;$guard='1 = 1';$actor_id=1;return true;}
 function success_message($message){$GLOBALS['erc_success']=true;}
 class ConfigRows {public $rows;function __construct($rows){$this->rows=$rows;}}
 $dsn=getenv('PHPBB_CONFIG_TEST_DSN');$native=$dsn!==false&&$dsn!=='';
-if($native){config_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_config_[a-f0-9]{16};charset=utf8mb4$/D',$dsn)===1,'Only owned loopback fixture allowed');}
+$config_native_password=getenv('PHPBB_CONFIG_TEST_PASSWORD')?:'';
+if($native){config_check(preg_match('/^mysql:host=127\.0\.0\.1;port=([0-9]{1,5});dbname=codex_config_[a-f0-9]{16};charset=utf8mb4$/D',$dsn,$dsn_match)===1&&(int)$dsn_match[1]>0&&(int)$dsn_match[1]<65536,'Only owned loopback fixture allowed');}
 class ConfigServer {
  public $pdo;public $owner=null;public $hook=null;public $failure='';public $lostAck='';public $queries=array();
  function __construct($engine){
-  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',''):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+  $this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',$GLOBALS['config_native_password']):new PDO('sqlite::memory:');$this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $defs=array('users'=>'user_id INTEGER PRIMARY KEY,username VARCHAR(255),user_level INTEGER,user_active INTEGER','junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
    'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INTEGER,session_logged_in INTEGER,session_admin INTEGER','config'=>'config_name VARCHAR(191) PRIMARY KEY,config_value TEXT','topics'=>'topic_time INTEGER');
   foreach($defs as $name=>$def){$this->pdo->exec('DROP TABLE IF EXISTS fixture_'.$name);$this->pdo->exec('CREATE TABLE fixture_'.$name.' ('.$def.')'.($GLOBALS['native']?' ENGINE='.$engine:''));}
@@ -32,7 +35,7 @@ class ConfigForum {
 }
 class ConfigConnection {
  public $server;public $pdo;public $db_connect_id=true;public $closed=false;public $affected=0;public $erc=false;
- function __construct($server,$erc=false){$this->server=$server;$this->erc=$erc;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root','',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
+ function __construct($server,$erc=false){$this->server=$server;$this->erc=$erc;$this->pdo=$GLOBALS['native']?new PDO($GLOBALS['dsn'],'root',$GLOBALS['config_native_password'],array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)):$server->pdo;}
  function sql_query($sql){
   if($this->closed){return false;}$s=$this->server;$s->queries[]=$sql;
   if(strpos($sql,'SELECT GET_LOCK(')===0){
@@ -80,6 +83,39 @@ function config_run($expected='',$mode='acp'){
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{foreach($native?array('MyISAM','InnoDB'):array('SQLite') as $engine){foreach(array('english','german') as $locale){
  $lang=array('Not_Authorised'=>'not-authorized','Session_invalid'=>'session-invalid','Attachment_storage_busy'=>'busy');$phpEx='php';include $root.'language/lang_'.$locale.'/lang_dbmtnc.php';
+ // Cache assertions use a private temporary root and the actual ACP service,
+ // not the repository cache or the full delegated-module discovery fixture.
+ config_fixture($engine);
+ $cache_root=sys_get_temp_dir().'/codex_config_cache_'.bin2hex(function_exists('random_bytes')?random_bytes(8):openssl_random_pseudo_bytes(8)).'/';
+ config_check(mkdir($cache_root)&&mkdir($cache_root.'cache'),'Owned cache fixture');
+ try{
+  $phpbb_root_path=$cache_root;
+  file_put_contents($cache_root.'cache/config_data.cache','stale');
+  dbmtnc_recover_config(new ConfigForum(),$_POST,$default_config);
+  config_check(!file_exists($cache_root.'cache/config_data.cache'),'Actual ACP recovery expires the old configuration cache');
+  file_put_contents($cache_root.'cache/config_data.cache','stale-after-uncertain-outcome');
+  $before=config_snapshot();dbmtnc_recover_config(new ConfigForum(),$_POST,$default_config);
+  config_check(!file_exists($cache_root.'cache/config_data.cache')&&config_snapshot()===$before,'No-op repair also refreshes cache without changing existing values');
+  mkdir($cache_root.'cache/config_data.cache');$caught=false;
+  try{dbmtnc_recover_config(new ConfigForum(),$_POST,$default_config);}catch(PhpbbAclException $error){$caught=true;}
+  config_check($caught&&$config_server->owner===null,'Cache failure stops success and still releases the owning connection');
+  rmdir($cache_root.'cache/config_data.cache');
+  config_fixture($engine);$phpbb_root_path=$cache_root;mkdir($cache_root.'cache/config_data.cache');
+  $config_server->pdo->exec("UPDATE fixture_config SET config_value='1' WHERE config_name='board_disable'");$caught=false;
+  try{dbmtnc_save_controls(new ConfigForum(),$_POST,'unlock');}catch(PhpbbAclException $error){$caught=true;}
+  config_check($caught&&config_value('board_disable')==='0'&&$config_server->owner===null,'Control cache failure reports incomplete outcome without leaking the lock or claiming rollback');
+  rmdir($cache_root.'cache/config_data.cache');
+  foreach(array('failure','ack') as $fault){
+   config_fixture($engine);$phpbb_root_path=$cache_root;file_put_contents($cache_root.'cache/config_data.cache','stale');
+   if($fault==='failure'){$config_server->failure='INSERT INTO fixture_config';}else{$config_server->lostAck='INSERT INTO fixture_config';}
+   $caught=false;try{dbmtnc_recover_config(new ConfigForum(),$_POST,$default_config);}catch(PhpbbAclException $error){$caught=true;}
+   config_check($caught&&!file_exists($cache_root.'cache/config_data.cache')&&$config_server->owner===null,'Attempted recovery expires cache on failed or uncertain insertion');
+  }
+ }finally{
+  if(is_dir($cache_root.'cache/config_data.cache')){rmdir($cache_root.'cache/config_data.cache');}
+  if(is_file($cache_root.'cache/config_data.cache')){unlink($cache_root.'cache/config_data.cache');}
+  rmdir($cache_root.'cache');rmdir($cache_root);$phpbb_root_path=$root;
+ }
  foreach(array('acp','erc') as $mode){
   config_fixture($engine);$html=config_run('',$mode);config_check(config_value('cookie_secure')==='1'&&config_value('server_port')==='443'&&config_value('script_path')==='/forum/'&&config_value('board_startdate')==='100','HTTPS/path/date defaults recovered');
   config_check(config_value('custom')==='keep'&&config_value('version')==='.0.23'&&config_value('board_disable')==='0','Existing settings and version preserved');config_check(config_value('site_desc')===$default_config['site_desc'],'Quotes/UTF8 stored exactly');config_check(strpos($html,"<b>O'Connor</b>")===false,'Recovered values not rendered as markup');

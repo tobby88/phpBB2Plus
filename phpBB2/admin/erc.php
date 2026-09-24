@@ -745,55 +745,22 @@ switch($mode)
 				}
 				break;
 			case 'cct': // Check config table
-				check_authorisation();
-
+				check_authorisation(true, $recovery_guard, $recovery_actor_id);
 				require_once($phpbb_root_path . 'includes/functions_maintenance_config.' . $phpEx);
-				$default_config = dbmtnc_config_defaults($default_config);
-				$sql = "SELECT Min(topic_time) as startdate FROM " . TOPICS_TABLE;
-				if ( $result = $db->sql_query($sql) )
-				{
-					if ( ($row = $db->sql_fetchrow($result)) && $row['startdate'] > 0 )
-					{
-						$default_config['board_startdate'] = $row['startdate'];
-					}
-					$db->sql_freeresult($result);
-				}
-
-				// Start the job				
+				try { $config_recovery = dbmtnc_erc_recover_config($default_config, $recovery_actor_id); }
+				catch (PhpbbAclException $error) { erc_throw_error($error->getMessage()); break; }
 ?>
 	<p><?php echo $lang['Restoring_config'] . ':'; ?></p>
 	<ul>
 <?php
-				foreach ($default_config as $key => $value)
+				foreach ($config_recovery['restored'] as $key)
 				{
-					$sql = 'SELECT config_value FROM ' . CONFIG_TABLE . "
-						WHERE config_name = '$key'";
-					$result = $db->sql_query($sql);
-					if ( !$result )
-					{
-						erc_throw_error("Couldn't query config table!", __LINE__, __FILE__, $sql);
-					}
-					$row = $db->sql_fetchrow($result); $db->sql_freeresult($result);
-					if (!$row)
-					{
-						$key_sql = $db->sql_escape($key);
-						$value_sql = $db->sql_escape($value);
-						$sql = "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value)
-							SELECT '$key_sql', '$value_sql' WHERE NOT EXISTS (SELECT 1 FROM " . CONFIG_TABLE . " WHERE config_name = '$key_sql')";
-						$result = $db->sql_query($sql);
-						if ( !$result )
-						{
-							erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-						}
-						if ((int) $db->sql_affectedrows() === 1) { echo('<li>' . htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>'); }
-					}
+					echo('<li>' . htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>');
 				}
 ?>
 	</ul>
 <?php
-				try { $version_unknown = dbmtnc_config_version_unknown(new PhpbbAclDatabase($db, 'Maintenance_config_failed')); }
-				catch (PhpbbAclException $error) { erc_throw_error($error->getMessage()); break; }
-				if ($version_unknown) { echo('<p><b>' . $lang['Maintenance_config_version_unknown'] . '</b></p>'); }
+				if ($config_recovery['version_unknown']) { echo('<p><b>' . $lang['Maintenance_config_version_unknown'] . '</b></p>'); }
 				success_message($lang['cct_success']);
 				break;
 			case 'rpd': // Reset path data

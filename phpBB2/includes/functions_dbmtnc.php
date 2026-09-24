@@ -620,6 +620,7 @@ function style_select($default_style, $select_name = "style", $dirname = "templa
 function check_authorisation($die = TRUE, &$write_guard = null, &$actor_id = null)
 {
 	global $db, $lang, $dbuser, $dbpasswd, $option, $HTTP_POST_VARS;
+	static $verified_board_credential = null;
 	$write_guard = '0 = 1';
 	$actor_id = null;
 
@@ -653,8 +654,16 @@ function check_authorisation($die = TRUE, &$write_guard = null, &$actor_id = nul
 			}
 			if( $row = $db->sql_fetchrow($result) )
 			{
-				if( phpbb_password_verify($board_password, $row['user_password']) && $row['user_active'] && $row['user_level'] == ADMIN )
+				// Cache only a successful password proof inside this PHP request, not
+				// an authorization decision. The SELECT above and role checks below
+				// remain fresh for every operation; another ID/hash/password requires
+				// a new expensive verification. Failed proofs are never cached.
+				$proof_key = is_string($row['user_password']) ? hash('sha256', (int)$row['user_id'] . ':' . strlen($board_password) . ':' . $board_password . $row['user_password']) : null;
+				$password_valid = ($proof_key !== null && $verified_board_credential !== null && hash_equals($verified_board_credential, $proof_key))
+					|| phpbb_password_verify($board_password, $row['user_password']);
+				if( $password_valid && $row['user_active'] && $row['user_level'] == ADMIN )
 				{
+					$verified_board_credential = $proof_key;
 					$allow_access = TRUE;
 					$actor_id = (int) $row['user_id'];
 					// Requalify a credential-authorized write at dispatch, including

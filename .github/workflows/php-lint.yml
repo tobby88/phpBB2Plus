@@ -67,6 +67,9 @@ jobs:
       - name: Check password policy after actual request normalization
         run: php .github/scripts/check-password-request-policy.php
 
+      - name: Check request-local ERC password proofs and fresh authority
+        run: php .github/scripts/check-erc-password-proof.php
+
       - name: Check InnoDB migration schema and updater integration
         run: php .github/scripts/check-innodb-migration.php
       - name: ACP avatar upload transaction integration

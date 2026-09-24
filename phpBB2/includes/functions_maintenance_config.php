@@ -60,9 +60,17 @@ function dbmtnc_save_controls($database, $request, $action)
 	{
 		// A lost acknowledgement can follow a committed write. Never leave the
 		// previous cache behind or report that failure as a successful rollback.
-		if ($attempted) { @unlink($phpbb_root_path . 'cache/config_data.cache'); }
-		$lock->release();
+		try { if ($attempted) { dbmtnc_config_expire_cache(); } }
+		finally { $lock->release(); }
 	}
+}
+
+function dbmtnc_config_expire_cache()
+{
+	global $phpbb_root_path;
+	$cache = $phpbb_root_path . 'cache/config_data.cache';
+	clearstatcache(true, $cache);
+	if ((file_exists($cache) || is_link($cache)) && !@unlink($cache)) { phpbb_acl_error('Maintenance_config_failed'); }
 }
 
 // Internal defaults only, not a submitted configuration map. Never infer a
@@ -107,34 +115,72 @@ function dbmtnc_recover_config($database, $request, $defaults)
 	try
 	{
 		$db = new PhpbbAclDatabase($lock->connection, 'Maintenance_config_failed');
-		dbmtnc_date_actor($db);
+		return dbmtnc_config_restore_rows($db, $defaults, function($connection) { return dbmtnc_date_actor($connection); });
+	}
+	finally { $lock->release(); }
+}
+
+// Standalone recovery has credential authority, not an ACP session/delegation.
+// Pin the initially resolved actor through the entire repair, including aliases
+// and the explicit database-owner path. Only compiled defaults reach this API.
+function dbmtnc_erc_recover_config($defaults, $expected_actor_id)
+{
+	global $db;
+	if (!is_int($expected_actor_id) || $expected_actor_id < 0) { phpbb_acl_error('Auth_failed'); }
+	$connection = new PhpbbAclDatabase($db, 'Maintenance_config_failed');
+	$authorize = function($unused) use ($expected_actor_id) {
+		if (!check_authorisation(false, $guard, $actor_id) || $actor_id !== $expected_actor_id) { phpbb_acl_error('Auth_failed'); }
+		return array('guard' => $guard);
+	};
+	return dbmtnc_config_restore_rows($connection, $defaults, $authorize);
+}
+
+// Both entry points share non-overwriting inserts, outcome verification and
+// cache cleanup. The private callback supplies the entry point's CURRENT SQL
+// authority predicate; it is never populated from submitted form parameters.
+function dbmtnc_config_restore_rows($db, $defaults, $authorize)
+{
+	if (!is_callable($authorize)) { phpbb_acl_error('Maintenance_config_failed'); }
+	$defaults = dbmtnc_config_defaults($defaults);
+	$attempted = $completed = false;
+	try
+	{
+		call_user_func($authorize, $db);
 		// Topic timestamps are optional recovery hints. Damaged topic storage must
 		// not prevent repairing otherwise usable configuration/authority tables.
-		$result = $lock->connection->sql_query('SELECT MIN(topic_time) AS startdate FROM ' . TOPICS_TABLE);
+		$result = $db->connection->sql_query('SELECT MIN(topic_time) AS startdate FROM ' . TOPICS_TABLE);
 		if ($result)
 		{
-			$row = $lock->connection->sql_fetchrow($result); $lock->connection->sql_freeresult($result);
+			$row = $db->connection->sql_fetchrow($result); $db->connection->sql_freeresult($result);
 			if ($row && (int) $row['startdate'] > 0) { $defaults['board_startdate'] = (string) (int) $row['startdate']; }
 		}
 		$restored = array();
 		foreach ($defaults as $key => $value)
 		{
-			$actor = dbmtnc_date_actor($db);
+			$actor = call_user_func($authorize, $db);
+			if (!is_array($actor) || !isset($actor['guard']) || !is_string($actor['guard']) || $actor['guard'] === '') { phpbb_acl_error('Maintenance_config_failed'); }
 			$key_sql = $db->sql_escape($key); $value_sql = $db->sql_escape((string) $value);
 			$exists = "SELECT 1 FROM " . CONFIG_TABLE . " WHERE config_name = '" . $key_sql . "'";
 			if (phpbb_acl_rows($db, $exists)) { continue; }
 			// The SELECT is only an optimization. The INSERT rechecks absence and
 			// authority; a concurrently restored value is never overwritten.
+			$attempted = true;
 			$db->sql_query('INSERT INTO ' . CONFIG_TABLE . " (config_name, config_value) SELECT '" . $key_sql . "', '" . $value_sql . "' WHERE " . $actor['guard'] . ' AND NOT EXISTS (' . $exists . ')');
 			$changed = (int) $db->sql_affectedrows();
-			dbmtnc_date_actor($db);
+			call_user_func($authorize, $db);
 			if (!phpbb_acl_rows($db, $exists)) { phpbb_acl_error('Maintenance_config_failed'); }
 			if ($changed === 1) { $restored[] = $key; }
 		}
-		dbmtnc_date_actor($db);
+		call_user_func($authorize, $db);
 		$unknown = dbmtnc_config_version_unknown($db);
-		dbmtnc_date_actor($db);
+		call_user_func($authorize, $db);
+		$completed = true;
 		return array('restored' => $restored, 'version_unknown' => $unknown);
 	}
-	finally { $lock->release(); }
+	finally
+	{
+		// A retry may find that every insertion already succeeded before its ACK
+		// or cache cleanup failed. Successful no-op repairs must refresh it too.
+		if ($attempted || $completed) { dbmtnc_config_expire_cache(); }
+	}
 }

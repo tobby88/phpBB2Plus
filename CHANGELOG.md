@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Share non-overwriting configuration recovery between the ACP and emergency
+  console, with the appropriate fresh authority predicate on every insertion.
+  Stop after revoked credentials or uncertain outcomes, preserve independently
+  restored values, and expire the configuration cache after attempted repairs
+  and successful no-op retries. Cache cleanup failures cannot report success or
+  leak the ACP writer lock. No recovery action stamps a database upgrade.
+  Reuse successful ERC password proofs only within one request and only for the
+  exact account/hash/password; always reread account status and permissions.
 - Recheck emergency path/server, cookie and GZip settings against current
   credentials inside one guarded UPDATE per form. Require every selected key
   to remain present and unambiguous; reject malformed input and unsafe cookie
