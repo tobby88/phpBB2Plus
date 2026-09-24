@@ -31,6 +31,10 @@ jobs:
         env:
           PHPBB_STORAGE_NATIVE: '1'
           PHPBB_STORAGE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-field-column.php
+        env:
+          PHPBB_PROFILE_COLUMN_NATIVE: '1'
+          PHPBB_PROFILE_COLUMN_PASSWORD: fixture-only
       - run: php .github/scripts/check-storage-policy.php
         env:
           PHPBB_STORAGE_NATIVE: '1'

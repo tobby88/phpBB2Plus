@@ -1481,6 +1481,7 @@ CREATE TABLE `phpbb_ctracker_rate_limits` (
 
 CREATE TABLE phpbb_profile_fields (
 field_id MEDIUMINT( 8 ) UNSIGNED NOT NULL AUTO_INCREMENT,
+field_column VARCHAR(64) DEFAULT NULL,
 field_name VARCHAR( 255 ) NOT NULL ,
 field_description VARCHAR( 255 ) NULL ,
 field_type TINYINT( 4 ) UNSIGNED NOT NULL DEFAULT '0',
@@ -1501,7 +1502,8 @@ view_in_topic TINYINT( 2 ) UNSIGNED NOT NULL DEFAULT '0',
 topic_location TINYINT( 2 ) UNSIGNED NOT NULL DEFAULT '1',
 PRIMARY KEY (field_id),
 INDEX ( field_type ) ,
-UNIQUE (field_name)
+UNIQUE (field_name),
+UNIQUE KEY field_column (field_column)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `phpbb_captcha_config` (

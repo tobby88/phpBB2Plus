@@ -388,6 +388,19 @@ function update_queue_topic_notification_columns(&$operations, $connection, $dat
 	update_queue_column($operations, $connection, $database, $table, 'notify_claimed_at', 'INT(10) UNSIGNED NOT NULL DEFAULT 0');
 }
 
+function update_queue_profile_field_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	// Leave every existing mapping NULL. Legacy identifiers keep their exact
+	// interpretation; the coordinated field writer pins a mapping on first edit.
+	// No user columns are renamed, copied, truncated or removed by this upgrade.
+	update_queue_column($operations, $connection, $database, $table, 'field_column', 'VARCHAR(64) DEFAULT NULL');
+	if (!update_index_exists($connection, $database, $table, 'field_column'))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ADD UNIQUE KEY field_column (field_column)';
+	}
+}
+
 function update_queue_pm_read_columns(&$operations, $connection, $database, $table)
 {
 	if (!update_table_exists($connection, $database, $table)) { return; }
@@ -622,6 +635,7 @@ foreach (array('categories', 'forums', 'topics') as $recovery_table)
 {
 	update_queue_maintenance_recovery_columns($operations, $connection, $dbname, $table_prefix . $recovery_table);
 }
+update_queue_profile_field_columns($operations, $connection, $dbname, $table_prefix . 'profile_fields');
 update_queue_pm_read_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
 update_queue_pm_write_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
 update_queue_pm_attachment_columns($operations, $connection, $dbname, $table_prefix . 'attachments_desc');

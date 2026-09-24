@@ -769,5 +769,7 @@ jobs:
         run: php .github/scripts/check-profile-text-redisplay.php
       - name: Check custom profile forms, defaults and selections
         run: php .github/scripts/check-custom-profile-forms.php
+      - name: Check stable profile column compatibility
+        run: php .github/scripts/check-profile-field-column.php
       - name: Check public profile identity transaction dependencies
         run: php .github/scripts/check-public-profile-identity-native.php

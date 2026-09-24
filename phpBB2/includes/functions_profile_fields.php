@@ -47,7 +47,17 @@ function phpbb_profile_field_column($field)
     return '';
   }
 
-  $column = text_to_column((string) $field['field_name']);
+  // NULL/absent mappings retain the legacy name-derived column. Once a field
+  // has an explicit mapping, its display name can change without renaming the
+  // users-table column. An invalid explicit mapping must never fall back.
+  if (array_key_exists('field_column', $field) && $field['field_column'] !== null)
+  {
+    $column = is_string($field['field_column']) ? $field['field_column'] : '';
+  }
+  else
+  {
+    $column = text_to_column((string) $field['field_name']);
+  }
   return preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $column) ? $column : '';
 }
 
