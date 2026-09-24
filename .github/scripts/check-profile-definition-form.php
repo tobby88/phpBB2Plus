@@ -3,6 +3,7 @@ putenv('PHPBB_PROFILE_DEFINITION_NATIVE=0');
 require __DIR__.'/check-profile-definition-storage.php';
 require_once __DIR__.'/profile-request-fixture.php';
 require_once $ats_source.'includes/functions_profile_definition_form.php';
+require_once $ats_source.'includes/functions_profile_retirement_form.php';
 require_once $ats_source.'includes/template.php';
 $constants=file_get_contents($ats_source.'includes/constants.php');
 foreach(array('NOT_REQUIRED','ALLOW_VIEW','DISALLOW_VIEW','REQUIRED','VIEW_IN_PROFILE','NO_VIEW_IN_PROFILE','CONTACTS','ABOUT','VIEW_IN_MEMBERLIST','NO_VIEW_IN_MEMBERLIST','VIEW_IN_TOPIC','NO_VIEW_IN_TOPIC','AUTHOR','ABOVE_SIGNATURE','BELOW_SIGNATURE','TEXT_FIELD_MINLENGTH') as $name){
@@ -19,7 +20,7 @@ $add=pdf_section($controller,"if(\$mode == 'add')","elseif(\$mode == 'update')")
 $edit='if(false){} '.pdf_section($controller,"elseif(\$mode == 'edit')","elseif(\$mode == 'delete')");
 $bindings=pdf_section($controller,"\$template->assign_vars(array(\n  'L_NEW_FIELD_NAME'","\$template->pparse('body');");
 class DefinitionFormRows {
- var $row; function sql_query($sql){return true;} function sql_fetchrow($r){return $this->row;}
+ var $row; function sql_query($sql){return true;} function sql_fetchrow($r){return $this->row;} function sql_freeresult($r){}
 }
 $db=new DefinitionFormRows();$filename='admin_profile_fields.php';$phpbb_root_path=$ats_source;
 $theme=array('template_name'=>'fisubsilversh');$userdata=array('user_lang'=>'english','template_name'=>'fisubsilversh','session_id'=>'fixture');
@@ -75,5 +76,28 @@ try{
  ats_check($definition_revision===phpbb_profile_definition_revision($row),'Initial edit token fingerprints the displayed definition');$cases++;
  $db->row=false;$request['definition_revision']=str_repeat('c',64);profile_fixture_request($request);$definition_draft=$_POST;eval($edit);$vars=$template->_tpldata['.'][0];
  ats_check(html_entity_decode($vars['FIELD_NAME'],ENT_QUOTES,'UTF-8')===$request['field_name']&&$definition_revision===$request['definition_revision'],'Deleted field rejection retains draft and stale token, never silently becomes creation');$cases++;
+ $recovery='if(false){} '.pdf_section($controller,"elseif(\$mode == 'delete')","\$template->assign_vars(array(\n  'L_NEW_FIELD_NAME'");
+ foreach(array('english','german') as $language){
+  require $ats_source.'language/lang_'.$language.'/lang_main.php';require $ats_source.'language/lang_'.$language.'/lang_admin.php';
+  foreach(array('delete','restore') as $action){
+   $raw="Grüße \\ &amp; 😀 </p><script>x</script>";$row=phpbb_profile_definition_form_defaults();$row['field_id']=1;$row['field_column']='user_notes';$row['field_name']=htmlspecialchars($raw,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+   $op=str_repeat('a',64);$rev=phpbb_profile_definition_revision($row);
+   foreach(array(false,true) as $retry){
+    $mode=$action;$pfid=$action==='delete'?1:'x';$retirement_retry=$retry;
+    profile_fixture_request(array('definition_operation'=>$op,'definition_revision'=>$rev));$_GET=array('definition_operation'=>$op);
+    $db->row=$retry?false:($action==='delete'?$row:array('definition_snapshot'=>json_encode($row)));
+    $template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];$template->load_config($ats_source.'templates/fisubsilversh',false);$template->assign_vars(array('ERROR_BOX'=>$retry?'fixture error':''));
+    eval($recovery);ob_start();try{$template->pparse('body');$html=ob_get_contents();}finally{ob_end_clean();}
+    ats_check(strpos($html,'<script>x</script>')===false&&($retry||strpos($html,'&lt;script&gt;')!==false),'Removal/restoration label HTML boundary '.$language.' '.$action);
+    ats_check(strpos($html,'method="post"')!==false&&strpos($html,'name="sid"')!==false&&strpos($html,'name="cancel"')!==false,'Actual confirmation uses POST/SID/cancel');
+    if($retry){ats_check(strpos($html,'fixture error')!==false&&strpos($html,'value="'.$op.'"')!==false,'Retry retains error and original operation without active row');if($action==='delete'){ats_check(strpos($html,'value="'.$rev.'"')!==false,'Removal retains original revision');}}
+    $cases++;
+   }
+  }
+  ats_check(phpbb_profile_retirement_label('{}')===phpbb_admin_html($lang['Profile_retirement_unknown']),'Unreadable snapshot has localized safe label');$cases++;
+ }
+ foreach(array('',str_repeat('A',64),str_repeat('a',63),str_repeat('a',65),array('bad'),null,"\" onclick=\"bad",str_repeat('a',64)) as $token){
+  ats_check(phpbb_profile_retirement_token(array('operation'=>$token),'operation')===($token===str_repeat('a',64)?$token:''),'Strict receipt token');$cases++;
+ }
  echo 'Profile definition forms: '.$cases." actual-controller/template, parser and token cases passed.\n";
 }finally{restore_error_handler();}

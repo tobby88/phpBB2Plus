@@ -75,7 +75,7 @@ try {
  cpf_check(displayable_field_data('0',CHECKBOX)==='0'&&displayable_field_data(',0,,other,',CHECKBOX)==='0'.$lang['and'].'other','Zero choice display and separators');
  $userdata=array('session_logged_in'=>true);$field=array('field_name'=>'fixture_zero','field_type'=>TEXT_FIELD,'topic_location'=>AUTHOR);
  $out=get_topic_udata(array('user_id'=>999,'fixture_zero'=>'0'),array($field));cpf_check($out['author']===array('fixture_zero: 0'),'Zero visible beside topic author');
- $definition=file_get_contents($phpbb_root_path.'admin/admin_profile_fields.php');$a=strpos($definition,'function profile_field_post_value(');$b=strpos($definition,'function profile_field_column_identifier(',$a);cpf_check($a!==false&&$b>$a,'Actual definition input helper');eval(substr($definition,$a,$b-$a));
+ $definition=file_get_contents($phpbb_root_path.'admin/admin_profile_fields.php');$a=strpos($definition,'function profile_field_post_value(');$b=strpos($definition,'$session_field =',$a);cpf_check($a!==false&&$b>$a,'Actual definition input helper');eval(substr($definition,$a,$b-$a));
  profile_fixture_request(array('draft'=>$raw,'nested'=>array('bad')));cpf_check(profile_field_post_value('draft')===$raw&&profile_field_post_value('nested')==='','Definition inputs retain slashes and reject arrays');
  require_once $phpbb_root_path.'includes/functions_profile_definition_form.php';
  if(!defined('TEXTAREA_MINLENGTH')){define('TEXTAREA_MINLENGTH',0);}

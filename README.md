@@ -159,6 +159,15 @@ Personalized language, timezone and date display are not mistaken for changed
 board policy. The configured style must still exist. These checks use the same
 owned profile transaction; other quota workflows retain their existing isolation.
 
+Custom profile-field labels are separate from their physical storage names.
+Changing a label or reducing an input limit does not rename a column or truncate
+saved values. Keep the original form when retrying an interrupted creation.
+In ACP, **Remove (recoverable)** hides a field but retains its settings and user
+values; **Removed profile fields** provides restoration without resetting those
+values. This is not permanent data erasure. Run the consolidated updater first:
+it adds the stable column mapping and creation/recovery journals without changing
+existing profile values. Add and edit/recovery retain distinct delegated grants.
+
 Public registration commits the account, personal group/membership, CAPTCHA
 consumption and CrackerTracker success cooldown in one owned InnoDB transaction.
 It rechecks the exact live guest session, current registration/password/avatar

@@ -78,6 +78,17 @@ $lang['Profile_definition_upgrade'] = 'Bitte führe vor Änderungen an Profilfel
 $lang['Profile_definition_capacity'] = 'Der Speicher für das Profilfeld konnte nicht sicher vorbereitet werden. Vorhandene Werte wurden nicht gekürzt. Bitte versuche es erneut oder prüfe die Datenbankkonfiguration.';
 $lang['Profile_definition_failed'] = 'Der Profilfeld-Vorgang konnte nicht bestätigt werden. Behalte dieses Formular und versuche es mit denselben Werten erneut; lege keine weitere Kopie an.';
 $lang['Profile_definition_exists'] = 'Ein Profilfeld mit diesem Namen existiert bereits. Bitte wähle einen anderen Namen.';
+$lang['Profile_retirement_remove'] = 'Entfernen (wiederherstellbar)';
+$lang['Profile_retirement_restore'] = 'Wiederherstellen';
+$lang['Profile_retirement_title'] = 'Entfernte Profilfelder';
+$lang['Profile_retirement_explain'] = 'Diese Felder werden nicht mehr angezeigt oder bearbeitet. Ihre Definitionen und gespeicherten Benutzerwerte bleiben zur Wiederherstellung erhalten; das Entfernen löscht die Daten nicht.';
+$lang['Profile_retirement_confirm'] = 'Das Feld „%s“ aus den aktiven Profilen entfernen? Seine Definition und gespeicherten Benutzerwerte bleiben erhalten und können hier wiederhergestellt werden.';
+$lang['Profile_retirement_confirm_restore'] = 'Das Feld „%s“ mit seinen bisherigen Einstellungen und gespeicherten Benutzerwerten wiederherstellen? Vorhandene Werte werden nicht überschrieben.';
+$lang['Profile_retirement_retry'] = 'Denselben Vorgang zum Entfernen oder Wiederherstellen erneut versuchen? Behalte dieses Formular, um einen unterbrochenen Vorgang aufzulösen. Gespeicherte Benutzerwerte werden weder gelöscht noch überschrieben.';
+$lang['Profile_retirement_failed'] = 'Dieser Vorgang konnte nicht bestätigt werden. Du kannst dieses Formular erneut absenden. Falls sich Berechtigungen, das Feld oder sein Speicher geändert haben, öffne die Feldliste neu und prüfe den aktuellen Zustand.';
+$lang['Profile_retirement_removed'] = 'Profilfeld entfernt; seine Daten bleiben zur Wiederherstellung erhalten';
+$lang['Profile_retirement_restored'] = 'Profilfeld wiederhergestellt';
+$lang['Profile_retirement_unknown'] = 'Profilfeld mit unlesbaren Wiederherstellungsdaten';
 $lang['Backup_DB'] = 'Datenbank-Backup';
 $lang['Restore_DB'] = 'Datenbank wiederherstellen';
 

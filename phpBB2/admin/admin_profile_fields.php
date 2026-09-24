@@ -53,6 +53,7 @@ $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 require_once($phpbb_root_path . 'includes/functions_profile_definition_form.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_profile_retirement_form.'.$phpEx);
 $filename = basename(__FILE__);
 
 $mode_value = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
@@ -66,12 +67,15 @@ if($mode_value === '' || $pfid_value === '')
 
 $mode = $mode_value;
 $pfid = ($pfid_value === 'x') ? 'x' : (preg_match('/^[1-9][0-9]{0,7}$/D', $pfid_value) ? (int)$pfid_value : 0);
-if (!in_array($mode, array('add', 'update', 'edit', 'delete', 'confirmdelete'), true) || ($pfid !== 'x' && $pfid < 1))
+if (!in_array($mode, array('add', 'update', 'edit', 'delete', 'confirmdelete', 'restore', 'confirmrestore'), true)
+  || ($pfid !== 'x' && $pfid < 1)
+  || (in_array($mode, array('delete','confirmdelete'), true) && $pfid === 'x')
+  || (in_array($mode, array('add','restore','confirmrestore'), true) && $pfid !== 'x'))
 {
   message_die(GENERAL_ERROR, 'Invalid profile-field request.');
 }
 
-if (in_array($mode, array('update', 'confirmdelete'), true))
+if (in_array($mode, array('update', 'confirmdelete', 'confirmrestore'), true))
 {
   phpbb_admin_require_post_session();
 }
@@ -81,18 +85,15 @@ function profile_field_post_value($name, $default = '')
   return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) phpbb_request_raw_value($_POST[$name]) : $default;
 }
 
-function profile_field_column_identifier($display_name)
-{
-  $identifier = text_to_column($display_name);
-  if (!preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $identifier))
-  {
-    return false;
-  }
-
-  return $identifier;
-}
-
 $session_field = phpbb_admin_session_field();
+// Both modules share a file, but opening recovery/edit screens still requires
+// the exact edit grant. Every mutation rechecks current authority under locks.
+try
+{
+  phpbb_acp_actor(new PhpbbAclDatabase($db, 'Profile_definition_failed'),
+    'admin_profile_fields.' . $phpEx . '?mode=' . (($mode === 'add' || ($mode === 'update' && $pfid === 'x')) ? 'add' : 'edit') . '&pfid=x');
+}
+catch (PhpbbAclException $failure) { message_die(GENERAL_ERROR, phpbb_admin_html($failure->getMessage())); }
 
 $definition_draft = null;
 $definition_error = '';
@@ -118,6 +119,18 @@ if ($mode === 'update')
   {
     $definition_draft = $_POST;
     $mode = $pfid === 'x' ? 'add' : 'edit';
+  }
+}
+$retirement_retry = false;
+if (in_array($mode, array('confirmdelete','confirmrestore'), true))
+{
+  $retirement_result = phpbb_profile_retirement_submit($db, $_POST, $mode, $pfid);
+  if ($retirement_result[0] === 'cancel') { redirect(append_sid("$filename?mode=edit&pfid=x")); }
+  if ($retirement_result[0] === 'retry')
+  {
+    $definition_error = $retirement_result[1];
+    $retirement_retry = true;
+    $mode = $mode === 'confirmdelete' ? 'delete' : 'restore';
   }
 }
 $template->assign_vars(array('ERROR_BOX'=>''));
@@ -163,7 +176,10 @@ elseif($mode == 'edit')
       'L_NAME' => $lang['profile_field_name'],
       'L_ACTION' => $lang['profile_field_action'],
       'L_EDIT' => $lang['Edit'],
-      'L_DELETE' => $lang['Delete']
+      'L_DELETE' => $lang['Profile_retirement_remove'],
+      'L_RETIRED_TITLE' => $lang['Profile_retirement_title'],
+      'L_RETIRED_EXPLAIN' => $lang['Profile_retirement_explain'],
+      'L_RESTORE' => $lang['Profile_retirement_restore']
       ));
     
     $profile_rows = get_fields();
@@ -193,6 +209,17 @@ elseif($mode == 'edit')
           ));
       }
     }
+    $retired_result = $db->sql_query('SELECT operation_key,field_id,definition_snapshot FROM ' . PROFILE_FIELD_ACTIONS_TABLE . " WHERE action_state='retired' ORDER BY created_at DESC,operation_key");
+    if (!$retired_result) { message_die(GENERAL_ERROR, 'Profile_definition_upgrade'); }
+    while ($retired = $db->sql_fetchrow($retired_result))
+    {
+      if (phpbb_profile_retirement_token($retired, 'operation_key') === '') { continue; }
+      $template->assign_block_vars('retired_fields', array(
+        'ID' => (int)$retired['field_id'],
+        'NAME' => phpbb_profile_retirement_label($retired['definition_snapshot']),
+        'U_RESTORE' => append_sid($filename . '?mode=restore&pfid=x&definition_operation=' . $retired['operation_key'])));
+    }
+    $db->sql_freeresult($retired_result);
   }
   else
   {
@@ -219,46 +246,55 @@ elseif($mode == 'edit')
 }
 elseif($mode == 'delete')
 {
-  $field_name = get_fields('WHERE field_id = '.(int) $pfid,false,'field_name');
-  if (!$field_name)
-    message_die(GENERAL_ERROR, 'Profile field not found.');
-
-  $template->set_filenames(array('body' => 'admin/confirm_body.tpl'));
-  $hidden_fields = '<input type="hidden" name="mode" value="confirmdelete" />' .
-    '<input type="hidden" name="pfid" value="' . (int) $pfid . '" />' . phpbb_admin_session_field();
+  if ($retirement_retry)
+  {
+    $operation = phpbb_profile_retirement_token($_POST, 'definition_operation');
+    $revision = phpbb_profile_retirement_token($_POST, 'definition_revision');
+    $confirmation = $lang['Profile_retirement_retry'];
+  }
+  else
+  {
+    $field = get_fields('WHERE field_id = '.(int)$pfid, false);
+    if (!$field) { message_die(GENERAL_ERROR, 'Profile_definition_changed'); }
+    $operation = bin2hex(phpbb_random_bytes(32));
+    $revision = phpbb_profile_definition_revision($field);
+    $confirmation = sprintf($lang['Profile_retirement_confirm'], phpbb_profile_display_text($field['field_name']));
+  }
+  $template->set_filenames(array('body' => 'admin/profile_field_confirm.tpl'));
   $template->assign_vars(array(
     'MESSAGE_TITLE' => $lang['Confirm'],
-	'MESSAGE_TEXT' => sprintf($lang['double_check_delete'], phpbb_profile_display_text($field_name['field_name'])),
+    'MESSAGE_TEXT' => $confirmation,
     'L_YES' => $lang['Yes'],
     'L_NO' => $lang['No'],
     'S_CONFIRM_ACTION' => append_sid($filename),
-    'S_HIDDEN_FIELDS' => $hidden_fields
+    'S_HIDDEN_FIELDS' => phpbb_profile_retirement_hidden('confirmdelete', $pfid, $operation, $revision)
     ));
 }
-elseif($mode == 'confirmdelete')
+elseif($mode == 'restore')
 {
-  if (!isset($_POST['confirm']))
-    redirect(append_sid("$filename?mode=edit&pfid=x"));
-
-  $field_name = get_fields('WHERE field_id = '.(int) $pfid,false,'field_name');
-  $name = $field_name ? profile_field_column_identifier($field_name['field_name']) : false;
-  if ($name === false)
-    message_die(GENERAL_ERROR, 'Invalid profile-field column.');
-
-  $sql = "DELETE FROM " . PROFILE_FIELDS_TABLE . "
-    WHERE field_id = " . (int) $pfid;
-  if(!$db->sql_query($sql))
-    message_die(GENERAL_ERROR,'Could not delete profile form database','',__LINE__,__FILE__,$sql);
-  
-  $sql = "ALTER TABLE " . USERS_TABLE . "
-    DROP COLUMN $name";
-  if(!$db->sql_query($sql))
-    message_die(GENERAL_ERROR,'Could not remove column from '.USERS_TABLE,'',__LINE__,__FILE__,$sql);
-  
+  $operation = phpbb_profile_retirement_token($retirement_retry ? $_POST : $_GET, 'definition_operation');
+  if ($retirement_retry) { $confirmation = $lang['Profile_retirement_retry']; }
+  else
+  {
+    if ($operation === '') { message_die(GENERAL_ERROR, 'Profile_definition_invalid'); }
+    $result = $db->sql_query('SELECT definition_snapshot FROM ' . PROFILE_FIELD_ACTIONS_TABLE . " WHERE operation_key='" . $operation . "' AND action_state='retired'");
+    if (!$result) { message_die(GENERAL_ERROR, 'Profile_definition_upgrade'); }
+    $retired = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+    if (!$retired) { message_die(GENERAL_ERROR, 'Profile_definition_changed'); }
+    $confirmation = sprintf($lang['Profile_retirement_confirm_restore'], phpbb_profile_retirement_label($retired['definition_snapshot']));
+  }
+  $template->set_filenames(array('body' => 'admin/profile_field_confirm.tpl'));
+  $template->assign_vars(array(
+    'MESSAGE_TITLE' => $lang['Confirm'], 'MESSAGE_TEXT' => $confirmation,
+    'L_YES' => $lang['Yes'], 'L_NO' => $lang['No'], 'S_CONFIRM_ACTION' => append_sid($filename),
+    'S_HIDDEN_FIELDS' => phpbb_profile_retirement_hidden('confirmrestore', 'x', $operation, '')));
+}
+elseif(in_array($mode, array('confirmdelete','confirmrestore'), true))
+{
   $template->set_filenames(array('body' => 'admin/admin_message_body.tpl'));
   $template->assign_vars(array(
-    'MESSAGE_TITLE' => $lang['field_deleted'],
-    'MESSAGE_TEXT' => $lang['click_here_here']
+    'MESSAGE_TITLE' => $lang[$mode === 'confirmdelete' ? 'Profile_retirement_removed' : 'Profile_retirement_restored'],
+    'MESSAGE_TEXT' => '<a href="' . phpbb_admin_html(append_sid($filename . '?mode=edit&pfid=x')) . '">' . phpbb_admin_html($lang['profile_field_list']) . '</a>'
     ));
 }
 

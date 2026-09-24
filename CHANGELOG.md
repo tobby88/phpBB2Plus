@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Separate custom profile-field labels from stable physical storage. Guard
+  creation and editing with current ACP permissions, revision/operation tokens,
+  recoverable staging and non-destructive capacity preparation. Replace the
+  old metadata-delete/column-drop sequence with explicitly recoverable removal
+  and restoration in the English/German ACP, preserving saved user values.
+  Lost commit acknowledgements keep the original confirmation retryable; old
+  confirmations cannot remove a restored field again. Installer and consolidated
+  updater provide the mapping and creation/recovery journals. Permanent erasure
+  is separate from this reversible removal.
 - Correct profile request boundaries after the legacy common.php escaping pass.
   Public/ACP text, custom fields, field definitions, gallery handoffs and the
   signature editor now remove that request-only layer exactly once. Full-form

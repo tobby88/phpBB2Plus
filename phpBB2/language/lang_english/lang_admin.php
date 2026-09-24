@@ -78,6 +78,17 @@ $lang['Profile_definition_upgrade'] = 'Run the current database updater before c
 $lang['Profile_definition_capacity'] = 'The field storage could not be prepared safely. No existing values were shortened. Please retry or check the database configuration.';
 $lang['Profile_definition_failed'] = 'The profile-field operation could not be confirmed. Keep this form and retry with the same values; do not create another copy.';
 $lang['Profile_definition_exists'] = 'A profile field with this name already exists. Please choose another name.';
+$lang['Profile_retirement_remove'] = 'Remove (recoverable)';
+$lang['Profile_retirement_restore'] = 'Restore';
+$lang['Profile_retirement_title'] = 'Removed profile fields';
+$lang['Profile_retirement_explain'] = 'These fields are no longer displayed or editable. Their definitions and saved user values are retained for recovery; removing a field does not erase its data.';
+$lang['Profile_retirement_confirm'] = 'Remove the field "%s" from the active profiles? Its definition and saved user values will be retained and can be restored here.';
+$lang['Profile_retirement_confirm_restore'] = 'Restore the field "%s" with its previous settings and saved user values? Existing values will not be overwritten.';
+$lang['Profile_retirement_retry'] = 'Retry the same remove or restore operation? Keep this form to resolve an interrupted operation. No saved user values will be erased or overwritten.';
+$lang['Profile_retirement_failed'] = 'This operation could not be confirmed. You may retry this form. If permissions, the field or its storage have changed, reopen the field list and review its current state.';
+$lang['Profile_retirement_removed'] = 'Profile field removed; its data is retained for recovery';
+$lang['Profile_retirement_restored'] = 'Profile field restored';
+$lang['Profile_retirement_unknown'] = 'Profile field with unreadable recovery metadata';
 $lang['Backup_DB'] = 'Backup Database';
 $lang['Restore_DB'] = 'Restore Database';
 
