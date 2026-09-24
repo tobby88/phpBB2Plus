@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate password content after decoding one request-escaping layer, without
+  changing login/hash bytes or stored credentials. Reject embedded NUL bytes
+  consistently, while preserving literal backslash-zero. When optional password
+  complexity is enabled, require real Unicode letters and decimal digits;
+  punctuation no longer satisfies either category. Existing minimum/maximum
+  byte-length rules and normal password-change prompts remain unchanged.
 - Align installer and emergency-console board passwords with the unchanged login
   and account-creation representation, including quotes/backslashes and the hash
   byte limit. Preserve raw installer confirmation/output, reject malformed

@@ -404,7 +404,7 @@ if (defined("PHPBB_INSTALLED"))
 // Import language file, setup template ...
 include($phpbb_root_path.'language/lang_' . $language . '/lang_main.'.$phpEx);
 include($phpbb_root_path.'language/lang_' . $language . '/lang_admin.'.$phpEx);
-$install_password_policy = validate_complex_password(is_string($admin_name) ? stripslashes($admin_name) : '', $admin_password_value);
+$install_password_policy = validate_complex_password(is_string($admin_name) ? stripslashes($admin_name) : '', $admin_password_value, true);
 
 // Ok for the time being I'm commenting this out whilst I'm working on
 // better integration of the install with upgrade as per Bart's request

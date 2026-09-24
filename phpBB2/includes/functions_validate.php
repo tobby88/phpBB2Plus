@@ -361,7 +361,7 @@ function stopforumspam($value, $type)
 	return false;
 }
 // Start add - Protect user account MOD
-function validate_complex_password ($username, $password)
+function validate_complex_password ($username, $password, $request_escaped = null)
 {
 	global $board_config, $lang;
 	$ret = FALSE;
@@ -370,6 +370,15 @@ function validate_complex_password ($username, $password)
 	if ($input_error !== '')
 	{
 		return array('error' => TRUE, 'error_msg' => $lang[$input_error]);
+	}
+	// Decode only a validation copy. Existing login hashes and byte-length rules
+	// use the legacy escaped representation and must not change here. Standalone
+	// callers (installer) explicitly declare it; common.php supplies the default.
+	$policy_password = ($request_escaped === null) ? phpbb_request_raw_value($password)
+		: ($request_escaped ? stripslashes($password) : $password);
+	if (strpos($policy_password, "\0") !== false)
+	{
+		return array('error' => TRUE, 'error_msg' => $lang['Password_invalid']);
 	}
 	//verify minimum length
 	$minimum_length = max(0, min(72, (int) $board_config['min_password_len']));
@@ -386,10 +395,11 @@ function validate_complex_password ($username, $password)
 		$msg_explain .= $lang['Password_not_same'];
 
 	}
-	// verify password holds both alfa and numeric
+	// Require actual Unicode letters and decimal digits, not punctuation. The
+	// /u checks fail closed for malformed UTF-8; no normalization is applied.
 	if ( $board_config['force_complex_password'] )
 	{	
-		if ( ! (preg_match("/[a-zA-Z\.]/",$password) && preg_match("/[0-9\.]/",$password))) 
+		if (preg_match('/\p{L}/u', $policy_password) !== 1 || preg_match('/\p{Nd}/u', $policy_password) !== 1)
 		{
 			$ret = TRUE;
 			$msg_explain .= ($msg_explain) ? ', ' : '';

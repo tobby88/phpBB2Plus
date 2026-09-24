@@ -64,6 +64,9 @@ jobs:
       - name: Check installer and emergency-console password round trips
         run: php .github/scripts/check-password-entrypoints.php
 
+      - name: Check password policy after actual request normalization
+        run: php .github/scripts/check-password-request-policy.php
+
       - name: Check InnoDB migration schema and updater integration
         run: php .github/scripts/check-innodb-migration.php
       - name: ACP avatar upload transaction integration
