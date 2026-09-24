@@ -109,12 +109,16 @@ $tail= <<<'PHP'
  // never a real forum configuration or credentials. Use its own constants and
  // preview token, including its exact database/prefix lock namespace.
  function pfc_cli($config,$arguments){
-  $extension_dir=ini_get('extension_dir');
-  $command=escapeshellarg(PHP_BINARY).' -n -d '.escapeshellarg('extension_dir='.$extension_dir);
-  // Linux packages may split mysqlnd into its own module. PHP 5.6 also
-  // requires the actual .so filename rather than resolving a bare name.
-  // Built-in modules need no load flag; keep mysqlnd before dynamic mysqli.
-  foreach(PHP_OS==='WINNT'?array('php_mysqli.dll'):array('mysqlnd.so','mysqli.so') as $extension){if(is_file($extension_dir.DIRECTORY_SEPARATOR.$extension)){$command.=' -d '.escapeshellarg('extension='.$extension);}}
+  $command=escapeshellarg(PHP_BINARY);
+  if(PHP_OS==='WINNT'){
+   // The portable Windows fixtures deliberately start without a php.ini.
+   $command.=' -n -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d extension=php_mysqli.dll';
+  }else{
+   // Preserve the configured CLI module stack. Linux packages can make both
+   // mysqlnd and (before PHP 8) JSON separate modules; -n would discard these
+   // prerequisites even though the same PHP runtime passed the parent test.
+   $ini=php_ini_loaded_file();if($ini!==false){$command.=' -c '.escapeshellarg($ini);}
+  }
   $command.=' '.escapeshellarg(dirname($GLOBALS['ats_source']).'/update/purge_profile_fields.php').' '.escapeshellarg('--config='.$config);
   foreach($arguments as $argument){$command.=' '.escapeshellarg($argument);}
   $pipes=array();$process=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));ats_check(is_resource($process),'Start real cleanup CLI');fclose($pipes[0]);
