@@ -17,6 +17,14 @@ changes consolidated after that baseline without implying active maintenance.
   confirmations cannot remove a restored field again. Installer and consolidated
   updater provide the mapping and creation/recovery journals. Permanent erasure
   is separate from this reversible removal.
+- Add an explicit offline CLI for permanently erasing retired profile fields
+  or empty, never-published creation staging. Default to a read-only inventory/
+  preview; require a database-bound confirmation, verified backup, stopped/drained
+  web/cron requests and explicit erasure consent. Preserve durable intent across
+  DDL/commit failures, erase retained definition defaults on completion, and
+  keep tombstones against stale retries. Refuse active/core/reassigned storage,
+  independent staging data and dependent indexes/constraints/triggers. Neither
+  routine updates nor ACP removal run this destructive cleanup automatically.
 - Initialize custom fields consistently during public registration and both
   ACP account-creation routes, including hidden fields without database defaults.
   Pin all definitions through account publication, preserve explicit empty/zero

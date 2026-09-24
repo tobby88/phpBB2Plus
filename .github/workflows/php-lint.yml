@@ -88,6 +88,7 @@ jobs:
         run: |
           php .github/scripts/check-maintenance-users.php
           php .github/scripts/check-profile-guest.php
+          php .github/scripts/check-profile-cleanup.php
 
       - name: Check public security bootstrap
         shell: bash

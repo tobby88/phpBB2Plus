@@ -26,6 +26,22 @@ function phpbb_profile_definition_revision($row)
     return hash('sha256', $json);
 }
 
+// Shared with the offline cleanup tool; keep the retired physical identity
+// independent of metadata query projection/order, preserving existing hashes.
+function phpbb_profile_definition_column_signature($row)
+{
+    $snapshot = array();
+    foreach (array('COLUMN_TYPE','IS_NULLABLE','COLUMN_DEFAULT','CHARACTER_SET_NAME','COLLATION_NAME','COLUMN_COMMENT','EXTRA') as $key)
+    {
+        if (!is_array($row) || !array_key_exists($key, $row) || ($row[$key] !== null && !is_scalar($row[$key])))
+        { phpbb_acl_error('Profile_definition_changed'); }
+        $snapshot[$key] = $row[$key];
+    }
+    $json = json_encode($snapshot);
+    if ($json === false) { phpbb_acl_error('Profile_definition_changed'); }
+    return hash('sha256', $json);
+}
+
 // Internal, already HTML-encoded definition values; never allow caller-supplied
 // identifiers, SQL fragments, mapping columns or row IDs in the assignment set.
 function phpbb_profile_definition_values($values)

@@ -178,6 +178,36 @@ existing guest or changes unrelated plugin columns. Invalid or incomplete profil
 metadata stops the repair rather than falling back to member defaults. This uses
 the same profile mapping/recovery tables supplied by the consolidated updater.
 
+For **permanent profile-field erasure**, use the separate database-owner CLI
+tool. Its default is a read-only receipt list, not a bulk deletion:
+
+```sh
+php update/purge_profile_fields.php
+php update/purge_profile_fields.php --kind=retired --operation=<operation-from-list>
+```
+
+Use the listed field ID to match the removed-field list in the ACP. The preview
+returns a confirmation token bound to that database endpoint, column and
+receipt. Verify a current backup, stop **all** forum web/cron traffic and drain
+in-flight requests, including readers (merely setting `board_disable` is
+insufficient: older readers can still reference the column). Then repeat with
+`--apply --confirm=<preview-token> --backup-confirmed --maintenance-confirmed --erase-confirmed`.
+An optional `--config=/absolute/path/config.php` selects a trusted CLI config.
+This drops the retired column and its stored values, clears retained definition
+defaults, and keeps content-free receipts so old forms cannot restore it.
+Backups are not erased by this tool; retain/dispose of them under your own policy.
+There is no automatic purge in the updater or the ACP.
+
+Use `--kind=staged` only for a never-published creation receipt. Its column must
+have the matching creation marker and contain only NULLs; even independently
+written empty strings prevent deletion. Active mappings, core columns, changed
+storage, indexes, constraints and users-table triggers prevent automatic cleanup.
+DDL is not transactional: on failure, preview/retry the **same operation**.
+The durable `purging` receipt recovers an already-completed DROP; a `purged`
+receipt never authorizes deleting a subsequently recreated column. Do not edit
+or remove those receipts to force a retry. No extra migration is needed beyond
+the profile mapping/creation/recovery tables in `update_from_153a.php`.
+
 Public registration commits the account, personal group/membership, CAPTCHA
 consumption and CrackerTracker success cooldown in one owned InnoDB transaction.
 It rechecks the exact live guest session, current registration/password/avatar

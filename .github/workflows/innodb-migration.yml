@@ -43,6 +43,10 @@ jobs:
         env:
           PHPBB_PROFILE_DEFINITION_NATIVE: '1'
           PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-cleanup.php
+        env:
+          PHPBB_PROFILE_DEFINITION_NATIVE: '1'
+          PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
       - run: |
           php .github/scripts/run-native-maintenance-users.php
           php .github/scripts/run-native-maintenance-users.php erc

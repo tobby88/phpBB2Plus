@@ -24,11 +24,7 @@ class PhpbbProfileDefinitionRetirement extends PhpbbProfileDefinitionWriter
         if ($capacity['COLUMN_KEY'] !== '') { phpbb_acl_error('Profile_definition_capacity'); }
         $rows = phpbb_acl_rows($this, "SELECT COLUMN_TYPE,IS_NULLABLE,COLUMN_DEFAULT,CHARACTER_SET_NAME,COLLATION_NAME,COLUMN_COMMENT,EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape(USERS_TABLE) . "' AND COLUMN_NAME='" . $column . "'");
         if (count($rows) !== 1 || $rows[0]['CHARACTER_SET_NAME'] !== 'utf8mb4' || $rows[0]['COLLATION_NAME'] !== 'utf8mb4_unicode_ci') { phpbb_acl_error('Profile_definition_changed'); }
-        $snapshot = array();
-        foreach (array('COLUMN_TYPE','IS_NULLABLE','COLUMN_DEFAULT','CHARACTER_SET_NAME','COLLATION_NAME','COLUMN_COMMENT','EXTRA') as $key) { $snapshot[$key] = $rows[0][$key]; }
-        $json = json_encode($snapshot);
-        if ($json === false) { phpbb_acl_error('Profile_definition_changed'); }
-        return hash('sha256', $json);
+        return phpbb_profile_definition_column_signature($rows[0]);
     }
     private function action($operation)
     {

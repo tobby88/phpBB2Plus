@@ -64,6 +64,12 @@ try {
     update_query_or_fail($connection,"INSERT INTO fixture_profile_field_actions (operation_key,field_id,field_column,definition_revision,definition_snapshot,column_signature,actor_id,session_hash,action_state,created_at,updated_at) VALUES ('".str_repeat('d',64)."',1,'old_notes','".str_repeat('e',64)."','{\"note\":\"Grüße 😀\"}','".str_repeat('f',64)."',2,'".str_repeat('a',64)."','retired',1,1)");
     $actions_before=pfc_rows($connection,'SELECT * FROM fixture_profile_field_actions');$operations=array();eval($pfc_planner);
     pfc_check(!$operations&&$actions_before===pfc_rows($connection,'SELECT * FROM fixture_profile_field_actions'),'Repeated updater preserves retirement snapshots');
+    foreach(array('purging','purged') as $state){
+        update_query_or_fail($connection,"UPDATE fixture_profile_field_jobs SET job_state='$state'");
+        update_query_or_fail($connection,"UPDATE fixture_profile_field_actions SET action_state='$state'".($state==='purged'?",definition_snapshot=''":''));
+        $jobs_before=pfc_rows($connection,'SELECT * FROM fixture_profile_field_jobs');$actions_before=pfc_rows($connection,'SELECT * FROM fixture_profile_field_actions');$operations=array();eval($pfc_planner);
+        pfc_check(!$operations&&$jobs_before===pfc_rows($connection,'SELECT * FROM fixture_profile_field_jobs')&&$actions_before===pfc_rows($connection,'SELECT * FROM fixture_profile_field_actions'),'Repeated updater preserves cleanup intent/tombstones '.$state);
+    }
     $storage=pfc_rows($connection,"SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fixture_profile_field_actions'")[0];
     pfc_check($storage['ENGINE']==='InnoDB'&&strtolower($storage['ROW_FORMAT'])==='dynamic'&&$storage['TABLE_COLLATION']==='utf8mb4_unicode_ci','Retirement journal created with modern storage');
     $storage=pfc_rows($connection,"SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fixture_profile_field_jobs'")[0];
