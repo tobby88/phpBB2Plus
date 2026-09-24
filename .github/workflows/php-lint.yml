@@ -771,5 +771,7 @@ jobs:
         run: php .github/scripts/check-custom-profile-forms.php
       - name: Check stable profile column compatibility
         run: php .github/scripts/check-profile-field-column.php
+      - name: Check profile definition publication boundaries
+        run: php .github/scripts/check-profile-definition-storage.php
       - name: Check public profile identity transaction dependencies
         run: php .github/scripts/check-public-profile-identity-native.php

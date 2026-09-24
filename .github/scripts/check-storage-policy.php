@@ -53,6 +53,13 @@ foreach($iterator as $file) {
  if(substr($file->getFilename(),-4)!=='.php'){continue;}
  $path=str_replace('\\','/',substr($file->getPathname(),strlen($root)+1));
  $source=file_get_contents($file->getPathname());
+ // This owner reads SHOW CREATE metadata to preserve existing column
+ // attributes while widening. It does not create tables. Keep any additional
+ // CREATE statement subject to the normal inventory, not a blanket exception.
+ if($path==='phpBB2/includes/functions_profile_definition_storage.php'){
+  policy_check(substr_count($source,'SHOW CREATE TABLE')===1&&substr_count($source,"['Create Table']")===3,'Profile definition metadata-read inventory');
+  $source=str_replace(array('SHOW CREATE TABLE',"['Create Table']"),array('SHOW_TABLE_DEFINITION',"['table_definition']"),$source);
+ }
  if(preg_match('/\bCREATE\s+(?:TEMPORARY\s+)?TABLE\b/i',$source)){policy_check(in_array($path,$creators,true),'Unreviewed table creator: '.$path);}
 }
 echo "Storage policy, historical entrypoints and disabled SQL-upload controller passed\n";
