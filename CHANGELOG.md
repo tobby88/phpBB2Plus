@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Bind emergency administrator promotion to the current authenticated actor and
+  one positive, database-resolved target ID. Refuse revoked credentials, changed
+  or ambiguous targets and uncertain writes without a success message or retry.
+  Combine activation/promotion and available legacy login-counter resets in one
+  guarded statement; preserve passwords, other accounts and anonymous users.
+  Already-active administrators are a successful no-op, and database-owner
+  recovery remains available, including databases without those old counters.
 - Validate password content after decoding one request-escaping layer, without
   changing login/hash bytes or stored credentials. Reject embedded NUL bytes
   consistently, while preserving literal backslash-zero. When optional password

@@ -1076,30 +1076,14 @@ switch($mode)
 				success_message($lang['raa_success']);
 				break;
 			case 'mua': // Grant user admin privileges
-				check_authorisation();
-				$username = ( isset($HTTP_POST_VARS['username']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['username']) : '';
-
-				$sql = "UPDATE " . USERS_TABLE . "
-					SET user_active = 1, user_level = " . ADMIN . "
-					WHERE username = '$username' AND user_id <> -1";
-				$result = $db->sql_query($sql);
-				if( !$result )
+				check_authorisation(true, $grant_guard, $grant_actor_id);
+				$username = (isset($HTTP_POST_VARS['username']) && is_string($HTTP_POST_VARS['username'])) ? stripslashes($HTTP_POST_VARS['username']) : null;
+				$granted = dbmtnc_erc_grant_administrator($username, $grant_actor_id);
+				if ($granted === false)
 				{
-					erc_throw_error("Couldn't update user table!", __LINE__, __FILE__, $sql);
+					erc_throw_error("Couldn't update user table!", __LINE__, __FILE__);
 				}
-				$affected_rows = $db->sql_affectedrows();
-				// Try to update the login data
-				$sql = "UPDATE " . USERS_TABLE . "
-					SET user_login_tries = 0, user_last_login_try = 0
-					WHERE username = '$username' AND user_id <> -1";
-				$result = $db->sql_query($sql);
-				if( $result )
-				{
-					// Only proceed when successful. Otherwise these fields may not exist
-					$affected_rows = max($db->sql_affectedrows(), $affected_rows);
-				}
-
-				if ($affected_rows == 0)
+				if ($granted === 0)
 				{
 					success_message($lang['mua_failed']);
 				}

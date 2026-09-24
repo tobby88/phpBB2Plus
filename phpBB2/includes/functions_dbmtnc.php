@@ -742,6 +742,47 @@ function dbmtnc_erc_remove_administrator($target_id, $expected_actor_id)
 	return $changed;
 }
 
+/** Explicit emergency promotion, bound to both resolved account identities. */
+function dbmtnc_erc_grant_administrator($username, $expected_actor_id)
+{
+	global $db;
+	if (!is_string($username) || $username === '' || strlen($username) > 255 || strpos($username, "\0") !== false
+		|| preg_match('//u', $username) !== 1 || !is_int($expected_actor_id) || $expected_actor_id < 0) { return false; }
+	if (!check_authorisation(false, $write_guard, $actor_id) || $actor_id !== $expected_actor_id) { return false; }
+	$result = $db->sql_query('SELECT user_id, username FROM ' . USERS_TABLE
+		. " WHERE username = '" . $db->sql_escape($username) . "' AND user_id > 0 LIMIT 2");
+	if (!$result) { return false; }
+	$target = $db->sql_fetchrow($result); $duplicate = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+	if ($duplicate) { return false; } // Never promote several ambiguous legacy rows.
+	if (!$target) { return 0; }
+	$target_id = (int) $target['user_id'];
+	if ($target_id <= 0) { return false; }
+	$target_guard = 'user_id = ' . $target_id . " AND username = '" . $db->sql_escape($target['username']) . "'";
+
+	// Old recovery databases may lack these two counters. Discover available
+	// fields before writing, instead of ignoring a failed second UPDATE. Include
+	// all supported resets in the same credential-guarded promotion statement.
+	$result = $db->sql_query('SHOW COLUMNS FROM ' . USERS_TABLE);
+	if (!$result) { return false; }
+	$fields = array();
+	while ($field = $db->sql_fetchrow($result)) { $fields[$field['Field']] = true; }
+	$db->sql_freeresult($result);
+	$assignments = 'user_active = 1, user_level = ' . ADMIN;
+	foreach (array('user_login_tries', 'user_last_login_try') as $counter)
+	{
+		if (isset($fields[$counter])) { $assignments .= ', ' . $counter . ' = 0'; }
+	}
+	if (!check_authorisation(false, $write_guard, $actor_id) || $actor_id !== $expected_actor_id) { return false; }
+	if (!$db->sql_query('UPDATE ' . USERS_TABLE . ' SET ' . $assignments . ' WHERE ' . $target_guard . ' AND (' . $write_guard . ')')) { return false; }
+	// An uncertain acknowledgement is never retried above. Also distinguish a
+	// harmless already-active administrator from a deleted/renamed target.
+	if (!check_authorisation(false, $after_guard, $after_actor_id) || $after_actor_id !== $expected_actor_id) { return false; }
+	$result = $db->sql_query('SELECT user_id FROM ' . USERS_TABLE . ' WHERE ' . $target_guard . ' AND user_active = 1 AND user_level = ' . ADMIN);
+	if (!$result) { return false; }
+	$confirmed = (bool) $db->sql_fetchrow($result); $db->sql_freeresult($result);
+	return $confirmed ? 1 : false;
+}
+
 function get_config_data($option)
 {
 	global $db;

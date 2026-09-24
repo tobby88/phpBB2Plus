@@ -35,6 +35,10 @@ jobs:
         env:
           PHPBB_ERC_ROLES_NATIVE: '1'
           PHPBB_ERC_ROLES_PASSWORD: fixture-only
+      - run: php .github/scripts/check-erc-grant-native.php
+        env:
+          PHPBB_ERC_GRANT_NATIVE: '1'
+          PHPBB_ERC_GRANT_PASSWORD: fixture-only
       - run: php .github/scripts/check-innodb-migration.php
         env:
           PHPBB_STORAGE_NATIVE: '1'
