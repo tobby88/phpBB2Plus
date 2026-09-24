@@ -518,7 +518,7 @@ if ( isset($_POST['submit']) )
 		$temp = phpbb_profile_field_input($fields, $HTTP_POST_VARS);
 		$profile_names[$name] = $temp;
 		
-		if($required && empty($profile_names[$name]))
+		if($required && $profile_names[$name] === '')
 		{
 		  $error = TRUE;
 				$error_msg .= ( ( isset($error_msg) ) ? '<br />' : '' ) . $lang['Fields_empty'];
@@ -1318,71 +1318,13 @@ else
 		{
 			continue;
 		}
-		$safe_field_name = phpbb_profile_text($field_name);
-		$safe_name = phpbb_profile_text($name);
+		$safe_field_name = phpbb_profile_display_text($field_name);
 		
 		$required = ($field['is_required'] == REQUIRED) ? ' *' : '';
 		
-		switch($field['field_type'])
-		{
-		  case TEXT_FIELD:
-			$posted_value = isset($HTTP_POST_VARS[$name]) && is_scalar($HTTP_POST_VARS[$name]) ? (string) $HTTP_POST_VARS[$name] : '';
-			$value = ($posted_value === '') ? $userdata[$name] : stripslashes($posted_value);
-			$length = $field['text_field_maxlen'];
-			$safe_value = phpbb_profile_text($value);
-			$field_html_code = "<input type=\"text\" class=\"post\" style=\"width: 200px\" name=\"$safe_name\" size=\"35\" maxlength=\"$length\" value=\"$safe_value\" />";
-			break;
-		  case TEXTAREA:
-			$posted_value = isset($HTTP_POST_VARS[$name]) && is_scalar($HTTP_POST_VARS[$name]) ? (string) $HTTP_POST_VARS[$name] : '';
-			$value = ($posted_value === '') ? $userdata[$name] : stripslashes($posted_value);
-			$safe_value = phpbb_profile_text($value);
-			$field_html_code = "<textarea name=\"$safe_name\" style=\"width: 300px\" rows=\"6\" cols=\"30\" class=\"post\">$safe_value</textarea>";
-			break;
-		  case RADIO:
-			$posted_value = isset($HTTP_POST_VARS[$name]) && is_scalar($HTTP_POST_VARS[$name]) ? (string) $HTTP_POST_VARS[$name] : '';
-			$value = ($posted_value === '') ? $userdata[$name] : stripslashes($posted_value);
-			$radio_list = explode(',',$field['radio_button_values']);
-			$html_list = array();
-			foreach($radio_list as $num => $radio_name)
-			{
-			  $safe_radio_name = phpbb_profile_text($radio_name);
-			  $temp = "<input type=\"radio\" name=\"$safe_name\" value=\"$safe_radio_name\"";
-			  if($radio_name == $value)
-				$temp .= ' checked="checked"';
-			  $temp .= " /> <span class=\"gen\">$safe_radio_name</span>";
-			  if($num < count($radio_list))
-				$temp .= '<br />';
-			  $html_list[] = $temp;
-			}
-			$field_html_code = '';
-			foreach($html_list as $line)
-			  $field_html_code .= $line . "\n";
-			break;
-		  case CHECKBOX:
-			$posted_values = phpbb_profile_field_input($field, $HTTP_POST_VARS);
-			$value_array = ($posted_values === '') ? explode(',', $userdata[$name]) : explode(',', $posted_values);
-			$check_list = explode(',',$field['checkbox_values']);
-			$html_list = array();
-			foreach($check_list as $num => $check_name)
-			{
-			  $safe_check_name = phpbb_profile_text($check_name);
-			  $temp = "<input type=\"checkbox\" name=\"{$safe_name}[]\" value=\"$safe_check_name\"";
-			  foreach($value_array as $val)
-				if($val == $check_name)
-				{
-				  $temp .= ' checked="checked"';
-				  break;
-				}
-			  $temp .= " /> <span class=\"gen\">$safe_check_name</span>";
-			  if($num < count($check_list))
-				$temp .= '<br />';
-			  $html_list[] = $temp;
-			}
-			$field_html_code = '';
-			foreach($html_list as $line)
-			  $field_html_code .= $line . "\n";
-			break;
-		}
+		$submitted_fields = isset($_POST['submit']) || isset($_POST['avatargallery']) || isset($_POST['submitavatar']) || isset($_POST['cancelavatar']);
+		$value = phpbb_profile_field_form_value($field, $_POST, $userdata, $submitted_fields, $mode == 'register');
+		$field_html_code = phpbb_profile_field_form_control($field, $value);
 		
 		$template->assign_block_vars('custom_fields',array(
 		  'NAME' => $safe_field_name,
@@ -1392,7 +1334,7 @@ else
 		
 		if($field['field_description'] != NULL && !empty($field['field_description']))
 		  $template->assign_block_vars('custom_fields.switch_description',array(
-			'DESCRIPTION' => phpbb_profile_text($field['field_description'])));
+			'DESCRIPTION' => phpbb_profile_display_text($field['field_description'])));
 	  }
 		//
 	  // END Custom Profile Fields MOD

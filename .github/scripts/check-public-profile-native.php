@@ -75,6 +75,7 @@ function pp_run($scenario){
  $user_absence_mode=$user_absence=$viewemail=$attachsig=$setbm=$allowsmilies=$allowhtml=$allowbbcode=$allowviewonline=$notifyreply=$notifypm=$games_block_pm=$popup_pm=$gender=0;
  $birthday=999999;$next_birthday_greeting=0;$avatar_sql='';
  $profile_data=get_fields('WHERE users_can_view = '.ALLOW_VIEW);$HTTP_POST_VARS=array('user_custom_fixture'=>"Grüße ' 😀");
+ if(array_key_exists('pp_custom_input',$GLOBALS)){$HTTP_POST_VARS['user_custom_fixture']=$GLOBALS['pp_custom_input'];}
  if(isset($GLOBALS['pp_text_input'])){
   $_POST=array('email'=>$email,'location'=>$GLOBALS['pp_text_input'],'occupation'=>$GLOBALS['pp_text_input'],'interests'=>$GLOBALS['pp_text_input']);
   $source=$GLOBALS['pp_controller'];$a=strpos($source,"\t\$strip_var_list = array('email'");$b=strpos($source,"\tforeach (array('fb'",$a);
@@ -125,6 +126,15 @@ for($fail=1;$fail<=$writes;$fail++){pp_reset($scenario);$before=pp_snap();$pp_fa
   foreach($row as $value){ats_check($value===htmlspecialchars($raw),'Exact prepared profile storage');}
   unset($GLOBALS['pp_text_input']);$cases++;
  }
+ foreach(array(0,1,2,3) as $type){foreach(array('','0',"Grüße \\ &amp; ' 😀") as $raw){
+  pp_reset();$encoded=htmlspecialchars($raw,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+  pp_sql("UPDATE fixture_profile_fields SET field_type=".$type.",text_area_maxlen=60000,radio_button_values='0,".$peer->sql_escape($encoded)."',checkbox_values='0,".$peer->sql_escape($encoded)."' WHERE field_id=1");
+  pp_sql("UPDATE fixture_users SET user_custom_fixture='previous value' WHERE user_id=2");
+  $GLOBALS['pp_custom_input']=$type===3?($raw===''?array():array($raw)):$raw;
+  ats_check(pp_run('edit')===true,'Custom field saves '.$type);
+  ats_check(pp_rows('SELECT user_custom_fixture FROM fixture_users WHERE user_id=2')[0]['user_custom_fixture']===$encoded,'Exact custom value/clear persisted '.$type);
+  unset($GLOBALS['pp_custom_input']);$cases++;
+ }}
  echo 'Native public profile: '.$cases." failure/authority/transaction cases passed.\n";
 } finally {
  if($public_avatar_scope){$public_avatar_scope->release();}$pp_hook=$pp_after=null;$pp_main->sql_close();$peer->sql_close();ats_check($control->sql_query('DROP DATABASE '.$fixture),'Remove owned profile schema');$control->sql_close();

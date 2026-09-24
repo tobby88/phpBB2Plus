@@ -78,7 +78,7 @@ if (in_array($mode, array('update', 'confirmdelete'), true))
 
 function profile_field_post_value($name, $default = '')
 {
-  return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? stripslashes((string) $_POST[$name]) : $default;
+  return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
 }
 
 function profile_field_column_identifier($display_name)
@@ -146,7 +146,7 @@ elseif($mode == 'update')
   $radio_values = htmlspecialchars(profile_field_post_value('radio_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $radio_default_value = htmlspecialchars(profile_field_post_value('radio_default_value'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $radio_values = explode("\n",str_replace("\r",'',$radio_values));
-  if(empty($radio_default_value))
+  if($radio_default_value === '')
     $radio_default_value = $radio_values[0];
   $temp = '';
   foreach($radio_values as $val)
@@ -156,7 +156,7 @@ elseif($mode == 'update')
   $checkbox_values = htmlspecialchars(profile_field_post_value('checkbox_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $check_default_values = htmlspecialchars(profile_field_post_value('check_default_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $checkbox_values = explode("\n",str_replace("\r",'',$checkbox_values));
-  if(!empty($check_default_values))
+  if($check_default_values !== '')
   {
     $check_default_values = explode("\n",str_replace("\r",'',$check_default_values));
     $temp = '';

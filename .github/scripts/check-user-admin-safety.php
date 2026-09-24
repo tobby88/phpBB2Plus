@@ -96,7 +96,7 @@ foreach (array(
 	'admin_user_sql_value($signature)',
 	"'USERNAME' => phpbb_profile_display_text(\$username)",
 	"'SIGNATURE' => phpbb_profile_display_text(str_replace('<br />'",
-	"phpbb_profile_text(\$field['field_description'])",
+	"phpbb_profile_display_text(\$field['field_description'])",
 	'implode(\', \', $profile_assignments)',
 	'WHERE user_id = " . (int) $user_id'
 ) as $marker)

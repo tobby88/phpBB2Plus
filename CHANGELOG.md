@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Share custom-profile controls between the public and ACP editors. Preserve
+  deliberately cleared text and selections on rejected forms and gallery
+  return, distinguish initial account defaults from submitted drafts, and
+  escape stored values/options exactly once. Preserve backslashes in field
+  definitions; accept and display the choice `0`, including required fields.
+  This does not rewrite existing profile data or change the database schema.
 - Preserve zero and single-character free text in profile preparation and the
   shared optional-field validator. Rejected profile forms retain backslashes,
   literal entities and date-format escapes without legacy magic-quotes removal.

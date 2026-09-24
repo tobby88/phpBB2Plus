@@ -133,6 +133,64 @@ function phpbb_profile_display_text($value)
   return htmlspecialchars(html_entity_decode($value, ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// Return HTML-encoded form state, without conflating a submitted empty value
+// with an initial page load. Free-text drafts are not truncated on redisplay;
+// storage validation and length limits still run on the eventual save.
+function phpbb_profile_field_form_value($field, $source, $stored, $submitted, $new_user = false)
+{
+  $column = phpbb_profile_field_column($field);
+  if ($column === '') { return ''; }
+  $type = isset($field['field_type']) ? (int) $field['field_type'] : -1;
+  if ($submitted)
+  {
+    if ($type === RADIO || $type === CHECKBOX)
+    {
+      return phpbb_profile_field_input($field, $source);
+    }
+    $raw = is_array($source) && isset($source[$column]) && is_scalar($source[$column]) ? (string) $source[$column] : '';
+    return htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  }
+  if ($new_user)
+  {
+    $defaults = array(TEXT_FIELD => 'text_field_default', TEXTAREA => 'text_area_default', RADIO => 'radio_button_default', CHECKBOX => 'checkbox_default');
+    return isset($defaults[$type], $field[$defaults[$type]]) && is_scalar($field[$defaults[$type]]) ? (string) $field[$defaults[$type]] : '';
+  }
+  return is_array($stored) && isset($stored[$column]) && is_scalar($stored[$column]) ? (string) $stored[$column] : '';
+}
+
+// Shared by the public and ACP profile forms. Definitions and saved values
+// already contain one HTML-encoding pass; never encode their entities twice.
+function phpbb_profile_field_form_control($field, $value)
+{
+  $name = phpbb_profile_field_column($field);
+  if ($name === '') { return ''; }
+  $type = isset($field['field_type']) ? (int) $field['field_type'] : -1;
+  $value = is_scalar($value) ? (string) $value : '';
+  $safe_value = phpbb_profile_display_text($value);
+  if ($type === TEXT_FIELD)
+  {
+    $length = isset($field['text_field_maxlen']) ? max(1, min(TEXT_FIELD_MAXLENGTH, (int) $field['text_field_maxlen'])) : TEXT_FIELD_MAXLENGTH;
+    return '<input type="text" class="post" style="width: 200px" name="' . $name . '" size="35" maxlength="' . $length . '" value="' . $safe_value . '" />';
+  }
+  if ($type === TEXTAREA)
+  {
+    return '<textarea name="' . $name . '" style="width: 300px" rows="6" cols="30" class="post">' . $safe_value . '</textarea>';
+  }
+  if ($type !== RADIO && $type !== CHECKBOX) { return ''; }
+  $key = $type === RADIO ? 'radio_button_values' : 'checkbox_values';
+  $options = isset($field[$key]) && is_scalar($field[$key]) ? explode(',', (string) $field[$key]) : array();
+  $selected = $type === RADIO ? array($value) : explode(',', $value);
+  $html = array();
+  foreach ($options as $option)
+  {
+    if ($option === '') { continue; }
+    $safe_option = phpbb_profile_display_text($option);
+    $checked = in_array($option, $selected, true) ? ' checked="checked"' : '';
+    $html[] = '<input type="' . ($type === RADIO ? 'radio' : 'checkbox') . '" name="' . $name . ($type === CHECKBOX ? '[]' : '') . '" value="' . $safe_option . '"' . $checked . ' /> <span class="gen">' . $safe_option . '</span>';
+  }
+  return implode("<br />\n", $html);
+}
+
 function displayable_field_data($data, $type)
 {
 	global $lang;
@@ -149,11 +207,11 @@ function displayable_field_data($data, $type)
       $data_list = explode(',',$data);
       $tmp = array();
       foreach($data_list as $val)
-        if(!empty($val))
+        if($val !== '')
           $tmp[] = $val;
       $data_list = $tmp;
       $list_size = count($data_list);
-      $data = str_replace(',',', ',$data);
+      $data = implode(', ', $data_list);
 
       if($list_size == 0)
         return '';
@@ -203,11 +261,11 @@ function get_topic_udata($postrow_data, $profile_data)
 			$profile_names[$name] = displayable_field_data($field_value, $field['field_type']);
 
 			if($location == AUTHOR)
-			  $cp_udata_cache[$id]['author'][] = ($profile_names[$name]) ? $name . ': ' . $profile_names[$name] : '';
+			  $cp_udata_cache[$id]['author'][] = ($profile_names[$name] !== '') ? $name . ': ' . $profile_names[$name] : '';
 			elseif($location == ABOVE_SIGNATURE)
-			  $cp_udata_cache[$id]['aboves'][] = ($profile_names[$name]) ? $name . ': ' . $profile_names[$name] : '';
+			  $cp_udata_cache[$id]['aboves'][] = ($profile_names[$name] !== '') ? $name . ': ' . $profile_names[$name] : '';
 			else
-			  $cp_udata_cache[$id]['belows'][] = ($profile_names[$name]) ? $name . ': ' . $profile_names[$name] : '';
+			  $cp_udata_cache[$id]['belows'][] = ($profile_names[$name] !== '') ? $name . ': ' . $profile_names[$name] : '';
 		}
 	}
 
