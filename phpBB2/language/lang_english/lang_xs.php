@@ -529,6 +529,7 @@ $lang['xs_data_theme_public'] = 'Public Style (1 or 0)';
 $lang['xs_data_unknown'] = 'Description is not available (%s)';
 
 $lang['xs_edittpl_error_updating'] = 'Error updating style.';
+$lang['xs_data_save_failed'] = 'The style save could not be completed or confirmed. Check your administration session, the database update and the cache directory permissions, then reopen the style before retrying.';
 $lang['xs_edittpl_style_updated'] = 'Style updated.';
 $lang['xs_invalid_style_id'] = 'Invalid style id.';
 

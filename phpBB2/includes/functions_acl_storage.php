@@ -69,7 +69,7 @@ function phpbb_acp_actor($db,$route)
 		'admin_attachments.'.$phpEx.'?mode=manage','admin_attachments.'.$phpEx.'?mode=cats',
 		'admin_attachments.'.$phpEx.'?mode=quota','admin_users.'.$phpEx,'admin_groups.'.$phpEx,'admin_user_register.'.$phpEx,
 		'admin_cracker_tracker.'.$phpEx.'?modu=3','admin_cracker_tracker.'.$phpEx.'?modu=10',
-		'admin_profile_fields.'.$phpEx.'?mode=add&pfid=x','admin_profile_fields.'.$phpEx.'?mode=edit&pfid=x');
+		'admin_profile_fields.'.$phpEx.'?mode=add&pfid=x','admin_profile_fields.'.$phpEx.'?mode=edit&pfid=x','xs_frameset.'.$phpEx);
 	if (!is_string($route) || !in_array($route,$routes,true)) { phpbb_acl_error('Acl_selection_changed'); }
 	if (empty($userdata['session_id']) || !is_string($userdata['session_id'])) { phpbb_acl_error('Not_Authorised'); }
 	$user=phpbb_current_moderator_user($db);

@@ -63,6 +63,10 @@ jobs:
         env:
           PHPBB_STYLE_LOAD_NATIVE: '1'
           PHPBB_STYLE_LOAD_PASSWORD: fixture-only
+      - run: php .github/scripts/check-style-data-native.php
+        env:
+          PHPBB_STYLE_DATA_NATIVE: '1'
+          PHPBB_STYLE_DATA_PASSWORD: fixture-only
       - run: php .github/scripts/check-innodb-migration.php
         env:
           PHPBB_STORAGE_NATIVE: '1'

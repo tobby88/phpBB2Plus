@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save eXtreme Styles properties and field labels in one owned InnoDB
+  transaction, with fresh administrator/session/delegation checks and commit-time
+  authority locks. Fail closed on legacy storage, verify complete results and
+  invalidate the theme cache on attempted or uncertain writes. Preserve Unicode
+  character limits, nullable numeric fields and unsubmitted properties; discover
+  label columns even in empty tables. Report unconfirmed saves or cache cleanup
+  failures without claiming success or a rollback that may not have happened.
 - Make page-time style fallback read-only: obsolete user preferences render
   with the board default without bulk-updating accounts. Validate lookup IDs,
   release every result, reuse cached defaults and remove the unreachable
