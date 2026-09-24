@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate the complete eXtreme Styles configuration/FTP form before changing
+  stored values. Save settings and template invalidation time atomically under
+  current ACP authority, preserve unrelated settings and avoid speculative local
+  updates. Keep FTP passwords request-only, respect Unicode column lengths and
+  clear the configuration cache after attempted or unconfirmed saves and no-op
+  retries. Local filesystem mode preserves blank FTP defaults; the template
+  invalidation clock cannot regress when another save already advanced it.
 - Protect default-style, visibility and bulk user-style actions with owned
   transactions, current ACP authority and verified results. Couple the default
   switch with making its target public; reject hiding the current default or

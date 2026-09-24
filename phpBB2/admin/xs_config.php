@@ -35,7 +35,7 @@ if(empty($template->xs_version) || $template->xs_version !== 8)
 	message_die(GENERAL_ERROR, isset($lang['xs_error_not_installed']) ? $lang['xs_error_not_installed'] : 'eXtreme Styles mod is not installed. You forgot to upload includes/template.php');
 }
 
-define('IN_XS', true);
+if (!defined('IN_XS')) { define('IN_XS', true); }
 include_once('xs_include.' . $phpEx);
 
 $template->assign_block_vars('nav_left',array('ITEM' => '&raquo; <a href="' . append_sid('xs_config.'.$phpEx) . '">' . $lang['xs_configuration'] . '</a>'));
@@ -51,93 +51,14 @@ $lang['xs_config_back'] = str_replace('{URL}', append_sid('xs_config.'.$phpEx), 
 if(isset($HTTP_POST_VARS['submit']) && !defined('DEMO_MODE'))
 {
 	phpbb_admin_require_post_session();
-	$vars = array('xs_use_cache', 'xs_auto_compile', 'xs_auto_recompile', 'xs_php', 'xs_def_template', 'xs_check_switches', 'xs_warn_includes', 'xs_add_comments', 'xs_ftp_host', 'xs_ftp_login', 'xs_ftp_path', 'xs_shownav');
-	// checking navigation config
-	$shownav = 0;
-	for($i=0; $i<XS_SHOWNAV_MAX; $i++)
+	require_once $phpbb_root_path . 'includes/functions_xs_config.' . $phpEx;
+	$old_navigation = $board_config['xs_shownav'];
+	try { phpbb_xs_config_save($db, $HTTP_POST_VARS); }
+	catch (Exception $error) { xs_error($lang['xs_config_save_failed'] . '<br /><br />' . $lang['xs_config_back']); }
+	catch (Error $error) { xs_error($lang['xs_config_save_failed'] . '<br /><br />' . $lang['xs_config_back']); }
+	if ((string)$old_navigation !== $board_config['xs_shownav'])
 	{
-		$num = pow(2, $i);
-		if($i != XS_SHOWNAV_DOWNLOAD && !empty($HTTP_POST_VARS['shownav_' . $i])) // downloads feature is disabled
-		{
-			$shownav += $num;
-		}
-	}
-	if($shownav !== (int) $board_config['xs_shownav'])
-	{
-		$template->assign_block_vars('left_refresh', array(
-				'ACTION'	=> append_sid('index.' . $phpEx . '?pane=left')
-			));
-	}
-	$HTTP_POST_VARS['xs_shownav'] = $shownav;
-	// checking submitted data
-	$update_time = false;
-	$new = array();
-	foreach($vars as $var)
-	{
-		$value = isset($HTTP_POST_VARS[$var]) && is_scalar($HTTP_POST_VARS[$var]) ? stripslashes(trim((string) $HTTP_POST_VARS[$var])) : '';
-		if(in_array($var, array('xs_use_cache', 'xs_auto_compile', 'xs_auto_recompile', 'xs_warn_includes', 'xs_add_comments'), true))
-		{
-			$value = $value === '1' ? '1' : '0';
-		}
-		elseif($var === 'xs_check_switches')
-		{
-			$value = in_array($value, array('0', '1', '2'), true) ? $value : '0';
-		}
-		elseif($var === 'xs_php')
-		{
-			$value = preg_match('/^[a-zA-Z0-9]{1,10}$/D', $value) ? $value : $phpEx;
-		}
-		elseif($var === 'xs_def_template')
-		{
-			$value = xs_tpl_name($value);
-			if($value === '' || !@is_dir('../templates/' . $value))
-			{
-				$value = $board_config['xs_def_template'];
-			}
-		}
-		elseif(in_array($var, array('xs_ftp_host', 'xs_ftp_login', 'xs_ftp_path'), true))
-		{
-			$value = preg_replace('/[\x00-\x1F\x7F]/', '', substr($value, 0, 255));
-		}
-		elseif($var === 'xs_shownav')
-		{
-			$value = (string) $shownav;
-		}
-		$new[$var] = $value;
-		if(($var == 'xs_auto_recompile') && !$new['xs_auto_compile'])
-		{
-			$new[$var] = 0;
-		}
-		if($board_config[$var] !== $new[$var])
-		{
-			$sql = "UPDATE " . CONFIG_TABLE . " SET config_value = '" . xs_sql($new[$var]) . "' WHERE config_name = '{$var}'";
-			if( !$db->sql_query($sql) )
-			{
-				xs_error(str_replace('{VAR}', $var, $lang['xs_config_sql_error']) . '<br /><br />' . $lang['xs_config_back'], __LINE__, __FILE__);
-			}
-			$board_config[$var] = $new[$var];
-			if($var === 'xs_check_switches')
-			{
-				$update_time = true;
-			}
-		}
-	}
-	if($update_time)
-	{
-		$board_config['xs_template_time'] = time() + 10; // set time 10 seconds in future in case if some tpl file would be compiled right now with current settings
-		$sql = "UPDATE " . CONFIG_TABLE . " SET config_value = '" . $board_config['xs_template_time'] . "' WHERE config_name = 'xs_template_time'";
-		if( !$db->sql_query($sql) )
-		{
-			xs_error(str_replace('{VAR}', 'xs_template_time', $lang['xs_config_sql_error']) . '<br /><br />' . $lang['xs_config_back'], __LINE__, __FILE__);
-		}
-	}
-	// update config cache
-	if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
-	{
-		if ( !empty($config) )
-		{
-			$config->read(true);
-		}
+		$template->assign_block_vars('left_refresh', array('ACTION' => append_sid('index.' . $phpEx . '?pane=left')));
 	}
 	$template->assign_block_vars('switch_updated', array());
 	$template->load_config($template->root, false);

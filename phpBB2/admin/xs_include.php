@@ -224,42 +224,10 @@ function get_ftp_config($action, $post = array(), $allow_local = false, $show_er
 	if(!empty($HTTP_POST_VARS['get_ftp_config']))
 	{
 		phpbb_admin_require_post_session();
-		$use_local = $allow_local && !empty($HTTP_POST_VARS['xs_ftp_local']);
-		$vars = array('xs_ftp_host', 'xs_ftp_login', 'xs_ftp_path');
-		for($i=0; $i<count($vars); $i++)
-		{
-			$var = $vars[$i];
-			$value = isset($HTTP_POST_VARS[$var]) && is_scalar($HTTP_POST_VARS[$var]) ? trim(stripslashes((string) $HTTP_POST_VARS[$var])) : '';
-			$max_length = $var === 'xs_ftp_path' ? 512 : 255;
-			if((!$use_local && $value === '') || strlen($value) > $max_length || strpos($value, "\0") !== false || ($value !== '' && $var === 'xs_ftp_host' && !preg_match('/^[a-zA-Z0-9.\-:\[\]]+$/D', $value)))
-			{
-				xs_error($lang['xs_ftp_error_fatal']);
-			}
-			if($value !== '' && (!isset($board_config[$var]) || $board_config[$var] !== $value))
-			{
-				$board_config[$var] = $value;
-				$sql = "UPDATE " . CONFIG_TABLE . " SET config_value = '" . xs_sql($board_config[$var]) . "' WHERE config_name = '{$var}'";
-				if(!$db->sql_query($sql))
-				{
-					xs_error($lang['xs_ftp_error_fatal'], __LINE__, __FILE__);
-				}
-			}
-		}
-		$board_config['xs_ftp_pass'] = isset($HTTP_POST_VARS['xs_ftp_pass']) && is_scalar($HTTP_POST_VARS['xs_ftp_pass']) ? stripslashes((string) $HTTP_POST_VARS['xs_ftp_pass']) : '';
-		if(strlen($board_config['xs_ftp_pass']) > 1024 || strpos($board_config['xs_ftp_pass'], "\0") !== false)
-		{
-			xs_error($lang['xs_ftp_error_fatal']);
-		}
-		$board_config['xs_ftp_local'] = $use_local;
-		// recache config table
-		if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
-		{
-			global $config;
-			if ( !empty($config) )
-			{
-				$config->read(true);
-			}
-		}
+		require_once dirname(__DIR__) . '/includes/functions_xs_config.php';
+		try { phpbb_xs_config_save($db, $HTTP_POST_VARS, 'ftp', (bool)$allow_local); }
+		catch (Exception $error) { xs_error($lang['xs_config_save_failed']); }
+		catch (Error $error) { xs_error($lang['xs_config_save_failed']); }
 		return true;
 	}
 	// check ftp configuration

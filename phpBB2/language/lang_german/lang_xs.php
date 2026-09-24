@@ -530,6 +530,7 @@ $lang['xs_data_theme_public'] = 'Öffentliches Style (1 oder 0)';
 $lang['xs_data_unknown'] = 'Beschreibung nicht verfügbar (%s)';
 
 $lang['xs_edittpl_error_updating'] = 'Fehler bei der Aktualisierung des Styles.';
+$lang['xs_config_save_failed'] = 'Die Einstellungen konnten nicht gespeichert oder bestätigt werden. Prüfe das vollständige Formular, deine Admin-Sitzung, das Datenbank-Update und die Schreibrechte des Cache-Verzeichnisses. Lade die Einstellungen vor einem erneuten Versuch neu. FTP-Passwörter werden nicht gespeichert.';
 $lang['xs_actions_save_failed'] = 'Die Style-Aktion konnte nicht abgeschlossen oder bestätigt werden. Prüfe deine Admin-Sitzung, die ausgewählten öffentlichen und Standard-Styles, das Datenbank-Update sowie die Schreibrechte des Cache-Verzeichnisses. Lade die Seite vor einem erneuten Versuch neu.';
 $lang['xs_data_save_failed'] = 'Das Speichern des Styles konnte nicht abgeschlossen oder bestätigt werden. Prüfe deine Admin-Sitzung, das Datenbank-Update und die Schreibrechte des Cache-Verzeichnisses. Öffne den Style vor einem erneuten Versuch neu.';
 $lang['xs_edittpl_style_updated'] = 'Style aktualisiert.';

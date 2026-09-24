@@ -529,6 +529,7 @@ $lang['xs_data_theme_public'] = 'Public Style (1 or 0)';
 $lang['xs_data_unknown'] = 'Description is not available (%s)';
 
 $lang['xs_edittpl_error_updating'] = 'Error updating style.';
+$lang['xs_config_save_failed'] = 'The settings could not be saved or confirmed. Check the complete form, your administration session, the database update and cache directory permissions. Reload the settings before retrying. FTP passwords are not stored.';
 $lang['xs_actions_save_failed'] = 'The style action could not be completed or confirmed. Check your administration session, the selected public/default styles, the database update and the cache directory permissions. Reload this page before retrying.';
 $lang['xs_data_save_failed'] = 'The style save could not be completed or confirmed. Check your administration session, the database update and the cache directory permissions, then reopen the style before retrying.';
 $lang['xs_edittpl_style_updated'] = 'Style updated.';
