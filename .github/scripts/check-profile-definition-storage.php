@@ -6,6 +6,7 @@ require_once $ats_source.'includes/functions_profile_definition_form.php';
 require_once __DIR__.'/profile-request-fixture.php';
 ats_load_function($ats_source.'admin/admin_profile_fields.php','profile_field_post_value');
 define('PROFILE_FIELD_JOBS_TABLE','fixture_profile_field_jobs');
+define('PROFILE_FIELD_ACTIONS_TABLE','fixture_profile_field_actions');
 function pds_values(){return array('field_name'=>'Renamed notes 😀','field_description'=>'Preserve &amp; text','field_type'=>'0','text_field_default'=>'','text_field_maxlen'=>'255','text_area_default'=>'','text_area_maxlen'=>'1024','radio_button_default'=>'','radio_button_values'=>'','checkbox_default'=>'','checkbox_values'=>'','is_required'=>'0','users_can_view'=>'1','view_in_profile'=>'1','profile_location'=>'2','view_in_memberlist'=>'0','view_in_topic'=>'0','topic_location'=>'1');}
 $values=pds_values();ats_check(phpbb_profile_definition_values($values)===$values,'Exact internal definition inventory');
 foreach(array('unknown','mapping','bad-type','bad-flag','oversize','bad-utf8','bad-option','array','zero-default') as $case){
@@ -36,7 +37,7 @@ class DefinitionConnectionFixture {
   $GLOBALS['pds_queries'][]=$sql;if(is_callable($GLOBALS['pds_hook'])){call_user_func($GLOBALS['pds_hook'],$sql,$this);}
   if($sql==='COMMIT'){$GLOBALS['pds_commit_count']++;}
   $failure=$GLOBALS['pds_failure'];
-  foreach(array('stage-insert'=>'INSERT INTO fixture_profile_field_jobs','initialize'=>'UPDATE fixture_users SET `cpf_','publish'=>'INSERT INTO fixture_profile_fields','receipt'=>'UPDATE fixture_profile_field_jobs') as $kind=>$prefix){if($failure===$kind&&strpos($sql,$prefix)===0){return false;}}
+  foreach(array('stage-insert'=>'INSERT INTO fixture_profile_field_jobs','initialize'=>'UPDATE fixture_users SET `cpf_','publish'=>'INSERT INTO fixture_profile_fields','receipt'=>'UPDATE fixture_profile_field_jobs','action-insert'=>'INSERT INTO fixture_profile_field_actions','retire-delete'=>'DELETE FROM fixture_profile_fields','action-update'=>'UPDATE fixture_profile_field_actions') as $kind=>$prefix){if($failure===$kind&&strpos($sql,$prefix)===0){return false;}}
   if($sql==='COMMIT'&&(($failure==='stage-commit'&&$GLOBALS['pds_commit_count']===1)||($failure==='publish-commit'&&$GLOBALS['pds_commit_count']===2))){return false;}
   if(strpos($sql,'UPDATE fixture_profile_fields')===0&&$GLOBALS['pds_failure']==='update'){return false;}
   if(strpos($sql,'ALTER TABLE `fixture_users`')===0&&$GLOBALS['pds_failure']==='ddl'){return false;}
@@ -46,7 +47,7 @@ class DefinitionConnectionFixture {
 }
 class DefinitionDatabaseFixture extends sql_db {function sql_dedicated_connection(){return new DefinitionConnectionFixture(parent::sql_dedicated_connection());}}
 $main=new DefinitionDatabaseFixture($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);
-$tables=array('users'=>'fixture_users','sessions'=>'fixture_sessions','jr_admin_users'=>'fixture_jr','banlist'=>'fixture_banlist','profile_fields'=>'fixture_profile_fields','profile_field_jobs'=>'fixture_profile_field_jobs');
+$tables=array('users'=>'fixture_users','sessions'=>'fixture_sessions','jr_admin_users'=>'fixture_jr','banlist'=>'fixture_banlist','profile_fields'=>'fixture_profile_fields','profile_field_jobs'=>'fixture_profile_field_jobs','profile_field_actions'=>'fixture_profile_field_actions');
 $pds_hook=null;$pds_failure='';$pds_queries=array();
 function pds_sql($sql){$r=$GLOBALS['peer']->sql_query($sql);ats_check($r,'Fixture SQL '.json_encode($GLOBALS['peer']->sql_error()));return $r;}
 function pds_rows($sql){$r=pds_sql($sql);$rows=$GLOBALS['peer']->sql_fetchrowset($r);$GLOBALS['peer']->sql_freeresult($r);foreach($rows as &$row){foreach(array_keys($row) as $key){if(is_int($key)){unset($row[$key]);}}}unset($row);return $rows;}

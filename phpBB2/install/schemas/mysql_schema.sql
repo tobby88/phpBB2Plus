@@ -1494,6 +1494,23 @@ CREATE TABLE phpbb_profile_field_jobs (
   KEY field_id (field_id)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE phpbb_profile_field_actions (
+  operation_key char(64) NOT NULL,
+  field_id mediumint(8) unsigned NOT NULL,
+  field_column varchar(64) NOT NULL,
+  definition_revision char(64) NOT NULL,
+  definition_snapshot mediumtext NOT NULL,
+  column_signature char(64) NOT NULL,
+  actor_id mediumint(8) unsigned NOT NULL,
+  session_hash char(64) NOT NULL,
+  action_state varchar(16) NOT NULL,
+  created_at int(11) unsigned NOT NULL,
+  updated_at int(11) unsigned NOT NULL,
+  PRIMARY KEY (operation_key),
+  KEY field_column (field_column),
+  KEY field_id (field_id)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_profile_fields (
 field_id MEDIUMINT( 8 ) UNSIGNED NOT NULL AUTO_INCREMENT,
 field_column VARCHAR(64) DEFAULT NULL,
