@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Protect default-style, visibility and bulk user-style actions with owned
+  transactions, current ACP authority and verified results. Couple the default
+  switch with making its target public; reject hiding the current default or
+  assigning users to private/retired templates. Freeze selected user IDs, roll
+  back failed batches and preserve later registrations and the anonymous user.
+  Publish request-local defaults only after confirmation, clear both caches
+  even on successful no-op retries and surface incomplete/uncertain outcomes.
 - Save eXtreme Styles properties and field labels in one owned InnoDB
   transaction, with fresh administrator/session/delegation checks and commit-time
   authority locks. Fail closed on legacy storage, verify complete results and

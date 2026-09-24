@@ -20,6 +20,7 @@ class PhpbbStyleDataWriter extends PhpbbBoardConfigWriter
 		catch (Error $error) { $this->release(); throw $error; }
 	}
 	function actor() { global $phpEx; return phpbb_acp_actor($this, 'xs_frameset.' . $phpEx); }
+	function update_tables() { return array(THEMES_TABLE, THEMES_NAME_TABLE); }
 	function sql_query($sql, $transaction = false)
 	{
 		if (is_string($sql) && preg_match('/^\s*(INSERT|UPDATE)\b/i', $sql, $match))
@@ -33,8 +34,9 @@ class PhpbbStyleDataWriter extends PhpbbBoardConfigWriter
 				if (!$result) { phpbb_acl_error('xs_data_save_failed'); }
 				return $result;
 			}
-			if (strpos($sql, 'UPDATE ' . THEMES_TABLE . ' SET ') !== 0 && strpos($sql, 'UPDATE ' . THEMES_NAME_TABLE . ' SET ') !== 0)
-			{ phpbb_acl_error('xs_data_save_failed'); }
+			$allowed = false;
+			foreach ($this->update_tables() as $table) { if (strpos($sql, 'UPDATE ' . $table . ' SET ') === 0) { $allowed = true; break; } }
+			if (!$allowed) { phpbb_acl_error('xs_data_save_failed'); }
 		}
 		return parent::sql_query($sql, $transaction);
 	}
@@ -84,19 +86,7 @@ function phpbb_style_data_save($database, $request)
 	try
 	{
 		$db->actor();
-		$db->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
-		$db->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
-		$db->sql_query('START TRANSACTION');
-		foreach (array(THEMES_TABLE, THEMES_NAME_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE) as $table)
-		{
-			$result = $db->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $db->sql_freeresult($result);
-			$escaped = $db->sql_escape($table);
-			$rows = phpbb_acl_rows($db, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $escaped . "'"
-				. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $escaped . "' AND CHARACTER_SET_NAME IS NOT NULL"
-				. " AND (CHARACTER_SET_NAME <> 'utf8mb4' OR COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
-			if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic'
-				|| $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { phpbb_acl_error('xs_data_save_failed'); }
-		}
+		phpbb_style_storage_start($db, array(THEMES_TABLE, THEMES_NAME_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE));
 		$rows = phpbb_acl_rows($db, 'SELECT * FROM ' . THEMES_TABLE . ' WHERE themes_id=' . $id . ' FOR UPDATE');
 		if (count($rows) !== 1) { phpbb_acl_error('xs_invalid_style_id'); }
 		$names = xs_empty_name($db);
@@ -115,13 +105,7 @@ function phpbb_style_data_save($database, $request)
 			else { $sql = 'INSERT INTO ' . THEMES_NAME_TABLE . ' (themes_id,' . implode(',', array_keys($labels)) . ') SELECT ' . $id . ',' . implode(',', $literals) . ' WHERE 1=1'; }
 			$db->sql_query($sql . ' AND ' . $actor['guard']);
 		}
-		// Short current-read authority locks serialize COMMIT with revocation.
-		$actor = $db->actor(); $sid = $db->sql_escape($userdata['session_id']);
-		foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
-			'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$actor['user_id'],
-			'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . (int)$actor['user_id']) as $sql)
-		{ $result = $db->sql_query($sql . ' LOCK IN SHARE MODE'); $db->sql_freeresult($result); }
-		$db->actor();
+		phpbb_style_storage_lock_authority($db);
 		foreach (array(THEMES_TABLE => $values, THEMES_NAME_TABLE => $labels) as $table => $expected)
 		{
 			if (!$expected) { continue; }
@@ -135,6 +119,35 @@ function phpbb_style_data_save($database, $request)
 		$db->sql_query('COMMIT');
 	}
 	finally { phpbb_style_data_finish($db, $attempted, $phpbb_root_path . 'cache/themes.cache'); }
+}
+
+function phpbb_style_storage_start($db, $tables)
+{
+	$db->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
+	$db->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+	$db->sql_query('START TRANSACTION');
+	foreach ($tables as $table)
+	{
+		$result = $db->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $db->sql_freeresult($result);
+		$escaped = $db->sql_escape($table);
+		$rows = phpbb_acl_rows($db, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $escaped . "'"
+			. " AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $escaped . "' AND CHARACTER_SET_NAME IS NOT NULL"
+			. " AND (CHARACTER_SET_NAME <> 'utf8mb4' OR COLLATION_NAME <> 'utf8mb4_unicode_ci'))");
+		if (count($rows) !== 1 || $rows[0]['ENGINE'] !== 'InnoDB' || strtolower($rows[0]['ROW_FORMAT']) !== 'dynamic'
+			|| $rows[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { phpbb_acl_error('xs_data_save_failed'); }
+	}
+}
+
+function phpbb_style_storage_lock_authority($db)
+{
+	global $userdata;
+	// Short current-read authority locks serialize COMMIT with revocation.
+	$actor = $db->actor(); $sid = $db->sql_escape($userdata['session_id']);
+	foreach (array('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "')",
+		'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$actor['user_id'],
+		'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . (int)$actor['user_id']) as $sql)
+	{ $result = $db->sql_query($sql . ' LOCK IN SHARE MODE'); $db->sql_freeresult($result); }
+	$db->actor();
 }
 
 function phpbb_style_data_finish($db, $attempted, $cache)

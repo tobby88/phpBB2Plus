@@ -35,105 +35,19 @@ if(empty($template->xs_version) || $template->xs_version !== 8)
 	message_die(GENERAL_ERROR, isset($lang['xs_error_not_installed']) ? $lang['xs_error_not_installed'] : 'eXtreme Styles mod is not installed. You forgot to upload includes/template.php');
 }
 
-define('IN_XS', true);
+if (!defined('IN_XS')) { define('IN_XS', true); }
 include_once('xs_include.' . $phpEx);
 
 $template->assign_block_vars('nav_left',array('ITEM' => '&raquo; <a href="' . append_sid('xs_styles.'.$phpEx) . '">' . $lang['xs_default_style'] . '</a>'));
 
-function xs_style_id_exists($id)
-{
-	global $db;
-	$id = (int) $id;
-	$sql = "SELECT themes_id FROM " . THEMES_TABLE . " WHERE themes_id = $id";
-	return $id > 0 && ($result = $db->sql_query($sql)) && (bool) $db->sql_fetchrow($result);
-}
+require_once $phpbb_root_path . 'includes/functions_style_actions.' . $phpEx;
 
-$style_action = isset($HTTP_POST_VARS['style_action']) && is_scalar($HTTP_POST_VARS['style_action']) ? (string) $HTTP_POST_VARS['style_action'] : '';
-if(defined('DEMO_MODE'))
-{
-	$style_action = '';
-}
-elseif($style_action !== '')
+if (isset($HTTP_POST_VARS['style_action']) && !defined('DEMO_MODE'))
 {
 	phpbb_admin_require_post_session();
-}
-
-if(preg_match('/^default:([0-9]+)$/D', $style_action, $style_match) && xs_style_id_exists((int) $style_match[1]))
-{
-	$board_config['default_style'] = (int) $style_match[1];
-	$sql = "UPDATE " . CONFIG_TABLE . " SET config_value='" . $board_config['default_style'] . "' WHERE config_name='default_style'";
-	$db->sql_query($sql);
-	if(defined('XS_MODS_ADMIN_TEMPLATES'))
-	{
-		$sql = "UPDATE " . THEMES_TABLE . " SET theme_public = 1 WHERE themes_id = " . (int) $board_config['default_style'];
-		$db->sql_query($sql);
-	}
-	if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
-	{
-		// recache config table
-		if ( !empty($config) )
-		{
-			$config->read(true);
-		}
-	}
-}
-
-if(preg_match('/^override:([01])$/D', $style_action, $style_match))
-{
-	$board_config['override_user_style'] = (int) $style_match[1];
-	$sql = "UPDATE " . CONFIG_TABLE . " SET config_value='" . $board_config['override_user_style'] . "' WHERE config_name='override_user_style'";
-	$db->sql_query($sql);
-	// recache config table
-	if(defined('XS_MODS_CATEGORY_HIERARCHY210') && !empty($config))
-	{
-		$config->read(true);
-	}
-}
-
-if(preg_match('/^moveusers:([0-9]+)$/D', $style_action, $style_match) && xs_style_id_exists((int) $style_match[1]))
-{
-	$id = (int) $style_match[1];
-	$sql = "UPDATE " . USERS_TABLE . " SET user_style='" . $id . "' WHERE user_id > 0";
-	$db->sql_query($sql);
-}
-
-if(preg_match('/^moveaway:([0-9]+)$/D', $style_action, $style_match) && xs_style_id_exists((int) $style_match[1]))
-{
-	$id = (int) $style_match[1];
-	$id2 = isset($HTTP_POST_VARS['movestyle']) && is_scalar($HTTP_POST_VARS['movestyle']) ? (int) $HTTP_POST_VARS['movestyle'] : -1;
-	if($id2 < 0 || ($id2 > 0 && !xs_style_id_exists($id2)))
-	{
-		xs_error($lang['xs_invalid_style_id']);
-	}
-	if($id2)
-	{
-		$sql = "UPDATE " . USERS_TABLE . " SET user_style='" . $id2 . "' WHERE user_style = " . $id;
-	}
-	else
-	{
-		$sql = "UPDATE " . USERS_TABLE . " SET user_style = NULL WHERE user_style = " . $id;
-	}
-	$db->sql_query($sql);
-}
-
-if(defined('XS_MODS_ADMIN_TEMPLATES') && preg_match('/^admin:([0-9]+):([01])$/D', $style_action, $style_match) && xs_style_id_exists((int) $style_match[1]))
-{
-	$id = (int) $style_match[1];
-	$setadmin = (int) $style_match[2];
-	$sql = "UPDATE " . THEMES_TABLE . " SET theme_public='{$setadmin}' WHERE themes_id='{$id}'";
-	$db->sql_query($sql);
-	if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
-	{
-		// recache themes table
-		if ( empty($themes) )
-		{
-			$themes = new themes();
-		}
-		if ( !empty($themes) )
-		{
-			$themes->read(true);
-		}
-	}
+	try { phpbb_style_action_save($db, $HTTP_POST_VARS); }
+	catch (Exception $error) { xs_error($lang['xs_actions_save_failed']); }
+	catch (Error $error) { xs_error($lang['xs_actions_save_failed']); }
 }
 
 //
@@ -149,6 +63,7 @@ if(!$result = $db->sql_query($sql))
 	xs_error($lang['xs_no_style_info'], __LINE__, __FILE__);
 }
 $style_rowset = $db->sql_fetchrowset($result);
+$db->sql_freeresult($result);
 
 $style_override = $board_config['override_user_style'];
 $style_default = $board_config['default_style'];
@@ -168,6 +83,7 @@ for($i=0; $i<count($style_rowset); $i++)
 	else
 	{
 		$total = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
 		$total = $total['total'];
 		$num_users += $total;
 	}
@@ -238,6 +154,7 @@ $result = $db->sql_query($sql);
 if($result)
 {
 	$total = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
 	$num_default = $total['total'];
 	$num_users += $num_default;
 }
@@ -252,6 +169,7 @@ if(!$result)
 else
 {
 	$total = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
 	$total_users = $total['total'];
 }
 
@@ -282,6 +200,7 @@ if(isset($HTTP_GET_VARS['list']) && is_scalar($HTTP_GET_VARS['list']))
 		xs_error('Could not get users list!', __LINE__, __FILE__);
 	}
 	$rowset = $db->sql_fetchrowset($result);
+	$db->sql_freeresult($result);
 	for($i=0; $i<count($rowset); $i++)
 	{
 		$template->assign_block_vars('list_users.user', array(
