@@ -55,6 +55,10 @@ jobs:
         env:
           PHPBB_ERC_LANGUAGE_NATIVE: '1'
           PHPBB_ERC_LANGUAGE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-erc-style-native.php
+        env:
+          PHPBB_ERC_STYLE_NATIVE: '1'
+          PHPBB_ERC_STYLE_PASSWORD: fixture-only
       - run: php .github/scripts/check-innodb-migration.php
         env:
           PHPBB_STORAGE_NATIVE: '1'

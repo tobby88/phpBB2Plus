@@ -599,6 +599,7 @@ function style_select($default_style, $select_name = "style", $dirname = "templa
 
 	$sql = "SELECT themes_id, style_name
 		FROM " . THEMES_TABLE . "
+		WHERE BINARY template_name = 'fisubsilversh' AND theme_public = 1
 		ORDER BY template_name, themes_id";
 	if ( !($result = $db->sql_query($sql)) )
 	{

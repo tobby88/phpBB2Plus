@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Guard emergency standard-style selection and recreation using a dedicated
+  writer connection, current credentials and an exact board default entry.
+  Update the authenticated account and board together; recheck theme availability
+  at dispatch. Recreation preserves existing properties and reuses a previously
+  created row after an uncertain outcome instead of producing duplicates. Clear
+  both configuration and theme caches, report incomplete cleanup and release the
+  writer on all outcomes. Never import executable theme packages or other styles.
 - Repair the emergency console's account and board language in one guarded
   statement, bound to the authenticated account ID and its current credentials.
   Reject incomplete language packs and missing, aliased or duplicated default

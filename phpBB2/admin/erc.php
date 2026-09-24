@@ -545,7 +545,7 @@ switch($mode)
 				break;
 			case 'rtd': // Reset template data
 				$sql = "SELECT count(*) AS themes_count
-					FROM " . THEMES_TABLE;
+					FROM " . THEMES_TABLE . " WHERE BINARY template_name = 'fisubsilversh' AND theme_public = 1";
 				if ( !($result = $db->sql_query($sql)) )
 				{
 					erc_throw_error("Couldn't count records of themes table!", __LINE__, __FILE__, $sql);
@@ -809,49 +809,14 @@ switch($mode)
 				success_message($lang['rld_success']);
 				break;
 			case 'rtd': // Reset template data
-				check_authorisation();
-				$method = ( isset($HTTP_POST_VARS['method']) ) ? htmlspecialchars($HTTP_POST_VARS['method']) : '';
-				$new_style = ( isset($HTTP_POST_VARS['new_style']) ) ? intval($HTTP_POST_VARS['new_style']) : 0;
-				$board_user = isset($HTTP_POST_VARS['board_user']) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
-				$board_user = substr(str_replace("\\'", "'", $board_user), 0, 25);
-				$board_user = str_replace("'", "\\'", $board_user);
-
-				if ($method == 'recreate_theme')
-				{
-					$sql = "INSERT INTO " . THEMES_TABLE . "
-						(template_name, style_name, head_stylesheet, body_background, body_bgcolor, body_text, body_link, body_vlink, body_alink, body_hlink, tr_color1, tr_color2, tr_color3, tr_class1, tr_class2, tr_class3, th_color1, th_color2, th_color3, th_class1, th_class2, th_class3, td_color1, td_color2, td_color3, td_class1, td_class2, td_class3, fontface1, fontface2, fontface3, fontsize1, fontsize2, fontsize3, fontcolor1, fontcolor2, fontcolor3, span_class1, span_class2, span_class3, img_size_poll, img_size_privmsg) VALUES
-						('fisubsilversh', 'FI Subsilver Shadow', 'fisubsilversh.css', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'row1', 'row2', '', '', '', '', 0, 0, 0, '', '006600', 'ffa34f', '', '', '', 0, 0)";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update themes table!", __LINE__, __FILE__, $sql);
-					}
-					$method = 'select_theme';
-					$new_style = $db->sql_nextid();
-?>
-	<p><?php echo $lang['rtd_restore_success'];?></p>
-<?php
-				}
-				if ($method == 'select_theme')
-				{
-					$sql = "UPDATE " . USERS_TABLE . "
-						SET user_style = $new_style
-						WHERE username = '$board_user'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update user table!", __LINE__, __FILE__, $sql);
-					}
-					$sql = "UPDATE " . CONFIG_TABLE . "
-						SET config_value = '$new_style'
-						WHERE config_name = 'default_style'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-					}
-					success_message($lang['rtd_success']);
-				}
+				check_authorisation(true, $style_guard, $style_actor_id);
+				require_once($phpbb_root_path . 'includes/functions_maintenance_style.' . $phpEx);
+				$method = isset($HTTP_POST_VARS['method']) && is_string($HTTP_POST_VARS['method']) ? $HTTP_POST_VARS['method'] : null;
+				$new_style = isset($HTTP_POST_VARS['new_style']) ? $HTTP_POST_VARS['new_style'] : null;
+				$style_recovery = dbmtnc_erc_reset_style($method, $new_style, $style_actor_id);
+				if ($style_recovery === false) { erc_throw_error($lang['ERC_style_failed']); }
+				if ($style_recovery['created']) { echo '<p>' . $lang['rtd_restore_success'] . '</p>'; }
+				success_message($lang['rtd_success']);
 				break;
 			case 'dgc': // Disable GZip compression 
 				check_authorisation(true, $config_guard, $config_actor_id);

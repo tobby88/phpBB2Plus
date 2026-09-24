@@ -600,11 +600,8 @@ $lang['rcd_info'] = 'Wenn fortgefahren wird, werden die Cookie-Daten aktualisier
 	werden soll oder nicht, kann unter \'Setze Pfad-Daten zurück\' gefunden werden.';
 $lang['rld_info'] = 'Wenn fortgefahren wird, wird die ausgewählte Sprache sowohl für das Board als auch für den zur
 	Authentifizierung genutzen Benutzer verwendet.';
-$lang['rtd_info'] = 'Wenn forgefahren wird, wird entweder der ausgewählte Style sowohl für das Board als auch für den zur
-	Authentifizierung genutzen Benutzer verwendet oder der mitgelieferte Standard-Style (FI Subsilver Shadow) wiederhergestellt und für Board und
-	Benutzer verwendet.';
-$lang['rtd_info_no_theme'] = 'Wenn forgefahren wird, wird der mitgelieferte Standard-Style (FI Subsilver Shadow) wiederhergestellt und sowohl für
-	das Board als auch für den zur Authentifizierung genutzen Benutzer verwendet.';
+$lang['rtd_info'] = 'Der ausgewählte Standard-Style wird für das Board und den zur Anmeldung verwendeten Benutzer gesetzt. Die Wiederherstellung legt FI Subsilver Shadow nur an, wenn er fehlt; ein vorhandener eindeutiger Standard-Eintrag wird ohne Überschreiben seiner Eigenschaften erneut verwendet. Doppelte Einträge erfordern eine ausdrückliche Auswahl oder manuelle Prüfung.';
+$lang['rtd_info_no_theme'] = 'Es wurde kein auswählbarer öffentlicher Standard-Style gefunden. Die Wiederherstellung legt FI Subsilver Shadow nur bei fehlendem Datenbankeintrag an und wählt ihn für das Board und den angemeldeten Benutzer aus. Vorhandene private, ungültige oder doppelte Standard-Einträge müssen manuell geprüft werden.';
 $lang['dgc_info'] = 'Wenn fortgefahren wird, wird die GZip Komprimierung deaktiviert.';
 $lang['cbl_info'] = 'Wenn fortgefahren wird, wird die Bann-Liste und die Liste der verbotenen Benutzernamen gelöscht.';
 $lang['raa_info'] = 'Wenn fortgefahren wird, werden alle Adminstratoren zu normalen Benutzern geändert. Wenn ein Admin-Account
@@ -656,6 +653,7 @@ $lang['Option_Help_Text'] = '<p>Wenn du eine Fehlermeldung erhälst, dass bei de
 	Administratoren</b> entfernst. (Die Accounts selbst werden nicht gelöscht sondern nur die Admin-Rechte entfernt.)</p>
 	<p>Wenn du die config.php wiederherstellen musst, kannst du dies mit <b>Stelle config.php wieder her</b> machen.</p>';
 $lang['ERC_config_invalid'] = 'Ungültiger Konfigurationswert.';
+$lang['ERC_style_failed'] = 'Die Style-Reparatur konnte nicht vollständig bestätigt werden. Prüfe aktuelle Administrator-Zugangsdaten, Standard-Template-Dateien, Style-Einträge, default_style und Cache-Berechtigungen. Bereits gespeicherte Änderungen können erhalten bleiben. Die Wiederherstellung verwendet einen vorhandenen Standard-Style erneut; sie überschreibt keine angepassten Eigenschaften und bereinigt keine doppelten Einträge.';
 $lang['ERC_language_failed'] = 'Die Sprachreparatur konnte nicht vollständig bestätigt werden. Prüfe die installierten Sprachdateien, die aktuellen Administrator-Zugangsdaten, den Eintrag default_lang und den Konfigurationscache. Bereits gespeicherte Änderungen können erhalten bleiben; kontrolliere sie vor einem erneuten Versuch.';
 $lang['ERC_cookie_format'] = 'Cookie-Namen dürfen Buchstaben, Ziffern, Unterstriche und Bindestriche enthalten. Eine leere Domain beschränkt Cookies auf den aktuellen Host. Verwende einen absoluten Pfad, zum Beispiel /forum/.';
 $lang['Maintenance_config_failed'] = 'Die Konfigurationsänderung oder -reparatur konnte nicht vollständig bestätigt werden. Bereits gespeicherte Änderungen können erhalten bleiben. Prüfe Datenbank und Konfigurationscache vor einem erneuten Versuch.';

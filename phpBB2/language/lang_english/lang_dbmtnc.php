@@ -580,9 +580,8 @@ $lang['cct_info'] = 'When proceeding the config table will be checked and missin
 $lang['rpd_info'] = 'When proceeding the config data will be updated if the recommended setting is selected.';
 $lang['rcd_info'] = 'When proceeding the cookie data will be updated. The Option whether to set a secure cookie or not can be found under \'Reset path data\'.';
 $lang['rld_info'] = 'When proceeding the selected language will be used for both the board and the user used to authenticate.';
-$lang['rtd_info'] = 'When proceeding either the selected style will be used for both the board and the user used to authenticate or the bundled default theme
-	(FI Subsilver Shadow) will be recreated and used for board and user.';
-$lang['rtd_info_no_theme'] = 'When proceeding the bundled default theme (FI Subsilver Shadow) will be recreated and used for both the board and the user used to authenticate.';
+$lang['rtd_info'] = 'The selected standard style will be used for the board and the authenticating user. Recovery creates FI Subsilver Shadow only if it is missing; one existing standard row is reused without overwriting its properties. Duplicate rows require an explicit selection or manual review.';
+$lang['rtd_info_no_theme'] = 'No selectable public standard style was found. Recovery creates FI Subsilver Shadow only when its database row is missing, then selects it for the board and the authenticating user. Existing private, invalid or duplicate standard rows require manual review.';
 $lang['dgc_info'] = 'When proceeding the GZip compression will be disabled.';
 $lang['cbl_info'] = 'When proceeding both the ban list and the disallowed users will be cleard.';
 $lang['raa_info'] = 'When proceeding all admins will be set to normal users. If you use an admin account to authenticate, the account used for
@@ -627,6 +626,7 @@ $lang['Option_Help_Text'] = '<p>If you get reported that there was an error crea
 	<p>If your board was hacked, it\'s recommended that you remove all admin accounts by selecting <b>Remove all administrators</b>. (The account itself will not be deleted but the rights will be removed.)</p>
 	<p>If you need to restore your config.php you can do so by selecting <b>Recreate config.php</b>.</p>';
 $lang['ERC_config_invalid'] = 'Invalid configuration value.';
+$lang['ERC_style_failed'] = 'The style repair could not be fully confirmed. Check current administrator credentials, the standard template files, theme rows, default_style and cache permissions. Completed changes may remain. Recreation reuses one existing standard style; it does not overwrite custom properties or resolve duplicate rows.';
 $lang['ERC_language_failed'] = 'The language repair could not be fully confirmed. Check the installed language files, current administrator credentials, the default_lang setting and configuration cache. Completed changes may remain; verify them before retrying.';
 $lang['ERC_cookie_format'] = 'Cookie names may contain letters, digits, underscores and hyphens. Leave the domain empty for host-only cookies. Use an absolute path, for example /forum/.';
 $lang['Maintenance_config_failed'] = 'The configuration update or recovery could not be fully confirmed. Completed changes may remain. Check the database and configuration cache before retrying.';
