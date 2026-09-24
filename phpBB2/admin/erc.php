@@ -711,13 +711,13 @@ switch($mode)
 			case 'cls': // Clear Sessions
 				check_authorisation();
 				$sql = "DELETE FROM " . SESSIONS_TABLE;
-				$result = $db->sql_query($sql);
+				$result = dbmtnc_erc_clear_table(SESSIONS_TABLE);
 				if( !$result )
 				{
 					erc_throw_error("Couldn't delete session table!", __LINE__, __FILE__, $sql);
 				}
 				$sql = "DELETE FROM " . SEARCH_TABLE;
-				$result = $db->sql_query($sql);
+				$result = dbmtnc_erc_clear_table(SEARCH_TABLE);
 				if( !$result )
 				{
 					erc_throw_error("Couldn't delete search result table!", __LINE__, __FILE__, $sql);
@@ -987,13 +987,13 @@ switch($mode)
 			case 'cbl': // Clear ban list 
 				check_authorisation();
 				$sql = "DELETE FROM " . BANLIST_TABLE;
-				$result = $db->sql_query($sql);
+				$result = dbmtnc_erc_clear_table(BANLIST_TABLE);
 				if( !$result )
 				{
 					erc_throw_error("Couldn't delete ban list table!", __LINE__, __FILE__, $sql);
 				}
 				$sql = "DELETE FROM " . DISALLOW_TABLE;
-				$result = $db->sql_query($sql);
+				$result = dbmtnc_erc_clear_table(DISALLOW_TABLE);
 				if( !$result )
 				{
 					erc_throw_error("Couldn't delete disallowed users table!", __LINE__, __FILE__, $sql);

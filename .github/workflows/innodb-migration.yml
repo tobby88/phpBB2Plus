@@ -27,6 +27,10 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mysqli, pdo_mysql, pdo_sqlite, openssl
           coverage: none
+      - run: php .github/scripts/check-erc-clear-native.php
+        env:
+          PHPBB_ERC_CLEAR_NATIVE: '1'
+          PHPBB_ERC_CLEAR_PASSWORD: fixture-only
       - run: php .github/scripts/check-innodb-migration.php
         env:
           PHPBB_STORAGE_NATIVE: '1'

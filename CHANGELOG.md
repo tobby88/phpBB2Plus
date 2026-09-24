@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recheck emergency-console authority at every session, search-cache, ban-list
+  and disallowed-name deletion, including a credential predicate in the actual
+  SQL statement. Concurrent demotion, deactivation or password replacement stops
+  remaining work without a false success message. Database-owner recovery stays
+  available; empty tables are harmless and uncertain writes are not auto-retried.
 - Separate custom profile-field labels from stable physical storage. Guard
   creation and editing with current ACP permissions, revision/operation tokens,
   recoverable staging and non-destructive capacity preparation. Replace the

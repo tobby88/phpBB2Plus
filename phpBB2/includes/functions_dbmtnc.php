@@ -694,6 +694,28 @@ function check_authorisation($die = TRUE, &$write_guard = null)
 	return $allow_access;
 }
 
+/**
+ * Requalify each emergency deletion, not just the initial form authorization.
+ * A credential read alone leaves a window for a concurrent demotion, account
+ * deactivation or password reset. The predicate also checks at SQL dispatch.
+ * Each table is independent: after an uncertain result, never report success
+ * or automatically repeat a deletion that may already have been applied.
+ */
+function dbmtnc_erc_clear_table($table)
+{
+	global $db;
+	if (!in_array($table, array(SESSIONS_TABLE, SEARCH_TABLE, BANLIST_TABLE, DISALLOW_TABLE), true))
+	{
+		return false;
+	}
+	if (!check_authorisation(false, $write_guard)) { return false; }
+	$result = $db->sql_query('DELETE FROM ' . $table . ' WHERE (' . $write_guard . ')');
+	if (!$result) { return false; }
+	// Zero affected rows can mean either an already empty table or revoked
+	// credentials. Recheck rather than treating both outcomes as a success.
+	return check_authorisation(false);
+}
+
 function get_config_data($option)
 {
 	global $db;
