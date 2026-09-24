@@ -85,7 +85,10 @@ jobs:
         run: php .github/scripts/check-maintenance-user-values.php
 
       - name: Guard the full user maintenance lifecycle and each writer
-        run: php .github/scripts/check-maintenance-users.php
+        run: |
+          php .github/scripts/check-maintenance-users.php
+          php .github/scripts/check-profile-guest.php
+          php .github/scripts/check-profile-cleanup.php
 
       - name: Check public security bootstrap
         shell: bash
@@ -769,5 +772,15 @@ jobs:
         run: php .github/scripts/check-profile-text-redisplay.php
       - name: Check custom profile forms, defaults and selections
         run: php .github/scripts/check-custom-profile-forms.php
+      - name: Check stable profile column compatibility
+        run: php .github/scripts/check-profile-field-column.php
+      - name: Check profile definition publication boundaries
+        run: php .github/scripts/check-profile-definition-storage.php
+      - name: Profile definition forms and retry tokens
+        run: php .github/scripts/check-profile-definition-form.php
+      - name: Profile retirement and physical-data separation
+        run: php .github/scripts/check-profile-retirement.php
+      - name: New-account profile defaults and core-column protection
+        run: php .github/scripts/check-profile-account-defaults.php
       - name: Check public profile identity transaction dependencies
         run: php .github/scripts/check-public-profile-identity-native.php

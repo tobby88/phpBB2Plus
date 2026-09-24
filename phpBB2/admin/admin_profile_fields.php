@@ -52,7 +52,8 @@ $no_page_header = false;
 $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-include_once($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_profile_definition_form.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_profile_retirement_form.'.$phpEx);
 $filename = basename(__FILE__);
 
 $mode_value = (isset($_POST['mode']) && is_scalar($_POST['mode'])) ? (string) $_POST['mode'] :
@@ -65,13 +66,16 @@ if($mode_value === '' || $pfid_value === '')
 }
 
 $mode = $mode_value;
-$pfid = ($pfid_value === 'x') ? 'x' : (int) $pfid_value;
-if (!in_array($mode, array('add', 'update', 'edit', 'delete', 'confirmdelete'), true) || ($pfid !== 'x' && $pfid < 1))
+$pfid = ($pfid_value === 'x') ? 'x' : (preg_match('/^[1-9][0-9]{0,7}$/D', $pfid_value) ? (int)$pfid_value : 0);
+if (!in_array($mode, array('add', 'update', 'edit', 'delete', 'confirmdelete', 'restore', 'confirmrestore'), true)
+  || ($pfid !== 'x' && $pfid < 1)
+  || (in_array($mode, array('delete','confirmdelete'), true) && $pfid === 'x')
+  || (in_array($mode, array('add','restore','confirmrestore'), true) && $pfid !== 'x'))
 {
   message_die(GENERAL_ERROR, 'Invalid profile-field request.');
 }
 
-if (in_array($mode, array('update', 'confirmdelete'), true))
+if (in_array($mode, array('update', 'confirmdelete', 'confirmrestore'), true))
 {
   phpbb_admin_require_post_session();
 }
@@ -81,275 +85,82 @@ function profile_field_post_value($name, $default = '')
   return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) phpbb_request_raw_value($_POST[$name]) : $default;
 }
 
-function profile_field_column_identifier($display_name)
+$session_field = phpbb_admin_session_field();
+// Both modules share a file, but opening recovery/edit screens still requires
+// the exact edit grant. Every mutation rechecks current authority under locks.
+try
 {
-  $identifier = text_to_column($display_name);
-  if (!preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $identifier))
-  {
-    return false;
-  }
+  phpbb_acp_actor(new PhpbbAclDatabase($db, 'Profile_definition_failed'),
+    'admin_profile_fields.' . $phpEx . '?mode=' . (($mode === 'add' || ($mode === 'update' && $pfid === 'x')) ? 'add' : 'edit') . '&pfid=x');
+}
+catch (PhpbbAclException $failure) { message_die(GENERAL_ERROR, phpbb_admin_html($failure->getMessage())); }
 
-  return $identifier;
+$definition_draft = null;
+$definition_error = '';
+if ($mode === 'update')
+{
+  try
+  {
+    $values = phpbb_profile_definition_form_values($_POST);
+    $writer = new PhpbbProfileDefinitionWriter($db, $pfid === 'x' ? 'add' : 'edit', $_POST);
+    if ($pfid === 'x')
+      $writer->create(profile_field_post_value('definition_operation'), $values);
+    else
+      $writer->edit($pfid, profile_field_post_value('definition_revision'), $values);
+  }
+  catch (PhpbbAclException $failure)
+  {
+    $definition_error = $failure->getMessage();
+  }
+  catch (Exception $failure) { $definition_error = $lang['Profile_definition_failed']; }
+  catch (Throwable $failure) { $definition_error = $lang['Profile_definition_failed']; }
+  finally { if (isset($writer)) { $writer->release(); } }
+  if ($definition_error !== '')
+  {
+    $definition_draft = $_POST;
+    $mode = $pfid === 'x' ? 'add' : 'edit';
+  }
+}
+$retirement_retry = false;
+if (in_array($mode, array('confirmdelete','confirmrestore'), true))
+{
+  $retirement_result = phpbb_profile_retirement_submit($db, $_POST, $mode, $pfid);
+  if ($retirement_result[0] === 'cancel') { redirect(append_sid("$filename?mode=edit&pfid=x")); }
+  if ($retirement_result[0] === 'retry')
+  {
+    $definition_error = $retirement_result[1];
+    $retirement_retry = true;
+    $mode = $mode === 'confirmdelete' ? 'delete' : 'restore';
+  }
+}
+$template->assign_vars(array('ERROR_BOX'=>''));
+if ($definition_error !== '')
+{
+  $template->set_filenames(array('definition_error'=>'error_body.tpl'));
+  $template->assign_vars(array('ERROR_MESSAGE'=>phpbb_admin_html($definition_error)));
+  $template->assign_var_from_handle('ERROR_BOX', 'definition_error');
 }
 
-$session_field = phpbb_admin_session_field();
 
 if($mode == 'add')
 {
+  $definition_operation = $definition_draft === null ? bin2hex(phpbb_random_bytes(32)) : profile_field_post_value('definition_operation');
   $template->set_filenames(array('body' => 'admin/add_profile_field.tpl'));
   
   $template->assign_vars(array(
-    'TEXT_FIELD_CHECKED' => ' checked="checked"',
-    'NOT_REQUIRED_CHECKED' => ' checked="checked"',
-    'ALLOW_VIEW_CHECKED' => ' checked="checked"',
-    'VIEW_IN_PROFILE_CHECKED' => ' checked="checked"',
-    'ABOUT_CHECKED' => ' checked="checked"',
-    'NO_VIEW_IN_MEMBERLIST' => ' checked="checked"',
-    'NO_VIEW_IN_TOPIC' => ' checked="checked"',
-    'AUTHOR_CHECKED' => ' checked="checked"',
-    
     'L_ADD_FIELD_TITLE' => $lang['add_field_title'],
     'L_ADD_FIELD_EXPLAIN' => $lang['add_field_explain'],
     
     'S_ADD_FIELD_ACTION' => append_sid($filename),
-    'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="pfid" value="x" />' . $session_field
+    'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="pfid" value="x" /><input type="hidden" name="definition_operation" value="' . phpbb_admin_html($definition_operation) . '" />' . $session_field
     ));
+  $template->assign_vars(phpbb_profile_definition_form_vars(null, $definition_draft));
 }
 elseif($mode == 'update')
 {
   $template->set_filenames(array('body' => 'admin/admin_message_body.tpl'));
-  
-  $name_input = trim(profile_field_post_value('field_name'));
-  if($name_input === '' || strlen($name_input) > 255)
-    message_die(GENERAL_ERROR,$lang['enter_a_name']);
-  $name = htmlspecialchars($name_input, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  if (strlen($name) > 255)
-    message_die(GENERAL_ERROR,$lang['enter_a_name']);
-  
-  $description_input = profile_field_post_value('field_descrition');
-  if (strlen($description_input) > 255)
-    message_die(GENERAL_ERROR, 'The profile-field description is too long.');
-  $description = htmlspecialchars($description_input, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  if (strlen($description) > 255)
-    message_die(GENERAL_ERROR, 'The profile-field description is too long.');
-  
-  $type = intval(profile_field_post_value('field_type'));
-  if (!in_array($type, array(TEXT_FIELD, TEXTAREA, RADIO, CHECKBOX), true))
-    message_die(GENERAL_ERROR, 'Invalid profile-field type.');
-  $text_field_default = htmlspecialchars(profile_field_post_value('text_field_default'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  $text_field_maxlen = profile_field_post_value('text_field_maxlen') === '' ? TEXT_FIELD_MAXLENGTH : intval(profile_field_post_value('text_field_maxlen'));
-  $text_field_maxlen = max(1, min(TEXT_FIELD_MAXLENGTH, $text_field_maxlen));
-  $text_area_default = htmlspecialchars(profile_field_post_value('text_area_default'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  $text_area_maxlen = profile_field_post_value('text_area_maxlen') === '' ? TEXTAREA_MINLENGTH : intval(profile_field_post_value('text_area_maxlen'));
-  $text_area_maxlen = max(TEXTAREA_MINLENGTH, min(TEXTAREA_MAXLENGTH, $text_area_maxlen));
-  
-  $radio_values = htmlspecialchars(profile_field_post_value('radio_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  $radio_default_value = htmlspecialchars(profile_field_post_value('radio_default_value'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  $radio_values = explode("\n",str_replace("\r",'',$radio_values));
-  if($radio_default_value === '')
-    $radio_default_value = $radio_values[0];
-  $temp = '';
-  foreach($radio_values as $val)
-    $temp .= $val . ',';
-  $radio_values = substr($temp,0,strlen($temp)-1);
-  
-  $checkbox_values = htmlspecialchars(profile_field_post_value('checkbox_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  $check_default_values = htmlspecialchars(profile_field_post_value('check_default_values'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-  $checkbox_values = explode("\n",str_replace("\r",'',$checkbox_values));
-  if($check_default_values !== '')
-  {
-    $check_default_values = explode("\n",str_replace("\r",'',$check_default_values));
-    $temp = '';
-    foreach($check_default_values as $val)
-      $temp .= $val . ',';
-    $check_default_values = substr($temp,0,strlen($temp)-1);
-  }
-  $temp = '';
-  foreach($checkbox_values as $val)
-    $temp .= $val . ',';
-  $checkbox_values = substr($temp,0,strlen($temp)-1);
-
-  if (strlen($text_field_default) > $text_field_maxlen || strlen($text_area_default) > $text_area_maxlen ||
-    strlen($radio_default_value) > 255 || strlen($radio_values) > 60000 ||
-    strlen($check_default_values) > 60000 || strlen($checkbox_values) > 60000)
-    message_die(GENERAL_ERROR, 'One or more profile-field values exceed their configured limit.');
-  
-  $required = intval(profile_field_post_value('required')) === REQUIRED ? REQUIRED : NOT_REQUIRED;
-  $user_can_view = intval(profile_field_post_value('user_can_view')) === ALLOW_VIEW ? ALLOW_VIEW : DISALLOW_VIEW;
-  $view_in_profile = intval(profile_field_post_value('view_in_profile')) === VIEW_IN_PROFILE ? VIEW_IN_PROFILE : NO_VIEW_IN_PROFILE;
-  $profile_location_value = intval(profile_field_post_value('profile_location'));
-  $profile_location = in_array($profile_location_value, array(CONTACTS, ABOUT), true) ? $profile_location_value : ABOUT;
-  $view_in_memberlist = intval(profile_field_post_value('view_in_memberlist')) === VIEW_IN_MEMBERLIST ? VIEW_IN_MEMBERLIST : NO_VIEW_IN_MEMBERLIST;
-  $view_in_topic = intval(profile_field_post_value('view_in_topic')) === VIEW_IN_TOPIC ? VIEW_IN_TOPIC : NO_VIEW_IN_TOPIC;
-  $signature_wrap_value = intval(profile_field_post_value('signature_wrap'));
-  $signature_wrap = in_array($signature_wrap_value, array(AUTHOR, ABOVE_SIGNATURE, BELOW_SIGNATURE), true) ? $signature_wrap_value : AUTHOR;
-  
-  if($pfid == 'x')
-  {
-    $sql = "SELECT field_name FROM " . PROFILE_FIELDS_TABLE . "
-      WHERE field_name='" . $db->sql_escape($name) . "'";
-    if(!($result = $db->sql_query($sql)))
-      message_die(GENERAL_ERROR,'Could not query database for field name information','',__LINE__,__FILE__,$sql);
-    $temp = $db->sql_fetchrowset($result);
-    if(!empty($temp))
-      message_die(GENERAL_ERROR,$lang['field_exists']);
-  }
-  
-  if($pfid == 'x')
-    $die_message = 'Could not insert new profile field';
-  else
-    $die_message = 'Could not update profile information';
-  
-  if($pfid != 'x')
-  {
-    $sql = "SELECT field_name FROM " . PROFILE_FIELDS_TABLE . "
-      WHERE field_id = $pfid";
-    if(!($result = $db->sql_query($sql)))
-      message_die(GENERAL_ERROR,'Could not find old name','',__LINE__,__FILE__,$sql);
-    $old_name = $db->sql_fetchrow($result);
-    $old_name = $old_name ? profile_field_column_identifier($old_name['field_name']) : false;
-    if ($old_name === false)
-      message_die(GENERAL_ERROR, 'Invalid existing profile-field column.');
-  }
-  
-  $name_display = $name;
-  $name = profile_field_column_identifier($name_input);
-  if ($name === false)
-    message_die(GENERAL_ERROR, 'The profile-field name cannot be represented as a safe database column.');
-  $name_display_sql = $db->sql_escape($name_display);
-  $description = $db->sql_escape($description);
-  $text_field_default = $db->sql_escape($text_field_default);
-  $text_area_default = $db->sql_escape($text_area_default);
-  $radio_default_value = $db->sql_escape($radio_default_value);
-  $radio_values = $db->sql_escape($radio_values);
-  $check_default_values = $db->sql_escape($check_default_values);
-  $checkbox_values = $db->sql_escape($checkbox_values);
-
-  $sql = "SELECT $name FROM " . USERS_TABLE . " WHERE user_id = ".$userdata['user_id']." LIMIT 1";
-  if($db->sql_query($sql))
-  {
-	  if($pfid == 'x')
-		message_die(GENERAL_ERROR, "Field like $name allready exists");
-	  else if ( $old_name != $name )
-		message_die(GENERAL_ERROR, "Field like $name allready exists");
-  }
-
-  if($pfid == 'x')
-  {
-    $sql = "INSERT INTO " . PROFILE_FIELDS_TABLE . "
-      (field_name, field_description, field_type, text_field_default, text_field_maxlen, text_area_default, text_area_maxlen,
-      radio_button_default, radio_button_values, checkbox_default, checkbox_values, is_required,
-      users_can_view, view_in_profile, profile_location, view_in_memberlist, view_in_topic, topic_location)
-      VALUES ('$name_display_sql','$description',$type,'$text_field_default',$text_field_maxlen,'$text_area_default',$text_area_maxlen,
-      '$radio_default_value','$radio_values','$check_default_values','$checkbox_values',$required,$user_can_view,
-      $view_in_profile,$profile_location,$view_in_memberlist,$view_in_topic,$signature_wrap)";
-  }
-  else
-  {
-    $sql = "UPDATE " . PROFILE_FIELDS_TABLE . "
-      SET field_name = '$name_display_sql',
-        field_description = '$description',
-        field_type = $type,
-        text_field_default = '$text_field_default',
-        text_field_maxlen = $text_field_maxlen,
-        text_area_default = '$text_area_default',
-        text_area_maxlen = $text_area_maxlen,
-        radio_button_default = '$radio_default_value',
-        radio_button_values = '$radio_values',
-        checkbox_default = '$check_default_values',
-        checkbox_values = '$checkbox_values',
-        is_required = $required,
-        users_can_view = $user_can_view,
-        view_in_profile = $view_in_profile,
-        profile_location = $profile_location,
-        view_in_memberlist = $view_in_memberlist,
-        view_in_topic = $view_in_topic,
-        topic_location = $signature_wrap
-      WHERE field_id = $pfid";
-  }
-  
-  if(!$db->sql_query($sql))
-    message_die(GENERAL_ERROR,$die_message,'',__LINE__,__FILE__,$sql);
-  
-  if($pfid != 'x')
-  {
-    switch($type)
-    {
-		case TEXT_FIELD: 
-			$col_type = 'VARCHAR('.$text_field_maxlen.') DEFAULT \''.$text_field_default.'\''; 
-			break;
-		case RADIO:
-			$col_type = 'VARCHAR(255) DEFAULT \''.$radio_default_value.'\''; 
-			break;
-		
-		case TEXTAREA:
-		case CHECKBOX: 
-			$col_type = 'TEXT';
-			break;
-    }
-    $sql = "ALTER TABLE " . USERS_TABLE . "
-      CHANGE $old_name $name $col_type";
-    if(!$db->sql_query($sql))
-      message_die(GENERAL_ERROR,'Could not change column name in '.USERS_TABLE,'',__LINE__,__FILE__,$sql);
-  }
-  
-  $sql = "ALTER TABLE " . USERS_TABLE . "
-    ADD $name";
-  switch($type)
-  {
-    case TEXT_FIELD:
-      $sql .= " varchar($text_field_maxlen) DEFAULT '$text_field_default'";
-      break;
-    case RADIO:
-      $sql .= " varchar(255) DEFAULT '$radio_default_value'";
-      break;
-    case TEXTAREA:
-    case CHECKBOX:
-      $sql .= " text";
-      break;
-  }
-  
-  if($pfid == 'x' && !$db->sql_query($sql))
-    message_die(GENERAL_ERROR,'Could not expand users table for new profile field.','',__LINE__,__FILE__,$sql);
-  
-  $sql = "SELECT user_id FROM " . USERS_TABLE;
-  if(!($result = $db->sql_query($sql)))
-    message_die(GENERAL_ERROR,'Could not retrieve use and profile information','',__LINE__,__FILE__,$sql);
-  
-  $user_id_array = array();
-  while($temp = $db->sql_fetchrow($result))$user_id_array[] = $temp['user_id'];
-  
-  if($pfid == 'x')
-    foreach($user_id_array as $user_id)
-    {
-      $sql = "UPDATE " . USERS_TABLE . "
-        SET $name = %s
-        WHERE user_id = $user_id";
-      
-      switch($type)
-      {
-        case TEXT_FIELD:
-          $val = $text_field_default;
-          break;
-        case TEXTAREA:
-          $val = $text_area_default;
-          break;
-        case RADIO:
-          $val = $radio_default_value;
-          break;
-        case CHECKBOX:
-          $val = $check_default_values;
-          break;
-      }
-      
-      $sql = sprintf($sql,"'$val'");
-      
-      if(!$db->sql_query($sql))
-        message_die(GENERAL_ERROR,'Could not update users with default values','',__LINE__,__FILE__,$sql);
-    }
-  
   $template->assign_vars(array(
-    'MESSAGE_TITLE' => $pfid == 'x' ? $lang['profile_field_created'] : $lang['profile_field_updated'],
+    'MESSAGE_TITLE' => $pfid === 'x' ? $lang['profile_field_created'] : $lang['profile_field_updated'],
     'MESSAGE_TEXT' => $lang['field_success']));
 }
 elseif($mode == 'edit')
@@ -365,7 +176,10 @@ elseif($mode == 'edit')
       'L_NAME' => $lang['profile_field_name'],
       'L_ACTION' => $lang['profile_field_action'],
       'L_EDIT' => $lang['Edit'],
-      'L_DELETE' => $lang['Delete']
+      'L_DELETE' => $lang['Profile_retirement_remove'],
+      'L_RETIRED_TITLE' => $lang['Profile_retirement_title'],
+      'L_RETIRED_EXPLAIN' => $lang['Profile_retirement_explain'],
+      'L_RESTORE' => $lang['Profile_retirement_restore']
       ));
     
     $profile_rows = get_fields();
@@ -395,6 +209,17 @@ elseif($mode == 'edit')
           ));
       }
     }
+    $retired_result = $db->sql_query('SELECT operation_key,field_id,definition_snapshot FROM ' . PROFILE_FIELD_ACTIONS_TABLE . " WHERE action_state='retired' ORDER BY created_at DESC,operation_key");
+    if (!$retired_result) { message_die(GENERAL_ERROR, 'Profile_definition_upgrade'); }
+    while ($retired = $db->sql_fetchrow($retired_result))
+    {
+      if (phpbb_profile_retirement_token($retired, 'operation_key') === '') { continue; }
+      $template->assign_block_vars('retired_fields', array(
+        'ID' => (int)$retired['field_id'],
+        'NAME' => phpbb_profile_retirement_label($retired['definition_snapshot']),
+        'U_RESTORE' => append_sid($filename . '?mode=restore&pfid=x&definition_operation=' . $retired['operation_key'])));
+    }
+    $db->sql_freeresult($retired_result);
   }
   else
   {
@@ -403,89 +228,73 @@ elseif($mode == 'edit')
     $profile_rows = get_fields('WHERE field_id = ' . $pfid,false);
     
     if (!is_array($profile_rows) || empty($profile_rows))
-      message_die(GENERAL_ERROR, 'Profile field not found.');
+    {
+      if ($definition_draft === null) { message_die(GENERAL_ERROR, 'Profile field not found.'); }
+      $profile_rows = phpbb_profile_definition_form_defaults();
+    }
 
+    $definition_revision = $definition_draft === null ? phpbb_profile_definition_revision($profile_rows) : profile_field_post_value('definition_revision');
     $template->assign_vars(array(
-      'FIELD_NAME' => phpbb_admin_html(html_entity_decode((string) $profile_rows['field_name'], ENT_QUOTES, 'UTF-8')),
-      'FIELD_DESCRIPTION' => phpbb_admin_html(html_entity_decode((string) $profile_rows['field_description'], ENT_QUOTES, 'UTF-8')),
-      'TEXT_FIELD_CHECKED' => $profile_rows['field_type'] == TEXT_FIELD ? ' checked="checked"' : '',
-      'TEXTAREA_CHECKED' => $profile_rows['field_type'] == TEXTAREA ? ' checked="checked"' : '',
-      'RADIO_CHECKED' => $profile_rows['field_type'] == RADIO ? ' checked="checked"' : '',
-      'CHECKBOX_CHECKED' => $profile_rows['field_type'] == CHECKBOX ? ' checked="checked"' : '',
-	  'TEXT_FIELD_DEFAULT' => phpbb_profile_display_text($profile_rows['text_field_default']),
-      'TEXT_FIELD_MAXLENGTH' => $profile_rows['text_field_maxlen'],
-	  'TEXTAREA_DEFAULT' => phpbb_profile_display_text($profile_rows['text_area_default']),
-      'TEXTAREA_MAXLENGTH' => $profile_rows['text_area_maxlen'],
-      'REQUIRED_CHECKED' => $profile_rows['is_required'] == REQUIRED ? ' checked="checked"' : '',
-      'NOT_REQUIRED_CHECKED' => $profile_rows['is_required'] == NOT_REQUIRED ? ' checked="checked"' : '',
-      'ALLOW_VIEW_CHECKED' => $profile_rows['users_can_view'] == ALLOW_VIEW ? ' checked="checked"' : '',
-      'DISALLOW_VIEW_CHECKED' => $profile_rows['users_can_view'] == DISALLOW_VIEW ? ' checked="checked"' : '',
-      'VIEW_IN_PROFILE_CHECKED' => $profile_rows['view_in_profile'] == VIEW_IN_PROFILE ? ' checked="checked"' : '',
-      'NO_VIEW_IN_PROFILE_CHECKED' => $profile_rows['view_in_profile'] == NO_VIEW_IN_PROFILE ? ' checked="checked"' : '',
-      'CONTACTS_CHECKED' => $profile_rows['profile_location'] == CONTACTS ? ' checked="checked"' : '',
-      'ABOUT_CHECKED' => $profile_rows['profile_location'] == ABOUT ? ' checked="checked"' : '',
-      'VIEW_IN_MEMBERLIST' => $profile_rows['view_in_memberlist'] == VIEW_IN_MEMBERLIST ? ' checked="checked"' : '',
-      'NO_VIEW_IN_MEMBERLIST' => $profile_rows['view_in_memberlist'] == NO_VIEW_IN_MEMBERLIST ? ' checked="checked"' : '',
-      'VIEW_IN_TOPIC' => $profile_rows['view_in_topic'] == VIEW_IN_TOPIC ? ' checked="checked"' : '',
-      'NO_VIEW_IN_TOPIC' => $profile_rows['view_in_topic'] == NO_VIEW_IN_TOPIC ? ' checked="checked"' : '',
-      'AUTHOR_CHECKED' => $profile_rows['topic_location'] == AUTHOR ? ' checked="checked"' : '',
-      'ABOVE_SIG_CHECKED' => $profile_rows['topic_location'] == ABOVE_SIGNATURE ? ' checked="checked"' : '',
-      'BELOW_SIG_CHECKED' => $profile_rows['topic_location'] == BELOW_SIGNATURE ? ' checked="checked"' : '',
-	  'RADIO_VALUES' => str_replace(',',"\r\n",phpbb_profile_display_text($profile_rows['radio_button_values'])),
-	  'RADIO_DEFAULT' => phpbb_profile_display_text($profile_rows['radio_button_default']),
-	  'CHECKBOX_VALUES' => str_replace(',',"\r\n",phpbb_profile_display_text($profile_rows['checkbox_values'])),
-	  'CHECKBOX_DEFAULT' => str_replace(',',"\r\n",phpbb_profile_display_text($profile_rows['checkbox_default'])),
-      
       'L_ADD_FIELD_TITLE' => $lang['edit_field_title'],
       'L_ADD_FIELD_EXPLAIN' => $lang['edit_field_explain'],
       
       'S_ADD_FIELD_ACTION' => append_sid($filename),
-      'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="pfid" value="' . (int) $pfid . '" />' . $session_field
+      'S_HIDDEN_FIELDS' => '<input type="hidden" name="mode" value="update" /><input type="hidden" name="pfid" value="' . (int) $pfid . '" /><input type="hidden" name="definition_revision" value="' . phpbb_admin_html($definition_revision) . '" />' . $session_field
       ));
+    $template->assign_vars(phpbb_profile_definition_form_vars($profile_rows, $definition_draft));
   }
 }
 elseif($mode == 'delete')
 {
-  $field_name = get_fields('WHERE field_id = '.(int) $pfid,false,'field_name');
-  if (!$field_name)
-    message_die(GENERAL_ERROR, 'Profile field not found.');
-
-  $template->set_filenames(array('body' => 'admin/confirm_body.tpl'));
-  $hidden_fields = '<input type="hidden" name="mode" value="confirmdelete" />' .
-    '<input type="hidden" name="pfid" value="' . (int) $pfid . '" />' . phpbb_admin_session_field();
+  if ($retirement_retry)
+  {
+    $operation = phpbb_profile_retirement_token($_POST, 'definition_operation');
+    $revision = phpbb_profile_retirement_token($_POST, 'definition_revision');
+    $confirmation = $lang['Profile_retirement_retry'];
+  }
+  else
+  {
+    $field = get_fields('WHERE field_id = '.(int)$pfid, false);
+    if (!$field) { message_die(GENERAL_ERROR, 'Profile_definition_changed'); }
+    $operation = bin2hex(phpbb_random_bytes(32));
+    $revision = phpbb_profile_definition_revision($field);
+    $confirmation = sprintf($lang['Profile_retirement_confirm'], phpbb_profile_display_text($field['field_name']));
+  }
+  $template->set_filenames(array('body' => 'admin/profile_field_confirm.tpl'));
   $template->assign_vars(array(
     'MESSAGE_TITLE' => $lang['Confirm'],
-	'MESSAGE_TEXT' => sprintf($lang['double_check_delete'], phpbb_profile_display_text($field_name['field_name'])),
+    'MESSAGE_TEXT' => $confirmation,
     'L_YES' => $lang['Yes'],
     'L_NO' => $lang['No'],
     'S_CONFIRM_ACTION' => append_sid($filename),
-    'S_HIDDEN_FIELDS' => $hidden_fields
+    'S_HIDDEN_FIELDS' => phpbb_profile_retirement_hidden('confirmdelete', $pfid, $operation, $revision)
     ));
 }
-elseif($mode == 'confirmdelete')
+elseif($mode == 'restore')
 {
-  if (!isset($_POST['confirm']))
-    redirect(append_sid("$filename?mode=edit&pfid=x"));
-
-  $field_name = get_fields('WHERE field_id = '.(int) $pfid,false,'field_name');
-  $name = $field_name ? profile_field_column_identifier($field_name['field_name']) : false;
-  if ($name === false)
-    message_die(GENERAL_ERROR, 'Invalid profile-field column.');
-
-  $sql = "DELETE FROM " . PROFILE_FIELDS_TABLE . "
-    WHERE field_id = " . (int) $pfid;
-  if(!$db->sql_query($sql))
-    message_die(GENERAL_ERROR,'Could not delete profile form database','',__LINE__,__FILE__,$sql);
-  
-  $sql = "ALTER TABLE " . USERS_TABLE . "
-    DROP COLUMN $name";
-  if(!$db->sql_query($sql))
-    message_die(GENERAL_ERROR,'Could not remove column from '.USERS_TABLE,'',__LINE__,__FILE__,$sql);
-  
+  $operation = phpbb_profile_retirement_token($retirement_retry ? $_POST : $_GET, 'definition_operation');
+  if ($retirement_retry) { $confirmation = $lang['Profile_retirement_retry']; }
+  else
+  {
+    if ($operation === '') { message_die(GENERAL_ERROR, 'Profile_definition_invalid'); }
+    $result = $db->sql_query('SELECT definition_snapshot FROM ' . PROFILE_FIELD_ACTIONS_TABLE . " WHERE operation_key='" . $operation . "' AND action_state='retired'");
+    if (!$result) { message_die(GENERAL_ERROR, 'Profile_definition_upgrade'); }
+    $retired = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+    if (!$retired) { message_die(GENERAL_ERROR, 'Profile_definition_changed'); }
+    $confirmation = sprintf($lang['Profile_retirement_confirm_restore'], phpbb_profile_retirement_label($retired['definition_snapshot']));
+  }
+  $template->set_filenames(array('body' => 'admin/profile_field_confirm.tpl'));
+  $template->assign_vars(array(
+    'MESSAGE_TITLE' => $lang['Confirm'], 'MESSAGE_TEXT' => $confirmation,
+    'L_YES' => $lang['Yes'], 'L_NO' => $lang['No'], 'S_CONFIRM_ACTION' => append_sid($filename),
+    'S_HIDDEN_FIELDS' => phpbb_profile_retirement_hidden('confirmrestore', 'x', $operation, '')));
+}
+elseif(in_array($mode, array('confirmdelete','confirmrestore'), true))
+{
   $template->set_filenames(array('body' => 'admin/admin_message_body.tpl'));
   $template->assign_vars(array(
-    'MESSAGE_TITLE' => $lang['field_deleted'],
-    'MESSAGE_TEXT' => $lang['click_here_here']
+    'MESSAGE_TITLE' => $lang[$mode === 'confirmdelete' ? 'Profile_retirement_removed' : 'Profile_retirement_restored'],
+    'MESSAGE_TEXT' => '<a href="' . phpbb_admin_html(append_sid($filename . '?mode=edit&pfid=x')) . '">' . phpbb_admin_html($lang['profile_field_list']) . '</a>'
     ));
 }
 
@@ -535,7 +344,7 @@ $template->assign_vars(array(
   'L_MAX_LENGTH_TEXT_FIELD_EXPLAIN' => $lang['max_length_explain'] . sprintf($lang['max_length_value'],TEXT_FIELD_MINLENGTH,TEXT_FIELD_MAXLENGTH),
   'L_MAX_LENGTH_TEXTAREA_EXPLAIN' => $lang['max_length_explain'] . sprintf($lang['max_length_value'],TEXTAREA_MINLENGTH,TEXTAREA_MAXLENGTH),
   'L_AVAILABLE_VALUES' => $lang['available_values'],
-  'L_AVAILABE_VALUES_EXPLAIN' => $lang['available_values_explain'],    
+  'L_AVAILABLE_VALUES_EXPLAIN' => $lang['available_values_explain'] . ' ' . $lang['Profile_definition_options'],
   'L_VIEW_DISCLAIMER' => $lang['add_field_view_disclaimer'],
   'L_SUBMIT' => $lang['Submit'],
   'L_RESET' => $lang['Reset'],

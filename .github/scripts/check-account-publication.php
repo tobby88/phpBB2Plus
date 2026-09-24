@@ -27,6 +27,7 @@ class PhpbbRegistrationScope {
  var $original;var $avatar;
  function __construct($db,$sid,$username,$email,$fields,$avatar){$this->original=$db;$this->avatar=$avatar;}
  function __call($m,$a){return call_user_func_array(array($this->original,$m),$a);}
+ function profile_insert_parts($submitted){return \phpbb_profile_new_account_insert($this->original,$GLOBALS['profile_data'],$submitted);}
  function finish(){$this->release();$this->avatar->saved();}
  function release(){$GLOBALS['db']=$this->original;}
 }
@@ -35,6 +36,7 @@ class PhpbbRegistrationScope {
 class PhpbbAdminRegistrationScope {
  var $original;
  function __construct($db,$request,$username,$email,$style){$this->original=$db;}
+ function profile_insert_parts(){return \phpbb_profile_new_account_insert($this->original,array());}
  function finish(){$this->release();}
  function release(){$GLOBALS['db']=$this->original;}
 }

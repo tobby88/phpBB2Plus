@@ -1479,8 +1479,41 @@ CREATE TABLE `phpbb_ctracker_rate_limits` (
 			KEY `updated_at` (`updated_at`)
 			) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE phpbb_profile_field_jobs (
+  operation_key char(64) NOT NULL,
+  actor_id mediumint(8) unsigned NOT NULL,
+  session_hash char(64) NOT NULL,
+  payload_hash char(64) NOT NULL,
+  field_column varchar(64) NOT NULL,
+  field_id mediumint(8) unsigned DEFAULT NULL,
+  job_state varchar(16) NOT NULL,
+  created_at int(11) unsigned NOT NULL,
+  updated_at int(11) unsigned NOT NULL,
+  PRIMARY KEY (operation_key),
+  UNIQUE KEY field_column (field_column),
+  KEY field_id (field_id)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE phpbb_profile_field_actions (
+  operation_key char(64) NOT NULL,
+  field_id mediumint(8) unsigned NOT NULL,
+  field_column varchar(64) NOT NULL,
+  definition_revision char(64) NOT NULL,
+  definition_snapshot mediumtext NOT NULL,
+  column_signature char(64) NOT NULL,
+  actor_id mediumint(8) unsigned NOT NULL,
+  session_hash char(64) NOT NULL,
+  action_state varchar(16) NOT NULL,
+  created_at int(11) unsigned NOT NULL,
+  updated_at int(11) unsigned NOT NULL,
+  PRIMARY KEY (operation_key),
+  KEY field_column (field_column),
+  KEY field_id (field_id)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_profile_fields (
 field_id MEDIUMINT( 8 ) UNSIGNED NOT NULL AUTO_INCREMENT,
+field_column VARCHAR(64) DEFAULT NULL,
 field_name VARCHAR( 255 ) NOT NULL ,
 field_description VARCHAR( 255 ) NULL ,
 field_type TINYINT( 4 ) UNSIGNED NOT NULL DEFAULT '0',
@@ -1501,7 +1534,8 @@ view_in_topic TINYINT( 2 ) UNSIGNED NOT NULL DEFAULT '0',
 topic_location TINYINT( 2 ) UNSIGNED NOT NULL DEFAULT '1',
 PRIMARY KEY (field_id),
 INDEX ( field_type ) ,
-UNIQUE (field_name)
+UNIQUE (field_name),
+UNIQUE KEY field_column (field_column)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `phpbb_captcha_config` (

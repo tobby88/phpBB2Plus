@@ -3,6 +3,8 @@
 
 <p>{L_ADD_FIELD_EXPLAIN}</p>
 
+{ERROR_BOX}
+
 <form action="{S_ADD_FIELD_ACTION}" method="post">
 <table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">
 	<tr>
@@ -55,13 +57,13 @@
 			<br />
 			<table width="99%" cellpadding="4" cellspacing="1" border="0" align="center" class="forumline">
 				<tr>
-				  <td class="row3" colspan="2"><input type="radio" name="field_type" value="{S_RADIO}"{RADIO_CHECKED} />{L_RADIO} :: <input type="radio" name="radio_test" checked="checked" />&nbsp;<input type="radio" name="radio_test" /> <span class="gen">{L_RADIO_EXAMPLE}</td>
+					  <td class="row3" colspan="2"><input type="radio" name="field_type" value="{S_RADIO}"{RADIO_CHECKED} />{L_RADIO} :: <input type="radio" name="radio_test" checked="checked" />&nbsp;<input type="radio" name="radio_test" /> <span class="gen">{L_RADIO_EXAMPLE}</span></td>
 				</tr>
 				<tr>
 				  <th class="thHead" colspan="2">{L_RADIO_BUTTON_SETTINGS}</th>
 				</tr>
 				<tr>
-				  <td class="row1">{L_AVAILABLE_VALUES}<br /><span class="gensmall">{L_AVAILABLE_VALUES_EXPLAIN}</span></td>
+					  <td class="row1">{L_AVAILABLE_VALUES}<br /><span class="gensmall">{L_AVAILABLE_VALUES_EXPLAIN}</span></td>
 				  <td class="row2"><textarea name="radio_values" class="post" style="width: 150px" rows="5">{RADIO_VALUES}</textarea></td>
 				</tr>
 				<tr>
@@ -127,7 +129,7 @@
 	    <input type="radio" name="profile_location" value="{S_CONTACTS}"{CONTACTS_CHECKED} />
 	    <span class="gen">{L_CONTACTS_COLUMN}</span><br />
 	    <input type="radio" name="profile_location" value="{S_ABOUT}"{ABOUT_CHECKED} />
-    <span class="gen">{L_ABOUT_COLUMN}</span>	</tr>
+    <span class="gen">{L_ABOUT_COLUMN}</span></td></tr>
 	<tr>
 		<td class="row1">{L_VIEW_IN_MEMBERLIST}</td>
 		<td class="row2">
@@ -155,7 +157,7 @@
       <span class="gen">{L_BELOW_SIGNATURE}</span></td>
 	</tr>
 	<tr>
-		<td class="cat" colspan="2" align="center" id="submitbar">{S_HIDDEN_FIELDS}<input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" onclick="selectAll()" />&nbsp;&nbsp;<input type="reset" value="{L_RESET}" class="liteoption" />		</td>
+		<td class="cat" colspan="2" align="center" id="submitbar">{S_HIDDEN_FIELDS}<input type="submit" name="submit" value="{L_SUBMIT}" class="mainoption" />&nbsp;&nbsp;<input type="reset" value="{L_RESET}" class="liteoption" />		</td>
 	</tr>
 </table>
 </form>

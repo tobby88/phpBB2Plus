@@ -31,6 +31,28 @@ jobs:
         env:
           PHPBB_STORAGE_NATIVE: '1'
           PHPBB_STORAGE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-field-column.php
+        env:
+          PHPBB_PROFILE_COLUMN_NATIVE: '1'
+          PHPBB_PROFILE_COLUMN_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-definition-storage.php
+        env:
+          PHPBB_PROFILE_DEFINITION_NATIVE: '1'
+          PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-retirement.php
+        env:
+          PHPBB_PROFILE_DEFINITION_NATIVE: '1'
+          PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-cleanup.php
+        env:
+          PHPBB_PROFILE_DEFINITION_NATIVE: '1'
+          PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
+      - run: |
+          php .github/scripts/run-native-maintenance-users.php
+          php .github/scripts/run-native-maintenance-users.php erc
+        env:
+          PHPBB_GUEST_PROFILE_NATIVE: '1'
+          PHPBB_GUEST_PROFILE_PASSWORD: fixture-only
       - run: php .github/scripts/check-storage-policy.php
         env:
           PHPBB_STORAGE_NATIVE: '1'
@@ -117,6 +139,10 @@ jobs:
         env:
           PHPBB_REGISTRATION_NATIVE: '1'
           PHPBB_REGISTRATION_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-account-defaults.php
+        env:
+          PHPBB_REGISTRATION_NATIVE: '1'
+          PHPBB_REGISTRATION_PASSWORD: fixture-only
       - run: php .github/scripts/check-admin-registration-native.php
         env:
           PHPBB_QUICK_ADD_NATIVE: '1'
@@ -126,6 +152,10 @@ jobs:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
       - run: php .github/scripts/check-admin-profile-identity-native.php
+        env:
+          PHPBB_ADMIN_PROFILE_NATIVE: '1'
+          PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-account-defaults-admin.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only

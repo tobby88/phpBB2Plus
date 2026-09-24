@@ -11,12 +11,12 @@ function throw_error($message) { throw new ResetControllerFailure($message); }
 function lock_db() { throw new RuntimeException('Session reset must not toggle board availability'); }
 class ResetRows { public $rows; function __construct($rows) { $this->rows=$rows; } }
 $resetDsn = getenv('PHPBB_SESSION_RESET_TEST_DSN'); $resetNative = $resetDsn !== false && $resetDsn !== '';
-if ($resetNative) { reset_check(preg_match('/^mysql:host=127\.0\.0\.1;port=33119;dbname=codex_session_reset_[a-f0-9]{16};charset=utf8mb4$/D',$resetDsn)===1,'Only owned local schemas allowed'); }
+if ($resetNative) { reset_check(preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]{1,5};dbname=codex_session_reset_[a-f0-9]{16};charset=utf8mb4$/D',$resetDsn)===1,'Only owned local schemas allowed'); }
 class ResetServer {
  public $pdo; public $owner=null; public $hook=null; public $failure=''; public $lostAck=false; public $queries=array(); public $metadataExpiry=null;
  function __construct($engine,$actor) {
   $sqliteClass=class_exists('Pdo\\Sqlite')?'Pdo\\Sqlite':'PDO';
-  $this->pdo = $GLOBALS['resetNative'] ? new PDO($GLOBALS['resetDsn'],'root','') : new $sqliteClass('sqlite::memory:');
+  $this->pdo = $GLOBALS['resetNative'] ? new PDO($GLOBALS['resetDsn'],'root',getenv('PHPBB_SESSION_RESET_TEST_PASSWORD')?:'') : new $sqliteClass('sqlite::memory:');
   $this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
   $definitions=array('users'=>'user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER',
    'junior'=>'user_id INTEGER,user_jr_admin VARCHAR(255)',
@@ -46,7 +46,7 @@ class ResetConnection {
  public $server; public $pdo; public $db_connect_id=true; public $closed=false; public $affected=0;
  function __construct($server) {
   $this->server=$server;
-  $this->pdo=$GLOBALS['resetNative'] ? new PDO($GLOBALS['resetDsn'],'root','',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)) : $server->pdo;
+  $this->pdo=$GLOBALS['resetNative'] ? new PDO($GLOBALS['resetDsn'],'root',getenv('PHPBB_SESSION_RESET_TEST_PASSWORD')?:'',array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION)) : $server->pdo;
  }
  function sql_query($sql) {
   if ($this->closed) { return false; } $s=$this->server; $s->queries[]=$sql;

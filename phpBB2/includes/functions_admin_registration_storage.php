@@ -11,10 +11,13 @@ class PhpbbAdminRegistrationScope extends PhpbbAclDatabase
 	var $transactional = false;
 	var $confirmed = false;
 	var $current_reads = false;
+	var $profile_fields = array();
+	var $profile_actions = array();
 	function __construct($database, $request, $username, $email, $style)
 	{
 		global $db, $userdata, $board_config, $phpEx;
 		$this->original = $database;
+		require_once dirname(__FILE__) . '/functions_profile_fields.php';
 		if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || !is_array($request)
 			|| !isset($userdata['session_id'], $request['sid']) || !is_string($userdata['session_id']) || $userdata['session_id'] === ''
 			|| !is_string($request['sid']) || !hash_equals($userdata['session_id'], $request['sid'])) { phpbb_acl_error('Session_invalid'); }
@@ -29,7 +32,7 @@ class PhpbbAdminRegistrationScope extends PhpbbAclDatabase
 			$this->control('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
 			$this->control('START TRANSACTION'); $this->transactional = true; $db = $this;
 			foreach (array(USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE, CONFIG_TABLE, GROUPS_TABLE, USER_GROUP_TABLE,
-				DISALLOW_TABLE, WORDS_TABLE, BANLIST_TABLE, THEMES_TABLE) as $table)
+				DISALLOW_TABLE, WORDS_TABLE, BANLIST_TABLE, THEMES_TABLE, PROFILE_FIELDS_TABLE, PROFILE_FIELD_ACTIONS_TABLE) as $table)
 			{
 				$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
 				$name = $this->sql_escape($table);
@@ -40,6 +43,8 @@ class PhpbbAdminRegistrationScope extends PhpbbAclDatabase
 			// All subsequent validation reads are current locking reads, not an
 			// earlier RR snapshot. Hold exact actor/session/delegation through ACK.
 			$this->current_reads = true; $sid = $this->sql_escape($request['sid']);
+			$this->profile_fields = phpbb_acl_rows($this, 'SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' ORDER BY field_id ASC');
+			$this->profile_actions = phpbb_acl_rows($this, 'SELECT field_column,action_state FROM ' . PROFILE_FIELD_ACTIONS_TABLE . ' ORDER BY operation_key');
 			phpbb_acl_rows($this, 'SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='$sid' AND HEX(session_id)=HEX('$sid')");
 			phpbb_acl_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . $id);
 			phpbb_acl_rows($this, 'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . $id);
@@ -64,6 +69,12 @@ class PhpbbAdminRegistrationScope extends PhpbbAclDatabase
 	{
 		if ($this->connection === null) { phpbb_acl_error($this->failure_key); }
 		return parent::sql_query($sql);
+	}
+	function profile_insert_parts()
+	{
+		if (!$this->transactional) { phpbb_acl_error('Acl_selection_changed'); }
+		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, array(), $this->profile_actions); }
+		catch (UnexpectedValueException $e) { phpbb_acl_error('Acl_selection_changed'); }
 	}
 	function sql_query($sql, $transaction = false)
 	{

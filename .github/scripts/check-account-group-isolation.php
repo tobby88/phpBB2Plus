@@ -16,6 +16,7 @@ class PhpbbAdminProfileScope
     public $inner;
     function __construct($db,$id,$creating,$request) { check($id===42 && $creating===true,'Creation scope owns allocated account, not reference'); $this->inner=$db; }
     function __call($method,$args) { return call_user_func_array(array($this->inner,$method),$args); }
+    function profile_insert_parts() { return array('', ''); } // This fixture has no custom definitions; native suites cover defaults.
     function __get($name) { return $this->inner->$name; }
 }
 class CreationDb

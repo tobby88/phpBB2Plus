@@ -226,8 +226,9 @@ if ( isset($_POST['submit']) )
 		{
 		$creation_scope = new PhpbbAdminRegistrationScope($db, $_POST, $username, $email, $user_style);
 		// Publish account, personal group and membership together.
-		$account_insert_sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey, user_passwd_change, ct_last_pw_change)
-			VALUES ($user_id, '" . $db->sql_escape($username) . "',	" . $account_created_at . ",	'" . $db->sql_escape($new_password) . "',	'" . $db->sql_escape($email) . "', $user_style, $user_timezone, '" . $db->sql_escape($user_dateformat) . "', '" . $db->sql_escape($user_lang) . "', 0, 1, '', " . $account_created_at . ", " . $account_created_at . ")";
+		list($profile_columns, $profile_values) = $creation_scope->profile_insert_parts();
+		$account_insert_sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_regdate, user_password, user_email, user_style, user_timezone, user_dateformat, user_lang, user_level, user_active, user_actkey, user_passwd_change, ct_last_pw_change" . $profile_columns . ")
+			VALUES ($user_id, '" . $db->sql_escape($username) . "',	" . $account_created_at . ",	'" . $db->sql_escape($new_password) . "',	'" . $db->sql_escape($email) . "', $user_style, $user_timezone, '" . $db->sql_escape($user_dateformat) . "', '" . $db->sql_escape($user_lang) . "', 0, 1, '', " . $account_created_at . ", " . $account_created_at . $profile_values . ")";
 		$sql = "INSERT INTO " . GROUPS_TABLE . " (group_name, group_description, group_single_user, group_moderator)
 			VALUES ('', 'Personal User', 1, 0)";
 		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )

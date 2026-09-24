@@ -31,7 +31,7 @@ foreach (array(array(),array('restore_start'=>'1','sql'=>'DROP TABLE users;')) a
 policy_check(strpos($admin, "\$_FILES['backup_file']") === false && strpos($admin, 'split_sql_file($sql_query') === false, 'No hidden upload executor');
 $schema=file_get_contents($root.'/phpBB2/install/schemas/mysql_schema.sql');
 preg_match_all('/CREATE TABLE\s+.*?;(?=\s*(?:#|CREATE|$))/s', $schema, $definitions);
-policy_check(count($definitions[0])===116, 'Review inventory when adding fresh-install tables');
+policy_check(count($definitions[0])===118, 'Review inventory when adding fresh-install tables');
 foreach ($definitions[0] as $sql) { policy_check(strpos($sql,'ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')!==false, 'Explicit fresh storage and charset'); }
 $ct=file_get_contents($root.'/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
 policy_check(substr_count($ct,'$this->require_modern_storage(')===10, 'Clone and transactional publication storage-check inventory');
@@ -53,6 +53,13 @@ foreach($iterator as $file) {
  if(substr($file->getFilename(),-4)!=='.php'){continue;}
  $path=str_replace('\\','/',substr($file->getPathname(),strlen($root)+1));
  $source=file_get_contents($file->getPathname());
+ // This owner reads SHOW CREATE metadata to preserve existing column
+ // attributes while widening. It does not create tables. Keep any additional
+ // CREATE statement subject to the normal inventory, not a blanket exception.
+ if($path==='phpBB2/includes/functions_profile_definition_storage.php'){
+  policy_check(substr_count($source,'SHOW CREATE TABLE')===1&&substr_count($source,"['Create Table']")===3,'Profile definition metadata-read inventory');
+  $source=str_replace(array('SHOW CREATE TABLE',"['Create Table']"),array('SHOW_TABLE_DEFINITION',"['table_definition']"),$source);
+ }
  if(preg_match('/\bCREATE\s+(?:TEMPORARY\s+)?TABLE\b/i',$source)){policy_check(in_array($path,$creators,true),'Unreviewed table creator: '.$path);}
 }
 echo "Storage policy, historical entrypoints and disabled SQL-upload controller passed\n";

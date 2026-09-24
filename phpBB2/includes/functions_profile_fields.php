@@ -1,4 +1,100 @@
 <?php
+require_once dirname(__FILE__) . '/functions_profile_columns.php';
+
+// Definitions must be read under the account owner's transaction. Defaults
+// already use storage encoding, not legacy request escaping or another user's
+// profile. Only explicitly validated, visible inputs override these defaults.
+function phpbb_profile_new_account_values($fields, $submitted = array())
+{
+  if (!is_array($fields) || !is_array($submitted)) { throw new UnexpectedValueException('Invalid profile metadata'); }
+  $defaults = array('text_field_default','text_area_default','radio_button_default','checkbox_default');
+  $values = array();
+  foreach ($fields as $field)
+  {
+    $column = phpbb_profile_field_column($field);
+    $type = isset($field['field_type']) && is_scalar($field['field_type']) ? (string)$field['field_type'] : '';
+    if ($column === '' || in_array($column, phpbb_profile_definition_core_columns(), true)
+      || array_key_exists($column, $values) || !in_array($type, array('0','1','2','3'), true))
+    { throw new UnexpectedValueException('Invalid profile metadata'); }
+    $key = $defaults[(int)$type];
+    $value = array_key_exists($column, $submitted) ? $submitted[$column] : (isset($field[$key]) ? $field[$key] : '');
+    if (!is_string($value) || strpos($value, "\0") !== false || !preg_match('//u', $value) || strlen($value) > 240000)
+    { throw new UnexpectedValueException('Invalid profile value'); }
+    $values[$column] = $value;
+  }
+  if (array_diff_key($submitted, $values)) { throw new UnexpectedValueException('Unknown profile input'); }
+  return $values;
+}
+
+function phpbb_profile_new_account_insert($db, $fields, $submitted = array(), $actions = array())
+{
+  if (!is_array($actions)) { throw new UnexpectedValueException('Invalid profile recovery metadata'); }
+  $defaults = phpbb_profile_new_account_values($fields, $submitted);
+  if ($actions)
+  {
+    // Retired legacy columns may still have physical member defaults. They
+    // are inactive, not editable input: new accounts get blanks until cleanup.
+    $result = $db->sql_query("SELECT COLUMN_NAME,DATA_TYPE,EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $db->sql_escape(USERS_TABLE) . "'");
+    if (!$result) { throw new UnexpectedValueException('Unable to inspect profile columns'); }
+    try { $physical = $db->sql_fetchrowset($result); }
+    finally { $db->sql_freeresult($result); }
+    if (!is_array($physical)) { throw new UnexpectedValueException('Invalid profile column metadata'); }
+    foreach (phpbb_profile_owned_columns($fields, $actions, $physical) as $column)
+    { if (!array_key_exists($column, $defaults)) { $defaults[$column] = ''; } }
+  }
+  $columns = $values = '';
+  foreach ($defaults as $column => $value)
+  {
+    $columns .= ', `' . $column . '`';
+    $values .= ", '" . $db->sql_escape($value) . "'";
+  }
+  return array($columns, $values);
+}
+
+// Known active and retained columns only; caller pins definitions/receipts.
+function phpbb_profile_owned_columns($fields, $actions, $physical)
+{
+    $columns = array(); $purged = array(); $active = array(); $core = phpbb_profile_definition_core_columns();
+    foreach ($fields as $field)
+    {
+        $column = phpbb_profile_field_column($field);
+        if ($column === '' || in_array($column, $core, true) || isset($active[$column]))
+        { throw new UnexpectedValueException('Invalid active profile mapping'); }
+        $columns[$column] = true; $active[$column] = true;
+    }
+    foreach ($actions as $action)
+    {
+        $column = isset($action['field_column']) ? $action['field_column'] : null;
+        $state = isset($action['action_state']) ? $action['action_state'] : null;
+        if (!is_string($column) || !preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $column)
+            || in_array($column, $core, true) || !in_array($state, array('retired','restored','purging','purged'), true))
+        { throw new UnexpectedValueException('Invalid archived profile mapping'); }
+        // Old restored receipts are tombstones, not claims on current storage.
+        if ($state === 'restored') { continue; }
+        if (isset($active[$column])) { throw new UnexpectedValueException('Conflicting profile mapping'); }
+        if ($state === 'purged') { $purged[$column] = true; }
+        $columns[$column] = !empty($columns[$column]) || $state !== 'purged';
+    }
+    $storage = array();
+    foreach ($physical as $row) { $storage[$row['COLUMN_NAME']] = $row; }
+    $result = array();
+    foreach ($columns as $column => $required)
+    {
+        if (!isset($storage[$column]))
+        {
+            if (!$required) { continue; } // Permanently cleaned-up receipt.
+            throw new UnexpectedValueException('Missing profile column');
+        }
+        if (isset($purged[$column])) { throw new UnexpectedValueException('Purged profile column was recreated'); }
+        $row = $storage[$column];
+        if (!in_array(strtolower($row['DATA_TYPE']), array('char','varchar','tinytext','text','mediumtext','longtext'), true)
+            || !in_array($row['EXTRA'], array('', 'DEFAULT_GENERATED'), true))
+        { throw new UnexpectedValueException('Unsupported profile column'); }
+        $result[] = $column;
+    }
+    return $result;
+}
+
 function get_fields($where_clause = '', $expect_multiple = true, $selection = '*')
 {
   global $db;
@@ -47,14 +143,25 @@ function phpbb_profile_field_column($field)
     return '';
   }
 
-  $column = text_to_column((string) $field['field_name']);
+  // NULL/absent mappings retain the legacy name-derived column. Once a field
+  // has an explicit mapping, its display name can change without renaming the
+  // users-table column. An invalid explicit mapping must never fall back.
+  if (array_key_exists('field_column', $field) && $field['field_column'] !== null)
+  {
+    $column = is_string($field['field_column']) ? $field['field_column'] : '';
+  }
+  else
+  {
+    $column = text_to_column((string) $field['field_name']);
+  }
   return preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $column) ? $column : '';
 }
 
 function phpbb_profile_field_substr($value, $length)
 {
   $length = max(0, (int) $length);
-  return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
+  // PHP 5.6 substr('', 0, n) can return false; callers require a text value.
+  return (string) (function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length));
 }
 
 function phpbb_profile_field_input($field, $source)

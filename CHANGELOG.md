@@ -8,6 +8,48 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Separate custom profile-field labels from stable physical storage. Guard
+  creation and editing with current ACP permissions, revision/operation tokens,
+  recoverable staging and non-destructive capacity preparation. Replace the
+  old metadata-delete/column-drop sequence with explicitly recoverable removal
+  and restoration in the English/German ACP, preserving saved user values.
+  Lost commit acknowledgements keep the original confirmation retryable; old
+  confirmations cannot remove a restored field again. Installer and consolidated
+  updater provide the mapping and creation/recovery journals. Permanent erasure
+  is separate from this reversible removal.
+- Add an explicit offline CLI for permanently erasing retired profile fields
+  or empty, never-published creation staging. Default to a read-only inventory/
+  preview; require a database-bound confirmation, verified backup, stopped/drained
+  web/cron requests and explicit erasure consent. Preserve durable intent across
+  DDL/commit failures, erase retained definition defaults on completion, and
+  keep tombstones against stale retries. Refuse active/core/reassigned storage,
+  independent staging data and dependent indexes/constraints/triggers. Neither
+  routine updates nor ACP removal run this destructive cleanup automatically.
+  Use bounded writer-lock acquisition on retry so delayed server-side disconnect
+  cleanup cannot spuriously reject the next offline operation; DDL is not retried
+  automatically and genuinely busy writers still block cleanup safely.
+- Initialize custom fields consistently during public registration and both
+  ACP account-creation routes, including hidden fields without database defaults.
+  Pin all definitions through account publication, preserve explicit empty/zero
+  input and storage-encoded Unicode defaults, reject core-column/alias collisions,
+  and never copy another account's values. Newly created fields leave the shared
+  anonymous row blank. Normalize empty substring results to strings on PHP 5.6.
+- Initialize retained inactive custom fields to empty in all three member
+  creation routes, without inheriting legacy physical defaults or accepting
+  submitted inactive values. Pin the retirement metadata/range through account
+  publication and require modern recovery-journal storage. Preserve existing
+  accounts and unrelated plugin defaults. Share ownership validation with guest
+  recovery and reject columns recreated after a completed purge. Existing
+  profile recovery tables/updater already cover this path; no retroactive data
+  changes or additional schema migration are introduced.
+- Recreate missing anonymous accounts without inheriting active or retired
+  custom-field defaults in DB Maintenance and the opt-in Emergency Recovery
+  Console. Preserve existing guests and unrelated plugin columns, fail closed
+  on invalid mappings or unreadable metadata, and coordinate recovery with
+  profile writers. The ERC guest insertion also requalifies current account
+  authority/password at dispatch and safely handles concurrent recovery/retries.
+  No existing guest/member values are rewritten; this uses the existing profile
+  mapping/recovery migration rather than introducing another schema change.
 - Correct profile request boundaries after the legacy common.php escaping pass.
   Public/ACP text, custom fields, field definitions, gallery handoffs and the
   signature editor now remove that request-only layer exactly once. Full-form

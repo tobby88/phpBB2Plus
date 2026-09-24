@@ -28,3 +28,15 @@
 		<td class="catBottom" colspan="4" align="center">{S_HIDDEN_FIELDS}</td>
 	</tr>
 </table>
+<h2>{L_RETIRED_TITLE}</h2>
+<p>{L_RETIRED_EXPLAIN}</p>
+<table cellspacing="1" cellpadding="4" border="0" align="center" class="forumline">
+  <tr><th>{L_ID}</th><th>{L_NAME}</th><th>{L_ACTION}</th></tr>
+  <!-- BEGIN retired_fields -->
+  <tr>
+    <td class="row1">{retired_fields.ID}</td>
+    <td class="row1">{retired_fields.NAME}</td>
+    <td class="row1"><a href="{retired_fields.U_RESTORE}">{L_RESTORE}</a></td>
+  </tr>
+  <!-- END retired_fields -->
+</table>

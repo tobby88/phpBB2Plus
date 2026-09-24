@@ -159,6 +159,60 @@ Personalized language, timezone and date display are not mistaken for changed
 board policy. The configured style must still exist. These checks use the same
 owned profile transaction; other quota workflows retain their existing isolation.
 
+Custom profile-field labels are separate from their physical storage names.
+Changing a label or reducing an input limit does not rename a column or truncate
+saved values. Keep the original form when retrying an interrupted creation.
+In ACP, **Remove (recoverable)** hides a field but retains its settings and user
+values; **Removed profile fields** provides restoration without resetting those
+values. This is not permanent data erasure. Run the consolidated updater first:
+it adds the stable column mapping and creation/recovery journals without changing
+existing profile values. Add and edit/recovery retain distinct delegated grants.
+Public registration and both ACP account-creation routes initialize custom fields
+from current, locked metadata, including hidden fields. Explicit profile inputs
+override defaults; existing users and the shared anonymous account are not used
+as default-value sources. New field creation leaves the anonymous row blank.
+New member accounts explicitly leave retained inactive fields blank, even when
+legacy physical columns still have defaults. Creation pins the recovery-receipt
+range as well as the active definitions; existing accounts are not rewritten.
+Restored active fields keep their configured defaults. A physical column that
+reappears after a completed purge is not silently adopted by the old receipt.
+Recreating a missing anonymous account through DB Maintenance or the separately
+enabled Emergency Recovery Console explicitly blanks active and retained custom
+profile columns, including legacy physical defaults. It never overwrites an
+existing guest or changes unrelated plugin columns. Invalid or incomplete profile
+metadata stops the repair rather than falling back to member defaults. This uses
+the same profile mapping/recovery tables supplied by the consolidated updater.
+
+For **permanent profile-field erasure**, use the separate database-owner CLI
+tool. Its default is a read-only receipt list, not a bulk deletion:
+
+```sh
+php update/purge_profile_fields.php
+php update/purge_profile_fields.php --kind=retired --operation=<operation-from-list>
+```
+
+Use the listed field ID to match the removed-field list in the ACP. The preview
+returns a confirmation token bound to that database endpoint, column and
+receipt. Verify a current backup, stop **all** forum web/cron traffic and drain
+in-flight requests, including readers (merely setting `board_disable` is
+insufficient: older readers can still reference the column). Then repeat with
+`--apply --confirm=<preview-token> --backup-confirmed --maintenance-confirmed --erase-confirmed`.
+An optional `--config=/absolute/path/config.php` selects a trusted CLI config.
+This drops the retired column and its stored values, clears retained definition
+defaults, and keeps content-free receipts so old forms cannot restore it.
+Backups are not erased by this tool; retain/dispose of them under your own policy.
+There is no automatic purge in the updater or the ACP.
+
+Use `--kind=staged` only for a never-published creation receipt. Its column must
+have the matching creation marker and contain only NULLs; even independently
+written empty strings prevent deletion. Active mappings, core columns, changed
+storage, indexes, constraints and users-table triggers prevent automatic cleanup.
+DDL is not transactional: on failure, preview/retry the **same operation**.
+The durable `purging` receipt recovers an already-completed DROP; a `purged`
+receipt never authorizes deleting a subsequently recreated column. Do not edit
+or remove those receipts to force a retry. No extra migration is needed beyond
+the profile mapping/creation/recovery tables in `update_from_153a.php`.
+
 Public registration commits the account, personal group/membership, CAPTCHA
 consumption and CrackerTracker success cooldown in one owned InnoDB transaction.
 It rechecks the exact live guest session, current registration/password/avatar

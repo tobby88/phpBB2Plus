@@ -40,7 +40,7 @@ function update_usage()
 
 function update_extract_create_tables($schema)
 {
-	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
+	$pattern = '~CREATE TABLE\s+`?(phpbb_(?:(?:ina|ctracker)_[A-Za-z0-9_]+|logs|user_removals|user_removal_items|user_id_sequence|pm_repair_jobs|pm_repair_items|pm_delete_jobs|pm_delete_items|pm_write_receipts|profile_field_jobs|profile_field_actions))`?\s*\(.*?\)\s*ENGINE\s*=\s*(?:MyISAM|InnoDB)[^;]*;~is';
 	preg_match_all($pattern, $schema, $matches, PREG_SET_ORDER);
 	$statements = array();
 	foreach ($matches as $match)
@@ -388,6 +388,19 @@ function update_queue_topic_notification_columns(&$operations, $connection, $dat
 	update_queue_column($operations, $connection, $database, $table, 'notify_claimed_at', 'INT(10) UNSIGNED NOT NULL DEFAULT 0');
 }
 
+function update_queue_profile_field_columns(&$operations, $connection, $database, $table)
+{
+	if (!update_table_exists($connection, $database, $table)) { return; }
+	// Leave every existing mapping NULL. Legacy identifiers keep their exact
+	// interpretation; the coordinated field writer pins a mapping on first edit.
+	// No user columns are renamed, copied, truncated or removed by this upgrade.
+	update_queue_column($operations, $connection, $database, $table, 'field_column', 'VARCHAR(64) DEFAULT NULL');
+	if (!update_index_exists($connection, $database, $table, 'field_column'))
+	{
+		$operations[] = 'ALTER TABLE ' . update_quote_identifier($table) . ' ADD UNIQUE KEY field_column (field_column)';
+	}
+}
+
 function update_queue_pm_read_columns(&$operations, $connection, $database, $table)
 {
 	if (!update_table_exists($connection, $database, $table)) { return; }
@@ -622,6 +635,7 @@ foreach (array('categories', 'forums', 'topics') as $recovery_table)
 {
 	update_queue_maintenance_recovery_columns($operations, $connection, $dbname, $table_prefix . $recovery_table);
 }
+update_queue_profile_field_columns($operations, $connection, $dbname, $table_prefix . 'profile_fields');
 update_queue_pm_read_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
 update_queue_pm_write_columns($operations, $connection, $dbname, $table_prefix . 'privmsgs');
 update_queue_pm_attachment_columns($operations, $connection, $dbname, $table_prefix . 'attachments_desc');

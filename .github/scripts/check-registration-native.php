@@ -3,11 +3,11 @@
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
 foreach(array('ANONYMOUS'=>-1,'CONFIG_TABLE'=>'fixture_config','PLUS_TABLE'=>'fixture_plus','CTRACKER_CONFIG'=>'fixture_ctracker_config',
  'CTRACKER_RATE_LIMITS'=>'fixture_ctracker_rate_limits','GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group',
- 'PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','BANLIST_TABLE'=>'fixture_banlist',
+ 'PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','PROFILE_FIELD_ACTIONS_TABLE'=>'fixture_profile_field_actions','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','BANLIST_TABLE'=>'fixture_banlist',
  'CONFIRM_TABLE'=>'fixture_confirm','ANTI_ROBOT_TABLE'=>'fixture_anti_robotic_reg','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,
  'USER_ACTIVATION_SELF'=>1,'USER_ACTIVATION_ADMIN'=>2,'ALLOW_VIEW'=>1,'CHECKBOX'=>3,'RADIO'=>2,'TEXTAREA'=>1,'TEXT_FIELD_MAXLENGTH'=>255,'TEXTAREA_MAXLENGTH'=>60000,'POST_USERS_URL'=>'u') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_registration_storage.php';require $ats_source.'includes/functions_user_ids.php';
-require $ats_source.'includes/functions_validate.php';require $ats_source.'includes/functions_profile_fields.php';require $ats_source.'includes/usercp_avatar.php';
+require $ats_source.'includes/functions_validate.php';require_once $ats_source.'includes/functions_profile_fields.php';require $ats_source.'includes/usercp_avatar.php';
 require $ats_source.'ctracker/engines/ct_request_limiter.php';
 require $ats_source.'language/lang_english/lang_cback_ctracker.php';
 foreach(array('phpbb_clean_username','phpbb_rtrim','phpbb_ltrim') as $name){if(!function_exists($name)){ats_load_function($ats_source.'includes/functions.php',$name);}}
@@ -42,7 +42,7 @@ class RegistrationNativeDatabase extends sql_db {
 }
 eval('namespace RegistrationControllerFixture; class emailer {var $vars;function __construct($smtp,$optional=false){\ats_check($optional,"Post-commit registration mail is optional");}function __call($m,$a){}function assign_vars($v){$this->vars=$v;}function send(){\ats_check($GLOBALS["rgn_ack"]&&$GLOBALS["rgn_open"]===0,"No notification before ACK and owner release");$GLOBALS["rgn_mails"][]=$this->vars;if($GLOBALS["rgn_mail_throw"]){throw new \\RuntimeException("Fixture mail failure");}return !$GLOBALS["rgn_mail_fail"];}}');
 $rgn_main=new RegistrationNativeDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);$db=$rgn_main;
-$rgn_tables=array('users','sessions','config','plus','ctracker_config','groups','user_group','profile_fields','disallow','words','banlist','confirm','anti_robotic_reg','ctracker_rate_limits');
+$rgn_tables=array('users','sessions','config','plus','ctracker_config','groups','user_group','profile_fields','profile_field_actions','disallow','words','banlist','confirm','anti_robotic_reg','ctracker_rate_limits');
 $rgn_hook=$rgn_after=null;$rgn_open=$rgn_fail=$rgn_writes=0;$rgn_commit='';$rgn_ack=$rgn_mail_fail=$rgn_mail_throw=false;$rgn_queries=$rgn_after_queries=$rgn_mails=array();
 $source=file_get_contents($ats_source.'includes/usercp_register.php');$a=strpos($source,"\t\t\trequire_once(\$phpbb_root_path . 'includes/functions_user_ids.'");$b=strpos($source,'} // if mode == register',$a);
 ats_check($a!==false&&$b>$a,'Actual public registration through final response');
