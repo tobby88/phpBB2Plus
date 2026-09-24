@@ -169,4 +169,4 @@ $tail= <<<'PHP'
  echo 'Native profile retirement: '.$cases." authorization, atomic rollback/retry, concurrent changes, actual controller/form and recovery cases passed.\n";
 }finally{$pds_hook=null;$main->sql_close();$peer->sql_close();ats_check($control->sql_query('DROP DATABASE '.$fixture),'Remove owned retirement schema');$control->sql_close();restore_error_handler();}
 PHP;
-eval($head.$tail);
+if(eval($head.$tail)===false){throw new RuntimeException('Native retirement fixture did not execute');}

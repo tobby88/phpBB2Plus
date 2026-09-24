@@ -23,6 +23,7 @@ class PhpbbRegistrationScope
 	var $avatar;
 	var $rate_identity = null;
 	var $locking_validation = false;
+	var $profile_fields = array();
 	function __construct($database, $sid, $username, $email, $profile_data, $avatar)
 	{
 		global $db, $userdata, $board_config, $plus_config, $ctracker_config, $lang, $user_ip;
@@ -59,7 +60,9 @@ class PhpbbRegistrationScope
 			// the regular validation reads the same current committed state.
 			foreach (array(GROUPS_TABLE => 'group_id', DISALLOW_TABLE => 'disallow_id', WORDS_TABLE => 'word_id', BANLIST_TABLE => 'ban_id') as $table => $column)
 			{ $this->rows('SELECT ' . $column . ' FROM ' . $table . ' LOCK IN SHARE MODE'); }
-			$fields = $this->rows('SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' WHERE users_can_view=' . ALLOW_VIEW . ' ORDER BY field_id ASC LOCK IN SHARE MODE');
+			$this->profile_fields = $this->rows('SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' ORDER BY field_id ASC LOCK IN SHARE MODE');
+			$fields = array();
+			foreach ($this->profile_fields as $field) { if ((string)$field['users_can_view'] === (string)ALLOW_VIEW) { $fields[] = $field; } }
 			if ($fields != $profile_data) { phpbb_registration_error('Registration_changed'); }
 			// These predicates use the actual stored identity/collation. This also
 			// closes duplicate insert races with writers not using our mutex.
@@ -96,6 +99,12 @@ class PhpbbRegistrationScope
 			'force_complex_password','password_hashing','birthday_required','min_user_age','max_user_age','max_sig_chars',
 			'allow_sig','allow_html','allow_html_tags','allow_bbcode','allow_smilies','allow_avatar_local','allow_avatar_remote',
 			'allow_avatar_upload','avatar_filesize','avatar_max_height','avatar_max_width','avatar_path','avatar_gallery_path');
+	}
+	function profile_insert_parts($submitted)
+	{
+		if (!$this->transactional) { phpbb_registration_error('Registration_changed'); }
+		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, $submitted); }
+		catch (UnexpectedValueException $e) { phpbb_registration_error('Registration_changed'); }
 	}
 	private function pin_settings($table, $keys, $expected, $name = 'config_name', $value = 'config_value')
 	{

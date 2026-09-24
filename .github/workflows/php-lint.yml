@@ -777,5 +777,7 @@ jobs:
         run: php .github/scripts/check-profile-definition-form.php
       - name: Profile retirement and physical-data separation
         run: php .github/scripts/check-profile-retirement.php
+      - name: New-account profile defaults and core-column protection
+        run: php .github/scripts/check-profile-account-defaults.php
       - name: Check public profile identity transaction dependencies
         run: php .github/scripts/check-public-profile-identity-native.php

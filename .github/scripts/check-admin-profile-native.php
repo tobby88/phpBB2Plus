@@ -87,7 +87,7 @@ function ap_reset($actor='root',$scenario='edit'){
 function ap_fragment($source,$start,$end){$a=strpos($source,$start);$b=$a===false?false:strpos($source,$end,$a);ats_check($a!==false&&$b>$a,'Actual profile fragment '.$start);return substr($source,$a,$b-$a);}
 $ap_controller=file_get_contents($ats_source.'admin/admin_users.php');
 $ap_projection=ap_fragment($ap_controller,'$admin_profile_scope->validate_identity(',"\n\t\t\tif( \$result = \$db->sql_query(\$sql) )");
-$ap_creation=ap_fragment($ap_controller,'$sql = "INSERT INTO " . USERS_TABLE',"\t\t\$_POST[POST_USERS_URL] = \$user_id;");
+$ap_creation=ap_fragment($ap_controller,'list($profile_columns, $profile_values) = $admin_profile_scope->profile_insert_parts();',"\t\t\$_POST[POST_USERS_URL] = \$user_id;");
 $ap_block=ap_fragment($ap_controller,'// Start add - Protect user account MOD','// End add - Protect user account MOD');
 $ap_ban=ap_fragment($ap_controller,"if ($".'user_ycard>$board_config',"\t\t\t// Core and custom profile data");
 $ap_disable=ap_fragment($ap_controller,'if (!$user_status)',"\t\t\t\t// We remove all stored login keys");

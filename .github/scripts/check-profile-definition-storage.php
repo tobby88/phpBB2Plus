@@ -1,6 +1,6 @@
 <?php
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
-foreach(array('PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','BANLIST_TABLE'=>'fixture_banlist','TEXT_FIELD'=>0,'TEXTAREA'=>1,'RADIO'=>2,'CHECKBOX'=>3,'TEXT_FIELD_MAXLENGTH'=>255,'TEXTAREA_MINLENGTH'=>0,'TEXTAREA_MAXLENGTH'=>1024) as $key=>$value){if(!defined($key)){define($key,$value);}}
+foreach(array('ANONYMOUS'=>-1,'PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','BANLIST_TABLE'=>'fixture_banlist','TEXT_FIELD'=>0,'TEXTAREA'=>1,'RADIO'=>2,'CHECKBOX'=>3,'TEXT_FIELD_MAXLENGTH'=>255,'TEXTAREA_MINLENGTH'=>0,'TEXTAREA_MAXLENGTH'=>1024) as $key=>$value){if(!defined($key)){define($key,$value);}}
 require $ats_source.'includes/functions_profile_definition_storage.php';
 require_once $ats_source.'includes/functions_profile_definition_form.php';
 require_once __DIR__.'/profile-request-fixture.php';
@@ -141,6 +141,8 @@ try{
   $id=pds_create($op,$v);ats_check(is_int($id),'Create type '.$type);$rows=pds_rows('SELECT '.$column.' FROM fixture_users');ats_check(count($rows)===2&&$rows[0][$column]===$value&&$rows[1][$column]===$value,'Atomic defaults for every user '.$type);
   pds_sql('UPDATE fixture_users SET '.$column."='changed by user' WHERE user_id=7");ats_check(pds_create($op,$v)===$id,'Replay returns same published ID');ats_check(pds_rows('SELECT '.$column.' FROM fixture_users WHERE user_id=7')[0][$column]==='changed by user','Replay never resets user values');ats_check(count(pds_rows('SELECT * FROM fixture_profile_fields'))===2,'No duplicate metadata');$cases++;
  }
+ pds_reset();pds_insert('fixture_users',array('user_id'=>-1,'username'=>'Anonymous'));$op=bin2hex(phpbb_random_bytes(32));$column='cpf_'.substr($op,0,32);$v=pds_values();$v['text_field_default']='Members only 😀';
+ ats_check(is_int(pds_create($op,$v)),'Create default without anonymous inheritance');ats_check(pds_rows('SELECT '.$column.' FROM fixture_users WHERE user_id=-1')[0][$column]===''&&pds_rows('SELECT '.$column.' FROM fixture_users WHERE user_id=7')[0][$column]===$v['text_field_default'],'Anonymous row does not acquire member defaults');$cases++;
  foreach(array('stage-insert','stage-commit','stage-ack','ddl','ddl-ack','initialize','publish','receipt','publish-commit','publish-ack') as $failure){
   pds_reset();$op=bin2hex(phpbb_random_bytes(32));$column='cpf_'.substr($op,0,32);$v=pds_values();$v['text_field_default']='Initial 😀';$pds_failure=$failure;
   ats_check(pds_create($op,$v)===false,'Unconfirmed create fails '.$failure);$rows=pds_rows("SELECT * FROM fixture_profile_fields WHERE field_column='$column'");ats_check(count($rows)===($failure==='publish-ack'?1:0),'Definition publication atomic '.$failure);

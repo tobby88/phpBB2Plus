@@ -167,6 +167,10 @@ values; **Removed profile fields** provides restoration without resetting those
 values. This is not permanent data erasure. Run the consolidated updater first:
 it adds the stable column mapping and creation/recovery journals without changing
 existing profile values. Add and edit/recovery retain distinct delegated grants.
+Public registration and both ACP account-creation routes initialize custom fields
+from current, locked metadata, including hidden fields. Explicit profile inputs
+override defaults; existing users and the shared anonymous account are not used
+as default-value sources. New field creation leaves the anonymous row blank.
 
 Public registration commits the account, personal group/membership, CAPTCHA
 consumption and CrackerTracker success cooldown in one owned InnoDB transaction.

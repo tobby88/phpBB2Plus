@@ -7,7 +7,7 @@ foreach(array('ANONYMOUS'=>-1,'CONFIG_TABLE'=>'fixture_config','PLUS_TABLE'=>'fi
  'CONFIRM_TABLE'=>'fixture_confirm','ANTI_ROBOT_TABLE'=>'fixture_anti_robotic_reg','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,
  'USER_ACTIVATION_SELF'=>1,'USER_ACTIVATION_ADMIN'=>2,'ALLOW_VIEW'=>1,'CHECKBOX'=>3,'RADIO'=>2,'TEXTAREA'=>1,'TEXT_FIELD_MAXLENGTH'=>255,'TEXTAREA_MAXLENGTH'=>60000,'POST_USERS_URL'=>'u') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_registration_storage.php';require $ats_source.'includes/functions_user_ids.php';
-require $ats_source.'includes/functions_validate.php';require $ats_source.'includes/functions_profile_fields.php';require $ats_source.'includes/usercp_avatar.php';
+require $ats_source.'includes/functions_validate.php';require_once $ats_source.'includes/functions_profile_fields.php';require $ats_source.'includes/usercp_avatar.php';
 require $ats_source.'ctracker/engines/ct_request_limiter.php';
 require $ats_source.'language/lang_english/lang_cback_ctracker.php';
 foreach(array('phpbb_clean_username','phpbb_rtrim','phpbb_ltrim') as $name){if(!function_exists($name)){ats_load_function($ats_source.'includes/functions.php',$name);}}

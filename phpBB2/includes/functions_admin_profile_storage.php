@@ -23,6 +23,7 @@ function phpbb_admin_profile_quota_controls($id, $request)
 // Rendering, cookies and removal of replaced avatar bytes follow commit.
 class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 {
+	var $profile_fields = array();
 	var $original;
 	var $target_id;
 	var $creating;
@@ -38,6 +39,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 	function __construct($database, $id, $creating, $request)
 	{
 		global $userdata, $table_prefix, $board_config;
+		require_once dirname(__FILE__) . '/functions_profile_fields.php';
 		phpbb_attach_quota_post($request); $this->target_id = phpbb_acl_id($id);
 		$this->original = $database; $this->creating = $creating === true;
 		parent::__construct($database, 'user'); $this->failure_key = 'Admin_profile_save_failed';
@@ -61,7 +63,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 			{ if (!array_key_exists($row['config_name'], $board_config) || (string)$board_config[$row['config_name']] !== (string)$row['config_value']) { phpbb_acl_error('Acl_selection_changed'); } }
 			// Freeze custom-field definitions before the controller validates them,
 			// including an empty range. Identity/rule gaps are locked when checked.
-			phpbb_acl_rows($this, 'SELECT field_id FROM ' . PROFILE_FIELDS_TABLE);
+			$this->profile_fields = phpbb_acl_rows($this, 'SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' ORDER BY field_id ASC');
 			$rows = phpbb_acl_rows($this, 'SELECT user_id,user_level,username,user_email FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->target_id . ' FOR UPDATE');
 			if ($this->creating ? count($rows) !== 0 : count($rows) !== 1) { phpbb_acl_error('Acl_selection_changed'); }
 			if (!$this->creating)
@@ -103,6 +105,12 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 			'max_sig_chars','min_user_age','max_user_age','allow_avatar_local','allow_avatar_remote','allow_avatar_upload',
 			'avatar_filesize','avatar_max_width','avatar_max_height','avatar_path','avatar_gallery_path',
 			'default_style');
+	}
+	function profile_insert_parts()
+	{
+		if (!$this->creating || !$this->transactional) { phpbb_acl_error('Admin_profile_save_failed'); }
+		try { return phpbb_profile_new_account_insert($this, $this->profile_fields); }
+		catch (UnexpectedValueException $e) { phpbb_acl_error('Acl_selection_changed'); }
 	}
 	function actor()
 	{

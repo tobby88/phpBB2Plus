@@ -129,6 +129,10 @@ jobs:
         env:
           PHPBB_REGISTRATION_NATIVE: '1'
           PHPBB_REGISTRATION_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-account-defaults.php
+        env:
+          PHPBB_REGISTRATION_NATIVE: '1'
+          PHPBB_REGISTRATION_PASSWORD: fixture-only
       - run: php .github/scripts/check-admin-registration-native.php
         env:
           PHPBB_QUICK_ADD_NATIVE: '1'
@@ -138,6 +142,10 @@ jobs:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
       - run: php .github/scripts/check-admin-profile-identity-native.php
+        env:
+          PHPBB_ADMIN_PROFILE_NATIVE: '1'
+          PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-profile-account-defaults-admin.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only

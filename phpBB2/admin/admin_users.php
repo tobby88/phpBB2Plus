@@ -145,8 +145,9 @@ if ($new_user)
 		catch (PhpbbUserIdException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 		$admin_profile_scope = new PhpbbAdminProfileScope($db, $user_id, true, $_POST);
 		$db = $admin_profile_scope;
-		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_password, user_regdate, user_active)
-			VALUES ($user_id, 'new_user', '', " . time() . ",'0')";
+		list($profile_columns, $profile_values) = $admin_profile_scope->profile_insert_parts();
+		$sql = "INSERT INTO " . USERS_TABLE . "	(user_id, username, user_password, user_regdate, user_active" . $profile_columns . ")
+			VALUES ($user_id, 'new_user', '', " . time() . ",'0'" . $profile_values . ")";
 		if ( !($result = $db->sql_query($sql, BEGIN_TRANSACTION)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not insert data into users table', '', __LINE__, __FILE__, $sql);

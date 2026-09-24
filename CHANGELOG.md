@@ -17,6 +17,12 @@ changes consolidated after that baseline without implying active maintenance.
   confirmations cannot remove a restored field again. Installer and consolidated
   updater provide the mapping and creation/recovery journals. Permanent erasure
   is separate from this reversible removal.
+- Initialize custom fields consistently during public registration and both
+  ACP account-creation routes, including hidden fields without database defaults.
+  Pin all definitions through account publication, preserve explicit empty/zero
+  input and storage-encoded Unicode defaults, reject core-column/alias collisions,
+  and never copy another account's values. Newly created fields leave the shared
+  anonymous row blank. Normalize empty substring results to strings on PHP 5.6.
 - Correct profile request boundaries after the legacy common.php escaping pass.
   Public/ACP text, custom fields, field definitions, gallery handoffs and the
   signature editor now remove that request-only layer exactly once. Full-form

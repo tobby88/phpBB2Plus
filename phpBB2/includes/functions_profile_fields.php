@@ -1,4 +1,42 @@
 <?php
+require_once dirname(__FILE__) . '/functions_profile_columns.php';
+
+// Definitions must be read under the account owner's transaction. Defaults
+// already use storage encoding, not legacy request escaping or another user's
+// profile. Only explicitly validated, visible inputs override these defaults.
+function phpbb_profile_new_account_values($fields, $submitted = array())
+{
+  if (!is_array($fields) || !is_array($submitted)) { throw new UnexpectedValueException('Invalid profile metadata'); }
+  $defaults = array('text_field_default','text_area_default','radio_button_default','checkbox_default');
+  $values = array();
+  foreach ($fields as $field)
+  {
+    $column = phpbb_profile_field_column($field);
+    $type = isset($field['field_type']) && is_scalar($field['field_type']) ? (string)$field['field_type'] : '';
+    if ($column === '' || in_array($column, phpbb_profile_definition_core_columns(), true)
+      || array_key_exists($column, $values) || !in_array($type, array('0','1','2','3'), true))
+    { throw new UnexpectedValueException('Invalid profile metadata'); }
+    $key = $defaults[(int)$type];
+    $value = array_key_exists($column, $submitted) ? $submitted[$column] : (isset($field[$key]) ? $field[$key] : '');
+    if (!is_string($value) || strpos($value, "\0") !== false || !preg_match('//u', $value) || strlen($value) > 240000)
+    { throw new UnexpectedValueException('Invalid profile value'); }
+    $values[$column] = $value;
+  }
+  if (array_diff_key($submitted, $values)) { throw new UnexpectedValueException('Unknown profile input'); }
+  return $values;
+}
+
+function phpbb_profile_new_account_insert($db, $fields, $submitted = array())
+{
+  $columns = $values = '';
+  foreach (phpbb_profile_new_account_values($fields, $submitted) as $column => $value)
+  {
+    $columns .= ', `' . $column . '`';
+    $values .= ", '" . $db->sql_escape($value) . "'";
+  }
+  return array($columns, $values);
+}
+
 function get_fields($where_clause = '', $expect_multiple = true, $selection = '*')
 {
   global $db;
@@ -64,7 +102,8 @@ function phpbb_profile_field_column($field)
 function phpbb_profile_field_substr($value, $length)
 {
   $length = max(0, (int) $length);
-  return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
+  // PHP 5.6 substr('', 0, n) can return false; callers require a text value.
+  return (string) (function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length));
 }
 
 function phpbb_profile_field_input($field, $source)
