@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make page-time style fallback read-only: obsolete user preferences render
+  with the board default without bulk-updating accounts. Validate lookup IDs,
+  release every result, reuse cached defaults and remove the unreachable
+  alternative-template image fallback left over from the retired extra styles.
 - Guard emergency standard-style selection and recreation using a dedicated
   writer connection, current credentials and an exact board default entry.
   Update the authenticated account and board together; recheck theme availability

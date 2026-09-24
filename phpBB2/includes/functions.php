@@ -1243,32 +1243,6 @@ function phpbb_template_config_is_safe($filename, $templates_root)
 	return $defined;
 }
 
-/**
- * Read the image map from a validated template configuration in isolation.
- *
- * phpBB2 Plus extensions expect a much larger image map than several of the
- * later bundled styles provide.  Loading the complete preservation style as a
- * fallback keeps those extensions functional without forcing every style to
- * duplicate hundreds of legacy image declarations.
- */
-function phpbb_template_image_map($filename, $templates_root, $template_path)
-{
-	if (!phpbb_template_config_is_safe($filename, $templates_root))
-	{
-		return array();
-	}
-
-	$images = array();
-	$current_template_path = $template_path;
-	$board_config = array();
-
-	// TEMPLATE_CONFIG may already have been defined by the active style.  The
-	// validated file contains assignments only; suppress the duplicate define.
-	@include($filename);
-
-	return is_array($images) ? $images : array();
-}
-
 function phpbb_serialized_data_read($filename, $allowed_root)
 {
 	$data_root = @realpath($allowed_root);
@@ -1389,63 +1363,30 @@ function setup_style($style)
 			$themes_style = cache_themes();
 		}
 	}
-	if ( isset($themes_style[(int) $style]) && is_array($themes_style[(int) $style]) )
+	// A missing legacy preference only changes this request's presentation.
+	// Reading a page must never bulk-rewrite accounts; the updater and explicit
+	// administration/recovery actions own persistent style changes.
+	$ids = array();
+	foreach (array($style, isset($board_config['default_style']) ? $board_config['default_style'] : null) as $candidate)
 	{
-		$row = $themes_style[(int) $style];
+		if ((is_int($candidate) || is_string($candidate)) && preg_match('/^[1-9][0-9]{0,7}$/D', (string)$candidate)
+			&& (int)$candidate <= 16777215) { $ids[(int)$candidate] = (int)$candidate; }
 	}
-	else
+	$row = false;
+	foreach ($ids as $id)
 	{
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-	$sql = 'SELECT *
-		FROM ' . THEMES_TABLE . '
-		WHERE themes_id = ' . (int) $style;
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		message_die(CRITICAL_ERROR, 'Could not query database for theme info');
-	}
-
-	if ( !($row = $db->sql_fetchrow($result)) )
-	{
-		// We are trying to setup a style which does not exist in the database
-		// Try to fallback to the board default (if the user had a custom style)
-		// and then any users using this style to the default if it succeeds
-		if ( $style != $board_config['default_style'])
+		if (isset($themes_style[$id]) && is_array($themes_style[$id]) && isset($themes_style[$id]['themes_id'])
+			&& (int)$themes_style[$id]['themes_id'] === $id)
 		{
-			$sql = 'SELECT *
-				FROM ' . THEMES_TABLE . '
-				WHERE themes_id = ' . (int) $board_config['default_style'];
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				message_die(CRITICAL_ERROR, 'Could not query database for theme info');
-			}
-
-			if ( $row = $db->sql_fetchrow($result) )
-			{
-				$db->sql_freeresult($result);
-
-				$sql = 'UPDATE ' . USERS_TABLE . '
-					SET user_style = ' . (int) $board_config['default_style'] . "
-					WHERE user_style = $style";
-				if ( !($result = $db->sql_query($sql)) )
-				{
-					message_die(CRITICAL_ERROR, 'Could not update user theme info');
-				}
-			}
-			else
-			{
-				message_die(CRITICAL_ERROR, "Could not get theme data for themes_id [$style]");
-			}
+			$row = $themes_style[$id]; break;
 		}
-		else
-		{
-			message_die(CRITICAL_ERROR, "Could not get theme data for themes_id [$style]");
-		}
+		$result = $db->sql_query('SELECT * FROM ' . THEMES_TABLE . ' WHERE themes_id = ' . $id);
+		if (!$result) { message_die(CRITICAL_ERROR, 'Could not query database for theme info'); }
+		$row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if ($row) { break; }
 	}
-	//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- add
-	}
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
+	if (!$row) { message_die(CRITICAL_ERROR, 'Could not get data for the selected or default theme'); }
 
 	$row = phpbb_standard_theme_row($row);
 	$template_path = 'templates/' ;
@@ -1465,18 +1406,6 @@ function setup_style($style)
 		if ( !defined('TEMPLATE_CONFIG') )
 		{
 			message_die(CRITICAL_ERROR, "Could not open $template_name template config file", '', __LINE__, __FILE__);
-		}
-
-		if ($template_name !== 'fisubsilversh')
-		{
-			$fallback_template_path = $template_path . 'fisubsilversh';
-			$fallback_config = $phpbb_root_path . $fallback_template_path . '/fisubsilversh.cfg';
-			$fallback_images = phpbb_template_image_map(
-				$fallback_config,
-				$phpbb_root_path . $template_path,
-				$fallback_template_path
-			);
-			$images = array_merge($fallback_images, $images);
 		}
 
 		$img_lang = ( file_exists(@phpbb_realpath($phpbb_root_path . $current_template_path . '/images/lang_' . $board_config['default_lang'])) ) ? $board_config['default_lang'] : 'english';
