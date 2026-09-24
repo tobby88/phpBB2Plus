@@ -275,6 +275,104 @@ class PhpbbProfileDefinitionWriter extends PhpbbAttachQuotaWriter
         if (phpbb_profile_field_column($current) !== $column) { phpbb_acl_error('Profile_definition_changed'); }
         $this->assert_capacity($column, $values);
     }
+    private function creation_job($operation, $values)
+    {
+        global $userdata;
+        $rows = phpbb_acl_rows($this, "SELECT * FROM " . PROFILE_FIELD_JOBS_TABLE . " WHERE operation_key='" . $operation . "' FOR UPDATE");
+        if (!$rows) { return null; }
+        $job = $rows[0];
+        if ((int)$job['actor_id'] !== (int)$userdata['user_id'] || !hash_equals($job['session_hash'], hash('sha256', $userdata['session_id']))
+            || !hash_equals($job['payload_hash'], phpbb_profile_definition_revision($values))
+            || $job['field_column'] !== 'cpf_' . substr($operation, 0, 32)
+            || !in_array($job['job_state'], array('staged','published'), true)) { phpbb_acl_error('Profile_definition_changed'); }
+        return $job;
+    }
+    private function creation_definitions($values, $column, $published_id = null)
+    {
+        // Explicitly require the upgrade even on an empty profile_fields table.
+        $r = $this->sql_query('SELECT field_column FROM ' . PROFILE_FIELDS_TABLE . ' LIMIT 0'); $this->sql_freeresult($r);
+        $rows = phpbb_acl_rows($this, 'SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' ORDER BY field_id FOR UPDATE');
+        $found = false;
+        foreach ($rows as $row)
+        {
+            if (phpbb_profile_field_column($row) === $column)
+            {
+                if ($published_id === null || (int)$row['field_id'] !== $published_id || $row['field_column'] !== $column) { phpbb_acl_error('Profile_definition_changed'); }
+                $found = true;
+            }
+        }
+        if ($published_id !== null)
+        { if (!$found) { phpbb_acl_error('Profile_definition_changed'); } return; }
+        // Let the real database collation decide label collisions, not PHP's
+        // case-sensitive comparison. The range above pins concurrent inserts.
+        if (phpbb_acl_rows($this, 'SELECT field_id FROM ' . PROFILE_FIELDS_TABLE . " WHERE field_name='" . $this->sql_escape($values['field_name']) . "' FOR UPDATE"))
+        { phpbb_acl_error('field_exists'); }
+    }
+    private function staged_column($column, $operation)
+    {
+        $rows = phpbb_acl_rows($this, "SELECT DATA_TYPE,IS_NULLABLE,COLUMN_COMMENT,EXTRA,CHARACTER_SET_NAME,COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape(USERS_TABLE) . "' AND COLUMN_NAME='" . $column . "'");
+        if (!$rows) { return false; }
+        $row = $rows[0];
+        if (count($rows) !== 1 || $row['DATA_TYPE'] !== 'mediumtext' || $row['IS_NULLABLE'] !== 'YES' || $row['EXTRA'] !== ''
+            || $row['CHARACTER_SET_NAME'] !== 'utf8mb4' || $row['COLLATION_NAME'] !== 'utf8mb4_unicode_ci'
+            || $row['COLUMN_COMMENT'] !== 'phpbb-profile-job:' . $operation) { phpbb_acl_error('Profile_definition_changed'); }
+        return true;
+    }
+    function create($operation, $values)
+    {
+        global $userdata;
+        try
+        {
+            if ($this->definition_action !== 'add') { phpbb_acl_error('Not_Authorised'); }
+            if (!is_string($operation) || !preg_match('/^[a-f0-9]{64}$/D', $operation)) { phpbb_acl_error('Profile_definition_invalid'); }
+            $values = phpbb_profile_definition_values($values); $column = 'cpf_' . substr($operation, 0, 32);
+            $tables = array(PROFILE_FIELDS_TABLE, PROFILE_FIELD_JOBS_TABLE, BANLIST_TABLE);
+            $this->begin($tables, true); $actor = $this->pin_actor();
+            $job = $this->creation_job($operation, $values);
+            if ($job && $job['job_state'] === 'published')
+            {
+                $id = phpbb_acl_id($job['field_id']); $this->creation_definitions($values, $column, $id);
+                $this->sql_query('ROLLBACK'); $this->confirmed = true; return $id;
+            }
+            $this->creation_definitions($values, $column);
+            if (!$job)
+            {
+                // Even a column carrying a copied marker is not ours without
+                // its prior durable journal record. Never adopt arbitrary data.
+                if (phpbb_acl_rows($this, "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $this->sql_escape(USERS_TABLE) . "' AND COLUMN_NAME='" . $column . "'")) { phpbb_acl_error('Profile_definition_changed'); }
+                $now = time();
+                $this->sql_query('INSERT INTO ' . PROFILE_FIELD_JOBS_TABLE . " (operation_key,actor_id,session_hash,payload_hash,field_column,job_state,created_at,updated_at) VALUES ('" . $operation . "'," . (int)$actor['user_id'] . ",'" . hash('sha256', $userdata['session_id']) . "','" . phpbb_profile_definition_revision($values) . "','" . $column . "','staged'," . $now . ',' . $now . ')');
+                // If this reply is lost, no DDL runs. The durable staged receipt
+                // makes submitting the exact same form safe after reconnecting.
+                $this->commit();
+            }
+            else { $this->sql_query('ROLLBACK'); }
+            if (!$this->staged_column($column, $operation))
+            {
+                $actor = $this->actor();
+                if (phpbb_acl_rows($this, 'SELECT ban_id FROM ' . BANLIST_TABLE . ' WHERE ban_userid=' . (int)$actor['user_id'])) { phpbb_acl_error('Not_Authorised'); }
+                $ddl = 'ALTER TABLE `' . USERS_TABLE . '` ADD COLUMN `' . $column . "` MEDIUMTEXT NULL COMMENT 'phpbb-profile-job:" . $operation . "'";
+                if (!$this->connection->sql_query('SET SESSION lock_wait_timeout=10') || !$this->connection->sql_query($ddl)) { phpbb_acl_error('Profile_definition_capacity'); }
+            }
+            $this->begin($tables, true); $this->pin_actor();
+            $job = $this->creation_job($operation, $values);
+            if (!$job || $job['job_state'] !== 'staged' || !$this->staged_column($column, $operation)) { phpbb_acl_error('Profile_definition_changed'); }
+            $this->creation_definitions($values, $column);
+            // An interrupted ADD creates only NULLs. Do not overwrite data
+            // introduced independently into a staged, not-yet-published column.
+            if (phpbb_acl_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE `' . $column . '` IS NOT NULL LIMIT 1 FOR UPDATE')) { phpbb_acl_error('Profile_definition_changed'); }
+            $defaults = array('text_field_default','text_area_default','radio_button_default','checkbox_default');
+            $this->sql_query('UPDATE ' . USERS_TABLE . ' SET `' . $column . "`='" . $this->sql_escape($values[$defaults[(int)$values['field_type']]]) . "'");
+            $keys = array('field_column'); $encoded = array("'" . $column . "'");
+            foreach ($values as $key=>$value) { $keys[] = $key; $encoded[] = "'" . $this->sql_escape($value) . "'"; }
+            $this->sql_query('INSERT INTO ' . PROFILE_FIELDS_TABLE . ' (' . implode(',', $keys) . ') VALUES (' . implode(',', $encoded) . ')');
+            $id = phpbb_acl_id((string)$this->sql_nextid());
+            $this->sql_query('UPDATE ' . PROFILE_FIELD_JOBS_TABLE . " SET field_id=" . $id . ",job_state='published',updated_at=" . time() . " WHERE operation_key='" . $operation . "'");
+            $this->pin_actor(); $this->commit_attempted = true; $this->commit(); $this->confirmed = true;
+            return $id;
+        }
+        finally { $this->release(); }
+    }
     function edit($id, $revision, $values)
     {
         try

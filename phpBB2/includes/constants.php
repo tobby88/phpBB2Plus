@@ -238,6 +238,7 @@ define('PRIVMSGS_TEXT_TABLE', $table_prefix.'privmsgs_text');
 define('PRIVMSGS_IGNORE_TABLE', $table_prefix.'privmsgs_ignore');
 // Custom Profile Fields MOD
 define('PROFILE_FIELDS_TABLE', $table_prefix.'profile_fields');
+define('PROFILE_FIELD_JOBS_TABLE', $table_prefix.'profile_field_jobs');
 // END Custom Profile Fields MOD
 define('PRUNE_TABLE', $table_prefix.'forum_prune');
 define('RANKS_TABLE', $table_prefix.'ranks');

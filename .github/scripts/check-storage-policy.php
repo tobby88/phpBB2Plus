@@ -31,7 +31,7 @@ foreach (array(array(),array('restore_start'=>'1','sql'=>'DROP TABLE users;')) a
 policy_check(strpos($admin, "\$_FILES['backup_file']") === false && strpos($admin, 'split_sql_file($sql_query') === false, 'No hidden upload executor');
 $schema=file_get_contents($root.'/phpBB2/install/schemas/mysql_schema.sql');
 preg_match_all('/CREATE TABLE\s+.*?;(?=\s*(?:#|CREATE|$))/s', $schema, $definitions);
-policy_check(count($definitions[0])===116, 'Review inventory when adding fresh-install tables');
+policy_check(count($definitions[0])===117, 'Review inventory when adding fresh-install tables');
 foreach ($definitions[0] as $sql) { policy_check(strpos($sql,'ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci')!==false, 'Explicit fresh storage and charset'); }
 $ct=file_get_contents($root.'/phpBB2/ctracker/classes/class_ct_adminfunctions.php');
 policy_check(substr_count($ct,'$this->require_modern_storage(')===10, 'Clone and transactional publication storage-check inventory');

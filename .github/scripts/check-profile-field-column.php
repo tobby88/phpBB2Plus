@@ -36,8 +36,12 @@ foreach (array('', 'x` = 1', 'x.y', array('nested'), false, 0, str_repeat('a',65
     pfc_check(phpbb_profile_field_column($bad) === '', 'Invalid explicit mapping cannot fall back');
 }
 $updater = file_get_contents($root . '/update/update_from_153a.php');
-foreach (array('update_quote_identifier','update_query_or_fail','update_scalar','update_table_exists','update_column_exists','update_index_exists','update_queue_column','update_queue_profile_field_columns') as $name) { pfc_function($updater,$name); }
+foreach (array('update_quote_identifier','update_query_or_fail','update_scalar','update_table_exists','update_column_exists','update_index_exists','update_queue_column','update_queue_profile_field_columns','update_extract_create_tables') as $name) { pfc_function($updater,$name); }
 pfc_check(strpos($updater, "update_queue_profile_field_columns(\$operations, \$connection, \$dbname, \$table_prefix . 'profile_fields');") !== false, 'Consolidated updater invokes mapping migration');
+$pfc_schema=file_get_contents($root.'/phpBB2/install/schemas/mysql_schema.sql');$pfc_creates=update_extract_create_tables($pfc_schema);
+pfc_check(isset($pfc_creates['phpbb_profile_field_jobs']),'Creation journal is canonical fresh/install-updater schema');
+$pfc_begin=strpos($updater,'foreach ($create_statements as $generic_table => $generic_sql)');$pfc_end=strpos($updater,'update_queue_log_widths(', $pfc_begin);
+pfc_check($pfc_begin!==false&&$pfc_end>$pfc_begin,'Actual missing-table migration planner');$pfc_planner=substr($updater,$pfc_begin,$pfc_end-$pfc_begin);
 echo "Profile column mapping: legacy/NULL compatibility, stable names and invalid mapping rejection passed.\n";
 if (getenv('PHPBB_PROFILE_COLUMN_NATIVE') !== '1') { return; }
 mysqli_report(MYSQLI_REPORT_OFF);
@@ -50,6 +54,14 @@ update_query_or_fail($connection,'CREATE DATABASE `' . $database . '` CHARACTER 
 mysqli_select_db($connection,$database);mysqli_set_charset($connection,'utf8mb4');
 function pfc_rows($connection, $sql) { $r=update_query_or_fail($connection,$sql);$rows=array();while($row=mysqli_fetch_assoc($r)){$rows[]=$row;}mysqli_free_result($r);return $rows; }
 try {
+    $create_statements=array('phpbb_profile_field_jobs'=>$pfc_creates['phpbb_profile_field_jobs']);$table_prefix='fixture_';$dbname=$database;$operations=array();eval($pfc_planner);
+    pfc_check(count($operations)===1&&!update_table_exists($connection,$database,'fixture_profile_field_jobs'),'Journal dry run makes no changes');
+    update_query_or_fail($connection,$operations[0]);
+    update_query_or_fail($connection,"INSERT INTO fixture_profile_field_jobs (operation_key,actor_id,session_hash,payload_hash,field_column,job_state,created_at,updated_at) VALUES ('".str_repeat('a',64)."',2,'".str_repeat('b',64)."','".str_repeat('c',64)."','cpf_".str_repeat('a',32)."','staged',1,1)");
+    $job_before=pfc_rows($connection,'SELECT * FROM fixture_profile_field_jobs');$operations=array();eval($pfc_planner);
+    pfc_check(!$operations&&$job_before===pfc_rows($connection,'SELECT * FROM fixture_profile_field_jobs'),'Repeated updater preserves unfinished operations');
+    $storage=pfc_rows($connection,"SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fixture_profile_field_jobs'")[0];
+    pfc_check($storage['ENGINE']==='InnoDB'&&strtolower($storage['ROW_FORMAT'])==='dynamic'&&$storage['TABLE_COLLATION']==='utf8mb4_unicode_ci','Journal created with modern storage');
     $schema=file_get_contents($root.'/phpBB2/install/schemas/mysql_schema.sql');
     pfc_check(preg_match('/CREATE TABLE phpbb_profile_fields\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical metadata schema');
     update_query_or_fail($connection,str_replace('phpbb_profile_fields','fixture_profile_fields',$m[0]));
