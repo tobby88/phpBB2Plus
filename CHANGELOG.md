@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve the authenticated administrator by database-resolved user ID in the
+  emergency console's administrator-removal action, including case/accent aliases.
+  Recheck credentials at every write; refuse an independently renamed/replaced
+  actor and preserve targets that no longer have the administrator role. Derive
+  fallback moderator status from current valid memberships, groups and forums.
+  Explicit database-owner recovery can still remove all board administrators.
 - Recheck emergency-console authority at every session, search-cache, ban-list
   and disallowed-name deletion, including a credential predicate in the actual
   SQL statement. Concurrent demotion, deactivation or password replacement stops

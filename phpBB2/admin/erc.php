@@ -1038,11 +1038,7 @@ switch($mode)
 				}
 				break;
 			case 'raa': // Remove all administrators
-				check_authorisation();
-				// Get userdata to check for current user
-				$auth_method = ( isset($HTTP_POST_VARS['auth_method']) ) ? htmlspecialchars($HTTP_POST_VARS['auth_method']) : '';
-				$board_user = isset($HTTP_POST_VARS['board_user']) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
-				$board_user = substr(str_replace("\\'", "'", $board_user), 0, 25);
+				check_authorisation(true, $erc_role_guard, $erc_actor_id);
 
 				$sql = "SELECT user_id, username
 					FROM " . USERS_TABLE . "
@@ -1058,43 +1054,19 @@ switch($mode)
 <?php
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					if ( $auth_method != 'board' || $board_user != $row['username'] )
+					if ((int) $row['user_id'] > 0 && (int) $row['user_id'] !== $erc_actor_id)
 					{
-						// Checking whether user is a moderator
-						if( check_mysql_version() )
+						$changed = dbmtnc_erc_remove_administrator((int) $row['user_id'], $erc_actor_id);
+						if ($changed === false)
 						{
-							$sql2 = "SELECT ug.user_id
-								FROM " . USER_GROUP_TABLE . " ug
-									INNER JOIN " . AUTH_ACCESS_TABLE . " aa ON ug.group_id = aa.group_id
-								WHERE ug.user_id = " . $row['user_id'] . " AND ug.user_pending <> 1 AND aa.auth_mod = 1";
+							erc_throw_error("Couldn't update user data!", __LINE__, __FILE__);
 						}
-						else
+						if ($changed === 1)
 						{
-							$sql2 = "SELECT ug.user_id
-								FROM " . USER_GROUP_TABLE . " ug, " .
-									AUTH_ACCESS_TABLE . " aa
-								WHERE ug.group_id = aa.group_id
-									AND ug.user_id = " . $row['user_id'] . "
-									AND ug.user_pending <> 1 AND aa.auth_mod = 1";
-						}
-						$result2 = $db->sql_query($sql2);
-						if ( !$result2 )
-						{
-							erc_throw_error("Couldn't get moderator data!", __LINE__, __FILE__, $sql2);
-						}
-						$new_state = intval(( $row2 = $db->sql_fetchrow($result2) ) ? MOD : USER);
-						$db->sql_freeresult($result2);
-						$sql2 = "UPDATE " . USERS_TABLE . "
-							SET user_level = $new_state
-							WHERE user_id = " . $row['user_id'];
-						$result2 = $db->sql_query($sql2);
-						if ( !$result2 )
-						{
-							erc_throw_error("Couldn't update user data!", __LINE__, __FILE__, $sql2);
-						}
 ?>
-	<li><?php echo htmlspecialchars($row['username']) ?></li>
+	<li><?php echo htmlspecialchars($row['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></li>
 <?php
+						}
 					}
 				}
 				$db->sql_freeresult($result);

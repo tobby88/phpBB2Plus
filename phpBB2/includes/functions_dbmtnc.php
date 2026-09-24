@@ -617,10 +617,11 @@ function style_select($default_style, $select_name = "style", $dirname = "templa
 	return $style_select;
 }
 
-function check_authorisation($die = TRUE, &$write_guard = null)
+function check_authorisation($die = TRUE, &$write_guard = null, &$actor_id = null)
 {
 	global $db, $lang, $dbuser, $dbpasswd, $option, $HTTP_POST_VARS;
 	$write_guard = '0 = 1';
+	$actor_id = null;
 
 	$auth_method = ( isset($HTTP_POST_VARS['auth_method']) ) ? htmlspecialchars($HTTP_POST_VARS['auth_method']) : '';
 	$board_user = isset($HTTP_POST_VARS['board_user']) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
@@ -651,10 +652,12 @@ function check_authorisation($die = TRUE, &$write_guard = null)
 				if( phpbb_password_verify($board_password, $row['user_password']) && $row['user_active'] && $row['user_level'] == ADMIN )
 				{
 					$allow_access = TRUE;
+					$actor_id = (int) $row['user_id'];
 					// Requalify a credential-authorized write at dispatch, including
 					// demotion, deactivation and password replacement since this read.
-					$write_guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_password,user_active,user_level FROM ' . USERS_TABLE
+					$write_guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,username,user_password,user_active,user_level FROM ' . USERS_TABLE
 						. ' WHERE user_id = ' . (int)$row['user_id'] . ') erc_actor WHERE erc_actor.user_active <> 0 AND erc_actor.user_level = ' . ADMIN
+						. " AND erc_actor.username = '" . $db->sql_escape($row['username']) . "'"
 						. " AND HEX(erc_actor.user_password) = HEX('" . $db->sql_escape($row['user_password']) . "'))";
 				}
 				else
@@ -672,6 +675,7 @@ function check_authorisation($die = TRUE, &$write_guard = null)
 			if ($db_user == $dbuser && $db_password == $dbpasswd)
 			{
 				$allow_access = TRUE;
+				$actor_id = 0; // Database-owner recovery has no board account.
 				$write_guard = '1 = 1'; // Explicit database-owner credentials.
 			}
 			else
@@ -714,6 +718,24 @@ function dbmtnc_erc_clear_table($table)
 	// Zero affected rows can mean either an already empty table or revoked
 	// credentials. Recheck rather than treating both outcomes as a success.
 	return check_authorisation(false);
+}
+
+function dbmtnc_erc_remove_administrator($target_id, $expected_actor_id)
+{
+	global $db;
+	if (!is_int($target_id) || $target_id <= 0 || !is_int($expected_actor_id) || $expected_actor_id < 0) { return false; }
+	if (!check_authorisation(false, $write_guard, $actor_id) || $actor_id !== $expected_actor_id) { return false; }
+	if ($actor_id === $target_id) { return 0; }
+	require_once dirname(__FILE__) . '/functions_acl_storage.php';
+	// Use the same current moderator policy as the normal ACP. Do not preserve
+	// a stale pending/orphaned membership or use a role computed by an older read.
+	$desired = 'CASE WHEN ' . phpbb_acl_mod_guard($target_id) . ' THEN ' . MOD . ' ELSE ' . USER . ' END';
+	$sql = 'UPDATE ' . USERS_TABLE . ' SET user_level = ' . $desired
+		. ' WHERE user_id = ' . $target_id . ' AND user_level = ' . ADMIN . ' AND (' . $write_guard . ')';
+	if (!$db->sql_query($sql)) { return false; }
+	$changed = (int) $db->sql_affectedrows();
+	if (!check_authorisation(false, $after_guard, $after_actor_id) || $after_actor_id !== $expected_actor_id) { return false; }
+	return $changed;
 }
 
 function get_config_data($option)
