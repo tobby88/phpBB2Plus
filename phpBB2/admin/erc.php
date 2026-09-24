@@ -419,15 +419,7 @@ switch($mode)
 			case 'rpd': // Reset path data
 				// Get path information
 				$secure_cur = get_config_data('cookie_secure');
-				if (!empty($HTTP_SERVER_VARS['SERVER_PROTOCOL']) || !empty($HTTP_ENV_VARS['SERVER_PROTOCOL']))
-				{
-					$protocol = (!empty($HTTP_SERVER_VARS['SERVER_PROTOCOL'])) ? $HTTP_SERVER_VARS['SERVER_PROTOCOL'] : $HTTP_ENV_VARS['SERVER_PROTOCOL'];
-					$secure_rec = ( strtolower(substr($protocol, 0 , 5)) == 'https' ) ? '1' : '0';
-				}
-				else
-				{
-					$secure_rec = '0';
-				}
+				$secure_rec = phpbb_request_is_https() ? '1' : '0';
 				$domain_cur = get_config_data('server_name');
 				if (!empty($HTTP_SERVER_VARS['SERVER_NAME']) || !empty($HTTP_ENV_VARS['SERVER_NAME']))
 				{
@@ -530,7 +522,7 @@ switch($mode)
 		</td>
 	</tr>
 	<tr>
-		<td><?php echo $lang['rcd_info']; ?></td>
+		<td><?php echo $lang['rcd_info']; ?><p><?php echo $lang['ERC_cookie_format']; ?></p></td>
 	</tr>
 <?php
 				break;
@@ -805,94 +797,39 @@ switch($mode)
 				success_message($lang['cct_success']);
 				break;
 			case 'rpd': // Reset path data
-				check_authorisation();
-				// Get variables
+				check_authorisation(true, $config_guard, $config_actor_id);
+				foreach (array('secure_select','domain_select','port_select','path_select','secure','domain','port','path') as $field)
+				{
+					if (isset($HTTP_POST_VARS[$field]) && !is_string($HTTP_POST_VARS[$field])) { erc_throw_error($lang['ERC_config_invalid'], __LINE__, __FILE__); }
+					if (in_array($field, array('secure_select','domain_select','port_select','path_select','secure'), true)
+						&& isset($HTTP_POST_VARS[$field]) && !in_array($HTTP_POST_VARS[$field], array('0','1'), true)) { erc_throw_error($lang['ERC_config_invalid'], __LINE__, __FILE__); }
+				}
 				$secure_select = ( isset($HTTP_POST_VARS['secure_select']) ) ? intval($HTTP_POST_VARS['secure_select']) : 1;
 				$domain_select = ( isset($HTTP_POST_VARS['domain_select']) ) ? intval($HTTP_POST_VARS['domain_select']) : 1;
 				$port_select = ( isset($HTTP_POST_VARS['port_select']) ) ? intval($HTTP_POST_VARS['port_select']) : 1;
 				$path_select = ( isset($HTTP_POST_VARS['path_select']) ) ? intval($HTTP_POST_VARS['path_select']) : 1;
 				$secure = ( isset($HTTP_POST_VARS['secure']) ) ? intval($HTTP_POST_VARS['secure']) : 0;
-				$domain = phpbb_normalize_host(isset($HTTP_POST_VARS['domain']) ? $HTTP_POST_VARS['domain'] : '', get_config_data('server_name'));
+				$domain = phpbb_normalize_host(isset($HTTP_POST_VARS['domain']) ? stripslashes($HTTP_POST_VARS['domain']) : '', get_config_data('server_name'));
 				$port = phpbb_normalize_port(isset($HTTP_POST_VARS['port']) ? $HTTP_POST_VARS['port'] : '', get_config_data('server_port'));
-				$path = phpbb_normalize_script_path(isset($HTTP_POST_VARS['path']) ? $HTTP_POST_VARS['path'] : '', get_config_data('script_path'));
-				
-				if ($secure_select == 1)
-				{
-					$sql = "UPDATE " . CONFIG_TABLE . "
-						SET config_value = '$secure'
-						WHERE config_name = 'cookie_secure'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-					}
-				}
-				if ($domain_select == 1)
-				{
-					$sql = "UPDATE " . CONFIG_TABLE . "
-						SET config_value = '$domain'
-						WHERE config_name = 'server_name'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-					}
-				}
-				if ($port_select == 1)
-				{
-					$sql = "UPDATE " . CONFIG_TABLE . "
-						SET config_value = '$port'
-						WHERE config_name = 'server_port'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-					}
-				}
-				if ($path_select == 1)
-				{
-					$sql = "UPDATE " . CONFIG_TABLE . "
-						SET config_value = '$path'
-						WHERE config_name = 'script_path'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-					}
-				}
+				$path = phpbb_normalize_script_path(isset($HTTP_POST_VARS['path']) ? stripslashes($HTTP_POST_VARS['path']) : '', get_config_data('script_path'));
+				$values = array();
+				if ($secure_select == 1) { $values['cookie_secure'] = (string)$secure; }
+				if ($domain_select == 1) { $values['server_name'] = $domain; }
+				if ($port_select == 1) { $values['server_port'] = (string)$port; }
+				if ($path_select == 1) { $values['script_path'] = $path; }
+				if (!dbmtnc_erc_update_config($values, $config_actor_id)) { erc_throw_error("Couldn't update config table!", __LINE__, __FILE__); }
 				success_message($lang['rpd_success']);
 				break;
 			case 'rcd': // Reset cookie data
-				check_authorisation();
-				// Get variables
-				$cookie_domain = ( isset($HTTP_POST_VARS['cookie_domain']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['cookie_domain']) : '';
-				$cookie_name = ( isset($HTTP_POST_VARS['cookie_name']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['cookie_name']) : '';
-				$cookie_path = ( isset($HTTP_POST_VARS['cookie_path']) ) ? str_replace("\\'", "''", $HTTP_POST_VARS['cookie_path']) : '';
-
-				$sql = "UPDATE " . CONFIG_TABLE . "
-					SET config_value = '$cookie_domain'
-					WHERE config_name = 'cookie_domain'";
-				$result = $db->sql_query($sql);
-				if( !$result )
+				check_authorisation(true, $config_guard, $config_actor_id);
+				$values = array();
+				foreach (array('cookie_domain','cookie_name','cookie_path') as $field)
 				{
-					erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
+					if (!isset($HTTP_POST_VARS[$field]) || !is_string($HTTP_POST_VARS[$field])) { erc_throw_error($lang['ERC_config_invalid'], __LINE__, __FILE__); }
+					$values[$field] = stripslashes($HTTP_POST_VARS[$field]);
 				}
-				$sql = "UPDATE " . CONFIG_TABLE . "
-					SET config_value = '$cookie_name'
-					WHERE config_name = 'cookie_name'";
-				$result = $db->sql_query($sql);
-				if( !$result )
-				{
-					erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-				}
-				$sql = "UPDATE " . CONFIG_TABLE . "
-					SET config_value = '$cookie_path'
-					WHERE config_name = 'cookie_path'";
-				$result = $db->sql_query($sql);
-				if( !$result )
-				{
-					erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-				}
+				if ($values['cookie_path'] === '') { $values['cookie_path'] = '/'; }
+				if (!dbmtnc_erc_update_config($values, $config_actor_id)) { erc_throw_error("Couldn't update config table!", __LINE__, __FILE__); }
 				success_message($lang['rcd_success']);
 				break;
 			case 'rld': // Reset language data
@@ -973,15 +910,8 @@ switch($mode)
 				}
 				break;
 			case 'dgc': // Disable GZip compression 
-				check_authorisation();
-					$sql = "UPDATE " . CONFIG_TABLE . "
-						SET config_value = '0'
-						WHERE config_name = 'gzip_compress'";
-					$result = $db->sql_query($sql);
-					if( !$result )
-					{
-						erc_throw_error("Couldn't update config table!", __LINE__, __FILE__, $sql);
-					}
+				check_authorisation(true, $config_guard, $config_actor_id);
+				if (!dbmtnc_erc_update_config(array('gzip_compress'=>'0'), $config_actor_id)) { erc_throw_error("Couldn't update config table!", __LINE__, __FILE__); }
 				success_message($lang['dgc_success']);
 				break;
 			case 'cbl': // Clear ban list 

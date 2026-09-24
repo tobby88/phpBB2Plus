@@ -783,6 +783,90 @@ function dbmtnc_erc_grant_administrator($username, $expected_actor_id)
 	return $confirmed ? 1 : false;
 }
 
+/** One explicit emergency settings form; never a general config import API. */
+function dbmtnc_erc_update_config($values, $expected_actor_id)
+{
+	global $db, $phpbb_root_path, $board_config;
+	$allowed = array('cookie_secure', 'server_name', 'server_port', 'script_path', 'cookie_domain', 'cookie_name', 'cookie_path', 'gzip_compress');
+	if (!is_array($values) || !is_int($expected_actor_id) || $expected_actor_id < 0) { return false; }
+	$keys = $cases = array();
+	foreach ($values as $key => $value)
+	{
+		if (!in_array($key, $allowed, true) || !is_string($value) || strlen($value) > 255 || preg_match('/[\x00-\x1f\x7f]/', $value)) { return false; }
+		if (in_array($key, array('cookie_secure', 'gzip_compress'), true) && !in_array($value, array('0','1'), true)) { return false; }
+		if ($key === 'cookie_name' && !preg_match('/^[A-Za-z0-9_-]+$/D', $value)) { return false; }
+		if ($key === 'server_port' && (!preg_match('/^[0-9]{1,5}$/D', $value) || (int)$value < 1 || (int)$value > 65535)) { return false; }
+		if ($key === 'server_name' && ($value === '' || phpbb_normalize_host($value, '') !== $value)) { return false; }
+		if (in_array($key, array('script_path','cookie_path'), true))
+		{
+			$normalized_path = phpbb_normalize_script_path($value, '/');
+			if ($value !== $normalized_path && $value . '/' !== $normalized_path) { return false; }
+		}
+		if ($key === 'cookie_domain' && $value !== '')
+		{
+			$domain = $value[0] === '.' ? substr($value, 1) : $value;
+			if (strlen($domain) > 253 || $domain === '') { return false; }
+			foreach (explode('.', $domain) as $label)
+			{
+				if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/iD', $label)) { return false; }
+			}
+		}
+		$keys[] = "'" . $key . "'";
+		$cases[] = "WHEN '" . $key . "' THEN '" . $db->sql_escape($value) . "'";
+	}
+	if (!check_authorisation(false, $guard, $actor_id) || $actor_id !== $expected_actor_id) { return false; }
+	if (!$values) { return true; }
+	$where = 'config_name IN (' . implode(',', $keys) . ')';
+	$read = 'SELECT config_name, config_value FROM ' . CONFIG_TABLE . ' WHERE ' . $where;
+	$result = $db->sql_query($read);
+	if (!$result) { return false; }
+	$found = array(); $valid = true;
+	while ($row = $db->sql_fetchrow($result))
+	{
+		if (!array_key_exists($row['config_name'], $values) || isset($found[$row['config_name']])) { $valid = false; }
+		$found[$row['config_name']] = true;
+	}
+	$db->sql_freeresult($result);
+	if (!$valid || count($found) !== count($values)) { return false; }
+	if (!check_authorisation(false, $guard, $actor_id) || $actor_id !== $expected_actor_id) { return false; }
+	// All selected keys must still exist exactly once at dispatch. A concurrent
+	// missing/renamed/duplicated key must not leave only the other fields changed.
+	$config_guard = 'EXISTS (SELECT 1 FROM (SELECT COUNT(*) AS row_count, COUNT(DISTINCT BINARY config_name) AS key_count,'
+		. ' SUM(BINARY config_name IN (' . implode(',', $keys) . ')) AS exact_count FROM ' . CONFIG_TABLE . ' WHERE ' . $where
+		. ') erc_config_current WHERE row_count = ' . count($values) . ' AND key_count = ' . count($values) . ' AND exact_count = ' . count($values) . ')';
+	$success = false;
+	try
+	{
+		// One guarded statement for the complete selection, not sequential partial
+		// form updates. Do not retry an uncertain acknowledgement or claim rollback.
+		if (!$db->sql_query('UPDATE ' . CONFIG_TABLE . ' SET config_value = CASE config_name ' . implode(' ', $cases)
+			. ' ELSE config_value END WHERE ' . $where . ' AND (' . $guard . ') AND ' . $config_guard)) { return false; }
+		if (!check_authorisation(false, $after_guard, $after_actor_id) || $after_actor_id !== $expected_actor_id) { return false; }
+		$result = $db->sql_query($read);
+		if (!$result) { return false; }
+		$found = array(); $valid = true;
+		while ($row = $db->sql_fetchrow($result))
+		{
+			if (!array_key_exists($row['config_name'], $values) || isset($found[$row['config_name']])
+				|| (string)$row['config_value'] !== $values[$row['config_name']]) { $valid = false; }
+			$found[$row['config_name']] = true;
+		}
+		$db->sql_freeresult($result);
+		$success = $valid && count($found) === count($values);
+	}
+	finally
+	{
+		// Also invalidate after failed/uncertain writes: the database may already
+		// contain the new values. Never unlink other cache or uploaded files.
+		$cache = $phpbb_root_path . 'cache/config_data.cache';
+		clearstatcache(true, $cache);
+		if ((file_exists($cache) || is_link($cache)) && !@unlink($cache)) { $success = false; }
+	}
+	if (!$success) { return false; }
+	foreach ($values as $key => $value) { $board_config[$key] = $value; }
+	return true;
+}
+
 function get_config_data($option)
 {
 	global $db;

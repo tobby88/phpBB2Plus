@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recheck emergency path/server, cookie and GZip settings against current
+  credentials inside one guarded UPDATE per form. Require every selected key
+  to remain present and unambiguous; reject malformed input and unsafe cookie
+  values. Verify saved values and invalidate only the configuration cache,
+  including after uncertain writes; never report a failed cache removal as
+  success. Preserve unselected settings and database-owner recovery. Derive
+  the Secure-cookie recommendation from HTTPS detection, not SERVER_PROTOCOL.
 - Bind emergency administrator promotion to the current authenticated actor and
   one positive, database-resolved target ID. Refuse revoked credentials, changed
   or ambiguous targets and uncertain writes without a success message or retry.
