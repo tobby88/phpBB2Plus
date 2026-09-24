@@ -171,6 +171,11 @@ Public registration and both ACP account-creation routes initialize custom field
 from current, locked metadata, including hidden fields. Explicit profile inputs
 override defaults; existing users and the shared anonymous account are not used
 as default-value sources. New field creation leaves the anonymous row blank.
+New member accounts explicitly leave retained inactive fields blank, even when
+legacy physical columns still have defaults. Creation pins the recovery-receipt
+range as well as the active definitions; existing accounts are not rewritten.
+Restored active fields keep their configured defaults. A physical column that
+reappears after a completed purge is not silently adopted by the old receipt.
 Recreating a missing anonymous account through DB Maintenance or the separately
 enabled Emergency Recovery Console explicitly blanks active and retained custom
 profile columns, including legacy physical defaults. It never overwrites an

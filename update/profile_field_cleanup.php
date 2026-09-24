@@ -23,7 +23,11 @@ class PhpbbProfileFieldCleanup extends PhpbbAclDatabase
         if (!isset($database->server) || !is_string($database->server) || $database->server === '') { throw new PhpbbProfileCleanupRefusal('Database endpoint identity unavailable'); }
         $this->target = $database->server;
         $this->lock_name = 'attachment:' . md5($database->dbname . "\0" . ATTACHMENTS_TABLE);
-        $this->lock = new attach_mutation_lock($database, false);
+        // This is a writer, not optional statistics. COM_QUIT does not wait for
+        // server-side disconnect/lock cleanup; an immediate GET_LOCK(..., 0)
+        // can still see our own preceding, already closed connection. Use the
+        // normal bounded acquisition wait, never retry a DDL/write operation.
+        $this->lock = new attach_mutation_lock($database);
         if (!$this->lock->acquired) { throw new PhpbbProfileCleanupRefusal('Profile writers are busy'); }
         parent::__construct($this->lock->connection, 'Profile_definition_failed');
         register_shutdown_function(array($this, 'release'));

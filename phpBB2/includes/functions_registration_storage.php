@@ -24,6 +24,7 @@ class PhpbbRegistrationScope
 	var $rate_identity = null;
 	var $locking_validation = false;
 	var $profile_fields = array();
+	var $profile_actions = array();
 	function __construct($database, $sid, $username, $email, $profile_data, $avatar)
 	{
 		global $db, $userdata, $board_config, $plus_config, $ctracker_config, $lang, $user_ip;
@@ -41,7 +42,7 @@ class PhpbbRegistrationScope
 			$this->control('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
 			$this->control('START TRANSACTION'); $this->transactional = true; $db = $this;
 			foreach (array(USERS_TABLE, SESSIONS_TABLE, CONFIG_TABLE, PLUS_TABLE, CTRACKER_CONFIG, GROUPS_TABLE, USER_GROUP_TABLE,
-				PROFILE_FIELDS_TABLE, DISALLOW_TABLE, WORDS_TABLE, BANLIST_TABLE, CONFIRM_TABLE, ANTI_ROBOT_TABLE, CTRACKER_RATE_LIMITS) as $table)
+				PROFILE_FIELDS_TABLE, PROFILE_FIELD_ACTIONS_TABLE, DISALLOW_TABLE, WORDS_TABLE, BANLIST_TABLE, CONFIRM_TABLE, ANTI_ROBOT_TABLE, CTRACKER_RATE_LIMITS) as $table)
 			{
 				$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r);
 				$name = $this->sql_escape($table);
@@ -61,6 +62,7 @@ class PhpbbRegistrationScope
 			foreach (array(GROUPS_TABLE => 'group_id', DISALLOW_TABLE => 'disallow_id', WORDS_TABLE => 'word_id', BANLIST_TABLE => 'ban_id') as $table => $column)
 			{ $this->rows('SELECT ' . $column . ' FROM ' . $table . ' LOCK IN SHARE MODE'); }
 			$this->profile_fields = $this->rows('SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' ORDER BY field_id ASC LOCK IN SHARE MODE');
+			$this->profile_actions = $this->rows('SELECT field_column,action_state FROM ' . PROFILE_FIELD_ACTIONS_TABLE . ' ORDER BY operation_key LOCK IN SHARE MODE');
 			$fields = array();
 			foreach ($this->profile_fields as $field) { if ((string)$field['users_can_view'] === (string)ALLOW_VIEW) { $fields[] = $field; } }
 			if ($fields != $profile_data) { phpbb_registration_error('Registration_changed'); }
@@ -103,7 +105,7 @@ class PhpbbRegistrationScope
 	function profile_insert_parts($submitted)
 	{
 		if (!$this->transactional) { phpbb_registration_error('Registration_changed'); }
-		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, $submitted); }
+		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, $submitted, $this->profile_actions); }
 		catch (UnexpectedValueException $e) { phpbb_registration_error('Registration_changed'); }
 	}
 	private function pin_settings($table, $keys, $expected, $name = 'config_name', $value = 'config_value')

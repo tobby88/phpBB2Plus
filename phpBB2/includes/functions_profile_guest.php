@@ -17,43 +17,7 @@ function phpbb_profile_guest_rows($db, $sql)
 
 function phpbb_profile_guest_columns($fields, $actions, $physical)
 {
-    $columns = array(); $active = array(); $core = phpbb_profile_definition_core_columns();
-    foreach ($fields as $field)
-    {
-        $column = phpbb_profile_field_column($field);
-        if ($column === '' || in_array($column, $core, true) || isset($active[$column]))
-        { throw new UnexpectedValueException('Invalid active guest profile mapping'); }
-        $columns[$column] = true; $active[$column] = true;
-    }
-    foreach ($actions as $action)
-    {
-        $column = isset($action['field_column']) ? $action['field_column'] : null;
-        $state = isset($action['action_state']) ? $action['action_state'] : null;
-        if (!is_string($column) || !preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $column)
-            || in_array($column, $core, true) || !in_array($state, array('retired','restored','purging','purged'), true))
-        { throw new UnexpectedValueException('Invalid archived guest profile mapping'); }
-        // Old restored receipts are tombstones, not claims on current storage.
-        if ($state === 'restored') { continue; }
-        if (isset($active[$column])) { throw new UnexpectedValueException('Conflicting guest profile mapping'); }
-        $columns[$column] = !empty($columns[$column]) || $state !== 'purged';
-    }
-    $storage = array();
-    foreach ($physical as $row) { $storage[$row['COLUMN_NAME']] = $row; }
-    $result = array();
-    foreach ($columns as $column => $required)
-    {
-        if (!isset($storage[$column]))
-        {
-            if (!$required) { continue; } // Permanently cleaned-up receipt.
-            throw new UnexpectedValueException('Missing guest profile column');
-        }
-        $row = $storage[$column];
-        if (!in_array(strtolower($row['DATA_TYPE']), array('char','varchar','tinytext','text','mediumtext','longtext'), true)
-            || !in_array($row['EXTRA'], array('', 'DEFAULT_GENERATED'), true))
-        { throw new UnexpectedValueException('Unsupported guest profile column'); }
-        $result[] = $column;
-    }
-    return $result;
+    return phpbb_profile_owned_columns($fields, $actions, $physical);
 }
 
 function phpbb_profile_guest_insert_parts($db)

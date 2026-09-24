@@ -96,7 +96,8 @@ $tail= <<<'PHP'
  // Recheck references after intent commit and before DROP, not just preview.
  pfc_reset();$op=pfc_retire();$plan=pfc_plan('retired',$op);$pds_commit_count=0;$inserted=false;
  $pds_hook=function($sql)use(&$inserted){if($GLOBALS['pds_commit_count']===1&&strpos($sql,'SELECT * FROM fixture_profile_fields')===0){$GLOBALS['pds_hook']=null;pds_insert('fixture_profile_fields',array_merge(pds_values(),array('field_id'=>8,'field_column'=>'user_notes')));$inserted=true;}};
- ats_check(!pfc_apply('retired',$op,$plan['confirmation'])&&$inserted&&pfc_present('user_notes'),'Revalidation protects changed references after intent');$pds_hook=null;$cases++;
+ $reference_result=pfc_apply('retired',$op,$plan['confirmation']);
+ ats_check(!$reference_result&&$inserted&&pfc_present('user_notes'),'Revalidation protects changed references after intent '.(isset($pfc_error)?$pfc_error:''));$pds_hook=null;$cases++;
  // Repeat interrupted DROP/retry with fresh receipts to catch timing-sensitive
  // metadata/driver failures; do not silently retry or count a refusal as success.
  $repeats=getenv('PHPBB_PROFILE_CLEANUP_REPEATS')?:'20';ats_check(preg_match('/^[0-9]{1,3}$/D',$repeats)&&(int)$repeats>=1&&(int)$repeats<=500,'Bounded cleanup repetition count');

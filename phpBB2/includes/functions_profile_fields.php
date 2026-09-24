@@ -26,15 +26,73 @@ function phpbb_profile_new_account_values($fields, $submitted = array())
   return $values;
 }
 
-function phpbb_profile_new_account_insert($db, $fields, $submitted = array())
+function phpbb_profile_new_account_insert($db, $fields, $submitted = array(), $actions = array())
 {
+  if (!is_array($actions)) { throw new UnexpectedValueException('Invalid profile recovery metadata'); }
+  $defaults = phpbb_profile_new_account_values($fields, $submitted);
+  if ($actions)
+  {
+    // Retired legacy columns may still have physical member defaults. They
+    // are inactive, not editable input: new accounts get blanks until cleanup.
+    $result = $db->sql_query("SELECT COLUMN_NAME,DATA_TYPE,EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $db->sql_escape(USERS_TABLE) . "'");
+    if (!$result) { throw new UnexpectedValueException('Unable to inspect profile columns'); }
+    try { $physical = $db->sql_fetchrowset($result); }
+    finally { $db->sql_freeresult($result); }
+    if (!is_array($physical)) { throw new UnexpectedValueException('Invalid profile column metadata'); }
+    foreach (phpbb_profile_owned_columns($fields, $actions, $physical) as $column)
+    { if (!array_key_exists($column, $defaults)) { $defaults[$column] = ''; } }
+  }
   $columns = $values = '';
-  foreach (phpbb_profile_new_account_values($fields, $submitted) as $column => $value)
+  foreach ($defaults as $column => $value)
   {
     $columns .= ', `' . $column . '`';
     $values .= ", '" . $db->sql_escape($value) . "'";
   }
   return array($columns, $values);
+}
+
+// Known active and retained columns only; caller pins definitions/receipts.
+function phpbb_profile_owned_columns($fields, $actions, $physical)
+{
+    $columns = array(); $purged = array(); $active = array(); $core = phpbb_profile_definition_core_columns();
+    foreach ($fields as $field)
+    {
+        $column = phpbb_profile_field_column($field);
+        if ($column === '' || in_array($column, $core, true) || isset($active[$column]))
+        { throw new UnexpectedValueException('Invalid active profile mapping'); }
+        $columns[$column] = true; $active[$column] = true;
+    }
+    foreach ($actions as $action)
+    {
+        $column = isset($action['field_column']) ? $action['field_column'] : null;
+        $state = isset($action['action_state']) ? $action['action_state'] : null;
+        if (!is_string($column) || !preg_match('/^[a-z_][a-z0-9_]{0,63}$/D', $column)
+            || in_array($column, $core, true) || !in_array($state, array('retired','restored','purging','purged'), true))
+        { throw new UnexpectedValueException('Invalid archived profile mapping'); }
+        // Old restored receipts are tombstones, not claims on current storage.
+        if ($state === 'restored') { continue; }
+        if (isset($active[$column])) { throw new UnexpectedValueException('Conflicting profile mapping'); }
+        if ($state === 'purged') { $purged[$column] = true; }
+        $columns[$column] = !empty($columns[$column]) || $state !== 'purged';
+    }
+    $storage = array();
+    foreach ($physical as $row) { $storage[$row['COLUMN_NAME']] = $row; }
+    $result = array();
+    foreach ($columns as $column => $required)
+    {
+        if (!isset($storage[$column]))
+        {
+            if (!$required) { continue; } // Permanently cleaned-up receipt.
+            throw new UnexpectedValueException('Missing profile column');
+        }
+        if (isset($purged[$column])) { throw new UnexpectedValueException('Purged profile column was recreated'); }
+        $row = $storage[$column];
+        if (!in_array(strtolower($row['DATA_TYPE']), array('char','varchar','tinytext','text','mediumtext','longtext'), true)
+            || !in_array($row['EXTRA'], array('', 'DEFAULT_GENERATED'), true))
+        { throw new UnexpectedValueException('Unsupported profile column'); }
+        $result[] = $column;
+    }
+    return $result;
 }
 
 function get_fields($where_clause = '', $expect_multiple = true, $selection = '*')

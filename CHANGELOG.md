@@ -25,12 +25,23 @@ changes consolidated after that baseline without implying active maintenance.
   keep tombstones against stale retries. Refuse active/core/reassigned storage,
   independent staging data and dependent indexes/constraints/triggers. Neither
   routine updates nor ACP removal run this destructive cleanup automatically.
+  Use bounded writer-lock acquisition on retry so delayed server-side disconnect
+  cleanup cannot spuriously reject the next offline operation; DDL is not retried
+  automatically and genuinely busy writers still block cleanup safely.
 - Initialize custom fields consistently during public registration and both
   ACP account-creation routes, including hidden fields without database defaults.
   Pin all definitions through account publication, preserve explicit empty/zero
   input and storage-encoded Unicode defaults, reject core-column/alias collisions,
   and never copy another account's values. Newly created fields leave the shared
   anonymous row blank. Normalize empty substring results to strings on PHP 5.6.
+- Initialize retained inactive custom fields to empty in all three member
+  creation routes, without inheriting legacy physical defaults or accepting
+  submitted inactive values. Pin the retirement metadata/range through account
+  publication and require modern recovery-journal storage. Preserve existing
+  accounts and unrelated plugin defaults. Share ownership validation with guest
+  recovery and reject columns recreated after a completed purge. Existing
+  profile recovery tables/updater already cover this path; no retroactive data
+  changes or additional schema migration are introduced.
 - Recreate missing anonymous accounts without inheriting active or retired
   custom-field defaults in DB Maintenance and the opt-in Emergency Recovery
   Console. Preserve existing guests and unrelated plugin columns, fail closed

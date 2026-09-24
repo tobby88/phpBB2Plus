@@ -24,7 +24,7 @@ $tail= <<<'PHP'
  foreach(array('jr_admin_users'=>'jr','themes'=>'themes') as $original=>$suffix){ats_check(preg_match('/CREATE TABLE `?phpbb_'.$original.'`?\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical quick-add dependency');rgn_sql(str_replace('phpbb_'.$original,'fixture_'.$suffix,$m[0]));$rgn_tables[]=$suffix;}
  foreach(array('qad_reset','qad_run','qad_success') as $name){ats_load_function(__DIR__.'/check-admin-registration-native.php',$name);}
  $source=str_replace("\r\n","\n",file_get_contents($ats_source.'admin/admin_user_register.php'));$a=strpos($source,'$account_created_at = time();');$b=strpos($source,"\n\t}\n} // End of submit",$a);ats_check($a!==false&&$b>$a,'Actual quick-add controller');$GLOBALS['qad_body']=substr($source,$a,$b-$a);
- rgn_sql('ALTER TABLE fixture_users ADD pad_hidden MEDIUMTEXT NULL, ADD pad_zero MEDIUMTEXT NULL, ADD pad_radio MEDIUMTEXT NULL, ADD pad_check MEDIUMTEXT NULL');
+ rgn_sql("ALTER TABLE fixture_users ADD pad_hidden MEDIUMTEXT NULL, ADD pad_zero MEDIUMTEXT NULL, ADD pad_radio MEDIUMTEXT NULL, ADD pad_check MEDIUMTEXT NULL, ADD pad_retired VARCHAR(255) DEFAULT 'Inactive default', ADD pad_unowned VARCHAR(255) DEFAULT 'Plugin default'");
  function pad_reset($route,$value){
   global $profile_data;
   if($route==='public'){rgn_reset(0,'none');}else{qad_reset();}
@@ -34,7 +34,10 @@ $tail= <<<'PHP'
   rgn_sql("UPDATE fixture_profile_fields SET text_field_default='Visible default',is_required=0 WHERE field_id=1");
   $r=rgn_sql('SELECT * FROM fixture_profile_fields WHERE users_can_view=1 ORDER BY field_id ASC');$profile_data=$GLOBALS['peer']->sql_fetchrowset($r);$GLOBALS['peer']->sql_freeresult($r);
   rgn_sql("UPDATE fixture_users SET pad_hidden='Existing owner secret',pad_zero='old' WHERE user_id=1");
+  rgn_sql("UPDATE fixture_users SET pad_retired='Existing archived value'");
+  foreach(array('a'=>array('pad_retired','retired'),'b'=>array('pad_hidden','restored'),'c'=>array('pad_purged_absent','purged')) as $key=>$action){rgn_sql(rgn_insert_sql('fixture_profile_field_actions',array('operation_key'=>str_repeat($key,64),'field_id'=>90,'field_column'=>$action[0],'action_state'=>$action[1])));}
   $_POST['pad_hidden']='attacker hidden value';$_POST['fixture_profile']='';
+  $_POST['pad_retired']='forged inactive field';
  }
  function pad_success($route,$out){return $route==='public'?rgn_success($out):qad_success($out);}
  function pad_run($route){return $route==='public'?rgn_run():qad_run();}
@@ -44,23 +47,30 @@ $tail= <<<'PHP'
    pad_reset($route,$value);$before=rgn_rows('SELECT * FROM fixture_users ORDER BY user_id');
    $out=pad_run($route);ats_check(pad_success($route,$out),'Actual creation '.$route.' '.strip_tags($out));
    $row=rgn_rows('SELECT * FROM fixture_users WHERE user_id=8')[0];ats_check($row['pad_hidden']===$value&&$row['pad_zero']==='0'&&$row['pad_radio']==='0'&&$row['pad_check']==='0,one','Current defaults for hidden/all types '.$route);
+   ats_check($row['pad_retired']===''&&$row['pad_unowned']==='Plugin default','Inactive defaults blank, forged input ignored, unowned plugin preserved '.$route);
    ats_check($row['fixture_profile']===($route==='public'?'':'Visible default'),'Public empty overrides default; quick-add uses configured default');
    ats_check(rgn_rows('SELECT * FROM fixture_users WHERE user_id<>8 ORDER BY user_id')===$before,'Existing owners unchanged; no inheritance '.$route);$cases++;
   }
-  foreach(array('write','commit','ack','core','duplicate','column') as $failure){
+  foreach(array('write','commit','ack','core','duplicate','column','retired-core','retired-missing','retired-conflict','purged-recreated','retired-state') as $failure){
    pad_reset($route,'default');
    if($failure==='write'){$rgn_fail=3;}elseif($failure==='commit'){$rgn_commit='fail';}elseif($failure==='ack'){$rgn_commit='ack';}
    elseif($failure==='core'){rgn_sql("UPDATE fixture_profile_fields SET field_column='user_level' WHERE field_column='pad_hidden'");}
    elseif($failure==='duplicate'){rgn_sql("UPDATE fixture_profile_fields SET field_column='fixture_profile' WHERE field_column='pad_hidden'");}
-   else{rgn_sql("UPDATE fixture_profile_fields SET field_column='missing_column' WHERE field_column='pad_hidden'");}
+   elseif($failure==='column'){rgn_sql("UPDATE fixture_profile_fields SET field_column='missing_column' WHERE field_column='pad_hidden'");}
+   else{$set=$failure==='retired-core'?"field_column='user_level'":($failure==='retired-missing'?"field_column='missing_retired'":($failure==='retired-conflict'?"field_column='pad_hidden'":($failure==='purged-recreated'?"action_state='purged'":"action_state='unknown'")));rgn_sql("UPDATE fixture_profile_field_actions SET $set WHERE operation_key='".str_repeat('a',64)."'");}
    $before=rgn_snap();ats_check(!pad_success($route,pad_run($route)),'Unconfirmed unsafe creation '.$route.' '.$failure);
-   if($failure==='ack'){$row=rgn_rows('SELECT * FROM fixture_users WHERE user_id=8')[0];ats_check($row['pad_hidden']==='default','Lost ACK contains complete defaults');}
+   if($failure==='ack'){$row=rgn_rows('SELECT * FROM fixture_users WHERE user_id=8')[0];ats_check($row['pad_hidden']==='default'&&$row['pad_retired']==='','Lost ACK contains complete active/inactive defaults');}
    else{ats_check(rgn_snap()===$before,'Creation/defaults roll back together '.$route.' '.$failure);}$cases++;
   }
   foreach(array('update','insert') as $change){
    pad_reset($route,'pinned');$blocked=false;
    $rgn_hook=function($sql)use($change,&$blocked){if(strpos($sql,'INSERT INTO fixture_users')!==0){return;}$GLOBALS['rgn_hook']=null;$query=$change==='update'?"UPDATE fixture_profile_fields SET text_field_default='changed' WHERE field_column='pad_hidden'":rgn_insert_sql('fixture_profile_fields',array('field_name'=>'New hidden','users_can_view'=>0));$result=$GLOBALS['peer']->sql_query($query);$blocked=!$result&&(int)$GLOBALS['peer']->sql_error()['code']===1205;};
    ats_check(pad_success($route,pad_run($route))&&$blocked,'All hidden definitions/range pinned '.$route.' '.$change);$cases++;
+  }
+  foreach(array('update','insert') as $change){
+   pad_reset($route,'pinned');$blocked=false;
+   $rgn_hook=function($sql)use($change,&$blocked){if(strpos($sql,'INSERT INTO fixture_users')!==0){return;}$GLOBALS['rgn_hook']=null;$query=$change==='update'?"UPDATE fixture_profile_field_actions SET action_state='restored' WHERE operation_key='".str_repeat('a',64)."'":rgn_insert_sql('fixture_profile_field_actions',array('operation_key'=>str_repeat('d',64),'field_id'=>91,'field_column'=>'pad_unowned','action_state'=>'retired'));$result=$GLOBALS['peer']->sql_query($query);$blocked=!$result&&(int)$GLOBALS['peer']->sql_error()['code']===1205;};
+   ats_check(pad_success($route,pad_run($route))&&$blocked,'Retirement receipts/range pinned '.$route.' '.$change);$cases++;
   }
  }
  echo 'Native account profile defaults: '.$cases." public/quick creation, hidden metadata, rollback, ACK, core protection and concurrency cases passed.\n";

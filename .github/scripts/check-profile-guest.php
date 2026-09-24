@@ -40,7 +40,7 @@ try{
  $physical[0]['EXTRA']='DEFAULT_GENERATED';reset_check(phpbb_profile_guest_columns(array($field),array(),$physical)===array('custom'),'Default expression is writable, not a generated column');$physical[0]['EXTRA']='';
  reset_check(phpbb_profile_guest_columns(array(array('field_name'=>'custom')),array(),$physical)===array('custom'),'Legacy mapping');
  reset_check(phpbb_profile_guest_columns(array(),array(array('field_column'=>'gone','action_state'=>'purged')),array())===array(),'Purged receipt does not recreate a dropped column');
- foreach(array('identifier','core','duplicate','missing','nontext','generated','state','archive-core','conflict','mixed-receipts') as $case){
+ foreach(array('identifier','core','duplicate','missing','nontext','generated','state','archive-core','conflict','mixed-receipts','purged-recreated') as $case){
   $fields=array($field);$actions=array();$columns=$physical;
   if($case==='identifier'){$fields[0]['field_column']='custom`,user_level';}elseif($case==='core'){$fields[0]['field_column']='user_level';}
   elseif($case==='duplicate'){$fields[]=$field;}elseif($case==='missing'){$columns=array();}
@@ -48,6 +48,7 @@ try{
   elseif($case==='state'){$actions[]=array('field_column'=>'custom','action_state'=>'unknown');}
   elseif($case==='archive-core'){$actions[]=array('field_column'=>'user_password','action_state'=>'retired');}
   elseif($case==='conflict'){$actions[]=array('field_column'=>'custom','action_state'=>'retired');}
+  elseif($case==='purged-recreated'){$fields=array();$actions[]=array('field_column'=>'custom','action_state'=>'purged');}
   else{$fields=array();$columns=array();$actions=array(array('field_column'=>'custom','action_state'=>'purged'),array('field_column'=>'custom','action_state'=>'retired'));}
   $denied=false;try{phpbb_profile_guest_columns($fields,$actions,$columns);}catch(UnexpectedValueException $e){$denied=true;}reset_check($denied,'Unsafe guest metadata '.$case);
  }
