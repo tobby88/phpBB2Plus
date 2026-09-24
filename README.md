@@ -171,6 +171,12 @@ Public registration and both ACP account-creation routes initialize custom field
 from current, locked metadata, including hidden fields. Explicit profile inputs
 override defaults; existing users and the shared anonymous account are not used
 as default-value sources. New field creation leaves the anonymous row blank.
+Recreating a missing anonymous account through DB Maintenance or the separately
+enabled Emergency Recovery Console explicitly blanks active and retained custom
+profile columns, including legacy physical defaults. It never overwrites an
+existing guest or changes unrelated plugin columns. Invalid or incomplete profile
+metadata stops the repair rather than falling back to member defaults. This uses
+the same profile mapping/recovery tables supplied by the consolidated updater.
 
 Public registration commits the account, personal group/membership, CAPTCHA
 consumption and CrackerTracker success cooldown in one owned InnoDB transaction.

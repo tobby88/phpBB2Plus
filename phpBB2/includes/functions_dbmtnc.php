@@ -617,9 +617,10 @@ function style_select($default_style, $select_name = "style", $dirname = "templa
 	return $style_select;
 }
 
-function check_authorisation($die = TRUE)
+function check_authorisation($die = TRUE, &$write_guard = null)
 {
 	global $db, $lang, $dbuser, $dbpasswd, $option, $HTTP_POST_VARS;
+	$write_guard = '0 = 1';
 
 	$auth_method = ( isset($HTTP_POST_VARS['auth_method']) ) ? htmlspecialchars($HTTP_POST_VARS['auth_method']) : '';
 	$board_user = isset($HTTP_POST_VARS['board_user']) ? trim(htmlspecialchars($HTTP_POST_VARS['board_user'])) : '';
@@ -642,6 +643,7 @@ function check_authorisation($die = TRUE)
 				WHERE username = '" . str_replace("\\'", "''", $board_user) . "'";
 			if ( !($result = $db->sql_query($sql)) )
 			{
+				if (!$die) { return false; }
 				erc_throw_error('Error in obtaining userdata', __LINE__, __FILE__, $sql);
 			}
 			if( $row = $db->sql_fetchrow($result) )
@@ -649,6 +651,11 @@ function check_authorisation($die = TRUE)
 				if( phpbb_password_verify($board_password, $row['user_password']) && $row['user_active'] && $row['user_level'] == ADMIN )
 				{
 					$allow_access = TRUE;
+					// Requalify a credential-authorized write at dispatch, including
+					// demotion, deactivation and password replacement since this read.
+					$write_guard = 'EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id,user_password,user_active,user_level FROM ' . USERS_TABLE
+						. ' WHERE user_id = ' . (int)$row['user_id'] . ') erc_actor WHERE erc_actor.user_active <> 0 AND erc_actor.user_level = ' . ADMIN
+						. " AND HEX(erc_actor.user_password) = HEX('" . $db->sql_escape($row['user_password']) . "'))";
 				}
 				else
 				{
@@ -665,6 +672,7 @@ function check_authorisation($die = TRUE)
 			if ($db_user == $dbuser && $db_password == $dbpasswd)
 			{
 				$allow_access = TRUE;
+				$write_guard = '1 = 1'; // Explicit database-owner credentials.
 			}
 			else
 			{

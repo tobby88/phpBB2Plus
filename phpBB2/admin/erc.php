@@ -1011,14 +1011,29 @@ switch($mode)
 				}
 				else // anonymous user does not exist
 				{
-					// Recreate entry
-					$sql = "INSERT INTO " . USERS_TABLE . " (user_id, username, user_level, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_interests, user_sig, user_viewemail, user_style, user_aim, user_yim, user_msnm, user_posts, user_attachsig, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_pm, user_notify_pm, user_allow_viewonline, user_rank, user_avatar, user_lang, user_timezone, user_dateformat, user_actkey, user_newpasswd, user_notify, user_active)
-						VALUES (" . ANONYMOUS . ", 'Anonymous', 0, 0, '', '', '', '', '', '', '', '', 0, NULL, '', '', '', 0, 0, 1, 1, 1, 0, 1, 1, 0, '', '', 0, '', '', '', 0, 0)";
-					$result = $db->sql_query($sql);
-					if ( !$result )
+					// Serialize with profile definitions and other guest repairs. Never
+					// replace an account that reappeared after the initial existence check.
+					require_once($phpbb_root_path . 'includes/functions_profile_guest.' . $phpEx);
+					require_once($phpbb_root_path . 'attach_mod/includes/functions_mutation.' . $phpEx);
+					$guest_original_db = $db;
+					$guest_lock = new attach_mutation_lock($db);
+					$guest_repair_error = false;
+					try
 					{
-						erc_throw_error("Couldn't add user data!", __LINE__, __FILE__, $sql);
+						if (!$guest_lock->acquired) { throw new RuntimeException('Guest repair is busy'); }
+						$db = $guest_lock->connection;
+						if (!check_authorisation(false)) { throw new RuntimeException('Guest repair authority changed'); }
+						$guest_profile_parts = phpbb_profile_guest_insert_parts($db);
+						if (!check_authorisation(false, $guest_authority_guard)) { throw new RuntimeException('Guest repair authority changed'); }
+						$sql = "INSERT INTO " . USERS_TABLE . " (user_id, username, user_level, user_regdate, user_password, user_email, user_icq, user_website, user_occ, user_from, user_interests, user_sig, user_viewemail, user_style, user_aim, user_yim, user_msnm, user_posts, user_attachsig, user_allowsmile, user_allowhtml, user_allowbbcode, user_allow_pm, user_notify_pm, user_allow_viewonline, user_rank, user_avatar, user_lang, user_timezone, user_dateformat, user_actkey, user_newpasswd, user_notify, user_active" . $guest_profile_parts[0] . ")
+							SELECT " . ANONYMOUS . ", 'Anonymous', 0, 0, '', '', '', '', '', '', '', '', 0, NULL, '', '', '', 0, 0, 1, 1, 1, 0, 1, 1, 0, '', '', 0, '', '', '', 0, 0" . $guest_profile_parts[1] . " WHERE NOT EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id FROM " . USERS_TABLE . ") guest_current WHERE user_id = " . ANONYMOUS . ")";
+						if (!$db->sql_query($sql . ' AND (' . $guest_authority_guard . ')')) { throw new RuntimeException('Guest repair failed'); }
+						if (!check_authorisation(false)) { throw new RuntimeException('Guest repair authority changed'); }
 					}
+					catch (Exception $error) { $guest_repair_error = true; }
+					catch (Throwable $error) { $guest_repair_error = true; }
+					finally { $db = $guest_original_db; $guest_lock->release(); }
+					if ($guest_repair_error) { erc_throw_error("Couldn't add user data!", __LINE__, __FILE__); }
 					success_message($lang['cbl_success_anonymous']);
 				}
 				break;

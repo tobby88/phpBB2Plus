@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_maintenance_dates.php';
+require_once dirname(__FILE__) . '/functions_profile_guest.php';
 
 // This adapter is private to the ACP user-repair workflow. Reads cannot hide
 // mutations; every write must use sql_write with an explicit current-source

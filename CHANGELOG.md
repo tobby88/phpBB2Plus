@@ -23,6 +23,14 @@ changes consolidated after that baseline without implying active maintenance.
   input and storage-encoded Unicode defaults, reject core-column/alias collisions,
   and never copy another account's values. Newly created fields leave the shared
   anonymous row blank. Normalize empty substring results to strings on PHP 5.6.
+- Recreate missing anonymous accounts without inheriting active or retired
+  custom-field defaults in DB Maintenance and the opt-in Emergency Recovery
+  Console. Preserve existing guests and unrelated plugin columns, fail closed
+  on invalid mappings or unreadable metadata, and coordinate recovery with
+  profile writers. The ERC guest insertion also requalifies current account
+  authority/password at dispatch and safely handles concurrent recovery/retries.
+  No existing guest/member values are rewritten; this uses the existing profile
+  mapping/recovery migration rather than introducing another schema change.
 - Correct profile request boundaries after the legacy common.php escaping pass.
   Public/ACP text, custom fields, field definitions, gallery handoffs and the
   signature editor now remove that request-only layer exactly once. Full-form

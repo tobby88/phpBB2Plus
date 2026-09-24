@@ -18,14 +18,20 @@ if ($replaced !== 1) { throw new RuntimeException('Fixture key insertion boundar
 $pattern = '/\$this->pdo->exec\(\x27DROP TABLE IF EXISTS fixture_\x27\.\$name\);\s*\$this->pdo->exec\(\x27CREATE TABLE fixture_\x27\.\$name\.\x27 \(\x27\.\$definition\.\x27\)\x27\.\(\$GLOBALS\[\x27resetNative\x27\]\?\x27 ENGINE=\x27\.\$engine:\x27\x27\)\);/';
 $shared = preg_replace($pattern, 'user_fixture_table($this->pdo,$name,$definition,$engine);', $shared, -1, $replaced);
 if ($replaced !== 1) { throw new RuntimeException('Fixture table setup boundary missing'); }
-eval($shared);
+if (eval($shared) === false) { throw new RuntimeException('User-maintenance fixture did not execute'); }
 foreach (array('ANONYMOUS'=>-1,'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group',
  'THEMES_TABLE'=>'fixture_themes','THEMES_NAME_TABLE'=>'fixture_theme_names','RANKS_TABLE'=>'fixture_ranks',
- 'CONFIG_TABLE'=>'fixture_config','BANLIST_TABLE'=>'fixture_bans','SESSIONS_KEYS_TABLE'=>'fixture_keys') as $key=>$value) { define($key,$value); }
+ 'CONFIG_TABLE'=>'fixture_config','BANLIST_TABLE'=>'fixture_bans','SESSIONS_KEYS_TABLE'=>'fixture_keys',
+ 'PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','PROFILE_FIELD_ACTIONS_TABLE'=>'fixture_profile_actions') as $key=>$value) { define($key,$value); }
 require_once $root . 'includes/functions_maintenance_users.php';
 class UserConnection extends ResetConnection {
  function sql_nextid() { return $this->pdo->lastInsertId(); }
  function sql_query($sql) {
+  if(!$GLOBALS['resetNative'] && strpos($sql,'SELECT COLUMN_NAME,DATA_TYPE,EXTRA FROM information_schema.COLUMNS')===0) {
+   reset_check(!$this->closed && $this->server->owner===$this,'Metadata uses owning connection');
+   $rows=array();foreach($this->pdo->query('PRAGMA table_info(fixture_users)')->fetchAll(PDO::FETCH_ASSOC) as $row){$rows[]=array('COLUMN_NAME'=>$row['name'],'DATA_TYPE'=>strpos($row['type'],'VARCHAR')===0?'varchar':'integer','EXTRA'=>'');}
+   return new ResetRows($rows);
+  }
   try { return parent::sql_query($sql); }
   catch(Exception $e) { $GLOBALS['userFixtureError']=$e->getMessage(); throw $e; }
  }
@@ -39,7 +45,7 @@ function user_fixture_definition() {
  $definition='user_id INTEGER PRIMARY KEY,user_level INTEGER,user_active INTEGER';
  foreach(array('username','user_lang','user_style','user_rank','user_regdate','user_password','user_email','user_icq','user_website','user_occ','user_from','user_interests','user_sig','user_viewemail','user_aim','user_yim','user_msnm','user_posts','user_attachsig','user_allowsmile','user_allowhtml','user_allowbbcode','user_allow_pm','user_notify_pm','user_allow_viewonline','user_avatar','user_timezone','user_dateformat','user_actkey','user_newpasswd','user_notify') as $column) {
   $definition.=','.$column.' '.(in_array($column,array('user_style','user_rank'),true)?'INTEGER DEFAULT 0':'VARCHAR(255)');
- } return $definition;
+ } return $definition.",guest_custom VARCHAR(255) DEFAULT 'Member default',guest_retired VARCHAR(255) DEFAULT 'Retired default',guest_other VARCHAR(255) DEFAULT 'Plugin default'";
 }
 function user_fixture_table($pdo,$name,$definition,$engine) {
  static $engines=array();
@@ -62,9 +68,13 @@ function user_fixture($engine, $actor=1, $guest=false) {
   'themes'=>'themes_id INTEGER PRIMARY KEY','theme_names'=>'themes_id INTEGER PRIMARY KEY',
   'ranks'=>'rank_id INTEGER PRIMARY KEY','config'=>'config_name VARCHAR(255),config_value VARCHAR(255)',
   'bans'=>'ban_id INTEGER PRIMARY KEY,ban_userid INTEGER,ban_ip VARCHAR(45),ban_email VARCHAR(255)',
-  'auth'=>'group_id INTEGER,forum_id INTEGER,auth_read INTEGER','album_policy'=>'group_id INTEGER,permission_value INTEGER') as $name=>$definition) {
+  'auth'=>'group_id INTEGER,forum_id INTEGER,auth_read INTEGER','album_policy'=>'group_id INTEGER,permission_value INTEGER',
+  'profile_fields'=>'field_id INTEGER PRIMARY KEY,field_name VARCHAR(255),field_column VARCHAR(64)',
+  'profile_actions'=>'operation_key VARCHAR(64) PRIMARY KEY,field_column VARCHAR(64),action_state VARCHAR(16)') as $name=>$definition) {
   user_fixture_table($p,$name,$definition,$engine);
  }
+ $p->exec("INSERT INTO fixture_profile_fields VALUES (1,'Active guest field','guest_custom')");
+ $p->exec("INSERT INTO fixture_profile_actions VALUES ('retired','guest_retired','retired'),('restored','guest_custom','restored'),('purged','gone_column','purged')");
  $p->exec("UPDATE fixture_users SET username='Grüße',user_lang='english',user_style=1,user_rank=0");
  if(!$guest) { $p->exec("INSERT INTO fixture_users (user_id,user_level,user_active,username,user_lang,user_style,user_rank) VALUES (-1,0,0,'Anonymous','',NULL,0)"); }
  $p->exec("INSERT INTO fixture_users (user_id,user_level,user_active,username,user_lang,user_style,user_rank) VALUES (3,0,1,'Missing','broken',99,99),(4,0,1,'Shared','english',1,0)");
@@ -87,7 +97,7 @@ function user_snapshot() {
 function user_run($expected='') {
  global $db,$userdata,$board_config,$phpbb_version,$phpbb_root_path,$phpEx,$lang,$userCode;
  $db=new UserForum(); $original=$db; $list_open=false; $error=''; ob_start();
- try { eval($userCode); } catch(ResetControllerFailure $e) { $error=$e->getMessage(); }
+ try { if(eval($userCode)===false){throw new RuntimeException('User controller did not execute');} } catch(ResetControllerFailure $e) { $error=$e->getMessage(); }
  finally { $html=ob_get_clean(); }
  reset_check($db===$original && $GLOBALS['resetServer']->owner===null,'Original connection restored and writer released');
  reset_check($error===$expected,'Full controller outcome: '.$error.' / '.$expected.' '.$GLOBALS['userFixtureError']);
@@ -103,6 +113,8 @@ try {
    $before=user_snapshot(); $html=user_run(); $after=user_snapshot();
    foreach(array('config','sessions','auth','album_policy') as $table) { reset_check($before[$table]===$after[$table],'Preserve '.$table); }
    reset_check((int)user_value('SELECT COUNT(*) FROM fixture_users WHERE user_id=-1')===1,'Guest exists/recreated');
+   reset_check(user_value('SELECT guest_custom FROM fixture_users WHERE user_id=-1')===($missingGuest?'':'Member default') && user_value('SELECT guest_retired FROM fixture_users WHERE user_id=-1')===($missingGuest?'':'Retired default'),'New anonymous custom values blank, existing anonymous values preserved');
+   reset_check(user_value('SELECT guest_other FROM fixture_users WHERE user_id=-1')==='Plugin default' && user_value('SELECT guest_custom FROM fixture_users WHERE user_id=1')==='Member default','Unowned plugin and member values untouched');
    reset_check(user_value('SELECT user_lang FROM fixture_users WHERE user_id=3')==='german' && (int)user_value('SELECT user_style FROM fixture_users WHERE user_id=3')===1 && (int)user_value('SELECT user_rank FROM fixture_users WHERE user_id=3')===0,'Invalid profile repaired');
    reset_check((int)user_value('SELECT group_moderator FROM fixture_groups WHERE group_id=50')===1,'Missing moderator repaired');
    reset_check((int)user_value('SELECT COUNT(*) FROM fixture_user_group WHERE group_id=50 AND user_id=1 AND user_pending=0')===1,'Moderator membership repaired');
@@ -181,6 +193,19 @@ try {
     $s=$GLOBALS['resetServer'];$s->hook=null;foreach((array)$change[2] as $statement){$s->pdo->exec($statement);}$reached=true;
    };
    user_run();reset_check($reached && (int)user_value($change[3])===$change[4],'Current source requalified: '.$name);
+  }
+  foreach(array('core','duplicate','missing','archived-core','conflict','read-failure','reappeared') as $case){
+   user_fixture($engine,1,true);$p=$resetServer->pdo;
+   if($case==='core'){$p->exec("UPDATE fixture_profile_fields SET field_column='user_level'");}
+   elseif($case==='duplicate'){$p->exec("INSERT INTO fixture_profile_fields VALUES (2,'Other','guest_custom')");}
+   elseif($case==='missing'){$p->exec("UPDATE fixture_profile_fields SET field_column='missing_custom'");}
+   elseif($case==='archived-core'){$p->exec("UPDATE fixture_profile_actions SET field_column='user_password' WHERE action_state='retired'");}
+   elseif($case==='conflict'){$p->exec("UPDATE fixture_profile_actions SET field_column='guest_custom' WHERE action_state='retired'");}
+   elseif($case==='read-failure'){$resetServer->failure='SELECT field_column,action_state FROM fixture_profile_actions';}
+   else{$resetServer->hook=function($sql){if(strpos($sql,'INSERT INTO fixture_users')!==0){return;}$s=$GLOBALS['resetServer'];$s->hook=null;$s->pdo->exec("INSERT INTO fixture_users (user_id,user_level,user_active,username,user_lang,user_style,user_rank,guest_custom) VALUES (-1,0,0,'Anonymous','english',1,0,'Already recovered')");};}
+   $before=user_snapshot();user_run($case==='reappeared'?'':$lang['Maintenance_user_failed']);
+   if($case==='reappeared'){reset_check(user_value('SELECT guest_custom FROM fixture_users WHERE user_id=-1')==='Already recovered','Dispatch-time guest never overwritten');}
+   else{reset_check(user_snapshot()===$before,'Unsafe guest metadata fails before user maintenance writes '.$case);}
   }
   user_fixture($engine);$resetServer->pdo->exec('DELETE FROM fixture_themes');user_run('Fatal error!');
   user_fixture($engine);$resetServer->pdo->exec("DELETE FROM fixture_config WHERE config_name='default_lang'");user_run("Couldn't get config data! Please check your configuration table.");
