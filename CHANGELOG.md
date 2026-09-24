@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Correct profile request boundaries after the legacy common.php escaping pass.
+  Public/ACP text, custom fields, field definitions, gallery handoffs and the
+  signature editor now remove that request-only layer exactly once. Full-form
+  signatures use the same preparation as the standalone editor. Rejected ACP
+  forms recover the submitted draft rather than prepared storage values.
+  Regression fixtures execute actual bootstrap normalization on every request;
+  the existing login/username/password representation remains unchanged. No stored data
+  or database schema is rewritten by this correction.
 - Share custom-profile controls between the public and ACP editors. Preserve
   deliberately cleared text and selections on rejected forms and gallery
   return, distinguish initial account defaults from submitted drafts, and

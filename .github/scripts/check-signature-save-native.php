@@ -22,13 +22,15 @@ $tail= <<<'PHP'
  }
  function sig_run($text='new signature'){
   global $db,$userdata,$board_config,$phpbb_root_path,$phpEx,$lang,$template,$body;
-  $submit='Save';$signature_text=$text;$save_message='';eval($body);return $save_message===$lang['sig_save_message'];
+  profile_fixture_request(array('sid'=>isset($_POST['sid'])?$_POST['sid']:'','signature_text'=>$text));
+  $submit='Save';$signature_text=trim(usercp_signature_post_scalar('signature_text'));$save_message='';eval($body);return $save_message===$lang['sig_save_message'];
  }
  $src=file_get_contents($ats_source.'includes/usercp_signature.php');$a=strpos($src,'// save new signature');$b=strpos($src,'// catch the submitted message',$a);ats_check($a!==false&&$b>$a,'Actual complete signature save branch');$body=substr($src,$a,$b-$a);
  class SignatureSaveTemplate {function assign_block_vars($name,$values){}}
  $template=new SignatureSaveTemplate();$html_entities_match=array('#&(?!(\#[0-9]+;))#','#<#','#>#','#"#');$html_entities_replace=array('&amp;','&lt;','&gt;','&quot;');$cases=0;
  foreach(array(0,1) as $html_on){foreach(array('',"Grüße ' 😀",'C:\new\test \\ tail',"', user_level=1, user_sig='","a\0b\nc",'"quoted" & text','<b>bold</b>') as $raw){
-  sig_reset($html_on);$submit='Save';$bbcode_on=$smilies_on=0;$signature_text=$raw;$save_message='';
+  sig_reset($html_on);profile_fixture_request(array('sid'=>'exact-session','signature_text'=>$raw));
+  $submit='Save';$bbcode_on=$smilies_on=0;$signature_text=trim(usercp_signature_post_scalar('signature_text'));$save_message='';
   $before=pp_snap();eval($body);$row=pp_rows('SELECT user_sig,user_sig_bbcode_uid,user_level FROM fixture_users WHERE user_id=2')[0];
   $expected=$raw==='<b>bold</b>'?($html_on?$raw:'&lt;b&gt;bold&lt;/b&gt;'):str_replace(array('&','"'),array('&amp;','&quot;'),$raw);
   ats_check($row['user_sig']===$expected,'Exact native signature bytes with HTML='.$html_on.' case='.$cases);

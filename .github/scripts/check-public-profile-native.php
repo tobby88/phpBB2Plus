@@ -1,6 +1,7 @@
 <?php
 // Actual public profile controller and helpers on an owned native database.
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0'); require __DIR__.'/check-attachment-settings-storage.php';
+require_once __DIR__.'/profile-request-fixture.php';
 foreach(array('ANONYMOUS'=>-1,'USER_AVATAR_NONE'=>0,'USER_AVATAR_UPLOAD'=>1,'USER_ACTIVATION_NONE'=>0,'ALLOW_VIEW'=>1,'CHECKBOX'=>3,'RADIO'=>2,'TEXTAREA'=>1,'TEXT_FIELD_MAXLENGTH'=>255,'TEXTAREA_MAXLENGTH'=>60000,
  'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','BANLIST_TABLE'=>'fixture_banlist',
  'PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','CONFIG_TABLE'=>'fixture_config','CTRACKER_CONFIG'=>'fixture_ctracker_config','THEMES_TABLE'=>'fixture_themes',
@@ -76,8 +77,10 @@ function pp_run($scenario){
  $birthday=999999;$next_birthday_greeting=0;$avatar_sql='';
  $profile_data=get_fields('WHERE users_can_view = '.ALLOW_VIEW);$HTTP_POST_VARS=array('user_custom_fixture'=>"Grüße ' 😀");
  if(array_key_exists('pp_custom_input',$GLOBALS)){$HTTP_POST_VARS['user_custom_fixture']=$GLOBALS['pp_custom_input'];}
+ $request=$HTTP_POST_VARS;
+ if(isset($GLOBALS['pp_text_input'])){$request+=array('email'=>$email,'location'=>$GLOBALS['pp_text_input'],'occupation'=>$GLOBALS['pp_text_input'],'interests'=>$GLOBALS['pp_text_input']);}
+ profile_fixture_request($request);$HTTP_POST_VARS=$_POST;
  if(isset($GLOBALS['pp_text_input'])){
-  $_POST=array('email'=>$email,'location'=>$GLOBALS['pp_text_input'],'occupation'=>$GLOBALS['pp_text_input'],'interests'=>$GLOBALS['pp_text_input']);
   $source=$GLOBALS['pp_controller'];$a=strpos($source,"\t\$strip_var_list = array('email'");$b=strpos($source,"\tforeach (array('fb'",$a);
   ats_check($a!==false&&$b>$a,'Actual profile input preparation');eval(substr($source,$a,$b-$a));
   $signature='';validate_optional_fields($icq,$aim,$msn,$yim,$website,$location,$occupation,$interests,$signature);

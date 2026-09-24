@@ -138,6 +138,7 @@ $_GET = phpbb_addslashes_recursive($_GET);
 $_POST = phpbb_addslashes_recursive($_POST);
 $_COOKIE = phpbb_addslashes_recursive($_COOKIE);
 $_REQUEST = phpbb_addslashes_recursive($_REQUEST);
+if (!defined('PHPBB_LEGACY_REQUEST_ESCAPED')) { define('PHPBB_LEGACY_REQUEST_ESCAPED', true); }
 $HTTP_GET_VARS = $_GET;
 $HTTP_POST_VARS = $_POST;
 $HTTP_COOKIE_VARS = $_COOKIE;

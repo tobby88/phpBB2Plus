@@ -395,7 +395,7 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 		// use the controller state. Validation still happens on the final submit.
 		if (!in_array($param_name, array('user_id', 'coppa', 'birthday'), true) && array_key_exists($param_name, $_POST))
 		{
-			$hidden_value = is_scalar($_POST[$param_name]) ? (string) $_POST[$param_name] : '';
+			$hidden_value = is_scalar($_POST[$param_name]) ? (string) phpbb_request_raw_value($_POST[$param_name]) : '';
 		}
 		$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($param_name, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($hidden_value, ENT_QUOTES, 'UTF-8') . '" />';
 	}
@@ -413,11 +413,11 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 				if (!is_scalar($checkbox_value)) {
 					continue;
 				}
-				$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '[]" value="' . htmlspecialchars((string) $checkbox_value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />';
+				$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '[]" value="' . htmlspecialchars((string) phpbb_request_raw_value($checkbox_value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />';
 			}
 		}
 		else {
-			$value = is_scalar($field_value) ? (string) $field_value : '';
+			$value = is_scalar($field_value) ? (string) phpbb_request_raw_value($field_value) : '';
 			$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '" />';
 		}
 	}

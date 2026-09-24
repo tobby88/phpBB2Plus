@@ -52,7 +52,7 @@ $html_entities_replace = array('&lt;', '&gt;');
 
 function admin_user_post_string($name, $default = '')
 {
-	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
+	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) phpbb_request_raw_value($_POST[$name]) : $default;
 }
 
 function admin_user_post_int($name, $default = 0)
@@ -79,7 +79,7 @@ function admin_user_require_creation_password()
 	$confirmation = $_POST['password_confirm'];
 	if ($password === '' || $confirmation === '') { message_die(GENERAL_MESSAGE, $lang['New_user_password_required']); }
 	if (!hash_equals($password, $confirmation)) { message_die(GENERAL_MESSAGE, $lang['Password_mismatch']); }
-	$password_result = validate_complex_password(admin_user_post_string('username'), $password);
+	$password_result = validate_complex_password(phpbb_request_scalar($_POST, 'username'), $password);
 	if ($password_result['error']) { message_die(GENERAL_MESSAGE, $password_result['error_msg']); }
 	$hash = phpbb_password_hash($password);
 	if ($hash === false) { message_die(GENERAL_MESSAGE, $lang['Password_hash_failed']); }
@@ -128,7 +128,7 @@ if ($new_user)
 {
 	if ($mode === 'save' && isset($_POST['submit'])) { $new_user_password_hash = admin_user_require_creation_password(); }
 	//see if user already exist
-	if (get_userdata(admin_user_post_string('username')))
+	if (get_userdata(phpbb_request_scalar($_POST, 'username')))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Username_taken'] );
 	}
@@ -237,7 +237,8 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 }
 // End add - Protect user account MOD
 
-		$username = ( admin_user_post_string('username') !== '' ) ? phpbb_clean_username(admin_user_post_string('username')) : '';
+		// Keep the legacy identity/login normalization separate from raw text.
+		$username = phpbb_clean_username(phpbb_request_scalar($_POST, 'username'));
 		$email = trim(strip_tags(htmlspecialchars(admin_user_post_string('email'))));
 
 		$password = (isset($_POST['password']) && is_string($_POST['password'])) ? $_POST['password'] : '';
@@ -359,35 +360,32 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		if( isset( $_POST['avatargallery'] ) || isset( $_POST['submitavatar'] ) || isset( $_POST['cancelavatar'] ) )
 		{
 			$username = stripslashes($username);
-			$email = stripslashes($email);
 			$password = '';
 			$password_confirm = '';
 
-			$icq = stripslashes($icq);
-			$aim = htmlspecialchars(stripslashes($aim));
-			$msn = htmlspecialchars(stripslashes($msn));
-			$yim = htmlspecialchars(stripslashes($yim));
-			$fb = htmlspecialchars(stripslashes($fb));
-			$ig = htmlspecialchars(stripslashes($ig));
-			$pt = htmlspecialchars(stripslashes($pt));
-			$twr = htmlspecialchars(stripslashes($twr));
-			$skp = htmlspecialchars(stripslashes($skp));
-			$tg = htmlspecialchars(stripslashes($tg));
-			$li = htmlspecialchars(stripslashes($li));
-			$tt = htmlspecialchars(stripslashes($tt));
-			$dc = htmlspecialchars(stripslashes($dc));
-			$signal = htmlspecialchars(stripslashes($signal));
-			$threema = htmlspecialchars(stripslashes($threema));
+			$aim = htmlspecialchars($aim);
+			$msn = htmlspecialchars($msn);
+			$yim = htmlspecialchars($yim);
+			$fb = htmlspecialchars($fb);
+			$ig = htmlspecialchars($ig);
+			$pt = htmlspecialchars($pt);
+			$twr = htmlspecialchars($twr);
+			$skp = htmlspecialchars($skp);
+			$tg = htmlspecialchars($tg);
+			$li = htmlspecialchars($li);
+			$tt = htmlspecialchars($tt);
+			$dc = htmlspecialchars($dc);
+			$signal = htmlspecialchars($signal);
+			$threema = htmlspecialchars($threema);
 
-			$website = htmlspecialchars(stripslashes($website));
-			$location = htmlspecialchars(stripslashes($location));
-			$occupation = htmlspecialchars(stripslashes($occupation));
-			$interests = htmlspecialchars(stripslashes($interests));
-			$user_absence_text = htmlspecialchars(stripslashes($user_absence_text));
-			$signature = htmlspecialchars(stripslashes($signature));
+			$website = htmlspecialchars($website);
+			$location = htmlspecialchars($location);
+			$occupation = htmlspecialchars($occupation);
+			$interests = htmlspecialchars($interests);
+			$user_absence_text = htmlspecialchars($user_absence_text);
+			$signature = htmlspecialchars($signature);
 
-			$user_lang = stripslashes($user_lang);
-			$user_dateformat = htmlspecialchars(stripslashes($user_dateformat));
+			$user_dateformat = htmlspecialchars($user_dateformat);
 
 			if ( !isset($_POST['cancelavatar'])) 
 			{
@@ -407,7 +405,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		{
 			unset($rename_user);
 
-			if ( stripslashes(strtolower($username)) != strtolower($this_userdata['username']) ) 
+			if ( stripslashes(strtolower($username)) != strtolower($this_userdata['username']) )
 			{
 				$result = validate_username($username);
 				if ( $result['error'] )
@@ -496,7 +494,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		// End add - Admin add user MOD
 		if ($signature != '')
 		{
-			$sig_length_check = preg_replace('/(\[.*?)(=.*?)\]/is', '\\1]', stripslashes($signature));
+			$sig_length_check = preg_replace('/(\[.*?)(=.*?)\]/is', '\\1]', $signature);
 			if ( $allowhtml )
 			{
 				$sig_length_check = preg_replace('/(\<.*?)(=.*?)( .*?=.*?)?([ \/]?\>)/is', '\\1\\3\\4', $sig_length_check);
@@ -507,7 +505,8 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 			{
 				$signature_bbcode_uid = ( $allowbbcode ) ? make_bbcode_uid() : '';
 			}
-			$signature = prepare_message($signature, $allowhtml, $allowbbcode, $allowsmilies, $signature_bbcode_uid);
+			require_once($phpbb_root_path . 'includes/functions_signature.' . $phpEx);
+			$signature = phpbb_signature_prepare($signature, $allowhtml, $allowbbcode, $allowsmilies, $signature_bbcode_uid);
 
 			if ( strlen($sig_length_check) > $board_config['max_sig_chars'] )
 			{ 
@@ -682,25 +681,22 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 
 			$template->assign_var_from_handle('ERROR_BOX', 'reg_header');
 
-			$username = htmlspecialchars(stripslashes($username));
-			$email = stripslashes($email);
 			$password = '';
 			$password_confirm = '';
 
-			$icq = stripslashes($icq);
-			$aim = htmlspecialchars(str_replace('+', ' ', stripslashes($aim)));
-			$msn = htmlspecialchars(stripslashes($msn));
-			$yim = htmlspecialchars(stripslashes($yim));
-
-			$website = htmlspecialchars(stripslashes($website));
-			$location = htmlspecialchars(stripslashes($location));
-			$occupation = htmlspecialchars(stripslashes($occupation));
-			$interests = htmlspecialchars(stripslashes($interests));
-			$user_absence_text = htmlspecialchars(stripslashes($user_absence_text));
-			$signature = htmlspecialchars(stripslashes($signature));
-
-			$user_lang = stripslashes($user_lang);
-			$user_dateformat = htmlspecialchars(stripslashes($user_dateformat));
+			// Redisplay submitted text, not normalized identifiers or prepared
+			// signatures containing storage-only BBCode UIDs. Encode once here;
+			// template output uses phpbb_profile_display_text().
+			foreach (array('username', 'email', 'website', 'location', 'occupation',
+				'interests', 'user_absence_text', 'signature', 'fb', 'ig', 'twr',
+				'tg', 'li', 'tt', 'dc', 'signal', 'threema') as $profile_form_key)
+			{
+				$$profile_form_key = htmlspecialchars(admin_user_post_string($profile_form_key), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+			}
+			$aim = htmlspecialchars(str_replace('+', ' ', $aim));
+			$msn = htmlspecialchars($msn);
+			$yim = htmlspecialchars($yim);
+			$user_dateformat = htmlspecialchars(admin_user_post_string('dateformat'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 		}
 	}
 	else if( !isset( $_POST['submit'] ) && $mode != 'save' && !isset( $_POST['avatargallery'] ) && !isset( $_POST['submitavatar'] ) && !isset( $_POST['cancelavatar'] ) )

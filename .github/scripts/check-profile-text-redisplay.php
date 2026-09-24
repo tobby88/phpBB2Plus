@@ -5,6 +5,7 @@ define('IN_PHPBB', true);
 $phpbb_root_path = dirname(dirname(__DIR__)) . '/phpBB2/';
 $phpEx = 'php';
 require $phpbb_root_path . 'includes/php_compat.php';
+require __DIR__ . '/profile-request-fixture.php';
 require $phpbb_root_path . 'includes/functions.php';
 require $phpbb_root_path . 'includes/functions_validate.php';
 require $phpbb_root_path . 'includes/functions_profile_fields.php';
@@ -48,6 +49,7 @@ try {
             $_POST = array_fill_keys(array_keys($map), $raw);
             $_POST['signature'] = $raw;
             for ($hop = 0; $hop < 3; $hop++) {
+                profile_fixture_request($_POST);
                 eval($parse);
                 eval($input_assignments);
                 $icq = '123'; $aim = $msn = $yim = 'legacy';
@@ -81,13 +83,57 @@ try {
                     profile_text_check($value === $raw, 'Exact rendered field ' . $key . '/' . $hop);
                     $_POST[$key] = $value;
                 }
+                $_POST['signature'] = $raw;
             }
             $cases++;
         }
     }
     foreach (array(array('nested'), null) as $invalid) {
-        $_POST = array_fill_keys(array_keys($map), $invalid); eval($parse);
+        profile_fixture_request(array_fill_keys(array_keys($map), $invalid)); eval($parse);
         foreach ($strip_var_list as $key => $unused) { profile_text_check($$key === '', 'Reject nonscalar input'); }
+        $cases++;
+    }
+    $admin = file_get_contents($phpbb_root_path . 'admin/admin_users.php');
+    eval(profile_text_section($admin, 'function admin_user_post_string(', 'function admin_user_post_int('));
+    foreach(array("O'Neil", 'Name\\part', '&amp; name', ' leading ') as $identity) {
+        profile_fixture_request(array('username'=>$identity));
+        $expected=phpbb_clean_username($_POST['username']);
+        foreach(array($controller,$admin) as $form) {
+            profile_text_check(preg_match('/^\s*\$username = phpbb_clean_username\([^;]+;/m',$form,$m)===1,'Actual identity input');
+            eval($m[0]);profile_text_check($username===$expected,'Existing identity/login normalization unchanged');
+        }
+    }
+    $admin_reject = profile_text_section($admin, "\t\t\t// Redisplay submitted text,", "\n\t\t}\n\t}\n\telse if(");
+    $admin_map = $map + array('signature' => 'SIGNATURE');
+    foreach (array('', '0', 'C:\\notes\\draft', "Grüße 😀 \\ & \" ' </textarea><script>test</script>", '&amp; &#039; literal', '[b]bold[/b]') as $raw) {
+        $browser = array_fill_keys(array_keys($admin_map), $raw);
+        $browser['dateformat'] = $raw;
+        for ($hop = 0; $hop < 3; $hop++) {
+            profile_fixture_request($browser);
+            // Simulate prepared/rejected values. The actual rejection block
+            // must recover browser text, never these storage representations.
+            foreach ($admin_map as $key => $placeholder) { $$key = 'prepared:deadbeef'; }
+            $aim = $msn = $yim = 'historic\\value';
+            eval($admin_reject);
+            profile_text_check(html_entity_decode($user_dateformat, ENT_QUOTES, 'UTF-8') === $raw, 'ACP date format preserved');
+            $template = (new ReflectionClass('Template'))->newInstanceWithoutConstructor();
+            $template->vars =& $template->_tpldata['.'][0];
+            $template->load_config($phpbb_root_path . 'templates/fisubsilversh', false);
+            $template->set_filenames(array('body' => 'admin/user_edit_body.tpl'));
+            $template->assign_block_vars('allow_absence', array());
+            foreach ($admin_map as $key => $placeholder) {
+                profile_text_check(preg_match("/'" . $placeholder . "' => ([^\r\n]+),/", $admin, $m) === 1, 'Actual ACP assignment ' . $placeholder);
+                $template->assign_vars(array($placeholder => eval('return ' . $m[1] . ';')));
+            }
+            ob_start(); try { $template->pparse('body'); $html = ob_get_contents(); } finally { ob_end_clean(); }
+            profile_text_check(strpos($html, '<script>test</script>') === false, 'ACP rejected text cannot inject HTML');
+            foreach ($admin_map as $key => $placeholder) {
+                $pattern = in_array($key, array('signature', 'user_absence_text'), true) ? '/<textarea\b[^>]*name="' . $key . '"[^>]*>(.*?)<\/textarea>/is' : '/<input\b[^>]*name="' . $key . '"[^>]*value="([^"]*)"/i';
+                profile_text_check(preg_match($pattern, $html, $m) === 1, 'Rendered ACP field ' . $key);
+                $browser[$key] = html_entity_decode($m[1], ENT_QUOTES, 'UTF-8');
+                profile_text_check($browser[$key] === $raw, 'Exact ACP roundtrip ' . $key . '/' . $hop);
+            }
+        }
         $cases++;
     }
     $icq = 'invalid'; $aim = $msn = $yim = 'x'; $website = 'javascript:alert(1)';

@@ -2,6 +2,7 @@
 define('IN_PHPBB',true);
 $phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/';
 require $phpbb_root_path.'includes/php_compat.php';
+require_once __DIR__.'/profile-request-fixture.php';
 require $phpbb_root_path.'includes/functions.php';
 require $phpbb_root_path.'includes/bbcode.php';
 require $phpbb_root_path.'includes/functions_post.php';
@@ -14,6 +15,14 @@ class SignatureRenderTemplate {
 $template=new SignatureRenderTemplate();
 function signature_render_check($ok,$description){if(!$ok){throw new RuntimeException($description);}}
 $source=file_get_contents($phpbb_root_path.'includes/usercp_signature.php');
+signature_render_check(preg_match('/^function usercp_signature_post_scalar\(.*?^\}/ms',$source,$helper)===1,'Actual signature request reader');eval($helper[0]);
+// Full public/ACP forms must prepare signatures through the same raw adapter.
+$preparations=array();
+foreach(array('includes/usercp_register.php','admin/admin_users.php') as $path){
+ $form=file_get_contents($phpbb_root_path.$path);
+ signature_render_check(preg_match('/^\s*\$signature = phpbb_signature_prepare\([^;]+;/m',$form,$m)===1,'Actual full-form signature preparation '.$path);
+ $preparations[]=$m[0];
+}
 $a=strpos($source,'// catch the submitted message');$b=strpos($source,'// template',$a);
 signature_render_check($a!==false&&$b>$a,'Actual preview/current controller');
 $body='if(false){} '.substr($source,$a,$b-$a);
@@ -30,6 +39,9 @@ try {
   foreach(array('',"Grüße 😀 & \"quote\" 'apostrophe'",'C:\\new\\test \\\\ server',"first\nsecond",'&lt;b&gt;literal&lt;/b&gt;','<b>bold</b>','[b]bold[/b] [i]italic[/i]','[quote="Name"]quoted[/quote]','[list][*]one[*]two[/list]','https://example.invalid/path','</textarea><script>alert("test")</script>') as $raw){
    $uid=$bbcode_on?'0123456789':'';
    $stored=phpbb_signature_prepare($raw,$html_on,$bbcode_on,0,$uid);
+   profile_fixture_request(array('signature_text'=>$raw));
+   $input=usercp_signature_post_scalar('signature_text');signature_render_check($input===$raw,'Bootstrapped signature input');
+   foreach($preparations as $prepare){$signature=$input;$signature_bbcode_uid=$uid;$allowhtml=$html_on;$allowbbcode=$bbcode_on;$allowsmilies=0;eval($prepare);signature_render_check($signature===$stored,'Full profile signature matches standalone storage');}
    $userdata=array('user_sig'=>$stored,'user_sig_bbcode_uid'=>$uid);
    $preview=false;eval($body);
    $field=eval('return '.$current_binding[1].';');
@@ -40,7 +52,7 @@ try {
    signature_render_check(phpbb_signature_prepare($reopened,$html_on,$bbcode_on,0,$uid)===$stored,'Stable reopen/save round trip case '.$cases);
    if(strpos($raw,'[list]')!==0){signature_render_check($reopened===$raw,'Exact source on reopen case '.$cases);}
    $current_render=$user_sig;
-   $preview=true;$signature_text=$raw;eval($body);
+   $preview=true;$signature_text=$input;eval($body);
    $field=eval('return '.$preview_binding[1].';');
    signature_render_check(html_entity_decode($field,ENT_QUOTES,'UTF-8')===$raw&&strpos($field,'</textarea>')===false,'Preview retains safe exact textarea source case '.$cases);
    signature_render_check($preview_sig===$current_render,'Fresh preview equals stored rendering case '.$cases);

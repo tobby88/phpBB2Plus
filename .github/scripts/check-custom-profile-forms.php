@@ -3,6 +3,7 @@ define('IN_PHPBB', true);
 foreach (array('TEXT_FIELD'=>0,'TEXTAREA'=>1,'RADIO'=>2,'CHECKBOX'=>3,'TEXT_FIELD_MAXLENGTH'=>255,'TEXTAREA_MAXLENGTH'=>60000,'REQUIRED'=>1,'DISALLOW_VIEW'=>0,'AUTHOR'=>0,'ABOVE_SIGNATURE'=>1,'BELOW_SIGNATURE'=>2) as $k=>$v) { define($k,$v); }
 $phpbb_root_path=dirname(dirname(__DIR__)).'/phpBB2/'; $phpEx='php';
 require $phpbb_root_path.'includes/php_compat.php'; require $phpbb_root_path.'includes/functions.php';
+require __DIR__.'/profile-request-fixture.php';
 require $phpbb_root_path.'includes/functions_profile_fields.php'; require $phpbb_root_path.'includes/template.php';
 $sessions=file_get_contents($phpbb_root_path.'includes/sessions.php');$sid_function=substr($sessions,strpos($sessions,'function append_sid('));eval(substr($sid_function,0,strrpos($sid_function,'?>')));$SID='sid=fixture';
 function cpf_check($ok,$message) { if(!$ok) { throw new RuntimeException($message); } }
@@ -45,6 +46,7 @@ try {
    }
   }
   for($hop=0;$hop<3;$hop++) {
+   profile_fixture_request($_POST);
    $template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];$template->load_config($phpbb_root_path.'templates/fisubsilversh',false);
    $template->set_filenames(array('body'=>$surface==='public'?'profile_add_body.tpl':'admin/user_edit_body.tpl'));$template->assign_block_vars('switch_custom_fields',array());
    eval($render[$surface]);ob_start();try{$template->pparse('body');$html=ob_get_contents();}finally{ob_end_clean();}
@@ -65,17 +67,18 @@ try {
  // Run both controllers' actual required-field loops, not just the input helper.
  foreach(array('0','') as $raw_required) {
   $_POST=$HTTP_POST_VARS=array();$profile_names=array();$error=false;$error_msg='';
-  foreach($profile_data as $field) {$name=phpbb_profile_field_column($field);$_POST[$name]=$field['field_type']===CHECKBOX?array($raw_required):$raw_required;$profile_names[$name]=phpbb_profile_field_input($field,$_POST);}
-  $HTTP_POST_VARS=$_POST;eval($validate[$surface]);cpf_check($error===($raw_required===''),'Required-field zero semantics '.$surface);$cases++;
+  foreach($profile_data as $field) {$name=phpbb_profile_field_column($field);$_POST[$name]=$field['field_type']===CHECKBOX?array($raw_required):$raw_required;}
+  profile_fixture_request($_POST);foreach($profile_data as $field){$profile_names[phpbb_profile_field_column($field)]=phpbb_profile_field_input($field,$_POST);}
+  eval($validate[$surface]);cpf_check($error===($raw_required===''),'Required-field zero semantics '.$surface);$cases++;
  }
  }}
  cpf_check(displayable_field_data('0',CHECKBOX)==='0'&&displayable_field_data(',0,,other,',CHECKBOX)==='0'.$lang['and'].'other','Zero choice display and separators');
  $userdata=array('session_logged_in'=>true);$field=array('field_name'=>'fixture_zero','field_type'=>TEXT_FIELD,'topic_location'=>AUTHOR);
  $out=get_topic_udata(array('user_id'=>999,'fixture_zero'=>'0'),array($field));cpf_check($out['author']===array('fixture_zero: 0'),'Zero visible beside topic author');
  $definition=file_get_contents($phpbb_root_path.'admin/admin_profile_fields.php');$a=strpos($definition,'function profile_field_post_value(');$b=strpos($definition,'function profile_field_column_identifier(',$a);cpf_check($a!==false&&$b>$a,'Actual definition input helper');eval(substr($definition,$a,$b-$a));
- $_POST=array('draft'=>$raw,'nested'=>array('bad'));cpf_check(profile_field_post_value('draft')===$raw&&profile_field_post_value('nested')==='','Definition inputs retain slashes and reject arrays');
+ profile_fixture_request(array('draft'=>$raw,'nested'=>array('bad')));cpf_check(profile_field_post_value('draft')===$raw&&profile_field_post_value('nested')==='','Definition inputs retain slashes and reject arrays');
  $a=strpos($definition,"  \$radio_values = htmlspecialchars(profile_field_post_value('radio_values')");$b=strpos($definition,'  if (strlen($text_field_default)', $a);cpf_check($a!==false&&$b>$a,'Actual option/default preparation');
- $_POST=array('radio_values'=>"first\n0",'radio_default_value'=>'0','checkbox_values'=>"first\n0",'check_default_values'=>'0');eval(substr($definition,$a,$b-$a));
+ profile_fixture_request(array('radio_values'=>"first\n0",'radio_default_value'=>'0','checkbox_values'=>"first\n0",'check_default_values'=>'0'));eval(substr($definition,$a,$b-$a));
  cpf_check($radio_default_value==='0'&&$check_default_values==='0','Explicit zero defaults are not replaced by first option');
  cpf_check(phpbb_profile_field_form_control(array('field_name'=>'bad-name!','field_type'=>99),'payload')==='', 'Unknown field type renders no control');
  cpf_check(phpbb_profile_field_form_value(array('field_name'=>'bad-name!','field_type'=>99),array(),array(),false,true)==='', 'Unknown field type has no default');
