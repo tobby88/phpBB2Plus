@@ -302,7 +302,6 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 {
 	global $board_config, $db, $template, $lang, $images, $theme;
 	global $phpbb_root_path, $phpEx;
-	global $HTTP_POST_VARS;
 
 	$gallery_dir = user_avatar_gallery_directory();
 	if ($gallery_dir === false || !($dir = @opendir($gallery_dir)))
@@ -375,7 +374,7 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 		{
 			$template->assign_block_vars('avatar_row.avatar_column', array(
 				"AVATAR_IMAGE" => $gallery_url . '/' . rawurlencode($category) . '/' . rawurlencode($current_images[$i][$j]),
-				"AVATAR_NAME" => $avatar_name[$category][$i][$j])
+				"AVATAR_NAME" => htmlspecialchars($avatar_name[$category][$i][$j], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'))
 			);
 
 			$template->assign_block_vars('avatar_row.avatar_option_column', array(
@@ -384,7 +383,7 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 		}
 	}
 
-	$params = array('coppa', 'user_id', 'username', 'email', 'current_email', 'cur_password', 'new_password', 'password_confirm', 'icq', 'aim', 'msn', 'yim', 'fb', 'ig', 'pt', 'twr', 'skp', 'tg', 'li', 'tt', 'dc', 'website', 'location', 'user_flag', 'occupation', 'interests', 'signature', 'viewemail', 'notifypm', 'games_block_pm', 'popup_pm', 'notifyreply', 'attachsig', 'setbm', 'allowhtml', 'allowbbcode', 'allowsmilies', 'hideonline', 'style', 'language', 'timezone', 'dateformat', 'user_absence_mode', 'user_absence', 'user_absence_text', 'birthday', 'gender');
+	$params = array('coppa', 'user_id', 'username', 'email', 'current_email', 'icq', 'aim', 'msn', 'yim', 'fb', 'ig', 'pt', 'twr', 'skp', 'tg', 'li', 'tt', 'dc', 'signal', 'threema', 'website', 'location', 'user_flag', 'occupation', 'interests', 'signature', 'viewemail', 'notifypm', 'games_block_pm', 'popup_pm', 'notifyreply', 'attachsig', 'setbm', 'allowhtml', 'allowbbcode', 'allowsmilies', 'hideonline', 'style', 'language', 'timezone', 'dateformat', 'user_absence_mode', 'user_absence', 'user_absence_text', 'birthday', 'gender');
 
 	$s_hidden_vars = '<input type="hidden" name="sid" value="' . htmlspecialchars($session_id, ENT_QUOTES, 'UTF-8') . '" /><input type="hidden" name="agreed" value="true" /><input type="hidden" name="avatarcatname" value="' . htmlspecialchars($category, ENT_QUOTES, 'UTF-8') . '" />';
 
@@ -392,26 +391,33 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 	{
 		$param_name = $params[$i];
 		$hidden_value = isset($$param_name) && is_scalar($$param_name) ? (string) $$param_name : '';
+		// Preserve raw editable form text once; owner-derived identity/date values
+		// use the controller state. Validation still happens on the final submit.
+		if (!in_array($param_name, array('user_id', 'coppa', 'birthday'), true) && array_key_exists($param_name, $_POST))
+		{
+			$hidden_value = is_scalar($_POST[$param_name]) ? (string) $_POST[$param_name] : '';
+		}
 		$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($param_name, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($hidden_value, ENT_QUOTES, 'UTF-8') . '" />';
 	}
 	//
 	// Custom Profile Fields MOD
 	//
+	$reserved = array_merge($params, array('sid','mode','agreed','submit','avatargallery','submitavatar','cancelavatar','avatarselect','avatarcatname','avatarlocal','avatar','avatarurl','avatarremoteurl','avatardel','avatarcategory','cur_password','new_password','password_confirm'));
 	$profile_data = get_fields('WHERE users_can_view = '.ALLOW_VIEW);
 	foreach($profile_data as $field) {
-		$name = text_to_column($field['field_name']);
-		$required = ($field['is_required'] == REQUIRED) ? true : false;
-		$field_value = isset($HTTP_POST_VARS[$name]) ? $HTTP_POST_VARS[$name] : '';
+		$name = phpbb_profile_field_column($field);
+		if ($name === '' || in_array($name, $reserved, true)) { continue; }
+		$field_value = isset($_POST[$name]) ? $_POST[$name] : '';
 		if (($field['field_type'] == CHECKBOX) && is_array($field_value)) {
-			foreach ($field_value as $checkbox_value) {
+			foreach (array_slice($field_value, 0, 100) as $checkbox_value) {
 				if (!is_scalar($checkbox_value)) {
 					continue;
 				}
-				$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '[]" value="' . htmlspecialchars(stripslashes((string) $checkbox_value), ENT_QUOTES, 'UTF-8') . '" />';
+				$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '[]" value="' . htmlspecialchars((string) $checkbox_value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />';
 			}
 		}
 		else {
-			$value = is_scalar($field_value) ? stripslashes((string) $field_value) : '';
+			$value = is_scalar($field_value) ? (string) $field_value : '';
 			$s_hidden_vars .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '" />';
 		}
 	}
@@ -423,10 +429,11 @@ function display_avatar_gallery($mode, &$category, &$user_id, &$email, &$current
 		'L_AVATAR_GALLERY' => $lang['Avatar_gallery'], 
 		'L_SELECT_AVATAR' => $lang['Select_avatar'], 
 		'L_RETURN_PROFILE' => $lang['Return_profile'], 
-		'L_CATEGORY' => $lang['Select_category'], 
+		'L_CATEGORY' => $lang['Select_category'],
+		'L_GALLERY_FORM_NOTICE' => $lang['Avatar_gallery_form_notice'],
 
 		'S_CATEGORY_SELECT' => $s_categories, 
-		'S_COLSPAN' => $s_colspan, 
+		'S_COLSPAN' => max(1, $s_colspan),
 		'S_PROFILE_ACTION' => append_sid("profile.$phpEx?mode=$mode"), 
 		'S_HIDDEN_FIELDS' => $s_hidden_vars)
 	);

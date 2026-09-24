@@ -7,6 +7,7 @@
 <td class="nav"><a href="{U_INDEX}">{L_INDEX}</a> &raquo; {L_AVATAR_GALLERY}</td>
 </tr>
 </table>
+<p class="gensmall">{L_GALLERY_FORM_NOTICE}</p>
 <table border="0" cellpadding="3" cellspacing="1" width="100%" class="forumline">
 <tr>
 <th colspan="{S_COLSPAN}">{L_AVATAR_GALLERY}</th>

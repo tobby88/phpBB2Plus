@@ -1483,6 +1483,7 @@ $lang['Moved'] = 'Verschoben';
 $lang['sig_description'] = "Signatur bearbeiten (<b>inklusive Vorschau</b>)";
 $lang['sig_edit'] = "Signatur bearbeiten";
 $lang['Signature_new_tab'] = 'Öffnet einen neuen Tab. Ungespeicherte Profiländerungen bleiben in diesem Tab erhalten.';
+$lang['Avatar_gallery_form_notice'] = 'Profiltexte bleiben beim Durchsehen der Galerie erhalten. Passwörter werden aus Sicherheitsgründen nicht über diese Seite weitergereicht. Gib sie bei Bedarf nach der Rückkehr ins Profil erneut ein; Upload-Dateien müssen ebenfalls erneut ausgewählt werden.';
 $lang['sig_current'] = "Aktuelle Signatur";
 $lang['sig_preview'] = "Vorschau";
 $lang['sig_none'] = "Keine Signatur vorhanden";

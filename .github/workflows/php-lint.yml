@@ -763,5 +763,7 @@ jobs:
         run: php .github/scripts/check-signature-rendering.php
       - name: Check standalone signature entry and profile link
         run: php .github/scripts/check-signature-entry.php
+      - name: Check avatar gallery profile handoff
+        run: php .github/scripts/check-avatar-gallery-handoff.php
       - name: Check public profile identity transaction dependencies
         run: php .github/scripts/check-public-profile-identity-native.php

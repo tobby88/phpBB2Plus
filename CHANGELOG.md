@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep Signal, Threema, literal backslashes and HTML-like text intact through
+  avatar-gallery browsing and return to the profile. Transport editable input
+  with one output-escaping pass; custom fields cannot override form commands
+  or session controls. Do not echo passwords in hidden gallery fields; explain
+  password/file re-entry. Preserve raw category names until output and escape
+  image captions. This changes no saved profiles or database schema.
 - Separate the signature editor from unsaved profile forms. Its profile link
   opens a labeled new tab, preserving profile text, password fields and chosen
   uploads in the original tab. Remove unused hidden-profile transport, obsolete

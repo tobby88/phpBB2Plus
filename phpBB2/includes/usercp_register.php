@@ -377,38 +377,10 @@ if (
 
 	if ( (isset($_POST['avatargallery']) || isset($_POST['submitavatar']) || isset($_POST['cancelavatar'])) && (!isset($_POST['submit'])) )
 	{
-		$username = stripslashes($username);
-		$email = stripslashes($email);
-		$cur_password = htmlspecialchars(stripslashes($cur_password));
-		$new_password = htmlspecialchars(stripslashes($new_password));
-		$password_confirm = htmlspecialchars(stripslashes($password_confirm));
-
-		$icq = stripslashes($icq);
-		$aim = stripslashes($aim);
-		$msn = stripslashes($msn);
-		$yim = stripslashes($yim);
-		$fb = stripslashes($fb);
-		$ig = stripslashes($ig);
-		$pt = stripslashes($pt);
-		$twr = stripslashes($twr);
-		$skp = stripslashes($skp);
-		$tg = stripslashes($tg);
-		$signal = stripslashes($signal);
-		$threema = stripslashes($threema);
-		$li = stripslashes($li);
-		$tt = stripslashes($tt);
-		$dc = stripslashes($dc);
-
-		$website = stripslashes($website);
-		$location = stripslashes($location);
-		$occupation = stripslashes($occupation);
-		$interests = stripslashes($interests);
-		$user_absence_text = stripslashes($user_absence_text);
-		$signature = htmlspecialchars(stripslashes($signature));
-
-		$user_lang = stripslashes($user_lang);
-		$user_dateformat = stripslashes($user_dateformat);
-
+		// Raw form/display values no longer carry magic-quotes SQL slashes.
+		$username = htmlspecialchars(usercp_post_scalar('username'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+		$cur_password = $new_password = $password_confirm = '';
+		$signature = htmlspecialchars($signature, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 		if ( !isset($_POST['cancelavatar']))
 		{
 			$user_avatar = $user_avatar_category . '/' . $user_avatar_local;
@@ -1262,7 +1234,7 @@ if( isset($_POST['avatargallery']) && !$error )
 	include($phpbb_root_path . 'includes/usercp_avatar.'.$phpEx);
 
 	$avatar_category_value = usercp_post_scalar('avatarcategory');
-	$avatar_category = ( $avatar_category_value !== '' ) ? htmlspecialchars($avatar_category_value) : '';
+	$avatar_category = $avatar_category_value;
 
 	$template->set_filenames(array(
 		'body' => 'profile_avatar_gallery.tpl')

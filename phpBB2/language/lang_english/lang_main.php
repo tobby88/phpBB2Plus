@@ -1500,6 +1500,7 @@ $lang['Moved'] = 'Moved';
 $lang['sig_description'] = "Edit Signature (<b>Preview included</b>)";
 $lang['sig_edit'] = "Edit Signature";
 $lang['Signature_new_tab'] = 'Opens in a new tab. Unsaved profile changes remain in this tab.';
+$lang['Avatar_gallery_form_notice'] = 'Profile text is kept while browsing the gallery. For security, passwords are not carried through this page. Re-enter them after returning to the profile if needed; upload files must also be selected again.';
 $lang['sig_current'] = "Current Signature";
 $lang['sig_none'] = "No Signature available";
 $lang['sig_save'] = "Save";
