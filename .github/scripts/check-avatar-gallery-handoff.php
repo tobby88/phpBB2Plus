@@ -2,6 +2,7 @@
 define('IN_PHPBB',true);define('ALLOW_VIEW',1);define('CHECKBOX',3);define('USER_AVATAR_GALLERY',3);define('PROFILE_FIELDS_TABLE','fixture_fields');
 $source=dirname(dirname(__DIR__)).'/phpBB2/';$phpEx='php';
 require $source.'includes/php_compat.php';require $source.'includes/functions.php';
+require __DIR__.'/profile-request-fixture.php';
 require $source.'includes/functions_profile_fields.php';require $source.'includes/usercp_avatar.php';require $source.'includes/template.php';
 function gallery_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 function gallery_function($file,$name){$t=token_get_all(file_get_contents($file));$out='';$on=false;$opened=false;$depth=0;for($i=0;$i<count($t);$i++){if(is_array($t[$i])&&$t[$i][0]===T_FUNCTION){$j=$i+1;while(is_array($t[$j])&&$t[$j][0]===T_WHITESPACE){$j++;}if(is_array($t[$j])&&$t[$j][1]===$name){$on=true;}}if(!$on){continue;}$out.=is_array($t[$i])?$t[$i][1]:$t[$i];if($t[$i]==='{'){$opened=true;$depth++;}elseif($t[$i]==='}'&&--$depth===0&&$opened){break;}}gallery_check($out!==''&&$depth===0,'Actual helper '.$name);eval($out);}
@@ -30,6 +31,7 @@ try{
   $values['mode']=$mode;$values['category']=$category;$values['user_id']=2;$values['birthday']=999999;$values['session_id']='fixture-session';
   $_POST['user_id']='999';$_POST['birthday']='123';
   for($hop=0;$hop<3;$hop++){
+   profile_fixture_request($_POST);
    $template=(new ReflectionClass('Template'))->newInstanceWithoutConstructor();$template->vars=&$template->_tpldata['.'][0];$template->load_config($source.'templates/fisubsilversh',false);$template->set_filenames(array('body'=>'profile_avatar_gallery.tpl'));
    $args=array();foreach((new ReflectionFunction('display_avatar_gallery'))->getParameters() as $p){$args[]=&$values[$p->getName()];}call_user_func_array('display_avatar_gallery',$args);
    ob_start();try{$template->pparse('body');$html=ob_get_contents();}finally{ob_end_clean();}
@@ -44,9 +46,9 @@ try{
    gallery_check($post['avatarcatname']==='rock & roll','Category with ampersand retained');
    $_POST=$post;
   }
-  foreach(array('submitavatar','cancelavatar') as $action){$_POST[$action]='1';$signature='';$cur_password=$new_password=$password_confirm='';eval($parse_code);eval($return_code);
-   foreach(array('location','occupation','interests','signal','threema') as $key){gallery_check(html_entity_decode(phpbb_profile_display_text($$key),ENT_QUOTES,'UTF-8')===$_POST[$key],'Actual returned profile field '.$key);}
-   unset($_POST[$action]);$cases++;
+  foreach(array('submitavatar','cancelavatar') as $action){profile_fixture_request($post+array($action=>'1'));$signature='';$cur_password=$new_password=$password_confirm='';eval($parse_code);eval($return_code);
+   foreach(array('location','occupation','interests','signal','threema') as $key){gallery_check(html_entity_decode(phpbb_profile_display_text($$key),ENT_QUOTES,'UTF-8')===$post[$key],'Actual returned profile field '.$key);}
+   $cases++;
   }
  }}}
  echo 'Avatar gallery: '.$cases." full-gallery/template and return cases; three-hop text/contact preservation and secret/control isolation passed.\n";

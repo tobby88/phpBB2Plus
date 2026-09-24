@@ -3,6 +3,7 @@
 // actual MyISAM/InnoDB statement failure semantics, not simulated rollback.
 namespace AccountPublicationFixture;
 $root=dirname(dirname(__DIR__)).'/phpBB2/';
+require_once $root.'includes/php_compat.php';
 define('USERS_TABLE','fixture_users'); define('GROUPS_TABLE','fixture_groups');
 define('USER_GROUP_TABLE','fixture_user_group'); define('BEGIN_TRANSACTION',1); define('END_TRANSACTION',2);
 define('GENERAL_ERROR',1); define('USER_ACTIVATION_SELF',1); define('USER_ACTIVATION_ADMIN',2);

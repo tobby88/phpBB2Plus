@@ -4,6 +4,7 @@
 namespace AdminPasswordFixture;
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require_once $root . 'includes/php_compat.php';
+require_once __DIR__ . '/profile-request-fixture.php';
 require_once $root . 'includes/functions_validate.php';
 if (!defined('GENERAL_MESSAGE')) { define('GENERAL_MESSAGE', 200); }
 function message_die($type, $message) { throw new \RuntimeException($message); }
@@ -44,32 +45,34 @@ try
         {
             foreach (array(false, true) as $quick_add)
             {
-                $_POST = array('password' => $original, 'new_password' => $original, 'password_confirm' => $original);
+                \profile_fixture_request(array('password' => $original, 'new_password' => $original, 'password_confirm' => $original));
+                $expected = addslashes($original); // Preserve the existing bootstrap/login credential format.
                 $error = false; $error_msg = ''; $new_user = true; $force_new_passwd = false;
                 $username = 'Fixture Member'; $email = 'fixture@example.invalid';
                 if ($quick_add)
                 {
                     eval($quick_input); eval($quick_validate);
-                    check(!$error && $new_password === $original, 'Quick-add validation preserves exact submitted bytes');
+                    check(!$error && $new_password === $expected, 'Quick-add preserves legacy credential representation');
                     eval($quick_hash); $stored = $new_password;
                 }
                 else
                 {
                     admin_user_require_creation_password(); eval($admin_input);
-                    check($password === $original, 'User-manager input preserves exact submitted bytes');
+                    check($password === $expected, 'User-manager preserves legacy credential representation');
                     eval($admin_hash); $stored = $password;
                     check(!$error && $passwd_sql !== '', 'User-manager creates password assignment');
                 }
+                \profile_fixture_request(array('password' => $original));
                 eval($login_input);
-                check($password === $original && \phpbb_password_verify($password, $stored), 'Actual login input verifies the actual ACP hash in both migration states');
+                check($password === $expected && \phpbb_password_verify($password, $stored), 'Actual bootstrapped login verifies the ACP hash in both migration states');
                 $changed = trim(htmlspecialchars($original, ENT_QUOTES, 'UTF-8'));
-                if ($changed !== $original) { check(!\phpbb_password_verify($changed, $stored), 'Encoded or trimmed variants are not credential aliases'); }
+                if ($changed !== $original) { check(!\phpbb_password_verify(addslashes($changed), $stored), 'Encoded or trimmed variants are not credential aliases'); }
             }
         }
     }
     foreach (array(array('left ', 'left'), array('&', '&amp;'), array('0e123', '0e456'), array('0', ''), array('', '0')) as $pair)
     {
-        $_POST = array('password' => $pair[0], 'new_password' => $pair[0], 'password_confirm' => $pair[1]);
+        \profile_fixture_request(array('password' => $pair[0], 'new_password' => $pair[0], 'password_confirm' => $pair[1]));
         $caught = false;
         try { admin_user_require_creation_password(); } catch (\RuntimeException $exception) { $caught = true; }
         check($caught, 'Creation gate rejects different raw confirmation before writes');

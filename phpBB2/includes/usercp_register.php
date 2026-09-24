@@ -43,7 +43,7 @@ function gen_reg_key()
 
 function usercp_post_scalar($name, $default = '')
 {
-	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
+	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) phpbb_request_raw_value($_POST[$name]) : $default;
 }
 
 function usercp_sql_value($value)
@@ -213,7 +213,7 @@ if (
 	if ( $mode == 'editprofile' )
 	{
 		$user_id = intval(usercp_post_scalar('user_id', '0'));
-		$current_email = (isset($_POST['current_email']) && is_scalar($_POST['current_email'])) ? trim(htmlspecialchars((string) $_POST['current_email'])) : '';
+		$current_email = trim(htmlspecialchars(usercp_post_scalar('current_email')));
 	}
 
 	$strip_var_list = array('email' => 'email', 'fb' => 'fb', 'ig' => 'ig', 'twr' => 'twr', 'tg' => 'tg', 'li' => 'li', 'tt' => 'tt', 'dc' => 'dc', 'signal' => 'signal', 'threema' => 'threema', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests', 'confirm_code' => 'confirm_code');
@@ -247,7 +247,9 @@ if (
 		$icq = $aim = $msn = $yim = $pt = $skp = '';
 	}
 
-	$username = phpbb_clean_username(usercp_post_scalar('username'));
+	// Identity normalization still uses the legacy request representation,
+	// matching login.php. Only editable display text crosses the raw boundary.
+	$username = phpbb_clean_username(phpbb_request_scalar($_POST, 'username'));
 	foreach (array('cur_password', 'new_password', 'password_confirm') as $password_var)
 	{
 		$$password_var = (isset($_POST[$password_var]) && is_scalar($_POST[$password_var])) ? (string) $_POST[$password_var] : '';
@@ -668,7 +670,8 @@ if ( isset($_POST['submit']) )
 		{
 			$signature_bbcode_uid = ( $allowbbcode ) ? make_bbcode_uid() : '';
 		}
-		$signature = prepare_message($signature, $allowhtml, $allowbbcode, $allowsmilies, $signature_bbcode_uid);
+		require_once($phpbb_root_path . 'includes/functions_signature.' . $phpEx);
+		$signature = phpbb_signature_prepare($signature, $allowhtml, $allowbbcode, $allowsmilies, $signature_bbcode_uid);
 	}
 
 	if ( $website != '' )

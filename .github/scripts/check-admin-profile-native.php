@@ -2,6 +2,7 @@
 // Actual controller fragments + production storage/driver, owned native DB only.
 function phpbb_setcookie($name,$value,$expires,$path,$domain,$secure){$GLOBALS['ap_cookies'][]=func_get_args();return true;}
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
+require_once __DIR__.'/profile-request-fixture.php';
 foreach(array('USER'=>0,'MOD'=>2,'USER_AVATAR_NONE'=>0,'USER_AVATAR_UPLOAD'=>1,'POST_USERS_URL'=>'u','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,
  'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','BANLIST_TABLE'=>'fixture_banlist',
  'CONFIG_TABLE'=>'fixture_config','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','THEMES_TABLE'=>'fixture_themes',
@@ -11,6 +12,7 @@ require $ats_source.'includes/functions_validate.php';
 foreach(array('phpbb_clean_username','phpbb_rtrim','phpbb_ltrim') as $name){ats_load_function($ats_source.'includes/functions.php',$name);}
 foreach(array('admin_user_sql_value'=>'admin/admin_users.php','session_reset_keys'=>'includes/sessions.php','phpbb_session_publish_reset_cookie'=>'includes/sessions.php',
  'phpbb_sync_username_references'=>'includes/functions.php','user_avatar_delete'=>'includes/usercp_avatar.php') as $name=>$file){ats_load_function($ats_source.$file,$name);}
+ats_load_function($ats_source.'admin/admin_users.php','admin_user_post_string');
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ADMIN_PROFILE_NATIVE')!=='1'){echo "Native ACP profile checks require an explicitly enabled disposable MySQL/MariaDB fixture.\n";return;}
 require $ats_source.'db/mysqli.php';
 $port=getenv('PHPBB_ADMIN_PROFILE_PORT')?:'3306';$password=getenv('PHPBB_ADMIN_PROFILE_PASSWORD')?:'';
@@ -103,6 +105,12 @@ function ap_run($scenario){
   $fb=$ig=$pt=$twr=$skp=$tg=$li=$tt=$dc=$signal=$threema='';
   $user_absence_mode=$user_absence=$viewemail=$attachsig=$setbm=$allowsmilies=$allowhtml=$allowbbcode=$allowviewonline=$notifyreply=$notifypm=$games_block_pm=$gender=0;
   $avatar_sql=$force_new_passwd_sql='';$birthday=999999;$next_birthday_greeting=0;$user_status=1;$user_ycard=$user_rank=$user_allowavatar=$user_allowpm=$popuppm=0;
+  if(isset($GLOBALS['ap_text_input'])){
+   $raw=$GLOBALS['ap_text_input'];profile_fixture_request($_POST+array('location'=>$raw,'occupation'=>$raw,'interests'=>$raw,'fb'=>$raw,'user_absence_text'=>$raw));
+   foreach(array('location','occupation','interests','fb','user_absence_text') as $key){
+    ats_check(preg_match('/^\t\t\$'. $key .' = [^\r\n]+;/m',$GLOBALS['ap_controller'],$m)===1,'Actual ACP text parser '.$key);eval($m[0]);
+   }
+  }
   if($scenario==='ban'){$user_ycard=11;}
   if($scenario==='disable'){$user_status=0;}
   eval($GLOBALS['ap_ban']);
@@ -200,6 +208,12 @@ try{
  ap_reset();$template=new ApTemplate();$attach_config=array('default_upload_quota'=>0,'default_pm_quota'=>0);$before=ap_snap();
  phpbb_admin_profile_quota_controls(2,array('submit'=>'Save','user_upload_quota'=>'0','user_pm_quota'=>'1'));
  ats_check(ap_snap()===$before&&strpos($template->vars['S_SELECT_UPLOAD_QUOTA'],'value="0" selected="selected"')!==false&&strpos($template->vars['S_SELECT_PM_QUOTA'],'value="1" selected="selected"')!==false,'Validation rendering preserves submitted controls without writes');
+ foreach(array('0','C:\\notes\\draft',"Grüße \\ &amp; ' 😀", "',user_level=1 --") as $raw){
+  ap_reset();$GLOBALS['ap_text_input']=$raw;ats_check(ap_run('edit')===true,'Bootstrapped ACP text commits');
+  $row=ap_rows('SELECT user_from,user_occ,user_interests,user_fb,user_absence_text,user_level FROM fixture_users WHERE user_id=2')[0];
+  ats_check((int)$row['user_level']===0,'Text cannot assign privilege columns');unset($row['user_level']);
+  foreach($row as $value){ats_check($value===$raw,'Exact ACP text storage');}unset($GLOBALS['ap_text_input']);$cases++;
+ }
  echo 'Native ACP profile: '.$cases.' boundary/failure cases, '.$serialized." serialized revocations passed.\n";
 }finally{
  if(isset($admin_profile_scope)&&$admin_profile_scope!==null){$admin_profile_scope->release();}

@@ -91,7 +91,7 @@ function phpbb_profile_field_input($field, $source)
       {
         continue;
       }
-      $item = htmlspecialchars((string) $item, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+      $item = htmlspecialchars((string) phpbb_request_raw_value($item), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
       if (in_array($item, $allowed, true) && !in_array($item, $values, true))
       {
         $values[] = $item;
@@ -105,7 +105,7 @@ function phpbb_profile_field_input($field, $source)
     return '';
   }
 
-  $value = htmlspecialchars((string) $source[$column], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+  $value = htmlspecialchars((string) phpbb_request_raw_value($source[$column]), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   if ($type === RADIO)
   {
     $allowed = isset($field['radio_button_values']) ? explode(',', (string) $field['radio_button_values']) : array();
@@ -157,7 +157,7 @@ function phpbb_profile_field_form_value($field, $source, $stored, $submitted, $n
     {
       return phpbb_profile_field_input($field, $source);
     }
-    $raw = is_array($source) && isset($source[$column]) && is_scalar($source[$column]) ? (string) $source[$column] : '';
+    $raw = is_array($source) && isset($source[$column]) && is_scalar($source[$column]) ? (string) phpbb_request_raw_value($source[$column]) : '';
     return htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   }
   if ($new_user)

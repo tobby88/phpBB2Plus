@@ -78,7 +78,7 @@ if (in_array($mode, array('update', 'confirmdelete'), true))
 
 function profile_field_post_value($name, $default = '')
 {
-  return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
+  return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) phpbb_request_raw_value($_POST[$name]) : $default;
 }
 
 function profile_field_column_identifier($display_name)

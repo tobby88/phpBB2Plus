@@ -203,6 +203,18 @@ if (!function_exists('phpbb_addslashes_recursive'))
 	}
 }
 
+// Convert one request value at an explicit modern-code boundary. Do not apply
+// this to stored database values or remove the legacy escaping globally: old
+// SQL/message helpers still use it. Calls without common.php accept raw input.
+if (!function_exists('phpbb_request_raw_value'))
+{
+	function phpbb_request_raw_value($value)
+	{
+		return is_string($value) && defined('PHPBB_LEGACY_REQUEST_ESCAPED') && PHPBB_LEGACY_REQUEST_ESCAPED
+			? stripslashes($value) : $value;
+	}
+}
+
 /**
  * Read one scalar request value without allowing PHP 8 string TypeErrors.
  */

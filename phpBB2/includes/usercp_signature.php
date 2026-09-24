@@ -7,7 +7,7 @@ if ( !defined('IN_PHPBB') )
 
 function usercp_signature_post_scalar($name, $default = '')
 {
-	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) $_POST[$name] : $default;
+	return (isset($_POST[$name]) && is_scalar($_POST[$name])) ? (string) phpbb_request_raw_value($_POST[$name]) : $default;
 }
 
 // Profile editing stays in its original tab; never transport unrelated fields.
