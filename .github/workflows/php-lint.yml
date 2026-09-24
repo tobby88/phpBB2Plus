@@ -773,5 +773,7 @@ jobs:
         run: php .github/scripts/check-profile-field-column.php
       - name: Check profile definition publication boundaries
         run: php .github/scripts/check-profile-definition-storage.php
+      - name: Profile definition forms and retry tokens
+        run: php .github/scripts/check-profile-definition-form.php
       - name: Check public profile identity transaction dependencies
         run: php .github/scripts/check-public-profile-identity-native.php

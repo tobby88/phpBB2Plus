@@ -77,9 +77,12 @@ try {
  $out=get_topic_udata(array('user_id'=>999,'fixture_zero'=>'0'),array($field));cpf_check($out['author']===array('fixture_zero: 0'),'Zero visible beside topic author');
  $definition=file_get_contents($phpbb_root_path.'admin/admin_profile_fields.php');$a=strpos($definition,'function profile_field_post_value(');$b=strpos($definition,'function profile_field_column_identifier(',$a);cpf_check($a!==false&&$b>$a,'Actual definition input helper');eval(substr($definition,$a,$b-$a));
  profile_fixture_request(array('draft'=>$raw,'nested'=>array('bad')));cpf_check(profile_field_post_value('draft')===$raw&&profile_field_post_value('nested')==='','Definition inputs retain slashes and reject arrays');
- $a=strpos($definition,"  \$radio_values = htmlspecialchars(profile_field_post_value('radio_values')");$b=strpos($definition,'  if (strlen($text_field_default)', $a);cpf_check($a!==false&&$b>$a,'Actual option/default preparation');
- profile_fixture_request(array('radio_values'=>"first\n0",'radio_default_value'=>'0','checkbox_values'=>"first\n0",'check_default_values'=>'0'));eval(substr($definition,$a,$b-$a));
- cpf_check($radio_default_value==='0'&&$check_default_values==='0','Explicit zero defaults are not replaced by first option');
+ require_once $phpbb_root_path.'includes/functions_profile_definition_form.php';
+ if(!defined('TEXTAREA_MINLENGTH')){define('TEXTAREA_MINLENGTH',0);}
+ $request=array();foreach(phpbb_profile_definition_form_map() as $key=>$input){$defaults=phpbb_profile_definition_form_defaults();$request[$input]=$defaults[$key];}
+ $request['field_name']='Fixture';$request['radio_values']="first\n0";$request['radio_default_value']='0';$request['checkbox_values']="first\n0";$request['check_default_values']='0';
+ profile_fixture_request($request);$prepared=phpbb_profile_definition_form_values($_POST);
+ cpf_check($prepared['radio_button_default']==='0'&&$prepared['checkbox_default']==='0','Explicit zero defaults are not replaced by first option');
  cpf_check(phpbb_profile_field_form_control(array('field_name'=>'bad-name!','field_type'=>99),'payload')==='', 'Unknown field type renders no control');
  cpf_check(phpbb_profile_field_form_value(array('field_name'=>'bad-name!','field_type'=>99),array(),array(),false,true)==='', 'Unknown field type has no default');
  echo 'Custom profiles: '.$cases." real public/ACP controller-template cases, three round trips, required zero, defaults, selections and safe output passed.\n";

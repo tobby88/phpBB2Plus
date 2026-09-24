@@ -71,6 +71,13 @@ $lang['Create_new'] = 'Create';
 $lang['Add_new'] = 'Add';
 $lang['Profile_fields_add'] = 'Add profile field';
 $lang['Profile_fields_edit'] = 'Manage profile fields';
+$lang['Profile_definition_invalid'] = 'Please check the field name, type, lengths, choices and default values. The field was not saved.';
+$lang['Profile_definition_options'] = 'Enter one choice per line. Choices cannot contain commas because these separate stored selections.';
+$lang['Profile_definition_changed'] = 'This field or operation has changed since the form was opened. Your draft is retained below; reopen the field before making another change. An interrupted creation can only be retried with its original values.';
+$lang['Profile_definition_upgrade'] = 'Run the current database updater before changing profile fields.';
+$lang['Profile_definition_capacity'] = 'The field storage could not be prepared safely. No existing values were shortened. Please retry or check the database configuration.';
+$lang['Profile_definition_failed'] = 'The profile-field operation could not be confirmed. Keep this form and retry with the same values; do not create another copy.';
+$lang['Profile_definition_exists'] = 'A profile field with this name already exists. Please choose another name.';
 $lang['Backup_DB'] = 'Backup Database';
 $lang['Restore_DB'] = 'Restore Database';
 

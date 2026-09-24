@@ -12,8 +12,11 @@ foreach (array(
 	'$pfid_value = (isset($_POST[\'pfid\'])',
 	'phpbb_admin_require_post_session();',
 	'phpbb_admin_session_field()',
-	'profile_field_column_identifier($name_input)',
-	"in_array(\$signature_wrap_value, array(AUTHOR, ABOVE_SIGNATURE, BELOW_SIGNATURE), true)",
+	'phpbb_profile_definition_form_values($_POST)',
+	'$writer->create(',
+	'$writer->edit(',
+	'definition_revision',
+	'definition_operation',
 	"'MESSAGE_TEXT' => \$lang['field_success']"
 ) as $marker)
 {

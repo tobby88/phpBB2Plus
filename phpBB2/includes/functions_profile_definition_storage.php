@@ -99,6 +99,7 @@ function phpbb_profile_definition_values($values)
         foreach ($options as $option)
         { if ($option === '' || strlen($option) > 255 || preg_match('/[\x00-\x1f\x7f]/', $option)) { phpbb_acl_error('Profile_definition_invalid'); } }
         $defaults = $default === 'checkbox_default' ? ($values[$default] === '' ? array() : explode(',', $values[$default])) : ($values[$default] === '' ? array() : array($values[$default]));
+        if (count(array_unique($defaults)) !== count($defaults)) { phpbb_acl_error('Profile_definition_invalid'); }
         foreach ($defaults as $value) { if (!in_array($value, $options, true)) { phpbb_acl_error('Profile_definition_invalid'); } }
         if (($values['field_type'] === '2' && $key === 'radio_button_values') || ($values['field_type'] === '3' && $key === 'checkbox_values'))
         { if (!$options) { phpbb_acl_error('Profile_definition_invalid'); } }
@@ -306,7 +307,7 @@ class PhpbbProfileDefinitionWriter extends PhpbbAttachQuotaWriter
         // Let the real database collation decide label collisions, not PHP's
         // case-sensitive comparison. The range above pins concurrent inserts.
         if (phpbb_acl_rows($this, 'SELECT field_id FROM ' . PROFILE_FIELDS_TABLE . " WHERE field_name='" . $this->sql_escape($values['field_name']) . "' FOR UPDATE"))
-        { phpbb_acl_error('field_exists'); }
+        { phpbb_acl_error('Profile_definition_exists'); }
     }
     private function staged_column($column, $operation)
     {

@@ -71,6 +71,13 @@ $lang['Create_new'] = 'Erstellen';
 $lang['Add_new'] = 'Hinzufügen';
 $lang['Profile_fields_add'] = 'Profilfeld hinzufügen';
 $lang['Profile_fields_edit'] = 'Profilfelder bearbeiten';
+$lang['Profile_definition_invalid'] = 'Bitte prüfe Feldname, Typ, Längen, Auswahlmöglichkeiten und Standardwerte. Das Feld wurde nicht gespeichert.';
+$lang['Profile_definition_options'] = 'Bitte trage eine Auswahlmöglichkeit pro Zeile ein. Kommas sind nicht möglich, da sie gespeicherte Auswahlen trennen.';
+$lang['Profile_definition_changed'] = 'Dieses Feld oder dieser Vorgang wurde seit dem Öffnen des Formulars geändert. Dein Entwurf bleibt unten erhalten; öffne das Feld vor einer weiteren Änderung neu. Eine unterbrochene Erstellung lässt sich nur mit den ursprünglichen Werten wiederholen.';
+$lang['Profile_definition_upgrade'] = 'Bitte führe vor Änderungen an Profilfeldern das aktuelle Datenbank-Update aus.';
+$lang['Profile_definition_capacity'] = 'Der Speicher für das Profilfeld konnte nicht sicher vorbereitet werden. Vorhandene Werte wurden nicht gekürzt. Bitte versuche es erneut oder prüfe die Datenbankkonfiguration.';
+$lang['Profile_definition_failed'] = 'Der Profilfeld-Vorgang konnte nicht bestätigt werden. Behalte dieses Formular und versuche es mit denselben Werten erneut; lege keine weitere Kopie an.';
+$lang['Profile_definition_exists'] = 'Ein Profilfeld mit diesem Namen existiert bereits. Bitte wähle einen anderen Namen.';
 $lang['Backup_DB'] = 'Datenbank-Backup';
 $lang['Restore_DB'] = 'Datenbank wiederherstellen';
 

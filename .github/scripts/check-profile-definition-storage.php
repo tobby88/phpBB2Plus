@@ -2,6 +2,9 @@
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
 foreach(array('PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','BANLIST_TABLE'=>'fixture_banlist','TEXT_FIELD'=>0,'TEXTAREA'=>1,'RADIO'=>2,'CHECKBOX'=>3,'TEXT_FIELD_MAXLENGTH'=>255,'TEXTAREA_MINLENGTH'=>0,'TEXTAREA_MAXLENGTH'=>1024) as $key=>$value){if(!defined($key)){define($key,$value);}}
 require $ats_source.'includes/functions_profile_definition_storage.php';
+require_once $ats_source.'includes/functions_profile_definition_form.php';
+require_once __DIR__.'/profile-request-fixture.php';
+ats_load_function($ats_source.'admin/admin_profile_fields.php','profile_field_post_value');
 define('PROFILE_FIELD_JOBS_TABLE','fixture_profile_field_jobs');
 function pds_values(){return array('field_name'=>'Renamed notes 😀','field_description'=>'Preserve &amp; text','field_type'=>'0','text_field_default'=>'','text_field_maxlen'=>'255','text_area_default'=>'','text_area_maxlen'=>'1024','radio_button_default'=>'','radio_button_values'=>'','checkbox_default'=>'','checkbox_values'=>'','is_required'=>'0','users_can_view'=>'1','view_in_profile'=>'1','profile_location'=>'2','view_in_memberlist'=>'0','view_in_topic'=>'0','topic_location'=>'1');}
 $values=pds_values();ats_check(phpbb_profile_definition_values($values)===$values,'Exact internal definition inventory');
@@ -65,6 +68,21 @@ function pds_run($revision,$values,$action='edit'){
 }
 function pds_create($operation,$values,$action='add'){
  $writer=null;try{$writer=new PhpbbProfileDefinitionWriter($GLOBALS['main'],$action,array('sid'=>$GLOBALS['userdata']['session_id']));$id=$writer->create($operation,$values);return $writer->confirmed?$id:false;}catch(PhpbbAclException $e){return false;}finally{if($writer){$writer->release();}}
+}
+function pds_form_request(){
+ $request=array('sid'=>'exact-session');$defaults=phpbb_profile_definition_form_defaults();
+ foreach(phpbb_profile_definition_form_map() as $key=>$input){$request[$input]=$defaults[$key];}
+ $request['field_name']='Form notes 😀';$request['text_field_default']="Grüße \\ &amp; ' 😀";return $request;
+}
+function pds_form_run($request,$id){
+ global $lang;
+ $db=$GLOBALS['main'];$mode='update';$pfid=$id;profile_fixture_request($request);
+ $source=file_get_contents($GLOBALS['ats_source'].'admin/admin_profile_fields.php');
+ $a=strpos($source,'$definition_draft = null;');$b=strpos($source,"\$template->assign_vars(array('ERROR_BOX'",$a);
+ ats_check($a!==false&&$b>$a,'Actual definition submission controller');
+ try{phpbb_admin_require_post_session();eval(substr($source,$a,$b-$a));}
+ catch(AttachSettingsExit $e){return array('denied',null,$e->getMessage());}
+ return array($mode,$definition_draft,$definition_error);
 }
 try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
@@ -148,5 +166,23 @@ try{
  pds_reset();$op=bin2hex(phpbb_random_bytes(32));ats_check(pds_create($op,pds_values(),'edit')===false,'Edit-scoped owner cannot create');$cases++;
  pds_reset();$v=pds_values();$v['field_name']='USER_NOTES';ats_check(pds_create(bin2hex(phpbb_random_bytes(32)),$v)===false&&!pds_rows('SELECT * FROM fixture_profile_field_jobs'),'Duplicate label uses database collation before staging');$cases++;
  pds_reset();$op=bin2hex(phpbb_random_bytes(32));$pds_failure='ddl';ats_check(pds_create($op,pds_values())===false,'Durable preparation before failed DDL');$pds_failure='';$collision=substr($op,0,32).str_repeat(substr($op,32,1)==='a'?'b':'a',32);ats_check(pds_create($collision,pds_values())===false&&count(pds_rows('SELECT * FROM fixture_profile_field_jobs'))===1,'Different operation cannot reuse staged physical name');$cases++;
+ // Real bootstrap -> actual form parser/controller -> native publication.
+ pds_reset();$request=pds_form_request();$op=bin2hex(phpbb_random_bytes(32));$request['definition_operation']=$op;$column='cpf_'.substr($op,0,32);
+ ats_check(pds_form_run($request,'x')[0]==='update','Actual add controller succeeds');
+ $row=pds_rows("SELECT * FROM fixture_profile_fields WHERE field_column='$column'")[0];$id=(int)$row['field_id'];
+ ats_check(pds_rows('SELECT '.$column.' FROM fixture_users WHERE user_id=7')[0][$column]===htmlspecialchars($request['text_field_default'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),'Controller default bytes through real bootstrap');$cases++;
+ pds_sql('UPDATE fixture_users SET '.$column."='user draft' WHERE user_id=7");ats_check(pds_form_run($request,'x')[0]==='update'&&pds_rows('SELECT '.$column.' FROM fixture_users WHERE user_id=7')[0][$column]==='user draft','Actual repeated add is idempotent');$cases++;
+ $request['definition_revision']=phpbb_profile_definition_revision($row);$request['field_name']='Renamed 😀';
+ ats_check(pds_form_run($request,$id)[0]==='update','Actual edit controller succeeds');
+ $changed=pds_rows('SELECT * FROM fixture_profile_fields WHERE field_id='.$id)[0];ats_check($changed['field_column']===$column&&$changed['field_name']==='Renamed 😀'&&pds_rows('SELECT '.$column.' FROM fixture_users WHERE user_id=7')[0][$column]==='user draft','Rename does not rename storage or erase user text');$cases++;
+ $result=pds_form_run($request,$id);ats_check($result[0]==='edit'&&$result[1]!==null&&$result[2]!==''&&pds_rows('SELECT * FROM fixture_profile_fields WHERE field_id='.$id)[0]===$changed,'Stale form is retained without overwriting');$cases++;
+ pds_reset();$request=pds_form_request();$request['definition_operation']=bin2hex(phpbb_random_bytes(32));$pds_failure='publish-ack';
+ $result=pds_form_run($request,'x');ats_check($result[0]==='add'&&$result[1]['definition_operation']===$request['definition_operation'],'Lost publication acknowledgement retains exact operation');
+ $pds_failure='';ats_check(pds_form_run($request,'x')[0]==='update'&&count(pds_rows('SELECT * FROM fixture_profile_fields'))===2,'Controller retry after lost acknowledgement creates no duplicate');$cases++;
+ foreach(array('bad-input','sid','get','revoked') as $case){
+  pds_reset();$request=pds_form_request();$request['definition_operation']=bin2hex(phpbb_random_bytes(32));
+  if($case==='bad-input'){$request['field_type']=array('bad');}elseif($case==='sid'){$request['sid']='wrong';}elseif($case==='get'){$_SERVER['REQUEST_METHOD']='GET';}else{pds_sql('UPDATE fixture_users SET user_level=0 WHERE user_id=2');pds_sql("UPDATE fixture_jr SET user_jr_admin=''");}
+  $before=pds_rows('SELECT * FROM fixture_profile_fields');$result=pds_form_run($request,'x');ats_check($result[0]!=='update'&&pds_rows('SELECT * FROM fixture_profile_fields')===$before&&!pds_rows('SELECT * FROM fixture_profile_field_jobs'),'Controller rejection before publication '.$case);$cases++;
+ }
  echo 'Native definition lifecycle: '.$cases." authorization, failure, concurrency, capacity, creation replay and byte-preservation cases passed.\n";
 }finally{$pds_hook=null;$main->sql_close();$peer->sql_close();ats_check($control->sql_query('DROP DATABASE '.$fixture),'Remove owned schema');$control->sql_close();restore_error_handler();}
