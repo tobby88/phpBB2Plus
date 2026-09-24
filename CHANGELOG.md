@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve zero and single-character free text in profile preparation and the
+  shared optional-field validator. Rejected profile forms retain backslashes,
+  literal entities and date-format escapes without legacy magic-quotes removal.
+  Rebuild rejected username/signature display from submitted text while keeping
+  passwords cleared, HTML output escaped and identity/website validation intact.
+  No stored profiles or database schema are rewritten.
 - Keep Signal, Threema, literal backslashes and HTML-like text intact through
   avatar-gallery browsing and return to the profile. Transport editable input
   with one output-escaping pass; custom fields cannot override form commands

@@ -218,12 +218,11 @@ if (
 
 	$strip_var_list = array('email' => 'email', 'fb' => 'fb', 'ig' => 'ig', 'twr' => 'twr', 'tg' => 'tg', 'li' => 'li', 'tt' => 'tt', 'dc' => 'dc', 'signal' => 'signal', 'threema' => 'threema', 'website' => 'website', 'location' => 'location', 'occupation' => 'occupation', 'interests' => 'interests', 'confirm_code' => 'confirm_code');
 
-	// Strip all tags from data ... may p**s some people off, bah, strip_tags is
-	// doing the job but can still break HTML output ... have no choice, have
-	// to use htmlspecialchars ... be prepared to be moaned at.
+	// Keep scalar zero and literal backslashes. These display/storage values
+	// are HTML-encoded, not magic-quotes or SQL-escaped input.
 	foreach ($strip_var_list as $var => $param)
 	{
-		$$var = (!empty($_POST[$param]) && is_scalar($_POST[$param])) ? trim(htmlspecialchars((string) $_POST[$param])) : '';
+		$$var = trim(htmlspecialchars(usercp_post_scalar($param)));
 	}
 	foreach (array('fb', 'ig', 'twr', 'tg', 'li', 'tt', 'dc', 'signal', 'threema') as $social_field)
 	{
@@ -248,12 +247,12 @@ if (
 		$icq = $aim = $msn = $yim = $pt = $skp = '';
 	}
 
-	$username = ( !empty($HTTP_POST_VARS['username']) && is_scalar($HTTP_POST_VARS['username']) ) ? phpbb_clean_username((string) $HTTP_POST_VARS['username']) : '';
+	$username = phpbb_clean_username(usercp_post_scalar('username'));
 	foreach (array('cur_password', 'new_password', 'password_confirm') as $password_var)
 	{
 		$$password_var = (isset($_POST[$password_var]) && is_scalar($_POST[$password_var])) ? (string) $_POST[$password_var] : '';
 	}
-	$signature = (!empty($_POST['signature']) && is_scalar($_POST['signature'])) ? trim((string) $_POST['signature']) : '';
+	$signature = trim(usercp_post_scalar('signature'));
 
 	$signature = (isset($signature)) ? str_replace('<br />', "\n", $signature) : '';
 	$signature_bbcode_uid = '';
@@ -1113,40 +1112,14 @@ if (isset($public_avatar_scope)) { $public_avatar_scope->release(); }
 
 if ( $error )
 {
-	//
-	// If an error occured we need to stripslashes on returned data
-	//
-	$username = stripslashes($username);
-	$email = stripslashes($email);
+	// No SQL escaping is applied to these form values. Rebuild only the
+	// username/signature display from submitted text: their validation/storage
+	// preparation may normalize quotes or add internal BBCode identifiers.
+	$username = htmlspecialchars(usercp_post_scalar('username'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 	$cur_password = '';
 	$new_password = '';
 	$password_confirm = '';
-
-	$icq = stripslashes($icq);
-	$aim = str_replace('+', ' ', stripslashes($aim));
-	$msn = stripslashes($msn);
-	$yim = stripslashes($yim);
-	$fb = stripslashes($fb);
-	$ig = stripslashes($ig);
-	$pt = stripslashes($pt);
-	$twr = stripslashes($twr);
-	$skp = stripslashes($skp);
-	$tg = stripslashes($tg);
-	$li = stripslashes($li);
-	$tt = stripslashes($tt);
-	$dc = stripslashes($dc);
-
-	$website = stripslashes($website);
-	$location = stripslashes($location);
-	$occupation = stripslashes($occupation);
-	$interests = stripslashes($interests);
-	$user_absence_text = stripslashes($user_absence_text);
-	$signature = stripslashes($signature);
-	$signature = ($signature_bbcode_uid != '') ? preg_replace("/:(([a-z0-9]+:)?)$signature_bbcode_uid(=|\])/si", '\\3', $signature) : $signature;
-
-	$user_lang = stripslashes($user_lang);
-	$user_dateformat = stripslashes($user_dateformat);
-
+	$signature = htmlspecialchars(usercp_post_scalar('signature'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 else if ( $mode == 'editprofile' && !isset($_POST['avatargallery']) && !isset($_POST['submitavatar']) && !isset($_POST['cancelavatar']) )
 {

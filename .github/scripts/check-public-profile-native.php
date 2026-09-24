@@ -7,7 +7,7 @@ foreach(array('ANONYMOUS'=>-1,'USER_AVATAR_NONE'=>0,'USER_AVATAR_UPLOAD'=>1,'USE
  'iNA_GAMES_COMMENT'=>'fixture_ina_comment','iNA_AT_SCORES'=>'fixture_ina_at_scores','iNA_HIGHSCORES'=>'fixture_ina_highscore','SHOUTBOX_TABLE'=>'fixture_shout') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_public_profile_storage.php';
 require $ats_source.'includes/usercp_avatar.php'; require $ats_source.'includes/functions_profile_fields.php'; require $ats_source.'includes/functions_validate.php';
-foreach(array('usercp_sql_value'=>'includes/usercp_register.php','session_reset_keys'=>'includes/sessions.php','phpbb_session_publish_reset_cookie'=>'includes/sessions.php',
+foreach(array('usercp_post_scalar'=>'includes/usercp_register.php','usercp_sql_value'=>'includes/usercp_register.php','session_reset_keys'=>'includes/sessions.php','phpbb_session_publish_reset_cookie'=>'includes/sessions.php',
  'phpbb_sync_username_references'=>'includes/functions.php','pw_create_date'=>'ctracker/classes/class_ct_userfunctions.php','gen_rand_string'=>'profile.php','phpbb_clean_username'=>'includes/functions.php','phpbb_rtrim'=>'includes/functions.php','phpbb_ltrim'=>'includes/functions.php') as $name=>$file){if(!function_exists($name)){ats_load_function($ats_source.$file,$name);}}
 function phpbb_setcookie(){ $GLOBALS['pp_cookies'][]=func_get_args(); }
 class PublicProfileSecurityFixture {function pw_create_date($id){pw_create_date($id);}}
@@ -75,6 +75,12 @@ function pp_run($scenario){
  $user_absence_mode=$user_absence=$viewemail=$attachsig=$setbm=$allowsmilies=$allowhtml=$allowbbcode=$allowviewonline=$notifyreply=$notifypm=$games_block_pm=$popup_pm=$gender=0;
  $birthday=999999;$next_birthday_greeting=0;$avatar_sql='';
  $profile_data=get_fields('WHERE users_can_view = '.ALLOW_VIEW);$HTTP_POST_VARS=array('user_custom_fixture'=>"Grüße ' 😀");
+ if(isset($GLOBALS['pp_text_input'])){
+  $_POST=array('email'=>$email,'location'=>$GLOBALS['pp_text_input'],'occupation'=>$GLOBALS['pp_text_input'],'interests'=>$GLOBALS['pp_text_input']);
+  $source=$GLOBALS['pp_controller'];$a=strpos($source,"\t\$strip_var_list = array('email'");$b=strpos($source,"\tforeach (array('fb'",$a);
+  ats_check($a!==false&&$b>$a,'Actual profile input preparation');eval(substr($source,$a,$b-$a));
+  $signature='';validate_optional_fields($icq,$aim,$msn,$yim,$website,$location,$occupation,$interests,$signature);
+ }
  if($scenario==='avatar'){$public_avatar_scope->remember('after.png',true);user_avatar_delete(1,'before.png');$avatar_sql=",user_avatar='after.png',user_avatar_type=1";}
  try{eval($GLOBALS['pp_body']);return true;}catch(AttachSettingsExit $e){return 'error';}
  finally{$public_avatar_scope->release();}
@@ -113,6 +119,12 @@ for($fail=1;$fail<=$writes;$fail++){pp_reset($scenario);$before=pp_snap();$pp_fa
  foreach(array('rename','reactivate') as $scenario){pp_reset($scenario);pp_sql($scenario==='rename'?"UPDATE fixture_users SET username='renamed' WHERE user_id=7":"UPDATE fixture_users SET user_email='new@example.invalid' WHERE user_id=7");$before=pp_snap();ats_check(pp_run($scenario)==='error'&&pp_snap()===$before&&!$pp_cookies,'Revalidate duplicate identity under writer lock');$cases++;}
  foreach(array("ALTER TABLE fixture_sessions ROW_FORMAT=COMPACT","ALTER TABLE fixture_sessions CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci") as $ddl){pp_reset();pp_sql($ddl);$before=pp_snap();ats_check(pp_run('edit')==='error'&&pp_snap()===$before,'Reject legacy row/text format');pp_sql('ALTER TABLE fixture_sessions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, ROW_FORMAT=DYNAMIC');$cases++;}
  pp_reset();pp_sql("UPDATE fixture_users SET user_avatar='before.png',user_avatar_type=1 WHERE user_id=7");ats_check(pp_run('avatar')===true&&is_file($pp_files.'/avatars/before.png'),'Committed shared avatar remains');$cases++;
+ foreach(array('0','x',"Grüße \\ notes &amp; ' 😀") as $raw){
+  pp_reset();$GLOBALS['pp_text_input']=$raw;ats_check(pp_run('edit')===true,'Prepared free text commits');
+  $row=pp_rows('SELECT user_from,user_occ,user_interests FROM fixture_users WHERE user_id=2')[0];
+  foreach($row as $value){ats_check($value===htmlspecialchars($raw),'Exact prepared profile storage');}
+  unset($GLOBALS['pp_text_input']);$cases++;
+ }
  echo 'Native public profile: '.$cases." failure/authority/transaction cases passed.\n";
 } finally {
  if($public_avatar_scope){$public_avatar_scope->release();}$pp_hook=$pp_after=null;$pp_main->sql_close();$peer->sql_close();ats_check($control->sql_query('DROP DATABASE '.$fixture),'Remove owned profile schema');$control->sql_close();

@@ -201,7 +201,9 @@ function validate_email($email, $check_stopforumspam = false, $exclude_user_id =
 //
 function validate_optional_fields(&$icq, &$aim, &$msnm, &$yim, &$website, &$location, &$occupation, &$interests, &$sig)
 {
-	$check_var_length = array('aim', 'msnm', 'yim', 'location', 'occupation', 'interests', 'sig');
+	// Only legacy messenger identifiers have a minimum length here. A single
+	// character (including "0") is valid free text, not an absent profile field.
+	$check_var_length = array('aim', 'msnm', 'yim');
 
 	for($i = 0; $i < count($check_var_length); $i++)
 	{
