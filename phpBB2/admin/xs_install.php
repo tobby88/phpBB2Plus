@@ -35,7 +35,7 @@ if(empty($template->xs_version) || $template->xs_version !== 8)
 	message_die(GENERAL_ERROR, isset($lang['xs_error_not_installed']) ? $lang['xs_error_not_installed'] : 'eXtreme Styles mod is not installed. You forgot to upload includes/template.php');
 }
 
-define('IN_XS', true);
+if (!defined('IN_XS')) { define('IN_XS', true); }
 include_once('xs_include.' . $phpEx);
 
 $template->assign_block_vars('nav_left',array('ITEM' => '&raquo; <a href="' . append_sid('xs_install.'.$phpEx) . '">' . $lang['xs_install_styles'] . '</a>'));
@@ -46,77 +46,16 @@ $lang['xs_goto_default'] = str_replace('{URL}', append_sid('xs_styles.'.$phpEx),
 // remove timeout. useful for forum with 100+ styles
 @set_time_limit(XS_MAX_TIMEOUT);
 
-// install one style
-if(!empty($HTTP_POST_VARS['install_one']) && !defined('DEMO_MODE'))
+// Validate and commit the complete selection together, not one style at a time.
+if ((isset($HTTP_POST_VARS['install_one']) || isset($HTTP_POST_VARS['total'])) && !defined('DEMO_MODE'))
 {
 	phpbb_admin_require_post_session();
-	$install_one = is_scalar($HTTP_POST_VARS['install_one']) ? (string) $HTTP_POST_VARS['install_one'] : '';
-	if(!preg_match('/^([a-zA-Z0-9][a-zA-Z0-9_.-]*):([0-9]+)$/D', $install_one, $install_match))
-	{
-		xs_error($lang['xs_install_error'] . '<br /><br />' . $lang['xs_install_back']);
-	}
-	$style = xs_tpl_name($install_match[1]);
-	$num = (int) $install_match[2];
-	if($style === '' || $num < 0 || $num >= XS_MAX_ITEMS_PER_STYLE)
-	{
-		xs_error($lang['xs_install_error'] . '<br /><br />' . $lang['xs_install_back']);
-	}
-	$res = xs_install_style($style, $num);
-	if(defined('REFRESH_NAVBAR'))
-	{
-		$template->assign_block_vars('left_refresh', array(
-				'ACTION'	=> append_sid('index.' . $phpEx . '?pane=left')
-			));
-	}
-	if($res)
-	{
-		if(defined('XS_MODS_CATEGORY_HIERARCHY'))
-		{
-			cache_themes();
-		}
-		xs_message($lang['Information'], $lang['xs_install_installed'] . '<br /><br />' . $lang['xs_install_back'] . '<br /><br />' . $lang['xs_goto_default']);
-	}
-	xs_error($lang['xs_install_error'] . '<br /><br />' . $lang['xs_install_back']);
-}
-
-// install styles
-if(!empty($HTTP_POST_VARS['total']) && !defined('DEMO_MODE'))
-{
-	phpbb_admin_require_post_session();
-	$tpl = array();
-	$num = array();
-	$total = is_scalar($HTTP_POST_VARS['total']) ? max(0, min(1000, intval($HTTP_POST_VARS['total']))) : 0;
-	for($i=0; $i<$total; $i++)
-	{
-		if(!empty($HTTP_POST_VARS['install_'.$i]))
-		{
-			$style = isset($HTTP_POST_VARS['install_'.$i.'_style']) && is_scalar($HTTP_POST_VARS['install_'.$i.'_style']) ? xs_tpl_name(stripslashes((string) $HTTP_POST_VARS['install_'.$i.'_style'])) : '';
-			$style_num = isset($HTTP_POST_VARS['install_'.$i.'_num']) && is_scalar($HTTP_POST_VARS['install_'.$i.'_num']) ? intval($HTTP_POST_VARS['install_'.$i.'_num']) : -1;
-			if($style !== '' && $style_num >= 0 && $style_num < XS_MAX_ITEMS_PER_STYLE)
-			{
-				$tpl[] = $style;
-				$num[] = $style_num;
-			}
-		}
-	}
-	if(count($tpl))
-	{
-		for($i=0; $i<count($tpl); $i++)
-		{
-			xs_install_style($tpl[$i], $num[$i]);
-		}
-		if(defined('REFRESH_NAVBAR'))
-		{
-			$template->assign_block_vars('left_refresh', array(
-					'ACTION'	=> append_sid('index.' . $phpEx . '?pane=left')
-				));
-		}
-		if(defined('XS_MODS_CATEGORY_HIERARCHY'))
-		{
-			cache_themes();
-		}
-		xs_message($lang['Information'], $lang['xs_install_installed'] . '<br /><br />' . $lang['xs_install_back'] . '<br /><br />' . $lang['xs_goto_default']);
-	}
+	require_once($phpbb_root_path . 'includes/functions_style_install.' . $phpEx);
+	try { $installed_ids = phpbb_style_install($db, $HTTP_POST_VARS); }
+	catch (PhpbbAclException $error) { xs_error($error->getMessage() . '<br /><br />' . $lang['xs_install_back']); }
+	catch (Exception $error) { xs_error($lang['xs_install_error'] . '<br /><br />' . $lang['xs_install_back']); }
+	catch (Error $error) { xs_error($lang['xs_install_error'] . '<br /><br />' . $lang['xs_install_back']); }
+	if ($installed_ids) { xs_message($lang['Information'], $lang['xs_install_installed'] . '<br /><br />' . $lang['xs_install_back'] . '<br /><br />' . $lang['xs_goto_default']); }
 }
 
 

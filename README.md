@@ -36,6 +36,14 @@ preserved Arcade is documented in
 
 ## Style removal and recovery
 
+XS single and bulk installations register the entire selection transactionally.
+Invalid definitions or conflicting installed names leave the batch unchanged;
+identical retries keep their IDs and clear stale caches. Imported text is checked
+as UTF-8 without silently truncating names or removing literal backslashes.
+Only the supported `fisubsilversh` template is published for normal users.
+This installer hardening does not yet cover the separate archive import/clone
+file-upload workflow.
+
 XS style removal preserves the current default and template directories shared
 by remaining styles. Unregistration and file cleanup are separate steps: the
 database changes are transactional, but deleted files cannot be rolled back.

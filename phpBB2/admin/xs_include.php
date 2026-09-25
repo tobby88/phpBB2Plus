@@ -910,59 +910,11 @@ function xs_get_themeinfo($tpl)
 // install style
 function xs_install_style($tpl, $num)
 {
-	global $db;
-	$data = xs_get_themeinfo($tpl);
-	if(empty($data[$num]))
-	{
-		return false;
-	}
-	$data = $data[$num];
-	if(empty($data['style_name']))
-	{
-		return false;
-	}
-	$sql = "SELECT themes_id FROM " . THEMES_TABLE . " WHERE style_name='" . xs_sql($data['style_name']) . "'";
-	if(!$result = $db->sql_query($sql))
-	{
-		return false;
-	}
-	$row = $db->sql_fetchrow($result);
-	if(!empty($row['themes_id']))
-	{
-		return false;
-	}
-	$vars = array();
-	$values = array();
-	foreach($data as $var => $value)
-	{
-		$vars[] = xs_sql($var);
-		$values[] = xs_sql(stripslashes($value));
-	}
-	$sql = "INSERT INTO " . THEMES_TABLE . " (" . implode(', ', $vars) . ") VALUES ('" . implode("', '", $values) . "')";
-	if(!$result = $db->sql_query($sql))
-	{
-		return false;
-	}
-	// recache themes table
-	if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
-	{
-		global $themes;
-		if ( empty($themes) )
-		{
-			$themes = new themes();
-		}
-		if ( !empty($themes) )
-		{
-			$themes->read(true);
-		}
-	}
-	// add configuration
-	global $template;
-	if($template->add_config($tpl))
-	{
-		define('REFRESH_NAVBAR', true);
-	}
-	return true;
+	global $db, $phpbb_root_path, $phpEx, $HTTP_POST_VARS;
+	require_once($phpbb_root_path . 'includes/functions_style_install.' . $phpEx);
+	if (!is_string($tpl) || !is_int($num) || $num < 0 || $num >= XS_MAX_ITEMS_PER_STYLE) { return false; }
+	$request = array('install_one' => $tpl . ':' . $num, 'sid' => isset($HTTP_POST_VARS['sid']) ? $HTTP_POST_VARS['sid'] : null);
+	return count(phpbb_style_install($db, $request)) === 1;
 }
 
 function xs_escape_themeinfo_value($value)

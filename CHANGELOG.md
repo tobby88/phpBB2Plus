@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Commit XS single/bulk installation as one current-authority transaction.
+  Validate every selected definition, preserve UTF-8 and literal backslashes,
+  use native auto-increment IDs, and refuse partial or conflicting installs.
+  Identical retries preserve IDs and invalidate caches; failed writes, unknown
+  commit outcomes and cache failures no longer produce a success message.
+  Coordinate registration with style cleanup and keep retired templates private.
 - Make XS style unregistration atomic across preferences, labels, style rows
   and unused per-template settings. Check the current database default and ACP
   authority, preserve shared settings, and refuse removal of shared/reserved
