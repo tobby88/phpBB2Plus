@@ -11,7 +11,12 @@ $database='codex_style_ids_'.bin2hex(function_exists('random_bytes')?random_byte
 function sid_sql($sql){$result=mysqli_query($GLOBALS['db'],$sql);sid_check($result,'Fixture SQL failed: '.mysqli_error($GLOBALS['db']));return $result;}
 function sid_rows($sql){$r=sid_sql($sql);$rows=array();while($row=mysqli_fetch_assoc($r)){$rows[]=$row;}mysqli_free_result($r);return $rows;}
 function sid_cli($config,$arguments,$expected){
- $command=escapeshellarg(PHP_BINARY).' -n -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d '.escapeshellarg('extension='.(DIRECTORY_SEPARATOR==='\\'?'php_mysqli.dll':'mysqli')).' '.escapeshellarg($GLOBALS['root'].'/update/update_from_153a.php').' '.escapeshellarg('--config='.$config).' --style-ids-only '.$arguments.' 2>&1';
+ $command=escapeshellarg(PHP_BINARY);
+ if(DIRECTORY_SEPARATOR==='\\'){$command.=' -n -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d extension=php_mysqli.dll';}
+ else{$ini=php_ini_loaded_file();if($ini!==false){$command.=' -c '.escapeshellarg($ini);}}
+ // Linux CI loads mysqlnd and, on older PHP, JSON through separate ini files.
+ // Keep that configured module stack instead of loading mysqli alone with -n.
+ $command.=' '.escapeshellarg($GLOBALS['root'].'/update/update_from_153a.php').' '.escapeshellarg('--config='.$config).' --style-ids-only '.$arguments.' 2>&1';
  $output=array();$code=0;exec($command,$output,$code);sid_check($code===$expected,'Actual CLI exit '.$expected.': '.implode("\n",$output));return implode("\n",$output);
 }
 sid_sql('CREATE DATABASE '.$database.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');mysqli_select_db($db,$database);mysqli_set_charset($db,'utf8mb4');
