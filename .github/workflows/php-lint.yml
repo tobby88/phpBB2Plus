@@ -65,6 +65,8 @@ jobs:
         run: php .github/scripts/check-style-archive.php
       - name: Check style publication filesystem boundaries
         run: php .github/scripts/check-style-import-files.php
+      - name: Check interrupted style import recovery
+        run: php .github/scripts/check-style-import-journal.php
 
       - name: Check installer and emergency-console password round trips
         run: php .github/scripts/check-password-entrypoints.php

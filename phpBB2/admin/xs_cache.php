@@ -103,6 +103,8 @@ if($cache_action === 'clear' && !defined('DEMO_MODE'))
 		$num_error = 0;
 		while(($file = readdir($res)) !== false)
 		{
+			// Recovery journals are directories, not disposable compiled output.
+			if (preg_match('/^xs-import-[a-f0-9]{32}\.backup$/D', $file)) { continue; }
 			$len = strlen($file);
 			// delete only files that match pattern, that aren't in exclusion list and that aren't downloaded styles.
 			if(substr($file, 0, $match_len) === $match && !xs_in_array($file, $skip_files))

@@ -93,6 +93,7 @@ function phpbb_style_install($database, $request)
 		phpbb_style_removal_start($db, false); $batch = array();
 		foreach ($selection as $item)
 		{
+			phpbb_style_import_require_available($db, array($item[0]));
 			$directory = $phpbb_root_path . 'templates/' . $item[0];
 			if (is_link($directory) || is_link($directory . '/theme_info.cfg')) { phpbb_acl_error('xs_install_error'); }
 			$data = xs_get_themeinfo($item[0]);

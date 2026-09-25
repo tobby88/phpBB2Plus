@@ -26,9 +26,17 @@ function xs_error($message) { $GLOBALS['last_archive_error']=$message; throw new
 function xs_message($title,$message) { throw new ArchiveResult('success'); }
 function append_sid($url) { return $url; }
 function phpbb_acl_error($message) { throw new RuntimeException($message); }
-// This filesystem/archive fixture intentionally replaces registration only.
-// Actual DB authority and commit behavior is in check-style-import-native.php.
-function phpbb_style_import($database,$request,$header,$entries,$archive,$publish) { call_user_func($publish,function(){}); return 0; }
+// This archive-only fixture replaces the DB recovery protocol, while using
+// production preflight/publication. Native recovery and actual ACP suites cover
+// the real protocol, receipts, sessions and commit behavior separately.
+function phpbb_style_import_recovery_environment($root,$local,$directory,$ftp,$settings) {
+    if (!$local) { throw new RuntimeException('Valid FTP cases belong to the transport suite'); }
+    return array(new PhpbbStyleImportLocal($directory),null,null);
+}
+function phpbb_style_import_recovery($database,$request,$files,$base,$identity,$start) {
+    phpbb_style_import_publish($files,$start['header']['template'],$start['entries'],$start['archive'],function(){});
+    return array('state'=>'committed','installed'=>0,'retry'=>false);
+}
 function sa_check($ok,$message) { $GLOBALS['checks']++; if (!$ok) { throw new RuntimeException($message); } }
 function sa_entry($name,$contents='',$type='0',$size=null) {
     $length=strlen($contents);
@@ -42,7 +50,7 @@ function sa_archive($tar) {
 }
 function sa_import($archive,$local=true,$listing=false,$get='') {
     global $source,$owned,$lang,$phpEx;
-    $phpbb_root_path=$owned.'/';$db=null;
+    $phpbb_root_path=$owned.'/';$db=null;$board_config=array();
     $filename='input.style';file_put_contents($owned.'/'.$filename,$archive);clearstatcache();
     $write_local=$local;$write_local_dir=$owned.'/templates/';$list_only=$listing;$get_file=$get;$HTTP_POST_VARS=array('total'=>'0');$HTTP_GET_VARS=array();
     try { include $source.'admin/xs_include_import2.php'; }
@@ -51,7 +59,7 @@ function sa_import($archive,$local=true,$listing=false,$get='') {
 }
 $owned=sys_get_temp_dir().'/codex_style_archive_'.uniqid('',true);mkdir($owned,0700);mkdir($owned.'/templates',0700);mkdir($owned.'/templates/fixture',0700);mkdir($owned.'/includes',0700);
 foreach(array('functions_style_archive.php','functions_style_import_files.php') as $helper){file_put_contents($owned.'/includes/'.$helper,'<?php require_once '.var_export($source.'includes/'.$helper,true).';');}
-file_put_contents($owned.'/includes/functions_style_import.php','<?php // Registration stub belongs only to this isolated fixture.');
+file_put_contents($owned.'/includes/functions_style_import_recovery.php','<?php require_once '.var_export($source.'includes/functions_style_import_files.php',true).'; // Recovery protocol stub belongs only to this archive fixture.');
 define('XS_TEMP_DIR',$owned.'/');$phpEx='php';$lang=array();include $source.'language/lang_english/lang_xs.php';$lang['Information']='Information';$checks=0;
 try {
     $prefix=sa_entry('first.tpl','replacement');
@@ -111,6 +119,6 @@ try {
     sa_check($denied,'Entry limit enforced');
     echo 'Style archive: '.$checks." assertions passed\n";
 } finally {
-    foreach(array('/includes/functions_style_archive.php','/includes/functions_style_import.php','/includes/functions_style_import_files.php','/templates/fixture/nested/ok.tpl','/templates/fixture/empty.tpl','/templates/fixture/first.tpl','/input.style') as $path){if(is_file($owned.$path)){unlink($owned.$path);}}
+    foreach(array('/includes/functions_style_archive.php','/includes/functions_style_import_recovery.php','/includes/functions_style_import_files.php','/templates/fixture/nested/ok.tpl','/templates/fixture/empty.tpl','/templates/fixture/first.tpl','/input.style') as $path){if(is_file($owned.$path)){unlink($owned.$path);}}
     foreach(array('/templates/fixture/nested','/templates/fixture','/templates','/includes','') as $path){if(is_dir($owned.$path)){rmdir($owned.$path);}}
 }

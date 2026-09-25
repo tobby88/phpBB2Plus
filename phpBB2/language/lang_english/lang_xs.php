@@ -550,6 +550,17 @@ $lang['xs_editdata_value'] = 'Value';
 $lang['xs_editdata_comment'] = 'Comment';
 
 $lang['xs_permission_denied'] = 'Permission Denied';
+$lang['xs_import_pending'] = 'This template has an interrupted import. Resume or roll it back under Import styles before changing it. Other templates remain available.';
+$lang['xs_recovery_title'] = 'Import jobs and recovery';
+$lang['xs_recovery_explain'] = 'Resume or roll back an open import using the same transfer method and target. Rollback restores backed-up file contents without overwriting unrelated changes. Do not manually delete backup directories.';
+$lang['xs_recovery_status'] = 'Status';
+$lang['xs_recovery_prepared'] = 'Open / interrupted';
+$lang['xs_recovery_committed'] = 'Import completed';
+$lang['xs_recovery_rolledback'] = 'Import rolled back';
+$lang['xs_recovery_resume'] = 'Resume';
+$lang['xs_recovery_rollback'] = 'Roll back';
+$lang['xs_recovery_final'] = 'Select the package again to start a new import.';
+$lang['xs_recovery_failed'] = 'The operation could not be confirmed. Check its stored status under Import jobs and recovery. Completed imports cannot be rolled back. If no job is listed, select the package again and start a new import. Do not manually change files or backups until the outcome is resolved.';
 
 /*
 * style configuration

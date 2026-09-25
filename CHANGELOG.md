@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Add durable XS archive-import recovery with original/new file snapshots,
+  sealed context and prepared/committed/rolled-back configuration receipts.
+  ACP resume/restore actions handle process interruption and lost commit
+  acknowledgements without guessing the database outcome or overwriting later
+  edits. Revalidate current authority, native InnoDB ownership and local/FTP
+  destination identity; refuse conflicting bytes or paths. Preserve recovery
+  backups during cache clearing and block conflicting style/repair operations.
+  Capture complete template clones under the same owner and carry an explicit
+  operation token through the FTP setup and import controllers. No new schema.
 - Retire stale XS file-removal capabilities durably before importing new files,
   including upload-only imports and later failed/uncertain registrations. Keep
   shared ownership across the intent and registration transactions; revalidate

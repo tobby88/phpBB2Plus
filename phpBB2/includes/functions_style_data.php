@@ -86,13 +86,13 @@ function phpbb_style_data_save($database, $request)
 	try
 	{
 		$db->actor();
-		$tables = array(THEMES_TABLE, THEMES_NAME_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE);
+		$tables = array(THEMES_TABLE, THEMES_NAME_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE, CONFIG_TABLE);
 		$visibility = array_key_exists('edit_theme_public', $request);
-		if ($visibility) { $tables[] = CONFIG_TABLE; }
 		phpbb_style_storage_start($db, $tables);
 		$default_id = $visibility ? phpbb_style_policy_default($db, 'xs_invalid_style_id') : null;
 		$rows = phpbb_acl_rows($db, 'SELECT * FROM ' . THEMES_TABLE . ' WHERE themes_id=' . $id . ' FOR UPDATE');
 		if (count($rows) !== 1) { phpbb_acl_error('xs_invalid_style_id'); }
+		phpbb_style_import_require_available($db, array($rows[0]['template_name']));
 		$names = xs_empty_name($db);
 		if (!$names) { phpbb_acl_error('xs_data_save_failed'); }
 		list($values, $labels) = phpbb_style_data_values($request, $rows[0], $names);

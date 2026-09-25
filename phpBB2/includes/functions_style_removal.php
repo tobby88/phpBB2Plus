@@ -128,6 +128,7 @@ function phpbb_style_unregister($database, $request)
 		foreach ($themes as $theme) { if ((int)$theme['themes_id'] === $id) { $target = $theme; } else { $remaining[] = $theme; } }
 		if (!$target || !phpbb_style_removal_name($target['template_name'])) { phpbb_acl_error('xs_remove_failed'); }
 		$name = $target['template_name']; $shared = false;
+		phpbb_style_import_require_available($db, array($name));
 		foreach ($remaining as $theme) { if (strcasecmp($theme['template_name'], $name) === 0) { $shared = true; } }
 		if ($files) { phpbb_style_removal_file_target($name, $remaining); }
 		$config_name = 'xs_style_' . $name;
@@ -186,6 +187,7 @@ function phpbb_style_remove_files($database, $request, $files)
 	try
 	{
 		list($default, $themes) = phpbb_style_removal_start($db, false);
+		phpbb_style_import_require_available($db, array($name));
 		phpbb_style_removal_file_target($name, $themes);
 		$key = phpbb_style_removal_receipt_key($name);
 		$rows = phpbb_acl_rows($db, "SELECT config_name,config_value FROM " . CONFIG_TABLE . " WHERE config_name='" . $key . "' FOR UPDATE");

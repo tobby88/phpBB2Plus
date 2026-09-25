@@ -38,7 +38,7 @@
 	<tr>
 		<td class="explain" colspan="2" align="left">{L_XS_CLONE_STYLE_EXPLAIN4}</td>
 	</tr>
-	<form action="{FORM_ACTION}" name="clone" method="post"><input type="hidden" name="clone_tpl" value="{CLONE_TEMPLATE}" />{S_HIDDEN_FIELDS}
+	<form action="{FORM_ACTION}" name="clone" method="post"><input type="hidden" name="clone_tpl" value="{CLONE_TEMPLATE}" /><input type="hidden" name="recovery_operation" value="{RECOVERY_OPERATION}" />{S_HIDDEN_FIELDS}
 	<tr>
 		<td class="row1">{L_XS_CLONE_NEWDIR_NAME}</td>
 		<td class="row2"><input type="text" class="post" name="clone_style_name" value="{CLONE_TEMPLATE}" size="30" <!-- BEGIN switch_onchange --> onkeyup="document.clone.clone_style_name_0.value=document.clone.clone_style_name.value" <!-- END switch_onchange --> /></td>

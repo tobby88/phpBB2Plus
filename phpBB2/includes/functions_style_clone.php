@@ -60,6 +60,7 @@ function phpbb_style_clone($database, $request)
 		phpbb_style_removal_start($db);
 		$source = phpbb_acl_rows($db, 'SELECT * FROM ' . THEMES_TABLE . ' WHERE themes_id=' . $id . ' FOR UPDATE');
 		if (count($source) !== 1 || !phpbb_style_removal_name($source[0]['template_name'])) { phpbb_acl_error('xs_invalid_style_id'); }
+		phpbb_style_import_require_available($db, array($source[0]['template_name']));
 		$values = phpbb_style_clone_columns($source[0]); $values['style_name'] = $name;
 		if ($values['template_name'] !== 'fisubsilversh') { $values['theme_public'] = '0'; }
 		$labels = phpbb_acl_rows($db, 'SELECT * FROM ' . THEMES_NAME_TABLE . ' WHERE themes_id=' . $id . ' FOR UPDATE');
@@ -90,4 +91,44 @@ function phpbb_style_clone($database, $request)
 	}
 	finally { phpbb_style_actions_finish($db, $attempted, $phpbb_root_path); }
 	return $clone_id;
+}
+
+// Capture metadata and files while holding the same owner used by style
+// imports/removal. Never clone a partially published, recoverable template.
+function phpbb_style_clone_package($database, $request, $source, $target, $selection)
+{
+	global $pack_error, $pack_list, $pack_replace;
+	phpbb_style_removal_request($request);
+	if (!phpbb_style_removal_name($source) || !phpbb_style_removal_name($target) || strcasecmp($source, $target) === 0
+		|| !is_array($selection) || !$selection || count($selection) > XS_MAX_ITEMS_PER_STYLE) { phpbb_acl_error('xs_invalid_style_name'); }
+	$ids = array();
+	foreach ($selection as $id => $name)
+	{
+		$ids[] = phpbb_style_policy_id((string)$id, 'xs_invalid_style_id');
+		if (!is_string($name)) { phpbb_acl_error('xs_invalid_style_name'); }
+		$count = preg_match_all('/./us', $name, $characters);
+		if ($name === '' || trim($name) !== $name || $count === false || $count > 30 || preg_match('/[\x00-\x1f\x7f]/', $name)) { phpbb_acl_error('xs_invalid_style_name'); }
+	}
+	$db = new PhpbbStyleCloneWriter($database);
+	try
+	{
+		phpbb_style_removal_start($db, false);
+		phpbb_style_import_require_available($db, array($source, $target));
+		$rows = phpbb_acl_rows($db, "SELECT * FROM " . THEMES_TABLE . " WHERE template_name='" . $db->sql_escape($source) . "' AND themes_id IN (" . implode(',', $ids) . ') ORDER BY themes_id FOR UPDATE');
+		if (count($rows) !== count($ids)) { phpbb_acl_error('xs_clone_failed'); }
+		foreach ($rows as $index => $row)
+		{
+			if ($row['template_name'] !== $source) { phpbb_acl_error('xs_clone_failed'); }
+			$rows[$index]['style_name'] = $selection[(int)$row['themes_id']];
+		}
+		phpbb_style_storage_lock_authority($db);
+		$pack_error = ''; $pack_list = array();
+		$pack_replace = array('./theme_info.cfg' => xs_generate_themeinfo($rows, $source, $target));
+		$data = pack_style($source, $target, $rows, '');
+		if ($pack_error || !is_string($data) || $data === '' || strlen($data) > XS_MAX_STYLE_UPLOAD_BYTES) { phpbb_acl_error('xs_clone_failed'); }
+		// Lost ownership/authority during capture must never return usable data.
+		phpbb_style_storage_lock_authority($db); $db->sql_query('COMMIT');
+	}
+	finally { $db->rollback(); $db->release(); }
+	return $data;
 }

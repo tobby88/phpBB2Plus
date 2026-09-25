@@ -76,6 +76,14 @@ jobs:
         env:
           PHPBB_STYLE_IMPORT_NATIVE: '1'
           PHPBB_STYLE_IMPORT_PASSWORD: fixture-only
+      - run: php .github/scripts/check-style-import-recovery-native.php
+        env:
+          PHPBB_STYLE_IMPORT_RECOVERY_NATIVE: '1'
+          PHPBB_STYLE_IMPORT_PASSWORD: fixture-only
+      - run: php .github/scripts/check-style-recovery-controller-native.php
+        env:
+          PHPBB_STYLE_RECOVERY_CONTROLLER_NATIVE: '1'
+          PHPBB_STYLE_IMPORT_PASSWORD: fixture-only
       - run: php .github/scripts/check-style-removal-native.php
         env:
           PHPBB_STYLE_REMOVAL_NATIVE: '1'

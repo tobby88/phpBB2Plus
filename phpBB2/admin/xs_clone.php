@@ -70,6 +70,11 @@ if(isset($HTTP_POST_VARS['clone_style']) && !defined('DEMO_MODE'))
 if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 {
 	phpbb_admin_require_post_session();
+	require_once($phpbb_root_path . 'includes/functions_style_clone.' . $phpEx);
+	if (!isset($HTTP_POST_VARS['recovery_operation']) || !is_string($HTTP_POST_VARS['recovery_operation']) || !preg_match('/^[a-f0-9]{32}$/D', $HTTP_POST_VARS['recovery_operation']))
+	{
+		xs_error($lang['xs_clone_failed'] . '<br /><br />' . $lang['xs_clone_back']);
+	}
 	$old_name = xs_tpl_name(is_scalar($HTTP_POST_VARS['clone_tpl']) ? (string) $HTTP_POST_VARS['clone_tpl'] : '');
 	$new_name = xs_tpl_name(isset($HTTP_POST_VARS['clone_style_name']) && is_scalar($HTTP_POST_VARS['clone_style_name']) ? (string) $HTTP_POST_VARS['clone_style_name'] : '');
 	$new_name_length = preg_match_all('/./us', $new_name, $new_name_characters);
@@ -88,7 +93,7 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 	{
 		xs_error($lang['xs_clone_no_select'] . '<br /><br />' . $lang['xs_clone_back']);
 	}
-	$vars = array('clone_tpl', 'clone_style_name', 'total');
+	$vars = array('clone_tpl', 'clone_style_name', 'total', 'recovery_operation');
 	$count = 0;
 	$list = array();
 	$selected_style_names = array();
@@ -131,6 +136,11 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 	{
 		$request[$vars[$i]] = isset($HTTP_POST_VARS[$vars[$i]]) && is_scalar($HTTP_POST_VARS[$vars[$i]]) ? stripslashes((string) $HTTP_POST_VARS[$vars[$i]]) : '';
 	}
+	// Capture under current authority before the FTP form can save settings.
+	try { $data = phpbb_style_clone_package($db, $HTTP_POST_VARS, $old_name, $new_name, $selected_style_names); }
+	catch (PhpbbAclException $error) { xs_error($error->getMessage() . '<br /><br />' . $lang['xs_clone_back']); }
+	catch (Exception $error) { xs_error($lang['xs_clone_failed'] . '<br /><br />' . $lang['xs_clone_back']); }
+	catch (Error $error) { xs_error($lang['xs_clone_failed'] . '<br /><br />' . $lang['xs_clone_back']); }
 	// get ftp configuration
 	$write_local = false;
 	if(!get_ftp_config(append_sid('xs_clone.'.$phpEx), $request, true))
@@ -142,41 +152,6 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 	{
 		$write_local = true;
 		$write_local_dir = '../templates/';
-	}
-	// prepare variables for export
-	$export = $old_name;
-	$exportas = $new_name;
-	// Generate theme_info.cfg
-	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE template_name = '$export' AND themes_id IN (" . implode(', ', $list) . ")";
-	if(!$result = $db->sql_query($sql))
-	{
-		xs_error($lang['xs_no_theme_data'] . $lang['xs_clone_back']);
-	}
-	$theme_rowset = $db->sql_fetchrowset($result);
-	if(count($theme_rowset) == 0 || count($theme_rowset) !== count($list))
-	{
-		xs_error($lang['xs_no_themes']  . '<br /><br />' . $lang['xs_clone_back']);
-	}
-	// pack style
-	for($i = 0; $i < count($theme_rowset); $i++)
-	{
-		$id = $theme_rowset[$i]['themes_id'];
-		$theme_rowset[$i]['style_name'] = $selected_style_names[$id];
-	}
-	$theme_data = xs_generate_themeinfo($theme_rowset, $export, $exportas);
-	// prepare to pack
-	$pack_error = '';
-	$pack_list = array();
-	$pack_replace = array('./theme_info.cfg' => $theme_data);
-	$data = pack_style($export, $exportas, $theme_rowset, '');
-	// check errors
-	if($pack_error)
-	{
-		xs_error(str_replace('{TPL}', $export, $lang['xs_export_error']) . $pack_error  . '<br /><br />' . $lang['xs_clone_back']);
-	}
-	if(!$data || strlen($data) > XS_MAX_STYLE_UPLOAD_BYTES)
-	{
-		xs_error(str_replace('{TPL}', $export, $lang['xs_export_error2']) . '<br /><br />' . $lang['xs_clone_back']);
 	}
 	// save as file
 	$tmp_filename = @tempnam(XS_TEMP_DIR, 'clone_');
@@ -229,6 +204,7 @@ if(!empty($HTTP_GET_VARS['clone']) && is_scalar($HTTP_GET_VARS['clone']))
 			'STYLE_ID'			=> $theme_rowset[0]['themes_id'],
 			'STYLE_NAME'		=> htmlspecialchars($theme_rowset[0]['style_name'], ENT_QUOTES, 'UTF-8'),
 			'TOTAL'				=> count($theme_rowset),
+			'RECOVERY_OPERATION' => bin2hex(phpbb_random_bytes(16)),
 			'L_CLONE_STYLE3'	=> str_replace('{STYLE}', htmlspecialchars($style, ENT_QUOTES, 'UTF-8'), $lang['xs_clone_style3'])
 			));
 	// clone styles

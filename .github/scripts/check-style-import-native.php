@@ -11,10 +11,11 @@ $body=<<<'PHP'
  $tokens=token_get_all($code);
  for($i=0;$i<count($tokens);$i++){
   if(!is_array($tokens[$i])||$tokens[$i][0]!==T_FUNCTION){continue;}$j=$i+1;while(is_array($tokens[$j])&&$tokens[$j][0]===T_WHITESPACE){$j++;}
-  if(!is_array($tokens[$j])||!in_array($tokens[$j][1],array('xs_get_style_header','xs_fix_dir','xs_tpl_name','xs_create_dir','xs_write_file','xs_get_themeinfo','xs_parse_themeinfo'),true)){continue;}
+  if(!is_array($tokens[$j])||!in_array($tokens[$j][1],array('xs_get_style_header','xs_fix_dir','xs_tpl_name','xs_create_dir','xs_write_file','xs_get_themeinfo','xs_parse_themeinfo','xs_generate_themeinfo','xs_escape_themeinfo_value','pack_style','pack_dir'),true)){continue;}
   $function='';$depth=0;$started=false;for(;$i<count($tokens);$i++){$token=$tokens[$i];$function.=is_array($token)?$token[1]:$token;if($token==='{'){$depth++;$started=true;}elseif($token==='}'){$depth--;}if($started&&!$depth){break;}}eval($function);
  }
- foreach(array('functions_style_archive.php','functions_style_import.php','functions_style_import_files.php') as $helper){if(is_file($sd_source.'includes/'.$helper)){file_put_contents($sd_root.'/includes/'.$helper,'<?php require_once '.var_export($sd_source.'includes/'.$helper,true).';');$sd_files[]=$sd_root.'/includes/'.$helper;}}
+ foreach(array('functions_style_archive.php','functions_style_import.php','functions_style_import_files.php','functions_style_import_recovery.php') as $helper){if(is_file($sd_source.'includes/'.$helper)){file_put_contents($sd_root.'/includes/'.$helper,'<?php require_once '.var_export($sd_source.'includes/'.$helper,true).';');$sd_files[]=$sd_root.'/includes/'.$helper;}}
+ require_once $sd_source.'includes/functions_style_import_recovery.php';
  sd_check(preg_match('/CREATE TABLE phpbb_config\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical config');sd_sql(str_replace('phpbb_config',CONFIG_TABLE,$m[0]));
  foreach(array('templates','templates/fisubsilversh','templates/legacy') as $dir){mkdir($sd_root.'/'.$dir);$sd_dirs[]=$sd_root.'/'.$dir;}
  foreach(array('templates/fisubsilversh/theme_info.cfg','templates/legacy/theme_info.cfg','cache/input.style') as $file){$sd_files[]=$sd_root.'/'.$file;}
@@ -22,18 +23,29 @@ $body=<<<'PHP'
   $cfg='<?php'."\n";foreach(array('First Größe 😀','Second') as $n=>$name){$values=array_merge(array('template_name'=>$tpl,'style_name'=>$name,'fontface1'=>'Test\\Family','fontsize1'=>'12'),$n===1?$second:array());foreach($values as $key=>$value){$cfg.='$'.$tpl.'['.$n.']["'.$key.'"] = "'.addcslashes($value,'\\"$').'";'."\n";}}return $cfg;
  }
  function sim_archive($tpl='fisubsilversh',$second=array()){
+  $GLOBALS['sim_template']=$tpl;
   $cfg=sim_cfg($tpl,$second);$tar=pack(TAR_HEADER_PACK,'theme_info.cfg','100644','0','0',decoct(strlen($cfg)),'0','0','0','','ustar','','','','','','','').$cfg.str_repeat("\0",(512-strlen($cfg)%512)%512).str_repeat("\0",1024);
   $items=array($tpl,'Fixture','First Größe 😀',isset($second['style_name'])?$second['style_name']:'Second');$lengths='';foreach($items as $item){$lengths.=chr(strlen($item));}$size=strlen(STYLE_HEADER_START)+9+strlen($lengths)+strlen(implode('',$items))+strlen(STYLE_HEADER_END);$zip=gzcompress($tar);
   file_put_contents($GLOBALS['sd_root'].'/cache/input.style',STYLE_HEADER_START.pack('NN',$size,$size+strlen($zip)).chr(count($items)).$lengths.implode('',$items).STYLE_HEADER_END.$zip);clearstatcache();
  }
- function sim_reset($actor='root'){sd_reset($actor);sd_sql('DELETE FROM fixture_config');sd_sql("INSERT INTO fixture_config VALUES ('default_style','1'),('unrelated','keep')");sim_archive();file_put_contents($GLOBALS['sd_root'].'/cache/config_data.cache','old');}
+ function sim_reset($actor='root'){sd_reset($actor);sd_sql('DELETE FROM fixture_config');sd_sql("INSERT INTO fixture_config VALUES ('default_style','1'),('unrelated','keep')");sim_archive();file_put_contents($GLOBALS['sd_root'].'/cache/config_data.cache','old');foreach(array('fisubsilversh','legacy') as $tpl){file_put_contents($GLOBALS['sd_root'].'/templates/'.$tpl.'/theme_info.cfg','original fixture');}}
  function sim_run($request=array()){
   global $db,$phpbb_root_path,$phpEx,$lang,$template,$userdata,$HTTP_POST_VARS,$HTTP_GET_VARS,$board_config,$xs_header_error;
   $HTTP_POST_VARS=array_merge(array('sid'=>'fixture-admin','total'=>'2','import_install_0'=>'1','import_install_1'=>'1','import_default'=>'-1'),$request);$HTTP_GET_VARS=array();$board_config=array('default_style'=>1);
+  $pending=phpbb_style_import_read_receipt($GLOBALS['peer'],$GLOBALS['sim_template']);
+  $HTTP_POST_VARS['recovery_operation']=isset($request['recovery_operation'])?$request['recovery_operation']:(($pending&&$pending['s']==='prepared')?$pending['o']:bin2hex(phpbb_random_bytes(16)));
   $phpbb_root_path='../';$filename='input.style';$write_local=true;$write_local_dir='../templates/';$list_only=false;$get_file='';
   try{include $GLOBALS['sd_source'].'admin/xs_include_import2.php';throw new RuntimeException('No import outcome');}catch(StyleDataExit $e){return $e->getMessage();}
  }
- function sim_snapshot(){return array(sd_snapshot(),phpbb_acl_rows($GLOBALS['peer'],'SELECT * FROM fixture_config ORDER BY config_name'));}
+ // Preparation is intentionally durable even when metadata registration fails.
+ // All unrelated/default/cleanup config remains in this comparison; recovery
+ // receipts are asserted separately by the dedicated actual-controller cases.
+ function sim_snapshot(){return array(sd_snapshot(),phpbb_acl_rows($GLOBALS['peer'],"SELECT * FROM fixture_config WHERE LEFT(config_name,10)<>'xs_import_' ORDER BY config_name"));}
+ function sim_cleanup($path,$root){
+  if($path!==$root&&strpos($path,$root.DIRECTORY_SEPARATOR)!==0){throw new RuntimeException('Cleanup outside own fixture');}
+  if(is_link($path)||is_file($path)){unlink($path);return;}
+  foreach(scandir($path) as $name){if($name!=='.'&&$name!=='..'){sim_cleanup($path.DIRECTORY_SEPARATOR.$name,$root);}}rmdir($path);
+ }
  function sim_boundary($sql){return preg_match('/^(INSERT INTO fixture_themes |UPDATE fixture_(themes|config) )/',$sql)||strpos($sql,'FOR UPDATE')!==false||strpos($sql,' LOCK IN SHARE MODE')!==false||$sql==='COMMIT';}
  $cases=0;$serialized=0;
  foreach(getenv('PHPBB_STYLE_IMPORT_EXTRA_ONLY')==='1'?array():array('root','delegated') as $actor){
@@ -45,17 +57,18 @@ $body=<<<'PHP'
   foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($boundary=1;$boundary<=count($boundaries);$boundary++){
    sim_reset($actor);$before=sim_snapshot();$seen=0;$reached=false;$blocked=false;
    $sd_hook=function($sql)use($boundary,$kind,&$seen,&$reached,&$blocked){if(!sim_boundary($sql)||++$seen!==$boundary){return;}$GLOBALS['sd_hook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(sd_revoke($kind))){$e=$GLOBALS['peer']->sql_error();sd_check((int)$e['code']===1205,'Only native lock timeout serializes authority');$blocked=true;}};
-   $out=sim_run(array('import_default'=>'1'));sd_check($reached,'Every import boundary reached');if($blocked){sd_check($out==='saved','Import completes before serialized revocation');sd_sql(sd_revoke($kind));$serialized++;}else{sd_check($out==='error'&&sim_snapshot()===$before,'Earlier revocation denies whole registration');}sd_unlocked();$cases++;
+   $out=sim_run(array('import_default'=>'1'));sd_check($reached,'Every import boundary reached: '.$actor.'/'.$kind.'/'.$boundary.' (seen '.$seen.')');if($blocked){sd_check($out==='saved','Import completes before serialized revocation');sd_sql(sd_revoke($kind));$serialized++;}else{sd_check($out==='error'&&sim_snapshot()===$before,'Earlier revocation denies whole registration');}sd_unlocked();$cases++;
+   if($boundary%50===0){echo $actor.'/'.$kind.': '.$boundary.'/'.count($boundaries)." native import boundaries checked\n";}
   }}
   foreach(array('first','second','default','COMMIT','lost-ack') as $failure){
    sim_reset($actor);$before=sim_snapshot();$inserts=0;
    if($failure==='first'||$failure==='second'){$target=$failure==='first'?1:2;$sd_hook=function($sql)use($target,&$inserts){if(strpos($sql,'INSERT INTO fixture_themes ')===0&&++$inserts===$target){$GLOBALS['sd_hook']=null;$GLOBALS['sd_failure']='INSERT INTO fixture_themes ';}};}else{$sd_failure=$failure==='default'?'UPDATE fixture_config ':$failure;}
-   sd_check(sim_run(array('import_default'=>'1'))==='error','Failed/uncertain batch not reported as success');sd_check($failure==='lost-ack'?count(sd_snapshot()[0])===4:sim_snapshot()===$before,'All metadata/default committed or none');sd_check($board_config['default_style']===1,'Unconfirmed result does not publish local default');sd_unlocked();$cases++;
+   sd_check(sim_run(array('import_default'=>'1'))==='error','Failed/uncertain batch not reported as success');sd_check(sim_snapshot()===$before,'Failed registration or unconfirmed preparation leaves metadata/default unchanged');sd_check($board_config['default_style']===1,'Unconfirmed result does not publish local default');sd_unlocked();$cases++;
   }
   echo $actor." native import authority boundaries passed\n";
  }
  sim_reset();sd_check(sim_run()==='saved','Initial batch');$first=sd_snapshot();sim_archive('fisubsilversh',array('fontsize1'=>''));sd_check(sim_run()==='saved','Update existing style batch');$after=sd_snapshot();sd_check(count($after[0])===4&&$after[0][2]['themes_id']===$first[0][2]['themes_id']&&$after[0][3]['fontsize1']===null&&$after[1]===$first[1],'Existing IDs/labels preserved and blank numeric becomes NULL');sd_unlocked();$cases++;
- sim_reset();$sd_failure='lost-ack';sd_check(sim_run()==='error','Lost commit acknowledgement');$before=sim_snapshot();$sd_failure='';sd_check(sim_run()==='saved'&&sim_snapshot()===$before,'Retry reuses committed IDs');sd_unlocked();$cases++;
+ sim_reset();$sd_failure='lost-ack';sd_check(sim_run()==='error','Lost preparation acknowledgement');$pending=phpbb_style_import_read_receipt($peer,'fisubsilversh');sd_check($pending['s']==='prepared'&&count(sd_snapshot()[0])===2,'Preparation is durable but metadata is not registered yet');$sd_failure='';sd_check(sim_run()==='saved'&&count(sd_snapshot()[0])===4,'Retry resumes the same prepared operation');$done=phpbb_style_import_read_receipt($peer,'fisubsilversh');sd_check($done['o']===$pending['o']&&$done['s']==='committed','Actual controller finalizes the persisted operation');sd_unlocked();$cases++;
  foreach(array(array('fontsize1'=>'128'),array('style_name'=>str_repeat('x',31)),array('style_name'=>'FIRST GRÖSSE 😀'),array('template_name'=>'legacy'),array('fontface1'=>"bad\xff")) as $bad){
   sim_reset();sim_archive('fisubsilversh',$bad);file_put_contents($sd_root.'/templates/fisubsilversh/theme_info.cfg','preserve');$before=sim_snapshot();sd_check(sim_run()==='error'&&sim_snapshot()===$before&&file_get_contents($sd_root.'/templates/fisubsilversh/theme_info.cfg')==='preserve','Invalid full selection leaves files and metadata unchanged');sd_unlocked();$cases++;
  }
@@ -98,8 +111,7 @@ $body=<<<'PHP'
  echo 'Style import receipt checks: '.$receipt_cases." cases passed\n";
 }finally{
  $sd_hook=null;$sd_failure='';$sd_after_commit=null;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();chdir($sd_previous);
- foreach(array('themes.cache','config_data.cache') as $cache){if(is_file($sd_root.'/cache/'.$cache)){unlink($sd_root.'/cache/'.$cache);}}
- foreach(array_reverse($sd_files) as $file){if(is_file($file)){unlink($file);}}foreach(array_reverse($sd_dirs) as $dir){if(is_dir($dir)){rmdir($dir);}}restore_error_handler();
+ sim_cleanup(realpath($sd_root),realpath($sd_root));restore_error_handler();
 }
 PHP;
 eval($head.$body);

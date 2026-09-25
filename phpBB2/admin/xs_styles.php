@@ -46,6 +46,7 @@ if (isset($HTTP_POST_VARS['style_action']) && !defined('DEMO_MODE'))
 {
 	phpbb_admin_require_post_session();
 	try { phpbb_style_action_save($db, $HTTP_POST_VARS); }
+	catch (PhpbbAclException $error) { xs_error($error->getMessage()); }
 	catch (Exception $error) { xs_error($lang['xs_actions_save_failed']); }
 	catch (Error $error) { xs_error($lang['xs_actions_save_failed']); }
 }

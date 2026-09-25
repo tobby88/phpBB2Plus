@@ -4,10 +4,44 @@ require_once dirname(__FILE__) . '/functions_style_files.php';
 
 class PhpbbStyleImportLocal extends PhpbbStyleLocalFiles
 {
-	function directory($path) { return @mkdir($this->path($path), 0755); }
-	function put($path, $contents, $guard)
+	function identity() { return 'local:' . $this->root; }
+	function read($path, $limit)
 	{
-		$target = $this->path($path); $temporary = @tempnam(dirname($target), 'xs_import_');
+		if (!is_int($limit) || $limit < 0 || $limit > 33554432 || $this->kind($path) !== 'file') { phpbb_acl_error('xs_import_failed'); }
+		$bytes = @file_get_contents($this->path($path), false, null, 0, $limit + 1);
+		if (!is_string($bytes) || strlen($bytes) > $limit || $this->kind($path) !== 'file') { phpbb_acl_error('xs_import_failed'); }
+		return $bytes;
+	}
+	function directory($path) { return @mkdir($this->path($path), 0755); }
+	function stage_name($path, $tag)
+	{
+		if (!is_string($tag) || !preg_match('/^[a-f0-9]{32}$/D', $tag)) { phpbb_acl_error('xs_import_failed'); }
+		return dirname($path) . '/xs_import_' . $tag . '.tmp';
+	}
+	function stage_probe($path, $contents, $tag)
+	{
+		$stage = $this->stage_name($path, $tag); $kind = $this->kind($stage);
+		if ($kind === null) { return false; }
+		if ($kind !== 'file') { phpbb_acl_error('xs_import_failed'); }
+		$bytes = $this->read($stage, strlen($contents));
+		if ($bytes !== (string)substr($contents, 0, strlen($bytes))) { phpbb_acl_error('xs_import_failed'); }
+		return true;
+	}
+	function stage_cleanup($path, $contents, $guard, $tag)
+	{
+		call_user_func($guard);
+		if ($this->stage_probe($path, $contents, $tag) && !$this->erase($this->stage_name($path, $tag), 'file')) { phpbb_acl_error('xs_import_failed'); }
+	}
+	function put($path, $contents, $guard, $tag = null)
+	{
+		$target = $this->path($path);
+		if ($tag !== null)
+		{
+			$this->stage_cleanup($path, $contents, $guard, $tag);
+			$temporary = $this->path($this->stage_name($path, $tag)); $handle = @fopen($temporary, 'x+b');
+			if (!$handle) { phpbb_acl_error('xs_import_failed'); } fclose($handle);
+		}
+		else { $temporary = @tempnam(dirname($target), 'xs_import_'); }
 		if ($temporary === false || dirname($temporary) !== dirname($target)) { if ($temporary !== false) { @unlink($temporary); } phpbb_acl_error('xs_import_failed'); }
 		try
 		{
@@ -22,11 +56,68 @@ class PhpbbStyleImportLocal extends PhpbbStyleLocalFiles
 
 class PhpbbStyleImportFtp extends PhpbbStyleFtpFiles
 {
+	var $endpoint;
+	function __construct($ftp, $endpoint = null) { parent::__construct($ftp); $this->endpoint = $endpoint; }
+	function identity()
+	{
+		// Recovery callers bind the host/port/account, never the password.
+		if (!is_string($this->endpoint) || $this->endpoint === '') { phpbb_acl_error('xs_import_failed'); }
+		$this->entries('');
+		return 'ftp:' . $this->endpoint . "\0" . $this->root;
+	}
+	function read($path, $limit)
+	{
+		if (!is_int($limit) || $limit < 0 || $limit > 33554432 || $this->kind($path) !== 'file') { phpbb_acl_error('xs_import_failed'); }
+		$target = $this->root . '/' . $path; $size = @ftp_size($this->ftp, $target);
+		if (!is_int($size) || $size < 0 || $size > $limit) { phpbb_acl_error('xs_import_failed'); }
+		$stream = tmpfile(); if ($stream === false) { phpbb_acl_error('xs_import_failed'); } $status = FTP_FAILED;
+		try
+		{
+			$started = microtime(true); $status = @ftp_nb_fget($this->ftp, $stream, $target, FTP_BINARY);
+			while ($status === FTP_MOREDATA)
+			{
+				$stat = fstat($stream);
+				if (!$stat || $stat['size'] > $limit || microtime(true) - $started > 30) { phpbb_acl_error('xs_import_failed'); }
+				$status = @ftp_nb_continue($this->ftp);
+			}
+			if ($status !== FTP_FINISHED || !rewind($stream)) { phpbb_acl_error('xs_import_failed'); }
+			$bytes = stream_get_contents($stream, $limit + 1);
+			if (!is_string($bytes) || strlen($bytes) !== $size || @ftp_size($this->ftp, $target) !== $size || $this->kind($path) !== 'file') { phpbb_acl_error('xs_import_failed'); }
+			return $bytes;
+		}
+		finally
+		{
+			// An oversized/stalled transfer must not keep writing to a temp file
+			// after failure. The unusable transfer connection is deliberately closed.
+			if ($status === FTP_MOREDATA) { @ftp_close($this->ftp); $this->ftp = null; }
+			fclose($stream);
+		}
+	}
+	function stage_name($path, $tag)
+	{
+		if (!is_string($tag) || !preg_match('/^[a-f0-9]{32}$/D', $tag)) { phpbb_acl_error('xs_import_failed'); }
+		return dirname($path) . '/xs_import_' . $tag . '.tmp';
+	}
+	function stage_probe($path, $contents, $tag)
+	{
+		$stage = $this->stage_name($path, $tag); $kind = $this->kind($stage);
+		if ($kind === null) { return false; }
+		if ($kind !== 'file') { phpbb_acl_error('xs_import_failed'); }
+		$bytes = $this->read($stage, strlen($contents));
+		if ($bytes !== (string)substr($contents, 0, strlen($bytes))) { phpbb_acl_error('xs_import_failed'); }
+		return true;
+	}
+	function stage_cleanup($path, $contents, $guard, $tag)
+	{
+		call_user_func($guard);
+		if ($this->stage_probe($path, $contents, $tag) && !$this->erase($this->stage_name($path, $tag), 'file')) { phpbb_acl_error('xs_import_failed'); }
+	}
 	function directory($path) { return @ftp_mkdir($this->ftp, $this->root . '/' . $path) !== false; }
-	function put($path, $contents, $guard)
+	function put($path, $contents, $guard, $tag = null)
 	{
 		$target = $this->root . '/' . $path;
-		$temporary = dirname($target) . '/xs_import_' . bin2hex(phpbb_random_bytes(16)) . '.tmp';
+		if ($tag !== null) { $this->stage_cleanup($path, $contents, $guard, $tag); }
+		$temporary = $tag === null ? dirname($target) . '/xs_import_' . bin2hex(phpbb_random_bytes(16)) . '.tmp' : $this->root . '/' . $this->stage_name($path, $tag);
 		$stream = tmpfile(); if ($stream === false) { phpbb_acl_error('xs_import_failed'); }
 		try
 		{

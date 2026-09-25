@@ -17,6 +17,7 @@
 <h1>{L_XS_IMPORT_STYLES}</h1>
 
 <p>{L_XS_IMPORT_EXPLAIN}</p>
+{IMPORT_RECOVERY}
 
 <table width="100%" cellpadding="4" cellspacing="1" border="0" class="forumline">
 	<tr>

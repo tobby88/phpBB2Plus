@@ -53,6 +53,10 @@ if(!empty($HTTP_POST_VARS['edit']) && !defined('DEMO_MODE'))
 	$id = is_scalar($HTTP_POST_VARS['edit']) ? intval($HTTP_POST_VARS['edit']) : 0;
 	$lang['xs_edittpl_back_edit'] = str_replace('{URL}', append_sid('xs_edit_data.'.$phpEx.'?edit='.$id), $lang['xs_edittpl_back_edit']);
 	try { phpbb_style_data_save($db, $HTTP_POST_VARS); }
+	catch (PhpbbAclException $error)
+	{
+		xs_error($error->getMessage() . '<br /><br />' . $lang['xs_edittpl_back_edit'] . '<br /><br />' . $lang['xs_edittpl_back_list']);
+	}
 	catch (Exception $error)
 	{
 		xs_error($lang['xs_data_save_failed'] . '<br /><br />' . $lang['xs_edittpl_back_edit'] . '<br /><br />' . $lang['xs_edittpl_back_list']);

@@ -55,9 +55,22 @@ and field labels are preserved. Local and FTP writers preflight destination
 types, refuse linked parents, and stage/check each file before renaming it.
 An FTP server must support replacing files by rename; a refused rename does
 not trigger deletion of the original file as a workaround.
-Files and SQL are not one atomic operation: a later disk/FTP/database failure
-can still leave transferred files. Keep the source archive and inspect the
-destination before retrying; errors never claim a confirmed successful import.
+Files and SQL are not one atomic operation. Each import now records a durable
+preparation before publishing files, with sealed original/new file snapshots in
+`cache/xs-import-<operation>.backup/`. Interrupted jobs appear on the XS import
+page with **Resume** and **Restore original files** actions. Use the same local
+or FTP destination/account as the original attempt. Recovery rechecks current
+ACP permissions, refuses conflicting external file changes, and never rolls
+back files automatically when the database commit outcome is uncertain.
+Confirmed retries do not overwrite files again. Pending jobs block conflicting
+style changes, including source/target template cloning and emergency repairs.
+Backups are protected PHP-envelope files, excluded from XS cache clearing;
+keep this directory and the corresponding database together in backups. They
+are not automatically expired or removed; terminal/orphan backup cleanup is
+not currently offered. Rollback may leave empty directories. Receipts use the
+existing configuration table (`xs_import_*`), with no schema migration needed.
+Keep independent site backups; this is bounded operation recovery, not a
+replacement for them. Errors never claim a confirmed successful import.
 Cloning a style's database definition also copies its field labels atomically,
 preserving NULL values. An identical retry reuses the clone rather than creating
 another row; conflicting existing definitions or labels are never overwritten.
@@ -1092,12 +1105,12 @@ index rebuild command above. Use a backed-up maintenance window without concurre
 posts or edits: rebuilding clears derived index data, not stored posts. Code
 updates alone do not reconstruct old missing matches or reclassify old markers.
 
-The main `config` table now uses InnoDB so CrackerTracker configuration restores
-commit together or roll back on failure. The post-1.53a updater converts this
-table without changing its columns or values; unrelated MyISAM tables remain
-unchanged. Back up the database and run the updater before using restore on an
-older installation. The runtime refuses an unsafe restore until this migration
-has completed. Configuration is read directly from the database on each request
+The main `config` table uses InnoDB so CrackerTracker configuration restores
+commit together or roll back on failure. It is included in the full storage
+migration described above; the updater also converts the other forum tables.
+Back up the database and run the updater before using restore on an older
+installation. The runtime refuses an unsafe restore until this migration has
+completed. Configuration is read directly from the database on each request
 (one small query each for board and Plus settings), rather than using the old
 unversioned file cache. Other caches are unaffected.
 

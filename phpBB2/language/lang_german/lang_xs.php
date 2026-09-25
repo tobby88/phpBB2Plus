@@ -551,6 +551,17 @@ $lang['xs_editdata_value'] = 'Wert';
 $lang['xs_editdata_comment'] = 'Kommentar';
 
 $lang['xs_permission_denied'] = 'Zugriff verweigert';
+$lang['xs_import_pending'] = 'Für dieses Template ist ein unterbrochener Import offen. Bitte diesen zuerst unter „Styles importieren“ fortsetzen oder zurücknehmen. Andere Templates bleiben verfügbar.';
+$lang['xs_recovery_title'] = 'Import-Aufträge und Wiederherstellung';
+$lang['xs_recovery_explain'] = 'Offene Importe können mit derselben Übertragungsart und demselben Ziel fortgesetzt oder zurückgenommen werden. Eine Rücknahme stellt die gesicherten Dateiinhalte wieder her; fremde Änderungen werden nicht überschrieben. Sicherungsverzeichnisse bitte nicht manuell löschen.';
+$lang['xs_recovery_status'] = 'Status';
+$lang['xs_recovery_prepared'] = 'Offen / unterbrochen';
+$lang['xs_recovery_committed'] = 'Import abgeschlossen';
+$lang['xs_recovery_rolledback'] = 'Import zurückgenommen';
+$lang['xs_recovery_resume'] = 'Fortsetzen';
+$lang['xs_recovery_rollback'] = 'Zurücknehmen';
+$lang['xs_recovery_final'] = 'Für einen neuen Import das Paket erneut auswählen.';
+$lang['xs_recovery_failed'] = 'Der Vorgang konnte nicht bestätigt werden. Bitte unter „Import-Aufträge und Wiederherstellung“ den gespeicherten Status prüfen. Abgeschlossene Importe werden nicht zurückgenommen. Fehlt dort ein Auftrag, das Paket erneut auswählen und einen neuen Import starten. Dateien und Sicherungen bis zur Klärung nicht manuell verändern.';
 /*
 * style configuration
 */

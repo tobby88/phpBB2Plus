@@ -1214,6 +1214,7 @@ $lang['Topposters_Explain'] = 'Hier kannst Du einstellen, wieviele Topposter im 
 $lang['Permission_Check'] = '<u>Überprüfe Verzeichnisrechte:</u><br /><br />Die Verzeichnisrechte folgender Dateien/Ordner sind nicht korrekt eingestellt:';
 $lang['File_not_writable_666'] = '<font color="red"><b>ist nicht beschreibbar !</b> [CHMOD 666 setzen]</font>';
 $lang['File_not_writable_777'] = '<font color="red"><b>ist nicht beschreibbar !</b> [CHMOD 777 setzen]</font>';
+$lang['xs_import_pending'] = 'Für dieses Template ist ein unterbrochener Import offen. Bitte diesen zuerst unter „Styles importieren“ fortsetzen oder zurücknehmen. Andere Templates bleiben verfügbar.';
 // That's all Folks!
 // Na Gott sei Dank!
 // -------------------------------------------------

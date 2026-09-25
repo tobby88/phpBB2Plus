@@ -75,6 +75,7 @@ if(!xs_check_cache($cache_filename))
 // include all functions
 //
 include_once('xs_include_import.'.$phpEx);
+include('xs_include_recovery.' . $phpEx);
 
 // remove timeout
 @set_time_limit(XS_MAX_TIMEOUT);
@@ -105,6 +106,7 @@ if(isset($HTTP_GET_VARS['import']) || isset($HTTP_POST_VARS['import']))
 	if(!$list_only)
 	{
 		phpbb_admin_require_post_session();
+		if (!isset($HTTP_POST_VARS['recovery_operation']) || !PhpbbStyleImportJournal::operation($HTTP_POST_VARS['recovery_operation'])) { xs_error($lang['xs_recovery_failed']); }
 	}
 	$get_file = isset($HTTP_GET_VARS['get_file']) && is_scalar($HTTP_GET_VARS['get_file']) ? stripslashes((string) $HTTP_GET_VARS['get_file']) : '';
 	$filename = isset($HTTP_POST_VARS['import']) ? $HTTP_POST_VARS['import'] : $HTTP_GET_VARS['import'];
@@ -120,7 +122,7 @@ if(isset($HTTP_GET_VARS['import']) || isset($HTTP_POST_VARS['import']))
 		{
 			xs_error($lang['xs_permission_denied'] . '<br /><br />' . $lang['xs_import_back']);
 		}
-		$params = array('import' => $filename);
+		$params = array('import' => $filename, 'recovery_operation' => $HTTP_POST_VARS['recovery_operation']);
 		$total = isset($HTTP_POST_VARS['total']) && is_scalar($HTTP_POST_VARS['total']) ? intval($HTTP_POST_VARS['total']) : 0;
 		$total = max(0, min(XS_MAX_ITEMS_PER_STYLE, $total));
 		$params['total'] = $total;
@@ -219,6 +221,7 @@ if(!empty($HTTP_GET_VARS['importstyle']) && is_scalar($HTTP_GET_VARS['importstyl
 		'FORM_ACTION'			=> append_sid('xs_import.'.$phpEx),
 		'S_RETURN'				=> $return_url ? '<input type="hidden" name="return" value="' . htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8') . '" />' : '',
 		'IMPORT_FILENAME'		=> htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
+		'RECOVERY_OPERATION'		=> bin2hex(phpbb_random_bytes(16)),
 		'STYLE_TEMPLATE'		=> htmlspecialchars($header['template'], ENT_QUOTES, 'UTF-8'),
 		'STYLE_FILENAME'		=> htmlspecialchars($file, ENT_QUOTES, 'UTF-8'),
 		'STYLE_COMMENT'			=> htmlspecialchars($header['comment'], ENT_QUOTES, 'UTF-8'),

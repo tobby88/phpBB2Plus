@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_style_import_receipt.php';
 
 function phpbb_style_policy_id($value, $error)
 {
@@ -27,5 +28,6 @@ function phpbb_style_policy_select($db, $value, $error, $lock = true)
 	$id = phpbb_style_policy_id($value, $error);
 	$rows = phpbb_acl_rows($db, 'SELECT themes_id,template_name,theme_public FROM ' . THEMES_TABLE . ' WHERE themes_id=' . $id . ($lock ? ' FOR UPDATE' : ''));
 	if (count($rows) !== 1 || !phpbb_style_policy_valid($rows[0], false)) { phpbb_acl_error($error); }
+	phpbb_style_import_require_available($db, array($rows[0]['template_name']));
 	return $id;
 }

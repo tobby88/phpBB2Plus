@@ -1225,6 +1225,7 @@ $lang['Permission_Check'] = '<u>Checking Permission:</u><br /><br />The followin
 $lang['File_not_writable_666'] = '<font color="red"><b>is not writable !</b> [change permission to 666]</font>';
 $lang['File_not_writable_777'] = '<font color="red"><b>is not writable !</b> [change permission to 777]</font>';
 //
+$lang['xs_import_pending'] = 'This template has an interrupted import. Resume or roll it back under Import styles before changing it. Other templates remain available.';
 // That's all Folks!
 // -------------------------------------------------
 

@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/../attach_mod/includes/functions_mutation.php';
+require_once dirname(__FILE__) . '/functions_style_import_receipt.php';
 
 function dbmtnc_erc_style_rows($sql)
 {
@@ -65,6 +66,14 @@ function dbmtnc_erc_reset_style($method, $selected, $expected_actor_id)
 	{
 		$db = $lock->connection;
 		if (!dbmtnc_erc_style_authority($expected_actor_id, $guard) || !dbmtnc_erc_style_config()) { return false; }
+		$import_key = phpbb_style_import_receipt_key('fisubsilversh');
+		$imports = dbmtnc_erc_style_rows('SELECT config_name,config_value FROM ' . CONFIG_TABLE . " WHERE config_name='" . $import_key . "'");
+		if (!is_array($imports) || count($imports) > 1) { return false; }
+		if ($imports)
+		{
+			$receipt = phpbb_style_import_receipt($imports[0]['config_value']);
+			if (!$receipt || $imports[0]['config_name'] !== $import_key || $receipt['t'] !== 'fisubsilversh' || $receipt['s'] === 'prepared') { return false; }
+		}
 		$config_guard = 'EXISTS (SELECT 1 FROM (SELECT COUNT(*) AS row_count,'
 			. " SUM(BINARY config_name = 'default_style') AS exact_count FROM " . CONFIG_TABLE
 			. " WHERE config_name = 'default_style') erc_style_current WHERE row_count = 1 AND exact_count = 1)";

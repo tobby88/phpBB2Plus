@@ -162,6 +162,14 @@ try
             ercs_reset();$before=ercs_rows();ercs_check(dbmtnc_erc_reset_style('select_theme','1',$actor)===false&&ercs_rows()===$before&&$style_state->owner===null,'Invalid/rebound/non-board actor does not write or retain lock');$cases++;
         }
     }
+    foreach(array('select_theme','recreate_theme') as $method){foreach(array('prepared','committed','rolledback','invalid') as $state){
+        ercs_reset($method);$receipt=array('v'=>1,'t'=>'fisubsilversh','o'=>str_repeat('a',32),'s'=>$state,'h'=>str_repeat('b',64),'a'=>str_repeat('c',64));
+        ercs_sql("INSERT INTO fixture_config VALUES('".phpbb_style_import_receipt_key('fisubsilversh')."','".mysqli_real_escape_string($peer,json_encode($receipt))."')");
+        $before=ercs_rows();$out=ercs_run();
+        if($state==='prepared'||$state==='invalid'){ercs_check($out[0]===''&&$out[1]!==''&&ercs_rows()===$before,'Emergency style repair respects pending/corrupt import: '.$method.'/'.$state);}
+        else{ercs_check($out[0]==='saved','Terminal import does not block emergency style repair: '.$method.'/'.$state);}
+        $cases++;
+    }}
     echo "ERC style: $cases native actual-controller cases passed.\n";
 }
 finally

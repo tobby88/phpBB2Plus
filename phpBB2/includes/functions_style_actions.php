@@ -58,6 +58,10 @@ function phpbb_style_action_save($database, $request)
 		$rows = phpbb_acl_rows($db, 'SELECT themes_id,template_name,theme_public FROM ' . THEMES_TABLE . ' WHERE themes_id IN (' . implode(',', $ids) . ') ORDER BY themes_id FOR UPDATE');
 		$themes = array(); foreach ($rows as $row) { $themes[(int)$row['themes_id']] = $row; }
 		if (count($themes) !== count($ids)) { phpbb_acl_error('xs_invalid_style_id'); }
+		$affected = $action === 'override' ? array($default_id) : array($id);
+		if ($action === 'moveaway') { $affected[] = $destination ? $destination : $default_id; }
+		$affected_templates = array(); foreach ($affected as $affected_id) { $affected_templates[] = $themes[$affected_id]['template_name']; }
+		phpbb_style_import_require_available($db, $affected_templates);
 		// A new default may repair an inaccessible old default; other actions
 		// must not build further state on a missing/non-public board default.
 		$new_default = $action === 'default' ? $id : $default_id;
