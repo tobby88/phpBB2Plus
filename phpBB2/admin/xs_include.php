@@ -1163,8 +1163,7 @@ function pack_dir($dir1, $dir2, $search, $replace)
 {
 	global $pack_error, $pack_list, $pack_replace, $pack_file_count, $pack_unpacked_bytes, $lang;
 	// replacements in content
-	$search2 = array('templates/'.$search.'/'.$search, 'templates/'.$search);
-	$replace2 = array('templates/'.$replace.'/'.$replace, 'templates/'.$replace);
+	$text_path_pattern = '~templates/' . preg_quote($search, '~') . '(?![A-Za-z0-9_.-])(?:/(' . preg_quote($search, '~') . '))?~';
 	// replacements in filename
 	$search3 = './'.$search;
 	$replace3 = './'.$replace;
@@ -1290,7 +1289,11 @@ function pack_dir($dir1, $dir2, $search, $replace)
 			if($search !== $replace && preg_match('/\.(?:tpl|css|js|html?|txt|cfg|xml|svg|json)$/iD', $file)
 				&& strpos($file_str, "\0") === false && preg_match('//u', $file_str) === 1)
 			{
-				$file_str = str_replace($search2, $replace2, $file_str);
+				// One pass: a new name containing the old name must not be
+				// rewritten again. Do not touch similarly named sibling styles.
+				$file_str = preg_replace_callback($text_path_pattern, function ($match) use ($replace) {
+					return 'templates/' . $replace . (isset($match[1]) && $match[1] !== '' ? '/' . $replace : '');
+				}, $file_str);
 			}
 		}
 		$pack_unpacked_bytes += strlen($file_str);

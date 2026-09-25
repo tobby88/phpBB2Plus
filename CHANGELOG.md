@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Rewrite exported template paths in one pass and match complete template-name
+  components. Names such as `source_copy` no longer receive repeated suffixes,
+  and references to similarly named sibling templates remain untouched.
 - Preserve binary and unknown-format asset contents when exporting/cloning a
   template under a new name. Rewrite references only in recognized UTF-8 text
   formats without NUL bytes; retain nested paths for directories named `0`
