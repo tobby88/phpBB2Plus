@@ -4,6 +4,7 @@ define('IN_PHPBB', true); define('ADMIN', 1); define('GENERAL_ERROR', 2); define
 define('THEMES_TABLE', 'fixture_themes'); define('THEMES_NAME_TABLE', 'fixture_names');
 define('USERS_TABLE', 'fixture_users'); define('SESSIONS_TABLE', 'fixture_sessions'); define('JR_ADMIN_TABLE', 'fixture_jr');
 define('ATTACHMENTS_TABLE', 'fixture_attachments');
+if (!defined('CONFIG_TABLE')) { define('CONFIG_TABLE', 'fixture_config'); }
 $sd_source = dirname(dirname(__DIR__)) . '/phpBB2/'; $phpEx = 'php';
 require $sd_source . 'includes/php_compat.php';
 require $sd_source . 'includes/functions_acl_storage.php';
@@ -107,6 +108,9 @@ try {
   $after = sd_snapshot(); sd_check($out === 'error' && $after[0] !== $before[0] && $after[1] === $before[1], 'Reproduce partially persisted actual editor');
   echo "Reproduced: failed label write leaves new style properties persisted and old labels/cache intact.\n";
  } else {
+  sd_check(preg_match('/CREATE TABLE phpbb_config\s*\([\s\S]*?;/', $schema, $config_definition) === 1, 'Canonical default-style configuration');
+  sd_sql(str_replace('phpbb_config', CONFIG_TABLE, $config_definition[0]));
+  sd_sql("INSERT INTO fixture_config VALUES ('default_style','1')");
   $cases = 0; $serialized = 0;
   $request = array('edit_style_name' => addslashes("Änderung ' \\ 😀"), 'edit_tr_color1' => '123456', 'name_tr_color1' => addslashes("Grün ' \\ 😀"));
   foreach (array('root', 'delegated') as $actor) { foreach (array(true, false) as $labels) {
@@ -200,6 +204,15 @@ try {
    sd_check(sd_run(array('edit'=>(string)$high_id,'edit_style_name'=>'High ID','name_tr_color1'=>'Größe 😀'))==='saved','Actual label editor accepts full theme ID capacity');
    $labels=sd_snapshot();sd_check($labels[1][0]['themes_id']===(string)$high_id&&$labels[1][0]['tr_color1_name']==='Größe 😀','High ID label persisted exactly');sd_unlocked();$cases++;
   }
+  foreach(array('root','delegated') as $actor){
+   sd_reset($actor);$before=sd_snapshot();sd_check(sd_run(array('edit_theme_public'=>'0','edit_style_name'=>'after'))==='error'&&sd_snapshot()===$before,'Current default cannot be hidden by property editor');sd_unlocked();$cases++;
+   sd_reset($actor);sd_check(sd_run(array('edit'=>'2','edit_theme_public'=>'0','edit_style_name'=>'Private'))==='saved','Non-default style may be private');sd_unlocked();$cases++;
+   sd_reset($actor);sd_sql("UPDATE fixture_themes SET template_name='retired',theme_public=0 WHERE themes_id=2");$before=sd_snapshot();sd_check(sd_run(array('edit'=>'2','edit_theme_public'=>'1','edit_style_name'=>'after'))==='error'&&sd_snapshot()===$before,'Retired template cannot become public');sd_unlocked();$cases++;
+   sd_reset($actor);sd_sql('UPDATE fixture_themes SET theme_public=0 WHERE themes_id=1');sd_check(sd_run(array('edit_theme_public'=>'1','edit_style_name'=>'Repaired'))==='saved','Existing private default can be repaired');sd_unlocked();$cases++;
+  }
+  foreach(array('missing','alias','invalid') as $bad){sd_reset();sd_sql("DELETE FROM fixture_config");if($bad!=='missing'){sd_sql("INSERT INTO fixture_config VALUES ('".($bad==='alias'?'Default_style':'default_style')."','".($bad==='invalid'?'999999999':'1')."')");}$before=sd_snapshot();sd_check(sd_run(array('edit'=>'2','edit_theme_public'=>'0','edit_style_name'=>'after'))==='error'&&sd_snapshot()===$before,'Invalid default metadata rejected before visibility writes');sd_sql('DELETE FROM fixture_config');sd_sql("INSERT INTO fixture_config VALUES ('default_style','1')");$cases++;}
+  sd_reset();$blocked=false;$sd_hook=function($sql)use(&$blocked){if(strpos($sql,'UPDATE fixture_themes ')!==0){return;}$GLOBALS['sd_hook']=null;$r=$GLOBALS['peer']->sql_query("UPDATE fixture_config SET config_value='2' WHERE config_name='default_style'");if(!$r){$e=$GLOBALS['peer']->sql_error();sd_check((int)$e['code']===1205,'Only current row-lock timeout');$blocked=true;}};
+  sd_check(sd_run(array('edit'=>'2','edit_theme_public'=>'0','edit_style_name'=>'Private'))==='saved'&&$blocked,'Visibility save serializes a concurrent default switch');sd_unlocked();$cases++;
   echo 'Style data native checks: ' . $cases . ' cases; ' . $serialized . " revocations serialized after save\n";
  }
 } finally {

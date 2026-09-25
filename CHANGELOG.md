@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep default-style selection and visibility consistent across board settings,
+  the XS style list and the XS properties editor. Validate the actual supported
+  theme, publish a newly selected default in the same transaction, and serialize
+  visibility edits with default changes. Reject hiding the current default or
+  publishing retired templates; clear both affected caches on uncertain saves
+  and report cache-cleanup failures, including recoverable no-op retries.
 - Align user-style and style-label ID columns with the unsigned MEDIUMINT theme
   key in fresh installations and the post-1.53a updater, before assigning the
   standard style. Add a targeted `--style-ids-only` migration with read-only

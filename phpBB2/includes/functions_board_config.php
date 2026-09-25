@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
+require_once dirname(__FILE__) . '/functions_style_policy.php';
 
 function phpbb_board_config_fields()
 {
@@ -169,12 +170,13 @@ function phpbb_board_config_save($database, $request)
 		|| empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($request['sid'])
 		|| !is_string($request['sid']) || !hash_equals($userdata['session_id'], $request['sid'])) { phpbb_acl_error('Session_invalid'); }
 	$db = new PhpbbBoardConfigWriter($database);
-	$invalidate = false;
+	$invalidate = false; $invalidate_themes = false;
 	try
 	{
 		$db->actor();
 		// Validate the COMPLETE request before even refreshing an automatic backup.
-		phpbb_board_config_values($request, phpbb_board_config_read($db));
+		$validated = phpbb_board_config_values($request, phpbb_board_config_read($db));
+		if (isset($validated['default_style'])) { phpbb_style_policy_select($db, $validated['default_style'], 'Board_config_invalid', false); }
 		if (!empty($ctracker_config->settings['auto_recovery']))
 		{
 			if (!defined('CTRACKER_ACP')) { define('CTRACKER_ACP', true); }
@@ -186,7 +188,9 @@ function phpbb_board_config_save($database, $request)
 		$db->sql_query('START TRANSACTION');
 		// Pin metadata first; an ALTER cannot replace transactional storage while
 		// the checks/writes/short authority locks below are in progress.
-		foreach (array(CONFIG_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE) as $table)
+		$tables = array(CONFIG_TABLE, USERS_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE);
+		if (isset($validated['default_style'])) { $tables[] = THEMES_TABLE; }
+		foreach ($tables as $table)
 		{
 			$result = $db->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $db->sql_freeresult($result);
 			$rows = phpbb_acl_rows($db, "SELECT ENGINE, ROW_FORMAT, TABLE_COLLATION FROM information_schema.TABLES t WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" . $db->sql_escape($table) . "'"
@@ -203,11 +207,18 @@ function phpbb_board_config_save($database, $request)
 		$rows = phpbb_acl_rows($db, 'SELECT config_name, config_value FROM ' . CONFIG_TABLE . ' WHERE config_name IN (' . implode(',', $names) . ') ORDER BY config_name FOR UPDATE');
 		$current = array(); foreach ($rows as $row) { $current[$row['config_name']] = $row['config_value']; }
 		$values = phpbb_board_config_values($request, $current);
+		$style_id = isset($values['default_style']) ? phpbb_style_policy_select($db, $values['default_style'], 'Board_config_invalid') : null;
+		if ($style_id !== null) { $values['default_style'] = (string)$style_id; }
 		foreach ($values as $key => $value)
 		{
 			$actor = $db->actor();
 			$invalidate = true;
 			$db->sql_query('UPDATE ' . CONFIG_TABLE . " SET config_value='" . $db->sql_escape($value) . "' WHERE config_name='" . $db->sql_escape($key) . "' AND " . $actor['guard']);
+		}
+		if ($style_id !== null)
+		{
+			$actor = $db->actor(); $invalidate_themes = true;
+			$db->sql_query('UPDATE ' . THEMES_TABLE . ' SET theme_public=1 WHERE themes_id=' . $style_id . ' AND ' . $actor['guard']);
 		}
 		// Serialize the actual commit against account/session/module revocation.
 		$actor = $db->actor(); $sid = $db->sql_escape($userdata['session_id']);
@@ -218,16 +229,36 @@ function phpbb_board_config_save($database, $request)
 		$db->actor();
 		$stored = phpbb_board_config_read($db);
 		foreach ($values as $key => $value) { if (!isset($stored[$key]) || (string)$stored[$key] !== $value) { phpbb_acl_error('Board_config_failed'); } }
+		if ($style_id !== null)
+		{
+			$theme = phpbb_acl_rows($db, 'SELECT template_name,theme_public FROM ' . THEMES_TABLE . ' WHERE themes_id=' . $style_id);
+			if (count($theme) !== 1 || !phpbb_style_policy_valid($theme[0])) { phpbb_acl_error('Board_config_failed'); }
+		}
 		// Authority remains pinned through COMMIT; a later revocation cannot
 		// turn this acknowledged save into a misleading failure.
 		$db->sql_query('COMMIT');
-		foreach ($values as $key => $value) { $board_config[$key] = $value; }
 	}
-	finally
+	finally { phpbb_board_config_finish($db, $invalidate, $invalidate_themes, $phpbb_root_path); }
+	foreach ($values as $key => $value) { $board_config[$key] = $value; }
+}
+
+function phpbb_board_config_finish($db, $invalidate, $invalidate_themes, $root)
+{
+	// Cleanup in its own scope also avoids nested-finally issues on PHP 5.6.
+	try
 	{
-		$db->release();
+		$db->rollback();
 		// Lost acknowledgement may still mean durable new settings. Evict the
 		// legacy cache after attempted writes, including rollback/uncertainty.
-		if ($invalidate) { @unlink($phpbb_root_path . 'cache/config_data.cache'); }
+		$caches = array(); $clean = true;
+		if ($invalidate) { $caches[] = 'config_data.cache'; }
+		if ($invalidate_themes) { $caches[] = 'themes.cache'; }
+		foreach ($caches as $file)
+		{
+			$path = $root . 'cache/' . $file; clearstatcache(true, $path);
+			if ((file_exists($path) || is_link($path)) && !@unlink($path)) { $clean = false; }
+		}
+		if (!$clean) { phpbb_acl_error('Board_config_failed'); }
 	}
+	finally { $db->release(); }
 }

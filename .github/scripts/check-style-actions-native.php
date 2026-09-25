@@ -133,6 +133,10 @@ $sa_body = <<<'PHP'
    foreach(array_slice(sa_snapshot()[3],1) as $user){sd_check($user['user_style']===(string)$high_id,'High ID persists without truncation');}
    sd_unlocked();$cases++;
   }
+  foreach(array(array('style_action'=>'default:16777216'),array('style_action'=>'moveaway:1','movestyle'=>'16777216')) as $request){
+   $denied=false;try{phpbb_style_action_request(array_merge(array('sid'=>'fixture-admin'),$request));}catch(PhpbbAclException $e){$denied=true;}
+   sd_check($denied,'Request parser rejects IDs outside canonical theme capacity before SQL');$cases++;
+  }
   echo 'Style action native checks: '.$cases.' cases; '.$serialized." revocations serialized after save\n";
  }
 } finally {

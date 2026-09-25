@@ -2,6 +2,7 @@
 define('IN_PHPBB',true);define('ADMIN',1);define('GENERAL_MESSAGE',1);define('GENERAL_ERROR',2);define('CRITICAL_ERROR',3);define('END_TRANSACTION',2);
 define('CONFIG_TABLE','fixture_config');define('USERS_TABLE','fixture_users');define('SESSIONS_TABLE','fixture_sessions');define('JR_ADMIN_TABLE','fixture_jr');
 define('CTRACKER_BACKUP','fixture_backup');define('CTRACKER_CONFIG','fixture_ct_config');
+define('THEMES_TABLE','fixture_themes');
 class BoardConfigExit extends RuntimeException {}
 function message_die($level,$message){throw new BoardConfigExit($message);}
 function bc_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
@@ -68,7 +69,8 @@ function bc_snapshot(){return phpbb_board_config_read($GLOBALS['peer']);}
 function bc_reset($actor){
  global $userdata,$bc_hook,$bc_queries,$bc_failure,$ctracker_config;
  $bc_hook=null;$bc_queries=array();$bc_failure='';$ctracker_config->settings=array('auto_recovery'=>0,'detect_misconfiguration'=>0);
- foreach(array(CONFIG_TABLE,USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,CTRACKER_BACKUP) as $table){bc_sql('DELETE FROM '.$table);}
+ foreach(array(CONFIG_TABLE,USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,CTRACKER_BACKUP,THEMES_TABLE) as $table){bc_sql('DELETE FROM '.$table);}
+ bc_sql("INSERT INTO fixture_themes (themes_id,template_name,style_name,theme_public) VALUES (1,'fisubsilversh','Default',1),(2,'fisubsilversh','Private',0),(3,'retired','Old template',1),(4,'fisubsilversh','Invalid flag',2)");
  foreach(phpbb_board_config_fields() as $key){bc_sql("INSERT INTO fixture_config VALUES ('".$key."','0')");}
  bc_sql("UPDATE fixture_config SET config_value='20' WHERE config_name IN ('posts_per_page','topics_per_page')");
  bc_sql("UPDATE fixture_config SET config_value='1' WHERE config_name='default_style'");
@@ -107,6 +109,7 @@ try{
  chdir($bc_root.'/admin');
  $schema=file_get_contents($bc_source.'install/schemas/mysql_schema.sql');bc_check(preg_match('/CREATE TABLE `?phpbb_config`?\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical configuration schema');
  bc_sql(str_replace('phpbb_config',CONFIG_TABLE,$m[0]));bc_sql('CREATE TABLE fixture_backup LIKE fixture_config');
+ bc_check(preg_match('/CREATE TABLE phpbb_themes\s*\([\s\S]*?;/',$schema,$theme_definition)===1,'Canonical theme schema');bc_sql(str_replace('phpbb_themes',THEMES_TABLE,$theme_definition[0]));
  foreach(array('fixture_users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT','fixture_sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT','fixture_jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table=>$columns){bc_sql('CREATE TABLE '.$table.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
  bc_sql('SET SESSION innodb_lock_wait_timeout=1');
  $cases=0;$serialized=0;
@@ -142,9 +145,36 @@ try{
   bc_sql('DROP TABLE fixture_config');bc_sql(str_replace('phpbb_config',CONFIG_TABLE,$m[0]));
  }
  bc_reset('root');bc_sql("DELETE FROM fixture_config WHERE config_name='site_desc'");$before=bc_snapshot();bc_check(bc_run(array('site_desc'=>'after'))==='storage'&&bc_snapshot()===$before,'Missing controls require migration, not implicit creation');
+ foreach(array('root','delegated') as $actor){
+  foreach(array('3','4','999','16777216') as $invalid){bc_reset($actor);$before=bc_snapshot();$ctracker_config->settings['auto_recovery']=1;
+   bc_check(bc_run(array('default_style'=>$invalid,'site_desc'=>'after'))==='invalid'&&bc_snapshot()===$before,'Invalid default rejected before partial settings save');
+   bc_check(!array_filter($bc_queries,function($sql){return preg_match('/^(INSERT|UPDATE|DELETE|CREATE|DROP|COMMIT)\b/',$sql);}), 'Invalid style does not refresh automatic backup');$cases++;
+  }
+  bc_reset($actor);bc_check(strpos(bc_run(array('default_style'=>'0002','site_desc'=>'after')),'saved')===0,'Private standard style can become default atomically');
+  $theme=phpbb_acl_rows($peer,'SELECT theme_public FROM fixture_themes WHERE themes_id=2');bc_check($theme[0]['theme_public']==='1'&&bc_snapshot()['default_style']==='2'&&$board_config['default_style']==='2','Canonical ID and public default persisted');$cases++;
+  foreach(array('UPDATE fixture_themes ','COMMIT','commit-ack') as $failure){bc_reset($actor);$before=bc_snapshot();$bc_failure=$failure;
+   file_put_contents($bc_root.'/cache/config_data.cache','old');file_put_contents($bc_root.'/cache/themes.cache','old');
+   bc_check(bc_run(array('default_style'=>'2','site_desc'=>'after'))==='storage','Style/config failure reported');$theme=phpbb_acl_rows($peer,'SELECT theme_public FROM fixture_themes WHERE themes_id=2');
+   bc_check($failure==='commit-ack'?(bc_snapshot()['default_style']==='2'&&$theme[0]['theme_public']==='1'):(bc_snapshot()===$before&&$theme[0]['theme_public']==='0'),'Both rows commit or rollback together');
+   bc_check(!is_file($bc_root.'/cache/config_data.cache')&&!is_file($bc_root.'/cache/themes.cache'),'Both caches invalidated on failed/uncertain writes');$cases++;
+  }
+  bc_reset($actor);bc_run(array('default_style'=>'2'));$writes=array_values(array_filter($bc_queries,function($sql){return bc_boundary($sql)||strpos($sql,'UPDATE fixture_themes ')===0;}));
+  foreach(array('missing',$actor==='root'?'role':'grant') as $kind){for($boundary=1;$boundary<=count($writes);$boundary++){
+   bc_reset($actor);$before=bc_snapshot();$seen=0;$blocked=false;$reached=false;
+   $bc_hook=function($sql)use($boundary,$kind,&$seen,&$blocked,&$reached){if(!(bc_boundary($sql)||strpos($sql,'UPDATE fixture_themes ')===0)||++$seen!==$boundary){return;}$GLOBALS['bc_hook']=null;$reached=true;if(!$GLOBALS['peer']->sql_query(bc_revocation($kind))){$e=$GLOBALS['peer']->sql_error();bc_check((int)$e['code']===1205,'Native authority lock timeout only');$blocked=true;}};
+   $result=bc_run(array('default_style'=>'2'));$theme=phpbb_acl_rows($peer,'SELECT theme_public FROM fixture_themes WHERE themes_id=2');bc_check($reached,'Every coupled-style write/commit boundary visited');
+   bc_check($blocked?(strpos($result,'saved')===0&&$theme[0]['theme_public']==='1'):(strpos($result,'saved')!==0&&bc_snapshot()===$before&&$theme[0]['theme_public']==='0'),'Revocation cannot split default and visibility');$cases++;
+  }}
+ }
+ foreach(array('config_data.cache','themes.cache') as $blocked){bc_reset('root');mkdir($bc_root.'/cache/'.$blocked);
+  try{bc_check(bc_run(array('default_style'=>'2'))==='storage','Cache failure not falsely successful');}finally{rmdir($bc_root.'/cache/'.$blocked);}
+  file_put_contents($bc_root.'/cache/'.$blocked,'stale');bc_check(strpos(bc_run(array('default_style'=>'2')),'saved')===0&&!is_file($bc_root.'/cache/'.$blocked),'No-op retry repairs remaining cache');$cases++;
+ }
+ foreach(array('ENGINE=MyISAM','ROW_FORMAT=COMPACT','CONVERT TO CHARACTER SET latin1') as $legacy){bc_reset('root');bc_sql('ALTER TABLE fixture_themes '.$legacy);$before=bc_snapshot();bc_check(bc_run(array('default_style'=>'2'))==='storage'&&bc_snapshot()===$before,'Theme storage validated before coupled save');bc_sql('ALTER TABLE fixture_themes ENGINE=InnoDB ROW_FORMAT=DYNAMIC, CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$cases++;}
  echo 'Native board configuration checks: '.$cases.' cases; '.$serialized." serialized before revocation\n";
 }finally{
  $bc_hook=null;$bc_failure='';$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();chdir($bc_previous);
+ foreach(array('config_data.cache','themes.cache') as $file){if(is_file($bc_root.'/cache/'.$file)){unlink($bc_root.'/cache/'.$file);}}
  foreach(array_reverse($bc_files) as $file){unlink($file);}foreach(array_reverse($bc_dirs) as $dir){rmdir($dir);}
  restore_error_handler();
 }

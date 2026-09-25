@@ -27,11 +27,11 @@ function phpbb_style_action_request($request)
 		if (!in_array($m[2], array('0','1'), true)) { phpbb_acl_error('xs_actions_save_failed'); }
 		return array($action, (int)$m[2], null);
 	}
-	$id = phpbb_acl_id($m[2]); $destination = $action === 'admin' ? (int)$m[3] : null;
+	$id = phpbb_style_policy_id($m[2], 'xs_invalid_style_id'); $destination = $action === 'admin' ? (int)$m[3] : null;
 	if ($action === 'moveaway')
 	{
 		if (!isset($request['movestyle']) || !is_string($request['movestyle'])) { phpbb_acl_error('xs_actions_save_failed'); }
-		$destination = $request['movestyle'] === '0' ? 0 : phpbb_acl_id($request['movestyle']);
+		$destination = $request['movestyle'] === '0' ? 0 : phpbb_style_policy_id($request['movestyle'], 'xs_invalid_style_id');
 	}
 	return array($action, $id, $destination);
 }
@@ -52,7 +52,7 @@ function phpbb_style_action_save($database, $request)
 			$config[$row['config_name']] = $row['config_value'];
 		}
 		if (count($config) !== 2 || !in_array($config['override_user_style'], array('0','1'), true)) { phpbb_acl_error('xs_actions_save_failed'); }
-		$default_id = phpbb_acl_id($config['default_style']);
+		$default_id = phpbb_style_policy_id($config['default_style'], 'xs_invalid_style_id');
 		$ids = array($default_id); if ($action !== 'override') { $ids[] = $id; } if ($action === 'moveaway' && $destination) { $ids[] = $destination; }
 		$ids = array_values(array_unique($ids)); sort($ids);
 		$rows = phpbb_acl_rows($db, 'SELECT themes_id,template_name,theme_public FROM ' . THEMES_TABLE . ' WHERE themes_id IN (' . implode(',', $ids) . ') ORDER BY themes_id FOR UPDATE');
@@ -61,9 +61,9 @@ function phpbb_style_action_save($database, $request)
 		// A new default may repair an inaccessible old default; other actions
 		// must not build further state on a missing/non-public board default.
 		$new_default = $action === 'default' ? $id : $default_id;
-		if ($themes[$new_default]['template_name'] !== 'fisubsilversh' || ($action !== 'default' && (int)$themes[$new_default]['theme_public'] !== 1)) { phpbb_acl_error('xs_invalid_style_id'); }
+		if (!phpbb_style_policy_valid($themes[$new_default], $action !== 'default')) { phpbb_acl_error('xs_invalid_style_id'); }
 		$target = $action === 'moveusers' ? $id : ($action === 'moveaway' ? $destination : 0);
-		if ($target && ($themes[$target]['template_name'] !== 'fisubsilversh' || (int)$themes[$target]['theme_public'] !== 1)) { phpbb_acl_error('xs_invalid_style_id'); }
+		if ($target && !phpbb_style_policy_valid($themes[$target])) { phpbb_acl_error('xs_invalid_style_id'); }
 		if ($action === 'admin' && (($id === $default_id && $destination === 0) || ($destination === 1 && $themes[$id]['template_name'] !== 'fisubsilversh'))) { phpbb_acl_error('xs_invalid_style_id'); }
 		$sqls = array(); $user_ids = array(); $user_value = null; $public = null;
 		if ($action === 'default')
