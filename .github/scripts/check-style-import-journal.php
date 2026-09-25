@@ -66,7 +66,10 @@ try
 	sij_check($files->read('fixture/first.tpl', strlen($old)) === $old, 'Bounded binary read');
 	sij_denied(function () use ($files, $old) { $files->read('fixture/first.tpl', strlen($old) - 1); }, 'Over-limit read refused');
 
-	$command = escapeshellarg(PHP_BINARY) . ' -n ' . escapeshellarg(__FILE__) . ' --interrupted-child '
+	// Linux PHP 5/7 may load JSON as an ini-configured shared extension.
+	// Keep that configured runtime for the child, just as native recovery does.
+	$child_options = DIRECTORY_SEPARATOR === '\\' ? ' -n ' : ' ';
+	$command = escapeshellarg(PHP_BINARY) . $child_options . escapeshellarg(__FILE__) . ' --interrupted-child '
 		. escapeshellarg($base) . ' ' . escapeshellarg($id) . ' ' . escapeshellarg($seal) . ' ' . escapeshellarg($target);
 	$process = proc_open($command, array(0=>array('pipe','r'), 1=>array('pipe','w'), 2=>array('pipe','w')), $pipes, null, null, array('bypass_shell'=>true));
 	sij_check(is_resource($process), 'Real interrupted subprocess started'); fclose($pipes[0]);
