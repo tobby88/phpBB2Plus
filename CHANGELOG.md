@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Retire stale XS file-removal capabilities durably before importing new files,
+  including upload-only imports and later failed/uncertain registrations. Keep
+  shared ownership across the intent and registration transactions; revalidate
+  current authority and the selection before continuing after the first commit.
 - Make archive-import style/default registration transactional, with native IDs,
   current authority/ownership throughout publication, preserved field labels,
   NULL/numeric/UTF-8 validation and cache recovery on uncertain outcomes.

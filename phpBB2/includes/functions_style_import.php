@@ -43,6 +43,23 @@ function phpbb_style_import_selection($request, $header, $entries, $archive)
 	return array($batch, $default);
 }
 
+function phpbb_style_import_retire_cleanup($db, $template_name)
+{
+	if (strcasecmp($template_name, 'fisubsilversh') === 0) { return false; }
+	$key = phpbb_style_removal_receipt_key($template_name);
+	$rows = phpbb_acl_rows($db, 'SELECT config_name,config_value FROM ' . CONFIG_TABLE . " WHERE config_name='" . $key . "' FOR UPDATE");
+	if (!$rows) { return false; }
+	$receipt = count($rows) === 1 ? phpbb_style_removal_receipt($rows[0]['config_value']) : false;
+	if (!$receipt || $rows[0]['config_name'] !== $key || $receipt['template'] !== $template_name) { phpbb_acl_error('xs_import_failed'); }
+	if ($receipt['state'] === 'done') { return false; }
+	// A request-local lock is not enough: an old cleanup form could run after
+	// upload-only import (or a failed registration). Retire its capability in
+	// a separate confirmed commit BEFORE publishing any new filesystem bytes.
+	$receipt['token'] = bin2hex(phpbb_random_bytes(16)); $receipt['state'] = 'done';
+	phpbb_style_removal_store_receipt($db, $template_name, $receipt);
+	return true;
+}
+
 // File publication is a separate, checked callback under the same current
 // authority/range/owner locks as registration. Files cannot be rolled back by
 // SQL; report any failure and never commit a partial metadata/default batch.
@@ -53,22 +70,31 @@ function phpbb_style_import($database, $request, $header, $entries, $archive, $p
 	$db = new PhpbbStyleImportWriter($database); $attempted = false; $default_id = null;
 	try
 	{
-		phpbb_style_removal_start($db, false); $names = array();
-		// Reject collation-equivalent names and cross-template collisions before
-		// publishing even the first file, not halfway through registration.
-		foreach ($batch as $values)
+		for ($phase = 0; ; $phase++)
 		{
-			$name = $db->sql_escape($values['style_name']);
-			foreach ($names as $previous)
+			phpbb_style_removal_start($db, false); $names = array();
+			// Reject collation-equivalent names and cross-template collisions before
+			// publishing even the first file, not halfway through registration.
+			foreach ($batch as $values)
 			{
-				$equal = phpbb_acl_rows($db, "SELECT '" . $name . "' COLLATE utf8mb4_unicode_ci = '" . $previous . "' COLLATE utf8mb4_unicode_ci AS same_name");
-				if (count($equal) !== 1 || (int)$equal[0]['same_name'] !== 0) { phpbb_acl_error('xs_import_failed'); }
+				$name = $db->sql_escape($values['style_name']);
+				foreach ($names as $previous)
+				{
+					$equal = phpbb_acl_rows($db, "SELECT '" . $name . "' COLLATE utf8mb4_unicode_ci = '" . $previous . "' COLLATE utf8mb4_unicode_ci AS same_name");
+					if (count($equal) !== 1 || (int)$equal[0]['same_name'] !== 0) { phpbb_acl_error('xs_import_failed'); }
+				}
+				$names[] = $name;
+				$rows = phpbb_acl_rows($db, 'SELECT themes_id,template_name FROM ' . THEMES_TABLE . " WHERE style_name='" . $name . "' FOR UPDATE");
+				if (count($rows) > 1 || ($rows && $rows[0]['template_name'] !== $header['template'])) { phpbb_acl_error('xs_import_failed'); }
 			}
-			$names[] = $name;
-			$rows = phpbb_acl_rows($db, 'SELECT themes_id,template_name FROM ' . THEMES_TABLE . " WHERE style_name='" . $name . "' FOR UPDATE");
-			if (count($rows) > 1 || ($rows && $rows[0]['template_name'] !== $header['template'])) { phpbb_acl_error('xs_import_failed'); }
+			phpbb_style_storage_lock_authority($db);
+			if (!phpbb_style_import_retire_cleanup($db, $header['template'])) { break; }
+			$attempted = true;
+			if ($phase !== 0) { phpbb_acl_error('xs_import_failed'); }
+			$db->sql_query('COMMIT');
+			// Keep the dedicated named owner between transactions. Revalidate the
+			// current actor, default and complete selection after reacquiring ranges.
 		}
-		phpbb_style_storage_lock_authority($db);
 		$guard = function () use ($db) { $db->actor(); };
 		$attempted = true; call_user_func($publish, $guard);
 		$ids = array();

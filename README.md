@@ -46,6 +46,10 @@ local extraction or FTP staging, including path conflicts and truncation.
 Preview remains read-only, and historical XS exports remain readable.
 Import also validates selected definitions before publishing files and holds
 current ACP authority and template ownership through publication/registration.
+If an old file-removal capability exists, import retires it in a separate
+confirmed commit before publishing files. That retirement survives a failed
+registration; an old cleanup form cannot delete the newly imported assets.
+The importer retains ownership and rechecks authority between the two phases.
 The complete style/default database batch is transactional; existing style IDs
 and field labels are preserved. Local and FTP writers preflight destination
 types, refuse linked parents, and stage/check each file before renaming it.

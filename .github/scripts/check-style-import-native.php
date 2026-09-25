@@ -74,6 +74,28 @@ $body=<<<'PHP'
  sd_check(sim_run()==='error'&&$killed&&sim_snapshot()===$before&&file_get_contents($sd_root.'/templates/fisubsilversh/theme_info.cfg')==='preserve','Lost owner connection before rename preserves old file and registration');sd_check(!glob($sd_root.'/templates/fisubsilversh/xs_*'),'Failed stage cleaned');sd_unlocked();$cases++;
  sim_reset();$blocked=false;$sd_hook=function($sql)use(&$blocked){if(strpos($sql,'INSERT INTO fixture_themes ')!==0){return;}$GLOBALS['sd_hook']=null;$r=$GLOBALS['peer']->sql_query("INSERT INTO fixture_themes (template_name,style_name) VALUES ('fisubsilversh','Concurrent')");$e=$GLOBALS['peer']->sql_error();sd_check(!$r&&(int)$e['code']===1205,'Native installer excluded by theme range lock');$blocked=true;};sd_check(sim_run()==='saved'&&$blocked,'Concurrent registration serialized');sd_unlocked();$cases++;
  echo 'Style import native checks: '.$cases.' cases; '.$serialized." revocations serialized\n";
+ function sim_receipt(){return array('template'=>'legacy','id'=>99,'token'=>str_repeat('a',32),'state'=>'pending');}
+ function sim_receipt_reset($actor='root',$receipt=null){sim_reset($actor);sim_archive('legacy');if($receipt===null){$receipt=sim_receipt();}sd_sql("INSERT INTO fixture_config VALUES ('".phpbb_style_removal_receipt_key('legacy')."','".$GLOBALS['peer']->sql_escape(json_encode($receipt))."')");file_put_contents($GLOBALS['sd_root'].'/templates/legacy/theme_info.cfg','preserve');}
+ function sim_old_cleanup_denied(){
+  $denied=false;try{phpbb_style_remove_files($GLOBALS['db'],array('sid'=>'fixture-admin','remove'=>'legacy','remove_token'=>str_repeat('a',32)),new PhpbbStyleLocalFiles($GLOBALS['sd_root'].'/templates'));}catch(PhpbbAclException $e){$denied=true;}
+  sd_check($denied&&is_file($GLOBALS['sd_root'].'/templates/legacy/theme_info.cfg'),'Old removal token cannot delete imported files');sd_unlocked();
+ }
+ $receipt_cases=0;
+ foreach(array('root','delegated') as $actor){
+  sim_receipt_reset($actor);sd_check(sim_run(array('import_install_0'=>'0','import_install_1'=>'0'))==='saved','Upload-only retires old cleanup');sim_old_cleanup_denied();$receipt_cases++;
+  sim_receipt_reset($actor);$before=sd_snapshot();$inserts=0;$sd_hook=function($sql)use(&$inserts){if(strpos($sql,'INSERT INTO fixture_themes ')===0&&++$inserts===2){$GLOBALS['sd_hook']=null;$GLOBALS['sd_failure']='INSERT INTO fixture_themes ';}};
+  sd_check(sim_run()==='error'&&sd_snapshot()===$before,'Failed registration still protects published files');$sd_failure='';sim_old_cleanup_denied();$receipt_cases++;
+  sim_receipt_reset($actor);$sd_failure='lost-ack';sd_check(sim_run()==='error'&&file_get_contents($sd_root.'/templates/legacy/theme_info.cfg')==='preserve','Unconfirmed retirement commit does not publish files');$sd_failure='';sd_check(sim_run()==='saved','Retry after uncertain retirement resumes safely');sim_old_cleanup_denied();$receipt_cases++;
+  sim_receipt_reset($actor);$before=sim_snapshot();$sd_failure='COMMIT';sd_check(sim_run()==='error'&&sim_snapshot()===$before&&file_get_contents($sd_root.'/templates/legacy/theme_info.cfg')==='preserve','Failed retirement commit changes neither capability nor files');$sd_failure='';sd_unlocked();$receipt_cases++;
+  foreach(array('missing',$actor==='root'?'role':'grant') as $change){
+   sim_receipt_reset($actor);$before=sd_snapshot();$sd_after_commit=function()use($change){$GLOBALS['sd_after_commit']=null;sd_sql(sd_revoke($change));};
+   sd_check(sim_run()==='error'&&sd_snapshot()===$before&&file_get_contents($sd_root.'/templates/legacy/theme_info.cfg')==='preserve','Authority revalidated between receipt commit and publication');sd_unlocked();$receipt_cases++;
+  }
+  sim_receipt_reset($actor);$held=false;$sd_after_commit=function()use(&$held){$GLOBALS['sd_after_commit']=null;$lock='attachment:'.md5($GLOBALS['fixture']."\0".ATTACHMENTS_TABLE);$rows=phpbb_acl_rows($GLOBALS['peer'],"SELECT GET_LOCK('".$lock."',0) AS held");sd_check((int)$rows[0]['held']===0,'Named ownership spans both transactions');$held=true;};sd_check(sim_run()==='saved'&&$held,'No cleanup ownership gap');sim_old_cleanup_denied();$receipt_cases++;
+ }
+ foreach(array(array('state'=>'broken'),array('template'=>'other')) as $bad){sim_receipt_reset('root',array_merge(sim_receipt(),$bad));$before=sim_snapshot();sd_check(sim_run()==='error'&&sim_snapshot()===$before&&file_get_contents($sd_root.'/templates/legacy/theme_info.cfg')==='preserve','Malformed old receipt refused before publication');sd_unlocked();$receipt_cases++;}
+ sim_receipt_reset('root',array_merge(sim_receipt(),array('state'=>'done')));sd_check(sim_run(array('import_install_0'=>'0','import_install_1'=>'0'))==='saved','Already retired receipt remains safe without another intent commit');sim_old_cleanup_denied();$receipt_cases++;
+ echo 'Style import receipt checks: '.$receipt_cases." cases passed\n";
 }finally{
  $sd_hook=null;$sd_failure='';$sd_after_commit=null;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();chdir($sd_previous);
  foreach(array('themes.cache','config_data.cache') as $cache){if(is_file($sd_root.'/cache/'.$cache)){unlink($sd_root.'/cache/'.$cache);}}
