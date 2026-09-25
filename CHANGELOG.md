@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve binary and unknown-format asset contents when exporting/cloning a
+  template under a new name. Rewrite references only in recognized UTF-8 text
+  formats without NUL bytes; retain nested paths for directories named `0`
+  instead of treating them as the archive root.
 - Keep XS cache clearing/compilation scoped to the selected template, including
   the valid name `0`. Reject malformed selections instead of treating them as
   "all", escape filesystem names in result messages, and exercise the actual

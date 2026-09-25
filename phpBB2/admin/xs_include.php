@@ -1208,7 +1208,7 @@ function pack_dir($dir1, $dir2, $search, $replace)
 	sort($files, SORT_STRING);
 	sort($subdir, SORT_STRING);
 	// add current directory
-	$base_dir = ($dir2 ? $dir2 : '.') . '/';
+	$base_dir = ($dir2 !== '' ? $dir2 : '.') . '/';
 	$pack_file_count++;
 	if($pack_file_count > XS_MAX_STYLE_FILES || strlen($base_dir) > 100)
 	{
@@ -1285,7 +1285,10 @@ function pack_dir($dir1, $dir2, $search, $replace)
 				return '';
 			}
 			fclose($f);
-			if($search !== $replace)
+			// Renaming template references is a text operation. Applying it to
+			// image/font/other opaque bytes can invalidate the exported asset.
+			if($search !== $replace && preg_match('/\.(?:tpl|css|js|html?|txt|cfg|xml|svg|json)$/iD', $file)
+				&& strpos($file_str, "\0") === false && preg_match('//u', $file_str) === 1)
 			{
 				$file_str = str_replace($search2, $replace2, $file_str);
 			}
@@ -1329,14 +1332,14 @@ function pack_dir($dir1, $dir2, $search, $replace)
 	// add all directories
 	for($i=0; $i<count($subdir); $i++)
 	{
-		$subdir_data = pack_dir($dir1, $dir2 ? $dir2 . '/' . $subdir[$i] : $subdir[$i], $search, $replace);
+		$subdir_data = pack_dir($dir1, $dir2 !== '' ? $dir2 . '/' . $subdir[$i] : $subdir[$i], $search, $replace);
 		if($pack_error)
 		{
 			return '';
 		}
 		$str .= $subdir_data;
 	}
-	if(!$dir2)
+	if($dir2 === '')
 	{
 		$str .= str_repeat("\0", 1024);
 	}

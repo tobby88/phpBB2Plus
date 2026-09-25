@@ -112,6 +112,44 @@ try {
     $exported=pack_style('fixture','fixture',array(array('style_name'=>'Fixture')),'round trip');
     sa_check($exported!==''&&$pack_error==='','Production packer creates a valid fixture');
     sa_check(sa_import($exported)==='success','Production export/import round trip');
+    // Renaming a style must rewrite text references, never opaque asset bytes.
+    $png_chunk=function($type,$bytes){return pack('N',strlen($bytes)).$type.$bytes.pack('N',crc32($type.$bytes));};
+    $binary="\x89PNG\r\n\x1a\n".$png_chunk('IHDR',pack('NNCCCCC',1,1,8,6,0,0,0))
+        .$png_chunk('tEXt',"Comment\0templates/fixture/fixture.png")
+        .$png_chunk('IDAT',gzcompress("\0\xff\0\0\xff")).$png_chunk('IEND','');
+    $opaque='templates/fixture/fixture.data';
+    $text='url(templates/fixture/fixture.png)';
+    file_put_contents($owned.'/templates/fixture/fixture.png',$binary);
+    file_put_contents($owned.'/templates/fixture/opaque.data',$opaque);
+    file_put_contents($owned.'/templates/fixture/fixture.css',$text);
+    file_put_contents($owned.'/templates/fixture/binary.tpl',"\0".$text);
+    file_put_contents($owned.'/templates/fixture/invalid.tpl',"\xff".$text);
+    file_put_contents($owned.'/templates/fixture/vector.svg','<svg><!-- '.$text.' --></svg>');
+    function sa_packed_files($name) {
+        $GLOBALS['pack_error']='';$GLOBALS['pack_list']=array();
+        $packed=pack_style('fixture',$name,array(array('style_name'=>'Fixture')),'round trip');
+        sa_check($packed!==''&&$GLOBALS['pack_error']==='','Renamed packer succeeds');
+        $header=xs_get_style_header('',substr($packed,0,10240));
+        sa_check(is_array($header),'Renamed package has valid header');
+        $archive=gzuncompress(substr($packed,$header['offset']));$result=array();
+        foreach(phpbb_style_archive_entries($archive) as $entry){
+            if($entry['typeflag']===0){$result[$entry['filename']]=substr($archive,$entry['offset'],$entry['size']);}
+        }
+        return $result;
+    }
+    $renamed=sa_packed_files('renamed');
+    sa_check($renamed['renamed.png']===$binary&&$renamed['opaque.data']===$opaque,'Rename preserves binary and unknown-format assets byte for byte');
+    sa_check($renamed['renamed.css']==='url(templates/renamed/renamed.png)','Rename updates CSS references');
+    sa_check($renamed['binary.tpl']==="\0".$text&&$renamed['invalid.tpl']==="\xff".$text,'Non-text or invalid UTF-8 is never rewritten');
+    sa_check($renamed['vector.svg']==='<svg><!-- url(templates/renamed/renamed.png) --></svg>','Text SVG references are updated');
+    $unchanged=sa_packed_files('fixture');
+    sa_check($unchanged['fixture.png']===$binary&&$unchanged['fixture.css']===$text,'Export without renaming leaves text and binary unchanged');
+    mkdir($owned.'/templates/fixture/0',0700);mkdir($owned.'/templates/fixture/0/deep',0700);
+    file_put_contents($owned.'/templates/fixture/0/zero.tpl',$text);
+    file_put_contents($owned.'/templates/fixture/0/deep/leaf.tpl',$text);
+    $renamed=sa_packed_files('renamed');
+    sa_check(isset($renamed['0/zero.tpl'],$renamed['0/deep/leaf.tpl']),'Numeric-zero directory keeps full nested paths and one archive trailer');
+    sa_check($renamed['0/zero.tpl']==='url(templates/renamed/renamed.png)','Text in numeric-zero directory is updated');
     // Unique entries exercise the actual limit, rather than duplicate rejection.
     $many='';for($i=0;$i<XS_MAX_STYLE_FILES;$i++){$many.=sa_entry('item'.$i.'.tpl');}
     sa_check(count(phpbb_style_archive_entries($many.$end))===XS_MAX_STYLE_FILES,'Exact entry limit accepted');
@@ -119,6 +157,6 @@ try {
     sa_check($denied,'Entry limit enforced');
     echo 'Style archive: '.$checks." assertions passed\n";
 } finally {
-    foreach(array('/includes/functions_style_archive.php','/includes/functions_style_import_recovery.php','/includes/functions_style_import_files.php','/templates/fixture/nested/ok.tpl','/templates/fixture/empty.tpl','/templates/fixture/first.tpl','/input.style') as $path){if(is_file($owned.$path)){unlink($owned.$path);}}
-    foreach(array('/templates/fixture/nested','/templates/fixture','/templates','/includes','') as $path){if(is_dir($owned.$path)){rmdir($owned.$path);}}
+    foreach(array('/includes/functions_style_archive.php','/includes/functions_style_import_recovery.php','/includes/functions_style_import_files.php','/templates/fixture/nested/ok.tpl','/templates/fixture/empty.tpl','/templates/fixture/first.tpl','/input.style','/templates/fixture/fixture.png','/templates/fixture/opaque.data','/templates/fixture/fixture.css','/templates/fixture/binary.tpl','/templates/fixture/invalid.tpl','/templates/fixture/vector.svg','/templates/fixture/0/zero.tpl','/templates/fixture/0/deep/leaf.tpl') as $path){if(is_file($owned.$path)){unlink($owned.$path);}}
+    foreach(array('/templates/fixture/0/deep','/templates/fixture/0','/templates/fixture/nested','/templates/fixture','/templates','/includes','') as $path){if(is_dir($owned.$path)){rmdir($owned.$path);}}
 }
