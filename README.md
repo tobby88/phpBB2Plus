@@ -44,8 +44,16 @@ Only the supported `fisubsilversh` template is published for normal users.
 Archive import/template cloning now validates every archive entry before any
 local extraction or FTP staging, including path conflicts and truncation.
 Preview remains read-only, and historical XS exports remain readable.
-This does not yet make the separate archive file-upload and database-registration
-workflow atomic; a later disk/FTP/database failure can still need recovery.
+Import also validates selected definitions before publishing files and holds
+current ACP authority and template ownership through publication/registration.
+The complete style/default database batch is transactional; existing style IDs
+and field labels are preserved. Local and FTP writers preflight destination
+types, refuse linked parents, and stage/check each file before renaming it.
+An FTP server must support replacing files by rename; a refused rename does
+not trigger deletion of the original file as a workaround.
+Files and SQL are not one atomic operation: a later disk/FTP/database failure
+can still leave transferred files. Keep the source archive and inspect the
+destination before retrying; errors never claim a confirmed successful import.
 Cloning a style's database definition also copies its field labels atomically,
 preserving NULL values. An identical retry reuses the clone rather than creating
 another row; conflicting existing definitions or labels are never overwritten.

@@ -102,7 +102,11 @@ class PhpbbStyleFtpFiles extends PhpbbStyleFiles
 		if ($operation === 'list')
 		{
 			if (function_exists('ftp_mlsd')) { $rows = @ftp_mlsd($this->ftp, $argument); if (is_array($rows)) { return array('mlsd', $rows); } }
-			$rows = @ftp_rawlist($this->ftp, '-a ' . $argument); return is_array($rows) ? array('unix', $rows) : false;
+			$rows = @ftp_rawlist($this->ftp, '-a ' . $argument);
+			// LIST switches are server-specific; some treat "-a path" as a
+			// literal filename. A checked plain LIST still rejects unsafe types.
+			if (!is_array($rows)) { $rows = @ftp_rawlist($this->ftp, $argument); }
+			return is_array($rows) ? array('unix', $rows) : false;
 		}
 		return $operation === 'dir' ? @ftp_rmdir($this->ftp, $argument) : @ftp_delete($this->ftp, $argument);
 	}

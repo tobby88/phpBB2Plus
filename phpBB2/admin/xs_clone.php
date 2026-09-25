@@ -191,7 +191,7 @@ if(!empty($HTTP_POST_VARS['clone_tpl']) && !defined('DEMO_MODE'))
 	$filename = basename($tmp_filename);
 	// prepare import variables
 	$total = $count;
-	$HTTP_POST_VARS['total'] = $count;
+	$HTTP_POST_VARS['total'] = (string)$count;
 	$list_only = false;
 	$get_file = '';
 	define('XS_CLONING', true);

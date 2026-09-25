@@ -841,6 +841,12 @@ function xs_get_themeinfo($tpl)
 	{
 		return array();
 	}
+	return xs_parse_themeinfo($tpl, $contents);
+}
+
+function xs_parse_themeinfo($tpl, $contents)
+{
+	if (!is_string($tpl) || xs_tpl_name($tpl) !== $tpl || !is_string($contents) || strlen($contents) > 1024 * 1024) { return array(); }
 
 	// theme_info.cfg used to be included as PHP. Parse its simple assignment
 	// format instead so an imported style cannot execute arbitrary code.

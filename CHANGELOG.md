@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make archive-import style/default registration transactional, with native IDs,
+  current authority/ownership throughout publication, preserved field labels,
+  NULL/numeric/UTF-8 validation and cache recovery on uncertain outcomes.
+  Preflight complete definitions and filesystem destination types before writes;
+  refuse linked parents and publish checked staged files locally or over FTP.
+  Preview no longer shares the mutation path. Full file-batch rollback remains
+  separate from SQL atomicity and is not promised by the import error message.
+  Remove the obsolete recursive FTP action builder replaced by checked publication.
 - Preflight the complete XS style archive before extracting or staging files.
   Reject truncated tails, duplicate/ambiguous paths, file-directory conflicts,
   links and executable entries without overwriting valid prefix files first.

@@ -1,5 +1,7 @@
 <?php
 
+$lang['xs_import_failed'] = 'Der Style-Import konnte nicht bestätigt werden. Eine teilweise Style-Registrierung wurde nicht gespeichert. Dateien können bereits übertragen worden sein; bitte das Ziel vor einem erneuten Versuch prüfen. Das Quellarchiv nicht löschen.';
+
 /***************************************************************************
  *                                lang_xs.php
  *                                -----------
