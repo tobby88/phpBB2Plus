@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Align user-style and style-label ID columns with the unsigned MEDIUMINT theme
+  key in fresh installations and the post-1.53a updater, before assigning the
+  standard style. Add a targeted `--style-ids-only` migration with read-only
+  planning, backup/maintenance checks, content/schema verification and safe
+  retries. Preserve valid preferences/labels; reject unsupported definitions or
+  out-of-range values rather than silently truncating or remapping them.
 - Validate the complete eXtreme Styles configuration/FTP form before changing
   stored values. Save settings and template invalidation time atomically under
   current ACP authority, preserve unrelated settings and avoid speculative local

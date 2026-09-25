@@ -34,6 +34,27 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Style reference migration
+
+The installer and post-1.53a updater use unsigned MEDIUMINT for style IDs and
+their user/label references. Older user columns could only store IDs through
+127, and label columns through 65,535, despite themes supporting 16,777,215.
+For an otherwise updated installation, use the targeted, read-only plan:
+
+```sh
+php update/update_from_153a.php --style-ids-only
+php update/update_from_153a.php --style-ids-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+The same verified-backup and **stopped web/cron writers** requirements below
+apply. This mode only changes column definitions; it does not select/delete
+styles, reassign users, delete labels or stamp the application version. Valid
+defaults, comments, indexes and complete table contents are verified. Unsupported
+custom schemas or out-of-range references stop before DDL and require review;
+values are never silently truncated or remapped. DDL auto-commits: after an error,
+keep writers stopped and inspect the result before retrying. Repeated runs skip
+already migrated columns. Do not combine this mode with `--storage-only`.
+
 ## InnoDB storage migration
 
 Fresh installations use InnoDB with utf8mb4. Existing installations are converted

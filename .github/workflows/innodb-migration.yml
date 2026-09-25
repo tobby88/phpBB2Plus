@@ -59,6 +59,10 @@ jobs:
         env:
           PHPBB_ERC_STYLE_NATIVE: '1'
           PHPBB_ERC_STYLE_PASSWORD: fixture-only
+      - run: php .github/scripts/check-style-id-migration.php
+        env:
+          PHPBB_STYLE_IDS_NATIVE: '1'
+          PHPBB_STYLE_IDS_PASSWORD: fixture-only
       - run: php .github/scripts/check-style-load-native.php
         env:
           PHPBB_STYLE_LOAD_NATIVE: '1'

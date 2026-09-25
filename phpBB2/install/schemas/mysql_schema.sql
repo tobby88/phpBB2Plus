@@ -536,7 +536,7 @@ CREATE TABLE phpbb_themes (
 # Table structure for table 'phpbb_themes_name'
 #
 CREATE TABLE phpbb_themes_name (
-   themes_id smallint(5) UNSIGNED default '0' NOT NULL,
+   themes_id mediumint(8) UNSIGNED default '0' NOT NULL,
    tr_color1_name char(50),
    tr_color2_name char(50),
    tr_color3_name char(50),
@@ -653,7 +653,7 @@ CREATE TABLE phpbb_users (
    user_level tinyint(4) default '0',
    user_posts mediumint(8) UNSIGNED default '0' NOT NULL,
    user_timezone decimal(5,2) default '0' NOT NULL,
-   user_style tinyint(4),
+   user_style mediumint(8) UNSIGNED default NULL,
    user_lang varchar(255),
    user_dateformat varchar(14) default 'd M Y H:i' NOT NULL,
    user_new_privmsg smallint(5) UNSIGNED default '0' NOT NULL,

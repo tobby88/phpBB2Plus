@@ -22,6 +22,7 @@ $forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 require_once $forum_root . '/includes/functions_user_ids.php';
 require_once __DIR__ . '/innodb_migration.php';
+require_once __DIR__ . '/style_id_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
@@ -34,6 +35,7 @@ function update_usage()
 	echo "  php update/update_from_153a.php --database=clone_name       Use a clone\n";
 	echo "  php update/update_from_153a.php --self-test                 Test schema input\n";
 	echo "  --storage-only         Only convert known existing forum tables to InnoDB\n";
+	echo "  --style-ids-only       Only align style reference column capacity\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
@@ -82,6 +84,9 @@ $seed_statements = update_extract_seed_statements($basic_source);
 
 if (in_array('--self-test', $argv, true))
 {
+	if (!preg_match('/user_style\s+mediumint\(8\)\s+UNSIGNED\s+default\s+NULL/i', $schema_source) ||
+		!preg_match('/CREATE TABLE phpbb_themes_name\s*\(\s*themes_id\s+mediumint\(8\)\s+UNSIGNED/is', $schema_source))
+	{ fwrite(STDERR, "Style reference capacity self-test failed.\n"); exit(3); }
 	if (!is_array($mod_settings_defaults) || !$mod_settings_defaults) { fwrite(STDERR, "Mod Settings defaults are missing.\n"); exit(3); }
 	foreach ($mod_settings_defaults as $key => $value)
 	{
@@ -128,6 +133,10 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
+if (in_array('--style-ids-only', $argv, true) && in_array('--storage-only', $argv, true))
+{
+	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
+}
 $backup_confirmed = in_array('--backup-confirmed', $argv, true);
 if ($apply && !$backup_confirmed)
 {
@@ -630,6 +639,23 @@ try
 }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\n"); exit(3); }
 
+try
+{
+	$style_ids_plan = plus_style_ids_plan($connection, $table_prefix);
+	if (in_array('--style-ids-only', $argv, true))
+	{
+		foreach ($style_ids_plan as $item) { echo $item['sql'] . ";\n"; }
+		if ($apply)
+		{
+			$count = plus_style_ids_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Style ID migration complete: $count columns.\n";
+		}
+		else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nKeep writers stopped after any partial apply; DDL cannot be rolled back.\n"); exit(3); }
+
 $operations = array();
 foreach (array('categories', 'forums', 'topics') as $recovery_table)
 {
@@ -1051,7 +1077,7 @@ $version_operations = update_version_identity_sql($version_table, update_scalar(
 echo ($apply ? 'APPLY' : 'DRY RUN') . " post-1.53a database update\n";
 echo "Database: $dbname\n";
 echo "Table prefix: $table_prefix\n";
-echo 'Operations: ' . (count($operations) + count($version_operations)) . "\n\n";
+echo 'Operations: ' . (count($operations) + count($version_operations) + count($style_ids_plan)) . "\n\n";
 
 if ($legacy_cleanup_count > 0)
 {
@@ -1063,6 +1089,13 @@ if ($apply)
 	// A disabled engine must fail, never silently fall back to MyISAM.
 	update_query_or_fail($connection, "SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'NO_ENGINE_SUBSTITUTION')");
 	update_query_or_fail($connection, "SET SESSION default_storage_engine = InnoDB, default_tmp_storage_engine = InnoDB, innodb_strict_mode = ON");
+}
+// Widen references before the standard-style update can assign a large ID.
+foreach ($style_ids_plan as $item) { echo $item['sql'] . ";\n"; }
+if ($apply)
+{
+	try { plus_style_ids_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true)); }
+	catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; verify backup before retry.\n"); exit(3); }
 }
 foreach ($operations as $sql)
 {

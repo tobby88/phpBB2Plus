@@ -15,7 +15,8 @@ $sa_body = <<<'PHP'
   function assign_vars($data) {} function set_filenames($data) {} function pparse($name) { throw new StyleDataExit('rendered'); }
  }
  $template = new StyleActionTemplate(); $xs_row_class = array('row1', 'row2');
- sd_sql('ALTER TABLE fixture_users ADD user_style TINYINT NULL');
+ sd_check(preg_match('/^\s*user_style\s+([^,]+),/m', $schema, $style_definition) === 1, 'Canonical user style column');
+ sd_sql('ALTER TABLE fixture_users ADD user_style ' . $style_definition[1]);
  sd_check(preg_match('/CREATE TABLE phpbb_config\s*\([\s\S]*?;/', $schema, $m) === 1, 'Canonical configuration schema');
  sd_sql(str_replace('phpbb_config', CONFIG_TABLE, $m[0]));
  $sa_helper = $sd_root . '/includes/functions_style_actions.php';
@@ -125,6 +126,12 @@ $sa_body = <<<'PHP'
    sa_reset();$sd_after_commit=function($owner)use($change){if($change==='disconnect'){sd_sql('KILL CONNECTION '.mysqli_thread_id($owner->db_connect_id));}else{sd_sql(sd_revoke($change));}
     $GLOBALS['sd_hook']=function($sql,$connection)use($owner){sd_check($connection!==$owner,'No writer SQL after acknowledged COMMIT');};};
    sd_check(sa_run('default:2')==='rendered','Confirmed action survives later revocation/disconnect');sd_unlocked();$cases++;
+  }
+  foreach(array(128,65536,16777215) as $high_id){
+   sa_reset();sd_sql('UPDATE fixture_themes SET themes_id='.$high_id.' WHERE themes_id=3');
+   sd_check(sa_run('moveusers:'.$high_id)==='rendered','Actual assignment accepts full theme ID capacity');
+   foreach(array_slice(sa_snapshot()[3],1) as $user){sd_check($user['user_style']===(string)$high_id,'High ID persists without truncation');}
+   sd_unlocked();$cases++;
   }
   echo 'Style action native checks: '.$cases.' cases; '.$serialized." revocations serialized after save\n";
  }

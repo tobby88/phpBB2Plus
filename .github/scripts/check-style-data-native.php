@@ -195,6 +195,11 @@ try {
    } catch (PhpbbAclException $e) { $caught = true; } finally { $owner->release(); }
    sd_check($caught && sd_snapshot() === $before, 'Writer lifecycle rejects ' . $mode); sd_unlocked(); $cases++;
   }
+  foreach(array(65536,16777215) as $high_id){
+   sd_reset('root',false);sd_sql('UPDATE fixture_themes SET themes_id='.$high_id.' WHERE themes_id=1');
+   sd_check(sd_run(array('edit'=>(string)$high_id,'edit_style_name'=>'High ID','name_tr_color1'=>'Größe 😀'))==='saved','Actual label editor accepts full theme ID capacity');
+   $labels=sd_snapshot();sd_check($labels[1][0]['themes_id']===(string)$high_id&&$labels[1][0]['tr_color1_name']==='Größe 😀','High ID label persisted exactly');sd_unlocked();$cases++;
+  }
   echo 'Style data native checks: ' . $cases . ' cases; ' . $serialized . " revocations serialized after save\n";
  }
 } finally {
