@@ -41,8 +41,11 @@ Invalid definitions or conflicting installed names leave the batch unchanged;
 identical retries keep their IDs and clear stale caches. Imported text is checked
 as UTF-8 without silently truncating names or removing literal backslashes.
 Only the supported `fisubsilversh` template is published for normal users.
-This installer hardening does not yet cover the separate archive import/clone
-file-upload workflow.
+Archive import/template cloning now validates every archive entry before any
+local extraction or FTP staging, including path conflicts and truncation.
+Preview remains read-only, and historical XS exports remain readable.
+This does not yet make the separate archive file-upload and database-registration
+workflow atomic; a later disk/FTP/database failure can still need recovery.
 Cloning a style's database definition also copies its field labels atomically,
 preserving NULL values. An identical retry reuses the clone rather than creating
 another row; conflicting existing definitions or labels are never overwritten.

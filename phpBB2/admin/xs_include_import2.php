@@ -110,58 +110,19 @@ if($str === false || !strlen($str))
 //
 // unpack tar file
 //
-$pos = 0;
+require_once($phpbb_root_path . 'includes/functions_style_archive.' . $phpEx);
+try { $archive_entries = phpbb_style_archive_entries($str); }
+catch (Exception $error)
+{
+	if(defined('XS_CLONING')) { @unlink($tmp_filename); }
+	xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
+}
 $files = array();	// complete list of files
 $list_data = array();	// result for list
 $dirs = array();	// complete list of directories
 $items = array();	// data
-$archive_length = strlen($str);
-$archive_items = 0;
-while($pos < $archive_length)
+foreach($archive_entries as $data)
 {
-	if($archive_length - $pos < 512)
-	{
-		xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
-	}
-	$header_block = substr($str, $pos, 512);
-	if(trim($header_block, "\0") === '')
-	{
-		break;
-	}
-	$data = unpack(TAR_HEADER_UNPACK, $header_block);
-	if(!is_array($data))
-	{
-		xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
-	}
-	$pos += 512;
-	$prefix = trim($data['prefix'], " \t\r\n\0\x0B");
-	$name = trim($data['filename'], " \t\r\n\0\x0B");
-	$data['filename'] = $prefix !== '' ? $prefix . '/' . $name : $name;
-	if(substr($data['filename'], 0, 2) === './')
-	{
-		$data['filename'] = substr($data['filename'], 2);
-	}
-	if($data['filename'] !== '')
-	{
-		$safe_filename = xs_fix_dir($data['filename']);
-		if($safe_filename === '' || $safe_filename !== $data['filename'] || strlen($safe_filename) > 255 ||
-			preg_match('#(?:^|/)(?:\.htaccess|\.user\.ini)$#i', $safe_filename) ||
-			preg_match('#\.(?:php[0-9]*|phtml|phar|cgi|pl|sh)$#i', $safe_filename) ||
-			strtolower(basename($safe_filename)) === 'xs_config.cfg')
-		{
-			xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_import_back']);
-		}
-		$data['filename'] = $safe_filename;
-	}
-	$size_field = trim($data['size'], " \t\r\n\0\x0B");
-	$mtime_field = trim($data['mtime'], " \t\r\n\0\x0B");
-	$type_field = trim($data['typeflag'], " \t\r\n\0\x0B");
-	if(($size_field !== '' && !preg_match('/^[0-7]+$/D', $size_field)) ||
-		($mtime_field !== '' && !preg_match('/^[0-7]+$/D', $mtime_field)) ||
-		($type_field !== '' && !preg_match('/^[0-7]$/D', $type_field)))
-	{
-		xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
-	}
 	if($write_local)
 	{
 		$save_filename = $write_local_dir . $data['filename'];
@@ -180,25 +141,17 @@ while($pos < $archive_length)
 			$data['file'] = $data['filename'];
 		}
 	}
-	$data['size'] = $size_field === '' ? 0 : octdec($size_field);
-	$data['mtime'] = $mtime_field === '' ? 0 : octdec($mtime_field);
-	$data['typeflag'] = $type_field === '' ? 0 : octdec($type_field);
-	$archive_items++;
-	if($archive_items > XS_MAX_STYLE_FILES || !in_array($data['typeflag'], array(0, 5), true) ||
-		$data['size'] < 0 || $data['size'] > XS_MAX_STYLE_UPLOAD_BYTES || $data['size'] > $archive_length - $pos)
-	{
-		xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
-	}
 	if($data['typeflag'] === 5)
 	{
-		$data['size'] = 0;
-		if($write_local)
+		if($write_local && !$list_only)
 		{
-			xs_create_dir($save_filename);
+			if(!xs_create_dir($save_filename))
+			{
+				xs_error($lang['xs_import_invalid_file'] . '<br /><br />' . $lang['xs_import_back']);
+			}
 		}
 	}
-	$data['offset'] = $pos;
-	$contents = $data['size'] > 0 ? substr($str, $pos, $data['size']) : '';
+	$contents = $data['size'] > 0 ? substr($str, $data['offset'], $data['size']) : '';
 	$data['tmp'] = '';
 	// adding to list
 	$is_file = true;
@@ -297,17 +250,9 @@ while($pos < $archive_length)
 			$files[] = $data['filename'];
 		}
 	}
-	if(empty($data['filename']) && $is_file)
+	if($is_file)
 	{
-		$pos = strlen($str);
-	}
-	else
-	{
-		$pos += floor(($data['size'] + 511) / 512) * 512;
-		if($is_file)
-		{
-			$items[] = $data;
-		}
+		$items[] = $data;
 	}
 }
 if($list_only)

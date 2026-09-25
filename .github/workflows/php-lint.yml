@@ -61,6 +61,9 @@ jobs:
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
 
+      - name: Validate complete style archives before filesystem effects
+        run: php .github/scripts/check-style-archive.php
+
       - name: Check installer and emergency-console password round trips
         run: php .github/scripts/check-password-entrypoints.php
 
