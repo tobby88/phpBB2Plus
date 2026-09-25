@@ -67,6 +67,8 @@ jobs:
         run: php .github/scripts/check-style-import-files.php
       - name: Check interrupted style import recovery
         run: php .github/scripts/check-style-import-journal.php
+      - name: Check scoped style cache actions and recovery preservation
+        run: php .github/scripts/check-style-cache-controller.php
 
       - name: Check installer and emergency-console password round trips
         run: php .github/scripts/check-password-entrypoints.php

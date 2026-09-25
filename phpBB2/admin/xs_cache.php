@@ -55,7 +55,7 @@ $skip_files = array(
 function xs_cache_template_name($value)
 {
 	$value = (string) $value;
-	return ($value !== '' && $value !== '.' && $value !== '..' && preg_match('/^[A-Za-z0-9_.-]+$/', $value)) ? $value : '';
+	return ($value !== '' && $value !== '.' && $value !== '..' && preg_match('/^[A-Za-z0-9_.-]+$/D', $value)) ? $value : '';
 }
 
 $cache_action = '';
@@ -63,6 +63,10 @@ $cache_template = '';
 if (isset($_SERVER['REQUEST_METHOD']) && strtoupper((string) $_SERVER['REQUEST_METHOD']) === 'POST' && (isset($HTTP_POST_VARS['clear_cache']) || isset($HTTP_POST_VARS['compile_cache'])))
 {
 	phpbb_admin_require_post_session();
+	if (array_key_exists('template', $HTTP_POST_VARS) && !is_string($HTTP_POST_VARS['template']))
+	{
+		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+	}
 	$cache_action = isset($HTTP_POST_VARS['clear_cache']) ? 'clear' : 'compile';
 	$requested_template = isset($HTTP_POST_VARS['template']) && is_scalar($HTTP_POST_VARS['template']) ? (string) $HTTP_POST_VARS['template'] : '';
 	$cache_template = ($requested_template === '') ? '' : xs_cache_template_name($requested_template);
@@ -79,7 +83,7 @@ if($cache_action === 'clear' && !defined('DEMO_MODE'))
 {
 	@set_time_limit(XS_MAX_TIMEOUT);
 	$clear = $cache_template;
-	if(!$clear)
+	if($clear === '')
 	{
 		// clear all cache
 		$match = '';
@@ -113,12 +117,12 @@ if($cache_action === 'clear' && !defined('DEMO_MODE'))
 				$res2 = @unlink($dir . $file);
 				if($res2)
 				{
-					$data .= str_replace('{FILE}', $file, $lang['xs_cache_log_deleted']) . "<br />\n";
+					$data .= str_replace('{FILE}', htmlspecialchars($file, ENT_QUOTES, 'UTF-8'), $lang['xs_cache_log_deleted']) . "<br />\n";
 					$num ++;
 				}
 				elseif(@is_file($dir . $file))
 				{
-					$data .= str_replace('{FILE}', $file, $lang['xs_cache_log_nodelete']) . "<br />\n";
+					$data .= str_replace('{FILE}', htmlspecialchars($file, ENT_QUOTES, 'UTF-8'), $lang['xs_cache_log_nodelete']) . "<br />\n";
 					$num_error ++;
 				}
 			}
@@ -126,7 +130,7 @@ if($cache_action === 'clear' && !defined('DEMO_MODE'))
 		closedir($res);
 		if(!$num && !$num_error)
 		{
-			if($clear)
+			if($clear !== '')
 			{
 				$data .= str_replace('{TPL}', $clear, $lang['xs_cache_log_nothing']) . "<br />\n";
 			}
@@ -156,7 +160,7 @@ if($cache_action === 'compile' && !defined('DEMO_MODE'))
 	@set_time_limit(XS_MAX_TIMEOUT);
 	$num_errors = 0;
 	$num_compiled = 0;
-	if($tpl)
+	if($tpl !== '')
 	{
 		$dir = $template->tpldir . $tpl . '/';
 		$templates_root = realpath($template->tpldir);
@@ -195,7 +199,7 @@ function compile_cache($dir, $subdir, $tpl)
 	$res = @opendir($dir . $subdir);
 	if(!$res)
 	{
-		$data .= str_replace('{DIR}', $dir.$subdir, $lang['xs_cache_log_noaccess']) . "<br />\n";
+		$data .= str_replace('{DIR}', htmlspecialchars($dir.$subdir, ENT_QUOTES, 'UTF-8'), $lang['xs_cache_log_noaccess']) . "<br />\n";
 		$num_errors ++;
 		return;
 	}
@@ -210,12 +214,12 @@ function compile_cache($dir, $subdir, $tpl)
 			$res2 = $template->precompile($tpl, $subdir . $file);
 			if($res2)
 			{
-				$data .= str_replace('{FILE}', $dir.$subdir.$file, $lang['xs_cache_log_compiled2']) . "<br />\n";
+				$data .= str_replace('{FILE}', htmlspecialchars($dir.$subdir.$file, ENT_QUOTES, 'UTF-8'), $lang['xs_cache_log_compiled2']) . "<br />\n";
 				$num_compiled ++;
 			}
 			else
 			{
-				$data .= str_replace('{FILE}', $dir.$subdir.$file, $lang['xs_cache_log_nocompile']) . "<br />\n";
+				$data .= str_replace('{FILE}', htmlspecialchars($dir.$subdir.$file, ENT_QUOTES, 'UTF-8'), $lang['xs_cache_log_nocompile']) . "<br />\n";
 				$num_errors ++;
 			}
 		}

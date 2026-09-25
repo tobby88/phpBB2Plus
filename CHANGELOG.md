@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep XS cache clearing/compilation scoped to the selected template, including
+  the valid name `0`. Reject malformed selections instead of treating them as
+  "all", escape filesystem names in result messages, and exercise the actual
+  controller while verifying that archives and recovery snapshots stay intact.
 - Size the bounded import-recovery metadata allowance for all 32 supported
   style definitions, including maximum-length four-byte UTF-8 values after
   JSON escaping. Preserve a shared preparation/reopen limit and test exact
