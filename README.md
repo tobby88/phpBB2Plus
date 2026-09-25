@@ -74,6 +74,10 @@ replacement for them. Errors never claim a confirmed successful import.
 Cloning a style's database definition also copies its field labels atomically,
 preserving NULL values. An identical retry reuses the clone rather than creating
 another row; conflicting existing definitions or labels are never overwritten.
+Complete template clones additionally recheck that the destination directory
+and database template are absent under the target lock. A concurrently created
+target is never treated as an update; normal archive imports retain intentional
+update behavior. Interrupted same-operation clones can still be recovered.
 
 XS style removal preserves the current default and template directories shared
 by remaining styles. Unregistration and file cleanup are separate steps: the

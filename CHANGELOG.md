@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep complete template clones create-only through the target import lock,
+  not just the initial form check. Reject concurrently created directories or
+  template definitions without overwriting them; bind intent to the operation
+  and permit recovery of its own interrupted publication. Normal archive
+  imports continue to support deliberate updates.
 - Add durable XS archive-import recovery with original/new file snapshots,
   sealed context and prepared/committed/rolled-back configuration receipts.
   ACP resume/restore actions handle process interruption and lost commit

@@ -16,7 +16,7 @@ $body=<<<'PHP'
  class RecoveryTemplate extends StyleDataTemplate { var $vars=array(); function assign_vars($vars){$this->vars=array_merge($this->vars,$vars);} }
  $template=new RecoveryTemplate();
  function xs_exit(){throw new StyleDataExit('form');}
- function get_ftp_config($url,$params,$save){$GLOBALS['ftp_calls']++;$GLOBALS['ftp_params']=$params;return !$GLOBALS['ftp_form'];}
+ function get_ftp_config($url,$params,$save){$GLOBALS['ftp_calls']++;$GLOBALS['ftp_params']=$params;if(isset($GLOBALS['ftp_setup_hook'])&&is_callable($GLOBALS['ftp_setup_hook'])){call_user_func($GLOBALS['ftp_setup_hook']);}return !$GLOBALS['ftp_form'];}
  function xs_ftp_connect($url,$params,$save){$GLOBALS['ftp_calls']++;$GLOBALS['ftp']=XS_FTP_LOCAL;}
  function rc_check($ok,$message){$GLOBALS['checks']++;sd_check($ok,$message);}
  function rc_run($request=null,$method='POST'){
@@ -93,10 +93,26 @@ $body=<<<'PHP'
   rc_check($out==='error'&&$ftp_calls===0&&!is_dir($sd_root.'/templates/copied'),'Invalid clone denied before FTP configuration: '.$bad);sd_unlocked();
  }
  sim_reset();$_POST=$HTTP_POST_VARS=$clone_request;
+ $race=isset($argv[1])?$argv[1]:'';
+ rc_check(in_array($race,array('','target-directory','target-definition'),true),'Known clone race fixture mode');
+ if($race!==''){
+  $ftp_setup_hook=function()use($race){
+   $GLOBALS['ftp_setup_hook']=null;
+   if($race==='target-directory'){mkdir($GLOBALS['sd_root'].'/templates/copied');file_put_contents($GLOBALS['sd_root'].'/templates/copied/theme_info.cfg','independently created target');}
+   else{sd_sql("INSERT INTO fixture_themes (themes_id,template_name,style_name,theme_public) VALUES (90,'copied','Independent clone',0)");}
+   $GLOBALS['clone_race_before']=sim_snapshot();
+  };
+ }
  $out='';try{include $sd_source.'admin/xs_clone.php';}catch(StyleDataExit $e){$out=$e->getMessage();}
+ if($race!==''){
+  rc_check($out==='error'&&sim_snapshot()===$clone_race_before,'Clone must reject a target created after its initial check: '.$race);
+  rc_check($race==='target-directory'?file_get_contents($sd_root.'/templates/copied/theme_info.cfg')==='independently created target':!is_dir($sd_root.'/templates/copied'),'Concurrent target contents stay untouched');
+  rc_check(phpbb_style_import_read_receipt($peer,'copied')===null,'Rejected clone creates no pending receipt');sd_unlocked();
+ }else{
  rc_check($out==='saved'&&count(sd_snapshot()[0])===3&&is_file($sd_root.'/templates/copied/theme_info.cfg'),'Actual clone package controller completes the new recovery protocol');
  $r=phpbb_style_import_read_receipt($peer,'copied');rc_check($r['o']===$HTTP_POST_VARS['recovery_operation']&&$r['s']==='committed','Clone receipt uses form nonce');sd_unlocked();
  rc_check($ftp_params['recovery_operation']===$r['o'],'Clone FTP form preserves nonce');
+ }
  echo 'Style recovery ACP: '.$checks." assertions; actual routes and owned package capture\n";
 }finally{
  $sd_hook=null;$sd_failure='';$sd_after_commit=null;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();chdir($sd_previous);

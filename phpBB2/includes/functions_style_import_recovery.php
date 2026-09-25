@@ -106,11 +106,16 @@ function phpbb_style_import_recovery($database, $request, $files, $base, $identi
 {
 	global $phpbb_root_path, $board_config;
 	list($mode, $name, $operation) = phpbb_style_import_recovery_request($request);
-	$context = null; $input_hash = null; $desired = array(); $directories = array();
+	$context = null; $input_hash = null; $desired = array(); $directories = array(); $create_only = false;
 	if ($mode === 'start')
 	{
 		if (!is_array($start) || !isset($start['header'], $start['archive'], $start['entries']) || !is_array($start['header'])
 			|| !isset($start['header']['template']) || $start['header']['template'] !== $name) { phpbb_acl_error('xs_import_failed'); }
+		if (array_key_exists('create_only', $start))
+		{
+			if (!is_bool($start['create_only'])) { phpbb_acl_error('xs_import_failed'); }
+			$create_only = $start['create_only'];
+		}
 		// Revalidate the archive in the worker too; no caller-provided offsets
 		// may smuggle files past the whole-package preflight.
 		try { $entries = phpbb_style_archive_entries($start['archive']); }
@@ -118,7 +123,7 @@ function phpbb_style_import_recovery($database, $request, $files, $base, $identi
 		if ($entries !== $start['entries']) { phpbb_acl_error('xs_import_failed'); }
 		list($batch, $default) = phpbb_style_import_selection($request, $start['header'], $entries, $start['archive']);
 		$context = phpbb_style_import_recovery_context(array('template'=>$name, 'batch'=>$batch, 'default'=>$default));
-		$input_hash = hash('sha256', hash('sha256', $start['archive']) . json_encode($context));
+		$input_hash = hash('sha256', hash('sha256', $start['archive']) . json_encode($context) . ($create_only ? ':create-only' : ''));
 		foreach ($entries as $entry)
 		{
 			$relative = rtrim($entry['filename'], '/'); $path = $name . ($relative === '' ? '' : '/' . $relative);
@@ -135,6 +140,15 @@ function phpbb_style_import_recovery($database, $request, $files, $base, $identi
 		if ($mode === 'start' && ($receipt === null || $receipt['o'] !== $operation))
 		{
 			if ($receipt !== null && $receipt['s'] === 'prepared') { phpbb_acl_error('xs_import_pending'); }
+			if ($create_only)
+			{
+				// The initial clone form check predates source packing/FTP setup.
+				// Recheck under the target owner and full theme range before making
+				// a recovery receipt. Existing same-operation retries skip this:
+				// their own interrupted publication may already have made the path.
+				$existing = phpbb_acl_rows($db, "SELECT themes_id FROM " . THEMES_TABLE . " WHERE template_name='" . $db->sql_escape($name) . "' FOR UPDATE");
+				if ($existing || $files->kind($name) !== null) { phpbb_acl_error('xs_clone_style_exists'); }
+			}
 			phpbb_style_import_validate_batch($db, $context['batch'], array('template'=>$name));
 			phpbb_style_storage_lock_authority($db); $guard = function () use ($db) { $db->actor(); };
 			$journal = PhpbbStyleImportJournal::prepare($files, $base, $identity, $desired, $guard, $context, $directories, $operation);

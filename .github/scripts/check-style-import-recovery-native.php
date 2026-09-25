@@ -133,6 +133,17 @@ $body = <<<'PHP'
   sr_check($recovery==='resume'?count(sd_snapshot()[0])===4:(sd_snapshot()===$before&&sr_file()==='original config'),'Recovery produces matching filesystem and SQL state');
   sr_check(!glob($sd_root.'/templates/fisubsilversh/xs_import_*.tmp'),'Interrupted operation stages cleaned after recovery');
  }}
+ foreach(array('start','resume') as $retry_mode){
+  sr_reset('root','legacy');unlink($sd_root.'/templates/legacy/theme_info.cfg');rmdir($sd_root.'/templates/legacy');
+  $sr_start['create_only']=true;$sd_failure='INSERT INTO fixture_themes ';
+  sr_denied(function(){sr_run();},'New clone can stop after publication');$sd_failure='';
+  sr_check(is_dir($sd_root.'/templates/legacy')&&sr_receipt()['s']==='prepared','Interrupted clone owns its prepared operation');
+  $sr_start['create_only']=false;sr_denied(function(){sr_run();},'Create-only intent cannot be changed on an existing operation');$sr_start['create_only']=true;
+  $r=sr_run($retry_mode);sr_check($r['state']==='committed'&&count(sd_snapshot()[0])===4,'Same-operation clone retry accepts its own published directory');
+  $after=sd_snapshot();$content=sr_file();$sr_operation=bin2hex(phpbb_random_bytes(16));
+  sr_denied(function(){sr_run();},'Another clone operation cannot replace completed target');
+  sr_check(sd_snapshot()===$after&&sr_file()===$content,'Rejected clone leaves complete target untouched');
+ }
  echo 'Style import recovery native: '.$sr_checks." assertions; real InnoDB receipts and commit ambiguity\n";
 }finally{
  $sd_hook=null;$sd_failure='';$sd_after_commit=null;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();chdir($sd_previous);

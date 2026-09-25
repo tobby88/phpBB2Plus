@@ -80,7 +80,10 @@ jobs:
         env:
           PHPBB_STYLE_IMPORT_RECOVERY_NATIVE: '1'
           PHPBB_STYLE_IMPORT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-recovery-controller-native.php
+      - run: |
+          php .github/scripts/check-style-recovery-controller-native.php
+          php .github/scripts/check-style-recovery-controller-native.php target-directory
+          php .github/scripts/check-style-recovery-controller-native.php target-definition
         env:
           PHPBB_STYLE_RECOVERY_CONTROLLER_NATIVE: '1'
           PHPBB_STYLE_IMPORT_PASSWORD: fixture-only

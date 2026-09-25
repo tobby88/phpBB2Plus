@@ -117,17 +117,23 @@ if (!$list_only)
 {
 	require_once($phpbb_root_path . 'includes/functions_style_import_recovery.' . $phpEx);
 	$import_error = false;
+	$import_error_message = $lang['xs_recovery_failed'];
 	try
 	{
 		list($publisher, $recovery_base, $recovery_identity) = phpbb_style_import_recovery_environment($phpbb_root_path, $write_local, $write_local ? $write_local_dir : '', isset($ftp) ? $ftp : null, $board_config);
 		$recovery_request = $HTTP_POST_VARS; $recovery_request['recovery_action'] = 'start'; $recovery_request['recovery_template'] = $header['template'];
-		$recovered = phpbb_style_import_recovery($db, $recovery_request, $publisher, $recovery_base, $recovery_identity, array('header'=>$header, 'entries'=>$archive_entries, 'archive'=>$str));
+		$recovered = phpbb_style_import_recovery($db, $recovery_request, $publisher, $recovery_base, $recovery_identity, array('header'=>$header, 'entries'=>$archive_entries, 'archive'=>$str, 'create_only'=>defined('XS_CLONING')));
 		$installed = $recovered['installed'];
+	}
+	catch (PhpbbAclException $error)
+	{
+		$import_error = true;
+		if ($error->getMessage() === $lang['xs_clone_style_exists']) { $import_error_message = $lang['xs_clone_style_exists']; }
 	}
 	catch (Exception $error) { $import_error = true; }
 	catch (Error $error) { $import_error = true; }
 	finally { if (defined('XS_CLONING')) { @unlink($tmp_filename); } }
-	if ($import_error) { xs_error($lang['xs_recovery_failed'] . '<br /><br /><a href="' . append_sid('xs_import.' . $phpEx) . '">' . $lang['xs_recovery_title'] . '</a><br /><br />' . $lang['xs_import_back']); }
+	if ($import_error) { xs_error($import_error_message . '<br /><br /><a href="' . append_sid('xs_import.' . $phpEx) . '">' . $lang['xs_recovery_title'] . '</a><br /><br />' . $lang['xs_import_back']); }
 	xs_message($lang['Information'], $lang[$recovered['retry'] ? 'xs_recovery_committed' : ($installed ? 'xs_import_installed' : 'xs_import_uploaded')] . '<br /><br />' . $lang['xs_import_back']);
 }
 
