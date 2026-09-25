@@ -64,6 +64,10 @@ jobs:
           PHPBB_STYLE_IDS_NATIVE: '1'
           PHPBB_STYLE_IDS_PASSWORD: fixture-only
       - run: php .github/scripts/check-style-files.php
+      - run: php .github/scripts/check-style-clone-native.php
+        env:
+          PHPBB_STYLE_CLONE_NATIVE: '1'
+          PHPBB_STYLE_CLONE_PASSWORD: fixture-only
       - run: php .github/scripts/check-style-install-native.php
         env:
           PHPBB_STYLE_INSTALL_NATIVE: '1'

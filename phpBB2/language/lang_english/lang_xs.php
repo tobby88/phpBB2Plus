@@ -370,6 +370,7 @@ $lang['xs_export_saved'] = 'Style is saved as "{FILE}"';
 $lang['xs_export_error_uploading'] = 'Error uploading file';
 $lang['xs_export_uploaded'] = 'File uploaded.';
 $lang['xs_clone_taken'] = 'This style name is already used.';
+$lang['xs_clone_failed'] = 'The style could not be cloned completely. Please reload the list before retrying.';
 $lang['xs_error_new_row'] = 'Could not insert new row in table.';
 $lang['xs_theme_cloned'] = 'Style cloned.';
 $lang['xs_invalid_style_name'] = 'Invalid style name.';

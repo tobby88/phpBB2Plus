@@ -35,7 +35,7 @@ if(empty($template->xs_version) || $template->xs_version !== 8)
 	message_die(GENERAL_ERROR, isset($lang['xs_error_not_installed']) ? $lang['xs_error_not_installed'] : 'eXtreme Styles mod is not installed. You forgot to upload includes/template.php');
 }
 
-define('IN_XS', true);
+if (!defined('IN_XS')) { define('IN_XS', true); }
 include_once('xs_include.' . $phpEx);
 
 $template->assign_block_vars('nav_left',array('ITEM' => '&raquo; <a href="' . append_sid('xs_clone.'.$phpEx) . '">' . $lang['xs_clone_styles'] . '</a>'));
@@ -53,70 +53,14 @@ if(!@function_exists('gzcompress'))
 //
 // clone style
 //
-if(!empty($HTTP_POST_VARS['clone_style']) && !defined('DEMO_MODE'))
+if(isset($HTTP_POST_VARS['clone_style']) && !defined('DEMO_MODE'))
 {
 	phpbb_admin_require_post_session();
-	$style = is_scalar($HTTP_POST_VARS['clone_style']) ? intval($HTTP_POST_VARS['clone_style']) : 0;
-	$new_name = isset($HTTP_POST_VARS['clone_name']) && is_scalar($HTTP_POST_VARS['clone_name']) ? trim(stripslashes((string) $HTTP_POST_VARS['clone_name'])) : '';
-	$new_name_length = preg_match_all('/./us', $new_name, $new_name_characters);
-	if($style <= 0 || $new_name === '' || $new_name_length === false || $new_name_length > 30)
-	{
-		xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_clone_back']);
-	}
-	// get theme data
-	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE themes_id = $style";
-	if(!$result = $db->sql_query($sql))
-	{
-		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_clone_back'], __LINE__, __FILE__);
-	}
-	$theme = $db->sql_fetchrow($result);
-	if(empty($theme['themes_id']))
-	{
-		xs_error($lang['xs_no_themes'] . '<br /><br />' . $lang['xs_clone_back']);
-	}
-	if($theme['style_name'] === $new_name)
-	{
-		xs_error($lang['xs_clone_taken'] . '<br /><br />' . $lang['xs_clone_back']);
-	}
-	// check for clone
-	$sql = "SELECT themes_id FROM " . THEMES_TABLE . " WHERE style_name = '" . xs_sql($new_name) . "'";
-	if(!$result = $db->sql_query($sql))
-	{
-		xs_error($lang['xs_no_theme_data'] . '<br /><br />' . $lang['xs_clone_back'], __LINE__, __FILE__);
-	}
-	$row = $db->sql_fetchrow($result);
-	if(!empty($row['themes_id']))
-	{
-		xs_error($lang['xs_clone_taken'] . '<br /><br />' . $lang['xs_clone_back']);
-	}
-	// clone it
-	$vars = array('style_name');
-	$values = array(xs_sql($new_name));
-	foreach($theme as $var => $value)
-	{
-		if(!is_integer($var) && $var !== 'style_name' && $var !== 'themes_id' && preg_match('/^[a-zA-Z0-9_]+$/D', $var))
-		{
-			$vars[] = $var;
-			$values[] = xs_sql($value);
-		}
-	}
-	$sql = "INSERT INTO " . THEMES_TABLE . " (" . implode(', ', $vars) . ") VALUES ('" . implode("','", $values) . "')";
-	if(!$result = $db->sql_query($sql))
-	{
-		xs_error($lang['xs_error_new_row'] . '<br /><br />' . $lang['xs_clone_back'], __LINE__, __FILE__);
-	}
-	// recache themes
-	if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
-	{
-		if ( empty($themes) )
-		{
-			$themes = new themes();
-		}
-		if ( !empty($themes) )
-		{
-			$themes->read(true);
-		}
-	}
+	require_once($phpbb_root_path . 'includes/functions_style_clone.' . $phpEx);
+	try { phpbb_style_clone($db, $HTTP_POST_VARS); }
+	catch (PhpbbAclException $error) { xs_error($error->getMessage() . '<br /><br />' . $lang['xs_clone_back']); }
+	catch (Exception $error) { xs_error($lang['xs_clone_failed'] . '<br /><br />' . $lang['xs_clone_back']); }
+	catch (Error $error) { xs_error($lang['xs_clone_failed'] . '<br /><br />' . $lang['xs_clone_back']); }
 	xs_message($lang['Information'], $lang['xs_theme_cloned'] . '<br /><br />' . $lang['xs_clone_back']);
 }
 

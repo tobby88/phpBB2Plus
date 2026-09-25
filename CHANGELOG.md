@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Clone style metadata and optional field labels in one current-authority
+  transaction. Preserve NULL values, Unicode and numeric bounds, keep retired
+  templates private, reject conflicting names and verify both copied rows.
+  Matching retries keep the clone ID and repair caches after uncertain outcomes.
 - Commit XS single/bulk installation as one current-authority transaction.
   Validate every selected definition, preserve UTF-8 and literal backslashes,
   use native auto-increment IDs, and refuse partial or conflicting installs.

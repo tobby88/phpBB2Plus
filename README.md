@@ -43,6 +43,9 @@ as UTF-8 without silently truncating names or removing literal backslashes.
 Only the supported `fisubsilversh` template is published for normal users.
 This installer hardening does not yet cover the separate archive import/clone
 file-upload workflow.
+Cloning a style's database definition also copies its field labels atomically,
+preserving NULL values. An identical retry reuses the clone rather than creating
+another row; conflicting existing definitions or labels are never overwritten.
 
 XS style removal preserves the current default and template directories shared
 by remaining styles. Unregistration and file cleanup are separate steps: the

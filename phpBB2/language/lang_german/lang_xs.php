@@ -371,6 +371,7 @@ $lang['xs_export_saved'] = 'Style wurde als "{FILE}" gespeichert';
 $lang['xs_export_error_uploading'] = 'Fehler beim hochladen der Datei';
 $lang['xs_export_uploaded'] = 'Datei hochgeladen.';
 $lang['xs_clone_taken'] = 'Der Name des Styles ist bereits in Verwendung.';
+$lang['xs_clone_failed'] = 'Der Style konnte nicht vollständig geklont werden. Bitte lade die Liste vor einem erneuten Versuch neu.';
 $lang['xs_error_new_row'] = 'Konnte die neue Reihe nicht in der Tabelle anlegen.';
 $lang['xs_theme_cloned'] = 'Style geclont.';
 $lang['xs_invalid_style_name'] = 'Ungültiger Stylename.';
