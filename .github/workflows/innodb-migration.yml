@@ -63,6 +63,11 @@ jobs:
         env:
           PHPBB_STYLE_IDS_NATIVE: '1'
           PHPBB_STYLE_IDS_PASSWORD: fixture-only
+      - run: php .github/scripts/check-style-files.php
+      - run: php .github/scripts/check-style-removal-native.php
+        env:
+          PHPBB_STYLE_REMOVAL_NATIVE: '1'
+          PHPBB_STYLE_REMOVAL_PASSWORD: fixture-only
       - run: php .github/scripts/check-style-load-native.php
         env:
           PHPBB_STYLE_LOAD_NATIVE: '1'

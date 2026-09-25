@@ -47,6 +47,15 @@ top.nav.location = top.nav.location; // '{left_refresh.ACTION}';
 </table>
 <br />
 <!-- END removed -->
+<!-- BEGIN orphan -->
+<form method="post" action="{S_UNINSTALL_ACTION}">
+{S_FORM_TOKEN}
+<input type="hidden" name="remove" value="{orphan.NAME}" />
+<input type="hidden" name="remove_token" value="{orphan.TOKEN}" />
+<span class="gen">{L_XS_ORPHAN_FILES}: {orphan.NAME}</span>
+<button type="submit" class="liteoption" onclick="return confirm('{L_XS_UNINSTALL_FILES_CONFIRM}');">{L_XS_REMOVE_FILES}</button>
+</form>
+<!-- END orphan -->
 
 <table cellpadding="4" cellspacing="1" border="0" class="forumline" align="center">
 <tr>

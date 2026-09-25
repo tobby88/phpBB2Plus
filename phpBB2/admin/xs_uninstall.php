@@ -1,293 +1,104 @@
 <?php
-
 /***************************************************************************
- *                             xs_uninstall.php
- *                             ----------------
- *   copyright            : (C) 2003 - 2005 CyberAlien
- *   support              : http://www.phpbbstyles.com
- *
- *   version              : 2.3.1
- *
- *   file revision        : 72
- *   project revision     : 78
- *   last modified        : 05 Dec 2005  13:54:54
- *
+ * xs_uninstall.php — eXtreme Styles, (C) 2003-2005 CyberAlien
+ * Originally version 2.3.1, file revision 72 / project revision 78.
+ * Distributed under the GNU General Public License, version 2 or later.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option)
+ * any later version. See the accompanying license for details.
  ***************************************************************************/
-
-/***************************************************************************
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- ***************************************************************************/
-
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
-$phpbb_root_path = "./../";
-$no_page_header = true;
+$phpbb_root_path = './../'; $no_page_header = true;
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
-
-// check if mod is installed
-if(empty($template->xs_version) || $template->xs_version !== 8)
+if (empty($template->xs_version) || $template->xs_version !== 8)
 {
-	message_die(GENERAL_ERROR, isset($lang['xs_error_not_installed']) ? $lang['xs_error_not_installed'] : 'eXtreme Styles mod is not installed. You forgot to upload includes/template.php');
+	message_die(GENERAL_ERROR, isset($lang['xs_error_not_installed']) ? $lang['xs_error_not_installed'] : 'eXtreme Styles is not installed.');
 }
-
-define('IN_XS', true);
+if (!defined('IN_XS')) { define('IN_XS', true); }
 include_once('xs_include.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_style_removal.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_style_files.' . $phpEx);
+$template->assign_block_vars('nav_left', array('ITEM'=>'&raquo; <a href="' . append_sid('xs_uninstall.' . $phpEx) . '">' . $lang['xs_uninstall_styles'] . '</a>'));
+$lang['xs_uninstall_back'] = str_replace('{URL}', append_sid('xs_uninstall.' . $phpEx), $lang['xs_uninstall_back']);
 
-$template->assign_block_vars('nav_left',array('ITEM' => '&raquo; <a href="' . append_sid('xs_uninstall.'.$phpEx) . '">' . $lang['xs_uninstall_styles'] . '</a>'));
-
-$lang['xs_uninstall_back'] = str_replace('{URL}', append_sid('xs_uninstall.'.$phpEx), $lang['xs_uninstall_back']);
-$lang['xs_goto_default'] = str_replace('{URL}', append_sid('xs_styles.'.$phpEx), $lang['xs_goto_default']);
-
-//
-// Uninstall a style only through a session-bound POST request.
-//
-if(isset($HTTP_POST_VARS['remove_id']) && !defined('DEMO_MODE'))
+try
 {
-	phpbb_admin_require_post_session();
-	$remove_id = is_scalar($HTTP_POST_VARS['remove_id']) ? intval($HTTP_POST_VARS['remove_id']) : 0;
-	$remove_files = !empty($HTTP_POST_VARS['remove_files']);
-	$keep_config = !empty($HTTP_POST_VARS['keep_config']);
-	if($board_config['default_style'] == $remove_id)
+	if (isset($HTTP_POST_VARS['remove_id']) && !defined('DEMO_MODE'))
 	{
-		xs_error(str_replace('{URL}', append_sid('xs_styles.'.$phpEx), $lang['xs_uninstall_default']) . '<br /><br />' . $lang['xs_uninstall_back']);
-	}
-	$sql = "SELECT themes_id, template_name, style_name FROM " . THEMES_TABLE . " WHERE themes_id='{$remove_id}'";
-	if(!$result = $db->sql_query($sql))
-	{
-		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_uninstall_back'], __LINE__, __FILE__);
-	}
-	$row = $db->sql_fetchrow($result);
-	if(empty($row['themes_id']))
-	{
-		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_uninstall_back'], __LINE__, __FILE__);
-	}
-	if (!preg_match('/^[A-Za-z0-9_.-]+$/', $row['template_name']) || $row['template_name'] === '.' || $row['template_name'] === '..')
-	{
-		xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_uninstall_back']);
-	}
-	$sql = "UPDATE " . USERS_TABLE . " SET user_style=NULL WHERE user_style='{$remove_id}'";
-	$db->sql_query($sql);
-	$sql = "DELETE FROM " . THEMES_TABLE . " WHERE themes_id='{$remove_id}'";
-	$db->sql_query($sql);
-	$template->assign_block_vars('removed', array());
-	// remove files
-	if($remove_files)
-	{
-		$HTTP_POST_VARS['remove'] = $row['template_name'];
-		$HTTP_POST_VARS['remove_token'] = hash_hmac('sha256', $row['template_name'], (string) $userdata['session_id']);
-	}
-	// remove config
-	if(!$keep_config && isset($board_config['xs_style_'.$row['template_name']]))
-	{
-		$sql = "DELETE FROM " . CONFIG_TABLE . " WHERE config_name='" . $db->sql_escape("xs_style_{$row['template_name']}") . "'";
-		$db->sql_query($sql);
-		$template->assign_block_vars('left_refresh', array(
-				'ACTION'	=> append_sid('index.' . $phpEx . '?pane=left')
-			));
-		// recache config table for cat_hierarchy 2.1.0
-		if(isset($GLOBALS['config']) && is_object($GLOBALS['config']))
+		if (isset($HTTP_POST_VARS['remove'])) { phpbb_acl_error('xs_remove_failed'); }
+		phpbb_admin_require_post_session();
+		$removed = phpbb_style_unregister($db, $HTTP_POST_VARS);
+		if ($removed['config_removed']) { $template->assign_block_vars('left_refresh', array('ACTION'=>append_sid('index.' . $phpEx . '?pane=left'))); }
+		if ($removed['files'])
 		{
-			global $config;
-			$config->read(true);
+			$HTTP_POST_VARS['remove'] = $removed['template'];
+			$HTTP_POST_VARS['remove_token'] = $removed['receipt']['token'];
 		}
+		else { $template->assign_block_vars('removed', array()); }
 	}
-	// recache themes table
-	if(defined('XS_MODS_CATEGORY_HIERARCHY210'))
+	if (isset($HTTP_POST_VARS['remove']) && !defined('DEMO_MODE'))
 	{
-		if ( empty($themes) )
-		{
-			$themes = new themes();
-		}
-		if ( !empty($themes) )
-		{
-			$themes->read(true);
-		}
+		phpbb_admin_require_post_session();
+		// Validate the target before displaying/accepting the FTP form. The
+		// worker repeats current DB/authority checks after any form round trip.
+		$name = $HTTP_POST_VARS['remove'];
+		$token = isset($HTTP_POST_VARS['remove_token']) ? $HTTP_POST_VARS['remove_token'] : null;
+		if (!phpbb_style_removal_name($name) || !is_string($token)) { phpbb_acl_error('xs_remove_failed'); }
+		phpbb_style_check_unused_template($db, $HTTP_POST_VARS);
+		$params = array('remove'=>$name, 'remove_token'=>$token);
+		if (!get_ftp_config(append_sid('xs_uninstall.' . $phpEx), $params, true)) { xs_exit(); }
+		xs_ftp_connect(append_sid('xs_uninstall.' . $phpEx), $params, true);
+		$files = $ftp === XS_FTP_LOCAL ? new PhpbbStyleLocalFiles($phpbb_root_path . 'templates') : new PhpbbStyleFtpFiles($ftp);
+		phpbb_style_remove_files($db, $HTTP_POST_VARS, $files);
+		$template->assign_block_vars('removed', array());
 	}
 }
+catch (PhpbbAclException $error) { xs_error($error->getMessage() . '<br /><br />' . $lang['xs_uninstall_back']); }
+catch (Exception $error) { xs_error($lang['xs_remove_failed'] . '<br /><br />' . $lang['xs_uninstall_back']); }
+catch (Error $error) { xs_error($lang['xs_remove_failed'] . '<br /><br />' . $lang['xs_uninstall_back']); }
 
-function remove_all($dir)
-{
-	$res = opendir($dir);
-	if(!$res)
-	{
-		return false;
-	}
-	while(($file = readdir($res)) !== false)
-	{
-		if($file !== '.' && $file !== '..')
-		{
-			$str = $dir . '/' . $file;
-			if(is_link($str))
-			{
-				@unlink($str);
-			}
-			elseif(is_dir($str))
-			{
-				remove_all($str);
-				@rmdir($str);
-			}
-			else
-			{
-				@unlink($str);
-			}
-		}
-	}
-	closedir($res);
-}
-
-//
-// remove files
-//
-if(isset($HTTP_POST_VARS['remove']) && !defined('DEMO_MODE'))
-{
-	phpbb_admin_require_post_session();
-	$remove = is_scalar($HTTP_POST_VARS['remove']) ? stripslashes((string) $HTTP_POST_VARS['remove']) : '';
-	$remove_token = isset($HTTP_POST_VARS['remove_token']) && is_scalar($HTTP_POST_VARS['remove_token']) ? (string) $HTTP_POST_VARS['remove_token'] : '';
-	$expected_token = hash_hmac('sha256', $remove, (string) $userdata['session_id']);
-	if (!hash_equals($expected_token, $remove_token) || xs_tpl_name($remove) !== $remove)
-	{
-		message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-	}
-	$params = array('remove' => $remove, 'remove_token' => $remove_token);
-	if(!get_ftp_config(append_sid('xs_uninstall.'.$phpEx), $params, true))
-	{
-		xs_exit();
-	}
-	xs_ftp_connect(append_sid('xs_uninstall.'.$phpEx), $params, true);
-	$write_local = false;
-	if($ftp === XS_FTP_LOCAL)
-	{
-		$write_local = true;
-		$write_local_dir = '../templates/';
-	}
-	if(!$write_local)
-	{
-		//
-		// Generate actions list
-		//
-		$actions = array();
-		// chdir to templates directory
-		$actions[] = array(
-				'command'	=> 'chdir',
-				'dir'		=> 'templates'
-			);
-		// chdir to template
-		$actions[] = array(
-				'command'	=> 'chdir',
-				'dir'		=> $remove
-			);
-		// remove all files
-		$actions[] = array(
-				'command'	=> 'removeall',
-				'ignore'	=> true
-			);
-		$actions[] = array(
-				'command'	=> 'cdup'
-			);
-		$actions[] = array(
-				'command'	=> 'rmdir',
-				'dir'		=> $remove
-			);
-		$ftp_log = array();
-		$ftp_error = '';
-		$res = ftp_myexec($actions);
-/*		echo "<!--\n\n";
-		echo "\$actions dump:\n\n";
-		print_r($actions);
-		echo "\n\n\$ftp_log dump:\n\n";
-		print_r($ftp_log);
-		echo "\n\n -->"; */
-	}
-	else
-	{
-		$templates_root = realpath('../templates');
-		$remove_path = realpath('../templates/' . $remove);
-		if ($templates_root === false || $remove_path === false || is_link('../templates/' . $remove) ||
-			strpos($remove_path . DIRECTORY_SEPARATOR, rtrim($templates_root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR) !== 0)
-		{
-			xs_error($lang['xs_no_style_info'] . '<br /><br />' . $lang['xs_uninstall_back']);
-		}
-		remove_all($remove_path);
-		@rmdir($remove_path);
-	}
-	$template->assign_block_vars('removed', array());
-}
-
-
-
-//
-// get list of installed styles
-//
-$sql = 'SELECT themes_id, template_name, style_name FROM ' . THEMES_TABLE . ' ORDER BY template_name, style_name';
-if(!$result = $db->sql_query($sql))
-{
-	xs_error($lang['xs_no_style_info'], __LINE__, __FILE__);
-}
-$style_rowset = $db->sql_fetchrowset($result);
-
-$tpl = array();
-for($i=0; $i<count($style_rowset); $i++)
-{
-	$item = $style_rowset[$i];
-	$tpl[$item['template_name']][] = $item;
-}
-
+$sql = 'SELECT themes_id,template_name,style_name FROM ' . THEMES_TABLE . ' ORDER BY template_name,style_name';
+if (!$result = $db->sql_query($sql)) { xs_error($lang['xs_no_style_info'], __LINE__, __FILE__); }
+$style_rowset = $db->sql_fetchrowset($result); $db->sql_freeresult($result);
+$groups = array();
+foreach ($style_rowset as $item) { $groups[$item['template_name']][] = $item; }
 $j = 0;
-foreach($tpl as $tpl => $styles)
+foreach ($groups as $name=>$styles)
 {
-	$row_class = $xs_row_class[$j % 2];
-	$j++;
-	$template->assign_block_vars('styles', array(
-			'ROW_CLASS'	=> $row_class,
-			'TPL'		=> htmlspecialchars($tpl, ENT_QUOTES, 'UTF-8'),
-			'ROWS'		=> count($styles),
-		)
-	);
-	if(count($styles) > 1)
+	$template->assign_block_vars('styles', array('ROW_CLASS'=>$xs_row_class[$j++ % 2], 'TPL'=>htmlspecialchars($name, ENT_QUOTES, 'UTF-8'), 'ROWS'=>count($styles)));
+	foreach ($styles as $item)
 	{
-		for($i=0; $i<count($styles); $i++)
-		{
-			$template->assign_block_vars('styles.item', array(
-					'ID'		=> $styles[$i]['themes_id'],
-					'THEME'		=> htmlspecialchars($styles[$i]['style_name'], ENT_QUOTES, 'UTF-8'),
-					'REMOVE_ID'	=> (int) $styles[$i]['themes_id'],
-					'KEEP_CONFIG'	=> 1,
-				)
-			);
-			$template->assign_block_vars('styles.item.nodelete', array());
-		}
-	}
-	else
-	{
-		$i = 0;
-		$template->assign_block_vars('styles.item', array(
-				'ID'		=> $styles[$i]['themes_id'],
-				'THEME'		=> htmlspecialchars($styles[$i]['style_name'], ENT_QUOTES, 'UTF-8'),
-				'REMOVE_ID'	=> (int) $styles[$i]['themes_id'],
-				'KEEP_CONFIG'	=> 0,
-			)
-		);
-		$template->assign_block_vars('styles.item.delete', array(
-				'REMOVE_ID'	=> (int) $styles[$i]['themes_id'],
-			)
-		);
+		$template->assign_block_vars('styles.item', array('ID'=>$item['themes_id'], 'THEME'=>htmlspecialchars($item['style_name'], ENT_QUOTES, 'UTF-8'), 'REMOVE_ID'=>(int)$item['themes_id'], 'KEEP_CONFIG'=>count($styles)>1 ? 1 : 0));
+		$may_remove_files = count($styles) === 1 && strcasecmp($name, 'fisubsilversh') !== 0;
+		$template->assign_block_vars('styles.item.' . ($may_remove_files ? 'delete' : 'nodelete'), array('REMOVE_ID'=>(int)$item['themes_id']));
 	}
 }
-
+// A failed/uncertain file cleanup remains retryable after the DB registration
+// was already removed. Offer recorded cleanup attempts only; POST rechecks them.
+$receipts = $db->sql_query("SELECT config_name,config_value FROM " . CONFIG_TABLE . " WHERE config_name LIKE 'xs\\_removed\\_%'");
+if (!$receipts) { xs_error($lang['xs_remove_failed'], __LINE__, __FILE__); }
+if ($receipts)
+{
+	while ($row = $db->sql_fetchrow($receipts))
+	{
+		$receipt = phpbb_style_removal_receipt($row['config_value']);
+		if (!$receipt || $receipt['state'] !== 'pending' || $row['config_name'] !== phpbb_style_removal_receipt_key($receipt['template'])) { continue; }
+		$name = $receipt['template'];
+		if (strcasecmp($name, 'fisubsilversh') === 0) { continue; }
+		$used = false; foreach ($style_rowset as $item) { if (strcasecmp($name, $item['template_name']) === 0) { $used = true; } }
+		if (!$used) { $template->assign_block_vars('orphan', array('NAME'=>htmlspecialchars($name, ENT_QUOTES, 'UTF-8'), 'TOKEN'=>$receipt['token'])); }
+	}
+	$db->sql_freeresult($receipts);
+}
 $template->assign_vars(array(
-	'S_UNINSTALL_ACTION' => append_sid('xs_uninstall.' . $phpEx),
-	'S_FORM_TOKEN' => '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
-	'L_XS_UNINSTALL_CONFIRM' => htmlspecialchars(addslashes($lang['xs_uninstall_confirm']), ENT_QUOTES, 'UTF-8'),
-	'L_XS_UNINSTALL_FILES_CONFIRM' => htmlspecialchars(addslashes($lang['xs_uninstall_files_confirm']), ENT_QUOTES, 'UTF-8')
+	'S_UNINSTALL_ACTION'=>append_sid('xs_uninstall.' . $phpEx),
+	'S_FORM_TOKEN'=>'<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
+	'L_XS_UNINSTALL_CONFIRM'=>htmlspecialchars(addslashes($lang['xs_uninstall_confirm']), ENT_QUOTES, 'UTF-8'),
+	'L_XS_UNINSTALL_FILES_CONFIRM'=>htmlspecialchars(addslashes($lang['xs_uninstall_files_confirm']), ENT_QUOTES, 'UTF-8'),
+	'L_XS_ORPHAN_FILES'=>$lang['xs_orphan_files']
 ));
-
-$template->set_filenames(array('body' => XS_TPL_PATH . 'uninstall.tpl'));
+$template->set_filenames(array('body'=>XS_TPL_PATH . 'uninstall.tpl'));
 $template->pparse('body');
 xs_exit();
-
-?>

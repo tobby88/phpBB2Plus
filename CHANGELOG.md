@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make XS style unregistration atomic across preferences, labels, style rows
+  and unused per-template settings. Check the current database default and ACP
+  authority, preserve shared settings, and refuse removal of shared/reserved
+  template files. Pin the theme key range against concurrent registrations.
+  File cleanup uses a preflight tree and checked per-entry operations, without
+  following links; FTP listings accept MLSD or verified Unix LIST output.
+  Store bounded cleanup receipts in the existing configuration table so partial
+  file removal can be retried without offering arbitrary orphan directories.
+  Surface write/cache/filesystem errors instead of displaying false success.
 - Keep default-style selection and visibility consistent across board settings,
   the XS style list and the XS properties editor. Validate the actual supported
   theme, publish a newly selected default in the same transaction, and serialize

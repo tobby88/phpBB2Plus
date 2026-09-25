@@ -34,6 +34,18 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Style removal and recovery
+
+XS style removal preserves the current default and template directories shared
+by remaining styles. Unregistration and file cleanup are separate steps: the
+database changes are transactional, but deleted files cannot be rolled back.
+Keep a file backup before requesting removal. Failed/uncertain file cleanup can
+be retried from the uninstallation page using its recorded cleanup receipt.
+These bounded `xs_removed_*` records use the existing configuration table; no
+new schema or migration is needed. Older untracked orphan directories are not
+automatically offered for deletion. FTP cleanup requires readable MLSD or Unix
+LIST metadata; unsupported listings stop without guessing file types.
+
 ## Style reference migration
 
 The installer and post-1.53a updater use unsigned MEDIUMINT for style IDs and
