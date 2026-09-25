@@ -170,6 +170,17 @@ try
 	sij_check(is_resource($process), 'Backup execution probe started'); fclose($pipes[0]);
 	$output = stream_get_contents($pipes[1]); $errors = stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]);
 	sij_check(proc_close($process) === 0 && $output === '' && $errors === '', 'Backup envelope emits no payload and never executes embedded PHP');
+	$context = array('padding'=>str_repeat('x', PhpbbStyleImportJournal::MAX_CONTEXT_BYTES - strlen(json_encode(array('padding'=>'')))));
+	sij_check(strlen(json_encode($context)) === PhpbbStyleImportJournal::MAX_CONTEXT_BYTES, 'Exact metadata limit fixture');
+	$bounded = PhpbbStyleImportJournal::prepare($files, $base, 'local-fixture', array('fixture/bounded.tpl'=>'new'), $guard, $context);
+	$bounded = PhpbbStyleImportJournal::reopen($base, $bounded->id(), $bounded->seal(), 'local-fixture');
+	sij_check($bounded->context() === $context, 'Exact metadata limit prepares and reopens intact');
+	$context['padding'] .= 'x'; $before = count(glob($base . '/xs-import-*.backup'));
+	sij_denied(function () use ($files, $base, $guard, $context) { PhpbbStyleImportJournal::prepare($files, $base, 'local-fixture', array('fixture/bounded.tpl'=>'new'), $guard, $context); }, 'One byte over context limit rejected');
+	sij_check(count(glob($base . '/xs-import-*.backup')) === $before && !file_exists($target . '/fixture/bounded.tpl'), 'Over-limit preparation creates neither journal nor target');
+	$manifest = $bounded->manifest; $manifest['context'] = $context; $json = json_encode($manifest);
+	file_put_contents($bounded->directory . DIRECTORY_SEPARATOR . 'manifest.backup.php', PhpbbStyleImportJournal::envelope() . $json);
+	sij_denied(function () use ($base, $bounded, $json) { PhpbbStyleImportJournal::reopen($base, $bounded->id(), hash('sha256', $json), 'local-fixture'); }, 'Reopen enforces metadata limit even with matching seal');
 	echo 'Style import journal: ' . $checks . " assertions; real child-process interruption and filesystem recovery\n";
 }
 finally { sij_clean($root, $root); }

@@ -144,6 +144,32 @@ $body = <<<'PHP'
   sr_denied(function(){sr_run();},'Another clone operation cannot replace completed target');
   sr_check(sd_snapshot()===$after&&sr_file()===$content,'Rejected clone leaves complete target untouched');
  }
+ // The archive format explicitly permits 32 definitions. Exercise that real
+ // maximum with canonical DB column lengths and four-byte UTF-8 values; JSON
+ // escaping can make its sealed metadata much larger than the source strings.
+ sr_reset();$maximum_rows=array();
+ $columns=phpbb_acl_rows($peer,"SELECT COLUMN_NAME,CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fixture_themes' ORDER BY ORDINAL_POSITION");
+ for($i=0;$i<XS_MAX_ITEMS_PER_STYLE;$i++){
+  $row=array();foreach($columns as $column){$field=$column['COLUMN_NAME'];if(in_array($field,array('themes_id','theme_public'),true)){continue;}$row[$field]=$column['CHARACTER_MAXIMUM_LENGTH']===null?'0':str_repeat('😀',(int)$column['CHARACTER_MAXIMUM_LENGTH']);}
+  $row['template_name']='fisubsilversh';$row['style_name']='Variant '.sprintf('%02d',$i).' '.str_repeat('😀',19);
+  phpbb_style_install_values($row,'fisubsilversh');$maximum_rows[]=$row;
+ }
+ $cfg=xs_generate_themeinfo($maximum_rows,'fisubsilversh','fisubsilversh');
+ $tar=pack(TAR_HEADER_PACK,'theme_info.cfg','100644','0','0',decoct(strlen($cfg)),'0','0','0','','ustar','','','','','','','').$cfg.str_repeat("\0",(512-strlen($cfg)%512)%512).str_repeat("\0",1024);
+ $items=array('fisubsilversh','Maximum supported selection');foreach($maximum_rows as $row){$items[]=$row['style_name'];}
+ $lengths='';foreach($items as $item){$lengths.=chr(strlen($item));}$size=strlen(STYLE_HEADER_START)+9+strlen($lengths)+strlen(implode('',$items))+strlen(STYLE_HEADER_END);$zip=gzcompress($tar);
+ $packet=STYLE_HEADER_START.pack('NN',$size,$size+strlen($zip)).chr(count($items)).$lengths.implode('',$items).STYLE_HEADER_END.$zip;
+ file_put_contents($sd_root.'/cache/input.style',$packet);clearstatcache();
+ $large_request=array('sid'=>'fixture-admin','total'=>(string)XS_MAX_ITEMS_PER_STYLE,'import_default'=>'-1');for($i=0;$i<XS_MAX_ITEMS_PER_STYLE;$i++){$large_request['import_install_'.$i]='1';}
+ $header=xs_get_style_header($sd_root.'/cache/input.style');$entries=phpbb_style_archive_entries($tar);list($batch,$default)=phpbb_style_import_selection($large_request,$header,$entries,$tar);
+ $context=phpbb_style_import_recovery_context(array('template'=>'fisubsilversh','batch'=>$batch,'default'=>$default));$context_size=strlen(json_encode($context));
+ sr_check($context_size>32768,'Valid full selection exceeds the former arbitrary metadata cap');
+ sr_check(sim_run($large_request)==='saved','Actual importer must accept its supported 32-definition UTF-8 selection ('.$context_size.' metadata bytes)');
+ $rows=phpbb_acl_rows($peer,"SELECT * FROM fixture_themes WHERE style_name LIKE 'Variant %' ORDER BY style_name");
+ sr_check(count($rows)===XS_MAX_ITEMS_PER_STYLE,'All maximum-selection definitions registered');
+ foreach($rows as $i=>$row){foreach($batch[$i] as $field=>$value){sr_check($row[$field]===$value,'Maximum metadata round-trips without truncation: '.$field);}}
+ $receipt=phpbb_style_import_read_receipt($peer,'fisubsilversh');$journal=PhpbbStyleImportJournal::reopen($sd_root.'/cache',$receipt['o'],$receipt['h'],'forum:'.realpath($sd_root));
+ sr_check($journal->context()===$context,'Large sealed selection can be reopened for recovery');sd_unlocked();
  echo 'Style import recovery native: '.$sr_checks." assertions; real InnoDB receipts and commit ambiguity\n";
 }finally{
  $sd_hook=null;$sd_failure='';$sd_after_commit=null;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();chdir($sd_previous);

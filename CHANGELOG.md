@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Size the bounded import-recovery metadata allowance for all 32 supported
+  style definitions, including maximum-length four-byte UTF-8 values after
+  JSON escaping. Preserve a shared preparation/reopen limit and test exact
+  boundaries instead of rejecting valid larger selections.
 - Keep complete template clones create-only through the target import lock,
   not just the initial form check. Reject concurrently created directories or
   template definitions without overwriting them; bind intent to the operation

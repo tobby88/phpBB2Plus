@@ -6,6 +6,10 @@ if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 // whether rollback is still allowed. This class does not decide SQL outcomes.
 class PhpbbStyleImportJournal
 {
+	// 32 canonical definitions with maximum-length four-byte characters can
+	// exceed 400 KiB once JSON escapes them. Bound context separately without
+	// rejecting the archive format's supported selection size.
+	const MAX_CONTEXT_BYTES = 1048576;
 	var $directory; var $manifest; var $digest;
 
 	static function fail() { phpbb_acl_error('xs_import_failed'); }
@@ -65,7 +69,7 @@ class PhpbbStyleImportJournal
 	{
 		$context_json = is_array($context) ? json_encode($context) : false;
 		if (!is_string($identity) || $identity === '' || !is_array($desired) || !$desired || count($desired) > 5000
-			|| !is_string($context_json) || strlen($context_json) > 32768 || !is_array($extra_directories) || count($extra_directories) > 5000) { self::fail(); }
+			|| !is_string($context_json) || strlen($context_json) > self::MAX_CONTEXT_BYTES || !is_array($extra_directories) || count($extra_directories) > 5000) { self::fail(); }
 		$base = self::base($base); $directories = array(); $seen = array(); $template = null; $new_size = 0;
 		foreach ($desired as $path => $bytes)
 		{
@@ -145,7 +149,7 @@ class PhpbbStyleImportJournal
 		if (!is_array($data) || !isset($data['version'], $data['operation'], $data['target'], $data['transport'], $data['context'], $data['files'], $data['directories'])
 			|| $data['version'] !== 1 || $data['operation'] !== $operation || $data['target'] !== hash('sha256', $identity) || !self::hash_value($data['transport'])
 			|| !is_array($data['files']) || !$data['files'] || count($data['files']) > 5000 || !is_array($data['directories']) || count($data['directories']) > 10000
-			|| !is_array($data['context']) || strlen(json_encode($data['context'])) > 32768) { self::fail(); }
+			|| !is_array($data['context']) || strlen(json_encode($data['context'])) > self::MAX_CONTEXT_BYTES) { self::fail(); }
 		$seen = array(); $expected_dirs = array(); $template = null;
 		foreach ($data['files'] as $index => $item)
 		{
