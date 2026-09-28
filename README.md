@@ -36,6 +36,16 @@ preserved Arcade is documented in
 
 ## Style removal and recovery
 
+Style exports hold the same owner as import/removal and check current ACP
+authority while capturing and delivering a package. A source with a pending
+import must first be resumed or rolled back. Export remains available when the
+board's default-style setting is damaged, provided its source and storage are
+valid. Export preferences use the existing configuration table and refresh its
+cache; optional delivery fields that exceed its value limit retain only the
+selected method. No database migration is needed for these export checks.
+File/FTP delivery and SQL completion are separate effects: if final confirmation
+fails, an exported file may already exist. Check the destination before retrying.
+
 XS single and bulk installations register the entire selection transactionally.
 Invalid definitions or conflicting installed names leave the batch unchanged;
 identical retries keep their IDs and clear stale caches. Imported text is checked

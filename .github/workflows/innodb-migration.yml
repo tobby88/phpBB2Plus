@@ -72,6 +72,14 @@ jobs:
         env:
           PHPBB_STYLE_INSTALL_NATIVE: '1'
           PHPBB_STYLE_INSTALL_PASSWORD: fixture-only
+      - name: Check native style export authority and publication
+        run: |
+          for case in normal pending revoked file pending-file revoked-file delegated revoked-grant logout bad-sid concurrent-revoke commit-failure lost-ack old-storage invalid-default long-preferences zero lost-owner-file cache-failure existing update-failure alias-preferences; do
+            php .github/scripts/check-style-export-native.php "$case"
+          done
+        env:
+          PHPBB_STYLE_EXPORT_NATIVE: '1'
+          PHPBB_STYLE_EXPORT_PASSWORD: fixture-only
       - run: php .github/scripts/check-style-import-native.php
         env:
           PHPBB_STYLE_IMPORT_NATIVE: '1'

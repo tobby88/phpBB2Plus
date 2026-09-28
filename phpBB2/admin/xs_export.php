@@ -93,7 +93,7 @@ function xs_export_safe_filename($value, $fallback)
 //
 $export = isset($HTTP_GET_VARS['export']) && is_scalar($HTTP_GET_VARS['export']) ? (string) $HTTP_GET_VARS['export'] : '';
 $export = xs_tpl_name($export);
-if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . '/theme_info.cfg'))
+if($export !== '' && @file_exists($phpbb_root_path . $template_dir . $export . '/theme_info.cfg'))
 {
 	// Get list of styles
 	$sql = "SELECT themes_id, style_name FROM " . THEMES_TABLE . " WHERE template_name = '$export' ORDER BY style_name ASC";
@@ -150,7 +150,7 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 //
 $export = isset($HTTP_POST_VARS['export']) && is_scalar($HTTP_POST_VARS['export']) ? (string) $HTTP_POST_VARS['export'] : '';
 $export = xs_tpl_name($export);
-if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . '/theme_info.cfg') && !defined('DEMO_MODE'))
+if($export !== '' && @file_exists($phpbb_root_path . $template_dir . $export . '/theme_info.cfg') && !defined('DEMO_MODE'))
 {
 	phpbb_admin_require_post_session();
 	$total = isset($HTTP_POST_VARS['total']) && is_scalar($HTTP_POST_VARS['total']) ? intval($HTTP_POST_VARS['total']) : 0;
@@ -181,36 +181,19 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 		xs_error($lang['xs_export_noselect_themes'] . '<br /><br /> ' . $lang['xs_export_back']);
 	}
 	// Export as...
-	$exportas = empty($HTTP_POST_VARS['export_template']) || !is_scalar($HTTP_POST_VARS['export_template']) ? $export : (string) $HTTP_POST_VARS['export_template'];
+	$exportas = !isset($HTTP_POST_VARS['export_template']) || !is_scalar($HTTP_POST_VARS['export_template']) || (string)$HTTP_POST_VARS['export_template'] === '' ? $export : (string) $HTTP_POST_VARS['export_template'];
 	$exportas = xs_tpl_name($exportas);
 	$exportas_length = preg_match_all('/./us', $exportas, $exportas_characters);
 	if($exportas === '' || $exportas_length === false || $exportas_length > 30)
 	{
 		xs_error($lang['xs_invalid_style_name'] . '<br /><br />' . $lang['xs_export_back']);
 	}
-	// Generate theme_info.cfg
-	$sql = "SELECT * FROM " . THEMES_TABLE . " WHERE template_name = '$export' AND themes_id IN (" . implode(', ', $list) . ")";
-	if(!$result = $db->sql_query($sql))
+	require_once dirname(__DIR__) . '/includes/functions_style_export.php';
+	$export_owner = null;
+	try
 	{
-		xs_error($lang['xs_no_theme_data'] . $lang['xs_export_back']);
-	}
-	$theme_rowset = $db->sql_fetchrowset($result);
-	if(count($theme_rowset) == 0)
-	{
-		xs_error($lang['xs_no_themes']  . '<br /><br />' . $lang['xs_export_back']);
-	}
-	// pack style
-	if(count($theme_rowset) !== count($list))
-	{
-		xs_error($lang['xs_no_themes']  . '<br /><br />' . $lang['xs_export_back']);
-	}
-	for($i=0; $i<count($theme_rowset); $i++)
-	{
-		$id = $theme_rowset[$i]['themes_id'];
-		$theme_name = $theme_rowset[$i]['style_name'];
-		$theme_name = isset($export_style_names[$id]) ? $export_style_names[$id] : $theme_name;
-		$theme_rowset[$i]['style_name'] = $theme_name;
-	}
+	list($export_owner, $theme_rowset) = phpbb_style_export_open($db, $HTTP_POST_VARS, $export, $export_style_names);
+	// Generate theme_info.cfg and capture files under the shared style owner.
 	$theme_data = xs_generate_themeinfo($theme_rowset, $export, $exportas);
 
 	// prepare to pack
@@ -229,6 +212,7 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 	{
 		xs_error(str_replace('{TPL}', $export, $lang['xs_export_error2']) . '<br /><br />' . $lang['xs_export_back']);
 	}
+	phpbb_style_storage_lock_authority($export_owner);
 
 	//
 	// Got file. Sending it.
@@ -258,7 +242,7 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 		}
 		$filename = rtrim($resolved_send_dir, '/\\') . DIRECTORY_SEPARATOR . $export_filename;
 		$tmp_filename = @tempnam($resolved_send_dir, 'xs_export_');
-		if($tmp_filename === false || @file_put_contents($tmp_filename, $data, LOCK_EX) !== strlen($data) || !@rename($tmp_filename, $filename))
+		if($tmp_filename === false || @file_put_contents($tmp_filename, $data, LOCK_EX) !== strlen($data))
 		{
 			if($tmp_filename !== false)
 			{
@@ -266,9 +250,15 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 			}
 			xs_error(str_replace('{FILE}', htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'), $lang['xs_error_cannot_create_file']) . '<br /><br />' . $lang['xs_export_back']);
 		}
+		try
+		{
+			phpbb_style_storage_lock_authority($export_owner);
+			if (!@rename($tmp_filename, $filename)) { phpbb_acl_error('xs_export_failed'); }
+		}
+		finally { if (is_file($tmp_filename)) { @unlink($tmp_filename); } }
 		@chmod($filename, 0664);
-		set_export_method('file', array('dir' => XS_TEMP_DIR));
-		xs_message($lang['Information'], str_replace('{FILE}', htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'), $lang['xs_export_saved']) . '<br /><br />' . $lang['xs_export_back']);
+		phpbb_style_export_complete($export_owner, 'file', array('dir' => XS_TEMP_DIR));
+		$export_success = str_replace('{FILE}', htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'), $lang['xs_export_saved']);
 	}
 	elseif($send_method === 'ftp')
 	{
@@ -314,19 +304,31 @@ if(!empty($export) && @file_exists($phpbb_root_path . $template_dir . $export . 
 				xs_error($lang['xs_export_error_uploading'] . '<br /><br />' . $lang['xs_export_back']);
 			}
 		}
-		$res = @ftp_put($ftp, $export_filename, $filename, FTP_BINARY);
-		@ftp_close($ftp);
-		@unlink($filename);
+		try
+		{
+			phpbb_style_storage_lock_authority($export_owner);
+			$res = @ftp_put($ftp, $export_filename, $filename, FTP_BINARY);
+		}
+		finally { @ftp_close($ftp); @unlink($filename); }
 		if(!$res)
 		{
 			xs_error($lang['xs_export_error_uploading'] . '<br /><br />' . $lang['xs_export_back']);
 		}
-		set_export_method('ftp', array('host' => $ftp_host, 'login' => $ftp_login, 'ftpdir' => $ftp_dir));
-		xs_message($lang['Information'], $lang['xs_export_uploaded'] . '<br /><br />' . $lang['xs_export_back']);
+		phpbb_style_export_complete($export_owner, 'ftp', array('host' => $ftp_host, 'login' => $ftp_login, 'ftpdir' => $ftp_dir));
+		$export_success = $lang['xs_export_uploaded'];
 	}
-	set_export_method('save', array());
-	// send file
-	xs_download_file($export_filename, $data, 'application/phpbbstyle');
+	else { phpbb_style_export_complete($export_owner, 'save', array()); }
+	}
+	catch (Exception $error)
+	{
+		$key = $error instanceof PhpbbAclException && $error->getMessage() === 'xs_import_pending' ? 'xs_import_pending' :
+			($error instanceof PhpbbAclException && in_array($error->getMessage(), array('Not_Authorised','Session_invalid'), true) ? 'xs_permission_denied' : 'xs_export_failed');
+		xs_error(str_replace('{TPL}', htmlspecialchars($export, ENT_QUOTES, 'UTF-8'), $lang[$key]) . '<br /><br />' . $lang['xs_export_back']);
+	}
+	catch (Error $error) { xs_error($lang['xs_export_failed'] . '<br /><br />' . $lang['xs_export_back']); }
+	finally { if ($export_owner !== null) { $export_owner->rollback(); $export_owner->release(); } }
+	if ($send_method === 'save') { xs_download_file($export_filename, $data, 'application/phpbbstyle'); }
+	else { xs_message($lang['Information'], $export_success . '<br /><br />' . $lang['xs_export_back']); }
 	xs_exit();
 }
 

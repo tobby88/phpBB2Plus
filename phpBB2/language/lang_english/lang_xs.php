@@ -368,6 +368,7 @@ $lang['xs_no_style_info'] = 'Could not get style information';
 $lang['xs_export_noselect_themes'] = 'You should select at least one style';
 $lang['xs_export_error'] = 'Cannot export template "{TPL}": ';
 $lang['xs_export_error2'] = 'Cannot export template "{TPL}": style is empty';
+$lang['xs_export_failed'] = 'The export could not be completed or confirmed. A destination file may already exist. Check it before retrying the export.';
 $lang['xs_export_saved'] = 'Style is saved as "{FILE}"';
 $lang['xs_export_error_uploading'] = 'Error uploading file';
 $lang['xs_export_uploaded'] = 'File uploaded.';

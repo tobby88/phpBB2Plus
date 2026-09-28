@@ -1349,16 +1349,6 @@ function pack_dir($dir1, $dir2, $search, $replace)
 	return $str;
 }
 
-// save export configuration
-function set_export_method($method, $data)
-{
-	global $db, $board_config;
-	$data['method'] = $method;
-	$str = xs_sql(serialize($data));
-	$sql = isset($board_config['xs_export_data']) ? "UPDATE " . CONFIG_TABLE . " SET config_value='{$str}' WHERE config_name='xs_export_data'" : "INSERT INTO " . CONFIG_TABLE . " (config_name, config_value) VALUES ('xs_export_data', '{$str}')";
-	$db->sql_query($sql);
-}
-
 // send file
 function xs_download_file($filename, $content, $content_type = '')
 {

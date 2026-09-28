@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Hold current XS authority and native style ownership throughout export
+  capture/delivery. Refuse pending source imports, stale roles/grants/sessions
+  and lost owner connections before publication. Save delivery preferences
+  transactionally, verify their stored value and refresh configuration cache
+  after committed or uncertain writes; long optional fields retain the method
+  within the existing storage limit. Preserve exports of template name `0`.
+  Report uncertain completion instead of claiming a successful download.
 - Rewrite exported template paths in one pass and match complete template-name
   components. Names such as `source_copy` no longer receive repeated suffixes,
   and references to similarly named sibling templates remain untouched.

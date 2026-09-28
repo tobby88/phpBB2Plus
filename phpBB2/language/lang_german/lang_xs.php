@@ -369,6 +369,7 @@ $lang['xs_no_style_info'] = 'Konnte die Style Informationen nicht lesen';
 $lang['xs_export_noselect_themes'] = 'Du solltest mindestens ein Style auswählen';
 $lang['xs_export_error'] = 'Kann Template "{TPL}" nicht exportieren: ';
 $lang['xs_export_error2'] = 'Kann Template "{TPL}" nicht exportieren: Style ist leer';
+$lang['xs_export_failed'] = 'Der Export konnte nicht abgeschlossen oder bestätigt werden. Eine Zieldatei kann bereits vorhanden sein. Bitte diese vor einem erneuten Export prüfen.';
 $lang['xs_export_saved'] = 'Style wurde als "{FILE}" gespeichert';
 $lang['xs_export_error_uploading'] = 'Fehler beim hochladen der Datei';
 $lang['xs_export_uploaded'] = 'Datei hochgeladen.';
