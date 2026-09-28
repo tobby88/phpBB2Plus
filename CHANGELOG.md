@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Decode SQL-escaped FTP export credentials and paths exactly once at the
+  transport boundary, preserving quotes and backslashes in login/password
+  values and selecting the valid remote directory `0`. Native loopback FTP
+  tests verify authentication, directory selection, complete package bytes,
+  password-free saved preferences and temporary-file cleanup.
 - Hold current XS authority and native style ownership throughout export
   capture/delivery. Refuse pending source imports, stale roles/grants/sessions
   and lost owner connections before publication. Save delivery preferences

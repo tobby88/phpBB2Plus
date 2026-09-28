@@ -45,6 +45,8 @@ cache; optional delivery fields that exceed its value limit retain only the
 selected method. No database migration is needed for these export checks.
 File/FTP delivery and SQL completion are separate effects: if final confirmation
 fails, an exported file may already exist. Check the destination before retrying.
+FTP login/password values retain quotes and backslashes rather than receiving
+legacy SQL escaping; passwords are never saved in the export preferences.
 
 XS single and bulk installations register the entire selection transactionally.
 Invalid definitions or conflicting installed names leave the batch unchanged;

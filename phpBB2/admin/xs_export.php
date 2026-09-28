@@ -263,10 +263,12 @@ if($export !== '' && @file_exists($phpbb_root_path . $template_dir . $export . '
 	elseif($send_method === 'ftp')
 	{
 		// upload via ftp
-		$ftp_host = isset($HTTP_POST_VARS['export_to_ftp_host']) && is_scalar($HTTP_POST_VARS['export_to_ftp_host']) ? trim((string) $HTTP_POST_VARS['export_to_ftp_host']) : '';
-		$ftp_login = isset($HTTP_POST_VARS['export_to_ftp_login']) && is_scalar($HTTP_POST_VARS['export_to_ftp_login']) ? (string) $HTTP_POST_VARS['export_to_ftp_login'] : '';
-		$ftp_pass = isset($HTTP_POST_VARS['export_to_ftp_pass']) && is_scalar($HTTP_POST_VARS['export_to_ftp_pass']) ? (string) $HTTP_POST_VARS['export_to_ftp_pass'] : '';
-		$ftp_dir = isset($HTTP_POST_VARS['export_to_ftp_dir']) && is_scalar($HTTP_POST_VARS['export_to_ftp_dir']) ? str_replace('\\', '/', (string) $HTTP_POST_VARS['export_to_ftp_dir']) : '';
+		// Decode the legacy SQL-escaped request once at the FTP boundary. Stored
+		// preferences and standalone raw callers must not be decoded again.
+		$ftp_host = isset($HTTP_POST_VARS['export_to_ftp_host']) && is_scalar($HTTP_POST_VARS['export_to_ftp_host']) ? trim((string) phpbb_request_raw_value($HTTP_POST_VARS['export_to_ftp_host'])) : '';
+		$ftp_login = isset($HTTP_POST_VARS['export_to_ftp_login']) && is_scalar($HTTP_POST_VARS['export_to_ftp_login']) ? (string) phpbb_request_raw_value($HTTP_POST_VARS['export_to_ftp_login']) : '';
+		$ftp_pass = isset($HTTP_POST_VARS['export_to_ftp_pass']) && is_scalar($HTTP_POST_VARS['export_to_ftp_pass']) ? (string) phpbb_request_raw_value($HTTP_POST_VARS['export_to_ftp_pass']) : '';
+		$ftp_dir = isset($HTTP_POST_VARS['export_to_ftp_dir']) && is_scalar($HTTP_POST_VARS['export_to_ftp_dir']) ? str_replace('\\', '/', (string) phpbb_request_raw_value($HTTP_POST_VARS['export_to_ftp_dir'])) : '';
 		if($ftp_host === '' || strlen($ftp_host) > 255 || !preg_match('/^[a-zA-Z0-9.\-:\[\]]+$/D', $ftp_host) || strlen($ftp_login) > 255 || strpos($ftp_login, "\0") !== false || strlen($ftp_pass) > 1024 || strpos($ftp_pass, "\0") !== false || strlen($ftp_dir) > 512 || strpos($ftp_dir, "\0") !== false || preg_match('#(?:^|/)\.\.(?:/|$)#', $ftp_dir))
 		{
 			xs_error($lang['xs_export_error_uploading'] . '<br /><br />' . $lang['xs_export_back']);
@@ -295,7 +297,7 @@ if($export !== '' && @file_exists($phpbb_root_path . $template_dir . $export . '
 			@unlink($filename);
 			xs_error($lang['xs_ftp_error_login2'] . '<br /><br />' . $lang['xs_export_back']);
 		}
-		if($ftp_dir)
+		if($ftp_dir !== '')
 		{
 			if(!@ftp_chdir($ftp, $ftp_dir))
 			{
