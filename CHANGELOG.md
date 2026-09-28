@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make ACP database backup streams select utf8mb4 and explicit matching SQL
+  escape rules, retaining zero auto-increment identities. Restore the importing
+  session's original SQL mode, foreign-key setting and charset/collation values
+  afterwards. Native full, gzip, data-only and structure-only roundtrips preserve
+  UTF-8, opaque/control bytes, NULL/empty values and InnoDB/DYNAMIC schemas
+  without changing source data. No database migration is required.
+  Remove unreachable PostgreSQL-only backup builders and the unused web-restore
+  parser bootstrap; database utilities remain MySQL/MariaDB-only.
 - Decode SQL-escaped FTP export credentials and paths exactly once at the
   transport boundary, preserving quotes and backslashes in login/password
   values and selecting the valid remote directory `0`. Native loopback FTP

@@ -18,6 +18,9 @@ $required = array(
 	'SHOW CREATE TABLE ',
 	"\$db->sql_escape(\$row[\$field_names[\$j]])",
 	'SET FOREIGN_KEY_CHECKS=0;',
+	'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;',
+	'STRICT_ALL_TABLES,NO_AUTO_VALUE_ON_ZERO,NO_ENGINE_SUBSTITUTION',
+	'SET FOREIGN_KEY_CHECKS=@phpbb_backup_old_foreign_keys;',
 	'X-Content-Type-Options: nosniff'
 );
 
@@ -30,6 +33,9 @@ foreach ($required as $marker)
 }
 
 $forbidden = array(
+	'pg_get_sequences',
+	'get_table_def_postgresql',
+	'get_table_content_postgresql',
 	"\$_GET['additional_tables']",
 	"\$_GET['backup_type']",
 	"\$_GET['gzipcompress']",

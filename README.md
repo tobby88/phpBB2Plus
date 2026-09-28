@@ -124,6 +124,12 @@ already migrated columns. Do not combine this mode with `--storage-only`.
 
 ## InnoDB storage migration
 
+ACP database backups include utf8mb4 and matching SQL escape settings instead
+of relying on the import tool's connection defaults. They preserve special
+zero auto-increment identities and restore the importing session's previous
+settings afterwards. This protects export/import representation; it does not
+replace a verified backup or imply a consistent snapshot of concurrent writes.
+
 Fresh installations use InnoDB with utf8mb4. Existing installations are converted
 by `update/update_from_153a.php`; this includes known optional Arcade and
 CrackerTracker tables, but never arbitrary tables merely sharing the prefix.

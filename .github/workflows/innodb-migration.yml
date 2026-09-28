@@ -27,6 +27,14 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mysqli, pdo_mysql, pdo_sqlite, openssl, ftp
           coverage: none
+      - name: Check native ACP database backup roundtrips
+        run: |
+          for case in plain gzip data structure normal-source; do
+            php .github/scripts/check-db-backup-native.php "$case"
+          done
+        env:
+          PHPBB_DB_BACKUP_NATIVE: '1'
+          PHPBB_DB_BACKUP_PASSWORD: fixture-only
       - run: php .github/scripts/check-erc-clear-native.php
         env:
           PHPBB_ERC_CLEAR_NATIVE: '1'
