@@ -42,6 +42,18 @@ $cancel = isset($_POST['cancel']);
 $no_page_header = $cancel;
 
 require('./pagestart.' . $phpEx);
+require_once dirname(__DIR__) . '/includes/functions_ranks_storage.php';
+
+function admin_ranks_apply($request)
+{
+	global $db, $lang;
+	try { return phpbb_ranks_change($db, $request); }
+	catch (Exception $error)
+	{
+		message_die(GENERAL_ERROR, $error instanceof PhpbbAclException ? $error->getMessage() : $lang['Ranks_storage_failed']);
+	}
+	catch (Error $error) { message_die(GENERAL_ERROR, $lang['Ranks_storage_failed']); }
+}
 if ($cancel)
 {
 	redirect('admin/' . append_sid("admin_ranks.$phpEx", true));
@@ -159,69 +171,9 @@ if( $mode != "" )
 		// Ok, they sent us our info, let's update it.
 		//
 		
-		$rank_id = (isset($_POST['id']) && is_scalar($_POST['id'])) ? intval($_POST['id']) : 0;
-		$rank_title = ( isset($_POST['title']) && is_scalar($_POST['title']) ) ? trim((string) $_POST['title']) : "";
-		$special_rank = ( isset($_POST['special_rank']) && is_scalar($_POST['special_rank']) && (int) $_POST['special_rank'] === 1 ) ? TRUE : 0;
-		$min_posts = ( isset($_POST['min_posts']) && is_scalar($_POST['min_posts']) ) ? intval($_POST['min_posts']) : -1;
-		$rank_image = ( isset($_POST['rank_image']) && is_scalar($_POST['rank_image']) ) ? phpbb_profile_image_name(basename(trim((string) $_POST['rank_image']))) : "";
-
-		if( $rank_title == "" || strlen($rank_title) > 50 )
-		{
-			message_die(GENERAL_MESSAGE, $lang['Must_select_rank']);
-		}
-
-		if( $special_rank == 1 )
-		{
-			$max_posts = -1;
-			$min_posts = -1;
-		}
-		else
-		{
-			$min_posts = max(0, min(8388607, $min_posts));
-		}
-
-		//
-		// The rank image has to be a jpg, gif or png
-		//
-		if($rank_image != "")
-		{
-			if ( !preg_match("/(\.gif|\.png|\.jpg)$/is", $rank_image))
-			{
-				$rank_image = "";
-			}
-		}
-
-		if ($rank_id)
-		{
-			if (!$special_rank)
-			{
-				$sql = "UPDATE " . USERS_TABLE . " 
-					SET user_rank = 0 
-					WHERE user_rank = $rank_id";
-
-				if( !$result = $db->sql_query($sql) ) 
-				{
-					message_die(GENERAL_ERROR, $lang['No_update_ranks'], "", __LINE__, __FILE__, $sql);
-				}
-			}
-			$sql = "UPDATE " . RANKS_TABLE . "
-				SET rank_title = '" . $db->sql_escape($rank_title) . "', rank_special = " . intval($special_rank) . ", rank_min = $min_posts, rank_image = '" . $db->sql_escape($rank_image) . "'
-				WHERE rank_id = $rank_id";
-
-			$message = $lang['Rank_updated'];
-		}
-		else
-		{
-			$sql = "INSERT INTO " . RANKS_TABLE . " (rank_title, rank_special, rank_min, rank_image)
-				VALUES ('" . $db->sql_escape($rank_title) . "', " . intval($special_rank) . ", $min_posts, '" . $db->sql_escape($rank_image) . "')";
-
-			$message = $lang['Rank_added'];
-		}
-		
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, "Couldn't update/insert into ranks table", "", __LINE__, __FILE__, $sql);
-		}
+		$rank_request = $_POST; $rank_request['mode'] = 'save';
+		admin_ranks_apply($rank_request);
+		$message = isset($_POST['id']) && (int)$_POST['id'] > 0 ? $lang['Rank_updated'] : $lang['Rank_added'];
 
 		$message .= "<br /><br />" . sprintf($lang['Click_return_rankadmin'], "<a href=\"" . append_sid("admin_ranks.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -240,22 +192,8 @@ if( $mode != "" )
 		
 		if( $rank_id && $confirm )
 		{
-			$sql = "DELETE FROM " . RANKS_TABLE . "
-				WHERE rank_id = $rank_id";
-			
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't delete rank data", "", __LINE__, __FILE__, $sql);
-			}
-			
-			$sql = "UPDATE " . USERS_TABLE . " 
-				SET user_rank = 0 
-				WHERE user_rank = $rank_id";
-
-			if( !$result = $db->sql_query($sql) ) 
-			{
-				message_die(GENERAL_ERROR, $lang['No_update_ranks'], "", __LINE__, __FILE__, $sql);
-			}
+			$rank_request = $_POST; $rank_request['mode'] = 'delete';
+			admin_ranks_apply($rank_request);
 
 			$message = $lang['Rank_removed'] . "<br /><br />" . sprintf($lang['Click_return_rankadmin'], "<a href=\"" . append_sid("admin_ranks.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 

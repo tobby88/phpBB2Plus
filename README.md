@@ -124,6 +124,12 @@ already migrated columns. Do not combine this mode with `--storage-only`.
 
 ## InnoDB storage migration
 
+ACP rank edits and deletions commit together with the affected user-rank resets.
+Current root or exact delegated ranks permission is held through commit; stale
+sessions/grants and nontransactional storage refuse the change. An unconfirmed
+save must be inspected before retrying, particularly a new rank insert: a lost
+acknowledgement can leave a committed rank even though no success was displayed.
+
 ACP database backups include utf8mb4 and matching SQL escape settings instead
 of relying on the import tool's connection defaults. They preserve special
 zero auto-increment identities and restore the importing session's previous

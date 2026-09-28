@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make rank edits/deletions and affected user-rank resets one guarded InnoDB
+  transaction. Hold current root/exact delegated ranks permission through commit;
+  refuse revoked sessions/grants, legacy storage and missing/out-of-range ranks.
+  Failed writes roll back the entire pair; lost acknowledgement does not announce
+  success. Preserve raw or legacy-adapted Unicode titles exactly once and enforce
+  the schema's 50-character limit rather than a UTF-8 byte limit. No migration.
 - Revalidate and hold current root/delegated backup authority instead of trusting
   request-era admin metadata. Export all selected InnoDB rows from one dedicated
   read-only snapshot, pin table definitions and stage complete plain/gzip output

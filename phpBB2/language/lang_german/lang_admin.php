@@ -706,6 +706,7 @@ $lang['Rank_updated'] = 'Die Ranginformationen wurden aktualisiert';
 $lang['Rank_added'] = 'Der Rang wurde hinzugefügt';
 $lang['Rank_removed'] = 'Der Rang wurde gelöscht';
 $lang['No_update_ranks'] = 'Der Rang wurde erfolgreich gelöscht. Allerdings wurden Benutzer, denen dieser Rang zugeordnet war, nicht aktualisiert. Du musst den Rang bei diesen Benutzern manuell aktualisieren';
+$lang['Ranks_storage_failed'] = 'Die Rangänderung wurde nicht bestätigt. Bitte aktuellen Rang und Benutzerzuordnungen prüfen, bevor du es erneut versuchst. Ältere Tabellenformate erfordern zuerst die Speichermigration.';
 
 $lang['Click_return_rankadmin'] = 'Klicke %shier%s, um zur Rank Administration zurückzukehren';
 $lang['Confirm_delete_rank'] = 'Diesen Rang wirklich löschen?';

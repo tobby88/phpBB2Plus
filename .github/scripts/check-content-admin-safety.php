@@ -31,7 +31,7 @@ foreach ($files as $name => $body)
 $required = array(
 	'acronyms' => array("in_array(\$mode, array('', 'add', 'edit', 'save', 'delete'), true)", '$db->sql_escape($acronym)', '$confirmed && isset($_POST[\'id\'])'),
 	'words' => array("in_array(\$mode, array('add', 'edit', 'save', 'delete'), true)", '$db->sql_escape($word)', '$confirm && isset($_POST[\'id\'])'),
-	'ranks' => array("in_array(\$mode, array('add', 'edit', 'save', 'delete'), true)", '$db->sql_escape($rank_title)', '$confirm && isset($_POST[\'id\'])'),
+	'ranks' => array("in_array(\$mode, array('add', 'edit', 'save', 'delete'), true)", 'phpbb_ranks_change($db, $request)', '$confirm && isset($_POST[\'id\'])'),
 	'smilies' => array("in_array(\$mode, array('delete', 'edit', 'save', 'savenew'), true)", '$confirm ? admin_smiley_request_int($_POST, \'id\')', '$db->sql_escape($smile_code)')
 );
 foreach ($required as $name => $markers)
