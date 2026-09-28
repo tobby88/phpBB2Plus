@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate and hold current root/delegated backup authority instead of trusting
+  request-era admin metadata. Export all selected InnoDB rows from one dedicated
+  read-only snapshot, pin table definitions and stage complete plain/gzip output
+  privately before sending download headers or SQL. Read failures, revoked
+  sessions/grants, lost connections and uncertain completion publish no partial
+  dump. Preserve the caller's connection settings and transaction; close both
+  dedicated owners on every outcome. Native concurrent-write, authority/DDL-lock,
+  legacy-storage, fault and exact restoration checks cover PHP 5.6/7.4/8.5.
+  No schema migration is required; legacy data exports must first complete the
+  existing storage migration, with offline backup and stopped schema writers.
 - Make ACP database backup streams select utf8mb4 and explicit matching SQL
   escape rules, retaining zero auto-increment identities. Restore the importing
   session's original SQL mode, foreign-key setting and charset/collation values

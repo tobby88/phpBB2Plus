@@ -79,9 +79,10 @@ function get_table_def_mysql($table, $crlf)
 	$result = $db->sql_query($query);
 	if (!$result || !($row = $db->sql_fetchrow($result)))
 	{
-		message_die(GENERAL_ERROR, 'Failed in get_table_def (show create table)', '', __LINE__, __FILE__, $query);
+		phpbb_database_backup_failed();
 	}
 	$create_sql = isset($row['Create Table']) ? $row['Create Table'] : end($row);
+	$db->sql_freeresult($result);
 	$schema_create = ($drop == 1) ? 'DROP TABLE IF EXISTS ' . $quoted_table . ';' . $crlf : '';
 	$schema_create .= $create_sql . ';';
 	return $schema_create;
@@ -111,13 +112,13 @@ function get_table_content_mysql($table, $handler)
 	// Grab the data from the table.
 	if (!($result = $db->sql_query("SELECT * FROM $quoted_table")))
 	{
-		message_die(GENERAL_ERROR, "Failed in get_table_content (select *)", "", __LINE__, __FILE__, "SELECT * FROM $quoted_table");
+		phpbb_database_backup_failed();
 	}
 
 	// Loop through the resulting rows and build the sql statement.
 	if ($row = $db->sql_fetchrow($result))
 	{
-		$handler("\n#\n# Table Data for $table\n#\n");
+		$handler("\n#\n# Table Data for " . str_replace(array("\r", "\n"), ' ', $table) . "\n#\n");
 		$field_names = array();
 
 		// Grab the list of field names.
@@ -170,18 +171,72 @@ function get_table_content_mysql($table, $handler)
 		while ($row = $db->sql_fetchrow($result));
 	}
 
+	$db->sql_freeresult($result);
 	return(true);
 }
 
 function output_table_content($content)
 {
-	echo $content ."\n";
+	global $phpbb_backup_output;
+	phpbb_database_backup_write($phpbb_backup_output, $content . "\n");
 	return;
 }
 //
 // End Functions
 // -------------
 
+
+function phpbb_database_backup_build($reader, $stream, $tables, $backup_type, $dbname)
+{
+	global $db, $phpbb_backup_output;
+	$original = $db; $previous_output = isset($phpbb_backup_output) ? $phpbb_backup_output : null;
+	$db = $reader; $phpbb_backup_output = $stream;
+	$dbname = str_replace(array("\r", "\n"), ' ', (string)$dbname);
+	try
+	{
+		//
+		// Build the sql script file...
+		//
+		phpbb_database_backup_write($phpbb_backup_output, "#\n");
+		phpbb_database_backup_write($phpbb_backup_output, "# phpBB Backup Script\n");
+		phpbb_database_backup_write($phpbb_backup_output, "# Dump of tables for $dbname\n");
+		phpbb_database_backup_write($phpbb_backup_output, "#\n# DATE : " .  gmdate("d-m-Y H:i:s", time()) . " GMT\n");
+		phpbb_database_backup_write($phpbb_backup_output, "#\n\nSET @phpbb_backup_old_sql_mode=@@SESSION.sql_mode;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_foreign_keys=@@SESSION.foreign_key_checks;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_client=@@SESSION.character_set_client;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_results=@@SESSION.character_set_results;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_connection=@@SESSION.character_set_connection;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET @phpbb_backup_old_collation=@@SESSION.collation_connection;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION sql_mode='STRICT_ALL_TABLES,NO_AUTO_VALUE_ON_ZERO,NO_ENGINE_SUBSTITUTION';\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET FOREIGN_KEY_CHECKS=0;\n");
+
+		for($i = 0; $i < count($tables); $i++)
+		{
+			$table_name = $tables[$i];
+			$table_comment = str_replace(array("\r", "\n"), ' ', $table_name);
+
+
+			if($backup_type != 'data')
+			{
+				phpbb_database_backup_write($phpbb_backup_output, "#\n# TABLE: $table_comment \n#\n");
+				phpbb_database_backup_write($phpbb_backup_output, get_table_def_mysql($table_name, "\n") . "\n");
+			}
+
+			if($backup_type != 'structure')
+			{
+				get_table_content_mysql($table_name, "output_table_content");
+			}
+		}
+		phpbb_database_backup_write($phpbb_backup_output, "\nSET FOREIGN_KEY_CHECKS=@phpbb_backup_old_foreign_keys;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION sql_mode=@phpbb_backup_old_sql_mode;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION character_set_client=@phpbb_backup_old_client;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION character_set_results=@phpbb_backup_old_results;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION character_set_connection=@phpbb_backup_old_connection;\n");
+		phpbb_database_backup_write($phpbb_backup_output, "SET SESSION collation_connection=@phpbb_backup_old_collation;\n");
+	}
+	finally { $db = $original; $phpbb_backup_output = $previous_output; }
+}
 
 //
 // Begin program proper
@@ -214,6 +269,7 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 					$tables[$table_name] = $table_name;
 				}
 			}
+			$db->sql_freeresult($result);
 			$additional_tables = isset($_POST['additional_tables']) && is_scalar($_POST['additional_tables']) ? (string) $_POST['additional_tables'] : '';
 			$backup_type = isset($_POST['backup_type']) && is_scalar($_POST['backup_type']) ? (string) $_POST['backup_type'] : 'full';
 			if (!in_array($backup_type, array('full', 'structure', 'data'), true))
@@ -267,77 +323,49 @@ if( isset($_GET['perform']) || isset($_POST['perform']) )
 
 			}
 			phpbb_admin_require_post_session();
-			// mysqli escaping follows the source session's SQL mode. Use the same
-			// backslash rules as the generated import stream, independent of the
-			// server's default NO_BACKSLASH_ESCAPES setting. This changes only the
-			// current export connection, never schema or stored data.
-			if (!$db->sql_query("SET SESSION sql_mode='STRICT_ALL_TABLES,NO_AUTO_VALUE_ON_ZERO,NO_ENGINE_SUBSTITUTION'"))
+			require_once dirname(__DIR__) . '/includes/functions_database_backup.php';
+			$do_gzip_compress = (bool)($gzipcompress && extension_loaded('zlib'));
+			$backup_stream = null;
+			try
 			{
-				message_die(GENERAL_ERROR, $lang['Backups_not_supported']);
+				$backup_stream = phpbb_database_backup_capture($db, $tables, $do_gzip_compress,
+					function($reader, $stream) use ($tables, $backup_type, $dbname) {
+						phpbb_database_backup_build($reader, $stream, $tables, $backup_type, $dbname);
+					}, $backup_type !== 'structure');
+				$backup_stat = @fstat($backup_stream);
+				if (!$backup_stat || $backup_stat['size'] <= 0) { phpbb_database_backup_failed(); }
 			}
-			header("Pragma: no-cache");
+			catch (Exception $error)
+			{
+				if (is_resource($backup_stream)) { fclose($backup_stream); }
+				$key = $error instanceof PhpbbAclException ? 'Not_Authorised' :
+					($error instanceof PhpbbDatabaseBackupException && $error->getMessage() === 'storage' ? 'Database_backup_requires_innodb' : 'Database_backup_failed');
+				http_response_code($key === 'Not_Authorised' ? 403 : 503);
+				message_die(GENERAL_ERROR, isset($lang[$key]) ? $lang[$key] : 'Database backup refused.');
+			}
+			catch (Error $error)
+			{
+				if (is_resource($backup_stream)) { fclose($backup_stream); }
+				http_response_code(503); message_die(GENERAL_ERROR, $lang['Database_backup_failed']);
+			}
+			// No headers or SQL bytes are sent until the snapshot, authority,
+			// temporary storage and (when selected) gzip trailer are complete.
+			header('Pragma: no-cache');
 			header('Cache-Control: no-store, no-cache, must-revalidate');
 			header('X-Content-Type-Options: nosniff');
-			$do_gzip_compress = $gzipcompress && extension_loaded('zlib');
-			if($do_gzip_compress)
+			header('Content-Length: ' . sprintf('%.0f', $backup_stat['size']));
+			if ($do_gzip_compress)
 			{
-				@ob_start();
-				@ob_implicit_flush(0);
-				header("Content-Type: application/x-gzip; name=\"phpbb_db_backup.sql.gz\"");
+				header('Content-Type: application/x-gzip; name="phpbb_db_backup.sql.gz"');
 				header('Content-Disposition: attachment; filename="phpbb_db_backup.sql.gz"');
 			}
 			else
 			{
-				header("Content-Type: text/x-delimtext; name=\"phpbb_db_backup.sql\"");
+				header('Content-Type: text/x-delimtext; name="phpbb_db_backup.sql"');
 				header('Content-Disposition: attachment; filename="phpbb_db_backup.sql"');
 			}
-
-			//
-			// Build the sql script file...
-			//
-			echo "#\n";
-			echo "# phpBB Backup Script\n";
-			echo "# Dump of tables for $dbname\n";
-			echo "#\n# DATE : " .  gmdate("d-m-Y H:i:s", time()) . " GMT\n";
-			echo "#\n\nSET @phpbb_backup_old_sql_mode=@@SESSION.sql_mode;\n";
-			echo "SET @phpbb_backup_old_foreign_keys=@@SESSION.foreign_key_checks;\n";
-			echo "SET @phpbb_backup_old_client=@@SESSION.character_set_client;\n";
-			echo "SET @phpbb_backup_old_results=@@SESSION.character_set_results;\n";
-			echo "SET @phpbb_backup_old_connection=@@SESSION.character_set_connection;\n";
-			echo "SET @phpbb_backup_old_collation=@@SESSION.collation_connection;\n";
-			echo "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;\n";
-			echo "SET SESSION sql_mode='STRICT_ALL_TABLES,NO_AUTO_VALUE_ON_ZERO,NO_ENGINE_SUBSTITUTION';\n";
-			echo "SET FOREIGN_KEY_CHECKS=0;\n";
-
-			for($i = 0; $i < count($tables); $i++)
-			{
-				$table_name = $tables[$i];
-
-
-				if($backup_type != 'data')
-				{
-					echo "#\n# TABLE: $table_name \n#\n";
-					echo get_table_def_mysql($table_name, "\n") . "\n";
-				}
-
-				if($backup_type != 'structure')
-				{
-					get_table_content_mysql($table_name, "output_table_content");
-				}
-			}
-			echo "\nSET FOREIGN_KEY_CHECKS=@phpbb_backup_old_foreign_keys;\n";
-			echo "SET SESSION sql_mode=@phpbb_backup_old_sql_mode;\n";
-			echo "SET SESSION character_set_client=@phpbb_backup_old_client;\n";
-			echo "SET SESSION character_set_results=@phpbb_backup_old_results;\n";
-			echo "SET SESSION character_set_connection=@phpbb_backup_old_connection;\n";
-			echo "SET SESSION collation_connection=@phpbb_backup_old_collation;\n";
-			
-			if($do_gzip_compress)
-			{
-				$contents = gzencode(ob_get_contents(), 9);
-				ob_end_clean();
-				echo $contents;
-			}
+			try { fpassthru($backup_stream); }
+			finally { fclose($backup_stream); }
 			exit;
 
 			break;

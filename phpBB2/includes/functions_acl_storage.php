@@ -64,6 +64,7 @@ function phpbb_acp_actor($db,$route)
 {
 	global $userdata,$phpEx;
 	$routes=array('admin_db_maintenance.'.$phpEx,'admin_forumauth.'.$phpEx,
+		'admin_db_utilities.'.$phpEx.'?perform=backup',
 		'admin_ug_auth.'.$phpEx.'?mode=user','admin_ug_auth.'.$phpEx.'?mode=group',
 		'admin_board.'.$phpEx,'admin_board_extend.'.$phpEx,'admin_cracker_tracker.'.$phpEx.'?modu=1',
 		'admin_attachments.'.$phpEx.'?mode=manage','admin_attachments.'.$phpEx.'?mode=cats',

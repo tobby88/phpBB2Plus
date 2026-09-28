@@ -21,7 +21,11 @@ $required = array(
 	'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;',
 	'STRICT_ALL_TABLES,NO_AUTO_VALUE_ON_ZERO,NO_ENGINE_SUBSTITUTION',
 	'SET FOREIGN_KEY_CHECKS=@phpbb_backup_old_foreign_keys;',
-	'X-Content-Type-Options: nosniff'
+	'X-Content-Type-Options: nosniff',
+	'phpbb_database_backup_capture($db, $tables, $do_gzip_compress,',
+	'fstat($backup_stream)',
+	'fpassthru($backup_stream)',
+	"finally { fclose(\$backup_stream); }"
 );
 
 foreach ($required as $marker)
@@ -64,6 +68,26 @@ if (substr_count($body, 'phpbb_admin_require_post_session();') < 1)
 {
 	$errors[] = 'Backup must enforce the AdminCP POST token; SQL restore is blocked altogether.';
 }
+
+$backup = (string) file_get_contents($root . '/phpBB2/includes/functions_database_backup.php');
+foreach (array('sql_dedicated_connection', 'START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY',
+    'READ COMMITTED', 'LOCK IN SHARE MODE', 'phpbb_database_backup_authority($authority); $authority->commit();',
+    'tmpfile()', 'stream_filter_remove($filter)', 'if (!$success && is_resource($stream))',
+    'HEX(TABLE_NAME)', "\$rows[0]['ENGINE'] !== 'InnoDB'", 'hash_equals(') as $marker)
+{
+    if (strpos($backup, $marker) === false) { $errors[] = 'Missing staged backup lifecycle marker: ' . $marker; }
+}
+if (strpos($body, 'phpbb_database_backup_capture(') > strpos($body, "header('Pragma: no-cache')"))
+{
+    $errors[] = 'Download headers precede completed backup capture.';
+}
+if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
+require_once $root . '/phpBB2/includes/functions_database_backup.php';
+// A closed/failed temporary stream cannot quietly produce a successful dump.
+$closed_stream = tmpfile(); fclose($closed_stream); $rejected = false;
+try { phpbb_database_backup_write($closed_stream, 'not publishable'); }
+catch (PhpbbDatabaseBackupException $error) { $rejected = true; }
+if (!$rejected) { $errors[] = 'Failed spool writes were accepted.'; }
 
 $plain_restore = tempnam(sys_get_temp_dir(), 'phpbb-db-restore-');
 file_put_contents($plain_restore, 'SELECT 1;');

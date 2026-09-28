@@ -15,7 +15,6 @@ $files = array(
 	'phpBB2/admin/page_footer_admin.php',
 	'phpBB2/links.js.php',
 	'phpBB2/printview.php',
-	'phpBB2/admin/admin_db_utilities.php',
 );
 
 foreach ($files as $relative)
@@ -24,6 +23,24 @@ foreach ($files as $relative)
 	gzip_output_assert(strpos($source, 'gzencode(') !== false, $relative . ' must emit a complete gzip stream');
 	gzip_output_assert(strpos($source, '"\\x1f\\x8b\\x08') === false, $relative . ' must not assemble gzip framing manually');
 }
+
+// Backup output uses a disk spool with zlib's complete gzip wrapper rather
+// than buffering the full dump for gzencode. Native tests decode the actual
+// controller response; this check also exercises the configured filter.
+$backup = file_get_contents($root . '/phpBB2/includes/functions_database_backup.php');
+gzip_output_assert(strpos($backup, "'zlib.deflate'") !== false && strpos($backup, "'window'=>31") !== false, 'backup must select a complete gzip wrapper');
+gzip_output_assert(strpos($backup, 'stream_filter_remove($filter)') !== false, 'backup must finalize the gzip trailer before publication');
+$backup_controller = file_get_contents($root . '/phpBB2/admin/admin_db_utilities.php');
+gzip_output_assert(strpos($backup_controller, 'phpbb_database_backup_capture(') !== false && strpos($backup_controller, 'fpassthru($backup_stream)') !== false, 'backup must publish its completed spool');
+$spool = tmpfile();
+gzip_output_assert(is_resource($spool), 'disposable gzip spool');
+$filter = stream_filter_append($spool, 'zlib.deflate', STREAM_FILTER_WRITE, array('level'=>9,'window'=>31));
+gzip_output_assert(is_resource($filter), 'configured gzip filter');
+$payload = "Backup gzip filter regression\n";
+fwrite($spool, $payload);
+gzip_output_assert(stream_filter_remove($filter), 'gzip filter finalization');
+rewind($spool); $spooled = stream_get_contents($spool); fclose($spool);
+gzip_output_assert(substr($spooled, 0, 2) === "\x1f\x8b" && gzdecode($spooled) === $payload, 'spooled gzip framing and checksum decode correctly');
 
 $header_files = array(
 	'phpBB2/includes/page_header.php',

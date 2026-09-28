@@ -127,8 +127,20 @@ already migrated columns. Do not combine this mode with `--storage-only`.
 ACP database backups include utf8mb4 and matching SQL escape settings instead
 of relying on the import tool's connection defaults. They preserve special
 zero auto-increment identities and restore the importing session's previous
-settings afterwards. This protects export/import representation; it does not
-replace a verified backup or imply a consistent snapshot of concurrent writes.
+settings afterwards. Data exports use one read-only InnoDB snapshot across all
+selected tables, so ordinary concurrent transactional writes do not mix commit
+points. Current account, session and the exact delegated backup permission are
+checked and held through capture. SQL/gzip is staged in a private temporary file;
+failed reads, lost ownership or unconfirmed completion produce no partial dump.
+Dedicated connections leave the original request's settings/transaction intact.
+
+Selected table definitions are pinned against concurrent alteration, but stop
+schema migrations and new-table DDL during backup. Data/full exports refuse
+non-InnoDB tables; structure-only exports can retain their actual engine. A
+legacy installation needs a verified offline backup before storage migration.
+Temporary disk space and per-table result memory are still required. A completed
+download is not proof of restorability: test restoration independently and keep
+verified file/database backups together.
 
 Fresh installations use InnoDB with utf8mb4. Existing installations are converted
 by `update/update_from_153a.php`; this includes known optional Arcade and

@@ -237,6 +237,8 @@ $lang['Start_Restore'] = 'Wiederherstellung beginnen';
 $lang['Restore_success'] = 'Die Datenbank wurde wieder hergestellt.<br /><br />Dein Board sollte jetzt wieder den Stand des Backups haben.';
 $lang['Backup_download'] = 'Dein Download wird in Kürze beginnen - bitte etwas Geduld';
 $lang['Backups_not_supported'] = 'Fehler: Dein Datenbanksystem unterstützt Datenbank-Backups nicht!';
+$lang['Database_backup_failed'] = 'Das Backup konnte nicht sicher abgeschlossen werden. Es wurden keine SQL-Daten gesendet. Bitte erneut versuchen und Datenbankzugriff sowie temporären Speicherplatz prüfen; während der Erzeugung dürfen keine Schemaänderungen laufen.';
+$lang['Database_backup_requires_innodb'] = 'Ein konsistentes Online-Datenbackup erfordert InnoDB für alle ausgewählten Tabellen und das unterstützte Speicherformat für die Berechtigungstabellen. Für alte Tabellen bitte ein Datenbankwerkzeug des Hosters bei gestoppten Schreibzugriffen verwenden und die Speichermigration durchführen. Ein reiner Strukturexport kann andere physische Tabellen-Engines weiterhin bewahren.';
 
 $lang['Restore_Error_uploading'] = 'Fehler beim Hochladen der Backup-Datei';
 $lang['Restore_Error_filename'] = 'Probleme mit dem Dateinamen, probiere einen anderen';

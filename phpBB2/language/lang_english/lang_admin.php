@@ -237,6 +237,8 @@ $lang['Start_Restore'] = 'Start Restore';
 $lang['Restore_success'] = 'The Database has been successfully restored.<br /><br />Your board should be back to the state it was when the backup was made.';
 $lang['Backup_download'] = 'Your download will start shortly; please wait until it begins.';
 $lang['Backups_not_supported'] = 'Sorry, but database backups are not currently supported for your database system.';
+$lang['Database_backup_failed'] = 'The backup could not be completed safely. No SQL data was sent. Retry and check database access and temporary disk space; stop schema changes during capture.';
+$lang['Database_backup_requires_innodb'] = 'A consistent online data backup requires every selected table to use InnoDB and current authority tables to use the supported storage format. For legacy tables, use a hosting database tool with all writers stopped and run the storage migration. A structure-only export can still preserve other physical table engines.';
 
 $lang['Restore_Error_uploading'] = 'Error in uploading the backup file';
 $lang['Restore_Error_filename'] = 'Filename problem; please try an alternative file';
