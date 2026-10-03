@@ -71,7 +71,13 @@ if (!in_array($mode, array('', 'results', 'searchuser', 'removebm'), true))
 }
 $only_bluecards = intval(phpbb_request_scalar($_POST, 'only_bluecards', 0)) ? TRUE : 0;
 $search_keywords = substr(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords')), 0, 500);
-$search_author = phpbb_clean_username(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'search_author', phpbb_request_scalar($_GET, 'search_author'))));
+$search_author_value = isset($_POST['search_author']) ? $_POST['search_author'] : (isset($_GET['search_author']) ? $_GET['search_author'] : '');
+if (!is_string($search_author_value)) { message_die(GENERAL_MESSAGE, $lang['No_search_match']); }
+$search_author = trim(phpbb_request_raw_value($search_author_value));
+if ($search_author !== '' && !phpbb_username_search_allowed($search_author, $board_config['search_min_chars']))
+{
+	message_die(GENERAL_MESSAGE, $lang['No_search_match']);
+}
 $search_id = phpbb_request_scalar($_GET, 'search_id', phpbb_request_scalar($_POST, 'search_id'));
 
 $show_results = phpbb_request_scalar($_POST, 'show_results', phpbb_request_scalar($_GET, 'show_results', 'posts'));
@@ -171,7 +177,7 @@ if ( $mode == 'searchuser' )
 	//
 	if ( isset($_POST['search_username']) || isset($_GET['search_username']) )
 	{
-		username_search((!empty($_POST['search_username'])) ? $_POST['search_username'] : $_GET['search_username']);
+		username_search(phpbb_request_scalar($_POST, 'search_username', phpbb_request_scalar($_GET, 'search_username')));
 	}
 	else
 	{
@@ -304,18 +310,13 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 
 			else
 			{
-				$search_author = str_replace('*', '%', trim($search_author));
-				$search_author_sql = $db->sql_escape($search_author);
-
-				if( !$only_bluecards && ( strpos($search_author, '%') !== false ) && ( strlen(str_replace('%', '', $search_author)) < $board_config['search_min_chars'] ) )
-				{
-					$search_author = '';
-				}
+				$author_username_sql = phpbb_username_search_sql($db, 'username', $search_author);
+				$author_guest_sql = phpbb_username_search_sql($db, 'post_username', $search_author);
 
 				
 				$sql = "SELECT user_id
 					FROM " . USERS_TABLE . "
-					WHERE username LIKE '$search_author_sql'";
+					WHERE $author_username_sql AND user_id > 0";
 				if ( !($result = $db->sql_query($sql)) )
 				{
 					message_die(GENERAL_ERROR, "Couldn't obtain list of matching users (searching for: $search_author)", "", __LINE__, __FILE__, $sql);
@@ -331,7 +332,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 					while( $row = $db->sql_fetchrow($result) );
 				}
 
-				$author_where_sql = "(poster_id = " . ANONYMOUS . " AND post_username LIKE '$search_author_sql')";
+				$author_where_sql = "(poster_id = " . ANONYMOUS . " AND $author_guest_sql)";
 				if ($matching_userids != '')
 				{
 					$author_where_sql = "(poster_id IN ($matching_userids) OR $author_where_sql)";
@@ -564,13 +565,8 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		//
 		if ( $search_author != '' )
 		{
-			$search_author = str_replace('*', '%', trim($search_author));
-
-			if( ( strpos($search_author, '%') !== false ) && ( strlen(str_replace('%', '', $search_author)) < $board_config['search_min_chars'] ) )
-			{
-				$search_author = '';
-			}
-			$search_author_sql = $db->sql_escape($search_author);
+			$author_username_sql = phpbb_username_search_sql($db, 'u.username', $search_author);
+			$author_guest_sql = phpbb_username_search_sql($db, 'p.post_username', $search_author);
 		}
 
 		if ( $total_match_count )
@@ -630,8 +626,8 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 						{
 							$from_sql .= ", " . USERS_TABLE . " u";
 							$where_sql .= " AND u.user_id = p.poster_id
-								AND (u.username LIKE '$search_author_sql'
-									OR (p.poster_id = " . ANONYMOUS . " AND p.post_username LIKE '$search_author_sql')) ";
+								AND ($author_username_sql
+									OR (p.poster_id = " . ANONYMOUS . " AND $author_guest_sql)) ";
 						}
 
 						if ( $auth_sql != '' )
@@ -710,8 +706,8 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 					{
 						$from_sql .= ", " . USERS_TABLE . " u";
 						$where_sql .= " AND u.user_id = p.poster_id
-							AND (u.username LIKE '$search_author_sql'
-								OR (p.poster_id = " . ANONYMOUS . " AND p.post_username LIKE '$search_author_sql'))";
+							AND ($author_username_sql
+								OR (p.poster_id = " . ANONYMOUS . " AND $author_guest_sql))";
 					}
 
 					$sql = "SELECT " . $select_sql . " 

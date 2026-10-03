@@ -32,7 +32,8 @@ ajax_endpoint_assert(strpos($ajax, "phpbb_topic_preference(\$db, \$topic_id, 'wa
 $poll = file_get_contents($root . '/phpBB2/includes/functions_poll_storage.php');
 ajax_endpoint_assert(strpos($ajax, 'phpbb_poll_state($db, $topic_id)') !== false && strpos($poll, "empty(\$auth['auth_view']) || empty(\$auth['auth_read'])") !== false, 'poll responses need current read permissions');
 ajax_endpoint_assert(strpos($ajax, 'urlencode($HTTP_GET_VARS') === false, 'nested highlight input must not reach urlencode');
-ajax_endpoint_assert(strpos($ajax, '$username_sql = $db->sql_escape(') !== false, 'member lookup must use the database escape routine');
+$username_helpers = file_get_contents($root . '/phpBB2/includes/functions_username.php');
+ajax_endpoint_assert(strpos($ajax, 'phpbb_username_search_sql($db,') !== false && strpos($ajax, 'phpbb_username_lookup($db,') !== false && strpos($username_helpers, '$database->sql_escape($pattern)') !== false, 'member lookups and bounded suggestions must use shared database-quoted identity and literal-pattern readers');
 ajax_endpoint_assert(strpos($ajax, 'ORDER BY username LIMIT 50') !== false, 'member suggestions must be bounded');
 ajax_endpoint_assert(strpos($ajax, '$safe_username = htmlspecialchars(') !== false, 'member options must escape account names');
 ajax_endpoint_assert(substr_count($ajax, 'obtain_word_list($orig_word, $replacement_word);') >= 5, 'poll and PM previews must initialize their censor lists');

@@ -87,7 +87,7 @@ function generate_user_info(&$row, $date_format, $group_mod, &$from, &$posts, &$
 	$yim_img = '';
 	$yim = '';
 
-	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($row['username']) . "&amp;showresults=posts");
+	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode(html_entity_decode($row['username'], ENT_QUOTES, 'UTF-8')) . "&amp;showresults=posts");
 	$search_label = phpbb_stored_text(sprintf($lang['Search_user_posts'], $row['username']));
 	$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . $search_label . '" title="' . $search_label . '" border="0" /></a>';
 	$search = '<a href="' . $temp_url . '">' . $search_label . '</a>';

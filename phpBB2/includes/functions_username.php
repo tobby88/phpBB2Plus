@@ -84,3 +84,33 @@ function phpbb_username_lookup($database, $value, $fields = null, $lock = '')
     if ($rows === false) { return false; }
     return count($rows) === 1 ? $rows[0] : null;
 }
+
+// Search forms document only '*' as a wildcard. SQL '%'/'_' and the explicit
+// escape character are literal name characters, regardless of SQL mode.
+// Search both historical HTML representations without decoding user input.
+function phpbb_username_search_sql($database, $column, $value, $prefix = false, $wildcards = true)
+{
+    if (!is_string($column) || preg_match('/^(?:[a-z_][a-z0-9_]*\.)?[a-z_][a-z0-9_]*$/D', $column) !== 1) {
+        throw new InvalidArgumentException('Invalid username search column');
+    }
+    $value = phpbb_username_input($value);
+    if ($value === null) { return '(1=0)'; }
+    $patterns = array();
+    foreach (array(ENT_QUOTES, ENT_COMPAT) as $flags) {
+        $pattern = htmlspecialchars($value, $flags, 'UTF-8');
+        $pattern = str_replace(array('!', '%', '_'), array('!!', '!%', '!_'), $pattern);
+        if ($wildcards) { $pattern = str_replace('*', '%', $pattern); }
+        if ($prefix && (!$wildcards || substr($value, -1) !== '*')) { $pattern .= '%'; }
+        $patterns[$pattern] = $column . " LIKE '" . $database->sql_escape($pattern) . "' ESCAPE '!'";
+    }
+    return '(' . implode(' OR ', array_values($patterns)) . ')';
+}
+
+function phpbb_username_search_allowed($value, $minimum)
+{
+    $value = phpbb_username_input($value);
+    if ($value === null) { return false; }
+    if (strpos($value, '*') === false) { return true; }
+    preg_match_all('/./us', str_replace('*', '', $value), $characters);
+    return count($characters[0]) >= max(0, (int) $minimum);
+}

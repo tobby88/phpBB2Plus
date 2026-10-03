@@ -297,16 +297,14 @@ function search_attachments($order_by, &$total_rows)
 	{
 		// get_var() has already HTML-encoded/de-slashed its result. Read this
 		// identity at the request boundary instead of normalizing it twice.
-		$search_author = phpbb_clean_username(phpbb_request_raw_value(phpbb_request_scalar($HTTP_POST_VARS, 'search_author', phpbb_request_scalar($HTTP_GET_VARS, 'search_author'))));
-		if ($search_author === '') { message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']); }
-
-		// Prepare for directly going into sql query
-		$search_author = str_replace('*', '%', attach_mod_sql_escape($search_author));
+		$search_author = phpbb_request_raw_value(phpbb_request_scalar($HTTP_POST_VARS, 'search_author', phpbb_request_scalar($HTTP_GET_VARS, 'search_author')));
+		if (phpbb_username_input($search_author) === null) { message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']); }
+		$search_author_sql = phpbb_username_search_sql($db, 'username', $search_author);
 
 		// We need the post_id's, because we want to query the Attachment Table
 		$sql = 'SELECT user_id
 			FROM ' . USERS_TABLE . "
-			WHERE username LIKE '$search_author'";
+			WHERE $search_author_sql AND user_id > 0";
 
 		if (!($result = $db->sql_query($sql)))
 		{

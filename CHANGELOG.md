@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Share Unicode username patterns across author searches, attachment searches
+  and popup/AJAX selectors. Only the documented `*` is a search wildcard;
+  percent, underscore, backslash and the SQL escape character remain literal.
+  Match both historical HTML quote representations in all SQL modes and keep
+  PM prefix completion literal. Count wildcard minimums as Unicode characters;
+  malformed filters cannot silently widen keyword searches. User-post links
+  transmit the decoded name once. No account or database migration is needed.
 - Use one explicit raw-input/stored-identity boundary for account names. Count
   Unicode characters instead of clipping bytes; reject invalid or oversized
   input rather than resolving another account's prefix. Login, password reset,

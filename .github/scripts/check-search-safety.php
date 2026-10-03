@@ -45,9 +45,10 @@ search_safety_assert(strpos($search, '$postrow[$i]') === false, 'full-text rende
 search_safety_assert(strpos($search, "in_array(\$mode, array('', 'results', 'searchuser', 'removebm'), true)") !== false, 'search modes must use an allowlist');
 search_safety_assert(strpos($search, 'phpbb_request_id_array($_POST, \'topic_id_list\')') !== false, 'bookmark deletion must accept only positive scalar IDs');
 search_safety_assert(strpos($search, "hash_equals((string) \$userdata['session_id'], \$submitted_sid)") !== false, 'bookmark deletion must verify the session token');
-search_safety_assert(strpos($search, '$search_author_sql = $db->sql_escape($search_author)') !== false, 'author searches must use database-driver escaping');
-search_safety_assert(strpos($search, "poster_id = \" . ANONYMOUS . \" AND post_username LIKE '\$search_author_sql'") !== false, 'author-only searches must include guest display names');
-search_safety_assert(substr_count($search, "p.poster_id = \" . ANONYMOUS . \" AND p.post_username LIKE '\$search_author_sql'") === 2, 'filtered topic and post searches must include guest display names');
+search_safety_assert(substr_count($search, 'phpbb_username_search_sql($db,') === 4, 'all author predicates must share driver-quoted, explicitly escaped historical name patterns');
+search_safety_assert(strpos($search, "poster_id = \" . ANONYMOUS . \" AND \$author_guest_sql") !== false, 'author-only searches must include guest display names');
+search_safety_assert(substr_count($search, "p.poster_id = \" . ANONYMOUS . \" AND \$author_guest_sql") === 2, 'filtered topic and post searches must include guest display names');
+search_safety_assert(strpos($search, 'phpbb_username_search_allowed($search_author,') !== false, 'invalid author filters must not silently become unrestricted keyword searches');
 search_safety_assert(strpos($search, '$match_word = $db->sql_escape(stripslashes(trim($split_search[$i])))') !== false, 'full-text terms must use database-driver escaping');
 search_safety_assert(strpos($search, "addslashes('%' . str_replace('*', '', \$split_search[\$i])") === false, 'multibyte terms must not use generic addslashes');
 search_safety_assert(strpos($search, '$result_array_sql = $db->sql_escape($result_array)') !== false, 'cached search data must use database-driver escaping');

@@ -454,7 +454,7 @@ if ($mode=='ip')
 					'L_SEARCH_POSTS' => sprintf($lang['Search_user_posts'], $shout_username), 
 
 					'U_PROFILE' => append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$id"),
-					'U_SEARCHPOSTS' => append_sid("search.$phpEx?search_author=" . urlencode($shout_username) . "&amp;showresults=topics"))
+					'U_SEARCHPOSTS' => append_sid("search.$phpEx?search_author=" . urlencode(html_entity_decode($shout_username, ENT_QUOTES, 'UTF-8')) . "&amp;showresults=topics"))
 				);
 
 				$i++; 

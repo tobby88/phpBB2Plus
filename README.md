@@ -133,6 +133,11 @@ profile save preserves its trusted stored name. No automatic account rename or
 schema migration accompanies this boundary correction. Password representation
 and verification are unchanged.
 
+Author searches and username selectors accept `*` as their search wildcard.
+Percent, underscore and backslash remain literal name characters; private-message
+recipient completion treats its entire prefix literally. Existing HTML-encoded
+quote spellings remain searchable without renaming accounts or migrating data.
+
 Username-restriction administration uses the same transactional current-ACP
 guard. It preserves raw UTF-8 patterns up to 25 characters and the `*` wildcard,
 checks current accounts, group names and existing restriction/censor rules,

@@ -787,19 +787,11 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 	}
 	
 	$username_input = $username;
-	$username_keys = phpbb_username_keys($username_input);
-	if (!$username_keys)
+	if (phpbb_username_input($username_input) === null)
 	{
 		AJAX_message_die(array('result'=>AJAX_PM_USERNAME_ERROR, 'error_msg'=>$lang['No_such_user']));
 	}
-	$username = $username_keys[0];
-	$has_wildcards = false;
-	if ($mode == 'search_user')
-	{
-		$has_wildcards = (strpos($username, '*') !== False) ? True : False;
-		$username = str_replace('*', '%', $username);
-	}
-	$username_sql = $db->sql_escape($username);
+	$has_wildcards = $mode == 'search_user' && strpos($username_input, '*') !== false;
 	
 	$username_row = False;
 	if (($mode == 'checkusername_pm') || (($mode == 'search_user') && !$has_wildcards))
@@ -823,16 +815,10 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 	}
 	else
 	{
-		if (substr($username, -1, 1) !== '%')
-		{
-			$username .= '%';
-		}
-		$username_sql = $db->sql_escape($username);
-		$sql = 'SELECT username 
-		        FROM '. USERS_TABLE ."
-		        WHERE username LIKE '{$username_sql}'
-		        AND user_id <> ". ANONYMOUS .' 
-		        ORDER BY username LIMIT 50';
+		$username_search_sql = phpbb_username_search_sql($db, 'username', $username_input, true, $mode == 'search_user');
+		$sql = "SELECT username FROM " . USERS_TABLE . "
+		        WHERE $username_search_sql AND user_id > 0
+		        ORDER BY username LIMIT 50";
 		if (!($result = $db->sql_query($sql)))
 		{
 			$result_ar = array(

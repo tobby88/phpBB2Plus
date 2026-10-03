@@ -490,15 +490,14 @@ function username_search($search_match)
 
 	$username_list = '';
 	$search_match = phpbb_request_raw_value(is_string($search_match) ? $search_match : '');
-	$search_key = phpbb_clean_username($search_match);
-	if ($search_key !== '')
+	if (phpbb_username_input($search_match) !== null)
 	{
-		$username_search = str_replace('*', '%', $search_key);
+		$username_search_sql = phpbb_username_search_sql($db, 'username', $search_match);
 
 		$sql = "SELECT username
 			FROM " . USERS_TABLE . "
-			WHERE username LIKE '" . $db->sql_escape($username_search) . "' AND user_id > 0
-			ORDER BY username";
+			WHERE $username_search_sql AND user_id > 0
+			ORDER BY username LIMIT 50";
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			message_die(GENERAL_ERROR, 'Could not obtain search results', '', __LINE__, __FILE__, $sql);

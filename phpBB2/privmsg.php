@@ -529,7 +529,7 @@ else if ( $mode == 'read' )
 	$yim = '';
 	$social = phpbb_social_profile_links($privmsg);
 
-	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username_from) . "&amp;showresults=posts");
+	$temp_url = append_sid("search.$phpEx?search_author=" . urlencode(html_entity_decode($username_from, ENT_QUOTES, 'UTF-8')) . "&amp;showresults=posts");
 	$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $username_from) . '" title="' . sprintf($lang['Search_user_posts'], $username_from) . '" border="0" /></a>';
 	$search = '<a href="' . $temp_url . '">' . sprintf($lang['Search_user_posts'], $username_from) . '</a>';
 

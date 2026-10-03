@@ -276,7 +276,7 @@ if ( $row = $db->sql_fetchrow($result) )
 		$yim_img = '';
 		$yim = '';
 
-		$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username) . "&amp;showresults=posts");
+		$temp_url = append_sid("search.$phpEx?search_author=" . urlencode(html_entity_decode($username, ENT_QUOTES, 'UTF-8')) . "&amp;showresults=posts");
 		$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . $lang['Search_user_posts'] . '" title="' . $lang['Search_user_posts'] . '" border="0" /></a>';
 		$search = '<a href="' . $temp_url . '">' . $lang['Search_user_posts'] . '</a>';
 		$temp_url = append_sid("album.$phpEx?user_id=$user_id");

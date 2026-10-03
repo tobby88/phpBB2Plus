@@ -236,7 +236,7 @@ if ( $row = $db->sql_fetchrow($result) )
 		$yim = '';
 		$social = phpbb_social_profile_links($row);
 
-		$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($username) . "&amp;showresults=posts");
+		$temp_url = append_sid("search.$phpEx?search_author=" . urlencode(html_entity_decode($username, ENT_QUOTES, 'UTF-8')) . "&amp;showresults=posts");
 		$search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $username) . '" title="' . sprintf($lang['Search_user_posts'], $username) . '" border="0" /></a>';
 		$search = '<a href="' . $temp_url . '">' . sprintf($lang['Search_user_posts'], $username) . '</a>';
 		// Photo Album Link MOD - Daz - ForumImages.com - START

@@ -185,7 +185,7 @@ $yim_img = '';
 $yim = '';
 $social = phpbb_social_profile_links($profiledata);
 
-$temp_url = append_sid("search.$phpEx?search_author=" . urlencode($profiledata['username']) . "&amp;showresults=posts");
+$temp_url = append_sid("search.$phpEx?search_author=" . urlencode(html_entity_decode($profiledata['username'], ENT_QUOTES, 'UTF-8')) . "&amp;showresults=posts");
 $search_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_search'] . '" alt="' . sprintf($lang['Search_user_posts'], $profiledata['username']) . '" title="' . sprintf($lang['Search_user_posts'], $profiledata['username']) . '" border="0" /></a>';
 $search = '<a href="' . $temp_url . '">' . sprintf($lang['Search_user_posts'], $profiledata['username']) . '</a>';
 // Photo Album Link MOD - Daz - ForumImages.com - START
@@ -254,14 +254,7 @@ if ( $profiledata['user_absence'] == TRUE )
 //
 $page_title = $lang['Viewing_profile'];
 include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-if (function_exists('get_html_translation_table'))
-{
-	$u_search_author = urlencode(strtr($profiledata['username'], array_flip(get_html_translation_table(HTML_ENTITIES))));
-}
-else
-{
-	$u_search_author = urlencode(str_replace(array('&amp;', '&#039;', '&quot;', '&lt;', '&gt;'), array('&', "'", '"', '<', '>'), $profiledata['username']));
-}
+$u_search_author = urlencode(html_entity_decode($profiledata['username'], ENT_QUOTES, 'UTF-8'));
 display_upload_attach_box_limits($profiledata['user_id']);
 $template->assign_vars(array(
 	'USERNAME' => $profiledata['username'],
