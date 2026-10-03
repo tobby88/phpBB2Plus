@@ -126,11 +126,11 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	// * User does not exist
 	// * User is inactive
 	//
-	if (!sizeof($userdata) || !is_array($userdata) || !$userdata)
+	if (!is_array($userdata) || !$userdata)
 	{
 		$sessiondata['autologinid'] = '';
 		$sessiondata['userid'] = $user_id = ANONYMOUS;
-		$enable_autologin = $login = 0;
+		$enable_autologin = $login = $admin = 0;
 
 		$sql = 'SELECT *
 			FROM ' . USERS_TABLE . '
@@ -142,6 +142,10 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 
 		$userdata = $db->sql_fetchrow($result);
 		$db->sql_freeresult($result);
+		if (!is_array($userdata) || !$userdata)
+		{
+			message_die(CRITICAL_ERROR, 'Anonymous account is missing', '', __LINE__, __FILE__, $sql);
+		}
 	}
 
 

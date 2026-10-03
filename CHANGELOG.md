@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Fall back safely to an anonymous session when autologin keys expire or an
+  account is missing/inactive. Do not count a failed database row as an array
+  under modern PHP; clear any ACP marker on the anonymous fallback. A missing
+  anonymous seed stops before session/cookie publication. Native driver tests
+  cover stored sessions, key rotation and delivered cookie identities on all
+  three supported PHP versions. No schema changes are required.
 - Share Unicode username patterns across author searches, attachment searches
   and popup/AJAX selectors. Only the documented `*` is a search wildcard;
   percent, underscore, backslash and the SQL escape character remain literal.
