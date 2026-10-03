@@ -4,8 +4,9 @@ require_once dirname(__FILE__) . '/functions_board_config.php';
 
 function phpbb_content_admin_definition($kind)
 {
-    if ($kind === 'words') { return array('table'=>WORDS_TABLE,'id'=>'word_id','fields'=>array('word'=>100,'replacement'=>100),'route'=>'admin_words','prefix'=>'Word'); }
-    if ($kind === 'acronyms') { return array('table'=>ACRONYMS_TABLE,'id'=>'acronym_id','fields'=>array('acronym'=>80,'description'=>255),'route'=>'admin_acronyms','prefix'=>'Acronym'); }
+    if ($kind === 'words') { return array('table'=>WORDS_TABLE,'id'=>'word_id','max_id'=>16777215,'fields'=>array('word'=>100,'replacement'=>100),'route'=>'admin_words','prefix'=>'Word'); }
+    if ($kind === 'acronyms') { return array('table'=>ACRONYMS_TABLE,'id'=>'acronym_id','max_id'=>8388607,'fields'=>array('acronym'=>80,'description'=>255),'route'=>'admin_acronyms','prefix'=>'Acronym'); }
+    if ($kind === 'disallow') { return array('table'=>DISALLOW_TABLE,'id'=>'disallow_id','max_id'=>16777215,'fields'=>array('disallow_username'=>25),'route'=>'admin_disallow','prefix'=>'Disallow'); }
     phpbb_acl_error('Content_admin_failed');
 }
 
@@ -67,7 +68,8 @@ function phpbb_content_admin_change($database, $kind, $request)
     if ($delete && !isset($request['confirm'])) { phpbb_acl_error('Content_admin_failed'); }
     $raw_id = array_key_exists('id', $request) ? $request['id'] : '0';
     if (!(is_string($raw_id) || is_int($raw_id)) || !preg_match('/^[0-9]{1,8}$/D', (string)$raw_id)
-        || (float)$raw_id > ($kind === 'acronyms' ? 8388607 : 16777215) || ($delete && (int)$raw_id < 1)) { phpbb_acl_error('Content_admin_failed'); }
+        || (float)$raw_id > $definition['max_id'] || ($delete && (int)$raw_id < 1)
+        || ($kind === 'disallow' && !$delete && (int)$raw_id !== 0)) { phpbb_acl_error('Content_admin_failed'); }
     $id = (int)$raw_id; $adding = !$id; $values = array();
     if (!$delete) {
         foreach ($definition['fields'] as $field=>$limit) {
@@ -83,7 +85,9 @@ function phpbb_content_admin_change($database, $kind, $request)
         $db->actor();
         $db->sql_query("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
         $db->sql_query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'); $db->sql_query('START TRANSACTION');
-        foreach (array($definition['table'],USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE) as $table) {
+        $tables = array($definition['table'],USERS_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE);
+        if ($kind === 'disallow') { $tables[] = GROUPS_TABLE; $tables[] = WORDS_TABLE; }
+        foreach ($tables as $table) {
             $result = $db->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $db->sql_freeresult($result); $name = $db->sql_escape($table);
             $rows = phpbb_acl_rows($db, "SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('".$name."')");
             $columns = phpbb_acl_rows($db, "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('".$name."') AND CHARACTER_SET_NAME IS NOT NULL AND (CHARACTER_SET_NAME<>'utf8mb4' OR COLLATION_NAME<>'utf8mb4_unicode_ci')");
@@ -97,7 +101,11 @@ function phpbb_content_admin_change($database, $kind, $request)
             $result = $db->sql_query($sql.' LOCK IN SHARE MODE'); $db->sql_freeresult($result);
         }
         $actor = $db->actor(); $message = $definition['prefix'] . ($delete ? '_removed' : ($adding ? '_added' : '_updated'));
-        if ($kind === 'acronyms' && $adding && phpbb_acl_rows($db, 'SELECT acronym_id FROM '.$table." WHERE acronym='".$db->sql_escape($values['acronym'])."' FOR UPDATE")) {
+        if ($kind === 'disallow') { $message = $delete ? 'Disallowed_deleted' : 'Disallow_successful'; }
+        $disallow_exists = $kind === 'disallow' && $adding && phpbb_content_disallow_exists($db, $values['disallow_username']);
+        if ($disallow_exists) {
+            $message = 'Disallowed_already';
+        } elseif ($kind === 'acronyms' && $adding && phpbb_acl_rows($db, 'SELECT acronym_id FROM '.$table." WHERE acronym='".$db->sql_escape($values['acronym'])."' FOR UPDATE")) {
             $message = 'Content_acronym_exists';
         } else {
          $attempted = true;
@@ -128,4 +136,25 @@ function phpbb_content_admin_change($database, $kind, $request)
     // A single return after cleanup also avoids PHP 5.6's nested-finally
     // multiple-return bug (the later success return could replace duplicate).
     return $message;
+}
+
+// Check actual current rules, not the legacy account validator's array result
+// or its lossy HTML/SQL/25-byte normalization. Administrative '*' stays a
+// wildcard; adding a rule must not rename or delete any existing account.
+function phpbb_content_disallow_exists($db, $value)
+{
+    $literal = "'" . $db->sql_escape($value) . "'";
+    foreach (array(USERS_TABLE=>'username', GROUPS_TABLE=>'group_name') as $table=>$column) {
+        if (phpbb_acl_rows($db, 'SELECT '.$column.' FROM '.$table.' WHERE '.$column.'='.$literal.' LOCK IN SHARE MODE')) { return true; }
+    }
+    foreach (array(DISALLOW_TABLE=>'disallow_username', WORDS_TABLE=>'word') as $table=>$column) {
+        $rows = phpbb_acl_rows($db, 'SELECT '.$column.' FROM '.$table.' LOCK IN SHARE MODE');
+        foreach ($rows as $row) {
+            $pattern = '#\\b(' . str_replace('\\*', '.*?', preg_quote($row[$column], '#')) . ')\\b#iu';
+            $matches = @preg_match($pattern, $value);
+            if ($matches === false) { phpbb_acl_error('Content_admin_failed'); }
+            if ($row[$column] === $value || $matches === 1) { return true; }
+        }
+    }
+    return false;
 }

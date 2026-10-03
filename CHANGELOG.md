@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate and hold current ACP permission for adding/deleting username
+  restrictions. Check actual current rule/name rows inside the dedicated
+  transaction instead of interpreting a validator array as a boolean or using
+  lossy 25-byte name normalization. Preserve raw Unicode, SQL literals and
+  wildcards within the schema's 25-character limit. Missing IDs, stale sessions,
+  unmigrated tables and failed/uncertain writes refuse confirmed success.
+  Correct the empty-list language key. Existing migration covers participants.
 - Guard word-censor and acronym add/edit/delete operations with current exact
   ACP authority and one dedicated InnoDB transaction. Refuse revoked roles,
   sessions/grants, invalid UTF-8, missing IDs and unmigrated storage; preserve

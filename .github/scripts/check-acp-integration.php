@@ -99,6 +99,7 @@ $integrations = array(
 	'admin/admin_banner.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'function admin_banner_post_scalar', 'foreach ($options as $offset => $type)'),
 	'admin/admin_acronyms.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "phpbb_content_admin_change(\$db, 'acronyms', \$request)"),
 	'admin/admin_words.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "phpbb_content_admin_change(\$db, 'words', \$request)"),
+	'admin/admin_disallow.php' => array('phpbb_admin_require_post_session();', "phpbb_content_admin_change(\$db, 'disallow', \$request)", "\$lang['No_disallowed']"),
 	'admin/admin_ranks.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_ranks_change($db, $request)'),
 	'admin/admin_smilies.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape($smile_code)'),
 	'admin/admin_profile_fields.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_profile_definition_form_values($_POST)', 'new PhpbbProfileDefinitionWriter', '$writer->create(', '$writer->edit(', 'definition_revision', 'definition_operation'),

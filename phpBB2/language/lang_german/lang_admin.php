@@ -727,7 +727,7 @@ $lang['Delete_disallow_explain'] = 'Du kannst einen verbotenen Namen entfernen, 
 
 $lang['Add_disallow'] = 'Hinzufügen';
 $lang['Add_disallow_title'] = 'Einen verbotenen Namen hinzufügen';
-$lang['Add_disallow_explain'] = 'Du kannst ein * benutzen, um jegliche Benutzernamen zu verbieten';
+$lang['Add_disallow_explain'] = 'Du kannst ein * benutzen, um Benutzernamen mit Platzhaltern zu verbieten. Höchstens 25 Zeichen.';
 
 $lang['No_disallowed'] = 'Keine verbotenen Benutzernamen';
 

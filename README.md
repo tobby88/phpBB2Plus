@@ -124,6 +124,13 @@ already migrated columns. Do not combine this mode with `--storage-only`.
 
 ## InnoDB storage migration
 
+Username-restriction administration uses the same transactional current-ACP
+guard. It preserves raw UTF-8 patterns up to 25 characters and the `*` wildcard,
+checks current accounts, group names and existing restriction/censor rules,
+and refuses stale selections rather than silently reporting a deletion.
+Adding a rule never modifies existing accounts. The existing storage updater
+covers all involved tables; no additional migration is required.
+
 ACP word-censor and acronym changes validate current root or the exact delegated
 module permission, hold it through commit and use canonical InnoDB storage.
 Text retains literal quotes, backslashes and entities; limits count UTF-8

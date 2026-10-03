@@ -39,6 +39,7 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+require_once dirname(__DIR__) . '/includes/functions_content_admin.php';
 $output_info = '';
 
 if (isset($_POST['add_name']) || isset($_POST['delete_name']))
@@ -48,29 +49,10 @@ if (isset($_POST['add_name']) || isset($_POST['delete_name']))
 
 if( isset($_POST['add_name']) )
 {
-	include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
-
-	$disallowed_user = ( isset($_POST['disallowed_user']) && is_scalar($_POST['disallowed_user']) ) ? trim((string) $_POST['disallowed_user']) : '';
-
-	if ($disallowed_user == '')
-	{
-		message_die(GENERAL_MESSAGE, $lang['Fields_empty']);
-	}
-	if( !validate_username($disallowed_user) )
-	{
-		$message = $lang['Disallowed_already'];
-	}
-	else
-	{
-		$sql = "INSERT INTO " . DISALLOW_TABLE . " (disallow_username) 
-			VALUES('" . str_replace("\'", "''", $disallowed_user) . "')";
-		$result = $db->sql_query( $sql );
-		if ( !$result )
-		{
-			message_die(GENERAL_ERROR, "Could not add disallowed user.", "",__LINE__, __FILE__, $sql);
-		}
-		$message = $lang['Disallow_successful'];
-	}
+	$request = $_POST; $request['mode'] = 'save'; $request['id'] = '0';
+	$request['disallow_username'] = isset($_POST['disallowed_user']) ? $_POST['disallowed_user'] : null;
+	try { $message = $lang[phpbb_content_admin_change($db, 'disallow', $request)]; }
+	catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 	$message .= "<br /><br />" . sprintf($lang['Click_return_disallowadmin'], "<a href=\"" . append_sid("admin_disallow.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -78,21 +60,11 @@ if( isset($_POST['add_name']) )
 }
 else if( isset($_POST['delete_name']) )
 {
-	$disallowed_id = ( isset($_POST['disallowed_id']) && is_scalar($_POST['disallowed_id']) ) ? intval($_POST['disallowed_id']) : 0;
-	if ($disallowed_id < 1)
-	{
-		message_die(GENERAL_MESSAGE, $lang['Fields_empty']);
-	}
-	
-	$sql = "DELETE FROM " . DISALLOW_TABLE . " 
-		WHERE disallow_id = $disallowed_id";
-	$result = $db->sql_query($sql);
-	if( !$result )
-	{
-		message_die(GENERAL_ERROR, "Couldn't removed disallowed user.", "",__LINE__, __FILE__, $sql);
-	}
-
-	$message .= $lang['Disallowed_deleted'] . "<br /><br />" . sprintf($lang['Click_return_disallowadmin'], "<a href=\"" . append_sid("admin_disallow.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
+	$request = $_POST; $request['mode'] = 'delete'; $request['confirm'] = '1';
+	$request['id'] = isset($_POST['disallowed_id']) ? $_POST['disallowed_id'] : null;
+	try { $message = $lang[phpbb_content_admin_change($db, 'disallow', $request)]; }
+	catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+	$message .= "<br /><br />" . sprintf($lang['Click_return_disallowadmin'], "<a href=\"" . append_sid("admin_disallow.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
 	message_die(GENERAL_MESSAGE, $message);
 
@@ -120,7 +92,7 @@ $disallow_select = '<select name="disallowed_id">';
 
 if( empty($disallowed) )
 {
-	$disallow_select .= '<option value="">' . $lang['no_disallowed'] . '</option>';
+	$disallow_select .= '<option value="">' . $lang['No_disallowed'] . '</option>';
 }
 else 
 {

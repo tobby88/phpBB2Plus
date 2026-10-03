@@ -730,7 +730,7 @@ $lang['Delete_disallow_explain'] = 'You can remove a disallowed username by sele
 
 $lang['Add_disallow'] = 'Add';
 $lang['Add_disallow_title'] = 'Add a disallowed username';
-$lang['Add_disallow_explain'] = 'You can disallow a username using the wildcard character * to match any character';
+$lang['Add_disallow_explain'] = 'You can disallow a username using the wildcard character * to match any character. Maximum: 25 characters.';
 
 $lang['No_disallowed'] = 'No Disallowed Usernames';
 
