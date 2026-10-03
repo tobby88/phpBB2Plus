@@ -128,7 +128,7 @@ if ($new_user)
 {
 	if ($mode === 'save' && isset($_POST['submit'])) { $new_user_password_hash = admin_user_require_creation_password(); }
 	//see if user already exist
-	if (get_userdata(phpbb_request_scalar($_POST, 'username')))
+	if (get_userdata(phpbb_request_scalar($_POST, 'username'), true))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Username_taken'] );
 	}

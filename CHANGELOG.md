@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Quote shared account-name lookups through the actual database connection,
+  matching the existing login identity representation in ordinary and
+  NO_BACKSLASH_ESCAPES modes. A backslash-containing name must not resolve to
+  another account after SQL escape interpretation. Refuse non-scalar identities,
+  release reader results, interpret numeric ACP account names as names, and
+  avoid duplicate HTML normalization in CrackerTracker and AJAX recipient
+  searches. No account renaming or database migration is performed.
 - Revalidate and hold current ACP permission for adding/deleting username
   restrictions. Check actual current rule/name rows inside the dedicated
   transaction instead of interpreting a validator array as a boolean or using

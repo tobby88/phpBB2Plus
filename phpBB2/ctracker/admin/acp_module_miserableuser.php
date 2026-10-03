@@ -34,7 +34,7 @@ if ( isset($HTTP_POST_VARS['submit']) )
 	phpbb_admin_require_post_session();
 	$user_id 	= 0;
 	$user_level = 0;
-	$this_userdata = get_userdata(phpbb_clean_username(phpbb_admin_post_string('username')), true);
+	$this_userdata = get_userdata(phpbb_admin_post_string('username'), true);
 	
 	if( !$this_userdata )
 	{

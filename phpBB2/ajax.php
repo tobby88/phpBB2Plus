@@ -790,7 +790,7 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 	if ($mode == 'search_user')
 	{
 		$has_wildcards = (strpos($username, '*') !== False) ? True : False;
-		$username = preg_replace('#\*#', '%', phpbb_clean_username($username));
+		$username = str_replace('*', '%', $username);
 	}
 	$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
 	

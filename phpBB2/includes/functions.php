@@ -775,6 +775,10 @@ function phpbb_rtrim($str, $charlist = false)
 function get_userdata($user, $force_str = false)
 {
 	global $db;
+	if (!is_string($user) && !is_int($user))
+	{
+		return false;
+	}
 
 	if (!is_numeric($user) || $force_str)
 	{
@@ -788,13 +792,17 @@ function get_userdata($user, $force_str = false)
 	$sql = "SELECT *
 		FROM " . USERS_TABLE . "
 		WHERE ";
-	$sql .= ( ( is_integer($user) ) ? "user_id = $user" : "username = '" .  str_replace("\'", "''", $user) . "'" ) . " AND user_id <> " . ANONYMOUS;
+	// Match login's legacy identity representation, but let the connection
+	// quote SQL literals. A hand-built A\B literal can select AB instead.
+	$sql .= ( ( is_integer($user) ) ? "user_id = $user" : "username = '" . $db->sql_escape(str_replace("\\'", "'", $user)) . "'" ) . " AND user_id <> " . ANONYMOUS;
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Tried obtaining data for a non-existent user', '', __LINE__, __FILE__, $sql);
 	}
 
-	return ( $row = $db->sql_fetchrow($result) ) ? $row : false;
+	$row = $db->sql_fetchrow($result);
+	$db->sql_freeresult($result);
+	return $row ? $row : false;
 }
 
 function make_jumpbox($action, $match_forum_id = 0)
