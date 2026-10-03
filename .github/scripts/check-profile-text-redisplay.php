@@ -38,6 +38,7 @@ $tail = substr($controller, strpos($controller, '// Rejected forms have never at
 $reject = profile_text_section($tail, 'if ( $error )', "else if ( \$mode == 'editprofile' && !isset");
 $theme = array('template_name' => 'fisubsilversh');
 $userdata = array('user_lang' => 'english', 'template_name' => 'fisubsilversh');
+$mode = 'register'; $new_user = true;
 $board_config = array('xs_use_cache' => 0, 'xs_auto_compile' => 0, 'xs_auto_recompile' => 0, 'default_lang' => 'english');
 $map = array('username' => 'USERNAME', 'email' => 'EMAIL', 'location' => 'LOCATION', 'occupation' => 'OCCUPATION', 'interests' => 'INTERESTS', 'fb' => 'FB', 'ig' => 'IG', 'twr' => 'TWR', 'tg' => 'TG', 'li' => 'LI', 'tt' => 'TT', 'dc' => 'DC', 'signal' => 'SIGNAL', 'threema' => 'THREEMA', 'user_absence_text' => 'S_USER_ABSENCE_TEXT');
 $cases = 0;
@@ -97,10 +98,10 @@ try {
     eval(profile_text_section($admin, 'function admin_user_post_string(', 'function admin_user_post_int('));
     foreach(array("O'Neil", 'Name\\part', '&amp; name', ' leading ') as $identity) {
         profile_fixture_request(array('username'=>$identity));
-        $expected=phpbb_clean_username($_POST['username']);
+        $expected=phpbb_username_key($identity);
         foreach(array($controller,$admin) as $form) {
-            profile_text_check(preg_match('/^\s*\$username = phpbb_clean_username\([^;]+;/m',$form,$m)===1,'Actual identity input');
-            eval($m[0]);profile_text_check($username===$expected,'Existing identity/login normalization unchanged');
+            profile_text_check(preg_match('/^\s*\$username = phpbb_username_form\([^;]+;/m',$form,$m)===1,'Actual identity input');
+            eval($m[0]);profile_text_check($username===$expected,'Creation identity receives raw request text exactly once');
         }
     }
     $admin_reject = profile_text_section($admin, "\t\t\t// Redisplay submitted text,", "\n\t\t}\n\t}\n\telse if(");

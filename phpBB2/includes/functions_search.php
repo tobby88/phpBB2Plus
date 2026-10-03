@@ -489,13 +489,15 @@ function username_search($search_match)
 	$gen_simple_header = TRUE;
 
 	$username_list = '';
-	if ( !empty($search_match) )
+	$search_match = phpbb_request_raw_value(is_string($search_match) ? $search_match : '');
+	$search_key = phpbb_clean_username($search_match);
+	if ($search_key !== '')
 	{
-		$username_search = preg_replace('/\*/', '%', phpbb_clean_username($search_match));
+		$username_search = str_replace('*', '%', $search_key);
 
 		$sql = "SELECT username
 			FROM " . USERS_TABLE . "
-			WHERE username LIKE '" . str_replace("\'", "''", $username_search) . "' AND user_id <> " . ANONYMOUS . "
+			WHERE username LIKE '" . $db->sql_escape($username_search) . "' AND user_id > 0
 			ORDER BY username";
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -506,7 +508,8 @@ function username_search($search_match)
 		{
 			do
 			{
-				$username_list .= '<option value="' . $row['username'] . '">' . $row['username'] . '</option>';
+				$name = htmlspecialchars(html_entity_decode($row['username'], ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+				$username_list .= '<option value="' . $name . '">' . $name . '</option>';
 			}
 			while ( $row = $db->sql_fetchrow($result) );
 		}
@@ -525,7 +528,7 @@ function username_search($search_match)
 	);
 
 	$template->assign_vars(array(
-		'USERNAME' => (!empty($search_match)) ? phpbb_clean_username($search_match) : '',
+		'USERNAME' => htmlspecialchars($search_match, ENT_QUOTES, 'UTF-8'),
 
 		'L_CLOSE_WINDOW' => $lang['Close_window'],
 		'L_SEARCH_USERNAME' => $lang['Find_username'],

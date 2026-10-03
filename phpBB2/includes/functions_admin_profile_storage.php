@@ -146,7 +146,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 		}
 		foreach (array('validate_username'=>array($username,$changed_name), 'validate_email'=>array($email,$changed_email)) as $validator=>$check)
 		{
-			if ($check[1]) { $result = $validator($check[0], false, $this->target_id); if ($result['error']) { throw new PhpbbAclException($result['error_msg']); } }
+			if ($check[1]) { $result = $validator === 'validate_username' ? $validator($check[0], false, $this->target_id, true) : $validator($check[0], false, $this->target_id); if ($result['error']) { throw new PhpbbAclException($result['error_msg']); } }
 		}
 		if (!phpbb_acl_rows($this, 'SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id=' . (int)$style)) { phpbb_acl_error('Acl_selection_changed'); }
 		$this->identity_validated = true;

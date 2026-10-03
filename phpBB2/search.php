@@ -71,7 +71,7 @@ if (!in_array($mode, array('', 'results', 'searchuser', 'removebm'), true))
 }
 $only_bluecards = intval(phpbb_request_scalar($_POST, 'only_bluecards', 0)) ? TRUE : 0;
 $search_keywords = substr(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords')), 0, 500);
-$search_author = substr(phpbb_clean_username(phpbb_request_scalar($_POST, 'search_author', phpbb_request_scalar($_GET, 'search_author'))), 0, 100);
+$search_author = phpbb_clean_username(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'search_author', phpbb_request_scalar($_GET, 'search_author'))));
 $search_id = phpbb_request_scalar($_GET, 'search_id', phpbb_request_scalar($_POST, 'search_id'));
 
 $show_results = phpbb_request_scalar($_POST, 'show_results', phpbb_request_scalar($_GET, 'show_results', 'posts'));

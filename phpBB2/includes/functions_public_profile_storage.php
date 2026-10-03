@@ -106,7 +106,7 @@ class PhpbbPublicProfileScope
 		}
 		foreach (array('validate_username'=>array($username,$changed_name), 'validate_email'=>array($email,$changed_email)) as $validator=>$check)
 		{
-			if ($check[1]) { $result = $validator($check[0], false, $this->id); if ($result['error']) { throw new PhpbbPublicProfileException($result['error_msg']); } }
+			if ($check[1]) { $result = $validator === 'validate_username' ? $validator($check[0], false, $this->id, true) : $validator($check[0], false, $this->id); if ($result['error']) { throw new PhpbbPublicProfileException($result['error_msg']); } }
 		}
 		if (!$this->rows('SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id=' . (int)$style)) { phpbb_public_profile_error('Public_profile_changed'); }
 		$fields = $this->rows('SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' WHERE users_can_view=' . ALLOW_VIEW . ' ORDER BY field_id ASC');

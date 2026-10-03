@@ -10,6 +10,14 @@ function ai_suite()
 {
  global $db,$ap_main,$ap_hook,$ap_actor,$ap_target,$board_config,$userdata,$schema,$ats_source,$ap_queries;
  $cases=$serialized=0;
+ foreach(array(str_repeat('ä',25),str_repeat('😀',25),'A&B',"A\\'B", "O'Reilly",str_repeat("'",25)) as $raw){
+  ap_reset();$stored=phpbb_username_key($raw,ENT_COMPAT);ap_sql("UPDATE fixture_users SET username='".$GLOBALS['peer']->sql_escape($stored)."' WHERE user_id=2");
+  $this_userdata=array('username'=>$stored);$new_user=false;profile_fixture_request(array('username'=>$raw,'sid'=>'fixture-admin'));
+  ats_check(preg_match('/^\t\t\$username = phpbb_username_form\([^\r\n]+;/m',$GLOBALS['ap_controller'],$m)===1,'Actual ACP name parser');eval($m[0]);
+  ats_check($username===$stored,'Adapted ACP save preserves unchanged identity');$scope=new PhpbbAdminProfileScope($db,2,false,$_POST);$db=$scope;
+  try{$scope->validate_identity($username,'fixture2@example.invalid',1);$scope->sql_query("UPDATE fixture_users SET username='".$scope->sql_escape($username)."' WHERE user_id=2");$scope->finish();}finally{$scope->release();}
+  ats_check(ap_rows('SELECT username FROM fixture_users WHERE user_id=2')[0]['username']===$stored,'Actual ACP owner commits full unchanged identity');$cases++;
+ }
  // Existing duplicates and historically invalid email values remain editable.
  ap_reset();ap_sql("UPDATE fixture_users SET username='fixture-2',user_email='fixture@example.invalid' WHERE user_id IN (2,5)");
  ats_check(ap_run('edit')===true,'Unchanged historical duplicate identities remain editable');$cases++;

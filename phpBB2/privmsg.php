@@ -839,31 +839,22 @@ else if ( $submit || $refresh || $mode != '' )
 		$submitted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
 		if ( $submitted_username !== '' )
 		{
-			$to_username = phpbb_clean_username($submitted_username);
-			$to_username_sql = $db->sql_escape(stripslashes($to_username));
-
-			$sql = "SELECT user_id, user_notify_pm, user_email, user_lang, user_active, user_absence, user_absence_mode, user_absence_text 
-				FROM " . USERS_TABLE . "
-				WHERE username = '$to_username_sql'
-					AND user_id <> " . ANONYMOUS;
-			if ( !($result = $db->sql_query($sql)) )
+			$recipient_input = phpbb_request_raw_value($submitted_username);
+			$to_username = phpbb_clean_username($recipient_input);
+			$to_userdata = phpbb_username_lookup($db, $recipient_input, array('user_notify_pm','user_email','user_lang','user_active','user_absence','user_absence_mode','user_absence_text'));
+			if (!$to_userdata)
 			{
 				$error = TRUE;
 				$error_msg = $lang['No_such_user'];
 			}
-
-			if (!($to_userdata = $db->sql_fetchrow($result)))
-			{
-				$error = TRUE;
-				$error_msg = $lang['No_such_user'];
-			}
+			else { $to_username = $to_userdata['username']; }
 		}
 		else
 		{
 			$error = TRUE;
 			$error_msg .= ( ( !empty($error_msg) ) ? '<br />' : '' ) . $lang['No_to_user'];
 		}
-		if ( isset($to_userdata) && $to_userdata['user_absence'] == TRUE && allow_send_to_absent() == FALSE )
+		if ( isset($to_userdata) && is_array($to_userdata) && $to_userdata['user_absence'] == TRUE && allow_send_to_absent() == FALSE )
 		{
 			$error = true;
 			$send_to_user = $to_username;
@@ -934,7 +925,7 @@ else if ( $submit || $refresh || $mode != '' )
 		$submitted_username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
 		$submitted_subject = (isset($_POST['subject']) && is_scalar($_POST['subject'])) ? (string) $_POST['subject'] : '';
 		$submitted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? (string) $_POST['message'] : '';
-		$to_username = trim(htmlspecialchars(stripslashes($submitted_username)));
+		$to_username = htmlspecialchars(phpbb_request_raw_value($submitted_username), ENT_QUOTES, 'UTF-8');
 		$privmsg_subject = trim(htmlspecialchars(stripslashes($submitted_subject)));
 		$privmsg_message = trim($submitted_message);
 		// $privmsg_message = preg_replace('#<textarea>#si', '&lt;textarea&gt;', $privmsg_message);

@@ -280,7 +280,7 @@ function get_formatted_dirsize()
 */
 function search_attachments($order_by, &$total_rows)
 {
-	global $db, $_POST, $_GET, $lang;
+	global $db, $_POST, $_GET, $lang, $HTTP_POST_VARS, $HTTP_GET_VARS;
 	
 	$where_sql = array();
 
@@ -295,9 +295,10 @@ function search_attachments($order_by, &$total_rows)
 	// Author name search 
 	if ($search_author != '')
 	{
-		// Bring in line with 2.0.x expected username
-		$search_author = addslashes(html_entity_decode($search_author));
-		$search_author = stripslashes(phpbb_clean_username($search_author));
+		// get_var() has already HTML-encoded/de-slashed its result. Read this
+		// identity at the request boundary instead of normalizing it twice.
+		$search_author = phpbb_clean_username(phpbb_request_raw_value(phpbb_request_scalar($HTTP_POST_VARS, 'search_author', phpbb_request_scalar($HTTP_GET_VARS, 'search_author'))));
+		if ($search_author === '') { message_die(GENERAL_MESSAGE, $lang['No_attach_search_match']); }
 
 		// Prepare for directly going into sql query
 		$search_author = str_replace('*', '%', attach_mod_sql_escape($search_author));

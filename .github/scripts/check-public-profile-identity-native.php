@@ -9,6 +9,15 @@ $pi_head=str_replace('codex_public_profile_','codex_profile_identity_',$pi_head)
 function pi_suite(){
  global $db,$userdata,$board_config,$ctracker_config,$public_avatar_scope,$pp_hook,$pp_cookies,$schema,$ats_source,$pp_main;
  $cases=$serialized=0;
+ foreach(array(str_repeat('ä',25),str_repeat('😀',25),'A&B',"A\\'B", "O'Reilly",str_repeat("'",25)) as $raw){
+  pp_reset();$stored=phpbb_username_key($raw,ENT_COMPAT);pp_sql("UPDATE fixture_users SET username='".$GLOBALS['peer']->sql_escape($stored)."' WHERE user_id=2");
+  $userdata['username']=$stored;$mode='editprofile';profile_fixture_request(array('username'=>$raw));
+  ats_check(preg_match('/^\t\$username = phpbb_username_form\([^\r\n]+;/m',$GLOBALS['pp_controller'],$m)===1,'Actual public name parser');eval($m[0]);
+  ats_check($username===$stored,'Adapted unchanged legacy/Unicode name is preserved');
+  $fields=get_fields('WHERE users_can_view = '.ALLOW_VIEW);$scope=new PhpbbPublicProfileScope($db,2,'exact-session',$public_avatar_scope);$db=$scope;
+  try{$scope->validate_identity($username,$userdata['user_email'],1,$fields);$scope->sql_query("UPDATE fixture_users SET username='".$scope->sql_escape($username)."' WHERE user_id=2");$scope->finish();}finally{$scope->release();}
+  ats_check(pp_rows('SELECT username FROM fixture_users WHERE user_id=2')[0]['username']===$stored,'Actual profile owner commits full unchanged identity');$cases++;
+ }
  pp_reset();pp_sql("UPDATE fixture_users SET username='member-2',user_email='member2@example.invalid' WHERE user_id=7");
  ats_check(pp_run('edit')===true,'Unchanged historical duplicates remain editable');$cases++;
  pp_reset();$board_config['default_lang']='german';$board_config['board_timezone']=2;$board_config['default_dateformat']='Y-m-d';

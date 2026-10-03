@@ -70,7 +70,7 @@ class PhpbbRegistrationScope
 			// closes duplicate insert races with writers not using our mutex.
 			if ($this->rows('SELECT user_id FROM ' . USERS_TABLE . " WHERE username='" . $this->sql_escape($username) . "' OR user_email='" . $this->sql_escape($email) . "' LOCK IN SHARE MODE")) { phpbb_registration_error('Username_taken'); }
 			$this->locking_validation = true;
-			foreach (array(validate_username($username, false), validate_email($email, false)) as $checked)
+			foreach (array(validate_username($username, false, 0, true), validate_email($email, false)) as $checked)
 			{ if ($checked['error']) { throw new PhpbbRegistrationException($checked['error_msg']); } }
 			$this->locking_validation = false;
 			if (isset($user_ip) && is_string($user_ip) && preg_match('/^[a-f0-9]{8}$/iD', $user_ip))

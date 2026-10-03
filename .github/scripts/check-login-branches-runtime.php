@@ -2,6 +2,8 @@
 // Execute login.php's real credential branch with in-memory boundary doubles.
 // No common.php, real database, account mutation, mail or log writes are used.
 $forum_root = dirname(dirname(__DIR__)) . '/phpBB2/';
+define('IN_PHPBB', true);
+require $forum_root . 'includes/php_compat.php';
 define('GENERAL_ERROR', 1);
 define('GENERAL_MESSAGE', 2);
 define('CRITICAL_ERROR', 3);
@@ -16,6 +18,8 @@ class LoginBranchDatabase
 	public $queries = array();
 	public function sql_escape($value) { return addslashes($value); }
 	public function sql_query($sql) { $this->queries[] = $sql; return true; }
+	public function sql_fetchrowset($result) { $row = $this->sql_fetchrow($result); return $row ? array($row) : array(); }
+	public function sql_freeresult($result) {}
 	public function sql_fetchrow($result)
 	{
 		if ($this->row === false) { return false; }

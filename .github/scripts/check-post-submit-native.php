@@ -45,7 +45,7 @@ function ps_submit($mode, $options = array())
  $message=$meta='';$forum_id=3;$topic_id=$mode==='reply'?100:0;$post_id=$poll_id=0;$topic_type=isset($options['type'])?$options['type']:POST_NORMAL;
  $bbcode_on=1;$html_on=$smilies_on=$attach_sig=0;$bbcode_uid='1234567890';$poll_options=!empty($options['poll'])?array(1=>'Grüße 😀',2=>"O'Reilly"):array();$poll_length=1;$topic_desc='Description';$news_category=isset($options['news'])?$options['news']:0;
  try {
-  submit_post($mode,$post_data,$message,$meta,$forum_id,$topic_id,$post_id,$poll_id,$topic_type,$bbcode_on,$html_on,$smilies_on,$attach_sig,$bbcode_uid,'',isset($options['subject'])?$options['subject']:addslashes("Quasarword Grüße O'Reilly 😀"),addslashes("[b:1234567890]Quasarword Grüße[/b:1234567890] \\ & 😀"),$poll_options?'Poll':'',$poll_options,$poll_length,$topic_desc,0,0,!empty($options['calendar'])?1234567890:0,0,$news_category);
+  submit_post($mode,$post_data,$message,$meta,$forum_id,$topic_id,$post_id,$poll_id,$topic_type,$bbcode_on,$html_on,$smilies_on,$attach_sig,$bbcode_uid,isset($options['username'])?$options['username']:'',isset($options['subject'])?$options['subject']:addslashes("Quasarword Grüße O'Reilly 😀"),addslashes("[b:1234567890]Quasarword Grüße[/b:1234567890] \\ & 😀"),$poll_options?'Poll':'',$poll_options,$poll_length,$topic_desc,0,0,!empty($options['calendar'])?1234567890:0,0,$news_category);
   return array('post_id'=>$post_id,'topic_id'=>$topic_id,'poll_id'=>$poll_id,'post_data'=>$post_data);
  } catch (RuntimeException $e) {
   $GLOBALS['ps_exception']=$e->getMessage();
@@ -93,6 +93,11 @@ $body = <<<'PHP'
  }
  ps_fixture();$out=ps_submit('newtopic',array('poll'=>true,'post_data'=>array('has_poll'=>true,'_stats_completed'=>'newtopic:21')));ae_check(is_array($out)&&count(ae_rows('SELECT * FROM fixture_vote_desc'))===1&&(int)ae_rows('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')[0]['forum_posts']===3,'Stale private poll/statistics flags cannot suppress new publication');$cases++;
  ps_fixture();ae_sql('UPDATE fixture_forums SET count_posts=0');$out=ps_submit('reply');ae_check(is_array($out)&&(int)ae_rows('SELECT user_posts FROM fixture_users WHERE user_id=8')[0]['user_posts']===2&&(int)ae_rows('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')[0]['forum_posts']===3,'Excluded forum changes public count but not personal count');$cases++;
+ foreach(array(str_repeat('ä',25),str_repeat('😀',25),'A&B',"A\\'B",'C:\\notes') as $raw){
+  ps_fixture('guest');$key=phpbb_username_key($raw);$out=ps_submit('reply',array('username'=>$key));
+  ae_check(is_array($out)&&ae_rows('SELECT post_username FROM fixture_posts WHERE post_id='.(int)$out['post_id'])[0]['post_username']===$key,'Guest identity is stored once without clipping or removing literal slashes');$cases++;
+ }
+ foreach(array(array('name'),str_repeat('ä',26),"bad\xc3","bad\0name",'<b>') as $bad){ps_fixture('guest');$before=ps_snapshot();ae_check(ps_submit('reply',array('username'=>$bad))==='error'&&ps_snapshot()===$before,'Malformed/unprepared guest identity refuses whole publication');$cases++;}
  echo 'Native posting: '.$cases.' failure/session/permission/storage cases, '.$serialized." serialized changes; no partial content, polls, search or counters.\n";
 }finally{$ae_hook=null;$ae_fail='';$ae_ack=false;$ae_failwrite=0;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
 PHP;

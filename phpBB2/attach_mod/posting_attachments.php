@@ -1553,12 +1553,13 @@ class attach_parent
 					}
 				}
 
-				$to_user = (isset($_POST['username']) ) ? $_POST['username'] : '';
+				$to_user = (isset($_POST['username']) && is_string($_POST['username'])) ? phpbb_request_raw_value($_POST['username']) : '';
 				
 				// Check Receivers PM Quota
 				if (!empty($to_user) && $userdata['user_level'] != ADMIN)
 				{
 					$u_data = get_userdata($to_user, true);
+					if (!$u_data) { message_die(GENERAL_MESSAGE, $lang['No_such_user']); }
 
 					$user_id = (int) $u_data['user_id'];
 					$this->get_quota_limits($u_data, $user_id);

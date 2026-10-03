@@ -204,7 +204,8 @@ function attachment_quota_settings($admin_mode, $submit = false, $mode = '', $re
 			else
 			{
 				// Get userdata is handling the sanitizing of username
-				$this_userdata = get_userdata($HTTP_POST_VARS['username'], true);
+				$this_userdata = get_userdata(phpbb_request_raw_value($HTTP_POST_VARS['username']), true);
+				if (!$this_userdata) { message_die(GENERAL_MESSAGE, $lang['No_such_user']); }
 			}
 
 			$user_id = (int) $this_userdata['user_id'];

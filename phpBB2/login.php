@@ -65,20 +65,19 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 			message_die(GENERAL_ERROR, $lang['Session_invalid']);
 		}
 
-		$username = ($submitted_username !== '') ? phpbb_clean_username($submitted_username) : '';
-		$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
+		$username_input = phpbb_request_raw_value($submitted_username);
+		$username = phpbb_clean_username($username_input);
 		$password_value = (isset($_POST['password']) && is_scalar($_POST['password'])) ? (string) $_POST['password'] : '';
 		$password = (strlen($password_value) <= 128) ? $password_value : '';
-		$sql = "SELECT user_id, username, user_password, user_active, user_level, user_blocktime
-			FROM " . USERS_TABLE . "
-			WHERE username = '" . $username_sql . "'";
-		if ( !($result = $db->sql_query($sql)) )
+		$row = phpbb_username_lookup($db, $username_input, array('user_password','user_active','user_level','user_blocktime'));
+		if ($row === false)
 		{
-			message_die(GENERAL_ERROR, 'Error in obtaining userdata', '', __LINE__, __FILE__, $sql);
+			message_die(GENERAL_ERROR, 'Error in obtaining userdata');
 		}
 
-		if( $row = $db->sql_fetchrow($result) )
+		if ($row)
 		{
+			$username_sql = $db->sql_escape($row['username']);
 			if( $row['user_level'] != ADMIN && $board_config['board_disable'] )
 			{
 				redirect(append_sid("portal.$phpEx", true));

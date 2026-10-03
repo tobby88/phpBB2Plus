@@ -16,7 +16,9 @@ private_message_test_assert(strpos($privmsg, 'function privmsg_post_session_is_v
 private_message_test_assert(strpos($privmsg, "\$request_method === 'POST'") !== false, 'the PM session guard must require POST');
 private_message_test_assert(substr_count($privmsg, 'privmsg_post_session_is_valid(') >= 4, 'delete, save and send/edit writes must use the shared guard');
 private_message_test_assert(strpos($privmsg, "AND privmsgs_type IN (' . PRIVMSGS_NEW_MAIL") !== false, 'edit authorization must be limited to undelivered messages');
-private_message_test_assert(strpos($privmsg, '$to_username_sql = $db->sql_escape(stripslashes($to_username))') !== false, 'recipient lookup must use database-driver escaping');
+$identity_reader = file_get_contents($root . '/phpBB2/includes/functions_username.php');
+private_message_test_assert(strpos($privmsg, '$to_userdata = phpbb_username_lookup($db, $recipient_input,') !== false
+    && strpos($identity_reader, '$database->sql_escape($key)') !== false, 'recipient lookup must use the ambiguity-safe reader and database-driver escaping');
 private_message_test_assert(strpos($privmsg, 'phpbb_pm_write_message($pm_write_nonce,') !== false, 'SEND/EDIT must use the durable owning writer');
 private_message_test_assert(strpos($privmsg, 'INSERT INTO ' . '" . PRIVMSGS_TABLE') === false, 'Controller must not bypass durable header publication');
 $writer = file_get_contents($root . '/phpBB2/includes/functions_pm_write.php');

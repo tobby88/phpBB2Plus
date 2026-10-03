@@ -85,7 +85,8 @@ if (
 	// Passwords must reach the hash unchanged, matching the login form.
 	$new_password = (isset($_POST['new_password']) && is_string($_POST['new_password'])) ? $_POST['new_password'] : '';
 	$password_confirm = (isset($_POST['password_confirm']) && is_string($_POST['password_confirm'])) ? $_POST['password_confirm'] : '';
-	$strip_var_list = array('username' => 'username', 'email' => 'email');
+	$username = phpbb_username_key(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'username')));
+	$strip_var_list = array('email' => 'email');
 
 	// Strip all tags from data ... may p**s some people off, bah, strip_tags is
 	// doing the job but can still break HTML output ... have no choice, have
@@ -133,7 +134,6 @@ if (
 
 	if ( !isset($_POST['submit']) )
 	{
-		$username = stripslashes($username);
 		$email = stripslashes($email);
 
 		$user_lang = stripslashes($user_lang);
@@ -197,7 +197,7 @@ if ( isset($_POST['submit']) )
 	{
 		if (strtolower($username) != strtolower($userdata['username']))
 		{
-			$result = validate_username($username);
+			$result = validate_username($username, false, 0, true);
 			if ( $result['error'] )
 			{
 				$error = TRUE;
@@ -266,7 +266,6 @@ if ( $error )
 	//
 	// If an error occured we need to stripslashes on returned data
 	//
-	$username = stripslashes($username);
 	$email = stripslashes($email);
 	$new_password = '';
 	$password_confirm = '';

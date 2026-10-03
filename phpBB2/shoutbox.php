@@ -87,7 +87,7 @@ $submit = (isset($_POST['shout']) && isset($_POST['message'])) ? 1 : 0;
 $preview = 0;
 $error = false;
 $error_msg = '';
-$username = isset($userdata['username']) ? $userdata['username'] : '';
+$username = $userdata['session_logged_in'] ? $userdata['username'] : phpbb_request_scalar($_POST, 'username');
 $max = 0;
 $shout_max_length = 16000;
 $s_hidden_fields = '<input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />';
@@ -175,17 +175,19 @@ if ($submit || isset($_POST['message']))
 		}
 	}
 	// Check username
-	if ( !empty($username) )
+	if ($username !== '')
 	{
-		$username = htmlspecialchars(trim(strip_tags($username)));
+		// The session name is already a stored identity, not new form input.
+		if (!$userdata['session_logged_in']) { $username = phpbb_username_key(phpbb_request_raw_value($username)); }
 
 		if ( !$userdata['session_logged_in'] || ( $userdata['session_logged_in'] && $username != $userdata['username'] ) )
 		{
 			include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 
-			$result = validate_username($username);
+			$result = validate_username($username, false, 0, true);
 			if ( $result['error'] )
 			{
+				$error = true;
 				$error_msg .= ( !empty($error_msg) ) ? '<br />' . $result['error_msg'] : $result['error_msg'];
 			}
 		}

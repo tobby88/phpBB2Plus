@@ -10,7 +10,7 @@ $installer=file_get_contents($root.'install/install.php');
 boundary_check(preg_match('/^function install_slash_request_value\(.*?^}/ms',$installer,$match)===1,'Actual installer request adapter');eval($match[0]);
 $install_input=boundary_fragment($installer,'$admin_pass1 =','$ftp_path =');
 boundary_check(preg_match('/\$admin_password = phpbb_password_hash\([^;]+;/', $installer,$match)===1,'Actual installer hash');$install_hash=$match[0];
-$source=file_get_contents($root.'login.php');$login_input=boundary_fragment($source,'$password_value =','$sql =');
+$source=file_get_contents($root.'login.php');$login_input=boundary_fragment($source,'$password_value =','$row = phpbb_username_lookup(');
 $source=file_get_contents($root.'includes/usercp_register.php');$register_input=boundary_fragment($source,"foreach (array('cur_password', 'new_password', 'password_confirm')",'$signature =');
 boundary_check(preg_match('/\$new_password = phpbb_password_hash\([^;]+;/', $source,$match)===1,'Actual public registration hash');$register_hash=$match[0];
 $source=file_get_contents($root.'admin/erc.php');

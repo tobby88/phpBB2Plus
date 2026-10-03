@@ -321,6 +321,10 @@ $dbname = (!empty($_POST['dbname'])) ? $_POST['dbname'] : '';
 $table_prefix = (!empty($_POST['prefix'])) ? $_POST['prefix'] : '';
 
 $admin_name = (!empty($_POST['admin_name'])) ? $_POST['admin_name'] : '';
+$admin_name_raw = is_string($admin_name) ? stripslashes($admin_name) : '';
+$admin_name_key = phpbb_username_key($admin_name_raw);
+$install_username_invalid = $admin_name_key === '' || strpos($admin_name_raw, '"') !== false
+	|| preg_match('/[\x{00a0}\x{00ad}]/u', $admin_name_raw);
 // Undo only the installer's request adapter, never normalize credentials.
 $admin_pass1 = (isset($_POST['admin_pass1']) && is_string($_POST['admin_pass1'])) ? stripslashes($_POST['admin_pass1']) : '';
 $admin_pass2 = (isset($_POST['admin_pass2']) && is_string($_POST['admin_pass2'])) ? stripslashes($_POST['admin_pass2']) : '';
@@ -549,7 +553,7 @@ else if (!empty($_POST['ftp_file']))
 		exit();
 	}
 }
-else if (empty($install_step) || !hash_equals($admin_pass1, $admin_pass2) || $install_password_error !== '' || ($upgrade != 1 && $install_password_policy['error']) || empty($dbhost))
+else if (empty($install_step) || $install_username_invalid || !hash_equals($admin_pass1, $admin_pass2) || $install_password_error !== '' || ($upgrade != 1 && $install_password_policy['error']) || empty($dbhost))
 {
 	// Ok we haven't installed before so lets work our way through the various
 	// steps of the install process.  This could turn out to be quite a lengty 
@@ -567,6 +571,7 @@ else if (empty($install_step) || !hash_equals($admin_pass1, $admin_pass2) || $in
 		}
 		if ($install_password_error !== '') { $error = $lang[$install_password_error]; }
 		if ($upgrade != 1 && $install_password_policy['error']) { $error = $install_password_policy['error_msg']; }
+		if ($install_username_invalid) { $error = $lang['Username_invalid']; }
 	}
 
 	$dirname = $phpbb_root_path . 'language';
@@ -863,7 +868,7 @@ else
 			}
 
 			$sql = "UPDATE " . $table_prefix . "users 
-				SET username = '" . str_replace("\'", "''", $admin_name) . "', user_password='" . str_replace("\'", "''", $admin_password) . "', user_lang = '" . str_replace("\'", "''", $language) . "', user_email='" . str_replace("\'", "''", $board_email) . "'
+				SET username = '" . $db->sql_escape($admin_name_key) . "', user_password='" . $db->sql_escape($admin_password) . "', user_lang = '" . $db->sql_escape($language) . "', user_email='" . $db->sql_escape(stripslashes($board_email)) . "'
 				WHERE username = 'Admin'";
 			if (!$db->sql_query($sql))
 			{

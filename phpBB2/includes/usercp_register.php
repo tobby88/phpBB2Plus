@@ -247,9 +247,7 @@ if (
 		$icq = $aim = $msn = $yim = $pt = $skp = '';
 	}
 
-	// Identity normalization still uses the legacy request representation,
-	// matching login.php. Only editable display text crosses the raw boundary.
-	$username = phpbb_clean_username(phpbb_request_scalar($_POST, 'username'));
+	$username = phpbb_username_form(usercp_post_scalar('username'), $mode === 'editprofile' ? $userdata['username'] : null);
 	foreach (array('cur_password', 'new_password', 'password_confirm') as $password_var)
 	{
 		$$password_var = (isset($_POST[$password_var]) && is_scalar($_POST[$password_var])) ? (string) $_POST[$password_var] : '';
@@ -614,7 +612,7 @@ if ( isset($_POST['submit']) )
 			}
 			if (strtolower($username) != strtolower($userdata['username']) || $mode == 'register')
 			{
-				$result = validate_username($username, false);
+				$result = validate_username($username, false, $mode === 'editprofile' ? (int)$userdata['user_id'] : 0, true);
 				if ( $result['error'] )
 				{
 					$error = TRUE;
@@ -864,7 +862,7 @@ if ( isset($_POST['submit']) )
   
  					$emailer->assign_vars(array(
  						'SITENAME' => $board_config['sitename'],
- 						'USERNAME' => preg_replace($unhtml_specialchars_match, $unhtml_specialchars_replace, substr(str_replace("\'", "'", $username), 0, 25)),
+						'USERNAME' => html_entity_decode($username, ENT_QUOTES, 'UTF-8'),
  						'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
   
  						'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
@@ -893,7 +891,7 @@ if ( isset($_POST['submit']) )
  						$emailer->set_subject($lang['Reactivate']);
  
  						$emailer->assign_vars(array(
- 							'USERNAME' => preg_replace($unhtml_specialchars_match, $unhtml_specialchars_replace, substr(str_replace("\'", "'", $username), 0, 25)),
+							'USERNAME' => html_entity_decode($username, ENT_QUOTES, 'UTF-8'),
  							'EMAIL_SIG' => str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']),
  
  							'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
@@ -1030,7 +1028,7 @@ if ( isset($_POST['submit']) )
 				$emailer->assign_vars(array(
 					'SITENAME' => $board_config['sitename'],
 					'WELCOME_MSG' => sprintf($lang['Welcome_subject'], $board_config['sitename']),
-					'USERNAME' => preg_replace($unhtml_specialchars_match, $unhtml_specialchars_replace, substr(str_replace("\'", "'", $username), 0, 25)),
+					'USERNAME' => html_entity_decode($username, ENT_QUOTES, 'UTF-8'),
 					'EMAIL_SIG' => str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']),
 
 					'FAX_INFO' => $board_config['coppa_fax'],
@@ -1051,7 +1049,7 @@ if ( isset($_POST['submit']) )
 				$emailer->assign_vars(array(
 					'SITENAME' => $board_config['sitename'],
 					'WELCOME_MSG' => sprintf($lang['Welcome_subject'], $board_config['sitename']),
-					'USERNAME' => preg_replace($unhtml_specialchars_match, $unhtml_specialchars_replace, substr(str_replace("\'", "'", $username), 0, 25)),
+					'USERNAME' => html_entity_decode($username, ENT_QUOTES, 'UTF-8'),
 					'EMAIL_SIG' => str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']),
 
 					'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)
@@ -1082,7 +1080,7 @@ if ( isset($_POST['submit']) )
 					$emailer->set_subject($lang['New_account_subject']);
 
 					$emailer->assign_vars(array(
-						'USERNAME' => preg_replace($unhtml_specialchars_match, $unhtml_specialchars_replace, substr(str_replace("\'", "'", $username), 0, 25)),
+						'USERNAME' => html_entity_decode($username, ENT_QUOTES, 'UTF-8'),
 						'EMAIL_SIG' => str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']),
 
 						'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)

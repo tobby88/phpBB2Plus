@@ -36,7 +36,7 @@ f_help = "{L_BBCODE_F_HELP}";
 	<!-- BEGIN switch_username_select -->
 	<tr> 
 		<td class="row1"><span class="gen"><b>{L_USERNAME}</b></span></td>
-		<td class="row2"><span class="genmed"><input type="text" class="post" tabindex="1" name="username" size="25" maxlength="25" value="{USERNAME}" /></span></td>
+		<td class="row2"><span class="genmed"><input type="text" class="post" tabindex="1" name="username" size="25" maxlength="50" value="{USERNAME}" /></span></td>
 	</tr>
 	<!-- END switch_username_select -->
 

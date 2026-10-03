@@ -30,7 +30,7 @@
 <tr>
 <td class="row1" width="38%"><span class="explaintitle">{L_USERNAME}:</span> *</td>
 <td class="row2" width="62%">
-<input type="text" class="post" style="width:200px" name="username" size="25" maxlength="25" value="{USERNAME}" onblur="AJAXCheckPostUsername(this.value);" />
+<input type="text" class="post" style="width:200px" name="username" size="25" maxlength="50" value="{USERNAME}" onblur="AJAXCheckPostUsername(this.value);" />
 </td>
 </tr>
 <tr id="post_username_error_tbl" style="display:none;">

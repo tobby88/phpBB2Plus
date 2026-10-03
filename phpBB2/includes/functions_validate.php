@@ -25,95 +25,56 @@
 // Also checks if it includes the " character, which we don't allow in usernames.
 // Used for registering, changing names, and posting anonymously with a username
 //
-function validate_username($username, $check_stopforumspam = false, $exclude_user_id = 0)
+function validate_username($username, $check_stopforumspam = false, $exclude_user_id = 0, $stored_identity = false)
 {
-	global $db, $lang, $userdata, $board_config;
+	global $db, $lang, $board_config;
 	// An owning profile transaction may exclude its already-authorized target,
 	// e.g. for case-only edits. Ordinary registration keeps the default of zero.
 
-	// Remove doubled up spaces
-	$username = preg_replace('#\s+#', ' ', trim($username)); 
-	$username = phpbb_clean_username($username);
-	// Let the UTF-8 database lower both sides. Older PHP's locale-dependent
-	// byte-wise strtolower can corrupt a multibyte name before the comparison.
-
-	$sql = "SELECT username 
-		FROM " . USERS_TABLE . "
-		WHERE LOWER(username) = LOWER('" . $username . "')"
-		. (is_int($exclude_user_id) && $exclude_user_id > 0 ? ' AND user_id <> ' . $exclude_user_id : '');
-	if ($result = $db->sql_query($sql))
-	{
-		while ($row = $db->sql_fetchrow($result))
-		{
-			if (($userdata['session_logged_in'] && $row['username'] != $userdata['username']) || !$userdata['session_logged_in'])
-			{
-				$db->sql_freeresult($result);
-				return array('error' => true, 'error_msg' => $lang['Username_taken']);
-			}
-		}
+	$invalid = array('error'=>true, 'error_msg'=>$lang['Username_invalid']);
+	if (!is_string($username) || ($stored_identity && (strpos($username, "\0") !== false || preg_match('//u', $username) !== 1))) { return $invalid; }
+	$raw = $stored_identity ? html_entity_decode($username, ENT_QUOTES, 'UTF-8') : $username;
+	$raw = phpbb_username_input($raw);
+	if ($raw === null) { return $invalid; }
+	if (!$stored_identity) { $username = phpbb_username_key($raw); }
+	if ($username === '' || preg_match_all('/./us', $username, $characters) === false || count($characters[0]) > 25) { return $invalid; }
+	$keys = phpbb_username_keys($raw); if (!$keys) { return $invalid; }
+	if ($stored_identity && !in_array($username, $keys, true)) { return $invalid; }
+	$literals = array(); foreach ($keys as $key) { $literals[] = "'" . $db->sql_escape($key) . "'"; }
+	// Use the database's UTF-8 collation, never byte-wise strtolower or a
+	// second HTML/SQL normalization of the already prepared account identity.
+	foreach (array(USERS_TABLE=>'username', GROUPS_TABLE=>'group_name') as $table=>$column) {
+		$sql = 'SELECT '.$column.' FROM '.$table.' WHERE '.$column.' IN ('.implode(',', $literals).')'
+			. ($table === USERS_TABLE && is_int($exclude_user_id) && $exclude_user_id > 0 ? ' AND user_id<>'.$exclude_user_id : '');
+		$result = $db->sql_query($sql); if (!$result) { return $invalid; }
+		$row = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+		if ($row) { return array('error'=>true, 'error_msg'=>$lang['Username_taken']); }
 	}
-	$db->sql_freeresult($result);
-
-	$sql = "SELECT group_name
-		FROM " . GROUPS_TABLE . " 
-		WHERE LOWER(group_name) = LOWER('" . $username . "')";
-	if ($result = $db->sql_query($sql))
-	{
-		if ($row = $db->sql_fetchrow($result))
-		{
-			$db->sql_freeresult($result);
-			return array('error' => true, 'error_msg' => $lang['Username_taken']);
-		}
-	}
-	$db->sql_freeresult($result);
-
-	$sql = "SELECT disallow_username
-		FROM " . DISALLOW_TABLE;
-	if ($result = $db->sql_query($sql))
-	{
-		if ($row = $db->sql_fetchrow($result))
-		{
-			do
-			{
-				if (preg_match("#\b(" . str_replace("\*", ".*?", preg_quote($row['disallow_username'], '#')) . ")\b#i", $username))
-				{
-					$db->sql_freeresult($result);
-					return array('error' => true, 'error_msg' => $lang['Username_disallowed']);
+	foreach (array(DISALLOW_TABLE=>'disallow_username', WORDS_TABLE=>'word') as $table=>$column) {
+		$result = $db->sql_query('SELECT '.$column.' FROM '.$table); if (!$result) { return $invalid; }
+		$rule_error = null;
+		try {
+			while ($row = $db->sql_fetchrow($result)) {
+				$pattern = str_replace('\\*', '.*?', preg_quote($row[$column], '#'));
+				foreach (array_unique(array($raw, $username)) as $subject) {
+					$matched = @preg_match('#(?:^('.$pattern.')$|\\b('.$pattern.')\\b)#iu', $subject);
+					if ($matched === false) { $rule_error = $invalid; break 2; }
+					if ($matched) { $rule_error = array('error'=>true, 'error_msg'=>$lang['Username_disallowed']); break 2; }
 				}
 			}
-			while($row = $db->sql_fetchrow($result));
-		}
+		} finally { $db->sql_freeresult($result); }
+		if ($rule_error !== null) { return $rule_error; }
 	}
-	$db->sql_freeresult($result);
-
-	$sql = "SELECT word 
-		FROM  " . WORDS_TABLE;
-	if ($result = $db->sql_query($sql))
-	{
-		if ($row = $db->sql_fetchrow($result))
-		{
-			do
-			{
-				if (preg_match("#\b(" . str_replace("\*", ".*?", preg_quote($row['word'], '#')) . ")\b#i", $username))
-				{
-					$db->sql_freeresult($result);
-					return array('error' => true, 'error_msg' => $lang['Username_disallowed']);
-				}
-			}
-			while ($row = $db->sql_fetchrow($result));
-		}
-	}
-	$db->sql_freeresult($result);
 
 	// Don't allow " and ALT-255 in username.
-	if (strstr($username, '"') || strstr($username, '&quot;') || strstr($username, chr(160))|| strstr($username, chr(173)))
+	if (strpos($raw, '"') !== false || strpos($username, '&quot;') !== false || preg_match('/[\x{00a0}\x{00ad}]/u', $raw))
 	{
 		return array('error' => true, 'error_msg' => $lang['Username_invalid']);
 	}
 
 	if ($check_stopforumspam && !empty($board_config['sfs_enable']))
 	{
-		$sfs_check = stopforumspam($username, 'username');
+		$sfs_check = stopforumspam($raw, 'username');
 		if ($sfs_check === true)
 		{
 			return array('error' => true, 'error_msg' => $lang['Username_disallowed']);

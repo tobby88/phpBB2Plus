@@ -28,7 +28,7 @@ stopforumspam_assert(strpos($source, '$stopforumspam_request_unavailable = true'
 stopforumspam_assert(strpos($source, "filter_var(\$value, FILTER_VALIDATE_IP)") !== false, 'only valid client IPs may be queried');
 stopforumspam_assert(strpos($register, "if (\$mode == 'register' && !\$error && !empty(\$board_config['sfs_enable']))") !== false, 'remote checks must wait for successful local validation');
 stopforumspam_assert(strpos($register, 'validate_email($email, false)') !== false, 'email validation must not issue an early remote query');
-stopforumspam_assert(strpos($register, 'validate_username($username, false)') !== false, 'username validation must not issue an early remote query');
+stopforumspam_assert(strpos($register, "validate_username(\$username, false, \$mode === 'editprofile' ? (int)\$userdata['user_id'] : 0, true)") !== false, 'username validation must not issue an early remote query');
 foreach (array($admin, $schema, $updater) as $migration_source)
 {
 	stopforumspam_assert(strpos($migration_source, 'sfs_fail_closed') !== false, 'failure policy must exist in ACP and migration paths');

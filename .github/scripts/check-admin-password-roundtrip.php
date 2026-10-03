@@ -2,6 +2,7 @@
 // Execute the actual ACP input/hash and login input fragments, without loading
 // pagestart, configuration, database connections or creating real accounts.
 namespace AdminPasswordFixture;
+define('IN_PHPBB', true);
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require_once $root . 'includes/php_compat.php';
 require_once __DIR__ . '/profile-request-fixture.php';
@@ -25,7 +26,7 @@ $admin_hash = fragment($admin, "\t\t\$passwd_sql = '';", '// End add - Admin add
 $quick_input = fragment($quick, "\t\$new_password = (isset(\$_POST['new_password'])", "\t\$user_style =");
 $quick_validate = fragment($quick, "\t\$passwd_sql = '';", "\t//\n\t// Do a ban check");
 // Source files may have checkout CRLF; fragment anchors otherwise stay exact.
-$login_input = fragment($login, "\t\t\$password_value =", "\t\t\$sql =");
+$login_input = fragment($login, "\t\t\$password_value =", "\t\t\$row = phpbb_username_lookup(");
 check(preg_match('/^function admin_user_require_creation_password\(\).*?^\}/ms', $admin, $gate) === 1, 'Actual early creation gate located');
 check(preg_match('/^function admin_user_post_string\(.*?^\}/ms', $admin, $post_reader) === 1, 'Actual input reader located');
 eval('namespace AdminPasswordFixture;' . $post_reader[0]);
@@ -45,7 +46,7 @@ try
         {
             foreach (array(false, true) as $quick_add)
             {
-                \profile_fixture_request(array('password' => $original, 'new_password' => $original, 'password_confirm' => $original));
+                \profile_fixture_request(array('username'=>'Fixture Member', 'password' => $original, 'new_password' => $original, 'password_confirm' => $original));
                 $expected = addslashes($original); // Preserve the existing bootstrap/login credential format.
                 $error = false; $error_msg = ''; $new_user = true; $force_new_passwd = false;
                 $username = 'Fixture Member'; $email = 'fixture@example.invalid';

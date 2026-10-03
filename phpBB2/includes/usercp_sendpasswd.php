@@ -38,7 +38,7 @@ if ( isset($_POST['submit']) )
 
 	$username_value = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
 	$email_value = (isset($_POST['email']) && is_scalar($_POST['email'])) ? (string) $_POST['email'] : '';
-	$username = ( $username_value !== '' ) ? phpbb_clean_username($username_value) : '';
+	$username = phpbb_request_raw_value($username_value);
 	$email = ( $email_value !== '' ) ? trim(strip_tags(htmlspecialchars($email_value))) : '';
 	try
 	{
@@ -72,7 +72,7 @@ if ( isset($_POST['submit']) )
 
 			$emailer->assign_vars(array(
 				'SITENAME' => $board_config['sitename'],
-				'USERNAME' => $username,
+				'USERNAME' => html_entity_decode($username, ENT_QUOTES, 'UTF-8'),
 				'EMAIL_SIG' => (!empty($board_config['board_email_sig'])) ? str_replace('<br />', "\n", "-- \n" . $board_config['board_email_sig']) : '',
 
 				'U_ACTIVATE' => $server_url . '?mode=activate&' . POST_USERS_URL . '=' . $user_id . '&act_key=' . $user_actkey)

@@ -101,7 +101,7 @@ if (strpos($send_password_storage, "\$row['ct_last_pw_reset'] = \$now +") === fa
 {
 	$errors[] = 'Password-reset throttling is not isolated from password-age tracking.';
 }
-foreach (array("\$db->sql_escape(\$username)", "\$db->sql_escape(\$email)", "(int)\$settings['pwreset_time'] > 180") as $marker)
+foreach (array('phpbb_username_lookup($db, $username,', "\$db->sql_escape(\$email)", "(int)\$settings['pwreset_time'] > 180") as $marker)
 {
 	if (strpos($send_password_storage, $marker) === false)
 	{

@@ -20,13 +20,14 @@ require('./pagestart.' . $phpEx);
 
 $username_input = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] :
 	((isset($_GET['username']) && is_scalar($_GET['username'])) ? (string) $_GET['username'] : '');
+$username_input = phpbb_request_raw_value($username_input);
 $username = phpbb_clean_username($username_input);
 $resolve = isset($_POST['resolve']) && is_scalar($_POST['resolve']) && (string) $_POST['resolve'] === '1';
 if ($resolve)
 {
 	phpbb_admin_require_post_session();
 }
-if ($username === '')
+if (!phpbb_username_keys($username_input))
 {
 	$template->set_filenames(array('body' => 'admin/user_select_body.tpl'));
 	$template->assign_vars(array(
@@ -40,18 +41,15 @@ if ($username === '')
 	exit;
 }
 
-$username_sql = $db->sql_escape($username);
-$sql = "SELECT user_id, username, user_email, user_posts, user_regdate, user_reg_ip, user_reg_host
-	FROM " . USERS_TABLE . " WHERE username = '$username_sql'";
-if (!($result = $db->sql_query($sql)))
+$main = phpbb_username_lookup($db, $username_input, array('user_email','user_posts','user_regdate','user_reg_ip','user_reg_host'));
+if ($main === false)
 {
-	message_die(GENERAL_ERROR, 'Could not read registration IP', '', __LINE__, __FILE__, $sql);
+	message_die(GENERAL_ERROR, 'Could not read registration IP');
 }
-if (!($main = $db->sql_fetchrow($result)))
+if (!$main)
 {
 	message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
 }
-$db->sql_freeresult($result);
 
 $ip = trim((string) $main['user_reg_ip']);
 $host = trim((string) $main['user_reg_host']);
@@ -87,7 +85,7 @@ $template->assign_vars(array(
 	'MAIN_IP' => ($ip === '') ? $lang['Registration_IP_unknown'] : htmlspecialchars($ip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 	'MAIN_HOST' => htmlspecialchars($host, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 	'S_RESOLVE_ACTION' => append_sid("admin_reg_ip.$phpEx"),
-	'S_RESOLVE_FIELDS' => '<input type="hidden" name="username" value="' . htmlspecialchars($main['username'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" /><input type="hidden" name="resolve" value="1" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />'
+	'S_RESOLVE_FIELDS' => '<input type="hidden" name="username" value="' . htmlspecialchars(html_entity_decode($main['username'], ENT_QUOTES, 'UTF-8'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" /><input type="hidden" name="resolve" value="1" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" />'
 ));
 
 if ($ip !== '')

@@ -128,7 +128,7 @@ if ($new_user)
 {
 	if ($mode === 'save' && isset($_POST['submit'])) { $new_user_password_hash = admin_user_require_creation_password(); }
 	//see if user already exist
-	if (get_userdata(phpbb_request_scalar($_POST, 'username'), true))
+	if (get_userdata(admin_user_post_string('username'), true))
 	{
 		message_die(GENERAL_MESSAGE, $lang['Username_taken'] );
 	}
@@ -238,8 +238,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 }
 // End add - Protect user account MOD
 
-		// Keep the legacy identity/login normalization separate from raw text.
-		$username = phpbb_clean_username(phpbb_request_scalar($_POST, 'username'));
+		$username = phpbb_username_form(admin_user_post_string('username'), !$new_user ? $this_userdata['username'] : null);
 		$email = trim(strip_tags(htmlspecialchars(admin_user_post_string('email'))));
 
 		$password = (isset($_POST['password']) && is_string($_POST['password'])) ? $_POST['password'] : '';
@@ -360,7 +359,6 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 
 		if( isset( $_POST['avatargallery'] ) || isset( $_POST['submitavatar'] ) || isset( $_POST['cancelavatar'] ) )
 		{
-			$username = stripslashes($username);
 			$password = '';
 			$password_confirm = '';
 
@@ -402,13 +400,13 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 
 		$error = FALSE;
 
-		if (stripslashes($username) != $this_userdata['username'])
+		if ($username != $this_userdata['username'])
 		{
 			unset($rename_user);
 
-			if ( stripslashes(strtolower($username)) != strtolower($this_userdata['username']) )
+			if (strtolower($username) != strtolower($this_userdata['username']))
 			{
-				$result = validate_username($username);
+				$result = validate_username($username, false, (int)$this_userdata['user_id'] > 0 ? (int)$this_userdata['user_id'] : 0, true);
 				if ( $result['error'] )
 				{
 					$error = TRUE;
@@ -713,7 +711,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		}
 		else
 		{
-			$this_userdata = get_userdata($_POST['username'], true);
+			$this_userdata = get_userdata(admin_user_post_string('username'), true);
 			if( !$this_userdata )
 			{
 				message_die(GENERAL_MESSAGE, $lang['No_user_id_specified'] );

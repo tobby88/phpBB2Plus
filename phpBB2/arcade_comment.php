@@ -663,7 +663,7 @@ else
 //
 // Clean the username up a little.
 //
-	$comment_username = (!$userdata['session_logged_in']) ? '' : htmlspecialchars(trim((string) $userdata['username']), ENT_QUOTES, 'UTF-8');
+	$comment_username = (!$userdata['session_logged_in']) ? '' : (string) $userdata['username'];
 	$comment_username_sql = $db->sql_escape($comment_username);
 
 	if( empty($comment_text) )

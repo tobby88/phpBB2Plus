@@ -17,7 +17,7 @@
 <tr>
 <td nowrap="nowrap" class="row1">&nbsp;&nbsp;<span class="explaintitle">{L_USERNAME}:</span> *</td>
 <td class="row2" width="100%">
-<input type="text" class="post" style="width: 200px" name="username" size="25" maxlength="40" value="{USERNAME}" />
+<input type="text" class="post" style="width: 200px" name="username" size="25" maxlength="50" value="{USERNAME}" />
 </td>
 </tr>
 <tr>

@@ -729,17 +729,17 @@ else if ($mode == 'checkusername_post')
 {
 	include($phpbb_root_path .'includes/functions_validate.'. $phpEx);
 	
-	$username = utf8_rawurldecode(ajax_request_value('username'));
+	$username = phpbb_request_raw_value(ajax_request_value('username'));
 	
 	$result_code = AJAX_OP_COMPLETED;
 	$error_msg = '';
-	if (!empty($username))
+	if ($username !== '')
 	{
 		$username = phpbb_clean_username($username);
 
 		if (!$userdata['session_logged_in'] || ($userdata['session_logged_in'] && $username != $userdata['username']))
 		{
-			$result = validate_username($username);
+			$result = validate_username($username, false, 0, true);
 			if ($result['error'])
 			{
 				$result_code = AJAX_ERROR;
@@ -762,10 +762,10 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 	include($phpbb_root_path .'includes/functions_validate.'. $phpEx);
 	
 	// Get username
-	$username = utf8_rawurldecode(ajax_request_value('username'));
+	$username = phpbb_request_raw_value(ajax_request_value('username'));
 	$search = ajax_request_int('search') === 1 ? 1 : 0;
 	
-	if (empty($username))
+	if ($username === '')
 	{
 		if ($mode == 'checkusername_pm')
 		{
@@ -786,30 +786,32 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 		AJAX_message_die($result_ar);
 	}
 	
-	$username = phpbb_clean_username($username);
+	$username_input = $username;
+	$username_keys = phpbb_username_keys($username_input);
+	if (!$username_keys)
+	{
+		AJAX_message_die(array('result'=>AJAX_PM_USERNAME_ERROR, 'error_msg'=>$lang['No_such_user']));
+	}
+	$username = $username_keys[0];
+	$has_wildcards = false;
 	if ($mode == 'search_user')
 	{
 		$has_wildcards = (strpos($username, '*') !== False) ? True : False;
 		$username = str_replace('*', '%', $username);
 	}
-	$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
+	$username_sql = $db->sql_escape($username);
 	
 	$username_row = False;
 	if (($mode == 'checkusername_pm') || (($mode == 'search_user') && !$has_wildcards))
 	{
-		$sql = 'SELECT user_id 
-		        FROM '. USERS_TABLE ."
-		        WHERE username='$username_sql'
-		        AND user_id <> ". ANONYMOUS;
-		if (!($result = $db->sql_query($sql)))
+		$username_row = phpbb_username_lookup($db, $username_input, array('user_id'));
+		if ($username_row === false)
 		{
 			$result_ar = array(
 				'result' => AJAX_OP_COMPLETED
 			);
 			AJAX_message_die($result_ar);
 		}
-		$username_row = $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);
 	}
 	
 	if ($username_row)
@@ -825,7 +827,7 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 		{
 			$username .= '%';
 		}
-		$username_sql = $db->sql_escape(str_replace("\\'", "'", $username));
+		$username_sql = $db->sql_escape($username);
 		$sql = 'SELECT username 
 		        FROM '. USERS_TABLE ."
 		        WHERE username LIKE '{$username_sql}'
@@ -869,7 +871,7 @@ else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 			$username_select .= '<option value="-1"> --- </option>';
 			for ($i = 0; $i < $username_count; $i++)
 			{
-				$safe_username = htmlspecialchars($username_rows[$i]['username'], ENT_QUOTES, 'UTF-8');
+				$safe_username = htmlspecialchars(html_entity_decode($username_rows[$i]['username'], ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
 				$username_select .= '<option value="'. $safe_username .'">'. $safe_username .'</option>';
 			}
 			$username_select .= '</select>';

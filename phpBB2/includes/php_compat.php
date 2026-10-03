@@ -1,5 +1,7 @@
 <?php
 
+if (defined('IN_PHPBB')) { require_once dirname(__FILE__) . '/functions_username.php'; }
+
 /**
  * Render bounded SQL diagnostic metadata, never query values or driver text.
  * Driver messages can repeat passwords, private content and SQL literals in

@@ -138,13 +138,13 @@ if( !$userdata['session_logged_in'] )
 }
 $username = (isset($_POST['username']) && is_scalar($_POST['username'])) ? (string) $_POST['username'] : '';
 // Check username
-if ( !empty($username) )
+if ($username !== '')
 {
-	$username = phpbb_clean_username($username);
+	$username = phpbb_clean_username(phpbb_request_raw_value($username));
 	if ( !$userdata['session_logged_in'])
 	{
 		require_once($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
-		$result = validate_username($username);
+		$result = validate_username($username, false, 0, true);
 		if ( $result['error'] )
 		{
 			$error = true;

@@ -25,6 +25,8 @@ if (!defined('IN_PHPBB'))
 	die('Hacking attempt');
 }
 
+require_once dirname(__FILE__) . '/functions_username.php';
+
 $html_entities_match = array('#&(?!(\#[0-9]+;))#', '#<#', '#>#', '#"#');
 $html_entities_replace = array('&amp;', '&lt;', '&gt;', '&quot;');
 
@@ -120,15 +122,15 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 	global $board_config, $userdata, $lang, $phpEx, $phpbb_root_path;
 
 	// Check username
-	if (!empty($username))
+	if ($username !== '')
 	{
-		$username = phpbb_clean_username($username); 
+		$username = phpbb_clean_username(phpbb_request_raw_value($username));
 
 		if (!$userdata['session_logged_in'] || ($userdata['session_logged_in'] && $username != $userdata['username']))
 		{
 			include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 
-			$result = validate_username($username);
+			$result = validate_username($username, false, 0, true);
 			if ($result['error'])
 			{
 				$error_msg .= (!empty($error_msg)) ? '<br />' . $result['error_msg'] : $result['error_msg'];
@@ -295,7 +297,11 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		$post_subject = addslashes($stored_subject);
 		phpbb_posting_revalidate($db, $mode, $post_data, $forum_id, $topic_id, $post_id, $poll_id);
 		// Undo the prepared legacy slash representation exactly once.
-		$post_username_sql = $db->sql_escape(stripslashes((string) $post_username));
+		// prepare_post crosses the username boundary already; only message/title
+		// input still carries the legacy request slash representation.
+		$post_username_value = phpbb_username_stored($post_username);
+		if ($post_username_value === null) { $db->fail('Username_invalid'); }
+		$post_username_sql = $db->sql_escape($post_username_value);
 		$post_subject_sql = $db->sql_escape(stripslashes((string) $post_subject));
 		$post_message_sql = $db->sql_escape(stripslashes((string) $post_message));
 		$poll_title_sql = $db->sql_escape(stripslashes((string) $poll_title));

@@ -20,7 +20,7 @@
 <tr>
 <td width="45%" align="right" class="explaintitle">{L_USERNAME}:</td>
 <td width="55%">
-<input type="text" name="username" size="25" maxlength="40" value="{USERNAME}" class="post" />
+<input type="text" name="username" size="25" maxlength="50" value="{USERNAME}" class="post" />
 </td>
 </tr>
 <tr>

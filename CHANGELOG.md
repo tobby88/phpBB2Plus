@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Use one explicit raw-input/stored-identity boundary for account names. Count
+  Unicode characters instead of clipping bytes; reject invalid or oversized
+  input rather than resolving another account's prefix. Login, password reset,
+  PM recipients, AJAX lookups and account selectors use connection-quoted
+  identity readers. Preserve actual historical HTML quote representations on
+  unchanged profile saves; ambiguous lookups fail closed without guessed slash
+  or truncated aliases. Registration and the installer create canonical names;
+  notifications retain the full decoded name. Existing accounts are not renamed
+  and no database migration is needed.
 - Guard CrackerTracker member marking/removal with current exact module
   authority, current target identity/role and a dedicated canonical InnoDB
   transaction. Concurrent promotion/rename/deletion or revoked ACP rights cannot

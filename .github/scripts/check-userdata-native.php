@@ -3,6 +3,8 @@
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');
 require __DIR__ . '/check-attachment-settings-storage.php';
 define('ANONYMOUS', -1);
+require __DIR__ . '/profile-request-fixture.php';
+ats_load_function($ats_source . 'admin/admin_users.php', 'admin_user_post_string');
 foreach (array('phpbb_rtrim', 'phpbb_clean_username', 'get_userdata') as $name) {
     ats_load_function($ats_source . 'includes/functions.php', $name);
 }
@@ -42,10 +44,8 @@ try {
             $inputs = array('Plain', 'Grüße', 'A\\B', 'X\\nY', 'Double\\\\Path', "O'Reilly", 'A&B', '123', 'A\\%B', 'A\\_B');
             $id = 10;
             foreach ($inputs as $input) {
-                $request = $adapted ? addslashes($input) : $input;
-                // Use precisely the identity representation read by login.php;
-                // no guessed raw-name aliases or changes to existing accounts.
-                $stored = str_replace("\\'", "'", phpbb_clean_username($request));
+                $request = $input;
+                $stored = phpbb_clean_username($input);
                 ats_check($db->sql_query("INSERT INTO fixture_users VALUES ($id,'" . $db->sql_escape($stored) . "')"), 'Store existing identity');
                 $expected[$id] = $request;
                 $id++;
@@ -54,6 +54,7 @@ try {
             // under ordinary MySQL escaping instead of the requested identity.
             ats_check($db->sql_query("INSERT INTO fixture_users VALUES (99,'AB'),(-1,'Guest')"), 'Different account and anonymous sentinel');
             foreach ($expected as $id => $request) {
+                if ($adapted) { profile_fixture_request(array('username'=>$request)); $request=phpbb_request_raw_value($_POST['username']); }
                 $row = get_userdata($request, true);
                 ats_check(is_array($row) && (int)$row['user_id'] === $id, 'Exact current stored identity, SQL mode=' . $mode . ', adapted=' . (int)$adapted . ', id=' . $id);
                 ats_check($db->query_result === false, 'Identity result released on successful lookup');
@@ -63,8 +64,8 @@ try {
             // belongs to get_userdata, not its callers, and numeric names are
             // names in ACP account creation, not references to account IDs.
             $admin_source = file_get_contents($ats_source . 'admin/admin_users.php');
-            ats_check(preg_match('/if \((get_userdata\(phpbb_request_scalar\(\$_POST, \'username\'\), true\))\)/', $admin_source, $match) === 1, 'Actual creation identity expression');
-            $_POST = array('username' => $expected[17]);
+            ats_check(preg_match('/if \((get_userdata\(admin_user_post_string\(\'username\'\), true\))\)/', $admin_source, $match) === 1, 'Actual creation identity expression');
+            profile_fixture_request(array('username'=>$expected[17]));
             $creation_row = eval('return ' . $match[1] . ';');
             ats_check((int)$creation_row['user_id'] === 17, 'Numeric account name is not mistaken for account ID');
             if (!$adapted) {
@@ -75,7 +76,7 @@ try {
                 ats_check((int)$this_userdata['user_id'] === 16, 'Tracker resolves ampersand identity without double entity encoding');
                 $ajax_source = file_get_contents($ats_source . 'ajax.php');
                 $start = strpos($ajax_source, "else if ((\$mode == 'checkusername_pm')");
-                $a = strpos($ajax_source, '$username = phpbb_clean_username($username);', $start);
+                $a = strpos($ajax_source, '$username_input = $username;', $start);
                 $b = strpos($ajax_source, '$username_row = False;', $a);
                 ats_check($start !== false && $a !== false && $b > $a, 'Actual AJAX identity preprocessing');
                 $mode = 'search_user'; $username = 'A&B';

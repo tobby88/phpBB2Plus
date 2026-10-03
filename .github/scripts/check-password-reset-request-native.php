@@ -2,6 +2,7 @@
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
 foreach(array('ANONYMOUS'=>-1,'CONFIG_TABLE'=>'fixture_config','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','CTRACKER_CONFIG'=>'fixture_ctracker_config','POST_USERS_URL'=>'u') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_password_reset.php';
+require __DIR__.'/profile-request-fixture.php';
 foreach(array('phpbb_clean_username','phpbb_rtrim','phpbb_ltrim') as $name){if(!function_exists($name)){ats_load_function($ats_source.'includes/functions.php',$name);}}
 if(PHP_SAPI!=='cli'||getenv('PHPBB_RESET_REQUEST_NATIVE')!=='1'){echo "Native reset request checks require an explicitly enabled disposable database.\n";return;}
 require $ats_source.'db/mysqli.php';
@@ -41,7 +42,7 @@ function rr_reset(){
  foreach(array('request-session'=>-1,'target-session'=>2,'unrelated'=>7) as $sid=>$id){rr_insert('fixture_sessions',array('session_id'=>$sid,'session_user_id'=>$id,'session_logged_in'=>$id>0?1:0));}
  rr_insert('fixture_sessions_keys',array('user_id'=>2,'key_id'=>md5('existing-login')));foreach(array('pwreset_time'=>20,'pw_reset_feature'=>1) as $name=>$value){rr_insert('fixture_ctracker_config',array('ct_config_name'=>$name,'ct_config_value'=>$value));}rr_sql('COMMIT');
  $userdata=array('user_id'=>-1,'session_id'=>'request-session','session_logged_in'=>false);$board_config=array('smtp_delivery'=>false,'board_email'=>'forum@example.invalid','sitename'=>'Fixture');
- $_SERVER['REQUEST_METHOD']='POST';$_POST=array('submit'=>1,'sid'=>'request-session','username'=>'Grüße-2','email'=>'member2@example.invalid');
+ $_SERVER['REQUEST_METHOD']='POST';profile_fixture_request(array('submit'=>1,'sid'=>'request-session','username'=>'Grüße-2','email'=>'member2@example.invalid'));
 }
 function rr_run(){global $db,$userdata,$board_config,$phpEx,$phpbb_root_path,$lang;$phpEx='php';$phpbb_root_path=$GLOBALS['ats_source'];$server_url='https://fixture.invalid/profile.php';$template=new RrTemplate();try{eval($GLOBALS['rr_body']);}catch(AttachSettingsExit $e){return $e->getMessage();}throw new RuntimeException('Request controller must render a message');}
 function rr_success($out){return strpos($out,$GLOBALS['lang']['Password_reset_requested'])===0;}
@@ -53,6 +54,15 @@ try{
  rr_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;rr_reset();$before=rr_snap();$response=rr_run();$after=rr_snap();$boundaries=array_values(array_filter($rr_queries,'rr_boundary'));
  $row=rr_rows('SELECT * FROM fixture_users WHERE user_id=2')[0];ats_check(rr_success($response)&&phpbb_reset_binding_valid($row)&&count($rr_mails)===1&&strpos($rr_mails[0][1]['U_ACTIVATE'],'act_key='.$row['user_actkey'])!==false&&$rr_mails[0][0]===$row['user_email'],'New bound token delivered to current account');
  ats_check($before['sessions']===$after['sessions']&&$before['sessions_keys']===$after['sessions_keys'],'Request never alters credentials/logins');rr_run();ats_check(count($rr_mails)===1&&rr_snap()===$after,'Concurrent/repeated cooldown does not replace token or notify again');
+ foreach(array(str_repeat('ä',25),str_repeat('😀',25),'A&B',"O'Reilly","A\\'B",str_repeat("'",25)) as $raw){
+  rr_reset();$key=phpbb_username_key($raw,ENT_COMPAT);rr_sql("UPDATE fixture_users SET username='".$peer->sql_escape($key)."' WHERE user_id=2");
+  profile_fixture_request(array('submit'=>1,'sid'=>'request-session','username'=>$raw,'email'=>'member2@example.invalid'));
+  ats_check(rr_success(rr_run())&&count($rr_mails)===1&&$rr_mails[0][1]['USERNAME']===$raw&&phpbb_reset_binding_valid(rr_rows('SELECT * FROM fixture_users WHERE user_id=2')[0]),'Actual adapted reset resolves full/historical identity and mails its full display name');$cases++;
+ }
+ rr_reset();rr_sql("UPDATE fixture_users SET username='".$peer->sql_escape(phpbb_username_key("O'Reilly",ENT_COMPAT))."' WHERE user_id=2");
+ rr_insert('fixture_users',array('user_id'=>3,'username'=>phpbb_username_key("O'Reilly"),'user_email'=>'member3@example.invalid','user_active'=>1));
+ profile_fixture_request(array('submit'=>1,'sid'=>'request-session','username'=>"O'Reilly",'email'=>'member2@example.invalid'));$before=rr_snap();
+ ats_check(rr_run()===$response&&!$rr_mails&&rr_snap()===$before,'Email does not turn an ambiguous name into an account alias');$cases++;
  foreach(array('update','commit','ack') as $failure){rr_reset();$before=rr_snap();if($failure==='update'){$rr_fail=1;}else{$rr_commit=$failure==='ack'?'ack':'fail';}$out=rr_run();ats_check(!rr_success($out)&&!$rr_mails&&($failure==='ack'?phpbb_reset_binding_valid(rr_rows('SELECT * FROM fixture_users WHERE user_id=2')[0]):rr_snap()===$before),'Failure has whole token outcome without mail');$cases++;}
  foreach(array('email','password','inactive','sid','cooldown','setting') as $kind){for($nth=1;$nth<=count($boundaries);$nth++){
   rr_reset();$change=$kind==='cooldown'?rr_bound_token(str_repeat('b',32)):($kind==='email'?"UPDATE fixture_users SET user_email='other@example.invalid' WHERE user_id=2":($kind==='password'?"UPDATE fixture_users SET user_password='after' WHERE user_id=2":($kind==='inactive'?'UPDATE fixture_users SET user_active=0 WHERE user_id=2':($kind==='sid'?"DELETE FROM fixture_sessions WHERE session_id='request-session'":"UPDATE fixture_ctracker_config SET ct_config_value='60' WHERE ct_config_name='pwreset_time'"))));$seen=0;$reached=$blocked=false;$revoked=null;

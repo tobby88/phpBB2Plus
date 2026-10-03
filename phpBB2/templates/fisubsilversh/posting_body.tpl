@@ -32,7 +32,7 @@ var L_MORE_MATCHES = '{L_MORE_MATCHES}';
 <!-- BEGIN switch_username_select -->
 <tr>
 <td align="right" class="row1"><span class="explaintitle">{L_USERNAME}:</span></td>
-<td class="row2"><input type="text" class="post" tabindex="1" name="username" size="25" maxlength="25" value="{USERNAME}" onblur="AJAXCheckPostUsername(this.value);" /> 
+<td class="row2"><input type="text" class="post" tabindex="1" name="username" size="25" maxlength="50" value="{USERNAME}" onblur="AJAXCheckPostUsername(this.value);" />
 </td>
 </tr>
 <tr id="post_username_error_tbl" style="display:none;">
@@ -43,7 +43,7 @@ var L_MORE_MATCHES = '{L_MORE_MATCHES}';
 <!-- BEGIN switch_privmsg -->
 <tr> 
 <td align="right" class="row1"><span class="explaintitle">{L_USERNAME}:</span></td>
-<td class="row2"> <input type="text"  class="post" name="username" maxlength="25" size="25" tabindex="1" value="{USERNAME}" onkeyup="AJAXCheckPMUsername(this.value);" /><span id="pm_username_select">&nbsp;</span> 
+<td class="row2"> <input type="text"  class="post" name="username" maxlength="50" size="25" tabindex="1" value="{USERNAME}" onkeyup="AJAXCheckPMUsername(this.value);" /><span id="pm_username_select">&nbsp;</span>
 &nbsp; <input type="submit" name="usersubmit" value="{L_FIND_USERNAME}" class="button" onclick="window.open('{U_SEARCH_USER}', '_phpbbsearch', 'HEIGHT=250,resizable=yes,WIDTH=400');return false;" /> 
 </td>
 </tr>

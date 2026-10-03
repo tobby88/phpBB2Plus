@@ -59,7 +59,7 @@ class PhpbbAdminRegistrationScope extends PhpbbAclDatabase
 			// legacy profile validators exempt the current user's name.
 			if (phpbb_acl_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . " WHERE username='" . $this->sql_escape($username) . "'")) { phpbb_acl_error('Username_taken'); }
 			if (phpbb_acl_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . " WHERE user_email='" . $this->sql_escape($email) . "'")) { phpbb_acl_error('Email_taken'); }
-			foreach (array(validate_username($username, false), validate_email($email, false)) as $checked)
+			foreach (array(validate_username($username, false, 0, true), validate_email($email, false)) as $checked)
 			{ if ($checked['error']) { throw new PhpbbAclException($checked['error_msg']); } }
 		}
 		catch (Exception $e) { $this->release(); throw $e; }

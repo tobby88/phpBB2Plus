@@ -15,7 +15,7 @@
 <tr> 
 <td class="row1" width="38%">{L_USERNAME}: *</td>
 <td class="row2"> 
-<input type="text" name="username" size="35" maxlength="40" value="{USERNAME}" class="post" />
+<input type="text" name="username" size="35" maxlength="50" value="{USERNAME}" class="post" />
 </td>
 </tr>
 <tr> 

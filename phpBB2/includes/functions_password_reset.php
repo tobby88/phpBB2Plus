@@ -17,8 +17,9 @@ function phpbb_password_reset_request($database, $username, $email, $sid)
 		$settings = array();
 		foreach ($db->rows("SELECT ct_config_name,ct_config_value FROM " . CTRACKER_CONFIG . " WHERE ct_config_name IN ('pwreset_time','pw_reset_feature') LOCK IN SHARE MODE") as $setting) { $settings[$setting['ct_config_name']] = $setting['ct_config_value']; }
 		if (count($settings) !== 2 || !preg_match('/^[0-9]{1,3}$/D', $settings['pwreset_time']) || (int)$settings['pwreset_time'] < 1 || (int)$settings['pwreset_time'] > 180 || !in_array($settings['pw_reset_feature'], array('0','1'), true)) { phpbb_activation_error('Activation_storage_upgrade'); }
-		$rows = $db->rows('SELECT user_id,username,user_email,user_password,user_active,user_level,user_passwd_change,ct_last_pw_change,user_newpasswd,user_lang,user_actkey,ct_last_pw_reset FROM ' . USERS_TABLE
-			. " WHERE user_email='" . $db->sql_escape($email) . "' AND username='" . $db->sql_escape($username) . "' FOR UPDATE");
+		$resolved = phpbb_username_lookup($db, $username, array('user_email','user_password','user_active','user_level','user_passwd_change','ct_last_pw_change','user_newpasswd','user_lang','user_actkey','ct_last_pw_reset'), 'FOR UPDATE');
+		$rows = $resolved ? array($resolved) : array();
+		if ($resolved && !$db->rows('SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$resolved['user_id'] . " AND user_email='" . $db->sql_escape($email) . "' FOR UPDATE")) { $rows = array(); }
 		// Keep the public response identical for unknown/inactive/throttled or
 		// ambiguous legacy accounts. Preserve the forum's lookup collation.
 		if (count($rows) !== 1 || (int)$rows[0]['user_id'] <= 0 || (int)$rows[0]['user_active'] !== 1) { return null; }

@@ -124,6 +124,15 @@ already migrated columns. Do not combine this mode with `--storage-only`.
 
 ## InnoDB storage migration
 
+Account names are validated as complete UTF-8 identities, not clipped byte
+strings. New names must fit the existing 25-character stored column, including
+HTML entities. Login, reset and recipient lookups support the actual historical
+HTML quote variants; if multiple accounts match, they refuse to choose one.
+There are no guessed slash, raw-HTML or shortened-name aliases. An unchanged
+profile save preserves its trusted stored name. No automatic account rename or
+schema migration accompanies this boundary correction. Password representation
+and verification are unchanged.
+
 Username-restriction administration uses the same transactional current-ACP
 guard. It preserves raw UTF-8 patterns up to 25 characters and the `*` wildcard,
 checks current accounts, group names and existing restriction/censor rules,

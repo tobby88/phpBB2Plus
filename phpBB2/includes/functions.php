@@ -583,11 +583,7 @@ function get_db_stat($mode)
 // added at phpBB 2.0.11 to properly format the username
 function phpbb_clean_username($username)
 {
-	$username = substr(htmlspecialchars(str_replace("\'", "'", trim($username))), 0, 25);
-	$username = phpbb_rtrim($username, "\\");
-	$username = str_replace("'", "\'", $username);
-
-	return $username;
+	return phpbb_username_key($username);
 }
 
 /**
@@ -782,19 +778,16 @@ function get_userdata($user, $force_str = false)
 
 	if (!is_numeric($user) || $force_str)
 	{
-		$user = phpbb_clean_username($user);
+		$row = phpbb_username_lookup($db, (string)$user);
+		if ($row === false) { message_die(GENERAL_ERROR, 'Failed obtaining user data'); }
+		return $row ? $row : false;
 	}
 	else
 	{
 		$user = intval($user);
 	}
 
-	$sql = "SELECT *
-		FROM " . USERS_TABLE . "
-		WHERE ";
-	// Match login's legacy identity representation, but let the connection
-	// quote SQL literals. A hand-built A\B literal can select AB instead.
-	$sql .= ( ( is_integer($user) ) ? "user_id = $user" : "username = '" . $db->sql_escape(str_replace("\\'", "'", $user)) . "'" ) . " AND user_id <> " . ANONYMOUS;
+	$sql = 'SELECT * FROM ' . USERS_TABLE . ' WHERE user_id = ' . $user . ' AND user_id <> ' . ANONYMOUS;
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(GENERAL_ERROR, 'Tried obtaining data for a non-existent user', '', __LINE__, __FILE__, $sql);
