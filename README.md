@@ -129,6 +129,10 @@ Current root or exact delegated ranks permission is held through commit; stale
 sessions/grants and nontransactional storage refuse the change. An unconfirmed
 save must be inspected before retrying, particularly a new rank insert: a lost
 acknowledgement can leave a committed rank even though no success was displayed.
+ACP profile saves validate special-rank selections before preparing account,
+quota or avatar changes. The selected rank stays locked through commit, so a
+stale form cannot assign a deleted or newly regular rank. Reload the profile to
+select a current special rank or no special rank when validation refuses it.
 
 ACP database backups include utf8mb4 and matching SQL escape settings instead
 of relying on the import tool's connection defaults. They preserve special

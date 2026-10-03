@@ -60,10 +60,10 @@ function ai_suite()
    $cases++;
   }
  }
- foreach(array('config','disallow','words','profile_fields','themes') as $table){ap_reset();ap_sql('ALTER TABLE fixture_'.$table.' ENGINE=MyISAM');$before=ap_snap();ats_check(ap_run('edit')==='error'&&ap_snap()===$before,'Reject nontransactional validation participant '.$table);ap_sql('ALTER TABLE fixture_'.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
+ foreach(array('config','disallow','words','profile_fields','themes','ranks') as $table){ap_reset();ap_sql('ALTER TABLE fixture_'.$table.' ENGINE=MyISAM');$before=ap_snap();ats_check(ap_run('edit')==='error'&&ap_snap()===$before,'Reject nontransactional validation participant '.$table);ap_sql('ALTER TABLE fixture_'.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
  ap_reset();$scope=new PhpbbAdminProfileScope($db,2,false,$_POST);$db=$scope;$denied=false;try{$scope->finish();}catch(PhpbbAclException $e){$denied=true;}finally{$scope->release();}ats_check($denied,'Cannot commit without validating final identity');$cases++;
  ats_load_function(dirname(rtrim($ats_source,'/')).'/update/innodb_migration.php','plus_storage_identifier');ats_load_function(dirname(rtrim($ats_source,'/')).'/update/innodb_migration.php','plus_storage_tables');$covered=plus_storage_tables($schema,'fixture_');
- foreach(array('config','disallow','words','profile_fields','themes') as $table){ats_check(in_array('fixture_'.$table,$covered,true),'Existing updater covers validation participant');}
+ foreach(array('config','disallow','words','profile_fields','themes','ranks') as $table){ats_check(in_array('fixture_'.$table,$covered,true),'Existing updater covers validation participant');}
  echo 'Native ACP identity: '.$cases.' cases, '.$serialized." serialized changes; collisions, rules, policy, defaults and metadata passed.\n";
 }
 $ai_tail= <<<'PHP'

@@ -708,6 +708,7 @@ $lang['Rank_added'] = 'The rank was successfully added';
 $lang['Rank_removed'] = 'The rank was successfully deleted';
 $lang['No_update_ranks'] = 'The rank was successfully deleted. However, user accounts using this rank were not updated.  You will need to manually reset the rank on these accounts';
 $lang['Ranks_storage_failed'] = 'The rank change was not confirmed. Check the current rank and user assignments before retrying. Older table formats require the storage migration before changes can be made.';
+$lang['Admin_profile_rank_invalid'] = 'The selected special rank is invalid, has been deleted or is no longer a special rank. Reload the profile and select a current special rank or no special rank.';
 
 $lang['Click_return_rankadmin'] = 'Click %sHere%s to return to Rank Administration';
 

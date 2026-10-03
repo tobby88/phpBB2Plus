@@ -355,7 +355,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		$user_status = admin_user_post_int('user_status');
 		$user_ycard = admin_user_post_int('user_ycard');
 		$user_allowpm = admin_user_post_int('user_allowpm');
-		$user_rank = admin_user_post_int('user_rank');
+		$user_rank = $admin_profile_scope !== null ? $admin_profile_scope->rank : admin_user_post_int('user_rank');
 		$user_allowavatar = admin_user_post_int('user_allowavatar');
 
 		if( isset( $_POST['avatargallery'] ) || isset( $_POST['submitavatar'] ) || isset( $_POST['cancelavatar'] ) )

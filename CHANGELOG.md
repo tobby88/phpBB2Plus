@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate ACP special-rank assignments before account placeholders, quotas or
+  avatar preparation. Only no rank or a currently existing special rank may be
+  saved; malformed, deleted, regular and out-of-range selections refuse the whole
+  profile update. Hold the selected rank and its InnoDB definition through commit
+  so concurrent removal/demotion cannot leave a stale assignment. The existing
+  storage updater already covers the rank table; no new migration is required.
 - Make rank edits/deletions and affected user-rank resets one guarded InnoDB
   transaction. Hold current root/exact delegated ranks permission through commit;
   refuse revoked sessions/grants, legacy storage and missing/out-of-range ranks.

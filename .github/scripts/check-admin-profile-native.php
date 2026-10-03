@@ -5,7 +5,7 @@ putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-sett
 require_once __DIR__.'/profile-request-fixture.php';
 foreach(array('USER'=>0,'MOD'=>2,'USER_AVATAR_NONE'=>0,'USER_AVATAR_UPLOAD'=>1,'POST_USERS_URL'=>'u','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,
  'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','BANLIST_TABLE'=>'fixture_banlist',
- 'CONFIG_TABLE'=>'fixture_config','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','PROFILE_FIELD_ACTIONS_TABLE'=>'fixture_profile_field_actions','THEMES_TABLE'=>'fixture_themes',
+ 'CONFIG_TABLE'=>'fixture_config','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','PROFILE_FIELD_ACTIONS_TABLE'=>'fixture_profile_field_actions','THEMES_TABLE'=>'fixture_themes','RANKS_TABLE'=>'fixture_ranks',
  'iNA_GAMES_COMMENT'=>'fixture_ina_comment','iNA_AT_SCORES'=>'fixture_ina_at_scores','iNA_HIGHSCORES'=>'fixture_ina_highscore','SHOUTBOX_TABLE'=>'fixture_shout') as $k=>$v){if(!defined($k)){define($k,$v);}}
 require $ats_source.'includes/functions_admin_profile_storage.php';
 require $ats_source.'includes/functions_validate.php';
@@ -36,7 +36,7 @@ class ApConnection {
 class ApDatabase extends sql_db {function sql_dedicated_connection(){return new ApConnection(parent::sql_dedicated_connection());}}
 class ApTemplate {var $vars=array();function assign_vars($vars){$this->vars=array_merge($this->vars,$vars);}}
 $ap_main=new ApDatabase($host,'root',$password,$fixture,false);$peer=new sql_db($host,'root',$password,$fixture,false);$db=$ap_main;
-$ap_tables=array('users','sessions','sessions_keys','jr_admin_users','groups','user_group','banlist','attach_quota','quota_limits','album','album_comment','ina_comment','ina_at_scores','ina_highscore','shout','config','disallow','words','profile_fields','profile_field_actions','themes');
+$ap_tables=array('users','sessions','sessions_keys','jr_admin_users','groups','user_group','banlist','attach_quota','quota_limits','album','album_comment','ina_comment','ina_at_scores','ina_highscore','shout','config','disallow','words','profile_fields','profile_field_actions','themes','ranks');
 $ap_hook=null;$ap_write=$ap_fail=0;$ap_commit='';$ap_queries=$ap_cookies=array();$ap_after_commit=null;
 $ap_files=sys_get_temp_dir().'/phpbb-profile-'.bin2hex(function_exists('random_bytes')?random_bytes(8):openssl_random_pseudo_bytes(8));ats_check(mkdir($ap_files),'Owned avatar fixture directory');
 ats_check(mkdir($ap_files.'/cache'),'Owned name-cache fixture directory');
@@ -105,6 +105,7 @@ function ap_run($scenario){
   $fb=$ig=$pt=$twr=$skp=$tg=$li=$tt=$dc=$signal=$threema='';
   $user_absence_mode=$user_absence=$viewemail=$attachsig=$setbm=$allowsmilies=$allowhtml=$allowbbcode=$allowviewonline=$notifyreply=$notifypm=$games_block_pm=$gender=0;
   $avatar_sql=$force_new_passwd_sql='';$birthday=999999;$next_birthday_greeting=0;$user_status=1;$user_ycard=$user_rank=$user_allowavatar=$user_allowpm=$popuppm=0;
+  ats_check(preg_match('/^\t\t\$user_rank = [^\r\n]+;/m',$GLOBALS['ap_controller'],$rank_assignment)===1,'Actual validated rank projection');eval($rank_assignment[0]);
   if(isset($GLOBALS['ap_text_input'])){
    $raw=$GLOBALS['ap_text_input'];profile_fixture_request($_POST+array('location'=>$raw,'occupation'=>$raw,'interests'=>$raw,'fb'=>$raw,'user_absence_text'=>$raw));
    foreach(array('location','occupation','interests','fb','user_absence_text') as $key){

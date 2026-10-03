@@ -37,6 +37,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 	var $rename_cache_needed = false;
 	var $original_identity = null;
 	var $identity_validated = false;
+	var $rank = 0;
 	function __construct($database, $id, $creating, $request)
 	{
 		global $userdata, $table_prefix, $board_config;
@@ -48,7 +49,7 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 		{
 			$tables = array(USERS_TABLE, SESSIONS_TABLE, SESSIONS_KEYS_TABLE, BANLIST_TABLE, GROUPS_TABLE, USER_GROUP_TABLE,
 				QUOTA_TABLE, QUOTA_LIMITS_TABLE, $table_prefix . 'album', $table_prefix . 'album_comment', iNA_GAMES_COMMENT,
-				iNA_AT_SCORES, SHOUTBOX_TABLE, iNA_HIGHSCORES, CONFIG_TABLE, DISALLOW_TABLE, WORDS_TABLE, PROFILE_FIELDS_TABLE, THEMES_TABLE);
+				iNA_AT_SCORES, SHOUTBOX_TABLE, iNA_HIGHSCORES, CONFIG_TABLE, DISALLOW_TABLE, WORDS_TABLE, PROFILE_FIELDS_TABLE, THEMES_TABLE, RANKS_TABLE);
 			if ($this->creating) { $tables[] = PROFILE_FIELD_ACTIONS_TABLE; }
 			$this->begin($tables, true); $actor = $this->actor(); $sid = $this->sql_escape($userdata['session_id']);
 			// Authority is held throughout this request's filesystem preparation
@@ -58,6 +59,10 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 				'SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . (int)$actor['user_id']) as $sql)
 			{ $r = $this->sql_query($sql . ' LOCK IN SHARE MODE'); $this->sql_freeresult($r); }
 			$actor = $this->actor();
+			// Validate before account placeholders, quotas or avatar preparation.
+			// This locking read sees current rank state even under RR and holds
+			// the selected definition until the complete profile commits.
+			$this->rank = $this->validate_rank(array_key_exists('user_rank', $request) ? $request['user_rank'] : '0');
 			$keys = self::policy_keys();
 			$policy = phpbb_acl_rows($this, 'SELECT config_name,config_value FROM ' . CONFIG_TABLE . " WHERE config_name IN ('" . implode("','", $keys) . "')");
 			if (count($policy) !== count($keys)) { phpbb_acl_error('Registration_storage_upgrade'); }
@@ -145,6 +150,19 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 		}
 		if (!phpbb_acl_rows($this, 'SELECT themes_id FROM ' . THEMES_TABLE . ' WHERE themes_id=' . (int)$style)) { phpbb_acl_error('Acl_selection_changed'); }
 		$this->identity_validated = true;
+	}
+	function validate_rank($value)
+	{
+		if (!$this->transactional || !(is_string($value) || is_int($value))
+			|| !preg_match('/^[0-9]{1,5}$/D', (string)$value) || (int)$value > 65535)
+		{ phpbb_acl_error('Admin_profile_rank_invalid'); }
+		$id = (int)$value;
+		if ($id)
+		{
+			$rows = phpbb_acl_rows($this, 'SELECT rank_id,rank_special FROM ' . RANKS_TABLE . ' WHERE rank_id=' . $id . ' LOCK IN SHARE MODE');
+			if (count($rows) !== 1 || (int)$rows[0]['rank_special'] !== 1) { phpbb_acl_error('Admin_profile_rank_invalid'); }
+		}
+		return $id;
 	}
 	function assign_quotas($request)
 	{
