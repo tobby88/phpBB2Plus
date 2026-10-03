@@ -100,6 +100,7 @@ $integrations = array(
 	'admin/admin_acronyms.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "phpbb_content_admin_change(\$db, 'acronyms', \$request)"),
 	'admin/admin_words.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "phpbb_content_admin_change(\$db, 'words', \$request)"),
 	'admin/admin_disallow.php' => array('phpbb_admin_require_post_session();', "phpbb_content_admin_change(\$db, 'disallow', \$request)", "\$lang['No_disallowed']"),
+	'ctracker/admin/acp_module_miserableuser.php' => array('phpbb_admin_require_post_session();', "phpbb_ctracker_user_flag_change(\$db, 'mark'", "phpbb_ctracker_user_flag_change(\$db, 'unmark'", 'phpbb_admin_html($error->getMessage())'),
 	'admin/admin_ranks.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_ranks_change($db, $request)'),
 	'admin/admin_smilies.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$db->sql_escape($smile_code)'),
 	'admin/admin_profile_fields.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'phpbb_profile_definition_form_values($_POST)', 'new PhpbbProfileDefinitionWriter', '$writer->create(', '$writer->edit(', 'definition_revision', 'definition_operation'),

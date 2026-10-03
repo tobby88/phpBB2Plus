@@ -151,6 +151,12 @@ quota or avatar changes. The selected rank stays locked through commit, so a
 stale form cannot assign a deleted or newly regular rank. Reload the profile to
 select a current special rank or no special rank when validation refuses it.
 
+CrackerTracker member marking/removal holds current exact module permission and
+the selected account through commit. A concurrent target promotion, rename or
+deletion cannot publish a stale mark. Existing flags on protected roles can
+still be cleared. Unconfirmed changes require checking the current list before
+retrying; existing storage migration covers all participating tables.
+
 ACP database backups include utf8mb4 and matching SQL escape settings instead
 of relying on the import tool's connection defaults. They preserve special
 zero auto-increment identities and restore the importing session's previous

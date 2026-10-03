@@ -27,13 +27,12 @@ $template->set_filenames(array(
 );
 
 $mode = phpbb_admin_post_string('mode');
+require_once dirname(dirname(__DIR__)) . '/includes/functions_ctracker_users.php';
 
 
 if ( isset($HTTP_POST_VARS['submit']) )
 {
 	phpbb_admin_require_post_session();
-	$user_id 	= 0;
-	$user_level = 0;
 	$this_userdata = get_userdata(phpbb_admin_post_string('username'), true);
 	
 	if( !$this_userdata )
@@ -42,47 +41,36 @@ if ( isset($HTTP_POST_VARS['submit']) )
 	}
 	
 	
-	if ( $this_userdata['user_level'] == ADMIN || $this_userdata['user_level'] == MOD )
+	try
 	{
-		// Admin or Mods can not be defined as miserable user
-		$template->assign_block_vars('infobox', array(
-				'COLOR'				=> 'FFDFDF',
-				'L_MESSAGE_TEXT'	=> $lang['ctracker_mu_error_admin'])
-		);
-	}
-	else
-	{
-		// Mark user as miserable user
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_miserable_user = 1 WHERE user_id = ' . intval($this_userdata['user_id']);
-				
-		// Execute SQL Command in database
-		if ( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
-		}		
-		
+		phpbb_ctracker_user_flag_change($db, 'mark', array('userid'=>$this_userdata['user_id'],
+			'username'=>$this_userdata['username'], 'sid'=>isset($_POST['sid']) ? $_POST['sid'] : null));
 		$template->assign_block_vars('infobox', array(
 				'COLOR'				=> 'DBFFCF',
 				'L_MESSAGE_TEXT'	=> $lang['ctracker_mu_success'])
 		);
 	}
+	catch (PhpbbAclException $error)
+	{
+		$template->assign_block_vars('infobox', array('COLOR'=>'FFDFDF', 'L_MESSAGE_TEXT'=>phpbb_admin_html($error->getMessage())));
+	}
 }
 else if ( $mode == 'unmis' )
 {
 	phpbb_admin_require_post_session();
-	$userid = intval(phpbb_admin_post_string('userid', '0'));
-	$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_miserable_user = 0 WHERE user_id = ' . $userid;
-				
-	// Execute SQL Command in database
-	if ( !$result = $db->sql_query($sql) )
+	try
 	{
-		message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+		phpbb_ctracker_user_flag_change($db, 'unmark', array('userid'=>isset($_POST['userid']) ? $_POST['userid'] : null,
+			'sid'=>isset($_POST['sid']) ? $_POST['sid'] : null));
+		$template->assign_block_vars('infobox', array(
+				'COLOR'				=> 'DBFFCF',
+				'L_MESSAGE_TEXT'	=> $lang['ctracker_mu_deleted'])
+		);
 	}
-	
-	$template->assign_block_vars('infobox', array(
-			'COLOR'				=> 'DBFFCF',
-			'L_MESSAGE_TEXT'	=> $lang['ctracker_mu_deleted'])
-	);
+	catch (PhpbbAclException $error)
+	{
+		$template->assign_block_vars('infobox', array('COLOR'=>'FFDFDF', 'L_MESSAGE_TEXT'=>phpbb_admin_html($error->getMessage())));
+	}
 }
 
 
@@ -109,6 +97,7 @@ while ( $row = $db->sql_fetchrow($result) )
 			'L_USERNAME'	=> phpbb_admin_html($row['username']))
 	);
 }
+$db->sql_freeresult($result);
 
 // No entry in List?
 ($entry_def)? null: $template->assign_block_vars('no_entry', array());

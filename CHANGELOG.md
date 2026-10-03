@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Guard CrackerTracker member marking/removal with current exact module
+  authority, current target identity/role and a dedicated canonical InnoDB
+  transaction. Concurrent promotion/rename/deletion or revoked ACP rights cannot
+  publish a stale mark; missing/malformed IDs and failed/uncertain writes do not
+  announce success. Existing flags on protected roles can still be cleared.
+  Preserve caller transactions and release readers. Existing storage migration
+  already covers all participating tables; no new schema is required.
 - Quote shared account-name lookups through the actual database connection,
   matching the existing login identity representation in ordinary and
   NO_BACKSLASH_ESCAPES modes. A backslash-containing name must not resolve to
