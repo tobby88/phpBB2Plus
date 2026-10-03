@@ -124,6 +124,16 @@ already migrated columns. Do not combine this mode with `--storage-only`.
 
 ## InnoDB storage migration
 
+ACP word-censor and acronym changes validate current root or the exact delegated
+module permission, hold it through commit and use canonical InnoDB storage.
+Text retains literal quotes, backslashes and entities; limits count UTF-8
+characters rather than bytes. Word rules are loaded freshly once per request,
+not from the historical shared file cache, so a concurrent rebuild cannot
+republish stale rules. Replacements are literal text, not regular-expression
+references. Existing ambiguously escaped database text is not rewritten
+automatically. Inspect an unconfirmed save before retrying an insertion.
+The existing storage updater covers these tables; no new migration is needed.
+
 ACP rank edits and deletions commit together with the affected user-rank resets.
 Current root or exact delegated ranks permission is held through commit; stale
 sessions/grants and nontransactional storage refuse the change. An unconfirmed

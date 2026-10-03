@@ -26,6 +26,7 @@ if( !empty($setmodules) )
 $phpbb_root_path = "./../";
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+require_once dirname(__DIR__) . '/includes/functions_content_admin.php';
 
 if( (isset($_POST['mode']) && is_scalar($_POST['mode'])) || (isset($_GET['mode']) && is_scalar($_GET['mode'])) )
 {
@@ -92,8 +93,8 @@ if( $mode != "" )
 		}
 
 		$template->assign_vars(array(
-			'ACRONYM' => phpbb_admin_html(html_entity_decode((string) $acronym_info['acronym'], ENT_QUOTES, 'UTF-8')),
-			'DESCRIPTION' => phpbb_admin_html(html_entity_decode((string) $acronym_info['description'], ENT_QUOTES, 'UTF-8')),
+			'ACRONYM' => phpbb_admin_html($acronym_info['acronym']),
+			'DESCRIPTION' => phpbb_admin_html($acronym_info['description']),
 
 			'L_ACRONYMS_TITLE' => $lang['Acronyms_title'],
 			'L_ACRONYMS_TEXT' => $lang['Acronyms_explain'],
@@ -113,55 +114,9 @@ if( $mode != "" )
 	else if( $mode == "save" )
 	{
 		phpbb_admin_require_post_session();
-		$acronym_id = (isset($_POST['id']) && is_scalar($_POST['id'])) ? intval($_POST['id']) : 0;
-		$acronym = ( isset($_POST['acronym']) && is_scalar($_POST['acronym']) ) ? trim((string) $_POST['acronym']) : "";
-		$description = ( isset($_POST['description']) && is_scalar($_POST['description']) ) ? trim((string) $_POST['description']) : "";
-
-		if($acronym == "" || $description == "" || strlen($acronym) > 80 || strlen($description) > 255)
-		{
-			message_die(GENERAL_MESSAGE, $lang['Must_enter_acronym']);
-		}
-		$acronym_sql = $db->sql_escape($acronym);
-		$description_sql = $db->sql_escape($description);
-
-		if( $acronym_id )
-		{
-			$sql = "UPDATE " . ACRONYMS_TABLE . "
-				SET acronym = '" . $acronym_sql . "', description = '" . $description_sql . "'
-				WHERE acronym_id = $acronym_id";
-			$message = $lang['Acronym_updated'];
-		}
-		else
-		{
-			$sql = 'SELECT acronym FROM ' . ACRONYMS_TABLE . " WHERE acronym = '" . $acronym_sql . "'";
-			
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, "Could not insert data into words table", $lang['Error'], __LINE__, __FILE__, $sql);
-			}
-			
-			if( $db->sql_fetchrow( $result ) )
-			{
-				$message = 'Acronym already in Database.';
-				$message .= "<br /><br />" . sprintf($lang['Click_return_acronymadmin'], "<a href=\"" . append_sid("admin_acronyms.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-				
-				$db->sql_freeresult( $result );
-				
-				message_die(GENERAL_MESSAGE, $message );
-			}
-			
-			$db->sql_freeresult( $result );
-			
-			$sql = "INSERT INTO " . ACRONYMS_TABLE . " (acronym, description)
-				VALUES ('" . $acronym_sql . "', '" . $description_sql . "')";
-			
-			$message = $lang['Acronym_added'];
-		}
-
-		if(!$result = $db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, "Could not insert data into words table", $lang['Error'], __LINE__, __FILE__, $sql);
-		}
+		$request = $_POST; $request['mode'] = 'save';
+		try { $message = $lang[phpbb_content_admin_change($db, 'acronyms', $request)]; }
+		catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		$message .= "<br /><br />" . sprintf($lang['Click_return_acronymadmin'], "<a href=\"" . append_sid("admin_acronyms.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
@@ -181,15 +136,10 @@ if( $mode != "" )
 		if( $acronym_id && $confirmed )
 		{
 			phpbb_admin_require_post_session();
-			$sql = "DELETE FROM " . ACRONYMS_TABLE . "
-				WHERE acronym_id = $acronym_id";
-
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, "Could not remove data from words table", $lang['Error'], __LINE__, __FILE__, $sql);
-			}
-
-			$message = $lang['Acronym_removed'] . "<br /><br />" . sprintf($lang['Click_return_acronymadmin'], "<a href=\"" . append_sid("admin_acronyms.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
+			$request = $_POST; $request['mode'] = 'delete';
+			try { $message = $lang[phpbb_content_admin_change($db, 'acronyms', $request)]; }
+			catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
+			$message .= "<br /><br />" . sprintf($lang['Click_return_acronymadmin'], "<a href=\"" . append_sid("admin_acronyms.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 
 			message_die(GENERAL_MESSAGE, $message);
 		}

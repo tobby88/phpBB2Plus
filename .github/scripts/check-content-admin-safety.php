@@ -9,6 +9,12 @@ $files = array(
 );
 $bbcode = (string) file_get_contents($root . '/phpBB2/includes/bbcode.php');
 $errors = array();
+require_once $root . '/update/innodb_migration.php';
+$covered = plus_storage_tables(file_get_contents($root . '/phpBB2/install/schemas/mysql_schema.sql'), 'fixture_');
+foreach (array('words','acronyms','users','sessions','jr_admin_users') as $suffix)
+{
+	if (!in_array('fixture_' . $suffix, $covered, true)) { $errors[] = 'Missing storage-updater participant: ' . $suffix; }
+}
 
 foreach ($files as $name => $body)
 {
@@ -29,8 +35,8 @@ foreach ($files as $name => $body)
 }
 
 $required = array(
-	'acronyms' => array("in_array(\$mode, array('', 'add', 'edit', 'save', 'delete'), true)", '$db->sql_escape($acronym)', '$confirmed && isset($_POST[\'id\'])'),
-	'words' => array("in_array(\$mode, array('add', 'edit', 'save', 'delete'), true)", '$db->sql_escape($word)', '$confirm && isset($_POST[\'id\'])'),
+	'acronyms' => array("in_array(\$mode, array('', 'add', 'edit', 'save', 'delete'), true)", "phpbb_content_admin_change(\$db, 'acronyms', \$request)", '$confirmed && isset($_POST[\'id\'])'),
+	'words' => array("in_array(\$mode, array('add', 'edit', 'save', 'delete'), true)", "phpbb_content_admin_change(\$db, 'words', \$request)", '$confirm && isset($_POST[\'id\'])'),
 	'ranks' => array("in_array(\$mode, array('add', 'edit', 'save', 'delete'), true)", 'phpbb_ranks_change($db, $request)', '$confirm && isset($_POST[\'id\'])'),
 	'smilies' => array("in_array(\$mode, array('delete', 'edit', 'save', 'savenew'), true)", '$confirm ? admin_smiley_request_int($_POST, \'id\')', '$db->sql_escape($smile_code)')
 );
@@ -45,7 +51,7 @@ foreach ($required as $name => $markers)
 	}
 }
 
-foreach (array('html_entity_decode((string) $acronyms[$i][\'acronym\']', 'htmlspecialchars($description_text', "str_replace(array('\\\\', '$')") as $marker)
+foreach (array("preg_quote(\$acronym_html, '#')", 'htmlspecialchars($description_text', "return isset(\$repl[\$match[0]]) ? \$repl[\$match[0]] : \$match[0];") as $marker)
 {
 	if (strpos($bbcode, $marker) === false)
 	{

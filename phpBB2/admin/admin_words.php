@@ -43,6 +43,7 @@ $cancel = isset($_POST['cancel']);
 $no_page_header = $cancel;
 
 require('./pagestart.' . $phpEx);
+require_once dirname(__DIR__) . '/includes/functions_content_admin.php';
 if ($cancel)
 {
 	redirect('admin/' . append_sid("admin_words.$phpEx", true));
@@ -140,40 +141,12 @@ if( $mode != "" )
 	}
 	else if( $mode == "save" )
 	{
-		$word_id = (isset($_POST['id']) && is_scalar($_POST['id'])) ? intval($_POST['id']) : 0;
-		$word = ( isset($_POST['word']) && is_scalar($_POST['word']) ) ? trim((string) $_POST['word']) : "";
-		$replacement = ( isset($_POST['replacement']) && is_scalar($_POST['replacement']) ) ? trim((string) $_POST['replacement']) : "";
-
-		if($word == "" || $replacement == "" || strlen($word) > 100 || strlen($replacement) > 100)
-		{
-			message_die(GENERAL_MESSAGE, $lang['Must_enter_word']);
-		}
-
-		if( $word_id )
-		{
-			$sql = "UPDATE " . WORDS_TABLE . " 
-				SET word = '" . $db->sql_escape($word) . "', replacement = '" . $db->sql_escape($replacement) . "'
-				WHERE word_id = $word_id";
-			$message = $lang['Word_updated'];
-		}
-		else
-		{
-			$sql = "INSERT INTO " . WORDS_TABLE . " (word, replacement) 
-				VALUES ('" . $db->sql_escape($word) . "', '" . $db->sql_escape($replacement) . "')";
-			$message = $lang['Word_added'];
-		}
-
-		if(!$result = $db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, "Could not insert data into words table", $lang['Error'], __LINE__, __FILE__, $sql);
-		}
+		phpbb_admin_require_post_session();
+		$request = $_POST; $request['mode'] = 'save';
+		try { $message = $lang[phpbb_content_admin_change($db, 'words', $request)]; }
+		catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 		$message .= "<br /><br />" . sprintf($lang['Click_return_wordadmin'], "<a href=\"" . append_sid("admin_words.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
-		//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- add
-		cache_words();
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
 		message_die(GENERAL_MESSAGE, $message);
 	}
 	else if( $mode == "delete" )
@@ -184,17 +157,10 @@ if( $mode != "" )
 
 		if( $word_id && $confirm )
 		{
-			$sql = "DELETE FROM " . WORDS_TABLE . " 
-				WHERE word_id = $word_id";
-
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, "Could not remove data from words table", $lang['Error'], __LINE__, __FILE__, $sql);
-			}
-			//-- mod : categories hierarchy --------------------------------------------------------------------
-//-- add
-		cache_words();
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
+			phpbb_admin_require_post_session();
+			$request = $_POST; $request['mode'] = 'delete';
+			try { phpbb_content_admin_change($db, 'words', $request); }
+			catch (PhpbbAclException $error) { message_die(GENERAL_MESSAGE, $error->getMessage()); }
 
 			$message = $lang['Word_removed'] . "<br /><br />" . sprintf($lang['Click_return_wordadmin'], "<a href=\"" . append_sid("admin_words.$phpEx") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid("index.$phpEx?pane=right") . "\">", "</a>");
 

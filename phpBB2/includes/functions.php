@@ -1633,7 +1633,6 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 //-- add
 	global $global_orig_word, $global_replacement_word;
 
-	global $phpbb_root_path;
 	if (isset($global_orig_word))
 	{
 		$orig_word			= $global_orig_word;
@@ -1641,43 +1640,9 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 	}
 	else
 	{
-		if ( defined('CACHE_WORDS') )
-		{
-			$word_replacement = phpbb_data_cache_read($phpbb_root_path . 'cache/words.cache');
-			$valid_words = is_array($word_replacement);
-			if ($valid_words)
-			{
-				foreach ($word_replacement as $word => $replacement)
-				{
-					if ((!is_string($word) && !is_int($word)) || !is_string($replacement))
-					{
-						$valid_words = false;
-						break;
-					}
-				}
-			}
-			if (!$valid_words)
-			{
-				$word_replacement = cache_words();
-			}
-		}
-		if ( isset($word_replacement) )
-		{
-			$orig_word = array();
-			$replacement_word = array();
-			foreach ($word_replacement as $word => $replacement)
-			{
-				$orig_word[] = '#\b(' . str_replace('\*', '\w*?', preg_quote(stripslashes($word), '#')) . ')\b#i';
-				$replacement_word[] = $replacement;
-			}
-		}
-		else
-		{
-//-- fin mod : categories hierarchy ----------------------------------------------------------------
-
-	//
-	// Define censored word matches
-	//
+	// Cache only within this request. A concurrent pre-commit cache rebuild
+	// could otherwise republish stale rules after the ACP deletes the file.
+	$orig_word = array(); $replacement_word = array();
 	$sql = "SELECT word, replacement
 		FROM  " . WORDS_TABLE;
 	if( !($result = $db->sql_query($sql)) )
@@ -1689,15 +1654,15 @@ function obtain_word_list(&$orig_word, &$replacement_word)
 	{
 		do
 		{
-			$orig_word[] = '#\b(' . str_replace('\*', '\w*?', preg_quote($row['word'], '#')) . ')\b#i';
-			$replacement_word[] = $row['replacement'];
+			$orig_word[] = '#\b(' . str_replace('\*', '\w*?', preg_quote($row['word'], '#')) . ')\b#iu';
+			// Replacements are literal text, not preg_replace backreferences.
+			$replacement_word[] = str_replace(array('\\', '$'), array('\\\\', '\\$'), $row['replacement']);
 		}
 		while ( $row = $db->sql_fetchrow($result) );
 	}
 	$db->sql_freeresult($result);
 	//-- mod : categories hierarchy --------------------------------------------------------------------
 //-- add
-		}
 		$global_orig_word			= $orig_word;
 		$global_replacement_word	= $replacement_word;
 	}

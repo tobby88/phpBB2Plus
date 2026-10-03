@@ -1607,6 +1607,7 @@ function acronym_pass($message)
 		}
 		
 		$acronyms = $db->sql_fetchrowset($result);
+		$db->sql_freeresult($result);
 
 		if( count($acronyms) )
 		{
@@ -1615,17 +1616,16 @@ function acronym_pass($message)
 
 		for ($i = 0; $i < count($acronyms); $i++)
 		{
-			$acronym_text = html_entity_decode((string) $acronyms[$i]['acronym'], ENT_QUOTES, 'UTF-8');
-			$description_text = html_entity_decode((string) $acronyms[$i]['description'], ENT_QUOTES, 'UTF-8');
+			$acronym_text = (string) $acronyms[$i]['acronym'];
+			$description_text = (string) $acronyms[$i]['description'];
 			if ($acronym_text === '')
 			{
 				continue;
 			}
 			$acronym_html = htmlspecialchars($acronym_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 			$description_html = htmlspecialchars($description_text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-			$orig[] = '#\b(' . preg_quote($acronym_text, "/") . ')\b#';
-			//$orig[] = "/(?<=.\W|\W.|^\W)" . phpbb_preg_quote($acronyms[$i]['acronym'], "/") . "(?=.\W|\W.|\W$)/";
-			$repl[] = str_replace(array('\\', '$'), array('\\\\', '\\$'), '<acronym title="' . $description_html . '">' . $acronym_html . '</acronym>');
+			$orig[] = preg_quote($acronym_html, '#');
+			$repl[$acronym_html] = '<acronym title="' . $description_html . '">' . $acronym_html . '</acronym>';
 		}
 	}
 	
@@ -1643,7 +1643,13 @@ function acronym_pass($message)
 		{
 			if( $seg[0] != '<' && $seg[0] != '[' )
 			{
-				$message .= phpbb_preg_replace_outside_tags($seg, $orig, $repl);
+				// One pass: generated descriptions/markup must never become input
+				// for another dictionary entry. Callback values are literal text.
+				$replaced = @preg_replace_callback('#\b(?:' . implode('|', $orig) . ')\b#u', function ($match) use ($repl)
+				{
+					return isset($repl[$match[0]]) ? $repl[$match[0]] : $match[0];
+				}, $seg);
+				$message .= $replaced === null ? $seg : $replaced;
 			}
 			else
 			{

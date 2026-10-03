@@ -54,6 +54,7 @@ define('SMILIES_TABLE', 'smilies');
 define('ACRONYMS_TABLE', 'acronyms');
 class CodeBlockDictionary
 {
+	public function sql_freeresult($result) { return true; }
 	public function sql_query($sql) { return strpos($sql, SMILIES_TABLE) !== false ? 'smilies' : 'acronyms'; }
 	public function sql_fetchrowset($result)
 	{

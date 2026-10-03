@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Guard word-censor and acronym add/edit/delete operations with current exact
+  ACP authority and one dedicated InnoDB transaction. Refuse revoked roles,
+  sessions/grants, invalid UTF-8, missing IDs and unmigrated storage; preserve
+  literal input once with schema character limits. Do not announce uncertain
+  completion as success. Load word rules once per request instead of trusting
+  a stale shared file rebuild, preserve literal replacement references, and
+  quote acronym regex delimiters and HTML safely. Expand abbreviations in a
+  single pass so generated descriptions cannot be rewritten into nested markup.
+  Do not guess at historical
+  stored escaping. Existing storage migration already includes both tables.
 - Validate ACP special-rank assignments before account placeholders, quotas or
   avatar preparation. Only no rank or a currently existing special rank may be
   saved; malformed, deleted, regular and out-of-range selections refuse the whole
