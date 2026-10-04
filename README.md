@@ -142,6 +142,15 @@ The existing storage updater covers participating tables. Complete the CLI
 database/storage migration before using the new code on an older installation;
 the updater does not require a working forum login.
 
+Enabled CrackerTracker history, retention cleanup and login-IP updates share that
+manual-login transaction. A tracker write failure rolls back the attempt before
+cookies; current effective tracker settings remain locked until publication.
+Defaults for missing/invalid settings follow the tracker loader, without silently
+rewriting those rows during login. The existing updater covers the participating
+tracker tables, history index and IPv6 capacity; no additional schema migration
+is needed. Automatic-login tracking behavior is unchanged. Install complete code
+updates: mixed controller/helper versions may refuse a login until both are present.
+
 Persistent-cookie login uses the same owned publication boundary. Current account,
 key, policy and ban state remain locked through key rotation and session commit.
 Revoked or inactive credentials fall back to a guest session, never to ACP access;

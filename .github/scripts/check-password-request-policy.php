@@ -43,7 +43,7 @@ try
         foreach ($matches as $match) { $calls[] = array($path, $match[0], $match[1]); }
     }
     $login_source=file_get_contents($root.'login.php');
-    request_policy_check(strpos($login_source,'phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password, $password)')!==false,'Controller passes its exact verified bytes to the owned policy worker');
+    request_policy_check(strpos($login_source,'phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password, $password, $ctracker_config)')!==false,'Controller passes its exact verified bytes and CT context to the owned policy worker');
     request_policy_check(strpos($login_source,'validate_complex_password')===false&&strpos($login_source,"SET user_passwd_change")===false,'No duplicate or postcommit controller policy write');
 
     // The installer is standalone: test its explicit encoded-input call before

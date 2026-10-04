@@ -61,6 +61,8 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 {
 	if( isset($_POST['login']) && (!$userdata['session_logged_in'] || isset($_POST['admin'])) )
 	{
+		// Refuse a controller-first partial update before any login publication.
+		if (defined('CTRACKER_CONFIG') && !function_exists('phpbb_login_tracker_write')) { message_die(GENERAL_MESSAGE, $lang['Login_changed']); }
 		if ($sid === '' || !hash_equals((string) $userdata['session_id'], $sid))
 		{
 			message_die(GENERAL_ERROR, $lang['Session_invalid']);
@@ -100,22 +102,15 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						$autologin = ( isset($_POST['autologin']) ) ? TRUE : 0;
 	
 						$admin = (isset($HTTP_POST_VARS['admin'])) ? 1 : 0;
-						try { $session_id = phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password, $password); }
+						try { $session_id = phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password, $password, $ctracker_config); }
 						catch (PhpbbLoginPasswordExpired $e) {
 							$message = $lang['Passwd_have_expired'] . '<br /><br /><a href="'.append_sid("profile.$phpEx?mode=sendpassword").'">'.$lang['Send_new_passwd'].'</a><br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
 							message_die(GENERAL_MESSAGE, $message);
 						}
 						catch (PhpbbLoginException $e) { message_die(GENERAL_MESSAGE, $lang['Login_changed']); }
 	
-						// CrackerTracker v5.x
-						if ( $ctracker_config->settings['login_history'] == 1 )
-						{
-							$ctracker_config->update_login_history($row['user_id']);
-						}
-						if ( $ctracker_config->settings['login_ip_check'] == 1 )
-						{
-							$ctracker_config->set_user_ip($row['user_id']);
-						}
+						// Enabled CT history/IP writes commit with the owned session.
+						// No telemetry failure may follow already-delivered cookies.
 	
 						if( $session_id )
 						{

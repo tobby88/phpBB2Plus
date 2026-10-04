@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Commit enabled CrackerTracker login history, retention cleanup and the atomic
+  previous/current IP pair with manual login's owned session transaction, before
+  cookies. Hold current effective tracker policy and canonical participating
+  tables through publication; preserve loader defaults and bigint history IDs.
+  A tracking write failure cannot leave an authenticated session behind an error
+  response. Guard incomplete controller/helper updates. Automatic-login tracking
+  behavior is unchanged; existing storage/history migrations remain sufficient.
+
 - Normalize temporary account blocks to anonymous session identities and clear
   both login and ACP markers. Existing-session bootstrap also rejects inactive
   or currently blocked accounts, logged-out registered identities, and anonymous
