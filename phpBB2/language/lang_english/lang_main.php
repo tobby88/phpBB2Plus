@@ -1438,6 +1438,7 @@ $lang['Ban_update_red'] = 'The user is now banned';
 $lang['Ban_reactivate'] = 'Your account has been re-activated';
 $lang['Ban_warning'] = 'You\'ve recieved a warning';
 $lang['Ban_blocked'] = 'Your account is now blocked';
+$lang['Block_no_admin'] = 'Administrator accounts cannot be temporarily blocked.';
 $lang['Click_return_viewtopic'] = 'Click %sHere%s to return to the topic';
 $lang['Rules_ban_can'] = 'You <b>can</b> ban other users in this forum';
 $lang['user_no_email'] = 'The user has no email, therefore no message about this action can be sent. You should submit him/her a private message';

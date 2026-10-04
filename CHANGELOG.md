@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Normalize temporary account blocks to anonymous session identities and clear
+  both login and ACP markers. Existing-session bootstrap also rejects inactive
+  or currently blocked accounts, logged-out registered identities, and anonymous
+  login/ACP markers; it does not restore that rejected identity from a device
+  cookie. Keep valid guest/member/ACP sessions and expired block deadlines usable.
+  Fix card-block SQL quoting for strict SQL modes and add its missing English/
+  German administrator-protection message. No schema or bulk data migration is
+  required: historical inconsistent sessions are normalized when used.
+
 - Check current password rules under the login transaction's policy/account locks.
   Store force-change markers before session publication, never over a later reset's
   change timestamp. Reject known expired passwords before creating a session/key,

@@ -155,6 +155,14 @@ the configured maximum age. A legacy zero change timestamp retains its manual
 change prompt. The updater repairs missing policy rows without overwriting existing
 administrator choices. No password-byte normalization or new columns are required.
 
+Session bootstrap checks the current account's activation and temporary-block
+status, not only the stored session ID. A logged-out registered identity or an
+anonymous login/ACP marker is replaced with a guest session without restoring
+that rejected identity through a persistent cookie. Temporary blocks now clear
+all three identity/login/ACP fields together. Valid sessions and elapsed block
+deadlines remain usable. This repair needs no schema change or bulk updater
+operation; it does not introduce ongoing-session password-expiry enforcement.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

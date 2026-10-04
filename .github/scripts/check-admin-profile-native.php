@@ -3,7 +3,7 @@
 function phpbb_setcookie($name,$value,$expires,$path,$domain,$secure){$GLOBALS['ap_cookies'][]=func_get_args();return true;}
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
 require_once __DIR__.'/profile-request-fixture.php';
-foreach(array('USER'=>0,'MOD'=>2,'USER_AVATAR_NONE'=>0,'USER_AVATAR_UPLOAD'=>1,'POST_USERS_URL'=>'u','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,
+foreach(array('ANONYMOUS'=>-1,'USER'=>0,'MOD'=>2,'USER_AVATAR_NONE'=>0,'USER_AVATAR_UPLOAD'=>1,'POST_USERS_URL'=>'u','BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,
  'GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','SESSIONS_KEYS_TABLE'=>'fixture_sessions_keys','BANLIST_TABLE'=>'fixture_banlist',
  'CONFIG_TABLE'=>'fixture_config','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words','PROFILE_FIELDS_TABLE'=>'fixture_profile_fields','PROFILE_FIELD_ACTIONS_TABLE'=>'fixture_profile_field_actions','THEMES_TABLE'=>'fixture_themes','RANKS_TABLE'=>'fixture_ranks',
  'iNA_GAMES_COMMENT'=>'fixture_ina_comment','iNA_AT_SCORES'=>'fixture_ina_at_scores','iNA_HIGHSCORES'=>'fixture_ina_highscore','SHOUTBOX_TABLE'=>'fixture_shout') as $k=>$v){if(!defined($k)){define($k,$v);}}
@@ -70,7 +70,7 @@ function ap_reset($actor='root',$scenario='edit'){
  foreach(array(1,2,5) as $id){ap_insert('fixture_users',array('user_id'=>$id,'username'=>'fixture-'.$id,'user_level'=>$id===1?1:0,'user_active'=>1,'user_password'=>'fixture-before','user_avatar'=>$id===2?'before.png':'','user_avatar_type'=>$id===2?1:0));}
  ap_insert('fixture_groups',array('group_id'=>10,'group_name'=>'personal','group_description'=>'','group_single_user'=>1,'group_moderator'=>0));ap_insert('fixture_user_group',array('user_id'=>2,'group_id'=>10,'user_pending'=>0));
  $ap_actor=$actor==='root'?1:5;$ap_target=$scenario==='new'?42:($scenario==='self'? $ap_actor:2);
- foreach(array('fixture-admin'=>$ap_actor,'target-session'=>2,'other-self'=>$ap_actor,'unrelated'=>99) as $sid=>$id){ap_insert('fixture_sessions',array('session_id'=>$sid,'session_user_id'=>$id,'session_logged_in'=>1,'session_admin'=>$sid==='fixture-admin'?1:0));}
+ foreach(array('fixture-admin'=>$ap_actor,'target-session'=>2,'other-self'=>$ap_actor,'unrelated'=>99) as $sid=>$id){ap_insert('fixture_sessions',array('session_id'=>$sid,'session_user_id'=>$id,'session_logged_in'=>1,'session_admin'=>in_array($sid,array('fixture-admin','target-session'),true)?1:0));}
  foreach(array(1,2,5) as $id){ap_insert('fixture_sessions_keys',array('key_id'=>md5('old-key-'.$id),'user_id'=>$id,'last_ip'=>'7f000001','last_login'=>1));}
  if($actor==='junior'){ap_insert('fixture_jr',array('user_id'=>5,'user_jr_admin'=>md5('UsersManageadmin_users.php')));}
  ap_insert('fixture_quota_limits',array('quota_limit_id'=>1,'quota_desc'=>'fixture','quota_limit'=>1024));ap_insert('fixture_attach_quota',array('user_id'=>2,'group_id'=>0,'quota_type'=>1,'quota_limit_id'=>1));
@@ -152,6 +152,7 @@ try{
   if($scenario==='avatar'){ats_check(!is_file($ap_files.'/before.png')&&is_file($ap_files.'/after.png'),'Committed replacement retires only old avatar');}
   if($scenario==='ban'){ats_check(count(ap_rows('SELECT * FROM fixture_banlist WHERE ban_userid=2'))===1,'Warning threshold inserts ban');}
   if($scenario==='disable'){ats_check(!ap_rows('SELECT * FROM fixture_sessions WHERE session_user_id=2'),'Disabled target loses sessions');}
+  if($scenario==='block'){$blocked=ap_rows("SELECT session_user_id,session_logged_in,session_admin FROM fixture_sessions WHERE session_id='target-session'")[0];ats_check((int)$blocked['session_user_id']===ANONYMOUS&&(int)$blocked['session_logged_in']===0&&(int)$blocked['session_admin']===0,'Actual owned ACP block clears identity and both login/ACP markers');}
   if($scenario==='new'){ats_check(count(ap_rows('SELECT * FROM fixture_users WHERE user_id=42 AND user_active=1'))===1&&count(ap_rows('SELECT * FROM fixture_user_group WHERE user_id=42'))===1,'New account and personal membership publish together');}
   foreach(array('missing',$actor==='root'?'role':'delegation','disconnect') as $kind){
    ap_reset($actor,$scenario);$committed=null;

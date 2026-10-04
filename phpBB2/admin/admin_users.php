@@ -219,7 +219,7 @@ if( $admin_profile_scope !== null && !empty($_POST['block_account']) )
 	{
 		message_die(GENERAL_ERROR, 'Could not block user', '', __LINE__, __FILE__, $sql);
 	}
-	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in="0" WHERE session_user_id="'.$user_id.'"';
+	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in=0, session_user_id=' . ANONYMOUS . ', session_admin=0 WHERE session_user_id=' . (int)$user_id;
 	if ( !$db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, "Couldn't update blocked sessions from database", "", __LINE__, __FILE__, $sql);

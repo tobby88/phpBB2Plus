@@ -348,7 +348,7 @@ if ( $mode == 'block' )
 	if (! $is_auth['auth_ban'] )
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	// look up the user
-	$sql = 'SELECT user_active, user_level FROM ' . USERS_TABLE . ' WHERE user_id="'.$poster_id.'"';
+	$sql = 'SELECT user_active, user_level FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$poster_id;
 	if( !$result = $db->sql_query($sql) )
       	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
 	$the_user = $db->sql_fetchrow($result);
@@ -360,10 +360,10 @@ if ( $mode == 'block' )
 		message_die(GENERAL_ERROR, $lang['Block_no_admin']);
 	// update the user table with new status
 	$user_ip_sql = $db->sql_escape($user_ip);
-	$sql = 'UPDATE ' . USERS_TABLE . ' SET user_block_by="'.$user_ip_sql.'", user_blocktime="'.(time() + $configured_block_minutes * 60).'" WHERE user_id="'.$poster_id.'"';
+	$sql = 'UPDATE ' . USERS_TABLE . " SET user_block_by='" . $user_ip_sql . "', user_blocktime=" . (time() + $configured_block_minutes * 60) . ' WHERE user_id=' . (int)$poster_id;
 	if(! $result = $db->sql_query($sql) )
 		message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
-	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in = 0, session_user_id = ' . ANONYMOUS . ' WHERE session_user_id = ' . $poster_id;
+	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in = 0, session_user_id = ' . ANONYMOUS . ', session_admin = 0 WHERE session_user_id = ' . $poster_id;
 	if ( !$db->sql_query($sql) )
 	{
 		message_die(GENERAL_ERROR, "Couldn't update blocked sessions from database", "", __LINE__, __FILE__, $sql);

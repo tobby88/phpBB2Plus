@@ -391,6 +391,15 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 		//
 		if ( isset($userdata['user_id']) )
 		{
+			// A revoked/blocked identity must not survive the fast resume path.
+			// Historical blocking sometimes cleared only session_logged_in.
+			// Use the current joined account, and do not immediately restore a
+			// rejected session from that browser's persistent credential.
+			$identity_valid = (int)$userdata['user_id'] === ANONYMOUS
+				? empty($userdata['session_logged_in']) && empty($userdata['session_admin'])
+				: (int)$userdata['user_id'] > 0 && !empty($userdata['session_logged_in'])
+					&& (int)$userdata['user_active'] === 1 && (int)$userdata['user_blocktime'] < $current_time;
+			if (!$identity_valid) { $sessiondata['userid'] = ANONYMOUS; }
 			//
 			// Do not check IP assuming equivalence, if IPv4 we'll check only first 24
 			// bits ... I've been told (by vHiker) this should alleviate problems with 
@@ -399,7 +408,7 @@ function session_pagestart($user_ip, $thispage_id = 0, $thistopic_id = PAGE_INDE
 			$ip_check_s = substr($userdata['session_ip'], 0, 6);
 			$ip_check_u = substr($user_ip, 0, 6);
 
-			if ($ip_check_s == $ip_check_u)
+			if ($identity_valid && $ip_check_s == $ip_check_u)
 			{
 				$SID = ($sessionmethod == SESSION_METHOD_GET || defined('IN_ADMIN')) ? 'sid=' . $session_id : '';
 

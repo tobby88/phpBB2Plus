@@ -1421,6 +1421,7 @@ $lang['Ban_update_red'] = "Der Benutzer ist nun gesperrt";
 $lang['Ban_reactivate'] = "Dein Nickname wurde reaktivert";
 $lang['Ban_warning'] = "Du wurdest verwarnt!";
 $lang['Ban_blocked'] = 'Dein Account ist nun blockiert';
+$lang['Block_no_admin'] = 'Administratorkonten können nicht vorübergehend gesperrt werden.';
 $lang['Click_return_viewtopic'] = "Klick %shier%s, um zum Thema zurückzukeheren";
 $lang['Rules_ban_can'] = "Du <b>kannst</b> andere Benutzer in diesem Forum bannen";
 $lang['user_no_email'] = "Der Benutzer hat keine eMail-Adresse angegeben, daher kann keine Benachrichtigung über diese Aktion an ihn geschickt werden. Du solltest ihm manuell eine nachricht zukommen lassen.";
