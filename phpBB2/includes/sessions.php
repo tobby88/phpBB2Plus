@@ -26,7 +26,7 @@
 //
 function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enable_autologin = 0, $admin = 0, $defer_cookie = false)
 {
-	global $db, $board_config,$plus_config,$phpbb_root_path;
+	global $db, $board_config,$plus_config,$phpbb_root_path,$lang;
 	global $HTTP_COOKIE_VARS, $_GET, $SID;
 	$cookiename = $board_config['cookie_name'];
 	$cookiepath = $board_config['cookie_path'];
@@ -76,6 +76,12 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	// First off attempt to join with the autologin value if we have one
 	// If not, just use the user_id value
 	//
+	if (!$defer_cookie && $auto_create && $user_id != ANONYMOUS && $sessiondata['autologinid'] !== '')
+	{
+		require_once($phpbb_root_path . 'includes/functions_login_storage.php');
+		try { return phpbb_autologin_session($db, $user_id, $user_ip, $page_id); }
+		catch (PhpbbLoginException $e) { message_die(GENERAL_MESSAGE, $lang['Login_changed']); }
+	}
 	$userdata = array();
 
 	if ($user_id != ANONYMOUS)

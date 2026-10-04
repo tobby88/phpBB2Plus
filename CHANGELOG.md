@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Apply the same owned canonical InnoDB publication to persistent-cookie login:
+  hold the current account, device key, policy, session ranges and bans through
+  key rotation and session commit. A reset or revocation cannot overtake a stale
+  automatic credential read. Expired/revoked/inactive/blocked credentials become
+  an anonymous session; database failures or uncertain commits deliver no login
+  capability. Do not grant ACP reauthentication authority through a device key.
 - Publish manual password logins through one dedicated canonical InnoDB
   transaction. Recheck the exact verified credential/account and current caller
   session, policy and bans; hold account, key, session and ban ranges until commit.

@@ -142,6 +142,11 @@ The existing storage updater covers participating tables. Complete the CLI
 database/storage migration before using the new code on an older installation;
 the updater does not require a working forum login.
 
+Persistent-cookie login uses the same owned publication boundary. Current account,
+key, policy and ban state remain locked through key rotation and session commit.
+Revoked or inactive credentials fall back to a guest session, never to ACP access;
+failed or unconfirmed database operations do not deliver a new login capability.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded
