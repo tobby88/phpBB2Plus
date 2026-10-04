@@ -77,13 +77,12 @@ try {
                 $ajax_source = file_get_contents($ats_source . 'ajax.php');
                 $start = strpos($ajax_source, "else if ((\$mode == 'checkusername_pm')");
                 $a = strpos($ajax_source, '$username_input = $username;', $start);
-                $b = strpos($ajax_source, '$username_row = False;', $a);
+                $b = strpos($ajax_source, "\n\tif (\$username_row)", $a);
                 ats_check($start !== false && $a !== false && $b > $a, 'Actual AJAX identity preprocessing');
                 $mode = 'search_user'; $username = 'A&B';
                 eval(substr($ajax_source, $a, $b - $a));
-                $result = $db->sql_query("SELECT user_id FROM fixture_users WHERE username='$username_sql'");
-                ats_check($result && (int)$db->sql_fetchrow($result)['user_id'] === 16, 'AJAX search resolves same identity after exactly one normalization');
-                $db->sql_freeresult($result);
+                ats_check(is_array($username_row) && (int)$username_row['user_id'] === 16, 'Actual AJAX search resolves same identity after exactly one normalization');
+                ats_check($db->query_result === false, 'Actual AJAX identity result is released');
             }
             unset($expected);
             ats_check((int)get_userdata(99)['user_id'] === 99, 'Numeric ID remains an ID');
