@@ -159,6 +159,10 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	// Initial ban check against user id, IP and email address
 	//
 	preg_match('/(..)(..)(..)(..)/', $user_ip, $user_ip_parts);
+	$ban_ip_values = array($user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . $user_ip_parts[4],
+		$user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . 'ff',
+		$user_ip_parts[1] . $user_ip_parts[2] . 'ffff', $user_ip_parts[1] . 'ffffff');
+	require_once($phpbb_root_path . 'includes/functions_ban.php');
 
 	$sql = "SELECT ban_ip, ban_userid, ban_email 
 		FROM " . BANLIST_TABLE . " 
@@ -166,22 +170,25 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 			OR ban_userid = $user_id";
 	if ( $user_id != ANONYMOUS )
 	{
-		$email_sql = $db->sql_escape($userdata['user_email']);
-		$domain_sql = $db->sql_escape(substr($userdata['user_email'], strpos($userdata['user_email'], '@')));
-		$sql .= " OR ban_email LIKE '$email_sql' OR ban_email LIKE '$domain_sql'";
+		// Fetch rules, not SQL LIKE patterns made from the account address.
+		$sql .= " OR ban_email <> ''";
 	}
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		message_die(CRITICAL_ERROR, 'Could not obtain ban information', '', __LINE__, __FILE__, $sql);
 	}
 
-	if ( $ban_info = $db->sql_fetchrow($result) )
+	while ( $ban_info = $db->sql_fetchrow($result) )
 	{
-		if ( $ban_info['ban_ip'] || $ban_info['ban_userid'] || $ban_info['ban_email'] )
+		if ( in_array($ban_info['ban_ip'], $ban_ip_values, true)
+			|| ((int)$ban_info['ban_userid'] !== 0 && (int)$ban_info['ban_userid'] === (int)$user_id)
+			|| ($user_id != ANONYMOUS && phpbb_email_ban_matches($ban_info['ban_email'], $userdata['user_email'])) )
 		{
+			$db->sql_freeresult($result);
 			message_die(CRITICAL_MESSAGE, 'You_been_banned');
 		}
 	}
+	$db->sql_freeresult($result);
 
 	$page_id = (empty($page_id) || $page_id == '') ? 0 : $page_id;
 

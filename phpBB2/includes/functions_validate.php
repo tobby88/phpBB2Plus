@@ -95,28 +95,24 @@ function validate_username($username, $check_stopforumspam = false, $exclude_use
 function validate_email($email, $check_stopforumspam = false, $exclude_user_id = 0)
 {
 	global $db, $lang, $board_config;
+	require_once dirname(__FILE__) . '/functions_ban.php';
 
-	if ($email != '')
+	if (is_string($email) && $email !== '' && strlen($email) <= 255)
 	{
 		if (preg_match('/^[a-z0-9&\'\.\-_\+]+@[a-z0-9\-]+\.([a-z0-9\-]+\.)*?[a-z]+$/is', $email))
 		{
 			$sql = "SELECT ban_email
 				FROM " . BANLIST_TABLE;
-			if ($result = $db->sql_query($sql))
+			if (!($result = $db->sql_query($sql)))
 			{
-				if ($row = $db->sql_fetchrow($result))
+				message_die(GENERAL_ERROR, "Couldn't obtain email ban information.", "", __LINE__, __FILE__, $sql);
+			}
+			while ($row = $db->sql_fetchrow($result))
+			{
+				if (phpbb_email_ban_matches($row['ban_email'], $email))
 				{
-					do
-					{
-						// IP/user-only bans legitimately have a NULL email value.
-						$match_email = str_replace('*', '.*?', (string) $row['ban_email']);
-						if (preg_match('/^' . $match_email . '$/is', $email))
-						{
-							$db->sql_freeresult($result);
-							return array('error' => true, 'error_msg' => $lang['Email_banned']);
-						}
-					}
-					while($row = $db->sql_fetchrow($result));
+					$db->sql_freeresult($result);
+					return array('error' => true, 'error_msg' => $lang['Email_banned']);
 				}
 			}
 			$db->sql_freeresult($result);
@@ -130,11 +126,12 @@ function validate_email($email, $check_stopforumspam = false, $exclude_user_id =
 				message_die(GENERAL_ERROR, "Couldn't obtain user email information.", "", __LINE__, __FILE__, $sql);
 			}
 		
-			if ($row = $db->sql_fetchrow($result))
+			$row = $db->sql_fetchrow($result);
+			$db->sql_freeresult($result);
+			if ($row)
 			{
 				return array('error' => true, 'error_msg' => $lang['Email_taken']);
 			}
-			$db->sql_freeresult($result);
 
 			if ($check_stopforumspam && !empty($board_config['sfs_enable']))
 			{

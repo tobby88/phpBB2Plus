@@ -76,6 +76,11 @@ jobs:
       - name: Check password policy after actual request normalization
         run: php .github/scripts/check-password-request-policy.php
 
+      - name: Check literal and wildcard email-ban semantics
+        run: |
+          php .github/scripts/check-email-ban-patterns.php
+          php .github/scripts/check-email-ban-validation.php
+
       - name: Check request-local ERC password proofs and fresh authority
         run: php .github/scripts/check-erc-password-proof.php
 

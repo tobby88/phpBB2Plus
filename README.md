@@ -172,6 +172,14 @@ all three identity/login/ACP fields together. Valid sessions and elapsed block
 deadlines remain usable. This repair needs no schema change or bulk updater
 operation; it does not introduce ongoing-session password-expiry enforcement.
 
+New-session email-ban checks and registration/profile validation use the same
+bounded matcher as founder-email protection: `*` is the only wildcard, while
+percent/underscore and regex punctuation stay literal. Historical `@domain`
+rules still mean the exact domain. Ban-reader failures refuse the operation.
+Stored addresses/rules are not rewritten and no migration is needed. This fixes
+new session publication and address validation, not immediate reevaluation of
+email bans on already existing sessions.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

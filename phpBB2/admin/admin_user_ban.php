@@ -159,8 +159,8 @@ if ( isset($_POST['submit']) )
 				$email_value = trim($email_list_temp[$i]);
 				if (strlen($email_value) <= 255)
 				{
-					$protected_pattern = '/^' . str_replace('\\*', '.*', preg_quote($email_value, '/')) . '$/iD';
-					if ($protected_email !== '' && preg_match($protected_pattern, $protected_email))
+					require_once($phpbb_root_path . 'includes/functions_ban.php');
+					if (phpbb_email_ban_matches($email_value, $protected_email))
 					{
 						message_die(GENERAL_MESSAGE, $lang['ctracker_gmb_1stadmin']);
 					}

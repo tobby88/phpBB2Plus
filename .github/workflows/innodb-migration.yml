@@ -96,6 +96,13 @@ jobs:
         env:
           PHPBB_LOGIN_TELEMETRY_NATIVE: '1'
           PHPBB_LOGIN_TELEMETRY_PASSWORD: fixture-only
+      - name: Check native email bans during login and account registration
+        run: |
+          php .github/scripts/check-email-ban-native.php
+          php .github/scripts/check-email-ban-registration-native.php
+        env:
+          PHPBB_EMAIL_BAN_NATIVE: '1'
+          PHPBB_EMAIL_BAN_PASSWORD: fixture-only
       - name: Check native ACP database backup roundtrips
         run: |
           for case in plain gzip data structure normal-source revoked read-failure concurrent-write concurrent-gzip gzip-read-failure delegated wrong-grant revoked-grant logout inactive foreign-session bad-sid legacy-table legacy-structure legacy-authority snapshot-failure commit-failure lost-ack lost-authority authority-concurrency ddl-concurrency request-transaction factory-reuse; do

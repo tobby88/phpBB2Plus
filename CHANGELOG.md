@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Use one bounded literal/STAR email-ban matcher for new manual/persistent/ACP
+  sessions, registration/profile validation and founder-email protection. Honor
+  historical domain-only rules; do not turn account underscores/percent signs or
+  rule regex metacharacters into unintended matches. Scan candidate rules fully,
+  retaining user/IP bans without false matches from unrelated mixed rules.
+  Email-ban reader failures refuse validation. Existing rules remain unchanged;
+  no schema/data migration or ongoing-session ban enforcement is introduced.
+
 - Commit enabled CrackerTracker login history, retention cleanup and the atomic
   previous/current IP pair with manual login's owned session transaction, before
   cookies. Hold current effective tracker policy and canonical participating
