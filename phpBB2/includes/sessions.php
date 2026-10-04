@@ -162,11 +162,12 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	$ban_ip_values = array($user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . $user_ip_parts[4],
 		$user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . 'ff',
 		$user_ip_parts[1] . $user_ip_parts[2] . 'ffff', $user_ip_parts[1] . 'ffffff');
+	$ban_ip_check = "ban_ip IN ('" . implode("', '", $ban_ip_values) . "')";
 	require_once($phpbb_root_path . 'includes/functions_ban.php');
 
-	$sql = "SELECT ban_ip, ban_userid, ban_email 
+	$sql = "SELECT ban_ip, ban_userid, ban_email, " . $ban_ip_check . " AS ban_ip_matches
 		FROM " . BANLIST_TABLE . " 
-		WHERE ban_ip IN ('" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . $user_ip_parts[4] . "', '" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . "ff', '" . $user_ip_parts[1] . $user_ip_parts[2] . "ffff', '" . $user_ip_parts[1] . "ffffff')
+		WHERE " . $ban_ip_check . "
 			OR ban_userid = $user_id";
 	if ( $user_id != ANONYMOUS )
 	{
@@ -180,7 +181,9 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 
 	while ( $ban_info = $db->sql_fetchrow($result) )
 	{
-		if ( in_array($ban_info['ban_ip'], $ban_ip_values, true)
+		// Reuse the SQL predicate's actual collation, not a second byte-wise PHP
+		// comparison. Imported upper-case rules retain their historical match.
+		if ( (int)$ban_info['ban_ip_matches'] === 1
 			|| ((int)$ban_info['ban_userid'] !== 0 && (int)$ban_info['ban_userid'] === (int)$user_id)
 			|| ($user_id != ANONYMOUS && phpbb_email_ban_matches($ban_info['ban_email'], $userdata['user_email'])) )
 		{

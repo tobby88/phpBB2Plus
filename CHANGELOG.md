@@ -8,6 +8,10 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve case-insensitive hexadecimal IP-ban matching in the session candidate
+  filter, including historical upper-case exact and subnet rules. No stored ban
+  value is rewritten; native manual/persistent tests cover all prefix depths.
+
 - Use one bounded literal/STAR email-ban matcher for new manual/persistent/ACP
   sessions, registration/profile validation and founder-email protection. Honor
   historical domain-only rules; do not turn account underscores/percent signs or

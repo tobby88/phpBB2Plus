@@ -59,8 +59,8 @@ try {
         }
     }
     foreach (array('manual','automatic') as $kind) {
-        foreach (array('user','ip') as $ban) {
-            $setup = function() use ($ban) { lp_insert('fixture_banlist', array('ban_userid'=>$ban==='user'?2:0, 'ban_ip'=>$ban==='ip'?'7f000001':'', 'ban_email'=>null)); };
+        foreach (array('user','7f000001','7f0000ff','7f00ffff','7fffffff','7F000001','7F0000FF','7F00FFFF','7FFFFFFF') as $ban) {
+            $setup = function() use ($ban) { lp_insert('fixture_banlist', array('ban_userid'=>$ban==='user'?2:0, 'ban_ip'=>$ban==='user'?'':$ban, 'ban_email'=>null)); };
             ats_check(lp_login(false, array('setup'=>$setup,'automatic'=>$kind==='automatic')) === 'denied' && $lp_cookies === array(), 'Existing user/IP bans remain enforced'); $cases++;
         }
         $seen = false;

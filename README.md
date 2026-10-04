@@ -179,6 +179,8 @@ rules still mean the exact domain. Ban-reader failures refuse the operation.
 Stored addresses/rules are not rewritten and no migration is needed. This fixes
 new session publication and address validation, not immediate reevaluation of
 email bans on already existing sessions.
+Hexadecimal IP bans retain their historical case-insensitive exact/subnet
+matching, including upper-case values from imports, without rewriting rules.
 
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
