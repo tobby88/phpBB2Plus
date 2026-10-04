@@ -552,30 +552,30 @@ class ct_database
 	{
 		global $db, $lang, $userdata;
 
-		// Ensure that $user_id is integer
-		$user_id = intval($user_id);
-
-		$sql = 'UPDATE ' . USERS_TABLE . ' SET ct_last_ip = ct_last_used_ip WHERE user_id = ' . $user_id;
-
-		// Execute SQL Command in database
-		if ( !$result = $db->sql_query($sql) )
+		if (!(is_int($user_id) || is_string($user_id)) || !preg_match('/^[1-9][0-9]{0,6}$/D', (string)$user_id) || (int)$user_id > 8388607
+			|| !is_string($this->user_ip_value) || filter_var($this->user_ip_value, FILTER_VALIDATE_IP) === false)
+		{
+			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata']);
+		}
+		$user_id = (int)$user_id;
+		// Both values advance in one row update. Separate statements allowed a
+		// failed second query or another login to corrupt the previous/current pair.
+		$sql = 'UPDATE ' . USERS_TABLE . " SET ct_last_ip = ct_last_used_ip, ct_last_used_ip = '"
+			. $db->sql_escape($this->user_ip_value) . "' WHERE user_id = " . $user_id;
+		if (!$db->sql_query($sql))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
 		}
-
-		// Update Userdata Array (wich is already available here!)
-		$userdata['ct_last_ip'] = $userdata['ct_last_used_ip'];
-
-		$sql = 'UPDATE ' . USERS_TABLE . " SET ct_last_used_ip = '" . $db->sql_escape((string) $this->user_ip_value) . "' WHERE user_id = " . $user_id;
-
-		// Execute SQL Command in database
-		if ( !$result = $db->sql_query($sql) )
+		// During login the global request may still describe the anonymous user.
+		// Never overwrite another account's cache or trust its old IP snapshot.
+		if (isset($userdata['user_id']) && (int)$userdata['user_id'] === $user_id)
 		{
-			message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql);
+			$sql = 'SELECT ct_last_ip,ct_last_used_ip FROM ' . USERS_TABLE . ' WHERE user_id=' . $user_id;
+			$result = $db->sql_query($sql);
+			if (!$result) { message_die(GENERAL_ERROR, $lang['ctracker_error_updating_userdata'], '', __LINE__, __FILE__, $sql); }
+			$row = $db->sql_fetchrow($result); $db->sql_freeresult($result);
+			if ($row) { $userdata['ct_last_ip'] = $row['ct_last_ip']; $userdata['ct_last_used_ip'] = $row['ct_last_used_ip']; }
 		}
-
-		// Update Userdata Array (wich is already available here!)
-		$userdata['ct_last_used_ip'] = $this->user_ip_value;
 	}
 
 

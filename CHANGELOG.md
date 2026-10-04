@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Advance CrackerTracker's previous/current login-IP pair in one statement,
+  avoiding partial updates and interleaved-logins overwriting the actual previous
+  address. Validate account IDs and IPv4/IPv6 input; refresh only the matching
+  current user's cache from stored values, never from a stale or guest snapshot.
+  Existing IPv6-capacity migration and schema remain sufficient.
 - Apply the same owned canonical InnoDB publication to persistent-cookie login:
   hold the current account, device key, policy, session ranges and bans through
   key rotation and session commit. A reset or revocation cannot overtake a stale

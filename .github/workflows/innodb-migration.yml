@@ -59,6 +59,11 @@ jobs:
         env:
           PHPBB_CT_USERS_NATIVE: '1'
           PHPBB_CT_USERS_PASSWORD: fixture-only
+      - name: Check native CrackerTracker atomic login IP tracking
+        run: php .github/scripts/check-ctracker-login-ip-native.php
+        env:
+          PHPBB_CT_LOGIN_IP_NATIVE: '1'
+          PHPBB_CT_LOGIN_IP_PASSWORD: fixture-only
       - name: Check native Unicode account identity boundaries
         run: php .github/scripts/check-username-identity-native.php
         env:
