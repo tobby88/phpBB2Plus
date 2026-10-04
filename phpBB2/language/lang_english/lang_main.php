@@ -1,4 +1,5 @@
 <?php
+$lang['Login_changed'] = 'Your login could not be confirmed. Please submit the form again.';
 $lang['Moderation_delete_unconfirmed'] = 'The deletion could not be confirmed. Check the current topics before retrying. Attachment files were not removed by this request.';
 $lang['Moderation_storage_upgrade'] = 'This operation requires the current InnoDB/utf8mb4 database format. An administrator must complete the database updates first.';
 $lang['Moderation_cleanup_pending'] = 'The database changes were completed, but some detached attachment files still need cleanup. An administrator can finish this under Attachments → Shadow attachments. Do not repeat the deletion.';

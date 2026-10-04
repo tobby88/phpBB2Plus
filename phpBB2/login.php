@@ -33,6 +33,7 @@ if (!defined('IN_PHPBB'))
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_login_storage.' . $phpEx);
 
 //
 // Set page ID for session management
@@ -89,21 +90,18 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 				{
 					if( phpbb_password_verify($password, $row['user_password']) && $row['user_active'] )
 					{
+						$upgraded_password = null;
 						if (!empty($board_config['password_hashing']) && phpbb_password_needs_rehash($row['user_password']))
 						{
 							$upgraded_password = phpbb_password_hash($password);
-							if ($upgraded_password !== false)
-							{
-								// A concurrent reset/change must not be overwritten by this
-								// optional upgrade of the password observed before login.
-								$db->sql_query("UPDATE " . USERS_TABLE . " SET user_password = '" . $db->sql_escape($upgraded_password) . "' WHERE user_id = " . (int) $row['user_id'] . " AND user_active = 1 AND CAST(user_password AS BINARY) = CAST('" . $db->sql_escape($row['user_password']) . "' AS BINARY)");
-							}
+							if ($upgraded_password === false) { $upgraded_password = null; }
 						}
 
 						$autologin = ( isset($_POST['autologin']) ) ? TRUE : 0;
 	
 						$admin = (isset($HTTP_POST_VARS['admin'])) ? 1 : 0;
-						$session_id = session_begin($row['user_id'], $user_ip, PAGE_INDEX, FALSE, $autologin, $admin);
+						try { $session_id = phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password); }
+						catch (PhpbbLoginException $e) { message_die(GENERAL_MESSAGE, $lang['Login_changed']); }
 	
 						// CrackerTracker v5.x
 						if ( $ctracker_config->settings['login_history'] == 1 )
@@ -118,19 +116,15 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						if( $session_id )
 						{
 							// Start add - Protect user account MOD
-							$sql = "UPDATE " . USERS_TABLE . " SET user_badlogin='0'
-								WHERE username = '" . $username_sql . "'";
-							if ( !($result = $db->sql_query($sql)) )
-							{
-								message_die(GENERAL_ERROR, 'Error updating correct login data', '', __LINE__, __FILE__, $sql);
-							}
+							// The guarded session publication already reset this account's
+							// failed-login count by its locked ID, not a stale name.
 							// End add - Protect user account MOD
 							$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
 							$url = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : "portal.$phpEx";
 							// Start add - Protect user account MOD
 							if ($session_id['user_id']!=ANONYMOUS )
 							{
-								include($phpbb_root_path . "includes/functions_validate.$phpEx");
+								include_once($phpbb_root_path . "includes/functions_validate.$phpEx");
 								$pass_result = validate_complex_password ($username, $password);
 								if ( $session_id['user_passwd_change']==0 || $pass_result['error']== true)
 								{

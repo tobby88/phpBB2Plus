@@ -24,7 +24,7 @@
 // Adds/updates a new session to the database for the given userid.
 // Returns the new session ID on success.
 //
-function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enable_autologin = 0, $admin = 0)
+function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enable_autologin = 0, $admin = 0, $defer_cookie = false)
 {
 	global $db, $board_config,$plus_config,$phpbb_root_path;
 	global $HTTP_COOKIE_VARS, $_GET, $SID;
@@ -160,8 +160,9 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 			OR ban_userid = $user_id";
 	if ( $user_id != ANONYMOUS )
 	{
-		$sql .= " OR ban_email LIKE '" . str_replace("\'", "''", $userdata['user_email']) . "' 
-			OR ban_email LIKE '" . substr(str_replace("\'", "''", $userdata['user_email']), strpos(str_replace("\'", "''", $userdata['user_email']), "@")) . "'";
+		$email_sql = $db->sql_escape($userdata['user_email']);
+		$domain_sql = $db->sql_escape(substr($userdata['user_email'], strpos($userdata['user_email'], '@')));
+		$sql .= " OR ban_email LIKE '$email_sql' OR ban_email LIKE '$domain_sql'";
 	}
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -281,8 +282,10 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	$userdata['session_admin'] = $admin;
 	$userdata['session_key'] = $sessiondata['autologinid'];
 
-	phpbb_setcookie($cookiename . '_data', serialize($sessiondata), $current_time + 31536000, $cookiepath, $cookiedomain, $cookiesecure);
-	phpbb_setcookie($cookiename . '_sid', $session_id, 0, $cookiepath, $cookiedomain, $cookiesecure);
+	$session_cookies = array(
+		array($cookiename . '_data', serialize($sessiondata), $current_time + 31536000, $cookiepath, $cookiedomain, $cookiesecure),
+		array($cookiename . '_sid', $session_id, 0, $cookiepath, $cookiedomain, $cookiesecure));
+	if (!$defer_cookie) { foreach ($session_cookies as $args) { call_user_func_array('phpbb_setcookie', $args); } }
 	
 	// Cookie-backed sessions must not be copied into ordinary URLs. The old
 	// Plus branch inverted this rule for registered users, leaking the freshly
@@ -291,20 +294,22 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	// historical URL fallback (unless guest SIDs were disabled in Plus config).
 	if ($admin)
 	{
-		$SID = 'sid=' . $session_id;
+		$new_sid = 'sid=' . $session_id;
 	}
 	else if ($sessionmethod == SESSION_METHOD_COOKIE)
 	{
-		$SID = '';
+		$new_sid = '';
 	}
 	else if (!empty($plus_config['disable_sid']) && $userdata['session_user_id'] == ANONYMOUS)
 	{
-		$SID = '';
+		$new_sid = '';
 	}
 	else
 	{
-		$SID = 'sid=' . $session_id;
+		$new_sid = 'sid=' . $session_id;
 	}
+	if ($defer_cookie) { return array('user'=>$userdata, 'cookies'=>$session_cookies, 'sid'=>$new_sid); }
+	$SID = $new_sid;
 	return $userdata;
 }
 

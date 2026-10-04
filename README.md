@@ -133,6 +133,15 @@ profile save preserves its trusted stored name. No automatic account rename or
 schema migration accompanies this boundary correction. Password representation
 and verification are unchanged.
 
+Manual password login rechecks the verified account/credential and current
+session, policy and bans inside a dedicated canonical InnoDB transaction.
+Credential upgrades and new session/key rows commit together; cookies follow
+confirmed commit. Stale persistent cookies cannot override the supplied password.
+On an unconfirmed attempt, resubmit the form; no unconfirmed capability is sent.
+The existing storage updater covers participating tables. Complete the CLI
+database/storage migration before using the new code on an older installation;
+the updater does not require a working forum login.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

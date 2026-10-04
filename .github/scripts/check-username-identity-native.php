@@ -26,7 +26,7 @@ $db=new sql_db($host,'root',$password,$fixture,false);
 class UsernameSessionExit extends RuntimeException {}
 class UsernameAjaxExit extends RuntimeException {var $response;function __construct($response){$this->response=$response;}}
 function AJAX_message_die($response){throw new UsernameAjaxExit($response);}
-function session_begin($id,$ip,$page,$update,$autologin,$admin){throw new UsernameSessionExit('session:'.$id);}
+function phpbb_login_session($database,$record,$ip,$page,$autologin,$admin,$replacement){throw new UsernameSessionExit('session:'.$record['user_id']);}
 function redirect($url){throw new UsernameSessionExit('redirect');}
 function ctracker_enforce_login_identity_limit($name){$GLOBALS['username_limits'][]=$name;}
 class log_manager {function prepare_log($username){}function write_general_logfile($limit,$kind){}}

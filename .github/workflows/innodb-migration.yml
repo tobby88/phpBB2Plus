@@ -81,6 +81,11 @@ jobs:
         env:
           PHPBB_SESSION_CREATION_NATIVE: '1'
           PHPBB_SESSION_CREATION_PASSWORD: fixture-only
+      - name: Check native manual login credential and session publication
+        run: php .github/scripts/check-login-publication-native.php
+        env:
+          PHPBB_LOGIN_PUBLICATION_NATIVE: '1'
+          PHPBB_LOGIN_PUBLICATION_PASSWORD: fixture-only
       - name: Check native ACP database backup roundtrips
         run: |
           for case in plain gzip data structure normal-source revoked read-failure concurrent-write concurrent-gzip gzip-read-failure delegated wrong-grant revoked-grant logout inactive foreign-session bad-sid legacy-table legacy-structure legacy-authority snapshot-failure commit-failure lost-ack lost-authority authority-concurrency ddl-concurrency request-transaction factory-reuse; do

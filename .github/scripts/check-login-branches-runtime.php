@@ -47,7 +47,7 @@ class log_manager
 function message_die($code, $message) { $GLOBALS['branch_error_message'] = $message; throw new LoginBranchExit('message'); }
 function append_sid($value, $html = false) { return $value . (strpos($value, '?') === false ? '?' : '&') . 'sid=test-session'; }
 function redirect($url) { throw new LoginBranchExit('redirect'); }
-function session_begin($id, $ip, $page, $update, $autologin, $admin) { throw new LoginBranchExit('session-created'); }
+function phpbb_login_session($database, $record, $ip, $page, $autologin, $admin, $replacement) { throw new LoginBranchExit('session-created'); }
 function phpbb_clean_username($name) { return trim($name); }
 function phpbb_password_verify($password, $hash)
 {

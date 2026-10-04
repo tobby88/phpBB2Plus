@@ -1,4 +1,5 @@
 <?php
+$lang['Login_changed'] = 'Die Anmeldung konnte nicht bestätigt werden. Bitte sende das Formular erneut ab.';
 $lang['Moderation_delete_unconfirmed'] = 'Die Löschung konnte nicht bestätigt werden. Prüfe vor einem erneuten Versuch den aktuellen Themenbestand. Dieser Vorgang hat keine Anhangdateien entfernt.';
 $lang['Moderation_storage_upgrade'] = 'Dieser Vorgang benötigt das aktuelle InnoDB/utf8mb4-Datenbankformat. Ein Administrator muss zunächst die Datenbank-Updates abschließen.';
 $lang['Moderation_cleanup_pending'] = 'Die Datenbankänderungen sind abgeschlossen, einige nicht mehr zugeordnete Anhangdateien müssen jedoch noch bereinigt werden. Ein Administrator kann dies unter Anhänge → Verwaiste Anhänge abschließen. Bitte die Löschung nicht wiederholen.';

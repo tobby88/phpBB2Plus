@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Publish manual password logins through one dedicated canonical InnoDB
+  transaction. Recheck the exact verified credential/account and current caller
+  session, policy and bans; hold account, key, session and ban ranges until commit.
+  A concurrent reset or revocation cannot be overtaken by a stale password check.
+  Optional hash upgrades and failed-attempt resets share that publication. An old
+  persistent cookie cannot override a fresh manual password, and cookies/SIDs are
+  delivered only after confirmed commit and release. Failed or unconfirmed writes
+  do not deliver capabilities; caller transactions remain untouched. Existing
+  storage migration covers all participants, so no new schema is required.
 - Fall back safely to an anonymous session when autologin keys expire or an
   account is missing/inactive. Do not count a failed database row as an array
   under modern PHP; clear any ACP marker on the anonymous fallback. A missing
