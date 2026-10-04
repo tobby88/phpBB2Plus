@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Check current password rules under the login transaction's policy/account locks.
+  Store force-change markers before session publication, never over a later reset's
+  change timestamp. Reject known expired passwords before creating a session/key,
+  including weak credentials, and apply maximum age during persistent login.
+  Preserve legacy unknown-age manual change prompts and the localized reset link;
+  replace its missing portal-return translation. The updater idempotently repairs
+  absent password-policy settings while retaining configured values.
 - Advance CrackerTracker's previous/current login-IP pair in one statement,
   avoiding partial updates and interleaved-logins overwriting the actual previous
   address. Validate account IDs and IPv4/IPv6 input; refresh only the matching

@@ -3,7 +3,7 @@
 // and cookie transport are substituted; password checks and SQL are real.
 class LoginPublicationExit extends RuntimeException {}
 function phpbb_setcookie($name,$value,$expires,$path,$domain,$secure){ats_check($GLOBALS['lp_open']===0&&$GLOBALS['lp_committed'],'Cookies only after confirmed commit and owner release');$GLOBALS['lp_cookies'][$name]=$value;return true;}
-function redirect($url){throw new LoginPublicationExit(count($GLOBALS['lp_cookies'])===2?'published':'redirect');}
+function redirect($url){$GLOBALS['lp_redirect']=$url;throw new LoginPublicationExit(count($GLOBALS['lp_cookies'])===2?'published':'redirect');}
 function ctracker_enforce_login_identity_limit($name){}
 class log_manager {function prepare_log($name){}function write_general_logfile($size,$kind){}}
 putenv('PHPBB_ATTACH_SETTINGS_NATIVE=0');require __DIR__.'/check-attachment-settings-storage.php';
@@ -51,14 +51,15 @@ function lp_insert($table,$values){foreach(lp_rows('SHOW COLUMNS FROM '.$table)a
 $source=file_get_contents($ats_source.'login.php');$a=strpos($source,'$submitted_username =');$b=strpos($source,"\n\telse if( ( isset(\$_GET['logout'])",$a);ats_check($a!==false&&$b>$a,'Actual complete credential branch');$lp_body=substr($source,$a,$b-$a)."\n}";
 $logger='include_once($phpbb_root_path . \'ctracker/classes/class_log_manager.\' . $phpEx);';ats_check(substr_count($lp_body,$logger)===1,'Only external logger substituted');$lp_body=str_replace($logger,'/* Owned fixture logger. */',$lp_body);
 function lp_login($race=false,$options=array()){
- global$db,$main,$lp_race,$lp_changed,$lp_cookies,$lp_body,$userdata,$board_config,$plus_config,$HTTP_COOKIE_VARS,$HTTP_POST_VARS,$ctracker_config,$template,$phpEx,$phpbb_root_path,$user_ip,$lang,$SID,$lp_open,$lp_query_count,$lp_failure,$lp_hook,$lp_after_commit,$lp_committed,$lp_commit_failure,$lp_reuse,$lp_owner_queries;
+ global$db,$main,$lp_race,$lp_changed,$lp_cookies,$lp_body,$userdata,$board_config,$plus_config,$HTTP_COOKIE_VARS,$HTTP_POST_VARS,$ctracker_config,$template,$phpEx,$phpbb_root_path,$user_ip,$lang,$SID,$lp_open,$lp_query_count,$lp_failure,$lp_hook,$lp_after_commit,$lp_committed,$lp_commit_failure,$lp_reuse,$lp_owner_queries,$lp_redirect,$lp_error;
  ats_check($lp_open===0,'No leaked previous login owner');$lp_race=$race;$lp_changed=false;$lp_cookies=$lp_owner_queries=array();$db=$main;$SID='';$lp_query_count=0;$lp_committed=false;$lp_failure=isset($options['failure'])?$options['failure']:0;$lp_commit_failure=isset($options['commit'])?$options['commit']:'';$lp_hook=isset($options['hook'])?$options['hook']:null;$lp_after_commit=isset($options['after'])?$options['after']:null;$lp_reuse=!empty($options['reuse']);foreach(array('users','sessions','sessions_keys','banlist','config')as$table){lp_query('DELETE FROM fixture_'.$table);}
- $raw=isset($options['name'])?$options['name']:'Member';$name=phpbb_username_key($raw,!empty($options['legacy'])?ENT_COMPAT:ENT_QUOTES);
- foreach(array(-1,2)as$id){lp_insert('fixture_users',array('user_id'=>$id,'username'=>$id===2?$name:'Anonymous','user_active'=>1,'user_level'=>0,'user_blocktime'=>0,'user_email'=>$id===2?(isset($options['email'])?$options['email']:'member@example.invalid'):'','user_password'=>md5('FixturePassword123!'),'user_passwd_change'=>time()));}
+ $lp_redirect=$lp_error='';$raw=isset($options['name'])?$options['name']:'Member';$name=phpbb_username_key($raw,!empty($options['legacy'])?ENT_COMPAT:ENT_QUOTES);$raw_password=isset($options['password'])?$options['password']:'FixturePassword123!';profile_fixture_request(array('password'=>$raw_password));$credential=$_POST['password'];
+ foreach(array(-1,2)as$id){lp_insert('fixture_users',array('user_id'=>$id,'username'=>$id===2?$name:'Anonymous','user_active'=>1,'user_level'=>0,'user_blocktime'=>0,'user_email'=>$id===2?(isset($options['email'])?$options['email']:'member@example.invalid'):'','user_password'=>md5($credential),'user_passwd_change'=>$id===2&&isset($options['changed_at'])?$options['changed_at']:time()));}
  $sid=str_repeat('a',32);lp_insert('fixture_sessions',array('session_id'=>$sid,'session_user_id'=>-1,'session_ip'=>'7f000001','session_logged_in'=>0,'session_admin'=>0));
- profile_fixture_request(array('login'=>'1','username'=>$raw,'password'=>'FixturePassword123!','sid'=>$sid));$HTTP_COOKIE_VARS=array('fixture_sid'=>$sid);
+ profile_fixture_request(array('login'=>'1','username'=>$raw,'password'=>$raw_password,'sid'=>$sid));$HTTP_COOKIE_VARS=array('fixture_sid'=>$sid);
  $userdata=array('user_id'=>-1,'session_id'=>$sid,'session_logged_in'=>false);$board_config=array('board_disable'=>0,'password_hashing'=>0,'cookie_name'=>'fixture','cookie_path'=>'/','cookie_domain'=>'','cookie_secure'=>0,'allow_autologin'=>1,'session_length'=>3600,'min_password_len'=>8,'password_not_login'=>0,'force_complex_password'=>0,'max_password_age'=>0);$plus_config=array('disable_sid'=>1);
  if(!empty($options['rehash'])){$board_config['password_hashing']=1;}
+ if(isset($options['policy'])){foreach($options['policy']as$key=>$value){$board_config[$key]=$value;}}
  foreach($board_config as$key=>$value){lp_insert('fixture_config',array('config_name'=>$key,'config_value'=>$value));}
  if(!empty($options['persistent'])){$_POST['autologin']=$HTTP_POST_VARS['autologin']='1';}
  if(!empty($options['stale_cookie'])){$HTTP_COOKIE_VARS['fixture_data']=addslashes(serialize(array('userid'=>2,'autologinid'=>str_repeat('b',32))));}
@@ -66,7 +67,7 @@ function lp_login($race=false,$options=array()){
  if(!empty($options['admin'])){$_POST['admin']=$HTTP_POST_VARS['admin']='1';}
  $ctracker_config=new stdClass();$ctracker_config->settings=array('logsize_logins'=>10,'login_history'=>0,'login_ip_check'=>0);$template=new LoginPublicationTemplate();$phpEx='php';$user_ip='7f000001';$_SERVER['REQUEST_METHOD']='POST';
  if(isset($options['setup'])){call_user_func($options['setup']);}
- try{if(!empty($options['automatic'])){$_SERVER['REQUEST_METHOD']='GET';$user=session_pagestart($user_ip,0,0);return !empty($user['session_logged_in'])?'published':'guest';}eval($lp_body);}catch(LoginPublicationExit$e){return $e->getMessage();}catch(AttachSettingsExit$e){return 'denied';}throw new RuntimeException('Login must terminate');
+ try{if(!empty($options['automatic'])){$_SERVER['REQUEST_METHOD']='GET';$user=session_pagestart($user_ip,0,0);return !empty($user['session_logged_in'])?'published':'guest';}eval($lp_body);}catch(LoginPublicationExit$e){return $e->getMessage();}catch(AttachSettingsExit$e){$lp_error=$e->getMessage();return 'denied';}throw new RuntimeException('Login must terminate');
 }
 try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
@@ -150,4 +151,22 @@ try{
  ats_check(lp_login(false,array('automatic'=>1,'reuse'=>1))==='denied'&&$main->db_connect_id!==null&&lp_rows('SELECT * FROM fixture_caller')===array(),'Automatic factory reuse cannot close/commit caller');$main->sql_query('ROLLBACK');$auto_cases++;
  $setup=function(){lp_query('DELETE FROM fixture_users WHERE user_id=-1');};ats_check(lp_login(false,array('automatic'=>1,'missing_key'=>1,'setup'=>$setup))==='denied'&&$lp_cookies===array(),'Missing guest seed cannot publish automatic fallback');$auto_cases++;
  echo 'Native automatic login publication: '.$auto_cases." boundary/failure cases passed.\n";
+ $policy_cases=0;$now=time();
+ foreach(array(
+  'zero'=>array(array('changed_at'=>0),true,-9999),
+  'weak'=>array(array('password'=>'short','policy'=>array('min_password_len'=>8)),true,-9999),
+  'equal-name'=>array(array('password'=>'Member','policy'=>array('min_password_len'=>1,'password_not_login'=>1)),true,-9999),
+  'no-digit'=>array(array('password'=>'LongEnoughLetters','policy'=>array('force_complex_password'=>1)),true,-9999),
+  'warning'=>array(array('changed_at'=>$now-17*86400,'policy'=>array('max_password_age'=>30)),true,$now-17*86400),
+  'fresh'=>array(array('changed_at'=>$now,'policy'=>array('max_password_age'=>30)),false,$now),
+  'legacy-unknown-age'=>array(array('changed_at'=>0,'policy'=>array('max_password_age'=>1)),true,-9999)
+ )as$kind=>$case){ats_check(lp_login(false,$case[0])==='published','Actual current policy accepts change/warning path: '.$kind);ats_check((strpos($lp_redirect,'ch_passwd=1')!==false)===$case[1]&&(int)lp_rows('SELECT user_passwd_change FROM fixture_users WHERE user_id=2')[0]['user_passwd_change']===$case[2],'Actual redirect and atomic marker agree: '.$kind);$policy_cases++;}
+ foreach(array(array('changed_at'=>$now-2*86400),array('changed_at'=>$now-2*86400,'password'=>'weak'),array('changed_at'=>-9999))as$options){$options['policy']=array('max_password_age'=>1);$options['persistent']=1;$options['rehash']=1;ats_check(lp_login(false,$options)==='denied'&&$lp_cookies===array()&&strpos($lp_error,$lang['Passwd_have_expired'])===0,'Expired manual credential keeps its useful message but never delivers capability');ats_check(lp_rows('SELECT session_id FROM fixture_sessions WHERE session_user_id=2')===array()&&lp_rows('SELECT key_id FROM fixture_sessions_keys WHERE user_id=2')===array(),'Expired credential cannot publish session or persistent key');ats_check((int)lp_rows('SELECT user_passwd_change FROM fixture_users WHERE user_id=2')[0]['user_passwd_change']===$options['changed_at'],'Expiration never overwrites credential timestamp');$policy_cases++;}
+ $fresh=time();$hash=md5('AnotherNewPassword123!');$after=function()use($fresh,$hash){lp_query("UPDATE fixture_users SET user_password='$hash',user_passwd_change=$fresh WHERE user_id=2");};ats_check(lp_login(false,array('changed_at'=>0,'after'=>$after))==='published','Original full-controller timestamp race remains a valid login followed by reset');$row=lp_rows('SELECT user_password,user_passwd_change FROM fixture_users WHERE user_id=2')[0];ats_check($row['user_password']===$hash&&(int)$row['user_passwd_change']===$fresh,'No postcommit policy write can overwrite a later password reset');$policy_cases++;
+ foreach(array('min_password_len'=>30,'password_not_login'=>1,'force_complex_password'=>1,'max_password_age'=>1)as$key=>$value){$fired=false;$hook=function($sql)use(&$fired,$key,$value){if(!$fired&&strpos($sql,'SELECT config_name,config_value FROM fixture_config LOCK IN SHARE MODE')===0){$fired=true;lp_query("UPDATE fixture_config SET config_value='$value' WHERE config_name='$key'");}};ats_check(lp_login(false,array('hook'=>$hook))==='denied'&&$fired&&$lp_cookies===array(),'Stale password policy cannot publish capability');$policy_cases++;}
+ ats_check(lp_login(false,array('changed_at'=>0,'rehash'=>1,'persistent'=>1))==='published','Record full owned force-change path');$query_total=$lp_query_count;
+ for($at=1;$at<=$query_total;$at++){ats_check(lp_login(false,array('changed_at'=>0,'rehash'=>1,'persistent'=>1,'failure'=>$at))==='denied'&&$lp_cookies===array(),'Each force-change query failure denies delivery');$row=lp_rows('SELECT user_password,user_passwd_change FROM fixture_users WHERE user_id=2')[0];ats_check($row['user_password']===md5('FixturePassword123!')&&(int)$row['user_passwd_change']===0&&lp_rows('SELECT session_id FROM fixture_sessions WHERE session_user_id=2')===array(),'Force-change, rehash and session roll back together');$policy_cases++;}
+ foreach(array($now-2*86400,0,-9999,$now)as$changed){$expect_auth=$changed===$now;ats_check(lp_login(false,array('automatic'=>1,'changed_at'=>$changed,'policy'=>array('max_password_age'=>1)))===($expect_auth?'published':'guest'),'Persistent credentials cannot bypass current password age');$policy_cases++;}
+ foreach(array("O'Reilly!123",'Back\\slash123!',str_repeat('ä',10).'123!',str_repeat('x',73))as$password){ats_check(lp_login(false,array('password'=>$password))==='published','Legacy verified bytes, quotes, backslashes and Unicode remain usable');$policy_cases++;}
+ echo 'Native owned password policy: '.$policy_cases." force/expiry/race cases passed.\n";
 }finally{$main->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}

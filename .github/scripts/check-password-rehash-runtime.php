@@ -60,7 +60,7 @@ try
         $board_config['password_hashing']=1;$password=str_repeat('x',73);$row['user_password']=md5($password);$upgraded_password=null;eval($dispatch);
         check($upgraded_password===null,'Long legacy password is never truncation-rehashed');
         $owner=file_get_contents($root.'includes/functions_login_storage.php');
-        check(strpos($login,'phpbb_login_session($db, $row,')!==false&&strpos($login,'$admin, $upgraded_password)')!==false,'Actual controller hands observed snapshot and upgrade to owned publication');
+        check(strpos($login,'phpbb_login_session($db, $row,')!==false&&strpos($login,'$admin, $upgraded_password, $password)')!==false,'Actual controller hands observed snapshot, upgrade and verified policy bytes to owned publication');
         check(strpos($owner,"array('user_id','username','user_password','user_active','user_level','user_blocktime')")!==false&&strpos($owner,'hash_equals((string)$expected[$key], (string)$current[$key])')!==false,'Owner binds upgrades to exact credential and current account context');
         echo 'Actual monotonic password rehash generation and owned publication wiring passed: '.PHP_VERSION."\n";
 }

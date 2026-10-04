@@ -841,6 +841,12 @@ $config_defaults = array(
 	'sfs_enable' => '0',
 	'sfs_fail_closed' => '0',
 	'password_hashing' => '1',
+	// The login publication checks these current policy rows under lock. Repair
+	// absent legacy rows without overwriting an administrator's existing choices.
+	'min_password_len' => '6',
+	'password_not_login' => '1',
+	'force_complex_password' => '0',
+	'max_password_age' => '730',
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',
 	'dbmtnc_rebuild_job' => '',

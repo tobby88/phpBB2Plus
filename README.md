@@ -147,6 +147,14 @@ key, policy and ban state remain locked through key rotation and session commit.
 Revoked or inactive credentials fall back to a guest session, never to ACP access;
 failed or unconfirmed database operations do not deliver a new login capability.
 
+For newly authenticated sessions, password-policy checks and force-change markers
+are committed with the login, before cookies. A known expired password cannot
+create a session or persistent key (nor bypass expiry by being weak); the login
+page retains its reset-password link. Persistent-key restoration also respects
+the configured maximum age. A legacy zero change timestamp retains its manual
+change prompt. The updater repairs missing policy rows without overwriting existing
+administrator choices. No password-byte normalization or new columns are required.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

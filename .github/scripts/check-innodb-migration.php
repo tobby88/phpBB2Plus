@@ -76,11 +76,12 @@ try {
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Fresh installation all InnoDB');
  // Exercise the actual CLI updater against a fully isolated fresh schema,
  // then a mixed-engine already-upgraded schema. Never read a real config.
+ plus_storage_query($db,"INSERT INTO phpbb_config(config_name,config_value) VALUES ('min_password_len','13'),('max_password_age','0')");
  $config_file=tempnam(sys_get_temp_dir(),'plus-storage-config-');chmod($config_file,0600);
  $config="<?php\n";
  foreach(array('dbhost'=>'127.0.0.1:'.$port,'dbuser'=>'root','dbpasswd'=>$password,'dbname'=>$name,'table_prefix'=>'phpbb_','dbms'=>'mysqli') as $key=>$value){$config.='$'.$key.'='.var_export($value,true).";\n";}
  file_put_contents($config_file,$config);
- foreach(array('dry','missing-maintenance','full','storage','retry') as $case){
+ foreach(array('dry','missing-maintenance','full','full-retry','storage','retry') as $case){
   if($case==='storage'){plus_storage_query($db,'ALTER TABLE phpbb_posts ENGINE=MyISAM');}
   $command=escapeshellarg(PHP_BINARY);
   if(DIRECTORY_SEPARATOR==='\\'){$command.=' -n -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d extension=php_mysqli.dll';}
@@ -91,6 +92,12 @@ try {
   $pipes=array();$p=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));
   storage_check(is_resource($p),'Updater subprocess');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($p);
   storage_check($code===($case==='missing-maintenance'?2:0),'Actual updater '.$case.' failed: '.$err);
+  $settings=plus_storage_rows($db,"SELECT config_name,config_value FROM phpbb_config WHERE config_name IN ('min_password_len','password_not_login','force_complex_password','max_password_age') ORDER BY config_name");
+  if($case==='dry'||$case==='missing-maintenance'){
+   storage_check($settings===array(array('config_name'=>'max_password_age','config_value'=>'0'),array('config_name'=>'min_password_len','config_value'=>'13')),'Dry/refused updater cannot insert or overwrite password policy');
+  }else{
+   storage_check($settings===array(array('config_name'=>'force_complex_password','config_value'=>'0'),array('config_name'=>'max_password_age','config_value'=>'0'),array('config_name'=>'min_password_len','config_value'=>'13'),array('config_name'=>'password_not_login','config_value'=>'1')),'Full/repeated updater repairs missing password settings while preserving chosen strength/disabled expiry');
+  }
  }
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Actual updater left all tables InnoDB');
  echo "Native migration, strict data preservation, unique constraints, interruption/resume, locks, engine mix and fresh schema passed\n";

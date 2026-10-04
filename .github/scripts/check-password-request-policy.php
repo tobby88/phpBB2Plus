@@ -1,5 +1,5 @@
 <?php
-// Execute real bootstrap normalization and every controller's policy call.
+// Execute real bootstrap normalization and every controller/owned worker policy call.
 // This is a request/policy test, not a database or browser integration test.
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 require_once $root . 'includes/php_compat.php';
@@ -22,7 +22,7 @@ function request_policy_check($ok, $label)
 function request_policy_call($statement, $variable, $value)
 {
     $username = 'Fixture'; $admin_name = 'Fixture';
-    $row = $userdata = array('username'=>'Fixture');
+    $current = $row = $userdata = array('username'=>'Fixture');
     $password = $new_password = $admin_password_value = $value;
     eval($statement);
     return $$variable;
@@ -33,7 +33,7 @@ set_error_handler(function($severity, $message) {
 try
 {
     $calls = array();
-    foreach (array('install/install.php', 'login.php', 'change_password.php',
+    foreach (array('install/install.php', 'includes/functions_login_storage.php', 'change_password.php',
         'admin/admin_users.php', 'admin/admin_user_register.php',
         'includes/usercp_register.php', 'includes/usercp_activate.php') as $path)
     {
@@ -42,6 +42,9 @@ try
         request_policy_check(count($matches) === ($path === 'admin/admin_users.php' ? 2 : 1), 'All policy calls found: ' . $path);
         foreach ($matches as $match) { $calls[] = array($path, $match[0], $match[1]); }
     }
+    $login_source=file_get_contents($root.'login.php');
+    request_policy_check(strpos($login_source,'phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password, $password)')!==false,'Controller passes its exact verified bytes to the owned policy worker');
+    request_policy_check(strpos($login_source,'validate_complex_password')===false&&strpos($login_source,"SET user_passwd_change")===false,'No duplicate or postcommit controller policy write');
 
     // The installer is standalone: test its explicit encoded-input call before
     // the common.php flag exists. Literal backslash-zero must remain usable.

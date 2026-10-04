@@ -100,7 +100,11 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 						$autologin = ( isset($_POST['autologin']) ) ? TRUE : 0;
 	
 						$admin = (isset($HTTP_POST_VARS['admin'])) ? 1 : 0;
-						try { $session_id = phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password); }
+						try { $session_id = phpbb_login_session($db, $row, $user_ip, PAGE_INDEX, $autologin, $admin, $upgraded_password, $password); }
+						catch (PhpbbLoginPasswordExpired $e) {
+							$message = $lang['Passwd_have_expired'] . '<br /><br /><a href="'.append_sid("profile.$phpEx?mode=sendpassword").'">'.$lang['Send_new_passwd'].'</a><br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid("index.$phpEx") . '">', '</a>');
+							message_die(GENERAL_MESSAGE, $message);
+						}
 						catch (PhpbbLoginException $e) { message_die(GENERAL_MESSAGE, $lang['Login_changed']); }
 	
 						// CrackerTracker v5.x
@@ -121,34 +125,12 @@ if( isset($_POST['login']) || isset($_POST['logout']) || isset($_GET['logout']) 
 							// End add - Protect user account MOD
 							$redirect_value = (isset($_POST['redirect']) && is_scalar($_POST['redirect'])) ? (string) $_POST['redirect'] : '';
 							$url = ( $redirect_value !== '' ) ? str_replace('&amp;', '&', htmlspecialchars($redirect_value)) : "portal.$phpEx";
-							// Start add - Protect user account MOD
-							if ($session_id['user_id']!=ANONYMOUS )
+							// Policy and any force-change marker were decided under the
+							// account lock, before cookies. Never overwrite a later reset.
+							if (!empty($session_id['login_change_password']))
 							{
-								include_once($phpbb_root_path . "includes/functions_validate.$phpEx");
-								$pass_result = validate_complex_password ($username, $password);
-								if ( $session_id['user_passwd_change']==0 || $pass_result['error']== true)
-								{
-									//force a change of password, do not allow a secound login
-									$sql = "UPDATE " . USERS_TABLE . " SET user_passwd_change='-9999'
-									WHERE user_id = '" . $session_id['user_id'] . "'";
-									if ( !($result = $db->sql_query($sql)) )
-									{
-										message_die(GENERAL_ERROR, 'Error updating correct login data2', '', __LINE__, __FILE__, $sql);
-									}
-									$url .= ( strpos($url, '?') !== false ) ? '&ch_passwd=1' : '?ch_passwd=1';
-								} else
-								if ((  intval((time()-$session_id['user_passwd_change']) / 86400) >= $board_config['max_password_age'])&&$board_config['max_password_age'] > 0)
-								{
-									session_end($session_id['session_id'], $session_id['user_id']);
-									$message = $lang['Passwd_have_expired'] . '<br /><br /><a href="'.append_sid("profile.$phpEx?mode=sendpassword").'">'.$lang['Send_new_passwd'].'</a><br /><br />' .  sprintf($lang['Click_return_portal'], '<a href="' . append_sid("portal.$phpEx") . '">', '</a>');
-									message_die(GENERAL_MESSAGE, $message);
-								} else
-								if (( intval((time()-$session_id['user_passwd_change']) / 86400)+(($board_config['max_password_age']<14) ? 1 : 14) >= $board_config['max_password_age'] )&&$board_config['max_password_age'] > 0)
-								{
-									$url .= ( strpos($url, '?') !== false ) ? '&ch_passwd=1' : '?ch_passwd=1';
-								}
+								$url .= (strpos($url, '?') !== false) ? '&ch_passwd=1' : '?ch_passwd=1';
 							}
-							// End add - Protect user account MOD
 							redirect(append_sid($url, true));
 						}
 						else
