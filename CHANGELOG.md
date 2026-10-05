@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Own all five user-list bulk actions in a dedicated canonical InnoDB
+  transaction. Lock the exact current ACP session, role/delegated module,
+  selected targets and group/ACL inputs until complete publication. A failure
+  cannot retain earlier target changes or session invalidation; uncertain
+  commits never report success. Keep administrators/self/absent targets intact,
+  synchronize ban warnings with current policy, preserve independent/mixed
+  IP/email rules on user unban and derive moderator roles from valid current
+  memberships, including repair of nullable historical status/role fields.
+  Replace the old partial-save simulation with real MariaDB
+  controller, failure, concurrency and SQL-mode coverage. Existing storage and
+  warning-policy migrations already cover the complete path.
+
 - Save ACP user/IP/email bans, warning changes and matching session invalidation
   in one owned canonical InnoDB transaction. Lock the current exact ACP session,
   active role/delegated module and warning policy; refuse stale authority,

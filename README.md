@@ -193,6 +193,18 @@ ban behind; a lost commit acknowledgement reports no success and requires
 checking the current list before retrying. The existing storage updater covers
 the participating tables and seeds a missing warning-limit setting only.
 
+User-list bulk activation, deactivation, user banning/unbanning and group
+assignment also publish the complete selection in one dedicated canonical
+InnoDB transaction. Current exact ACP session, role/delegated module and target
+eligibility are locked; administrators, the acting user and absent IDs stay
+untouched. Failed batches restore earlier targets and invalidated sessions.
+Ban warnings use the current setting, user unbans retain independent IP/email
+components, and group assignments derive moderator roles from current valid
+memberships and forum ACLs. Native MariaDB checks cover every statement failure,
+nullable historical status/role fields, strict SQL modes, concurrent revocations
+and uncertain commits. The existing
+storage/warning-policy updater is sufficient; no additional tables are created.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

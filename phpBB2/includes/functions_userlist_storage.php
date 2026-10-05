@@ -1,134 +1,144 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
-require_once dirname(__FILE__) . '/functions_moderator_identity.php';
-require_once dirname(__DIR__) . '/attach_mod/includes/functions_mutation.php';
+require_once dirname(__FILE__) . '/functions_login_storage.php';
+require_once dirname(__FILE__) . '/functions_acl_storage.php';
 
 class PhpbbUserlistException extends RuntimeException {}
 function phpbb_userlist_error($key)
 {
-	global $lang;
-	throw new PhpbbUserlistException(isset($lang[$key]) ? $lang[$key] : $key);
-}
-class PhpbbUserlistDatabase
-{
-	var $connection;
-	function __construct($connection) { $this->connection = $connection; }
-	function __call($method, $args) { return call_user_func_array(array($this->connection, $method), $args); }
-	function sql_query($sql, $transaction = false)
-	{
-		$result = $this->connection->sql_query($sql, $transaction);
-		if (!$result) { phpbb_userlist_error('Admin_userlist_storage_failed'); }
-		return $result;
-	}
+    global $lang;
+    throw new PhpbbUserlistException(isset($lang[$key]) ? $lang[$key] : $key);
 }
 function phpbb_userlist_id($value)
 {
-	if (!(is_int($value) || is_string($value)) || !preg_match('/^[0-9]+$/D', (string) $value)) { phpbb_userlist_error('Admin_userlist_invalid_selection'); }
-	$value = ltrim((string) $value, '0');
-	if ($value === '' || strlen($value) > 8 || (int) $value > 16777215) { phpbb_userlist_error('Admin_userlist_invalid_selection'); }
-	return (int) $value;
-}
-function phpbb_userlist_rows($db, $sql)
-{
-	$result = $db->sql_query($sql);
-	$rows = $db->sql_fetchrowset($result);
-	$db->sql_freeresult($result);
-	return $rows;
-}
-function phpbb_userlist_actor($db)
-{
-	global $userdata, $phpEx;
-	$user = phpbb_current_moderator_user($db);
-	if (!$user || empty($userdata['session_admin'])) { phpbb_userlist_error('Not_Authorised'); }
-	// DISTINCT makes the account snapshot a derived table even on MySQL:
-	// UPDATE users may not directly subselect the same target table there.
-	$user['write_guard'] = ' AND EXISTS (SELECT 1 FROM (SELECT DISTINCT user_id, user_level, user_active FROM ' . USERS_TABLE . ' WHERE user_id = ' . (int) $user['user_id'] . ') userlist_actor'
-		. ' WHERE userlist_actor.user_id = ' . (int) $user['user_id'] . ' AND userlist_actor.user_active <> 0 AND userlist_actor.user_level = ' . (int) $user['user_level'] . ')';
-	if ((int) $user['user_level'] === ADMIN) { return $user; }
-	require_once dirname(__FILE__) . '/functions_jr_admin.php';
-	$rows = phpbb_userlist_rows($db, 'SELECT user_jr_admin FROM ' . JR_ADMIN_TABLE . ' WHERE user_id = ' . (int) $user['user_id']);
-	$routes = jr_admin_authorization_routes();
-	if ($rows && $routes !== false)
-	{
-		foreach (explode(EXPLODE_SEPERATOR_CHAR, $rows[0]['user_jr_admin']) as $hash)
-		{
-			if (isset($routes[$hash]) && jr_admin_route_matches_file($routes[$hash], 'admin_users_list.' . $phpEx))
-			{
-				$user['write_guard'] .= ' AND EXISTS (SELECT 1 FROM ' . JR_ADMIN_TABLE . ' j WHERE j.user_id = ' . (int) $user['user_id']
-					. " AND j.user_jr_admin = '" . $db->sql_escape($rows[0]['user_jr_admin']) . "')";
-				return $user;
-			}
-		}
-	}
-	phpbb_userlist_error('Not_Authorised');
+    if (!(is_int($value) || is_string($value)) || !preg_match('/^[0-9]+$/D', (string)$value)) { phpbb_userlist_error('Admin_userlist_invalid_selection'); }
+    $value = ltrim((string)$value, '0');
+    if ($value === '' || strlen($value) > 8 || (int)$value > 16777215) { phpbb_userlist_error('Admin_userlist_invalid_selection'); }
+    return (int)$value;
 }
 
-// The shared writer connection also coordinates with moderated content changes.
-// Other legacy permission writers still need the same boundary; a lock alone
-// is not a substitute for repeating protected-target predicates on each write.
+// Same independent transaction/mutex as login, with action-specific additional
+// tables. A failed batch cannot expire sessions or apply only its first targets.
+class PhpbbUserlistDatabase extends PhpbbLoginDatabase
+{
+    function __construct($database, $action)
+    {
+        $tables = array(JR_ADMIN_TABLE);
+        if ($action === 'group') { $tables = array_merge($tables, array(GROUPS_TABLE, USER_GROUP_TABLE, AUTH_ACCESS_TABLE, FORUMS_TABLE)); }
+        parent::__construct($database, $tables);
+        try { $this->actor(); }
+        catch (Exception $e) { $this->release(); throw $e; }
+        catch (Error $e) { $this->release(); throw $e; }
+    }
+    function sql_query($sql, $transaction = false)
+    {
+        // Every authority/policy/eligibility read sees current committed rows,
+        // never an older RR snapshot, and pins them through complete COMMIT.
+        if (is_string($sql) && preg_match('/^\\s*SELECT\\b/i', $sql) && stripos($sql, 'information_schema.') === false
+            && !preg_match('/(?:FOR UPDATE|LOCK IN SHARE MODE)\\s*$/i', $sql)) {
+            $sql = rtrim($sql, "; \t\r\n") . ' LOCK IN SHARE MODE';
+        }
+        return parent::sql_query($sql, $transaction);
+    }
+    function actor()
+    {
+        global $userdata, $phpEx;
+        $id = phpbb_acl_id(isset($userdata['user_id']) ? $userdata['user_id'] : null);
+        $sid = isset($userdata['session_id']) && is_string($userdata['session_id']) ? $this->sql_escape($userdata['session_id']) : '';
+        if (!$this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='$sid' AND HEX(session_id)=HEX('$sid')"
+            . ' AND session_user_id=' . $id . ' AND session_logged_in=1 AND session_admin=1 LOCK IN SHARE MODE')) { phpbb_acl_error('Not_Authorised'); }
+        return phpbb_acp_actor($this, 'admin_users_list.' . $phpEx);
+    }
+    function commit() { $this->actor(); parent::commit(); }
+}
+
 function phpbb_userlist_apply($database, $action, $selection, $group = null)
 {
-	global $userdata;
-	if (!is_string($action) || !in_array($action, array('activate', 'deactivate', 'ban', 'unban', 'group'), true)
-		|| !is_array($selection) || !$selection || count($selection) > 1000) { phpbb_userlist_error('Admin_userlist_invalid_selection'); }
-	$ids = array();
-	foreach ($selection as $value) { $id = phpbb_userlist_id($value); $ids[$id] = $id; }
-	$group_id = $action === 'group' ? phpbb_userlist_id($group) : 0;
-	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id'])
-		|| !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals((string) $userdata['session_id'], $_POST['sid'])) { phpbb_userlist_error('Session_invalid'); }
-	$lock = new attach_mutation_lock($database);
-	if (!$lock->acquired) { phpbb_userlist_error('Attachment_storage_busy'); }
-	try
-	{
-		$db = new PhpbbUserlistDatabase($lock->connection);
-		$user = phpbb_userlist_actor($db);
-		$group_guard = $group_id ? ' AND EXISTS (SELECT 1 FROM ' . GROUPS_TABLE . ' g WHERE g.group_id = ' . $group_id . ' AND g.group_single_user = 0)' : '';
-		if ($group_id && !phpbb_userlist_rows($db, 'SELECT group_id FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id . ' AND group_single_user = 0')) { phpbb_userlist_error('Admin_userlist_invalid_group'); }
-		$changed = array();
-		foreach ($ids as $id)
-		{
-			$user = phpbb_userlist_actor($db);
-			$guard = 'user_id = ' . $id . ' AND user_id > 0 AND user_id <> ' . (int) $user['user_id'] . ' AND user_level <> ' . ADMIN . $user['write_guard'];
-			$eligible = 'EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' WHERE ' . $guard . ')' . $group_guard;
-			// Invalidate BEFORE any change. A failed invalidation must not leave a
-			// successfully disabled/banned account with a usable cached session.
-			// Repeated/no-op submissions may expire eligible targets' sessions too.
-			$db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id = ' . $id . ' AND ' . $eligible);
-			$count = 0;
-			if ($action === 'activate' || $action === 'deactivate')
-			{
-				$active = $action === 'activate' ? 1 : 0;
-				$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_active = ' . $active . ' WHERE ' . $guard . ' AND user_active <> ' . $active);
-				$count += (int) $db->sql_affectedrows();
-			}
-			elseif ($action === 'ban')
-			{
-				$db->sql_query('INSERT INTO ' . BANLIST_TABLE . " (ban_userid, ban_ip, ban_email) SELECT user_id, '', '' FROM " . USERS_TABLE . ' WHERE ' . $guard
-					. ' AND NOT EXISTS (SELECT 1 FROM ' . BANLIST_TABLE . ' b WHERE b.ban_userid = ' . $id . ')');
-				$count += (int) $db->sql_affectedrows();
-			}
-			elseif ($action === 'unban')
-			{
-				$db->sql_query('DELETE FROM ' . BANLIST_TABLE . ' WHERE ban_userid = ' . $id . ' AND ' . $eligible);
-				$count += (int) $db->sql_affectedrows();
-			}
-			else
-			{
-				$db->sql_query('INSERT INTO ' . USER_GROUP_TABLE . ' (group_id, user_id, user_pending) SELECT ' . $group_id . ', user_id, 0 FROM ' . USERS_TABLE
-					. ' WHERE ' . $guard . $group_guard . ' AND NOT EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug WHERE ug.user_id = ' . $id . ' AND ug.group_id = ' . $group_id . ')');
-				$count += (int) $db->sql_affectedrows();
-				// An explicit administrator addition approves a pending request too.
-				$db->sql_query('UPDATE ' . USER_GROUP_TABLE . ' SET user_pending = 0 WHERE user_id = ' . $id . ' AND group_id = ' . $group_id . ' AND user_pending <> 0 AND ' . $eligible);
-				$count += (int) $db->sql_affectedrows();
-				$db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_level = ' . MOD . ' WHERE ' . $guard . ' AND user_level = ' . USER . $group_guard
-					. ' AND EXISTS (SELECT 1 FROM ' . USER_GROUP_TABLE . ' ug, ' . AUTH_ACCESS_TABLE . ' a, ' . FORUMS_TABLE . ' f WHERE ug.user_id = ' . $id
-					. ' AND ug.group_id = ' . $group_id . ' AND ug.user_pending = 0 AND a.group_id = ug.group_id AND a.auth_mod = 1 AND f.forum_id = a.forum_id)');
-				$count += (int) $db->sql_affectedrows();
-				if (!phpbb_userlist_rows($db, 'SELECT group_id FROM ' . GROUPS_TABLE . ' WHERE group_id = ' . $group_id . ' AND group_single_user = 0')) { phpbb_userlist_error('Admin_userlist_storage_failed'); }
-			}
-			if ($count) { $changed[] = $id; }
-		}
-		return array('changed' => count($changed), 'unchanged' => count($ids) - count($changed));
-	}
-	finally { $lock->release(); }
+    global $userdata;
+    if (!is_string($action) || !in_array($action, array('activate','deactivate','ban','unban','group'), true)
+        || !is_array($selection) || !$selection || count($selection) > 1000) { phpbb_userlist_error('Admin_userlist_invalid_selection'); }
+    $ids = array();
+    foreach ($selection as $value) { $id = phpbb_userlist_id($value); $ids[$id] = $id; }
+    ksort($ids, SORT_NUMERIC);
+    $group_id = $action === 'group' ? phpbb_userlist_id($group) : 0;
+    if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST'
+        || empty($userdata['session_id']) || !is_string($userdata['session_id'])
+        || !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals($userdata['session_id'], $_POST['sid'])) { phpbb_userlist_error('Session_invalid'); }
+    $db = null;
+    try {
+        $db = new PhpbbUserlistDatabase($database, $action); $actor = $db->actor();
+        $limit = 0;
+        if ($action === 'ban') {
+            $rows = $db->rows('SELECT config_value FROM ' . CONFIG_TABLE . " WHERE config_name='max_user_bancard'");
+            if (count($rows) !== 1 || !preg_match('/^(?:0|[1-9][0-9]{0,4})$/D', (string)$rows[0]['config_value'])
+                || (int)$rows[0]['config_value'] > 32767) { phpbb_userlist_error('Admin_userlist_storage_failed'); }
+            $limit = (int)$rows[0]['config_value'];
+        }
+        if ($action === 'group') {
+            if (!$db->rows('SELECT group_id FROM ' . GROUPS_TABLE . ' WHERE group_id=' . $group_id . ' AND group_single_user=0 FOR UPDATE')) { phpbb_userlist_error('Admin_userlist_invalid_group'); }
+        }
+        $targets = $db->rows('SELECT user_id,user_level,user_active,user_warnings FROM ' . USERS_TABLE . ' WHERE user_id IN (' . implode(',', $ids) . ') ORDER BY user_id FOR UPDATE');
+        if ($action === 'group') {
+            // Hold all selected membership ranges and the current role inputs.
+            // Normal/orphan ACLs cannot create a moderator; valid memberships in
+            // other groups still preserve the role when this group is ordinary.
+            $db->rows('SELECT user_id,group_id,user_pending FROM ' . USER_GROUP_TABLE . ' WHERE user_id IN (' . implode(',', $ids) . ') ORDER BY user_id,group_id FOR UPDATE');
+            $db->rows('SELECT group_id FROM ' . GROUPS_TABLE . ' ORDER BY group_id');
+            $db->rows('SELECT group_id,forum_id,auth_mod FROM ' . AUTH_ACCESS_TABLE . ' ORDER BY group_id,forum_id');
+            $db->rows('SELECT forum_id FROM ' . FORUMS_TABLE . ' ORDER BY forum_id');
+        }
+        $changed = 0;
+        foreach ($targets as $target) {
+            $id = (int)$target['user_id'];
+            if ($id <= 0 || $id === (int)$actor['user_id'] || (int)$target['user_level'] === ADMIN) { continue; }
+            $db->actor(); $count = 0;
+            // This invalidation is part of the same transaction, including
+            // repeated no-op forms. Protected/absent targets are never touched.
+            $db->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id=' . $id);
+            if ($action === 'activate' || $action === 'deactivate') {
+                $active = $action === 'activate' ? 1 : 0;
+                $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_active=' . $active . ' WHERE user_id=' . $id . ' AND (user_active IS NULL OR user_active<>' . $active . ')');
+                $count += (int)$db->sql_affectedrows();
+            } elseif ($action === 'ban') {
+                if (!$db->rows('SELECT ban_id FROM ' . BANLIST_TABLE . ' WHERE ban_userid=' . $id . ' FOR UPDATE')) {
+                    $db->sql_query('INSERT INTO ' . BANLIST_TABLE . " (ban_userid,ban_ip,ban_email) VALUES ($id,'','')");
+                    if ((int)$db->sql_affectedrows() !== 1) { phpbb_userlist_error('Admin_userlist_storage_failed'); }
+                    $count++;
+                }
+                $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_warnings=' . $limit . ' WHERE user_id=' . $id . ' AND (user_warnings IS NULL OR user_warnings<>' . $limit . ')');
+                $count += (int)$db->sql_affectedrows();
+            } elseif ($action === 'unban') {
+                $bans = $db->rows('SELECT ban_id FROM ' . BANLIST_TABLE . ' WHERE ban_userid=' . $id . ' FOR UPDATE');
+                if ($bans) {
+                    // Remove only the user component of historical mixed rules.
+                    // Independent IP/email rules and warnings of unbanned users
+                    // are not blanket-reset by an unrelated bulk form.
+                    $db->sql_query('DELETE FROM ' . BANLIST_TABLE . " WHERE ban_userid=$id AND ban_ip='' AND (ban_email IS NULL OR ban_email='')");
+                    $count += (int)$db->sql_affectedrows();
+                    $db->sql_query('UPDATE ' . BANLIST_TABLE . ' SET ban_userid=0 WHERE ban_userid=' . $id);
+                    $count += (int)$db->sql_affectedrows();
+                    $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_warnings=0 WHERE user_id=' . $id . ' AND (user_warnings IS NULL OR user_warnings<>0)');
+                }
+            } else {
+                $membership = $db->rows('SELECT user_pending FROM ' . USER_GROUP_TABLE . ' WHERE user_id=' . $id . ' AND group_id=' . $group_id . ' FOR UPDATE');
+                if (count($membership) > 1) { phpbb_userlist_error('Admin_userlist_storage_failed'); }
+                if (!$membership) {
+                    $db->sql_query('INSERT INTO ' . USER_GROUP_TABLE . ' (group_id,user_id,user_pending) VALUES (' . $group_id . ',' . $id . ',0)');
+                    if ((int)$db->sql_affectedrows() !== 1) { phpbb_userlist_error('Admin_userlist_storage_failed'); }
+                    $count++;
+                } else {
+                    $db->sql_query('UPDATE ' . USER_GROUP_TABLE . ' SET user_pending=0 WHERE user_id=' . $id . ' AND group_id=' . $group_id . ' AND user_pending<>0');
+                    $count += (int)$db->sql_affectedrows();
+                }
+                $role = $db->rows('SELECT 1 AS allowed WHERE ' . phpbb_acl_mod_guard($id)) ? MOD : USER;
+                $db->sql_query('UPDATE ' . USERS_TABLE . ' SET user_level=' . $role . ' WHERE user_id=' . $id . ' AND (user_level IS NULL OR user_level IN (' . USER . ',' . MOD . ')) AND (user_level IS NULL OR user_level<>' . $role . ')');
+                $count += (int)$db->sql_affectedrows();
+            }
+            if ($count) { $changed++; }
+        }
+        $db->commit();
+        return array('changed'=>$changed, 'unchanged'=>count($ids)-$changed);
+    } catch (PhpbbAclException $e) { throw new PhpbbUserlistException($e->getMessage()); }
+    catch (PhpbbLoginException $e) { phpbb_userlist_error('Admin_userlist_storage_failed'); }
+    finally { if ($db) { $db->release(); } }
 }
