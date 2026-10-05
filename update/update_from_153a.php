@@ -853,6 +853,10 @@ $config_defaults = array(
 	'max_password_age' => '730',
 	// The ACP ban owner needs this current row, even on incomplete old installs.
 	'max_user_bancard' => '10',
+	// Temporary moderation blocks require a current policy too. Seed only absent
+	// rows; never replace an administrator's configured duration.
+	'block_time' => '15',
+	'board_disable' => '0',
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',
 	'dbmtnc_rebuild_job' => '',

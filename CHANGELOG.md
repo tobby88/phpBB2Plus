@@ -8,6 +8,24 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Publish red/yellow/green cards and temporary account blocks on an independent
+  canonical InnoDB connection. Pin the exact active session, current account,
+  consistent post/topic/forum identity (excluding shadows), existing non-pending
+  group membership and ACLs, target and policy, including a current board-disable
+  decision;
+  do not authorize destructive moderation from a cached role, NULL pending state
+  or orphan group. Invalid legacy membership references cannot disable an
+  otherwise valid root administrator.
+  Warnings, bans and session/autologin revocations commit together. User-mode
+  cards outside forums require a current administrator. Preserve independent
+  IP/mask/email components when removing a user ban. Send optional captured
+  notifications only after confirmed commit; missing or failed mail cannot
+  undo the saved action. Restore localized block duration and result messages,
+  and avoid an undefined mail template on repeated bans. Native checks exercise
+  the actual moderation POST/dispatch after shared bootstrap, rollback/failure,
+  strict SQL modes and concurrent authority changes; report/reset remain a
+  separate legacy workflow rather than being claimed protected by this owner.
+
 - Make IPv4 bans unambiguous with an additive octet-mask column. Support
   wildcards in every position and literal 255 octets consistently in the ACP,
   active-session invalidation, login and registration. Preserve existing rules'

@@ -108,7 +108,13 @@ try {
   }
   $warnings=plus_storage_rows($db,"SELECT config_value FROM phpbb_config WHERE config_name='max_user_bancard'");
   storage_check($warnings===($case==='dry'||$case==='missing-maintenance'?array():array(array('config_value'=>$case==='full'?'10':'17'))),'Missing warning policy is seeded only on apply, later configured choice preserved');
+  $blocks=plus_storage_rows($db,"SELECT config_value FROM phpbb_config WHERE config_name='block_time'");
+  storage_check($blocks===($case==='dry'||$case==='missing-maintenance'?array():array(array('config_value'=>$case==='full'?'15':'23'))),'Actual full updater seeds only absent block policy and preserves configured duration on every retry');
+  $disabled=plus_storage_rows($db,"SELECT config_value FROM phpbb_config WHERE config_name='board_disable'");
+  storage_check($disabled===($case==='dry'||$case==='missing-maintenance'?array():array(array('config_value'=>$case==='full'?'0':'1'))),'Full updater repairs missing disable policy without reopening an already disabled board');
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='17' WHERE config_name='max_user_bancard'");}
+  if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='23' WHERE config_name='block_time'");}
+  if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='1' WHERE config_name='board_disable'");}
  }
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Actual updater left all tables InnoDB');
  plus_storage_query($db,"INSERT INTO phpbb_banlist(ban_userid,ban_ip,ban_email,ban_ip_mask) VALUES(0,'7f0000ff','','ffffffff')");

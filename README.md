@@ -219,6 +219,23 @@ different. Existing compatible explicit masks are retained; incompatible columns
 or corrupt rules require review. Missing/corrupt storage cannot silently permit
 a new login or registration.
 
+Account moderation cards (ban, warn, unban and temporary block) use an independent
+canonical InnoDB transaction. They recheck the exact active session, current
+account/group/forum permissions, consistent post/topic/target identity and current
+warning/block/board-disable policy. NULL pending or orphan membership cannot
+grant permissions, and a mismatched or shadow parent topic cannot authorize a
+card. A failed or uncertain commit cannot report success or send a notice.
+Ban/block revokes current sessions and stored autologin keys atomically; unban
+removes only the user component and leaves separate IP/email rules intact.
+Optional email follows confirmed commit and does not control the durable result.
+Outside-forum user-mode cards require a current administrator. The native tests
+cover the actual moderation POST/dispatch after shared session bootstrap, not
+an HTTP browser test of that bootstrap; report/reset are separate workflows.
+This uses existing canonical tables and the preceding full IP-mask updater,
+without a new table. The full updater also seeds an absent `block_time` policy
+with 15 minutes and an absent `board_disable` policy with zero; it never overwrites
+an existing duration or reopens an already disabled board.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

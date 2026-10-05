@@ -94,18 +94,34 @@ if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper((string) $_SERVER['REQUEST_
 	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 }
 
+// Complete moderation publication precedes every cached post/role lookup.
+// Report/reset remain a separate workflow below; they are not account bans.
+if (in_array($mode, array('ban','unban','warn','block'), true))
+{
+    require_once($phpbb_root_path . 'includes/functions_card_storage.' . $phpEx);
+    try { $outcome=phpbb_card_moderate($db,$_POST,$user_ip); }
+    catch (PhpbbCardException $e) { message_die(GENERAL_MESSAGE,isset($lang[$e->getMessage()]) ? $lang[$e->getMessage()] : $lang['Card_storage_failed']); }
+    catch (Exception $e) { message_die(GENERAL_MESSAGE,$lang['Card_storage_failed']); }
+    catch (Error $e) { message_die(GENERAL_MESSAGE,$lang['Card_storage_failed']); }
+    require_once($phpbb_root_path . 'includes/functions_card_notifications.' . $phpEx);
+    $notification_ok=phpbb_card_notify($outcome);
+    $message=$lang[$outcome['message']];
+    if ($outcome['message']==='Ban_update_yellow') { $message=sprintf($message,$outcome['target']['user_warnings'],$outcome['limit']); }
+    if ($outcome['message']==='Block_update') { $message=sprintf($message,phpbb_card_duration($outcome['minutes'])); }
+    if (!$notification_ok) { $message.='<br /><br />'.$lang['Card_notification_failed']; }
+    $message.='<br /><br />'.sprintf($lang['Send_PM_user'],'<a href="'.append_sid('privmsg.'.$phpEx.'?mode=post&u='.$outcome['target_id']).'">','</a>');
+    $message.='<br /><br />'.($outcome['post_id']>0 ? sprintf($lang['Click_return_viewtopic'],'<a href="'.append_sid('viewtopic.'.$phpEx.'?p='.$outcome['post_id'].'#'.$outcome['post_id']).'">','</a>') : sprintf($lang['Click_return_index'],'<a href="'.append_sid('index.'.$phpEx).'">','</a>'));
+    message_die(GENERAL_MESSAGE,$message);
+}
+
 // check that we have all what is needed to know
 if ($post_id <= 0 && $user_id <= 0)
 	message_die(GENERAL_ERROR, "No user/post specified", "", __LINE__, __FILE__,'post_id="'.$post_id.'", user_id="'.$user_id.'"');
 if ( empty($mode) )
 	message_die(GENERAL_ERROR, "No action specified", "", __LINE__, __FILE__,'mode="'.$mode.'"');
 
-$no_error_ban = false;
-$block_time = '';
 $bluecard_limit = max(1, isset($board_config['bluecard_limit']) ? intval($board_config['bluecard_limit']) : 1);
 $bluecard_limit_2 = max(1, isset($board_config['bluecard_limit_2']) ? intval($board_config['bluecard_limit_2']) : 1);
-$max_user_bancard = max(1, isset($board_config['max_user_bancard']) ? intval($board_config['max_user_bancard']) : 1);
-$configured_block_minutes = max(1, isset($board_config['block_time']) ? intval($board_config['block_time']) : 15);
 
 if ( $post_id > 0 )
 {
@@ -264,231 +280,5 @@ if ($mode=="report")
 	message_die(GENERAL_MESSAGE, (($total_mods)?sprintf($lang['Post_repported'],$total_mods):$lang['Post_repported_1'])."<br /><br />".
 (($board_config['report_forum'])? sprintf($lang['Send_message'], "<a href=\"" . append_sid("posting.$phpEx?mode=".(($allready_reported)?"reply&t=".$allready_reported:"newtopic&f=".$board_config['report_forum'])."&postreport=".$post_id). "\">", "</a>"):"").
 sprintf($lang['Click_return_viewtopic'], "<a href=\"" . append_sid("viewtopic.$phpEx?p=".$post_id."#".$post_id). "\">", "</a>"));
-} else
-if ( $mode == 'unban' )
-{
-      $no_error_ban=FALSE;
-	if (! $is_auth['auth_greencard'] )
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-	// look up the user
-	$sql = 'SELECT user_active, user_warnings FROM ' . USERS_TABLE . ' WHERE user_id="'.$poster_id.'"';
-	if( !$result = $db->sql_query($sql) )
-      	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
-	$the_user = $db->sql_fetchrow($result);
-	if (!$the_user)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
-	}
-      // remove the user from ban list
-      $sql = 'DELETE FROM ' . BANLIST_TABLE . ' WHERE ban_userid="'.$poster_id.'"';
-      if (! $result = $db->sql_query($sql) )
-            message_die(GENERAL_ERROR, "Couldn't remove ban_userid info into database", "", __LINE__, __FILE__, $sql);
-      // update the user table with new status
-      $sql = 'UPDATE ' . USERS_TABLE . ' SET user_warnings="0" WHERE user_id="'.$poster_id.'"';
-      if(! $result = $db->sql_query($sql) )
-		message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
-	$message = $lang['Ban_update_green']."<br /><br />".
-		sprintf($lang['Send_PM_user'], "<a href=\"" . append_sid("privmsg.$phpEx?mode=post&u=$poster_id"). "\">", "</a>");
-      $e_temp="ban_reactivated";
-//      $e_subj=$lang['Ban_reactivate'];
-      $no_error_ban=true;
-} else
-
-if ( $mode == 'ban' )
-{
-      $no_error_ban=FALSE;
-	if (! $is_auth['auth_ban'] )
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-	// look up the user
-	$sql = 'SELECT user_active, user_level FROM ' . USERS_TABLE . ' WHERE user_id="'.$poster_id.'"';
-	if( !$result = $db->sql_query($sql) )
-      	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
-	$the_user = $db->sql_fetchrow($result);
-	if (!$the_user)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
-	}
-	if ($the_user['user_level']== ADMIN )
-		message_die(GENERAL_ERROR, $lang['Ban_no_admin']);
-
-	// insert the user in the ban list
-      $sql = 'SELECT ban_userid FROM ' . BANLIST_TABLE . ' WHERE ban_userid="'.$poster_id.'"';
-      if( $result = $db->sql_query($sql) )
-      {
-		if (!$db->sql_fetchrowset($result))
-		{
-			// insert the user in the ban list
-			$sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid) VALUES ($poster_id)";
-			if (!$result = $db->sql_query($sql) )
-				message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql);
-			// update the user table with new status
-			$sql = 'UPDATE ' . USERS_TABLE . ' SET user_warnings="'.$max_user_bancard.'" WHERE user_id="'.$poster_id.'"';
-			if(! $result = $db->sql_query($sql) )
-				message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
-			$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in="0" WHERE session_user_id="'.$poster_id.'"';
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't update banned sessions from database", "", __LINE__, __FILE__, $sql);
-			}
-			$no_error_ban=true;
-			$message = $lang['Ban_update_red'];
-			$e_temp="ban_block";
-//			$e_subj=$lang['Card_banned'];
-		} else
-      	{
-      		$no_error_ban = true;
-			$message = $lang['user_already_banned'];
-      	}
-	} else message_die(GENERAL_ERROR, "Couldn't obtain banlist information", "", __LINE__, __FILE__, $sql);
-} else
-
-if ( $mode == 'block' )
-{
-      $no_error_ban=FALSE;
-	if (! $is_auth['auth_ban'] )
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-	// look up the user
-	$sql = 'SELECT user_active, user_level FROM ' . USERS_TABLE . ' WHERE user_id=' . (int)$poster_id;
-	if( !$result = $db->sql_query($sql) )
-      	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
-	$the_user = $db->sql_fetchrow($result);
-	if (!$the_user)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
-	}
-	if ($the_user['user_level']== ADMIN )
-		message_die(GENERAL_ERROR, $lang['Block_no_admin']);
-	// update the user table with new status
-	$user_ip_sql = $db->sql_escape($user_ip);
-	$sql = 'UPDATE ' . USERS_TABLE . " SET user_block_by='" . $user_ip_sql . "', user_blocktime=" . (time() + $configured_block_minutes * 60) . ' WHERE user_id=' . (int)$poster_id;
-	if(! $result = $db->sql_query($sql) )
-		message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
-	$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in = 0, session_user_id = ' . ANONYMOUS . ', session_admin = 0 WHERE session_user_id = ' . $poster_id;
-	if ( !$db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, "Couldn't update blocked sessions from database", "", __LINE__, __FILE__, $sql);
-	}
-
-	$no_error_ban=true;
-	$block_time = make_time_text($configured_block_minutes);
-	$message = sprintf($lang['Block_update'],$block_time) . "<br /><br />".
-	sprintf($lang['Send_PM_user'], "<a href=\"" . append_sid("privmsg.$phpEx?mode=post&u=$poster_id"). "\">", "</a>");
-	$e_temp="card_block";
-//	$e_subj=sprintf($lang['Card_blocked'],$block_time);
-} else
-
-if ( $mode == 'warn' )
-{
-      $no_error_ban=FALSE;
-	if (! $is_auth['auth_ban'] )
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-	// look up the user
-	$sql = 'SELECT user_active, user_warnings, user_level FROM ' . USERS_TABLE . ' WHERE user_id="'.$poster_id.'"';
-	if( !$result = $db->sql_query($sql) )
-      	message_die(GENERAL_ERROR, "Couldn't obtain judge information.", "", __LINE__, __FILE__, $sql);
-	$the_user = $db->sql_fetchrow($result);
-	if (!$the_user)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
-	}
-	if ($the_user['user_level']== ADMIN )
-		message_die(GENERAL_ERROR, $lang['Ban_no_admin']);
-
-	//update the warning counter
-	$sql = 'UPDATE ' . USERS_TABLE . ' SET user_warnings=user_warnings+1 WHERE user_id="'.$poster_id.'"';
-	if(! $result = $db->sql_query($sql) )
-		message_die(GENERAL_ERROR, "Couldn't update user status information", "", __LINE__, __FILE__, $sql);
-
-      // se if the user are to be banned, if so do it ...
-      if ($the_user['user_warnings'] + 1 >= $max_user_bancard)
-      {
-	$sql = 'SELECT ban_userid FROM ' . BANLIST_TABLE . ' WHERE ban_userid="'.$poster_id.'"';
-	if( $result = $db->sql_query($sql) )
-	{
-		if (!$db->sql_fetchrowset($result))
-		{
-			// insert the user in the ban list
-			$sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid) VALUES ($poster_id)";
-			if (!$result = $db->sql_query($sql) )
-				message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql);
-			// update the user table with new status
-			$sql = 'UPDATE ' . SESSIONS_TABLE . ' SET session_logged_in="0" WHERE session_user_id="'.$poster_id.'"';
-			if ( !$db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, "Couldn't update banned sessions from database", "", __LINE__, __FILE__, $sql);
-			}
-			$no_error_ban=true;
-			$message = $lang['Ban_update_red'];
-			$e_temp="ban_block";
-//			$e_subj=$lang['Ban_blocked'];
-            } else
-            {
-			$no_error_ban = true;
-			$message = $lang['user_already_banned'];
-            }
-         } else message_die(GENERAL_ERROR, "Couldn't obtain banlist information", "", __LINE__, __FILE__, $sql);
-	} else
-	{
-		// the user shall not be baned this time, update the counter
-	      $message = sprintf($lang['Ban_update_yellow'], $the_user['user_warnings'] + 1, $max_user_bancard)."<br /><br />".
-sprintf($lang['Send_PM_user'], "<a href=\"" . append_sid("privmsg.$phpEx?mode=post&u=$poster_id"). "\">", "</a>");		$no_error_ban=true;
-	      $e_temp="ban_warning";
-//	      $e_subj=$lang['Ban_warning'];
-	}
 }
-
-if ($no_error_ban)
-{
-	$sql = 'SELECT username, user_warnings, user_email, user_lang FROM ' . USERS_TABLE . ' WHERE user_id="'.$poster_id.'"';
-      if( !$result = $db->sql_query($sql) )
-		message_die(GENERAL_ERROR, "Couldn't find the users personal information", "", __LINE__, __FILE__, $sql);
-	$warning_data=$db->sql_fetchrow($result);
-	if (!$warning_data)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_user']);
-	}
-      if (!empty($warning_data['user_email']))
-      {
-		include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-		$server_name = trim($board_config['server_name']);
-            $emailer = new emailer($board_config['smtp_delivery']);
-            $email_headers = "TO: '".$warning_data['username']."' <".$warning_data['user_email']. ">\r\n";
-		$email_headers .= ($userdata['user_email'] && $userdata['user_viewemail']) ?
-			"FROM: \"".$userdata['username']."\" <".$userdata['user_email'].">\r\n"  :
-			"FROM: \"".$board_config['sitename']."\" <" .$board_config['board_email'] . ">\r\n";
-	      $warning_lang = preg_match('/^[a-z0-9_-]+$/i', (string) $warning_data['user_lang']) ? stripslashes($warning_data['user_lang']) : '';
-	      $emailer->use_template($e_temp, $warning_lang);
-            $emailer->email_address($warning_data['user_email']);
-//            $emailer->set_subject($e_subj);
-            $emailer->extra_headers($email_headers);
-            $emailer->assign_vars(array(
-            	'SITENAME' => $board_config['sitename'],
-	            'WARNINGS' => $warning_data['user_warnings'],
-			'TOTAL_WARN' => $max_user_bancard,
-			'POST_URL' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . "=$post_id#$post_id"),
-      	      'EMAIL_SIG' => str_replace("<br />", "\n", "-- \n" . $board_config['board_email_sig']),
-            	'WARNER' => $userdata['username'],
-			'BLOCK_TIME' => $block_time,
-	            'WARNED_POSTER' => $warning_data['username'])
-		);
-//            if ($e_subj)
-//		{
-			$emailer->send();
-//		}
-            $emailer->reset();
-	}
-	else
-	{
-	 	$message .= "<br/><br/>".$lang['user_no_email'];
-	}
-}
-else
-{
-	$message = 'Error card.php file';
-}
-
-$message .= ( $post_id != '-1' ) ? "<br /><br />". sprintf($lang['Click_return_viewtopic'], "<a href=\"" . append_sid("viewtopic.$phpEx?p=".$post_id."#".$post_id). "\">", "</a>"):"<br /><br />". sprintf($lang['Click_return_index'], "<a href=\"" . append_sid("index.".$phpEx). "\">", "</a>");
-message_die(GENERAL_MESSAGE, $message);
-include($phpbb_root_path . 'includes/page_tail.'.$phpEx);
-
-?>
+message_die(GENERAL_ERROR, $lang['Not_Authorised']);

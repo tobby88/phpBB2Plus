@@ -1,8 +1,9 @@
-Subject: Your account has been re-activated
+Subject: Your user-account ban has been removed
 Charset: UTF-8
 
 Hello, {WARNED_POSTER}
 
-You account on {SITENAME} is now reactivated
+Your user-account ban and warnings on {SITENAME} have been removed.
+Independent IP and email bans remain unchanged.
 
 {EMAIL_SIG}

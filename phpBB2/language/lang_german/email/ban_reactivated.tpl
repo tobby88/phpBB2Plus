@@ -1,10 +1,11 @@
-Subject: Dein Nickname wurde reaktivert
+Subject: Deine Benutzersperre wurde aufgehoben
 Charset: UTF-8
 
 Hallo {WARNED_POSTER}!
 
 
-Dein Account auf {SITENAME} wurde reaktiviert!
+Deine Benutzersperre und Verwarnungen auf {SITENAME} wurden aufgehoben.
+Unabhängige IP- und E-Mail-Sperren bleiben unverändert.
 
 
 {EMAIL_SIG}
