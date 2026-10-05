@@ -64,6 +64,7 @@ try{
   else{ats_check($rows[0]['session_id']!==$old_sid&&$SID==='','Authenticated cookie session rotates without URL SID');}
  }
  $resumed=0;
+ foreach(array('','NO_BACKSLASH_ESCAPES','ANSI_QUOTES')as$sql_mode){ats_check($db->sql_query("SET SESSION sql_mode='$sql_mode'"),'Session resumption SQL mode');
  foreach(array('cookie','url')as$transport){foreach(array('active','admin','guest','elapsed-block','unknown-age','force-change','logged-out','inactive','blocked','guest-admin','guest-logged')as$case){
   list($id,$auto,$persistent,$old_sid,$admin)=session_creation_fixture(strpos($case,'guest')===0?'guest':'active');
   $board_config['session_length']=3600;$plus_config['show_last_visit']=0;$tree=array();
@@ -87,20 +88,11 @@ try{
   $access=auth(AUTH_READ,1,$current,array('forum_id'=>1,'auth_read'=>AUTH_REG));ats_check((bool)$access['auth_read']===$valid,'Actual registered forum ACL follows normalized session');
   if(!$valid&&$case!=='guest'){$data=unserialize($session_native_cookies['fixture_data']);ats_check((int)$data['userid']===-1&&$data['autologinid']===''&&count(session_creation_rows('SELECT key_id FROM fixture_keys WHERE user_id=2'))===1,'Rejected session delivers guest cookie without rotating/revoking unrelated device key');}
   $resumed++;
- }}
- // Execute the complete existing card block up to its success presentation;
- // permission/account checks and both production SQL statements are retained.
- $card=file_get_contents($ats_source.'card.php');$start=strpos($card,"if ( \$mode == 'block' )");$end=strpos($card,"\n\t\$no_error_ban=true;",$start);ats_check($start!==false&&$end>$start,'Actual card block boundary');$card_block=substr($card,$start,$end-$start)."\n}";
- foreach(array('','NO_BACKSLASH_ESCAPES','ANSI_QUOTES')as$sql_mode){$db->sql_query("SET SESSION sql_mode='$sql_mode'");
-  foreach(array('allowed','unauthorized','admin','missing')as$case){session_creation_fixture('active');session_begin(2,'7f000001',0,0,0,1);$before=session_creation_rows('SELECT * FROM fixture_sessions');
-   $mode='block';$is_auth=array('auth_ban'=>$case!=='unauthorized');$poster_id=$case==='missing'?99:2;$user_ip='7f000001';$configured_block_minutes=5;if($case==='admin'){session_creation_query('UPDATE fixture_users SET user_level=1 WHERE user_id=2');}$denied=false;
-   try{eval($card_block);}catch(AttachSettingsExit$e){$denied=true;}
-   ats_check($denied===($case!=='allowed'),'Actual card permission/target checks in SQL mode '.$sql_mode.' '.$case);
-   if(!$denied){$row=session_creation_rows('SELECT session_user_id,session_logged_in,session_admin FROM fixture_sessions')[0];ats_check((int)$row['session_user_id']===-1&&(int)$row['session_logged_in']===0&&(int)$row['session_admin']===0,'Actual card block clears complete session authority');ats_check((int)session_creation_rows('SELECT user_blocktime FROM fixture_users WHERE user_id=2')[0]['user_blocktime']>time(),'Actual card block sets deadline');}
-   else{ats_check(session_creation_rows('SELECT * FROM fixture_sessions')===$before&&(int)session_creation_rows('SELECT user_blocktime FROM fixture_users WHERE user_id=2')[0]['user_blocktime']===0,'Rejected card block does not change account/sessions');}
-  }
- }
- $db->sql_query("SET SESSION sql_mode=''");
+ }}}
+ // The actual owning card controller and session/key revocations are covered
+ // by check-card-native.php, not an extraction of its removed legacy branch.
+ // Keep session resurrection/fallback and ACL normalization here across modes.
+ $db->sql_query("SET SESSION sql_mode=''" );
  foreach(array('SELECT u.*, s.*','WHERE user_id = -1')as$read){
   session_creation_fixture('active');$board_config['session_length']=3600;$plus_config['show_last_visit']=0;$user=session_begin(2,'7f000001',0);session_creation_query('UPDATE fixture_sessions SET session_logged_in=0');$HTTP_COOKIE_VARS=array('fixture_sid'=>$user['session_id']);$session_native_cookies=array();$db->reject_read=str_replace('\\n',"\n",$read);$denied=false;
   try{session_pagestart('7f000001',0,0);}catch(AttachSettingsExit$e){$denied=true;}finally{$db->reject_read='';}
