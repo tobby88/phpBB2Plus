@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save ACP user/IP/email bans, warning changes and matching session invalidation
+  in one owned canonical InnoDB transaction. Lock the current exact ACP session,
+  active role/delegated module and warning policy; refuse stale authority,
+  malformed unban selections, non-migrated participants and self-disabling bans.
+  Explicit neutral ban columns work under strict SQL modes and the controller
+  no longer needs PHP 7.3's `is_countable`. Email bans now expire matching active
+  sessions as part of that save; duplicate remaining user bans retain warnings.
+  Failures roll back the whole request; uncertain commits never announce success.
+  The existing storage migration covers all tables; the updater also repairs a
+  missing warning-limit setting without changing existing configured values.
+
 - Preserve case-insensitive hexadecimal IP-ban matching in the session candidate
   filter, including historical upper-case exact and subnet rules. No stored ban
   value is rewritten; native manual/persistent tests cover all prefix depths.

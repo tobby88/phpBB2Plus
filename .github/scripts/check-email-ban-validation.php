@@ -65,13 +65,10 @@ foreach (array('fixture_bans','fixture_users') as $fail) {
 $phpbb_root_path = dirname(dirname(__DIR__)) . '/phpBB2/';
 $source = file_get_contents($phpbb_root_path . 'admin/admin_user_ban.php');
 $start = strpos($source, "\t\$email_list = array();");
-$end = strpos($source, "\n\t\$sql = \"SELECT *", $start);
+$end = strpos($source, "\n\t\t\$ban_scope->save", $start);
 email_validation_check($start !== false && $end > $start, 'Complete actual email-ban parser/protection block');
 $body = substr($source, $start, $end-$start);
 $body = str_replace("admin_ban_post_string('ban_email')", "trim(stripslashes(\$_POST['ban_email']))", $body);
-$body = str_replace('is_countable($email_list_temp)', 'is_array($email_list_temp)', $body);
-// The legacy parser's PHP 5.6 is_countable failure is a separate writer fix;
-// the local array shape replacement does not change which patterns are parsed.
 $ctracker_config = new EmailBanProtectedTracker(); $lang['ctracker_gmb_1stadmin'] = 'protected';
 foreach (array(
     array('*@example.invalid','founder@example.invalid',true),

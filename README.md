@@ -178,9 +178,20 @@ percent/underscore and regex punctuation stay literal. Historical `@domain`
 rules still mean the exact domain. Ban-reader failures refuse the operation.
 Stored addresses/rules are not rewritten and no migration is needed. This fixes
 new session publication and address validation, not immediate reevaluation of
-email bans on already existing sessions.
+email bans on already existing sessions on every page request.
 Hexadecimal IP bans retain their historical case-insensitive exact/subnet
 matching, including upper-case values from imports, without rewriting rules.
+
+The ACP ban-management save now owns user/IP/email rules, warning changes and
+matching active-session invalidation in a single dedicated InnoDB transaction.
+Current exact ACP session, active role or exact junior-admin grant and warning
+policy are held through commit. A new email ban expires matching sessions during
+that save, using the same literal/STAR matcher. Self-disabling bans are refused;
+removing one duplicate user ban retains warnings while another still applies.
+Strict SQL modes and PHP 5.6 are supported. Failed writes do not leave a partial
+ban behind; a lost commit acknowledgement reports no success and requires
+checking the current list before retrying. The existing storage updater covers
+the participating tables and seeds a missing warning-limit setting only.
 
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message

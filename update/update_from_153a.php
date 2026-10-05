@@ -847,6 +847,8 @@ $config_defaults = array(
 	'password_not_login' => '1',
 	'force_complex_password' => '0',
 	'max_password_age' => '730',
+	// The ACP ban owner needs this current row, even on incomplete old installs.
+	'max_user_bancard' => '10',
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',
 	'dbmtnc_rebuild_job' => '',

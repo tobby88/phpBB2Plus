@@ -98,6 +98,9 @@ try {
   }else{
    storage_check($settings===array(array('config_name'=>'force_complex_password','config_value'=>'0'),array('config_name'=>'max_password_age','config_value'=>'0'),array('config_name'=>'min_password_len','config_value'=>'13'),array('config_name'=>'password_not_login','config_value'=>'1')),'Full/repeated updater repairs missing password settings while preserving chosen strength/disabled expiry');
   }
+  $warnings=plus_storage_rows($db,"SELECT config_value FROM phpbb_config WHERE config_name='max_user_bancard'");
+  storage_check($warnings===($case==='dry'||$case==='missing-maintenance'?array():array(array('config_value'=>$case==='full'?'10':'17'))),'Missing warning policy is seeded only on apply, later configured choice preserved');
+  if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='17' WHERE config_name='max_user_bancard'");}
  }
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Actual updater left all tables InnoDB');
  echo "Native migration, strict data preservation, unique constraints, interruption/resume, locks, engine mix and fresh schema passed\n";

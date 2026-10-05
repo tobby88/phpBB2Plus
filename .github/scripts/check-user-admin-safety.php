@@ -3,6 +3,7 @@
 $root = dirname(dirname(__DIR__));
 $user_list = (string) file_get_contents($root . '/phpBB2/admin/admin_users_list.php');
 $ban = (string) file_get_contents($root . '/phpBB2/admin/admin_user_ban.php');
+$ban_storage = (string) file_get_contents($root . '/phpBB2/includes/functions_admin_ban_storage.php');
 $account = (string) file_get_contents($root . '/phpBB2/admin/admin_account.php');
 $admin_users = (string) file_get_contents($root . '/phpBB2/admin/admin_users.php');
 $profile_functions = (string) file_get_contents($root . '/phpBB2/includes/functions_profile_fields.php');
@@ -46,8 +47,10 @@ foreach (array(
 	'function admin_ban_post_string',
 	'function admin_ban_add_ip',
 	'($range_end - $range_start) > 4095',
-	'$db->sql_escape($email_list[$i])',
-	'$unban_ids = array_values(array_unique($unban_ids))',
+	'new PhpbbAdminBanScope($db, $_POST)',
+	'$ban_scope->save($user_list, $ip_list, $email_list, $_POST)',
+	'$ban_scope->commit();',
+	'$db = $ban_original_db;',
 	'phpbb_admin_html($ban_email)',
 	'phpbb_admin_session_field()'
 ) as $marker)
@@ -57,12 +60,16 @@ foreach (array(
 		$errors[] = 'Missing ban-management safety marker: ' . $marker;
 	}
 }
-foreach (array('$where_user_sql', 'str_replace("\\\'", "\'\'", $email_list[$i])') as $marker)
+foreach (array('$where_user_sql', 'is_countable(', 'INSERT INTO ', 'DELETE FROM ', 'UPDATE ', 'str_replace("\\\'", "\'\'", $email_list[$i])') as $marker)
 {
 	if (strpos($ban, $marker) !== false)
 	{
 		$errors[] = 'Legacy ban-management path remains: ' . $marker;
 	}
+}
+foreach (array('extends PhpbbLoginDatabase', 'array(JR_ADMIN_TABLE)', "phpbb_acp_actor(\$this, 'admin_user_ban.'", "hash_equals(\$userdata['session_id'], \$request['sid'])", '(ban_userid,ban_ip,ban_email)', 'phpbb_email_ban_matches($email,', 'parent::commit()') as $marker)
+{
+	if (strpos($ban_storage, $marker) === false) { $errors[] = 'Missing owned ban-management boundary: ' . $marker; }
 }
 
 foreach (array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', "in_array(\$mode, array('joindate', 'username', 'email'), true)") as $marker)
