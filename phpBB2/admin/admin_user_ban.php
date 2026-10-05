@@ -39,6 +39,7 @@ if ( !empty($setmodules) )
 $phpbb_root_path = './../';
 require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
+require_once($phpbb_root_path . 'includes/functions_ban.php');
 
 function admin_ban_post_string($name)
 {
@@ -47,11 +48,10 @@ function admin_ban_post_string($name)
 
 function admin_ban_add_ip(&$ip_list, $ip)
 {
-	if (count($ip_list) >= 4096)
-	{
-		message_die(GENERAL_MESSAGE, 'The requested IP range is too large.');
-	}
-	$ip_list[] = encode_ip($ip);
+	$rule = phpbb_ip_ban_parse($ip);
+	if (!$rule) { message_die(GENERAL_MESSAGE, $GLOBALS['lang']['Ban_invalid_IP']); }
+	if (count($ip_list) >= 4096 && !isset($ip_list[$rule['ip'] . ':' . $rule['mask']])) { message_die(GENERAL_MESSAGE, $GLOBALS['lang']['Ban_invalid_IP']); }
+	$ip_list[$rule['ip'] . ':' . $rule['mask']] = $rule;
 }
 
 //
@@ -94,22 +94,23 @@ if ( isset($_POST['submit']) )
 			{
 				if (!filter_var($ip_range_explode[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || !filter_var($ip_range_explode[2], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4))
 				{
-					message_die(GENERAL_MESSAGE, 'The requested IP range is invalid.');
+					message_die(GENERAL_MESSAGE, $lang['Ban_invalid_IP']);
 				}
-				$range_start = ip2long($ip_range_explode[1]);
-				$range_end = ip2long($ip_range_explode[2]);
-				if ($range_start === false || $range_end === false || $range_end < $range_start || ($range_end - $range_start) > 4095)
+				$range = phpbb_ip_ban_range($ip_range_explode[1], $ip_range_explode[2]);
+				if ($range === false)
 				{
-					message_die(GENERAL_MESSAGE, 'The requested IP range is invalid or too large.');
+					message_die(GENERAL_MESSAGE, $lang['Ban_invalid_IP']);
 				}
-				for ($range_ip = $range_start; $range_ip <= $range_end; $range_ip++)
+				foreach ($range as $rule)
 				{
-					admin_ban_add_ip($ip_list, long2ip($range_ip));
+					if (count($ip_list) >= 4096 && !isset($ip_list[$rule['ip'] . ':' . $rule['mask']])) { message_die(GENERAL_MESSAGE, $lang['Ban_invalid_IP']); }
+					$ip_list[$rule['ip'] . ':' . $rule['mask']] = $rule;
 				}
 			}
 			else if ( preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/D', $ip_entry) && !preg_match('/^[0-9.*]+$/D', $ip_entry) )
 			{
 				$ip = gethostbynamel($ip_entry);
+				if (!$ip) { message_die(GENERAL_MESSAGE, $lang['Ban_invalid_IP']); }
 
 				for($j = 0; $j < (is_array($ip) ? count($ip) : 0); $j++)
 				{
@@ -125,13 +126,14 @@ if ( isset($_POST['submit']) )
 				{
 					if ($ip_parts[$part] !== '*' && intval($ip_parts[$part]) > 255)
 					{
-						message_die(GENERAL_MESSAGE, 'The requested IP address is invalid.');
+						message_die(GENERAL_MESSAGE, $lang['Ban_invalid_IP']);
 					}
 				}
-				admin_ban_add_ip($ip_list, str_replace('*', '255', $ip_entry));
+				admin_ban_add_ip($ip_list, $ip_entry);
 			}
+			else if ($ip_entry !== '') { message_die(GENERAL_MESSAGE, $lang['Ban_invalid_IP']); }
 		}
-		$ip_list = array_values(array_unique($ip_list));
+		$ip_list = array_values($ip_list);
 	}
 
 	$email_list = array();
@@ -248,7 +250,7 @@ else
 
 	$select_userlist = '<select name="unban_user[]" multiple="multiple" size="5">' . $select_userlist . '</select>';
 
-	$sql = "SELECT ban_id, ban_ip, ban_email
+	$sql = "SELECT ban_id, ban_ip, ban_email, ban_ip_mask
 		FROM " . BANLIST_TABLE;
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -264,14 +266,16 @@ else
 	for($i = 0; $i < count($banlist); $i++)
 	{
 		$ban_id = intval($banlist[$i]['ban_id']);
+		if (!phpbb_ip_ban_valid($banlist[$i]['ban_ip'], $banlist[$i]['ban_ip_mask'])) { message_die(GENERAL_MESSAGE, $lang['Ban_ip_storage_upgrade']); }
 
 		if ( !empty($banlist[$i]['ban_ip']) )
 		{
-			$ban_ip = str_replace('255', '*', decode_ip($banlist[$i]['ban_ip']));
+			try { $ban_ip = phpbb_ip_ban_format($banlist[$i]['ban_ip'], $banlist[$i]['ban_ip_mask']); }
+			catch (UnexpectedValueException $e) { message_die(GENERAL_MESSAGE, $lang['Ban_ip_storage_upgrade']); }
 			$select_iplist .= '<option value="' . $ban_id . '">' . phpbb_admin_html($ban_ip) . '</option>';
 			$ipban_count++;
 		}
-		else if ( !empty($banlist[$i]['ban_email']) )
+		if ( !empty($banlist[$i]['ban_email']) )
 		{
 			$ban_email = $banlist[$i]['ban_email'];
 			$select_emaillist .= '<option value="' . $ban_id . '">' . phpbb_admin_html($ban_email) . '</option>';

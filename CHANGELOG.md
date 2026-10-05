@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make IPv4 bans unambiguous with an additive octet-mask column. Support
+  wildcards in every position and literal 255 octets consistently in the ACP,
+  active-session invalidation, login and registration. Preserve existing rules'
+  historical trailing-prefix behavior without guessing or rewriting old data;
+  show their effective meaning accurately. Deduplicate by address plus mask,
+  bound address ranges without signed IPv4 arithmetic, reject invalid forms and
+  fail closed on missing/corrupt storage. Include the idempotent migration in the
+  full post-1.53a updater and native controller/session/registration/migration
+  checks for strict SQL modes and data preservation.
+
 - Own all five user-list bulk actions in a dedicated canonical InnoDB
   transaction. Lock the exact current ACP session, role/delegated module,
   selected targets and group/ACL inputs until complete publication. A failure

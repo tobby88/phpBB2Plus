@@ -108,6 +108,16 @@ jobs:
         env:
           PHPBB_ADMIN_BAN_NATIVE: '1'
           PHPBB_ADMIN_BAN_PASSWORD: fixture-only
+      - name: Check native masked IP bans and real session publication
+        run: |
+          php .github/scripts/check-ip-ban.php
+          php .github/scripts/check-ip-ban-native.php
+          php .github/scripts/check-ip-ban-migration.php
+        env:
+          PHPBB_IP_BAN_NATIVE: '1'
+          PHPBB_IP_BAN_PASSWORD: fixture-only
+          PHPBB_IP_MIGRATION_NATIVE: '1'
+          PHPBB_IP_MIGRATION_PASSWORD: fixture-only
       - name: Check native atomic user-list bulk actions
         run: php .github/scripts/check-userlist-native.php
         env:

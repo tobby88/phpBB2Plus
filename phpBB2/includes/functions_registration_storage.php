@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__DIR__) . '/attach_mod/includes/functions_mutation.php';
+require_once dirname(__FILE__) . '/functions_ban.php';
 
 class PhpbbRegistrationException extends RuntimeException {}
 function phpbb_registration_error($key = 'Registration_save_failed')
@@ -75,8 +76,10 @@ class PhpbbRegistrationScope
 			$this->locking_validation = false;
 			if (isset($user_ip) && is_string($user_ip) && preg_match('/^[a-f0-9]{8}$/iD', $user_ip))
 			{
-				$ip = strtolower($user_ip); $ips = array($ip, substr($ip,0,6).'ff', substr($ip,0,4).'ffff', substr($ip,0,2).'ffffff');
-				if ($this->rows('SELECT ban_id FROM ' . BANLIST_TABLE . " WHERE ban_ip IN ('" . implode("','", $ips) . "') LOCK IN SHARE MODE")) { phpbb_registration_error('You_been_banned'); }
+				$invalid = phpbb_ip_ban_invalid_sql();
+				$rules = $this->rows('SELECT ban_id,' . $invalid . ' AS invalid FROM ' . BANLIST_TABLE . ' WHERE ' . phpbb_ip_ban_sql($user_ip) . ' OR ' . $invalid . ' LOCK IN SHARE MODE');
+				foreach ($rules as $rule) { if ((int)$rule['invalid'] === 1) { phpbb_registration_error('Ban_ip_storage_upgrade'); } }
+				if ($rules) { phpbb_registration_error('You_been_banned'); }
 			}
 			$this->consume_challenge($token);
 			if ((int)$ctracker_config->settings['reg_protection'] === 1)

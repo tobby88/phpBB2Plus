@@ -48,7 +48,7 @@ function ul_success($message) { return preg_match('/^[0-9]+ changed; [0-9]+ unch
 function ul_snapshot() {
     return array(lp_rows('SELECT user_id,user_level,user_active,user_warnings FROM fixture_users WHERE user_id<>1 ORDER BY user_id'),
         lp_rows("SELECT session_id,session_user_id FROM fixture_sessions WHERE session_id<>'fixture-admin' ORDER BY session_id"),
-        lp_rows('SELECT ban_userid,ban_ip,ban_email FROM fixture_banlist ORDER BY ban_id'),lp_rows('SELECT group_id,user_id,user_pending FROM fixture_user_group ORDER BY group_id,user_id'));
+        lp_rows('SELECT ban_userid,ban_ip,ban_email,ban_ip_mask FROM fixture_banlist ORDER BY ban_id'),lp_rows('SELECT group_id,user_id,user_pending FROM fixture_user_group ORDER BY group_id,user_id'));
 }
 function ul_revoke($kind) {
     $changes=array('role'=>'UPDATE fixture_users SET user_level=0 WHERE user_id=1','inactive'=>'UPDATE fixture_users SET user_active=0 WHERE user_id=1','grant'=>'DELETE FROM fixture_jr WHERE user_id=1',
@@ -124,8 +124,8 @@ try {
         $target=lp_rows('SELECT user_active,user_level FROM fixture_users WHERE user_id=2')[0];
         ats_check($action==='group'?(int)$target['user_level']===MOD:((int)$target['user_active']===($action==='activate'?1:0) && $target['user_active']!==null),'Complete action stores the intended state, not NULL'); $cases++;
     }
-    ul_reset(); lp_insert('fixture_banlist',array('ban_userid'=>2,'ban_ip'=>'0a000001','ban_email'=>'keep@example.invalid')); lp_query('UPDATE fixture_users SET user_warnings=10 WHERE user_id=2');
-    ats_check(ul_success(ul_request('unban')) && count(lp_rows("SELECT ban_id FROM fixture_banlist WHERE ban_userid=0 AND ban_ip='0a000001' AND ban_email='keep@example.invalid'"))===1 && (int)lp_rows('SELECT user_warnings FROM fixture_users WHERE user_id=2')[0]['user_warnings']===0,'Unban preserves mixed rule IP/email components and clears only removed user ban warnings'); $cases++;
+    ul_reset(); lp_insert('fixture_banlist',array('ban_userid'=>2,'ban_ip'=>'0a000001','ban_ip_mask'=>'ffffffff','ban_email'=>'keep@example.invalid')); lp_query('UPDATE fixture_users SET user_warnings=10 WHERE user_id=2');
+    ats_check(ul_success(ul_request('unban')) && count(lp_rows("SELECT ban_id FROM fixture_banlist WHERE ban_userid=0 AND ban_ip='0a000001' AND ban_ip_mask='ffffffff' AND ban_email='keep@example.invalid'"))===1 && (int)lp_rows('SELECT user_warnings FROM fixture_users WHERE user_id=2')[0]['user_warnings']===0,'Unban preserves mixed rule IP/mask/email components and clears only removed user ban warnings'); $cases++;
     foreach (array('users','sessions','sessions_keys','config','banlist','jr','groups','user_group','auth_access','forums') as $table) {
         foreach (array('ENGINE=MyISAM','ROW_FORMAT=COMPACT','CONVERT TO CHARACTER SET latin1') as $legacy) {
             ul_reset(); lp_query('SET SESSION innodb_strict_mode=OFF'); try { lp_query('ALTER TABLE fixture_'.$table.' '.$legacy); } finally { lp_query('SET SESSION innodb_strict_mode=ON'); }

@@ -205,6 +205,20 @@ nullable historical status/role fields, strict SQL modes, concurrent revocations
 and uncertain commits. The existing
 storage/warning-policy updater is sufficient; no additional tables are created.
 
+New IPv4 bans store an explicit octet mask: `*` works in any position and a
+literal `255` remains literal. The same predicate governs existing-session
+invalidation, manual/automatic/ACP login and public registration. The ACP lists
+literal and wildcard octets accurately, including mixed IP/email rules.
+Before deploying this code to an existing installation, run the full
+`update/update_from_153a.php` migration with a verified backup and **all writers
+stopped**; `--storage-only` does not add the required `ban_ip_mask` column.
+The additive migration leaves old masks empty and preserves their original
+trailing-prefix behavior. Historical `255` versus `*` intent cannot be recovered
+and is not guessed; re-enter an old rule explicitly if its intended meaning was
+different. Existing compatible explicit masks are retained; incompatible columns
+or corrupt rules require review. Missing/corrupt storage cannot silently permit
+a new login or registration.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

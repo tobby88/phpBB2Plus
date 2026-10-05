@@ -130,6 +130,14 @@ try{
   $rgn_mail_fail=$case==='mail-false';$rgn_mail_throw=$case==='mail-throw';$before=rgn_snap();$out=rgn_run();
   if($rgn_mail_fail||$rgn_mail_throw){ats_check(rgn_success($out)&&strpos($out,$lang['Registration_mail_failed'])!==false&&count(rgn_rows('SELECT * FROM fixture_users WHERE user_id=8'))===1,'Mail failure separate from saved account');}else{ats_check(!rgn_success($out)&&rgn_snap()===$before&&!$rgn_mails,'Invalid request has no publication');}$cases++;
  }
+ foreach(array('127.*.0.*','*.0.0.1','127.*.*.*','127.0.*.1','127.0.0.*','127.0.0.255','255.0.0.1','127.255.0.1','127.0.255.1') as $pattern) {
+  rgn_reset();$rule=phpbb_ip_ban_parse($pattern);rgn_sql(rgn_insert_sql('fixture_banlist',array('ban_ip'=>$rule['ip'],'ban_ip_mask'=>$rule['mask'])));$before=rgn_snap();$blocked=phpbb_ip_ban_matches($rule['ip'],$rule['mask'],'7f000001');$out=rgn_run();
+  ats_check($blocked?!rgn_success($out)&&rgn_snap()===$before&&!$rgn_mails:rgn_success($out),'Actual public registration honors explicit wildcard/literal-255 IP rule');$cases++;
+ }
+ foreach(array(array('7f000001','ffffff01'),array('7f010001','ff00ffff'),array('','ffffffff')) as $rule) {
+  rgn_reset();rgn_sql(rgn_insert_sql('fixture_banlist',array('ban_ip'=>$rule[0],'ban_ip_mask'=>$rule[1])));$before=rgn_snap();ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before&&!$rgn_mails,'Corrupt mask cannot publish a public registration');$cases++;
+ }
+ rgn_reset();rgn_sql('ALTER TABLE fixture_banlist DROP ban_ip_mask');$before=rgn_snap();ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before&&!$rgn_mails,'Missing migrated mask refuses public registration');rgn_sql("ALTER TABLE fixture_banlist ADD ban_ip_mask CHAR(8) NOT NULL DEFAULT ''");$cases++;
  rgn_reset(0,'none');ats_check(!validate_username('New fixture',false)['error']&&!validate_email('new@example.invalid',false)['error'],'Initially matching form valid');rgn_run();$before=rgn_snap();ats_check(!rgn_success(rgn_run())&&rgn_snap()===$before&&count($rgn_mails)===1,'Overlapping prevalidated duplicate rejected');
  rgn_reset(0,'none');rgn_run();$before=rgn_snap();ats_check(!rgn_success(rgn_run('Distinct fixture','distinct@example.invalid'))&&rgn_snap()===$before,'Same-IP cooldown enforced for distinct registrations');
  rgn_reset(0,'none');$ctracker_config->settings['reg_protection']=0;rgn_sql("UPDATE fixture_ctracker_config SET ct_config_value='0' WHERE ct_config_name='reg_protection'");

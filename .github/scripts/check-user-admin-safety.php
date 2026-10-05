@@ -46,7 +46,7 @@ foreach (array(
 	'phpbb_admin_require_post_session();',
 	'function admin_ban_post_string',
 	'function admin_ban_add_ip',
-	'($range_end - $range_start) > 4095',
+	'phpbb_ip_ban_range($ip_range_explode[1], $ip_range_explode[2])',
 	'new PhpbbAdminBanScope($db, $_POST)',
 	'$ban_scope->save($user_list, $ip_list, $email_list, $_POST)',
 	'$ban_scope->commit();',
@@ -67,7 +67,7 @@ foreach (array('$where_user_sql', 'is_countable(', 'INSERT INTO ', 'DELETE FROM 
 		$errors[] = 'Legacy ban-management path remains: ' . $marker;
 	}
 }
-foreach (array('extends PhpbbLoginDatabase', 'array(JR_ADMIN_TABLE)', "phpbb_acp_actor(\$this, 'admin_user_ban.'", "hash_equals(\$userdata['session_id'], \$request['sid'])", '(ban_userid,ban_ip,ban_email)', 'phpbb_email_ban_matches($email,', 'parent::commit()') as $marker)
+foreach (array('extends PhpbbLoginDatabase', 'array(JR_ADMIN_TABLE)', "phpbb_acp_actor(\$this, 'admin_user_ban.'", "hash_equals(\$userdata['session_id'], \$request['sid'])", '(ban_userid,ban_ip,ban_email,ban_ip_mask)', 'phpbb_email_ban_matches($email,', 'parent::commit()') as $marker)
 {
 	if (strpos($ban_storage, $marker) === false) { $errors[] = 'Missing owned ban-management boundary: ' . $marker; }
 }

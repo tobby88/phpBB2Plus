@@ -158,16 +158,14 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	//
 	// Initial ban check against user id, IP and email address
 	//
-	preg_match('/(..)(..)(..)(..)/', $user_ip, $user_ip_parts);
-	$ban_ip_values = array($user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . $user_ip_parts[4],
-		$user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . 'ff',
-		$user_ip_parts[1] . $user_ip_parts[2] . 'ffff', $user_ip_parts[1] . 'ffffff');
-	$ban_ip_check = "ban_ip IN ('" . implode("', '", $ban_ip_values) . "')";
 	require_once($phpbb_root_path . 'includes/functions_ban.php');
+	$ban_ip_check = phpbb_ip_ban_sql($user_ip);
+	$ban_ip_invalid = phpbb_ip_ban_invalid_sql();
 
-	$sql = "SELECT ban_ip, ban_userid, ban_email, " . $ban_ip_check . " AS ban_ip_matches
+	$sql = "SELECT ban_ip, ban_userid, ban_email, " . $ban_ip_check . " AS ban_ip_matches, " . $ban_ip_invalid . " AS ban_ip_invalid
 		FROM " . BANLIST_TABLE . " 
 		WHERE " . $ban_ip_check . "
+			OR " . $ban_ip_invalid . "
 			OR ban_userid = $user_id";
 	if ( $user_id != ANONYMOUS )
 	{
@@ -176,11 +174,15 @@ function session_begin($user_id, $user_ip, $page_id = 0, $auto_create = 0, $enab
 	}
 	if ( !($result = $db->sql_query($sql)) )
 	{
-		message_die(CRITICAL_ERROR, 'Could not obtain ban information', '', __LINE__, __FILE__, $sql);
+		message_die(CRITICAL_ERROR, 'Could not obtain ban information. Verify the IP-ban schema with update/update_from_153a.php.', '', __LINE__, __FILE__, $sql);
 	}
 
 	while ( $ban_info = $db->sql_fetchrow($result) )
 	{
+		if ((int)$ban_info['ban_ip_invalid'] === 1) {
+			$db->sql_freeresult($result);
+			message_die(CRITICAL_MESSAGE, 'Ban_ip_storage_upgrade');
+		}
 		// Reuse the SQL predicate's actual collation, not a second byte-wise PHP
 		// comparison. Imported upper-case rules retain their historical match.
 		if ( (int)$ban_info['ban_ip_matches'] === 1

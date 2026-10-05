@@ -23,6 +23,7 @@ if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
 require_once $forum_root . '/includes/functions_user_ids.php';
 require_once __DIR__ . '/innodb_migration.php';
 require_once __DIR__ . '/style_id_migration.php';
+require_once __DIR__ . '/ip_ban_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
@@ -84,6 +85,7 @@ $seed_statements = update_extract_seed_statements($basic_source);
 
 if (in_array('--self-test', $argv, true))
 {
+	if (!preg_match("/ban_ip_mask\\s+char\\(8\\)\\s+NOT NULL DEFAULT ''/i", $schema_source)) { fwrite(STDERR, "IP ban mask schema self-test failed.\n"); exit(3); }
 	if (!preg_match('/user_style\s+mediumint\(8\)\s+UNSIGNED\s+default\s+NULL/i', $schema_source) ||
 		!preg_match('/CREATE TABLE phpbb_themes_name\s*\(\s*themes_id\s+mediumint\(8\)\s+UNSIGNED/is', $schema_source))
 	{ fwrite(STDERR, "Style reference capacity self-test failed.\n"); exit(3); }
@@ -657,6 +659,8 @@ try
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nKeep writers stopped after any partial apply; DDL cannot be rolled back.\n"); exit(3); }
 
 $operations = array();
+try { $operations = plus_ip_ban_plan($connection, $table_prefix . 'banlist'); }
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 foreach (array('categories', 'forums', 'topics') as $recovery_table)
 {
 	update_queue_maintenance_recovery_columns($operations, $connection, $dbname, $table_prefix . $recovery_table);
@@ -1132,6 +1136,7 @@ if ($apply)
 	try
 	{
 		plus_storage_apply($connection, $storage_tables, in_array('--backup-confirmed', $argv, true), in_array('--maintenance-confirmed', $argv, true));
+		if (plus_ip_ban_plan($connection, $table_prefix . 'banlist')) { throw new RuntimeException('IP ban schema migration was not completed'); }
 	}
 	catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; verify backup before retry.\n"); exit(3); }
 }

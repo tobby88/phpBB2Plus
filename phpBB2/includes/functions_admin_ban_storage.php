@@ -54,11 +54,11 @@ class PhpbbAdminBanScope extends PhpbbLoginDatabase
             . ' AND session_user_id=' . $id . ' AND session_logged_in=1 AND session_admin=1 LOCK IN SHARE MODE')) { phpbb_acl_error('Not_Authorised'); }
         return phpbb_acp_actor($this, 'admin_user_ban.' . $phpEx);
     }
-    function insert_rule($user, $ip, $email)
+    function insert_rule($user, $ip, $email, $mask = '')
     {
         // Explicit neutral columns are required by the canonical strict schema.
-        $this->sql_query('INSERT INTO ' . BANLIST_TABLE . " (ban_userid,ban_ip,ban_email) VALUES (" . $user
-            . ",'" . $this->sql_escape($ip) . "','" . $this->sql_escape($email) . "')");
+        $this->sql_query('INSERT INTO ' . BANLIST_TABLE . " (ban_userid,ban_ip,ban_email,ban_ip_mask) VALUES (" . $user
+            . ",'" . $this->sql_escape($ip) . "','" . $this->sql_escape($email) . "','" . $this->sql_escape($mask) . "')");
         if ((int)$this->sql_affectedrows() !== 1) { phpbb_acl_error('Ban_storage_failed'); }
     }
     function save($users, $ips, $emails, $request)
@@ -66,7 +66,8 @@ class PhpbbAdminBanScope extends PhpbbLoginDatabase
         if (!$this->ready || !$this->transactional || !is_array($users) || count($users) > 1
             || !is_array($ips) || count($ips) > 4096 || !is_array($emails) || count($emails) > 100) { phpbb_acl_error('Acl_selection_changed'); }
         $actor = $this->actor();
-        $rules = $this->rows('SELECT ban_id,ban_userid,ban_ip,ban_email FROM ' . BANLIST_TABLE . ' ORDER BY ban_id FOR UPDATE');
+        $rules = $this->rows('SELECT ban_id,ban_userid,ban_ip,ban_email,ban_ip_mask FROM ' . BANLIST_TABLE . ' ORDER BY ban_id FOR UPDATE');
+        foreach ($rules as $rule) { if (!phpbb_ip_ban_valid($rule['ban_ip'],$rule['ban_ip_mask'])) { phpbb_acl_error('Ban_ip_storage_upgrade'); } }
         $selected = array();
         foreach (array('unban_user'=>'ban_userid','unban_ip'=>'ban_ip','unban_email'=>'ban_email') as $field=>$column) {
             if (!isset($request[$field])) { continue; }
@@ -96,14 +97,13 @@ class PhpbbAdminBanScope extends PhpbbLoginDatabase
             $this->sql_query('UPDATE ' . USERS_TABLE . ' SET user_warnings=' . $this->warnings . ' WHERE user_id=' . $id);
             $this->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id=' . $id);
         }
-        foreach ($ips as $ip) {
-            if (!is_string($ip) || !preg_match('/^[a-f0-9]{8}$/iD', $ip)) { phpbb_acl_error('Acl_selection_changed'); }
-            // Match exactly the four candidate prefixes used by session_begin,
-            // under the database collation (including historical upper-case hex).
-            $escaped = $this->sql_escape($ip);
-            $match = "'$escaped' IN (session_ip,CONCAT(SUBSTRING(session_ip,1,6),'ff'),CONCAT(SUBSTRING(session_ip,1,4),'ffff'),CONCAT(SUBSTRING(session_ip,1,2),'ffffff'))";
+        foreach ($ips as $rule) {
+            if (!is_array($rule) || !isset($rule['ip'],$rule['mask']) || $rule['mask'] === '' || !phpbb_ip_ban_valid($rule['ip'],$rule['mask'])) { phpbb_acl_error('Acl_selection_changed'); }
+            $ip = strtolower($rule['ip']); $mask = strtolower($rule['mask']);
+            // Use the same explicit rule for current sessions and future logins.
+            $match = phpbb_ip_ban_sql('session_ip', true, "'" . $ip . "'", "'" . $mask . "'");
             if ($this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . ' WHERE session_user_id=' . $this->actor_id . ' AND ' . $match)) { phpbb_acl_error('Ban_self_disable'); }
-            if (!$this->rows('SELECT ban_id FROM ' . BANLIST_TABLE . " WHERE ban_ip='$escaped'")) { $this->insert_rule(0, $ip, ''); }
+            if (!$this->rows('SELECT ban_id FROM ' . BANLIST_TABLE . " WHERE ban_ip='$ip' AND ban_ip_mask='$mask'")) { $this->insert_rule(0, $ip, '', $mask); }
             $this->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE ' . $match);
         }
         if ($emails) {

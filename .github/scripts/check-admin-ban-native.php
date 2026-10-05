@@ -49,7 +49,7 @@ function ban_run($payload) {
 }
 function ban_success($out) { return strpos($out, $GLOBALS['lang']['Ban_update_sucessful']) === 0; }
 function ban_snapshot() {
-    return array(lp_rows('SELECT ban_userid,ban_ip,ban_email FROM fixture_banlist ORDER BY ban_id'),
+    return array(lp_rows('SELECT ban_userid,ban_ip,ban_email,ban_ip_mask FROM fixture_banlist ORDER BY ban_id'),
         lp_rows('SELECT user_id,user_warnings FROM fixture_users ORDER BY user_id'), lp_rows("SELECT session_id,session_user_id,session_logged_in,session_admin FROM fixture_sessions WHERE session_id<>'fixture-admin' ORDER BY session_id"));
 }
 function ban_revoke($kind) {
@@ -102,7 +102,7 @@ try {
             foreach (array('before-lock','rules','write','commit') as $boundary) {
                 ban_reset($actor); $before=ban_snapshot(); $seen=$blocked=false;
                 $lp_hook=function($sql) use ($kind,$boundary,&$seen,&$blocked) {
-                    $match=$boundary==='before-lock'?strpos($sql,'SELECT * FROM fixture_banlist LIMIT 0')===0:($boundary==='rules'?strpos($sql,'SELECT ban_id,ban_userid,ban_ip,ban_email FROM fixture_banlist')===0:($boundary==='write'?strpos($sql,'INSERT INTO fixture_banlist')===0:$sql==='COMMIT'));
+                    $match=$boundary==='before-lock'?strpos($sql,'SELECT * FROM fixture_banlist LIMIT 0')===0:($boundary==='rules'?strpos($sql,'SELECT ban_id,ban_userid,ban_ip,ban_email,ban_ip_mask FROM fixture_banlist')===0:($boundary==='write'?strpos($sql,'INSERT INTO fixture_banlist')===0:$sql==='COMMIT'));
                     if (!$match || $seen) { return; } $seen=true; $GLOBALS['lp_hook']=null;
                     lp_query('SET SESSION innodb_lock_wait_timeout=0');
                     try { $r=$GLOBALS['peer']->sql_query(ban_revoke($kind)); if (!$r) { $e=$GLOBALS['peer']->sql_error(); ats_check((int)$e['code']===1205,'Only real native lock serialization'); $blocked=true; } }

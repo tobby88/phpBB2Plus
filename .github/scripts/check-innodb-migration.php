@@ -74,6 +74,11 @@ try {
  foreach($matches[0] as $sql){plus_storage_query($db,$sql);}
  storage_check(count($matches[0])===count(plus_storage_tables($schema,'phpbb_'))-2,'Entire canonical schema executed');
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Fresh installation all InnoDB');
+ require_once $root.'/update/ip_ban_migration.php';storage_check(plus_ip_ban_plan($db,'phpbb_banlist')===array(),'Fresh mask migration is a no-op');
+ // Actual full updater must add an absent mask without guessing ff intent.
+ plus_storage_query($db,'ALTER TABLE phpbb_banlist DROP ban_ip_mask');
+ plus_storage_query($db,"INSERT INTO phpbb_banlist(ban_userid,ban_ip,ban_email) VALUES(7,'7F0000FF','kept@example.invalid'),(0,'7fff00ff',''),(0,'','*@example.invalid')");
+ $legacy_bans=plus_storage_rows($db,'SELECT ban_id,ban_userid,ban_ip,ban_email FROM phpbb_banlist ORDER BY ban_id');
  // Exercise the actual CLI updater against a fully isolated fresh schema,
  // then a mixed-engine already-upgraded schema. Never read a real config.
  plus_storage_query($db,"INSERT INTO phpbb_config(config_name,config_value) VALUES ('min_password_len','13'),('max_password_age','0')");
@@ -92,6 +97,9 @@ try {
   $pipes=array();$p=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));
   storage_check(is_resource($p),'Updater subprocess');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($p);
   storage_check($code===($case==='missing-maintenance'?2:0),'Actual updater '.$case.' failed: '.$err);
+  storage_check(plus_storage_rows($db,'SELECT ban_id,ban_userid,ban_ip,ban_email FROM phpbb_banlist ORDER BY ban_id')===$legacy_bans,'Actual updater retains every old mixed/user/IP/email rule byte');
+  if($case==='dry'||$case==='missing-maintenance'){storage_check(count(plus_ip_ban_plan($db,'phpbb_banlist'))===1,'Dry/refused updater cannot add mask');}
+  else{storage_check(plus_ip_ban_plan($db,'phpbb_banlist')===array()&&count(plus_storage_rows($db,"SELECT ban_id FROM phpbb_banlist WHERE ban_ip_mask<>''"))===0,'Actual updater adds empty legacy masks and repeated apply is a no-op');}
   $settings=plus_storage_rows($db,"SELECT config_name,config_value FROM phpbb_config WHERE config_name IN ('min_password_len','password_not_login','force_complex_password','max_password_age') ORDER BY config_name");
   if($case==='dry'||$case==='missing-maintenance'){
    storage_check($settings===array(array('config_name'=>'max_password_age','config_value'=>'0'),array('config_name'=>'min_password_len','config_value'=>'13')),'Dry/refused updater cannot insert or overwrite password policy');
@@ -103,5 +111,20 @@ try {
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='17' WHERE config_name='max_user_bancard'");}
  }
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Actual updater left all tables InnoDB');
+ plus_storage_query($db,"INSERT INTO phpbb_banlist(ban_userid,ban_ip,ban_email,ban_ip_mask) VALUES(0,'7f0000ff','','ffffffff')");
+ $masked_bans=plus_storage_rows($db,'SELECT * FROM phpbb_banlist ORDER BY ban_id');
+ plus_storage_query($db,"ALTER TABLE phpbb_banlist MODIFY ban_ip_mask CHAR(8) CHARACTER SET latin1 NOT NULL DEFAULT ''");
+ $mask_plan=plus_ip_ban_plan($db,'phpbb_banlist');storage_check(count($mask_plan)===1,'Compatible older mask collation is migrated');foreach($mask_plan as $sql){plus_storage_query($db,$sql);}
+ storage_check(plus_ip_ban_plan($db,'phpbb_banlist')===array()&&plus_storage_rows($db,'SELECT * FROM phpbb_banlist ORDER BY ban_id')===$masked_bans,'Existing explicit masks and legacy mixed rules preserved byte-for-byte');
+ plus_storage_query($db,"ALTER TABLE phpbb_banlist MODIFY ban_ip_mask VARCHAR(8) NOT NULL DEFAULT ''");
+ plus_storage_query($db,"UPDATE phpbb_config SET config_value='.0.21' WHERE config_name='version'");
+ $before_bad=plus_storage_rows($db,'SELECT * FROM phpbb_banlist ORDER BY ban_id');
+ $bad_command=str_replace(' --storage-only','',$command);$pipes=array();$p=proc_open($bad_command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));
+ storage_check(is_resource($p),'Incompatible-mask updater subprocess');fclose($pipes[0]);$out=stream_get_contents($pipes[1]);fclose($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[2]);$code=proc_close($p);
+ storage_check($code===3&&strpos($err,'Incompatible existing ban_ip_mask')!==false&&strpos($err,'No update operations were applied')!==false,'Actual updater rejects incompatible custom mask before operations');
+ storage_check(plus_storage_rows($db,'SELECT * FROM phpbb_banlist ORDER BY ban_id')===$before_bad&&plus_storage_rows($db,"SELECT config_value FROM phpbb_config WHERE config_name='version'")===array(array('config_value'=>'.0.21')),'Refused mask migration retains rules and version identity');
+ plus_storage_query($db,"ALTER TABLE phpbb_banlist MODIFY ban_ip_mask CHAR(8) NOT NULL DEFAULT ''");
+ plus_storage_query($db,"UPDATE phpbb_banlist SET ban_ip_mask='ffffff01' WHERE ban_ip='7f0000ff' AND ban_ip_mask='ffffffff'");
+ $caught=false;try{plus_ip_ban_plan($db,'phpbb_banlist');}catch(Exception $e){$caught=true;}storage_check($caught&&count(plus_storage_rows($db,"SELECT ban_id FROM phpbb_banlist WHERE ban_ip_mask='ffffff01'"))===1,'Corrupt explicit mask is not silently rewritten');
  echo "Native migration, strict data preservation, unique constraints, interruption/resume, locks, engine mix and fresh schema passed\n";
 } finally {if($config_file!==null&&is_file($config_file)){unlink($config_file);}plus_storage_query($db,'DROP DATABASE `'.$name.'`');mysqli_close($db);}

@@ -145,6 +145,7 @@ CREATE TABLE phpbb_banlist (
    ban_id mediumint(8) UNSIGNED NOT NULL auto_increment,
    ban_userid mediumint(8) NOT NULL,
    ban_ip char(8) NOT NULL,
+   ban_ip_mask char(8) NOT NULL DEFAULT '',
    ban_email varchar(255),
    PRIMARY KEY (ban_id),
    KEY ban_ip_user_id (ban_ip, ban_userid)
