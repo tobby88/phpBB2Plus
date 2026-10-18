@@ -340,6 +340,22 @@ class log_manager
 			return $this->ct_file_error();
 		}
 		$line = $str_log . "\n";
+		if (in_array(intval($file_id), array(2, 3, 4, 5), true))
+		{
+			// Readers reserve the first line for metadata. Initialize new or
+			// empty event logs under this same lock, before their first event.
+			$status = @fstat($logentry);
+			if (!is_array($status) || !isset($status['size']))
+			{
+				@flock($logentry, LOCK_UN);
+				@fclose($logentry);
+				return $this->ct_file_error();
+			}
+			if ($status['size'] === 0)
+			{
+				$line = '1|||' . time() . "|||null|||null|||null|||null|||null\n" . $line;
+			}
+		}
 		$success = @fwrite($logentry, $line) === strlen($line) && @fflush($logentry);
 		@flock($logentry, LOCK_UN);
 		@fclose($logentry);

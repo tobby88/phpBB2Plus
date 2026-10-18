@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Initialize missing or empty CrackerTracker event logs with their metadata
+  header while holding the writer's existing exclusive lock. The first real
+  event is no longer mistaken for a header by counting and ACP readers. Keep
+  existing logs unchanged and debug logs header-free; no data migration needed.
+
 - Keep CrackerTracker's blocked-attack total stable when failed-login or debug
   logs are rotated or cleared in the ACP. Transfer only worm, blocklist and
   spam entries into the persistent total, matching the existing display policy.
