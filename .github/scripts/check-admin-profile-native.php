@@ -80,12 +80,21 @@ function ap_reset($actor='root',$scenario='edit'){
  foreach(PhpbbAdminProfileScope::policy_keys() as $key){if($key==='default_lang'){$m=array('','english');}else{ats_check(preg_match("/VALUES\\s*\\('".preg_quote($key,'/')."'\\s*,\\s*'([^']*)'\\)/",$basic,$m)===1,'Installer profile policy '.$key);}if(!isset($board_config[$key])){$board_config[$key]=$m[1];}ap_insert('fixture_config',array('config_name'=>$key,'config_value'=>$board_config[$key]));}
  ap_insert('fixture_themes',array('themes_id'=>1,'template_name'=>'fisubsilversh'));
  $_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-admin','id'=>'2','u'=>'999','new_user'=>$scenario==='new'?'1':'0','submit'=>'Save','user_status'=>'1','user_upload_quota'=>'1','user_pm_quota'=>'0');
+ $_POST['user_ycard']=in_array($scenario,array('ban','mixed-ban'),true)?'11':($scenario==='equal-ban'||$scenario==='unchanged-ban'?'10':'0');
+ $_POST['user_ycard_original']='0';
  if($scenario==='block'){$_POST['block_account']='1';}if($scenario==='unblock'){$_POST['unblock_account']='1';ap_sql('UPDATE fixture_users SET user_blocktime=123,user_badlogin=3 WHERE user_id=2');}
  ap_sql('COMMIT');
  if($scenario==='mixed-edit'||$scenario==='mixed-ban'){
+  if($scenario==='mixed-edit'){ap_sql('UPDATE fixture_users SET user_warnings=10 WHERE user_id=2');$_POST['user_ycard_original']='10';}
   ap_insert('fixture_banlist',array('ban_userid'=>2,'ban_ip'=>'7f0000ff','ban_ip_mask'=>'ffffffff','ban_email'=>'keep@example.invalid'));
   ap_insert('fixture_banlist',array('ban_userid'=>2));
   ap_insert('fixture_banlist',array('ban_userid'=>5,'ban_ip'=>'0aff0000','ban_ip_mask'=>'ff00ffff','ban_email'=>'other@example.invalid'));
+ }
+ if($scenario==='unchanged-ban'||$scenario==='manual-ban'||$scenario==='missing-warnings'){
+  ap_sql('UPDATE fixture_users SET user_warnings='.($scenario==='manual-ban'?0:10).' WHERE user_id=2');
+  $_POST['user_ycard_original']=$scenario==='manual-ban'?'0':'10';
+  ap_insert('fixture_banlist',array('ban_userid'=>2));
+  if($scenario==='missing-warnings'){unset($_POST['user_ycard']);}
  }
  foreach(array('before.png','after.png') as $file){file_put_contents($GLOBALS['ap_files'].'/'.$file,'owned-'.$file);}
 }
@@ -94,7 +103,7 @@ $ap_controller=file_get_contents($ats_source.'admin/admin_users.php');
 $ap_projection=ap_fragment($ap_controller,'$admin_profile_scope->validate_identity(',"\n\t\t\tif( \$result = \$db->sql_query(\$sql) )");
 $ap_creation=ap_fragment($ap_controller,'list($profile_columns, $profile_values) = $admin_profile_scope->profile_insert_parts();',"\t\t\$_POST[POST_USERS_URL] = \$user_id;");
 $ap_block=ap_fragment($ap_controller,'// Start add - Protect user account MOD','// End add - Protect user account MOD');
-$ap_ban=ap_fragment($ap_controller,"if ($".'user_ycard>$board_config',"\t\t\t// Core and custom profile data");
+$ap_ban=ap_fragment($ap_controller,'$admin_profile_scope->apply_warnings($user_ycard);',"\t\t\t// Core and custom profile data");
 $ap_disable=ap_fragment($ap_controller,'if (!$user_status)',"\t\t\t\t// We remove all stored login keys");
 function ap_run($scenario){
  global $db,$admin_profile_scope,$board_config,$ap_cookies,$userdata,$phpbb_root_path;
@@ -117,7 +126,7 @@ function ap_run($scenario){
     ats_check(preg_match('/^\t\t\$'. $key .' = [^\r\n]+;/m',$GLOBALS['ap_controller'],$m)===1,'Actual ACP text parser '.$key);eval($m[0]);
    }
   }
-  if($scenario==='ban'||$scenario==='mixed-ban'){$user_ycard=11;}
+  ats_check(preg_match('/^\t\t\$user_ycard = [^\r\n]+;/m',$GLOBALS['ap_controller'],$warning_assignment)===1,'Actual selected warning projection');eval($warning_assignment[0]);
   if($scenario==='disable'){$user_status=0;}
   eval($GLOBALS['ap_ban']);
   if($scenario==='avatar'){$admin_profile_scope->remember_avatar('after.png',true);user_avatar_delete(USER_AVATAR_UPLOAD,'before.png');$avatar_sql=",user_avatar='after.png',user_avatar_type=1";}
@@ -149,13 +158,18 @@ try{
  // Keep fixture DDL tolerant of short internal InnoDB background locks.
  // Only a synchronous peer contention probe needs an immediate1205.
  ap_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
- foreach(array('root','junior') as $actor){foreach(array('edit','new','password','self','rename','block','unblock','avatar','ban','disable','mixed-edit','mixed-ban') as $scenario){
+ foreach(array('root','junior') as $actor){foreach(array('edit','new','password','self','rename','block','unblock','avatar','ban','disable','mixed-edit','mixed-ban','equal-ban','unchanged-ban','manual-ban','missing-warnings') as $scenario){
   ap_reset($actor,$scenario);$before=ap_snap();$ok=ap_run($scenario);ats_check($ok===true,'Authorized '.$actor.' '.$scenario.' '.json_encode(isset($ap_sql_error)?$ap_sql_error:null));$after=ap_snap();$writes=$ap_write;$boundaries=array_values(array_filter($ap_queries,'ap_boundary'));
   ats_check($db===$ap_main,'Restore main connection');
   ats_check(ap_rows('SELECT user_custom_fixture FROM fixture_users WHERE user_id='.$ap_target)[0]['user_custom_fixture']==="Grüße ' 😀",'Core/custom profile save remains UTF-8 byte exact');
   ats_check(count($ap_cookies)===($scenario==='self'?1:0),'Only committed self key rotation publishes cookie');
   if($scenario==='avatar'){ats_check(!is_file($ap_files.'/before.png')&&is_file($ap_files.'/after.png'),'Committed replacement retires only old avatar');}
   if($scenario==='ban'){ats_check(count(ap_rows('SELECT * FROM fixture_banlist WHERE ban_userid=2'))===1,'Warning threshold inserts ban');}
+  if(in_array($scenario,array('ban','mixed-ban','equal-ban','unchanged-ban','missing-warnings'),true)){
+   ats_check(!ap_rows('SELECT session_id FROM fixture_sessions WHERE session_user_id=2')&&!ap_rows('SELECT key_id FROM fixture_sessions_keys WHERE user_id=2'),'Threshold ban revokes sessions and autologin keys in the same profile publication');
+   ats_check(count(ap_rows('SELECT ban_id FROM fixture_banlist WHERE ban_userid=2'))===($scenario==='mixed-ban'?2:1),'Equality/unchanged/missing warning selections retain exactly the existing user ban without duplicates');
+  }
+  if($scenario==='manual-ban'){ats_check(count(ap_rows('SELECT ban_id FROM fixture_banlist WHERE ban_userid=2'))===1,'Unchanged zero warnings cannot remove a manual user ban');}
   if($scenario==='mixed-edit'||$scenario==='mixed-ban'){
    $mixed=ap_rows('SELECT ban_userid,ban_ip,ban_ip_mask,ban_email FROM fixture_banlist WHERE ban_id=1');
    ats_check($mixed===array(array('ban_userid'=>$scenario==='mixed-ban'?'2':'0','ban_ip'=>'7f0000ff','ban_ip_mask'=>'ffffffff','ban_email'=>'keep@example.invalid')),'Actual profile preserves mixed IP/mask/email bytes');
@@ -201,11 +215,12 @@ try{
   }
  }}
  foreach($ap_tables as $s){$scenario=$s==='profile_field_actions'?'new':'edit';ap_reset('root',$scenario);$table='fixture_'.($s==='jr_admin_users'?'jr':$s);ap_sql('ALTER TABLE '.$table.' ENGINE=MyISAM');$before=ap_snap();ats_check(ap_run($scenario)==='error'&&ap_snap()===$before,'Reject nontransactional participant '.$s);ap_sql('ALTER TABLE '.$table.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
- foreach(array('id','sid','quota','self-disable','self-block','self-ban','founder','admin-target','collision') as $bad){
+ foreach(array('id','sid','quota','self-disable','self-block','self-ban','self-equal-ban','founder','admin-target','collision') as $bad){
   ap_reset($bad==='admin-target'?'junior':'root');
   if($bad==='id'){$ap_target='2junk';}if($bad==='sid'){$_POST['sid']='FIXTURE-ADMIN';}if($bad==='quota'){$_POST['user_upload_quota']='999';}
   if($bad==='self-disable'||$bad==='self-block'){$ap_target=1;$_POST[$bad==='self-disable'?'user_status':'block_account']=$bad==='self-disable'?'0':'1';}
   if($bad==='self-ban'){$ap_target=1;$_POST['user_ycard']='11';}
+  if($bad==='self-equal-ban'){$ap_target=1;$_POST['user_ycard']='10';}
   if($bad==='founder'){ap_sql('UPDATE fixture_users SET user_level=1 WHERE user_id=5');$userdata['user_id']=5;ap_sql("UPDATE fixture_sessions SET session_user_id=5 WHERE session_id='fixture-admin'");$ap_target=1;}
   if($bad==='admin-target'){ap_sql('UPDATE fixture_users SET user_level=1 WHERE user_id=2');}
   $before=ap_snap();ats_check(ap_run($bad==='collision'?'new':'edit')==='error'&&ap_snap()===$before&&!$ap_cookies,'Rejected profile '.$bad);
@@ -228,7 +243,7 @@ try{
   foreach($row as $value){ats_check($value===$raw,'Exact ACP text storage');}unset($GLOBALS['ap_text_input']);$cases++;
  }
  foreach(array('','STRICT_ALL_TABLES','ANSI_QUOTES','NO_BACKSLASH_ESCAPES')as$mode){
-  foreach(array('edit','ban','mixed-edit','mixed-ban')as$scenario){
+  foreach(array('edit','ban','mixed-edit','mixed-ban','equal-ban','unchanged-ban','manual-ban','missing-warnings')as$scenario){
    ap_reset('root',$scenario);
    $ap_hook=function($sql)use($mode){if($sql==='SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ'){$GLOBALS['ap_hook']=null;ats_check($GLOBALS['peer']->sql_query("SET SESSION sql_mode='".$mode."'"),'Peer SQL mode');}};
    // The owning connection inherits global SQL mode only at construction;
@@ -236,9 +251,9 @@ try{
    $admin_profile_scope=new PhpbbAdminProfileScope($db,2,false,$_POST);$db=$admin_profile_scope;
    $connection=$admin_profile_scope->connection;
    ats_check($connection->db->sql_query("SET SESSION sql_mode='$mode'"),'Actual native owner SQL mode');
-   $user_id=2;$user_ycard=in_array($scenario,array('ban','mixed-ban'),true)?11:0;eval($ap_ban);
+   $user_id=2;$user_ycard=$admin_profile_scope->warnings;eval($ap_ban);
    $admin_profile_scope->validate_identity('fixture-2','fixture2@example.invalid',1);$admin_profile_scope->finish();
-   ats_check(count(ap_rows('SELECT ban_id FROM fixture_banlist WHERE ban_userid=2'))===($scenario==='ban'?1:($scenario==='mixed-ban'?2:0)),'Actual profile ban fragment SQL mode');
+   ats_check(count(ap_rows('SELECT ban_id FROM fixture_banlist WHERE ban_userid=2'))===(in_array($scenario,array('ban','equal-ban','unchanged-ban','manual-ban','missing-warnings'),true)?1:($scenario==='mixed-ban'?2:0)),'Actual profile ban fragment SQL mode');
    if($scenario==='mixed-edit'||$scenario==='mixed-ban'){ats_check(count(ap_rows("SELECT ban_id FROM fixture_banlist WHERE ban_ip='7f0000ff' AND ban_ip_mask='ffffffff' AND ban_email='keep@example.invalid'"))===1,'SQL-mode preservation of independent components');}
    $cases++;
   }

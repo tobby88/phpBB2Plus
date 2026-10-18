@@ -246,6 +246,23 @@ optional notification data and cannot break a strict-mode pruning journal insert
 This is a code correction on the existing canonical schema, not another table
 migration; existing installations still need the full updater described above.
 
+ACP warning selections use the current locked policy with an effective minimum
+threshold of one. Reaching that threshold bans the account and revokes sessions
+and remembered-login keys in the same profile transaction. Unchanged or absent
+warning fields cannot silently remove an existing manual ban; only a deliberate
+reduction below the threshold detaches its user component. Use the user list's
+explicit unban action for a manual zero-warning ban. Independent IP/email rules,
+activation state and temporary blocks are not implicitly cleared by the warning
+operation. Invalid warning counts/policies fail before profile preparation, and
+self-ban protection includes equality. Existing NULL counts render as zero;
+counts remain bounded to 0–32767 without a schema change or policy rewrite.
+The form also carries its original warning count through avatar navigation.
+An unchanged stale field preserves newer warnings; an actual edit requires the
+displayed baseline to match the current locked count (or the requested result
+to be already current). Existing-account forms without this baseline must be reloaded.
+The baseline is for change detection, not authorization: current ACP session,
+role and target checks remain mandatory inside the owning transaction.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

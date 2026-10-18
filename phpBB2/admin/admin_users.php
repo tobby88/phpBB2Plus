@@ -352,7 +352,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		$user_avatar_type = ( empty($user_avatar_loc) ) ? $this_userdata['user_avatar_type'] : '';		
 
 		$user_status = admin_user_post_int('user_status');
-		$user_ycard = admin_user_post_int('user_ycard');
+		$user_ycard = $admin_profile_scope !== null ? $admin_profile_scope->warnings : (array_key_exists('user_ycard', $_POST) ? PhpbbAdminProfileScope::warning_value($_POST['user_ycard'], 'Admin_profile_warning_invalid') : max(0, (int)$this_userdata['user_warnings']));
 		$user_allowpm = admin_user_post_int('user_allowpm');
 		$user_rank = $admin_profile_scope !== null ? $admin_profile_scope->rank : admin_user_post_int('user_rank');
 		$user_allowavatar = admin_user_post_int('user_allowavatar');
@@ -596,34 +596,8 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		{
 			if ($admin_profile_scope === null) { phpbb_acl_error('Session_invalid'); }
 			$admin_profile_scope->assign_quotas($_POST);
-			if ($user_ycard>$board_config['max_user_bancard']) 
-{ 
-   $sql = "SELECT ban_userid FROM " . BANLIST_TABLE . " WHERE ban_userid=$user_id"; 
-   if( $result = $db->sql_query($sql) ) 
-   { 
-      if (!$db->sql_fetchrowset($result)) 
-      { 
-         // insert the user in the ban list 
-         $sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid, ban_ip, ban_email, ban_ip_mask) VALUES ($user_id, '', '', '')";
-         if (!$result = $db->sql_query($sql) ) 
-            message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql); 
-         else $no_error_ban=true; 
-      } else $no_error_ban = true; 
-   } else message_die(GENERAL_ERROR, "Couldn't obtain banlist information", "", __LINE__, __FILE__, $sql); 
-} else 
-{ 
-   // Remove only the user component, inside the owning profile transaction.
-   $sql = "DELETE FROM " . BANLIST_TABLE . " WHERE ban_userid=$user_id AND COALESCE(ban_ip,'')='' AND COALESCE(ban_email,'')=''";
-   if (!$result = $db->sql_query($sql) ) 
-      message_die(GENERAL_ERROR, "Couldn't remove ban_userid info into database", "", __LINE__, __FILE__, $sql);
-   else
-   {
-      $sql = "UPDATE " . BANLIST_TABLE . " SET ban_userid=0 WHERE ban_userid=$user_id";
-      if (!$db->sql_query($sql))
-         message_die(GENERAL_ERROR, "Couldn't detach ban_userid info from combined rule", "", __LINE__, __FILE__, $sql);
-      $no_error_ban=true;
-   }
-}
+			// Apply selected warnings on the same owning profile transaction.
+			$admin_profile_scope->apply_warnings($user_ycard);
 			// Core and custom profile data become visible in one statement. In
 			// particular, a new placeholder must not become active before custom
 			// fields have been stored successfully in the InnoDB transaction.
@@ -813,7 +787,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 		$user_dateformat = htmlspecialchars($this_userdata['user_dateformat']);
 		
 		$user_status = $this_userdata['user_active'];
-		$user_ycard = $this_userdata['user_warnings'];
+		$user_ycard = $new_user ? 0 : max(0, (int)$this_userdata['user_warnings']);
 		$user_allowavatar = $this_userdata['user_allowavatar'];
 		$user_allowpm = $this_userdata['user_allow_pm'];
 		
@@ -980,6 +954,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
 
 			$s_hidden_fields .= '<input type="hidden" name="user_status" value="' . $user_status . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_ycard" value="' . $user_ycard . '" />';
+			$s_hidden_fields .= '<input type="hidden" name="user_ycard_original" value="' . ($admin_profile_scope !== null ? $admin_profile_scope->prior_warnings : PhpbbAdminProfileScope::warning_origin($_POST, $this_userdata['user_warnings'], (bool)$new_user)) . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_allowpm" value="' . $user_allowpm . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_allowavatar" value="' . $user_allowavatar . '" />';
 			$s_hidden_fields .= '<input type="hidden" name="user_rank" value="' . $user_rank . '" />';
@@ -1325,6 +1300,7 @@ if ($this_userdata['user_passwd_change']>0)
 			'USER_ACTIVE_YES' => ($user_status) ? 'checked="checked"' : '',
 			'USER_ACTIVE_NO' => (!$user_status) ? 'checked="checked"' : '', 
 			'BANCARD' => $user_ycard,
+			'BANCARD_ORIGINAL' => $admin_profile_scope !== null ? $admin_profile_scope->prior_warnings : PhpbbAdminProfileScope::warning_origin($_POST, $this_userdata['user_warnings'], (bool)$new_user),
 			'RANK_SELECT_BOX' => $rank_select_box,
 			// Start add - Protect user account MOD
 			'BAD_LOGIN_COUNT' => $this_userdata['user_badlogin'],
@@ -1384,7 +1360,7 @@ if ($this_userdata['user_passwd_change']>0)
 			'L_FORCE_NEW_PASSWD_EXPLAIN' => $l_force_new_passwd_explain,
 			// End add - Protect user account MOD
 			'L_BANCARD' => $lang['ban_card'], 
-			'L_BANCARD_EXPLAIN' => sprintf($lang['ban_card_explain'], $board_config['max_user_bancard']),
+			'L_BANCARD_EXPLAIN' => sprintf($lang['ban_card_explain'], max(1, (int)$board_config['max_user_bancard'])),
 			// Start add - Gender MOD
 			'L_GENDER' =>$lang['Gender'], 
 			'L_GENDER_MALE' =>$lang['Male'], 

@@ -8,6 +8,23 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make ACP warning/ban publication use the current locked warning policy at
+  equality too, with a minimum effective threshold of one. Preserve existing
+  manual bans on unchanged/missing counters and detach user restrictions only
+  when an administrator actually reduces the count below the limit. Revoke
+  sessions and remembered-login keys atomically for remaining or newly created
+  user bans; preserve independent rule components and other account blocks.
+  Validate selected counts before quota/avatar/account preparation, reject
+  self-bans at equality, render old NULL counters as zero and support the full
+  0–32767 counter range in the form. Update English/German explanations and
+  carry the original warning value through form/gallery navigation so unchanged
+  stale forms preserve later moderation. Reject conflicting edits before writes;
+  replays whose result is already current cannot remove a later manual ban.
+  Require old forms without warning origins to reload, without treating that
+  origin as an authorization credential. New accounts start from zero warnings.
+  Exercise complete native profile/rollback/commit/authority paths. No schema
+  migration or overwrite of an existing warning policy is required.
+
 - Initialize result counts and ID lists before special search modes run their
   common filters, including unanswered topics and bookmarks. Reject a missing
   personal-gallery owner before dereferencing the row or constructing a virtual

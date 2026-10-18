@@ -391,7 +391,7 @@
 <!-- End add - Protect user account MOD -->
 <tr> 
 <td class="row1"><span class="gen">{L_BANCARD}:</span><br /><span class="gensmall">{L_BANCARD_EXPLAIN}<br /></td> 
-<td class="row2"><input type="text" class="post" style="width: 40px"  name="user_ycard" size="4" maxlength="4" value="{BANCARD}" /></td> 
+<td class="row2"><input type="text" class="post" style="width: 60px" name="user_ycard" size="5" maxlength="5" value="{BANCARD}" /><input type="hidden" name="user_ycard_original" value="{BANCARD_ORIGINAL}" /></td>
 </tr>
 <tr> 
 <td class="cat" colspan="2" align="center">{S_HIDDEN_FIELDS} 

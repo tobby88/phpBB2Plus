@@ -38,6 +38,9 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 	var $original_identity = null;
 	var $identity_validated = false;
 	var $rank = 0;
+	var $warnings = 0;
+	var $prior_warnings = 0;
+	var $warning_limit = 1;
 	function __construct($database, $id, $creating, $request)
 	{
 		global $userdata, $table_prefix, $board_config;
@@ -68,19 +71,35 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 			if (count($policy) !== count($keys)) { phpbb_acl_error('Registration_storage_upgrade'); }
 			foreach ($policy as $row)
 			{ if (!array_key_exists($row['config_name'], $board_config) || (string)$board_config[$row['config_name']] !== (string)$row['config_value']) { phpbb_acl_error('Acl_selection_changed'); } }
+			$this->warning_limit = max(1, self::warning_value($board_config['max_user_bancard'], 'Admin_profile_warning_policy_invalid'));
 			// Freeze custom-field definitions before the controller validates them,
 			// including an empty range. Identity/rule gaps are locked when checked.
 			$this->profile_fields = phpbb_acl_rows($this, 'SELECT * FROM ' . PROFILE_FIELDS_TABLE . ' ORDER BY field_id ASC');
 			if ($this->creating) { $this->profile_actions = phpbb_acl_rows($this, 'SELECT field_column,action_state FROM ' . PROFILE_FIELD_ACTIONS_TABLE . ' ORDER BY operation_key'); }
-			$rows = phpbb_acl_rows($this, 'SELECT user_id,user_level,username,user_email FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->target_id . ' FOR UPDATE');
+			$rows = phpbb_acl_rows($this, 'SELECT user_id,user_level,username,user_email,user_warnings FROM ' . USERS_TABLE . ' WHERE user_id=' . $this->target_id . ' FOR UPDATE');
 			if ($this->creating ? count($rows) !== 0 : count($rows) !== 1) { phpbb_acl_error('Acl_selection_changed'); }
+			$this->prior_warnings = $this->creating ? 0 : max(0, (int)$rows[0]['user_warnings']);
+			$this->warnings = $this->prior_warnings;
+			if (array_key_exists('user_ycard', $request))
+			{
+				$selected = self::warning_value($request['user_ycard'], 'Admin_profile_warning_invalid');
+				if (!$this->creating && !array_key_exists('user_ycard_original', $request)) { phpbb_acl_error('Admin_profile_warning_changed'); }
+				$origin = self::warning_origin($request, $this->prior_warnings, $this->creating);
+				// An unchanged stale field must not overwrite newer moderation.
+				// Actual edits require the displayed baseline to remain current.
+				if ($selected !== $origin && $selected !== $this->prior_warnings)
+				{
+					if ($origin !== $this->prior_warnings) { phpbb_acl_error('Admin_profile_warning_changed'); }
+					$this->warnings = $selected;
+				}
+			}
 			if (!$this->creating)
 			{
 				$this->original_identity = $rows[0];
 				if ((int)$rows[0]['user_level'] === ADMIN && !$actor['root']) { phpbb_acl_error('Not_Authorised'); }
 				$first = phpbb_acl_rows($this, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_level=' . ADMIN . ' AND user_id>0 ORDER BY user_id LIMIT 1');
 				if ($first && (int)$first[0]['user_id'] === $this->target_id && (int)$actor['user_id'] !== $this->target_id) { phpbb_acl_error('ctracker_gmb_1stadmin'); }
-				$self_ban = isset($request['user_ycard']) && is_scalar($request['user_ycard']) && (int)$request['user_ycard'] > (int)$board_config['max_user_bancard'];
+				$self_ban = $this->warnings >= $this->warning_limit;
 				if ($this->target_id === (int)$actor['user_id'] && ($self_ban || !empty($request['block_account']) || !isset($request['user_status']) || !in_array($request['user_status'], array(1,'1'), true)))
 				{ phpbb_acl_error('Admin_profile_self_disable'); }
 			}
@@ -119,6 +138,47 @@ class PhpbbAdminProfileScope extends PhpbbAttachQuotaWriter
 		if (!$this->creating || !$this->transactional) { phpbb_acl_error('Admin_profile_save_failed'); }
 		try { return phpbb_profile_new_account_insert($this, $this->profile_fields, array(), $this->profile_actions); }
 		catch (UnexpectedValueException $e) { phpbb_acl_error('Acl_selection_changed'); }
+	}
+	static function warning_value($value, $error)
+	{
+		if (!(is_int($value) || is_string($value)) || !preg_match('/^[0-9]{1,5}$/D', (string)$value) || (int)$value > 32767)
+		{ phpbb_acl_error($error); }
+		return (int)$value;
+	}
+	static function warning_origin($request, $current, $creating = false)
+	{
+		if (!is_array($request)) { phpbb_acl_error('Admin_profile_warning_changed'); }
+		$origin = array_key_exists('user_ycard_original', $request) ? self::warning_value($request['user_ycard_original'], 'Admin_profile_warning_changed') : ($creating ? 0 : max(0, (int)$current));
+		if ($creating && $origin !== 0) { phpbb_acl_error('Admin_profile_warning_changed'); }
+		return $origin;
+	}
+	function apply_warnings($count)
+	{
+		if (!$this->ready || !$this->transactional || !is_int($count) || $count !== $this->warnings) { phpbb_acl_error('Admin_profile_save_failed'); }
+		$id = $this->target_id;
+		$banned = (bool)phpbb_acl_rows($this, 'SELECT ban_userid FROM ' . BANLIST_TABLE . ' WHERE ban_userid=' . $id);
+		if ($count >= $this->warning_limit)
+		{
+			if (!$banned)
+			{ $this->sql_query('INSERT INTO ' . BANLIST_TABLE . " (ban_userid,ban_ip,ban_email,ban_ip_mask) VALUES ($id,'','','')"); }
+			$banned = true;
+		}
+		elseif ($count < $this->prior_warnings)
+		{
+			// A deliberately lowered warning count removes the user component.
+			// An ordinary unchanged save must never remove a manual user ban.
+			$this->sql_query('DELETE FROM ' . BANLIST_TABLE . " WHERE ban_userid=$id AND COALESCE(ban_ip,'')='' AND COALESCE(ban_email,'')=''");
+			$this->sql_query('UPDATE ' . BANLIST_TABLE . " SET ban_userid=0 WHERE ban_userid=$id");
+			$banned = false;
+		}
+		if ($banned)
+		{
+			$actor = $this->actor();
+			if ($id === (int)$actor['user_id']) { phpbb_acl_error('Admin_profile_self_disable'); }
+			// This also retires old credentials of an unchanged manual ban.
+			$this->sql_query('DELETE FROM ' . SESSIONS_TABLE . ' WHERE session_user_id=' . $id);
+			$this->sql_query('DELETE FROM ' . SESSIONS_KEYS_TABLE . ' WHERE user_id=' . $id);
+		}
 	}
 	function actor()
 	{

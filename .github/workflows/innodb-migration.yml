@@ -355,6 +355,11 @@ jobs:
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
+      - name: Check native ACP warning selections and user-ban boundaries
+        run: php .github/scripts/check-admin-profile-warning-native.php
+        env:
+          PHPBB_ADMIN_PROFILE_NATIVE: '1'
+          PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
       - run: php .github/scripts/check-admin-profile-identity-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
