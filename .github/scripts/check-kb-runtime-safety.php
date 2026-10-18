@@ -52,7 +52,7 @@ kb_runtime_assert(strpos($functions, 'function get_kb_nav($parent, $visited = ar
 kb_runtime_assert(strpos($functions, 'foreach (array_reverse($path_kb_array) as $path_part)') !== false, 'category navigation must not read beyond its path');
 kb_runtime_assert(strpos($functions, '$allowed_sort_methods = array(') !== false, 'article list SQL sorting must be allowlisted');
 kb_runtime_assert(strpos($functions, 'function update_kb_number($id, $change, $visited = array())') !== false, 'category counters must detect cyclic parent relationships');
-kb_runtime_assert(strpos($functions, "\$new_number = max(0, (int) \$kb_cat['number_articles'] + \$change);") !== false, 'category article counters must use numeric addition');
+kb_runtime_assert(strpos($functions, 'CAST(COALESCE(number_articles, 0) AS DECIMAL(65,0))') !== false, 'category counter deltas must use the current stored value without unsigned underflow');
 kb_runtime_assert(strpos($functions, 'function kb_record_exists($table, $column, $id)') !== false, 'article references must be checked against existing records');
 kb_runtime_assert(strpos($functions, 'function kb_limit_text($value, $length)') !== false, 'Knowledge Base text fields must respect their schema bounds');
 kb_runtime_assert(strpos($functions, 'LEFT JOIN " . USERS_TABLE . " u ON u.user_id = t.article_author_id') !== false, 'article lists must retain guest-authored articles');

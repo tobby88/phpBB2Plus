@@ -17,6 +17,14 @@ if (PHP_SAPI !== 'cli')
 	exit(2);
 }
 
+// A misspelled targeted mode must never fall through to the full updater.
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only');
+foreach (array_slice($argv, 1) as $argument)
+{
+	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
+	{ fwrite(STDERR, "Unknown or positional updater argument. Use --help for supported options. No changes made.\n"); exit(2); }
+}
+
 $project_root = dirname(__DIR__);
 $forum_root = $project_root . DIRECTORY_SEPARATOR . 'phpBB2';
 if (!defined('IN_PHPBB')) { define('IN_PHPBB', true); }
@@ -24,6 +32,7 @@ require_once $forum_root . '/includes/functions_user_ids.php';
 require_once __DIR__ . '/innodb_migration.php';
 require_once __DIR__ . '/style_id_migration.php';
 require_once __DIR__ . '/ip_ban_migration.php';
+require_once __DIR__ . '/kb_counter_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
@@ -37,6 +46,7 @@ function update_usage()
 	echo "  php update/update_from_153a.php --self-test                 Test schema input\n";
 	echo "  --storage-only         Only convert known existing forum tables to InnoDB\n";
 	echo "  --style-ids-only       Only align style reference column capacity\n";
+	echo "  --kb-counters-only     Rebuild derived Knowledge Base category counts only\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
@@ -135,7 +145,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (in_array('--style-ids-only', $argv, true) && in_array('--storage-only', $argv, true))
+if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -623,6 +633,23 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 		$themes_sql . " WHERE template_name = 'fisubsilversh' ORDER BY themes_id LIMIT 1) standard_theme)";
 }
 
+try
+{
+	if (in_array('--kb-counters-only', $argv, true))
+	{
+		$kb_counter_plan = plus_kb_counter_plan($connection, $table_prefix);
+		plus_kb_counter_print_plan($kb_counter_plan);
+		if ($apply)
+		{
+			$count = plus_kb_counter_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Knowledge Base counter repair complete: $count categories.\n";
+		}
+		else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update completion is confirmed; inspect before retrying.\n"); exit(3); }
+
 $storage_tables = plus_storage_tables($schema_source, $table_prefix);
 try
 {
@@ -657,6 +684,9 @@ try
 	}
 }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nKeep writers stopped after any partial apply; DDL cannot be rolled back.\n"); exit(3); }
+
+try { $kb_counter_plan = plus_kb_counter_plan($connection, $table_prefix); }
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 
 $operations = array();
 try { $operations = plus_ip_ban_plan($connection, $table_prefix . 'banlist'); }
@@ -1098,7 +1128,7 @@ $version_operations = update_version_identity_sql($version_table, update_scalar(
 echo ($apply ? 'APPLY' : 'DRY RUN') . " post-1.53a database update\n";
 echo "Database: $dbname\n";
 echo "Table prefix: $table_prefix\n";
-echo 'Operations: ' . (count($operations) + count($version_operations) + count($style_ids_plan)) . "\n\n";
+echo 'Operations: ' . (count($operations) + count($version_operations) + count($style_ids_plan) + count($kb_counter_plan['changes'])) . "\n\n";
 
 if ($legacy_cleanup_count > 0)
 {
@@ -1149,6 +1179,16 @@ if ($apply)
 	}
 	catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; verify backup before retry.\n"); exit(3); }
 }
+try
+{
+	if ($apply)
+	{
+		$count = plus_kb_counter_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+		echo "Knowledge Base counter repair complete: $count categories.\n";
+	}
+	else { plus_kb_counter_print_plan($kb_counter_plan); }
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; inspect before retrying.\n"); exit(3); }
 foreach ($version_operations as $sql)
 {
 	echo $sql . ";\n";

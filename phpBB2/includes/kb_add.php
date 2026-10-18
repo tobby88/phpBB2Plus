@@ -277,7 +277,7 @@ if ($article_submit)
 	if ( ( !$kb_config['approve_new'] ) || ( $is_admin ) || ( $userdata['user_level'] == MOD ) )
 	{
 	  	$approve = 1;
-		update_kb_number($category, '+ 1');
+		update_kb_number($category, 1);
 	}
 	else
 	{

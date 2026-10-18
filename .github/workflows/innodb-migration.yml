@@ -262,6 +262,13 @@ jobs:
         env:
           PHPBB_GUEST_PROFILE_NATIVE: '1'
           PHPBB_GUEST_PROFILE_PASSWORD: fixture-only
+      - run: |
+          php .github/scripts/check-kb-counters-native.php
+          php .github/scripts/check-kb-counter-migration.php
+          php .github/scripts/check-kb-article-actions-native.php
+        env:
+          PHPBB_KB_COUNTER_NATIVE: '1'
+          PHPBB_KB_COUNTER_PASSWORD: fixture-only
       - run: php .github/scripts/check-storage-policy.php
         env:
           PHPBB_STORAGE_NATIVE: '1'

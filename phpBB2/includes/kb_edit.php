@@ -337,11 +337,11 @@ if ( !defined('IN_PHPBB') )
 
 		if ($old_approve === 1 && ($approve !== 1 || $old_category !== $category))
 		{
-			update_kb_number($old_category, '- 1');
+			update_kb_number($old_category, -1);
 		}
 		if ($approve === 1 && ($old_approve !== 1 || $old_category !== $category))
 		{
-			update_kb_number($category, '+ 1');
+			update_kb_number($category, 1);
 		}
 
 	  	$sql = "UPDATE " . KB_ARTICLES_TABLE . "

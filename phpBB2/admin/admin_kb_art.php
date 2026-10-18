@@ -179,7 +179,7 @@ switch( $mode )
 	$article_category_id = (int) $managed_article['article_category_id'];
 	if ((int) $managed_article['approved'] !== 1)
 	{
-		update_kb_number($article_category_id, '+ 1');
+		update_kb_number($article_category_id, 1);
 		add_kb_words($article_id, $managed_article['article_body'], $managed_article['article_title']);
 	}
 	
@@ -203,7 +203,7 @@ switch( $mode )
 	$article_category_id = (int) $managed_article['article_category_id'];
 	if ((int) $managed_article['approved'] === 1)
 	{
-		update_kb_number($article_category_id, '- 1');
+		update_kb_number($article_category_id, -1);
 	}
 	kb_remove_article_words($article_id);
 	
@@ -222,7 +222,7 @@ switch( $mode )
 	
 	if ($article['approved'] == 1)
 	{
-	 	update_kb_number($article_category_id, '- 1');
+		update_kb_number($article_category_id, -1);
 	}
 	
 	if (!empty($kb_config['del_topic']) && !empty($article['topic_id']))

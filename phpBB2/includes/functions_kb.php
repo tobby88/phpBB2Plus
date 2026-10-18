@@ -24,6 +24,7 @@ if ( !defined('IN_PHPBB') )
 {
    die('Hacking attempt');
 }
+require_once dirname(__FILE__) . '/functions_kb_counter_policy.php';
 
 //
 // get_quick_stats();
@@ -421,8 +422,8 @@ function update_kb_number($id, $change, $visited = array())
 {
     global $db;
 	$id = (int) $id;
-	$change = (int) $change;
-	if ($id <= 0 || $change === 0 || isset($visited[$id]) || count($visited) >= 100)
+	$change = kb_counter_delta($change);
+	if ($id <= 0 || $change === null || $change === 0 || isset($visited[$id]) || count($visited) >= 100)
 	{
 		return;
 	}
@@ -435,13 +436,15 @@ function update_kb_number($id, $change, $visited = array())
    	  	message_die(GENERAL_ERROR, "Could not obtain article data", '', __LINE__, __FILE__, $sql);
 	}
 	$kb_cat = $db->sql_fetchrow($results);
+	$db->sql_freeresult($results);
 	if (!is_array($kb_cat))
 	{
 		return;
 	}
-	$new_number = max(0, (int) $kb_cat['number_articles'] + $change);
+	// Increment on the database's current value, not the earlier SELECT snapshot.
+	// Decimal arithmetic also avoids unsigned subtraction errors at zero.
 	$sql = "UPDATE " . KB_CATEGORIES_TABLE .
-		  " SET number_articles = " . $new_number .
+		  " SET number_articles = GREATEST(CAST(COALESCE(number_articles, 0) AS DECIMAL(65,0)) + (" . $change . "), 0)" .
 		  " WHERE category_id = " . $id;
 		 
 	if ( !($result = $db->sql_query($sql)) )
@@ -1162,6 +1165,7 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 				{
 					case 'mysql':
 					case 'mysql4':
+					case 'mysqli':
 						$value_sql .= ( ( $value_sql != '' ) ? ', ' : '' ) . '(\'' . $db->sql_escape($word[$i]) . '\', 0)';
 						break;
 					case 'mssql':
@@ -1185,6 +1189,7 @@ function add_kb_words($post_id, $post_text, $post_title = '')
 			{
 				case 'mysql':
 				case 'mysql4':
+				case 'mysqli':
 					$sql = "INSERT IGNORE INTO " . KB_WORD_TABLE . " (word_text, word_common) 
 						VALUES $value_sql"; 
 					break;

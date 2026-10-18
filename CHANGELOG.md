@@ -8,6 +8,20 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Repair Knowledge Base category counter deltas: all nine built-in article
+  transitions pass integers, while valid legacy spaced operators remain readable.
+  Reject partial/non-scalar deltas and apply arithmetic to the current SQL value,
+  including unsigned zero handling and interleaved increments. Add an idempotent
+  derived-counter rebuild to the full post-1.53a updater and `--kb-counters-only`;
+  include ancestors/empty categories, preserve articles and reject ambiguous
+  hierarchies. Require verified backup/stopped writers and commit the complete
+  repair together. Exercise canonical native schemas and actual CLI paths.
+  Reject misspelled/unknown CLI options before they can select a full update.
+  Restore the MySQLi duplicate-word path in the Knowledge Base indexer so
+  reapproving an article can reuse existing search words without failing.
+  Cover the actual ACP approval/unapproval/deletion action body and POST guards
+  against disposable native tables (without claiming full bootstrap coverage).
+
 - Initialize missing or empty CrackerTracker event logs with their metadata
   header while holding the writer's existing exclusive lock. The first real
   event is no longer mistaken for a header by counting and ACP readers. Keep

@@ -34,6 +34,32 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Knowledge Base category counters
+
+Built-in article transitions use integer deltas; the legacy internal `+ 1` /
+`- 1` argument format remains accepted without partially parsing invalid input.
+Counter arithmetic uses the current SQL value rather than an earlier snapshot.
+This is not a claim that every legacy article/discussion/file operation forms
+one atomic transaction.
+
+The full post-1.53a updater also rebuilds category counts from approved articles,
+including descendants and empty categories. For an otherwise updated database:
+
+```sh
+php update/update_from_153a.php --kb-counters-only
+php update/update_from_153a.php --kb-counters-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+Keep a verified backup and stop **all web/cron writers** before apply, as for
+the other update modes. This targeted mode changes derived counts only, not
+articles, category definitions, their hierarchy, schema or application version. It requires
+the existing InnoDB/DYNAMIC/utf8mb4 storage conversion first. A complete repair
+commits together; failed confirmation is not reported as success. Repeated runs
+skip already-correct counts. Duplicate category IDs, invalid/cyclic parents,
+orphaned approved articles or unsupported counter ranges stop for review rather
+than deleting/remapping data. Do not combine targeted modes. Unknown or positional
+arguments are rejected rather than falling through to the full updater.
+
 ## Style removal and recovery
 
 Style exports hold the same owner as import/removal and check current ACP
