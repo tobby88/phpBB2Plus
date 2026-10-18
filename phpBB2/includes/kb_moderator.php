@@ -32,6 +32,7 @@ if ( !$is_admin )
 }
 
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_kb_publication.'.$phpEx);
 
 $category_id = (isset($_REQUEST['cat']) && is_scalar($_REQUEST['cat'])) ? intval($_REQUEST['cat']) : 0;
 $page_id = (isset($_REQUEST['page']) && is_scalar($_REQUEST['page'])) ? intval($_REQUEST['page']) : 0;
@@ -63,7 +64,9 @@ else
 	}
 }
 
-$article_id = (isset($_REQUEST['a']) && is_scalar($_REQUEST['a'])) ? intval($_REQUEST['a']) : 0;
+$article_id_value = isset($_REQUEST['a']) ? $_REQUEST['a'] : null;
+try { $article_id = kb_counter_category_id($article_id_value); }
+catch (RuntimeException $error) { $article_id = 0; }
 $confirmed = isset($_POST['confirm_action']) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sid']) && is_scalar($_POST['sid']) && hash_equals((string) $userdata['session_id'], (string) $_POST['sid']);
 if (in_array($action, array('approve', 'unapprove', 'delete'), true))
 {
@@ -88,7 +91,7 @@ if (in_array($action, array('approve', 'unapprove', 'delete'), true))
 	}
 	if (!$confirmed)
 	{
-		$action_labels = array('approve' => $lang['Approve'], 'unapprove' => $lang['Unapprove'], 'delete' => $lang['Delete']);
+		$action_labels = array('approve' => $lang['Approve'], 'unapprove' => $lang['Un_approve'], 'delete' => $lang['Delete']);
 		$confirm_text = ($action === 'delete') ? $lang['Confirm_art_delete'] : sprintf($lang['Confirm_art_action'], $action_labels[$action]);
 		$confirm_url = append_sid($phpbb_root_path . "kb.$phpEx?mode=moderate");
 		$confirm_message = $confirm_text . '<br /><br /><form method="post" action="' . htmlspecialchars($confirm_url, ENT_QUOTES, 'UTF-8') . '"><input type="hidden" name="action" value="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '" /><input type="hidden" name="a" value="' . $article_id . '" /><input type="hidden" name="cat" value="' . $category_id . '" /><input type="hidden" name="page" value="' . $page_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" /><input type="submit" name="confirm_action" value="' . htmlspecialchars($lang['Yes'], ENT_QUOTES, 'UTF-8') . '" />&nbsp;&nbsp;<a href="' . append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&cat=$category_id") . '">' . $lang['No'] . '</a></form>';
@@ -101,74 +104,9 @@ switch( $action )
 
  	case 'approve':
 	
-	$topic_sql = '';
-	if ( $kb_config['comments'] )
-	{
-		$row = $moderated_article;
-	
-		if ( !$row['topic_id'] )
-		{		
-		    // choose a user
-			$user_id = $kb_config['admin_id'];
-
-			// initialise the userdata
-			$sql = "SELECT * FROM " . USERS_TABLE . " WHERE user_id = $user_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-	   	        message_die(CRITICAL_ERROR, 'Could not obtain lastvisit data from user table', '', __LINE__, __FILE__, $sql);
-			}
-			$user = $db->sql_fetchrow($result);
-			init_userprefs($user);
-			
-			$kb_cat = get_kb_cat($row['article_category_id']);
-		    $type = get_kb_type($row['article_type']);
-		  	$author = get_kb_author($row['article_author_id']);
-
-		  	$search = array (
-                 "'&(quot|#34);'i",                	// Replace HTML entities
-                 "'&(amp|#38);'i",
-                 "'&(lt|#60);'i",
-                 "'&(gt|#62);'i"
-				 );                    
-		  	$replace = array (
-                 "\"",
-                 "&",
-                 "<",
-                 ">"
-				 );
-
-			$temp_url = phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . $article_id);
-		  	$message = "[b]" . $lang['Category'] . ":[/b] "  . $kb_cat['category_name'] . "\n";
-		  	$message .= "[b]" . $lang['Article_type'] . ":[/b] " . $type . "\n\n";
-		  	$message .= "[b]" . $lang['Article_title'] . ":[/b] " . preg_replace($search, $replace, $row['article_title']) . "\n";
-		  	$message .= "[b]" . $lang['Author'] . ":[/b] " . $author . "\n";
-		  	$message .= "[b]" . $lang['Article_description'] . ":[/b] " . preg_replace($search, $replace, $row['article_description']) . "\n\n";
-		  	$message .= "[b][url=" . $temp_url . "]" . $lang['Read_full_article'] . "[/url][/b]";
-
-		  	$subject = '[ KB ] ' . $row['article_title'];
-
-			$forum_id = $kb_config['forum_id'];
-	
-			$topic_data = insert_post($message, $subject, $forum_id, $user['user_id'], $user['username'], $user['user_attachsig']);
-			$topic_sql = ", topic_id = " . $topic_data['topic_id'];
-		}
-	}
-		
-	$sql = "UPDATE " . KB_ARTICLES_TABLE .
-		 " SET approved = 1 " . $topic_sql . "
-		 WHERE article_id = " . $article_id;
-		 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-   	   message_die(GENERAL_ERROR, "Could not update article data", '', __LINE__, __FILE__, $sql);
-	}
-	
+	try { $moderated_article = kb_publish_approval($db, $article_id, 1, 'moderator'); }
+	catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	$article_category_id = (int) $moderated_article['article_category_id'];
-	if ((int) $moderated_article['approved'] !== 1)
-	 {
-		update_kb_number($article_category_id, 1);
-		add_kb_words($article_id, $moderated_article['article_body'], $moderated_article['article_title']);
-	 }
 	
 	$message = $lang['Article_approved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 
@@ -177,21 +115,9 @@ switch( $action )
 
 	case 'unapprove':
 	
-	$sql = "UPDATE " . KB_ARTICLES_TABLE .
-		 " SET approved = 0
-		 WHERE article_id = " . $article_id;
-		 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-   	   message_die(GENERAL_ERROR, "Could not update article data", '', __LINE__, __FILE__, $sql);
-	}
-	
+	try { $moderated_article = kb_publish_approval($db, $article_id, 0, 'moderator'); }
+	catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	$article_category_id = (int) $moderated_article['article_category_id'];
-	if ((int) $moderated_article['approved'] === 1)
-	 {
-		update_kb_number($article_category_id, -1);
-	 }
-	kb_remove_article_words($article_id);
 	
 	$message = $lang['Article_unapproved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path ."kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 

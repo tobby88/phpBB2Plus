@@ -42,6 +42,23 @@ Counter arithmetic uses the current SQL value rather than an earlier snapshot.
 This is not a claim that every legacy article/discussion/file operation forms
 one atomic transaction.
 
+Approval and unapproval in both article managers use an independent owned
+transaction for article status, category counters, the KB search index and any
+new discussion topic/post/index/statistics. They reload the current article,
+configuration, session and permissions rather than trusting a request-entry
+snapshot. Repeated approvals do not double-count or duplicate discussions.
+Revoked ACP delegation or KB moderation membership is checked before commit;
+a frontend KB moderator does not gain unrelated ACP privileges. The caller's
+connection, pending transaction and display preferences are not repurposed.
+Existing installations must first complete the supported database update.
+
+An unconfirmed commit is reported as unconfirmed, not as a guaranteed rollback.
+Inspect the current article before retrying; a repeated approval can rebuild its
+missing KB index without incrementing counts again. Historic incorrect counts
+need the repair below. This boundary does **not** make legacy article add/edit/
+deletion or physical discussion-attachment cleanup transactional, and unapproval
+does not delete an existing discussion topic.
+
 The full post-1.53a updater also rebuilds category counts from approved articles,
 including descendants and empty categories. For an otherwise updated database:
 

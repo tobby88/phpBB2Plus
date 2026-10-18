@@ -8,6 +8,19 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Publish Knowledge Base approval/unapproval on a dedicated owning transaction:
+  status, category counters, search data and newly mirrored discussion posts/
+  indexes/statistics commit together. Reload and lock current article/configuration,
+  pin supported storage, preserve caller transactions/preferences and revalidate
+  actual ACP delegation or KB moderation membership through finalization. Prevent
+  double publication after stale concurrent requests and false success after an
+  unconfirmed commit; retain safe retries without duplicate discussions/counts.
+  Validate complete action IDs and fix the frontend unapproval confirmation label.
+  Cover real controller bodies, native fault boundaries, revocations, interleaved
+  approvals and commit acknowledgement loss under PHP 5.6/7.4/8.5. No schema change;
+  historic counter repair remains in the post-1.53a updater. Article add/edit/delete
+  and physical attachment cleanup remain outside this approval-only boundary.
+
 - Repair Knowledge Base category counter deltas: all nine built-in article
   transitions pass integers, while valid legacy spaced operators remain readable.
   Reject partial/non-scalar deltas and apply arithmetic to the current SQL value,

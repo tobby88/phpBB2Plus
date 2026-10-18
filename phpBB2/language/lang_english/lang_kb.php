@@ -25,6 +25,8 @@ if ( !defined('IN_PHPBB') )
 }
  
 $lang['KB_title'] = 'Knowledge Base';
+$lang['KB_publication_failed'] = 'The Knowledge Base change could not be confirmed. Please check its current state before retrying.';
+$lang['KB_publication_upgrade'] = 'Please complete the database update before changing Knowledge Base approvals.';
 $lang['Article'] = 'Article';
 $lang['Category'] = 'Category';
 $lang['Article_description'] = 'Description';

@@ -16,7 +16,10 @@ foreach(array('includes/kb_add.php','includes/kb_edit.php','includes/kb_moderato
  $source=file_get_contents($root.$file);preg_match_all('/update_kb_number\([^;]+;/', $source,$matches);
  foreach($matches[0]as$call){kbc_policy_check(preg_match('/,\s*-?1\s*\);$/D',$call)===1,'Built-in article transition passes an integer delta');$calls++;}
 }
-kbc_policy_check($calls===9,'Review complete article-transition caller inventory');
+kbc_policy_check($calls===5,'Review remaining direct add/edit/delete counter caller inventory');
+$publication=file_get_contents($root.'includes/functions_kb_publication.php');
+kbc_policy_check(substr_count($publication,'update_kb_number(')===1&&strpos($publication,'$approved ? 1 : -1')!==false,'Central approval owner supplies a numeric delta');
+foreach(array('admin/admin_kb_art.php'=>'acp','includes/kb_moderator.php'=>'moderator')as$file=>$context){$source=file_get_contents($root.$file);foreach(array(0,1)as$approved){kbc_policy_check(strpos($source,"kb_publish_approval(\$db, \$article_id, ".$approved.", '".$context."')")!==false,'Both approval states use the exact current-authority owner');}}
 $categories=array(
  array('category_id'=>1,'parent'=>0,'number_articles'=>'9'),
  array('category_id'=>2,'parent'=>1,'number_articles'=>'0'),

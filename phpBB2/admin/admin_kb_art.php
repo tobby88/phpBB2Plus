@@ -36,6 +36,7 @@ require('./pagestart.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 include($phpbb_root_path . 'includes/kb_constants.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_kb.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_kb_publication.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
@@ -62,7 +63,9 @@ else
 $approve = !empty($_POST['approve']);
 $unapprove = !empty($_POST['unapprove']);
 $delete = !empty($_POST['delete']);
-$article_id = isset($_POST['a']) ? (int) $_POST['a'] : (isset($_GET['a']) ? (int) $_GET['a'] : 0);
+$article_id_value = isset($_POST['a']) ? $_POST['a'] : (isset($_GET['a']) ? $_GET['a'] : null);
+try { $article_id = kb_counter_category_id($article_id_value); }
+catch (RuntimeException $error) { $article_id = 0; }
 
 if ( isset($_POST['mode']) || isset($_GET['mode']) )
 {
@@ -114,74 +117,8 @@ switch( $mode )
 	case 'approve':
 	phpbb_admin_require_post_session();
 	
-	$topic_sql = '';
-	if ( $kb_config['comments'] )
-	{
-		$row = $managed_article;
-	
-		if ( !$row['topic_id'] )
-		{		
-		    // choose a user
-			$user_id = $kb_config['admin_id'];
-
-			// initialise the userdata
-			$sql = "SELECT * FROM " . USERS_TABLE . " WHERE user_id = $user_id";
-			if ( !($result = $db->sql_query($sql)) )
-			{
-	   	        message_die(CRITICAL_ERROR, 'Could not obtain lastvisit data from user table', '', __LINE__, __FILE__, $sql);
-			}
-			$user = $db->sql_fetchrow($result);
-			init_userprefs($user);
-			
-			$kb_cat = get_kb_cat($row['article_category_id']);
-		    $type = get_kb_type($row['article_type']);
-		  	$author = get_kb_author($row['article_author_id']);
-
-		  	$search = array (
-                 "'&(quot|#34);'i",                	// Replace HTML entities
-                 "'&(amp|#38);'i",
-                 "'&(lt|#60);'i",
-                 "'&(gt|#62);'i"
-				 );                    
-		  	$replace = array (
-                 "\"",
-                 "&",
-                 "<",
-                 ">"
-				 );
-
-			$temp_url = phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . $article_id);
-		  	$message = "[b]" . $lang['Category'] . ":[/b] "  . $kb_cat['category_name'] . "\n";
-		  	$message .= "[b]" . $lang['Article_type'] . ":[/b] " . $type . "\n\n";
-		  	$message .= "[b]" . $lang['Article_title'] . ":[/b] " . preg_replace($search, $replace, $row['article_title']) . "\n";
-		  	$message .= "[b]" . $lang['Author'] . ":[/b] " . $author . "\n";
-		  	$message .= "[b]" . $lang['Article_description'] . ":[/b] " . preg_replace($search, $replace, $row['article_description']) . "\n\n";
-		  	$message .= "[b][url=" . $temp_url . "]" . $lang['Read_full_article'] . "[/url][/b]";
-
-		  	$subject = '[ KB ] ' . $row['article_title'];
-
-			$forum_id = $kb_config['forum_id'];
-	
-			$topic_data = insert_post($message, $subject, $forum_id, $user['user_id'], $user['username'], $user['user_attachsig']);
-			$topic_sql = ", topic_id = " . $topic_data['topic_id'];
-		}
-	}
-		
-	$sql = "UPDATE " . KB_ARTICLES_TABLE .
-		 " SET approved = 1 " . $topic_sql . "
-		 WHERE article_id = " . $article_id;
-		 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-   	   message_die(GENERAL_ERROR, "Could not update article data", '', __LINE__, __FILE__, $sql);
-	}
-	
-	$article_category_id = (int) $managed_article['article_category_id'];
-	if ((int) $managed_article['approved'] !== 1)
-	{
-		update_kb_number($article_category_id, 1);
-		add_kb_words($article_id, $managed_article['article_body'], $managed_article['article_title']);
-	}
+	try { $managed_article = kb_publish_approval($db, $article_id, 1, 'acp'); }
+	catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	
 	$message = $lang['Article_approved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
 
@@ -191,21 +128,8 @@ switch( $mode )
 	case 'unapprove':
 	phpbb_admin_require_post_session();
 	
-	$sql = "UPDATE " . KB_ARTICLES_TABLE .
-		 " SET approved = 0
-		 WHERE article_id = " . $article_id;
-		 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-   	   message_die(GENERAL_ERROR, "Could not update article data", '', __LINE__, __FILE__, $sql);
-	}
-	
-	$article_category_id = (int) $managed_article['article_category_id'];
-	if ((int) $managed_article['approved'] === 1)
-	{
-		update_kb_number($article_category_id, -1);
-	}
-	kb_remove_article_words($article_id);
+	try { $managed_article = kb_publish_approval($db, $article_id, 0, 'acp'); }
+	catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	
 	$message = $lang['Article_unapproved'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
 

@@ -11,6 +11,7 @@ function kb_runtime_assert($condition, $message)
 
 $root = dirname(dirname(__DIR__));
 $functions = file_get_contents($root . '/phpBB2/includes/functions_kb.php');
+$publication = file_get_contents($root . '/phpBB2/includes/functions_kb_publication.php');
 $admin = file_get_contents($root . '/phpBB2/admin/admin_kb_art.php');
 $moderator = file_get_contents($root . '/phpBB2/includes/kb_moderator.php');
 $search = file_get_contents($root . '/phpBB2/kb_search.php');
@@ -31,7 +32,7 @@ kb_runtime_assert(strpos($functions, '$approve_pm_view') === false, 'notificatio
 kb_runtime_assert(strpos($functions, 'function kb_admin_article_action_form') !== false, 'AdminCP article actions must use POST forms');
 kb_runtime_assert(substr_count($admin, 'phpbb_admin_require_post_session();') >= 3, 'article mutations must require POST session tokens');
 kb_runtime_assert(strpos($admin, "isset(\$_POST['c'])") !== false, 'article deletion confirmation must be submitted by POST');
-kb_runtime_assert(strpos($admin, "isset(\$_POST['a']) ? (int) \$_POST['a']") !== false, 'admin article ID must be normalized');
+kb_runtime_assert(strpos($admin, 'kb_counter_category_id($article_id_value)') !== false && strpos($moderator, 'kb_counter_category_id($article_id_value)') !== false, 'article actions must validate complete bounded IDs instead of partially casting request values');
 kb_runtime_assert(strpos($admin, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'AdminCP article deletion must remove vote rows');
 kb_runtime_assert(strpos($moderator, 'DELETE FROM " . KB_VOTES_TABLE') !== false, 'moderator article deletion must remove vote rows');
 kb_runtime_assert(strpos($functions, '$db->sql_escape($search_matches[$i])') !== false, 'indexed Knowledge Base words must be escaped at the SQL boundary');
@@ -77,8 +78,8 @@ kb_runtime_assert(strpos($edit, 'topic_id = $comment_topic_id') !== false, 'arti
 kb_runtime_assert(strpos($edit, "\$old_approve === 1 && (\$approve !== 1 || \$old_category !== \$category)") !== false, 'article edits must decrement the old category only when an approved article leaves it');
 kb_runtime_assert(strpos($edit, "\$approve === 1 && (\$old_approve !== 1 || \$old_category !== \$category)") !== false, 'article edits must increment the new category exactly once on an approved transition');
 kb_runtime_assert(strpos($add, 'add_kb_words($article_id, $article_text, $title);') !== false && strpos($edit, 'add_kb_words($article_id, $article_text, $title);') !== false, 'article titles must be included in the search index');
-kb_runtime_assert(strpos($admin, "(int) \$managed_article['approved'] !== 1") !== false, 'AdminCP approval must only increment counters on a state transition');
-kb_runtime_assert(strpos($moderator, "(int) \$moderated_article['approved'] === 1") !== false, 'moderator unapproval must only decrement counters for approved articles');
+kb_runtime_assert(strpos($publication, "((int)\$article['approved'] === 1) !== (\$approved === 1)") !== false, 'Locked current approval state controls counter transitions');
+kb_runtime_assert(substr_count($admin, 'kb_publish_approval(') === 2 && substr_count($moderator, 'kb_publish_approval(') === 2, 'Both controllers share the owned approval/unapproval path');
 kb_runtime_assert(substr_count($functions, "phpbb_stored_text(stripslashes(\$article['article_description']))") >= 2, 'all article list descriptions must normalize and escape legacy stored text');
 kb_runtime_assert(substr_count($functions, "phpbb_stored_text(stripslashes(\$article['article_title']))") >= 2, 'all article list titles must normalize and escape legacy stored text');
 kb_runtime_assert(strpos($functions, "phpbb_stored_text(stripslashes(\$category['category_details']))") !== false, 'category descriptions must normalize and escape legacy stored text');

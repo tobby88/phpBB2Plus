@@ -25,6 +25,8 @@ if ( !defined('IN_PHPBB') )
 }
 
 $lang['KB_title'] = 'Knowledge Base';
+$lang['KB_publication_failed'] = 'Die Änderung in der Wissensdatenbank konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand vor einem erneuten Versuch.';
+$lang['KB_publication_upgrade'] = 'Bitte führe vor Änderungen an Freigaben in der Wissensdatenbank das Datenbank-Update vollständig durch.';
 $lang['Article'] = 'Artikel';
 $lang['Category'] = 'Kategorie';
 $lang['Article_description'] = 'Beschreibung';
