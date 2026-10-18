@@ -128,4 +128,45 @@ catch (RuntimeException $error)
 {
 	search_runtime_assert($error->getMessage() === 'ajax:{"search_id":0,"results":0,"keywords":""}', 'empty AJAX searches must retain their JSON contract');
 }
+// Actual initial dispatch for special modes, before search-cache publication.
+// The permission tree is supplied as bootstrap input; this is not an HTTP/auth
+// bootstrap test. Fresh local scope must not inherit a previous result count.
+define('ANONYMOUS',-1);define('POST_FORUM_URL','f');define('BOOKMARK_TABLE','bookmarks');
+function get_auth_keys($where,$include){return $GLOBALS['search_special_keys'];}
+function append_sid($url,$html=true){return $url;}
+class SearchSpecialRedirect extends RuntimeException {}
+function redirect($url){throw new SearchSpecialRedirect($url);}
+$dispatch_begin=strpos($source,"\t\$store_vars = array(");$dispatch_end=strpos($source,'// Delete old data from the search result table',$dispatch_begin);
+search_runtime_assert($dispatch_begin!==false&&$dispatch_end>$dispatch_begin,'Complete special search dispatch found');
+$search_special_dispatch=substr($source,$dispatch_begin,$dispatch_end-$dispatch_begin)."\n}";
+function search_special_results($mode,$logged=true,$offset=0,$readable=true)
+{
+	global $db,$lang,$search_special_dispatch,$search_special_keys;
+	$search_id=$mode;$search_keywords=$search_author='';$show_results='posts';$sort_by=0;$sort_dir='ASC';$start=$offset;$is_ajax=0;
+	$phpEx='php';
+	$ctracker_config=(object)array('settings'=>array('search_feature_enabled'=>1));$search_where='Root';$userdata=array('user_id'=>1,'session_logged_in'=>$logged);
+	$board_config=array('topics_per_page'=>2);$tree=array('type'=>array('f','f','f'),'id'=>array(1,2,3),'auth'=>array('f1'=>array('auth_read'=>$readable),'f2'=>array('auth_read'=>false),'f3'=>array('auth_read'=>false)));
+	$search_special_keys=array('id'=>array('f1','f2','f3'),'idx'=>array(0,1,2));
+	eval($search_special_dispatch);
+	return array('ids'=>$search_ids,'total'=>$total_match_count,'mode'=>$show_results,'start'=>$start,'highlight'=>$split_search);
+}
+$prior_reporting=error_reporting(E_ALL);
+set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
+try{
+	$db->sql_query('UPDATE topics SET forum_id=1 WHERE topic_id=4');
+	$db->sql_query('ALTER TABLE topics ADD topic_replies INTEGER DEFAULT 0');$db->sql_query('ALTER TABLE topics ADD topic_moved_id INTEGER DEFAULT 0');
+	$db->sql_query('UPDATE topics SET topic_replies=1 WHERE topic_id=2');$db->sql_query('UPDATE topics SET topic_moved_id=99 WHERE topic_id IN (3,7)');
+	$db->sql_query('CREATE TABLE bookmarks(user_id INTEGER,topic_id INTEGER)');$db->sql_query('INSERT INTO bookmarks VALUES(1,1),(1,4),(1,5),(1,6),(1,999),(2,2)');
+	$lang['No_searchable_forums']='no forums';
+	foreach(array('unanswered','bookmarks')as$mode){
+		$result=search_special_results($mode,true,9999);search_runtime_assert($result['ids']===array(1,4)&&$result['total']===2,'Fresh '.$mode.' selects real permitted IDs without an undefined initial count');
+		search_runtime_assert($result['mode']===($mode==='bookmarks'?'bookmarks':'topics')&&$result['highlight']===array(),'Special result type and empty highlight state retained');
+		if($mode==='bookmarks'){search_runtime_assert($result['start']===0,'Bookmark page offset clamps against real count');}
+		$caught=false;try{search_special_results($mode,true,0,false);}catch(RuntimeException $e){$caught=$e->getMessage()==='no forums';}search_runtime_assert($caught,'No readable forums remains denied before special queries');
+	}
+	search_runtime_assert(search_special_results('unanswered',false)['total']===2,'Guests retain permitted unanswered topics');
+	$caught=false;try{search_special_results('bookmarks',false);}catch(SearchSpecialRedirect $e){$caught=strpos($e->getMessage(),'login.php')===0;}search_runtime_assert($caught,'Guest bookmarks still require login, without an undefined count warning');
+	$db->sql_query('DELETE FROM bookmarks');$db->sql_query('UPDATE topics SET topic_replies=1');
+	foreach(array('unanswered','bookmarks')as$mode){$result=search_special_results($mode);search_runtime_assert($result['ids']===array()&&$result['total']===0,'Empty special mode has explicit empty IDs/count');}
+}finally{restore_error_handler();error_reporting($prior_reporting);}
 echo "Search result runtime tests passed.\n";

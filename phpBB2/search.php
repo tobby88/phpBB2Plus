@@ -194,6 +194,10 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 	// pass through the keyword tokenizer.  Keep the cached/highlight state
 	// array-shaped for all search modes (PHP 8 rejects count(null)).
 	$split_search = array();
+	// Unanswered/bookmark searches select their IDs after the common filters.
+	// They still need an empty initial result state before those filters run.
+	$total_match_count = 0;
+	$search_ids = array();
 
 	//
 	// Search ID Limiter, decrease this value if you experience further timeout problems with searching forums

@@ -16,7 +16,7 @@ function owner_check($ok,$message) { if(!$ok){throw new RuntimeException($messag
 class AlbumOwnerResult { var $rows; var $offset=0; function __construct($rows){$this->rows=$rows;} }
 class AlbumOwnerDatabase
 {
-	var $queries=array(); var $pdo; var $failure=false;
+	var $queries=array(); var $pdo; var $failure=false; var $reject='';
 	function __construct()
 	{
 		$this->pdo=new PDO('sqlite::memory:'); $this->pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
@@ -25,7 +25,7 @@ class AlbumOwnerDatabase
 		$this->pdo->exec('CREATE TABLE fixture_members(user_id INTEGER,group_id INTEGER,user_pending INTEGER)');
 		$this->pdo->exec('INSERT INTO fixture_members VALUES(8,10,0),(9,10,1)');
 	}
-	function sql_query($sql){$this->queries[]=$sql;return $this->failure?false:new AlbumOwnerResult($this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));}
+	function sql_query($sql){$this->queries[]=$sql;return $this->failure||($this->reject!==''&&strpos($sql,$this->reject)!==false)?false:new AlbumOwnerResult($this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));}
 	function sql_fetchrow($r){return isset($r->rows[$r->offset])?$r->rows[$r->offset++]:false;}
 	function sql_numrows($r){return count($r->rows);}
 	function sql_freeresult($r){}
@@ -153,6 +153,18 @@ try
 		try{eval(substr($category_source,$start,$end-$start));}catch(AlbumOwnerFailure $e){$caught=$e->getMessage()==='Missing category';}
 		owner_check($caught,'Missing category tree returns a controlled error without array_key_exists TypeError');
 	}
+	// Execute the complete virtual-gallery descriptor, not just its caller's
+	// later missing-owner guard. This was the warning on deleted user galleries.
+	$old_reporting=error_reporting(E_ALL);
+	try{
+		$db=new AlbumOwnerDatabase();$db->pdo->exec('CREATE TABLE fixture_album(pic_id INTEGER,pic_cat_id INTEGER)');$db->pdo->exec('CREATE TABLE fixture_album_cat(cat_id INTEGER,cat_user_id INTEGER)');
+		$db->pdo->exec('INSERT INTO fixture_album_cat VALUES(10,7),(20,8)');$db->pdo->exec('INSERT INTO fixture_album VALUES(1,10),(2,10),(3,20)');
+		$userdata=array('user_id'=>7,'username'=>'Current viewer');$lang['Personal_Gallery_Of_User']='Gallery of %s';$album_config['personal_gallery_private']='10,12';
+		foreach(array(0,7,8)as$owner){$cat=init_personal_gallery_cat($owner);owner_check((int)$cat['count']===($owner===8?1:2)&&(int)$cat['cat_user_id']===($owner===8?8:7),'Default/self/other descriptor counts only its owner pictures');owner_check($cat['cat_title']==='Gallery of '.($owner===8?'Other':'Current viewer')&&$cat['cat_view_groups']==='10,12'&&$cat['cat_upload_level']===$album_config['personal_gallery'],'Existing descriptor title and policy retained');}
+		foreach(array(999,8)as$owner){if($owner===8){$db->pdo->exec('DELETE FROM fixture_users WHERE user_id=8');}$caught=false;try{init_personal_gallery_cat($owner);}catch(AlbumOwnerFailure $e){$caught=$e->getMessage()==='No such user';}owner_check($caught,'Missing/deleted owner receives a controlled result, never a fabricated descriptor');}
+		foreach(array('COUNT(pic_id)','SELECT user_id, username')as$read){$db->reject=$read;$caught=false;try{init_personal_gallery_cat(999);}catch(AlbumOwnerFailure $e){$caught=$e->getMessage()!=='No such user';}owner_check($caught,'Read failure remains a storage error, not a missing-user result');$db->reject='';}
+		owner_check((int)$db->pdo->query('SELECT COUNT(*) FROM fixture_album')->fetchColumn()===3,'Descriptor does not delete orphaned pictures');
+	}finally{error_reporting($old_reporting);}
 	echo "Album owner authorization and missing-owner checks passed.\n";
 }
 finally {restore_error_handler();}

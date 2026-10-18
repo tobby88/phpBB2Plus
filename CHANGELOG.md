@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Initialize result counts and ID lists before special search modes run their
+  common filters, including unanswered topics and bookmarks. Reject a missing
+  personal-gallery owner before dereferencing the row or constructing a virtual
+  gallery. Keep ordinary/self gallery counts, titles and configured permissions,
+  guest bookmark login and permitted unanswered-topic results unchanged. Execute
+  the actual dispatch/descriptor paths with strict warning handling in regression
+  tests; no database migration or picture removal is involved.
+
 - Preserve independent IP/mask/email restrictions through account deletion,
   inactive-account cleanup, pruning and ordinary ACP profile saves. Delete only
   pure user rules and detach the account from combined rules; retries and every

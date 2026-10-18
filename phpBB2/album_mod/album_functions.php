@@ -657,6 +657,11 @@ function init_personal_gallery_cat($user_id = 0)
 		}
 
 		$user_row = $db->sql_fetchrow($result);
+		$db->sql_freeresult($result);
+		if (!$user_row)
+		{
+			message_die(GENERAL_MESSAGE, $lang['No_such_user']);
+		}
 		$username = $user_row['username'];
 	}
 	else
