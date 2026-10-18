@@ -285,6 +285,11 @@ to be already current). Existing-account forms without this baseline must be rel
 The baseline is for change detection, not authorization: current ACP session,
 role and target checks remain mandatory inside the owning transaction.
 
+Publish the updated `fisubsilversh/admin/user_edit_body.tpl` with the controller.
+If XS automatic template recompilation is disabled, clear/rebuild its compiled
+template cache before reopening the editor. A cached pre-update form cannot
+provide the new baseline merely by reloading the same cached markup.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded
