@@ -13,6 +13,62 @@ $root = dirname(dirname(__DIR__));
 require_once $root . '/phpBB2/includes/php_compat.php';
 
 serialized_state_assert(phpbb_safe_unserialize('O:8:"stdClass":0:{}') === false, 'objects must remain rejected');
+class SerializedWakeFixture
+{
+	function __wakeup() { $GLOBALS['serialized_wakeup_calls']++; }
+}
+class SerializedCustomFixture implements Serializable
+{
+	function serialize() { return ''; }
+	function unserialize($data) { $GLOBALS['serialized_custom_calls']++; }
+	function __serialize() { return array(); }
+	function __unserialize($data) { $GLOBALS['serialized_custom_calls']++; }
+}
+$serialized_wakeup_calls=$serialized_custom_calls=0;
+foreach(array('SerializedWakeFixture'=>'O','SerializedCustomFixture'=>'C') as $name=>$kind)
+{
+	foreach(array((string)strlen($name),'+'.strlen($name),'+00'.strlen($name)) as $size)
+	{
+		$payload=$kind.':'.$size.':"'.$name.'":0:{}';
+		foreach(array($payload,'a:1:{i:0;'.$payload.'}') as $encoded)
+		{
+			$value=phpbb_safe_unserialize($encoded);
+			serialized_state_assert($serialized_wakeup_calls===0 && $serialized_custom_calls===0, 'signed/zero-padded top-level or nested object triggered native magic');
+			serialized_state_assert(!($value instanceof SerializedWakeFixture) && !($value instanceof SerializedCustomFixture), 'unsafe root object returned');
+		}
+	}
+}
+// The oldest lowercase-o token also accepts signed property counts on PHP 5.
+foreach(array('o:+0:"}','o:-0:"}','a:1:{i:0;o:+0:"}}') as $encoded)
+{
+	serialized_state_assert(phpbb_safe_unserialize($encoded)===false,'legacy signed object prefix must be rejected before decoding');
+}
+$serialized_autoload_calls=0;
+$serialized_loader=function($name){$GLOBALS['serialized_autoload_calls']++;};spl_autoload_register($serialized_loader);
+foreach(array('O','C') as $kind)
+{
+	$name='MissingSerializedFixture';$payload=$kind.':+'.strlen($name).':"'.$name.'":0:{}';
+	phpbb_safe_unserialize($payload);phpbb_safe_unserialize('a:1:{i:0;'.$payload.'}');
+}
+spl_autoload_unregister($serialized_loader);
+serialized_state_assert($serialized_autoload_calls===0,'unsafe signed object input reached autoload');
+$serialized_old_limit=ini_get('pcre.backtrack_limit');
+try
+{
+	ini_set('pcre.backtrack_limit','1');
+	$encoded=serialize(array(';O:'.str_repeat('1',1000).'x',new SerializedWakeFixture));
+	$value=phpbb_safe_unserialize($encoded);
+	if(version_compare(PHP_VERSION,'7.0.0','<'))
+	{
+		serialized_state_assert($value===false && preg_last_error()===PREG_BACKTRACK_LIMIT_ERROR,'PCRE error must reject input rather than allow native PHP 5 decoding');
+	}
+	serialized_state_assert($serialized_wakeup_calls===0 && $serialized_custom_calls===0,'filter failure reached object magic');
+}
+finally { ini_set('pcre.backtrack_limit',$serialized_old_limit); }
+foreach(array(null,false,true,0,-12,1.25,"Grüße 😀\0\\'",array('userid'=>2,'autologinid'=>'token'),array('cache'=>array(1,2,3))) as $expected)
+{
+	serialized_state_assert(phpbb_safe_unserialize(serialize($expected))===$expected,'ordinary scalar/cookie/cache state changed');
+}
 $scalars = phpbb_safe_unserialize_scalar_array(serialize(array('ok', array('nested'), 'last')));
 serialized_state_assert($scalars === array(0 => 'ok', 2 => 'last'), 'scalar-list decoder retained a nested value');
 

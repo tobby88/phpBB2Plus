@@ -68,7 +68,11 @@ if (!function_exists('phpbb_safe_unserialize'))
 			return is_object($value) ? false : $value;
 		}
 
-		if (preg_match('/(^|[;{}])(O|C):[0-9]+:/i', $serialized))
+		// PHP 5.6's native grammar accepts a leading + on O/C class lengths
+		// and signed counts for its legacy lowercase-o object representation.
+		// Reject those before native decoding can autoload or wake any object.
+		// A PCRE failure is not evidence that the input is object-free.
+		if (preg_match('/(^|[;{}])(O|C):[+-]?[0-9]+:/i', $serialized) !== 0)
 		{
 			return false;
 		}

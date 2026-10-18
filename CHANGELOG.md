@@ -41,6 +41,15 @@ changes consolidated after that baseline without implying active maintenance.
   The full updater seeds only absent report-policy defaults;
   existing choices are retained and no new schema is introduced.
 
+- Reject signed and zero-padded object headers before PHP 5.6's native legacy
+  deserializer runs. Its accepted leading-plus class lengths could bypass the
+  previous unsigned-only object filter and invoke loaded-class magic methods.
+  Reject filter errors as well, instead of treating a PCRE failure as a clean
+  result and passing the input to the native deserializer.
+  Test top-level/nested ordinary and custom-serialized objects, autoload refusal
+  and ordinary scalar, cookie and cache round trips under all supported PHP
+  versions. No stored-state format or database migration is required.
+
 - Initialize result counts and ID lists before special search modes run their
   common filters, including unanswered topics and bookmarks. Reject a missing
   personal-gallery owner before dereferencing the row or constructing a virtual
