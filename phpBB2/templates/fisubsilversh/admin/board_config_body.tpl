@@ -198,7 +198,7 @@
 </tr> 
 <tr> 
 <td class="row1">{L_MAX_USER_BANCARD}<br /><span class="gensmall">{L_MAX_USER_BANCARD_EXPLAIN}</span></td> 
-<td class="row2"><input class="post" type="text" size="4" maxlength="4" name="max_user_bancard" value="{MAX_USER_BANCARD}" /></td> 
+<td class="row2"><input class="post" type="text" size="5" maxlength="5" name="max_user_bancard" value="{MAX_USER_BANCARD}" /></td>
 </tr> 
 <tr> 
 <td class="row1">{L_REPORT_FORUM}<br /><span class="gensmall">{L_REPORT_FORUM_EXPLAIN}</span></td> 

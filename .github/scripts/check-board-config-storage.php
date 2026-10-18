@@ -11,6 +11,7 @@ $bc_source=dirname(dirname(__DIR__)).'/phpBB2/';
 require $bc_source.'includes/php_compat.php';
 require $bc_source.'includes/functions_board_config.php';
 require $bc_source.'includes/functions_jr_admin.php';
+require $bc_source.'includes/functions_admin_profile_storage.php';
 // Real POST/SID and decoding helpers; cached bootstrap identity is supplied by
 // each fixture. No production controller/SQL code is rewritten or extracted.
 $bootstrap=file_get_contents($bc_source.'admin/pagestart.php');
@@ -23,6 +24,7 @@ $phpEx='php';$lang=array('Board_config_invalid'=>'invalid','Board_config_failed'
  'ctracker_error_storage_migration'=>'migration','ctracker_rec_empty_source'=>'empty','ctracker_gmb_pu_1'=>'port','ctracker_gmb_pu_2'=>'session length');
 $ctracker_config=(object)array('settings'=>array('auto_recovery'=>0,'detect_misconfiguration'=>0));
 $template=file_get_contents($bc_source.'templates/fisubsilversh/admin/board_config_body.tpl');
+bc_check(preg_match('/<input\b(?=[^>]*\bname="max_user_bancard")(?=[^>]*\bmaxlength="5")[^>]*>/',$template)===1,'Warning limit form supports the full five-digit counter range');
 preg_match_all('/\bname="([a-z0-9_]+)"/',$template,$m);
 $rendered=array_unique(array_merge(array_diff($m[1],array('submit')),array('default_style','default_lang','default_dateformat','board_timezone','report_forum')));
 $fields=phpbb_board_config_fields();sort($fields);sort($rendered);
@@ -32,8 +34,14 @@ $values=phpbb_board_config_values(array('site_desc'=>addslashes("Änderung ' \\ 
 bc_check($values===array('site_desc'=>"Änderung ' \\ 😀",'smtp_password'=>" p'\\<&😀 "),'UTF-8 and exact one-time decoding, including SMTP secret');
 $values=phpbb_board_config_values(array('server_name'=>'https://EXAMPLE.org','server_port'=>'443','script_path'=>'forum','cookie_name'=>'a.b'),$current);
 bc_check($values['server_name']==='example.org'&&$values['server_port']==='443'&&$values['script_path']==='/forum/'&&$values['cookie_name']==='a_b','Existing host/port/path/cookie normalization');
+foreach(array('0'=>'0','1'=>'1','32767'=>'32767','0000000010'=>'10','0000032767'=>'32767') as $input=>$expected){
+ $values=phpbb_board_config_values(array('max_user_bancard'=>(string)$input),$current);
+ bc_check($values['max_user_bancard']===$expected,'Warning limit stored as canonical decimal');
+ bc_check(PhpbbAdminProfileScope::warning_value($values['max_user_bancard'],'Admin_profile_warning_policy_invalid')===(int)$expected,'Saved warning policy accepted by actual profile owner');
+}
 foreach(array(array('version'=>'forged'),array('site_desc'=>array('bad')),array('site_desc'=>str_repeat('x',256)),array('site_desc'=>"\xc3"),
- array('site_desc'=>addslashes("a\0b")),array('min_password_len'=>'73'),array('posts_per_page'=>'0'),array('allow_html'=>'2'),array('board_timezone'=>'99')) as $request){
+ array('site_desc'=>addslashes("a\0b")),array('min_password_len'=>'73'),array('posts_per_page'=>'0'),array('allow_html'=>'2'),array('board_timezone'=>'99'),
+ array('max_user_bancard'=>'32768'),array('max_user_bancard'=>'2147483647'),array('max_user_bancard'=>'0000032768')) as $request){
  $denied=false;try{phpbb_board_config_values($request,$current);}catch(PhpbbAclException $e){$denied=true;}bc_check($denied,'Invalid complete request rejected');
 }
 echo "Board configuration field inventory and input checks passed\n";
@@ -127,11 +135,16 @@ try{
    else{bc_check($outcome==='Not_Authorised'&&bc_snapshot()===$before,'Revocation rolls back complete save: '.$actor.' '.$kind.' #'.$boundary.' '.$outcome);}
    bc_check(bc_run(array('site_desc'=>'forbidden'))==='Not_Authorised','Following request denied');$cases++;
   }}
-  foreach(array(array('site_desc'=>'after','version'=>'forged'),array('site_desc'=>'after','smtp_password'=>str_repeat('x',256)),array('site_desc'=>array('bad')),array('site_desc'=>'after','sid'=>array('bad'))) as $bad){bc_reset($actor);$before=bc_snapshot();$ctracker_config->settings['auto_recovery']=1;$outcome=bc_run($bad);bc_check(strpos($outcome,'saved')!==0&&bc_snapshot()===$before,'Invalid full form leaves data intact');bc_check(!array_filter($bc_queries,function($sql){return preg_match('/^(INSERT|UPDATE|DELETE|CREATE|DROP|COMMIT)\b/',$sql);}), 'No config or automatic backup writes before complete validation');$cases++;}
+  foreach(array(array('site_desc'=>'after','version'=>'forged'),array('site_desc'=>'after','smtp_password'=>str_repeat('x',256)),array('site_desc'=>array('bad')),array('site_desc'=>'after','sid'=>array('bad')),array('site_desc'=>'after','max_user_bancard'=>'32768')) as $bad){bc_reset($actor);$before=bc_snapshot();$ctracker_config->settings['auto_recovery']=1;$outcome=bc_run($bad);bc_check(strpos($outcome,'saved')!==0&&bc_snapshot()===$before,'Invalid full form leaves data intact');bc_check(!array_filter($bc_queries,function($sql){return preg_match('/^(INSERT|UPDATE|DELETE|CREATE|DROP|COMMIT)\b/',$sql);}), 'No config or automatic backup writes before complete validation');$cases++;}
   bc_reset($actor);$before=bc_snapshot();$bc_failure="UPDATE fixture_config SET config_value='new'";
   bc_check(bc_run(array('site_desc'=>'after','smtp_password'=>'new'))==='storage'&&bc_snapshot()===$before,'Second write failure rolls back first');$cases++;
   bc_reset($actor);$bc_hook=function($sql){if(strpos($sql,'UPDATE fixture_config ')===0){$GLOBALS['bc_hook']=null;bc_sql("UPDATE fixture_config SET config_value='concurrent' WHERE config_name IN ('version','dbmtnc_rebuild_pos')");}};
   bc_check(strpos(bc_run(array('site_desc'=>'after')),'saved')===0,'Concurrent metadata save succeeds');$after=bc_snapshot();bc_check($after['version']==='concurrent'&&$after['dbmtnc_rebuild_pos']==='concurrent','Unsubmitted internal concurrent values preserved');$cases++;
+  bc_reset($actor);bc_check(strpos(bc_run(array('max_user_bancard'=>'0000000010')),'saved')===0,'Actual controller saves normalized warning policy');
+  $after=bc_snapshot();bc_check($after['max_user_bancard']==='10'&&PhpbbAdminProfileScope::warning_value($after['max_user_bancard'],'Admin_profile_warning_policy_invalid')===10,'Stored policy accepted by profile owner');$cases++;
+  bc_reset($actor);bc_sql("UPDATE fixture_config SET config_value='32768' WHERE config_name='max_user_bancard'");
+  bc_check(strpos(bc_run(array('site_desc'=>'after')),'saved')===0&&bc_snapshot()['max_user_bancard']==='32768','Unsubmitted old policy is not silently changed');
+  bc_check(strpos(bc_run(array('max_user_bancard'=>'32767')),'saved')===0&&bc_snapshot()['max_user_bancard']==='32767','Explicit valid selection repairs an old invalid policy');$cases++;
   bc_reset($actor);$ctracker_config->settings['auto_recovery']=1;
   bc_check(strpos(bc_run(array('site_desc'=>'after')),'saved')===0,'Automatic backup with exact board grant');$rows=$peer->sql_fetchrowset(bc_sql("SELECT config_value FROM fixture_backup WHERE config_name='site_desc'"));bc_check($rows[0]['config_value']==='before'&&bc_snapshot()['site_desc']==='after','Backup precedes new configuration');$cases++;
   bc_reset($actor);$before=bc_snapshot();$bc_failure='COMMIT';bc_check(bc_run(array('site_desc'=>'after'))==='storage'&&bc_snapshot()===$before,'Commit failure rolls back');$cases++;

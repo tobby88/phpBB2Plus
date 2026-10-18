@@ -52,6 +52,13 @@ function phpbb_board_config_values($request, $current)
 		if (in_array($key, $booleans, true) && !in_array($value, array('0','1'), true)) { phpbb_acl_error('Board_config_invalid'); }
 		if (in_array($key, $integers, true) && (!preg_match('/^[0-9]{1,10}$/D', $value) || (float)$value > 2147483647))
 		{ phpbb_acl_error('Board_config_invalid'); }
+		if ($key === 'max_user_bancard')
+		{
+			// Match the SMALLINT warning counter and its profile/card owners.
+			// Canonicalize leading zeroes rather than saving an unreadable policy.
+			if ((int)$value > 32767) { phpbb_acl_error('Board_config_invalid'); }
+			$value = (string)(int)$value;
+		}
 		if (in_array($key, array('posts_per_page','topics_per_page','session_length','default_style'), true) && (int)$value < 1)
 		{ phpbb_acl_error('Board_config_invalid'); }
 		if ($key === 'require_activation' && !in_array($value, array('0','1','2'), true)) { phpbb_acl_error('Board_config_invalid'); }

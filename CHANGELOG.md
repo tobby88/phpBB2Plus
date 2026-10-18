@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Validate ACP warning limits against the same 0–32767 range used by profile
+  editing and card moderation. Normalize leading zeroes before saving, so an
+  accepted configuration cannot subsequently break profile edits. Reject an
+  invalid complete form before automatic backups or configuration writes.
+  Allow all five digits in the configuration form. Preserve unsubmitted
+  settings; no schema or automatic policy rewrite needed.
+
 - Make ACP warning/ban publication use the current locked warning policy at
   equality too, with a minimum effective threshold of one. Preserve existing
   manual bans on unchanged/missing counters and detach user restrictions only
