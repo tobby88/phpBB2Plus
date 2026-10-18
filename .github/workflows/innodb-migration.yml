@@ -128,6 +128,11 @@ jobs:
         env:
           PHPBB_CARD_NATIVE: '1'
           PHPBB_CARD_PASSWORD: fixture-only
+      - name: Check native current-authority report and reset publication
+        run: php -d disable_functions=mail .github/scripts/check-report-native.php
+        env:
+          PHPBB_REPORT_NATIVE: '1'
+          PHPBB_REPORT_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
         run: php .github/scripts/check-user-ban-lifecycle-native.php
         env:

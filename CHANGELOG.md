@@ -25,6 +25,22 @@ changes consolidated after that baseline without implying active maintenance.
   Exercise complete native profile/rollback/commit/authority paths. No schema
   migration or overwrite of an existing warning policy is required.
 
+- Make report/reset an independent current-session transaction, including real
+  guest sessions where the forum permits them. Recheck current role, membership,
+  view/read/report or moderator rights, consistent post/topic/forum identity,
+  board policy and bans. Serialize the nullable report counter and saturate its
+  canonical signed tinyint at 127 instead of overflowing or losing increments.
+  Preserve already larger custom-column counters, including unsigned bigint
+  values, without truncating them to the bundled limit.
+  Use SQL-mode-safe numeric literals. Confine report-topic matching and compose
+  links to the configured accessible destination. Send optional moderator mail
+  only after confirmed commit; do not claim mail delivery merely because a
+  report was saved. Exclude notification recipients without current source
+  view/read rights or with inactive/blocked/user-email-banned accounts, including
+  for guest reports; a moderator grant alone cannot disclose an admin-only forum.
+  The full updater seeds only absent report-policy defaults;
+  existing choices are retained and no new schema is introduced.
+
 - Initialize result counts and ID lists before special search modes run their
   common filters, including unanswered topics and bookmarks. Reject a missing
   personal-gallery owner before dereferencing the row or constructing a virtual
@@ -59,8 +75,8 @@ changes consolidated after that baseline without implying active maintenance.
   undo the saved action. Restore localized block duration and result messages,
   and avoid an undefined mail template on repeated bans. Native checks exercise
   the actual moderation POST/dispatch after shared bootstrap, rollback/failure,
-  strict SQL modes and concurrent authority changes; report/reset remain a
-  separate legacy workflow rather than being claimed protected by this owner.
+  strict SQL modes and concurrent authority changes. Report/reset use the
+  separate report owner described above, including legitimate guest semantics.
 
 - Make IPv4 bans unambiguous with an additive octet-mask column. Support
   wildcards in every position and literal 255 octets consistently in the ACP,

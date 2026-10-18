@@ -4,6 +4,8 @@ $root = dirname(dirname(__DIR__));
 $card = file_get_contents($root . '/phpBB2/card.php');
 $storage = file_get_contents($root . '/phpBB2/includes/functions_card_storage.php');
 $notify = file_get_contents($root . '/phpBB2/includes/functions_card_notifications.php');
+$report = file_get_contents($root . '/phpBB2/includes/functions_report_storage.php');
+$report_notify = file_get_contents($root . '/phpBB2/includes/functions_report_notifications.php');
 define('IN_PHPBB',true);
 require $root . '/phpBB2/includes/functions_card_storage.php';
 
@@ -18,16 +20,19 @@ $checks = array(
     'exactly one card action is accepted' => strpos($card, 'count($submitted_actions) === 1') !== false,
     'post identifiers must be scalar' => strpos($card, "isset(\$_POST['post_id']) && is_scalar(\$_POST['post_id'])") !== false,
     'direct user identifiers must be scalar' => strpos($card, "isset(\$_POST[POST_USERS_URL]) && is_scalar(\$_POST[POST_USERS_URL])") !== false,
-    'post reports cannot target direct user mode' => strpos($card, "(\$mode === 'report' || \$mode === 'report_reset') && \$post_id <= 0") !== false,
+    'post reports require a canonical post ID' => strpos($report, "phpbb_card_id(isset(\$request['post_id']) ? \$request['post_id'] : null,16777215)") !== false,
     'moderation is dispatched to an independent owner' => strpos($card,'phpbb_card_moderate($db,$_POST,$user_ip)') !== false && strpos($storage,'class PhpbbCardScope extends PhpbbLoginDatabase') !== false,
     'current role and exact session checked' => strpos($storage,'HEX(session_id)=HEX(') !== false && substr_count($storage,'$owner->actor()') >= 2,
     'missing users are rejected before dereference' => strpos($storage,"if (count(\$rows)!==1) { phpbb_card_error('No_such_user'); }") !== false,
-    'report notification intervals cannot divide by zero' => strpos($card, "\$bluecard_limit = max(1,") !== false,
+    'report notification intervals cannot divide by zero' => strpos($report, "\$interval=max(1,(int)\$policy['bluecard_limit'])") !== false,
     'temporary blocks use the current installed configuration key' => strpos($storage, "isset(\$policy['block_time'])") !== false,
     'obsolete temporary-block key is gone' => strpos($card, "RY_block_time") === false,
-    'moderator notifications exclude pending memberships' => strpos($card, 'ug.user_pending = 0') !== false,
-    'moderator notifications are deduplicated' => strpos($card, 'SELECT DISTINCT u.user_id') !== false,
-    'email language paths are allowlisted' => strpos($card,"preg_match('/^[a-z0-9_-]+$/i'") !== false && strpos($notify,"preg_match('/^[a-z0-9_-]+$/iD'") !== false,
+    'moderator notifications exclude pending memberships' => strpos($report, 'ug.user_pending=0') !== false,
+    'moderator notifications are deduplicated' => strpos($report, 'SELECT DISTINCT u.user_id') !== false,
+    'email language paths are allowlisted' => strpos($report_notify,"preg_match('/^[a-z0-9_-]+$/iD'") !== false && strpos($notify,"preg_match('/^[a-z0-9_-]+$/iD'") !== false,
+    'report changes have an independent owner' => strpos($card,'phpbb_report_post($db,$_POST,$user_ip)') !== false && strpos($report,'class PhpbbReportScope extends PhpbbCardScope') !== false,
+    'report mail follows confirmed publication' => strpos($card,'phpbb_report_notify($outcome)') > strpos($card,'phpbb_report_post($db,$_POST,$user_ip)') && strpos($report_notify,"new emailer(\$board_config['smtp_delivery'],true)") !== false,
+    'canonical tinyint report count saturates without reducing wider counters' => strpos($report,'(float)$old>=127 ? $old : (int)$old+1') !== false,
     'optional moderation mail follows confirmed commit' => strpos($card,'phpbb_card_notify($outcome)') > strpos($card,'phpbb_card_moderate($db,$_POST,$user_ip)') && strpos($notify,"new emailer(\$board_config['smtp_delivery'],true)") !== false,
     'unowned old moderation branches removed' => strpos($card,'INSERT INTO ') === false && strpos($card,'DELETE FROM ') === false,
 );

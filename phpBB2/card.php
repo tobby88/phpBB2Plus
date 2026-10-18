@@ -114,171 +114,19 @@ if (in_array($mode, array('ban','unban','warn','block'), true))
     message_die(GENERAL_MESSAGE,$message);
 }
 
-// check that we have all what is needed to know
-if ($post_id <= 0 && $user_id <= 0)
-	message_die(GENERAL_ERROR, "No user/post specified", "", __LINE__, __FILE__,'post_id="'.$post_id.'", user_id="'.$user_id.'"');
-if ( empty($mode) )
-	message_die(GENERAL_ERROR, "No action specified", "", __LINE__, __FILE__,'mode="'.$mode.'"');
-
-$bluecard_limit = max(1, isset($board_config['bluecard_limit']) ? intval($board_config['bluecard_limit']) : 1);
-$bluecard_limit_2 = max(1, isset($board_config['bluecard_limit_2']) ? intval($board_config['bluecard_limit_2']) : 1);
-
-if ( $post_id > 0 )
-{
-	// post mode
-	$sql = 'SELECT DISTINCT forum_id, poster_id, post_bluecard FROM ' . POSTS_TABLE . ' WHERE post_id = ' . $post_id;
-	if (!$query_result = $db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, "Couldn't obtain forums information.", '', __LINE__, __FILE__, $sql);
-	}
-	$post_data = $db->sql_fetchrow($query_result);
-	if (!$post_data)
-	{
-		message_die(GENERAL_ERROR, $lang['No_such_post']);
-	}
-	$blue_card = (int) $post_data['post_bluecard'];
-	$forum_id = (int) $post_data['forum_id'];
-	$poster_id = (int) $post_data['poster_id'];
+// Report/reset independently owns current permissions and counter publication.
+require_once($phpbb_root_path . 'includes/functions_report_storage.' . $phpEx);
+try { $outcome=phpbb_report_post($db,$_POST,$user_ip); }
+catch (PhpbbCardException $e) { message_die(GENERAL_MESSAGE,$e->getMessage()!=='Card_storage_failed' && isset($lang[$e->getMessage()]) ? $lang[$e->getMessage()] : $lang['Report_storage_failed']); }
+catch (Exception $e) { message_die(GENERAL_MESSAGE,$lang['Report_storage_failed']); }
+catch (Error $e) { message_die(GENERAL_MESSAGE,$lang['Report_storage_failed']); }
+require_once($phpbb_root_path . 'includes/functions_report_notifications.' . $phpEx);
+$notification_ok=phpbb_report_notify($outcome);
+$message=$lang[$outcome['mode']==='report_reset' ? 'Post_reset' : 'Report_saved'];
+if (!$notification_ok) { $message.='<br /><br />'.$lang['Report_notification_failed']; }
+if ($outcome['destination']>0) {
+    $compose='posting.'.$phpEx.'?mode='.($outcome['reply']>0 ? 'reply&t='.$outcome['reply'] : 'newtopic&f='.$outcome['destination']).'&postreport='.$outcome['post_id'];
+    $message.='<br /><br />'.sprintf($lang['Send_message'],'<a href="'.append_sid($compose).'">','</a>');
 }
-else if ( $user_id > 0 )
-{
-	//user mode
-	//forum_id will control witch permission, when no post_id is given, and a user_id is given instead
-	//disable the frum_id line will give no default access when no post_id is given
-	// installe extra permission mod, in order to enable this feature
-	$forum_id = PAGE_CARD;
-	$poster_id = $user_id;
-	$post_id = -1;
-	$blue_card = 0;
-}
-
-if (($mode === 'report' || $mode === 'report_reset') && $post_id <= 0)
-{
-	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-}
-if (in_array($mode, array('ban', 'unban', 'warn', 'block'), true) && $poster_id <= 0)
-{
-	message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-}
-
-//
-// Start auth check
-//
-$is_auth = array();
-$is_auth = auth(AUTH_ALL, $forum_id, $userdata);
-
-if ($mode=="report_reset")
-{
-	if (! $is_auth['auth_mod'])
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-
-	$sql = 'SELECT pt.post_subject, f.forum_name FROM '.POSTS_TEXT_TABLE.' pt, '.POSTS_TABLE.' p, '.FORUMS_TABLE.' f WHERE pt.post_id="'.$post_id.'" AND p.post_id=pt.post_id AND p.forum_id=f.forum_id';
-	if( !$result = $db->sql_query($sql) )
-	     	message_die(GENERAL_ERROR, "Couldn't get post subject information".$sql);
-	$subject = $db->sql_fetchrow($result);
-	if (!$subject)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_post']);
-	}
-	$post_subject=$subject['post_subject'];
-	$forum_name=$subject['forum_name'];
-
- 	$sql = 'UPDATE ' . POSTS_TABLE . ' SET post_bluecard="0" WHERE post_id="'.$post_id.'"';
-		if( !$result = $db->sql_query($sql) )
-	      	message_die(GENERAL_ERROR, "Couldn't update blue card information");
-	message_die(GENERAL_MESSAGE, $lang['Post_reset']."<br /><br />".
-	sprintf($lang['Click_return_viewtopic'], "<a href=\"" . append_sid("viewtopic.$phpEx?p=".$post_id."#".$post_id). "\">", "</a>"));
-
-} else
-if ($mode=="report")
-{
-	if (!$is_auth['auth_bluecard'])
-	{
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-	}
-
-	$sql = 'SELECT f.forum_name, p.topic_id  FROM '.POSTS_TABLE.' p, '.FORUMS_TABLE.' f WHERE p.post_id="'.$post_id.'" AND  p.forum_id=f.forum_id';
-	if( !$result = $db->sql_query($sql) )
-	     	message_die(GENERAL_ERROR, "Couldn't get post subject information");
-
-	$post_details = $db->sql_fetchrow($result);
-	if (!$post_details)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_post']);
-	}
-	$forum_name=$post_details['forum_name'];
-	$topic_id=$post_details['topic_id'];
-	$sql = 'SELECT pt.post_subject FROM '.POSTS_TEXT_TABLE.' pt, '.TOPICS_TABLE.' t WHERE t.topic_id="'.$topic_id.'" AND pt.post_id=t.topic_first_post_id';
-	if( !$result = $db->sql_query($sql) )
-     		message_die(GENERAL_ERROR, "Couldn't get topic subject information".$sql);
-	$post_details = $db->sql_fetchrow($result);
-	if (!$post_details)
-	{
-		message_die(GENERAL_MESSAGE, $lang['No_such_post']);
-	}
-	$post_subject=$post_details['post_subject'];
-
-	$sql = "SELECT p.topic_id FROM " . POSTS_TEXT_TABLE . " pt, " . POSTS_TABLE . " p WHERE pt.post_subject = '(" . $post_id . ")" . $db->sql_escape($post_subject) . "' AND pt.post_id = p.post_id";
-	if( !$result = $db->sql_query($sql) )
-     		message_die(GENERAL_ERROR, "Couldn't get topic subject information".$sql);
-	$post_details = $db->sql_fetchrow($result);
-	$allready_reported = ($blue_card && $post_details) ? intval($post_details['topic_id']) : 0;
-
-	$blue_card++;
-	$sql = 'UPDATE ' . POSTS_TABLE . ' SET post_bluecard="'.$blue_card.'" WHERE post_id="'.$post_id.'"';
-	if( !$result = $db->sql_query($sql) )
-	     	message_die(GENERAL_ERROR, "Couldn't update blue card information");
-	//
-	// Obtain list of moderators of this forum without duplicate notifications.
-	$sql = "SELECT DISTINCT u.user_id, u.username, u.user_email, u.user_lang
-		FROM " . AUTH_ACCESS_TABLE . " aa,  " . USER_GROUP_TABLE . " ug, " . GROUPS_TABLE . " g, " . USERS_TABLE . " u
-	      WHERE aa.forum_id = $forum_id   AND aa.auth_mod = " . TRUE . "
-			AND ug.group_id = aa.group_id AND ug.user_pending = 0
-			AND g.group_id = aa.group_id AND u.user_id = ug.user_id
-			AND u.user_active = 1 AND u.user_email <> ''";
-      if( !$result_mods = $db->sql_query($sql) )
-		message_die(GENERAL_ERROR, "Couldn't obtain moderators information.", "", __LINE__, __FILE__, $sql);
-	$total_mods = $db->sql_numrows($result_mods);
-	$i=0;
-      if (!$total_mods)
-		 message_die(GENERAL_MESSAGE, $lang['No_moderators']."<br /><br />".
-		(($board_config['report_forum'])? sprintf($lang['Send_message'], "<a href=\"" . append_sid("posting.$phpEx?mode=".(($allready_reported)?"reply&t=".$allready_reported:"newtopic&f=".$board_config['report_forum'])."&postreport=".$post_id). "\">", "</a>"):"").
-		sprintf($lang['Click_return_viewtopic'], "<a href=\"" . append_sid("viewtopic.$phpEx?p=".$post_id."#".$post_id). "\">", "</a>"));
-      if ((	$blue_card >= $bluecard_limit_2 && (!(($blue_card - $bluecard_limit_2) % $bluecard_limit))) || $blue_card == $bluecard_limit_2)
-	{
-		$mods_rowset = $db->sql_fetchrowset($result_mods);
-	      include($phpbb_root_path . 'includes/emailer.'.$phpEx);
-	      while ($i<$total_mods)
-      	{
-			$server_name = trim($board_config['server_name']);
-			$emailer = new emailer($board_config['smtp_delivery']);
-			$emailer->email_address($mods_rowset[$i]['user_email']);
-			$email_headers = "To: \"".$mods_rowset[$i]['username']."\" <".$mods_rowset[$i]['user_email']. ">\r\n";
-			$email_headers .= "From: \"".$board_config['sitename']."\" <".$board_config['board_email'].">\r\n";
-			$email_headers .= "Return-Path: " . (($userdata['user_email']&&$userdata['user_viewemail'])? $userdata['user_email']."\r\n":"\r\n");
-			$email_headers .= "X-AntiAbuse: Board servername - " . $server_name . "\r\n";
-			$email_headers .= "X-AntiAbuse: User_id - " . $userdata['user_id'] . "\r\n";
-			$email_headers .= "X-AntiAbuse: Username - " . $userdata['username'] . "\r\n";
-			$email_headers .= "X-AntiAbuse: User IP - " . decode_ip($user_ip) . "\r\n";
-			$moderator_lang = preg_match('/^[a-z0-9_-]+$/i', (string) $mods_rowset[$i]['user_lang']) ? $mods_rowset[$i]['user_lang'] : '';
-			$emailer->use_template("repport_post", ($moderator_lang !== '' && file_exists($phpbb_root_path . "language/lang_" . $moderator_lang . "/email/repport_post.tpl")) ? $moderator_lang : '');
-			$i++;
-			$emailer->set_subject($lang['Post_repport']);
-			$emailer->extra_headers($email_headers);
-			$emailer->assign_vars(array(
-				'POST_URL' => phpbb_board_url('viewtopic.' . $phpEx . '?' . POST_POST_URL . "=$post_id#$post_id"),
-				'POST_SUBJECT' => $post_subject,
-				'FORUM_NAME' => $forum_name,
-				'USER' => '"'.$userdata['username'].'"',
-				'NUMBER_OF_REPPORTS' => $blue_card,
-				'SITENAME' => $board_config['sitename'],
-				'BOARD_EMAIL' => $board_config['board_email']));
-			$emailer->send();
-			$emailer->reset();
-		}
-	}
-	message_die(GENERAL_MESSAGE, (($total_mods)?sprintf($lang['Post_repported'],$total_mods):$lang['Post_repported_1'])."<br /><br />".
-(($board_config['report_forum'])? sprintf($lang['Send_message'], "<a href=\"" . append_sid("posting.$phpEx?mode=".(($allready_reported)?"reply&t=".$allready_reported:"newtopic&f=".$board_config['report_forum'])."&postreport=".$post_id). "\">", "</a>"):"").
-sprintf($lang['Click_return_viewtopic'], "<a href=\"" . append_sid("viewtopic.$phpEx?p=".$post_id."#".$post_id). "\">", "</a>"));
-}
-message_die(GENERAL_ERROR, $lang['Not_Authorised']);
+$message.='<br /><br />'.sprintf($lang['Click_return_viewtopic'],'<a href="'.append_sid('viewtopic.'.$phpEx.'?p='.$outcome['post_id'].'#'.$outcome['post_id']).'">','</a>');
+message_die(GENERAL_MESSAGE,$message);

@@ -230,11 +230,33 @@ removes only the user component and leaves separate IP/email rules intact.
 Optional email follows confirmed commit and does not control the durable result.
 Outside-forum user-mode cards require a current administrator. The native tests
 cover the actual moderation POST/dispatch after shared session bootstrap, not
-an HTTP browser test of that bootstrap; report/reset are separate workflows.
+an HTTP browser test of that bootstrap; report/reset have their own owner below.
 This uses existing canonical tables and the preceding full IP-mask updater,
 without a new table. The full updater also seeds an absent `block_time` policy
 with 15 minutes and an absent `board_disable` policy with zero; it never overwrites
 an existing duration or reopens an already disabled board.
+
+Post reporting and report reset independently recheck the current exact session,
+account, bans, real membership and source view/read/report or moderator rights.
+Legitimate anonymous sessions remain supported for `AUTH_ALL` report permissions;
+reset always requires a currently authorized moderator or administrator. The
+consistent non-shadow post/topic/forum, policy and report counter stay locked
+through commit. The existing nullable signed tinyint counter saturates at 127;
+reaching that limit neither overflows nor repeatedly sends notification emails.
+Already larger counters in custom-widened columns are retained without a new
+increment, not reduced to the bundled limit; a deliberate moderator reset works.
+SQL modes including `ANSI_QUOTES` are supported. Report-forum compose links and
+existing-report matching are confined to the configured accessible destination.
+Optional moderator email follows confirmed commit and lock release. Recipients
+must have current source view/read and moderator rights and cannot
+be inactive, temporarily blocked or covered by a user/email ban. This also
+applies to legitimate guest reports; a moderator grant alone cannot disclose an
+otherwise administrator-only forum. Delivery failure does not undo a saved
+report. Native tests execute the complete POST
+dispatch after cached bootstrap, not an HTTP browser bootstrap. No additional
+schema migration is required beyond the existing full storage/IP-mask updater.
+The normal updater also repairs absent report-policy rows with the original Plus
+defaults (interval 3, first notification 1, destination 0); existing choices win.
 
 Account deletion, inactive-account cleanup, pruning and ordinary ACP profile
 saves retain independent IP/mask/email restrictions in combined ban rules. Only
@@ -1164,7 +1186,8 @@ only for HTML. Quota writes coordinate with group/account operations using the
 shared attachment mutex; submitted references must still exist. The user quota
 controls save upload and PM assignments together, rechecking current account,
 ACP session and exact module access, including protection of administrator
-accounts. This does not make the entire legacy user-profile form transactional.
+accounts. This quota-only boundary is separate from the full ACP profile owner
+described above.
 Run the **normal** `update/update_from_153a.php` plan/apply procedure above (not
 `--storage-only`) before using the new quota editor: it widens `quota_desc` from
 20 to the 25 characters already allowed by the form. Existing values, column
@@ -1179,7 +1202,7 @@ exact group-management delegation and live ACP session are rechecked through
 commit; the existing attachment mutex still coordinates related writers.
 All participant tables must already satisfy the storage policy above. No new
 schema migration is needed beyond the existing normal updater. This boundary
-does not include the separate user-profile form.
+is distinct from the separate ACP profile form's own transaction.
 
 Public group membership has its own transaction boundary for all eight actions:
 join, add, approve, deny, remove, unsubscribe, withdraw a pending request and

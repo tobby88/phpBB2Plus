@@ -112,9 +112,13 @@ try {
   storage_check($blocks===($case==='dry'||$case==='missing-maintenance'?array():array(array('config_value'=>$case==='full'?'15':'23'))),'Actual full updater seeds only absent block policy and preserves configured duration on every retry');
   $disabled=plus_storage_rows($db,"SELECT config_value FROM phpbb_config WHERE config_name='board_disable'");
   storage_check($disabled===($case==='dry'||$case==='missing-maintenance'?array():array(array('config_value'=>$case==='full'?'0':'1'))),'Full updater repairs missing disable policy without reopening an already disabled board');
+  $reports=plus_storage_rows($db,"SELECT config_name,config_value FROM phpbb_config WHERE config_name IN('bluecard_limit','bluecard_limit_2','report_forum') ORDER BY config_name");
+  $report_defaults=array(array('config_name'=>'bluecard_limit','config_value'=>$case==='full'?'3':'7'),array('config_name'=>'bluecard_limit_2','config_value'=>$case==='full'?'1':'0'),array('config_name'=>'report_forum','config_value'=>$case==='full'?'0':'21'));
+  storage_check($reports===($case==='dry'||$case==='missing-maintenance'?array():$report_defaults),'Actual CLI seeds absent report settings only on apply; retries retain intervals and chosen destination');
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='17' WHERE config_name='max_user_bancard'");}
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='23' WHERE config_name='block_time'");}
   if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value='1' WHERE config_name='board_disable'");}
+  if($case==='full'){plus_storage_query($db,"UPDATE phpbb_config SET config_value=CASE config_name WHEN 'bluecard_limit' THEN '7' WHEN 'bluecard_limit_2' THEN '0' ELSE '21' END WHERE config_name IN('bluecard_limit','bluecard_limit_2','report_forum')");}
  }
  storage_check(!plus_storage_plan($db,plus_storage_tables($schema,'phpbb_')),'Actual updater left all tables InnoDB');
  plus_storage_query($db,"INSERT INTO phpbb_banlist(ban_userid,ban_ip,ban_email,ban_ip_mask) VALUES(0,'7f0000ff','','ffffffff')");

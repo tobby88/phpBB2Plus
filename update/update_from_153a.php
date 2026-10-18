@@ -857,6 +857,11 @@ $config_defaults = array(
 	// rows; never replace an administrator's configured duration.
 	'block_time' => '15',
 	'board_disable' => '0',
+	// Current report publication requires these existing Plus policies. Repair
+	// absent rows only; keep every configured interval and report destination.
+	'bluecard_limit' => '3',
+	'bluecard_limit_2' => '1',
+	'report_forum' => '0',
 	'dbmtnc_rebuild_end' => '0',
 	'dbmtnc_rebuild_pos' => '-1',
 	'dbmtnc_rebuild_job' => '',

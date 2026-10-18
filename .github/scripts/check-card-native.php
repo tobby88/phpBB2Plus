@@ -9,7 +9,7 @@ eval(substr(str_replace('__DIR__',var_export(__DIR__,true),substr($source,0,$cut
 foreach(array('MOD'=>2,'USER'=>0,'POST_USERS_URL'=>'u','POST_POST_URL'=>'p','GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_user_group','AUTH_ACCESS_TABLE'=>'fixture_auth_access','FORUMS_TABLE'=>'fixture_forums','POSTS_TABLE'=>'fixture_posts','TOPICS_TABLE'=>'fixture_topics')as$key=>$value){define($key,$value);}
 preg_match_all("/define\('(AUTH_[A-Z_]+)', ([0-9]+)\);/",file_get_contents($ats_source.'includes/constants.php'),$constants,PREG_SET_ORDER);foreach($constants as$c){if(!defined($c[1])){define($c[1],(int)$c[2]);}}
 require $ats_source.'includes/functions_card_storage.php';
-$controller=file_get_contents($ats_source.'card.php');$start=strpos($controller,'// Find exactly one submitted card action.');$bootstrap=strpos($controller,'$userdata = session_pagestart',$start);$after=strpos($controller,'init_userprefs($userdata);',$bootstrap);$end=strpos($controller,'$bluecard_limit = max(1,',$after);
+$controller=file_get_contents($ats_source.'card.php');$start=strpos($controller,'// Find exactly one submitted card action.');$bootstrap=strpos($controller,'$userdata = session_pagestart',$start);$after=strpos($controller,'init_userprefs($userdata);',$bootstrap);$end=strlen($controller);
 ats_check($start!==false&&$bootstrap>$start&&$after>$bootstrap&&$end>$after,'Complete actual moderation controller boundaries');
 $card_body=substr($controller,$start,$bootstrap-$start).substr($controller,$after+strlen('init_userprefs($userdata);'),$end-$after-strlen('init_userprefs($userdata);'));
 function card_reset($actor='admin',$setup=null){
