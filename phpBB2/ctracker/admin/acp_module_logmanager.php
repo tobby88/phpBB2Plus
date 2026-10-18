@@ -42,7 +42,7 @@ if ( $mode == 'delete' )
 		message_die(GENERAL_ERROR, $lang['ctracker_error_database_op']);
 	}
 	if (!$logmanager->delete_logfile($logid) ||
-		($logid != 6 && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
+		(in_array($logid, array(2, 3, 5), true) && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
 	{
 		message_die(GENERAL_ERROR, $lang['ctracker_error_logfileop']);
 	}
@@ -57,7 +57,7 @@ else if ( $mode == 'delete_all' )
 	for($i = 2; $i <= 6; $i++)
 	{
 		if (!$logmanager->delete_logfile($i) ||
-			($i != 6 && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
+			(in_array($i, array(2, 3, 5), true) && $logmanager->last_deleted_entries > 0 && !$logmanager->increment_counter($logmanager->last_deleted_entries)))
 		{
 			message_die(GENERAL_ERROR, $lang['ctracker_error_logfileop']);
 		}

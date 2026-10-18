@@ -209,7 +209,9 @@ jobs:
         run: php .github/scripts/check-stopforumspam-safety.php
 
       - name: Test CrackerTracker log rotation
-        run: php .github/scripts/check-ctracker-log-manager.php
+        run: |
+          php .github/scripts/check-ctracker-log-manager.php
+          php .github/scripts/check-ctracker-counter-policy.php
 
       - name: Test CrackerTracker integrity checksums
         run: php .github/scripts/check-ctracker-checksums.php

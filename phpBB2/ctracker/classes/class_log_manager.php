@@ -529,7 +529,9 @@ class log_manager
 		$current_size = $this->check_log_size($file_id);
 		if ($current_size >= $logsize)
 		{
-			if ($this->delete_logfile($file_id))
+			// Match get_counter_value(): failed logins and debug records are
+			// not attacks merely because their bounded logs are being rotated.
+			if ($this->delete_logfile($file_id) && in_array(intval($file_id), array(2, 3, 5), true))
 			{
 				$this->increment_counter($this->last_deleted_entries);
 			}

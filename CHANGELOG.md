@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep CrackerTracker's blocked-attack total stable when failed-login or debug
+  logs are rotated or cleared in the ACP. Transfer only worm, blocklist and
+  spam entries into the persistent total, matching the existing display policy.
+  Preserve the historical aggregate; no schema or counter-data rewrite needed.
+  Exercise real rotation, individual ACP deletion and repeated clear-all paths.
+
 - Validate ACP warning limits against the same 0–32767 range used by profile
   editing and card moderation. Normalize leading zeroes before saving, so an
   accepted configuration cannot subsequently break profile edits. Reject an
