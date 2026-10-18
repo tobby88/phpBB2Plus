@@ -119,8 +119,8 @@ function phpbb_removal_capture($db, $job)
 	}
 	if ($job['removal_mode'] === 'prune' && (!defined('NOTIFY_USERS') || NOTIFY_USERS))
 	{
-		$db->sql_query($prefix . "'notify_email',0,0,user_email FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
-		$db->sql_query($prefix . "'notify_lang',0,0,user_lang FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
+		$db->sql_query($prefix . "'notify_email',0,0,COALESCE(user_email,'') FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
+		$db->sql_query($prefix . "'notify_lang',0,0,COALESCE(user_lang,'') FROM " . USERS_TABLE . ' WHERE user_id = ' . $id . ' AND ' . $db->guard);
 	}
 	$db->sql_query($prefix . "'pm',privmsgs_id,privmsgs_to_userid,'' FROM " . PRIVMSGS_TABLE . ' WHERE ' . phpbb_removal_pm_where($id, $job['removal_mode']) . ' AND ' . $db->guard);
 	$db->sql_query($prefix . "'attachment',a.attach_id,0,d.physical_filename FROM " . ATTACHMENTS_TABLE . ' a,' . ATTACHMENTS_DESC_TABLE . ' d WHERE d.attach_id = a.attach_id AND a.privmsgs_id IN (SELECT item_id FROM ' . USER_REMOVAL_ITEMS_TABLE . ' WHERE ' . $key . " AND item_type = 'pm') AND " . $db->guard);

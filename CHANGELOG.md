@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve independent IP/mask/email restrictions through account deletion,
+  inactive-account cleanup, pruning and ordinary ACP profile saves. Delete only
+  pure user rules and detach the account from combined rules; retries and every
+  cleanup write retain the account-absence guard. Exercise actual complete
+  removal/recovery workers on canonical MariaDB tables and complete owned profile
+  projections with failure/commit boundaries. Capture missing historical email
+  or language as an empty optional notification value, rather than failing a
+  strict-mode pruning journal insert. New ACP user bans specify neutral values
+  for all independent rule components. No additional schema migration is needed;
+  the preceding full updater supplies the canonical tables and IP-mask column.
+
 - Publish red/yellow/green cards and temporary account blocks on an independent
   canonical InnoDB connection. Pin the exact active session, current account,
   consistent post/topic/forum identity (excluding shadows), existing non-pending

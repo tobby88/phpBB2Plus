@@ -604,7 +604,7 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
       if (!$db->sql_fetchrowset($result)) 
       { 
          // insert the user in the ban list 
-         $sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid, ban_ip) VALUES ($user_id, '')";
+         $sql = "INSERT INTO " . BANLIST_TABLE . " (ban_userid, ban_ip, ban_email, ban_ip_mask) VALUES ($user_id, '', '', '')";
          if (!$result = $db->sql_query($sql) ) 
             message_die(GENERAL_ERROR, "Couldn't insert ban_userid info into database", "", __LINE__, __FILE__, $sql); 
          else $no_error_ban=true; 
@@ -612,11 +612,17 @@ if( $admin_profile_scope !== null && !empty($_POST['unblock_account']) )
    } else message_die(GENERAL_ERROR, "Couldn't obtain banlist information", "", __LINE__, __FILE__, $sql); 
 } else 
 { 
-   // remove the ban, if there is any 
-   $sql = "DELETE FROM " . BANLIST_TABLE . " WHERE ban_userid=$user_id"; 
+   // Remove only the user component, inside the owning profile transaction.
+   $sql = "DELETE FROM " . BANLIST_TABLE . " WHERE ban_userid=$user_id AND COALESCE(ban_ip,'')='' AND COALESCE(ban_email,'')=''";
    if (!$result = $db->sql_query($sql) ) 
-      message_die(GENERAL_ERROR, "Couldn't remove ban_userid info into database", "", __LINE__, __FILE__, $sql); 
-   else $no_error_ban=true; 
+      message_die(GENERAL_ERROR, "Couldn't remove ban_userid info into database", "", __LINE__, __FILE__, $sql);
+   else
+   {
+      $sql = "UPDATE " . BANLIST_TABLE . " SET ban_userid=0 WHERE ban_userid=$user_id";
+      if (!$db->sql_query($sql))
+         message_die(GENERAL_ERROR, "Couldn't detach ban_userid info from combined rule", "", __LINE__, __FILE__, $sql);
+      $no_error_ban=true;
+   }
 }
 			// Core and custom profile data become visible in one statement. In
 			// particular, a new placeholder must not become active before custom

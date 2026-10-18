@@ -24,7 +24,17 @@ function phpbb_cleanup_removed_user_references($database, $user_id)
 		// Recheck absence in every write, not just the initial diagnostic read.
 		$sql = 'DELETE FROM ' . $table . ' WHERE ' . $column . ' = ' . $user_id
 			. ' AND NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $user_id . ')';
+		if ($table === BANLIST_TABLE)
+		{
+			// Combined restrictions also protect independent IP/email identities.
+			$sql .= " AND COALESCE(ban_ip,'')='' AND COALESCE(ban_email,'')=''";
+		}
 		if (!$database->sql_query($sql))
+		{
+			message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']);
+		}
+		if ($table === BANLIST_TABLE && !$database->sql_query('UPDATE ' . BANLIST_TABLE . ' SET ban_userid = 0 WHERE ban_userid = ' . $user_id
+			. ' AND NOT EXISTS (SELECT 1 FROM ' . USERS_TABLE . ' u WHERE u.user_id = ' . $user_id . ')'))
 		{
 			message_die(GENERAL_ERROR, $lang['User_reference_cleanup_failed']);
 		}

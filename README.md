@@ -236,6 +236,16 @@ without a new table. The full updater also seeds an absent `block_time` policy
 with 15 minutes and an absent `board_disable` policy with zero; it never overwrites
 an existing duration or reopens an already disabled board.
 
+Account deletion, inactive-account cleanup, pruning and ordinary ACP profile
+saves retain independent IP/mask/email restrictions in combined ban rules. Only
+pure user bans are deleted; remaining rules are detached from the removed or
+unbanned account without rewriting their independent components or IDs.
+Cleanup retries recheck account absence in every write, so a recreated account
+is not detached accidentally. Historical absent email/language values remain
+optional notification data and cannot break a strict-mode pruning journal insert.
+This is a code correction on the existing canonical schema, not another table
+migration; existing installations still need the full updater described above.
+
 Author searches and username selectors accept `*` as their search wildcard.
 Percent, underscore and backslash remain literal name characters; private-message
 recipient completion treats its entire prefix literally. Existing HTML-encoded

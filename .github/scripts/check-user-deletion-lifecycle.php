@@ -37,8 +37,9 @@ class DeletionDatabase
 		$this->pdo->exec("INSERT INTO fixture_shouts VALUES(7,''),(8,'')");
 		foreach(deletion_reference_tables() as $table=>$column)
 		{
-			$this->pdo->exec('CREATE TABLE '.$table.'('.$column.' INTEGER)');
-			$this->pdo->exec('INSERT INTO '.$table.' VALUES(0),(7),(8),(9)');
+			$extra=$table==='fixture_bans'?",ban_ip TEXT DEFAULT '',ban_email TEXT DEFAULT '',ban_ip_mask TEXT DEFAULT ''":'';
+			$this->pdo->exec('CREATE TABLE '.$table.'('.$column.' INTEGER'.$extra.')');
+			$this->pdo->exec('INSERT INTO '.$table.' ('.$column.') VALUES(0),(7),(8),(9)');
 		}
 	}
 	function sql_query($sql) { $this->queries[]=$sql; if (is_callable($this->hook)) { call_user_func($this->hook,$sql,$this); } if ($this->failure!=='' && strpos($sql,$this->failure)===0) { return false; } $r=$this->pdo->query($sql); $this->affected=$r->rowCount(); return $r; }
@@ -84,6 +85,24 @@ try
 	expect_deletion_failure(function()use($db){phpbb_anonymize_removed_user_content($db,7,'Name',9);});
 	$db->failure=''; phpbb_anonymize_removed_user_content($db,7,'Name',9); phpbb_anonymize_removed_user_content($db,7,'Name',9);
 	deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_posts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts')===2 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_shouts WHERE shout_user_id=7')===0,'Content helper can finish after partial failure without deleting content');
+	foreach(array('','DELETE FROM fixture_bans','UPDATE fixture_bans') as $failure)
+	{
+		$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
+		$db->pdo->exec("INSERT INTO fixture_bans VALUES(7,'7f0000ff','keep@example.invalid','ffffffff'),(7,'0aff0000',NULL,'ff00ffff'),(7,'','mail@example.invalid',''),(8,'7f0000ff','other@example.invalid','ffffffff')");
+		$before=$db->pdo->query("SELECT ban_ip,ban_email,ban_ip_mask FROM fixture_bans WHERE COALESCE(ban_ip,'')<>'' OR COALESCE(ban_email,'')<>'' ORDER BY rowid")->fetchAll(PDO::FETCH_ASSOC);
+		if($failure!==''){ $db->failure=$failure; expect_deletion_failure(function()use($db){phpbb_cleanup_removed_user_references($db,7);}); $db->failure=''; }
+		phpbb_cleanup_removed_user_references($db,7); phpbb_cleanup_removed_user_references($db,7);
+		$after=$db->pdo->query("SELECT ban_ip,ban_email,ban_ip_mask FROM fixture_bans WHERE COALESCE(ban_ip,'')<>'' OR COALESCE(ban_email,'')<>'' ORDER BY rowid")->fetchAll(PDO::FETCH_ASSOC);
+		deletion_check($before===$after && (int)$db->scalar('SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=7')===0 && (int)$db->scalar('SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=8')===2,'Mixed components survive cleanup and retries');
+	}
+	foreach(array('DELETE FROM fixture_bans','UPDATE fixture_bans') as $boundary)
+	{
+		$db=new DeletionDatabase(); $db->pdo->exec('DELETE FROM fixture_users WHERE user_id=7');
+		$db->pdo->exec("INSERT INTO fixture_bans VALUES(7,'7f0000ff','keep@example.invalid','ffffffff')");
+		$db->hook=function($sql,$db)use($boundary){if(strpos($sql,$boundary)===0){$db->hook=null;$db->pdo->exec("INSERT INTO fixture_users VALUES(7,1,0,0,'Restored','','english')");}};
+		expect_deletion_failure(function()use($db){phpbb_cleanup_removed_user_references($db,7);});
+		deletion_check((int)$db->scalar('SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=7')===($boundary==='DELETE FROM fixture_bans'?2:1),'Every ban write protects a restored account');
+	}
 	echo "Removed-account reference/content helper checks passed.\n";
 }
 finally { restore_error_handler(); }

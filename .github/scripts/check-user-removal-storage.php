@@ -36,7 +36,8 @@ function removal_fixture($actor=1)
 	$p->exec('CREATE TABLE fixture_votes (vote_user_id INTEGER)'); $p->exec('INSERT INTO fixture_votes VALUES (9),(8)');
 	foreach (array('fixture_receipts'=>'user_id','fixture_keys'=>'user_id','fixture_watches'=>'user_id','fixture_bookmarks'=>'user_id','fixture_bans'=>'ban_userid') as $table=>$column)
 	{
-		$p->exec('CREATE TABLE '.$table.' ('.$column.' INTEGER)'); $p->exec('INSERT INTO '.$table.' VALUES (0),(9),(8)');
+		$extra=$table==='fixture_bans'?",ban_ip TEXT DEFAULT '',ban_email TEXT DEFAULT '',ban_ip_mask TEXT DEFAULT ''":'';
+		$p->exec('CREATE TABLE '.$table.' ('.$column.' INTEGER'.$extra.')'); $p->exec('INSERT INTO '.$table.' ('.$column.') VALUES (0),(9),(8)');
 	}
 	$p->exec('CREATE TABLE fixture_junior (user_id INTEGER,user_jr_admin VARCHAR(255))'); $p->exec("INSERT INTO fixture_junior VALUES (9,'old-grant')");
 	$p->exec('CREATE TABLE fixture_quotas (user_id INTEGER,group_id INTEGER)'); $p->exec('INSERT INTO fixture_quotas VALUES (9,0),(0,4),(0,11),(8,0),(0,12)');
@@ -216,6 +217,16 @@ try
 	removal_fixture(); $owner=new attach_mutation_lock($db); $caught=false;
 	try { removal_run(); } catch(PhpbbRemovalException $e) { $caught=$e->getMessage()==='busy'; }
 	mutation_check($caught && $mutation_server->owner===$owner->connection,'Existing writer prevents removal from interleaving'); $owner->release();
+	foreach(array('','DELETE FROM fixture_bans','UPDATE fixture_bans') as $failure)
+	{
+		removal_fixture(); $mutation_server->pdo->exec("INSERT INTO fixture_bans VALUES(9,'7f0000ff','keep@example.invalid','ffffffff'),(9,'','mail@example.invalid',''),(8,'0aff0000',NULL,'ff00ffff')");
+		if($failure!==''){
+			$mutation_server->failure=$failure; removal_failure(function(){removal_run();},'Removal_storage_failed'); $job=removal_job();
+			mutation_check(is_string($job) && group_value('SELECT COUNT(*) FROM fixture_users WHERE user_id=9')===0,'Ban cleanup failure retains removed-account recovery');
+			$mutation_server->failure=''; removal_run(array('removal_resume'=>$job));
+		}else{removal_run();}
+		mutation_check(group_value('SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=9')===0 && group_value("SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=0 AND ban_ip='7f0000ff' AND ban_ip_mask='ffffffff' AND ban_email='keep@example.invalid'")===1 && group_value("SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=0 AND ban_email='mail@example.invalid'")===1 && group_value("SELECT COUNT(*) FROM fixture_bans WHERE ban_userid=8 AND ban_ip='0aff0000' AND ban_email IS NULL AND ban_ip_mask='ff00ffff'")===1,'Whole removal/resume detaches user only and preserves unrelated mixed rule');
+	}
 	echo "Durable inactive account removal checks passed.\n";
 }
 finally { removal_clear_files(); restore_error_handler(); }
