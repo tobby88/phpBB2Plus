@@ -13,6 +13,10 @@ function message_die($type, $message) { throw new InventoryFailure($message); }
 set_error_handler(function ($severity, $message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 $forum_root = dirname(dirname(__DIR__)) . '/phpBB2/';
 $attach_source = file_get_contents($forum_root . 'attach_mod/includes/functions_attach.php');
+$start = strpos($attach_source, 'function attach_local_storage_directory(');
+$end = strpos($attach_source, '/**' . "\n" . '* Deletes an Attachment', $start);
+inventory_check($start !== false && $end > $start, 'Locate actual local storage resolver');
+eval('namespace AttachmentInventoryFixture; ' . substr($attach_source, $start, $end - $start));
 $start = strpos($attach_source, 'function attach_ftp_listing_entry(');
 $end = strpos($attach_source, '/**' . "\n" . '* Physical Filename stored already', $start);
 inventory_check($start !== false && $end > $start, 'Locate actual listing and existence helpers');

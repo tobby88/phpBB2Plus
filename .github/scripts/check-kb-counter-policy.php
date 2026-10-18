@@ -12,11 +12,11 @@ foreach(array(null,true,false,array(),new stdClass(),1.0,'','1.0','1e0','1 OR 1=
  kbc_policy_check(kb_counter_delta($bad)===null,'Invalid delta must not be partially parsed');
 }
 $root=dirname(dirname(__DIR__)).'/phpBB2/';$calls=0;
-foreach(array('includes/kb_add.php','includes/kb_edit.php','includes/kb_moderator.php','admin/admin_kb_art.php')as$file){
+foreach(array('includes/kb_add.php','includes/kb_edit.php','includes/kb_moderator.php','admin/admin_kb_art.php','includes/functions_kb_delete_storage.php')as$file){
  $source=file_get_contents($root.$file);preg_match_all('/update_kb_number\([^;]+;/', $source,$matches);
  foreach($matches[0]as$call){kbc_policy_check(preg_match('/,\s*-?1\s*\);$/D',$call)===1,'Built-in article transition passes an integer delta');$calls++;}
 }
-kbc_policy_check($calls===5,'Review remaining direct add/edit/delete counter caller inventory');
+kbc_policy_check($calls===4,'Review remaining add/edit and owned-delete numeric counter caller inventory');
 $publication=file_get_contents($root.'includes/functions_kb_publication.php');
 kbc_policy_check(substr_count($publication,'update_kb_number(')===1&&strpos($publication,'$approved ? 1 : -1')!==false,'Central approval owner supplies a numeric delta');
 foreach(array('admin/admin_kb_art.php'=>'acp','includes/kb_moderator.php'=>'moderator')as$file=>$context){$source=file_get_contents($root.$file);foreach(array(0,1)as$approved){kbc_policy_check(strpos($source,"kb_publish_approval(\$db, \$article_id, ".$approved.", '".$context."')")!==false,'Both approval states use the exact current-authority owner');}}

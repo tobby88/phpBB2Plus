@@ -233,6 +233,27 @@ function attach_init_ftp($mode = false, $quiet = false, &$failure = null)
 	return $connection;
 }
 
+// Resolve only local file I/O; upload_dir is also used in URLs and must not
+// be rewritten globally. ACP bootstraps can retain the raw relative setting,
+// while older attachment ACP pages already prefix it with the forum root.
+function attach_local_storage_directory()
+{
+	global $upload_dir, $attach_config, $phpbb_root_path;
+	if (!is_string($upload_dir) || $upload_dir === '' || strpos($upload_dir, "\0") !== false || strpos($upload_dir, '://') !== false) { return false; }
+	$normalized = str_replace('\\', '/', $upload_dir);
+	if ($normalized[0] === '/' || preg_match('/^[A-Za-z]:\//', $normalized)) { return $upload_dir; }
+	if (preg_match('/^[A-Za-z]:/', $normalized)) { return false; }
+	if (isset($attach_config['upload_dir']) && is_string($attach_config['upload_dir']) &&
+		rtrim($normalized, '/') === rtrim(str_replace('\\', '/', $attach_config['upload_dir']), '/'))
+	{
+		$root = isset($phpbb_root_path) ? $phpbb_root_path : '.';
+		if (!is_string($root) || strpos($root, "\0") !== false || strpos($root, '://') !== false) { return false; }
+		$root = $root === '' ? '.' : $root;
+		return rtrim($root, '/\\') . '/' . $upload_dir;
+	}
+	return $upload_dir;
+}
+
 /**
 * Deletes an Attachment
 */
@@ -245,7 +266,9 @@ function unlink_attach($filename, $mode = false, $quiet = false)
 	if ($mode == MODE_THUMBNAIL) { $filename = 't_' . $filename; }
 	if (!intval($attach_config['allow_ftp_upload']))
 	{
-		$directory = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');
+		$directory = attach_local_storage_directory();
+		if ($directory === false) { return false; }
+		$directory .= $mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '';
 		return @unlink($directory . '/' . $filename);
 	}
 	if (!function_exists('ftp_delete'))
@@ -391,7 +414,9 @@ function attach_storage_file_entries($mode = false, $quiet = false)
 		catch (Error $exception) { if (!$quiet) { throw $exception; } return false; }
 		finally { @ftp_close($connection); }
 	}
-	$directory = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '');
+	$directory = attach_local_storage_directory();
+	if ($directory === false) { return false; }
+	$directory .= $mode == MODE_THUMBNAIL ? '/' . THUMB_DIR : '';
 	$handle = @opendir($directory);
 	if ($handle === false) { return false; }
 	$files = array();

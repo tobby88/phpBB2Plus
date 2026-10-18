@@ -37,6 +37,10 @@ function message_die($type, $message, $title = '', $line = 0, $file = '', $sql =
 set_error_handler(function ($severity, $message) { throw new RuntimeException($message); });
 require $forum_root . 'attach_mod/includes/functions_delete.php';
 $source = file_get_contents($forum_root . 'attach_mod/includes/functions_attach.php');
+$start = strpos($source, 'function attach_local_storage_directory(');
+$end = strpos($source, '/**' . "\n" . '* Deletes an Attachment', $start);
+delete_selection_check($start !== false && $end > $start, 'Locate actual local storage resolver');
+eval(substr($source, $start, $end - $start));
 $start = strpos($source, 'function attach_ftp_listing_entry(');
 $end = strpos($source, '// Return complete regular-file metadata', $start);
 delete_selection_check($start !== false && $end > $start, 'Locate actual filename validator');

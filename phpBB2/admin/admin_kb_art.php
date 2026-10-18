@@ -37,6 +37,7 @@ include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 include($phpbb_root_path . 'includes/kb_constants.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_kb.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_kb_publication.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_kb_delete_storage.'.$phpEx);
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 include_once($phpbb_root_path . 'includes/functions_search.'.$phpEx);
@@ -141,37 +142,10 @@ switch( $mode )
 	if (isset($_POST['c']) && $_POST['c'] == "yes")
 	{	
 	phpbb_admin_require_post_session();
-	$article = $managed_article;
-	$article_category_id = (int) $article['article_category_id'];
+	try { $removal = kb_delete_article($db, $article_id, 'acp'); }
+	catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 	
-	if ($article['approved'] == 1)
-	{
-		update_kb_number($article_category_id, -1);
-	}
-	
-	if (!empty($kb_config['del_topic']) && !empty($article['topic_id']))
-	{
-		kb_delete_discussion_topic((int) $article['topic_id']);
-	}
-	
-	$sql = "DELETE FROM  " . KB_ARTICLES_TABLE .
-		 " WHERE article_id = " . $article_id;
-		 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-   	   message_die(GENERAL_ERROR, "Could not delete article data", '', __LINE__, __FILE__, $sql);
-	}	
-
-	kb_remove_article_words($article_id);
-
-	$sql = "DELETE FROM " . KB_VOTES_TABLE . "
-		WHERE votes_file = " . $article_id;
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, "Could not delete article vote data", '', __LINE__, __FILE__, $sql);
-	}
-	
-	$message = $lang['Article_deleted'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
+	$message = $lang['Article_deleted'] . (!empty($removal['cleanup_pending']) ? '<br />' . $lang['KB_deletion_cleanup_pending'] : '') . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid("admin_kb_art.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
 
 	message_die(GENERAL_MESSAGE, $message);
 	}

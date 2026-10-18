@@ -413,6 +413,9 @@ jobs:
       - name: Test attachment inventory and thumbnail synchronization boundaries
         run: php .github/scripts/check-attachment-file-inventory.php
 
+      - name: Check local attachment paths from forum and ACP
+        run: php .github/scripts/check-attachment-local-paths.php
+
       - name: Test attachment FTP runtime and upload error propagation
         run: php .github/scripts/check-attachment-ftp-runtime.php
 

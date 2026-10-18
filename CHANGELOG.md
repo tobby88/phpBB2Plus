@@ -8,6 +8,20 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Resolve raw relative attachment directories against the forum root for local
+  inventory/deletion from the ACP. Preserve already-prefixed/absolute paths,
+  URL/config globals and FTP behavior; use the same root for conflict detection.
+
+- Give KB article deletion a dedicated SQL owner with current ACP/KB-group
+  authority, bound stored discussion selection and atomic article/counter/index/
+  vote/topic cleanup. Reuse core post/poll/preference cleanup and detach attachment
+  references before commit; unlink files only after confirmed commit, retaining
+  shadow descriptions for recovery after cleanup failure. Remove the old unsafe
+  autocommit discussion helper. Preserve unrelated/shared data and refuse ambiguous
+  relations. Honor non-counting forums when creating KB discussion posts. Add a
+  backed-up, stopped-writer derived user-post recount to the full updater and
+  `--user-post-counters-only`, preserving posts/guest counts/other user fields.
+
 - Publish Knowledge Base approval/unapproval on a dedicated owning transaction:
   status, category counters, search data and newly mirrored discussion posts/
   indexes/statistics commit together. Reload and lock current article/configuration,

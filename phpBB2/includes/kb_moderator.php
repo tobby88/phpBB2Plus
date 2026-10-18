@@ -33,6 +33,7 @@ if ( !$is_admin )
 
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_kb_publication.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_kb_delete_storage.'.$phpEx);
 
 $category_id = (isset($_REQUEST['cat']) && is_scalar($_REQUEST['cat'])) ? intval($_REQUEST['cat']) : 0;
 $page_id = (isset($_REQUEST['page']) && is_scalar($_REQUEST['page'])) ? intval($_REQUEST['page']) : 0;
@@ -128,37 +129,11 @@ switch( $action )
 	
 	if ($confirmed)
 	{	
-	$article = $moderated_article;
-	$article_category_id = (int) $article['article_category_id'];
+	try { $removal = kb_delete_article($db, $article_id, 'moderator'); }
+	catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	$article_category_id = (int) $removal['article']['article_category_id'];
 	
-	if ($article['approved'] == 1)
-	{
-		update_kb_number($article_category_id, -1);
-	}
-	
-	if (!empty($kb_config['del_topic']) && !empty($article['topic_id']))
-	{
-		kb_delete_discussion_topic((int) $article['topic_id']);
-	}
-	
-	$sql = "DELETE FROM  " . KB_ARTICLES_TABLE .
-		 " WHERE article_id = " . $article_id;
-		 
-	if ( !($result = $db->sql_query($sql)) )
-	{
-   	   message_die(GENERAL_ERROR, "Could not delete article data", '', __LINE__, __FILE__, $sql);
-	}	
-
-	kb_remove_article_words($article_id);
-
-	$sql = "DELETE FROM " . KB_VOTES_TABLE . "
-		WHERE votes_file = " . $article_id;
-	if (!$db->sql_query($sql))
-	{
-		message_die(GENERAL_ERROR, "Could not delete article vote data", '', __LINE__, __FILE__, $sql);
-	}
-	
-	$message = $lang['Article_deleted'] . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
+	$message = $lang['Article_deleted'] . (!empty($removal['cleanup_pending']) ? '<br />' . $lang['KB_deletion_cleanup_pending'] : '') . '<br /><br />' . sprintf($lang['Click_return_article_manager'], '<a href="' . append_sid($phpbb_root_path . "kb.$phpEx?mode=cat&cat=$article_category_id") . '">', '</a>') ;
 
 	message_die(GENERAL_MESSAGE, $message);
 	}

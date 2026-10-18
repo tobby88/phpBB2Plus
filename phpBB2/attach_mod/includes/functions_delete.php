@@ -60,7 +60,10 @@ function attach_delete_file($filename, $mode = false)
 		// absent attachment. File-only inventory deliberately omits both.
 		if (!intval($attach_config['allow_ftp_upload']))
 		{
-			$path = $upload_dir . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR . '/t_' : '/') . $filename;
+			if (!function_exists('attach_local_storage_directory')) { return false; }
+			$directory = attach_local_storage_directory();
+			if ($directory === false) { return false; }
+			$path = $directory . ($mode == MODE_THUMBNAIL ? '/' . THUMB_DIR . '/t_' : '/') . $filename;
 			clearstatcache(true, $path);
 			if (is_dir($path) || is_link($path)) { return false; }
 		}

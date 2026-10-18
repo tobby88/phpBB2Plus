@@ -10,6 +10,53 @@ function kb_publication_fail($key = 'KB_publication_failed')
 	throw new PhpbbKbPublicationException(isset($lang[$key]) ? $lang[$key] : $key);
 }
 
+// Shared only by KB owners; a forum moderator/ACP grant is not interchangeable
+// with the configured frontend KB group or the exact article-manager route.
+function kb_publication_actor($database, $context)
+{
+	global $userdata, $phpEx;
+	if ($context === 'acp') { return phpbb_acp_actor($database, 'admin_kb_art.' . $phpEx); }
+	if ($context !== 'moderator') { kb_publication_fail('Not_Authorised'); }
+	$user = phpbb_current_moderator_user($database);
+	if (!$user || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { kb_publication_fail('Not_Authorised'); }
+	$id = (int)$user['user_id']; $sid = $database->sql_escape($userdata['session_id']);
+	if (count($database->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') AND session_user_id=" . $id . ' AND session_logged_in=1')) !== 1) { kb_publication_fail('Not_Authorised'); }
+	if ((int)$user['user_level'] !== ADMIN) {
+		$config = $database->rows("SELECT config_value FROM " . KB_CONFIG_TABLE . " WHERE config_name='mod_group'");
+		if (count($config) !== 1) { kb_publication_fail('Not_Authorised'); }
+		try { $group = kb_counter_category_id($config[0]['config_value']); } catch (RuntimeException $error) { kb_publication_fail('Not_Authorised'); }
+		if (count($database->rows('SELECT g.group_id FROM ' . GROUPS_TABLE . ' g INNER JOIN ' . USER_GROUP_TABLE . ' m ON m.group_id=g.group_id WHERE g.group_id=' . $group . ' AND m.user_id=' . $id . ' AND m.user_pending=0')) !== 1) { kb_publication_fail('Not_Authorised'); }
+	}
+	return $user;
+}
+
+function kb_publication_pin_tables($database, $tables)
+{
+	foreach (array_unique($tables) as $table) {
+		if (!is_string($table) || preg_match('/^[A-Za-z0-9_]{1,64}$/D', $table) !== 1) { kb_publication_fail(); }
+		$r = $database->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $database->sql_freeresult($r); $name = $database->sql_escape($table);
+		$metadata = $database->rows("SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . $name . "') AND TABLE_TYPE='BASE TABLE'");
+		// Intentional bundled KB binary text and core dictionary word columns.
+		$binary = in_array($table, array(KB_ARTICLES_TABLE, KB_CATEGORIES_TABLE, KB_TYPES_TABLE, KB_WORD_TABLE), true)
+			? "COLLATION_NAME NOT IN ('utf8mb4_unicode_ci','utf8mb4_bin')"
+			: ($table === SEARCH_WORD_TABLE ? "(COLLATION_NAME<>'utf8mb4_unicode_ci' AND NOT (COLUMN_NAME='word_text' AND COLLATION_NAME='utf8mb4_bin'))" : "COLLATION_NAME<>'utf8mb4_unicode_ci'");
+		$legacy = $database->rows("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . $name . "') AND CHARACTER_SET_NAME IS NOT NULL AND (CHARACTER_SET_NAME<>'utf8mb4' OR " . $binary . ')');
+		if (count($metadata) !== 1 || $metadata[0]['ENGINE'] !== 'InnoDB' || strtolower($metadata[0]['ROW_FORMAT']) !== 'dynamic' || $metadata[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci' || $legacy) { kb_publication_fail('KB_publication_upgrade'); }
+	}
+}
+
+function kb_publication_lock_actor($database)
+{
+	global $userdata;
+	$user = $database->actor(); $id = (int)$user['user_id']; $sid = $database->sql_escape($userdata['session_id']);
+	$database->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') LOCK IN SHARE MODE");
+	$database->rows('SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . $id . ' LOCK IN SHARE MODE');
+	$database->rows('SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . $id . ' LOCK IN SHARE MODE');
+	$database->rows('SELECT group_id FROM ' . USER_GROUP_TABLE . ' WHERE user_id=' . $id . ' ORDER BY group_id LOCK IN SHARE MODE');
+	$database->rows('SELECT group_id FROM ' . GROUPS_TABLE . " WHERE group_id IN (SELECT group_id FROM " . USER_GROUP_TABLE . ' WHERE user_id=' . $id . ') ORDER BY group_id LOCK IN SHARE MODE');
+	return $database->actor();
+}
+
 // Approval owns its SQL effects, not the caller's connection/transaction.
 // The shared forum writer lock also coordinates optional discussion creation.
 // Article deletion and its physical attachment cleanup are NOT handled here.
@@ -80,19 +127,7 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 	}
 	function actor()
 	{
-		global $userdata, $phpEx;
-		if ($this->context === 'acp') { return phpbb_acp_actor($this, 'admin_kb_art.' . $phpEx); }
-		$user = phpbb_current_moderator_user($this);
-		if (!$user || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { kb_publication_fail('Not_Authorised'); }
-		$id = (int)$user['user_id']; $sid = $this->sql_escape($userdata['session_id']);
-		if (count($this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') AND session_user_id=" . $id . ' AND session_logged_in=1')) !== 1) { kb_publication_fail('Not_Authorised'); }
-		if ((int)$user['user_level'] !== ADMIN) {
-			$config = $this->rows("SELECT config_value FROM " . KB_CONFIG_TABLE . " WHERE config_name='mod_group'");
-			if (count($config) !== 1) { kb_publication_fail('Not_Authorised'); }
-			try { $group = kb_counter_category_id($config[0]['config_value']); } catch (RuntimeException $error) { kb_publication_fail('Not_Authorised'); }
-			if (count($this->rows('SELECT g.group_id FROM ' . GROUPS_TABLE . ' g INNER JOIN ' . USER_GROUP_TABLE . ' m ON m.group_id=g.group_id WHERE g.group_id=' . $group . ' AND m.user_id=' . $id . ' AND m.user_pending=0')) !== 1) { kb_publication_fail('Not_Authorised'); }
-		}
-		return $user;
+		return kb_publication_actor($this, $this->context);
 	}
 	function begin()
 	{
@@ -101,29 +136,12 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 		$this->control('START TRANSACTION'); $this->transactional = true;
 		$tables = array_unique(array_merge($this->write_tables(), array(KB_CONFIG_TABLE, KB_TYPES_TABLE, SESSIONS_TABLE, JR_ADMIN_TABLE, GROUPS_TABLE, USER_GROUP_TABLE)));
-		foreach ($tables as $table) {
-			if (!is_string($table) || preg_match('/^[A-Za-z0-9_]{1,64}$/D', $table) !== 1) { kb_publication_fail(); }
-			$r = $this->sql_query('SELECT * FROM ' . $table . ' LIMIT 0'); $this->sql_freeresult($r); $name = $this->sql_escape($table);
-			$metadata = $this->rows("SELECT ENGINE,ROW_FORMAT,TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . $name . "') AND TABLE_TYPE='BASE TABLE'");
-			// Bundled KB text and the core word dictionary intentionally use bin.
-			$binary = in_array($table, array(KB_ARTICLES_TABLE, KB_CATEGORIES_TABLE, KB_TYPES_TABLE, KB_WORD_TABLE), true)
-				? "COLLATION_NAME NOT IN ('utf8mb4_unicode_ci','utf8mb4_bin')"
-				: ($table === SEARCH_WORD_TABLE ? "(COLLATION_NAME<>'utf8mb4_unicode_ci' AND NOT (COLUMN_NAME='word_text' AND COLLATION_NAME='utf8mb4_bin'))" : "COLLATION_NAME<>'utf8mb4_unicode_ci'");
-			$legacy = $this->rows("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . $name . "') AND CHARACTER_SET_NAME IS NOT NULL AND (CHARACTER_SET_NAME<>'utf8mb4' OR " . $binary . ')');
-			if (count($metadata) !== 1 || $metadata[0]['ENGINE'] !== 'InnoDB' || strtolower($metadata[0]['ROW_FORMAT']) !== 'dynamic' || $metadata[0]['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci' || $legacy) { kb_publication_fail('KB_publication_upgrade'); }
-		}
+		kb_publication_pin_tables($this, $tables);
 		$this->actor();
 	}
 	function commit()
 	{
-		global $userdata;
-		$user = $this->actor(); $id = (int)$user['user_id']; $sid = $this->sql_escape($userdata['session_id']);
-		$this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') LOCK IN SHARE MODE");
-		$this->rows('SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . $id . ' LOCK IN SHARE MODE');
-		$this->rows('SELECT user_id FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . $id . ' LOCK IN SHARE MODE');
-		$this->rows('SELECT group_id FROM ' . USER_GROUP_TABLE . ' WHERE user_id=' . $id . ' ORDER BY group_id LOCK IN SHARE MODE');
-		$this->rows('SELECT group_id FROM ' . GROUPS_TABLE . " WHERE group_id IN (SELECT group_id FROM " . USER_GROUP_TABLE . ' WHERE user_id=' . $id . ') ORDER BY group_id LOCK IN SHARE MODE');
-		$this->actor(); $this->control('COMMIT'); $this->transactional = false; $this->finished = true;
+		kb_publication_lock_actor($this); $this->control('COMMIT'); $this->transactional = false; $this->finished = true;
 	}
 	function release()
 	{

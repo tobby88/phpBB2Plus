@@ -267,6 +267,8 @@ jobs:
           php .github/scripts/check-kb-counter-migration.php
           php .github/scripts/check-kb-article-actions-native.php
           php .github/scripts/check-kb-publication-native.php
+          php .github/scripts/check-kb-deletion-native.php
+          php .github/scripts/check-user-post-counter-migration.php
         env:
           PHPBB_KB_COUNTER_NATIVE: '1'
           PHPBB_KB_COUNTER_PASSWORD: fixture-only

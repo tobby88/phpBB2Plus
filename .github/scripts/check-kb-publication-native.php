@@ -8,6 +8,7 @@ require $kp_source . 'includes/php_compat.php'; require $kp_source . 'includes/c
 foreach (array('ARTICLES'=>'articles','CATEGORIES'=>'categories','CONFIG'=>'config','TYPES'=>'types','WORD'=>'wordlist','MATCH'=>'wordmatch','SEARCH'=>'results','VOTES'=>'votes') as $constant=>$suffix) { define('KB_' . $constant . '_TABLE', 'fixture_kb_' . $suffix); }
 require $kp_source . 'db/mysqli.php'; require $kp_source . 'includes/functions_kb.php'; require $kp_source . 'includes/functions_search.php';
 require $kp_source . 'includes/functions_post.php'; require $kp_source . 'includes/bbcode.php'; require $kp_source . 'includes/functions_kb_publication.php';
+if(!empty($kp_controller_mode)){require $kp_source.'includes/functions_kb_delete_storage.php';}
 function kp_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 class KpMessageExit extends RuntimeException { public $level; function __construct($level,$message){parent::__construct($message);$this->level=$level;} }
 function message_die($level, $message) { throw new KpMessageExit($level,$message); }
@@ -17,7 +18,7 @@ $stored_source = file_get_contents($kp_source . 'includes/functions.php');
 kp_check(preg_match('/^function phpbb_stored_text\(.*?^\}/ms', $stored_source, $stored) === 1, 'Actual stored-text helper'); eval($stored[0]);
 $lang = array(); require $kp_source . 'language/lang_english/lang_main.php'; require $kp_source . 'language/lang_english/lang_admin.php'; require $kp_source . 'language/lang_english/lang_kb.php';
 $lang['Not_Authorised'] = 'denied'; $lang['Session_invalid'] = 'invalid-session';
-$board_config = array('default_lang'=>'english','version'=>'.0.23','allow_html_tags'=>'b,i,u'); $kb_config = array('comments'=>0,'mod_group'=>'999'); $user_ip = '7f000001';
+$board_config = array('default_lang'=>'english','version'=>'.0.23','allow_html_tags'=>'b,i,u'); $kb_config = array('comments'=>0,'mod_group'=>'999'); $user_ip = '7f000001'; $client_ip='127.0.0.1';
 $port = getenv('PHPBB_KB_COUNTER_PORT') ?: '3306'; $password = getenv('PHPBB_KB_COUNTER_PASSWORD') ?: '';
 kp_check(preg_match('/^[0-9]{1,5}$/D', $port) && (int)$port > 0 && (int)$port <= 65535, 'Loopback port');
 $host = '127.0.0.1:' . $port; $control = new sql_db($host, 'root', $password, '', false);
@@ -94,7 +95,7 @@ function kp_reset($actor = 'root', $comments = false) {
  kp_sql("INSERT INTO fixture_jr_admin_users(user_id,user_jr_admin,admin_notes) VALUES(2,'" . md5('KB_titleArt_manadmin_kb_art.php') . "','')");
  kp_sql("INSERT INTO fixture_groups(group_id,group_type,group_name,group_description,group_moderator,group_single_user) VALUES(10,0,'KB moderation','Synthetic',1,0)");
  kp_sql('INSERT INTO fixture_user_group(group_id,user_id,user_pending) VALUES(10,3,0)');
- kp_sql("INSERT INTO fixture_kb_config(config_name,config_value) VALUES('comments','" . ($comments ? '1' : '0') . "'),('mod_group','10'),('forum_id','1'),('admin_id','1')");
+ kp_sql("INSERT INTO fixture_kb_config(config_name,config_value) VALUES('comments','" . ($comments ? '1' : '0') . "'),('mod_group','10'),('forum_id','1'),('admin_id','1'),('del_topic','0')");
  kp_sql("INSERT INTO fixture_kb_categories(category_id,category_name,category_details,number_articles,parent,cat_order) VALUES(1,'Root','Keep',0,0,0),(2,'Größe 😀','Keep',0,1,1)");
  kp_sql("INSERT INTO fixture_kb_articles(article_id,article_category_id,article_title,article_description,article_date,article_author_id,article_body,article_type,approved) VALUES(1,2,'Synthetic title','Keep description','123',4,'Synthetic searchable article',1,0)");
  kp_sql("INSERT INTO fixture_kb_types(id,type) VALUES(1,'Synthetic')");
@@ -110,8 +111,10 @@ try {
  $db = new KpDatabase($host,'root',$password,$fixture,false); $kp_caller=$db; $peer = new sql_db($host,'root',$password,$fixture,false); kp_check($db->db_connect_id && $peer->db_connect_id, 'Independent native connections');
  $kp_tables = array(KB_ARTICLES_TABLE,KB_CATEGORIES_TABLE,KB_CONFIG_TABLE,KB_TYPES_TABLE,KB_WORD_TABLE,KB_MATCH_TABLE,KB_SEARCH_TABLE,KB_VOTES_TABLE,
   TOPICS_TABLE,POSTS_TABLE,POSTS_TEXT_TABLE,FORUMS_TABLE,USERS_TABLE,SEARCH_WORD_TABLE,SEARCH_MATCH_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE);
+ if(!empty($kp_delete_mode)||!empty($kp_controller_mode)){$kp_tables=array_unique(array_merge($kp_tables,array(CONFIG_TABLE,AUTH_ACCESS_TABLE,VOTE_DESC_TABLE,VOTE_RESULTS_TABLE,VOTE_USERS_TABLE,LOGS_TABLE,ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE,TOPICS_WATCH_TABLE,BOOKMARK_TABLE,TOPIC_VIEW_TABLE,PRIVMSGS_TABLE)));}
  $schema = file_get_contents($kp_source . 'install/schemas/mysql_schema.sql');
  foreach ($kp_tables as $table) { $canonical = 'phpbb_' . substr($table,strlen('fixture_')); kp_check(preg_match('/CREATE TABLE `?' . preg_quote($canonical,'/') . '`?\s*\([\s\S]*?;/', $schema, $m) === 1, 'Canonical table ' . $canonical); kp_sql(str_replace($canonical,$table,$m[0])); }
+ if(!empty($kp_delete_mode)){kp_delete_suite();return;}
  if(!empty($kp_controller_mode)){kp_controller_suite();return;}
  $cases = 0;
  foreach (array(array('root','acp'),array('junior','acp'),array('root','moderator'),array('moderator','moderator')) as $actor) {

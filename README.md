@@ -55,9 +55,17 @@ Existing installations must first complete the supported database update.
 An unconfirmed commit is reported as unconfirmed, not as a guaranteed rollback.
 Inspect the current article before retrying; a repeated approval can rebuild its
 missing KB index without incrementing counts again. Historic incorrect counts
-need the repair below. This boundary does **not** make legacy article add/edit/
-deletion or physical discussion-attachment cleanup transactional, and unapproval
-does not delete an existing discussion topic.
+need the repair below. Legacy article add/edit remains outside this approval
+boundary, and unapproval does not delete an existing discussion topic.
+
+Article deletion separately commits its article/counter/index/vote changes and
+any configured stored discussion removal together. It reuses core topic cleanup,
+with current KB authority rather than requiring unrelated forum moderation
+rights. Ambiguous shared/redirected/foreign discussion relations are refused.
+Physical attachments are removed **after** confirmed commit; failed cleanup
+retains descriptions for the existing ACP shadow-attachment recovery. Thus file
+removal is not a rollbackable database operation. An unconfirmed deletion is
+never reported as a confirmed rollback or complete physical cleanup.
 
 The full post-1.53a updater also rebuilds category counts from approved articles,
 including descendants and empty categories. For an otherwise updated database:
@@ -76,6 +84,24 @@ skip already-correct counts. Duplicate category IDs, invalid/cyclic parents,
 orphaned approved articles or unsupported counter ranges stop for review rather
 than deleting/remapping data. Do not combine targeted modes. Unknown or positional
 arguments are rejected rather than falling through to the full updater.
+
+## Derived user post counters
+
+KB discussion posting honors the target forum's `count_posts` policy. The full
+post-1.53a updater also recounts positive users' stored post counters from posts
+in counting forums, including users whose correct count is zero. It preserves
+posts, forum settings, guest counters and all other user fields. For an otherwise
+updated database, preview/apply only this repair with:
+
+```sh
+php update/update_from_153a.php --user-post-counters-only
+php update/update_from_153a.php --user-post-counters-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+Use a verified backup and stopped web/cron writers. The complete repair uses
+supported storage, native locks and one transaction; ambiguous identities or
+unknown counting flags are refused. Repeated runs are a no-op. This is separate
+from `--kb-counters-only`, which still changes only KB category counters.
 
 ## Style removal and recovery
 
