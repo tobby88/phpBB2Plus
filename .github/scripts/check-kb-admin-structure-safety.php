@@ -21,7 +21,7 @@ kb_structure_assert(strpos($categories, 'function kb_admin_category_order_form')
 kb_structure_assert(strpos($categories, 'function kb_admin_category_parent_valid') !== false, 'category parent cycles must be rejected');
 kb_structure_assert(strpos($categories, 'SELECT category_id FROM " . KB_CATEGORIES_TABLE . " WHERE category_id = $category_id') !== false, 'edited categories must still exist');
 kb_structure_assert(strpos($categories, 'function kb_admin_rebuild_category_counts') !== false, 'category counters must be rebuilt from approved articles');
-kb_structure_assert(strpos($categories, 'function kb_admin_delete_discussions_enabled') !== false, 'bulk deletion must load its discussion cleanup setting');
+kb_structure_assert(strpos($categories, "kb_delete_article(\$db, \$delete_id, 'category', \$old_category)") !== false, 'bulk deletion uses the current category grant and expected source category');
 kb_structure_assert(substr_count($categories, 'kb_admin_rebuild_category_counts();') >= 3, 'category structure mutations must refresh aggregate counters');
 kb_structure_assert(strpos($categories, 'function kb_admin_move_category') !== false, 'category ordering must use an actual sibling list');
 kb_structure_assert(strpos($categories, 'array_search($category_id, $category_ids, true)') !== false, 'category ordering must locate the current sibling position');
@@ -30,8 +30,15 @@ kb_structure_assert(strpos($categories, "in_array(\$mode, array('up', 'down'), t
 kb_structure_assert(strpos($categories, '$cat_name_sql = $db->sql_escape($cat_name);') !== false, 'category names must be escaped at the SQL boundary');
 kb_structure_assert(strpos($categories, 'function kb_admin_category_text') !== false, 'category text must respect schema limits');
 kb_structure_assert(strpos($categories, 'SET parent = $old_parent WHERE parent = $old_category') !== false, 'category deletion must not orphan children');
-kb_structure_assert(strpos($categories, 'KB_MATCH_TABLE') !== false && strpos($categories, 'KB_VOTES_TABLE') !== false, 'bulk article deletion must remove dependent search and vote rows');
-kb_structure_assert(strpos($categories, 'kb_delete_discussion_topic(') !== false, 'bulk article deletion must remove configured discussion topics');
+$deletion = file_get_contents($root . '/phpBB2/includes/functions_kb_delete_storage.php');
+kb_structure_assert(strpos($deletion, 'kb_remove_article_words($article_id);') !== false && strpos($deletion, "'DELETE FROM ' . KB_VOTES_TABLE") !== false, 'shared deletion removes article search/vote dependencies');
+kb_structure_assert(strpos($deletion, "\$storage->settings['del_topic']") === false && strpos($deletion, "\$this->settings['del_topic'] === '1'") !== false, 'owned cleanup reloads current discussion deletion policy');
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/phpBB2', FilesystemIterator::SKIP_DOTS)) as $file)
+{
+	if ($file->isFile() && strtolower($file->getExtension()) === 'php') {
+		kb_structure_assert(preg_match('/\bkb_delete_discussion_topic\s*\(/', file_get_contents($file->getPathname())) !== 1, 'retired helper must have neither definitions nor dangling callers: ' . $file->getFilename());
+	}
+}
 kb_structure_assert(strpos($categories, 'DELETE FROM " . KB_SEARCH_TABLE') !== false, 'category deletion must invalidate cached searches');
 kb_structure_assert(strpos($categories, '?mode=up&amp;cat=') === false && strpos($categories, '?mode=down&amp;cat=') === false, 'category ordering must not be a GET mutation');
 

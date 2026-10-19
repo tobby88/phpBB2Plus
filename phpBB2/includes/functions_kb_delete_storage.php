@@ -90,15 +90,19 @@ class PhpbbKbDeleteDatabase extends PhpbbTopicRemovalDatabase
 	}
 }
 
-function kb_delete_article($database, $article_id, $context)
+function kb_delete_article($database, $article_id, $context, $expected_category = null)
 {
 	global $userdata;
 	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !is_string($userdata['session_id'])
 		|| !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals($userdata['session_id'], $_POST['sid'])) { kb_publication_fail('Session_invalid'); }
 	try { $article_id = kb_counter_category_id($article_id); } catch (RuntimeException $error) { kb_publication_fail('Article_not_exsist'); }
+	if ($context === 'category') {
+		try { $expected_category = kb_counter_category_id($expected_category); } catch (RuntimeException $error) { kb_publication_fail('Article_not_exsist'); }
+	}
 	$storage = new PhpbbKbDeleteDatabase($database, $article_id, $context); $original = $GLOBALS['db'];
 	try {
 		$GLOBALS['db'] = $storage; $storage->begin(); $article = $storage->article; $removed = array('topic_ids'=>array(),'post_ids'=>array());
+		if ($context === 'category' && (int)$article['article_category_id'] !== $expected_category) { kb_publication_fail('KB_deletion_relation'); }
 		if ($storage->topic_id) {
 			$removed = phpbb_delete_moderated_topics_owned($storage, $storage->forum_id, array($storage->topic_id));
 			if ($removed['topic_ids'] !== array($storage->topic_id)) { kb_publication_fail('KB_deletion_relation'); }

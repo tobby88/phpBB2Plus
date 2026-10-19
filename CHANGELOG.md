@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Switch the remaining category-purge caller away from the retired discussion
+  helper. Reuse owned article cleanup with the exact category-manager ACP route
+  and locked source-category binding; preserve topic0/current discussion-policy
+  behavior and pending file recovery notices. Validate complete category IDs and
+  prohibit category grants in the approval API. Inventory all runtime PHP files
+  for retired helper calls. Category structure finalization remains a separate
+  legacy batch, not a claimed whole-category transaction.
+
 - Resolve raw relative attachment directories against the forum root for local
   inventory/deletion from the ACP. Preserve already-prefixed/absolute paths,
   URL/config globals and FTP behavior; use the same root for conflict detection.

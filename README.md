@@ -67,6 +67,14 @@ retains descriptions for the existing ACP shadow-attachment recovery. Thus file
 removal is not a rollbackable database operation. An unconfirmed deletion is
 never reported as a confirmed rollback or complete physical cleanup.
 
+Category purges also use that article deletion worker, with the exact category
+manager's ACP grant and a locked expected source-category check. They do not call
+the removed legacy discussion helper. A category batch still consists of separate
+article commits followed by legacy category reparenting/removal/counter rebuilding;
+it is **not** one rollbackable whole-category transaction. If a later article
+fails, earlier confirmed article deletions can remain while the category and its
+remaining articles are retained. A category grant does not grant article approval.
+
 The full post-1.53a updater also rebuilds category counts from approved articles,
 including descendants and empty categories. For an otherwise updated database:
 

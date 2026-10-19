@@ -179,18 +179,6 @@ function kb_admin_rebuild_category_counts()
 	}
 }
 
-function kb_admin_delete_discussions_enabled()
-{
-	global $db;
-	$sql = "SELECT config_value FROM " . KB_CONFIG_TABLE . " WHERE config_name = 'del_topic'";
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base deletion settings', '', __LINE__, __FILE__, $sql);
-	}
-	$row = $db->sql_fetchrow($result);
-	return is_array($row) && !empty($row['config_value']);
-}
-
 function kb_admin_move_category($category_id, $direction)
 {
 	global $db;
@@ -575,8 +563,14 @@ switch( $mode )
   }
   else
   {
-		$new_category = (isset($_POST['move_id']) && is_scalar($_POST['move_id'])) ? (int) $_POST['move_id'] : 0;
-	   $old_category = (isset($_POST['catid']) && is_scalar($_POST['catid'])) ? (int) $_POST['catid'] : 0;
+	   require_once dirname(__DIR__) . '/includes/functions_kb_delete_storage.php';
+	   try {
+		   $new_category = kb_counter_category_id(isset($_POST['move_id']) ? $_POST['move_id'] : null, true);
+		   $old_category = kb_counter_category_id(isset($_POST['catid']) ? $_POST['catid'] : null);
+		   phpbb_acp_actor($db, 'admin_kb_cat.' . $phpEx);
+	   } catch (PhpbbAclException $error) { message_die(GENERAL_ERROR, $error->getMessage());
+	   } catch (RuntimeException $error) { message_die(GENERAL_MESSAGE, $lang['Empty_category']); }
+	   $cleanup_pending = false;
 	   if (!$old_category || $new_category === $old_category)
 	   {
 		  message_die(GENERAL_MESSAGE, $lang['Empty_category']);
@@ -619,39 +613,16 @@ switch( $mode )
 	   }
 	   else
 	   {
-		   if (kb_admin_delete_discussions_enabled())
-		   {
-			   $sql = "SELECT topic_id FROM " . KB_ARTICLES_TABLE . " WHERE article_category_id = $old_category AND topic_id > 0";
-			   if (!($topic_result = $db->sql_query($sql)))
-			   {
-				   message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base discussion topics', '', __LINE__, __FILE__, $sql);
-			   }
-			   while ($topic_row = $db->sql_fetchrow($topic_result))
-			   {
-				   kb_delete_discussion_topic((int) $topic_row['topic_id']);
-			   }
+		   $sql = 'SELECT article_id FROM ' . KB_ARTICLES_TABLE . ' WHERE article_category_id=' . $old_category . ' ORDER BY article_id';
+		   if (!($article_result = $db->sql_query($sql))) { message_die(GENERAL_ERROR, 'Could not obtain Knowledge Base articles', '', __LINE__, __FILE__, $sql); }
+		   $article_ids = array();
+		   while ($article_row = $db->sql_fetchrow($article_result)) { $article_ids[] = (int)$article_row['article_id']; }
+		   $db->sql_freeresult($article_result);
+		   foreach ($article_ids as $delete_id) {
+			   try { $outcome = kb_delete_article($db, $delete_id, 'category', $old_category); }
+			   catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+			   $cleanup_pending = $cleanup_pending || !empty($outcome['cleanup_pending']);
 		   }
-
-	       $sql = "DELETE FROM " . KB_MATCH_TABLE . "
-			      WHERE article_id IN (SELECT article_id FROM " . KB_ARTICLES_TABLE . " WHERE article_category_id = $old_category)";
-		   if (!$db->sql_query($sql))
-		   {
-			   message_die(GENERAL_ERROR, "Could not delete article wordmatch data", '', __LINE__, __FILE__, $sql);
-		   }
-
-	       $sql = "DELETE FROM " . KB_VOTES_TABLE . "
-			      WHERE votes_file IN (SELECT article_id FROM " . KB_ARTICLES_TABLE . " WHERE article_category_id = $old_category)";
-		   if (!$db->sql_query($sql))
-		   {
-			   message_die(GENERAL_ERROR, "Could not delete article vote data", '', __LINE__, __FILE__, $sql);
-		   }
-
-	       $sql = "DELETE FROM " . KB_ARTICLES_TABLE . "
-			      WHERE article_category_id = " . $old_category;
-		   if ( !($delete__articles = $db->sql_query($sql)) )
-	   	   {
-	   	       message_die(GENERAL_ERROR, "Could not delete articles", '', __LINE__, __FILE__, $sql);
-	   	   }
 	   }
 
 	   // Keep child categories reachable instead of orphaning them.
@@ -677,6 +648,7 @@ switch( $mode )
 	   	
 	   $message = $lang['Cat_deleted'] . '<br /><br />' . sprintf($lang['Click_return_cat_manager'], '<a href="' . append_sid("admin_kb_cat.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
 
+	   if ($cleanup_pending) { $message .= '<br /><br />' . $lang['KB_deletion_cleanup_pending']; }
 	   message_die(GENERAL_MESSAGE, $message);
   }
   break;

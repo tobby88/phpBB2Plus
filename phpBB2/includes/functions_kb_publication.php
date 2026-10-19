@@ -15,7 +15,7 @@ function kb_publication_fail($key = 'KB_publication_failed')
 function kb_publication_actor($database, $context)
 {
 	global $userdata, $phpEx;
-	if ($context === 'acp') { return phpbb_acp_actor($database, 'admin_kb_art.' . $phpEx); }
+	if ($context === 'acp' || $context === 'category') { return phpbb_acp_actor($database, ($context === 'category' ? 'admin_kb_cat.' : 'admin_kb_art.') . $phpEx); }
 	if ($context !== 'moderator') { kb_publication_fail('Not_Authorised'); }
 	$user = phpbb_current_moderator_user($database);
 	if (!$user || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { kb_publication_fail('Not_Authorised'); }
@@ -68,7 +68,7 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 	var $finished = false;
 	function __construct($database, $context)
 	{
-		if (!in_array($context, array('acp', 'moderator'), true) || !method_exists($database, 'sql_dedicated_connection')) { kb_publication_fail(); }
+		if (!in_array($context, array('acp', 'moderator', 'category'), true) || !method_exists($database, 'sql_dedicated_connection')) { kb_publication_fail(); }
 		$this->context = $context; $candidate = null;
 		try {
 			$source = phpbb_acl_rows($database, 'SELECT CONNECTION_ID() AS kb_connection_id');
@@ -157,7 +157,7 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 function kb_publish_approval($database, $article_id, $approved, $context)
 {
 	global $userdata;
-	if (!in_array($approved, array(0, 1), true) || !isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST'
+	if (!in_array($context, array('acp','moderator'), true) || !in_array($approved, array(0, 1), true) || !isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST'
 		|| empty($userdata['session_id']) || !is_string($userdata['session_id']) || !isset($_POST['sid']) || !is_string($_POST['sid'])
 		|| !hash_equals($userdata['session_id'], $_POST['sid'])) { kb_publication_fail('Session_invalid'); }
 	try { $article_id = kb_counter_category_id($article_id); } catch (RuntimeException $error) { kb_publication_fail('Article_not_exsist'); }

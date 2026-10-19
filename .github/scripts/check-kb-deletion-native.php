@@ -1,7 +1,7 @@
 <?php
 $kp_delete_mode = true;
-function kd_run($context='acp',$id=1) {
- try{return kb_delete_article($GLOBALS['db'],$id,$context);}
+function kd_run($context='acp',$id=1,$category=null) {
+ try{return kb_delete_article($GLOBALS['db'],$id,$context,$category);}
  catch(PhpbbKbPublicationException $error){return $error;}
 }
 function kd_files($create=false){
@@ -29,6 +29,24 @@ function kd_relational_fixture($actor='root',$context='acp'){
  kp_sql("INSERT INTO fixture_vote_voters(vote_id,vote_user_id,vote_user_ip) VALUES(1,4,'7f000001'),(2,4,'7f000001')");
  kp_sql('UPDATE fixture_users u SET user_posts=(SELECT COUNT(*) FROM fixture_posts p INNER JOIN fixture_forums f ON f.forum_id=p.forum_id AND f.count_posts<>0 WHERE p.poster_id=u.user_id) WHERE u.user_id>0');
  return $topic;
+}
+function kc_seed($actor='root',$comments=true,$remove=true) {
+ global $userdata;
+ kp_reset('root',$comments);kp_sql("UPDATE fixture_kb_config SET config_value='".($remove?'1':'0')."' WHERE config_name='del_topic'");kp_check(is_array(kp_run(1)),'Seed category article and optional discussion');
+ kp_sql("INSERT INTO fixture_kb_categories(category_id,category_name,category_details,number_articles,parent,cat_order) VALUES(3,'Child','Preserve',0,2,2),(4,'Unrelated','Preserve',0,0,3)");
+ kp_sql("INSERT INTO fixture_kb_articles(article_id,article_category_id,article_title,article_body,approved) VALUES(999,4,'Unrelated','Preserve',0)");
+ kp_sql("INSERT INTO fixture_kb_votes VALUES('127.0.0.1','1',1),('127.0.0.1','1',999)");
+ if($actor!=='root'){$id=$actor==='group'?3:2;$userdata['user_id']=$id;kp_sql('UPDATE fixture_sessions SET session_user_id='.$id);if($actor==='category'){kp_sql("UPDATE fixture_jr_admin_users SET user_jr_admin='".md5('KB_titleCat_manadmin_kb_cat.php')."' WHERE user_id=2");}}
+}
+function kc_controller($move='0',$old='2') {
+ global $db,$userdata,$lang,$phpbb_root_path,$phpEx;
+ static $body=null;
+ if($body===null){
+  $source=file_get_contents($GLOBALS['kp_source'].'admin/admin_kb_cat.php');$a=strpos($source,'function kb_admin_rebuild_category_counts(');$b=strpos($source,'function kb_admin_move_category(',$a);kp_check($a!==false&&$b>$a,'Actual category recount helper');eval(substr($source,$a,$b-$a));
+  $a=strpos($source,"require_once dirname(__DIR__) . '/includes/functions_kb_delete_storage.php';");$marker='message_die(GENERAL_MESSAGE, $message);';$b=strpos($source,$marker,$a);kp_check($a!==false&&$b>$a,'Actual category delete action body');$body=str_replace('dirname(__DIR__)',var_export(rtrim($GLOBALS['kp_source'],'/'),true),substr($source,$a,$b+strlen($marker)-$a));
+ }
+ $_POST=array('move_id'=>$move,'catid'=>$old,'submit'=>'1','sid'=>$userdata['session_id']);$_SERVER['REQUEST_METHOD']='POST';
+ try{eval($body);}catch(KpMessageExit $error){return $error;}throw new RuntimeException('Category controller did not report completion');
 }
 function kp_delete_suite() {
  global $kp_source,$kp_hook,$userdata;
@@ -135,6 +153,26 @@ function kp_delete_suite() {
   $kp_hook=null;foreach(array($GLOBALS['upload_dir'].'/owned.txt',$GLOBALS['upload_dir'].'/'.THUMB_DIR.'/t_owned.txt')as$path){if(is_file($path)){unlink($path);}elseif(is_dir($path)){rmdir($path);}}
   rmdir($GLOBALS['upload_dir'].'/'.THUMB_DIR);rmdir($GLOBALS['upload_dir']);
  }
- echo 'KB atomic deletion native: '.$cases." authority/race/fault/policy/relation/file/recovery cases passed.\n";
+ foreach(array('root','category')as$actor){foreach(array(false,true)as$comments){foreach(array(false,true)as$remove){
+  kc_seed($actor,$comments,$remove);$out=kc_controller();kp_check($out->level===GENERAL_MESSAGE,'Actual category purge root/exact delegated grant: '.$out->getMessage());
+  kp_check(kp_rows('SELECT article_id FROM fixture_kb_articles')===array(array('article_id'=>'999'))&&!kp_rows('SELECT * FROM fixture_kb_wordmatch')&&kp_rows('SELECT votes_file FROM fixture_kb_votes')===array(array('votes_file'=>'999')),'Category purge reaches owned article/index/votes without retired helper and preserves unrelated article');
+  kp_check(kp_rows('SELECT parent FROM fixture_kb_categories WHERE category_id=3')===array(array('parent'=>'1'))&&!kp_rows('SELECT category_id FROM fixture_kb_categories WHERE category_id=2'),'Category children remain reachable');
+  kp_check(count(kp_rows('SELECT * FROM fixture_topics'))===($comments&&!$remove?1:0),'Category article deletion honors current discussion policy');$cases++;
+ }}}
+ foreach(array('article','group')as$actor){kc_seed($actor);$before=kp_snapshot();kp_check(kc_controller()->level===GENERAL_ERROR&&kp_snapshot()===$before,'Article-only ACP grant or frontend KB group cannot authorize category purge');$cases++;}
+ kc_seed();kp_sql('UPDATE fixture_users SET user_active=0 WHERE user_id=1');$before=kp_snapshot();kp_check(kc_controller()->level===GENERAL_ERROR&&kp_snapshot()===$before,'Current inactive ACP account denies actual category body');$cases++;
+ kc_seed();$before=kp_snapshot();kp_sql("CREATE TRIGGER kc_fail BEFORE DELETE ON fixture_kb_articles FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Synthetic category article failure'");
+ kp_check(kc_controller()->level===GENERAL_ERROR&&kp_snapshot()===$before,'Actual category action stops after fully rolled-back article failure, without reparenting/deleting category');kp_sql('DROP TRIGGER kc_fail');$cases++;
+ kc_seed();$reached=false;$kp_hook=function($event,$sql)use(&$reached){if($event==='before'&&strpos($sql,'SELECT GET_LOCK(')===0){$GLOBALS['kp_hook']=null;$reached=true;kp_sql('UPDATE fixture_kb_articles SET article_category_id=3 WHERE article_id=1');}};
+ $out=kc_controller();$kp_hook=null;kp_check($reached&&$out->level===GENERAL_ERROR&&kp_rows('SELECT article_category_id FROM fixture_kb_articles WHERE article_id=1')===array(array('article_category_id'=>'3'))&&count(kp_rows('SELECT * FROM fixture_topics'))===1&&count(kp_rows('SELECT category_id FROM fixture_kb_categories WHERE category_id=2'))===1,'Stale category selection cannot delete an article moved independently before owner acquisition');$cases++;
+ kc_seed();$before=kp_snapshot();kp_check(kd_run('category',1,null) instanceof PhpbbKbPublicationException&&kp_snapshot()===$before,'Category delete context requires explicit complete source-category binding');
+ kp_check(kp_run(1,'category') instanceof PhpbbKbPublicationException&&kp_snapshot()===$before,'Category-specific grant never grants article approval API');$cases++;
+ kc_seed('root',false);kp_sql("INSERT INTO fixture_kb_articles(article_id,article_category_id,article_title,article_body,approved) VALUES(2,2,'Second','Preserve',1)");kp_sql('UPDATE fixture_kb_categories SET number_articles=2 WHERE category_id IN (1,2)');
+ kp_sql("CREATE TRIGGER kc_partial BEFORE DELETE ON fixture_kb_articles FOR EACH ROW BEGIN IF OLD.article_id=2 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Synthetic later article failure'; END IF; END");
+ $out=kc_controller();kp_check($out->level===GENERAL_ERROR&&kp_rows('SELECT article_id FROM fixture_kb_articles ORDER BY article_id')===array(array('article_id'=>'2'),array('article_id'=>'999')),'Legacy bulk category batch can retain a previously committed article deletion; do not claim whole-batch rollback');
+ kp_check(kp_rows('SELECT category_id,number_articles FROM fixture_kb_categories WHERE category_id IN (1,2) ORDER BY category_id')===array(array('category_id'=>'1','number_articles'=>'1'),array('category_id'=>'2','number_articles'=>'1'))&&kp_rows('SELECT parent FROM fixture_kb_categories WHERE category_id=3')===array(array('parent'=>'2')),'Later failure preserves remaining article counts and category/child structure');kp_sql('DROP TRIGGER kc_partial');$cases++;
+ kc_seed();$out=kc_controller('4');kp_check($out->level===GENERAL_MESSAGE&&kp_rows('SELECT article_category_id FROM fixture_kb_articles WHERE article_id=1')===array(array('article_category_id'=>'4'))&&count(kp_rows('SELECT * FROM fixture_topics'))===1&&count(kp_rows('SELECT * FROM fixture_kb_votes'))===2,'Move-and-delete category retains article/discussion/votes and supported target');$cases++;
+ foreach(array('2 trailing',array('2'),'2e0')as$bad){kc_seed();$before=kp_snapshot();kc_controller('0',$bad);kp_check(kp_snapshot()===$before,'Actual category purge refuses partially parsed/nonscalar category IDs');$cases++;}
+ echo 'KB atomic article/category-call deletion native: '.$cases." authority/race/fault/policy/relation/file/recovery cases passed. Category structure finalization is still a separate legacy batch.\n";
 }
 require __DIR__.'/check-kb-publication-native.php';
