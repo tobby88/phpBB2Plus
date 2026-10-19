@@ -1381,8 +1381,8 @@ article_type mediumint(8) unsigned NOT NULL default '0',
 approved tinyint(1) unsigned NOT NULL default '0',
 topic_id mediumint(8) unsigned NOT NULL default '0',
 views bigint(8) NOT NULL default '0',
-article_rating double(6,4) NOT NULL default '0.0000',
-article_totalvotes int(255) NOT NULL default '0',
+article_rating decimal(30,4) NOT NULL default '0.0000',
+article_totalvotes bigint UNSIGNED NOT NULL default '0',
 KEY article_id (article_id)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

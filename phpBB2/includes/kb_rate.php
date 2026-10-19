@@ -89,76 +89,20 @@ $ipaddy= getenv ("REMOTE_ADDR");
 
 if ($rate == 'dorate')
 {
-	if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['sid']) || !is_scalar($_POST['sid']) || !hash_equals((string) $userdata['session_id'], (string) $_POST['sid']))
-	{
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-	}
-	if ($rating < 1 || $rating > 10)
-	{
-		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-	}
-
-	$conf = str_replace("{filename}", phpbb_stored_text($article['article_title']), $lang['Rconf']);
-	$conf = str_replace("{rate}", $rating, $conf);
-
-	$ipaddy = $db->sql_escape((string) getenv('REMOTE_ADDR'));
-	$user_id = intval($userdata['user_id']);
-	$duplicate_conditions = array();
-	if ($kb_config['votes_check_ip'] == 1)
-	{
-		$duplicate_conditions[] = "votes_ip = '$ipaddy'";
-	}
-	if ($kb_config['votes_check_userid'] == 1)
-	{
-		$duplicate_conditions[] = "votes_userid = $user_id";
-	}
-	$duplicate_sql = empty($duplicate_conditions) ? '0 = 1' : '(' . implode(' OR ', $duplicate_conditions) . ')';
-	$sql = "INSERT INTO " . KB_VOTES_TABLE . " (votes_ip, votes_userid, votes_file)
-		SELECT '$ipaddy', $user_id, $article_id
-		WHERE NOT EXISTS (SELECT 1 FROM " . KB_VOTES_TABLE . " WHERE votes_file = $article_id AND $duplicate_sql)";
-
-    if ( !($insert = $db->sql_query($sql)) )
-    {
-		message_die(GENERAL_ERROR, 'Couldnt Update rating table', '', __LINE__, __FILE__, $sql);
-    }
-	if (!$db->sql_affectedrows())
-	{
-		message_die(GENERAL_MESSAGE, $lang['Rerror']);
-	}
-
-    $sql = "UPDATE " . KB_ARTICLES_TABLE . " SET article_rating = article_rating + $rating, article_totalvotes = article_totalvotes + 1 WHERE article_id = $article_id";
-
-    if ( !($update = $db->sql_query($sql)) )
-    {
-        message_die(GENERAL_ERROR, 'Couldnt Update rating table', '', __LINE__, __FILE__, $sql);
-    }
-
-    $sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE article_id = '" . $article_id . "'";
-
-    if ( !($result = $db->sql_query($sql)) )
-    {
-        message_die(GENERAL_ERROR, 'Couldnt Update rating table', '', __LINE__, __FILE__, $sql);
-    }
-
-	$article = $db->sql_fetchrow($result);
-
-	if ($article['article_rating'] == 0 or $article['article_totalvotes'] == 0)
-	{
-		$nrating = 0; 
-	}
-	else
-	{
-		$nrating = round($article['article_rating']/($article['article_totalvotes']), 3); 
-	}
-
-	$conf = str_replace("{newrating}", $nrating, $conf);
-
-	$template->assign_vars(array(
-		"META" => '<meta http-equiv="refresh" content="3;url=' . htmlspecialchars(append_sid($phpbb_root_path . "kb.$phpEx?action=url&amp;k=" . $article_id), ENT_QUOTES, 'UTF-8') . '">')
-	);
-	$message = $conf . "<br /><br />" . sprintf($lang['Click_return_rate'], "<a href=\"" . append_sid($phpbb_root_path . "kb.$phpEx?mode=article&amp;k=$article_id") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_forum'], "<a href=\"" . append_sid("kb.$phpEx?action=cat&amp;cat=$category_id") . "\">", "</a>");
-	message_die(GENERAL_MESSAGE, $message);  
-
+	require_once dirname(__FILE__) . '/functions_kb_rating_storage.php';
+	try {
+		$outcome = kb_rate_article($db, isset($_POST['k']) ? $_POST['k'] : (isset($_GET['k']) ? $_GET['k'] : null), isset($_POST['rating']) ? $_POST['rating'] : null);
+	} catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	if ($outcome['duplicate']) { message_die(GENERAL_MESSAGE, $lang['Rerror']); }
+	$article = $outcome['article']; $article_id = (int)$article['article_id']; $category_id = (int)$article['article_category_id'];
+	$nrating = rtrim(rtrim((string)$article['rating_average'], '0'), '.');
+	$conf = str_replace(array('{filename}','{rate}','{newrating}'), array(phpbb_stored_text($article['article_title']),$outcome['rating'],$nrating), $lang['Rconf']);
+	$article_url = htmlspecialchars(append_sid($phpbb_root_path . 'kb.' . $phpEx . '?mode=article&k=' . $article_id), ENT_QUOTES, 'UTF-8', false);
+	$category_url = htmlspecialchars(append_sid($phpbb_root_path . 'kb.' . $phpEx . '?mode=cat&cat=' . $category_id), ENT_QUOTES, 'UTF-8', false);
+	$template->assign_vars(array('META'=>'<meta http-equiv="refresh" content="3;url=' . $article_url . '">'));
+	$message = $conf . '<br /><br />' . sprintf($lang['Click_return_rate'], '<a href="' . $article_url . '">', '</a>');
+	$message .= '<br /><br />' . sprintf($lang['Click_return_forum'], '<a href="' . $category_url . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
 }
 else
 {

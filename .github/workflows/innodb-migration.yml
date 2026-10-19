@@ -269,6 +269,8 @@ jobs:
           php .github/scripts/check-kb-publication-native.php
           php .github/scripts/check-kb-deletion-native.php
           php .github/scripts/check-kb-writing-native.php
+          php .github/scripts/check-kb-rating-migration.php
+          php .github/scripts/check-kb-rating-native.php
           php .github/scripts/check-user-post-counter-migration.php
         env:
           PHPBB_KB_COUNTER_NATIVE: '1'

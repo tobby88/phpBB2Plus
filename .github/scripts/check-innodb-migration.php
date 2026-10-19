@@ -80,7 +80,9 @@ try {
  plus_storage_query($db,"INSERT INTO phpbb_banlist(ban_userid,ban_ip,ban_email) VALUES(7,'7F0000FF','kept@example.invalid'),(0,'7fff00ff',''),(0,'','*@example.invalid')");
  $legacy_bans=plus_storage_rows($db,'SELECT ban_id,ban_userid,ban_ip,ban_email FROM phpbb_banlist ORDER BY ban_id');
  plus_storage_query($db,"INSERT INTO phpbb_kb_categories(category_id,category_name,category_details,number_articles,parent,cat_order) VALUES(1,'Root','Preserve',99,0,0),(2,'Child 😀','Preserve',0,1,1)");
+ plus_storage_query($db,'ALTER TABLE phpbb_kb_articles MODIFY article_rating DOUBLE(6,4) NOT NULL DEFAULT 0.0000,MODIFY article_totalvotes INT(255) NOT NULL DEFAULT 0');
  plus_storage_query($db,"INSERT INTO phpbb_kb_articles(article_id,article_category_id,article_title,article_body,approved) VALUES(1,2,'First 😀','Preserve body',1),(2,2,'Second','Preserve body',1),(3,1,'Pending','Preserve body',0)");
+ plus_storage_query($db,'UPDATE phpbb_kb_articles SET article_rating=99.9999,article_totalvotes=10 WHERE article_id=1');
  $kb_articles_before=plus_storage_rows($db,'SELECT * FROM phpbb_kb_articles ORDER BY article_id');
  plus_storage_query($db,"INSERT INTO phpbb_users(user_id,username,user_password,user_email,user_posts) VALUES(-1,'Guest','synthetic','guest@example.invalid',99),(1,'Counted user','synthetic','counted@example.invalid',77),(2,'Empty user','synthetic','empty@example.invalid',55)");
  plus_storage_query($db,"INSERT INTO phpbb_forums(forum_id,cat_id,forum_name,forum_desc,forum_order,count_posts) VALUES(1,1,'Counted','Keep',0,1),(2,1,'Not counted','Keep',1,0)");
@@ -107,6 +109,8 @@ try {
   $kb_counts=plus_storage_rows($db,'SELECT category_id,number_articles FROM phpbb_kb_categories ORDER BY category_id');
   $kb_expected=($case==='dry'||$case==='missing-maintenance')?array(array('category_id'=>'1','number_articles'=>'99'),array('category_id'=>'2','number_articles'=>'0')):array(array('category_id'=>'1','number_articles'=>'2'),array('category_id'=>'2','number_articles'=>'2'));
   storage_check($kb_counts===$kb_expected&&plus_storage_rows($db,'SELECT * FROM phpbb_kb_articles ORDER BY article_id')===$kb_articles_before,'Actual full updater repairs derived KB counters only on apply and preserves complete article bytes');
+  require_once $root.'/update/kb_rating_storage_migration.php';
+  storage_check(count(plus_kb_rating_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0),'Actual full updater widens rating capacity before confirming completion, retry no-op');
   $expected_user_counts=($case==='dry'||$case==='missing-maintenance')?array(array('user_id'=>'-1','user_posts'=>'99'),array('user_id'=>'1','user_posts'=>'77'),array('user_id'=>'2','user_posts'=>'55')):array(array('user_id'=>'-1','user_posts'=>'99'),array('user_id'=>'1','user_posts'=>'2'),array('user_id'=>'2','user_posts'=>'0'));
   storage_check(plus_storage_rows($db,'SELECT user_id,user_posts FROM phpbb_users ORDER BY user_id')===$expected_user_counts&&plus_storage_rows($db,'SELECT * FROM phpbb_posts ORDER BY post_id')===$counter_posts_before,'Actual full updater honors counting forums, preserves guest counters and every stored post');
   storage_check(plus_storage_rows($db,'SELECT ban_id,ban_userid,ban_ip,ban_email FROM phpbb_banlist ORDER BY ban_id')===$legacy_bans,'Actual updater retains every old mixed/user/IP/email rule byte');

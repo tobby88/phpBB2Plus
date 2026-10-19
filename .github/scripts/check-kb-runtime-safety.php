@@ -20,6 +20,7 @@ $moderator = file_get_contents($root . '/phpBB2/includes/kb_moderator.php');
 $search = file_get_contents($root . '/phpBB2/kb_search.php');
 $category = file_get_contents($root . '/phpBB2/includes/kb_cat.php');
 $rate = file_get_contents($root . '/phpBB2/includes/kb_rate.php');
+$rating_storage = file_get_contents($root . '/phpBB2/includes/functions_kb_rating_storage.php');
 $add = file_get_contents($root . '/phpBB2/includes/kb_add.php');
 $edit = file_get_contents($root . '/phpBB2/includes/kb_edit.php');
 
@@ -105,6 +106,9 @@ kb_runtime_assert(strpos($article, "\$topic = array('topic_id' => 0, 'topic_repl
 kb_runtime_assert(strpos($article, "\$pagination = '';") !== false, 'articles without displayed comments need an initialized pagination value');
 kb_runtime_assert(strpos($rate, "empty(\$kb_config['allow_rating'])") !== false, 'direct rating requests must respect the global rating switch');
 kb_runtime_assert(strpos($rate, "empty(\$kb_config['allow_anonymos_rating'])") !== false, 'direct guest ratings must respect the anonymous rating switch');
+kb_runtime_assert(strpos($rate,'kb_rate_article($db,') !== false && strpos($rate,'INSERT INTO') === false && strpos($rate,'SET article_rating') === false,'Rating controller must use the owning worker, not autocommit vote/statistic copies');
+kb_runtime_assert(strpos($rating_storage,"'UPDATE '.KB_ARTICLES_TABLE.' SET article_rating=article_rating+'") !== false,'Owned rating statistics update is present');
+kb_runtime_assert(strpos($rating_storage,"$"."owner->commit()") !== false && strpos($rating_storage,"$"."owner->settings['votes_check_userid']==='1'&&(int)$"."actor['user_id']>0") !== false,'Owned rating commit and registered-only user identity duplicate policy are present');
 kb_runtime_assert(strpos($rate, "(int) \$article['approved'] !== 1 && !\$can_rate_unapproved") !== false, 'rating pages must hide pending edits from unrelated visitors');
 kb_runtime_assert(substr_count($rate, "phpbb_stored_text(\$article['article_title'])") === 2, 'rating messages must normalize and escape stored article titles');
 kb_runtime_assert(strpos($writing, "((int)\$actor['user_id'] > 0 ? (int)\$actor['user_id'] : 0)") !== false, 'anonymous articles must use the supported guest author ID');

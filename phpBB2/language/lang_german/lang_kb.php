@@ -1,4 +1,6 @@
 <?php
+$lang['KB_rating_upgrade'] = 'Bitte aktualisiere die Forendatenbank mit dem Updater für Stände nach 1.53a, bevor Bewertungen abgegeben werden.';
+$lang['KB_rating_failed'] = 'Die Bewertung konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand, bevor du sie erneut absendest.';
 $lang['KB_write_invalid'] = 'Bitte gib einen gültigen Titel, eine Beschreibung, einen Artikeltext, eine Kategorie und einen Artikeltyp an.';
 $lang['KB_write_failed'] = 'Die Artikeländerung konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand, bevor du sie erneut absendest.';
 $lang['KB_notification_failed'] = 'Der Artikel wurde gespeichert, aber die Benachrichtigungs-E-Mail konnte nicht versendet werden.';
@@ -241,7 +243,7 @@ $lang['Votes_check_ip'] = 'Bewertungen überprüfen - IP';
 $lang['Votes_check_ip_explain'] = 'Nur eine Bewertung pro IP-Adresse ist erlaubt.';
 
 $lang['Votes_check_userid'] = 'Bewertungen überprüfen - Benutzer';
-$lang['Votes_check_userid_explain'] = 'Benutzer dürfen nur eine Bewertung abgeben.';
+$lang['Votes_check_userid_explain'] = 'Registrierte Benutzerkonten dürfen nur einmal bewerten. Bei Gästen gilt die IP-Prüfung, nicht die gemeinsame anonyme Benutzer-ID.';
 
 $lang['Article_pag'] = 'Artikel Seitenanzeige';
 $lang['Article_pag_explain'] = 'Anzahl Artikel in einer Kategorie, bevor die nächste Seite angezeigt wird.';

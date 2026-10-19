@@ -1,4 +1,6 @@
 <?php
+$lang['KB_rating_upgrade'] = 'Update the forum database with the post-1.53a updater before submitting ratings.';
+$lang['KB_rating_failed'] = 'The rating could not be confirmed. Please check the current rating before retrying.';
 $lang['KB_write_invalid'] = 'Please provide a valid title, description, article text, category and article type.';
 $lang['KB_write_failed'] = 'The article change could not be confirmed. Please check its current state before retrying.';
 $lang['KB_notification_failed'] = 'The article was saved, but the notification email could not be sent.';
@@ -241,7 +243,7 @@ $lang['Votes_check_ip'] = 'Validate ratings - ip';
 $lang['Votes_check_ip_explain'] = 'Only one vote per IP-adress is permitted.'; 
 
 $lang['Votes_check_userid'] = 'Validate ratings - user'; 
-$lang['Votes_check_userid_explain'] = 'Users may only vote once.'; 
+$lang['Votes_check_userid_explain'] = 'Registered accounts may only vote once. Guest duplicate checks use the IP option, not the shared anonymous user ID.';
 
 $lang['Article_pag'] = 'Article pagination'; 
 $lang['Article_pag_explain'] = 'The number of articles to show in a (stats) category before pagination.'; 

@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Widen KB rating sum/count storage from the old 100-point overflow boundary,
+  with preserving full/targeted updater paths and strict DDL verification. Never
+  fabricate missing historical scores or narrow custom wider definitions. Publish
+  tracking markers and statistics together on the shared writer owner, with
+  current account/session/visibility/policy checks and configured duplicate rules.
+  Do not confuse all guests with one account; normalize equivalent IP forms for
+  matching old tracking data. Fix the rating confirmation's article/category URLs.
+  Retain exact wide counters in both list/statistic displays, including PHP32.
+
 - Own frontend KB creation/editing on a dedicated transaction for article,
   category counters, search data and optional bound discussion. Check current
   account/session/author/KB-group/guest permissions and immediate-approval basis

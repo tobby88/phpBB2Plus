@@ -73,7 +73,7 @@ BBCode. Email is optional
 and attempted only after confirmed commit and release; failed delivery reports
 that the article was saved. Add/edit does not promise automatic exactly-once retry
 after a lost commit acknowledgement: inspect the saved article before resubmitting.
-These owners do not cover all legacy KB category/type/rating administration.
+These owners do not cover all legacy KB category/type administration.
 
 Article deletion separately commits its article/counter/index/vote changes and
 any configured stored discussion removal together. It reuses core topic cleanup,
@@ -109,6 +109,42 @@ skip already-correct counts. Duplicate category IDs, invalid/cyclic parents,
 orphaned approved articles or unsupported counter ranges stop for review rather
 than deleting/remapping data. Do not combine targeted modes. Unknown or positional
 arguments are rejected rather than falling through to the full updater.
+
+## Knowledge Base rating storage and voting
+
+The original `DOUBLE(6,4)` rating sum overflowed at 100 (for example, the tenth
+ten-point vote). Fresh installs use `DECIMAL(30,4)` for the sum and an unsigned
+`BIGINT` for the vote count. The full post-1.53a updater widens the old columns
+without rewriting article content, tracking rows or historical statistics. For
+an otherwise updated database, preview/apply only this schema change with:
+
+```sh
+php update/update_from_153a.php --kb-rating-storage-only
+php update/update_from_153a.php --kb-rating-storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+First complete canonical InnoDB/DYNAMIC/utf8mb4 storage conversion. Keep a verified
+backup and stop **all web/cron writers**. DDL auto-commits: after an error, keep
+writers stopped, inspect the current schema/data and retry; no transaction rollback
+is promised. The migration verifies complete logical row data, custom fields,
+comments, indexes and the article ID floor. Wider custom numeric definitions are
+not silently narrowed; unsupported or unrepresentable data stops for manual review.
+Historical clipped sums or consumed votes cannot be reconstructed because the
+old tracking table contains no individual scores. No guessed reset/recount occurs.
+
+List/statistic displays retain the exact wide vote counter without narrowing it
+to a PHP integer; only the displayed average is rounded. The rating API refuses
+old small storage before consuming a vote. On supported storage, the tracking
+marker and sum/count publish in one dedicated transaction,
+coordinated with article editing/deletion. It checks current account/session,
+visibility and enabled rating policy through final commit. The caller's unrelated
+transaction and preferences are preserved. Missing commit acknowledgement is not
+reported as success; inspect before retrying. Duplicate retries are prevented when
+the configured IP/account checks match; disabling both deliberately permits repeats.
+
+Registered-account duplicate checking does not treat every guest's sentinel ID
+as one person. Guests use the configured IP check. Compressed/expanded IPv6 and
+IPv4-mapped forms match existing valid tracking addresses without rewriting them.
 
 ## Derived user post counters
 

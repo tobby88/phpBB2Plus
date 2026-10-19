@@ -322,8 +322,9 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 		
 	   $article_id = (int) $article['article_id'];
 	   $views = (int) $article['views'];
+	   // Preserve the unsigned BIGINT counter for display, including PHP32.
 	   $article_rating = (float) $article['article_rating'];
-	   $article_totalvotes = (int) $article['article_totalvotes'];
+	   $article_totalvotes = (string) $article['article_totalvotes'];
 		
 	   $article_title = phpbb_stored_text(stripslashes($article['article_title']));
 	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
@@ -1305,8 +1306,9 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 		
 	   $article_id = (int) $article['article_id'];
 	   $views = (int) $article['views'];
+	   // Preserve the unsigned BIGINT counter for display, including PHP32.
 	   $article_rating = (float) $article['article_rating'];
-	   $article_totalvotes = (int) $article['article_totalvotes'];
+	   $article_totalvotes = (string) $article['article_totalvotes'];
 		
 	   $article_title = phpbb_stored_text(stripslashes($article['article_title']));
 	   $temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=article&amp;k=$article_id")), ENT_QUOTES, 'UTF-8');
