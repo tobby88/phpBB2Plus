@@ -36,7 +36,7 @@ kb_structure_assert(strpos($deletion, "\$storage->settings['del_topic']") === fa
 foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/phpBB2', FilesystemIterator::SKIP_DOTS)) as $file)
 {
 	if ($file->isFile() && strtolower($file->getExtension()) === 'php') {
-		kb_structure_assert(preg_match('/\bkb_delete_discussion_topic\s*\(/', file_get_contents($file->getPathname())) !== 1, 'retired helper must have neither definitions nor dangling callers: ' . $file->getFilename());
+		kb_structure_assert(preg_match('/\b(?:kb_delete_discussion_topic|email_kb_admin)\s*\(/', file_get_contents($file->getPathname())) !== 1, 'retired helpers must have neither definitions nor dangling callers: ' . $file->getFilename());
 	}
 }
 kb_structure_assert(strpos($categories, 'DELETE FROM " . KB_SEARCH_TABLE') !== false, 'category deletion must invalidate cached searches');

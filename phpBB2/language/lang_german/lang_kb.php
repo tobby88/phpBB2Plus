@@ -1,4 +1,7 @@
 <?php
+$lang['KB_write_invalid'] = 'Bitte gib einen gültigen Titel, eine Beschreibung, einen Artikeltext, eine Kategorie und einen Artikeltyp an.';
+$lang['KB_write_failed'] = 'Die Artikeländerung konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand, bevor du sie erneut absendest.';
+$lang['KB_notification_failed'] = 'Der Artikel wurde gespeichert, aber die Benachrichtigungs-E-Mail konnte nicht versendet werden.';
 /***************************************************************************
  *                                 lang_kb.php
  *                            -------------------

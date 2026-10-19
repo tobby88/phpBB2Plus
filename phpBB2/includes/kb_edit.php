@@ -270,171 +270,26 @@ if ( !defined('IN_PHPBB') )
 		$template->assign_var_from_handle('KB_PREVIEW_BOX', 'preview');
 	}
 	
-// update -------------------------------------------------------------------------	
-	if ($article_submit)
-	{		   
-	   	$page_title = $lang['Edit'];
-	    
-		if ( !$is_block )
-		 {
-		   include($phpbb_root_path . 'includes/page_header.'.$phpEx);
-         }	
-	   	
-		make_jumpbox($phpbb_root_path .'viewforum.'.$phpEx,'');
-	   
-	   	//load header
-	   	include ($phpbb_root_path ."includes/kb_header.".$phpEx);
-	   
-		$posted_name = (isset($_POST['article_name']) && is_scalar($_POST['article_name'])) ? kb_limit_text($_POST['article_name'], 255) : '';
-		$posted_desc = (isset($_POST['article_desc']) && is_scalar($_POST['article_desc'])) ? kb_limit_text($_POST['article_desc'], 255) : '';
-		$posted_message = (isset($_POST['message']) && is_scalar($_POST['message'])) ? trim((string) $_POST['message']) : '';
-		$category = (isset($_POST['category_id']) && is_scalar($_POST['category_id'])) ? intval($_POST['category_id']) : 0;
-		$type_id = (isset($_POST['type_id']) && is_scalar($_POST['type_id'])) ? intval($_POST['type_id']) : 0;
-		if ($posted_name === '' || $posted_desc === '' || $posted_message === '' || !kb_record_exists(KB_CATEGORIES_TABLE, 'category_id', $category) || !kb_record_exists(KB_TYPES_TABLE, 'id', $type_id))
-	   	{
-	   		$message = "Please fill out all parts of the form.<br /><br />Click <a href=" . this_kb_mxurl('mode=add').">Here</a> to return to the form";
-    		message_die(GENERAL_MESSAGE, $message);
-	   	}
-   		
-		$article_text = $posted_message;
-		$title = $posted_name;
-		$description = $posted_desc;
-		$date = time();
-		$author_id = intval($permission_row['article_author_id']);
-		$bbcode_uid = (string) $permission_row['bbcode_uid'];
-
-	   	if ( $type_id == 'select_one' )
-	   	{
-	   	  	$message = "Please select article type.<br /><br />Click <a href=" . this_kb_mxurl('mode=add').">Here</a> to return to the form";
-    		message_die(GENERAL_MESSAGE, $message);
-	   	}
-	   
-	   	$sql = "SELECT article_category_id, approved, topic_id
-		  FROM " . KB_ARTICLES_TABLE . "
-		  WHERE article_id = $article_id";
-	    if ( !($result = $db->sql_query($sql)) )
-		{
-	        	message_die(GENERAL_ERROR, "Could not obtain article data", '', __LINE__, __FILE__, $sql);
-	    }
-	
-	   	$row = $db->sql_fetchrow($result);
-	   
-		$old_approve = (int) $row['approved'];
-		$comment_topic_id = (int) $row['topic_id'];
-		$old_category = (int) $row['article_category_id'];
-	   
-    	$error_msg = '';	      
-		$article_text = prepare_message(trim($article_text), $html_on, $bbcode_on, $smilies_on, $bbcode_uid);
-	   
-	   	if ( $is_admin || ( !$kb_config['approve_edit'] && $userdata['user_id'] == $author_id ) )
-	   	{
-	   	  	$approve = 1;		  
-	   	}
-	   	else
-	   	{
-			$approve = 2;
-	   	}
-
-		if ($old_approve === 1 && ($approve !== 1 || $old_category !== $category))
-		{
-			update_kb_number($old_category, -1);
-		}
-		if ($approve === 1 && ($old_approve !== 1 || $old_category !== $category))
-		{
-			update_kb_number($category, 1);
-		}
-
-	  	$sql = "UPDATE " . KB_ARTICLES_TABLE . "
-			SET article_category_id = $category,
-			article_title = '" . $db->sql_escape($title) . "',
-			article_description = '" . $db->sql_escape($description) . "',
-			article_date = $date,
-			article_author_id = $author_id,
-			article_body = '" . $db->sql_escape($article_text) . "',
-			article_type = $type_id,
-			approved = $approve,
-			topic_id = $comment_topic_id,
-			bbcode_uid = '" . $db->sql_escape($bbcode_uid) . "'
-			WHERE article_id = $article_id";
-			  
-	   	if ( !($edit_article = $db->sql_query($sql)) )
-	   	{
-	   	  	message_die(GENERAL_ERROR, "Could not edit aritcle", '', __LINE__, __FILE__, $sql);
-	   	}
-
-	   	if ( $approve == 1 && $kb_config['comments'] )
-	   	{		  
-		  	$sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE article_id = '" . $article_id . "'";
-	   	  	if ( !($results = $db->sql_query($sql)) )
-	   	  	{
-	       	 	message_die(GENERAL_ERROR, "Could not get aritcle id", '', __LINE__, __FILE__, $sql);
-	   	  	}
-	   	  	$row = $db->sql_fetchrow($results);
-
-		  	// choose a user
-		  	$user_id = $userdata['user_id'];
-		  
-		  	// initialise the userdata
-		  	$sql = "SELECT * FROM " . USERS_TABLE . " WHERE user_id = $user_id";
-		  	if ( !($result = $db->sql_query($sql)) )
-		  	{
-	  	      	message_die(CRITICAL_ERROR, 'Could not obtain lastvisit data from user table', '', __LINE__, __FILE__, $sql);
-		  	}
-		  	$user = $db->sql_fetchrow($result);
-		  	init_userprefs($user);
-		  
-
-		  	$kb_cat = get_kb_cat($category);
-		  	$type = get_kb_type($type_id);
-		  	$author = get_kb_author($author_id);
-
-		  	$search = array (
-                 "'&(quot|#34);'i",                	// Replace HTML entities
-                 "'&(amp|#38);'i",
-                 "'&(lt|#60);'i",
-                 "'&(gt|#62);'i"
-				 );                    
-		  	$replace = array (
-                 "\"",
-                 "&",
-                 "<",
-                 ">"
-				 );
-	
-			$temp_url = phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . $article_id);
-		  	$message = "[b]" . $lang['Category'] . ":[/b] "  . $kb_cat['category_name'] . "\n";
-		  	$message .= "[b]" . $lang['Article_type'] . ":[/b] " . $type . "\n\n";
-		  	$message .= "[b]" . $lang['Article_title'] . ":[/b] " . preg_replace($search, $replace, $row['article_title']) . "\n";
-		  	$message .= "[b]" . $lang['Author'] . ":[/b] " . $author . "\n";
-		  	$message .= "[b]" . $lang['Article_description'] . ":[/b] " . preg_replace($search, $replace, $row['article_description']) . "\n\n";
-		  	$message .= "[b][url=" . $temp_url . "]" . $lang['Read_full_article'] . "[/url][/b]";
-		  
-  		  	$message_update_text = "[ [i]" . $lang['Edited_Article_info']. $user['username'] . "[/i] ]" . "\n\n";
-
-		  	$subject = '[ KB ] ' . $row['article_title'];
-
-		  	$forum_id = $kb_config['forum_id'];
-	
-		  	$topic_data = insert_post($message, $subject, $forum_id, $user['user_id'], $user['username'], $user['user_attachsig'], $comment_topic_id, $message_update_text, $kb_config['bump_post']);
-		}  
-
-	   	if (  !$approve || $approve == 2 )
-	   	{	   
-	       	email_kb_admin($kb_config['notify']);
-	   	}
-	   
-	   	if ($approve == 1)
-	   	{
-			add_kb_words($article_id, $article_text, $title);
-		   	$message = $lang['Article_Edited'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
-	   	}
-	   	else
-	   	{
-			kb_remove_article_words($article_id);
-		   $message = $lang['Article_Edited_Approve'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
-	   	}
-
-	  	 message_die(GENERAL_MESSAGE, $message);	   
-	}
-	
+// Save the existing article through the dedicated SQL owner.
+if ($article_submit)
+{
+	require_once dirname(__FILE__) . '/functions_kb_write_storage.php';
+	require_once dirname(__FILE__) . '/functions_kb_write_notifications.php';
+	$input = array(
+		'title'=>isset($_POST['article_name']) ? $_POST['article_name'] : null,
+		'description'=>isset($_POST['article_desc']) ? $_POST['article_desc'] : null,
+		'body'=>isset($_POST['message']) ? $_POST['message'] : null,
+		'username'=>isset($_POST['username']) ? $_POST['username'] : '',
+		'category'=>(isset($_POST['category_id']) ? $_POST['category_id'] : null),
+		'type'=>isset($_POST['type_id']) ? $_POST['type_id'] : null,
+		'html_on'=>(bool)$html_on,'bbcode_on'=>(bool)$bbcode_on,'smilies_on'=>(bool)$smilies_on);
+	try {
+		$outcome = kb_write_article($db, 'edit', (isset($_GET['k']) ? $_GET['k'] : (isset($_POST['k']) ? $_POST['k'] : null)), $input);
+	} catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	$notice = kb_notify_after_write($outcome) ? '' : '<br /><br />' . $lang['KB_notification_failed'];
+	$message = $lang[$outcome['approved'] === 1 ? 'Article_Edited' : 'Article_Edited_Approve'] . $notice;
+	$message .= '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>');
+	$message .= '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . 'index.' . $phpEx) . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
+}
 ?>

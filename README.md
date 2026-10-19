@@ -55,8 +55,25 @@ Existing installations must first complete the supported database update.
 An unconfirmed commit is reported as unconfirmed, not as a guaranteed rollback.
 Inspect the current article before retrying; a repeated approval can rebuild its
 missing KB index without incrementing counts again. Historic incorrect counts
-need the repair below. Legacy article add/edit remains outside this approval
-boundary, and unapproval does not delete an existing discussion topic.
+need the repair below. Unapproval does not delete an existing discussion topic.
+
+Frontend article creation/editing has its own dedicated transaction for the
+article, category transitions, KB/core search data and optional stored discussion.
+It checks current author/KB moderation rights, account/session and configured
+guest/review policies, including whether the actor still qualifies for immediate
+approval. Ordinary authors cannot edit others; forum moderators do not gain
+general KB editing privileges. Guest articles retain author ID zero. A new
+discussion created during editing is saved back to the article, and both bumping
+and non-bumping edits refresh the changed first post's search index.
+
+Pending-article PM notifications and recipient counters commit with that exact
+article, rather than selecting an unrelated recent pending edit. Unreviewed titles
+and descriptions are literal metadata in the notification, not active image/link
+BBCode. Email is optional
+and attempted only after confirmed commit and release; failed delivery reports
+that the article was saved. Add/edit does not promise automatic exactly-once retry
+after a lost commit acknowledgement: inspect the saved article before resubmitting.
+These owners do not cover all legacy KB category/type/rating administration.
 
 Article deletion separately commits its article/counter/index/vote changes and
 any configured stored discussion removal together. It reuses core topic cleanup,

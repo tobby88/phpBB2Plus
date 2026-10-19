@@ -330,6 +330,7 @@ jobs:
       - name: Test Knowledge Base runtime safety
         run: |
           php .github/scripts/check-kb-runtime-safety.php
+          php .github/scripts/check-kb-write-notifications.php
           php .github/scripts/check-kb-counter-policy.php
 
       - name: Test paFileDB administration safety

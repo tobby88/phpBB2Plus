@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Own frontend KB creation/editing on a dedicated transaction for article,
+  category counters, search data and optional bound discussion. Check current
+  account/session/author/KB-group/guest permissions and immediate-approval basis
+  through finalization. Preserve caller transactions/preferences, guest author
+  conventions and forum count policy. Save newly created edit discussions and
+  reindex their first post on bump/no-bump edits. Publish pending PM notifications
+  and counts with the exact article; defer optional email until confirmed commit
+  and report delivery failure without claiming the saved article failed. Keep
+  unreviewed notification titles/descriptions as literal text, not active BBCode.
+  Remove the unused old notification helper. No additional schema change; existing
+  storage/derived-counter migration paths remain required.
+
 - Switch the remaining category-purge caller away from the retired discussion
   helper. Reuse owned article cleanup with the exact category-manager ACP route
   and locked source-category binding; preserve topic0/current discussion-policy

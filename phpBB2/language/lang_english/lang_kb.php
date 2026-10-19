@@ -1,4 +1,7 @@
 <?php
+$lang['KB_write_invalid'] = 'Please provide a valid title, description, article text, category and article type.';
+$lang['KB_write_failed'] = 'The article change could not be confirmed. Please check its current state before retrying.';
+$lang['KB_notification_failed'] = 'The article was saved, but the notification email could not be sent.';
 /***************************************************************************
  *                                 lang_kb.php
  *                            -------------------
