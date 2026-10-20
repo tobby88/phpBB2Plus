@@ -141,16 +141,14 @@ function kb_write_discussion($owner, $article, $actor)
 	} else { $forum = kb_counter_category_id(isset($owner->settings['forum_id']) ? $owner->settings['forum_id'] : null); }
 	$forums = $owner->rows('SELECT forum_id,forum_link,count_posts FROM ' . FORUMS_TABLE . ' WHERE forum_id=' . $forum . ' FOR UPDATE');
 	if (count($forums) !== 1 || (string)$forums[0]['forum_link'] !== '' || !in_array((string)$forums[0]['count_posts'], array('0','1'), true)) { kb_publication_fail('KB_write_failed'); }
-	$category = get_kb_cat($article['article_category_id']); $type = get_kb_type($article['article_type']); $author = get_kb_author($article['article_author_id']);
-	$decode = function($text) { return preg_replace(array("'&(quot|#34);'i", "'&(amp|#38);'i", "'&(lt|#60);'i", "'&(gt|#62);'i"), array('"','&','<','>'), $text); };
-	$message = '[b]' . $lang['Category'] . ':[/b] ' . $category['category_name'] . "\n[b]" . $lang['Article_type'] . ':[/b] ' . $type . "\n\n[b]" . $lang['Article_title'] . ':[/b] ' . $decode($article['article_title']) . "\n[b]" . $lang['Author'] . ':[/b] ' . $author . "\n[b]" . $lang['Article_description'] . ':[/b] ' . $decode($article['article_description']) . "\n\n[b][url=" . phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . (int)$article['article_id']) . ']' . $lang['Read_full_article'] . '[/url][/b]';
+	$message = kb_discussion_message($article);
 	$poster = (int)$actor['user_id'];
 	if ($poster > 0) {
 		$users = $owner->rows('SELECT username,user_attachsig FROM ' . USERS_TABLE . ' WHERE user_id=' . $poster . ' FOR UPDATE');
 		if (count($users) !== 1) { kb_publication_fail('KB_write_failed'); } $user = $users[0];
 	} else { $user = array('username'=>$article['username'],'user_attachsig'=>0); }
-	$update = $topic ? '[ [i]' . $lang['Edited_Article_info'] . $user['username'] . "[/i] ]\n\n" : '';
-	$created = insert_post($message, '[ KB ] ' . $article['article_title'], $forum, $poster, $user['username'], $user['user_attachsig'], $topic ? $topic : null, $update, $topic ? (int)$owner->settings['bump_post'] : 1);
+	$update = $topic ? '[ [i]' . kb_discussion_literal($lang['Edited_Article_info']) . kb_discussion_literal($user['username'], false) . "[/i] ]\n\n" : '';
+	$created = kb_insert_discussion_post($message, '[ KB ] ' . $article['article_title'], $forum, $poster, $user['username'], $user['user_attachsig'], $topic ? $topic : null, $update, $topic ? (int)$owner->settings['bump_post'] : 1);
 	if (!is_array($created) || empty($created['topic_id']) || empty($created['post_id'])) { kb_publication_fail('KB_write_failed'); }
 	$topic = kb_counter_category_id($created['topic_id']);
 	$owner->sql_query('UPDATE ' . KB_ARTICLES_TABLE . ' SET topic_id=' . $topic . ' WHERE article_id=' . (int)$article['article_id']);

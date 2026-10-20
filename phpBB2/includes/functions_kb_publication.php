@@ -2,6 +2,7 @@
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_acl_storage.php';
 require_once dirname(__FILE__) . '/functions_kb_counter_policy.php';
+require_once dirname(__FILE__) . '/functions_kb_discussion.php';
 
 class PhpbbKbPublicationException extends RuntimeException {}
 function kb_publication_fail($key = 'KB_publication_failed')
@@ -199,16 +200,9 @@ function kb_approval_discussion($owner, $article, $config)
 	$forums = $owner->rows('SELECT forum_id FROM ' . FORUMS_TABLE . ' WHERE forum_id=' . $forum_id . ' FOR UPDATE');
 	$users = $owner->rows('SELECT * FROM ' . USERS_TABLE . ' WHERE user_id=' . $poster_id . ' FOR UPDATE');
 	if (count($forums) !== 1 || count($users) !== 1 || empty($users[0]['user_active'])) { kb_publication_fail(); } $user = $users[0];
-	$category = get_kb_cat($article['article_category_id']); $type = get_kb_type($article['article_type']); $author = get_kb_author($article['article_author_id']);
-	$decode = function($text) { return preg_replace(array("'&(quot|#34);'i", "'&(amp|#38);'i", "'&(lt|#60);'i", "'&(gt|#62);'i"), array('"', '&', '<', '>'), $text); };
-	$message = '[b]' . $lang['Category'] . ':[/b] ' . $category['category_name'] . "\n";
-	$message .= '[b]' . $lang['Article_type'] . ':[/b] ' . $type . "\n\n";
-	$message .= '[b]' . $lang['Article_title'] . ':[/b] ' . $decode($article['article_title']) . "\n";
-	$message .= '[b]' . $lang['Author'] . ':[/b] ' . $author . "\n";
-	$message .= '[b]' . $lang['Article_description'] . ':[/b] ' . $decode($article['article_description']) . "\n\n";
-	$message .= '[b][url=' . phpbb_board_url('kb.' . $phpEx . '?mode=article&k=' . (int)$article['article_id']) . ']' . $lang['Read_full_article'] . '[/url][/b]';
+	$message = kb_discussion_message($article);
 	// No preference switch, notification or filesystem side effect before COMMIT.
-	$created = insert_post($message, '[ KB ] ' . $article['article_title'], $forum_id, $poster_id, $user['username'], $user['user_attachsig']);
+	$created = kb_insert_discussion_post($message, '[ KB ] ' . $article['article_title'], $forum_id, $poster_id, $user['username'], $user['user_attachsig']);
 	if (!is_array($created) || empty($created['topic_id']) || empty($created['post_id'])) { kb_publication_fail(); }
 	return (int)$created['topic_id'];
 }

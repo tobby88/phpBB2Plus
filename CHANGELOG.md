@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep generated KB discussion metadata literal, independently of article-body
+  formatting. Preserve guest/saved author names, render only the generated link
+  and labels, and rebuild owned first-post flags without changing user replies.
+  Bound escaped forum subjects to their actual 60-character columns without
+  splitting UTF-8/entities; retain full article titles in summaries. No schema
+  change or automatic historical post rewrite is required.
+
 - Own article-type creation/renaming/removal and bound reassignment/cache changes
   on one dedicated transaction and exact current ACP type-manager grant. Reject
   partial IDs, ambiguous sources and invalid destinations; later errors restore
