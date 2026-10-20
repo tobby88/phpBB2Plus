@@ -15,7 +15,8 @@ function kb_publication_fail($key = 'KB_publication_failed')
 function kb_publication_actor($database, $context)
 {
 	global $userdata, $phpEx;
-	if ($context === 'acp' || $context === 'category') { return phpbb_acp_actor($database, ($context === 'category' ? 'admin_kb_cat.' : 'admin_kb_art.') . $phpEx); }
+	$routes = array('acp'=>'admin_kb_art.', 'category'=>'admin_kb_cat.', 'type'=>'admin_kb_types.');
+	if (is_string($context) && isset($routes[$context])) { return phpbb_acp_actor($database, $routes[$context] . $phpEx); }
 	if ($context !== 'moderator') { kb_publication_fail('Not_Authorised'); }
 	$user = phpbb_current_moderator_user($database);
 	if (!$user || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { kb_publication_fail('Not_Authorised'); }
@@ -68,7 +69,7 @@ class PhpbbKbPublicationDatabase extends PhpbbAclDatabase
 	var $finished = false;
 	function __construct($database, $context)
 	{
-		if (!in_array($context, array('acp', 'moderator', 'category'), true) || !method_exists($database, 'sql_dedicated_connection')) { kb_publication_fail(); }
+		if (!in_array($context, array('acp', 'moderator', 'category', 'type'), true) || !method_exists($database, 'sql_dedicated_connection')) { kb_publication_fail(); }
 		$this->context = $context; $candidate = null;
 		try {
 			$source = phpbb_acl_rows($database, 'SELECT CONNECTION_ID() AS kb_connection_id');

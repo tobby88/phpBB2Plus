@@ -64,6 +64,9 @@ jobs:
       - name: Preserve wide Knowledge Base rating counters in both list renderers
         run: php .github/scripts/check-kb-rating-rendering.php
 
+      - name: Check standalone ACP type bootstrap and Unicode text boundaries
+        run: php .github/scripts/check-kb-type-text.php
+
       - name: Validate complete style archives before filesystem effects
         run: php .github/scripts/check-style-archive.php
       - name: Check style publication filesystem boundaries

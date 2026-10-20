@@ -98,7 +98,17 @@ including earlier processed articles and their relations. Attachment receipts ar
 accumulated for cleanup only after the whole acknowledged commit. A lost commit
 acknowledgement does not claim success or guaranteed rollback; retained attachment
 metadata supports existing shadow recovery. A category grant does not grant the
-article approval API. Type administration remains separate legacy code.
+article approval API.
+
+Article-type creation/renaming/removal uses a separate exact ACP type-manager
+grant and the same coordinated writer lock. Type removal and all bound article
+reassignments (including the existing zero/no-assignment sentinel), plus search
+cache invalidation, publish together. Current account/session/delegation is checked
+through final commit; a type grant does not authorize article deletion or approval.
+Duplicate type identities, orphaned references, incomplete IDs or unsupported
+storage stop for review. Categories, counts, discussions and other article fields
+are not rewritten by type administration. The zero destination is labelled rather
+than blank; this does not change the frontend editor's required-type policy.
 
 The full post-1.53a updater also rebuilds category counts from approved articles,
 including descendants and empty categories. For an otherwise updated database:

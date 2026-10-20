@@ -24,6 +24,7 @@ class PhpbbKbDeleteDatabase extends PhpbbTopicRemovalDatabase
 	// Initialization acquires exactly one dedicated connection/writer lock.
 	function initialize($database, $context)
 	{
+		if (!in_array($context, array('acp','moderator','category'), true)) { kb_publication_fail('Not_Authorised'); }
 		$this->owner = new PhpbbKbPublicationDatabase($database, $context);
 		$this->connection = $this->owner->connection; $this->context = $context;
 		$this->article_id = 0;
@@ -130,6 +131,7 @@ function kb_delete_article_owned($storage)
 function kb_delete_article($database, $article_id, $context, $expected_category = null)
 {
 	global $userdata;
+	if (!in_array($context, array('acp','moderator','category'), true)) { kb_publication_fail('Not_Authorised'); }
 	if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($userdata['session_id']) || !is_string($userdata['session_id'])
 		|| !isset($_POST['sid']) || !is_string($_POST['sid']) || !hash_equals($userdata['session_id'], $_POST['sid'])) { kb_publication_fail('Session_invalid'); }
 	try { $article_id = kb_counter_category_id($article_id); } catch (RuntimeException $error) { kb_publication_fail('Article_not_exsist'); }

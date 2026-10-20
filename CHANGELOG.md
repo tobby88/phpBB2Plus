@@ -8,6 +8,15 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Own article-type creation/renaming/removal and bound reassignment/cache changes
+  on one dedicated transaction and exact current ACP type-manager grant. Reject
+  partial IDs, ambiguous sources and invalid destinations; later errors restore
+  all earlier changes. Coordinate reference checks with frontend writers without
+  granting type managers article deletion/approval rights. Keep the zero/no-type
+  sentinel, label its formerly blank removal option and preserve complete UTF-8
+  names with or without mbstring. Keep the ACP worker independent of frontend-only
+  cache helpers; no schema change is required.
+
 - Own category creation/editing/reordering and move/purge removal in one KB
   transaction, with current exact ACP authority, validated complete hierarchy,
   derived ancestor counts and search invalidation. Reuse article/discussion SQL

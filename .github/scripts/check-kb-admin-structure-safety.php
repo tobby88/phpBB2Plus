@@ -39,10 +39,11 @@ foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/
 kb_structure_assert(strpos($category_storage, 'kb_clear_search_cache(); $storage->commit();') !== false, 'category changes invalidate cached searches before the owned commit');
 kb_structure_assert(strpos($categories, '?mode=up&amp;cat=') === false && strpos($categories, '?mode=down&amp;cat=') === false, 'category ordering must not be a GET mutation');
 
-kb_structure_assert(substr_count($types, 'phpbb_admin_require_post_session();') >= 3, 'type create, edit and delete must require POST tokens');
-kb_structure_assert(strpos($types, '$type_name_sql = $db->sql_escape($type_name);') !== false, 'type names must be escaped at the SQL boundary');
-kb_structure_assert(strpos($types, 'function kb_admin_type_text') !== false, 'type names must respect schema limits');
-kb_structure_assert(strpos($types, 'SET article_type = $new_type') !== false, 'deleted type references must be reassigned, including to no type');
+$type_storage=file_get_contents($root.'/phpBB2/includes/functions_kb_type_storage.php');
+kb_structure_assert(strpos($types, 'phpbb_admin_require_post_session();') !== false && strpos($types, 'kb_change_type($db, $mode,') !== false, 'all actual type mutations share the owning API and POST token gate');
+kb_structure_assert(strpos($type_storage, '$owner->sql_escape($name)') !== false && strpos($type_storage, 'function kb_type_text(') !== false, 'bounded plain UTF8 type names are escaped only at SQL writes');
+kb_structure_assert(strpos($type_storage, 'SET article_type=') !== false && strpos($type_storage, '$owner->commit();') !== false, 'bound article reassignment and type removal share an owned commit');
+kb_structure_assert(strpos($types, "'L_DELETE_ARTICLES' => \$lang['None']") !== false, 'zero type destination is visibly described as no assignment, not a blank/delete-articles option');
 kb_structure_assert(strpos($types, '$typelist .=') !== false && strpos($types, '$s>') === false, 'type choices must not use an undefined selection variable');
 
 foreach ($templates as $template)

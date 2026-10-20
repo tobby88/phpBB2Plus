@@ -1,4 +1,6 @@
 <?php
+$lang['KB_type_invalid'] = 'Please provide a valid article type, destination and UTF-8 name. Ambiguous type references require manual review.';
+$lang['KB_type_failed'] = 'The article type change could not be confirmed. Please check its current state before retrying.';
 $lang['KB_category_invalid'] = 'Please provide a valid category, destination, parent and UTF-8 text. Cyclic or ambiguous categories require manual review.';
 $lang['KB_category_failed'] = 'The category change could not be confirmed. Please check its current state before retrying.';
 $lang['KB_rating_upgrade'] = 'Update the forum database with the post-1.53a updater before submitting ratings.';

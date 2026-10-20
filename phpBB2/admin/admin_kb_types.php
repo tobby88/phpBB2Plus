@@ -60,12 +60,6 @@ function getlistkb($id, $select)
 	return($typelist);
 }
 
-function kb_admin_type_text($value)
-{
-	$value = trim((string) $value);
-	return function_exists('mb_substr') ? mb_substr($value, 0, 255, 'UTF-8') : substr($value, 0, 255);
-}
-
 //
 // Load default header
 //
@@ -83,30 +77,31 @@ if (!in_array($mode, array('', 'create', 'edit', 'delete'), true))
 	$mode = '';
 }
 
+// Article type mutation dispatch: no autocommit reassignment/deletion copies.
+if ($mode === 'create' || ($submit && in_array($mode, array('edit','delete'), true)))
+{
+	phpbb_admin_require_post_session();
+	require_once dirname(__DIR__) . '/includes/functions_kb_type_storage.php';
+	$type_input = array();
+	if ($mode === 'delete') { $type_input['destination'] = isset($_POST['move_id']) ? $_POST['move_id'] : null; }
+	else {
+		$type_key = $mode === 'create' ? 'new_type_name' : 'catname';
+		$type_input['name'] = isset($_POST[$type_key]) && is_string($_POST[$type_key]) ? phpbb_admin_post_string($type_key) : null;
+	}
+	try {
+		$outcome = kb_change_type($db, $mode, $mode === 'create' ? 0 : (isset($_POST['typeid']) ? $_POST['typeid'] : null), $type_input);
+	} catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
+	$labels = array('create'=>'Type_created','edit'=>'Type_edited','delete'=>'Type_deleted');
+	$message = $lang[$labels[$mode]] . '<br /><br />' . sprintf($lang['Click_return_type_manager'], '<a href="' . append_sid("admin_kb_types.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
+	message_die(GENERAL_MESSAGE, $message);
+}
+// Article type views only:
+
 switch( $mode )
 {
 
   case ('create'):
-	   phpbb_admin_require_post_session();
-	   $type_name = kb_admin_type_text(phpbb_admin_post_string('new_type_name'));
-	   
-	   if ( !$type_name )
-	   {
-		  message_die(GENERAL_MESSAGE, $lang['Empty_type']);
-	   }	  
-
-	   $type_name_sql = $db->sql_escape($type_name);
-	   $sql = "INSERT INTO " . KB_TYPES_TABLE . " (type) VALUES ('$type_name_sql')";
- 
-	   if ( !($results = $db->sql_query($sql)) )
-	   {
-	       message_die(GENERAL_ERROR, "Could not create type", '', __LINE__, __FILE__, $sql);
-	   }
-
-	   $message = $lang['Type_created'] . '<br /><br />' . sprintf($lang['Click_return_type_manager'], '<a href="' . append_sid("admin_kb_types.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
-
-	   message_die(GENERAL_MESSAGE, $message);	
-  	   break;
+  break;
 
   case ('edit'):
   
@@ -152,31 +147,6 @@ switch( $mode )
 			'S_HIDDEN' => '<input type="hidden" name="typeid" value="' . $type_id . '">' . phpbb_admin_session_field())
 		);
   }
-  else
-  {
-	   phpbb_admin_require_post_session();
-		$type_id = (isset($_POST['typeid']) && is_scalar($_POST['typeid'])) ? (int) $_POST['typeid'] : 0;
-	   $type_name = kb_admin_type_text(phpbb_admin_post_string('catname'));
-	   
-	   if ( !$type_id || !$type_name )
-	   {
-		  message_die(GENERAL_MESSAGE, $lang['Empty_type']);
-	   }
-
-	   $type_name_sql = $db->sql_escape($type_name);
-	   $sql = "UPDATE " . KB_TYPES_TABLE .
-		  " SET type = '" . $type_name_sql .
-			"' WHERE id = " . $type_id;
-		   
-	   if ( !($results = $db->sql_query($sql)) )
-	   {
-	       message_die(GENERAL_ERROR, "Could not update type", '', __LINE__, __FILE__, $sql);
-	   }
-
-	   $message = $lang['Type_edited'] . '<br /><br />' . sprintf($lang['Click_return_type_manager'], '<a href="' . append_sid("admin_kb_types.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
-
-	   message_die(GENERAL_MESSAGE, $message);	
-  }
   break;
   
   case ('delete'):
@@ -217,6 +187,7 @@ switch( $mode )
   	   $template->assign_vars(array(
 	       'L_DELETE_TITLE' => $lang['Type_delete_title'],
 		   'L_DELETE_DESCRIPTION' => $lang['Type_delete_desc'],
+		   'L_DELETE_ARTICLES' => $lang['None'],
 		   'L_CAT_DELETE' => $lang['Type_delete_title'],
 		   
 		   'L_CAT_NAME' => $lang['Article_type'],
@@ -229,47 +200,6 @@ switch( $mode )
 		   
 		   'CAT_NAME' => phpbb_admin_html($type_name))
 	);  
-  }
-  else
-  {
-	   phpbb_admin_require_post_session();
-		$new_type = (isset($_POST['move_id']) && is_scalar($_POST['move_id'])) ? (int) $_POST['move_id'] : 0;
-	   $old_type = (isset($_POST['typeid']) && is_scalar($_POST['typeid'])) ? (int) $_POST['typeid'] : 0;
-	   if (!$old_type || $new_type === $old_type)
-	   {
-		  message_die(GENERAL_MESSAGE, $lang['Type_delete_title']);
-	   }
-	   if ($new_type)
-	   {
-		  $sql = "SELECT id FROM " . KB_TYPES_TABLE . " WHERE id = $new_type";
-		  if (!($target_result = $db->sql_query($sql)))
-		  {
-			 message_die(GENERAL_ERROR, "Could not obtain target type", '', __LINE__, __FILE__, $sql);
-		  }
-		  if (!$db->sql_fetchrow($target_result))
-		  {
-			 message_die(GENERAL_MESSAGE, $lang['Empty_type']);
-		  }
-	   }
-
-	   $sql = "UPDATE " . KB_ARTICLES_TABLE .
-		   " SET article_type = $new_type
-		   WHERE article_type = $old_type";
-	   if ( !($move_result = $db->sql_query($sql)) )
-	   {
-		  message_die(GENERAL_ERROR, "Could not update articles", '', __LINE__, __FILE__, $sql);
-	   }
-	   $sql = "DELETE FROM " . KB_TYPES_TABLE .
-	   		  " WHERE id = $old_type";
-			 
-	   if ( !($delete_result = $db->sql_query($sql)) )
-	   {
-	   	  message_die(GENERAL_ERROR, "Could not delete type", '', __LINE__, __FILE__, $sql);
-	   }
-	   	
-	   $message = $lang['Type_deleted'] . '<br /><br />' . sprintf($lang['Click_return_type_manager'], '<a href="' . append_sid("admin_kb_types.$phpEx") . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_admin_index'], '<a href="' . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . '">', '</a>');
-
-	   message_die(GENERAL_MESSAGE, $message);
   }
   break;
   
