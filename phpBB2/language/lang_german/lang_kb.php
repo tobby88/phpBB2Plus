@@ -1,4 +1,6 @@
 <?php
+$lang['KB_category_invalid'] = 'Bitte gib eine gültige Kategorie, ein gültiges Ziel, eine gültige Oberkategorie und UTF-8-Text an. Zyklische oder mehrdeutige Kategorien müssen manuell geprüft werden.';
+$lang['KB_category_failed'] = 'Die Kategorieänderung konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand, bevor du sie erneut ausführst.';
 $lang['KB_rating_upgrade'] = 'Bitte aktualisiere die Forendatenbank mit dem Updater für Stände nach 1.53a, bevor Bewertungen abgegeben werden.';
 $lang['KB_rating_failed'] = 'Die Bewertung konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand, bevor du sie erneut absendest.';
 $lang['KB_write_invalid'] = 'Bitte gib einen gültigen Titel, eine Beschreibung, einen Artikeltext, eine Kategorie und einen Artikeltyp an.';

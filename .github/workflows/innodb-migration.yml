@@ -268,6 +268,7 @@ jobs:
           php .github/scripts/check-kb-article-actions-native.php
           php .github/scripts/check-kb-publication-native.php
           php .github/scripts/check-kb-deletion-native.php
+          php .github/scripts/check-kb-category-native.php
           php .github/scripts/check-kb-writing-native.php
           php .github/scripts/check-kb-rating-migration.php
           php .github/scripts/check-kb-rating-native.php

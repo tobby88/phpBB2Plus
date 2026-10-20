@@ -1,4 +1,6 @@
 <?php
+$lang['KB_category_invalid'] = 'Please provide a valid category, destination, parent and UTF-8 text. Cyclic or ambiguous categories require manual review.';
+$lang['KB_category_failed'] = 'The category change could not be confirmed. Please check its current state before retrying.';
 $lang['KB_rating_upgrade'] = 'Update the forum database with the post-1.53a updater before submitting ratings.';
 $lang['KB_rating_failed'] = 'The rating could not be confirmed. Please check the current rating before retrying.';
 $lang['KB_write_invalid'] = 'Please provide a valid title, description, article text, category and article type.';

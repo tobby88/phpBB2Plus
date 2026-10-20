@@ -17,9 +17,16 @@ class PhpbbKbDeleteDatabase extends PhpbbTopicRemovalDatabase
 	var $settings = array();
 	function __construct($database, $article_id, $context)
 	{
+		$this->initialize($database, $context);
+		$this->article_id = kb_counter_category_id($article_id);
+	}
+	// Internal adapters may own a whole category before selecting each article.
+	// Initialization acquires exactly one dedicated connection/writer lock.
+	function initialize($database, $context)
+	{
 		$this->owner = new PhpbbKbPublicationDatabase($database, $context);
 		$this->connection = $this->owner->connection; $this->context = $context;
-		$this->article_id = kb_counter_category_id($article_id);
+		$this->article_id = 0;
 		// A KB article need not have a discussion or forum. Initialize the inherited
 		// SQL/cleanup state directly, without inventing a forum or reusing its ACL.
 		$this->policy = 'moderator'; $this->mode = 'newtopic';
@@ -59,6 +66,16 @@ class PhpbbKbDeleteDatabase extends PhpbbTopicRemovalDatabase
 		if (!isset($this->settings['del_topic']) || !in_array($this->settings['del_topic'], array('0','1'), true)) { $this->fail(''); }
 		$categories = $this->rows('SELECT category_id,parent,number_articles FROM ' . KB_CATEGORIES_TABLE . ' ORDER BY category_id FOR UPDATE');
 		try { $hierarchy = kb_counter_rebuild_plan($categories, array()); } catch (RuntimeException $error) { $this->fail(''); }
+		$this->load_article($this->article_id, $hierarchy);
+	}
+	// Never starts/commits a transaction or cleans physical files. A category
+	// purge reuses its already active owner and accumulates attachment receipts.
+	function load_article($article_id, $hierarchy)
+	{
+		if (!$this->transactional) { $this->fail(''); }
+		$this->article_id = kb_counter_category_id($article_id);
+		$this->article = null; $this->article_deleted = false;
+		$this->forum_id = 0; $this->topic_id = 0;
 		$rows = $this->rows('SELECT * FROM ' . KB_ARTICLES_TABLE . ' WHERE article_id=' . $this->article_id . ' FOR UPDATE');
 		if (count($rows) !== 1) { kb_publication_fail('Article_not_exsist'); } $this->article = $rows[0];
 		$category = kb_counter_category_id($this->article['article_category_id']); $topic = kb_counter_category_id($this->article['topic_id'], true);
@@ -90,6 +107,26 @@ class PhpbbKbDeleteDatabase extends PhpbbTopicRemovalDatabase
 	}
 }
 
+// SQL-only worker. Its caller owns begin/commit/release and deferred file cleanup.
+function kb_delete_article_owned($storage)
+{
+	if (!($storage instanceof PhpbbKbDeleteDatabase) || !$storage->transactional || $storage->article === null || $storage->article_deleted) { kb_publication_fail('KB_deletion_failed'); }
+	$storage->authorize(); $article = $storage->article; $article_id = $storage->article_id;
+	$removed = array('topic_ids'=>array(),'post_ids'=>array());
+	if ($storage->topic_id) {
+		$removed = phpbb_delete_moderated_topics_owned($storage, $storage->forum_id, array($storage->topic_id));
+		if ($removed['topic_ids'] !== array($storage->topic_id)) { kb_publication_fail('KB_deletion_relation'); }
+		$storage->audit($removed['topic_ids']);
+	}
+	if ((int)$article['approved'] === 1) { update_kb_number((int)$article['article_category_id'], -1); }
+	kb_remove_article_words($article_id);
+	$storage->sql_query('DELETE FROM ' . KB_VOTES_TABLE . ' WHERE votes_file=' . $article_id);
+	$storage->sql_query('DELETE FROM ' . KB_ARTICLES_TABLE . ' WHERE article_id=' . $article_id);
+	if ((int)$storage->sql_affectedrows() !== 1) { kb_publication_fail('KB_deletion_failed'); }
+	$storage->article_deleted = true; $storage->authorize();
+	return array('article'=>$article,'topic_ids'=>$removed['topic_ids'],'post_ids'=>$removed['post_ids']);
+}
+
 function kb_delete_article($database, $article_id, $context, $expected_category = null)
 {
 	global $userdata;
@@ -101,20 +138,10 @@ function kb_delete_article($database, $article_id, $context, $expected_category 
 	}
 	$storage = new PhpbbKbDeleteDatabase($database, $article_id, $context); $original = $GLOBALS['db'];
 	try {
-		$GLOBALS['db'] = $storage; $storage->begin(); $article = $storage->article; $removed = array('topic_ids'=>array(),'post_ids'=>array());
+		$GLOBALS['db'] = $storage; $storage->begin(); $article = $storage->article;
 		if ($context === 'category' && (int)$article['article_category_id'] !== $expected_category) { kb_publication_fail('KB_deletion_relation'); }
-		if ($storage->topic_id) {
-			$removed = phpbb_delete_moderated_topics_owned($storage, $storage->forum_id, array($storage->topic_id));
-			if ($removed['topic_ids'] !== array($storage->topic_id)) { kb_publication_fail('KB_deletion_relation'); }
-			$storage->audit($removed['topic_ids']);
-		}
-		if ((int)$article['approved'] === 1) { update_kb_number((int)$article['article_category_id'], -1); }
-		kb_remove_article_words($article_id);
-		$storage->sql_query('DELETE FROM ' . KB_VOTES_TABLE . ' WHERE votes_file=' . $article_id);
-		$storage->sql_query('DELETE FROM ' . KB_ARTICLES_TABLE . ' WHERE article_id=' . $article_id);
-		if ((int)$storage->sql_affectedrows() !== 1) { kb_publication_fail('KB_deletion_failed'); }
-		$storage->article_deleted = true; $storage->authorize(); $storage->commit();
-		return array('article'=>$article,'topic_ids'=>$removed['topic_ids'],'post_ids'=>$removed['post_ids'],'cleanup_pending'=>!$storage->cleanup());
+		$outcome = kb_delete_article_owned($storage); $storage->commit();
+		$outcome['cleanup_pending'] = !$storage->cleanup(); return $outcome;
 	} catch (PhpbbKbPublicationException $error) { throw $error; }
 	catch (PhpbbAclException $error) { kb_publication_fail('Not_Authorised'); }
 	catch (Exception $error) { kb_publication_fail('KB_deletion_failed'); }

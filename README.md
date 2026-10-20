@@ -73,7 +73,7 @@ BBCode. Email is optional
 and attempted only after confirmed commit and release; failed delivery reports
 that the article was saved. Add/edit does not promise automatic exactly-once retry
 after a lost commit acknowledgement: inspect the saved article before resubmitting.
-These owners do not cover all legacy KB category/type administration.
+These article owners do not cover the separate category/type administration APIs.
 
 Article deletion separately commits its article/counter/index/vote changes and
 any configured stored discussion removal together. It reuses core topic cleanup,
@@ -84,13 +84,21 @@ retains descriptions for the existing ACP shadow-attachment recovery. Thus file
 removal is not a rollbackable database operation. An unconfirmed deletion is
 never reported as a confirmed rollback or complete physical cleanup.
 
-Category purges also use that article deletion worker, with the exact category
-manager's ACP grant and a locked expected source-category check. They do not call
-the removed legacy discussion helper. A category batch still consists of separate
-article commits followed by legacy category reparenting/removal/counter rebuilding;
-it is **not** one rollbackable whole-category transaction. If a later article
-fails, earlier confirmed article deletions can remain while the category and its
-remaining articles are retained. A category grant does not grant article approval.
+Category creation, editing, sibling ordering, move-and-delete and purges use one
+dedicated transaction with the exact category manager's current ACP grant. The
+locked complete hierarchy and proposed parents are validated before finalization;
+direct children survive deletion by moving to their removed parent's parent. A
+surviving descendant can receive the removed category's articles. Every affected
+ancestor count and the search cache change in that same transaction. Cycles,
+duplicate identities, orphaned articles or unsupported data stop for manual review.
+
+A purge reuses the article/core discussion SQL worker **without** independently
+committing articles. Later SQL failure restores the entire category operation,
+including earlier processed articles and their relations. Attachment receipts are
+accumulated for cleanup only after the whole acknowledged commit. A lost commit
+acknowledgement does not claim success or guaranteed rollback; retained attachment
+metadata supports existing shadow recovery. A category grant does not grant the
+article approval API. Type administration remains separate legacy code.
 
 The full post-1.53a updater also rebuilds category counts from approved articles,
 including descendants and empty categories. For an otherwise updated database:

@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Own category creation/editing/reordering and move/purge removal in one KB
+  transaction, with current exact ACP authority, validated complete hierarchy,
+  derived ancestor counts and search invalidation. Reuse article/discussion SQL
+  without nested owners/commits; later failure restores the entire batch. Defer
+  attachment cleanup until the whole confirmed commit, preserving recovery data
+  after missing acknowledgement. Retain direct children and descendant targets;
+  remove obsolete autocommit mutation copies from the category controller.
+
 - Widen KB rating sum/count storage from the old 100-point overflow boundary,
   with preserving full/targeted updater paths and strict DDL verification. Never
   fabricate missing historical scores or narrow custom wider definitions. Publish
