@@ -25,20 +25,21 @@
 // Also checks if it includes the " character, which we don't allow in usernames.
 // Used for registering, changing names, and posting anonymously with a username
 //
-function validate_username($username, $check_stopforumspam = false, $exclude_user_id = 0, $stored_identity = false)
+require_once dirname(__FILE__) . '/functions_post_author.php';
+function validate_username($username, $check_stopforumspam = false, $exclude_user_id = 0, $stored_identity = false, $post_author = false)
 {
 	global $db, $lang, $board_config;
 	// An owning profile transaction may exclude its already-authorized target,
 	// e.g. for case-only edits. Ordinary registration keeps the default of zero.
 
-	$invalid = array('error'=>true, 'error_msg'=>$lang['Username_invalid']);
+	$invalid = array('error'=>true, 'error_msg'=>$lang[$post_author ? 'Post_author_invalid' : 'Username_invalid']);
 	if (!is_string($username) || ($stored_identity && (strpos($username, "\0") !== false || preg_match('//u', $username) !== 1))) { return $invalid; }
 	$raw = $stored_identity ? html_entity_decode($username, ENT_QUOTES, 'UTF-8') : $username;
-	$raw = phpbb_username_input($raw);
+	$raw = $post_author ? phpbb_post_author_input($raw) : phpbb_username_input($raw);
 	if ($raw === null) { return $invalid; }
-	if (!$stored_identity) { $username = phpbb_username_key($raw); }
-	if ($username === '' || preg_match_all('/./us', $username, $characters) === false || count($characters[0]) > 25) { return $invalid; }
-	$keys = phpbb_username_keys($raw); if (!$keys) { return $invalid; }
+	if (!$stored_identity) { $username = $post_author ? phpbb_post_author_key($raw) : phpbb_username_key($raw); }
+	if ($username === '' || preg_match_all('/./us', $username, $characters) === false || count($characters[0]) > ($post_author ? 1530 : 25)) { return $invalid; }
+	$keys = $post_author ? phpbb_post_author_keys($raw) : phpbb_username_keys($raw); if (!$keys) { return $invalid; }
 	if ($stored_identity && !in_array($username, $keys, true)) { return $invalid; }
 	$literals = array(); foreach ($keys as $key) { $literals[] = "'" . $db->sql_escape($key) . "'"; }
 	// Use the database's UTF-8 collation, never byte-wise strtolower or a
@@ -66,8 +67,9 @@ function validate_username($username, $check_stopforumspam = false, $exclude_use
 		if ($rule_error !== null) { return $rule_error; }
 	}
 
-	// Don't allow " and ALT-255 in username.
-	if (strpos($raw, '"') !== false || strpos($username, '&quot;') !== false || preg_match('/[\x{00a0}\x{00ad}]/u', $raw))
+	// Account policy still excludes quotes. Guest quotes are safe escaped data;
+	// retain the existing invisible-character policy in both validation paths.
+	if ((!$post_author && (strpos($raw, '"') !== false || strpos($username, '&quot;') !== false)) || preg_match('/[\x{00a0}\x{00ad}]/u', $raw))
 	{
 		return array('error' => true, 'error_msg' => $lang['Username_invalid']);
 	}

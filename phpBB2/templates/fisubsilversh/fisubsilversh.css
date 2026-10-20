@@ -41,7 +41,7 @@ td.cathead{font-weight:bold;letter-spacing:1px;background:#d9e2ec url(images/cel
 height:29px;text-indent:4px}
 
 /* Name of poster in viewmsg.php and viewtopic.php and other places */
-.name{font-size:11px;font-weight: bold}
+.name{font-size:11px;font-weight: bold;overflow-wrap:anywhere;word-break:break-word}
 
 hr{border: 0px solid #ffffff;border-top-width:1px;height:0px}
 

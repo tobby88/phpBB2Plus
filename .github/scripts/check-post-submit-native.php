@@ -93,11 +93,12 @@ $body = <<<'PHP'
  }
  ps_fixture();$out=ps_submit('newtopic',array('poll'=>true,'post_data'=>array('has_poll'=>true,'_stats_completed'=>'newtopic:21')));ae_check(is_array($out)&&count(ae_rows('SELECT * FROM fixture_vote_desc'))===1&&(int)ae_rows('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')[0]['forum_posts']===3,'Stale private poll/statistics flags cannot suppress new publication');$cases++;
  ps_fixture();ae_sql('UPDATE fixture_forums SET count_posts=0');$out=ps_submit('reply');ae_check(is_array($out)&&(int)ae_rows('SELECT user_posts FROM fixture_users WHERE user_id=8')[0]['user_posts']===2&&(int)ae_rows('SELECT forum_posts FROM fixture_forums WHERE forum_id=3')[0]['forum_posts']===3,'Excluded forum changes public count but not personal count');$cases++;
- foreach(array(str_repeat('ä',25),str_repeat('😀',25),'A&B',"A\\'B",'C:\\notes') as $raw){
-  ps_fixture('guest');$key=phpbb_username_key($raw);$out=ps_submit('reply',array('username'=>$key));
+ foreach(array(str_repeat('ä',25),str_repeat('😀',25),str_repeat('ä',255),str_repeat('😀',255),str_repeat('&',255),str_repeat("'",255),'A&B',"A\\'B",'C:\\notes') as $raw){
+  ps_fixture('guest');$key=phpbb_post_author_key($raw);$out=ps_submit('reply',array('username'=>$key));
   ae_check(is_array($out)&&ae_rows('SELECT post_username FROM fixture_posts WHERE post_id='.(int)$out['post_id'])[0]['post_username']===$key,'Guest identity is stored once without clipping or removing literal slashes');$cases++;
  }
- foreach(array(array('name'),str_repeat('ä',26),"bad\xc3","bad\0name",'<b>') as $bad){ps_fixture('guest');$before=ps_snapshot();ae_check(ps_submit('reply',array('username'=>$bad))==='error'&&ps_snapshot()===$before,'Malformed/unprepared guest identity refuses whole publication');$cases++;}
+ foreach(array(array('name'),str_repeat('ä',256),"bad\xc3","bad\0name",'<b>') as $bad){ps_fixture('guest');$before=ps_snapshot();ae_check(ps_submit('reply',array('username'=>$bad))==='error'&&ps_snapshot()===$before,'Malformed/unprepared guest identity refuses whole publication');$cases++;}
+ ps_fixture('guest');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(25) NULL');$before=ps_snapshot();ae_check(ps_submit('reply',array('username'=>phpbb_post_author_key(str_repeat('ü',26))))==='error'&&ps_snapshot()===$before,'Old guest-name capacity rejects the whole publication without clipping');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(1530) NULL');$cases++;
  echo 'Native posting: '.$cases.' failure/session/permission/storage cases, '.$serialized." serialized changes; no partial content, polls, search or counters.\n";
 }finally{$ae_hook=null;$ae_fail='';$ae_ack=false;$ae_failwrite=0;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
 PHP;

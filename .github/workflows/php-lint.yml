@@ -70,6 +70,12 @@ jobs:
       - name: Render literal KB metadata with the actual standard BBCode template
         run: php .github/scripts/check-kb-discussion-format.php
 
+      - name: Preserve complete Unicode KB text with or without mbstring
+        run: php .github/scripts/check-kb-text-boundaries.php
+
+      - name: Keep guest bylines safely escaped and separate from account identity
+        run: php .github/scripts/check-post-author-codec.php
+
       - name: Validate complete style archives before filesystem effects
         run: php .github/scripts/check-style-archive.php
       - name: Check style publication filesystem boundaries

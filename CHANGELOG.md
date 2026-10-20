@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve complete UTF-8 KB text at character limits without mbstring. Widen
+  stored discussion guest names to match saved KB author capacity instead of
+  failing on the form's accepted names over 25 characters. Include preserving
+  full/targeted updater paths, old-capacity runtime refusal and fresh-install
+  schema. Retain registered account-name rules and wider custom storage.
+
 - Keep generated KB discussion metadata literal, independently of article-body
   formatting. Preserve guest/saved author names, render only the generated link
   and labels, and rebuild owned first-post flags without changing user replies.

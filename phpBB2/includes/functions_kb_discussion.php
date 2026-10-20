@@ -17,7 +17,7 @@ function kb_discussion_author($article)
 	global $lang;
 	$registered = (int)$article['article_author_id'] > 0 ? get_kb_author((int)$article['article_author_id']) : '';
 	if ($registered !== '') { return $registered; }
-	$guest = isset($article['username']) ? trim((string)$article['username']) : '';
+	$guest = isset($article['username']) ? (string)$article['username'] : '';
 	return $guest !== '' ? $guest : $lang['Guest'];
 }
 
@@ -39,6 +39,9 @@ function kb_insert_discussion_post($message, $subject, $forum, $poster, $usernam
 {
 	global $db;
 	if (!($db instanceof PhpbbKbPublicationDatabase) || !$db->transactional || $db->finished) { kb_publication_fail(); }
+	$table = $db->sql_escape(POSTS_TABLE);
+	$capacity = $db->rows("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . $table . "') AND COLUMN_NAME='post_username' AND DATA_TYPE='varchar'");
+	if (count($capacity) !== 1 || (int)$capacity[0]['CHARACTER_MAXIMUM_LENGTH'] < 1530) { kb_publication_fail('KB_publication_upgrade'); }
 	$forum = kb_counter_category_id($forum); $first = 0;
 	if ($topic !== null) {
 		$topic = kb_counter_category_id($topic);

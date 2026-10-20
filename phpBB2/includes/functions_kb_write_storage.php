@@ -103,11 +103,15 @@ function kb_write_article($database, $mode, $article_id, $input)
 		$title = kb_limit_text($input['title'],255); $description = kb_limit_text($input['description'],255);
 		$author = $mode === 'edit' ? (int)$owner->article['article_author_id'] : ((int)$actor['user_id'] > 0 ? (int)$actor['user_id'] : 0);
 		$username = $mode === 'edit' ? $owner->article['username'] : $input['username'];
+		if ($mode === 'add' && $author === 0) {
+			$username = phpbb_post_author_input($username);
+			if ($username === null) { kb_publication_fail('Post_author_invalid'); }
+		}
 		if ($mode === 'add' && $author > 0) {
 			$users = $owner->rows('SELECT username FROM ' . USERS_TABLE . ' WHERE user_id=' . $author);
 			if (count($users) !== 1) { kb_publication_fail('KB_write_failed'); } $username = $users[0]['username'];
 		}
-		$fields = 'article_category_id=' . $category . ",article_title='" . $owner->sql_escape($title) . "',article_description='" . $owner->sql_escape($description) . "',article_date=" . time() . ',article_author_id=' . $author . ",username='" . $owner->sql_escape(kb_limit_text($username,255)) . "',bbcode_uid='" . $owner->sql_escape($uid) . "',article_body='" . $owner->sql_escape($body) . "',article_type=" . $type . ',approved=' . $approved;
+		$fields = 'article_category_id=' . $category . ",article_title='" . $owner->sql_escape($title) . "',article_description='" . $owner->sql_escape($description) . "',article_date=" . time() . ',article_author_id=' . $author . ",username='" . $owner->sql_escape($username) . "',bbcode_uid='" . $owner->sql_escape($uid) . "',article_body='" . $owner->sql_escape($body) . "',article_type=" . $type . ',approved=' . $approved;
 		if ($mode === 'add') {
 			$owner->sql_query('INSERT INTO ' . KB_ARTICLES_TABLE . ' SET ' . $fields . ',views=0'); $article_id = kb_counter_category_id($owner->sql_nextid());
 		} else { $owner->sql_query('UPDATE ' . KB_ARTICLES_TABLE . ' SET ' . $fields . ' WHERE article_id=' . $article_id); }

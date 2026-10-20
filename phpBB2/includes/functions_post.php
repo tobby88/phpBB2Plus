@@ -26,6 +26,7 @@ if (!defined('IN_PHPBB'))
 }
 
 require_once dirname(__FILE__) . '/functions_username.php';
+require_once dirname(__FILE__) . '/functions_post_author.php';
 
 $html_entities_match = array('#&(?!(\#[0-9]+;))#', '#<#', '#>#', '#"#');
 $html_entities_replace = array('&amp;', '&lt;', '&gt;', '&quot;');
@@ -124,13 +125,13 @@ function prepare_post(&$mode, &$post_data, &$bbcode_on, &$html_on, &$smilies_on,
 	// Check username
 	if ($username !== '')
 	{
-		$username = phpbb_clean_username(phpbb_request_raw_value($username));
+		$username = phpbb_post_author_key(phpbb_request_raw_value($username));
 
 		if (!$userdata['session_logged_in'] || ($userdata['session_logged_in'] && $username != $userdata['username']))
 		{
-			include($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
+			include_once($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 
-			$result = validate_username($username, false, 0, true);
+			$result = validate_username($username, false, 0, true, true);
 			if ($result['error'])
 			{
 				$error_msg .= (!empty($error_msg)) ? '<br />' . $result['error_msg'] : $result['error_msg'];
@@ -299,8 +300,9 @@ function submit_post($mode, &$post_data, &$message, &$meta, &$forum_id, &$topic_
 		// Undo the prepared legacy slash representation exactly once.
 		// prepare_post crosses the username boundary already; only message/title
 		// input still carries the legacy request slash representation.
-		$post_username_value = phpbb_username_stored($post_username);
+		$post_username_value = phpbb_post_author_stored($post_username);
 		if ($post_username_value === null) { $db->fail('Username_invalid'); }
+		if (!phpbb_post_author_storage_ready($db, $post_username_value)) { $db->fail('Post_author_upgrade'); }
 		$post_username_sql = $db->sql_escape($post_username_value);
 		$post_subject_sql = $db->sql_escape(stripslashes((string) $post_subject));
 		$post_message_sql = $db->sql_escape(stripslashes((string) $post_message));

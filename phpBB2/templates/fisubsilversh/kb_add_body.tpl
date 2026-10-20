@@ -18,7 +18,7 @@
   <tr> 
   	   <td class="row1"><span class="gen"><b><nobr>{L_NAME}</nobr></b></span></td>
 	   <td class="row2"> <span class="gen"> 
-	     <input type="text" name="username" size="45" maxlength="100" style="width:450px" class="post" value="{USERNAME}" /></span></td>
+	     <input type="text" name="username" size="45" maxlength="510" style="width:450px" class="post" value="{USERNAME}" /></span></td>
   </tr>
   <!-- END switch_name -->
   <tr> 

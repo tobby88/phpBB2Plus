@@ -25,6 +25,7 @@ if ( !defined('IN_PHPBB') )
    die('Hacking attempt');
 }
 require_once dirname(__FILE__) . '/functions_kb_counter_policy.php';
+require_once dirname(__FILE__) . '/functions_post_author.php';
 
 //
 // get_quick_stats();
@@ -170,7 +171,11 @@ function kb_limit_text($value, $length)
 {
 	$value = trim((string) $value);
 	$length = max(1, (int) $length);
-	return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
+	if (function_exists('mb_substr')) { return mb_substr($value, 0, $length, 'UTF-8'); }
+	// At most length characters plus one remainder, not one array item per
+	// character of an arbitrarily large submitted title. Never split UTF-8.
+	$characters = preg_split('//u', $value, $length < PHP_INT_MAX ? $length + 1 : -1, PREG_SPLIT_NO_EMPTY);
+	return $characters === false ? '' : implode('', array_slice($characters, 0, $length));
 }
 
 //
@@ -696,7 +701,10 @@ function insert_post(
 	$message_update_text = stripslashes($prepared_update_text);
 	$message = stripslashes($prepared_message);
 	$subject = phpbb_stored_text(kb_limit_text($subject, 255));
-	$username = kb_limit_text(strip_tags($user_name), 255);
+	// Account posts use their joined current identity. Guest bylines are stored
+	// escaped, like normal forum posts, without stripping or clipping identity.
+	$username = $user_id > 0 ? '' : phpbb_post_author_key($user_name);
+	if ($username === null) { kb_publication_fail('KB_write_invalid'); }
 	$message_update_text_sql = $db->sql_escape($message_update_text);
 	$message_sql = $db->sql_escape($message);
 	$subject_sql = $db->sql_escape($subject);

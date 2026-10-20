@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__FILE__) . '/functions_post_author.php';
 
 // A username is an identity, not a byte-sized display excerpt. The schema
 // counts Unicode codepoints; never shorten input to another member's prefix.

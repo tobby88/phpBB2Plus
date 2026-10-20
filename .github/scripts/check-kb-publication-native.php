@@ -115,6 +115,7 @@ try {
  if(!empty($kp_write_mode)){$kp_tables=array_merge($kp_tables,array(PRIVMSGS_TABLE,PRIVMSGS_TEXT_TABLE));}
  $schema = file_get_contents($kp_source . 'install/schemas/mysql_schema.sql');
  foreach ($kp_tables as $table) { $canonical = 'phpbb_' . substr($table,strlen('fixture_')); kp_check(preg_match('/CREATE TABLE `?' . preg_quote($canonical,'/') . '`?\s*\([\s\S]*?;/', $schema, $m) === 1, 'Canonical table ' . $canonical); kp_sql(str_replace($canonical,$table,$m[0])); }
+ if(!empty($kp_text_mode)){kp_text_suite();return;}
  if(!empty($kp_mirror_mode)){kp_mirror_suite();return;}
  if(!empty($kp_type_mode)){kp_type_suite();return;}
  if(!empty($kp_category_mode)){kp_category_suite();return;}

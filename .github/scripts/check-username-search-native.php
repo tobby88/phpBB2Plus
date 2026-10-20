@@ -13,8 +13,8 @@ ats_check(phpbb_username_search_allowed('ä*',1)&&!phpbb_username_search_allowed
 ats_check(phpbb_username_search_allowed('0',3)&&phpbb_username_search_allowed('%',3),'Literal short names remain searchable');
 foreach(array('',array('bad'),str_repeat('ä',26),str_repeat('😀',26),"bad\xc3","bad\0name")as$bad){ats_check(!phpbb_username_search_allowed($bad,1),'Malformed/oversized search denied');}
 $source=file_get_contents($ats_source.'search.php');$a=strpos($source,'$search_author_value =');$b=strpos($source,'$search_id =',$a);ats_check($a!==false&&$b>$a,'Actual author request parser');$request_parser=substr($source,$a,$b-$a);
-foreach(array('C@ro','0','A&B',"O'Reilly",'C:\\notes','A_*')as$raw){profile_fixture_request(array('search_author'=>$raw));$board_config=array('search_min_chars'=>1);eval($request_parser);ats_check($search_author===$raw,'Actual author parser decodes request once');}
-foreach(array(array('bad'),str_repeat('ä',26),"bad\xc3","bad\0name",'ä*','*')as$bad){profile_fixture_request(array('search_author'=>$bad));$board_config=array('search_min_chars'=>2);$denied=false;try{eval($request_parser);}catch(AttachSettingsExit$e){$denied=true;}ats_check($denied,'Invalid author never falls through to unrestricted keyword search');}
+foreach(array('C@ro','0','A&B',"O'Reilly",'C:\\notes','A_*',str_repeat('ä',26),str_repeat('😀',255))as$raw){profile_fixture_request(array('search_author'=>$raw));$board_config=array('search_min_chars'=>1);eval($request_parser);ats_check($search_author===$raw,'Actual author parser decodes request once and permits complete guest bylines');}
+foreach(array(array('bad'),str_repeat('ä',256),"bad\xc3","bad\0name",'ä*','*')as$bad){profile_fixture_request(array('search_author'=>$bad));$board_config=array('search_min_chars'=>2);$denied=false;try{eval($request_parser);}catch(AttachSettingsExit$e){$denied=true;}ats_check($denied,'Invalid author never falls through to unrestricted keyword search');}
 // Run the actual rendered-link expressions, not a reimplementation of them.
 foreach(array('viewtopic.php','topic_view_users.php','includes/usercp_viewprofile.php','groupcp.php','privmsg.php','memberlist.php','shoutbox_max.php')as$file){
  $source=file_get_contents($ats_source.$file);preg_match_all('/append_sid\("search\.\$phpEx\?search_author=" .*? "&amp;showresults=(?:posts|topics)"\)/',$source,$links);ats_check(count($links[0])>0,'Actual author link '.$file);
@@ -46,7 +46,7 @@ function username_search_attach($input){global$db,$lang,$attach_body,$HTTP_POST_
 try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  username_search_query('CREATE TABLE fixture_users(user_id INT PRIMARY KEY,username VARCHAR(25) NOT NULL) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
- username_search_query('CREATE TABLE fixture_posts(post_id INT PRIMARY KEY,poster_id INT NOT NULL,post_username VARCHAR(25) NOT NULL,post_time INT NOT NULL DEFAULT 1,post_bluecard INT NOT NULL DEFAULT 0) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ username_search_query('CREATE TABLE fixture_posts(post_id INT PRIMARY KEY,poster_id INT NOT NULL,post_username VARCHAR(1530) NOT NULL,post_time INT NOT NULL DEFAULT 1,post_bluecard INT NOT NULL DEFAULT 0) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  $cases=0;
  foreach(array('','NO_BACKSLASH_ESCAPES','ANSI_QUOTES')as$sql_mode){username_search_query("SET SESSION sql_mode='$sql_mode'");
   foreach(array('C@ro','A_B','A%B','A!B','C:\\notes','Trailing\\',"O'Reilly",'A&B','%C3%A4','0',str_repeat('ä',25),str_repeat('😀',25),str_repeat("'",25))as$raw){
@@ -76,6 +76,11 @@ try{
   ats_check(username_search_author('A*B')===array(2,3,4,5,6),'Documented star matches multiple accounts');
   foreach(array('A_'=>array(2),'A%'=>array(4),'A!'=>array(5),'A*'=>array(6))as$prefix=>$expected){$sql=phpbb_username_search_sql($db,'u.username',$prefix,true,false);ats_check(username_search_ids('SELECT p.post_id FROM fixture_posts p JOIN fixture_users u ON u.user_id=p.poster_id WHERE '.$sql)===$expected,'Literal PM prefix never interprets metacharacters');$cases++;}
   foreach(array(str_repeat('ä',26),str_repeat('😀',26),"bad\xc3","bad\0name")as$bad){ats_check(username_search_author($bad)===array(),'Malformed author filter cannot return all posts');ats_check(username_search_popup($bad)==='','Malformed popup cannot enumerate accounts');ats_check(username_search_ajax($bad,'search_user')['result']===AJAX_PM_USERNAME_ERROR,'Malformed AJAX cannot enumerate accounts');$cases++;}
+  foreach(array(str_repeat('ü',26),str_repeat('😀',255),str_repeat('&',255),str_repeat("'",255),'Wide_!%\\'.str_repeat('x',40))as$raw){foreach(phpbb_post_author_keys($raw)as$key){
+   username_search_query('DELETE FROM fixture_users');username_search_query('DELETE FROM fixture_posts');username_search_query("INSERT INTO fixture_users VALUES(-1,'Anonymous'),(2,'Registered prefix')");$quoted="'".$db->sql_escape($key)."'";username_search_query("INSERT INTO fixture_posts(post_id,poster_id,post_username)VALUES(1,-1,$quoted),(2,-1,'Noise'),(3,2,'')");
+   ats_check(username_search_author($raw)===array(1),'Actual author-only query finds complete wide guest byline without inventing an account alias');foreach($filter_bodies as$body){ats_check(username_search_filter($raw,$body)===array(1),'Both actual topic/post keyword filters retain complete wide guest identity');}
+   ats_check(phpbb_username_lookup($db,$raw,array('user_id'))===null&&username_search_popup($raw)===''&&username_search_ajax($raw,'checkusername_pm')['result']===AJAX_PM_USERNAME_ERROR,'Wide guest lookup never widens account/recipient selection');$cases++;
+  }}
   username_search_query('DELETE FROM fixture_users');
   for($id=1;$id<=60;$id++){username_search_query("INSERT INTO fixture_users VALUES($id,'Member$id')");}
   ats_check(substr_count(username_search_popup('Member*'),'<option value=')===50,'Actual popup bounds wildcard suggestions');

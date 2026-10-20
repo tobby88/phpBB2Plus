@@ -280,7 +280,7 @@ CREATE TABLE phpbb_posts (
    poster_id mediumint(8) default '0' NOT NULL,
    post_time int(11) default '0' NOT NULL,
    poster_ip char(8) NOT NULL,
-   post_username varchar(25),
+   post_username varchar(1530),
    enable_bbcode tinyint(1) default '1' NOT NULL,
    enable_html tinyint(1) default '0' NOT NULL,
    enable_smilies tinyint(1) default '1' NOT NULL,

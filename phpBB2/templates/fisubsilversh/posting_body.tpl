@@ -32,7 +32,7 @@ var L_MORE_MATCHES = '{L_MORE_MATCHES}';
 <!-- BEGIN switch_username_select -->
 <tr>
 <td align="right" class="row1"><span class="explaintitle">{L_USERNAME}:</span></td>
-<td class="row2"><input type="text" class="post" tabindex="1" name="username" size="25" maxlength="50" value="{USERNAME}" onblur="AJAXCheckPostUsername(this.value);" />
+<td class="row2"><input type="text" class="post" tabindex="1" name="username" size="25" maxlength="510" value="{USERNAME}" onblur="AJAXCheckPostUsername(this.value);" />
 </td>
 </tr>
 <tr id="post_username_error_tbl" style="display:none;">

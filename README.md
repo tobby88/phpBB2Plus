@@ -66,6 +66,30 @@ general KB editing privileges. Guest articles retain author ID zero. A new
 discussion created during editing is saved back to the article, and both bumping
 and non-bumping edits refresh the changed first post's search index.
 
+KB text limits count complete UTF-8 characters even without mbstring. Discussion
+guest names support 255 raw UTF-8 characters, stored safely as HTML text (up to
+1530 escaped characters); this does not expand registered account-name rules.
+Existing installations must run the full updater, or (after canonical InnoDB/UTF-8
+storage migration):
+
+```sh
+php update/update_from_153a.php --post-author-storage-only
+php update/update_from_153a.php --post-author-storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+Back up first and stop **all web/cron writers** until schema/code verification
+finishes. This widens only `posts.post_username`, preserving names, other columns,
+NULL/default/comment/collation/index definitions and the identity floor. Wider
+custom VARCHAR fields are not narrowed; unsupported definitions stop for review.
+Custom full-width byline indexes also require review; the updater never drops an
+index or silently shortens its key to make the wider column fit.
+DDL is not rollbackable. KB discussion writes report a required upgrade rather
+than attempting automatic DDL or a truncated guest name on old 25-character storage.
+Oversized new guest names are rejected, not clipped to another name's prefix.
+The forum preparation/AJAX/editor/search paths use the separate guest-text codec;
+account registration/login and PM account selection retain their 25-character
+identity namespace. Guest quotes remain escaped text, not HTML markup.
+
 Pending-article PM notifications and recipient counters commit with that exact
 article, rather than selecting an unrelated recent pending edit. Unreviewed titles
 and descriptions are literal metadata in the notification, not active image/link

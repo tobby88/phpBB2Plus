@@ -27,6 +27,7 @@ if (!defined('IN_PHPBB'))
 $phpbb_root_path = './';
 include($phpbb_root_path . 'extension.inc');
 include($phpbb_root_path . 'common.'.$phpEx);
+require_once $phpbb_root_path . 'includes/functions_post_author.php';
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_search.'.$phpEx);
 //-- mod : calendar --------------------------------------------------------------------------------
@@ -74,7 +75,7 @@ $search_keywords = substr(phpbb_request_scalar($_POST, 'search_keywords', phpbb_
 $search_author_value = isset($_POST['search_author']) ? $_POST['search_author'] : (isset($_GET['search_author']) ? $_GET['search_author'] : '');
 if (!is_string($search_author_value)) { message_die(GENERAL_MESSAGE, $lang['No_search_match']); }
 $search_author = trim(phpbb_request_raw_value($search_author_value));
-if ($search_author !== '' && !phpbb_username_search_allowed($search_author, $board_config['search_min_chars']))
+if ($search_author !== '' && !phpbb_post_author_search_allowed($search_author, $board_config['search_min_chars']))
 {
 	message_die(GENERAL_MESSAGE, $lang['No_search_match']);
 }
@@ -315,7 +316,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 			else
 			{
 				$author_username_sql = phpbb_username_search_sql($db, 'username', $search_author);
-				$author_guest_sql = phpbb_username_search_sql($db, 'post_username', $search_author);
+				$author_guest_sql = phpbb_post_author_search_sql($db, 'post_username', $search_author);
 
 				
 				$sql = "SELECT user_id
@@ -570,7 +571,7 @@ else if ( $search_keywords != '' || $search_author != '' || $search_id )
 		if ( $search_author != '' )
 		{
 			$author_username_sql = phpbb_username_search_sql($db, 'u.username', $search_author);
-			$author_guest_sql = phpbb_username_search_sql($db, 'p.post_username', $search_author);
+			$author_guest_sql = phpbb_post_author_search_sql($db, 'p.post_username', $search_author);
 		}
 
 		if ( $total_match_count )

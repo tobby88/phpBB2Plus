@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__FILE__) . '/functions_post_author.php';
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_username.php';
 require_once dirname(__FILE__) . '/functions_posting_storage.php';
@@ -95,8 +96,9 @@ function phpbb_submit_full_edit($database, $forum_id, $topic_id, $post_id, $inpu
 		if (trim($text) === '') { $db->fail('Empty_message'); }
 		$uid = (string)$input['bbcode_uid'];
 		if ((int)$input['bbcode_on'] === (int)$post['enable_bbcode'] && $uid !== '' && str_replace(':' . $uid, ':' . (string)$post['bbcode_uid'], $text) === (string)$post['post_text']) { $text = (string)$post['post_text']; $uid = (string)$post['bbcode_uid']; }
-		$post_username = phpbb_username_stored(isset($input['username']) ? $input['username'] : null);
+		$post_username = phpbb_post_author_stored(isset($input['username']) ? $input['username'] : null);
 		if ($post_username === null) { $db->fail('Username_invalid'); }
+		if (!phpbb_post_author_storage_ready($db, $post_username)) { $db->fail('Post_author_upgrade'); }
 		$post_values = array('post_username'=>$post_username, 'enable_bbcode'=>(int)$input['bbcode_on'], 'enable_html'=>(int)$input['html_on'], 'enable_smilies'=>(int)$input['smilies_on'], 'enable_sig'=>(int)$input['attach_sig'], 'post_icon'=>(int)$input['post_icon']);
 		foreach (array('enable_bbcode','enable_html','enable_smilies','enable_sig') as $key) { if (!in_array($post_values[$key], array(0,1), true)) { $db->fail('Ajax_edit_invalid_text'); } }
 		$post_changed = $subject !== (string)$post['post_subject'] || $text !== (string)$post['post_text'] || $uid !== (string)$post['bbcode_uid'];

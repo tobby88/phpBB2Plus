@@ -60,11 +60,12 @@ $body= <<<'PHP'
  foreach(array('english','german') as $locale){require $phpbb_root_path.'language/lang_'.$locale.'/lang_main.php';foreach(array('success','failure','ack') as $kind){
   fe_fixture('moderator');$before=fe_snapshot();if($kind==='failure'){$ae_fail='INSERT INTO fixture_logs';}if($kind==='ack'){$ae_ack=true;}$out=fe_submit(array('controller'=>true));ae_check(($kind==='success')===is_array($out),'Actual controller returns truthful localized result '.$locale.'/'.$kind);$after=fe_snapshot();if($kind==='failure'){ae_check($after===$before,'Actual controller includes audit failure rollback');}else{ae_check(count($after['logs'])===1,'Controller must not duplicate worker audit');$ae_ack=false;$ae_fail='';ae_check(is_array(fe_submit(array('controller'=>true,'uid'=>'9876543210')))&&fe_snapshot()===$after,'Actual controller retry/no-op does not create another log or edit');}$cases++;
  }}
- foreach(array(str_repeat('ä',25),str_repeat('😀',25),'A&B',"A\\'B",'C:\\notes') as $raw){
-  fe_fixture('moderator');$key=phpbb_username_key($raw);$out=fe_submit(array('username'=>$key));
+ foreach(array(str_repeat('ä',25),str_repeat('😀',25),str_repeat('ä',255),str_repeat('😀',255),str_repeat('&',255),str_repeat("'",255),'A&B',"A\\'B",'C:\\notes') as $raw){
+  fe_fixture('moderator');$key=phpbb_post_author_key($raw);$out=fe_submit(array('username'=>$key));
   ae_check(is_array($out)&&ae_rows('SELECT post_username FROM fixture_posts WHERE post_id=10')[0]['post_username']===$key,'Full edit preserves prepared guest identity without a second slash decode');$cases++;
  }
- foreach(array(array('name'),str_repeat('ä',26),"bad\xc3","bad\0name",'<b>') as $bad){fe_fixture('moderator');$before=fe_snapshot();ae_check(fe_submit(array('username'=>$bad))==='error'&&fe_snapshot()===$before,'Malformed/unprepared guest identity refuses whole edit');$cases++;}
+ foreach(array(array('name'),str_repeat('ä',256),"bad\xc3","bad\0name",'<b>') as $bad){fe_fixture('moderator');$before=fe_snapshot();ae_check(fe_submit(array('username'=>$bad))==='error'&&fe_snapshot()===$before,'Malformed/unprepared guest identity refuses whole edit');$cases++;}
+ fe_fixture('moderator');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(25) NULL');$before=fe_snapshot();ae_check(fe_submit(array('username'=>phpbb_post_author_key(str_repeat('ü',26))))==='error'&&$fe_exception===$lang['Post_author_upgrade']&&fe_snapshot()===$before,'Old byline capacity refuses the whole edit explicitly without clipping guest identity');ae_sql('ALTER TABLE fixture_posts MODIFY post_username VARCHAR(1530) NULL');$cases++;
  echo 'Native full editor: '.$cases.' failure/authority/storage cases, '.$serialized." serialized changes; content, options, index, counters and audit passed.\n";
 }finally{$ae_hook=null;$ae_fail='';$ae_ack=false;$ae_failwrite=0;$db->sql_close();$peer->sql_close();$control->sql_query('DROP DATABASE '.$schema);$control->sql_close();restore_error_handler();}
 PHP;

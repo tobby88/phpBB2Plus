@@ -727,7 +727,7 @@ else if ($mode == 'mark_forum')
 }
 else if ($mode == 'checkusername_post')
 {
-	include($phpbb_root_path .'includes/functions_validate.'. $phpEx);
+	include_once($phpbb_root_path .'includes/functions_validate.'. $phpEx);
 	
 	$username = phpbb_request_raw_value(ajax_request_value('username'));
 	
@@ -735,11 +735,11 @@ else if ($mode == 'checkusername_post')
 	$error_msg = '';
 	if ($username !== '')
 	{
-		$username = phpbb_clean_username($username);
+		$username = phpbb_post_author_key($username);
 
 		if (!$userdata['session_logged_in'] || ($userdata['session_logged_in'] && $username != $userdata['username']))
 		{
-			$result = validate_username($username, false, 0, true);
+			$result = validate_username($username, false, 0, true, true);
 			if ($result['error'])
 			{
 				$result_code = AJAX_ERROR;
@@ -759,7 +759,7 @@ else if ($mode == 'checkusername_post')
 }
 else if (($mode == 'checkusername_pm') || ($mode == 'search_user'))
 {
-	include($phpbb_root_path .'includes/functions_validate.'. $phpEx);
+	include_once($phpbb_root_path .'includes/functions_validate.'. $phpEx);
 	
 	// Get username
 	$username = phpbb_request_raw_value(ajax_request_value('username'));

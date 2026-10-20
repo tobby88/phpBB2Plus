@@ -8,9 +8,10 @@ ats_load_function($ats_source.'includes/functions.php','utf8_rawurldecode');
 ats_load_function($ats_source.'ajax.php','ajax_scalar_value');
 ats_load_function($ats_source.'ajax.php','ajax_request_value');
 ats_load_function($ats_source.'ajax.php','ajax_request_int');
-foreach(array('AJAX_PM_USERNAME_FOUND'=>101,'AJAX_PM_USERNAME_ERROR'=>102,'AJAX_OP_COMPLETED'=>103,'AJAX_PM_USERNAME_SELECT'=>104) as $key=>$value){define($key,$value);}
+foreach(array('AJAX_PM_USERNAME_FOUND'=>101,'AJAX_PM_USERNAME_ERROR'=>102,'AJAX_OP_COMPLETED'=>103,'AJAX_PM_USERNAME_SELECT'=>104,'AJAX_ERROR'=>105) as $key=>$value){define($key,$value);}
 foreach(array('GROUPS_TABLE'=>'fixture_groups','DISALLOW_TABLE'=>'fixture_disallow','WORDS_TABLE'=>'fixture_words')as$key=>$value){define($key,$value);}
 require $ats_source.'includes/functions_validate.php';
+require $ats_source.'includes/functions_post.php';
 // Browser maxlength counts UTF-16 units; supplementary characters need two.
 foreach(array('login_body.tpl','profile_send_pass.tpl','profile_add_body.tpl','posting_body.tpl','shoutbox_max_body.tpl','admin/admin_add_user_body.tpl','admin/user_edit_body.tpl') as $file){
  $markup=file_get_contents($ats_source.'templates/fisubsilversh/'.$file);preg_match_all('/<input\b[^>]*name="username"[^>]*>/i',$markup,$inputs);
@@ -40,6 +41,7 @@ $b=strpos($source,"\n\t\tif ( isset(\$to_userdata)",$a);
 ats_check($a!==false&&$b>$a,'Actual PN recipient branch');$recipient_body=substr($source,$a,$b-$a);
 $source=file_get_contents($ats_source.'ajax.php');$a=strpos($source,'// Get username',strpos($source,"else if ((\$mode == 'checkusername_pm')"));$b=strpos($source,"\nelse if (\$mode == 'checkemail')",$a);
 ats_check($a!==false&&$b>$a,'Actual complete AJAX recipient branch');$ajax_body=substr($source,$a,$b-$a);$ajax_body=substr($ajax_body,0,strrpos($ajax_body,"\n}"));
+$a=strpos($source,"else if (\$mode == 'checkusername_post')");$a=strpos($source,"\n{",$a)+2;$b=strpos($source,"\nelse if ((\$mode == 'checkusername_pm')",$a);ats_check($a>2&&$b>$a,'Actual guest AJAX check body');$post_ajax_body=substr($source,$a,$b-$a);$post_ajax_body=substr($post_ajax_body,0,strrpos($post_ajax_body,"\n}"));
 $installer=file_get_contents($ats_source.'install/install.php');ats_load_function($ats_source.'install/install.php','install_slash_request_value');
 $a=strpos($installer,'$admin_name =');$b=strpos($installer,'// Undo only the installer',$a);ats_check($a!==false&&$b>$a,'Actual installer name parser');$installer_input=substr($installer,$a,$b-$a);
 $a=strpos($installer,'$sql = "UPDATE " . $table_prefix . "users');$b=strpos($installer,'if (!$db->sql_query($sql))',$a);ats_check($a!==false&&$b>$a,'Actual installer admin write');$installer_write=substr($installer,$a,$b-$a);
@@ -53,6 +55,12 @@ function username_login($input){
 }
 function username_recipient($input){global $db,$lang,$recipient_body;profile_fixture_request(array('username'=>$input));$error=false;$error_msg='';eval($recipient_body);return !$error&&is_array($to_userdata)?(int)$to_userdata['user_id']:null;}
 function username_ajax($input){global $db,$lang,$ajax_body;profile_fixture_request(array('username'=>$input));$mode='checkusername_pm';try{eval($ajax_body);}catch(UsernameAjaxExit $e){return $e->response['result'];}throw new RuntimeException('AJAX must terminate');}
+function username_prepare_guest($raw){
+ global$userdata,$board_config,$phpbb_root_path,$phpEx,$ats_source;$phpbb_root_path=$ats_source;$phpEx='php';$userdata=array('session_logged_in'=>false,'username'=>'');$board_config=array('sfs_enable'=>0);profile_fixture_request(array('username'=>$raw));
+ $username=$_POST['username'];$mode='reply';$post_data=array('first_post'=>false);$bbcode_on=$html_on=$smilies_on=0;$error_msg=$uid=$poll_title=$topic_desc='';$subject='Synthetic subject';$message='Synthetic body';$poll_options=array();$poll_length=0;
+ prepare_post($mode,$post_data,$bbcode_on,$html_on,$smilies_on,$error_msg,$username,$uid,$subject,$message,$poll_title,$poll_options,$poll_length,$topic_desc);return array($error_msg,$username);
+}
+function username_guest_ajax($raw){global$db,$lang,$userdata,$phpbb_root_path,$phpEx,$ats_source,$post_ajax_body;$phpbb_root_path=$ats_source;$phpEx='php';$userdata=array('session_logged_in'=>false,'username'=>'');profile_fixture_request(array('username'=>$raw));try{eval($post_ajax_body);}catch(UsernameAjaxExit$e){return$e->response;}throw new RuntimeException('Guest AJAX must terminate');}
 try{
  set_error_handler(function($s,$m){if(error_reporting()&$s){throw new RuntimeException($m);}});
  username_sql("CREATE TABLE fixture_users(user_id INT PRIMARY KEY,username VARCHAR(25) NOT NULL,user_password VARCHAR(255) NOT NULL,user_active INT NOT NULL DEFAULT 1,user_level INT NOT NULL DEFAULT 0,user_blocktime INT NOT NULL DEFAULT 0,user_notify_pm INT NOT NULL DEFAULT 0,user_email VARCHAR(255) NOT NULL DEFAULT '',user_lang VARCHAR(30) NOT NULL DEFAULT 'english',user_absence INT NOT NULL DEFAULT 0,user_absence_mode INT NOT NULL DEFAULT 0,user_absence_text TEXT NOT NULL) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
@@ -85,5 +93,12 @@ try{
    ats_check(username_login($raw)==='session:2','Actual installer SQL creates login-compatible identity in each SQL mode');$cases++;
   }
  }
- echo 'Native username identities: '.$cases." login/recipient/reader/profile cases passed.\n";
+ username_sql('DELETE FROM fixture_users');username_sql('DELETE FROM fixture_groups');username_sql('DELETE FROM fixture_disallow');username_sql('DELETE FROM fixture_words');
+ foreach(array(str_repeat('ü',26),str_repeat('😀',255),str_repeat('&',255),str_repeat("'",255),str_repeat(chr(34),255),'<b>Literal guest</b>')as$raw){
+  $result=username_prepare_guest($raw);ats_check($result===array('',phpbb_post_author_key($raw))&&!validate_username($raw,false,0,false,true)['error']&&username_guest_ajax($raw)['result']===AJAX_OP_COMPLETED,'Actual request/prepare/AJAX/guest policy preserves full safe byline');preg_match_all('/./us',$raw,$characters);if(count($characters[0])>25){ats_check(validate_username($raw)['error'],'Guest scope does not widen account creation rules');}$cases++;
+ }
+ username_sql("INSERT INTO fixture_users(user_id,username,user_password,user_absence_text)VALUES(2,'Taken','synthetic','')");username_sql("INSERT INTO fixture_groups VALUES('Reserved group')");
+ foreach(array('Taken','Reserved group')as$raw){ats_check(validate_username($raw,false,0,false,true)['error']&&username_guest_ajax($raw)['result']===AJAX_ERROR,'Guest path still rejects current account/group impersonation');$cases++;}
+ username_sql("INSERT INTO fixture_disallow VALUES('Forbidden*')");username_sql("INSERT INTO fixture_words VALUES('Banned')");foreach(array('Forbidden '.str_repeat('x',30),'Banned '.str_repeat('x',30))as$raw){ats_check(validate_username($raw,false,0,false,true)['error'],'Wide guest path keeps current disallow/censor rules');$cases++;}
+ echo 'Native username identities: '.$cases." login/recipient/reader/profile/actual-guest-prepare/policy cases passed.\n";
 }finally{$db->sql_close();$control->sql_query('DROP DATABASE '.$fixture);$control->sql_close();restore_error_handler();}
