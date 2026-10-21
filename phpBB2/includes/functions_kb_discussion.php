@@ -14,11 +14,9 @@ function kb_discussion_literal($value, $legacy_decode = true)
 
 function kb_discussion_author($article)
 {
-	global $lang;
 	$registered = (int)$article['article_author_id'] > 0 ? get_kb_author((int)$article['article_author_id']) : '';
-	if ($registered !== '') { return $registered; }
-	$guest = isset($article['username']) ? (string)$article['username'] : '';
-	return $guest !== '' ? $guest : $lang['Guest'];
+	$identity = kb_display_author($article, $registered);
+	return $identity['name'];
 }
 
 // Call only inside an owning article transaction, after relation validation.

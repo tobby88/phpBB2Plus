@@ -58,14 +58,15 @@ if ( !defined('IN_PHPBB') )
 	   // author information
 	   $author_id = (int) $row['article_author_id'];
 
-	   if ( $author_id == 0 )
+	   $author_identity = kb_display_author($row, $author_id > 0 ? get_kb_author($author_id) : '');
+	   if ($author_identity['id'] === 0)
 	   {
-	       $author_name_plain = (isset($row['username']) && is_scalar($row['username']) && $row['username'] !== '') ? (string) $row['username'] : $lang['Guest'];
+	       $author_name_plain = $author_identity['name'];
 	       $author_kb_art = phpbb_profile_text($author_name_plain);
 	   }
 	   else
 	   {
-	       $author_name_plain = get_kb_author($author_id);
+	       $author_name_plain = $author_identity['name'];
 	   
 	       $temp_url = append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id");
 	       $author_kb_art  = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_profile_text($author_name_plain) . '</a>';

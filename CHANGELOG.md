@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Display retained Knowledge Base author names consistently after an account
+  is deleted, without blank/dead profile links. Prefer current registered names,
+  including the literal name `0`, and keep original ownership and access checks
+  unchanged. Reuse the same display selection for lists, statistics, search,
+  article views and generated discussions. No database migration is required.
+
 - Preserve literal backslashes and quotes across Knowledge Base previews,
   submission, HTML/BBCode preparation, reopening and repeated editing. Remove
   request quoting once at the controller boundary, never from stored article,

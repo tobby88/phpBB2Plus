@@ -341,15 +341,15 @@ switch($mode)
 			$category = '<a href="' . $temp_url . '" class="name">' . $category_name . '</a>';
 			$type = phpbb_stored_text(get_kb_type((int) $article['article_type']));
 			$author_id = (int) $article['article_author_id'];
-			if ($author_id > 0 && !empty($article['registered_username']))
+			$author_identity = kb_display_author($article, $article['registered_username']);
+			if ($author_identity['id'] > 0)
 			{
 				$author_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $author_id), ENT_QUOTES, 'UTF-8');
-				$article_author = '<a href="' . $author_url . '" class="name">' . phpbb_profile_text($article['registered_username']) . '</a>';
+				$article_author = '<a href="' . $author_url . '" class="name">' . phpbb_profile_text($author_identity['name']) . '</a>';
 			}
 			else
 			{
-				$guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
-				$article_author = ($guest_username !== '') ? phpbb_profile_text($guest_username) : $lang['Guest'];
+				$article_author = phpbb_profile_text($author_identity['name']);
 			}
 
 			$template->assign_block_vars('searchresults', array(

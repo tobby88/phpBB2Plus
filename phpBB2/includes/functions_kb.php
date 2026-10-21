@@ -75,6 +75,18 @@ function get_quick_stats()
 //
 // get author of article
 //
+// Display only: never use a retained historical name as account authority.
+// Joined/loaded names use a strict empty check so the valid name "0" survives.
+function kb_display_author($article, $registered)
+{
+	global $lang;
+	$id = isset($article['article_author_id']) && is_scalar($article['article_author_id']) ? (int)$article['article_author_id'] : 0;
+	$current = is_string($registered) ? $registered : '';
+	$saved = isset($article['username']) && is_string($article['username']) ? $article['username'] : '';
+	$live = $id > 0 && $current !== '';
+	return array('id'=>$live ? $id : 0, 'name'=>$live ? $current : ($saved !== '' ? $saved : $lang['Guest']));
+}
+
 function get_kb_author($id)
 {
      global $db;
@@ -312,14 +324,14 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 		
 	   // author information
 	   $author_id = (int) $article['article_author_id'];
-	   if ($author_id <= 0 || empty($article['registered_username']))
+	   $author_identity = kb_display_author($article, $article['registered_username']);
+	   if ($author_identity['id'] === 0)
 	   {
-	       $guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
-	       $author = ($guest_username !== '') ? htmlspecialchars($guest_username, ENT_QUOTES, 'UTF-8') : $lang['Guest'];
+	       $author = phpbb_profile_text($author_identity['name']);
 	   }
 	   else
 	   {
-	       $author_name = phpbb_profile_text($article['registered_username']);
+	       $author_name = phpbb_profile_text($author_identity['name']);
 	   
 	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8');
 	       $author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';
@@ -1299,14 +1311,14 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 		
 	   // author information
 	   $author_id = (int) $article['article_author_id'];
-	   if ( $author_id == 0 )
+	   $author_identity = kb_display_author($article, $author_id > 0 ? get_kb_author($author_id) : '');
+	   if ($author_identity['id'] === 0)
 	   {
-	       $guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
-	       $author = ($guest_username !== '') ? htmlspecialchars($guest_username, ENT_QUOTES, 'UTF-8') : $lang['Guest'];
+	       $author = phpbb_profile_text($author_identity['name']);
 	   }
 	   else
 	   {
-	       $author_name = phpbb_profile_text(get_kb_author($author_id));
+	       $author_name = phpbb_profile_text($author_identity['name']);
 	   
 	       $temp_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$author_id"), ENT_QUOTES, 'UTF-8');
 	       $author = '<a href="' . $temp_url . '" class="gen">' . $author_name . '</a>';

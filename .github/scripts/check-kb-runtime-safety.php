@@ -93,8 +93,8 @@ kb_runtime_assert(substr_count($functions, "phpbb_stored_text(\$article['article
 kb_runtime_assert(strpos($functions, "phpbb_stored_text(\$category['category_details'])") !== false, 'category descriptions must escape stored text without request unquoting');
 kb_runtime_assert(strpos($search, '$article_title = phpbb_stored_text($article_title);') !== false, 'search result titles must escape stored text without request unquoting');
 kb_runtime_assert(strpos($search, "'ARTICLE_DESCRIPTION' => phpbb_stored_text(\$article['article_description'])") !== false, 'search result descriptions must escape stored text without request unquoting');
-kb_runtime_assert(strpos($search, "phpbb_profile_text(\$article['registered_username'])") !== false, 'registered search result authors must retain literal text and be escaped');
-kb_runtime_assert(strpos($search, 'phpbb_profile_text($guest_username)') !== false, 'guest search result authors must retain literal text and be escaped');
+kb_runtime_assert(substr_count($search, "phpbb_profile_text(\$author_identity['name'])") === 2, 'registered and retained historical search authors must both be escaped');
+kb_runtime_assert(strpos($search, 'kb_display_author($article,') !== false && strpos($functions,"\$current !== ''") !== false, 'all author displays use strict identity selection, including the name zero');
 foreach(array($add,$edit)as$controller){kb_runtime_assert(strpos($controller,"phpbb_request_raw_value(\$_POST['message'])")!==false&&strpos($controller,"phpbb_request_raw_value(\$_POST['article_name'])")!==false,'actual writer controllers must remove request quoting exactly once');}
 kb_runtime_assert(strpos($edit,"'ARTICLE_TITLE' => phpbb_profile_text(\$article_name)")!==false&&strpos($edit,"stripslashes(\$row['article_body'])")===false,'editor forms retain literal metadata and canonical body bytes');
 kb_runtime_assert(strpos($category, '$category_name_plain =') !== false, 'category existence checks must use an unformatted value');
