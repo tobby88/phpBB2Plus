@@ -73,6 +73,9 @@ jobs:
       - name: Preserve complete Unicode KB text with or without mbstring
         run: php .github/scripts/check-kb-text-boundaries.php
 
+      - name: Keep all KB statistics pages bounded and reachable
+        run: php .github/scripts/check-kb-stats-pagination.php
+
       - name: Keep guest bylines safely escaped and separate from account identity
         run: php .github/scripts/check-post-author-codec.php
 

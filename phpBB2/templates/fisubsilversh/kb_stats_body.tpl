@@ -30,7 +30,7 @@
   	   <th class="thTop" nowrap="nowrap">&nbsp;{L_CAT}&nbsp;</th>
   	   <th class="thTop" nowrap="nowrap">&nbsp;{L_ARTICLE_TYPE}&nbsp;</th>
   	   <th class="thTop" nowrap="nowrap">&nbsp;{L_ARTICLE_AUTHOR}&nbsp;</th>
-  	   <th class="thTop nowrap="nowrap">&nbsp;{L_ARTICLE_DATE}&nbsp;</th>
+	<th class="thTop" nowrap="nowrap">&nbsp;{L_ARTICLE_DATE}&nbsp;</th>
 	   <th class="thCornerR" nowrap="nowrap">&nbsp;{L_VIEWS}&nbsp;</th>
   </tr>
   <!-- BEGIN articlerow -->
@@ -53,6 +53,10 @@
   </tr>
 </table>
 <table width="100%" cellspacing="2" border="0" align="center">
+  <tr>
+    <td><span class="nav">{PAGE_NUMBER}</span></td>
+    <td align="right"><span class="nav">{PAGINATION}</span></td>
+  </tr>
   <tr> 
 	<td valign="top" align="right"><br />{JUMPBOX}</td>
   </tr>

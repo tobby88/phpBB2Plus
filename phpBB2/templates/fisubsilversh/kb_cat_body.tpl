@@ -29,7 +29,7 @@
   	   <th class="thCornerL" nowrap="nowrap">&nbsp;{L_ARTICLE}&nbsp;</th>
   	   <th class="thTop" nowrap="nowrap">&nbsp;{L_ARTICLE_TYPE}&nbsp;</th>
   	   <th class="thTop" nowrap="nowrap">&nbsp;{L_ARTICLE_AUTHOR}&nbsp;</th>
-  	   <th class="thTop nowrap="nowrap">&nbsp;{L_ARTICLE_DATE}&nbsp;</th>
+	<th class="thTop" nowrap="nowrap">&nbsp;{L_ARTICLE_DATE}&nbsp;</th>
 	   <th class="thCornerR" nowrap="nowrap">&nbsp;{L_VIEWS}&nbsp;</th>
   </tr>
   <!-- BEGIN articlerow -->

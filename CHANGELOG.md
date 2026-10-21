@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Paginate all three Knowledge Base statistics with complete navigation instead
+  of loading every full article body at once. Fetch only summary columns and
+  joined display metadata in a bounded page query, retain every qualifying
+  article across pages, and sort timestamps numerically with stable ID ties.
+  Public category page counts now exclude unpublished articles consistently with
+  their result list. Normalize category page offsets and numeric creation-date
+  sorting too. Reuse the existing page-size setting; no migration is needed.
+
 - Display retained Knowledge Base author names consistently after an account
   is deleted, without blank/dead profile links. Prefer current registered names,
   including the literal name `0`, and keep original ownership and access checks

@@ -24,7 +24,8 @@ if ( !defined('IN_PHPBB') )
 {
 	die("Hacking attempt");
 }
-	$start = max(0, min(1000000, intval(phpbb_request_scalar($_GET, 'start', 0))));
+	$start = phpbb_request_scalar($_GET, 'start', '0');
+	$articles_per_page = kb_stats_page_size(isset($kb_config['art_pagination']) ? $kb_config['art_pagination'] : 20);
 
 	$category_id = max(0, intval(phpbb_request_scalar($HTTP_GET_VARS, 'cat', phpbb_request_scalar($HTTP_POST_VARS, 'cat', 0))));
 	$category = get_kb_cat($category_id);
@@ -94,23 +95,22 @@ if ( !defined('IN_PHPBB') )
 // Pagination
 	$sql_pag = "SELECT count(article_id) AS total
 		FROM " . KB_ARTICLES_TABLE . "
-		WHERE article_category_id = '$category_id'";
+		WHERE article_category_id = '$category_id'" . (!$is_admin ? ' AND approved = 1' : '');
 
 	if ( !($result = $db->sql_query($sql_pag)) )
 	{
-		message_die(GENERAL_ERROR, 'Error getting total articles', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, 'Error getting total articles', '', __LINE__, __FILE__, $sql_pag);
 	}
 
+	$total_articles = 0;
 	if ( $total = $db->sql_fetchrow($result) )
 	{
 		$total_articles = (int) $total['total'];
-		$articles_per_page = max(1, min(1000, (int) $kb_config['art_pagination']));
-		$pagination = generate_pagination("kb.$phpEx?mode=cat&cat=$category_id", $total_articles, $articles_per_page, $start). '&nbsp;';
 	}
-
-	$articles_per_page = isset($articles_per_page) ? $articles_per_page : max(1, min(1000, (int) $kb_config['art_pagination']));
-	$total_articles = isset($total_articles) ? $total_articles : 0;
+	$db->sql_freeresult($result);
+	$start = kb_stats_page_start($start, $articles_per_page, $total_articles);
 	$total_cat_pages = ceil($total_articles / $articles_per_page);
+	$pagination = $total_cat_pages > 1 ? generate_pagination(this_kb_mxurl('mode=cat&amp;cat='.$category_id), $total_articles, $articles_per_page, $start) : '';
 
 	$template->assign_vars(array(
 		'PAGINATION' => ( $total_cat_pages > 1 ) ? $pagination : '',

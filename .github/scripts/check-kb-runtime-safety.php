@@ -99,7 +99,7 @@ foreach(array($add,$edit)as$controller){kb_runtime_assert(strpos($controller,"ph
 kb_runtime_assert(strpos($edit,"'ARTICLE_TITLE' => phpbb_profile_text(\$article_name)")!==false&&strpos($edit,"stripslashes(\$row['article_body'])")===false,'editor forms retain literal metadata and canonical body bytes');
 kb_runtime_assert(strpos($category, '$category_name_plain =') !== false, 'category existence checks must use an unformatted value');
 kb_runtime_assert(strpos($category, "strtoupper((string) \$kb_config['news_sort_par']) === 'ASC'") !== false, 'category sort direction must be normalized');
-kb_runtime_assert(substr_count($category, "min(1000, (int) \$kb_config['art_pagination'])") === 2, 'category page sizes must be bounded');
+kb_runtime_assert(strpos($category,'kb_stats_page_size(')!==false&&strpos($category,'kb_stats_page_start(')!==false, 'category page sizes and offsets must use the same bounded complete-page helpers');
 
 $article = file_get_contents($root . '/phpBB2/includes/kb_article.php');
 kb_runtime_assert(strpos($article, '$author_name_plain =') !== false && strpos($article, '$username !=') === false, 'guest articles must not read an undefined username');

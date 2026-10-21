@@ -262,7 +262,7 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	
 	$id = (int) $id;
 	$approve = (int) $approve;
-	$start = max(-1, min(1000000, (int) $start));
+	$start = max(-1, (int) $start);
 	$articles_in_cat = max(0, min(1000, (int) $articles_in_cat));
 	$allowed_sort_methods = array('t.article_id', 't.article_date', 'tt.topic_last_post_id', 'u.user_rank', 't.article_title');
 	$requested_sort_method = isset($kb_news_sort_method) ? $kb_news_sort_method : '';
@@ -294,7 +294,9 @@ function get_kb_articles($id = false, $approve = false, $block_name = '', $start
 	}
 	else
 	{
-	    $sql .= " ORDER BY " . $kb_news_sort_method_extra . $kb_news_sort_method . " " . $kb_news_sort_par;
+		$display_sort=$kb_news_sort_method==='t.article_date' ? 'CAST(t.article_date AS UNSIGNED)' : $kb_news_sort_method;
+		$sql .= " ORDER BY " . $kb_news_sort_method_extra . $display_sort . " " . $kb_news_sort_par;
+		if ($kb_news_sort_method!=='t.article_id') { $sql.=',t.article_id '.$kb_news_sort_par; }
 	}
 
 	if ( $start > -1 && $articles_in_cat > 0 )
@@ -1262,32 +1264,46 @@ if ( $total_posts != 0 )
 //
 // get articles for the category
 //
-function get_kb_stats($type = false, $approve = false, $block_name = '')
+function kb_stats_page_size($value)
+{
+	if ((!is_int($value) && !is_string($value)) || preg_match('/^[0-9]{1,8}$/D',(string)$value)!==1) { return 20; }
+	return max(1,min(1000,(int)$value));
+}
+
+function kb_stats_page_start($value, $per_page, $total)
+{
+	$per_page=kb_stats_page_size($per_page);$total=max(0,(int)$total);
+	if (!$total) { return 0; }
+	$digits=(is_int($value)||is_string($value)) && preg_match('/^[0-9]{1,20}$/D',(string)$value)===1 ? ltrim((string)$value,'0') : '';
+	$limit=(string)PHP_INT_MAX;
+	$start=strlen($digits)>strlen($limit) || (strlen($digits)===strlen($limit) && strcmp($digits,$limit)>0) ? PHP_INT_MAX : (int)$digits;
+	$last=$total-1;$last-=$last%$per_page;$start=min($start,$last);
+	return $start-($start%$per_page);
+}
+
+// Preserve the existing template return value. Optional output parameters let
+// callers render complete pagination without loading unused bodies/all rows.
+function get_kb_stats($type = false, $approve = false, $block_name = '', $start = 0, $per_page = 20, &$total = null, &$actual_start = null)
 {
     global $db, $template, $images, $phpEx, $phpbb_root_path, $phpbb_root_path, $phpbb_root_path, $board_config, $lang, $is_block, $page_id, $is_admin, $userdata;
 	
 	$approve = (int) $approve;
-	$sql = "SELECT * FROM " . KB_ARTICLES_TABLE . " WHERE";
-	
-	$sql .= " approved = " . $approve;
-
-	if ( $type )
-	{
-		if ( $type == 'toprated' )
-		{
-	    	$sql .= " AND article_totalvotes > 0";
-	    	$sql .= " ORDER BY article_rating/article_totalvotes DESC";
-		}
-		elseif ( $type == 'latest' )
-		{
-	    	$sql .= " ORDER BY article_date DESC";
-		}
-		elseif ( $type == 'mostpopular' )
-		{
-	    	$sql .= " AND views > 0";
-	    	$sql .= " ORDER BY views DESC";
-		}
-	}
+	$per_page=kb_stats_page_size($per_page);
+	$where='a.approved='.$approve;
+	$order='CAST(a.article_date AS UNSIGNED) DESC,a.article_id DESC';
+	if ($type==='toprated') { $where.=' AND a.article_totalvotes>0';$order='a.article_rating/a.article_totalvotes DESC,a.article_id DESC'; }
+	elseif ($type==='mostpopular') { $where.=' AND a.views>0';$order='a.views DESC,a.article_id DESC'; }
+	$sql='SELECT COUNT(*) AS total FROM '.KB_ARTICLES_TABLE.' a WHERE '.$where;
+	if (!($count_result=$db->sql_query($sql))) { message_die(GENERAL_ERROR,'Could not obtain article count','',__LINE__,__FILE__,$sql); }
+	$count=$db->sql_fetchrow($count_result);$db->sql_freeresult($count_result);
+	if (!$count || !isset($count['total']) || preg_match('/^[0-9]+$/D',(string)$count['total'])!==1) { message_die(GENERAL_ERROR,'Could not obtain article count'); }
+	$total=(int)$count['total'];$actual_start=kb_stats_page_start($start,$per_page,$total);
+	$sql='SELECT a.article_id,a.article_category_id,a.article_title,a.article_description,a.article_date,a.article_author_id,a.username,a.article_type,a.approved,a.views,a.article_rating,a.article_totalvotes,'
+		.'u.username AS registered_username,c.category_id AS joined_category_id,c.category_name AS joined_category_name,t.type AS joined_type FROM '.KB_ARTICLES_TABLE.' a '
+		.'LEFT JOIN '.USERS_TABLE.' u ON u.user_id=a.article_author_id '
+		.'LEFT JOIN '.KB_CATEGORIES_TABLE.' c ON c.category_id=a.article_category_id '
+		.'LEFT JOIN '.KB_TYPES_TABLE.' t ON t.id=a.article_type '
+		.'WHERE '.$where.' ORDER BY '.$order.' LIMIT '.$actual_start.','.$per_page;
 	
 	if ( !($article_result = $db->sql_query($sql)) )
 	{
@@ -1305,13 +1321,13 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 		
 	   //type
 	   $type_id = (int) $article['article_type'];
-	   $article_type = phpbb_stored_text(get_kb_type($type_id));
+	   $article_type = phpbb_stored_text($article['joined_type']);
 		
 	   $article_date = create_date($board_config['default_dateformat'], $article['article_date'], $board_config['board_timezone']);
 		
 	   // author information
 	   $author_id = (int) $article['article_author_id'];
-	   $author_identity = kb_display_author($article, $author_id > 0 ? get_kb_author($author_id) : '');
+	   $author_identity = kb_display_author($article, $article['registered_username']);
 	   if ($author_identity['id'] === 0)
 	   {
 	       $author = phpbb_profile_text($author_identity['name']);
@@ -1338,7 +1354,8 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	   $delete = '';
 	   $category_name = '';   
 
-       $category = get_kb_cat($article_cat);
+	   $category = array();
+	   if ($article['joined_category_id']!==null) { $category=array('category_id'=>$article['joined_category_id'],'category_name'=>$article['joined_category_name']); }
 	   $category_id = isset($category['category_id']) ? (int) $category['category_id'] : 0;
 	   $category_name = isset($category['category_name']) ? phpbb_stored_text($category['category_name']) : '';
 	   $category_temp = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
@@ -1346,7 +1363,6 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
 	   
 	   if ( defined('IN_ADMIN') || $userdata['user_level'] == ADMIN )
 	   {
-	       $category = get_kb_cat($article_cat);
 		   $category_name = isset($category['category_name']) ? phpbb_stored_text($category['category_name']) : '';
 
 		   if ( $article_approved == 2 || $article_approved == 0)
@@ -1403,6 +1419,7 @@ function get_kb_stats($type = false, $approve = false, $block_name = '')
   
    }
    
+	$db->sql_freeresult($article_result);
 	return $template;
 }
 

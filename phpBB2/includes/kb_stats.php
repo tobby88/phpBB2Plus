@@ -96,7 +96,14 @@ $path_kb = '';
 		'U_CAT' => append_sid(this_kb_mxurl('mode=cat&cat=' . $category_id)))
 	);
 	
-	get_kb_stats($stats, '1', 'articlerow');
+	$stats_per_page=kb_stats_page_size(isset($kb_config['art_pagination'])?$kb_config['art_pagination']:20);
+	$stats_total=0;$stats_start=0;
+	get_kb_stats($stats, '1', 'articlerow', phpbb_request_scalar($_GET,'start','0'), $stats_per_page, $stats_total, $stats_start);
+	$stats_pages=(int)ceil($stats_total/$stats_per_page);
+	$template->assign_vars(array(
+		'PAGINATION'=>$stats_pages>1 ? generate_pagination(this_kb_mxurl('mode=stats&amp;stats='.$stats),$stats_total,$stats_per_page,$stats_start) : '',
+		'PAGE_NUMBER'=>$stats_pages>1 ? sprintf($lang['Page_of'],(int)floor($stats_start/$stats_per_page)+1,$stats_pages) : ''
+	));
 
 //	}
 	
