@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Apply normal forum guest-name reservation, disallow and word rules to new KB
+  guest submissions and their discussion bridge. Reuse the normal validator
+  without external spam checks; pin current name/rule ranges in the existing
+  guest writer transaction. Retain unnamed guests and saved historical authors.
+  No schema or setting change is required.
+
 - Enforce the existing Knowledge Base edit switch at both editor entry and the
   transactional save boundary, rather than only hiding the edit link. Recheck
   current policy after independently committed configuration changes and keep

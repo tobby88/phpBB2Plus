@@ -1,6 +1,7 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
 require_once dirname(__FILE__) . '/functions_kb_publication.php';
+require_once dirname(__FILE__) . '/functions_validate.php';
 
 // Separate owner for frontend add/edit, including ordinary authors and explicitly
 // permitted anonymous submissions. ACP delegation alone grants no KB authorship.
@@ -12,6 +13,9 @@ class PhpbbKbWriteDatabase extends PhpbbKbPublicationDatabase
 	var $settings = array();
 	var $hierarchy = array();
 	var $approval = null;
+	var $guest_policy = false;
+	var $guest_name = null;
+	var $locking_validation = false;
 	function __construct($database, $mode, $article_id)
 	{
 		if (!in_array($mode, array('add','edit'), true)) { kb_publication_fail('KB_write_failed'); }
@@ -22,11 +26,27 @@ class PhpbbKbWriteDatabase extends PhpbbKbPublicationDatabase
 	{
 		return array_merge(parent::write_tables(), array(PRIVMSGS_TABLE, PRIVMSGS_TEXT_TABLE));
 	}
+	function sql_query($sql, $transaction = false)
+	{
+		// Only the normal validator's simple name/rule reads use this adapter.
+		// On guest submissions, REPEATABLE READ also pins empty name/rule ranges.
+		if ($this->locking_validation && is_string($sql) && preg_match('/^\s*SELECT\b/i',$sql)) { $sql=rtrim($sql,"; \t\r\n").' LOCK IN SHARE MODE'; }
+		return parent::sql_query($sql,$transaction);
+	}
+	function validate_guest_name()
+	{
+		if ($this->guest_name===null || $this->guest_name==='') { return; }
+		$original=$GLOBALS['db'];$GLOBALS['db']=$this;$this->locking_validation=true;
+		try { $checked=validate_username(phpbb_post_author_key($this->guest_name),false,0,true,true); }
+		finally { $this->locking_validation=false;$GLOBALS['db']=$original; }
+		if (!empty($checked['error'])) { throw new PhpbbKbPublicationException($checked['error_msg']); }
+	}
 	function actor()
 	{
 		global $userdata;
 		if (!$this->settings || empty($userdata['session_id']) || !is_string($userdata['session_id'])) { kb_publication_fail('Not_Authorised'); }
 		$guest = empty($userdata['session_logged_in']);
+		if ($this->guest_policy && !$guest) { kb_publication_fail('Not_Authorised'); }
 		if ($guest) {
 			if (!isset($userdata['user_id']) || (string)$userdata['user_id'] !== (string)ANONYMOUS) { kb_publication_fail('Not_Authorised'); }
 			$user = array('user_id'=>ANONYMOUS,'user_level'=>USER,'username'=>'','user_attachsig'=>0);
@@ -35,7 +55,7 @@ class PhpbbKbWriteDatabase extends PhpbbKbPublicationDatabase
 			if (!$user) { kb_publication_fail('Not_Authorised'); }
 		}
 		$id = (int)$user['user_id']; $sid = $this->sql_escape($userdata['session_id']);
-		if (count($this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') AND session_user_id=" . $id . ' AND session_logged_in=' . ($guest ? 0 : 1))) !== 1) { kb_publication_fail('Not_Authorised'); }
+		if (count($this->rows('SELECT session_id FROM ' . SESSIONS_TABLE . " WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') AND session_user_id=" . $id . ' AND session_logged_in=' . ($guest ? 0 : 1) . ($this->guest_policy ? ' LOCK IN SHARE MODE' : ''))) !== 1) { kb_publication_fail('Not_Authorised'); }
 		$moderator = !$guest && (int)$user['user_level'] === ADMIN;
 		if (!$guest && !$moderator && $this->settings['mod_group'] !== '0') {
 			try { $group = kb_counter_category_id($this->settings['mod_group']); } catch (RuntimeException $error) { kb_publication_fail('Not_Authorised'); }
@@ -44,6 +64,7 @@ class PhpbbKbWriteDatabase extends PhpbbKbPublicationDatabase
 		if ($this->mode === 'add') {
 			if (!$moderator && ($this->settings['allow_new'] !== '1' || ($guest && $this->settings['allow_anon'] !== '1'))) { kb_publication_fail('No_add'); }
 		} elseif (!$moderator && ($this->settings['allow_edit'] !== '1' || $guest || !$this->article || (int)$this->article['article_author_id'] !== $id)) { kb_publication_fail('No_edit'); }
+		$this->validate_guest_name();
 		$user['kb_moderator'] = $moderator;
 		if ($this->approval !== null) {
 			$current = $this->mode === 'add' ? (($moderator || (int)$user['user_level'] === MOD || $this->settings['approve_new'] === '0') ? 1 : 0)
@@ -54,10 +75,13 @@ class PhpbbKbWriteDatabase extends PhpbbKbPublicationDatabase
 	}
 	function begin()
 	{
+		global $userdata;
+		$this->guest_policy=$this->mode==='add' && empty($userdata['session_logged_in']);
 		$this->control("SET SESSION sql_mode = CONCAT_WS(',', @@SESSION.sql_mode, 'STRICT_ALL_TABLES')");
-		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+		$this->control('SET SESSION TRANSACTION ISOLATION LEVEL '.($this->guest_policy?'REPEATABLE READ':'READ COMMITTED'));
 		$this->control('START TRANSACTION'); $this->transactional = true;
 		kb_publication_pin_tables($this, array_unique(array_merge($this->write_tables(), array(KB_CONFIG_TABLE,KB_TYPES_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE))));
+		if ($this->guest_policy) { kb_publication_pin_tables($this,array(DISALLOW_TABLE,WORDS_TABLE)); }
 		foreach ($this->rows('SELECT config_name,config_value FROM ' . KB_CONFIG_TABLE . ' ORDER BY config_name FOR UPDATE') as $row) { $this->settings[$row['config_name']] = $row['config_value']; }
 		foreach (array('allow_new','allow_edit','allow_anon','approve_new','approve_edit','comments','bump_post') as $flag) {
 			if (!isset($this->settings[$flag]) || !in_array($this->settings[$flag], array('0','1'), true)) { kb_publication_fail('KB_write_failed'); }
@@ -106,6 +130,7 @@ function kb_write_article($database, $mode, $article_id, $input)
 		if ($mode === 'add' && $author === 0) {
 			$username = phpbb_post_author_input($username);
 			if ($username === null) { kb_publication_fail('Post_author_invalid'); }
+			$owner->guest_name=$username;$owner->validate_guest_name();
 		}
 		if ($mode === 'add' && $author > 0) {
 			$users = $owner->rows('SELECT username FROM ' . USERS_TABLE . ' WHERE user_id=' . $author);

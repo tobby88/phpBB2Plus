@@ -37,7 +37,7 @@ if ( !defined('IN_PHPBB') )
 
 $lang['KB_title'] = 'Knowledge Base';
 $lang['KB_publication_failed'] = 'Die Änderung in der Wissensdatenbank konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand vor einem erneuten Versuch.';
-$lang['KB_publication_upgrade'] = 'Bitte führe vor Änderungen an Freigaben in der Wissensdatenbank das Datenbank-Update vollständig durch.';
+$lang['KB_publication_upgrade'] = 'Bitte führe vor Änderungen an Inhalten oder Einstellungen der Wissensdatenbank das Datenbank-Update vollständig durch.';
 $lang['KB_deletion_failed'] = 'Die Löschung des Artikels konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand vor einem erneuten Versuch.';
 $lang['KB_deletion_relation'] = 'Die gespeicherte Zuordnung zur Diskussion ist mehrdeutig oder verändert. Eine Löschung des Artikels wurde nicht bestätigt.';
 $lang['KB_deletion_cleanup_pending'] = 'Der Artikel wurde gelöscht. Ein Administrator muss noch zurückgebliebene Schattenanhänge prüfen.';

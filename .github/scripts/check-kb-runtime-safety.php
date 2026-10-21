@@ -25,6 +25,8 @@ $add = file_get_contents($root . '/phpBB2/includes/kb_add.php');
 $edit = file_get_contents($root . '/phpBB2/includes/kb_edit.php');
 kb_runtime_assert(strpos($edit, "empty(\$kb_config['allow_edit'])") !== false, 'disabled editing must gate the actual editor, not only its link');
 kb_runtime_assert(strpos($writing, "\$this->settings['allow_edit'] !== '1'") !== false, 'ordinary authors must honor the current locked edit policy at save');
+kb_runtime_assert(strpos($writing, 'validate_username(phpbb_post_author_key($this->guest_name),false,0,true,true)') !== false, 'KB guest names must reuse actual local forum validation without remote spam requests');
+kb_runtime_assert(strpos($writing, "\$this->guest_policy?'REPEATABLE READ':'READ COMMITTED'") !== false && strpos($writing, '$this->locking_validation') !== false, 'guest name checks must pin current rules and empty name/rule ranges without changing registered writer isolation');
 
 kb_runtime_assert(strpos($functions, "\$article_link = '<a") !== false, 'article link must not overwrite the database row');
 kb_runtime_assert(strpos($functions, "\$postrow[\$i]['link_rating']") === false, 'KB ratings must not read an unrelated post row');

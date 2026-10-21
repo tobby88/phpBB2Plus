@@ -110,11 +110,12 @@ function kp_counts($value) { return kp_rows('SELECT category_id,number_articles 
 try {
  $db = new KpDatabase($host,'root',$password,$fixture,false); $kp_caller=$db; $peer = new sql_db($host,'root',$password,$fixture,false); kp_check($db->db_connect_id && $peer->db_connect_id, 'Independent native connections');
  $kp_tables = array(KB_ARTICLES_TABLE,KB_CATEGORIES_TABLE,KB_CONFIG_TABLE,KB_TYPES_TABLE,KB_WORD_TABLE,KB_MATCH_TABLE,KB_SEARCH_TABLE,KB_VOTES_TABLE,
-  TOPICS_TABLE,POSTS_TABLE,POSTS_TEXT_TABLE,FORUMS_TABLE,USERS_TABLE,SEARCH_WORD_TABLE,SEARCH_MATCH_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE);
+  TOPICS_TABLE,POSTS_TABLE,POSTS_TEXT_TABLE,FORUMS_TABLE,USERS_TABLE,SEARCH_WORD_TABLE,SEARCH_MATCH_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE,DISALLOW_TABLE,WORDS_TABLE);
  if(!empty($kp_delete_mode)||!empty($kp_controller_mode)){$kp_tables=array_unique(array_merge($kp_tables,array(CONFIG_TABLE,AUTH_ACCESS_TABLE,VOTE_DESC_TABLE,VOTE_RESULTS_TABLE,VOTE_USERS_TABLE,LOGS_TABLE,ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE,TOPICS_WATCH_TABLE,BOOKMARK_TABLE,TOPIC_VIEW_TABLE,PRIVMSGS_TABLE)));}
  if(!empty($kp_write_mode)){$kp_tables=array_merge($kp_tables,array(PRIVMSGS_TABLE,PRIVMSGS_TEXT_TABLE));}
  $schema = file_get_contents($kp_source . 'install/schemas/mysql_schema.sql');
  foreach ($kp_tables as $table) { $canonical = 'phpbb_' . substr($table,strlen('fixture_')); kp_check(preg_match('/CREATE TABLE `?' . preg_quote($canonical,'/') . '`?\s*\([\s\S]*?;/', $schema, $m) === 1, 'Canonical table ' . $canonical); kp_sql(str_replace($canonical,$table,$m[0])); }
+ if(!empty($kp_guest_policy_mode)){kp_guest_policy_suite();return;}
  if(!empty($kp_config_mode)){kp_config_suite();return;}
  if(!empty($kp_text_mode)){kp_text_suite();return;}
  if(!empty($kp_mirror_mode)){kp_mirror_suite();return;}

@@ -271,6 +271,7 @@ jobs:
           php .github/scripts/check-kb-category-native.php
           php .github/scripts/check-kb-types-native.php
           php .github/scripts/check-kb-config-native.php
+          php .github/scripts/check-kb-guest-policy-native.php
           php .github/scripts/check-kb-discussion-native.php
           php .github/scripts/check-kb-text-boundaries-native.php
           php .github/scripts/check-kb-writing-native.php

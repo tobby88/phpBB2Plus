@@ -37,7 +37,7 @@ if ( !defined('IN_PHPBB') )
  
 $lang['KB_title'] = 'Knowledge Base';
 $lang['KB_publication_failed'] = 'The Knowledge Base change could not be confirmed. Please check its current state before retrying.';
-$lang['KB_publication_upgrade'] = 'Please complete the database update before changing Knowledge Base approvals.';
+$lang['KB_publication_upgrade'] = 'Please complete the database update before changing Knowledge Base content or settings.';
 $lang['KB_deletion_failed'] = 'The article deletion could not be confirmed. Please check its current state before retrying.';
 $lang['KB_deletion_relation'] = 'The stored discussion relation is ambiguous or changed. No article deletion was confirmed.';
 $lang['KB_deletion_cleanup_pending'] = 'The article was deleted. An administrator must check the remaining shadow attachments.';
