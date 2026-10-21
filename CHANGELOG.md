@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Retain KB discussion replies after author-account deletion and exclude the
+  actual first-post ID rather than the first returned row. Count and paginate
+  the same readable replies with stable ordering and bounded, narrow queries.
+  Preserve saved guest names without double escaping, and leave original posts,
+  authorship and cached forum counters unchanged. No migration is required.
+
 - Respect current discussion-forum view/read permissions before showing KB
   comment links, reply counts or embedded replies. Do not trust stale account
   roles, expired sessions or cached forum grants. Hide missing/moved discussions

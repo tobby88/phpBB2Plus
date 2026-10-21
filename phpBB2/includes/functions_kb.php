@@ -1088,11 +1088,18 @@ function is_group_member($group_id = '', $user_id = '')
 // A public KB article does not grant access to its discussion forum. Resolve
 // current account/session and forum grants on this connection, not cached roles
 // or the cached category tree. An expired account/session is only a guest here.
+function kb_comment_relation_sql($topic_id, $forum_id)
+{
+	return 'p.topic_id='.(int)$topic_id.' AND t.topic_id=p.topic_id AND t.forum_id='.(int)$forum_id
+		.' AND p.forum_id=t.forum_id AND t.topic_moved_id=0 AND t.topic_status<>'.TOPIC_MOVED
+		.' AND p.post_id<>t.topic_first_post_id';
+}
+
 function kb_comment_topic($topic_id)
 {
 	global $db, $userdata;
 	try { $topic_id=kb_counter_category_id($topic_id); } catch (RuntimeException $error) { return false; }
-	$sql='SELECT t.topic_id,t.topic_replies,t.forum_id,f.auth_view,f.auth_read FROM '.TOPICS_TABLE.' t INNER JOIN '.FORUMS_TABLE.' f ON f.forum_id=t.forum_id WHERE t.topic_id='.$topic_id.' AND t.topic_moved_id=0 AND t.topic_status<>'.TOPIC_MOVED;
+	$sql='SELECT t.topic_id,t.forum_id,f.auth_view,f.auth_read FROM '.TOPICS_TABLE.' t INNER JOIN '.FORUMS_TABLE.' f ON f.forum_id=t.forum_id WHERE t.topic_id='.$topic_id.' AND t.topic_moved_id=0 AND t.topic_status<>'.TOPIC_MOVED;
 	if (!($result=$db->sql_query($sql))) { message_die(GENERAL_ERROR,'Error getting comments','',__LINE__,__FILE__,$sql); }
 	$topic=$db->sql_fetchrow($result);$db->sql_freeresult($result);
 	if (!$topic) { return false; }
@@ -1111,45 +1118,37 @@ function kb_comment_topic($topic_id)
 	}
 	$view=auth(AUTH_VIEW,(int)$topic['forum_id'],$user,$topic,$db);
 	$read=auth(AUTH_READ,(int)$topic['forum_id'],$user,$topic,$db);
-	return !empty($view['auth_view']) && !empty($read['auth_read']) ? $topic : false;
+	if (empty($view['auth_view']) || empty($read['auth_read'])) { return false; }
+	// Count the same surviving reply rows that the renderer can display. Do not
+	// rewrite cached topic counts, infer a missing first post, or require an
+	// author's account to survive for their post to remain readable.
+	$sql='SELECT COUNT(*) AS comment_count FROM '.POSTS_TABLE.' p INNER JOIN '.TOPICS_TABLE.' t ON t.topic_id=p.topic_id INNER JOIN '.POSTS_TEXT_TABLE.' pt ON pt.post_id=p.post_id WHERE '.kb_comment_relation_sql($topic_id,$topic['forum_id']);
+	if (!($result=$db->sql_query($sql))) { message_die(GENERAL_ERROR,'Error getting comment count','',__LINE__,__FILE__,$sql); }
+	$count=$db->sql_fetchrow($result);$db->sql_freeresult($result);
+	if (!$count || !isset($count['comment_count']) || preg_match('/^[0-9]+$/D',(string)$count['comment_count'])!==1) { message_die(GENERAL_ERROR,'Error getting comment count'); }
+	$topic['topic_replies']=(int)$count['comment_count'];
+	return $topic;
 }
 
-// Extract all post in the comments topic
+// Render one bounded page of readable replies, never the generated first post.
 //
 function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 {
-    global $db, $board_config, $template, $phpbb_root_path, $phpEx, $is_block, $page_id, $lang, $userdata;
+    global $db, $board_config, $template, $lang;
 	$visible_topic=kb_comment_topic($topic_id);
 	if (!$visible_topic) { return $template; }
 
 	$topic_id = (int) $topic_id;
-	$start = max(-1, min(1000000, (int) $start));
-	$show_num_comments = max(0, min(1000, (int) $show_num_comments));
-	if ($topic_id <= 0)
-	{
-		message_die(GENERAL_MESSAGE, 'no topic id');
-	}
-
-	$show_num_comments = $start == 0 ? $show_num_comments = $show_num_comments + 1 : $show_num_comments ;
-	$start = $start > 0 ? $start = $start + 1: $start;
-	$post_time_order = 'ASC';
+	$show_num_comments=kb_stats_page_size($show_num_comments===0 ? 20 : $show_num_comments);
+	$start=kb_stats_page_start($start,$show_num_comments,$visible_topic['topic_replies']);
 	
 	//
-	// Go ahead and pull all data for this topic
+	// Fetch only this bounded reply page. A missing account is not a missing post.
 	//
-	$sql = "SELECT u.username, u.user_id, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
-		FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt, " . TOPICS_TABLE . " t
-		WHERE p.topic_id = $topic_id
-			AND t.topic_id=p.topic_id AND t.forum_id=" . (int)$visible_topic['forum_id'] . " AND p.forum_id=t.forum_id
-			AND t.topic_moved_id=0 AND t.topic_status<>" . TOPIC_MOVED . "
-			AND pt.post_id = p.post_id
-			AND u.user_id = p.poster_id
-		ORDER BY p.post_time $post_time_order, p.post_id ASC";
-	
-	if ( $start > -1 && $show_num_comments > 0 )
-	{
-		$sql .= " LIMIT $start, $show_num_comments ";
-	}
+	$sql='SELECT u.username,u.user_id,u.user_from,p.post_id,p.poster_id,p.post_time,p.post_username,p.enable_html,p.enable_smilies,p.post_edit_time,p.post_edit_count,pt.post_text,pt.post_subject,pt.bbcode_uid FROM '.POSTS_TABLE.' p '
+		.'INNER JOIN '.TOPICS_TABLE.' t ON t.topic_id=p.topic_id INNER JOIN '.POSTS_TEXT_TABLE.' pt ON pt.post_id=p.post_id '
+		.'LEFT JOIN '.USERS_TABLE.' u ON u.user_id=p.poster_id WHERE '.kb_comment_relation_sql($topic_id,$visible_topic['forum_id'])
+		.' ORDER BY p.post_time ASC,p.post_id ASC LIMIT '.$start.','.$show_num_comments;
 
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -1178,30 +1177,18 @@ function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 // Okay, let's do the loop, yeah come on baby let's do the loop
 // and it goes like this ...
 //
-$start == 0 ? $i_init = 1: $i_init = 0;
-
-for($i = $i_init; $i < $total_posts; $i++)
+for($i = 0; $i < $total_posts; $i++)
 {
-	$poster_id = $postrow[$i]['user_id'];
-	$poster = ( $poster_id == ANONYMOUS ) ? $lang['Guest'] : phpbb_profile_text($postrow[$i]['username']);
-	$user_sig = '';
-	$user_sig_bbcode_uid = '';
+	$registered=isset($postrow[$i]['user_id']) && (int)$postrow[$i]['user_id']>0 && is_string($postrow[$i]['username']) && $postrow[$i]['username']!=='';
+	$poster=$registered ? phpbb_profile_text($postrow[$i]['username']) : phpbb_profile_text($lang['Guest']);
+	if (!$registered && is_string($postrow[$i]['post_username']) && $postrow[$i]['post_username']!=='')
+	{
+		$poster=phpbb_stored_text($postrow[$i]['post_username']);
+	}
 
 	$post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);
 
-	$poster_posts = ( $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $postrow[$i]['user_posts'] : '';
-
-	$poster_from = ( $postrow[$i]['user_from'] && $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($postrow[$i]['user_from']) : '';
-
-	$poster_joined = ( $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $postrow[$i]['user_regdate'], $board_config['board_timezone']) : '';
-	//
-	// Handle anon users posting with usernames
-	//
-	if ( $poster_id == ANONYMOUS && $postrow[$i]['post_username'] != '' )
-	{
-		$poster = phpbb_profile_text($postrow[$i]['post_username']);
-		$poster_rank = $lang['Guest'];
-	}
+	$poster_from = ( $registered && $postrow[$i]['user_from'] ) ? $lang['Location'] . ': ' . phpbb_profile_text($postrow[$i]['user_from']) : '';
 	$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? phpbb_profile_text($postrow[$i]['post_subject']) : '';
 
 	$message = $postrow[$i]['post_text'];
@@ -1212,11 +1199,6 @@ for($i = $i_init; $i < $total_posts; $i++)
 	//
 	if ( !$board_config['allow_html'] )
 	{
-		if ( $user_sig != '' && $userdata['user_allowhtml'] )
-		{
-			$user_sig = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $user_sig);
-		}
-
 		if ( $postrow[$i]['enable_html'] )
 		{
 			$message = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $message);
@@ -1224,25 +1206,16 @@ for($i = $i_init; $i < $total_posts; $i++)
 	}
 
 	//
-	// Parse message and/or sig for BBCode if reqd
+	// Parse message for BBCode if reqd.
 	//
 	if ( $board_config['allow_bbcode'] )
 	{
-		if ( $user_sig != '' && $user_sig_bbcode_uid != '' )
-		{
-			$user_sig = ( $board_config['allow_bbcode'] ) ? bbencode_second_pass($user_sig, $user_sig_bbcode_uid) : preg_replace('/\:[0-9a-z\:]+\]/si', ']', $user_sig);
-		}
-
 		if ( $bbcode_uid != '' )
 		{
 			$message = ( $board_config['allow_bbcode'] ) ? bbencode_second_pass($message, $bbcode_uid) : preg_replace('/\:[0-9a-z\:]+\]/si', ']', $message);
 		}
 	}
 
-	if ( $user_sig != '' )
-	{
-		$user_sig = make_clickable($user_sig);
-	}
 	$message = make_clickable($message);
 
 	//
@@ -1250,11 +1223,6 @@ for($i = $i_init; $i < $total_posts; $i++)
 	//
 	if ( $board_config['allow_smilies'] )
 	{
-		if ( $postrow[$i]['user_allowsmile'] && $user_sig != '' )
-		{
-			$user_sig = smilies_pass($user_sig);
-		}
-
 		if ( $postrow[$i]['enable_smilies'] )
 		{
 			$message = smilies_pass($message);

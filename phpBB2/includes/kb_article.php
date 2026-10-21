@@ -297,7 +297,8 @@ if ( !defined('IN_PHPBB') )
     			$page_numm = '';
 			}
 
-			$show_num_comments = max(1, min(1000, (int) $kb_config['comments_pagination']));
+			$show_num_comments = kb_stats_page_size($kb_config['comments_pagination']);
+			$start = kb_stats_page_start($start,$show_num_comments,$topic['topic_replies']);
 			$pagination = generate_pagination(this_kb_mxurl("mode=article&k=$article_id" . $page_numm), $topic['topic_replies'], $show_num_comments, $start). '&nbsp;';
 			get_kb_comments($topic_id, $start, $show_num_comments);   
 		}

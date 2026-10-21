@@ -32,7 +32,8 @@ kb_runtime_assert(strpos($functions, "\$article_link = '<a") !== false, 'article
 kb_runtime_assert(strpos($functions, "\$postrow[\$i]['link_rating']") === false, 'KB ratings must not read an unrelated post row');
 kb_runtime_assert(substr_count($functions, '$article_rating / $article_totalvotes') === 2, 'both KB list variants must use article rating fields');
 kb_runtime_assert(strpos($functions, "\$author = ( \$username != '' )") === false, 'guest authors must not depend on an undefined username variable');
-kb_runtime_assert(strpos($functions, "\$post_time_order = 'ASC';") !== false, 'embedded comments must use a defined SQL sort direction');
+kb_runtime_assert(strpos($functions, 'ORDER BY p.post_time ASC,p.post_id ASC LIMIT ') !== false, 'embedded comments must use a fixed stable order and bounded page');
+kb_runtime_assert(strpos($functions, 'AND p.post_id<>t.topic_first_post_id') !== false && strpos($functions, 'LEFT JOIN \'.USERS_TABLE.') !== false, 'comment pages must exclude the actual first post and retain missing authors');
 kb_runtime_assert(strpos($functions, "\$topic_id = (int) \$topic_id;") !== false, 'embedded comment topic IDs must be normalized');
 kb_runtime_assert(strpos($functions, "phpbb_profile_text(\$postrow[\$i]['post_subject'])") !== false, 'embedded comment subjects must be escaped');
 kb_runtime_assert(strpos($writing, "phpbb_board_url('admin/admin_kb_art.'") !== false, 'notification PM must link to a fresh AdminCP session');

@@ -87,7 +87,7 @@ function kp_comment_suite(){
    kcv_seed('ordinary',AUTH_ALL,AUTH_ALL);kcv_guest();
    if($state==='empty'){kp_sql('DELETE FROM fixture_posts_text');kp_sql('DELETE FROM fixture_posts');}elseif($state==='foreign-post-forum'){kp_sql('UPDATE fixture_posts SET forum_id=2 WHERE post_id=2');}
    $before=kp_snapshot();$template=new KcvTemplate();get_kb_comments(77,$state==='beyond-end'?9999:0,10);
-   kp_check(!isset($template->blocks['postrow'])&&kp_snapshot()===$before,'Empty/outdated/foreign reply GET stays read-only '.$state);$cases++;
+   kp_check(isset($template->blocks['postrow'])===($state==='beyond-end')&&kp_snapshot()===$before,'Empty/normalized-last/foreign reply GET stays read-only '.$state);$cases++;
   }
   kcv_seed('ordinary',AUTH_ALL,AUTH_ALL);kcv_guest();$kb_config['comments']=0;$kb_config['comments_show']=1;$before=kp_snapshot();$template=new KcvTemplate();$db->queries=array();$display=kcv_controller(77);
   kp_check($display[0]===''&&!$db->queries&&!$template->blocks&&kp_snapshot()===$before,'Comments disabled never queries or exposes a discussion');$cases++;
