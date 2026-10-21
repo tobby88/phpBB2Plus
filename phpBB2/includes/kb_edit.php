@@ -38,7 +38,7 @@ if ( !defined('IN_PHPBB') )
 	{
 		message_die(GENERAL_MESSAGE, $lang['Article_not_exsist']);
 	}
-	if (!$is_admin && (!$userdata['session_logged_in'] || intval($permission_row['article_author_id']) !== intval($userdata['user_id'])))
+	if (!$is_admin && (empty($kb_config['allow_edit']) || !$userdata['session_logged_in'] || intval($permission_row['article_author_id']) !== intval($userdata['user_id'])))
 	{
 		$message = $lang['No_edit'] . '<br /><br />' . sprintf($lang['Click_return_kb'], '<a href="' . append_sid(this_kb_mxurl()) . '">', '</a>') . '<br /><br />' . sprintf($lang['Click_return_index'], '<a href="' . append_sid($phpbb_root_path . "index.$phpEx") . '">', '</a>');
 		message_die(GENERAL_MESSAGE, $message);

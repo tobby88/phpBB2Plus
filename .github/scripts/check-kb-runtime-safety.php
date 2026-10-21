@@ -23,6 +23,8 @@ $rate = file_get_contents($root . '/phpBB2/includes/kb_rate.php');
 $rating_storage = file_get_contents($root . '/phpBB2/includes/functions_kb_rating_storage.php');
 $add = file_get_contents($root . '/phpBB2/includes/kb_add.php');
 $edit = file_get_contents($root . '/phpBB2/includes/kb_edit.php');
+kb_runtime_assert(strpos($edit, "empty(\$kb_config['allow_edit'])") !== false, 'disabled editing must gate the actual editor, not only its link');
+kb_runtime_assert(strpos($writing, "\$this->settings['allow_edit'] !== '1'") !== false, 'ordinary authors must honor the current locked edit policy at save');
 
 kb_runtime_assert(strpos($functions, "\$article_link = '<a") !== false, 'article link must not overwrite the database row');
 kb_runtime_assert(strpos($functions, "\$postrow[\$i]['link_rating']") === false, 'KB ratings must not read an unrelated post row');

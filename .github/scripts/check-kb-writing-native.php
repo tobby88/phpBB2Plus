@@ -3,7 +3,7 @@ $kp_write_mode = true;
 function kw_input() { return array('title'=>"Synthetic Größe 😀 O'Reilly",'description'=>'Exact UTF8 description','body'=>'Synthetic searchable article body','username'=>'Guest identity','category'=>'2','type'=>'1','html_on'=>false,'bbcode_on'=>false,'smilies_on'=>false); }
 function kw_reset($actor='root',$comments=false,$notify='0') {
  kp_reset($actor,$comments);
- foreach(array('allow_new'=>'1','allow_anon'=>'0','approve_new'=>'1','approve_edit'=>'1','bump_post'=>'1','notify'=>$notify)as$key=>$value){kp_sql("INSERT INTO fixture_kb_config VALUES('".$key."','".$value."')");}
+ foreach(array('allow_new'=>'1','allow_edit'=>'1','allow_anon'=>'0','approve_new'=>'1','approve_edit'=>'1','bump_post'=>'1','notify'=>$notify)as$key=>$value){kp_sql("INSERT INTO fixture_kb_config VALUES('".$key."','".$value."')");}
  if($actor==='ordinary'){kp_sql('UPDATE fixture_kb_articles SET article_author_id=4');}
 }
 function kw_run($mode='add',$input=null,$id=1) {
@@ -27,6 +27,36 @@ function kw_existing_fixture($scenario) {
  $input=kw_input();$input['title']='Current Changedword';$input['description']='New Butterflytoken';
  if($scenario==='move'){kp_sql("INSERT INTO fixture_kb_categories(category_id,category_name,category_details,number_articles,parent,cat_order) VALUES(3,'Destination','Preserve',0,1,2)");$input['category']='3';}
  return $input;
+}
+function kw_edit_entry($admin,$allowed,$method='GET',$preview=false) {
+ global$db,$userdata,$kb_config,$lang,$phpbb_root_path,$phpEx;
+ static$body=null;if($body===null){$source=file_get_contents($GLOBALS['kp_source'].'includes/kb_edit.php');$a=strpos($source,'$article_id =');$b=strpos($source,'// main / preview',$a);kp_check($a!==false&&$b>$a,'Complete actual editor entry and permission/token gates');$body=substr($source,$a,$b-$a);}
+ $is_admin=$admin;$kb_config['allow_edit']=$allowed;$_GET=array('k'=>'1');$_POST=array('sid'=>$userdata['session_id']);if($preview){$_POST['preview']='1';}$_SERVER['REQUEST_METHOD']=$method;
+ try{eval($body);}catch(KpMessageExit$error){return$error;}return true;
+}
+function kw_edit_policy_suite() {
+ global$kp_source,$kp_hook,$userdata,$kb_config;
+ $cases=0;
+ foreach(array(false,true)as$comments){foreach(array('root','moderator','ordinary','junior')as$actor){foreach(array('0','1')as$allowed){
+  kw_reset($actor,$comments);if($actor==='junior'){kp_sql('UPDATE fixture_kb_articles SET article_author_id=2');}kp_sql("UPDATE fixture_kb_config SET config_value='".$allowed."' WHERE config_name='allow_edit'");
+  $before=kp_snapshot();$out=kw_run('edit');$accept=$allowed==='1'||in_array($actor,array('root','moderator'),true);
+  if($accept){kw_ok($out,'Current editing policy retains existing moderator exception');}else{kp_check($out instanceof PhpbbKbPublicationException&&kp_snapshot()===$before,'Disabled editing denies even actual owner or delegated article admin, with no effects');}$cases++;
+ }}}
+ foreach(array('2','invalid','missing')as$policy){kw_reset();if($policy==='missing'){kp_sql("DELETE FROM fixture_kb_config WHERE config_name='allow_edit'");}else{kp_sql("UPDATE fixture_kb_config SET config_value='".$policy."' WHERE config_name='allow_edit'");}$before=kp_snapshot();kp_check(kw_run('edit') instanceof PhpbbKbPublicationException&&kp_snapshot()===$before,'Missing/malformed stored edit policy never permits writes');$cases++;}
+ foreach(array('GET','POST')as$method){foreach(array(false,true)as$preview){foreach(array('0','1')as$allowed){kw_reset('ordinary');$before=kp_snapshot();$out=kw_edit_entry(false,$allowed,$method,$preview);$accept=$allowed==='1'&&(!$preview||$method==='POST');kp_check(($accept?$out===true:$out instanceof KpMessageExit)&&kp_snapshot()===$before,'Actual editor GET/preview entry honors edit policy and POST token without writes');$cases++;}}}
+ foreach(array('root','moderator')as$actor){kw_reset($actor);$before=kp_snapshot();kp_check(kw_edit_entry(true,'0')===true&&kp_snapshot()===$before,'Actual editor entry retains existing KB administrator/moderator policy exception');$cases++;}
+ require$kp_source.'includes/functions_kb_config_storage.php';
+ foreach(array(false,true)as$comments){
+  kw_reset('ordinary',$comments);$seed=file_get_contents($kp_source.'install/schemas/mysql_basic.sql');preg_match_all('/^INSERT INTO phpbb_kb_config\b[^\r\n]*;/m',$seed,$matches);kp_check(count($matches[0])===26,'Canonical settings for actual config-policy change');foreach($matches[0]as$sql){kp_sql(str_replace(array('INSERT INTO phpbb_kb_config'),array('INSERT IGNORE INTO fixture_kb_config'),$sql));}
+  $before=kp_snapshot();$reached=false;$kp_hook=function($event,$sql)use(&$reached){
+   if($event!=='before'||strpos($sql,'SELECT GET_LOCK(')!==0){return;}$GLOBALS['kp_hook']=null;$reached=true;$old=$GLOBALS['userdata'];
+   try{$GLOBALS['userdata']['user_id']=1;kp_sql('UPDATE fixture_sessions SET session_user_id=1');$result=kb_save_config($GLOBALS['kp_caller'],array('allow_edit'=>'0'));kp_check(is_array($result)&&$result['allow_edit']==='0','Actual independent configuration owner disables editing before editor owns its transaction');}
+   finally{$GLOBALS['userdata']=$old;kp_sql('UPDATE fixture_sessions SET session_user_id=4');}
+  };
+  $kb_config['allow_edit']='1';$out=kw_controller('edit');$kp_hook=null;$after=kp_snapshot();unset($before[KB_CONFIG_TABLE],$after[KB_CONFIG_TABLE]);
+  kp_check($reached&&$out->level===GENERAL_ERROR&&$after===$before&&kp_rows("SELECT config_value FROM fixture_kb_config WHERE config_name='allow_edit'")===array(array('config_value'=>'0')),'Actual stale cached editor cannot bypass separately committed current config change; article/counters/index/PM/discussion remain unchanged');$cases++;
+ }
+ return$cases;
 }
 function kp_write_suite() {
  global $kp_source,$kp_hook,$userdata,$lang;require $kp_source.'includes/functions_kb_write_storage.php';$cases=0;
@@ -135,6 +165,7 @@ function kp_write_suite() {
   kp_check(kw_controller('add')->level===GENERAL_MESSAGE,'Actual successful localized controller in '.$locale);$cases++;
  }
  $lang=$original_lang;
- echo 'KB add/edit native: '.$cases." actual authority/fault/PM/discussion/index/guest/controller/locale cases passed.\n";
+ $cases+=kw_edit_policy_suite();
+ echo 'KB add/edit native: '.$cases." actual authority/fault/PM/discussion/index/guest/controller/locale/edit-policy cases passed.\n";
 }
 require __DIR__.'/check-kb-publication-native.php';

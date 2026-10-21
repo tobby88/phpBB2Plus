@@ -43,7 +43,7 @@ class PhpbbKbWriteDatabase extends PhpbbKbPublicationDatabase
 		}
 		if ($this->mode === 'add') {
 			if (!$moderator && ($this->settings['allow_new'] !== '1' || ($guest && $this->settings['allow_anon'] !== '1'))) { kb_publication_fail('No_add'); }
-		} elseif (!$moderator && ($guest || !$this->article || (int)$this->article['article_author_id'] !== $id)) { kb_publication_fail('No_edit'); }
+		} elseif (!$moderator && ($this->settings['allow_edit'] !== '1' || $guest || !$this->article || (int)$this->article['article_author_id'] !== $id)) { kb_publication_fail('No_edit'); }
 		$user['kb_moderator'] = $moderator;
 		if ($this->approval !== null) {
 			$current = $this->mode === 'add' ? (($moderator || (int)$user['user_level'] === MOD || $this->settings['approve_new'] === '0') ? 1 : 0)
@@ -59,7 +59,7 @@ class PhpbbKbWriteDatabase extends PhpbbKbPublicationDatabase
 		$this->control('START TRANSACTION'); $this->transactional = true;
 		kb_publication_pin_tables($this, array_unique(array_merge($this->write_tables(), array(KB_CONFIG_TABLE,KB_TYPES_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE))));
 		foreach ($this->rows('SELECT config_name,config_value FROM ' . KB_CONFIG_TABLE . ' ORDER BY config_name FOR UPDATE') as $row) { $this->settings[$row['config_name']] = $row['config_value']; }
-		foreach (array('allow_new','allow_anon','approve_new','approve_edit','comments','bump_post') as $flag) {
+		foreach (array('allow_new','allow_edit','allow_anon','approve_new','approve_edit','comments','bump_post') as $flag) {
 			if (!isset($this->settings[$flag]) || !in_array($this->settings[$flag], array('0','1'), true)) { kb_publication_fail('KB_write_failed'); }
 		}
 		if (!isset($this->settings['notify'],$this->settings['mod_group']) || !in_array($this->settings['notify'], array('0','1','2'), true)) { kb_publication_fail('KB_write_failed'); }

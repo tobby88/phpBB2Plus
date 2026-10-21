@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Enforce the existing Knowledge Base edit switch at both editor entry and the
+  transactional save boundary, rather than only hiding the edit link. Recheck
+  current policy after independently committed configuration changes and keep
+  the existing current administrator/KB moderator exception. No schema change
+  or new setting is required.
+
 - Save Knowledge Base configuration in one dedicated transaction using the
   exact current ACP configuration grant. Roll back the complete settings batch
   after later SQL errors, changed authority or interrupted connections; retain
