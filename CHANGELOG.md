@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save Knowledge Base configuration in one dedicated transaction using the
+  exact current ACP configuration grant. Roll back the complete settings batch
+  after later SQL errors, changed authority or interrupted connections; retain
+  unknown settings and omitted fields. Reject malformed IDs and typed fields,
+  pin referenced users/forums/groups, remove legacy request quoting once and
+  preserve UTF-8 character limits without mbstring. No schema change is needed.
+
 - Preserve complete UTF-8 KB text at character limits without mbstring. Widen
   stored discussion guest names to match saved KB author capacity instead of
   failing on the form's accepted names over 25 characters. Include preserving

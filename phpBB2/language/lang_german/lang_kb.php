@@ -1,4 +1,6 @@
 <?php
+$lang['KB_config_invalid'] = 'Die Wissensdatenbank-Einstellungen enthalten einen ungültigen Wert, eine fehlende Einstellung oder einen nicht verfügbaren Benutzer, ein Forum oder eine Gruppe. Bitte korrigiere die Einstellungen und versuche es erneut.';
+$lang['KB_config_failed'] = 'Das Speichern der Wissensdatenbank-Einstellungen konnte nicht bestätigt werden. Bitte prüfe ihren aktuellen Stand vor einem erneuten Versuch.';
 $lang['KB_type_invalid'] = 'Bitte gib einen gültigen Artikeltyp, ein gültiges Ziel und einen UTF-8-Namen an. Mehrdeutige Typzuordnungen müssen manuell geprüft werden.';
 $lang['KB_type_failed'] = 'Die Artikeltypänderung konnte nicht bestätigt werden. Bitte prüfe den aktuellen Stand, bevor du sie erneut ausführst.';
 $lang['KB_category_invalid'] = 'Bitte gib eine gültige Kategorie, ein gültiges Ziel, eine gültige Oberkategorie und UTF-8-Text an. Zyklische oder mehrdeutige Kategorien müssen manuell geprüft werden.';

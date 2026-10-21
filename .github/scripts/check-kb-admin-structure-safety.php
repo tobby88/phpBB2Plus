@@ -12,6 +12,13 @@ function kb_structure_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $categories = file_get_contents($root . '/phpBB2/admin/admin_kb_cat.php');
 $types = file_get_contents($root . '/phpBB2/admin/admin_kb_types.php');
+$config = file_get_contents($root . '/phpBB2/admin/admin_kb_config.php');
+$config_storage = file_get_contents($root . '/phpBB2/includes/functions_kb_config_storage.php');
+kb_structure_assert(strpos($config, 'kb_save_config($db, $config_input)') !== false && strpos($config, 'phpbb_admin_require_post_session();') !== false, 'config writes require the owning API and POST token');
+kb_structure_assert(strpos($config, '$db->sql_escape($new[') === false && strpos($config, 'kb_admin_record_exists') === false, 'config controller retains no old autocommit or partial ID selector');
+kb_structure_assert(strpos($config, 'phpbb_request_raw_value($_POST[$key])') !== false, 'config boundary removes legacy request quoting exactly once');
+kb_structure_assert(strpos($config_storage, "parent::__construct(\$database,'config')") !== false && strpos($config_storage, '$owner->commit();') !== false, 'config has an exact independent ACP grant and owned commit');
+kb_structure_assert(strpos($config_storage, 'LOCK IN SHARE MODE') !== false && strpos($config_storage, '$owner->read_settings()!==$expected') !== false, 'config validates and pins live references and verifies all stored settings');
 $templates = array(
 	$root . '/phpBB2/templates/fisubsilversh/admin/kb_cat_admin_body.tpl',
 	$root . '/phpBB2/templates/fisubsilversh/admin/kb_type_body.tpl'

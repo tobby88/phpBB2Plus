@@ -35,6 +35,7 @@ require($phpbb_root_path . 'extension.inc');
 require('./pagestart.' . $phpEx);
 require($phpbb_root_path . 'includes/kb_constants.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_admin.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_kb_config_storage.'.$phpEx);
 
 function get_forums($sel_id)
 {
@@ -106,32 +107,6 @@ function get_groups($sel_id)
 	return $grouplist;
 }
 
-function kb_admin_post_scalar($key, $default = '')
-{
-	return isset($_POST[$key]) && is_scalar($_POST[$key]) ? trim((string) $_POST[$key]) : $default;
-}
-
-function kb_admin_record_exists($table, $column, $id)
-{
-	global $db;
-	$id = intval($id);
-	if ($id < 1)
-	{
-		return false;
-	}
-	$sql = 'SELECT ' . $column . ' FROM ' . $table . ' WHERE ' . $column . ' = ' . $id;
-	if (!$result = $db->sql_query($sql))
-	{
-		return false;
-	}
-	return (bool) $db->sql_fetchrow($result);
-}
-
-function kb_admin_limit_text($value, $length)
-{
-	return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
-}
-
 	//
 	// Pull all config data
 	//
@@ -153,52 +128,12 @@ function kb_admin_limit_text($value, $length)
 		if (isset($_POST['submit']))
 		{
 			phpbb_admin_require_post_session();
-			$boolean_fields = array('allow_new', 'approve_new', 'allow_edit', 'approve_edit', 'show_pretext', 'comments', 'allow_anon', 'del_topic', 'comments_show', 'bump_post', 'stats_list', 'header_banner', 'allow_rating', 'allow_anonymos_rating', 'votes_check_ip', 'votes_check_userid');
-			foreach ($boolean_fields as $config_name)
-			{
-				$value = kb_admin_post_scalar($config_name, isset($new[$config_name]) ? $new[$config_name] : '0');
-				$new[$config_name] = $value === '1' ? '1' : '0';
+			$config_input = array();
+			foreach (kb_config_editable_fields() as $key) {
+				if (array_key_exists($key, $_POST)) { $config_input[$key] = phpbb_request_raw_value($_POST[$key]); }
 			}
-
-			$notify = kb_admin_post_scalar('notify', isset($new['notify']) ? $new['notify'] : '0');
-			$new['notify'] = in_array($notify, array('0', '1', '2'), true) ? $notify : '0';
-			$news_sort = kb_admin_post_scalar('news_sort', isset($new['news_sort']) ? $new['news_sort'] : 'Alphabetic');
-			$new['news_sort'] = in_array($news_sort, array('Latest', 'Creation', 'Id', 'Userrank', 'Alphabetic'), true) ? $news_sort : 'Alphabetic';
-			$news_sort_par = strtoupper(kb_admin_post_scalar('news_sort_par', isset($new['news_sort_par']) ? $new['news_sort_par'] : 'ASC'));
-			$new['news_sort_par'] = in_array($news_sort_par, array('ASC', 'DESC'), true) ? $news_sort_par : 'ASC';
-
-			$new['art_pagination'] = (string) max(1, min(1000, intval(kb_admin_post_scalar('art_pagination', 5))));
-			$new['comments_pagination'] = (string) max(1, min(1000, intval(kb_admin_post_scalar('comments_pagination', 5))));
-			$new['pt_header'] = kb_admin_limit_text(kb_admin_post_scalar('pt_header'), 100);
-			$new['pt_body'] = kb_admin_limit_text(kb_admin_post_scalar('pt_body'), 255);
-
-			$record_fields = array(
-				'admin_id' => array(USERS_TABLE, 'user_id'),
-				'forum_id' => array(FORUMS_TABLE, 'forum_id'),
-				'mod_group' => array(GROUPS_TABLE, 'group_id')
-			);
-			foreach ($record_fields as $config_name => $record)
-			{
-				$value = max(0, intval(kb_admin_post_scalar($config_name)));
-				if ($value === 0 || kb_admin_record_exists($record[0], $record[1], $value))
-				{
-					$new[$config_name] = (string) $value;
-				}
-			}
-
-			$editable_fields = array_merge($boolean_fields, array('notify', 'news_sort', 'news_sort_par', 'art_pagination', 'comments_pagination', 'pt_header', 'pt_body', 'admin_id', 'forum_id', 'mod_group'));
-			foreach ($editable_fields as $config_name)
-			{
-				if (!array_key_exists($config_name, $default_config) || !array_key_exists($config_name, $new))
-				{
-					continue;
-				}
-				$sql = "UPDATE " . KB_CONFIG_TABLE . " SET config_value = '" . $db->sql_escape($new[$config_name]) . "' WHERE config_name = '" . $db->sql_escape($config_name) . "'";
-				if (!$db->sql_query($sql))
-				{
-					message_die(GENERAL_ERROR, 'Failed to update knowledge base configuration', '', __LINE__, __FILE__, $sql);
-				}
-			}
+			try { $new = kb_save_config($db, $config_input); }
+			catch (PhpbbKbPublicationException $error) { message_die(GENERAL_ERROR, $error->getMessage()); }
 
 			$message = $lang['KB_config_updated'] . "<br /><br />" . sprintf($lang['Click_return_kb_config'], "<a href=\"" . append_sid("admin_kb_config.$phpEx?mode=config") . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_admin_index'], "<a href=\"" . append_sid($phpbb_root_path . "admin/index.$phpEx?pane=right") . "\">", "</a>");
 			message_die(GENERAL_MESSAGE, $message);

@@ -69,6 +69,7 @@ function phpbb_acp_actor($db,$route)
 		'admin_kb_art.'.$phpEx,
 		'admin_kb_cat.'.$phpEx,
 		'admin_kb_types.'.$phpEx,
+		'admin_kb_config.'.$phpEx.'?mode=config',
 		'admin_words.'.$phpEx,'admin_acronyms.'.$phpEx,'admin_disallow.'.$phpEx,
 		'admin_ug_auth.'.$phpEx.'?mode=user','admin_ug_auth.'.$phpEx.'?mode=group',
 		'admin_board.'.$phpEx,'admin_board_extend.'.$phpEx,'admin_cracker_tracker.'.$phpEx.'?modu=1',

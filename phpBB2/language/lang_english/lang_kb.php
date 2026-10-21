@@ -1,4 +1,6 @@
 <?php
+$lang['KB_config_invalid'] = 'The Knowledge Base settings contain an invalid value, a missing setting or an unavailable user, forum or group. Please correct the settings and try again.';
+$lang['KB_config_failed'] = 'Saving the Knowledge Base settings could not be confirmed. Please check their current state before retrying.';
 $lang['KB_type_invalid'] = 'Please provide a valid article type, destination and UTF-8 name. Ambiguous type references require manual review.';
 $lang['KB_type_failed'] = 'The article type change could not be confirmed. Please check its current state before retrying.';
 $lang['KB_category_invalid'] = 'Please provide a valid category, destination, parent and UTF-8 text. Cyclic or ambiguous categories require manual review.';

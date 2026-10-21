@@ -112,7 +112,8 @@ $integrations = array(
 	'includes/functions_kb_category_storage.php' => array("$"."this->initialize($"."database, 'category')", 'kb_counter_rebuild_plan($proposed, array())', 'kb_delete_article_owned($storage);'),
 	'admin/admin_kb_types.php' => array('phpbb_admin_require_post_session();', 'kb_change_type($db, $mode,'),
 	'includes/functions_kb_type_storage.php' => array("parent::__construct($"."database, 'type')", '$owner->sql_escape($name)', '$owner->commit();'),
-	'admin/admin_kb_config.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', '$editable_fields', 'kb_admin_record_exists', '$db->sql_escape($new[$config_name])')
+	'admin/admin_kb_config.php' => array('phpbb_admin_require_post_session();', 'phpbb_admin_session_field()', 'kb_save_config($db, $config_input)', 'phpbb_request_raw_value($_POST[$key])'),
+	'includes/functions_kb_config_storage.php' => array("parent::__construct($"."database,'config')", 'kb_config_editable_fields()', '$owner->sql_escape($expected[$key])', '$owner->commit();')
 );
 
 foreach ($integrations as $relative_path => $needles)
