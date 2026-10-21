@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Refuse custom MariaDB expression defaults before guest-name widening instead
+  of turning expressions into literal text. Read and recheck the actual constant
+  default rather than lossy metadata, preserving supplementary Unicode, quoted,
+  empty and function-looking text defaults even on empty tables. Require review
+  where older MariaDB metadata cannot distinguish literal and expression defaults.
+
 - Apply normal forum guest-name reservation, disallow and word rules to new KB
   guest submissions and their discussion bridge. Reuse the normal validator
   without external spam checks; pin current name/rule ranges in the existing

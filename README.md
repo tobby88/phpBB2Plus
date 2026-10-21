@@ -83,6 +83,11 @@ NULL/default/comment/collation/index definitions and the identity floor. Wider
 custom VARCHAR fields are not narrowed; unsupported definitions stop for review.
 Custom full-width byline indexes also require review; the updater never drops an
 index or silently shortens its key to make the wider column fit.
+Constant defaults are read and rechecked as values, including supplementary
+UTF-8 characters that some metadata views render as `?`. Expression defaults,
+older ambiguous MariaDB metadata and unreadable defaults on empty NOT NULL
+tables require review **before** DDL; no dummy posts are inserted to guess them.
+The default reader restores any temporarily relaxed session grouping mode.
 DDL is not rollbackable. KB discussion writes report a required upgrade rather
 than attempting automatic DDL or a truncated guest name on old 25-character storage.
 Oversized new guest names are rejected, not clipped to another name's prefix.

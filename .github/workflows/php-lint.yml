@@ -76,6 +76,9 @@ jobs:
       - name: Keep guest bylines safely escaped and separate from account identity
         run: php .github/scripts/check-post-author-codec.php
 
+      - name: Distinguish preserved literal defaults from custom expressions
+        run: php .github/scripts/check-post-author-defaults.php
+
       - name: Validate complete style archives before filesystem effects
         run: php .github/scripts/check-style-archive.php
       - name: Check style publication filesystem boundaries
