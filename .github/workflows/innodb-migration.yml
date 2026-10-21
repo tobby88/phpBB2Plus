@@ -274,6 +274,8 @@ jobs:
           php .github/scripts/check-kb-guest-policy-native.php
           php .github/scripts/check-kb-discussion-native.php
           php .github/scripts/check-kb-text-boundaries-native.php
+          php .github/scripts/check-kb-text-roundtrip-native.php
+          PHPBB_KB_TEXT_LEGACY=1 php .github/scripts/check-kb-text-roundtrip-native.php
           php .github/scripts/check-kb-writing-native.php
           php .github/scripts/check-kb-rating-migration.php
           php .github/scripts/check-post-author-migration.php

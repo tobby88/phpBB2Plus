@@ -45,7 +45,7 @@ $is_block = false;
 $show_new = true;
 $mode = phpbb_request_scalar($_POST, 'mode', phpbb_request_scalar($_GET, 'mode'));
 $mode = ($mode === 'results') ? 'results' : '';
-$search_keywords = trim(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords')));
+$search_keywords = trim(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'search_keywords', phpbb_request_scalar($_GET, 'search_keywords'))));
 $search_keywords = substr($search_keywords, 0, 500);
 $search_id_value = phpbb_request_scalar($_GET, 'search_id');
 $search_id = preg_match('/^[1-9][0-9]*$/D', $search_id_value) ? intval($search_id_value) : 0;
@@ -86,7 +86,7 @@ switch($mode)
 			$synonym_array = is_array($synonym_array) ? $synonym_array : array();
 
 			$split_search = (!strstr($multibyte_charset, $lang['ENCODING']))
-				? split_words(clean_words('search', stripslashes($search_keywords), $stopword_array, $synonym_array), 'search')
+				? split_words(clean_words('search', $search_keywords, $stopword_array, $synonym_array), 'search')
 				: preg_split('/\s+/', trim($search_keywords), -1, PREG_SPLIT_NO_EMPTY);
 			$split_search = is_array($split_search) ? array_slice($split_search, 0, 50) : array();
 			foreach ($split_search as $index => $search_word)
@@ -333,30 +333,30 @@ switch($mode)
 			{
 				$article_title = preg_replace($orig_word, $replacement_word, $article_title);
 			}
-			$article_title = phpbb_stored_text(stripslashes($article_title));
+			$article_title = phpbb_stored_text($article_title);
 			$category_id = intval($article['article_category_id']);
 			$kb_cat = get_kb_cat($category_id);
 			$temp_url = htmlspecialchars(append_sid(this_kb_mxurl("mode=cat&amp;cat=$category_id")), ENT_QUOTES, 'UTF-8');
-			$category_name = isset($kb_cat['category_name']) ? phpbb_stored_text(stripslashes($kb_cat['category_name'])) : '';
+			$category_name = isset($kb_cat['category_name']) ? phpbb_stored_text($kb_cat['category_name']) : '';
 			$category = '<a href="' . $temp_url . '" class="name">' . $category_name . '</a>';
-			$type = phpbb_stored_text(stripslashes(get_kb_type((int) $article['article_type'])));
+			$type = phpbb_stored_text(get_kb_type((int) $article['article_type']));
 			$author_id = (int) $article['article_author_id'];
 			if ($author_id > 0 && !empty($article['registered_username']))
 			{
 				$author_url = htmlspecialchars(append_sid($phpbb_root_path . "profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . '=' . $author_id), ENT_QUOTES, 'UTF-8');
-				$article_author = '<a href="' . $author_url . '" class="name">' . phpbb_profile_text(stripslashes($article['registered_username'])) . '</a>';
+				$article_author = '<a href="' . $author_url . '" class="name">' . phpbb_profile_text($article['registered_username']) . '</a>';
 			}
 			else
 			{
 				$guest_username = isset($article['username']) ? trim((string) $article['username']) : '';
-				$article_author = ($guest_username !== '') ? phpbb_profile_text(stripslashes($guest_username)) : $lang['Guest'];
+				$article_author = ($guest_username !== '') ? phpbb_profile_text($guest_username) : $lang['Guest'];
 			}
 
 			$template->assign_block_vars('searchresults', array(
 				'ARTICLE_ID' => $article_id,
 				'ARTICLE_AUTHOR' => $article_author,
 				'ARTICLE_TITLE' => $article_title,
-				'ARTICLE_DESCRIPTION' => phpbb_stored_text(stripslashes($article['article_description'])),
+				'ARTICLE_DESCRIPTION' => phpbb_stored_text($article['article_description']),
 				'ARTICLE_CATEGORY' => $category,
 				'ARTICLE_TYPE' => $type,
 				'U_VIEW_ARTICLE' => $article_url

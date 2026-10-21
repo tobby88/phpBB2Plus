@@ -43,7 +43,7 @@ if ( !defined('IN_PHPBB') )
 	if ($row = $db->sql_fetchrow($result))
 	{
 	
-	   $article_title = stripslashes($row['article_title']);
+	   $article_title = $row['article_title'];
 	   $approved = $row['approved'];
 
 	   $article_category_id = (int) $row['article_category_id'];
@@ -71,11 +71,11 @@ if ( !defined('IN_PHPBB') )
 	       $author_kb_art  = '<a href="' . htmlspecialchars($temp_url, ENT_QUOTES, 'UTF-8') . '" class="gen">' . phpbb_profile_text($author_name_plain) . '</a>';
 	   }
 	
-	   $art_pages = explode('[page]', stripslashes($row['article_body']));
+	   $art_pages = explode('[page]', $row['article_body']);
 	   $page_num = min($page_num, max(0, count($art_pages) - 1));
 	   $article = trim($art_pages[$page_num]);
 	   $article = str_replace('[toc]', '', $article);
-	   $kb_art_description  = phpbb_stored_text(stripslashes($row['article_description']));
+	   $kb_art_description  = phpbb_stored_text($row['article_description']);
 	   
 	   $type_id = (int) $row['article_type'];
 	   $type_plain = get_kb_type($type_id);

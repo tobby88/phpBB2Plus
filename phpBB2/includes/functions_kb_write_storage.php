@@ -123,7 +123,9 @@ function kb_write_article($database, $mode, $article_id, $input)
 			: ((!empty($actor['kb_moderator']) || $owner->settings['approve_edit'] === '0') ? 1 : 2);
 		$uid = $input['bbcode_on'] ? make_bbcode_uid() : '';
 		$owner->approval = $approved;
-		$body = prepare_message(trim($input['body']), $input['html_on'], $input['bbcode_on'], $input['smilies_on'], $uid);
+		// The legacy preparer consumes/returns request-style quoting. Keep that
+		// convention inside this boundary only; SQL escaping is a separate step.
+		$body = stripslashes(prepare_message(addslashes(trim($input['body'])), $input['html_on'], $input['bbcode_on'], $input['smilies_on'], $uid));
 		$title = kb_limit_text($input['title'],255); $description = kb_limit_text($input['description'],255);
 		$author = $mode === 'edit' ? (int)$owner->article['article_author_id'] : ((int)$actor['user_id'] > 0 ? (int)$actor['user_id'] : 0);
 		$username = $mode === 'edit' ? $owner->article['username'] : $input['username'];

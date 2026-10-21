@@ -62,11 +62,11 @@ if ( !defined('IN_PHPBB') )
 	
 	    $row = $db->sql_fetchrow($result);
 
-		$article_name = stripslashes($row['article_title']); 
+		$article_name = $row['article_title'];
 
     	$article_category = $row['article_category_id']; 
-    	$article_desc = stripslashes($row['article_description']); 
-    	$article_body = stripslashes($row['article_body']);
+		$article_desc = $row['article_description'];
+		$article_body = $row['article_body'];
 
 		  $article_type = $row['article_type'];
 		  $bbcode_uid = $row['bbcode_uid'];
@@ -153,8 +153,8 @@ if ( !defined('IN_PHPBB') )
 		  'BBCODE_STATUS' => sprintf($bbcode_status, '<a href="' . append_sid($phpbb_root_path . "faq.$phpEx?mode=bbcode") . '" target="_phpbbcode">', '</a>'), 
 		  'SMILIES_STATUS' => $smilies_status,
 		  
-		  'ARTICLE_TITLE' => phpbb_stored_text(unprepare_message($article_name)),
-		  'ARTICLE_DESC' => phpbb_stored_text(unprepare_message($article_desc)),
+		  'ARTICLE_TITLE' => phpbb_profile_text($article_name),
+		  'ARTICLE_DESC' => phpbb_profile_text($article_desc),
 		  'ARTICLE_BODY' => phpbb_profile_text(unprepare_message($article_body)),
 		  'S_HIDDEN_FIELDS' => '<input type="hidden" name="k" value="' . $article_id . '" /><input type="hidden" name="sid" value="' . htmlspecialchars($userdata['session_id'], ENT_QUOTES, 'UTF-8') . '" />',
 		
@@ -217,29 +217,19 @@ if ( !defined('IN_PHPBB') )
 // Preview -------------------------------------------------------------------------	
 	if ($preview)
 	{
-		$sql = "SELECT bbcode_uid
-		  FROM " . KB_ARTICLES_TABLE . "
-		  WHERE article_id = $article_id";
-		if ( !($result = $db->sql_query($sql)) )
-		{
-	        message_die(GENERAL_ERROR, "Could not obtain article data", '', __LINE__, __FILE__, $sql);
-		}
-	
-		$row = $db->sql_fetchrow($result);	
-		
 		$orig_word = array();
 		$replacement_word = array();
 		obtain_word_list($orig_word, $replacement_word);
 
-		$message_name = phpbb_profile_text(stripslashes(phpbb_request_scalar($_POST, 'article_name')));
-		$message_desc = phpbb_profile_text(stripslashes(phpbb_request_scalar($_POST, 'article_desc')));
+		$message_name = phpbb_profile_text(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'article_name')));
+		$message_desc = phpbb_profile_text(phpbb_request_raw_value(phpbb_request_scalar($_POST, 'article_desc')));
 
-		$message = stripslashes(phpbb_request_scalar($_POST, 'message'));
+		$message = phpbb_request_raw_value(phpbb_request_scalar($_POST, 'message'));
 		
-		$bbcode_uid = ( $row['bbcode_uid'] ) ? $row['bbcode_uid'] : '';
-		$preview_message = stripslashes(prepare_message(addslashes(unprepare_message($message)), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
-
-		$message = stripslashes($message);
+		// The draft's current formatting choice is independent of the saved
+		// article UID (which can be empty when BBCode was previously disabled).
+		$bbcode_uid = $bbcode_on ? make_bbcode_uid() : '';
+		$preview_message = stripslashes(prepare_message(addslashes($message), $html_on, $bbcode_on, $smilies_on, $bbcode_uid));
 		
 		if( $bbcode_on )
 		{
@@ -276,10 +266,10 @@ if ($article_submit)
 	require_once dirname(__FILE__) . '/functions_kb_write_storage.php';
 	require_once dirname(__FILE__) . '/functions_kb_write_notifications.php';
 	$input = array(
-		'title'=>isset($_POST['article_name']) ? $_POST['article_name'] : null,
-		'description'=>isset($_POST['article_desc']) ? $_POST['article_desc'] : null,
-		'body'=>isset($_POST['message']) ? $_POST['message'] : null,
-		'username'=>isset($_POST['username']) ? $_POST['username'] : '',
+		'title'=>isset($_POST['article_name']) ? phpbb_request_raw_value($_POST['article_name']) : null,
+		'description'=>isset($_POST['article_desc']) ? phpbb_request_raw_value($_POST['article_desc']) : null,
+		'body'=>isset($_POST['message']) ? phpbb_request_raw_value($_POST['message']) : null,
+		'username'=>isset($_POST['username']) ? phpbb_request_raw_value($_POST['username']) : '',
 		'category'=>(isset($_POST['category_id']) ? $_POST['category_id'] : null),
 		'type'=>isset($_POST['type_id']) ? $_POST['type_id'] : null,
 		'html_on'=>(bool)$html_on,'bbcode_on'=>(bool)$bbcode_on,'smilies_on'=>(bool)$smilies_on);

@@ -193,10 +193,10 @@ if ( !defined('IN_PHPBB') )
 		$replacement_word = array();
 		obtain_word_list($orig_word, $replacement_word);
 
-		$preview_title = stripslashes(phpbb_request_scalar($_POST, 'article_name'));
-		$preview_desc = stripslashes(phpbb_request_scalar($_POST, 'article_desc'));
-		$preview_username = stripslashes(phpbb_request_scalar($_POST, 'username'));
-		$message = stripslashes(phpbb_request_scalar($_POST, 'message'));
+		$preview_title = phpbb_request_raw_value(phpbb_request_scalar($_POST, 'article_name'));
+		$preview_desc = phpbb_request_raw_value(phpbb_request_scalar($_POST, 'article_desc'));
+		$preview_username = phpbb_request_raw_value(phpbb_request_scalar($_POST, 'username'));
+		$message = phpbb_request_raw_value(phpbb_request_scalar($_POST, 'message'));
 
 		$bbcode_uid = make_bbcode_uid();
 
@@ -238,10 +238,10 @@ if ($article_submit)
 	require_once dirname(__FILE__) . '/functions_kb_write_storage.php';
 	require_once dirname(__FILE__) . '/functions_kb_write_notifications.php';
 	$input = array(
-		'title'=>isset($_POST['article_name']) ? $_POST['article_name'] : null,
-		'description'=>isset($_POST['article_desc']) ? $_POST['article_desc'] : null,
-		'body'=>isset($_POST['message']) ? $_POST['message'] : null,
-		'username'=>isset($_POST['username']) ? $_POST['username'] : '',
+		'title'=>isset($_POST['article_name']) ? phpbb_request_raw_value($_POST['article_name']) : null,
+		'description'=>isset($_POST['article_desc']) ? phpbb_request_raw_value($_POST['article_desc']) : null,
+		'body'=>isset($_POST['message']) ? phpbb_request_raw_value($_POST['message']) : null,
+		'username'=>isset($_POST['username']) ? phpbb_request_raw_value($_POST['username']) : '',
 		'category'=>(isset($_POST['cat']) ? $_POST['cat'] : (isset($_GET['cat']) ? $_GET['cat'] : null)),
 		'type'=>isset($_POST['type_id']) ? $_POST['type_id'] : null,
 		'html_on'=>(bool)$html_on,'bbcode_on'=>(bool)$bbcode_on,'smilies_on'=>(bool)$smilies_on);

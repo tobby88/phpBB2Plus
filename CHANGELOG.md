@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve literal backslashes and quotes across Knowledge Base previews,
+  submission, HTML/BBCode preparation, reopening and repeated editing. Remove
+  request quoting once at the controller boundary, never from stored article,
+  category, type or author text. Keep output escaping in lists and search results.
+  Rebuild preview BBCode using the draft's current choice, not its old saved UID.
+  No stored content is heuristically rewritten and no schema migration is needed.
+
 - Refuse custom MariaDB expression defaults before guest-name widening instead
   of turning expressions into literal text. Read and recheck the actual constant
   default rather than lossy metadata, preserving supplementary Unicode, quoted,

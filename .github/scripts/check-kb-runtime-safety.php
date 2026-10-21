@@ -88,13 +88,15 @@ kb_runtime_assert(strpos($writing, "\$approved === 1 && (!\$old || (int)\$old['a
 kb_runtime_assert(strpos($writing, 'add_kb_words($article_id, $body, $title);') !== false, 'article titles must be included in the owned search index');
 kb_runtime_assert(strpos($publication, "((int)\$article['approved'] === 1) !== (\$approved === 1)") !== false, 'Locked current approval state controls counter transitions');
 kb_runtime_assert(substr_count($admin, 'kb_publish_approval(') === 2 && substr_count($moderator, 'kb_publish_approval(') === 2, 'Both controllers share the owned approval/unapproval path');
-kb_runtime_assert(substr_count($functions, "phpbb_stored_text(stripslashes(\$article['article_description']))") >= 2, 'all article list descriptions must normalize and escape legacy stored text');
-kb_runtime_assert(substr_count($functions, "phpbb_stored_text(stripslashes(\$article['article_title']))") >= 2, 'all article list titles must normalize and escape legacy stored text');
-kb_runtime_assert(strpos($functions, "phpbb_stored_text(stripslashes(\$category['category_details']))") !== false, 'category descriptions must normalize and escape legacy stored text');
-kb_runtime_assert(strpos($search, '$article_title = phpbb_stored_text(stripslashes($article_title));') !== false, 'search result titles must normalize and escape legacy stored text');
-kb_runtime_assert(strpos($search, "'ARTICLE_DESCRIPTION' => phpbb_stored_text(stripslashes(\$article['article_description']))") !== false, 'search result descriptions must normalize and escape legacy stored text');
-kb_runtime_assert(strpos($search, "phpbb_profile_text(stripslashes(\$article['registered_username']))") !== false, 'registered search result authors must be escaped');
-kb_runtime_assert(strpos($search, 'phpbb_profile_text(stripslashes($guest_username))') !== false, 'guest search result authors must be escaped');
+kb_runtime_assert(substr_count($functions, "phpbb_stored_text(\$article['article_description'])") >= 2, 'all article list descriptions must escape stored text without removing literal backslashes');
+kb_runtime_assert(substr_count($functions, "phpbb_stored_text(\$article['article_title'])") >= 2, 'all article list titles must escape stored text without removing literal backslashes');
+kb_runtime_assert(strpos($functions, "phpbb_stored_text(\$category['category_details'])") !== false, 'category descriptions must escape stored text without request unquoting');
+kb_runtime_assert(strpos($search, '$article_title = phpbb_stored_text($article_title);') !== false, 'search result titles must escape stored text without request unquoting');
+kb_runtime_assert(strpos($search, "'ARTICLE_DESCRIPTION' => phpbb_stored_text(\$article['article_description'])") !== false, 'search result descriptions must escape stored text without request unquoting');
+kb_runtime_assert(strpos($search, "phpbb_profile_text(\$article['registered_username'])") !== false, 'registered search result authors must retain literal text and be escaped');
+kb_runtime_assert(strpos($search, 'phpbb_profile_text($guest_username)') !== false, 'guest search result authors must retain literal text and be escaped');
+foreach(array($add,$edit)as$controller){kb_runtime_assert(strpos($controller,"phpbb_request_raw_value(\$_POST['message'])")!==false&&strpos($controller,"phpbb_request_raw_value(\$_POST['article_name'])")!==false,'actual writer controllers must remove request quoting exactly once');}
+kb_runtime_assert(strpos($edit,"'ARTICLE_TITLE' => phpbb_profile_text(\$article_name)")!==false&&strpos($edit,"stripslashes(\$row['article_body'])")===false,'editor forms retain literal metadata and canonical body bytes');
 kb_runtime_assert(strpos($category, '$category_name_plain =') !== false, 'category existence checks must use an unformatted value');
 kb_runtime_assert(strpos($category, "strtoupper((string) \$kb_config['news_sort_par']) === 'ASC'") !== false, 'category sort direction must be normalized');
 kb_runtime_assert(substr_count($category, "min(1000, (int) \$kb_config['art_pagination'])") === 2, 'category page sizes must be bounded');

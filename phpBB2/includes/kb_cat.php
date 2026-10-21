@@ -28,7 +28,7 @@ if ( !defined('IN_PHPBB') )
 
 	$category_id = max(0, intval(phpbb_request_scalar($HTTP_GET_VARS, 'cat', phpbb_request_scalar($HTTP_POST_VARS, 'cat', 0))));
 	$category = get_kb_cat($category_id);
-	$category_name_plain = isset($category['category_name']) ? stripslashes((string) $category['category_name']) : '';
+	$category_name_plain = isset($category['category_name']) ? (string) $category['category_name'] : '';
 	$category_name = phpbb_stored_text($category_name_plain);
 	
 	$page_title = $category_name;
