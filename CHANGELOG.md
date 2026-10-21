@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Respect current discussion-forum view/read permissions before showing KB
+  comment links, reply counts or embedded replies. Do not trust stale account
+  roles, expired sessions or cached forum grants. Hide missing/moved discussions
+  and keep empty comment pages read-only instead of synchronizing topics on GET.
+  No database migration is required.
+
 - Paginate all three Knowledge Base statistics with complete navigation instead
   of loading every full article body at once. Fetch only summary columns and
   joined display metadata in a bounded page query, retain every qualifying

@@ -258,15 +258,10 @@ if ( !defined('IN_PHPBB') )
   	}
   	else
   	{
+		$topic=array();$comments='';
 		if ($kb_config['comments'] && $topic_id > 0)
 		{       
-	    	$sql = "SELECT topic_id, topic_replies FROM " . TOPICS_TABLE . " WHERE topic_id = " . $topic_id;
-		
-			if ( !($result4 = $db->sql_query($sql)) )
-			{
-		    	message_die(GENERAL_ERROR, 'Error getting comments', '', __LINE__, __FILE__, $sql);
-			}	
-			$topic_row = $db->sql_fetchrow($result4);
+			$topic_row = kb_comment_topic($topic_id);
 			if (is_array($topic_row))
 			{
 				$topic = $topic_row;
@@ -288,7 +283,7 @@ if ( !defined('IN_PHPBB') )
 	    	$comments = '';
 		}
 
-		if ( $kb_config['comments_show'] && $topic_id && $topic['topic_replies'] != 0)
+		if ( $kb_config['comments'] && $kb_config['comments_show'] && !empty($topic['topic_id']) && $topic['topic_replies'] != 0)
 		{    
 			//
 			//page number

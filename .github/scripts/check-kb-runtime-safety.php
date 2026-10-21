@@ -106,6 +106,10 @@ kb_runtime_assert(strpos($article, '$author_name_plain =') !== false && strpos($
 kb_runtime_assert(strpos($article, '(int) $approved !== 1 && !$can_view_unapproved') !== false, 'direct article views must hide pending edits from unrelated visitors');
 kb_runtime_assert(strpos($article, "\$kb_config['comments'] && \$topic_id > 0") !== false, 'comment rendering must require an existing discussion relation');
 kb_runtime_assert(strpos($article, 'insert_post(') === false, 'read-only article views must not create forum discussions');
+kb_runtime_assert(strpos($article, 'kb_comment_topic($topic_id)') !== false && strpos($functions, '$visible_topic=kb_comment_topic($topic_id);') !== false, 'both comment metadata and direct renderer must independently check forum access');
+kb_runtime_assert(strpos($functions, 'auth(AUTH_VIEW,(int)$topic[\'forum_id\'],$user,$topic,$db)') !== false && strpos($functions, 'auth(AUTH_READ,(int)$topic[\'forum_id\'],$user,$topic,$db)') !== false, 'both current forum grants must bypass the cached tree on the owning connection');
+kb_runtime_assert(strpos($functions, 'AND HEX(s.session_id)=HEX(') !== false && strpos($functions, 'u.user_active=1 AND s.session_logged_in=1') !== false, 'comment grants require a current exact active account/session');
+kb_runtime_assert(strpos($functions, "sync('topic', \$topic_id)") === false, 'empty comment GETs must not resynchronize or delete forum data');
 kb_runtime_assert(strpos($article, '$article_title = phpbb_stored_text($article_title);') !== false, 'article titles must normalize and escape legacy stored text');
 kb_runtime_assert(strpos($article, '$kb_art_description  = phpbb_stored_text') !== false, 'article descriptions must normalize and escape legacy stored text');
 kb_runtime_assert(strpos($article, "\$topic = array('topic_id' => 0, 'topic_replies' => 0);") !== false, 'articles without comment topics need defined pagination state');

@@ -27,6 +27,11 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mysqli, pdo_mysql, pdo_sqlite, openssl, ftp
           coverage: none
+      - name: Respect discussion forum access in Knowledge Base comments
+        run: php .github/scripts/check-kb-comment-visibility-native.php
+        env:
+          PHPBB_KB_COUNTER_NATIVE: '1'
+          PHPBB_KB_COUNTER_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         run: php .github/scripts/check-ranks-native.php
         env:

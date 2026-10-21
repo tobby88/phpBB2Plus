@@ -1085,11 +1085,42 @@ function is_group_member($group_id = '', $user_id = '')
 	return $is_member;
 }
 
+// A public KB article does not grant access to its discussion forum. Resolve
+// current account/session and forum grants on this connection, not cached roles
+// or the cached category tree. An expired account/session is only a guest here.
+function kb_comment_topic($topic_id)
+{
+	global $db, $userdata;
+	try { $topic_id=kb_counter_category_id($topic_id); } catch (RuntimeException $error) { return false; }
+	$sql='SELECT t.topic_id,t.topic_replies,t.forum_id,f.auth_view,f.auth_read FROM '.TOPICS_TABLE.' t INNER JOIN '.FORUMS_TABLE.' f ON f.forum_id=t.forum_id WHERE t.topic_id='.$topic_id.' AND t.topic_moved_id=0 AND t.topic_status<>'.TOPIC_MOVED;
+	if (!($result=$db->sql_query($sql))) { message_die(GENERAL_ERROR,'Error getting comments','',__LINE__,__FILE__,$sql); }
+	$topic=$db->sql_fetchrow($result);$db->sql_freeresult($result);
+	if (!$topic) { return false; }
+	$user=array('user_id'=>ANONYMOUS,'user_level'=>USER,'session_logged_in'=>false);
+	if (!empty($userdata['session_logged_in']) && isset($userdata['user_id'],$userdata['session_id']) && is_string($userdata['session_id']) && $userdata['session_id']!=='')
+	{
+		try { $id=kb_counter_category_id($userdata['user_id']); } catch (RuntimeException $error) { $id=0; }
+		if ($id)
+		{
+			$sid=$db->sql_escape($userdata['session_id']);
+			$sql='SELECT u.user_id,u.user_level FROM '.USERS_TABLE.' u INNER JOIN '.SESSIONS_TABLE.' s ON s.session_user_id=u.user_id WHERE u.user_id='.$id.' AND u.user_active=1 AND s.session_logged_in=1 AND s.session_id=\''.$sid.'\' AND HEX(s.session_id)=HEX(\''.$sid.'\')';
+			if (!($result=$db->sql_query($sql))) { message_die(GENERAL_ERROR,'Error getting comment permissions','',__LINE__,__FILE__,$sql); }
+			$current=$db->sql_fetchrow($result);$db->sql_freeresult($result);
+			if ($current) { $user=$current;$user['session_logged_in']=true; }
+		}
+	}
+	$view=auth(AUTH_VIEW,(int)$topic['forum_id'],$user,$topic,$db);
+	$read=auth(AUTH_READ,(int)$topic['forum_id'],$user,$topic,$db);
+	return !empty($view['auth_view']) && !empty($read['auth_read']) ? $topic : false;
+}
+
 // Extract all post in the comments topic
 //
 function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 {
     global $db, $board_config, $template, $phpbb_root_path, $phpEx, $is_block, $page_id, $lang, $userdata;
+	$visible_topic=kb_comment_topic($topic_id);
+	if (!$visible_topic) { return $template; }
 
 	$topic_id = (int) $topic_id;
 	$start = max(-1, min(1000000, (int) $start));
@@ -1107,11 +1138,13 @@ function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 	// Go ahead and pull all data for this topic
 	//
 	$sql = "SELECT u.username, u.user_id, u.user_posts, u.user_from, u.user_website, u.user_email, u.user_icq, u.user_aim, u.user_yim, u.user_regdate, u.user_msnm, u.user_viewemail, u.user_rank, u.user_sig, u.user_sig_bbcode_uid, u.user_avatar, u.user_avatar_type, u.user_allowavatar, u.user_allowsmile, p.*,  pt.post_text, pt.post_subject, pt.bbcode_uid
-		FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt
+		FROM " . POSTS_TABLE . " p, " . USERS_TABLE . " u, " . POSTS_TEXT_TABLE . " pt, " . TOPICS_TABLE . " t
 		WHERE p.topic_id = $topic_id
+			AND t.topic_id=p.topic_id AND t.forum_id=" . (int)$visible_topic['forum_id'] . " AND p.forum_id=t.forum_id
+			AND t.topic_moved_id=0 AND t.topic_status<>" . TOPIC_MOVED . "
 			AND pt.post_id = p.post_id
 			AND u.user_id = p.poster_id
-		ORDER BY p.post_time $post_time_order";
+		ORDER BY p.post_time $post_time_order, p.post_id ASC";
 	
 	if ( $start > -1 && $show_num_comments > 0 )
 	{
@@ -1134,12 +1167,12 @@ function get_kb_comments($topic_id = '', $start = -1, $show_num_comments = 0 )
 		$db->sql_freeresult($result);
 		$total_posts = count($postrow);
 	}
-	else 
-	{ 
-  	 include_once($phpbb_root_path . 'includes/functions_admin.' . $phpEx); 
-  	 sync('topic', $topic_id); 
-  	 message_die(GENERAL_MESSAGE, $lang['No_posts_topic']); 
-	} 	
+	else
+	{
+		$db->sql_freeresult($result);
+		// A read-only empty/outdated page must never repair or delete its topic.
+		return $template;
+	}
 
 //
 // Okay, let's do the loop, yeah come on baby let's do the loop

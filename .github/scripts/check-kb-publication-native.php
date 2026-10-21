@@ -113,9 +113,11 @@ try {
   TOPICS_TABLE,POSTS_TABLE,POSTS_TEXT_TABLE,FORUMS_TABLE,USERS_TABLE,SEARCH_WORD_TABLE,SEARCH_MATCH_TABLE,SESSIONS_TABLE,JR_ADMIN_TABLE,GROUPS_TABLE,USER_GROUP_TABLE,DISALLOW_TABLE,WORDS_TABLE);
  if(!empty($kp_delete_mode)||!empty($kp_controller_mode)){$kp_tables=array_unique(array_merge($kp_tables,array(CONFIG_TABLE,AUTH_ACCESS_TABLE,VOTE_DESC_TABLE,VOTE_RESULTS_TABLE,VOTE_USERS_TABLE,LOGS_TABLE,ATTACHMENTS_TABLE,ATTACHMENTS_DESC_TABLE,TOPICS_WATCH_TABLE,BOOKMARK_TABLE,TOPIC_VIEW_TABLE,PRIVMSGS_TABLE)));}
  if(!empty($kp_write_mode)){$kp_tables=array_merge($kp_tables,array(PRIVMSGS_TABLE,PRIVMSGS_TEXT_TABLE));}
+ if(!empty($kp_comment_mode)){$kp_tables=array_merge($kp_tables,array(AUTH_ACCESS_TABLE));}
  $schema = file_get_contents($kp_source . 'install/schemas/mysql_schema.sql');
  foreach ($kp_tables as $table) { $canonical = 'phpbb_' . substr($table,strlen('fixture_')); kp_check(preg_match('/CREATE TABLE `?' . preg_quote($canonical,'/') . '`?\s*\([\s\S]*?;/', $schema, $m) === 1, 'Canonical table ' . $canonical); kp_sql(str_replace($canonical,$table,$m[0])); }
  if(!empty($kp_stats_mode)){kp_stats_suite();return;}
+ if(!empty($kp_comment_mode)){kp_comment_suite();return;}
  if(!empty($kp_author_mode)){kp_author_suite();return;}
  if(!empty($kp_guest_policy_mode)){kp_guest_policy_suite();return;}
  if(!empty($kp_config_mode)){kp_config_suite();return;}
