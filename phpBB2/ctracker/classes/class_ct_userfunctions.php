@@ -83,6 +83,16 @@ class ct_userfunctions
 	}
 
 	/**
+	 * Normalize a comparison copy, never the submitted or persisted text.
+	 * The forum is UTF-8: a soft hyphen is the complete two-byte sequence,
+	 * not an isolated continuation byte belonging to some other character.
+	 */
+	function spam_comparison_text($value)
+	{
+		return str_replace("\xC2\xAD", '', $value);
+	}
+
+	/**
 	 * <b>search_handler</b><br>
 	 * This controls the CrackerTracker Search Security functions and
 	 * outputs an wait-message if a user or guest has executed more searches
@@ -224,13 +234,13 @@ class ct_userfunctions
 
 				include_once($phpbb_root_path . 'ctracker/constants.' . $phpEx);
 
+				$clean_message = $this->spam_comparison_text($message);
+				$clean_title   = $this->spam_comparison_text($subject);
+
 				for($i = 0; $i < count($ct_spammer_def); $i++)
 				{
 					$current_value = preg_quote($ct_spammer_def[$i], '/');
 		 			$current_value = str_replace('\*', '.*?', $current_value);
-
-					$clean_message = str_replace("\xAD", '', $message);
-					$clean_title   = str_replace("\xAD", '', $subject);
 
 					if ( preg_match('/^' . $current_value . '$/is', $clean_message) || preg_match('/^' . $current_value . '$/is', $clean_title) )
 					{
@@ -328,6 +338,10 @@ class ct_userfunctions
 		// Registration Scan blocked Words
 		if ( isset($HTTP_POST_VARS['submit']) && intval($ctracker_config->settings['spam_keyword_det']) >= 1 )
 		{
+			foreach ($profile_values as $key => $profile_value)
+			{
+				$profile_values[$key] = $this->spam_comparison_text($profile_value);
+			}
 			for($i = 0; $i < count($ct_spammer_def); $i++)
 			{
 				$current_value = preg_quote($ct_spammer_def[$i], '/');
@@ -335,7 +349,6 @@ class ct_userfunctions
 
 				foreach ($profile_values as $profile_value)
 				{
-					$profile_value = str_replace("\xAD", '', $profile_value);
 					if (preg_match('/^' . $current_value . '$/is', $profile_value))
 					{
 						$message_key = ($mode == 'register') ? 'ctracker_info_profile_spammer' : 'ctracker_info_profile_content';

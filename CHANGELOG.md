@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Match the existing CrackerTracker spam keywords across UTF-8 soft hyphens
+  in posting text, subjects and profile fields. Remove the complete character
+  from comparison copies only, not isolated bytes of other Unicode characters.
+  Leave submitted text, configured policy, account state and stored content
+  unchanged. No migration is required.
+
 - Compare IPv4-mapped IPv6 login addresses using their underlying IPv4 network.
   Detect genuine range changes and avoid false warnings for equivalent address
   spellings; keep native IPv6 /48 behavior and privacy-preserving labels. Do not
