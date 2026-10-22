@@ -38,12 +38,17 @@ foreach (array('english', 'german') as $locale) {
     }
     foreach (array('register', 'editprofile') as $mode_case) {
         foreach (array('aim','msn','yim','website','location','occupation','interests','signature') as $field) {
+			$capacity = in_array($field, array('website','location','occupation'), true) ? 100 : 255;
             foreach (array(
                 array('viagra', true),
                 array("vi\xC2\xADagra", true),
                 array("\xC2\xADVi\xC2\xADa\xC2\xADgra\xC2\xAD", true),
                 array("Grüße und Silben\xC2\xADtrennung 😀", false),
                 array("vi\xC3\xADagra", false),
+                array(str_repeat("\xF0\x9F\x98\x80", 64) . 'viagra', true),
+                array(str_repeat("\xF0\x9F\x98\x80", $capacity - 6) . 'viagra', true),
+                array(str_repeat("\xF0\x9F\x98\x80", 63) . "xxvi\xC2\xADagra", true),
+                array(str_repeat("\xF0\x9F\x98\x80", 64) . 'ordinary', false),
                 array(array('viagra'), false)
             ) as $sample) {
                 $cases[] = array($locale, $mode_case, $field, $sample[0], $sample[1], array());

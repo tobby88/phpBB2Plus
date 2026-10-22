@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Inspect the complete utf8mb4 capacity of the existing CrackerTracker profile
+  keyword fields rather than treating a character limit as a byte limit. Do not
+  miss a keyword at the end of valid multibyte profile text. Keep inspection
+  bounded, existing switches and submitted/stored contents unchanged; no migration
+  needed.
+
 - Match the existing CrackerTracker spam keywords across UTF-8 soft hyphens
   in posting text, subjects and profile fields. Remove the complete character
   from comparison copies only, not isolated bytes of other Unicode characters.

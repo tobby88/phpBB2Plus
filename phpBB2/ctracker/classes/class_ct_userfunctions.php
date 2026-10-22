@@ -280,14 +280,17 @@ class ct_userfunctions
 		include_once($phpbb_root_path . 'ctracker/constants.' . $phpEx);
 		$username = $this->post_value('username', 255);
 		$email = $this->post_value('email', 320);
+		// post_value bounds bytes, while utf8mb4 VARCHAR capacities count
+		// characters. Inspect the complete value that fits a profile column,
+		// including four-byte characters before a keyword near its end.
 		$profile_values = array(
-			$this->post_value('aim', 255),
-			$this->post_value('msn', 255),
-			$this->post_value('yim', 255),
+			$this->post_value('aim', 4 * 255),
+			$this->post_value('msn', 4 * 255),
+			$this->post_value('yim', 4 * 255),
 			$this->post_value('website', 2048),
-			$this->post_value('location', 255),
-			$this->post_value('occupation', 255),
-			$this->post_value('interests', 255),
+			$this->post_value('location', 4 * 100),
+			$this->post_value('occupation', 4 * 100),
+			$this->post_value('interests', 4 * 255),
 			$this->post_value('signature', 65535)
 		);
 
