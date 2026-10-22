@@ -260,6 +260,9 @@ jobs:
       - name: Test complete personal Album rendering
         run: php .github/scripts/check-album-personal-rendering.php
 
+      - name: Test latest Album picture and comment rendering
+        run: php .github/scripts/check-album-latest-rendering.php
+
       - name: Test Album request parsing and query encoding
         run: php .github/scripts/check-album-request-input.php
 

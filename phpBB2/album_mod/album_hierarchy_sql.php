@@ -837,6 +837,7 @@ function album_get_last_pic_info($cats, &$last_pic_id)
 
 	if ($db->sql_numrows($result) == 0)
 	{
+		$db->sql_freeresult($result);
 		$last_pic_id = 0;
 		return '';
 	}
@@ -864,16 +865,20 @@ function album_get_last_pic_info($cats, &$last_pic_id)
 		$album_config['last_pic_title_length'] = 25;
     }
 
-	$last_pic_title = html_entity_decode((string) $row['pic_title'], ENT_QUOTES, 'UTF-8');
+	// Normalize the stored-text boundary once, then truncate actual Unicode
+	// characters rather than cutting a UTF-8 byte sequence or an HTML entity.
+	$last_pic_title = html_entity_decode(album_html_text($row['pic_title']), ENT_QUOTES, 'UTF-8');
 	$last_pic_title_length = max(1, min(200, (int) $album_config['last_pic_title_length']));
-	if (strlen($last_pic_title) > $last_pic_title_length)
+	$characters = preg_split('//u', $last_pic_title, $last_pic_title_length + 2, PREG_SPLIT_NO_EMPTY);
+	if ($characters === false) { $last_pic_title = ''; }
+	else if (count($characters) > $last_pic_title_length)
     {
-		$last_pic_title = substr($last_pic_title, 0, $last_pic_title_length) . '...';
+		$last_pic_title = implode('', array_slice($characters, 0, $last_pic_title_length)) . '...';
     }
 
     $info .= '<br />' . $lang['Pic_Title'] . ': <a href="';
     $info .= ($album_config['fullpic_popup']) ? append_sid("album_pic.$phpEx?pic_id=" . $row['pic_id']) . '" target="_blank" rel="noopener noreferrer">' : append_sid($album_pic_url . '?pic_id=' . $row['pic_id']) . '">' ;
-    $info .= album_html_text($last_pic_title) . '</a>';
+    $info .= htmlspecialchars($last_pic_title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true) . '</a>';
 
 	$last_pic_id = $row['pic_id'];
 
@@ -924,6 +929,7 @@ function album_get_last_comment_info($cats)
     // last comment
     if ($db->sql_numrows($result) == 0)
 	{
+		$db->sql_freeresult($result);
 		return '';
     }
 
@@ -932,7 +938,8 @@ function album_get_last_comment_info($cats)
 	$info = create_date($board_config['default_dateformat'], $row['comment_time'], $board_config['board_timezone']);
     $info .= '<br />' . $lang['Poster'] . ': ';
 
-	if (($row['user_id'] == ALBUM_GUEST) or ($row['comment_username'] == ''))
+	$has_account = isset($row['user_id'], $row['username']) && album_user_id_value($row['user_id']) > 0 && $row['username'] !== '';
+	if (!$has_account)
     {
 		$info .= ($row['comment_username'] == '') ? $lang['Guest'] : album_html_text($row['comment_username']);
     }

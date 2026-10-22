@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep latest-picture titles valid UTF-8 when shortening them, including emoji
+  and historical HTML entities, without requiring mbstring. Resolve latest
+  comment authors from the actual joined account, preserving historical guest
+  labels and the valid username `0`. Release empty query results and clear the
+  absent latest-picture ID. Display-only changes; no data migration required.
+
 - Re-read the active gallery-creation actor's current role instead of trusting
   an earlier request snapshot. Lock actor/owner rows in consistent order through
   commit; retain current private-group checks without changing the caller's
