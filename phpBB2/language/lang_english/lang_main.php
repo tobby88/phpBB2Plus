@@ -1484,7 +1484,7 @@ $lang['Banned'] = 'Currently banned';//shown beside users post, if user are bann
 // Start add - Protect user account MOD
 $lang['Error_login_tomutch']='You have specified a locked username, please try again later';
 $lang['Password_not_complex'] ='The specified password, does not comply with the complexity rules, you should verify that: the password ';
-$lang['Password_to_short'] = 'is at least %d characters long';
+$lang['Password_to_short'] = 'uses at least %d bytes internally (accented characters and emoji use multiple UTF-8 bytes; quotes and backslashes count twice for compatibility)';
 $lang['Password_mixed'] = 'has both numbers and letters';
 $lang['Password_not_same'] = 'is not the same as your username';
 $lang['Time_format'] = 'D d. M, Y H:i:s';// how time should be shown in email notification

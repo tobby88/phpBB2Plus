@@ -162,6 +162,7 @@ jobs:
           php .github/scripts/check-ctracker-userfunctions.php
           php .github/scripts/check-ctracker-ip-range.php
           php .github/scripts/check-ctracker-utf8-spam.php
+          php .github/scripts/check-ctracker-policy-help.php
 
       - name: Test CrackerTracker configuration resilience
         run: php .github/scripts/check-ctracker-config-resilience.php

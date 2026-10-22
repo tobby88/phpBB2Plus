@@ -1467,7 +1467,7 @@ $lang['Banned'] = 'Z.Z. verboten';//shown beside users post, if user are banned
 // Start add - Protect user account MOD
 $lang['Error_login_tomutch']='Du hast einen gesperrten Benutzernamen angegeben, bitte versuche es später wieder';
 $lang['Password_not_complex'] ='Das angegebene Passwort enspricht nicht den erforderlichen Sicherheitsregeln, Du solltest sicherstellen dass: Das Passwort ';
-$lang['Password_to_short'] = 'mindestens %d Zeichen lang ist';
+$lang['Password_to_short'] = 'intern mindestens %d Bytes belegt (Umlaute und Emoji zählen als mehrere UTF-8-Bytes; Anführungszeichen, Apostrophe und Backslashes zählen aus Kompatibilitätsgründen doppelt)';
 $lang['Password_mixed'] = 'sowohl Zahlen als auch Buchstaben enthält';
 $lang['Password_not_same'] = 'nicht gleich Deinem Benutzernamen ist';
 $lang['Time_format'] = 'D d. M, Y H:i:s';// how time should be shown in email notification

@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Correct English/German CrackerTracker help to explain the independent profile
+  keyword switch, conditional low-post-count posting heuristic, false positives,
+  rejection-only behavior and absence of spam-log writes. Label existing password
+  minimum rules in internal bytes consistently, matching UTF-8 and legacy quoting
+  semantics without changing validation, hashes, login or settings. No migration.
+
 - Inspect the complete utf8mb4 capacity of the existing CrackerTracker profile
   keyword fields rather than treating a character limit as a byte limit. Do not
   miss a keyword at the end of valid multibyte profile text. Keep inspection
