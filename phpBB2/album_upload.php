@@ -132,6 +132,10 @@ if( $upload_submitted ) // is it submitted?
 				message_die(GENERAL_ERROR, $lang['Personal_gallery_creation_failed']);
 			}
 			$cat_id = album_get_personal_root_id($album_user_id);
+			if ((int) $cat_id <= 0)
+			{
+				message_die(GENERAL_ERROR, $lang['Personal_gallery_creation_failed']);
+			}
 		}
 	}
 }

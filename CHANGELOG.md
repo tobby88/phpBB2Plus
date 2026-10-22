@@ -8,6 +8,14 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Serialize personal-gallery root creation on the existing owner row in an
+  independently owned InnoDB transaction. Concurrent requests and retries after
+  an unacknowledged commit resolve the same root without changing caller
+  transactions, SQL modes or historical galleries. Pin modern storage metadata,
+  retain private-group grants until commit and stop callers that still see a
+  virtual category in an older snapshot. No new tables/indices or data migration;
+  historical duplicate galleries are not deleted or rewritten.
+
 - Check authenticated gallery ownership/admin authority and the configured
   personal-gallery creation policy before inserting a new root, including the
   Nuffload hand-off. Stop both upload and category administration if creation

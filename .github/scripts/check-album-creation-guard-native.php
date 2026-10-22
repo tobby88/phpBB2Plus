@@ -14,13 +14,16 @@ function album_sql_id_list($ids){return phpbb_sql_id_list($ids);}
 function ac_extract($body,$name){ac_check(preg_match('/^function '.preg_quote($name,'/').'\(.*?^\}/ms',$body,$m)===1,'Actual helper '.$name);eval($m[0]);}
 $core=file_get_contents($source.'includes/functions.php');ac_extract($core,'phpbb_image_dimensions_safe');ac_extract($core,'phpbb_sql_id_list');
 ac_extract(file_get_contents($source.'album_mod/album_hierarchy_functions.php'),'album_validate_jumpbox_selection');
+require __DIR__.'/album-native-observer.php';
 class AlbumCreationDatabase extends sql_db{
  var$failure='';var$queries=array();var$inserts=0;
  function reset_case($failure=''){$this->failure=$failure;$this->queries=array();$this->inserts=0;}
- function sql_query($sql='',$transaction=false){
+ function sql_dedicated_connection(){return new AlbumNativeObservedConnection(parent::sql_dedicated_connection(),$this);}
+ function sql_query($sql='',$transaction=false){return $this->observed_query($this,$sql,$transaction);}
+ function observed_query($database,$sql,$transaction=false){
   $this->queries[]=$sql;$insert=strpos($sql,'INSERT INTO fixture_album_cat')===0;if($insert){$this->inserts++;}
   if(($this->failure==='insert'&&$insert)||($this->failure==='membership'&&strpos($sql,'FROM fixture_members')!==false)){return false;}
-  return parent::sql_query($sql,$transaction);
+  return $database===$this?parent::sql_query($sql,$transaction):$database->sql_query($sql,$transaction);
  }
 }
 $port=getenv('PHPBB_ALBUM_CREATION_PORT')?:'3306';$password=getenv('PHPBB_ALBUM_CREATION_PASSWORD')?:'';
@@ -87,7 +90,7 @@ try{
   ac_check(ac_count()===($case[5]?1:0)&&$db->inserts===($case[5]?1:0),'Denied creation cannot emit category INSERT');$cases++;
  }
  foreach(array(0,1)as$pending){ac_sql('DELETE FROM fixture_album_cat');ac_sql('UPDATE fixture_members SET user_pending='.$pending);$userdata=ac_viewer();$album_config['personal_gallery']=ALBUM_PRIVATE;$db->reset_case();ac_check(album_create_personal_gallery(100,ALBUM_USER,ALBUM_PRIVATE)===($pending===0)&&ac_count()===($pending===0?1:0),'Only approved private-group membership can create own root');$cases++;}
- ac_sql('DELETE FROM fixture_album_cat');$db->reset_case('membership');$failed=false;try{album_create_personal_gallery(100,ALBUM_USER,ALBUM_PRIVATE);}catch(AlbumCreationExit$e){$failed=true;}ac_check($failed&&ac_count()===0&&$db->inserts===0,'Failed policy membership lookup cannot create root');$cases++;
+ ac_sql('DELETE FROM fixture_album_cat');$db->reset_case('membership');$failed=false;try{$failed=album_create_personal_gallery(100,ALBUM_USER,ALBUM_PRIVATE)===false;}catch(AlbumCreationExit$e){$failed=true;}ac_check($failed&&ac_count()===0&&$db->inserts===0,'Failed policy membership lookup cannot create root');$cases++;
  $phpbb_root_path=$source;
  foreach(array('english','german')as$locale){$lang=array();require $source.'language/lang_'.$locale.'/lang_main_album.php';ac_check(isset($lang['Personal_gallery_creation_failed'])&&is_string($lang['Personal_gallery_creation_failed'])&&$lang['Personal_gallery_creation_failed']!=='','Localized failure in both supported languages');$cases++;}
  echo 'Native Album creation guard: '.$cases." real hand-off/identity/policy/group/storage/caller/name-zero cases PASS; no live data or HTTP.\n";

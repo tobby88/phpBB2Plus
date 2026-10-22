@@ -39,6 +39,7 @@ jobs:
           php .github/scripts/check-album-owner-identity-native.php
           php .github/scripts/check-album-root-text-native.php
           php .github/scripts/check-album-creation-guard-native.php
+          php .github/scripts/check-album-root-transaction-native.php
         env:
           PHPBB_ALBUM_OWNER_NATIVE: '1'
           PHPBB_ALBUM_OWNER_PASSWORD: fixture-only
@@ -46,6 +47,8 @@ jobs:
           PHPBB_ALBUM_ROOT_PASSWORD: fixture-only
           PHPBB_ALBUM_CREATION_NATIVE: '1'
           PHPBB_ALBUM_CREATION_PASSWORD: fixture-only
+          PHPBB_ALBUM_TRANSACTION_NATIVE: '1'
+          PHPBB_ALBUM_TRANSACTION_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         run: php .github/scripts/check-ranks-native.php
         env:

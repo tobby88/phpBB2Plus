@@ -153,6 +153,10 @@ if (album_get_personal_root_id($album_user_id) == ALBUM_ROOT_CATEGORY)
 		{
 			message_die(GENERAL_ERROR, $lang['Personal_gallery_creation_failed']);
 		}
+		if ((int) album_get_personal_root_id($album_user_id) <= 0)
+		{
+			message_die(GENERAL_ERROR, $lang['Personal_gallery_creation_failed']);
+		}
 		album_read_tree($album_user_id);
 	}
 }

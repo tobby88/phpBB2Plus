@@ -356,7 +356,7 @@ function album_get_nonexisting_personal_gallery_info()
 // ------------------------------------------------------------------------
 function album_create_personal_gallery($user_id, $view_level, $upload_level, $options = 0)
 {
-	global $album_config, $template, $lang, $phpEx, $userdata, $db;
+	global $album_config, $template, $lang, $phpEx, $userdata, $db, $album_data;
 
 	$user_id = album_user_id_value($user_id);
 	if ($user_id === false || $user_id === ALBUM_PUBLIC_GALLERY) { return false; }
@@ -368,6 +368,15 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 	}
 	$view_level = (int) $view_level;
 	$upload_level = (int) $upload_level;
+	require_once dirname(__FILE__) . '/album_root_storage.php';
+	$original_database = $db;
+	$storage = null;
+	try
+	{
+		$storage = new AlbumRootStorage($original_database);
+		$db = $storage;
+		if (!$storage->begin($user_id)) { return false; }
+		$created_root = false;
 	$username = album_find_user_name($user_id);
 	if ($username === false) { return false; }
 
@@ -440,9 +449,18 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 		{
 			return false;
 		}
+		$created_root = true;
 	}
-	
+	$storage->commit();
+	if ($created_root) { $album_data = array(); }
 	return true;
+	}
+	catch (AlbumRootStorageFailure $error) { return false; }
+	finally
+	{
+		$db = $original_database;
+		if ($storage) { $storage->release(); }
+	}
 }
 
 // ------------------------------------------------------------------------
