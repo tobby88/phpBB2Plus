@@ -26,6 +26,7 @@ class ct_userfunctions
 	function ip_range($ip)
 	{
 		$ip = is_scalar($ip) ? trim((string) $ip) : '';
+		if ($ip === '0.0.0.0') { return false; }
 		if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false)
 		{
 			$parts = explode('.', $ip);
@@ -40,6 +41,15 @@ class ct_userfunctions
 			$packed = @inet_pton($ip);
 			if (is_string($packed) && strlen($packed) === 16)
 			{
+				// IPv4-mapped addresses are alternate spellings of IPv4, not
+				// members of one shared IPv6 /48. Preserve the IPv4 /16 policy
+				// without rewriting stored login history or the verified client IP.
+				// Fold only ::ffff:0:0/96 (RFC 4291, section 2.5.5.2).
+				if (substr($packed,0,12) === str_repeat("\0",10)."\xff\xff")
+				{
+					$ipv4 = @inet_ntop(substr($packed,12,4));
+					return is_string($ipv4) ? $this->ip_range($ipv4) : false;
+				}
 				$prefix = unpack('nfirst/nsecond/nthird', substr($packed, 0, 6));
 				return array(
 					'key' => '6:' . bin2hex(substr($packed, 0, 6)),

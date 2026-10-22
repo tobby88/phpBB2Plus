@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Compare IPv4-mapped IPv6 login addresses using their underlying IPv4 network.
+  Detect genuine range changes and avoid false warnings for equivalent address
+  spellings; keep native IPv6 /48 behavior and privacy-preserving labels. Do not
+  rewrite stored login history or change request-limiter identities. No migration
+  is required.
+
 - Count only published articles in the public KB type summary, using one
   aggregate query instead of materializing every article ID per type. Keep
   unused types and historical duplicate type rows without inflating counts;
