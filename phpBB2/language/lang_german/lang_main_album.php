@@ -200,4 +200,6 @@ $lang['add_field'] = 'Weiteres Bild-Upload-Feld hinzufügen';
 $lang['remove_field'] = 'Letztes Bild-Upload-Feld entfernen';
 $lang['ZIP_allowed'] = 'ZIP-Dateien dürfen hochgeladen werden';
 
+$lang['Personal_gallery_creation_failed'] = 'Die persönliche Galerie konnte nicht angelegt werden. Bitte prüfe deine Galerie-Berechtigungen oder wende dich an die Administration.';
+
 ?>

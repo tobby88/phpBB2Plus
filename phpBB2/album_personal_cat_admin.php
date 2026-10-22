@@ -149,7 +149,10 @@ if (album_get_personal_root_id($album_user_id) == ALBUM_ROOT_CATEGORY)
 	}
 	else
 	{
-		album_create_personal_gallery($album_user_id, $album_config['personal_gallery_view'], ALBUM_PRIVATE);
+		if (!album_create_personal_gallery($album_user_id, $album_config['personal_gallery_view'], ALBUM_PRIVATE))
+		{
+			message_die(GENERAL_ERROR, $lang['Personal_gallery_creation_failed']);
+		}
 		album_read_tree($album_user_id);
 	}
 }

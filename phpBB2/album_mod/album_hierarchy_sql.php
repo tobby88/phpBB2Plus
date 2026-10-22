@@ -395,7 +395,19 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 	}
 	if ($root_count == 0)
 	{
-		
+		// A valid upload session is not permission to create another owner's
+		// gallery. Enforce identity and the current creation policy at the
+		// INSERT boundary, before either public caller can leave a new root.
+		$viewer_id = isset($userdata['user_id']) ? album_user_id_value($userdata['user_id']) : false;
+		$logged_in = !empty($userdata['session_logged_in']) && $viewer_id !== false && $viewer_id > 0;
+		$is_admin = $logged_in && isset($userdata['user_level']) && (int) $userdata['user_level'] === ADMIN;
+		if (!$logged_in || (!$is_admin && $viewer_id !== $user_id)) { return false; }
+		if (!$is_admin)
+		{
+			$creation_access = personal_gallery_access(0, 1);
+			if (!album_check_permission($creation_access, ALBUM_AUTH_UPLOAD)) { return false; }
+		}
+
 		// ------------------------------------------------------------------------
 		// Build the personal gallery root name (is not directly shown in the php pages)
 		// ------------------------------------------------------------------------

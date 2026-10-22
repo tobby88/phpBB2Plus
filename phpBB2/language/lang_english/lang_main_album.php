@@ -202,4 +202,6 @@ $lang['add_field'] = 'Add file upload field';
 $lang['remove_field'] = 'Remove file upload field';
 $lang['ZIP_allowed'] = 'Allowed to upload ZIP files';
 
+$lang['Personal_gallery_creation_failed'] = 'The personal gallery could not be created. Please check your gallery permissions or contact the administrator.';
+
 ?>

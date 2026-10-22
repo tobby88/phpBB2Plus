@@ -127,7 +127,10 @@ if( $upload_submitted ) // is it submitted?
 			//
 			// so the best solution would be this which sets the upload permission to private which in this case means a moderator or the
 			// owner of the gallery and of cause the admin :)
-			album_create_personal_gallery($album_user_id, $album_config['personal_gallery_view'], ALBUM_PRIVATE);
+			if (!album_create_personal_gallery($album_user_id, $album_config['personal_gallery_view'], ALBUM_PRIVATE))
+			{
+				message_die(GENERAL_ERROR, $lang['Personal_gallery_creation_failed']);
+			}
 			$cat_id = album_get_personal_root_id($album_user_id);
 		}
 	}
@@ -163,8 +166,8 @@ $db->sql_freeresult($result);
 if (empty($thiscat) && $album_user_id != ALBUM_PUBLIC_GALLERY)
 {
 	//check if user exsts
-	$user_name = album_get_user_name($album_user_id);
-	if ( !empty($user_name) )
+	$user_name = album_find_user_name($album_user_id);
+	if ($user_name !== false)
 	{
 		$thiscat = init_personal_gallery_cat($album_user_id);
 	}

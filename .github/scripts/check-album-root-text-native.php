@@ -1,9 +1,11 @@
 <?php
 // Actual creator/driver and canonical category schema; owned loopback data only.
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ALBUM_ROOT_NATIVE')!=='1'){echo "Native Album root text fixture skipped.\n";return;}
-define('IN_PHPBB',true);define('GENERAL_ERROR',202);define('GENERAL_MESSAGE',200);define('USERS_TABLE','fixture_users');$table_prefix='fixture_';
+define('IN_PHPBB',true);define('ADMIN',1);define('GENERAL_ERROR',202);define('GENERAL_MESSAGE',200);define('USERS_TABLE','fixture_users');$table_prefix='fixture_';
 $source=dirname(dirname(__DIR__)).'/phpBB2/';$phpbb_root_path=$source;$phpEx='php';
-require $source.'includes/php_compat.php';require $source.'db/mysqli.php';require $source.'album_mod/album_constants.php';require $source.'album_mod/album_hierarchy_sql.php';
+require $source.'includes/php_compat.php';require $source.'db/mysqli.php';require $source.'album_mod/album_constants.php';require $source.'album_mod/album_functions.php';require $source.'album_mod/album_hierarchy_auth.php';require $source.'album_mod/album_hierarchy_sql.php';
+function checkFlag($value,$flag){return($value&$flag)===$flag;}
+function album_is_debug_enabled(){return false;}
 class AlbumRootFailure extends RuntimeException {}
 function message_die($type,$message){throw new AlbumRootFailure($message);}
 function ar_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
@@ -38,7 +40,7 @@ try{
  $names=array(7=>'Ordinary',8=>"Legacy O'Connor",9=>"A\\B",10=>'Grüße 😀',11=>'0',12=>'O&#039;Connor',13=>"Quote\\'Name",14=>"Double\\\\Slash",15=>'&amp; ❤');
  foreach($names as$id=>$name){ar_sql("INSERT INTO fixture_users(user_id,username) VALUES(".$id.",'".$control->sql_escape($name)."')");}
  ar_sql("INSERT INTO fixture_users(user_id,username) VALUES(16,'')");$accounts=ar_rows('SELECT user_id,username FROM fixture_users ORDER BY user_id');
- $userdata=array('user_id'=>7,'session_logged_in'=>true,'user_level'=>0);$cases=0;
+ $userdata=array('user_id'=>7,'session_logged_in'=>true,'user_level'=>0);$album_config=array('personal_gallery'=>ALBUM_USER);$cases=0;
  foreach(array('','NO_BACKSLASH_ESCAPES','ANSI_QUOTES')as$mode){
   ar_sql("SET SESSION sql_mode='".$mode."'");$db->recording=false;ar_check($db->sql_query("SET SESSION sql_mode='".$mode."'"),'Actual driver SQL mode');
   foreach(array('english','german','quoted-label')as$locale){
@@ -57,6 +59,7 @@ try{
    }
   }
   // All previously meaningful permission values remain supported and typed.
+  $userdata['user_id']=7;
   foreach(array(ALBUM_GUEST,ALBUM_USER,ALBUM_ADMIN,ALBUM_MOD,ALBUM_PRIVATE)as$view){foreach(array(ALBUM_GUEST,ALBUM_USER,ALBUM_ADMIN,ALBUM_MOD,ALBUM_PRIVATE)as$upload){
    ar_sql('DELETE FROM fixture_album_cat');$db->reset_case();ar_check(album_create_personal_gallery(7,(string)$view,$upload)===true,'Existing permission choice accepted');$row=ar_rows('SELECT cat_view_level,cat_upload_level FROM fixture_album_cat')[0];ar_check((int)$row['cat_view_level']===$view&&(int)$row['cat_upload_level']===$upload,'Permission choices not changed by escaping');$cases++;
   }}

@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Check authenticated gallery ownership/admin authority and the configured
+  personal-gallery creation policy before inserting a new root, including the
+  Nuffload hand-off. Stop both upload and category administration if creation
+  fails, rather than continuing with a virtual category. Recognize upload owners
+  named `0` and distinguish missing owners from Guest labels. Add English/German
+  failure messages; existing galleries remain untouched and no migration is needed.
+
 - Handle malformed personal Album view-mode arrays without warnings or PHP
   type errors. Encode category-redirect query keys and scalar values once,
   keeping Unicode and embedded separators intact and skipping nested values.
