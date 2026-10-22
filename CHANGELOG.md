@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Create personal Album gallery titles without losing literal backslashes or
+  failing on historical apostrophes in account names. Format the current stored
+  name and localized label first, then escape once through the database driver.
+  Release the root lookup result and reject invalid/missing owners and invalid
+  permission values. Keep existing galleries, account names and permissions
+  unchanged; no schema or data migration is required.
+
 - Separate Album owner existence from the localized Guest display fallback.
   Recognize registered owners named `0`; reject missing, malformed and out-of-range
   owners before personal-gallery handling. Retain deleted-author display labels,

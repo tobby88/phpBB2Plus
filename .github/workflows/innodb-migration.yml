@@ -35,10 +35,14 @@ jobs:
           PHPBB_KB_COUNTER_NATIVE: '1'
           PHPBB_KB_COUNTER_PASSWORD: fixture-only
       - name: Check native Album owner identities and personal gallery guards
-        run: php .github/scripts/check-album-owner-identity-native.php
+        run: |
+          php .github/scripts/check-album-owner-identity-native.php
+          php .github/scripts/check-album-root-text-native.php
         env:
           PHPBB_ALBUM_OWNER_NATIVE: '1'
           PHPBB_ALBUM_OWNER_PASSWORD: fixture-only
+          PHPBB_ALBUM_ROOT_NATIVE: '1'
+          PHPBB_ALBUM_ROOT_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         run: php .github/scripts/check-ranks-native.php
         env:

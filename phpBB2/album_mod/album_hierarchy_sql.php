@@ -358,8 +358,18 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 {
 	global $album_config, $template, $lang, $phpEx, $userdata, $db;
 
-	if ($user_id == ALBUM_PUBLIC_GALLERY)
-		return false;
+	$user_id = album_user_id_value($user_id);
+	if ($user_id === false || $user_id === ALBUM_PUBLIC_GALLERY) { return false; }
+	$allowed_levels = array(ALBUM_GUEST, ALBUM_USER, ALBUM_ADMIN, ALBUM_MOD, ALBUM_PRIVATE);
+	foreach (array($view_level, $upload_level) as $level)
+	{
+		if ((!is_int($level) && !is_string($level)) || !preg_match('/^-?[0-9]+$/D', (string) $level) ||
+			!in_array((int) $level, $allowed_levels, true)) { return false; }
+	}
+	$view_level = (int) $view_level;
+	$upload_level = (int) $upload_level;
+	$username = album_find_user_name($user_id);
+	if ($username === false) { return false; }
 
 	// ------------------------------------------------------------------------
 	// Check if the personal gallery already exists
@@ -377,13 +387,23 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 	// ------------------------------------------------------------------------
 	// if we didn't find any category then create the root category for the user
 	// ------------------------------------------------------------------------
-	if ($db->sql_numrows($result) == 0)
+	$root_count = $db->sql_numrows($result);
+	$db->sql_freeresult($result);
+	if ($root_count === false)
+	{
+		message_die(GENERAL_ERROR, 'Could not read personal gallery root information');
+	}
+	if ($root_count == 0)
 	{
 		
 		// ------------------------------------------------------------------------
 		// Build the personal gallery root name (is not directly shown in the php pages)
 		// ------------------------------------------------------------------------
-		$root_cat_name = sprintf($lang['Personal_Gallery_Of_User'], str_replace("\'", "''", album_get_user_name($user_id)));
+		// Database names and translated labels are stored text, not quoted
+		// request values. Escape the complete formatted title exactly once
+		// at this SQL boundary, using the active driver's SQL-mode handling.
+		$root_cat_name = sprintf($lang['Personal_Gallery_Of_User'], $username);
+		$root_cat_name_sql = $db->sql_escape($root_cat_name);
 
 		// ------------------------------------------------------------------------
 		// insert the personal gallery root category
@@ -397,7 +417,7 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 				 cat_delete_level, cat_approval,
 				 cat_parent, cat_user_id)
 				VALUES
-				('". $root_cat_name ."', '". $root_cat_name ."',
+				('". $root_cat_name_sql ."', '". $root_cat_name_sql ."',
 				 '0', '" . $view_level . "',
 				 '". $upload_level . "', '0',
 				 '0', '".ALBUM_PRIVATE."',
@@ -406,12 +426,9 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 
 		if(!$result = $db->sql_query($sql))
 		{
-			//message_die(GENERAL_ERROR, 'Could not create new Personal Root Category', '', __LINE__, __FILE__, $sql);
 			return false;
 		}
 	}
-	
-//	$db->sql_freeresult($result);
 	
 	return true;
 }
