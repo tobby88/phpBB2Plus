@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Handle malformed personal Album view-mode arrays without warnings or PHP
+  type errors. Encode category-redirect query keys and scalar values once,
+  keeping Unicode and embedded separators intact and skipping nested values.
+  Preserve normal view selection and POST precedence; no migration is required.
+
 - Normalize stored names and category titles at the personal Album output
   boundary, including historical entities, UTF-8 and the valid name `0`.
   Preserve existing moderator links when adding the owner, and repair the empty

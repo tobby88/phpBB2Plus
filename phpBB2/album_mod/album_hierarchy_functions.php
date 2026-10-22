@@ -1003,15 +1003,19 @@ function album_get_album_data($cat_id)
 
 function album_build_url_parameters($parameters)
 {
-	$url_prefix = '?';
-	$url_parameters = '';		
+	if (!is_array($parameters))
+	{
+		return '';
+	}
+	$query = array();
 	foreach ($parameters as $key => $value)
 	{
-		$url_parameters .= "$url_prefix$key=$value";
-		$url_prefix = '&';
+		if (is_scalar($value))
+		{
+			$query[$key] = (string) $value;
+		}
 	}
-	
-	return $url_parameters;
+	return $query ? '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986) : '';
 }
 
 //-----------------------------------------------

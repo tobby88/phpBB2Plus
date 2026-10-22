@@ -93,11 +93,11 @@ if ($album_user_id != ALBUM_PUBLIC_GALLERY)
 
 	if (isset ($_POST['mode']))
 	{
-		$album_view_mode = strtolower($_POST['mode']);
+		$album_view_mode = is_scalar($_POST['mode']) ? strtolower((string) $_POST['mode']) : '';
 	}
 	elseif (isset ($_GET['mode']))
 	{
-		$album_view_mode = strtolower($_GET['mode']);
+		$album_view_mode = is_scalar($_GET['mode']) ? strtolower((string) $_GET['mode']) : '';
 	}
 	// make sure that it only contains some valid value
 	switch ($album_view_mode)
