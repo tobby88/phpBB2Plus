@@ -1,5 +1,6 @@
 <?php
 if (!defined('IN_PHPBB')) { die('Hacking attempt'); }
+require_once dirname(__DIR__) . '/includes/functions_moderator_identity.php';
 
 class AlbumRootStorageFailure extends RuntimeException {}
 
@@ -14,6 +15,8 @@ class AlbumRootStorage
 	var $finished = false;
 	var $mode = '';
 	var $pinned = array();
+	var $actor_id = false;
+	var $actor_locked = false;
 
 	function __construct($database)
 	{
@@ -89,6 +92,7 @@ class AlbumRootStorage
 
 	function begin($owner)
 	{
+		global $userdata;
 		if ($this->transactional || $this->finished || !is_int($owner) || $owner <= 0 || $owner > 8388607) { throw new AlbumRootStorageFailure(); }
 		$mode = $this->mode === '' ? 'STRICT_ALL_TABLES' : $this->mode . ',STRICT_ALL_TABLES';
 		$this->control("SET SESSION sql_mode='" . $this->connection->sql_escape($mode) . "'");
@@ -98,9 +102,34 @@ class AlbumRootStorage
 		$this->pin(USERS_TABLE); $this->pin(ALBUM_CAT_TABLE);
 		// All creators of this owner's root serialize on an existing primary
 		// key, even while the category table has no row for that owner yet.
-		$rows = $this->rows($this->connection, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE user_id=' . $owner . ' FOR UPDATE');
-		$this->ready = count($rows) === 1 && (string) $rows[0]['user_id'] === (string) $owner;
+		$this->actor_id = isset($userdata['user_id']) ? album_user_id_value($userdata['user_id']) : false;
+		$ids = array($owner);
+		if ($this->actor_id !== false && $this->actor_id > 0 && $this->actor_id !== $owner) { $ids[] = $this->actor_id; }
+		sort($ids, SORT_NUMERIC);
+		$where = count($ids) === 1 ? 'user_id=' . $owner : 'user_id IN(' . implode(',', $ids) . ') ORDER BY user_id';
+		$rows = $this->rows($this->connection, 'SELECT user_id FROM ' . USERS_TABLE . ' WHERE ' . $where . ' FOR UPDATE');
+		$owners = 0; $actors = 0;
+		foreach ($rows as $row)
+		{
+			$id = isset($row['user_id']) ? album_user_id_value($row['user_id']) : false;
+			if ($id === $owner) { $owners++; }
+			if ($id !== false && $id === $this->actor_id) { $actors++; }
+		}
+		$this->ready = $owners === 1;
+		$this->actor_locked = $actors === 1;
 		return $this->ready;
+	}
+
+	function actor()
+	{
+		if (!$this->ready || !$this->actor_locked || $this->actor_id === false || $this->actor_id <= 0) { return false; }
+		// Both actor and owner rows stay locked through COMMIT. A request's
+		// earlier role/active snapshot is not a current creation grant.
+		// An ID absent at lock time must not acquire authority from a later
+		// replacement account inserted with that same ID.
+		$actor = phpbb_current_moderator_user($this);
+		if (!$actor || album_user_id_value($actor['user_id']) !== $this->actor_id) { return false; }
+		return $actor;
 	}
 
 	function sql_query($sql, $transaction = false)
@@ -150,6 +179,6 @@ class AlbumRootStorage
 			}
 			try { $connection->sql_close(); } catch (Exception $error) {} catch (Error $error) {}
 		}
-		$this->owned = false; $this->transactional = false; $this->ready = false; $this->finished = true;
+		$this->owned = false; $this->transactional = false; $this->ready = false; $this->actor_locked = false; $this->finished = true;
 	}
 }

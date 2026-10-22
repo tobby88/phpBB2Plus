@@ -409,11 +409,20 @@ function album_create_personal_gallery($user_id, $view_level, $upload_level, $op
 		// INSERT boundary, before either public caller can leave a new root.
 		$viewer_id = isset($userdata['user_id']) ? album_user_id_value($userdata['user_id']) : false;
 		$logged_in = !empty($userdata['session_logged_in']) && $viewer_id !== false && $viewer_id > 0;
-		$is_admin = $logged_in && isset($userdata['user_level']) && (int) $userdata['user_level'] === ADMIN;
-		if (!$logged_in || (!$is_admin && $viewer_id !== $user_id)) { return false; }
+		if (!$logged_in || !($actor = $storage->actor())) { return false; }
+		$is_admin = (int) $actor['user_level'] === ADMIN;
+		if (!$is_admin && $viewer_id !== $user_id) { return false; }
 		if (!$is_admin)
 		{
-			$creation_access = personal_gallery_access(0, 1);
+			$had_role = array_key_exists('user_level', $userdata);
+			$original_role = $had_role ? $userdata['user_level'] : null;
+			$userdata['user_level'] = $actor['user_level'];
+			try { $creation_access = personal_gallery_access(0, 1); }
+			finally
+			{
+				if ($had_role) { $userdata['user_level'] = $original_role; }
+				else { unset($userdata['user_level']); }
+			}
 			if (!album_check_permission($creation_access, ALBUM_AUTH_UPLOAD)) { return false; }
 		}
 

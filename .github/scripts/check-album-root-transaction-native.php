@@ -75,10 +75,10 @@ $reporting=error_reporting(E_ALL);set_error_handler(function($s,$m){if(error_rep
 try{
  at_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;at_sql('CREATE DATABASE '.$otherSchema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$otherCreated=true;at_sql('USE '.$schema);
  $ddl=file_get_contents($source.'install/schemas/mysql_schema.sql');at_check(preg_match('/CREATE TABLE phpbb_album_cat\s*\([\s\S]*?;/',$ddl,$match)===1,'Canonical category schema');at_sql(str_replace('phpbb_album_cat','fixture_album_cat',$match[0]));
- at_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ at_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  at_sql('CREATE TABLE fixture_members(user_id MEDIUMINT,group_id MEDIUMINT,user_pending TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  at_sql('CREATE TABLE fixture_probe(id INT PRIMARY KEY,v INT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');at_sql('INSERT INTO fixture_probe VALUES(1,1)');
- at_sql("INSERT INTO fixture_users VALUES(7,'".$control->sql_escape("O'Connor \\ 😀")."'),(8,'Independent owner')");at_sql('INSERT INTO fixture_members VALUES(7,10,0)');
+ at_sql("INSERT INTO fixture_users(user_id,username) VALUES(7,'".$control->sql_escape("O'Connor \\ 😀")."'),(8,'Independent owner')");at_sql('INSERT INTO fixture_members VALUES(7,10,0)');
  $db=new AlbumTransactionSource($host,'root',$password,$schema,false);$db->otherSchema=$otherSchema;$original=$db;
  $db->reset_case();at_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&at_count()===1&&$GLOBALS['db']===$original&&$db->closed===1,'Real owned transaction commits/closes and restores caller');$baseline=$db->queries;$cases++;
  foreach($baseline as$index=>$sql){at_sql('DELETE FROM fixture_album_cat');$db->reset_case($index+1);at_check(at_failed_create()&&at_count()===0&&$GLOBALS['db']===$original&&$db->closed===1,'Every owned statement failure rolls back/closes without caller damage: '.($index+1));$cases++;}

@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Re-read the active gallery-creation actor's current role instead of trusting
+  an earlier request snapshot. Lock actor/owner rows in consistent order through
+  commit; retain current private-group checks without changing the caller's
+  role snapshot. Deny new roots after demotion, deactivation or actor deletion;
+  reject replacement actors that were absent when the account rows were locked.
+  Existing gallery data and account flags are not rewritten; no migration needed.
+
 - Serialize personal-gallery root creation on the existing owner row in an
   independently owned InnoDB transaction. Concurrent requests and retries after
   an unacknowledged commit resolve the same root without changing caller

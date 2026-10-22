@@ -45,9 +45,9 @@ try{
  ac_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;ac_sql('USE '.$schema);$db=new AlbumCreationDatabase($host,'root',$password,$schema,false);
  $schema_source=file_get_contents($source.'install/schemas/mysql_schema.sql');
  foreach(array('album_cat','album')as$table){ac_check(preg_match('/CREATE TABLE phpbb_'.$table.'\s*\([\s\S]*?;/',$schema_source,$m)===1,'Canonical Album table');ac_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}
- ac_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ ac_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  ac_sql('CREATE TABLE fixture_members(user_id MEDIUMINT NOT NULL,group_id MEDIUMINT NOT NULL,user_pending TINYINT NOT NULL) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
- ac_sql("INSERT INTO fixture_users VALUES(100,'0'),(200,'Other owner')");ac_sql('INSERT INTO fixture_members VALUES(100,10,0)');
+ ac_sql("INSERT INTO fixture_users(user_id,username) VALUES(100,'0'),(200,'Other owner')");ac_sql('INSERT INTO fixture_members VALUES(100,10,0)');
  ac_check(mkdir($fixture,0700)&&mkdir($fixture.'/uploader',0700)&&mkdir($fixture.'/uploader/tmp',0700),'Owned staged-file fixture');
  $phpbb_root_path=$fixture.'/';$phpEx='php';$userdata=ac_viewer();
  $album_config=array('path_to_bin'=>'uploader/','show_progress_bar'=>0,'close_on_finish'=>1,'max_pause'=>30,'multiple_uploads'=>0,'zip_uploads'=>0,'resize_pic'=>0,'resize_width'=>100,'resize_height'=>100,'resize_quality'=>80,'perl_uploader'=>1,'gd_version'=>2,'gif_allowed'=>1,'jpg_allowed'=>1,'png_allowed'=>1,'max_file_size'=>1024,'max_width'=>100,'max_height'=>100,'personal_gallery_view'=>ALBUM_USER,'personal_gallery'=>ALBUM_USER,'personal_gallery_private'=>'10','personal_allow_gallery_mod'=>1,'personal_allow_sub_categories'=>1,'personal_sub_category_limit'=>5,'rate'=>1,'comment'=>1);
@@ -85,6 +85,8 @@ try{
   array(-1,ADMIN,true,200,ALBUM_USER,false),array(true,ADMIN,true,200,ALBUM_USER,false),array(100.0,ADMIN,true,200,ALBUM_USER,false),array(array(100),ADMIN,true,200,ALBUM_USER,false)
  );
  foreach($policyCases as$case){
+  ac_sql('UPDATE fixture_users SET user_level=0,user_active=1');
+  if(is_int($case[0])&&$case[0]>0){ac_sql('UPDATE fixture_users SET user_level='.(int)$case[1].' WHERE user_id='.$case[0]);}
   ac_sql('DELETE FROM fixture_album_cat');$userdata=ac_viewer($case[0],$case[1],$case[2]);$album_config['personal_gallery']=$case[4];$db->reset_case();
   ac_check(album_create_personal_gallery($case[3],ALBUM_USER,ALBUM_PRIVATE)===$case[5],'Actual creation identity/admin/current-policy decision');
   ac_check(ac_count()===($case[5]?1:0)&&$db->inserts===($case[5]?1:0),'Denied creation cannot emit category INSERT');$cases++;

@@ -42,7 +42,7 @@ try{
  $schema_source=file_get_contents($source.'install/schemas/mysql_schema.sql');
  ar_check(preg_match('/CREATE TABLE phpbb_album_cat\s*\([\s\S]*?;/',$schema_source,$match)===1,'Canonical category table');ar_sql(str_replace('phpbb_album_cat','fixture_album_cat',$match[0]));
  ar_check(preg_match('/CREATE TABLE phpbb_users\s*\([\s\S]*?;/',$schema_source,$match)===1,'Canonical user table');
- $columns=array();foreach(array('user_id','username')as$column){ar_check(preg_match('/^\s+'.$column.'\s+([^\r\n]+),\s*$/m',$match[0],$m)===1,'Canonical user column');$columns[]=$column.' '.$m[1];}
+ $columns=array();foreach(array('user_id','username','user_level','user_active')as$column){ar_check(preg_match('/^\s+'.$column.'\s+([^\r\n]+),\s*$/m',$match[0],$m)===1,'Canonical user column');$columns[]=$column.' '.$m[1];}
  ar_sql('CREATE TABLE fixture_users('.implode(',',$columns).',PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  $names=array(7=>'Ordinary',8=>"Legacy O'Connor",9=>"A\\B",10=>'Grüße 😀',11=>'0',12=>'O&#039;Connor',13=>"Quote\\'Name",14=>"Double\\\\Slash",15=>'&amp; ❤',17=>'FROM fixture_members');
  foreach($names as$id=>$name){ar_sql("INSERT INTO fixture_users(user_id,username) VALUES(".$id.",'".$control->sql_escape($name)."')");}
