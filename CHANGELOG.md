@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Normalize stored names and category titles at the personal Album output
+  boundary, including historical entities, UTF-8 and the valid name `0`.
+  Preserve existing moderator links when adding the owner, and repair the empty
+  gallery breadcrumb's category parameter. Raw identities, permissions and
+  stored galleries are unchanged; no migration is required.
+
 - Create personal Album gallery titles without losing literal backslashes or
   failing on historical apostrophes in account names. Format the current stored
   name and localized label first, then escape once through the database driver.

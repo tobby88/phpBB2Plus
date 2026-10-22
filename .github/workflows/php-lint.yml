@@ -257,6 +257,9 @@ jobs:
       - name: Test Album output safety
         run: php .github/scripts/check-album-output-safety.php
 
+      - name: Test complete personal Album rendering
+        run: php .github/scripts/check-album-personal-rendering.php
+
       - name: Test image processing safety
         run: php .github/scripts/check-image-processing-safety.php
 

@@ -43,7 +43,9 @@ if ($username === false)
 	message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
 }
 
-$moderators_list =  empty($moderators_list) ? $username : ',' . $username;
+$username_html = album_html_text($username);
+$moderators_list = (isset($moderators_list) && $moderators_list !== '')
+	? $moderators_list . ', ' . $username_html : $username_html;
 
 // check if personal gallery root category exists
 if (ALBUM_ROOT_CATEGORY == ($check_cat_id = album_get_personal_root_id($album_user_id)))
@@ -294,9 +296,9 @@ $total_pics = $row['count'];
 $no_picture_message = '';
 if ($row['count'] == 0)
 {
-	if ( !strstr($album_nav_cat_desc, sprintf($lang['Personal_Gallery_Of_User'], $username)) )
+	if ( !strstr($album_nav_cat_desc, sprintf($lang['Personal_Gallery_Of_User'], $username_html)) )
 	{
-		$album_nav_cat_desc .= ALBUM_NAV_ARROW . '<a href="'. append_sid(album_append_uid("album.$phpEx?cat_id$cat_id")) .'"  class="nav">'.sprintf($lang['Personal_Gallery_Of_User'], $username)."</a>";
+		$album_nav_cat_desc .= ALBUM_NAV_ARROW . '<a href="'. append_sid(album_append_uid("album.$phpEx?cat_id=$cat_id")) .'"  class="nav">'.sprintf($lang['Personal_Gallery_Of_User'], $username_html)."</a>";
 	}
 
 	// ------------------------------------------------------------------------
@@ -333,7 +335,7 @@ if ($row['count'] == 0)
 
 	if ( $is_root_cat && (!$has_sub_cats) )
 	{
-		$no_picture_message = sprintf($lang['Personal_gallery_not_created'], $username);
+		$no_picture_message = sprintf($lang['Personal_gallery_not_created'], $username_html);
 	}
 	else
 	{
@@ -379,7 +381,7 @@ $template->assign_vars(array(
 	'L_ALBUM' => $lang['Album'],
 
 	'U_VIEW_CAT' => append_sid(album_append_uid("$album_page_url?cat_id=" . intval($cat_id))),
-	'CAT_TITLE' => ($is_root_cat || $album_view_mode == ALBUM_VIEW_ALL) ? sprintf($lang['Personal_Gallery_Of_User'], $username) : $thiscat['cat_title'],
+	'CAT_TITLE' => ($is_root_cat || $album_view_mode == ALBUM_VIEW_ALL) ? sprintf($lang['Personal_Gallery_Of_User'], $username_html) : album_html_text($thiscat['cat_title']),
 	'ALBUM_NAVIGATION_ARROW' => ALBUM_NAV_ARROW,
 	'NAV_CAT_DESC' => $album_nav_cat_desc,
 
@@ -396,11 +398,11 @@ $template->assign_vars(array(
 	'TOGGLE_VIEW_ALL_IMG' => $image_toggle_button,
 	'L_TOGGLE_VIEW_ALL' => $view_mode_text,
 
-	'L_CATEGORY' => sprintf($lang['Personal_Gallery_Of_User'], $username),
+	'L_CATEGORY' => sprintf($lang['Personal_Gallery_Of_User'], $username_html),
 
 	'L_NO_PICS' => $no_picture_message,
 
-	'L_RECENT_PUBLIC_PICS' => sprintf($lang['Recent_Personal_Pics'], $username),
+	'L_RECENT_PUBLIC_PICS' => sprintf($lang['Recent_Personal_Pics'], $username_html),
 
 	'S_COLS' => $album_config['cols_per_page'],
 	'S_COL_WIDTH' => (100/$album_config['cols_per_page']) . '%',
