@@ -11,6 +11,9 @@ function kb_runtime_assert($condition, $message)
 
 $root = dirname(dirname(__DIR__));
 $functions = file_get_contents($root . '/phpBB2/includes/functions_kb.php');
+$quick_start=strpos($functions,'function get_quick_stats()');$quick_end=strpos($functions,'function kb_display_author(',$quick_start);$quick_source=substr($functions,$quick_start,$quick_end-$quick_start);
+kb_runtime_assert(strpos($quick_source,'WHERE approved=1 GROUP BY article_type')!==false&&strpos($quick_source,'COALESCE(c.article_count,0)')!==false,'public quick statistics must preaggregate published articles while keeping empty/duplicate metadata rows');
+kb_runtime_assert(substr_count($quick_source,'$db->sql_query(')===1&&strpos($quick_source,'$db->sql_freeresult($result)')!==false&&strpos($quick_source,'SELECT article_id')===false,'quick statistics must use one released aggregate result, not per-type article-ID materialization');
 $publication = file_get_contents($root . '/phpBB2/includes/functions_kb_publication.php');
 $deletion = file_get_contents($root . '/phpBB2/includes/functions_kb_delete_storage.php');
 $writing = file_get_contents($root . '/phpBB2/includes/functions_kb_write_storage.php');

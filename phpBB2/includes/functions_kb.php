@@ -35,7 +35,11 @@ function get_quick_stats()
 {
     global $db, $template, $lang;
 	
-	$sql = "SELECT * FROM " . KB_TYPES_TABLE . " ORDER BY type";
+	// Aggregate articles before joining metadata: the historical type-ID index
+	// is not unique. Preserve each type row without multiplying its count.
+	$sql='SELECT t.id,t.type,COALESCE(c.article_count,0) AS article_count FROM '.KB_TYPES_TABLE.' t '
+		.'LEFT JOIN (SELECT article_type,COUNT(*) AS article_count FROM '.KB_ARTICLES_TABLE.' WHERE approved=1 GROUP BY article_type) c ON c.article_type=t.id '
+		.'ORDER BY t.type,t.id';
 
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -50,18 +54,8 @@ function get_quick_stats()
    while( $type = $db->sql_fetchrow($result) ) 
    { 
 	$ii++;
-	$type_id = (int) $type['id'];
       $type_name = phpbb_stored_text($type['type']);
-    
-      $sql = "SELECT article_id FROM " . KB_ARTICLES_TABLE . " WHERE article_type = $type_id"; 
-    
-      if ( !($count = $db->sql_query($sql)) ) 
-      { 
-           message_die(GENERAL_ERROR, "error getting quick stats", '', __LINE__, __FILE__, $sql); 
-      } 
-
-    $number_count = 0;    
-    $number_count = $db->sql_numrows($count); 
+      $number_count = $type['article_count'];
 
 		$template->assign_block_vars('switch_quick_stats.quick_stats', array(
 		    'Q_TYPE_NAME' => (($ii == 1) ? ':: ' . $type_name : $type_name),
@@ -69,6 +63,7 @@ function get_quick_stats()
 		));
   }
 	
+	$db->sql_freeresult($result);
 	return $template;
 }
  

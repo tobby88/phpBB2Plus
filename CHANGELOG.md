@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Count only published articles in the public KB type summary, using one
+  aggregate query instead of materializing every article ID per type. Keep
+  unused types and historical duplicate type rows without inflating counts;
+  release the query result and preserve existing labels. No migration is needed.
+
 - Retain KB discussion replies after author-account deletion and exclude the
   actual first-post ID rather than the first returned row. Count and paginate
   the same readable replies with stable ordering and bounded, narrow queries.
