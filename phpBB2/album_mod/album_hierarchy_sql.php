@@ -667,25 +667,34 @@ function album_get_cat_user_id($cat_id)
 // ------------------------------------------------------------------------
 function album_check_user_exists($user_id)
 {
-	if ($user_id == ALBUM_PUBLIC_GALLERY)
-	    return true;
-
-	$tmpusername = album_get_user_name($user_id);
-	return  (!empty($tmpusername)) ? true : false;
+	$user_id = album_user_id_value($user_id);
+	if ($user_id === false) { return false; }
+	if ($user_id === ALBUM_PUBLIC_GALLERY) { return true; }
+	return album_find_user_name($user_id) !== false;
 }
 
 // ------------------------------------------------------------------------
-// Returns the name of an user
+// Normalize an owner ID without accepting malformed input as the public marker.
+// Keep the canonical signed MEDIUMINT account-ID range; never clip to an alias.
 // ------------------------------------------------------------------------
-function album_get_user_name($user_id)
+function album_user_id_value($user_id)
+{
+	if (!is_int($user_id) && (!is_string($user_id) || !ctype_digit($user_id))) { return false; }
+	if (is_int($user_id) && $user_id < 0) { return false; }
+	$digits = ltrim((string) $user_id, '0');
+	if (strlen($digits) > 7 || (int) $digits > 8388607) { return false; }
+	return (int) $digits;
+}
+
+// ------------------------------------------------------------------------
+// Find a usable owner name. False means absent/invalid, not the display "Guest".
+// The literal name "0" is a real identity and must remain a nonempty string.
+// ------------------------------------------------------------------------
+function album_find_user_name($user_id)
 {
 	global $db, $lang;
-	if (!is_int($user_id) && (!is_string($user_id) || !ctype_digit($user_id))) { return $lang['Guest']; }
-	$user_id = (int) $user_id;
-	if ($user_id < 0) { return $lang['Guest']; }
-
-	if ($user_id == ALBUM_PUBLIC_GALLERY)
-	    return "";
+	$user_id = album_user_id_value($user_id);
+	if ($user_id === false || $user_id === ALBUM_PUBLIC_GALLERY) { return false; }
 
 	$sql = "SELECT username
 			FROM ". USERS_TABLE ."
@@ -700,7 +709,20 @@ function album_get_user_name($user_id)
 	$row = $db->sql_fetchrow($result);
 	$db->sql_freeresult($result);
 	
-	return isset($row['username']) ? $row['username'] : $lang['Guest'];
+	return isset($row['username']) && is_string($row['username']) && $row['username'] !== '' ? $row['username'] : false;
+}
+
+// ------------------------------------------------------------------------
+// Display fallback only: callers checking existence must use the strict finder.
+// Keep historical deleted-author labels and the public gallery's empty name.
+// ------------------------------------------------------------------------
+function album_get_user_name($user_id)
+{
+	global $lang;
+	$user_id = album_user_id_value($user_id);
+	if ($user_id === ALBUM_PUBLIC_GALLERY) { return ''; }
+	$username = $user_id === false ? false : album_find_user_name($user_id);
+	return $username === false ? $lang['Guest'] : $username;
 }
 
 // ------------------------------------------------------------------------

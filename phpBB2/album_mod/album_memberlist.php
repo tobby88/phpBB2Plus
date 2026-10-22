@@ -31,8 +31,8 @@ if ( !defined('IN_PHPBB') )
 // ------------------------------------------------------------------------
 // Get the name of this user
 // ------------------------------------------------------------------------
-$username = album_get_user_name($album_user_id);
-if (empty($username))
+$username = album_find_user_name($album_user_id);
+if ($username === false)
 {
 	message_die(GENERAL_MESSAGE, $lang['No_user_id_specified']);
 }

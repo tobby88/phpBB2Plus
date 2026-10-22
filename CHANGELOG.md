@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Separate Album owner existence from the localized Guest display fallback.
+  Recognize registered owners named `0`; reject missing, malformed and out-of-range
+  owners before personal-gallery handling. Retain deleted-author display labels,
+  the explicit public-gallery marker and existing permissions. No data migration.
+
 - Correct English/German CrackerTracker help to explain the independent profile
   keyword switch, conditional low-post-count posting heuristic, false positives,
   rejection-only behavior and absence of spam-log writes. Label existing password
