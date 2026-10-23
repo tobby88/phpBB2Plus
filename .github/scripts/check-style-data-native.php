@@ -101,7 +101,11 @@ try {
  foreach (array(USERS_TABLE => 'user_id INT PRIMARY KEY,user_level INT,user_active INT', SESSIONS_TABLE => 'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT', JR_ADMIN_TABLE => 'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $table => $columns) {
   sd_sql('CREATE TABLE ' . $table . ' (' . $columns . ') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');
  }
- sd_sql('SET SESSION innodb_lock_wait_timeout=1');
+ // Only the fixture's competing connection: MariaDB returns the same native
+ // 1205 immediately for a locked row. Keep every revocation/boundary assertion;
+ // do not spend one artificial second per blocked attempt. Forum writer
+ // timeouts are unchanged (servers that clamp this to one still run safely).
+ sd_sql('SET SESSION innodb_lock_wait_timeout=0');
  if (getenv('PHPBB_STYLE_DATA_PROBE') === '1') {
   sd_reset(); $before = sd_snapshot(); $sd_failure = 'UPDATE fixture_names ';
   $out = sd_run(array('edit_style_name' => 'Changed', 'edit_tr_color1' => '123456', 'name_tr_color1' => 'Changed label'));
