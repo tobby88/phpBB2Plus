@@ -201,5 +201,6 @@ $lang['remove_field'] = 'Letztes Bild-Upload-Feld entfernen';
 $lang['ZIP_allowed'] = 'ZIP-Dateien dürfen hochgeladen werden';
 
 $lang['Personal_gallery_creation_failed'] = 'Die persönliche Galerie konnte nicht angelegt werden. Bitte prüfe deine Galerie-Berechtigungen oder wende dich an die Administration.';
+$lang['Personal_category_creation_failed'] = 'Die Kategorie konnte nicht angelegt werden. Bitte lade die Seite neu und prüfe deine aktuelle Anmeldung, die Galerie-Berechtigungen und das Kategorienlimit.';
 
 ?>

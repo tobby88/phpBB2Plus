@@ -36,6 +36,14 @@ preserved Arcade is documented in
 
 ## Album category text storage
 
+Personal subcategory creation checks the actual active account/login and current
+owner/admin role inside its own transaction. Permissions refer to the locked
+parent, and the category limit is enforced server-side, including concurrent
+requests. Negative limits remain unlimited. The caller's unrelated transaction,
+SQL settings and request identity are not committed, rolled back or replaced.
+This creation path needs no additional schema; existing installations still need
+the canonical storage and text-capacity migrations below.
+
 Personal category titles retain 255 logical characters, including quotes and
 HTML-sensitive text; their historical escaped representation can use up to 1530
 stored characters. Descriptions retain 65,535 complete UTF-8 characters, not

@@ -633,53 +633,24 @@ else
 		}
 		else
 		{
-			// Get posting variables
+			// Get posting variables. Recheck current authority inside the writer.
 			$cat_title = album_personal_category_text(phpbb_request_scalar($_POST, 'cat_title'), 255, true);
 			$cat_desc = album_personal_category_text(phpbb_request_scalar($_POST, 'cat_desc'), 65535, false);
 			if ($cat_title === '')
 			{
 				message_die(GENERAL_MESSAGE, $lang['No_valid_category_selected']);
 			}
-			$is_album_admin = ((int) $userdata['user_level'] === ADMIN);
-			$view_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_view_level', ALBUM_PRIVATE), $is_album_admin, ALBUM_PRIVATE);
-			$upload_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_upload_level', ALBUM_PRIVATE), $is_album_admin, ALBUM_PRIVATE);
-			$rate_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_rate_level', ALBUM_USER), $is_album_admin, ALBUM_USER);
-			$comment_level = album_personal_permission_value(phpbb_request_scalar($_POST, 'cat_comment_level', ALBUM_USER), $is_album_admin, ALBUM_USER);
 			$requested_parent = intval(phpbb_request_scalar($_POST, 'cat_parent_id', ALBUM_ROOT_CATEGORY));
-			$cat_parent = ($requested_parent == ALBUM_ROOT_CATEGORY) ? album_get_personal_root_id($album_user_id) : $requested_parent;
-
-			$sql = "SELECT cat_id FROM " . ALBUM_CAT_TABLE . "
-					WHERE cat_id = " . (int) $cat_parent . "
-						AND cat_user_id = " . (int) $album_user_id;
-			if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
+			$requested_levels = array(
+				'view' => phpbb_request_scalar($_POST, 'cat_view_level', ALBUM_PRIVATE),
+				'upload' => phpbb_request_scalar($_POST, 'cat_upload_level', ALBUM_PRIVATE),
+				'rate' => phpbb_request_scalar($_POST, 'cat_rate_level', ALBUM_USER),
+				'comment' => phpbb_request_scalar($_POST, 'cat_comment_level', ALBUM_USER)
+			);
+			require_once dirname(__FILE__) . '/album_mod/album_category_storage.php';
+			if (!album_personal_category_create((int) $album_user_id, $requested_parent, $cat_title, $cat_desc, $requested_levels))
 			{
-				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-			}
-
-			// Get the last ordered category
-			$sql = "SELECT cat_order FROM ". ALBUM_CAT_TABLE ."
-					ORDER BY cat_order DESC
-					LIMIT 1";
-
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not query Album Categories information', '', __LINE__, __FILE__, $sql);
-			}
-			$row = $db->sql_fetchrow($result);
-			$last_order = $row ? intval($row['cat_order']) : 0;
-			$cat_order = $last_order + 10;
-
-			// Here we insert a new row into the db
-
-			$cat_title_sql = $db->sql_escape($cat_title);
-			$cat_desc_sql = $db->sql_escape($cat_desc);
-			$sql = "INSERT INTO ". ALBUM_CAT_TABLE ." (cat_title, cat_desc, cat_order, cat_view_level, cat_upload_level, cat_rate_level, cat_comment_level, cat_edit_level, cat_delete_level, cat_approval, cat_parent, cat_user_id)
-					VALUES ('$cat_title_sql', '$cat_desc_sql', " . intval($cat_order) . ", $view_level, $upload_level, $rate_level, $comment_level, " . ALBUM_PRIVATE . ", " . ALBUM_PRIVATE . ", 0, " . intval($cat_parent) . ", " . intval($album_user_id) . ")";
-
-
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not create new Album Category', '', __LINE__, __FILE__, $sql);
+				message_die(GENERAL_MESSAGE, $lang['Personal_category_creation_failed']);
 			}
 
 			// Return a message...

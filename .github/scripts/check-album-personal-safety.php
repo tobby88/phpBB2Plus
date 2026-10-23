@@ -19,6 +19,7 @@ $config_helpers = file_get_contents($root . '/phpBB2/album_mod/album_acp_functio
 $config_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/album_config_body_extended.tpl');
 $clear_cache = file_get_contents($root . '/phpBB2/admin/admin_album_clearcache.php');
 $personal_admin = file_get_contents($root . '/phpBB2/album_personal_cat_admin.php');
+$category_storage = file_get_contents($root . '/phpBB2/album_mod/album_category_storage.php');
 $hotornot = file_get_contents($root . '/phpBB2/album_hotornot.php');
 
 album_test_assert(strpos($personal, "isset(\$album_data['keys'][\$cat_id])") !== false, 'hierarchy cache lookup must be guarded');
@@ -55,7 +56,9 @@ album_test_assert(strpos($clear_cache, '!is_link($cache_item)') !== false, 'thum
 album_test_assert(strpos($clear_cache, "isset(\$_POST['cancel'])") !== false, 'thumbnail cache cancellation must leave the confirmation page');
 album_test_assert(strpos($personal_admin, "in_array(\$mode, array('', 'new', 'edit', 'delete'), true)") !== false, 'personal category write modes must use an allowlist');
 album_test_assert(strpos($personal_admin, 'function album_personal_permission_value') !== false, 'personal category permission values must be normalized');
-album_test_assert(substr_count($personal_admin, '$cat_title_sql = $db->sql_escape($cat_title)') >= 2, 'personal category text must use database-driver escaping');
+album_test_assert(strpos($personal_admin, '$cat_title_sql = $db->sql_escape($cat_title)') !== false && strpos($personal_admin, '$cat_desc_sql = $db->sql_escape($cat_desc)') !== false, 'personal category edits must keep database-driver escaping');
+album_test_assert(strpos($personal_admin, 'album_personal_category_create((int) $album_user_id, $requested_parent, $cat_title, $cat_desc, $requested_levels)') !== false, 'personal category creation must delegate actual text and permissions to its dedicated writer');
+album_test_assert(strpos($category_storage, '$storage->sql_escape($title)') !== false && strpos($category_storage, '$storage->sql_escape($description)') !== false, 'dedicated category creation must escape both texts through its owning database driver');
 album_test_assert(strpos($personal_admin, "AND cat_user_id = \" . (int) \$album_user_id") !== false, 'personal category ordering must remain bound to its owner');
 album_test_assert(strpos($hotornot, '$rate_user_ip_sql = $db->sql_escape($rate_user_ip)') !== false, 'Hot-or-Not rating IPs must use database-driver escaping');
 

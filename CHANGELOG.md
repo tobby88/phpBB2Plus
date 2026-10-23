@@ -8,6 +8,16 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Recheck the current active account, exact login session and owner/admin grant
+  when creating a personal Album subcategory. Keep account/session and actual
+  parent rows locked through the dedicated transaction, re-evaluate permissions
+  on that parent and normalize submitted levels using the current role. Enforce
+  the configured subcategory limit at the write boundary, including competing
+  requests for the last slot; retain negative unlimited limits. Preserve caller
+  transactions/settings and the original request context, and render failures
+  only after releasing the writer. Keep canonical HTML/UTF-8 text limits and add
+  German/English retry messages. No additional table or column is required.
+
 - Keep personal-category input limits at 255 title characters and 65,535
   description characters, with identical UTF-8 handling without mbstring.
   Reserve full HTML-title expansion in `VARCHAR(1530)` and full UTF-8 description
