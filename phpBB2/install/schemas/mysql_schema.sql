@@ -1170,8 +1170,8 @@ CREATE TABLE phpbb_album_comment (
 
 CREATE TABLE phpbb_album_cat (
 	cat_id mediumint(8) UNSIGNED NOT NULL auto_increment,
-	cat_title varchar(255) NOT NULL,
-	cat_desc text,
+	cat_title varchar(1530) NOT NULL,
+	cat_desc mediumtext,
 	cat_order mediumint(8) NOT NULL,
 	cat_view_level tinyint(3) NOT NULL default '-1',
 	cat_upload_level tinyint(3) NOT NULL default '0',

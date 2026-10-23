@@ -53,9 +53,17 @@ function album_personal_permission_value($value, $is_admin, $default)
 
 function album_personal_category_text($value, $length, $encode_html)
 {
+	if ((!is_scalar($value) && $value !== null) || (int) $length < 1) { return ''; }
+	$length = min($encode_html ? 255 : 65535, (int) $length);
 	$value = trim(stripslashes((string) $value));
-	$value = function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
-	return $encode_html ? htmlspecialchars($value, ENT_QUOTES, 'UTF-8') : $value;
+	// Retain the original logical character limits with or without mbstring.
+	// The installer/updater reserves full UTF-8 and HTML-expansion capacity.
+	$value = substr($value, 0, $length * 4 + 4);
+	$value = html_entity_decode(htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true), ENT_QUOTES, 'UTF-8');
+	$characters = preg_split('//u', $value, $length + 2, PREG_SPLIT_NO_EMPTY);
+	if ($characters === false) { return ''; }
+	$value = implode('', array_slice($characters, 0, $length));
+	return $encode_html ? htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true) : $value;
 }
 
 //

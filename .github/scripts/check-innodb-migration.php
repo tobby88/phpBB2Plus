@@ -82,6 +82,10 @@ try {
  plus_storage_query($db,"INSERT INTO phpbb_kb_categories(category_id,category_name,category_details,number_articles,parent,cat_order) VALUES(1,'Root','Preserve',99,0,0),(2,'Child 😀','Preserve',0,1,1)");
  plus_storage_query($db,'ALTER TABLE phpbb_kb_articles MODIFY article_rating DOUBLE(6,4) NOT NULL DEFAULT 0.0000,MODIFY article_totalvotes INT(255) NOT NULL DEFAULT 0');
  plus_storage_query($db,'ALTER TABLE phpbb_posts MODIFY post_username VARCHAR(25) NULL');
+ plus_storage_query($db,'ALTER TABLE phpbb_album_cat MODIFY cat_title VARCHAR(255) NOT NULL, MODIFY cat_desc TEXT');
+ plus_storage_query($db,"INSERT INTO phpbb_album_cat(cat_id,cat_title,cat_desc,cat_order,cat_parent,cat_user_id) VALUES(1,'Keep &amp; Grüße 😀',NULL,10,0,7),(9,'Child','Preserve full description 😀',20,1,7)");
+ plus_storage_query($db,'ALTER TABLE phpbb_album_cat AUTO_INCREMENT=900');
+ $album_rows_before=plus_storage_rows($db,'SELECT * FROM phpbb_album_cat ORDER BY cat_id');
  plus_storage_query($db,"INSERT INTO phpbb_kb_articles(article_id,article_category_id,article_title,article_body,approved) VALUES(1,2,'First 😀','Preserve body',1),(2,2,'Second','Preserve body',1),(3,1,'Pending','Preserve body',0)");
  plus_storage_query($db,'UPDATE phpbb_kb_articles SET article_rating=99.9999,article_totalvotes=10 WHERE article_id=1');
  $kb_articles_before=plus_storage_rows($db,'SELECT * FROM phpbb_kb_articles ORDER BY article_id');
@@ -114,6 +118,9 @@ try {
   storage_check(count(plus_kb_rating_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0),'Actual full updater widens rating capacity before confirming completion, retry no-op');
   require_once $root.'/update/post_author_storage_migration.php';
   storage_check(count(plus_post_author_plan($db,'phpbb_'))===($case==='dry'||$case==='missing-maintenance'?1:0),'Actual full updater preserves posts while widening guest byline capacity; dry/refused stays25, apply/retry reaches safe encoded width');
+  require_once $root.'/update/album_text_storage_migration.php';
+  storage_check(count(plus_album_text_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0),'Actual full updater widens both Album text fields; dry/refused is unchanged and full/repeated apply completes the migration');
+  storage_check(plus_storage_rows($db,'SELECT * FROM phpbb_album_cat ORDER BY cat_id')===$album_rows_before&&plus_storage_counter_at_least(plus_storage_metadata($db,'phpbb_album_cat')['AUTO_INCREMENT'],'900'),'Full updater preserves every Album category byte, NULL and historical identity floor');
   $expected_user_counts=($case==='dry'||$case==='missing-maintenance')?array(array('user_id'=>'-1','user_posts'=>'99'),array('user_id'=>'1','user_posts'=>'77'),array('user_id'=>'2','user_posts'=>'55')):array(array('user_id'=>'-1','user_posts'=>'99'),array('user_id'=>'1','user_posts'=>'2'),array('user_id'=>'2','user_posts'=>'0'));
   storage_check(plus_storage_rows($db,'SELECT user_id,user_posts FROM phpbb_users ORDER BY user_id')===$expected_user_counts&&plus_storage_rows($db,'SELECT * FROM phpbb_posts ORDER BY post_id')===$counter_posts_before,'Actual full updater honors counting forums, preserves guest counters and every stored post');
   storage_check(plus_storage_rows($db,'SELECT ban_id,ban_userid,ban_ip,ban_email FROM phpbb_banlist ORDER BY ban_id')===$legacy_bans,'Actual updater retains every old mixed/user/IP/email rule byte');

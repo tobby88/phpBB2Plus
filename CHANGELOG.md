@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Keep personal-category input limits at 255 title characters and 65,535
+  description characters, with identical UTF-8 handling without mbstring.
+  Reserve full HTML-title expansion in `VARCHAR(1530)` and full UTF-8 description
+  capacity in `MEDIUMTEXT`. The installer and full/scoped updater preserve stored
+  contents, definitions and identity floors; wider custom fields are not narrowed.
+  Existing installations must migrate before using the wider text input path.
+
 - Revalidate the exact current login session before creating a personal Album
   root. Keep its owned session row locked through commit, reject deleted,
   logged-out, expired or foreign sessions and require modern transactional session

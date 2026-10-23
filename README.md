@@ -34,6 +34,27 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Album category text storage
+
+Personal category titles retain 255 logical characters, including quotes and
+HTML-sensitive text; their historical escaped representation can use up to 1530
+stored characters. Descriptions retain 65,535 complete UTF-8 characters, not
+65,535 bytes. Handling is the same with and without mbstring. New installations
+use `VARCHAR(1530)` and `MEDIUMTEXT` respectively. Existing installations must run
+the full updater, or after canonical InnoDB/UTF-8 migration:
+
+```sh
+php update/update_from_153a.php --album-text-storage-only
+php update/update_from_153a.php --album-text-storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+Back up first and stop all web/cron writers until schema/code verification
+finishes. The migration checks unchanged stored rows, other columns, defaults,
+comments, collation, indexes and the identity floor. Wider custom definitions
+are retained; unsupported expressions, ambiguous empty-table defaults or full-width text indexes require review,
+not automatic dropping or shortening. DDL is not rollbackable: keep writers
+stopped after a partial failure and inspect the retained backup before retrying.
+
 ## Knowledge Base category counters
 
 Built-in article transitions use integer deltas; the legacy internal `+ 1` /
