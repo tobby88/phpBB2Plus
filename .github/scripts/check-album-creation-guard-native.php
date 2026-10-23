@@ -5,6 +5,7 @@ define('IN_PHPBB',true);define('ADMIN',1);define('ANONYMOUS',-1);define('GENERAL
 $table_prefix='fixture_';$source=dirname(dirname(__DIR__)).'/phpBB2/';
 require $source.'includes/php_compat.php';require $source.'db/mysqli.php';require $source.'album_mod/album_constants.php';
 require $source.'album_mod/album_functions.php';require $source.'album_mod/album_hierarchy_auth.php';require $source.'album_mod/album_hierarchy_sql.php';
+require __DIR__.'/album-native-session.php';
 function ac_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 class AlbumCreationExit extends RuntimeException{}
 function message_die($type,$message){throw new AlbumCreationExit($message);}
@@ -47,6 +48,7 @@ try{
  foreach(array('album_cat','album')as$table){ac_check(preg_match('/CREATE TABLE phpbb_'.$table.'\s*\([\s\S]*?;/',$schema_source,$m)===1,'Canonical Album table');ac_sql(str_replace('phpbb_'.$table,'fixture_'.$table,$m[0]));}
  ac_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  ac_sql('CREATE TABLE fixture_members(user_id MEDIUMINT NOT NULL,group_id MEDIUMINT NOT NULL,user_pending TINYINT NOT NULL) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ album_native_session_schema($control,$source);album_native_session_seed($control,100,str_repeat('c',32));
  ac_sql("INSERT INTO fixture_users(user_id,username) VALUES(100,'0'),(200,'Other owner')");ac_sql('INSERT INTO fixture_members VALUES(100,10,0)');
  ac_check(mkdir($fixture,0700)&&mkdir($fixture.'/uploader',0700)&&mkdir($fixture.'/uploader/tmp',0700),'Owned staged-file fixture');
  $phpbb_root_path=$fixture.'/';$phpEx='php';$userdata=ac_viewer();

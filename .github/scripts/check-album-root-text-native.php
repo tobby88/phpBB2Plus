@@ -10,6 +10,7 @@ class AlbumRootFailure extends RuntimeException {}
 function message_die($type,$message){throw new AlbumRootFailure($message);}
 function ar_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 require __DIR__.'/album-native-observer.php';
+require __DIR__.'/album-native-session.php';
 class AlbumRootDatabase extends sql_db{
  var$queries=array();var$freed=0;var$failure='';var$root_result=null;var$recording=false;var$body_results=array();
  function reset_case($failure=''){$this->queries=array();$this->freed=0;$this->failure=$failure;$this->root_result=null;$this->body_results=array();$this->recording=true;}
@@ -44,10 +45,11 @@ try{
  ar_check(preg_match('/CREATE TABLE phpbb_users\s*\([\s\S]*?;/',$schema_source,$match)===1,'Canonical user table');
  $columns=array();foreach(array('user_id','username','user_level','user_active')as$column){ar_check(preg_match('/^\s+'.$column.'\s+([^\r\n]+),\s*$/m',$match[0],$m)===1,'Canonical user column');$columns[]=$column.' '.$m[1];}
  ar_sql('CREATE TABLE fixture_users('.implode(',',$columns).',PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ album_native_session_schema($control,$source);
  $names=array(7=>'Ordinary',8=>"Legacy O'Connor",9=>"A\\B",10=>'Grüße 😀',11=>'0',12=>'O&#039;Connor',13=>"Quote\\'Name",14=>"Double\\\\Slash",15=>'&amp; ❤',17=>'FROM fixture_members');
- foreach($names as$id=>$name){ar_sql("INSERT INTO fixture_users(user_id,username) VALUES(".$id.",'".$control->sql_escape($name)."')");}
+ foreach($names as$id=>$name){ar_sql("INSERT INTO fixture_users(user_id,username) VALUES(".$id.",'".$control->sql_escape($name)."')");album_native_session_seed($control,$id,md5('album-native-session-'.$id));}
  ar_sql("INSERT INTO fixture_users(user_id,username) VALUES(16,'')");$accounts=ar_rows('SELECT user_id,username FROM fixture_users ORDER BY user_id');
- $userdata=array('user_id'=>7,'session_logged_in'=>true,'user_level'=>0);$album_config=array('personal_gallery'=>ALBUM_USER);$cases=0;
+ $userdata=array('user_id'=>7,'session_logged_in'=>true,'user_level'=>0,'session_id'=>md5('album-native-session-7'));$album_config=array('personal_gallery'=>ALBUM_USER);$cases=0;
  foreach(array('','NO_BACKSLASH_ESCAPES','ANSI_QUOTES')as$mode){
   ar_sql("SET SESSION sql_mode='".$mode."'");$db->recording=false;ar_check($db->sql_query("SET SESSION sql_mode='".$mode."'"),'Actual driver SQL mode');
   foreach(array('english','german','quoted-label')as$locale){
@@ -55,7 +57,7 @@ try{
    if($locale==='quoted-label'){$lang['Personal_Gallery_Of_User']="Owner's \\ ".$lang['Personal_Gallery_Of_User'];}
    ar_sql('DELETE FROM fixture_album_cat');
    foreach($names as$id=>$name){
-    $userdata['user_id']=$id;$view=$id%2?ALBUM_GUEST:ALBUM_USER;$db->reset_case();
+    $userdata['user_id']=$id;$userdata['session_id']=md5('album-native-session-'.$id);$view=$id%2?ALBUM_GUEST:ALBUM_USER;$db->reset_case();
     ar_check(album_create_personal_gallery($id,$view,ALBUM_PRIVATE)===true,'Actual root creation including historical quote/backslash/zero names');
     ar_check(count($db->queries)===3&&$db->freed===2,'Successful creator performs bounded owner/root reads and frees both results');
     $rows=ar_rows('SELECT * FROM fixture_album_cat WHERE cat_user_id='.$id.' AND cat_parent=0');ar_check(count($rows)===1,'Exactly one root created');$row=$rows[0];$expected=sprintf($lang['Personal_Gallery_Of_User'],$name);
@@ -66,7 +68,7 @@ try{
    }
   }
   // All previously meaningful permission values remain supported and typed.
-  $userdata['user_id']=7;
+  $userdata['user_id']=7;$userdata['session_id']=md5('album-native-session-7');
   foreach(array(ALBUM_GUEST,ALBUM_USER,ALBUM_ADMIN,ALBUM_MOD,ALBUM_PRIVATE)as$view){foreach(array(ALBUM_GUEST,ALBUM_USER,ALBUM_ADMIN,ALBUM_MOD,ALBUM_PRIVATE)as$upload){
    ar_sql('DELETE FROM fixture_album_cat');$db->reset_case();ar_check(album_create_personal_gallery(7,(string)$view,$upload)===true,'Existing permission choice accepted');$row=ar_rows('SELECT cat_view_level,cat_upload_level FROM fixture_album_cat')[0];ar_check((int)$row['cat_view_level']===$view&&(int)$row['cat_upload_level']===$upload,'Permission choices not changed by escaping');$cases++;
   }}

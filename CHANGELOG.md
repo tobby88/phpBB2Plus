@@ -8,6 +8,13 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Revalidate the exact current login session before creating a personal Album
+  root. Keep its owned session row locked through commit, reject deleted,
+  logged-out, expired or foreign sessions and require modern transactional session
+  storage. Preserve genuine legacy token case and normalized integer IDs
+  without refreshing or rewriting sessions. Existing galleries remain untouched;
+  the existing session table needs no additional schema or data migration.
+
 - Keep latest-picture titles valid UTF-8 when shortening them, including emoji
   and historical HTML entities, without requiring mbstring. Resolve latest
   comment authors from the actual joined account, preserving historical guest

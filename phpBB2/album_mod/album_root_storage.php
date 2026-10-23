@@ -129,6 +129,24 @@ class AlbumRootStorage
 		// replacement account inserted with that same ID.
 		$actor = phpbb_current_moderator_user($this);
 		if (!$actor || album_user_id_value($actor['user_id']) !== $this->actor_id) { return false; }
+		global $userdata, $board_config;
+		$sid = isset($userdata['session_id']) ? $userdata['session_id'] : null;
+		if (!is_string($sid) || !preg_match('/^[a-f0-9]{32}$/iD', $sid) || !defined('SESSIONS_TABLE')) { return false; }
+		$lifetime = is_array($board_config) && isset($board_config['session_length']) ? $board_config['session_length'] : null;
+		if ((!is_int($lifetime) && !is_string($lifetime)) || !preg_match('/^[0-9]{1,10}$/D', (string) $lifetime) ||
+			(float) $lifetime > 2147483647 || (int) $lifetime < 1) { return false; }
+		$expiry = time() - (int) $lifetime;
+		$this->pin(SESSIONS_TABLE);
+		$sid = $this->connection->sql_escape($sid);
+		// Use the primary key first, then compare exact bytes despite its text
+		// collation. Retain this live login row until the root has committed;
+		// an earlier session_logged_in snapshot does not survive a real logout.
+		$sessions = $this->rows($this->connection, 'SELECT session_user_id, session_logged_in FROM ' . SESSIONS_TABLE .
+			" WHERE session_id='" . $sid . "' AND HEX(session_id)=HEX('" . $sid . "') AND session_time > " . $expiry . ' FOR UPDATE');
+		if (count($sessions) !== 1 || !isset($sessions[0]['session_user_id'], $sessions[0]['session_logged_in']) ||
+			album_user_id_value($sessions[0]['session_user_id']) !== $this->actor_id ||
+			(!is_int($sessions[0]['session_logged_in']) && !is_string($sessions[0]['session_logged_in'])) ||
+			!preg_match('/^0*1$/D', (string) $sessions[0]['session_logged_in'])) { return false; }
 		return $actor;
 	}
 

@@ -2,7 +2,7 @@
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ALBUM_TRANSACTION_NATIVE')!=='1'){echo "Native Album root transaction fixture skipped.\n";return;}
 define('IN_PHPBB',true);define('ADMIN',1);define('GENERAL_ERROR',202);define('GENERAL_MESSAGE',200);define('USERS_TABLE','fixture_users');define('USER_GROUP_TABLE','fixture_members');$table_prefix='fixture_';
 $source=dirname(dirname(__DIR__)).'/phpBB2/';
-require $source.'includes/php_compat.php';require $source.'db/mysqli.php';require $source.'album_mod/album_constants.php';require $source.'album_mod/album_functions.php';require $source.'album_mod/album_hierarchy_auth.php';require $source.'album_mod/album_hierarchy_sql.php';require __DIR__.'/album-native-observer.php';
+require $source.'includes/php_compat.php';require $source.'db/mysqli.php';require $source.'album_mod/album_constants.php';require $source.'album_mod/album_functions.php';require $source.'album_mod/album_hierarchy_auth.php';require $source.'album_mod/album_hierarchy_sql.php';require __DIR__.'/album-native-observer.php';require __DIR__.'/album-native-session.php';
 class AlbumTransactionExit extends RuntimeException{}
 function message_die($type,$message){throw new AlbumTransactionExit($message);}
 function at_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
@@ -43,7 +43,7 @@ class AlbumTransactionSource extends sql_db{
 }
 $port=getenv('PHPBB_ALBUM_TRANSACTION_PORT')?:'3306';$password=getenv('PHPBB_ALBUM_TRANSACTION_PASSWORD')?:'';
 at_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Owned loopback port');$host='127.0.0.1:'.$port;
-$userdata=array('user_id'=>7,'session_logged_in'=>true,'user_level'=>0);$album_config=array('personal_gallery'=>ALBUM_USER,'personal_gallery_private'=>'10');$album_data=array();$lang=array('Personal_Gallery_Of_User'=>'Gallery of %s','Personal_gallery_creation_failed'=>'creation-failed');
+$userdata=array('user_id'=>7,'session_logged_in'=>true,'user_level'=>0,'session_id'=>str_repeat('a',32));$album_config=array('personal_gallery'=>ALBUM_USER,'personal_gallery_private'=>'10');$album_data=array();$lang=array('Personal_Gallery_Of_User'=>'Gallery of %s','Personal_gallery_creation_failed'=>'creation-failed');
 if(isset($argv[1])&&$argv[1]==='worker'){
  at_check(count($argv)===5&&preg_match('/^codex_album_tx_[a-f0-9]{16}$/D',$argv[2])&&in_array($argv[3],array('hold','peer'),true)&&in_array($argv[4],array('normal','slashes','quotes'),true),'Only own bounded child context');
  $db=new AlbumTransactionSource($host,'root',$password,$argv[2],false);$db->barrier=sys_get_temp_dir().'/'.$argv[2];$db->worker=$argv[3];
@@ -77,6 +77,7 @@ try{
  $ddl=file_get_contents($source.'install/schemas/mysql_schema.sql');at_check(preg_match('/CREATE TABLE phpbb_album_cat\s*\([\s\S]*?;/',$ddl,$match)===1,'Canonical category schema');at_sql(str_replace('phpbb_album_cat','fixture_album_cat',$match[0]));
  at_sql('CREATE TABLE fixture_users(user_id MEDIUMINT NOT NULL,username VARCHAR(25) NOT NULL,user_level TINYINT DEFAULT 0,user_active TINYINT DEFAULT 1,PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  at_sql('CREATE TABLE fixture_members(user_id MEDIUMINT,group_id MEDIUMINT,user_pending TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ album_native_session_schema($control,$source);album_native_session_seed($control,7,str_repeat('a',32));
  at_sql('CREATE TABLE fixture_probe(id INT PRIMARY KEY,v INT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');at_sql('INSERT INTO fixture_probe VALUES(1,1)');
  at_sql("INSERT INTO fixture_users(user_id,username) VALUES(7,'".$control->sql_escape("O'Connor \\ 😀")."'),(8,'Independent owner')");at_sql('INSERT INTO fixture_members VALUES(7,10,0)');
  $db=new AlbumTransactionSource($host,'root',$password,$schema,false);$db->otherSchema=$otherSchema;$original=$db;

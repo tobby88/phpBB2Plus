@@ -2,7 +2,7 @@
 if(PHP_SAPI!=='cli'||getenv('PHPBB_ALBUM_AUTHORITY_NATIVE')!=='1'){echo "Native Album root authority fixture skipped.\n";return;}
 define('IN_PHPBB',true);define('ADMIN',1);define('GENERAL_ERROR',202);define('GENERAL_MESSAGE',200);define('USERS_TABLE','fixture_users');define('USER_GROUP_TABLE','fixture_members');$table_prefix='fixture_';
 $source=dirname(dirname(__DIR__)).'/phpBB2/';
-require $source.'includes/php_compat.php';require $source.'db/mysqli.php';require $source.'album_mod/album_constants.php';require $source.'album_mod/album_functions.php';require $source.'album_mod/album_hierarchy_auth.php';require $source.'album_mod/album_hierarchy_sql.php';require __DIR__.'/album-native-observer.php';
+require $source.'includes/php_compat.php';require $source.'db/mysqli.php';require $source.'album_mod/album_constants.php';require $source.'album_mod/album_functions.php';require $source.'album_mod/album_hierarchy_auth.php';require $source.'album_mod/album_hierarchy_sql.php';require __DIR__.'/album-native-observer.php';require __DIR__.'/album-native-session.php';
 function aa_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 function message_die($type,$message){throw new RuntimeException($message);}
 function checkFlag($value,$flag){return($value&$flag)===$flag;}
@@ -10,15 +10,18 @@ function album_is_debug_enabled(){return false;}
 $body=file_get_contents($source.'includes/functions.php');aa_check(preg_match('/^function phpbb_sql_id_list\(.*?^\}/ms',$body,$m)===1,'Actual stored group-list parser');eval($m[0]);
 function album_sql_id_list($ids){return phpbb_sql_id_list($ids);}
 class AlbumAuthoritySource extends sql_db{
- var$queries=array();var$failure='';var$hook=null;var$lockedHook=null;
- function reset_case($failure=''){$this->queries=array();$this->failure=$failure;$this->hook=null;$this->lockedHook=null;}
+ var$queries=array();var$failure='';var$hook=null;var$lockedHook=null;var$sessionHook=null;
+ function reset_case($failure=''){$this->queries=array();$this->failure=$failure;$this->hook=null;$this->lockedHook=null;$this->sessionHook=null;}
  function sql_dedicated_connection(){return new AlbumNativeObservedConnection(parent::sql_dedicated_connection(),$this);}
  function observed_query($database,$sql,$transaction=false){
   $this->queries[]=$sql;
   if($this->failure==='actor'&&strpos($sql,'SELECT user_id, user_level, user_active FROM ')===0){return false;}
+  $sessionRead=strpos($sql,'SELECT session_user_id, session_logged_in FROM ')===0;
+  if($this->failure==='session'&&$sessionRead){return false;}
   if(strpos($sql,'INSERT INTO fixture_album_cat')===0&&is_callable($this->hook)){$hook=$this->hook;$this->hook=null;call_user_func($hook);}
   $result=$database->sql_query($sql,$transaction);
   if(strpos($sql,'SELECT user_id FROM fixture_users WHERE ')===0&&strpos($sql,' FOR UPDATE')!==false&&is_callable($this->lockedHook)){$hook=$this->lockedHook;$this->lockedHook=null;call_user_func($hook);}
+  if($sessionRead&&is_callable($this->sessionHook)){$hook=$this->sessionHook;$this->sessionHook=null;call_user_func($hook);}
   return $result;
  }
 }
@@ -30,10 +33,12 @@ function aa_rows($sql){$r=aa_sql($sql);$rows=$GLOBALS['control']->sql_fetchrowse
 function aa_count(){return(int)aa_rows('SELECT COUNT(*) AS n FROM fixture_album_cat')[0]['n'];}
 function aa_value($value){return$value===null?'NULL':(string)(int)$value;}
 function aa_reset($snapshotRole,$storedRole,$active){
- global$db,$userdata,$album_data,$album_config,$lang;
+ global$db,$userdata,$album_data,$album_config,$lang,$board_config;
+ $board_config=array('session_length'=>3600,'fixture_marker'=>'unchanged');
  aa_sql('DELETE FROM fixture_album_cat');aa_sql('DELETE FROM fixture_members');aa_sql('DELETE FROM fixture_users');
  aa_sql("INSERT INTO fixture_users(user_id,username,user_level,user_active) VALUES(7,'Actor',".aa_value($snapshotRole==='missing'?0:$snapshotRole).",1),(8,'Other owner',0,1),(9,'Next owner',0,1)");
  $r=$db->sql_query('SELECT user_id,username,user_level,user_active FROM fixture_users WHERE user_id=7');$userdata=$db->sql_fetchrow($r);$db->sql_freeresult($r);$userdata['session_logged_in']=true;$userdata['session_id']=str_repeat('a',32);
+ aa_sql('DELETE FROM fixture_sessions');album_native_session_seed($GLOBALS['control'],7,$userdata['session_id']);
  if($snapshotRole==='missing'){unset($userdata['user_level']);}
  // The actual request snapshot precedes a change on a second native connection.
  aa_sql('UPDATE fixture_users SET user_level='.aa_value($storedRole).',user_active='.aa_value($active).' WHERE user_id=7');
@@ -47,6 +52,7 @@ try{
  foreach(array('user_id','username','user_level','user_active')as$column){aa_check(preg_match('/^\s+'.$column.'\s+([^\r\n]+),\s*$/m',$m[0],$c)===1,'Canonical nullable account field');$columns[]=$column.' '.$c[1];}
  aa_sql('CREATE TABLE fixture_users('.implode(',',$columns).',PRIMARY KEY(user_id)) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
  aa_sql('CREATE TABLE fixture_members(user_id MEDIUMINT,group_id MEDIUMINT,user_pending TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ album_native_session_schema($control,$source);
  $db=new AlbumAuthoritySource($host,'root',$password,$schema,false);$original=$db;
  $matrix=array(
   array(1,0,1,8,ALBUM_USER,false,0,false),array(0,0,1,7,ALBUM_USER,false,0,true),
@@ -78,7 +84,46 @@ try{
  $db->hook=function()use(&$blocked){$r=$GLOBALS['control']->sql_query('DELETE FROM fixture_members WHERE user_id=7 AND group_id=10');$blocked=$r===false;aa_check($blocked,'Approved group grant remains share-locked through root commit');};
  aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&$blocked&&$userdata===$snapshot,'Current nonadmin approved grant retained without leaking temporary role');$cases++;
  aa_sql('DELETE FROM fixture_members WHERE user_id=7 AND group_id=10');aa_sql('DELETE FROM fixture_album_cat');aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===false&&aa_count()===0&&$userdata===$snapshot,'Next creation honors group removal, not stale admin shortcut');$cases++;
+ foreach(array('logout','guest','flag-two','foreign','guest-owner','expired','expired-boundary','zero-time','case','unknown','read-failure','missing-sid')as$change){
+  aa_reset(1,1,1);
+  switch($change){
+   case'logout':aa_sql('DELETE FROM fixture_sessions');break;
+   case'guest':aa_sql('UPDATE fixture_sessions SET session_logged_in=0');break;
+   case'flag-two':aa_sql('UPDATE fixture_sessions SET session_logged_in=2');break;
+   case'foreign':aa_sql('UPDATE fixture_sessions SET session_user_id=8');break;
+   case'guest-owner':aa_sql('UPDATE fixture_sessions SET session_user_id=-1');break;
+   case'expired':aa_sql('UPDATE fixture_sessions SET session_time='.(time()-3601));break;
+   case'expired-boundary':aa_sql('UPDATE fixture_sessions SET session_time='.(time()-3600));break;
+   case'zero-time':aa_sql('UPDATE fixture_sessions SET session_time=0');break;
+   case'case':$userdata['session_id']=str_repeat('A',32);break;
+   case'unknown':$userdata['session_id']=str_repeat('b',32);break;
+   case'read-failure':$db->reset_case('session');break;
+   case'missing-sid':unset($userdata['session_id']);break;
+  }
+  $snapshot=$userdata;$sessions=aa_rows('SELECT * FROM fixture_sessions ORDER BY session_id');
+  aa_check(album_create_personal_gallery(8,ALBUM_USER,ALBUM_PRIVATE)===false&&aa_count()===0&&$userdata===$snapshot&&$GLOBALS['db']===$original,'Fresh exact owned login required before root INSERT: '.$change);
+  aa_check(aa_rows('SELECT * FROM fixture_sessions ORDER BY session_id')===$sessions,'Creator never refreshes, reassigns or replaces a session');$cases++;
+ }
+ foreach(array('',null,false,true,7,array(str_repeat('a',32)),str_repeat('a',31),str_repeat('a',33),str_repeat('a',31)."\n")as$badSid){aa_reset(0,0,1);$userdata['session_id']=$badSid;$snapshot=$userdata;aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===false&&aa_count()===0&&$userdata===$snapshot,'Malformed request session identity cannot create a root');$cases++;}
+ foreach(array(null,false,true,1.0,array(3600),'','0','-1','1oops','2147483648','9999999999999999999999')as$badLifetime){aa_reset(0,0,1);$board_config['session_length']=$badLifetime;$configBefore=$board_config;aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===false&&aa_count()===0&&$board_config===$configBefore,'Invalid session lifetime cannot silently fall back to a different validity policy');$cases++;}
+ aa_reset(0,0,1);unset($board_config['session_length']);$configBefore=$board_config;aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===false&&aa_count()===0&&$board_config===$configBefore,'Missing session lifetime fails closed without adding a default');$cases++;
+ aa_reset(0,0,1);$board_config['session_length']='2147483647';aa_sql('UPDATE fixture_sessions SET session_time=1');$configBefore=$board_config;
+ aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&aa_count()===1&&$board_config===$configBefore,'Preserve valid long integer session lifetime without imposing an arbitrary shorter policy');$cases++;
+ foreach(array('engine','format','charset','column-charset')as$change){
+  aa_reset(0,0,1);aa_sql($change==='engine'?'ALTER TABLE fixture_sessions ENGINE=MEMORY':($change==='format'?'ALTER TABLE fixture_sessions ROW_FORMAT=COMPACT':($change==='charset'?'ALTER TABLE fixture_sessions DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci':"ALTER TABLE fixture_sessions MODIFY session_id CHAR(32) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL DEFAULT ''")));
+  aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===false&&aa_count()===0,'Modern transactional exact session storage required: '.$change);
+  aa_sql('ALTER TABLE fixture_sessions ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');if($change==='column-charset'){aa_sql("ALTER TABLE fixture_sessions MODIFY session_id CHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''");}$cases++;
+ }
+ aa_reset(1,1,1);aa_sql('SET SESSION innodb_lock_wait_timeout=0');$blocked=false;$db->hook=function()use(&$blocked){$r=$GLOBALS['control']->sql_query('DELETE FROM fixture_sessions WHERE session_user_id=7');$error=$GLOBALS['control']->sql_error();$blocked=$r===false&&(int)$error['code']===1205;aa_check($blocked,'Real concurrent logout cannot revoke a session between its locked check and root commit');};
+ aa_check(album_create_personal_gallery(8,ALBUM_USER,ALBUM_PRIVATE)===true&&$blocked&&aa_count()===1,'Current exact session remains locked through COMMIT');$cases++;
+ aa_sql('DELETE FROM fixture_sessions WHERE session_user_id=7');$before=aa_rows('SELECT * FROM fixture_album_cat');aa_check(album_create_personal_gallery(9,ALBUM_USER,ALBUM_PRIVATE)===false&&aa_rows('SELECT * FROM fixture_album_cat')===$before,'Next root creation respects actual logout despite unchanged request snapshot');$cases++;
+ aa_reset(1,1,1);aa_sql('DELETE FROM fixture_sessions');$replaced=false;$db->sessionHook=function()use(&$replaced){album_native_session_seed($GLOBALS['control'],7,str_repeat('a',32));$replaced=true;};
+ aa_check(album_create_personal_gallery(8,ALBUM_USER,ALBUM_PRIVATE)===false&&$replaced&&aa_count()===0,'Session absent from the locked query result cannot gain authority from a subsequent replacement row');$cases++;
+ aa_reset(0,0,1);aa_sql('UPDATE fixture_sessions SET session_id=UPPER(session_id)');$userdata['session_id']=str_repeat('A',32);$snapshot=$userdata;
+ aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&aa_count()===1&&$userdata===$snapshot,'A genuinely matching uppercase legacy token remains valid; only byte aliases are denied');$cases++;
  aa_sql('ALTER TABLE fixture_users MODIFY user_id MEDIUMINT(8) UNSIGNED ZEROFILL NOT NULL DEFAULT 0');aa_reset(0,0,1);$snapshot=$userdata;
  aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&aa_count()===1&&$userdata===$snapshot,'Canonical numeric identities also match native zero-padded integer results');$cases++;
- echo 'Native Album root authority: '.$cases." actual role/active/null/deletion/group/revocation/read-failure/lock/context cases PASS; own native schemas only, no live HTTP/data.\n";
+ aa_sql('ALTER TABLE fixture_sessions MODIFY session_user_id MEDIUMINT(8) UNSIGNED ZEROFILL NOT NULL DEFAULT 0');aa_reset(0,0,1);$snapshot=$userdata;
+ aa_check(album_create_personal_gallery(7,ALBUM_USER,ALBUM_PRIVATE)===true&&aa_count()===1&&$userdata===$snapshot,'Zero-padded native session/account integer identities match the same locked actor');$cases++;
+ echo 'Native Album root authority: '.$cases." actual role/active/current-session/logout/exact-token/group/revocation/read-failure/lock/context cases PASS; own native schemas only, no live HTTP/data.\n";
 }finally{if($db){$db->sql_close();}if($created){$control->sql_query('DROP DATABASE '.$schema);}$control->sql_close();restore_error_handler();error_reporting($reporting);}
