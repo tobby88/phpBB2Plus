@@ -9,6 +9,17 @@ changes consolidated after that baseline without implying active maintenance.
 ### Security and runtime hardening
 
 - Recheck the current active account, exact login session and owner/admin grant
+  when editing an existing personal Album category. Own the transaction without
+  touching the caller's pending work, retain account/session/target/ancestor
+  locks through commit and reject invalid or cyclic same-owner parent chains.
+  Normalize levels using the current role, retain read-only root text and SQL
+  NULL descriptions, and accept an unchanged zero-affected-row edit. Correct
+  title form output so repeated saves do not double-encode HTML entities; cast
+  nullable descriptions only for presentation. Add German/English failures and
+  native SQL-fault, concurrency, session, UTF-8 and roundtrip regression cases.
+  No additional schema is required; reordering/deletion are separate paths.
+
+- Recheck the current active account, exact login session and owner/admin grant
   when creating a personal Album subcategory. Keep account/session and actual
   parent rows locked through the dedicated transaction, re-evaluate permissions
   on that parent and normalize submitted levels using the current role. Enforce

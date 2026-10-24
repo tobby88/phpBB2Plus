@@ -44,6 +44,16 @@ SQL settings and request identity are not committed, rolled back or replaced.
 This creation path needs no additional schema; existing installations still need
 the canonical storage and text-capacity migrations below.
 
+Personal category edits also use an independent transaction and the current
+active account, exact login session and owner/admin role. The actual category,
+root and same-owner parent chain remain locked until commit; self/descendant,
+foreign, missing and cyclic parents are rejected. Read-only root titles and
+descriptions (including SQL NULL) are retained. Repeated unchanged edits preserve
+HTML-sensitive titles without adding another layer of entity encoding. No
+additional schema migration is needed for this edit path. Category reordering,
+deletion and legacy AdminCP writers are separate operations, not covered by this
+transaction guarantee.
+
 Personal category titles retain 255 logical characters, including quotes and
 HTML-sensitive text; their historical escaped representation can use up to 1530
 stored characters. Descriptions retain 65,535 complete UTF-8 characters, not
