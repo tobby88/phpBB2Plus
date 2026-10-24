@@ -83,7 +83,15 @@ include($album_root_path. 'album_common.'.$phpEx);
 $page_title = $lang['Personal_Cat_Admin'];
 $mode = phpbb_request_scalar($_POST, 'mode');
 $action = phpbb_request_scalar($_GET, 'action');
-if (!in_array($mode, array('', 'new', 'edit', 'delete'), true) || !in_array($action, array('', 'edit', 'delete', 'move'), true))
+if (isset($_POST['move_category']))
+{
+	// The gallery's shared form defaults to creation; only the clicked button
+	// selects ordering. Reject an actual second action, not that hidden default.
+	if (!in_array($mode, array('', 'new'), true) || $action !== '' || isset($_POST['addcategory']))
+	{ message_die(GENERAL_MESSAGE, $lang['Not_Authorised']); }
+	$mode = 'order';
+}
+if (!in_array($mode, array('', 'new', 'edit', 'delete', 'order'), true) || !in_array($action, array('', 'edit', 'delete'), true))
 {
 	message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
 }
@@ -517,34 +525,27 @@ if( $mode === '' )
 
 			include($phpbb_root_path . 'includes/page_tail.'.$phpEx); //include('./page_footer_admin.'.$phpEx);
 		}
-		else if( $action == 'move' )
-		{
-			$move = intval(phpbb_request_scalar($_GET, 'move', 0));
-			$cat_id = intval(phpbb_request_scalar($_GET, 'cat_id', 0));
-			$album_token = stripslashes(phpbb_request_scalar($_GET, 'album_token'));
-			$expected_token = hash_hmac('sha256', 'album-category-order:' . $cat_id . ':' . $move, (string) $userdata['session_id']);
-			if (!in_array($move, array(-15, 15), true) || !hash_equals($expected_token, $album_token))
-			{
-				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-			}
-			$sql = "SELECT cat_id FROM " . ALBUM_CAT_TABLE . "
-				WHERE cat_id = " . (int) $cat_id . "
-					AND cat_user_id = " . (int) $album_user_id;
-			if (!($result = $db->sql_query($sql)) || !$db->sql_fetchrow($result))
-			{
-				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-			}
-
-			album_move_tree($cat_id, $move);
-
-			// Return a message...
-			showResultMessage($lang['Category_changed_order']);
-		}
 	}
 }
 else
 {
-	if( $mode == 'new' )
+	if ($mode === 'order')
+	{
+		// The existing outer form supplies the central POST session token.
+		$requested_order = phpbb_request_scalar($_POST, 'move_category');
+		if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !is_string($requested_order) ||
+			preg_match('/^([1-9][0-9]{0,7}):(-15|15)$/D', $requested_order, $order_parts) !== 1)
+		{
+			message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
+		}
+		require_once dirname(__FILE__) . '/album_mod/album_category_storage.php';
+		if (!album_personal_category_order((int) $album_user_id, (int) $order_parts[1], (int) $order_parts[2]))
+		{
+			message_die(GENERAL_MESSAGE, $lang['Personal_category_order_failed']);
+		}
+		showResultMessage($lang['Category_changed_order']);
+	}
+	else if( $mode == 'new' )
 	{
 		$cat_title = '';
 		$cat_parent = album_get_personal_root_id($album_user_id);

@@ -54,13 +54,16 @@ album_test_assert(strpos($clear_cache, 'phpbb_admin_require_post_session();') !=
 album_test_assert(strpos($clear_cache, "preg_match('/\\.(?:gif|png|jpe?g|webp)\$/iD'") !== false, 'thumbnail cache deletion must use an end-anchored image extension');
 album_test_assert(strpos($clear_cache, '!is_link($cache_item)') !== false, 'thumbnail cache deletion must not follow symbolic links');
 album_test_assert(strpos($clear_cache, "isset(\$_POST['cancel'])") !== false, 'thumbnail cache cancellation must leave the confirmation page');
-album_test_assert(strpos($personal_admin, "in_array(\$mode, array('', 'new', 'edit', 'delete'), true)") !== false, 'personal category write modes must use an allowlist');
+album_test_assert(strpos($personal_admin, "in_array(\$mode, array('', 'new', 'edit', 'delete', 'order'), true)") !== false, 'personal category write modes must use an allowlist');
 album_test_assert(strpos($personal_admin, 'function album_personal_permission_value') !== false, 'personal category permission values must be normalized');
 album_test_assert(strpos($personal_admin, 'album_personal_category_edit((int) $album_user_id, (int) $cat_id, $requested_parent, $cat_title, $cat_desc, $requested_levels)') !== false, 'personal category edits must delegate to their owning transaction and current grant');
 album_test_assert(strpos($category_storage, '$this->connection->sql_escape($title)') !== false && strpos($category_storage, '$this->connection->sql_escape($description)') !== false, 'personal category edits must escape both texts with the owning database driver');
 album_test_assert(strpos($personal_admin, 'album_personal_category_create((int) $album_user_id, $requested_parent, $cat_title, $cat_desc, $requested_levels)') !== false, 'personal category creation must delegate actual text and permissions to its dedicated writer');
 album_test_assert(strpos($category_storage, '$storage->sql_escape($title)') !== false && strpos($category_storage, '$storage->sql_escape($description)') !== false, 'dedicated category creation must escape both texts through its owning database driver');
-album_test_assert(strpos($personal_admin, "AND cat_user_id = \" . (int) \$album_user_id") !== false, 'personal category ordering must remain bound to its owner');
+album_test_assert(strpos($personal_admin, 'album_personal_category_order((int) $album_user_id, (int) $order_parts[1], (int) $order_parts[2])') !== false && strpos($personal_admin, 'album_move_tree(') === false, 'personal ordering must use the dedicated owner-bound writer, not cached tree updates');
+album_test_assert(strpos($personal_admin, "in_array(\$action, array('', 'edit', 'delete'), true)") !== false && strpos($personal_admin, "\$_SERVER['REQUEST_METHOD'] !== 'POST'") !== false, 'legacy GET ordering must not mutate personal categories');
+$personal_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/album_personal_cat_body.tpl');
+album_test_assert(strpos($personal_template, '{S_FORM_TOKEN}') !== false && strpos($personal_template, '{catrow.cathead.CAT_ORDER_CONTROLS}') !== false && strpos($personal_template, 'U_CAT_MOVE_UP') === false, 'personal ordering must submit through the tokenized outer form, not GET links');
 album_test_assert(strpos($hotornot, '$rate_user_ip_sql = $db->sql_escape($rate_user_ip)') !== false, 'Hot-or-Not rating IPs must use database-driver escaping');
 
 echo "Personal-album safety tests passed.\n";

@@ -106,6 +106,82 @@ class AlbumCategoryEditStorage extends AlbumRootStorage
 	}
 }
 
+class AlbumCategoryOrderStorage extends AlbumRootStorage
+{
+	function save_order($owner, $parent, $category, $order)
+	{
+		if (!$this->owned || !$this->connection || !$this->transactional || !$this->ready || $this->finished)
+		{ throw new AlbumRootStorageFailure(); }
+		$sql = 'UPDATE ' . ALBUM_CAT_TABLE . ' SET cat_order=' . (int) $order .
+			' WHERE cat_id=' . (int) $category . ' AND cat_user_id=' . (int) $owner . ' AND cat_parent=' . (int) $parent;
+		if (!$this->connection->sql_query($sql)) { return false; }
+		$affected = (int) $this->connection->sql_affectedrows();
+		// Called only for a planned changed value; suppressed writes are failure.
+		return $affected === 1;
+	}
+}
+
+// Move one adjacent sibling, never rewrite a cached whole gallery tree.
+function album_personal_category_order($owner, $category, $move)
+{
+	global $db, $userdata, $album_data, $album_config;
+	if (!is_array($userdata) || !is_array($album_config) ||
+		!isset($album_config['album_category_sorting']) || $album_config['album_category_sorting'] !== 'cat_order' ||
+		!is_int($owner) || $owner <= 0 || $owner > 8388607 ||
+		!is_int($category) || $category <= 0 || $category > 16777215 ||
+		!is_int($move) || !in_array($move, array(-15, 15), true)) { return false; }
+	$original_database = $db; $original_userdata = $userdata; $original_album_data = $album_data;
+	$storage = null; $committed = false;
+	try
+	{
+		$storage = new AlbumCategoryOrderStorage($original_database); $db = $storage;
+		if (!$storage->begin($owner) || !($actor = $storage->actor())) { return false; }
+		if ((int) $actor['user_level'] !== ADMIN && album_user_id_value($actor['user_id']) !== $owner) { return false; }
+		$userdata['user_level'] = $actor['user_level'];
+		$result = $storage->sql_query('SELECT cat_id FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_user_id=' . $owner . ' AND cat_parent=0 ORDER BY cat_id FOR UPDATE');
+		$roots = $storage->sql_numrows($result); $root_row = $storage->sql_fetchrow($result); $storage->sql_freeresult($result);
+		if ($roots !== 1 || !$root_row) { return false; }
+		$result = $storage->sql_query('SELECT * FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_id=' . $category . ' AND cat_user_id=' . $owner . ' FOR UPDATE');
+		$current = $storage->sql_fetchrow($result); $storage->sql_freeresult($result);
+		if (!$current || (int) $current['cat_parent'] <= 0) { return false; }
+		$parent = (int) $current['cat_parent'];
+		$access = album_permissions($owner, $category, ALBUM_AUTH_MANAGE_PERSONAL_CATEGORIES, $current);
+		if (!album_check_permission($access, ALBUM_AUTH_MANAGE_PERSONAL_CATEGORIES) ||
+			!album_personal_category_parent_locked($storage, $owner, $parent, (int) $root_row['cat_id'], $category)) { return false; }
+		// Bound both result memory and the number of writes in one request.
+		$result = $storage->sql_query('SELECT cat_id,cat_order FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_user_id=' . $owner . ' AND cat_parent=' . $parent . ' ORDER BY cat_order,cat_id LIMIT 10001 FOR UPDATE');
+		$count = $storage->sql_numrows($result);
+		if ($count > 10000) { $storage->sql_freeresult($result); return false; }
+		$siblings = array(); $position = false;
+		while ($row = $storage->sql_fetchrow($result))
+		{
+			if ((int) $row['cat_id'] === $category) { $position = count($siblings); }
+			$siblings[] = $row;
+		}
+		$storage->sql_freeresult($result);
+		if ($position === false || count($siblings) !== (int) $count) { return false; }
+		$destination = $position + ($move === -15 ? -1 : 1);
+		if ($destination >= 0 && $destination < count($siblings))
+		{
+			$swap = $siblings[$position]; $siblings[$position] = $siblings[$destination]; $siblings[$destination] = $swap;
+			foreach ($siblings as $index => $row)
+			{
+				$order = ($index + 1) * 10;
+				if ((int) $row['cat_order'] !== $order && !$storage->save_order($owner, $parent, (int) $row['cat_id'], $order)) { return false; }
+			}
+		}
+		$storage->commit(); $committed = true; $album_data = array();
+		return true;
+	}
+	catch (AlbumRootStorageFailure $error) { return false; }
+	finally
+	{
+		$db = $original_database; $userdata = $original_userdata;
+		if (!$committed) { $album_data = $original_album_data; }
+		if ($storage) { $storage->release(); }
+	}
+}
+
 // Follow indexed, same-owner ancestors under row locks, not an old tree cache.
 function album_personal_category_parent_locked($storage, $owner, $parent, $root, $category)
 {

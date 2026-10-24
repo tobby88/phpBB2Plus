@@ -70,7 +70,7 @@ require_once($album_root_path . 'album_hierarchy_sql.' . $phpEx);
 //-----------------------------------------------
 function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_level = -1, $column_offset=1)
 {
-    global $db, $template, $phpEx, $lang, $images, $album_data, $userdata, $user_id;
+    global $db, $template, $phpEx, $lang, $images, $album_data, $userdata, $user_id, $album_config;
 	
 	static $username = '';
 
@@ -133,6 +133,14 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 		$cat_title = ($is_root) ? sprintf($lang['Personal_Gallery_Of_User'], album_html_text($username)) : album_html_text($cat['cat_title']);
 		$move_up_token = hash_hmac('sha256', 'album-category-order:' . (int) $cat_id . ':-15', (string) $userdata['session_id']);
 		$move_down_token = hash_hmac('sha256', 'album-category-order:' . (int) $cat_id . ':15', (string) $userdata['session_id']);
+		$order_controls = '';
+		if (!defined('IN_ADMIN') && !$is_root && isset($album_config['album_category_sorting']) && $album_config['album_category_sorting'] === 'cat_order')
+		{
+			foreach (array(-15 => 'Move_up', 15 => 'Move_down') as $direction => $label)
+			{
+				$order_controls .= '<button type="submit" name="move_category" class="liteoption" value="' . (int) $cat_id . ':' . $direction . '">' . htmlspecialchars($lang[$label], ENT_QUOTES, 'UTF-8') . '</button> ';
+			}
+		}
 		
 		// send to template
 		$template->assign_block_vars('catrow', array());
@@ -140,6 +148,7 @@ function album_display_admin_index($cur = ALBUM_ROOT_CATEGORY, $level = 0, $max_
 		$template->assign_block_vars('catrow.cathead', array(
 			'CAT_ID' => $cat_id,
 			'CAT_TITLE' => $cat_title,
+			'CAT_ORDER_CONTROLS' => $order_controls,
 
 			'CLASS_CATLEFT' => $class_catLeft,
 			'CLASS_CATRIGHT' => $class_catRight,

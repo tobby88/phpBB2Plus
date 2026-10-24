@@ -205,5 +205,6 @@ $lang['ZIP_allowed'] = 'Allowed to upload ZIP files';
 $lang['Personal_gallery_creation_failed'] = 'The personal gallery could not be created. Please check your gallery permissions or contact the administrator.';
 $lang['Personal_category_creation_failed'] = 'The category could not be created. Please reload the page and check your current login, gallery permissions and category limit.';
 $lang['Personal_category_update_failed'] = 'The category could not be saved. Please reload the page and check your current login, gallery permissions and parent category. A category cannot be moved below itself or one of its descendants.';
+$lang['Personal_category_order_failed'] = 'The category order could not be saved. Please reload the page and check your current login, gallery permissions and manual category sorting.';
 
 ?>

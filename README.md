@@ -50,9 +50,20 @@ root and same-owner parent chain remain locked until commit; self/descendant,
 foreign, missing and cyclic parents are rejected. Read-only root titles and
 descriptions (including SQL NULL) are retained. Repeated unchanged edits preserve
 HTML-sensitive titles without adding another layer of entity encoding. No
-additional schema migration is needed for this edit path. Category reordering,
-deletion and legacy AdminCP writers are separate operations, not covered by this
+additional schema migration is needed for this edit path. Category deletion
+and legacy AdminCP writers are separate operations, not covered by this
 transaction guarantee.
+
+Personal category ordering uses session-protected POST buttons and a dedicated
+transaction with the current account/login/grant and locked owner, category,
+parent chain and siblings. Only siblings of the actual same-owner parent are
+reordered; roots, descendants, other galleries, category text and permissions
+are unchanged. Concurrent moves serialize, and failed writes roll back the
+complete operation. First/last/only-sibling moves are harmless no-ops. Manual
+controls appear only with `cat_order` sorting, not automatic title/date sorting;
+old GET move links no longer write. A request is bounded to 10,000 siblings and
+refuses larger groups without partial changes. The existing shared form still
+supports category creation, and no schema migration is needed.
 
 Personal category titles retain 255 logical characters, including quotes and
 HTML-sensitive text; their historical escaped representation can use up to 1530

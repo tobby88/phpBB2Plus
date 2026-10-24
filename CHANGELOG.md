@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Make personal Album category ordering a session-protected POST operation,
+  replacing state-changing GET links without changing the shared creation form.
+  Recheck the active actor, exact current login and owner/admin role inside an
+  independently owned transaction, retain target/parent/sibling locks and update
+  only that same-owner sibling group. Roll back the whole operation on failure;
+  preserve caller transactions/settings/context and all unrelated rows/fields.
+  Serialize concurrent moves, stabilize tied or extreme order values and retain
+  harmless first/last/only-sibling no-ops. Show manual controls only for manual
+  sorting, bound each request to 10,000 siblings and add German/English failures.
+  Add actual shared-form, SQL-fault, process-concurrency and scope regressions.
+  No schema change is required; deletion and legacy AdminCP paths are separate.
+
 - Recheck the current active account, exact login session and owner/admin grant
   when editing an existing personal Album category. Own the transaction without
   touching the caller's pending work, retain account/session/target/ancestor
