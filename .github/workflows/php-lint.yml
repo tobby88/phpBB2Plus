@@ -52,7 +52,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-          extensions: pdo_sqlite, gd
+          extensions: pdo_sqlite, gd, tokenizer
 
       - name: Lint PHP sources
         shell: bash

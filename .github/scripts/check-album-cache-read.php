@@ -68,11 +68,15 @@ try {
         if ($vector[0] === 'named-is-directory') { acr_check(mkdir($base . '/album_mod/upload/' . $cache . '/custom.jpg'), 'Own non-file thumbnail candidate'); }
         $pending = in_array($vector[0], array('approval-denied', 'admin-approval-override'), true);
         $case = array('directory' => $base, 'script' => $script, 'original' => $original, 'stored' => $vector[1], 'enabled' => strpos($vector[0], 'disabled') === 0 ? 0 : 1, 'view' => $vector[0] === 'view-denied' ? ALBUM_ADMIN : ($vector[0] === 'guest-public' ? ALBUM_GUEST : ALBUM_USER), 'approval' => $pending ? ADMIN : 0, 'approved' => $pending ? 0 : 1, 'guest' => $vector[0] === 'guest-public', 'admin' => $vector[0] === 'admin-approval-override');
-        $command = escapeshellarg(PHP_BINARY) . ' -n -d date.timezone=UTC ' . escapeshellarg(__FILE__) . ' child ' . escapeshellarg(base64_encode(json_encode($case)));
+        // Windows bundles tokenizer; Linux provides it through the configured
+        // extension INI. Keep the same Linux module/temp-dir setup as the parent.
+        $command = escapeshellarg(PHP_BINARY) . (DIRECTORY_SEPARATOR === chr(92) ? ' -n' : '') . ' -d date.timezone=UTC ' . escapeshellarg(__FILE__) . ' child ' . escapeshellarg(base64_encode(json_encode($case)));
         $process = proc_open($command, array(0 => array('pipe', 'r'), 1 => array('pipe', 'w'), 2 => array('pipe', 'w')), $pipes, null, null, array('bypass_shell' => true)); acr_check(is_resource($process), 'Own cache child'); fclose($pipes[0]);
         $output = stream_get_contents($pipes[1]); $errors = stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]); $exit = proc_close($process);
         $expected = isset($cache_bytes[$vector[3]]) ? $cache_bytes[$vector[3]] : $vector[3];
-        acr_check($exit === 0 && $errors === '' && $output === $expected, 'Actual ' . $script . ' ' . $vector[0] . ' expected ' . $vector[3] . ', got SHA256 ' . hash('sha256', $output) . ' errors: ' . $errors);
+        $diagnostic = $exit !== 0 && preg_match('//u', $output) === 1 ? substr($output, 0, 1600) : '';
+        acr_check($exit === 0 && $errors === '', 'Actual ' . $script . ' child failed: exit=' . $exit . ' ' . $errors . $diagnostic);
+        acr_check($output === $expected, 'Actual ' . $script . ' ' . $vector[0] . ' expected ' . $vector[3] . ', got SHA256 ' . hash('sha256', $output));
         $report = json_decode(file_get_contents($base . '/child.json'), true); $early = in_array($vector[0], array('view-denied', 'approval-denied', 'corrupt-name', 'corrupt-original', 'missing-original'), true);
         acr_check(is_array($report) && $report['queries'] === ($script === 'album_picm.php' && !$early ? 1 : 0), 'Actual medium view counter only after path/access/approval guards'); $cases++;
     } }
