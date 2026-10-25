@@ -269,6 +269,7 @@ jobs:
       - name: Test Album picture Unicode and logical text input
         run: |
           php .github/scripts/check-album-photo-text.php
+          php .github/scripts/check-album-photo-edit-native.php
           node .github/scripts/check-album-photo-input.js
 
       - name: Test image processing safety

@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Save Album picture text inside an independently owned transaction, rechecking
+  the current active account, exact live session, category/author identity,
+  actual edit/moderator permissions and current private-group grants. Retain
+  account/session/category/picture/configuration locks through commit and use
+  the current description limit. Reject stale targets, suppressed writes and
+  unrelated trigger changes without partial updates; keep legitimate unchanged
+  saves and nullable descriptions intact. Preserve caller transactions, settings
+  and cached context. Add English/German failures and native POST, concurrency,
+  SQL-fault, storage and retry regressions. No schema change or image-file
+  operation is involved; upload/delete lifecycle work remains separate.
+
 - Preserve logical UTF-8 limits in picture upload and text editing without
   mbstring: clip before HTML encoding, retain complete characters and literal
   entity/backslash roundtrips, keep raw guest-name validation and registered

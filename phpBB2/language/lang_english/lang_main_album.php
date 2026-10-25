@@ -208,5 +208,6 @@ $lang['Personal_category_update_failed'] = 'The category could not be saved. Ple
 $lang['Personal_category_order_failed'] = 'The category order could not be saved. Please reload the page and check your current login, gallery permissions and manual category sorting.';
 $lang['Pic_title_too_long'] = 'The picture title must not exceed 255 characters.';
 $lang['Pic_username_too_long'] = 'The guest name must not exceed 32 characters.';
+$lang['Pic_text_update_failed'] = 'The picture could not be updated. Please reload the page and try again.';
 
 ?>

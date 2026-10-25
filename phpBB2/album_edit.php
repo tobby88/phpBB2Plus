@@ -196,12 +196,10 @@ else
 	// Update the DB
 	// --------------------------------
 
-	$sql = "UPDATE ". ALBUM_TABLE ."
-			SET pic_title = '" . $db->sql_escape($pic_title) . "', pic_desc = '" . $db->sql_escape($pic_desc) . "'
-			WHERE pic_id = $pic_id";
-	if( !$result = $db->sql_query($sql) )
+	require_once dirname(__FILE__) . '/album_mod/album_photo_storage.php';
+	if (!album_picture_text_edit((int) $pic_id, (int) $cat_id, (int) $album_user_id, (int) $thispic['pic_user_id'], $pic_title, $pic_desc))
 	{
-		message_die(GENERAL_ERROR, 'Could not update pic information', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, $lang['Pic_text_update_failed']);
 	}
 
 

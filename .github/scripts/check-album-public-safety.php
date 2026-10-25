@@ -12,6 +12,7 @@ function album_public_test_assert($condition, $message)
 $root = dirname(dirname(__DIR__));
 $delete = file_get_contents($root . '/phpBB2/album_delete.php');
 $edit = file_get_contents($root . '/phpBB2/album_edit.php');
+$edit_storage = file_get_contents($root . '/phpBB2/album_mod/album_photo_storage.php');
 $comment_edit = file_get_contents($root . '/phpBB2/album_comment_edit.php');
 $showpage = file_get_contents($root . '/phpBB2/album_showpage.php');
 $upload = file_get_contents($root . '/phpBB2/album_upload.php');
@@ -27,7 +28,8 @@ foreach (array('delete' => $delete, 'edit' => $edit, 'comment edit' => $comment_
 
 album_public_test_assert(strpos($delete, "if (!\$album_user_access['moderator'] && \$userdata['user_level'] != ADMIN)") !== false, 'authorized category moderators must be allowed to delete pictures');
 album_public_test_assert(strpos($delete, "basename(\$thispic['pic_filename'])") !== false, 'picture deletion must keep file removal inside the upload directory');
-album_public_test_assert(strpos($edit, "\$db->sql_escape(\$pic_title)") !== false && strpos($edit, "\$db->sql_escape(\$pic_desc)") !== false, 'picture metadata must use database-driver escaping');
+album_public_test_assert(strpos($edit, 'album_picture_text_edit((int) $pic_id, (int) $cat_id, (int) $album_user_id, (int) $thispic[\'pic_user_id\'], $pic_title, $pic_desc)') !== false, 'picture text must use the owned writer with the verified target/category/owner/author handoff');
+album_public_test_assert(strpos($edit_storage, '$this->connection->sql_escape($title)') !== false && strpos($edit_storage, '$this->connection->sql_escape($description)') !== false, 'picture metadata must use the actual owned database-driver escaping');
 album_public_test_assert(strpos($comment_edit, "\$db->sql_escape(\$comment_text)") !== false, 'edited comments must use database-driver escaping');
 album_public_test_assert(strpos($comment_edit, 'AND comment_pic_id = $pic_id') !== false, 'comment updates must remain bound to the verified picture');
 album_public_test_assert(strpos($showpage, "'S_FORM_TOKEN' => '<input type=\"hidden\" name=\"sid\"") !== false, 'picture comments and ratings must carry the session token');

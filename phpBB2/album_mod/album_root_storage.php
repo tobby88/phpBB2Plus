@@ -77,7 +77,7 @@ class AlbumRootStorage
 		if (!$this->owned || !$this->connection || !$this->connection->sql_query($sql)) { throw new AlbumRootStorageFailure(); }
 	}
 
-	private function pin($table)
+	protected function pin($table)
 	{
 		if (!$this->transactional || !is_string($table) || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $table)) { throw new AlbumRootStorageFailure(); }
 		if (isset($this->pinned[$table])) { return; }

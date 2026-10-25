@@ -12,7 +12,6 @@ function pht_input_body($body, $needle) {
 }
 $upload_input = pht_input_body($upload, '$pic_title_input ='); $edit_input = pht_input_body($edit, '$pic_title = album_photo_text(');
 $upload_start = strpos($upload, '$pic_filename_sql ='); $upload_end = strpos($upload, 'if( !$result =', $upload_start); pht_check($upload_start !== false && $upload_end > $upload_start, 'Actual upload SQL builder'); $upload_builder = substr($upload, $upload_start, $upload_end - $upload_start);
-$edit_start = strpos($edit, '// Update the DB'); $edit_start = strpos($edit, '$sql =', $edit_start); $edit_end = strpos($edit, 'if( !$result =', $edit_start); pht_check($edit_start !== false && $edit_end > $edit_start, 'Actual edit SQL builder'); $edit_builder = substr($edit, $edit_start, $edit_end - $edit_start);
 $lang = array('Missed_pic_title' => 'empty-title'); $cases = 0;
 $vectors = array(
     array('0', 'a' . str_repeat('😀', 16), 32, 'Guest 0', '0', 'a' . str_repeat('😀', 16), 'Guest 0', true),
@@ -50,7 +49,14 @@ try {
 } finally { restore_error_handler(); error_reporting($reporting); }
 
 if (getenv('PHPBB_ALBUM_PHOTO_INPUT_NATIVE') !== '1') { echo "Native picture text storage requires an explicitly enabled disposable fixture.\n"; return; }
-$table_prefix = 'fixture_'; require $source . 'album_mod/album_constants.php'; require $source . 'db/mysqli.php';
+$table_prefix = 'fixture_'; define('ADMIN', 1); define('USERS_TABLE', 'fixture_users'); define('USER_GROUP_TABLE', 'fixture_members');
+foreach (array('album_mod/album_constants.php', 'db/mysqli.php', 'album_mod/album_functions.php', 'album_mod/album_hierarchy_auth.php', 'album_mod/album_hierarchy_sql.php', 'album_mod/album_photo_storage.php') as $file) { require $source . $file; }
+require __DIR__ . '/album-native-session.php';
+function checkFlag($value, $flag) { return ($value & $flag) === $flag; }
+function album_is_debug_enabled() { return false; }
+// Admin controls intentionally need no group grant. The authority fixture tests
+// actual membership queries, revocation and locking separately.
+function album_sql_id_list($ids) { throw new RuntimeException('Unexpected admin membership lookup'); }
 $port = getenv('PHPBB_ALBUM_PHOTO_INPUT_PORT') ?: '3306'; $password = getenv('PHPBB_ALBUM_PHOTO_INPUT_PASSWORD') ?: '';
 pht_check(preg_match('/^[0-9]{1,5}$/D', $port) && (int) $port > 0 && (int) $port <= 65535, 'Owned loopback port'); $host = '127.0.0.1:' . $port;
 $control = new sql_db($host, 'root', $password, '', false); pht_check($control->db_connect_id, 'Own picture input control'); $schema = 'codex_album_photo_input_' . bin2hex(phpbb_random_bytes(8)); $created = false; $db = null; $native_cases = 0;
@@ -59,21 +65,31 @@ function pht_rows($sql) { $r = pht_sql($sql); $rows = $GLOBALS['control']->sql_f
 $reporting = error_reporting(E_ALL); set_error_handler(function ($s, $m) { if (error_reporting() & $s) { throw new RuntimeException($m); } });
 try {
     pht_sql('CREATE DATABASE ' . $schema . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'); $created = true; pht_sql('USE ' . $schema);
-    $ddl = file_get_contents($source . 'install/schemas/mysql_schema.sql'); pht_check(preg_match('/CREATE TABLE phpbb_album\s*\([\s\S]*?;/', $ddl, $m) === 1, 'Actual canonical widened picture schema'); pht_sql(str_replace('phpbb_album', 'fixture_album', $m[0]));
+    $ddl = file_get_contents($source . 'install/schemas/mysql_schema.sql');
+    foreach (array('album', 'album_cat', 'album_config') as $suffix) { pht_check(preg_match('/CREATE TABLE phpbb_' . $suffix . '\s*\([\s\S]*?;/', $ddl, $m) === 1, 'Actual canonical picture/category/config schema'); pht_sql(str_replace('phpbb_' . $suffix, 'fixture_' . $suffix, $m[0])); }
+    pht_sql('CREATE TABLE fixture_users(user_id MEDIUMINT PRIMARY KEY,username VARCHAR(255),user_level TINYINT,user_active TINYINT) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+    pht_sql("INSERT INTO fixture_users VALUES(7,'Synthetic',1,1)"); album_native_session_schema($control, $source); $sid = str_repeat('a', 32); album_native_session_seed($control, 7, $sid);
+    pht_sql("INSERT INTO fixture_album_cat(cat_id,cat_title,cat_order,cat_parent,cat_user_id) VALUES(10,'Synthetic',0,0,0)");
+    $settings = array('rate' => 1, 'comment' => 1, 'personal_gallery' => ALBUM_USER, 'personal_gallery_view' => ALBUM_GUEST, 'personal_gallery_private' => '10', 'personal_allow_gallery_mod' => 1, 'personal_allow_sub_categories' => 1, 'personal_sub_category_limit' => 20, 'desc_length' => 32);
+    foreach ($settings as $key => $value) { pht_sql("INSERT INTO fixture_album_config VALUES('" . $key . "','" . $value . "')"); }
     pht_sql("INSERT INTO fixture_album(pic_id,pic_filename,pic_title,pic_desc,pic_user_id,pic_username,pic_time,pic_cat_id) VALUES(1,'baseline.jpg','Before &amp; Grüße 😀',NULL,7,NULL,1,10)"); $baseline = pht_rows('SELECT * FROM fixture_album WHERE pic_id=1');
     $db = new sql_db($host, 'root', $password, $schema, false); pht_check($db->db_connect_id, 'Own actual mysqli writer');
     foreach (array('', 'STRICT_ALL_TABLES,NO_BACKSLASH_ESCAPES', 'STRICT_ALL_TABLES,ANSI_QUOTES,NO_BACKSLASH_ESCAPES') as $mode) {
         pht_check($db->sql_query("SET SESSION sql_mode='" . $mode . "'"), 'Picture text mode matrix');
         foreach (array(false, true) as $logged_in) { foreach ($vectors as $vector) {
             if (!$vector[7]) { continue; } pht_sql('DELETE FROM fixture_album WHERE pic_id<>1');
-            $userdata = array('session_logged_in' => $logged_in, 'username' => str_repeat('😀', 255)); $album_config = array('desc_length' => $vector[2]);
+            $userdata = array('session_logged_in' => $logged_in, 'username' => str_repeat('😀', 255)); $album_config = array_merge($settings, array('desc_length' => $vector[2]));
+            pht_sql("UPDATE fixture_album_config SET config_value='" . $vector[2] . "' WHERE config_name='desc_length'");
             $_POST = array('pic_title' => addslashes($vector[0]), 'pic_desc' => addslashes($vector[1]), 'pic_username' => addslashes($vector[3])); eval($upload_input);
             $expected_title = $pic_title; $expected_desc = $pic_desc; $expected_author = $pic_username;
             $pic_filename = 'synthetic-no-file-' . bin2hex(phpbb_random_bytes(16)) . '.jpg'; $pic_thumbnail = ''; $pic_user_id = $logged_in ? 7 : -1; $pic_user_ip = '7f000001'; $pic_time = 12345; $cat_id = 10; $pic_approval = 1;
             eval($upload_builder); pht_check($db->sql_query($sql), 'Actual controller/driver INSERT stores complete logical text'); $pic_id = (int) $db->sql_nextid();
             $rows = pht_rows('SELECT * FROM fixture_album WHERE pic_id=' . $pic_id); pht_check(count($rows) === 1 && $rows[0]['pic_title'] === $expected_title && $rows[0]['pic_desc'] === $expected_desc && $rows[0]['pic_username'] === $expected_author && (int) $rows[0]['pic_user_id'] === $pic_user_id, 'Canonical schema stores all exact title/description/guest/registered bytes'); $native_cases++;
             for ($round = 0; $round < 3; $round++) {
-                $_POST = array('pic_title' => addslashes(html_entity_decode($rows[0]['pic_title'], ENT_QUOTES, 'UTF-8')), 'pic_desc' => addslashes(html_entity_decode($rows[0]['pic_desc'], ENT_QUOTES, 'UTF-8'))); eval($edit_input); eval($edit_builder); pht_check($db->sql_query($sql), 'Actual edit SQL preserves unchanged complete text');
+                $userdata = array('user_id' => 7, 'user_level' => 1, 'user_active' => 1, 'session_logged_in' => true, 'session_id' => $sid);
+                if ($round === 0) { pht_check($db->sql_query("UPDATE fixture_album SET pic_title='Pending edit',pic_desc='' WHERE pic_id=" . $pic_id), 'Force a changed first edit, not only no-op roundtrips'); }
+                $_POST = array('pic_title' => addslashes(html_entity_decode($rows[0]['pic_title'], ENT_QUOTES, 'UTF-8')), 'pic_desc' => addslashes(html_entity_decode($rows[0]['pic_desc'], ENT_QUOTES, 'UTF-8'))); eval($edit_input);
+                pht_check(album_picture_text_edit($pic_id, 10, 0, $pic_user_id, $pic_title, $pic_desc), 'Actual owned edit preserves unchanged complete text');
                 $rows = pht_rows('SELECT * FROM fixture_album WHERE pic_id=' . $pic_id); pht_check($rows[0]['pic_title'] === $expected_title && $rows[0]['pic_desc'] === $expected_desc && $rows[0]['pic_username'] === $expected_author && pht_rows('SELECT * FROM fixture_album WHERE pic_id=1') === $baseline, 'Repeated actual edit never double-encodes, clips or changes unrelated author/row'); $native_cases++;
             }
         } }

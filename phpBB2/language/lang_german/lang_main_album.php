@@ -206,5 +206,6 @@ $lang['Personal_category_update_failed'] = 'Die Kategorie konnte nicht gespeiche
 $lang['Personal_category_order_failed'] = 'Die Reihenfolge konnte nicht gespeichert werden. Bitte lade die Seite neu und prüfe deine aktuelle Anmeldung, die Galerie-Berechtigungen und die manuelle Kategorien-Sortierung.';
 $lang['Pic_title_too_long'] = 'Der Bildtitel darf höchstens 255 Zeichen enthalten.';
 $lang['Pic_username_too_long'] = 'Der Gastname darf höchstens 32 Zeichen enthalten.';
+$lang['Pic_text_update_failed'] = 'Das Bild konnte nicht aktualisiert werden. Bitte lade die Seite neu und versuche es erneut.';
 
 ?>
