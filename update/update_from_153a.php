@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
@@ -55,6 +55,7 @@ function update_usage()
 	echo "  --kb-rating-storage-only  Widen KB rating statistics without rewriting historical votes\n";
 	echo "  --post-author-storage-only  Widen stored guest bylines without changing account-name policy\n";
 	echo "  --album-text-storage-only  Preserve category character limits with full UTF8/HTML storage\n";
+	echo "  --album-photo-text-storage-only  Preserve picture title, description and author text capacity\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
@@ -156,7 +157,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only'), $argv)) > 1)
+if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -646,6 +647,16 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 
 try
 {
+	if (in_array('--album-photo-text-storage-only', $argv, true))
+	{
+		$photo_text_plan = plus_album_photo_text_plan($connection, $table_prefix, true);
+		foreach ($photo_text_plan as $item) { echo $item['sql'] . ";\n"; }
+		if ($apply) {
+			$count = plus_album_photo_text_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Album picture text capacity migration complete: $count tables. Stored contents preserved.\n";
+		} else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
 	if (in_array('--album-text-storage-only', $argv, true))
 	{
 		$album_text_plan = plus_album_text_plan($connection, $table_prefix, true);
@@ -747,6 +758,8 @@ catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update op
 try { $author_plan = plus_post_author_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 try { $album_text_plan = plus_album_text_plan($connection, $table_prefix); }
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
+try { $photo_text_plan = plus_album_photo_text_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 
 $operations = array();
@@ -1262,6 +1275,14 @@ try
 		$count = plus_album_text_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
 		echo "Album category text capacity migration complete: $count tables. Stored contents preserved.\n";
 	} else { foreach ($album_text_plan as $item) { echo $item['sql'] . ";\n"; } }
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; DDL cannot be rolled back. Inspect before retrying.\n"); exit(3); }
+try
+{
+	if ($apply) {
+		$count = plus_album_photo_text_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+		echo "Album picture text capacity migration complete: $count tables. Stored contents preserved.\n";
+	} else { foreach ($photo_text_plan as $item) { echo $item['sql'] . ";\n"; } }
 }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; DDL cannot be rolled back. Inspect before retrying.\n"); exit(3); }
 try

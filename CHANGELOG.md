@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Preserve logical UTF-8 limits in picture upload and text editing without
+  mbstring: clip before HTML encoding, retain complete characters and literal
+  entity/backslash roundtrips, keep raw guest-name validation and registered
+  names intact, and accept title `0`. Count surrogate pairs correctly in client
+  validation, allow all 32 logical guest-name characters in the HTML field,
+  and show English/German overlong-title/guest-name messages. Reserve full
+  storage capacity with picture title `VARCHAR(1530)`, description `MEDIUMTEXT`
+  and author `VARCHAR(255)`. Extend the shared data-preserving Album migration
+  without changing category defaults, wire the full updater and a separate
+  `--album-photo-text-storage-only` mode, and retain wider custom definitions.
+  Upload authority/approval races and picture deletion remain separate work.
+
 - Make personal Album category ordering a session-protected POST operation,
   replacing state-changing GET links without changing the shared creation form.
   Recheck the active actor, exact current login and owner/admin role inside an

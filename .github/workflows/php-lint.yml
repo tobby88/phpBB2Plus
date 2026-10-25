@@ -266,6 +266,11 @@ jobs:
       - name: Test Album request parsing and query encoding
         run: php .github/scripts/check-album-request-input.php
 
+      - name: Test Album picture Unicode and logical text input
+        run: |
+          php .github/scripts/check-album-photo-text.php
+          node .github/scripts/check-album-photo-input.js
+
       - name: Test image processing safety
         run: php .github/scripts/check-image-processing-safety.php
 

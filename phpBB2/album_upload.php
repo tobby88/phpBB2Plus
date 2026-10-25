@@ -42,6 +42,7 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+require_once dirname(__FILE__) . '/album_mod/album_photo_text.php';
 
 // Nuffload album uploader
 if (isset($_REQUEST['psid']) && !is_scalar($_REQUEST['psid']))
@@ -385,7 +386,9 @@ if( !$upload_submitted ) // is it not submitted?
 		'L_PIC_DESC' => $lang['Pic_Desc'],
 		'L_PLAIN_TEXT_ONLY' => $lang['Plain_text_only'],
 		'L_MAX_LENGTH' => $lang['Max_length'],
-		'S_PIC_DESC_MAX_LENGTH' => $album_config['desc_length'],
+		'S_PIC_DESC_MAX_LENGTH' => album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 0),
+		'L_PIC_TITLE_TOO_LONG' => $lang['Pic_title_too_long'],
+		'L_PIC_USERNAME_TOO_LONG' => $lang['Pic_username_too_long'],
 
 		'L_UPLOAD_PIC_FROM_MACHINE' => $lang['Upload_pic_from_machine'],
 		'L_UPLOAD_TO_CATEGORY' => $lang['Upload_to_Category'],
@@ -471,15 +474,13 @@ else
 	$pic_desc_input = (isset($_POST['pic_desc']) && is_scalar($_POST['pic_desc'])) ? (string) $_POST['pic_desc'] : '';
 	$pic_username_input = (isset($_POST['pic_username']) && is_scalar($_POST['pic_username'])) ? (string) $_POST['pic_username'] : '';
 
-	$desc_length = max(0, min(65535, intval($album_config['desc_length'])));
-	$pic_title_raw = trim(stripslashes($pic_title_input));
-	$pic_desc_raw = substr(trim(stripslashes($pic_desc_input)), 0, $desc_length);
-	$pic_username_raw = (!$userdata['session_logged_in']) ? substr(trim(stripslashes($pic_username_input)), 0, 32) : (string) $userdata['username'];
-	$pic_title = htmlspecialchars($pic_title_raw, ENT_QUOTES, 'UTF-8');
-	$pic_desc = htmlspecialchars($pic_desc_raw, ENT_QUOTES, 'UTF-8');
-	$pic_username = (!$userdata['session_logged_in']) ? htmlspecialchars($pic_username_raw, ENT_QUOTES, 'UTF-8') : $pic_username_raw;
+	$desc_length = album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 0);
+	$pic_title = album_photo_text($pic_title_input, 255);
+	$pic_desc = album_photo_text($pic_desc_input, $desc_length);
+	$pic_username_raw = (!$userdata['session_logged_in']) ? album_photo_plain_text($pic_username_input, 32) : (string) $userdata['username'];
+	$pic_username = (!$userdata['session_logged_in']) ? htmlspecialchars($pic_username_raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true) : $pic_username_raw;
 
-	if( empty($pic_title) )
+	if ($pic_title === '')
 	{
 		message_die(GENERAL_ERROR, $lang['Missed_pic_title']);
 	}

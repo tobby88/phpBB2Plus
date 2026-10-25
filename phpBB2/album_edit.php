@@ -39,6 +39,7 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+require_once dirname(__FILE__) . '/album_mod/album_photo_text.php';
 
 
 // ------------------------------------
@@ -152,7 +153,8 @@ if( !isset($_POST['pic_title']) )
 
 		'L_UPLOAD_NO_TITLE' => $lang['Upload_no_title'],
 		'L_DESC_TOO_LONG' => $lang['Desc_too_long'],
-		'S_PIC_DESC_MAX_LENGTH' => $album_config['desc_length'],
+		'S_PIC_DESC_MAX_LENGTH' => album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 0),
+		'L_PIC_TITLE_TOO_LONG' => $lang['Pic_title_too_long'],
 
 		'L_RESET' => $lang['Reset'],
 		'L_SUBMIT' => $lang['Submit'],
@@ -180,12 +182,11 @@ else
 	// Check posted info
 	// --------------------------------
 
-	$pic_title = htmlspecialchars(trim(stripslashes((string) $_POST['pic_title'])), ENT_QUOTES, 'UTF-8');
+	$pic_title = album_photo_text($_POST['pic_title'], 255);
+	$pic_desc_input = isset($_POST['pic_desc']) ? $_POST['pic_desc'] : '';
+	$pic_desc = album_photo_text($pic_desc_input, album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 0));
 
-	$pic_desc_input = isset($_POST['pic_desc']) ? stripslashes((string) $_POST['pic_desc']) : '';
-	$pic_desc = htmlspecialchars(substr(trim($pic_desc_input), 0, intval($album_config['desc_length'])), ENT_QUOTES, 'UTF-8');
-
-	if( empty($pic_title) )
+	if ($pic_title === '')
 	{
 		message_die(GENERAL_ERROR, $lang['Missed_pic_title']);
 	}

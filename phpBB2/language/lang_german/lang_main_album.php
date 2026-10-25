@@ -204,5 +204,7 @@ $lang['Personal_gallery_creation_failed'] = 'Die persönliche Galerie konnte nic
 $lang['Personal_category_creation_failed'] = 'Die Kategorie konnte nicht angelegt werden. Bitte lade die Seite neu und prüfe deine aktuelle Anmeldung, die Galerie-Berechtigungen und das Kategorienlimit.';
 $lang['Personal_category_update_failed'] = 'Die Kategorie konnte nicht gespeichert werden. Bitte lade die Seite neu und prüfe deine aktuelle Anmeldung, die Galerie-Berechtigungen und die übergeordnete Kategorie. Eine Kategorie kann nicht unter sich selbst oder eine ihrer Unterkategorien verschoben werden.';
 $lang['Personal_category_order_failed'] = 'Die Reihenfolge konnte nicht gespeichert werden. Bitte lade die Seite neu und prüfe deine aktuelle Anmeldung, die Galerie-Berechtigungen und die manuelle Kategorien-Sortierung.';
+$lang['Pic_title_too_long'] = 'Der Bildtitel darf höchstens 255 Zeichen enthalten.';
+$lang['Pic_username_too_long'] = 'Der Gastname darf höchstens 32 Zeichen enthalten.';
 
 ?>

@@ -1,5 +1,14 @@
 # Database updates and maintenance
 
+Picture title/description/author capacity is included in the full updater. For
+an otherwise canonically migrated installation, use
+`php update/update_from_153a.php --album-photo-text-storage-only` to inspect the
+plan, then add `--apply --backup-confirmed --maintenance-confirmed` only after
+backing up and stopping web/cron writers. The scope widens the three picture
+text fields without rewriting stored rows, defaults, comments, indexes or
+identities; wider custom definitions are retained. Keep writers stopped after
+any partial DDL failure. This mode cannot be combined with another scoped mode.
+
 This directory is not part of normal forum operation. Back up the complete
 database and web root, test on a clone, and remove the directory from the
 public web root after use.

@@ -34,7 +34,35 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## Album category text storage
+## Album text storage
+
+### Picture text
+
+Picture upload and picture-text editing preserve complete UTF-8 characters,
+including without mbstring. Limits apply before HTML encoding: titles allow 255
+logical characters, descriptions use the configured 0–65,535 character limit,
+and guest names allow up to 32 characters subject to the existing guest-name
+validation. Registered author names remain exact. Title `0` is valid. Client
+validation counts surrogate pairs as one character rather than rejecting emoji
+early. Repeated edits preserve literal entities and backslashes.
+
+Fresh picture tables reserve `VARCHAR(1530)` for the escaped title, `MEDIUMTEXT`
+for the escaped description, and `VARCHAR(255)` for the author snapshot. Existing
+installations must run the full updater, or after canonical storage migration:
+
+```sh
+php update/update_from_153a.php --album-photo-text-storage-only
+php update/update_from_153a.php --album-photo-text-storage-only --apply --backup-confirmed --maintenance-confirmed
+```
+
+Back up and stop all web/cron writers first. Existing rows, defaults, nullability,
+comments, indexes and identity floors are verified; wider custom definitions are
+retained. Unsupported expressions, full-width text indexes or custom identities
+require review. Keep writers stopped after any partial DDL failure. This text
+fix does not make the legacy picture-upload permission/approval checks, picture
+deletion or filesystem cleanup transactional; those are separate paths.
+
+### Category text
 
 Personal subcategory creation checks the actual active account/login and current
 owner/admin role inside its own transaction. Permissions refer to the locked

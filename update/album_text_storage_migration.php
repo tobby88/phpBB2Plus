@@ -1,17 +1,24 @@
 <?php
-// Preserve logical category limits and legacy HTML storage. DDL auto-commits.
+// Preserve logical Album text limits and legacy HTML storage. DDL auto-commits.
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit(2); }
 require_once __DIR__ . '/innodb_migration.php';
 require_once __DIR__ . '/post_author_storage_migration.php';
 
-function plus_album_text_table($prefix)
+function plus_album_text_layout($kind)
+{
+	if ($kind === 'category') { return array('suffix' => 'album_cat', 'identity' => 'cat_id', 'fields' => array('cat_title' => 1530, 'cat_desc' => 0)); }
+	if ($kind === 'picture') { return array('suffix' => 'album', 'identity' => 'pic_id', 'fields' => array('pic_title' => 1530, 'pic_desc' => 0, 'pic_username' => 255)); }
+	throw new RuntimeException('Unknown Album text layout');
+}
+function plus_album_text_table($prefix, $kind = 'category')
 {
 	if (!is_string($prefix) || preg_match('/^[A-Za-z0-9_]{1,55}$/D', $prefix) !== 1) { throw new RuntimeException('Invalid Album category table prefix'); }
-	return $prefix . 'album_cat';
+	$layout = plus_album_text_layout($kind);
+	return $prefix . $layout['suffix'];
 }
 function plus_album_text_default($db, $table, $field, $column)
 {
-	if (!in_array($field, array('cat_title', 'cat_desc'), true)) { throw new RuntimeException('Unknown Album text field'); }
+	if (!in_array($field, array('cat_title', 'cat_desc', 'pic_title', 'pic_desc', 'pic_username'), true)) { throw new RuntimeException('Unknown Album text field'); }
 	if ($column['Default'] === null) { return null; }
 	$defaults = plus_storage_rows($db, "SELECT VERSION() AS server_version,COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . mysqli_real_escape_string($db, $table) . "') AND COLUMN_NAME='" . $field . "'");
 	if (count($defaults) !== 1) { throw new RuntimeException('Cannot inventory Album text default'); }
@@ -39,10 +46,11 @@ function plus_album_text_default($db, $table, $field, $column)
 	if (count($values) !== 1 || !is_string($values[0]['literal_default']) || preg_match('//u', $values[0]['literal_default']) !== 1) { throw new RuntimeException('Cannot prove exact Album default; manual review required, no replacement definition is written'); }
 	return $values[0]['literal_default'];
 }
-function plus_album_text_plan($db, $prefix, $canonical = false)
+function plus_album_text_plan($db, $prefix, $canonical = false, $kind = 'category')
 {
 	if (mysqli_character_set_name($db) !== 'utf8mb4') { throw new RuntimeException('Album text migration requires an exact utf8mb4 connection'); }
-	$table = plus_album_text_table($prefix); $quoted = plus_storage_identifier($table);
+	$layout = plus_album_text_layout($kind);
+	$table = plus_album_text_table($prefix, $kind); $quoted = plus_storage_identifier($table);
 	$meta = plus_storage_metadata($db, $table); if (!$meta) { return array(); }
 	if ($canonical) {
 		if ($meta['ENGINE'] !== 'InnoDB' || strtolower($meta['ROW_FORMAT']) !== 'dynamic' || $meta['TABLE_COLLATION'] !== 'utf8mb4_unicode_ci') { throw new RuntimeException('Complete canonical storage migration before Album text migration'); }
@@ -50,18 +58,18 @@ function plus_album_text_plan($db, $prefix, $canonical = false)
 		if ($bad) { throw new RuntimeException('Complete canonical UTF8 Album column migration first'); }
 	}
 	$fields = array(); foreach (plus_storage_rows($db, 'SHOW FULL COLUMNS FROM ' . $quoted) as $column) { $fields[$column['Field']] = $column; }
-	if (!isset($fields['cat_id'], $fields['cat_title'], $fields['cat_desc'])) { throw new RuntimeException('Album category fields are incomplete'); }
+	foreach (array_merge(array($layout['identity']), array_keys($layout['fields'])) as $field) { if (!isset($fields[$field])) { throw new RuntimeException('Album text fields are incomplete'); } }
 	$primary = plus_storage_rows($db, 'SHOW INDEX FROM ' . $quoted . " WHERE Key_name='PRIMARY'");
-	if (count($primary) !== 1 || $primary[0]['Column_name'] !== 'cat_id') { throw new RuntimeException('Album category identities require manual review'); }
+	if (count($primary) !== 1 || $primary[0]['Column_name'] !== $layout['identity']) { throw new RuntimeException('Album text identities require manual review'); }
 	$changes = array();
-	foreach (array('cat_title', 'cat_desc') as $field) {
+	foreach ($layout['fields'] as $field => $capacity) {
 		$column = $fields[$field]; $type = strtolower($column['Type']);
 		if ($column['Extra'] !== '' || !is_string($column['Collation']) || !preg_match('/^[A-Za-z0-9_]+$/D', $column['Collation'])) { throw new RuntimeException('Custom generated or unsupported Album text field requires manual review'); }
-		if ($field === 'cat_title') {
-			if (preg_match('/^varchar\(([0-9]+)\)$/D', $type, $width)) { if ((int) $width[1] >= 1530) { continue; } }
+		if ($capacity > 0) {
+			if (preg_match('/^varchar\(([0-9]+)\)$/D', $type, $width)) { if ((int) $width[1] >= $capacity) { continue; } }
 			elseif (in_array($type, array('text', 'mediumtext', 'longtext'), true)) { continue; }
 			elseif ($type !== 'tinytext') { throw new RuntimeException('Unsupported Album title type; no custom field is narrowed'); }
-			$changes[$field] = 'varchar(1530)';
+			$changes[$field] = 'varchar(' . $capacity . ')';
 		} else {
 			if (in_array($type, array('mediumtext', 'longtext'), true)) { continue; }
 			if (!in_array($type, array('tinytext', 'text'), true)) { throw new RuntimeException('Unsupported Album description type'); }
@@ -89,20 +97,22 @@ function plus_album_text_plan($db, $prefix, $canonical = false)
 	}
 	return array($table => array('sql' => 'ALTER TABLE ' . $quoted . ' ' . implode(', ', $parts), 'types' => $changes));
 }
-function plus_album_text_digest($db, $table)
+function plus_album_text_digest($db, $table, $identity = 'cat_id')
 {
-	$result = mysqli_query($db, 'SELECT * FROM ' . plus_storage_identifier($table) . ' ORDER BY cat_id', MYSQLI_USE_RESULT);
+	if (!in_array($identity, array('cat_id', 'pic_id'), true)) { throw new RuntimeException('Unknown Album text identity'); }
+	$result = mysqli_query($db, 'SELECT * FROM ' . plus_storage_identifier($table) . ' ORDER BY ' . plus_storage_identifier($identity), MYSQLI_USE_RESULT);
 	if (!$result) { throw new RuntimeException('Cannot verify Album category contents'); }
 	$hash = hash_init('sha256');
 	try { while ($row = mysqli_fetch_assoc($result)) { hash_update($hash, serialize($row)); } if (mysqli_errno($db)) { throw new RuntimeException('Album content inventory interrupted'); } }
 	finally { mysqli_free_result($result); }
 	return hash_final($hash);
 }
-function plus_album_text_apply($db, $prefix, $backup_confirmed, $maintenance_confirmed, $wait_seconds = 30)
+function plus_album_text_apply($db, $prefix, $backup_confirmed, $maintenance_confirmed, $wait_seconds = 30, $kind = 'category')
 {
 	if (!$backup_confirmed || !$maintenance_confirmed) { throw new RuntimeException('Album text migration requires a verified backup and stopped web/cron writers'); }
 	if (!is_int($wait_seconds) || $wait_seconds < 1 || $wait_seconds > 30) { throw new RuntimeException('Invalid Album DDL wait limit'); }
-	plus_album_text_table($prefix);
+	$layout = plus_album_text_layout($kind);
+	plus_album_text_table($prefix, $kind);
 	$identity = plus_storage_rows($db, 'SELECT DATABASE() AS db,@@SESSION.autocommit AS automatic,@@SESSION.sql_mode AS mode,@@SESSION.lock_wait_timeout AS wait_timeout'); $identity = $identity[0];
 	if (!$identity['db'] || (string) $identity['automatic'] !== '1') { throw new RuntimeException('Album DDL requires an idle autocommit connection'); }
 	plus_storage_query($db, 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
@@ -111,11 +121,11 @@ function plus_album_text_apply($db, $prefix, $backup_confirmed, $maintenance_con
 		plus_storage_query($db, 'START TRANSACTION READ ONLY'); $owned = true;
 		$rows = plus_storage_rows($db, "SELECT GET_LOCK('" . $lock . "',0) AS held");
 		if (count($rows) !== 1 || (string) $rows[0]['held'] !== '1') { throw new RuntimeException('Another schema migration is running'); } $held = true;
-		$plan = plus_album_text_plan($db, $prefix, true); $before = array();
+		$plan = plus_album_text_plan($db, $prefix, true, $kind); $before = array();
 		foreach ($plan as $table => $item) {
 			$signature = plus_storage_signature($db, $table); $defaults = array();
 			foreach ($signature[0] as $column) { if (isset($item['types'][$column['Field']])) { $defaults[$column['Field']] = plus_album_text_default($db, $table, $column['Field'], $column); } }
-			$before[$table] = array('meta' => plus_storage_metadata($db, $table), 'signature' => $signature, 'defaults' => $defaults, 'digest' => plus_album_text_digest($db, $table));
+			$before[$table] = array('meta' => plus_storage_metadata($db, $table), 'signature' => $signature, 'defaults' => $defaults, 'digest' => plus_album_text_digest($db, $table, $layout['identity']));
 		}
 		plus_storage_query($db, 'COMMIT'); $owned = false;
 		plus_storage_query($db, "SET SESSION sql_mode=CONCAT_WS(',',@@SESSION.sql_mode,'STRICT_ALL_TABLES','NO_ENGINE_SUBSTITUTION')");
@@ -128,13 +138,26 @@ function plus_album_text_apply($db, $prefix, $backup_confirmed, $maintenance_con
 			foreach ($after[0] as $column) { if (isset($item['types'][$column['Field']]) && plus_album_text_default($db, $table, $column['Field'], $column) !== $before[$table]['defaults'][$column['Field']]) { throw new RuntimeException('Album text default changed; keep writers stopped'); } }
 			foreach ($signature[0] as $index => $column) { if (isset($item['types'][$column['Field']])) { $signature[0][$index]['Type'] = $item['types'][$column['Field']]; } }
 			$meta = $before[$table]['meta']; $after_meta = plus_storage_metadata($db, $table); $floor = $meta['AUTO_INCREMENT']; $after_floor = $after_meta['AUTO_INCREMENT']; unset($meta['AUTO_INCREMENT'], $after_meta['AUTO_INCREMENT']);
-			if ($signature !== $after || $meta !== $after_meta || ($floor !== null && !plus_storage_counter_at_least($after_floor, $floor)) || $before[$table]['digest'] !== plus_album_text_digest($db, $table)) { throw new RuntimeException('Album text schema/data verification failed; keep writers stopped'); }
+			if ($signature !== $after || $meta !== $after_meta || ($floor !== null && !plus_storage_counter_at_least($after_floor, $floor)) || $before[$table]['digest'] !== plus_album_text_digest($db, $table, $layout['identity'])) { throw new RuntimeException('Album text schema/data verification failed; keep writers stopped'); }
 		}
-		if (plus_album_text_plan($db, $prefix, true)) { throw new RuntimeException('Album text capacity migration incomplete'); }
+		if (plus_album_text_plan($db, $prefix, true, $kind)) { throw new RuntimeException('Album text capacity migration incomplete'); }
 		return count($plan);
 	} finally {
 		if ($owned) { try { mysqli_query($db, 'ROLLBACK'); } catch (Exception $ignored) {} catch (Error $ignored) {} }
 		try { plus_storage_query($db, "SET SESSION sql_mode='" . mysqli_real_escape_string($db, $identity['mode']) . "'"); plus_storage_query($db, 'SET SESSION lock_wait_timeout=' . (int) $identity['wait_timeout']); }
 		finally { if ($held) { plus_storage_query($db, "DO RELEASE_LOCK('" . $lock . "')"); } }
 	}
+}
+
+function plus_album_photo_text_plan($db, $prefix, $canonical = false)
+{
+	return plus_album_text_plan($db, $prefix, $canonical, 'picture');
+}
+function plus_album_photo_text_apply($db, $prefix, $backup_confirmed, $maintenance_confirmed, $wait_seconds = 30)
+{
+	return plus_album_text_apply($db, $prefix, $backup_confirmed, $maintenance_confirmed, $wait_seconds, 'picture');
+}
+function plus_album_photo_text_digest($db, $table)
+{
+	return plus_album_text_digest($db, $table, 'pic_id');
 }

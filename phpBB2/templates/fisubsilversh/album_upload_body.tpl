@@ -4,6 +4,10 @@ var inpIndex = 0;
 var uploadProgressWindow = null;
 var uploadRequestStarted = false;
 
+function albumPhotoLength(value) {
+	return value.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '_').length;
+}
+
 function addInput()
 {
 	if (inpIndex >= ({MAX_UPLOADS} - 1))
@@ -174,17 +178,25 @@ function postIt()
 function checkAlbumForm() {
 	formErrors = false;
 
-	if (document.upload.pic_title.value.length < 2)
+	if (albumPhotoLength(document.upload.pic_title.value) < 1)
 	{
 		formErrors = "{L_UPLOAD_NO_TITLE}";
+	}
+	else if (albumPhotoLength(document.upload.pic_title.value) > 255)
+	{
+		formErrors = "{L_PIC_TITLE_TOO_LONG}";
 	}
 	else if (document.upload.pic_file.value.length < 2)
 	{
 		formErrors = "{L_UPLOAD_NO_FILE}";
 	}
-	else if (document.upload.pic_desc.value.length > {S_PIC_DESC_MAX_LENGTH})
+	else if (albumPhotoLength(document.upload.pic_desc.value) > {S_PIC_DESC_MAX_LENGTH})
 	{
 		formErrors = "{L_DESC_TOO_LONG}";
+	}
+	else if (document.upload.pic_username && albumPhotoLength(document.upload.pic_username.value) > 32)
+	{
+		formErrors = "{L_PIC_USERNAME_TOO_LONG}";
 	}
 	//--- Album Category Hierarchy : begin
    	//--- Version : 1.3.0
@@ -226,7 +238,7 @@ function checkAlbumForm() {
 <!-- BEGIN switch_user_logged_out -->
   <tr>
 	<td class="row1" width="30%" height="28"><span class="gen">{L_USERNAME}:</span></td>
-	<td class="row2"><input class="post" type="text" name="pic_username" size="32" maxlength="32" /></td>
+	<td class="row2"><input class="post" type="text" name="pic_username" size="32" maxlength="64" /></td>
   </tr>
 <!-- END switch_user_logged_out -->
   <tr>

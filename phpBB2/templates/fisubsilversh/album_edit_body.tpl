@@ -1,13 +1,20 @@
 <script language="JavaScript" type="text/javascript">
 <!--
+function albumPhotoLength(value) {
+	return value.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '_').length;
+}
 function checkAlbumForm() {
 	formErrors = false;
 
-	if (document.editform.pic_title.value.length < 2)
+	if (albumPhotoLength(document.editform.pic_title.value) < 1)
 	{
 		formErrors = "{L_UPLOAD_NO_TITLE}";
 	}
-	else if (document.editform.pic_desc.value.length > {S_PIC_DESC_MAX_LENGTH})
+	else if (albumPhotoLength(document.editform.pic_title.value) > 255)
+	{
+		formErrors = "{L_PIC_TITLE_TOO_LONG}";
+	}
+	else if (albumPhotoLength(document.editform.pic_desc.value) > {S_PIC_DESC_MAX_LENGTH})
 	{
 		formErrors = "{L_DESC_TOO_LONG}";
 	}

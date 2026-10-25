@@ -45,6 +45,8 @@ jobs:
           php .github/scripts/check-album-text-migration-native.php
           php .github/scripts/check-album-category-authority-native.php
           php .github/scripts/check-album-category-edit-native.php
+          php .github/scripts/check-album-photo-text.php
+          php .github/scripts/check-album-photo-migration-native.php
         env:
           PHPBB_ALBUM_OWNER_NATIVE: '1'
           PHPBB_ALBUM_OWNER_PASSWORD: fixture-only
@@ -62,6 +64,10 @@ jobs:
           PHPBB_ALBUM_CATEGORY_PASSWORD: fixture-only
           PHPBB_ALBUM_CATEGORY_EDIT_NATIVE: '1'
           PHPBB_ALBUM_CATEGORY_EDIT_PASSWORD: fixture-only
+          PHPBB_ALBUM_PHOTO_INPUT_NATIVE: '1'
+          PHPBB_ALBUM_PHOTO_INPUT_PASSWORD: fixture-only
+          PHPBB_ALBUM_PHOTO_TEXT_NATIVE: '1'
+          PHPBB_ALBUM_PHOTO_TEXT_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         run: php .github/scripts/check-ranks-native.php
         env:
