@@ -8,6 +8,18 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Reuse small and medium Album thumbnails regenerated under the original picture
+  filename when legacy thumbnail metadata is empty, null or no longer points to
+  a cached file. Prefer an existing explicitly named thumbnail, respect disabled
+  caches, and keep all path/access/approval checks and view-counter behavior.
+  Reject incomplete or wrong-format cached images, and encode replacements into
+  exclusively reserved temporary files before atomic same-directory publication.
+  On failure keep existing complete peer caches instead of unlinking them. Add
+  complete-handler and real GD/two-process regressions without changing picture
+  metadata. Upload/delete lifecycle coordination remains separate work.
+  Include the previously missing medium-cache directory, upload protections and
+  writable-directory permissions in the installation package as well.
+
 - Save Album picture text inside an independently owned transaction, rechecking
   the current active account, exact live session, category/author identity,
   actual edit/moderator permissions and current private-group grants. Retain

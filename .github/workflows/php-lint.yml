@@ -52,7 +52,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-          extensions: pdo_sqlite
+          extensions: pdo_sqlite, gd
 
       - name: Lint PHP sources
         shell: bash
@@ -270,7 +270,13 @@ jobs:
         run: |
           php .github/scripts/check-album-photo-text.php
           php .github/scripts/check-album-photo-edit-native.php
+          php .github/scripts/check-album-cache-read.php
           node .github/scripts/check-album-photo-input.js
+
+      - name: Check actual atomic Album cache images and concurrent writers
+        run: php .github/scripts/check-album-cache-storage.php
+        env:
+          PHPBB_ALBUM_CACHE_GD_REQUIRED: '1'
 
       - name: Test image processing safety
         run: php .github/scripts/check-image-processing-safety.php

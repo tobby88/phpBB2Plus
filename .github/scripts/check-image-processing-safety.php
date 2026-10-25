@@ -76,7 +76,21 @@ image_processing_assert(substr_count($thumbnail, '@imagedestroy($src)') >= 2, 't
 
 $medium_thumbnail = file_get_contents($root . '/phpBB2/album_picm.php');
 image_processing_assert(strpos($medium_thumbnail, '$thumbnail_written = false;') !== false, 'medium thumbnail regeneration must handle failed cache writes');
-image_processing_assert(strpos($medium_thumbnail, '@unlink(ALBUM_MED_CACHE_PATH . $pic_thumbnail);') !== false, 'medium thumbnail regeneration must remove incomplete cache files');
+$cache_functions = file_get_contents($root . '/phpBB2/album_mod/album_functions.php');
+image_processing_assert(strpos($thumbnail, 'album_store_cached_image(') !== false && strpos($medium_thumbnail, 'album_store_cached_image(') !== false, 'both renderers must use the atomic cache writer');
+image_processing_assert(strpos($thumbnail, '@unlink(ALBUM_CACHE_PATH . $pic_thumbnail);') === false && strpos($medium_thumbnail, '@unlink(ALBUM_MED_CACHE_PATH . $pic_thumbnail);') === false, 'failed regeneration must never delete a complete prior or peer target');
+image_processing_assert(strpos($cache_functions, "@fopen(\$path, 'x+b')") !== false && strpos($cache_functions, '@rename($temporary, $target)') !== false, 'cache writes must exclusively reserve a same-directory temporary file and publish atomically');
+image_processing_assert(strpos($cache_functions, '@unlink($temporary)') !== false && strpos($cache_functions, '@unlink($target)') === false, 'cache failures may clean only their owned temporary files');
+$small_cache_guard = file_get_contents($root . '/phpBB2/album_mod/upload/cache/.htaccess');
+$medium_cache_guard = $root . '/phpBB2/album_mod/upload/med_cache/.htaccess';
+image_processing_assert(is_file($medium_cache_guard) && file_get_contents($medium_cache_guard) === $small_cache_guard && is_file($root . '/phpBB2/album_mod/upload/med_cache/index.html'), 'installation archives must contain the protected medium-cache directory');
+$writable_paths = file_get_contents($root . '/folder+file-permissions.txt'); $permission_script = file_get_contents($root . '/set-permissions.sh');
+image_processing_assert(strpos($writable_paths, "\n/album_mod/upload/med_cache\n") !== false && strpos($permission_script, 'album_mod/upload/med_cache ' . chr(92) . "\n") !== false, 'the medium cache must share the documented executable writable-directory setup');
+$ignore = file_get_contents($root . '/.gitignore');
+foreach (array('cache', 'med_cache') as $cache_directory)
+{
+	image_processing_assert(strpos($ignore, '/phpBB2/album_mod/upload/' . $cache_directory . '/*') !== false && strpos($ignore, '!/phpBB2/album_mod/upload/' . $cache_directory . '/.htaccess') !== false && strpos($ignore, '!/phpBB2/album_mod/upload/' . $cache_directory . '/index.html') !== false, 'generated cache images stay ignored while generic protection files remain trackable');
+}
 
 $advanced_captcha = file_get_contents($root . '/phpBB2/includes/usercp_confirm_adv.php');
 image_processing_assert(strpos($advanced_captcha, 'max(120, min(1000, intval(') !== false, 'advanced CAPTCHA widths must be bounded');

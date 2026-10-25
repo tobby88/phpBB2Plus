@@ -167,7 +167,15 @@ else
 	// Check thumbnail cache. If cache is available we will SEND & EXIT
 	// --------------------------------
 
-	if( ($album_config['thumbnail_cache'] == 1) and ($pic_thumbnail != '') and file_exists(ALBUM_CACHE_PATH . $pic_thumbnail) )
+	// On-demand regeneration writes pic_filename without changing old thumbnail
+	// metadata. Prefer an existing explicit name, then the regenerated filename.
+	$cached_thumbnail = '';
+	if ($album_config['thumbnail_cache'] == 1)
+	{
+		if ($pic_thumbnail !== '' && album_cached_image_valid(ALBUM_CACHE_PATH, $pic_thumbnail, $pic_filetype)) { $cached_thumbnail = $pic_thumbnail; }
+		else if (album_cached_image_valid(ALBUM_CACHE_PATH, $pic_filename, $pic_filetype)) { $cached_thumbnail = $pic_filename; }
+	}
+	if ($cached_thumbnail !== '')
 	{
 		switch ($pic_filetype)
 		{
@@ -179,7 +187,7 @@ else
 				break;
 		}
 
-		readfile(ALBUM_CACHE_PATH . $pic_thumbnail);
+		readfile(ALBUM_CACHE_PATH . $cached_thumbnail);
 		exit;
 	}
 
@@ -272,10 +280,10 @@ else
 			{
 				case '.jpg':
 					$thumbnail_quality = max(0, min(100, intval($album_config['thumbnail_quality'])));
-					$thumbnail_written = @imagejpeg($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail, $thumbnail_quality);
+					$thumbnail_written = album_store_cached_image($thumbnail, ALBUM_CACHE_PATH, $pic_thumbnail, '.jpg', $thumbnail_quality);
 					break;
 				case '.png':
-					$thumbnail_written = @imagepng($thumbnail, ALBUM_CACHE_PATH . $pic_thumbnail);
+					$thumbnail_written = album_store_cached_image($thumbnail, ALBUM_CACHE_PATH, $pic_thumbnail, '.png');
 					break;
 			}
 
@@ -285,7 +293,6 @@ else
 			}
 			else
 			{
-				@unlink(ALBUM_CACHE_PATH . $pic_thumbnail);
 				$pic_thumbnail = '';
 			}
 		}

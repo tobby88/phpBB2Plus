@@ -179,7 +179,15 @@ else
 	// Check thumbnail cache. If cache is available we will SEND & EXIT
 	// --------------------------------
 
-	if( ($album_sp_config['midthumb_cache'] == 1) and ($pic_thumbnail != '') and file_exists(ALBUM_MED_CACHE_PATH . $pic_thumbnail) )
+	// The medium renderer regenerates under pic_filename, not necessarily the
+	// historical pic_thumbnail field. Reuse that result on subsequent requests.
+	$cached_thumbnail = '';
+	if ($album_sp_config['midthumb_cache'] == 1)
+	{
+		if ($pic_thumbnail !== '' && album_cached_image_valid(ALBUM_MED_CACHE_PATH, $pic_thumbnail, $pic_filetype)) { $cached_thumbnail = $pic_thumbnail; }
+		else if (album_cached_image_valid(ALBUM_MED_CACHE_PATH, $pic_filename, $pic_filetype)) { $cached_thumbnail = $pic_filename; }
+	}
+	if ($cached_thumbnail !== '')
 	{
 		switch ($pic_filetype)
 		{
@@ -191,7 +199,7 @@ else
 				break;
 		}
 
-		readfile(ALBUM_MED_CACHE_PATH . $pic_thumbnail);
+		readfile(ALBUM_MED_CACHE_PATH . $cached_thumbnail);
 		exit;
 	}
 
@@ -284,10 +292,10 @@ else
 			{
 				case '.jpg':
 					$thumbnail_quality = max(0, min(100, intval($album_config['thumbnail_quality'])));
-					$thumbnail_written = @imagejpeg($thumbnail, ALBUM_MED_CACHE_PATH . $pic_thumbnail, $thumbnail_quality);
+					$thumbnail_written = album_store_cached_image($thumbnail, ALBUM_MED_CACHE_PATH, $pic_thumbnail, '.jpg', $thumbnail_quality);
 					break;
 				case '.png':
-					$thumbnail_written = @imagepng($thumbnail, ALBUM_MED_CACHE_PATH . $pic_thumbnail);
+					$thumbnail_written = album_store_cached_image($thumbnail, ALBUM_MED_CACHE_PATH, $pic_thumbnail, '.png');
 					break;
 			}
 
@@ -297,7 +305,6 @@ else
 			}
 			else
 			{
-				@unlink(ALBUM_MED_CACHE_PATH . $pic_thumbnail);
 				$pic_thumbnail = '';
 			}
 		}

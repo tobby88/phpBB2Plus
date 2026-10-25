@@ -704,6 +704,86 @@ function init_personal_gallery_cat($user_id = 0)
 // ----------------------------------------------------------------------------
 
 
+// Shared, best-effort cache I/O. It never changes picture or user metadata.
+function album_cache_directory($directory)
+{
+	if (!is_string($directory) || !in_array($directory, array(ALBUM_CACHE_PATH, ALBUM_MED_CACHE_PATH), true)) { return false; }
+	$path = rtrim($directory, '/\\');
+	if ($path === '' || is_link($path) || !is_dir($path) || ($base = realpath($path)) === false || dirname($base) === $base) { return false; }
+	return $base;
+}
+
+function album_cache_filename($filename, $type)
+{
+	return is_string($filename) && is_string($type) && in_array($type, array('.jpg', '.png'), true) && strlen($filename) <= 255 &&
+		$filename !== '' && trim($filename, ' .') === $filename && strpos($filename, '/') === false && strpos($filename, chr(92)) === false &&
+		strpos($filename, ':') === false && preg_match('/[\x00-\x1f\x7f]/', $filename) === 0 && preg_match('//u', $filename) === 1 &&
+		!preg_match('/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i', $filename) && strtolower(substr($filename, -4)) === $type;
+}
+
+// Read a bounded header/trailer, not an entire potentially large cached image.
+// Writers below publish complete same-directory files atomically. This also
+// rejects zero/truncated cache entries left by an older interrupted GD write.
+function album_cache_image_complete($path, $type)
+{
+	if (!is_string($path) || !in_array($type, array('.jpg', '.png'), true) || is_link($path) || !is_file($path)) { return false; }
+	$handle = @fopen($path, 'rb'); if (!$handle) { return false; }
+	try
+	{
+		$before = fstat($handle); $tail_length = $type === '.jpg' ? 2 : 12;
+		if (!is_array($before) || ($before['mode'] & 0170000) !== 0100000 || $before['size'] < 16) { return false; }
+		$head = fread($handle, 8); if (fseek($handle, -$tail_length, SEEK_END) !== 0) { return false; }
+		$tail = fread($handle, $tail_length); $after = fstat($handle);
+		if (!is_array($after) || $after['size'] !== $before['size'] || $after['mtime'] !== $before['mtime']) { return false; }
+		if ($type === '.jpg' ? (substr($head, 0, 2) !== "\xff\xd8" || $tail !== "\xff\xd9") :
+			($head !== "\x89PNG\r\n\x1a\n" || $tail !== "\x00\x00\x00\x00IEND\xae\x42\x60\x82")) { return false; }
+		$info = @getimagesize($path);
+		return is_array($info) && isset($info[0], $info[1], $info[2]) && $info[2] === ($type === '.jpg' ? IMAGETYPE_JPEG : IMAGETYPE_PNG) &&
+			phpbb_image_dimensions_safe($info[0], $info[1]);
+	}
+	finally { fclose($handle); }
+}
+
+function album_cached_image_valid($directory, $filename, $type)
+{
+	$base = album_cache_directory($directory);
+	return $base !== false && album_cache_filename($filename, $type) && album_cache_image_complete($base . DIRECTORY_SEPARATOR . $filename, $type);
+}
+
+function album_store_cached_image($image, $directory, $filename, $type, $quality = 80)
+{
+	$base = album_cache_directory($directory);
+	if ($base === false || !album_cache_filename($filename, $type) || !is_int($quality) || $quality < 0 || $quality > 100 ||
+		!function_exists($type === '.jpg' ? 'imagejpeg' : 'imagepng') ||
+		!((is_resource($image) && get_resource_type($image) === 'gd') || (is_object($image) && is_a($image, 'GdImage')))) { return false; }
+	$target = $base . DIRECTORY_SEPARATOR . $filename; $temporary = null;
+	if (is_link($target) || is_dir($target)) { return false; }
+	try
+	{
+		for ($attempt = 0; $attempt < 4; $attempt++)
+		{
+			$path = $base . DIRECTORY_SEPARATOR . '.album-cache-' . bin2hex(phpbb_random_bytes(16)) . '.tmp';
+			$handle = @fopen($path, 'x+b'); if (!$handle) { continue; }
+			$temporary = $path;
+			try { if (!@chmod($path, 0600)) { return false; } }
+			finally { fclose($handle); }
+			break;
+		}
+		if ($temporary === null || album_cache_directory($directory) !== $base || is_link($temporary)) { return false; }
+		$written = $type === '.jpg' ? @imagejpeg($image, $temporary, $quality) : @imagepng($image, $temporary);
+		if (!$written || !album_cache_image_complete($temporary, $type) || album_cache_directory($directory) !== $base || is_link($target) || is_dir($target)) { return false; }
+		if (!@rename($temporary, $target)) { return false; }
+		$temporary = null; return true;
+	}
+	catch (Exception $error) { return false; }
+	catch (Error $error) { return false; }
+	finally
+	{
+		// Never remove a prior/peer target if encoding or publication failed.
+		if ($temporary !== null && (is_file($temporary) || is_link($temporary))) { @unlink($temporary); }
+	}
+}
+
 // ----------------------------------------------------------------------------
 // You must keep my copyright notice with its original content visible
 // Do NOT modify anything!!!
