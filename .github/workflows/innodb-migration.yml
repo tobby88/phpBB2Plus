@@ -71,6 +71,18 @@ jobs:
           PHPBB_ALBUM_PHOTO_EDIT_PASSWORD: fixture-only
           PHPBB_ALBUM_PHOTO_TEXT_NATIVE: '1'
           PHPBB_ALBUM_PHOTO_TEXT_PASSWORD: fixture-only
+      - name: Check Album file journal schema and real updater preservation
+        run: |
+          php .github/scripts/check-album-file-journal-native.php
+          php .github/scripts/check-album-file-coordinator-native.php
+          php .github/scripts/check-album-upload-receipt-native.php
+        env:
+          PHPBB_ALBUM_FILE_JOURNAL_NATIVE: '1'
+          PHPBB_ALBUM_FILE_JOURNAL_PASSWORD: fixture-only
+          PHPBB_ALBUM_FILE_COORDINATOR_NATIVE: '1'
+          PHPBB_ALBUM_FILE_COORDINATOR_PASSWORD: fixture-only
+          PHPBB_ALBUM_UPLOAD_RECEIPT_NATIVE: '1'
+          PHPBB_ALBUM_UPLOAD_RECEIPT_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         run: php .github/scripts/check-ranks-native.php
         env:

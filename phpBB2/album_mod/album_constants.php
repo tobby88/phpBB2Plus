@@ -111,6 +111,8 @@ define('ALBUM_MED_CACHE_PATH', 'album_mod/upload/med_cache/');
 
 // Table names
 define('ALBUM_TABLE', $table_prefix.'album');
+define('ALBUM_FILE_JOBS_TABLE', $table_prefix.'album_file_jobs');
+define('ALBUM_FILE_ITEMS_TABLE', $table_prefix.'album_file_items');
 define('ALBUM_CAT_TABLE', $table_prefix.'album_cat');
 define('ALBUM_CONFIG_TABLE', $table_prefix.'album_config');
 define('ALBUM_COMMENT_TABLE', $table_prefix.'album_comment');

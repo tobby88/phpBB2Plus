@@ -280,6 +280,9 @@ jobs:
         env:
           PHPBB_ALBUM_CACHE_GD_REQUIRED: '1'
 
+      - name: Check Album file receipts, exclusive publication and crash recovery
+        run: php .github/scripts/check-album-file-storage.php
+
       - name: Test image processing safety
         run: php .github/scripts/check-image-processing-safety.php
 
