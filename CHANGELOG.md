@@ -8,6 +8,17 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Security and runtime hardening
 
+- Fit medium Album previews inside both configured maximum dimensions, retain
+  aspect ratio without enlargement, and validate configuration before GD image
+  allocation. Regenerate older caches that exceed the current limits without
+  deleting them on failed replacement. Keep fitting cached images available
+  without GD, and return the
+  configured fallback instead of a PHP error when a required decoder, encoder,
+  allocator or resizer is unavailable. Cover both JPEG and PNG renderers with
+  real whole-handler tests, including GD1 fallback and malformed settings.
+  Keep failed-allocation cleanup from passing `false` to `imagedestroy()` on
+  PHP 8, and release successfully allocated resources on failure.
+
 - Reuse small and medium Album thumbnails regenerated under the original picture
   filename when legacy thumbnail metadata is empty, null or no longer points to
   a cached file. Prefer an existing explicitly named thumbnail, respect disabled

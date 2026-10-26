@@ -18,8 +18,8 @@ if (isset($argv[1]) && $argv[1] === 'child') {
     acr_check(is_array($case) && isset($case['directory'], $case['script']) && in_array($case['script'], array('album_thumbnail.php', 'album_picm.php'), true), 'Exact owned cache child inputs');
     $directory = $case['directory']; acr_check(is_string($directory) && preg_match('/^codex_album_cache_[a-f0-9]{16}$/D', basename($directory)) && !is_link($directory) && realpath(dirname($directory)) === realpath(sys_get_temp_dir()) && chdir($directory), 'Only own cache fixture directory');
     $db = new AlbumCacheReadCounter(); register_shutdown_function(function () use ($directory, $db) { file_put_contents($directory . '/child.json', json_encode(array('queries' => $db->queries))); });
-    $album_config = array('rate' => 1, 'comment' => 1, 'thumbnail_cache' => $case['enabled'], 'hotlink_prevent' => 0);
-    $album_sp_config = array('midthumb_cache' => $case['enabled']); $album_data = array(); $pic_id = 1;
+    $album_config = array('rate' => 1, 'comment' => 1, 'thumbnail_cache' => $case['enabled'], 'thumbnail_size' => 100, 'hotlink_prevent' => 0);
+    $album_sp_config = array('midthumb_cache' => $case['enabled'], 'midthumb_width' => 400, 'midthumb_height' => 200); $album_data = array(); $pic_id = 1;
     $userdata = array('user_id' => $case['guest'] ? -1 : 7, 'user_level' => $case['admin'] ? ADMIN : 0, 'session_logged_in' => !$case['guest']); $lang = array('Pic_not_exist' => 'no-picture', 'Not_Authorised' => 'DENIED');
     $thispic = array('pic_filename' => $case['original'], 'pic_thumbnail' => $case['stored'], 'pic_cat_id' => 10, 'cat_id' => 10, 'cat_user_id' => 0, 'cat_title' => 'Synthetic', 'cat_view_level' => $case['view'], 'cat_moderator_groups' => '', 'cat_approval' => $case['approval'], 'pic_approval' => $case['approved']);
     $images = array('no_thumbnail' => $directory . '/no-thumbnail.jpg');

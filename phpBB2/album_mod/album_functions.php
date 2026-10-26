@@ -705,6 +705,21 @@ function init_personal_gallery_cat($user_id = 0)
 
 
 // Shared, best-effort cache I/O. It never changes picture or user metadata.
+// Fit inside both configured edges without enlarging the original. Refuse bad
+// settings before passing dimensions to GD (PHP 8 raises errors for bad sizes).
+function album_thumbnail_dimensions($width, $height, $max_width, $max_height)
+{
+	foreach (array($width, $height, $max_width, $max_height) as $value)
+	{
+		if ((!is_int($value) && !is_string($value)) || !preg_match('/^[0-9]{1,5}$/D', (string) $value) || (int) $value < 1 || (int) $value > 10000) { return false; }
+	}
+	$width = (int) $width; $height = (int) $height;
+	$max_width = (int) $max_width; $max_height = (int) $max_height;
+	if (!phpbb_image_dimensions_safe($width, $height)) { return false; }
+	$scale = min(1, $max_width / $width, $max_height / $height);
+	return array(max(1, min($max_width, $width, (int) round($width * $scale))), max(1, min($max_height, $height, (int) round($height * $scale))));
+}
+
 function album_cache_directory($directory)
 {
 	if (!is_string($directory) || !in_array($directory, array(ALBUM_CACHE_PATH, ALBUM_MED_CACHE_PATH), true)) { return false; }
@@ -744,10 +759,15 @@ function album_cache_image_complete($path, $type)
 	finally { fclose($handle); }
 }
 
-function album_cached_image_valid($directory, $filename, $type)
+function album_cached_image_valid($directory, $filename, $type, $max_width = null, $max_height = null)
 {
 	$base = album_cache_directory($directory);
-	return $base !== false && album_cache_filename($filename, $type) && album_cache_image_complete($base . DIRECTORY_SEPARATOR . $filename, $type);
+	if ($base === false || !album_cache_filename($filename, $type) || !album_cache_image_complete($base . DIRECTORY_SEPARATOR . $filename, $type)) { return false; }
+	if (func_num_args() === 3) { return true; }
+	$info = @getimagesize($base . DIRECTORY_SEPARATOR . $filename);
+	if ($info === false) { return false; }
+	$dimensions = album_thumbnail_dimensions($info[0], $info[1], $max_width, $max_height);
+	return $dimensions !== false && $dimensions[0] === $info[0] && $dimensions[1] === $info[1];
 }
 
 function album_store_cached_image($image, $directory, $filename, $type, $quality = 80)

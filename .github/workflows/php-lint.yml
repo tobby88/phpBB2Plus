@@ -274,7 +274,9 @@ jobs:
           node .github/scripts/check-album-photo-input.js
 
       - name: Check actual atomic Album cache images and concurrent writers
-        run: php .github/scripts/check-album-cache-storage.php
+        run: |
+          php .github/scripts/check-album-cache-storage.php
+          php .github/scripts/check-album-regeneration.php
         env:
           PHPBB_ALBUM_CACHE_GD_REQUIRED: '1'
 
