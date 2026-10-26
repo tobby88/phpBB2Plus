@@ -114,6 +114,18 @@ try {
         $coordinator->release(); $coordinator = null; afc_consistent();
         afc_check(afc_rows('SELECT operation_state FROM fixture_album_file_jobs')[0]['operation_state'] === ($role === '2' ? 'prepared' : 'published'), 'Independent connection sees actual committed receipt'); $cases++;
     }
+    foreach (array(1,2) as $boundary) {
+        afc_clear(); $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin(); afc_prepare($coordinator);
+        $coordinator->sql_query("INSERT INTO fixture_album(pic_id,pic_filename,pic_title,pic_user_id,pic_time) VALUES(7,'owned.jpg','Pending image',-1,123)");
+        // Ownership proof is the next SELECT, the intended UPDATE the following
+        // actual statement. A caller catching that error must not commit half work.
+        $source->failure = $source->count + $boundary;
+        afc_denied(function () use ($coordinator) { $coordinator->sql_query("UPDATE fixture_album_file_jobs SET operation_state='published' WHERE operation_id='" . str_repeat('a',32) . "'"); }, 'Actual owned statement failure observed');
+        $source->failure = 0;
+        afc_denied(function () use ($coordinator) { $coordinator->commit(); }, 'Caught statement failure must not commit partial metadata');
+        $coordinator->release(); $coordinator = null; afc_consistent();
+        afc_check(!afc_rows('SELECT pic_id FROM fixture_album') && afc_rows('SELECT operation_state FROM fixture_album_file_jobs')[0]['operation_state'] === 'prepared', 'Failed writer rolls back metadata and retains durable preparation'); $cases++;
+    }
     afc_clear(); $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin(); afc_prepare($coordinator); $coordinator->release(); $coordinator = null;
     afc_check(afc_rows('SELECT operation_state FROM fixture_album_file_jobs')[0]['operation_state'] === 'prepared' && !afc_rows('SELECT pic_id FROM fixture_album'), 'Metadata rollback retains durable preparation for recovery'); $cases++;
     $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin();
@@ -157,6 +169,8 @@ try {
     $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin();
     $coordinator->sql_query("SELECT RELEASE_LOCK('album_files_" . sha1($schema . "\0fixture_") . "')");
     afc_denied(function () use ($coordinator) { $coordinator->durable_begin(); }, 'Lost namespace cannot prepare files');
+    afc_check($source->first->database->sql_query("SELECT GET_LOCK('album_files_" . sha1($schema . "\0fixture_") . "',0)") !== false, 'Synthetic external reacquisition on own native fixture handle');
+    afc_denied(function () use ($coordinator) { $coordinator->assert_lock(); }, 'Reacquired namespace cannot revive failed operation');
     afc_denied(function () use ($coordinator) { $coordinator->sql_query('DELETE FROM fixture_album'); }, 'Lost namespace cannot mutate metadata');
     afc_denied(function () use ($coordinator) { $coordinator->commit(); }, 'Lost namespace cannot commit'); $coordinator->release(); $coordinator = null;
     foreach (array(null, '', '../bad', str_repeat('a', 41)) as $prefix) { afc_denied(function () use ($source, $prefix) { new AlbumFileCoordinator($source, $prefix, 0); }, 'Typed bounded prefix required'); }

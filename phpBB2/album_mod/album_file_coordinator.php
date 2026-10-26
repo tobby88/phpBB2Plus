@@ -19,6 +19,7 @@ class AlbumFileCoordinator
 	private $journal_transaction = false;
 	private $finished = false;
 	private $ready = false;
+	private $failed = false;
 	private $tables = array();
 	private $last_result = false;
 	private $affected = false;
@@ -68,18 +69,25 @@ class AlbumFileCoordinator
 
 	private function query($connection, $sql)
 	{
-		$result = $connection->sql_query($sql);
-		if ($result === false) { throw new AlbumFileCoordinatorFailure('Album coordinated statement failed'); }
+		try { $result = $connection->sql_query($sql); }
+		catch (Exception $error) { $this->failed = true; throw $error; }
+		catch (Error $error) { $this->failed = true; throw $error; }
+		if ($result === false) { $this->failed = true; throw new AlbumFileCoordinatorFailure('Album coordinated statement failed'); }
 		return $result;
 	}
 
 	private function rows($connection, $sql)
 	{
 		$result = $this->query($connection, $sql);
-		try { $rows = $connection->sql_fetchrowset($result); }
-		finally { $connection->sql_freeresult($result); }
-		if (!is_array($rows)) { throw new AlbumFileCoordinatorFailure('Album coordinated rows unavailable'); }
-		return $rows;
+		try
+		{
+			try { $rows = $connection->sql_fetchrowset($result); }
+			finally { $connection->sql_freeresult($result); }
+			if (!is_array($rows)) { throw new AlbumFileCoordinatorFailure('Album coordinated rows unavailable'); }
+			return $rows;
+		}
+		catch (Exception $error) { $this->failed = true; throw $error; }
+		catch (Error $error) { $this->failed = true; throw $error; }
 	}
 
 	private function identity($connection)
@@ -112,9 +120,11 @@ class AlbumFileCoordinator
 
 	function assert_lock()
 	{
-		if (!$this->held || !$this->writer || !$this->journal) { throw new AlbumFileCoordinatorFailure('Album namespace no longer owned'); }
+		// Failure is one-way: even if a caller catches an error or reacquires a
+		// lost lock, it cannot commit a partially completed logical operation.
+		if ($this->failed || !$this->held || !$this->writer || !$this->journal) { throw new AlbumFileCoordinatorFailure('Album namespace no longer owned'); }
 		$rows = $this->rows($this->writer, "SELECT CONNECTION_ID() AS id,IS_USED_LOCK('" . $this->lock . "') AS owner");
-		if (count($rows) !== 1 || (string) $rows[0]['id'] !== $this->writer_id || (string) $rows[0]['owner'] !== $this->writer_id) { throw new AlbumFileCoordinatorFailure('Album namespace ownership changed'); }
+		if (count($rows) !== 1 || (string) $rows[0]['id'] !== $this->writer_id || (string) $rows[0]['owner'] !== $this->writer_id) { $this->failed = true; throw new AlbumFileCoordinatorFailure('Album namespace ownership changed'); }
 		return true;
 	}
 
@@ -164,8 +174,14 @@ class AlbumFileCoordinator
 		if (!$this->ready || !$this->transaction || $this->finished || $transaction !== false || !$this->allowed_statement($sql, false)) { throw new AlbumFileCoordinatorFailure('Statement outside Album metadata transaction'); }
 		$this->last_result = $this->query($this->writer, $sql);
 		// Ownership SELECTs must not overwrite the statement's driver metadata.
-		$this->affected = $this->writer->sql_affectedrows();
-		$this->insert_id = $this->writer->sql_nextid();
+		try
+		{
+			$this->affected = $this->writer->sql_affectedrows();
+			$this->insert_id = $this->writer->sql_nextid();
+			if ($this->affected === false || $this->insert_id === false) { throw new AlbumFileCoordinatorFailure('Album statement result metadata unavailable'); }
+		}
+		catch (Exception $error) { $this->failed = true; throw $error; }
+		catch (Error $error) { $this->failed = true; throw $error; }
 		return $this->last_result;
 	}
 
@@ -176,7 +192,9 @@ class AlbumFileCoordinator
 		if ($method === 'sql_affectedrows') { return $this->affected; }
 		if ($method === 'sql_nextid') { return $this->insert_id; }
 		if (in_array($method, array('sql_fetchrow','sql_fetchrowset','sql_freeresult','sql_numrows'), true) && (!isset($arguments[0]) || $arguments[0] === 0)) { $arguments[0] = $this->last_result; }
-		return call_user_func_array(array($this->writer, $method), $arguments);
+		try { return call_user_func_array(array($this->writer, $method), $arguments); }
+		catch (Exception $error) { $this->failed = true; throw $error; }
+		catch (Error $error) { $this->failed = true; throw $error; }
 	}
 
 	function durable_begin()
