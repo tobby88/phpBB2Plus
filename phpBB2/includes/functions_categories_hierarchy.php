@@ -1017,6 +1017,13 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 		$max_level = get_max_depth($cur, false, -1, $keys, $max);
 	}
 
+	// A category can disappear from this user's authorized tree. Stop before
+	// rendering table rows or looking up its display level in the filtered map.
+	if (!isset($keys['keys'][$cur]) || !isset($keys['level'][$keys['keys'][$cur]]) || ($cur !== 'Root' && $CH_this < 0))
+	{
+		return false;
+	}
+
 	// table header
 	if (($board_config['split_cat'] && $cat_break && ($real_level==0)) || ((!$board_config['split_cat'] || !$cat_break) && ($real_level==-1)))
 	{
@@ -1032,7 +1039,7 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 				if ( $start && ($tree['main'][$keys['idx'][$i]] == $tree['main'][$CH_this]))
 				{
 					$stop = true;
-					$break;
+					break;
 				}
 				if ($keys['id'][$i] == $cur) $start = true;
 				if ($start && !$stop && ($keys['level'][$i] > $max_level)) $max_level = $keys['level'][$i];
