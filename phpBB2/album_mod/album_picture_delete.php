@@ -19,9 +19,9 @@ class AlbumPictureDelete
 		if (!is_array($rows)) { throw new AlbumFileCoordinatorFailure('Album deletion rows unavailable'); } return $rows;
 	}
 
-	function remove($snapshot, $owner, $category, $picture_ids)
+	function remove($snapshot, $owner, $category, $picture_ids, $moderation = false)
 	{
-		if (!is_int($owner) || !is_int($category) || !is_array($picture_ids) || !$picture_ids) { throw new AlbumFileCoordinatorFailure('Invalid Album deletion target'); }
+		if (!is_int($owner) || !is_int($category) || !is_array($picture_ids) || !$picture_ids || !is_bool($moderation)) { throw new AlbumFileCoordinatorFailure('Invalid Album deletion target'); }
 		$ids = array();
 		foreach ($picture_ids as $id)
 		{
@@ -32,7 +32,8 @@ class AlbumPictureDelete
 		{
 			$storage = new AlbumFileCoordinator($this->database, $this->prefix); $storage->begin();
 			$authority = new AlbumLifecycleAuthority($storage, $this->prefix);
-			$context = $authority->lock($snapshot, $owner, $category, ALBUM_AUTH_VIEW | ALBUM_AUTH_DELETE);
+			$checks = $moderation ? ALBUM_AUTH_DELETE | ALBUM_AUTH_MODERATOR : ALBUM_AUTH_VIEW | ALBUM_AUTH_DELETE;
+			$context = $authority->lock($snapshot, $owner, $category, $checks);
 			if ($context === false || !$context['userdata']['session_logged_in']) { throw new AlbumFileCoordinatorFailure('Current Album deletion denied'); }
 			$actor = $context['userdata']; $moderator = !empty($context['access']['moderator']) || $actor['user_level'] === ADMIN;
 			foreach (array_chunk($ids,1000) as $chunk)

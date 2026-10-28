@@ -52,6 +52,20 @@ function album_modcp_normalize_ids($ids)
 	return phpbb_request_id_array(array('ids' => $ids), 'ids');
 }
 
+function album_modcp_apply_action($mode, $snapshot, $owner, $category, $ids, $target = null)
+{
+	global $db, $table_prefix, $phpbb_root_path, $lang;
+	require_once $phpbb_root_path . 'album_mod/album_picture_moderation.php';
+	try
+	{
+		$moderation = new AlbumPictureModeration($db,$table_prefix,$phpbb_root_path);
+		return $moderation->apply($snapshot,(int)$owner,(int)$category,is_array($ids) ? $ids : array((int)$ids),$mode,$target);
+	}
+	catch (Exception $error) { error_log('phpBB Album moderation not confirmed: ' . get_class($error)); }
+	catch (Error $error) { error_log('phpBB Album moderation not confirmed: ' . get_class($error)); }
+	message_die(GENERAL_MESSAGE, isset($lang['Album_moderation_failed']) ? $lang['Album_moderation_failed'] : 'The action could not be confirmed. Please reload the album page.');
+}
+
 if (isset($_POST['pic_id']))
 {
 	$_POST['pic_id'] = album_modcp_normalize_ids($_POST['pic_id']);
@@ -638,72 +652,9 @@ else
 		}
 		else
 		{
-			// Do the MOVE action
-			//
-			// Now we only get $pic_id[] via POST (after the select target screen)
-			if( isset($_POST['pic_id']) )
-			{
-				$pic_id = $_POST['pic_id'];
-				if( is_array($pic_id) )
-				{
-					$pic_id_sql = implode(',', $pic_id);
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, 'Invalid request');
-				}
-			}
-			else
-			{
-				message_die(GENERAL_ERROR, 'No pics specified');
-			}
-			//--- Album Category Hierarchy : begin
-			//--- Version : <= 1.1.0
-			// if we are trying to move picture(s) to root category or a 
-			// personal gallary (shouldn't be possible), but better save then sorry
-			// ...then return an error
 			$target_cat_id = intval(phpbb_request_scalar($_POST, 'target', 0));
-			if ($target_cat_id <= 0) {
-			    message_die(GENERAL_ERROR, 'Can\'t move pictures directly to Root category');
-			}
-			$sql = "SELECT * FROM " . ALBUM_CAT_TABLE . " WHERE cat_id = " . $target_cat_id . " AND cat_user_id = " . (int) $album_user_id;
-			if (!($result = $db->sql_query($sql)))
-			{
-				message_die(GENERAL_ERROR, 'Could not query target category', '', __LINE__, __FILE__, $sql);
-			}
-			$target_cat = $db->sql_fetchrow($result);
-			if (!$target_cat)
-			{
-				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-			}
-			$target_auth = album_permissions($album_user_id, $target_cat_id, ALBUM_AUTH_VIEW_AND_UPLOAD|ALBUM_AUTH_MODERATOR, $target_cat);
-			if (!album_check_permission($target_auth, ALBUM_AUTH_VIEW_AND_UPLOAD))
-			{
-				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-			}
-			//--- Album Category Hierarchy : end
-			// well, we got the array of pic_id but we must do a check to make sure all these
-			// pics are in this category (prevent some naughty moderators to access un-authorised pics)
-			$sql = "SELECT pic_id
-					FROM ". ALBUM_TABLE ."
-					WHERE pic_id IN ($pic_id_sql) AND pic_cat_id <> $cat_id";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain album information', '', __LINE__, __FILE__, $sql);
-			}
-			if( $db->sql_numrows($result) > 0 )
-			{
-				message_die(GENERAL_MESSAGE, $lang['Not_Authorised']);
-			}
-
-			// Update the DB
-			$sql = "UPDATE ". ALBUM_TABLE ."
-					SET pic_cat_id = ". $target_cat_id ."
-					WHERE pic_id IN ($pic_id_sql)";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not update album information', '', __LINE__, __FILE__, $sql);
-			}
+			if ($target_cat_id <= 0) { message_die(GENERAL_ERROR, 'Can\'t move pictures directly to Root category'); }
+			album_modcp_apply_action('move', $userdata, $album_user_id, $cat_id, isset($_POST['pic_id']) ? $_POST['pic_id'] : array(), $target_cat_id);
 
 			$message = $lang['Pics_moved_successfully'] .'<br /><br />'. sprintf($lang['Click_return_category'], "<a href=\"" . append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")) . "\">", "</a>") .'<br /><br />'. sprintf($lang['Click_return_modcp'], "<a href=\"" . append_sid(album_append_uid("album_modcp.$phpEx?cat_id=$cat_id")) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid(album_append_uid("album.$phpEx")) . "\">", "</a>");
 
@@ -716,54 +667,8 @@ else
 		// LOCK
 		//-----------------------------
 
-		// we must check POST method now
-		if ($pic_id != FALSE) // from GET
-		{
-			$pic_id_sql = $pic_id;
-		}
-		else
-		{
-			// Check $pic_id[] on POST Method now
-			if( isset($_POST['pic_id']) )
-			{
-				$pic_id = $_POST['pic_id'];
-				if( is_array($pic_id) )
-				{
-					$pic_id_sql = implode(',', $pic_id);
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, 'Invalid request');
-				}
-			}
-			else
-			{
-				message_die(GENERAL_ERROR, 'No pics specified');
-			}
-		}
-
-		// well, we got the array of pic_id but we must do a check to make sure all these
-		// pics are in this category (prevent some naughty moderators to access un-authorised pics)
-		$sql = "SELECT pic_id
-				FROM ". ALBUM_TABLE ."
-				WHERE pic_id IN ($pic_id_sql) AND pic_cat_id <> $cat_id";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain album information', '', __LINE__, __FILE__, $sql);
-		}
-		if( $db->sql_numrows($result) > 0 )
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
-
-		// update the DB
-		$sql = "UPDATE ". ALBUM_TABLE ."
-				SET pic_lock = 1
-				WHERE pic_id IN ($pic_id_sql)";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update album information', '', __LINE__, __FILE__, $sql);
-		}
+		$selected = $pic_id !== false ? array($pic_id) : (isset($_POST['pic_id']) ? $_POST['pic_id'] : array());
+		album_modcp_apply_action('lock', $userdata, $album_user_id, $cat_id, $selected);
 
 		$message = $lang['Pics_locked_successfully'] .'<br /><br />';
 
@@ -786,54 +691,8 @@ else
 		// UNLOCK
 		//-----------------------------
 
-		// we must check POST method now
-		if ($pic_id != FALSE) // from GET
-		{
-			$pic_id_sql = $pic_id;
-		}
-		else
-		{
-			// Check $pic_id[] on POST Method now
-			if( isset($_POST['pic_id']) )
-			{
-				$pic_id = $_POST['pic_id'];
-				if( is_array($pic_id) )
-				{
-					$pic_id_sql = implode(',', $pic_id);
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, 'Invalid request');
-				}
-			}
-			else
-			{
-				message_die(GENERAL_ERROR, 'No pics specified');
-			}
-		}
-
-		// well, we got the array of pic_id but we must do a check to make sure all these
-		// pics are in this category (prevent some naughty moderators to access un-authorised pics)
-		$sql = "SELECT pic_id
-				FROM ". ALBUM_TABLE ."
-				WHERE pic_id IN ($pic_id_sql) AND pic_cat_id <> $cat_id";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain album information', '', __LINE__, __FILE__, $sql);
-		}
-		if( $db->sql_numrows($result) > 0 )
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
-
-		// update the DB
-		$sql = "UPDATE ". ALBUM_TABLE ."
-				SET pic_lock = 0
-				WHERE pic_id IN ($pic_id_sql)";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update album information', '', __LINE__, __FILE__, $sql);
-		}
+		$selected = $pic_id !== false ? array($pic_id) : (isset($_POST['pic_id']) ? $_POST['pic_id'] : array());
+		album_modcp_apply_action('unlock', $userdata, $album_user_id, $cat_id, $selected);
 
 		$message = $lang['Pics_unlocked_successfully'] .'<br /><br />';
 
@@ -856,54 +715,8 @@ else
 		// APPROVAL
 		//-----------------------------
 
-		// we must check POST method now
-		if ($pic_id != FALSE) // from GET
-		{
-			$pic_id_sql = $pic_id;
-		}
-		else
-		{
-			// Check $pic_id[] on POST Method now
-			if( isset($_POST['pic_id']) )
-			{
-				$pic_id = $_POST['pic_id'];
-				if( is_array($pic_id) )
-				{
-					$pic_id_sql = implode(',', $pic_id);
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, 'Invalid request');
-				}
-			}
-			else
-			{
-				message_die(GENERAL_ERROR, 'No pics specified');
-			}
-		}
-
-		// well, we got the array of pic_id but we must do a check to make sure all these
-		// pics are in this category (prevent some naughty moderators to access un-authorised pics)
-		$sql = "SELECT pic_id
-				FROM ". ALBUM_TABLE ."
-				WHERE pic_id IN ($pic_id_sql) AND pic_cat_id <> $cat_id";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain album information', '', __LINE__, __FILE__, $sql);
-		}
-		if( $db->sql_numrows($result) > 0 )
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
-
-		// update the DB
-		$sql = "UPDATE ". ALBUM_TABLE ."
-				SET pic_approval = 1
-				WHERE pic_id IN ($pic_id_sql)";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update album information', '', __LINE__, __FILE__, $sql);
-		}
+		$selected = $pic_id !== false ? array($pic_id) : (isset($_POST['pic_id']) ? $_POST['pic_id'] : array());
+		album_modcp_apply_action('approval', $userdata, $album_user_id, $cat_id, $selected);
 
 		$message = $lang['Pics_approved_successfully'] .'<br /><br />'. sprintf($lang['Click_return_category'], "<a href=\"" . append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")) . "\">", "</a>") .'<br /><br />'. sprintf($lang['Click_return_modcp'], "<a href=\"" . append_sid(album_append_uid("album_modcp.$phpEx?cat_id=$cat_id")) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid("album.$phpEx") . "\">", "</a>");
 
@@ -915,54 +728,8 @@ else
 		// UNAPPROVAL
 		//-----------------------------
 
-		// we must check POST method now
-		if ($pic_id != FALSE) // from GET
-		{
-			$pic_id_sql = $pic_id;
-		}
-		else
-		{
-			// Check $pic_id[] on POST Method now
-			if( isset($_POST['pic_id']) )
-			{
-				$pic_id = $_POST['pic_id'];
-				if( is_array($pic_id) )
-				{
-					$pic_id_sql = implode(',', $pic_id);
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, 'Invalid request');
-				}
-			}
-			else
-			{
-				message_die(GENERAL_ERROR, 'No pics specified');
-			}
-		}
-
-		// well, we got the array of pic_id but we must do a check to make sure all these
-		// pics are in this category (prevent some naughty moderators to access un-authorised pics)
-		$sql = "SELECT pic_id
-				FROM ". ALBUM_TABLE ."
-				WHERE pic_id IN ($pic_id_sql) AND pic_cat_id <> $cat_id";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not obtain album information', '', __LINE__, __FILE__, $sql);
-		}
-		if( $db->sql_numrows($result) > 0 )
-		{
-			message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-		}
-
-		// update the DB
-		$sql = "UPDATE ". ALBUM_TABLE ."
-				SET pic_approval = 0
-				WHERE pic_id IN ($pic_id_sql)";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not update album information', '', __LINE__, __FILE__, $sql);
-		}
+		$selected = $pic_id !== false ? array($pic_id) : (isset($_POST['pic_id']) ? $_POST['pic_id'] : array());
+		album_modcp_apply_action('unapproval', $userdata, $album_user_id, $cat_id, $selected);
 
 		$message = $lang['Pics_unapproved_successfully'] .'<br /><br />'. sprintf($lang['Click_return_category'], "<a href=\"" . append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")) . "\">", "</a>") .'<br /><br />'. sprintf($lang['Click_return_modcp'], "<a href=\"" . append_sid(album_append_uid("album_modcp.$phpEx?cat_id=$cat_id")) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid("album.$phpEx") . "\">", "</a>");
 
@@ -1040,86 +807,7 @@ else
 		}
 		else
 		{
-			//
-			// Do the delete here...
-			//
-			if( isset($_POST['pic_id']) )
-			{
-				$pic_id = $_POST['pic_id'];
-				if( is_array($pic_id) )
-				{
-					$pic_id_sql = implode(',', $pic_id);
-				}
-				else
-				{
-					message_die(GENERAL_ERROR, 'Invalid request');
-				}
-			}
-			else
-			{
-				message_die(GENERAL_ERROR, 'No pics specified');
-			}
-
-			// well, we got the array of pic_id but we must do a check to make sure all these
-			// pics are in this category (prevent some naughty moderators to access un-authorised pics)
-			$sql = "SELECT pic_id
-					FROM ". ALBUM_TABLE ."
-					WHERE pic_id IN ($pic_id_sql) AND pic_cat_id <> $cat_id";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain album information', '', __LINE__, __FILE__, $sql);
-			}
-			if( $db->sql_numrows($result) > 0 )
-			{
-				message_die(GENERAL_ERROR, $lang['Not_Authorised']);
-			}
-
-			// Delete all comments
-			$sql = "DELETE FROM ". ALBUM_COMMENT_TABLE ."
-					WHERE comment_pic_id IN ($pic_id_sql)";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete related comments', '', __LINE__, __FILE__, $sql);
-			}
-
-			// Delete all ratings
-			$sql = "DELETE FROM ". ALBUM_RATE_TABLE ."
-					WHERE rate_pic_id IN ($pic_id_sql)";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete related ratings', '', __LINE__, __FILE__, $sql);
-			}
-
-			// Delete Physical Files
-			// first we need filenames
-			$sql = "SELECT pic_filename, pic_thumbnail
-					FROM ". ALBUM_TABLE ."
-					WHERE pic_id IN ($pic_id_sql)";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not obtain filenames', '', __LINE__, __FILE__, $sql);
-			}
-			$filerow = array();
-			while( $row = $db->sql_fetchrow($result) )
-			{
-				$filerow[] = $row;
-			}
-			for ($i = 0; $i < count($filerow); $i++)
-			{
-				if( ($filerow[$i]['pic_thumbnail'] != '') and (@file_exists(ALBUM_CACHE_PATH . $filerow[$i]['pic_thumbnail'])) )
-				{
-					@unlink(ALBUM_CACHE_PATH . basename($filerow[$i]['pic_thumbnail']));
-				}
-				@unlink(ALBUM_UPLOAD_PATH . basename($filerow[$i]['pic_filename']));
-			}
-
-			// Delete DB entry
-			$sql = "DELETE FROM ". ALBUM_TABLE ."
-					WHERE pic_id IN ($pic_id_sql)";
-			if( !$result = $db->sql_query($sql) )
-			{
-				message_die(GENERAL_ERROR, 'Could not delete DB entry', '', __LINE__, __FILE__, $sql);
-			}
+			album_modcp_apply_action('delete', $userdata, $album_user_id, $cat_id, isset($_POST['pic_id']) ? $_POST['pic_id'] : array());
 
 			$message = $lang['Pics_deleted_successfully'] .'<br /><br />'. sprintf($lang['Click_return_category'], "<a href=\"" . append_sid(album_append_uid("album_cat.$phpEx?cat_id=$cat_id")) . "\">", "</a>") .'<br /><br />'. sprintf($lang['Click_return_modcp'], "<a href=\"" . append_sid(album_append_uid("album_modcp.$phpEx?cat_id=$cat_id")) . "\">", "</a>") . "<br /><br />" . sprintf($lang['Click_return_album_index'], "<a href=\"" . append_sid("album.$phpEx") . "\">", "</a>");
 

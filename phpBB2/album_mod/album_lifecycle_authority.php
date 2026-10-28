@@ -90,7 +90,11 @@ class AlbumLifecycleAuthority
 			try
 			{
 				$db = $this->storage; $userdata = $fresh; $album_config = $settings; $album_data = array();
-				$access = album_permissions($owner, $category, $checks, $categories[0]);
+				// Personal-gallery moderation is derived from its owner's upload
+				// policy, even when this operation only needs delete/moderate access.
+				// Calculate that dependency without requiring uploads for this action.
+				$permission_checks = $owner > 0 ? $checks | ALBUM_AUTH_UPLOAD : $checks;
+				$access = album_permissions($owner, $category, $permission_checks, $categories[0]);
 				$allowed = album_check_permission($access, $checks);
 			}
 			finally { $db = $original[0]; $userdata = $original[1]; $album_config = $original[2]; $album_data = $original[3]; }
