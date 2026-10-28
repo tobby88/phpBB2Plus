@@ -7,6 +7,7 @@ require_once __DIR__ . '/album_file_coordinator.php';
 class AlbumLifecycleAuthority
 {
 	private $storage;
+	private $prefix;
 	private $locked = false;
 	private $expires = null;
 
@@ -17,7 +18,7 @@ class AlbumLifecycleAuthority
 		{
 			if (!defined($constant) || constant($constant) !== $prefix . $suffix) { throw new AlbumFileCoordinatorFailure('Album permission tables differ from owned namespace'); }
 		}
-		$this->storage = $storage;
+		$this->storage = $storage; $this->prefix = $prefix;
 	}
 
 	private static function integer($value, $minimum, $maximum)
@@ -40,11 +41,37 @@ class AlbumLifecycleAuthority
 		return $this->locked && $this->expires !== null && $this->expires > time() && $this->storage->publication_ready();
 	}
 
-	function lock($snapshot, $owner, $category, $checks)
+	private function admin_allowed($fresh)
+	{
+		global $phpEx;
+		if (!$fresh['session_logged_in'] || $fresh['session_admin'] !== 1) { return false; }
+		if ($fresh['user_level'] === ADMIN) { return true; }
+		if (!defined('JR_ADMIN_TABLE') || JR_ADMIN_TABLE !== $this->prefix . 'jr_admin_users' || !is_string($phpEx) || !preg_match('/^[a-z0-9]{1,8}$/D',$phpEx)) { return false; }
+		$this->storage->pin_authority_table('jr_admin_users');
+		$grants = $this->rows('SELECT user_jr_admin FROM ' . JR_ADMIN_TABLE . ' WHERE user_id=' . $fresh['user_id'] . ' LOCK IN SHARE MODE');
+		if (count($grants) !== 1 || !isset($grants[0]['user_jr_admin']) || !is_string($grants[0]['user_jr_admin'])) { return false; }
+		require_once dirname(__DIR__) . '/includes/functions_jr_admin.php';
+		$routes = jr_admin_authorization_routes();
+		if (!is_array($routes)) { return false; }
+		// Internal exact module, never a posted filename or claimed module hash.
+		$route = 'admin_album_cat.' . $phpEx;
+		foreach (explode(EXPLODE_SEPERATOR_CHAR,$grants[0]['user_jr_admin']) as $hash)
+		{
+			if (isset($routes[$hash]) && jr_admin_route_matches_file($routes[$hash],$route)) { return true; }
+		}
+		return false;
+	}
+
+	function lock_admin($snapshot, $category)
+	{
+		return $this->lock($snapshot, 0, $category, ALBUM_AUTH_MODERATOR, true);
+	}
+
+	function lock($snapshot, $owner, $category, $checks, $administration = false)
 	{
 		global $db, $userdata, $album_config, $album_data;
 		if ($this->locked || !$this->storage->publication_ready() || !is_array($snapshot) || !is_int($owner) || $owner < 0 || $owner > 8388607 || !is_int($category) || $category < 1 || $category > 16777215 ||
-			!is_int($checks) || $checks < 1 || ($checks & ~ALBUM_AUTH_ALL) !== 0 || !isset($snapshot['user_id'], $snapshot['session_id'], $snapshot['session_logged_in'])) { return $this->storage->abort(); }
+			!is_int($checks) || $checks < 1 || ($checks & ~ALBUM_AUTH_ALL) !== 0 || !is_bool($administration) || ($administration && $owner !== 0) || !isset($snapshot['user_id'], $snapshot['session_id'], $snapshot['session_logged_in'])) { return $this->storage->abort(); }
 		$actor_id = self::integer($snapshot['user_id'], -1, 8388607); $sid = $snapshot['session_id'];
 		$logged = in_array($snapshot['session_logged_in'], array(true,1,'1'), true);
 		if ($actor_id === false || $actor_id === 0 || !is_string($sid) || !preg_match('/^[a-f0-9]{32}$/iD', $sid) ||
@@ -90,12 +117,18 @@ class AlbumLifecycleAuthority
 			try
 			{
 				$db = $this->storage; $userdata = $fresh; $album_config = $settings; $album_data = array();
-				// Personal-gallery moderation is derived from its owner's upload
-				// policy, even when this operation only needs delete/moderate access.
-				// Calculate that dependency without requiring uploads for this action.
-				$permission_checks = $owner > 0 ? $checks | ALBUM_AUTH_UPLOAD : $checks;
-				$access = album_permissions($owner, $category, $permission_checks, $categories[0]);
-				$allowed = album_check_permission($access, $checks);
+				if ($administration)
+				{
+					$allowed = $this->admin_allowed($fresh); $access = $allowed ? array('manage'=>1) : array();
+				}
+				else
+				{
+					// Personal moderation depends on the owner's upload policy; only
+					// enforce the actual action's requested grants after calculating it.
+					$permission_checks = $owner > 0 ? $checks | ALBUM_AUTH_UPLOAD : $checks;
+					$access = album_permissions($owner, $category, $permission_checks, $categories[0]);
+					$allowed = album_check_permission($access, $checks);
+				}
 			}
 			finally { $db = $original[0]; $userdata = $original[1]; $album_config = $original[2]; $album_data = $original[3]; }
 			if (!$allowed) { return $this->storage->abort(); }

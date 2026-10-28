@@ -165,7 +165,7 @@ class AlbumFileCoordinator
 
 	function pin_authority_table($suffix)
 	{
-		if (!$this->publication_ready() || !in_array($suffix, array('config','jr_admin'), true)) { throw new AlbumFileCoordinatorFailure('Invalid Album authority table'); }
+		if (!$this->publication_ready() || !in_array($suffix, array('config','jr_admin_users'), true)) { throw new AlbumFileCoordinatorFailure('Invalid Album authority table'); }
 		$table = $this->prefix . $suffix;
 		if (isset($this->tables[$table])) { return; }
 		try { $this->pin($this->writer, $table); $this->tables[$table] = true; }

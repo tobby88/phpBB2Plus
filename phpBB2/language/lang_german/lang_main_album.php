@@ -212,5 +212,6 @@ $lang['Pic_username_too_long'] = 'Der Gastname darf höchstens 32 Zeichen enthal
 $lang['Pic_text_update_failed'] = 'Das Bild konnte nicht aktualisiert werden. Bitte lade die Seite neu und versuche es erneut.';
 $lang['Delete_processing_failed'] = 'Der Löschvorgang konnte nicht bestätigt werden. Bitte lade die Albumseite neu.';
 $lang['Album_moderation_failed'] = 'Die Aktion konnte nicht bestätigt werden. Bitte lade die Albumseite neu und prüfe deine aktuelle Anmeldung, Kategorie und Berechtigungen.';
+$lang['Album_category_removal_failed'] = 'Die Kategorienänderung konnte nicht bestätigt werden. Bitte lade die Albumseite neu und prüfe deine aktuelle Anmeldung, Kategorien-Berechtigungen und das Ziel.';
 
 ?>

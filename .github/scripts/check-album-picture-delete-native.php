@@ -1,7 +1,7 @@
 <?php
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_ALBUM_PICTURE_DELETE_NATIVE') !== '1') { echo "Native Album picture deletion fixture skipped.\n"; return; }
-define('IN_PHPBB',true); define('ADMIN',1); define('GENERAL_ERROR',202); define('GENERAL_MESSAGE',200); $table_prefix='fixture_';
-foreach(array('USERS_TABLE'=>'users','SESSIONS_TABLE'=>'sessions','USER_GROUP_TABLE'=>'user_group','CONFIG_TABLE'=>'config')as$name=>$suffix){define($name,$table_prefix.$suffix);}
+define('IN_PHPBB',true); define('ADMIN',1); define('GENERAL_ERROR',202); define('GENERAL_MESSAGE',200); $phpEx='php';$table_prefix='fixture_';
+foreach(array('USERS_TABLE'=>'users','SESSIONS_TABLE'=>'sessions','USER_GROUP_TABLE'=>'user_group','CONFIG_TABLE'=>'config','JR_ADMIN_TABLE'=>'jr_admin_users')as$name=>$suffix){define($name,$table_prefix.$suffix);}
 $root=dirname(dirname(__DIR__)).'/phpBB2/'; require $root.'includes/php_compat.php'; require $root.'db/mysqli.php'; require $root.'album_mod/album_constants.php'; require $root.'album_mod/album_functions.php'; require $root.'album_mod/album_hierarchy_auth.php'; require $root.'album_mod/album_picture_delete.php'; require __DIR__.'/album-native-observer.php';
 function acd_check($ok,$message){if(!$ok){throw new RuntimeException($message);}}
 function message_die($type,$message){throw new RuntimeException($message);}
@@ -11,21 +11,23 @@ $common=file_get_contents($root.'includes/functions.php');acd_check(preg_match('
 function album_sql_id_list($ids){return phpbb_sql_id_list($ids);}
 class AlbumPictureDeleteSource extends sql_db
 {
-    var $queries=array(); var $count=0; var $failure=0; var $lost=false; var $armed=false; var $watch=false; var $crash=''; var $completing=false; var $moderation=false; var $peer_before=null;
+    var $queries=array(); var $count=0; var $failure=0; var $lost=false; var $armed=false; var $watch=false; var $crash=''; var $completing=false; var $moderation=false; var $peer_before=null;var $category_operation=false;var $category_watch=false;
     function sql_dedicated_connection(){return new AlbumNativeObservedConnection(parent::sql_dedicated_connection(),$this);}
     function observed_query($database,$sql,$transaction=false){$this->queries[]=$sql;if(++$this->count===$this->failure){return false;}
         if(strpos($sql,'DELETE FROM fixture_album WHERE')===0){$this->armed=true;}
         if($this->moderation&&strpos($sql,'UPDATE fixture_album SET ')===0){$this->armed=true;}
+        if($this->category_operation&&preg_match('/^(?:INSERT INTO fixture_album_file_jobs|UPDATE fixture_album(?:_cat|_comment)? SET |DELETE FROM fixture_album(?:_cat|_comment|_rate)? WHERE )/',$sql)){$this->armed=true;}
         if($this->crash==='before-commit'&&$sql==='COMMIT'&&$this->armed){acd_crash_barrier('before-commit');}
         if($this->crash==='unlinked'&&strpos($sql,'UPDATE fixture_album_file_items SET item_state=')===0){acd_crash_barrier('unlinked');}
         if(strpos($sql,"UPDATE fixture_album_file_jobs SET operation_state='complete'")===0){$this->completing=true;}
         $result=$database->sql_query($sql,$transaction);
         if($this->watch&&$this->armed&&$sql!=='COMMIT'){acd_check(count(acd_rows('SELECT pic_id FROM fixture_album'))===1,'Peer still sees original photo before deletion commit');acd_files_intact();if($this->moderation){acd_check(acm_snapshot()===$this->peer_before,'Peer sees all original picture/comment/rating values until moderation commits');}}
+        if($this->category_watch&&$this->armed&&$sql!=='COMMIT'){acd_check(acat_snapshot()===$this->peer_before,'Peer sees original category hierarchy/photos/comments/ratings until commit');acd_files_intact();}
         if($result!==false&&$sql==='COMMIT'&&(($this->crash==='deleted'&&$this->armed)||($this->crash==='complete'&&$this->completing))){acd_crash_barrier($this->crash);}
         if($sql==='COMMIT'&&$this->armed){$this->armed=false;$this->watch=false;if($this->lost){$this->lost=false;acd_check($result!==false,'Actual committed deletion with lost acknowledgement');return false;}}
         return $result;
     }
-    function reset_case($failure=0){$this->queries=array();$this->count=0;$this->failure=$failure;$this->lost=false;$this->armed=false;$this->watch=false;$this->moderation=false;$this->peer_before=null;}
+    function reset_case($failure=0){$this->queries=array();$this->count=0;$this->failure=$failure;$this->lost=false;$this->armed=false;$this->watch=false;$this->moderation=false;$this->peer_before=null;$this->category_operation=false;$this->category_watch=false;}
 }
 $port=getenv('PHPBB_ALBUM_PICTURE_DELETE_PORT')?:'3306'; $password=getenv('PHPBB_ALBUM_PICTURE_DELETE_PASSWORD')?:''; acd_check(preg_match('/^[0-9]{1,5}$/D',$port)&&(int)$port>0&&(int)$port<=65535,'Own loopback fixture port');
 $schema='codex_album_delete_'.bin2hex(phpbb_random_bytes(8)); $base=sys_get_temp_dir().'/'.$schema; $host='127.0.0.1:'.$port; $control=new sql_db($host,'root',$password,'',false); $db=null; $storage=null; $created=false; $directory_created=false; $cases=0;
@@ -35,7 +37,7 @@ function acd_sql($sql){$result=$GLOBALS['control']->sql_query($sql);acd_check($r
 function acd_rows($sql){$result=acd_sql($sql);try{return $GLOBALS['control']->sql_fetchrowset($result);}finally{$GLOBALS['control']->sql_freeresult($result);}}
 function acd_files_intact(){foreach($GLOBALS['paths']as$path){acd_check(is_file($GLOBALS['base'].'/'.$path)&&file_get_contents($GLOBALS['base'].'/'.$path)===$GLOBALS['payload'],'No file removed or altered while original picture still committed');}}
 function acd_reset(){if($GLOBALS['storage']){$GLOBALS['storage']->release();$GLOBALS['storage']=null;}
-    foreach(array('album_file_items','album_file_jobs','album_comment','album_rate','album','album_cat','album_config','config','sessions','user_group','users')as$suffix){acd_sql('DELETE FROM fixture_'.$suffix);}
+    foreach(array('album_file_items','album_file_jobs','album_comment','album_rate','album','album_cat','album_config','config','sessions','user_group','jr_admin_users','users')as$suffix){acd_sql('DELETE FROM fixture_'.$suffix);}
     acd_sql("INSERT INTO fixture_users(user_id,username,user_password,user_active,user_level) VALUES(-1,'Anonymous','',0,0),(7,'Current author','',1,0),(8,'Other author','',1,0)");acd_sql("INSERT INTO fixture_config VALUES('session_length','3600')");foreach($GLOBALS['seeds']as$sql){acd_sql($sql);}
     acd_sql("INSERT INTO fixture_sessions(session_id,session_user_id,session_logged_in,session_time,session_ip) VALUES('".$GLOBALS['sid']."',7,1,".time().",'7f000001')");acd_sql("INSERT INTO fixture_album_cat(cat_id,cat_title,cat_order,cat_user_id,cat_delete_level,cat_moderator_groups) VALUES(1,'Public',1,0,0,'10')");
     acd_sql("INSERT INTO fixture_album(pic_id,pic_filename,pic_thumbnail,pic_title,pic_user_id,pic_time) VALUES(1,'a.png','t.png','Synthetic',7,1)");acd_sql("INSERT INTO fixture_album_comment(comment_pic_id,comment_cat_id,comment_user_id,comment_user_ip,comment_time,comment_text) VALUES(1,1,7,'7f000001',1,'Preserve atomically')");acd_sql("INSERT INTO fixture_album_rate(rate_pic_id,rate_user_id,rate_user_ip,rate_point) VALUES(1,7,'7f000001',5)");
@@ -56,13 +58,14 @@ function acd_consistent(){
 }
 function acd_crash_barrier($boundary){acd_check(file_put_contents($GLOBALS['base'].'/crash-ready',$boundary)===strlen($boundary),'Own delete worker reached exact crash boundary');$deadline=microtime(true)+20;while(microtime(true)<$deadline){usleep(10000);}throw new RuntimeException('Parent must kill actual delete worker without shutdown/finally');}
 if(isset($argv[1])&&$argv[1]==='crash-worker'){
-    acd_check(count($argv)===4&&preg_match('/^codex_album_delete_[a-f0-9]{16}$/D',$argv[2])&&in_array($argv[3],array('before-commit','deleted','unlinked','complete'),true),'Exact own delete child context');$schema=$argv[2];$base=sys_get_temp_dir().'/'.$schema;
-    acd_check(is_dir($base)&&!is_link($base)&&realpath(dirname($base))===realpath(sys_get_temp_dir()),'Own existing delete child root');acd_sql('USE '.$schema);$db=new AlbumPictureDeleteSource($host,'root',$password,$schema,false);$db->crash=$argv[3];$userdata=array('user_id'=>7,'session_id'=>$sid,'session_logged_in'=>true);acd_delete();throw new RuntimeException('Requested delete boundary not reached');
+    acd_check(in_array(count($argv),array(4,5),true)&&(count($argv)===4||$argv[4]==='category')&&preg_match('/^codex_album_delete_[a-f0-9]{16}$/D',$argv[2])&&in_array($argv[3],array('before-commit','deleted','unlinked','complete'),true),'Exact own delete child context');$schema=$argv[2];$base=sys_get_temp_dir().'/'.$schema;
+    acd_check(is_dir($base)&&!is_link($base)&&realpath(dirname($base))===realpath(sys_get_temp_dir()),'Own existing delete child root');acd_sql('USE '.$schema);$db=new AlbumPictureDeleteSource($host,'root',$password,$schema,false);$db->crash=$argv[3];$userdata=array('user_id'=>7,'session_id'=>$sid,'session_logged_in'=>true);
+    if(count($argv)===5){require $root.'album_mod/album_category_remove.php';$db->category_operation=true;(new AlbumCategoryRemove($db,'fixture_',$base))->remove($userdata,7,1,ALBUM_JUMPBOX_DELETE);}else{acd_delete();}throw new RuntimeException('Requested delete boundary not reached');
 }
-function acd_crash_worker($boundary){
+function acd_crash_worker($boundary,$kind='picture'){
     $command=(DIRECTORY_SEPARATOR===chr(92)?'':'exec ').escapeshellarg(PHP_BINARY).' -d date.timezone=UTC ';
     if(DIRECTORY_SEPARATOR===chr(92)){$command.='-n -d '.escapeshellarg('extension_dir='.ini_get('extension_dir')).' -d extension=php_mysqli.dll -d extension=php_openssl.dll ';if(extension_loaded('mbstring')){$command.='-d extension=php_mbstring.dll ';}}
-    $command.=escapeshellarg(__FILE__).' crash-worker '.escapeshellarg($GLOBALS['schema']).' '.escapeshellarg($boundary);$process=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));acd_check(is_resource($process),'Start actual own delete process');fclose($pipes[0]);$ready=$GLOBALS['base'].'/crash-ready';
+    $command.=escapeshellarg(__FILE__).' crash-worker '.escapeshellarg($GLOBALS['schema']).' '.escapeshellarg($boundary).($kind==='category'?' category':'');$process=proc_open($command,array(0=>array('pipe','r'),1=>array('pipe','w'),2=>array('pipe','w')),$pipes,null,null,array('bypass_shell'=>true));acd_check(is_resource($process),'Start actual own delete process');fclose($pipes[0]);$ready=$GLOBALS['base'].'/crash-ready';
     try{$deadline=microtime(true)+15;$reached=false;$output='';do{$status=proc_get_status($process);clearstatcache(true,$ready);$reached=is_file($ready)&&file_get_contents($ready)===$boundary;if($reached||!$status['running']||microtime(true)>=$deadline){break;}usleep(10000);}while(true);
         if(!$status['running']){$output=stream_get_contents($pipes[1]).stream_get_contents($pipes[2]);}acd_check($reached&&$status['running'],'Actual live delete worker reached '.$boundary.': '.$output);acd_check(proc_terminate($process,9),'Force delete process death without PHP cleanup');$deadline=microtime(true)+5;
         do{$status=proc_get_status($process);if(!$status['running']){break;}acd_check(microtime(true)<$deadline,'Bounded delete worker termination');usleep(10000);}while(true);acd_check(stream_get_contents($pipes[1])===''&&stream_get_contents($pipes[2])==='','Killed actual delete process emitted no PHP error');fclose($pipes[1]);fclose($pipes[2]);proc_close($process);$process=null;acd_check(unlink($ready),'Remove exact own delete barrier');
@@ -71,10 +74,11 @@ function acd_crash_worker($boundary){
 $reporting=error_reporting(E_ALL);set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{
     acd_check($control->db_connect_id,'Own loopback deletion control');acd_sql('CREATE DATABASE '.$schema.' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');$created=true;acd_sql('USE '.$schema);
-    $ddl=file_get_contents($root.'install/schemas/mysql_schema.sql');foreach(array('users','sessions','user_group','config','album','album_cat','album_comment','album_rate','album_config','album_file_jobs','album_file_items')as$suffix){acd_check(preg_match('/^CREATE TABLE `?phpbb_'.$suffix.'`?\s*\([\s\S]*?;/m',$ddl,$match)===1,'Canonical deletion fixture table');acd_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$match[0]));}
+    $ddl=file_get_contents($root.'install/schemas/mysql_schema.sql');foreach(array('users','sessions','user_group','config','jr_admin_users','album','album_cat','album_comment','album_rate','album_config','album_file_jobs','album_file_items')as$suffix){acd_check(preg_match('/^CREATE TABLE `?phpbb_'.$suffix.'`?\s*\([\s\S]*?;/m',$ddl,$match)===1,'Canonical deletion fixture table');acd_sql(str_replace('phpbb_'.$suffix,'fixture_'.$suffix,$match[0]));}
     preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m',file_get_contents($root.'install/schemas/mysql_basic.sql'),$matches);$seeds=array();foreach($matches[0]as$sql){$seeds[]=str_replace('phpbb_album_config','fixture_album_config',$sql);}acd_check(count($seeds)>40,'Actual Album defaults');
     acd_check(!file_exists($base)&&mkdir($base,0700),'Own deletion root');$directory_created=true;foreach($directories as$directory){acd_check(mkdir($base.$directory,0700),'Own fixed deletion data directory');}$db=new AlbumPictureDeleteSource($host,'root',$password,$schema,false);
     if(getenv('PHPBB_ALBUM_DELETE_PART')==='moderation'){require __DIR__.'/album-moderation-native-cases.php';acm_cases();return;}
+    if(getenv('PHPBB_ALBUM_DELETE_PART')==='category'){require __DIR__.'/album-moderation-native-cases.php';require __DIR__.'/album-category-remove-native-cases.php';acat_cases();return;}
     acd_reset();$db->watch=true;$result=acd_delete();acd_check($result['deleted']===1&&$result['pending']===0,'Actual owned deletion and committed cleanup');acd_consistent();foreach($paths as$path){acd_check(!file_exists($base.'/'.$path),'Original plus stored/generated small and medium variants removed');}$cases++;$baseline=$db->queries;
     acd_check(acd_resolve($result['jobs'][0])===array_fill(0,5,'removed'),'Completed receipt is idempotent');$cases++;
     acd_reset();$storage=new AlbumFileCoordinator($db,'fixture_');$storage->begin();$receipt=new AlbumCleanupReceipt($storage,'fixture_',$base);$jobs=$receipt->prepare(7,0,1,array(1));$denied=false;try{$receipt->resolve($jobs[0]);}catch(AlbumFileCoordinatorFailure$error){$denied=true;}acd_check($denied,'Uncommitted deletion receipt cannot authorize any physical removal');acd_files_intact();$storage->release();$storage=null;acd_consistent();$cases++;
@@ -102,5 +106,6 @@ try{
     }
     if(getenv('PHPBB_ALBUM_DELETE_QUICK')!=='1'){foreach($baseline as$index=>$sql){acd_reset();$db->reset_case($index+1);try{acd_delete();}catch(AlbumFileCoordinatorFailure$error){}catch(AlbumFileStorageFailure$error){}acd_consistent();$cases++;}}
     require __DIR__.'/album-moderation-native-cases.php'; acm_cases();
+    require __DIR__.'/album-category-remove-native-cases.php';acat_cases();
     echo 'Native Album picture deletion: '.$cases.' cases PASS; '.count($baseline)." actual SQL boundaries, four forced process kills, current authority, five image variants, committed-only cleanup, shared/changed preservation and uncertain commit; no live data.\n";
 }finally{if($storage){$storage->release();}if($db){$db->sql_close();}if($created){$control->sql_query('DROP DATABASE '.$schema);}$control->sql_close();if($directory_created){if(is_file($base.'/crash-ready')){unlink($base.'/crash-ready');}foreach($paths as$path){if(is_file($base.'/'.$path)&&!is_link($base.'/'.$path)){unlink($base.'/'.$path);}}foreach(array_reverse($directories)as$directory){rmdir($base.$directory);}rmdir($base);}restore_error_handler();error_reporting($reporting);}

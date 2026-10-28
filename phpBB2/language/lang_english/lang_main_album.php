@@ -214,5 +214,6 @@ $lang['Pic_username_too_long'] = 'The guest name must not exceed 32 characters.'
 $lang['Pic_text_update_failed'] = 'The picture could not be updated. Please reload the page and try again.';
 $lang['Delete_processing_failed'] = 'The deletion could not be confirmed. Please reload the album page.';
 $lang['Album_moderation_failed'] = 'The action could not be confirmed. Please reload the album page and check your current login, category and permissions.';
+$lang['Album_category_removal_failed'] = 'The category change could not be confirmed. Please reload the album page and check your current login, category permissions and destination.';
 
 ?>
