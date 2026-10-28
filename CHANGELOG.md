@@ -8,6 +8,8 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Administration, search and quick reply
 
+- Remove the redundant guest login form below the Album index; the standard
+  navigation remains available for signing in.
 - Load the user-removal helpers before rendering the administrator's user
   selection page, avoiding a blank page from an undefined pending-jobs helper.
 - Continue search-index rebuilds automatically after their initial or resumed
