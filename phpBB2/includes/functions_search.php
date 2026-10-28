@@ -117,8 +117,10 @@ function clean_words($mode, $entry, &$stopword_list, &$synonym_list)
 	{
 		$entry = str_replace('*', ' ', $entry);
 
-		// 'words' that consist of <3 or >20 characters are removed.
-		$entry = preg_replace('/[ ]([\S]{1,2}|[\S]{21,})[ ]/',' ', $entry);
+		// Preserve the existing index's 3-to-20-byte word length policy.
+		// Do not consume delimiters: adjacent rejected words must each match.
+		// Whitespace boundaries also cover tabs before split_words normalizes them.
+		$entry = preg_replace('/(?<!\S)(?:\S{1,2}|\S{21,})(?!\S)/', ' ', $entry);
 	}
 
 	if ( !empty($stopword_list) )

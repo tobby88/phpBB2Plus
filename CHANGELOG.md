@@ -6,6 +6,16 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Administration, search and quick reply
+
+- Load the user-removal helpers before rendering the administrator's user
+  selection page, avoiding a blank page from an undefined pending-jobs helper.
+- Continue search-index rebuilds automatically after their initial or resumed
+  request as well as subsequent batches. Filter adjacent oversized search words
+  independently so legacy 50-character dictionary columns do not abort a rebuild.
+- Keep the quick-reply options column aligned with the topic author column,
+  align the editor to the left, and allow its action buttons to wrap.
+
 ### Security and runtime hardening
 
 - Fit medium Album previews inside both configured maximum dimensions, retain

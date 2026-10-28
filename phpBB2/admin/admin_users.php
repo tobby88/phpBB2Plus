@@ -43,6 +43,7 @@ require($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_post.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_privmsgs.'.$phpEx);
 require_once($phpbb_root_path . 'includes/functions_user_cleanup.'.$phpEx);
+require_once($phpbb_root_path . 'includes/functions_user_removal.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_selects.'.$phpEx);
 require($phpbb_root_path . 'includes/functions_validate.'.$phpEx);
 include($phpbb_root_path . 'includes/functions_profile_fields.'.$phpEx);

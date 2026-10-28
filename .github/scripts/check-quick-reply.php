@@ -29,6 +29,9 @@ foreach ($tags as $tag)
 	$stack[] = $name;
 }
 quick_assert(!$stack, 'Every owned table/form must close');
+quick_assert(strpos($source,'table-layout:fixed')!==false&&strpos($source,'<col style="width:150px"')!==false,'Options keep the author-column width instead of participating in textarea percentage sizing');
+quick_assert(strpos($source,'<td class="row1" align="left" valign="top">')!==false,'Editor alignment does not inherit the centered outer topic row');
+quick_assert(strpos($source,'class="quick-reply-actions"')!==false&&strpos($source,'flex-wrap:wrap')!==false,'Action buttons can wrap without expanding the editor column');
 quick_assert(strpos($source, 'accept-charset="UTF-8"') !== false, 'Quick replies explicitly submit UTF-8');
 quick_assert(strpos($source, "theSelection = theSelection ? String(theSelection) : '';") !== false, 'Empty/null Selection objects must not be treated as selected text');
 quick_assert(strpos($source, 'message.setSelectionRange(') !== false, 'Modern smilies/quotes must retain the insertion position');
