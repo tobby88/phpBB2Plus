@@ -80,7 +80,8 @@
 <input type="hidden" name="mode" value="reply" />
 <input type="hidden" name="t" value="{quick_reply.TOPIC_ID}" />
 <input type="hidden" name="last_msg" value="{quick_reply.LAST_MESSAGE}" />
-<table width="100%" border="0" cellspacing="0" cellpadding="3">
+<table class="quick-reply-table" width="100%" border="0" cellspacing="0" cellpadding="3" style="table-layout:fixed">
+<colgroup><col style="width:150px" /><col /></colgroup>
 <tr>
 <th>{L_OPTIONS}</th>
 <th><b>{L_QUICK_REPLY}</b></th>
@@ -92,12 +93,14 @@
 <label class="gensmall"><input type="checkbox" name="notify" {quick_reply.user_logged_in.NOTIFY_ON_REPLY} /> {L_NOTIFY_ON_REPLY}</label>
 <!-- END user_logged_in -->
 </td>
-<td class="row1" valign="top">
-<textarea name="message" aria-label="{L_QUICK_REPLY}" rows="6" cols="35" style="box-sizing:border-box;width:100%;max-width:700px" wrap="virtual" tabindex="1" class="post" onselect="storeCaret(this);" onclick="storeCaret(this);" onkeyup="storeCaret(this);"></textarea><br />
-<INPUT TYPE='button' name='smiles_all' class='liteoption' VALUE='{L_ADD_SMILIES}' ONCLICK="openAllSmiles();">&nbsp;
-<input type='button' name='quoteselected' class='liteoption' value='{L_QUOTE_SELECTED}' onclick='javascript:quoteSelection()'>&nbsp;
-<input type='submit' name='preview' class='liteoption' value='{L_PREVIEW}'>&nbsp;
+<td class="row1" align="left" valign="top">
+<textarea name="message" aria-label="{L_QUICK_REPLY}" rows="6" cols="35" style="box-sizing:border-box;width:100%;max-width:700px" wrap="virtual" tabindex="1" class="post" onselect="storeCaret(this);" onclick="storeCaret(this);" onkeyup="storeCaret(this);"></textarea>
+<div class="quick-reply-actions" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+<input type='button' name='smiles_all' class='liteoption' value='{L_ADD_SMILIES}' onclick="openAllSmiles();">
+<input type='button' name='quoteselected' class='liteoption' value='{L_QUOTE_SELECTED}' onclick='javascript:quoteSelection()'>
+<input type='submit' name='preview' class='liteoption' value='{L_PREVIEW}'>
 <input type='submit' accesskey='s' name='post' class='mainoption' value='{L_SUBMIT}'>
+</div>
 
 </td>
 </tr>

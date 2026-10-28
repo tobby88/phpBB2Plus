@@ -32,6 +32,7 @@ class RebuildServer {
 }
 class RebuildForum {
  public $dbname='rebuild-fixture';
+ function __construct(){if($GLOBALS['native']){rebuild_check(preg_match('/;dbname=(codex_rebuild_[a-f0-9]{16});/',$GLOBALS['dsn'],$match)===1,'Own native lock namespace');$this->dbname=$match[1];}}
  function sql_query($sql){throw new RuntimeException('Unlocked main connection used');}
  function sql_dedicated_connection(){return new RebuildConnection($GLOBALS['rebuild_server']);}
 }
@@ -98,6 +99,11 @@ $a=strpos($updater,'function update_quote_identifier(');$b=strpos($updater,'func
 eval('namespace RebuildMigration; function mysqli_real_escape_string($connection,$value){return substr($connection->quote($value),1,-1);} function update_scalar($connection,$sql){return $connection->query($sql)->fetchColumn();} '.$queue_source.substr($updater,$a,$b-$a));
 set_error_handler(function($severity,$message){if(error_reporting()&$severity){throw new RuntimeException($message);}});
 try{
+ foreach(array(
+  array(str_repeat('a',51).' '.str_repeat('b',52).' normal',array('normal')),
+  array("a b\tcd\nefg xy z",array('efg')),
+  array(str_repeat('x',20).' '.str_repeat('y',21).' '.str_repeat('z',52).' Grüße',array(str_repeat('x',20),'grüße'))
+ )as$vector){$stop=array();$synonyms=array();$actual=array_values(array_filter(split_words(clean_words('post',$vector[0],$stop,$synonyms)),'strlen'));rebuild_check($actual===$vector[1],'Consecutive/whitespace/UTF8 index words retain the legacy 3-to-20-byte boundary without consuming shared delimiters');}
  foreach($native?array('MyISAM','InnoDB'):array('SQLite') as $engine){
   rebuild_fixture($engine);$operations=array();
   RebuildMigration\update_queue_default($operations,$rebuild_server->pdo,'fixture_config','config_name','config_value','dbmtnc_rebuild_job',$config_defaults['dbmtnc_rebuild_job']);
@@ -113,6 +119,7 @@ try{
   rebuild_fixture($engine);$long_words=array();for($i=0;$i<500;$i++){$long_words[]='vocabulary'.$i;}
   $rebuild_server->pdo->exec('UPDATE fixture_texts SET post_text='.$rebuild_server->pdo->quote(implode(' ',$long_words)).' WHERE post_id=10');
   $job=rebuild_run('start');rebuild_check($job['state']['p']>=10&&count($rebuild_server->queries)<500*5,'Long-post indexing keeps current SQL guards without per-token metadata round trips');
+  rebuild_fixture($engine);$overflow=str_repeat('a',51).' '.str_repeat('b',52).' normal';$rebuild_server->pdo->exec('UPDATE fixture_texts SET post_text='.$rebuild_server->pdo->quote($overflow).' WHERE post_id=10');$job=rebuild_complete(rebuild_run('start'));rebuild_check((int)rebuild_value('SELECT MAX(LENGTH(word_text)) FROM fixture_words')<=20,'Real varchar(50) rebuild completes instead of inserting the adjacent 52-byte token');
   rebuild_fixture($engine);$job=rebuild_run('start');
   rebuild_check($job['state']['p']===20&&$job['state']['e']===20&&$job['state']['s']==='run','Both posts checkpointed');
   rebuild_check(rebuild_value("SELECT config_value FROM fixture_config WHERE config_name='board_disable'")==='1','Maintenance flag retained until finalization');
@@ -231,6 +238,7 @@ try{
    ob_start();eval($branch);$html=ob_get_clean();
    rebuild_check(strpos($html,$lang['Rebuilding_search_index'])!==false&&strpos($html,'&amp;job=')!==false,'Actual localized controller emits generation-bound continuation');
    rebuild_check(strpos($html,$lang['Indexing_finished'])===false,'Controller never claims first batch finished');
+   rebuild_check(isset($template->vars['META'])&&strpos($template->vars['META'],'token=')!==false&&$rebuild_headers===1,'Initial POST sets signed automatic continuation before its single delayed header');
    $function='perform_rebuild';
    for($i=0;$i<20&&rebuild_saved()['s']!=='done';$i++){
     $_GET=rebuild_step_request(rebuild_saved());$template=new RebuildTemplate();ob_start();eval($branch);$html=ob_get_clean();
@@ -242,7 +250,7 @@ try{
    ob_start();eval($branch);$html=ob_get_clean();
    rebuild_check(strpos($html,phpbb_admin_html($lang['Maintenance_rebuild_failed']))!==false&&strpos($html,$lang['Maintenance_rebuild_resume_help'])!==false&&!isset($template->vars['META']),'Actual controller stops on failure and explains authorized recovery');
    rebuild_check(rebuild_saved()['p']===0&&rebuild_value("SELECT config_value FROM fixture_config WHERE config_name='board_disable'")==='1','Controller failure preserves resumable state');
-   $rebuild_server->failure='';$function='proceed_rebuilding';ob_start();eval($branch);ob_end_clean();rebuild_check(rebuild_saved()['p']===20,'Actual POST resume continues interrupted post');
+   $rebuild_server->failure='';$function='proceed_rebuilding';$template=new RebuildTemplate();$rebuild_headers=0;ob_start();eval($branch);ob_end_clean();rebuild_check(rebuild_saved()['p']===20&&isset($template->vars['META'])&&$rebuild_headers===1,'Actual POST resume continues interrupted post and automatically schedules the following batch before its header');
   }
   echo $engine." durable rebuild backend (start, batches, replayable finalization) passed.\n";
  }

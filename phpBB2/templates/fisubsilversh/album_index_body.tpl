@@ -144,29 +144,6 @@
 <!-- Album Category Hierarchy : end -->	
 	
 
-<!-- BEGIN switch_user_logged_out -->
-<form method="post" action="{S_LOGIN_ACTION}">
-{S_LOGIN_FIELDS}
-  <table width="100%" cellpadding="3" cellspacing="1" border="0" class="forumline">
-	<tr>
-	  <td class="catHead" height="28"><a name="login"></a><span class="cattitle">{L_LOGIN_LOGOUT}</span></td>
-	</tr>
-	<tr>
-	  <td class="row1" align="center" height="28"><span class="gensmall">{L_USERNAME}:
-		<input class="post" type="text" name="username" size="10" />
-		&nbsp;&nbsp;&nbsp;{L_PASSWORD}:
-		<input class="post" type="password" name="password" size="10" />
-		&nbsp;&nbsp; &nbsp;&nbsp;{L_AUTO_LOGIN}
-		<input class="text" type="checkbox" name="autologin" />
-		&nbsp;&nbsp;&nbsp;
-		<input type="submit" class="mainoption" name="login" value="{L_LOGIN}" />
-		<input type="hidden" name="redirect" value="{U_ALBUM}" />
-		</span> </td>
-	</tr>
-  </table>
-</form>
-<!-- END switch_user_logged_out -->
-
 <br clear="all" />
 
 <!--

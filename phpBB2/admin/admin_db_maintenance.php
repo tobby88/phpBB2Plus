@@ -113,6 +113,7 @@ if ($function !== '' && !in_array($function, $dbmtnc_allowed_functions, true))
 {
 	message_die(GENERAL_ERROR, $lang['function_unknown']);
 }
+$dbmtnc_rebuild_action = $mode_id === 'perform' && in_array($function, array('rebuild_search_index', 'proceed_rebuilding', 'perform_rebuild'), true);
 
 if ($mode_id == 'perform')
 {
@@ -149,7 +150,7 @@ if ($mode_id == 'start' || $mode_id == 'perform')
 {
 	$board_config['gzip_compress'] = FALSE;
 }
-if ($function != 'perform_rebuild') // Don't send header when rebuilding the search index
+if (!$dbmtnc_rebuild_action) // Every rebuild response needs its continuation before the header.
 {
 	include('./page_header_admin.'.$phpEx);
 }
@@ -236,7 +237,7 @@ switch($mode_id)
 		// allowed.
 		@set_time_limit(120);
 		// Switch of buffering - not when rebuilding search index since we still need to add some headers 
-		if ($function != 'perform_rebuild')
+		if (!$dbmtnc_rebuild_action)
 		{
 			ob_end_flush();
 		}
@@ -1333,9 +1334,9 @@ switch($mode_id)
 				if ($rebuild_error === '' && $rebuild_job['state']['s'] !== 'done')
 				{
 					$rebuild_url = dbmtnc_rebuild_url($rebuild_job['state']);
-					if ($rebuild_mode === 'step') { $template->assign_vars(array('META' => '<meta http-equiv="refresh" content="1;url=' . $rebuild_url . '" />')); }
+					$template->assign_vars(array('META' => '<meta http-equiv="refresh" content="1;url=' . $rebuild_url . '" />'));
 				}
-				if ($rebuild_mode === 'step') { include('./page_header_admin.' . $phpEx); }
+				include('./page_header_admin.' . $phpEx);
 				echo('<h1>' . $lang['Rebuilding_search_index'] . '</h1>');
 				if ($rebuild_error !== '')
 				{
