@@ -362,6 +362,9 @@ jobs:
       - name: Test browsing request safety
         run: php .github/scripts/check-browsing-request-safety.php
 
+      - name: Render visible and inaccessible forum category indexes
+        run: php .github/scripts/check-forum-index-visibility.php
+
       - name: Test News rendering safety
         run: php .github/scripts/check-news-rendering-safety.php
 
