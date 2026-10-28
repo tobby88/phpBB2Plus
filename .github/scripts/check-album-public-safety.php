@@ -16,6 +16,7 @@ $edit_storage = file_get_contents($root . '/phpBB2/album_mod/album_photo_storage
 $comment_edit = file_get_contents($root . '/phpBB2/album_comment_edit.php');
 $showpage = file_get_contents($root . '/phpBB2/album_showpage.php');
 $upload = file_get_contents($root . '/phpBB2/album_upload.php');
+$upload_storage = file_get_contents($root . '/phpBB2/album_mod/album_picture_upload.php');
 $search = file_get_contents($root . '/phpBB2/album_search.php');
 $functions = file_get_contents($root . '/phpBB2/album_mod/album_functions.php');
 
@@ -27,7 +28,7 @@ foreach (array('delete' => $delete, 'edit' => $edit, 'comment edit' => $comment_
 }
 
 album_public_test_assert(strpos($delete, "if (!\$album_user_access['moderator'] && \$userdata['user_level'] != ADMIN)") !== false, 'authorized category moderators must be allowed to delete pictures');
-album_public_test_assert(strpos($delete, "basename(\$thispic['pic_filename'])") !== false, 'picture deletion must keep file removal inside the upload directory');
+album_public_test_assert(strpos($delete, '$delete_writer->remove(') !== false && strpos($delete, '@unlink(') === false, 'picture deletion must delegate to current authority and committed cleanup instead of unlinking inline');
 album_public_test_assert(strpos($edit, 'album_picture_text_edit((int) $pic_id, (int) $cat_id, (int) $album_user_id, (int) $thispic[\'pic_user_id\'], $pic_title, $pic_desc)') !== false, 'picture text must use the owned writer with the verified target/category/owner/author handoff');
 album_public_test_assert(strpos($edit_storage, '$this->connection->sql_escape($title)') !== false && strpos($edit_storage, '$this->connection->sql_escape($description)') !== false, 'picture metadata must use the actual owned database-driver escaping');
 album_public_test_assert(strpos($comment_edit, "\$db->sql_escape(\$comment_text)") !== false, 'edited comments must use database-driver escaping');
@@ -42,10 +43,11 @@ $missing_picture_check = strpos($showpage, 'if( empty($thispic) )');
 $picture_field_read = strpos($showpage, "\$cat_id = (\$thispic['pic_cat_id']");
 album_public_test_assert($missing_picture_check !== false && $picture_field_read !== false && $missing_picture_check < $picture_field_read, 'missing pictures must be rejected before their fields are read');
 album_public_test_assert(strpos($functions, 'function album_nuffload_is_staged_file') !== false && strpos($functions, "realpath(\$source)") !== false, 'upload sources must remain inside the verified Nuffload staging directory');
-album_public_test_assert(strpos($upload, '$filesize = @filesize($filetmp)') !== false, 'upload limits must use the server-side file size');
-album_public_test_assert(strpos($upload, '$pic_size = @getimagesize($filetmp)') !== false && strpos($upload, 'switch ($pic_image_type)') !== false, 'stored extensions must use the server-detected image type');
-album_public_test_assert(strpos($upload, '$pic_title_sql = $db->sql_escape($pic_title)') !== false && strpos($upload, '$pic_user_ip_sql = $db->sql_escape($pic_user_ip)') !== false, 'uploaded picture metadata must use database-driver escaping');
-album_public_test_assert(strpos($upload, "if( !\$result = \$db->sql_query(\$sql) )\n\t{\n\t\t@unlink(ALBUM_UPLOAD_PATH . \$pic_filename);") !== false, 'failed picture inserts must remove the stored upload');
+$upload_stage = file_get_contents($root . '/phpBB2/album_mod/album_upload_stage.php');
+album_public_test_assert(strpos($upload_stage, 'fstat($handle)') !== false && strpos($upload_storage, "\$source['metadata']['bytes']") !== false, 'owned upload limits must use verified server-side source bytes');
+album_public_test_assert(strpos($upload_stage, 'getimagesizefromstring($data)') !== false && strpos($upload_stage, "IMAGETYPE_JPEG=>'.jpg'") !== false, 'stored extensions must use the actual staged image type');
+album_public_test_assert(strpos($upload, '$upload_writer->publish(')!==false&&strpos($upload_storage, 'function insert_sql(')!==false&&strpos($upload_storage, 'bin2hex($value)')!==false, 'actual owned publisher must encode complete metadata independently of SQL modes');
+album_public_test_assert(strpos($upload,'@unlink(')===false&&strpos($upload_storage,'@unlink(')===false&&strpos($upload_storage,'$receipt->prepare(')!==false&&strpos($upload_storage,'$receipt->mark_published(')!==false, 'failed or uncertain inserts must preserve files with a durable receipt, never inline-unlink committed data');
 album_public_test_assert(strpos($search, '$search_columns = array(') !== false && strpos($search, '$db->sql_escape($search)') !== false, 'Album search modes and SQL values must be constrained');
 album_public_test_assert(strpos($search, 'LEFT JOIN " . ALBUM_CAT_TABLE') !== false && strpos($search, 'album_check_permission($album_user_access, ALBUM_AUTH_VIEW)') !== false, 'Album search must hide inaccessible and orphaned categories');
 album_public_test_assert(strpos($search, "htmlspecialchars((string) \$row['pic_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')") !== false, 'Album search result text must be escaped');

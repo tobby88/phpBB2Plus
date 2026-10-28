@@ -166,6 +166,23 @@ try {
     afc_denied(function () use ($source) { new AlbumFileCoordinator($source, 'fixture_', 0); }, 'Concurrent request cannot adopt held namespace');
     $peer = new AlbumFileCoordinator($source, 'other_', 0); afc_check($peer->assert_lock(), 'Different prefix has independent namespace'); $peer->release(); $peer = null; $cases++;
     $coordinator->release(); $coordinator = null; $peer = new AlbumFileCoordinator($source, 'fixture_', 0); afc_check($peer->assert_lock(), 'Successor obtains namespace after release'); $peer->release(); $peer = null; $cases++;
+    afc_clear(); $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin(); $guard = (object)array('allowed'=>true,'calls'=>0);
+    $coordinator->guard_commit(function() use ($guard) { $guard->calls++; return $guard->allowed; }); afc_prepare($coordinator); afc_check($guard->calls===0,'Preparing recovery receipt does not publish picture or consume final grant'); $cases++;
+    $coordinator->sql_query("INSERT INTO fixture_album(pic_id,pic_filename,pic_title,pic_user_id,pic_time) VALUES(7,'owned.jpg','Pending image',-1,123)"); $guard->allowed=false;
+    afc_check($coordinator->can_publish()===false,'Changed final grant blocks physical publication'); $cases++;
+    afc_denied(function()use($coordinator){$coordinator->commit();},'Revoked publication guard poisons metadata commit'); $coordinator->release(); $coordinator=null; afc_consistent();
+    afc_check(!afc_rows('SELECT pic_id FROM fixture_album')&&afc_rows('SELECT operation_state FROM fixture_album_file_jobs')[0]['operation_state']==='prepared','Guard failure rolls back metadata but preserves durable recovery receipt'); $cases++;
+    afc_clear(); $source->reset_case(); $coordinator=new AlbumFileCoordinator($source,'fixture_',0); $coordinator->begin(); $guard=(object)array('calls'=>0);
+    $coordinator->guard_commit(function()use($guard){$guard->calls++;return true;}); afc_prepare($coordinator); afc_publish($coordinator); afc_check($guard->calls===1,'Valid final guard runs on actual metadata commit'); $coordinator->release();$coordinator=null;$cases++;
+    $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin();
+    $result=$coordinator->sql_query('SELECT 7 AS marker');$source->failure=$source->count+1;$caught=false;
+    try{$coordinator->sql_fetchrowset($result);}catch(AlbumFileCoordinatorFailure$error){$caught=$error->getMessage()==='Album coordinated statement failed';}
+    $before_count=$source->count;afc_check($caught&&$coordinator->sql_freeresult($result)===true&&$source->count===$before_count,'Owned result frees without a second SQL/exception after lost ownership proof');$cases++;
+    afc_denied(function()use($coordinator){$coordinator->commit();},'Memory cleanup never revives failed transaction');$coordinator->release();$coordinator=null;
+    $source->reset_case();$borrowed=$source->sql_query('SELECT 19 AS marker');$coordinator=new AlbumFileCoordinator($source,'fixture_',0);$coordinator->begin();
+    afc_denied(function()use($coordinator,$borrowed){$coordinator->sql_freeresult($borrowed);},'Cannot free a borrowed caller result');afc_check($source->sql_fetchrow($borrowed)['marker']==='19','Borrowed result remains readable');$source->sql_freeresult($borrowed);$coordinator->release();$coordinator=null;$cases++;
+    $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin();
+    $owned_result=$coordinator->sql_query('SELECT 23 AS marker');$coordinator->release();$coordinator=null;afc_check($source->sql_numrows($owned_result)===false,'Release frees outstanding owned result before closing its dedicated connection');$cases++;
     $source->reset_case(); $coordinator = new AlbumFileCoordinator($source, 'fixture_', 0); $coordinator->begin();
     $coordinator->sql_query("SELECT RELEASE_LOCK('album_files_" . sha1($schema . "\0fixture_") . "')");
     afc_denied(function () use ($coordinator) { $coordinator->durable_begin(); }, 'Lost namespace cannot prepare files');

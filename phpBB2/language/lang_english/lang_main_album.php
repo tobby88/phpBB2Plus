@@ -113,6 +113,9 @@ $lang['Upload_resize_failed'] = 'The uploaded image could not be resized safely.
 $lang['Missed_pic_title'] = 'You must enter your pic title';
 
 $lang['Album_upload_successful'] = 'Your pic has been uploaded successfully';
+$lang['Album_upload_already_processed'] = 'This upload has already been processed.';
+$lang['Upload_processing_failed'] = 'The picture could not be stored. Please try again.';
+$lang['Upload_description_too_long'] = 'The picture description is too long.';
 $lang['Album_upload_need_approval'] = 'Your pic has been uploaded successfully.<br /><br />But the feature Pic Approval has been enabled so your pic must be approved by a administrator or a moderator before posting';
 $lang['Click_return_category'] = 'Click %shere%s to return to the category';
 $lang['Click_return_album_index'] = 'Click %shere%s to return to the Album Index';
@@ -209,5 +212,6 @@ $lang['Personal_category_order_failed'] = 'The category order could not be saved
 $lang['Pic_title_too_long'] = 'The picture title must not exceed 255 characters.';
 $lang['Pic_username_too_long'] = 'The guest name must not exceed 32 characters.';
 $lang['Pic_text_update_failed'] = 'The picture could not be updated. Please reload the page and try again.';
+$lang['Delete_processing_failed'] = 'The deletion could not be confirmed. Please reload the album page.';
 
 ?>

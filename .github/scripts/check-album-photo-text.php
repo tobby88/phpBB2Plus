@@ -11,7 +11,7 @@ function pht_input_body($body, $needle) {
     pht_check($start !== false && $guard > $start && $end > $guard, 'Actual complete picture text input and title guard'); return substr($body, $start, $end + 3 - $start);
 }
 $upload_input = pht_input_body($upload, '$pic_title_input ='); $edit_input = pht_input_body($edit, '$pic_title = album_photo_text(');
-$upload_start = strpos($upload, '$pic_filename_sql ='); $upload_end = strpos($upload, 'if( !$result =', $upload_start); pht_check($upload_start !== false && $upload_end > $upload_start, 'Actual upload SQL builder'); $upload_builder = substr($upload, $upload_start, $upload_end - $upload_start);
+pht_check(strpos($upload, '$upload_writer = new AlbumPictureUpload(')!==false&&strpos($upload, '$upload_writer->publish(')!==false,'Actual upload delegates complete metadata to owned publisher');
 $lang = array('Missed_pic_title' => 'empty-title'); $cases = 0;
 $vectors = array(
     array('0', 'a' . str_repeat('😀', 16), 32, 'Guest 0', '0', 'a' . str_repeat('😀', 16), 'Guest 0', true),
@@ -26,13 +26,16 @@ $vectors = array(
 );
 $reporting = error_reporting(E_ALL); set_error_handler(function ($s, $m) { if (error_reporting() & $s) { throw new RuntimeException($m); } });
 try {
-    foreach (array($upload_input, $edit_input) as $form_index => $input) { foreach (array(false, true) as $logged_in) { foreach ($vectors as $vector) {
+    foreach (array($upload_input, $edit_input) as $form_index => $input) { foreach (array(false, true) as $logged_in) { foreach ($vectors as $vector_index => $vector) {
         $userdata = array('session_logged_in' => $logged_in, 'username' => " Registered &' name\\ 😀 "); $album_config = array('desc_length' => $vector[2]);
         $_POST = array('pic_title' => addslashes($vector[0]), 'pic_desc' => addslashes($vector[1]), 'pic_username' => addslashes($vector[3])); $pic_username = 'untouched author'; $ok = true;
         try { eval($input); } catch (RuntimeException $error) { pht_check($error->getMessage() === 'empty-title', 'Only actual expected empty-title refusal'); $ok = false; }
         pht_check($ok === $vector[7], 'Actual upload/edit title-zero and empty boundary'); $cases++;
         if (!$ok) { continue; }
-        $expected_title = htmlspecialchars($vector[4], ENT_QUOTES, 'UTF-8'); $expected_desc = htmlspecialchars($vector[5], ENT_QUOTES, 'UTF-8');
+        // Upload receipt identity uses complete canonical text; its current
+        // configured limit is enforced by the owned publisher, not truncation.
+        $upload_descriptions=array(3=>str_repeat('x',33),6=>'ignored');
+        $expected_title = htmlspecialchars($vector[4], ENT_QUOTES, 'UTF-8'); $expected_desc = htmlspecialchars($form_index===0&&isset($upload_descriptions[$vector_index])?$upload_descriptions[$vector_index]:$vector[5], ENT_QUOTES, 'UTF-8');
         pht_check($pic_title === $expected_title && $pic_desc === $expected_desc, 'Actual complete logical UTF8/title/description/HTML/slash inputs');
         $expected_author = $form_index === 1 ? 'untouched author' : ($logged_in ? $userdata['username'] : htmlspecialchars($vector[6], ENT_QUOTES, 'UTF-8'));
         pht_check($pic_username === $expected_author, 'Guest names are encoded after logical clipping; registered names and edit author are exact');
@@ -51,6 +54,7 @@ try {
 if (getenv('PHPBB_ALBUM_PHOTO_INPUT_NATIVE') !== '1') { echo "Native picture text storage requires an explicitly enabled disposable fixture.\n"; return; }
 $table_prefix = 'fixture_'; define('ADMIN', 1); define('USERS_TABLE', 'fixture_users'); define('USER_GROUP_TABLE', 'fixture_members');
 foreach (array('album_mod/album_constants.php', 'db/mysqli.php', 'album_mod/album_functions.php', 'album_mod/album_hierarchy_auth.php', 'album_mod/album_hierarchy_sql.php', 'album_mod/album_photo_storage.php') as $file) { require $source . $file; }
+require $source . 'album_mod/album_picture_upload.php';
 require __DIR__ . '/album-native-session.php';
 function checkFlag($value, $flag) { return ($value & $flag) === $flag; }
 function album_is_debug_enabled() { return false; }
@@ -82,8 +86,13 @@ try {
             pht_sql("UPDATE fixture_album_config SET config_value='" . $vector[2] . "' WHERE config_name='desc_length'");
             $_POST = array('pic_title' => addslashes($vector[0]), 'pic_desc' => addslashes($vector[1]), 'pic_username' => addslashes($vector[3])); eval($upload_input);
             $expected_title = $pic_title; $expected_desc = $pic_desc; $expected_author = $pic_username;
+            // This fixture measures full SQL capacity and subsequent edit
+            // roundtrips. New-upload rejection at lower live limits has its
+            // own complete publisher/controller fixture.
+            $storage_limit=max($vector[2],preg_match_all('/./us',html_entity_decode($pic_desc,ENT_QUOTES,'UTF-8')));$album_config['desc_length']=$storage_limit;
+            pht_sql("UPDATE fixture_album_config SET config_value='".$storage_limit."' WHERE config_name='desc_length'");
             $pic_filename = 'synthetic-no-file-' . bin2hex(phpbb_random_bytes(16)) . '.jpg'; $pic_thumbnail = ''; $pic_user_id = $logged_in ? 7 : -1; $pic_user_ip = '7f000001'; $pic_time = 12345; $cat_id = 10; $pic_approval = 1;
-            eval($upload_builder); pht_check($db->sql_query($sql), 'Actual controller/driver INSERT stores complete logical text'); $pic_id = (int) $db->sql_nextid();
+            $sql=AlbumPictureUpload::insert_sql(ALBUM_TABLE,array('pic_filename'=>$pic_filename,'pic_thumbnail'=>$pic_thumbnail,'pic_title'=>$pic_title,'pic_desc'=>$pic_desc,'pic_user_id'=>$pic_user_id,'pic_user_ip'=>$pic_user_ip,'pic_username'=>$pic_username,'pic_time'=>$pic_time,'pic_cat_id'=>$cat_id,'pic_approval'=>$pic_approval));pht_check($db->sql_query($sql), 'Actual shared publisher/driver INSERT stores complete logical text'); $pic_id = (int) $db->sql_nextid();
             $rows = pht_rows('SELECT * FROM fixture_album WHERE pic_id=' . $pic_id); pht_check(count($rows) === 1 && $rows[0]['pic_title'] === $expected_title && $rows[0]['pic_desc'] === $expected_desc && $rows[0]['pic_username'] === $expected_author && (int) $rows[0]['pic_user_id'] === $pic_user_id, 'Canonical schema stores all exact title/description/guest/registered bytes'); $native_cases++;
             for ($round = 0; $round < 3; $round++) {
                 $userdata = array('user_id' => 7, 'user_level' => 1, 'user_active' => 1, 'session_logged_in' => true, 'session_id' => $sid);

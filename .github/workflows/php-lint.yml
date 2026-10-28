@@ -283,6 +283,11 @@ jobs:
       - name: Check Album file receipts, exclusive publication and crash recovery
         run: php .github/scripts/check-album-file-storage.php
 
+      - name: Check actual Nuffload staging and GD upload preprocessing
+        run: php .github/scripts/check-album-upload-stage.php
+        env:
+          PHPBB_ALBUM_UPLOAD_STAGE_GD_REQUIRED: '1'
+
       - name: Test image processing safety
         run: php .github/scripts/check-image-processing-safety.php
 

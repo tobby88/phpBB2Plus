@@ -25,7 +25,7 @@ jobs:
       - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysqli, pdo_mysql, pdo_sqlite, openssl, ftp
+          extensions: mysqli, pdo_mysql, pdo_sqlite, openssl, ftp, gd
           coverage: none
       - name: Respect discussion forum access in Knowledge Base comments
         run: |
@@ -76,6 +76,9 @@ jobs:
           php .github/scripts/check-album-file-journal-native.php
           php .github/scripts/check-album-file-coordinator-native.php
           php .github/scripts/check-album-upload-receipt-native.php
+          php .github/scripts/check-album-lifecycle-authority-native.php
+          php .github/scripts/check-album-picture-upload-native.php
+          php .github/scripts/check-album-picture-delete-native.php
         env:
           PHPBB_ALBUM_FILE_JOURNAL_NATIVE: '1'
           PHPBB_ALBUM_FILE_JOURNAL_PASSWORD: fixture-only
@@ -83,6 +86,12 @@ jobs:
           PHPBB_ALBUM_FILE_COORDINATOR_PASSWORD: fixture-only
           PHPBB_ALBUM_UPLOAD_RECEIPT_NATIVE: '1'
           PHPBB_ALBUM_UPLOAD_RECEIPT_PASSWORD: fixture-only
+          PHPBB_ALBUM_LIFECYCLE_AUTHORITY_NATIVE: '1'
+          PHPBB_ALBUM_LIFECYCLE_AUTHORITY_PASSWORD: fixture-only
+          PHPBB_ALBUM_PICTURE_UPLOAD_NATIVE: '1'
+          PHPBB_ALBUM_PICTURE_UPLOAD_PASSWORD: fixture-only
+          PHPBB_ALBUM_PICTURE_DELETE_NATIVE: '1'
+          PHPBB_ALBUM_PICTURE_DELETE_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
         run: php .github/scripts/check-ranks-native.php
         env:

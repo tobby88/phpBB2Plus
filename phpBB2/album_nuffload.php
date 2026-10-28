@@ -66,6 +66,9 @@ if (isset($_REQUEST['psid']))
 	{
 		message_die(GENERAL_ERROR, 'Invalid upload session');
 	}
+	// A processing retry owns this marker too. The progress window will close
+	// after the retried publication completes, rather than consume stale success.
+	@unlink($phpbb_root_path . $path_to_bin . 'tmp/' . $psid . '_complete');
 	// The Perl bridge and every subsequent item in a multi-image batch return
 	// through a session-bound GET. Count those actual processing hand-offs in
 	// the upload bucket; the ordinary PHP uploader's initial POST is already
@@ -525,13 +528,10 @@ if (isset($_REQUEST['psid']))
 		}
 	}
 
-	// Last pass? delete query string because we don't need it anymore...
-	if ($multi_id >= $multi_max)
-	{
-		@unlink($path_to_bin . "tmp/" . $psid . "_qstring");
-	}
-	// ...otherwise block the email notification.
-	else
+	// Retain the hand-off and staged sources for bounded PSID cleanup. Removing
+	// them before durable publication makes crash/lost-ack retries impossible.
+	// Earlier items still suppress the batch's final notification.
+	if ($multi_id < $multi_max)
 	{
 		$album_config['email_notification'] = 0;
 	}
@@ -607,7 +607,10 @@ function multi_loop($message, $success=false)
 		{
 			$message = $lang['Album_upload_need_approval'];
 		}
-		$message .= "<br /><br /><img src='" . ALBUM_CACHE_PATH . $pic_thumbnail . "'>";
+		if (is_string($pic_thumbnail) && $pic_thumbnail !== '')
+		{
+			$message .= "<br /><br /><img src='" . ALBUM_CACHE_PATH . rawurlencode($pic_thumbnail) . "' alt=''>";
+		}
 	}
 	if ($multi_id < $multi_max)
 	{

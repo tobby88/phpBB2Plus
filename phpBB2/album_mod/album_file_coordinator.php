@@ -22,8 +22,10 @@ class AlbumFileCoordinator
 	private $failed = false;
 	private $tables = array();
 	private $last_result = false;
+	private $results = array();
 	private $affected = false;
 	private $insert_id = false;
+	private $commit_guards = array();
 
 	function __construct($database, $prefix, $wait = 3)
 	{
@@ -140,6 +142,37 @@ class AlbumFileCoordinator
 		return $this->ready && $this->transaction && !$this->journal_transaction && !$this->finished;
 	}
 
+	function abort()
+	{
+		$this->failed = true;
+		return false;
+	}
+
+	function guard_commit($guard)
+	{
+		if (!$this->publication_ready() || !is_callable($guard)) { throw new AlbumFileCoordinatorFailure('Invalid Album commit guard'); }
+		$this->commit_guards[] = $guard;
+	}
+
+	function can_publish()
+	{
+		if (!$this->publication_ready()) { return false; }
+		try { foreach ($this->commit_guards as $guard) { if (call_user_func($guard) !== true) { return $this->abort(); } } }
+		catch (Exception $error) { $this->failed = true; throw $error; }
+		catch (Error $error) { $this->failed = true; throw $error; }
+		return true;
+	}
+
+	function pin_authority_table($suffix)
+	{
+		if (!$this->publication_ready() || !in_array($suffix, array('config','jr_admin'), true)) { throw new AlbumFileCoordinatorFailure('Invalid Album authority table'); }
+		$table = $this->prefix . $suffix;
+		if (isset($this->tables[$table])) { return; }
+		try { $this->pin($this->writer, $table); $this->tables[$table] = true; }
+		catch (Exception $error) { $this->failed = true; throw $error; }
+		catch (Error $error) { $this->failed = true; throw $error; }
+	}
+
 	private function pin($connection, $table)
 	{
 		$this->rows($connection, 'SELECT * FROM ' . $table . ' LIMIT 0');
@@ -165,7 +198,9 @@ class AlbumFileCoordinator
 		if (!is_string($sql)) { return false; }
 		if (preg_match('/^SELECT\b/i', $sql)) { return true; }
 		if (!preg_match('/^(?:INSERT INTO|UPDATE|DELETE FROM) ([A-Za-z0-9_]+)\b/i', $sql, $match)) { return false; }
-		return $journal ? in_array($match[1], array($this->prefix . 'album_file_jobs', $this->prefix . 'album_file_items'), true) : isset($this->tables[$match[1]]);
+		$writable = $journal ? array('album_file_jobs','album_file_items') : array('album','album_cat','album_comment','album_rate','album_file_jobs','album_file_items');
+		foreach ($writable as $suffix) { if ($match[1] === $this->prefix . $suffix && isset($this->tables[$match[1]])) { return true; } }
+		return false;
 	}
 
 	function sql_query($sql, $transaction = false)
@@ -173,6 +208,7 @@ class AlbumFileCoordinator
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->finished || $transaction !== false || !$this->allowed_statement($sql, false)) { throw new AlbumFileCoordinatorFailure('Statement outside Album metadata transaction'); }
 		$this->last_result = $this->query($this->writer, $sql);
+		if (is_object($this->last_result)) { $this->results[spl_object_hash($this->last_result)] = $this->last_result; }
 		// Ownership SELECTs must not overwrite the statement's driver metadata.
 		try
 		{
@@ -187,6 +223,17 @@ class AlbumFileCoordinator
 
 	function __call($method, $arguments)
 	{
+		if ($method === 'sql_freeresult')
+		{
+			// Freeing our buffered result is local memory cleanup, not a read or
+			// write requiring a live namespace grant. In particular, finally must
+			// not replace an ownership failure with another ownership exception
+			// (PHP 5.6 can crash while unwinding an unfinished array append).
+			$result = isset($arguments[0]) && $arguments[0] !== 0 ? $arguments[0] : $this->last_result;
+			if (!$this->writer || !$this->ready || !$this->transaction || $this->finished || !is_object($result) || !isset($this->results[spl_object_hash($result)]) || $this->results[spl_object_hash($result)] !== $result) { throw new AlbumFileCoordinatorFailure('Result does not belong to this Album operation'); }
+			unset($this->results[spl_object_hash($result)]); if ($this->last_result === $result) { $this->last_result = false; }
+			return $this->writer->sql_freeresult($result);
+		}
 		$this->assert_lock();
 		if (!in_array($method, array('sql_escape','sql_fetchrow','sql_fetchrowset','sql_freeresult','sql_numrows','sql_affectedrows','sql_nextid'), true) || !$this->ready || !$this->transaction || $this->finished) { throw new AlbumFileCoordinatorFailure('Invalid Album metadata access'); }
 		if ($method === 'sql_affectedrows') { return $this->affected; }
@@ -234,13 +281,22 @@ class AlbumFileCoordinator
 	{
 		$this->assert_lock();
 		if (!$this->ready || !$this->transaction || $this->journal_transaction || $this->finished) { throw new AlbumFileCoordinatorFailure('No owned Album metadata transaction'); }
-		try { $this->query($this->writer, 'COMMIT'); $this->transaction = false; $this->finished = true; return true; }
+		try
+		{
+			if (!$this->can_publish()) { throw new AlbumFileCoordinatorFailure('Album commit authority expired'); }
+			$this->query($this->writer, 'COMMIT'); $this->transaction = false; $this->finished = true; return true;
+		}
 		catch (Exception $error) { $this->release(); throw $error; }
 		catch (Error $error) { $this->release(); throw $error; }
 	}
 
 	function release()
 	{
+		if ($this->writer)
+		{
+			foreach ($this->results as $result) { try { $this->writer->sql_freeresult($result); } catch (Exception $error) {} catch (Error $error) {} }
+		}
+		$this->results = array();
 		// Close only our two proven distinct handles, never the request database.
 		// Closing also resolves an unacknowledged COMMIT without inferring whether
 		// it committed; its durable receipt is deliberately left for recovery.

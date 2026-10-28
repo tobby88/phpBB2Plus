@@ -65,7 +65,7 @@ function album_nuffload_cleanup_temp($tmp_path, $max_age = 3600)
 	}
 	while (($file = readdir($handle)) !== false)
 	{
-		if (preg_match('/^[a-f0-9]{32}_(?:actualdata[0-9]+|qstring|flength|postdata|received|complete|owner)$/i', $file)
+		if (preg_match('/^[a-f0-9]{32}_(?:actualdata[0-9]+|derived_[a-f0-9]{32}|qstring|flength|postdata|received|complete|owner)$/i', $file)
 			&& is_file($tmp_path . $file) && filemtime($tmp_path . $file) < (time() - (int) $max_age))
 		{
 			@unlink($tmp_path . $file);
@@ -113,27 +113,6 @@ function album_nuffload_is_staged_file($source, $configured_path, $psid)
 	return $source_dir === $tmp_dir
 		&& preg_match('/^' . preg_quote((string) $psid, '/') . '_actualdata[0-9]+$/iD', basename($source_real));
 }
-
-function album_store_staged_upload($source, $destination, $configured_path, $psid)
-{
-	if (!album_nuffload_is_staged_file($source, $configured_path, $psid))
-	{
-		return false;
-	}
-	if (@rename($source, $destination))
-	{
-		return true;
-	}
-	if (!@copy($source, $destination))
-	{
-		return false;
-	}
-	@unlink($source);
-	return true;
-}
-
-
-
 
 // ----------------------------------------------------------------------------
 // This function will return the access data of the current user for a category

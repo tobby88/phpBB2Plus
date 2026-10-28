@@ -6,7 +6,8 @@ require_once __DIR__ . '/album_file_storage.php';
 class AlbumUploadReceiptFailure extends AlbumFileCoordinatorFailure {}
 
 // Typed upload receipts and their publication capability. This does not grant
-// user/category access and deliberately grants NO cleanup/unlink capability.
+// user/category access. Final-image deletion needs a separate cleanup receipt;
+// an explicit authenticated retry may clear only its own unfinished stage.
 // Controllers must still lock/recheck current permissions and use the shared
 // coordinator before preparing a receipt. Recovery is a separate operation.
 class AlbumUploadReceipt
@@ -164,6 +165,21 @@ class AlbumUploadReceipt
 		return new AlbumFileStorage($this->guard($descriptor), $this->root);
 	}
 
+	// An explicit authenticated retry may clear only its own deterministic
+	// unfinished stage. Final files and unrelated staging names stay protected.
+	function retry_files($descriptor)
+	{
+		$descriptor = self::descriptor($descriptor); $receipt = $this;
+		return new AlbumFileStorage(function($context) use($receipt,$descriptor)
+		{
+			if (!is_array($context) || !isset($context['action']) || $context['action'] !== 'remove-stage') { return $receipt->publication_allowed($descriptor,$context); }
+			if (count($context)!==5 || !array_key_exists('metadata',$context) || $context['metadata']!==null || !isset($context['operation'],$context['scope'],$context['name']) || $context['operation']!==$descriptor['operation']) { return false; }
+			$current=$receipt->committed($descriptor); if($current===null||$current['state']!=='prepared'){return false;}
+			foreach($current['items']as$item){if($context['scope']===$item['scope']&&$context['name']===$item['name']){$context['action']='publish';$context['metadata']=$item['metadata'];return$receipt->publication_allowed($descriptor,$context);}}
+			return false;
+		},$this->root);
+	}
+
 	function publication_allowed($descriptor, $context)
 	{
 		$descriptor = self::descriptor($descriptor);
@@ -176,7 +192,7 @@ class AlbumUploadReceipt
 		{
 			if ($item['scope'] !== $context['scope'] || $item['name'] !== $context['name']) { continue; }
 			if ($context['action'] === 'snapshot') { return $context['operation'] === null && $context['metadata'] === null; }
-			if ($current['state'] !== 'prepared' || !$this->storage->publication_ready() || $context['operation'] !== $descriptor['operation'] || !AlbumFileStorage::metadata($context['metadata']) ||
+			if ($current['state'] !== 'prepared' || !$this->storage->can_publish() || $context['operation'] !== $descriptor['operation'] || !AlbumFileStorage::metadata($context['metadata']) ||
 				$context['metadata']['present'] !== true || $context['metadata']['bytes'] !== $item['metadata']['bytes'] || $context['metadata']['sha256'] !== $item['metadata']['sha256']) { return false; }
 			// Exact bytes matter on case-sensitive filesystems despite Unicode CI
 			// database columns. Do not publish into any surviving reference.
