@@ -70,7 +70,7 @@ class AlbumUploadReceipt
 		return $named;
 	}
 
-	private function parse($headers, $rows, $descriptor)
+	private function parse($headers, $rows, $descriptor, $recovery = false)
 	{
 		if (!$headers) { if ($rows) { throw new AlbumUploadReceiptFailure('Orphan Album upload items'); } return null; }
 		if (count($headers) !== 1) { throw new AlbumUploadReceiptFailure('Ambiguous Album upload receipt'); }
@@ -79,14 +79,19 @@ class AlbumUploadReceipt
 		if (count($header) !== 14) { throw new AlbumUploadReceiptFailure('Invalid Album upload receipt shape'); }
 		foreach (array('operation_id','schema_version','operation_kind','operation_state','actor_id','owner_id','category_id','picture_id','binding_hash','capability_hash','item_count','picture_count','created_at','completed_at') as $field) { if (!array_key_exists($field, $header)) { throw new AlbumUploadReceiptFailure('Missing Album upload receipt field'); } }
 		if ($header['operation_id'] !== $descriptor['operation'] || self::number($header['schema_version'], 1, 1) !== 1 || $header['operation_kind'] !== 'upload' ||
-			!in_array($header['operation_state'], array('prepared','published'), true) || self::number($header['actor_id'], -1, 8388607) !== $descriptor['actor'] || self::number($header['owner_id'], 0, 8388607) !== $descriptor['owner'] ||
+			!in_array($header['operation_state'], $recovery ? array('prepared','published','abandoning','abandoned') : array('prepared','published'), true) || self::number($header['actor_id'], -1, 8388607) !== $descriptor['actor'] || self::number($header['owner_id'], 0, 8388607) !== $descriptor['owner'] ||
 			self::number($header['category_id'], 1, 16777215) !== $descriptor['category'] || $header['binding_hash'] !== $descriptor['binding'] || $header['capability_hash'] !== $descriptor['capability'] ||
 			self::number($header['picture_count'], 1, 1) !== 1 || self::number($header['item_count'], 1, 3) !== count($rows)) { throw new AlbumUploadReceiptFailure('Album upload receipt binding differs'); }
-		self::number($header['created_at'], 1, 4294967295);
+		$created = self::number($header['created_at'], 1, 4294967295);
 		$published = $header['operation_state'] === 'published';
-		if ($published) { $picture = self::number($header['picture_id'], 1, 4294967295); self::number($header['completed_at'], 1, 4294967295); }
-		else { if ($header['picture_id'] !== null || $header['completed_at'] !== null) { throw new AlbumUploadReceiptFailure('Prepared upload has publication metadata'); } $picture = null; }
-		$items = array();
+		$revoked = in_array($header['operation_state'], array('abandoning','abandoned'), true);
+		$completed = null;
+		if ($published) { $picture = self::number($header['picture_id'], 1, 4294967295); $completed = self::number($header['completed_at'], 1, 4294967295); }
+		else {
+			if ($header['picture_id'] !== null || ($header['operation_state'] === 'abandoned' ? self::number($header['completed_at'],1,4294967295) < 1 : $header['completed_at'] !== null)) { throw new AlbumUploadReceiptFailure('Unpublished upload has publication metadata'); } $picture = null;
+			if ($header['operation_state'] === 'abandoned') { $completed = self::number($header['completed_at'],1,4294967295); }
+		}
+		$items = array(); $states = array();
 		foreach ($rows as $index => $row)
 		{
 			$row = self::named_row($row);
@@ -94,10 +99,32 @@ class AlbumUploadReceipt
 			foreach (array('operation_id','item_index','item_hash','file_scope','filename','file_present','file_bytes','file_sha256','item_state') as $field) { if (!array_key_exists($field, $row)) { throw new AlbumUploadReceiptFailure('Missing Album upload item field'); } }
 			if ($row['operation_id'] !== $descriptor['operation'] || self::number($row['item_index'], 0, 2) !== $index ||
 				!is_string($row['file_scope']) || !is_string($row['filename']) || $row['item_hash'] !== hash('sha256', $row['file_scope'] . "\0" . $row['filename']) ||
-				self::number($row['file_present'], 1, 1) !== 1 || $row['item_state'] !== ($published ? 'published' : 'pending')) { throw new AlbumUploadReceiptFailure('Album upload item identity/state differs'); }
+				self::number($row['file_present'], 1, 1) !== 1 ||
+				($revoked ? !in_array($row['item_state'],array('pending','removed','missing','changed','shared'),true) || ($header['operation_state']==='abandoned' && $row['item_state']==='pending') : $row['item_state'] !== ($published ? 'published' : 'pending'))) { throw new AlbumUploadReceiptFailure('Album upload item identity/state differs'); }
 			$items[] = array('scope' => $row['file_scope'], 'name' => $row['filename'], 'metadata' => array('present' => true, 'bytes' => self::number($row['file_bytes'], 1, AlbumFileStorage::MAX_BYTES), 'sha256' => $row['file_sha256']));
+			$states[] = $row['item_state'];
 		}
-		return array('descriptor' => $descriptor, 'state' => $header['operation_state'], 'picture' => $picture, 'items' => self::items($items));
+		$result = array('descriptor' => $descriptor, 'state' => $header['operation_state'], 'picture' => $picture, 'items' => self::items($items));
+		if ($recovery) { $result['created'] = $created; $result['completed'] = $completed; $result['states'] = $states; }
+		return $result;
+	}
+
+	// Inspection for privileged maintenance only. Ordinary publication/retry
+	// deliberately continues to reject every revoked operation below.
+	function recovery_manifest($descriptor, $durable = true)
+	{
+		if (!is_bool($durable) || !$this->storage->publication_ready()) { throw new AlbumUploadReceiptFailure('Invalid Album recovery read'); }
+		$descriptor = self::descriptor($descriptor); $where = $this->where($descriptor['operation']); $sets = array();
+		foreach (array('album_file_jobs','album_file_items') as $suffix) {
+			$sql = 'SELECT * FROM ' . $this->prefix . $suffix . ' WHERE ' . $where . ($suffix === 'album_file_items' ? ' ORDER BY item_index' : '');
+			if ($durable) { $sets[] = $this->storage->durable_rows($sql); }
+			else {
+				$result = $this->storage->sql_query($sql . ' FOR UPDATE');
+				try { $rows = $this->storage->sql_fetchrowset($result); } finally { $this->storage->sql_freeresult($result); }
+				if (!is_array($rows)) { throw new AlbumUploadReceiptFailure('Album recovery rows unavailable'); } $sets[] = $rows;
+			}
+		}
+		return $this->parse($sets[0], $sets[1], $descriptor, true);
 	}
 
 	function committed($descriptor)

@@ -132,15 +132,27 @@ class AlbumCleanupReceipt
 
 	function resolve($descriptor)
 	{
+		$result = $this->resolve_batch($descriptor, 65535);
+		return $result['states'];
+	}
+
+	// Maintenance callers can bound physical file work without discarding the
+	// remaining committed manifest. Foreground callers retain their old API.
+	function resolve_batch($descriptor, $maximum_items)
+	{
+		if (!is_int($maximum_items) || $maximum_items < 1 || $maximum_items > 65535) { throw new AlbumFileCoordinatorFailure('Invalid Album cleanup item budget'); }
 		if (!is_array($descriptor) || count($descriptor) !== 3 || !isset($descriptor['operation'],$descriptor['binding'],$descriptor['capability']) || !self::hex($descriptor['operation'],32) || !self::hex($descriptor['binding'],64) || !self::hex($descriptor['capability'],64)) { throw new AlbumFileCoordinatorFailure('Invalid Album cleanup capability'); }
 		$where = $this->where($descriptor['operation']); $header_sql = 'SELECT * FROM '.$this->prefix.'album_file_jobs WHERE '.$where; $items_sql = 'SELECT * FROM '.$this->prefix.'album_file_items WHERE '.$where.' ORDER BY item_index';
 		// A receipt prepared in this transaction MUST NOT authorize unlink.
 		$this->parse($this->storage->durable_rows($header_sql),$this->storage->durable_rows($items_sql),$descriptor);
 		$job = $this->parse($this->rows($header_sql.' FOR UPDATE'),$this->rows($items_sql.' FOR UPDATE'),$descriptor);
-		if ($job['state'] === 'complete') { return $job['states']; }
+		if ($job['state'] === 'complete') { return array('states'=>$job['states'],'attempted'=>0,'complete'=>true); }
+		$attempted = 0;
 		foreach ($job['items'] as $index => $item)
 		{
 			if ($job['states'][$index] !== 'pending') { continue; }
+			if ($attempted >= $maximum_items) { break; }
+			$attempted++;
 			if ($this->referenced($item)) { $state = 'shared'; }
 			else
 			{
@@ -163,6 +175,6 @@ class AlbumCleanupReceipt
 			$readback = $this->parse($this->rows($header_sql.' FOR UPDATE'),$this->rows($items_sql.' FOR UPDATE'),$descriptor);
 			if ($readback['state'] !== 'complete' || $readback['states'] !== $job['states']) { throw new AlbumFileCoordinatorFailure('Album cleanup completion readback differs'); }
 		}
-		return $job['states'];
+		return array('states'=>$job['states'],'attempted'=>$attempted,'complete'=>!in_array('pending',$job['states'],true));
 	}
 }

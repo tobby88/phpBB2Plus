@@ -64,6 +64,12 @@ function aur_attempt($descriptor)
     foreach ($GLOBALS['items'] as $item) { $files->publish($descriptor['operation'], $item['scope'], $item['name'], $GLOBALS['input'], $item['metadata']); }
     aur_photo($coordinator, $descriptor); $receipt->mark_published($descriptor, 7); $coordinator->commit(); return $receipt;
 }
+if (isset($argv[1]) && $argv[1] === 'recovery-worker') {
+    require __DIR__ . '/album-upload-recovery-native-cases.php';
+    aur_check(count($argv)===4 && preg_match('/^codex_album_receipt_[a-f0-9]{16}$/D',$argv[2]) && in_array($argv[3],array('before-revocation','revoked','file-removed','complete'),true),'Exact owned upload recovery worker');
+    $schema=$argv[2];$base=sys_get_temp_dir().'/'.$schema;aur_check(is_dir($base)&&!is_link($base)&&realpath(dirname($base))===realpath(sys_get_temp_dir()),'Own existing recovery worker root');
+    $source=new AlbumUploadRecoverySource('127.0.0.1:'.$port,'root',$password,$schema,false);$source->boundary=$argv[3];aur_recovery_worker($argv[3]);exit(0);
+}
 if (isset($argv[1]) && $argv[1] === 'crash-worker') {
     aur_check(count($argv) === 4 && preg_match('/^codex_album_receipt_[a-f0-9]{16}$/D', $argv[2]) && in_array($argv[3], array('prepared','files','published'), true), 'Only exact owned child context');
     $schema = $argv[2]; $base = sys_get_temp_dir() . '/' . $schema;
@@ -76,11 +82,11 @@ if (isset($argv[1]) && $argv[1] === 'crash-worker') {
     $deadline = microtime(true) + 20; while (microtime(true) < $deadline) { usleep(10000); }
     throw new RuntimeException('Parent must terminate actual worker before its shutdown/finally handlers');
 }
-function aur_crash_worker($boundary)
+function aur_crash_worker($boundary, $recovery = false)
 {
     $command = (DIRECTORY_SEPARATOR === chr(92) ? '' : 'exec ') . escapeshellarg(PHP_BINARY) . ' ';
     if (DIRECTORY_SEPARATOR === chr(92)) { $command .= '-n -d ' . escapeshellarg('extension_dir=' . ini_get('extension_dir')) . ' -d extension=php_mysqli.dll -d extension=php_openssl.dll '; if (extension_loaded('mbstring')) { $command .= '-d extension=php_mbstring.dll '; } }
-    $command .= escapeshellarg(__FILE__) . ' crash-worker ' . escapeshellarg($GLOBALS['schema']) . ' ' . escapeshellarg($boundary);
+    $command .= escapeshellarg(__FILE__) . ($recovery ? ' recovery-worker ' : ' crash-worker ') . escapeshellarg($GLOBALS['schema']) . ' ' . escapeshellarg($boundary);
     $process = proc_open($command, array(0 => array('pipe','r'), 1 => array('pipe','w'), 2 => array('pipe','w')), $pipes, null, null, array('bypass_shell' => true)); aur_check(is_resource($process), 'Start actual owned worker'); fclose($pipes[0]);
     stream_set_blocking($pipes[1], false); stream_set_blocking($pipes[2], false); $out = ''; $err = ''; $ready = $GLOBALS['base'] . '/crash-ready';
     try {
@@ -112,6 +118,7 @@ try {
     foreach (array('/album_mod','/album_mod/upload','/album_mod/upload/cache','/album_mod/upload/med_cache') as $directory) { aur_check(mkdir($base . $directory, 0700), 'Own isolated album directories'); }
     aur_check(file_put_contents($base . '/source.bin', $payload) === strlen($payload), 'Own borrowed source'); $input = fopen($base . '/source.bin', 'rb'); aur_check($input && fseek($input, 7) === 0, 'Keep borrowed position');
     $source = new AlbumUploadReceiptSource('127.0.0.1:' . $port, 'root', $password, $schema, false);
+    if(getenv('PHPBB_ALBUM_UPLOAD_RECEIPT_PART')==='recovery'){require __DIR__.'/album-upload-recovery-native-cases.php';aur_recovery_cases();return;}
     $baseline = array();
     if (!isset($argv[1]) || $argv[1] !== 'crash-only') {
     foreach (array(array(-1,0),array(7,8)) as $identity) {
