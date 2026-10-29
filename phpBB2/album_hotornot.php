@@ -33,6 +33,7 @@ init_userprefs($userdata);
 // End session management
 
 include($album_root_path . 'album_common.'.$phpEx);
+require_once $album_root_path . 'album_picture_discussion.php';
 
 $rating_submitted = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['hon_rating']) && is_scalar($_POST['hon_rating']));
 $rate_point = $rating_submitted ? intval($_POST['hon_rating']) : 0;
@@ -78,7 +79,7 @@ if (!$rating_submitted)
 	// ------------------------------------
 	// Get this pic info and current category info
 	// ------------------------------------
-	$rating_from = ($album_sp_config['hon_rate_sep'] == 1) ? 'AVG(r.rate_hon_point) AS rating' : 'AVG(r.rate_point) AS rating';
+	$rating_from = ($album_sp_config['hon_rate_sep'] == 1) ? 'AVG(NULLIF(r.rate_hon_point, 0)) AS rating' : 'AVG(NULLIF(r.rate_point, 0)) AS rating';
 
 	//--- Album Category Hierarchy : begin
 	//--- version : <= 1.1.0
@@ -285,35 +286,11 @@ else
 		message_die(GENERAL_ERROR, $lang['Not_Authorised']);
 	}
 
-	if (!CanRated($pic_id, $rate_user_id))
-	{
-		message_die(GENERAL_MESSAGE, $lang['Already_rated']);
-	}
-
-	$prevent_duplicate = ($userdata['session_logged_in'] && empty($album_sp_config['hon_rate_times']));
-
-	if ($album_sp_config['hon_rate_sep'] == 1)
-	{
-		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_hon_point) ";
-	}
-	else
-	{
-		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_point) ";
-	}
-	$sql .= "SELECT " . intval($pic_id) . ", " . intval($rate_user_id) . ", '$rate_user_ip_sql', " . intval($rate_point);
-	if ($prevent_duplicate)
-	{
-		$sql .= " WHERE NOT EXISTS (SELECT 1 FROM " . ALBUM_RATE_TABLE . " WHERE rate_pic_id = " . intval($pic_id) . " AND rate_user_id = " . intval($rate_user_id) . ")";
-	}
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not insert new rating', '', __LINE__, __FILE__, $sql);
-	}
-	if ($prevent_duplicate && !$db->sql_affectedrows())
-	{
-		message_die(GENERAL_MESSAGE, $lang['Already_rated']);
-	}
+	// Recheck the current category list, guest/repeat/channel configuration and
+	// current authority while holding the same namespace as picture deletion.
+	album_discussion_request('hotornot', array(
+		$userdata, (int) $rated_pic['cat_user_id'], (int) $rated_pic['pic_cat_id'],
+		(int) $pic_id, (int) $rate_point));
 
 	// --------------------------------
 	// Complete... now send a message to user

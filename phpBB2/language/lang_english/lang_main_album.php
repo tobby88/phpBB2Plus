@@ -215,5 +215,6 @@ $lang['Pic_text_update_failed'] = 'The picture could not be updated. Please relo
 $lang['Delete_processing_failed'] = 'The deletion could not be confirmed. Please reload the album page.';
 $lang['Album_moderation_failed'] = 'The action could not be confirmed. Please reload the album page and check your current login, category and permissions.';
 $lang['Album_category_removal_failed'] = 'The category change could not be confirmed. Please reload the album page and check your current login, category permissions and destination.';
+$lang['Album_discussion_failed'] = 'The comment or rating could not be confirmed. Please reload the picture page.';
 
 ?>

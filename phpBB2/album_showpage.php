@@ -72,6 +72,7 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+require_once $album_root_path . 'album_picture_discussion.php';
 include_once($phpbb_root_path . 'includes/bbcode.'.$phpEx);
 
 
@@ -238,7 +239,7 @@ if( isset($comment_id) )
 // Get this pic info and current category info
 // ------------------------------------
 
-$sql = "SELECT p.*, ac.*, u.user_id, u.username, u.user_rank, r.rate_pic_id, AVG(r.rate_point) AS rating, COUNT( DISTINCT c.comment_id) AS comments_count
+$sql = "SELECT p.*, ac.*, u.user_id, u.username, u.user_rank, r.rate_pic_id, AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT( DISTINCT c.comment_id) AS comments_count
 		FROM ". ALBUM_CAT_TABLE ." AS ac, ". ALBUM_TABLE ." AS p
 			LEFT JOIN ". USERS_TABLE ." AS u ON p.pic_user_id = u.user_id
 			LEFT JOIN ". ALBUM_COMMENT_TABLE ." AS c ON p.pic_id = c.comment_pic_id
@@ -295,7 +296,7 @@ $rate_identity = $userdata['session_logged_in']
 $sql = "SELECT rate_pic_id
 		FROM ". ALBUM_RATE_TABLE ."
 		WHERE rate_pic_id = " . intval($pic_id) . "
-			AND $rate_identity
+			AND $rate_identity AND rate_point > 0
 		LIMIT 1";
 
 if( !$result = $db->sql_query($sql) )
@@ -811,91 +812,22 @@ else
 		}
 	}
 
-	$comment_max_length = max(1, isset($album_config['desc_length']) ? intval($album_config['desc_length']) : 255);
-	$comment_raw = substr(trim(stripslashes($comment_input)), 0, $comment_max_length);
-	$comment_text = htmlspecialchars($comment_raw, ENT_QUOTES, 'UTF-8');
-	$comment_username_raw = (!$userdata['session_logged_in']) ? substr(trim(stripslashes($comment_username_input)), 0, 32) : trim((string) $userdata['username']);
-	$comment_username = htmlspecialchars($comment_username_raw, ENT_QUOTES, 'UTF-8');
-
-
-
-
-	// --------------------------------
-	// Check Pic Locked
-	// --------------------------------
-
-	if( ($thispic['pic_lock'] == 1) and (!$auth_data['moderator']) )
+	// Canonicalize logical Unicode text once, before HTML storage.
+	$comment_limit = max(1, album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 255));
+	$comment_text = AlbumPictureDiscussion::input_text($comment_input, $comment_limit);
+	$comment_username = AlbumPictureDiscussion::input_guest_name($comment_username_input);
+	if ($has_comment && $comment_text === '') { message_die(GENERAL_ERROR, $lang['Comment_no_text']); }
+	if (!$userdata['session_logged_in'] && $comment_username !== '')
 	{
-		message_die(GENERAL_ERROR, $lang['Pic_Locked']);
-	}
-	if ($has_rating && (($rate_point <= 0) || ($rate_point > $album_config['rate_scale']) || $already_rated))
-	{
-		message_die(GENERAL_ERROR, $already_rated ? $lang['Already_rated'] : $lang['Not_Authorised']);
+		$result = validate_username(html_entity_decode($comment_username, ENT_QUOTES, 'UTF-8'));
+		if ($result['error']) { message_die(GENERAL_MESSAGE, $result['error_msg']); }
 	}
 
-
-	// --------------------------------
-	// Check username for guest posting
-	// --------------------------------
-
-	if (!$userdata['session_logged_in'])
-	{
-		if ($comment_username_raw != '')
-		{
-			$result = validate_username($comment_username_raw);
-			if ( $result['error'] )
-			{
-				message_die(GENERAL_MESSAGE, $result['error_msg']);
-			}
-		}
-	}
-
-
-	// --------------------------------
-	// Prepare variables
-	// --------------------------------
-
-	$comment_time = time();
-	$comment_user_id = intval($userdata['user_id']);
-	$comment_user_ip = $db->sql_escape($userdata['session_ip']);
-	$comment_username_sql = $db->sql_escape($comment_username);
-	$comment_text_sql = $db->sql_escape($comment_text);
-
-
-	// --------------------------------
-	// Insert into DB
-	// --------------------------------
-
-	if ($comment_text != '')//if user only rated, but didnt enter a comment ..... only update rating
-	{
-		$sql = "INSERT INTO ". ALBUM_COMMENT_TABLE ." (comment_pic_id, comment_cat_id, comment_user_id, comment_username, comment_user_ip, comment_time, comment_text)
-				VALUES (" . intval($pic_id) . ", " . intval($cat_id) . ", $comment_user_id, '$comment_username_sql', '$comment_user_ip', $comment_time, '$comment_text_sql')";
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not insert new entry', '', __LINE__, __FILE__, $sql);
-		}
-		$comment_id = $db->sql_nextid();
-	}
-
-	//rating
-	if ($has_rating)
-	{
-		$rate_user_id = intval($userdata['user_id']);
-		$rate_user_ip = $db->sql_escape($userdata['session_ip']);
-
-		$sql = "INSERT INTO ". ALBUM_RATE_TABLE ." (rate_pic_id, rate_user_id, rate_user_ip, rate_point)
-				SELECT " . intval($pic_id) . ", $rate_user_id, '$rate_user_ip', " . intval($rate_point) . "
-				WHERE NOT EXISTS (SELECT 1 FROM " . ALBUM_RATE_TABLE . " WHERE rate_pic_id = " . intval($pic_id) . " AND $rate_identity)";
-
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not insert new rating', '', __LINE__, __FILE__, $sql);
-		}
-		if (!$db->sql_affectedrows())
-		{
-			message_die(GENERAL_MESSAGE, $lang['Already_rated']);
-		}
-	}
+	// Fresh permissions, parent-picture locking and both writes share one commit.
+	$discussion_result = album_discussion_request('publish', array(
+		$userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id,
+		$comment_text, $comment_username, $has_rating ? (int) $rate_point : null));
+	$comment_id = $discussion_result['comment'];
 
 	// --------------------------------
 	// Complete... now send a message to user

@@ -48,6 +48,8 @@ jobs:
           php .github/scripts/check-album-photo-text.php
           php .github/scripts/check-album-photo-edit-native.php
           php .github/scripts/check-album-photo-migration-native.php
+          php .github/scripts/check-album-discussion-migration-native.php
+          php .github/scripts/check-album-discussion-native.php
         env:
           PHPBB_ALBUM_OWNER_NATIVE: '1'
           PHPBB_ALBUM_OWNER_PASSWORD: fixture-only
@@ -71,6 +73,10 @@ jobs:
           PHPBB_ALBUM_PHOTO_EDIT_PASSWORD: fixture-only
           PHPBB_ALBUM_PHOTO_TEXT_NATIVE: '1'
           PHPBB_ALBUM_PHOTO_TEXT_PASSWORD: fixture-only
+          PHPBB_ALBUM_DISCUSSION_TEXT_NATIVE: '1'
+          PHPBB_ALBUM_DISCUSSION_TEXT_PASSWORD: fixture-only
+          PHPBB_ALBUM_DISCUSSION_NATIVE: '1'
+          PHPBB_ALBUM_DISCUSSION_PASSWORD: fixture-only
       - name: Check Album file journal schema and real updater preservation
         run: |
           php .github/scripts/check-album-file-journal-native.php

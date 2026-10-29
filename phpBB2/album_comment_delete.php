@@ -53,6 +53,7 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+require_once $album_root_path . 'album_picture_discussion.php';
 
 
 // ------------------------------------
@@ -69,11 +70,11 @@ if( $album_config['comment'] == 0 )
 // Check the request
 // ------------------------------------
 
-if( isset($_GET['comment_id']) )
+if (isset($_GET['comment_id']) && is_scalar($_GET['comment_id']))
 {
 	$comment_id = intval($_GET['comment_id']);
 }
-else if( isset($_POST['comment_id']) )
+else if (isset($_POST['comment_id']) && is_scalar($_POST['comment_id']))
 {
 	$comment_id = intval($_POST['comment_id']);
 }
@@ -148,6 +149,7 @@ if( !($result = $db->sql_query($sql)) )
 }
 $thispic = $db->sql_fetchrow($result);
 
+if (empty($thispic)) { message_die(GENERAL_ERROR, $lang['Pic_not_exist']); }
 $cat_id = $thispic['pic_cat_id'];
 $album_user_id = $thispic['cat_user_id'];
 
@@ -165,10 +167,10 @@ if( empty($thispic) )
 // ------------------------------------
 // Check the permissions
 // ------------------------------------
-$album_user_access = album_permissions($album_user_id, $cat_id, ALBUM_AUTH_COMMENT|ALBUM_AUTH_DELETE, $thispic);
+$album_user_access = album_permissions($album_user_id, $cat_id, ALBUM_AUTH_VIEW|ALBUM_AUTH_COMMENT|ALBUM_AUTH_DELETE|ALBUM_AUTH_UPLOAD, $thispic);
 //--- Album Category Hierarchy : end
 
-if( ($album_user_access['comment'] == 0) or ($album_user_access['delete'] == 0) )
+if (empty($album_user_access['view']) || empty($album_user_access['comment']) || empty($album_user_access['delete']))
 {
 	if (!$userdata['session_logged_in'])
 	{
@@ -181,7 +183,7 @@ if( ($album_user_access['comment'] == 0) or ($album_user_access['delete'] == 0) 
 }
 else
 {
-	if( (!$album_user_access['moderator']) or ($userdata['user_level'] != ADMIN) )
+	if (!$album_user_access['moderator'] && $userdata['user_level'] != ADMIN)
 	{
 		if ($thiscomment['comment_user_id'] != $userdata['user_id'])
 		{
@@ -258,14 +260,8 @@ else
               Do the deleting
 	   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-	$sql = "DELETE
-			FROM ". ALBUM_COMMENT_TABLE ."
-			WHERE comment_id = '$comment_id'";
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not delete this comment', '', __LINE__, __FILE__, $sql);
-	}
+	album_discussion_request('change', array(
+		$userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id, (int) $comment_id));
 
 	// --------------------------------
 	// Complete... now send a message to user

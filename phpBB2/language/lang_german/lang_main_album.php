@@ -213,5 +213,6 @@ $lang['Pic_text_update_failed'] = 'Das Bild konnte nicht aktualisiert werden. Bi
 $lang['Delete_processing_failed'] = 'Der Löschvorgang konnte nicht bestätigt werden. Bitte lade die Albumseite neu.';
 $lang['Album_moderation_failed'] = 'Die Aktion konnte nicht bestätigt werden. Bitte lade die Albumseite neu und prüfe deine aktuelle Anmeldung, Kategorie und Berechtigungen.';
 $lang['Album_category_removal_failed'] = 'Die Kategorienänderung konnte nicht bestätigt werden. Bitte lade die Albumseite neu und prüfe deine aktuelle Anmeldung, Kategorien-Berechtigungen und das Ziel.';
+$lang['Album_discussion_failed'] = 'Das Speichern oder Löschen des Kommentars bzw. der Bewertung konnte nicht bestätigt werden. Bitte lade die Bildseite neu.';
 
 ?>

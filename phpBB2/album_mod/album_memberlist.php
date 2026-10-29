@@ -93,20 +93,20 @@ switch (strtolower($album_view_type))
             $sort_order = 'ASC';
         }
 
-		$count_sql = 'SELECT COUNT(r.rate_pic_id) AS count
+		$count_sql = 'SELECT COUNT(DISTINCT r.rate_pic_id) AS count
 						FROM '. ALBUM_RATE_TABLE .' AS r, '. ALBUM_TABLE .' AS p, '.ALBUM_CAT_TABLE .' AS ct
-						WHERE r.rate_user_id = '. $album_user_id .'
+						WHERE r.rate_point > 0 AND r.rate_user_id = '. $album_user_id .'
 							AND ct.cat_id IN (' . $allowed_cat .')
 							AND p.pic_id = r.rate_pic_id
 							AND p.pic_cat_id = ct.cat_id';
 
 		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id, r.rate_pic_id,
-						AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
+						AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
 					FROM ".ALBUM_RATE_TABLE." AS r
 						LEFT JOIN ".ALBUM_TABLE. " AS p ON p.pic_id = r.rate_pic_id
 						LEFT JOIN ".ALBUM_COMMENT_TABLE." AS c ON p.pic_id = c.comment_pic_id
 						LEFT JOIN ".ALBUM_CAT_TABLE." AS ct ON p.pic_cat_id = ct.cat_id
-					WHERE r.rate_user_id = $album_user_id AND ct.cat_id IN ($allowed_cat)
+					WHERE r.rate_point > 0 AND r.rate_user_id = $album_user_id AND ct.cat_id IN ($allowed_cat)
 					GROUP BY r.rate_pic_id
 					ORDER BY $sort_method $sort_order
 					LIMIT $limit_sql";
@@ -128,7 +128,7 @@ switch (strtolower($album_view_type))
 							AND comment_cat_id = cat_id';
 
 		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id,
-						AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment, c.comment_pic_id
+						AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment, c.comment_pic_id
 					FROM ".ALBUM_COMMENT_TABLE." AS c
                         LEFT JOIN ".ALBUM_TABLE. " AS p ON c.comment_pic_id = p.pic_id
 						LEFT JOIN ".ALBUM_RATE_TABLE." AS r ON p.pic_id = r.rate_pic_id
@@ -148,7 +148,7 @@ switch (strtolower($album_view_type))
 							AND pic_cat_id = cat_id';
 
 		$list_sql = "SELECT DISTINCT(p.pic_id), ct.cat_user_id, ct.cat_id, ct.cat_title, p.pic_title, p.pic_desc, p.pic_user_id, p.pic_user_ip, p.pic_time, p.pic_view_count, p.pic_lock, r.rate_pic_id,
-						AVG(r.rate_point) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
+						AVG(NULLIF(r.rate_point, 0)) AS rating, COUNT(DISTINCT c.comment_id) AS comments, MAX(c.comment_id) as new_comment
 					FROM ".ALBUM_TABLE. " AS p
 						LEFT JOIN ".ALBUM_RATE_TABLE." AS r ON p.pic_id = r.rate_pic_id
 						LEFT JOIN ".ALBUM_COMMENT_TABLE." AS c ON p.pic_id = c.comment_pic_id

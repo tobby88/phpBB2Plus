@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album comments and ratings
+
+- Preserve logical Unicode comment limits before HTML escaping, including guest
+  names. Widen comment storage in new installations and the consolidated updater
+  without rewriting existing text or guest bylines. In the full updater, widen
+  Album author fields before reconciling registered names.
+- Commit combined comments and ratings together using current session, category
+  and picture permissions. Coordinate these writes with picture moves/deletion;
+  permit current category moderators to remove comments by other authors.
+- Keep normal and separate HotOrNot rating channels independent, preserve
+  configured repeat voting, and exclude unused zero placeholders from Album
+  and portal averages. Align the voting form and rating-list pagination.
+
 ### Administration, search and quick reply
 
 - Skip inaccessible or missing categories before rendering their forum index,

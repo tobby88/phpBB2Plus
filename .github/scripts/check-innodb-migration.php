@@ -83,6 +83,10 @@ try {
  plus_storage_query($db,'ALTER TABLE phpbb_kb_articles MODIFY article_rating DOUBLE(6,4) NOT NULL DEFAULT 0.0000,MODIFY article_totalvotes INT(255) NOT NULL DEFAULT 0');
  plus_storage_query($db,'ALTER TABLE phpbb_posts MODIFY post_username VARCHAR(25) NULL');
  plus_storage_query($db,'ALTER TABLE phpbb_album_cat MODIFY cat_title VARCHAR(255) NOT NULL, MODIFY cat_desc TEXT');
+ plus_storage_query($db,'ALTER TABLE phpbb_album_comment MODIFY comment_username VARCHAR(32) NULL, MODIFY comment_text TEXT NULL');
+ plus_storage_query($db,"INSERT INTO phpbb_album_comment(comment_id,comment_pic_id,comment_cat_id,comment_user_id,comment_username,comment_user_ip,comment_time,comment_text) VALUES(1,42,1,1,'Before rename','7f000001',1,'Keep &amp; Grüße 😀'),(3,42,1,2,'Old owner','7f000003',3,'Keep second comment'),(9,42,1,-1,NULL,'7f000002',2,NULL)");
+ plus_storage_query($db,'ALTER TABLE phpbb_album_comment AUTO_INCREMENT=900');
+ $album_comment_rows_before=plus_storage_rows($db,'SELECT * FROM phpbb_album_comment ORDER BY comment_id');
  plus_storage_query($db,"INSERT INTO phpbb_album_cat(cat_id,cat_title,cat_desc,cat_order,cat_parent,cat_user_id) VALUES(1,'Keep &amp; Grüße 😀',NULL,10,0,7),(9,'Child','Preserve full description 😀',20,1,7)");
  plus_storage_query($db,'ALTER TABLE phpbb_album_cat AUTO_INCREMENT=900');
  $album_rows_before=plus_storage_rows($db,'SELECT * FROM phpbb_album_cat ORDER BY cat_id');
@@ -90,6 +94,12 @@ try {
  plus_storage_query($db,'UPDATE phpbb_kb_articles SET article_rating=99.9999,article_totalvotes=10 WHERE article_id=1');
  $kb_articles_before=plus_storage_rows($db,'SELECT * FROM phpbb_kb_articles ORDER BY article_id');
  plus_storage_query($db,"INSERT INTO phpbb_users(user_id,username,user_password,user_email,user_posts) VALUES(-1,'Guest','synthetic','guest@example.invalid',99),(1,'Counted user','synthetic','counted@example.invalid',77),(2,'Empty user','synthetic','empty@example.invalid',55)");
+ $long_album_user=str_repeat('Ä😀',20);
+ plus_storage_query($db,'ALTER TABLE phpbb_users MODIFY username VARCHAR(255) NOT NULL');
+ plus_storage_query($db,"UPDATE phpbb_users SET username='".mysqli_real_escape_string($db,$long_album_user)."' WHERE user_id=2");
+ plus_storage_query($db,'ALTER TABLE phpbb_album MODIFY pic_username VARCHAR(32) NULL');
+ plus_storage_query($db,"INSERT INTO phpbb_album(pic_id,pic_filename,pic_title,pic_time,pic_cat_id,pic_user_id,pic_username) VALUES(42,'fixture.png','Synthetic',1,1,2,'Old owner')");
+ $album_picture_rows_before=plus_storage_rows($db,'SELECT * FROM phpbb_album ORDER BY pic_id');
  plus_storage_query($db,"INSERT INTO phpbb_forums(forum_id,cat_id,forum_name,forum_desc,forum_order,count_posts) VALUES(1,1,'Counted','Keep',0,1),(2,1,'Not counted','Keep',1,0)");
  plus_storage_query($db,"INSERT INTO phpbb_posts(post_id,topic_id,forum_id,poster_id,poster_ip) VALUES(1,1,1,1,'7f000001'),(2,1,1,1,'7f000001'),(3,2,2,1,'7f000001'),(4,1,1,-1,'7f000001')");
  $counter_posts_before=plus_storage_rows($db,'SELECT * FROM phpbb_posts ORDER BY post_id');
@@ -120,6 +130,12 @@ try {
   storage_check(count(plus_post_author_plan($db,'phpbb_'))===($case==='dry'||$case==='missing-maintenance'?1:0),'Actual full updater preserves posts while widening guest byline capacity; dry/refused stays25, apply/retry reaches safe encoded width');
   require_once $root.'/update/album_text_storage_migration.php';
   storage_check(count(plus_album_text_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0),'Actual full updater widens both Album text fields; dry/refused is unchanged and full/repeated apply completes the migration');
+  storage_check(count(plus_album_discussion_text_plan($db,'phpbb_',true))===($case==='dry'||$case==='missing-maintenance'?1:0),'Actual full updater migrates both comment text capacities; dry/refused unchanged, full and repeat complete');
+  $expected_album_comments=$album_comment_rows_before;$expected_album_pictures=$album_picture_rows_before;
+  if($case!=='dry'&&$case!=='missing-maintenance'){$expected_album_comments[0]['comment_username']='Counted user';$expected_album_comments[1]['comment_username']=$long_album_user;$expected_album_pictures[0]['pic_username']=$long_album_user;}
+  if(plus_storage_rows($db,'SELECT * FROM phpbb_album_comment ORDER BY comment_id')!==$expected_album_comments){fwrite(STDERR,json_encode(array('case'=>$case,'expected'=>$expected_album_comments,'actual'=>plus_storage_rows($db,'SELECT * FROM phpbb_album_comment ORDER BY comment_id'),'floor'=>plus_storage_metadata($db,'phpbb_album_comment')['AUTO_INCREMENT']))."\n");}
+  storage_check(plus_storage_rows($db,'SELECT * FROM phpbb_album_comment ORDER BY comment_id')===$expected_album_comments&&plus_storage_counter_at_least(plus_storage_metadata($db,'phpbb_album_comment')['AUTO_INCREMENT'],'900'),'Full updater preserves all comment text/NULLs/guest names and identity floor, reconciling registered names only after widening: '.$case);
+  storage_check(plus_storage_rows($db,'SELECT * FROM phpbb_album ORDER BY pic_id')===$expected_album_pictures,'Full updater widens old picture author before long Unicode rename reconciliation: '.$case);
   storage_check(plus_storage_rows($db,'SELECT * FROM phpbb_album_cat ORDER BY cat_id')===$album_rows_before&&plus_storage_counter_at_least(plus_storage_metadata($db,'phpbb_album_cat')['AUTO_INCREMENT'],'900'),'Full updater preserves every Album category byte, NULL and historical identity floor');
   $expected_user_counts=($case==='dry'||$case==='missing-maintenance')?array(array('user_id'=>'-1','user_posts'=>'99'),array('user_id'=>'1','user_posts'=>'77'),array('user_id'=>'2','user_posts'=>'55')):array(array('user_id'=>'-1','user_posts'=>'99'),array('user_id'=>'1','user_posts'=>'2'),array('user_id'=>'2','user_posts'=>'0'));
   storage_check(plus_storage_rows($db,'SELECT user_id,user_posts FROM phpbb_users ORDER BY user_id')===$expected_user_counts&&plus_storage_rows($db,'SELECT * FROM phpbb_posts ORDER BY post_id')===$counter_posts_before,'Actual full updater honors counting forums, preserves guest counters and every stored post');
