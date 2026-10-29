@@ -32,6 +32,7 @@ function pr_reset()
  $pr_failure='';$pr_hook=null;$pr_inserted=false;$pr_before_owner=null;unset($GLOBALS['pr_borrowed']);
  foreach(array('pa_votes','pa_comments','pa_files','pa_cat','pa_auth','users','sessions','user_group','groups','config')as$suffix){pr_sql('DELETE FROM fixture_'.$suffix);}
  pr_insert('fixture_config',array('config_name'=>'session_length','config_value'=>'3600'));
+ pr_insert('fixture_users',array('user_id'=>ANONYMOUS,'username'=>'Anonymous','user_active'=>0,'user_level'=>USER));
  foreach(array(8,9)as$id){pr_insert('fixture_users',array('user_id'=>$id,'username'=>'Member '.$id,'user_active'=>1,'user_level'=>USER));}
  $userdata=array('user_id'=>8,'session_id'=>'fixture-member','session_logged_in'=>true,'user_level'=>USER);$user_ip='7f000001';$_SERVER['REQUEST_METHOD']='POST';$_POST=array('sid'=>'fixture-member','submit'=>'Rate','rating'=>'9');$_GET=$_REQUEST=array('file_id'=>'42');
  foreach(array(array('fixture-member',8,1),array('fixture-other',9,1),array('fixture-guest',-1,0))as$item){pr_insert('fixture_sessions',array('session_id'=>$item[0],'session_user_id'=>$item[1],'session_logged_in'=>$item[2],'session_time'=>time()));}

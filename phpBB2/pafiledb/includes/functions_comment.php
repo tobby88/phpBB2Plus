@@ -20,6 +20,9 @@
  *
  ***************************************************************************/
 
+require_once dirname(__FILE__) . '/functions_comment_text.php';
+require_once dirname(dirname(dirname(__FILE__))) . '/includes/functions_author_visibility.php';
+
 function display_comments(&$file_data)
 {
 	global $pafiledb_template, $lang, $board_config, $phpEx, $pafiledb_config, $db, $images;
@@ -64,54 +67,20 @@ function display_comments(&$file_data)
 	{     
 		$time = create_date($board_config['default_dateformat'], $comments_row['comments_time'], $board_config['board_timezone']);
 
-		$comments_text = $comments_row['comments_text'];
+		$comments_text = pafiledb_comment_render($comments_row['comments_text'], $comments_row['comment_bbcode_uid'],
+			$pafiledb_config, !empty($userdata['user_allowsmile']), $orig_word, $replacement_word);
+		$registered = isset($comments_row['user_id']) && (int)$comments_row['user_id'] > 0;
 
-		if ( !$pafiledb_config['allow_html'] )
-		{
-			if ( $comments_text != '' && $userdata['user_allowhtml'] )
-			{
-				$comments_text = preg_replace('#(<)([\/]?.*?)(>)#is', "&lt;\\2&gt;", $comments_text);
-			}
-		}
+		$poster = phpbb_author_name((int)$comments_row['poster_id'], $registered ? $comments_row['username'] : $lang['Guest']);
 
-		if ( $pafiledb_config['allow_bbcode'] )
-		{
-			if ( $comments_text != '' && $comments_row['comment_bbcode_uid'] != '' )
-			{
-				$comments_text = ( $pafiledb_config['allow_bbcode'] ) ? bbencode_second_pass($comments_text, $comments_row['comment_bbcode_uid']) : preg_replace('/\:[0-9a-z\:]+\]/si', ']', $comments_text);
-			}    
-		}
+		$poster_posts = ( $registered ) ? $lang['Posts'] . ': ' . $comments_row['user_posts'] : '';
 
-		$comments_text = comment_suite($comments_text);
+		$poster_from = ( $comments_row['user_from'] && $registered ) ? $lang['Location'] . ': ' . phpbb_profile_text($comments_row['user_from']) : '';
 
-		$comments_text = make_clickable($comments_text);
-
-	   	if ( count($orig_word) )
-		{
-			if ( $comments_text != '' )
-			{
-				$comments_text = preg_replace($orig_word, $replacement_word, $comments_text);
-			}
-		}
-
-		if ( $pafiledb_config['allow_smilies'] )
-		{
-			if ( $userdata['user_allowsmile'] && $comments_text != '' )
-			{
-				$comments_text = smilies_pass($comments_text);
-			}
-		}
-
-		$poster = ( $comments_row['user_id'] == ANONYMOUS ) ? $lang['Guest'] : $comments_row['username'];
-
-		$poster_posts = ( $comments_row['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $comments_row['user_posts'] : '';
-
-		$poster_from = ( $comments_row['user_from'] && $comments_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($comments_row['user_from']) : '';
-
-		$poster_joined = ( $comments_row['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $comments_row['user_regdate'], $board_config['board_timezone']) : '';
+		$poster_joined = ( $registered ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $comments_row['user_regdate'], $board_config['board_timezone']) : '';
 
 		$poster_avatar = '';
-		if ( $comments_row['user_avatar_type'] && $comments_row['user_id'] != ANONYMOUS && $comments_row['user_allowavatar'] )
+		if ( $comments_row['user_avatar_type'] && $registered && $comments_row['user_allowavatar'] )
 		{
 			$poster_avatar = phpbb_avatar_image($comments_row['user_avatar'], $comments_row['user_avatar_type']);
 		}
@@ -121,7 +90,7 @@ function display_comments(&$file_data)
 		//
 		$poster_rank = '';
 		$rank_image = '';
-		if ( $comments_row['user_id'] == ANONYMOUS )
+		if ( !$registered )
 		{
 		}
 		else if ( $comments_row['user_rank'] )
@@ -149,9 +118,9 @@ function display_comments(&$file_data)
 			}
 		}
 
-		$comments_text = str_replace("\n", "\n<br />\n", $comments_text);
-		$can_delete_comment = $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_mod'] ||
-			($userdata['session_logged_in'] && $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_delete_comment'] && intval($comments_row['poster_id']) === intval($userdata['user_id']));
+		$auth = $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']];
+		$can_delete_comment = !empty($userdata['session_logged_in']) && (!empty($auth['auth_mod']) ||
+			(!empty($auth['auth_delete_comment']) && (int)$comments_row['poster_id'] === (int)$userdata['user_id']));
 
 		$pafiledb_template->assign_block_vars('text', array(
 			'POSTER' => $poster,
@@ -166,7 +135,7 @@ function display_comments(&$file_data)
 			'POSTER_POSTS' => $poster_posts,
 			'POSTER_FROM' => $poster_from,
 			'POSTER_AVATAR' => $poster_avatar,
-			'TITLE' => $comments_row['comments_title'],
+			'TITLE' => htmlspecialchars($comments_row['comments_title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
 			'TIME' => $time,
 			'TEXT' => $comments_text) 
 		);
@@ -174,10 +143,12 @@ function display_comments(&$file_data)
 
 	$db->sql_freeresult($result);
 
+	$can_post = !empty($pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment']) &&
+		!empty($pafiledb->modules[$pafiledb->module_name]->cat_rowset[$file_data['file_catid']]['cat_allow_comments']);
 	$pafiledb_template->assign_vars(array(
-		'REPLY_IMG' => ( $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment'] ) ? $images['pa_comment_post'] : '',
-		'AUTH_POST' => ( $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment'] ) ? TRUE : FALSE,
-		'L_COMMENT_DO' => ( $pafiledb->modules[$pafiledb->module_name]->auth[$file_data['file_catid']]['auth_post_comment'] ) ? (isset($lang['Comment_do']) ? $lang['Comment_do'] : $lang['Comment_add']) : '',
+		'REPLY_IMG' => $can_post ? $images['pa_comment_post'] : '',
+		'AUTH_POST' => $can_post ? TRUE : FALSE,
+		'L_COMMENT_DO' => $can_post ? (isset($lang['Comment_do']) ? $lang['Comment_do'] : $lang['Comment_add']) : '',
 		'L_COMMENTS' => $lang['Comments'],
 		'L_AUTHOR' => $lang['Author'],
 		'L_POSTED' => $lang['Posted'],
@@ -189,53 +160,3 @@ function display_comments(&$file_data)
 		'U_COMMENT_DO' => append_sid('dload.php?action=post_comment&file_id='.$file_data['file_id']))
 	);
 }
-
-function comment_suite($comments_text)
-{
-	global $pafiledb_config;
-	
-	// Start Remove images/links in comments text
-	if ( $comments_text != '' )
-	{	
-		if($pafiledb_config['allow_comment_images'] == 0)
-		{
-			$no_image_message = $pafiledb_config['no_comment_image_message'];
-			if(preg_match('/(<img src=)(.+?)(\>)/i', $comments_text))
-			{
-				$comments_text = preg_replace('/(<img src=)(.+?)(\>)/i', $no_image_message, $comments_text); 
-			}
-		
-			if(preg_match('/(\[img\])([^\[]*)(\[\/img\])/i', $comments_text))
-			{
-				$comments_text = preg_replace('/(\[img\])([^\[]*)(\[\/img\])/i', $no_image_message, $comments_text); 
-			}
-		}
-		
-		if($pafiledb_config['allow_comment_links'] == 0)
-		{
-			$no_link_message = $pafiledb_config['no_comment_link_message'];
-			
-			if(preg_match('/(\[url=(.*?)\])([^\[]*)(\[\/url\])/i', $comments_text))
-			{
-				$comments_text = preg_replace('/(\[url=(.*?)\])([^\[]*)(\[\/url\])/i', $no_link_message, $comments_text); 
-			}
-		
-			if(preg_match('/(\[url\])([^\[]*)(\[\/url\])/i', $comments_text))
-			{
-				$comments_text = preg_replace('/(\[url\])([^\[]*)(\[\/url\])/i', $no_link_message, $comments_text); 
-			}
-			
-			if (preg_match("#([\n ])http://www\.([a-z0-9\-]+)\.([a-z0-9\-.\~]+)((?:/[^,\t \n\r]*)?)#i", $comments_text) )
-			{
-				$comments_text = preg_replace("#([\n ])http://www\.([a-z0-9\-]+)\.([a-z0-9\-.\~]+)((?:/[^,\t \n\r]*)?)#i", $no_link_message, $comments_text);
-			}
-
-			if (preg_match("#([\n ])www\.([a-z0-9\-]+)\.([a-z0-9\-.\~]+)((?:/[^,\t \n\r]*)?)#i", $comments_text) )
-			{
-				$comments_text = preg_replace("#([\n ])www\.([a-z0-9\-]+)\.([a-z0-9\-.\~]+)((?:/[^,\t \n\r]*)?)#i", $no_link_message, $comments_text);
-			}
-		}
-	}
-	return $comments_text;
-}
-?>

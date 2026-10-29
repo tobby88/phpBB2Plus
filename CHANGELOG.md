@@ -6,6 +6,22 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download comments
+
+- Create and delete paFileDB comments through an owned transaction. Check the
+  current session, active account, real group grants, category ancestry,
+  approved file, comment toggle and exact target before committing a change.
+  Preserve separate posting, viewing and own-comment deletion permissions.
+- Count the configured comment limit in Unicode characters, check actual
+  database field capacities and preserve quotes, backslashes and literal
+  entities. Encode BBCodes once; keep preview and stored output consistent.
+- Escape literal comment subjects and legacy raw HTML even when the viewer
+  disables HTML. Apply current HTML tag, image and link restrictions to stored
+  comments, retain permitted smileys and preserve the draft during preview.
+- Reuse the rating writer's connection/lease and canonical storage safeguards.
+  The existing consolidated database updater covers the required tables; no
+  additional schema or manual data migration is required for this change.
+
 ### Download ratings
 
 - Save paFileDB ratings with an owned transaction and shared writer lease.

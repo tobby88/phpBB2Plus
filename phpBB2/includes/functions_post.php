@@ -781,8 +781,9 @@ function generate_smilies($mode, $page_id)
 * Called from within prepare_message to clean included HTML tags if HTML is
 * turned on for that post
 * @param array $tag Matching text from the message to parse
+* @param bool $double_encode Encode raw input entities; false for stored HTML
 */
-function clean_html($tag)
+function clean_html($tag, $double_encode = true)
 {
 	global $board_config;
 
@@ -836,7 +837,8 @@ function clean_html($tag)
 					}
 				}
 
-				$attributes .= ' ' . $attribute_name . '=' . $test[2][$i] . str_replace(array('[', ']'), array('&#91;', '&#93;'), htmlspecialchars($test[3][$i])) . $test[2][$i];
+				$escaped_attribute = $double_encode ? htmlspecialchars($test[3][$i]) : htmlspecialchars($test[3][$i], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+				$attributes .= ' ' . $attribute_name . '=' . $test[2][$i] . str_replace(array('[', ']'), array('&#91;', '&#93;'), $escaped_attribute) . $test[2][$i];
 			}
 		}
 		if (in_array($tag_name, $allowed_html_tags) && !in_array($tag_name, $unsafe_html_tags))
