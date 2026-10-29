@@ -8,6 +8,12 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Administration, search and quick reply
 
+- Align quote boxes with the left edge of the post and use the available width,
+  replacing the legacy centered 90-percent layout. Keep nested quote contents
+  inside their own boxes.
+- Skip the native database matrix for changes limited to documentation, style
+  templates/assets and the pure BBCode renderer/regressions; retain the PHP
+  compatibility checks. Cancel superseded native workflow runs automatically.
 - Render legacy posts whose adjacent closing tags for font, size, color or
   emphasis were saved in opening order. Reorder only complete inline groups;
   keep structural boundaries and literal code examples protected, without
