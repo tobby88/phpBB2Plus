@@ -8,9 +8,6 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Administration, search and quick reply
 
-- Give quote headers and bodies readable inner spacing, and match quote text
-  size/line height to normal posts. Version the stylesheet URL so existing
-  browser caches receive the corrected spacing on an ordinary reload.
 - Align quote boxes with the left edge of the post and use the available width,
   replacing the legacy centered 90-percent layout. Keep nested quote contents
   inside their own boxes.
