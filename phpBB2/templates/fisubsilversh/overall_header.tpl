@@ -7,7 +7,7 @@
 {META}
 {NAV_LINKS}
 <title>{SITENAME} :: {PAGE_TITLE}</title>
-<link rel="stylesheet" href="templates/fisubsilversh/{T_HEAD_STYLESHEET}" type="text/css" />
+<link rel="stylesheet" href="templates/fisubsilversh/{T_HEAD_STYLESHEET}?v=20261029-quote-spacing" type="text/css" />
 <link rel="shortcut icon" href="./favicon.ico" />
 <script language="JavaScript" type="text/javascript" src="includes/toggle_display.js"></script>
 <!-- BEGIN switch_enable_pm_popup -->
