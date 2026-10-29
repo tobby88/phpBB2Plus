@@ -80,7 +80,8 @@ image_processing_assert(substr_count($thumbnail, '@imagedestroy($src)') >= 2, 't
 $medium_thumbnail = file_get_contents($root . '/phpBB2/album_picm.php');
 image_processing_assert(strpos($medium_thumbnail, '$thumbnail_written = false;') !== false, 'medium thumbnail regeneration must handle failed cache writes');
 $cache_functions = file_get_contents($root . '/phpBB2/album_mod/album_functions.php');
-image_processing_assert(strpos($thumbnail, 'album_store_cached_image(') !== false && strpos($medium_thumbnail, 'album_store_cached_image(') !== false, 'both renderers must use the atomic cache writer');
+$cache_publication = file_get_contents($root . '/phpBB2/album_mod/album_cache_publication.php');
+image_processing_assert(strpos($thumbnail, 'album_publish_picture_cache(') !== false && strpos($medium_thumbnail, 'album_publish_picture_cache(') !== false && strpos($cache_publication, 'album_store_cached_image(') !== false, 'both renderers must reach the atomic cache writer through the current picture lease');
 image_processing_assert(strpos($thumbnail, '@unlink(ALBUM_CACHE_PATH . $pic_thumbnail);') === false && strpos($medium_thumbnail, '@unlink(ALBUM_MED_CACHE_PATH . $pic_thumbnail);') === false, 'failed regeneration must never delete a complete prior or peer target');
 image_processing_assert(strpos($cache_functions, "@fopen(\$path, 'x+b')") !== false && strpos($cache_functions, '@rename($temporary, $target)') !== false, 'cache writes must exclusively reserve a same-directory temporary file and publish atomically');
 image_processing_assert(strpos($cache_functions, '@unlink($temporary)') !== false && strpos($cache_functions, '@unlink($target)') === false, 'cache failures may clean only their owned temporary files');
