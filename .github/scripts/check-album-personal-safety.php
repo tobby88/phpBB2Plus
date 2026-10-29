@@ -18,6 +18,9 @@ $admin_config = file_get_contents($root . '/phpBB2/admin/admin_album_config_exte
 $config_helpers = file_get_contents($root . '/phpBB2/album_mod/album_acp_functions.php');
 $config_template = file_get_contents($root . '/phpBB2/templates/fisubsilversh/admin/album_config_body_extended.tpl');
 $clear_cache = file_get_contents($root . '/phpBB2/admin/admin_album_clearcache.php');
+$cache_maintenance = file_get_contents($root . '/phpBB2/album_mod/album_cache_maintenance.php');
+define('IN_PHPBB', true);
+require_once $root . '/phpBB2/album_mod/album_file_storage.php';
 $personal_admin = file_get_contents($root . '/phpBB2/album_personal_cat_admin.php');
 $category_storage = file_get_contents($root . '/phpBB2/album_mod/album_category_storage.php');
 $hotornot = file_get_contents($root . '/phpBB2/album_hotornot.php');
@@ -52,8 +55,10 @@ album_test_assert(strpos($admin_config, 'phpbb_admin_html($default_config[$confi
 album_test_assert(strpos($config_helpers, '#^admin/album_config_[A-Za-z0-9_/-]+\\.tpl$#D') !== false, 'configuration field discovery must stay inside known Album templates');
 album_test_assert(strpos($config_template, '{S_FORM_TOKEN}') !== false, 'configuration forms must carry the session token');
 album_test_assert(strpos($clear_cache, 'phpbb_admin_require_post_session();') !== false && strpos($clear_cache, 'phpbb_admin_session_field()') !== false, 'thumbnail cache deletion must use the central AdminCP token');
-album_test_assert(strpos($clear_cache, "preg_match('/\\.(?:gif|png|jpe?g|webp)\$/iD'") !== false, 'thumbnail cache deletion must use an end-anchored image extension');
-album_test_assert(strpos($clear_cache, '!is_link($cache_item)') !== false, 'thumbnail cache deletion must not follow symbolic links');
+album_test_assert(strpos($clear_cache, 'new AlbumCacheMaintenance') !== false && strpos($cache_maintenance, 'AlbumFileStorage::cache_filename($name)') !== false, 'cache controller must delegate to the coordinated image-only storage boundary');
+foreach (array('image.jpg', 'image.JPEG', 'image.png', 'image.gif', 'image.webp') as $name) { album_test_assert(AlbumFileStorage::cache_filename($name), 'existing preview image formats remain eligible'); }
+foreach (array('image.jpg.php', 'index.php', '.album-stage-x.tmp', '../image.png', 'folder/image.gif', 'image.webp/other') as $name) { album_test_assert(!AlbumFileStorage::cache_filename($name), 'only complete flat image basenames may enter cache deletion'); }
+album_test_assert(strpos($cache_maintenance, 'is_link($item)') !== false && strpos($cache_maintenance, 'remove_cache_exact(') !== false, 'cache deletion must skip links and use exact recorded bytes');
 album_test_assert(strpos($clear_cache, "isset(\$_POST['cancel'])") !== false, 'thumbnail cache cancellation must leave the confirmation page');
 album_test_assert(strpos($personal_admin, "in_array(\$mode, array('', 'new', 'edit', 'delete', 'order'), true)") !== false, 'personal category write modes must use an allowlist');
 album_test_assert(strpos($personal_admin, 'function album_personal_permission_value') !== false, 'personal category permission values must be normalized');
