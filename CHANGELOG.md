@@ -6,6 +6,15 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Native test fixture timings
+
+- Detect synchronous contention immediately on modern MariaDB fixture peers,
+  retaining the supported one-second fallback on MySQL and older servers.
+  Verify the disposable schema and actual session setting before probing.
+- Keep all existing ACL, group administration and registration scenarios,
+  production queries and rollback assertions. Leave application timeouts and
+  asynchronous wait/release tests unchanged.
+
 ### Download lists and pagination
 
 - Filter category view/read/file permissions and readable ancestry before

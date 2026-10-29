@@ -78,7 +78,7 @@ try{
  foreach(array('users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255)',
   'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT',
   'jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT','pa_auth'=>'group_id INT,cat_id INT') as $s=>$columns){gan_sql('CREATE TABLE fixture_'.$s.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
- gan_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
+ require_once __DIR__.'/native-fixture-locks.php';native_fixture_peer_nowait($peer);$cases=$serialized=0;
  foreach(array('root','delegated') as $actor){foreach(array('edit'=>'Updated_group','new'=>'Added_new_group','delete'=>'Deleted_group') as $mode=>$success){
   gan_reset($actor);ats_check(gan_run($mode)===$success,'Native '.$actor.' '.$mode);$after=gan_snap();$boundaries=array_values(array_filter($gan_queries,'gan_boundary'));$writes=$gan_write;
   if($mode==='delete'){

@@ -99,7 +99,7 @@ try{
  $schema=file_get_contents($ats_source.'install/schemas/mysql_schema.sql');$rgn_basic=file_get_contents($ats_source.'install/schemas/mysql_basic.sql');
  foreach(array_merge($rgn_tables,array('user_id_sequence')) as $s){ats_check(preg_match('/CREATE TABLE `?phpbb_'.$s.'`?\s*\([\s\S]*?;/',$schema,$m)===1,'Canonical registration participant '.$s);rgn_sql(str_replace('phpbb_'.$s,'fixture_'.$s,$m[0]));}
  ats_check(preg_match('/ALTER TABLE phpbb_users\s+[\s\S]*?ADD games_block_pm[\s\S]*?;/',$schema,$m)===1,'Canonical Arcade fields');rgn_sql(str_replace('phpbb_users','fixture_users',$m[0]));
- rgn_sql("ALTER TABLE fixture_users ADD fixture_profile VARCHAR(255) NOT NULL DEFAULT ''");rgn_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
+ rgn_sql("ALTER TABLE fixture_users ADD fixture_profile VARCHAR(255) NOT NULL DEFAULT ''");require_once __DIR__.'/native-fixture-locks.php';native_fixture_peer_nowait($peer);$cases=$serialized=0;
  foreach(array(0,1,2,3) as $mode){foreach(array('confirm','robot','none') as $challenge){
   rgn_reset($mode,$challenge);$before=rgn_snap();$out=rgn_run();$after=rgn_snap();$writes=$rgn_writes;
   ats_check(rgn_success($out)&&$rgn_avatar->confirmed&&count($rgn_mails)===($mode===2?2:1),'Confirmed actual public registration '.$mode.'/'.$challenge);

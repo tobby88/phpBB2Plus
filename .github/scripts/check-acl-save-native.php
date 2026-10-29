@@ -82,7 +82,7 @@ try{
  foreach(array('users'=>'user_id INT PRIMARY KEY,user_level INT,user_active INT,username VARCHAR(255)',
   'sessions'=>'session_id VARCHAR(32) PRIMARY KEY,session_user_id INT,session_logged_in INT,session_admin INT',
   'jr'=>'user_id INT PRIMARY KEY,user_jr_admin TEXT') as $s=>$columns){asn_sql('CREATE TABLE fixture_'.$s.' ('.$columns.') ENGINE=InnoDB ROW_FORMAT=DYNAMIC');}
- asn_sql('SET SESSION innodb_lock_wait_timeout=1');$cases=$serialized=0;
+ require_once __DIR__.'/native-fixture-locks.php';native_fixture_peer_nowait($peer);$cases=$serialized=0;
  foreach(array('root','junior') as $actor){foreach(array('group-insert','group-update','group-delete','user-insert','user-update','user-delete','moderator','promote','demote') as $scenario){
   if($actor==='junior'&&in_array($scenario,array('promote','demote'),true)){continue;}
   asn_reset($actor,$scenario);$before=asn_snap();ats_check(asn_run()===true,'Authorized '.$actor.' '.$scenario);$after=asn_snap();$writes=$asn_write;$boundaries=array_values(array_filter($asn_queries,'asn_boundary'));
