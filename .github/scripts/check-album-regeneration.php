@@ -3,6 +3,7 @@ if (PHP_SAPI !== 'cli') { exit(2); }
 $source = dirname(dirname(__DIR__)) . '/phpBB2/';
 define('IN_PHPBB', true); define('ADMIN', 1); define('MOD', 2); define('GENERAL_ERROR', 202); define('GENERAL_MESSAGE', 200); $table_prefix = 'fixture_';
 foreach (array('includes/php_compat.php', 'album_mod/album_constants.php', 'album_mod/album_functions.php', 'album_mod/album_hierarchy_auth.php') as $relative) { require $source . $relative; }
+require $source . 'album_mod/album_cache_publication.php';
 function agr_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 function message_die($type, $message) { echo 'ERROR:' . $message; exit; }
 function checkFlag($value, $flag) { return ($value & $flag) === $flag; }
@@ -118,9 +119,9 @@ try {
         }
         $report = json_decode(file_get_contents($base . '/child.json'), true); agr_check($report['queries'] === ($script === 'album_picm.php' && !$case['denied'] ? 1 : 0), 'Existing view-counter/approval semantics retained');
         $cache = $base . '/album_mod/upload/' . ($script === 'album_picm.php' ? 'med_cache' : 'cache') . '/source.' . $type;
-        if ($vector[0] === 'oversized-cache-no-gd') { agr_check(file_get_contents($cache) === $previous_cache, 'Refused regeneration preserves old cache bytes without serving oversized content'); }
-        elseif ($refused || $case['denied'] || !$case['cache']) { agr_check(!is_file($cache), 'Refused/disabled render never creates cache'); }
-        else { agr_check(is_file($cache) && file_get_contents($cache) === $output, 'Published cache matches the complete returned image'); }
+        if (in_array($vector[0], array('oversized-cache', 'oversized-cache-no-gd'), true)) { agr_check(file_get_contents($cache) === $previous_cache, 'Rendering without a current owned publication connection preserves old cache bytes'); }
+        elseif ($vector[0] !== 'cache-no-gd' || $refused || $case['denied'] || !$case['cache']) { agr_check(!is_file($cache), 'Unavailable owned publication keeps direct image output without creating a cache'); }
+        else { agr_check(is_file($cache) && file_get_contents($cache) === $output, 'An already valid cached image is returned without a writer lease'); }
         $cases++;
     } } }
     echo 'Album regeneration: ', $cases, " actual whole-handler/native GD/JPEG/PNG/two-edge/no-upscale/config/disabled-function/cache/approval/counter cases PASS; own synthetic images only, no database or network.\n";

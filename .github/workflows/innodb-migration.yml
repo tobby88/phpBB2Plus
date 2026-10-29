@@ -50,6 +50,7 @@ jobs:
           php .github/scripts/check-album-photo-migration-native.php
           php .github/scripts/check-album-discussion-migration-native.php
           php .github/scripts/check-album-discussion-native.php
+          PHPBB_ALBUM_DISCUSSION_PART=cache php .github/scripts/check-album-discussion-native.php
         env:
           PHPBB_ALBUM_OWNER_NATIVE: '1'
           PHPBB_ALBUM_OWNER_PASSWORD: fixture-only

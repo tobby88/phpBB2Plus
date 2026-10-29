@@ -749,8 +749,10 @@ function album_cached_image_valid($directory, $filename, $type, $max_width = nul
 	return $dimensions !== false && $dimensions[0] === $info[0] && $dimensions[1] === $info[1];
 }
 
-function album_store_cached_image($image, $directory, $filename, $type, $quality = 80)
+// Picture renderers must supply their current owned publication capability.
+function album_store_cached_image($image, $directory, $filename, $type, $quality = 80, $publication_guard = null)
 {
+	if ($publication_guard !== null && !is_callable($publication_guard)) { return false; }
 	$base = album_cache_directory($directory);
 	if ($base === false || !album_cache_filename($filename, $type) || !is_int($quality) || $quality < 0 || $quality > 100 ||
 		!function_exists($type === '.jpg' ? 'imagejpeg' : 'imagepng') ||
@@ -759,6 +761,7 @@ function album_store_cached_image($image, $directory, $filename, $type, $quality
 	if (is_link($target) || is_dir($target)) { return false; }
 	try
 	{
+		if ($publication_guard !== null && call_user_func($publication_guard) !== true) { return false; }
 		for ($attempt = 0; $attempt < 4; $attempt++)
 		{
 			$path = $base . DIRECTORY_SEPARATOR . '.album-cache-' . bin2hex(phpbb_random_bytes(16)) . '.tmp';
@@ -771,6 +774,7 @@ function album_store_cached_image($image, $directory, $filename, $type, $quality
 		if ($temporary === null || album_cache_directory($directory) !== $base || is_link($temporary)) { return false; }
 		$written = $type === '.jpg' ? @imagejpeg($image, $temporary, $quality) : @imagepng($image, $temporary);
 		if (!$written || !album_cache_image_complete($temporary, $type) || album_cache_directory($directory) !== $base || is_link($target) || is_dir($target)) { return false; }
+		if ($publication_guard !== null && call_user_func($publication_guard) !== true) { return false; }
 		if (!@rename($temporary, $target)) { return false; }
 		$temporary = null; return true;
 	}

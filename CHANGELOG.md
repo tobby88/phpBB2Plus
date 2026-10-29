@@ -8,6 +8,11 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album comments and ratings
 
+- Revalidate current picture identity, permissions and cache policy under the
+  shared Album writer lease before publishing regenerated small/medium previews.
+  Refuse late cache creation after picture deletion/move, retain old cache on
+  failed replacement, and keep direct image rendering available when a cache
+  cannot be published. Concurrent deletion includes a just-published preview.
 - Preserve logical Unicode comment limits before HTML escaping, including guest
   names. Widen comment storage in new installations and the consolidated updater
   without rewriting existing text or guest bylines. In the full updater, widen
