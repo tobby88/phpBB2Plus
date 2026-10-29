@@ -1,4 +1,5 @@
 <?php
+if (!defined('PHPBB_GROUP_STORAGE_FIXTURE_ONLY')) { define('PHPBB_GROUP_STORAGE_FIXTURE_ONLY', true); }
 require __DIR__ . '/check-group-storage.php';
 foreach (array('IN_ADMIN'=>true,'AUTH_ALL'=>0,'AUTH_REG'=>1,'AUTH_ACL'=>2,'AUTH_MOD'=>3,'AUTH_ADMIN'=>5,'JR_ADMIN_TABLE'=>'fixture_junior','POST_USERS_URL'=>'u') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 require $forum_root . 'includes/functions_acl_storage.php';
@@ -34,6 +35,7 @@ class AclViewDatabase extends GroupControllerReadDatabase
 	function sql_fetchrowset($r) { return $r->fetchAll(PDO::FETCH_ASSOC); }
 	function sql_escape($value) { return substr($GLOBALS['mutation_server']->pdo->quote($value),1,-1); }
 }
+if (defined('PHPBB_ACL_STORAGE_FIXTURE_ONLY') && PHPBB_ACL_STORAGE_FIXTURE_ONLY) { return; }
 set_error_handler(function($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try
 {

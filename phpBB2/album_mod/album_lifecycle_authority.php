@@ -73,16 +73,23 @@ class AlbumLifecycleAuthority
 		return $this->lock_context($snapshot, 0, null, ALBUM_AUTH_MODERATOR, true, true);
 	}
 
+	// Creating the first public category has no existing category row to lock.
+	// Keep its exact category-module grant separate from cache administration.
+	function lock_category_creation_admin($snapshot)
+	{
+		return $this->lock_context($snapshot, 0, null, ALBUM_AUTH_MODERATOR, true, false, true);
+	}
+
 	function lock($snapshot, $owner, $category, $checks, $administration = false)
 	{
 		return $this->lock_context($snapshot, $owner, $category, $checks, $administration, false);
 	}
 
-	private function lock_context($snapshot, $owner, $category, $checks, $administration, $cache_management)
+	private function lock_context($snapshot, $owner, $category, $checks, $administration, $cache_management, $category_creation = false)
 	{
 		global $db, $userdata, $album_config, $album_data;
 		if ($this->locked || !$this->storage->publication_ready() || !is_array($snapshot) || !is_int($owner) || $owner < 0 || $owner > 8388607 ||
-			($cache_management ? ($category !== null || $owner !== 0 || $administration !== true) : (!is_int($category) || $category < 1 || $category > 16777215)) ||
+			(($cache_management || $category_creation) ? ($category !== null || $owner !== 0 || $administration !== true) : (!is_int($category) || $category < 1 || $category > 16777215)) ||
 			!is_int($checks) || $checks < 1 || ($checks & ~ALBUM_AUTH_ALL) !== 0 || !is_bool($administration) || ($administration && $owner !== 0) || !isset($snapshot['user_id'], $snapshot['session_id'], $snapshot['session_logged_in'])) { return $this->storage->abort(); }
 		$actor_id = self::integer($snapshot['user_id'], -1, 8388607); $sid = $snapshot['session_id'];
 		$logged = in_array($snapshot['session_logged_in'], array(true,1,'1'), true);
@@ -121,7 +128,7 @@ class AlbumLifecycleAuthority
 			}
 			foreach (array('rate','comment','personal_gallery','personal_gallery_view','personal_gallery_private','personal_allow_gallery_mod','personal_allow_sub_categories','personal_sub_category_limit') as $name) { if (!isset($settings[$name])) { return $this->storage->abort(); } }
 			if ((($checks & ALBUM_AUTH_RATE) !== 0 && $settings['rate'] !== '1') || (($checks & ALBUM_AUTH_COMMENT) !== 0 && $settings['comment'] !== '1')) { return $this->storage->abort(); }
-			$categories = $cache_management ? array(null) : $this->rows('SELECT * FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_id=' . $category . ' AND cat_user_id=' . $owner . ' LOCK IN SHARE MODE');
+			$categories = ($cache_management || $category_creation) ? array(null) : $this->rows('SELECT * FROM ' . ALBUM_CAT_TABLE . ' WHERE cat_id=' . $category . ' AND cat_user_id=' . $owner . ' LOCK IN SHARE MODE');
 			if (count($categories) !== 1) { return $this->storage->abort(); }
 			$fresh = $snapshot; $fresh['user_id'] = $actor_id; $fresh['username'] = $actor['username']; $fresh['user_level'] = $logged ? (int) $actor['user_level'] : 0; $fresh['user_active'] = $logged ? 1 : 0;
 			$fresh['session_id'] = $sid; $fresh['session_logged_in'] = $logged; $fresh['session_time'] = $session_time; $fresh['session_ip'] = $session['session_ip']; $fresh['session_admin'] = (int) $session['session_admin'];

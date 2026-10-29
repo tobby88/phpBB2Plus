@@ -1,4 +1,5 @@
 <?php
+if (!defined('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY')) { define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY', true); }
 require __DIR__ . '/check-attachment-mutation.php';
 foreach (array('ADMIN'=>1,'MOD'=>2,'USER'=>0,'GROUP_OPEN'=>0,'GROUP_CLOSED'=>1,'GROUP_HIDDEN'=>2,'GENERAL_MESSAGE'=>200,'POST_GROUPS_URL'=>'g','USERS_TABLE'=>'fixture_users','GROUPS_TABLE'=>'fixture_groups','USER_GROUP_TABLE'=>'fixture_memberships','AUTH_ACCESS_TABLE'=>'fixture_auth','FORUMS_TABLE'=>'fixture_forums','SESSIONS_TABLE'=>'fixture_sessions') as $key=>$value) { define($key,$value); }
 require $forum_root . 'includes/functions_group_storage.php';
@@ -96,6 +97,7 @@ class GroupControllerReadDatabase
 class GroupControllerTemplate { function assign_vars($value) {} }
 function phpbb_board_url($path) { return 'https://fixture.invalid/' . $path; }
 function append_sid($value) { return $value; }
+if (defined('PHPBB_GROUP_STORAGE_FIXTURE_ONLY') && PHPBB_GROUP_STORAGE_FIXTURE_ONLY) { return; }
 set_error_handler(function($severity,$message) { if (error_reporting() & $severity) { throw new RuntimeException($message); } });
 try
 {

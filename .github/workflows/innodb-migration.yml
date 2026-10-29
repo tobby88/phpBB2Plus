@@ -44,11 +44,13 @@ permissions:
   contents: read
 jobs:
   migration:
+    name: migration (${{ matrix.php }}, part ${{ matrix.part }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         php: ['5.6', '7.4', '8.5']
+        part: [1, 2, 3, 4]
     services:
       database:
         image: mariadb:10.11
@@ -68,6 +70,7 @@ jobs:
           extensions: mysqli, pdo_mysql, pdo_sqlite, openssl, ftp, gd
           coverage: none
       - name: Respect discussion forum access in Knowledge Base comments
+        if: matrix.part == 2
         run: |
           php .github/scripts/check-kb-comment-visibility-native.php
           php .github/scripts/check-kb-comment-retention-native.php
@@ -75,6 +78,7 @@ jobs:
           PHPBB_KB_COUNTER_NATIVE: '1'
           PHPBB_KB_COUNTER_PASSWORD: fixture-only
       - name: Check native Album owner identities and personal gallery guards
+        if: matrix.part == 1
         run: |
           php .github/scripts/check-album-owner-identity-native.php
           php .github/scripts/check-album-root-text-native.php
@@ -119,23 +123,27 @@ jobs:
           PHPBB_ALBUM_DISCUSSION_NATIVE: '1'
           PHPBB_ALBUM_DISCUSSION_PASSWORD: fixture-only
       - name: Preserve full HotOrNot score capacity and historical votes
+        if: matrix.part == 3
         run: php .github/scripts/check-album-rating-storage-native.php
         env:
           PHPBB_ALBUM_RATING_STORAGE_NATIVE: '1'
           PHPBB_ALBUM_RATING_STORAGE_PASSWORD: fixture-only
       - name: Reconcile Album comment categories without changing content
+        if: matrix.part == 3
         run: php -d memory_limit=64M .github/scripts/check-album-comment-parents-native.php
         env:
           PHPBB_ALBUM_COMMENT_PARENTS_NATIVE: '1'
           PHPBB_ALBUM_COMMENT_PARENTS_CLI: '1'
           PHPBB_ALBUM_COMMENT_PARENTS_PASSWORD: fixture-only
       - name: Check Album file journal schema and real updater preservation
+        if: matrix.part == 1
         run: |
           php .github/scripts/check-album-file-journal-native.php
           php .github/scripts/check-album-file-coordinator-native.php
           php .github/scripts/check-album-upload-receipt-native.php
           PHPBB_ALBUM_UPLOAD_RECEIPT_PART=recovery php .github/scripts/check-album-upload-receipt-native.php
           php .github/scripts/check-album-lifecycle-authority-native.php
+          PHPBB_ALBUM_AUTHORITY_PART=category-write php .github/scripts/check-album-lifecycle-authority-native.php
           php .github/scripts/check-album-cache-maintenance-native.php
           php .github/scripts/check-album-picture-upload-native.php
           php .github/scripts/check-album-picture-delete-native.php
@@ -161,11 +169,13 @@ jobs:
           PHPBB_ALBUM_RECOVERY_NATIVE: '1'
           PHPBB_ALBUM_RECOVERY_PASSWORD: fixture-only
       - name: Check native ACP rank authority and paired updates
+        if: matrix.part == 4
         run: php .github/scripts/check-ranks-native.php
         env:
           PHPBB_RANKS_NATIVE: '1'
           PHPBB_RANKS_PASSWORD: fixture-only
       - name: Check native word and acronym administration
+        if: matrix.part == 2
         run: |
           php .github/scripts/check-content-rendering.php
           php .github/scripts/check-content-admin-native.php
@@ -174,6 +184,7 @@ jobs:
           PHPBB_CONTENT_NATIVE: '1'
           PHPBB_CONTENT_PASSWORD: fixture-only
       - name: Check native username restriction administration
+        if: matrix.part == 4
         run: |
           php .github/scripts/check-disallow-native.php
           PHPBB_DISALLOW_RAW=1 php .github/scripts/check-disallow-native.php
@@ -181,11 +192,13 @@ jobs:
           PHPBB_DISALLOW_NATIVE: '1'
           PHPBB_DISALLOW_PASSWORD: fixture-only
       - name: Check native account identity lookups and SQL modes
+        if: matrix.part == 1
         run: php .github/scripts/check-userdata-native.php
         env:
           PHPBB_USERDATA_NATIVE: '1'
           PHPBB_USERDATA_PASSWORD: fixture-only
       - name: Check native CrackerTracker member-flag authority
+        if: matrix.part == 2
         run: |
           php .github/scripts/check-ctracker-users-native.php
           PHPBB_CT_USERS_RAW=1 php .github/scripts/check-ctracker-users-native.php
@@ -193,16 +206,19 @@ jobs:
           PHPBB_CT_USERS_NATIVE: '1'
           PHPBB_CT_USERS_PASSWORD: fixture-only
       - name: Check native CrackerTracker atomic login IP tracking
+        if: matrix.part == 3
         run: php .github/scripts/check-ctracker-login-ip-native.php
         env:
           PHPBB_CT_LOGIN_IP_NATIVE: '1'
           PHPBB_CT_LOGIN_IP_PASSWORD: fixture-only
       - name: Check native Unicode account identity boundaries
+        if: matrix.part == 4
         run: php .github/scripts/check-username-identity-native.php
         env:
           PHPBB_USERNAME_NATIVE: '1'
           PHPBB_USERNAME_PASSWORD: fixture-only
       - name: Check native Unicode public and ACP account creation
+        if: matrix.part == 1
         run: |
           php .github/scripts/check-account-creation-identity-native.php public
           php .github/scripts/check-account-creation-identity-native.php quick-add
@@ -210,26 +226,31 @@ jobs:
           PHPBB_USERNAME_CREATE_NATIVE: '1'
           PHPBB_USERNAME_CREATE_PASSWORD: fixture-only
       - name: Check native Unicode author search and username selectors
+        if: matrix.part == 2
         run: php .github/scripts/check-username-search-native.php
         env:
           PHPBB_USERNAME_SEARCH_NATIVE: '1'
           PHPBB_USERNAME_SEARCH_PASSWORD: fixture-only
       - name: Check native expired and inactive login session creation
+        if: matrix.part == 3
         run: php .github/scripts/check-session-creation-native.php
         env:
           PHPBB_SESSION_CREATION_NATIVE: '1'
           PHPBB_SESSION_CREATION_PASSWORD: fixture-only
       - name: Check native manual login credential and session publication
+        if: matrix.part == 3
         run: php .github/scripts/check-login-publication-native.php
         env:
           PHPBB_LOGIN_PUBLICATION_NATIVE: '1'
           PHPBB_LOGIN_PUBLICATION_PASSWORD: fixture-only
       - name: Check native login and CrackerTracker telemetry publication
+        if: matrix.part == 2
         run: php .github/scripts/check-login-telemetry-native.php
         env:
           PHPBB_LOGIN_TELEMETRY_NATIVE: '1'
           PHPBB_LOGIN_TELEMETRY_PASSWORD: fixture-only
       - name: Check native email bans during login and account registration
+        if: matrix.part == 1
         run: |
           php .github/scripts/check-email-ban-native.php
           php .github/scripts/check-email-ban-registration-native.php
@@ -237,11 +258,13 @@ jobs:
           PHPBB_EMAIL_BAN_NATIVE: '1'
           PHPBB_EMAIL_BAN_PASSWORD: fixture-only
       - name: Check native atomic ACP ban administration
+        if: matrix.part == 4
         run: php .github/scripts/check-admin-ban-native.php
         env:
           PHPBB_ADMIN_BAN_NATIVE: '1'
           PHPBB_ADMIN_BAN_PASSWORD: fixture-only
       - name: Check native masked IP bans and real session publication
+        if: matrix.part == 2
         run: |
           php .github/scripts/check-ip-ban.php
           php .github/scripts/check-ip-ban-native.php
@@ -252,26 +275,31 @@ jobs:
           PHPBB_IP_MIGRATION_NATIVE: '1'
           PHPBB_IP_MIGRATION_PASSWORD: fixture-only
       - name: Check native atomic user-list bulk actions
+        if: matrix.part == 4
         run: php .github/scripts/check-userlist-native.php
         env:
           PHPBB_USERLIST_NATIVE: '1'
           PHPBB_USERLIST_PASSWORD: fixture-only
       - name: Check native atomic moderation card publication
+        if: matrix.part == 3
         run: php -d disable_functions=mail .github/scripts/check-card-native.php
         env:
           PHPBB_CARD_NATIVE: '1'
           PHPBB_CARD_PASSWORD: fixture-only
       - name: Check native current-authority report and reset publication
+        if: matrix.part == 1
         run: php -d disable_functions=mail .github/scripts/check-report-native.php
         env:
           PHPBB_REPORT_NATIVE: '1'
           PHPBB_REPORT_PASSWORD: fixture-only
       - name: Check native removed-account mixed ban preservation
+        if: matrix.part == 4
         run: php .github/scripts/check-user-ban-lifecycle-native.php
         env:
           PHPBB_USER_BAN_LIFECYCLE_NATIVE: '1'
           PHPBB_USER_BAN_LIFECYCLE_PASSWORD: fixture-only
       - name: Check native ACP database backup roundtrips
+        if: matrix.part == 1
         run: |
           for case in plain gzip data structure normal-source revoked read-failure concurrent-write concurrent-gzip gzip-read-failure delegated wrong-grant revoked-grant logout inactive foreign-session bad-sid legacy-table legacy-structure legacy-authority snapshot-failure commit-failure lost-ack lost-authority authority-concurrency ddl-concurrency request-transaction factory-reuse; do
             php .github/scripts/check-db-backup-native.php "$case"
@@ -279,52 +307,65 @@ jobs:
         env:
           PHPBB_DB_BACKUP_NATIVE: '1'
           PHPBB_DB_BACKUP_PASSWORD: fixture-only
-      - run: php .github/scripts/check-erc-clear-native.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-erc-clear-native.php
         env:
           PHPBB_ERC_CLEAR_NATIVE: '1'
           PHPBB_ERC_CLEAR_PASSWORD: fixture-only
-      - run: php .github/scripts/check-erc-roles-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-erc-roles-native.php
         env:
           PHPBB_ERC_ROLES_NATIVE: '1'
           PHPBB_ERC_ROLES_PASSWORD: fixture-only
-      - run: php .github/scripts/check-erc-grant-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-erc-grant-native.php
         env:
           PHPBB_ERC_GRANT_NATIVE: '1'
           PHPBB_ERC_GRANT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-erc-config-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-erc-config-native.php
         env:
           PHPBB_ERC_CONFIG_NATIVE: '1'
           PHPBB_ERC_CONFIG_PASSWORD: fixture-only
-      - run: php .github/scripts/run-native-config-recovery.php
+      - if: matrix.part == 1
+        run: php .github/scripts/run-native-config-recovery.php
         env:
           PHPBB_CONFIG_RECOVERY_NATIVE: '1'
           PHPBB_CONFIG_RECOVERY_PASSWORD: fixture-only
-      - run: php .github/scripts/check-erc-recovery-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-erc-recovery-native.php
         env:
           PHPBB_ERC_RECOVERY_NATIVE: '1'
           PHPBB_ERC_RECOVERY_PASSWORD: fixture-only
-      - run: php .github/scripts/check-erc-language-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-erc-language-native.php
         env:
           PHPBB_ERC_LANGUAGE_NATIVE: '1'
           PHPBB_ERC_LANGUAGE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-erc-style-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-erc-style-native.php
         env:
           PHPBB_ERC_STYLE_NATIVE: '1'
           PHPBB_ERC_STYLE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-id-migration.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-style-id-migration.php
         env:
           PHPBB_STYLE_IDS_NATIVE: '1'
           PHPBB_STYLE_IDS_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-files.php
-      - run: php .github/scripts/check-style-clone-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-style-files.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-style-clone-native.php
         env:
           PHPBB_STYLE_CLONE_NATIVE: '1'
           PHPBB_STYLE_CLONE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-install-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-style-install-native.php
         env:
           PHPBB_STYLE_INSTALL_NATIVE: '1'
           PHPBB_STYLE_INSTALL_PASSWORD: fixture-only
       - name: Check native style export authority and publication
+        if: matrix.part == 1
         run: |
           for case in normal pending revoked file pending-file revoked-file delegated revoked-grant logout bad-sid concurrent-revoke commit-failure lost-ack old-storage invalid-default long-preferences zero lost-owner-file cache-failure existing update-failure alias-preferences ftp-quoted ftp-zero ftp-raw ftp-refused ftp-commit-failure ftp-lost-ack; do
             php .github/scripts/check-style-export-native.php "$case"
@@ -332,70 +373,85 @@ jobs:
         env:
           PHPBB_STYLE_EXPORT_NATIVE: '1'
           PHPBB_STYLE_EXPORT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-import-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-style-import-native.php
         env:
           PHPBB_STYLE_IMPORT_NATIVE: '1'
           PHPBB_STYLE_IMPORT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-import-recovery-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-style-import-recovery-native.php
         env:
           PHPBB_STYLE_IMPORT_RECOVERY_NATIVE: '1'
           PHPBB_STYLE_IMPORT_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 2
+        run: |
           php .github/scripts/check-style-recovery-controller-native.php
           php .github/scripts/check-style-recovery-controller-native.php target-directory
           php .github/scripts/check-style-recovery-controller-native.php target-definition
         env:
           PHPBB_STYLE_RECOVERY_CONTROLLER_NATIVE: '1'
           PHPBB_STYLE_IMPORT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-removal-native.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-style-removal-native.php
         env:
           PHPBB_STYLE_REMOVAL_NATIVE: '1'
           PHPBB_STYLE_REMOVAL_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-load-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-style-load-native.php
         env:
           PHPBB_STYLE_LOAD_NATIVE: '1'
           PHPBB_STYLE_LOAD_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-data-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-style-data-native.php
         env:
           PHPBB_STYLE_DATA_NATIVE: '1'
           PHPBB_STYLE_DATA_PASSWORD: fixture-only
-      - run: php .github/scripts/check-style-actions-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-style-actions-native.php
         env:
           PHPBB_STYLE_ACTIONS_NATIVE: '1'
           PHPBB_STYLE_ACTIONS_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 1
+        run: |
           php .github/scripts/check-xs-config-native.php config
           php .github/scripts/check-xs-config-native.php ftp
         env:
           PHPBB_XS_CONFIG_NATIVE: '1'
           PHPBB_XS_CONFIG_PASSWORD: fixture-only
-      - run: php .github/scripts/check-innodb-migration.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-innodb-migration.php
         env:
           PHPBB_STORAGE_NATIVE: '1'
           PHPBB_STORAGE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-profile-field-column.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-profile-field-column.php
         env:
           PHPBB_PROFILE_COLUMN_NATIVE: '1'
           PHPBB_PROFILE_COLUMN_PASSWORD: fixture-only
-      - run: php .github/scripts/check-profile-definition-storage.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-profile-definition-storage.php
         env:
           PHPBB_PROFILE_DEFINITION_NATIVE: '1'
           PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
-      - run: php .github/scripts/check-profile-retirement.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-profile-retirement.php
         env:
           PHPBB_PROFILE_DEFINITION_NATIVE: '1'
           PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
-      - run: php .github/scripts/check-profile-cleanup.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-profile-cleanup.php
         env:
           PHPBB_PROFILE_DEFINITION_NATIVE: '1'
           PHPBB_PROFILE_DEFINITION_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 1
+        run: |
           php .github/scripts/run-native-maintenance-users.php
           php .github/scripts/run-native-maintenance-users.php erc
         env:
           PHPBB_GUEST_PROFILE_NATIVE: '1'
           PHPBB_GUEST_PROFILE_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 4
+        run: |
           php .github/scripts/check-kb-counters-native.php
           php .github/scripts/check-kb-counter-migration.php
           php .github/scripts/check-kb-article-actions-native.php
@@ -420,189 +476,231 @@ jobs:
         env:
           PHPBB_KB_COUNTER_NATIVE: '1'
           PHPBB_KB_COUNTER_PASSWORD: fixture-only
-      - run: php .github/scripts/check-storage-policy.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-storage-policy.php
         env:
           PHPBB_STORAGE_NATIVE: '1'
           PHPBB_STORAGE_PASSWORD: fixture-only
-      - run: php .github/scripts/run-native-rebuild-session.php
+      - if: matrix.part == 2
+        run: php .github/scripts/run-native-rebuild-session.php
         env:
           PHPBB_REBUILD_NATIVE: '1'
           PHPBB_REBUILD_TEST_PASSWORD: fixture-only
-      - run: php .github/scripts/run-native-maintenance-rebuild.php
+      - if: matrix.part == 4
+        run: php .github/scripts/run-native-maintenance-rebuild.php
         env:
           PHPBB_REBUILD_NATIVE: '1'
           PHPBB_REBUILD_TEST_PASSWORD: fixture-only
-      - run: php .github/scripts/run-native-poll-session.php
+      - if: matrix.part == 4
+        run: php .github/scripts/run-native-poll-session.php
         env:
           PHPBB_POLL_MAINTENANCE_NATIVE: '1'
           PHPBB_POLL_MAINTENANCE_TEST_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 1
+        run: |
           php .github/scripts/run-native-pm-maintenance.php counter
           php .github/scripts/run-native-pm-maintenance.php repair
         env:
           PHPBB_PM_MAINTENANCE_NATIVE: '1'
           PHPBB_PM_MAINTENANCE_TEST_PASSWORD: fixture-only
-      - run: php .github/scripts/run-native-acl-session.php
+      - if: matrix.part == 1
+        run: php .github/scripts/run-native-acl-session.php
         env:
           PHPBB_ACL_SESSION_NATIVE: '1'
           PHPBB_ACL_SESSION_TEST_PASSWORD: fixture-only
-      - run: php .github/scripts/check-ctracker-rate-storage.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-ctracker-rate-storage.php
         env:
           PHPBB_RATE_NATIVE: '1'
           PHPBB_RATE_TEST_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 3
+        run: |
           php .github/scripts/check-ctracker-recovery-storage.php
           php .github/scripts/check-ctracker-admin-authority.php
           php .github/scripts/check-ctracker-commit-native.php
         env:
           PHPBB_CT_RECOVERY_NATIVE: '1'
           PHPBB_CT_RECOVERY_TEST_PASSWORD: fixture-only
-      - run: php .github/scripts/check-board-config-storage.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-board-config-storage.php
         env:
           PHPBB_BOARD_CONFIG_NATIVE: '1'
           PHPBB_BOARD_CONFIG_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 3
+        run: |
           php .github/scripts/check-settings-commit-native.php board
           php .github/scripts/check-settings-commit-native.php mods
         env:
           PHPBB_SETTINGS_COMMIT_NATIVE: '1'
           PHPBB_SETTINGS_COMMIT_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 4
+        run: |
           php .github/scripts/check-mod-settings-defaults.php
           php .github/scripts/check-mod-settings-storage.php
         env:
           PHPBB_MOD_SETTINGS_NATIVE: '1'
           PHPBB_MOD_SETTINGS_PASSWORD: fixture-only
-      - run: php .github/scripts/check-attachment-settings-storage.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-attachment-settings-storage.php
         env:
           PHPBB_ATTACH_SETTINGS_NATIVE: '1'
           PHPBB_ATTACH_SETTINGS_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 3
+        run: |
           php .github/scripts/check-new-user-quota-target.php
           php .github/scripts/check-attachment-quota-storage.php
           php .github/scripts/check-attachment-quota-lifecycle-native.php
         env:
           PHPBB_QUOTA_NATIVE: '1'
           PHPBB_QUOTA_PASSWORD: fixture-only
-      - run: php .github/scripts/check-group-admin-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-group-admin-native.php
         env:
           PHPBB_GROUP_ADMIN_NATIVE: '1'
           PHPBB_GROUP_ADMIN_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 1
+        run: |
           php .github/scripts/check-group-display.php
           php .github/scripts/check-group-membership-native.php
         env:
           PHPBB_GROUP_MEMBERSHIP_NATIVE: '1'
           PHPBB_GROUP_MEMBERSHIP_PASSWORD: fixture-only
-      - run: php .github/scripts/check-acl-save-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-acl-save-native.php
         env:
           PHPBB_ACL_SAVE_NATIVE: '1'
           PHPBB_ACL_SAVE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-account-activation-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-account-activation-native.php
         env:
           PHPBB_ACTIVATION_NATIVE: '1'
           PHPBB_ACTIVATION_PASSWORD: fixture-only
-      - run: php .github/scripts/check-password-reset-request-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-password-reset-request-native.php
         env:
           PHPBB_RESET_REQUEST_NATIVE: '1'
           PHPBB_RESET_REQUEST_PASSWORD: fixture-only
-      - run: php .github/scripts/check-registration-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-registration-native.php
         env:
           PHPBB_REGISTRATION_NATIVE: '1'
           PHPBB_REGISTRATION_PASSWORD: fixture-only
-      - run: php .github/scripts/check-profile-account-defaults.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-profile-account-defaults.php
         env:
           PHPBB_REGISTRATION_NATIVE: '1'
           PHPBB_REGISTRATION_PASSWORD: fixture-only
-      - run: php .github/scripts/check-admin-registration-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-admin-registration-native.php
         env:
           PHPBB_QUICK_ADD_NATIVE: '1'
           PHPBB_QUICK_ADD_PASSWORD: fixture-only
-      - run: php .github/scripts/check-admin-profile-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-admin-profile-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
       - name: Check native ACP warning selections and user-ban boundaries
+        if: matrix.part == 3
         run: php .github/scripts/check-admin-profile-warning-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-admin-profile-identity-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-admin-profile-identity-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-admin-rank-selection-native.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-admin-rank-selection-native.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-profile-account-defaults-admin.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-profile-account-defaults-admin.php
         env:
           PHPBB_ADMIN_PROFILE_NATIVE: '1'
           PHPBB_ADMIN_PROFILE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-maintenance-roles-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-maintenance-roles-native.php
         env:
           PHPBB_ROLES_NATIVE: '1'
           PHPBB_ROLES_PASSWORD: fixture-only
-      - run: php .github/scripts/check-topic-move-native.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-topic-move-native.php
         env:
           PHPBB_MOVE_NATIVE: '1'
           PHPBB_MOVE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-topic-state-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-topic-state-native.php
         env:
           PHPBB_STATE_NATIVE: '1'
           PHPBB_STATE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-topic-split-native.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-topic-split-native.php
         env:
           PHPBB_SPLIT_NATIVE: '1'
           PHPBB_SPLIT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-topic-merge-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-topic-merge-native.php
         env:
           PHPBB_MERGE_NATIVE: '1'
           PHPBB_MERGE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-poll-vote-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-poll-vote-native.php
         env:
           PHPBB_VOTE_NATIVE: '1'
           PHPBB_VOTE_PASSWORD: fixture-only
       - name: Preserve existing posts when adding last-editor snapshots
+        if: matrix.part == 3
         run: php .github/scripts/check-post-edit-migration-native.php
         env:
           PHPBB_POST_EDIT_NATIVE: '1'
           PHPBB_POST_EDIT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-ajax-edit-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-ajax-edit-native.php
         env:
           PHPBB_AJAX_EDIT_NATIVE: '1'
           PHPBB_AJAX_EDIT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-post-submit-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-post-submit-native.php
         env:
           PHPBB_POST_SUBMIT_NATIVE: '1'
           PHPBB_POST_SUBMIT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-full-editor-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-full-editor-native.php
         env:
           PHPBB_FULL_EDITOR_NATIVE: '1'
           PHPBB_FULL_EDITOR_PASSWORD: fixture-only
-      - run: php .github/scripts/check-post-delete-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-post-delete-native.php
         env:
           PHPBB_POST_DELETE_NATIVE: '1'
           PHPBB_POST_DELETE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-topic-removal-native.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-topic-removal-native.php
         env:
           PHPBB_TOPIC_REMOVAL_NATIVE: '1'
           PHPBB_TOPIC_REMOVAL_PASSWORD: fixture-only
-      - run: php .github/scripts/check-post-storage-metadata-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-post-storage-metadata-native.php
         env:
           PHPBB_POST_METADATA_NATIVE: '1'
           PHPBB_POST_METADATA_PASSWORD: fixture-only
-      - run: php .github/scripts/check-poll-maintenance-native.php
+      - if: matrix.part == 1
+        run: php .github/scripts/check-poll-maintenance-native.php
         env:
           PHPBB_POLL_MAINTENANCE_NATIVE: '1'
           PHPBB_POLL_MAINTENANCE_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 1
+        run: |
           php .github/scripts/check-interactive-storage-native.php ajax
           php .github/scripts/check-interactive-storage-native.php vote
         env:
           PHPBB_INTERACTIVE_NATIVE: '1'
           PHPBB_INTERACTIVE_PASSWORD: fixture-only
-      - run: |
+      - if: matrix.part == 3
+        run: |
           php .github/scripts/check-moderation-commit-native.php state
           php .github/scripts/check-moderation-commit-native.php move
           php .github/scripts/check-moderation-commit-native.php split
@@ -610,19 +708,23 @@ jobs:
         env:
           PHPBB_MODERATION_COMMIT_NATIVE: '1'
           PHPBB_MODERATION_COMMIT_PASSWORD: fixture-only
-      - run: php .github/scripts/check-public-profile-avatar.php
+      - if: matrix.part == 2
+        run: php .github/scripts/check-public-profile-avatar.php
         env:
           PHPBB_PUBLIC_AVATAR_NATIVE: '1'
           PHPBB_PUBLIC_AVATAR_PASSWORD: fixture-only
-      - run: php .github/scripts/check-public-profile-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-public-profile-native.php
         env:
           PHPBB_PUBLIC_PROFILE_NATIVE: '1'
           PHPBB_PUBLIC_PROFILE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-signature-save-native.php
+      - if: matrix.part == 3
+        run: php .github/scripts/check-signature-save-native.php
         env:
           PHPBB_SIGNATURE_NATIVE: '1'
           PHPBB_SIGNATURE_PASSWORD: fixture-only
-      - run: php .github/scripts/check-public-profile-identity-native.php
+      - if: matrix.part == 4
+        run: php .github/scripts/check-public-profile-identity-native.php
         env:
           PHPBB_PUBLIC_PROFILE_NATIVE: '1'
           PHPBB_PUBLIC_PROFILE_PASSWORD: fixture-only

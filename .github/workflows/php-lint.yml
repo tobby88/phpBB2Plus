@@ -608,6 +608,9 @@ jobs:
       - name: Render actual and historical post editors consistently
         run: php .github/scripts/check-post-edit-caption.php
 
+      - name: Validate complete native CI partition coverage
+        run: php .github/scripts/check-native-workflow-partition.php
+
       - name: Test coordinated poll votes and failure recovery
         run: php .github/scripts/check-poll-storage.php
 

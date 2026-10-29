@@ -131,4 +131,5 @@ $lang['image_resizing'] = 'Enable image resizing';
 $lang['image_width'] = 'Image width';
 $lang['image_height'] = 'Image height';
 $lang['image_quality'] = 'Image quality';
+$lang['Album_category_save_failed'] = 'The category could not be changed. Reload the page and check the category, permissions and input.';
 ?>

@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_GROUP_STORAGE_FIXTURE_ONLY', true);
 require __DIR__ . '/check-group-storage.php';
 foreach (array('IN_ADMIN'=>true,'JR_ADMIN_TABLE'=>'fixture_junior','QUOTA_TABLE'=>'fixture_quotas','QUOTA_LIMITS_TABLE'=>'fixture_limits','QUOTA_UPLOAD_LIMIT'=>1,'QUOTA_PM_LIMIT'=>2,'PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 require $forum_root . 'includes/functions_group_admin_storage.php';

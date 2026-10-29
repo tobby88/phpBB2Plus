@@ -41,6 +41,7 @@ require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/
 require($phpbb_root_path . 'language/lang_' . $board_config['default_lang'] . '/lang_admin_album.' . $phpEx);
 
 require($album_root_path. 'album_common.'.$phpEx);
+require_once $album_root_path . 'album_admin_category_storage.' . $phpEx;
 
 $album_user_id = ALBUM_PUBLIC_GALLERY;
 $template->assign_var('S_FORM_TOKEN', phpbb_admin_session_field());
@@ -50,29 +51,17 @@ function album_admin_post_scalar($key, $default = '')
 	return (isset($_POST[$key]) && is_scalar($_POST[$key])) ? stripslashes((string) $_POST[$key]) : (string) $default;
 }
 
-function album_admin_category_exists($cat_id)
-{
-	global $db;
-	$cat_id = intval($cat_id);
-	if ($cat_id === 0 || $cat_id === ALBUM_ROOT_CATEGORY)
-	{
-		return true;
-	}
-	$sql = 'SELECT cat_id FROM ' . ALBUM_CAT_TABLE . " WHERE cat_id = $cat_id";
-	if (!($result = $db->sql_query($sql)))
-	{
-		message_die(GENERAL_ERROR, 'Could not validate Album Category', '', __LINE__, __FILE__, $sql);
-	}
-	$exists = (bool) $db->sql_fetchrow($result);
-	$db->sql_freeresult($result);
-	return $exists;
-}
-
 function album_admin_permission_level($key, $default, $allow_guest = true)
 {
 	$value = intval(album_admin_post_scalar($key, $default));
 	$allowed = $allow_guest ? array(ALBUM_GUEST, ALBUM_USER, ALBUM_PRIVATE, ALBUM_MOD, ALBUM_ADMIN) : array(ALBUM_USER, ALBUM_PRIVATE, ALBUM_MOD, ALBUM_ADMIN);
 	return in_array($value, $allowed, true) ? $value : $default;
+}
+
+function album_admin_category_post_values($title,$description,$view,$upload,$rate,$comment,$edit,$delete,$approval)
+{
+	return array('cat_title'=>$title,'cat_desc'=>$description,'cat_view_level'=>$view,'cat_upload_level'=>$upload,
+		'cat_rate_level'=>$rate,'cat_comment_level'=>$comment,'cat_edit_level'=>$edit,'cat_delete_level'=>$delete,'cat_approval'=>$approval);
 }
 
 $post_mode = album_admin_post_scalar('mode');
@@ -341,7 +330,10 @@ if( $post_mode === '' )
 
          		//--- Album Category Hierarchy : begin
 				//--- version <= 1.1.0
-         		album_move_tree($cat_id, $move);
+			if (album_admin_category_change('order',$cat_id,0,array(),$move) === false)
+			{
+				showResultMessage($lang['Album_category_save_failed']);
+			}
          		//--- Album Category Hierarchy : end
 
 			// Return a message...
@@ -450,36 +442,10 @@ else
 			//--- version <= 1.1.0
 			$posted_parent = intval(album_admin_post_scalar('cat_parent_id', ALBUM_ROOT_CATEGORY));
 			$cat_parent = ($posted_parent == ALBUM_ROOT_CATEGORY) ? 0 : $posted_parent;
-			if ($cat_title === '' || !album_admin_category_exists($cat_parent))
+			$values = album_admin_category_post_values($cat_title,$cat_desc,$view_level,$upload_level,$rate_level,$comment_level,$edit_level,$delete_level,$cat_approval);
+			if (album_admin_category_change('new',null,$cat_parent,$values) === false)
 			{
-				message_die(GENERAL_ERROR, 'Invalid Album category data.');
-			}
-			$cat_title_sql = $db->sql_escape($cat_title);
-			$cat_desc_sql = $db->sql_escape($cat_desc);
-			//--- Album Category Hierarchy : end
-
-			// Get the last ordered category
-			$sql = "SELECT cat_order FROM ". ALBUM_CAT_TABLE ."
-					ORDER BY cat_order DESC
-					LIMIT 1";
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not query Album Categories information', '', __LINE__, __FILE__, $sql);
-			}
-			$row = $db->sql_fetchrow($result);
-			$last_order = $row ? intval($row['cat_order']) : 0;
-			$cat_order = $last_order + 10;
-
-			// Here we insert a new row into the db
-			//--- Album Category Hierarchy : begin
-			//--- version <= 1.1.0
-			$sql = "INSERT INTO ". ALBUM_CAT_TABLE ." (cat_title, cat_desc, cat_order, cat_view_level, cat_upload_level, cat_rate_level, cat_comment_level, cat_edit_level, cat_delete_level, cat_approval, cat_parent, cat_user_id)
-					VALUES ('$cat_title_sql', '$cat_desc_sql', $cat_order, $view_level, $upload_level, $rate_level, $comment_level, $edit_level, $delete_level, $cat_approval, $cat_parent, " . ALBUM_PUBLIC_GALLERY . ")";
-   			//--- Album Category Hierarchy : end
-
-			if(!$result = $db->sql_query($sql))
-			{
-				message_die(GENERAL_ERROR, 'Could not create new Album Category', '', __LINE__, __FILE__, $sql);
+				showResultMessage($lang['Album_category_save_failed']);
 			}
 
 			// Return a message...
@@ -504,42 +470,10 @@ else
 		//--- version <= 1.1.0
 		$posted_parent = intval(album_admin_post_scalar('cat_parent_id', ALBUM_ROOT_CATEGORY));
 		$cat_parent = ($posted_parent == ALBUM_ROOT_CATEGORY) ? 0 : $posted_parent;
-		if ($cat_id <= 0 || !album_admin_category_exists($cat_id) || !album_admin_category_exists($cat_parent) || $cat_title === '')
+		$values = album_admin_category_post_values($cat_title,$cat_desc,$view_level,$upload_level,$rate_level,$comment_level,$edit_level,$delete_level,$cat_approval);
+		if (album_admin_category_change('edit',$cat_id,$cat_parent,$values) === false)
 		{
-			message_die(GENERAL_ERROR, 'Invalid Album category data.');
-		}
-		//--- Album Category Hierarchy : end
-		
-		if ( ($cat_id == $cat_parent) && (album_get_personal_root_id($album_user_id) != $cat_id)  )
-		{
-			showResultMessage($lang['No_Self_Refering_Cat']);
-		}
-		
-		if ( (album_get_personal_root_id($album_user_id) == $cat_id) && ($cat_parent != 0) )
-		{
-			showResultMessage($lang['Can_Not_Change_Main_Parent']);
-		}		
-		album_read_tree();
-		$descendant_ids = array();
-		album_get_sub_cat_ids($cat_id, $descendant_ids, ALBUM_AUTH_VIEW, false);
-		if (in_array($cat_parent, array_map('intval', $descendant_ids), true))
-		{
-			showResultMessage($lang['No_Self_Refering_Cat']);
-		}
-		$cat_title_sql = $db->sql_escape($cat_title);
-		$cat_desc_sql = $db->sql_escape($cat_desc);
-
-		// Now we update this row
-		//--- Album Category Hierarchy : begin
-		//--- version <= 1.1.0
-		$sql = "UPDATE ". ALBUM_CAT_TABLE ."
-				SET cat_title = '$cat_title_sql', cat_desc = '$cat_desc_sql', cat_view_level = $view_level, cat_upload_level = $upload_level, cat_rate_level = $rate_level, cat_comment_level = $comment_level, cat_edit_level = $edit_level, cat_delete_level = $delete_level, cat_approval = $cat_approval, cat_parent = $cat_parent
-				WHERE cat_id = $cat_id";
-		//--- Album Category Hierarchy : end
-
-		if(!$result = $db->sql_query($sql))
-		{
-			message_die(GENERAL_ERROR, 'Could not update this Album Category', '', __LINE__, __FILE__, $sql);
+			showResultMessage($lang['Album_category_save_failed']);
 		}
 
 		// Return a message...

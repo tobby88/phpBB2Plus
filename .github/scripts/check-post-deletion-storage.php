@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY',true);
 require __DIR__ . '/check-attachment-mutation.php';
 define('GENERAL_MESSAGE', 200);
 define('POSTS_TEXT_TABLE', 'fixture_post_text');

@@ -38,11 +38,9 @@ album_test_assert(substr_count($hierarchy, "=> ALBUM_ADMIN") >= 2, 'missing cate
 album_test_assert(strpos($admin_categories, 'phpbb_admin_require_post_session();') !== false, 'category writes must verify the AdminCP POST token');
 album_test_assert(strpos($admin_categories, "array('new', 'edit', 'delete')") !== false, 'category write modes must use an allowlist');
 album_test_assert(strpos($admin_categories, 'function album_admin_permission_level') !== false, 'category permission levels must be normalized');
-album_test_assert(strpos($admin_categories, 'album_admin_category_exists($cat_parent)') !== false, 'category parents must exist');
-album_test_assert(strpos($admin_categories, "album_get_sub_cat_ids(\$cat_id, \$descendant_ids") !== false, 'category moves must reject descendants');
+foreach(array('new','edit','order')as$category_action){album_test_assert(strpos($admin_categories,"album_admin_category_change('".$category_action."',")!==false,'public category action must delegate to its current-authority owning writer: '.$category_action);}
 album_test_assert(strpos($admin_categories, 'album_category_remove_request(0,') !== false && strpos($personal_admin, 'album_category_remove_request((int)$album_user_id,') !== false, 'public and personal category removal must use the shared current-authority transaction');
 album_test_assert(strpos($admin_categories, '@unlink(') === false && strpos($personal_admin, '@unlink(') === false, 'category controllers must not unlink images outside committed cleanup');
-album_test_assert(strpos($admin_categories, '$db->sql_escape($cat_title)') !== false, 'category text must use database-driver escaping');
 album_test_assert(strpos($admin_categories, '= each(') === false, 'PHP 8-incompatible category iteration must not return');
 album_test_assert(strpos($category_template, 'name="cat_id"') !== false, 'category write targets must travel in the tokenized POST form');
 

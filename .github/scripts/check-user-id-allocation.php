@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY',true);
 require __DIR__ . '/check-attachment-mutation.php';
 if (!defined('GENERAL_MESSAGE')) { define('GENERAL_MESSAGE',200); }
 require $forum_root.'includes/functions_user_ids.php';
