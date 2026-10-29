@@ -13,6 +13,12 @@ require $phpbb_root_path . 'pafiledb/includes/functions_comment.php';
 require $phpbb_root_path . 'pafiledb/modules/pa_post_comment.php';
 require $project . '/update/innodb_migration.php';
 
+$pc_core_source = file_get_contents($phpbb_root_path . 'includes/functions.php');
+foreach (array('phpbb_profile_text', 'phpbb_profile_details_visible') as $name) {
+ if (preg_match('/^function ' . $name . '\(.*?^\}/ms', $pc_core_source, $match) !== 1) { throw new RuntimeException('Actual profile helper missing: ' . $name); }
+ eval($match[0]);
+}
+
 class PaCommentMessage extends RuntimeException {
  public $level;
  function __construct($level, $text) { $this->level = $level; parent::__construct($text); }
