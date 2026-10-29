@@ -34,7 +34,8 @@ $body= <<<'PHP'
   fe_fixture($actor);$before=fe_snapshot();$out=fe_submit();ae_check(is_array($out),'Successful full edit '.$actor.' '.(isset($fe_exception)?$fe_exception:'').' '.json_encode($ae_error));$after=fe_snapshot();$writes=$ae_write;
   ae_check(array_map('intval',array_column(ae_rows('SELECT vote_option_id FROM fixture_vote_results ORDER BY vote_option_id'),'vote_option_id'))===array(2,3,4),'Retained option IDs never collide with new option');
   ae_check(count($after['logs'])===($actor==='member'?0:1)&&$out['post_data']['_edit_audit_completed'],'Atomic moderator audit and caller marker');
-  ae_check((int)ae_rows('SELECT post_edit_count FROM fixture_posts WHERE post_id=10')[0]['post_edit_count']===($actor==='member'?1:0),'Correct own non-last edit count');
+  $edit=ae_rows('SELECT post_edit_count,post_edit_user_id,post_edit_username FROM fixture_posts WHERE post_id=10')[0];
+  ae_check((int)$edit['post_edit_count']===1&&(int)$edit['post_edit_user_id']===8&&$edit['post_edit_username']==="Grüße O'Reilly 😀",'Every changed full-editor save records the actual editor and increments once');
   ae_check(is_array(fe_submit(array('uid'=>'9876543210')))&&fe_snapshot()===$after,'No-op retry preserves parser UID, counts, options, index and audit');
   for($nth=1;$nth<=$writes;$nth++){fe_fixture($actor);$before=fe_snapshot();$ae_failwrite=$nth;ae_check(fe_submit()==='error'&&fe_snapshot()===$before,'Whole rollback at each body/metadata/poll/index/audit write '.$actor.'/'.$nth);$cases++;}
   foreach(array(false,true) as $ack){fe_fixture($actor);$before=fe_snapshot();$ae_ack=$ack;$ae_fail=$ack?'':'COMMIT';ae_check(fe_submit()==='error'&&fe_snapshot()===($ack?$after:$before),'Failed/lost acknowledgement is atomic');$ae_ack=false;$ae_fail='';if($ack){ae_check(is_array(fe_submit())&&fe_snapshot()===$after,'Lost ACK retry does not repeat edit or audit');}$cases++;}
@@ -51,6 +52,18 @@ $body= <<<'PHP'
  fe_fixture('moderator');ae_sql('UPDATE fixture_vote_results SET vote_result=4 WHERE vote_option_id=2');ae_check(is_array(fe_submit())&&(int)ae_rows('SELECT vote_result FROM fixture_vote_results WHERE vote_option_id=2')[0]['vote_result']===4,'Moderator changes keep retained option votes');$cases++;
  foreach($ae_tables as $s){fe_fixture();ae_sql('ALTER TABLE fixture_'.$s.' ENGINE=MyISAM');$before=fe_snapshot();ae_check(fe_submit()==='error'&&fe_snapshot()===$before,'Legacy participant refused '.$s);ae_sql('ALTER TABLE fixture_'.$s.' ENGINE=InnoDB ROW_FORMAT=DYNAMIC');$cases++;}
  }
+ // Reported case: a moderator edits an already edited post of a deleted user.
+ foreach(array('ajax','full')as$editor){
+  fe_fixture('moderator');ae_sql("UPDATE fixture_posts SET poster_id=-1,post_username='Former author',post_edit_count=1,post_edit_time=123 WHERE post_id=10");$started=time();
+  $save=function()use($editor){return$editor==='ajax'?ae_edit('text',10,'Updated deleted-author post 😀'):fe_submit(array('username'=>'Former author','text'=>'Updated deleted-author post 😀'));};
+  ae_check(is_array($save()),'Reported deleted-author edit succeeds through '.$editor);$row=ae_rows('SELECT * FROM fixture_posts WHERE post_id=10')[0];
+  ae_check((int)$row['post_edit_count']===2&&(int)$row['post_edit_time']>=$started&&(int)$row['post_edit_user_id']===8&&$row['post_edit_username']==="Grüße O'Reilly 😀"&&$row['post_username']==='Former author','Reported case updates editor/time/count without changing deleted author byline');
+  $after=fe_snapshot();ae_check(is_array($save())&&fe_snapshot()===$after,'Reported-case unchanged retry does not increment again');$cases++;
+ }
+ fe_fixture('moderator');ae_sql('ALTER TABLE fixture_posts DROP post_edit_user_id,DROP post_edit_username');$before=fe_snapshot();
+ ae_check(fe_submit()==='error'&&fe_snapshot()===$before,'Unmigrated last-editor storage refuses the whole full save without changing content or count');
+ ae_check(ae_edit('text',10,'Unmigrated edit')==='error'&&fe_snapshot()===$before,'Unmigrated last-editor storage returns a controlled AJAX failure without partial edits');
+ ae_sql('ALTER TABLE fixture_posts ADD post_edit_user_id MEDIUMINT NULL DEFAULT NULL,ADD post_edit_username VARCHAR(255) NULL DEFAULT NULL');$cases++;
  // Additional end-to-end cases can run alone while the failure matrix finishes.
  foreach(array('invalid',0,array(10)) as $invalid){fe_fixture();$before=fe_snapshot();ae_check(fe_submit(array('post'=>$invalid))==='error'&&fe_snapshot()===$before,'Invalid scope keeps every row');ae_check(is_array(fe_submit()),'Invalid scope releases writer immediately for next request');$cases++;}
  fe_fixture();ae_sql('UPDATE fixture_forums SET auth_sticky=1,auth_global_announce=5');$before=fe_snapshot();ae_check(fe_submit(array('type'=>POST_GLOBAL_ANNOUNCE))==='error'&&fe_snapshot()===$before,'Sticky permission never grants global announcement permission');$cases++;

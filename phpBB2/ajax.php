@@ -24,6 +24,7 @@ $phpbb_root_path = './';
 include($phpbb_root_path .'extension.inc');
 include($phpbb_root_path .'common.'. $phpEx);
 include($phpbb_root_path .'includes/functions_post.'. $phpEx);
+require_once $phpbb_root_path . 'includes/functions_post_edit.' . $phpEx;
 
 // Define constant to keep page_header.php from sending headers
 define('AJAX_HEADERS', True);
@@ -125,7 +126,7 @@ if ($mode == 'edit_post_subject')
 		{
 			$row['username'] = $row['post_username'];
 		}
-		$editmessage = '<br /><br />'. sprintf($l_edit_time_total, phpbb_profile_text($row['username']), create_date($board_config['default_dateformat'], $row['post_edit_time'], $board_config['board_timezone']), $row['post_edit_count']);
+		$editmessage = phpbb_post_edit_caption($row, phpbb_profile_text($row['username']));
 	}
 	else
 	{
@@ -212,7 +213,7 @@ else if ($mode == 'edit_post_text')
 		{
 			$row['username'] = $row['post_username'];
 		}
-		$editmessage = '<br /><br />'. sprintf($l_edit_time_total, phpbb_profile_text($row['username']), create_date($board_config['default_dateformat'], $row['post_edit_time'], $board_config['board_timezone']), $row['post_edit_count']);
+		$editmessage = phpbb_post_edit_caption($row, phpbb_profile_text($row['username']));
 	}
 	else
 	{

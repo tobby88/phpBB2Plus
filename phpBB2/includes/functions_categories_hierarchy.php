@@ -742,6 +742,9 @@ function set_tree_user_auth()
 		if (!isset($tree['data'][$i]['tree.forum_posts']))
 		{
 			$tree['data'][$i]['tree.forum_posts'] = 0;
+		}
+		if (!isset($tree['data'][$i]['tree.forum_topics']))
+		{
 			$tree['data'][$i]['tree.forum_topics'] = 0;
 		}
 		if ($auth_view)
@@ -763,6 +766,9 @@ function set_tree_user_auth()
 			if (!isset($tree['data'][$main_idx]['tree.forum_posts']))
 			{
 				$tree['data'][$main_idx]['tree.forum_posts'] = 0;
+			}
+			if (!isset($tree['data'][$main_idx]['tree.forum_topics']))
+			{
 				$tree['data'][$main_idx]['tree.forum_topics'] = 0;
 			}
 			if ($auth_view)
@@ -1301,8 +1307,8 @@ function build_index($cur='Root', $cat_break=false, &$forum_moderators = null, $
 				'FORUM_NAME'			=> $title,
 				'FORUM_DESC'			=> $desc,
 				'FORUM_ID' 				=> isset($data['tree.forum_id']) ? $data['tree.forum_id'] : (($type == POST_FORUM_URL) ? $id : 0),
-				'POSTS'					=> $data['tree.forum_posts'],
-				'TOPICS'				=> $data['tree.forum_topics'],
+				'POSTS'					=> isset($data['tree.forum_posts']) ? $data['tree.forum_posts'] : 0,
+				'TOPICS'				=> isset($data['tree.forum_topics']) ? $data['tree.forum_topics'] : 0,
 				'LAST_POST'				=> $last_post,
 				'ICONS'					=> $icon,
 				'MODERATORS'			=> $moderator_list,

@@ -605,6 +605,9 @@ jobs:
       - name: Test AJAX edit storage and current permissions
         run: php .github/scripts/check-ajax-edit-storage.php
 
+      - name: Render actual and historical post editors consistently
+        run: php .github/scripts/check-post-edit-caption.php
+
       - name: Test coordinated poll votes and failure recovery
         run: php .github/scripts/check-poll-storage.php
 

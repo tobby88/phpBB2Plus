@@ -1,5 +1,5 @@
 <?php
-define('IN_PHPBB',true);define('POST_CAT_URL','c');define('POST_FORUM_URL','f');
+define('IN_PHPBB',true);define('POST_CAT_URL','c');define('POST_FORUM_URL','f');define('FORUM_LOCKED',1);
 require dirname(dirname(__DIR__)).'/phpBB2/includes/functions_categories_hierarchy.php';
 class ForumIndexVisibilityTemplate
 {
@@ -35,6 +35,23 @@ try
     }
     $board_config=array('sub_forum'=>0,'split_cat'=>0);$tree=index_visibility_tree(true);$template=new ForumIndexVisibilityTemplate();$moderators=array();$keys=array('keys'=>array('c4'=>7),'level'=>array());
     index_visibility_check(build_index('c4',false,$moderators,0,0,$keys)===false&&$template->blocks===array(),'Malformed recursive level map must fail before any rendering');$cases++;
+    $images=array('forum_new'=>'new.gif','forum'=>'forum.gif','forum_locked'=>'locked.gif');
+    $lang+=array('New_posts'=>'New posts','No_new_posts'=>'No new posts','Forum_locked'=>'Locked','No_Posts'=>'No posts');
+    foreach(array(1,2)as$subforum){foreach(array(false,true)as$with_counts){
+        $board_config=array('sub_forum'=>$subforum,'split_cat'=>0);$tree=index_visibility_tree(true);
+        if($with_counts){$tree['data'][0]['tree.forum_posts']=13;$tree['data'][0]['tree.forum_topics']=7;}
+        $template=new ForumIndexVisibilityTemplate();$keys=array('keys'=>array('c4'=>0),'level'=>array(0));
+        index_visibility_check(build_index('c4',false,$moderators,1,0,$keys)===true,'Collapsed empty category still renders');
+        $rows=array();foreach($template->blocks as$block){if($block[0]==='catrow.forumrow'){$rows[]=$block[1];}}
+        index_visibility_check(count($rows)===1&&$rows[0]['POSTS']===($with_counts?13:0)&&$rows[0]['TOPICS']===($with_counts?7:0),'Collapsed category preserves authorized totals or displays zero without warnings');$cases++;
+    }}
+    foreach(array(false,true)as$visible){foreach(array('posts','topics')as$present){
+        $tree=array('keys'=>array('c4'=>0,'f1'=>1),'type'=>array('c','f'),'id'=>array(4,1),'main'=>array('Root','c4'),
+            'data'=>array(array('tree.forum_'.$present=>0),array('forum_posts'=>13,'forum_topics'=>7,'tree.forum_'.$present=>0)),
+            'auth'=>array('f1'=>array('auth_view'=>$visible,'auth_read'=>false)));
+        set_tree_user_auth();
+        foreach($tree['data']as$data){index_visibility_check($data['tree.forum_posts']===($visible?13:0)&&$data['tree.forum_topics']===($visible?7:0),'Partial count caches aggregate both totals once and omit inaccessible forum counts');}$cases++;
+    }}
     echo 'Forum index visibility: '.$cases.' real hierarchy rendering cases PASS; rejected categories, empty roots, sibling order and split/combined tables; no database.',"\n";
 }
 finally{restore_error_handler();}

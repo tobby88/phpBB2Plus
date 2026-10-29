@@ -36,7 +36,7 @@ function phpbb_user_id_references()
 		'user_removal_items' => array('related_id'),
 		'groups' => array('group_moderator'),
 		'banlist' => array('ban_userid'),
-		'posts' => array('poster_id'),
+		'posts' => array('poster_id','post_edit_user_id'),
 		'privmsgs' => array('privmsgs_from_userid','privmsgs_to_userid'),
 		'sessions' => array('session_user_id'),
 		'sessions_keys' => array('user_id'),
