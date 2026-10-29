@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_GROUP_STORAGE_FIXTURE_ONLY', true);
 require __DIR__ . '/check-group-storage.php';
 foreach (array('IN_ADMIN'=>true,'DELETED'=>-1,'ANONYMOUS'=>-1,'USER_REMOVALS_TABLE'=>'fixture_user_removals','USER_REMOVAL_ITEMS_TABLE'=>'fixture_user_removal_items','PM_WRITE_RECEIPTS_TABLE'=>'fixture_receipts','SESSIONS_KEYS_TABLE'=>'fixture_keys','JR_ADMIN_TABLE'=>'fixture_junior','TOPICS_WATCH_TABLE'=>'fixture_watches','BOOKMARK_TABLE'=>'fixture_bookmarks','BANLIST_TABLE'=>'fixture_bans','SHOUTBOX_TABLE'=>'fixture_shouts','VOTE_USERS_TABLE'=>'fixture_votes','PRIVMSGS_TEXT_TABLE'=>'fixture_pm_text','QUOTA_TABLE'=>'fixture_quotas','PA_AUTH_ACCESS_TABLE'=>'fixture_pa_auth') as $key=>$value) { if (!defined($key)) { define($key,$value); } }
 require_once $forum_root.'includes/php_compat.php';

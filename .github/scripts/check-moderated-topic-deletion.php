@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY',true);
 require __DIR__ . '/check-attachment-mutation.php';
 require_once __DIR__ . '/fixture-current-moderator.php';
 foreach (array('GENERAL_MESSAGE'=>200,'BEGIN_TRANSACTION'=>1,'END_TRANSACTION'=>2,'FORUMS_TABLE'=>'fixture_forums','USERS_TABLE'=>'fixture_users','POSTS_TEXT_TABLE'=>'fixture_post_text','VOTE_DESC_TABLE'=>'fixture_votes','VOTE_RESULTS_TABLE'=>'fixture_vote_results','VOTE_USERS_TABLE'=>'fixture_voters','BOOKMARK_TABLE'=>'fixture_bookmarks','TOPICS_WATCH_TABLE'=>'fixture_watches','TOPIC_VIEW_TABLE'=>'fixture_views') as $key=>$value) { define($key,$value); }

@@ -5,6 +5,7 @@ use Exception;
 use Error;
 // Reuse the actual-writer database/file fixture, then exercise the ACP helper
 // with controllable filesystem failures. No production database is loaded.
+define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY',true);
 require __DIR__ . '/check-attachment-mutation.php';
 require $forum_root . 'attach_mod/includes/functions_admin.php';
 require_once $forum_root . 'attach_mod/includes/functions_pm_staging.php';

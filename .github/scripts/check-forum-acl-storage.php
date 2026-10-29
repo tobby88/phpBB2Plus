@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_ACL_STORAGE_FIXTURE_ONLY', true);
 require __DIR__ . '/check-acl-storage.php';
 if (!defined('POST_FORUM_URL')) { define('POST_FORUM_URL','f'); }
 require $forum_root . 'includes/functions_forum_acl_storage.php';

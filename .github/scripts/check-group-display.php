@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_GROUP_STORAGE_FIXTURE_ONLY',true);
 require __DIR__.'/check-group-storage.php';
 foreach(array('ANONYMOUS'=>-1,'POST_USERS_URL'=>'u') as $k=>$v){if(!defined($k)){define($k,$v);}}
 $controller=file_get_contents($forum_root.'groupcp.php');$functions=file_get_contents($forum_root.'includes/functions.php');

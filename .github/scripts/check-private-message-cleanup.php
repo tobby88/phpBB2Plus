@@ -1,4 +1,5 @@
 <?php
+define('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY',true);
 require __DIR__ . '/check-attachment-mutation.php';
 require_once __DIR__ . '/pm-repair-journal-fixture.php';
 require_once __DIR__ . '/pm-mailbox-journal-fixture.php';

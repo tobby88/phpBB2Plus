@@ -124,6 +124,8 @@ function mutation_expect_failure($callback, $expected = null)
 	try { call_user_func($callback); } catch (MutationFailure $error) { $caught = $expected === null || $error->getMessage() === $expected; }
 	mutation_check($caught, 'Expected controlled mutation failure');
 }
+// Dependent suites need the reusable fixture, not another run of these cases.
+if (defined('PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY') && PHPBB_ATTACHMENT_MUTATION_FIXTURE_ONLY) { restore_error_handler(); return; }
 try
 {
 	mutation_check(mkdir($upload_dir, 0700), 'Create owned file fixture');
