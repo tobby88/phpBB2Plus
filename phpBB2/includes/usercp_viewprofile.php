@@ -149,14 +149,14 @@ else
 $temp_url = append_sid("privmsg.$phpEx?mode=post&amp;" . POST_USERS_URL . "=" . $profiledata['user_id']);
 $pm_img = '<a href="' . $temp_url . '"><img src="' . $images['icon_pm'] . '" alt="' . $lang['Send_private_message'] . '" title="' . $lang['Send_private_message'] . '" border="0" /></a>';
 // FLAGHACK-start
-$location = ( $profiledata['user_from'] ) ? phpbb_profile_text($profiledata['user_from']) : '&nbsp;' ;
-$flag_image_name = phpbb_profile_image_name($profiledata['user_from_flag']);
+$location = ( phpbb_profile_details_visible() && $profiledata['user_from'] ) ? phpbb_profile_text($profiledata['user_from']) : '';
+$flag_image_name = phpbb_profile_details_visible() ? phpbb_profile_image_name($profiledata['user_from_flag']) : '';
 $flag = ( $flag_image_name ) ? "&nbsp;<img src=\"images/flags/" . $flag_image_name . "\" alt=\"" . $flag_image_name . "\">" : "";
 $location .= $flag ;
 // FLAGHACK-end
 $pm = '<a href="' . $temp_url . '">' . $lang['Send_private_message'] . '</a>';
 
-if ( !empty($profiledata['user_viewemail']) || $userdata['user_level'] == ADMIN )
+if ( phpbb_profile_details_visible() && (!empty($profiledata['user_viewemail']) || $userdata['user_level'] == ADMIN) )
 {
 	$email_form_url = ( $board_config['board_email_form'] ) ? append_sid("profile.$phpEx?mode=email&amp;" . POST_USERS_URL . '=' . (int) $profiledata['user_id']) : '';
 	$email_uri = phpbb_profile_email_uri($profiledata['user_email'], $email_form_url);
@@ -170,7 +170,7 @@ else
 	$email = '&nbsp;';
 }
 
-$website_url = phpbb_profile_http_url($profiledata['user_website']);
+$website_url = phpbb_profile_details_visible() ? phpbb_profile_http_url($profiledata['user_website']) : '';
 $www_img = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer"><img src="' . $images['icon_www'] . '" alt="' . $lang['Visit_website'] . '" title="' . $lang['Visit_website'] . '" border="0" /></a>' : '&nbsp;';
 $www = ( $website_url ) ? '<a href="' . $website_url . '" target="_userwww" rel="noopener noreferrer">' . $website_url . '</a>' : '&nbsp;';
 
@@ -407,7 +407,7 @@ $abouts = array();
 $contacts = array();
 foreach($profile_data as $field)
 {
-	if ( !$userdata['session_logged_in'] )
+	if ( !phpbb_profile_details_visible() )
 	{
 		continue;
 	}
@@ -439,15 +439,19 @@ foreach($abouts as $about_field)
 foreach($contacts as $contact_field)
   $template->assign_block_vars('custom_contact',array('CONTACT_N' => $contact_field['name'],'CONTACT_D' => $contact_field['data']));
 
-if ( $userdata['session_logged_in'] )
+if ( phpbb_profile_details_visible() )
   $template->assign_block_vars('switch_registered_profile_details', array());
 //
 // END Custom Profile Fields MOD
 //
 
-if ($album_config['show_all_in_personal_gallery'] == 1)
+if (phpbb_profile_details_visible())
 {
-	$template->assign_block_vars('enable_view_toggle', array());
+	$template->assign_block_vars('switch_registered_profile_gallery', array());
+}
+if (phpbb_profile_details_visible() && $album_config['show_all_in_personal_gallery'] == 1)
+{
+	$template->assign_block_vars('switch_registered_profile_gallery.enable_view_toggle', array());
 }
 $template->pparse('body');
 

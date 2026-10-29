@@ -119,8 +119,15 @@ function phpbb_avatar_remote_url($value)
 	return phpbb_profile_http_url($value);
 }
 
+function phpbb_profile_details_visible()
+{
+	global $userdata;
+	return is_array($userdata) && isset($userdata['session_logged_in']) && in_array($userdata['session_logged_in'], array(true, 1, '1'), true);
+}
+
 function phpbb_profile_email_uri($email, $form_url = '')
 {
+	if (!phpbb_profile_details_visible()) { return ''; }
 	$form_url = (string) $form_url;
 	if ($form_url !== '')
 	{
@@ -2475,7 +2482,7 @@ function phpbb_social_profile_links($row)
 		$links[$name] = '';
 		$links[$name . '_IMG'] = '';
 
-		if ($value === '')
+		if ($value === '' || !phpbb_profile_details_visible())
 		{
 			continue;
 		}
@@ -2483,19 +2490,6 @@ function phpbb_social_profile_links($row)
 		$plain_value = html_entity_decode($value, ENT_QUOTES, 'UTF-8');
 		$escaped_value = htmlspecialchars($plain_value, ENT_QUOTES, 'UTF-8');
 		$escaped_label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
-		$private_contact = ($name === 'SIGNAL' || $name === 'THREEMA') && empty($userdata['session_logged_in']);
-		if ($private_contact)
-		{
-			$image_key = 'icon_' . strtolower($name);
-			$button = !empty($images[$image_key])
-				? '<span title="' . $escaped_label . '"><img src="' . $images[$image_key] . '" alt="' . $escaped_label . '" title="' . $escaped_label . '" border="0" /></span>'
-				: '<span class="gensmall">' . $escaped_label . '</span>';
-			$links[$name] = $escaped_label;
-			$links[$name . '_IMG'] = $button . '&nbsp;';
-			$rows[] = '<tr><td align="right" nowrap="nowrap" class="explaintitle">' . $escaped_label . ':</td><td class="genmed">' . $button . '</td></tr>';
-			continue;
-		}
-
 		$provided_url = phpbb_social_profile_allowed_url($plain_value, $definition[1]);
 		$url = phpbb_social_profile_url($name, $plain_value, $definition[1]);
 		$button = '';

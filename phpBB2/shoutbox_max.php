@@ -609,7 +609,7 @@ obtain_word_list($orig_word, $replacement_word);
 
 			$user_profile = append_sid("profile.$phpEx?mode=viewprofile&amp;" . POST_USERS_URL . "=$user_id");
 			$user_posts = ( $shout_row['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $shout_row['user_posts'] : '';
-			$user_from = ( $shout_row['user_from'] && $shout_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($shout_row['user_from']) : '';
+			$user_from = ( phpbb_profile_details_visible() && $shout_row['user_from'] && $shout_row['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($shout_row['user_from']) : '';
 			$user_joined = ( $shout_row['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $shout_row['user_regdate'], $board_config['board_timezone']) : '';
 			$user_avatar = '';
 			if ( $shout_row['user_avatar_type'] && $user_id != ANONYMOUS && $shout_row['user_allowavatar'] )

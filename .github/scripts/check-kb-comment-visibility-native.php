@@ -54,7 +54,7 @@ function kp_comment_suite(){
  global$db,$peer,$kp_source,$userdata,$template,$lang,$kb_config,$tree;
  require$kp_source.'includes/auth.php';require$kp_source.'attach_mod/includes/functions_includes.php';
  $source=file_get_contents($kp_source.'includes/functions.php');
- foreach(array('phpbb_profile_text','generate_pagination')as$name){kp_check(preg_match('/^function '.$name.'\(.*?^\}/ms',$source,$match)===1,'Actual helper '.$name);eval($match[0]);}
+ foreach(array('phpbb_profile_text','phpbb_profile_details_visible','generate_pagination')as$name){kp_check(preg_match('/^function '.$name.'\(.*?^\}/ms',$source,$match)===1,'Actual helper '.$name);eval($match[0]);}
  $cases=0;
  foreach(array('english','german')as$locale){require$kp_source.'language/lang_'.$locale.'/lang_main.php';require$kp_source.'language/lang_'.$locale.'/lang_kb.php';
   foreach(array(array(AUTH_ALL,AUTH_ALL,true),array(AUTH_ALL,AUTH_REG,false),array(AUTH_REG,AUTH_ALL,false),array(AUTH_ACL,AUTH_ACL,false),array(AUTH_ADMIN,AUTH_ADMIN,false))as$case){kcv_seed('ordinary',$case[0],$case[1]);kcv_guest();kcv_assert($case[2],'guest '.$locale.' '.$case[0].'/'.$case[1]);$cases++;}

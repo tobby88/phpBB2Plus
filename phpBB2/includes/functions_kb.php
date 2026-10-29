@@ -1184,7 +1184,7 @@ for($i = 0; $i < $total_posts; $i++)
 
 	$post_date = create_date($board_config['default_dateformat'], $postrow[$i]['post_time'], $board_config['board_timezone']);
 
-	$poster_from = ( $registered && $postrow[$i]['user_from'] ) ? $lang['Location'] . ': ' . phpbb_profile_text($postrow[$i]['user_from']) : '';
+	$poster_from = ( phpbb_profile_details_visible() && $registered && $postrow[$i]['user_from'] ) ? $lang['Location'] . ': ' . phpbb_profile_text($postrow[$i]['user_from']) : '';
 	$post_subject = ( $postrow[$i]['post_subject'] != '' ) ? phpbb_profile_text($postrow[$i]['post_subject']) : '';
 
 	$message = $postrow[$i]['post_text'];

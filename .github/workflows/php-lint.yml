@@ -892,3 +892,5 @@ jobs:
         run: php .github/scripts/check-public-profile-identity-native.php
       - name: Check native fixture conflict timeout selection
         run: php .github/scripts/check-native-fixture-locks.php
+      - name: Check guest profile contact and location privacy
+        run: php .github/scripts/check-profile-guest-visibility.php

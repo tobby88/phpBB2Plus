@@ -53,6 +53,7 @@
 <span class="genmed">[{POST_PERCENT_STATS} / {POST_DAY_STATS}]<br />
 <a href="{U_SEARCH_USER}">{L_SEARCH_USER_POSTS}</a></span></td>
 </tr>
+<!-- BEGIN switch_registered_profile_details -->
 <tr>
 <td align="right" nowrap="nowrap" class="explaintitle">{L_LOCATION}:</td>
 <td>{LOCATION}</td>
@@ -61,6 +62,7 @@
 <td align="right" nowrap="nowrap" class="explaintitle">{L_WEBSITE}:</td>
 <td>{WWW}</td>
 </tr>
+<!-- END switch_registered_profile_details -->
 <tr>
 <td align="right" nowrap="nowrap" class="explaintitle">{L_OCCUPATION}:</td>
 <td>{OCCUPATION}</td>
@@ -133,10 +135,12 @@
 <tr>
 <td class="row1" valign="top">
 <table width="100%" border="0" cellspacing="1" cellpadding="3">
+<!-- BEGIN switch_registered_profile_details -->
 <tr>
 <td align="right" nowrap="nowrap" class="explaintitle">{L_EMAIL_ADDRESS}:</td>
 <td width="100%">{EMAIL_IMG}</td>
 </tr>
+<!-- END switch_registered_profile_details -->
 <tr>
 <td align="right" nowrap="nowrap" class="explaintitle">&nbsp;{L_PM}</td>
 <td>{PM_IMG}</td>
@@ -150,6 +154,7 @@
 </tr>
 <!-- END custom_contact -->
 <!-- Custom Profile Fields MOD finish + -->
+<!-- BEGIN switch_registered_profile_gallery -->
 <tr>
 <td class="explaintitle" align="right" nowrap="nowrap">{L_ALBUM}:</td>
 <td class="genmed">{GALLERY_IMG}&nbsp;
@@ -159,6 +164,7 @@
 <a href="{U_ALL_IMAGES_BY_USER}">{L_ALL_IMAGES_BY_USER}</a>
 </td>
 </tr>
+<!-- END switch_registered_profile_gallery -->
 </table>
 </td>
 </tr>

@@ -1016,9 +1016,9 @@ for($i = 0; $i < $total_posts; $i++)
 
 	$poster_posts = ( $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $postrow[$i]['user_posts'] : '';
 
-	$poster_from = ( $postrow[$i]['user_from'] && $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($postrow[$i]['user_from']) : '';
+	$poster_from = ( phpbb_profile_details_visible() && $postrow[$i]['user_from'] && $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($postrow[$i]['user_from']) : '';
 	// FLAGHACK-start
-	$poster_flag_name = phpbb_profile_image_name($postrow[$i]['user_from_flag']);
+	$poster_flag_name = (phpbb_profile_details_visible() ? phpbb_profile_image_name($postrow[$i]['user_from_flag']) : '');
 	$poster_from_flag = ( $poster_flag_name && $postrow[$i]['user_id'] != ANONYMOUS ) ? "<img src=\"images/flags/" . $poster_flag_name . "\" alt=\"" . $poster_flag_name . "\" border=\"0\" width=\"32\" height=\"20\" /><br />" : "";
 	// FLAGHACK-end
 	$poster_joined = ( $postrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $postrow[$i]['user_regdate'], $board_config['board_timezone']) : '';

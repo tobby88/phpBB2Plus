@@ -624,7 +624,7 @@ $lang['Date_format'] = 'Datums-Format';
 $lang['Date_format_explain'] = 'Die Syntax ist identisch mit der PHP-Funktion <a href=\'http://www.php.net/date\' target=\'_other\'>date()</a>';
 $lang['Signature'] = 'Signatur';
 $lang['Signature_explain'] = 'Dies ist ein Text, der an jeden Beitrag von dir angehängt werden kann. Es besteht ein Limit von %d Buchstaben.';
-$lang['Public_view_email'] = 'Zeige meine E-Mail-Adresse immer an';
+$lang['Public_view_email'] = 'E-Mail-Kontakt für angemeldete Nutzer erlauben';
 
 $lang['Current_password'] = 'Altes Passwort';
 $lang['New_password'] = 'Neues Passwort';

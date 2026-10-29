@@ -41,7 +41,7 @@ function generate_user_info(&$row, $date_format, $group_mod, &$from, &$posts, &$
 		return;
 	}
 
-	$from = ( !empty($row['user_from']) ) ? phpbb_profile_text($row['user_from']) : '&nbsp;';
+	$from = ( phpbb_profile_details_visible() && !empty($row['user_from']) ) ? phpbb_profile_text($row['user_from']) : '&nbsp;';
 	$joined = create_date($date_format, $row['user_regdate'], $board_config['board_timezone']);
 	$posts = ( $row['user_posts'] ) ? $row['user_posts'] : 0;
 

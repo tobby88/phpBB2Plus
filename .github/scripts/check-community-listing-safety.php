@@ -33,7 +33,7 @@ community_listing_assert(strpos($kb_cat, '$articles_per_page = kb_stats_page_siz
 community_listing_assert(strpos($kb_stats, "array('toprated', 'latest', 'mostpopular')") !== false, 'Knowledge Base statistic modes need an allowlist');
 community_listing_assert(strpos($memberlist, 'redirect=memberlist.$phpEx') !== false && strpos($memberlist, "!\$userdata['session_logged_in']") !== false, 'the member list must require login');
 community_listing_assert(strpos($groupcp, 'redirect=groupcp.$phpEx') !== false && strpos($groupcp, "!\$userdata['session_logged_in']") !== false, 'user-group listings must require login');
-community_listing_assert(strpos($profile, "if ( !\$userdata['session_logged_in'] )") !== false, 'custom profile fields must be hidden from guests');
+community_listing_assert(strpos($profile, 'if ( !phpbb_profile_details_visible() )') !== false && strpos($functions, 'function phpbb_profile_details_visible()') !== false, 'custom profile fields must use the shared authenticated-viewer gate');
 community_listing_assert(strpos($profile_fields, "empty(\$userdata['session_logged_in'])") !== false, 'custom topic profile fields must be hidden from guests');
 community_listing_assert(strpos($viewtopic, "\$userdata['session_logged_in'] && \$postrow[\$i]['user_birthday'] != 999999") !== false, 'age and zodiac details beside posts must require login');
 community_listing_assert(strpos($functions, "if (\$userdata['session_logged_in'])\n\t{\n\t\t\$nav_links['author']") !== false, 'guest metadata must not advertise the protected member list');

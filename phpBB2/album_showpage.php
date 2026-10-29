@@ -569,7 +569,7 @@ if( !isset($_POST['comment']) && !isset($_POST['rate']) )
 				'POSTER_RANK_IMAGE' => $rank_image,
 				'POSTER_JOINED' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $commentrow[$i]['user_regdate'], $board_config['board_timezone']) : '',
 				'POSTER_POSTS' => ( $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Posts'] . ': ' . $commentrow[$i]['user_posts'] : '',
-				'POSTER_FROM' => ( $commentrow[$i]['user_from'] && $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($commentrow[$i]['user_from']) : '',
+				'POSTER_FROM' => ( phpbb_profile_details_visible() && $commentrow[$i]['user_from'] && $commentrow[$i]['user_id'] != ANONYMOUS ) ? $lang['Location'] . ': ' . phpbb_profile_text($commentrow[$i]['user_from']) : '',
 
 
 				'TEXT' => $commentrow[$i]['comment_text'],

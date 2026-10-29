@@ -75,7 +75,7 @@ function display_comments(&$file_data)
 
 		$poster_posts = ( $registered ) ? $lang['Posts'] . ': ' . $comments_row['user_posts'] : '';
 
-		$poster_from = ( $comments_row['user_from'] && $registered ) ? $lang['Location'] . ': ' . phpbb_profile_text($comments_row['user_from']) : '';
+		$poster_from = ( phpbb_profile_details_visible() && $comments_row['user_from'] && $registered ) ? $lang['Location'] . ': ' . phpbb_profile_text($comments_row['user_from']) : '';
 
 		$poster_joined = ( $registered ) ? $lang['Joined'] . ': ' . create_date($lang['DATE_FORMAT'], $comments_row['user_regdate'], $board_config['board_timezone']) : '';
 

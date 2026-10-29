@@ -225,7 +225,7 @@ if ( $row = $db->sql_fetchrow($result) )
 		$row['user_aim'] = phpbb_profile_contact($row['user_aim']);
 		$row['user_yim'] = phpbb_profile_contact($row['user_yim']);
 
-		$from = ( !empty($row['user_from']) ) ? phpbb_profile_text($row['user_from']) : '&nbsp;';
+		$from = ( phpbb_profile_details_visible() && !empty($row['user_from']) ) ? phpbb_profile_text($row['user_from']) : '&nbsp;';
 		$joined = create_date($lang['DATE_FORMAT'], $row['user_regdate'], $board_config['board_timezone']);
 
 		// Start replacement - Who viewed a topic MOD

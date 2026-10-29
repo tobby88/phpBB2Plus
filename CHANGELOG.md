@@ -6,6 +6,14 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Guest profile privacy
+
+- Hide complete contact fields, labels and buttons from guest profile views,
+  keeping the private-message link. Hide location/country flags in profiles and
+  other public user renderers. Keep member-only profile and gallery controls.
+- Preserve the email-contact preference for logged-in members and clarify its
+  English/German label; the existing administrator exception remains effective.
+
 ### Download search
 
 - Apply current category view/read/file and ancestor permissions, approval and

@@ -3,7 +3,7 @@ define('PHPBB_GROUP_STORAGE_FIXTURE_ONLY',true);
 require __DIR__.'/check-group-storage.php';
 foreach(array('ANONYMOUS'=>-1,'POST_USERS_URL'=>'u') as $k=>$v){if(!defined($k)){define($k,$v);}}
 $controller=file_get_contents($forum_root.'groupcp.php');$functions=file_get_contents($forum_root.'includes/functions.php');
-foreach(array('phpbb_profile_text','phpbb_stored_text','phpbb_profile_http_url','phpbb_profile_email_uri','phpbb_social_profile_links','create_absence_mode','allow_send_to_absent') as $fn){if(!function_exists($fn)){eval(group_test_function($functions,$fn));}}
+foreach(array('phpbb_profile_text','phpbb_stored_text','phpbb_profile_http_url','phpbb_profile_details_visible','phpbb_profile_email_uri','phpbb_social_profile_links','create_absence_mode','allow_send_to_absent') as $fn){if(!function_exists($fn)){eval(group_test_function($functions,$fn));}}
 eval(group_test_function($controller,'generate_user_info'));
 function create_date($format,$time,$zone){return 'fixture-date';}
 require $forum_root.'includes/template.php';

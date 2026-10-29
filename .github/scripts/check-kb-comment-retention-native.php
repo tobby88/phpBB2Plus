@@ -22,7 +22,7 @@ function kr_controller($requested,$size){
 function kp_comment_retention_suite(){
  global$db,$template,$kp_source,$board_config,$lang,$userdata;
  require$kp_source.'includes/auth.php';require$kp_source.'attach_mod/includes/functions_includes.php';
- $source=file_get_contents($kp_source.'includes/functions.php');foreach(array('phpbb_profile_text','generate_pagination')as$name){kp_check(preg_match('/^function '.$name.'\(.*?^\}/ms',$source,$match)===1,'Actual helper '.$name);eval($match[0]);}
+ $source=file_get_contents($kp_source.'includes/functions.php');foreach(array('phpbb_profile_text','phpbb_profile_details_visible','generate_pagination')as$name){kp_check(preg_match('/^function '.$name.'\(.*?^\}/ms',$source,$match)===1,'Actual helper '.$name);eval($match[0]);}
  $cases=0;
  foreach(array('english','german')as$locale){require$kp_source.'language/lang_'.$locale.'/lang_main.php';require$kp_source.'language/lang_'.$locale.'/lang_kb.php';
   foreach(array('first-post-order','deleted-reply-author','deleted-first-author','missing-first','zero-first','foreign-first','foreign-forum','missing-text','stale-count','locked')as$case){

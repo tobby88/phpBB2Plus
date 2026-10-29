@@ -633,7 +633,7 @@ $lang['Date_format'] = 'Date format';
 $lang['Date_format_explain'] = 'The syntax used is identical to the PHP <a href=\'http://www.php.net/date\' target=\'_other\'>date()</a> function.';
 $lang['Signature'] = 'Signature';
 $lang['Signature_explain'] = 'This is a block of text that can be added to posts you make. There is a %d character limit';
-$lang['Public_view_email'] = 'Always show my e-mail address';
+$lang['Public_view_email'] = 'Allow email contact from logged-in members';
 
 $lang['Current_password'] = 'Current password';
 $lang['New_password'] = 'New password';

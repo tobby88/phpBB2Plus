@@ -14,6 +14,7 @@ $lang = array(
 );
 
 require dirname(dirname(__DIR__)) . '/phpBB2/includes/functions.php';
+$userdata = array('session_logged_in' => true);
 
 function contact_test_same($expected, $actual, $message)
 {
@@ -103,7 +104,9 @@ $guest_output = implode(' ', $guest_links);
 contact_test_true(strpos($guest_output, 'example-token') === false, 'Signal contact details must not be present in guest HTML.');
 contact_test_true(strpos($guest_output, 'ABCD1234') === false, 'Threema contact details must not be present in guest HTML.');
 contact_test_true(strpos($guest_output, 'href=') === false, 'Guest messenger indicators must not be contact links.');
-contact_test_true(strpos($guest_output, '<img') !== false, 'Guests should still see that Signal or Threema is configured.');
+contact_test_same('', trim($guest_output), 'Guest contact fields, labels and buttons must all be absent.');
+contact_test_same('', phpbb_profile_email_uri('private@example.test'), 'Guests must not receive a mailto link.');
+contact_test_same('', phpbb_profile_email_uri('', 'profile.php?mode=email&amp;u=42'), 'Guests must not receive an email-form contact button.');
 
 $root = dirname(dirname(__DIR__)) . '/phpBB2/';
 $contact_views = array(
