@@ -6,6 +6,12 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Forum category totals
+
+- Render collapsed categories without warnings when their authorized count
+  fields are absent. Initialize post and topic totals independently in partial
+  hierarchy data; retain existing totals and exclude inaccessible child forums.
+
 ### Album file recovery, comments and ratings
 
 - Clear both Album preview caches under the shared writer lease and current
