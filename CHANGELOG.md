@@ -6,6 +6,19 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Download lists and pagination
+
+- Filter category view/read/file permissions and readable ancestry before
+  selecting files or counting pages. Keep pinned files on every page while
+  excluding them from ordinary pagination totals; handle empty, pinned-only
+  and outdated pages without division by zero or missing visible files.
+- Count votes and comments independently under strict SQL grouping. Preserve
+  rating sorting across page links and normalize legacy configured sort names,
+  legal NULL counters and invalid page-size settings. Escape icon attributes
+  while retaining the existing screenshot URL validation and list layout.
+- Supply English/German list failure and permission-denial messages. Return
+  download-search guests to the search page after login.
+
 ### Download statistics
 
 - Apply category view/read/file permissions and readable ancestry to statistics,

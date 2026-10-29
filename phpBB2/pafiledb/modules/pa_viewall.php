@@ -30,6 +30,7 @@ class pafiledb_viewall extends pafiledb_public
 				case 'file_dls':
 					$sort_method = 'file_dls';
 					break;
+				case 'rating':
 				case 'file_rating':
 					$sort_method = 'rating';
 					break;

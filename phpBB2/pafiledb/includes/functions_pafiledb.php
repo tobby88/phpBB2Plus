@@ -850,126 +850,27 @@ class pafiledb
 	function display_files($sort_method, $sort_order, $start, $show_file_message, $cat_id = false)
 	{
 		global $db, $pafiledb_config, $pafiledb_template, $board_config;
-		global $images, $lang, $phpEx, $pafiledb_functions, $phpbb_root_path;
+		global $images, $lang, $phpEx, $phpbb_root_path;
 
 		$filelist = false;		
 
-		if(empty($cat_id))
+		require_once dirname(__FILE__) . '/functions_listing.php';
+		try
 		{
-			$cat_where = '';
+			$listing = pafiledb_listing_read($db, pafiledb_toplist_categories($this), $cat_id, $sort_method, $sort_order, $start, $pafiledb_config['settings_file_page']);
 		}
-		else
+		catch (Exception $error)
 		{
-			$cat_where = "AND f1.file_catid = $cat_id";
+			message_die(GENERAL_ERROR, $lang['PA_list_unavailable']);
+			return;
 		}
-	
-		switch(SQL_LAYER)
-		{
-			case 'oracle':
-				$sql = "SELECT f1.*, f1.file_id, r.votes_file, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, COUNT(c.comments_id) AS total_comments
-					FROM " . PA_FILES_TABLE . " AS f1, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_COMMENTS_TABLE . " AS c
-					WHERE f1.file_id = r.votes_file(+)
-					AND f1.user_id = u.user_id(+)
-					AND f1.file_id = c.file_id(+)
-					AND f1.file_pin = " . FILE_PINNED . "
-					AND f1.file_approved = 1
-					$cat_where
-					GROUP BY f1.file_id 
-					ORDER BY $sort_method $sort_order";			
-				break;
-
-			default:
-				$sql = "SELECT f1.*, f1.file_id, r.votes_file, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, COUNT(c.comments_id) AS total_comments
-					FROM " . PA_FILES_TABLE . " AS f1
-						LEFT JOIN " . PA_VOTES_TABLE . " AS r ON f1.file_id = r.votes_file 
-						LEFT JOIN " . USERS_TABLE . " AS u ON f1.user_id = u.user_id
-						LEFT JOIN " . PA_COMMENTS_TABLE . " AS c ON f1.file_id = c.file_id
-					WHERE f1.file_pin = " . FILE_PINNED . "
-					AND f1.file_approved = 1
-					$cat_where
-					GROUP BY f1.file_id 
-					ORDER BY $sort_method $sort_order";
-				break;
-		}
-		
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldn\'t get file info for this category', '', __LINE__, __FILE__, $sql);
-		}
-
-		$file_rowset = array();
-		$total_file = 0;
-		
-		while($row = $db->sql_fetchrow($result))
-		{
-			if($this->auth[$row['file_catid']]['auth_read'])
-			{
-				$file_rowset[] = $row;
-			}
-		}
-
-		$db->sql_freeresult($result);
-		
-		switch(SQL_LAYER)
-		{
-			case 'oracle':
-				$sql = "SELECT f1.*, f1.file_id, r.votes_file, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, COUNT(c.comments_id)
-					FROM " . PA_FILES_TABLE . " AS f1, " . PA_VOTES_TABLE . " AS r, " . USERS_TABLE . " AS u, " . PA_COMMENTS_TABLE . " AS c
-					WHERE f1.file_id = r.votes_file(+)
-					AND f1.user_id = u.user_id(+)
-					AND f1.file_id = c.file_id(+)
-					AND f1.file_pin <> " . FILE_PINNED . "
-					AND f1.file_approved = 1
-					$cat_where
-					GROUP BY f1.file_id 
-					ORDER BY $sort_method $sort_order";			
-				break;
-
-			default:
-				$sql = "SELECT f1.*, f1.file_id, r.votes_file, AVG(r.rate_point) AS rating, COUNT(r.votes_file) AS total_votes, u.user_id, u.username, COUNT(c.comments_id)
-					FROM " . PA_FILES_TABLE . " AS f1
-						LEFT JOIN " . PA_VOTES_TABLE . " AS r ON f1.file_id = r.votes_file 
-						LEFT JOIN " . USERS_TABLE . " AS u ON f1.user_id = u.user_id
-						LEFT JOIN " . PA_COMMENTS_TABLE . " AS c ON f1.file_id = c.file_id
-					WHERE f1.file_pin <> " . FILE_PINNED . "
-					AND f1.file_approved = 1
-					$cat_where
-					GROUP BY f1.file_id 
-					ORDER BY $sort_method $sort_order";
-				break;
-		}
-		
-		if ( !($result = $pafiledb_functions->sql_query_limit($sql, $pafiledb_config['settings_file_page'], $start)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldn\'t get file info for this category', '', __LINE__, __FILE__, $sql);
-		}
-		
-		while($row = $db->sql_fetchrow($result))
-		{
-			if($this->auth[$row['file_catid']]['auth_read'])
-			{
-				$file_rowset[] = $row;
-			}
-		}
-	
-		$db->sql_freeresult($result);
-
-		$where_sql = (!empty($cat_id)) ? "AND file_catid = $cat_id" : '';
-		$sql = "SELECT COUNT(file_id) as total_file
-			FROM " . PA_FILES_TABLE . " 
-			WHERE file_approved='1'
-			$where_sql";
-		
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			message_die(GENERAL_ERROR, 'Couldn\'t get number of file', '', __LINE__, __FILE__, $sql);
-		}
-		
-		$row = $db->sql_fetchrow($result);
-		$db->sql_freeresult($result);
-		
-		$total_file = $row['total_file'];
-		unset($row);
+		$sort_method = $listing['options']['sort'];
+		$sort_order = $listing['options']['direction'];
+		$start = $listing['options']['start'];
+		$per_page = $listing['options']['per_page'];
+		$cat_id = $listing['category'];
+		$total_file = $listing['total'];
+		$file_rowset = array_merge($listing['pinned'], $listing['files']);
 
 		for ($i = 0; $i < count($file_rowset); $i++) 
 		{
@@ -1025,7 +926,7 @@ class pafiledb
 			$pafiledb_template->assign_block_vars("file_rows", array(
 				'L_NEW_FILE' => $lang['New_file'],
 
-				'PIN_IMAGE' => $posticon,
+				'PIN_IMAGE' => htmlspecialchars($posticon, ENT_QUOTES, 'UTF-8'),
 				'FILE_NEW_IMAGE' => $phpbb_root_path . $images['pa_file_new'],
 				'HAS_SCREENSHOTS' => ($safe_screenshot !== false),
 				'SS_AS_LINK' => ($file_rowset[$i]['file_sshot_link']) ? TRUE : FALSE,
@@ -1073,8 +974,8 @@ class pafiledb
 
 				'SORT_ASC' => ($sort_order == 'ASC') ? 'selected="selected"' : '',
 				'SORT_DESC' => ($sort_order == 'DESC') ? 'selected="selected"' : '',
-				'PAGINATION' => generate_pagination(append_sid("dload.$phpEx?action=$action&amp;sort_method=$sort_method&amp;sort_order=$sort_order"), $total_file, $pafiledb_config['settings_file_page'], $start),
-				'PAGE_NUMBER' => sprintf($lang['Page_of'], ( floor( $start / $pafiledb_config['settings_file_page'] ) + 1 ), ceil( $total_file / $pafiledb_config['settings_file_page'] )),
+				'PAGINATION' => generate_pagination(append_sid("dload.$phpEx?action=$action&amp;sort_method=$sort_method&amp;sort_order=$sort_order"), $total_file, $per_page, $start),
+				'PAGE_NUMBER' => sprintf($lang['Page_of'], floor($start / $per_page) + 1, max(1, ceil($total_file / $per_page))),
 				'FILELIST' => $filelist,
 				'ID' => $cat_id,
 				'START' => $start,

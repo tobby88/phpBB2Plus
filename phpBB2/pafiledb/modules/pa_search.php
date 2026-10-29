@@ -21,7 +21,7 @@ class pafiledb_search extends pafiledb_public
 		{
 			if ( !$userdata['session_logged_in'] )
 			{
-				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=stats", true));
+				redirect(append_sid("login.$phpEx?redirect=dload.$phpEx?action=search", true));
 			}
 	
 			$message = sprintf($lang['Sorry_auth_search'], $this->auth_global['auth_search_type']);
