@@ -1,5 +1,13 @@
 # Database updates and maintenance
 
+The full updater also widens legacy signed HotOrNot score storage to SMALLINT,
+so configured scores through 255 fit. Preview this change separately with
+`php update/update_from_153a.php --album-rating-storage-only`; applying requires
+`--apply --backup-confirmed --maintenance-confirmed`. Existing negative scores,
+duplicate votes, both rating channels, defaults and column comments are retained.
+Already sufficient integer definitions are kept. Custom incompatible definitions
+require manual review. This mode cannot be combined with another scoped mode.
+
 Comment author/text capacity is also included in the full updater. The isolated
 `--album-discussion-text-storage-only` mode previews widening `comment_username`
 to 255 characters and `comment_text` to MEDIUMTEXT, so logical Unicode limits

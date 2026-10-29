@@ -8,6 +8,9 @@ changes consolidated after that baseline without implying active maintenance.
 
 ### Album file recovery, comments and ratings
 
+- Widen legacy signed HotOrNot score storage losslessly to support configured
+  values through 255. Include the change in new installations, the full updater
+  and a separately guarded preview/apply mode; preserve all historical votes.
 - Resume interrupted committed file deletions in bounded batches, retaining
   unprocessed receipt items and the existing foreground cleanup behavior.
 - Bound new deletion manifests to 500 pictures / 2,500 paths each without limiting

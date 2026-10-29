@@ -84,7 +84,8 @@ try{
  preg_match_all('/^INSERT INTO phpbb_album_config\b[^\r\n]*;/m',file_get_contents($root.'install/schemas/mysql_basic.sql'),$m);$seeds=array();foreach($m[0]as$sql){$seeds[]=str_replace('phpbb_album_config','fixture_album_config',$sql);}ad_check(count($seeds)>40,'Actual Album defaults');
  $db=new AlbumDiscussionSource($host,'root',$password,$schema,false);
  require __DIR__.'/album-discussion-native-cases.php';
- $part=getenv('PHPBB_ALBUM_DISCUSSION_PART')?:'';ad_check(in_array($part,array('','rating','cache'),true),'Known explicit discussion fixture scope');
+ $part=getenv('PHPBB_ALBUM_DISCUSSION_PART')?:'';ad_check(in_array($part,array('','rating','cache','score-capacity'),true),'Known explicit discussion fixture scope');
+ if($part==='score-capacity'){ad_score_capacity_cases();echo 'Native Album configured score capacity: '.$cases." cases PASS; actual HotOrNot controller128/255 and independent normal255.\n";return;}
  if($part==='cache'){require __DIR__.'/album-cache-publication-native-cases.php';ad_cache_cases();return;}
  if($part==='rating'){ad_hotornot_cases();ad_parallel_vote_cases();ad_rating_display_cases();}else{ad_discussion_cases();}
  echo 'Native Album discussion: '.$cases.' cases PASS; '.($part==='rating'?'targeted ratings, parallel workers and display SQL':(getenv('PHPBB_ALBUM_DISCUSSION_QUICK')==='1'?'quick comment/normal-vote functional checks only':'actual controllers, Unicode, current authority, atomic combined submission, separate channels and all SQL failure boundaries'))."; no live data.\n";

@@ -2,6 +2,7 @@
 if (PHP_SAPI !== 'cli' || getenv('PHPBB_ALBUM_FILE_JOURNAL_NATIVE') !== '1') { echo "Native Album file journal fixture skipped.\n"; return; }
 define('IN_PHPBB', true); $root = dirname(dirname(__DIR__));
 require $root . '/phpBB2/includes/php_compat.php'; require $root . '/update/album_file_journal_migration.php'; require $root . '/phpBB2/includes/sql_parse.php';
+require $root . '/update/album_rating_storage_migration.php';
 mysqli_report(MYSQLI_REPORT_OFF);
 function ajm_check($ok, $message) { if (!$ok) { throw new RuntimeException($message); } }
 function ajm_sql($sql) { return plus_storage_query($GLOBALS['db'], $sql); }
@@ -125,8 +126,14 @@ try {
         ajm_sql(preg_replace('/\bphpbb_/', 'legacy_', $sql)); $imported++;
     }
     ajm_check($imported > 80, 'Complete existing-forum schema fixture'); ajm_config('legacy_'); $before = ajm_snapshot();
+    ajm_sql("ALTER TABLE legacy_album_rate MODIFY rate_hon_point TINYINT NOT NULL DEFAULT 0");
+    ajm_sql("INSERT INTO legacy_album_rate VALUES(1,7,'7f000001',255,-128),(1,7,'7f000001',255,-128),(2,-1,'7f000002',0,127)");
+    $votes_before = plus_album_rating_digest($db, 'legacy_album_rate');
     $cli = ajm_cli(array('--apply','--backup-confirmed','--maintenance-confirmed'));
     ajm_check($cli[0] === 0 && $cli[2] === '' && !plus_album_file_journal_plan($db, 'legacy_') && ajm_snapshot() === $before, 'Real full updater integrates journal schema while preserving other-prefix rows: ' . substr($cli[2], 0, 1400)); $cases++;
+    ajm_check(!plus_album_rating_plan($db, 'legacy_', true) && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before, 'Real full updater widens legacy HotOrNot scores and preserves duplicate/negative votes'); $cases++;
+    $cli = ajm_cli(array('--apply','--backup-confirmed','--maintenance-confirmed'));
+    ajm_check($cli[0] === 0 && $cli[2] === '' && plus_album_rating_digest($db, 'legacy_album_rate') === $votes_before && ajm_snapshot() === $before, 'Repeated full updater preserves widened scores and unrelated journals'); $cases++;
     echo 'Native Album file journal migration: ', $cases, " dry/apply/idempotence/modern-schema/guest/Unicode/row-preservation/caller-TX/locks/custom-refusal/partial-resume/real-scoped-and-full-updater cases PASS; own loopback schemas only, no image operations or live data.\n";
 } finally {
     if ($peer) { mysqli_close($peer); }

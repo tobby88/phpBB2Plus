@@ -78,6 +78,11 @@ jobs:
           PHPBB_ALBUM_DISCUSSION_TEXT_PASSWORD: fixture-only
           PHPBB_ALBUM_DISCUSSION_NATIVE: '1'
           PHPBB_ALBUM_DISCUSSION_PASSWORD: fixture-only
+      - name: Preserve full HotOrNot score capacity and historical votes
+        run: php .github/scripts/check-album-rating-storage-native.php
+        env:
+          PHPBB_ALBUM_RATING_STORAGE_NATIVE: '1'
+          PHPBB_ALBUM_RATING_STORAGE_PASSWORD: fixture-only
       - name: Check Album file journal schema and real updater preservation
         run: |
           php .github/scripts/check-album-file-journal-native.php

@@ -18,7 +18,7 @@ if (PHP_SAPI !== 'cli')
 }
 
 // A misspelled targeted mode must never fall through to the full updater.
-$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only');
+$update_flags = array('--help', '-h', '--self-test', '--apply', '--backup-confirmed', '--maintenance-confirmed', '--storage-only', '--style-ids-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only');
 foreach (array_slice($argv, 1) as $argument)
 {
 	if (!is_string($argument) || (!in_array($argument, $update_flags, true) && strpos($argument, '--config=') !== 0 && strpos($argument, '--database=') !== 0))
@@ -38,6 +38,7 @@ require_once __DIR__ . '/kb_rating_storage_migration.php';
 require_once __DIR__ . '/post_author_storage_migration.php';
 require_once __DIR__ . '/album_text_storage_migration.php';
 require_once __DIR__ . '/album_file_journal_migration.php';
+require_once __DIR__ . '/album_rating_storage_migration.php';
 $mod_settings_defaults = require __DIR__ . '/mod_settings_defaults.php';
 $schema_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_schema.sql';
 $basic_file = $forum_root . DIRECTORY_SEPARATOR . 'install' . DIRECTORY_SEPARATOR . 'schemas' . DIRECTORY_SEPARATOR . 'mysql_basic.sql';
@@ -59,6 +60,7 @@ function update_usage()
 	echo "  --album-photo-text-storage-only  Preserve picture title, description and author text capacity\n";
 	echo "  --album-discussion-text-storage-only  Preserve comment author and UTF8/HTML text capacity\n";
 	echo "  --album-file-journal-only  Only create/verify durable Album journal tables; never clean image files\n";
+	echo "  --album-rating-storage-only  Widen legacy HotOrNot scores without rewriting votes\n";
 	echo "  --config=/absolute/path/config.php  Use a trusted CLI configuration outside the webroot\n";
 	echo "  --maintenance-confirmed Required with --apply: stop ALL web/cron writers first\n";
 }
@@ -112,6 +114,7 @@ if (in_array('--self-test', $argv, true))
 		if (count($journal_definitions) !== 2 || !isset($create_statements['phpbb_album_file_jobs'], $create_statements['phpbb_album_file_items'])) { throw new RuntimeException('Album journal tables missing from full updater'); }
 	} catch (Exception $error) { fwrite(STDERR, "Album file journal schema self-test failed: " . $error->getMessage() . "\n"); exit(3); }
 	if (!preg_match('/post_username\s+varchar\(1530\)/i', $schema_source)) { fwrite(STDERR, "Post author capacity schema self-test failed.\n"); exit(3); }
+	if (!preg_match('/CREATE TABLE phpbb_album_rate\s*\([^;]*rate_hon_point\s+smallint\s+default\s+\x270\x27\s+NOT NULL/is', $schema_source)) { fwrite(STDERR, "Album HotOrNot score capacity schema self-test failed.\n"); exit(3); }
 	if (!preg_match('/CREATE TABLE phpbb_album_cat\s*\([^;]*cat_title\s+varchar\(1530\)[^;]*cat_desc\s+mediumtext/is', $schema_source)) { fwrite(STDERR, "Album text capacity schema self-test failed.\n"); exit(3); }
 	if (!preg_match('/article_rating\s+decimal\(30,4\)\s+NOT NULL/i', $schema_source) || !preg_match('/article_totalvotes\s+bigint\s+UNSIGNED\s+NOT NULL/i', $schema_source)) { fwrite(STDERR, "KB rating capacity schema self-test failed.\n"); exit(3); }
 	if (!preg_match("/ban_ip_mask\\s+char\\(8\\)\\s+NOT NULL DEFAULT ''/i", $schema_source)) { fwrite(STDERR, "IP ban mask schema self-test failed.\n"); exit(3); }
@@ -164,7 +167,7 @@ if (in_array('--self-test', $argv, true))
 }
 
 $apply = in_array('--apply', $argv, true);
-if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only'), $argv)) > 1)
+if (count(array_intersect(array('--style-ids-only', '--storage-only', '--kb-counters-only', '--user-post-counters-only', '--kb-rating-storage-only', '--post-author-storage-only', '--album-text-storage-only', '--album-photo-text-storage-only', '--album-discussion-text-storage-only', '--album-file-journal-only', '--album-rating-storage-only'), $argv)) > 1)
 {
 	fwrite(STDERR, "Choose only one targeted migration mode.\n"); exit(2);
 }
@@ -654,6 +657,16 @@ function update_queue_standard_style(&$operations, $connection, $forum_root, $th
 
 try
 {
+	if (in_array('--album-rating-storage-only', $argv, true))
+	{
+		$album_rating_plan = plus_album_rating_plan($connection, $table_prefix, true);
+		foreach ($album_rating_plan as $item) { echo $item['sql'] . ";\n"; }
+		if ($apply) {
+			$count = plus_album_rating_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+			echo "Album HotOrNot score capacity migration complete: $count tables. Historical votes preserved.\n";
+		} else { echo "Dry run only. No database changes made.\n"; }
+		mysqli_close($connection); exit(0);
+	}
 	if (in_array('--album-discussion-text-storage-only', $argv, true))
 	{
 		$discussion_text_plan = plus_album_discussion_text_plan($connection, $table_prefix, true);
@@ -789,6 +802,8 @@ catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update op
 try { $photo_text_plan = plus_album_photo_text_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 try { $discussion_text_plan = plus_album_discussion_text_plan($connection, $table_prefix); }
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
+try { $album_rating_plan = plus_album_rating_plan($connection, $table_prefix); }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nNo update operations were applied.\n"); exit(3); }
 // Verify any existing journal definition before unrelated full-update DDL.
 // Missing tables are queued from the same canonical definitions below.
@@ -1330,6 +1345,14 @@ try
 		$count = plus_album_discussion_text_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
 		echo "Album comment text capacity migration complete: $count tables. Stored contents preserved.\n";
 	} else { foreach ($discussion_text_plan as $item) { echo $item['sql'] . ";\n"; } }
+}
+catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; DDL cannot be rolled back. Inspect before retrying.\n"); exit(3); }
+try
+{
+	if ($apply) {
+		$count = plus_album_rating_apply($connection, $table_prefix, $backup_confirmed, in_array('--maintenance-confirmed', $argv, true));
+		echo "Album HotOrNot score capacity migration complete: $count tables. Historical votes preserved.\n";
+	} else { foreach ($album_rating_plan as $item) { echo $item['sql'] . ";\n"; } }
 }
 catch (Exception $error) { fwrite(STDERR, $error->getMessage() . "\nPartial update: keep writers stopped; DDL cannot be rolled back. Inspect before retrying.\n"); exit(3); }
 foreach ($album_username_snapshot_operations as $sql)

@@ -1177,7 +1177,7 @@ CREATE TABLE phpbb_album_rate (
 	rate_user_id mediumint(8) NOT NULL,
 	rate_user_ip char(8) NOT NULL,
 	rate_point tinyint(3) UNSIGNED NOT NULL,
-	rate_hon_point tinyint(3) default '0' NOT NULL,
+	rate_hon_point smallint default '0' NOT NULL,
 	KEY rate_pic_id (rate_pic_id),
 	KEY rate_user_id (rate_user_id),
 	KEY rate_user_ip (rate_user_ip),

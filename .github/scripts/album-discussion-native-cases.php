@@ -53,8 +53,19 @@ function ad_discussion_cases(){
  ad_parallel_vote_cases();
  ad_rating_display_cases();
 }
+function ad_score_capacity_cases(){
+ global $cases;
+ foreach(array(128,255)as$score){
+  ad_reset();ad_sql("UPDATE fixture_album_config SET config_value='255' WHERE config_name='rate_scale'");
+  ad_controller('hotornot','',$score);$rows=ad_rows('SELECT rate_point,rate_hon_point FROM fixture_album_rate');
+  ad_check(count($rows)===1&&(int)$rows[0]['rate_point']===0&&(int)$rows[0]['rate_hon_point']===$score,'Actual HotOrNot controller retains configured128/255 score exactly');$cases++;
+  ad_action('publish','',255);$rows=ad_rows('SELECT rate_point,rate_hon_point FROM fixture_album_rate');
+  ad_check(count($rows)===1&&(int)$rows[0]['rate_point']===255&&(int)$rows[0]['rate_hon_point']===$score,'Maximum normal vote preserves independent large HotOrNot score');$cases++;
+ }
+}
 function ad_hotornot_cases(){
  global $cases,$db,$userdata;
+ ad_score_capacity_cases();
  foreach(array(false,true)as$honfirst){ad_reset();if($honfirst){ad_action('hotornot','',8);ad_action('publish','',4);}else{ad_action('publish','',4);ad_action('hotornot','',8);}ad_check(ad_rows('SELECT rate_point,rate_hon_point FROM fixture_album_rate')===array(array('rate_point'=>4,'rate_hon_point'=>8))||ad_rows('SELECT rate_point,rate_hon_point FROM fixture_album_rate')===array(array('rate_point'=>'4','rate_hon_point'=>'8')),'Independent channels fill one existing row without blocking or zero dilution');$cases++;}
  foreach(array('publish','hotornot')as$method){ad_denied(function()use($method){ad_action($method,'',6);},'One vote per selected channel when configured');}
  ad_reset();ad_sql("UPDATE fixture_album_sp_config SET config_value='0' WHERE config_name='hon_rate_sep'");ad_action('hotornot','',8);ad_denied(function(){ad_action('publish','',6);},'Shared channel correctly prevents another normal vote');
