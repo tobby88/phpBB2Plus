@@ -39,6 +39,7 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+require_once $album_root_path . 'album_picture_delete.php';
 
 
 // ------------------------------------
@@ -175,53 +176,29 @@ if( !$confirmed )
 }
 else
 {
-	// --------------------------------
-	// It's confirmed. First delete all comments
-	// --------------------------------
-	$sql = "DELETE FROM ". ALBUM_COMMENT_TABLE ."
-			WHERE comment_pic_id = $pic_id";
-	if( !$result = $db->sql_query($sql) )
+	// The owned writer rechecks current session/category/author authority and
+	// commits picture/comments/ratings plus exact cleanup receipts together.
+	// Physical image cleanup only follows an acknowledged metadata commit.
+	$delete_error = false;
+	try
 	{
-		message_die(GENERAL_ERROR, 'Could not delete related comments', '', __LINE__, __FILE__, $sql);
+		$delete_writer = new AlbumPictureDelete($db, $table_prefix, realpath($phpbb_root_path));
+		$delete_result = $delete_writer->remove($userdata, (int) $album_user_id, (int) $cat_id, array((int) $pic_id));
 	}
-
-
-	// --------------------------------
-	// Delete all ratings
-	// --------------------------------
-	$sql = "DELETE FROM ". ALBUM_RATE_TABLE ."
-			WHERE rate_pic_id = $pic_id";
-	if( !$result = $db->sql_query($sql) )
+	catch (Exception $error)
 	{
-		message_die(GENERAL_ERROR, 'Could not delete related ratings', '', __LINE__, __FILE__, $sql);
+		error_log('phpBB Album picture deletion failed: ' . get_class($error));
+		$delete_error = true;
 	}
-
-
-	// --------------------------------
-	// Delete cached thumbnail
-	// --------------------------------
-	if(($thispic['pic_thumbnail'] != '') and @file_exists(ALBUM_CACHE_PATH . $thispic['pic_thumbnail']))
+	catch (Error $error)
 	{
-		@unlink(ALBUM_CACHE_PATH . basename($thispic['pic_thumbnail']));
+		error_log('phpBB Album picture deletion failed: ' . get_class($error));
+		$delete_error = true;
 	}
-
-
-	// --------------------------------
-	// Delete File
-	// --------------------------------
-	@unlink(ALBUM_UPLOAD_PATH . basename($thispic['pic_filename']));
-
-
-	// --------------------------------
-	// Delete DB entry
-	// --------------------------------
-	$sql = "DELETE FROM ". ALBUM_TABLE ."
-			WHERE pic_id = $pic_id";
-	if( !$result = $db->sql_query($sql) )
+	if ($delete_error)
 	{
-		message_die(GENERAL_ERROR, 'Could not delete DB entry', '', __LINE__, __FILE__, $sql);
+		message_die(GENERAL_ERROR, isset($lang['Delete_processing_failed']) ? $lang['Delete_processing_failed'] : 'The deletion could not be confirmed. Please reload the album page.');
 	}
-
 
 	// --------------------------------
 	// Complete... now send a message to user

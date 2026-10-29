@@ -1137,12 +1137,47 @@ CREATE TABLE phpbb_album (
 	KEY pic_time (pic_time)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+# Durable Album file intents. Upload preparation is committed before file I/O;
+# publication/deletion receipts commit with their picture metadata transaction.
+CREATE TABLE phpbb_album_file_jobs (
+	operation_id char(32) NOT NULL,
+	schema_version smallint UNSIGNED NOT NULL default '1',
+	operation_kind varchar(16) NOT NULL,
+	operation_state varchar(16) NOT NULL,
+	actor_id int NOT NULL,
+	owner_id mediumint UNSIGNED NOT NULL default '0',
+	category_id mediumint UNSIGNED NULL default NULL,
+	picture_id int UNSIGNED NULL default NULL,
+	binding_hash char(64) NOT NULL,
+	capability_hash char(64) NOT NULL,
+	item_count smallint UNSIGNED NOT NULL default '0',
+	picture_count smallint UNSIGNED NOT NULL default '0',
+	created_at int UNSIGNED NOT NULL,
+	completed_at int UNSIGNED NULL default NULL,
+	PRIMARY KEY (operation_id),
+	KEY state_created (operation_state,created_at)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE phpbb_album_file_items (
+	operation_id char(32) NOT NULL,
+	item_index smallint UNSIGNED NOT NULL,
+	item_hash char(64) NOT NULL,
+	file_scope varchar(8) NOT NULL,
+	filename varchar(255) NOT NULL,
+	file_present tinyint UNSIGNED NOT NULL,
+	file_bytes int UNSIGNED NOT NULL default '0',
+	file_sha256 char(64) NULL default NULL,
+	item_state varchar(16) NOT NULL,
+	PRIMARY KEY (operation_id,item_index),
+	UNIQUE KEY operation_item (operation_id,item_hash)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE phpbb_album_rate (
 	rate_pic_id int(11) UNSIGNED NOT NULL,
 	rate_user_id mediumint(8) NOT NULL,
 	rate_user_ip char(8) NOT NULL,
 	rate_point tinyint(3) UNSIGNED NOT NULL,
-	rate_hon_point tinyint(3) default '0' NOT NULL,
+	rate_hon_point smallint default '0' NOT NULL,
 	KEY rate_pic_id (rate_pic_id),
 	KEY rate_user_id (rate_user_id),
 	KEY rate_user_ip (rate_user_ip),
@@ -1154,10 +1189,10 @@ CREATE TABLE phpbb_album_comment (
 	comment_pic_id int(11) UNSIGNED NOT NULL,
 	comment_cat_id int(11) NOT NULL,
 	comment_user_id mediumint(8) NOT NULL,
-	comment_username varchar(32),
+	comment_username varchar(255),
 	comment_user_ip char(8) NOT NULL,
 	comment_time int(11) UNSIGNED NOT NULL,
-	comment_text text,
+	comment_text mediumtext,
 	comment_edit_time int(11) UNSIGNED,
 	comment_edit_count smallint(5) UNSIGNED NOT NULL default '0',
 	comment_edit_user_id mediumint(8),

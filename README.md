@@ -34,6 +34,61 @@ not presented as separate MODs. The self-hosted Ruffle runtime used by the
 preserved Arcade is documented in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Album file operations and recovery
+
+Picture uploads record a durable manifest before publishing files. Picture and
+category deletion, moves, moderation and discussion writes share an Album writer
+lease and recheck current account/session and category permissions. The metadata
+transaction commits before deletion receipts authorize physical file cleanup.
+Generated previews recheck the current parent, approval and cache settings before
+publication. A failed or unconfirmed commit must be inspected before retrying.
+
+Existing installations need the consolidated database updater, including the
+Album file journal tables. Back up the database and Album directories, stop and
+drain all web/cron writers, then review and apply the update before enabling the
+new code:
+
+```sh
+php update/update_from_153a.php
+php update/update_from_153a.php --apply --backup-confirmed --maintenance-confirmed
+```
+
+The CLI recovery tool previews eligible journal headers by default. It can resume
+committed picture deletions and abandon uploads which remained prepared for at
+least seven days by default. It requires an explicit apply and confirmation of a
+verified database **and file** backup:
+
+```sh
+php update/recover_album_files.php
+php update/recover_album_files.php --apply --backup-confirmed --jobs=10 --items=100
+```
+
+New deletion receipts contain at most 500 pictures and 2,500 distinct paths each,
+keeping manifest preparation/readback bounded in memory. Larger selected galleries
+span multiple receipts; the total picture selection is not capped. Previously
+recorded larger receipts remain valid.
+
+`--jobs` limits journal records to 1–100 per page; `--items` limits attempted
+manifest items to 1–1,000 across that run. An upload item includes its final file
+and deterministic unfinished stage. `--older-than-days` accepts 1–3,650; recent
+prepared uploads and published uploads remain untouched. Revocation commits in a
+separate lease before any abandoned upload bytes can be removed. Only exact
+journal-owned content is removed; current references and changed files remain.
+Recovery cannot reconstruct files lost before these journals existed.
+
+Use the returned `next_after` as `--after=<operation-id>` for subsequent pages.
+An incomplete operation retains the preceding cursor, so repeating the run
+continues that operation. `more_available` reports pending or further work.
+Receipts remain recorded, including shared/changed outcomes. A failed run stops
+without retrying an uncertain commit. Preview headers still need full manifest
+validation at apply time; preview does not promise a later deletion will succeed.
+
+The tool derives both configuration and Album directories from its installation,
+supporting the repository's `phpBB2/` layout and a flat webroot with `update/`.
+Database, config and root overrides are deliberately unavailable. Reports omit
+filenames, content and capability hashes. This recovery tool is independent of
+site-specific deployment tooling.
+
 ## Album text storage
 
 ### Picture text
@@ -59,8 +114,8 @@ Back up and stop all web/cron writers first. Existing rows, defaults, nullabilit
 comments, indexes and identity floors are verified; wider custom definitions are
 retained. Unsupported expressions, full-width text indexes or custom identities
 require review. Keep writers stopped after any partial DDL failure. This text
-fix does not make the legacy picture-upload permission/approval checks, picture
-deletion or filesystem cleanup transactional; those are separate paths.
+capacity change is separate from the coordinated Album file operations and
+durable cleanup protocol described above.
 
 ### Category text
 
@@ -79,8 +134,8 @@ foreign, missing and cyclic parents are rejected. Read-only root titles and
 descriptions (including SQL NULL) are retained. Repeated unchanged edits preserve
 HTML-sensitive titles without adding another layer of entity encoding. No
 additional schema migration is needed for this edit path. Category deletion
-and legacy AdminCP writers are separate operations, not covered by this
-transaction guarantee.
+uses the separate coordinated Album lifecycle and committed cleanup receipts
+described above.
 
 Personal category ordering uses session-protected POST buttons and a dedicated
 transaction with the current account/login/grant and locked owner, category,

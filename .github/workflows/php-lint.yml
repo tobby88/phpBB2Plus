@@ -61,6 +61,9 @@ jobs:
       - name: Test database update schema
         run: php update/update_from_153a.php --self-test
 
+      - name: Keep Album recovery preview-only without explicit bounded apply
+        run: php .github/scripts/check-album-file-recovery.php
+
       - name: Preserve wide Knowledge Base rating counters in both list renderers
         run: php .github/scripts/check-kb-rating-rendering.php
 
@@ -279,6 +282,14 @@ jobs:
           php .github/scripts/check-album-regeneration.php
         env:
           PHPBB_ALBUM_CACHE_GD_REQUIRED: '1'
+
+      - name: Check Album file receipts, exclusive publication and crash recovery
+        run: php .github/scripts/check-album-file-storage.php
+
+      - name: Check actual Nuffload staging and GD upload preprocessing
+        run: php .github/scripts/check-album-upload-stage.php
+        env:
+          PHPBB_ALBUM_UPLOAD_STAGE_GD_REQUIRED: '1'
 
       - name: Test image processing safety
         run: php .github/scripts/check-image-processing-safety.php

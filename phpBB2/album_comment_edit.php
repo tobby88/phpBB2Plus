@@ -53,6 +53,7 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+require_once $album_root_path . 'album_picture_discussion.php';
 
 
 // ------------------------------------
@@ -148,10 +149,10 @@ $comments_per_page = intval($board_config['posts_per_page']);
 // ------------------------------------
 // Check the permissions
 // ------------------------------------
-$album_user_access = album_permissions($album_user_id, $cat_id, ALBUM_AUTH_COMMENT|ALBUM_AUTH_EDIT, $thispic);
+$album_user_access = album_permissions($album_user_id, $cat_id, ALBUM_AUTH_VIEW|ALBUM_AUTH_COMMENT|ALBUM_AUTH_EDIT|ALBUM_AUTH_UPLOAD, $thispic);
 //--- Album Category Hierarchy : end
 
-if( ($album_user_access['comment'] == 0) or ($album_user_access['edit'] == 0) )
+if (empty($album_user_access['view']) || empty($album_user_access['comment']) || empty($album_user_access['edit']))
 {
 	if (!$userdata['session_logged_in'])
 	{
@@ -308,36 +309,10 @@ else
               Comment Submited
 	   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-	$comment_text = htmlspecialchars(substr(trim(stripslashes((string) $_POST['comment'])), 0, intval($album_config['desc_length'])), ENT_QUOTES, 'UTF-8');
-
-	if( empty($comment_text) )
-	{
-		message_die(GENERAL_ERROR, $lang['Comment_no_text']);
-	}
-
-
-	// --------------------------------
-	// Prepare variables
-	// --------------------------------
-
-	$comment_edit_time = time();
-	$comment_edit_user_id = intval($userdata['user_id']);
-
-
-	// --------------------------------
-	// Update the DB
-	// --------------------------------
-
-	$sql = "UPDATE ". ALBUM_COMMENT_TABLE ."
-			SET comment_text = '" . $db->sql_escape($comment_text) . "', comment_edit_time = $comment_edit_time, comment_edit_count = comment_edit_count + 1, comment_edit_user_id = $comment_edit_user_id
-			WHERE comment_id = $comment_id
-				AND comment_pic_id = $pic_id";
-
-	if( !$result = $db->sql_query($sql) )
-	{
-		message_die(GENERAL_ERROR, 'Could not update comment data', '', __LINE__, __FILE__, $sql);
-	}
-
+	$comment_limit = max(1, album_photo_description_limit(isset($album_config['desc_length']) ? $album_config['desc_length'] : 255));
+	$comment_text = AlbumPictureDiscussion::input_text($_POST['comment'], $comment_limit);
+	album_discussion_request('change', array(
+		$userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id, (int) $comment_id, $comment_text));
 
 	// --------------------------------
 	// Complete... now send a message to user

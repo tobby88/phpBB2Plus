@@ -75,41 +75,11 @@ if( !isset($_POST['confirm']) )
 else
 {
 	phpbb_admin_require_post_session();
-	$cache_path = realpath('../' . ALBUM_CACHE_PATH);
-	$album_root = realpath('../');
-	if ($cache_path === false || $album_root === false ||
-		strpos(str_replace('\\', '/', $cache_path) . '/', rtrim(str_replace('\\', '/', $album_root), '/') . '/') !== 0 ||
-		!is_dir($cache_path))
-	{
-		message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']);
-	}
-	$cache_dir = @opendir($cache_path);
-	if ($cache_dir === false)
-	{
-		message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']);
-	}
-	$delete_failed = false;
-
-	while( $cache_file = @readdir($cache_dir) )
-	{
-		if (preg_match('/\.(?:gif|png|jpe?g|webp)$/iD', $cache_file))
-		{
-			$cache_item = $cache_path . DIRECTORY_SEPARATOR . basename($cache_file);
-			if (is_file($cache_item) && !is_link($cache_item))
-			{
-				if (!@unlink($cache_item))
-				{
-					$delete_failed = true;
-				}
-			}
-		}
-	}
-
-	@closedir($cache_dir);
-	if ($delete_failed)
-	{
-		message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']);
-	}
+	require_once($phpbb_root_path . 'album_mod/album_constants.' . $phpEx);
+	require_once($phpbb_root_path . 'album_mod/album_cache_maintenance.' . $phpEx);
+	try { (new AlbumCacheMaintenance($db, $table_prefix, $phpbb_root_path))->clear($userdata); }
+	catch (Exception $error) { message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']); }
+	catch (Error $error) { message_die(GENERAL_ERROR, $lang['Album_cache_directory_error']); }
 
 	message_die(GENERAL_MESSAGE, $lang['Thumbnail_cache_cleared_successfully']);
 }

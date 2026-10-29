@@ -53,7 +53,7 @@ image_processing_assert(create_thumbnail($corrupt_gif, $corrupt_thumbnail, 'imag
 
 $root = dirname(dirname(__DIR__));
 $sources = array(
-	'phpBB2/album_upload.php',
+	'phpBB2/album_mod/album_upload_stage.php',
 	'phpBB2/album_nuffload.php',
 	'phpBB2/album_thumbnail.php',
 	'phpBB2/album_picm.php',
@@ -66,6 +66,9 @@ foreach ($sources as $relative)
 	$source = file_get_contents($root . '/' . $relative);
 	image_processing_assert(strpos($source, 'phpbb_image_dimensions_safe(') !== false, $relative . ' must check decoded dimensions before GD allocation');
 }
+
+$upload = file_get_contents($root . '/phpBB2/album_upload.php');
+image_processing_assert(strpos($upload, 'new AlbumUploadStage(') !== false && strpos($upload, '$upload_writer->publish(') !== false, 'actual upload must delegate bounded image decoding and publication to the owned stage/writer');
 
 $thumbnail = file_get_contents($root . '/phpBB2/album_thumbnail.php');
 image_processing_assert(strpos($thumbnail, '$pic_size === false') !== false, 'thumbnail regeneration must handle corrupt image metadata');

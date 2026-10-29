@@ -6,6 +6,48 @@ The preserved history continues from the `phpBB2-Plus-1.53a` tag. The Git
 history remains the authoritative record; this section summarizes notable
 changes consolidated after that baseline without implying active maintenance.
 
+### Album file recovery, comments and ratings
+
+- Clear both Album preview caches under the shared writer lease and current
+  exact ACP module/session permissions. Preserve original images, staged work,
+  index files, nested directories and links; refuse aliased cache roots. Retain
+  JPEG/PNG/GIF/WebP cache support and delegated administration.
+- Reconcile old comment category snapshots against current existing picture
+  parents in the consolidated updater and a guarded scoped mode. Preserve
+  missing-parent comments, exact content/authors/edit metadata and custom bytes.
+- Widen legacy signed HotOrNot score storage losslessly to support configured
+  values through 255. Include the change in new installations, the full updater
+  and a separately guarded preview/apply mode; preserve all historical votes.
+- Resume interrupted committed file deletions in bounded batches, retaining
+  unprocessed receipt items and the existing foreground cleanup behavior.
+- Bound new deletion manifests to 500 pictures / 2,500 paths each without limiting
+  the complete gallery selection. Retain larger existing receipts; verify real
+  multi-receipt rollback and lost-commit recovery under a 64 MiB memory limit.
+- Revoke old prepared uploads durably before abandoned-file recovery. Preserve
+  current references and changed bytes; refuse ordinary publication/retry after
+  revocation. Retain journals through uncertain commits and worker crashes.
+- Add the CLI `update/recover_album_files.php`, with preview as its default,
+  explicit apply/backup confirmation, total item and job budgets, continuation
+  cursors and further-work reporting. Keep configuration and Album paths tied to
+  one installation; support repository and flat webroot layouts. Include native
+  subprocess recovery coverage in the PHP 5.6/7.4/8.5 CI checks.
+
+- Revalidate current picture identity, permissions and cache policy under the
+  shared Album writer lease before publishing regenerated small/medium previews.
+  Refuse late cache creation after picture deletion/move, retain old cache on
+  failed replacement, and keep direct image rendering available when a cache
+  cannot be published. Concurrent deletion includes a just-published preview.
+- Preserve logical Unicode comment limits before HTML escaping, including guest
+  names. Widen comment storage in new installations and the consolidated updater
+  without rewriting existing text or guest bylines. In the full updater, widen
+  Album author fields before reconciling registered names.
+- Commit combined comments and ratings together using current session, category
+  and picture permissions. Coordinate these writes with picture moves/deletion;
+  permit current category moderators to remove comments by other authors.
+- Keep normal and separate HotOrNot rating channels independent, preserve
+  configured repeat voting, and exclude unused zero placeholders from Album
+  and portal averages. Align the voting form and rating-list pagination.
+
 ### Administration, search and quick reply
 
 - Give quote headers and bodies readable inner spacing, and match quote text

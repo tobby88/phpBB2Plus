@@ -8,17 +8,18 @@ function plus_album_text_layout($kind)
 {
 	if ($kind === 'category') { return array('suffix' => 'album_cat', 'identity' => 'cat_id', 'fields' => array('cat_title' => 1530, 'cat_desc' => 0)); }
 	if ($kind === 'picture') { return array('suffix' => 'album', 'identity' => 'pic_id', 'fields' => array('pic_title' => 1530, 'pic_desc' => 0, 'pic_username' => 255)); }
+	if ($kind === 'discussion') { return array('suffix' => 'album_comment', 'identity' => 'comment_id', 'fields' => array('comment_username' => 255, 'comment_text' => 0)); }
 	throw new RuntimeException('Unknown Album text layout');
 }
 function plus_album_text_table($prefix, $kind = 'category')
 {
-	if (!is_string($prefix) || preg_match('/^[A-Za-z0-9_]{1,55}$/D', $prefix) !== 1) { throw new RuntimeException('Invalid Album category table prefix'); }
 	$layout = plus_album_text_layout($kind);
+	if (!is_string($prefix) || preg_match('/^[A-Za-z0-9_]{1,55}$/D', $prefix) !== 1 || strlen($prefix) + strlen($layout['suffix']) > 64) { throw new RuntimeException('Invalid Album text table prefix'); }
 	return $prefix . $layout['suffix'];
 }
 function plus_album_text_default($db, $table, $field, $column)
 {
-	if (!in_array($field, array('cat_title', 'cat_desc', 'pic_title', 'pic_desc', 'pic_username'), true)) { throw new RuntimeException('Unknown Album text field'); }
+	if (!in_array($field, array('cat_title', 'cat_desc', 'pic_title', 'pic_desc', 'pic_username', 'comment_username', 'comment_text'), true)) { throw new RuntimeException('Unknown Album text field'); }
 	if ($column['Default'] === null) { return null; }
 	$defaults = plus_storage_rows($db, "SELECT VERSION() AS server_version,COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND HEX(TABLE_NAME)=HEX('" . mysqli_real_escape_string($db, $table) . "') AND COLUMN_NAME='" . $field . "'");
 	if (count($defaults) !== 1) { throw new RuntimeException('Cannot inventory Album text default'); }
@@ -99,7 +100,7 @@ function plus_album_text_plan($db, $prefix, $canonical = false, $kind = 'categor
 }
 function plus_album_text_digest($db, $table, $identity = 'cat_id')
 {
-	if (!in_array($identity, array('cat_id', 'pic_id'), true)) { throw new RuntimeException('Unknown Album text identity'); }
+	if (!in_array($identity, array('cat_id', 'pic_id', 'comment_id'), true)) { throw new RuntimeException('Unknown Album text identity'); }
 	$result = mysqli_query($db, 'SELECT * FROM ' . plus_storage_identifier($table) . ' ORDER BY ' . plus_storage_identifier($identity), MYSQLI_USE_RESULT);
 	if (!$result) { throw new RuntimeException('Cannot verify Album category contents'); }
 	$hash = hash_init('sha256');
@@ -160,4 +161,17 @@ function plus_album_photo_text_apply($db, $prefix, $backup_confirmed, $maintenan
 function plus_album_photo_text_digest($db, $table)
 {
 	return plus_album_text_digest($db, $table, 'pic_id');
+}
+
+function plus_album_discussion_text_plan($db, $prefix, $canonical = false)
+{
+	return plus_album_text_plan($db, $prefix, $canonical, 'discussion');
+}
+function plus_album_discussion_text_apply($db, $prefix, $backup_confirmed, $maintenance_confirmed, $wait_seconds = 30)
+{
+	return plus_album_text_apply($db, $prefix, $backup_confirmed, $maintenance_confirmed, $wait_seconds, 'discussion');
+}
+function plus_album_discussion_text_digest($db, $table)
+{
+	return plus_album_text_digest($db, $table, 'comment_id');
 }

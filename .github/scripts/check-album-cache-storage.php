@@ -46,6 +46,11 @@ try {
         $info = getimagesize($directory . 'owned' . $type); acs_check($info[0] === 2 && $info[1] === 3 && $info[2] === ($type === '.jpg' ? IMAGETYPE_JPEG : IMAGETYPE_PNG), 'Exact GD dimensions/type'); acs_no_temps(); $cases++;
     } } }
     $old = file_get_contents(ALBUM_CACHE_PATH . 'owned.jpg'); $png = file_get_contents(ALBUM_CACHE_PATH . 'owned.png');
+    foreach (array('entry', 'final', 'throw', 'truthy') as $boundary) {
+        $calls = 0; $guard = function () use (&$calls, $boundary) { $calls++; if ($boundary === 'throw' && $calls === 2) { throw new RuntimeException('Expired publication'); } if ($boundary === 'truthy') { return 1; } return !($boundary === 'entry' || $calls === 2); };
+        acs_check(!album_store_cached_image($image, ALBUM_CACHE_PATH, 'owned.jpg', '.jpg', 80, $guard) && file_get_contents(ALBUM_CACHE_PATH . 'owned.jpg') === $old && $calls === (in_array($boundary, array('entry', 'truthy'), true) ? 1 : 2), 'Entry/final/throwing/nonboolean capability refusal preserves old target'); acs_no_temps(); $cases++;
+    }
+    foreach (array('not_a_publication_callback', array(), new stdClass()) as $guard) { acs_check(!album_store_cached_image($image, ALBUM_CACHE_PATH, 'owned.jpg', '.jpg', 80, $guard) && file_get_contents(ALBUM_CACHE_PATH . 'owned.jpg') === $old, 'Invalid capability refuses before temporary allocation'); acs_no_temps(); $cases++; }
     foreach (array(array('../owned.jpg', '.jpg'), array('sub/owned.jpg', '.jpg'), array('sub\\owned.jpg', '.jpg'), array('C:owned.jpg', '.jpg'), array("nul\x00.jpg", '.jpg'), array('con.jpg', '.jpg'), array(' owned.jpg', '.jpg'), array('owned.jpg ', '.jpg'), array(str_repeat('a', 252) . '.jpg', '.jpg'), array('owned.php', '.jpg'), array('owned.jpg', '.png'), array('owned.jpg', '.gif'), array(array(), '.jpg')) as $case) {
         acs_check(!album_store_cached_image($image, ALBUM_CACHE_PATH, $case[0], $case[1]) && file_get_contents(ALBUM_CACHE_PATH . 'owned.jpg') === $old, 'Invalid cache path/type retains old target'); acs_no_temps(); $cases++;
     }

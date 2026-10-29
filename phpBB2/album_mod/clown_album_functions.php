@@ -182,49 +182,23 @@ function generate_album_smilies($mode, $page_id) //borrowed from phpbbforums...m
 	}
 }
 
-function CanRated ($picID, $userID)
+function CanRated($picID, $userID)
 {
-//PRE: deside if user can rate things on hot or not
 	global $db, $album_sp_config, $userdata;
-	$picID = intval($picID);
-	$userID = intval($userID);
-	if ($picID < 1)
+	$picID = intval($picID); $userID = intval($userID);
+	if ($picID < 1) { return false; }
+	if (!$userdata['session_logged_in']) { return !empty($album_sp_config['hon_rate_users']); }
+	if (!empty($album_sp_config['hon_rate_times'])) { return true; }
+	$field = !empty($album_sp_config['hon_rate_sep']) ? 'rate_hon_point' : 'rate_point';
+	$sql = "SELECT rate_pic_id FROM " . ALBUM_RATE_TABLE .
+		" WHERE rate_pic_id = $picID AND rate_user_id = $userID AND $field > 0 LIMIT 1";
+	if (!($result = $db->sql_query($sql)))
 	{
-		return false;
+		message_die(GENERAL_ERROR, 'Could not query rating information', '', __LINE__, __FILE__, $sql);
 	}
-
-	if (! $userdata['session_logged_in'] && $album_sp_config['hon_rate_users'] == 1)
-	{
-		$alowed = true;
-	}
-	else if ($userdata['session_logged_in'] && $album_sp_config['hon_rate_times'] == 0)
-	{
-		$sql = "SELECT *
-					FROM ". ALBUM_RATE_TABLE ."
-					WHERE rate_pic_id = $picID
-						AND rate_user_id = $userID
-					LIMIT 1";
-
-		if( !$result = $db->sql_query($sql) )
-		{
-			message_die(GENERAL_ERROR, 'Could not query rating information', '', __LINE__, __FILE__, $sql);
-		}
-
-		if ($db->sql_numrows($result) > 0)
-		{
-			$alowed = false;
-		}
-		else
-		{
-			$alowed =  true;
-		}
-	}
-	else
-	{
-		$alowed = true;
-	}
-
-	return ($alowed);
+	$allowed = ($db->sql_numrows($result) === 0);
+	$db->sql_freeresult($result);
+	return $allowed;
 }
 
 ?>

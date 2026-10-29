@@ -41,6 +41,7 @@ init_userprefs($userdata);
 // Get general album information
 //
 include($album_root_path . 'album_common.'.$phpEx);
+require_once $album_root_path . 'album_cache_publication.php';
 
 
 // ------------------------------------
@@ -282,10 +283,10 @@ else
 			{
 				case '.jpg':
 					$thumbnail_quality = max(0, min(100, intval($album_config['thumbnail_quality'])));
-					$thumbnail_written = album_store_cached_image($thumbnail, ALBUM_MED_CACHE_PATH, $pic_thumbnail, '.jpg', $thumbnail_quality);
+					$thumbnail_written = album_publish_picture_cache($userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id, array('pic_filename' => $thispic['pic_filename'], 'pic_thumbnail' => $thispic['pic_thumbnail']), $thumbnail, '.jpg', true);
 					break;
 				case '.png':
-					$thumbnail_written = album_store_cached_image($thumbnail, ALBUM_MED_CACHE_PATH, $pic_thumbnail, '.png');
+					$thumbnail_written = album_publish_picture_cache($userdata, (int) $album_user_id, (int) $cat_id, (int) $pic_id, array('pic_filename' => $thispic['pic_filename'], 'pic_thumbnail' => $thispic['pic_thumbnail']), $thumbnail, '.png', true);
 					break;
 			}
 

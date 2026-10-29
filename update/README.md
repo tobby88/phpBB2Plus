@@ -1,5 +1,34 @@
 # Database updates and maintenance
 
+The full updater reconciles legacy comment category snapshots after old picture
+moves. Preview separately with `--album-comment-parents-only`, then use the same
+`--apply --backup-confirmed --maintenance-confirmed` confirmations to apply.
+Only a comment with an existing picture and current category is changed; its
+category follows that picture. Missing pictures/categories, author spellings,
+text, edit history and custom data are preserved. The repair is transactional,
+idempotent and uses the shared Album writer lease. Custom triggers and incompatible
+storage require review. This mode cannot be combined with another scoped mode.
+
+The full updater also widens legacy signed HotOrNot score storage to SMALLINT,
+so configured scores through 255 fit. Preview this change separately with
+`php update/update_from_153a.php --album-rating-storage-only`; applying requires
+`--apply --backup-confirmed --maintenance-confirmed`. Existing negative scores,
+duplicate votes, both rating channels, defaults and column comments are retained.
+Already sufficient integer definitions are kept. Custom incompatible definitions
+require manual review. This mode cannot be combined with another scoped mode.
+
+Comment author/text capacity is also included in the full updater. The isolated
+`--album-discussion-text-storage-only` mode previews widening `comment_username`
+to 255 characters and `comment_text` to MEDIUMTEXT, so logical Unicode limits
+still fit after HTML escaping. Apply with the same backup and maintenance
+confirmations described below. Existing comments, author spellings, literal
+defaults, metadata and larger custom fields are preserved; historical votes are
+not changed. This mode cannot be combined with another scoped mode.
+The full updater reconciles registered Album author snapshots only after both
+picture and comment author capacities have been widened, so account renames
+with longer Unicode names cannot be copied into the old 32-character fields.
+This capacity change does not change the forum's account-name policy.
+
 Picture title/description/author capacity is included in the full updater. For
 an otherwise canonically migrated installation, use
 `php update/update_from_153a.php --album-photo-text-storage-only` to inspect the

@@ -65,7 +65,7 @@ function album_nuffload_cleanup_temp($tmp_path, $max_age = 3600)
 	}
 	while (($file = readdir($handle)) !== false)
 	{
-		if (preg_match('/^[a-f0-9]{32}_(?:actualdata[0-9]+|qstring|flength|postdata|received|complete|owner)$/i', $file)
+		if (preg_match('/^[a-f0-9]{32}_(?:actualdata[0-9]+|derived_[a-f0-9]{32}|qstring|flength|postdata|received|complete|owner)$/i', $file)
 			&& is_file($tmp_path . $file) && filemtime($tmp_path . $file) < (time() - (int) $max_age))
 		{
 			@unlink($tmp_path . $file);
@@ -113,27 +113,6 @@ function album_nuffload_is_staged_file($source, $configured_path, $psid)
 	return $source_dir === $tmp_dir
 		&& preg_match('/^' . preg_quote((string) $psid, '/') . '_actualdata[0-9]+$/iD', basename($source_real));
 }
-
-function album_store_staged_upload($source, $destination, $configured_path, $psid)
-{
-	if (!album_nuffload_is_staged_file($source, $configured_path, $psid))
-	{
-		return false;
-	}
-	if (@rename($source, $destination))
-	{
-		return true;
-	}
-	if (!@copy($source, $destination))
-	{
-		return false;
-	}
-	@unlink($source);
-	return true;
-}
-
-
-
 
 // ----------------------------------------------------------------------------
 // This function will return the access data of the current user for a category
@@ -770,8 +749,10 @@ function album_cached_image_valid($directory, $filename, $type, $max_width = nul
 	return $dimensions !== false && $dimensions[0] === $info[0] && $dimensions[1] === $info[1];
 }
 
-function album_store_cached_image($image, $directory, $filename, $type, $quality = 80)
+// Picture renderers must supply their current owned publication capability.
+function album_store_cached_image($image, $directory, $filename, $type, $quality = 80, $publication_guard = null)
 {
+	if ($publication_guard !== null && !is_callable($publication_guard)) { return false; }
 	$base = album_cache_directory($directory);
 	if ($base === false || !album_cache_filename($filename, $type) || !is_int($quality) || $quality < 0 || $quality > 100 ||
 		!function_exists($type === '.jpg' ? 'imagejpeg' : 'imagepng') ||
@@ -780,6 +761,7 @@ function album_store_cached_image($image, $directory, $filename, $type, $quality
 	if (is_link($target) || is_dir($target)) { return false; }
 	try
 	{
+		if ($publication_guard !== null && call_user_func($publication_guard) !== true) { return false; }
 		for ($attempt = 0; $attempt < 4; $attempt++)
 		{
 			$path = $base . DIRECTORY_SEPARATOR . '.album-cache-' . bin2hex(phpbb_random_bytes(16)) . '.tmp';
@@ -792,6 +774,7 @@ function album_store_cached_image($image, $directory, $filename, $type, $quality
 		if ($temporary === null || album_cache_directory($directory) !== $base || is_link($temporary)) { return false; }
 		$written = $type === '.jpg' ? @imagejpeg($image, $temporary, $quality) : @imagepng($image, $temporary);
 		if (!$written || !album_cache_image_complete($temporary, $type) || album_cache_directory($directory) !== $base || is_link($target) || is_dir($target)) { return false; }
+		if ($publication_guard !== null && call_user_func($publication_guard) !== true) { return false; }
 		if (!@rename($temporary, $target)) { return false; }
 		$temporary = null; return true;
 	}

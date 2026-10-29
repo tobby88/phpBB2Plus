@@ -111,6 +111,9 @@ $lang['Upload_resize_failed'] = 'Das hochgeladene Bild konnte nicht sicher skali
 $lang['Missed_pic_title'] = 'Du mußt Deinen Bildtitel eintragen';
 
 $lang['Album_upload_successful'] = 'Dein Bild wurde erfolgreich hochgeladen';
+$lang['Album_upload_already_processed'] = 'Dieser Upload wurde bereits verarbeitet.';
+$lang['Upload_processing_failed'] = 'Das Bild konnte nicht gespeichert werden. Bitte versuche es erneut.';
+$lang['Upload_description_too_long'] = 'Die Bildbeschreibung ist zu lang.';
 $lang['Album_upload_need_approval'] = 'Dein Bild wurde erfolgreich hochgeladen<br /><br />Sobald ein Administrator oder Moderator das Bild akzeptiert hat, wird es freigeschaltet';
 $lang['Click_return_category'] = 'Klicke bitte %shier%s um zur Kategorie zurückzukehren';
 $lang['Click_return_album_index'] = 'Klicke bitte %shier%s um zum Album Index zurückzukehren';
@@ -207,5 +210,9 @@ $lang['Personal_category_order_failed'] = 'Die Reihenfolge konnte nicht gespeich
 $lang['Pic_title_too_long'] = 'Der Bildtitel darf höchstens 255 Zeichen enthalten.';
 $lang['Pic_username_too_long'] = 'Der Gastname darf höchstens 32 Zeichen enthalten.';
 $lang['Pic_text_update_failed'] = 'Das Bild konnte nicht aktualisiert werden. Bitte lade die Seite neu und versuche es erneut.';
+$lang['Delete_processing_failed'] = 'Der Löschvorgang konnte nicht bestätigt werden. Bitte lade die Albumseite neu.';
+$lang['Album_moderation_failed'] = 'Die Aktion konnte nicht bestätigt werden. Bitte lade die Albumseite neu und prüfe deine aktuelle Anmeldung, Kategorie und Berechtigungen.';
+$lang['Album_category_removal_failed'] = 'Die Kategorienänderung konnte nicht bestätigt werden. Bitte lade die Albumseite neu und prüfe deine aktuelle Anmeldung, Kategorien-Berechtigungen und das Ziel.';
+$lang['Album_discussion_failed'] = 'Das Speichern oder Löschen des Kommentars bzw. der Bewertung konnte nicht bestätigt werden. Bitte lade die Bildseite neu.';
 
 ?>
